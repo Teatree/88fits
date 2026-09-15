@@ -1,0 +1,17 @@
+{
+  "id": "unlock_zap_beam",
+  "name": "Zap Beam",
+  "condition": {
+    "type": "reach_level",
+    "level": 20
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "zap_beam"
+  },
+  "art_prompt": "a glass jar with a blue lightning bolt trapped inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EliteModDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_ms1ta"]
+[ext_resource type="Script" path="res://core/data/EliteModDef.gd" id="2_ms1ta"]
+[ext_resource type="Texture2D" path="res://content/elites/speedy/speedy_icon.png" id="2_tlh2m"]
+
+[sub_resource type="Resource" id="Resource_ms1ta"]
+script = ExtResource("1_ms1ta")
+stat = "speed"
+op = "mul"
+value = 0.7
+
+[sub_resource type="Resource" id="Resource_tlh2m"]
+script = ExtResource("1_ms1ta")
+stat = "hp"
+op = "mul"
+value = 1.2
+
+[resource]
+script = ExtResource("2_ms1ta")
+effects = [SubResource("Resource_ms1ta"), SubResource("Resource_tlh2m")]
+outline = Color(1, 0.81960785, 0.4, 1)
+scale_mult = 1.4
+id = "speedy"
+display_name = "Speedy"
+icon = ExtResource("2_tlh2m")
+icon_file = "speedy_icon.png"
+placeholder = {
+"color": "#FFD166",
+"glyph": "wing"
+}

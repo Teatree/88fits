@@ -1,0 +1,81 @@
+{
+  "id": "lob_grenade",
+  "name": "Lob Grenade",
+  "flavour": "Big numbers on big groups.",
+  "rarity": "rare",
+  "weight": 7,
+  "behavior": "Lobber",
+  "targeting": "densest",
+  "base": {
+    "damage": 25,
+    "cooldown": 2.2,
+    "amount": 1,
+    "area": 2.5,
+    "range": 10,
+    "knockback": 7.0,
+    "speed": 9
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "add",
+        "value": 0.5
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.1
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "add",
+        "value": 0.5
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ]
+  ],
+  "evolves_with": "haste",
+  "evolves_into": "cluster_bomb",
+  "sfx": {
+    "fire": "w_lob_throw",
+    "hit": "w_lob_boom"
+  },
+  "placeholder": {
+    "color": "#5C7A3A",
+    "glyph": "grenade"
+  },
+  "art_prompt": "a round olive-green hand grenade with a silver pin and lever"
+}

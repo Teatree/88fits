@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="PickupDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/pickups/heart/heart_icon.png" id="1_i8r8c"]
+[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="1_se7pb"]
+
+[resource]
+script = ExtResource("1_se7pb")
+lifetime = 22.0
+color = Color(0.3529412, 0.8392157, 0.41568628, 1)
+id = "heart"
+display_name = "Heart"
+flavour = "Thirty percent of a second chance."
+weight = 6.0
+icon = ExtResource("1_i8r8c")
+icon_file = "heart_icon.png"
+placeholder = {
+"color": "#FF4A6A",
+"glyph": "heart"
+}

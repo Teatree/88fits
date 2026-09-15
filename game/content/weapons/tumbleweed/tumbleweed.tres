@@ -1,0 +1,81 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/tumbleweed/tumbleweed_icon.png" id="1_4evnd"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_4evnd"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_7vev6"]
+[ext_resource type="PackedScene" path="res://content/weapons/tumbleweed/tumbleweed_visual.tscn" id="3_7vev6"]
+
+[sub_resource type="Resource" id="Resource_4evnd"]
+script = ExtResource("2_7vev6")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_7vev6"]
+script = ExtResource("2_7vev6")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[sub_resource type="Resource" id="Resource_iccdk"]
+script = ExtResource("2_7vev6")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_on5nm"]
+script = ExtResource("2_7vev6")
+stat = "speed"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_h1xhm"]
+script = ExtResource("2_7vev6")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_j8xv1"]
+script = ExtResource("2_7vev6")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[sub_resource type="Resource" id="Resource_t7day"]
+script = ExtResource("2_7vev6")
+stat = "amount"
+value = 1.0
+
+[resource]
+script = ExtResource("2_4evnd")
+base = {
+"amount": 1.0,
+"cooldown": 2.8,
+"damage": 16.0,
+"knockback": 9.0,
+"pierce": 40.0,
+"range": 16.0,
+"speed": 6.0
+}
+levels = [[], [SubResource("Resource_4evnd")], [SubResource("Resource_7vev6")], [SubResource("Resource_iccdk")], [SubResource("Resource_on5nm")], [SubResource("Resource_h1xhm")], [SubResource("Resource_j8xv1")], [SubResource("Resource_t7day")]]
+evolves_with = "spurs"
+evolves_into = "stampede"
+sfx = {
+"fire": "w_tumble_roll",
+"hit": "w_tumble_hit"
+}
+visual = ExtResource("3_7vev6")
+visual_file = "tumbleweed_visual.tscn"
+params = {
+"radius": 0.7
+}
+id = "tumbleweed"
+display_name = "Tumbleweed"
+flavour = "Rolls. Keeps rolling. Does not care."
+rarity = "rare"
+weight = 7.0
+icon = ExtResource("1_4evnd")
+icon_file = "tumbleweed_icon.png"
+placeholder = {
+"color": "#B08A4A",
+"glyph": "ball"
+}

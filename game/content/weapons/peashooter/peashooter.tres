@@ -1,0 +1,83 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/peashooter/peashooter_icon.png" id="1_fneh5"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_8ld32"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_fneh5"]
+[ext_resource type="PackedScene" path="res://content/weapons/peashooter/peashooter_visual.tscn" id="3_8ld32"]
+
+[sub_resource type="Resource" id="Resource_fneh5"]
+script = ExtResource("2_fneh5")
+stat = "damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_5486l"]
+script = ExtResource("2_fneh5")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_t4qnk"]
+script = ExtResource("2_fneh5")
+stat = "cooldown"
+op = "mul"
+value = -0.1
+
+[sub_resource type="Resource" id="Resource_bmlvy"]
+script = ExtResource("2_fneh5")
+stat = "damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_rjm48"]
+script = ExtResource("2_fneh5")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_7xshk"]
+script = ExtResource("2_fneh5")
+stat = "pierce"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_vwjlk"]
+script = ExtResource("2_fneh5")
+stat = "damage"
+op = "mul"
+value = 0.3
+
+[resource]
+script = ExtResource("2_8ld32")
+base = {
+"amount": 1.0,
+"cooldown": 0.9,
+"damage": 8.0,
+"knockback": 4.0,
+"pierce": 0.0,
+"range": 9.0,
+"speed": 14.0
+}
+levels = [[], [SubResource("Resource_fneh5")], [SubResource("Resource_5486l")], [SubResource("Resource_t4qnk")], [SubResource("Resource_bmlvy")], [SubResource("Resource_rjm48")], [SubResource("Resource_7xshk")], [SubResource("Resource_vwjlk")]]
+evolves_with = "multishot"
+evolves_into = "bullet_hose"
+sfx = {
+"fire": "w_pea_fire",
+"hit": "w_pea_hit"
+}
+visual = ExtResource("3_8ld32")
+visual_file = "peashooter_visual.tscn"
+params = {
+"familiar": {
+"bob": 0.12,
+"height": 1.55,
+"radius": 1.35,
+"speed": 1.4
+}
+}
+id = "peashooter"
+display_name = "Peashooter"
+flavour = "It goes pew. Reliably."
+icon = ExtResource("1_fneh5")
+icon_file = "peashooter_icon.png"
+placeholder = {
+"color": "#7FD07A",
+"glyph": "pea"
+}

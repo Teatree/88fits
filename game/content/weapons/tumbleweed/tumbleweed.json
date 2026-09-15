@@ -1,0 +1,84 @@
+{
+  "id": "tumbleweed",
+  "name": "Tumbleweed",
+  "flavour": "Rolls. Keeps rolling. Does not care.",
+  "rarity": "rare",
+  "weight": 7,
+  "behavior": "ProjectileEmitter",
+  "targeting": "nearest",
+  "base": {
+    "damage": 16,
+    "cooldown": 2.8,
+    "amount": 1,
+    "range": 16,
+    "pierce": 40,
+    "knockback": 9.0,
+    "speed": 6
+  },
+  "params": {
+    "radius": 0.7
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "speed",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ]
+  ],
+  "evolves_with": "spurs",
+  "evolves_into": "stampede",
+  "sfx": {
+    "fire": "w_tumble_roll",
+    "hit": "w_tumble_hit"
+  },
+  "placeholder": {
+    "color": "#B08A4A",
+    "glyph": "ball"
+  },
+  "art_prompt": "a big round dry tumbleweed made of tangled brown twigs"
+}

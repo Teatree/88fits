@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_220q0"]
+[ext_resource type="Texture2D" path="res://content/evolutions/snake_pit/snake_pit_icon.png" id="1_yeego"]
+[ext_resource type="PackedScene" path="res://content/evolutions/snake_pit/snake_pit_visual.tscn" id="2_yeego"]
+
+[resource]
+script = ExtResource("1_220q0")
+behavior = "Orbiter"
+targeting = "orbit"
+base = {
+"amount": 4.0,
+"area": 1.4,
+"cooldown": 0.3,
+"damage": 8.0,
+"knockback": 2.0,
+"orbit_radius": 3.8,
+"poison_damage": 6.0,
+"poison_duration": 12.0,
+"poison_stacks": 3.0
+}
+max_level = 1
+is_evolution = true
+evolved_from = "rattlesnake"
+sfx = {
+"hit": "w_snake_bite",
+"loop": "w_snake_rattle"
+}
+visual = ExtResource("2_yeego")
+visual_file = "snake_pit_visual.tscn"
+params = {
+"spin_speed": 4.6
+}
+id = "snake_pit"
+display_name = "Snake Pit"
+flavour = "A whole pit of them. All spiteful."
+rarity = "epic"
+icon = ExtResource("1_yeego")
+icon_file = "snake_pit_icon.png"
+placeholder = {
+"color": "#5FA84A",
+"glyph": "ring",
+"gold": true
+}

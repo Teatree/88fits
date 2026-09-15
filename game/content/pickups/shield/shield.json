@@ -1,0 +1,16 @@
+{
+  "id": "shield",
+  "name": "Shield",
+  "flavour": "Six seconds of not caring.",
+  "effect": "shield",
+  "value": 0,
+  "duration": 6,
+  "lifetime": 20,
+  "color": "#8B6CFF",
+  "weight": 2,
+  "placeholder": {
+    "color": "#8B6CFF",
+    "glyph": "shield"
+  },
+  "art_prompt": "a round blue-purple energy shield bubble with a bright rim"
+}

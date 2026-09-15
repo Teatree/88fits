@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="StructureDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/StructureDef.gd" id="1_35lj6"]
+
+[resource]
+script = ExtResource("1_35lj6")
+effect_kind = "vacuum_all"
+color = Color(1, 0.70980394, 0.18039216, 1)
+prop = "magnet_shrine"
+height = 2.2
+id = "uber_magnet"
+display_name = "Uber Magnet"
+flavour = "Every gem and coin on the map comes home. Once."
+weight = 1.0
+icon_file = "uber_magnet_icon.png"

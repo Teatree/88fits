@@ -1,0 +1,79 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/orbit_saws/orbit_saws_icon.png" id="1_shtm4"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_ik2tv"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_shtm4"]
+[ext_resource type="PackedScene" path="res://content/weapons/orbit_saws/orbit_saws_visual.tscn" id="3_ik2tv"]
+
+[sub_resource type="Resource" id="Resource_shtm4"]
+script = ExtResource("2_shtm4")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_o1ibo"]
+script = ExtResource("2_shtm4")
+stat = "damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_lakte"]
+script = ExtResource("2_shtm4")
+stat = "orbit_radius"
+op = "mul"
+value = 0.15
+
+[sub_resource type="Resource" id="Resource_xaqcr"]
+script = ExtResource("2_shtm4")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_uwa1h"]
+script = ExtResource("2_shtm4")
+stat = "damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_wby7v"]
+script = ExtResource("2_shtm4")
+stat = "area"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_y8jrs"]
+script = ExtResource("2_shtm4")
+stat = "amount"
+value = 1.0
+
+[resource]
+script = ExtResource("2_ik2tv")
+behavior = "Orbiter"
+targeting = "orbit"
+base = {
+"amount": 2.0,
+"area": 1.0,
+"cooldown": 0.25,
+"damage": 8.0,
+"knockback": 5.0,
+"orbit_radius": 2.0
+}
+levels = [[], [SubResource("Resource_shtm4")], [SubResource("Resource_o1ibo")], [SubResource("Resource_lakte")], [SubResource("Resource_xaqcr")], [SubResource("Resource_uwa1h")], [SubResource("Resource_wby7v")], [SubResource("Resource_y8jrs")]]
+evolves_with = "reach"
+evolves_into = "saw_halo"
+sfx = {
+"hit": "w_saw_hit",
+"loop": "w_saw_loop"
+}
+visual = ExtResource("3_ik2tv")
+visual_file = "orbit_saws_visual.tscn"
+params = {
+"spin_speed": 2.6
+}
+id = "orbit_saws"
+display_name = "Orbit Saws"
+flavour = "Standing still is a choice now."
+icon = ExtResource("1_shtm4")
+icon_file = "orbit_saws_icon.png"
+placeholder = {
+"color": "#C9CED8",
+"glyph": "saw"
+}

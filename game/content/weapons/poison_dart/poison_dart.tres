@@ -1,0 +1,90 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_8jwhp"]
+[ext_resource type="Texture2D" path="res://content/weapons/poison_dart/poison_dart_icon.png" id="1_id6uf"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_vy7vr"]
+[ext_resource type="PackedScene" path="res://content/weapons/poison_dart/poison_dart_visual.tscn" id="2_8jwhp"]
+
+[sub_resource type="Resource" id="Resource_id6uf"]
+script = ExtResource("1_8jwhp")
+stat = "poison_damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_8unav"]
+script = ExtResource("1_8jwhp")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[sub_resource type="Resource" id="Resource_e2kgj"]
+script = ExtResource("1_8jwhp")
+stat = "poison_damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_o5odp"]
+script = ExtResource("1_8jwhp")
+stat = "poison_stacks"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_8ebnl"]
+script = ExtResource("1_8jwhp")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_3o08y"]
+script = ExtResource("1_8jwhp")
+stat = "poison_damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_ulljh"]
+script = ExtResource("1_8jwhp")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[resource]
+script = ExtResource("1_vy7vr")
+targeting = "healthy"
+base = {
+"amount": 1.0,
+"cooldown": 1.1,
+"damage": 2.0,
+"knockback": 0.5,
+"pierce": 0.0,
+"poison_damage": 3.0,
+"poison_duration": 10.0,
+"poison_stacks": 1.0,
+"range": 9.0,
+"speed": 16.0
+}
+levels = [[], [SubResource("Resource_id6uf")], [SubResource("Resource_8unav")], [SubResource("Resource_e2kgj")], [SubResource("Resource_o5odp")], [SubResource("Resource_8ebnl")], [SubResource("Resource_3o08y")], [SubResource("Resource_ulljh")]]
+evolves_with = "venom"
+evolves_into = "plague_volley"
+sfx = {
+"fire": "w_pea_fire",
+"hit": "w_pea_hit"
+}
+visual = ExtResource("2_8jwhp")
+visual_file = "poison_dart_visual.tscn"
+params = {
+"familiar": {
+"bob": 0.14,
+"height": 1.5,
+"radius": 1.35,
+"speed": 1.2
+},
+"radius": 0.22
+}
+id = "poison_dart"
+display_name = "Poison Dart"
+flavour = "Barely a scratch. Then the scratch gets ideas."
+weight = 9.0
+icon = ExtResource("1_id6uf")
+icon_file = "poison_dart_icon.png"
+placeholder = {
+"color": "#7FD07A",
+"glyph": "dart"
+}

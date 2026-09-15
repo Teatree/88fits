@@ -1,0 +1,36 @@
+{
+  "id": "saw_halo",
+  "name": "Saw Halo",
+  "flavour": "A solid ring of no.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "orbit_saws",
+  "max_level": 1,
+  "behavior": "Orbiter",
+  "targeting": "orbit",
+  "base": {
+    "damage": 12,
+    "amount": 8,
+    "orbit_radius": 2.6,
+    "knockback": 6.0,
+    "area": 1.2,
+    "cooldown": 0.2
+  },
+  "params": {
+    "spin_speed": 3.2,
+    "solid_ring": true
+  },
+  "levels": [
+    []
+  ],
+  "sfx": {
+    "loop": "w_saw_loop",
+    "hit": "w_saw_hit"
+  },
+  "placeholder": {
+    "color": "#C9CED8",
+    "glyph": "saw",
+    "gold": true
+  },
+  "art_prompt": "a golden ring made of saw teeth, like a spiked halo"
+}

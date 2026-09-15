@@ -1,0 +1,23 @@
+{
+  "id": "splitter",
+  "name": "Splitter",
+  "effects": [
+    {
+      "stat": "hp",
+      "op": "mul",
+      "value": 1.5
+    }
+  ],
+  "outline": "#46D39A",
+  "scale_mult": 1.6,
+  "on_death": "split",
+  "params": {
+    "split_count": 4,
+    "split_scale": 0.6
+  },
+  "placeholder": {
+    "color": "#46D39A",
+    "glyph": "split"
+  },
+  "art_prompt": "one green slime blob splitting into two smaller drops"
+}

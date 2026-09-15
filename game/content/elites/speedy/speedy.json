@@ -1,0 +1,24 @@
+{
+  "id": "speedy",
+  "name": "Speedy",
+  "effects": [
+    {
+      "stat": "speed",
+      "op": "mul",
+      "value": 0.7
+    },
+    {
+      "stat": "hp",
+      "op": "mul",
+      "value": 1.2
+    }
+  ],
+  "outline": "#FFD166",
+  "scale_mult": 1.4,
+  "on_death": "none",
+  "placeholder": {
+    "color": "#FFD166",
+    "glyph": "wing"
+  },
+  "art_prompt": "a yellow feathered wing with speed lines"
+}

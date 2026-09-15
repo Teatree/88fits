@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://drygulch88fits1"]
+
+[ext_resource type="Script" path="res://world/maps/dry_gulch/DryGulch.gd" id="1"]
+
+[node name="DryGulch" type="Node3D"]
+script = ExtResource("1")

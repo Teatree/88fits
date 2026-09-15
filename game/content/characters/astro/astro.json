@@ -1,0 +1,69 @@
+{
+  "id": "astro",
+  "name": "Astro",
+  "flavour": "Wrong planet. Right attitude.",
+  "trait": [
+    {
+      "stat": "max_hp",
+      "op": "mul",
+      "value": 0.12,
+      "target": "player"
+    },
+    {
+      "stat": "magnet",
+      "op": "mul",
+      "value": 0.1,
+      "target": "player"
+    }
+  ],
+  "favourite_weapon": "orbit_saws",
+  "favourite_bonus": {
+    "type": "effects",
+    "effects": [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.2
+      }
+    ]
+  },
+  "specials": [],
+  "unlock_quest": "",
+  "frame_px": 256,
+  "anims": {
+    "idle": 4,
+    "run": 24,
+    "hit": 9,
+    "die": 1,
+    "cheer": 1,
+    "idle_f": 4,
+    "run_f": 24,
+    "idle_s": 4,
+    "run_s": 24,
+    "idle_bd": 4,
+    "run_bd": 24,
+    "idle_fd": 4,
+    "run_fd": 24,
+    "hit_f": 9,
+    "hit_s": 9,
+    "hit_bd": 9,
+    "hit_fd": 9
+  },
+  "fps": {
+    "run": 36,
+    "hit": 20
+  },
+  "strip_cols": 62,
+  "placeholder": {
+    "color": "#F2F2F2",
+    "hat": "#FF8A2A",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "art_prompt": "a cheerful young woman astronaut with a slim feminine figure, narrow waist and graceful posture, wearing a fitted white spacesuit with bright orange stripes, orange gloves and chunky orange boots, a round glass bubble helmet with a completely dark tinted mirrored visor that shows no face at all, only faint reflections, a compact white backpack with a round orange air tank, standing straight with hands relaxed at the sides",
+  "motion": "running in place at a light bouncy jog, arms and legs pumping, backpack bobbing",
+  "anim_hint": "a slim woman astronaut in a white and orange spacesuit, her round helmet visor is a completely dark opaque black mirror with no face behind it",
+  "anim_negative": "face, eyes, mouth, hair, a visible face inside the helmet, transparent visor",
+  "anim_seed": 3,
+  "portrait_prompt": "leaning in with a cheerful thumbs-up in an orange glove, the dark mirrored visor of her round helmet reflecting a tiny star and a planet"
+}

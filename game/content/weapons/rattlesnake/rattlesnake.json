@@ -1,0 +1,86 @@
+{
+  "id": "rattlesnake",
+  "name": "Rattlesnake",
+  "flavour": "It is not venom. It is spite. Fine, it is venom.",
+  "rarity": "rare",
+  "weight": 7,
+  "behavior": "Orbiter",
+  "targeting": "orbit",
+  "base": {
+    "damage": 5,
+    "amount": 1,
+    "orbit_radius": 3.2,
+    "knockback": 1.5,
+    "area": 1.2,
+    "cooldown": 0.35,
+    "poison_damage": 3,
+    "poison_stacks": 1,
+    "poison_duration": 10
+  },
+  "params": {
+    "spin_speed": 4.2
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "poison_damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "orbit_radius",
+        "op": "add",
+        "value": 0.3
+      }
+    ],
+    [
+      {
+        "stat": "poison_damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "poison_stacks",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "poison_damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "poison_stacks",
+        "op": "add",
+        "value": 1
+      }
+    ]
+  ],
+  "evolves_with": "snake_oil",
+  "evolves_into": "snake_pit",
+  "sfx": {
+    "loop": "w_snake_rattle",
+    "hit": "w_snake_bite"
+  },
+  "placeholder": {
+    "color": "#5FA84A",
+    "glyph": "ring"
+  },
+  "art_prompt": "a coiled green rattlesnake with dripping venom fangs and a rattling tail"
+}

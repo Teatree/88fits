@@ -1,0 +1,24 @@
+{
+  "id": "might",
+  "name": "Might",
+  "flavour": "Hit harder.",
+  "rarity": "common",
+  "weight": 10,
+  "pairs_with": "boomstick",
+  "levels": [
+    [
+      {
+        "stat": "might",
+        "op": "mul",
+        "value": 0.1,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "placeholder": {
+    "color": "#EE4A5C",
+    "glyph": "fist"
+  },
+  "art_prompt": "a single red flexed bicep arm bent at the elbow with the fist up, like the flexed biceps emoji, one arm only"
+}

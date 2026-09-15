@@ -1,0 +1,66 @@
+{
+  "id": "goblin",
+  "name": "Goblin",
+  "flavour": "Green. Greedy. Many.",
+  "archetype": "walker",
+  "brain": "chase",
+  "hp": 12,
+  "speed": 1.8,
+  "damage": 6,
+  "radius": 0.45,
+  "size": 1.2,
+  "pack_size": 3,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.05,
+    "gold": 0.02
+  },
+  "frame_px": 128,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_goblin_die"
+  },
+  "placeholder": {
+    "color": "#6FA84A",
+    "ears": "pointed",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "art_prompt": "a small green goblin with big pointed ears, a hooked nose, sharp little teeth in a wicked grin, wearing a ragged brown loincloth and a leather belt, holding a crude wooden club, standing and facing the viewer",
+  "xp_mult": 3.0,
+  "variance": {
+    "size": 0.2,
+    "speed": 0.15,
+    "tints": [
+      "#FFFFFF",
+      "#B8FF9C",
+      "#FFD27A",
+      "#9CC8FF",
+      "#FF9CC8"
+    ],
+    "tint_strength": 0.6,
+    "special_chance": 0.12,
+    "special": {
+      "size": 1.5,
+      "hp": 2.0,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#FF5A3C",
+      "tint_strength": 0.9
+    }
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 1,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "motion": "marching in place with a heavy stomping gait, swinging the club",
+  "strip_cols": 36,
+  "fps": {
+    "run": 15
+  }
+}

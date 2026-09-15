@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/reach/reach_icon.png" id="1_68y37"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_68y37"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_krbia"]
+
+[sub_resource type="Resource" id="Resource_68y37"]
+script = ExtResource("2_krbia")
+stat = "area"
+op = "mul"
+value = 0.1
+target = "player"
+
+[resource]
+script = ExtResource("2_68y37")
+levels = [[SubResource("Resource_68y37")]]
+pairs_with = "orbit_saws"
+id = "reach"
+display_name = "Reach"
+flavour = "Bigger everything."
+icon = ExtResource("1_68y37")
+icon_file = "reach_icon.png"
+placeholder = {
+"color": "#46D39A",
+"glyph": "ring"
+}

@@ -1,0 +1,24 @@
+{
+  "id": "rage",
+  "name": "Rage",
+  "flavour": "Everything hits harder. Briefly.",
+  "effect": "buff",
+  "value": 0,
+  "duration": 20,
+  "effects": [
+    {
+      "stat": "might",
+      "op": "mul",
+      "value": 0.5,
+      "target": "player"
+    }
+  ],
+  "lifetime": 20,
+  "color": "#FF5F6B",
+  "weight": 3,
+  "placeholder": {
+    "color": "#FF4A3C",
+    "glyph": "fist"
+  },
+  "art_prompt": "a clenched red fist with an orange flame burst behind it"
+}

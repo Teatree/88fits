@@ -1,0 +1,43 @@
+{
+  "id": "conductor",
+  "name": "Conductor",
+  "flavour": "Lightning likes you.",
+  "rarity": "rare",
+  "weight": 7,
+  "pairs_with": "zap_beam",
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "chains",
+        "op": "add",
+        "value": 1,
+        "target": "weapon:zap_beam"
+      },
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.15,
+        "target": "weapon:zap_beam"
+      },
+      {
+        "stat": "chains",
+        "op": "add",
+        "value": 1,
+        "target": "weapon:storm_cloud"
+      },
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.15,
+        "target": "weapon:storm_cloud"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "placeholder": {
+    "color": "#5DB8FF",
+    "glyph": "bolt"
+  },
+  "art_prompt": "a blue metal lightning rod with a spark at the tip"
+}

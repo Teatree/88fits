@@ -1,0 +1,93 @@
+{
+  "id": "poison_dart",
+  "name": "Poison Dart",
+  "flavour": "Barely a scratch. Then the scratch gets ideas.",
+  "rarity": "common",
+  "weight": 9,
+  "behavior": "ProjectileEmitter",
+  "targeting": "healthy",
+  "base": {
+    "damage": 2,
+    "cooldown": 1.1,
+    "amount": 1,
+    "pierce": 0,
+    "speed": 16,
+    "range": 9,
+    "knockback": 0.5,
+    "poison_damage": 3,
+    "poison_stacks": 1,
+    "poison_duration": 10
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "poison_damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ],
+    [
+      {
+        "stat": "poison_damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "poison_stacks",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "poison_damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ]
+  ],
+  "evolves_with": "venom",
+  "evolves_into": "plague_volley",
+  "params": {
+    "radius": 0.22,
+    "familiar": {
+      "radius": 1.35,
+      "height": 1.5,
+      "speed": 1.2,
+      "bob": 0.14
+    }
+  },
+  "sfx": {
+    "fire": "w_pea_fire",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#7FD07A",
+    "glyph": "dart"
+  },
+  "art_prompt": "a hovering blowgun dart with a steel needle tip, a dark green shaft and a fluffy bright green tail, dripping a drop of poison"
+}

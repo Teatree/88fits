@@ -1,0 +1,68 @@
+{
+  "id": "dad",
+  "name": "Dad",
+  "flavour": "Has opinions about the lawn.",
+  "trait": [
+    {
+      "stat": "might",
+      "op": "mul",
+      "value": 0.2,
+      "target": "player"
+    },
+    {
+      "stat": "move_speed",
+      "op": "mul",
+      "value": -0.1,
+      "target": "player"
+    }
+  ],
+  "favourite_weapon": "boomstick",
+  "favourite_bonus": {
+    "type": "effects",
+    "effects": [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 2
+      }
+    ]
+  },
+  "specials": [],
+  "unlock_quest": "unlock_dad",
+  "frame_px": 256,
+  "anims": {
+    "idle": 4,
+    "run": 24,
+    "hit": 9,
+    "die": 1,
+    "cheer": 1,
+    "idle_f": 4,
+    "run_f": 24,
+    "idle_s": 4,
+    "run_s": 24,
+    "idle_bd": 4,
+    "run_bd": 24,
+    "idle_fd": 4,
+    "run_fd": 24,
+    "hit_f": 9,
+    "hit_s": 9,
+    "hit_bd": 9,
+    "hit_fd": 9
+  },
+  "placeholder": {
+    "color": "#8FB6D8",
+    "hat": "#3E3E4E",
+    "eyes": 2,
+    "shape": "wide"
+  },
+  "art_prompt": "a goofy suburban dad with a bald head, a thick brown mustache, a grey T-shirt, khaki shorts, white socks and sandals, a proud smile",
+  "motion": "jogging in place, arms pumping, belly bouncing a little",
+  "portrait_prompt": "grinning proudly with both thumbs up, his thick brown mustache and shiny bald head, a barbecue apron strap on one shoulder",
+  "anim_hint": "a goofy suburban dad, bald with a thick brown mustache, grey T-shirt, khaki shorts, white socks and sandals",
+  "anim_negative": "hair on the head, hat, long trousers",
+  "strip_cols": 62,
+  "fps": {
+    "run": 36,
+    "hit": 20
+  }
+}

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="StructureDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/StructureDef.gd" id="1_stltj"]
+
+[resource]
+script = ExtResource("1_stltj")
+effect_kind = "loot"
+params = {
+"coins": 4.0,
+"gems": 3.0,
+"gold": 40.0
+}
+color = Color(1, 0.827451, 0.3529412, 1)
+prop = "loot_cache"
+height = 1.6
+id = "loot_cache"
+display_name = "Loot Cache"
+flavour = "Somebody buried this. Somebody was wrong."
+weight = 3.0
+icon_file = "loot_cache_icon.png"

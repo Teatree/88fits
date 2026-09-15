@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/storm_cloud/storm_cloud_icon.png" id="1_ibijk"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_t2ged"]
+[ext_resource type="PackedScene" path="res://content/evolutions/storm_cloud/storm_cloud_visual.tscn" id="2_meml0"]
+
+[resource]
+script = ExtResource("1_t2ged")
+behavior = "Beam"
+targeting = "random"
+base = {
+"amount": 1.0,
+"chains": 3.0,
+"cooldown": 0.35,
+"damage": 10.0,
+"knockback": 4.0,
+"range": 7.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "zap_beam"
+sfx = {
+"fire": "w_zap_fire",
+"hit": "w_zap_hit"
+}
+visual = ExtResource("2_meml0")
+visual_file = "storm_cloud_visual.tscn"
+params = {
+"follow": true
+}
+id = "storm_cloud"
+display_name = "Storm Cloud"
+flavour = "Follows you. Strikes them."
+rarity = "epic"
+icon = ExtResource("1_ibijk")
+icon_file = "storm_cloud_icon.png"
+placeholder = {
+"color": "#5DB8FF",
+"glyph": "bolt",
+"gold": true
+}

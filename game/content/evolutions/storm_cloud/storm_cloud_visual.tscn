@@ -1,0 +1,43 @@
+[gd_scene load_steps=5 format=3 uid="uid://vis_stormcloud01"]
+
+[sub_resource type="SphereMesh" id="proj"]
+radius = 0.12
+height = 0.24
+radial_segments = 6
+rings = 3
+
+[sub_resource type="StandardMaterial3D" id="projmat"]
+shading_mode = 0
+albedo_color = Color(0.7, 0.9, 1, 1)
+
+[sub_resource type="SphereMesh" id="cloud"]
+radius = 0.9
+height = 1.2
+radial_segments = 10
+rings = 5
+
+[sub_resource type="StandardMaterial3D" id="cloudmat"]
+albedo_color = Color(0.45, 0.42, 0.6, 1)
+emission_enabled = true
+emission = Color(0.4, 0.5, 0.9, 1)
+emission_energy_multiplier = 0.3
+
+[node name="StormCloudVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+mesh = SubResource("proj")
+material_override = SubResource("projmat")
+
+[node name="Held" type="MeshInstance3D" parent="."]
+mesh = SubResource("cloud")
+material_override = SubResource("cloudmat")
+
+[node name="Puff2" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 0.8, 0.2, 0.2)
+mesh = SubResource("cloud")
+material_override = SubResource("cloudmat")
+
+[node name="Puff3" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, -0.7, 0.15, -0.3)
+mesh = SubResource("cloud")
+material_override = SubResource("cloudmat")

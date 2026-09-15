@@ -1,0 +1,875 @@
+{
+ "last_node_id": 16,
+ "last_link_id": 21,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "UNETLoader",
+   "pos": [
+    60,
+    60
+   ],
+   "size": [
+    360,
+    142
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader"
+   },
+   "widgets_values": [
+    "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+    "default"
+   ],
+   "title": "Wan 2.2 high noise"
+  },
+  {
+   "id": 2,
+   "type": "UNETLoader",
+   "pos": [
+    60,
+    290
+   ],
+   "size": [
+    360,
+    142
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader"
+   },
+   "widgets_values": [
+    "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+    "default"
+   ],
+   "title": "Wan 2.2 low noise"
+  },
+  {
+   "id": 3,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    460,
+    60
+   ],
+   "size": [
+    360,
+    162
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+    1.0
+   ],
+   "title": "lightx2v high"
+  },
+  {
+   "id": 4,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    460,
+    290
+   ],
+   "size": [
+    360,
+    162
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly"
+   },
+   "widgets_values": [
+    "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+    1.0
+   ],
+   "title": "lightx2v low"
+  },
+  {
+   "id": 5,
+   "type": "ModelSamplingSD3",
+   "pos": [
+    860,
+    60
+   ],
+   "size": [
+    360,
+    136
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ModelSamplingSD3"
+   },
+   "widgets_values": [
+    5.0
+   ]
+  },
+  {
+   "id": 6,
+   "type": "ModelSamplingSD3",
+   "pos": [
+    860,
+    290
+   ],
+   "size": [
+    360,
+    136
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      15
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ModelSamplingSD3"
+   },
+   "widgets_values": [
+    5.0
+   ]
+  },
+  {
+   "id": 7,
+   "type": "CLIPLoader",
+   "pos": [
+    60,
+    520
+   ],
+   "size": [
+    360,
+    168
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      5,
+      6
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader"
+   },
+   "widgets_values": [
+    "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "wan",
+    "default"
+   ],
+   "title": "umt5 text encoder"
+  },
+  {
+   "id": 8,
+   "type": "VAELoader",
+   "pos": [
+    60,
+    750
+   ],
+   "size": [
+    360,
+    116
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      9,
+      20
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader"
+   },
+   "widgets_values": [
+    "wan_2.1_vae.safetensors"
+   ]
+  },
+  {
+   "id": 9,
+   "type": "CLIPTextEncode",
+   "pos": [
+    460,
+    520
+   ],
+   "size": [
+    360,
+    136
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "A 2D anime game character sprite, running in place at a steady jog, seen in strict side profile facing right. The character stays exactly in the centre of the frame like on a treadmill, a seamless looping run cycle, camera locked off, flat solid blue background, no ground, no shadow."
+   ],
+   "title": "motion prompt"
+  },
+  {
+   "id": 10,
+   "type": "CLIPTextEncode",
+   "pos": [
+    460,
+    750
+   ],
+   "size": [
+    360,
+    136
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 6
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "camera movement, camera pan, zoom, dolly, the character walks across the frame, background scenery, ground, floor, shadow, blurry, low quality, deformed, extra limbs, missing limbs, text, watermark, static image, frozen"
+   ],
+   "title": "negative"
+  },
+  {
+   "id": 11,
+   "type": "LoadImage",
+   "pos": [
+    60,
+    980
+   ],
+   "size": [
+    360,
+    142
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      10
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "drifter_side_still.png",
+    "image"
+   ],
+   "title": "still"
+  },
+  {
+   "id": 12,
+   "type": "WanImageToVideo",
+   "pos": [
+    860,
+    520
+   ],
+   "size": [
+    360,
+    294
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 7
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 8
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 9
+    },
+    {
+     "name": "clip_vision_output",
+     "type": "CLIP_VISION_OUTPUT",
+     "link": null
+    },
+    {
+     "name": "start_image",
+     "type": "IMAGE",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [
+      12,
+      16
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "links": [
+      13,
+      17
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "links": [
+      14
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "WanImageToVideo"
+   },
+   "widgets_values": [
+    640,
+    640,
+    49,
+    1
+   ]
+  },
+  {
+   "id": 13,
+   "type": "KSamplerAdvanced",
+   "pos": [
+    1260,
+    60
+   ],
+   "size": [
+    360,
+    430
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 11
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 12
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 13
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 14
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      18
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSamplerAdvanced"
+   },
+   "widgets_values": [
+    "enable",
+    1,
+    "fixed",
+    4,
+    1.0,
+    "euler",
+    "simple",
+    0,
+    2,
+    "enable"
+   ],
+   "title": "high noise 0-2"
+  },
+  {
+   "id": 14,
+   "type": "KSamplerAdvanced",
+   "pos": [
+    1660,
+    60
+   ],
+   "size": [
+    360,
+    430
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 15
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 16
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 17
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 18
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      19
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSamplerAdvanced"
+   },
+   "widgets_values": [
+    "disable",
+    0,
+    "fixed",
+    4,
+    1.0,
+    "euler",
+    "simple",
+    2,
+    10000,
+    "disable"
+   ],
+   "title": "low noise 2-4"
+  },
+  {
+   "id": 15,
+   "type": "VAEDecode",
+   "pos": [
+    2060,
+    60
+   ],
+   "size": [
+    360,
+    130
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 19
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 20
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      21
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 16,
+   "type": "SaveImage",
+   "pos": [
+    2460,
+    60
+   ],
+   "size": [
+    360,
+    136
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 21
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "88fits/anim"
+   ]
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   3,
+   0,
+   "MODEL"
+  ],
+  [
+   2,
+   2,
+   0,
+   4,
+   0,
+   "MODEL"
+  ],
+  [
+   3,
+   3,
+   0,
+   5,
+   0,
+   "MODEL"
+  ],
+  [
+   4,
+   4,
+   0,
+   6,
+   0,
+   "MODEL"
+  ],
+  [
+   5,
+   7,
+   0,
+   9,
+   0,
+   "CLIP"
+  ],
+  [
+   6,
+   7,
+   0,
+   10,
+   0,
+   "CLIP"
+  ],
+  [
+   7,
+   9,
+   0,
+   12,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   8,
+   10,
+   0,
+   12,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   9,
+   8,
+   0,
+   12,
+   2,
+   "VAE"
+  ],
+  [
+   10,
+   11,
+   0,
+   12,
+   4,
+   "IMAGE"
+  ],
+  [
+   11,
+   5,
+   0,
+   13,
+   0,
+   "MODEL"
+  ],
+  [
+   12,
+   12,
+   0,
+   13,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   13,
+   12,
+   1,
+   13,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   14,
+   12,
+   2,
+   13,
+   3,
+   "LATENT"
+  ],
+  [
+   15,
+   6,
+   0,
+   14,
+   0,
+   "MODEL"
+  ],
+  [
+   16,
+   12,
+   0,
+   14,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   17,
+   12,
+   1,
+   14,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   18,
+   13,
+   0,
+   14,
+   3,
+   "LATENT"
+  ],
+  [
+   19,
+   14,
+   0,
+   15,
+   0,
+   "LATENT"
+  ],
+  [
+   20,
+   8,
+   0,
+   15,
+   1,
+   "VAE"
+  ],
+  [
+   21,
+   15,
+   0,
+   16,
+   0,
+   "IMAGE"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "88fits": "generated by tools/comfy.py"
+ },
+ "version": 0.4
+}

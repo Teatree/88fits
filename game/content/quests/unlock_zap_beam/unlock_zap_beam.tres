@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="1_411hd"]
+[ext_resource type="Texture2D" path="res://content/quests/unlock_zap_beam/unlock_zap_beam_icon.png" id="1_lthu1"]
+
+[resource]
+script = ExtResource("1_411hd")
+condition = {
+"level": 20.0,
+"type": "reach_level"
+}
+unlocks = {
+"id": "zap_beam",
+"type": "weapon"
+}
+id = "unlock_zap_beam"
+display_name = "Zap Beam"
+icon = ExtResource("1_lthu1")
+icon_file = "unlock_zap_beam_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

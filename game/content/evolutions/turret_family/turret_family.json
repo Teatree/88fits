@@ -1,0 +1,39 @@
+{
+  "id": "turret_family",
+  "name": "Turret Family",
+  "flavour": "They never leave. They pull gems.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "turret_buddy",
+  "max_level": 1,
+  "behavior": "Spawner",
+  "targeting": "nearest",
+  "base": {
+    "damage": 6,
+    "cooldown": 5.0,
+    "lifetime": 9999,
+    "range": 9,
+    "amount": 2,
+    "speed": 16,
+    "knockback": 5.0
+  },
+  "params": {
+    "turret_fire_rate": 0.3,
+    "magnet": true,
+    "max_turrets": 8
+  },
+  "levels": [
+    []
+  ],
+  "sfx": {
+    "place": "w_turret_place",
+    "fire": "w_turret_fire",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#8A8F9A",
+    "glyph": "turret",
+    "gold": true
+  },
+  "art_prompt": "three small golden turret boxes with smiling faces in a row"
+}

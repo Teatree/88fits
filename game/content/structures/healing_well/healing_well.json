@@ -1,0 +1,16 @@
+{
+  "id": "healing_well",
+  "radius": 2.2,
+  "interact_time": 3.0,
+  "name": "Healing Well",
+  "flavour": "Cold water. Warm feeling.",
+  "effect": "heal",
+  "weight": 4,
+  "params": {
+    "fraction": 0.5
+  },
+  "color": "#5AD66A",
+  "prop": "healing_well",
+  "height": 2.4,
+  "art_prompt": "a small stone well with a wooden roof"
+}

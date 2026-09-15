@@ -1,0 +1,16 @@
+{
+  "id": "heart",
+  "name": "Heart",
+  "flavour": "Thirty percent of a second chance.",
+  "effect": "heal",
+  "value": 0.3,
+  "duration": 0,
+  "lifetime": 22,
+  "color": "#5AD66A",
+  "weight": 6,
+  "placeholder": {
+    "color": "#FF4A6A",
+    "glyph": "heart"
+  },
+  "art_prompt": "a glossy red heart with a bright highlight, a small green plus sign in its lower right"
+}

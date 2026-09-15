@@ -1,0 +1,64 @@
+{
+  "id": "hornet",
+  "name": "Hornet",
+  "flavour": "The sound comes first.",
+  "archetype": "swarmer",
+  "brain": "flock",
+  "hp": 4,
+  "speed": 3.0,
+  "damage": 3,
+  "radius": 0.32,
+  "size": 0.85,
+  "pack_size": 8,
+  "drops": {
+    "small": 0.5,
+    "gold": 0.005
+  },
+  "frame_px": 128,
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 1,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "fps": {
+    "run": 15
+  },
+  "xp_mult": 1.8,
+  "sfx": {
+    "hit": "en_ant_hit",
+    "die": "en_ant_die"
+  },
+  "placeholder": {
+    "color": "#F2C230",
+    "ears": "none",
+    "eyes": 2,
+    "shape": "ant"
+  },
+  "art_prompt": "a fat angry cartoon hornet with a shiny yellow and black striped abdomen, big red eyes, a mean frown, translucent buzzing wings and a long stinger, hovering just above the ground, facing the viewer",
+  "variance": {
+    "size": 0.2,
+    "speed": 0.15,
+    "tints": [
+      "#FFFFFF",
+      "#FFD86A",
+      "#FF9C6A",
+      "#C8A0FF"
+    ],
+    "tint_strength": 0.6,
+    "special_chance": 0.1,
+    "special": {
+      "size": 1.5,
+      "hp": 2.0,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#FF3C3C",
+      "tint_strength": 0.9
+    }
+  },
+  "motion": "hovering in place, wings buzzing fast, bobbing up and down",
+  "strip_cols": 36
+}

@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/bullet_hose/bullet_hose_icon.png" id="1_32l4p"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_r8k0c"]
+[ext_resource type="PackedScene" path="res://content/evolutions/bullet_hose/bullet_hose_visual.tscn" id="2_70lug"]
+
+[resource]
+script = ExtResource("1_r8k0c")
+base = {
+"amount": 3.0,
+"cooldown": 0.15,
+"damage": 12.0,
+"knockback": 3.0,
+"pierce": 3.0,
+"range": 10.0,
+"speed": 18.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "peashooter"
+sfx = {
+"fire": "w_pea_fire",
+"hit": "w_pea_hit"
+}
+visual = ExtResource("2_70lug")
+visual_file = "bullet_hose_visual.tscn"
+params = {
+"familiar": {
+"bob": 0.12,
+"height": 1.55,
+"radius": 1.35,
+"speed": 1.4
+}
+}
+id = "bullet_hose"
+display_name = "Bullet Hose"
+flavour = "Continuous. Relentless. Peas."
+rarity = "epic"
+icon = ExtResource("1_32l4p")
+icon_file = "bullet_hose_icon.png"
+placeholder = {
+"color": "#7FD07A",
+"glyph": "pea",
+"gold": true
+}

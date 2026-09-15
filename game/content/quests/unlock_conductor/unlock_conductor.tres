@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="1_5yk1c"]
+[ext_resource type="Texture2D" path="res://content/quests/unlock_conductor/unlock_conductor_icon.png" id="1_jg4yt"]
+
+[resource]
+script = ExtResource("1_5yk1c")
+condition = {
+"count": 1.0,
+"type": "evolve_any"
+}
+unlocks = {
+"id": "conductor",
+"type": "passive"
+}
+id = "unlock_conductor"
+display_name = "Conductor"
+icon = ExtResource("1_jg4yt")
+icon_file = "unlock_conductor_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

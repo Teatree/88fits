@@ -1,0 +1,13 @@
+{
+  "id": "beacon",
+  "radius": 2.2,
+  "interact_time": 3.0,
+  "name": "XP Beacon",
+  "flavour": "A crystal humming with someone else's experience.",
+  "effect": "level_up",
+  "weight": 3,
+  "color": "#B8A3FF",
+  "prop": "beacon",
+  "height": 3.0,
+  "art_prompt": "a tall obelisk with a glowing purple crystal on top"
+}

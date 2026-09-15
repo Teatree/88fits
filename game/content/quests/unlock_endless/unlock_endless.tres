@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_endless/unlock_endless_icon.png" id="1_bk738"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="1_vkrhp"]
+
+[resource]
+script = ExtResource("1_vkrhp")
+condition = {
+"map": "dry_gulch",
+"stage": 3.0,
+"type": "kill_boss"
+}
+unlocks = {
+"id": "endless",
+"type": "mode"
+}
+id = "unlock_endless"
+display_name = "Endless"
+icon = ExtResource("1_bk738")
+icon_file = "unlock_endless_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

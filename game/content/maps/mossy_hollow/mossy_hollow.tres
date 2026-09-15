@@ -1,0 +1,117 @@
+[gd_resource type="Resource" script_class="MapDef" format=3]
+
+[ext_resource type="PackedScene" path="res://world/maps/mossy_hollow/MossyHollow.tscn" id="1_4saqx"]
+[ext_resource type="Texture2D" path="res://content/maps/mossy_hollow/mossy_hollow_icon.png" id="1_oi70c"]
+[ext_resource type="Script" path="res://core/data/MapDef.gd" id="2_oi70c"]
+[ext_resource type="Script" path="res://core/data/WaveTimeline.gd" id="3_kfag4"]
+
+[sub_resource type="Resource" id="Resource_oi70c"]
+script = ExtResource("3_kfag4")
+cap_start = 26
+cap_per_minute = 3.0
+cap_max = 60
+hard_cap = 80
+burst_min = 2
+burst_max = 6
+spawn_interval = 0.9
+roster = [{
+"enemy": "bramble_imp",
+"t": 0.0,
+"weight": 10.0
+}, {
+"enemy": "toadstool",
+"t": 30.0,
+"weight": 6.0
+}, {
+"enemy": "hornet",
+"t": 60.0,
+"weight": 8.0
+}, {
+"enemy": "puffball",
+"t": 150.0,
+"weight": 3.0
+}, {
+"enemy": "boar",
+"t": 240.0,
+"weight": 2.0
+}]
+events = [{
+"interval": 90.0,
+"t": 210.0,
+"type": "elite_every"
+}, {
+"enemy": "king_toad",
+"t": 300.0,
+"type": "boss"
+}, {
+"count": 18.0,
+"enemy": "hornet",
+"t": 390.0,
+"type": "swarm"
+}, {
+"enemy": "king_toad",
+"t": 600.0,
+"type": "boss"
+}, {
+"count": 12.0,
+"enemy": "bramble_imp",
+"t": 720.0,
+"type": "swarm"
+}, {
+"enemy": "king_toad",
+"t": 900.0,
+"type": "boss"
+}]
+pickups = {
+"first": 50.0,
+"interval": 75.0,
+"jitter": 20.0,
+"roster": [{
+"id": "heart",
+"weight": 6.0
+}, {
+"id": "rage",
+"weight": 3.0
+}, {
+"id": "sprint",
+"weight": 3.0
+}, {
+"id": "shield",
+"weight": 2.0
+}, {
+"id": "magnet_pulse",
+"weight": 2.0
+}]
+}
+structures = {
+"count": 9.0,
+"min_spacing": 16.0
+}
+
+[resource]
+script = ExtResource("2_oi70c")
+scene = ExtResource("1_4saqx")
+scene_file = "res://world/maps/mossy_hollow/MossyHollow.tscn"
+timeline = SubResource("Resource_oi70c")
+skins = {
+"brute": "boar",
+"spitter": "puffball",
+"swarmer": "hornet",
+"walker": "bramble_imp"
+}
+boss = "king_toad"
+music = {
+"ambient": "gr_ambient",
+"boss": "mu_boss",
+"run": ["mu_run_1", "mu_run_2", "mu_run_3"],
+"step": "pl_step_grass"
+}
+id = "mossy_hollow"
+display_name = "Mossy Hollow"
+flavour = "Green, wet and buzzing. Nothing here is asleep."
+icon = ExtResource("1_oi70c")
+icon_file = "mossy_hollow_icon.png"
+placeholder = {
+"color": "#5AA84A",
+"glyph": "leaf"
+}

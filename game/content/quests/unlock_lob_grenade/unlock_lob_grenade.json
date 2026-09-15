@@ -1,0 +1,18 @@
+{
+  "id": "unlock_lob_grenade",
+  "name": "Lob Grenade",
+  "condition": {
+    "type": "kills_in_run_of_enemy",
+    "enemy": "fire_ant",
+    "count": 200
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "lob_grenade"
+  },
+  "art_prompt": "a wooden crate full of olive grenades",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

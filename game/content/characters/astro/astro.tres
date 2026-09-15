@@ -1,0 +1,72 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_bgsxw"]
+[ext_resource type="Texture2D" path="res://content/characters/astro/astro_icon.png" id="2_bgsxw"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_dewj2"]
+[ext_resource type="Texture2D" path="res://content/characters/astro/astro_sprite.png" id="4_nv1wx"]
+
+[sub_resource type="Resource" id="Resource_bgsxw"]
+script = ExtResource("1_bgsxw")
+stat = "area"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_nv1wx"]
+script = ExtResource("1_bgsxw")
+stat = "max_hp"
+op = "mul"
+value = 0.12
+target = "player"
+
+[sub_resource type="Resource" id="Resource_2ke28"]
+script = ExtResource("1_bgsxw")
+stat = "magnet"
+op = "mul"
+value = 0.1
+target = "player"
+
+[resource]
+script = ExtResource("2_dewj2")
+trait_effects = [SubResource("Resource_nv1wx"), SubResource("Resource_2ke28")]
+favourite_weapon = "orbit_saws"
+favourite_bonus = {
+"effects": [SubResource("Resource_bgsxw")],
+"type": "effects"
+}
+sprite = ExtResource("4_nv1wx")
+sprite_file = "astro_sprite.png"
+anims = {
+"cheer": 1.0,
+"die": 1.0,
+"hit": 9.0,
+"hit_bd": 9.0,
+"hit_f": 9.0,
+"hit_fd": 9.0,
+"hit_s": 9.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+}
+strip_cols = 62
+fps = {
+"hit": 20.0,
+"run": 36.0
+}
+id = "astro"
+display_name = "Astro"
+flavour = "Wrong planet. Right attitude."
+icon = ExtResource("2_bgsxw")
+icon_file = "astro_icon.png"
+placeholder = {
+"color": "#F2F2F2",
+"eyes": 2.0,
+"hat": "#FF8A2A",
+"shape": "blob"
+}

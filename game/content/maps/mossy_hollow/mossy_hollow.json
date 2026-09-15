@@ -1,0 +1,140 @@
+{
+  "id": "mossy_hollow",
+  "name": "Mossy Hollow",
+  "flavour": "Green, wet and buzzing. Nothing here is asleep.",
+  "scene": "res://world/maps/mossy_hollow/MossyHollow.tscn",
+  "skins": {
+    "walker": "bramble_imp",
+    "swarmer": "hornet",
+    "spitter": "puffball",
+    "brute": "boar"
+  },
+  "boss": "king_toad",
+  "unlock_quest": "",
+  "music": {
+    "ambient": "gr_ambient",
+    "run": [
+      "mu_run_1",
+      "mu_run_2",
+      "mu_run_3"
+    ],
+    "boss": "mu_boss",
+    "step": "pl_step_grass"
+  },
+  "timeline_data": {
+    "stage_length": 300,
+    "stages": 3,
+    "stage_mults": [
+      1.0,
+      1.35,
+      1.8
+    ],
+    "endless_mult_per_minute": 0.1,
+    "cap_start": 26,
+    "cap_per_minute": 3,
+    "cap_max": 60,
+    "hard_cap": 80,
+    "hp_growth": 0.08,
+    "hp_power": 1.2,
+    "burst_min": 2,
+    "burst_max": 6,
+    "spawn_interval": 0.9,
+    "roster": [
+      {
+        "t": 0,
+        "enemy": "bramble_imp",
+        "weight": 10
+      },
+      {
+        "t": 30,
+        "enemy": "toadstool",
+        "weight": 6
+      },
+      {
+        "t": 60,
+        "enemy": "hornet",
+        "weight": 8
+      },
+      {
+        "t": 150,
+        "enemy": "puffball",
+        "weight": 3
+      },
+      {
+        "t": 240,
+        "enemy": "boar",
+        "weight": 2
+      }
+    ],
+    "events": [
+      {
+        "t": 210,
+        "type": "elite_every",
+        "interval": 90
+      },
+      {
+        "t": 300,
+        "type": "boss",
+        "enemy": "king_toad"
+      },
+      {
+        "t": 390,
+        "type": "swarm",
+        "enemy": "hornet",
+        "count": 18
+      },
+      {
+        "t": 600,
+        "type": "boss",
+        "enemy": "king_toad"
+      },
+      {
+        "t": 720,
+        "type": "swarm",
+        "enemy": "bramble_imp",
+        "count": 12
+      },
+      {
+        "t": 900,
+        "type": "boss",
+        "enemy": "king_toad"
+      }
+    ],
+    "pickups": {
+      "first": 50,
+      "interval": 75,
+      "jitter": 20,
+      "roster": [
+        {
+          "id": "heart",
+          "weight": 6
+        },
+        {
+          "id": "rage",
+          "weight": 3
+        },
+        {
+          "id": "sprint",
+          "weight": 3
+        },
+        {
+          "id": "shield",
+          "weight": 2
+        },
+        {
+          "id": "magnet_pulse",
+          "weight": 2
+        }
+      ]
+    },
+    "structures": {
+      "count": 9,
+      "min_spacing": 16
+    }
+  },
+  "placeholder": {
+    "color": "#5AA84A",
+    "glyph": "leaf"
+  },
+  "art_prompt": "a round green grassy hill with a big red spotted mushroom under a fluffy white cloud"
+}

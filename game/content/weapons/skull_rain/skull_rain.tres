@@ -1,0 +1,84 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/skull_rain/skull_rain_icon.png" id="1_gstfg"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_gstfg"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_rfens"]
+[ext_resource type="PackedScene" path="res://content/weapons/skull_rain/skull_rain_visual.tscn" id="3_rfens"]
+
+[sub_resource type="Resource" id="Resource_gstfg"]
+script = ExtResource("2_rfens")
+stat = "poison_damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_rfens"]
+script = ExtResource("2_rfens")
+stat = "area"
+value = 0.4
+
+[sub_resource type="Resource" id="Resource_e3akl"]
+script = ExtResource("2_rfens")
+stat = "cooldown"
+op = "mul"
+value = -0.1
+
+[sub_resource type="Resource" id="Resource_swffb"]
+script = ExtResource("2_rfens")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_gdbt3"]
+script = ExtResource("2_rfens")
+stat = "poison_stacks"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_ki8ii"]
+script = ExtResource("2_rfens")
+stat = "poison_damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_8lh1t"]
+script = ExtResource("2_rfens")
+stat = "area"
+value = 0.5
+
+[resource]
+script = ExtResource("2_gstfg")
+behavior = "Lobber"
+targeting = "densest_healthy"
+base = {
+"amount": 1.0,
+"area": 2.2,
+"cooldown": 2.2,
+"damage": 6.0,
+"knockback": 2.0,
+"poison_damage": 3.0,
+"poison_duration": 10.0,
+"poison_stacks": 1.0,
+"range": 11.0,
+"speed": 12.0
+}
+levels = [[], [SubResource("Resource_gstfg")], [SubResource("Resource_rfens")], [SubResource("Resource_e3akl")], [SubResource("Resource_swffb")], [SubResource("Resource_gdbt3")], [SubResource("Resource_ki8ii")], [SubResource("Resource_8lh1t")]]
+evolves_with = "sombrero"
+evolves_into = "dia_de_muertos"
+sfx = {
+"fire": "w_skull_throw",
+"hit": "w_skull_boom"
+}
+visual = ExtResource("3_rfens")
+visual_file = "skull_rain_visual.tscn"
+params = {
+"cloud_seconds": 4.0
+}
+id = "skull_rain"
+display_name = "Skull Rain"
+flavour = "Forecast: skulls, with a chance of green smoke."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_gstfg")
+icon_file = "skull_rain_icon.png"
+placeholder = {
+"color": "#F0EAD6",
+"glyph": "skull"
+}

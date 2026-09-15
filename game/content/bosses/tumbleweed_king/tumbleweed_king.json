@@ -1,0 +1,75 @@
+{
+  "id": "tumbleweed_king",
+  "name": "The Tumbleweed King",
+  "flavour": "Wears a crown. Rolls anyway.",
+  "archetype": "boss",
+  "brain": "boss",
+  "hp": 900,
+  "speed": 1.6,
+  "damage": 20,
+  "radius": 2.2,
+  "size": 5.0,
+  "pack_size": 1,
+  "drops": {
+    "large": 1.0,
+    "gold": 1.0
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 1,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "frame_px": 256,
+  "xp_mult": 30,
+  "boss": {
+    "hp_mult_per_stage": 1.6,
+    "attacks": [
+      {
+        "name": "roll",
+        "windup": 1.0,
+        "speed": 12.0,
+        "duration": 1.2,
+        "damage": 25,
+        "telegraph": "line"
+      },
+      {
+        "name": "spawn_ring",
+        "windup": 0.8,
+        "enemy": "goblin",
+        "count": 12,
+        "telegraph": "none"
+      },
+      {
+        "name": "slam",
+        "windup": 1.2,
+        "radius": 6.0,
+        "damage": 30,
+        "telegraph": "ring",
+        "knockback": 6
+      }
+    ],
+    "cooldown_between": 2.0
+  },
+  "sfx": {
+    "spawn": "en_boss_roar",
+    "attack": "en_boss_attack",
+    "die": "en_boss_die",
+    "hit": "en_goblin_hit"
+  },
+  "placeholder": {
+    "color": "#B8863E",
+    "ears": "crown",
+    "eyes": 2,
+    "shape": "ball"
+  },
+  "art_prompt": "a goofy giant round tumbleweed made of dry tangled twigs, wearing a golden royal crown, with a smug face, big eyes and a mustache",
+  "motion": "bouncing in place menacingly, twigs shaking",
+  "strip_cols": 36,
+  "fps": {
+    "run": 15
+  }
+}

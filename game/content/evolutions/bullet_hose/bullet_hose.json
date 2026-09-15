@@ -1,0 +1,41 @@
+{
+  "id": "bullet_hose",
+  "name": "Bullet Hose",
+  "flavour": "Continuous. Relentless. Peas.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "peashooter",
+  "max_level": 1,
+  "behavior": "ProjectileEmitter",
+  "targeting": "nearest",
+  "base": {
+    "damage": 12,
+    "cooldown": 0.15,
+    "amount": 3,
+    "pierce": 3,
+    "speed": 18,
+    "range": 10,
+    "knockback": 3.0
+  },
+  "levels": [
+    []
+  ],
+  "sfx": {
+    "fire": "w_pea_fire",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#7FD07A",
+    "glyph": "pea",
+    "gold": true
+  },
+  "art_prompt": "a big golden-leafed pea pod creature with leaf wings and a fierce grin, spraying a stream of bright green peas",
+  "params": {
+    "familiar": {
+      "radius": 1.35,
+      "height": 1.55,
+      "speed": 1.4,
+      "bob": 0.12
+    }
+  }
+}

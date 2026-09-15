@@ -1,0 +1,24 @@
+{
+  "id": "shielded",
+  "name": "Shielded",
+  "effects": [
+    {
+      "stat": "armor",
+      "op": "add",
+      "value": 4
+    },
+    {
+      "stat": "hp",
+      "op": "mul",
+      "value": 2.0
+    }
+  ],
+  "outline": "#5DB8FF",
+  "scale_mult": 1.5,
+  "on_death": "none",
+  "placeholder": {
+    "color": "#5DB8FF",
+    "glyph": "shield"
+  },
+  "art_prompt": "a round blue shield with a silver rim and a star boss"
+}

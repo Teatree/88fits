@@ -1,0 +1,45 @@
+{
+  "id": "plague_volley",
+  "name": "Plague Volley",
+  "flavour": "Three darts. Three ideas.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "poison_dart",
+  "max_level": 1,
+  "behavior": "ProjectileEmitter",
+  "targeting": "healthy",
+  "base": {
+    "damage": 3,
+    "cooldown": 0.7,
+    "amount": 3,
+    "pierce": 1,
+    "speed": 18,
+    "range": 10,
+    "knockback": 0.5,
+    "poison_damage": 6,
+    "poison_stacks": 3,
+    "poison_duration": 12
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "radius": 0.24,
+    "familiar": {
+      "radius": 1.35,
+      "height": 1.5,
+      "speed": 1.2,
+      "bob": 0.14
+    }
+  },
+  "sfx": {
+    "fire": "w_pea_fire",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#7FD07A",
+    "glyph": "dart",
+    "gold": true
+  },
+  "art_prompt": "three hovering poison darts fanning out with green vapour trails, golden tips"
+}

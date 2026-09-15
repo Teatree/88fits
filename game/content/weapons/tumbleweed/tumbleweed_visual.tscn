@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://vis_tumbleweed001"]
+
+[sub_resource type="SphereMesh" id="ball"]
+radius = 0.55
+height = 1.1
+radial_segments = 10
+rings = 6
+
+[sub_resource type="StandardMaterial3D" id="ballmat"]
+shading_mode = 0
+albedo_color = Color(0.62, 0.48, 0.26, 1)
+roughness = 0.9
+
+[node name="TumbleweedVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+mesh = SubResource("ball")
+material_override = SubResource("ballmat")

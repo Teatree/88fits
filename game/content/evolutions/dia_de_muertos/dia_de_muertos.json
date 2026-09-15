@@ -1,0 +1,36 @@
+{
+  "id": "dia_de_muertos",
+  "name": "Dia de Muertos",
+  "flavour": "A festival. Not for them.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "skull_rain",
+  "max_level": 1,
+  "behavior": "Lobber",
+  "targeting": "densest_healthy",
+  "base": {
+    "damage": 8,
+    "cooldown": 1.8,
+    "amount": 3,
+    "area": 2.8,
+    "range": 13,
+    "knockback": 3.0,
+    "speed": 13,
+    "poison_damage": 6,
+    "poison_stacks": 3,
+    "poison_duration": 12
+  },
+  "sfx": {
+    "fire": "w_skull_throw",
+    "hit": "w_skull_boom"
+  },
+  "placeholder": {
+    "color": "#F0EAD6",
+    "glyph": "skull",
+    "gold": true
+  },
+  "art_prompt": "a painted sugar skull with marigolds, green poison smoke pouring from its eyes",
+  "params": {
+    "cloud_seconds": 6.0
+  }
+}

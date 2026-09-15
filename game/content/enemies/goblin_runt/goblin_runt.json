@@ -1,0 +1,64 @@
+{
+  "id": "goblin_runt",
+  "name": "Goblin Runt",
+  "flavour": "Smaller. Meaner. Faster.",
+  "archetype": "walker",
+  "brain": "chase",
+  "hp": 6,
+  "speed": 2.3,
+  "damage": 4,
+  "radius": 0.35,
+  "size": 0.95,
+  "pack_size": 4,
+  "drops": {
+    "small": 1.0,
+    "gold": 0.01
+  },
+  "frame_px": 128,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_goblin_die"
+  },
+  "placeholder": {
+    "color": "#8CC46A",
+    "ears": "pointed",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "art_prompt": "a tiny scrawny goblin with huge pointed ears, wide crazy eyes and a mischievous grin, wearing a torn grey rag and holding a rusty dagger, standing and facing the viewer",
+  "xp_mult": 2.0,
+  "variance": {
+    "size": 0.22,
+    "speed": 0.18,
+    "tints": [
+      "#FFFFFF",
+      "#E0FFB0",
+      "#FFE0A0",
+      "#B0E0FF"
+    ],
+    "tint_strength": 0.55,
+    "special_chance": 0.1,
+    "special": {
+      "size": 1.5,
+      "hp": 2.2,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#FF60A0",
+      "tint_strength": 0.9
+    }
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 1,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "motion": "scurrying in place with quick little steps, dagger in hand",
+  "strip_cols": 36,
+  "fps": {
+    "run": 15
+  }
+}

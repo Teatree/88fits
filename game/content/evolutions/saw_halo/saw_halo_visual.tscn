@@ -1,0 +1,23 @@
+[gd_scene load_steps=3 format=3 uid="uid://vis_sawhalo00001"]
+
+[sub_resource type="CylinderMesh" id="blade"]
+top_radius = 0.42
+bottom_radius = 0.42
+height = 0.07
+radial_segments = 12
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="blademat"]
+shading_mode = 0
+albedo_color = Color(1, 0.82, 0.35, 1)
+metallic = 0.2
+roughness = 0.55
+emission_enabled = true
+emission = Color(1, 0.7, 0.2, 1)
+emission_energy_multiplier = 0.4
+
+[node name="SawHaloVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+mesh = SubResource("blade")
+material_override = SubResource("blademat")

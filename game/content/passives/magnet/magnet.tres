@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/magnet/magnet_icon.png" id="1_6d6vi"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_6d6vi"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_t41ta"]
+
+[sub_resource type="Resource" id="Resource_6d6vi"]
+script = ExtResource("2_t41ta")
+stat = "magnet"
+op = "mul"
+value = 0.25
+target = "player"
+
+[resource]
+script = ExtResource("2_6d6vi")
+levels = [[SubResource("Resource_6d6vi")]]
+pairs_with = "turret_buddy"
+id = "magnet"
+display_name = "Magnet"
+flavour = "Gems come to you."
+icon = ExtResource("1_6d6vi")
+icon_file = "magnet_icon.png"
+placeholder = {
+"color": "#8A69F2",
+"glyph": "magnet"
+}

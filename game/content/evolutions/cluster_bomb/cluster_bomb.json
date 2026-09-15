@@ -1,0 +1,38 @@
+{
+  "id": "cluster_bomb",
+  "name": "Cluster Bomb",
+  "flavour": "Six small problems.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "lob_grenade",
+  "max_level": 1,
+  "behavior": "Lobber",
+  "targeting": "densest",
+  "base": {
+    "damage": 22,
+    "cooldown": 1.8,
+    "amount": 2,
+    "area": 2.2,
+    "range": 10,
+    "knockback": 8.0,
+    "speed": 9
+  },
+  "params": {
+    "bomblets": 6,
+    "bomblet_area": 1.4,
+    "bomblet_damage_mult": 0.5
+  },
+  "levels": [
+    []
+  ],
+  "sfx": {
+    "fire": "w_lob_throw",
+    "hit": "w_lob_boom"
+  },
+  "placeholder": {
+    "color": "#5C7A3A",
+    "glyph": "grenade",
+    "gold": true
+  },
+  "art_prompt": "a golden grenade splitting open with six small bomblets flying out"
+}

@@ -1,0 +1,30 @@
+{
+  "id": "sprint",
+  "name": "Sprint",
+  "flavour": "Legs, but more.",
+  "effect": "buff",
+  "value": 0,
+  "duration": 15,
+  "effects": [
+    {
+      "stat": "move_speed",
+      "op": "mul",
+      "value": 0.4,
+      "target": "player"
+    },
+    {
+      "stat": "cooldown",
+      "op": "mul",
+      "value": -0.15,
+      "target": "player"
+    }
+  ],
+  "lifetime": 20,
+  "color": "#4CC9FF",
+  "weight": 3,
+  "placeholder": {
+    "color": "#4CC9FF",
+    "glyph": "bolt"
+  },
+  "art_prompt": "a pair of winged sky-blue running boots with white speed lines behind them"
+}

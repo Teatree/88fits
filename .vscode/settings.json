@@ -1,0 +1,32 @@
+{
+	"workbench.colorCustomizations": {
+		"activityBar.activeBackground": "#007d00",
+		"activityBar.activeBorder": "#e7e7e7",
+		"activityBar.background": "#007d00",
+		"activityBar.foreground": "#e7e7e7",
+		"activityBar.inactiveForeground": "#e7e7e799",
+		"activityBarBadge.background": "#0000bf",
+		"activityBarBadge.foreground": "#e7e7e7",
+		"activityBarTop.activeBackground": "#007d00",
+		"activityBarTop.activeBorder": "#e7e7e7",
+		"activityBarTop.background": "#007d00",
+		"activityBarTop.foreground": "#e7e7e7",
+		"activityBarTop.inactiveForeground": "#e7e7e799",
+		"commandCenter.border": "#e7e7e799",
+		"commandCenter.foreground": "#e7e7e7",
+		"sash.hoverBorder": "#007d00",
+		"statusBar.background": "#004a00",
+		"statusBar.debuggingBackground": "#004a00",
+		"statusBar.debuggingForeground": "#e7e7e7",
+		"statusBar.foreground": "#e7e7e7",
+		"statusBarItem.hoverBackground": "#007d00",
+		"statusBarItem.remoteBackground": "#6060ff",
+		"statusBarItem.remoteForeground": "#e7e7e7",
+		"titleBar.activeBackground": "#004a00",
+		"titleBar.activeForeground": "#e7e7e7",
+		"titleBar.inactiveBackground": "#004a0099",
+		"titleBar.inactiveForeground": "#e7e7e799"
+	},
+	"peacock.color": "#004a00",
+	"godotTools.editorPath.godot4": "d:\\_projects\\88fits\\Godot_v4.7.2-stable_win64\\Godot_v4.7.2-stable_win64.exe"
+}

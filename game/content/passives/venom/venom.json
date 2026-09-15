@@ -1,0 +1,25 @@
+{
+  "id": "venom",
+  "name": "Venom",
+  "flavour": "Everything you poison, poisons harder.",
+  "rarity": "common",
+  "weight": 8,
+  "pairs_with": "poison_dart",
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "poison_damage",
+        "op": "mul",
+        "value": 0.15,
+        "target": "all_weapons"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "placeholder": {
+    "color": "#7FD07A",
+    "glyph": "drop"
+  },
+  "art_prompt": "a glass vial of bubbling green venom with a skull label"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "unlock_dad",
+  "name": "Dad",
+  "condition": {
+    "type": "kills_with_weapon",
+    "weapon": "boomstick",
+    "count": 500
+  },
+  "unlocks": {
+    "type": "character",
+    "id": "dad"
+  },
+  "art_prompt": "a white coffee mug with a mustache on it",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

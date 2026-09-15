@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_hludc"]
+[ext_resource type="Texture2D" path="res://content/evolutions/stampede/stampede_icon.png" id="1_w3tpl"]
+[ext_resource type="PackedScene" path="res://content/evolutions/stampede/stampede_visual.tscn" id="2_w3tpl"]
+
+[resource]
+script = ExtResource("1_hludc")
+base = {
+"amount": 4.0,
+"cooldown": 2.0,
+"damage": 22.0,
+"knockback": 12.0,
+"pierce": 80.0,
+"range": 18.0,
+"speed": 7.0
+}
+max_level = 1
+is_evolution = true
+evolved_from = "tumbleweed"
+sfx = {
+"fire": "w_tumble_roll",
+"hit": "w_tumble_hit"
+}
+visual = ExtResource("2_w3tpl")
+visual_file = "stampede_visual.tscn"
+params = {
+"radius": 0.85,
+"spread_deg": 50.0
+}
+id = "stampede"
+display_name = "Stampede"
+flavour = "Every tumbleweed in the county, at once."
+rarity = "epic"
+icon = ExtResource("1_w3tpl")
+icon_file = "stampede_icon.png"
+placeholder = {
+"color": "#B08A4A",
+"glyph": "ball",
+"gold": true
+}

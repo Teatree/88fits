@@ -1,0 +1,35 @@
+{
+  "id": "snake_pit",
+  "name": "Snake Pit",
+  "flavour": "A whole pit of them. All spiteful.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "rattlesnake",
+  "max_level": 1,
+  "behavior": "Orbiter",
+  "targeting": "orbit",
+  "base": {
+    "damage": 8,
+    "amount": 4,
+    "orbit_radius": 3.8,
+    "knockback": 2.0,
+    "area": 1.4,
+    "cooldown": 0.3,
+    "poison_damage": 6,
+    "poison_stacks": 3,
+    "poison_duration": 12
+  },
+  "params": {
+    "spin_speed": 4.6
+  },
+  "sfx": {
+    "loop": "w_snake_rattle",
+    "hit": "w_snake_bite"
+  },
+  "placeholder": {
+    "color": "#5FA84A",
+    "glyph": "ring",
+    "gold": true
+  },
+  "art_prompt": "a golden coiled king cobra with a jeweled hood, fangs bared"
+}

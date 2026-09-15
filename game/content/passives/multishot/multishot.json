@@ -1,0 +1,43 @@
+{
+  "id": "multishot",
+  "name": "Multishot",
+  "flavour": "More things flying.",
+  "rarity": "rare",
+  "weight": 7,
+  "pairs_with": "peashooter",
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      }
+    ],
+    [],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      }
+    ],
+    [],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "placeholder": {
+    "color": "#7FD07A",
+    "glyph": "triple"
+  },
+  "art_prompt": "three glowing green spheres in a fan formation with motion streaks"
+}

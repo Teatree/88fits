@@ -1,0 +1,78 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/zap_beam/zap_beam_icon.png" id="1_r8tns"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_r8tns"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_w1c17"]
+[ext_resource type="PackedScene" path="res://content/weapons/zap_beam/zap_beam_visual.tscn" id="3_w1c17"]
+
+[sub_resource type="Resource" id="Resource_r8tns"]
+script = ExtResource("2_r8tns")
+stat = "chains"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_y1fi3"]
+script = ExtResource("2_r8tns")
+stat = "damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_7u84o"]
+script = ExtResource("2_r8tns")
+stat = "cooldown"
+op = "mul"
+value = -0.1
+
+[sub_resource type="Resource" id="Resource_887o3"]
+script = ExtResource("2_r8tns")
+stat = "chains"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_0g86e"]
+script = ExtResource("2_r8tns")
+stat = "damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_qrq2d"]
+script = ExtResource("2_r8tns")
+stat = "chains"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_s7ecw"]
+script = ExtResource("2_r8tns")
+stat = "damage"
+op = "mul"
+value = 0.3
+
+[resource]
+script = ExtResource("2_w1c17")
+behavior = "Beam"
+targeting = "random"
+base = {
+"amount": 1.0,
+"chains": 2.0,
+"cooldown": 1.6,
+"damage": 12.0,
+"knockback": 3.0,
+"range": 9.0
+}
+levels = [[], [SubResource("Resource_r8tns")], [SubResource("Resource_y1fi3")], [SubResource("Resource_7u84o")], [SubResource("Resource_887o3")], [SubResource("Resource_0g86e")], [SubResource("Resource_qrq2d")], [SubResource("Resource_s7ecw")]]
+evolves_with = "conductor"
+evolves_into = "storm_cloud"
+sfx = {
+"fire": "w_zap_fire",
+"hit": "w_zap_hit"
+}
+visual = ExtResource("3_w1c17")
+visual_file = "zap_beam_visual.tscn"
+id = "zap_beam"
+display_name = "Zap Beam"
+flavour = "Ants hate this one trick."
+rarity = "rare"
+weight = 7.0
+icon = ExtResource("1_r8tns")
+icon_file = "zap_beam_icon.png"
+placeholder = {
+"color": "#5DB8FF",
+"glyph": "bolt"
+}

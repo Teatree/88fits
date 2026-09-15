@@ -1,0 +1,74 @@
+{
+  "id": "spit_cactus",
+  "name": "Spit Cactus",
+  "flavour": "The only cactus that walks. Sadly.",
+  "archetype": "spitter",
+  "brain": "kite",
+  "hp": 18,
+  "speed": 1.15,
+  "damage": 8,
+  "radius": 0.45,
+  "size": 1.5,
+  "pack_size": 2,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.25,
+    "gold": 0.05
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 1,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "frame_px": 160,
+  "ranged": {
+    "range": 8.0,
+    "keep_distance": 5.5,
+    "cooldown": 2.6,
+    "projectile_speed": 6.0,
+    "telegraph": 0.7,
+    "splash": 1.2
+  },
+  "sfx": {
+    "attack": "en_cactus_spit",
+    "die": "en_cactus_die",
+    "hit": "en_goblin_hit"
+  },
+  "placeholder": {
+    "color": "#5FA35A",
+    "ears": "arms",
+    "eyes": 2,
+    "shape": "tall"
+  },
+  "art_prompt": "a goofy tall green walking cactus with two stubby arms, two short legs, big worried eyes and a wide open mouth full of green spit",
+  "xp_mult": 3.0,
+  "variance": {
+    "size": 0.2,
+    "speed": 0.12,
+    "tints": [
+      "#FFFFFF",
+      "#C8FF9C",
+      "#6ADFBB",
+      "#FFE68A"
+    ],
+    "tint_strength": 0.55,
+    "special_chance": 0.1,
+    "special": {
+      "size": 1.5,
+      "hp": 2.2,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#FF7AB8",
+      "tint_strength": 0.9
+    }
+  },
+  "motion": "waddling in place, swaying from side to side",
+  "strip_cols": 36,
+  "fps": {
+    "run": 15
+  }
+}

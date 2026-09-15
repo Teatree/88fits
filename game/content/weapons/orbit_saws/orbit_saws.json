@@ -1,0 +1,83 @@
+{
+  "id": "orbit_saws",
+  "name": "Orbit Saws",
+  "flavour": "Standing still is a choice now.",
+  "rarity": "common",
+  "weight": 10,
+  "behavior": "Orbiter",
+  "targeting": "orbit",
+  "base": {
+    "damage": 8,
+    "amount": 2,
+    "orbit_radius": 2.0,
+    "knockback": 5.0,
+    "area": 1.0,
+    "cooldown": 0.25
+  },
+  "params": {
+    "spin_speed": 2.6
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "orbit_radius",
+        "op": "mul",
+        "value": 0.15
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ]
+  ],
+  "evolves_with": "reach",
+  "evolves_into": "saw_halo",
+  "sfx": {
+    "loop": "w_saw_loop",
+    "hit": "w_saw_hit"
+  },
+  "placeholder": {
+    "color": "#C9CED8",
+    "glyph": "saw"
+  },
+  "art_prompt": "a spinning silver circular saw blade with sharp triangular teeth"
+}

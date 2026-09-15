@@ -1,0 +1,16 @@
+{
+  "id": "magnet_pulse",
+  "name": "Magnet Pulse",
+  "flavour": "Every gem on the map comes home.",
+  "effect": "vacuum",
+  "value": 0,
+  "duration": 0,
+  "lifetime": 20,
+  "color": "#FFB52E",
+  "weight": 2,
+  "placeholder": {
+    "color": "#FFB52E",
+    "glyph": "magnet"
+  },
+  "art_prompt": "a big red horseshoe magnet with purple gems flying towards it"
+}

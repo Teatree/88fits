@@ -1,0 +1,13 @@
+{
+  "id": "uber_magnet",
+  "radius": 2.2,
+  "interact_time": 3.0,
+  "name": "Uber Magnet",
+  "flavour": "Every gem and coin on the map comes home. Once.",
+  "effect": "vacuum_all",
+  "weight": 1,
+  "color": "#FFB52E",
+  "prop": "magnet_shrine",
+  "height": 2.2,
+  "art_prompt": "a giant red and grey horseshoe magnet standing on a stone plinth"
+}

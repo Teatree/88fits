@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="StructureDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/StructureDef.gd" id="1_h4el8"]
+
+[resource]
+script = ExtResource("1_h4el8")
+effect_kind = "shop"
+color = Color(0.29803923, 0.7882353, 1, 1)
+prop = "shop_stall"
+height = 2.6
+id = "shop"
+display_name = "Travelling Shop"
+flavour = "Three things for sale. Buy one, then it packs up."
+weight = 2.0
+icon_file = "shop_icon.png"

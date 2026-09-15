@@ -1,0 +1,24 @@
+{
+  "id": "haste",
+  "name": "Haste",
+  "flavour": "Everything fires sooner.",
+  "rarity": "common",
+  "weight": 10,
+  "pairs_with": "lob_grenade",
+  "levels": [
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.08,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "placeholder": {
+    "color": "#FFD166",
+    "glyph": "clock"
+  },
+  "art_prompt": "a golden stopwatch with wings"
+}

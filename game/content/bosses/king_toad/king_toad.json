@@ -1,0 +1,75 @@
+{
+  "id": "king_toad",
+  "name": "King Toad",
+  "flavour": "Rules the pond. Claims the meadow.",
+  "archetype": "boss",
+  "brain": "boss",
+  "hp": 950,
+  "speed": 1.5,
+  "damage": 20,
+  "radius": 2.2,
+  "size": 4.8,
+  "pack_size": 1,
+  "drops": {
+    "large": 1.0,
+    "gold": 1.0
+  },
+  "frame_px": 256,
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 1,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "fps": {
+    "run": 15
+  },
+  "xp_mult": 30,
+  "boss": {
+    "hp_mult_per_stage": 1.6,
+    "cooldown_between": 2.0,
+    "attacks": [
+      {
+        "name": "roll",
+        "windup": 1.0,
+        "speed": 13.0,
+        "duration": 1.1,
+        "damage": 25,
+        "telegraph": "line"
+      },
+      {
+        "name": "spawn_ring",
+        "windup": 0.8,
+        "enemy": "bramble_imp",
+        "count": 12,
+        "telegraph": "none"
+      },
+      {
+        "name": "slam",
+        "windup": 1.2,
+        "radius": 6.0,
+        "damage": 30,
+        "telegraph": "ring",
+        "knockback": 6
+      }
+    ]
+  },
+  "sfx": {
+    "spawn": "en_boss_roar",
+    "attack": "en_boss_attack",
+    "die": "en_boss_die",
+    "hit": "en_goblin_hit"
+  },
+  "placeholder": {
+    "color": "#4E8A3A",
+    "ears": "crown",
+    "eyes": 2,
+    "shape": "ball"
+  },
+  "art_prompt": "a gigantic fat warty green toad wearing a small golden royal crown, a huge smug wide mouth, bulging royal eyes, a pale spotted belly, sitting proudly and facing the viewer",
+  "motion": "bouncing in place menacingly, throat puffing",
+  "strip_cols": 36
+}

@@ -1,0 +1,82 @@
+{
+  "id": "boomstick",
+  "name": "Boomstick",
+  "flavour": "Steer into the crowd.",
+  "rarity": "common",
+  "weight": 10,
+  "behavior": "ProjectileEmitter",
+  "targeting": "forward",
+  "base": {
+    "damage": 6,
+    "cooldown": 1.4,
+    "amount": 5,
+    "spread_deg": 35,
+    "range": 6,
+    "pierce": 0,
+    "knockback": 8.0,
+    "speed": 16
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.1
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 2
+      }
+    ],
+    [
+      {
+        "stat": "knockback",
+        "op": "add",
+        "value": 2
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ],
+    [
+      {
+        "stat": "pierce",
+        "op": "add",
+        "value": 1
+      }
+    ]
+  ],
+  "evolves_with": "might",
+  "evolves_into": "doomstick",
+  "sfx": {
+    "fire": "w_boom_fire",
+    "hit": "w_boom_hit"
+  },
+  "placeholder": {
+    "color": "#FFB13B",
+    "glyph": "shotgun"
+  },
+  "art_prompt": "a chunky double-barreled shotgun with a wooden stock, seen from the side"
+}

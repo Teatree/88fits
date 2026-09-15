@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PickupDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="1_12pu4"]
+[ext_resource type="Texture2D" path="res://content/pickups/shield/shield_icon.png" id="1_fyche"]
+
+[resource]
+script = ExtResource("1_12pu4")
+effect_kind = "shield"
+value = 0.0
+duration = 6.0
+color = Color(0.54509807, 0.42352942, 1, 1)
+id = "shield"
+display_name = "Shield"
+flavour = "Six seconds of not caring."
+weight = 2.0
+icon = ExtResource("1_fyche")
+icon_file = "shield_icon.png"
+placeholder = {
+"color": "#8B6CFF",
+"glyph": "shield"
+}

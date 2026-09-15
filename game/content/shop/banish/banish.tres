@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="ShopUpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_yo203"]
+[ext_resource type="Script" path="res://core/data/ShopUpgradeDef.gd" id="2_bve1j"]
+[ext_resource type="Texture2D" path="res://content/shop/banish/banish_icon.png" id="2_doqw7"]
+
+[sub_resource type="Resource" id="Resource_bve1j"]
+script = ExtResource("1_yo203")
+stat = "banishes"
+value = 1.0
+target = "player"
+
+[resource]
+script = ExtResource("2_bve1j")
+effect_per_tier = SubResource("Resource_bve1j")
+costs = [800.0, 2000.0]
+order = 10
+id = "banish"
+display_name = "Banish"
+flavour = "Never show me that again."
+icon = ExtResource("2_doqw7")
+icon_file = "banish_icon.png"
+placeholder = {
+"color": "#EE4A5C",
+"glyph": "cross"
+}

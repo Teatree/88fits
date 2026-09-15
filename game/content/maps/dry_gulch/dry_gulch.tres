@@ -1,0 +1,117 @@
+[gd_resource type="Resource" script_class="MapDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/maps/dry_gulch/dry_gulch_icon.png" id="1_2bow6"]
+[ext_resource type="PackedScene" path="res://world/maps/dry_gulch/DryGulch.tscn" id="1_78tpm"]
+[ext_resource type="Script" path="res://core/data/MapDef.gd" id="1_qrjk0"]
+[ext_resource type="Script" path="res://core/data/WaveTimeline.gd" id="2_78tpm"]
+
+[sub_resource type="Resource" id="Resource_2bow6"]
+script = ExtResource("2_78tpm")
+cap_start = 25
+cap_per_minute = 3.0
+cap_max = 60
+hard_cap = 80
+burst_min = 2
+burst_max = 6
+spawn_interval = 0.9
+roster = [{
+"enemy": "goblin",
+"t": 0.0,
+"weight": 10.0
+}, {
+"enemy": "goblin_runt",
+"t": 30.0,
+"weight": 6.0
+}, {
+"enemy": "fire_ant",
+"t": 60.0,
+"weight": 8.0
+}, {
+"enemy": "spit_cactus",
+"t": 150.0,
+"weight": 3.0
+}, {
+"enemy": "bull_beetle",
+"t": 240.0,
+"weight": 2.0
+}]
+events = [{
+"interval": 90.0,
+"t": 210.0,
+"type": "elite_every"
+}, {
+"enemy": "tumbleweed_king",
+"t": 300.0,
+"type": "boss"
+}, {
+"count": 18.0,
+"enemy": "fire_ant",
+"t": 390.0,
+"type": "swarm"
+}, {
+"enemy": "tumbleweed_king",
+"t": 600.0,
+"type": "boss"
+}, {
+"count": 12.0,
+"enemy": "goblin",
+"t": 720.0,
+"type": "swarm"
+}, {
+"enemy": "tumbleweed_king",
+"t": 900.0,
+"type": "boss"
+}]
+pickups = {
+"first": 50.0,
+"interval": 75.0,
+"jitter": 20.0,
+"roster": [{
+"id": "heart",
+"weight": 6.0
+}, {
+"id": "rage",
+"weight": 3.0
+}, {
+"id": "sprint",
+"weight": 3.0
+}, {
+"id": "shield",
+"weight": 2.0
+}, {
+"id": "magnet_pulse",
+"weight": 2.0
+}]
+}
+structures = {
+"count": 9.0,
+"min_spacing": 16.0
+}
+
+[resource]
+script = ExtResource("1_qrjk0")
+scene = ExtResource("1_78tpm")
+scene_file = "res://world/maps/dry_gulch/DryGulch.tscn"
+timeline = SubResource("Resource_2bow6")
+skins = {
+"brute": "bull_beetle",
+"spitter": "spit_cactus",
+"swarmer": "fire_ant",
+"walker": "goblin"
+}
+boss = "tumbleweed_king"
+music = {
+"ambient": "wd_ambient",
+"boss": "mu_boss",
+"run": ["mu_run_1", "mu_run_2", "mu_run_3"],
+"step": "pl_step_sand"
+}
+id = "dry_gulch"
+display_name = "Dry Gulch"
+flavour = "Golden hour. Everything wants you dead."
+icon = ExtResource("1_2bow6")
+icon_file = "dry_gulch_icon.png"
+placeholder = {
+"color": "#E4874C",
+"glyph": "sun"
+}

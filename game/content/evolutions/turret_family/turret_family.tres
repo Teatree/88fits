@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_c68db"]
+[ext_resource type="Texture2D" path="res://content/evolutions/turret_family/turret_family_icon.png" id="1_wgjfn"]
+[ext_resource type="PackedScene" path="res://content/evolutions/turret_family/turret_family_visual.tscn" id="2_3cgco"]
+
+[resource]
+script = ExtResource("1_c68db")
+behavior = "Spawner"
+base = {
+"amount": 2.0,
+"cooldown": 5.0,
+"damage": 6.0,
+"knockback": 5.0,
+"lifetime": 9999.0,
+"range": 9.0,
+"speed": 16.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "turret_buddy"
+sfx = {
+"fire": "w_turret_fire",
+"hit": "w_pea_hit",
+"place": "w_turret_place"
+}
+visual = ExtResource("2_3cgco")
+visual_file = "turret_family_visual.tscn"
+params = {
+"magnet": true,
+"max_turrets": 8.0,
+"turret_fire_rate": 0.3
+}
+id = "turret_family"
+display_name = "Turret Family"
+flavour = "They never leave. They pull gems."
+rarity = "epic"
+icon = ExtResource("1_wgjfn")
+icon_file = "turret_family_icon.png"
+placeholder = {
+"color": "#8A8F9A",
+"glyph": "turret",
+"gold": true
+}

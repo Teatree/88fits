@@ -1,0 +1,30 @@
+{
+  "id": "sombrero",
+  "name": "Sombrero",
+  "flavour": "Shade is armor.",
+  "rarity": "common",
+  "weight": 9,
+  "pairs_with": "skull_rain",
+  "levels": [
+    [
+      {
+        "stat": "armor",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      },
+      {
+        "stat": "max_hp",
+        "op": "mul",
+        "value": 0.04,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "placeholder": {
+    "color": "#E0B060",
+    "glyph": "hat"
+  },
+  "art_prompt": "a wide-brimmed straw sombrero hat with a red and green band"
+}

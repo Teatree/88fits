@@ -1,0 +1,29 @@
+[gd_scene load_steps=5 format=3 uid="uid://vis_turretbuddy1"]
+
+[sub_resource type="SphereMesh" id="proj"]
+radius = 0.12
+height = 0.24
+radial_segments = 6
+rings = 3
+
+[sub_resource type="StandardMaterial3D" id="projmat"]
+albedo_color = Color(1, 0.9, 0.5, 1)
+emission_enabled = true
+emission = Color(1, 0.8, 0.3, 1)
+
+[sub_resource type="BoxMesh" id="body"]
+size = Vector3(0.7, 0.7, 0.7)
+
+[sub_resource type="StandardMaterial3D" id="bodymat"]
+albedo_color = Color(0.54, 0.56, 0.6, 1)
+metallic = 0.4
+
+[node name="TurretBuddyVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+mesh = SubResource("proj")
+material_override = SubResource("projmat")
+
+[node name="Held" type="MeshInstance3D" parent="."]
+mesh = SubResource("body")
+material_override = SubResource("bodymat")

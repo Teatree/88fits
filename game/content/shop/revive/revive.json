@@ -1,0 +1,20 @@
+{
+  "id": "revive",
+  "name": "Revive",
+  "flavour": "Get up. Once.",
+  "order": 11,
+  "effect": {
+    "stat": "revives",
+    "op": "add",
+    "value": 1,
+    "target": "player"
+  },
+  "costs": [
+    3000
+  ],
+  "placeholder": {
+    "color": "#FFD166",
+    "glyph": "heart"
+  },
+  "art_prompt": "a golden heart with white angel wings"
+}

@@ -1,0 +1,30 @@
+{
+  "id": "war_drum",
+  "radius": 2.2,
+  "interact_time": 3.0,
+  "name": "War Drum",
+  "flavour": "Hit it. Then hit everything else.",
+  "effect": "buff",
+  "weight": 2,
+  "params": {
+    "seconds": 30,
+    "effects": [
+      {
+        "stat": "might",
+        "op": "mul",
+        "value": 0.5,
+        "target": "player"
+      },
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.25,
+        "target": "player"
+      }
+    ]
+  },
+  "color": "#FF5F6B",
+  "prop": "war_drum",
+  "height": 1.7,
+  "art_prompt": "a big war drum with red straps and two sticks"
+}

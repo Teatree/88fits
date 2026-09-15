@@ -1,0 +1,17 @@
+{
+  "id": "unlock_turret_buddy",
+  "name": "Turret Buddy",
+  "condition": {
+    "type": "open_chests",
+    "count": 10
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "turret_buddy"
+  },
+  "art_prompt": "a rolled blueprint scroll with a small tank drawn on it",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

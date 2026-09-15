@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/plague_volley/plague_volley_icon.png" id="1_07xp3"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_l22xk"]
+[ext_resource type="PackedScene" path="res://content/evolutions/plague_volley/plague_volley_visual.tscn" id="2_07xp3"]
+
+[resource]
+script = ExtResource("1_l22xk")
+targeting = "healthy"
+base = {
+"amount": 3.0,
+"cooldown": 0.7,
+"damage": 3.0,
+"knockback": 0.5,
+"pierce": 1.0,
+"poison_damage": 6.0,
+"poison_duration": 12.0,
+"poison_stacks": 3.0,
+"range": 10.0,
+"speed": 18.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "poison_dart"
+sfx = {
+"fire": "w_pea_fire",
+"hit": "w_pea_hit"
+}
+visual = ExtResource("2_07xp3")
+visual_file = "plague_volley_visual.tscn"
+params = {
+"familiar": {
+"bob": 0.14,
+"height": 1.5,
+"radius": 1.35,
+"speed": 1.2
+},
+"radius": 0.24
+}
+id = "plague_volley"
+display_name = "Plague Volley"
+flavour = "Three darts. Three ideas."
+rarity = "epic"
+icon = ExtResource("1_07xp3")
+icon_file = "plague_volley_icon.png"
+placeholder = {
+"color": "#7FD07A",
+"glyph": "dart",
+"gold": true
+}

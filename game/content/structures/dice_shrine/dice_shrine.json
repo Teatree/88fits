@@ -1,0 +1,21 @@
+{
+  "id": "dice_shrine",
+  "radius": 2.2,
+  "interact_time": 3.0,
+  "name": "Dice Shrine",
+  "flavour": "Full heal, a pile of gold, a level, or an ambush with a chest.",
+  "effect": "dice",
+  "weight": 2,
+  "params": {
+    "outcomes": [
+      "heal",
+      "gold",
+      "level",
+      "swarm"
+    ]
+  },
+  "color": "#8B6CFF",
+  "prop": "dice_shrine",
+  "height": 2.0,
+  "art_prompt": "a giant purple die on a stone plinth"
+}

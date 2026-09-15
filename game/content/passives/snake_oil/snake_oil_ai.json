@@ -1,0 +1,33 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a small brown glass medicine bottle with a cork and a green snake on the label",
+ "renders": {
+  "icon": {
+   "seed": 10512,
+   "prompt": "a small brown glass medicine bottle with a cork and a green snake on the label. Mobile game item icon in the style of Shop Titans: one single bold object, thick clean black outline, simple chunky shapes, flat cel shading with one soft highlight, saturated high-contrast colors, centered and filling the frame with a small margin, readable at thumbnail size, no text, no background, no scene. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": false,
+    "view": "front",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 367,
+     "right": 367,
+     "top": 215,
+     "bottom": 215,
+     "height": 593,
+     "width": 289
+    }
+   },
+   "attempt": 0
+  }
+ }
+}

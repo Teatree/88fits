@@ -1,0 +1,81 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/turret_buddy/turret_buddy_icon.png" id="1_o0ly8"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_o0ly8"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_slb8c"]
+[ext_resource type="PackedScene" path="res://content/weapons/turret_buddy/turret_buddy_visual.tscn" id="3_slb8c"]
+
+[sub_resource type="Resource" id="Resource_o0ly8"]
+script = ExtResource("2_o0ly8")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_ausxe"]
+script = ExtResource("2_o0ly8")
+stat = "lifetime"
+value = 4.0
+
+[sub_resource type="Resource" id="Resource_xkci4"]
+script = ExtResource("2_o0ly8")
+stat = "cooldown"
+value = -1.0
+
+[sub_resource type="Resource" id="Resource_gf3xs"]
+script = ExtResource("2_o0ly8")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_3mwyn"]
+script = ExtResource("2_o0ly8")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_6lnlb"]
+script = ExtResource("2_o0ly8")
+stat = "lifetime"
+value = 4.0
+
+[sub_resource type="Resource" id="Resource_mnysx"]
+script = ExtResource("2_o0ly8")
+stat = "damage"
+op = "mul"
+value = 0.3
+
+[resource]
+script = ExtResource("2_slb8c")
+behavior = "Spawner"
+base = {
+"amount": 1.0,
+"cooldown": 6.0,
+"damage": 4.0,
+"knockback": 4.0,
+"lifetime": 12.0,
+"range": 8.0,
+"speed": 16.0
+}
+levels = [[], [SubResource("Resource_o0ly8")], [SubResource("Resource_ausxe")], [SubResource("Resource_xkci4")], [SubResource("Resource_gf3xs")], [SubResource("Resource_3mwyn")], [SubResource("Resource_6lnlb")], [SubResource("Resource_mnysx")]]
+evolves_with = "magnet"
+evolves_into = "turret_family"
+sfx = {
+"fire": "w_turret_fire",
+"hit": "w_pea_hit",
+"place": "w_turret_place"
+}
+visual = ExtResource("3_slb8c")
+visual_file = "turret_buddy_visual.tscn"
+params = {
+"turret_fire_rate": 0.35
+}
+id = "turret_buddy"
+display_name = "Turret Buddy"
+flavour = "It has a face. Do not name it."
+rarity = "rare"
+weight = 7.0
+icon = ExtResource("1_o0ly8")
+icon_file = "turret_buddy_icon.png"
+placeholder = {
+"color": "#8A8F9A",
+"glyph": "turret"
+}

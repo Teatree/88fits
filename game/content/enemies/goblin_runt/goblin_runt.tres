@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_jat44"]
+[ext_resource type="Texture2D" path="res://content/enemies/goblin_runt/goblin_runt_icon.png" id="1_jb5bl"]
+[ext_resource type="Texture2D" path="res://content/enemies/goblin_runt/goblin_runt_sprite.png" id="3_u54fl"]
+
+[resource]
+script = ExtResource("1_jat44")
+hp = 6.0
+speed = 2.3
+damage = 4.0
+radius = 0.35
+size = 0.95
+pack_size = 4
+drops = {
+"gold": 0.01,
+"small": 1.0
+}
+anims = {
+"attack": 2.0,
+"die": 1.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_u54fl")
+sprite_file = "goblin_runt_sprite.png"
+strip_cols = 36
+fps = {
+"run": 15.0
+}
+sfx = {
+"die": "en_goblin_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 2.0
+variance = {
+"size": 0.22,
+"special": {
+"damage": 1.4,
+"hp": 2.2,
+"size": 1.5,
+"tint": "#FF60A0",
+"tint_strength": 0.9,
+"xp": 3.0
+},
+"special_chance": 0.1,
+"speed": 0.18,
+"tint_strength": 0.55,
+"tints": ["#FFFFFF", "#E0FFB0", "#FFE0A0", "#B0E0FF"]
+}
+id = "goblin_runt"
+display_name = "Goblin Runt"
+flavour = "Smaller. Meaner. Faster."
+icon = ExtResource("1_jb5bl")
+icon_file = "goblin_runt_icon.png"
+placeholder = {
+"color": "#8CC46A",
+"ears": "pointed",
+"eyes": 2.0,
+"shape": "blob"
+}

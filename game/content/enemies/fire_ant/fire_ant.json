@@ -1,0 +1,64 @@
+{
+  "id": "fire_ant",
+  "name": "Fire Ant",
+  "flavour": "A red tide with legs.",
+  "archetype": "swarmer",
+  "brain": "flock",
+  "hp": 4,
+  "speed": 2.8,
+  "damage": 3,
+  "radius": 0.32,
+  "size": 0.8,
+  "pack_size": 8,
+  "drops": {
+    "small": 0.5,
+    "gold": 0.005
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 1,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "frame_px": 128,
+  "xp_mult": 1.8,
+  "sfx": {
+    "hit": "en_ant_hit",
+    "die": "en_ant_die"
+  },
+  "placeholder": {
+    "color": "#E04E3A",
+    "ears": "none",
+    "eyes": 2,
+    "shape": "ant"
+  },
+  "art_prompt": "a goofy fat red fire ant with a shiny round body, six stubby legs, two antennae and an angry cross-eyed grin",
+  "variance": {
+    "size": 0.2,
+    "speed": 0.15,
+    "tints": [
+      "#FFFFFF",
+      "#FFB06A",
+      "#FF6A6A",
+      "#C87AFF"
+    ],
+    "tint_strength": 0.55,
+    "special_chance": 0.1,
+    "special": {
+      "size": 1.6,
+      "hp": 2.5,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#FFE04A",
+      "tint_strength": 0.9
+    }
+  },
+  "motion": "scuttling in place, six legs moving quickly",
+  "strip_cols": 36,
+  "fps": {
+    "run": 15
+  }
+}

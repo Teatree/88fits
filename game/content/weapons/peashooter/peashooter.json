@@ -1,0 +1,89 @@
+{
+  "id": "peashooter",
+  "name": "Peashooter",
+  "flavour": "It goes pew. Reliably.",
+  "rarity": "common",
+  "weight": 10,
+  "behavior": "ProjectileEmitter",
+  "targeting": "nearest",
+  "base": {
+    "damage": 8,
+    "cooldown": 0.9,
+    "amount": 1,
+    "pierce": 0,
+    "speed": 14,
+    "range": 9,
+    "knockback": 4.0
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "pierce",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ]
+  ],
+  "evolves_with": "multishot",
+  "evolves_into": "bullet_hose",
+  "sfx": {
+    "fire": "w_pea_fire",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#7FD07A",
+    "glyph": "pea"
+  },
+  "art_prompt": "a cute round green pea pod creature with two leaf wings, a happy face with big eyes, spitting a single bright green pea",
+  "params": {
+    "familiar": {
+      "radius": 1.35,
+      "height": 1.55,
+      "speed": 1.4,
+      "bob": 0.12
+    }
+  }
+}

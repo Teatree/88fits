@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="StructureDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/StructureDef.gd" id="1_x5axk"]
+
+[resource]
+script = ExtResource("1_x5axk")
+params = {
+"fraction": 0.5
+}
+color = Color(0.3529412, 0.8392157, 0.41568628, 1)
+prop = "healing_well"
+height = 2.4
+id = "healing_well"
+display_name = "Healing Well"
+flavour = "Cold water. Warm feeling."
+weight = 4.0
+icon_file = "healing_well_icon.png"

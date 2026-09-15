@@ -1,0 +1,35 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a pair of golden cowboy boot spurs with spinning star rowels",
+ "renders": {
+  "icon": {
+   "seed": 5259,
+   "prompt": "a pair of golden cowboy boot spurs with spinning star rowels. Mobile game item icon in the style of Shop Titans: one single bold object, thick clean black outline, simple chunky shapes, flat cel shading with one soft highlight, saturated high-contrast colors, centered and filling the frame with a small margin, readable at thumbnail size, no text, no background, no scene. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [],
+   "qa": {
+    "subjects": 2,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 129,
+     "right": 132,
+     "top": 245,
+     "bottom": 242,
+     "height": 536,
+     "width": 762
+    }
+   },
+   "attempt": 0
+  }
+ }
+}

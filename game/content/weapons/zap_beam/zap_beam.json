@@ -1,0 +1,80 @@
+{
+  "id": "zap_beam",
+  "name": "Zap Beam",
+  "flavour": "Ants hate this one trick.",
+  "rarity": "rare",
+  "weight": 7,
+  "behavior": "Beam",
+  "targeting": "random",
+  "base": {
+    "damage": 12,
+    "cooldown": 1.6,
+    "chains": 2,
+    "range": 9,
+    "amount": 1,
+    "knockback": 3.0
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "chains",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.1
+      }
+    ],
+    [
+      {
+        "stat": "chains",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "chains",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ]
+  ],
+  "evolves_with": "conductor",
+  "evolves_into": "storm_cloud",
+  "sfx": {
+    "fire": "w_zap_fire",
+    "hit": "w_zap_hit"
+  },
+  "placeholder": {
+    "color": "#5DB8FF",
+    "glyph": "bolt"
+  },
+  "art_prompt": "a bright blue zigzag lightning bolt"
+}

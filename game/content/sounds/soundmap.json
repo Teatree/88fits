@@ -1,0 +1,422 @@
+{
+  "sounds": {
+    "ui_tap": {
+      "category": "ui",
+      "voices": 2,
+      "pitch_spread": 0.02,
+      "volume_db": -6
+    },
+    "ui_card_pick": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -3
+    },
+    "ui_levelup": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.04,
+      "volume_db": 0,
+      "file": "voice/ui_levelup.wav"
+    },
+    "ui_pause": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -6
+    },
+    "ui_resume": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -6
+    },
+    "ui_buy": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -3
+    },
+    "ui_locked": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -6
+    },
+    "ui_unlock": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.04,
+      "volume_db": 0,
+      "file": "voice/ui_unlock.wav"
+    },
+    "pl_step_sand": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.08,
+      "volume_db": -18
+    },
+    "pl_jump": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.05,
+      "volume_db": -6,
+      "file": "voice/pl_jump.wav"
+    },
+    "pl_land": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.05,
+      "volume_db": -8
+    },
+    "pl_hurt": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.12,
+      "volume_db": -3,
+      "file": "voice/pl_hurt.wav"
+    },
+    "pl_death": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.04,
+      "volume_db": 0,
+      "file": "voice/pl_death.wav"
+    },
+    "pl_revive": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.04,
+      "volume_db": 0,
+      "file": "voice/pl_revive.wav"
+    },
+    "w_pea_fire": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.1,
+      "volume_db": -12
+    },
+    "w_pea_hit": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.15,
+      "volume_db": -14
+    },
+    "w_boom_fire": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.06,
+      "volume_db": -6
+    },
+    "w_boom_hit": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.15,
+      "volume_db": -14
+    },
+    "w_saw_loop": {
+      "category": "weapon",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -20,
+      "loop": true
+    },
+    "w_saw_hit": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.15,
+      "volume_db": -14
+    },
+    "w_lob_throw": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.05,
+      "volume_db": -10
+    },
+    "w_lob_boom": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.08,
+      "volume_db": -4
+    },
+    "w_zap_fire": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.1,
+      "volume_db": -10
+    },
+    "w_zap_hit": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.2,
+      "volume_db": -14
+    },
+    "w_turret_place": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.05,
+      "volume_db": -8
+    },
+    "w_turret_fire": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.1,
+      "volume_db": -14
+    },
+    "w_evo_reveal": {
+      "category": "weapon",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": 0
+    },
+    "pk_gem_s": {
+      "category": "pickup",
+      "voices": 6,
+      "pitch_spread": 0.1,
+      "volume_db": -16
+    },
+    "pk_gem_m": {
+      "category": "pickup",
+      "voices": 4,
+      "pitch_spread": 0.08,
+      "volume_db": -14
+    },
+    "pk_gem_l": {
+      "category": "pickup",
+      "voices": 2,
+      "pitch_spread": 0.05,
+      "volume_db": -10
+    },
+    "pk_coin": {
+      "category": "pickup",
+      "voices": 3,
+      "pitch_spread": 0.08,
+      "volume_db": -10
+    },
+    "pk_chest_open": {
+      "category": "pickup",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -3
+    },
+    "pk_vacuum": {
+      "category": "pickup",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -3
+    },
+    "en_goblin_hit": {
+      "category": "enemy",
+      "voices": 4,
+      "pitch_spread": 0.2,
+      "volume_db": -16
+    },
+    "en_goblin_die": {
+      "category": "enemy",
+      "voices": 3,
+      "pitch_spread": 0.2,
+      "volume_db": -12
+    },
+    "en_ant_hit": {
+      "category": "enemy",
+      "voices": 4,
+      "pitch_spread": 0.25,
+      "volume_db": -20
+    },
+    "en_ant_die": {
+      "category": "enemy",
+      "voices": 6,
+      "pitch_spread": 0.25,
+      "volume_db": -18
+    },
+    "en_cactus_spit": {
+      "category": "enemy",
+      "voices": 3,
+      "pitch_spread": 0.1,
+      "volume_db": -10
+    },
+    "en_cactus_die": {
+      "category": "enemy",
+      "voices": 2,
+      "pitch_spread": 0.15,
+      "volume_db": -10
+    },
+    "en_beetle_charge": {
+      "category": "enemy",
+      "voices": 2,
+      "pitch_spread": 0.05,
+      "volume_db": -6
+    },
+    "en_beetle_die": {
+      "category": "enemy",
+      "voices": 2,
+      "pitch_spread": 0.1,
+      "volume_db": -6
+    },
+    "en_elite_spawn": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.04,
+      "volume_db": -3,
+      "file": "voice/en_elite_spawn.wav"
+    },
+    "en_boss_roar": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.04,
+      "volume_db": 0,
+      "file": "voice/en_boss_roar.wav"
+    },
+    "en_boss_attack": {
+      "category": "enemy",
+      "voices": 2,
+      "pitch_spread": 0.05,
+      "volume_db": -3
+    },
+    "en_boss_die": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.04,
+      "volume_db": 0,
+      "file": "voice/en_boss_die.wav"
+    },
+    "wd_ambient": {
+      "category": "world",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -18,
+      "loop": true
+    },
+    "wd_portal_open": {
+      "category": "world",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -8,
+      "loop": true
+    },
+    "wd_extract": {
+      "category": "world",
+      "voices": 1,
+      "pitch_spread": 0.04,
+      "volume_db": 0,
+      "file": "voice/wd_extract.wav"
+    },
+    "wd_dust_devil": {
+      "category": "world",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -14,
+      "loop": true
+    },
+    "wd_tumbleweed": {
+      "category": "world",
+      "voices": 2,
+      "pitch_spread": 0.1,
+      "volume_db": -18
+    },
+    "mu_title": {
+      "category": "music",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -10,
+      "loop": true
+    },
+    "mu_run_1": {
+      "category": "music",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -10,
+      "loop": true
+    },
+    "mu_run_2": {
+      "category": "music",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -12,
+      "loop": true
+    },
+    "mu_run_3": {
+      "category": "music",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -12,
+      "loop": true
+    },
+    "mu_boss": {
+      "category": "music",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -10,
+      "loop": true
+    },
+    "mu_results": {
+      "category": "music",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -10,
+      "loop": true
+    },
+    "w_tumble_roll": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.1,
+      "volume_db": -16
+    },
+    "w_tumble_hit": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.15,
+      "volume_db": -14
+    },
+    "w_snake_rattle": {
+      "category": "weapon",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -20,
+      "loop": true
+    },
+    "w_snake_bite": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.15,
+      "volume_db": -14
+    },
+    "w_skull_throw": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.1,
+      "volume_db": -16
+    },
+    "w_skull_boom": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.15,
+      "volume_db": -12
+    },
+    "pl_step_grass": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.08,
+      "volume_db": -18
+    },
+    "gr_ambient": {
+      "category": "world",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -18,
+      "loop": true
+    },
+    "pk_powerup": {
+      "category": "pickup",
+      "voices": 2,
+      "pitch_spread": 0.05,
+      "volume_db": -10
+    },
+    "pk_heart": {
+      "category": "pickup",
+      "voices": 2,
+      "pitch_spread": 0.05,
+      "volume_db": -10
+    }
+  }
+}

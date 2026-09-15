@@ -1,0 +1,57 @@
+[gd_scene load_steps=7 format=3 uid="uid://vis_boomstick001"]
+
+[sub_resource type="CapsuleMesh" id="proj"]
+radius = 0.07
+height = 0.5
+radial_segments = 6
+rings = 2
+
+[sub_resource type="StandardMaterial3D" id="projmat"]
+albedo_color = Color(1, 0.85, 0.45, 1)
+emission_enabled = true
+emission = Color(1, 0.7, 0.25, 1)
+emission_energy_multiplier = 1.2
+
+[sub_resource type="BoxMesh" id="gun"]
+size = Vector3(0.14, 0.16, 0.95)
+
+[sub_resource type="StandardMaterial3D" id="gunmat"]
+albedo_color = Color(0.36, 0.24, 0.14, 1)
+
+[sub_resource type="SphereMesh" id="spark"]
+radius = 0.07
+height = 0.14
+radial_segments = 4
+rings = 2
+
+[sub_resource type="StandardMaterial3D" id="sparkmat"]
+shading_mode = 0
+albedo_color = Color(1, 0.8, 0.4, 1)
+
+[node name="BoomstickVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+mesh = SubResource("proj")
+material_override = SubResource("projmat")
+
+[node name="Held" type="MeshInstance3D" parent="."]
+mesh = SubResource("gun")
+material_override = SubResource("gunmat")
+
+[node name="Barrel" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, -0.15)
+mesh = SubResource("proj")
+material_override = SubResource("gunmat")
+
+[node name="Muzzle" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 14
+lifetime = 0.25
+one_shot = true
+explosiveness = 1.0
+mesh = SubResource("spark")
+direction = Vector3(0, 0, -1)
+spread = 40.0
+initial_velocity_min = 4.0
+initial_velocity_max = 9.0
+gravity = Vector3(0, -3, 0)

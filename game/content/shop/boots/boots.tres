@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="ShopUpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_gqrfc"]
+[ext_resource type="Texture2D" path="res://content/shop/boots/boots_icon.png" id="2_ge55s"]
+[ext_resource type="Script" path="res://core/data/ShopUpgradeDef.gd" id="2_t2pc2"]
+
+[sub_resource type="Resource" id="Resource_t2pc2"]
+script = ExtResource("1_gqrfc")
+stat = "move_speed"
+op = "mul"
+value = 0.05
+target = "player"
+
+[resource]
+script = ExtResource("2_t2pc2")
+effect_per_tier = SubResource("Resource_t2pc2")
+costs = [250.0, 600.0, 1400.0]
+order = 4
+id = "boots"
+display_name = "Boots"
+flavour = "Sand-proof."
+icon = ExtResource("2_ge55s")
+icon_file = "boots_icon.png"
+placeholder = {
+"color": "#B86B3E",
+"glyph": "boot"
+}

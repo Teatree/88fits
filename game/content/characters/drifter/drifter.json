@@ -1,0 +1,60 @@
+{
+  "id": "drifter",
+  "name": "Drifter",
+  "flavour": "Wide hat. Long coat. Longer road.",
+  "trait": [
+    {
+      "stat": "move_speed",
+      "op": "mul",
+      "value": 0.08,
+      "target": "player"
+    },
+    {
+      "stat": "magnet",
+      "op": "mul",
+      "value": 0.15,
+      "target": "player"
+    }
+  ],
+  "favourite_weapon": "peashooter",
+  "favourite_bonus": {
+    "type": "level",
+    "value": 2
+  },
+  "specials": [],
+  "unlock_quest": "",
+  "frame_px": 256,
+  "anims": {
+    "idle": 4,
+    "run": 24,
+    "hit": 9,
+    "die": 1,
+    "cheer": 1,
+    "idle_f": 4,
+    "run_f": 24,
+    "idle_s": 4,
+    "run_s": 24,
+    "idle_bd": 4,
+    "run_bd": 24,
+    "idle_fd": 4,
+    "run_fd": 24,
+    "hit_f": 9,
+    "hit_s": 9,
+    "hit_bd": 9,
+    "hit_fd": 9
+  },
+  "placeholder": {
+    "color": "#6B4A2E",
+    "hat": "#8A2F2F",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "art_prompt": "a lean young man with a calm determined face, wearing a wide-brimmed dark brown hat, a long dark brown leather duster coat with the collar turned up, a dark red scarf, a fitted dark shirt, dark grey trousers and worn black leather boots, standing straight with his hands relaxed at his sides",
+  "motion": "running in place at a steady jog, coat swaying, arms and legs swinging naturally",
+  "strip_cols": 62,
+  "fps": {
+    "run": 36,
+    "hit": 20
+  },
+  "portrait_prompt": "tipping the brim of his wide hat with two fingers, a confident half-smile, the collar of his brown duster turned up, the red scarf catching the wind"
+}

@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="StructureDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_dcdq6"]
+[ext_resource type="Script" path="res://core/data/StructureDef.gd" id="2_vs636"]
+
+[sub_resource type="Resource" id="Resource_dcdq6"]
+script = ExtResource("1_dcdq6")
+stat = "might"
+op = "mul"
+value = 0.5
+target = "player"
+
+[sub_resource type="Resource" id="Resource_vs636"]
+script = ExtResource("1_dcdq6")
+stat = "area"
+op = "mul"
+value = 0.25
+target = "player"
+
+[resource]
+script = ExtResource("2_vs636")
+effect_kind = "buff"
+params = {
+"effects": [{
+"op": "mul",
+"stat": "might",
+"target": "player",
+"value": 0.5
+}, {
+"op": "mul",
+"stat": "area",
+"target": "player",
+"value": 0.25
+}],
+"seconds": 30.0
+}
+effects = [SubResource("Resource_dcdq6"), SubResource("Resource_vs636")]
+color = Color(1, 0.37254903, 0.41960785, 1)
+prop = "war_drum"
+height = 1.7
+id = "war_drum"
+display_name = "War Drum"
+flavour = "Hit it. Then hit everything else."
+weight = 2.0
+icon_file = "war_drum_icon.png"

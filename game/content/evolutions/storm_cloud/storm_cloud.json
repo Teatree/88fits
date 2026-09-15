@@ -1,0 +1,35 @@
+{
+  "id": "storm_cloud",
+  "name": "Storm Cloud",
+  "flavour": "Follows you. Strikes them.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "zap_beam",
+  "max_level": 1,
+  "behavior": "Beam",
+  "targeting": "random",
+  "base": {
+    "damage": 10,
+    "cooldown": 0.35,
+    "chains": 3,
+    "range": 7,
+    "amount": 1,
+    "knockback": 4.0
+  },
+  "params": {
+    "follow": true
+  },
+  "levels": [
+    []
+  ],
+  "sfx": {
+    "fire": "w_zap_fire",
+    "hit": "w_zap_hit"
+  },
+  "placeholder": {
+    "color": "#5DB8FF",
+    "glyph": "bolt",
+    "gold": true
+  },
+  "art_prompt": "a purple storm cloud with an angry face and lightning bolts below it"
+}

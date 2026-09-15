@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/conductor/conductor_icon.png" id="1_epeyk"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_epeyk"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_lr7rc"]
+
+[sub_resource type="Resource" id="Resource_epeyk"]
+script = ExtResource("2_lr7rc")
+stat = "chains"
+value = 1.0
+target = "weapon:zap_beam"
+
+[sub_resource type="Resource" id="Resource_lr7rc"]
+script = ExtResource("2_lr7rc")
+stat = "damage"
+op = "mul"
+value = 0.15
+target = "weapon:zap_beam"
+
+[sub_resource type="Resource" id="Resource_in0n5"]
+script = ExtResource("2_lr7rc")
+stat = "chains"
+value = 1.0
+target = "weapon:storm_cloud"
+
+[sub_resource type="Resource" id="Resource_qn6sl"]
+script = ExtResource("2_lr7rc")
+stat = "damage"
+op = "mul"
+value = 0.15
+target = "weapon:storm_cloud"
+
+[resource]
+script = ExtResource("2_epeyk")
+levels = [[SubResource("Resource_epeyk"), SubResource("Resource_lr7rc"), SubResource("Resource_in0n5"), SubResource("Resource_qn6sl")]]
+max_level = 5
+pairs_with = "zap_beam"
+id = "conductor"
+display_name = "Conductor"
+flavour = "Lightning likes you."
+rarity = "rare"
+weight = 7.0
+icon = ExtResource("1_epeyk")
+icon_file = "conductor_icon.png"
+placeholder = {
+"color": "#5DB8FF",
+"glyph": "bolt"
+}

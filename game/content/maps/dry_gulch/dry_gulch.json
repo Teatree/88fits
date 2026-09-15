@@ -1,0 +1,140 @@
+{
+  "id": "dry_gulch",
+  "name": "Dry Gulch",
+  "flavour": "Golden hour. Everything wants you dead.",
+  "scene": "res://world/maps/dry_gulch/DryGulch.tscn",
+  "skins": {
+    "walker": "goblin",
+    "swarmer": "fire_ant",
+    "spitter": "spit_cactus",
+    "brute": "bull_beetle"
+  },
+  "boss": "tumbleweed_king",
+  "unlock_quest": "",
+  "music": {
+    "ambient": "wd_ambient",
+    "run": [
+      "mu_run_1",
+      "mu_run_2",
+      "mu_run_3"
+    ],
+    "boss": "mu_boss",
+    "step": "pl_step_sand"
+  },
+  "timeline_data": {
+    "stage_length": 300,
+    "stages": 3,
+    "stage_mults": [
+      1.0,
+      1.35,
+      1.8
+    ],
+    "endless_mult_per_minute": 0.1,
+    "cap_start": 25,
+    "cap_per_minute": 3,
+    "cap_max": 60,
+    "hard_cap": 80,
+    "hp_growth": 0.08,
+    "hp_power": 1.2,
+    "burst_min": 2,
+    "burst_max": 6,
+    "spawn_interval": 0.9,
+    "roster": [
+      {
+        "t": 0,
+        "enemy": "goblin",
+        "weight": 10
+      },
+      {
+        "t": 30,
+        "enemy": "goblin_runt",
+        "weight": 6
+      },
+      {
+        "t": 60,
+        "enemy": "fire_ant",
+        "weight": 8
+      },
+      {
+        "t": 150,
+        "enemy": "spit_cactus",
+        "weight": 3
+      },
+      {
+        "t": 240,
+        "enemy": "bull_beetle",
+        "weight": 2
+      }
+    ],
+    "events": [
+      {
+        "t": 210,
+        "type": "elite_every",
+        "interval": 90
+      },
+      {
+        "t": 300,
+        "type": "boss",
+        "enemy": "tumbleweed_king"
+      },
+      {
+        "t": 390,
+        "type": "swarm",
+        "enemy": "fire_ant",
+        "count": 18
+      },
+      {
+        "t": 600,
+        "type": "boss",
+        "enemy": "tumbleweed_king"
+      },
+      {
+        "t": 720,
+        "type": "swarm",
+        "enemy": "goblin",
+        "count": 12
+      },
+      {
+        "t": 900,
+        "type": "boss",
+        "enemy": "tumbleweed_king"
+      }
+    ],
+    "pickups": {
+      "first": 50,
+      "interval": 75,
+      "jitter": 20,
+      "roster": [
+        {
+          "id": "heart",
+          "weight": 6
+        },
+        {
+          "id": "rage",
+          "weight": 3
+        },
+        {
+          "id": "sprint",
+          "weight": 3
+        },
+        {
+          "id": "shield",
+          "weight": 2
+        },
+        {
+          "id": "magnet_pulse",
+          "weight": 2
+        }
+      ]
+    },
+    "structures": {
+      "count": 9,
+      "min_spacing": 16
+    }
+  },
+  "placeholder": {
+    "color": "#E4874C",
+    "glyph": "sun"
+  },
+  "art_prompt": "a big orange sun over a green saguaro cactus"
+}

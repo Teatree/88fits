@@ -1,0 +1,22 @@
+{
+  "id": "greed",
+  "name": "Greed",
+  "flavour": "Ten percent more of everything shiny.",
+  "order": 7,
+  "effect": {
+    "stat": "greed",
+    "op": "mul",
+    "value": 0.1,
+    "target": "player"
+  },
+  "costs": [
+    400,
+    900,
+    2000
+  ],
+  "placeholder": {
+    "color": "#FFB13B",
+    "glyph": "coin"
+  },
+  "art_prompt": "a pile of shiny gold coins"
+}

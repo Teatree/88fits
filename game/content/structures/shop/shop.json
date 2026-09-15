@@ -1,0 +1,13 @@
+{
+  "id": "shop",
+  "radius": 2.2,
+  "interact_time": 3.0,
+  "name": "Travelling Shop",
+  "flavour": "Three things for sale. Buy one, then it packs up.",
+  "effect": "shop",
+  "weight": 2,
+  "color": "#4CC9FF",
+  "prop": "shop_stall",
+  "height": 2.6,
+  "art_prompt": "a tiny market stall with a striped awning"
+}

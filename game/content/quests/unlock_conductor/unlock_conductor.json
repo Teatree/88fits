@@ -1,0 +1,17 @@
+{
+  "id": "unlock_conductor",
+  "name": "Conductor",
+  "condition": {
+    "type": "evolve_any",
+    "count": 1
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "conductor"
+  },
+  "art_prompt": "a golden train conductor's cap with a brass badge",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

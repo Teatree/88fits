@@ -1,0 +1,77 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_n38pk"]
+[ext_resource type="Texture2D" path="res://content/enemies/spit_cactus/spit_cactus_icon.png" id="1_wvjsf"]
+[ext_resource type="Texture2D" path="res://content/enemies/spit_cactus/spit_cactus_sprite.png" id="3_e6v1d"]
+
+[resource]
+script = ExtResource("1_n38pk")
+archetype = "spitter"
+brain = "kite"
+hp = 18.0
+speed = 1.15
+damage = 8.0
+radius = 0.45
+size = 1.5
+pack_size = 2
+drops = {
+"gold": 0.05,
+"medium": 0.25,
+"small": 1.0
+}
+anims = {
+"attack": 2.0,
+"die": 1.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_e6v1d")
+sprite_file = "spit_cactus_sprite.png"
+frame_px = 160
+strip_cols = 36
+fps = {
+"run": 15.0
+}
+ranged = {
+"cooldown": 2.6,
+"keep_distance": 5.5,
+"projectile_speed": 6.0,
+"range": 8.0,
+"splash": 1.2,
+"telegraph": 0.7
+}
+sfx = {
+"attack": "en_cactus_spit",
+"die": "en_cactus_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 3.0
+variance = {
+"size": 0.2,
+"special": {
+"damage": 1.4,
+"hp": 2.2,
+"size": 1.5,
+"tint": "#FF7AB8",
+"tint_strength": 0.9,
+"xp": 3.0
+},
+"special_chance": 0.1,
+"speed": 0.12,
+"tint_strength": 0.55,
+"tints": ["#FFFFFF", "#C8FF9C", "#6ADFBB", "#FFE68A"]
+}
+id = "spit_cactus"
+display_name = "Spit Cactus"
+flavour = "The only cactus that walks. Sadly."
+icon = ExtResource("1_wvjsf")
+icon_file = "spit_cactus_icon.png"
+placeholder = {
+"color": "#5FA35A",
+"ears": "arms",
+"eyes": 2.0,
+"shape": "tall"
+}

@@ -1,0 +1,25 @@
+# Godot editor binary lives in the repo folder but is never committed
+Godot_v4.7.2-stable_win64/
+# Godot caches
+game/.godot/
+game/export/
+*.import.tmp
+# OS / editor
+.DS_Store
+Thumbs.db
+# Python
+__pycache__/
+*.pyc
+# generated placeholder audio is committed on purpose (small); large renders are not
+tools/out/
+
+# test reports and exports
+game/reports/
+game/export/
+
+# local toolchain downloads
+tools/jdk17/
+tools/dl/
+
+# release keystore + password: never commit
+tools/keys/

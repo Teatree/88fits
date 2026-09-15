@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/sombrero/sombrero_icon.png" id="1_hws8a"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_8atqa"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_hws8a"]
+
+[sub_resource type="Resource" id="Resource_hws8a"]
+script = ExtResource("2_8atqa")
+stat = "armor"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_8atqa"]
+script = ExtResource("2_8atqa")
+stat = "max_hp"
+op = "mul"
+value = 0.04
+target = "player"
+
+[resource]
+script = ExtResource("2_hws8a")
+levels = [[SubResource("Resource_hws8a"), SubResource("Resource_8atqa")]]
+pairs_with = "skull_rain"
+id = "sombrero"
+display_name = "Sombrero"
+flavour = "Shade is armor."
+weight = 9.0
+icon = ExtResource("1_hws8a")
+icon_file = "sombrero_icon.png"
+placeholder = {
+"color": "#E0B060",
+"glyph": "hat"
+}

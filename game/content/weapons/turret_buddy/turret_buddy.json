@@ -1,0 +1,85 @@
+{
+  "id": "turret_buddy",
+  "name": "Turret Buddy",
+  "flavour": "It has a face. Do not name it.",
+  "rarity": "rare",
+  "weight": 7,
+  "behavior": "Spawner",
+  "targeting": "nearest",
+  "base": {
+    "damage": 4,
+    "cooldown": 6.0,
+    "lifetime": 12,
+    "range": 8,
+    "amount": 1,
+    "speed": 16,
+    "knockback": 4.0
+  },
+  "params": {
+    "turret_fire_rate": 0.35
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "lifetime",
+        "op": "add",
+        "value": 4
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "add",
+        "value": -1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "lifetime",
+        "op": "add",
+        "value": 4
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ]
+  ],
+  "evolves_with": "magnet",
+  "evolves_into": "turret_family",
+  "sfx": {
+    "place": "w_turret_place",
+    "fire": "w_turret_fire",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#8A8F9A",
+    "glyph": "turret"
+  },
+  "art_prompt": "a small grey metal turret box with a single gun barrel and a smiling face"
+}

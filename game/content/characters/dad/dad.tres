@@ -1,0 +1,72 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_uodur"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_h2uaj"]
+[ext_resource type="Texture2D" path="res://content/characters/dad/dad_icon.png" id="2_uodur"]
+[ext_resource type="Texture2D" path="res://content/characters/dad/dad_sprite.png" id="4_1x8k2"]
+
+[sub_resource type="Resource" id="Resource_uodur"]
+script = ExtResource("1_uodur")
+stat = "amount"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_1x8k2"]
+script = ExtResource("1_uodur")
+stat = "might"
+op = "mul"
+value = 0.2
+target = "player"
+
+[sub_resource type="Resource" id="Resource_5excv"]
+script = ExtResource("1_uodur")
+stat = "move_speed"
+op = "mul"
+value = -0.1
+target = "player"
+
+[resource]
+script = ExtResource("2_h2uaj")
+trait_effects = [SubResource("Resource_1x8k2"), SubResource("Resource_5excv")]
+favourite_weapon = "boomstick"
+favourite_bonus = {
+"effects": [SubResource("Resource_uodur")],
+"type": "effects"
+}
+unlock_quest = "unlock_dad"
+sprite = ExtResource("4_1x8k2")
+sprite_file = "dad_sprite.png"
+anims = {
+"cheer": 1.0,
+"die": 1.0,
+"hit": 9.0,
+"hit_bd": 9.0,
+"hit_f": 9.0,
+"hit_fd": 9.0,
+"hit_s": 9.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+}
+strip_cols = 62
+fps = {
+"hit": 20.0,
+"run": 36.0
+}
+id = "dad"
+display_name = "Dad"
+flavour = "Has opinions about the lawn."
+icon = ExtResource("2_uodur")
+icon_file = "dad_icon.png"
+placeholder = {
+"color": "#8FB6D8",
+"eyes": 2.0,
+"hat": "#3E3E4E",
+"shape": "wide"
+}

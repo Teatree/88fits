@@ -1,0 +1,18 @@
+{
+  "id": "unlock_endless",
+  "name": "Endless",
+  "condition": {
+    "type": "kill_boss",
+    "map": "dry_gulch",
+    "stage": 3
+  },
+  "unlocks": {
+    "type": "mode",
+    "id": "endless"
+  },
+  "art_prompt": "a golden infinity symbol",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

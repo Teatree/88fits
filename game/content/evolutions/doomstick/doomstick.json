@@ -1,0 +1,37 @@
+{
+  "id": "doomstick",
+  "name": "Doomstick",
+  "flavour": "Double barrel. Double regret.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "boomstick",
+  "max_level": 1,
+  "behavior": "ProjectileEmitter",
+  "targeting": "forward",
+  "base": {
+    "damage": 9,
+    "cooldown": 1.2,
+    "amount": 12,
+    "spread_deg": 45,
+    "range": 7,
+    "pierce": 1,
+    "knockback": 10.0,
+    "speed": 18
+  },
+  "params": {
+    "shockwave": true
+  },
+  "levels": [
+    []
+  ],
+  "sfx": {
+    "fire": "w_boom_fire",
+    "hit": "w_boom_hit"
+  },
+  "placeholder": {
+    "color": "#FFB13B",
+    "glyph": "shotgun",
+    "gold": true
+  },
+  "art_prompt": "a golden double-barreled shotgun with flames bursting from both barrels"
+}

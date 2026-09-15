@@ -1,0 +1,18 @@
+{
+  "id": "loot_cache",
+  "radius": 2.2,
+  "interact_time": 3.0,
+  "name": "Loot Cache",
+  "flavour": "Somebody buried this. Somebody was wrong.",
+  "effect": "loot",
+  "weight": 3,
+  "params": {
+    "gold": 40,
+    "gems": 3,
+    "coins": 4
+  },
+  "color": "#FFD35A",
+  "prop": "loot_cache",
+  "height": 1.6,
+  "art_prompt": "a treasure chest on a stone pedestal"
+}

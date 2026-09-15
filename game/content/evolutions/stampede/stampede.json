@@ -1,0 +1,34 @@
+{
+  "id": "stampede",
+  "name": "Stampede",
+  "flavour": "Every tumbleweed in the county, at once.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "tumbleweed",
+  "max_level": 1,
+  "behavior": "ProjectileEmitter",
+  "targeting": "nearest",
+  "base": {
+    "damage": 22,
+    "cooldown": 2.0,
+    "amount": 4,
+    "range": 18,
+    "pierce": 80,
+    "knockback": 12.0,
+    "speed": 7
+  },
+  "params": {
+    "radius": 0.85,
+    "spread_deg": 50.0
+  },
+  "sfx": {
+    "fire": "w_tumble_roll",
+    "hit": "w_tumble_hit"
+  },
+  "placeholder": {
+    "color": "#B08A4A",
+    "glyph": "ball",
+    "gold": true
+  },
+  "art_prompt": "a golden crowned tumbleweed rolling with three smaller tumbleweeds behind it"
+}

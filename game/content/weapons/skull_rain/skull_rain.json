@@ -1,0 +1,87 @@
+{
+  "id": "skull_rain",
+  "name": "Skull Rain",
+  "flavour": "Forecast: skulls, with a chance of green smoke.",
+  "rarity": "rare",
+  "weight": 6,
+  "behavior": "Lobber",
+  "targeting": "densest_healthy",
+  "base": {
+    "damage": 6,
+    "cooldown": 2.2,
+    "amount": 1,
+    "area": 2.2,
+    "range": 11,
+    "knockback": 2.0,
+    "speed": 12,
+    "poison_damage": 3,
+    "poison_stacks": 1,
+    "poison_duration": 10
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "poison_damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "add",
+        "value": 0.4
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.1
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "poison_stacks",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "poison_damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "add",
+        "value": 0.5
+      }
+    ]
+  ],
+  "evolves_with": "sombrero",
+  "evolves_into": "dia_de_muertos",
+  "sfx": {
+    "fire": "w_skull_throw",
+    "hit": "w_skull_boom"
+  },
+  "placeholder": {
+    "color": "#F0EAD6",
+    "glyph": "skull"
+  },
+  "art_prompt": "a white cartoon skull whose eye sockets and grinning mouth pour out thick bright neon green toxic gas clouds, glowing green, green slime dripping from the teeth, no black smoke",
+  "params": {
+    "cloud_seconds": 4.0
+  }
+}
