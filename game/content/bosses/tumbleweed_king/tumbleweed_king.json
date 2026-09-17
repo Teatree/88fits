@@ -26,7 +26,7 @@
   "frame_px": 256,
   "xp_mult": 30,
   "boss": {
-    "hp_mult_per_stage": 1.6,
+    "hp_mult_per_stage": 2.0,
     "attacks": [
       {
         "name": "roll",

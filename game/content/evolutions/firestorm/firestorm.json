@@ -1,0 +1,38 @@
+{
+  "id": "firestorm",
+  "name": "Firestorm",
+  "flavour": "Two bottles. One weather system.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "molotov",
+  "max_level": 1,
+  "behavior": "Lobber",
+  "targeting": "densest_healthy",
+  "base": {
+    "damage": 10,
+    "cooldown": 2.0,
+    "amount": 2,
+    "area": 2.6,
+    "range": 12,
+    "knockback": 2.0,
+    "speed": 11,
+    "fire_damage": 6,
+    "fire_duration": 2.4,
+    "fire_spread": 0.7
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "cloud_seconds": 4.0
+  },
+  "sfx": {
+    "fire": "w_molotov_throw",
+    "hit": "w_molotov_boom"
+  },
+  "placeholder": {
+    "color": "#FF6A1E",
+    "glyph": "bottle"
+  },
+  "art_prompt": "two glass bottles of fire crossed over a raging orange firestorm with swirling flames"
+}

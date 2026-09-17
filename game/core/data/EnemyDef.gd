@@ -2,7 +2,7 @@
 class_name EnemyDef
 extends ContentDef
 
-## walker | swarmer | spitter | brute | boss
+## walker | swarmer | spitter | brute | ... | elite (a mini-boss creature) | boss
 @export var archetype: String = "walker"
 ## chase | flock | kite | charge | boss
 @export var brain: String = "chase"
@@ -35,6 +35,8 @@ extends ContentDef
 @export var charge: Dictionary = {}
 ## Boss: {"attacks": [ {"name":"roll", ...}, ... ], "hp_mult_per_stage": 1.0 }
 @export var boss: Dictionary = {}
+## Mini-boss tuning: {"hp_mult_per_stage": 1.8}
+@export var elite: Dictionary = {}
 ## Sound ids: hit, die, attack, spawn
 @export var sfx: Dictionary = {}
 ## XP value multiplier for the drops (elites multiply further).

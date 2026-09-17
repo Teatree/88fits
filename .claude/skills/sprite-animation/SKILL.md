@@ -63,6 +63,6 @@ from a right one in the front, back and side views, so cycles came out doubled o
    (`wan2.2_animate_14B_fp8_e4m3fn_scaled_KJ.safetensors`) + `lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16` LoRA, 4 steps,
    cfg 1, shift 8, `clip_vision_h`; the still as `reference_image`, the drivers as `pose_video`; ~2 min per 640x640x25 clip.
    Every driver frame is a sprite frame: no period detection. `gen_art.pose_cycle` wraps it and falls back to `video_cycle`.
-4. Creatures with non-human skeletons (ants, hornets, mushrooms) still use the free clip; humanoids could use `drivers/walk`.
+4. Creatures with non-human skeletons (ants, cacti, beetles) still use the free clip; humanoids could use `drivers/walk`.
 
 Models live on the server at `~/ai/ComfyUI/models/` (SSH: `ssh -i ~/.ssh/id_ed25519_ai_server teatree@192.168.137.54`; download with wget there).

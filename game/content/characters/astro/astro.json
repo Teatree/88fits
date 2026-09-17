@@ -33,7 +33,7 @@
   "anims": {
     "idle": 4,
     "run": 24,
-    "hit": 9,
+    "hit": 4,
     "die": 1,
     "cheer": 1,
     "idle_f": 4,
@@ -44,14 +44,14 @@
     "run_bd": 24,
     "idle_fd": 4,
     "run_fd": 24,
-    "hit_f": 9,
-    "hit_s": 9,
-    "hit_bd": 9,
-    "hit_fd": 9
+    "hit_f": 4,
+    "hit_s": 4,
+    "hit_bd": 4,
+    "hit_fd": 4
   },
   "fps": {
     "run": 36,
-    "hit": 20
+    "hit": 12
   },
   "strip_cols": 62,
   "placeholder": {
@@ -65,5 +65,6 @@
   "anim_hint": "a slim woman astronaut in a white and orange spacesuit, her round helmet visor is a completely dark opaque black mirror with no face behind it",
   "anim_negative": "face, eyes, mouth, hair, a visible face inside the helmet, transparent visor",
   "anim_seed": 3,
-  "portrait_prompt": "leaning in with a cheerful thumbs-up in an orange glove, the dark mirrored visor of her round helmet reflecting a tiny star and a planet"
+  "portrait_prompt": "leaning in with a cheerful thumbs-up in an orange glove, the dark mirrored visor of her round helmet reflecting a tiny star and a planet",
+  "hurt_hint": "her round helmet visor stays a completely dark opaque black mirror with no face behind it, the whole body tensing"
 }

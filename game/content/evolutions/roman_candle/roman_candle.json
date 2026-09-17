@@ -1,0 +1,44 @@
+{
+  "id": "roman_candle",
+  "name": "Roman Candle",
+  "flavour": "Three flares. No signal. Just fire.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "flare_gun",
+  "max_level": 1,
+  "behavior": "ProjectileEmitter",
+  "targeting": "healthy",
+  "base": {
+    "damage": 4,
+    "cooldown": 0.9,
+    "amount": 3,
+    "pierce": 1,
+    "speed": 13,
+    "range": 10,
+    "knockback": 1.0,
+    "fire_damage": 6,
+    "fire_duration": 2.4,
+    "fire_spread": 0.7
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "radius": 0.26,
+    "familiar": {
+      "radius": 1.3,
+      "height": 1.45,
+      "speed": 1.0,
+      "bob": 0.1
+    }
+  },
+  "sfx": {
+    "fire": "w_flare_fire",
+    "hit": "w_flare_hit"
+  },
+  "placeholder": {
+    "color": "#FF5A2A",
+    "glyph": "flare"
+  },
+  "art_prompt": "a fat golden roman candle firework tube spitting three burning red flares upward at once"
+}

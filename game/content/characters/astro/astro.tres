@@ -38,11 +38,11 @@ sprite_file = "astro_sprite.png"
 anims = {
 "cheer": 1.0,
 "die": 1.0,
-"hit": 9.0,
-"hit_bd": 9.0,
-"hit_f": 9.0,
-"hit_fd": 9.0,
-"hit_s": 9.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
 "idle": 4.0,
 "idle_bd": 4.0,
 "idle_f": 4.0,
@@ -56,7 +56,7 @@ anims = {
 }
 strip_cols = 62
 fps = {
-"hit": 20.0,
+"hit": 12.0,
 "run": 36.0
 }
 id = "astro"

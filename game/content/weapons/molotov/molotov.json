@@ -1,0 +1,87 @@
+{
+  "id": "molotov",
+  "name": "Molotov",
+  "flavour": "Bottle. Rag. Regret, for them.",
+  "rarity": "rare",
+  "weight": 6,
+  "behavior": "Lobber",
+  "targeting": "densest_healthy",
+  "base": {
+    "damage": 8,
+    "cooldown": 2.4,
+    "amount": 1,
+    "area": 2.0,
+    "range": 10,
+    "knockback": 2.0,
+    "speed": 10,
+    "fire_damage": 4,
+    "fire_duration": 1.8,
+    "fire_spread": 0.5
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "fire_damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.15
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ],
+    [
+      {
+        "stat": "fire_spread",
+        "op": "add",
+        "value": 0.1
+      }
+    ],
+    [
+      {
+        "stat": "fire_damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.15
+      }
+    ],
+    [
+      {
+        "stat": "fire_duration",
+        "op": "add",
+        "value": 0.6
+      }
+    ]
+  ],
+  "evolves_with": "haste",
+  "evolves_into": "firestorm",
+  "params": {
+    "cloud_seconds": 3.0
+  },
+  "sfx": {
+    "fire": "w_molotov_throw",
+    "hit": "w_molotov_boom"
+  },
+  "placeholder": {
+    "color": "#FF9A2E",
+    "glyph": "bottle"
+  },
+  "art_prompt": "a glass bottle of amber liquid with a burning rag stuffed in its neck, flames licking up from the rag"
+}

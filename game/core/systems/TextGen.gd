@@ -15,6 +15,7 @@ const STATS := {
 	"rerolls": ["rerolls", "count"], "skips": ["skips", "count"], "banishes": ["banishes", "count"],
 	"hp": ["HP", "num"], "size": ["size", "pct"], "turn_rate": ["turn rate", "num"], "lifetime": ["turret lifetime", "sec"],
 	"poison_damage": ["poison per tick", "num"], "poison_stacks": ["poison stacks", "count"], "poison_duration": ["poison lasts", "sec"],
+	"fire_damage": ["burn per tick", "num"], "fire_duration": ["burns for", "sec"], "fire_spread": ["spread chance", "pct"],
 }
 
 const RARITY_NAMES := {"common": "Common", "rare": "Rare", "epic": "Epic"}
@@ -121,13 +122,18 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet) -> String:
 				"random":
 					text = "Fires %d shot%s at random enemies within %.0f m." % [amount, "" if amount == 1 else "s", range_m]
 				"healthy":
-					text = "Fires %d dart%s at the nearest enemy within %.0f m that is not poisoned yet." % [amount, "" if amount == 1 else "s", range_m]
+					if sheet.get_stat("fire_damage", 0.0) > 0.0:
+						text = "Fires %d flare%s at the nearest enemy within %.0f m that is not burning yet." % [amount, "" if amount == 1 else "s", range_m]
+					else:
+						text = "Fires %d dart%s at the nearest enemy within %.0f m that is not poisoned yet." % [amount, "" if amount == 1 else "s", range_m]
 				_:
 					text = "Fires %d shot%s at the nearest enemy within %.0f m." % [amount, "" if amount == 1 else "s", range_m]
 		"Orbiter":
 			text = "%d blade%s circle you at %.1f m, hitting anything they touch." % [amount, "" if amount == 1 else "s", sheet.get_stat("orbit_radius", 2.0)]
 		"Lobber":
-			if sheet.get_stat("poison_damage", 0.0) > 0.0:
+			if sheet.get_stat("fire_damage", 0.0) > 0.0:
+				text = "Lobs %d bottle%s of fire at the thickest crowd that is not burning yet. Leaves a %.1f m pool of flames." % [amount, "" if amount == 1 else "s", sheet.get_stat("area", 2.5)]
+			elif sheet.get_stat("poison_damage", 0.0) > 0.0:
 				text = "Lobs %d poison bomb%s at the thickest crowd of healthy enemies. Leaves a %.1f m cloud of green smoke." % [amount, "" if amount == 1 else "s", sheet.get_stat("area", 2.5)]
 			else:
 				text = "Lobs %d grenade%s at the densest crowd. Explodes in a %.1f m radius." % [amount, "" if amount == 1 else "s", sheet.get_stat("area", 2.5)]
@@ -142,6 +148,9 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet) -> String:
 	if pd > 0.0:
 		var st := maxi(sheet.get_int("poison_stacks", 1), 1)
 		extras.append("Poisons: %.0f damage every 2 s for %.0f s%s." % [pd * st, sheet.get_stat("poison_duration", 10.0), (" (%d stacks)" % st) if st > 1 else ""])
+	var fd := sheet.get_stat("fire_damage", 0.0)
+	if fd > 0.0:
+		extras.append("Sets on fire: %.0f damage every 0.6 s for %.1f s. Spreads to touching enemies (%d%%)." % [fd, sheet.get_stat("fire_duration", 1.8), int(round(sheet.get_stat("fire_spread", 0.5) * 100.0))])
 	var pierce := sheet.get_int("pierce", 0)
 	if pierce > 0 and def.behavior == "ProjectileEmitter":
 		extras.append("Pierces %d." % pierce)

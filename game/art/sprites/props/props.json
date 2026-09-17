@@ -1,0 +1,86 @@
+{
+ "saguaro_big": {
+  "file": "saguaro_big.png",
+  "height": 4.4,
+  "radius": 0.55,
+  "cell": 384
+ },
+ "saguaro_small": {
+  "file": "saguaro_small.png",
+  "height": 2.8,
+  "radius": 0.45,
+  "cell": 256
+ },
+ "barrel_cactus": {
+  "file": "barrel_cactus.png",
+  "height": 1.1,
+  "radius": 0.5,
+  "cell": 192
+ },
+ "prickly_pear": {
+  "file": "prickly_pear.png",
+  "height": 1.4,
+  "radius": 0.5,
+  "cell": 192
+ },
+ "agave": {
+  "file": "agave.png",
+  "height": 1.3,
+  "radius": 0.5,
+  "cell": 192
+ },
+ "dead_shrub": {
+  "file": "dead_shrub.png",
+  "height": 1.2,
+  "radius": 0.0,
+  "cell": 192
+ },
+ "dead_tree": {
+  "file": "dead_tree.png",
+  "height": 4.2,
+  "radius": 0.4,
+  "cell": 384
+ },
+ "rock_small": {
+  "file": "rock_small.png",
+  "height": 0.8,
+  "radius": 0.7,
+  "cell": 128
+ },
+ "rock_big": {
+  "file": "rock_big.png",
+  "height": 1.6,
+  "radius": 1.4,
+  "cell": 256
+ },
+ "boulder": {
+  "file": "boulder.png",
+  "height": 2.8,
+  "radius": 2.3,
+  "cell": 384
+ },
+ "skull": {
+  "file": "skull.png",
+  "height": 0.9,
+  "radius": 0.0,
+  "cell": 192
+ },
+ "skull_small": {
+  "file": "skull_small.png",
+  "height": 0.5,
+  "radius": 0.0,
+  "cell": 128
+ },
+ "bones": {
+  "file": "bones.png",
+  "height": 0.7,
+  "radius": 0.0,
+  "cell": 192
+ },
+ "signpost": {
+  "file": "signpost.png",
+  "height": 3.0,
+  "radius": 0.25,
+  "cell": 256
+ }
+}

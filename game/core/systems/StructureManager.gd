@@ -42,6 +42,12 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 				defs.append(d)
 	if defs.is_empty() or count <= 0:
 		return
+	# every kind appears at least once per run; the rest of the count is drawn by weight
+	count = maxi(count, defs.size())
+	var picks: Array = defs.duplicate()
+	picks.shuffle()
+	while picks.size() < count:
+		picks.append(_pick(defs))
 	var placed: Array = []
 	var tries := 0
 	while placed.size() < count and tries < count * 60:
@@ -66,9 +72,9 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 			continue
 		p.y = map.height_at(p.x, p.z)
 		placed.append(p)
-	for p: Vector3 in placed:
-		var def: StructureDef = _pick(defs)
-		_spawn(def, p)
+	for k in range(placed.size()):
+		var def: StructureDef = picks[k]
+		_spawn(def, placed[k])
 
 
 func _pick(defs: Array) -> StructureDef:
@@ -114,12 +120,13 @@ func _spawn(def: StructureDef, at: Vector3) -> void:
 	s.hand.top_level = true
 	s.hand.visible = false
 	add_child(s.hand)
-	s.glow = OmniLight3D.new()
-	s.glow.light_color = def.color
-	s.glow.omni_range = 5.0
-	s.glow.light_energy = 1.1
-	s.glow.position.y = def.height * 0.7
-	s.add_child(s.glow)
+	if Fx.want_lights():
+		s.glow = OmniLight3D.new()
+		s.glow.light_color = def.color
+		s.glow.omni_range = 5.0
+		s.glow.light_energy = 1.1
+		s.glow.position.y = def.height * 0.7
+		s.add_child(s.glow)
 	items.append(s)
 
 
@@ -162,7 +169,9 @@ func _fallback_visual(def: StructureDef) -> Node3D:
 
 
 func _process(delta: float) -> void:
+	var _t0 := Time.get_ticks_usec()
 	if game == null or game.paused or game.player == null or game.player.dead:
+		Perf.add("structures", _t0)
 		return
 	var pp: Vector3 = game.player.global_position
 	var tg: Telegraphs = game.telegraphs
@@ -179,7 +188,8 @@ func _process(delta: float) -> void:
 		# the ring breathes; the pie shows how far along the hero is
 		var rm := s.ring.material_override as StandardMaterial3D
 		rm.albedo_color.a = 0.55 + 0.3 * absf(sin(s._t * 2.5))
-		s.glow.light_energy = 0.9 + 0.5 * absf(sin(s._t * 2.5)) + (1.5 if inside else 0.0)
+		if s.glow:
+			s.glow.light_energy = 0.9 + 0.5 * absf(sin(s._t * 2.5)) + (1.5 if inside else 0.0)
 		if s.progress > 0.0:
 			var frac := snappedf(s.progress, 0.02)
 			if frac != s._last_frac:
@@ -194,6 +204,7 @@ func _process(delta: float) -> void:
 			s.hand.visible = false
 		if s.progress >= 1.0:
 			_use(s)
+	Perf.add("structures", _t0)
 
 
 func _use(s: Structure) -> void:
@@ -201,7 +212,8 @@ func _use(s: Structure) -> void:
 	s.pie.visible = false
 	s.hand.visible = false
 	s.ring.visible = false
-	s.glow.light_energy = 0.0
+	if s.glow:
+		s.glow.light_energy = 0.0
 	_grey_out(s.visual)
 	game.use_structure(s.def, s.global_position)
 

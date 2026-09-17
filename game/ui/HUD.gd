@@ -20,8 +20,6 @@ var _kills: Label
 var _gold: Label
 var _weapon_row: HBoxContainer
 var _passive_row: HBoxContainer
-var _hp_bg: ColorRect
-var _hp_fg: ColorRect
 var _boss_box: Control
 var _boss_name: Label
 var _boss_bar: ProgressBar
@@ -40,6 +38,12 @@ var _buffs: HBoxContainer
 var _buffs_key := ""
 var _xp_batch := 0.0      # XP collected since the last popup
 var _xp_batch_t := 0.0    # seconds until the batch is shown
+# off-screen pointer to the boss (red) or the mini-boss (orange): a chevron at the screen edge with the distance
+var _arrow_on := false
+var _arrow_pos := Vector2.ZERO
+var _arrow_dir := Vector2.UP
+var _arrow_color := Color.RED
+var _arrow_label: Label
 
 
 func _ready() -> void:
@@ -49,6 +53,11 @@ func _ready() -> void:
 	_build_player_hp()
 	_build_boss()
 	_build_toasts()
+	_arrow_label = UiKit.outline(UiKit.label("", 26, UiKit.INK, HORIZONTAL_ALIGNMENT_CENTER), 5)
+	_arrow_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_arrow_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_arrow_label.visible = false
+	add_child(_arrow_label)
 	Run.xp_changed.connect(func(xp, need): _xp_bar.max_value = need; _xp_bar.value = xp; _lv.text = "LV %d" % Run.level)
 	Run.xp_gained.connect(_on_xp_gained)
 	Run.gold_changed.connect(func(g): _gold.text = str(g))
@@ -253,6 +262,7 @@ func _slot(def: ContentDef, level: int, max_level: int, kind: String) -> Control
 
 
 func _refresh_rows() -> void:
+	var t0 := Time.get_ticks_usec()
 	for c in _weapon_row.get_children():
 		c.queue_free()
 	for c in _passive_row.get_children():
@@ -270,6 +280,7 @@ func _refresh_rows() -> void:
 			_passive_row.add_child(_slot(def, int(Run.passives[pids[i]]), def.max_level if def else 8, "passive"))
 		else:
 			_passive_row.add_child(_slot(null, 0, 8, "passive"))
+	Perf.add("hud.rows", t0)
 
 
 func _refresh_counts() -> void:
@@ -282,29 +293,21 @@ func refresh_stage() -> void:
 
 
 func _build_player_hp() -> void:
-	_hp_bg = ColorRect.new()
-	_hp_bg.color = Color(0, 0, 0, 0.5)
-	_hp_bg.size = Vector2(150, 14)
-	_hp_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_hp_bg)
-	_hp_fg = ColorRect.new()
-	_hp_fg.color = UiKit.GOOD
-	_hp_fg.size = Vector2(150, 14)
-	_hp_fg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_hp_fg)
+	pass   # the bar is a HealthBar3D under the hero (player/HealthBar3D.gd)
 
 
 ## The run ends the frame the hero falls, so tick() stops: hide the bar and the stick ring explicitly.
 func hide_player_bar() -> void:
-	_hp_bg.visible = false
-	_hp_fg.visible = false
+	if game and game.player and game.player.health_bar:
+		game.player.health_bar.visible = false
 	_ring_alpha = 0.0
 	queue_redraw()
 
 
 func set_hp(hp: float, max_hp: float) -> void:
 	_hp = clamp(hp / max(max_hp, 1.0), 0.0, 1.0)
-	_hp_fg.color = UiKit.GOOD if _hp > 0.35 else UiKit.DANGER
+	if game and game.player and game.player.health_bar:
+		game.player.health_bar.set_fraction(_hp)
 
 
 func _build_boss() -> void:
@@ -492,28 +495,9 @@ func tick(_delta: float) -> void:
 		_boss_in.visible = false
 		if boss_t > 45.0 or boss_t < 0.0:
 			_boss_warned = false
-	# hp bar under the player (gone once he is down)
-	if game and game.player and game.camera and not game.player.dead:
-		var cam: Camera3D = game.camera.camera
-		var wp: Vector3 = game.player.global_position + Vector3(0, -0.1, 0)
-		if not cam.is_position_behind(wp):
-			var sp := cam.unproject_position(wp)
-			var vp := get_viewport().get_visible_rect().size
-			var scale := vp.x / 1080.0
-			var w := 150.0 * scale
-			_hp_bg.size = Vector2(w, 14 * scale)
-			_hp_bg.position = sp - Vector2(w * 0.5, -10 * scale)
-			_hp_fg.size = Vector2(w * _hp, 14 * scale)
-			_hp_fg.position = _hp_bg.position
-			_hp_bg.visible = true
-			_hp_fg.visible = true
-		else:
-			_hp_bg.visible = false
-			_hp_fg.visible = false
-	else:
-		_hp_bg.visible = false
-		_hp_fg.visible = false
+	# the hero's hp bar lives in the world now (player/HealthBar3D.gd), so it never trails the sprite
 	_tick_xp_popup(_delta)
+	_tick_arrow()
 	# the joystick ring follows the thumb; keyboard play (PC) draws none
 	if game and game.player and game.player.input and game.player.input.wants_move and not game.player.input.keyboard:
 		_ring_pos = game.player.input.origin
@@ -525,11 +509,91 @@ func tick(_delta: float) -> void:
 	queue_redraw()
 
 
-func _draw() -> void:
-	if _ring_alpha <= 0.0:
+## Where the big one is. The boss first, else the mini-boss; nothing when both are dead or the target is on screen.
+func _tick_arrow() -> void:
+	_arrow_on = false
+	if game == null or game.player == null or game.camera == null or game.enemies == null:
+		_arrow_label.visible = false
 		return
+	var em: EnemyManager = game.enemies
+	var target := Vector3.INF
+	var color := UiKit.DANGER
+	var name := "BOSS"
+	if em.boss_index >= 0 and em.is_alive(em.boss_index):
+		target = em.pos[em.boss_index]
+	elif game.director and game.director.has_method("elite_position"):
+		target = game.director.elite_position()
+		color = Color(0.98, 0.62, 0.25)
+		name = "ELITE"
+	if target == Vector3.INF:
+		_arrow_label.visible = false
+		return
+	var cam: Camera3D = game.camera.camera
 	var vp := get_viewport().get_visible_rect().size
 	var s := vp.x / 1080.0
+	# the play area below the strip, the countdown and the boss bar, above the bottom gesture zone
+	var rect := Rect2(Vector2(40 * s, BAND_H * s + 200 * s), Vector2(vp.x - 80 * s, vp.y - BAND_H * s - 360 * s))
+	if not cam.is_position_behind(target + Vector3(0, 1, 0)):
+		var sp := cam.unproject_position(target + Vector3(0, 1, 0))
+		if rect.has_point(sp):
+			_arrow_label.visible = false
+			return
+	# direction on the ground, turned into screen space by the camera's yaw (north-up: -Z is screen up)
+	var d: Vector3 = target - game.player.global_position
+	d.y = 0.0
+	var yaw: float = game.camera.current_yaw()
+	var cf := Vector3(-sin(yaw), 0, -cos(yaw))
+	var cr := Vector3(-cf.z, 0, cf.x)
+	var dir := Vector2(d.dot(cr), -d.dot(cf))
+	if dir.length_squared() < 0.001:
+		_arrow_label.visible = false
+		return
+	dir = dir.normalized()
+	# from the hero's screen spot out to the edge of the play area
+	var origin := Vector2(vp.x * 0.5, vp.y * 0.55)
+	if not cam.is_position_behind(game.player.global_position):
+		origin = cam.unproject_position(game.player.global_position)
+	var t := 1e9
+	if dir.x > 0.0001:
+		t = minf(t, (rect.end.x - origin.x) / dir.x)
+	elif dir.x < -0.0001:
+		t = minf(t, (rect.position.x - origin.x) / dir.x)
+	if dir.y > 0.0001:
+		t = minf(t, (rect.end.y - origin.y) / dir.y)
+	elif dir.y < -0.0001:
+		t = minf(t, (rect.position.y - origin.y) / dir.y)
+	_arrow_pos = origin + dir * maxf(t, 0.0)
+	_arrow_pos.x = clampf(_arrow_pos.x, rect.position.x, rect.end.x)
+	_arrow_pos.y = clampf(_arrow_pos.y, rect.position.y, rect.end.y)
+	_arrow_dir = dir
+	_arrow_color = color
+	_arrow_on = true
+	_arrow_label.text = "%s %d m" % [name, int(round(d.length()))]
+	_arrow_label.add_theme_color_override("font_color", color)
+	_arrow_label.size = Vector2(240 * s, 40 * s)
+	# the label sits just inside the arrow, away from the edge
+	_arrow_label.position = _arrow_pos - dir * 44 * s - _arrow_label.size * 0.5
+	_arrow_label.position.x = clampf(_arrow_label.position.x, 10 * s, vp.x - _arrow_label.size.x - 10 * s)
+	_arrow_label.visible = true
+
+
+func _draw() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	var s := vp.x / 1080.0
+	if _arrow_on:
+		var pulse: float = 1.0 + 0.12 * absf(sin(Run.elapsed * 6.0))
+		var l := 22.0 * s * pulse
+		var perp := Vector2(-_arrow_dir.y, _arrow_dir.x)
+		var tip := _arrow_pos + _arrow_dir * l
+		var a := _arrow_pos - _arrow_dir * l * 0.7 + perp * l * 0.8
+		var b := _arrow_pos - _arrow_dir * l * 0.7 - perp * l * 0.8
+		var back := _arrow_pos - _arrow_dir * l * 0.25
+		var pts := PackedVector2Array([tip, a, back, b])
+		draw_colored_polygon(pts, _arrow_color)
+		pts.append(tip)
+		draw_polyline(pts, Color(0.08, 0.05, 0.1, 0.9), 3.0 * s)
+	if _ring_alpha <= 0.0:
+		return
 	var base := Color(1, 1, 1, 0.22 * _ring_alpha)
 	draw_circle(_ring_pos, _stick_r, Color(0, 0, 0, 0.10 * _ring_alpha))
 	draw_arc(_ring_pos, _stick_r, 0.0, TAU, 48, base, 3.0 * s)

@@ -8,14 +8,14 @@ extends Node3D
 
 @export_group("Fixed (north up)")
 @export var fixed_pitch_deg := 46.0
-@export var fixed_distance := 20.5
+@export var fixed_distance := 22.5
 @export var fixed_fov := 55.0
 @export var fixed_lead := 0.0
 ## Metres the focus sits north of the hero, so he stands a little below the screen centre and sees more ahead.
-@export var fixed_focus_ahead := 3.0
+@export var fixed_focus_ahead := 3.3
 @export_group("Follow (chase)")
 @export var follow_pitch_deg := 50.0
-@export var follow_distance := 19.5
+@export var follow_distance := 21.5
 @export var follow_fov := 60.0
 @export var follow_lead := 1.5
 ## Seconds the yaw needs to catch up with a turn. Bigger = lazier camera.
@@ -74,9 +74,12 @@ func _forward() -> Vector3:
 
 
 func _process(delta: float) -> void:
+	var _t0 := Time.get_ticks_usec()
 	if target == null:
+		Perf.add("camera", _t0)
 		return
 	_update(delta)
+	Perf.add("camera", _t0)
 
 
 ## Critically damped spring towards a target angle (Unity's SmoothDampAngle, wrapped for radians).

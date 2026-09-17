@@ -253,6 +253,24 @@
       "pitch_spread": 0.1,
       "volume_db": -6
     },
+    "en_roadrunner_die": {
+      "category": "enemy",
+      "voices": 3,
+      "pitch_spread": 0.12,
+      "volume_db": -8
+    },
+    "en_mummy_die": {
+      "category": "enemy",
+      "voices": 2,
+      "pitch_spread": 0.08,
+      "volume_db": -6
+    },
+    "en_scorpion_die": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.05,
+      "volume_db": -4
+    },
     "en_elite_spawn": {
       "category": "enemy",
       "voices": 1,
@@ -393,18 +411,41 @@
       "pitch_spread": 0.15,
       "volume_db": -12
     },
-    "pl_step_grass": {
-      "category": "player",
-      "voices": 1,
+    "w_flare_fire": {
+      "category": "weapon",
+      "voices": 3,
       "pitch_spread": 0.08,
-      "volume_db": -18
+      "volume_db": -8
     },
-    "gr_ambient": {
-      "category": "world",
-      "voices": 1,
-      "pitch_spread": 0.0,
-      "volume_db": -18,
-      "loop": true
+    "w_flare_hit": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.1,
+      "volume_db": -9
+    },
+    "w_molotov_throw": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.08,
+      "volume_db": -8
+    },
+    "w_molotov_boom": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.06,
+      "volume_db": -5
+    },
+    "w_iron_hit": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.12,
+      "volume_db": -10
+    },
+    "w_ignite": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.15,
+      "volume_db": -12
     },
     "pk_powerup": {
       "category": "pickup",

@@ -1,0 +1,258 @@
+<!-- ============================================================ 15 -->
+<section id="art">
+  <div class="sec-head"><span class="num">15</span><h2>Art</h2></div>
+  <p class="lede">Clean anime. Heroes and creatures are cel-shaded sprites, painted once per view by an image model and set in motion by a video model, so they move like drawings and stay the same character from every direction. Everything they touch, throw, orbit, pick up or stand on is 3D. Icons are one bold object each with a black outline, made to read at 72 px on a phone. All of it is generated on the local art server from prompts that live in the content files.</p>
+  <figure>
+    <div class="fig-frame">{{IMG:icons|Every icon in the build: weapons, evolutions, passives, shop, elite variants, map, quests, pickups, creature and hero portraits}}</div>
+    <figcaption><b>Every icon in the build.</b> Shop Titans read: one object, thick black outline, flat cel shading. Painted from each item's <code>art_prompt</code> by <code>tools/gen_art.py</code>; the vision model rejects renders that are cropped, multiple, or carry text, and the script re-rolls with a new seed.</figcaption>
+  </figure>
+
+  <h3>What is 3D and what is a sprite</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Thing</th><th>Made as</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><span class="name">Heroes, creatures, bosses</span></td><td><span class="chip p">2.5D sprite</span> camera-facing billboard pivoting on the feet, five painted views, mirrored to eight directions</td><td>Painted faces read better than low-poly ones, and a view per direction keeps the character honest from the high camera.</td></tr>
+      <tr><td><span class="name">Weapons, familiars and their effects</span></td><td><span class="chip b">3D mesh + particles</span></td><td>Saw blades on a tilted orbit, a grenade on a real arc, a pea pod with flapping leaves. Sprites of these would look flat and wrong from above.</td></tr>
+      <tr><td><span class="name">Pickups: gems, coins, chests, power-ups</span></td><td><span class="chip b">3D mesh</span> spinning; power-ups a billboard icon on a plinth</td><td>Cheap, readable from any angle, hundreds on screen through a MultiMesh.</td></tr>
+      <tr><td><span class="name">Terrain, landmarks, structures, skybox</span></td><td><span class="chip b">3D</span> low-poly, painted</td><td>The ground is 3D by definition; the big landmarks and the structures come from Blender.</td></tr>
+      <tr><td><span class="name">Scenery: cacti, rocks, bones, dead trees, signs</span></td><td><span class="chip p">2.5D sprite</span> one painting each, base-pivot billboards in a MultiMesh</td><td>They match the cast's line, cost one draw call per kind, and hundreds of them scatter for nothing. Muted so they read as background.</td></tr>
+      <tr><td><span class="name">Telegraphs, progress wedges, poison clouds, spit trails</span></td><td><span class="chip b">draped meshes</span> on the ground</td><td>They must hug dunes and mesa edges; a flat disc cuts through a slope.</td></tr>
+      <tr><td><span class="name">Icons, cards, HUD, menus</span></td><td><span class="chip w">2D</span></td><td>Screen-space UI.</td></tr>
+      <tr><td><span class="name">Shadows under characters</span></td><td><span class="chip b">3D blob</span></td><td>Grounds a flat sprite in a 3D world. The single most important trick for 2.5D.</td></tr>
+    </tbody>
+  </table></div>
+  <p>The hero's sprite never holds a weapon. Weapons float at marker points around the character: a hip point for the shotgun, a ring for the saws, an orbit for the pea pod and the dart. That keeps the sprite one image per pose and lets any weapon pair with any hero.</p>
+
+  <h3>Sprite animation</h3>
+  <figure>
+    <div class="fig-frame">{{IMG:hero_cycles|Astro's five run cycles, back, back-diagonal, side, front-diagonal and front, eight of the 24 frames each, and the hit reaction below}}</div>
+    <figcaption><b>Astro's cycles as they ship.</b> Five painted stills (back, back-diagonal, side, front-diagonal, front) each moved along the same 24-frame Mixamo stride by Wan 2.2 Animate, so every view takes the same step at the same time and the loop closes by construction. The bottom row is the nine-frame pain reaction, also pose-driven. Side and diagonal rows mirror for the other half, giving eight directions.</figcaption>
+  </figure>
+  <p><b>Heroes are pose-driven.</b> A Mixamo motion (a run, a pain gesture) is rendered as an OpenPose skeleton with hands from each of the five game views in Blender (<code>tools/pose_driver.py</code>), and <b>Wan 2.2 Animate</b> moves the painted still along it. Every driver frame is a sprite frame: 24 frames per stride at 36 fps, frame rates carried in the hero's JSON. Animate paints the body on the driver's nose-to-ankle skeleton, which came out about a head taller than the painted still, so every animated frame is measured and fitted to the standing figure's height before it is packed; idle, run and hit now share one head height. The method, with before-and-after clips of the Drifter, has <a href="pose-animation.html">its own page</a>.</p>
+  <p><b>The hit reaction is painted, not driven.</b> The Mixamo pain gesture never looked right on any hero, so the hurt pose is a still per view: the image model edits the view's own painting into a flinch (leaning back, shoulders hunched, a hand to the chest, and for Astro the visor kept opaque), it is fitted to the standing height, and four frames at 12 fps wince around it (the flinch, a deeper lean, the flinch, half a step back to standing). It reads like the rest of the sheet because it is made the same way.</p>
+  <p><b>Creatures use free clips.</b> Ants, cacti, beetles, mummies and the tumbleweed have no human skeleton, so their front and back stills are asked to walk in place by Wan 2.2 image-to-video, the loop is found by comparing silhouettes and twelve frames are cut at 15 fps. Chargers get three more stills (side, both diagonals, edited from the front painting) and a clip each. The goblin family and the mummy could move to the humanoid drivers later.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Animation</th><th>Hero</th><th>Creature</th><th>Trigger</th></tr></thead>
+    <tbody>
+      <tr><td class="id">idle</td><td class="num">4 per view</td><td class="num">4 front + 4 back</td><td>not moving</td></tr>
+      <tr><td class="id">run</td><td class="num">24 per view · 36 fps</td><td class="num">12 front + 12 back · 15 fps (chargers: five views)</td><td>moving; the back set while walking away from the camera</td></tr>
+      <tr><td class="id">hit</td><td class="num">4 per view · 12 fps (a painted flinch + a wince)</td><td class="num">1</td><td>took damage</td></tr>
+      <tr><td class="id">attack</td><td>—</td><td class="num">2</td><td>winding up a spit or a charge (chargers hold their directional idle instead)</td></tr>
+      <tr><td class="id">die</td><td class="num">1</td><td class="num">1</td><td>HP zero, then pop</td></tr>
+      <tr><td class="id">cheer</td><td class="num">1</td><td>—</td><td>extract, results</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Procedural layer on top, no frames needed:</b> bob while moving, lean into turns, scale-pop on spawn, squash on hit with a white flash (green-white when the hit is poison), a green tint while poisoned, wobble when tossed, shrink on death, and a shadow that shrinks with height. These come from the shader and a few lines of code. Strips are grids (<code>strip_cols</code> in the JSON, read by both billboard shaders): a hero strip is 153 cells of 256 px, a charger's 83 cells of 192.</p>
+
+
+  <h3>Painted scenery, and reading through it</h3>
+  <figure>
+    <div class="fig-frame">{{IMG:props|The fourteen painted props: saguaros, barrel cactus, prickly pear, agave, shrub, dead tree, rocks, boulder, skulls, bones, signpost}}</div>
+    <figcaption><b>The scenery sheet.</b> Painted by the same server from the same style anchor as the cast (<code>tools/gen_props.py</code>), keyed and set on their base line, then given a thinner, warmer outline and a touch less saturation and contrast than the creatures, so they sit behind the action instead of competing with it.</figcaption>
+  </figure>
+  <p><b>How they sit in the world.</b> Each prop is an instance in one MultiMesh per sprite (<code>core/systems/PropField.gd</code>), a quad pivoting on its base that faces the camera exactly like the creatures do (<code>prop_billboard.gdshader</code>). Props and characters are both drawn <b>opaque with an alpha cut</b> rather than blended, so the depth buffer sorts them per pixel: a goblin standing in front of a cactus covers it, one behind it is covered, and because every quad is tilted the same way towards the lens the planes are parallel and never cut through each other, so there is no z-fighting to manage. Greenery sways a few degrees at the top in the vertex shader; rocks and bones do not.</p>
+  <figure>
+    <div class="fig-frame">{{IMG:16_outline|The build: the hero and a goblin pack half hidden behind a saguaro, their hidden parts drawn as outlines}}</div>
+    <figcaption><b>Behind a cactus.</b> Every creature and the hero carry a second material pass with an <b>inverted depth test</b>: it draws only where something nearer already covers the sprite, as a rim (the sprite's own edge, found from the empty texels next to each pixel) and a faint fill. So the hidden part of a body reads as an outline through the prop, bright white for the hero, a soft warm rim for the crowd.</figcaption>
+  </figure>
+
+  <h3>Pipeline</h3>
+  <figure>
+    <div class="fig-frame">{{IMG:style_anchor|The style anchor sheet: hero, goblin, cactus, shotgun and stopwatch in the anime style}}</div>
+    <figcaption><b>The style anchor.</b> One sheet, generated once and passed as a reference image to every hero and creature render, is what keeps the roster in one style. Regenerate with <code>gen_art.py --anchor</code>, install with <code>--pick=N</code>.</figcaption>
+  </figure>
+  <ol>
+    <li><b>Prompt.</b> Every content JSON carries an <code>art_prompt</code> (and heroes a <code>portrait_prompt</code>, <code>anim_hint</code> and <code>anim_negative</code>). The script wraps it in the house style.</li>
+    <li><b>Stills.</b> ComfyUI on the R9700 server runs Flux.2 Klein 9B (4 steps, about 20 s a render): a front view for everything, then a back view (and for heroes and chargers a side and two diagonals) edited from the front so the character stays the same.</li>
+    <li><b>Motion.</b> Heroes: pose drivers into Wan 2.2 Animate (about a minute a clip). Creatures: Wan 2.2 image-to-video, the loop period found from silhouettes (about two minutes a clip).</li>
+    <li><b>Check.</b> LM Studio's vision model grades every render (one subject, not cropped, no text, flat background, right view) and failures re-roll with a new seed up to three times; the grade is kept in <code>&lt;id&gt;_ai.json</code>.</li>
+    <li><b>Cut.</b> Key the green screen, drop specks and ground shadows, lift contrast, add the outline (heavier on creatures than on heroes), fit the cell, pack the grid strip, write the frame counts and rates back into the JSON. Hero portraits are cropped from an edit of the front still and set in a round badge.</li>
+    <li><b>Review.</b> <code>tools/dl/review/</code> gets an icon sheet, a strip sheet and every sprite at its on-screen size on the sand texture.</li>
+    <li><b>Scenery.</b> <code>tools/gen_props.py</code> paints the fourteen props from the anchor, keys, outlines thinly, mutes and writes <code>art/sprites/props/props.json</code> with each prop's height and collider radius; the map reads that manifest. Landmarks are modelled in Blender by script and exported as GLB; textures for sand, cracked earth, sandstone and the sky panorama are generated by <code>tools/gen_textures.py</code>.</li>
+  </ol>
+  <p>One creature costs about six minutes of server time; a charger about fifteen; a hero about twenty. <code>python tools/gen_art.py --only coyote</code> does the whole thing and imports the result into Godot.</p>
+</section>
+
+<!-- ============================================================ 16 -->
+<section id="sound">
+  <div class="sec-head"><span class="num">16</span><h2>Sound</h2></div>
+  <p class="lede">Cartoon western: boings, splats and twangs, with a galloping soundtrack that adds a layer per stage. Every sound has an id that content files reference, a trigger, and a description written as a prompt for a sound AI. Placeholders are synthesised by script so the game is never silent while we wait for the real ones.</p>
+
+  <dl class="kv">
+    <dt>direction</dt><dd>Nothing realistic. Hits are "bonk" and "splat", deaths are comedic, UI is wooden and warm. Saturday-morning cartoon foley over a spaghetti-western guitar.</dd>
+    <dt>mixing rules</dt><dd>Voice limits per id, so forty fire ants dying is one sound with a pitch spread. Player and UI always audible. Creature sounds attenuate with distance from the camera. Everything ducks under the level-up sting.</dd>
+    <dt>placeholders</dt><dd><code>tools/gen_sfx.py</code> writes a short WAV for every id: blips for UI, filtered noise bursts for hits, pitch sweeps for jumps and pickups, a looped chord for music. Ugly, but correct in timing and volume, and the sound map already points at the right ids. Voice barks come from Kokoro TTS.</dd>
+    <dt>music</dt><dd>Three run layers that come in per stage, a boss track, a title track, results; generated by <code>tools/gen_music.py</code>.</dd>
+  </dl>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Id</th><th>Trigger</th><th>Prompt for a sound AI</th></tr></thead>
+    <tbody>
+{{SOUND_ROWS}}
+    </tbody>
+  </table></div>
+  <p>The sound map that binds these ids to files is itself a content resource (<code>content/sounds/soundmap.json</code>), so swapping a placeholder for a real file is editing one row.</p>
+</section>
+
+<!-- ============================================================ 17 -->
+<section id="tech">
+  <div class="sec-head"><span class="num">17</span><h2>Tech &amp; performance budgets</h2></div>
+  <dl class="kv">
+    <dt>engine</dt><dd><b>Godot 4.7.2, GDScript.</b> Compatibility renderer for the widest Android reach.</dd>
+    <dt>targets</dt><dd>Android first, on Garry's phone through a signed release APK dropped in Google Drive. PC for testing with WASD. 60 fps on a mid-range phone.</dd>
+    <dt>creatures</dt><dd>Budget of <b>60 alive</b> by the end of a run (25 at the start), hard cap 80 during swarm rings; the arrays and MultiMeshes are sized for 320, so the cap is a design number, not an engine one. Logic is data-oriented: positions, velocities, HP, poison sources and frame index live in packed arrays, not one node per creature. Rendering is one MultiMeshInstance3D per creature type, billboarded in a shared shader, with the animation frame, flip, flash and squash as per-instance custom data.</dd>
+    <dt>movement</dt><dd>Creatures are not physics bodies. Separation steering on a spatial hash grid, updated every other physics tick. The hero is one CharacterBody3D against terrain and static prop colliders.</dd>
+    <dt>effects</dt><dd>Every burst, puff, flame, spark and flash is an instance in one of two pooled MultiMeshes (400 particles, two draw calls, no nodes). Point lights on chests, structures and pickups are skipped on phones, where every lit pixel pays for each of them; the campfire and the portal keep theirs. Phones render the 3D view at 80% and the UI at full size.</dd>
+    <dt>projectiles</dt><dd>Object pooled 3D meshes, 400 of them. Straight shots hold their muzzle height above the ground wherever they go; arcs ignore contact and explode where they land. Hit checks are sphere tests against the same grid, not physics queries. Hostile shots drop a fading trail dot every 55 ms into a second pool.</dd>
+    <dt>scenery</dt><dd>Painted props are MultiMesh billboards (one per sprite kind, up to 200 instances each), opaque with an alpha cut so they depth-sort against creatures per pixel; the occluded-outline pass on creatures and the hero is a second material with an inverted depth test.</dd>
+    <dt>sprites</dt><dd>Every sprite faces the camera fully (a quad pivoting on its feet, tilted towards the lens), so nothing is seen edge-on from the high camera. The hero is one quad with the sprite_billboard shader; creatures use the MultiMesh twin with the same maths. Both read grid strips.</dd>
+    <dt>ground marks</dt><dd>Telegraph rings, lines, sectors, the poison cloud's disc and the structures' progress wedge are meshes built on the map's <code>height_at</code>, so they drape over dunes instead of cutting them.</dd>
+    <dt>terrain</dt><dd>One heightmap mesh, 140 m, with a height-blended two-texture shader. Collision from the heightmap. Mesas and ramps are separate modular meshes and report their own height.</dd>
+    <dt>save</dt><dd>One JSON save file: gold, shop tiers, unlocks, quest progress, settings, best runs, hint flags, one-time migrations.</dd>
+    <dt>audio</dt><dd>A sound map resource binds every id from section 16 to a file. Voice-limited pools per id.</dd>
+    <dt>testing</dt><dd>A parse check of every script and scene, 33 gdUnit4 tests, a perf mode of the smoke run (<code>perf=1</code>) that prints each system's milliseconds per frame and every frame over 33 ms with what it was doing, a headless smoke run that plays through two bosses, every structure, the reel, the Elite and every hub screen, and a silent screenshot pass that captures every screen for this document. <code>bash tools/ship.sh</code> runs the checks, builds the signed APK and drops it in Drive.</dd>
+  </dl>
+</section>
+
+<!-- ============================================================ 18 -->
+<section id="milestones">
+  <div class="sec-head"><span class="num">18</span><h2>Where it stands</h2></div>
+  <p class="lede">The five feel-test milestones are done and the game has been iterated from the phone since. What follows is the short history, so a reader knows why things are the way they are, and what is next.</p>
+
+  <ol class="steps">
+    <li><div><p class="t">Tooling and desert greybox</p><p>Godot, gdUnit4, adb, the project skills. Heightmap terrain with the riverbed and mesas, the three steering variants, auto-jump gaps, the first APK.</p><p class="test"><b>Answered:</b> hold-and-slide lost to the floating joystick; the fixed north-up camera won over the chase camera.</p></div></li>
+    <li><div><p class="t">First blood</p><p>Starter pick, the first three weapons in 3D, goblins and ants through MultiMesh, gems, cards, pause with Build and Stats.</p><p class="test"><b>Answered:</b> auto-fire plus steering is fun with a crowd; hundreds of creatures were too many to read, dozens with variance are right.</p></div></li>
+    <li><div><p class="t">Full run</p><p>Ten weapons with evolutions and passives, the wave timeline, elite variants, the Tumbleweed King, the portal, endless. The content pipeline and the Content dock.</p><p class="test"><b>Answered:</b> a 15-minute run holds; builds feel different; a weapon is a folder.</p></div></li>
+    <li><div><p class="t">Meta and menus</p><p>Title, play setup, three heroes, shop with refund, quests, collection, results, first-run hints, save file, the Survivor.io UI kit.</p></div></li>
+    <li><div><p class="t">Art and sound</p><p>The anime style anchor, Flux.2 Klein stills, Wan 2.2 cycles, then pose-driven hero cycles with hit reactions and painted portraits. Blender props. Placeholder sound, generated music and voice barks.</p></div></li>
+    <li><div><p class="t">Iterated from the phone (v0.5 to v0.7)</p><p>Zoomed out camera. Pickups and timed buffs. Structures with the stand-to-use wedge and the travelling shop. Draped ground marks and terrain-hugging shots. Chargers in eight directions and charges that keep their telegraphed line. Poison, the Rattlesnake and Skull Rain reworked, the Poison Dart and its familiar, the Peashooter's pod. The chest reel with Take and Sell. Dust Mummy and the Dune Scorpion. Harder stages. The boss pointer. Spit trails. The meadow map shelved. Then (v0.8): fire as a second element with three weapons, a passive and three evolutions, and the one-element rule; the Roadrunner in place of a coyote nobody liked; hero frames fitted to one height; effects pooled and phone lights cut after fps drops in the first minutes; chests half as common from the crowd and a tap to hurry the reel. Then (v0.9): the desert's scenery repainted as 2.5D sprites with an outline for whoever stands behind them; the hero's bar moved into the world; the flinch painted; the Flare Gun given a body; a real shotgun; the camera a step further out; seven structures, more cacti and bones.</p></div></li>
+  </ol>
+
+  <h3>Next</h3>
+  <ul>
+    <li>Move the goblin family and the mummy to the humanoid pose drivers so their strides are as clean as the heroes'.</li>
+    <li>Real sound effects from the prompt column, and a painted UI skin from <code>gen_ui.py</code> once it has run against the server.</li>
+    <li>A second map as a content pack, once Dry Gulch is the game it should be.</li>
+  </ul>
+</section>
+
+<!-- ============================================================ 19 -->
+<section id="open">
+  <div class="sec-head"><span class="num">19</span><h2>Open questions</h2></div>
+  <p class="lede">Decisions taken so the build could exist. Each is a one-line change if it turns out wrong.</p>
+  <ul>
+    <li><b>Death ends the run.</b> One life, a revive as a meta unlock.</li>
+    <li><b>The starter pick happens every run</b>, not only on the first.</li>
+    <li><b>Weapons are 3D, characters are sprites.</b> The hero never visibly holds a weapon in the sprite.</li>
+    <li><b>Creature cap 25 to 60.</b> The engine keeps its 320 budget so the cap can go back up in data.</li>
+    <li><b>Chests pause the game.</b> Four seconds of reel per chest is the price of making a chest an event; the regular-creature odds are set so a run sees a handful, not a dozen.</li>
+    <li><b>Selling a chest pays a fifth of the shop price.</b> Deliberately small; if gold ever matters more inside a run, this is the first number to raise.</li>
+    <li><b>Fire spreads at a flat 40% of the weapon's chance for every generation after the first.</b> A decaying chain (20%, 8%, 3%) was the alternative; the flat one keeps big packs exciting and is one constant to change.</li>
+    <li><b>The Elite is one creature per map.</b> A second mini-boss with a different brain (a spitter, say) would be a folder and one more event line.</li>
+    <li><b>Game name.</b> "88fits" is the folder name and the working title.</li>
+  </ul>
+  <p>Open questions that only more playing can answer: whether stage 2 is now a wall or a cliff, whether the coyote pack needs a sound of its own to be read before it arrives, whether the reel should ever offer a new weapon instead of a level, and how long endless stays interesting past minute twenty.</p>
+</section>
+
+</main>
+</div>
+
+<script>
+(function(){
+  var NS='http://www.w3.org/2000/svg';
+  function el(n,a,t){var e=document.createElementNS(NS,n);for(var k in a){e.setAttribute(k,a[k]);}if(t!=null){e.textContent=t;}return e;}
+
+  (function(){
+    var svg=document.getElementById('xpChart'); if(!svg) return;
+    var W=760,H=250,pl=60,pr=24,pt=18,pb=44,L=40,maxY=1200;
+    var data=[]; for(var l=1;l<=L;l++){data.push({l:l,xp:Math.round(15+6*l+0.5*l*l)});}
+    var x=function(l){return pl+(l-1)/(L-1)*(W-pl-pr);};
+    var y=function(v){return pt+(1-v/maxY)*(H-pt-pb);};
+    var g=el('g',{});
+    [0,300,600,900,1200].forEach(function(v){
+      g.appendChild(el('line',{x1:pl,x2:W-pr,y1:y(v),y2:y(v),stroke:'#312B44','stroke-width':1}));
+      g.appendChild(el('text',{x:pl-10,y:y(v)+4,'text-anchor':'end','class':'m'},String(v)));
+    });
+    [1,10,20,30,40].forEach(function(l){g.appendChild(el('text',{x:x(l),y:H-pb+18,'text-anchor':'middle','class':'m'},'L'+l));});
+    g.appendChild(el('text',{x:pl,y:H-6,'class':'m'},'level'));
+    g.appendChild(el('text',{x:pl+8,y:pt+12,'class':'m'},'xp to next level'));
+    var pts=data.map(function(d){return x(d.l)+','+y(d.xp);}).join(' ');
+    g.appendChild(el('polygon',{points:pl+','+y(0)+' '+pts+' '+x(L)+','+y(0),fill:'#8A69F2','fill-opacity':.12}));
+    g.appendChild(el('polyline',{points:pts,fill:'none',stroke:'#8A69F2','stroke-width':2.2,'stroke-linejoin':'round'}));
+    [10,20,30,40].forEach(function(l){var d=data[l-1];
+      g.appendChild(el('circle',{cx:x(l),cy:y(d.xp),r:4,fill:'#8A69F2',stroke:'#1A1822','stroke-width':2}));
+      g.appendChild(el('text',{x:x(l)-8,y:y(d.xp)-10,'text-anchor':'end','class':'m'},String(d.xp)));
+    });
+    svg.appendChild(g);
+    var tip=el('g',{'class':'chart-tip',visibility:'hidden'});
+    var cross=el('line',{y1:pt,y2:H-pb,stroke:'#877F9E','stroke-dasharray':'3 3'});
+    var dot=el('circle',{r:5,fill:'#8A69F2',stroke:'#F0ECF8','stroke-width':1.5});
+    var box=el('rect',{width:120,height:38,rx:8,fill:'#2C2740',stroke:'#433B5C'});
+    var t1=el('text',{'class':'m',style:'fill:#F0ECF8'},''); var t2=el('text',{'class':'m'},'');
+    tip.appendChild(cross);tip.appendChild(dot);tip.appendChild(box);tip.appendChild(t1);tip.appendChild(t2);
+    svg.appendChild(tip);
+    var hit=el('rect',{x:pl,y:pt,width:W-pl-pr,height:H-pt-pb,fill:'transparent'});
+    svg.appendChild(hit);
+    function show(evt){
+      var r=svg.getBoundingClientRect(); var px=(evt.clientX-r.left)*(W/r.width);
+      var l=Math.round((px-pl)/(W-pl-pr)*(L-1))+1; l=Math.max(1,Math.min(L,l));
+      var d=data[l-1]; var cx=x(l),cy=y(d.xp);
+      cross.setAttribute('x1',cx);cross.setAttribute('x2',cx);
+      dot.setAttribute('cx',cx);dot.setAttribute('cy',cy);
+      var bx=cx+12; if(bx+120>W-pr) bx=cx-132; var by=Math.max(pt,cy-48);
+      box.setAttribute('x',bx);box.setAttribute('y',by);
+      t1.setAttribute('x',bx+10);t1.setAttribute('y',by+16);t1.textContent='Level '+l+' → '+(l+1);
+      t2.setAttribute('x',bx+10);t2.setAttribute('y',by+30);t2.textContent=d.xp+' xp needed';
+      tip.setAttribute('visibility','visible');
+    }
+    hit.addEventListener('mousemove',show);
+    hit.addEventListener('touchmove',function(e){if(e.touches[0]) show(e.touches[0]);},{passive:true});
+    hit.addEventListener('mouseleave',function(){tip.setAttribute('visibility','hidden');});
+    var tb=document.getElementById('xpTable'); if(tb){
+      var html='<table><thead><tr><th>Level</th><th>XP to next</th><th>Cumulative</th></tr></thead><tbody>';
+      var cum=0; data.forEach(function(d){cum+=d.xp;html+='<tr><td class="num">'+d.l+'</td><td class="num">'+d.xp+'</td><td class="num">'+cum+'</td></tr>';});
+      tb.innerHTML=html+'</tbody></table>';
+    }
+  })();
+
+  (function(){
+    var svg=document.getElementById('threatChart'); if(!svg) return;
+    var W=760,H=270,pl=56,pr=24,pt=30,pb=44,T=15;
+    var x=function(t){return pl+t/T*(W-pl-pr);};
+    var y=function(v){return pt+(1-v)*(H-pt-pb);};
+    var g=el('g',{});
+    [[0,5,'stage 1'],[5,10,'stage 2'],[10,15,'stage 3']].forEach(function(s,i){
+      if(i%2===1) g.appendChild(el('rect',{x:x(s[0]),y:pt,width:x(s[1])-x(s[0]),height:H-pt-pb,fill:'#241F31'}));
+      g.appendChild(el('text',{x:(x(s[0])+x(s[1]))/2,y:pt-10,'text-anchor':'middle','class':'m'},s[2]));
+    });
+    [0,.25,.5,.75,1].forEach(function(v){g.appendChild(el('line',{x1:pl,x2:W-pr,y1:y(v),y2:y(v),stroke:'#312B44'}));});
+    [0,5,10,15].forEach(function(t){g.appendChild(el('text',{x:x(t),y:H-pb+18,'text-anchor':'middle','class':'m'},t+':00'));});
+    g.appendChild(el('text',{x:pl-8,y:y(1)+4,'text-anchor':'end','class':'m'},'high'));
+    g.appendChild(el('text',{x:pl-8,y:y(0)+4,'text-anchor':'end','class':'m'},'low'));
+    var threat=[]; for(var i=0;i<=150;i++){var t=i/10; var si=t<5?0:(t<10?1:2); var stage=[1,1.8,2.8][si]; var spd=1+0.1*si;
+      var cap=Math.min(25+3*t+12*si,60), hp=Math.pow(1+0.1*t,1.2)*stage; var v=cap*hp*spd/700;
+      var boss=0; [5,10,15].forEach(function(b){var d=Math.abs(t-b); if(d<0.35) boss+=(0.35-d)/0.35*0.14;});
+      [2.5,7.5,12.5].forEach(function(b){var d=Math.abs(t-b); if(d<0.25) boss+=(0.25-d)/0.25*0.06;});
+      threat.push([t,Math.min(1,v+boss)]);}
+    var power=[]; var p=0.08; var nextLv=0; var lv=0;
+    for(var j=0;j<=150;j++){var tt=j/10; while(tt>=nextLv){lv++; p+=0.014*(1-p*0.5); nextLv+=0.33+lv*0.02;}
+      var evo=0; [5.3,10.4].forEach(function(e){if(tt>=e) evo+=0.09;}); power.push([tt,Math.min(1,p+evo)]);}
+    var line=function(arr,col,w){return el('polyline',{points:arr.map(function(d){return x(d[0])+','+y(d[1]);}).join(' '),fill:'none',stroke:col,'stroke-width':w,'stroke-linejoin':'round'});};
+    g.appendChild(line(threat,'#EE4A5C',2.4));
+    g.appendChild(line(power,'#8A69F2',2.4));
+    [5,10,15].forEach(function(b){g.appendChild(el('line',{x1:x(b),x2:x(b),y1:pt,y2:H-pb,stroke:'#EE4A5C','stroke-dasharray':'3 4','stroke-opacity':.6}));
+      g.appendChild(el('text',{x:x(b)-4,y:H-pb-6,'text-anchor':'end','class':'m'},'boss'));});
+    [2.5,7.5,12.5].forEach(function(b){g.appendChild(el('line',{x1:x(b),x2:x(b),y1:pt,y2:H-pb,stroke:'#FA9E40','stroke-dasharray':'2 4','stroke-opacity':.5}));
+      g.appendChild(el('text',{x:x(b)+4,y:pt+14,'class':'m',style:'fill:#FA9E40'},'elite'));});
+    var lt=threat[130], lp=power[130];
+    g.appendChild(el('text',{x:x(13),y:y(lt[1])-12,'text-anchor':'end','class':'m',style:'fill:#FF8590'},'threat'));
+    g.appendChild(el('text',{x:x(13),y:y(lp[1])+18,'text-anchor':'end','class':'m',style:'fill:#B8A3FF'},'player power'));
+    g.appendChild(el('text',{x:x(5.5),y:y(power[56][1])-10,'class':'m'},'evolution'));
+    var lg=el('g',{transform:'translate('+pl+','+(H-8)+')'});
+    lg.appendChild(el('line',{x1:0,x2:18,y1:-4,y2:-4,stroke:'#EE4A5C','stroke-width':2.4}));lg.appendChild(el('text',{x:24,y:0,'class':'m'},'threat = live cap × creature HP × speed'));
+    lg.appendChild(el('line',{x1:280,x2:298,y1:-4,y2:-4,stroke:'#8A69F2','stroke-width':2.4}));lg.appendChild(el('text',{x:304,y:0,'class':'m'},'player power = weapon levels + evolutions'));
+    g.appendChild(lg);
+    svg.appendChild(g);
+  })();
+})();
+</script>

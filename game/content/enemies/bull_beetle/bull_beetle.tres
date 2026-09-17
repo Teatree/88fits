@@ -14,6 +14,7 @@ damage = 16.0
 radius = 0.8
 size = 2.0
 drops = {
+"chest": 0.015,
 "gold": 0.3,
 "large": 1.0,
 "medium": 1.0

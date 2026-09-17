@@ -21,6 +21,7 @@ var director: WaveDirector
 var portal: Portal
 var structures: StructureManager
 var structure_shop: StructureShop
+var chest_screen: ChestScreen
 var paused := false
 var hud: HUD
 var cards: CardScreen
@@ -109,6 +110,9 @@ func _ready() -> void:
 	ui.add_child(portal_dialog)
 	structure_shop = StructureShop.new()
 	ui.add_child(structure_shop)
+	chest_screen = ChestScreen.new()
+	ui.add_child(chest_screen)
+	chest_screen.closed.connect(_on_chest_closed)
 	hints = Hints.new()
 	hints.game = self
 	ui.add_child(hints)
@@ -169,6 +173,7 @@ func _start_run() -> void:
 func set_paused(v: bool) -> void:
 	paused = v
 	get_tree().paused = v
+	Perf.pause()
 	if player:
 		player.input.ui_blocking = v
 		if v:
@@ -211,6 +216,7 @@ func _notification(what: int) -> void:
 # ---------------------------------------------------------------- weapons
 
 func _sync_weapons() -> void:
+	var t0 := Time.get_ticks_usec()
 	for w in Run.weapons:
 		var id: String = w.def.id
 		if _behaviors.has(id):
@@ -230,6 +236,7 @@ func _sync_weapons() -> void:
 			_behaviors.erase(id)
 	if player:
 		player.refresh_stats()
+	Perf.add("sync_weapons", t0)
 
 
 func _make_behavior(name: String) -> WeaponBehavior:
@@ -268,8 +275,11 @@ func _process(delta: float) -> void:
 	Run.alive = enemies.alive_count()
 	for label in Run.tick_timed():
 		hud.toast("%s wore off" % label, UiKit.INK3)
+	var t0 := Time.get_ticks_usec()
 	hud.tick(delta)
 	hints.tick(delta)
+	Perf.add("hud", t0)
+	Perf.frame()
 	if int(Run.elapsed) % 5 == 0 and int(Run.elapsed * 10.0) % 50 == 0:
 		_check_quests()
 
@@ -287,10 +297,11 @@ func _check_quests() -> void:
 
 
 func _on_level_up(level: int) -> void:
+	Perf.context = "levelup %d" % level
 	_pending_levels += 1
 	Audio.play("ui_levelup")
 	hud.flash_level(level)
-	if not cards.visible and not portal_dialog.visible:
+	if not cards.visible and not portal_dialog.visible and not chest_screen.visible:
 		_show_next_level_cards()
 
 
@@ -312,14 +323,19 @@ func _show_next_level_cards() -> void:
 
 
 func _on_card_chosen(card: Dictionary) -> void:
+	Perf.context = "card chosen"
 	if card.get("skipped", false):
 		Run.add_gold(10)
 		hud.toast("Skipped. +10 gold", UiKit.INK2)
 	else:
+		var t1 := Time.get_ticks_usec()
 		var line := CardPool.apply(card)
+		Perf.add("card.apply", t1)
 		hud.toast(line, UiKit.ACCENT)
+	var t2 := Time.get_ticks_usec()
 	Save.mark_hint("cards")
 	set_paused(false)
+	Perf.add("card.unpause", t2)
 	if _pending_levels > 0:
 		await get_tree().create_timer(0.2).timeout
 		_show_next_level_cards()
@@ -328,13 +344,17 @@ func _on_card_chosen(card: Dictionary) -> void:
 func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: String) -> void:
 	var xp_scale := def.xp_mult * (4.0 if elite else 1.0)
 	pickups.drop_from(def, at, xp_scale, elite != null)
-	if elite != null:
+	# chests: every elite variant and the mini-boss, the odd regular creature (drops.chest in its JSON)
+	if elite != null or def.archetype == "elite" or randf() < float(def.drops.get("chest", 0.0)):
 		pickups.spawn_chest(at)
 	if def.archetype == "boss":
 		for k in range(12):
 			pickups.spawn(PickupManager.KIND_COIN, at + Vector3(randf_range(-2, 2), 0, randf_range(-2, 2)), 5.0)
 		fx.burst(at + Vector3(0, 1, 0), Color(1.0, 0.75, 0.3), 5.0)
 		camera.shake(1.5)
+	elif def.archetype == "elite":
+		fx.burst(at + Vector3(0, 0.8, 0), Color(1.0, 0.65, 0.3), 3.0)
+		camera.shake(0.9)
 	else:
 		fx.burst(at + Vector3(0, 0.4, 0), Color(0.95, 0.85, 0.7), def.size * 0.6)
 
@@ -432,17 +452,32 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 	telegraphs.flash_ring(at, 2.0, def.color, 0.35)
 
 
+## A chest on the ground was touched: the game pauses and the reel decides in front of the player.
 func open_chest(at: Vector3) -> void:
 	Audio.play("pk_chest_open", at)
-	var r := Run.open_chest()
 	fx.burst(at + Vector3(0, 0.8, 0), Color(1.0, 0.85, 0.4), 1.5)
-	match str(r.get("type", "")):
-		"evolution":
-			pass  # banner comes from weapon_evolved
-		"gold":
-			hud.toast("Chest: +50 gold", UiKit.ACCENT)
-		_:
-			hud.toast("Chest: " + str(r.get("name", "")), UiKit.ACCENT)
+	if _ended:
+		return
+	var r := Run.chest_roll()
+	set_paused(true)
+	chest_screen.open(r)
+
+
+func _on_chest_closed(take: bool) -> void:
+	var r := chest_screen.result()
+	var line: String
+	if take:
+		line = Run.chest_take(r)
+		Audio.play("ui_buy")
+	else:
+		line = Run.chest_sell(r, chest_screen.sell_gold())
+		Audio.play("pk_coin")
+	if str(r.get("type", "")) != "evolution" or not take:
+		hud.toast("Chest: " + line, UiKit.ACCENT)
+	set_paused(false)
+	if _pending_levels > 0:
+		await get_tree().create_timer(0.2).timeout
+		_show_next_level_cards()
 
 
 func _on_portal_ready(at: Vector3) -> void:
@@ -564,10 +599,22 @@ func fx_poison(at: Vector3) -> void:
 	fx.poison(at)
 
 
-## A poison bomb landed: a cloud that poisons whoever stands in it while it lasts.
-func spawn_poison_cloud(at: Vector3, w: WeaponInstance, radius: float) -> void:
-	var c := PoisonCloud.new()
-	c.setup(self, w, radius, float(w.def.params.get("cloud_seconds", 4.0)), w.stat("poison_damage", 3.0), maxi(w.stat_int("poison_stacks", 1), 1), w.stat("poison_duration", 10.0))
+func fx_fire(at: Vector3, size: float = 1.0) -> void:
+	fx.fire(at, size)
+
+
+func fx_ignite(at: Vector3, size: float = 1.0) -> void:
+	fx.ignite(at, size)
+	Audio.play("w_ignite", at)
+
+
+## An elemental bomb landed: a poison cloud or a fire pool that keeps working on whoever stands in it while it lasts.
+func spawn_cloud(at: Vector3, w: WeaponInstance, radius: float, element: String = "poison") -> void:
+	var c := ElementCloud.new()
+	if element == "fire":
+		c.setup(self, w, radius, float(w.def.params.get("cloud_seconds", 3.0)), w.stat("fire_damage", 4.0), 1, w.stat("fire_duration", 1.8), "fire", w.stat("fire_spread", 0.5))
+	else:
+		c.setup(self, w, radius, float(w.def.params.get("cloud_seconds", 4.0)), w.stat("poison_damage", 3.0), maxi(w.stat_int("poison_stacks", 1), 1), w.stat("poison_duration", 10.0))
 	add_child(c)
 	c.global_position = at
 

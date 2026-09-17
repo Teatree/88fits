@@ -92,6 +92,7 @@ func muzzle_flash(at: Vector3 = Vector3.INF) -> void:
 func _process(delta: float) -> void:
 	if game == null or player == null or player.dead or game.paused:
 		return
+	var t0 := Time.get_ticks_usec()
 	cooldown_left -= delta
 	_tick(delta)
 	if cooldown_left <= 0.0:
@@ -99,6 +100,7 @@ func _process(delta: float) -> void:
 			cooldown_left = max(stat("cooldown", 1.0), 0.05)
 		else:
 			cooldown_left = 0.15
+	Perf.add("weapons", t0)
 
 
 func _tick(_delta: float) -> void:

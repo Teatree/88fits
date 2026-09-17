@@ -200,6 +200,30 @@ func add_damage(weapon_id: String, amount: float) -> void:
 
 # ---------------------------------------------------------------- build
 
+## The element the build has committed to ("fire", "poison" or ""): fire and poison items never share a run.
+func held_element() -> String:
+	for w in weapons:
+		var e: String = w.element()
+		if e != "":
+			return e
+	for pid in passives.keys():
+		var def: PassiveDef = Registry.passive(pid)
+		if def and def.element != "":
+			return def.element
+	return ""
+
+
+## Whether an item may be offered to this build: nothing of the other element once one is held.
+func element_allowed(def: ContentDef) -> bool:
+	var e: String = def.element
+	if e == "" and def is WeaponDef:
+		e = WeaponInstance.new(def, 1).element()
+	if e == "":
+		return true
+	var held := held_element()
+	return held == "" or held == e
+
+
 func has_weapon(id: String) -> bool:
 	for w in weapons:
 		if w.def.id == id:
@@ -300,33 +324,65 @@ func any_evolution_ready() -> WeaponInstance:
 	return null
 
 
-## Apply a chest: evolve if possible, else level a random non-maxed item.
-func open_chest() -> Dictionary:
-	chests_opened += 1
-	Save.add_total("chests", 1)
+## What a chest holds, decided before the reel spins and applied only by chest_take. A card like CardPool's:
+## an evolution when one is ready, else a level for a random owned item that can still grow, else a purse of gold.
+func chest_roll() -> Dictionary:
 	var w := any_evolution_ready()
 	if w:
-		var inst := evolve(w)
-		return {"type": "evolution", "id": inst.def.id, "name": inst.def.display_name}
+		var into: WeaponDef = Registry.weapon(w.def.evolves_into)
+		return {"type": "evolution", "id": into.id, "def": into, "src_id": w.def.id, "level_from": 0, "level_to": 1, "is_new": true}
 	var candidates: Array = []
 	for wi in weapons:
 		if not wi.def.is_evolution and wi.level < wi.def.max_level:
-			candidates.append({"type": "weapon", "id": wi.def.id})
+			candidates.append({"type": "weapon", "id": wi.def.id, "def": wi.def, "level_from": wi.level, "level_to": wi.level + 1, "is_new": false})
 	for pid in passives.keys():
 		var def: PassiveDef = Registry.passive(pid)
 		if def and passives[pid] < def.max_level:
-			candidates.append({"type": "passive", "id": pid})
+			candidates.append({"type": "passive", "id": pid, "def": def, "level_from": int(passives[pid]), "level_to": int(passives[pid]) + 1, "is_new": false})
 	if candidates.is_empty():
-		add_gold(50)
-		return {"type": "gold", "id": "", "name": "50 gold"}
-	var pick: Dictionary = candidates[randi() % candidates.size()]
-	if pick["type"] == "weapon":
-		level_weapon(pick["id"])
-		pick["name"] = Registry.weapon(pick["id"]).display_name + " Lv " + str(weapon_instance(pick["id"]).level)
-	else:
-		add_or_level_passive(pick["id"])
-		pick["name"] = Registry.passive(pick["id"]).display_name + " Lv " + str(passives[pick["id"]])
-	return pick
+		return {"type": "gold", "id": "", "def": null, "gold": 50, "level_from": 0, "level_to": 0, "is_new": false}
+	return candidates[randi() % candidates.size()]
+
+
+## The player took what the chest held. Returns the line for the toast.
+func chest_take(r: Dictionary) -> String:
+	chests_opened += 1
+	Save.add_total("chests", 1)
+	match str(r.get("type", "")):
+		"evolution":
+			var src := weapon_instance(str(r.get("src_id", "")))
+			if src:
+				var inst := evolve(src)
+				return inst.def.display_name if inst else ""
+			return ""
+		"weapon":
+			# the build can have changed under the reel (an evolution replaced the weapon): then gold instead
+			if weapon_instance(r["id"]) == null:
+				add_gold(int(r.get("gold", 50)))
+				return "+%d gold" % int(r.get("gold", 50))
+			level_weapon(r["id"])
+			return Registry.weapon(r["id"]).display_name + " Lv " + str(weapon_instance(r["id"]).level)
+		"passive":
+			add_or_level_passive(r["id"])
+			return Registry.passive(r["id"]).display_name + " Lv " + str(passives[r["id"]])
+		_:
+			add_gold(int(r.get("gold", 50)))
+			return "+%d gold" % int(r.get("gold", 50))
+
+
+## The player sold what the chest held instead.
+func chest_sell(r: Dictionary, gold: int) -> String:
+	chests_opened += 1
+	Save.add_total("chests", 1)
+	add_gold(gold)
+	return "Sold for %d gold" % gold
+
+
+## Apply a chest at once (tools and tests): the roll, taken.
+func open_chest() -> Dictionary:
+	var r := chest_roll()
+	r["name"] = chest_take(r)
+	return r
 
 
 func stage_mult() -> float:

@@ -19,6 +19,8 @@ var _elite_timers: Array = []     # {next, interval}
 var _cull_t := 0.0
 var _endless_next_boss := 0.0
 var _endless_next_elite := 0.0
+var _endless_next_elite_boss := 0.0
+var elite_index := -1            # the mini-boss while it lives (the HUD points at it)
 var _rng := RandomNumberGenerator.new()
 var _pickup_t := -1.0          # seconds until the next pickup; negative = none scheduled
 var running := false
@@ -46,16 +48,18 @@ func start(p_map: MapDef) -> void:
 
 func stop() -> void:
 	running = false
+	elite_index = -1
 
 
 func _apply_mults() -> void:
 	var em: EnemyManager = game.enemies
 	em.stage_mult = Run.stage_mult()
+	em.stage_speed_mult = timeline.speed_mult(Run.stage)
 	em.hp_time_mult = timeline.hp_mult_at(Run.elapsed)
 
 
 func current_cap() -> int:
-	var cap := timeline.cap_at(Run.elapsed)
+	var cap := timeline.cap_at(Run.elapsed, Run.stage)
 	if phase == Phase.BOSS:
 		return int(cap * 0.3)
 	if phase == Phase.PORTAL:
@@ -64,7 +68,9 @@ func current_cap() -> int:
 
 
 func _process(delta: float) -> void:
+	var _t0 := Time.get_ticks_usec()
 	if not running or game.paused:
+		Perf.add("director", _t0)
 		return
 	if phase == Phase.NORMAL:
 		Run.elapsed += delta
@@ -82,6 +88,7 @@ func _process(delta: float) -> void:
 		_pickup_t -= delta
 		if _pickup_t <= 0.0:
 			_spawn_pickup()
+	Perf.add("director", _t0)
 
 
 func _process_events() -> void:
@@ -104,7 +111,11 @@ func _process_events() -> void:
 			_spawn_elite("", "")
 		if t >= _endless_next_boss and map.boss != "":
 			_endless_next_boss = t + 300.0
+			_endless_next_elite_boss = t + 150.0
 			_run_event({"type": "boss", "enemy": map.boss})
+		if _endless_next_elite_boss > 0.0 and t >= _endless_next_elite_boss and _endless_elite_id() != "":
+			_endless_next_elite_boss = 0.0
+			_run_event({"type": "elite_boss", "enemy": _endless_elite_id()})
 
 
 ## Seconds until the next boss event, or -1 when none is scheduled. The HUD counts it down.
@@ -138,6 +149,8 @@ func _run_event(ev: Dictionary) -> void:
 			game.toast("SWARM!", Color(0.94, 0.63, 0.35))
 		"boss":
 			_start_boss(str(ev.get("enemy", map.boss)))
+		"elite_boss":
+			_spawn_elite_boss(str(ev.get("enemy", "")))
 
 
 func _start_boss(id: String) -> void:
@@ -151,6 +164,37 @@ func _start_boss(id: String) -> void:
 	em.spawn_boss(id, at)
 	boss_started.emit(def)
 	game.toast(def.display_name.to_upper(), Color(0.93, 0.29, 0.36))
+
+
+## The mini-boss: one big creature near the hero, a toast and nothing else. Its chest comes from its drops.
+func _spawn_elite_boss(id: String) -> void:
+	var def: EnemyDef = Registry.enemy(id)
+	if def == null:
+		return
+	var em: EnemyManager = game.enemies
+	em.register_type(def)
+	var i := em.spawn(id, _spawn_point())
+	if i >= 0:
+		elite_index = i
+		game.toast(def.display_name.to_upper(), Color(0.98, 0.62, 0.25))
+
+
+## The mini-boss the endless loop repeats: the last elite_boss event in the timeline.
+func _endless_elite_id() -> String:
+	for k in range(timeline.events.size() - 1, -1, -1):
+		var ev: Dictionary = timeline.events[k]
+		if str(ev.get("type", "")) == "elite_boss":
+			return str(ev.get("enemy", ""))
+	return ""
+
+
+## Position of the living mini-boss, or Vector3.INF when none.
+func elite_position() -> Vector3:
+	var em: EnemyManager = game.enemies
+	if elite_index >= 0 and em.is_alive(elite_index) and (em.types[em.type_idx[elite_index]]["def"] as EnemyDef).archetype == "elite":
+		return em.pos[elite_index]
+	elite_index = -1
+	return Vector3.INF
 
 
 func _on_boss_died(def: EnemyDef, at: Vector3) -> void:
@@ -168,6 +212,7 @@ func continue_to_next_stage() -> void:
 		Run.endless = true
 		_endless_next_boss = Run.elapsed + 300.0
 		_endless_next_elite = Run.elapsed + 45.0
+		_endless_next_elite_boss = Run.elapsed + 150.0
 	phase = Phase.NORMAL
 	_apply_mults()
 	Run.stage_changed.emit(Run.stage)
@@ -266,7 +311,7 @@ func _spawn_elite(enemy_id: String, mod_id: String) -> void:
 		mod = list[_rng.randi() % list.size()]
 	var i := em.spawn(enemy_id, _spawn_point(), mod)
 	if i >= 0:
-		game.toast("ELITE: %s %s" % [mod.display_name, Registry.enemy(enemy_id).display_name], mod.outline)
+		game.toast(("%s %s" % [mod.display_name, Registry.enemy(enemy_id).display_name]).to_upper(), mod.outline)
 
 
 func _cull_behind() -> void:
@@ -274,7 +319,7 @@ func _cull_behind() -> void:
 	var player: Node3D = game.player
 	var fwd: Vector3 = player.forward()
 	for i in range(EnemyManager.MAX):
-		if em.alive[i] == 0 or i == em.boss_index:
+		if em.alive[i] == 0 or i == em.boss_index or i == elite_index:
 			continue
 		var d := em.pos[i] - player.global_position
 		d.y = 0.0

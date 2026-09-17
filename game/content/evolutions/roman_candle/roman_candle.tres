@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_k8cci"]
+[ext_resource type="Texture2D" path="res://content/evolutions/roman_candle/roman_candle_icon.png" id="1_ktuh5"]
+[ext_resource type="PackedScene" path="res://content/evolutions/roman_candle/roman_candle_visual.tscn" id="2_ktuh5"]
+
+[resource]
+script = ExtResource("1_k8cci")
+targeting = "healthy"
+base = {
+"amount": 3.0,
+"cooldown": 0.9,
+"damage": 4.0,
+"fire_damage": 6.0,
+"fire_duration": 2.4,
+"fire_spread": 0.7,
+"knockback": 1.0,
+"pierce": 1.0,
+"range": 10.0,
+"speed": 13.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "flare_gun"
+sfx = {
+"fire": "w_flare_fire",
+"hit": "w_flare_hit"
+}
+visual = ExtResource("2_ktuh5")
+visual_file = "roman_candle_visual.tscn"
+params = {
+"familiar": {
+"bob": 0.1,
+"height": 1.45,
+"radius": 1.3,
+"speed": 1.0
+},
+"radius": 0.26
+}
+id = "roman_candle"
+display_name = "Roman Candle"
+flavour = "Three flares. No signal. Just fire."
+rarity = "epic"
+icon = ExtResource("1_ktuh5")
+icon_file = "roman_candle_icon.png"
+placeholder = {
+"color": "#FF5A2A",
+"glyph": "flare"
+}

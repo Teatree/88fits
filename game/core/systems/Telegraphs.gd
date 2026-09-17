@@ -1,6 +1,6 @@
 ## Pooled ground telegraphs: rings, filled discs and lines that fade over their duration. Every marking is a mesh
 ## draped over the terrain (each vertex sits on the map's height at that point, a few centimetres up), so dunes,
-## the riverbed and the meadow's hills never cut through it. The game hands in `height_fn` (map.height_at).
+## the riverbed and the dunes never cut through it. The game hands in `height_fn` (map.height_at).
 class_name Telegraphs
 extends Node3D
 
@@ -149,6 +149,7 @@ func _mat(color: Color, alpha: float) -> StandardMaterial3D:
 
 
 func _process(delta: float) -> void:
+	var t0 := Time.get_ticks_usec()
 	var keep: Array = []
 	for it in _items:
 		it["t"] += delta
@@ -161,8 +162,8 @@ func _process(delta: float) -> void:
 			# pulse toward the end
 			c.a = base * (1.0 - f * 0.5) * (1.0 if int(it["t"] * 12.0) % 2 == 0 or f < 0.6 else 0.45)
 			mat.albedo_color = c
-		if it["grow"]:
-			# the ring grows from 40% to full: rebuilt rather than scaled, so it stays draped on the ground
+		if it["grow"] and int(it["t"] * 20.0) != int((it["t"] - delta) * 20.0):
+			# the ring grows from 40% to full: rebuilt rather than scaled, so it stays draped on the ground (20 Hz is plenty)
 			var s := 0.4 + 0.6 * f
 			var r: float = it["r"]
 			n.mesh = _ring_mesh(it["center"], maxf(r * s - 0.12, 0.05), r * s)
@@ -171,3 +172,4 @@ func _process(delta: float) -> void:
 		else:
 			keep.append(it)
 	_items = keep
+	Perf.add("telegraphs", t0)

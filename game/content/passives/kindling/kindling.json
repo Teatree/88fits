@@ -1,0 +1,26 @@
+{
+  "id": "kindling",
+  "name": "Kindling",
+  "flavour": "Everything you light, burns hotter.",
+  "rarity": "common",
+  "weight": 8,
+  "element": "fire",
+  "pairs_with": "flare_gun",
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "fire_damage",
+        "op": "mul",
+        "value": 0.15,
+        "target": "all_weapons"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "placeholder": {
+    "color": "#FF9A4A",
+    "glyph": "flame"
+  },
+  "art_prompt": "a small bundle of dry kindling sticks tied with twine, one end catching fire with a bright flame"
+}

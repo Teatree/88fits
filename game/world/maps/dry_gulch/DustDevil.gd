@@ -34,6 +34,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	var _t0 := Time.get_ticks_usec()
 	_t += delta * speed
 	var p := loop_center + Vector3(cos(_t) * loop_rx, 0, sin(_t * 0.7) * loop_rz)
 	if game and game.map:
@@ -41,6 +42,7 @@ func _process(delta: float) -> void:
 	global_position = p
 	_cone.rotation.y += delta * 6.0
 	if game == null:
+		Perf.add("dustdevil", _t0)
 		return
 	_player_cd = maxf(_player_cd - delta, 0.0)
 	var pl: Node3D = game.player
@@ -55,3 +57,5 @@ func _process(delta: float) -> void:
 	if em:
 		em.lift_radius(global_position, radius, 1.7)
 		em.swirl(global_position, radius, delta)
+
+	Perf.add("dustdevil", _t0)

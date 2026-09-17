@@ -77,8 +77,9 @@ Backup route, also from anywhere: GitHub Releases through `tools/release.sh` (ne
 
 ## Two maps, four heroes, pickups (pass 9)
 
-- Maps: `dry_gulch` (desert) and `mossy_hollow` (meadow: `game/world/maps/mossy_hollow/`, geysers + bee swarm + fireflies). Pick either in Play setup. Both schedule pickups (heart, rage, sprint, shield, magnet pulse) through the `pickups` block of their timeline JSON.
-- Heroes: Astro (default), Drifter, Dad (the Roomba was retired). Astro and the meadow creatures are rendered by `python tools/gen_art.py --only=astro,...`; run cycles are 24 frames for heroes and 12 for creatures, packed as grid strips (`strip_cols` in the JSON).
-- Test a map or hero headless: `--script res://tools/smoke_run.gd -- seconds=90 map=mossy_hollow character=astro`; captures: `--script res://tools/screenshot_run.gd -- out=<dir> map=mossy_hollow character=astro`.
-- Meadow textures: `python tools/gen_textures_meadow.py`; meadow props are part of `tools/blender_props.py`.
+- Map: `dry_gulch` (desert). The meadow (`mossy_hollow`) was shelved in pass 17; its content, scene, art, sounds and texture tool sit in `tools/dl/backup/mossy_hollow/` (and in the first git commit). The timeline JSON schedules pickups (`pickups` block), structures (`structures` block: nine, every kind at least once), the Elite (`elite_boss` events at 150/450/750 s) and the harder stages (`stage_mults`, `cap_per_stage`, `speed_per_stage`).
+- Heroes: Astro (default), Drifter, Dad. Creatures and heroes are rendered by `python tools/gen_art.py --only=roadrunner,...` (without `--force` cached renders and clips are reused, so a repack after a pipeline change takes seconds); fps: `smoke_run.gd -- seconds=60 perf=1` prints per-system frame costs; run cycles are 24 frames for heroes and 12 for creatures, packed as grid strips (`strip_cols` in the JSON).
+- Test a hero headless: `--script res://tools/smoke_run.gd -- seconds=90 character=astro`; captures: `--script res://tools/screenshot_run.gd -- out=<dir> character=astro` (also captures the chest reel, the Elite with spit trails, and the boss pointer).
+- Scenery: `python tools/gen_props.py [--only id] [--force]` paints the 2.5D props into `game/art/sprites/props/` (manifest `props.json`); the map scatters them at load.
+- Design bible: `python tools/make_bible.py --shots=<capture dir>` assembles `docs/design/design-bible.html` from `docs/design/src/part1-4.html` (prose), `bible.css`, `sounds.json` and the captures; it also rebuilds the cast, hero-cycle and icon sheets from the content folders.
 - Structures: `content/structures/<id>/<id>.json` (effect, params, weight, colour, prop); each map's timeline has `structures: {count, min_spacing}`. Props come from `tools/blender_props.py`.

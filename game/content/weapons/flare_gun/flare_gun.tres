@@ -1,0 +1,89 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/flare_gun/flare_gun_icon.png" id="1_18vub"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_dvusc"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_18vub"]
+[ext_resource type="PackedScene" path="res://content/weapons/flare_gun/flare_gun_visual.tscn" id="3_8qibb"]
+
+[sub_resource type="Resource" id="Resource_18vub"]
+script = ExtResource("1_dvusc")
+stat = "fire_damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_8qibb"]
+script = ExtResource("1_dvusc")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[sub_resource type="Resource" id="Resource_guh2n"]
+script = ExtResource("1_dvusc")
+stat = "fire_spread"
+value = 0.1
+
+[sub_resource type="Resource" id="Resource_qqy6i"]
+script = ExtResource("1_dvusc")
+stat = "fire_damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_2oi1r"]
+script = ExtResource("1_dvusc")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_ox6w3"]
+script = ExtResource("1_dvusc")
+stat = "fire_duration"
+value = 0.6
+
+[sub_resource type="Resource" id="Resource_qrisg"]
+script = ExtResource("1_dvusc")
+stat = "fire_damage"
+op = "mul"
+value = 0.25
+
+[resource]
+script = ExtResource("2_18vub")
+targeting = "healthy"
+base = {
+"amount": 1.0,
+"cooldown": 1.3,
+"damage": 3.0,
+"fire_damage": 4.0,
+"fire_duration": 1.8,
+"fire_spread": 0.5,
+"knockback": 1.0,
+"pierce": 0.0,
+"range": 9.0,
+"speed": 11.0
+}
+levels = [[], [SubResource("Resource_18vub")], [SubResource("Resource_8qibb")], [SubResource("Resource_guh2n")], [SubResource("Resource_qqy6i")], [SubResource("Resource_2oi1r")], [SubResource("Resource_ox6w3")], [SubResource("Resource_qrisg")]]
+evolves_with = "kindling"
+evolves_into = "roman_candle"
+sfx = {
+"fire": "w_flare_fire",
+"hit": "w_flare_hit"
+}
+visual = ExtResource("3_8qibb")
+visual_file = "flare_gun_visual.tscn"
+params = {
+"familiar": {
+"bob": 0.1,
+"height": 1.45,
+"radius": 1.3,
+"speed": 1.0
+},
+"radius": 0.24
+}
+id = "flare_gun"
+display_name = "Flare Gun"
+flavour = "Not for signalling. For starting things."
+weight = 9.0
+icon = ExtResource("1_18vub")
+icon_file = "flare_gun_icon.png"
+placeholder = {
+"color": "#FF7A3A",
+"glyph": "flare"
+}

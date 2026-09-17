@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_a8dro"]
+[ext_resource type="Texture2D" path="res://content/passives/kindling/kindling_icon.png" id="1_opko1"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_opko1"]
+
+[sub_resource type="Resource" id="Resource_opko1"]
+script = ExtResource("1_a8dro")
+stat = "fire_damage"
+op = "mul"
+value = 0.15
+target = "all_weapons"
+
+[resource]
+script = ExtResource("2_opko1")
+levels = [[SubResource("Resource_opko1")]]
+max_level = 5
+pairs_with = "flare_gun"
+id = "kindling"
+display_name = "Kindling"
+flavour = "Everything you light, burns hotter."
+element = "fire"
+weight = 8.0
+icon = ExtResource("1_opko1")
+icon_file = "kindling_icon.png"
+placeholder = {
+"color": "#FF9A4A",
+"glyph": "flame"
+}

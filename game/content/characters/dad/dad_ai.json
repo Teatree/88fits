@@ -134,6 +134,151 @@
    },
    "attempt": 0
   },
+  "hurt_back": {
+   "seed": 2506,
+   "prompt": "The exact same character seen directly from behind, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, eyes squeezed shut, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/dad_back_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "back",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 343,
+     "right": 333,
+     "top": 65,
+     "bottom": 62,
+     "height": 896,
+     "width": 347
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_front": {
+   "seed": 2507,
+   "prompt": "The exact same character facing the viewer, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, eyes squeezed shut, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/dad_front_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 341,
+     "right": 347,
+     "top": 64,
+     "bottom": 52,
+     "height": 907,
+     "width": 335
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_side": {
+   "seed": 2508,
+   "prompt": "The exact same character in strict side profile facing right, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, eyes squeezed shut, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/dad_side_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 409,
+     "right": 402,
+     "top": 64,
+     "bottom": 58,
+     "height": 901,
+     "width": 212
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_bd": {
+   "seed": 2509,
+   "prompt": "The exact same character in three-quarter back view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, eyes squeezed shut, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/dad_bd_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 353,
+     "right": 375,
+     "top": 67,
+     "bottom": 52,
+     "height": 904,
+     "width": 295
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_fd": {
+   "seed": 2510,
+   "prompt": "The exact same character in three-quarter front view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, eyes squeezed shut, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/dad_fd_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 354,
+     "right": 362,
+     "top": 71,
+     "bottom": 50,
+     "height": 902,
+     "width": 307
+    }
+   },
+   "attempt": 0
+  },
   "portrait": {
    "seed": 10435,
    "prompt": "A close-up portrait of this exact character for a mobile game avatar icon: only the head and shoulders, the head filling half of the frame, grinning proudly with both thumbs up, his thick brown mustache and shiny bald head, a barbecue apron strap on one shoulder, facing the viewer, the shoulders and chest running off the bottom edge of the frame, expressive and lively, no legs, no full body. Keep the same face, outfit, colors and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",

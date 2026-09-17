@@ -43,8 +43,11 @@
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_beetle_charge.wav" id="40_drtpa"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_beetle_die.wav" id="41_7m1op"]
 [ext_resource type="AudioStream" path="res://content/sounds/voice/en_elite_spawn.wav" id="42_qm05p"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_roadrunner_die.wav" id="42_tl11e"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_mummy_die.wav" id="43_1gduf"]
 [ext_resource type="AudioStream" path="res://content/sounds/voice/en_boss_roar.wav" id="43_5q0nc"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_boss_attack.wav" id="44_1mowr"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_scorpion_die.wav" id="44_uwp6k"]
 [ext_resource type="AudioStream" path="res://content/sounds/voice/en_boss_die.wav" id="45_3s6mt"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/wd_ambient.wav" id="46_mvbh6"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/wd_portal_open.wav" id="47_43y5l"]
@@ -63,10 +66,14 @@
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_snake_bite.wav" id="60_trawe"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_skull_throw.wav" id="61_eq6ve"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_skull_boom.wav" id="62_d00ok"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pl_step_grass.wav" id="63_eq6ve"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/gr_ambient.wav" id="64_d00ok"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_powerup.wav" id="65_1gduf"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_flare_fire.wav" id="66_2jsub"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_heart.wav" id="66_uwp6k"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_flare_hit.wav" id="67_ibu0u"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_molotov_throw.wav" id="68_684d2"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_molotov_boom.wav" id="69_vxxld"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_iron_hit.wav" id="70_5mtkb"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_ignite.wav" id="71_krekp"]
 
 [resource]
 script = ExtResource("1_eeclh")
@@ -179,14 +186,32 @@ entries = {
 "voices": 4,
 "volume_db": -16.0
 },
-"gr_ambient": {
-"category": "world",
-"file": "placeholder/gr_ambient.wav",
-"loop": true,
-"pitch_spread": 0.0,
-"stream": ExtResource("64_d00ok"),
+"en_mummy_die": {
+"category": "enemy",
+"file": "placeholder/en_mummy_die.wav",
+"loop": false,
+"pitch_spread": 0.08,
+"stream": ExtResource("43_1gduf"),
+"voices": 2,
+"volume_db": -6.0
+},
+"en_roadrunner_die": {
+"category": "enemy",
+"file": "placeholder/en_roadrunner_die.wav",
+"loop": false,
+"pitch_spread": 0.12,
+"stream": ExtResource("42_tl11e"),
+"voices": 3,
+"volume_db": -8.0
+},
+"en_scorpion_die": {
+"category": "enemy",
+"file": "placeholder/en_scorpion_die.wav",
+"loop": false,
+"pitch_spread": 0.05,
+"stream": ExtResource("44_uwp6k"),
 "voices": 1,
-"volume_db": -18.0
+"volume_db": -4.0
 },
 "mu_boss": {
 "category": "music",
@@ -359,15 +384,6 @@ entries = {
 "voices": 1,
 "volume_db": 0.0
 },
-"pl_step_grass": {
-"category": "player",
-"file": "placeholder/pl_step_grass.wav",
-"loop": false,
-"pitch_spread": 0.08,
-"stream": ExtResource("63_eq6ve"),
-"voices": 1,
-"volume_db": -18.0
-},
 "pl_step_sand": {
 "category": "player",
 "file": "placeholder/pl_step_sand.wav",
@@ -476,6 +492,42 @@ entries = {
 "voices": 1,
 "volume_db": 0.0
 },
+"w_flare_fire": {
+"category": "weapon",
+"file": "placeholder/w_flare_fire.wav",
+"loop": false,
+"pitch_spread": 0.08,
+"stream": ExtResource("66_2jsub"),
+"voices": 3,
+"volume_db": -8.0
+},
+"w_flare_hit": {
+"category": "weapon",
+"file": "placeholder/w_flare_hit.wav",
+"loop": false,
+"pitch_spread": 0.1,
+"stream": ExtResource("67_ibu0u"),
+"voices": 3,
+"volume_db": -9.0
+},
+"w_ignite": {
+"category": "weapon",
+"file": "placeholder/w_ignite.wav",
+"loop": false,
+"pitch_spread": 0.15,
+"stream": ExtResource("71_krekp"),
+"voices": 4,
+"volume_db": -12.0
+},
+"w_iron_hit": {
+"category": "weapon",
+"file": "placeholder/w_iron_hit.wav",
+"loop": false,
+"pitch_spread": 0.12,
+"stream": ExtResource("70_5mtkb"),
+"voices": 4,
+"volume_db": -10.0
+},
 "w_lob_boom": {
 "category": "weapon",
 "file": "placeholder/w_lob_boom.wav",
@@ -493,6 +545,24 @@ entries = {
 "stream": ExtResource("21_684d2"),
 "voices": 2,
 "volume_db": -10.0
+},
+"w_molotov_boom": {
+"category": "weapon",
+"file": "placeholder/w_molotov_boom.wav",
+"loop": false,
+"pitch_spread": 0.06,
+"stream": ExtResource("69_vxxld"),
+"voices": 2,
+"volume_db": -5.0
+},
+"w_molotov_throw": {
+"category": "weapon",
+"file": "placeholder/w_molotov_throw.wav",
+"loop": false,
+"pitch_spread": 0.08,
+"stream": ExtResource("68_684d2"),
+"voices": 2,
+"volume_db": -8.0
 },
 "w_pea_fire": {
 "category": "weapon",

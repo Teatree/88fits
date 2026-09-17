@@ -60,6 +60,9 @@ func _tick(delta: float) -> void:
 	var pdmg := stat("poison_damage", 0.0)
 	var pstacks: int = maxi(stat_int("poison_stacks", 1), 1)
 	var pdur := stat("poison_duration", 10.0)
+	var fdmg := stat("fire_damage", 0.0)
+	var fdur := stat("fire_duration", 1.8)
+	var fspread := stat("fire_spread", 0.5)
 	var now := Time.get_ticks_msec() * 0.001
 	var center: Vector3 = player.global_position + Vector3(0, 0.6, 0)
 	var n := _blades.size()
@@ -78,6 +81,8 @@ func _tick(delta: float) -> void:
 			var away := enemies.pos[e] - center
 			if pdmg > 0.0:
 				enemies.poison(e, inst.def.id, pdmg, pstacks, pdur)
+			if fdmg > 0.0:
+				enemies.ignite(e, inst.def.id, fdmg, fdur, fspread)
 			if enemies.damage(e, damage, inst.def.id, away, knock):
 				inst.kills += 1
 				_hit_times.erase(e)

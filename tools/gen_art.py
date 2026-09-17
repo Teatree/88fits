@@ -48,7 +48,7 @@ ICON_STYLE = ("Mobile game item icon in the style of Shop Titans: one single bol
 
 # run cycles: more frames from the same clip means smoother motion at the same cycle length
 HERO_RUN_FRAMES, HERO_RUN_FPS = 24, 36
-HERO_HIT_FPS = 20
+HERO_HIT_FPS = 12
 CREATURE_RUN_FRAMES, CREATURE_RUN_FPS = 12, 15
 FORCE = "--force" in sys.argv
 SKIP_QA = "--skip-qa" in sys.argv
@@ -240,9 +240,18 @@ def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline
     except Exception as e:
         log("  (pose cycle failed for %s: %s)" % (key, e))
         return None
-    scale = figure_height_cell(stand_cell) / max(1.0, animate_still_height(still_rgb))
+    # Wan Animate draws the figure on the driver skeleton, which is nose-to-ankle: the painted body comes out about a
+    # head taller than the still placed at the same fill. Measure the tallest frame and fit it to the standing figure.
+    tallest = max(1.0, max(_alpha_height(f) for f in frames))
+    scale = figure_height_cell(stand_cell) * 0.99 / tallest
     px = max(1, int(round(cell * outline_frac)))
     return artkit.place_clip_frames(frames, cell, scale, px, outline_color)
+
+
+def _alpha_height(frame_rgba):
+    a = np.asarray(frame_rgba)[..., 3]
+    rows = np.nonzero(a.max(axis=1) > 127)[0]
+    return float(rows.max() - rows.min() + 1) if len(rows) else 0.0
 
 
 def animate_still_height(still_rgb):
@@ -434,8 +443,10 @@ def process(type_, folder, id_):
                 "_bd": ("bd", "Turn this exact creature to a three-quarter back view: turned 45 degrees away from the viewer so it faces the upper right of the frame, its back and right side visible, standing", "three-quarter back view, walking away towards the upper right", 4),
                 "_fd": ("fd", "Turn this exact creature to a three-quarter front view: turned 45 degrees so it faces the lower right of the frame, face visible, standing", "three-quarter front view, walking towards the lower right", 5),
             }
+            hints = d.get("view_hints", {})   # per-view wording for creatures whose side view is easy to get wrong
             for suffix, (vname, turn_prompt, walk_prompt, k) in turns.items():
-                v_img, inf = render(id_ + "_" + vname, turn_prompt + ". Keep the same colors, proportions and art style. " + bg + ".", [front_ref],
+                hint = (", " + str(hints[vname])) if vname in hints else ""
+                v_img, inf = render(id_ + "_" + vname, turn_prompt + hint + ". Keep the same colors, proportions and art style. " + bg + ".", [front_ref],
                                     {"subject": "the same creature, " + vname + " view", "view": None, "subjects_max": 1, "ref_h": figure_height(img)}, seed + k)
                 info["renders"][vname] = inf
                 v_cell = finish(v_img, cell, 0.86, True, None, CF, stand_h, CO)[0]
@@ -519,16 +530,24 @@ def process(type_, folder, id_):
                 c = video_cycle(still_img, id_ + "_run" + (suffix or "_b"), prompt, seed + k, cell, cell_img, N)
             clips[suffix] = c
         info["clips"] = {k or "_b": v is not None for k, v in clips.items()}
-        # hit reactions: the Mixamo pain gesture as a one-shot per view (9 frames), only when its drivers exist
+        # hit reactions: a painted "hurt" still per view, edited from that view's still by the image model so it reads like
+        # the rest of the sheet, then a short procedural wince around it (the pose-driven pain clip looked wrong on every hero)
         hits = {}
-        if pose_ok and os.path.isdir(os.path.join(DRIVERS, "hit")):
-            for suffix, still_img, cell_img, view in (("", back, back_cell, "back"), ("_f", front, front_cell, "front"), ("_s", side, side_cell, "side"),
-                                                      ("_bd", bd, bd_cell, "bd"), ("_fd", fd, fd_cell, "fd")):
-                k = {"": 30, "_f": 31, "_s": 32, "_bd": 33, "_fd": 34}[suffix]
-                # "hit" in the motion text invites impact effects; describe the body only and ban effects outright
-                hit_neg = (anim_neg + ", " if anim_neg else "") + "impact effect, shockwave, ring, glow, sparks, light, energy, particles, sword, blade, weapon, slash, white streak, extra objects, motion blur"
-                hits[suffix] = pose_cycle(still_img, id_ + "_pose_hit_" + view, "hit", view, seed + k, cell, cell_img, hint, negative_extra=hit_neg, loop=False,
-                                          motion="standing on the spot, staggering and recoiling backwards, then straightening up again, only the character and nothing else in the frame")
+        hurt_hint = str(d.get("hurt_hint", "eyes squeezed shut, teeth gritted"))
+        for suffix, still_img, cell_img, view, ref_h, seedk in (("", back, back_cell, "back", back_h, 30), ("_f", front, front_cell, "front", front_h, 31),
+                                                              ("_s", side, side_cell, "side", side_h, 32), ("_bd", bd, bd_cell, "bd", front_h, 33), ("_fd", fd, fd_cell, "fd", front_h, 34)):
+            view_words = {"back": "seen directly from behind", "front": "facing the viewer", "side": "in strict side profile facing right",
+                          "bd": "in three-quarter back view", "fd": "in three-quarter front view"}[view]
+            h_prompt = ("The exact same character " + view_words + ", flinching in pain from a hit: leaning back a little, shoulders hunched, "
+                        "one hand raised towards the chest, " + hurt_hint + ", still standing on both feet, feet fully visible. Keep the same "
+                        "outfit, colors, proportions, pose scale and art style as the reference. " + bg + ".")
+            ref = comfy.upload_pil(still_img, id_ + "_" + view + "_ref.png")
+            h_img, inf = render(id_ + "_hurt_" + view, h_prompt, [ref], {"subject": "the same character flinching", "view": view if view in ("front", "back", "side") else None,
+                                                                          "subjects_max": 1, "legs": True, "ref_h": ref_h}, seed + seedk)
+            info["renders"]["hurt_" + view] = inf
+            hurt_cell = finish(h_img, cell, 0.84, True, None, 0.012, stand_h)[0]
+            # four frames at HERO_HIT_FPS: the flinch, a deeper lean, the flinch, and a half step back to standing
+            hits[suffix] = [hurt_cell, artkit.transform(hurt_cell, lean_deg=-6, bob=2, sy=0.97, sx=1.03), hurt_cell, artkit.transform(cell_img, lean_deg=-3, sy=0.99)]
         info["hits"] = {k or "_b": v is not None for k, v in hits.items()}
         frames = artkit.character_frames(back_cell, clips[""], cheer_cell, cell, front_cell, clips["_f"], side_cell, clips["_s"], bd_cell, clips["_bd"], fd_cell, clips["_fd"], hits)
         strip, counts, cols = artkit.pack_strip(frames, artkit.CHAR_ORDER, cell)

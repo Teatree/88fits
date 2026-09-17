@@ -57,6 +57,7 @@ static func _common(res: ContentDef, d: Dictionary, dir: String) -> void:
 	res.display_name = str(d.get("name", res.id.capitalize()))
 	res.flavour = str(d.get("flavour", ""))
 	res.rarity = str(d.get("rarity", "common"))
+	res.element = str(d.get("element", ""))
 	res.weight = float(d.get("weight", 10.0))
 	res.icon_file = str(d.get("icon", res.id + "_icon.png"))
 	res.icon = resolve_texture(dir, res.icon_file)
@@ -160,6 +161,8 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 	e.charge = c if c is Dictionary else {}
 	var b = d.get("boss", {})
 	e.boss = b if b is Dictionary else {}
+	var el = d.get("elite", {})
+	e.elite = el if el is Dictionary else {}
 	var s = d.get("sfx", {})
 	e.sfx = s if s is Dictionary else {}
 	e.xp_mult = float(d.get("xp_mult", 1.0))
@@ -273,6 +276,8 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	var sm = t.get("stage_mults", [1.0, 1.35, 1.8])
 	w.stage_mults = sm if sm is Array else [1.0]
 	w.endless_mult_per_minute = float(t.get("endless_mult_per_minute", 0.1))
+	w.cap_per_stage = int(t.get("cap_per_stage", 0))
+	w.speed_per_stage = float(t.get("speed_per_stage", 0.0))
 	w.cap_start = int(t.get("cap_start", 100))
 	w.cap_per_minute = float(t.get("cap_per_minute", 10.0))
 	w.cap_max = int(t.get("cap_max", 250))

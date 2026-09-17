@@ -143,7 +143,7 @@ ol{{max-width:76ch;color:var(--ink2);padding-left:22px}} li{{margin-bottom:8px}}
 <div class="callout"><p><b>Loop length.</b> Wan wants 4k+1 frames. Loops render 25 with the last a repeat of the first and drop it; one-shots render 9.</p></div>
 
 <h2>What stays on the old path</h2>
-<p>Creatures without a human skeleton (ants, hornets, mushrooms, the tumbleweed) still use the free clip and the silhouette cutter. The goblin family, the bramble imp and the toadstool could move to the <i>Orc Walk</i> and <i>Walking</i> drivers; the boar and beetle to <i>Big Guy Walking</i>.</p>
+<p>Creatures without a human skeleton (ants, cacti, beetles, the scorpion, the tumbleweed) still use the free clip and the silhouette cutter. The goblin family and the dust mummy could move to the <i>Orc Walk</i> and <i>Walking</i> drivers; the beetle to <i>Big Guy Walking</i>.</p>
 </div>
 '''
     open(OUT, "w", encoding="utf-8", newline="\n").write(html)

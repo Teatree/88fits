@@ -10,6 +10,8 @@ extends Resource
 @export var flavour: String = ""
 ## common | rare | epic. Affects card weight and backplate.
 @export var rarity: String = "common"
+## "poison" | "fire" | "": items of one element never share a run with the other (weapons derive it from their base stats)
+@export var element: String = ""
 ## Relative weight in card pools.
 @export var weight: float = 10.0
 ## Icon texture. Required by the rule; Registry substitutes a letter tile when missing.

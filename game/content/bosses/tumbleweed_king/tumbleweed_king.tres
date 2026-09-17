@@ -56,7 +56,7 @@ boss = {
 "windup": 1.2
 }],
 "cooldown_between": 2.0,
-"hp_mult_per_stage": 1.6
+"hp_mult_per_stage": 2.0
 }
 sfx = {
 "attack": "en_boss_attack",

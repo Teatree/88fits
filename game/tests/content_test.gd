@@ -33,15 +33,16 @@ func test_timeline_cap_grows() -> void:
 	assert_bool(m.timeline.cap_max <= 80).is_true()
 
 
-func test_meadow_and_pickups_are_content() -> void:
-	assert_bool(Registry.maps.has("mossy_hollow")).is_true()
+func test_pickups_are_content() -> void:
+	assert_bool(Registry.maps.has("dry_gulch")).is_true()
+	assert_bool(not Registry.maps.has("mossy_hollow")).is_true()
 	assert_bool(Registry.characters.has("astro")).is_true()
 	for id in ["heart", "rage", "sprint", "shield", "magnet_pulse"]:
 		assert_bool(Registry.pickups.has(id)).override_failure_message("missing pickup " + id).is_true()
-	var m: MapDef = Registry.map("mossy_hollow")
+	var m: MapDef = Registry.map("dry_gulch")
 	assert_bool(m.timeline.pickups.has("roster")).is_true()
 	for a in m.skins.keys():
-		assert_bool(Registry.enemies.has(m.skins[a])).override_failure_message("meadow skin " + str(a)).is_true()
+		assert_bool(Registry.enemies.has(m.skins[a])).override_failure_message("desert skin " + str(a)).is_true()
 	assert_bool(Registry.enemies.has(m.boss)).is_true()
 	var d := JsonContent.load_json("res://content/pickups/rage/rage.json")
 	var p: PickupDef = JsonContent.build("pickups", d, "res://content/pickups/rage/")
@@ -58,8 +59,8 @@ func test_structures_are_content() -> void:
 	assert_str(drum.effect_kind).is_equal("buff")
 	assert_int(drum.effects.size()).is_equal(2)
 	assert_float(Registry.structure("uber_magnet").weight).is_less(Registry.structure("healing_well").weight)
-	var m: MapDef = Registry.map("mossy_hollow")
-	assert_int(int(m.timeline.structures.get("count", 0))).is_greater(0)
+	var m: MapDef = Registry.map("dry_gulch")
+	assert_int(int(m.timeline.structures.get("count", 0))).is_greater_equal(Registry.structures.size())
 
 
 func test_poison_weapons_are_content() -> void:
@@ -86,7 +87,7 @@ func test_shop_prices_scale_with_power() -> void:
 
 
 func test_timed_buffs_apply_and_expire() -> void:
-	Run.start(Registry.character("astro"), Registry.map("mossy_hollow"))
+	Run.start(Registry.character("astro"), Registry.map("dry_gulch"))
 	var before := Run.player_sheet.get_stat("might", 1.0)
 	var rage: PickupDef = Registry.pickup("rage")
 	Run.add_timed_effects(rage.id, rage.display_name, rage.effects, rage.duration)

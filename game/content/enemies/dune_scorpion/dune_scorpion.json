@@ -1,0 +1,69 @@
+{
+  "id": "dune_scorpion",
+  "name": "Dune Scorpion",
+  "flavour": "Half a boss. All of the attitude.",
+  "archetype": "elite",
+  "brain": "charge",
+  "hp": 260,
+  "speed": 1.5,
+  "damage": 18,
+  "radius": 1.1,
+  "size": 3.0,
+  "pack_size": 1,
+  "drops": {
+    "large": 1.0,
+    "medium": 1.0,
+    "gold": 1.0,
+    "chest": 1.0
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 1,
+    "run_b": 12,
+    "idle_b": 4,
+    "run_s": 12,
+    "idle_s": 4,
+    "run_bd": 12,
+    "idle_bd": 4,
+    "run_fd": 12,
+    "idle_fd": 4
+  },
+  "frame_px": 224,
+  "charge": {
+    "windup": 0.9,
+    "speed": 11.0,
+    "duration": 0.8,
+    "cooldown": 3.2,
+    "trigger_range": 8.0
+  },
+  "elite": {
+    "hp_mult_per_stage": 1.8
+  },
+  "sfx": {
+    "attack": "en_beetle_charge",
+    "die": "en_scorpion_die",
+    "hit": "en_goblin_hit"
+  },
+  "placeholder": {
+    "color": "#B86A2E",
+    "ears": "horn",
+    "eyes": 2,
+    "shape": "wide"
+  },
+  "art_prompt": "a goofy huge armoured orange desert scorpion with two big raised pincers, a curled stinger tail held high, glossy segmented shell, angry eyebrows and a mean grin",
+  "xp_mult": 12.0,
+  "motion": "scuttling in place on many legs, pincers raised and tail swaying",
+  "strip_cols": 71,
+  "fps": {
+    "run": 15
+  },
+  "directions": 8,
+  "view_hints": {
+    "side": "the scorpion stays low and horizontal on its eight legs like a real scorpion seen from the side, body parallel to the ground, both pincers reaching forward to the right, the segmented tail curling up and over its back with the stinger above its head, never standing upright on two legs",
+    "bd": "low on its eight legs, tail curled over its back, pincers ahead of it",
+    "fd": "low on its eight legs, tail curled over its back, pincers ahead of it"
+  }
+}

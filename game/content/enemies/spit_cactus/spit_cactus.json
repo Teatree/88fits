@@ -13,7 +13,8 @@
   "drops": {
     "small": 1.0,
     "medium": 0.25,
-    "gold": 0.05
+    "gold": 0.05,
+    "chest": 0.005
   },
   "anims": {
     "idle": 4,

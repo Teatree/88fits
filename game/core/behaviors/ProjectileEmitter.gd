@@ -59,7 +59,7 @@ func _tick(_delta: float) -> void:
 		# the held gun (or the companion) tracks the nearest enemy between shots, so it points where the shots go
 		var enemies: EnemyManager = game.enemies
 		var healthy := inst.def.targeting == "healthy"
-		var t := enemies.nearest_index(player.global_position, stat("range", 9.0), healthy)
+		var t := enemies.nearest_index(player.global_position, stat("range", 9.0), inst.element() if healthy else "")
 		if t < 0 and healthy:
 			t = enemies.nearest_index(player.global_position, stat("range", 9.0))
 		var want: Vector3 = (enemies.pos[t] - player.global_position) if t >= 0 else player.forward()
@@ -101,8 +101,8 @@ func _fire() -> bool:
 			dir = (enemies.pos[t] - player.global_position)
 			half_spread = deg_to_rad(4.0) * (amount - 1)
 		"healthy":
-			# the nearest creature that is not poisoned yet; when everyone is, the nearest one
-			var t := enemies.nearest_index(player.global_position, range_m, true)
+			# the nearest creature not carrying this weapon's element yet; when everyone does, the nearest one
+			var t := enemies.nearest_index(player.global_position, range_m, inst.element())
 			if t < 0:
 				t = enemies.nearest_index(player.global_position, range_m)
 			if t < 0:

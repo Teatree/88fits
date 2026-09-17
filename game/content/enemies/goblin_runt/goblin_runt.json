@@ -12,7 +12,8 @@
   "pack_size": 4,
   "drops": {
     "small": 1.0,
-    "gold": 0.01
+    "gold": 0.01,
+    "chest": 0.001
   },
   "frame_px": 128,
   "sfx": {

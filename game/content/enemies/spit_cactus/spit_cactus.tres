@@ -15,6 +15,7 @@ radius = 0.45
 size = 1.5
 pack_size = 2
 drops = {
+"chest": 0.005,
 "gold": 0.05,
 "medium": 0.25,
 "small": 1.0

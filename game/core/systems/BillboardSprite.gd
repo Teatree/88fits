@@ -16,6 +16,9 @@ var _anims: Dictionary = {}   # name -> {"offset": int, "count": int}
 var _fps: Dictionary = {}     # prefix -> frames per second, from the content def
 var _total := 1
 var _mat: ShaderMaterial
+var _sil: ShaderMaterial
+## The hero wants an outline where props hide him; pickups and the like do not.
+var outline_when_hidden := false
 
 
 func _ready() -> void:
@@ -34,6 +37,25 @@ func _ensure() -> void:
 	_mat = ShaderMaterial.new()
 	_mat.shader = load("res://core/shaders/sprite_billboard.gdshader")
 	material_override = _mat
+	if outline_when_hidden:
+		enable_outline()
+
+
+## The occluded pass: the same uniforms, drawn only where a prop hides the sprite. Call before setup().
+func enable_outline() -> void:
+	_ensure()
+	if _sil:
+		return
+	outline_when_hidden = true
+	_sil = ShaderMaterial.new()
+	_sil.shader = load("res://core/shaders/sprite_silhouette.gdshader")
+	_mat.next_pass = _sil
+
+
+func _param(key: String, value: Variant) -> void:
+	_mat.set_shader_parameter(key, value)
+	if _sil:
+		_sil.set_shader_parameter(key, value)
 
 
 func setup(tex: Texture2D, anims: Dictionary, order: Array, height_m: float, cols: int = 0, fps: Dictionary = {}) -> void:
@@ -47,11 +69,11 @@ func setup(tex: Texture2D, anims: Dictionary, order: Array, height_m: float, col
 			_anims[a] = {"offset": k, "count": n}
 			k += n
 	_total = maxi(k, 1)
-	_mat.set_shader_parameter("sprite", tex)
-	_mat.set_shader_parameter("frames", float(_total))
-	_mat.set_shader_parameter("cols", float(cols))
-	_mat.set_shader_parameter("rows", float(ceili(float(_total) / float(cols))) if cols > 0 else 1.0)
-	_mat.set_shader_parameter("height", height_m)
+	_param("sprite", tex)
+	_param("frames", float(_total))
+	_param("cols", float(cols))
+	_param("rows", float(ceili(float(_total) / float(cols))) if cols > 0 else 1.0)
+	_param("height", height_m)
 	animation = ""
 	play("idle")
 
@@ -108,29 +130,29 @@ func _loops(anim: String) -> bool:
 func _apply() -> void:
 	if not _anims.has(animation):
 		return
-	_mat.set_shader_parameter("frame", float(int(_anims[animation]["offset"]) + int(frame)))
+	_param("frame", float(int(_anims[animation]["offset"]) + int(frame)))
 
 
 func set_flip(f: bool) -> void:
-	_mat.set_shader_parameter("flip", 1.0 if f else 0.0)
+	_param("flip", 1.0 if f else 0.0)
 
 
 func set_flash(v: float) -> void:
-	_mat.set_shader_parameter("flash", clampf(v, 0.0, 1.0))
+	_param("flash", clampf(v, 0.0, 1.0))
 
 
 func set_squash(sx: float, sy: float) -> void:
-	_mat.set_shader_parameter("stretch", sx)
-	_mat.set_shader_parameter("squash", sy)
+	_param("stretch", sx)
+	_param("squash", sy)
 
 
 func set_roll(rad: float) -> void:
-	_mat.set_shader_parameter("roll", rad)
+	_param("roll", rad)
 
 
 func set_tint(c: Color) -> void:
-	_mat.set_shader_parameter("tint", c)
+	_param("tint", c)
 
 
 func set_height(h: float) -> void:
-	_mat.set_shader_parameter("height", h)
+	_param("height", h)

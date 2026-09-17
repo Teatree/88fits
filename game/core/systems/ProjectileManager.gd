@@ -30,14 +30,60 @@ var count := 0
 ## Counters for the smoke run: lobbed shots fired, and how many of them exploded on landing (the rest timed out).
 var lobs_fired := 0
 var lobs_exploded := 0
+## Hostile shots leave a faint trail of fading dots, so a spit can be followed back to whoever threw it.
+const TRAIL_MAX := 800
+const TRAIL_LIFE := 1.4
+const TRAIL_STEP := 0.055
+var trail_pos := PackedVector3Array()
+var trail_age := PackedFloat32Array()
+var trail_next := 0
+var trail_count := 0
+var _trail_t := PackedFloat32Array()   # per projectile: seconds until its next trail dot
+var _trail_mm: MultiMesh
 
 
 func _ready() -> void:
 	pos.resize(MAX); vel.resize(MAX); life.resize(MAX); dmg.resize(MAX); pierce.resize(MAX); kind.resize(MAX)
 	radius.resize(MAX); kb.resize(MAX); area.resize(MAX); hostile.resize(MAX); arc.resize(MAX); alive.resize(MAX); spin.resize(MAX); hover.resize(MAX)
-	weapon.resize(MAX); memo.resize(MAX); extra.resize(MAX)
+	weapon.resize(MAX); memo.resize(MAX); extra.resize(MAX); _trail_t.resize(MAX)
 	for i in range(MAX - 1, -1, -1):
 		free_list.append(i)
+	trail_pos.resize(TRAIL_MAX)
+	trail_age.resize(TRAIL_MAX)
+	for k in range(TRAIL_MAX):
+		trail_age[k] = TRAIL_LIFE
+	_build_trail()
+
+
+func _build_trail() -> void:
+	_trail_mm = MultiMesh.new()
+	_trail_mm.transform_format = MultiMesh.TRANSFORM_3D
+	_trail_mm.use_colors = true
+	var sm := SphereMesh.new()
+	sm.radius = 0.16
+	sm.height = 0.32
+	sm.radial_segments = 6
+	sm.rings = 3
+	_trail_mm.mesh = sm
+	_trail_mm.instance_count = TRAIL_MAX
+	_trail_mm.visible_instance_count = 0
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = _trail_mm
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.vertex_color_use_as_albedo = true
+	m.no_depth_test = false
+	mmi.material_override = m
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
+	add_child(mmi)
+
+
+func _drop_trail(at: Vector3) -> void:
+	trail_pos[trail_next] = at
+	trail_age[trail_next] = 0.0
+	trail_next = (trail_next + 1) % TRAIL_MAX
 
 
 ## Every projectile is drawn a third bigger than its mesh says: small things read as nothing on a phone.
@@ -100,6 +146,7 @@ func hostile_shot(p_kind: int, from: Vector3, velocity: Vector3, damage: float, 
 		hostile[i] = 1
 		arc[i] = 1 if arcing else 0
 		area[i] = splash
+		_trail_t[i] = 0.0
 	return i
 
 
@@ -121,6 +168,7 @@ func clear_all() -> void:
 func _physics_process(delta: float) -> void:
 	if game == null:
 		return
+	var t0 := Time.get_ticks_usec()
 	var enemies: EnemyManager = game.enemies
 	var player: Node3D = game.player
 	var map = game.map
@@ -147,6 +195,10 @@ func _physics_process(delta: float) -> void:
 			# lobbed shots (skulls, grenades, bomblets) sail over and through the crowd; they only ever explode on landing
 			continue
 		if hostile[i] == 1:
+			_trail_t[i] -= delta
+			if _trail_t[i] <= 0.0:
+				_trail_t[i] = TRAIL_STEP
+				_drop_trail(pos[i])
 			if player and not player.dead:
 				var d := player.global_position - pos[i]
 				if d.length() < radius[i] + 0.5:
@@ -164,6 +216,8 @@ func _physics_process(delta: float) -> void:
 			var dir := vel[i]
 			if w and w.stat("poison_damage", 0.0) > 0.0:
 				enemies.poison(e, wid, w.stat("poison_damage", 3.0), maxi(w.stat_int("poison_stacks", 1), 1), w.stat("poison_duration", 10.0))
+			if w and w.stat("fire_damage", 0.0) > 0.0:
+				enemies.ignite(e, wid, w.stat("fire_damage", 4.0), w.stat("fire_duration", 1.8), w.stat("fire_spread", 0.5))
 			if enemies.damage(e, dmg[i], wid, dir, kb[i]):
 				if w:
 					w.kills += 1
@@ -174,6 +228,22 @@ func _physics_process(delta: float) -> void:
 				_free(i)
 				break
 	_render()
+	_tick_trail(delta)
+	Perf.add("projectiles", t0)
+
+
+func _tick_trail(delta: float) -> void:
+	var n := 0
+	for k in range(TRAIL_MAX):
+		if trail_age[k] >= TRAIL_LIFE:
+			continue
+		trail_age[k] += delta
+		var f: float = clampf(trail_age[k] / TRAIL_LIFE, 0.0, 1.0)
+		var s: float = 1.0 - f * 0.7
+		_trail_mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(s, s, s)), trail_pos[k]))
+		_trail_mm.set_instance_color(n, Color(0.62, 0.95, 0.5, 0.45 * (1.0 - f)))
+		n += 1
+	_trail_mm.visible_instance_count = n
 
 
 func _explode(i: int) -> void:
@@ -192,13 +262,14 @@ func _explode(i: int) -> void:
 	var before := Run.kills
 	lobs_exploded += 1
 	enemies.damage_radius(pos[i], area[i], dmg[i], wid, kb[i])
-	var poison_bomb: bool = w != null and w.stat("poison_damage", 0.0) > 0.0
-	if poison_bomb:
-		game.spawn_poison_cloud(pos[i], w, area[i])
+	var element: String = w.element() if w else ""
+	if element != "":
+		# a poison bomb leaves a cloud, a fire bomb a burning pool; both keep working on whoever stands in them
+		game.spawn_cloud(pos[i], w, area[i], element)
 	if w:
 		w.kills += Run.kills - before
 		Audio.play(str(w.def.sfx.get("hit", "w_lob_boom")), pos[i])
-	game.fx_burst(pos[i], Color(0.45, 0.95, 0.35) if poison_bomb else Color(1.0, 0.7, 0.3), area[i])
+	game.fx_burst(pos[i], {"poison": Color(0.45, 0.95, 0.35), "fire": Color(1.0, 0.45, 0.15)}.get(element, Color(1.0, 0.7, 0.3)), area[i])
 	game.camera.shake(0.5)
 	var params: Dictionary = extra[i]
 	var bomblets := int(params.get("bomblets", 0))

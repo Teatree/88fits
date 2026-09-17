@@ -23,6 +23,7 @@ var height_fn: Callable = Callable()
 var obstacles: Array = []       # Vector3(x, z, radius)
 var arena_radius := 66.0
 var stage_mult := 1.0
+var stage_speed_mult := 1.0
 var hp_time_mult := 1.0
 
 # per-enemy data
@@ -58,6 +59,15 @@ var poison_src: Array = []
 var poison_tick := PackedFloat32Array()
 var flash_green := PackedByteArray()
 const POISON_TICK := 2.0
+## Fire: per enemy a dictionary of sources, weapon id -> {"dmg", "t", "dur", "spread", "root", "from"}. Hotter and shorter than
+## poison (a tick every FIRE_TICK seconds), and every tick it can jump to a creature it is touching; a fire caught
+## from another creature spreads at CHILD_SPREAD of the host's chance and never back to the creature it came from.
+var fire_src: Array = []
+var fire_tick := PackedFloat32Array()
+var fire_puff := PackedFloat32Array()   # seconds until the next lick of flame (visual only)
+var flash_hot := PackedByteArray()
+const FIRE_TICK := 0.6
+const CHILD_SPREAD := 0.4
 var lift_t := PackedFloat32Array() # seconds left in the air (tornado)
 var lift_d := PackedFloat32Array() # total lift duration
 var lift_h := PackedFloat32Array() # current height above the ground
@@ -76,6 +86,7 @@ var types: Array = []          # {def, mm, mmi, frames, shadow}
 var type_by_id: Dictionary = {}
 var elites: Array = []         # EliteModDef
 var _shader: Shader = preload("res://core/shaders/enemy_billboard.gdshader")
+var _sil_shader: Shader = preload("res://core/shaders/enemy_silhouette.gdshader")
 var _shadow_shader: Shader = preload("res://core/shaders/blob_shadow.gdshader")
 var _shadow_mm: MultiMesh
 var _shadow_mmi: MultiMeshInstance3D
@@ -91,9 +102,9 @@ func _ready() -> void:
 	anim_t.resize(MAX); flash.resize(MAX); squash.resize(MAX); flip.resize(MAX); contact_cd.resize(MAX)
 	alive.resize(MAX); charge_dir.resize(MAX); xp_scale.resize(MAX); vtint.resize(MAX)
 	away.resize(MAX); view.resize(MAX); poison_tick.resize(MAX); flash_green.resize(MAX)
-	poison_src.resize(MAX)
+	poison_src.resize(MAX); fire_src.resize(MAX); fire_tick.resize(MAX); flash_hot.resize(MAX); fire_puff.resize(MAX)
 	for i in range(MAX):
-		poison_src[i] = {}; lift_t.resize(MAX); lift_d.resize(MAX); lift_h.resize(MAX); lift_a.resize(MAX); lift_cd.resize(MAX)
+		poison_src[i] = {}; fire_src[i] = {}; lift_t.resize(MAX); lift_d.resize(MAX); lift_h.resize(MAX); lift_a.resize(MAX); lift_cd.resize(MAX)
 	for i in range(MAX - 1, -1, -1):
 		free_list.append(i)
 	elites = Registry.elites_list()
@@ -183,6 +194,14 @@ func register_type(def: EnemyDef) -> int:
 	var cols: int = def.strip_cols if def.sprite else 0
 	mat.set_shader_parameter("cols", float(cols))
 	mat.set_shader_parameter("rows", float(ceili(float(def.total_frames()) / float(cols))) if cols > 0 else 1.0)
+	# the occluded pass: a rim where a prop hides the creature (bosses too); same strip uniforms
+	var sil := ShaderMaterial.new()
+	sil.shader = _sil_shader
+	sil.set_shader_parameter("sprite", tex)
+	sil.set_shader_parameter("frames", float(def.total_frames()))
+	sil.set_shader_parameter("cols", float(cols))
+	sil.set_shader_parameter("rows", float(ceili(float(def.total_frames()) / float(cols))) if cols > 0 else 1.0)
+	mat.next_pass = sil
 	mmi.material_override = mat
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
@@ -211,7 +230,7 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	vel[i] = Vector3.ZERO
 	kb[i] = Vector3.ZERO
 	var ehp := def.hp * stage_mult * hp_time_mult * hp_mult
-	var esp := def.speed
+	var esp := def.speed * stage_speed_mult
 	var edm := def.damage * stage_mult
 	var ear := 0.0
 	var esz := def.size * scale_mult
@@ -263,6 +282,10 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	poison_src[i] = {}
 	poison_tick[i] = 0.0
 	flash_green[i] = 0
+	fire_src[i] = {}
+	fire_tick[i] = 0.0
+	fire_puff[i] = 0.0
+	flash_hot[i] = 0
 	lift_t[i] = 0.0
 	lift_d[i] = 0.0
 	lift_h[i] = 0.0
@@ -282,6 +305,12 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 		boss_spawned.emit(def)
 		boss_hp_changed.emit(hp[i], max_hp[i])
 		Audio.play(str(def.sfx.get("spawn", "en_boss_roar")))
+	elif def.archetype == "elite":
+		# the mini-boss: scales with the stage like a boss does, but no bar, no intro, no phase change
+		var extra := pow(float(def.elite.get("hp_mult_per_stage", 1.8)), float(Run.stage))
+		hp[i] = def.hp * extra * max(stage_mult, 1.0)
+		max_hp[i] = hp[i]
+		Audio.play("en_elite_spawn", pos[i])
 	elif elite != null:
 		Audio.play("en_elite_spawn", pos[i])
 	return i
@@ -326,14 +355,15 @@ func kill_all(reward: bool = false) -> void:
 
 # ---------------------------------------------------------------- damage
 
-func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vector3.ZERO, kb_force: float = 0.0, green: bool = false) -> bool:
+func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vector3.ZERO, kb_force: float = 0.0, green: bool = false, hot: bool = false) -> bool:
 	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
 		return false
 	var dealt: float = max(amount - armor[i], amount * 0.15)
 	hp[i] -= dealt
 	flash[i] = 1.0
 	flash_green[i] = 1 if green else 0
-	squash[i] = 0.9 if green else 0.75
+	flash_hot[i] = 1 if hot else 0
+	squash[i] = 0.9 if (green or hot) else 0.75
 	if weapon_id != "":
 		Run.add_damage(weapon_id, dealt)
 	if kb_force > 0.0:
@@ -373,6 +403,93 @@ func poison(i: int, weapon_id: String, dmg_per_tick: float, stacks: int, duratio
 
 func is_poisoned(i: int) -> bool:
 	return i >= 0 and i < MAX and not (poison_src[i] as Dictionary).is_empty()
+
+
+## Fire from one item: a new source, or the same source's timer reset. `from_enemy` is the creature it jumped
+## from (-1 when a weapon lit it); `spread` is this fire's own chance to jump on, per tick, per touching creature.
+func ignite(i: int, weapon_id: String, dmg_per_tick: float, duration: float, spread: float, from_enemy: int = -1, root_spread: float = -1.0) -> void:
+	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+		return
+	var src: Dictionary = fire_src[i]
+	var fresh := src.is_empty()
+	if src.has(weapon_id):
+		var e: Dictionary = src[weapon_id]
+		e["t"] = duration
+		e["dmg"] = maxf(float(e["dmg"]), dmg_per_tick)
+		e["spread"] = maxf(float(e["spread"]), spread)
+	else:
+		src[weapon_id] = {"dmg": dmg_per_tick, "t": duration, "dur": duration, "spread": spread, "root": root_spread if root_spread >= 0.0 else spread, "from": from_enemy}
+	if fresh:
+		fire_tick[i] = FIRE_TICK
+		if game and game.has_method("fx_ignite"):
+			game.fx_ignite(pos[i] + Vector3(0, size[i] * 0.4, 0), size[i])
+
+
+func is_burning(i: int) -> bool:
+	return i >= 0 and i < MAX and not (fire_src[i] as Dictionary).is_empty()
+
+
+## True when the creature carries the given element ("poison" or "fire"); "" is never carried.
+func has_element(i: int, element: String) -> bool:
+	match element:
+		"poison":
+			return is_poisoned(i)
+		"fire":
+			return is_burning(i)
+	return false
+
+
+## Runs the fire clocks of one enemy: expires sources, every FIRE_TICK seconds deals the sum of their ticks, and
+## every source rolls to jump onto each creature this one is touching.
+func _tick_fire(i: int, delta: float) -> void:
+	var src: Dictionary = fire_src[i]
+	if src.is_empty():
+		return
+	var total := 0.0
+	var best_id := ""
+	var best := 0.0
+	for k in src.keys():
+		var e: Dictionary = src[k]
+		e["t"] = float(e["t"]) - delta
+		if float(e["t"]) <= 0.0:
+			src.erase(k)
+			continue
+		var part: float = float(e["dmg"])
+		total += part
+		if part > best:
+			best = part
+			best_id = str(k)
+	if src.is_empty():
+		return
+	# flames lick up the whole time it burns, not only on the damage ticks
+	fire_puff[i] -= delta
+	if fire_puff[i] <= 0.0:
+		fire_puff[i] = 0.18
+		if game and game.has_method("fx_fire"):
+			game.fx_fire(pos[i] + Vector3(0, size[i] * 0.3, 0), size[i])
+	fire_tick[i] -= delta
+	if fire_tick[i] <= 0.0:
+		fire_tick[i] = FIRE_TICK
+		# spread first, so a creature that dies of this tick still passes its fire on
+		for k in src.keys():
+			var e: Dictionary = src[k]
+			var chance := float(e["spread"])
+			if chance <= 0.0:
+				continue
+			for j in indices_in_radius(pos[i], radius[i] + 1.2):
+				if j == i or j == int(e["from"]) or alive[j] == 0 or state[j] == STATE_DYING or j == boss_index:
+					continue
+				var touch: float = radius[i] + radius[j] + 0.25
+				var d := pos[j] - pos[i]
+				d.y = 0.0
+				if d.length_squared() > touch * touch:
+					continue
+				if (fire_src[j] as Dictionary).has(k):
+					continue
+				if _rng.randf() < chance:
+					# every caught fire spreads at a fixed fraction of the original weapon's chance, however far down the chain
+					ignite(j, str(k), float(e["dmg"]), float(e["dur"]), float(e["root"]) * CHILD_SPREAD, i, float(e["root"]))
+		damage(i, total, best_id, Vector3.ZERO, 0.0, false, true)
 
 
 ## Runs the poison clocks of one enemy: expires sources, and every POISON_TICK seconds deals the sum of their ticks.
@@ -498,11 +615,11 @@ func indices_in_radius(center: Vector3, r: float) -> PackedInt32Array:
 	return out
 
 
-func nearest_index(from: Vector3, max_range: float, healthy_only: bool = false) -> int:
+func nearest_index(from: Vector3, max_range: float, avoid: String = "") -> int:
 	var best := -1
 	var best_d := max_range * max_range
 	for i in indices_in_radius(from, max_range):
-		if healthy_only and is_poisoned(i):
+		if avoid != "" and has_element(i, avoid):
 			continue
 		var d := pos[i] - from
 		d.y = 0.0
@@ -513,11 +630,11 @@ func nearest_index(from: Vector3, max_range: float, healthy_only: bool = false) 
 	return best
 
 
-func random_in_range(from: Vector3, max_range: float, exclude: Array = [], healthy_only: bool = false) -> int:
+func random_in_range(from: Vector3, max_range: float, exclude: Array = [], avoid: String = "") -> int:
 	var cands := indices_in_radius(from, max_range)
 	var pool: Array = []
 	for i in cands:
-		if healthy_only and is_poisoned(i):
+		if avoid != "" and has_element(i, avoid):
 			continue
 		if not exclude.has(i):
 			pool.append(i)
@@ -526,7 +643,7 @@ func random_in_range(from: Vector3, max_range: float, exclude: Array = [], healt
 	return pool[_rng.randi() % pool.size()]
 
 
-func densest_point(from: Vector3, max_range: float, healthy_only: bool = false) -> Vector3:
+func densest_point(from: Vector3, max_range: float, avoid: String = "") -> Vector3:
 	var cands := indices_in_radius(from, max_range)
 	if cands.is_empty():
 		return Vector3.INF
@@ -535,11 +652,11 @@ func densest_point(from: Vector3, max_range: float, healthy_only: bool = false) 
 	var step: int = max(1, cands.size() / 40)
 	for k in range(0, cands.size(), step):
 		var i := cands[k]
-		if healthy_only and is_poisoned(i):
+		if avoid != "" and has_element(i, avoid):
 			continue
 		var n := 0
 		for j in indices_in_radius(pos[i], 2.5):
-			if not healthy_only or not is_poisoned(j):
+			if avoid == "" or not has_element(j, avoid):
 				n += 1
 		if n > best_n:
 			best_n = n
@@ -582,6 +699,7 @@ func is_alive(i: int) -> bool:
 func _physics_process(delta: float) -> void:
 	if player == null:
 		return
+	var t0 := Time.get_ticks_usec()
 	_tick += 1
 	var steer := (_tick % 2) == 0
 	if steer:
@@ -670,6 +788,9 @@ func _physics_process(delta: float) -> void:
 		_tick_poison(i, delta)
 		if alive[i] == 0:
 			continue
+		_tick_fire(i, delta)
+		if alive[i] == 0:
+			continue
 		# walk cycles cut from video clips carry their own frame rate (EnemyDef.fps); the old six-frame walks run at 10
 		var run_fps: float = types[type_idx[i]]["run_fps"]
 		anim_t[i] += delta * ((run_fps if run_fps > 0.0 else 10.0) if v.length() > 0.2 else 3.0)
@@ -684,7 +805,10 @@ func _physics_process(delta: float) -> void:
 				extra = 1.5
 			player.take_damage(dmg[i] * extra, pos[i])
 	_update_boss(delta, ppos)
+	Perf.add("enemies.sim", t0)
+	t0 = Time.get_ticks_usec()
 	_render()
+	Perf.add("enemies.render", t0)
 
 
 func _steer(i: int, ppos: Vector3, dt: float) -> void:
@@ -704,9 +828,12 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 					_do_attack(i, def, ppos)
 					state[i] = STATE_MOVE
 				else:
+					# the charge runs along the line that was telegraphed at the start of the wind-up; the hero
+					# moving in the meantime is exactly what the telegraph is for
 					state[i] = STATE_CHARGE
 					timer[i] = float(def.charge.get("duration", 0.7))
-					charge_dir[i] = dir
+					if charge_dir[i].length_squared() < 0.01:
+						charge_dir[i] = dir
 					Audio.play(str(def.sfx.get("attack", "")), pos[i])
 		STATE_CHARGE:
 			timer[i] -= dt
@@ -894,12 +1021,21 @@ func _render() -> void:
 		# procedural bob while moving
 		if anim == "run":
 			sq += sin(anim_t[i] * 1.5) * 0.05
-		mm.set_instance_custom_data(k, Color(float(frame), float(flip[i]), flash[i] * (-1.0 if flash_green[i] == 1 else 1.0), sq))
+		# the flash: white, green for a poison tick (negative), orange for a fire tick (2 + flash)
+		var fl: float = flash[i]
+		if flash_green[i] == 1:
+			fl = -fl
+		elif flash_hot[i] == 1:
+			fl = 2.0 + fl
+		mm.set_instance_custom_data(k, Color(float(frame), float(flip[i]), fl, sq))
 		var tint := vtint[i]
 		if elite_idx[i] >= 0:
 			var e: EliteModDef = elites[elite_idx[i]]
 			tint = Color(e.outline.r, e.outline.g, e.outline.b, 0.7)
-		if not (poison_src[i] as Dictionary).is_empty():
+		if not (fire_src[i] as Dictionary).is_empty():
+			# red-orange that flickers between ember and flame while burning (the shader mixes 65% of the tint's alpha)
+			tint = Color(1.0, 0.18 + 0.22 * absf(sin(anim_t[i] * 5.0 + float(i))), 0.02, 1.0)
+		elif not (poison_src[i] as Dictionary).is_empty():
 			tint = Color(0.45, 1.0, 0.3, 0.8)   # bright green while poisoned
 		mm.set_instance_color(k, tint)
 		counters[t] = k + 1

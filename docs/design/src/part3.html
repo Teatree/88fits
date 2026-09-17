@@ -1,0 +1,265 @@
+<!-- ============================================================ 10 -->
+<section id="xp">
+  <div class="sec-head"><span class="num">10</span><h2>XP &amp; levelling</h2></div>
+  <p class="lede">Creatures drop gems, the hero walks over them, the bar fills, three cards appear. The cadence is a level-up every 20 to 30 seconds early and every 40 to 60 seconds late; the XP Beacon and the reel add a few levels outside the curve.</p>
+
+  <figure>
+    <div class="fig-frame">
+    <svg id="xpChart" viewBox="0 0 760 250" role="img" aria-label="XP required to reach the next level, levels 1 to 40, rising from about 20 to about 1050 on a gentle curve"></svg>
+    </div>
+    <figcaption><b>XP to next level.</b> <code>15 + 6·L + 0.5·L²</code>, one line in <code>Run.xp_to_next</code>. Hover for exact values.</figcaption>
+  </figure>
+  <details><summary>XP table, levels 1 to 40</summary><div id="xpTable"></div></details>
+
+  <dl class="kv">
+    <dt>gems</dt><dd>Small (1 xp), medium (5), large (25), scaled by the creature's <code>xp_mult</code> and by four for elite variants. 3D gem meshes that spin. Drop table per creature. The beetle, the mummy and the Elite drop large.</dd>
+    <dt>magnet</dt><dd>Base pickup radius 1.5 m. Gems inside it fly to the hero. The Magnet passive, the shop and Astro's trait raise it.</dd>
+    <dt>gem merging</dt><dd>When too many gems sit on the ground, the oldest merge into one bigger gem, the Vampire Survivors trick that keeps performance flat with a hundred kills a minute.</dd>
+    <dt>vacuum</dt><dd>A rare drop from elite variants collects every gem on the map; the Magnet Pulse pickup and the Uber Magnet structure do the same on purpose. The best feeling in the genre.</dd>
+    <dt>feedback</dt><dd>Gems collected within a quarter second are batched into one rising "+N XP" label and the bar pops, so a sweep through a field reads as one reward.</dd>
+    <dt>gold</dt><dd>Separate from XP. 3D coins drop rarely (a goblin one time in fifty), bosses spill a dozen, the Loot Cache gives 40, a sold chest a few, and greed scales it. Gold is spent at the travelling shop inside a run and in the permanent shop outside it.</dd>
+  </dl>
+</section>
+
+<!-- ============================================================ 11 -->
+<section id="ftue">
+  <div class="sec-head"><span class="num">11</span><h2>Run start &amp; first play</h2></div>
+  <p class="lede">The hero starts every run with no weapon and picks one. That first choice is the run's opening move, and on the very first run it doubles as the tutorial.</p>
+
+  <h3>The starter pick, every run</h3>
+  <dl class="kv">
+    <dt>when</dt><dd>Immediately after GO, before the timer starts. The arena is visible behind the cards, empty, so the player sees where they are.</dd>
+    <dt>what</dt><dd>Three weapon cards from the unlocked weapon pool. No reroll, no skip. The chosen weapon enters slot 1 at level 1. Reference: Brotato's starting weapon choice.</dd>
+    <dt>character bias</dt><dd>Each hero has a <b>favourite weapon</b> that is always one of the three and gets a bonus when chosen. Heroes do not lock you into it.</dd>
+    <dt>why</dt><dd>It gives a decision before the first level-up, it makes heroes flavour rather than a fixed opener, and it teaches the weapon list one card at a time.</dd>
+  </dl>
+
+  <h3>The very first run</h3>
+  <ol>
+    <li><b>Title screen.</b> One big PLAY. Shop, collection and settings are visible but quiet. Astro and Dry Gulch are preselected.</li>
+    <li><b>Starter pick, fixed.</b> The first offer is always Peashooter, Boomstick and Orbit Saws, because the three teach the three targeting styles: nearest, forward, orbit.</li>
+    <li><b>Touch and drag.</b> A hint panel says "TOUCH and DRAG anywhere below to move", then "Drag in any direction. Lift to stop." once the hero has moved.</li>
+    <li><b>Walk over gems.</b> "Walk over GEMS to level up" after the first kill. Cleared on pickup.</li>
+    <li><b>Level up.</b> The first card screen carries a one-line explainer per card type, weapon versus passive.</li>
+    <li><b>Pause exists.</b> At 1:30, a toast: "Tap the top bar any time to pause and see your build". Nothing else interrupts the run again.</li>
+  </ol>
+  <p>Every hint is skippable by tapping, appears once, and can be reset from settings. The run itself is the tutorial; the chest reel and the structures explain themselves by being watched.</p>
+</section>
+
+<!-- ============================================================ 12 -->
+<section id="menus">
+  <div class="sec-head"><span class="num">12</span><h2>Menus &amp; pause</h2></div>
+  <p class="lede">Four screens outside the run and four overlays inside it (level-up, pause, the chest reel, the travelling shop). Pause matters most: at any moment the player can read exactly what every weapon, passive and stat is doing, in words and numbers, not icons.</p>
+  <p><b>Look.</b> Survivor.io is the target, and the whole look is one small file, <code>ui/UiKit.gd</code>. Navy panels with a lighter blue rim, one gold for the thing to press, purple for XP and passives, green for good news, red for danger. Headers, numbers and buttons are set in <b>Lilita One</b>, body text in <b>Baloo 2</b> (both OFL, in <code>ui/fonts</code>); anything over the world gets a dark outline. Buttons carry a soft shadow and a darker bottom edge so they read as physical; primary buttons are white on gold with a brown rim.</p>
+  <p><b>Cards that cannot overflow.</b> Every tappable card is a <code>TapCard</code>: a panel that sizes itself to its content (icon left, text column right, generous padding) and fires <code>pressed</code> once per tap, on touch or mouse, giving the tap up when the list starts scrolling. Icons are always square and mouse-transparent, so a tap on the picture is a tap on the card. Every overlay anchors its header, its scrolling list and its buttons to the screen as three bands, so a long list can never push the buttons off the bottom.</p>
+
+  <h3>UI kit</h3>
+  <div class="swatches">
+    <span class="sw" style="background:#141a2b">BG</span><span class="sw" style="background:#1f2841">BG2</span><span class="sw" style="background:#2b365a">BG3</span><span class="sw" style="background:#46598a">LINE</span><span class="sw" style="background:#ffb52e;color:#3d2500">ACCENT</span><span class="sw" style="background:#8b6cff">XP</span><span class="sw" style="background:#5ad66a;color:#0b2a10">GOOD</span><span class="sw" style="background:#ff5f6b">DANGER</span><span class="sw" style="background:#4cc9ff;color:#062a3a">INFO</span>
+  </div>
+  <p>Everything above is drawn by code (StyleBoxFlat), which is why it stays coherent: one palette, two fonts, one factory for every box. When the look should become painted art, Godot's <code>StyleBoxTexture</code> stretches a painted button or panel by its nine slices, and <code>tools/gen_ui.py</code> can paint such a sheet on the art server (untested against it so far). Layout, sizes, motion and the palette stay code either way.</p>
+  <p><b>Motion.</b> Nothing appears, everything arrives: overlays fade in while their panel slides up 40 px, the three level-up cards stagger in, the reel decelerates and bounces, toasts and the boss bar scale in, every button squashes while held, the picked card punches before the screen closes, hub lists stagger their rows, and every scene change cross-fades through black (<code>ui/UiFx.gd</code>, all tweens, all under 0.3 s so the thumb never waits).</p>
+
+  <div class="fig-frame">
+  <div class="mockups">
+    <figure>
+      {{IMG:06_title|The build: title screen, gold outlined logo on a dusk sky, one big PLAY}}
+      <figcaption><b>Title screen.</b> One big PLAY, as in Archero. The chip under it shows the current hero and map and opens the select screen. Gold and best run sit at the top so the meta is visible from the first second.</figcaption>
+    </figure>
+    <figure>
+      {{IMG:03_pause_build|The build: the pause screen's Build tab, one row per held item}}
+      <figcaption><b>Pause, Build tab.</b> Tap any item to expand it. The description is generated from its data, the numbers are the live computed values after every passive and shop bonus, and the evolution line says exactly what is still missing.</figcaption>
+    </figure>
+    <figure>
+      {{IMG:09_play_setup|The build: play setup with three hero portraits and the Dry Gulch card}}
+      <figcaption><b>Play setup.</b> Hero and map cards size themselves to their text, so a locked hero's quest line never spills past the card. The selected card carries the gold rim.</figcaption>
+    </figure>
+    <figure>
+      {{IMG:10_settings|The build: settings with camera buttons, gold sliders and the hint and debug toggles}}
+      <figcaption><b>Settings.</b> Camera mode, joystick size, shake and volumes as gold sliders in the same kit; the copy mentions WASD for the PC build.</figcaption>
+    </figure>
+  </div>
+  </div>
+
+  <h3>Pause screen, all three tabs</h3>
+  <dl class="kv">
+    <dt>build</dt><dd>Every weapon and passive held, expandable. Each shows: icon, name, level, plain-language description, live numbers for every stat it has, damage dealt and kills this run, what the next level adds, and evolution status with the missing piece named.</dd>
+    <dt>stats</dt><dd>Every player stat as a row with its full breakdown: base, hero trait, shop tiers, passives, timed buffs, and total. No stat is hidden.</dd>
+    <dt>options</dt><dd>Camera mode, joystick size, screen shake, sound and music volume, reset hints, debug panel, abandon run.</dd>
+    <dt>entry</dt><dd>The round pause button, or a tap anywhere on the HUD strip. The game freezes instantly, including sound. Backgrounding the app pauses it too.</dd>
+  </dl>
+
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Stat</th><th>Base</th><th>Hero</th><th>Shop</th><th>Passives</th><th>Total</th></tr></thead>
+    <tbody>
+      <tr><td><span class="name">Might</span><span class="sub">multiplies all weapon damage</span></td><td class="num">100%</td><td class="num">+20% Dad</td><td class="num">+10% tier 2</td><td class="num">+20% Might Lv 2</td><td class="num">150%</td></tr>
+      <tr><td><span class="name">Move speed</span></td><td class="num">3.6 m/s</td><td class="num">−10% Dad</td><td class="num">+5% tier 1</td><td class="num">—</td><td class="num">3.4 m/s</td></tr>
+      <tr><td><span class="name">Magnet</span><span class="sub">gem pickup radius</span></td><td class="num">1.5 m</td><td class="num">—</td><td class="num">—</td><td class="num">+25% Magnet Lv 1</td><td class="num">1.9 m</td></tr>
+      <tr><td><span class="name">Cooldown</span><span class="sub">lower is faster</span></td><td class="num">100%</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td class="num">100%</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>The other screens</h3>
+  <dl class="kv">
+    <dt>title</dt><dd>PLAY, the current pick chip, Shop, Collection, Settings. Gold and best run at the top. Background is the live Dry Gulch skybox.</dd>
+    <dt>play flow</dt><dd>PLAY → play setup: hero cards (portrait, trait, favourite weapon, quest text if locked) and the map card on one screen → GO → starter pick → run. Two taps if you keep the last choice, because the chip remembers it.</dd>
+    <dt>shop</dt><dd>The permanent upgrade table from section 13 as a scrolling list with big buy buttons, tier pips, and a refund-all button.</dd>
+    <dt>collection</dt><dd>Every weapon, evolution, passive, creature, boss and hero with its icon and, when locked, the quest text. Tap for the full description, the same generated text the pause screen uses.</dd>
+    <dt>results</dt><dd>Time survived, stage reached, level, kills, gold earned with the extract bonus shown separately, damage by weapon as a bar list, quest progress ticks, then Shop, Play again, and Hub.</dd>
+  </dl>
+</section>
+
+<!-- ============================================================ 13 -->
+<section id="meta">
+  <div class="sec-head"><span class="num">13</span><h2>Meta progression</h2></div>
+  <p class="lede">Megabonk's loop between runs: gold buys permanent stats, and in-run challenges unlock heroes, weapons and modes. Small but complete, because "do I want another run" is half the test.</p>
+  <figure>
+    <div class="fig-frame"><div class="fig-grid">{{IMG:07_shop|The build: the shop}}{{IMG:08_collection|The build: the collection}}</div></div>
+    <figcaption><b>Shop and collection in the build.</b> Locked rows show the quest that unlocks them; every icon is painted from the item's own <code>art_prompt</code>.</figcaption>
+  </figure>
+
+  <h3>Shop, permanent upgrades</h3>
+  <p>Each line has 1 to 5 tiers with rising gold cost. A refund button returns everything, as in Vampire Survivors, so experimenting is free.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Upgrade</th><th>Per tier</th><th>Tiers</th><th>Cost curve</th></tr></thead>
+    <tbody>
+      <tr><td><span class="name">Max HP</span></td><td>+10%</td><td class="num">5</td><td class="num">200 · 400 · 800 · 1600 · 3200</td></tr>
+      <tr><td><span class="name">Might</span></td><td>+5% damage</td><td class="num">5</td><td class="num">300 · 600 · 1200 · 2400 · 4800</td></tr>
+      <tr><td><span class="name">Haste</span></td><td>−4% cooldown</td><td class="num">4</td><td class="num">300 · 700 · 1500 · 3000</td></tr>
+      <tr><td><span class="name">Boots</span></td><td>+5% move speed</td><td class="num">3</td><td class="num">250 · 600 · 1400</td></tr>
+      <tr><td><span class="name">Magnet</span></td><td>+15% pickup radius</td><td class="num">3</td><td class="num">200 · 500 · 1200</td></tr>
+      <tr><td><span class="name">Luck</span></td><td>+10% rare cards and chests</td><td class="num">3</td><td class="num">400 · 900 · 2000</td></tr>
+      <tr><td><span class="name">Greed</span></td><td>+10% gold</td><td class="num">3</td><td class="num">400 · 900 · 2000</td></tr>
+      <tr><td><span class="name">Reroll</span></td><td>+1 reroll per run</td><td class="num">3</td><td class="num">500 · 1200 · 2500</td></tr>
+      <tr><td><span class="name">Skip</span></td><td>unlock skip (+10 gold each)</td><td class="num">1</td><td class="num">600</td></tr>
+      <tr><td><span class="name">Banish</span></td><td>+1 banish per run</td><td class="num">2</td><td class="num">800 · 2000</td></tr>
+      <tr><td><span class="name">Revive</span></td><td>+1 revive per run</td><td class="num">1</td><td class="num">3000</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Heroes</h3>
+  <p>A hero is a trait plus a favourite weapon. The favourite is always in the starter offer and gets a bonus if picked, so heroes flavour a run without dictating it. Every hero's icon is a painted close-up doing something (the Drifter tips his hat, Astro gives a thumbs-up with a planet in her visor, Dad a double thumbs-up), made as an edit of the hero's own front still and set into a round badge that fills the plate.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Hero</th><th>Trait</th><th>Favourite weapon</th><th>Favourite bonus</th><th>Unlock</th></tr></thead>
+    <tbody>
+      <tr><td><span class="name">Astro</span><span class="sub">Wrong planet. Right attitude.</span></td><td>+12% max HP, +10% magnet</td><td>Orbit Saws</td><td>+20% area</td><td>The default. A slim explorer in a puffy white-and-orange suit with an opaque mirrored visor and a backpack, Astroneer's silhouette in the game's anime line.</td></tr>
+      <tr><td><span class="name">Drifter</span><span class="sub">Wide hat. Long coat. Longer road.</span></td><td>+8% move speed, +15% magnet</td><td>Peashooter</td><td>starts at level 2</td><td>Available from the start. Wide-brimmed hat, long tan duster, red scarf.</td></tr>
+      <tr><td><span class="name">Dad</span><span class="sub">Has opinions about the lawn.</span></td><td>+20% might, −10% move speed</td><td>Boomstick</td><td>+2 pellets</td><td>Kill 500 creatures with the Boomstick.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Unlocks by doing things</h3>
+  <p>Every unlock is a quest with a condition the game can check, in the Megabonk and Vampire Survivors style. Quests are data too, so adding one is a file.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Unlock</th><th>Type</th><th>Quest</th></tr></thead>
+    <tbody>
+      <tr><td><span class="name">Zap Beam</span></td><td><span class="chip w">weapon</span></td><td>Reach level 20 in one run.</td></tr>
+      <tr><td><span class="name">Turret Buddy</span></td><td><span class="chip w">weapon</span></td><td>Open 10 chests.</td></tr>
+      <tr><td><span class="name">Lob Grenade</span></td><td><span class="chip w">weapon</span></td><td>Kill 200 fire ants in one run.</td></tr>
+      <tr><td><span class="name">Conductor</span></td><td><span class="chip p">passive</span></td><td>Evolve any weapon once.</td></tr>
+      <tr><td><span class="name">Dad</span></td><td><span class="chip">hero</span></td><td>Kill 500 creatures with the Boomstick.</td></tr>
+      <tr><td><span class="name">Endless</span></td><td><span class="chip">mode</span></td><td>Kill the Tumbleweed King at 15:00.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============================================================ 14 -->
+<section id="data">
+  <div class="sec-head"><span class="num">14</span><h2>Content is data, in Godot</h2></div>
+  <p class="lede">The one architectural rule: content is both a data file and something you open, see and tweak inside the Godot editor. In Godot those are the same thing.</p>
+
+  <div class="callout rule">
+    <div class="lab">The rule</div>
+    <p><b>A new weapon, passive, evolution, creature, elite variant, hero, structure, pickup, shop upgrade, quest, sound or wave timeline is a new content folder and nothing else.</b> It appears in the game the moment the folder exists. Code changes are allowed only to add a brand-new behaviour primitive that no existing file could express, and that primitive must then be reusable by any future content.</p>
+    <p>Test for every content addition: could Garry make this in the Godot editor, without asking Claude? If not, the system is wrong, not the content.</p>
+  </div>
+
+  <h3>How it looks in the editor</h3>
+  <p>Godot's own resource format is the data format. A custom Resource class with exported fields shows up in the Inspector as a form: sliders for numbers, dropdowns for enums like targeting, file pickers for the icon and the visual scene, and an "Add element" button for the effect list. Each content item is a folder:</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>File</th><th>What it holds</th><th>How you edit it</th></tr></thead>
+    <tbody>
+      <tr><td class="id">boomstick.json</td><td>The authoring source: stats, level table, targeting, pairing, rarity, the art prompt.</td><td>Edit the text, press "JSON → .tres" in the Content dock (or run <code>import_json.gd</code>).</td></tr>
+      <tr><td class="id">boomstick.tres</td><td>The same numbers as a Godot resource.</td><td>Click it, edit in the Inspector. Sliders and dropdowns, no code.</td></tr>
+      <tr><td class="id">boomstick_visual.tscn</td><td>What it looks like in the world: the shotgun mesh (<code>Held</code>), the pellet (<code>Projectile</code>), the muzzle point; the Peashooter's pod is a <code>Familiar</code> node the same way.</td><td>Open it in the 3D editor, move things, swap the mesh, press play to preview.</td></tr>
+      <tr><td class="id">boomstick_icon.png</td><td>The icon used by cards, the HUD, pause, the reel and the collection.</td><td>Replace the file, or re-run <code>gen_art.py --only boomstick</code>.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Creatures follow the same shape: <code>goblin.json</code> for stats, brain choice, drops (including its chest chance), the variance block and how many directions it is painted from; <code>goblin_sprite.png</code> is the strip. A map is a folder with its arena scene, its wave timeline (roster, events, pickups, structures), its music and its creature list.</p>
+
+  <figure>
+    <div class="fig-frame">
+    <svg viewBox="0 0 760 330" role="img" aria-label="Data model: a WeaponDef resource names a behaviour scene and parameters, a visual scene, and a level table where each level is a list of Effects; a PassiveDef and shop upgrade are also lists of Effects; Effects apply to a runtime StatSheet; a ContentRegistry scans the content folder at boot and fills the card pools, and a Content dock in the editor lists and creates items">
+      <defs><marker id="ah5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#877F9E"/></marker></defs>
+      <rect x="24" y="30" width="224" height="150" rx="12" class="box hi"/>
+      <text x="40" y="54" class="h" style="font-size:15px;fill:#FFB13B">WeaponDef</text><text x="140" y="54" class="m">.tres, Inspector</text>
+      <text x="40" y="78" class="m" style="fill:#B5AEC8">id · name · icon · rarity</text>
+      <text x="40" y="96" class="m" style="fill:#B5AEC8">behavior → scene · visual → scene</text>
+      <text x="40" y="114" class="m" style="fill:#B5AEC8">params { pellets, spread, familiar… }</text>
+      <text x="40" y="132" class="m" style="fill:#B5AEC8">levels[8] → Effect[]</text>
+      <text x="40" y="150" class="m" style="fill:#B5AEC8">evolves_with · evolves_into</text>
+      <text x="40" y="168" class="m" style="fill:#B5AEC8">targeting: nearest | forward | orbit | healthy…</text>
+      <rect x="320" y="30" width="200" height="82" rx="12" class="box"/>
+      <text x="336" y="54" class="h" style="font-size:15px">Behavior + Visual</text>
+      <text x="336" y="76" class="m" style="fill:#B5AEC8">ProjectileEmitter · Orbiter · Lobber</text>
+      <text x="336" y="94" class="m" style="fill:#B5AEC8">Beam · Spawner  +  mesh, particles, sfx</text>
+      <line x1="248" y1="96" x2="320" y2="72" class="arrow" marker-end="url(#ah5)"/>
+      <text x="284" y="76" text-anchor="middle" class="m">instantiates</text>
+      <text x="284" y="90" text-anchor="middle" class="m">with params</text>
+      <rect x="320" y="150" width="200" height="82" rx="12" class="box hi"/>
+      <text x="336" y="174" class="h" style="font-size:15px;fill:#FFB13B">Effect</text>
+      <text x="336" y="196" class="m" style="fill:#B5AEC8">stat: "damage"</text>
+      <text x="336" y="214" class="m" style="fill:#B5AEC8">op: add | mul | set · value · target</text>
+      <line x1="248" y1="132" x2="320" y2="184" class="arrow" marker-end="url(#ah5)"/>
+      <text x="270" y="150" class="m">each level is</text><text x="270" y="164" class="m">a list of</text>
+      <rect x="24" y="210" width="224" height="100" rx="12" class="box"/>
+      <text x="40" y="234" class="h" style="font-size:15px">PassiveDef · ShopUpgrade</text>
+      <text x="40" y="256" class="m" style="fill:#B5AEC8">id · name · icon · rarity · weight</text>
+      <text x="40" y="274" class="m" style="fill:#B5AEC8">levels[] → Effect[]</text>
+      <text x="40" y="292" class="m" style="fill:#B5AEC8">pairs_with (for evolutions)</text>
+      <line x1="248" y1="260" x2="320" y2="214" class="arrow" marker-end="url(#ah5)"/>
+      <rect x="580" y="140" width="160" height="100" rx="12" class="box"/>
+      <text x="596" y="164" class="h" style="font-size:15px">StatSheet</text>
+      <text x="596" y="182" class="m" style="fill:#B5AEC8">runtime, per player</text>
+      <text x="596" y="204" class="m" style="fill:#B5AEC8">and per weapon</text>
+      <text x="596" y="226" class="m" style="fill:#F0ECF8">(base + Σadd) × Π(1+mul)</text>
+      <line x1="520" y1="191" x2="580" y2="191" class="arrow" marker-end="url(#ah5)"/>
+      <text x="550" y="182" text-anchor="middle" class="m">applies to</text>
+      <rect x="320" y="270" width="420" height="44" rx="12" fill="#8A69F2" fill-opacity=".16" stroke="#8A69F2" stroke-width="1.2"/>
+      <text x="336" y="290" class="h" style="font-size:14px;fill:#B8A3FF">Registry + Content dock</text>
+      <text x="336" y="306" class="m" style="fill:#B5AEC8">scans res://content/** → card pools, shop, collection, spawner, pause screen, editor list</text>
+      <line x1="248" y1="296" x2="320" y2="296" class="arrow dash" marker-end="url(#ah5)"/>
+      <line x1="136" y1="180" x2="136" y2="210" class="arrow dash"/>
+    </svg>
+    </div>
+    <figcaption><b>How a folder becomes a card.</b> Definitions never contain logic. They point at a reusable behaviour scene and a visual scene, and carry numbers. Effects are generic stat operations, so the same Effect type powers weapon levels, passives, shop tiers, elite variants, hero traits, pickups and structures, and the pause screen can explain all of them with one generator.</figcaption>
+  </figure>
+
+  <h3>The Content dock</h3>
+  <p>A small editor plugin adds a "Content" panel to Godot. It lists every item by type with its icon, warns about missing files, and has "New from template" per type: it duplicates a template folder and renames the id. "JSON → .tres" regenerates the resources. A <b>Test</b> button launches the game with that item already equipped, so a change is playable in ten seconds.</p>
+
+  <h3>The same weapon as JSON</h3>
+<pre><code><span class="c">// res://content/weapons/boomstick/boomstick.json</span>
+{
+  <span class="k">"id"</span>: <span class="s">"boomstick"</span>, <span class="k">"name"</span>: <span class="s">"Boomstick"</span>, <span class="k">"rarity"</span>: <span class="s">"common"</span>,
+  <span class="k">"behavior"</span>: <span class="s">"ProjectileEmitter"</span>, <span class="k">"targeting"</span>: <span class="s">"forward"</span>,
+  <span class="k">"base"</span>: { <span class="k">"damage"</span>: <span class="n">6</span>, <span class="k">"cooldown"</span>: <span class="n">1.4</span>, <span class="k">"amount"</span>: <span class="n">5</span>, <span class="k">"spread_deg"</span>: <span class="n">35</span>, <span class="k">"range"</span>: <span class="n">6</span>, <span class="k">"pierce"</span>: <span class="n">0</span>, <span class="k">"knockback"</span>: <span class="n">8</span>, <span class="k">"speed"</span>: <span class="n">16</span> },
+  <span class="k">"levels"</span>: [
+    [],                                                       <span class="c">// lv1 = base</span>
+    [{ <span class="k">"stat"</span>: <span class="s">"amount"</span>,   <span class="k">"op"</span>: <span class="s">"add"</span>, <span class="k">"value"</span>: <span class="n">1</span> }],      <span class="c">// lv2</span>
+    [{ <span class="k">"stat"</span>: <span class="s">"damage"</span>,   <span class="k">"op"</span>: <span class="s">"mul"</span>, <span class="k">"value"</span>: <span class="n">0.2</span> }],    <span class="c">// lv3</span>
+    <span class="c">// … to lv8</span>
+  ],
+  <span class="k">"sfx"</span>: { <span class="k">"fire"</span>: <span class="s">"w_boom_fire"</span>, <span class="k">"hit"</span>: <span class="s">"w_boom_hit"</span> },
+  <span class="k">"evolves_with"</span>: <span class="s">"might"</span>, <span class="k">"evolves_into"</span>: <span class="s">"doomstick"</span>,
+  <span class="k">"art_prompt"</span>: <span class="s">"a chunky double-barrelled shotgun…"</span>
+}</code></pre>
+
+  <h3>Where the line is</h3>
+  <dl class="kv">
+    <dt>data only</dt><dd>New weapon using an existing behaviour (poison or fire included: the element is a few stats). New passive. New evolution. New creature using an existing brain (chase, flock, kite, charge, boss). New elite variant. New hero. New structure with an existing effect. New pickup. New shop tier. New quest with an existing condition type. New wave timeline. New sound assignment. New icon.</dd>
+    <dt>needs code</dt><dd>A behaviour that does not exist yet, such as a boomerang. A brain that does not exist yet, such as a burrower. A structure effect that does not exist yet. A quest condition type that does not exist yet. Each is built once as a reusable primitive with exported parameters.</dd>
+    <dt>never code</dt><dd>Card text, icons, balance numbers, pairing recipes, rarity, chest odds, unlock conditions using existing checks, which mesh a weapon uses, which sound plays.</dd>
+  </dl>
+</section>
+

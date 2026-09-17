@@ -12,7 +12,8 @@
   "pack_size": 8,
   "drops": {
     "small": 0.5,
-    "gold": 0.005
+    "gold": 0.005,
+    "chest": 0.0005
   },
   "anims": {
     "idle": 4,

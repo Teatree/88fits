@@ -11,6 +11,9 @@ var _run: Node
 var _map := "dry_gulch"
 var _weapon := "boomstick"
 var _character := "astro"
+var _fire_target := -1
+var _fire_next := 0.0
+var _fire_n := 0
 
 
 func _init() -> void:
@@ -125,21 +128,98 @@ func _tick() -> void:
 		_shot("02_cards")
 		if _game.cards.visible and not _game.cards._offer.is_empty():
 			_game.cards._pick(_game.cards._offer[0])
+		# a chest under the hero: the reel spins for four seconds, the shot is taken once it has landed
+		_game.player.input.wants_move = false
+		_game.player.input.stick_dir = Vector2.ZERO
+		_game.pickups.spawn_chest(_game.player.global_position + Vector3(0.3, 0, 0))
+		_step = 20
+	elif _step == 20 and _t > 14.6:
+		_shot("13_chest")
+		if _game.chest_screen and _game.chest_screen.visible:
+			_game.chest_screen._finish(true)
+		_step = 21
+	elif _step == 21 and _t > 15.2:
+		# the mini-boss next to the hero, and three spitters whose shots leave their trails
+		var reg = root.get_node("Registry")
+		var elite_id: String = str(_run.map.skins.get("elite", ""))
+		if reg.enemies.has(elite_id):
+			var ei: int = _game.enemies.spawn(elite_id, _game.player.global_position + Vector3(5.0, 0, -14.0))
+			_game.director.elite_index = ei
+		_game.enemies.spawn_pack("spit_cactus", _game.player.global_position + Vector3(-6.0, 0, -7.0), 3)
+		_step = 22
+	elif _step == 22 and _t > 18.0:
+		_shot("14_elite")
+		# fire: a tight goblin pack, one lit with a certain spread, weapons off, frames every tenth of a second for a gif
+		_game.player.global_position = Vector3(6, 1, 8)
+		_game.camera.snap_to(_game.player)
+		_game.weapon_host.process_mode = Node.PROCESS_MODE_DISABLED
+		_game.projectiles.clear_all()
+		_game.enemies.kill_all(false)
+		var first := -1
+		for gx in range(3):
+			for gz in range(3):
+				var i: int = _game.enemies.spawn("goblin", Vector3(5.0 + gx * 1.0, 0, 2.0 + gz * 0.9))
+				if i >= 0:
+					_game.enemies.speed[i] = 0.0
+					_game.enemies.state[i] = 0
+					if first < 0:
+						first = i
+		_fire_target = first
+		_step = 24
+	elif _step == 24 and _t > 18.9:
+		_game.enemies.ignite(_fire_target, "flare_gun", 4.0, 3.0, 1.0)
+		_fire_next = _t
+		_fire_n = 0
+		_step = 25
+	elif _step == 25:
+		if _t >= _fire_next and _fire_n < 28:
+			_shot("fire_seq_%02d" % _fire_n)
+			_fire_n += 1
+			_fire_next += 0.1
+		elif _fire_n >= 28:
+			_game.enemies.kill_all(false)
+			# behind a big saguaro: the hero a step north of it (further from the camera) with a goblin pack, for the outline pass
+			var props = _game.map.get("props")
+			var best := Vector3.INF
+			if props:
+				for pr in props.placed:
+					if str(pr["id"]) == "saguaro_big" and (best == Vector3.INF or (pr["pos"] as Vector3).length() < best.length()):
+						best = pr["pos"]
+			if best != Vector3.INF:
+				_game.player.global_position = best + Vector3(0.4, 0.5, -1.6)
+				_game.camera.snap_to(_game.player)
+				_game.enemies.spawn_pack("goblin", best + Vector3(-1.5, 0, -2.5), 6)
+				for i in range(_game.enemies.MAX):
+					if _game.enemies.alive[i] == 1:
+						_game.enemies.speed[i] = 0.0
+			_step = 26
+	elif _step == 26 and _t > 22.4:
+		_shot("16_outline")
+		_game.weapon_host.process_mode = Node.PROCESS_MODE_INHERIT
+		_game.enemies.kill_all(false)
 		_step = 3
-	elif _step == 3 and _t > 9.8:
+	elif _step == 3 and _t > 23.8:
 		_game.open_pause()
 		_step = 4
-	elif _step == 4 and _t > 10.4:
+	elif _step == 4 and _t > 24.4:
 		_shot("03_pause_build")
 		_game.pause_screen._tab = 1
 		_game.pause_screen._refresh()
 		_step = 5
-	elif _step == 5 and _t > 10.9:
+	elif _step == 5 and _t > 24.9:
 		_shot("04_pause_stats")
 		_game.close_pause()
 		_game.director._start_boss(_game.director.map.boss if _game.director.map and _game.director.map.boss != "" else "tumbleweed_king")
+		# far from the boss first: the HUD's edge pointer shows where it is
+		_game.player.global_position = Vector3(6, 1, 46)
+		_game.camera.snap_to(_game.player)
+		_step = 23
+	elif _step == 23 and _t > 26.1:
+		_shot("15_boss_arrow")
+		_game.player.global_position = Vector3(0, 1, 2)
+		_game.camera.snap_to(_game.player)
 		_step = 6
-	elif _step == 6 and _t > 12.9:
+	elif _step == 6 and _t > 27.9:
 		_shot("05_boss")
 		# the dust devil: stand next to it with a goblin pack inside so the lift shows
 		var dd: Node3D = null
@@ -152,29 +232,29 @@ func _tick() -> void:
 			_game.camera.snap_to(_game.player)
 			_game.enemies.spawn_pack("goblin", dd.global_position, 10)
 		_step = 60
-	elif _step == 60 and _t > 14.0:
+	elif _step == 60 and _t > 29.0:
 		_shot("05b_tornado")
 		_game = null
 		print("screenshot_run: changing to title")
 		var err := change_scene_to_file("res://ui/TitleScreen.tscn")
 		print("screenshot_run: change_scene returned ", err)
 		_step = 7
-	elif _step == 7 and _t > 15.0:
+	elif _step == 7 and _t > 30.0:
 		_shot("06_title")
 		change_scene_to_file("res://ui/ShopScreen.tscn")
 		_step = 8
-	elif _step == 8 and _t > 15.8:
+	elif _step == 8 and _t > 30.8:
 		_shot("07_shop")
 		change_scene_to_file("res://ui/CollectionScreen.tscn")
 		_step = 9
-	elif _step == 9 and _t > 16.6:
+	elif _step == 9 and _t > 31.6:
 		_shot("08_collection")
 		change_scene_to_file("res://ui/PlaySetup.tscn")
 		_step = 10
-	elif _step == 10 and _t > 17.4:
+	elif _step == 10 and _t > 32.4:
 		_shot("09_play_setup")
 		change_scene_to_file("res://ui/SettingsScreen.tscn")
 		_step = 11
-	elif _step == 11 and _t > 18.2:
+	elif _step == 11 and _t > 33.2:
 		_shot("10_settings")
 		quit(0)

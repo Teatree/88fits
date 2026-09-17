@@ -1,0 +1,440 @@
+[
+ {
+  "group": "UI",
+  "id": "ui_tap",
+  "trigger": "any button",
+  "prompt": "Soft wooden tick, cartoony, 80 ms"
+ },
+ {
+  "group": "UI",
+  "id": "ui_card_pick",
+  "trigger": "choosing a card",
+  "prompt": "Paper card flick plus a bright two-note chime"
+ },
+ {
+  "group": "UI",
+  "id": "ui_levelup",
+  "trigger": "XP bar fills",
+  "prompt": "Short rising three-note sting, goofy brass and synth, 700 ms"
+ },
+ {
+  "group": "UI",
+  "id": "ui_pause",
+  "trigger": "pause opens",
+  "prompt": "Time-freeze whoosh sweeping down"
+ },
+ {
+  "group": "UI",
+  "id": "ui_resume",
+  "trigger": "countdown ends",
+  "prompt": "Same whoosh sweeping up"
+ },
+ {
+  "group": "UI",
+  "id": "ui_buy",
+  "trigger": "shop purchase",
+  "prompt": "Coins pouring into a tin cup, 500 ms"
+ },
+ {
+  "group": "UI",
+  "id": "ui_locked",
+  "trigger": "tapping a locked item",
+  "prompt": "Dull rubber thud"
+ },
+ {
+  "group": "UI",
+  "id": "ui_unlock",
+  "trigger": "quest completed",
+  "prompt": "One-second fanfare on a kazoo-like trumpet with a cymbal"
+ },
+ {
+  "group": "Player",
+  "id": "pl_step_sand",
+  "trigger": "running, looped",
+  "prompt": "Soft sand crunch footsteps, eight per second, quiet"
+ },
+ {
+  "group": "Player",
+  "id": "pl_jump",
+  "trigger": "auto-jump",
+  "prompt": "Cartoon spring boing, short"
+ },
+ {
+  "group": "Player",
+  "id": "pl_land",
+  "trigger": "landing",
+  "prompt": "Thud with a puff of sand"
+ },
+ {
+  "group": "Player",
+  "id": "pl_hurt",
+  "trigger": "taking damage",
+  "prompt": "Comedic \"oof\" grunt, three pitch variants"
+ },
+ {
+  "group": "Player",
+  "id": "pl_death",
+  "trigger": "HP reaches zero",
+  "prompt": "Slide whistle down ending in a wet splat"
+ },
+ {
+  "group": "Player",
+  "id": "pl_revive",
+  "trigger": "revive used",
+  "prompt": "Reverse cymbal into a sparkle burst"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_pea_fire",
+  "trigger": "Peashooter shot",
+  "prompt": "Cork popping from a bottle, tiny"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_pea_hit",
+  "trigger": "Peashooter hit",
+  "prompt": "Small wet splat"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_boom_fire",
+  "trigger": "Boomstick shot",
+  "prompt": "Cartoon shotgun bark with a spring twang tail"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_boom_hit",
+  "trigger": "pellets land",
+  "prompt": "Cluster of soft thuds"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_saw_loop",
+  "trigger": "Orbit Saws, looped and spatial",
+  "prompt": "Low circular-saw whir, muffled, cartoonish"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_saw_hit",
+  "trigger": "saw touches enemy",
+  "prompt": "Metallic zing with a spark crackle"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_lob_throw",
+  "trigger": "grenade thrown",
+  "prompt": "Falling-bomb whistle, descending, 600 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_lob_boom",
+  "trigger": "grenade explodes",
+  "prompt": "Big bassy cartoon explosion with rattling debris"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_zap_fire",
+  "trigger": "chain lightning",
+  "prompt": "Crackling electric arc, 300 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_zap_hit",
+  "trigger": "each chain hop",
+  "prompt": "Short sizzle, pitched up per hop"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_turret_place",
+  "trigger": "turret dropped",
+  "prompt": "Mechanical clunk and a servo whine settling"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_turret_fire",
+  "trigger": "turret shot",
+  "prompt": "Rapid toy \"pew\""
+ },
+ {
+  "group": "Weapons",
+  "id": "w_tumble_roll",
+  "trigger": "tumbleweed launched",
+  "prompt": "Dry rolling rustle"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_tumble_hit",
+  "trigger": "tumbleweed hits",
+  "prompt": "Twiggy thump"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_snake_rattle",
+  "trigger": "rattlesnake orbiting (loop)",
+  "prompt": "Rattle, quiet"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_snake_bite",
+  "trigger": "snake hits",
+  "prompt": "Quick hiss and snap"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_skull_throw",
+  "trigger": "skull lobbed",
+  "prompt": "Whoosh with a cackle"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_skull_boom",
+  "trigger": "skull bursts",
+  "prompt": "Purple-flame poof"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_flare_fire",
+  "trigger": "flare gun fires",
+  "prompt": "Hollow thump of a flare pistol with a short whistling tail, 400 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_flare_hit",
+  "trigger": "a flare lands",
+  "prompt": "Soft fiery whoomp with crackle, 300 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_molotov_throw",
+  "trigger": "molotov thrown",
+  "prompt": "Glass bottle whooshing through the air with a rag flutter, 500 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_molotov_boom",
+  "trigger": "molotov shatters",
+  "prompt": "Glass smash into a whoosh of igniting fuel, 700 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_iron_hit",
+  "trigger": "branding iron touches a creature",
+  "prompt": "Short hot sizzle with a tiny yelp, 250 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_ignite",
+  "trigger": "a creature catches fire",
+  "prompt": "Quick match-strike flare, fwoosh, 300 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_evo_reveal",
+  "trigger": "evolution at a chest",
+  "prompt": "Two-second ascending magical fanfare ending on a gong"
+ },
+ {
+  "group": "Pickups",
+  "id": "pk_gem_s",
+  "trigger": "small gem",
+  "prompt": "Glass chime, low, very short, friendly when rapid"
+ },
+ {
+  "group": "Pickups",
+  "id": "pk_gem_m",
+  "trigger": "medium gem",
+  "prompt": "Same chime, a fifth higher"
+ },
+ {
+  "group": "Pickups",
+  "id": "pk_gem_l",
+  "trigger": "large gem",
+  "prompt": "Same chime, an octave higher with a sparkle"
+ },
+ {
+  "group": "Pickups",
+  "id": "pk_coin",
+  "trigger": "coin",
+  "prompt": "Bright coin ding"
+ },
+ {
+  "group": "Pickups",
+  "id": "pk_chest_open",
+  "trigger": "chest opens",
+  "prompt": "Wooden creak then a confetti burst"
+ },
+ {
+  "group": "Pickups",
+  "id": "pk_vacuum",
+  "trigger": "vacuum pickup",
+  "prompt": "Long rising suction whoosh, 1.5 s, ending in a pop"
+ },
+ {
+  "group": "Pickups",
+  "id": "pk_heart",
+  "trigger": "a heart is picked up",
+  "prompt": "Warm two-note heal chime with a soft heartbeat thump, 400 ms"
+ },
+ {
+  "group": "Pickups",
+  "id": "pk_powerup",
+  "trigger": "a power-up is picked up",
+  "prompt": "Bright rising power chord with a sparkle tail, 500 ms"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_goblin_hit",
+  "trigger": "goblin damaged",
+  "prompt": "Short yelp"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_goblin_die",
+  "trigger": "goblin dies",
+  "prompt": "Comedic howl fading out, 500 ms"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_ant_hit",
+  "trigger": "fire ant damaged",
+  "prompt": "Tiny click"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_ant_die",
+  "trigger": "fire ant dies",
+  "prompt": "Tiny pop, many at once should sound like popcorn"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_cactus_spit",
+  "trigger": "cactus shoots",
+  "prompt": "Wet \"ptoo\" spit"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_cactus_die",
+  "trigger": "cactus dies",
+  "prompt": "Deflating balloon squeak"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_beetle_charge",
+  "trigger": "beetle winds up",
+  "prompt": "Snort and three hoof stomps, the telegraph"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_beetle_die",
+  "trigger": "beetle dies",
+  "prompt": "Heavy crunch with a comedic groan"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_roadrunner_die",
+  "trigger": "a roadrunner dies",
+  "prompt": "A cartoon 'meep' cut short with a feathery flop, 300 ms"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_mummy_die",
+  "trigger": "a dust mummy dies",
+  "prompt": "Dry bandages unravelling with a puff of dust and a low groan, 500 ms"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_scorpion_die",
+  "trigger": "the Dune Scorpion dies",
+  "prompt": "Big chitin crack and a hiss deflating, weighty, 700 ms"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_elite_spawn",
+  "trigger": "elite appears",
+  "prompt": "Ominous but silly drone hit with a cowbell"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_boss_roar",
+  "trigger": "boss appears",
+  "prompt": "Rustling tumbleweed roar with a crown clink"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_boss_attack",
+  "trigger": "each boss attack",
+  "prompt": "Big whoosh, one variant per attack"
+ },
+ {
+  "group": "Enemies",
+  "id": "en_boss_die",
+  "trigger": "boss dies",
+  "prompt": "Long crumbling collapse into a victory sting"
+ },
+ {
+  "group": "World",
+  "id": "wd_ambient",
+  "trigger": "always, looped",
+  "prompt": "Desert wind, distant hawk, occasional cicadas"
+ },
+ {
+  "group": "World",
+  "id": "wd_portal_open",
+  "trigger": "portal appears",
+  "prompt": "Shimmering hum loop"
+ },
+ {
+  "group": "World",
+  "id": "wd_extract",
+  "trigger": "walking into the portal",
+  "prompt": "Whoosh into a cash-register ding"
+ },
+ {
+  "group": "World",
+  "id": "wd_dust_devil",
+  "trigger": "dust devil near, spatial",
+  "prompt": "Swirling wind loop"
+ },
+ {
+  "group": "World",
+  "id": "wd_tumbleweed",
+  "trigger": "tumbleweed rolling past",
+  "prompt": "Dry rustling roll"
+ },
+ {
+  "group": "Music",
+  "id": "mu_title",
+  "trigger": "title and hub, looped",
+  "prompt": "Laid-back spaghetti-western guitar over a chiptune beat"
+ },
+ {
+  "group": "Music",
+  "id": "mu_run_1",
+  "trigger": "stage 1, looped",
+  "prompt": "Galloping western rock, guitar and drums only"
+ },
+ {
+  "group": "Music",
+  "id": "mu_run_2",
+  "trigger": "stage 2, layer",
+  "prompt": "Adds bass and a brass hook"
+ },
+ {
+  "group": "Music",
+  "id": "mu_run_3",
+  "trigger": "stage 3, layer",
+  "prompt": "Adds double-time drums and a whistle lead"
+ },
+ {
+  "group": "Music",
+  "id": "mu_boss",
+  "trigger": "boss alive",
+  "prompt": "Same key, faster, brass stabs"
+ },
+ {
+  "group": "Music",
+  "id": "mu_results",
+  "trigger": "results screen",
+  "prompt": "Jaunty twenty-second tune with a harmonica"
+ }
+]

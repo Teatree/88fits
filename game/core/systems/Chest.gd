@@ -1,4 +1,4 @@
-## A chest on the ground. Walking into it calls Game.open_chest, which evolves or levels an item.
+## A chest on the ground. Walking into it calls Game.open_chest: the game pauses and the reel decides what it held.
 class_name Chest
 extends Node3D
 
@@ -29,12 +29,13 @@ func _ready() -> void:
 	lmat.emission_energy_multiplier = 0.4
 	_lid.material_override = lmat
 	add_child(_lid)
-	var light := OmniLight3D.new()
-	light.light_color = Color(1.0, 0.8, 0.4)
-	light.omni_range = 4.0
-	light.light_energy = 1.2
-	light.position.y = 1.2
-	add_child(light)
+	if Fx.want_lights():
+		var light := OmniLight3D.new()
+		light.light_color = Color(1.0, 0.8, 0.4)
+		light.omni_range = 4.0
+		light.light_energy = 1.2
+		light.position.y = 1.2
+		add_child(light)
 
 
 func _process(delta: float) -> void:

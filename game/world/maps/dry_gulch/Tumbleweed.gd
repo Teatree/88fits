@@ -33,6 +33,7 @@ func setup(p_map: MapBase, p_wind: Vector3, r: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	var _t0 := Time.get_ticks_usec()
 	var v := wind * _speed + Vector3(sin(Time.get_ticks_msec() * 0.001 + position.x), 0, 0) * 0.4
 	# a short ray ahead: mesas, rocks, the wreck and the wall bounce the ball instead of swallowing it
 	var space := get_world_3d().direct_space_state
@@ -55,3 +56,5 @@ func _physics_process(delta: float) -> void:
 		Audio.play("wd_tumbleweed", global_position)
 	if map:
 		global_position.y = map.height_at(global_position.x, global_position.z) + _radius
+
+	Perf.add("tumbleweeds", _t0)

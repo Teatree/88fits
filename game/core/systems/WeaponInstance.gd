@@ -51,6 +51,17 @@ func rebuild(player: StatSheet, all_weapons: Array) -> void:
 			sheet.add_effect(e, en["source"])
 
 
+## The element this weapon carries: "fire", "poison" or "".
+func element() -> String:
+	if def.element != "":
+		return def.element
+	if float(def.base.get("fire_damage", 0.0)) > 0.0:
+		return "fire"
+	if float(def.base.get("poison_damage", 0.0)) > 0.0:
+		return "poison"
+	return ""
+
+
 func stat(name: String, default: float = 0.0) -> float:
 	return sheet.get_stat(name, default)
 
@@ -97,6 +108,8 @@ func stat_rows() -> Array:
 			keys = ["damage", "cooldown", "amount"]
 	if sheet.get_stat("poison_damage", 0.0) > 0.0:
 		keys += ["poison_damage", "poison_stacks", "poison_duration"]
+	if sheet.get_stat("fire_damage", 0.0) > 0.0:
+		keys += ["fire_damage", "fire_duration", "fire_spread"]
 	var rows: Array = []
 	for k in keys:
 		rows.append({"stat": k, "name": TextGen.stat_name(k), "value": TextGen.format_value(k, sheet.get_stat(k))})

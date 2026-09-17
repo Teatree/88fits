@@ -6,11 +6,11 @@ extends WeaponBehavior
 func _fire() -> bool:
 	var enemies: EnemyManager = game.enemies
 	var range_m := stat("range", 10.0)
-	# a poison bomb looks for the thickest crowd of creatures that are not poisoned yet; plain bombs take any crowd
+	# a poison or fire bomb looks for the thickest crowd of creatures not carrying its element; plain bombs take any crowd
 	var healthy := inst.def.targeting == "densest_healthy" or inst.def.targeting == "healthy"
-	var target := enemies.densest_point(player.global_position, range_m, healthy)
+	var target := enemies.densest_point(player.global_position, range_m, inst.element() if healthy else "")
 	if target == Vector3.INF and healthy:
-		target = enemies.densest_point(player.global_position, range_m, false)
+		target = enemies.densest_point(player.global_position, range_m, "")
 	if target == Vector3.INF:
 		var t := enemies.nearest_index(player.global_position, range_m * 1.5)
 		if t < 0:

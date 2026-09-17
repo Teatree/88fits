@@ -55,7 +55,15 @@ void fragment() {
 	}
 	vec3 col = mix(c.rgb, v_tint.rgb, v_tint.a * 0.65);
 	// a negative flash is a poison tick: green-white instead of white
-	vec3 flash_col = v_flash < 0.0 ? vec3(0.62, 1.0, 0.5) : vec3(1.0);
-	col = mix(col, flash_col, abs(v_flash));
+	// white flash; negative = the green-white of a poison tick; above 1.5 = the orange of a fire tick (2 + flash)
+	vec3 flash_col = vec3(1.0);
+	float fl = abs(v_flash);
+	if (v_flash < 0.0) {
+		flash_col = vec3(0.62, 1.0, 0.5);
+	} else if (v_flash > 1.5) {
+		flash_col = vec3(1.0, 0.62, 0.25);
+		fl = v_flash - 2.0;
+	}
+	col = mix(col, flash_col, clamp(fl, 0.0, 1.0));
 	ALBEDO = col;
 }

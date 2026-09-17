@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/firestorm/firestorm_icon.png" id="1_qe42m"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_shv00"]
+[ext_resource type="PackedScene" path="res://content/evolutions/firestorm/firestorm_visual.tscn" id="2_qe42m"]
+
+[resource]
+script = ExtResource("1_shv00")
+behavior = "Lobber"
+targeting = "densest_healthy"
+base = {
+"amount": 2.0,
+"area": 2.6,
+"cooldown": 2.0,
+"damage": 10.0,
+"fire_damage": 6.0,
+"fire_duration": 2.4,
+"fire_spread": 0.7,
+"knockback": 2.0,
+"range": 12.0,
+"speed": 11.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "molotov"
+sfx = {
+"fire": "w_molotov_throw",
+"hit": "w_molotov_boom"
+}
+visual = ExtResource("2_qe42m")
+visual_file = "firestorm_visual.tscn"
+params = {
+"cloud_seconds": 4.0
+}
+id = "firestorm"
+display_name = "Firestorm"
+flavour = "Two bottles. One weather system."
+rarity = "epic"
+icon = ExtResource("1_qe42m")
+icon_file = "firestorm_icon.png"
+placeholder = {
+"color": "#FF6A1E",
+"glyph": "bottle"
+}

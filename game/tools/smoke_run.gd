@@ -9,6 +9,8 @@ var _seconds := 90.0
 var _weapon := "boomstick"
 var _map := "dry_gulch"
 var _character := "astro"
+var _perf_lines: Array = []
+var _perf := false        # perf=1: no fast-forward, no boss kill; play the first minutes as they are and print Perf every 10 s
 var _pickups_done := false
 var _lobs := [0, 0]
 var _t := 0.0
@@ -22,6 +24,7 @@ var _screens := ["res://ui/ResultsScreen.tscn", "res://ui/TitleScreen.tscn", "re
 var _screen_i := -1
 var _screen_t := 0.0
 var _cards_picked := 0
+var _chests := 0
 var _errors: Array = []
 var _last_clear := -1
 
@@ -36,6 +39,8 @@ func _init() -> void:
 			_map = a.trim_prefix("map=")
 		elif a.begins_with("character="):
 			_character = a.trim_prefix("character=")
+		elif a == "perf=1":
+			_perf = true
 	process_frame.connect(_start, CONNECT_ONE_SHOT)
 
 
@@ -86,12 +91,32 @@ func _tick_run(dt: float) -> void:
 	if _game.cards and _game.cards.visible and not _game.cards._offer.is_empty() and not _game.cards._picking:
 		_cards_picked += 1
 		_game.cards._pick(_game.cards._offer[0])
+	if _game.get("chest_screen") and _game.chest_screen and _game.chest_screen.visible and not _game.chest_screen._spinning:
+		# the reel landed: take the item (every other one gets sold) so both paths run
+		_chests += 1
+		_game.chest_screen._finish(_chests % 2 == 1)
+		print("smoke_run: chest %d -> %s (%s)" % [_chests, "take" if _chests % 2 == 1 else "sell", str(_game.chest_screen.result().get("id", "gold"))])
 	if _game.portal_dialog and _game.portal_dialog.visible:
 		_portal_decided += 1
 		var extract: bool = _portal_decided >= 2
 		_game.portal_dialog.visible = false
 		_game.portal_dialog.decided.emit(extract)
 		print("smoke_run: portal decision %d -> %s" % [_portal_decided, "extract" if extract else "continue"])
+	if _perf:
+		if int(_t) % 10 == 0 and int(_t) != _last_clear and _t > 1.0:
+			_last_clear = int(_t)
+			var r: Dictionary = load("res://core/systems/Perf.gd").report()
+			var parts: Array = []
+			for k in r.keys():
+				if k in ["frames", "worst_ms", "slow", "slow_log"]:
+					continue
+				parts.append("%s %.2f" % [k, r[k]])
+			_perf_lines.append("perf t=%3ds frames=%d worst=%.0fms slow=%d | %s | nodes=%d" % [int(_t), r["frames"], r["worst_ms"], r["slow"], " ".join(parts), root.get_child_count() if _game == null else _game.get_tree().get_node_count()])
+			for sl in r["slow_log"]:
+				_perf_lines.append("   slow frame %.0f ms at clock %s ctx=%s: %s" % [sl["ms"], sl.get("clock", "?"), sl.get("ctx", ""), str(sl["parts"])])
+		if _t >= _seconds - 0.5:
+			_finish("")
+		return
 	if _t > 6.0 and not _boss_forced:
 		_boss_forced = true
 		_run.elapsed = 296.0
@@ -126,7 +151,14 @@ func _tick_run(dt: float) -> void:
 				continue
 			_game.use_structure(sdef, _game.player.global_position + Vector3(3, 0, 0))
 			used += 1
-		print("smoke_run: structures on the map %d, kinds used %d" % [_game.structures.items.size(), used])
+		var kinds := {}
+		for st in _game.structures.items:
+			kinds[st.def.id] = true
+		print("smoke_run: structures on the map %d, kinds present %d/%d, kinds used %d" % [_game.structures.items.size(), kinds.size(), reg.structures.size(), used])
+		# the mini-boss once, near the hero, and a chest on the ground to run the reel
+		_game.director._run_event({"type": "elite_boss", "enemy": _run.map.skins.get("elite", "")})
+		print("smoke_run: elite spawned at %s" % str(_game.director.elite_position().round()))
+		_game.pickups.spawn_chest(_game.player.global_position + Vector3(0.5, 0, 0))
 	if _game.projectiles:
 		_lobs = [_game.projectiles.lobs_fired, _game.projectiles.lobs_exploded]
 	var em = _game.enemies
@@ -140,7 +172,7 @@ func _tick_run(dt: float) -> void:
 	if _portal_decided == 1 and _run.stage == 1 and _run.elapsed < 590.0:
 		_run.elapsed = 596.0
 	var sec := int(_t)
-	if sec != _last_report and sec % 2 == 0:
+	if sec != _last_report and sec % 2 == 0 and not _perf:
 		_last_report = sec
 		print("t=%3ds  stage=%d  clock=%s  alive=%3d  kills=%4d  level=%2d  proj=%3d  gems=%3d  weapons=%d  passives=%d  cards=%d  pos=%s" % [
 			sec, _run.stage + 1, "%d:%02d" % [int(_run.elapsed) / 60, int(_run.elapsed) % 60], _run.alive, _run.kills, _run.level, _game.projectiles.count, _game.pickups.count,
@@ -174,10 +206,12 @@ func _tick_screens(dt: float) -> void:
 
 
 func _finish(problem: String) -> void:
+	for l in _perf_lines:
+		print(l)
 	var ok: bool = problem == "" and _errors.is_empty() and _portal_decided >= 1 and _cards_picked >= 3
 	if problem != "":
 		_errors.append(problem)
 	if _lobs[0] > 0:
 		print("smoke_run: lobs fired %d, exploded on landing %d" % [_lobs[0], _lobs[1]])
-	print("smoke_run: %s after %.0fs (kills=%d cards=%d portals=%d errors=%s)" % ["OK" if ok else "FAIL", _t, _run.kills, _cards_picked, _portal_decided, str(_errors)])
+	print("smoke_run: %s after %.0fs (kills=%d cards=%d chests=%d portals=%d errors=%s)" % ["OK" if ok else "FAIL", _t, _run.kills, _cards_picked, _chests, _portal_decided, str(_errors)])
 	quit(0 if ok else 2)

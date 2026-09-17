@@ -13,7 +13,8 @@
   "drops": {
     "small": 1.0,
     "medium": 0.05,
-    "gold": 0.02
+    "gold": 0.02,
+    "chest": 0.002
   },
   "frame_px": 128,
   "sfx": {

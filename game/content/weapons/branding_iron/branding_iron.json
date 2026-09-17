@@ -1,0 +1,85 @@
+{
+  "id": "branding_iron",
+  "name": "Branding Iron",
+  "flavour": "Everyone gets the mark.",
+  "rarity": "rare",
+  "weight": 6,
+  "behavior": "Orbiter",
+  "targeting": "orbit",
+  "base": {
+    "damage": 6,
+    "amount": 1,
+    "orbit_radius": 2.6,
+    "knockback": 2.0,
+    "area": 1.1,
+    "cooldown": 0.4,
+    "fire_damage": 4,
+    "fire_duration": 1.8,
+    "fire_spread": 0.5
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "fire_damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "orbit_radius",
+        "op": "add",
+        "value": 0.3
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "fire_spread",
+        "op": "add",
+        "value": 0.1
+      }
+    ],
+    [
+      {
+        "stat": "fire_damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ],
+    [
+      {
+        "stat": "fire_duration",
+        "op": "add",
+        "value": 0.6
+      }
+    ]
+  ],
+  "evolves_with": "might",
+  "evolves_into": "ring_of_fire",
+  "params": {
+    "blade": "iron"
+  },
+  "sfx": {
+    "hit": "w_iron_hit"
+  },
+  "placeholder": {
+    "color": "#E0602A",
+    "glyph": "iron"
+  },
+  "art_prompt": "a long black cattle branding iron with a wooden handle, its 88 shaped tip glowing red-hot with sparks"
+}

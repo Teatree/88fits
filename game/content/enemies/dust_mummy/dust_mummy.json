@@ -1,0 +1,66 @@
+{
+  "id": "dust_mummy",
+  "name": "Dust Mummy",
+  "flavour": "Slow. Very, very slow. Still coming.",
+  "archetype": "tank",
+  "brain": "chase",
+  "hp": 60,
+  "speed": 0.85,
+  "damage": 14,
+  "radius": 0.6,
+  "size": 1.9,
+  "pack_size": 2,
+  "drops": {
+    "medium": 1.0,
+    "small": 1.0,
+    "gold": 0.2,
+    "chest": 0.01
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 1,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "frame_px": 176,
+  "xp_mult": 4.0,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_mummy_die"
+  },
+  "placeholder": {
+    "color": "#D8CBA8",
+    "ears": "none",
+    "eyes": 2,
+    "shape": "tall"
+  },
+  "art_prompt": "a goofy stocky mummy wrapped head to toe in loose sandy bandages with a few strips trailing off, thick arms held out in front, two glowing yellow eyes peeking through the wraps and a small crooked grin",
+  "variance": {
+    "size": 0.12,
+    "speed": 0.1,
+    "tints": [
+      "#FFFFFF",
+      "#FFE0B0",
+      "#B0C8C8",
+      "#C8A880"
+    ],
+    "tint_strength": 0.5,
+    "special_chance": 0.08,
+    "special": {
+      "size": 1.4,
+      "hp": 2.0,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#8AFFB0",
+      "tint_strength": 0.9
+    }
+  },
+  "motion": "shuffling forward in place with stiff heavy steps, arms held out",
+  "strip_cols": 36,
+  "fps": {
+    "run": 15
+  }
+}

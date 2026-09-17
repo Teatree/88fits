@@ -39,12 +39,13 @@ func _ready() -> void:
 	var tex: Texture2D = def.icon if def and def.icon else PlaceholderArt.icon(def, 128)
 	_sprite.setup(tex, {"idle": 1}, ["idle"], 1.15)
 	_sprite.position.y = 0.35
-	_light = OmniLight3D.new()
-	_light.light_color = col
-	_light.omni_range = 4.0
-	_light.light_energy = 1.0
-	_light.position.y = 1.0
-	add_child(_light)
+	if Fx.want_lights():
+		_light = OmniLight3D.new()
+		_light.light_color = col
+		_light.omni_range = 4.0
+		_light.light_energy = 1.0
+		_light.position.y = 1.0
+		add_child(_light)
 	scale = Vector3(0.01, 0.01, 0.01)
 	var tw := create_tween()
 	tw.tween_property(self, "scale", Vector3.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
@@ -73,5 +74,6 @@ func collect_anim() -> void:
 	tw.set_parallel(true)
 	tw.tween_property(_sprite, "position:y", 1.6, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(self, "scale", Vector3(1.4, 1.4, 1.4), 0.3)
-	tw.tween_property(_light, "light_energy", 0.0, 0.3)
+	if _light:
+		tw.tween_property(_light, "light_energy", 0.0, 0.3)
 	tw.chain().tween_callback(queue_free)

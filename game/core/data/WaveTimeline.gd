@@ -9,6 +9,9 @@ extends Resource
 @export var stage_mults: Array = [1.0, 1.35, 1.8]
 ## Extra multiplier per minute in endless mode.
 @export var endless_mult_per_minute: float = 0.1
+## Extra live cap and extra creature speed for every stage after the first (stage 3 = twice this).
+@export var cap_per_stage: int = 0
+@export var speed_per_stage: float = 0.0
 @export var cap_start: int = 100
 @export var cap_per_minute: float = 10.0
 @export var cap_max: int = 250
@@ -28,6 +31,7 @@ extends Resource
 ##  elite_every {interval}        repeat elite spawns every interval seconds from t
 ##  swarm {enemy, count}          ring of count enemies around the player, ignores cap
 ##  boss {enemy}                  spawn boss on the flats, slow regular spawns
+##  elite_boss {enemy}            a mini-boss creature near the hero, no intro, no phase change; always drops a chest
 @export var events: Array = []
 ## Pickups on the ground: {"first": 50, "interval": 75, "jitter": 20, "roster": [{"id": "heart", "weight": 6}, ...]}
 ## Empty = none on this map.
@@ -45,8 +49,12 @@ func stage_mult(stage_index: int, minutes_into_endless: float = 0.0) -> float:
 	return last * (1.0 + endless_mult_per_minute * minutes_into_endless)
 
 
-func cap_at(t: float) -> int:
-	return int(min(cap_start + cap_per_minute * (t / 60.0), cap_max))
+func cap_at(t: float, stage_index: int = 0) -> int:
+	return int(min(cap_start + cap_per_minute * (t / 60.0) + cap_per_stage * stage_index, cap_max))
+
+
+func speed_mult(stage_index: int) -> float:
+	return 1.0 + speed_per_stage * float(stage_index)
 
 
 func hp_mult_at(t: float) -> float:

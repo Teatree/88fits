@@ -27,7 +27,7 @@
   "anims": {
     "idle": 4,
     "run": 24,
-    "hit": 9,
+    "hit": 4,
     "die": 1,
     "cheer": 1,
     "idle_f": 4,
@@ -38,10 +38,10 @@
     "run_bd": 24,
     "idle_fd": 4,
     "run_fd": 24,
-    "hit_f": 9,
-    "hit_s": 9,
-    "hit_bd": 9,
-    "hit_fd": 9
+    "hit_f": 4,
+    "hit_s": 4,
+    "hit_bd": 4,
+    "hit_fd": 4
   },
   "placeholder": {
     "color": "#6B4A2E",
@@ -54,7 +54,7 @@
   "strip_cols": 62,
   "fps": {
     "run": 36,
-    "hit": 20
+    "hit": 12
   },
   "portrait_prompt": "tipping the brim of his wide hat with two fingers, a confident half-smile, the collar of his brown duster turned up, the red scarf catching the wind"
 }

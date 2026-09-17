@@ -157,6 +157,7 @@ func _physics_process(delta: float) -> void:
 	_time += delta
 	if game == null or game.player == null:
 		return
+	var t0 := Time.get_ticks_usec()
 	var player: Node3D = game.player
 	var ppos: Vector3 = player.global_position + Vector3(0, 0.5, 0)
 	var magnet: float = Run.player_sheet.get_stat("magnet", 1.5)
@@ -197,6 +198,7 @@ func _physics_process(delta: float) -> void:
 	_check_chests(player)
 	_check_specials(player)
 	_render()
+	Perf.add("pickups", t0)
 
 
 func _collect(i: int) -> void:

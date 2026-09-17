@@ -20,6 +20,7 @@ const RADIUS := 0.45
 @onready var shadow: MeshInstance3D = $Shadow
 @onready var muzzle: Marker3D = $Muzzle
 @onready var hip: Marker3D = $Hip
+var health_bar: HealthBar3D
 @onready var ring: MeshInstance3D = $MagnetRing
 
 var sheet: StatSheet
@@ -51,6 +52,8 @@ func _ready() -> void:
 	sheet = Run.player_sheet
 	input.touch_ended.connect(func(): lifted_thumb.emit())
 	_setup_sprite()
+	health_bar = HealthBar3D.new()
+	add_child(health_bar)
 	_setup_shadow()
 	refresh_stats()
 	hp = max_hp
@@ -81,6 +84,7 @@ func _setup_sprite() -> void:
 		tex = PlaceholderArt.character_strip(character)
 	var cols: int = character.strip_cols if character and character.sprite else 0
 	var fps: Dictionary = character.fps if character and character.sprite else {}
+	sprite.enable_outline()
 	sprite.setup(tex, anims, ["idle", "run", "turn", "hit", "die", "cheer", "idle_f", "run_f", "idle_s", "run_s", "idle_bd", "run_bd", "idle_fd", "run_fd", "hit_f", "hit_s", "hit_bd", "hit_fd"], 1.9, cols, fps)
 	sprite.position = Vector3(0, 0.0, 0)
 
@@ -124,6 +128,7 @@ func aim_origin(dir: Vector3) -> Vector3:
 
 
 func _physics_process(delta: float) -> void:
+	var _t0 := Time.get_ticks_usec()
 	if dead:
 		# only gravity: whatever he was doing when he fell stops with him
 		velocity.x = 0.0
@@ -131,6 +136,7 @@ func _physics_process(delta: float) -> void:
 		_kb = Vector3.ZERO
 		velocity.y -= 24.0 * delta
 		move_and_slide()
+		Perf.add("player", _t0)
 		return
 	invuln = max(invuln - delta, 0.0)
 	if shield_t > 0.0:
@@ -189,6 +195,7 @@ func _physics_process(delta: float) -> void:
 			_step_timer = 0.28
 			var step: String = str(Run.map.music.get("step", "pl_step_sand")) if Run.map else "pl_step_sand"
 			Audio.play(step, global_position)
+	Perf.add("player", _t0)
 
 
 func _animate(delta: float, moving: bool, on_floor: bool) -> void:

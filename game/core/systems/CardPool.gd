@@ -11,7 +11,7 @@ static func level_up_offer(count: int = 3) -> Array:
 	var weapon_slot_free := Run.weapons.size() < Run.MAX_WEAPONS
 	var passive_slot_free := Run.passives.size() < Run.MAX_PASSIVES
 	for w in Registry.unlocked_weapons():
-		if Run.banished.has(w.id):
+		if Run.banished.has(w.id) or not Run.element_allowed(w):
 			continue
 		var inst := Run.weapon_instance(w.id)
 		if inst == null:
@@ -20,7 +20,7 @@ static func level_up_offer(count: int = 3) -> Array:
 		elif inst.level < w.max_level and not inst.def.is_evolution:
 			cands.append(_card("weapon", w, inst.level, inst.level + 1, _weight(w, true)))
 	for p in Registry.unlocked_passives():
-		if Run.banished.has(p.id):
+		if Run.banished.has(p.id) or not Run.element_allowed(p):
 			continue
 		var lv := int(Run.passives.get(p.id, 0))
 		if lv == 0:

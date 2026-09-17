@@ -6,8 +6,11 @@
   "skins": {
     "walker": "goblin",
     "swarmer": "fire_ant",
+    "runner": "roadrunner",
     "spitter": "spit_cactus",
-    "brute": "bull_beetle"
+    "tank": "dust_mummy",
+    "brute": "bull_beetle",
+    "elite": "dune_scorpion"
   },
   "boss": "tumbleweed_king",
   "unlock_quest": "",
@@ -26,15 +29,15 @@
     "stages": 3,
     "stage_mults": [
       1.0,
-      1.35,
-      1.8
+      1.8,
+      2.8
     ],
     "endless_mult_per_minute": 0.1,
     "cap_start": 25,
     "cap_per_minute": 3,
     "cap_max": 60,
     "hard_cap": 80,
-    "hp_growth": 0.08,
+    "hp_growth": 0.1,
     "hp_power": 1.2,
     "burst_min": 2,
     "burst_max": 6,
@@ -56,8 +59,18 @@
         "weight": 8
       },
       {
+        "t": 100,
+        "enemy": "roadrunner",
+        "weight": 6
+      },
+      {
         "t": 150,
         "enemy": "spit_cactus",
+        "weight": 3
+      },
+      {
+        "t": 200,
+        "enemy": "dust_mummy",
         "weight": 3
       },
       {
@@ -67,6 +80,11 @@
       }
     ],
     "events": [
+      {
+        "t": 150,
+        "type": "elite_boss",
+        "enemy": "dune_scorpion"
+      },
       {
         "t": 210,
         "type": "elite_every",
@@ -84,15 +102,31 @@
         "count": 18
       },
       {
+        "t": 450,
+        "type": "elite_boss",
+        "enemy": "dune_scorpion"
+      },
+      {
         "t": 600,
         "type": "boss",
         "enemy": "tumbleweed_king"
+      },
+      {
+        "t": 690,
+        "type": "swarm",
+        "enemy": "roadrunner",
+        "count": 14
       },
       {
         "t": 720,
         "type": "swarm",
         "enemy": "goblin",
         "count": 12
+      },
+      {
+        "t": 750,
+        "type": "elite_boss",
+        "enemy": "dune_scorpion"
       },
       {
         "t": 900,
@@ -128,9 +162,11 @@
       ]
     },
     "structures": {
-      "count": 9,
-      "min_spacing": 16
-    }
+      "count": 7,
+      "min_spacing": 22
+    },
+    "cap_per_stage": 12,
+    "speed_per_stage": 0.1
   },
   "placeholder": {
     "color": "#E4874C",

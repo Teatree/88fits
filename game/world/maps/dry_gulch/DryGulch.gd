@@ -1,5 +1,5 @@
 ## Dry Gulch, greybox. Builds the heightmap terrain (dunes, sunken riverbed, flat centre), the mesa ring wall,
-## two mesas with ramps and auto-jump gaps, desert props as obstacles, jump pads, a dust devil, tumbleweeds,
+## two mesas with ramps and auto-jump gaps, painted 2.5D scenery as obstacles, jump pads, a dust devil, tumbleweeds,
 ## and the golden-hour sky. Every number here is a tunable exported for the editor.
 extends MapBase
 
@@ -20,6 +20,7 @@ const EAST_MESA := [Rect2(18, 20, 14, 10), Rect2(36, 18, 10, 9)]
 
 var _static: StaticBody3D
 var _noise := FastNoiseLite.new()
+var props: PropField
 
 
 func _ready() -> void:
@@ -342,26 +343,9 @@ func _prop(name: String, p: Vector3, collider_r: float, collider_h: float, rot_y
 
 
 func _build_props() -> void:
-	var cactus := Color(0.31, 0.56, 0.30)
-	var rock := Color(0.61, 0.54, 0.48)
+	# the painted scenery: cacti, rocks, bones, dead trees and signposts as 2.5D sprites, scattered by a seeded roll
+	_scatter_sprites()
 	var rust := Color(0.48, 0.29, 0.23)
-	var bone := Color(0.95, 0.91, 0.84)
-	# saguaro clusters
-	for c in [Vector2(-50, -20), Vector2(-46, -14), Vector2(-54, -12), Vector2(44, -44), Vector2(48, -38), Vector2(40, -36), Vector2(8, 48), Vector2(12, 52), Vector2(-16, -58), Vector2(-12, -54), Vector2(26, -8), Vector2(-30, 40), Vector2(-34, 44)]:
-		var h := randf_range(0.8, 1.25)
-		var g := _ground(c.x, c.y)
-		_prop("saguaro", g, 0.55, 3.0, randf() * TAU, h, func(): _saguaro(g, 2.6 * h, cactus); return null)
-	# barrel cacti between them
-	for c in [Vector2(-48, -8), Vector2(52, -42), Vector2(16, 46), Vector2(-20, -50), Vector2(30, -4), Vector2(-36, 36), Vector2(2, -40)]:
-		_prop("barrel_cactus", _ground(c.x, c.y), 0.6, 1.0, randf() * TAU, randf_range(0.9, 1.3), func(): _cylinder(_ground(c.x, c.y), 0.5, 0.9, cactus); return null)
-	# rocks
-	var rocks := [["rock_big", Vector2(-8, 40)], ["rock_small", Vector2(-6, 43)], ["boulder", Vector2(58, -10)], ["rock_small", Vector2(60, -14)], ["rock_big", Vector2(-58, 26)], ["rock_big", Vector2(20, -50)], ["boulder", Vector2(-40, -34)], ["rock_small", Vector2(34, 30)]]
-	for r in rocks:
-		var nm: String = r[0]
-		var pt: Vector2 = r[1]
-		var rr: float = {"rock_small": 0.9, "rock_big": 1.8, "boulder": 2.8}[nm]
-		var g := _ground(pt.x, pt.y)
-		_prop(nm, g, rr, rr, randf() * TAU, 1.0, func(): _cylinder(g, rr, rr * 0.8, rock); return null)
 	# wrecked pickup
 	var wg := _ground(-24, -26)
 	_prop("pickup_wreck", wg, 0.0, 0.0, deg_to_rad(-15), 1.0, func():
@@ -380,29 +364,6 @@ func _build_props() -> void:
 	_prop("water_tower", tg, 1.6, 9.0, 0.0, 1.0, func(): _cylinder(tg, 2.0, 8.0, Color(0.43, 0.29, 0.17)); return null)
 	var pg := _ground(-52, 14)
 	_prop("wind_pump", pg, 1.0, 7.0, 0.0, 1.0, func(): _cylinder(pg, 0.6, 7.0, Color(0.3, 0.2, 0.12)); return null)
-	# bones and skulls, decoration only
-	for b in [Vector2(-16, 14), Vector2(30, 36), Vector2(-52, 8), Vector2(12, -34)]:
-		var bg := _ground(b.x, b.y)
-		_prop("bone", bg, 0.0, 0.0, randf() * TAU, 1.0, func():
-			var mi := MeshInstance3D.new()
-			var m := CapsuleMesh.new()
-			m.radius = 0.18
-			m.height = 2.2
-			mi.mesh = m
-			mi.position = bg + Vector3(0, 0.2, 0)
-			mi.rotation = Vector3(PI * 0.5, randf() * TAU, 0)
-			var mat := StandardMaterial3D.new()
-			mat.albedo_color = bone
-			mi.material_override = mat
-			add_child(mi)
-			return mi)
-	for sk in [Vector2(-14, 16), Vector2(28, 38)]:
-		_prop("skull", _ground(sk.x, sk.y), 0.0, 0.0, randf() * TAU, 1.0, Callable(), false)
-	# signpost and campfire
-	var sg := _ground(-4, -30)
-	_prop("signpost", sg, 0.25, 3.0, deg_to_rad(20), 1.0, func():
-		_cylinder(sg, 0.2, 3.0, Color(0.35, 0.22, 0.12), false)
-		return _box(sg + Vector3(0, 3.0, 0), Vector3(2.6, 0.7, 0.15), Color(0.85, 0.75, 0.55)))
 	var cg := _ground(6, 24)
 	var fire := _prop("campfire", cg, 0.9, 0.6, 0.0, 1.0, Callable(), true)
 	if fire:
@@ -497,3 +458,116 @@ func bind_game(game: Node) -> void:
 	for c in get_children():
 		if c is DustDevil:
 			c.game = game
+
+
+# ---------------------------------------------------------------- painted scenery
+
+## A PropField of painted sprites: greenery in clusters, rocks in groups, bones scattered, a few dead trees and
+## signposts. Everything with a collider radius gets a cylinder body and an obstacle circle, like the old props did.
+## The roll is seeded so the desert is the same every run.
+func _scatter_sprites() -> void:
+	props = PropField.new()
+	props.name = "Props"
+	add_child(props)
+	props.setup()
+	if props.count() >= 0 and not props.has("saguaro_big"):
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed * 7 + 3
+	var landmarks: Array = [Vector2(-24, -26), Vector2(40, -56), Vector2(58, -44), Vector2(-52, 14), Vector2(6, 24)]
+	var taken: Array = []   # Vector3(x, z, keep-out radius)
+
+	var free := func(pt: Vector2, keep: float) -> bool:
+		if (pt - Vector2(flats_center.x, flats_center.z)).length() < flats_radius + 3.0:
+			return false
+		if pt.length() > arena_radius - 4.0 or _in_mesa(pt) or _river_dist(pt) < river_width * 0.5 + 1.0:
+			return false
+		for l: Vector2 in landmarks:
+			if (pt - l).length() < 9.0:
+				return false
+		for t: Vector3 in taken:
+			if (pt - Vector2(t.x, t.y)).length() < t.z + keep:
+				return false
+		return true
+
+	var place := func(id: String, pt: Vector2, scale: float, sway: float) -> void:
+		var g := _ground(pt.x, pt.y)
+		props.add(id, g, scale, rng.randf() < 0.5, sway)
+		var r := props.radius_of(id) * scale
+		if r > 0.0:
+			_sprite_collider(g, r, props.height_of(id) * scale)
+		taken.append(Vector3(pt.x, pt.y, maxf(r, 0.6)))
+
+	var spot := func(keep: float, rmin: float, rmax: float) -> Vector2:
+		for k in range(40):
+			var a := rng.randf() * TAU
+			var r := rng.randf_range(rmin, rmax)
+			var pt := Vector2(cos(a) * r, sin(a) * r)
+			if free.call(pt, keep):
+				return pt
+		return Vector2.INF
+
+	# greenery: clusters of a big saguaro with smaller cacti and shrubs around it
+	for c in range(16):
+		var centre: Vector2 = spot.call(3.0, 20.0, arena_radius - 8.0)
+		if centre == Vector2.INF:
+			continue
+		place.call("saguaro_big", centre, rng.randf_range(0.9, 1.15), 0.05)
+		var n := rng.randi_range(3, 6)
+		for k in range(n):
+			var pt: Vector2 = centre + Vector2(rng.randf_range(-5.0, 5.0), rng.randf_range(-4.0, 4.0))
+			if not free.call(pt, 0.6):
+				continue
+			var pick := rng.randf()
+			if pick < 0.25:
+				place.call("saguaro_small", pt, rng.randf_range(0.85, 1.1), 0.06)
+			elif pick < 0.45:
+				place.call("barrel_cactus", pt, rng.randf_range(0.8, 1.2), 0.0)
+			elif pick < 0.65:
+				place.call("prickly_pear", pt, rng.randf_range(0.8, 1.2), 0.04)
+			elif pick < 0.8:
+				place.call("agave", pt, rng.randf_range(0.8, 1.15), 0.04)
+			else:
+				place.call("dead_shrub", pt, rng.randf_range(0.7, 1.1), 0.1)
+	# dead trees, alone
+	for k in range(6):
+		var pt: Vector2 = spot.call(4.0, 22.0, arena_radius - 6.0)
+		if pt != Vector2.INF:
+			place.call("dead_tree", pt, rng.randf_range(0.85, 1.15), 0.03)
+	# rocks in groups
+	for c in range(10):
+		var centre: Vector2 = spot.call(3.0, 18.0, arena_radius - 6.0)
+		if centre == Vector2.INF:
+			continue
+		place.call("boulder" if rng.randf() < 0.4 else "rock_big", centre, rng.randf_range(0.85, 1.15), 0.0)
+		for k in range(rng.randi_range(1, 3)):
+			var pt: Vector2 = centre + Vector2(rng.randf_range(-3.5, 3.5), rng.randf_range(-3.0, 3.0))
+			if free.call(pt, 0.4):
+				place.call("rock_small", pt, rng.randf_range(0.7, 1.2), 0.0)
+	# bones and skulls, everywhere, no collision
+	for k in range(22):
+		var pt: Vector2 = spot.call(1.0, 12.0, arena_radius - 4.0)
+		if pt == Vector2.INF:
+			continue
+		var pick := rng.randf()
+		place.call("skull" if pick < 0.4 else ("bones" if pick < 0.7 else "skull_small"), pt, rng.randf_range(0.8, 1.2), 0.0)
+	# signposts
+	for k in range(3):
+		var pt: Vector2 = spot.call(3.0, 16.0, arena_radius - 10.0)
+		if pt != Vector2.INF:
+			place.call("signpost", pt, 1.0, 0.0)
+
+
+func _sprite_collider(g: Vector3, r: float, h: float) -> void:
+	var body := StaticBody3D.new()
+	body.collision_layer = 1
+	var cs := CollisionShape3D.new()
+	var shape := CylinderShape3D.new()
+	shape.radius = r
+	shape.height = maxf(h, 1.0)
+	cs.shape = shape
+	cs.position.y = maxf(h, 1.0) * 0.5
+	body.add_child(cs)
+	body.position = g
+	add_child(body)
+	obstacles.append(Vector3(g.x, g.z, r + 0.2))

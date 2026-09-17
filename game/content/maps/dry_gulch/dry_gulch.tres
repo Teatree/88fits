@@ -7,10 +7,14 @@
 
 [sub_resource type="Resource" id="Resource_2bow6"]
 script = ExtResource("2_78tpm")
+stage_mults = [1.0, 1.8, 2.8]
+cap_per_stage = 12
+speed_per_stage = 0.1
 cap_start = 25
 cap_per_minute = 3.0
 cap_max = 60
 hard_cap = 80
+hp_growth = 0.1
 burst_min = 2
 burst_max = 6
 spawn_interval = 0.9
@@ -27,8 +31,16 @@ roster = [{
 "t": 60.0,
 "weight": 8.0
 }, {
+"enemy": "roadrunner",
+"t": 100.0,
+"weight": 6.0
+}, {
 "enemy": "spit_cactus",
 "t": 150.0,
+"weight": 3.0
+}, {
+"enemy": "dust_mummy",
+"t": 200.0,
 "weight": 3.0
 }, {
 "enemy": "bull_beetle",
@@ -36,6 +48,10 @@ roster = [{
 "weight": 2.0
 }]
 events = [{
+"enemy": "dune_scorpion",
+"t": 150.0,
+"type": "elite_boss"
+}, {
 "interval": 90.0,
 "t": 210.0,
 "type": "elite_every"
@@ -49,14 +65,27 @@ events = [{
 "t": 390.0,
 "type": "swarm"
 }, {
+"enemy": "dune_scorpion",
+"t": 450.0,
+"type": "elite_boss"
+}, {
 "enemy": "tumbleweed_king",
 "t": 600.0,
 "type": "boss"
+}, {
+"count": 14.0,
+"enemy": "roadrunner",
+"t": 690.0,
+"type": "swarm"
 }, {
 "count": 12.0,
 "enemy": "goblin",
 "t": 720.0,
 "type": "swarm"
+}, {
+"enemy": "dune_scorpion",
+"t": 750.0,
+"type": "elite_boss"
 }, {
 "enemy": "tumbleweed_king",
 "t": 900.0,
@@ -84,8 +113,8 @@ pickups = {
 }]
 }
 structures = {
-"count": 9.0,
-"min_spacing": 16.0
+"count": 7.0,
+"min_spacing": 22.0
 }
 
 [resource]
@@ -95,8 +124,11 @@ scene_file = "res://world/maps/dry_gulch/DryGulch.tscn"
 timeline = SubResource("Resource_2bow6")
 skins = {
 "brute": "bull_beetle",
+"elite": "dune_scorpion",
+"runner": "roadrunner",
 "spitter": "spit_cactus",
 "swarmer": "fire_ant",
+"tank": "dust_mummy",
 "walker": "goblin"
 }
 boss = "tumbleweed_king"
