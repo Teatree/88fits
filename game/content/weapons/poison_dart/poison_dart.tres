@@ -61,7 +61,6 @@ base = {
 "speed": 16.0
 }
 levels = [[], [SubResource("Resource_id6uf")], [SubResource("Resource_8unav")], [SubResource("Resource_e2kgj")], [SubResource("Resource_o5odp")], [SubResource("Resource_8ebnl")], [SubResource("Resource_3o08y")], [SubResource("Resource_ulljh")]]
-evolves_with = "venom"
 evolves_into = "plague_volley"
 sfx = {
 "fire": "w_pea_fire",
@@ -82,6 +81,7 @@ id = "poison_dart"
 display_name = "Poison Dart"
 flavour = "Barely a scratch. Then the scratch gets ideas."
 weight = 9.0
+hidden = true
 icon = ExtResource("1_id6uf")
 icon_file = "poison_dart_icon.png"
 placeholder = {

@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/minefield/minefield_icon.png" id="1_g3nee"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_jhdch"]
+[ext_resource type="PackedScene" path="res://content/evolutions/minefield/minefield_visual.tscn" id="3_cxy75"]
+
+[resource]
+script = ExtResource("1_jhdch")
+behavior = "MineLayer"
+targeting = "ground"
+base = {
+"amount": 2.0,
+"area": 3.0,
+"cooldown": 1.4,
+"damage": 40.0,
+"knockback": 11.0,
+"lifetime": 30.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "land_mine"
+sfx = {
+"hit": "w_lob_boom",
+"place": "w_mine_arm"
+}
+visual = ExtResource("3_cxy75")
+visual_file = "minefield_visual.tscn"
+params = {
+"max_mines": 16.0,
+"trigger_radius": 0.8
+}
+id = "minefield"
+display_name = "Minefield"
+flavour = "Watch your step. They won't."
+rarity = "epic"
+icon = ExtResource("1_g3nee")
+icon_file = "minefield_icon.png"
+placeholder = {
+"color": "#B08A3A",
+"glyph": "mine"
+}

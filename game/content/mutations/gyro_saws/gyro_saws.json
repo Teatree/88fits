@@ -1,0 +1,24 @@
+{
+  "id": "gyro_saws",
+  "name": "Gyro Saws",
+  "flavour": "Astro's ring knows when he moves.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "orbit_saws",
+  "kind": "hero",
+  "element": "",
+  "hero": "astro",
+  "text": "The ring widens 30% while he moves and tightens when he stops.",
+  "vfx": "the ring breathes with the hero's steps",
+  "effects": [],
+  "params": {
+    "gyro": {
+      "moving_mult": 1.3
+    }
+  },
+  "art_prompt": "a spinning gyroscope ring holding a saw blade",
+  "placeholder": {
+    "color": "#80E0C0",
+    "glyph": "star"
+  }
+}

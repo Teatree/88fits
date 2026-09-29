@@ -1,0 +1,30 @@
+{
+  "id": "adrenaline",
+  "name": "Adrenaline",
+  "flavour": "Every kill is a stack for 4 s, twenty at most: faster and harder while the streak holds.",
+  "rarity": "common",
+  "weight": 8,
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "adrenaline_speed",
+        "op": "add",
+        "value": 0.004,
+        "target": "player"
+      },
+      {
+        "stat": "adrenaline_might",
+        "op": "add",
+        "value": 0.003,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "placeholder": {
+    "color": "#EE4A5C",
+    "glyph": "bolt"
+  },
+  "art_prompt": "a red medical syringe with a yellow lightning bolt on its label"
+}

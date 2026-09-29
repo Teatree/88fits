@@ -8,9 +8,21 @@ extends RefCounted
 const PLAYER_DEFAULTS := {
 	"max_hp": 100.0, "armor": 0.0, "regen": 0.0, "move_speed": 3.6, "might": 1.0, "cooldown": 1.0,
 	"area": 1.0, "projectile_speed": 1.0, "duration": 1.0, "amount": 0.0, "magnet": 1.5, "luck": 0.0,
-	"greed": 1.0, "revives": 0.0, "rerolls": 0.0, "skips": 0.0, "banishes": 0.0, "turn_rate": 180.0,
+	"greed": 1.0, "lifesteal": 0.0, "revives": 0.0, "rerolls": 1.0, "skips": 0.0, "banishes": 1.0, "turn_rate": 180.0,
+	# passive mechanisms (pass 23): rolled or applied by the systems, never by the sheet itself
+	"crit_chance": 0.0, "crit_damage": 2.0, "execute_frac": 0.0, "thorns": 0.0, "adrenaline_speed": 0.0, "adrenaline_might": 0.0,
+	"overkill": 0.0, "cooldown_on_kill": 0.0, "xp_gain": 1.0, "ricochet": 0.0, "homing_turn": 1.0,
+	# Berserk (pass 33): every weapon's clock runs this much faster (cooldowns divided, blades spin, turrets fire)
+	"haste": 1.0,
+	# the protective lines and drops (pass 33.2): Evade and Ghost Step, the Energy Shield and Aegis, Second Wind's
+	# shorter wait, Bloodthirst's higher lifesteal cap, Beef Jerky and Pickpocket
+	"evade": 0.0, "evade_invuln": 0.0, "shield_max": 0.0, "shield_delay": 3.0, "shield_rate": 0.5,
+	"regen_delay": 3.0, "lifesteal_cap": 0.04, "heal_drop": 0.0, "coin_drop": 0.0,
 }
 
+## "player" for the hero's own sheet: effects aimed at weapons ("all_weapons", "weapon:<id>", "tag:<tag>") are carried
+## for the weapons to pick up but never folded into the hero's numbers; "" folds everything (a weapon's sheet)
+var scope := ""
 var base: Dictionary = {}
 ## Array of {"effect": Effect, "source": String}
 var entries: Array = []
@@ -65,6 +77,8 @@ func get_stat(stat: String, default: float = 0.0) -> float:
 	for en in entries:
 		var e: Effect = en["effect"]
 		if e.stat != stat:
+			continue
+		if scope == "player" and (e.target == "all_weapons" or e.target.begins_with("weapon:") or e.target.begins_with("tag:")):
 			continue
 		match e.op:
 			"add":

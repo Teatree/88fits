@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="StructureDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/StructureDef.gd" id="1_xjour"]
+
+[resource]
+script = ExtResource("1_xjour")
+effect_kind = "teleport"
+params = {
+"invuln": 1.2,
+"min_distance": 0.6,
+"portal": {
+"r": 0.207,
+"x": 0.504,
+"y": 0.428
+}
+}
+interact_time = 1.5
+color = Color(1, 0.30980393, 0.84705883, 1)
+height = 3.2
+id = "teleport"
+display_name = "Teleport"
+flavour = "Step in. Come out somewhere quieter."
+weight = 2.0
+icon_file = "teleport_icon.png"

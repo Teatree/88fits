@@ -1,398 +1,473 @@
-## In-run HUD laid out like Survivor.io: a thin strip over the world (level + XP bar + stage, kills + big timer +
-## gold, twelve item slots) that takes the top 13% of the screen, a round pause button, the boss countdown just
-## under the strip, the HP bar under the player, the boss bar, the floating joystick, toasts and banners.
-## Tapping the strip also pauses.
+## In-run HUD, "Wanted" (design_handoff_88fits_wanted, screens 06 and 06b): an ink XP rail across the top edge, a row of
+## paper plates (LV, the clock, gold) with the brass pause disc, the held items as plates with their level tags and
+## path rivets, the toast queue under the clock, the boss's name plate and bar only while a boss lives, pointers riding
+## the screen edge, the hero's bars under him and the floating joystick. A banner takes the top row for 2 s. A tap
+## anywhere on the top strip pauses. Nothing interactive lives between y 700 and 1600.
 class_name HUD
 extends Control
 
 signal pause_requested
 
-## Height of the strip in design px (1080 x 1920). PlayerInput's thumb zone starts just below it.
-const BAND_H := 250
-const SLOT := 72
+## Height of the strip in design px with one slot row: the top row and the slots. A build that needs two rows makes
+## it taller (`band_h`); PlayerInput's thumb zone starts just below `band_h`, and a tap anywhere on the strip pauses.
+const BAND_H := 236
+## The compact top (pass 41: the mock's row, 44 px plates from y 44 and 104 px weapon slots from y 170, took a fifth
+## of the phone's height): the row's line and type, the pause disc, the slots' line and sizes.
+const TOP_Y := 30.0
+const PLATE_PX := 36
+const TIMER_PX := 56
+const DISC := 78.0
+const RAIL_H := 18.0
+const SLOT_Y := 126.0
+const WEAPON_PX := 88.0
+const OTHER_PX := 74.0
+const SLOT_GAP := 12.0
+const GROUP_GAP := 28.0
+const ROW_GAP := 18.0
+static var band_h := float(BAND_H)
+const PORTAL_GREEN := W.SAGE
+const ELITE_ORANGE := W.EMBER
+const BOSS_RED := W.ROCK
 
 var game: Node
-var _xp_bar: ProgressBar
-var _lv: Label
-var _timer: Label
-var _stage: Label
-var _kills: Label
-var _gold: Label
-var _weapon_row: HBoxContainer
-var _passive_row: HBoxContainer
-var _boss_box: Control
-var _boss_name: Label
-var _boss_bar: ProgressBar
-var _toasts: VBoxContainer
-var _banner: Label
-var _pause_btn: Button
-var _boss_in: Label
+var _band: Control
+var _rail: Control
+var _top: Control
+var _lv_plate: PanelContainer
+var _lv: WText
+var _timer_plate: PanelContainer
+var _timer: WText
+var _gold_plate: PanelContainer
+var _gold: WText
+var _pause_btn: WTap
+var _slots: Control
+var _slot_nodes: Dictionary = {}   # item id -> WPlate
+var _buffs: HBoxContainer
+var _buffs_key := ""
+var _adren: WText
+var _toasts: WToasts
+var _banner: WBanner
+var _boss_box: VBoxContainer
+var _boss_name: WText
+var _boss_icon: TextureRect
+var _boss_bar: WBar
 var _boss_warned := false
+var _boss_ten := false
+var _xp_frac := 0.0
+var _slots_bottom := 220.0
 var _ring_pos := Vector2.ZERO
 var _ring_alpha := 0.0
 var _stick := Vector2.ZERO
 var _stick_r := 150.0
 var _hp := 1.0
-var _band: Control
-var _buffs: HBoxContainer
-var _buffs_key := ""
 var _xp_batch := 0.0      # XP collected since the last popup
 var _xp_batch_t := 0.0    # seconds until the batch is shown
-# off-screen pointer to the boss (red) or the mini-boss (orange): a chevron at the screen edge with the distance
-var _arrow_on := false
-var _arrow_pos := Vector2.ZERO
-var _arrow_dir := Vector2.UP
-var _arrow_color := Color.RED
-var _arrow_label: Label
+var _arrows: Array = []   # {pos, dir, color, text, side}
+var _pointers: Array = [] # one WPointer per arrow on screen, made as needed
+## Pointers a capture tool pins on screen ({pos, color, side, text}), shown as if their targets were off screen.
+var test_arrows: Array = []
+var _flash_rect: ColorRect
 
 
 func _ready() -> void:
-	UiKit.fullscreen(self)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_band()
-	_build_player_hp()
 	_build_boss()
-	_build_toasts()
-	_arrow_label = UiKit.outline(UiKit.label("", 26, UiKit.INK, HORIZONTAL_ALIGNMENT_CENTER), 5)
-	_arrow_label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_arrow_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_arrow_label.visible = false
-	add_child(_arrow_label)
-	Run.xp_changed.connect(func(xp, need): _xp_bar.max_value = need; _xp_bar.value = xp; _lv.text = "LV %d" % Run.level)
+	_toasts = WToasts.new()
+	add_child(_toasts)
+	_banner = WBanner.new()
+	_banner.shown.connect(_on_banner)
+	add_child(_banner)
+	Run.xp_changed.connect(func(xp, need): _set_xp(xp, need); _lv.text = "LV %d" % Run.level; _fit_top())
 	Run.xp_gained.connect(_on_xp_gained)
-	Run.gold_changed.connect(func(g): _gold.text = str(g))
-	Run.kills_changed.connect(func(_k): _refresh_counts())
+	Run.gold_changed.connect(func(g): _gold.text = W.num(g); _fit_top())
 	Run.build_changed.connect(_refresh_rows)
-	Run.stage_changed.connect(func(_s): refresh_stage())
 	if game and game.player:
 		game.player.input.touch_started.connect(func(p): _ring_pos = p; _ring_alpha = 1.0)
 		game.player.input.touch_ended.connect(func(): _ring_alpha = 0.0)
 	_refresh_rows()
-	_refresh_counts()
-	_xp_bar.max_value = Run.xp_to_next()
-	_xp_bar.value = Run.xp
+	_set_xp(Run.xp, Run.xp_to_next())
+	_gold.text = W.num(Run.run_gold)
+	_lv.text = "LV %d" % Run.level
+	_fit_top.call_deferred()
+	_layout_toasts()
+
+
+## While a modal that pauses the run is up (level-up, chest, shop, pause...), the HUD steps aside; the gate brings it
+## back so the card can land in its slot.
+func _process(_delta: float) -> void:
+	var covered := false
+	for m in get_tree().get_nodes_in_group("wanted_modal"):
+		if (m as CanvasItem).visible:
+			covered = true
+			break
+	if visible == covered:
+		visible = not covered
+
+
+func _plate(border: int = 4, shadow: int = 5, pad := Vector2(18, 4)) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_theme_stylebox_override("panel", W.box(W.PAPER, border, shadow).pad(pad.x + border, pad.y + border, pad.x + border, pad.y + border))
+	return p
 
 
 func _build_band() -> void:
+	# the strip: a tap anywhere on it pauses (the plates let the touch through)
 	_band = Control.new()
-	_band.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_band.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_band.offset_bottom = BAND_H
 	_band.mouse_filter = Control.MOUSE_FILTER_STOP
 	_band.gui_input.connect(func(ev):
-		if ev is InputEventScreenTouch and ev.pressed:
-			pause_requested.emit()
-		elif ev is InputEventMouseButton and ev.pressed:
+		if (ev is InputEventScreenTouch and ev.pressed) or (ev is InputEventMouseButton and ev.pressed):
 			pause_requested.emit())
 	add_child(_band)
-	# a soft gradient instead of a solid panel: the world shows through and the strip reads as thin
-	var shade := TextureRect.new()
-	var grad := Gradient.new()
-	grad.set_color(0, Color(0.03, 0.04, 0.09, 0.8))
-	grad.set_color(1, Color(0.03, 0.04, 0.09, 0.0))
-	var gt := GradientTexture2D.new()
-	gt.gradient = grad
-	gt.width = 8
-	gt.height = 64
-	gt.fill_from = Vector2(0, 0)
-	gt.fill_to = Vector2(0, 1)
-	shade.texture = gt
-	shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	shade.stretch_mode = TextureRect.STRETCH_SCALE
-	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	shade.offset_bottom = 60
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_band.add_child(shade)
-	var v := UiKit.vbox(6)
-	v.set_anchors_preset(Control.PRESET_FULL_RECT)
-	v.offset_left = 36
-	v.offset_right = -36
-	v.offset_top = 40
-	v.offset_bottom = -8
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_band.add_child(v)
-	# row 1: level · XP bar · stage
-	var top := UiKit.hbox(14)
-	_lv = UiKit.outline(UiKit.label("LV 1", 36, UiKit.INK), 5)
-	_lv.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_lv.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_lv.custom_minimum_size = Vector2(104, 0)
-	top.add_child(_lv)
-	_xp_bar = ProgressBar.new()
-	_xp_bar.custom_minimum_size = Vector2(0, 20)
-	_xp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_xp_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_xp_bar.show_percentage = false
-	_xp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_xp_bar.add_theme_stylebox_override("background", UiKit.bar(Color(0, 0, 0, 0.5), 10, Color(1, 1, 1, 0.2), 2))
-	_xp_bar.add_theme_stylebox_override("fill", UiKit.bar(UiKit.XP, 10, Color(1, 1, 1, 0.22), 2))
-	top.add_child(_xp_bar)
-	_stage = UiKit.outline(UiKit.label("STAGE 1", 22, UiKit.INK2, HORIZONTAL_ALIGNMENT_RIGHT), 4)
-	_stage.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_stage.size_flags_horizontal = Control.SIZE_SHRINK_END
-	_stage.custom_minimum_size = Vector2(300, 0)
-	top.add_child(_stage)
-	v.add_child(top)
-	# row 2: kills · timer · gold (the pause button floats at the right end)
-	var mid := UiKit.hbox(10)
-	_kills = UiKit.outline(UiKit.label("0 kills · 0 alive", 24, UiKit.INK2), 4)
-	_kills.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_kills.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_kills.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_kills.custom_minimum_size = Vector2(300, 0)
-	mid.add_child(_kills)
-	_timer = UiKit.outline(UiKit.label("00:00", 54, UiKit.INK, HORIZONTAL_ALIGNMENT_CENTER), 7)
-	_timer.autowrap_mode = TextServer.AUTOWRAP_OFF
-	mid.add_child(_timer)
-	var right := UiKit.hbox(8)
-	right.alignment = BoxContainer.ALIGNMENT_END
-	right.size_flags_horizontal = Control.SIZE_SHRINK_END
-	right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	right.custom_minimum_size = Vector2(300, 0)
-	_gold = UiKit.outline(UiKit.label("0", 30, UiKit.ACCENT, HORIZONTAL_ALIGNMENT_RIGHT), 5)
-	_gold.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_gold.size_flags_horizontal = Control.SIZE_SHRINK_END
-	right.add_child(_gold)
-	var coin := Panel.new()
-	coin.custom_minimum_size = Vector2(28, 28)
-	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	coin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	coin.add_theme_stylebox_override("panel", UiKit.bar(UiKit.ACCENT, 14, UiKit.ACCENT_INK, 3))
-	right.add_child(coin)
-	var room := UiKit.spacer(0)
-	room.custom_minimum_size = Vector2(90, 0)   # the pause button sits here
-	right.add_child(room)
-	mid.add_child(right)
-	v.add_child(mid)
-	# row 3: six weapon slots on the left, six passive slots on the right (square vs round plates tell them apart)
-	var rows := UiKit.hbox(0)
-	_weapon_row = UiKit.hbox(8)
-	_weapon_row.alignment = BoxContainer.ALIGNMENT_BEGIN
-	_passive_row = UiKit.hbox(8)
-	_passive_row.alignment = BoxContainer.ALIGNMENT_END
-	rows.add_child(_weapon_row)
-	rows.add_child(_passive_row)
-	v.add_child(rows)
-	# the round pause button, where Survivor.io has it
-	_pause_btn = UiKit.button("", 26, true, 76)
-	_pause_btn.custom_minimum_size = Vector2(76, 76)
-	_pause_btn.add_theme_stylebox_override("normal", UiKit.stylebox(UiKit.ACCENT, 38, Color(0, 0, 0, 0), 0, true, true, false))
-	_pause_btn.add_theme_stylebox_override("hover", UiKit.stylebox(UiKit.ACCENT.lightened(0.06), 38, Color(0, 0, 0, 0), 0, true, true, false))
-	_pause_btn.add_theme_stylebox_override("pressed", UiKit.stylebox(UiKit.ACCENT.darkened(0.12), 38, Color(0, 0, 0, 0), 0, false, false, false))
-	_pause_btn.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_pause_btn.offset_left = -112
-	_pause_btn.offset_right = -36
-	_pause_btn.offset_top = 92
-	_pause_btn.offset_bottom = 168
-	_pause_btn.pressed.connect(func(): pause_requested.emit())
-	_band.add_child(_pause_btn)
-	# two bars as panels, so the glyph never depends on a font
+	# the XP rail: 18 px of ink along the top edge, the fill 12 px inset 3 from its top
+	_rail = Control.new()
+	_rail.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_rail.offset_bottom = RAIL_H
+	_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_rail.draw.connect(func():
+		_rail.draw_rect(Rect2(0, 0, _rail.size.x, RAIL_H), W.INK)
+		if _xp_frac > 0.0:
+			_rail.draw_rect(Rect2(0, 3, _rail.size.x * _xp_frac, RAIL_H - 6.0), W.EPIC))
+	add_child(_rail)
+	_top = Control.new()
+	_top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_top.offset_bottom = SLOT_Y - 10.0
+	_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_top)
+	_lv_plate = _plate()
+	_lv = W.text("LV 1", W.slab(), PLATE_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_lv_plate.add_child(_lv)
+	_lv_plate.position = Vector2(36, TOP_Y)
+	_top.add_child(_lv_plate)
+	_timer_plate = _plate(4, 5, Vector2(32, 0))
+	_timer = W.text("00:00", W.slab(), TIMER_PX, W.INK, HORIZONTAL_ALIGNMENT_CENTER, TIMER_PX * 1.15)
+	_timer_plate.add_child(_timer)
+	_timer_plate.position = Vector2(400, TOP_Y)
+	_top.add_child(_timer_plate)
+	_gold_plate = _plate()
+	var gr := HBoxContainer.new()
+	gr.add_theme_constant_override("separation", 10)
+	gr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gr.add_child(WCoin.make(32.0))
+	_gold = W.text("0", W.slab(), PLATE_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_gold.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	gr.add_child(_gold)
+	_gold_plate.add_child(gr)
+	_top.add_child(_gold_plate)
+	# the brass pause disc: a 4 px border, two ink bars
+	_pause_btn = WTap.new()
+	var pb := W.box(W.BRASS, 4, 5, int(DISC * 0.5))
+	_pause_btn.box = pb
+	_pause_btn.box_down = pb.pressed(W.BRASS_DARK)
+	_pause_btn.custom_minimum_size = Vector2(DISC, DISC)
+	_pause_btn.size = Vector2(DISC, DISC)
 	var bars := HBoxContainer.new()
+	bars.alignment = BoxContainer.ALIGNMENT_CENTER
 	bars.add_theme_constant_override("separation", 10)
-	bars.set_anchors_preset(Control.PRESET_CENTER)
-	bars.offset_left = -15
-	bars.offset_right = 15
-	bars.offset_top = -17
-	bars.offset_bottom = 13
 	bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for i in range(2):
-		var bar := Panel.new()
-		bar.custom_minimum_size = Vector2(10, 30)
-		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		bar.add_theme_stylebox_override("panel", UiKit.bar(UiKit.ACCENT_INK, 4))
-		bars.add_child(bar)
+	for i in 2:
+		var b := ColorRect.new()
+		b.color = W.INK
+		b.custom_minimum_size = Vector2(10, 30)
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		b.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bars.add_child(b)
 	_pause_btn.add_child(bars)
-	# boss countdown floats just under the strip
-	_boss_in = UiKit.outline(UiKit.label("", 30, UiKit.DANGER, HORIZONTAL_ALIGNMENT_CENTER), 5)
-	_boss_in.autowrap_mode = TextServer.AUTOWRAP_OFF
-	_boss_in.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_boss_in.offset_top = BAND_H + 2
-	_boss_in.offset_bottom = BAND_H + 46
-	_boss_in.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_boss_in.visible = false
-	add_child(_boss_in)
-	# timed buffs from pickups, each an icon with its seconds left, under the strip on the left
-	_buffs = UiKit.hbox(10)
-	_buffs.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_buffs.offset_left = 36
-	_buffs.offset_top = BAND_H + 4
-	_buffs.offset_right = 500
-	_buffs.offset_bottom = BAND_H + 64
+	_pause_btn.pressed.connect(func(): pause_requested.emit())
+	_top.add_child(_pause_btn)
+	# the held items, under the top row
+	_slots = Control.new()
+	_slots.position = Vector2(36, SLOT_Y)
+	_slots.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_slots)
+	# timed power-ups (plates with their seconds) and the Adrenaline count, under the slots on the left
+	_buffs = HBoxContainer.new()
+	_buffs.add_theme_constant_override("separation", 14)
 	_buffs.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_buffs)
+	_adren = W.text("", W.slab(), 28, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_adren.stroke = 2
+	_adren.shadow = 3
+	_adren.visible = false
+	add_child(_adren)
 
 
-func _slot(def: ContentDef, level: int, max_level: int, kind: String) -> Control:
-	var root := Control.new()
-	root.custom_minimum_size = Vector2(SLOT, SLOT)
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if def:
-		root.add_child(UiKit.icon_view(def, SLOT, kind))
-		# level badge over the corner, gold once maxed
-		var maxed := level >= max_level
-		var badge := Panel.new()
-		badge.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-		badge.offset_left = -30
-		badge.offset_right = 6
-		badge.offset_top = -30
-		badge.offset_bottom = 6
-		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		badge.add_theme_stylebox_override("panel", UiKit.bar(UiKit.BG, 17, UiKit.ACCENT if maxed else UiKit.LINE, 2))
-		var num := UiKit.outline(UiKit.label(str(level), 20, UiKit.ACCENT if maxed else UiKit.INK, HORIZONTAL_ALIGNMENT_CENTER), 3)
-		num.autowrap_mode = TextServer.AUTOWRAP_OFF
-		num.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		num.set_anchors_preset(Control.PRESET_FULL_RECT)
-		num.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		badge.add_child(num)
-		root.add_child(badge)
-	elif kind == "weapon":
-		var empty := Panel.new()
-		empty.set_anchors_preset(Control.PRESET_FULL_RECT)
-		empty.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		empty.add_theme_stylebox_override("panel", UiKit.bar(Color(0, 0, 0, 0.35), 14, Color(1, 1, 1, 0.22), 2))
-		root.add_child(empty)
-	else:
-		# a translucent circle as a texture: a StyleBoxFlat circle double-blends down its middle
-		var disc := TextureRect.new()
-		disc.texture = UiKit.circle_texture(SLOT, Color(0, 0, 0, 0.35), Color(1, 1, 1, 0.22), 0.07)
-		disc.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		disc.set_anchors_preset(Control.PRESET_FULL_RECT)
-		disc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		root.add_child(disc)
-	return root
+## Place the top row on TOP_Y: LV at left 36, the clock centred, gold just left of the disc, the disc at right 36.
+func _fit_top() -> void:
+	var w := get_viewport_rect().size.x
+	for p in [_lv_plate, _timer_plate, _gold_plate]:
+		(p as Control).reset_size()
+	_lv_plate.position = Vector2(36, TOP_Y)
+	_timer_plate.position = Vector2((w - _timer_plate.size.x) * 0.5, TOP_Y)
+	_gold_plate.position = Vector2(w - 36 - DISC - 18 - _gold_plate.size.x, TOP_Y)
+	_pause_btn.position = Vector2(w - 36 - DISC, TOP_Y - 2)
+	_pause_btn.size = Vector2(DISC, DISC)
 
 
-func _refresh_rows() -> void:
-	var t0 := Time.get_ticks_usec()
-	for c in _weapon_row.get_children():
-		c.queue_free()
-	for c in _passive_row.get_children():
-		c.queue_free()
-	for i in range(Run.MAX_WEAPONS):
-		if i < Run.weapons.size():
-			var w: WeaponInstance = Run.weapons[i]
-			_weapon_row.add_child(_slot(w.def, w.level, w.def.max_level, "weapon"))
-		else:
-			_weapon_row.add_child(_slot(null, 0, 8, "weapon"))
-	var pids := Run.passives.keys()
-	for i in range(Run.MAX_PASSIVES):
-		if i < pids.size():
-			var def: PassiveDef = Registry.passive(pids[i])
-			_passive_row.add_child(_slot(def, int(Run.passives[pids[i]]), def.max_level if def else 8, "passive"))
-		else:
-			_passive_row.add_child(_slot(null, 0, 8, "passive"))
-	Perf.add("hud.rows", t0)
-
-
-func _refresh_counts() -> void:
-	_kills.text = "%d kills · %d alive" % [Run.kills, Run.alive]
-
-
-func refresh_stage() -> void:
-	var name := Run.map.display_name.to_upper() if Run.map else ""
-	_stage.text = ("ENDLESS · " if Run.endless else "STAGE %d · " % (Run.stage + 1)) + name
-
-
-func _build_player_hp() -> void:
-	pass   # the bar is a HealthBar3D under the hero (player/HealthBar3D.gd)
-
-
-## The run ends the frame the hero falls, so tick() stops: hide the bar and the stick ring explicitly.
-func hide_player_bar() -> void:
-	if game and game.player and game.player.health_bar:
-		game.player.health_bar.visible = false
-	_ring_alpha = 0.0
-	queue_redraw()
-
-
-func set_hp(hp: float, max_hp: float) -> void:
-	_hp = clamp(hp / max(max_hp, 1.0), 0.0, 1.0)
-	if game and game.player and game.player.health_bar:
-		game.player.health_bar.set_fraction(_hp)
+func _set_xp(xp: float, need: float) -> void:
+	_xp_frac = clampf(xp / maxf(need, 1.0), 0.0, 1.0)
+	_rail.queue_redraw()
 
 
 func _build_boss() -> void:
-	_boss_box = UiKit.vbox(6)
-	_boss_box.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_boss_box.offset_top = BAND_H + 50
-	_boss_box.offset_left = 60
-	_boss_box.offset_right = -60
+	_boss_box = VBoxContainer.new()
+	_boss_box.alignment = BoxContainer.ALIGNMENT_BEGIN
+	_boss_box.add_theme_constant_override("separation", 10)
 	_boss_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_boss_name = UiKit.outline(UiKit.label("", 30, UiKit.DANGER, HORIZONTAL_ALIGNMENT_CENTER), 5)
-	_boss_bar = ProgressBar.new()
-	_boss_bar.custom_minimum_size = Vector2(0, 26)
-	_boss_bar.show_percentage = false
-	_boss_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_boss_bar.add_theme_stylebox_override("background", UiKit.bar(Color(0, 0, 0, 0.5), 13, Color(1, 1, 1, 0.2), 2))
-	_boss_bar.add_theme_stylebox_override("fill", UiKit.bar(UiKit.DANGER, 13, Color(1, 1, 1, 0.22), 2))
-	_boss_box.add_child(_boss_name)
-	_boss_box.add_child(_boss_bar)
 	_boss_box.visible = false
+	var plate := PanelContainer.new()
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var ink := W.box(W.INK, 0, 0).pad(28, 6, 28, 6)
+	plate.add_theme_stylebox_override("panel", ink)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_icon = TextureRect.new()
+	_boss_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_boss_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_boss_icon.custom_minimum_size = Vector2(40, 40)
+	_boss_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_boss_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(_boss_icon)
+	_boss_name = W.text("", W.slab(W.em(26, 0.06)), 26, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	_boss_name.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(_boss_name)
+	plate.add_child(row)
+	_boss_box.add_child(plate)
+	_boss_bar = WBar.make(1.0, W.ROCK, 30.0, 4, 4)
+	_boss_box.add_child(_boss_bar)
 	add_child(_boss_box)
 
 
 func show_boss(def: EnemyDef) -> void:
 	_boss_name.text = def.display_name.to_upper()
+	var badge := "res://art/ui/badges/%s.png" % def.badge_for()
+	_boss_icon.texture = load(badge) if ResourceLoader.exists(badge) else def.icon
 	_boss_box.visible = true
-	UiFx.pop(_boss_box, 0.0, 0.9, 0.3)
+	_layout_toasts()
 
 
 func set_boss_hp(hp: float, max_hp: float) -> void:
-	_boss_bar.max_value = max_hp
-	_boss_bar.value = hp
+	_boss_bar.value = hp / maxf(max_hp, 1.0)
 
 
 func hide_boss() -> void:
 	_boss_box.visible = false
+	_layout_toasts()
 
 
-func _build_toasts() -> void:
-	_toasts = UiKit.vbox(8)
-	_toasts.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_toasts.offset_top = 560
-	_toasts.offset_left = -400
-	_toasts.offset_right = 400
-	_toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_toasts.alignment = BoxContainer.ALIGNMENT_BEGIN
-	add_child(_toasts)
-	_banner = UiKit.outline(UiKit.label("", 84, UiKit.ACCENT, HORIZONTAL_ALIGNMENT_CENTER), 8)
-	_banner.set_anchors_preset(Control.PRESET_CENTER)
-	_banner.offset_left = -520
-	_banner.offset_right = 520
-	_banner.offset_top = -420
-	_banner.offset_bottom = -300
-	_banner.modulate.a = 0.0
-	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_banner)
+## Under the slots: the boss's plate and bar while a boss lives, the power-ups on the left, and the toasts below
+## whichever is lowest.
+func _layout_toasts() -> void:
+	var w := get_viewport_rect().size.x
+	_boss_box.position = Vector2(60, _slots_bottom + 20.0)
+	_boss_box.size = Vector2(w - 120, 0)
+	_buffs.position = Vector2(36, _slots_bottom + 14.0)
+	_adren.position = Vector2(36, _slots_bottom + 14.0 + (74.0 if _buffs.get_child_count() > 0 else 0.0))
+	var y := _slots_bottom + 18.0
+	if _boss_box.visible:
+		y = _boss_box.position.y + _boss_box.get_combined_minimum_size().y + 20.0
+	_toasts.position = Vector2(0, y)
+	_toasts.size = Vector2(w, 200)
 
 
-func toast(text: String, color: Color = UiKit.INK) -> void:
-	var l := UiKit.outline(UiKit.label(text, 34, color, HORIZONTAL_ALIGNMENT_CENTER), 5)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_toasts.add_child(l)
-	UiFx.pop(l, 0.0, 0.9, 0.22)
+func _refresh_rows() -> void:
+	var t0 := Time.get_ticks_usec()
+	for c in _slots.get_children():
+		c.queue_free()
+	_slot_nodes.clear()
+	var items: Array = []   # [def, level, is_weapon, rivets]
+	for w in Run.weapons:
+		var inst: WeaponInstance = w
+		items.append([inst.def, inst.level, true, inst.mutations.size()])
+	for pid in Run.passives.keys():
+		var pd: PassiveDef = Registry.passive(pid)
+		if pd:
+			items.append([pd, int(Run.passives[pid]), false, 0])
+	for lid in Run.lines.keys():
+		var ld = Registry.line(lid)
+		if ld:
+			items.append([ld, int(Run.lines[lid]), false, 0])
+	# weapons WEAPON_PX, passives and lines OTHER_PX, SLOT_GAP apart, GROUP_GAP more between the two groups: all on one
+	# row while it fits at 85 % or more; past that the weapons keep a row of their own and the passives and lines take a
+	# second one under it, each row shrinking only as far as it must (plates never squeeze into each other's level tags)
+	var avail := get_viewport_rect().size.x - 72.0
+	var weapons := items.filter(func(it): return bool(it[2]))
+	var others := items.filter(func(it): return not bool(it[2]))
+	var rows: Array = [items]
+	if _row_width(items) * 0.85 > avail:
+		rows = [weapons, others]
+	var y := 0.0
+	for row in rows:
+		if (row as Array).is_empty():
+			continue
+		var k := minf(avail / maxf(_row_width(row), 1.0), 1.0)
+		var x := 0.0
+		var was_weapon := true
+		var row_h := 0.0
+		for it in row:
+			var is_w: bool = it[2]
+			var side := (WEAPON_PX if is_w else OTHER_PX) * k
+			if not is_w and was_weapon and x > 0.0:
+				x += GROUP_GAP * k
+			was_weapon = is_w
+			var p := WPlate.new().for_def(it[0], side)
+			p.border = 4
+			p.radius = 10
+			p.icon_frac = 0.66 if is_w else 0.62
+			p.level_text = str(it[1])
+			p.level_size = int(round((19 if is_w else 17) * maxf(k, 0.8)))
+			p.rivets = int(it[3])
+			p.rivet_size = 15.0 * k
+			# a passive beside the weapons sits a little low (the mock's row); on its own row it starts at the top
+			p.position = Vector2(x, y + (6.0 * k if not is_w and rows.size() == 1 else 0.0))
+			_slots.add_child(p)
+			_slot_nodes[(it[0] as ContentDef).id] = p
+			x += side + SLOT_GAP * k
+			row_h = maxf(row_h, side + (6.0 * k if not is_w and rows.size() == 1 else 0.0))
+		y += row_h + ROW_GAP
+	_slots_bottom = SLOT_Y + maxf(y - ROW_GAP, 0.0) + 6.0
+	# the strip that pauses on a tap reaches under the slots (and the thumb zone starts below it)
+	band_h = maxf(float(BAND_H), _slots_bottom + 14.0)
+	_band.offset_bottom = band_h
+	_layout_toasts()
+	Perf.add("hud.rows", t0)
+
+
+## One row's width at full size: weapons WEAPON_PX, the rest OTHER_PX, SLOT_GAP apart, GROUP_GAP more where the
+## weapons end.
+func _row_width(row: Array) -> float:
+	var nw := 0
+	var np := 0
+	for it in row:
+		if bool(it[2]):
+			nw += 1
+		else:
+			np += 1
+	return nw * WEAPON_PX + np * OTHER_PX + maxf(nw + np - 1, 0) * SLOT_GAP + (GROUP_GAP if nw > 0 and np > 0 else 0.0)
+
+
+## Where an item's slot is on screen (the gate's flying card lands there); an empty rect when it has none.
+func slot_rect(id: String) -> Rect2:
+	var p: WPlate = _slot_nodes.get(id)
+	return p.get_global_rect() if p else Rect2()
+
+
+## The gate's mark on the slot that just took the pick: a brass border and a brass level tag, for as long as it waits.
+func mark_slot(id: String, on: bool) -> void:
+	var p: WPlate = _slot_nodes.get(id)
+	if p == null:
+		return
+	p.border_color = W.BRASS if on else W.INK
+	p.level_fill = W.BRASS if on else W.PAPER
+	p.ring = p.base_ring
+	p.queue_redraw()
+
+
+## The run ends the frame the hero falls, so tick() stops: hide the bars and the stick ring explicitly.
+func hide_player_bar() -> void:
+	_hero_bars = false
+	_ring_alpha = 0.0
+	queue_redraw()
+
+
+## Back after a revive.
+func show_player_bar() -> void:
+	_hero_bars = true
+	_ring_alpha = 0.0
+	queue_redraw()
+
+
+func set_hp(hp: float, max_hp: float) -> void:
+	_hp = clampf(hp / maxf(max_hp, 1.0), 0.0, 1.0)
+	queue_redraw()
+
+
+# the hero's bars: health (sage, rock when low) with the shield (rare blue) under it, both on an ink track with 2 px of
+# padding, drawn at a fixed spot under the hero on screen (CameraRig.hero_anchor) and 1.5 m wide at the camera's zoom
+var _hero_bars := true
+var _bar_c := Vector2.ZERO
+var _bar_w := 0.0
+var _bar_h := 0.0
+var _shield_frac := -1.0
+
+
+func _tick_hero_bars() -> void:
+	if game == null or game.player == null or game.camera == null or not game.camera.has_method("hero_anchor"):
+		return
+	var a: Dictionary = game.camera.hero_anchor()
+	var ppm: float = a["ppm"]
+	_bar_w = 1.5 * ppm
+	_bar_h = maxf(0.15 * ppm, 8.0)
+	_bar_c = (a["pos"] as Vector2) + Vector2(0, 0.42 * ppm)
+	var p = game.player
+	var smax: float = p.sheet.get_stat("shield_max", 0.0) if p.sheet else 0.0
+	_shield_frac = clampf(float(p.shield_pts) / smax, 0.0, 1.0) if smax > 0.0 else -1.0
+
+
+func _draw_hero_bars() -> void:
+	if not _hero_bars or _bar_w <= 0.0 or (game and game.player and game.player.dead):
+		return
+	var hh := _bar_h + 4.0
+	var r := Rect2(_bar_c - Vector2(_bar_w * 0.5, hh * 0.5), Vector2(_bar_w, hh))
+	draw_rect(r, W.INK)
+	if _hp > 0.0:
+		var fr := r.grow(-2.0)
+		draw_rect(Rect2(fr.position, Vector2(fr.size.x * _hp, fr.size.y)), W.SAGE if _hp > 0.35 else W.ROCK)
+	if _shield_frac >= 0.0:
+		var sh := maxf(_bar_h * 0.71, 6.0) + 4.0
+		var sr := Rect2(Vector2(r.position.x, r.end.y + 4.0), Vector2(_bar_w, sh))
+		draw_rect(sr, W.INK)
+		if _shield_frac > 0.0:
+			var sf := sr.grow(-2.0)
+			draw_rect(Rect2(sf.position, Vector2(sf.size.x * _shield_frac, sf.size.y)), W.RARE)
+
+
+## A full-screen flash that fades (the nuke, a harpoon hit).
+func flash(col: Color, seconds: float) -> void:
+	if _flash_rect == null:
+		_flash_rect = ColorRect.new()
+		_flash_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_flash_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		add_child(_flash_rect)
+	_flash_rect.color = col
+	_flash_rect.visible = true
 	var tw := create_tween()
-	tw.tween_interval(1.6)
-	tw.tween_property(l, "modulate:a", 0.0, 0.4)
-	tw.tween_callback(l.queue_free)
-	while _toasts.get_child_count() > 4:
-		var old := _toasts.get_child(0)
-		_toasts.remove_child(old)
-		old.queue_free()
+	tw.tween_property(_flash_rect, "color:a", 0.0, seconds).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_callback(func(): _flash_rect.visible = false)
 
 
-func banner(text: String, color: Color = UiKit.ACCENT) -> void:
-	_banner.text = text
-	_banner.add_theme_color_override("font_color", color)
-	_banner.modulate.a = 1.0
-	_banner.scale = Vector2(0.7, 0.7)
-	_banner.pivot_offset = _banner.size * 0.5
+func toast(text: String, color: Color = W.PAPER) -> void:
+	_toasts.push(text, color)
+
+
+## A first-play hint: it sits in the toast slot until cleared.
+func hint(text: String) -> void:
+	_toasts.hint(text)
+
+
+func clear_hint() -> void:
+	_toasts.clear_hint()
+
+
+## News that takes the top row for 2 s. An evolution is ember with the weapon's icon; the rest are ink.
+func banner(text: String, color: Color = W.INK, icon: Texture2D = null) -> void:
+	var t := text.replace(": ", " · ")
+	var ember := t.begins_with("EVOLVED") or (icon != null)
+	_banner.play(t, ember, icon, TOP_Y)
+
+
+func _on_banner(on: bool) -> void:
 	var tw := create_tween()
-	tw.tween_property(_banner, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_interval(1.4)
-	tw.tween_property(_banner, "modulate:a", 0.0, 0.5)
+	tw.tween_property(_top, "modulate:a", 0.0 if on else 1.0, 0.15)
 
 
-## Gems collected within a quarter second are shown as one "+N XP" rising from the hero, and the bar pops.
+## Gems collected within a quarter second are shown as one "+N XP" rising from the hero.
 func _on_xp_gained(amount: float) -> void:
 	_xp_batch += amount
 	if _xp_batch_t <= 0.0:
@@ -414,32 +489,35 @@ func _tick_xp_popup(delta: float) -> void:
 	if cam.is_position_behind(wp):
 		return
 	var sp := cam.unproject_position(wp)
-	var vp := get_viewport().get_visible_rect().size
-	var s := vp.x / 1080.0
-	var l := UiKit.outline(UiKit.label("+%d XP" % n, 34 if n < 50 else 42, UiKit.XP.lightened(0.25), HORIZONTAL_ALIGNMENT_CENTER), 5)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	l.autowrap_mode = TextServer.AUTOWRAP_OFF
-	l.size = Vector2(300 * s, 60 * s)
-	l.position = sp - Vector2(150 * s, 30 * s)
-	l.scale = Vector2(s, s) * 0.6
+	var px := 32 if n < 50 else 40
+	var l := W.text("+%d XP" % n, W.slab(), px, W.TOAST_PURPLE, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	l.stroke = 2
+	l.shadow = 2
+	l.size = Vector2(300, 60)
+	l.position = sp - Vector2(150, 30)
+	l.scale = Vector2(0.6, 0.6)
 	l.pivot_offset = l.size * 0.5
 	add_child(l)
 	var tw := create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(l, "scale", Vector2(s, s), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_property(l, "position:y", l.position.y - 110 * s, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(l, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(l, "position:y", l.position.y - 110, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(l, "modulate:a", 0.0, 0.35).set_delay(0.55)
 	tw.chain().tween_callback(l.queue_free)
-	# the bar itself pops
-	_xp_bar.pivot_offset = Vector2(0, _xp_bar.size.y * 0.5)
-	var tb := create_tween()
-	tb.tween_property(_xp_bar, "scale", Vector2(1.0, 1.45), 0.08)
-	tb.tween_property(_xp_bar, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func flash_level(level: int) -> void:
 	_lv.text = "LV %d" % level
-	UiFx.punch(_lv, 1.3, 0.3)
+	_fit_top()
+	_lv_plate.pivot_offset = _lv_plate.size * 0.5
+	var tw := create_tween()
+	tw.tween_property(_lv_plate, "scale", Vector2(1.18, 1.18), 0.12)
+	tw.tween_property(_lv_plate, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## No stage name on the HUD any more (the pause screen says it); kept for the callers.
+func refresh_stage() -> void:
+	pass
 
 
 func _refresh_buffs() -> void:
@@ -452,51 +530,52 @@ func _refresh_buffs() -> void:
 			c.queue_free()
 		for tb in Run.timed:
 			var def: PickupDef = Registry.pickup(str(tb["id"]))
-			var cell := UiKit.hbox(4)
-			cell.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-			cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			if def:
-				cell.add_child(UiKit.icon_view(def, 48, "pickup"))
-			var l := UiKit.outline(UiKit.label("", 24, UiKit.INK), 4)
-			l.name = "secs"
-			l.autowrap_mode = TextServer.AUTOWRAP_OFF
-			l.custom_minimum_size = Vector2(44, 0)
-			l.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-			l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			cell.add_child(l)
-			_buffs.add_child(cell)
+			if def == null:
+				continue
+			var p := WPlate.new().for_def(def, 72.0)
+			p.fill = W.SAGE
+			p.icon_frac = 0.66
+			p.level_size = 20
+			p.name = "buff"
+			_buffs.add_child(p)
+		_layout_toasts()
+	if _adren:
+		_adren.visible = Run.adrenaline > 0
+		if Run.adrenaline > 0:
+			_adren.text = "ADRENALINE ×%d" % Run.adrenaline
 	var k := 0
 	for tb in Run.timed:
 		if k < _buffs.get_child_count():
-			var l: Label = _buffs.get_child(k).get_node_or_null("secs")
-			if l:
-				l.text = "%ds" % int(ceil(float(tb["until"]) - Run.elapsed))
+			var p := _buffs.get_child(k) as WPlate
+			if p:
+				var s := "%d" % int(ceil(float(tb["until"]) - Run.elapsed))
+				if p.level_text != s:
+					p.level_text = s
+					p.queue_redraw()
 		k += 1
 
 
-func tick(_delta: float) -> void:
-	_timer.text = TextGen.time_mmss(Run.elapsed)
+func tick(delta: float) -> void:
+	_timer.text = W.mmss(Run.elapsed)
+	if _timer_plate.size.x > 0.0 and absf(_timer_plate.get_combined_minimum_size().x - _timer_plate.size.x) > 1.0:
+		_fit_top()
 	_refresh_buffs()
-	# boss countdown: visible in the last 45 s, a banner at 30 s, pulsing red in the last 10
+	_toasts.tick(delta)
+	# the boss: a banner at 30 s and a toast at 10 s (no countdown label on the HUD any more)
 	var boss_t: float = game.director.next_boss_in() if game and game.get("director") and game.director and game.director.has_method("next_boss_in") else -1.0
-	if boss_t > 0.0 and boss_t <= 45.0:
-		_boss_in.visible = true
-		_boss_in.text = "BOSS IN %s" % TextGen.time_mmss(boss_t)
-		if boss_t <= 10.0:
-			_boss_in.pivot_offset = _boss_in.size * 0.5
-			_boss_in.scale = Vector2.ONE * (1.0 + 0.12 * absf(sin(Run.elapsed * 8.0)))
-		else:
-			_boss_in.scale = Vector2.ONE
-		if boss_t <= 30.0 and not _boss_warned:
+	if boss_t > 0.0 and boss_t <= 30.0:
+		if not _boss_warned:
 			_boss_warned = true
-			banner("BOSS INCOMING", UiKit.DANGER)
+			banner("BOSS INCOMING")
 			Audio.play("en_boss_roar")
-	else:
-		_boss_in.visible = false
-		if boss_t > 45.0 or boss_t < 0.0:
-			_boss_warned = false
-	# the hero's hp bar lives in the world now (player/HealthBar3D.gd), so it never trails the sprite
-	_tick_xp_popup(_delta)
+		if boss_t <= 10.0 and not _boss_ten:
+			_boss_ten = true
+			toast("BOSS IN 10 s")
+	elif boss_t > 45.0 or boss_t < 0.0:
+		_boss_warned = false
+		_boss_ten = false
+	_tick_hero_bars()
+	_tick_xp_popup(delta)
 	_tick_arrow()
 	# the joystick ring follows the thumb; keyboard play (PC) draws none
 	if game and game.player and game.player.input and game.player.input.wants_move and not game.player.input.keyboard:
@@ -505,40 +584,42 @@ func tick(_delta: float) -> void:
 		_stick_r = game.player.input.radius_px()
 		_ring_alpha = 1.0
 	elif _ring_alpha > 0.0:
-		_ring_alpha = maxf(_ring_alpha - _delta * 3.0, 0.0)
+		_ring_alpha = maxf(_ring_alpha - delta * 3.0, 0.0)
 	queue_redraw()
 
 
-## Where the big one is. The boss first, else the mini-boss; nothing when both are dead or the target is on screen.
+## Where the big things are: the boss while it lives (rock), the portal it leaves (sage), the Elite (ember). A tag on
+## the screen's edge for each one off screen, none for one on it.
 func _tick_arrow() -> void:
-	_arrow_on = false
+	_arrows.clear()
+	for t in test_arrows:
+		_arrows.append({"pos": t["pos"], "dir": Vector2(float(t["side"]), 0), "color": t["color"], "side": int(t["side"]), "text": t["text"]})
 	if game == null or game.player == null or game.camera == null or game.enemies == null:
-		_arrow_label.visible = false
+		_sync_pointers()
 		return
 	var em: EnemyManager = game.enemies
-	var target := Vector3.INF
-	var color := UiKit.DANGER
-	var name := "BOSS"
 	if em.boss_index >= 0 and em.is_alive(em.boss_index):
-		target = em.pos[em.boss_index]
-	elif game.director and game.director.has_method("elite_position"):
-		target = game.director.elite_position()
-		color = Color(0.98, 0.62, 0.25)
-		name = "ELITE"
-	if target == Vector3.INF:
-		_arrow_label.visible = false
-		return
+		_edge_arrow(em.pos[em.boss_index], BOSS_RED, "BOSS")
+	var portal = game.get("portal")
+	if portal != null and is_instance_valid(portal):
+		_edge_arrow((portal as Node3D).global_position, PORTAL_GREEN, "PORTAL")
+	if game.director and game.director.has_method("elite_position"):
+		var ep: Vector3 = game.director.elite_position()
+		if ep != Vector3.INF:
+			_edge_arrow(ep, ELITE_ORANGE, "ELITE")
+	_sync_pointers()
+
+
+## A tag on the left or right edge towards `target`, unless it is on screen: at the height where the line from the
+## hero towards it leaves the play area, saying `name` and how far.
+func _edge_arrow(target: Vector3, color: Color, name: String) -> void:
 	var cam: Camera3D = game.camera.camera
 	var vp := get_viewport().get_visible_rect().size
-	var s := vp.x / 1080.0
-	# the play area below the strip, the countdown and the boss bar, above the bottom gesture zone
-	var rect := Rect2(Vector2(40 * s, BAND_H * s + 200 * s), Vector2(vp.x - 80 * s, vp.y - BAND_H * s - 360 * s))
+	var rect := Rect2(Vector2(0, _slots_bottom + 140.0), Vector2(vp.x, vp.y - _slots_bottom - 340.0))
 	if not cam.is_position_behind(target + Vector3(0, 1, 0)):
 		var sp := cam.unproject_position(target + Vector3(0, 1, 0))
-		if rect.has_point(sp):
-			_arrow_label.visible = false
+		if Rect2(Vector2.ZERO, vp).has_point(sp) and sp.y > _slots_bottom:
 			return
-	# direction on the ground, turned into screen space by the camera's yaw (north-up: -Z is screen up)
 	var d: Vector3 = target - game.player.global_position
 	d.y = 0.0
 	var yaw: float = game.camera.current_yaw()
@@ -546,57 +627,50 @@ func _tick_arrow() -> void:
 	var cr := Vector3(-cf.z, 0, cf.x)
 	var dir := Vector2(d.dot(cr), -d.dot(cf))
 	if dir.length_squared() < 0.001:
-		_arrow_label.visible = false
 		return
 	dir = dir.normalized()
-	# from the hero's screen spot out to the edge of the play area
 	var origin := Vector2(vp.x * 0.5, vp.y * 0.55)
 	if not cam.is_position_behind(game.player.global_position):
 		origin = cam.unproject_position(game.player.global_position)
+	var side := 1 if dir.x >= 0.0 else -1
 	var t := 1e9
-	if dir.x > 0.0001:
-		t = minf(t, (rect.end.x - origin.x) / dir.x)
-	elif dir.x < -0.0001:
-		t = minf(t, (rect.position.x - origin.x) / dir.x)
-	if dir.y > 0.0001:
-		t = minf(t, (rect.end.y - origin.y) / dir.y)
-	elif dir.y < -0.0001:
-		t = minf(t, (rect.position.y - origin.y) / dir.y)
-	_arrow_pos = origin + dir * maxf(t, 0.0)
-	_arrow_pos.x = clampf(_arrow_pos.x, rect.position.x, rect.end.x)
-	_arrow_pos.y = clampf(_arrow_pos.y, rect.position.y, rect.end.y)
-	_arrow_dir = dir
-	_arrow_color = color
-	_arrow_on = true
-	_arrow_label.text = "%s %d m" % [name, int(round(d.length()))]
-	_arrow_label.add_theme_color_override("font_color", color)
-	_arrow_label.size = Vector2(240 * s, 40 * s)
-	# the label sits just inside the arrow, away from the edge
-	_arrow_label.position = _arrow_pos - dir * 44 * s - _arrow_label.size * 0.5
-	_arrow_label.position.x = clampf(_arrow_label.position.x, 10 * s, vp.x - _arrow_label.size.x - 10 * s)
-	_arrow_label.visible = true
+	if absf(dir.x) > 0.0001:
+		t = ((vp.x if side > 0 else 0.0) - origin.x) / dir.x
+	var at := origin + dir * maxf(t, 0.0)
+	at.y = clampf(at.y, rect.position.y, rect.end.y)
+	_arrows.append({"pos": at, "dir": dir, "color": color, "side": side, "text": "%s %d m" % [name, int(round(d.length()))]})
+
+
+func _sync_pointers() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	while _pointers.size() < _arrows.size():
+		var p := WPointer.new()
+		add_child(p)
+		_pointers.append(p)
+	for k in range(_pointers.size()):
+		var p: WPointer = _pointers[k]
+		if k >= _arrows.size():
+			p.visible = false
+			continue
+		var a: Dictionary = _arrows[k]
+		p.color = a["color"]
+		p.text = str(a["text"])
+		p.side = int(a["side"])
+		var pos: Vector2 = a["pos"]
+		p.position = Vector2(0.0 if p.side < 0 else vp.x - p.size.x, pos.y - p.size.y * 0.5)
+		p.visible = true
+		p.queue_redraw()
 
 
 func _draw() -> void:
-	var vp := get_viewport().get_visible_rect().size
-	var s := vp.x / 1080.0
-	if _arrow_on:
-		var pulse: float = 1.0 + 0.12 * absf(sin(Run.elapsed * 6.0))
-		var l := 22.0 * s * pulse
-		var perp := Vector2(-_arrow_dir.y, _arrow_dir.x)
-		var tip := _arrow_pos + _arrow_dir * l
-		var a := _arrow_pos - _arrow_dir * l * 0.7 + perp * l * 0.8
-		var b := _arrow_pos - _arrow_dir * l * 0.7 - perp * l * 0.8
-		var back := _arrow_pos - _arrow_dir * l * 0.25
-		var pts := PackedVector2Array([tip, a, back, b])
-		draw_colored_polygon(pts, _arrow_color)
-		pts.append(tip)
-		draw_polyline(pts, Color(0.08, 0.05, 0.1, 0.9), 3.0 * s)
+	_draw_hero_bars()
 	if _ring_alpha <= 0.0:
 		return
-	var base := Color(1, 1, 1, 0.22 * _ring_alpha)
-	draw_circle(_ring_pos, _stick_r, Color(0, 0, 0, 0.10 * _ring_alpha))
-	draw_arc(_ring_pos, _stick_r, 0.0, TAU, 48, base, 3.0 * s)
+	# the joystick: a 300 px ring in 55 % ink over a faint paper disc, a 110 px paper knob
+	var a := _ring_alpha
+	draw_circle(_ring_pos, _stick_r + 3.0, Color(W.PAPER.r, W.PAPER.g, W.PAPER.b, 0.15 * a), true, -1.0, true)
+	draw_arc(_ring_pos, _stick_r, 0.0, TAU, 64, Color(W.INK.r, W.INK.g, W.INK.b, 0.55 * a), 6.0, true)
+	var kr := _stick_r * 0.367
 	var knob := _ring_pos + _stick * _stick_r
-	draw_circle(knob, 46 * s, Color(1, 1, 1, 0.42 * _ring_alpha))
-	draw_circle(knob, 46 * s, Color(0.16, 0.10, 0.0, 0.5 * _ring_alpha), false, 3.0 * s)
+	draw_circle(knob, kr, Color(W.PAPER.r, W.PAPER.g, W.PAPER.b, 0.7 * a), true, -1.0, true)
+	draw_arc(knob, kr, 0.0, TAU, 48, Color(W.INK.r, W.INK.g, W.INK.b, 0.6 * a), 5.0, true)

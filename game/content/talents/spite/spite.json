@@ -1,0 +1,43 @@
+{
+  "id": "spite",
+  "name": "Spite",
+  "flavour": "Punish the touch, or drink from it.",
+  "order": 8,
+  "ranks": 3,
+  "cost": [
+    200,
+    360,
+    600
+  ],
+  "forms": [
+    {
+      "name": "Thorns",
+      "text": "+5 thorns a rank.",
+      "effects": [
+        {
+          "stat": "thorns",
+          "op": "add",
+          "value": 5.0,
+          "target": "player"
+        }
+      ]
+    },
+    {
+      "name": "Thirst",
+      "text": "+1% lifesteal a rank (capped as ever).",
+      "effects": [
+        {
+          "stat": "lifesteal",
+          "op": "add",
+          "value": 0.01,
+          "target": "player"
+        }
+      ]
+    }
+  ],
+  "art_prompt": "a polished brass hand mirror with a carved sun on its back",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

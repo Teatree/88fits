@@ -1,0 +1,31 @@
+{
+  "id": "nest",
+  "name": "Nest",
+  "flavour": "Where there is one.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "rattlesnake",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "+2 snakes, −25% damage.",
+  "vfx": "three snakes on the ring",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.25
+    }
+  ],
+  "params": {},
+  "art_prompt": "three coiled rattlesnakes in a sandy nest",
+  "placeholder": {
+    "color": "#B09050",
+    "glyph": "star"
+  }
+}

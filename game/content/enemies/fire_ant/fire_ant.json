@@ -4,28 +4,28 @@
   "flavour": "A red tide with legs.",
   "archetype": "swarmer",
   "brain": "flock",
-  "hp": 4,
+  "hp": 2.0,
   "speed": 2.8,
-  "damage": 3,
+  "damage": 1.5,
   "radius": 0.32,
   "size": 0.8,
-  "pack_size": 8,
+  "pack_size": 16,
   "drops": {
     "small": 0.5,
     "gold": 0.005,
-    "chest": 0.0005
+    "chest": 0.0007
   },
   "anims": {
     "idle": 4,
     "run": 12,
     "attack": 2,
     "hit": 1,
-    "die": 1,
+    "die": 5,
     "run_b": 12,
     "idle_b": 4
   },
   "frame_px": 128,
-  "xp_mult": 1.8,
+  "xp_mult": 0.9,
   "sfx": {
     "hit": "en_ant_hit",
     "die": "en_ant_die"
@@ -36,7 +36,7 @@
     "eyes": 2,
     "shape": "ant"
   },
-  "art_prompt": "a goofy fat red fire ant with a shiny round body, six stubby legs, two antennae and an angry cross-eyed grin",
+  "art_prompt": "a fire ant, a glossy red-orange armoured body, a darker red head with a pair of curved black mandibles, small black eyes, two elbowed antennae, six thin jointed dark red legs, a narrow two-node waist and a round gaster, mean and determined",
   "variance": {
     "size": 0.2,
     "speed": 0.15,
@@ -46,20 +46,164 @@
       "#FF6A6A",
       "#C87AFF"
     ],
-    "tint_strength": 0.55,
+    "tint_strength": 0.22,
     "special_chance": 0.1,
     "special": {
       "size": 1.6,
       "hp": 2.5,
       "damage": 1.4,
       "xp": 3.0,
-      "tint": "#FFE04A",
-      "tint_strength": 0.9
+      "tint": "#202868",
+      "tint_strength": 0.6
     }
   },
   "motion": "scuttling in place, six legs moving quickly",
-  "strip_cols": 36,
+  "strip_cols": 40,
   "fps": {
-    "run": 15
-  }
+    "run": 15,
+    "die": 8
+  },
+  "doc": "Tiny, fast, in eights: the first test of area damage.",
+  "cap_share": 0.5,
+  "head": 1.0,
+  "variants": {
+    "ANT-A": {
+      "note": "the classic: glossy red-orange worker, curved black mandibles; a steady tripod walk",
+      "recipe": {
+        "prompt": "a fire ant, a glossy red-orange armoured body, a darker red head with a pair of curved black mandibles, small black eyes, two elbowed antennae, six thin jointed dark red legs, a narrow two-node waist and a round gaster, mean and determined",
+        "body": {},
+        "fps": 20,
+        "directions": 2
+      },
+      "sprite": "fire_ant_sprite_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "head": 0.883,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "icon": "fire_ant_icon_a.png"
+    },
+    "ANT-B": {
+      "note": "a soldier: big square head, huge mandibles, ember cracks on its gaster; a heavier, slower gait",
+      "recipe": {
+        "prompt": "a fire ant soldier with an oversized squarish head and huge serrated black mandibles, a dark crimson armoured body with glowing orange ember cracks along its round gaster, small black eyes, two elbowed antennae, six jointed legs",
+        "body": {
+          "head": 1.3,
+          "gaster": 0.95,
+          "stride": 0.3
+        },
+        "fps": 16
+      },
+      "sprite": "fire_ant_sprite_b.png",
+      "icon": "fire_ant_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.742,
+      "fps": {
+        "run": 16,
+        "die": 12
+      }
+    },
+    "ANT-C": {
+      "note": "a slim fast worker: bright scarlet, long legs, a flame on the tip of its gaster; a quick scuttle",
+      "recipe": {
+        "prompt": "a sleek slim fire ant worker, a bright scarlet glossy body with sharp white highlights, a small head with thin curved mandibles and long elbowed antennae, six long thin jointed legs, a small flame flickering at the tip of its gaster",
+        "body": {
+          "body": 1.1,
+          "legs": 1.1,
+          "gaster": 0.85,
+          "head": 0.9,
+          "stride": 0.38
+        },
+        "fps": 26,
+        "keep": "the small orange flame flickering at the tip of its gaster"
+      },
+      "sprite": "fire_ant_sprite_c.png",
+      "icon": "fire_ant_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.844,
+      "fps": {
+        "run": 26,
+        "die": 12
+      }
+    },
+    "ANT-D": {
+      "note": "chunky: a big yellow-banded gaster, angry white eyes; a bouncy walk",
+      "recipe": {
+        "prompt": "a chunky fire ant with a big round shiny gaster striped with yellow bands, a bright orange-red body, a big head with angry white eyes and heavy brows, short thick mandibles, two elbowed antennae, six short jointed legs",
+        "body": {
+          "gaster": 1.2,
+          "head": 1.1,
+          "legs": 0.9,
+          "bob": 0.05
+        },
+        "fps": 22
+      },
+      "sprite": "fire_ant_sprite_d.png",
+      "icon": "fire_ant_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.625,
+      "fps": {
+        "run": 22,
+        "die": 12
+      }
+    }
+  },
+  "variant_base": "",
+  "anim_negative": "extra legs, eight legs, spider, missing legs, a second head, extra antennae, wings",
+  "variant": "ANT-A"
 }

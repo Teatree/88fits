@@ -70,7 +70,7 @@
       }
     ]
   ],
-  "evolves_with": "spurs",
+  "evolves_with": "",
   "evolves_into": "stampede",
   "sfx": {
     "fire": "w_tumble_roll",

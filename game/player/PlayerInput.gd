@@ -61,7 +61,8 @@ func _in_thumb_zone(p: Vector2) -> bool:
 	var vp := get_viewport().get_visible_rect().size
 	if vp.y <= 0.0:
 		return true
-	return p.y > vp.y * 0.135
+	# below the HUD's strip (the top row and the item slots), scaled with the canvas width
+	return p.y > HUD.band_h * vp.x / 1080.0
 
 
 ## Full-deflection radius in screen pixels.

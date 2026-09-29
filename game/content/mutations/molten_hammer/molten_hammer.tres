@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_l8ohe"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_3uyg8"]
+[ext_resource type="Texture2D" path="res://content/mutations/molten_hammer/molten_hammer_icon.png" id="2_r27sm"]
+
+[sub_resource type="Resource" id="Resource_3uyg8"]
+script = ExtResource("1_l8ohe")
+stat = "fire_damage"
+value = 5.0
+
+[sub_resource type="Resource" id="Resource_r27sm"]
+script = ExtResource("1_l8ohe")
+stat = "fire_duration"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_ef66y"]
+script = ExtResource("1_l8ohe")
+stat = "fire_spread"
+value = 0.4
+
+[resource]
+script = ExtResource("2_3uyg8")
+weapon = "hammer"
+mutation_kind = "element"
+text = "Impacts set everything in the blast on fire."
+vfx = "an orange blast and a glowing smear behind the head"
+effects = [SubResource("Resource_3uyg8"), SubResource("Resource_r27sm"), SubResource("Resource_ef66y")]
+id = "molten_hammer"
+display_name = "Molten Hammer"
+flavour = "Straight off the anvil."
+rarity = "rare"
+element = "fire"
+weight = 8.0
+icon = ExtResource("2_r27sm")
+icon_file = "molten_hammer_icon.png"
+placeholder = {
+"color": "#FF8040",
+"glyph": "star"
+}

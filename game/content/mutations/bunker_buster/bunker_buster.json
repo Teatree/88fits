@@ -1,0 +1,44 @@
+{
+  "id": "bunker_buster",
+  "name": "Bunker Buster",
+  "flavour": "One rocket. One crater.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "rocket_pod",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "One rocket: ×3 damage, ×1.8 area, ×2 knockback.",
+  "vfx": "one fat rocket, one big ring blast",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "set",
+      "value": 1
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": 2.0
+    },
+    {
+      "stat": "area",
+      "op": "mul",
+      "value": 0.8
+    },
+    {
+      "stat": "knockback",
+      "op": "mul",
+      "value": 1.0
+    }
+  ],
+  "params": {
+    "size_mult": 1.8,
+    "radius": 0.35
+  },
+  "art_prompt": "one enormous heavy rocket with a reinforced steel nose",
+  "placeholder": {
+    "color": "#909AA8",
+    "glyph": "star"
+  }
+}

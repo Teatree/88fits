@@ -1,57 +1,52 @@
-## The travelling shop found on the map: three random items with prices set by how strong they are. Buy one with
-## run gold and the shop is spent; leave and it is spent too (it was a one-time stall).
+## The travelling shop (Wanted screen 11): three items priced by how strong they are, bought with the run's gold. The
+## price is the button; what the player already holds sits above the wares; a card they cannot afford is aged at 60 %
+## with its price in paper ("· 8 short"). One purchase and the stall is spent; LEAVE spends it too.
 class_name StructureShop
-extends Control
+extends WModal
 
 signal closed(bought: bool)
 
-var _title: Label
-var _gold: Label
+var _gold_plate: PanelContainer
+var _hold_row: HBoxContainer
 var _list: VBoxContainer
-var _box: VBoxContainer
 var _offer: Array = []
+var _cards: Array = []
 var _done := false
 
 
 func _ready() -> void:
-	UiKit.fullscreen(self)
-	process_mode = Node.PROCESS_MODE_ALWAYS
-	visible = false
-	add_child(UiKit.dim(0.86))
-	# three bands anchored to the screen: header, the scrolling list, the way out. Anchors, not a stack, so the
-	# list can never push the buttons off the bottom no matter how tall its cards report themselves.
-	_box = UiKit.vbox(10)
-	_box.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_box.offset_left = 50
-	_box.offset_right = -50
-	_box.offset_top = 120
-	_box.offset_bottom = 330
-	add_child(_box)
-	var head := UiKit.hbox(10)
-	_title = UiKit.outline(UiKit.label("TRAVELLING SHOP", 84, UiKit.ACCENT, HORIZONTAL_ALIGNMENT_CENTER), 8)
-	head.add_child(_title)
-	var x := UiKit.button("✕", 40, false, 90)
-	x.custom_minimum_size = Vector2(90, 90)
-	x.size_flags_horizontal = Control.SIZE_SHRINK_END
-	x.pressed.connect(func(): _finish(false))
-	head.add_child(x)
-	_box.add_child(head)
-	_gold = UiKit.label("", 34, UiKit.INK2, HORIZONTAL_ALIGNMENT_CENTER)
-	_box.add_child(_gold)
-	_list = UiKit.vbox(26)
-	var sc := UiKit.scroll(_list)
-	sc.set_anchors_preset(Control.PRESET_FULL_RECT)
-	sc.offset_left = 50
-	sc.offset_right = -50
-	sc.offset_top = 340
-	sc.offset_bottom = -220
-	add_child(sc)
-	var leave := UiKit.button("Leave without buying", 40, false, 110)
-	leave.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	leave.offset_left = 50
-	leave.offset_right = -50
-	leave.offset_top = -190
-	leave.offset_bottom = -80
+	build_dim(W.DIM)
+	build_header("One visit only", "THE SHOP", "", 120)
+	header.line.visible = false
+	var gc := CenterContainer.new()
+	gc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gc.custom_minimum_size.y = 16 + 88
+	_gold_plate = WMenuHeader.gold_plate(0, 56, 50.0, 6, 5)
+	gc.add_child(_gold_plate)
+	header.add_child(gc)
+	# YOU HOLD: 76 px plates in a row at y 470
+	_hold_row = HBoxContainer.new()
+	_hold_row.add_theme_constant_override("separation", 14)
+	_hold_row.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_hold_row.offset_left = 48
+	_hold_row.offset_right = -48
+	_hold_row.offset_top = 470
+	_hold_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_hold_row)
+	_list = VBoxContainer.new()
+	_list.add_theme_constant_override("separation", 40)
+	_list.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	_list.offset_left = 48
+	_list.offset_right = -48
+	_list.offset_top = 590
+	_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_list)
+	var leave := WButton.make(["LEAVE"], 34, WButton.SECONDARY, 5, 8, 26.0, 0.0)
+	leave.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	leave.offset_left = -215
+	leave.offset_right = 215
+	leave.offset_bottom = -90
+	leave.offset_top = -90 - 108
 	leave.pressed.connect(func(): _finish(false))
 	add_child(leave)
 
@@ -70,44 +65,57 @@ static func price_of(card: Dictionary) -> int:
 func open(offer: Array) -> void:
 	_offer = offer
 	_done = false
-	for c in _list.get_children():
+	(_gold_plate.find_child("Amount", true, false) as WText).text = W.num(Run.run_gold)
+	for c in _hold_row.get_children():
 		c.queue_free()
-	_gold.text = "You have %d gold" % Run.run_gold
+	_hold_row.add_child(W.label("You hold", 20, W.AGED))
+	var held: Array = []
+	for w in Run.weapons:
+		held.append((w as WeaponInstance).def)
+	for pid in Run.passives.keys():
+		if Registry.passive(pid):
+			held.append(Registry.passive(pid))
+	for lid in Run.lines.keys():
+		if Registry.line(lid):
+			held.append(Registry.line(lid))
+	for d in held:
+		var p := WPlate.new().for_def(d, 84.0)
+		p.icon_frac = 0.72
+		_hold_row.add_child(p)
+	for c in _cards:
+		(c as Node).queue_free()
+	_cards.clear()
 	for card in _offer:
-		_list.add_child(_make_card(card))
-	visible = true
-	UiFx.enter(self, _box)
-	UiFx.stagger(_list, 0.06)
+		var node := _make_card(card)
+		_list.add_child(node)
+		_cards.append(node)
+	modulate.a = 1.0
+	enter()
 	Audio.play("ui_card_pick")
 
 
-func _make_card(card: Dictionary) -> Control:
+func _make_card(card: Dictionary) -> WCard:
 	var def: ContentDef = card["def"]
-	var kind := "weapon" if def is WeaponDef else "passive"
-	var col: Color = UiKit.TYPE_COLORS.get(kind, UiKit.ACCENT)
 	var price := price_of(card)
-	var can: bool = Run.run_gold >= price
-	var b := UiKit.card(col if can else UiKit.LINE, 3 if can else 2, UiKit.BG2 if can else UiKit.BG, 30)
-	var v := UiKit.card_body(b, def, kind, 130, [[UiKit.card_tag(card), 22, col], [def.display_name, 44, UiKit.INK if can else UiKit.INK3], [UiKit.card_description(card), 26, UiKit.INK2 if can else UiKit.INK3]])
-	var pl := UiKit.label(("%d gold" % price) if can else ("%d gold · not enough" % price), 30, UiKit.ACCENT if can else UiKit.DANGER)
-	pl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(pl)
-	b.pressed.connect(func(): _buy(card, price, b))
-	return b
+	var short := maxi(price - Run.run_gold, 0)
+	var o := WItem.options(card, {"plate_px": 160.0, "name_size": 54, "effect_size": 28, "pad": [30, 32, 30, 32],
+		"seal_px": 92.0, "icon_frac": 0.72, "stars": [], "price": price, "short": short, "locked": short > 0})
+	var c := WCard.make(def, o)
+	c.pressed.connect(func(): _buy(card, price, c))
+	return c
 
 
-func _buy(card: Dictionary, price: int, node: Control) -> void:
+func _buy(card: Dictionary, price: int, node: WCard) -> void:
 	if _done:
 		return
 	if Run.run_gold < price:
 		Audio.play("ui_locked")
-		UiFx.punch(node, 0.97, 0.12)
 		return
 	_done = true
 	Run.spend_gold(price)
 	var line := CardPool.apply(card)
 	Audio.play("ui_buy")
-	UiFx.punch(node, 1.04, 0.14)
+	node.show_held(true)
 	var tw := create_tween()
 	tw.tween_interval(0.16)
 	tw.tween_callback(func(): _finish(true, line))

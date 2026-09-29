@@ -1,0 +1,22 @@
+{
+  "id": "boomerang",
+  "name": "Boomerang",
+  "flavour": "It missed you. It will not miss again.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "tumbleweed",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "Rolls out and comes back through the crowd.",
+  "vfx": "the weed turns at its far point and rolls home, hitting everything twice",
+  "effects": [],
+  "params": {
+    "return": true
+  },
+  "art_prompt": "a wooden boomerang carved to look like a rolling tumbleweed with a curved return arrow",
+  "placeholder": {
+    "color": "#C89050",
+    "glyph": "star"
+  }
+}

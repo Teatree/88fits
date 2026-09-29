@@ -1,6 +1,7 @@
 // Sprite-strip billboard for MultiMesh enemies. Faces the camera fully (face_camera = 1), pivoting on the feet,
 // so a sprite is never seen edge-on from the high camera. face_camera = 0 gives the old upright Y-billboard.
-// INSTANCE_CUSTOM: x = frame index, y = flip (0/1), z = flash (-1..1, negative = poison green), w = squash (1 = normal)
+// INSTANCE_CUSTOM: x = frame index, y = flip (0/1) + 2 x glow level (0..16, pass 33.10: the harpooner's red outline
+// while it holds the hero on its rope), z = flash (-1..1, negative = poison green), w = squash (1 = normal)
 // INSTANCE COLOR:  rgb = tint (elite colour), a = tint strength
 shader_type spatial;
 render_mode cull_disabled, unshaded, skip_vertex_transform, depth_draw_opaque;
@@ -12,14 +13,19 @@ uniform float cols = 0.0;
 uniform float rows = 1.0;
 uniform float alpha_cut = 0.5;
 uniform float face_camera : hint_range(0.0, 1.0) = 1.0;
+// far zoom (pass 33.2): 0 at twice the base camera distance, 1 by 2.4x; a thicker dark-red rim round the figure and a
+// faint warm tint, so a crowd of specks stays readable (EnemyManager._update_mark sets it)
+uniform float mark : hint_range(0.0, 1.0) = 0.0;
 
 varying vec2 v_uv;
 varying vec4 v_tint;
 varying float v_flash;
+varying float v_glow;
 
 void vertex() {
 	float frame = floor(INSTANCE_CUSTOM.x);
-	float flip = INSTANCE_CUSTOM.y;
+	float flip = mod(INSTANCE_CUSTOM.y, 2.0);
+	v_glow = floor(INSTANCE_CUSTOM.y * 0.5) / 16.0;
 	v_flash = INSTANCE_CUSTOM.z;
 	float squash = max(INSTANCE_CUSTOM.w, 0.2);
 	vec2 uv = UV;
@@ -51,8 +57,27 @@ void vertex() {
 void fragment() {
 	vec4 c = texture(sprite, v_uv);
 	if (c.a < alpha_cut) {
-		discard;
-	}
+		// the rim: a pixel just outside the figure takes a dark red, up to two screen pixels out at full mark; a glowing
+		// creature (the harpooner on its rope) gets a wider rim in bright red that swells and fades with the glow
+		if (mark > 0.01 || v_glow > 0.01) {
+			vec2 px = fwidth(v_uv) * (0.8 + 1.4 * mark + 2.6 * v_glow);
+			float a = 0.0;
+			a = max(a, texture(sprite, v_uv + vec2(px.x, 0.0)).a);
+			a = max(a, texture(sprite, v_uv - vec2(px.x, 0.0)).a);
+			a = max(a, texture(sprite, v_uv + vec2(0.0, px.y)).a);
+			a = max(a, texture(sprite, v_uv - vec2(0.0, px.y)).a);
+			a = max(a, texture(sprite, v_uv + px * 0.7).a);
+			a = max(a, texture(sprite, v_uv - px * 0.7).a);
+			a = max(a, texture(sprite, v_uv + vec2(px.x, -px.y) * 0.7).a);
+			a = max(a, texture(sprite, v_uv + vec2(-px.x, px.y) * 0.7).a);
+			if (a < alpha_cut) {
+				discard;
+			}
+			ALBEDO = mix(vec3(0.42, 0.04, 0.05), vec3(1.0, 0.1, 0.06), clamp(v_glow * 1.4, 0.0, 1.0));
+		} else {
+			discard;
+		}
+	} else {
 	vec3 col = mix(c.rgb, v_tint.rgb, v_tint.a * 0.65);
 	// a negative flash is a poison tick: green-white instead of white
 	// white flash; negative = the green-white of a poison tick; above 1.5 = the orange of a fire tick (2 + flash)
@@ -65,5 +90,25 @@ void fragment() {
 		fl = v_flash - 2.0;
 	}
 	col = mix(col, flash_col, clamp(fl, 0.0, 1.0));
+	// the far-zoom tint: a touch of warm red over the whole figure
+	col = mix(col, vec3(1.0, 0.32, 0.26), mark * 0.16);
+	if (v_glow > 0.01) {
+		// the painted outline turns red too: a dark pixel within a few texels of the figure's edge is outline
+		vec2 tp = 4.0 / vec2(textureSize(sprite, 0));
+		float edge = 1.0;
+		edge = min(edge, texture(sprite, v_uv + vec2(tp.x, 0.0)).a);
+		edge = min(edge, texture(sprite, v_uv - vec2(tp.x, 0.0)).a);
+		edge = min(edge, texture(sprite, v_uv + vec2(0.0, tp.y)).a);
+		edge = min(edge, texture(sprite, v_uv - vec2(0.0, tp.y)).a);
+		edge = min(edge, texture(sprite, v_uv + tp * 0.7).a);
+		edge = min(edge, texture(sprite, v_uv - tp * 0.7).a);
+		edge = min(edge, texture(sprite, v_uv + vec2(tp.x, -tp.y) * 0.7).a);
+		edge = min(edge, texture(sprite, v_uv + vec2(-tp.x, tp.y) * 0.7).a);
+		float lum = dot(c.rgb, vec3(0.3, 0.59, 0.11));
+		if (edge < alpha_cut && lum < 0.3) {
+			col = mix(col, vec3(1.0, 0.1, 0.06), v_glow);
+		}
+	}
 	ALBEDO = col;
+	}
 }

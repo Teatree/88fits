@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_0tgxu"]
+[ext_resource type="Texture2D" path="res://content/mutations/white_phosphorus/white_phosphorus_icon.png" id="2_0811i"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_dcv5b"]
+
+[sub_resource type="Resource" id="Resource_dcv5b"]
+script = ExtResource("1_0tgxu")
+stat = "fire_damage"
+
+[sub_resource type="Resource" id="Resource_0811i"]
+script = ExtResource("1_0tgxu")
+stat = "fire_duration"
+
+[sub_resource type="Resource" id="Resource_qjymp"]
+script = ExtResource("1_0tgxu")
+stat = "fire_spread"
+value = 0.4
+
+[sub_resource type="Resource" id="Resource_ddmwa"]
+script = ExtResource("1_0tgxu")
+stat = "fire_vuln"
+value = 0.5
+target = "player"
+
+[resource]
+script = ExtResource("2_dcv5b")
+weapon = "flare_gun"
+mutation_kind = "element"
+text = "Burning creatures take +50% fire damage and spread the fire when they die."
+vfx = "white-blue licks of flame on burning creatures, a white burst when one dies"
+effects = [SubResource("Resource_dcv5b"), SubResource("Resource_0811i"), SubResource("Resource_qjymp"), SubResource("Resource_ddmwa")]
+id = "white_phosphorus"
+display_name = "White Phosphorus"
+flavour = "Do not look at it."
+rarity = "rare"
+element = "fire"
+weight = 8.0
+icon = ExtResource("2_0811i")
+icon_file = "white_phosphorus_icon.png"
+placeholder = {
+"color": "#F0F4FF",
+"glyph": "star"
+}

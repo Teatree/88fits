@@ -19,7 +19,7 @@
     "run": 12,
     "attack": 2,
     "hit": 1,
-    "die": 1,
+    "die": 5,
     "run_b": 12,
     "idle_b": 4
   },
@@ -68,8 +68,11 @@
   },
   "art_prompt": "a goofy giant round tumbleweed made of dry tangled twigs, wearing a golden royal crown, with a smug face, big eyes and a mustache",
   "motion": "bouncing in place menacingly, twigs shaking",
-  "strip_cols": 36,
+  "strip_cols": 40,
   "fps": {
-    "run": 15
-  }
+    "run": 15,
+    "die": 8
+  },
+  "doc": "Stage 1's boss, back for stage 3 at twice the health: a roll down a red line, a goblin ring, a slam.",
+  "head": 0.984
 }

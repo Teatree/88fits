@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_d33ct"]
+[ext_resource type="Texture2D" path="res://content/passives/deadeye/deadeye_icon.png" id="1_ks1js"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_ks1js"]
+
+[sub_resource type="Resource" id="Resource_ks1js"]
+script = ExtResource("1_d33ct")
+stat = "crit_chance"
+value = 0.08
+target = "player"
+
+[resource]
+script = ExtResource("2_ks1js")
+levels = [[SubResource("Resource_ks1js")]]
+max_level = 5
+id = "deadeye"
+display_name = "Deadeye"
+flavour = "Every hit has a chance to land for double. Aim for the eyes."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_ks1js")
+icon_file = "deadeye_icon.png"
+placeholder = {
+"color": "#FFD23B",
+"glyph": "target"
+}

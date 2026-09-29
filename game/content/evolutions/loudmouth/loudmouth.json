@@ -1,0 +1,93 @@
+{
+  "id": "loudmouth",
+  "name": "Loudmouth",
+  "flavour": "It has opinions, and a wider mouth.",
+  "rarity": "epic",
+  "weight": 7,
+  "behavior": "LaserBeam",
+  "targeting": "nearest",
+  "base": {
+    "damage": 16,
+    "cooldown": 2.6,
+    "duration": 2.6,
+    "range": 16,
+    "amount": 1,
+    "knockback": 0.0,
+    "pierce": 99
+  },
+  "params": {
+    "beam": {
+      "width": 0.55,
+      "tick": 0.14,
+      "arch_deg": 0.0
+    },
+    "familiar": {
+      "size": 1.5
+    }
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "duration",
+        "op": "add",
+        "value": 0.4
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.15
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "range",
+        "op": "add",
+        "value": 3
+      }
+    ],
+    [
+      {
+        "stat": "duration",
+        "op": "add",
+        "value": 0.5
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "",
+  "sfx": {
+    "fire": "w_zap_fire",
+    "hit": "w_zap_hit"
+  },
+  "placeholder": {
+    "color": "#FF7ABF",
+    "glyph": "bolt"
+  },
+  "art_prompt": "a huge wide-open shouting mouth with full glossy red lips and big white teeth, a very thick bright magenta laser beam blasting straight out of it",
+  "is_evolution": true,
+  "evolved_from": "big_mouth"
+}

@@ -1,0 +1,76 @@
+{
+  "id": "dust_shaman",
+  "name": "Dust Shaman",
+  "flavour": "Kill it first. Everyone around it agrees.",
+  "archetype": "spitter",
+  "brain": "support",
+  "hp": 22,
+  "speed": 1.7,
+  "damage": 6,
+  "radius": 0.42,
+  "size": 1.15,
+  "pack_size": 1,
+  "support": {
+    "keep_distance": 7.0,
+    "range": 10.0,
+    "interval": 4.0,
+    "radius": 5.0,
+    "heal": 0.25,
+    "frenzy": 0.3,
+    "frenzy_seconds": 3.0
+  },
+  "drops": {
+    "small": 0.3,
+    "medium": 1.0,
+    "gold": 0.15,
+    "chest": 0.03
+  },
+  "frame_px": 160,
+  "xp_mult": 5.0,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_goblin_die",
+    "attack": "en_cactus_spit"
+  },
+  "placeholder": {
+    "color": "#8A9A60",
+    "glyph": "staff"
+  },
+  "art_prompt": "a small hunched goblin shaman in a tattered sand-coloured robe and a bone mask with feathers, holding a crooked wooden staff topped with a glowing green skull, beads and bones around its neck, standing on the ground",
+  "motion": "swaying in place and shaking the staff, the green skull pulsing",
+  "variance": {
+    "size": 0.1,
+    "speed": 0.1,
+    "tints": [
+      "#FFFFFF",
+      "#E8E0C0",
+      "#C8D0A0"
+    ],
+    "tint_strength": 0.22,
+    "special_chance": 0.0,
+    "special": {
+      "size": 1.3,
+      "hp": 2.0,
+      "damage": 1.3,
+      "xp": 3.0,
+      "tint": "#7A1A5A",
+      "tint_strength": 0.6
+    }
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "strip_cols": 40,
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "doc": "Keeps seven metres off and every four seconds mends the creatures around it for a quarter of their health and drives them for three seconds (a green ring, green sparks on each). Kill it first.",
+  "head": 1.0
+}

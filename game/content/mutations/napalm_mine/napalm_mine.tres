@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_tb1vb"]
+[ext_resource type="Texture2D" path="res://content/mutations/napalm_mine/napalm_mine_icon.png" id="2_lhctw"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_q5ris"]
+
+[sub_resource type="Resource" id="Resource_q5ris"]
+script = ExtResource("1_tb1vb")
+stat = "fire_damage"
+value = 5.0
+
+[sub_resource type="Resource" id="Resource_lhctw"]
+script = ExtResource("1_tb1vb")
+stat = "fire_duration"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_3etgl"]
+script = ExtResource("1_tb1vb")
+stat = "fire_spread"
+value = 0.4
+
+[resource]
+script = ExtResource("2_q5ris")
+weapon = "land_mine"
+mutation_kind = "element"
+text = "The crater burns."
+vfx = "a fire pool in the crater"
+effects = [SubResource("Resource_q5ris"), SubResource("Resource_lhctw"), SubResource("Resource_3etgl")]
+params = {
+"cloud_seconds": 2.5
+}
+id = "napalm_mine"
+display_name = "Napalm Mine"
+flavour = "Step on it. Stay a while."
+rarity = "rare"
+element = "fire"
+weight = 8.0
+icon = ExtResource("2_lhctw")
+icon_file = "napalm_mine_icon.png"
+placeholder = {
+"color": "#FF8030",
+"glyph": "star"
+}

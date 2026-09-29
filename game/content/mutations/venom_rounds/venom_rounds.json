@@ -1,0 +1,36 @@
+{
+  "id": "venom_rounds",
+  "name": "Venom Rounds",
+  "flavour": "A rattler in every chamber.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "revolver",
+  "kind": "element",
+  "element": "poison",
+  "hero": "",
+  "text": "Every round poisons what it hits.",
+  "vfx": "green tracers and the poison tick's green flash",
+  "effects": [
+    {
+      "stat": "poison_damage",
+      "op": "add",
+      "value": 5
+    },
+    {
+      "stat": "poison_stacks",
+      "op": "add",
+      "value": 1
+    },
+    {
+      "stat": "poison_duration",
+      "op": "add",
+      "value": 8
+    }
+  ],
+  "params": {},
+  "art_prompt": "a revolver bullet dripping bright green venom with a small snake fang",
+  "placeholder": {
+    "color": "#7DD35A",
+    "glyph": "star"
+  }
+}

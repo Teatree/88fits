@@ -1,0 +1,84 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_p468y"]
+[ext_resource type="Texture2D" path="res://content/enemies/buckshot_dwarf/buckshot_dwarf_icon.png" id="1_pvaee"]
+[ext_resource type="Texture2D" path="res://content/enemies/buckshot_dwarf/buckshot_dwarf_sprite.png" id="3_y8ofa"]
+
+[resource]
+script = ExtResource("1_p468y")
+archetype = "spitter"
+doc = "Stage 1's other gun: a fat, evil dwarf with a blunderbuss longer than he is tall who waddles in to five metres, well inside the cactus's reach, and fires five pellets in a cone (a red wedge on the ground for most of a second). Twice the cactus's health; the answer is to step out of the wedge, not away."
+brain = "kite"
+hp = 34.0
+speed = 1.35
+damage = 6.0
+size = 1.35
+pack_size = 2
+drops = {
+"chest": 0.008,
+"gold": 0.08,
+"medium": 0.4,
+"small": 1.0
+}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_y8ofa")
+sprite_file = "buckshot_dwarf_sprite.png"
+frame_px = 176
+strip_cols = 40
+fps = {
+"die": 8.0,
+"run": 15.0
+}
+ranged = {
+"cone_deg": 55.0,
+"cooldown": 3.4,
+"count": 5.0,
+"keep_distance": 3.6,
+"knockback": 6.0,
+"life": 0.42,
+"projectile_speed": 17.0,
+"range": 5.0,
+"shot": "pellet",
+"splash": 0.45,
+"straight": true,
+"telegraph": 0.85
+}
+head = 0.983
+sfx = {
+"attack": "w_boom_fire",
+"die": "en_goblin_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 3.6
+variance = {
+"size": 0.1,
+"special": {
+"damage": 1.3,
+"hp": 2.0,
+"size": 1.25,
+"tint": "#7A2040",
+"tint_strength": 0.55,
+"xp": 3.0
+},
+"special_chance": 0.05,
+"speed": 0.08,
+"tint_strength": 0.2,
+"tints": ["#FFFFFF", "#F0E0E0", "#E0D0E8"]
+}
+id = "buckshot_dwarf"
+display_name = "Buckshot Dwarf"
+flavour = "Short fuse. Shorter legs. Very long gun."
+icon = ExtResource("1_pvaee")
+icon_file = "buckshot_dwarf_icon.png"
+placeholder = {
+"color": "#C08050",
+"glyph": "helmet"
+}

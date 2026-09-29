@@ -1,0 +1,44 @@
+{
+  "id": "halberd",
+  "name": "Halberd",
+  "flavour": "Point, edge, hook. Pick one. It picks all three.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "pike",
+  "max_level": 1,
+  "behavior": "Thruster",
+  "targeting": "nearest",
+  "tags": [
+    "blade"
+  ],
+  "base": {
+    "damage": 48,
+    "cooldown": 1.4,
+    "amount": 2,
+    "range": 5.4,
+    "area": 1.4,
+    "knockback": 14.0
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "thrust": {
+      "out": 0.14,
+      "hold": 0.12,
+      "back": 0.28,
+      "width": 0.9,
+      "fan_deg": 60,
+      "sweep_deg": 70
+    }
+  },
+  "sfx": {
+    "fire": "w_saw_hit",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#FFB13B",
+    "glyph": "spear"
+  },
+  "art_prompt": "a gold-trimmed halberd: a long pole with an axe blade, a spear point and a back hook, a red tassel"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "unlock_big_mouth",
+  "name": "Big Mouth",
+  "condition": {
+    "type": "kills_of_enemy",
+    "enemy": "armadillo",
+    "count": 300
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "big_mouth"
+  },
+  "art_prompt": "a glass jar with a grinning red-lipped mouth inside it",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

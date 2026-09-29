@@ -1,0 +1,53 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://art/props/golden_revolver.glb" id="gun"]
+
+[sub_resource type="BoxMesh" id="proj"]
+size = Vector3(0.11, 0.11, 0.44)
+
+[sub_resource type="StandardMaterial3D" id="projmat"]
+shading_mode = 0
+albedo_color = Color(1, 0.98, 0.82, 1)
+emission_enabled = true
+emission = Color(1, 0.82, 0.3, 1)
+emission_energy_multiplier = 2.4
+
+[sub_resource type="StandardMaterial3D" id="sparkmat"]
+shading_mode = 0
+albedo_color = Color(1, 0.85, 0.4, 1)
+emission_enabled = true
+emission = Color(1, 0.7, 0.2, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="SphereMesh" id="spark"]
+material = SubResource("sparkmat")
+radius = 0.05
+height = 0.1
+radial_segments = 5
+rings = 3
+
+[node name="GoldenRevolverVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+mesh = SubResource("proj")
+material_override = SubResource("projmat")
+
+[node name="Familiar" type="Node3D" parent="."]
+
+[node name="Gun" parent="Familiar" instance=ExtResource("gun")]
+transform = Transform3D(2.1, 0, 0, 0, 2.1, 0, 0, 0, 2.1, 0, 0, 0)
+
+[node name="Muzzle" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 12
+lifetime = 0.2
+one_shot = true
+explosiveness = 1.0
+mesh = SubResource("spark")
+direction = Vector3(0, 0, -1)
+spread = 22.0
+initial_velocity_min = 5.0
+initial_velocity_max = 10.0
+gravity = Vector3(0, -2, 0)
+scale_amount_min = 0.6
+scale_amount_max = 1.1

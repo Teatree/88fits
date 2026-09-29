@@ -1,0 +1,24 @@
+{
+  "id": "guillotine",
+  "name": "Guillotine",
+  "flavour": "A creature below the threshold dies to any hit. Bosses are exempt.",
+  "rarity": "rare",
+  "weight": 5,
+  "max_level": 3,
+  "levels": [
+    [
+      {
+        "stat": "execute_frac",
+        "op": "add",
+        "value": 0.07,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "placeholder": {
+    "color": "#B0B8C8",
+    "glyph": "blade"
+  },
+  "art_prompt": "a tall wooden guillotine: two upright wooden posts with a crossbeam at the top, a heavy angled steel blade raised high between the posts, a rope holding the blade, and a wooden neck block with a round hole at the bottom, seen from the front at a slight angle"
+}

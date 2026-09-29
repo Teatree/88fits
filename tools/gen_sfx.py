@@ -62,6 +62,32 @@ def noise(dur, lowpass=0.2, decay=6.0):
     return out
 
 
+def clack(r, freq, dur=0.05):
+    """One woody knock: a short ringing tone and its overtone, with a tick of noise at the front."""
+    out = []
+    for i in range(int(dur * RATE)):
+        t = i / RATE
+        e = math.exp(-t * 90.0)
+        tick = r.uniform(-1, 1) * 0.5 * math.exp(-t * 400.0)
+        out.append((math.sin(2 * math.pi * freq * t) * 0.8 + math.sin(2 * math.pi * freq * 2.3 * t) * 0.35 + tick) * e)
+    return out
+
+
+def clatter(r, n, span, band):
+    """Bones knocking together (the skeletons, pass 33.3): n clacks over `span` seconds, thinning out and softening
+    towards the end like a heap settling."""
+    out = [0.0] * int((span + 0.08) * RATE)
+    for k in range(n):
+        at = span * (k / max(n - 1, 1)) ** 1.6 * r.uniform(0.85, 1.0) if n > 1 else 0.0
+        c = clack(r, r.uniform(*band), r.uniform(0.03, 0.06))
+        g = r.uniform(0.5, 1.0) * (1.0 - 0.5 * k / max(n, 1))
+        s = int(at * RATE)
+        for i, v in enumerate(c):
+            if s + i < len(out):
+                out[s + i] += v * g
+    return out
+
+
 def mix(*parts):
     n = max(len(p) for p in parts)
     return [sum(p[i] if i < len(p) else 0.0 for p in parts) for i in range(n)]
@@ -137,6 +163,21 @@ def recipe(sid, cat, loop):
             return sine(lambda t: 1400 - 800 * t / 0.06, 0.06, "square")
         if "evo" in sid:
             return mix(sine(lambda t: 220 * (2 ** (t * 2)), 1.6), noise(0.5, 0.2, 4))
+        # pass 35: the Hammer, the Revolver, the Gravity Gun and the Singularity
+        if "hammer_swing" in sid:
+            return [v * min(1.0, i / 3000.0) for i, v in enumerate(noise(0.3, 0.12, 5))]
+        if "hammer_hit" in sid:
+            return mix(noise(0.55, 0.05, 7), sine(lambda t: 70 - 35 * t / 0.4, 0.4), [v * 0.6 for v in noise(0.08, 0.9, 40)])
+        if "revolver" in sid:
+            return mix(noise(0.22, 0.6, 18), sine(lambda t: 900 - 700 * t / 0.1, 0.1, "square"), sine(lambda t: 110, 0.12))
+        if "grav_grab" in sid:
+            return mix(sine(lambda t: 180 + 700 * t / 0.4 + 40 * math.sin(t * 90), 0.4, "saw"), [v * 0.3 for v in noise(0.4, 0.3, 3)])
+        if "grav_throw" in sid:
+            return mix(sine(lambda t: 900 - 700 * t / 0.3, 0.3), noise(0.25, 0.2, 9))
+        if "grav_land" in sid:
+            return mix(noise(0.45, 0.07, 8), sine(lambda t: 90 - 40 * t / 0.3, 0.3))
+        if "blackhole" in sid:
+            return mix(sine(lambda t: 140 - 90 * t / 1.2 + 6 * math.sin(t * 40), 1.2, "saw"), [v * 0.4 for v in noise(1.2, 0.04, 1.5)])
         return noise(0.1, 0.5, 30)
     if cat == "pickup":
         f = {"pk_gem_s": 1046, "pk_gem_m": 1568, "pk_gem_l": 2093, "pk_coin": 1760}.get(sid, 1200)
@@ -144,6 +185,9 @@ def recipe(sid, cat, loop):
             return mix(noise(0.4, 0.3, 6), sine(lambda t: 500 + 700 * t, 0.5))
         if "vacuum" in sid:
             return sine(lambda t: 200 + 1400 * t / 1.5, 1.5, "saw")
+        if "teleport" in sid:
+            # the Teleport (pass 35): a sweep up with a shimmer on top
+            return mix(sine(lambda t: 300 + 1500 * t / 0.7 + 60 * math.sin(t * 70), 0.7), [v * 0.35 for v in noise(0.7, 0.6, 3)])
         return sine(lambda t: f, 0.09)
     if cat == "enemy":
         if "boss_roar" in sid:
@@ -162,6 +206,13 @@ def recipe(sid, cat, loop):
             return sine(lambda t: 1200 - 1000 * t / 0.4, 0.4, "square")
         if "beetle_charge" in sid:
             return mix(noise(0.3, 0.1, 10), sine(lambda t: 100, 0.3, "saw"))
+        if "bone_hit" in sid:
+            return clatter(r, 3, 0.09, (900, 1700))
+        if "bone_die" in sid:
+            return clatter(r, 14, 0.55, (500, 1500))
+        if "rocket_boom" in sid:
+            # a deep boom that rolls on: low rumble, a falling thump and a crackle on top
+            return mix(noise(1.4, 0.03, 3.0), sine(lambda t: 70 - 40 * t / 1.2, 1.2), [v * 0.5 for v in noise(0.5, 0.35, 9.0)])
         if "beetle_die" in sid:
             return mix(noise(0.4, 0.08, 8), sine(lambda t: 200 - 150 * t / 0.4, 0.4, "saw"))
         if "die" in sid:

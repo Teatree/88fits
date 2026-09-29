@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_c7dbk"]
+[ext_resource type="Texture2D" path="res://content/mutations/plague/plague_icon.png" id="2_jjqun"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_k2jeq"]
+
+[sub_resource type="Resource" id="Resource_k2jeq"]
+script = ExtResource("1_c7dbk")
+stat = "poison_stacks"
+value = 1.0
+
+[resource]
+script = ExtResource("2_k2jeq")
+weapon = "skull_rain"
+mutation_kind = "element"
+text = "Every skull leaves poison smoke that stacks."
+vfx = "thicker, longer green smoke"
+effects = [SubResource("Resource_k2jeq")]
+params = {
+"cloud_seconds": 5.0
+}
+id = "plague"
+display_name = "Plague"
+flavour = "Coughing is the least of it."
+rarity = "rare"
+element = "poison"
+weight = 8.0
+icon = ExtResource("2_jjqun")
+icon_file = "plague_icon.png"
+placeholder = {
+"color": "#80C060",
+"glyph": "star"
+}

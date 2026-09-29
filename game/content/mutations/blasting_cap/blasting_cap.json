@@ -1,0 +1,28 @@
+{
+  "id": "blasting_cap",
+  "name": "Blasting Cap",
+  "flavour": "Mira's mines pay for themselves.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "land_mine",
+  "kind": "hero",
+  "element": "",
+  "hero": "mira",
+  "text": "A mine that kills drops a gold nugget; +25% radius.",
+  "vfx": "a coin pops out of the crater",
+  "effects": [
+    {
+      "stat": "area",
+      "op": "mul",
+      "value": 0.25
+    }
+  ],
+  "params": {
+    "gold_on_kill": 1
+  },
+  "art_prompt": "a land mine with a gold nugget sitting on top",
+  "placeholder": {
+    "color": "#F0D040",
+    "glyph": "star"
+  }
+}

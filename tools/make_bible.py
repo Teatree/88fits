@@ -74,10 +74,32 @@ def stack(rows, name):
     out.save(os.path.join(IMG, name + ".webp"), "WEBP", quality=84, method=6)
 
 
+def creature_order():
+    """Every creature in the order the timeline meets it: roster by arrival, then the Elites, then the bosses, so the cast
+    sheet and the creature table come from the same data and neither can forget a creature."""
+    tl = json.load(open(os.path.join("game", "content", "maps", "red_canyon", "red_canyon.json"), encoding="utf-8"))["timeline_data"]
+    arrive = {r["enemy"]: float(r.get("t", 0)) for r in tl.get("roster", [])}
+    ids = [("enemies", i) for i, _ in sorted(arrive.items(), key=lambda kv: kv[1])]
+    # the specials come on their own clock (pass 33.4), after the roster
+    for row in tl.get("specials", {}).get("pool", []):
+        sid = row.get("enemy") if isinstance(row, dict) else row
+        if ("enemies", sid) not in ids:
+            ids.append(("enemies", sid))
+    elites, bosses = [], []
+    for ev in tl.get("events", []):
+        if ev.get("type") == "elite_boss":
+            e = ev.get("enemy")
+            for x in (e if isinstance(e, list) else [e]):
+                if ("enemies", x) not in ids and ("enemies", x) not in elites:
+                    elites.append(("enemies", x))
+        if ev.get("type") == "boss" and ("bosses", ev.get("enemy")) not in bosses:
+            bosses.append(("bosses", ev.get("enemy")))
+    return ids + sorted(elites) + bosses
+
+
 def cast_sheet():
-    """Icon + six walk frames per desert creature, the boss last."""
-    ids = [("enemies", "goblin"), ("enemies", "goblin_runt"), ("enemies", "fire_ant"), ("enemies", "roadrunner"), ("enemies", "spit_cactus"),
-           ("enemies", "dust_mummy"), ("enemies", "bull_beetle"), ("enemies", "dune_scorpion"), ("bosses", "tumbleweed_king")]
+    """Icon + six walk frames per creature in timeline order, the Elites and bosses last."""
+    ids = creature_order()
     H = 150
     rows = []
     f = font(22)
@@ -154,6 +176,203 @@ def fire_gif(shots):
     ims[0].save(os.path.join(IMG, "fire.gif"), save_all=True, append_images=ims[1:], duration=200, loop=0, optimize=True)
 
 
+def creature_rows():
+    """The creature table from the content: every enemy and boss, ordered by when the map's roster brings them in."""
+    import glob
+    tl = json.load(open(os.path.join("game", "content", "maps", "red_canyon", "red_canyon.json"), encoding="utf-8"))["timeline_data"]
+    arrive = {r["enemy"]: float(r.get("t", 0)) for r in tl.get("roster", [])}
+    elite_ids = set()
+    boss_ids = []
+    for ev in tl.get("events", []):
+        if ev.get("type") == "elite_boss":
+            e = ev.get("enemy")
+            for x in (e if isinstance(e, list) else [e]):
+                elite_ids.add(x)
+        if ev.get("type") == "boss" and ev.get("enemy") not in boss_ids:
+            boss_ids.append(ev.get("enemy"))
+    defs = {}
+    for f in glob.glob(os.path.join("game", "content", "enemies", "*", "*.json")) + glob.glob(os.path.join("game", "content", "bosses", "*", "*.json")):
+        if f.endswith("_ai.json"):
+            continue
+        d = json.load(open(f, encoding="utf-8"))
+        defs[d["id"]] = d
+
+    def mmss(t):
+        return "%d:%02d" % (int(t) // 60, int(t) % 60)
+
+    def numbers(d):
+        parts = ["%g hp" % d.get("hp", 0)]
+        if d.get("armor"):
+            parts.append("%g armor" % d["armor"])
+        parts.append("%g m/s" % d.get("speed", 0))
+        parts.append("%g dmg" % d.get("damage", 0))
+        ps = int(d.get("pack_size", 1))
+        parts.append({1: "alone", 2: "pairs"}.get(ps, "packs of %d" % ps))
+        return " · ".join(parts)
+
+    rows = []
+    for id_, t in sorted(arrive.items(), key=lambda kv: kv[1]):
+        d = defs.get(id_)
+        if not d:
+            continue
+        rows.append('      <tr><td><span class="name">%s</span><span class="sub">from %s · %s</span></td><td>%s</td><td class="num">%s</td><td>%s</td></tr>' % (
+            d.get("name", id_), mmss(t), d.get("flavour", ""), d.get("brain", ""), numbers(d), d.get("doc", "")))
+    sp = tl.get("specials", {})
+    for row in sp.get("pool", []):
+        sid = row.get("enemy") if isinstance(row, dict) else row
+        d = defs.get(sid)
+        if not d:
+            continue
+        st = int(row.get("stage", 1)) if isinstance(row, dict) else 1
+        when = ("special from %s" % mmss(float(sp.get("from", 150)))) if st <= 1 else ("special from stage %d" % st)
+        rows.append('      <tr><td><span class="name">%s</span><span class="sub">%s · %s</span></td><td>%s</td><td class="num">%s</td><td>%s</td></tr>' % (
+            d.get("name", sid), when, d.get("flavour", ""), d.get("brain", ""), numbers(d), d.get("doc", "")))
+    rows.append('      <tr><td><span class="name">Elite variants</span><span class="sub">every 90 s from 3:30</span></td><td>base brain</td><td class="num">1.4–1.6× size</td><td>Any roster creature with a modifier: armoured, swift, splitting, exploding (never the spit cactus or a special: <code>can_be_elite</code>). Always a chest.</td></tr>')
+    for id_ in sorted(elite_ids):
+        d = defs.get(id_)
+        if d:
+            rows.append('      <tr><td><span class="name">%s</span><span class="sub">the Elite · 2:30 · 7:30 · 12:30</span></td><td>%s</td><td class="num">%s</td><td>%s</td></tr>' % (
+                d.get("name", id_), d.get("brain", ""), numbers(d), d.get("doc", "")))
+    for id_ in boss_ids:
+        d = defs.get(id_)
+        if d:
+            rows.append('      <tr><td><span class="name">%s</span><span class="sub">boss</span></td><td>boss</td><td class="num">%s</td><td>%s</td></tr>' % (
+                d.get("name", id_), numbers(d), d.get("doc", "")))
+    return "\n".join(rows)
+
+
+def _load_type(t):
+    out = {}
+    for f in glob.glob(os.path.join("game", "content", t, "*", "*.json")):
+        if os.path.basename(f) != os.path.basename(os.path.dirname(f)) + ".json":
+            continue
+        d = json.load(open(f, encoding="utf-8"))
+        out[d["id"]] = d
+    return out
+
+
+def _esc(s):
+    return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def mutation_rows():
+    """The 19 x 3 path table from content/mutations: a row per weapon in the weapon table's order, the hero mutations after."""
+    muts = _load_type("mutations")
+    weapons = _load_type("weapons")
+    order = ["peashooter", "boomstick", "flare_gun", "tommy_gun", "poison_dart", "tumbleweed", "zap_beam", "orbit_saws", "branding_iron",
+             "rattlesnake", "lob_grenade", "molotov", "skull_rain", "land_mine", "turret_buddy", "rocket_pod", "hornet_nest", "sabre", "pike"]
+    for wid in sorted(weapons):
+        if wid not in order:
+            order.append(wid)
+    rows = []
+    for wid in order:
+        w = weapons.get(wid)
+        if not w:
+            continue
+        cells = []
+        for kind in ("element", "volume", "motion"):
+            m = next((x for x in muts.values() if x.get("weapon") == wid and x.get("kind") == kind), None)
+            if m is None:
+                cells.append("<td>—</td>")
+                continue
+            el = (" <span class=\"chip %s\">%s</span>" % ("e" if m.get("element") == "fire" else "g", m.get("element"))) if m.get("element") else ""
+            cells.append("<td><b>%s</b>%s<br>%s<span class=\"sub\">%s</span></td>" % (_esc(m["name"]), el, _esc(m.get("text", "")), _esc(m.get("vfx", ""))))
+        rows.append("      <tr><td><span class=\"name\">%s</span></td>%s</tr>" % (_esc(w.get("name", wid)), "".join(cells)))
+    heroes = [m for m in muts.values() if m.get("hero")]
+    heroes.sort(key=lambda m: m["hero"])
+    for m in heroes:
+        wname = weapons.get(m["weapon"], {}).get("name", m["weapon"])
+        rows.append("      <tr><td><span class=\"name\">%s</span><span class=\"sub\">%s's %s</span></td><td colspan=\"3\"><b>%s</b>: %s <span class=\"sub\">%s</span></td></tr>" % (
+            _esc(m["hero"].capitalize()), _esc(m["hero"].capitalize()), _esc(wname), _esc(m["name"]), _esc(m.get("text", "")), _esc(m.get("vfx", ""))))
+    return "\n".join(rows)
+
+
+def _describe_effects(effs):
+    parts = []
+    names = {"max_hp": "max HP", "move_speed": "move speed", "might": "might", "lifesteal": "lifesteal", "regen": "regen", "thorns": "thorns",
+             "armor": "armor", "cooldown": "cooldowns", "magnet": "pickup radius", "area": "area", "shield_max": "shield",
+             "evade": "evade", "evade_invuln": "s untouchable after an evade", "regen_delay": "regen wait after a hit",
+             "lifesteal_cap": "lifesteal cap a second", "shield_delay": "shield recharge wait", "shield_rate": "shield recharge a second"}
+    for e in effs:
+        st = names.get(e.get("stat"), e.get("stat"))
+        v = float(e.get("value", 0))
+        if e.get("op") == "set":
+            unit = "%" if e.get("stat") in ("lifesteal_cap", "shield_rate") else " s"
+            shown = v * 100 if unit == "%" else v
+            parts.append("%s %g%s" % (st, shown, unit))
+            continue
+        if e.get("stat") in ("evade",):
+            parts.append("%s%g%% evade" % ("+" if v >= 0 else "−", abs(v * 100)))
+            continue
+        if e.get("op") == "mul":
+            parts.append("%s%d%% %s" % ("+" if v >= 0 else "−", abs(round(v * 100)), st))
+        elif st == "regen":
+            parts.append("%s%g HP/s" % ("+" if v >= 0 else "−", abs(v)))
+        elif st == "lifesteal":
+            parts.append("%s%g%% lifesteal" % ("+" if v >= 0 else "−", abs(v * 100)))
+        else:
+            parts.append("%s%g %s" % ("+" if v >= 0 else "−", abs(v), st))
+    return ", ".join(parts)
+
+
+def line_rows():
+    lines = _load_type("lines")
+    rows = []
+    for lid in ["vigour", "stride", "mend", "brawn", "thirst", "bristle"] + sorted(k for k in lines if k not in ["vigour", "stride", "mend", "brawn", "thirst", "bristle"]):
+        l = lines.get(lid)
+        if not l or l.get("evolves_from"):
+            continue
+        lv = l.get("levels", [])
+        per = _describe_effects([e for e in (lv[0] if lv else []) if float(e.get("value", 0)) > 0 or e.get("stat") in ("thorns", "regen")])
+        extras = []
+        if not l.get("repeat_last_level", True) and len(lv) > 1:
+            for k, rank in enumerate(lv[1:], start=2):
+                ex = [e for e in rank if e.get("stat") != lv[0][0].get("stat")]
+                if ex:
+                    extras.append("rank %d: %s" % (k, _describe_effects(ex)))
+        # the evolution (pass 33.2): what the maxed line becomes, in full
+        evo = lines.get(l.get("evolves_into", ""), {})
+        ecell = ("<b>%s</b>: %s%s" % (_esc(evo["name"]), _esc(_describe_effects(evo.get("levels", [[]])[0])),
+                 (" (trade: %s)" % _esc(evo["trade"])) if evo.get("trade") else "")) if evo else "—"
+        rows.append("      <tr><td><span class=\"name\">%s</span><span class=\"sub\">%s</span></td><td>%s%s</td><td>%s</td><td class=\"num\">%d</td><td>%s</td></tr>" % (
+            _esc(l["name"]), _esc(l.get("flavour", "")), _esc(per), (" (" + "; ".join(extras) + ")") if extras else "", _esc(l.get("trade") or "none"), int(l.get("max_level", 4)), ecell))
+    return "\n".join(rows)
+
+
+def perk_rows():
+    perks = _load_type("perks")
+    muts = _load_type("mutations")
+    chars = _load_type("characters")
+    weapons = _load_type("weapons")
+    rows = []
+    for cid in sorted(chars):
+        c = chars[cid]
+        p = next((x for x in perks.values() if x.get("hero") == cid), None)
+        hm = next((x for x in muts.values() if x.get("hero") == cid), None)
+        pcell = "<b>%s</b>: %s" % (_esc(p["name"]), _esc(p.get("text", ""))) if p else "—"
+        mcell = "<b>%s</b> (%s): %s" % (_esc(hm["name"]), _esc(weapons.get(hm["weapon"], {}).get("name", hm["weapon"])), _esc(hm.get("text", ""))) if hm else "—"
+        rows.append("      <tr><td><span class=\"name\">%s</span><span class=\"sub\">%s · %s</span></td><td>%s</td><td>%s</td></tr>" % (
+            _esc(c.get("name", cid)), _esc(c.get("trait_name", "")), _esc(weapons.get(c.get("favourite_weapon", ""), {}).get("name", "")), pcell, mcell))
+    return "\n".join(rows)
+
+
+def talent_rows():
+    """The Mirror's talents from content/talents: both forms of each, the ranks and what they cost."""
+    ts = _load_type("talents")
+    rows = []
+    for t in sorted(ts.values(), key=lambda x: int(x.get("order", 0))):
+        forms = t.get("forms", [])
+        cost = " / ".join("%d g" % int(c) for c in t.get("cost", []))
+        a = forms[0] if len(forms) > 0 else {}
+        b = forms[1] if len(forms) > 1 else {}
+        rows.append("      <tr><td><span class=\"name\">%s</span><span class=\"sub\">%s</span></td><td><b>%s</b> — %s</td><td><b>%s</b> — %s</td><td>%d ranks · %s</td></tr>" % (
+            _esc(t.get("name", t.get("id", ""))), _esc(t.get("flavour", "")),
+            _esc(a.get("name", "")), _esc(a.get("text", "")),
+            _esc(b.get("name", "")), _esc(b.get("text", "")),
+            int(t.get("ranks", 3)), _esc(cost)))
+    return "\n".join(rows)
+
+
 def props_sheet():
     """The painted scenery with labels, from art/sprites/props/props.json."""
     mp = os.path.join("game", "art", "sprites", "props", "props.json")
@@ -161,16 +380,20 @@ def props_sheet():
         return
     man = json.load(open(mp, encoding="utf-8"))
     ids = list(man.keys())
+    # the structures' spent versions sit at the end, after their lit ones
+    ids += [id_ + "_off" for id_ in ids if man[id_].get("off")]
     S = 150
     cols = 7
     rows = (len(ids) + cols - 1) // cols
     out = Image.new("RGB", (cols * (S + 12) + 12, rows * (S + 36) + 12), (26, 24, 34))
     f = font(15)
     for k, id_ in enumerate(ids):
-        im = Image.open(os.path.join("game", "art", "sprites", "props", man[id_]["file"])).convert("RGBA").resize((S, S), Image.LANCZOS)
+        base = man[id_.replace("_off", "")]
+        fn = base["off"] if id_.endswith("_off") else base["file"]
+        im = Image.open(os.path.join("game", "art", "sprites", "props", fn)).convert("RGBA").resize((S, S), Image.LANCZOS)
         x, y = 12 + (k % cols) * (S + 12), 12 + (k // cols) * (S + 36)
         out.paste(im, (x, y), im)
-        ImageDraw.Draw(out).text((x + 4, y + S + 4), "%s  %.1f m" % (id_, man[id_]["height"]), fill=(181, 174, 200), font=f)
+        ImageDraw.Draw(out).text((x + 4, y + S + 4), "%s  %.1f m" % (id_, base["height"]), fill=(181, 174, 200), font=f)
     out.save(os.path.join(IMG, "props.webp"), "WEBP", quality=84, method=6)
 
 
@@ -202,6 +425,8 @@ def main():
     icon_sheet()
     props_sheet()
     html = "".join(open(os.path.join(SRC, "part%d.html" % k), encoding="utf-8").read() for k in range(1, 5))
+    html = html.replace("{{CREATURES}}", creature_rows())
+    html = html.replace("{{MUTATIONS}}", mutation_rows()).replace("{{LINES}}", line_rows()).replace("{{PERKS}}", perk_rows()).replace("{{TALENTS}}", talent_rows())
     html = html.replace("{{CSS}}", open(os.path.join(SRC, "bible.css"), encoding="utf-8").read())
     html = html.replace("{{SOUND_ROWS}}", sound_rows())
     missing = []

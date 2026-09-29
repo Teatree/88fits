@@ -59,7 +59,6 @@ base = {
 "poison_stacks": 1.0
 }
 levels = [[], [SubResource("Resource_viuen")], [SubResource("Resource_3s3cw")], [SubResource("Resource_hfvfl")], [SubResource("Resource_kv68u")], [SubResource("Resource_srr3h")], [SubResource("Resource_0i4tm")], [SubResource("Resource_45p7q")]]
-evolves_with = "snake_oil"
 evolves_into = "snake_pit"
 sfx = {
 "hit": "w_snake_bite",
@@ -75,6 +74,7 @@ display_name = "Rattlesnake"
 flavour = "It is not venom. It is spite. Fine, it is venom."
 rarity = "rare"
 weight = 7.0
+hidden = true
 icon = ExtResource("1_viuen")
 icon_file = "rattlesnake_icon.png"
 placeholder = {

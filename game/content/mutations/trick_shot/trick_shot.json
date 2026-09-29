@@ -1,0 +1,31 @@
+{
+  "id": "trick_shot",
+  "name": "Trick Shot",
+  "flavour": "Off the wall, into the other one.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "revolver",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "A round that kills bounces on to the next enemy at 80%, every time.",
+  "vfx": "a gold spark and a second tracer at every bounce",
+  "effects": [
+    {
+      "stat": "ricochet",
+      "op": "add",
+      "value": 1.0
+    },
+    {
+      "stat": "ricochet_damage",
+      "op": "set",
+      "value": 0.8
+    }
+  ],
+  "params": {},
+  "art_prompt": "a gleaming bullet with a curved motion trail bouncing off a tin can",
+  "placeholder": {
+    "color": "#C0D0F0",
+    "glyph": "star"
+  }
+}

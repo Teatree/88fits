@@ -1,0 +1,107 @@
+{
+  "id": "gravity_gun",
+  "name": "Gravity Gun",
+  "flavour": "Pick one. Throw it at the rest.",
+  "rarity": "rare",
+  "weight": 7,
+  "hero": "astro",
+  "behavior": "GravityGun",
+  "targeting": "nearest",
+  "tags": [
+    "gun"
+  ],
+  "base": {
+    "damage": 18,
+    "cooldown": 2.2,
+    "amount": 1,
+    "range": 7.0,
+    "area": 1.0,
+    "knockback": 9.0
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.15
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.2
+      },
+      {
+        "stat": "range",
+        "op": "mul",
+        "value": 0.15
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "singularity",
+  "params": {
+    "gravity": {
+      "blast": 1.9,
+      "grab": 0.32,
+      "hold": 0.28,
+      "throw": 0.5,
+      "height": 1.8,
+      "arc": 2.2,
+      "self_frac": 1.5
+    },
+    "familiar": {
+      "radius": 1.3,
+      "height": 1.45,
+      "speed": 1.0,
+      "bob": 0.08
+    }
+  },
+  "sfx": {
+    "fire": "w_grav_grab",
+    "hit": "w_grav_throw",
+    "land": "w_grav_land"
+  },
+  "placeholder": {
+    "color": "#C87840",
+    "glyph": "gun"
+  },
+  "art_prompt": "a chunky copper sci-fi gravity gun with orange hazard bands, a glass coil window on top, three metal claws at the front holding a glowing cyan energy ball, seen from the side pointing to the right"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "suit_seals",
+  "name": "Suit Seals",
+  "flavour": "The suit patches itself and everything on it.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "astro",
+  "text": "The level-up patch also gives 1.5 s of invulnerability.",
+  "effects": [],
+  "special": "suit_seals",
+  "params": {
+    "invuln": 1.5
+  },
+  "art_prompt": "a white spacesuit patch with a glowing blue seal ring",
+  "placeholder": {
+    "color": "#80C0FF",
+    "glyph": "star"
+  }
+}

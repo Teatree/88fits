@@ -1,0 +1,36 @@
+{
+  "id": "venom_arc",
+  "name": "Venom Arc",
+  "flavour": "Electric and sick.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "zap_beam",
+  "kind": "element",
+  "element": "poison",
+  "hero": "",
+  "text": "The arc carries poison.",
+  "vfx": "a green bolt instead of blue, green flashes on the chain",
+  "effects": [
+    {
+      "stat": "poison_damage",
+      "op": "add",
+      "value": 4
+    },
+    {
+      "stat": "poison_stacks",
+      "op": "add",
+      "value": 1
+    },
+    {
+      "stat": "poison_duration",
+      "op": "add",
+      "value": 8
+    }
+  ],
+  "params": {},
+  "art_prompt": "a jagged lightning bolt glowing sickly green and dripping venom",
+  "placeholder": {
+    "color": "#80FF80",
+    "glyph": "star"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "bouncing_peas",
+  "name": "Bouncing Peas",
+  "flavour": "Physics is on your side.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "peashooter",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "Every pea bounces to a second creature at full damage.",
+  "vfx": "a gold spark at every bounce and a second pea trail",
+  "effects": [
+    {
+      "stat": "ricochet",
+      "op": "add",
+      "value": 1.0
+    },
+    {
+      "stat": "ricochet_damage",
+      "op": "set",
+      "value": 1.0
+    }
+  ],
+  "params": {},
+  "art_prompt": "a single green pea with two curved motion arrows showing it bouncing off a small rock",
+  "placeholder": {
+    "color": "#C8F090",
+    "glyph": "star"
+  }
+}

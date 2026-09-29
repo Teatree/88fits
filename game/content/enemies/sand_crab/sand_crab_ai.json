@@ -1,0 +1,95 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a small desert sand crab carrying one big round black naval mine strapped upright on top of its shell, the mine a classic round black bomb studded with short blunt spikes with a bright red glowing lamp on its top and a yellow radiation trefoil painted on its side, the crab itself with a rounded pale orange shell with dark speckles, two small raised claws, stalked black eyes, eight thin jointed legs, low and wide, ready to scuttle",
+ "renders": {
+  "front": {
+   "seed": 10214,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a small desert sand crab carrying one big round black naval mine strapped upright on top of its shell, the mine a classic round black bomb studded with short blunt spikes with a bright red glowing lamp on its top and a yellow radiation trefoil painted on its side, the crab itself with a rounded pale orange shell with dark speckles, two small raised claws, stalked black eyes, eight thin jointed legs, low and wide, ready to scuttle. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 185,
+     "right": 186,
+     "top": 90,
+     "bottom": 113,
+     "height": 820,
+     "width": 652
+    }
+   },
+   "attempt": 0
+  },
+  "back": {
+   "seed": 26053,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. the same crab seen from behind: the rounded back of the shell with the single big black spiked mine strapped on top, its red lamp and the yellow trefoil showing, the claws held forward and mostly hidden isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/sand_crab_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": false,
+    "view": "back",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 220,
+     "right": 221,
+     "top": 92,
+     "bottom": 107,
+     "height": 824,
+     "width": 582
+    }
+   },
+   "attempt": 2
+  },
+  "dead": {
+   "seed": 10223,
+   "prompt": "This exact creature lying dead on the sand upside down, the pale belly up, the legs and claws curled in, the one big black mine still strapped to the shell under it: still a crab, no face, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/sand_crab_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": false,
+    "view": "front",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 199,
+     "right": 205,
+     "top": 244,
+     "bottom": 113,
+     "height": 666,
+     "width": 619
+    }
+   },
+   "attempt": 0
+  }
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true
+ }
+}

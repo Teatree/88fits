@@ -1,0 +1,37 @@
+{
+  "id": "bunker",
+  "name": "Bunker",
+  "flavour": "Dug in. Not going anywhere.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "turret_buddy",
+  "kind": "stance",
+  "element": "",
+  "hero": "",
+  "text": "The buddy digs in behind sandbags: twin barrels, +40% damage, shots knock back, it turns slowly.",
+  "vfx": "a low sandbag bunker with two barrels",
+  "effects": [
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": 0.4
+    },
+    {
+      "stat": "knockback",
+      "op": "add",
+      "value": 4
+    }
+  ],
+  "params": {
+    "turret": {
+      "style": "bunker",
+      "barrels": 2,
+      "turn": 2.5
+    }
+  },
+  "art_prompt": "a low round sandbag bunker with two gun barrels poking out",
+  "placeholder": {
+    "color": "#F0D060",
+    "glyph": "star"
+  }
+}

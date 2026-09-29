@@ -1,0 +1,43 @@
+{
+  "id": "stride",
+  "name": "Stride",
+  "flavour": "Cover the ground, or pull it to you.",
+  "order": 3,
+  "ranks": 3,
+  "cost": [
+    120,
+    216,
+    360
+  ],
+  "forms": [
+    {
+      "name": "Boots",
+      "text": "+5% move speed a rank.",
+      "effects": [
+        {
+          "stat": "move_speed",
+          "op": "mul",
+          "value": 0.05,
+          "target": "player"
+        }
+      ]
+    },
+    {
+      "name": "Lodestone",
+      "text": "+18% pickup reach a rank.",
+      "effects": [
+        {
+          "stat": "magnet",
+          "op": "mul",
+          "value": 0.18,
+          "target": "player"
+        }
+      ]
+    }
+  ],
+  "art_prompt": "a polished brass hand mirror with a carved sun on its back",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

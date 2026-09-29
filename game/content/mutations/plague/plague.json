@@ -1,0 +1,28 @@
+{
+  "id": "plague",
+  "name": "Plague",
+  "flavour": "Coughing is the least of it.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "skull_rain",
+  "kind": "element",
+  "element": "poison",
+  "hero": "",
+  "text": "Every skull leaves poison smoke that stacks.",
+  "vfx": "thicker, longer green smoke",
+  "effects": [
+    {
+      "stat": "poison_stacks",
+      "op": "add",
+      "value": 1
+    }
+  ],
+  "params": {
+    "cloud_seconds": 5.0
+  },
+  "art_prompt": "a green cracked skull with poison smoke pouring from its eye sockets",
+  "placeholder": {
+    "color": "#80C060",
+    "glyph": "star"
+  }
+}

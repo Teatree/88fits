@@ -70,7 +70,7 @@
       }
     ]
   ],
-  "evolves_with": "magnet",
+  "evolves_with": "",
   "evolves_into": "turret_family",
   "sfx": {
     "place": "w_turret_place",

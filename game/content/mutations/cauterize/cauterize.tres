@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_t4doa"]
+[ext_resource type="Texture2D" path="res://content/mutations/cauterize/cauterize_icon.png" id="2_41fug"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_bs530"]
+
+[sub_resource type="Resource" id="Resource_bs530"]
+script = ExtResource("1_t4doa")
+stat = "mark"
+value = 0.4
+
+[resource]
+script = ExtResource("2_bs530")
+weapon = "branding_iron"
+mutation_kind = "element"
+text = "A branded creature takes +40% from everything for 3 s."
+vfx = "a glowing brand on the creature that flares on every hit"
+effects = [SubResource("Resource_bs530")]
+id = "cauterize"
+display_name = "Cauterize"
+flavour = "Marked for everything."
+rarity = "rare"
+element = "fire"
+weight = 8.0
+icon = ExtResource("2_41fug")
+icon_file = "cauterize_icon.png"
+placeholder = {
+"color": "#FF6A30",
+"glyph": "star"
+}

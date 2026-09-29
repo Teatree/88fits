@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_awnjn"]
+[ext_resource type="Texture2D" path="res://content/evolutions/golden_revolver/golden_revolver_icon.png" id="1_yiqsx"]
+[ext_resource type="PackedScene" path="res://content/evolutions/golden_revolver/golden_revolver_visual.tscn" id="2_yiqsx"]
+
+[resource]
+script = ExtResource("1_awnjn")
+tags = ["gun"]
+base = {
+"amount": 2.0,
+"cooldown": 0.8,
+"damage": 40.0,
+"knockback": 3.0,
+"pierce": 2.0,
+"range": 15.0,
+"speed": 36.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "revolver"
+sfx = {
+"fire": "w_revolver_fire",
+"hit": "w_pea_hit"
+}
+visual = ExtResource("2_yiqsx")
+visual_file = "golden_revolver_visual.tscn"
+params = {
+"burst": true,
+"burst_gap": 0.14,
+"drum_axis": "forward",
+"drum_step": 1.0472,
+"familiar": {
+"bob": 0.08,
+"height": 1.4,
+"radius": 1.2,
+"speed": 1.2
+},
+"no_shells": true,
+"radius": 0.14,
+"scatter_deg": 1.5,
+"trace": {
+"frac": 0.35,
+"seconds": 3.0,
+"tick": 0.5,
+"width": 0.5
+},
+"tracer": true
+}
+hero = "drifter"
+id = "golden_revolver"
+display_name = "Golden Revolver"
+flavour = "It leaves a mark. In the air."
+rarity = "epic"
+icon = ExtResource("1_yiqsx")
+icon_file = "golden_revolver_icon.png"
+placeholder = {
+"color": "#FFB13B",
+"glyph": "gun"
+}

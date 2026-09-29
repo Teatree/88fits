@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=3 uid="uid://vis_bigmouth001"]
+
+[ext_resource type="PackedScene" path="res://art/props/big_mouth.glb" id="mouth"]
+
+[sub_resource type="SphereMesh" id="proj"]
+radius = 0.14
+height = 0.28
+radial_segments = 6
+rings = 3
+
+[sub_resource type="StandardMaterial3D" id="projmat"]
+shading_mode = 0
+albedo_color = Color(1, 0.35, 0.75, 1)
+emission_enabled = true
+emission = Color(1, 0.3, 0.7, 1)
+emission_energy_multiplier = 2.0
+
+[node name="BigMouthVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+mesh = SubResource("proj")
+material_override = SubResource("projmat")
+
+[node name="Familiar" type="Node3D" parent="."]
+
+[node name="Mouth" parent="Familiar" instance=ExtResource("mouth")]
+transform = Transform3D(0.62, 0, 0, 0, 0.62, 0, 0, 0, 0.62, 0, 0, 0)

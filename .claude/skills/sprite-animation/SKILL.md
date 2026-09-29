@@ -66,3 +66,26 @@ from a right one in the front, back and side views, so cycles came out doubled o
 4. Creatures with non-human skeletons (ants, cacti, beetles) still use the free clip; humanoids could use `drivers/walk`.
 
 Models live on the server at `~/ai/ComfyUI/models/` (SSH: `ssh -i ~/.ssh/id_ed25519_ai_server teatree@192.168.137.54`; download with wget there).
+
+## Creatures on a fitted stride, and deaths that fall (pass 33.9, the goblin)
+
+A creature painted with other proportions than the Mixamo rig (a big head, short legs) comes out lanky when Wan
+Animate paints it on the rig's skeleton, because Animate puts the body where the bones are. Retarget the driver:
+
+1. Read the painting's proportions as fractions of its height (head top to soles): `top_nose`, `nose_neck`, `torso`
+   (neck to the middle of the hips), `thigh`, `shin`, `shoulder` and `hip` (half widths), `upper`, `fore`, `hand`.
+   A coordinate grid over the front still is enough (the goblin: 0.21, 0.134, 0.292, 0.16, 0.14, 0.119, 0.068, 0.174, 0.139, 0.078).
+2. `"$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/orc_walk.fbx out=tools/dl/drivers/orc_walk_goblin frames=12 body=top_nose:0.21,...`
+   then `python tools/pose_driver.py draw tools/dl/drivers/orc_walk_goblin`, and point the creature JSON's `"pose"` at the folder.
+   Overlay a driver frame on the painting before painting anything (`make_pipeline_figs.overlay_driver`).
+3. `"stand": "still"` keeps the painting for idle, attack and hit when the walk's passing frame would read worse.
+
+`"death": "clip"` animates the death: `animate.fall_clip` puts the standing and the dead painting at one scale on one
+floor line and runs Wan 2.2 first-last-frame (`wan_flf`, 33 frames, ~2 min). `gen_art.death_cycle` keeps `death_frames` (8) from the
+last frame still near standing to the first near lying (silhouettes), swaps any frame with a colour flash for a neighbour
+(`hue_excess` over 0.06), matches saturation and brightness to the paintings (the video paints brighter, and the step into
+the dead painting flashed), and ends on the dead painting; die plays at 12 fps. Paint the dead still holding whatever the
+creature carries (`dead_hint`), so nothing has to vanish mid-fall.
+
+Pose cycles re-roll when a frame flashes a colour its neighbours lack (`hue_excess` over 0.08). The vision QA cannot
+count ears or arms: paint several seeds of each still and pick by eye.

@@ -1,0 +1,99 @@
+{
+  "id": "hammer",
+  "name": "Hammer",
+  "flavour": "Everything looks like a nail.",
+  "rarity": "rare",
+  "weight": 7,
+  "behavior": "Smasher",
+  "targeting": "densest",
+  "tags": [
+    "melee"
+  ],
+  "base": {
+    "damage": 20,
+    "cooldown": 2.4,
+    "amount": 1,
+    "range": 4.6,
+    "area": 1.0,
+    "knockback": 10.0
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "range",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "range",
+        "op": "mul",
+        "value": 0.15
+      },
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.15
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "earthshaker",
+  "params": {
+    "smash": {
+      "radius": 1.6,
+      "rise": 0.22,
+      "swing": 0.16,
+      "hold": 0.14,
+      "fade": 0.2,
+      "stagger": 0.14,
+      "shake": 0.35
+    }
+  },
+  "sfx": {
+    "fire": "w_hammer_swing",
+    "hit": "w_hammer_hit"
+  },
+  "placeholder": {
+    "color": "#9AA0B0",
+    "glyph": "hammer"
+  },
+  "art_prompt": "a big two-handed war hammer with an octagonal steel head bound by two brass bands and a long oak handle wrapped in dark leather at the grip, lying on its side with the head to the right"
+}

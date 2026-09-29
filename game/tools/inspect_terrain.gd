@@ -11,7 +11,7 @@ func _run() -> void:
 	print("sand exists: ", ResourceLoader.exists("res://art/env/sand.png"), " cracked exists: ", ResourceLoader.exists("res://art/env/cracked.png"))
 	var t = load("res://art/env/sand.png")
 	print("sand load: ", t, " size: ", (t.get_size() if t else "n/a"))
-	var scene: PackedScene = load("res://world/maps/dry_gulch/DryGulch.tscn")
+	var scene: PackedScene = load("res://world/maps/red_canyon/RedCanyon.tscn")
 	var map = scene.instantiate()
 	root.add_child(map)
 	await process_frame

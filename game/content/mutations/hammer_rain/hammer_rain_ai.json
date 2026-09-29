@@ -1,0 +1,15 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "three steel war hammers falling head first in a row out of the sky with speed lines",
+ "renders": {
+  "icon": {
+   "key": "hammer_rain_icon35_1",
+   "prompt": "three steel war hammers falling head first in a row out of the sky with speed lines",
+   "refs": [],
+   "screen": "green",
+   "picked": 1,
+   "of": 2
+  }
+ }
+}

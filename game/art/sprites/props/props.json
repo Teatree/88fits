@@ -2,31 +2,31 @@
  "saguaro_big": {
   "file": "saguaro_big.png",
   "height": 4.4,
-  "radius": 0.55,
+  "radius": 0.22,
   "cell": 384
  },
  "saguaro_small": {
   "file": "saguaro_small.png",
   "height": 2.8,
-  "radius": 0.45,
+  "radius": 0.19,
   "cell": 256
  },
  "barrel_cactus": {
   "file": "barrel_cactus.png",
   "height": 1.1,
-  "radius": 0.5,
+  "radius": 0.25,
   "cell": 192
  },
  "prickly_pear": {
   "file": "prickly_pear.png",
   "height": 1.4,
-  "radius": 0.5,
+  "radius": 0.25,
   "cell": 192
  },
  "agave": {
   "file": "agave.png",
   "height": 1.3,
-  "radius": 0.5,
+  "radius": 0.25,
   "cell": 192
  },
  "dead_shrub": {
@@ -38,25 +38,25 @@
  "dead_tree": {
   "file": "dead_tree.png",
   "height": 4.2,
-  "radius": 0.4,
+  "radius": 0.19,
   "cell": 384
  },
  "rock_small": {
   "file": "rock_small.png",
   "height": 0.8,
-  "radius": 0.7,
+  "radius": 0.22,
   "cell": 128
  },
  "rock_big": {
   "file": "rock_big.png",
   "height": 1.6,
-  "radius": 1.4,
+  "radius": 0.37,
   "cell": 256
  },
  "boulder": {
   "file": "boulder.png",
   "height": 2.8,
-  "radius": 2.3,
+  "radius": 0.62,
   "cell": 384
  },
  "skull": {
@@ -80,7 +80,116 @@
  "signpost": {
   "file": "signpost.png",
   "height": 3.0,
-  "radius": 0.25,
+  "radius": 0.12,
   "cell": 256
+ },
+ "mesquite_tree": {
+  "file": "mesquite_tree.png",
+  "height": 4.0,
+  "radius": 0.25,
+  "cell": 384
+ },
+ "joshua_tree": {
+  "file": "joshua_tree.png",
+  "height": 4.6,
+  "radius": 0.22,
+  "cell": 384
+ },
+ "palo_verde": {
+  "file": "palo_verde.png",
+  "height": 3.8,
+  "radius": 0.19,
+  "cell": 384
+ },
+ "desert_bush": {
+  "file": "desert_bush.png",
+  "height": 1.3,
+  "radius": 0.0,
+  "cell": 192
+ },
+ "creosote_bush": {
+  "file": "creosote_bush.png",
+  "height": 1.6,
+  "radius": 0.0,
+  "cell": 192
+ },
+ "st_healing_well": {
+  "file": "st_healing_well.png",
+  "height": 2.4,
+  "radius": 0.0,
+  "cell": 256
+ },
+ "st_loot_cache": {
+  "file": "st_loot_cache.png",
+  "height": 1.6,
+  "radius": 0.0,
+  "cell": 192
+ },
+ "st_beacon": {
+  "file": "st_beacon.png",
+  "height": 3.0,
+  "radius": 0.0,
+  "cell": 256
+ },
+ "st_shop": {
+  "file": "st_shop.png",
+  "height": 2.6,
+  "radius": 0.0,
+  "cell": 256
+ },
+ "st_war_drum": {
+  "file": "st_war_drum.png",
+  "height": 1.7,
+  "radius": 0.0,
+  "cell": 192
+ },
+ "st_dice_shrine": {
+  "file": "st_dice_shrine.png",
+  "height": 2.0,
+  "radius": 0.0,
+  "cell": 256
+ },
+ "st_uber_magnet": {
+  "file": "st_uber_magnet.png",
+  "height": 2.2,
+  "radius": 0.0,
+  "cell": 256
+ },
+ "st_hooded_figure": {
+  "file": "st_hooded_figure.png",
+  "height": 2.4,
+  "radius": 0.0,
+  "cell": 256
+ },
+ "fan_palm": {
+  "file": "fan_palm.png",
+  "height": 5.2,
+  "radius": 0.2,
+  "cell": 384
+ },
+ "ocotillo": {
+  "file": "ocotillo.png",
+  "height": 3.2,
+  "radius": 0.15,
+  "cell": 256
+ },
+ "yucca": {
+  "file": "yucca.png",
+  "height": 2.6,
+  "radius": 0.22,
+  "cell": 256
+ },
+ "st_gold_bank": {
+  "file": "st_gold_bank.png",
+  "height": 2.8,
+  "radius": 0.0,
+  "cell": 256
+ },
+ "st_teleport": {
+  "file": "st_teleport.png",
+  "height": 3.2,
+  "radius": 0.0,
+  "cell": 256,
+  "off": "st_teleport_off.png"
  }
 }

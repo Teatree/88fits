@@ -1,0 +1,22 @@
+{
+  "id": "high_noon",
+  "name": "High Noon",
+  "flavour": "Everything slows down. Except him.",
+  "rarity": "epic",
+  "weight": 5,
+  "hero": "drifter",
+  "text": "Every 30 s the sun stands still: for 3 s every creature and every creature's shot moves at 30% speed while he does not.",
+  "effects": [],
+  "special": "high_noon",
+  "params": {
+    "every": 30.0,
+    "first": 20.0,
+    "seconds": 3.0,
+    "slow": 0.3
+  },
+  "art_prompt": "a golden pocket watch stopped at twelve with a blazing desert sun behind it",
+  "placeholder": {
+    "color": "#FFC23C",
+    "glyph": "clock"
+  }
+}

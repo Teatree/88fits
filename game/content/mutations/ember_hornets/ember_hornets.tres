@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_v518q"]
+[ext_resource type="Texture2D" path="res://content/mutations/ember_hornets/ember_hornets_icon.png" id="2_083c4"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_mlrob"]
+
+[sub_resource type="Resource" id="Resource_mlrob"]
+script = ExtResource("1_v518q")
+stat = "fire_damage"
+value = 3.0
+
+[sub_resource type="Resource" id="Resource_083c4"]
+script = ExtResource("1_v518q")
+stat = "fire_duration"
+value = 1.5
+
+[sub_resource type="Resource" id="Resource_ri0f1"]
+script = ExtResource("1_v518q")
+stat = "fire_spread"
+value = 0.3
+
+[resource]
+script = ExtResource("2_mlrob")
+weapon = "hornet_nest"
+mutation_kind = "element"
+text = "Stings burn."
+vfx = "orange hornets, burning creatures"
+effects = [SubResource("Resource_mlrob"), SubResource("Resource_083c4"), SubResource("Resource_ri0f1")]
+id = "ember_hornets"
+display_name = "Ember Hornets"
+flavour = "Angry and on fire."
+rarity = "rare"
+element = "fire"
+weight = 8.0
+icon = ExtResource("2_083c4")
+icon_file = "ember_hornets_icon.png"
+placeholder = {
+"color": "#FF9030",
+"glyph": "star"
+}

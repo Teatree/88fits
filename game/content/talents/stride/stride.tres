@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="TalentDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_clb8a"]
+[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_lsivf"]
+
+[sub_resource type="Resource" id="Resource_clb8a"]
+script = ExtResource("1_clb8a")
+stat = "move_speed"
+op = "mul"
+value = 0.05
+target = "player"
+
+[sub_resource type="Resource" id="Resource_lsivf"]
+script = ExtResource("1_clb8a")
+stat = "magnet"
+op = "mul"
+value = 0.18
+target = "player"
+
+[resource]
+script = ExtResource("2_lsivf")
+order = 3
+cost = [120.0, 216.0, 360.0]
+forms = [{
+"effects": [SubResource("Resource_clb8a")],
+"name": "Boots",
+"text": "+5% move speed a rank."
+}, {
+"effects": [SubResource("Resource_lsivf")],
+"name": "Lodestone",
+"text": "+18% pickup reach a rank."
+}]
+id = "stride"
+display_name = "Stride"
+flavour = "Cover the ground, or pull it to you."
+icon_file = "stride_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

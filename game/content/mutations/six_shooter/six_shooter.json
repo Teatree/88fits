@@ -1,0 +1,31 @@
+{
+  "id": "six_shooter",
+  "name": "Six-Shooter",
+  "flavour": "Empty it. Every time.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "revolver",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Three more rounds a pull, fired in a quick string, −40% damage.",
+  "vfx": "four shots in a row from the spinning cylinder",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 3
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.4
+    }
+  ],
+  "params": {},
+  "art_prompt": "an open revolver cylinder with six brass bullets in its chambers",
+  "placeholder": {
+    "color": "#D8E0F0",
+    "glyph": "star"
+  }
+}

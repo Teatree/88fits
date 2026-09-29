@@ -2,24 +2,25 @@
   "id": "drifter",
   "name": "Drifter",
   "flavour": "Wide hat. Long coat. Longer road.",
+  "pronoun": "he",
   "trait": [
     {
       "stat": "move_speed",
       "op": "mul",
-      "value": 0.08,
+      "value": 0.1,
       "target": "player"
     },
     {
       "stat": "magnet",
       "op": "mul",
-      "value": 0.15,
+      "value": 0.25,
       "target": "player"
     }
   ],
   "favourite_weapon": "peashooter",
   "favourite_bonus": {
     "type": "level",
-    "value": 2
+    "value": 3
   },
   "specials": [],
   "unlock_quest": "",
@@ -28,7 +29,7 @@
     "idle": 4,
     "run": 24,
     "hit": 4,
-    "die": 1,
+    "die": 5,
     "cheer": 1,
     "idle_f": 4,
     "run_f": 24,
@@ -54,7 +55,10 @@
   "strip_cols": 62,
   "fps": {
     "run": 36,
-    "hit": 12
+    "hit": 12,
+    "die": 8
   },
-  "portrait_prompt": "tipping the brim of his wide hat with two fingers, a confident half-smile, the collar of his brown duster turned up, the red scarf catching the wind"
+  "portrait_prompt": "tipping the brim of his wide hat with two fingers, a confident half-smile, the collar of his brown duster turned up, the red scarf catching the wind",
+  "trait_name": "Long Road",
+  "trait_text": "+10% move speed and +25% pickup radius. His Peashooter starts at level 3."
 }

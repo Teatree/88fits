@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_8xisv"]
+[ext_resource type="Texture2D" path="res://content/mutations/bouncing_betty/bouncing_betty_icon.png" id="1_h2vuw"]
+
+[resource]
+script = ExtResource("1_8xisv")
+weapon = "land_mine"
+text = "The mine leaps and bursts at chest height: ×1.5 radius, ×2 knockback."
+vfx = "the mine pops up, then a wide ring blast"
+params = {
+"leap": {
+"height": 1.2,
+"kb_mult": 2.0,
+"radius_mult": 1.5,
+"seconds": 0.22
+}
+}
+id = "bouncing_betty"
+display_name = "Bouncing Betty"
+flavour = "Up, then everywhere."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_h2vuw")
+icon_file = "bouncing_betty_icon.png"
+placeholder = {
+"color": "#C0C070",
+"glyph": "star"
+}

@@ -3,16 +3,17 @@ extends GdUnitTestSuite
 
 func test_registry_has_base_content() -> void:
 	assert_bool(Registry.weapons.has("boomstick")).is_true()
-	assert_bool(Registry.passives.has("might")).is_true()
+	assert_bool(Registry.passives.has("haste")).is_true()
 	assert_bool(Registry.enemies.has("goblin")).is_true()
-	assert_bool(Registry.maps.has("dry_gulch")).is_true()
+	assert_bool(Registry.maps.has("red_canyon")).is_true()
 	assert_array(Registry.problems).is_empty()
 
 
 func test_every_weapon_evolution_resolves() -> void:
 	for w in Registry.base_weapons():
 		assert_bool(Registry.weapons.has(w.evolves_into)).override_failure_message("missing evolution for " + w.id).is_true()
-		assert_bool(Registry.passives.has(w.evolves_with)).override_failure_message("missing passive for " + w.id).is_true()
+		# pass 26: the path leads to the evolution, there is no passive key
+		assert_str(w.evolves_with).is_equal("")
 
 
 func test_json_roundtrip_effects() -> void:
@@ -25,21 +26,22 @@ func test_json_roundtrip_effects() -> void:
 
 
 func test_timeline_cap_grows() -> void:
-	var m: MapDef = Registry.map("dry_gulch")
+	var m: MapDef = Registry.map("red_canyon")
 	# the numbers are data (dozens, not hundreds): the cap starts at cap_start, grows, and saturates at cap_max
 	assert_int(m.timeline.cap_at(0.0)).is_equal(m.timeline.cap_start)
 	assert_bool(m.timeline.cap_at(5 * 60.0) > m.timeline.cap_start).is_true()
 	assert_int(m.timeline.cap_at(60 * 60.0)).is_equal(m.timeline.cap_max)
-	assert_bool(m.timeline.cap_max <= 80).is_true()
+	# pass 29: six times the start by the end (150), never the hundreds the first timeline had
+	assert_bool(m.timeline.cap_max <= 200).is_true()
 
 
 func test_pickups_are_content() -> void:
-	assert_bool(Registry.maps.has("dry_gulch")).is_true()
+	assert_bool(Registry.maps.has("red_canyon")).is_true()
 	assert_bool(not Registry.maps.has("mossy_hollow")).is_true()
 	assert_bool(Registry.characters.has("astro")).is_true()
 	for id in ["heart", "rage", "sprint", "shield", "magnet_pulse"]:
 		assert_bool(Registry.pickups.has(id)).override_failure_message("missing pickup " + id).is_true()
-	var m: MapDef = Registry.map("dry_gulch")
+	var m: MapDef = Registry.map("red_canyon")
 	assert_bool(m.timeline.pickups.has("roster")).is_true()
 	for a in m.skins.keys():
 		assert_bool(Registry.enemies.has(m.skins[a])).override_failure_message("desert skin " + str(a)).is_true()
@@ -47,19 +49,20 @@ func test_pickups_are_content() -> void:
 	var d := JsonContent.load_json("res://content/pickups/rage/rage.json")
 	var p: PickupDef = JsonContent.build("pickups", d, "res://content/pickups/rage/")
 	assert_str(p.effect_kind).is_equal("buff")
-	assert_int(p.effects.size()).is_equal(1)
+	# Berserk: might and weapon speed
+	assert_int(p.effects.size()).is_equal(2)
 	assert_float(p.duration).is_greater(0.0)
 
 
 func test_structures_are_content() -> void:
 	assert_int(Registry.structures.size()).is_greater_equal(6)
-	for id in ["uber_magnet", "shop", "healing_well", "loot_cache", "war_drum", "dice_shrine", "beacon"]:
+	for id in ["uber_magnet", "shop", "healing_well", "loot_cache", "war_drum", "hooded_figure", "beacon", "gold_bank"]:
 		assert_bool(Registry.structures.has(id)).override_failure_message("missing structure " + id).is_true()
 	var drum: StructureDef = Registry.structure("war_drum")
 	assert_str(drum.effect_kind).is_equal("buff")
 	assert_int(drum.effects.size()).is_equal(2)
 	assert_float(Registry.structure("uber_magnet").weight).is_less(Registry.structure("healing_well").weight)
-	var m: MapDef = Registry.map("dry_gulch")
+	var m: MapDef = Registry.map("red_canyon")
 	assert_int(int(m.timeline.structures.get("count", 0))).is_greater_equal(Registry.structures.size())
 
 
@@ -87,7 +90,7 @@ func test_shop_prices_scale_with_power() -> void:
 
 
 func test_timed_buffs_apply_and_expire() -> void:
-	Run.start(Registry.character("astro"), Registry.map("dry_gulch"))
+	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 	var before := Run.player_sheet.get_stat("might", 1.0)
 	var rage: PickupDef = Registry.pickup("rage")
 	Run.add_timed_effects(rage.id, rage.display_name, rage.effects, rage.duration)

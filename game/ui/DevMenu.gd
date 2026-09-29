@@ -1,0 +1,172 @@
+## The developer menu (Wanted 17): everything that used to leak into the player's screens, in one place, reached by
+## holding the version line in Settings for 2 s. Ink, JetBrains Mono. The arena, the in-run debug panel, the debug
+## buttons on the pick screens, the free revive and the hit log on Down!, the last run's last second, the recent system
+## pauses, the hidden items (the Collection in its hidden mode) and where the save file lives. Switches save at once.
+extends Control
+
+const SETTINGS := "res://ui/SettingsScreen.tscn"
+
+var _list: VBoxContainer
+var _scroll: ScrollContainer
+var _touch: TouchScroll
+var _open := ""
+
+
+func _ready() -> void:
+	get_tree().paused = false
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var bg := ColorRect.new()
+	bg.color = W.INK
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
+	var header := WMenuHeader.make("")
+	header.back.connect(_back)
+	# on ink the back square keeps its paper face and loses its shadow
+	var bb := W.box(W.PAPER, 5, 0)
+	header.back_button.box = bb
+	header.back_button.box_down = bb
+	header.title.font = W.mono(500)
+	header.title.font_size = 44
+	header.title.line_height = 0.0
+	header.title.color = W.PAPER
+	header.title.valign = VERTICAL_ALIGNMENT_CENTER
+	header.title.position.y = 0
+	header.title.size = Vector2(860, 114)
+	header.title.text = "developer · v%s" % str(ProjectSettings.get_setting("application/config/version", "0.28"))
+	add_child(header)
+	_scroll = ScrollContainer.new()
+	_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_scroll.offset_top = 200
+	_scroll.offset_bottom = -40
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	add_child(_scroll)
+	var m := MarginContainer.new()
+	m.add_theme_constant_override("margin_left", 48)
+	m.add_theme_constant_override("margin_right", 48)
+	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	m.mouse_filter = Control.MOUSE_FILTER_PASS
+	_scroll.add_child(m)
+	_list = VBoxContainer.new()
+	_list.add_theme_constant_override("separation", 18)
+	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_list.mouse_filter = Control.MOUSE_FILTER_PASS
+	m.add_child(_list)
+	_touch = TouchScroll.new(_scroll)
+	_refresh()
+
+
+func _refresh() -> void:
+	for c in _list.get_children():
+		c.queue_free()
+	_list.add_child(_row("Arena", "›", func():
+		Run.arena_next = true
+		UiFx.go(get_tree(), "res://game/Game.tscn")))
+	_list.add_child(_switch("Debug panel in run", "debug_panel"))
+	_list.add_child(_switch("Debug buttons on modals", "debug_modal_buttons"))
+	_list.add_child(_switch("Free revive button", "free_revive_button"))
+	_list.add_child(_switch("Hit log on Down! · copy", "hit_log"))
+	_list.add_child(_switch("Hidden heroes as locked on the title", "preview_locked_heroes"))
+	_list.add_child(_file_row("Last run's last second", "user://breadcrumb.txt", "no run has left a breadcrumb yet"))
+	_list.add_child(_file_row("Recent system pauses", "user://pauses.txt", "the phone has not paused a run"))
+	var hidden := CollectionScreen.hidden_items().size()
+	_list.add_child(_row("Hidden items · %d" % hidden, "›", func():
+		CollectionScreen.hidden_only = true
+		UiFx.go(get_tree(), "res://ui/CollectionScreen.tscn")))
+	var save := _box()
+	var sv: VBoxContainer = save.get_child(0)
+	sv.add_child(W.text("Save file", W.mono(500), 30, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	var path := W.text(ProjectSettings.globalize_path("user://save.json"), W.mono(500), 22, Color(W.AGED, 0.7), HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	sv.add_child(path)
+	_list.add_child(save)
+
+
+## A row's frame: a 3 px aged outline round 26 x 30 px of room, a column inside.
+func _box() -> PanelContainer:
+	var p := PanelContainer.new()
+	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	var b := W.box(Color(0, 0, 0, 0), 3, 0).pad(33, 29, 33, 29)
+	b.border_color = W.AGED
+	p.add_theme_stylebox_override("panel", b)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(v)
+	return p
+
+
+## A tappable row: the words on the left, the value or the arrow in brass on the right.
+func _row(t: String, value: String, on_tap: Callable, extra: Control = null) -> WTap:
+	var r := WTap.new()
+	var b := W.box(Color(0, 0, 0, 0), 3, 0).pad(33, 29, 33, 29)
+	b.border_color = W.AGED
+	var down := b.duplicate() as HardBox
+	down.fill = Color(W.PAPER, 0.08)
+	r.box = b
+	r.box_down = down
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 14)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.add_child(v)
+	var h := HBoxContainer.new()
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var l := W.text(t, W.mono(500), 30, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(l)
+	var val := W.text(value, W.mono(500), 30, W.BRASS, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	val.name = "Value"
+	h.add_child(val)
+	v.add_child(h)
+	if extra:
+		v.add_child(extra)
+	r.pressed.connect(on_tap)
+	return r
+
+
+## A setting that is on or off (Settings.<key>).
+func _switch(t: String, key: String) -> WTap:
+	var on := bool(Settings.get(key))
+	return _row(t, "ON" if on else "OFF", func():
+		Settings.set_value(key, not bool(Settings.get(key)))
+		_refresh())
+
+
+## A log file shown in the row when it is opened.
+func _file_row(t: String, path: String, empty: String) -> WTap:
+	var open := _open == path
+	var body: Control = null
+	if open:
+		var txt := ""
+		if FileAccess.file_exists(path):
+			txt = FileAccess.get_file_as_string(path).strip_edges()
+		body = W.text(txt if txt != "" else empty, W.mono(500), 22, Color(W.AGED, 0.85), HORIZONTAL_ALIGNMENT_LEFT, 30.0, true)
+		body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return _row(t, "hide" if open else "›", func():
+		_open = "" if open else path
+		_refresh(), body)
+
+
+func _back() -> void:
+	UiFx.go(get_tree(), SETTINGS)
+
+
+func _input(event: InputEvent) -> void:
+	if _touch:
+		_touch.input(event)
+
+
+func _process(_delta: float) -> void:
+	if _touch:
+		_touch.process()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_back()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		_back()

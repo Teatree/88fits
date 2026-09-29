@@ -57,7 +57,6 @@ base = {
 "spread_deg": 35.0
 }
 levels = [[], [SubResource("Resource_5kki5")], [SubResource("Resource_l40a8")], [SubResource("Resource_jemry")], [SubResource("Resource_u2jn2")], [SubResource("Resource_dfeho")], [SubResource("Resource_6evrd")], [SubResource("Resource_s6flg")]]
-evolves_with = "might"
 evolves_into = "doomstick"
 sfx = {
 "fire": "w_boom_fire",

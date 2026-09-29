@@ -1,0 +1,79 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_buvwj"]
+[ext_resource type="Texture2D" path="res://content/enemies/dust_shaman/dust_shaman_icon.png" id="1_hd6xs"]
+[ext_resource type="Texture2D" path="res://content/enemies/dust_shaman/dust_shaman_sprite.png" id="3_vje5w"]
+
+[resource]
+script = ExtResource("1_buvwj")
+archetype = "spitter"
+doc = "Keeps seven metres off and every four seconds mends the creatures around it for a quarter of their health and drives them for three seconds (a green ring, green sparks on each). Kill it first."
+brain = "support"
+hp = 22.0
+speed = 1.7
+damage = 6.0
+radius = 0.42
+size = 1.15
+drops = {
+"chest": 0.03,
+"gold": 0.15,
+"medium": 1.0,
+"small": 0.3
+}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_vje5w")
+sprite_file = "dust_shaman_sprite.png"
+frame_px = 160
+strip_cols = 40
+fps = {
+"die": 8.0,
+"run": 15.0
+}
+head = 1.0
+support = {
+"frenzy": 0.3,
+"frenzy_seconds": 3.0,
+"heal": 0.25,
+"interval": 4.0,
+"keep_distance": 7.0,
+"radius": 5.0,
+"range": 10.0
+}
+sfx = {
+"attack": "en_cactus_spit",
+"die": "en_goblin_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 5.0
+variance = {
+"size": 0.1,
+"special": {
+"damage": 1.3,
+"hp": 2.0,
+"size": 1.3,
+"tint": "#7A1A5A",
+"tint_strength": 0.6,
+"xp": 3.0
+},
+"special_chance": 0.0,
+"speed": 0.1,
+"tint_strength": 0.22,
+"tints": ["#FFFFFF", "#E8E0C0", "#C8D0A0"]
+}
+id = "dust_shaman"
+display_name = "Dust Shaman"
+flavour = "Kill it first. Everyone around it agrees."
+icon = ExtResource("1_hd6xs")
+icon_file = "dust_shaman_icon.png"
+placeholder = {
+"color": "#8A9A60",
+"glyph": "staff"
+}

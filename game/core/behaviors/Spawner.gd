@@ -22,7 +22,7 @@ func _on_setup() -> void:
 
 func _fire() -> bool:
 	var amount: int = max(stat_int("amount", 1), 1)
-	var max_turrets := int(inst.def.params.get("max_turrets", 6))
+	var max_turrets := int(inst.params.get("max_turrets", 6))
 	for k in range(amount):
 		var t := Turret.new()
 		t.setup(self, _turret_mesh, _turret_mat)

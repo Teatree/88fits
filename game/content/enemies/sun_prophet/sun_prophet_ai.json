@@ -1,0 +1,179 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a tall lanky humanoid lizard prophet standing upright on two clawed legs: a very long thin neck rising from narrow shoulders to a small iguana-like head with a pointed snout, piercing golden eyes and a short crest of spines down the back of the neck, dusty olive-green scales with a pale yellow throat and belly, wearing a torn ragged black toga draped over one shoulder and hanging to the knees, its hem frayed and shredded with holes in the cloth, one clawed hand gripping a tall gnarled wooden staff topped with a golden sun disc with short straight rays (a plain gold disc, no face on it), a long tail curling behind its feet, a proud and sinister preacher's pose",
+ "renders": {
+  "front": {
+   "seed": 14540,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a tall lanky humanoid lizard prophet standing upright on two clawed legs: a very long thin neck rising from narrow shoulders to a small iguana-like head with a pointed snout, piercing golden eyes and a short crest of spines down the back of the neck, dusty olive-green scales with a pale yellow throat and belly, wearing a torn ragged black toga draped over one shoulder and hanging to the knees, its hem frayed and shredded with holes in the cloth, one clawed hand gripping a tall gnarled wooden staff topped with a golden sun disc with short straight rays (a plain gold disc, no face on it), a long tail curling behind its feet, a proud and sinister preacher's pose. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 193,
+     "right": 198,
+     "top": 29,
+     "bottom": 45,
+     "height": 949,
+     "width": 632
+    }
+   },
+   "attempt": 0
+  },
+  "back": {
+   "seed": 14541,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. The torn black toga covers its back, the long neck and the back of the small head with its crest of spines are seen from behind, the tail hangs down behind the legs, the staff is held upright at its side, no face visible. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/sun_prophet_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "back",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 173,
+     "right": 218,
+     "top": 37,
+     "bottom": 62,
+     "height": 924,
+     "width": 632
+    }
+   },
+   "attempt": 0
+  },
+  "side": {
+   "seed": 14543,
+   "prompt": "Turn this exact creature to show a full-body side view in strict profile, facing to the right of the frame, standing, the long neck stretched a little forward, the staff held upright in front of it, the black toga hanging from the shoulder, the tail trailing behind. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/sun_prophet_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 92,
+     "right": 280,
+     "top": 48,
+     "bottom": 54,
+     "height": 921,
+     "width": 651
+    }
+   },
+   "attempt": 0
+  },
+  "bd": {
+   "seed": 30382,
+   "prompt": "Turn this exact creature to a three-quarter back view: turned 45 degrees away from the viewer so it faces the upper right of the frame, its back and right side visible, standing, the torn black toga across its back, the long neck and the back of the small head turned away, the staff at its side, no face visible. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/sun_prophet_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 152,
+     "right": 193,
+     "top": 35,
+     "bottom": 48,
+     "height": 940,
+     "width": 678
+    }
+   },
+   "attempt": 2
+  },
+  "fd": {
+   "seed": 14545,
+   "prompt": "Turn this exact creature to a three-quarter front view: turned 45 degrees so it faces the lower right of the frame, face visible, standing, the lizard face and golden eyes turned towards the lower right, the staff held upright at its side. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/sun_prophet_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 217,
+     "right": 197,
+     "top": 39,
+     "bottom": 53,
+     "height": 931,
+     "width": 609
+    }
+   },
+   "attempt": 0
+  },
+  "dead": {
+   "seed": 14549,
+   "prompt": "This exact creature lying dead on its side on the ground: the long neck limp and stretched out, eyes shut, the torn black toga spread around the body, the wooden staff lying beside it with its sun disc gone dark, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/sun_prophet_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 74,
+     "right": 47,
+     "top": 378,
+     "bottom": 301,
+     "height": 344,
+     "width": 902
+    }
+   },
+   "attempt": 0
+  }
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "walk_side": true,
+  "walk_bd": true,
+  "walk_fd": true
+ }
+}

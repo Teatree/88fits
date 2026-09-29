@@ -1,0 +1,17 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "a gleaming polished solid gold western six-shooter revolver with white ivory grips and fine engraving, seen from the side, the long barrel pointing to the right",
+ "renders": {
+  "icon": {
+   "key": "golden_revolver_icon35_2",
+   "prompt": "a gleaming polished solid gold western six-shooter revolver with white ivory grips and fine engraving, seen from the side, the long barrel pointing to the right",
+   "refs": [
+    "revolver_gold_ref.png"
+   ],
+   "screen": "green",
+   "picked": 2,
+   "of": 3
+  }
+ }
+}

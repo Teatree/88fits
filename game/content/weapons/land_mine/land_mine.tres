@@ -1,0 +1,83 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/land_mine/land_mine_icon.png" id="1_1khjf"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_smvov"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_vrt8g"]
+[ext_resource type="PackedScene" path="res://content/weapons/land_mine/land_mine_visual.tscn" id="4_2rwqc"]
+
+[sub_resource type="Resource" id="Resource_1khjf"]
+script = ExtResource("1_smvov")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_2rwqc"]
+script = ExtResource("1_smvov")
+stat = "cooldown"
+op = "mul"
+value = -0.15
+
+[sub_resource type="Resource" id="Resource_e7w21"]
+script = ExtResource("1_smvov")
+stat = "area"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_8v23b"]
+script = ExtResource("1_smvov")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_f7mbw"]
+script = ExtResource("1_smvov")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_4t1lu"]
+script = ExtResource("1_smvov")
+stat = "cooldown"
+op = "mul"
+value = -0.15
+
+[sub_resource type="Resource" id="Resource_k3qhb"]
+script = ExtResource("1_smvov")
+stat = "damage"
+op = "mul"
+value = 0.3
+
+[resource]
+script = ExtResource("2_vrt8g")
+behavior = "MineLayer"
+targeting = "ground"
+base = {
+"amount": 1.0,
+"area": 2.4,
+"cooldown": 2.6,
+"damage": 28.0,
+"knockback": 9.0,
+"lifetime": 25.0
+}
+levels = [[], [SubResource("Resource_1khjf")], [SubResource("Resource_2rwqc")], [SubResource("Resource_e7w21")], [SubResource("Resource_8v23b")], [SubResource("Resource_f7mbw")], [SubResource("Resource_4t1lu")], [SubResource("Resource_k3qhb")]]
+evolves_into = "minefield"
+sfx = {
+"hit": "w_lob_boom",
+"place": "w_mine_arm"
+}
+visual = ExtResource("4_2rwqc")
+visual_file = "land_mine_visual.tscn"
+params = {
+"max_mines": 8.0,
+"trigger_radius": 0.7
+}
+id = "land_mine"
+display_name = "Land Mine"
+flavour = "Step on it. Please."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_1khjf")
+icon_file = "land_mine_icon.png"
+placeholder = {
+"color": "#7A7A6A",
+"glyph": "mine"
+}

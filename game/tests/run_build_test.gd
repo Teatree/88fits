@@ -2,7 +2,7 @@ extends GdUnitTestSuite
 
 
 func before_test() -> void:
-	Run.start(Registry.character("drifter"), Registry.map("dry_gulch"))
+	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
 
 
 func test_add_weapon_and_level() -> void:
@@ -15,14 +15,17 @@ func test_add_weapon_and_level() -> void:
 func test_passive_changes_weapon_damage() -> void:
 	var w := Run.add_weapon(Registry.weapon("peashooter"), 1)
 	var before := w.stat("damage")
-	Run.add_or_level_passive("might")
+	Run.add_or_rank_line("brawn")
 	assert_float(Run.weapon_instance("peashooter").stat("damage")).is_greater(before)
 
 
 func test_evolution_requires_max_level_and_passive() -> void:
 	var w := Run.add_weapon(Registry.weapon("boomstick"), 8)
 	assert_bool(Run.evolution_ready(w)).is_false()
-	Run.add_or_level_passive("might")
+	Run.add_mutation("birdshot")
+	Run.stage = 1
+	Run.add_mutation("slug")
+	Run.stage = 0
 	assert_bool(Run.evolution_ready(w)).is_true()
 	var evo := Run.evolve(w)
 	assert_str(evo.def.id).is_equal("doomstick")
@@ -41,4 +44,5 @@ func test_card_offer_respects_slots() -> void:
 			Run.add_weapon(w, 8)
 	var offer := CardPool.level_up_offer(3)
 	for c in offer:
-		assert_bool(c["type"] == "passive" or Run.has_weapon(c["id"])).is_true()
+		# at the cap the only weapon cards are levels of what is held; lines, mutations and perks are their own kinds
+		assert_bool(["passive", "line", "mutation", "perk"].has(str(c["type"])) or Run.has_weapon(c["id"])).is_true()

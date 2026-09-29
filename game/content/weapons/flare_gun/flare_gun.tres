@@ -60,7 +60,6 @@ base = {
 "speed": 11.0
 }
 levels = [[], [SubResource("Resource_18vub")], [SubResource("Resource_8qibb")], [SubResource("Resource_guh2n")], [SubResource("Resource_qqy6i")], [SubResource("Resource_2oi1r")], [SubResource("Resource_ox6w3")], [SubResource("Resource_qrisg")]]
-evolves_with = "kindling"
 evolves_into = "roman_candle"
 sfx = {
 "fire": "w_flare_fire",
@@ -81,6 +80,7 @@ id = "flare_gun"
 display_name = "Flare Gun"
 flavour = "Not for signalling. For starting things."
 weight = 9.0
+hidden = true
 icon = ExtResource("1_18vub")
 icon_file = "flare_gun_icon.png"
 placeholder = {

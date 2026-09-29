@@ -58,7 +58,6 @@ base = {
 "speed": 9.0
 }
 levels = [[], [SubResource("Resource_c0d5c")], [SubResource("Resource_n6aji")], [SubResource("Resource_xrml6")], [SubResource("Resource_j2c1t")], [SubResource("Resource_gpbls")], [SubResource("Resource_1bixm")], [SubResource("Resource_ikrwc")]]
-evolves_with = "haste"
 evolves_into = "cluster_bomb"
 sfx = {
 "fire": "w_lob_throw",

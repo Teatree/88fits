@@ -1,0 +1,85 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_7jayh"]
+[ext_resource type="Texture2D" path="res://content/enemies/harpoon_troglodyte/harpoon_troglodyte_icon.png" id="1_s5wcd"]
+[ext_resource type="Texture2D" path="res://content/enemies/harpoon_troglodyte/harpoon_troglodyte_sprite.png" id="3_8se2l"]
+
+[resource]
+script = ExtResource("1_7jayh")
+archetype = "brute"
+doc = "Blind, hardy and alone: never more than one on the map. It keeps twelve metres off and throws a bright red harpoon on a rope along a red line aimed at where you are going, not where you are. A hit ropes you to it for five seconds: it stays where it stood with its outline pulsing red and reels in any slack. Walking towards it costs nothing; walking away is 30% slower and drags it along behind you, digging in and kicking up sand. Kill it, or wait the rope out. A special from stage 2: specials come one at a time, the next 45 to 60 seconds after the last one dies."
+brain = "kite"
+hp = 23.0
+speed = 2.4
+damage = 10.0
+radius = 1.1
+size = 3.25
+drops = {
+"chest": 0.35,
+"gold": 0.15,
+"medium": 1.0,
+"small": 0.5
+}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_8se2l")
+sprite_file = "harpoon_troglodyte_sprite.png"
+frame_px = 192
+strip_cols = 40
+fps = {
+"die": 8.0,
+"run": 15.0
+}
+ranged = {
+"cooldown": 5.5,
+"harpoon": true,
+"keep_distance": 12.0,
+"lead": true,
+"life": 1.4,
+"projectile_speed": 20.0,
+"range": 19.0,
+"splash": 0.5,
+"straight": true,
+"telegraph": 0.8,
+"tether": {
+"away_speed": 0.7,
+"min_length": 1.8,
+"seconds": 5.0
+}
+}
+armor = 2.0
+max_alive = 1
+badge = "gear"
+head = 0.974
+can_be_elite = false
+can_be_grabbed = false
+sfx = {
+"attack": "en_beetle_charge",
+"die": "en_beetle_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 6.0
+variance = {
+"size": 0.1,
+"special": {},
+"special_chance": 0.0,
+"speed": 0.08,
+"tint_strength": 0.2,
+"tints": ["#FFFFFF", "#F0D8C8"]
+}
+id = "harpoon_troglodyte"
+display_name = "Harpoon Troglodyte"
+flavour = "It cannot see you. It does not need to."
+icon = ExtResource("1_s5wcd")
+icon_file = "harpoon_troglodyte_icon.png"
+placeholder = {
+"color": "#8A3A30",
+"glyph": "spear"
+}

@@ -56,7 +56,6 @@ base = {
 "speed": 14.0
 }
 levels = [[], [SubResource("Resource_fneh5")], [SubResource("Resource_5486l")], [SubResource("Resource_t4qnk")], [SubResource("Resource_bmlvy")], [SubResource("Resource_rjm48")], [SubResource("Resource_7xshk")], [SubResource("Resource_vwjlk")]]
-evolves_with = "multishot"
 evolves_into = "bullet_hose"
 sfx = {
 "fire": "w_pea_fire",

@@ -1,0 +1,33 @@
+{
+  "id": "flare_volley",
+  "name": "Flare Volley",
+  "flavour": "Three signals. All say run.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "flare_gun",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Three flares a shot, −35% damage.",
+  "vfx": "three red trails fanning out",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.35
+    }
+  ],
+  "params": {
+    "size_mult": 0.85
+  },
+  "art_prompt": "three red flare rockets fanning upward with smoke trails",
+  "placeholder": {
+    "color": "#FF5A4A",
+    "glyph": "star"
+  }
+}

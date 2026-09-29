@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/fan_the_hammer/fan_the_hammer_icon.png" id="1_5v15t"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_bksnf"]
+
+[resource]
+script = ExtResource("1_bksnf")
+weapon = "peashooter"
+mutation_kind = "hero"
+hero = "drifter"
+text = "Two shots a cooldown at −25% damage."
+vfx = "two quick flashes from the pod"
+params = {
+"double_tap": {
+"count": 2.0,
+"damage_mult": 0.75
+}
+}
+id = "fan_the_hammer"
+display_name = "Fan the Hammer"
+flavour = "The Drifter's hands are faster than his feet."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_5v15t")
+icon_file = "fan_the_hammer_icon.png"
+placeholder = {
+"color": "#A0E080",
+"glyph": "star"
+}

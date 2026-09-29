@@ -4,7 +4,7 @@ and locked to ONE style anchor image so every asset shares the same look.
 Stages (each cached in tools/dl/ai_raw2/, so a re-run only paints what is missing):
   anchor      `--anchor` paints 4 style-sheet candidates (tools/dl/review/anchor_candidates.png); `--pick=N` installs one as
               game/art/style/style_anchor.png. Every later render passes the anchor as a reference image.
-  items       weapons, evolutions, passives, shop, elites, maps, quests -> one icon render each -> <id>_icon.png
+  items       weapons, evolutions, passives, mutations, lines, perks, shop, elites, maps, quests -> one icon render each -> <id>_icon.png
   creatures   enemies, bosses -> one front-view render -> strip (idle 2, run 2, attack 2, hit, die) + icon
   characters  front view (portrait icon + identity reference) -> back, side, back-diagonal and front-diagonal views
               (edits of the front) -> every view animated by Wan 2.2 image-to-video (tools/animate.py: the still runs
@@ -20,7 +20,7 @@ Stages (each cached in tools/dl/ai_raw2/, so a re-run only paints what is missin
 Run:  python tools/gen_art.py [--only id,id] [--force] [--keys=k1,k2] [--seed=N] [--anchor] [--pick=N] [--no-anchor-ref] [--skip-qa] [--no-import]
 The JSON `art_prompt` of each content item is the source of truth for what gets painted.
 """
-import base64, glob, hashlib, io, json, os, subprocess, sys, time, urllib.request
+import base64, glob, hashlib, io, json, os, shutil, subprocess, sys, time, urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import comfy, artkit, animate
@@ -54,6 +54,7 @@ FORCE = "--force" in sys.argv
 SKIP_QA = "--skip-qa" in sys.argv
 NO_IMPORT = "--no-import" in sys.argv
 NO_VIDEO = "--no-video" in sys.argv      # skip the Wan clips (procedural cycles instead)
+DEV = "--dev" in sys.argv               # Flux.2 dev for the stills (one render at a time, models released after each)
 USE_ANCHOR = "--no-anchor-ref" not in sys.argv
 ONLY, SEED_OFFSET, PICK = None, 0, None
 for a in sys.argv:
@@ -66,6 +67,13 @@ for a in sys.argv:
 if "--only" in sys.argv:
     ONLY = sys.argv[sys.argv.index("--only") + 1].split(",")
 FORCE_KEYS = []          # --keys=drifter_st1,drifter_sts1 re-renders just those cache keys (combine with --seed=N for fresh rolls)
+# --variant=GOB-B (pass 34): paint one art variant of a creature (with --only <id>): the recipe in its JSON's
+# variants[code].recipe overrides the creature's art settings, the clips are cached under their own keys, and the strip
+# goes to <id>_sprite_<letter>.png with its counts written into variants[code]; the art the game uses is not touched
+VARIANT = ""
+for a in sys.argv:
+    if a.startswith("--variant="):
+        VARIANT = a.split("=", 1)[1]
 for a in sys.argv:
     if a.startswith("--keys="):
         FORCE_KEYS = a.split("=", 1)[1].split(",")
@@ -89,6 +97,13 @@ def anchor_prompt():
 
 
 def bg_for(d, type_=""):
+    # an item may name its own screen ("screen": "green"|"blue"): a blue-skinned creature on the blue screen loses its
+    # skin to the keyer, and the video model then animates a headless body (the Rocketeer, pass 30)
+    named = str(d.get("screen", "")).lower()
+    if named == "green":
+        return BG_GREEN
+    if named == "blue":
+        return BG_BLUE
     # heroes wear olive, khaki and brown: those sit next to green, so characters always get the blue screen
     if type_ == "characters":
         return BG_BLUE
@@ -174,7 +189,7 @@ def qa(img, expect):
         problems.append("text")
     if r.get("cropped"):
         problems.append("cropped")
-    if r.get("matches") is False:
+    if r.get("matches") is False and not expect.get("no_match_ok"):
         problems.append("no-match")
     if expect.get("view") and r.get("view") and r.get("view") != expect["view"]:
         problems.append("view=%s" % r.get("view"))
@@ -201,6 +216,30 @@ def figure_height(img):
     return geometry(img).get("height", 0)
 
 
+def passing_frame(frames):
+    """The walk frame with the feet closest together (the passing pose), by the width of the bottom fifth of the figure:
+    the one that reads as standing."""
+    best, best_w = frames[0], 1e9
+    for f in frames:
+        a = np.asarray(f)[..., 3] > 127
+        ys = np.nonzero(a.max(axis=1))[0]
+        if not len(ys):
+            continue
+        y0 = int(ys.max() - (ys.max() - ys.min()) * 0.2)
+        xs = np.nonzero(a[y0:ys.max() + 1].max(axis=0))[0]
+        w = float(xs.max() - xs.min()) if len(xs) else 1e9
+        if w < best_w:
+            best, best_w = f, w
+    return best
+
+
+def figure_top(cell_img):
+    """The top of the figure as a fraction of the cell's height, measured from the cell's bottom edge."""
+    a = np.asarray(cell_img)[..., 3] > 127
+    ys = np.nonzero(a.max(axis=1))[0]
+    return (cell_img.height - float(ys.min())) / cell_img.height if len(ys) else 0.0
+
+
 def figure_height_cell(cell_img):
     a = np.asarray(cell_img)[..., 3] > 127
     ys = np.nonzero(a.max(axis=1))[0]
@@ -225,7 +264,7 @@ def video_cycle(still_rgb, key, motion, seed, cell, stand_cell, n_out=12, outlin
 DRIVERS = os.path.join(REPO, "tools", "dl", "drivers")
 
 
-def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline_frac=0.012, outline_color=(38, 24, 30, 255), negative_extra="", loop=True, motion="running in place on the spot like on a treadmill"):
+def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline_frac=0.012, outline_color=(38, 24, 30, 255), negative_extra="", loop=True, motion="running in place on the spot like on a treadmill", view_hint=""):
     """A run/walk cycle from Wan Animate driven by the Mixamo stride in tools/dl/drivers/<clip>/<view> (see
     tools/pose_driver.py): every driver frame is a sprite frame, so the count and cadence are exact in every view.
     Falls back to the free video cycle when the drivers are missing; None on failure."""
@@ -235,17 +274,238 @@ def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline
     if not os.path.isdir(driver_dir):
         log("  (no drivers in %s, falling back to a free clip)" % driver_dir)
         return None
-    try:
-        frames, meta = animate.cycle_pose(still_rgb, key, driver_dir, seed, prompt_hint=hint, negative_extra=negative_extra, loop=loop, motion=motion)
-    except Exception as e:
-        log("  (pose cycle failed for %s: %s)" % (key, e))
-        return None
+    # the view goes into the prompt too: the drivers alone left a hero's back cycle with a face painted on it
+    view_words = {"back": "seen directly from behind, the back of the head and the heels towards the viewer",
+                  "front": "facing the viewer", "side": "in strict side profile facing right",
+                  "bd": "in three-quarter back view, turned away from the viewer", "fd": "in three-quarter front view"}
+    hint = (hint + ", " if hint else "") + view_words.get(view, "") + (", " + view_hint if view_hint else "")
+    if view in ("back", "bd"):
+        negative_extra = (negative_extra + ", " if negative_extra else "") + "face, eyes, mouth, nose, looking at the viewer"
+    frames = None
+    for attempt in range(3):
+        try:
+            frames, meta = animate.cycle_pose(still_rgb, key, driver_dir, seed + attempt * 101, prompt_hint=hint, negative_extra=negative_extra, loop=loop, motion=motion)
+        except Exception as e:
+            # two seeds failed inside (the figure left the frame): fresh seeds before giving up on the driven walk
+            # (pass 34: a goblin's wide club went off the edge twice and the back walk fell back to a free clip)
+            log("  (pose cycle failed for %s: %s)" % (key, e))
+            if attempt < 2:
+                shutil.rmtree(os.path.join(animate.ANIM, key), ignore_errors=True)
+                continue
+            return None
+        # a part that flashes a colour for a frame (the goblin's club end went white, then orange, pass 33.9) rolls the
+        # cycle again; 0.08 passes every hero run in the game (the worst, Dad's front, is 0.07)
+        hx = hue_excess(frames, cyclic=loop)
+        if max(hx) > 0.08 and attempt < 2:
+            log("  pose %-24s frame %d flashes a colour its neighbours lack (%.3f), rolling again" % (key, hx.index(max(hx)) + 1, max(hx)))
+            shutil.rmtree(os.path.join(animate.ANIM, key), ignore_errors=True)
+            continue
+        hf = hue_foreign(frames, still_rgb)
+        if max(hf) > FOREIGN_MAX and attempt < 2:
+            log("  pose %-24s frame %d has a colour the painting lacks (%.3f), rolling again" % (key, hf.index(max(hf)) + 1, max(hf)))
+            shutil.rmtree(os.path.join(animate.ANIM, key), ignore_errors=True)
+            continue
+        # the drivers alone do not decide which way the figure faces: a back cycle came back with a face on it twice,
+        # so a middle frame goes through the vision check and a cycle facing the wrong way is rolled again
+        if view not in ("back", "bd") or SKIP_QA:
+            break
+        mid = frames[len(frames) // 2]
+        probe = Image.new("RGB", mid.size, (128, 128, 128))
+        probe.paste(mid, (0, 0), mid)
+        _, rep = qa(probe, {"subject": hint, "view": None, "subjects_max": 1})
+        if rep.get("view") != "front":
+            break
+        log("  pose %-24s faces the viewer in a %s cycle, rolling again" % (key, view))
+        if attempt < 2:
+            shutil.rmtree(os.path.join(animate.ANIM, key), ignore_errors=True)
     # Wan Animate draws the figure on the driver skeleton, which is nose-to-ankle: the painted body comes out about a
     # head taller than the still placed at the same fill. Measure the tallest frame and fit it to the standing figure.
     tallest = max(1.0, max(_alpha_height(f) for f in frames))
     scale = figure_height_cell(stand_cell) * 0.99 / tallest
     px = max(1, int(round(cell * outline_frac)))
     return artkit.place_clip_frames(frames, cell, scale, px, outline_color)
+
+
+def colour_stats(img):
+    """Mean and spread of saturation and value over the figure (alpha over half), as two 2-vectors."""
+    rgba = img.convert("RGBA")
+    hsv = np.asarray(rgba.convert("RGB").convert("HSV")).astype(np.float32)[..., 1:] / 255.0
+    sv = hsv[np.asarray(rgba)[..., 3] > 127]
+    return sv.mean(axis=0), sv.std(axis=0) + 1e-4
+
+
+def match_colours(img, mu, sd):
+    """The figure's saturation and value moved to another mean and spread, its hues kept: a video frame brought to
+    its paintings (a per-channel match turned the goblin's brown loincloth maroon)."""
+    rgba = img.convert("RGBA")
+    hsv = np.asarray(rgba.convert("RGB").convert("HSV")).astype(np.float32) / 255.0
+    fm, fs = colour_stats(rgba)
+    hsv[..., 1:] = np.clip((hsv[..., 1:] - fm) / fs * sd + mu, 0.0, 1.0)
+    out = Image.fromarray((hsv * 255.0 + 0.5).astype(np.uint8), "HSV").convert("RGBA")
+    out.putalpha(rgba.getchannel("A"))
+    return out
+
+
+def _hue_hist(img, bins=24):
+    a = np.asarray(img.convert("RGBA")).astype(np.float32) / 255.0
+    m = a[..., 3] > 0.5
+    rgb = a[..., :3][m]
+    mx, mn = rgb.max(axis=1), rgb.min(axis=1)
+    keep = ((mx - mn) / (mx + 1e-6) > 0.3) & (mx > 0.25)
+    r, g, b, c = rgb[keep, 0], rgb[keep, 1], rgb[keep, 2], mx[keep] - mn[keep] + 1e-6
+    h = np.where(mx[keep] == r, ((g - b) / c) % 6, np.where(mx[keep] == g, (b - r) / c + 2, (r - g) / c + 4)) / 6.0
+    hh = np.bincount((h * bins).astype(np.int32) % bins, minlength=bins).astype(np.float64)
+    return hh / max(1.0, float(m.sum()))
+
+
+def hue_foreign(frames, still_rgb):
+    """Per frame, the share of the figure in hues the painting itself does not have (pass 34): a colour that crept in
+    and stayed for a few frames, which hue_excess misses (the goblin's club went magenta for three frames of a walk and
+    a fall smeared into a rainbow; both scored over 0.05, every good clip in the game stays under 0.016). A hue bin is
+    the painting's own when it holds 0.3% of the figure, or a neighbouring bin does (a hue drifts a bin)."""
+    ref = artkit.crop_alpha(artkit.key_background(still_rgb, 0.05, 0.45))
+    own = _hue_hist(ref) > 0.003
+    own = own | np.roll(own, 1) | np.roll(own, -1)
+    return [float(_hue_hist(f)[~own].sum()) for f in frames]
+
+
+FOREIGN_MAX = 0.025
+
+
+def hue_excess(frames, cyclic=False, bins=24):
+    """Per frame, the share of the figure in hues that neither neighbouring frame has (saturated pixels, 24 hue bins):
+    high on a frame where one part flashed a wrong colour (the goblin's club went pink for one frame of its fall,
+    orange at the end for two of a walk), low through ordinary motion."""
+    hists = []
+    for f in frames:
+        a = np.asarray(f.convert("RGBA")).astype(np.float32) / 255.0
+        m = a[..., 3] > 0.5
+        rgb = a[..., :3][m]
+        mx, mn = rgb.max(axis=1), rgb.min(axis=1)
+        keep = ((mx - mn) / (mx + 1e-6) > 0.3) & (mx > 0.25)
+        r, g, b, c = rgb[keep, 0], rgb[keep, 1], rgb[keep, 2], mx[keep] - mn[keep] + 1e-6
+        h = np.where(mx[keep] == r, ((g - b) / c) % 6, np.where(mx[keep] == g, (b - r) / c + 2, (r - g) / c + 4)) / 6.0
+        hh = np.bincount((h * bins).astype(np.int32) % bins, minlength=bins).astype(np.float64)
+        hists.append(hh / max(1.0, float(m.sum())))
+    n = len(hists)
+    out = []
+    for k in range(n):
+        nb = [hists[(k - 1) % n], hists[(k + 1) % n]] if cyclic else [hists[j] for j in (k - 1, k + 1) if 0 <= j < n]
+        out.append(float(np.maximum(hists[k] - np.maximum.reduce(nb), 0.0).sum()))
+    return out
+
+
+def fall_pick(frames, n_out):
+    """Which frames of a fall to keep: n_out spread from the last one still near the start (a third of the way to the
+    end pose, by silhouette) to the first one near the end pose (a tenth of the way back). Returns (idx, start, end, d0, d1)."""
+    feats = animate._silhouettes(frames)
+    span = max(1e-6, float(np.mean(np.abs(feats[0] - feats[-1]))))
+    d0 = [float(np.mean(np.abs(f - feats[0]))) for f in feats]
+    d1 = [float(np.mean(np.abs(f - feats[-1]))) for f in feats]
+    start = next((k for k in range(1, len(frames)) if d0[k] >= 0.35 * span), 1) - 1
+    end = next((k for k in range(start + 1, len(frames)) if d1[k] < 0.1 * span), len(frames) - 1)
+    while end - start < n_out - 1 and end < len(frames) - 1:
+        end += 1
+    while end - start < n_out - 1 and start > 0:
+        start -= 1
+    idx = [start + int(round(j * (end - start) / (n_out - 1))) for j in range(n_out)]
+    return idx, start, end, d0, d1
+
+
+def pose_death(still_rgb, key, clip, seed, cell, stand_cell, n_out=8, outline_frac=0.024, outline_color=(14, 8, 12, 255), hint="", negative_extra=""):
+    """A death driven by a Mixamo clip (pass 34, a creature's "death": "pose:<driver>", the goblins on Falling Back
+    Death): Wan Animate paints the front painting onto the driver's one-shot fall (tools/pose_driver.py loop=0), every
+    driver frame a frame, scaled like the walk; n_out of them are kept from where it starts to go to where it lies
+    still, and the last one holds. None on failure."""
+    frames = pose_cycle(still_rgb, key, clip, "front", seed, cell, stand_cell, hint, outline_frac, outline_color, negative_extra=negative_extra,
+                        loop=False, motion="knocked down: it staggers, falls over backwards and lands on the ground, then lies still, dead")
+    if not frames:
+        return None
+    idx, start, end, _, _ = fall_pick(frames, n_out)
+    hf = hue_foreign(frames, still_rgb)
+    for j in range(1, n_out - 1):
+        k = idx[j]
+        if hf[k] > FOREIGN_MAX:
+            for alt in (k - 1, k + 1, k - 2, k + 2):
+                if idx[j - 1] < alt < idx[j + 1] and hf[alt] <= FOREIGN_MAX:
+                    log("  fall %-24s frame %d has a colour the painting lacks (%.3f), took %d" % (key, k, hf[k], alt))
+                    idx[j] = alt
+                    break
+    log("  fall %-24s driven frames %s of %d (moving from %d, at rest from %d)" % (key, idx, len(frames), start, end))
+    return [frames[i] for i in idx]
+
+
+def death_cycle(still_rgb, dead_rgb, key, seed, cell, stand_cell, n_out=8, outline_frac=0.024, outline_color=(14, 8, 12, 255), hint="", negative_extra=""):
+    """A creature's death as an animated fall (pass 33.9, JSON "death": "clip"): animate.fall_clip's first-last-frame
+    clip from the standing painting to the dead one, cut to n_out frames from the first to the moment the body comes to
+    rest, the dead painting last. Every frame keeps the clip's geometry: one scale (the standing figure exactly as tall
+    as in its idle cell), the canvas's middle column on the cell's, the clip's floor on the cell's floor, so the fall
+    starts where the idle frame stands and nothing jumps. None on failure (the tipped painting stays)."""
+    if NO_VIDEO:
+        return None
+    try:
+        frames, meta = animate.fall_clip(still_rgb, dead_rgb, key, seed, prompt_hint=hint, negative_extra=negative_extra)
+    except Exception as e:
+        log("  (fall clip failed for %s: %s)" % (key, e))
+        return None
+    size = int(meta.get("size", 640))
+    floor = float(meta.get("floor", 0.86)) * size
+    # the clip crouches a while before it falls and lies still a while after (the goblin's: 9 frames of a slow crouch,
+    # the fall in the next 7, still from 19 of 33): the frames are spread from the last one still near the standing
+    # painting (a third of the way to lying, by silhouette) to the first one near the dead painting (a tenth of the way
+    # back), and that last pick is the dead painting itself (the first attempt spent four of eight frames standing)
+    feats = animate._silhouettes(frames)
+    span = max(1e-6, float(np.mean(np.abs(feats[0] - feats[-1]))))
+    d0 = [float(np.mean(np.abs(f - feats[0]))) for f in feats]
+    d1 = [float(np.mean(np.abs(f - feats[-1]))) for f in feats]
+    start = next((k for k in range(1, len(frames)) if d0[k] >= 0.35 * span), 1) - 1
+    end = next((k for k in range(start + 1, len(frames)) if d1[k] < 0.1 * span), len(frames) - 1)
+    while end - start < n_out - 1 and end < len(frames) - 1:
+        end += 1
+    while end - start < n_out - 1 and start > 0:
+        start -= 1
+    idx = [start + int(round(j * (end - start) / (n_out - 1))) for j in range(n_out)]
+    idx[-1] = len(frames) - 1
+    # a frame with a colour neither neighbour has (the goblin's club flashed pink for one frame) gives way to a neighbour
+    hx = hue_excess(frames)
+    hf = hue_foreign(frames, still_rgb)
+    hx = [max(a, 0.0 if b <= FOREIGN_MAX else 1.0) for a, b in zip(hx, hf)]
+    for j in range(1, n_out - 1):
+        k = idx[j]
+        if hx[k] > 0.06:
+            for alt in (k - 1, k + 1):
+                if idx[j - 1] < alt < idx[j + 1] and hx[alt] <= 0.06:
+                    log("  fall %-24s frame %d has a colour its neighbours lack (%.3f), took %d" % (key, k, hx[k], alt))
+                    idx[j] = alt
+                    break
+    chosen = [frames[i] for i in idx]
+    # the video model paints brighter than the paintings it starts and ends on (the goblin's green rose from 0.52 to
+    # 0.62 mid-fall and the dead painting is 0.47, so the last step flashed darker): every kept video frame takes the
+    # paintings' saturation and brightness, blended by how far through the fall it is
+    s0, s1 = colour_stats(frames[0]), colour_stats(frames[-1])
+    for j, k in enumerate(idx):
+        if 0 < k < len(frames) - 1:
+            q = d0[k] / max(1e-6, d0[k] + d1[k])
+            chosen[j] = match_colours(frames[k], s0[0] * (1 - q) + s1[0] * q, s0[1] * (1 - q) + s1[1] * q)
+    px = max(1, int(round(cell * outline_frac)))
+    scale = (figure_height_cell(stand_cell) - 2 * px) / max(1.0, _alpha_height(frames[0]))
+    # nothing may leave the cell: if the widest moment of the fall would, the whole fall is drawn a little smaller
+    widest = 0.0
+    for f in chosen:
+        xs = np.nonzero((np.asarray(f)[..., 3] > 127).max(axis=0))[0]
+        if len(xs):
+            widest = max(widest, 2.0 * max(size / 2.0 - xs.min(), xs.max() - size / 2.0))
+    if widest * scale > cell - 2 * px - 2:
+        scale = (cell - 2 * px - 2) / widest
+    pad = int(cell * 0.06)
+    out = []
+    for f in chosen:
+        big = f.resize((max(1, int(round(size * scale))), max(1, int(round(size * scale)))), Image.LANCZOS)
+        x0 = int(round(size * scale / 2.0 - cell / 2.0))
+        y0 = int(round(floor * scale - (cell - pad)))
+        out.append(artkit.add_outline(artkit.punch(big.crop((x0, y0, x0 + cell, y0 + cell))), px, outline_color))
+    log("  fall %-24s frames %s of %d (moving from %d, at rest from %d)" % (key, idx, len(frames), start, end))
+    return out
 
 
 def _alpha_height(frame_rgba):
@@ -272,7 +532,11 @@ def render(key, prompt, refs, expect, seed, width=1024, height=1024, tries=3):
     for attempt in range(tries):
         s = seed + attempt * 7919
         t0 = time.time()
-        imgs, secs = comfy.run(comfy.klein(prompt, s, width, height, refs=refs, prefix="88fits/" + key))
+        if DEV:
+            imgs, secs = comfy.run(comfy.flux2_dev(prompt, s, width, height, refs=refs, steps=8, guidance=4.0, turbo=True, prefix="88fits/" + key))
+            log("  " + comfy.release_models())
+        else:
+            imgs, secs = comfy.run(comfy.klein(prompt, s, width, height, refs=refs, prefix="88fits/" + key))
         img = Image.open(io.BytesIO(imgs[0])).convert("RGB")
         ok, report = qa(img, expect)
         geo = geometry(img)
@@ -409,6 +673,19 @@ def anchor_hash():
 
 def process(type_, folder, id_):
     d = json.load(open(os.path.join(folder, id_ + ".json"), encoding="utf-8"))
+    base_d = d
+    vcode = VARIANT if (VARIANT and type_ in ("enemies", "bosses")) else ""
+    if vcode:
+        ventry = (d.get("variants") or {}).get(vcode)
+        if not isinstance(ventry, dict):
+            raise SystemExit("gen_art: %s has no variant %s" % (id_, vcode))
+        # the recipe overrides the creature's own art settings for this run only
+        d = dict(base_d)
+        d.update(ventry.get("recipe", {}))
+    # an optional "grade" block colours the keyed figure of every still and frame (artkit.grade): Mira's blue-grey denim
+    # shares the blue screen's hue, so it can only be keyed while grey and is turned blue afterwards
+    artkit.GRADE = d.get("grade") if isinstance(d.get("grade"), dict) else None
+    artkit.KEY_SAT = float(d.get("key_sat", 0.35))
     subject = subject_for(d, type_)
     bg = bg_for(d, type_)
     refs = ensure_anchor_uploaded()
@@ -417,23 +694,50 @@ def process(type_, folder, id_):
     many = any(w in subject.lower() for w in ("three ", "pile", "family", "six ", "splitting", "pair of"))
     if type_ in ("enemies", "bosses"):
         cell = int(d.get("frame_px", 128))
-        img, inf = render(id_ + "_front", styled(subject, "Full body, front view, standing and facing the viewer.", bg), refs,
+        # the paintings' cache key (a variant may use other paintings: "stills": "c4" -> goblin_c4_front) and the clips'
+        # (a variant's own: goblin_gobb_pose_f)
+        sk = id_ + ("_" + str(d["stills"]) if d.get("stills") else "")
+        ak = id_ + ("_" + vcode.lower().replace("-", "") if vcode else "")
+        img, inf = render(sk + "_front", styled(subject, "Full body, front view, standing and facing the viewer.", bg), refs,
                           {"subject": subject, "view": "front", "subjects_max": 1}, seed)
         info["renders"]["front"] = inf
-        front_ref = comfy.upload_pil(img, id_ + "_front.png")
+        front_ref = comfy.upload_pil(img, sk + "_front.png")
+        # a creature JSON may carry "back_hint" too: what the back view must keep (the centipede's coil at its base)
         back_prompt = ("Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same "
-                       "colors, proportions and art style, standing. " + bg + ".")
-        back_img, inf = render(id_ + "_back", back_prompt, [front_ref], {"subject": "the same creature seen from behind", "view": "back", "subjects_max": 1,
+                       "colors, proportions and art style, standing. " + str(d.get("back_hint", "")) + " " + bg + ".")
+        # or the JSON says the whole back prompt itself ("back_prompt"): a creature whose pose the generic wording undoes
+        if d.get("back_prompt"):
+            back_prompt = str(d["back_prompt"]) + " " + bg + "."
+        back_img, inf = render(sk + "_back", back_prompt, [front_ref], {"subject": "the same creature seen from behind", "view": "back", "subjects_max": 1,
                                "ref_h": figure_height(img)}, seed + 1)
         info["renders"]["back"] = inf
         # creatures get a heavier, darker outline than the hero so they separate from the sand and from each other
         CO, CF = (14, 8, 12, 255), 0.024
+        # a creature may ask for a lighter outline in its JSON (the Elite is three times a goblin, so the heavy rim read as black)
+        CF = float(d.get("outline_frac", CF))
+        if d.get("outline_color"):
+            oc = str(d["outline_color"]).lstrip("#")
+            CO = (int(oc[0:2], 16), int(oc[2:4], 16), int(oc[4:6], 16), 255)
         base, sc = finish(img, cell, 0.86, True, None, CF, None, CO)
         back_cell = finish(back_img, cell, 0.86, True, None, CF, figure_height_cell(base), CO)[0]
         motion = str(d.get("motion", "walking in place with a steady stomping gait"))
-        run_f = video_cycle(img, id_ + "_walk_f", motion + ", facing the viewer, seen from the front", seed, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49)
-        run_b = video_cycle(back_img, id_ + "_walk_b", motion + ", seen directly from behind, walking away from the viewer", seed + 1, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49)
-        info["clips"] = {"walk_f": run_f is not None, "walk_b": run_b is not None}
+        clip = str(d.get("pose", ""))
+        run_f = run_b = None
+        if clip:
+            # a humanoid creature walks on a Mixamo stride (pass 33.4, the skeletons: "pose": "walk_zombie", rendered by
+            # tools/pose_driver.py): Wan Animate paints the still onto the driver's skeleton, one sprite frame per driver
+            # frame, front and back only
+            # a front view may take its own driver ("pose_front"): arms held out towards a camera above drop on screen, so
+            # the skeletons' front walk raises them a little where the back walk slopes them down
+            anim_neg = str(d.get("anim_negative", ""))
+            gait = str(d.get("gait", "walking in place on the spot like on a treadmill"))
+            run_f = pose_cycle(img, ak + "_pose_f", str(d.get("pose_front", clip)), "front", seed, cell, base, motion, CF, CO, negative_extra=anim_neg, motion=gait)
+            run_b = pose_cycle(back_img, ak + "_pose_b", clip, "back", seed + 1, cell, base, motion, CF, CO, negative_extra=anim_neg, motion=gait)
+        if run_f is None:
+            run_f = video_cycle(img, ak + "_walk_f", motion + ", facing the viewer, seen from the front", seed, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49)
+        if run_b is None:
+            run_b = video_cycle(back_img, ak + "_walk_b", motion + ", seen directly from behind, walking away from the viewer", seed + 1, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49)
+        info["clips"] = {"walk_f": run_f is not None, "walk_b": run_b is not None, "pose": clip}
         views = {}
         if int(d.get("directions", 2)) == 8:
             # side and diagonal stills edited from the front painting, a walk clip each, fitted to the front's height
@@ -453,39 +757,88 @@ def process(type_, folder, id_):
                 v_run = video_cycle(v_img, id_ + "_walk_" + vname, motion + ", " + walk_prompt, seed + k, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49)
                 info["clips"]["walk_" + vname] = v_run is not None
                 views[suffix] = (v_cell, v_run)
+        if clip and run_f and run_b and str(d.get("stand", "walk")) != "still":
+            # a pose-driven walk stands, winds up, flinches and falls apart in the walk's own pose (the still may not
+            # hold the driver's pose: the skeletons' arms came out spread wide instead of reaching forward); "stand":
+            # "still" keeps the painting for them, when the painting already stands the way the walk does (the goblin)
+            base = passing_frame(run_f)
+            back_cell = passing_frame(run_b)
         frames = artkit.enemy_frames(base, cell, run_f, back_cell, run_b, views)
+        # the death: a painted "dead" still edited from the front, and three frames of the standing painting tipping over into it
+        # a creature JSON may carry "dead_hint": the death pose in its own words (the generic "limbs sprawled, tongue out" turned
+        # the centipede into a goblin with arms)
+        dead_pose = str(d.get("dead_hint", "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, limbs sprawled "
+                                           "limp in the air"))
+        dead_prompt = ("This exact creature " + dead_pose + ", seen from the front and a little above so the whole body is visible. "
+                       "Keep the same colors, proportions and art style. " + bg + ".")
+        # a creature that falls apart dies as a heap: the vision check asks for a heap, and a heap is many pieces
+        falls_apart = str(d.get("death", "")) == "collapse"
+        dead_expect = {"subject": "a heap of loose bones with a skull on top" if falls_apart else "the same creature lying on its back", "view": None,
+                       "subjects_max": 8 if falls_apart else 1, "no_match_ok": falls_apart}
+        dead_img, inf = render(sk + "_dead", dead_prompt, [front_ref], dead_expect, seed + 9)
+        info["renders"]["dead"] = inf
+        dead_cell = finish(dead_img, cell, 0.7, True, None, CF, None, CO)[0]
+        fall = None
+        death = str(d.get("death", ""))
+        if death == "clip":
+            fall = death_cycle(img, dead_img, ak + "_fall", seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")))
+        elif death.startswith("pose:"):
+            fall = pose_death(img, ak + "_death", death[5:], seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")))
+        if fall:
+            frames["die"] = fall
+        elif falls_apart:
+            # a creature that falls apart instead of falling over (the skeletons, pass 33.3, JSON "death": "collapse"):
+            # the standing painting itself drops apart in slices (artkit.crumble), then the painted heap it ends as. A
+            # painted mid-collapse was tried and came out as a two-headed skeleton dripping rust.
+            frames["die"] = [artkit.transform(base, lean_deg=-6, sy=0.95), artkit.crumble(base, 0.45, seed), artkit.crumble(base, 0.85, seed),
+                             dead_cell, dead_cell]
+        else:
+            # the deeper leans are refitted (artkit.fall) so the head never leaves the cell
+            frames["die"] = [artkit.transform(base, lean_deg=-14, sy=0.97), artkit.fall(base, 38), artkit.fall(base, 66), dead_cell, dead_cell]
         strip, counts, cols = artkit.pack_strip(frames, artkit.ENEMY_ORDER, cell)
-        strip.save(os.path.join(folder, d.get("sprite", id_ + "_sprite.png")))
-        icon, _ = finish(img, 256, 0.9, False, None, 0.009)
-        icon.save(os.path.join(folder, d.get("icon", id_ + "_icon.png")))
+        if vcode:
+            # a variant's strip and icon sit beside the ones the game uses (its icon is its own painting)
+            d["sprite"] = id_ + "_sprite_" + vcode.split("-")[-1].lower() + ".png"
+            strip.save(os.path.join(folder, d["sprite"]))
+            d["icon"] = id_ + "_icon_" + vcode.split("-")[-1].lower() + ".png"
+            vicon, _ = finish(img, 256, 0.9, False, None, 0.009)
+            vicon.save(os.path.join(folder, d["icon"]))
+        else:
+            strip.save(os.path.join(folder, d.get("sprite", id_ + "_sprite.png")))
+            icon, _ = finish(img, 256, 0.9, False, None, 0.009)
+            icon.save(os.path.join(folder, d.get("icon", id_ + "_icon.png")))
         d["anims"] = counts
         d["strip_cols"] = cols
-        d["fps"] = {"run": CREATURE_RUN_FPS if run_f else 10}
+        # how tall the figure stands in its cell (the game hangs its badge just above; tools/measure_heads.py does the same
+        # for strips painted before pass 33.3)
+        d["head"] = round(max(figure_top(f) for f in frames.get("idle", []) + frames.get("run", [])) if frames.get("idle") or frames.get("run") else 0.86, 3)
+        d["fps"] = {"run": int(d.get("run_fps", CREATURE_RUN_FPS)) if run_f else 10, "die": 12 if fall else 8}
     elif type_ == "characters":
         cell = int(d.get("frame_px", 256))
-        front, inf = render(id_ + "_front", styled(subject, "Full body, front view, standing straight and facing the viewer, arms relaxed, feet fully visible.", bg), refs,
+        pose_hint = str(d.get("pose_hint", ""))
+        front, inf = render(id_ + "_front", styled(subject, "Full body, front view, standing straight and facing the viewer, arms relaxed, feet fully visible. " + pose_hint, bg), refs,
                             {"subject": subject, "view": "front", "subjects_max": 1, "legs": True}, seed)
         info["renders"]["front"] = inf
         front_ref = comfy.upload_pil(front, id_ + "_front.png")
         back_prompt = ("Turn this exact character around and show a full-body back view seen directly from behind: the back of the head or helmet, "
                        "the back of the outfit and the heels, no face visible. Keep the same outfit, colors, proportions and art style, standing "
-                       "straight with arms relaxed. " + bg + ".")
+                       "straight with arms relaxed. " + pose_hint + " " + str(d.get("back_hint", "")) + " " + bg + ".")
         back, inf = render(id_ + "_back", back_prompt, [front_ref], {"subject": "the same character seen from behind", "view": "back", "subjects_max": 1, "legs": True, "ref_h": figure_height(front)}, seed + 1)
         info["renders"]["back"] = inf
         back_ref = comfy.upload_pil(back, id_ + "_back.png")
         side_prompt = ("Turn this exact character to show a full-body side view in strict profile, facing to the right of the frame, standing "
-                       "straight with arms relaxed. Keep the same outfit, colors, proportions and art style. " + bg + ".")
+                       "straight with arms relaxed. Keep the same outfit, colors, proportions and art style. " + pose_hint + " " + str(d.get("side_hint", "")) + " " + bg + ".")
         side, inf = render(id_ + "_side", side_prompt, [front_ref], {"subject": "the same character seen from the side in profile", "view": "side", "subjects_max": 1, "legs": True, "ref_h": figure_height(front)}, seed + 6)
         info["renders"]["side"] = inf
         side_ref = comfy.upload_pil(side, id_ + "_side.png")
         front_h, back_h, side_h = figure_height(front), figure_height(back), figure_height(side)
         fd_prompt = ("Turn this exact character to a three-quarter front view: turned 45 degrees so the character faces towards the lower right of "
-                     "the frame, face visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. " + bg + ".")
+                     "the frame, face visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. " + pose_hint + " " + bg + ".")
         fd, inf = render(id_ + "_fd", fd_prompt, [front_ref], {"subject": "the same character, three-quarter front view", "view": None, "subjects_max": 1, "legs": True, "ref_h": front_h}, seed + 7)
         info["renders"]["fd"] = inf
         bd_prompt = ("Turn this exact character to a three-quarter back view: turned 45 degrees away from the viewer so the character faces the upper "
                      "right of the frame, the back and right shoulder visible, standing straight with arms relaxed. Keep the same outfit, colors, "
-                     "proportions and art style. " + bg + ".")
+                     "proportions and art style. " + pose_hint + " " + bg + ".")
         bd, inf = render(id_ + "_bd", bd_prompt, [front_ref], {"subject": "the same character, three-quarter back view", "view": None, "subjects_max": 1, "legs": True, "ref_h": front_h}, seed + 8)
         info["renders"]["bd"] = inf
         poses = [("cheer", "seen directly from behind (no face visible), jumping for joy with both arms raised high above the head, feet together", back_ref, "back")]
@@ -525,7 +878,8 @@ def process(type_, folder, id_):
             ("_bd", bd, bd_cell, "bd", gait + ", three-quarter back view, running away towards the upper right"),
             ("_fd", fd, fd_cell, "fd", gait + ", three-quarter front view, running towards the lower right")):
             k = {"": 20, "_f": 21, "_s": 22, "_bd": 23, "_fd": 24}[suffix]
-            c = pose_cycle(still_img, id_ + "_pose_run_" + view, "run", view, seed + k, cell, cell_img, hint, negative_extra=anim_neg) if pose_ok else None
+            vh = str(d.get("back_hint", "")) if view in ("back", "bd") else ""
+            c = pose_cycle(still_img, id_ + "_pose_run_" + view, "run", view, seed + k, cell, cell_img, hint, negative_extra=anim_neg, view_hint=vh) if pose_ok else None
             if c is None:
                 c = video_cycle(still_img, id_ + "_run" + (suffix or "_b"), prompt, seed + k, cell, cell_img, N)
             clips[suffix] = c
@@ -538,7 +892,7 @@ def process(type_, folder, id_):
                                                               ("_s", side, side_cell, "side", side_h, 32), ("_bd", bd, bd_cell, "bd", front_h, 33), ("_fd", fd, fd_cell, "fd", front_h, 34)):
             view_words = {"back": "seen directly from behind", "front": "facing the viewer", "side": "in strict side profile facing right",
                           "bd": "in three-quarter back view", "fd": "in three-quarter front view"}[view]
-            h_prompt = ("The exact same character " + view_words + ", flinching in pain from a hit: leaning back a little, shoulders hunched, "
+            h_prompt = ("One single figure alone in the frame: the exact same character " + view_words + ", flinching in pain from a hit: leaning back a little, shoulders hunched, "
                         "one hand raised towards the chest, " + hurt_hint + ", still standing on both feet, feet fully visible. Keep the same "
                         "outfit, colors, proportions, pose scale and art style as the reference. " + bg + ".")
             ref = comfy.upload_pil(still_img, id_ + "_" + view + "_ref.png")
@@ -550,6 +904,14 @@ def process(type_, folder, id_):
             hits[suffix] = [hurt_cell, artkit.transform(hurt_cell, lean_deg=-6, bob=2, sy=0.97, sx=1.03), hurt_cell, artkit.transform(cell_img, lean_deg=-3, sy=0.99)]
         info["hits"] = {k or "_b": v is not None for k, v in hits.items()}
         frames = artkit.character_frames(back_cell, clips[""], cheer_cell, cell, front_cell, clips["_f"], side_cell, clips["_s"], bd_cell, clips["_bd"], fd_cell, clips["_fd"], hits)
+        # the death: a painted "down" still edited from the front, and the flinch tipping over into it (one set, the body lies the same from every side)
+        dead_prompt = ("This exact character lying flat on the ground on their back, knocked out: limbs sprawled, head to one side, seen from the front and a "
+                       "little above so the whole body is visible. Keep the same outfit, colors, proportions and art style. " + hurt_hint + ". " + bg + ".")
+        dead_img, inf = render(id_ + "_dead", dead_prompt, [front_ref], {"subject": "the same character lying on the ground", "view": None, "subjects_max": 1}, seed + 12)
+        info["renders"]["dead"] = inf
+        dead_cell = finish(dead_img, cell, 0.66, True, None, 0.012)[0]
+        hurt_f = hits["_f"][0] if hits.get("_f") else front_cell
+        frames["die"] = [artkit.transform(hurt_f, lean_deg=-14, sy=0.97), artkit.fall(hurt_f, 38), artkit.fall(hurt_f, 66), dead_cell, dead_cell]
         strip, counts, cols = artkit.pack_strip(frames, artkit.CHAR_ORDER, cell)
         strip.save(os.path.join(folder, d.get("sprite", id_ + "_sprite.png")))
         # the icon: a painted close-up doing something, keyed and set into a round badge that fills the plate's lower half
@@ -563,7 +925,7 @@ def process(type_, folder, id_):
         portrait_badge(p_img).save(os.path.join(folder, d.get("icon", id_ + "_icon.png")))
         d["anims"] = counts
         d["strip_cols"] = cols
-        d["fps"] = {"run": HERO_RUN_FPS if all(v is not None for v in clips.values()) else 14, "hit": HERO_HIT_FPS}
+        d["fps"] = {"run": HERO_RUN_FPS if all(v is not None for v in clips.values()) else 14, "hit": HERO_HIT_FPS, "die": 8}
     else:
         img, inf = render(id_ + "_icon2", subject + ". " + ICON_STYLE + ". " + bg + ".", [],
                           {"subject": subject, "view": None, "subjects_max": 6 if many else 1}, seed)
@@ -571,7 +933,26 @@ def process(type_, folder, id_):
         icon, _ = finish(img, 256, 0.92, False, None, 0.006)
         icon.save(os.path.join(folder, d.get("icon", id_ + "_icon.png")))
     d.setdefault("art_prompt", subject)
-    json.dump(d, open(os.path.join(folder, id_ + ".json"), "w", encoding="utf-8", newline="\n"), indent=2, ensure_ascii=False)
+    # merge into the file as it is now: a field edited by hand while this item rendered (a hint for the next roll) must
+    # survive the write-back, and only the keys this run sets are written
+    jpath = os.path.join(folder, id_ + ".json")
+    try:
+        cur = json.load(open(jpath, encoding="utf-8"))
+    except Exception:
+        cur = dict(d)
+    if vcode:
+        entry = cur.setdefault("variants", {}).setdefault(vcode, {})
+        for k in ("sprite", "icon", "anims", "strip_cols", "fps", "head"):
+            if k in d:
+                entry[k] = d[k]
+        json.dump(cur, open(jpath, "w", encoding="utf-8", newline="\n"), indent=2, ensure_ascii=False)
+        json.dump(info, open(os.path.join(folder, id_ + "_" + vcode.split("-")[-1].lower() + "_ai.json"), "w", encoding="utf-8", newline="\n"), indent=1)
+        return
+    for k in ("anims", "strip_cols", "fps", "head"):
+        if k in d:
+            cur[k] = d[k]
+    cur.setdefault("art_prompt", d.get("art_prompt", subject))
+    json.dump(cur, open(jpath, "w", encoding="utf-8", newline="\n"), indent=2, ensure_ascii=False)
     write_marker(folder, id_, info)
     for suffix in ("_sprite_flat.png", "_icon_flat.png"):
         p = os.path.join(folder, id_ + suffix)
@@ -630,7 +1011,26 @@ def review_sheets():
 
 
 def app_icon():
-    src = os.path.join(CONTENT, "characters", "drifter", "knight_icon.png")
+    # a painted illustration from tools/gen_app_icon.py when one has been picked (tools/dl/app_icon/icon_src.png);
+    # the default hero's portrait badge on the sun gradient otherwise
+    painted = os.path.join(REPO, "tools", "dl", "app_icon", "icon_src.png")
+    game = os.path.join(REPO, "game")
+    if os.path.exists(painted):
+        art = Image.open(painted).convert("RGBA")
+        art.resize((1024, 1024), Image.LANCZOS).save(os.path.join(game, "icon.png"))
+        art.resize((192, 192), Image.LANCZOS).save(os.path.join(game, "icon_192.png"))
+        # adaptive: the whole painting is the foreground (the subject sits inside the middle 66%, the launcher's safe
+        # zone); the background is the painting's own sky colour, for launchers that peek past the foreground
+        sky = art.resize((1, 1), Image.BOX).getpixel((0, 0))
+        # the foreground sits at 88% on a sky-coloured plate, so a circle or squircle launcher mask keeps the glove
+        fg = Image.new("RGBA", (432, 432), (sky[0], sky[1], sky[2], 255))
+        inner = art.resize((380, 380), Image.LANCZOS)
+        fg.alpha_composite(inner, (26, 26))
+        fg.save(os.path.join(game, "icon_fg_432.png"))
+        Image.new("RGBA", (432, 432), (sky[0], sky[1], sky[2], 255)).save(os.path.join(game, "icon_bg_432.png"))
+        log("app icons written from the painted icon")
+        return
+    src = os.path.join(CONTENT, "characters", "astro", "astro_icon.png")
     if not os.path.exists(src):
         return
     hero = Image.open(src).convert("RGBA")
@@ -646,7 +1046,8 @@ def app_icon():
             arr[..., 3] = 255
             im = Image.fromarray(arr, "RGBA")
             dr = ImageDraw.Draw(im)
-            r, cx, cy = int(sz * 0.36), sz // 2, int(sz * 0.42)
+            # a low sun behind the badge
+            r, cx, cy = int(sz * 0.46), sz // 2, int(sz * 0.62)
             dr.ellipse((cx - r, cy - r, cx + r, cy + r), fill=(255, 214, 90, 255))
         return im
 
@@ -654,21 +1055,20 @@ def app_icon():
         im = base(sz, bg)
         g = hero.copy()
         s = int(sz * fg_scale)
-        g.thumbnail((s, s))
+        g = g.resize((s, s), Image.LANCZOS)
         sh = Image.new("RGBA", g.size, (0, 0, 0, 0))
         sh.paste((0, 0, 0, 140), (0, 0), g)
         sh = sh.filter(ImageFilter.GaussianBlur(sz * 0.01))
-        x, y = (sz - g.width) // 2, int(sz * 0.5 - g.height * 0.42)
+        x, y = (sz - g.width) // 2, int(sz * 0.5 - g.height * 0.5)
         im.alpha_composite(sh, (x + int(sz * 0.015), y + int(sz * 0.02)))
         im.alpha_composite(g, (x, y))
         return im
 
-    game = os.path.join(REPO, "game")
-    compose(1024, 0.86).save(os.path.join(game, "icon.png"))
-    compose(192, 0.86).save(os.path.join(game, "icon_192.png"))
-    compose(432, 0.62, bg=False).save(os.path.join(game, "icon_fg_432.png"))
+    compose(1024, 0.8).save(os.path.join(game, "icon.png"))
+    compose(192, 0.8).save(os.path.join(game, "icon_192.png"))
+    compose(432, 0.58, bg=False).save(os.path.join(game, "icon_fg_432.png"))
     base(432).save(os.path.join(game, "icon_bg_432.png"))
-    log("app icons written from the knight portrait")
+    log("app icons written from Astro's portrait")
 
 
 # ---------------------------------------------------------------- main
@@ -684,7 +1084,7 @@ def main():
         pick_anchor(PICK)
         if "--only" not in sys.argv and not any(a.startswith("--only=") for a in sys.argv):
             return
-    types = ["characters", "enemies", "bosses", "weapons", "evolutions", "passives", "shop", "elites", "maps", "quests", "pickups"]
+    types = ["characters", "enemies", "bosses", "weapons", "evolutions", "passives", "mutations", "lines", "perks", "resources", "shop", "elites", "maps", "quests", "pickups"]
     jobs = []
     for t in types:
         base = os.path.join(CONTENT, t)

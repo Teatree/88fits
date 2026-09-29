@@ -1,0 +1,70 @@
+{
+  "id": "sand_lizard",
+  "name": "Sand Lizard",
+  "flavour": "Blue blood. Warm sand. Fast feet.",
+  "archetype": "runner",
+  "brain": "flock",
+  "hp": 13,
+  "speed": 2.7,
+  "damage": 7,
+  "radius": 0.42,
+  "size": 1.2,
+  "pack_size": 4,
+  "drops": {
+    "small": 0.8,
+    "medium": 0.15,
+    "gold": 0.03,
+    "chest": 0.0028
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "frame_px": 160,
+  "xp_mult": 2.2,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_lizard_die"
+  },
+  "placeholder": {
+    "color": "#3060D0",
+    "ears": "none",
+    "eyes": 2,
+    "shape": "wide"
+  },
+  "art_prompt": "a goofy fat desert lizard running on four short legs, bright cobalt blue scales with dark navy stripes down its back and a pale sky-blue belly, a long tail, a wide flat head with big round eyes and a wide toothy grin, standing on the ground",
+  "variance": {
+    "size": 0.18,
+    "speed": 0.15,
+    "tints": [
+      "#FFFFFF",
+      "#C0D8FF",
+      "#A0E8F0",
+      "#D0C0FF"
+    ],
+    "tint_strength": 0.22,
+    "special_chance": 0.1,
+    "special": {
+      "size": 1.5,
+      "hp": 2.4,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#1F5A3A",
+      "tint_strength": 0.6
+    }
+  },
+  "motion": "scurrying in place on four short legs, tail whipping side to side",
+  "strip_cols": 40,
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "doc": "The runner: a fat blue lizard nearly as fast as an ant with a goblin's bite, so a pack closes before a slow build can turn.",
+  "head": 0.806,
+  "hidden": true
+}

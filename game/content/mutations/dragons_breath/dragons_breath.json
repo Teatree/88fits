@@ -1,0 +1,36 @@
+{
+  "id": "dragons_breath",
+  "name": "Dragon's Breath",
+  "flavour": "Loaded with something illegal.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "boomstick",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "Pellets ignite.",
+  "vfx": "an orange muzzle bloom and burning creatures",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "add",
+      "value": 4
+    },
+    {
+      "stat": "fire_duration",
+      "op": "add",
+      "value": 1.8
+    },
+    {
+      "stat": "fire_spread",
+      "op": "add",
+      "value": 0.4
+    }
+  ],
+  "params": {},
+  "art_prompt": "a sawn-off shotgun shell cracked open with a burst of orange flame coming out of it",
+  "placeholder": {
+    "color": "#FF7A2A",
+    "glyph": "star"
+  }
+}

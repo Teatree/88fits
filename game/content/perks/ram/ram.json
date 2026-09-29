@@ -1,0 +1,21 @@
+{
+  "id": "ram",
+  "name": "Ram",
+  "flavour": "At full speed, he is the wall.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "buck",
+  "text": "At full momentum, creatures he touches are shoved back and take his thorns ×3 (plus 12) instead of hurting him.",
+  "effects": [],
+  "special": "ram",
+  "params": {
+    "thorns_mult": 3.0,
+    "flat": 12.0,
+    "shove": 9.0
+  },
+  "art_prompt": "a charging ram's head with curled horns",
+  "placeholder": {
+    "color": "#E0A050",
+    "glyph": "star"
+  }
+}

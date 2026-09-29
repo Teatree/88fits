@@ -1,0 +1,17 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "a black and gold sci-fi gravity gun with glowing violet bands, three gold claws at the front holding a tiny swirling black hole with a bright violet glowing rim, seen from the side pointing to the right",
+ "renders": {
+  "icon": {
+   "key": "singularity_icon35_2",
+   "prompt": "a black and gold sci-fi gravity gun with glowing violet bands, three gold claws at the front holding a tiny swirling black hole with a bright violet glowing rim, seen from the side pointing to the right",
+   "refs": [
+    "singularity_ref.png"
+   ],
+   "screen": "green",
+   "picked": 2,
+   "of": 3
+  }
+ }
+}

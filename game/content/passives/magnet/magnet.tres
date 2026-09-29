@@ -14,6 +14,7 @@ target = "player"
 [resource]
 script = ExtResource("2_6d6vi")
 levels = [[SubResource("Resource_6d6vi")]]
+max_level = 5
 pairs_with = "turret_buddy"
 id = "magnet"
 display_name = "Magnet"

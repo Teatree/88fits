@@ -21,8 +21,11 @@ class Structure:
 	var hand: MeshInstance3D
 	var glow: OmniLight3D
 	var visual: Node3D
+	var portal: MeshInstance3D     # the Teleport's swirl in its ring (params.portal)
+	var portal_mat: ShaderMaterial
 	var _t := 0.0
 	var _last_frac := -1.0
+	var _mote_t := 0.0
 
 
 func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
@@ -50,17 +53,19 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 		picks.append(_pick(defs))
 	var placed: Array = []
 	var tries := 0
-	while placed.size() < count and tries < count * 60:
+	# every kind must land: when the map fights back, the spacing relaxes rather than a structure being dropped
+	while placed.size() < count and tries < count * 200:
 		tries += 1
+		var relax: float = 1.0 - 0.5 * clampf(float(tries) / float(count * 100), 0.0, 1.0)
 		var a := _rng.randf() * TAU
 		var r := _rng.randf_range(map.arena_radius * 0.3, map.arena_radius * 0.86)
 		var p := Vector3(cos(a) * r, 0, sin(a) * r)
 		var fc := map.flats_center
-		if Vector2(p.x - fc.x, p.z - fc.z).length() < 18.0:
+		if Vector2(p.x - fc.x, p.z - fc.z).length() < 18.0 * relax:
 			continue
 		var ok := true
 		for q: Vector3 in placed:
-			if Vector2(p.x - q.x, p.z - q.z).length() < spacing:
+			if Vector2(p.x - q.x, p.z - q.z).length() < spacing * relax:
 				ok = false
 				break
 		if ok:
@@ -75,6 +80,8 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 	for k in range(placed.size()):
 		var def: StructureDef = picks[k]
 		_spawn(def, placed[k])
+	if placed.size() < defs.size():
+		push_warning("StructureManager: placed %d of %d kinds" % [placed.size(), defs.size()])
 
 
 func _pick(defs: Array) -> StructureDef:
@@ -95,13 +102,24 @@ func _spawn(def: StructureDef, at: Vector3) -> void:
 	add_child(s)
 	s.global_position = at
 	# the landmark itself
+	# painted first (art/sprites/props/st_<id>.png, a billboard like the scenery), the Blender prop if there is no painting
+	var sprite_path := "res://art/sprites/props/st_%s.png" % def.id
 	var path := "res://art/props/%s.glb" % def.prop
-	if def.prop != "" and ResourceLoader.exists(path):
-		s.visual = (load(path) as PackedScene).instantiate()
+	if ResourceLoader.exists(sprite_path):
+		var bs := BillboardSprite.new()
+		s.visual = bs
+		s.add_child(bs)
+		bs.setup(load(sprite_path), {"idle": 1}, ["idle"], def.height * 1.15)
+		bs.position.y = 0.04
+		if def.params.get("portal") is Dictionary:
+			_add_portal(s, def.params["portal"], def.height * 1.15, def.color)
 	else:
-		s.visual = _fallback_visual(def)
-	s.add_child(s.visual)
-	s.visual.rotation.y = _rng.randf() * TAU
+		if def.prop != "" and ResourceLoader.exists(path):
+			s.visual = (load(path) as PackedScene).instantiate()
+		else:
+			s.visual = _fallback_visual(def)
+		s.add_child(s.visual)
+		s.visual.rotation.y = _rng.randf() * TAU
 	# the ring on the ground, in the structure's colour, always visible until used
 	var tg: Telegraphs = game.telegraphs
 	s.ring = MeshInstance3D.new()
@@ -128,6 +146,36 @@ func _spawn(def: StructureDef, at: Vector3) -> void:
 		s.glow.position.y = def.height * 0.7
 		s.add_child(s.glow)
 	items.append(s)
+
+
+## The Teleport's portal (pass 35): a spiral turning in the ring's hole, standing up to the camera like the painting and a
+## little behind it, so the stone covers its edge. `cfg` is where the hole is in the painting, as fractions of its
+## square: {x, y (from the top), r}; `side` is the painting's side in metres.
+func _add_portal(s: Structure, cfg: Dictionary, side: float, color: Color) -> void:
+	var q := MeshInstance3D.new()
+	var qm := QuadMesh.new()
+	qm.size = Vector2(1, 1)
+	q.mesh = qm
+	q.custom_aabb = AABB(Vector3(-4, -1, -4), Vector3(8, 8, 8))
+	q.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var m := ShaderMaterial.new()
+	m.shader = preload("res://core/shaders/swirl.gdshader")
+	m.set_shader_parameter("billboard", 1.0)
+	m.set_shader_parameter("size", 2.0 * float(cfg.get("r", 0.2)) * side * 1.08)
+	m.set_shader_parameter("lift", (1.0 - float(cfg.get("y", 0.45))) * side + 0.04)
+	m.set_shader_parameter("shift", (float(cfg.get("x", 0.5)) - 0.5) * side)
+	m.set_shader_parameter("push", 0.08)
+	m.set_shader_parameter("color_a", Color(color.r * 0.45, color.g * 0.2, color.b * 0.6, 0.85))
+	m.set_shader_parameter("color_b", Color(color.r, color.g, color.b, 0.95))
+	m.set_shader_parameter("color_eye", Color(1.0, 0.92, 1.0, 0.95))
+	m.set_shader_parameter("eye", 0.22)
+	m.set_shader_parameter("arms", 4.0)
+	m.set_shader_parameter("twist", 1.4)
+	m.set_shader_parameter("speed", 2.2)
+	q.material_override = m
+	s.add_child(q)
+	s.portal = q
+	s.portal_mat = m
 
 
 func _mat(color: Color, alpha: float) -> StandardMaterial3D:
@@ -202,9 +250,28 @@ func _process(delta: float) -> void:
 		else:
 			s.pie.visible = false
 			s.hand.visible = false
+		if s.portal_mat:
+			_tick_portal(s, delta, inside, d)
 		if s.progress >= 1.0:
 			_use(s)
 	Perf.add("structures", _t0)
+
+
+## The portal breathes and turns, faster and brighter as the hero charges it, and throws sparks up out of the ring.
+func _tick_portal(s: Structure, delta: float, inside: bool, dist: float) -> void:
+	var p := s.progress
+	s.portal_mat.set_shader_parameter("speed", lerpf(2.2, 10.0, p))
+	s.portal_mat.set_shader_parameter("energy", 1.0 + 0.9 * p + 0.12 * sin(s._t * 5.0))
+	s.portal_mat.set_shader_parameter("alpha", 0.9 + 0.1 * sin(s._t * 3.0))
+	if dist > 26.0:
+		return
+	s._mote_t -= delta
+	if s._mote_t <= 0.0:
+		s._mote_t = 0.05 if inside else 0.16
+		var a := randf() * TAU
+		var at: Vector3 = s.global_position + Vector3(cos(a) * s.def.radius * 0.8, 0.15, sin(a) * s.def.radius * 0.8)
+		var col: Color = s.def.color
+		game.fx.mote(at, Vector3(-cos(a) * 0.6, randf_range(1.6, 2.6) * (1.6 if inside else 1.0), -sin(a) * 0.6), 0.9, 0.18, Color(col.r, col.g, col.b, 0.9))
 
 
 func _use(s: Structure) -> void:
@@ -212,13 +279,44 @@ func _use(s: Structure) -> void:
 	s.pie.visible = false
 	s.hand.visible = false
 	s.ring.visible = false
+	if s.portal:
+		s.portal.visible = false
 	if s.glow:
 		s.glow.light_energy = 0.0
-	_grey_out(s.visual)
+	# the spent painting (art/sprites/props/st_<id>_off.png) when there is one, a grey tint otherwise; a prop with
+	# params.spent "fly_away" leaves on its balloon instead
+	var off_path := "res://art/sprites/props/st_%s_off.png" % s.def.id
+	if str(s.def.params.get("spent", "")) == "fly_away":
+		_fly_away(s)
+	elif s.visual is BillboardSprite and ResourceLoader.exists(off_path):
+		(s.visual as BillboardSprite).set_texture(load(off_path))
+		(s.visual as BillboardSprite).set_tint(Color(0.8, 0.78, 0.78, 1.0))
+	else:
+		_grey_out(s.visual)
 	game.use_structure(s.def, s.global_position)
 
 
+## The Strongbox's exit (pass 33): a beat for the coins to go in, then the balloon lifts the painted box off the sand,
+## slow at first, and it drifts up and away over the canyon until it is gone. The gold is safe whatever happens next.
+func _fly_away(s: Structure) -> void:
+	var v := s.visual
+	if v == null:
+		return
+	game.fx_burst(s.global_position + Vector3(0, 0.9, 0), Color(1.0, 0.85, 0.35), 1.2)
+	var start := v.position
+	var drift := Vector3(_rng.randf_range(-2.5, 2.5), 18.0, _rng.randf_range(-6.0, -3.0))
+	var tw := v.create_tween()
+	tw.tween_interval(0.45)
+	tw.tween_property(v, "position", start + Vector3(0, 0.7, 0), 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(v, "position", start + drift, 4.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.parallel().tween_property(v, "rotation:y", v.rotation.y + 1.4, 4.5)
+	tw.tween_callback(v.hide)
+
+
 func _grey_out(n: Node) -> void:
+	if n is BillboardSprite:
+		(n as BillboardSprite).set_tint(Color(0.45, 0.42, 0.42, 1.0))
+		return
 	if n is MeshInstance3D:
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = Color(0.42, 0.4, 0.4)

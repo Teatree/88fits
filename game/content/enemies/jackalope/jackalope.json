@@ -1,0 +1,68 @@
+{
+  "id": "jackalope",
+  "name": "Jackalope",
+  "flavour": "Half rabbit. Half antler. All rude.",
+  "archetype": "runner",
+  "brain": "flock",
+  "hp": 9,
+  "speed": 3.3,
+  "damage": 5,
+  "radius": 0.4,
+  "size": 1.1,
+  "pack_size": 5,
+  "drops": {
+    "small": 0.85,
+    "medium": 0.1,
+    "gold": 0.03,
+    "chest": 0.0025
+  },
+  "frame_px": 160,
+  "xp_mult": 2.2,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_lizard_die"
+  },
+  "placeholder": {
+    "color": "#C8A878",
+    "glyph": "rabbit"
+  },
+  "art_prompt": "a goofy jackrabbit with a small pair of deer antlers, tan fur with a white belly, huge hind legs, long ears, big buck teeth and wide eyes, crouched ready to hop, standing on the ground",
+  "motion": "hopping in place with big bouncy hops, ears flapping",
+  "variance": {
+    "size": 0.18,
+    "speed": 0.2,
+    "tints": [
+      "#FFFFFF",
+      "#FFE0B0",
+      "#D8C8B0",
+      "#F0B080"
+    ],
+    "tint_strength": 0.22,
+    "special_chance": 0.1,
+    "special": {
+      "size": 1.5,
+      "hp": 2.4,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#1A4A7A",
+      "tint_strength": 0.6
+    }
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "strip_cols": 40,
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "doc": "Stage 2's runner: faster than the lizard, half the health, wider packs; a swarm of them at 8:30.",
+  "retired": true,
+  "head": 1.0
+}

@@ -8,6 +8,7 @@ script = ExtResource("1_12pu4")
 effect_kind = "shield"
 value = 0.0
 duration = 6.0
+lifetime = 40.0
 color = Color(0.54509807, 0.42352942, 1, 1)
 id = "shield"
 display_name = "Shield"

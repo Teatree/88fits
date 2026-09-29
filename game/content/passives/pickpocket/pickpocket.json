@@ -1,0 +1,24 @@
+{
+  "id": "pickpocket",
+  "name": "Pickpocket",
+  "flavour": "Finders, keepers.",
+  "rarity": "common",
+  "weight": 9,
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "coin_drop",
+        "op": "add",
+        "value": 0.004,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "art_prompt": "a gloved hand lifting a small leather coin pouch, gold coins glinting",
+  "placeholder": {
+    "color": "#E8B840",
+    "glyph": "star"
+  }
+}

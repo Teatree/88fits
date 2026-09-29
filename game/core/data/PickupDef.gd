@@ -13,6 +13,8 @@ extends ContentDef
 @export var effects: Array = []
 ## Seconds it waits on the ground before fading away.
 @export var lifetime: float = 20.0
+## the effect's own numbers (the nuke's radius and knockback)
+@export var params: Dictionary = {}
 ## Colour of its glow.
 @export var color: Color = Color(1, 1, 1)
 

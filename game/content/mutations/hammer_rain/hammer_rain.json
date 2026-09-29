@@ -1,0 +1,31 @@
+{
+  "id": "hammer_rain",
+  "name": "Hammer Rain",
+  "flavour": "Forecast: heavy.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "hammer",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Two more hammers a stroke, −35% damage.",
+  "vfx": "three hammers coming down one after another",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.35
+    }
+  ],
+  "params": {},
+  "art_prompt": "three steel war hammers falling head first in a row out of the sky",
+  "placeholder": {
+    "color": "#D8E0F0",
+    "glyph": "star"
+  }
+}

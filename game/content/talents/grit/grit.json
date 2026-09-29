@@ -1,0 +1,43 @@
+{
+  "id": "grit",
+  "name": "Grit",
+  "flavour": "Thicker skin, or harder bones.",
+  "order": 1,
+  "ranks": 3,
+  "cost": [
+    140,
+    252,
+    420
+  ],
+  "forms": [
+    {
+      "name": "Padding",
+      "text": "+10% max HP a rank.",
+      "effects": [
+        {
+          "stat": "max_hp",
+          "op": "mul",
+          "value": 0.1,
+          "target": "player"
+        }
+      ]
+    },
+    {
+      "name": "Plate",
+      "text": "+1 armour a rank: every hit lands lighter.",
+      "effects": [
+        {
+          "stat": "armor",
+          "op": "add",
+          "value": 1.0,
+          "target": "player"
+        }
+      ]
+    }
+  ],
+  "art_prompt": "a polished brass hand mirror with a carved sun on its back",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

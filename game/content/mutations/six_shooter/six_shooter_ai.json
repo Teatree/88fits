@@ -1,0 +1,15 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "an open revolver cylinder seen from the back with six brass bullets in its chambers",
+ "renders": {
+  "icon": {
+   "key": "six_shooter_icon35_1",
+   "prompt": "an open revolver cylinder seen from the back with six brass bullets in its chambers",
+   "refs": [],
+   "screen": "green",
+   "picked": 1,
+   "of": 2
+  }
+ }
+}

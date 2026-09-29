@@ -1,0 +1,34 @@
+{
+  "id": "weed_storm",
+  "name": "Weed Storm",
+  "flavour": "The wind picked up.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "tumbleweed",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Three smaller weeds, −30% damage.",
+  "vfx": "three weeds, three dust trails",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.3
+    }
+  ],
+  "params": {
+    "radius": 0.55,
+    "size_mult": 0.75
+  },
+  "art_prompt": "three small dusty tumbleweeds rolling together in a dust cloud",
+  "placeholder": {
+    "color": "#D0B070",
+    "glyph": "star"
+  }
+}

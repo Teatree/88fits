@@ -8,10 +8,23 @@ WanAnimateToVideo node expects, plus a contact sheet per view.
 
     "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/running.fbx out=tools/dl/drivers/run frames=24 pitch=25
     "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/pain_gesture.fbx out=tools/dl/drivers/hit frames=9 loop=0 start=0.2 end=1.0
+    "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/walking.fbx out=tools/dl/drivers/walk_zombie frames=12 arms=zombie
     python tools/pose_driver.py draw tools/dl/drivers/run
 
 Loops (loop=1, default): N frames of the whole action plus a repeat of the first, so Wan's 4k+1 length closes the loop.
+arms=zombie (pass 33.4, the skeletons): both arms held straight out in front at shoulder height through the whole
+stride, the upper and fore arms pinned by damped-track constraints to points ahead of the shoulders, the legs and the
+torso left to the clip.
 One-shots (loop=0): N frames evenly from `start` to `end` seconds, N itself 4k+1.
+body=<part:fraction,...> (pass 33.9, the goblin): retarget the stride to a creature's proportions. Wan Animate paints the
+figure on the driver's bones, so a goblin walked on a man's skeleton came out with a small head and long legs. Each part is
+read off the painting as a fraction of the figure's height (head top to soles): top_nose, nose_neck, torso (neck to the
+middle of the hips), thigh, shin, shoulder (half the shoulder width), hip (half the hip width), upper (upper arm), fore
+(forearm), hand (wrist to the middle fingertip). The rig's own fractions come from its rest pose; every frame is rebuilt
+from the hips out with each bone scaled by the ratio, the head and its face points around the head's middle, and the
+lowest ankle put back where the clip's lowest ankle was, so the feet stay planted.
+    "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/orc_walk.fbx out=tools/dl/drivers/orc_walk_goblin frames=12 \
+        body=top_nose:0.21,nose_neck:0.134,torso:0.292,thigh:0.16,shin:0.14,shoulder:0.119,hip:0.068,upper:0.174,fore:0.139,hand:0.078
 Output: <out>/<view>/poses.json, <out>/<view>/driver_NN.png, <out>/<view>_sheet.png, <out>/meta.json.
 """
 import json
@@ -84,14 +97,96 @@ def extract():
     fwd.normalize()
     up = Vector((0, 0, 1))
     yaw0 = math.atan2(fwd.y, fwd.x)   # world yaw of "forward"
+    if a.get("arms") == "zombie":
+        # the arms reach forward like a sleepwalker's: each upper arm and forearm tracks a point ahead of its shoulder
+        # (a touch low and a touch wide), so the clip's arm swing is replaced and everything else is left alone
+        # the arms slope down `arm_drop` degrees (18 by default): level arms seen from behind and above rose beside the
+        # head like hands up; at 18 degrees the hands sit at the shoulders from behind and before the chest from the front
+        side_v = fwd.cross(up)
+        slope = math.tan(math.radians(float(a.get("arm_drop", 18.0))))
+        for side, sgn in (("Right", 1.0), ("Left", -1.0)):
+            sh = joint(side + "Arm", f0)
+            for bone, reach, wide in ((side + "Arm", 0.6, 0.07), (side + "ForeArm", 1.3, 0.09)):
+                drop = -reach * slope
+                e = bpy.data.objects.new("zombie_" + bone, None)
+                sc.collection.objects.link(e)
+                e.location = sh + fwd * reach + up * drop + side_v * sgn * wide
+                c = pb[bone].constraints.new("DAMPED_TRACK")
+                c.target = e
+                c.track_axis = "TRACK_Y"
+        print("pose_driver: zombie arms")
+    def skeleton(f):
+        """Every point the drivers draw at source frame f, in world space: the body joints, the head's base and top,
+        and the 21 points of each hand (under "l:<bone>" / "r:<bone>")."""
+        s = {key: joint(bone, f) for key, bone in BONES.items()}
+        s["head"] = joint("Head", f)
+        s["top"] = joint("HeadTop_End", f) if "HeadTop_End" in pb else joint("Head", f) + Vector((0, 0, 0.2))
+        for side_name, tag in (("Left", "l"), ("Right", "r")):
+            for bone in HAND_BONES:
+                if side_name + bone in pb:
+                    s[tag + ":" + bone] = joint(side_name + bone, f)
+        return s
+
+    # the retarget (body=...): bone scale factors from the painting's proportions over the rig's rest pose
+    R = {}
+    hd = 1.0
+    if a.get("body"):
+        want = {kv.split(":")[0]: float(kv.split(":")[1]) for kv in a["body"].split(",") if ":" in kv}
+        rest = {b.name.split(":")[-1]: arm.matrix_world @ b.head_local for b in arm.data.bones}
+        rtop = rest["HeadTop_End"] if "HeadTop_End" in rest else rest["Head"] + Vector((0, 0, 0.2))
+        rsole = min(rest.get("LeftToe_End", rest["LeftFoot"]).z, rest.get("RightToe_End", rest["RightFoot"]).z)
+        H = rtop.z - rsole
+        rcentre = (rest["Head"] + rtop) * 0.5
+        rpel = (rest["LeftUpLeg"] + rest["RightUpLeg"]) * 0.5
+        rig = {"top_nose": rtop.z - (rcentre.z - 0.01), "torso": (rest["Neck"] - rpel).length,
+               "thigh": (rest["LeftLeg"] - rest["LeftUpLeg"]).length, "shin": (rest["LeftFoot"] - rest["LeftLeg"]).length,
+               "shoulder": (rest["LeftArm"] - rest["RightArm"]).length * 0.5, "hip": (rest["LeftUpLeg"] - rest["RightUpLeg"]).length * 0.5,
+               "upper": (rest["LeftForeArm"] - rest["LeftArm"]).length, "fore": (rest["LeftHand"] - rest["LeftForeArm"]).length,
+               "hand": (rest.get("LeftHandMiddle4", rest["LeftHand"]) - rest["LeftHand"]).length}
+        for part, frac in want.items():
+            if part in rig and rig[part] > 1e-6:
+                R[part] = frac * H / rig[part]
+        # the head: its size from top_nose (the face points are offsets from the head's middle, scaled with it), then
+        # the neck stretched so the nose sits nose_neck above the neck point
+        hd = R.get("top_nose", 1.0)
+        if "nose_neck" in want:
+            rise = (rcentre - rest["Neck"]).z
+            R["neck"] = (want["nose_neck"] * H + 0.01 * hd) / max(rise, 1e-6)
+        print("pose_driver: retarget " + ", ".join("%s x%.2f" % (k, v) for k, v in sorted(R.items())))
+
+    def retarget(s):
+        if not R:
+            return s
+        o = dict(s)
+        pel = (s["rhip"] + s["lhip"]) * 0.5
+        o["neck"] = pel + (s["neck"] - pel) * R.get("torso", 1.0)
+        for sd in "rl":
+            o[sd + "hip"] = pel + (s[sd + "hip"] - pel) * R.get("hip", 1.0)
+            o[sd + "knee"] = o[sd + "hip"] + (s[sd + "knee"] - s[sd + "hip"]) * R.get("thigh", 1.0)
+            o[sd + "ank"] = o[sd + "knee"] + (s[sd + "ank"] - s[sd + "knee"]) * R.get("shin", 1.0)
+            o[sd + "sho"] = o["neck"] + (s[sd + "sho"] - s["neck"]) * R.get("shoulder", 1.0)
+            o[sd + "elb"] = o[sd + "sho"] + (s[sd + "elb"] - s[sd + "sho"]) * R.get("upper", 1.0)
+            o[sd + "wri"] = o[sd + "elb"] + (s[sd + "wri"] - s[sd + "elb"]) * R.get("fore", 1.0)
+            for bone in HAND_BONES:
+                if sd + ":" + bone in s:
+                    o[sd + ":" + bone] = o[sd + "wri"] + (s[sd + ":" + bone] - s[sd + "wri"]) * R.get("hand", 1.0)
+        centre = (s["head"] + s["top"]) * 0.5
+        c2 = o["neck"] + (centre - s["neck"]) * R.get("neck", 1.0)
+        o["head"] = c2 + (s["head"] - centre) * hd
+        o["top"] = c2 + (s["top"] - centre) * hd
+        # the feet stay planted: the lowest ankle goes back to the height of the clip's lowest ankle
+        dz = min(s["rank"].z, s["lank"].z) - min(o["rank"].z, o["lank"].z)
+        lift = Vector((0.0, 0.0, dz))
+        return {k: v + lift for k, v in o.items()}
+
+    count = n + 1 if loop else n
+    skel = []
+    for k in range(count):
+        f = f0 + (f1 - f0) * ((k % n) / n if loop else (k / max(n - 1, 1)))
+        skel.append(retarget(skeleton(f)))
     # ground level and figure height, from the whole stride
-    zs, tops = [], []
-    for k in range(n):
-        f = f0 + (f1 - f0) * k / n
-        zs.append(min(joint("LeftFoot", f).z, joint("RightFoot", f).z))
-        tops.append(joint("HeadTop_End", f).z if "HeadTop_End" in pb else joint("Head", f).z + 0.2)
-    ground = min(zs)
-    height = max(tops) - ground
+    ground = min(min(s["rank"].z, s["lank"].z) for s in skel[:n])
+    height = max(s["top"].z for s in skel[:n]) - ground
     print("pose_driver: forward yaw %.0f deg, figure %.2f m, stride %d source frames -> %d" % (math.degrees(yaw0), height, int(f1 - f0), n))
     for view, want_deg in VIEWS.items():
         # rotate the world so the character's forward points `want_deg` from "into the screen"; screen-right is +X
@@ -104,23 +199,23 @@ def extract():
         cam_up = Vector((0.0, math.sin(pitch), math.cos(pitch)))
         cam_right = Vector((1.0, 0.0, 0.0))
         frames = []
-        count = n + 1 if loop else n
         for k in range(count):
-            f = f0 + (f1 - f0) * ((k % n) / n if loop else (k / max(n - 1, 1)))
+            s = skel[k]
             pts = {}
-            for key, bone in BONES.items():
-                pts[key] = rot @ joint(bone, f)
-            head = rot @ joint("Head", f)
-            top = rot @ (joint("HeadTop_End", f) if "HeadTop_End" in pb else joint("Head", f) + Vector((0, 0, 0.2)))
+            for key in BONES:
+                pts[key] = rot @ s[key]
+            head = rot @ s["head"]
+            top = rot @ s["top"]
             hfwd = rot @ Vector((fwd.x, fwd.y, 0.0))
             hright = hfwd.cross(up)   # the character's right
             centre = (head + top) * 0.5
-            nose = centre + hfwd * 0.09 - up * 0.01
+            # the face points are offsets from the head's middle, scaled with the head (hd, 1 without a retarget)
+            nose = centre + (hfwd * 0.09 - up * 0.01) * hd
             pts["nose"] = nose
-            pts["reye"] = nose + hright * 0.03 + up * 0.03 - hfwd * 0.02
-            pts["leye"] = nose - hright * 0.03 + up * 0.03 - hfwd * 0.02
-            pts["rear"] = centre + hright * 0.075
-            pts["lear"] = centre - hright * 0.075
+            pts["reye"] = nose + (hright * 0.03 + up * 0.03 - hfwd * 0.02) * hd
+            pts["leye"] = nose + (-hright * 0.03 + up * 0.03 - hfwd * 0.02) * hd
+            pts["rear"] = centre + hright * 0.075 * hd
+            pts["lear"] = centre - hright * 0.075 * hd
             facing = hfwd.dot(-cam_dir)   # > 0: face toward the camera
             vis = {k2: True for k2 in KP}
             vis["nose"] = vis["reye"] = vis["leye"] = facing > 0.15
@@ -138,19 +233,16 @@ def extract():
                 row.append([u, v, 1 if vis[key] else 0])
             # hands: 21 points each, so the video model knows where every finger is
             hands = {}
-            for side_name, tag in (("Left", "l"), ("Right", "r")):
-                hp = []
-                for bone in HAND_BONES:
-                    name = side_name + bone
-                    hp.append(list(project(rot @ joint(name, f))) if name in pb else None)
-                hands[tag] = hp
+            for tag in ("l", "r"):
+                hands[tag] = [list(project(rot @ s[tag + ":" + bone])) if tag + ":" + bone in s else None for bone in HAND_BONES]
             frames.append({"body": row, "hands": hands})
         d = os.path.join(out, view)
         os.makedirs(d, exist_ok=True)
         json.dump({"view": view, "frames": frames, "size": SIZE, "fbx": os.path.basename(fbx), "n": n, "pitch": math.degrees(pitch)},
                   open(os.path.join(d, "poses.json"), "w"), indent=0)
         print("pose_driver: wrote", d, len(frames), "frames")
-    json.dump({"fbx": os.path.basename(fbx), "frames": n, "loop": loop, "pitch": math.degrees(pitch), "start": a.get("start"), "end": a.get("end")},
+    json.dump({"fbx": os.path.basename(fbx), "frames": n, "loop": loop, "pitch": math.degrees(pitch), "start": a.get("start"), "end": a.get("end"),
+               "body": a.get("body"), "retarget": {k: round(v, 3) for k, v in R.items()}},
               open(os.path.join(out, "meta.json"), "w"), indent=1)
 
 

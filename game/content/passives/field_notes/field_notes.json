@@ -1,0 +1,24 @@
+{
+  "id": "field_notes",
+  "name": "Field Notes",
+  "flavour": "More XP from every gem. Every kill, a lesson.",
+  "rarity": "common",
+  "weight": 9,
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "xp_gain",
+        "op": "mul",
+        "value": 0.08,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "placeholder": {
+    "color": "#8A69F2",
+    "glyph": "book"
+  },
+  "art_prompt": "a worn leather field notebook with a pencil and a small cactus doodle on the cover"
+}

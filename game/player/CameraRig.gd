@@ -13,6 +13,20 @@ extends Node3D
 @export var fixed_lead := 0.0
 ## Metres the focus sits north of the hero, so he stands a little below the screen centre and sees more ahead.
 @export var fixed_focus_ahead := 3.3
+## The camera backs off as the hero moves faster: distance x (1 + log(speed / walk) / log(zoom_at_ratio)), capped at
+## zoom_max (x2 at four times the walking speed), eased so a sprint start does not jump.
+@export var zoom_max := 2.6
+## the build's own pull on the zoom: every hero level past the first adds this much, to `zoom_power_max`
+@export var zoom_per_level := 0.02
+@export var zoom_power_max := 0.7
+@export var zoom_at_ratio := 4.0
+@export var walk_speed := 3.6
+## how much of that pull-out is kept (pass 33.7: the zoom was too extreme, 30% less of it): the speed's and the level's
+## pull both scale by it, and so does the cap (2.6 becomes 1 + 1.6 x 0.7 = 2.12)
+@export var zoom_amount := 0.7
+var _zoom := 1.0
+## a tool's hand on the zoom (the capture's far-zoom frame): > 0 holds it there
+var zoom_override := 0.0
 @export_group("Follow (chase)")
 @export var follow_pitch_deg := 50.0
 @export var follow_distance := 21.5
@@ -37,6 +51,8 @@ var _focus_vel := Vector3.ZERO
 var _lead_dir := Vector3.ZERO
 var _shake := 0.0
 var _shake_vec := Vector3.ZERO
+## the rig's transform before the shake (hero_anchor projects through it, so the HUD's bars do not shake)
+var _rest_xf := Transform3D()
 
 
 func _ready() -> void:
@@ -64,9 +80,29 @@ func shake(amount: float) -> void:
 	_shake = maxf(_shake, amount * Settings.screen_shake)
 
 
+## Where the hero's feet sit on the screen with the camera at rest (no shake), in canvas pixels, and how many pixels a
+## metre spans there (pass 33.6): the HUD draws his health and shield bars from it. The fixed camera is bolted to him,
+## so the spot only moves as the zoom does, and the pixels per metre shrink with the zoom like his sprite does.
+func hero_anchor() -> Dictionary:
+	var vp := get_viewport().get_visible_rect().size
+	var feet: Vector3 = target.global_position if target else _focus
+	var local: Vector3 = _rest_xf.affine_inverse() * feet
+	var depth := -local.z
+	if depth < 0.1 or vp.y <= 0.0:
+		return {"pos": Vector2(vp.x * 0.5, vp.y * 0.6), "ppm": 90.0}
+	# keep_aspect is KEEP_HEIGHT: the fov spans the canvas's height
+	var ppm: float = (vp.y * 0.5) / (depth * tan(deg_to_rad(camera.fov) * 0.5))
+	return {"pos": Vector2(vp.x * 0.5 + local.x * ppm, vp.y * 0.5 - local.y * ppm), "ppm": ppm}
+
+
 ## Yaw the player maps stick directions through (0 in fixed mode: screen up is world -Z).
 func current_yaw() -> float:
 	return yaw
+
+
+## How far out the camera is against its base distance (1 = base, up to zoom_max): the creatures' far-zoom marks read it.
+func zoom() -> float:
+	return _zoom
 
 
 func _forward() -> Vector3:
@@ -112,6 +148,17 @@ func _update(delta: float) -> void:
 	var lead := fixed_lead if fixed else follow_lead
 	var pitch := deg_to_rad(fixed_pitch_deg if fixed else follow_pitch_deg)
 	var distance := fixed_distance if fixed else follow_distance
+	var pv: Vector3 = target.velocity if "velocity" in target else Vector3.ZERO
+	pv.y = 0.0
+	# speed pulls the camera out, and so does the build: a level-30 hero sees a wider field than a level-1 one, because
+	# by then the fight around him is wider
+	var power := clampf(float(maxi(Run.level - 1, 0)) * zoom_per_level, 0.0, zoom_power_max)
+	var pull := power + log(maxf(pv.length(), walk_speed) / walk_speed) / log(zoom_at_ratio)
+	var want_zoom := clampf(1.0 + pull * zoom_amount, 1.0, 1.0 + (zoom_max - 1.0) * zoom_amount)
+	_zoom = want_zoom if delta >= 1.0 else lerpf(_zoom, want_zoom, clampf(delta * 1.6, 0.0, 1.0))
+	if zoom_override > 0.0:
+		_zoom = zoom_override
+	distance *= _zoom
 	if fixed:
 		yaw = _damp_angle(yaw, 0.0, 0.35, delta) if delta < 1.0 else 0.0
 		# lead towards where the hero is going, eased so it does not flick when he stops
@@ -141,5 +188,6 @@ func _update(delta: float) -> void:
 		_shake = lerpf(_shake, 0.0, clampf(delta * 10.0, 0.0, 1.0))
 	else:
 		_shake_vec = Vector3.ZERO
+	_rest_xf = Transform3D(Basis(), cam_pos).looking_at(_focus, Vector3.UP)
 	global_position = cam_pos + _shake_vec
 	look_at(_focus + _shake_vec * 0.5, Vector3.UP)

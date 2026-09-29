@@ -1,0 +1,19 @@
+{
+  "id": "nuke",
+  "name": "Nuke",
+  "flavour": "Pick it up. Then don't think about it.",
+  "effect": "nuke",
+  "value": 400,
+  "lifetime": 40.0,
+  "color": "#FF7A2A",
+  "weight": 2,
+  "placeholder": {
+    "color": "#FF7A2A",
+    "glyph": "star"
+  },
+  "art_prompt": "a small round black iron bomb with a short lit fuse and a yellow radiation trefoil painted on its side",
+  "params": {
+    "radius": 16.0,
+    "knockback": 14.0
+  }
+}

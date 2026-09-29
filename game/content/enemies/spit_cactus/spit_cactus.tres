@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_n38pk")
 archetype = "spitter"
+doc = "The first ranged creature: keeps 5 m off and lobs a spit that lands in a red ring. Teaches sidestepping."
 brain = "kite"
 hp = 18.0
 speed = 1.15
@@ -15,14 +16,14 @@ radius = 0.45
 size = 1.5
 pack_size = 2
 drops = {
-"chest": 0.005,
+"chest": 0.007,
 "gold": 0.05,
 "medium": 0.25,
 "small": 1.0
 }
 anims = {
 "attack": 2.0,
-"die": 1.0,
+"die": 5.0,
 "hit": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
@@ -32,8 +33,9 @@ anims = {
 sprite = ExtResource("3_e6v1d")
 sprite_file = "spit_cactus_sprite.png"
 frame_px = 160
-strip_cols = 36
+strip_cols = 40
 fps = {
+"die": 8.0,
 "run": 15.0
 }
 ranged = {
@@ -44,6 +46,8 @@ ranged = {
 "splash": 1.2,
 "telegraph": 0.7
 }
+head = 0.981
+can_be_elite = false
 sfx = {
 "attack": "en_cactus_spit",
 "die": "en_cactus_die",
@@ -56,13 +60,13 @@ variance = {
 "damage": 1.4,
 "hp": 2.2,
 "size": 1.5,
-"tint": "#FF7AB8",
-"tint_strength": 0.9,
+"tint": "#5E2080",
+"tint_strength": 0.6,
 "xp": 3.0
 },
 "special_chance": 0.1,
 "speed": 0.12,
-"tint_strength": 0.55,
+"tint_strength": 0.22,
 "tints": ["#FFFFFF", "#C8FF9C", "#6ADFBB", "#FFE68A"]
 }
 id = "spit_cactus"

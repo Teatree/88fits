@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="TalentDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_tvfai"]
+[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_befde"]
+
+[sub_resource type="Resource" id="Resource_tvfai"]
+script = ExtResource("1_tvfai")
+stat = "xp_gain"
+op = "mul"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_befde"]
+script = ExtResource("1_tvfai")
+stat = "regen"
+value = 0.3
+target = "player"
+
+[resource]
+script = ExtResource("2_befde")
+order = 7
+cost = [170.0, 306.0, 510.0]
+forms = [{
+"effects": [SubResource("Resource_tvfai")],
+"name": "Field Notes",
+"text": "+10% XP a rank."
+}, {
+"effects": [SubResource("Resource_befde")],
+"name": "Poultice",
+"text": "+0.3 regen a rank (it still waits after a hit)."
+}]
+id = "study"
+display_name = "Study"
+flavour = "Learn faster, or mend slower."
+icon_file = "study_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

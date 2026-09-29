@@ -1,0 +1,15 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "a brass revolver bullet dripping bright green venom with a small white snake fang",
+ "renders": {
+  "icon": {
+   "key": "venom_rounds_icon35b_1",
+   "prompt": "a brass revolver bullet dripping bright green venom with a small white snake fang",
+   "refs": [],
+   "screen": "blue",
+   "picked": 1,
+   "of": 2
+  }
+ }
+}

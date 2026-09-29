@@ -1,0 +1,15 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "a glowing green toxic splash on the ground with bubbling poison drops flying up",
+ "renders": {
+  "icon": {
+   "key": "toxic_toss_icon35b_0",
+   "prompt": "a glowing green toxic splash on the ground with bubbling poison drops flying up",
+   "refs": [],
+   "screen": "blue",
+   "picked": 0,
+   "of": 2
+  }
+ }
+}

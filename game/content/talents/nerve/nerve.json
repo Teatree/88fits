@@ -1,0 +1,43 @@
+{
+  "id": "nerve",
+  "name": "Nerve",
+  "flavour": "Walk away richer, or get back up.",
+  "order": 6,
+  "ranks": 3,
+  "cost": [
+    220,
+    396,
+    660
+  ],
+  "forms": [
+    {
+      "name": "Skip Bonus",
+      "text": "+15 gold a skip, a rank.",
+      "effects": [
+        {
+          "stat": "skips",
+          "op": "add",
+          "value": 1.0,
+          "target": "player"
+        }
+      ]
+    },
+    {
+      "name": "Second Wind",
+      "text": "+1 revive a run, a rank.",
+      "effects": [
+        {
+          "stat": "revives",
+          "op": "add",
+          "value": 1.0,
+          "target": "player"
+        }
+      ]
+    }
+  ],
+  "art_prompt": "a polished brass hand mirror with a carved sun on its back",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

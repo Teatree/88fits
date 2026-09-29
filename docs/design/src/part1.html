@@ -7,16 +7,17 @@
 <div class="page">
 <nav class="toc" aria-label="Contents">
   <p class="brand">88fits</p>
-  <p class="sub">Design bible · v0.9 · what the build is</p>
+  <p class="sub">Design bible · v0.27 · what the build is</p>
   <ol>
     <li><a href="#vision"><span class="n">01</span>Vision &amp; pillars</a></li>
     <li><a href="#refs"><span class="n">02</span>Reference games</a></li>
     <li><a href="#screen"><span class="n">03</span>The screen</a></li>
     <li><a href="#controls"><span class="n">04</span>Controls</a></li>
     <li><a href="#camera"><span class="n">05</span>Camera</a></li>
-    <li><a href="#env"><span class="n">06</span>Dry Gulch</a></li>
+    <li><a href="#env"><span class="n">06</span>Red Canyon</a></li>
     <li><a href="#loop"><span class="n">07</span>The run</a></li>
     <li><a href="#combat"><span class="n">08</span>Weapons &amp; upgrades</a></li>
+    <li><a href="#paths"><span class="n">08b</span>Paths</a></li>
     <li><a href="#enemies"><span class="n">09</span>Creatures &amp; waves</a></li>
     <li><a href="#xp"><span class="n">10</span>XP &amp; levelling</a></li>
     <li><a href="#ftue"><span class="n">11</span>Run start &amp; first play</a></li>
@@ -24,6 +25,7 @@
     <li><a href="#meta"><span class="n">13</span>Meta progression</a></li>
     <li><a href="#data"><span class="n">14</span>Content is data</a></li>
     <li><a href="#art"><span class="n">15</span>Art</a></li>
+    <li><a href="#pipeline"><span class="n">15b</span>How the art is made</a></li>
     <li><a href="#sound"><span class="n">16</span>Sound</a></li>
     <li><a href="#tech"><span class="n">17</span>Tech &amp; budgets</a></li>
     <li><a href="#milestones"><span class="n">18</span>Where it stands</a></li>
@@ -38,13 +40,13 @@
     <span class="tag">One thumb</span>
     <span class="tag">Godot 4.7 · GDScript</span>
     <span class="tag">Android first</span>
-    <span class="tag">Desert</span>
+    <span class="tag">Red Canyon</span>
   </div>
   <h1>88fits <span class="thin">/ design bible</span></h1>
   <p class="pitch"><b>Drag to run. The guns aim themselves.</b> A portrait, third-person survivor-shooter in the Megabonk mould: clean anime-styled heroes in a painted desert on 3D ground, a few dozen creatures on screen, level-ups that hand you three cards, chests that spin a reel, poison and fire builds that never mix, structures worth crossing the map for, and a meta that keeps you unlocking between runs.</p>
   <div class="meta">
-    <span>version <b>0.9</b></span>
-    <span>date <b>2026-09-17</b></span>
+    <span>version <b>0.17</b></span>
+    <span>date <b>2026-09-21</b></span>
     <span>status <b>playable, iterated from the phone</b></span>
     <span>engine <b>Godot 4.7.2</b></span>
   </div>
@@ -52,7 +54,7 @@
     <div class="lab">How to read this</div>
     <p>This is a description of the game as it is built, not a plan. Every number is the number in the content files, every screenshot is a capture from the current build, and every creature and item pictured was painted by the art pipeline in section 15. Where a rule was tried and dropped, the section says so in one line and moves on. Earlier versions kept a changelog at the top; this one folds everything into the sections and keeps a short history in section 18.</p>
   </div>
-  <div class="fig-frame">{{IMG:01_play|The build: Astro in a goblin pack under the slim HUD strip, a roadrunner pack arriving, the pea pod circling}}</div>
+  <div class="fig-frame">{{IMG:01_play|The build: Astro in a goblin pack under the slim HUD strip, a lizard pack arriving, the pea pod circling}}</div>
 </header>
 
 <!-- ============================================================ 01 -->
@@ -61,7 +63,7 @@
   <p class="lede">The question this project answers: <b>does a Megabonk-style run work in portrait with one thumb?</b> The build says yes. What follows is the game that answer became, and the rules that keep it growing without turning into code.</p>
 
   <h3>The pitch in three sentences</h3>
-  <p>You are a small goofy hero in a very big, very hot desert, and the desert hates you. Goblins, roadrunners, fire ants, spitting cacti, mummies and beetles pour in from every side while your weapons fire on their own, so your only job is to steer through the mess, hoover up XP gems, find the structures scattered over the map, and pick the best card every time you level up. Survive the boss, walk into the portal, and decide whether to bank your gold or push into a harder stage.</p>
+  <p>You are a small goofy hero in a very big, very hot desert, and the desert hates you. Goblins, fire ants, spitting cacti, mummies and beetles pour in from every side while your weapons fire on their own, so your only job is to steer through the mess, hoover up XP gems, find the structures scattered over the map, and pick the best card every time you level up. Survive the boss, walk into the portal, and decide whether to bank your gold or push into a harder stage.</p>
 
   <div class="pillars">
     <div class="pillar"><p class="t">One thumb, zero menus</p><p>Every in-run action is hold, slide, or tap. If a feature needs a second finger or a button cluster, it is cut or automated.</p></div>
@@ -128,17 +130,18 @@
     <dt>top strip</dt><dd>250 px of 1920, <b>13% of the screen</b>. Row one: <b>LV badge, XP bar, stage name</b>. Row two: <b>kills and alive count</b> left, the <b>timer</b> big in the middle, <b>gold</b> right. Row three: the twelve item slots. A gradient that fades into the world, no panel, every piece of text outlined so it reads over sand and sky. Tapping the strip pauses.</dd>
     <dt>slots</dt><dd>Six weapon squares on the left, six passive circles on the right, 72 px each, a <b>level badge</b> in the corner that turns gold at max level. Empty slots are faint outlines. Same icon files as the cards and the pause screen.</dd>
     <dt>pause</dt><dd>A round gold button at the right end of the strip, where Survivor.io keeps it. Two bars drawn as shapes, so no font can break it.</dd>
-    <dt>buffs</dt><dd>A row of chips under the strip while a timed effect runs (Rage, Sprint, Shield, the War Drum), each with its seconds left.</dd>
-    <dt>on the player</dt><dd>Health bar under the character, not in the HUD. It is a pair of quads in the world attached to the hero, not a HUD element projected each frame, so it moves in the same frame as the sprite and never trails it. It disappears when the hero is down.</dd>
+    <dt>buffs</dt><dd>A row of chips under the strip while a timed effect runs (Berserk, Sprint, Shield, the War Drum), each with its seconds left.</dd>
+    <dt>on the player</dt><dd>Health bar under the character. <b>v0.23.6:</b> it used to be a camera-facing quad in the world hung half a metre off the hero, and since the hero turns with his facing, the bar swung round him (above him when he faced down the screen, off to the side when he ran sideways). Now the HUD draws it, at a fixed spot on the screen under the hero's feet: the camera is bolted to him north-up, so his place on the screen only moves as the camera zooms out, and <code>CameraRig.hero_anchor()</code> projects his feet through the camera without its shake and says how many pixels a metre spans there. The bar is 1.5 m of that wide, so it shrinks with the zoom exactly as the hero does; the Energy Shield's thinner blue bar sits right above it. Both disappear when the hero is down.</dd>
     <dt>XP</dt><dd>Gems collected within a quarter second are batched into one rising "+N XP" label over the hero and the bar pops, so a sweep through a gem field reads as one reward, not forty.</dd>
     <dt>boss</dt><dd><b>BOSS IN 0:45</b> counts down just under the strip in the last 45 s (banner at 30, pulse under 10); the boss name and bar take the same spot while a boss is alive.</dd>
-    <dt>where the big one is</dt><dd>Whenever the boss or the Elite is alive and off screen, a <b>chevron at the screen edge</b> points at it with its name and distance ("BOSS 42 m"), red for the boss, orange for the Elite. It disappears the moment the creature is in view, so it never covers a fight.</dd>
+    <dt>where the big one is</dt><dd>Whenever the boss or the Elite is alive and off screen, a <b>chevron at the screen edge</b> points at it with its name and distance ("BOSS 42 m"), red for the boss, orange for the Elite. It disappears the moment the creature is in view, so it never covers a fight. <b>v0.23.3:</b> when the boss dies its marker stays on the portal it leaves behind, in <b>green</b> ("PORTAL 38 m"), until the hero walks into it; and each target gets its own chevron, so a portal and an Elite both show at once.</dd>
+    <dt>badges</dt><dd><b>v0.23.3.</b> A small icon floats over the head of every creature that matters: a <b>gold crown</b> over the two Elites, the Dune Scorpion and the Sun Prophet, and over nothing else (v0.23.6: an ordinary creature wearing an elite modifier used to get one too; whatever its stats or colour, it never does now), a <b>white skull</b> over a boss, a <b>steel gear</b> over the specials, the Harpoon Troglodyte and the Rocketeer. Each is a painted icon with a thick outline and a soft halo in its colour, bobbing and rocking a little, drawn over the world so a cactus never hides it and a little bigger as the camera pulls out. Which one a creature wears is data (<code>badge</code> in its JSON; empty takes its role's), and the height it hangs at is measured from its painting (<code>head</code>, <code>tools/measure_heads.py</code>).</dd>
     <dt>thumb zone</dt><dd>Everything below the strip, 86% of the screen. A faint ring appears where the thumb lands and fades after a second. Nothing is ever drawn here that needs reading.</dd>
     <dt>safe areas</dt><dd>HUD respects the notch and gesture bar insets from the OS. Gameplay renders edge to edge.</dd>
   </dl>
   <figure>
-    <div class="fig-frame">{{IMG:15_boss_arrow|The build: the hero far from the boss, a red chevron at the top edge of the play area reading BOSS 44 m}}</div>
-    <figcaption><b>The pointer.</b> The Tumbleweed King is somewhere up the map; the chevron sits on the edge of the play area along the line to it and the label says how far. A Survivor.io player expects this and a portrait screen needs it more than a landscape one does.</figcaption>
+    <div class="fig-frame"><div class="fig-grid">{{IMG:15_boss_arrow|The build: the hero far from the boss, a red chevron at the top edge of the play area reading BOSS 44 m}}{{IMG:54_portal_arrow|The build: the boss dead, the hero far off, a green chevron at the top edge reading PORTAL and the distance}}{{IMG:52_badges|The build: a crown over the Dune Scorpion, none over a shielded goblin beside it, gears over the Harpoon Troglodyte and the Rocketeer}}</div></div>
+    <figcaption><b>The pointers and the badges.</b> Left: the Tumbleweed King is somewhere up the map; the chevron sits on the edge of the play area along the line to it and the label says how far. A Survivor.io player expects this and a portrait screen needs it more than a landscape one does. Middle (v0.23.3): the King is dead and the marker has moved to his portal, green. Right (v0.23.3): the badges: a crown over the Dune Scorpion (the shielded goblin beside it wears none), gears over the harpooner and the rocketeer.</figcaption>
   </figure>
 </section>
 
@@ -156,8 +159,8 @@
     <dt>auto-fire</dt><dd>Every weapon fires on its own cooldown and aims itself: nearest, random, the thickest crowd, the nearest <i>healthy</i> creature for poison, or a cone pointed at the nearest creature (the shotgun family), so shots always leave towards something. The facing only decides where the held gun points when nothing is in range. Every hit pushes: each weapon carries a <code>knockback</code> stat (metres per second of shove on a 1 m creature; heavier creatures budge less, the boss barely).</dd>
     <dt>stand to use</dt><dd>Structures are used by standing inside their ring for three seconds; the progress fills on the ground. Walking out drains it. Chests and pickups are used by walking over them.</dd>
     <dt>auto-jump</dt><dd>Running off a marked ledge or onto a jump pad triggers a fixed arc. The player cannot fall off the map. Raised paths hold chests and shortcuts.</dd>
-    <dt>tap a card</dt><dd>Level-up, starter choice, the chest's Take or Sell, the shop's three items. Big targets, no drag, no confirm step.</dd>
-    <dt>pause</dt><dd>The round gold button at the right end of the HUD strip (tapping the strip works too). Full build and stats readout, options, abandon run. See section 12.</dd>
+    <dt>tap a card</dt><dd>Level-up, starter choice, the chest's Take or Sell, the shop's three items. Big targets, no drag, no confirm step. After a level-up pick or the reel the game <b>stays paused until the next tap</b> ("TAP TO CONTINUE"), and the hero is <b>immune for one second</b> after that tap, blinking, so a card is never claimed straight into a bite; the tap that resumes can be the thumb landing to move.</dd>
+    <dt>pause</dt><dd>The round gold button at the right end of the HUD strip (tapping the strip works too). Full build and stats readout, options, abandon run. See section 12. The run also pauses itself when the phone sends the app to the background. It does <b>not</b> pause on Android's back gesture (v0.23.1): that gesture is a swipe in from a side edge, and a thumb steering near the edge made one by accident, which read as the game pausing at random. Settings lists the last six system events that paused a run or could have ("back gesture, ignored", "the app went to the background"), so a pause nobody asked for can be traced from the phone.</dd>
     <dt>keyboard, PC only</dt><dd><b>WASD or the arrow keys</b> move the hero exactly like a full stick push; no ring is drawn. The four actions (<code>move_left/right/up/down</code>) live in the project's Input Map, so they can be rebound in the editor without code. Escape pauses, or closes the shop. Phones never see them.</dd>
     <dt>reserved</dt><dd>Double-tap dash and a second-thumb ability button are ideas for later.</dd>
   </dl>
@@ -171,7 +174,7 @@
 <!-- ============================================================ 05 -->
 <section id="camera">
   <div class="sec-head"><span class="num">05</span><h2>Camera</h2></div>
-  <p class="lede">A fixed camera, north always up, the way Archero and Survivor.io frame the fight: the world never rotates, so the stick maps straight to the screen and the map stays learnable. It is bolted to the hero: no lead, no lag, so the stick never feels like it is also steering the view. Only hits shake it.</p>
+  <p class="lede">A fixed camera, north always up, the way Archero and Survivor.io frame the fight: the world never rotates, so the stick maps straight to the screen and the map stays learnable. It is bolted to the hero: no lead, no lag, so the stick never feels like it is also steering the view. Only hits shake it. Since v0.17 the distance follows the hero's speed: at walking pace it is the 22.5 m above; faster, it backs off by the log of the ratio, doubling at four times walking speed and never more (<code>CameraRig.zoom_max</code>, <code>zoom_at_ratio</code>), eased so a sprint start does not jump.</p>
 
   <figure>
     <div class="fig-frame">{{IMG:01c_mesa|The build: the fixed camera looking across a mesa top, the hero running towards it in the front view}}</div>
@@ -183,17 +186,18 @@
     <dt>follow (option)</dt><dd>Yaw follows the hero's facing with a short lag and a dead zone so turns feel weighty; the hero is seen from behind. Switch in Options at any time, even mid-run.</dd>
     <dt>aspect</dt><dd>Keep-height projection. Every phone sees the same distance ahead. Wider phones see a bit more to the sides.</dd>
     <dt>terrain</dt><dd>The camera rides the terrain height under the player, smoothed, so dunes and the riverbed do not bounce the view. Mesa tops raise the camera with the player.</dd>
+    <dt>zoom</dt><dd>The camera pulls out as the hero runs faster and as he levels (speed: 1 + log of how many walking speeds he moves at, over log 4; level: 2% a level past the first, at most 70%), so a fast, strong build sees a wider fight. <b>v0.23.7:</b> the pull-out was too extreme, so 30% of it goes (<code>CameraRig.zoom_amount</code> 0.7): the widest view is 2.12 times the base distance instead of 2.6.</dd>
     <dt>readability</dt><dd>Creatures far up the screen are small. The Elite is three times a goblin's height and the boss five, so they read at distance; the edge pointer covers the rest.</dd>
   </dl>
 </section>
 
 <!-- ============================================================ 06 -->
 <section id="env">
-  <div class="sec-head"><span class="num">06</span><h2>Dry Gulch</h2></div>
-  <p class="lede">One map, the golden-hour desert. It is not a plane: gentle dunes, a sunken dry riverbed, two sandstone mesas you auto-jump between, and enough oversized scenery that steering means something. The ground, the mesas and the landmarks (gas station, water tower, wrecked pickup, the structures) are 3D; <b>the scenery itself is painted</b>: cacti, agaves, dead trees, rocks, skulls and bones are 2.5D sprites in the same anime line as the cast, scattered over the terrain by a seeded roll. A second map (a meadow) was built in an earlier pass and has been shelved to keep the focus on making one map excellent; its files are backed up and it will come back as a content pack.</p>
+  <div class="sec-head"><span class="num">06</span><h2>Red Canyon</h2></div>
+  <p class="lede">One map, the golden-hour desert, rebuilt in v0.11 as <b>Red Canyon</b>: nothing in it is a 3D object except the ground and the mountain wall. The ground is not a plane: gentle dunes, one sunken dry river with cracked earth, one small oasis lake, a flat centre for the bosses, and a rim that climbs into broken red rock towards the cliffs. Since v0.18 the layout <b>rolls per run</b>: the dunes take a fresh noise seed, the river enters and leaves the rim somewhere new and wanders between with a middle that bends around the flats, and the lake lands somewhere off both; the wall, the flats and the rim never move, so the arena is always the same shape with a different desert in it. Everything standing on it is painted: cacti, trees, bushes, rocks, skulls and bones, the seven structures, the tumbleweeds and the dust devil are 2.5D sprites in the same anime line as the cast. They go down <b>by region</b> now, like with like: fan palms and green around the water, three green stands elsewhere (a cactus stand or a tree stand with the low plants around it), dead trees and shrubs on the river's banks with bones in its bed, rock fields near the rim with skulls among the stones, and a few lone bushes in the open. Three plants joined in v0.18 (the fan palm, the ocotillo and the yucca), and bushes have no collider: you walk through them. Dry Gulch, with its mesas, ramps, gas station and water tower, is shelved with the meadow. A second map (a meadow) was built in an earlier pass and has been shelved to keep the focus on making one map excellent; its files are backed up and it will come back as a content pack.</p>
   <figure>
-    <div class="fig-frame"><div class="fig-grid">{{IMG:01b_props|The build: the gas station and water tower with painted cacti and bones around them, markings draped over the dune}}{{IMG:05b_tornado|The build: a goblin pack lifted into the dust devil above the hero}}</div></div>
-    <figcaption><b>Scenery and weather.</b> Left: the gas station and the water tower among painted cacti and bones, with a ring and a line telegraph draped over the slope. Right: the dust devil. Grounded creatures inside it are pulled up, spun outward and flung out at the rim, then ignored for four seconds so nothing loops back in. The hero is tossed once per pass.</figcaption>
+    <div class="fig-frame"><div class="fig-grid">{{IMG:36_oasis|The build: the hero standing knee-deep in the oasis, ripples at his feet, fan palms and green all round the shore}}{{IMG:05b_tornado|The build: a goblin pack lifted into the 3D dust devil, a 3D tumbleweed rolling past the hero}}</div></div>
+    <figcaption><b>The oasis and the weather.</b> Left: the lake (v0.18, wadeable since v0.19): a flat half-transparent disc over a shallow dish the terrain sinks into (v0.21: one unshaded colour at 55% alpha, no texture, no ripple maths, no shore fade, because a shader with waves in it read as a patterned lid lying on the sand), knee-deep at the middle, no collider at all, so the hero and the creatures walk straight through it with ripples at their feet; the ground around it is painted as wet cracked earth, with eight to ten palms at the shore and two dozen low plants a little further out (never in the water). Right: the dust devil. Grounded creatures inside it are pulled up, spun outward and flung out at the rim, then ignored for four seconds so nothing loops back in. The hero is tossed once per pass.</figcaption>
   </figure>
 
   <figure>
@@ -242,24 +246,25 @@
       </g>
     </svg>
     </div>
-    <figcaption><b>Dry Gulch layout.</b> The flats in the middle are for bosses. The riverbed is a lower channel that funnels swarms. The two mesas are the jump paths: ramps up, gaps between segments, and a moment of relief because ground creatures must path around to the ramp. The nine structures are placed fresh every run in the outer two thirds of the arena, never within 18 m of the start and never closer than 16 m to each other, so reaching them means crossing the map.</figcaption>
+    <figcaption><b>The old Dry Gulch layout</b>, kept for the record: Red Canyon keeps the arena, the flats and the first river, adds a second river through the north-west, and loses the mesas, the jump gaps and every landmark. The seven structures are placed fresh every run in the outer two thirds of the arena, never within 18 m of the start and never closer than 22 m to each other, so reaching them means crossing the map.</figcaption>
   </figure>
 
   <h3>Theme rules</h3>
   <dl class="kv">
     <dt>time of day</dt><dd>Golden hour, always. Warm orange light from one side, long soft shadows baked into props, purple sky at the top. It flatters painted sprites and hides low polygon counts.</dd>
     <dt>skybox</dt><dd>A panorama: gradient from dusk purple to orange, a big low sun, a far ring of mesa silhouettes, three lazy clouds. The sun is also the directional light.</dd>
-    <dt>ground</dt><dd>A 140 m heightmap terrain, not a plane. Dunes of about ±1.5 m, the riverbed 2 m lower with a cracked-earth texture, sand elsewhere. Two textures blended by height, low-frequency path noise so the blend never looks like camouflage.</dd>
-    <dt>walls</dt><dd>A ring of modular mesa blocks. The camera never sees past them, so the world ends without a visible edge.</dd>
-    <dt>scenery</dt><dd>Fourteen painted props (<code>art/sprites/props/</code>): saguaros big and small, barrel cactus, prickly pear, agave, dead shrub, dead tree, three sizes of sandstone rock, a cow skull, a small skull, a bone pile and a signpost. Sixteen greenery clusters (a big saguaro with three to six smaller plants round it), ten rock groups, six lone dead trees, twenty-two bones and three signposts, never on the flats, the riverbed, a mesa or a landmark. Cacti, trees, rocks and signs collide (a cylinder under each); bones do not. The 3D landmarks stay: the wrecked pickup, the gas station, the water tower, the wind pump, the campfire, tumbleweeds, and the seven structure props.</dd>
-    <dt>moving bits</dt><dd>Tumbleweeds roll through on the wind and bounce off things, riding the terrain instead of sinking through it. One dust devil roams and throws creatures and hero alike. The greenery sways: each plant's top leans a few degrees back and forth in the vertex shader, the base stays put.</dd>
+    <dt>ground</dt><dd>A 140 m heightmap terrain, not a plane. Dunes of about ±1.5 m, two riverbeds 2 m lower with a cracked-earth texture, sand elsewhere, and from 44 m out the ground rises two metres into broken red rock. Three textures blended by the terrain's vertex colour (sand, cracked earth, red rock), low-frequency path noise so the blend never looks like camouflage.</dd>
+    <dt>walls</dt><dd>A mountain wall: one ring mesh of cliff faces whose height wanders with noise, stone-textured, with two more ranges behind it, taller and darker, so the horizon has depth. An invisible fence a little inside it keeps the hero off the cliffs.</dd>
+    <dt>scenery</dt><dd>Twenty-one painted props (<code>art/sprites/props/</code>): saguaros big and small, barrel cactus, prickly pear, agave, dead shrub, dead tree, mesquite, joshua tree and palo verde, a desert bush and a creosote bush, three sizes of sandstone rock, a cow skull, a small skull, a bone pile and a signpost. Sixteen cactus clusters, fourteen trees with bushes round them, twelve lone bushes, ten rock groups, twenty-two bones and three signposts, never on the flats or a river. Cacti, trees, rocks and signs collide (a cylinder under each); bushes and bones do not. Colliders are deliberately smaller than the paintings (a big rock's is 0.6 m, a saguaro's 0.35 m), so the hero can stand behind a prop and be read through it.</dd>
+    <dt>the boundary</dt><dd>A stacked-stone wall right on the arena's edge (v0.15): a ring 1.7 m thick and about 3 m tall with battlements (every other block a step higher), both faces, the cap and the steps in one vertex-coloured mesh, boulders along the cap, four-metre posts every ten degrees and a skull on every fourth post. The invisible fence sits on the wall's inner face, so the hero stops at the stone. The mountains behind it stay; the wall is the line itself, so the hero stops at a thing and not at nothing.</dd>
+    <dt>moving bits</dt><dd>Tumbleweeds are the one thing that stayed 3D on purpose: a modelled ball that rolls with the wind, bounces off things and rides the terrain (a painted ball spinning on a billboard read wrong as soon as it turned). The dust devil is a 3D cone of sand for the same reason: it roams and throws creatures and hero alike. The greenery sways: each plant's top leans a few degrees back and forth in the vertex shader, the base stays put.</dd>
     <dt>scale joke</dt><dd>The hero is small. Cacti are twice their height, the pickup is a building, the skull is a bench. Oversized props sell the goofy tone and the third-person camera.</dd>
-    <dt>lighting budget</dt><dd>One directional light, no real-time shadows on mobile, ambient from the sky colour, a fake blob shadow under every character. Campfire, structures and the portal get a single omni light each.</dd>
+    <dt>lighting budget</dt><dd>One directional light, no real-time shadows on mobile, ambient from the sky colour, a fake blob shadow under every character. The portal gets a single omni light; nothing else does on a phone.</dd>
   </dl>
 
   <h3>Blender's role</h3>
   <ul>
-    <li><b>Landmarks and structures.</b> The gas station, water tower, pickup, campfire, tumbleweed and the seven structure props are modelled low-poly in Blender by script (<code>tools/blender_props.py</code>), given flat painted materials and exported as GLB into <code>res://art/props</code>. The scenery is not Blender's any more: see section 15.</li>
+    <li><b>Only the movers, in Red Canyon.</b> The structures are painted (<code>st_&lt;id&gt;.png</code>, drawn as billboards on their ring, with a spent painting <code>st_&lt;id&gt;_off.png</code> swapped in once used); the tumbleweeds and the dust devil stay 3D because they move. The Blender prop set (<code>tools/blender_props.py</code>) stays in the repo for the record and for a map that wants it.</li>
     <li><b>Weapon meshes.</b> Saw blades, the shotgun, grenades, the turret, the pea pod and the dart familiars, the gem, the coin, the chest, the portal ring. Small, chunky, built in the scene files.</li>
     <li><b>Not Blender.</b> Characters and creatures are 2D painted sprites. Blender only ever renders their pose skeletons (section 15).</li>
   </ul>

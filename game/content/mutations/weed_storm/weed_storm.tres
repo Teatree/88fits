@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_3i8gb"]
+[ext_resource type="Texture2D" path="res://content/mutations/weed_storm/weed_storm_icon.png" id="2_2pf4s"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_5h3a7"]
+
+[sub_resource type="Resource" id="Resource_5h3a7"]
+script = ExtResource("1_3i8gb")
+stat = "amount"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_2pf4s"]
+script = ExtResource("1_3i8gb")
+stat = "damage"
+op = "mul"
+value = -0.3
+
+[resource]
+script = ExtResource("2_5h3a7")
+weapon = "tumbleweed"
+mutation_kind = "volume"
+text = "Three smaller weeds, −30% damage."
+vfx = "three weeds, three dust trails"
+effects = [SubResource("Resource_5h3a7"), SubResource("Resource_2pf4s")]
+params = {
+"radius": 0.55,
+"size_mult": 0.75
+}
+id = "weed_storm"
+display_name = "Weed Storm"
+flavour = "The wind picked up."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_2pf4s")
+icon_file = "weed_storm_icon.png"
+placeholder = {
+"color": "#D0B070",
+"glyph": "star"
+}

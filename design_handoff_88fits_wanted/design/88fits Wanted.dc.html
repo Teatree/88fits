@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1c1a17;color:#f3e6c8;font-family:Bitter,serif}
+a{color:#c9932f}a:hover{color:#f3e6c8}
+</style>
+</helmet>
+
+<section style="padding:48px;display:flex;flex-direction:column;gap:40px">
+<div style="display:flex;align-items:baseline;gap:20px;flex-wrap:wrap">
+  <div style="font:400 14px 'Alfa Slab One',serif;letter-spacing:.2em;color:#c9932f">TURN 2 · WANTED</div>
+  <div style="font:400 22px Bitter,serif;color:#e2cfa4">One frame shape for every item; kind is colour and a word, rarity is a wax seal. Screens are 1080×1920 at half size. Hero and creature cut-outs are placeholders for the painted art.</div>
+</div>
+
+<!-- ─────────────── KIT ─────────────── -->
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="font:400 30px 'Alfa Slab One',serif;color:#f3e6c8">The pieces</div>
+<div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:12px 12px 0 #241b14;padding:36px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:36px 48px;color:#241b14;width:1720px;box-sizing:border-box">
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">PALETTE</div>
+    <div style="display:flex;gap:6px">
+      <div style="flex:1;height:56px;background:#f3e6c8;border:3px solid #241b14"></div><div style="flex:1;height:56px;background:#e2cfa4;border:3px solid #241b14"></div><div style="flex:1;height:56px;background:#c9932f;border:3px solid #241b14"></div><div style="flex:1;height:56px;background:#a8792a;border:3px solid #241b14"></div><div style="flex:1;height:56px;background:#b4472b;border:3px solid #241b14"></div><div style="flex:1;height:56px;background:#6e8b5e;border:3px solid #241b14"></div><div style="flex:1;height:56px;background:#3f8f8a;border:3px solid #241b14"></div><div style="flex:1;height:56px;background:#d9662a;border:3px solid #241b14"></div><div style="flex:1;height:56px;background:#4a3358;border:3px solid #241b14"></div><div style="flex:1;height:56px;background:#241b14;border:3px solid #241b14"></div>
+    </div>
+    <div style="display:flex;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#5a4a3a"><span style="flex:1">paper F3E6C8</span><span style="flex:1">aged E2CFA4</span><span style="flex:1">brass C9932F</span><span style="flex:1">brass dk A8792A</span><span style="flex:1">rock B4472B</span><span style="flex:1">sage 6E8B5E</span><span style="flex:1">turq 3F8F8A</span><span style="flex:1">ember D9662A</span><span style="flex:1">plum 4A3358</span><span style="flex:1">ink 241B14</span></div>
+    <div style="font:400 20px Bitter,serif;color:#5a4a3a;margin-top:4px">Alfa Slab One: headings, numbers, buttons. Bitter: everything an item does. Nothing below 26 px on the phone.</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">ICON FRAME · ONE SHAPE, KIND BY COLOUR AND WORD</div>
+    <div style="display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/boomstick.png" style="width:80px"></div><span style="font:600 12px Bitter,serif;letter-spacing:.1em;color:#a8792a">WEAPON</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:96px;height:96px;background:#d9662a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/boomstick.png" style="width:80px;filter:hue-rotate(-20deg) saturate(1.3)"></div><span style="font:600 12px Bitter,serif;letter-spacing:.1em;color:#d9662a">EVOLUTION</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:96px;height:96px;background:#4a3358;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/dragonsbreath.png" style="width:76px"></div><span style="font:600 12px Bitter,serif;letter-spacing:.1em;color:#4a3358">MUTATION</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:96px;height:96px;background:#6e8b5e;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/fieldnotes.png" style="width:74px"></div><span style="font:600 12px Bitter,serif;letter-spacing:.1em;color:#6e8b5e">PASSIVE</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:96px;height:96px;background:#b4472b;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/bristle.png" style="width:74px"></div><span style="font:600 12px Bitter,serif;letter-spacing:.1em;color:#b4472b">LINE</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:96px;height:96px;background:#3f8f8a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/highnoon.png" style="width:74px"></div><span style="font:600 12px Bitter,serif;letter-spacing:.1em;color:#3f8f8a">PERK</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:96px;height:96px;background:#e2cfa4;border:4px solid #241b14;border-radius:50%;display:grid;place-items:center;overflow:hidden"><img src="icons/drifter.png" style="width:96px"></div><span style="font:600 12px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">HERO</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:96px;height:96px;background:#241b14;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/crown.png" style="width:70px"></div><span style="font:600 12px Bitter,serif;letter-spacing:.1em;color:#241b14">CREATURE</span></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:96px;height:96px;background:#e2cfa4;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/orbitsaws.png" style="width:74px;filter:brightness(0) opacity(.35)"></div><span style="font:600 12px Bitter,serif;letter-spacing:.1em;color:#8a8f7a">LOCKED</span></div>
+    </div>
+    <div style="font:400 18px Bitter,serif;color:#5a4a3a">Portraits are round because they are faces, not items. Everything else is the same 10 px-radius plate.</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">BUTTONS</div>
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <div style="font:400 30px 'Alfa Slab One',serif;background:#c9932f;border:4px solid #241b14;padding:16px 34px;box-shadow:6px 6px 0 #241b14">PLAY</div>
+      <div style="font:400 30px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:16px 34px;box-shadow:6px 6px 0 #241b14">Walk away</div>
+      <div style="font:400 30px 'Alfa Slab One',serif;background:#a8792a;border:4px solid #241b14;padding:16px 34px;transform:translate(6px,6px)">Pressed</div>
+      <div style="font:400 30px 'Alfa Slab One',serif;background:#e2cfa4;border:4px solid #241b14;padding:16px 34px;opacity:.45">Locked</div>
+      <div style="font:400 30px 'Alfa Slab One',serif;background:#b4472b;color:#f3e6c8;border:4px solid #241b14;padding:16px 34px;box-shadow:6px 6px 0 #241b14">Give up</div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <div style="width:72px;height:72px;background:#f3e6c8;border:4px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center;font:400 44px 'Alfa Slab One',serif;line-height:1;padding-bottom:6px">‹</div>
+      <div style="display:flex;gap:10px"><div style="font:400 22px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:12px 22px;box-shadow:5px 5px 0 #241b14">Reroll <span style="color:#a8792a">×1</span></div><div style="font:400 22px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:12px 22px;box-shadow:5px 5px 0 #241b14">Skip <span style="color:#a8792a">+10</span></div><div style="font:400 22px 'Alfa Slab One',serif;background:#e2cfa4;border:4px solid #241b14;padding:12px 22px;opacity:.45">Banish ×0</div></div>
+      <div style="display:flex;border:4px solid #241b14;box-shadow:5px 5px 0 #241b14"><div style="font:400 22px 'Alfa Slab One',serif;background:#c9932f;padding:12px 22px">Padding</div><div style="font:400 22px 'Alfa Slab One',serif;background:#f3e6c8;padding:12px 22px;border-left:4px solid #241b14">Plate</div></div>
+      <div style="display:flex;align-items:center;gap:10px"><div style="width:104px;height:56px;background:#c9932f;border:4px solid #241b14;position:relative"><div style="position:absolute;right:4px;top:4px;width:40px;height:40px;background:#f3e6c8;border:4px solid #241b14;box-sizing:border-box"></div></div><div style="width:104px;height:56px;background:#e2cfa4;border:4px solid #241b14;position:relative"><div style="position:absolute;left:4px;top:4px;width:40px;height:40px;background:#f3e6c8;border:4px solid #241b14;box-sizing:border-box"></div></div><span style="font:400 16px Bitter,serif;color:#5a4a3a">on / off</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">LEVEL, PATH, RANK AND RARITY MARKS</div>
+    <div style="display:flex;flex-direction:column;gap:12px;font:400 26px 'Alfa Slab One',serif;color:#c9932f">
+      <div style="display:flex;align-items:center;gap:18px"><span style="width:110px;font:600 14px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">WEAPON /8</span>★★★★★<span style="color:#f3e6c8;-webkit-text-stroke:2px #241b14">★</span><span style="color:#e2cfa4;-webkit-text-stroke:2px #241b14">★★</span><span style="font:600 16px Bitter,serif;color:#5a4a3a">the next star is paper: 5 → 6</span></div>
+      <div style="display:flex;align-items:center;gap:18px"><span style="width:110px;font:600 14px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">PASSIVE /5</span>★<span style="color:#e2cfa4;-webkit-text-stroke:2px #241b14">★★★★</span></div>
+      <div style="display:flex;align-items:center;gap:18px"><span style="width:110px;font:600 14px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">PATH /3</span><span style="display:flex;gap:8px"><span style="width:28px;height:28px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span><span style="width:28px;height:28px;border-radius:50%;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:28px;height:28px;border-radius:50%;background:#e2cfa4;border:3px solid #241b14"></span></span><span style="font:600 16px Bitter,serif;color:#5a4a3a">rivets</span></div>
+      <div style="display:flex;align-items:center;gap:18px"><span style="width:110px;font:600 14px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">RANK /3</span><span style="display:flex;gap:6px"><span style="width:44px;height:16px;background:#c9932f;border:3px solid #241b14"></span><span style="width:44px;height:16px;background:#c9932f;border:3px solid #241b14"></span><span style="width:44px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span></span><span style="font:600 16px Bitter,serif;color:#5a4a3a">notches</span></div>
+      <div style="display:flex;align-items:center;gap:18px"><span style="width:110px;font:600 14px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">RARITY</span>
+        <span style="width:76px;height:76px;border-radius:50%;background:#8a8f7a;border:4px solid #241b14;box-shadow:inset 0 0 0 5px rgba(0,0,0,.15);display:grid;place-items:center;font:600 12px Bitter,serif;color:#f3e6c8;letter-spacing:.1em">COMMON</span>
+        <span style="width:76px;height:76px;border-radius:50%;background:#3e6e9e;border:4px solid #241b14;box-shadow:inset 0 0 0 5px rgba(0,0,0,.15);display:grid;place-items:center;font:600 13px Bitter,serif;color:#f3e6c8;letter-spacing:.12em">RARE</span>
+        <span style="width:76px;height:76px;border-radius:50%;background:#8a4fb0;border:4px solid #241b14;box-shadow:inset 0 0 0 5px rgba(0,0,0,.15);display:grid;place-items:center;font:600 13px Bitter,serif;color:#f3e6c8;letter-spacing:.12em">EPIC</span>
+        <span style="font:600 16px Bitter,serif;color:#5a4a3a">wax seals · card, chest, shop, collection</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">THE ITEM CARD · new · upgrade · evolve · can't afford</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div style="position:relative;background:#f3e6c8;border:4px solid #241b14;padding:20px 18px 16px;display:flex;gap:16px;box-shadow:6px 6px 0 #241b14">
+        <div style="position:absolute;top:-12px;left:50%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></div>
+        <div style="position:absolute;top:12px;right:12px;width:64px;height:64px;border-radius:50%;background:#3e6e9e;border:3px solid #241b14;box-shadow:inset 0 0 0 4px rgba(0,0,0,.15);display:grid;place-items:center;font:600 11px Bitter,serif;color:#f3e6c8;letter-spacing:.1em">RARE</div>
+        <div style="width:104px;height:104px;flex:none;background:#b4472b;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/bristle.png" style="width:82px"></div>
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0;padding-right:84px">
+          <div style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#b4472b">NEW LINE</div>
+          <div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Bristle</div>
+          <div style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">★<span style="color:#e2cfa4;-webkit-text-stroke:1.5px #241b14">★★★</span></div>
+          <div style="font:400 17px Bitter,serif;line-height:1.3">+8 thorns damage a rank. Trade: cooldowns 4% longer.</div>
+        </div>
+      </div>
+      <div style="position:relative;background:#f3e6c8;border:4px solid #241b14;padding:20px 18px 16px;display:flex;gap:16px;box-shadow:6px 6px 0 #241b14">
+        <div style="position:absolute;top:-12px;left:50%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></div>
+        <div style="position:absolute;top:12px;right:12px;width:64px;height:64px;border-radius:50%;background:#8a4fb0;border:3px solid #241b14;box-shadow:inset 0 0 0 4px rgba(0,0,0,.15);display:grid;place-items:center;font:600 11px Bitter,serif;color:#f3e6c8;letter-spacing:.1em">EPIC</div>
+        <div style="width:104px;height:104px;flex:none;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/boomstick.png" style="width:90px"></div>
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0;padding-right:84px">
+          <div style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#a8792a">WEAPON · LV 5 → 6</div>
+          <div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Boomstick</div>
+          <div style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">★★★★★<span style="color:#f3e6c8;-webkit-text-stroke:1.5px #241b14">★</span><span style="color:#e2cfa4;-webkit-text-stroke:1.5px #241b14">★★</span></div>
+          <div style="font:400 17px Bitter,serif;line-height:1.3">Next: +2 knockback</div>
+        </div>
+      </div>
+      <div style="position:relative;background:#f3e6c8;border:4px solid #241b14;padding:20px 18px 16px;display:flex;gap:16px;box-shadow:6px 6px 0 #241b14;outline:5px solid #d9662a;outline-offset:-9px">
+        <div style="position:absolute;top:-12px;left:50%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></div>
+        <div style="position:absolute;top:12px;right:12px;width:64px;height:64px;border-radius:50%;background:#8a4fb0;border:3px solid #241b14;box-shadow:inset 0 0 0 4px rgba(0,0,0,.15);display:grid;place-items:center;font:600 11px Bitter,serif;color:#f3e6c8;letter-spacing:.1em">EPIC</div>
+        <div style="width:104px;height:104px;flex:none;background:#d9662a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/energyshield.png" style="width:82px"></div>
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0;padding-right:84px">
+          <div style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#d9662a">EVOLVES ENERGY SHIELD</div>
+          <div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Aegis</div>
+          <div style="font:400 17px Bitter,serif;line-height:1.3">The shield holds twice as long and reflects the hit.</div>
+        </div>
+      </div>
+      <div style="position:relative;background:#e2cfa4;border:4px solid #241b14;padding:20px 18px 16px;display:flex;gap:16px;opacity:.6">
+        <div style="position:absolute;top:-12px;left:50%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></div>
+        <div style="width:104px;height:104px;flex:none;background:#6e8b5e;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/adrenaline.png" style="width:82px"></div>
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">
+          <div style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#6e8b5e">NEW PASSIVE</div>
+          <div style="font:400 34px 'Alfa Slab One',serif;line-height:1">Adrenaline</div>
+          <div style="font:400 17px Bitter,serif;line-height:1.3">+0.4% speed and +0.3% might per kill stack.</div>
+          <div style="align-self:flex-end;font:400 22px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 18px;display:flex;align-items:center;gap:8px"><span style="width:20px;height:20px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>10</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">LIST ROWS · closed · open · locked · TABS · SLIDER</div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:16px;background:#f3e6c8;border:4px solid #241b14;padding:10px 16px"><div style="width:64px;height:64px;background:#c9932f;border:3px solid #241b14;border-radius:8px;display:grid;place-items:center"><img src="icons/hornet.png" style="width:52px"></div><div style="flex:1"><div style="font:400 26px 'Alfa Slab One',serif;line-height:1">Hornet Nest</div><div style="font:400 15px Bitter,serif;color:#5a4a3a">Aimed hornets, 3 a shot, sting for 12</div></div><div style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">★★★<span style="color:#e2cfa4;-webkit-text-stroke:1.5px #241b14">★★★★★</span></div><div style="font:400 30px 'Alfa Slab One',serif;color:#5a4a3a">›</div></div>
+      <div style="background:#f3e6c8;border:4px solid #241b14;padding:10px 16px 16px;display:flex;flex-direction:column;gap:10px"><div style="display:flex;align-items:center;gap:16px"><div style="width:64px;height:64px;background:#c9932f;border:3px solid #241b14;border-radius:8px;display:grid;place-items:center"><img src="icons/turret.png" style="width:52px"></div><div style="flex:1"><div style="font:400 26px 'Alfa Slab One',serif;line-height:1">Turret Buddy</div><div style="font:400 15px Bitter,serif;color:#5a4a3a">A turret that follows and fires, 8 a shot</div></div><div style="display:flex;gap:6px"><span style="width:20px;height:20px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span><span style="width:20px;height:20px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span><span style="width:20px;height:20px;border-radius:50%;background:#e2cfa4;border:3px solid #241b14"></span></div><div style="font:400 30px 'Alfa Slab One',serif;color:#5a4a3a;transform:rotate(90deg)">›</div></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:#e2cfa4;border:3px solid #241b14;padding:10px 14px;font:400 15px Bitter,serif"><div><span style="color:#5a4a3a">damage</span><br><b style="font:400 22px 'Alfa Slab One',serif">8</b></div><div><span style="color:#5a4a3a">cooldown</span><br><b style="font:400 22px 'Alfa Slab One',serif">0.8 s</b></div><div><span style="color:#5a4a3a">paths</span><br><b style="font:400 22px 'Alfa Slab One',serif">Watchtower · Bunker</b></div><div><span style="color:#5a4a3a">dealt this run</span><br><b style="font:400 22px 'Alfa Slab One',serif">1,204</b></div></div></div>
+      <div style="display:flex;align-items:center;gap:16px;background:#e2cfa4;border:4px solid #241b14;padding:10px 16px;opacity:.7"><div style="width:64px;height:64px;background:#e2cfa4;border:3px solid #241b14;border-radius:8px;display:grid;place-items:center"><img src="icons/orbitsaws.png" style="width:52px;filter:brightness(0) opacity(.35)"></div><div style="flex:1"><div style="font:400 26px 'Alfa Slab One',serif;line-height:1;color:#5a4a3a">Orbit Saws</div><div style="font:400 15px Bitter,serif;color:#5a4a3a">Unlock: survive 8 minutes in one run</div></div><div style="font:400 14px Bitter,serif;letter-spacing:.1em;background:#241b14;color:#f3e6c8;padding:4px 10px">LOCKED</div></div>
+      <div style="display:flex;gap:0;margin-top:6px"><div style="font:400 22px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;border-bottom:none;padding:10px 22px">Build</div><div style="font:400 22px 'Alfa Slab One',serif;background:#e2cfa4;border:4px solid #241b14;border-left:none;border-bottom:none;padding:10px 22px;color:#5a4a3a">Stats</div><div style="font:400 22px 'Alfa Slab One',serif;background:#e2cfa4;border:4px solid #241b14;border-left:none;border-bottom:none;padding:10px 22px;color:#5a4a3a">Options</div><div style="flex:1;border-bottom:4px solid #241b14"></div></div>
+      <div style="display:flex;align-items:center;gap:16px;padding-top:6px"><span style="font:400 20px Bitter,serif;width:130px">Screen shake</span><div style="flex:1;height:18px;background:#e2cfa4;border:3px solid #241b14;position:relative"><div style="width:65%;height:100%;background:#c9932f"></div><div style="position:absolute;left:65%;top:-18px;margin-left:-26px;width:52px;height:46px;background:#f3e6c8;border:4px solid #241b14;box-shadow:4px 4px 0 #241b14;display:grid;place-items:center;font:400 18px 'Alfa Slab One',serif">65</div></div></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">NUMBERS · TOASTS · BANNERS · POINTERS · JOYSTICK</div>
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px;font:400 34px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 18px;box-shadow:5px 5px 0 #241b14"><span style="width:28px;height:28px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>104,711</div>
+      <div style="font:400 34px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 18px;box-shadow:5px 5px 0 #241b14">10:00</div>
+      <div style="font:400 34px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 18px;box-shadow:5px 5px 0 #241b14">1,204 <span style="font:400 16px Bitter,serif;color:#5a4a3a">kills</span></div>
+      <span style="font:400 15px Bitter,serif;color:#5a4a3a">thousands always separated; “L14” becomes “Lv 14”</span>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:#c8a86a;padding:16px;border:3px dashed rgba(36,27,20,.4)">
+      <span style="font:400 26px 'Alfa Slab One',serif;color:#f3e6c8;text-shadow:2px 2px 0 #241b14,-1.5px -1.5px 0 #241b14,1.5px -1.5px 0 #241b14,-1.5px 1.5px 0 #241b14">+22 HP</span>
+      <span style="font:400 26px 'Alfa Slab One',serif;color:#f3e6c8;text-shadow:2px 2px 0 #241b14,-1.5px -1.5px 0 #241b14,1.5px -1.5px 0 #241b14,-1.5px 1.5px 0 #241b14">Boomstick Lv 5</span>
+      <span style="font:400 26px 'Alfa Slab One',serif;color:#b57bff;text-shadow:2px 2px 0 #241b14,-1.5px -1.5px 0 #241b14,1.5px -1.5px 0 #241b14,-1.5px 1.5px 0 #241b14">+5 XP</span>
+      <span style="font:400 20px 'Alfa Slab One',serif;letter-spacing:.08em;background:#241b14;color:#f3e6c8;padding:6px 18px">BOSS DOWN</span>
+      <span style="font:400 20px 'Alfa Slab One',serif;letter-spacing:.08em;background:#d9662a;color:#241b14;border:3px solid #241b14;padding:4px 16px">EVOLVED · EARTHSHAKER</span>
+      <span style="display:inline-flex;align-items:center;gap:6px;font:400 18px 'Alfa Slab One',serif;background:#f3e6c8;border:3px solid #241b14;padding:4px 10px"><span style="width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:20px solid #b4472b"></span>BOSS 43 m</span>
+      <span style="display:inline-flex;align-items:center;gap:6px;font:400 18px 'Alfa Slab One',serif;background:#f3e6c8;border:3px solid #241b14;padding:4px 10px"><span style="width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:20px solid #6e8b5e"></span>PORTAL 80 m</span>
+      <span style="display:inline-flex;align-items:center;gap:6px;font:400 18px 'Alfa Slab One',serif;background:#f3e6c8;border:3px solid #241b14;padding:4px 10px"><span style="width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-bottom:20px solid #d9662a"></span>ELITE</span>
+      <span style="position:relative;width:110px;height:110px;border-radius:50%;border:4px solid rgba(36,27,20,.55);background:rgba(243,230,200,.15)"><span style="position:absolute;left:52px;top:18px;width:40px;height:40px;border-radius:50%;background:rgba(243,230,200,.7);border:3px solid rgba(36,27,20,.6)"></span></span>
+    </div>
+    <div style="font:400 16px Bitter,serif;color:#5a4a3a">Toasts queue under the timer, one at a time, 1.2 s each. Banners drop from the top and take the timer's place for 2 s. Pointers ride the screen edge; the tag carries the distance.</div>
+  </div>
+
+  <div style="grid-column:1/-1;display:flex;gap:36px">
+    <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+      <div style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">THE MODAL FRAME · every screen that pauses the run</div>
+      <div style="position:relative;height:300px;background:linear-gradient(rgba(48,30,14,.78),rgba(48,30,14,.78)),url(bg-run.png) center/cover;border:4px solid #241b14;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">
+        <div style="font:600 16px Bitter,serif;letter-spacing:.35em;color:#f3e6c8">★ WANTED ★</div>
+        <div style="font:400 64px 'Alfa Slab One',serif;line-height:1;color:#f3e6c8;text-shadow:5px 5px 0 #241b14">TITLE</div>
+        <div style="font:italic 400 18px Bitter,serif;color:#e2cfa4">one dry line under it</div>
+        <div style="position:absolute;bottom:18px;left:24px;right:24px;display:flex;gap:12px"><div style="flex:1;font:400 20px 'Alfa Slab One',serif;text-align:center;background:#f3e6c8;border:4px solid #241b14;padding:10px;box-shadow:5px 5px 0 #241b14">Secondary</div><div style="flex:1;font:400 20px 'Alfa Slab One',serif;text-align:center;background:#c9932f;border:4px solid #241b14;padding:10px;box-shadow:5px 5px 0 #241b14">PRIMARY</div></div>
+      </div>
+      <div style="font:400 16px Bitter,serif;color:#5a4a3a">Sepia dim at 78 %, never a blur. Header stack at y 110, content from y 470, buttons at the bottom 90 px. The tap-to-continue gate is the dim lifting, not a screen.</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+      <div style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">THE MENU FRAME · back, a title, a page</div>
+      <div style="position:relative;height:300px;background:linear-gradient(rgba(243,230,200,.82),rgba(243,230,200,.82)),url(bg-run.png) center/cover;border:4px solid #241b14;padding:20px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:16px"><div style="width:56px;height:56px;background:#f3e6c8;border:4px solid #241b14;box-shadow:4px 4px 0 #241b14;display:grid;place-items:center;font:400 34px 'Alfa Slab One',serif;line-height:1;padding-bottom:4px">‹</div><div style="font:400 44px 'Alfa Slab One',serif;line-height:1">The Mirror</div><div style="margin-left:auto;display:flex;align-items:center;gap:8px;font:400 24px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:4px 14px;box-shadow:4px 4px 0 #241b14"><span style="width:20px;height:20px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>108,411</div></div>
+        <div style="flex:1;border:3px dashed rgba(36,27,20,.4);display:grid;place-items:center;font:500 14px 'JetBrains Mono',monospace;color:#5a4a3a">page content · no scroll where it can be avoided</div>
+      </div>
+      <div style="font:400 16px Bitter,serif;color:#5a4a3a">Paper wash at 82 % over the live desert so the world shows through the menus. Back is a 96 px square at top left; the title is slab, 72 px; gold sits top right wherever it can be spent.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ─────────────── SCREENS 01–06 ─────────────── -->
+<div style="font:400 30px 'Alfa Slab One',serif;color:#f3e6c8;margin-top:12px">The screens</div>
+<div style="display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start">
+
+<!-- 01 Title -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">01 TITLE</b> · Play setup merged in: swipe the hero here. Debug and the version leave.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="01 Title" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(233,201,160,.95) 0%,rgba(233,201,160,.4) 30%,rgba(243,230,200,0) 50%,rgba(243,230,200,.7) 78%,rgba(243,230,200,.92) 100%)"></div>
+  <div style="position:absolute;top:44px;left:36px;display:flex;align-items:center;gap:14px;font:400 44px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 22px;box-shadow:5px 5px 0 #241b14"><span style="width:34px;height:34px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>104,711</div>
+  <div style="position:absolute;top:150px;left:0;right:0;display:flex;flex-direction:column;align-items:center">
+    <div style="font:600 26px Bitter,serif;letter-spacing:.4em;color:#241b14">★ WANTED ★</div>
+    <div style="font:400 210px 'Alfa Slab One',serif;line-height:.95;color:#241b14;text-shadow:10px 10px 0 #c9932f">88fits</div>
+    <div style="font:600 30px Bitter,serif;letter-spacing:.3em;margin-top:6px">DRAG · DODGE · SURVIVE</div>
+  </div>
+  <div style="position:absolute;top:560px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:40px">
+    <div style="width:72px;height:72px;background:#f3e6c8;border:4px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center;font:400 48px 'Alfa Slab One',serif;line-height:1;padding-bottom:6px">‹</div>
+    <div style="width:520px;height:700px;background:repeating-linear-gradient(135deg,rgba(36,27,20,.14) 0 14px,transparent 14px 28px);border:4px dashed rgba(36,27,20,.5);display:flex;align-items:flex-end;justify-content:center;padding-bottom:24px;font:500 22px 'JetBrains Mono',monospace;color:#241b14;text-align:center;line-height:1.4">the Drifter, full-body cut-out<br>facing camera · 520 × 700</div>
+    <div style="width:72px;height:72px;background:#f3e6c8;border:4px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center;font:400 48px 'Alfa Slab One',serif;line-height:1;padding-bottom:6px">›</div>
+  </div>
+  <div style="position:absolute;top:1280px;left:0;right:0;display:flex;justify-content:center;gap:14px"><span style="width:20px;height:20px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span><span style="width:20px;height:20px;border-radius:50%;background:#f3e6c8;border:3px solid #241b14"></span><span style="width:20px;height:20px;border-radius:50%;background:#e2cfa4;border:3px solid #241b14;opacity:.5"></span></div>
+  <div style="position:absolute;top:1330px;left:60px;right:60px;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:22px 30px;display:flex;align-items:center;gap:26px">
+    <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
+      <div style="font:400 56px 'Alfa Slab One',serif;line-height:1">The Drifter</div>
+      <div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">Wide hat. Long coat. Longer road.</div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="font:400 34px 'Alfa Slab One',serif;color:#6e8b5e">+10%</div><div style="font:600 14px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">SPEED</div></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="font:400 34px 'Alfa Slab One',serif;color:#6e8b5e">+25%</div><div style="font:600 14px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">REACH</div></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:84px;height:84px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/peashooter.png" style="width:68px"></div><div style="font:600 14px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">STARTS LV 3</div></div>
+    </div>
+  </div>
+  <div style="position:absolute;top:1560px;left:60px;right:60px;font:400 84px 'Alfa Slab One',serif;text-align:center;background:#c9932f;border:6px solid #241b14;padding:22px;box-shadow:10px 10px 0 #241b14;line-height:1">PLAY</div>
+  <div style="position:absolute;top:1720px;left:0;right:0;text-align:center;font:400 26px Bitter,serif;color:#5a4a3a">Red Canyon · best 10:00 · Lv 47 · stage 2</div>
+  <div style="position:absolute;bottom:60px;left:60px;right:60px;display:flex;gap:24px">
+    <div style="flex:1;font:400 30px 'Alfa Slab One',serif;text-align:center;background:#f3e6c8;border:5px solid #241b14;padding:20px 0;box-shadow:6px 6px 0 #241b14">The Mirror</div>
+    <div style="flex:1;font:400 30px 'Alfa Slab One',serif;text-align:center;background:#f3e6c8;border:5px solid #241b14;padding:20px 0;box-shadow:6px 6px 0 #241b14">Collection</div>
+    <div style="flex:1;font:400 30px 'Alfa Slab One',serif;text-align:center;background:#f3e6c8;border:5px solid #241b14;padding:20px 0;box-shadow:6px 6px 0 #241b14">Settings</div>
+  </div>
+</div></div>
+</div>
+
+<!-- 02 Title swiped: Astro -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">02 PLAY SETUP → TITLE, SWIPED</b> · Astro; the third dot is a locked hero with its quest.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="02 Title swiped" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(233,201,160,.95) 0%,rgba(233,201,160,.4) 30%,rgba(243,230,200,0) 50%,rgba(243,230,200,.7) 78%,rgba(243,230,200,.92) 100%)"></div>
+  <div style="position:absolute;top:44px;left:36px;display:flex;align-items:center;gap:14px;font:400 44px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 22px;box-shadow:5px 5px 0 #241b14"><span style="width:34px;height:34px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>104,711</div>
+  <div style="position:absolute;top:150px;left:0;right:0;display:flex;flex-direction:column;align-items:center">
+    <div style="font:600 26px Bitter,serif;letter-spacing:.4em;color:#241b14">★ WANTED ★</div>
+    <div style="font:400 210px 'Alfa Slab One',serif;line-height:.95;color:#241b14;text-shadow:10px 10px 0 #c9932f">88fits</div>
+    <div style="font:600 30px Bitter,serif;letter-spacing:.3em;margin-top:6px">DRAG · DODGE · SURVIVE</div>
+  </div>
+  <div style="position:absolute;top:560px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:40px">
+    <div style="width:72px;height:72px;background:#f3e6c8;border:4px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center;font:400 48px 'Alfa Slab One',serif;line-height:1;padding-bottom:6px">‹</div>
+    <div style="width:520px;height:700px;background:repeating-linear-gradient(135deg,rgba(36,27,20,.14) 0 14px,transparent 14px 28px);border:4px dashed rgba(36,27,20,.5);display:flex;align-items:flex-end;justify-content:center;padding-bottom:24px;font:500 22px 'JetBrains Mono',monospace;color:#241b14;text-align:center;line-height:1.4">Astro, full-body cut-out<br>facing camera · 520 × 700</div>
+    <div style="width:72px;height:72px;background:#f3e6c8;border:4px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center;font:400 48px 'Alfa Slab One',serif;line-height:1;padding-bottom:6px">›</div>
+  </div>
+  <div style="position:absolute;top:1280px;left:0;right:0;display:flex;justify-content:center;gap:14px"><span style="width:20px;height:20px;border-radius:50%;background:#f3e6c8;border:3px solid #241b14"></span><span style="width:20px;height:20px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span><span style="width:20px;height:20px;border-radius:50%;background:#e2cfa4;border:3px solid #241b14;opacity:.5"></span></div>
+  <div style="position:absolute;top:1330px;left:60px;right:60px;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:22px 30px;display:flex;align-items:center;gap:26px">
+    <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
+      <div style="font:400 56px 'Alfa Slab One',serif;line-height:1">Astro</div>
+      <div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">Wrong planet. Right attitude.</div>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="font:400 34px 'Alfa Slab One',serif;color:#6e8b5e">+1</div><div style="font:600 14px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">ARMOUR</div></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="font:400 34px 'Alfa Slab One',serif;color:#6e8b5e">+10%</div><div style="font:600 14px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">HP</div></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="font:400 34px 'Alfa Slab One',serif;color:#6e8b5e">8%</div><div style="font:600 14px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">HEAL / LV</div></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div style="width:84px;height:84px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/orbitsaws.png" style="width:68px"></div><div style="font:600 14px Bitter,serif;letter-spacing:.1em;color:#5a4a3a">FAVOURITE</div></div>
+    </div>
+  </div>
+  <div style="position:absolute;top:1560px;left:60px;right:60px;font:400 84px 'Alfa Slab One',serif;text-align:center;background:#c9932f;border:6px solid #241b14;padding:22px;box-shadow:10px 10px 0 #241b14;line-height:1">PLAY</div>
+  <div style="position:absolute;top:1720px;left:0;right:0;text-align:center;font:400 26px Bitter,serif;color:#5a4a3a">Red Canyon · best 10:00 · Lv 47 · stage 2</div>
+  <div style="position:absolute;bottom:60px;left:60px;right:60px;display:flex;gap:24px">
+    <div style="flex:1;font:400 30px 'Alfa Slab One',serif;text-align:center;background:#f3e6c8;border:5px solid #241b14;padding:20px 0;box-shadow:6px 6px 0 #241b14">The Mirror</div>
+    <div style="flex:1;font:400 30px 'Alfa Slab One',serif;text-align:center;background:#f3e6c8;border:5px solid #241b14;padding:20px 0;box-shadow:6px 6px 0 #241b14">Collection</div>
+    <div style="flex:1;font:400 30px 'Alfa Slab One',serif;text-align:center;background:#f3e6c8;border:5px solid #241b14;padding:20px 0;box-shadow:6px 6px 0 #241b14">Settings</div>
+  </div>
+</div></div>
+</div>
+
+<!-- 03 Mirror board -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">03 THE MIRROR</b> · all eight on one screen; tap a talent to open it.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="03 Mirror" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:linear-gradient(rgba(243,230,200,.82),rgba(243,230,200,.82)),url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;top:44px;left:36px;right:36px;display:flex;align-items:center;gap:24px">
+    <div style="width:96px;height:96px;background:#f3e6c8;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14;display:grid;place-items:center;font:400 60px 'Alfa Slab One',serif;line-height:1;padding-bottom:8px">‹</div>
+    <div style="font:400 72px 'Alfa Slab One',serif;line-height:1">The Mirror</div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font:400 44px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 22px;box-shadow:5px 5px 0 #241b14"><span style="width:34px;height:34px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>108,411</div>
+  </div>
+  <div style="position:absolute;top:190px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:10px">
+    <div style="width:300px;height:300px;border-radius:50% 50% 46% 46%;background:radial-gradient(circle at 50% 40%,#5a4a3a,#241b14 70%);border:14px solid #c9932f;box-shadow:0 0 0 6px #241b14,inset 0 0 0 6px #241b14;display:grid;place-items:center;overflow:hidden"><img src="icons/drifter.png" style="width:230px;opacity:.55;filter:sepia(1) contrast(.9)"></div>
+    <div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Something looks back. It wants gold.</div>
+  </div>
+  <div style="position:absolute;top:560px;left:48px;right:48px;display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14;padding:22px 24px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font:400 44px 'Alfa Slab One',serif;line-height:1">Grit</div><div style="display:flex;gap:6px"><span style="width:36px;height:16px;background:#c9932f;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span></div></div><div style="font:400 26px Bitter,serif">Padding · +10% max HP a rank</div><div style="display:flex;align-items:center;gap:10px;font:400 30px 'Alfa Slab One',serif;background:#c9932f;border:4px solid #241b14;padding:8px 18px;align-self:flex-start;box-shadow:4px 4px 0 #241b14"><span style="width:26px;height:26px;border-radius:50%;background:#f3e6c8;border:3px solid #241b14"></span>252</div></div>
+    <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14;padding:22px 24px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font:400 44px 'Alfa Slab One',serif;line-height:1">Drive</div><div style="display:flex;gap:6px"><span style="width:36px;height:16px;background:#c9932f;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span></div></div><div style="font:400 26px Bitter,serif">Tempo · −5% cooldown a rank</div><div style="display:flex;align-items:center;gap:10px;font:400 30px 'Alfa Slab One',serif;background:#c9932f;border:4px solid #241b14;padding:8px 18px;align-self:flex-start;box-shadow:4px 4px 0 #241b14"><span style="width:26px;height:26px;border-radius:50%;background:#f3e6c8;border:3px solid #241b14"></span>288</div></div>
+    <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14;padding:22px 24px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font:400 44px 'Alfa Slab One',serif;line-height:1">Stride</div><div style="display:flex;gap:6px"><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span></div></div><div style="font:400 26px Bitter,serif">Boots · +5% move speed a rank</div><div style="display:flex;align-items:center;gap:10px;font:400 30px 'Alfa Slab One',serif;background:#c9932f;border:4px solid #241b14;padding:8px 18px;align-self:flex-start;box-shadow:4px 4px 0 #241b14"><span style="width:26px;height:26px;border-radius:50%;background:#f3e6c8;border:3px solid #241b14"></span>120</div></div>
+    <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14;padding:22px 24px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font:400 44px 'Alfa Slab One',serif;line-height:1">Fortune</div><div style="display:flex;gap:6px"><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span></div></div><div style="font:400 26px Bitter,serif">Omen · rarer cards, a fourth more often</div><div style="display:flex;align-items:center;gap:10px;font:400 30px 'Alfa Slab One',serif;background:#c9932f;border:4px solid #241b14;padding:8px 18px;align-self:flex-start;box-shadow:4px 4px 0 #241b14"><span style="width:26px;height:26px;border-radius:50%;background:#f3e6c8;border:3px solid #241b14"></span>150</div></div>
+    <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14;padding:22px 24px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font:400 44px 'Alfa Slab One',serif;line-height:1">Choice</div><div style="display:flex;gap:6px"><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span></div></div><div style="font:400 26px Bitter,serif">Rerolls · +1 reroll a rank</div><div style="display:flex;align-items:center;gap:10px;font:400 30px 'Alfa Slab One',serif;background:#c9932f;border:4px solid #241b14;padding:8px 18px;align-self:flex-start;box-shadow:4px 4px 0 #241b14"><span style="width:26px;height:26px;border-radius:50%;background:#f3e6c8;border:3px solid #241b14"></span>200</div></div>
+    <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14;padding:22px 24px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font:400 44px 'Alfa Slab One',serif;line-height:1">Nerve</div><div style="display:flex;gap:6px"><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span></div></div><div style="font:400 26px Bitter,serif">Grace · +1 revive a run</div><div style="display:flex;align-items:center;gap:10px;font:400 30px 'Alfa Slab One',serif;background:#c9932f;border:4px solid #241b14;padding:8px 18px;align-self:flex-start;box-shadow:4px 4px 0 #241b14"><span style="width:26px;height:26px;border-radius:50%;background:#f3e6c8;border:3px solid #241b14"></span>400</div></div>
+    <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14;padding:22px 24px;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font:400 44px 'Alfa Slab One',serif;line-height:1">Study</div><div style="display:flex;gap:6px"><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span></div></div><div style="font:400 26px Bitter,serif">Lessons · +8% XP a rank</div><div style="display:flex;align-items:center;gap:10px;font:400 30px 'Alfa Slab One',serif;background:#c9932f;border:4px solid #241b14;padding:8px 18px;align-self:flex-start;box-shadow:4px 4px 0 #241b14"><span style="width:26px;height:26px;border-radius:50%;background:#f3e6c8;border:3px solid #241b14"></span>180</div></div>
+    <div style="background:#e2cfa4;border:5px solid #241b14;padding:22px 24px;display:flex;flex-direction:column;gap:8px;opacity:.55"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font:400 44px 'Alfa Slab One',serif;line-height:1">Spite</div><div style="display:flex;gap:6px"><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:36px;height:16px;background:#e2cfa4;border:3px solid #241b14"></span></div></div><div style="font:400 26px Bitter,serif">Venom · creatures bleed on hit</div><div style="font:400 26px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:8px 18px;align-self:flex-start">Reach stage 3 to unlock</div></div>
+  </div>
+  <div style="position:absolute;bottom:60px;left:0;right:0;text-align:center;font:600 26px Bitter,serif;color:#5a4a3a;text-decoration:underline">Take it all back · refund 300</div>
+</div></div>
+</div>
+
+<!-- 03b Mirror open -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">03 THE MIRROR · TALENT OPEN</b> · form is a two-way choice, free to switch; the rank is the only purchase.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="03 Mirror open" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:linear-gradient(rgba(243,230,200,.82),rgba(243,230,200,.82)),url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:rgba(48,30,14,.55)"></div>
+  <div style="position:absolute;top:44px;left:36px;right:36px;display:flex;align-items:center;gap:24px;opacity:.5">
+    <div style="width:96px;height:96px;background:#f3e6c8;border:5px solid #241b14;display:grid;place-items:center;font:400 60px 'Alfa Slab One',serif;line-height:1;padding-bottom:8px">‹</div>
+    <div style="font:400 72px 'Alfa Slab One',serif;line-height:1">The Mirror</div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font:400 44px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 22px"><span style="width:34px;height:34px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>108,411</div>
+  </div>
+  <div style="position:absolute;top:420px;left:60px;right:60px;background:#f3e6c8;border:6px solid #241b14;box-shadow:12px 12px 0 #241b14;padding:40px 44px;display:flex;flex-direction:column;gap:26px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div style="font:400 84px 'Alfa Slab One',serif;line-height:1">Grit</div><div style="display:flex;gap:8px"><span style="width:60px;height:24px;background:#c9932f;border:4px solid #241b14"></span><span style="width:60px;height:24px;background:#e2cfa4;border:4px solid #241b14"></span><span style="width:60px;height:24px;background:#e2cfa4;border:4px solid #241b14"></span></div></div>
+    <div style="font:italic 400 30px Bitter,serif;color:#5a4a3a">Thicker skin, or harder bones.</div>
+    <div style="display:flex;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14">
+      <div style="flex:1;padding:22px;background:#c9932f;display:flex;flex-direction:column;gap:6px"><div style="font:400 40px 'Alfa Slab One',serif;line-height:1">Padding</div><div style="font:400 26px Bitter,serif">+10% max HP a rank</div></div>
+      <div style="flex:1;padding:22px;background:#f3e6c8;border-left:5px solid #241b14;display:flex;flex-direction:column;gap:6px"><div style="font:400 40px 'Alfa Slab One',serif;line-height:1;color:#5a4a3a">Plate</div><div style="font:400 26px Bitter,serif;color:#5a4a3a">+1 armour a rank</div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font:400 26px Bitter,serif;color:#5a4a3a"><span>Rank 1 owned · +10% HP</span><span>Switching form is free</span></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:16px;font:400 48px 'Alfa Slab One',serif;background:#c9932f;border:5px solid #241b14;padding:24px;box-shadow:8px 8px 0 #241b14">RANK 2 <span style="display:inline-flex;align-items:center;gap:10px;font-size:40px"><span style="width:34px;height:34px;border-radius:50%;background:#f3e6c8;border:3px solid #241b14"></span>252</span></div>
+    <div style="text-align:center;font:400 30px 'Alfa Slab One',serif;color:#5a4a3a">Close</div>
+  </div>
+</div></div>
+</div>
+
+<!-- 04 Collection grid -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">04 COLLECTION</b> · tabs by kind, icon grid, counts; mutations and evolutions live on their weapon's page. Hidden items go to the developer menu.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="04 Collection" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:linear-gradient(rgba(243,230,200,.82),rgba(243,230,200,.82)),url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;top:44px;left:36px;right:36px;display:flex;align-items:center;gap:24px">
+    <div style="width:96px;height:96px;background:#f3e6c8;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14;display:grid;place-items:center;font:400 60px 'Alfa Slab One',serif;line-height:1;padding-bottom:8px">‹</div>
+    <div style="font:400 72px 'Alfa Slab One',serif;line-height:1">Collection</div>
+    <div style="margin-left:auto;font:400 30px Bitter,serif;color:#5a4a3a">36 / 70 found</div>
+  </div>
+  <div style="position:absolute;top:190px;left:36px;right:36px;display:flex">
+    <div style="font:400 28px 'Alfa Slab One',serif;background:#f3e6c8;border:5px solid #241b14;border-bottom:none;padding:16px 26px">Weapons <span style="color:#a8792a">7/12</span></div>
+    <div style="font:400 28px 'Alfa Slab One',serif;background:#e2cfa4;border:5px solid #241b14;border-left:none;border-bottom:none;padding:16px 26px;color:#5a4a3a">Passives</div>
+    <div style="font:400 28px 'Alfa Slab One',serif;background:#e2cfa4;border:5px solid #241b14;border-left:none;border-bottom:none;padding:16px 26px;color:#5a4a3a">Lines</div>
+    <div style="font:400 28px 'Alfa Slab One',serif;background:#e2cfa4;border:5px solid #241b14;border-left:none;border-bottom:none;padding:16px 26px;color:#5a4a3a">Perks</div>
+    <div style="font:400 28px 'Alfa Slab One',serif;background:#e2cfa4;border:5px solid #241b14;border-left:none;border-bottom:none;padding:16px 26px;color:#5a4a3a">Creatures</div>
+    <div style="flex:1;border-bottom:5px solid #241b14"></div>
+  </div>
+  <div style="position:absolute;top:270px;left:36px;right:36px;background:#f3e6c8;border:5px solid #241b14;border-top:none;padding:36px 30px;display:grid;grid-template-columns:repeat(4,1fr);gap:26px 22px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="position:relative;width:200px;height:200px;background:#c9932f;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center"><img src="icons/bigmouth.png" style="width:160px"><span style="position:absolute;right:-8px;top:-8px;width:44px;height:44px;border-radius:50%;background:#8a4fb0;border:3px solid #241b14"></span></div><div style="font:400 24px 'Alfa Slab One',serif">Big Mouth</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="position:relative;width:200px;height:200px;background:#c9932f;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center"><img src="icons/boomstick.png" style="width:160px"><span style="position:absolute;right:-8px;top:-8px;width:44px;height:44px;border-radius:50%;background:#8a8f7a;border:3px solid #241b14"></span></div><div style="font:400 24px 'Alfa Slab One',serif">Boomstick</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="position:relative;width:200px;height:200px;background:#c9932f;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center"><img src="icons/hornet.png" style="width:160px"><span style="position:absolute;right:-8px;top:-8px;width:44px;height:44px;border-radius:50%;background:#3e6e9e;border:3px solid #241b14"></span></div><div style="font:400 24px 'Alfa Slab One',serif">Hornet Nest</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="position:relative;width:200px;height:200px;background:#c9932f;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center"><img src="icons/molotov.png" style="width:160px"><span style="position:absolute;right:-8px;top:-8px;width:44px;height:44px;border-radius:50%;background:#8a8f7a;border:3px solid #241b14"></span></div><div style="font:400 24px 'Alfa Slab One',serif">Molotov</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="position:relative;width:200px;height:200px;background:#e2cfa4;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center"><img src="icons/orbitsaws.png" style="width:160px;filter:brightness(0) opacity(.3)"></div><div style="font:400 24px 'Alfa Slab One',serif;color:#8a8f7a">Survive 8:00</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="position:relative;width:200px;height:200px;background:#c9932f;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center"><img src="icons/peashooter.png" style="width:160px"><span style="position:absolute;right:-8px;top:-8px;width:44px;height:44px;border-radius:50%;background:#8a8f7a;border:3px solid #241b14"></span></div><div style="font:400 24px 'Alfa Slab One',serif">Peashooter</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="position:relative;width:200px;height:200px;background:#c9932f;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center"><img src="icons/turret.png" style="width:160px"><span style="position:absolute;right:-8px;top:-8px;width:44px;height:44px;border-radius:50%;background:#3e6e9e;border:3px solid #241b14"></span></div><div style="font:400 24px 'Alfa Slab One',serif">Turret Buddy</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="position:relative;width:200px;height:200px;background:#e2cfa4;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center"><img src="icons/bigmouth.png" style="width:160px;filter:brightness(0) opacity(.3)"></div><div style="font:400 24px 'Alfa Slab One',serif;color:#8a8f7a">Beat a boss</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="position:relative;width:200px;height:200px;background:#e2cfa4;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center"><img src="icons/hornet.png" style="width:160px;filter:brightness(0) opacity(.3)"></div><div style="font:400 24px 'Alfa Slab One',serif;color:#8a8f7a">500 kills</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="position:relative;width:200px;height:200px;background:#e2cfa4;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center"><img src="icons/molotov.png" style="width:160px;filter:brightness(0) opacity(.3)"></div><div style="font:400 24px 'Alfa Slab One',serif;color:#8a8f7a">Reach stage 3</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="position:relative;width:200px;height:200px;background:#e2cfa4;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center"><img src="icons/turret.png" style="width:160px;filter:brightness(0) opacity(.3)"></div><div style="font:400 24px 'Alfa Slab One',serif;color:#8a8f7a">Evolve any weapon</div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><div style="position:relative;width:200px;height:200px;background:#e2cfa4;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center"><img src="icons/peashooter.png" style="width:160px;filter:brightness(0) opacity(.3)"></div><div style="font:400 24px 'Alfa Slab One',serif;color:#8a8f7a">Extract twice</div></div>
+  </div>
+  <div style="position:absolute;bottom:50px;left:0;right:0;text-align:center;font:400 26px Bitter,serif;color:#5a4a3a">12,480 kills all time</div>
+</div></div>
+</div>
+
+<!-- 04b Weapon page -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">04 COLLECTION · WEAPON PAGE</b> · the weapon, its three paths and its evolution on one sheet.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="04 Weapon page" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:linear-gradient(rgba(243,230,200,.82),rgba(243,230,200,.82)),url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;top:44px;left:36px;right:36px;display:flex;align-items:center;gap:24px">
+    <div style="width:96px;height:96px;background:#f3e6c8;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14;display:grid;place-items:center;font:400 60px 'Alfa Slab One',serif;line-height:1;padding-bottom:8px">‹</div>
+    <div style="font:400 72px 'Alfa Slab One',serif;line-height:1">Boomstick</div>
+    <div style="margin-left:auto;width:96px;height:96px;border-radius:50%;background:#8a8f7a;border:5px solid #241b14;box-shadow:inset 0 0 0 6px rgba(0,0,0,.15);display:grid;place-items:center;font:600 16px Bitter,serif;color:#f3e6c8;letter-spacing:.1em">COMMON</div>
+  </div>
+  <div style="position:absolute;top:190px;left:48px;right:48px;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:30px;display:flex;gap:30px;align-items:center">
+    <div style="width:260px;height:260px;flex:none;background:#c9932f;border:6px solid #241b14;border-radius:16px;display:grid;place-items:center"><img src="icons/boomstick.png" style="width:220px"></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font:600 22px Bitter,serif;letter-spacing:.15em;color:#a8792a">WEAPON · 8 LEVELS</div>
+      <div style="font:400 32px Bitter,serif;line-height:1.3">Fires a cone of 6 pellets at the nearest crowd every 1.4 s, 9 damage each, knocks back.</div>
+      <div style="font:italic 400 26px Bitter,serif;color:#5a4a3a">Steer into the crowd.</div>
+      <div style="font:400 24px Bitter,serif;color:#5a4a3a">Best: Lv 8 · 14,208 damage in one run</div>
+    </div>
+  </div>
+  <div style="position:absolute;top:610px;left:48px;right:48px;display:flex;flex-direction:column;gap:14px">
+    <div style="font:600 22px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">LEVELS</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;font:400 24px Bitter,serif">
+      <div style="background:#f3e6c8;border:4px solid #241b14;padding:12px 16px"><b style="font:400 28px 'Alfa Slab One',serif;color:#c9932f">2</b> +1 pellet</div><div style="background:#f3e6c8;border:4px solid #241b14;padding:12px 16px"><b style="font:400 28px 'Alfa Slab One',serif;color:#c9932f">3</b> +20% damage</div><div style="background:#f3e6c8;border:4px solid #241b14;padding:12px 16px"><b style="font:400 28px 'Alfa Slab One',serif;color:#c9932f">4</b> −15% cooldown</div><div style="background:#f3e6c8;border:4px solid #241b14;padding:12px 16px"><b style="font:400 28px 'Alfa Slab One',serif;color:#c9932f">5</b> +2 pellets</div>
+      <div style="background:#f3e6c8;border:4px solid #241b14;padding:12px 16px"><b style="font:400 28px 'Alfa Slab One',serif;color:#c9932f">6</b> +2 knockback</div><div style="background:#f3e6c8;border:4px solid #241b14;padding:12px 16px"><b style="font:400 28px 'Alfa Slab One',serif;color:#c9932f">7</b> +25% damage</div><div style="background:#f3e6c8;border:4px solid #241b14;padding:12px 16px"><b style="font:400 28px 'Alfa Slab One',serif;color:#c9932f">8</b> pierces 2</div><div style="background:#e2cfa4;border:4px solid #241b14;padding:12px 16px;color:#5a4a3a">wider cone</div>
+    </div>
+  </div>
+  <div style="position:absolute;top:960px;left:48px;right:48px;display:flex;flex-direction:column;gap:14px">
+    <div style="font:600 22px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">PATHS · TAKE ONE A STAGE</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+      <div style="background:#f3e6c8;border:4px solid #241b14;padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center"><div style="width:140px;height:140px;background:#4a3358;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/dragonsbreath.png" style="width:110px"></div><div style="font:400 30px 'Alfa Slab One',serif;line-height:1">Dragon's Breath</div><div style="font:400 24px Bitter,serif">Pellets ignite.</div></div>
+      <div style="background:#f3e6c8;border:4px solid #241b14;padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center"><div style="width:140px;height:140px;background:#4a3358;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/birdshot.png" style="width:110px"></div><div style="font:400 30px 'Alfa Slab One',serif;line-height:1">Birdshot</div><div style="font:400 24px Bitter,serif">Twice the pellets, 60° cone, −45% damage.</div></div>
+      <div style="background:#f3e6c8;border:4px solid #241b14;padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center"><div style="width:140px;height:140px;background:#4a3358;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/slug.png" style="width:110px"></div><div style="font:400 30px 'Alfa Slab One',serif;line-height:1">Slug</div><div style="font:400 24px Bitter,serif">One pellet, ×4 damage, pierces 5.</div></div>
+    </div>
+  </div>
+  <div style="position:absolute;top:1440px;left:48px;right:48px;display:flex;flex-direction:column;gap:14px">
+    <div style="font:600 22px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">EVOLUTION · TWO PATHS, THEN A CHEST</div>
+    <div style="background:#e2cfa4;border:4px solid #241b14;padding:24px 30px;display:flex;gap:26px;align-items:center;opacity:.75">
+      <div style="width:160px;height:160px;flex:none;background:#e2cfa4;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/boomstick.png" style="width:130px;filter:brightness(0) opacity(.3)"></div>
+      <div style="display:flex;flex-direction:column;gap:8px"><div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#d9662a">EVOLUTION</div><div style="font:400 44px 'Alfa Slab One',serif;line-height:1">Doomstick</div><div style="font:400 26px Bitter,serif;color:#5a4a3a">Not yet found. Open a chest with two paths taken.</div></div>
+    </div>
+  </div>
+</div></div>
+</div>
+
+<!-- 05 Settings -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">05 SETTINGS</b> · one screen, no debug. Holding the version label opens the developer menu.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="05 Settings" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:linear-gradient(rgba(243,230,200,.82),rgba(243,230,200,.82)),url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;top:44px;left:36px;right:36px;display:flex;align-items:center;gap:24px">
+    <div style="width:96px;height:96px;background:#f3e6c8;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14;display:grid;place-items:center;font:400 60px 'Alfa Slab One',serif;line-height:1;padding-bottom:8px">‹</div>
+    <div style="font:400 72px 'Alfa Slab One',serif;line-height:1">Settings</div>
+  </div>
+  <div style="position:absolute;top:200px;left:48px;right:48px;display:flex;flex-direction:column;gap:30px">
+    <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:30px;display:flex;flex-direction:column;gap:18px">
+      <div style="font:600 22px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">CAMERA</div>
+      <div style="display:flex;border:5px solid #241b14;box-shadow:6px 6px 0 #241b14"><div style="flex:1;padding:20px;background:#c9932f;text-align:center"><div style="font:400 36px 'Alfa Slab One',serif;line-height:1">Fixed</div><div style="font:400 24px Bitter,serif">north stays up</div></div><div style="flex:1;padding:20px;background:#f3e6c8;border-left:5px solid #241b14;text-align:center;color:#5a4a3a"><div style="font:400 36px 'Alfa Slab One',serif;line-height:1">Follow</div><div style="font:400 24px Bitter,serif">swings behind the hero</div></div></div>
+    </div>
+    <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:30px;display:flex;flex-direction:column;gap:40px">
+      <div style="display:flex;align-items:center;gap:30px"><span style="font:400 30px Bitter,serif;width:260px">Joystick size</span><div style="flex:1;height:26px;background:#e2cfa4;border:4px solid #241b14;position:relative"><div style="width:100%;height:100%;background:#c9932f"></div><div style="position:absolute;left:100%;top:-24px;margin-left:-40px;width:80px;height:70px;background:#f3e6c8;border:5px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center;font:400 28px 'Alfa Slab One',serif">100</div></div></div>
+      <div style="display:flex;align-items:center;gap:30px"><span style="font:400 30px Bitter,serif;width:260px">Screen shake</span><div style="flex:1;height:26px;background:#e2cfa4;border:4px solid #241b14;position:relative"><div style="width:65%;height:100%;background:#c9932f"></div><div style="position:absolute;left:65%;top:-24px;margin-left:-40px;width:80px;height:70px;background:#f3e6c8;border:5px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center;font:400 28px 'Alfa Slab One',serif">65</div></div></div>
+      <div style="display:flex;align-items:center;gap:30px"><span style="font:400 30px Bitter,serif;width:260px">Sound</span><div style="flex:1;height:26px;background:#e2cfa4;border:4px solid #241b14;position:relative"><div style="width:80%;height:100%;background:#c9932f"></div><div style="position:absolute;left:80%;top:-24px;margin-left:-40px;width:80px;height:70px;background:#f3e6c8;border:5px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center;font:400 28px 'Alfa Slab One',serif">80</div></div></div>
+      <div style="display:flex;align-items:center;gap:30px"><span style="font:400 30px Bitter,serif;width:260px">Music</span><div style="flex:1;height:26px;background:#e2cfa4;border:4px solid #241b14;position:relative"><div style="width:0%;height:100%;background:#c9932f"></div><div style="position:absolute;left:0%;top:-24px;margin-left:-4px;width:80px;height:70px;background:#f3e6c8;border:5px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center;font:400 28px 'Alfa Slab One',serif">0</div></div></div>
+    </div>
+    <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:30px;display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 30px Bitter,serif">First-play hints</span><div style="width:130px;height:70px;background:#c9932f;border:5px solid #241b14;position:relative"><div style="position:absolute;right:5px;top:5px;width:50px;height:50px;background:#f3e6c8;border:5px solid #241b14;box-sizing:border-box"></div></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 30px Bitter,serif">Show the hints again next run</span><div style="font:400 26px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:10px 24px;box-shadow:5px 5px 0 #241b14">Reset</div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;background:#f3e6c8;border:5px solid #241b14;box-shadow:8px 8px 0 #241b14;padding:30px"><div><div style="font:400 30px Bitter,serif">Wipe the save</div><div style="font:400 24px Bitter,serif;color:#5a4a3a">gold, unlocks, everything · asks twice</div></div><div style="font:400 26px 'Alfa Slab One',serif;background:#b4472b;color:#f3e6c8;border:4px solid #241b14;padding:10px 24px;box-shadow:5px 5px 0 #241b14">Wipe</div></div>
+  </div>
+  <div style="position:absolute;bottom:50px;left:0;right:0;text-align:center;font:400 24px Bitter,serif;color:#5a4a3a">88fits v0.27</div>
+</div></div>
+</div>
+
+<!-- 06 HUD -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">06 IN-RUN HUD</b> · out: stage name, kills, alive, empty and locked slots. Held items only. Toasts queue under the timer.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="06 HUD" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;top:0;left:0;right:0;height:22px;background:#241b14"></div>
+  <div style="position:absolute;top:4px;left:0;width:24%;height:14px;background:#8a4fb0"></div>
+  <div style="position:absolute;top:44px;left:36px;font:400 44px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 22px;box-shadow:5px 5px 0 #241b14">LV 3</div>
+  <div style="position:absolute;top:44px;left:50%;transform:translateX(-50%);font:400 72px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:0 40px;line-height:1.15;box-shadow:5px 5px 0 #241b14">01:01</div>
+  <div style="position:absolute;top:44px;right:150px;display:flex;align-items:center;gap:14px;font:400 44px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 22px;box-shadow:5px 5px 0 #241b14"><span style="width:34px;height:34px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>10</div>
+  <div style="position:absolute;top:40px;right:36px;width:88px;height:88px;border-radius:50%;background:#c9932f;border:4px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center"><div style="display:flex;gap:10px"><span style="width:12px;height:38px;background:#241b14"></span><span style="width:12px;height:38px;background:#241b14"></span></div></div>
+  <div style="position:absolute;top:170px;left:36px;display:flex;gap:14px;align-items:flex-start">
+    <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/hornet.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">3</span></div>
+    <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/turret.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">3</span><span style="position:absolute;left:-6px;top:-10px;display:flex;gap:3px"><span style="width:14px;height:14px;border-radius:50%;background:#c9932f;border:2px solid #241b14"></span><span style="width:14px;height:14px;border-radius:50%;background:#c9932f;border:2px solid #241b14"></span></span></div>
+    <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/bigmouth.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">4</span></div>
+    <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/molotov.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">3</span><span style="position:absolute;left:-6px;top:-10px;display:flex;gap:3px"><span style="width:14px;height:14px;border-radius:50%;background:#c9932f;border:2px solid #241b14"></span></span></div>
+    <div style="width:20px"></div>
+    <div style="position:relative;width:80px;height:80px;margin-top:8px;background:#6e8b5e;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/magnet.png" style="width:60px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 20px 'Alfa Slab One',serif;padding:0 7px">2</span></div>
+    <div style="position:relative;width:80px;height:80px;margin-top:8px;background:#b4472b;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/energyshield.png" style="width:60px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 20px 'Alfa Slab One',serif;padding:0 7px">4</span></div>
+  </div>
+  <div style="position:absolute;top:300px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px">
+    <div style="font:400 40px 'Alfa Slab One',serif;color:#7fe07f;text-shadow:3px 3px 0 #241b14,-2px -2px 0 #241b14,2px -2px 0 #241b14,-2px 2px 0 #241b14">+22 HP</div>
+    <div style="font:400 40px 'Alfa Slab One',serif;color:#f3e6c8;text-shadow:3px 3px 0 #241b14,-2px -2px 0 #241b14,2px -2px 0 #241b14,-2px 2px 0 #241b14;opacity:.6">Boomstick Lv 5</div>
+  </div>
+  <div style="position:absolute;top:520px;right:0;display:flex;align-items:center;gap:8px;font:400 26px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;border-right:none;padding:6px 16px 6px 14px;box-shadow:4px 4px 0 #241b14"><span style="width:0;height:0;border-top:14px solid transparent;border-bottom:14px solid transparent;border-left:22px solid #6e8b5e"></span>PORTAL 80 m</div>
+  <div style="position:absolute;top:1195px;left:470px;width:140px;display:flex;flex-direction:column;gap:4px">
+    <div style="height:14px;background:#241b14;padding:2px"><div style="width:70%;height:100%;background:#6e8b5e"></div></div>
+    <div style="height:10px;background:#241b14;padding:2px"><div style="width:50%;height:100%;background:#3e6e9e"></div></div>
+  </div>
+  <div style="position:absolute;left:120px;top:1300px;width:300px;height:300px;border-radius:50%;border:6px solid rgba(36,27,20,.55);background:rgba(243,230,200,.15)"><div style="position:absolute;left:150px;top:60px;width:110px;height:110px;border-radius:50%;background:rgba(243,230,200,.7);border:5px solid rgba(36,27,20,.6)"></div></div>
+  <div style="position:absolute;top:1080px;left:400px;font:400 32px 'Alfa Slab One',serif;color:#b57bff;text-shadow:2px 2px 0 #241b14,-1.5px -1.5px 0 #241b14,1.5px -1.5px 0 #241b14,-1.5px 1.5px 0 #241b14">+5 XP</div>
+</div></div>
+</div>
+
+<!-- 06b HUD boss -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">06 HUD · BOSS UP, BANNER</b> · one name, one bar; the pointer carries the distance; a banner takes the timer's place for 2 s.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="06 HUD boss" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;top:0;left:0;right:0;height:22px;background:#241b14"></div>
+  <div style="position:absolute;top:4px;left:0;width:61%;height:14px;background:#8a4fb0"></div>
+  <div style="position:absolute;top:44px;left:36px;right:36px;display:flex;justify-content:center"><div style="font:400 44px 'Alfa Slab One',serif;letter-spacing:.08em;background:#d9662a;border:4px solid #241b14;padding:16px 60px;line-height:1.15;box-shadow:5px 5px 0 #241b14;white-space:nowrap;display:flex;align-items:center;gap:20px"><img src="icons/hornet.png" style="width:56px">EVOLVED · KILLER SWARM</div></div>
+  <div style="position:absolute;top:170px;left:36px;display:flex;gap:14px;align-items:flex-start">
+    <div style="position:relative;width:96px;height:96px;background:#d9662a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/hornet.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">8</span></div>
+    <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/turret.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">6</span></div>
+    <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/bigmouth.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">7</span></div>
+    <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/molotov.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">5</span></div>
+    <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/boomstick.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">2</span></div>
+    <div style="width:20px"></div>
+    <div style="position:relative;width:80px;height:80px;margin-top:8px;background:#6e8b5e;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/magnet.png" style="width:60px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 20px 'Alfa Slab One',serif;padding:0 7px">5</span></div>
+    <div style="position:relative;width:80px;height:80px;margin-top:8px;background:#6e8b5e;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/fieldnotes.png" style="width:60px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 20px 'Alfa Slab One',serif;padding:0 7px">3</span></div>
+    <div style="position:relative;width:80px;height:80px;margin-top:8px;background:#b4472b;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/energyshield.png" style="width:60px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 20px 'Alfa Slab One',serif;padding:0 7px">4</span></div>
+  </div>
+  <div style="position:absolute;top:310px;left:60px;right:60px;display:flex;flex-direction:column;align-items:center;gap:10px">
+    <div style="display:flex;align-items:center;gap:14px;font:400 30px 'Alfa Slab One',serif;letter-spacing:.06em;background:#241b14;color:#f3e6c8;padding:6px 28px"><img src="icons/crown.png" style="width:40px">THE TUMBLEWEED KING</div>
+    <div style="width:100%;height:30px;background:#e2cfa4;border:4px solid #241b14;box-shadow:4px 4px 0 #241b14"><div style="width:62%;height:100%;background:#b4472b"></div></div>
+  </div>
+  <div style="position:absolute;top:640px;left:0;display:flex;align-items:center;gap:8px;font:400 26px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;border-left:none;padding:6px 14px 6px 16px;box-shadow:4px 4px 0 #241b14"><span style="width:0;height:0;border-top:14px solid transparent;border-bottom:14px solid transparent;border-right:22px solid #b4472b"></span>BOSS 43 m</div>
+  <div style="position:absolute;top:860px;right:0;display:flex;align-items:center;gap:8px;font:400 26px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;border-right:none;padding:6px 16px 6px 14px;box-shadow:4px 4px 0 #241b14"><span style="width:0;height:0;border-top:14px solid transparent;border-bottom:14px solid transparent;border-left:22px solid #d9662a"></span>ELITE</div>
+  <div style="position:absolute;top:1195px;left:470px;width:140px;display:flex;flex-direction:column;gap:4px">
+    <div style="height:14px;background:#241b14;padding:2px"><div style="width:30%;height:100%;background:#b4472b"></div></div>
+    <div style="height:10px;background:#241b14;padding:2px"><div style="width:0%;height:100%;background:#3e6e9e"></div></div>
+  </div>
+  <div style="position:absolute;left:120px;top:1300px;width:300px;height:300px;border-radius:50%;border:6px solid rgba(36,27,20,.55);background:rgba(243,230,200,.15)"><div style="position:absolute;left:40px;top:150px;width:110px;height:110px;border-radius:50%;background:rgba(243,230,200,.7);border:5px solid rgba(36,27,20,.6)"></div></div>
+</div></div>
+</div>
+
+<!-- 07 Level-up -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">07 LEVEL-UP</b> · kind by colour and one word, rarity by seal, level by stars, one effect line. The middle card is pressed.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="07 Level-up" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:rgba(48,30,14,.78)"></div>
+  <div style="position:absolute;top:110px;left:0;right:0;display:flex;flex-direction:column;align-items:center">
+    <div style="font:600 30px Bitter,serif;letter-spacing:.35em;color:#f3e6c8">★ WANTED ★</div>
+    <div style="font:400 150px 'Alfa Slab One',serif;line-height:1;color:#f3e6c8;text-shadow:8px 8px 0 #241b14">LEVEL 3</div>
+    <div style="font:italic 400 30px Bitter,serif;color:#e2cfa4;margin-top:10px">Pick one. The desert waits.</div>
+  </div>
+  <div style="position:absolute;top:470px;left:48px;right:48px;display:flex;flex-direction:column;gap:44px">
+    <div style="position:relative;background:#f3e6c8;border:5px solid #241b14;padding:36px 32px 30px 32px;display:flex;gap:28px;align-items:center;box-shadow:10px 10px 0 #241b14">
+      <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+      <div style="position:absolute;top:20px;right:20px;width:96px;height:96px;border-radius:50%;background:#3e6e9e;border:4px solid #241b14;box-shadow:inset 0 0 0 6px rgba(0,0,0,.15);display:grid;place-items:center;font:600 18px Bitter,serif;color:#f3e6c8;letter-spacing:.12em">RARE</div>
+      <div style="width:170px;height:170px;flex:none;background:#b4472b;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/bristle.png" style="width:130px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0;padding-right:110px">
+        <div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#b4472b">NEW LINE</div>
+        <div style="font:400 60px 'Alfa Slab One',serif;line-height:1">Bristle</div>
+        <div style="font:400 28px 'Alfa Slab One',serif;color:#c9932f">★<span style="color:#e2cfa4;-webkit-text-stroke:2px #241b14">★★★</span></div>
+        <div style="font:400 30px Bitter,serif;line-height:1.3">+8 thorns damage a rank. Trade: cooldowns 4% longer.</div>
+      </div>
+    </div>
+    <div style="position:relative;background:#f3e6c8;border:5px solid #241b14;padding:36px 32px 30px 32px;display:flex;gap:28px;align-items:center;transform:translate(10px,10px);outline:6px solid #c9932f;outline-offset:-11px">
+      <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+      <div style="position:absolute;top:20px;right:20px;width:96px;height:96px;border-radius:50%;background:#8a8f7a;border:4px solid #241b14;box-shadow:inset 0 0 0 6px rgba(0,0,0,.15);display:grid;place-items:center;font:600 16px Bitter,serif;color:#f3e6c8;letter-spacing:.12em">COMMON</div>
+      <div style="width:170px;height:170px;flex:none;background:#6e8b5e;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/fieldnotes.png" style="width:126px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0;padding-right:110px">
+        <div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#6e8b5e">NEW PASSIVE</div>
+        <div style="font:400 60px 'Alfa Slab One',serif;line-height:1">Field Notes</div>
+        <div style="font:400 28px 'Alfa Slab One',serif;color:#c9932f">★<span style="color:#e2cfa4;-webkit-text-stroke:2px #241b14">★★★★</span></div>
+        <div style="font:400 30px Bitter,serif;line-height:1.3">+8% XP from every gem.</div>
+      </div>
+    </div>
+    <div style="position:relative;background:#f3e6c8;border:5px solid #241b14;padding:36px 32px 30px 32px;display:flex;gap:28px;align-items:center;box-shadow:10px 10px 0 #241b14">
+      <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+      <div style="position:absolute;top:20px;right:20px;width:96px;height:96px;border-radius:50%;background:#8a4fb0;border:4px solid #241b14;box-shadow:inset 0 0 0 6px rgba(0,0,0,.15);display:grid;place-items:center;font:600 18px Bitter,serif;color:#f3e6c8;letter-spacing:.12em">EPIC</div>
+      <div style="width:170px;height:170px;flex:none;background:#c9932f;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/boomstick.png" style="width:140px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0;padding-right:110px">
+        <div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#a8792a">WEAPON · LV 5 → 6</div>
+        <div style="font:400 60px 'Alfa Slab One',serif;line-height:1">Boomstick</div>
+        <div style="font:400 28px 'Alfa Slab One',serif;color:#c9932f">★★★★★<span style="color:#f3e6c8;-webkit-text-stroke:2px #241b14">★</span><span style="color:#e2cfa4;-webkit-text-stroke:2px #241b14">★★</span></div>
+        <div style="font:400 30px Bitter,serif;line-height:1.3">Next: +2 knockback</div>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:90px;left:48px;right:48px;display:flex;gap:24px">
+    <div style="flex:1;text-align:center;font:400 34px 'Alfa Slab One',serif;background:#f3e6c8;border:5px solid #241b14;padding:26px 0;box-shadow:8px 8px 0 #241b14">REROLL <span style="color:#a8792a">×1</span></div>
+    <div style="flex:1;text-align:center;font:400 34px 'Alfa Slab One',serif;background:#f3e6c8;border:5px solid #241b14;padding:26px 0;box-shadow:8px 8px 0 #241b14">SKIP <span style="color:#a8792a">+10</span></div>
+    <div style="flex:1;text-align:center;font:400 34px 'Alfa Slab One',serif;background:#e2cfa4;border:5px solid #241b14;padding:26px 0;opacity:.45">BANISH ×0</div>
+  </div>
+</div></div>
+</div>
+
+<!-- 08 Path offer -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">08 PATH OFFER</b> · a bigger moment than a level-up: the weapon on top, three forks under it. Element / volume / motion are gone.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="08 Path offer" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:rgba(48,30,14,.78)"></div>
+  <div style="position:absolute;top:90px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:14px">
+    <div style="font:600 30px Bitter,serif;letter-spacing:.35em;color:#f3e6c8">★ THE ROAD FORKS ★</div>
+    <div style="width:260px;height:260px;background:#c9932f;border:6px solid #241b14;border-radius:18px;box-shadow:10px 10px 0 #241b14;display:grid;place-items:center"><img src="icons/boomstick.png" style="width:220px"></div>
+    <div style="font:400 96px 'Alfa Slab One',serif;line-height:1;color:#f3e6c8;text-shadow:8px 8px 0 #241b14">BOOMSTICK</div>
+    <div style="display:flex;align-items:center;gap:14px;font:400 28px Bitter,serif;color:#e2cfa4"><span>Path</span><span style="display:flex;gap:8px"><span style="width:30px;height:30px;border-radius:50%;background:#e2cfa4;border:3px solid #241b14"></span><span style="width:30px;height:30px;border-radius:50%;background:rgba(226,207,164,.25);border:3px solid #241b14"></span><span style="width:30px;height:30px;border-radius:50%;background:rgba(226,207,164,.25);border:3px solid #241b14"></span></span><span>· the two you leave come back next stage</span></div>
+  </div>
+  <div style="position:absolute;top:720px;left:48px;right:48px;display:flex;flex-direction:column;gap:36px">
+    <div style="position:relative;background:#f3e6c8;border:5px solid #241b14;padding:30px 32px;display:flex;gap:28px;align-items:center;box-shadow:10px 10px 0 #241b14">
+      <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+      <div style="width:160px;height:160px;flex:none;background:#4a3358;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/dragonsbreath.png" style="width:126px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0"><div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#4a3358">MUTATION</div><div style="font:400 56px 'Alfa Slab One',serif;line-height:1">Dragon's Breath</div><div style="font:400 30px Bitter,serif;line-height:1.3">Pellets ignite. Burning creatures take 3 a second for 3 s.</div></div>
+    </div>
+    <div style="position:relative;background:#f3e6c8;border:5px solid #241b14;padding:30px 32px;display:flex;gap:28px;align-items:center;box-shadow:10px 10px 0 #241b14">
+      <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+      <div style="width:160px;height:160px;flex:none;background:#4a3358;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/birdshot.png" style="width:126px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0"><div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#4a3358">MUTATION</div><div style="font:400 56px 'Alfa Slab One',serif;line-height:1">Birdshot</div><div style="font:400 30px Bitter,serif;line-height:1.3">Twice the pellets in a 60° cone, −45% damage each.</div></div>
+    </div>
+    <div style="position:relative;background:#f3e6c8;border:5px solid #241b14;padding:30px 32px;display:flex;gap:28px;align-items:center;box-shadow:10px 10px 0 #241b14">
+      <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+      <div style="width:160px;height:160px;flex:none;background:#4a3358;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/slug.png" style="width:126px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0"><div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#4a3358">MUTATION</div><div style="font:400 56px 'Alfa Slab One',serif;line-height:1">Slug</div><div style="font:400 30px Bitter,serif;line-height:1.3">One pellet: ×4 damage, pierces 5, double knockback.</div></div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:90px;left:48px;right:48px;display:flex;justify-content:center"><div style="width:420px;text-align:center;font:400 34px 'Alfa Slab One',serif;background:#f3e6c8;border:5px solid #241b14;padding:26px 0;box-shadow:8px 8px 0 #241b14">SKIP <span style="color:#a8792a">+10</span></div></div>
+</div></div>
+</div>
+
+<!-- 09 Tap to go -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">09 TAP TO CONTINUE → THE GATE</b> · not a screen: the chosen card shrinks into its slot while the dim lifts to 40 %. Any touch starts the joystick.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="09 Gate" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:rgba(48,30,14,.4)"></div>
+  <div style="position:absolute;top:0;left:0;right:0;height:22px;background:#241b14"></div>
+  <div style="position:absolute;top:4px;left:0;width:6%;height:14px;background:#8a4fb0"></div>
+  <div style="position:absolute;top:44px;left:36px;font:400 44px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 22px;box-shadow:5px 5px 0 #241b14">LV 4</div>
+  <div style="position:absolute;top:44px;left:50%;transform:translateX(-50%);font:400 72px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:0 40px;line-height:1.15;box-shadow:5px 5px 0 #241b14">01:01</div>
+  <div style="position:absolute;top:44px;right:150px;display:flex;align-items:center;gap:14px;font:400 44px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 22px;box-shadow:5px 5px 0 #241b14"><span style="width:34px;height:34px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>10</div>
+  <div style="position:absolute;top:40px;right:36px;width:88px;height:88px;border-radius:50%;background:#c9932f;border:4px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center"><div style="display:flex;gap:10px"><span style="width:12px;height:38px;background:#241b14"></span><span style="width:12px;height:38px;background:#241b14"></span></div></div>
+  <div style="position:absolute;top:170px;left:36px;display:flex;gap:14px;align-items:flex-start">
+    <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/hornet.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">3</span></div>
+    <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/turret.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">3</span></div>
+    <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/bigmouth.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">4</span></div>
+    <div style="position:relative;width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/molotov.png" style="width:78px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 22px 'Alfa Slab One',serif;padding:0 8px">3</span></div>
+    <div style="width:20px"></div>
+    <div style="position:relative;width:80px;height:80px;margin-top:8px;background:#6e8b5e;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/magnet.png" style="width:60px"><span style="position:absolute;right:-10px;bottom:-10px;background:#f3e6c8;border:3px solid #241b14;font:400 20px 'Alfa Slab One',serif;padding:0 7px">2</span></div>
+    <div style="position:relative;width:80px;height:80px;margin-top:8px;background:#6e8b5e;border:6px solid #c9932f;border-radius:10px;display:grid;place-items:center;box-shadow:0 0 0 4px #241b14"><img src="icons/fieldnotes.png" style="width:58px"><span style="position:absolute;right:-10px;bottom:-10px;background:#c9932f;border:3px solid #241b14;font:400 20px 'Alfa Slab One',serif;padding:0 7px">1</span></div>
+  </div>
+  <div style="position:absolute;top:330px;left:560px;width:360px;background:#f3e6c8;border:4px solid #241b14;padding:16px;display:flex;gap:14px;align-items:center;transform:scale(.55) rotate(-8deg);transform-origin:top right;opacity:.85;box-shadow:6px 6px 0 #241b14">
+    <div style="width:110px;height:110px;flex:none;background:#6e8b5e;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/fieldnotes.png" style="width:84px"></div>
+    <div style="font:400 40px 'Alfa Slab One',serif;line-height:1">Field Notes</div>
+  </div>
+  <div style="position:absolute;top:290px;left:700px;width:200px;height:6px;background:rgba(243,230,200,.7);transform:rotate(-30deg)"></div>
+  <div style="position:absolute;top:320px;left:680px;width:140px;height:6px;background:rgba(243,230,200,.5);transform:rotate(-30deg)"></div>
+  <div style="position:absolute;top:1500px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+    <div style="font:400 64px 'Alfa Slab One',serif;color:#f3e6c8;text-shadow:5px 5px 0 #241b14,-2px -2px 0 #241b14,2px -2px 0 #241b14,-2px 2px 0 #241b14">TAP TO GO</div>
+    <div style="font:italic 400 28px Bitter,serif;color:#f3e6c8;text-shadow:2px 2px 0 #241b14">Still paused. They'll wait.</div>
+  </div>
+  <div style="position:absolute;top:1195px;left:470px;width:140px;display:flex;flex-direction:column;gap:4px">
+    <div style="height:14px;background:#241b14;padding:2px"><div style="width:70%;height:100%;background:#6e8b5e"></div></div>
+    <div style="height:10px;background:#241b14;padding:2px"><div style="width:50%;height:100%;background:#3e6e9e"></div></div>
+  </div>
+</div></div>
+</div>
+
+<!-- 10 Chest -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">10 CHEST</b> · the fanfare. A light beam, the reel three wide with the run's items, the landed one big, its seal glowing. 4 s spin, tap to hurry.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="10 Chest" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:rgba(48,30,14,.85)"></div>
+  <div style="position:absolute;top:0;left:50%;width:700px;height:1400px;margin-left:-350px;background:linear-gradient(180deg,rgba(201,147,47,.55),rgba(201,147,47,0));clip-path:polygon(38% 0,62% 0,100% 100%,0 100%)"></div>
+  <div style="position:absolute;top:110px;left:0;right:0;display:flex;flex-direction:column;align-items:center">
+    <div style="font:600 30px Bitter,serif;letter-spacing:.35em;color:#f3e6c8">★ LOOT ★</div>
+    <div style="font:400 150px 'Alfa Slab One',serif;line-height:1;color:#c9932f;text-shadow:8px 8px 0 #241b14">CHEST</div>
+  </div>
+  <div style="position:absolute;top:460px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:30px">
+    <div style="width:200px;height:200px;background:#6e8b5e;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center;opacity:.45;transform:scale(.85)"><img src="icons/magnet.png" style="width:150px"></div>
+    <div style="position:relative;width:420px;height:420px;background:#c9932f;border:8px solid #241b14;border-radius:24px;display:grid;place-items:center;box-shadow:14px 14px 0 #241b14,0 0 90px rgba(201,147,47,.7)"><img src="icons/orbitsaws.png" style="width:340px"><div style="position:absolute;top:-30px;right:-30px;width:130px;height:130px;border-radius:50%;background:#3e6e9e;border:6px solid #241b14;box-shadow:inset 0 0 0 8px rgba(0,0,0,.15),0 0 40px rgba(62,110,158,.9);display:grid;place-items:center;font:600 24px Bitter,serif;color:#f3e6c8;letter-spacing:.12em">RARE</div></div>
+    <div style="width:200px;height:200px;background:#c9932f;border:5px solid #241b14;border-radius:14px;display:grid;place-items:center;opacity:.45;transform:scale(.85)"><img src="icons/boomstick.png" style="width:160px"></div>
+  </div>
+  <div style="position:absolute;top:940px;left:60px;right:60px;background:#f3e6c8;border:6px solid #241b14;box-shadow:10px 10px 0 #241b14;padding:36px 40px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">
+    <div style="font:600 22px Bitter,serif;letter-spacing:.15em;color:#a8792a">WEAPON · LV 3 → 4</div>
+    <div style="font:400 84px 'Alfa Slab One',serif;line-height:1">Orbit Saws</div>
+    <div style="font:400 34px 'Alfa Slab One',serif;color:#c9932f">★★★<span style="color:#f3e6c8;-webkit-text-stroke:2px #241b14">★</span><span style="color:#e2cfa4;-webkit-text-stroke:2px #241b14">★★★★</span></div>
+    <div style="font:400 34px Bitter,serif">Next: +15% orbit radius</div>
+  </div>
+  <div style="position:absolute;bottom:90px;left:48px;right:48px;display:flex;gap:24px">
+    <div style="flex:1;text-align:center;font:400 34px 'Alfa Slab One',serif;background:#f3e6c8;border:5px solid #241b14;padding:30px 0;box-shadow:8px 8px 0 #241b14;display:flex;align-items:center;justify-content:center;gap:12px">SELL <span style="display:inline-flex;align-items:center;gap:8px;color:#a8792a"><span style="width:26px;height:26px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>+4</span></div>
+    <div style="flex:1.4;text-align:center;font:400 44px 'Alfa Slab One',serif;background:#c9932f;border:5px solid #241b14;padding:26px 0;box-shadow:8px 8px 0 #241b14">TAKE IT</div>
+  </div>
+</div></div>
+</div>
+
+<!-- 11 Shop -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">11 TRAVELLING SHOP</b> · the price is the button; what you hold sits above the wares; one card you can't afford, dimmed once.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="11 Shop" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:rgba(48,30,14,.78)"></div>
+  <div style="position:absolute;top:110px;left:0;right:0;display:flex;flex-direction:column;align-items:center">
+    <div style="font:600 30px Bitter,serif;letter-spacing:.35em;color:#f3e6c8">★ ONE VISIT ONLY ★</div>
+    <div style="font:400 120px 'Alfa Slab One',serif;line-height:1;color:#f3e6c8;text-shadow:8px 8px 0 #241b14">THE SHOP</div>
+    <div style="margin-top:16px;display:flex;align-items:center;gap:14px;font:400 56px 'Alfa Slab One',serif;background:#f3e6c8;border:5px solid #241b14;padding:6px 30px;box-shadow:6px 6px 0 #241b14"><span style="width:40px;height:40px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>24</div>
+  </div>
+  <div style="position:absolute;top:470px;left:48px;right:48px;display:flex;align-items:center;gap:14px">
+    <span style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#e2cfa4;margin-right:8px">YOU HOLD</span>
+    <div style="width:76px;height:76px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/hornet.png" style="width:60px"></div>
+    <div style="width:76px;height:76px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/turret.png" style="width:60px"></div>
+    <div style="width:76px;height:76px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/bigmouth.png" style="width:60px"></div>
+    <div style="width:76px;height:76px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/molotov.png" style="width:60px"></div>
+    <div style="width:76px;height:76px;background:#6e8b5e;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/magnet.png" style="width:56px"></div>
+    <div style="width:76px;height:76px;background:#b4472b;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/energyshield.png" style="width:56px"></div>
+  </div>
+  <div style="position:absolute;top:590px;left:48px;right:48px;display:flex;flex-direction:column;gap:40px">
+    <div style="position:relative;background:#f3e6c8;border:5px solid #241b14;padding:30px 32px;display:flex;gap:28px;align-items:center;box-shadow:10px 10px 0 #241b14">
+      <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+      <div style="position:absolute;top:20px;right:20px;width:84px;height:84px;border-radius:50%;background:#8a8f7a;border:4px solid #241b14;box-shadow:inset 0 0 0 6px rgba(0,0,0,.15);display:grid;place-items:center;font:600 14px Bitter,serif;color:#f3e6c8;letter-spacing:.12em">COMMON</div>
+      <div style="width:150px;height:150px;flex:none;background:#6e8b5e;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/adrenaline.png" style="width:116px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0;flex:1"><div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#6e8b5e">NEW PASSIVE</div><div style="font:400 54px 'Alfa Slab One',serif;line-height:1">Adrenaline</div><div style="font:400 28px Bitter,serif;line-height:1.3">+0.4% speed and +0.3% might per kill stack.</div>
+        <div style="align-self:flex-end;display:flex;align-items:center;gap:10px;font:400 36px 'Alfa Slab One',serif;background:#c9932f;border:4px solid #241b14;padding:8px 26px;box-shadow:5px 5px 0 #241b14"><span style="width:30px;height:30px;border-radius:50%;background:#f3e6c8;border:3px solid #241b14"></span>10</div></div>
+    </div>
+    <div style="position:relative;background:#e2cfa4;border:5px solid #241b14;padding:30px 32px;display:flex;gap:28px;align-items:center;opacity:.6">
+      <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+      <div style="position:absolute;top:20px;right:20px;width:84px;height:84px;border-radius:50%;background:#8a4fb0;border:4px solid #241b14;box-shadow:inset 0 0 0 6px rgba(0,0,0,.15);display:grid;place-items:center;font:600 16px Bitter,serif;color:#f3e6c8;letter-spacing:.12em">EPIC</div>
+      <div style="width:150px;height:150px;flex:none;background:#3f8f8a;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/thruster.png" style="width:116px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0;flex:1"><div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#3f8f8a">ASTRO'S PERK · ONCE</div><div style="font:400 54px 'Alfa Slab One',serif;line-height:1">Thruster Burst</div><div style="font:400 28px Bitter,serif;line-height:1.3">Six creatures close in: she flies to open ground and the blast throws them back. Every 8 s.</div>
+        <div style="align-self:flex-end;display:flex;align-items:center;gap:10px;font:400 36px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:8px 26px"><span style="width:30px;height:30px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>32 <span style="font:400 22px Bitter,serif;color:#5a4a3a">· 8 short</span></div></div>
+    </div>
+    <div style="position:relative;background:#f3e6c8;border:5px solid #241b14;padding:30px 32px;display:flex;gap:28px;align-items:center;box-shadow:10px 10px 0 #241b14">
+      <div style="position:absolute;top:-18px;left:50%;width:32px;height:32px;margin-left:-16px;border-radius:50%;background:#c9932f;border:4px solid #241b14"></div>
+      <div style="position:absolute;top:20px;right:20px;width:84px;height:84px;border-radius:50%;background:#3e6e9e;border:4px solid #241b14;box-shadow:inset 0 0 0 6px rgba(0,0,0,.15);display:grid;place-items:center;font:600 16px Bitter,serif;color:#f3e6c8;letter-spacing:.12em">RARE</div>
+      <div style="width:150px;height:150px;flex:none;background:#b4472b;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/ghoststep.png" style="width:116px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0;flex:1"><div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#b4472b">NEW LINE</div><div style="font:400 54px 'Alfa Slab One',serif;line-height:1">Ghost Step</div><div style="font:400 28px Bitter,serif;line-height:1.3">+12% dodge a rank. Trade: −5% max HP a rank.</div>
+        <div style="align-self:flex-end;display:flex;align-items:center;gap:10px;font:400 36px 'Alfa Slab One',serif;background:#c9932f;border:4px solid #241b14;padding:8px 26px;box-shadow:5px 5px 0 #241b14"><span style="width:30px;height:30px;border-radius:50%;background:#f3e6c8;border:3px solid #241b14"></span>14</div></div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:90px;left:48px;right:48px;display:flex;justify-content:center"><div style="width:420px;text-align:center;font:400 34px 'Alfa Slab One',serif;background:#f3e6c8;border:5px solid #241b14;padding:26px 0;box-shadow:8px 8px 0 #241b14">LEAVE</div></div>
+</div></div>
+</div>
+
+<!-- 12 Stranger -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">12 THE STRANGER</b> · he fills the screen; the price is a chunk cut out of your health bar, not a sentence.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="12 Stranger" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:rgba(30,18,26,.86)"></div>
+  <div style="position:absolute;top:60px;left:0;right:0;display:flex;flex-direction:column;align-items:center">
+    <div style="font:600 30px Bitter,serif;letter-spacing:.35em;color:#e2cfa4">★ NO NAME ★</div>
+    <div style="font:400 120px 'Alfa Slab One',serif;line-height:1;color:#f3e6c8;text-shadow:8px 8px 0 #241b14">THE STRANGER</div>
+  </div>
+  <div style="position:absolute;top:320px;left:120px;width:840px;height:660px;background:repeating-linear-gradient(135deg,rgba(243,230,200,.08) 0 14px,transparent 14px 28px);border:4px dashed rgba(243,230,200,.4);display:flex;align-items:flex-end;justify-content:center;padding-bottom:24px;font:500 22px 'JetBrains Mono',monospace;color:#e2cfa4;text-align:center;line-height:1.4">the Stranger, hooded, camera-facing cut-out<br>840 × 660 · holding the item out</div>
+  <div style="position:absolute;top:1012px;left:0;right:0;text-align:center;font:italic 400 34px Bitter,serif;color:#e2cfa4">“A piece of you, for a piece of the world.”</div>
+  <div style="position:absolute;top:1100px;left:60px;right:60px;background:#f3e6c8;border:6px solid #241b14;box-shadow:10px 10px 0 #241b14;padding:30px 34px;display:flex;flex-direction:column;gap:22px">
+    <div style="position:relative;display:flex;gap:28px;align-items:center">
+      <div style="position:absolute;top:-10px;right:0;width:84px;height:84px;border-radius:50%;background:#8a4fb0;border:4px solid #241b14;box-shadow:inset 0 0 0 6px rgba(0,0,0,.15);display:grid;place-items:center;font:600 16px Bitter,serif;color:#f3e6c8;letter-spacing:.12em">EPIC</div>
+      <div style="width:160px;height:160px;flex:none;background:#6e8b5e;border:5px solid #241b14;border-radius:12px;display:grid;place-items:center"><img src="icons/guillotine.png" style="width:124px"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0;padding-right:100px"><div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#6e8b5e">PASSIVE · STRAIGHT TO LV 2</div><div style="font:400 60px 'Alfa Slab One',serif;line-height:1">Guillotine</div><div style="font:400 28px 'Alfa Slab One',serif;color:#c9932f">★★<span style="color:#e2cfa4;-webkit-text-stroke:2px #241b14">★★★</span></div><div style="font:400 30px Bitter,serif;line-height:1.3">Creatures under 14% health die outright.</div></div>
+    </div>
+    <div style="border-top:4px solid #241b14;padding-top:22px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;font:600 20px Bitter,serif;letter-spacing:.15em;color:#b4472b"><span>THE PRICE · MAX HP FOR THE REST OF THE RUN</span><span>110 → 94</span></div>
+      <div style="height:40px;background:#e2cfa4;border:4px solid #241b14;display:flex"><div style="width:85%;background:#6e8b5e"></div><div style="flex:1;background:repeating-linear-gradient(45deg,#b4472b 0 8px,#241b14 8px 12px)"></div></div>
+      <div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">No reroll. No second offer. He does not haggle.</div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:90px;left:48px;right:48px;display:flex;gap:24px">
+    <div style="flex:1;text-align:center;font:400 34px 'Alfa Slab One',serif;background:#f3e6c8;border:5px solid #241b14;padding:30px 0;box-shadow:8px 8px 0 #241b14">WALK AWAY</div>
+    <div style="flex:1.4;text-align:center;font:400 44px 'Alfa Slab One',serif;background:#c9932f;border:5px solid #241b14;padding:26px 0;box-shadow:8px 8px 0 #241b14">DEAL</div>
+  </div>
+</div></div>
+</div>
+
+<!-- 13 Pause build -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">13 PAUSE · BUILD</b> · every held item as a row that says what it does; one is open for the numbers.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="13 Pause build" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:rgba(48,30,14,.78)"></div>
+  <div style="position:absolute;top:60px;left:48px;right:48px;display:flex;align-items:flex-end;justify-content:space-between">
+    <div style="font:400 110px 'Alfa Slab One',serif;line-height:1;color:#f3e6c8;text-shadow:8px 8px 0 #241b14">PAUSED</div>
+    <div style="font:400 40px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 24px;box-shadow:5px 5px 0 #241b14;margin-bottom:12px">01:01 · Stage 1</div>
+  </div>
+  <div style="position:absolute;top:230px;left:48px;right:48px;display:flex">
+    <div style="font:400 30px 'Alfa Slab One',serif;background:#f3e6c8;border:5px solid #241b14;border-bottom:none;padding:16px 36px">Build</div>
+    <div style="font:400 30px 'Alfa Slab One',serif;background:#e2cfa4;border:5px solid #241b14;border-left:none;border-bottom:none;padding:16px 36px;color:#5a4a3a">Stats</div>
+    <div style="font:400 30px 'Alfa Slab One',serif;background:#e2cfa4;border:5px solid #241b14;border-left:none;border-bottom:none;padding:16px 36px;color:#5a4a3a">Options</div>
+    <div style="flex:1;border-bottom:5px solid #241b14"></div>
+  </div>
+  <div style="position:absolute;top:312px;left:48px;right:48px;background:#f3e6c8;border:5px solid #241b14;border-top:none;padding:24px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;gap:20px;border:4px solid #241b14;padding:14px 18px"><div style="width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/hornet.png" style="width:76px"></div><div style="flex:1;min-width:0"><div style="font:400 36px 'Alfa Slab One',serif;line-height:1">Hornet Nest</div><div style="font:400 24px Bitter,serif;color:#5a4a3a">3 aimed hornets a shot, 12 each</div></div><div style="font:400 24px 'Alfa Slab One',serif;color:#c9932f">★★★<span style="color:#e2cfa4;-webkit-text-stroke:1.5px #241b14">★★★★★</span></div><div style="font:400 40px 'Alfa Slab One',serif;color:#5a4a3a">›</div></div>
+    <div style="border:4px solid #241b14;padding:14px 18px 18px;display:flex;flex-direction:column;gap:14px;background:#f3e6c8;box-shadow:inset 0 0 0 4px #c9932f">
+      <div style="display:flex;align-items:center;gap:20px"><div style="width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/turret.png" style="width:76px"></div><div style="flex:1;min-width:0"><div style="font:400 36px 'Alfa Slab One',serif;line-height:1">Turret Buddy</div><div style="font:400 24px Bitter,serif;color:#5a4a3a">A turret that follows and fires, 8 a shot</div></div><div style="display:flex;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span><span style="width:24px;height:24px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span><span style="width:24px;height:24px;border-radius:50%;background:#e2cfa4;border:3px solid #241b14"></span></div><div style="font:400 40px 'Alfa Slab One',serif;color:#5a4a3a;transform:rotate(90deg)">›</div></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;background:#e2cfa4;border:4px solid #241b14;padding:14px 18px;font:400 20px Bitter,serif;color:#5a4a3a"><div>damage<br><b style="font:400 32px 'Alfa Slab One',serif;color:#241b14">8</b></div><div>cooldown<br><b style="font:400 32px 'Alfa Slab One',serif;color:#241b14">0.8 s</b></div><div>range<br><b style="font:400 32px 'Alfa Slab One',serif;color:#241b14">6 m</b></div><div>this run<br><b style="font:400 32px 'Alfa Slab One',serif;color:#241b14">1,204</b></div></div>
+      <div style="display:flex;gap:12px;align-items:center;font:400 22px Bitter,serif"><span style="color:#5a4a3a">Paths</span><span style="background:#4a3358;color:#f3e6c8;padding:4px 14px;font:400 20px 'Alfa Slab One',serif">Watchtower</span><span style="background:#4a3358;color:#f3e6c8;padding:4px 14px;font:400 20px 'Alfa Slab One',serif">Bunker</span><span style="color:#5a4a3a">· one more and it can evolve</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:20px;border:4px solid #241b14;padding:14px 18px"><div style="width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/bigmouth.png" style="width:76px"></div><div style="flex:1;min-width:0"><div style="font:400 36px 'Alfa Slab One',serif;line-height:1">Big Mouth</div><div style="font:400 24px Bitter,serif;color:#5a4a3a">A beam through the crowd, 4 a tick</div></div><div style="font:400 24px 'Alfa Slab One',serif;color:#c9932f">★★★★<span style="color:#e2cfa4;-webkit-text-stroke:1.5px #241b14">★★★★</span></div><div style="font:400 40px 'Alfa Slab One',serif;color:#5a4a3a">›</div></div>
+    <div style="display:flex;align-items:center;gap:20px;border:4px solid #241b14;padding:14px 18px"><div style="width:96px;height:96px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/molotov.png" style="width:76px"></div><div style="flex:1;min-width:0"><div style="font:400 36px 'Alfa Slab One',serif;line-height:1">Molotov</div><div style="font:400 24px Bitter,serif;color:#5a4a3a">A burning pool for 4 s · Oil Slick</div></div><div style="font:400 24px 'Alfa Slab One',serif;color:#c9932f">★★★<span style="color:#e2cfa4;-webkit-text-stroke:1.5px #241b14">★★★★★</span></div><div style="font:400 40px 'Alfa Slab One',serif;color:#5a4a3a">›</div></div>
+    <div style="display:flex;align-items:center;gap:20px;border:4px solid #241b14;padding:14px 18px"><div style="width:96px;height:96px;background:#6e8b5e;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/magnet.png" style="width:70px"></div><div style="flex:1;min-width:0"><div style="font:400 36px 'Alfa Slab One',serif;line-height:1">Magnet</div><div style="font:400 24px Bitter,serif;color:#5a4a3a">+50% pickup radius</div></div><div style="font:400 24px 'Alfa Slab One',serif;color:#c9932f">★★<span style="color:#e2cfa4;-webkit-text-stroke:1.5px #241b14">★★★</span></div><div style="font:400 40px 'Alfa Slab One',serif;color:#5a4a3a">›</div></div>
+    <div style="display:flex;align-items:center;gap:20px;border:4px solid #241b14;padding:14px 18px"><div style="width:96px;height:96px;background:#b4472b;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/energyshield.png" style="width:70px"></div><div style="flex:1;min-width:0"><div style="font:400 36px 'Alfa Slab One',serif;line-height:1">Energy Shield</div><div style="font:400 24px Bitter,serif;color:#5a4a3a">A 40-point shield, back after 6 s · maxed, can evolve</div></div><div style="font:400 24px 'Alfa Slab One',serif;color:#c9932f">★★★★</div><div style="font:400 40px 'Alfa Slab One',serif;color:#5a4a3a">›</div></div>
+  </div>
+  <div style="position:absolute;bottom:90px;left:48px;right:48px;font:400 60px 'Alfa Slab One',serif;text-align:center;background:#c9932f;border:6px solid #241b14;padding:26px;box-shadow:10px 10px 0 #241b14;line-height:1">RESUME</div>
+</div></div>
+</div>
+
+<!-- 13b Pause stats -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">13 PAUSE · STATS</b> · two columns, all on one screen; tap a stat for its sources.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="13 Pause stats" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:rgba(48,30,14,.78)"></div>
+  <div style="position:absolute;top:60px;left:48px;right:48px;display:flex;align-items:flex-end;justify-content:space-between">
+    <div style="font:400 110px 'Alfa Slab One',serif;line-height:1;color:#f3e6c8;text-shadow:8px 8px 0 #241b14">PAUSED</div>
+    <div style="font:400 40px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 24px;box-shadow:5px 5px 0 #241b14;margin-bottom:12px">01:01 · Stage 1</div>
+  </div>
+  <div style="position:absolute;top:230px;left:48px;right:48px;display:flex">
+    <div style="font:400 30px 'Alfa Slab One',serif;background:#e2cfa4;border:5px solid #241b14;border-bottom:none;padding:16px 36px;color:#5a4a3a">Build</div>
+    <div style="font:400 30px 'Alfa Slab One',serif;background:#f3e6c8;border:5px solid #241b14;border-left:none;border-bottom:none;padding:16px 36px">Stats</div>
+    <div style="font:400 30px 'Alfa Slab One',serif;background:#e2cfa4;border:5px solid #241b14;border-left:none;border-bottom:none;padding:16px 36px;color:#5a4a3a">Options</div>
+    <div style="flex:1;border-bottom:5px solid #241b14"></div>
+  </div>
+  <div style="position:absolute;top:312px;left:48px;right:48px;background:#f3e6c8;border:5px solid #241b14;border-top:none;padding:30px;display:grid;grid-template-columns:1fr 1fr;gap:0 40px;font:400 28px Bitter,serif">
+    <div style="grid-column:1/-1;background:#e2cfa4;border:4px solid #241b14;padding:16px 20px;margin-bottom:16px;display:flex;flex-direction:column;gap:6px"><div style="display:flex;justify-content:space-between"><span>Max HP</span><b style="font:400 36px 'Alfa Slab One',serif">110</b></div><div style="display:flex;justify-content:space-between;color:#5a4a3a;font-size:24px"><span>Base</span><span>100</span></div><div style="display:flex;justify-content:space-between;color:#5a4a3a;font-size:24px"><span>Astro's suit</span><span>+10%</span></div><div style="display:flex;justify-content:space-between;color:#5a4a3a;font-size:24px"><span>Grit · Padding rank 1</span><span>+10%</span></div><div style="display:flex;justify-content:space-between;color:#b4472b;font-size:24px"><span>Thirst rank 1</span><span>−6%</span></div></div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Armour</span><b style="font:400 30px 'Alfa Slab One',serif">1</b></div><div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Regen</span><b style="font:400 30px 'Alfa Slab One',serif">0 /s</b></div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Move speed</span><b style="font:400 30px 'Alfa Slab One',serif">3.6</b></div><div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Might</span><b style="font:400 30px 'Alfa Slab One',serif">100%</b></div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Cooldown</span><b style="font:400 30px 'Alfa Slab One',serif">1.00 s</b></div><div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Area</span><b style="font:400 30px 'Alfa Slab One',serif">100%</b></div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Projectile speed</span><b style="font:400 30px 'Alfa Slab One',serif">100%</b></div><div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Duration</span><b style="font:400 30px 'Alfa Slab One',serif">1.00 s</b></div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Projectiles</span><b style="font:400 30px 'Alfa Slab One',serif">+0</b></div><div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Pickup radius</span><b style="font:400 30px 'Alfa Slab One',serif">1.5 m</b></div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Luck</span><b style="font:400 30px 'Alfa Slab One',serif">0%</b></div><div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Greed</span><b style="font:400 30px 'Alfa Slab One',serif">100%</b></div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>XP gain</span><b style="font:400 30px 'Alfa Slab One',serif">108%</b></div><div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Life steal</span><b style="font:400 30px 'Alfa Slab One',serif">1.5%</b></div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Dodge</span><b style="font:400 30px 'Alfa Slab One',serif">0%</b></div><div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Knockback</span><b style="font:400 30px 'Alfa Slab One',serif">100%</b></div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Thorns</span><b style="font:400 30px 'Alfa Slab One',serif">8</b></div><div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:2px solid #e2cfa4"><span>Execute under</span><b style="font:400 30px 'Alfa Slab One',serif">0%</b></div>
+    <div style="display:flex;justify-content:space-between;padding:12px 0"><span>Revives</span><b style="font:400 30px 'Alfa Slab One',serif">1</b></div><div style="display:flex;justify-content:space-between;padding:12px 0"><span>Kills</span><b style="font:400 30px 'Alfa Slab One',serif">123</b></div>
+  </div>
+  <div style="position:absolute;bottom:90px;left:48px;right:48px;font:400 60px 'Alfa Slab One',serif;text-align:center;background:#c9932f;border:6px solid #241b14;padding:26px;box-shadow:10px 10px 0 #241b14;line-height:1">RESUME</div>
+</div></div>
+</div>
+
+<!-- 13c Pause options -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">13 PAUSE · OPTIONS</b> · only what you'd change mid-run. Everything else stays in Settings.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="13 Pause options" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:rgba(48,30,14,.78)"></div>
+  <div style="position:absolute;top:60px;left:48px;right:48px;display:flex;align-items:flex-end;justify-content:space-between">
+    <div style="font:400 110px 'Alfa Slab One',serif;line-height:1;color:#f3e6c8;text-shadow:8px 8px 0 #241b14">PAUSED</div>
+    <div style="font:400 40px 'Alfa Slab One',serif;background:#f3e6c8;border:4px solid #241b14;padding:6px 24px;box-shadow:5px 5px 0 #241b14;margin-bottom:12px">01:01 · Stage 1</div>
+  </div>
+  <div style="position:absolute;top:230px;left:48px;right:48px;display:flex">
+    <div style="font:400 30px 'Alfa Slab One',serif;background:#e2cfa4;border:5px solid #241b14;border-bottom:none;padding:16px 36px;color:#5a4a3a">Build</div>
+    <div style="font:400 30px 'Alfa Slab One',serif;background:#e2cfa4;border:5px solid #241b14;border-left:none;border-bottom:none;padding:16px 36px;color:#5a4a3a">Stats</div>
+    <div style="font:400 30px 'Alfa Slab One',serif;background:#f3e6c8;border:5px solid #241b14;border-left:none;border-bottom:none;padding:16px 36px">Options</div>
+    <div style="flex:1;border-bottom:5px solid #241b14"></div>
+  </div>
+  <div style="position:absolute;top:312px;left:48px;right:48px;background:#f3e6c8;border:5px solid #241b14;border-top:none;padding:40px 30px;display:flex;flex-direction:column;gap:44px">
+    <div style="display:flex;align-items:center;gap:30px"><span style="font:400 30px Bitter,serif;width:200px">Sound</span><div style="flex:1;height:26px;background:#e2cfa4;border:4px solid #241b14;position:relative"><div style="width:80%;height:100%;background:#c9932f"></div><div style="position:absolute;left:80%;top:-24px;margin-left:-40px;width:80px;height:70px;background:#f3e6c8;border:5px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center;font:400 28px 'Alfa Slab One',serif">80</div></div></div>
+    <div style="display:flex;align-items:center;gap:30px"><span style="font:400 30px Bitter,serif;width:200px">Music</span><div style="flex:1;height:26px;background:#e2cfa4;border:4px solid #241b14;position:relative"><div style="width:0%;height:100%;background:#c9932f"></div><div style="position:absolute;left:0%;top:-24px;margin-left:-4px;width:80px;height:70px;background:#f3e6c8;border:5px solid #241b14;box-shadow:5px 5px 0 #241b14;display:grid;place-items:center;font:400 28px 'Alfa Slab One',serif">0</div></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between"><span style="font:400 30px Bitter,serif">Screen shake</span><div style="width:130px;height:70px;background:#c9932f;border:5px solid #241b14;position:relative"><div style="position:absolute;right:5px;top:5px;width:50px;height:50px;background:#f3e6c8;border:5px solid #241b14;box-sizing:border-box"></div></div></div>
+    <div style="border-top:4px solid #241b14;padding-top:36px;display:flex;align-items:center;justify-content:space-between"><div><div style="font:400 30px Bitter,serif">Abandon the run</div><div style="font:400 24px Bitter,serif;color:#5a4a3a">gold picked up so far is lost · asks twice</div></div><div style="font:400 28px 'Alfa Slab One',serif;background:#b4472b;color:#f3e6c8;border:4px solid #241b14;padding:12px 28px;box-shadow:5px 5px 0 #241b14">Abandon</div></div>
+  </div>
+  <div style="position:absolute;bottom:90px;left:48px;right:48px;font:400 60px 'Alfa Slab One',serif;text-align:center;background:#c9932f;border:6px solid #241b14;padding:26px;box-shadow:10px 10px 0 #241b14;line-height:1">RESUME</div>
+</div></div>
+</div>
+
+<!-- 14 Down -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">14 DOWN!</b> · the count owns the screen; one line says who did it. The hit log goes to the developer menu.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="14 Down" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:rgba(90,30,20,.82)"></div>
+  <div style="position:absolute;top:110px;left:0;right:0;display:flex;flex-direction:column;align-items:center">
+    <div style="font:600 30px Bitter,serif;letter-spacing:.35em;color:#f3e6c8">★ 1 CHANCE LEFT ★</div>
+    <div style="font:400 170px 'Alfa Slab One',serif;line-height:1;color:#f3e6c8;text-shadow:8px 8px 0 #241b14">DOWN!</div>
+  </div>
+  <div style="position:absolute;top:470px;left:50%;margin-left:-260px;width:520px;height:520px;border-radius:50%;background:#f3e6c8;border:10px solid #241b14;box-shadow:14px 14px 0 #241b14;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <div style="font:400 300px 'Alfa Slab One',serif;line-height:.9">8</div>
+    <div style="font:italic 400 30px Bitter,serif;color:#5a4a3a">get up</div>
+  </div>
+  <div style="position:absolute;top:1060px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:10px">
+    <div style="display:flex;align-items:center;gap:16px;font:400 34px 'Alfa Slab One',serif;color:#f3e6c8;text-shadow:3px 3px 0 #241b14"><img src="icons/crown.png" style="width:44px">The Tumbleweed King put you down.</div>
+    <div style="font:400 26px Bitter,serif;color:#e2cfa4">01:01 · 123 kills · Lv 3</div>
+  </div>
+  <div style="position:absolute;bottom:90px;left:48px;right:48px;display:flex;flex-direction:column;gap:24px">
+    <div style="font:400 44px 'Alfa Slab One',serif;text-align:center;background:#c9932f;border:5px solid #241b14;padding:28px;box-shadow:8px 8px 0 #241b14;line-height:1">GET UP · WATCH AN AD</div>
+    <div style="display:flex;gap:24px">
+      <div style="flex:1.4;display:flex;align-items:center;justify-content:center;gap:14px;font:400 34px 'Alfa Slab One',serif;background:#e2cfa4;border:5px solid #241b14;padding:26px;opacity:.45;line-height:1">GET UP <span style="display:inline-flex;align-items:center;gap:8px"><span style="width:28px;height:28px;border-radius:50%;background:#c9932f;border:3px solid #241b14"></span>150</span></div>
+      <div style="flex:1;text-align:center;font:400 34px 'Alfa Slab One',serif;background:#b4472b;color:#f3e6c8;border:5px solid #241b14;padding:26px;box-shadow:8px 8px 0 #241b14;line-height:1">STAY DOWN</div>
+    </div>
+  </div>
+</div></div>
+</div>
+
+<!-- 15 Stage clear -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">15 STAGE CLEAR</b> · the two roads as two cards you tap: the strongbox counts up at ×1.25, the portal shows what stage 2 costs and gives.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="15 Stage clear" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;inset:0;background:rgba(48,30,14,.78)"></div>
+  <div style="position:absolute;top:100px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+    <div style="font:400 30px 'Alfa Slab One',serif;letter-spacing:.08em;background:#241b14;color:#f3e6c8;padding:8px 30px">BOSS DOWN</div>
+    <div style="font:400 108px 'Alfa Slab One',serif;line-height:1;color:#f3e6c8;text-shadow:8px 8px 0 #241b14;white-space:nowrap">STAGE 1 CLEAR</div>
+    <div style="font:italic 400 30px Bitter,serif;color:#e2cfa4">05:00 · 412 kills · Lv 11. Bank it, or push your luck.</div>
+  </div>
+  <div style="position:absolute;top:500px;left:48px;right:48px;display:flex;flex-direction:column;gap:40px">
+    <div style="background:#f3e6c8;border:6px solid #241b14;box-shadow:12px 12px 0 #241b14;padding:36px 40px;display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><div style="font:400 64px 'Alfa Slab One',serif;line-height:1">Extract</div><div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#6e8b5e">SAFE · RUN ENDS</div></div>
+      <div style="display:flex;align-items:center;gap:26px">
+        <div style="width:180px;height:180px;flex:none;background:repeating-linear-gradient(135deg,rgba(36,27,20,.12) 0 12px,transparent 12px 24px);border:4px dashed rgba(36,27,20,.5);display:grid;place-items:center;font:500 18px 'JetBrains Mono',monospace;color:#5a4a3a;text-align:center">strongbox<br>art</div>
+        <div style="display:flex;flex-direction:column;gap:4px"><div style="font:400 26px Bitter,serif;color:#5a4a3a">This run's gold, at ×1.25</div><div style="display:flex;align-items:baseline;gap:14px"><span style="font:400 40px 'Alfa Slab One',serif;color:#5a4a3a;text-decoration:line-through">312</span><span style="font:400 40px 'Alfa Slab One',serif;color:#5a4a3a">→</span><span style="display:inline-flex;align-items:center;gap:12px;font:400 96px 'Alfa Slab One',serif;line-height:1;color:#a8792a"><span style="width:48px;height:48px;border-radius:50%;background:#c9932f;border:4px solid #241b14"></span>390</span></div></div>
+      </div>
+    </div>
+    <div style="background:#f3e6c8;border:6px solid #241b14;box-shadow:12px 12px 0 #241b14;padding:36px 40px;display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center"><div style="font:400 64px 'Alfa Slab One',serif;line-height:1">Continue</div><div style="font:600 20px Bitter,serif;letter-spacing:.15em;color:#b4472b">STAGE 2 · HARDER</div></div>
+      <div style="display:flex;align-items:center;gap:26px">
+        <div style="width:180px;height:180px;flex:none;background:repeating-linear-gradient(135deg,rgba(36,27,20,.12) 0 12px,transparent 12px 24px);border:4px dashed rgba(36,27,20,.5);display:grid;place-items:center;font:500 18px 'JetBrains Mono',monospace;color:#5a4a3a;text-align:center">portal<br>art</div>
+        <div style="display:flex;flex-direction:column;gap:10px;font:400 28px Bitter,serif">
+          <div style="display:flex;align-items:center;gap:12px"><span style="font:400 34px 'Alfa Slab One',serif;color:#6e8b5e">+2</span>weapon slots open</div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="font:400 34px 'Alfa Slab One',serif;color:#6e8b5e">×2</span>gold per pickup, kept at ×1.0</div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="font:400 34px 'Alfa Slab One',serif;color:#b4472b">240</span>creatures at once · Elites every minute</div>
+          <div style="font:italic 400 24px Bitter,serif;color:#5a4a3a">Die out there and the 312 stays in the sand.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:80px;left:0;right:0;text-align:center;font:italic 400 28px Bitter,serif;color:#e2cfa4">Tap a card. The portal stays open as long as you like.</div>
+</div></div>
+</div>
+
+<!-- 16 Results -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">16 RESULTS</b> · the hero, the headline, a new-best seal, gold counting up, then the damage bars.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="16 Results" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:linear-gradient(rgba(243,230,200,.82),rgba(243,230,200,.82)),url(bg-run.png) center/cover;font-family:Bitter,serif;color:#241b14">
+  <div style="position:absolute;top:70px;left:0;right:0;display:flex;flex-direction:column;align-items:center">
+    <div style="font:600 30px Bitter,serif;letter-spacing:.35em">★ EXTRACTED ★</div>
+    <div style="font:400 120px 'Alfa Slab One',serif;line-height:1;color:#241b14">10:00</div>
+    <div style="font:400 30px Bitter,serif;color:#5a4a3a;margin-top:6px">Stage 2 · Lv 47 · 1,204 kills · 3 chests · 1 evolution</div>
+  </div>
+  <div style="position:absolute;top:400px;left:60px;right:60px;background:#f3e6c8;border:6px solid #241b14;box-shadow:12px 12px 0 #241b14;padding:30px 36px;display:flex;align-items:center;gap:30px">
+    <div style="position:relative;width:200px;height:200px;flex:none;border-radius:50%;background:#e2cfa4;border:6px solid #241b14;overflow:hidden;display:grid;place-items:center"><img src="icons/drifter.png" style="width:200px"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;flex:1">
+      <div style="font:400 26px Bitter,serif;color:#5a4a3a">Banked at ×1.25</div>
+      <div style="display:flex;align-items:center;gap:14px;font:400 110px 'Alfa Slab One',serif;line-height:1;color:#a8792a"><span style="width:56px;height:56px;border-radius:50%;background:#c9932f;border:4px solid #241b14"></span>+1,240</div>
+      <div style="font:400 26px Bitter,serif;color:#5a4a3a">104,711 → 105,951</div>
+    </div>
+    <div style="position:absolute;top:-40px;right:-30px;width:150px;height:150px;border-radius:50%;background:#b4472b;border:6px solid #241b14;box-shadow:inset 0 0 0 8px rgba(0,0,0,.15),6px 6px 0 #241b14;display:grid;place-items:center;font:600 20px Bitter,serif;color:#f3e6c8;letter-spacing:.12em;text-align:center;line-height:1.2;transform:rotate(12deg)">NEW<br>BEST</div>
+  </div>
+  <div style="position:absolute;top:760px;left:60px;right:60px;display:flex;flex-direction:column;gap:16px">
+    <div style="font:600 22px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">DAMAGE BY WEAPON</div>
+    <div style="display:flex;align-items:center;gap:20px"><div style="width:88px;height:88px;background:#d9662a;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/hornet.png" style="width:70px"></div><div style="flex:1;height:44px;background:#e2cfa4;border:4px solid #241b14"><div style="width:46%;height:100%;background:#c9932f;display:flex;align-items:center;padding-left:14px;font:400 26px 'Alfa Slab One',serif;white-space:nowrap">Killer Swarm · 6,540</div></div><div style="font:400 28px 'Alfa Slab One',serif;width:90px;text-align:right">46%</div></div>
+    <div style="display:flex;align-items:center;gap:20px"><div style="width:88px;height:88px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/bigmouth.png" style="width:70px"></div><div style="flex:1;height:44px;background:#e2cfa4;border:4px solid #241b14"><div style="width:24%;height:100%;background:#c9932f;display:flex;align-items:center;padding-left:14px;font:400 26px 'Alfa Slab One',serif;white-space:nowrap">Big Mouth · 3,410</div></div><div style="font:400 28px 'Alfa Slab One',serif;width:90px;text-align:right">24%</div></div>
+    <div style="display:flex;align-items:center;gap:20px"><div style="width:88px;height:88px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/turret.png" style="width:70px"></div><div style="flex:1;height:44px;background:#e2cfa4;border:4px solid #241b14"><div style="width:18%;height:100%;background:#c9932f;display:flex;align-items:center;padding-left:14px;font:400 26px 'Alfa Slab One',serif;white-space:nowrap">Turret · 2,560</div></div><div style="font:400 28px 'Alfa Slab One',serif;width:90px;text-align:right">18%</div></div>
+    <div style="display:flex;align-items:center;gap:20px"><div style="width:88px;height:88px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/molotov.png" style="width:70px"></div><div style="flex:1;height:44px;background:#e2cfa4;border:4px solid #241b14"><div style="width:12%;height:100%;background:#c9932f"></div></div><div style="font:400 28px 'Alfa Slab One',serif;width:90px;text-align:right">12%</div></div>
+  </div>
+  <div style="position:absolute;top:1300px;left:60px;right:60px;display:flex;align-items:center;gap:20px;background:#f3e6c8;border:5px solid #241b14;padding:20px 26px;box-shadow:6px 6px 0 #241b14">
+    <div style="width:88px;height:88px;background:#c9932f;border:4px solid #241b14;border-radius:10px;display:grid;place-items:center"><img src="icons/orbitsaws.png" style="width:70px"></div>
+    <div><div style="font:600 18px Bitter,serif;letter-spacing:.15em;color:#6e8b5e">UNLOCKED</div><div style="font:400 36px 'Alfa Slab One',serif;line-height:1">Orbit Saws</div></div>
+    <div style="margin-left:auto;font:400 24px Bitter,serif;color:#5a4a3a">survived 8:00</div>
+  </div>
+  <div style="position:absolute;bottom:80px;left:60px;right:60px;display:flex;flex-direction:column;gap:22px">
+    <div style="font:400 72px 'Alfa Slab One',serif;text-align:center;background:#c9932f;border:6px solid #241b14;padding:24px;box-shadow:10px 10px 0 #241b14;line-height:1">PLAY AGAIN</div>
+    <div style="display:flex;gap:22px"><div style="flex:1;font:400 30px 'Alfa Slab One',serif;text-align:center;background:#f3e6c8;border:5px solid #241b14;padding:20px 0;box-shadow:6px 6px 0 #241b14">The Mirror</div><div style="flex:1;font:400 30px 'Alfa Slab One',serif;text-align:center;background:#f3e6c8;border:5px solid #241b14;padding:20px 0;box-shadow:6px 6px 0 #241b14">Title</div></div>
+  </div>
+</div></div>
+</div>
+
+<!-- 17 Developer menu -->
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:400 20px Bitter,serif;color:#e2cfa4"><b style="font:400 18px 'Alfa Slab One',serif;color:#c9932f">17 DEVELOPER MENU</b> · hold the version label in Settings for 2 s. Everything that leaked lives here; the arena itself is unchanged.</div>
+<div style="width:540px;height:960px;flex:none;overflow:hidden;border-radius:28px;border:6px solid #241b14;background:#241b14">
+<div data-screen-label="17 Developer menu" style="width:1080px;height:1920px;transform:scale(.5);transform-origin:0 0;position:relative;background:#241b14;font-family:'JetBrains Mono',monospace;color:#f3e6c8">
+  <div style="position:absolute;top:44px;left:36px;right:36px;display:flex;align-items:center;gap:24px">
+    <div style="width:96px;height:96px;background:#f3e6c8;border:5px solid #241b14;display:grid;place-items:center;font:400 60px 'Alfa Slab One',serif;line-height:1;padding-bottom:8px;color:#241b14">‹</div>
+    <div style="font:500 44px 'JetBrains Mono',monospace">developer · v0.27 · build 1183</div>
+  </div>
+  <div style="position:absolute;top:200px;left:48px;right:48px;display:flex;flex-direction:column;gap:18px;font:500 30px 'JetBrains Mono',monospace">
+    <div style="border:3px solid #e2cfa4;padding:26px 30px;display:flex;justify-content:space-between"><span>Arena</span><span style="color:#c9932f">›</span></div>
+    <div style="border:3px solid #e2cfa4;padding:26px 30px;display:flex;justify-content:space-between"><span>Debug panel in run</span><span style="color:#c9932f">OFF</span></div>
+    <div style="border:3px solid #e2cfa4;padding:26px 30px;display:flex;justify-content:space-between"><span>Debug buttons on modals</span><span style="color:#c9932f">OFF</span></div>
+    <div style="border:3px solid #e2cfa4;padding:26px 30px;display:flex;justify-content:space-between"><span>Free revive button</span><span style="color:#c9932f">OFF</span></div>
+    <div style="border:3px solid #e2cfa4;padding:26px 30px;display:flex;justify-content:space-between"><span>Hit log on Down! · copy</span><span style="color:#c9932f">OFF</span></div>
+    <div style="border:3px solid #e2cfa4;padding:26px 30px;display:flex;justify-content:space-between"><span>Last run's last second</span><span style="color:#c9932f">›</span></div>
+    <div style="border:3px solid #e2cfa4;padding:26px 30px;display:flex;justify-content:space-between"><span>Recent system pauses</span><span style="color:#c9932f">›</span></div>
+    <div style="border:3px solid #e2cfa4;padding:26px 30px;display:flex;justify-content:space-between"><span>Hidden items · 14</span><span style="color:#c9932f">›</span></div>
+    <div style="border:3px solid #e2cfa4;padding:26px 30px;display:flex;flex-direction:column;gap:8px"><span>Save file</span><span style="font-size:22px;color:#e2cfa4;opacity:.7">user://save_v27.json</span></div>
+  </div>
+</div></div>
+</div>
+
+</div>
+
+<!-- ─────────────── FLOW + BUILD NOTES ─────────────── -->
+<div style="display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap;margin-top:12px">
+<div style="width:1000px;display:flex;flex-direction:column;gap:14px">
+  <div style="font:400 30px 'Alfa Slab One',serif;color:#f3e6c8">The flow</div>
+  <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:12px 12px 0 #241b14;padding:32px;color:#241b14;display:flex;flex-direction:column;gap:22px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font:400 20px 'Alfa Slab One',serif">
+      <span style="background:#c9932f;border:3px solid #241b14;padding:8px 14px">Launch</span><span>→</span><span style="background:#f3e6c8;border:3px solid #241b14;padding:8px 14px">Title · swipe hero</span><span>→</span><span style="background:#c9932f;border:3px solid #241b14;padding:8px 14px">PLAY</span><span>→</span><span style="background:#f3e6c8;border:3px solid #241b14;padding:8px 14px">Run · HUD</span><span>⇄</span><span style="background:#e2cfa4;border:3px solid #241b14;padding:8px 14px">Level-up / Path / Chest / Shop / Stranger</span><span>→</span><span style="background:#f3e6c8;border:3px solid #241b14;padding:8px 14px">Stage clear</span><span>→</span><span style="background:#f3e6c8;border:3px solid #241b14;padding:8px 14px">Results</span><span>→</span><span style="background:#c9932f;border:3px solid #241b14;padding:8px 14px">PLAY AGAIN</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px 40px;font:400 20px Bitter,serif;line-height:1.45">
+      <div><b style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">MERGED</b><br>Play setup → Title (swipe). Tap to continue → the gate at the end of every pick. Pause · Options → Settings, keeping only sound, music, shake, abandon. Hidden collection, debug buttons, hit log, pause log, save path → one developer menu.</div>
+      <div><b style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">REMOVED</b><br>Debug · Arena on the title. The version label on the title. Kills · alive and the stage name from the HUD. Empty and locked slots. The kind tag, level chip and flavour line from in-run cards. "Copy the log". Three red "not enough" lines.</div>
+      <div><b style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">REORDERED</b><br>Results leads with the hero and the gold, tables last. Stage clear leads with the two roads, not two sentences. The Mirror opens on the board, not the first card. The Collection opens on a grid with counts.</div>
+      <div><b style="font:600 14px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">FIRST RUN</b><br>Launch → title with the Drifter chosen → PLAY (one tap, 4 s in) → HUD with three hints in the toast slot over the first 30 s: "drag anywhere to walk", "he shoots by himself", "the purple is XP". First level-up at ~0:25 with a fourth hint on the card frame: "the seal is how rare it is". No tutorial screen.</div>
+    </div>
+  </div>
+</div>
+<div style="width:680px;display:flex;flex-direction:column;gap:14px">
+  <div style="font:400 30px 'Alfa Slab One',serif;color:#f3e6c8">Notes for the build</div>
+  <div style="background:#f3e6c8;border:5px solid #241b14;box-shadow:12px 12px 0 #241b14;padding:32px;color:#241b14;font:400 18px Bitter,serif;line-height:1.5;display:flex;flex-direction:column;gap:14px">
+    <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">CANVAS 1080 × 1920</b><br>Side margin 48. Modal header at y 110, content from y 470, buttons in the bottom 90–210. Menu back 96 × 96 at (36, 44); title 72 px slab. Thumb zone: nothing interactive between y 700 and 1600 in a run.</div>
+    <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">COLOUR</b><br>paper #F3E6C8 · aged #E2CFA4 · ink #241B14 · brass #C9932F · brass dark #A8792A · rock #B4472B · sage #6E8B5E · turquoise #3F8F8A · ember #D9662A · plum #4A3358 · rare #3E6E9E · epic #8A4FB0 · common #8A8F7A · XP #8A4FB0 · shield #3E6E9E · health #6E8B5E. Sepia dim rgba(48,30,14,.78); paper wash rgba(243,230,200,.82).</div>
+    <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">TYPE</b><br>Alfa Slab One (OFL): titles 150, screen names 72, card names 60, buttons 34–84, numbers 44–110. Bitter (OFL): effect text 30, notes 26, labels 20 tracked +15 %. Minimum 26 px on the phone.</div>
+    <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">SHAPES</b><br>No corner radius on panels; 10–14 px on icon plates; circles for seals, portraits, pause and the coin. Borders 4 px (small), 5 px (cards), 6 px (hero panels). Hard ink shadow offset 5/8/10/12 px by size, no blur. Pressed = shadow to 0, translate by the shadow. Locked = aged paper, 45 %.</div>
+    <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">BUILD ONCE</b><br>Icon plate (size, kind colour, level tag, path rivets). Wax seal (rarity). Item card (plate + seal + kind word + name + stars + effect; optional price button). Slab button (primary / secondary / danger / pressed / locked). Tab strip. Slider with value thumb. Switch. Two-way choice. Modal header (star line + slab title + italic line). Menu header. Toast, banner, edge pointer. Nine-slice: paper panel with 5 px ink border and 8 px shadow; brass button; wax seal.</div>
+    <div><b style="font:600 13px Bitter,serif;letter-spacing:.15em;color:#5a4a3a">ART TO PAINT</b><br>Full-body hero cut-outs (520 × 700), the Stranger (840 × 760), strongbox and portal cards (180 × 180), a chest for the loot screen, the mirror frame. Icons stay; their dark outlines sit well on brass, sage, rock, plum and turquoise plates; on paper they need the plate.</div>
+  </div>
+</div>
+</div>
+</section>
+</x-dc>
+</body>
+</html>

@@ -10,7 +10,8 @@ can tap exists. The route in use is Google Drive: Drive for Desktop is signed in
 
 ## Do
 
-1. `bash tools/ship.sh` from the repo root. It runs the parse check, the unit tests and the smoke run, exports the
+1. `bash tools/ship.sh` from the repo root. It runs the parse check, the unit tests, the smoke run, the arena check and
+   the touch audit (every control on every screen driven by a simulated finger), exports the
    signed **release** APK (`game/export/88fits.apk`, keystore in `tools/keys/`, git-ignored), verifies the signature,
    installs and launches on any phone adb can see, and overwrites `E:/My Drive/88fits builds/88fits.apk`.
    `--quick` skips tests and smoke run when only art changed; `--no-install` skips adb.

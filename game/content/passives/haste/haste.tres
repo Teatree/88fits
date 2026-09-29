@@ -14,6 +14,7 @@ target = "player"
 [resource]
 script = ExtResource("2_wacgh")
 levels = [[SubResource("Resource_wacgh")]]
+max_level = 5
 pairs_with = "lob_grenade"
 id = "haste"
 display_name = "Haste"

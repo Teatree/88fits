@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://redcanyon88fits1"]
+
+[ext_resource type="Script" path="res://world/maps/red_canyon/RedCanyon.gd" id="1"]
+
+[node name="RedCanyon" type="Node3D"]
+script = ExtResource("1")

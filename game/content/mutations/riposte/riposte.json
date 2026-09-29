@@ -1,0 +1,31 @@
+{
+  "id": "riposte",
+  "name": "Riposte",
+  "flavour": "Back on your heels.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "sabre",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "Strokes come 25% faster and throw what they hit twice as far.",
+  "vfx": "a hard shove of light on every cut",
+  "effects": [
+    {
+      "stat": "cooldown",
+      "op": "mul",
+      "value": -0.25
+    },
+    {
+      "stat": "knockback",
+      "op": "add",
+      "value": 9
+    }
+  ],
+  "params": {},
+  "art_prompt": "a curved sabre mid-parry with a burst of white force pushing outward from the blade",
+  "placeholder": {
+    "color": "#C0D0F0",
+    "glyph": "star"
+  }
+}

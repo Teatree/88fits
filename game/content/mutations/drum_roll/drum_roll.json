@@ -1,0 +1,22 @@
+{
+  "id": "drum_roll",
+  "name": "Drum Roll",
+  "flavour": "Buck fires faster the faster he runs.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "tommy_gun",
+  "kind": "hero",
+  "element": "",
+  "hero": "buck",
+  "text": "+1 round in the burst for every 25% of momentum.",
+  "vfx": "the burst grows as the momentum trail grows",
+  "effects": [],
+  "params": {
+    "momentum_rounds": 4
+  },
+  "art_prompt": "a tommy gun drum magazine with speed lines and a lightning bolt",
+  "placeholder": {
+    "color": "#F0C050",
+    "glyph": "star"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "id": "land_mine",
+  "name": "Land Mine",
+  "flavour": "Step on it. Please.",
+  "rarity": "rare",
+  "weight": 6,
+  "behavior": "MineLayer",
+  "targeting": "ground",
+  "base": {
+    "damage": 28,
+    "cooldown": 2.6,
+    "amount": 1,
+    "area": 2.4,
+    "knockback": 9.0,
+    "lifetime": 25
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.15
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.15
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "minefield",
+  "params": {
+    "max_mines": 8,
+    "trigger_radius": 0.7
+  },
+  "sfx": {
+    "place": "w_mine_arm",
+    "hit": "w_lob_boom"
+  },
+  "placeholder": {
+    "color": "#7A7A6A",
+    "glyph": "mine"
+  },
+  "art_prompt": "a round olive-green land mine with a red pressure button on top and rivets around the edge"
+}

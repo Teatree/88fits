@@ -101,6 +101,18 @@ def sandstone(size=1024):
     return to_rgb(base)
 
 
+def redrock(size=1024):
+    """Broken red rock for the canyon rim: dark cracks over warm bands."""
+    n = tileable_noise(size, octaves=5, base_freq=5, seed=9)
+    n2 = tileable_noise(size, octaves=3, base_freq=9, seed=11)
+    bands = 0.5 + 0.5 * np.sin((np.linspace(0, 1, size, dtype=np.float32)[:, None] * 9.0 + n * 2.0) * math.pi * 2.0)
+    bands = np.repeat(bands, size, axis=1) if bands.shape[1] == 1 else bands
+    base = lerp_color((146, 70, 48), (196, 112, 70), bands * 0.7 + n * 0.3)
+    cracks = np.clip((np.abs(n2 - 0.5) < 0.02).astype(np.float32), 0, 1)
+    base = base * (1.0 - 0.45 * cracks[..., None]) * (0.88 + 0.24 * n[..., None])
+    return to_rgb(base)
+
+
 def sky_panorama(w=2048, h=1024):
     y = np.linspace(0, 1, h, dtype=np.float32)[:, None]
     x = np.linspace(0, 1, w, dtype=np.float32)[None, :]
@@ -181,6 +193,7 @@ def main():
     sand().save(os.path.join(ROOT, "sand.png"))
     cracked().save(os.path.join(ROOT, "cracked.png"))
     sandstone().save(os.path.join(ROOT, "sandstone.png"))
+    redrock().save(os.path.join(ROOT, "redrock.png"))
     sky_panorama().save(os.path.join(ROOT, "sky_panorama.png"))
     props_atlas().save(os.path.join(ROOT, "props_atlas.png"))
     print("gen_textures: wrote 5 textures into", ROOT)

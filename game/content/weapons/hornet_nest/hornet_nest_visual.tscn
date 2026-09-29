@@ -1,0 +1,75 @@
+[gd_scene load_steps=9 format=3 uid="uid://vis_hornetnest001"]
+
+[sub_resource type="StandardMaterial3D" id="hornetmat"]
+albedo_color = Color(1, 0.8, 0.2, 1)
+emission_enabled = true
+emission = Color(1, 0.7, 0.1, 1)
+emission_energy_multiplier = 0.5
+
+[sub_resource type="CapsuleMesh" id="proj"]
+radius = 0.07
+height = 0.24
+radial_segments = 6
+rings = 2
+
+[sub_resource type="StandardMaterial3D" id="paper"]
+albedo_color = Color(0.72, 0.66, 0.55, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="hole"]
+albedo_color = Color(0.12, 0.08, 0.05, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="rim"]
+albedo_color = Color(0.55, 0.48, 0.38, 1)
+metallic = 0.6
+roughness = 0.4
+
+[sub_resource type="SphereMesh" id="nest"]
+radius = 0.32
+height = 0.7
+radial_segments = 12
+rings = 8
+
+[sub_resource type="CylinderMesh" id="mouth"]
+top_radius = 0.1
+bottom_radius = 0.12
+height = 0.06
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="branch"]
+top_radius = 0.025
+bottom_radius = 0.03
+height = 0.4
+radial_segments = 6
+
+[node name="HornetNestVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
+mesh = SubResource("proj")
+material_override = SubResource("hornetmat")
+
+[node name="Familiar" type="Node3D" parent="."]
+
+[node name="Body" type="Node3D" parent="Familiar"]
+transform = Transform3D(1.1, 0, 0, 0, 1.1, 0, 0, 0, 1.1, 0, 0, 0)
+
+[node name="Nest" type="MeshInstance3D" parent="Familiar/Body"]
+mesh = SubResource("nest")
+material_override = SubResource("paper")
+
+[node name="Band" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(0.98, 0, 0, 0, 0.35, 0, 0, 0, 0.98, 0, -0.14, 0)
+mesh = SubResource("nest")
+material_override = SubResource("rim")
+
+[node name="Mouth" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, -0.08, -0.3)
+mesh = SubResource("mouth")
+material_override = SubResource("hole")
+
+[node name="Branch" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 0.9, -0.44, 0, 0.44, 0.9, 0, 0.4, 0.05)
+mesh = SubResource("branch")
+material_override = SubResource("hole")

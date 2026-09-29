@@ -1,0 +1,38 @@
+{
+  "id": "napalm_mine",
+  "name": "Napalm Mine",
+  "flavour": "Step on it. Stay a while.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "land_mine",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "The crater burns.",
+  "vfx": "a fire pool in the crater",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "add",
+      "value": 5
+    },
+    {
+      "stat": "fire_duration",
+      "op": "add",
+      "value": 2.0
+    },
+    {
+      "stat": "fire_spread",
+      "op": "add",
+      "value": 0.4
+    }
+  ],
+  "params": {
+    "cloud_seconds": 2.5
+  },
+  "art_prompt": "a land mine with flames bursting from its top",
+  "placeholder": {
+    "color": "#FF8030",
+    "glyph": "star"
+  }
+}

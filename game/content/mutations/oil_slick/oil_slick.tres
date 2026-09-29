@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_g4sbb"]
+[ext_resource type="Texture2D" path="res://content/mutations/oil_slick/oil_slick_icon.png" id="1_xuxoe"]
+
+[resource]
+script = ExtResource("1_g4sbb")
+weapon = "molotov"
+text = "The bottle leaks as it flies: a trail of small burning spills drips along the throw, and they slow."
+vfx = "drops of burning oil fall from the bottle in flight; a line of small fires lands behind it, one after another"
+params = {
+"drip": {
+"every": 0.9,
+"radius": 0.8,
+"slow": 0.35,
+"start": 2.0
+}
+}
+id = "oil_slick"
+display_name = "Oil Slick"
+flavour = "A long line of bad decisions."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_xuxoe")
+icon_file = "oil_slick_icon.png"
+placeholder = {
+"color": "#E06030",
+"glyph": "star"
+}

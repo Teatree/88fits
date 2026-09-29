@@ -3,7 +3,7 @@
 @tool
 extends VBoxContainer
 
-const TYPES := ["weapons", "evolutions", "passives", "enemies", "bosses", "elites", "characters", "shop", "quests", "maps"]
+const TYPES := ["weapons", "evolutions", "passives", "mutations", "lines", "perks", "enemies", "bosses", "elites", "characters", "shop", "quests", "maps"]
 const ROOT := "res://content/"
 
 var plugin: EditorPlugin

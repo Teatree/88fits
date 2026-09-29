@@ -1,0 +1,24 @@
+{
+  "id": "beef_jerky",
+  "name": "Beef Jerky",
+  "flavour": "Chewy. Worth it.",
+  "rarity": "common",
+  "weight": 9,
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "heal_drop",
+        "op": "add",
+        "value": 0.003,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "art_prompt": "a thick strip of dark red beef jerky with a bite taken out of it",
+  "placeholder": {
+    "color": "#B0503A",
+    "glyph": "star"
+  }
+}

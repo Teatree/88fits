@@ -1,0 +1,26 @@
+{
+  "id": "thruster_burst",
+  "name": "Thruster Burst",
+  "flavour": "The suit does not like crowds either.",
+  "rarity": "epic",
+  "weight": 5,
+  "hero": "astro",
+  "text": "When six or more creatures close in on her, the suit's thrusters fire: she flies clear towards the emptiest ground and the blast throws the ring back. Once every 8 s.",
+  "effects": [],
+  "special": "thruster_burst",
+  "params": {
+    "crowd": 6.0,
+    "reach": 2.6,
+    "every": 8.0,
+    "push": 28.0,
+    "lift": 5.0,
+    "throw": 18.0,
+    "throw_radius": 3.2,
+    "invuln": 0.6
+  },
+  "art_prompt": "a white spacesuit backpack with two blue thruster jets firing downwards",
+  "placeholder": {
+    "color": "#7FD0FF",
+    "glyph": "bolt"
+  }
+}

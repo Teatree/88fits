@@ -1,0 +1,16 @@
+{
+  "id": "gold_bank",
+  "name": "Strongbox",
+  "flavour": "Send it up. Spend it later.",
+  "effect": "bank",
+  "params": {
+    "spent": "fly_away"
+  },
+  "art_prompt": "a small sturdy wooden treasure chest with dark iron bands, a gold lock and a round gold coin emblem on the front, and a big shiny red balloon tied to the top of its lid by a thin white string (tools/gen_props.py st_gold_bank)",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  },
+  "doc": "Bank every coin you are carrying without ending the run: it is yours whether you extract or die. The balloon carries the box off once it is full.",
+  "height": 2.8
+}

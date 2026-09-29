@@ -10,10 +10,14 @@ extends Resource
 @export var flavour: String = ""
 ## common | rare | epic. Affects card weight and backplate.
 @export var rarity: String = "common"
-## "poison" | "fire" | "": items of one element never share a run with the other (weapons derive it from their base stats)
+## "poison" | "fire" | "": the element the item carries (weapons derive it from their base stats); since pass 36 a run may
+## hold both
 @export var element: String = ""
 ## Relative weight in card pools.
 @export var weight: float = 10.0
+## Kept in the content but out of play (pass 34, any kind; heroes since pass 33.4): never offered, and the collection
+## lists it apart. Registry.is_hidden also hides what only a hidden thing brings (its evolution, its paths, its perks).
+@export var hidden: bool = false
 ## Icon texture. Required by the rule; Registry substitutes a letter tile when missing.
 @export var icon: Texture2D
 ## File name of the icon inside the content folder, kept so re-import can resolve it.

@@ -1,0 +1,35 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a patch of ground crackling with small blue electric arcs and sparks",
+ "renders": {
+  "icon": {
+   "seed": 15699,
+   "prompt": "a patch of ground crackling with small blue electric arcs and sparks. Mobile game item icon in the style of Shop Titans: one single bold object, thick clean black outline, simple chunky shapes, flat cel shading with one soft highlight, saturated high-contrast colors, centered and filling the frame with a small margin, readable at thumbnail size, no text, no background, no scene. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": false,
+    "view": "other",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 171,
+     "right": 174,
+     "top": 199,
+     "bottom": 256,
+     "height": 568,
+     "width": 678
+    }
+   },
+   "attempt": 0
+  }
+ }
+}

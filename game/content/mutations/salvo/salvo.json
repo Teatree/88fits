@@ -1,0 +1,33 @@
+{
+  "id": "salvo",
+  "name": "Salvo",
+  "flavour": "All of them. Now.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "rocket_pod",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "+3 rockets a volley, −35% damage.",
+  "vfx": "six smoke trails at once",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 3
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.35
+    }
+  ],
+  "params": {
+    "size_mult": 0.8
+  },
+  "art_prompt": "four small rockets launching together in a fan",
+  "placeholder": {
+    "color": "#D0A080",
+    "glyph": "star"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "id": "overkill",
+  "name": "Overkill",
+  "flavour": "The damage past a kill splashes onto whoever stood next to it.",
+  "rarity": "rare",
+  "weight": 5,
+  "max_level": 3,
+  "levels": [
+    [
+      {
+        "stat": "overkill",
+        "op": "add",
+        "value": 0.34,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "placeholder": {
+    "color": "#F28C3C",
+    "glyph": "hammer"
+  },
+  "art_prompt": "a huge wooden mallet with an iron head smashing a tiny pebble into pieces"
+}

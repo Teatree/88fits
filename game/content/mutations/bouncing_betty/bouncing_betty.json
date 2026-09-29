@@ -1,0 +1,27 @@
+{
+  "id": "bouncing_betty",
+  "name": "Bouncing Betty",
+  "flavour": "Up, then everywhere.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "land_mine",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "The mine leaps and bursts at chest height: ×1.5 radius, ×2 knockback.",
+  "vfx": "the mine pops up, then a wide ring blast",
+  "effects": [],
+  "params": {
+    "leap": {
+      "height": 1.2,
+      "seconds": 0.22,
+      "radius_mult": 1.5,
+      "kb_mult": 2.0
+    }
+  },
+  "art_prompt": "a land mine leaping into the air on a spring",
+  "placeholder": {
+    "color": "#C0C070",
+    "glyph": "star"
+  }
+}

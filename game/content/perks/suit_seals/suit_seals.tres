@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_6fasy"]
+[ext_resource type="Texture2D" path="res://content/perks/suit_seals/suit_seals_icon.png" id="1_gho8c"]
+
+[resource]
+script = ExtResource("1_6fasy")
+hero = "astro"
+text = "The level-up patch also gives 1.5 s of invulnerability."
+special = "suit_seals"
+params = {
+"invuln": 1.5
+}
+id = "suit_seals"
+display_name = "Suit Seals"
+flavour = "The suit patches itself and everything on it."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_gho8c")
+icon_file = "suit_seals_icon.png"
+placeholder = {
+"color": "#80C0FF",
+"glyph": "star"
+}

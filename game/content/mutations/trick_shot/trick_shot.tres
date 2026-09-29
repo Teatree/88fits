@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_f0n88"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_6p3jn"]
+[ext_resource type="Texture2D" path="res://content/mutations/trick_shot/trick_shot_icon.png" id="2_mwry7"]
+
+[sub_resource type="Resource" id="Resource_6p3jn"]
+script = ExtResource("1_f0n88")
+stat = "ricochet"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_mwry7"]
+script = ExtResource("1_f0n88")
+stat = "ricochet_damage"
+op = "set"
+value = 0.8
+
+[resource]
+script = ExtResource("2_6p3jn")
+weapon = "revolver"
+text = "A round that kills bounces on to the next enemy at 80%, every time."
+vfx = "a gold spark and a second tracer at every bounce"
+effects = [SubResource("Resource_6p3jn"), SubResource("Resource_mwry7")]
+id = "trick_shot"
+display_name = "Trick Shot"
+flavour = "Off the wall, into the other one."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("2_mwry7")
+icon_file = "trick_shot_icon.png"
+placeholder = {
+"color": "#C0D0F0",
+"glyph": "star"
+}

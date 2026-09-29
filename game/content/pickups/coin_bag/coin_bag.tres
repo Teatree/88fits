@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="PickupDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="1_q3qpa"]
+[ext_resource type="Texture2D" path="res://content/pickups/coin_bag/coin_bag_icon.png" id="1_w11to"]
+
+[resource]
+script = ExtResource("1_q3qpa")
+effect_kind = "gold"
+value = 10.0
+lifetime = 40.0
+params = {
+"magnet": true,
+"quiet": true,
+"small": true
+}
+color = Color(1, 0.8156863, 0.2901961, 1)
+id = "coin_bag"
+display_name = "Coin Bag"
+flavour = "Somebody's savings."
+weight = 0.0
+icon = ExtResource("1_w11to")
+icon_file = "coin_bag_icon.png"
+placeholder = {
+"color": "#E8B840",
+"glyph": "star"
+}

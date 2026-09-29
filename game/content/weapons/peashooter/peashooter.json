@@ -67,7 +67,7 @@
       }
     ]
   ],
-  "evolves_with": "multishot",
+  "evolves_with": "",
   "evolves_into": "bullet_hose",
   "sfx": {
     "fire": "w_pea_fire",
@@ -77,7 +77,7 @@
     "color": "#7FD07A",
     "glyph": "pea"
   },
-  "art_prompt": "a cute round green pea pod creature with two leaf wings, a happy face with big eyes, spitting a single bright green pea",
+  "art_prompt": "three shiny round bright green peas in a small tight cluster, each pea with a white highlight, nothing else",
   "params": {
     "familiar": {
       "radius": 1.35,

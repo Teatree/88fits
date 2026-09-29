@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_tss7q"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_q02c3"]
+[ext_resource type="Texture2D" path="res://content/mutations/lasso/lasso_icon.png" id="2_ssks3"]
+
+[sub_resource type="Resource" id="Resource_q02c3"]
+script = ExtResource("1_tss7q")
+stat = "pull"
+value = 2.5
+
+[resource]
+script = ExtResource("2_q02c3")
+weapon = "branding_iron"
+text = "Every 2 s the iron swings out to 5 m and drags what it hits back to you."
+vfx = "the iron flies out on a glowing line and hauls creatures in"
+effects = [SubResource("Resource_q02c3")]
+params = {
+"lasso": {
+"out": 0.4,
+"period": 2.0,
+"reach": 5.0
+}
+}
+id = "lasso"
+display_name = "Lasso"
+flavour = "Reach out and touch someone."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("2_ssks3")
+icon_file = "lasso_icon.png"
+placeholder = {
+"color": "#D0A060",
+"glyph": "star"
+}

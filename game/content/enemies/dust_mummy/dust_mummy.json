@@ -14,14 +14,14 @@
     "medium": 1.0,
     "small": 1.0,
     "gold": 0.2,
-    "chest": 0.01
+    "chest": 0.014
   },
   "anims": {
     "idle": 4,
     "run": 12,
     "attack": 2,
     "hit": 1,
-    "die": 1,
+    "die": 5,
     "run_b": 12,
     "idle_b": 4
   },
@@ -47,20 +47,23 @@
       "#B0C8C8",
       "#C8A880"
     ],
-    "tint_strength": 0.5,
+    "tint_strength": 0.22,
     "special_chance": 0.08,
     "special": {
       "size": 1.4,
       "hp": 2.0,
       "damage": 1.4,
       "xp": 3.0,
-      "tint": "#8AFFB0",
-      "tint_strength": 0.9
+      "tint": "#24485A",
+      "tint_strength": 0.6
     }
   },
   "motion": "shuffling forward in place with stiff heavy steps, arms held out",
-  "strip_cols": 36,
+  "strip_cols": 40,
   "fps": {
-    "run": 15
-  }
+    "run": 15,
+    "die": 8
+  },
+  "doc": "The wall: slow, thick, fourteen damage a touch. It arrives when a build must have area damage or a way around.",
+  "head": 1.0
 }

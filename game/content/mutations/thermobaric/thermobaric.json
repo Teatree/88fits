@@ -1,0 +1,36 @@
+{
+  "id": "thermobaric",
+  "name": "Thermobaric",
+  "flavour": "The air itself.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "rocket_pod",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "The blast ignites.",
+  "vfx": "an orange fireball, everything in it burning",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "add",
+      "value": 5
+    },
+    {
+      "stat": "fire_duration",
+      "op": "add",
+      "value": 2.0
+    },
+    {
+      "stat": "fire_spread",
+      "op": "add",
+      "value": 0.5
+    }
+  ],
+  "params": {},
+  "art_prompt": "a rocket warhead with an orange fireball blast",
+  "placeholder": {
+    "color": "#FF7030",
+    "glyph": "star"
+  }
+}

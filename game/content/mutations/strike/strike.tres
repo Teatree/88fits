@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/strike/strike_icon.png" id="1_4b7gi"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_50y1u"]
+
+[resource]
+script = ExtResource("1_50y1u")
+weapon = "rattlesnake"
+text = "Every 2 s the snake lunges at the nearest creature outside the orbit for double damage."
+vfx = "the snake shoots out of the ring and snaps back"
+params = {
+"strike": {
+"damage_mult": 2.0,
+"period": 2.0,
+"reach": 6.5
+}
+}
+id = "strike"
+display_name = "Strike"
+flavour = "The ring is a suggestion."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_4b7gi")
+icon_file = "strike_icon.png"
+placeholder = {
+"color": "#D8B870",
+"glyph": "star"
+}

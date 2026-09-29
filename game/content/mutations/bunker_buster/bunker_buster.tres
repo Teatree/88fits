@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_kf14s"]
+[ext_resource type="Texture2D" path="res://content/mutations/bunker_buster/bunker_buster_icon.png" id="2_cuase"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_g3nf1"]
+
+[sub_resource type="Resource" id="Resource_g3nf1"]
+script = ExtResource("1_kf14s")
+stat = "amount"
+op = "set"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_cuase"]
+script = ExtResource("1_kf14s")
+stat = "damage"
+op = "mul"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_cr5hj"]
+script = ExtResource("1_kf14s")
+stat = "area"
+op = "mul"
+value = 0.8
+
+[sub_resource type="Resource" id="Resource_8a54m"]
+script = ExtResource("1_kf14s")
+stat = "knockback"
+op = "mul"
+value = 1.0
+
+[resource]
+script = ExtResource("2_g3nf1")
+weapon = "rocket_pod"
+text = "One rocket: ×3 damage, ×1.8 area, ×2 knockback."
+vfx = "one fat rocket, one big ring blast"
+effects = [SubResource("Resource_g3nf1"), SubResource("Resource_cuase"), SubResource("Resource_cr5hj"), SubResource("Resource_8a54m")]
+params = {
+"radius": 0.35,
+"size_mult": 1.8
+}
+id = "bunker_buster"
+display_name = "Bunker Buster"
+flavour = "One rocket. One crater."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("2_cuase")
+icon_file = "bunker_buster_icon.png"
+placeholder = {
+"color": "#909AA8",
+"glyph": "star"
+}

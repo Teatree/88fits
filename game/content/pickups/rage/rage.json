@@ -1,7 +1,7 @@
 {
   "id": "rage",
-  "name": "Rage",
-  "flavour": "Everything hits harder. Briefly.",
+  "name": "Berserk",
+  "flavour": "Everything hits harder, and twice as often. Briefly.",
   "effect": "buff",
   "value": 0,
   "duration": 20,
@@ -11,9 +11,15 @@
       "op": "mul",
       "value": 0.5,
       "target": "player"
+    },
+    {
+      "stat": "haste",
+      "op": "mul",
+      "value": 1.0,
+      "target": "player"
     }
   ],
-  "lifetime": 20,
+  "lifetime": 40.0,
   "color": "#FF5F6B",
   "weight": 3,
   "placeholder": {

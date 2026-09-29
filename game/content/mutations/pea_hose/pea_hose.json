@@ -1,0 +1,38 @@
+{
+  "id": "pea_hose",
+  "name": "Pea Hose",
+  "flavour": "Turn it on. Walk away.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "peashooter",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "+3 peas a shot, −40% damage, cooldown −20%.",
+  "vfx": "a stream of small peas, the pod's muzzle flash every fifth of a second",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 3
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.4
+    },
+    {
+      "stat": "cooldown",
+      "op": "mul",
+      "value": -0.2
+    }
+  ],
+  "params": {
+    "size_mult": 0.8
+  },
+  "art_prompt": "a garden hose nozzle spraying a stream of dozens of tiny green peas",
+  "placeholder": {
+    "color": "#9BE07A",
+    "glyph": "star"
+  }
+}

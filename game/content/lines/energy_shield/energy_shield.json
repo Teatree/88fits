@@ -1,0 +1,27 @@
+{
+  "id": "energy_shield",
+  "name": "Energy Shield",
+  "flavour": "It hums. It holds.",
+  "rarity": "rare",
+  "weight": 9,
+  "max_level": 4,
+  "levels": [
+    [
+      {
+        "stat": "shield_max",
+        "op": "add",
+        "value": 15,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "trade": "",
+  "text": "A blue bar over your health. While it holds, a hit takes shield and no HP; it recharges once you go 3 s untouched.",
+  "evolves_into": "aegis",
+  "art_prompt": "a glowing blue round energy shield bubble with a hexagon pattern and a bright blue rim",
+  "placeholder": {
+    "color": "#5AB8FF",
+    "glyph": "star"
+  }
+}

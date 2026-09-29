@@ -35,7 +35,7 @@ def key_background(img, despill=0.09, despill_mix=0.45):
     hue = hue / 6.0
     dh = np.abs(hue - bh)
     dh = np.minimum(dh, 1.0 - dh)
-    is_bg = (dh < 0.05) & (sat > 0.35) & (mx > 0.2)
+    is_bg = (dh < 0.05) & (sat > KEY_SAT) & (mx > 0.2)
     is_bg |= np.linalg.norm(arr - bg[None, None, :], axis=2) < 0.12
     alpha = (~is_bg).astype(np.float32)
     alpha = keep_main_components(alpha)
@@ -60,6 +60,11 @@ def key_background(img, despill=0.09, despill_mix=0.45):
     if spill.any():
         grey = rgb[spill].mean(axis=1, keepdims=True)
         rgb[spill] = rgb[spill] * (1.0 - despill_mix) + grey * despill_mix
+    if GRADE:
+        # the item's grade, on the figure only, after the screen is gone: a blue-grey garment on a blue screen can only be
+        # keyed while it is grey; it becomes a real colour here and stays one in every still and frame
+        rgb = grade_array(rgb, tuple(GRADE.get("hue", (0.5, 0.72))), float(GRADE.get("sat_mul", 1.8)), tuple(GRADE.get("sat_range", (0.04, 0.45))),
+                          float(GRADE.get("hue_shift", 0.0)), float(GRADE.get("sat_max", 0.6)), alpha > 0.05, GRADE.get("grey"))
     out = np.concatenate([rgb, alpha[..., None]], axis=2)
     res = Image.fromarray((out * 255).astype(np.uint8), "RGBA")
     return res.filter(ImageFilter.UnsharpMask(radius=1.4, percent=60, threshold=2))
@@ -83,6 +88,74 @@ def keep_main_components(alpha, keep_ratio=0.02):
     out = alpha.copy()
     out[~keep[labels]] = 0.0
     return out
+
+
+def _rgb_to_hsv(arr):
+    mx = arr.max(axis=2)
+    mn = arr.min(axis=2)
+    delta = mx - mn + 1e-6
+    sat = np.where(mx > 0, delta / (mx + 1e-6), 0)
+    r, g, b = arr[..., 0], arr[..., 1], arr[..., 2]
+    h = np.zeros_like(mx)
+    m = mx == r
+    h[m] = ((g - b) / delta)[m] % 6
+    m = mx == g
+    h[m] = ((b - r) / delta)[m] + 2
+    m = mx == b
+    h[m] = ((r - g) / delta)[m] + 4
+    return (h / 6.0) % 1.0, sat, mx
+
+
+def _hsv_to_rgb(h, s, v):
+    i = np.floor(h * 6.0).astype(int) % 6
+    f = h * 6.0 - np.floor(h * 6.0)
+    p = v * (1.0 - s)
+    q = v * (1.0 - s * f)
+    t = v * (1.0 - s * (1.0 - f))
+    r = np.choose(i, [v, q, p, p, t, v])
+    g = np.choose(i, [t, v, v, q, p, p])
+    b = np.choose(i, [p, p, t, v, v, q])
+    return np.stack([r, g, b], axis=2)
+
+
+GRADE = None    # the current item's "grade" block (see grade()): applied inside key_background, after the screen is gone
+KEY_SAT = 0.35  # how saturated a screen-hued pixel must be to count as screen; an item whose garment shares the screen's
+                # hue raises it (JSON "key_sat"): Mira's front still had denim at 0.4-0.48 and lost its overalls at 0.35
+
+
+def grade_array(arr, hue=(0.5, 0.72), sat_mul=1.8, sat_range=(0.04, 0.45), hue_shift=0.0, sat_max=0.6, mask=None, grey=None):
+    """grade() on a float RGB array, limited to `mask` when given. `grey` = {sat_below, value: [lo, hi], hue, sat} also
+    paints the neutral mid-greys (a garment the image model painted grey to keep it apart from the screen) in that hue
+    at that saturation. Returns a new array."""
+    h, s, v = _rgb_to_hsv(arr)
+    sel = (h >= hue[0]) & (h <= hue[1]) & (s >= sat_range[0]) & (s <= sat_range[1]) & (v > 0.08)
+    if mask is not None:
+        sel &= mask
+    s2 = np.where(sel, np.minimum(s * sat_mul, sat_max), s)
+    h2 = np.where(sel, (h + hue_shift) % 1.0, h)
+    if grey:
+        vr = grey.get("value", (0.2, 0.72))
+        g = (s < float(grey.get("sat_below", 0.06))) & (v >= vr[0]) & (v <= vr[1])
+        if mask is not None:
+            g &= mask
+        s2 = np.where(g, float(grey.get("sat", 0.45)), s2)
+        h2 = np.where(g, float(grey.get("hue", 0.6)), h2)
+        sel |= g
+    if not sel.any():
+        return arr
+    out = _hsv_to_rgb(h2, s2, v)
+    return np.clip(np.where(sel[..., None], out, arr), 0, 1)
+
+
+def grade(img, hue=(0.5, 0.72), sat_mul=1.8, sat_range=(0.04, 0.45), hue_shift=0.0, sat_max=0.6):
+    """A hue-selective grade for a still: pixels whose hue sits in `hue` and whose saturation is inside `sat_range`
+    get their saturation multiplied (capped at `sat_max`) and their hue shifted by `hue_shift`. A blue-grey garment
+    that the video model would repaint in the screen colour becomes plainly, safely blue: saturated enough to be read
+    as a colour, its hue nudged off the screen's so the keyer never mistakes it for the screen. The screen itself
+    (saturation 1) is untouched."""
+    arr = np.asarray(img.convert("RGB")).astype(np.float32) / 255.0
+    out = grade_array(arr, hue, sat_mul, sat_range, hue_shift, sat_max)
+    return Image.fromarray((out * 255).astype(np.uint8), "RGB")
 
 
 def crop_alpha(img, pad=6):
@@ -265,6 +338,44 @@ def character_frames(back, runs, cheer, cell, front=None, front_runs=None, side=
         if clip:
             frames["hit" + suffix] = list(clip)
     return frames
+
+
+def crumble(cell_img, t, seed=0, bands=8, pile=0.4):
+    """Death frame for a creature that falls apart (the skeletons, pass 33.3): the standing figure cut into `bands`
+    horizontal slices that drop, drift and tip towards a pile `pile` of the figure's height at its feet as `t` goes
+    0 -> 1, under gravity (t squared). The slices keep their order, so the skull lands on top like the painted heap."""
+    import random
+    rng = random.Random(seed)
+    cell = cell_img.width
+    a = np.asarray(cell_img)[..., 3] > 127
+    ys = np.nonzero(a.max(axis=1))[0]
+    if not len(ys):
+        return cell_img
+    top, bot = int(ys.min()), int(ys.max()) + 1
+    h = bot - top
+    pile_h = max(h * pile, 1.0)
+    fall_t = t * t
+    out = Image.new("RGBA", (cell, cell), (0, 0, 0, 0))
+    slices = []
+    for k in range(bands):
+        y0 = top + h * k // bands
+        y1 = top + h * (k + 1) // bands
+        if y1 <= y0:
+            continue
+        band_h = y1 - y0
+        # where it comes to rest: the top slice at the top of the pile, the bottom one on the ground
+        y_end = bot - pile_h + (k / max(bands - 1, 1)) * (pile_h - band_h)
+        y = y0 + (y_end - y0) * fall_t
+        dx = rng.uniform(-0.13, 0.13) * cell * t
+        rot = rng.uniform(-32.0, 32.0) * t
+        piece = cell_img.crop((0, y0, cell, y1))
+        if abs(rot) > 0.5:
+            piece = piece.rotate(rot, resample=Image.BICUBIC, expand=True)
+        slices.append((k, piece, int(round((cell - piece.width) / 2 + dx)), int(round(y - (piece.height - band_h) / 2))))
+    # the feet first, the skull last, so the upper slices land on the lower ones
+    for k, piece, x, y in sorted(slices, key=lambda s: -s[0]):
+        out.alpha_composite(piece, (max(x, 0), max(min(y, cell - piece.height), 0)), (max(-x, 0), 0))
+    return out
 
 
 def fall(cell_img, deg=80):

@@ -1,0 +1,27 @@
+{
+  "id": "slingshot",
+  "name": "Slingshot",
+  "flavour": "Once more, with feeling.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "gravity_gun",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "The thrown enemy skips on to the next crowd for a second blast at 60%.",
+  "vfx": "a bounce and a second blast",
+  "effects": [],
+  "params": {
+    "gravity": {
+      "bounce": {
+        "frac": 0.6,
+        "reach": 6.0
+      }
+    }
+  },
+  "art_prompt": "a curved dotted arc bouncing twice with a small burst at each landing",
+  "placeholder": {
+    "color": "#C0D0F0",
+    "glyph": "star"
+  }
+}

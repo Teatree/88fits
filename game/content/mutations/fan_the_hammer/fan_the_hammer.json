@@ -1,0 +1,25 @@
+{
+  "id": "fan_the_hammer",
+  "name": "Fan the Hammer",
+  "flavour": "The Drifter's hands are faster than his feet.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "peashooter",
+  "kind": "hero",
+  "element": "",
+  "hero": "drifter",
+  "text": "Two shots a cooldown at −25% damage.",
+  "vfx": "two quick flashes from the pod",
+  "effects": [],
+  "params": {
+    "double_tap": {
+      "count": 2,
+      "damage_mult": 0.75
+    }
+  },
+  "art_prompt": "a revolver hammer being fanned by a gloved hand",
+  "placeholder": {
+    "color": "#A0E080",
+    "glyph": "star"
+  }
+}

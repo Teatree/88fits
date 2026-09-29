@@ -1,0 +1,15 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "three small round balls floating in a cyan energy beam above an open three-clawed metal claw",
+ "renders": {
+  "icon": {
+   "key": "juggler_icon35_1",
+   "prompt": "three small round balls floating in a cyan energy beam above an open three-clawed metal claw",
+   "refs": [],
+   "screen": "green",
+   "picked": 1,
+   "of": 2
+  }
+ }
+}

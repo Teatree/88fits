@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/killer_swarm/killer_swarm_icon.png" id="1_66rwv"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_sl7tq"]
+[ext_resource type="PackedScene" path="res://content/evolutions/killer_swarm/killer_swarm_visual.tscn" id="2_66rwv"]
+
+[resource]
+script = ExtResource("1_sl7tq")
+behavior = "MissilePod"
+tags = ["homing"]
+base = {
+"amount": 5.0,
+"area": 0.0,
+"cooldown": 0.55,
+"damage": 7.0,
+"knockback": 1.2,
+"range": 12.0,
+"speed": 17.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "hornet_nest"
+sfx = {
+"fire": "w_pea_fire",
+"hit": "w_pea_hit"
+}
+visual = ExtResource("2_66rwv")
+visual_file = "killer_swarm_visual.tscn"
+params = {
+"familiar": {
+"bob": 0.14,
+"height": 1.5,
+"radius": 1.1,
+"speed": 1.4
+},
+"missile": {
+"life": 3.0,
+"spiral": 14.0,
+"trail": 2.0,
+"turn": 11.0,
+"wander": 0.3
+},
+"radius": 0.15
+}
+id = "killer_swarm"
+display_name = "Killer Swarm"
+flavour = "You cannot outrun a cloud."
+rarity = "epic"
+icon = ExtResource("1_66rwv")
+icon_file = "killer_swarm_icon.png"
+placeholder = {
+"color": "#FFB13B",
+"glyph": "hive"
+}

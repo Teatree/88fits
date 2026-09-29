@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://art/props/gravity_gun.glb" id="gun"]
+
+[node name="GravityGunVisual" type="Node3D"]
+
+[node name="Familiar" type="Node3D" parent="."]
+
+[node name="Gun" parent="Familiar" instance=ExtResource("gun")]
+transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, 0, 0)

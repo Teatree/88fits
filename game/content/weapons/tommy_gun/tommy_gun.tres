@@ -1,0 +1,88 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/tommy_gun/tommy_gun_icon.png" id="1_1elit"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_ih4tt"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_conqo"]
+[ext_resource type="PackedScene" path="res://content/weapons/tommy_gun/tommy_gun_visual.tscn" id="4_gvh8r"]
+
+[sub_resource type="Resource" id="Resource_1elit"]
+script = ExtResource("1_ih4tt")
+stat = "amount"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_gvh8r"]
+script = ExtResource("1_ih4tt")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_jwkvf"]
+script = ExtResource("1_ih4tt")
+stat = "amount"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_wy63a"]
+script = ExtResource("1_ih4tt")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_jyo58"]
+script = ExtResource("1_ih4tt")
+stat = "amount"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_32bit"]
+script = ExtResource("1_ih4tt")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[sub_resource type="Resource" id="Resource_6gotf"]
+script = ExtResource("1_ih4tt")
+stat = "damage"
+op = "mul"
+value = 0.3
+
+[resource]
+script = ExtResource("2_conqo")
+base = {
+"amount": 6.0,
+"cooldown": 1.4,
+"damage": 3.0,
+"knockback": 0.6,
+"pierce": 2.0,
+"range": 12.0,
+"speed": 22.0,
+"spread_deg": 8.0
+}
+levels = [[], [SubResource("Resource_1elit")], [SubResource("Resource_gvh8r")], [SubResource("Resource_jwkvf")], [SubResource("Resource_wy63a")], [SubResource("Resource_jyo58")], [SubResource("Resource_32bit")], [SubResource("Resource_6gotf")]]
+evolves_into = "chicago_typewriter"
+sfx = {
+"fire": "w_tommy_fire",
+"hit": "w_pea_hit"
+}
+visual = ExtResource("4_gvh8r")
+visual_file = "tommy_gun_visual.tscn"
+params = {
+"burst": true,
+"familiar": {
+"bob": 0.08,
+"height": 1.4,
+"radius": 1.3,
+"speed": 1.1
+},
+"radius": 0.16,
+"tracer": true
+}
+id = "tommy_gun"
+display_name = "Tommy Gun"
+flavour = "Says hello. Repeatedly."
+rarity = "rare"
+weight = 7.0
+icon = ExtResource("1_1elit")
+icon_file = "tommy_gun_icon.png"
+placeholder = {
+"color": "#4A4A5A",
+"glyph": "gun"
+}

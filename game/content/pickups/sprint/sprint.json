@@ -19,7 +19,7 @@
       "target": "player"
     }
   ],
-  "lifetime": 20,
+  "lifetime": 40.0,
   "color": "#4CC9FF",
   "weight": 3,
   "placeholder": {

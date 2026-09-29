@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_2dvgc"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_c4b4r"]
+[ext_resource type="Texture2D" path="res://content/mutations/rattle/rattle_icon.png" id="2_vkglx"]
+
+[sub_resource type="Resource" id="Resource_c4b4r"]
+script = ExtResource("1_2dvgc")
+stat = "poison_slow"
+value = 0.3
+target = "player"
+
+[resource]
+script = ExtResource("2_c4b4r")
+weapon = "rattlesnake"
+mutation_kind = "element"
+text = "Poisoned creatures move 30% slower."
+vfx = "poisoned creatures drag their feet, a dust puff at each step"
+effects = [SubResource("Resource_c4b4r")]
+id = "rattle"
+display_name = "Rattle"
+flavour = "Hear that? Slow down."
+rarity = "rare"
+element = "poison"
+weight = 8.0
+icon = ExtResource("2_vkglx")
+icon_file = "rattle_icon.png"
+placeholder = {
+"color": "#C8B060",
+"glyph": "star"
+}

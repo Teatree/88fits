@@ -4,6 +4,8 @@ extends ContentDef
 
 ## Behaviour primitive: ProjectileEmitter | Orbiter | Lobber | Beam | Spawner
 @export var behavior: String = "ProjectileEmitter"
+## free-form tags ("homing", "explosive"): passives can aim at every weapon carrying one (`target: "tag:homing"`)
+@export var tags: Array = []
 ## nearest | forward | random | densest | orbit
 @export var targeting: String = "nearest"
 ## Base weapon stats: damage, cooldown, amount, pierce, area, speed, duration, knockback, chains, range, spread_deg...
@@ -25,6 +27,8 @@ extends ContentDef
 @export var visual_file: String = ""
 ## Extra behaviour parameters that are not stats, e.g. {"orbit_radius": 2.0}
 @export var params: Dictionary = {}
+## One hero's own weapon (pass 35: the Drifter's Revolver): offered to nobody else, by cards, chests, shops or the Stranger.
+@export var hero: String = ""
 
 
 func kind() -> String:

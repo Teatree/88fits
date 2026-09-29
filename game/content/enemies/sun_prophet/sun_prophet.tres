@@ -1,0 +1,132 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/sun_prophet/sun_prophet_icon.png" id="1_2mbl5"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_tukm8"]
+[ext_resource type="Texture2D" path="res://content/enemies/sun_prophet/sun_prophet_sprite.png" id="3_23try"]
+
+[resource]
+script = ExtResource("1_tukm8")
+archetype = "elite"
+doc = "The Elite that fights at range: a long-necked lizard prophet in a torn black toga who walks to a spot eight metres up the screen from the hero, where he can be seen, and flings a fan of five golden sun-shards from his staff straight down the lines of its wedge, each one knocking the hero back. Every other attack he calls six pillars of light down around the hero, one every 0.7 s, each marked by a red ring and a column of gold that brightens for most of a second before it lands. He slams the hero's spot, then blinks to a fresh spot on the other side of the screen."
+brain = "caster"
+hp = 300.0
+speed = 1.4
+damage = 18.0
+radius = 1.1
+size = 3.3
+drops = {
+"chest": 1.0,
+"gold": 1.0,
+"large": 1.0,
+"medium": 1.0
+}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+}
+sprite = ExtResource("3_23try")
+sprite_file = "sun_prophet_sprite.png"
+frame_px = 224
+strip_cols = 71
+fps = {
+"die": 8.0,
+"run": 15.0
+}
+head = 0.987
+caster = {
+"attack_range": 12.0,
+"keep_distance": 8.0,
+"side": 3.5
+}
+boss = {
+"attacks": [{
+"count": 5.0,
+"damage": 13.0,
+"knockback": 7.0,
+"life": 1.0,
+"name": "spit_volley",
+"shot": "shard",
+"speed": 18.0,
+"splash": 0.5,
+"spread_deg": 64.0,
+"straight": true,
+"telegraph": "fan",
+"windup": 0.9
+}, {
+"count": 6.0,
+"damage": 15.0,
+"interval": 0.7,
+"min_range": 5.0,
+"name": "erupt",
+"pillar": true,
+"radius": 1.6,
+"spread": 5.0,
+"telegraph": "none",
+"warn": 0.9,
+"windup": 0.9
+}, {
+"count": 5.0,
+"damage": 13.0,
+"knockback": 7.0,
+"life": 1.0,
+"name": "spit_volley",
+"shot": "shard",
+"speed": 18.0,
+"splash": 0.5,
+"spread_deg": 64.0,
+"straight": true,
+"telegraph": "fan",
+"windup": 0.9
+}, {
+"damage": 20.0,
+"knockback": 9.0,
+"name": "slam_at",
+"radius": 2.8,
+"telegraph": "ring_at_hero",
+"windup": 1.2
+}, {
+"name": "blink",
+"telegraph": "none",
+"to": "screen",
+"windup": 0.6
+}],
+"cooldown_between": 2.0
+}
+elite = {
+"hp_mult_per_stage": 1.8
+}
+sfx = {
+"attack": "en_cactus_spit",
+"die": "en_boss_die",
+"hit": "en_goblin_hit",
+"spawn": "en_boss_roar"
+}
+xp_mult = 12.0
+variance = {
+"size": 0.1,
+"special": {},
+"special_chance": 0.0,
+"speed": 0.05,
+"tint_strength": 0.2,
+"tints": ["#FFFFFF", "#F0FFE0"]
+}
+id = "sun_prophet"
+display_name = "Sun Prophet"
+flavour = "He has seen the light. So will you."
+icon = ExtResource("1_2mbl5")
+icon_file = "sun_prophet_icon.png"
+placeholder = {
+"color": "#5A7A3A",
+"glyph": "star"
+}

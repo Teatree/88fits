@@ -1,0 +1,130 @@
+[gd_scene load_steps=12 format=3 uid="uid://vis_massacre00001"]
+
+[sub_resource type="StandardMaterial3D" id="rocketmat"]
+albedo_color = Color(1, 0.35, 0.15, 1)
+emission_enabled = true
+emission = Color(1, 0.55, 0.2, 1)
+emission_energy_multiplier = 0.6
+
+[sub_resource type="CapsuleMesh" id="proj"]
+radius = 0.09
+height = 0.42
+radial_segments = 8
+rings = 3
+
+[sub_resource type="StandardMaterial3D" id="olive"]
+albedo_color = Color(0.35, 0.42, 0.24, 1)
+metallic = 0.3
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="stripe"]
+albedo_color = Color(1, 0.75, 0.25, 1)
+metallic = 0.5
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="dark"]
+albedo_color = Color(0.1, 0.1, 0.12, 1)
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="box"]
+size = Vector3(0.42, 0.34, 0.5)
+
+[sub_resource type="CylinderMesh" id="tube"]
+top_radius = 0.07
+bottom_radius = 0.07
+height = 0.56
+radial_segments = 10
+
+[sub_resource type="BoxMesh" id="fin"]
+size = Vector3(0.02, 0.22, 0.26)
+
+[sub_resource type="CylinderMesh" id="antenna"]
+top_radius = 0.008
+bottom_radius = 0.012
+height = 0.3
+radial_segments = 5
+
+[sub_resource type="StandardMaterial3D" id="sparkmat"]
+shading_mode = 0
+albedo_color = Color(1, 0.8, 0.4, 1)
+emission_enabled = true
+emission = Color(1, 0.6, 0.2, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="SphereMesh" id="spark"]
+material = SubResource("sparkmat")
+radius = 0.07
+height = 0.14
+radial_segments = 5
+rings = 3
+
+[node name="MissileMassacreVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
+mesh = SubResource("proj")
+material_override = SubResource("rocketmat")
+
+[node name="Familiar" type="Node3D" parent="."]
+
+[node name="Body" type="Node3D" parent="Familiar"]
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 0, 0, 0)
+
+[node name="Box" type="MeshInstance3D" parent="Familiar/Body"]
+mesh = SubResource("box")
+material_override = SubResource("olive")
+
+[node name="Tube1" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, -0.1, 0.08, -0.06)
+mesh = SubResource("tube")
+material_override = SubResource("dark")
+
+[node name="Tube2" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0.1, 0.08, -0.06)
+mesh = SubResource("tube")
+material_override = SubResource("dark")
+
+[node name="Tube3" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, -0.1, -0.08, -0.06)
+mesh = SubResource("tube")
+material_override = SubResource("dark")
+
+[node name="Tube4" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0.1, -0.08, -0.06)
+mesh = SubResource("tube")
+material_override = SubResource("dark")
+
+[node name="Stripe" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1.02, 0, 0, 0, 0.25, 0, 0, 0, 0.2, 0, 0, 0.16)
+mesh = SubResource("box")
+material_override = SubResource("stripe")
+
+[node name="FinL" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.23, 0, 0.18)
+mesh = SubResource("fin")
+material_override = SubResource("stripe")
+
+[node name="FinR" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.23, 0, 0.18)
+mesh = SubResource("fin")
+material_override = SubResource("stripe")
+
+[node name="Antenna" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0.3, 0.15)
+mesh = SubResource("antenna")
+material_override = SubResource("dark")
+
+[node name="Muzzle" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 12
+lifetime = 0.3
+one_shot = true
+explosiveness = 1.0
+mesh = SubResource("spark")
+direction = Vector3(0, 1, 0)
+spread = 60.0
+initial_velocity_min = 2.0
+initial_velocity_max = 5.0
+gravity = Vector3(0, -1, 0)
+scale_amount_min = 0.5
+scale_amount_max = 1.2

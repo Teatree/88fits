@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_pvso1"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_dfrto"]
+[ext_resource type="Texture2D" path="res://content/mutations/fork/fork_icon.png" id="2_u7uqh"]
+
+[sub_resource type="Resource" id="Resource_dfrto"]
+script = ExtResource("1_pvso1")
+stat = "chains"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_u7uqh"]
+script = ExtResource("1_pvso1")
+stat = "damage"
+op = "mul"
+value = -0.25
+
+[resource]
+script = ExtResource("2_dfrto")
+weapon = "zap_beam"
+mutation_kind = "volume"
+text = "+2 chains, −25% damage."
+vfx = "a longer chain of bolts"
+effects = [SubResource("Resource_dfrto"), SubResource("Resource_u7uqh")]
+id = "fork"
+display_name = "Fork"
+flavour = "Two more places to be."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_u7uqh")
+icon_file = "fork_icon.png"
+placeholder = {
+"color": "#A0D8FF",
+"glyph": "star"
+}

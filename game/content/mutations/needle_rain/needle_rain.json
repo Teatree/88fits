@@ -1,0 +1,37 @@
+{
+  "id": "needle_rain",
+  "name": "Needle Rain",
+  "flavour": "Nowhere to hide from up.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "poison_dart",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "The darts arc over everything and fall from above, leaving a poison cloud where they land.",
+  "vfx": "darts arcing high, a green cloud on landing",
+  "effects": [
+    {
+      "stat": "area",
+      "op": "add",
+      "value": 1.2
+    },
+    {
+      "stat": "speed",
+      "op": "set",
+      "value": 11
+    },
+    {
+      "stat": "range",
+      "op": "add",
+      "value": 2
+    }
+  ],
+  "params": {},
+  "behavior": "Lobber",
+  "art_prompt": "a dark rain cloud dropping a shower of thin green darts",
+  "placeholder": {
+    "color": "#70B050",
+    "glyph": "star"
+  }
+}

@@ -14,14 +14,14 @@
     "large": 1.0,
     "medium": 1.0,
     "gold": 0.3,
-    "chest": 0.015
+    "chest": 0.021
   },
   "anims": {
     "idle": 4,
     "run": 12,
     "attack": 2,
     "hit": 1,
-    "die": 1,
+    "die": 5,
     "run_b": 12,
     "idle_b": 4,
     "run_s": 12,
@@ -61,21 +61,24 @@
       "#A8C8FF",
       "#C09070"
     ],
-    "tint_strength": 0.55,
+    "tint_strength": 0.22,
     "special_chance": 0.08,
     "special": {
       "size": 1.4,
       "hp": 2.0,
       "damage": 1.4,
       "xp": 3.0,
-      "tint": "#FFD040",
-      "tint_strength": 0.9
+      "tint": "#4A1A6A",
+      "tint_strength": 0.6
     }
   },
   "motion": "lumbering in place with slow heavy steps",
   "strip_cols": 83,
   "fps": {
-    "run": 15
+    "run": 15,
+    "die": 8
   },
-  "directions": 8
+  "directions": 8,
+  "doc": "The charger: winds up, telegraphs a red line, and runs it. Eight directions of sprite so the line is readable.",
+  "head": 1.0
 }

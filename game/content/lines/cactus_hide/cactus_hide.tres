@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="LineDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_0rwut"]
+[ext_resource type="Texture2D" path="res://content/lines/cactus_hide/cactus_hide_icon.png" id="1_1ejfr"]
+[ext_resource type="Script" path="res://core/data/LineDef.gd" id="2_1ejfr"]
+
+[sub_resource type="Resource" id="Resource_1ejfr"]
+script = ExtResource("1_0rwut")
+stat = "thorns"
+value = 48.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_2af0r"]
+script = ExtResource("1_0rwut")
+stat = "armor"
+value = 2.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_uegva"]
+script = ExtResource("1_0rwut")
+stat = "cooldown"
+op = "mul"
+value = 0.08
+target = "player"
+
+[resource]
+script = ExtResource("2_1ejfr")
+trade = "cooldowns 8% longer"
+evolves_from = "bristle"
+levels = [[SubResource("Resource_1ejfr"), SubResource("Resource_2af0r"), SubResource("Resource_uegva")]]
+repeat_last_level = false
+max_level = 1
+id = "cactus_hide"
+display_name = "Cactus Hide"
+flavour = "Hug me. I dare you."
+rarity = "epic"
+weight = 0.0
+icon = ExtResource("1_1ejfr")
+icon_file = "cactus_hide_icon.png"
+placeholder = {
+"color": "#FFB84A",
+"glyph": "star"
+}

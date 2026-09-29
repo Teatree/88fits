@@ -1,0 +1,28 @@
+{
+  "id": "aftershock",
+  "name": "Aftershock",
+  "flavour": "It was not over.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "hammer",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "A beat after every impact a shockwave rolls out to twice the blast, for 40% damage.",
+  "vfx": "a second, wider ring of dust after each impact",
+  "effects": [],
+  "params": {
+    "smash": {
+      "aftershock": {
+        "frac": 0.4,
+        "scale": 2.0,
+        "delay": 0.18
+      }
+    }
+  },
+  "art_prompt": "a war hammer head striking the ground with two rings of shockwave and dust spreading out",
+  "placeholder": {
+    "color": "#C0D0F0",
+    "glyph": "star"
+  }
+}

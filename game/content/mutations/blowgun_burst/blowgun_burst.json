@@ -1,0 +1,33 @@
+{
+  "id": "blowgun_burst",
+  "name": "Blowgun Burst",
+  "flavour": "Three breaths. One exhale.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "poison_dart",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Three darts a shot, −30% damage.",
+  "vfx": "three thin darts in a fan",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.3
+    }
+  ],
+  "params": {
+    "size_mult": 0.85
+  },
+  "art_prompt": "a wooden blowgun with three feathered darts flying out of it",
+  "placeholder": {
+    "color": "#A0C860",
+    "glyph": "star"
+  }
+}

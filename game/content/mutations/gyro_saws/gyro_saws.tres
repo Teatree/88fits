@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_obr16"]
+[ext_resource type="Texture2D" path="res://content/mutations/gyro_saws/gyro_saws_icon.png" id="1_yajff"]
+
+[resource]
+script = ExtResource("1_obr16")
+weapon = "orbit_saws"
+mutation_kind = "hero"
+hero = "astro"
+text = "The ring widens 30% while he moves and tightens when he stops."
+vfx = "the ring breathes with the hero's steps"
+params = {
+"gyro": {
+"moving_mult": 1.3
+}
+}
+id = "gyro_saws"
+display_name = "Gyro Saws"
+flavour = "Astro's ring knows when he moves."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_yajff")
+icon_file = "gyro_saws_icon.png"
+placeholder = {
+"color": "#80E0C0",
+"glyph": "star"
+}

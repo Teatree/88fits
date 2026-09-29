@@ -64,14 +64,14 @@
   <div class="mockups">
     <figure>
       {{IMG:06_title|The build: title screen, gold outlined logo on a dusk sky, one big PLAY}}
-      <figcaption><b>Title screen.</b> One big PLAY, as in Archero. The chip under it shows the current hero and map and opens the select screen. Gold and best run sit at the top so the meta is visible from the first second.</figcaption>
+      <figcaption><b>Title screen.</b> One big PLAY, as in Archero. The chip under it shows the current hero and map and opens the select screen; the small Debug · Arena entry sits under the menu row (v0.23.4). Gold and best run sit at the top so the meta is visible from the first second.</figcaption>
     </figure>
     <figure>
       {{IMG:03_pause_build|The build: the pause screen's Build tab, one row per held item}}
       <figcaption><b>Pause, Build tab.</b> Tap any item to expand it. The description is generated from its data, the numbers are the live computed values after every passive and shop bonus, and the evolution line says exactly what is still missing.</figcaption>
     </figure>
     <figure>
-      {{IMG:09_play_setup|The build: play setup with three hero portraits and the Dry Gulch card}}
+      {{IMG:09_play_setup|The build: play setup with the two heroes, Astro and the Drifter, and the Red Canyon card}}
       <figcaption><b>Play setup.</b> Hero and map cards size themselves to their text, so a locked hero's quest line never spills past the card. The selected card carries the gold rim.</figcaption>
     </figure>
     <figure>
@@ -80,6 +80,19 @@
     </figure>
   </div>
   </div>
+
+  <h3>The debug arena</h3>
+  <p><b>Debug · Arena</b> (v0.23.4), a small entry under the title's menu row, opens the map with the hero, his favourite weapon and god mode, and nothing coming: the director is set up but holds its clock and its spawns. A column of quick buttons at the right edge does the frequent things without opening anything: <b>ARENA</b> opens the panel, <b>AGAIN</b> repeats the last spawn, <b>CLEAR</b> takes every creature and shot away, <b>WAVES</b> runs or holds the real director, <b>LV +1</b> levels the hero; under them a status line (the arena clock, the stage, how many are alive, whether the waves run, what AGAIN will do). The panel is a bottom sheet with six tabs, and the game waits while it is open:</p>
+  <dl class="kv">
+    <dt>ENEMY</dt><dd>Every creature in the game as a tile, grouped: the roster in arrival order, the specials, the Elites, the bosses, the retired (goblins, crab, jackalope) and any other (the centipede's young). Options on top: how many (1, 5, 20, 50), where (a few metres up the screen, a ring round the hero, out past the screen), any elite modifier, and whether they hold still. A boss comes as a real boss, bar, attacks, chest and portal.</dd>
+    <dt>WAVES</dt><dd>The arena clock (every spawn scales as at that minute, stage and HP growth included), a crowd drawn from the roster at that minute by its weights (30, 100, 200 or the hard cap), a swarm of the last creature picked, the real director run from the clock (its spawns, its events, its Elites and bosses, the specials' clock) or held, and an Elite or a special on demand.</dd>
+    <dt>ITEMS</dt><dd>Every weapon, evolution, passive, line, perk and mutation in folding sections, each with − / + / MAX applied at once and past the rules the cards keep (the stage's weapon cap, a path's one pick a stage); "Max all held" and "Remove every item" (<code>Run.debug_set_item</code>).</dd>
+    <dt>HERO</dt><dd>+1, +5, +10 levels or straight to 30, level-up cards on or off (off, the levels come without the cards), god mode, a full heal, a hit of 10 (the shield, the evade and the damage log see it), going down (the revive screen), gold, rerolls and banishes.</dd>
+    <dt>DROPS</dt><dd>Every power-up put on the sand by the hero, a chest, a boss chest, forty gems, forty coins, and the vacuum.</dd>
+    <dt>WORLD</dt><dd>Game speed (a quarter, a half, 1x, 2x), freezing the crowd, killing (with drops) or removing everything, clearing the shots, the camera's zoom held at 1x to 2.6x, the stats overlay, and leaving.</dd>
+  </dl>
+  <p>Nothing done in the arena is kept: the save is copied when it opens and put back when it closes (kills, chests, gold and unlocks from the arena all go), no quest is checked, no path offer comes, and no tutorial hint.</p>
+  <div class="fig-frame"><div class="fig-grid">{{IMG:57_arena_enemy|The build: the arena's ENEMY tab, count, place, elite and hold options over a grid of creature tiles}}{{IMG:57b_arena_items|The build: the arena's ITEMS tab, every weapon with minus, plus and MAX}}{{IMG:57c_arena_waves|The build: the arena's WAVES tab, the clock, the crowd sizes, the swarm and the director}}{{IMG:57d_arena_crowd|The build: a crowd of 160 from the roster at 8:00 closing on the hero, the quick buttons at the right edge}}</div></div>
 
   <h3>Pause screen, all three tabs</h3>
   <dl class="kv">
@@ -114,39 +127,51 @@
   <div class="sec-head"><span class="num">13</span><h2>Meta progression</h2></div>
   <p class="lede">Megabonk's loop between runs: gold buys permanent stats, and in-run challenges unlock heroes, weapons and modes. Small but complete, because "do I want another run" is half the test.</p>
   <figure>
-    <div class="fig-frame"><div class="fig-grid">{{IMG:07_shop|The build: the shop}}{{IMG:08_collection|The build: the collection}}</div></div>
-    <figcaption><b>Shop and collection in the build.</b> Locked rows show the quest that unlocks them; every icon is painted from the item's own <code>art_prompt</code>.</figcaption>
+    <div class="fig-frame"><div class="fig-grid">{{IMG:08_collection|The build: the collection}}</div></div>
+    <figcaption><b>The collection in the build.</b> Locked rows show the quest that unlocks them; every icon is painted from the item's own <code>art_prompt</code>.</figcaption>
   </figure>
 
-  <h3>Shop, permanent upgrades</h3>
-  <p>Each line has 1 to 5 tiers with rising gold cost. A refund button returns everything, as in Vampire Survivors, so experimenting is free.</p>
+  <h3>The Mirror</h3>
+  <p class="lede">The meta is a <b>Mirror</b> (v0.22), cut down from the Mirror of Night in Hades. Eight talents, each with <b>two mutually exclusive forms</b>, three ranks apiece. A rank costs gold; switching a talent to its other form is free and keeps the ranks; and <b>Take it all back</b> empties the board and returns every coin ever spent on it. So the meta is a build you keep re-deciding, not a ratchet you climb once.</p>
+  <div class="callout rule"><div class="lab">The loop</div>
+  <p>Run → gold (kills, chests, Elites and bosses pay purses now) → a rank of one form of a talent → a run that plays a little differently. Nothing is lost by changing your mind, so the interesting question is <i>which half of each pair</i> this run wants, not whether you can afford anything. It replaced the farm of v0.17 (five producers, a market, silver, stock, bones and relics), which was a second game rather than a frame around this one, and the flat gold-buys-stats shop before it, which was a list.</p>
+  </div>
   <div class="tbl-wrap"><table>
-    <thead><tr><th>Upgrade</th><th>Per tier</th><th>Tiers</th><th>Cost curve</th></tr></thead>
+    <thead><tr><th>Talent</th><th>Form A</th><th>Form B</th><th>Ranks</th></tr></thead>
     <tbody>
-      <tr><td><span class="name">Max HP</span></td><td>+10%</td><td class="num">5</td><td class="num">200 · 400 · 800 · 1600 · 3200</td></tr>
-      <tr><td><span class="name">Might</span></td><td>+5% damage</td><td class="num">5</td><td class="num">300 · 600 · 1200 · 2400 · 4800</td></tr>
-      <tr><td><span class="name">Haste</span></td><td>−4% cooldown</td><td class="num">4</td><td class="num">300 · 700 · 1500 · 3000</td></tr>
-      <tr><td><span class="name">Boots</span></td><td>+5% move speed</td><td class="num">3</td><td class="num">250 · 600 · 1400</td></tr>
-      <tr><td><span class="name">Magnet</span></td><td>+15% pickup radius</td><td class="num">3</td><td class="num">200 · 500 · 1200</td></tr>
-      <tr><td><span class="name">Luck</span></td><td>+10% rare cards and chests</td><td class="num">3</td><td class="num">400 · 900 · 2000</td></tr>
-      <tr><td><span class="name">Greed</span></td><td>+10% gold</td><td class="num">3</td><td class="num">400 · 900 · 2000</td></tr>
-      <tr><td><span class="name">Reroll</span></td><td>+1 reroll per run</td><td class="num">3</td><td class="num">500 · 1200 · 2500</td></tr>
-      <tr><td><span class="name">Skip</span></td><td>unlock skip (+10 gold each)</td><td class="num">1</td><td class="num">600</td></tr>
-      <tr><td><span class="name">Banish</span></td><td>+1 banish per run</td><td class="num">2</td><td class="num">800 · 2000</td></tr>
-      <tr><td><span class="name">Revive</span></td><td>+1 revive per run</td><td class="num">1</td><td class="num">3000</td></tr>
+{{TALENTS}}
     </tbody>
   </table></div>
+  <figure>
+    <div class="fig-frame"><div class="fig-grid">{{IMG:07_homestead|The build: the Mirror, eight talents down the screen, each with its two forms and its rank pips}}</div></div>
+    <figcaption><b>The Mirror in the build.</b> Each row is a talent: the two forms sit side by side, the live one lit; the pips show ranks owned; the button below buys the next rank at its gold price. The strip at the top counts the purse and what the board holds, and the button at the foot gives it all back.</figcaption>
+  </figure>
+  <p>One more thing to spend a run's gold on before it ends: the <b>Strongbox</b> (v0.22), an eighth structure on the map. Stand in its ring and every coin you are carrying goes to the homestead at once, whether you extract afterwards or die in the next minute. It is the only way to bank mid-run, and the results screen counts what you sent. Since v0.23 it is a chest on a balloon (the first painted strongbox read as a heap of brown): a banded wooden chest with a gold lock and a gold coin on the front and a red balloon tied to its lid, painted 2.5D like every other structure (v0.23.1; a Blender model tried for one build was the only 3D structure on the map). When the purse goes in, the balloon lifts the painting off the sand and it drifts up and away over the canyon until it is gone.</p>
+  <figure>
+    <div class="fig-frame"><div class="fig-grid">{{IMG:45_strongbox|The build: the Strongbox, a painted wooden chest with a red balloon on a string, in its ring beside the hero}}{{IMG:45b_strongbox_away|The build: the Strongbox rising into the sky under its balloon after the gold was banked}}</div></div>
+    <figcaption><b>The Strongbox (v0.23).</b> Left: waiting in its ring. Right: three seconds after the purse went in, on its way up.</figcaption>
+  </figure>
 
   <h3>Heroes</h3>
-  <p>A hero is a trait plus a favourite weapon. The favourite is always in the starter offer and gets a bonus if picked, so heroes flavour a run without dictating it. Every hero's icon is a painted close-up doing something (the Drifter tips his hat, Astro gives a thumbs-up with a planet in her visor, Dad a double thumbs-up), made as an edit of the hero's own front still and set into a round badge that fills the plate.</p>
+  <div class="callout change"><div class="lab">v0.23.4 · two heroes</div>
+  <p>Only <b>Astro</b> and <b>the Drifter</b> are played now. Buck, Dad and Mira carry <code>"hidden": true</code>: their paintings, perks and traits stay in the content for later, but they are out of play setup, the collection and the title screen, a save that last played one of them starts as Astro, and Dad's unlock quest is neither shown nor tracked (<code>Registry.sorted_characters</code>, <code>playable_character</code>, <code>quest_visible</code>). The Drifter's icon is a new, serious portrait: four were painted from his own front painting (a level stare, eyes up from under the brim, a cold sidelong look, narrowed against the wind) and one was picked (<code>tools/gen_icon_variants.py</code>): B, eyes up from under the brim.</p>
+  </div>
+  <p>A hero is a <b>named trait</b> plus a favourite weapon. The trait has a name and one line in the data (<code>trait_name</code>, <code>trait_text</code>), shown on the hero card in play setup, in the collection and on the pause screen, because a trait with a mechanic behind it (Buck's momentum, Astro's suit) cannot be generated from its effect list. In v0.13 the four were rebalanced to roughly equal budgets with four different play styles: a tank who heals on level-ups, a runner who collects, a bruiser who hits wide, and a snowball. The favourite is always in the starter offer and gets a bonus if picked, so heroes flavour a run without dictating it. Every hero's icon is a painted close-up doing something (the Drifter tips his hat, Astro gives a thumbs-up with a planet in her visor, Dad a double thumbs-up), made as an edit of the hero's own front still and set into a round badge that fills the plate.</p>
   <div class="tbl-wrap"><table>
     <thead><tr><th>Hero</th><th>Trait</th><th>Favourite weapon</th><th>Favourite bonus</th><th>Unlock</th></tr></thead>
     <tbody>
-      <tr><td><span class="name">Astro</span><span class="sub">Wrong planet. Right attitude.</span></td><td>+12% max HP, +10% magnet</td><td>Orbit Saws</td><td>+20% area</td><td>The default. A slim explorer in a puffy white-and-orange suit with an opaque mirrored visor and a backpack, Astroneer's silhouette in the game's anime line.</td></tr>
-      <tr><td><span class="name">Drifter</span><span class="sub">Wide hat. Long coat. Longer road.</span></td><td>+8% move speed, +15% magnet</td><td>Peashooter</td><td>starts at level 2</td><td>Available from the start. Wide-brimmed hat, long tan duster, red scarf.</td></tr>
-      <tr><td><span class="name">Dad</span><span class="sub">Has opinions about the lawn.</span></td><td>+20% might, −10% move speed</td><td>Boomstick</td><td>+2 pellets</td><td>Kill 500 creatures with the Boomstick.</td></tr>
+      <tr><td><span class="name">Astro</span><span class="sub">Wrong planet. Right attitude.</span></td><td><b>Space Suit:</b> +1 armor and +10% max HP; every level-up patches the suit for 8% of her HP</td><td>Orbit Saws</td><td>+20% area</td><td>The default. A slim explorer in a puffy white-and-orange suit with an opaque mirrored visor and a backpack, Astroneer's silhouette in the game's anime line.</td></tr>
+      <tr><td><span class="name">Drifter</span><span class="sub">Wide hat. Long coat. Longer road.</span></td><td><b>Long Road:</b> +10% move speed and +25% pickup radius</td><td>Peashooter</td><td>starts at level 3</td><td>Available from the start. Wide-brimmed hat, long tan duster, red scarf.</td></tr>
+      <tr><td><span class="name">Dad</span><span class="sub">Has opinions about the lawn.</span></td><td><b>Dad Strength:</b> +25% might and +15% area, but −10% move speed</td><td>Boomstick</td><td>+2 pellets</td><td>Kill 500 creatures with the Boomstick. Repainted in v0.14: his back still had turned out face-forward and his side still a slimmer man, so running up or sideways he was somebody else; every view and cycle was regenerated with pose hints (arms hanging, no face from behind, the belly in profile).</td></tr>
+      <tr><td><span class="name">Mira</span><span class="sub">Digs for a living. Finds trouble for free.</span></td><td><b>Motherlode:</b> +30% gold and −10% might, and every Elite and boss drops one extra material</td><td>Land Mine</td><td>−20% cooldown</td><td>Available from the start. A small prospector with a long braid, a yellow mining helmet with goggles, a red bandana, blue overalls and boots. The hero built for the homestead: she brings the bones and relics home.</td></tr>
+      <tr><td><span class="name">Buck</span><span class="sub">Slow to start. Impossible to stop.</span></td><td><b>Momentum:</b> starts 15% slower than the others; while he is not hit his speed climbs to +60% and his might to +50% over twelve seconds; one hit and both drop to nothing and the climb starts over. Dust puffs at his heels as it builds and warm streaks trail him past half charge, white sparks at full, so the moment to keep running is visible</td><td>Tommy Gun</td><td>+2 rounds a burst</td><td>Available from the start. A lanky deer man with tall antlers in a teal t-shirt and khaki shorts.</td></tr>
     </tbody>
   </table></div>
+
+  <figure>
+    <div class="fig-frame">{{IMG:19_momentum|The build: Buck at full momentum running north, dust at his heels and warm streaks trailing behind him}}</div>
+    <figcaption><b>Momentum, visible.</b> Buck at full charge: dust puffs at the heels while it builds, warm streaks past half, white sparks at full. The trail is the cue the stat line could never be: when it is bright, keep running, because one hit puts it out.</figcaption>
+  </figure>
 
   <h3>Unlocks by doing things</h3>
   <p>Every unlock is a quest with a condition the game can check, in the Megabonk and Vampire Survivors style. Quests are data too, so adding one is a file.</p>
@@ -185,7 +210,7 @@
       <tr><td class="id">boomstick_icon.png</td><td>The icon used by cards, the HUD, pause, the reel and the collection.</td><td>Replace the file, or re-run <code>gen_art.py --only boomstick</code>.</td></tr>
     </tbody>
   </table></div>
-  <p>Creatures follow the same shape: <code>goblin.json</code> for stats, brain choice, drops (including its chest chance), the variance block and how many directions it is painted from; <code>goblin_sprite.png</code> is the strip. A map is a folder with its arena scene, its wave timeline (roster, events, pickups, structures), its music and its creature list.</p>
+  <p>Creatures follow the same shape: <code>goblin.json</code> for stats, brain choice, drops (including its chest chance), the variance block, how many directions it is painted from, the badge it wears and whether it is retired; <code>goblin_sprite.png</code> is the strip. A map is a folder with its arena scene, its wave timeline (roster, events, pickups, structures), its music and its creature list.</p>
 
   <figure>
     <div class="fig-frame">

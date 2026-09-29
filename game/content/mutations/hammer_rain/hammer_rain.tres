@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_ccmnq"]
+[ext_resource type="Texture2D" path="res://content/mutations/hammer_rain/hammer_rain_icon.png" id="2_kj7lg"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_spf20"]
+
+[sub_resource type="Resource" id="Resource_spf20"]
+script = ExtResource("1_ccmnq")
+stat = "amount"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_kj7lg"]
+script = ExtResource("1_ccmnq")
+stat = "damage"
+op = "mul"
+value = -0.35
+
+[resource]
+script = ExtResource("2_spf20")
+weapon = "hammer"
+mutation_kind = "volume"
+text = "Two more hammers a stroke, −35% damage."
+vfx = "three hammers coming down one after another"
+effects = [SubResource("Resource_spf20"), SubResource("Resource_kj7lg")]
+id = "hammer_rain"
+display_name = "Hammer Rain"
+flavour = "Forecast: heavy."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_kj7lg")
+icon_file = "hammer_rain_icon.png"
+placeholder = {
+"color": "#D8E0F0",
+"glyph": "star"
+}

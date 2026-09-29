@@ -61,7 +61,23 @@ const GOOD := Color(0.353, 0.839, 0.416)
 const INFO := Color(0.298, 0.788, 1.0)
 const OUTLINE := Color(0.06, 0.07, 0.12, 0.95)
 
-const TYPE_COLORS := {"weapon": ACCENT, "passive": XP, "evolution": Color(1.0, 0.827, 0.353), "shop": Color(0.27, 0.815, 0.815), "character": GOOD, "map": Color(0.94, 0.54, 0.29), "enemy": DANGER, "elite": DANGER, "pickup": GOOD}
+const TYPE_COLORS := {"weapon": ACCENT, "passive": XP, "evolution": Color(1.0, 0.827, 0.353), "shop": Color(0.27, 0.815, 0.815), "character": GOOD, "map": Color(0.94, 0.54, 0.29), "enemy": DANGER, "elite": DANGER, "pickup": GOOD,
+	"mutation": Color(1.0, 0.42, 0.8), "line": Color(0.96, 0.58, 0.36), "perk": GOOD}
+## The kind a card or row is drawn as, from the def's class.
+static func kind_of(def: ContentDef) -> String:
+	if def is WeaponDef:
+		return "evolution" if def.is_evolution else "weapon"
+	if def is MutationDef:
+		return "mutation"
+	if def is LineDef:
+		return "line"
+	if def is PerkDef:
+		return "perk"
+	if def is PassiveDef:
+		return "passive"
+	if def is CharacterDef:
+		return "character"
+	return def.kind() if def else "weapon"
 
 
 ## The one StyleBoxFlat factory. `shadow` adds a soft drop shadow, `bevel` a thicker darker bottom edge (a flat
@@ -234,8 +250,10 @@ static func icon_view(def: ContentDef, size: int = 120, kind: String = "") -> Co
 	var col: Color = TYPE_COLORS.get(k, BG3)
 	var plate := Panel.new()
 	# one short of half for the round plates: a radius of exactly half the size draws a seam down the middle
-	var radius := size / 2 - 1 if k == "passive" or k == "character" else size / 5
-	plate.add_theme_stylebox_override("panel", stylebox(col.darkened(0.62), radius, col, maxi(size / 24, 3), true, false, false))
+	var radius := size / 2 - 1 if k == "passive" or k == "character" or k == "line" or k == "perk" else size / 5
+	# a mutation wears its own frame: thick, in the path colour, so it is never mistaken for a weapon or a passive
+	var rim_w := maxi(size / 10, 5) if k == "mutation" else maxi(size / 24, 3)
+	plate.add_theme_stylebox_override("panel", stylebox(col.darkened(0.62), radius, col, rim_w, true, false, false))
 	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(plate)
@@ -295,14 +313,15 @@ static func circle_texture(size: int, fill: Color, rim: Color = Color(0, 0, 0, 0
 	return t
 
 
-## Slider in the kit's colours: navy track with a rim, gold filled part, round gold knob.
+## Slider in the kit's colours: navy track with a rim, gold filled part, round gold knob. A TouchSlider, so a finger moves
+## it on the phone (pass 37: the plain HSlider only listened to the mouse), 84 px tall for a thumb.
 static func slider(value: float, lo: float, hi: float, step: float = 0.05) -> HSlider:
-	var s := HSlider.new()
+	var s := TouchSlider.new()
 	s.min_value = lo
 	s.max_value = hi
 	s.step = step
 	s.value = value
-	s.custom_minimum_size = Vector2(0, 60)
+	s.custom_minimum_size = Vector2(0, 84)
 	var track := bar(BG3, 9, LINE, 2)
 	track.content_margin_top = 9
 	track.content_margin_bottom = 9
@@ -339,23 +358,159 @@ static func margin(child: Control, m: int = 40) -> MarginContainer:
 
 static func card_description(card: Dictionary) -> String:
 	var def: ContentDef = card["def"]
+	if def is MutationDef:
+		return (def as MutationDef).text
+	if def is PerkDef:
+		return (def as PerkDef).text
+	if def is LineDef:
+		var ld := def as LineDef
+		if bool(card.get("evolve", false)):
+			# the evolution (pass 33.2): the whole of what the maxed line becomes, in place of its ranks
+			var src: LineDef = Registry.line(ld.evolves_from)
+			var se := "Replaces %s: %s" % [src.display_name if src else ld.evolves_from, TextGen.describe_effects(ld.effects_for_level(1))]
+			if ld.trade != "":
+				se += " (the trade: %s)" % ld.trade
+			return se
+		var lvl := int(card["level_to"])
+		var s2 := TextGen.describe_effects(ld.effects_at_level(lvl)) + " a rank"
+		if ld.trade != "":
+			s2 += " (the trade: %s)" % ld.trade
+		if int(card.get("level_from", 0)) == 0 and ld.text != "":
+			s2 = ld.text + " " + s2
+		return ("Next: " + s2) if int(card.get("level_from", 0)) > 0 else s2
 	if def is WeaponDef:
 		var inst := Run.weapon_instance(def.id)
 		if inst:
-			var next := TextGen.next_level_text(def, inst.level)
-			return next
+			return _next_only(TextGen.next_level_text(def, inst.level))
 		var tmp := WeaponInstance.new(def, 1)
 		tmp.rebuild(Run.player_sheet, Run.weapons)
 		return tmp.description()
 	elif def is PassiveDef:
 		var lv := int(card["level_to"])
-		return TextGen.describe_effects(def.effects_at_level(lv)) + (" per level" if def.repeat_last_level else "")
+		var s := TextGen.describe_effects(def.effects_at_level(lv)) + (" per level" if def.repeat_last_level else "")
+		return ("Next: " + s) if int(card.get("level_from", 0)) > 0 else s
 	return ""
+
+
+## A level pill: "LV 2 → 3" for an upgrade, "NEW · LV 1" for a fresh item, "MAX" when the step lands on the cap.
+static func level_chip(card: Dictionary) -> Control:
+	var def: ContentDef = card["def"]
+	var lf := int(card.get("level_from", 0))
+	var lt := int(card.get("level_to", 1))
+	var mx: int = def.max_level if (def is WeaponDef or def is PassiveDef) else 8
+	# a new item taken past level 1 in one go (the Stranger's, pass 34) says where it lands
+	var text := ("NEW · LV %d" % maxi(lt, 1) if lf == 0 else "LV %d → %d" % [lf, lt]) + (" · MAX" if lt >= mx and lf > 0 else "")
+	if def is MutationDef:
+		var fam_n: int = maxi(Registry.mutations_of((def as MutationDef).weapon).size(), 3)
+		text = "HERO" if (def as MutationDef).is_hero() else "PATH %d / %d" % [mini(Run.mutations_held((def as MutationDef).weapon).size() + 1, fam_n), fam_n]
+	elif def is LineDef:
+		text = ("NEW · RANK 1" if lf == 0 else "RANK %d → %d" % [lf, lt]) + (" · MAX" if lt >= mx and lf > 0 else "")
+		if bool(card.get("evolve", false)):
+			text = "EVOLVE"
+	elif def is PerkDef:
+		text = "ONCE"
+	var l := label(text, 24, ACCENT_INK, HORIZONTAL_ALIGNMENT_CENTER)
+	l.autowrap_mode = TextServer.AUTOWRAP_OFF
+	l.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", stylebox(ACCENT, 14, Color(0, 0, 0, 0), 0, false, false, false))
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var m := MarginContainer.new()
+	m.add_theme_constant_override("margin_left", 14)
+	m.add_theme_constant_override("margin_right", 14)
+	m.add_theme_constant_override("margin_top", 4)
+	m.add_theme_constant_override("margin_bottom", 4)
+	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	m.add_child(l)
+	p.add_child(m)
+	p.size_flags_horizontal = Control.SIZE_SHRINK_END
+	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return p
+
+
+## Level pips for a card: gold for the levels held, a white pip with a gold rim for the one this pick gives, grey
+## for the rest, so "where am I" and "what do I get" are one glance.
+static func level_pips(card: Dictionary, width: int = 320) -> Control:
+	var def: ContentDef = card["def"]
+	var lf := int(card.get("level_from", 0))
+	var lt := int(card.get("level_to", 1))
+	var mx: int = def.max_level if (def is WeaponDef or def is PassiveDef) else 8
+	if def is MutationDef:
+		# a path has three pips: the picks held on the weapon, this one, the rest
+		var held := Run.mutations_held((def as MutationDef).weapon).size()
+		if (def as MutationDef).is_hero():
+			return Control.new()
+		lf = held
+		lt = held + 1
+		mx = 3
+	elif def is PerkDef:
+		return Control.new()
+	if bool(card.get("evolve", false)):
+		# an evolution has no ranks to count
+		return Control.new()
+	var h := hbox(6)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var w: int = maxi(width / maxi(mx, 1) - 6, 10)
+	for i in range(mx):
+		var p := Panel.new()
+		p.custom_minimum_size = Vector2(w, 20)
+		var col: Color = ACCENT if i < lf else (Color(1, 1, 1) if i < lt else BG3)
+		var rim: Color = ACCENT if i < lt else LINE
+		p.add_theme_stylebox_override("panel", stylebox(col, 6, rim, 2, false, false, false))
+		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(p)
+	return h
+
+
+## The top of an item card: the kind tag, the name with the level chip on the right, the pip row. Returns the column.
+static func item_header(v: VBoxContainer, card: Dictionary, kind_col: Color, name_size: int = 46, extra_tag: String = "") -> void:
+	var def: ContentDef = card["def"]
+	var kind := "WEAPON" if def is WeaponDef else "PASSIVE"
+	if def is WeaponDef and def.is_evolution:
+		kind = "EVOLUTION"
+	var tag_text := kind + (" · UPGRADE" if int(card.get("level_from", 0)) > 0 else " · NEW") + extra_tag
+	if def is MutationDef:
+		var md := def as MutationDef
+		var wname: String = Registry.weapon(md.weapon).display_name.to_upper() if Registry.weapon(md.weapon) else md.weapon.to_upper()
+		tag_text = ("HERO MUTATION · " if md.is_hero() else "MUTATION · ") + wname + ("" if md.is_hero() else " · " + md.mutation_kind.to_upper()) + extra_tag
+	elif def is LineDef:
+		tag_text = "LINE" + (" · RANK UP" if int(card.get("level_from", 0)) > 0 else " · NEW") + extra_tag
+		if bool(card.get("evolve", false)):
+			var src: LineDef = Registry.line((def as LineDef).evolves_from)
+			tag_text = "LINE · EVOLUTION OF " + (src.display_name.to_upper() if src else "A LINE") + extra_tag
+	elif def is PerkDef:
+		tag_text = "HERO PERK" + extra_tag
+	var tl := label(tag_text, 22, kind_col)
+	tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(tl)
+	var row := hbox(16)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var nl := label(def.display_name, name_size, INK)
+	nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(nl)
+	row.add_child(level_chip(card))
+	v.add_child(row)
+	v.add_child(level_pips(card))
+
+
+## "Next level: +15% might" -> "Next: +15% might"; "Maxed." stays.
+static func _next_only(text: String) -> String:
+	if text.begins_with("Next level: "):
+		return "Next: " + text.trim_prefix("Next level: ")
+	return text
 
 
 static func card_tag(card: Dictionary) -> String:
 	var def: ContentDef = card["def"]
 	var t := "WEAPON" if def is WeaponDef else "PASSIVE"
+	if def is MutationDef:
+		return "MUTATION · " + (Registry.weapon((def as MutationDef).weapon).display_name.to_upper() if Registry.weapon((def as MutationDef).weapon) else "")
+	if def is LineDef:
+		t = "LINE"
+	elif def is PerkDef:
+		return "HERO PERK"
 	if card.get("is_new", false):
 		return t + " · NEW"
 	return t + " · LV %d → %d" % [int(card["level_from"]), int(card["level_to"])]

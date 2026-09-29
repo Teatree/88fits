@@ -1,0 +1,30 @@
+{
+  "id": "wide_orbit",
+  "name": "Wide Orbit",
+  "flavour": "In, out, and out of the way.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "orbit_saws",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "The ring breathes from ×0.9 to ×1.6 its radius. A saw hit shoves the creature sideways along the spin, once a second.",
+  "vfx": "the ring of saws swells wide and draws in again, and creatures are batted aside along it",
+  "effects": [],
+  "params": {
+    "breathe": {
+      "min": 0.9,
+      "max": 1.6,
+      "period": 2.8
+    },
+    "side_knock": {
+      "force": 7.0,
+      "every": 1.0
+    }
+  },
+  "art_prompt": "a big ring of light with a small saw blade on it, arrows pointing inward",
+  "placeholder": {
+    "color": "#E0E8F0",
+    "glyph": "star"
+  }
+}

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_guprp"]
+[ext_resource type="Texture2D" path="res://content/mutations/tommy_sweep/tommy_sweep_icon.png" id="1_tu2af"]
+
+[resource]
+script = ExtResource("1_guprp")
+weapon = "tommy_gun"
+text = "The burst fans across 70° instead of a line."
+vfx = "the muzzle swings as the burst walks across the crowd"
+params = {
+"sweep_deg": 70.0
+}
+id = "tommy_sweep"
+display_name = "Sweep Fire"
+flavour = "Left to right. Then right to left."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_tu2af")
+icon_file = "tommy_sweep_icon.png"
+placeholder = {
+"color": "#E0C080",
+"glyph": "star"
+}

@@ -48,7 +48,9 @@ func _ready() -> void:
 		add_child(_light)
 	scale = Vector3(0.01, 0.01, 0.01)
 	var tw := create_tween()
-	tw.tween_property(self, "scale", Vector3.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# the drop passives' jerky and coin bags are small things underfoot, not power-ups on a plinth
+	var size: float = 0.62 if (def and bool(def.params.get("small", false))) else 1.0
+	tw.tween_property(self, "scale", Vector3.ONE * size, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _process(delta: float) -> void:

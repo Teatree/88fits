@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_rkt8b"]
+[ext_resource type="Texture2D" path="res://content/mutations/flurry/flurry_icon.png" id="2_fc3mf"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_s0q3o"]
+
+[sub_resource type="Resource" id="Resource_s0q3o"]
+script = ExtResource("1_rkt8b")
+stat = "amount"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_fc3mf"]
+script = ExtResource("1_rkt8b")
+stat = "damage"
+op = "mul"
+value = -0.4
+
+[resource]
+script = ExtResource("2_s0q3o")
+weapon = "sabre"
+mutation_kind = "volume"
+text = "Three slices a stroke, −40% damage."
+vfx = "three swings back and forth across the target"
+effects = [SubResource("Resource_s0q3o"), SubResource("Resource_fc3mf")]
+id = "flurry"
+display_name = "Flurry"
+flavour = "Left, right, left."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_fc3mf")
+icon_file = "flurry_icon.png"
+placeholder = {
+"color": "#D8E0F0",
+"glyph": "star"
+}

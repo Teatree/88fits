@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_8tt3s"]
+[ext_resource type="Texture2D" path="res://content/mutations/cluster_mines/cluster_mines_icon.png" id="2_5q4i8"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_p0e2h"]
+
+[sub_resource type="Resource" id="Resource_p0e2h"]
+script = ExtResource("1_8tt3s")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_5q4i8"]
+script = ExtResource("1_8tt3s")
+stat = "damage"
+op = "mul"
+value = -0.4
+
+[resource]
+script = ExtResource("2_p0e2h")
+weapon = "land_mine"
+mutation_kind = "volume"
+text = "Two mines a drop, twice as many on the ground, −40% damage."
+vfx = "a field of blinking lamps"
+effects = [SubResource("Resource_p0e2h"), SubResource("Resource_5q4i8")]
+params = {
+"max_mines": 16.0
+}
+id = "cluster_mines"
+display_name = "Cluster Mines"
+flavour = "The whole field."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_5q4i8")
+icon_file = "cluster_mines_icon.png"
+placeholder = {
+"color": "#A0A860",
+"glyph": "star"
+}

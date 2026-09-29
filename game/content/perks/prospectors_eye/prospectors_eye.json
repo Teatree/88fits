@@ -1,0 +1,26 @@
+{
+  "id": "prospectors_eye",
+  "name": "Prospector's Eye",
+  "flavour": "She can smell gold. Bones too.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "mira",
+  "text": "Coins, bones and relics pull from twice the range; Elites drop one more bone.",
+  "effects": [
+    {
+      "stat": "magnet",
+      "op": "mul",
+      "value": 1.0,
+      "target": "player"
+    }
+  ],
+  "special": "prospectors_eye",
+  "params": {
+    "bones": 1
+  },
+  "art_prompt": "a prospector's magnifying loupe with a gold nugget in the lens",
+  "placeholder": {
+    "color": "#F0D050",
+    "glyph": "star"
+  }
+}

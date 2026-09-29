@@ -57,7 +57,6 @@ base = {
 "speed": 6.0
 }
 levels = [[], [SubResource("Resource_4evnd")], [SubResource("Resource_7vev6")], [SubResource("Resource_iccdk")], [SubResource("Resource_on5nm")], [SubResource("Resource_h1xhm")], [SubResource("Resource_j8xv1")], [SubResource("Resource_t7day")]]
-evolves_with = "spurs"
 evolves_into = "stampede"
 sfx = {
 "fire": "w_tumble_roll",

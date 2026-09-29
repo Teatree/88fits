@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_jbdks"]
+[ext_resource type="Texture2D" path="res://content/mutations/blowgun_burst/blowgun_burst_icon.png" id="2_g42p5"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_pbyoo"]
+
+[sub_resource type="Resource" id="Resource_pbyoo"]
+script = ExtResource("1_jbdks")
+stat = "amount"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_g42p5"]
+script = ExtResource("1_jbdks")
+stat = "damage"
+op = "mul"
+value = -0.3
+
+[resource]
+script = ExtResource("2_pbyoo")
+weapon = "poison_dart"
+mutation_kind = "volume"
+text = "Three darts a shot, −30% damage."
+vfx = "three thin darts in a fan"
+effects = [SubResource("Resource_pbyoo"), SubResource("Resource_g42p5")]
+params = {
+"size_mult": 0.85
+}
+id = "blowgun_burst"
+display_name = "Blowgun Burst"
+flavour = "Three breaths. One exhale."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_g42p5")
+icon_file = "blowgun_burst_icon.png"
+placeholder = {
+"color": "#A0C860",
+"glyph": "star"
+}

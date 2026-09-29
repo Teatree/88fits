@@ -15,19 +15,22 @@ value = 0.2
 script = ExtResource("1_bgsxw")
 stat = "max_hp"
 op = "mul"
-value = 0.12
+value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_2ke28"]
 script = ExtResource("1_bgsxw")
-stat = "magnet"
-op = "mul"
-value = 0.1
+stat = "armor"
+value = 1.0
 target = "player"
 
 [resource]
 script = ExtResource("2_dewj2")
 trait_effects = [SubResource("Resource_nv1wx"), SubResource("Resource_2ke28")]
+trait_name = "Space Suit"
+trait_text = "+1 armor and +10% max HP. Every level-up patches the suit for 8% of her HP."
+pronoun = "she"
+level_heal = 0.05
 favourite_weapon = "orbit_saws"
 favourite_bonus = {
 "effects": [SubResource("Resource_bgsxw")],
@@ -37,7 +40,7 @@ sprite = ExtResource("4_nv1wx")
 sprite_file = "astro_sprite.png"
 anims = {
 "cheer": 1.0,
-"die": 1.0,
+"die": 5.0,
 "hit": 4.0,
 "hit_bd": 4.0,
 "hit_f": 4.0,
@@ -56,6 +59,7 @@ anims = {
 }
 strip_cols = 62
 fps = {
+"die": 8.0,
 "hit": 12.0,
 "run": 36.0
 }

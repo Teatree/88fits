@@ -3,7 +3,7 @@
   "name": "Endless",
   "condition": {
     "type": "kill_boss",
-    "map": "dry_gulch",
+    "map": "red_canyon",
     "stage": 3
   },
   "unlocks": {

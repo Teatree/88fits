@@ -229,9 +229,63 @@
  },
  {
   "group": "Weapons",
+  "id": "w_tommy_fire",
+  "trigger": "tommy gun burst",
+  "prompt": "A rattling cartoon submachine-gun burst, six quick pops, 500 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_mine_arm",
+  "trigger": "a mine is laid",
+  "prompt": "A metal click and a rising beep, armed, 300 ms"
+ },
+ {
+  "group": "Weapons",
   "id": "w_evo_reveal",
   "trigger": "evolution at a chest",
   "prompt": "Two-second ascending magical fanfare ending on a gong"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_hammer_swing",
+  "trigger": "a hammer rears up over the hero",
+  "prompt": "Heavy whoosh building up, a big object swung overhead, 300 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_hammer_hit",
+  "trigger": "a hammer lands",
+  "prompt": "Deep ground thump with a crack of stone and a short rumble, 500 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_revolver_fire",
+  "trigger": "a Revolver round",
+  "prompt": "Sharp single-action revolver crack with a short western echo, 200 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_grav_grab",
+  "trigger": "the Gravity Gun lifts a creature",
+  "prompt": "Rising electric hum with a wobble, a tractor beam locking on, 400 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_grav_throw",
+  "trigger": "the Gravity Gun throws",
+  "prompt": "Falling zap and a whoosh, a push of force, 300 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_grav_land",
+  "trigger": "a thrown creature lands",
+  "prompt": "Soft body thump into sand with a small blast, 400 ms"
+ },
+ {
+  "group": "Weapons",
+  "id": "w_blackhole",
+  "trigger": "a Singularity black hole opens",
+  "prompt": "Low descending warble, air sucked inward, 1.2 s"
  },
  {
   "group": "Pickups",
@@ -280,6 +334,12 @@
   "id": "pk_powerup",
   "trigger": "a power-up is picked up",
   "prompt": "Bright rising power chord with a sparkle tail, 500 ms"
+ },
+ {
+  "group": "Pickups",
+  "id": "st_teleport",
+  "trigger": "the Teleport fires",
+  "prompt": "Rising shimmering sweep with sparkles, a whoosh out and in, 700 ms"
  },
  {
   "group": "Enemies",
@@ -331,9 +391,9 @@
  },
  {
   "group": "Enemies",
-  "id": "en_roadrunner_die",
-  "trigger": "a roadrunner dies",
-  "prompt": "A cartoon 'meep' cut short with a feathery flop, 300 ms"
+  "id": "en_lizard_die",
+  "trigger": "a sand lizard dies",
+  "prompt": "A wet cartoon splat with a short hiss, 300 ms"
  },
  {
   "group": "Enemies",

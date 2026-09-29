@@ -1,0 +1,24 @@
+{
+  "id": "deadeye",
+  "name": "Deadeye",
+  "flavour": "Every hit has a chance to land for double. Aim for the eyes.",
+  "rarity": "rare",
+  "weight": 6,
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "crit_chance",
+        "op": "add",
+        "value": 0.08,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "placeholder": {
+    "color": "#FFD23B",
+    "glyph": "target"
+  },
+  "art_prompt": "a round gold marksman medal with a red bullseye target in the middle and a small ribbon"
+}

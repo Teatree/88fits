@@ -1,0 +1,84 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_46v6r"]
+[ext_resource type="Texture2D" path="res://content/weapons/big_mouth/big_mouth_icon.png" id="1_dassk"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_dassk"]
+[ext_resource type="PackedScene" path="res://content/weapons/big_mouth/big_mouth_visual.tscn" id="3_s4tjk"]
+
+[sub_resource type="Resource" id="Resource_dassk"]
+script = ExtResource("1_46v6r")
+stat = "damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_s4tjk"]
+script = ExtResource("1_46v6r")
+stat = "duration"
+value = 0.4
+
+[sub_resource type="Resource" id="Resource_ybeac"]
+script = ExtResource("1_46v6r")
+stat = "cooldown"
+op = "mul"
+value = -0.15
+
+[sub_resource type="Resource" id="Resource_vihw5"]
+script = ExtResource("1_46v6r")
+stat = "damage"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_15lai"]
+script = ExtResource("1_46v6r")
+stat = "range"
+value = 3.0
+
+[sub_resource type="Resource" id="Resource_kfbdn"]
+script = ExtResource("1_46v6r")
+stat = "duration"
+value = 0.5
+
+[sub_resource type="Resource" id="Resource_vqcmk"]
+script = ExtResource("1_46v6r")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[resource]
+script = ExtResource("2_dassk")
+behavior = "LaserBeam"
+base = {
+"amount": 1.0,
+"cooldown": 3.2,
+"damage": 9.0,
+"duration": 2.0,
+"knockback": 0.0,
+"pierce": 99.0,
+"range": 13.0
+}
+levels = [[], [SubResource("Resource_dassk")], [SubResource("Resource_s4tjk")], [SubResource("Resource_ybeac")], [SubResource("Resource_vihw5")], [SubResource("Resource_15lai")], [SubResource("Resource_kfbdn")], [SubResource("Resource_vqcmk")]]
+evolves_into = "loudmouth"
+sfx = {
+"fire": "w_zap_fire",
+"hit": "w_zap_hit"
+}
+visual = ExtResource("3_s4tjk")
+visual_file = "big_mouth_visual.tscn"
+params = {
+"beam": {
+"arch_deg": 0.0,
+"tick": 0.18,
+"width": 0.34
+}
+}
+id = "big_mouth"
+display_name = "Big Mouth"
+flavour = "Say aaah."
+rarity = "rare"
+weight = 7.0
+icon = ExtResource("1_dassk")
+icon_file = "big_mouth_icon.png"
+placeholder = {
+"color": "#FF4F8B",
+"glyph": "bolt"
+}

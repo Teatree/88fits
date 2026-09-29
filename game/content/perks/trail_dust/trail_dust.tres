@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/trail_dust/trail_dust_icon.png" id="1_awv02"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_dan5g"]
+
+[resource]
+script = ExtResource("1_dan5g")
+hero = "drifter"
+text = "The dust behind him slows creatures 25% for a second."
+special = "trail_dust"
+params = {
+"every": 0.22,
+"radius": 1.1,
+"seconds": 1.0,
+"slow": 0.25
+}
+id = "trail_dust"
+display_name = "Trail Dust"
+flavour = "Nobody follows the Drifter for long."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_awv02")
+icon_file = "trail_dust_icon.png"
+placeholder = {
+"color": "#D0B080",
+"glyph": "star"
+}

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/tough_love/tough_love_icon.png" id="1_j7aeh"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_kp24c"]
+
+[resource]
+script = ExtResource("1_kp24c")
+hero = "dad"
+text = "Taking a hit gives +15% might and +15% area for 4 s."
+special = "tough_love"
+params = {
+"area": 0.15,
+"might": 0.15,
+"seconds": 4.0
+}
+id = "tough_love"
+display_name = "Tough Love"
+flavour = "Hit him. See what happens."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_j7aeh")
+icon_file = "tough_love_icon.png"
+placeholder = {
+"color": "#FF7060",
+"glyph": "star"
+}

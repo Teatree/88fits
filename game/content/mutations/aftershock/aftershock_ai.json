@@ -1,0 +1,15 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "a steel war hammer head striking the ground with two rings of shockwave and dust spreading out around it",
+ "renders": {
+  "icon": {
+   "key": "aftershock_icon35_1",
+   "prompt": "a steel war hammer head striking the ground with two rings of shockwave and dust spreading out around it",
+   "refs": [],
+   "screen": "green",
+   "picked": 1,
+   "of": 2
+  }
+ }
+}

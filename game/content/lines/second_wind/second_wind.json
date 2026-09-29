@@ -1,0 +1,32 @@
+{
+  "id": "second_wind",
+  "name": "Second Wind",
+  "flavour": "Up again before the dust settles.",
+  "rarity": "epic",
+  "weight": 0,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "regen",
+        "op": "add",
+        "value": 2.4,
+        "target": "player"
+      },
+      {
+        "stat": "regen_delay",
+        "op": "set",
+        "value": 1.0,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "mend",
+  "art_prompt": "a glowing green heart wrapped in a bandage with a swirl of wind around it",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

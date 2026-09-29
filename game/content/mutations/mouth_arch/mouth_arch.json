@@ -1,0 +1,30 @@
+{
+  "id": "mouth_arch",
+  "name": "Sweep",
+  "flavour": "Mind the queue.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "big_mouth",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "The beam pans 15° across while it fires, so it cuts through a crowd.",
+  "vfx": "the beam sweeps slowly sideways as it burns",
+  "effects": [
+    {
+      "stat": "duration",
+      "op": "add",
+      "value": 0.4
+    }
+  ],
+  "params": {
+    "beam": {
+      "arch_deg": 15.0
+    }
+  },
+  "art_prompt": "a wide open mouth firing a magenta laser beam that sweeps sideways in an arc, motion trails behind it",
+  "placeholder": {
+    "color": "#FF7ABF",
+    "glyph": "star"
+  }
+}

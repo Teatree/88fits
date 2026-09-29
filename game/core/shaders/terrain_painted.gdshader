@@ -5,6 +5,9 @@ render_mode cull_back;
 
 uniform sampler2D sand_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D cracked_tex : source_color, filter_linear_mipmap, repeat_enable;
+// the rim: red rock by the vertex colour's blue channel (Red Canyon); Dry Gulch never set it
+uniform sampler2D rock_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform vec3 rock_flat : source_color = vec3(0.62, 0.34, 0.24);
 uniform float tiles_per_metre = 0.09;
 uniform float tint_strength = 0.6;
 // how far the painted texture is flattened towards a plain colour: busy dunes fight the sprites, so 0.4 by default
@@ -25,10 +28,14 @@ void fragment() {
 	vec3 s = texture(sand_tex, uv).rgb;
 	vec3 c = texture(cracked_tex, uv * 0.8).rgb;
 	float mixw = smoothstep(0.15, 0.85, v_col.r);
+	float rockw = smoothstep(0.2, 0.9, v_col.b);
 	vec3 col = mix(s, c, mixw);
+	vec3 rk = texture(rock_tex, uv * 0.7).rgb;
+	col = mix(col, rk, rockw);
 	float lum = dot(col, vec3(0.299, 0.587, 0.114));
 	col = mix(col, vec3(lum), 0.2);
-	col = mix(col, mix(sand_flat, cracked_flat, mixw) * (0.7 + 0.5 * lum), calm) * 0.95;
+	vec3 flat_col = mix(mix(sand_flat, cracked_flat, mixw), rock_flat, rockw);
+	col = mix(col, flat_col * (0.7 + 0.5 * lum), calm) * 0.95;
 	// vertex colour green carries the scorch/shade variation from the builder
 	col *= mix(1.0, v_col.g, tint_strength);
 	ALBEDO = col;

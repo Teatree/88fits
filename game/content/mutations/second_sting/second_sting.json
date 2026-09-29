@@ -1,0 +1,22 @@
+{
+  "id": "second_sting",
+  "name": "Second Sting",
+  "flavour": "Once is never enough.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "hornet_nest",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "A hornet that kills turns and dives at the next creature, once.",
+  "vfx": "the hornet loops round and stings again",
+  "effects": [],
+  "params": {
+    "second_sting": true
+  },
+  "art_prompt": "a hornet looping back on itself to sting a second time, curved motion lines",
+  "placeholder": {
+    "color": "#F0D060",
+    "glyph": "star"
+  }
+}

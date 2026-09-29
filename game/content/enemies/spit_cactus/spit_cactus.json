@@ -14,14 +14,14 @@
     "small": 1.0,
     "medium": 0.25,
     "gold": 0.05,
-    "chest": 0.005
+    "chest": 0.007
   },
   "anims": {
     "idle": 4,
     "run": 12,
     "attack": 2,
     "hit": 1,
-    "die": 1,
+    "die": 5,
     "run_b": 12,
     "idle_b": 4
   },
@@ -56,20 +56,24 @@
       "#6ADFBB",
       "#FFE68A"
     ],
-    "tint_strength": 0.55,
+    "tint_strength": 0.22,
     "special_chance": 0.1,
     "special": {
       "size": 1.5,
       "hp": 2.2,
       "damage": 1.4,
       "xp": 3.0,
-      "tint": "#FF7AB8",
-      "tint_strength": 0.9
+      "tint": "#5E2080",
+      "tint_strength": 0.6
     }
   },
   "motion": "waddling in place, swaying from side to side",
-  "strip_cols": 36,
+  "strip_cols": 40,
   "fps": {
-    "run": 15
-  }
+    "run": 15,
+    "die": 8
+  },
+  "doc": "The first ranged creature: keeps 5 m off and lobs a spit that lands in a red ring. Teaches sidestepping.",
+  "head": 0.981,
+  "can_be_elite": false
 }

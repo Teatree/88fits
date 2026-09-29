@@ -24,7 +24,7 @@ varying float v_flash;
 
 void vertex() {
 	float frame = floor(INSTANCE_CUSTOM.x);
-	float flip = INSTANCE_CUSTOM.y;
+	float flip = mod(INSTANCE_CUSTOM.y, 2.0);   // above 1: the glow level rides on it (enemy_billboard)
 	v_flash = INSTANCE_CUSTOM.z;
 	float squash = max(INSTANCE_CUSTOM.w, 0.2);
 	vec2 uv = UV;

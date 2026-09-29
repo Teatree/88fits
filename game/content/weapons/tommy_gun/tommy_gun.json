@@ -1,0 +1,93 @@
+{
+  "id": "tommy_gun",
+  "name": "Tommy Gun",
+  "flavour": "Says hello. Repeatedly.",
+  "rarity": "rare",
+  "weight": 7,
+  "behavior": "ProjectileEmitter",
+  "targeting": "nearest",
+  "base": {
+    "damage": 3,
+    "cooldown": 1.4,
+    "amount": 6,
+    "spread_deg": 8,
+    "pierce": 2,
+    "speed": 22,
+    "range": 12,
+    "knockback": 0.6
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 2
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 2
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 2
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "chicago_typewriter",
+  "params": {
+    "radius": 0.16,
+    "burst": true,
+    "familiar": {
+      "radius": 1.3,
+      "height": 1.4,
+      "speed": 1.1,
+      "bob": 0.08
+    },
+    "tracer": true
+  },
+  "sfx": {
+    "fire": "w_tommy_fire",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#4A4A5A",
+    "glyph": "gun"
+  },
+  "art_prompt": "a classic 1920s Thompson submachine gun seen from the side pointing to the upper right, a big round drum magazine hanging under the receiver just in front of the trigger, a vertical wooden front grip under the finned black barrel, a wooden pistol grip and a wooden shoulder stock, a small muzzle compensator, the whole gun large and filling the frame"
+}

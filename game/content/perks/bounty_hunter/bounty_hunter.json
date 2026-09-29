@@ -1,0 +1,22 @@
+{
+  "id": "bounty_hunter",
+  "name": "Bounty Hunter",
+  "flavour": "Wanted: anything that moves.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "drifter",
+  "text": "Every 60 kills a creature near him is WANTED: it glows, has four times its health, and pays 40 gold and a chest when it drops.",
+  "effects": [],
+  "special": "bounty_hunter",
+  "params": {
+    "every": 60.0,
+    "hp_mult": 4.0,
+    "gold": 40.0,
+    "reach": 16.0
+  },
+  "art_prompt": "a torn wanted poster with a gold star badge pinned to it",
+  "placeholder": {
+    "color": "#E0B060",
+    "glyph": "star"
+  }
+}

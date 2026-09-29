@@ -1,0 +1,29 @@
+{
+  "id": "sky_flare",
+  "name": "Sky Flare",
+  "flavour": "Goes up. Comes down five times.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "flare_gun",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "The flare bursts into five embers that fall in a ring around whatever it hits.",
+  "vfx": "a red burst, five arcing embers, five small fire pools",
+  "effects": [],
+  "params": {
+    "burst_spawn": {
+      "count": 5,
+      "kind": "ember",
+      "ring": 2.2,
+      "damage_mult": 0.6,
+      "area": 1.2
+    },
+    "size_mult": 1.15
+  },
+  "art_prompt": "a red flare rocket bursting high into a ring of five falling embers",
+  "placeholder": {
+    "color": "#FF9A4A",
+    "glyph": "star"
+  }
+}

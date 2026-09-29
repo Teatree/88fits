@@ -20,5 +20,6 @@
     "color": "#46D39A",
     "glyph": "ring"
   },
-  "art_prompt": "a green crosshair target with three concentric rings"
+  "art_prompt": "a green crosshair target with three concentric rings",
+  "max_level": 5
 }

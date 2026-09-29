@@ -69,7 +69,7 @@
       }
     ]
   ],
-  "evolves_with": "reach",
+  "evolves_with": "",
   "evolves_into": "saw_halo",
   "sfx": {
     "loop": "w_saw_loop",

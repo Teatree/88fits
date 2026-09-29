@@ -5,7 +5,7 @@
   "effect": "vacuum",
   "value": 0,
   "duration": 0,
-  "lifetime": 20,
+  "lifetime": 40.0,
   "color": "#FFB52E",
   "weight": 2,
   "placeholder": {

@@ -1,0 +1,91 @@
+{
+  "id": "mira",
+  "name": "Mira",
+  "flavour": "Digs for a living. Finds trouble for free.",
+  "pronoun": "she",
+  "trait": [
+    {
+      "stat": "greed",
+      "op": "mul",
+      "value": 0.3,
+      "target": "player"
+    },
+    {
+      "stat": "might",
+      "op": "mul",
+      "value": -0.1,
+      "target": "player"
+    }
+  ],
+  "trait_name": "Motherlode",
+  "trait_text": "+30% gold and −10% might. Elites and bosses drop one extra material for the homestead.",
+  "specials": [
+    "motherlode"
+  ],
+  "favourite_weapon": "land_mine",
+  "favourite_bonus": {
+    "type": "effects",
+    "effects": [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.2
+      }
+    ]
+  },
+  "unlock_quest": "",
+  "frame_px": 256,
+  "art_prompt": "a small goofy young woman prospector with a long dark braid, a yellow mining helmet with a round headlamp on the front, big round goggles pushed up on the helmet, a red bandana around her neck, blue denim overalls over a rolled-sleeve cream shirt, sturdy brown boots, holding nothing, standing straight, a cheeky grin with a gap in her teeth",
+  "portrait_prompt": "grinning with a gap in her teeth and a wink, one gloved hand raised holding up a fat gold nugget, the headlamp on her yellow helmet shining, the braid over her shoulder",
+  "motion": "running in place at a quick determined jog, braid swinging, arms pumping, boots stomping",
+  "anim_hint": "a small young woman prospector with a long dark braid, a yellow mining helmet with a headlamp, goggles on the helmet, a red bandana, blue overalls over a cream shirt and brown boots, arms swinging as she runs",
+  "anim_negative": "pickaxe, tool in hand, hat instead of helmet, missing braid, extra limbs",
+  "pose_hint": "Both arms hang straight down at her sides, hands open and relaxed, nothing held, not raised, not bent. The same small stocky proportions in every view.",
+  "back_hint": "She faces away from the viewer: only the back of the yellow helmet, the braid hanging down her back over the overalls and the boot heels are visible, no face at all.",
+  "side_hint": "In strict profile: the headlamp on the front of the helmet, the braid hanging behind, the overalls' bib, the same short sturdy proportions as the front view.",
+  "hurt_hint": "helmet knocked askew, eyes squeezed shut, teeth gritted, braid flying",
+  "placeholder": {
+    "color": "#F2C94C",
+    "glyph": "helmet"
+  },
+  "anims": {
+    "idle": 4,
+    "run": 24,
+    "hit": 4,
+    "die": 5,
+    "cheer": 1,
+    "idle_f": 4,
+    "run_f": 24,
+    "idle_s": 4,
+    "run_s": 24,
+    "idle_bd": 4,
+    "run_bd": 24,
+    "idle_fd": 4,
+    "run_fd": 24,
+    "hit_f": 4,
+    "hit_s": 4,
+    "hit_bd": 4,
+    "hit_fd": 4
+  },
+  "strip_cols": 62,
+  "fps": {
+    "run": 36,
+    "hit": 12,
+    "die": 8
+  },
+  "anim_seed": 200,
+  "grade": {
+    "hue": [
+      0.5,
+      0.72
+    ],
+    "sat_mul": 2.6,
+    "sat_range": [
+      0.04,
+      0.6
+    ],
+    "sat_max": 0.55
+  },
+  "key_sat": 0.6,
+  "hidden": true
+}

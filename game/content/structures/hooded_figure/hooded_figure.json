@@ -1,0 +1,20 @@
+{
+  "id": "hooded_figure",
+  "name": "The Stranger",
+  "flavour": "Says nothing. Offers everything. Wants a piece of you.",
+  "prop": "",
+  "height": 2.4,
+  "radius": 2.2,
+  "interact_time": 1.2,
+  "weight": 1.0,
+  "color": "#6A4FA0",
+  "params": {
+    "hp_cost": 0.15,
+    "levels": 3
+  },
+  "placeholder": {
+    "color": "#6A4FA0",
+    "glyph": "hood"
+  },
+  "effect": "stranger"
+}

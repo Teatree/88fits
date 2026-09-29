@@ -1,0 +1,15 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "a curved dotted arc bouncing twice with a small burst of dust at each landing",
+ "renders": {
+  "icon": {
+   "key": "slingshot_icon35_0",
+   "prompt": "a curved dotted arc bouncing twice with a small burst of dust at each landing",
+   "refs": [],
+   "screen": "green",
+   "picked": 0,
+   "of": 2
+  }
+ }
+}

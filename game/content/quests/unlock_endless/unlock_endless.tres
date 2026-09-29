@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_vkrhp")
 condition = {
-"map": "dry_gulch",
+"map": "red_canyon",
 "stage": 3.0,
 "type": "kill_boss"
 }

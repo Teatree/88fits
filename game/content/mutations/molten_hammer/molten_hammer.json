@@ -1,0 +1,36 @@
+{
+  "id": "molten_hammer",
+  "name": "Molten Hammer",
+  "flavour": "Straight off the anvil.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "hammer",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "Impacts set everything in the blast on fire.",
+  "vfx": "an orange blast and a glowing smear behind the head",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "add",
+      "value": 5
+    },
+    {
+      "stat": "fire_duration",
+      "op": "add",
+      "value": 2.0
+    },
+    {
+      "stat": "fire_spread",
+      "op": "add",
+      "value": 0.4
+    }
+  ],
+  "params": {},
+  "art_prompt": "a war hammer with its steel head glowing red hot and dripping molten orange metal",
+  "placeholder": {
+    "color": "#FF8040",
+    "glyph": "star"
+  }
+}

@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_72jwi"]
+[ext_resource type="Texture2D" path="res://content/mutations/venom_rounds/venom_rounds_icon.png" id="2_f1wmw"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_jc7mc"]
+
+[sub_resource type="Resource" id="Resource_jc7mc"]
+script = ExtResource("1_72jwi")
+stat = "poison_damage"
+value = 5.0
+
+[sub_resource type="Resource" id="Resource_f1wmw"]
+script = ExtResource("1_72jwi")
+stat = "poison_stacks"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_oohnu"]
+script = ExtResource("1_72jwi")
+stat = "poison_duration"
+value = 8.0
+
+[resource]
+script = ExtResource("2_jc7mc")
+weapon = "revolver"
+mutation_kind = "element"
+text = "Every round poisons what it hits."
+vfx = "green tracers and the poison tick's green flash"
+effects = [SubResource("Resource_jc7mc"), SubResource("Resource_f1wmw"), SubResource("Resource_oohnu")]
+id = "venom_rounds"
+display_name = "Venom Rounds"
+flavour = "A rattler in every chamber."
+rarity = "rare"
+element = "poison"
+weight = 8.0
+icon = ExtResource("2_f1wmw")
+icon_file = "venom_rounds_icon.png"
+placeholder = {
+"color": "#7DD35A",
+"glyph": "star"
+}

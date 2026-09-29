@@ -7,7 +7,7 @@
   "effect": "heal",
   "weight": 4,
   "params": {
-    "fraction": 0.5
+    "fraction": 0.35
   },
   "color": "#5AD66A",
   "prop": "healing_well",

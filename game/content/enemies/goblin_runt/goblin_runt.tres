@@ -3,9 +3,16 @@
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_jat44"]
 [ext_resource type="Texture2D" path="res://content/enemies/goblin_runt/goblin_runt_icon.png" id="1_jb5bl"]
 [ext_resource type="Texture2D" path="res://content/enemies/goblin_runt/goblin_runt_sprite.png" id="3_u54fl"]
+[ext_resource type="Texture2D" path="res://content/enemies/goblin_runt/goblin_runt_sprite_b.png" id="4_bpd8s"]
+[ext_resource type="Texture2D" path="res://content/enemies/goblin_runt/goblin_runt_sprite_c.png" id="5_q3gms"]
+[ext_resource type="Texture2D" path="res://content/enemies/goblin_runt/goblin_runt_icon_b.png" id="6_gay8p"]
+[ext_resource type="Texture2D" path="res://content/enemies/goblin_runt/goblin_runt_sprite_d.png" id="6_ial0f"]
+[ext_resource type="Texture2D" path="res://content/enemies/goblin_runt/goblin_runt_icon_c.png" id="7_lhlp4"]
+[ext_resource type="Texture2D" path="res://content/enemies/goblin_runt/goblin_runt_icon_d.png" id="9_3asum"]
 
 [resource]
 script = ExtResource("1_jat44")
+doc = "Keeps the crowd moving: smaller, faster, more of them, so a slow build cannot walk away."
 hp = 6.0
 speed = 2.3
 damage = 4.0
@@ -13,25 +20,114 @@ radius = 0.35
 size = 0.95
 pack_size = 4
 drops = {
-"chest": 0.001,
+"chest": 0.0014,
 "gold": 0.01,
 "small": 1.0
 }
 anims = {
 "attack": 2.0,
-"die": 1.0,
+"die": 8.0,
 "hit": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
 "run": 12.0,
 "run_b": 12.0
 }
-sprite = ExtResource("3_u54fl")
-sprite_file = "goblin_runt_sprite.png"
-strip_cols = 36
+sprite = ExtResource("6_ial0f")
+sprite_file = "goblin_runt_sprite_d.png"
+strip_cols = 43
 fps = {
-"run": 15.0
+"die": 12.0,
+"run": 20.0
 }
+head = 1.0
+variants = {
+"RUN-A": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"head": 0.984,
+"icon": ExtResource("1_jb5bl"),
+"note": "Mixamo's walk fitted to the runt, the painted fall (pass 33.9)",
+"sprite": ExtResource("3_u54fl"),
+"sprite_file": "goblin_runt_sprite.png",
+"strip_cols": 43
+},
+"RUN-B": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"head": 0.969,
+"icon": ExtResource("6_gay8p"),
+"note": "the same runt on Mixamo's run, a quick scurry; it dies on the Falling Back Death clip",
+"sprite": ExtResource("4_bpd8s"),
+"sprite_file": "goblin_runt_sprite_b.png",
+"strip_cols": 43
+},
+"RUN-C": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"head": 0.969,
+"icon": ExtResource("7_lhlp4"),
+"note": "a new painting with the dagger held low; the walk; the painted fall",
+"sprite": ExtResource("5_q3gms"),
+"sprite_file": "goblin_runt_sprite_c.png",
+"strip_cols": 43
+},
+"RUN-D": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"head": 1.0,
+"icon": ExtResource("9_3asum"),
+"note": "a new painting with the dagger raised; the run; it dies on the Falling Back Death clip",
+"sprite": ExtResource("6_ial0f"),
+"sprite_file": "goblin_runt_sprite_d.png",
+"strip_cols": 43
+}
+}
+variant = "RUN-D"
 sfx = {
 "die": "en_goblin_die",
 "hit": "en_goblin_hit"
@@ -43,19 +139,19 @@ variance = {
 "damage": 1.4,
 "hp": 2.2,
 "size": 1.5,
-"tint": "#FF60A0",
-"tint_strength": 0.9,
+"tint": "#5A1A80",
+"tint_strength": 0.6,
 "xp": 3.0
 },
 "special_chance": 0.1,
 "speed": 0.18,
-"tint_strength": 0.55,
+"tint_strength": 0.22,
 "tints": ["#FFFFFF", "#E0FFB0", "#FFE0A0", "#B0E0FF"]
 }
 id = "goblin_runt"
 display_name = "Goblin Runt"
 flavour = "Smaller. Meaner. Faster."
-icon = ExtResource("1_jb5bl")
+icon = ExtResource("9_3asum")
 icon_file = "goblin_runt_icon.png"
 placeholder = {
 "color": "#8CC46A",

@@ -1,0 +1,25 @@
+{
+  "id": "ricochet",
+  "name": "Ricochet",
+  "flavour": "A killing shot bounces to the next one, softer. Once.",
+  "rarity": "rare",
+  "weight": 6,
+  "pairs_with": "",
+  "max_level": 4,
+  "repeat_last_level": true,
+  "levels": [
+    [
+      {
+        "stat": "ricochet",
+        "op": "add",
+        "value": 0.2,
+        "target": "player"
+      }
+    ]
+  ],
+  "placeholder": {
+    "color": "#B0B8C8",
+    "glyph": "bounce"
+  },
+  "art_prompt": "a brass bullet bouncing off a dented steel plate, its zigzag path drawn as a bright yellow streak"
+}

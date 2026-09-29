@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_5j0mg"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_ag3kh"]
+[ext_resource type="Texture2D" path="res://content/mutations/buddy_squad/buddy_squad_icon.png" id="2_ft5u5"]
+
+[sub_resource type="Resource" id="Resource_ag3kh"]
+script = ExtResource("1_5j0mg")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_ft5u5"]
+script = ExtResource("1_5j0mg")
+stat = "damage"
+op = "mul"
+value = -0.3
+
+[resource]
+script = ExtResource("2_ag3kh")
+weapon = "turret_buddy"
+mutation_kind = "volume"
+text = "Two turrets a drop, −30% damage each."
+vfx = "pairs of turrets"
+effects = [SubResource("Resource_ag3kh"), SubResource("Resource_ft5u5")]
+params = {
+"max_turrets": 8.0
+}
+id = "buddy_squad"
+display_name = "Buddy Squad"
+flavour = "It brought a friend. Do not name that one either."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_ft5u5")
+icon_file = "buddy_squad_icon.png"
+placeholder = {
+"color": "#B0B8C0",
+"glyph": "star"
+}

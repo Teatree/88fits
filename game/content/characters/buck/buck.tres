@@ -1,0 +1,75 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_b1smd"]
+[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon.png" id="2_4jnfx"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_r747c"]
+[ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite.png" id="4_ihfma"]
+
+[sub_resource type="Resource" id="Resource_4jnfx"]
+script = ExtResource("1_b1smd")
+stat = "amount"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_ihfma"]
+script = ExtResource("1_b1smd")
+stat = "move_speed"
+op = "mul"
+value = -0.15
+target = "player"
+
+[resource]
+script = ExtResource("2_r747c")
+trait_effects = [SubResource("Resource_ihfma")]
+trait_name = "Momentum"
+trait_text = "Starts 15% slower. While he is not hit, his speed climbs to +60% and his might to +50% over 12 s; one hit resets it. Dust and streaks behind him show the charge."
+pronoun = "he"
+favourite_weapon = "tommy_gun"
+favourite_bonus = {
+"effects": [SubResource("Resource_4jnfx")],
+"type": "effects"
+}
+specials = ["momentum"]
+momentum = {
+"might_bonus": 0.5,
+"ramp_seconds": 12.0,
+"speed_bonus": 0.6
+}
+sprite = ExtResource("4_ihfma")
+sprite_file = "buck_sprite.png"
+anims = {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+}
+strip_cols = 62
+fps = {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+}
+id = "buck"
+display_name = "Buck"
+flavour = "Slow to start. Impossible to stop."
+hidden = true
+icon = ExtResource("2_4jnfx")
+icon_file = "buck_icon.png"
+placeholder = {
+"color": "#B88A5A",
+"eyes": 2.0,
+"hat": "#6A4A2A",
+"shape": "blob"
+}

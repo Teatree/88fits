@@ -1,0 +1,28 @@
+{
+  "id": "frag",
+  "name": "Frag",
+  "flavour": "The pieces are the point.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "lob_grenade",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "The burst throws six shrapnel out.",
+  "vfx": "six sparks flying out of the blast",
+  "effects": [],
+  "params": {
+    "burst_spawn": {
+      "count": 6,
+      "kind": "shrapnel",
+      "damage_mult": 0.4,
+      "speed": 14,
+      "life": 0.45
+    }
+  },
+  "art_prompt": "a pineapple hand grenade cracking apart into shrapnel fragments",
+  "placeholder": {
+    "color": "#A0A890",
+    "glyph": "star"
+  }
+}

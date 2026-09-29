@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_epmdh"]
+[ext_resource type="Texture2D" path="res://content/perks/ram/ram_icon.png" id="1_jx2ts"]
+
+[resource]
+script = ExtResource("1_epmdh")
+hero = "buck"
+text = "At full momentum, creatures he touches are shoved back and take his thorns ×3 (plus 12) instead of hurting him."
+special = "ram"
+params = {
+"flat": 12.0,
+"shove": 9.0,
+"thorns_mult": 3.0
+}
+id = "ram"
+display_name = "Ram"
+flavour = "At full speed, he is the wall."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_jx2ts")
+icon_file = "ram_icon.png"
+placeholder = {
+"color": "#E0A050",
+"glyph": "star"
+}

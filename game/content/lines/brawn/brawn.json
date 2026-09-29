@@ -1,0 +1,32 @@
+{
+  "id": "brawn",
+  "name": "Brawn",
+  "flavour": "Heavier hands. Heavier feet.",
+  "rarity": "common",
+  "weight": 10,
+  "max_level": 4,
+  "levels": [
+    [
+      {
+        "stat": "might",
+        "op": "mul",
+        "value": 0.1,
+        "target": "player"
+      },
+      {
+        "stat": "move_speed",
+        "op": "mul",
+        "value": -0.03,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "trade": "−3% move speed a rank",
+  "art_prompt": "a flexed muscular arm with a red band",
+  "placeholder": {
+    "color": "#FF8040",
+    "glyph": "star"
+  },
+  "evolves_into": "juggernaut"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "coin_bag",
+  "name": "Coin Bag",
+  "flavour": "Somebody's savings.",
+  "effect": "gold",
+  "value": 10,
+  "duration": 0,
+  "lifetime": 40,
+  "color": "#FFD04A",
+  "weight": 0,
+  "params": {
+    "magnet": true,
+    "small": true,
+    "quiet": true
+  },
+  "placeholder": {
+    "color": "#E8B840",
+    "glyph": "star"
+  },
+  "art_prompt": "a small brown leather coin pouch tied with a string, gold coins spilling out of its top"
+}

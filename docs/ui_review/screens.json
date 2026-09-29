@@ -1,0 +1,516 @@
+{
+ "screens": [
+  {
+   "id": "01_title",
+   "name": "Title",
+   "when": "on launch, and after every run",
+   "shots": [
+    [
+     "06_title",
+     "shots"
+    ]
+   ],
+   "job": "Start a run in one tap with the last hero and map, and reach everything else.",
+   "on": [
+    "Top left: total gold (a gold bar and 102682) and the best run (best 10:00 · L14).",
+    "The 88fits wordmark in gold on navy, and the line DRAG · DODGE · SURVIVE.",
+    "The chosen hero's round portrait badge on a flat band of desert brown.",
+    "PLAY, a big gold button.",
+    "A chip naming the hero and map: Drifter · Red Canyon · change ▸ (opens Play setup).",
+    "Three buttons: The Mirror, Collection, Settings.",
+    "Debug · Arena (a developer test room) and the version label, v0.4."
+   ],
+   "keep": [
+    "One tap to play with the last hero and map.",
+    "A way to change hero and map.",
+    "The Mirror, the Collection and Settings.",
+    "Total gold."
+   ],
+   "suspect": [
+    "The lower half is flat bands of colour with a small badge; there is no sense of place.",
+    "The version label is wrong (v0.4) and Debug · Arena is open to players.",
+    "Gold is an unformatted number; the best-run chip is cryptic (L14 = level 14)."
+   ],
+   "ask": [
+    "Could the title carry the hero full-body in the desert, and let the player swipe heroes here instead of opening Play setup?"
+   ]
+  },
+  {
+   "id": "02_play_setup",
+   "name": "Play setup",
+   "when": "from the title's hero chip",
+   "shots": [
+    [
+     "09_play_setup",
+     "shots"
+    ]
+   ],
+   "job": "Choose a hero and a map, then go.",
+   "on": [
+    "Back and the title Play.",
+    "Character: a card per hero with a round portrait, the name, the hero's trait in capitals (SPACE SUIT: +1 armor and +10% max HP. Every level-up patches the suit for 8% of her HP.), the favourite weapon and a flavour line. The chosen hero has a gold border.",
+    "Map: one card, Red Canyon, with its flavour line and the best run on it (Best: 10:00 · level 14 · stage 2).",
+    "GO, a big gold button. The lower half of the screen is empty.",
+    "Two heroes can be played today; three more exist and are hidden for now. A locked hero would show its unlock quest."
+   ],
+   "keep": [
+    "Pick a hero, see what makes the hero different (the trait and the favourite weapon).",
+    "Pick a map.",
+    "Go."
+   ],
+   "suspect": [
+    "It reads like a settings form. The heroes are small badges beside a paragraph.",
+    "Half the screen is empty. The screen may not need to exist on its own (see the title)."
+   ],
+   "ask": [
+    "How would you show two heroes that play differently (armour and healing against speed and pickup range) at a glance?"
+   ]
+  },
+  {
+   "id": "03_mirror",
+   "name": "The Mirror",
+   "when": "between runs, from the title and from the results",
+   "shots": [
+    [
+     "07_homestead",
+     "shots"
+    ],
+    [
+     "mirror_bottom",
+     "extra"
+    ]
+   ],
+   "job": "Spend gold on permanent talents between runs.",
+   "on": [
+    "Back, the title, and a line in gold: 106382 gold · 300 spent on the Mirror.",
+    "Eight talent cards, one under another (Grit, Drive, Stride, Fortune, Choice, Nerve, Study, Spite). Each has the talent's name, three rank bars at the top right, a one-line subtitle (Thicker skin, or harder bones.), two form buttons with the chosen one in gold (Padding / Plate), the chosen form's effect (+10% max HP a rank.) and a button for the next rank (Rank 2 · 252 gold).",
+    "Take it all back, at the bottom: empties the board and returns every coin."
+   ],
+   "keep": [
+    "All eight talents, each with its two forms, its three ranks and the price of the next rank.",
+    "Switching form is free and keeps the ranks; the refund returns everything."
+   ],
+   "suspect": [
+    "Eight near-identical tall cards; the thing that matters (what a talent does) is the smallest text.",
+    "The rank bars read as a signal-strength icon.",
+    "It has no identity. The idea comes from the Mirror of Night in Hades: a mirror, a face in it, a gold frame could carry the screen."
+   ],
+   "ask": [
+    "Could the whole board fit on one screen without scrolling?"
+   ]
+  },
+  {
+   "id": "04_collection",
+   "name": "Collection",
+   "when": "between runs, from the title",
+   "shots": [
+    [
+     "08_collection",
+     "shots"
+    ],
+    [
+     "collection_hidden",
+     "extra"
+    ]
+   ],
+   "job": "Everything in the game in one book: what each thing does, and how to unlock what is locked.",
+   "on": [
+    "One long list in sections: Weapons, Evolutions, Passives, Mutations (62 of them), Lines, Hero perks, Characters, Enemies.",
+    "Each row: the icon in a frame, the name and the flavour line. A tap opens the row to show the generated description.",
+    "Locked rows are dimmed and show their unlock quest; an unmet creature shows ??? and Not met yet.",
+    "At the end, a separate part: Hidden · not in the game right now. Weapons, evolutions, mutations, creatures and heroes kept for later, marked HIDDEN in red (second screenshot).",
+    "At the very bottom: N / M unlocks done · K kills all time."
+   ],
+   "keep": [
+    "Every item with its icon, name and description.",
+    "How to unlock what is locked.",
+    "The hidden part, kept apart from the rest."
+   ],
+   "suspect": [
+    "It is one scroll of more than 150 rows, with no tabs, filters or counts.",
+    "The rows show the flavour line, not what the item does.",
+    "The mutations swamp the list."
+   ],
+   "ask": [
+    "Tabs by kind, a grid of icons, per-weapon pages that hold the weapon's mutations and evolution?"
+   ]
+  },
+  {
+   "id": "05_settings",
+   "name": "Settings",
+   "when": "from the title",
+   "shots": [
+    [
+     "10_settings",
+     "shots"
+    ],
+    [
+     "settings_bottom",
+     "extra"
+    ]
+   ],
+   "job": "Camera, controls, sound, hints, and wiping the save.",
+   "on": [
+    "Last run's last second: a line of debug output.",
+    "Recent system pauses: six lines of debug output.",
+    "Camera: Fixed · north up, or Follow · behind, with an explanation.",
+    "Controls: an explanation of the joystick, then sliders for joystick size, screen shake, sound and music.",
+    "First-play hints: ON, Show hints again next run, Debug panel: OFF.",
+    "Wipe save (gold, unlocks, everything) in red, and the save file's path."
+   ],
+   "keep": [
+    "Camera mode, joystick size, screen shake, sound, music, hints, wipe save."
+   ],
+   "suspect": [
+    "It opens on debug output.",
+    "Toggles are drawn as buttons whose label holds the state.",
+    "The slider labels and values are small."
+   ],
+   "ask": []
+  },
+  {
+   "id": "06_hud",
+   "name": "In-run HUD",
+   "when": "the whole run",
+   "shots": [
+    [
+     "01_play",
+     "shots"
+    ],
+    [
+     "05_boss",
+     "shots"
+    ],
+    [
+     "15_boss_arrow",
+     "shots"
+    ]
+   ],
+   "job": "Show the run at a glance while the thumb steers: level, time, gold, the build, the boss, the hero's health.",
+   "on": [
+    "The top strip (250 px): LV 3 and the XP bar with STAGE 1 · RED CANYON; 106 kills · 6 alive; the big timer 01:01; gold with a coin; the round gold pause button.",
+    "Under that, six weapon slots (square icons with level badges; slots that open in a later stage show a padlock and S2) and six passive slots (round).",
+    "When a boss is up: its name and a long red bar under the strip, and its name again over it in the world. When it is off screen, a red chevron at the edge with the distance (BOSS 44 m); the portal gets a green one, the Elite an orange one.",
+    "Toasts in the middle of the screen: +22 HP, Deadeye Lv 1, HOOKED!, SUPPLY DROP.",
+    "Under the hero, his health bar and a blue shield bar. The joystick ring appears wherever the thumb lands.",
+    "The world: violet XP gems, gold coins, red danger marks on the ground."
+   ],
+   "keep": [
+    "Level and XP, the timer, gold, pause, the build at a glance, the boss's health, the hero's health and shield."
+   ],
+   "suspect": [
+    "The strip carries more than twenty elements; the slots are small (about 60 px).",
+    "Text drawn over the world loses contrast on bright sand.",
+    "Toasts land in the middle of the action."
+   ],
+   "ask": [
+    "What would you take out of the strip altogether?"
+   ]
+  },
+  {
+   "id": "07_levelup",
+   "name": "Level-up cards",
+   "when": "every level-up (every 20 to 40 seconds early in a run)",
+   "shots": [
+    [
+     "02_cards",
+     "shots"
+    ],
+    [
+     "49_line_evolution",
+     "shots"
+    ]
+   ],
+   "job": "Pick one of three or four upgrades, quickly, with the run paused.",
+   "on": [
+    "LEVEL 3! and pick one · game is paused.",
+    "Three or four full-width cards. Each has the icon in a frame of its kind's colour; a kind tag (PASSIVE · NEW, WEAPON · UPGRADE, LINE · EVOLUTION OF ENERGY SHIELD); the name; a chip (NEW · LV 1, LV 3 → 4, EVOLVE); level pips; what it does (+25% pickup radius per level); and a flavour line.",
+    "At the bottom: Reroll ×1, Skip +10 (skipping pays 10 gold), Banish ×1 (removes one card for the rest of the run). A small debug button (developer only).",
+    "The second screenshot shows an evolved line card (Aegis) among ordinary ones."
+   ],
+   "keep": [
+    "Three or four choices with icon, name, what it does and how far along it is.",
+    "Reroll, skip (pays gold) and banish, with how many are left."
+   ],
+   "suspect": [
+    "Each card is text-heavy; the kind tags are jargon.",
+    "The lower half is empty and the three bottom buttons look alike."
+   ],
+   "ask": [
+    "How would you make the right pick obvious in under two seconds?"
+   ]
+  },
+  {
+   "id": "08_path",
+   "name": "Path offer",
+   "when": "at set times in each stage, once per weapon",
+   "shots": [
+    [
+     "29_mutation",
+     "shots"
+    ]
+   ],
+   "job": "Choose one of a weapon's three mutations. The two not chosen come back next stage; a weapon with two mutations can evolve at a chest.",
+   "on": [
+    "PATH · BOOMSTICK and one of these, the rest come back next stage · game is paused.",
+    "Three magenta cards: MUTATION · BOOMSTICK · ELEMENT (or VOLUME, or MOTION), the name (Dragon's Breath), a PATH 1/3 chip, pips, the effect (Pellets ignite.) and a flavour line.",
+    "Skip +10 and the debug button."
+   ],
+   "keep": [
+    "The three mutations with icon, name and effect.",
+    "Skip."
+   ],
+   "suspect": [
+    "PATH · BOOMSTICK does not explain itself, and it looks almost the same as a level-up.",
+    "Element, volume and motion are our words, not the player's."
+   ],
+   "ask": [
+    "Should this feel like a bigger moment than a level-up?"
+   ]
+  },
+  {
+   "id": "09_tap_to_continue",
+   "name": "Tap to continue",
+   "when": "after every pick and every chest",
+   "shots": [
+    [
+     "17_tap_to_continue",
+     "shots"
+    ]
+   ],
+   "job": "Hold the pause until the player is ready, so a pick never drops them into a hit.",
+   "on": [
+    "TAP TO CONTINUE and the game is paused over the dimmed world, with a toast of what was taken (Chest: Boomstick Lv 5)."
+   ],
+   "keep": [
+    "The gate: play resumes only on a tap, and the tap can start the joystick."
+   ],
+   "suspect": [
+    "It is one more screen state between the pick and the play."
+   ],
+   "ask": [
+    "Could the chosen card fly to its slot on the strip while the gate waits?"
+   ]
+  },
+  {
+   "id": "10_chest",
+   "name": "Chest",
+   "when": "opening a chest (from creatures, bosses and Elites)",
+   "shots": [
+    [
+     "13_chest",
+     "shots"
+    ]
+   ],
+   "job": "The run's reward moment: a reel spins past the run's items for about four seconds and lands on one; take it or sell it.",
+   "on": [
+    "CHEST! and WEAPON · LV 4 → 5.",
+    "One reel: the item's icon large in a gold frame between two arrows.",
+    "The name (Boomstick), level pips and the next step (Next: +2 projectiles).",
+    "Sell it · +5 gold, and Take it. A tap during the spin hurries it."
+   ],
+   "keep": [
+    "The spin, the item it lands on, take or sell."
+   ],
+   "suspect": [
+    "The best moment in a run looks like a form: a small reel, a busy world behind it, no build-up or payoff."
+   ],
+   "ask": []
+  },
+  {
+   "id": "11_shop",
+   "name": "Travelling shop",
+   "when": "stepping into the shop's ring on the map (once per shop)",
+   "shots": [
+    [
+     "12_shop",
+     "shots"
+    ]
+   ],
+   "job": "Buy one of three items with the run's gold, or leave. Either way the stall is gone.",
+   "on": [
+    "TRAVELLING SHOP, a close button, and You have 0 gold.",
+    "Three item cards like the level-up's, each ending in a price line (10 gold · not enough in red when short).",
+    "Leave without buying."
+   ],
+   "keep": [
+    "Three items with price, what they do and whether the player can afford them.",
+    "Leave."
+   ],
+   "suspect": [
+    "Three red not enough lines shout; the price is not a button.",
+    "The player cannot see what they already hold."
+   ],
+   "ask": []
+  },
+  {
+   "id": "12_stranger",
+   "name": "The Stranger",
+   "when": "stepping into the hooded figure's ring on the map",
+   "shots": [
+    [
+     "26_stranger_deal",
+     "shots"
+    ]
+   ],
+   "job": "One strong item offered for a slice of max HP, for the rest of the run. Take it or walk away; he leaves either way.",
+   "on": [
+    "THE STRANGER and a quote: A piece of you, for a piece of the world.",
+    "One offer card with the item's icon, name, level and effect.",
+    "The price: 15% of your MAX HP, for the rest of this run. and No reroll. No second offer. He does not haggle.",
+    "Walk away, and Deal. The hooded figure stands on the map behind."
+   ],
+   "keep": [
+    "The item, the price in max HP, deal or walk away."
+   ],
+   "suspect": [
+    "The Stranger is a speck in the background; the bargain has no drama.",
+    "The price line competes with the item."
+   ],
+   "ask": []
+  },
+  {
+   "id": "13_pause",
+   "name": "Pause",
+   "when": "the pause button, or a tap on the top strip",
+   "shots": [
+    [
+     "03_pause_build",
+     "shots"
+    ],
+    [
+     "04_pause_stats",
+     "shots"
+    ],
+    [
+     "pause_options",
+     "extra"
+    ]
+   ],
+   "job": "Stop the run; see the build and every number; change settings; give up.",
+   "on": [
+    "PAUSED with the time and stage; tabs Build, Stats, Options; a big Resume at the bottom.",
+    "Build: a row per held item (icon, name, WEAPON · LV 3 / 8 and its path picks such as Watchtower · Bunker); a tap opens the live numbers.",
+    "Stats: every stat with where it comes from (max HP 110: Base 100, Astro +10%), more than twenty of them.",
+    "Options: camera, joystick size, screen shake, sound, music, reset first-play hints, the debug panel, and Abandon run in red."
+   ],
+   "keep": [
+    "Resume.",
+    "The build with live numbers.",
+    "The stats with their sources (for the players who want them).",
+    "Sound, music, and abandoning the run."
+   ],
+   "suspect": [
+    "The Build rows do not say what each item does.",
+    "Stats is a long table most players will never read.",
+    "Options repeats Settings."
+   ],
+   "ask": []
+  },
+  {
+   "id": "14_down",
+   "name": "Down! (revive)",
+   "when": "the hero's health reaches zero",
+   "shots": [
+    [
+     "21_revive",
+     "shots"
+    ]
+   ],
+   "job": "A second chance: revive before the count runs out, or give up.",
+   "on": [
+    "DOWN! and get up before the count runs out · 1 chance left.",
+    "A big count, 8, with a pause button beside it.",
+    "THE LAST 30 SECONDS · newest first: a log of every hit (who, how much, what it did), with icons.",
+    "Copy the log; Watch an ad · free revive (a stand-in: there are no ads yet); Revive · 150 gold (dimmed when short); Give up.",
+    "A small dbg revive at the top right (developer only)."
+   ],
+   "keep": [
+    "The count.",
+    "The ways to revive and their cost.",
+    "Give up.",
+    "What killed the hero (the full log is a test tool and can move to the developer menu)."
+   ],
+   "suspect": [
+    "The log fills the screen, and the count sits off to one side.",
+    "A dramatic moment with a flat tone."
+   ],
+   "ask": []
+  },
+  {
+   "id": "15_stage_clear",
+   "name": "Stage clear",
+   "when": "after each stage's boss, stepping into the portal",
+   "shots": [
+    [
+     "portal_dialog",
+     "extra"
+    ]
+   ],
+   "job": "The game's biggest decision: bank the gold now at ×1.25, or go on into a harder stage.",
+   "on": [
+    "STAGE 1 CLEAR in green.",
+    "Extract now: bank 0 gold (×1.25 = 0). Continue: stage 2, harder waves, gold stays at ×1.0 until you extract or die.",
+    "Extract (gold) and Continue to stage 2."
+   ],
+   "keep": [
+    "Both choices, with what each one means in gold."
+   ],
+   "suspect": [
+    "The core risk and reward of the game is told in two lines of small text instead of shown."
+   ],
+   "ask": []
+  },
+  {
+   "id": "16_results",
+   "name": "Results",
+   "when": "after a run ends (death, giving up or extracting)",
+   "shots": [
+    [
+     "results",
+     "extra"
+    ]
+   ],
+   "job": "How the run went, what it earned, and the way into the next one.",
+   "on": [
+    "RUN OVER (or a win title after extracting) with Back.",
+    "A table: time survived, stage reached, level, kills, gold collected, banked mid-run, extract bonus, chests opened, evolutions.",
+    "Damage by weapon: a bar per weapon with its icon and share.",
+    "When gold was earned, a line that gold is kept, and any unlocks.",
+    "Play again (gold), The Mirror, Title."
+   ],
+   "keep": [
+    "Time, kills, level, gold earned, damage by weapon.",
+    "Play again."
+   ],
+   "suspect": [
+    "It reads like a spreadsheet: no new best, no celebration, the hero is absent."
+   ],
+   "ask": []
+  },
+  {
+   "id": "17_debug_arena",
+   "name": "Debug arena (developer only)",
+   "when": "only for us: Debug · Arena on the title",
+   "shots": [
+    [
+     "57_arena_enemy",
+     "shots"
+    ]
+   ],
+   "job": "A test room: the map and the hero with nothing coming unless we spawn it.",
+   "on": [
+    "A column of quick buttons on the right: ARENA, AGAIN, CLEAR, WAVES, LV +1, and a status line.",
+    "A bottom sheet with tabs ENEMY, WAVES, ITEMS, HERO, DROPS, WORLD: grids of tiles to spawn creatures, set the clock, hand over items.",
+    "Art variants: chips that spawn a creature with a candidate art, to compare in play."
+   ],
+   "keep": [
+    "All of it, for us."
+   ],
+   "suspect": [],
+   "ask": [
+    "Low priority: no redesign needed. Flag anything from it that leaks into the player's screens, and suggest where one developer menu could live."
+   ]
+  }
+ ]
+}

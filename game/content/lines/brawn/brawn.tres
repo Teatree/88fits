@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="LineDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_4776d"]
+[ext_resource type="Texture2D" path="res://content/lines/brawn/brawn_icon.png" id="1_sxo0t"]
+[ext_resource type="Script" path="res://core/data/LineDef.gd" id="2_sxo0t"]
+
+[sub_resource type="Resource" id="Resource_sxo0t"]
+script = ExtResource("1_4776d")
+stat = "might"
+op = "mul"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_1m5gb"]
+script = ExtResource("1_4776d")
+stat = "move_speed"
+op = "mul"
+value = -0.03
+target = "player"
+
+[resource]
+script = ExtResource("2_sxo0t")
+trade = "−3% move speed a rank"
+evolves_into = "juggernaut"
+levels = [[SubResource("Resource_sxo0t"), SubResource("Resource_1m5gb")]]
+max_level = 4
+id = "brawn"
+display_name = "Brawn"
+flavour = "Heavier hands. Heavier feet."
+icon = ExtResource("1_sxo0t")
+icon_file = "brawn_icon.png"
+placeholder = {
+"color": "#FF8040",
+"glyph": "star"
+}

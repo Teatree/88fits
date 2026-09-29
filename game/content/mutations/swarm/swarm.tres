@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_p7i30"]
+[ext_resource type="Texture2D" path="res://content/mutations/swarm/swarm_icon.png" id="2_2akv1"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_lge45"]
+
+[sub_resource type="Resource" id="Resource_lge45"]
+script = ExtResource("1_p7i30")
+stat = "amount"
+value = 6.0
+
+[sub_resource type="Resource" id="Resource_2akv1"]
+script = ExtResource("1_p7i30")
+stat = "damage"
+op = "mul"
+value = -0.6
+
+[sub_resource type="Resource" id="Resource_ipn8l"]
+script = ExtResource("1_p7i30")
+stat = "cooldown"
+op = "mul"
+value = -0.3
+
+[resource]
+script = ExtResource("2_lge45")
+weapon = "hornet_nest"
+mutation_kind = "volume"
+text = "+6 hornets, −60% damage each, cooldown −30%."
+vfx = "a cloud of small seekers"
+effects = [SubResource("Resource_lge45"), SubResource("Resource_2akv1"), SubResource("Resource_ipn8l")]
+params = {
+"size_mult": 0.7
+}
+id = "swarm"
+display_name = "Swarm"
+flavour = "You cannot count them. Do not try."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_2akv1")
+icon_file = "swarm_icon.png"
+placeholder = {
+"color": "#E0B040",
+"glyph": "star"
+}

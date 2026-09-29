@@ -1,0 +1,31 @@
+{
+  "id": "fork",
+  "name": "Fork",
+  "flavour": "Two more places to be.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "zap_beam",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "+2 chains, −25% damage.",
+  "vfx": "a longer chain of bolts",
+  "effects": [
+    {
+      "stat": "chains",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.25
+    }
+  ],
+  "params": {},
+  "art_prompt": "a lightning bolt splitting into three forked branches",
+  "placeholder": {
+    "color": "#A0D8FF",
+    "glyph": "star"
+  }
+}

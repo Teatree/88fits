@@ -4,17 +4,17 @@
   "flavour": "Green. Greedy. Many.",
   "archetype": "walker",
   "brain": "chase",
-  "hp": 12,
+  "hp": 6.0,
   "speed": 1.8,
-  "damage": 6,
+  "damage": 3.0,
   "radius": 0.45,
   "size": 1.2,
-  "pack_size": 3,
+  "pack_size": 6,
   "drops": {
     "small": 1.0,
     "medium": 0.05,
     "gold": 0.02,
-    "chest": 0.002
+    "chest": 0.0028
   },
   "frame_px": 128,
   "sfx": {
@@ -27,8 +27,8 @@
     "eyes": 2,
     "shape": "blob"
   },
-  "art_prompt": "a small green goblin with big pointed ears, a hooked nose, sharp little teeth in a wicked grin, wearing a ragged brown loincloth and a leather belt, holding a crude wooden club, standing and facing the viewer",
-  "xp_mult": 3.0,
+  "art_prompt": "a small green goblin with exactly two big pointed ears, one on each side of its head and nothing else sticking out of its head, a hooked nose, sharp little teeth in a wicked grin, wearing a ragged brown loincloth and a leather belt, holding a crude wooden club in one hand, two arms and two legs, standing and facing the viewer",
+  "xp_mult": 1.5,
   "variance": {
     "size": 0.2,
     "speed": 0.15,
@@ -39,15 +39,15 @@
       "#9CC8FF",
       "#FF9CC8"
     ],
-    "tint_strength": 0.6,
+    "tint_strength": 0.22,
     "special_chance": 0.12,
     "special": {
       "size": 1.5,
       "hp": 2.0,
       "damage": 1.4,
       "xp": 3.0,
-      "tint": "#FF5A3C",
-      "tint_strength": 0.9
+      "tint": "#8A1428",
+      "tint_strength": 0.6
     }
   },
   "anims": {
@@ -55,13 +55,108 @@
     "run": 12,
     "attack": 2,
     "hit": 1,
-    "die": 1,
+    "die": 8,
     "run_b": 12,
     "idle_b": 4
   },
-  "motion": "marching in place with a heavy stomping gait, swinging the club",
-  "strip_cols": 36,
+  "motion": "marching in place with a heavy stomping gait, gripping its wooden club upright in the same hand the whole time",
+  "strip_cols": 43,
   "fps": {
-    "run": 15
+    "run": 15,
+    "die": 12
+  },
+  "doc": "The crowd. Everything else is measured against it.",
+  "cap_share": 0.5,
+  "head": 0.977,
+  "pose": "orc_walk_goblin",
+  "stand": "still",
+  "death": "clip",
+  "death_frames": 8,
+  "anim_negative": "extra ears, a third ear, ears growing or splitting, extra arms, a third arm, extra hands, two clubs, extra fingers, extra legs",
+  "dead_hint": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, arms flopped out limp, its wooden club lying on the ground beside its open hand",
+  "variant_base": "GOB-A",
+  "variant": "GOB-D",
+  "variants": {
+    "GOB-A": {
+      "note": "the orc walk fitted to the goblin, the painted fall (pass 33.9)"
+    },
+    "GOB-B": {
+      "note": "the same goblin on Mixamo's plain walk; it dies on the Falling Back Death clip",
+      "recipe": {
+        "pose": "walk_goblin",
+        "death": "pose:death_back_goblin",
+        "stand": "still"
+      },
+      "sprite": "goblin_sprite_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.984,
+      "icon": "goblin_icon_b.png"
+    },
+    "GOB-C": {
+      "note": "a new painting with the club held upright; the orc walk; the painted fall",
+      "recipe": {
+        "stills": "c4",
+        "pose": "orc_walk_goblin",
+        "death": "clip",
+        "stand": "still"
+      },
+      "sprite": "goblin_sprite_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.961,
+      "icon": "goblin_icon_c.png"
+    },
+    "GOB-D": {
+      "note": "a new painting; a swaggering big-guy walk; it dies on the Falling Back Death clip",
+      "recipe": {
+        "stills": "c2",
+        "pose": "bigguy_goblin",
+        "death": "pose:death_back_goblin",
+        "stand": "still",
+        "gait": "swaggering in place on the spot, gripping the same plain brown wooden club tightly in one fist the whole time, the club keeps its exact shape and colour and never turns into a tool or changes hands"
+      },
+      "sprite": "goblin_sprite_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0,
+      "icon": "goblin_icon_d.png"
+    }
   }
 }

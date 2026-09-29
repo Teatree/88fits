@@ -1,0 +1,70 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_fvpcc"]
+[ext_resource type="Texture2D" path="res://content/enemies/jackalope/jackalope_icon.png" id="1_q3geb"]
+[ext_resource type="Texture2D" path="res://content/enemies/jackalope/jackalope_sprite.png" id="3_pyeqh"]
+
+[resource]
+script = ExtResource("1_fvpcc")
+archetype = "runner"
+doc = "Stage 2's runner: faster than the lizard, half the health, wider packs; a swarm of them at 8:30."
+brain = "flock"
+hp = 9.0
+speed = 3.3
+radius = 0.4
+size = 1.1
+pack_size = 5
+drops = {
+"chest": 0.0025,
+"gold": 0.03,
+"medium": 0.1,
+"small": 0.85
+}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_pyeqh")
+sprite_file = "jackalope_sprite.png"
+frame_px = 160
+strip_cols = 40
+fps = {
+"die": 8.0,
+"run": 15.0
+}
+head = 1.0
+retired = true
+sfx = {
+"die": "en_lizard_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 2.2
+variance = {
+"size": 0.18,
+"special": {
+"damage": 1.4,
+"hp": 2.4,
+"size": 1.5,
+"tint": "#1A4A7A",
+"tint_strength": 0.6,
+"xp": 3.0
+},
+"special_chance": 0.1,
+"speed": 0.2,
+"tint_strength": 0.22,
+"tints": ["#FFFFFF", "#FFE0B0", "#D8C8B0", "#F0B080"]
+}
+id = "jackalope"
+display_name = "Jackalope"
+flavour = "Half rabbit. Half antler. All rude."
+icon = ExtResource("1_q3geb")
+icon_file = "jackalope_icon.png"
+placeholder = {
+"color": "#C8A878",
+"glyph": "rabbit"
+}

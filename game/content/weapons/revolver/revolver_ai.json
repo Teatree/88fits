@@ -1,0 +1,17 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "a classic western single-action six-shooter revolver in dark blued steel with a walnut wood grip, seen from the side, the long barrel pointing to the right",
+ "renders": {
+  "icon": {
+   "key": "revolver_icon35_2",
+   "prompt": "a classic western single-action six-shooter revolver in dark blued steel with a walnut wood grip, seen from the side, the long barrel pointing to the right",
+   "refs": [
+    "revolver_ref.png"
+   ],
+   "screen": "green",
+   "picked": 2,
+   "of": 3
+  }
+ }
+}

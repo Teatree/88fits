@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_vifv3"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_itak6"]
+[ext_resource type="Texture2D" path="res://content/mutations/bunker/bunker_icon.png" id="2_omuuo"]
+
+[sub_resource type="Resource" id="Resource_itak6"]
+script = ExtResource("1_vifv3")
+stat = "damage"
+op = "mul"
+value = 0.4
+
+[sub_resource type="Resource" id="Resource_omuuo"]
+script = ExtResource("1_vifv3")
+stat = "knockback"
+value = 4.0
+
+[resource]
+script = ExtResource("2_itak6")
+weapon = "turret_buddy"
+mutation_kind = "stance"
+text = "The buddy digs in behind sandbags: twin barrels, +40% damage, shots knock back, it turns slowly."
+vfx = "a low sandbag bunker with two barrels"
+effects = [SubResource("Resource_itak6"), SubResource("Resource_omuuo")]
+params = {
+"turret": {
+"barrels": 2.0,
+"style": "bunker",
+"turn": 2.5
+}
+}
+id = "bunker"
+display_name = "Bunker"
+flavour = "Dug in. Not going anywhere."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_omuuo")
+icon_file = "bunker_icon.png"
+placeholder = {
+"color": "#F0D060",
+"glyph": "star"
+}

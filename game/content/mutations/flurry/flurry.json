@@ -1,0 +1,31 @@
+{
+  "id": "flurry",
+  "name": "Flurry",
+  "flavour": "Left, right, left.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "sabre",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Three slices a stroke, −40% damage.",
+  "vfx": "three swings back and forth across the target",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.4
+    }
+  ],
+  "params": {},
+  "art_prompt": "a curved sabre with three crescent slash trails crossing in front of it",
+  "placeholder": {
+    "color": "#D8E0F0",
+    "glyph": "star"
+  }
+}

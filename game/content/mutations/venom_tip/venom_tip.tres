@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_3n51f"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_hlpkb"]
+[ext_resource type="Texture2D" path="res://content/mutations/venom_tip/venom_tip_icon.png" id="2_pabvg"]
+
+[sub_resource type="Resource" id="Resource_hlpkb"]
+script = ExtResource("1_3n51f")
+stat = "poison_damage"
+value = 4.0
+
+[sub_resource type="Resource" id="Resource_pabvg"]
+script = ExtResource("1_3n51f")
+stat = "poison_stacks"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_lfwcw"]
+script = ExtResource("1_3n51f")
+stat = "poison_duration"
+value = 8.0
+
+[resource]
+script = ExtResource("2_hlpkb")
+weapon = "pike"
+mutation_kind = "element"
+text = "Poison."
+vfx = "a green tip, poisoned creatures"
+effects = [SubResource("Resource_hlpkb"), SubResource("Resource_pabvg"), SubResource("Resource_lfwcw")]
+id = "venom_tip"
+display_name = "Venom Tip"
+flavour = "Dipped in something."
+rarity = "rare"
+element = "poison"
+weight = 8.0
+icon = ExtResource("2_pabvg")
+icon_file = "venom_tip_icon.png"
+placeholder = {
+"color": "#90C860",
+"glyph": "star"
+}

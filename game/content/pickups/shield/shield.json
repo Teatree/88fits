@@ -5,7 +5,7 @@
   "effect": "shield",
   "value": 0,
   "duration": 6,
-  "lifetime": 20,
+  "lifetime": 40.0,
   "color": "#8B6CFF",
   "weight": 2,
   "placeholder": {

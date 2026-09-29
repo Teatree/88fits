@@ -56,7 +56,6 @@ base = {
 "speed": 16.0
 }
 levels = [[], [SubResource("Resource_o0ly8")], [SubResource("Resource_ausxe")], [SubResource("Resource_xkci4")], [SubResource("Resource_gf3xs")], [SubResource("Resource_3mwyn")], [SubResource("Resource_6lnlb")], [SubResource("Resource_mnysx")]]
-evolves_with = "magnet"
 evolves_into = "turret_family"
 sfx = {
 "fire": "w_turret_fire",

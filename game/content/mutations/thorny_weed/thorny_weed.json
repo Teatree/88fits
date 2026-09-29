@@ -1,0 +1,36 @@
+{
+  "id": "thorny_weed",
+  "name": "Thorny Weed",
+  "flavour": "It was always a little mean.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "tumbleweed",
+  "kind": "element",
+  "element": "poison",
+  "hero": "",
+  "text": "Whatever it rolls over is poisoned.",
+  "vfx": "green flecks on the weed, poisoned trail",
+  "effects": [
+    {
+      "stat": "poison_damage",
+      "op": "add",
+      "value": 3
+    },
+    {
+      "stat": "poison_stacks",
+      "op": "add",
+      "value": 1
+    },
+    {
+      "stat": "poison_duration",
+      "op": "add",
+      "value": 8
+    }
+  ],
+  "params": {},
+  "art_prompt": "a dry tumbleweed covered in sharp green poison thorns",
+  "placeholder": {
+    "color": "#A8B060",
+    "glyph": "star"
+  }
+}

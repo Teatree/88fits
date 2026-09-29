@@ -1,0 +1,51 @@
+{
+  "id": "evade",
+  "name": "Evade",
+  "flavour": "Not there. Never was.",
+  "rarity": "rare",
+  "weight": 9,
+  "max_level": 4,
+  "levels": [
+	[
+	  {
+		"stat": "evade",
+		"op": "add",
+		"value": 0.03,
+		"target": "player"
+	  }
+	],
+	[
+	  {
+		"stat": "evade",
+		"op": "add",
+		"value": 0.05,
+		"target": "player"
+	  }
+	],
+	[
+	  {
+		"stat": "evade",
+		"op": "add",
+		"value": 0.06,
+		"target": "player"
+	  }
+	],
+	[
+	  {
+		"stat": "evade",
+		"op": "add",
+		"value": 0.06,
+		"target": "player"
+	  }
+	]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "text": "A chance to take no hit at all: 3% at rank 1, 20% at rank 4.",
+  "evolves_into": "ghost_step",
+  "art_prompt": "a cowboy boot in mid step with two faded motion-blur afterimages behind it",
+  "placeholder": {
+	"color": "#C8E0FF",
+	"glyph": "star"
+  }
+}

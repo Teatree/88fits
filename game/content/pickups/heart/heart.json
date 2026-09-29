@@ -3,7 +3,7 @@
   "name": "Heart",
   "flavour": "Thirty percent of a second chance.",
   "effect": "heal",
-  "value": 0.3,
+  "value": 0.2,
   "duration": 0,
   "lifetime": 22,
   "color": "#5AD66A",

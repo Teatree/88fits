@@ -69,7 +69,7 @@
       }
     ]
   ],
-  "evolves_with": "might",
+  "evolves_with": "",
   "evolves_into": "ring_of_fire",
   "params": {
     "blade": "iron"
@@ -81,5 +81,6 @@
     "color": "#E0602A",
     "glyph": "iron"
   },
-  "art_prompt": "a long black cattle branding iron with a wooden handle, its 88 shaped tip glowing red-hot with sparks"
+  "art_prompt": "a long black cattle branding iron with a wooden handle, its 88 shaped tip glowing red-hot with sparks",
+  "hidden": true
 }

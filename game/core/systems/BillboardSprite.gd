@@ -156,3 +156,8 @@ func set_tint(c: Color) -> void:
 
 func set_height(h: float) -> void:
 	_param("height", h)
+
+
+## Swaps the painting and keeps the frame layout (a structure's spent version).
+func set_texture(tex: Texture2D) -> void:
+	_param("sprite", tex)

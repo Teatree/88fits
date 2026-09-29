@@ -1,0 +1,77 @@
+{
+  "id": "buck",
+  "name": "Buck",
+  "flavour": "Slow to start. Impossible to stop.",
+  "pronoun": "he",
+  "trait": [
+    {
+      "stat": "move_speed",
+      "op": "mul",
+      "value": -0.15,
+      "target": "player"
+    }
+  ],
+  "favourite_weapon": "tommy_gun",
+  "favourite_bonus": {
+    "type": "effects",
+    "effects": [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 2
+      }
+    ]
+  },
+  "specials": [
+    "momentum"
+  ],
+  "momentum": {
+    "ramp_seconds": 12.0,
+    "speed_bonus": 0.6,
+    "might_bonus": 0.5
+  },
+  "unlock_quest": "",
+  "frame_px": 256,
+  "placeholder": {
+    "color": "#B88A5A",
+    "hat": "#6A4A2A",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "art_prompt": "a lanky anthropomorphic deer man with tan fur, a long muzzle, big calm eyes, tall branching antlers on his head, wearing a plain teal t-shirt and khaki shorts with sneakers, standing straight with hands relaxed at the sides",
+  "motion": "running in place at a long-legged bounding jog, arms and legs pumping, antlers steady",
+  "anim_hint": "a lanky deer man with tan fur and tall branching antlers, in a teal t-shirt and khaki shorts, long bounding strides with the knees lifting high and the arms pumping",
+  "anim_negative": "human face, missing antlers, extra limbs",
+  "anim_seed": 47,
+  "portrait_prompt": "leaning in with a slow easy grin and one eyebrow raised, his antlers filling the top of the frame, a thumb hooked in the collar of his teal t-shirt",
+  "hurt_hint": "antlers intact, ears pinned back, teeth gritted",
+  "anims": {
+    "idle": 4,
+    "run": 24,
+    "hit": 4,
+    "die": 5,
+    "cheer": 1,
+    "idle_f": 4,
+    "run_f": 24,
+    "idle_s": 4,
+    "run_s": 24,
+    "idle_bd": 4,
+    "run_bd": 24,
+    "idle_fd": 4,
+    "run_fd": 24,
+    "hit_f": 4,
+    "hit_s": 4,
+    "hit_bd": 4,
+    "hit_fd": 4
+  },
+  "strip_cols": 62,
+  "fps": {
+    "run": 36,
+    "hit": 12,
+    "die": 8
+  },
+  "trait_name": "Momentum",
+  "trait_text": "Starts 15% slower. While he is not hit, his speed climbs to +60% and his might to +50% over 12 s; one hit resets it. Dust and streaks behind him show the charge.",
+  "back_hint": "He faces away from the viewer: only the back of his head, the back of his antlers and ears, the back of the t-shirt and the heels are visible, no eyes, no muzzle, no face at all. Both arms hang straight down along his sides, relaxed.",
+  "hidden": true
+}

@@ -1,0 +1,38 @@
+{
+  "id": "incendiary",
+  "name": "Incendiary",
+  "flavour": "Reads 'do not shake'.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "lob_grenade",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "Leaves a burning patch.",
+  "vfx": "an orange pool where it lands",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "add",
+      "value": 4
+    },
+    {
+      "stat": "fire_duration",
+      "op": "add",
+      "value": 1.8
+    },
+    {
+      "stat": "fire_spread",
+      "op": "add",
+      "value": 0.4
+    }
+  ],
+  "params": {
+    "cloud_seconds": 2.5
+  },
+  "art_prompt": "a grenade wrapped in flames with a burning fuse",
+  "placeholder": {
+    "color": "#FF7040",
+    "glyph": "star"
+  }
+}

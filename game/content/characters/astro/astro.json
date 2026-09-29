@@ -2,17 +2,18 @@
   "id": "astro",
   "name": "Astro",
   "flavour": "Wrong planet. Right attitude.",
+  "pronoun": "she",
   "trait": [
     {
       "stat": "max_hp",
       "op": "mul",
-      "value": 0.12,
+      "value": 0.1,
       "target": "player"
     },
     {
-      "stat": "magnet",
-      "op": "mul",
-      "value": 0.1,
+      "stat": "armor",
+      "op": "add",
+      "value": 1,
       "target": "player"
     }
   ],
@@ -34,7 +35,7 @@
     "idle": 4,
     "run": 24,
     "hit": 4,
-    "die": 1,
+    "die": 5,
     "cheer": 1,
     "idle_f": 4,
     "run_f": 24,
@@ -51,7 +52,8 @@
   },
   "fps": {
     "run": 36,
-    "hit": 12
+    "hit": 12,
+    "die": 8
   },
   "strip_cols": 62,
   "placeholder": {
@@ -66,5 +68,8 @@
   "anim_negative": "face, eyes, mouth, hair, a visible face inside the helmet, transparent visor",
   "anim_seed": 3,
   "portrait_prompt": "leaning in with a cheerful thumbs-up in an orange glove, the dark mirrored visor of her round helmet reflecting a tiny star and a planet",
-  "hurt_hint": "her round helmet visor stays a completely dark opaque black mirror with no face behind it, the whole body tensing"
+  "hurt_hint": "her round helmet visor stays a completely dark opaque black mirror with no face behind it, the whole body tensing",
+  "level_heal": 0.05,
+  "trait_name": "Space Suit",
+  "trait_text": "+1 armor and +10% max HP. Every level-up patches the suit for 8% of her HP."
 }

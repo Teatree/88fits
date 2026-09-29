@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_cxjoj"]
+[ext_resource type="Texture2D" path="res://content/mutations/both_barrels/both_barrels_icon.png" id="1_lmlbr"]
+
+[resource]
+script = ExtResource("1_cxjoj")
+weapon = "boomstick"
+mutation_kind = "hero"
+hero = "dad"
+text = "Every third shot fires twice."
+vfx = "a double muzzle bloom every third shot"
+params = {
+"double_every": 3.0
+}
+id = "both_barrels"
+display_name = "Both Barrels"
+flavour = "Dad does not do half."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_lmlbr")
+icon_file = "both_barrels_icon.png"
+placeholder = {
+"color": "#FFB050",
+"glyph": "star"
+}

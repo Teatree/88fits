@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_7li4o"]
+[ext_resource type="Texture2D" path="res://content/mutations/aftershock/aftershock_icon.png" id="1_monqm"]
+
+[resource]
+script = ExtResource("1_7li4o")
+weapon = "hammer"
+text = "A beat after every impact a shockwave rolls out to twice the blast, for 40% damage."
+vfx = "a second, wider ring of dust after each impact"
+params = {
+"smash": {
+"aftershock": {
+"delay": 0.18,
+"frac": 0.4,
+"scale": 2.0
+}
+}
+}
+id = "aftershock"
+display_name = "Aftershock"
+flavour = "It was not over."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_monqm")
+icon_file = "aftershock_icon.png"
+placeholder = {
+"color": "#C0D0F0",
+"glyph": "star"
+}

@@ -1,0 +1,32 @@
+{
+  "id": "lasso",
+  "name": "Lasso",
+  "flavour": "Reach out and touch someone.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "branding_iron",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "Every 2 s the iron swings out to 5 m and drags what it hits back to you.",
+  "vfx": "the iron flies out on a glowing line and hauls creatures in",
+  "effects": [
+    {
+      "stat": "pull",
+      "op": "add",
+      "value": 2.5
+    }
+  ],
+  "params": {
+    "lasso": {
+      "period": 2.0,
+      "reach": 5.0,
+      "out": 0.4
+    }
+  },
+  "art_prompt": "a coiled lasso rope with a glowing branding iron tied to the end",
+  "placeholder": {
+    "color": "#D0A060",
+    "glyph": "star"
+  }
+}

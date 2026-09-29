@@ -1,0 +1,52 @@
+{
+  "id": "missile_massacre",
+  "name": "Missile Massacre",
+  "flavour": "The sky fills. Then it empties.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "rocket_pod",
+  "max_level": 1,
+  "behavior": "MissilePod",
+  "targeting": "nearest",
+  "tags": [
+    "homing",
+    "explosive"
+  ],
+  "base": {
+    "damage": 18,
+    "cooldown": 1.9,
+    "amount": 8,
+    "area": 1.8,
+    "speed": 15,
+    "range": 13,
+    "knockback": 4.0
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "radius": 0.24,
+    "missile": {
+      "wander": 0.7,
+      "turn": 6.5,
+      "spiral": 8.0,
+      "life": 5.0,
+      "trail": 1
+    },
+    "familiar": {
+      "radius": 1.25,
+      "height": 1.65,
+      "speed": 0.9,
+      "bob": 0.1
+    }
+  },
+  "sfx": {
+    "fire": "w_lob_throw",
+    "hit": "w_lob_boom"
+  },
+  "placeholder": {
+    "color": "#FFB13B",
+    "glyph": "rocket"
+  },
+  "art_prompt": "a gold-trimmed six-tube rocket launcher pod with fins, every tube loaded with a red-tipped rocket, olive green metal with gold stripes"
+}

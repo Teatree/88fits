@@ -1,0 +1,43 @@
+{
+  "id": "fortune",
+  "name": "Fortune",
+  "flavour": "Better cards, or fatter purses.",
+  "order": 4,
+  "ranks": 3,
+  "cost": [
+    150,
+    270,
+    450
+  ],
+  "forms": [
+    {
+      "name": "Omen",
+      "text": "+0.12 luck a rank: rarer cards, and a fourth more often.",
+      "effects": [
+        {
+          "stat": "luck",
+          "op": "add",
+          "value": 0.12,
+          "target": "player"
+        }
+      ]
+    },
+    {
+      "name": "Greed",
+      "text": "+12% gold a rank.",
+      "effects": [
+        {
+          "stat": "greed",
+          "op": "mul",
+          "value": 0.12,
+          "target": "player"
+        }
+      ]
+    }
+  ],
+  "art_prompt": "a polished brass hand mirror with a carved sun on its back",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

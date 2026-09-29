@@ -68,7 +68,7 @@
       }
     ]
   ],
-  "evolves_with": "might",
+  "evolves_with": "",
   "evolves_into": "doomstick",
   "sfx": {
     "fire": "w_boom_fire",

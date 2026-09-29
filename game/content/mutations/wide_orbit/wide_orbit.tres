@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_jp66f"]
+[ext_resource type="Texture2D" path="res://content/mutations/wide_orbit/wide_orbit_icon.png" id="2_lybhb"]
+
+[resource]
+script = ExtResource("2_jp66f")
+weapon = "orbit_saws"
+text = "The ring breathes from ×0.9 to ×1.6 its radius. A saw hit shoves the creature sideways along the spin, once a second."
+vfx = "the ring of saws swells wide and draws in again, and creatures are batted aside along it"
+params = {
+"breathe": {
+"max": 1.6,
+"min": 0.9,
+"period": 2.8
+},
+"side_knock": {
+"every": 1.0,
+"force": 7.0
+}
+}
+id = "wide_orbit"
+display_name = "Wide Orbit"
+flavour = "In, out, and out of the way."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("2_lybhb")
+icon_file = "wide_orbit_icon.png"
+placeholder = {
+"color": "#E0E8F0",
+"glyph": "star"
+}

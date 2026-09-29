@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/bounty_hunter/bounty_hunter_icon.png" id="1_ei3ir"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_rvb7h"]
+
+[resource]
+script = ExtResource("1_rvb7h")
+hero = "drifter"
+text = "Every 60 kills a creature near him is WANTED: it glows, has four times its health, and pays 40 gold and a chest when it drops."
+special = "bounty_hunter"
+params = {
+"every": 60.0,
+"gold": 40.0,
+"hp_mult": 4.0,
+"reach": 16.0
+}
+id = "bounty_hunter"
+display_name = "Bounty Hunter"
+flavour = "Wanted: anything that moves."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_ei3ir")
+icon_file = "bounty_hunter_icon.png"
+placeholder = {
+"color": "#E0B060",
+"glyph": "star"
+}

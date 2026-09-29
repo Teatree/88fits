@@ -1,0 +1,43 @@
+{
+  "id": "drive",
+  "name": "Drive",
+  "flavour": "Hit harder, or hit sooner.",
+  "order": 2,
+  "ranks": 3,
+  "cost": [
+    160,
+    288,
+    480
+  ],
+  "forms": [
+    {
+      "name": "Muscle",
+      "text": "+6% damage a rank.",
+      "effects": [
+        {
+          "stat": "might",
+          "op": "mul",
+          "value": 0.06,
+          "target": "player"
+        }
+      ]
+    },
+    {
+      "name": "Tempo",
+      "text": "-5% cooldown a rank.",
+      "effects": [
+        {
+          "stat": "cooldown",
+          "op": "mul",
+          "value": -0.05,
+          "target": "player"
+        }
+      ]
+    }
+  ],
+  "art_prompt": "a polished brass hand mirror with a carved sun on its back",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

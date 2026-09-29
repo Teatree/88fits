@@ -1,0 +1,277 @@
+extends GdUnitTestSuite
+
+## Pass 33.2: the crab and the jackalope out of the rotation, twice the fodder at half each, the armadillo, the rocket at
+## 90% of the hero, the death log, Evade, the Energy Shield, line evolutions, the drop passives, the far-zoom marks, the
+## laser that leaves the mouth.
+
+const FAKE_GAME := """extends Node
+var player: Node3D
+var projectiles: ProjectileManager
+var enemies = null
+var map = null
+var camera = null
+var paused := false
+func fx_burst(_a, _b, _c) -> void:
+	pass
+func fx_hit(_a, _b) -> void:
+	pass
+"""
+
+const FAKE_HERO := """extends Node3D
+var dead := false
+var velocity := Vector3.ZERO
+func take_damage(_a: float, _f: Vector3, _i: Dictionary = {}) -> void:
+	pass
+func max_speed() -> float:
+	return 5.0
+func aim_origin(_d: Vector3) -> Vector3:
+	return global_position + Vector3(0, 1.0, 0)
+func forward() -> Vector3:
+	return Vector3.FORWARD
+"""
+
+const FAKE_CAMERA := """extends Node
+var z := 2.5
+func zoom() -> float:
+	return z
+func current_yaw() -> float:
+	return 0.0
+"""
+
+
+func _script(src: String) -> GDScript:
+	var s := GDScript.new()
+	s.source_code = src
+	s.reload()
+	return s
+
+
+func _fake_game(hero_at: Vector3) -> Node:
+	var g: Node = auto_free(Node.new())
+	g.set_script(_script(FAKE_GAME))
+	add_child(g)
+	var hero := Node3D.new()
+	hero.set_script(_script(FAKE_HERO))
+	g.add_child(hero)
+	hero.global_position = hero_at
+	g.player = hero
+	var pm := ProjectileManager.new()
+	pm.game = g
+	g.add_child(pm)
+	g.projectiles = pm
+	pm.register_kind(BoxMesh.new(), null)
+	return g
+
+
+func _hero() -> Player:
+	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
+	var p: Player = auto_free(load("res://player/Player.tscn").instantiate())
+	add_child(p)
+	p.setup(Registry.character("astro"))
+	p.hp = p.max_hp
+	return p
+
+
+func test_the_crab_and_the_jackalope_are_out_of_the_rotation() -> void:
+	var tl: WaveTimeline = Registry.map("red_canyon").timeline
+	for t in [100.0, 400.0, 899.0]:
+		for r in tl.roster_at(t):
+			assert_bool(["sand_crab", "jackalope"].has(str(r["enemy"]))).is_false()
+	for ev in tl.events:
+		assert_bool(["sand_crab", "jackalope"].has(str(ev.get("enemy", "")))).is_false()
+	# kept for later: the art and the logic are still there
+	assert_object(Registry.enemy("sand_crab")).is_not_null()
+	assert_object(Registry.enemy("jackalope")).is_not_null()
+	# and the laser is not locked behind a creature that never comes
+	var q: Dictionary = {}
+	for qd in Registry.quests.values():
+		if qd.id == "unlock_big_mouth":
+			q = qd.condition
+	assert_str(str(q.get("enemy", ""))).is_equal("armadillo")
+
+
+func test_the_fodder_comes_twice_as_many_at_half_each() -> void:
+	var g: EnemyDef = Registry.enemy("goblin")
+	assert_int(g.pack_size).is_equal(6)
+	assert_float(g.hp).is_equal_approx(6.0, 0.01)
+	assert_float(g.cap_share).is_equal_approx(0.5, 0.001)
+	var a: EnemyDef = Registry.enemy("fire_ant")
+	assert_int(a.pack_size).is_equal(16)
+	assert_float(a.hp).is_equal_approx(2.0, 0.01)
+	assert_float(a.cap_share).is_equal_approx(0.5, 0.001)
+	# half a slot each against the director's cap
+	var em: EnemyManager = auto_free(EnemyManager.new())
+	add_child(em)
+	em.register_type(g)
+	for k in range(4):
+		em.spawn("goblin", Vector3(k, 0, 0))
+	assert_float(em.cap_load()).is_equal_approx(2.0, 0.01)
+	assert_int(Registry.map("red_canyon").timeline.hard_cap).is_equal(240)
+
+
+func test_the_armadillo_arrives_half_way_through_stage_one() -> void:
+	var d: EnemyDef = Registry.enemy("armadillo")
+	assert_object(d).is_not_null()
+	assert_int(d.pack_size).is_greater_equal(5)
+	assert_float(d.armor).is_greater_equal(1.0)
+	assert_float(d.hp).is_greater(Registry.enemy("goblin").hp * 2.0)
+	var tl: WaveTimeline = Registry.map("red_canyon").timeline
+	var arrives := -1.0
+	for r in tl.roster:
+		if str(r["enemy"]) == "armadillo":
+			arrives = float(r["t"])
+	assert_float(arrives).is_between(140.0, 160.0)
+
+
+func test_the_rocket_keeps_to_nine_tenths_of_the_hero() -> void:
+	var g := _fake_game(Vector3(0, 0, 60.0))
+	var pm: ProjectileManager = g.projectiles
+	var i := pm.launch_enemy_rocket(0, 3, Vector3.ZERO, Vector3(0, 0, 1), 4.0, 1.3, 22.0, 1.6, 0.9)
+	pm._physics_process(1.0 / 60.0)
+	assert_float(float(pm.extra[i]["speed"])).is_equal_approx(4.5, 0.01)
+	assert_float(pm.vel[i].length()).is_equal_approx(4.5, 0.05)
+
+
+func test_the_death_log_names_the_killer() -> void:
+	var p := _hero()
+	p.take_damage(8.0, Vector3.ZERO, {"by": "Goblin", "kind": "melee", "fx": ["charge"]})
+	p.invuln = 0.0
+	p.take_damage(12.0, Vector3.ZERO, {"by": "Sun Prophet (Elite)", "kind": "ranged", "fx": ["knocked back"]})
+	p.invuln = 0.0
+	p.take_damage(9999.0, Vector3.ZERO, {"by": "Tumbleweed King", "kind": "boss", "fx": ["slam"]})
+	var text := p.damage_log_text()
+	var lines := text.split("\n")
+	assert_int(lines.size()).is_equal(3)
+	# newest first: the killing blow on top, with the skull and the boss's crown
+	assert_str(lines[0]).starts_with("💀 👑")
+	assert_str(lines[0]).contains("Tumbleweed King")
+	assert_str(lines[1]).contains("🏹")
+	assert_str(lines[1]).contains("knocked back")
+	assert_str(lines[2]).contains("🗡️")
+	assert_str(lines[2]).contains("Goblin")
+
+
+func test_evade_takes_no_hit() -> void:
+	# the chance is capped at 90%, so over twenty hits most are evaded and an evaded hit costs nothing
+	var p := _hero()
+	var e := Effect.make("evade", "add", 1.0)
+	e.target = "player"
+	Run.player_sheet.add_effects([e], "test")
+	var landed := 0
+	for k in range(20):
+		var before := p.hp
+		p.invuln = 0.0
+		p.take_damage(2.0, Vector3.ZERO, {"by": "Goblin", "kind": "melee"})
+		if p.hp < before:
+			landed += 1
+	assert_int(landed).is_less_equal(8)
+	assert_str(p.damage_log_text()).contains("evaded")
+	Run.player_sheet.remove_source("test")
+
+
+func test_the_energy_shield_takes_whole_hits_then_breaks() -> void:
+	var p := _hero()
+	var e := Effect.make("shield_max", "add", 30.0)
+	e.target = "player"
+	Run.player_sheet.add_effects([e], "test")
+	p.shield_pts = 30.0
+	var before := p.hp
+	p.take_damage(10.0, Vector3.ZERO, {"by": "Goblin", "kind": "melee"})
+	assert_float(p.hp).is_equal(before)
+	assert_float(p.shield_pts).is_less(30.0)
+	# a hit bigger than what is left breaks it, and none of it reaches health
+	p.invuln = 0.0
+	p.take_damage(80.0, Vector3.ZERO, {"by": "Bull Beetle", "kind": "melee"})
+	assert_float(p.hp).is_equal(before)
+	assert_float(p.shield_pts).is_equal(0.0)
+	# broken: the next hit is health's
+	p.invuln = 0.0
+	p.take_damage(10.0, Vector3.ZERO, {"by": "Goblin", "kind": "melee"})
+	assert_float(p.hp).is_less(before)
+	Run.player_sheet.remove_source("test")
+
+
+func test_every_line_evolves() -> void:
+	var offered: Array = Registry.sorted_lines()
+	assert_int(offered.size()).is_equal(8)
+	for l: LineDef in offered:
+		assert_str(l.evolves_into).override_failure_message(l.id + " has no evolution").is_not_empty()
+		var evo: LineDef = Registry.line(l.evolves_into)
+		assert_object(evo).is_not_null()
+		assert_str(evo.evolves_from).is_equal(l.id)
+		assert_int(evo.max_level).is_equal(1)
+
+
+func test_a_maxed_line_is_offered_its_evolution() -> void:
+	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
+	for k in range(4):
+		Run.add_or_rank_line("vigour")
+	var evo_card: Dictionary = {}
+	for k in range(60):
+		for c in CardPool.level_up_offer(4):
+			if bool(c.get("evolve", false)):
+				evo_card = c
+		if not evo_card.is_empty():
+			break
+	assert_bool(evo_card.is_empty()).override_failure_message("no evolution card in sixty offers").is_false()
+	assert_str((evo_card["def"] as LineDef).id).is_equal("ironclad")
+	CardPool.apply(evo_card)
+	assert_bool(Run.lines.has("vigour")).is_false()
+	assert_int(Run.line_rank("ironclad")).is_equal(1)
+	assert_float(Run.player_sheet.get_stat("armor", 0.0)).is_greater_equal(3.0)
+
+
+func test_the_drop_passives_drop_small_pickups() -> void:
+	assert_float(float(Registry.passive("beef_jerky").effects_for_level(5)[0].value)).is_greater(0.0)
+	var j: PickupDef = Registry.pickup("jerky")
+	assert_str(j.effect_kind).is_equal("heal")
+	assert_bool(bool(j.params.get("small", false))).is_true()
+	var b: PickupDef = Registry.pickup("coin_bag")
+	assert_str(b.effect_kind).is_equal("gold")
+	assert_bool(bool(b.params.get("magnet", false))).is_true()
+	# neither is in the random power-up table: they come only from the passives
+	for r in Registry.map("red_canyon").timeline.pickups.get("roster", []):
+		assert_bool(["jerky", "coin_bag"].has(str(r.get("id", "")))).is_false()
+
+
+func test_far_zoom_marks_the_crowd() -> void:
+	var g: Node = auto_free(Node.new())
+	g.set_script(_script(FAKE_GAME))
+	add_child(g)
+	var cam := Node.new()
+	cam.set_script(_script(FAKE_CAMERA))
+	g.add_child(cam)
+	g.camera = cam
+	var em: EnemyManager = auto_free(EnemyManager.new())
+	em.game = g
+	add_child(em)
+	em.register_type(Registry.enemy("goblin"))
+	em._update_mark()
+	assert_float(float((em.types[0]["mat"] as ShaderMaterial).get_shader_parameter("mark"))).is_equal_approx(1.0, 0.01)
+	cam.z = 1.5
+	em._update_mark()
+	assert_float(float((em.types[0]["mat"] as ShaderMaterial).get_shader_parameter("mark"))).is_equal_approx(0.0, 0.01)
+
+
+func test_the_laser_leaves_the_mouth_whichever_way_it_points() -> void:
+	var g := _fake_game(Vector3(20.0, 0.0, -10.0))
+	var em: EnemyManager = auto_free(EnemyManager.new())
+	em.game = g
+	add_child(em)
+	g.enemies = em
+	var inst := WeaponInstance.new(Registry.weapon("big_mouth"), 2)
+	inst.rebuild(Run.player_sheet, [inst])
+	var b := LaserBeam.new()
+	g.add_child(b)
+	b.setup(inst, g)
+	for yaw in [0.0, -PI * 0.5, PI * 0.5, PI]:
+		b._aim_yaw = yaw
+		b._beam_t = 1.0
+		b._draw_beam()
+		var xf: Transform3D = b._beam.global_transform
+		# the ribbon's near end is the lips, and it runs along the aim, not along the world's Z
+		var near_end: Vector3 = xf.origin - xf.basis.y * 0.5
+		assert_float(near_end.distance_to(b.muzzle())).override_failure_message("yaw %.2f: the beam starts %.2f m off the mouth" % [yaw, near_end.distance_to(b.muzzle())]).is_less(0.05)
+		var run := xf.basis.y
+		run.y = 0.0
+		assert_float(run.normalized().dot(b._dir())).is_greater(0.99)

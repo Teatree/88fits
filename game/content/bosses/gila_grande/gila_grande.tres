@@ -1,0 +1,90 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_h6e4h"]
+[ext_resource type="Texture2D" path="res://content/bosses/gila_grande/gila_grande_icon.png" id="1_h7b5o"]
+[ext_resource type="Texture2D" path="res://content/bosses/gila_grande/gila_grande_sprite.png" id="3_8w4si"]
+
+[resource]
+script = ExtResource("1_h6e4h")
+archetype = "boss"
+doc = "Stage 2's boss: a lunge, a seven-shot fan, a burrow that surfaces under the hero, a ring of lizards. Pays two chests and thirty coins."
+brain = "boss"
+hp = 1500.0
+speed = 1.4
+damage = 24.0
+radius = 2.4
+size = 5.5
+drops = {
+"chests": 2.0,
+"coins": 30.0,
+"gold": 1.0,
+"large": 1.0
+}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_8w4si")
+sprite_file = "gila_grande_sprite.png"
+frame_px = 256
+strip_cols = 40
+fps = {
+"die": 8.0,
+"run": 15.0
+}
+head = 0.922
+boss = {
+"attacks": [{
+"damage": 28.0,
+"duration": 1.1,
+"name": "roll",
+"speed": 13.0,
+"telegraph": "line",
+"windup": 1.0
+}, {
+"count": 7.0,
+"damage": 14.0,
+"name": "spit_volley",
+"speed": 7.5,
+"splash": 1.5,
+"spread_deg": 100.0,
+"telegraph": "fan",
+"windup": 0.9
+}, {
+"damage": 32.0,
+"knockback": 9.0,
+"name": "burrow",
+"radius": 5.0,
+"telegraph": "ring_at_hero",
+"windup": 1.4
+}, {
+"count": 8.0,
+"enemy": "sand_lizard",
+"name": "spawn_ring",
+"telegraph": "none",
+"windup": 0.8
+}],
+"cooldown_between": 2.2,
+"hp_mult_per_stage": 2.0
+}
+sfx = {
+"attack": "en_boss_attack",
+"die": "en_boss_die",
+"hit": "en_goblin_hit",
+"spawn": "en_boss_roar"
+}
+xp_mult = 60.0
+id = "gila_grande"
+display_name = "Gila Grande"
+flavour = "Slow to anger. You have angered it."
+icon = ExtResource("1_h7b5o")
+icon_file = "gila_grande_icon.png"
+placeholder = {
+"color": "#F08030",
+"glyph": "lizard"
+}

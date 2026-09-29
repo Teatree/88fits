@@ -5,26 +5,8 @@
   "rarity": "rare",
   "weight": 7,
   "pairs_with": "peashooter",
-  "max_level": 5,
+  "max_level": 3,
   "levels": [
-    [
-      {
-        "stat": "amount",
-        "op": "add",
-        "value": 1,
-        "target": "player"
-      }
-    ],
-    [],
-    [
-      {
-        "stat": "amount",
-        "op": "add",
-        "value": 1,
-        "target": "player"
-      }
-    ],
-    [],
     [
       {
         "stat": "amount",
@@ -34,7 +16,7 @@
       }
     ]
   ],
-  "repeat_last_level": false,
+  "repeat_last_level": true,
   "placeholder": {
     "color": "#7FD07A",
     "glyph": "triple"

@@ -14,6 +14,7 @@ target = "player"
 [resource]
 script = ExtResource("2_68y37")
 levels = [[SubResource("Resource_68y37")]]
+max_level = 5
 pairs_with = "orbit_saws"
 id = "reach"
 display_name = "Reach"

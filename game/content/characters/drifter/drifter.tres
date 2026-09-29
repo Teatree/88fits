@@ -9,29 +9,32 @@
 script = ExtResource("4_ru77d")
 stat = "move_speed"
 op = "mul"
-value = 0.08
+value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_u8oit"]
 script = ExtResource("4_ru77d")
 stat = "magnet"
 op = "mul"
-value = 0.15
+value = 0.25
 target = "player"
 
 [resource]
 script = ExtResource("1_tp357")
 trait_effects = [SubResource("Resource_ru77d"), SubResource("Resource_u8oit")]
+trait_name = "Long Road"
+trait_text = "+10% move speed and +25% pickup radius. His Peashooter starts at level 3."
+pronoun = "he"
 favourite_weapon = "peashooter"
 favourite_bonus = {
 "type": "level",
-"value": 2.0
+"value": 3.0
 }
 sprite = ExtResource("3_u8oit")
 sprite_file = "drifter_sprite.png"
 anims = {
 "cheer": 1.0,
-"die": 1.0,
+"die": 5.0,
 "hit": 4.0,
 "hit_bd": 4.0,
 "hit_f": 4.0,
@@ -50,6 +53,7 @@ anims = {
 }
 strip_cols = 62
 fps = {
+"die": 8.0,
 "hit": 12.0,
 "run": 36.0
 }

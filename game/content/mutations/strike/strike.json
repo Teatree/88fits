@@ -1,0 +1,26 @@
+{
+  "id": "strike",
+  "name": "Strike",
+  "flavour": "The ring is a suggestion.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "rattlesnake",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "Every 2 s the snake lunges at the nearest creature outside the orbit for double damage.",
+  "vfx": "the snake shoots out of the ring and snaps back",
+  "effects": [],
+  "params": {
+    "strike": {
+      "period": 2.0,
+      "reach": 6.5,
+      "damage_mult": 2.0
+    }
+  },
+  "art_prompt": "a rattlesnake lunging forward with open fangs",
+  "placeholder": {
+    "color": "#D8B870",
+    "glyph": "star"
+  }
+}

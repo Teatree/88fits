@@ -12,6 +12,7 @@ import io, json, os, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import comfy, artkit
+import colorsys
 import numpy as np
 from PIL import Image
 
@@ -51,6 +52,193 @@ def wan_i2v(prompt, image_name, seed, width=640, height=640, length=49, negative
     dec = g.add("VAEDecode", samples=(s2, 0), vae=(vae, 0))
     g.add("SaveImage", images=(dec, 0), filename_prefix=prefix)
     return g
+
+
+def wan_flf(prompt, start_name, end_name, seed, width=640, height=640, length=33, negative=NEGATIVE, prefix="88fits/flf"):
+    """Wan 2.2 14B first-last-frame: a clip that starts on one picture and ends on another (a creature standing, and the
+    same creature lying dead), the model animating what happens in between. Same models and 4-step split as wan_i2v."""
+    g = comfy.Graph()
+    hi = g.add("UNETLoader", "Wan 2.2 high noise", unet_name=WAN_HIGH, weight_dtype="default")
+    lo = g.add("UNETLoader", "Wan 2.2 low noise", unet_name=WAN_LOW, weight_dtype="default")
+    hi = g.add("LoraLoaderModelOnly", "lightx2v high", model=(hi, 0), lora_name=WAN_LORA_HIGH, strength_model=1.0)
+    lo = g.add("LoraLoaderModelOnly", "lightx2v low", model=(lo, 0), lora_name=WAN_LORA_LOW, strength_model=1.0)
+    hi = g.add("ModelSamplingSD3", model=(hi, 0), shift=5.0)
+    lo = g.add("ModelSamplingSD3", model=(lo, 0), shift=5.0)
+    clip = g.add("CLIPLoader", "umt5 text encoder", clip_name=WAN_CLIP, type="wan", device="default")
+    vae = g.add("VAELoader", vae_name=WAN_VAE)
+    pos = g.add("CLIPTextEncode", "motion prompt", clip=(clip, 0), text=prompt)
+    neg = g.add("CLIPTextEncode", "negative", clip=(clip, 0), text=negative)
+    a = g.add("LoadImage", "first frame", image=start_name)
+    b = g.add("LoadImage", "last frame", image=end_name)
+    flf = g.add("WanFirstLastFrameToVideo", positive=(pos, 0), negative=(neg, 0), vae=(vae, 0), width=width, height=height, length=length,
+                batch_size=1, start_image=(a, 0), end_image=(b, 0))
+    s1 = g.add("KSamplerAdvanced", "high noise 0-2", model=(hi, 0), add_noise="enable", noise_seed=seed, steps=4, cfg=1.0, sampler_name="euler", scheduler="simple",
+               positive=(flf, 0), negative=(flf, 1), latent_image=(flf, 2), start_at_step=0, end_at_step=2, return_with_leftover_noise="enable")
+    s2 = g.add("KSamplerAdvanced", "low noise 2-4", model=(lo, 0), add_noise="disable", noise_seed=0, steps=4, cfg=1.0, sampler_name="euler", scheduler="simple",
+               positive=(flf, 0), negative=(flf, 1), latent_image=(s1, 0), start_at_step=2, end_at_step=10000, return_with_leftover_noise="disable")
+    dec = g.add("VAEDecode", samples=(s2, 0), vae=(vae, 0))
+    g.add("SaveImage", images=(dec, 0), filename_prefix=prefix)
+    return g
+
+
+def _on_canvas(keyed, size, bg, scale, floor=0.86):
+    """A keyed figure at `scale`, centred, its lowest point on the floor line, on a flat screen of `bg`."""
+    canvas = Image.new("RGB", (size, size), bg)
+    w, h = max(1, int(keyed.width * scale)), max(1, int(keyed.height * scale))
+    small = keyed.resize((w, h), Image.LANCZOS)
+    canvas.paste(small, ((size - w) // 2, int(size * floor) - h), small)
+    return canvas
+
+
+def fall_clip(still_rgb, dead_rgb, key, seed=0, size=640, length=33, prompt_hint="", tries=2, negative_extra=""):
+    """A death that is animated, not tilted: a first-last-frame clip from the standing painting to the dead painting.
+    Both go in at one body scale on one screen (the standing figure 72% of the canvas tall, the lying body as long as
+    the standing figure is tall, a touch less), centred, on one floor line, so the model only has to make it fall.
+    Returns (frames, meta): every frame keyed at full canvas size, the first and last replaced by the two paintings as
+    they went in, so the fall starts on the idle painting and ends on the dead one exactly. Cached in ANIM/<key>/."""
+    os.makedirs(os.path.join(ANIM, key), exist_ok=True)
+    meta_p = os.path.join(ANIM, key, "cycle.json")
+    if os.path.exists(meta_p):
+        meta = json.load(open(meta_p, encoding="utf-8"))
+        if meta.get("flf") and meta.get("frames") == length:
+            fulls = sorted(f for f in os.listdir(os.path.join(ANIM, key)) if f.startswith("full_"))
+            if len(fulls) == length:
+                return [Image.open(os.path.join(ANIM, key, f)).convert("RGBA") for f in fulls], meta
+    ks = artkit.crop_alpha(artkit.key_background(still_rgb, 0.05, 0.45))
+    kd = artkit.crop_alpha(artkit.key_background(dead_rgb, 0.05, 0.45))
+    bg = _screen_for(ks) or (0, 0, 255)
+    s_stand = size * 0.72 / ks.height
+    s_dead = ks.height * s_stand * 0.92 / kd.width
+    s_dead = min(s_dead, size * 0.9 / kd.width)
+    first = _on_canvas(ks, size, bg, s_stand)
+    last = _on_canvas(kd, size, bg, s_dead)
+    n_first = comfy.upload_pil(first, key + "_first.png")
+    n_last = comfy.upload_pil(last, key + "_last.png")
+    colour = screen_word(bg)
+    prompt = ("A 2D anime game character sprite" + (", " + prompt_hint if prompt_hint else "") + ": it is struck and falls over, its legs giving way, "
+              "toppling sideways and landing flat on its back on the ground, then it lies still, dead. The same character, outfit and colours "
+              "in every frame, one body with two arms and two legs, crisp clean line art, cel shading. The camera is completely locked off "
+              "and static. The background stays a flat solid " + colour + " color with nothing in it, no ground plane, no shadow.")
+    neg = NEGATIVE + ", extra limbs, a second head, duplicate body, morphing, melting" + (", " + negative_extra if negative_extra else "")
+    last_err = None
+    for attempt in range(tries):
+        s = seed + attempt * 7919
+        pngs, secs = comfy.run(wan_flf(prompt, n_first, n_last, s, size, size, length, negative=neg, prefix="88fits/flf_" + key), timeout=3600)
+        raw = [Image.open(io.BytesIO(b)).convert("RGB") for b in pngs]
+        if len(raw) < length:
+            last_err = "got %d frames for %d" % (len(raw), length)
+            print("  flf  %-24s seed %-7d %5.0fs  retry: %s" % (key, s, secs, last_err), flush=True)
+            continue
+        keyed = [artkit.key_background(im, 0.16, 0.7) for im in raw[:length]]
+        # the two ends are the paintings themselves, as they went in
+        keyed[0] = artkit.key_background(first, 0.05, 0.45)
+        keyed[-1] = artkit.key_background(last, 0.05, 0.45)
+        empty = sum(1 for f in keyed if (np.asarray(f)[..., 3] > 127).sum() < 50)
+        if empty > 1:
+            last_err = "the figure vanished in %d frames" % empty
+            print("  flf  %-24s seed %-7d %5.0fs  retry: %s" % (key, s, secs, last_err), flush=True)
+            continue
+        for k, f in enumerate(keyed):
+            f.save(os.path.join(ANIM, key, "full_%02d.png" % k))
+        thumbs = [artkit.crop_alpha(f) for f in keyed]
+        artkit.contact_sheet(thumbs, 11, 150).save(os.path.join(ANIM, key, "cycle_sheet.png"))
+        meta = {"key": key, "seed": s, "flf": True, "frames": length, "screen": list(bg), "stand_scale": s_stand, "dead_scale": s_dead,
+                "floor": 0.86, "size": size, "seconds": round(secs, 1), "prompt": prompt}
+        json.dump(meta, open(meta_p, "w", encoding="utf-8", newline=chr(10)), indent=1)
+        print("  flf  %-24s seed %-7d %5.0fs  %d frames" % (key, s, secs, length), flush=True)
+        return keyed, meta
+    raise RuntimeError("no usable fall clip for %s: %s" % (key, last_err))
+
+
+WAN_FUN_HIGH = "wan2.2_fun_control_high_noise_14B_fp8_scaled.safetensors"
+WAN_FUN_LOW = "wan2.2_fun_control_low_noise_14B_fp8_scaled.safetensors"
+WAN_T2V_LORA_HIGH = "wan2.2_t2v_lightx2v_4steps_lora_v1.1_high_noise.safetensors"
+WAN_T2V_LORA_LOW = "wan2.2_t2v_lightx2v_4steps_lora_v1.1_low_noise.safetensors"
+
+
+def wan_fun_control(prompt, ref_name, ctl_names, seed, width=640, height=640, negative=NEGATIVE, prefix="88fits/ctl", shift=5.0):
+    """Wan 2.2 Fun Control 14B (pass 34): a clip that follows a control video (our depth renders of a 3D model walking)
+    and looks like the reference painting. The two-stage split and the 4-step LoRAs as for the other Wan graphs."""
+    g = comfy.Graph()
+    hi = g.add("UNETLoader", "Wan 2.2 Fun Control high noise", unet_name=WAN_FUN_HIGH, weight_dtype="default")
+    lo = g.add("UNETLoader", "Wan 2.2 Fun Control low noise", unet_name=WAN_FUN_LOW, weight_dtype="default")
+    hi = g.add("LoraLoaderModelOnly", "lightx2v high", model=(hi, 0), lora_name=WAN_T2V_LORA_HIGH, strength_model=1.0)
+    lo = g.add("LoraLoaderModelOnly", "lightx2v low", model=(lo, 0), lora_name=WAN_T2V_LORA_LOW, strength_model=1.0)
+    hi = g.add("ModelSamplingSD3", model=(hi, 0), shift=shift)
+    lo = g.add("ModelSamplingSD3", model=(lo, 0), shift=shift)
+    clip = g.add("CLIPLoader", "umt5 text encoder", clip_name=WAN_CLIP, type="wan", device="default")
+    vae = g.add("VAELoader", vae_name=WAN_VAE)
+    pos = g.add("CLIPTextEncode", "motion prompt", clip=(clip, 0), text=prompt)
+    neg = g.add("CLIPTextEncode", "negative", clip=(clip, 0), text=negative)
+    ref = g.add("LoadImage", "reference painting", image=ref_name)
+    batch = None
+    for k, name in enumerate(ctl_names):
+        li = g.add("LoadImage", "control %02d" % k, image=name)
+        batch = li if batch is None else g.add("ImageBatch", image1=(batch, 0), image2=(li, 0))
+    fc = g.add("Wan22FunControlToVideo", positive=(pos, 0), negative=(neg, 0), vae=(vae, 0), width=width, height=height, length=len(ctl_names),
+               batch_size=1, ref_image=(ref, 0), control_video=(batch, 0))
+    s1 = g.add("KSamplerAdvanced", "high noise 0-2", model=(hi, 0), add_noise="enable", noise_seed=seed, steps=4, cfg=1.0, sampler_name="euler", scheduler="simple",
+               positive=(fc, 0), negative=(fc, 1), latent_image=(fc, 2), start_at_step=0, end_at_step=2, return_with_leftover_noise="enable")
+    s2 = g.add("KSamplerAdvanced", "low noise 2-4", model=(lo, 0), add_noise="disable", noise_seed=0, steps=4, cfg=1.0, sampler_name="euler", scheduler="simple",
+               positive=(fc, 0), negative=(fc, 1), latent_image=(s1, 0), start_at_step=2, end_at_step=10000, return_with_leftover_noise="disable")
+    dec = g.add("VAEDecode", samples=(s2, 0), vae=(vae, 0))
+    g.add("SaveImage", images=(dec, 0), filename_prefix=prefix)
+    return g
+
+
+def cycle_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative_extra="", loop_frames=12, tries=2):
+    """A walk cycle that follows a 3D model's control video (tools/blender_ant.py: ctl_NN.png, two strides): the
+    second stride is kept (the first settles in), keyed, cropped to a common box. Returns (frames, meta); cached in
+    ANIM/<key>/ like the other cycles."""
+    os.makedirs(os.path.join(ANIM, key), exist_ok=True)
+    meta_p = os.path.join(ANIM, key, "cycle.json")
+    if os.path.exists(meta_p):
+        meta = json.load(open(meta_p, encoding="utf-8"))
+        if meta.get("control") and meta.get("n_out") == loop_frames:
+            frames = [Image.open(os.path.join(ANIM, key, "out_%02d.png" % k)).convert("RGBA") for k in range(loop_frames)]
+            if len(frames) == loop_frames:
+                return frames, meta
+    ctls = sorted(f for f in os.listdir(ctl_dir) if f.startswith("ctl_") and f.endswith(".png"))
+    ref = ref_rgb.convert("RGB").resize((size, size), Image.LANCZOS)
+    ref_name = comfy.upload_pil(ref, key + "_ref.png")
+    ctl_names = [comfy.upload(open(os.path.join(ctl_dir, f), "rb").read(), key + "_" + f) for f in ctls]
+    neg = NEGATIVE + ", extra legs, missing legs, a second head, duplicate body, morphing, melting" + (", " + negative_extra if negative_extra else "")
+    last_err = None
+    for attempt in range(tries):
+        s = seed + attempt * 7919
+        pngs, secs = comfy.run(wan_fun_control(prompt, ref_name, ctl_names, s, size, size, negative=neg, prefix="88fits/ctl_" + key), timeout=3600)
+        raw = [Image.open(io.BytesIO(b)).convert("RGB") for b in pngs]
+        if len(raw) < loop_frames * 2:
+            last_err = "got %d frames" % len(raw)
+            print("  ctl  %-24s seed %-7d %5.0fs  retry: %s" % (key, s, secs, last_err), flush=True)
+            continue
+        keyed = [artkit.key_background(im, 0.16, 0.7) for im in raw]
+        loop = keyed[loop_frames:loop_frames * 2]
+        boxes = []
+        for f in loop:
+            a = np.asarray(f)[..., 3] > 127
+            ys, xs = np.nonzero(a)
+            if len(xs) >= 50:
+                boxes.append((xs.min(), ys.min(), xs.max(), ys.max()))
+        if len(boxes) < loop_frames * 0.8:
+            last_err = "the figure vanished"
+            print("  ctl  %-24s seed %-7d %5.0fs  retry: %s" % (key, s, secs, last_err), flush=True)
+            continue
+        pad = 6
+        box = (max(0, min(b[0] for b in boxes) - pad), max(0, min(b[1] for b in boxes) - pad),
+               min(size, max(b[2] for b in boxes) + pad + 1), min(size, max(b[3] for b in boxes) + pad + 1))
+        for k, f in enumerate(keyed):
+            f.save(os.path.join(ANIM, key, "full_%02d.png" % k))
+        out = [f.crop(box) for f in loop]
+        for k, f in enumerate(out):
+            f.save(os.path.join(ANIM, key, "out_%02d.png" % k))
+        artkit.contact_sheet(out, loop_frames, 200).save(os.path.join(ANIM, key, "cycle_sheet.png"))
+        meta = {"key": key, "seed": s, "control": True, "ctl_dir": os.path.abspath(ctl_dir), "n_out": loop_frames, "frames": len(raw),
+                "box": [int(v) for v in box], "seconds": round(secs, 1), "prompt": prompt}
+        json.dump(meta, open(meta_p, "w", encoding="utf-8", newline=chr(10)), indent=1)
+        print("  ctl  %-24s seed %-7d %5.0fs  %d frames, box %s" % (key, s, secs, loop_frames, box), flush=True)
+        return out, meta
+    raise RuntimeError("no usable control clip for %s: %s" % (key, last_err))
 
 
 WAN_ANIMATE = "wan2.2_animate_14B_fp8_e4m3fn_scaled_KJ.safetensors"
@@ -103,7 +291,7 @@ def cycle_pose(still_rgb, key, driver_dir, seed=0, size=640, prompt_hint="", tri
     still, bg = _prep_still(still_rgb, size)
     ref_name = comfy.upload_pil(still, key + "_still.png")
     pose_names = [comfy.upload(open(os.path.join(driver_dir, f), "rb").read(), key + "_" + f) for f in drivers]
-    colour = "blue" if bg[2] > bg[1] else "green"
+    colour = screen_word(bg)
     prompt = ("A 2D anime game character sprite" + (", " + prompt_hint if prompt_hint else "") + ", following the motion exactly, " + motion +
               ", the same character, outfit and colours as the reference in every frame, crisp clean line art, cel shading. The camera is "
               "completely locked off and static. The background is a flat solid " + colour + " color with nothing in it, no ground plane, no shadow.")
@@ -117,7 +305,11 @@ def cycle_pose(still_rgb, key, driver_dir, seed=0, size=640, prompt_hint="", tri
             last_err = "got %d frames for %d drivers" % (len(raw), n_out)
             print("  pose %-24s seed %-7d %5.0fs  retry: %s" % (key, s, secs, last_err), flush=True)
             continue
-        keyed = [artkit.key_background(im, 0.16, 0.7) for im in raw[:n_out]]
+        # a loop keeps frames 2 to n+1 (the last repeats the first pose, so it is the same cycle) rather than 1 to n: the
+        # clip's first frame is the one the model most often gets wrong (pass 34: nearly every colour flash that
+        # rolled a goblin walk again was frame 1)
+        use = raw[1:n_out + 1] if loop and len(raw) > n_out else raw[:n_out]
+        keyed = [artkit.key_background(im, 0.16, 0.7) for im in use]
         boxes = []
         bad = 0
         for f in keyed:
@@ -150,12 +342,48 @@ def cycle_pose(still_rgb, key, driver_dir, seed=0, size=640, prompt_hint="", tri
     raise RuntimeError("no usable pose clip for %s: %s" % (key, last_err))
 
 
+SCREENS = [((0, 0, 255), "blue"), ((0, 255, 0), "green"), ((255, 0, 255), "magenta")]
+
+
+def _screen_for(keyed_rgba):
+    """The screen colour whose hue the fewest of the figure's coloured pixels sit near: olive and khaki heroes stay on
+    blue, a hero in blue-grey denim goes on magenta. The video model paints a garment in the screen colour when the
+    two are anywhere near each other (a blue-jeans hero came back with no legs on blue, and green legs on green)."""
+    a = np.asarray(keyed_rgba.convert("RGBA")).astype(np.float32) / 255.0
+    rgb = a[..., :3][a[..., 3] > 0.5]
+    if len(rgb) < 100:
+        return None
+    mx, mn = rgb.max(axis=1), rgb.min(axis=1)
+    sat = (mx - mn) / (mx + 1e-6)
+    hue = np.array([colorsys.rgb_to_hsv(*px)[0] for px in rgb[sat > 0.2]]) if (sat > 0.2).any() else np.zeros(0)
+    if len(hue) == 0:
+        return SCREENS[0][0]
+    best, best_frac = SCREENS[0][0], 2.0
+    for colour, _ in SCREENS:
+        sh = colorsys.rgb_to_hsv(colour[0] / 255.0, colour[1] / 255.0, colour[2] / 255.0)[0]
+        d = np.abs(hue - sh)
+        frac = float((np.minimum(d, 1.0 - d) < 0.2).mean())
+        if frac < best_frac - 1e-6:
+            best, best_frac = colour, frac
+    return best
+
+
+def screen_word(bg):
+    """The colour word for the prompt: exact screens by name, anything else by its strongest channel."""
+    for colour, word in SCREENS:
+        if tuple(bg) == colour:
+            return word
+    return "blue" if bg[2] > bg[1] else "green"
+
+
 def _prep_still(still_rgb, size=640, fill=0.72):
     """The still goes in centred on its own screen colour with room around it, so the character can move without clipping."""
-    keyed = artkit.crop_alpha(artkit.key_background(still_rgb))
+    # a light despill here: the default greys blue-grey denim towards the screen hue, and the video model then paints
+    # the garment in the screen colour
+    keyed = artkit.crop_alpha(artkit.key_background(still_rgb, 0.05, 0.45))
     arr = np.asarray(still_rgb.convert("RGB")).astype(np.float32) / 255.0
     edge = np.concatenate([arr[:16, :, :].reshape(-1, 3), arr[:, :16, :].reshape(-1, 3)])
-    bg = tuple(int(v * 255) for v in np.median(edge, axis=0))
+    bg = _screen_for(keyed) or tuple(int(v * 255) for v in np.median(edge, axis=0))
     canvas = Image.new("RGB", (size, size), bg)
     scale = min(size * fill / keyed.width, size * fill / keyed.height)
     w, h = max(1, int(keyed.width * scale)), max(1, int(keyed.height * scale))

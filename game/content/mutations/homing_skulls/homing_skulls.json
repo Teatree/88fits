@@ -1,0 +1,41 @@
+{
+  "id": "homing_skulls",
+  "name": "Homing Skulls",
+  "flavour": "They know your name. Not yours. Theirs.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "skull_rain",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "The skulls seek.",
+  "vfx": "skulls corkscrew, then dive with a green trail",
+  "effects": [
+    {
+      "stat": "speed",
+      "op": "set",
+      "value": 13
+    },
+    {
+      "stat": "range",
+      "op": "add",
+      "value": 2
+    }
+  ],
+  "params": {
+    "missile": {
+      "wander": 0.4,
+      "turn": 6.0,
+      "spiral": 9.0,
+      "life": 3.5,
+      "trail": 2
+    },
+    "size_mult": 0.9
+  },
+  "behavior": "MissilePod",
+  "art_prompt": "a flying green skull with little bat wings and a glowing eye",
+  "placeholder": {
+    "color": "#A0E080",
+    "glyph": "star"
+  }
+}

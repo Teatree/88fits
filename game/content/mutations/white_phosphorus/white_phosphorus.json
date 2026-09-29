@@ -1,0 +1,42 @@
+{
+  "id": "white_phosphorus",
+  "name": "White Phosphorus",
+  "flavour": "Do not look at it.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "flare_gun",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "Burning creatures take +50% fire damage and spread the fire when they die.",
+  "vfx": "white-blue licks of flame on burning creatures, a white burst when one dies",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "add",
+      "value": 0
+    },
+    {
+      "stat": "fire_duration",
+      "op": "add",
+      "value": 0
+    },
+    {
+      "stat": "fire_spread",
+      "op": "add",
+      "value": 0.4
+    },
+    {
+      "stat": "fire_vuln",
+      "op": "add",
+      "value": 0.5,
+      "target": "player"
+    }
+  ],
+  "params": {},
+  "art_prompt": "a white-hot burning flare stick with a blinding white-and-blue flame",
+  "placeholder": {
+    "color": "#F0F4FF",
+    "glyph": "star"
+  }
+}

@@ -2,11 +2,11 @@
  "pipeline": "gen_art v2",
  "model": "flux-2-klein-9b-fp8.safetensors",
  "anchor": "72ae817babd1",
- "subject": "a tiny scrawny goblin with huge pointed ears, wide crazy eyes and a mischievous grin, wearing a torn grey rag and holding a rusty dagger, standing and facing the viewer",
+ "subject": "a tiny scrawny goblin with exactly two huge pointed ears, one on each side of its head and nothing else sticking out of its head, wide crazy eyes and a mischievous grin, wearing a torn grey rag and holding a rusty dagger in one hand, two arms and two legs, standing and facing the viewer",
  "renders": {
   "front": {
-   "seed": 14464,
-   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a tiny scrawny goblin with huge pointed ears, wide crazy eyes and a mischievous grin, wearing a torn grey rag and holding a rusty dagger, standing and facing the viewer. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "seed": 17481,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a tiny scrawny goblin with exactly two huge pointed ears, one on each side of its head and nothing else sticking out of its head, wide crazy eyes and a mischievous grin, wearing a torn grey rag and holding a rusty dagger in one hand, two arms and two legs, standing and facing the viewer. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
    "refs": [
     "88fits/style_anchor.png"
    ],
@@ -21,19 +21,19 @@
     "matches": true,
     "problems": [],
     "geometry": {
-     "left": 260,
-     "right": 266,
-     "top": 99,
-     "bottom": 100,
-     "height": 824,
-     "width": 497
+     "left": 182,
+     "right": 267,
+     "top": 103,
+     "bottom": 84,
+     "height": 836,
+     "width": 574
     }
    },
    "attempt": 0
   },
   "back": {
-   "seed": 14465,
-   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "seed": 18493,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. It still holds its rusty dagger in the same hand as in the front view, the blade visible beside its body on the right side of the picture. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/goblin_runt_front.png"
    ],
@@ -48,12 +48,41 @@
     "matches": true,
     "problems": [],
     "geometry": {
-     "left": 261,
-     "right": 266,
-     "top": 98,
-     "bottom": 108,
-     "height": 817,
-     "width": 496
+     "left": 260,
+     "right": 211,
+     "top": 104,
+     "bottom": 96,
+     "height": 823,
+     "width": 552
+    }
+   },
+   "attempt": 0
+  },
+  "dead": {
+   "seed": 14493,
+   "prompt": "This exact creature lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, arms flopped out limp, its rusty dagger lying on the ground beside its open hand, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/goblin_runt_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 58,
+     "right": 75,
+     "top": 239,
+     "bottom": 262,
+     "height": 522,
+     "width": 890
     }
    },
    "attempt": 0
@@ -61,6 +90,7 @@
  },
  "clips": {
   "walk_f": true,
-  "walk_b": true
+  "walk_b": true,
+  "pose": "walk_runt"
  }
 }

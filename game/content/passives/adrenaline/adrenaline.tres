@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_3reom"]
+[ext_resource type="Texture2D" path="res://content/passives/adrenaline/adrenaline_icon.png" id="1_sr6b7"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_sr6b7"]
+
+[sub_resource type="Resource" id="Resource_sr6b7"]
+script = ExtResource("1_3reom")
+stat = "adrenaline_speed"
+value = 0.004
+target = "player"
+
+[sub_resource type="Resource" id="Resource_wnmcc"]
+script = ExtResource("1_3reom")
+stat = "adrenaline_might"
+value = 0.003
+target = "player"
+
+[resource]
+script = ExtResource("2_sr6b7")
+levels = [[SubResource("Resource_sr6b7"), SubResource("Resource_wnmcc")]]
+max_level = 5
+id = "adrenaline"
+display_name = "Adrenaline"
+flavour = "Every kill is a stack for 4 s, twenty at most: faster and harder while the streak holds."
+weight = 8.0
+icon = ExtResource("1_sr6b7")
+icon_file = "adrenaline_icon.png"
+placeholder = {
+"color": "#EE4A5C",
+"glyph": "bolt"
+}

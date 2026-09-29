@@ -67,7 +67,7 @@
       }
     ]
   ],
-  "evolves_with": "haste",
+  "evolves_with": "",
   "evolves_into": "cluster_bomb",
   "sfx": {
     "fire": "w_lob_throw",

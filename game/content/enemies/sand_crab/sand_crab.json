@@ -1,0 +1,83 @@
+{
+  "id": "sand_crab",
+  "name": "Mine Crab",
+  "flavour": "It is not the claws you should worry about.",
+  "archetype": "swarmer",
+  "brain": "kamikaze",
+  "hp": 7,
+  "speed": 3.4,
+  "damage": 4,
+  "radius": 0.32,
+  "size": 0.75,
+  "pack_size": 1,
+  "drops": {
+    "small": 0.7,
+    "gold": 0.015,
+    "chest": 0.0015
+  },
+  "frame_px": 128,
+  "xp_mult": 1.1,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_beetle_die"
+  },
+  "placeholder": {
+    "color": "#E08040",
+    "glyph": "crab"
+  },
+  "art_prompt": "a small desert sand crab carrying one big round black naval mine strapped upright on top of its shell, the mine a classic round black bomb studded with short blunt spikes with a bright red glowing lamp on its top and a yellow radiation trefoil painted on its side, the crab itself with a rounded pale orange shell with dark speckles, two small raised claws, stalked black eyes, eight thin jointed legs, low and wide, ready to scuttle",
+  "motion": "scuttling sideways in place, the legs rippling fast, the mines on its shell rocking, the claws snapping",
+  "back_hint": "the same crab seen from behind: the rounded back of the shell with the single big black spiked mine strapped on top, its red lamp and the yellow trefoil showing, the claws held forward and mostly hidden",
+  "dead_hint": "lying dead on the sand upside down, the pale belly up, the legs and claws curled in, the one big black mine still strapped to the shell under it: still a crab, no face",
+  "variance": {
+    "size": 0.15,
+    "speed": 0.12,
+    "tints": [
+      "#FFFFFF",
+      "#FFE0C0",
+      "#E8D0B0",
+      "#F0B890"
+    ],
+    "tint_strength": 0.22,
+    "special_chance": 0.08,
+    "special": {
+      "size": 1.5,
+      "hp": 2.2,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#8A1A1A",
+      "tint_strength": 0.6
+    }
+  },
+  "doc": "A crab with a live mine on its back, and it arrives alone rather than in a pack. Fast, two hits kill it, and it goes off either way: a blast at the hero when it reaches him, marked by a red ring, or a smaller one on its own death that throws whatever stands beside it. From the fourth minute, and a swarm late.",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "strip_cols": 40,
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "kamikaze": {
+    "radius": 2.2,
+    "damage": 26,
+    "knockback": 9.0,
+    "windup": 0.4,
+    "trigger": 1.1
+  },
+  "death_burst": {
+    "delay": 0.0,
+    "radius": 1.8,
+    "damage": 18,
+    "knockback": 7.0
+  },
+  "screen": "blue",
+  "retired": true,
+  "head": 1.0
+}

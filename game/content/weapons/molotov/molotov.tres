@@ -62,7 +62,6 @@ base = {
 "speed": 10.0
 }
 levels = [[], [SubResource("Resource_8ub66")], [SubResource("Resource_ltqcv")], [SubResource("Resource_84lem")], [SubResource("Resource_keo0u")], [SubResource("Resource_p7bql")], [SubResource("Resource_g0sfe")], [SubResource("Resource_u8543")]]
-evolves_with = "haste"
 evolves_into = "firestorm"
 sfx = {
 "fire": "w_molotov_throw",

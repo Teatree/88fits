@@ -1,0 +1,62 @@
+{
+  "id": "vigour",
+  "name": "Vigour",
+  "flavour": "Thick skin. Thicker skull.",
+  "rarity": "common",
+  "weight": 10,
+  "max_level": 4,
+  "levels": [
+    [
+      {
+        "stat": "max_hp",
+        "op": "mul",
+        "value": 0.08,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "max_hp",
+        "op": "mul",
+        "value": 0.08,
+        "target": "player"
+      },
+      {
+        "stat": "armor",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "max_hp",
+        "op": "mul",
+        "value": 0.08,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "max_hp",
+        "op": "mul",
+        "value": 0.08,
+        "target": "player"
+      },
+      {
+        "stat": "armor",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "art_prompt": "a big red heart wearing a small iron helmet",
+  "placeholder": {
+    "color": "#FF6070",
+    "glyph": "star"
+  },
+  "evolves_into": "ironclad"
+}

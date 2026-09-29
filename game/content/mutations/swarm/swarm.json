@@ -1,0 +1,38 @@
+{
+  "id": "swarm",
+  "name": "Swarm",
+  "flavour": "You cannot count them. Do not try.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "hornet_nest",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "+6 hornets, −60% damage each, cooldown −30%.",
+  "vfx": "a cloud of small seekers",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 6
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.6
+    },
+    {
+      "stat": "cooldown",
+      "op": "mul",
+      "value": -0.3
+    }
+  ],
+  "params": {
+    "size_mult": 0.7
+  },
+  "art_prompt": "a dense cloud of many tiny hornets",
+  "placeholder": {
+    "color": "#E0B040",
+    "glyph": "star"
+  }
+}

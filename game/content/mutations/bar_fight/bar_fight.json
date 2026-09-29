@@ -1,0 +1,36 @@
+{
+  "id": "bar_fight",
+  "name": "Bar Fight",
+  "flavour": "Everyone brought a bottle.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "molotov",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Three bottles, smaller clouds, −30% damage.",
+  "vfx": "three smaller pools",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.3
+    },
+    {
+      "stat": "area",
+      "op": "mul",
+      "value": -0.3
+    }
+  ],
+  "params": {},
+  "art_prompt": "three small molotov bottles with burning rags",
+  "placeholder": {
+    "color": "#FFA040",
+    "glyph": "star"
+  }
+}

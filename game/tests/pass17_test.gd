@@ -2,11 +2,12 @@ extends GdUnitTestSuite
 
 
 func test_desert_roster_has_seven_creatures_and_the_elite() -> void:
-	var m: MapDef = Registry.map("dry_gulch")
+	var m: MapDef = Registry.map("red_canyon")
 	var ids: Array = []
 	for r in m.timeline.roster:
 		ids.append(str(r["enemy"]))
-	for id in ["goblin", "goblin_runt", "fire_ant", "roadrunner", "spit_cactus", "dust_mummy", "bull_beetle"]:
+	# the sand lizard is hidden since pass 34 (its row went to the runts, ants and armadillos)
+	for id in ["goblin", "goblin_runt", "fire_ant", "spit_cactus", "dust_mummy", "bull_beetle"]:
 		assert_bool(ids.has(id)).override_failure_message("roster lacks " + id).is_true()
 	var elite_ts: Array = []
 	for ev in m.timeline.events:
@@ -19,16 +20,17 @@ func test_desert_roster_has_seven_creatures_and_the_elite() -> void:
 
 
 func test_stages_get_harder() -> void:
-	var t: WaveTimeline = Registry.map("dry_gulch").timeline
+	var t: WaveTimeline = Registry.map("red_canyon").timeline
 	assert_float(t.stage_mult(1)).is_greater(1.6)
 	assert_float(t.stage_mult(2)).is_greater(t.stage_mult(1) * 1.3)
-	assert_int(t.cap_at(0.0, 1)).is_greater(t.cap_at(0.0, 0))
+	# pass 28: the cap ramps with the run's clock (linear to x2.5), not with the stage index
+	assert_int(t.cap_at(300.0, 1)).is_greater(t.cap_at(0.0, 0))
 	assert_float(t.speed_mult(2)).is_greater(t.speed_mult(1))
 	assert_float(t.speed_mult(0)).is_equal(1.0)
 
 
 func test_chest_roll_is_dry_until_taken() -> void:
-	Run.start(Registry.character("astro"), Registry.map("dry_gulch"))
+	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 	Run.add_weapon(Registry.weapon("peashooter"), 2)
 	var before := Run.weapon_instance("peashooter").level
 	var r := Run.chest_roll()
@@ -46,10 +48,14 @@ func test_chest_roll_is_dry_until_taken() -> void:
 
 
 func test_chest_roll_prefers_a_ready_evolution() -> void:
-	Run.start(Registry.character("astro"), Registry.map("dry_gulch"))
+	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 	var w: WeaponDef = Registry.weapon("peashooter")
 	var inst := Run.add_weapon(w, w.max_level)
-	Run.add_or_level_passive(w.evolves_with)
+	# pass 26: the path is the key, two mutations over two stages
+	Run.add_mutation("toxic_peas")
+	Run.stage = 1
+	Run.add_mutation("pea_hose")
+	Run.stage = 0
 	Run.rebuild_sheets()
 	var r := Run.chest_roll()
 	assert_str(str(r["type"])).is_equal("evolution")
@@ -60,7 +66,7 @@ func test_chest_roll_prefers_a_ready_evolution() -> void:
 	assert_object(inst).is_not_null()
 
 
-func test_fire_content_and_one_element_per_run() -> void:
+func test_fire_content_and_both_elements_in_one_run() -> void:
 	for id in ["flare_gun", "molotov", "branding_iron"]:
 		var w: WeaponDef = Registry.weapon(id)
 		assert_bool(w != null).override_failure_message("missing " + id).is_true()
@@ -76,26 +82,20 @@ func test_fire_content_and_one_element_per_run() -> void:
 	var poison_total: float = float(p.base["poison_damage"]) * floor(float(p.base["poison_duration"]) / 2.0)
 	assert_float(float(f.base["fire_damage"]) / 0.6).is_greater(float(p.base["poison_damage"]) / 2.0)
 	assert_float(fire_total).is_less(poison_total)
-	# a poison build is never offered fire, and the other way round
-	Run.start(Registry.character("astro"), Registry.map("dry_gulch"))
-	assert_str(Run.held_element()).is_equal("")
-	assert_bool(Run.element_allowed(f)).is_true()
+	# pass 36: the one-element rule is gone: a poison build is still offered fire, and the other way round
+	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 	Run.add_weapon(p, 1)
-	assert_str(Run.held_element()).is_equal("poison")
-	assert_bool(Run.element_allowed(f)).is_false()
-	assert_bool(Run.element_allowed(Registry.passive("kindling"))).is_false()
-	assert_bool(Run.element_allowed(Registry.passive("venom"))).is_true()
-	assert_bool(Run.element_allowed(Registry.weapon("boomstick"))).is_true()
-	for k in range(30):
+	var seen := {}
+	for k in range(200):
 		for card in CardPool.level_up_offer(3):
-			var def: ContentDef = card["def"]
-			assert_bool(def.id in ["flare_gun", "molotov", "branding_iron", "kindling"]).override_failure_message("fire offered to a poison build: " + def.id).is_false()
-	Run.start(Registry.character("astro"), Registry.map("dry_gulch"))
-	Run.add_or_level_passive("kindling")
-	assert_str(Run.held_element()).is_equal("fire")
-	assert_bool(Run.element_allowed(p)).is_false()
-	assert_bool(Run.element_allowed(Registry.weapon("rattlesnake"))).is_false()
-	assert_bool(Run.element_allowed(Registry.weapon("molotov"))).is_true()
+			seen[(card["def"] as ContentDef).id] = true
+	assert_bool(seen.has("molotov") or seen.has("kindling")).override_failure_message("no fire offered to a poison build").is_true()
+	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
+	Run.add_weapon(Registry.weapon("molotov"), 1)
+	Run.add_weapon(Registry.weapon("skull_rain"), 1)
+	assert_bool(Run.has_weapon("molotov") and Run.has_weapon("skull_rain")).is_true()
+	assert_str(Run.weapon_instance("molotov").element()).is_equal("fire")
+	assert_str(Run.weapon_instance("skull_rain").element()).is_equal("poison")
 
 
 func test_fire_spreads_but_never_back_to_the_host() -> void:

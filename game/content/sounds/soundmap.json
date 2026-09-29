@@ -253,7 +253,7 @@
       "pitch_spread": 0.1,
       "volume_db": -6
     },
-    "en_roadrunner_die": {
+    "en_lizard_die": {
       "category": "enemy",
       "voices": 3,
       "pitch_spread": 0.12,
@@ -447,6 +447,18 @@
       "pitch_spread": 0.15,
       "volume_db": -12
     },
+    "w_tommy_fire": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.06,
+      "volume_db": -10
+    },
+    "w_mine_arm": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.05,
+      "volume_db": -12
+    },
     "pk_powerup": {
       "category": "pickup",
       "voices": 2,
@@ -458,6 +470,72 @@
       "voices": 2,
       "pitch_spread": 0.05,
       "volume_db": -10
+    },
+    "en_bone_hit": {
+      "category": "enemy",
+      "voices": 4,
+      "pitch_spread": 0.25,
+      "volume_db": -14
+    },
+    "en_bone_die": {
+      "category": "enemy",
+      "voices": 3,
+      "pitch_spread": 0.2,
+      "volume_db": -10
+    },
+    "en_rocket_boom": {
+      "category": "enemy",
+      "voices": 2,
+      "pitch_spread": 0.06,
+      "volume_db": 0
+    },
+    "w_hammer_swing": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.12,
+      "volume_db": -12
+    },
+    "w_hammer_hit": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.12,
+      "volume_db": -6
+    },
+    "w_revolver_fire": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.08,
+      "volume_db": -8
+    },
+    "w_grav_grab": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.1,
+      "volume_db": -12
+    },
+    "w_grav_throw": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.1,
+      "volume_db": -10
+    },
+    "w_grav_land": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.12,
+      "volume_db": -7
+    },
+    "w_blackhole": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.08,
+      "volume_db": -9
+    },
+    "st_teleport": {
+      "category": "pickup",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -4
     }
   }
 }

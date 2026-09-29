@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="TalentDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_2qpam"]
+[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_70wpa"]
+
+[sub_resource type="Resource" id="Resource_2qpam"]
+script = ExtResource("1_2qpam")
+stat = "rerolls"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_70wpa"]
+script = ExtResource("1_2qpam")
+stat = "banishes"
+value = 1.0
+target = "player"
+
+[resource]
+script = ExtResource("2_70wpa")
+order = 5
+cost = [180.0, 324.0, 540.0]
+forms = [{
+"effects": [SubResource("Resource_2qpam")],
+"name": "Reroll",
+"text": "+1 reroll a run, a rank."
+}, {
+"effects": [SubResource("Resource_70wpa")],
+"name": "Banish",
+"text": "+1 banish a run, a rank."
+}]
+id = "choice"
+display_name = "Choice"
+flavour = "See another, or throw one away."
+icon_file = "choice_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3 uid="uid://vis_minefield001"]
+
+[sub_resource type="CylinderMesh" id="mine"]
+top_radius = 0.26
+bottom_radius = 0.32
+height = 0.16
+radial_segments = 12
+
+[sub_resource type="StandardMaterial3D" id="minemat"]
+albedo_color = Color(0.55, 0.45, 0.2, 1)
+roughness = 0.8
+
+[node name="MinefieldVisual" type="Node3D"]
+
+[node name="Held" type="MeshInstance3D" parent="."]
+mesh = SubResource("mine")
+material_override = SubResource("minemat")

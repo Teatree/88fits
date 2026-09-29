@@ -20,5 +20,6 @@
     "color": "#FFD166",
     "glyph": "clock"
   },
-  "art_prompt": "a golden stopwatch with wings"
+  "art_prompt": "a golden stopwatch with wings",
+  "max_level": 5
 }

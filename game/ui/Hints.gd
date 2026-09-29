@@ -1,68 +1,71 @@
-## First-play hints from design bible section 11. Each appears once, is skippable, and is remembered.
+## First-play hints (design bible section 11; the Wanted handoff's first run): three lines in the HUD's toast slot over
+## the first 30 s, "Drag anywhere to walk" until the hero moves, "He shoots by himself" (the hero's own pronoun) for a
+## few seconds after, "The purple is XP" until the first gem. Each appears once and is remembered (the save's hint ids
+## are the old ones, so a player who saw the old hints is not shown these again); the switch in Settings turns them off.
+## The level-up card frame carries the fourth ("the seal says how rare it is", CardScreen).
 class_name Hints
 extends Control
 
+## How long "shoots by himself" stays up once the hero is walking.
+const SHOOT_HOLD := 5.0
+## "The purple is XP" gives up after this long if no gem has been picked up.
+const XP_HOLD := 12.0
+
 var game: Node
-var _label: Label
 var _step := ""
 var _t := 0.0
 var _pause_toast_done := false
-var _panel: PanelContainer
 
 
 func _ready() -> void:
-	UiKit.fullscreen(self)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_panel = UiKit.panel(Color(0, 0, 0, 0.55), 30, UiKit.ACCENT, 3)
-	_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_panel.offset_left = -440
-	_panel.offset_right = 440
-	_panel.offset_top = -560
-	_panel.offset_bottom = -420
-	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_label = UiKit.label("", 40, UiKit.INK, HORIZONTAL_ALIGNMENT_CENTER)
-	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_panel.add_child(_label)
-	_panel.visible = false
-	add_child(_panel)
 
 
 func begin() -> void:
 	if not Settings.show_hints or game == null:
 		return
 	if not Save.hint_seen("hold"):
-		_show("hold", "TOUCH and DRAG anywhere below to move")
+		_show("hold", "Drag anywhere to walk")
 		game.player.moved_first.connect(func(): _done("hold"), CONNECT_ONE_SHOT)
-	game.player.input.touch_ended.connect(_on_release)
+	elif not Save.hint_seen("slide"):
+		_show("slide", _shoots())
+	elif not Save.hint_seen("gems"):
+		_show("gems", "The purple is XP")
 
 
-func _on_release() -> void:
-	pass
+## "He shoots by himself", in the hero's words.
+func _shoots() -> String:
+	var p := Run.character.pronoun if Run.character else "they"
+	match p:
+		"he":
+			return "He shoots by himself"
+		"she":
+			return "She shoots by herself"
+	return "They shoot by themselves"
 
 
 func _show(step: String, text: String) -> void:
 	_step = step
-	_label.text = text
-	_panel.visible = true
-	_panel.modulate.a = 0.0
-	var tw := create_tween()
-	tw.tween_property(_panel, "modulate:a", 1.0, 0.3)
+	_t = 0.0
+	if game and game.hud:
+		game.hud.hint(text)
 
 
 func _done(step: String) -> void:
 	if _step != step:
 		return
 	Save.mark_hint(step)
-	_panel.visible = false
 	_step = ""
+	if game and game.hud:
+		game.hud.clear_hint()
 	match step:
 		"hold":
 			if not Save.hint_seen("slide"):
-				_show("slide", "Drag in any direction. Lift to stop.")
+				_show("slide", _shoots())
 		"slide":
 			if not Save.hint_seen("gems"):
-				_show("gems", "Walk over GEMS to level up")
+				_show("gems", "The purple is XP")
 
 
 func tick(delta: float) -> void:
@@ -71,16 +74,13 @@ func tick(delta: float) -> void:
 	_t += delta
 	match _step:
 		"slide":
-			if Run.kills >= 1 and _t > 4.0:
+			if _t > SHOOT_HOLD:
 				_done("slide")
 		"gems":
-			if Run.xp > 0.0 or Run.level > 1:
+			if Run.xp > 0.0 or Run.level > 1 or _t > XP_HOLD:
 				_done("gems")
 		"":
 			if not _pause_toast_done and Run.elapsed >= 90.0 and not Save.hint_seen("pause"):
 				_pause_toast_done = true
 				Save.mark_hint("pause")
-				game.toast("Tap the top bar any time to pause and see your build", UiKit.INK2)
-	# steering hint completes once the player has pushed the stick properly for a moment
-	if _step == "slide" and game.player.input.wants_move and game.player.input.stick_dir.length() > 0.6 and _t > 2.0:
-		_done("slide")
+				game.toast("Tap the pause disc for your build", W.PAPER)

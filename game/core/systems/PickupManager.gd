@@ -21,6 +21,8 @@ var born := PackedFloat32Array()
 var free_list: Array = []
 var count := 0
 var _time := 0.0
+var _ticks := 0      # physics ticks run; the draw waits for a new one (pass 33.8)
+var _drawn := -1
 var _mms: Array = []
 var _attractors: Array = []   # {pos, r} set each frame by turrets
 var chests: Array = []
@@ -107,10 +109,15 @@ func drop_from(def: EnemyDef, at: Vector3, xp_scale: float, is_elite: bool) -> v
 		spawn(KIND_VACUUM, at, 0.0)
 
 
-func vacuum_all(coins_too: bool = false) -> void:
+func vacuum_all(coins_too: bool = false, chests_too: bool = false) -> void:
 	for i in range(MAX):
 		if alive[i] == 1 and (coins_too or kind[i] != KIND_COIN):
 			flying[i] = 1
+	if chests_too:
+		# a boss kill: the chests come to the hero too, instead of the hero crossing the arena for them
+		for c in chests:
+			if is_instance_valid(c) and not c.opened:
+				c.pulled = true
 	Audio.play("pk_vacuum")
 
 
@@ -195,10 +202,20 @@ func _physics_process(delta: float) -> void:
 					flying[i] = 1
 					break
 	_attractors.clear()
-	_check_chests(player)
-	_check_specials(player)
-	_render()
+	_check_chests(player, delta)
+	_check_specials(player, delta)
+	_ticks += 1
 	Perf.add("pickups", t0)
+
+
+## Gems and coins are drawn once per shown frame, after a tick has moved them (pass 33.8).
+func _process(_delta: float) -> void:
+	if game == null or _drawn == _ticks:
+		return
+	_drawn = _ticks
+	var t0 := Time.get_ticks_usec()
+	_render()
+	Perf.add("pickups.draw", t0)
 
 
 func _collect(i: int) -> void:
@@ -220,29 +237,36 @@ func _collect(i: int) -> void:
 	_free(i)
 
 
-func spawn_chest(at: Vector3) -> void:
+func spawn_chest(at: Vector3, boss: bool = false) -> void:
 	var c := Chest.new()
+	c.boss = boss
 	add_child(c)
 	c.global_position = at
 	chests.append(c)
 
 
-func spawn_special(def: PickupDef, at: Vector3) -> void:
+## `quiet`: no fanfare (the drop passives' jerky and coin bags fall often).
+func spawn_special(def: PickupDef, at: Vector3, quiet: bool = false) -> void:
 	var p := Powerup.new()
 	p.setup(def)
 	add_child(p)
 	p.global_position = at
 	specials.append(p)
-	Audio.play("pk_chest_open", at)
+	if not quiet:
+		Audio.play("pk_chest_open", at)
 
 
-func _check_specials(player: Node3D) -> void:
+func _check_specials(player: Node3D, delta: float = 0.0) -> void:
 	var keep: Array = []
+	var magnet: float = Run.player_sheet.get_stat("magnet", 1.5)
 	for p in specials:
 		if not is_instance_valid(p) or p.taken:
 			continue
 		var d: Vector3 = player.global_position - p.global_position
 		d.y = 0.0
+		# a coin bag picks up like coins: inside the magnet's reach it flies to the hero
+		if bool(p.def.params.get("magnet", false)) and d.length() < magnet * 1.6 and delta > 0.0:
+			p.global_position += d.normalized() * minf(d.length(), (8.0 + magnet * 6.0) * delta)
 		if d.length() < 1.25:
 			p.collect_anim()
 			game.apply_pickup(p.def, p.global_position)
@@ -251,16 +275,21 @@ func _check_specials(player: Node3D) -> void:
 	specials = keep
 
 
-func _check_chests(player: Node3D) -> void:
+func _check_chests(player: Node3D, delta: float = 0.0) -> void:
 	var keep: Array = []
 	for c in chests:
 		if not is_instance_valid(c):
 			continue
 		var d: Vector3 = player.global_position - c.global_position
 		d.y = 0.0
+		if c.pulled and not c.opened and delta > 0.0 and d.length() > 0.5:
+			# a pulled chest slides to the hero, gathering speed, and rises to his height so it never sinks into a slope
+			c.pull_speed = minf(c.pull_speed + delta * 28.0, 20.0)
+			c.global_position += d.normalized() * minf(c.pull_speed * delta, d.length())
+			c.global_position.y = lerpf(c.global_position.y, player.global_position.y, clampf(delta * 6.0, 0.0, 1.0))
 		if d.length() < 1.3 and not c.opened:
 			c.opened = true
-			game.open_chest(c.global_position)
+			game.open_chest(c.global_position, c.boss)
 			c.open_anim()
 		else:
 			keep.append(c)

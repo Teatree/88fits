@@ -1,0 +1,38 @@
+{
+  "id": "cactus_hide",
+  "name": "Cactus Hide",
+  "flavour": "Hug me. I dare you.",
+  "rarity": "epic",
+  "weight": 0,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "thorns",
+        "op": "add",
+        "value": 48,
+        "target": "player"
+      },
+      {
+        "stat": "armor",
+        "op": "add",
+        "value": 2,
+        "target": "player"
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": 0.08,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "cooldowns 8% longer",
+  "evolves_from": "bristle",
+  "art_prompt": "a round wooden shield covered in long sharp cactus spines",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

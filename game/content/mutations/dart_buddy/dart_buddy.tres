@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xdqut"]
+[ext_resource type="Texture2D" path="res://content/mutations/dart_buddy/dart_buddy_icon.png" id="2_vubhl"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_x8bbs"]
+
+[sub_resource type="Resource" id="Resource_x8bbs"]
+script = ExtResource("1_xdqut")
+stat = "poison_damage"
+value = 3.0
+
+[sub_resource type="Resource" id="Resource_vubhl"]
+script = ExtResource("1_xdqut")
+stat = "poison_stacks"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_8fta3"]
+script = ExtResource("1_xdqut")
+stat = "poison_duration"
+value = 8.0
+
+[resource]
+script = ExtResource("2_x8bbs")
+weapon = "turret_buddy"
+mutation_kind = "element"
+text = "It spits poison."
+vfx = "green darts from the buddy"
+effects = [SubResource("Resource_x8bbs"), SubResource("Resource_vubhl"), SubResource("Resource_8fta3")]
+id = "dart_buddy"
+display_name = "Dart Buddy"
+flavour = "It spits now."
+rarity = "rare"
+element = "poison"
+weight = 8.0
+icon = ExtResource("2_vubhl")
+icon_file = "dart_buddy_icon.png"
+placeholder = {
+"color": "#90C070",
+"glyph": "star"
+}

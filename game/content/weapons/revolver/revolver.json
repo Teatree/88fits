@@ -1,0 +1,101 @@
+{
+  "id": "revolver",
+  "name": "Revolver",
+  "flavour": "Six chances to be right.",
+  "rarity": "rare",
+  "weight": 8,
+  "hero": "drifter",
+  "behavior": "ProjectileEmitter",
+  "targeting": "nearest",
+  "tags": [
+    "gun"
+  ],
+  "base": {
+    "damage": 20,
+    "cooldown": 1.0,
+    "amount": 1,
+    "pierce": 1,
+    "speed": 33,
+    "range": 14,
+    "knockback": 2.0
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.1
+      }
+    ],
+    [
+      {
+        "stat": "pierce",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "golden_revolver",
+  "params": {
+    "radius": 0.14,
+    "burst": true,
+    "burst_gap": 0.14,
+    "scatter_deg": 1.5,
+    "drum_axis": "forward",
+    "drum_step": 1.0472,
+    "no_shells": true,
+    "tracer": true,
+    "familiar": {
+      "radius": 1.2,
+      "height": 1.4,
+      "speed": 1.2,
+      "bob": 0.08
+    }
+  },
+  "sfx": {
+    "fire": "w_revolver_fire",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#4A4A5A",
+    "glyph": "gun"
+  },
+  "art_prompt": "a classic western single-action six-shooter revolver in blued steel with a walnut grip, seen from the side, the long barrel pointing to the right"
+}

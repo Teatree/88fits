@@ -10,9 +10,11 @@ config_version=5
 
 [application]
 
+config/version="0.28"
 config/name="88fits"
 config/description="Hold to run. Slide to steer. The guns fire themselves."
 run/main_scene="res://ui/Boot.tscn"
+config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.png"
 
@@ -78,6 +80,6 @@ pointing/emulate_mouse_from_touch=false
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-scaling_3d/scale.mobile=0.8
 textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.2, 0.14, 0.31, 1)
+scaling_3d/scale.mobile=0.8

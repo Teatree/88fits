@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_begve"]
+[ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon.png" id="1_p1m03"]
+
+[resource]
+script = ExtResource("1_begve")
+weapon = "lob_grenade"
+mutation_kind = "volume"
+text = "The burst throws six shrapnel out."
+vfx = "six sparks flying out of the blast"
+params = {
+"burst_spawn": {
+"count": 6.0,
+"damage_mult": 0.4,
+"kind": "shrapnel",
+"life": 0.45,
+"speed": 14.0
+}
+}
+id = "frag"
+display_name = "Frag"
+flavour = "The pieces are the point."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_p1m03")
+icon_file = "frag_icon.png"
+placeholder = {
+"color": "#A0A890",
+"glyph": "star"
+}

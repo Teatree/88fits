@@ -1,0 +1,31 @@
+{
+  "id": "juggler",
+  "name": "Juggler",
+  "flavour": "Hands full, always.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "gravity_gun",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Picks up two more at once, −30% damage.",
+  "vfx": "three creatures floating in the beam at once",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.3
+    }
+  ],
+  "params": {},
+  "art_prompt": "three small balls floating in a cyan energy beam above an open metal claw",
+  "placeholder": {
+    "color": "#D8E0F0",
+    "glyph": "star"
+  }
+}

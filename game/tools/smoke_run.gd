@@ -1,13 +1,14 @@
 ## Headless integration run. Starts a run straight into gameplay, simulates a thumb that steers in an S,
 ## auto-picks cards, fast-forwards to the first boss, walks into the portal, continues, extracts, then
-## visits Results, Title, Shop, Collection, Settings and PlaySetup. Exit code 0 only if the whole path ran.
+## visits Results, Title, Shop, Collection, Settings, the Mirror and the developer menu. Exit code 0 only if the whole
+## path ran.
 ## Run: godot --headless --path game --script res://tools/smoke_run.gd -- seconds=90 weapon=boomstick
 ## Autoloads are reached through the tree because SceneTree scripts compile before autoloads exist.
 extends SceneTree
 
 var _seconds := 90.0
 var _weapon := "boomstick"
-var _map := "dry_gulch"
+var _map := "red_canyon"
 var _character := "astro"
 var _perf_lines: Array = []
 var _perf := false        # perf=1: no fast-forward, no boss kill; play the first minutes as they are and print Perf every 10 s
@@ -19,8 +20,11 @@ var _game: Node
 var _run: Node
 var _phase := "run"
 var _boss_forced := false
+var _boss_n := 1          # boss=2: jump to the second boss with a stage-2 build (the pass 29 crash report)
+var _evolve_all := false  # evolve=all: every base weapon added, maxed, mutated twice and evolved in the live game
+var _evolved := false
 var _portal_decided := 0
-var _screens := ["res://ui/ResultsScreen.tscn", "res://ui/TitleScreen.tscn", "res://ui/ShopScreen.tscn", "res://ui/CollectionScreen.tscn", "res://ui/SettingsScreen.tscn", "res://ui/PlaySetup.tscn"]
+var _screens := ["res://ui/ResultsScreen.tscn", "res://ui/TitleScreen.tscn", "res://ui/ShopScreen.tscn", "res://ui/CollectionScreen.tscn", "res://ui/SettingsScreen.tscn", "res://ui/HomesteadScreen.tscn", "res://ui/DevMenu.tscn"]
 var _screen_i := -1
 var _screen_t := 0.0
 var _cards_picked := 0
@@ -41,6 +45,10 @@ func _init() -> void:
 			_character = a.trim_prefix("character=")
 		elif a == "perf=1":
 			_perf = true
+		elif a.begins_with("boss="):
+			_boss_n = int(a.trim_prefix("boss="))
+		elif a == "evolve=all":
+			_evolve_all = true
 	process_frame.connect(_start, CONNECT_ONE_SHOT)
 
 
@@ -96,6 +104,8 @@ func _tick_run(dt: float) -> void:
 		_chests += 1
 		_game.chest_screen._finish(_chests % 2 == 1)
 		print("smoke_run: chest %d -> %s (%s)" % [_chests, "take" if _chests % 2 == 1 else "sell", str(_game.chest_screen.result().get("id", "gold"))])
+	if _game.get("resume_gate") and _game.resume_gate and _game.resume_gate.visible:
+		_game.resume_gate.tap()
 	if _game.portal_dialog and _game.portal_dialog.visible:
 		_portal_decided += 1
 		var extract: bool = _portal_decided >= 2
@@ -117,9 +127,46 @@ func _tick_run(dt: float) -> void:
 		if _t >= _seconds - 0.5:
 			_finish("")
 		return
+	if _t > 4.0 and _evolve_all and not _evolved and not _run.weapons.is_empty():
+		# every evolution once, in the live game: the weapon maxed with two forced path picks, then evolved, so every
+		# evolved behaviour and visual runs a few seconds alongside the rest of the build
+		_evolved = true
+		var reg = root.get_node("Registry")
+		var n := 0
+		for wid in reg.weapons.keys():
+			var wdef = reg.weapon(wid)
+			if wdef.is_evolution or wdef.evolves_into == "":
+				continue
+			var inst = _run.weapon_instance(wid)
+			if inst == null:
+				inst = load("res://core/systems/WeaponInstance.gd").new(wdef, wdef.max_level)
+				_run.weapons.append(inst)
+			inst.level = wdef.max_level
+			var picks := 0
+			for m in reg.mutations_of(wid):
+				if picks >= 2:
+					break
+				if not m.is_hero() and _run.add_mutation(m.id, true):
+					picks += 1
+			_run.rebuild_sheets()
+			var ev = _run.evolve(inst)
+			if ev:
+				n += 1
+		print("smoke_run: evolved %d weapons; build now %s" % [n, str(_run.weapons.map(func(w): return w.def.id))])
 	if _t > 6.0 and not _boss_forced:
 		_boss_forced = true
-		_run.elapsed = 296.0
+		if _boss_n >= 2:
+			# the second boss straight away: stage 2, the clock just before its event, the director past the earlier ones
+			_run.stage = 1
+			_run.elapsed = 596.0
+			var tl = _game.director.timeline
+			for k in range(tl.events.size()):
+				if float(tl.events[k].get("t", 0.0)) < 600.0:
+					_game.director._event_i = k + 1
+			_game.director._apply_mults()
+			print("smoke_run: jumped to the second boss (stage 2, event %d)" % _game.director._event_i)
+		else:
+			_run.elapsed = 296.0
 		for k in range(6):
 			_run.add_xp(_run.xp_to_next() + 1.0)
 		# exercise the evolution path: max the starter, add its passive, open a chest
@@ -159,6 +206,10 @@ func _tick_run(dt: float) -> void:
 		_game.director._run_event({"type": "elite_boss", "enemy": _run.map.skins.get("elite", "")})
 		print("smoke_run: elite spawned at %s" % str(_game.director.elite_position().round()))
 		_game.pickups.spawn_chest(_game.player.global_position + Vector3(0.5, 0, 0))
+		# one pack of every creature on the roster, so every brain runs at least once (the buried spider, the shaman's mend)
+		for r in _run.map.timeline.roster:
+			_game.enemies.spawn_pack(str(r["enemy"]), _game.player.global_position + Vector3(6, 0, 4), 2)
+		print("smoke_run: roster packs spawned: %d kinds" % _run.map.timeline.roster.size())
 	if _game.projectiles:
 		_lobs = [_game.projectiles.lobs_fired, _game.projectiles.lobs_exploded]
 	var em = _game.enemies
@@ -213,5 +264,8 @@ func _finish(problem: String) -> void:
 		_errors.append(problem)
 	if _lobs[0] > 0:
 		print("smoke_run: lobs fired %d, exploded on landing %d" % [_lobs[0], _lobs[1]])
+	if _game and is_instance_valid(_game) and _game.get("projectiles") and _game.projectiles:
+		print("smoke_run: missiles by weapon %s" % str(_game.projectiles.missiles_by_weapon))
+		print("smoke_run: weapon sheets: %s" % str(_run.weapons.map(func(w): return "%s amount %d cd %.2f" % [w.def.id, w.stat_int("amount", 1), w.stat("cooldown", 1.0)])))
 	print("smoke_run: %s after %.0fs (kills=%d cards=%d chests=%d portals=%d errors=%s)" % ["OK" if ok else "FAIL", _t, _run.kills, _cards_picked, _chests, _portal_decided, str(_errors)])
 	quit(0 if ok else 2)

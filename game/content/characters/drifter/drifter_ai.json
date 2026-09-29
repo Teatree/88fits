@@ -315,6 +315,35 @@
    },
    "attempt": 0
   },
+  "dead": {
+   "seed": 7659,
+   "prompt": "This exact character lying flat on the ground on their back, knocked out: limbs sprawled, head to one side, seen from the front and a little above so the whole body is visible. Keep the same outfit, colors, proportions and art style. eyes squeezed shut, teeth gritted. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/drifter_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 128,
+     "right": 153,
+     "top": 114,
+     "bottom": 149,
+     "height": 760,
+     "width": 742
+    }
+   },
+   "attempt": 0
+  },
   "portrait": {
    "seed": 15606,
    "prompt": "Close-up character portrait for a mobile game avatar icon: the head and shoulders of a lean young man with a calm determined face, wearing a wide-brimmed dark brown hat, a long dark brown leather duster coat with the collar turned up, a dark red scarf, a fitted dark shirt, dark grey trousers and worn black leather boots, standing straight with his hands relaxed at his sides, tipping the brim of his wide hat with two fingers, a confident half-smile, the collar of his brown duster turned up, the red scarf catching the wind, facing the viewer, the head large and centred, the shoulders and chest reaching the bottom edge of the frame, expressive and lively. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",

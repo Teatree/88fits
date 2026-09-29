@@ -1,0 +1,38 @@
+{
+  "id": "birdshot",
+  "name": "Birdshot",
+  "flavour": "For birds. Big birds.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "boomstick",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Twice the pellets in a 60° cone, −45% damage.",
+  "vfx": "a wide cloud of ten pellets",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 5
+    },
+    {
+      "stat": "spread_deg",
+      "op": "set",
+      "value": 60
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.45
+    }
+  ],
+  "params": {
+    "size_mult": 0.8
+  },
+  "art_prompt": "a shotgun shell spilling out a wide fan of many tiny lead pellets",
+  "placeholder": {
+    "color": "#E8C070",
+    "glyph": "star"
+  }
+}

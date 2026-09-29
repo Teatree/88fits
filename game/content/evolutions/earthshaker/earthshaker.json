@@ -1,0 +1,51 @@
+{
+  "id": "earthshaker",
+  "name": "Earthshaker",
+  "flavour": "The ground has had enough.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "hammer",
+  "max_level": 1,
+  "behavior": "Smasher",
+  "targeting": "densest",
+  "tags": [
+    "melee"
+  ],
+  "base": {
+    "damage": 42,
+    "cooldown": 2.0,
+    "amount": 2,
+    "range": 5.2,
+    "area": 1.5,
+    "knockback": 14.0
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "smash": {
+      "radius": 1.7,
+      "rise": 0.24,
+      "swing": 0.16,
+      "hold": 0.16,
+      "fade": 0.22,
+      "stagger": 0.16,
+      "shake": 0.5,
+      "quake": {
+        "lines": 4,
+        "length": 4.5,
+        "width": 0.9,
+        "frac": 0.6
+      }
+    }
+  },
+  "sfx": {
+    "fire": "w_hammer_swing",
+    "hit": "w_hammer_hit"
+  },
+  "placeholder": {
+    "color": "#FFB13B",
+    "glyph": "hammer"
+  },
+  "art_prompt": "a huge maul with a carved grey stone head bound in gold bands with glowing orange cracks running through the stone, a dark wooden handle with gold rings, lying on its side with the head to the right"
+}

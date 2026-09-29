@@ -1,0 +1,22 @@
+{
+  "id": "trail_dust",
+  "name": "Trail Dust",
+  "flavour": "Nobody follows the Drifter for long.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "drifter",
+  "text": "The dust behind him slows creatures 25% for a second.",
+  "effects": [],
+  "special": "trail_dust",
+  "params": {
+    "slow": 0.25,
+    "seconds": 1.0,
+    "radius": 1.1,
+    "every": 0.22
+  },
+  "art_prompt": "a swirl of dust trailing behind a boot print",
+  "placeholder": {
+    "color": "#D0B080",
+    "glyph": "star"
+  }
+}

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_x5axk")
 params = {
-"fraction": 0.5
+"fraction": 0.35
 }
 color = Color(0.3529412, 0.8392157, 0.41568628, 1)
 prop = "healing_well"

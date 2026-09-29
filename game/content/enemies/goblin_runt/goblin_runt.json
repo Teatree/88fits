@@ -13,7 +13,7 @@
   "drops": {
     "small": 1.0,
     "gold": 0.01,
-    "chest": 0.001
+    "chest": 0.0014
   },
   "frame_px": 128,
   "sfx": {
@@ -26,7 +26,7 @@
     "eyes": 2,
     "shape": "blob"
   },
-  "art_prompt": "a tiny scrawny goblin with huge pointed ears, wide crazy eyes and a mischievous grin, wearing a torn grey rag and holding a rusty dagger, standing and facing the viewer",
+  "art_prompt": "a tiny scrawny goblin with exactly two huge pointed ears, one on each side of its head and nothing else sticking out of its head, wide crazy eyes and a mischievous grin, wearing a torn grey rag and holding a rusty dagger in one hand, two arms and two legs, standing and facing the viewer",
   "xp_mult": 2.0,
   "variance": {
     "size": 0.22,
@@ -37,15 +37,15 @@
       "#FFE0A0",
       "#B0E0FF"
     ],
-    "tint_strength": 0.55,
+    "tint_strength": 0.22,
     "special_chance": 0.1,
     "special": {
       "size": 1.5,
       "hp": 2.2,
       "damage": 1.4,
       "xp": 3.0,
-      "tint": "#FF60A0",
-      "tint_strength": 0.9
+      "tint": "#5A1A80",
+      "tint_strength": 0.6
     }
   },
   "anims": {
@@ -53,13 +53,111 @@
     "run": 12,
     "attack": 2,
     "hit": 1,
-    "die": 1,
+    "die": 8,
     "run_b": 12,
     "idle_b": 4
   },
-  "motion": "scurrying in place with quick little steps, dagger in hand",
-  "strip_cols": 36,
+  "motion": "scurrying in place with quick little steps, gripping its rusty dagger in the same hand the whole time",
+  "strip_cols": 43,
   "fps": {
-    "run": 15
+    "run": 15,
+    "die": 12
+  },
+  "doc": "Keeps the crowd moving: smaller, faster, more of them, so a slow build cannot walk away.",
+  "head": 0.984,
+  "anim_negative": "extra ears, a third ear, ears growing or splitting, extra arms, a third arm, extra hands, two daggers, extra fingers, extra legs",
+  "dead_hint": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, arms flopped out limp, its rusty dagger lying on the ground beside its open hand",
+  "back_hint": "It still holds its rusty dagger in the same hand as in the front view, the blade visible beside its body on the right side of the picture.",
+  "pose": "walk_runt",
+  "stand": "still",
+  "death": "clip",
+  "death_frames": 8,
+  "variant_base": "RUN-A",
+  "variant": "RUN-D",
+  "variants": {
+    "RUN-A": {
+      "note": "Mixamo's walk fitted to the runt, the painted fall (pass 33.9)"
+    },
+    "RUN-B": {
+      "note": "the same runt on Mixamo's run, a quick scurry; it dies on the Falling Back Death clip",
+      "recipe": {
+        "pose": "run_runt",
+        "gait": "running in place on the spot like on a treadmill",
+        "run_fps": 20,
+        "death": "pose:death_back_runt",
+        "stand": "still"
+      },
+      "sprite": "goblin_runt_sprite_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "head": 0.969,
+      "icon": "goblin_runt_icon_b.png"
+    },
+    "RUN-C": {
+      "note": "a new painting with the dagger held low; the walk; the painted fall",
+      "recipe": {
+        "stills": "c0",
+        "pose": "walk_runt",
+        "death": "clip",
+        "stand": "still"
+      },
+      "sprite": "goblin_runt_sprite_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.969,
+      "icon": "goblin_runt_icon_c.png"
+    },
+    "RUN-D": {
+      "note": "a new painting with the dagger raised; the run; it dies on the Falling Back Death clip",
+      "recipe": {
+        "stills": "c5",
+        "pose": "run_runt",
+        "gait": "running in place on the spot like on a treadmill",
+        "run_fps": 20,
+        "death": "pose:death_back_runt",
+        "stand": "still"
+      },
+      "sprite": "goblin_runt_sprite_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "head": 1.0,
+      "icon": "goblin_runt_icon_d.png"
+    }
   }
 }

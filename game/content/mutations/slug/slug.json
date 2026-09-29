@@ -1,0 +1,44 @@
+{
+  "id": "slug",
+  "name": "Slug",
+  "flavour": "One. That is the number.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "boomstick",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "One pellet: ×4 damage, pierces 5, double knockback. A rifle.",
+  "vfx": "a single fat tracer with a long trail and a heavy shove on everything it passes",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "set",
+      "value": 1
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": 3.0
+    },
+    {
+      "stat": "pierce",
+      "op": "add",
+      "value": 5
+    },
+    {
+      "stat": "knockback",
+      "op": "mul",
+      "value": 1.0
+    }
+  ],
+  "params": {
+    "size_mult": 2.2,
+    "radius": 0.4
+  },
+  "art_prompt": "one huge heavy lead rifle bullet with a copper base, standing upright",
+  "placeholder": {
+    "color": "#B08050",
+    "glyph": "star"
+  }
+}

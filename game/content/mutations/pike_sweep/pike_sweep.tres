@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/pike_sweep/pike_sweep_icon.png" id="1_h1b25"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_v0fd3"]
+
+[resource]
+script = ExtResource("1_v0fd3")
+weapon = "pike"
+text = "A 120° sweep instead of a thrust."
+vfx = "the pike swings across the front"
+params = {
+"thrust": {
+"sweep_deg": 120.0
+}
+}
+id = "pike_sweep"
+display_name = "Wide Sweep"
+flavour = "Everything in front of you."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_h1b25")
+icon_file = "pike_sweep_icon.png"
+placeholder = {
+"color": "#D8C8A0",
+"glyph": "star"
+}

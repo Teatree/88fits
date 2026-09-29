@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xaoob"]
+[ext_resource type="Texture2D" path="res://content/mutations/blasting_cap/blasting_cap_icon.png" id="2_nd1cq"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_rpk00"]
+
+[sub_resource type="Resource" id="Resource_rpk00"]
+script = ExtResource("1_xaoob")
+stat = "area"
+op = "mul"
+value = 0.25
+
+[resource]
+script = ExtResource("2_rpk00")
+weapon = "land_mine"
+mutation_kind = "hero"
+hero = "mira"
+text = "A mine that kills drops a gold nugget; +25% radius."
+vfx = "a coin pops out of the crater"
+effects = [SubResource("Resource_rpk00")]
+params = {
+"gold_on_kill": 1.0
+}
+id = "blasting_cap"
+display_name = "Blasting Cap"
+flavour = "Mira's mines pay for themselves."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("2_nd1cq")
+icon_file = "blasting_cap_icon.png"
+placeholder = {
+"color": "#F0D040",
+"glyph": "star"
+}

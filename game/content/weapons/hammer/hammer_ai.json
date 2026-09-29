@@ -1,0 +1,17 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "a big two-handed war hammer with an octagonal steel head bound by two brass bands and a long oak handle wrapped in dark leather at the grip, lying on its side with the head to the right",
+ "renders": {
+  "icon": {
+   "key": "hammer_icon35_1",
+   "prompt": "a big two-handed war hammer with an octagonal steel head bound by two brass bands and a long oak handle wrapped in dark leather at the grip, lying on its side with the head to the right",
+   "refs": [
+    "hammer_ref.png"
+   ],
+   "screen": "green",
+   "picked": 1,
+   "of": 3
+  }
+ }
+}

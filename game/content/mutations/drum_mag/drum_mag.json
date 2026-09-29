@@ -1,0 +1,33 @@
+{
+  "id": "drum_mag",
+  "name": "Drum Mag",
+  "flavour": "Says hello for a lot longer.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "tommy_gun",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Twice the burst, −35% a round.",
+  "vfx": "a burst twice as long, twice the casings",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 6
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.35
+    }
+  ],
+  "params": {
+    "size_mult": 0.85
+  },
+  "art_prompt": "a fat round drum magazine for a tommy gun, bulging with bullets",
+  "placeholder": {
+    "color": "#C8A040",
+    "glyph": "star"
+  }
+}

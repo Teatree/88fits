@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_n0q3u")
 archetype = "brute"
+doc = "The charger: winds up, telegraphs a red line, and runs it. Eight directions of sprite so the line is readable."
 brain = "charge"
 hp = 70.0
 speed = 1.35
@@ -14,14 +15,14 @@ damage = 16.0
 radius = 0.8
 size = 2.0
 drops = {
-"chest": 0.015,
+"chest": 0.021,
 "gold": 0.3,
 "large": 1.0,
 "medium": 1.0
 }
 anims = {
 "attack": 2.0,
-"die": 1.0,
+"die": 5.0,
 "hit": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
@@ -39,6 +40,7 @@ sprite_file = "bull_beetle_sprite.png"
 frame_px = 192
 strip_cols = 83
 fps = {
+"die": 8.0,
 "run": 15.0
 }
 charge = {
@@ -48,6 +50,7 @@ charge = {
 "trigger_range": 6.5,
 "windup": 0.8
 }
+head = 1.0
 sfx = {
 "attack": "en_beetle_charge",
 "die": "en_beetle_die",
@@ -60,13 +63,13 @@ variance = {
 "damage": 1.4,
 "hp": 2.0,
 "size": 1.4,
-"tint": "#FFD040",
-"tint_strength": 0.9,
+"tint": "#4A1A6A",
+"tint_strength": 0.6,
 "xp": 3.0
 },
 "special_chance": 0.08,
 "speed": 0.1,
-"tint_strength": 0.55,
+"tint_strength": 0.22,
 "tints": ["#FFFFFF", "#FFB070", "#A8C8FF", "#C09070"]
 }
 id = "bull_beetle"

@@ -1,0 +1,21 @@
+{
+  "id": "tough_love",
+  "name": "Tough Love",
+  "flavour": "Hit him. See what happens.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "dad",
+  "text": "Taking a hit gives +15% might and +15% area for 4 s.",
+  "effects": [],
+  "special": "tough_love",
+  "params": {
+    "might": 0.15,
+    "area": 0.15,
+    "seconds": 4.0
+  },
+  "art_prompt": "a dad's clenched fist with a small red heart on the knuckles",
+  "placeholder": {
+    "color": "#FF7060",
+    "glyph": "star"
+  }
+}

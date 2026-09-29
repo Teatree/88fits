@@ -1,0 +1,43 @@
+{
+  "id": "choice",
+  "name": "Choice",
+  "flavour": "See another, or throw one away.",
+  "order": 5,
+  "ranks": 3,
+  "cost": [
+    180,
+    324,
+    540
+  ],
+  "forms": [
+    {
+      "name": "Reroll",
+      "text": "+1 reroll a run, a rank.",
+      "effects": [
+        {
+          "stat": "rerolls",
+          "op": "add",
+          "value": 1.0,
+          "target": "player"
+        }
+      ]
+    },
+    {
+      "name": "Banish",
+      "text": "+1 banish a run, a rank.",
+      "effects": [
+        {
+          "stat": "banishes",
+          "op": "add",
+          "value": 1.0,
+          "target": "player"
+        }
+      ]
+    }
+  ],
+  "art_prompt": "a polished brass hand mirror with a carved sun on its back",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

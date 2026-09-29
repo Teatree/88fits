@@ -22,13 +22,26 @@ for a in "$@"; do
 done
 
 step() { printf '\n== %s\n' "$1"; }
-step "import"; "$GODOT" $P --import > /dev/null 2>&1
+step "import"; python tools/lossy_imports.py; "$GODOT" $P --import > /dev/null 2>&1
 step "json -> tres"; "$GODOT" $P --script res://tools/import_json.gd 2>&1 | tail -n 1
 step "parse check"; "$GODOT" $P --script res://tools/check_scripts.gd 2>&1 | grep -E "checked|SCRIPT ERROR" | head -n 5
 if grep -q "SCRIPT ERROR" <("$GODOT" $P --script res://tools/check_scripts.gd 2>&1); then echo "STOP: script errors"; exit 1; fi
 if [ "$QUICK" = "0" ]; then
-  step "tests"; "$GODOT" $P -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreHeadlessMode -a res://tests 2>&1 | grep -E "Executed test cases|FAILED" | head -n 3
-  step "smoke run"; "$GODOT" $P --script res://tools/smoke_run.gd -- seconds=90 2>&1 | grep -E "smoke_run: (OK|FAIL)|SCRIPT ERROR" | head -n 3
+  # any failing test, smoke run or arena check stops the ship: nothing broken goes to the phone
+  step "tests"; OUT=$("$GODOT" $P -s res://addons/gdUnit4/bin/GdUnitCmdTool.gd --ignoreHeadlessMode -a res://tests 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+  echo "$OUT" | grep -E "Executed test cases|FAILED" | head -n 5
+  if echo "$OUT" | grep -q "FAILED"; then echo "STOP: failing tests"; exit 1; fi
+  step "smoke run"; OUT=$("$GODOT" $P --script res://tools/smoke_run.gd -- seconds=90 2>&1)
+  echo "$OUT" | grep -E "smoke_run: (OK|FAIL)|SCRIPT ERROR" | head -n 3
+  if ! echo "$OUT" | grep -q "smoke_run: OK"; then echo "STOP: smoke run failed"; exit 1; fi
+  step "arena check"; OUT=$("$GODOT" $P --script res://tools/arena_check.gd 2>&1)
+  echo "$OUT" | grep -E "arena_check: (ARENA OK|FAIL)|SCRIPT ERROR" | head -n 3
+  if ! echo "$OUT" | grep -q "ARENA OK"; then echo "STOP: arena check failed"; exit 1; fi
+  # every button, card, slider and list on every screen, driven by a simulated finger (pass 37: the sliders were dead on
+  # the phone and a swipe down a list pressed its buttons)
+  step "touch audit"; OUT=$("$GODOT" $P --script res://tools/touch_audit.gd 2>&1)
+  echo "$OUT" | grep -E "controls answered|FAIL|SCRIPT ERROR" | head -n 8
+  if ! echo "$OUT" | grep -q " 0 failures"; then echo "STOP: touch audit failed"; exit 1; fi
 fi
 step "export"
 if [ -f "$ROOT/tools/keys/keystore.env" ]; then

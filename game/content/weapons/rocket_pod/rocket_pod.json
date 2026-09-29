@@ -1,0 +1,101 @@
+{
+  "id": "rocket_pod",
+  "name": "Rocket Pod",
+  "flavour": "They take the scenic route. They arrive.",
+  "rarity": "rare",
+  "weight": 6,
+  "behavior": "MissilePod",
+  "targeting": "nearest",
+  "tags": [
+    "homing",
+    "explosive"
+  ],
+  "base": {
+    "damage": 14,
+    "cooldown": 2.2,
+    "amount": 3,
+    "area": 1.5,
+    "speed": 13,
+    "range": 12,
+    "knockback": 3.0
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 2
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "missile_massacre",
+  "params": {
+    "radius": 0.24,
+    "missile": {
+      "wander": 0.55,
+      "turn": 5.5,
+      "spiral": 7.0,
+      "life": 4.5,
+      "trail": 1
+    },
+    "familiar": {
+      "radius": 1.25,
+      "height": 1.65,
+      "speed": 0.9,
+      "bob": 0.1
+    }
+  },
+  "sfx": {
+    "fire": "w_lob_throw",
+    "hit": "w_lob_boom"
+  },
+  "placeholder": {
+    "color": "#C8553D",
+    "glyph": "rocket"
+  },
+  "art_prompt": "a chunky four-tube rocket launcher pod with small fins and a red-tipped rocket poking out of one tube, olive green metal with orange stripes"
+}

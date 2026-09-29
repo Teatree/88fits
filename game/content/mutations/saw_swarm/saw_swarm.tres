@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_ixeb0"]
+[ext_resource type="Texture2D" path="res://content/mutations/saw_swarm/saw_swarm_icon.png" id="2_0soma"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_hjj3n"]
+
+[sub_resource type="Resource" id="Resource_hjj3n"]
+script = ExtResource("1_ixeb0")
+stat = "amount"
+value = 3.0
+
+[sub_resource type="Resource" id="Resource_0soma"]
+script = ExtResource("1_ixeb0")
+stat = "damage"
+op = "mul"
+value = -0.35
+
+[resource]
+script = ExtResource("2_hjj3n")
+weapon = "orbit_saws"
+mutation_kind = "volume"
+text = "+3 saws, −35% damage, ×1.5 spin."
+vfx = "a faster ring of five blades"
+effects = [SubResource("Resource_hjj3n"), SubResource("Resource_0soma")]
+params = {
+"spin_speed": 3.9
+}
+id = "saw_swarm"
+display_name = "Saw Swarm"
+flavour = "More blades than sense."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_0soma")
+icon_file = "saw_swarm_icon.png"
+placeholder = {
+"color": "#D0D8E0",
+"glyph": "star"
+}

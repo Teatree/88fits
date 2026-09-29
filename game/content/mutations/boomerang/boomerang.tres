@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_83nuw"]
+[ext_resource type="Texture2D" path="res://content/mutations/boomerang/boomerang_icon.png" id="1_bcbaj"]
+
+[resource]
+script = ExtResource("1_83nuw")
+weapon = "tumbleweed"
+text = "Rolls out and comes back through the crowd."
+vfx = "the weed turns at its far point and rolls home, hitting everything twice"
+params = {
+"return": true
+}
+id = "boomerang"
+display_name = "Boomerang"
+flavour = "It missed you. It will not miss again."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_bcbaj")
+icon_file = "boomerang_icon.png"
+placeholder = {
+"color": "#C89050",
+"glyph": "star"
+}

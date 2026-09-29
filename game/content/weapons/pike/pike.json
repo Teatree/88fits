@@ -1,0 +1,92 @@
+{
+  "id": "pike",
+  "name": "Pike",
+  "flavour": "Reach first. Everything else second.",
+  "rarity": "rare",
+  "weight": 6,
+  "behavior": "Thruster",
+  "targeting": "nearest",
+  "tags": [
+    "blade"
+  ],
+  "base": {
+    "damage": 30,
+    "cooldown": 1.8,
+    "amount": 1,
+    "range": 4.6,
+    "area": 1.0,
+    "knockback": 12.0
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ],
+    [
+      {
+        "stat": "range",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "knockback",
+        "op": "mul",
+        "value": 0.3
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "halberd",
+  "params": {
+    "thrust": {
+      "out": 0.16,
+      "hold": 0.1,
+      "back": 0.3,
+      "width": 0.55,
+      "fan_deg": 40
+    }
+  },
+  "sfx": {
+    "fire": "w_saw_hit",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#A08060",
+    "glyph": "spear"
+  },
+  "art_prompt": "a long wooden pike with a leaf-shaped steel spearhead and a red tassel below the blade"
+}

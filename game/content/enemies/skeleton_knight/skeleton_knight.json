@@ -1,0 +1,74 @@
+{
+  "id": "skeleton_knight",
+  "name": "Skeleton Knight",
+  "archetype": "walker",
+  "brain": "chase",
+  "flavour": "Someone buried it in its armour. It kept the armour.",
+  "hp": 10,
+  "armor": 1,
+  "speed": 1.7,
+  "damage": 4,
+  "radius": 0.45,
+  "size": 1.4,
+  "pack_size": 4,
+  "drops": {
+    "small": 1.0,
+    "gold": 0.01,
+    "chest": 0.0014
+  },
+  "frame_px": 160,
+  "sfx": {
+    "hit": "en_bone_hit",
+    "die": "en_bone_die"
+  },
+  "placeholder": {
+    "color": "#B8C0C8",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a clear ribcage, spine and pelvis, slim arm and leg bones with rounded joints, bony hands and feet, wearing a simple dented steel medieval breastplate strapped over its ribcage with worn leather straps and a simple round steel kettle helmet with a wide brim on its skull, bare bone arms and legs, no weapon, both arms stretched straight out in front at shoulder height like a sleepwalking zombie, the bony hands reaching forward, standing and facing the viewer",
+  "screen": "blue",
+  "xp_mult": 2.5,
+  "variance": {
+    "size": 0.22,
+    "speed": 0.18,
+    "tints": [
+      "#FFFFFF",
+      "#F2EEE6",
+      "#DCE4F0"
+    ],
+    "tint_strength": 0.16,
+    "special_chance": 0.1,
+    "special": {
+      "size": 1.5,
+      "hp": 2.2,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#3A2A6A",
+      "tint_strength": 0.45
+    }
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "pose": "walk_zombie_low",
+  "pose_front": "walk_zombie_high",
+  "motion": "an armoured skeleton walking slowly with both arms stretched straight out in front like a zombie",
+  "back_hint": "seen from behind: the back of the steel kettle helmet, the back plate of the armour with its leather straps, the pelvis and bare bone legs, both arms raised straight out in front so only the shoulders and upper arms show, no face",
+  "dead_hint": "collapsed into a low loose heap of bones, dead: every bone fallen into one flat pile, the dented steel breastplate lying on the pile and the steel kettle helmet resting on top with the skull under its brim, arm bones, leg bones and vertebrae all jumbled inside the pile with nothing sticking out below it; the pile sits on nothing, with no ground, no sand, no dirt patch and no shadow under it",
+  "death": "collapse",
+  "strip_cols": 40,
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "doc": "The skeleton that was buried in its armour: a dented breastplate and a kettle helm, one point of armour and nearly twice a plain skeleton's HP, a little slower, four to a pack from the thirtieth second. Falls apart into a heap of bones with its armour on top.",
+  "head": 1.0,
+  "retired": true
+}

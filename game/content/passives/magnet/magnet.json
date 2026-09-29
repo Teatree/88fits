@@ -20,5 +20,6 @@
     "color": "#8A69F2",
     "glyph": "magnet"
   },
-  "art_prompt": "a purple horseshoe magnet with two small purple gems pulled towards it"
+  "art_prompt": "a purple horseshoe magnet with two small purple gems pulled towards it",
+  "max_level": 5
 }

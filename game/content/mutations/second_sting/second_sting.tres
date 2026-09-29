@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_162xy"]
+[ext_resource type="Texture2D" path="res://content/mutations/second_sting/second_sting_icon.png" id="1_s5xxu"]
+
+[resource]
+script = ExtResource("1_162xy")
+weapon = "hornet_nest"
+text = "A hornet that kills turns and dives at the next creature, once."
+vfx = "the hornet loops round and stings again"
+params = {
+"second_sting": true
+}
+id = "second_sting"
+display_name = "Second Sting"
+flavour = "Once is never enough."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_s5xxu")
+icon_file = "second_sting_icon.png"
+placeholder = {
+"color": "#F0D060",
+"glyph": "star"
+}

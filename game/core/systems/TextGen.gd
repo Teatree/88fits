@@ -15,7 +15,15 @@ const STATS := {
 	"rerolls": ["rerolls", "count"], "skips": ["skips", "count"], "banishes": ["banishes", "count"],
 	"hp": ["HP", "num"], "size": ["size", "pct"], "turn_rate": ["turn rate", "num"], "lifetime": ["turret lifetime", "sec"],
 	"poison_damage": ["poison per tick", "num"], "poison_stacks": ["poison stacks", "count"], "poison_duration": ["poison lasts", "sec"],
-	"fire_damage": ["burn per tick", "num"], "fire_duration": ["burns for", "sec"], "fire_spread": ["spread chance", "pct"],
+	"lifesteal": ["life steal", "pct"], "fire_damage": ["burn per tick", "num"], "fire_duration": ["burns for", "sec"], "fire_spread": ["spread chance", "pct"],
+	"crit_chance": ["crit chance", "pct"], "crit_damage": ["crit damage", "pct"], "execute_frac": ["execute threshold", "pct"],
+	"thorns": ["thorns damage", "num"], "adrenaline_speed": ["speed per kill stack", "pct"], "adrenaline_might": ["might per kill stack", "pct"],
+	"overkill": ["overkill splash", "pct"], "cooldown_on_kill": ["cooldown cut per kill", "sec"], "xp_gain": ["XP gain", "pct"],
+	"ricochet": ["ricochet chance", "pct"], "homing_turn": ["homing agility", "pct"], "haste": ["weapon speed", "pct"],
+	"evade": ["evade chance", "pct"], "evade_invuln": ["untouchable after an evade", "sec"], "shield_max": ["shield", "num"],
+	"shield_delay": ["shield recharge wait", "sec"], "shield_rate": ["shield recharge a second", "pct"],
+	"regen_delay": ["regen wait after a hit", "sec"], "lifesteal_cap": ["life steal cap a second", "pct"],
+	"heal_drop": ["jerky drop chance", "pct"], "coin_drop": ["coin bag drop chance", "pct"],
 }
 
 const RARITY_NAMES := {"common": "Common", "rare": "Rare", "epic": "Epic"}
@@ -139,8 +147,35 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet) -> String:
 				text = "Lobs %d grenade%s at the densest crowd. Explodes in a %.1f m radius." % [amount, "" if amount == 1 else "s", sheet.get_stat("area", 2.5)]
 		"Beam":
 			text = "Zaps a random enemy within %.0f m and chains to %d more." % [range_m, sheet.get_int("chains", 2)]
+		"Thruster":
+			var th = def.params.get("thrust", {})
+			var slice_deg: float = float(th.get("slice_deg", 0.0)) if th is Dictionary else 0.0
+			if slice_deg > 0.0:
+				text = "Slices a %d° arc across the nearest enemy within %.1f m%s, throwing what it cuts out and aside." % [int(slice_deg), range_m, (", %d swings a stroke" % amount) if amount > 1 else ""]
+			else:
+				text = "Thrusts %d blade%s at the nearest enemy within %.1f m." % [amount, "" if amount == 1 else "s", range_m]
+		"Smasher":
+			var sm = def.params.get("smash", {})
+			var blast: float = (float(sm.get("radius", 1.6)) if sm is Dictionary else 1.6) * sheet.get_stat("area", 1.0)
+			text = "Brings %d hammer%s down on the thickest crowd within %.1f m: a %.1f m blast that throws them outwards." % [amount, "" if amount == 1 else "s", range_m, blast]
+		"GravityGun":
+			var gv = def.params.get("gravity", {})
+			var gd: Dictionary = gv if gv is Dictionary else {}
+			if gd.get("black_hole") is Dictionary:
+				text = "Lobs %d black hole%s at the thickest crowd: %s drag%s everything in and eat%s it, then pop%s." % [amount, "" if amount == 1 else "s", "it" if amount == 1 else "they", "s" if amount == 1 else "", "s" if amount == 1 else "", "s" if amount == 1 else ""]
+			else:
+				text = "Picks up %d enem%s within %.0f m and throws %s into the thickest crowd: a %.1f m blast. What it throws takes a hit when it lands." % [amount, "y" if amount == 1 else "ies", range_m, "it" if amount == 1 else "them", float(gd.get("blast", 1.9)) * sheet.get_stat("area", 1.0)]
 		"Spawner":
 			text = "Drops a turret every %.1f s. It shoots the nearest enemy for %.0f s." % [sheet.get_stat("cooldown", 6.0), sheet.get_stat("lifetime", 12.0)]
+		"MissilePod":
+			# a pod that circles the hero: rockets with a blast, or seekers that sting and fizzle
+			var blast_m := sheet.get_stat("area", 0.0)
+			if blast_m > 0.3:
+				text = "Launches %d homing rocket%s at enemies within %.0f m: a %.1f m blast each." % [amount, "" if amount == 1 else "s", range_m, blast_m]
+			else:
+				text = "Sends %d seeker%s after enemies within %.0f m." % [amount, "" if amount == 1 else "s", range_m]
+		"LaserBeam":
+			text = "Pours a %.0f m beam through the crowd for %.1f s." % [range_m, sheet.get_stat("duration", 2.0)]
 		_:
 			text = def.display_name + "."
 	var extras: Array = []
@@ -156,6 +191,12 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet) -> String:
 		extras.append("Pierces %d." % pierce)
 	if sheet.get_stat("knockback", 0.0) > 0.0:
 		extras.append("Knocks enemies back.")
+	if def.hero != "":
+		# the Registry by path: tools compile this before the autoloads exist
+		var ml := Engine.get_main_loop()
+		var reg: Node = (ml as SceneTree).root.get_node_or_null("Registry") if ml is SceneTree else null
+		var owner = reg.character(def.hero) if reg else null
+		extras.append("%s only." % (str(owner.display_name) if owner else def.hero.capitalize()))
 	if def.is_evolution:
 		extras.append("Evolved: cannot level further.")
 	if not extras.is_empty():

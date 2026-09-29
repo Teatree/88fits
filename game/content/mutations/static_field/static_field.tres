@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/static_field/static_field_icon.png" id="1_7tjol"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_okhsl"]
+
+[resource]
+script = ExtResource("1_okhsl")
+weapon = "zap_beam"
+text = "Every hit leaves a shocking patch for 2 s."
+vfx = "blue crackling discs on the ground under every hit"
+params = {
+"zone": {
+"damage_mult": 0.35,
+"radius": 1.3,
+"seconds": 2.0,
+"tick": 0.5
+}
+}
+id = "static_field"
+display_name = "Static Field"
+flavour = "The floor is electric."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_7tjol")
+icon_file = "static_field_icon.png"
+placeholder = {
+"color": "#60C0FF",
+"glyph": "star"
+}

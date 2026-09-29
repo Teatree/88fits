@@ -1,0 +1,33 @@
+{
+  "id": "cluster_mines",
+  "name": "Cluster Mines",
+  "flavour": "The whole field.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "land_mine",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Two mines a drop, twice as many on the ground, −40% damage.",
+  "vfx": "a field of blinking lamps",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 1
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.4
+    }
+  ],
+  "params": {
+    "max_mines": 16
+  },
+  "art_prompt": "a bundle of six small round land mines tied together",
+  "placeholder": {
+    "color": "#A0A860",
+    "glyph": "star"
+  }
+}

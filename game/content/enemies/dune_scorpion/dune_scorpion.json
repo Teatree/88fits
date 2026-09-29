@@ -21,7 +21,7 @@
     "run": 12,
     "attack": 2,
     "hit": 1,
-    "die": 1,
+    "die": 5,
     "run_b": 12,
     "idle_b": 4,
     "run_s": 12,
@@ -37,7 +37,8 @@
     "speed": 11.0,
     "duration": 0.8,
     "cooldown": 3.2,
-    "trigger_range": 8.0
+    "trigger_range": 8.0,
+    "knockback": 11.0
   },
   "elite": {
     "hp_mult_per_stage": 1.8
@@ -58,12 +59,52 @@
   "motion": "scuttling in place on many legs, pincers raised and tail swaying",
   "strip_cols": 71,
   "fps": {
-    "run": 15
+    "run": 15,
+    "die": 8
   },
   "directions": 8,
   "view_hints": {
     "side": "the scorpion stays low and horizontal on its eight legs like a real scorpion seen from the side, body parallel to the ground, both pincers reaching forward to the right, the segmented tail curling up and over its back with the stinger above its head, never standing upright on two legs",
     "bd": "low on its eight legs, tail curled over its back, pincers ahead of it",
     "fd": "low on its eight legs, tail curled over its back, pincers ahead of it"
-  }
+  },
+  "outline_frac": 0.011,
+  "outline_color": "#5A3A24",
+  "doc": "The Elite that fights up close: it charges down a red line, and between charges it bursts up under the hero's feet, slamming his spot with its tail and spitting a short fan of three barbs. Everything it does throws him.",
+  "boss": {
+    "attacks": [
+      {
+        "name": "burrow",
+        "windup": 1.3,
+        "radius": 4.6,
+        "damage": 24,
+        "knockback": 10,
+        "telegraph": "ring_at_hero"
+      },
+      {
+        "name": "slam_at",
+        "windup": 1.0,
+        "radius": 3.0,
+        "damage": 20,
+        "knockback": 8,
+        "telegraph": "ring_at_hero"
+      },
+      {
+        "name": "spit_volley",
+        "windup": 0.8,
+        "count": 3,
+        "spread_deg": 40.0,
+        "speed": 16.0,
+        "damage": 12,
+        "splash": 0.5,
+        "life": 0.8,
+        "straight": true,
+        "shot": "spike",
+        "knockback": 5.0,
+        "telegraph": "fan"
+      }
+    ],
+    "cooldown_between": 4.5
+  },
+  "head": 0.924
 }

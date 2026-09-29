@@ -1,0 +1,36 @@
+{
+  "id": "toxic_toss",
+  "name": "Toxic Toss",
+  "flavour": "Handle with gloves.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "gravity_gun",
+  "kind": "element",
+  "element": "poison",
+  "hero": "",
+  "text": "The landing poisons everything in the blast.",
+  "vfx": "a green blast where the throw comes down",
+  "effects": [
+    {
+      "stat": "poison_damage",
+      "op": "add",
+      "value": 5
+    },
+    {
+      "stat": "poison_stacks",
+      "op": "add",
+      "value": 1
+    },
+    {
+      "stat": "poison_duration",
+      "op": "add",
+      "value": 8
+    }
+  ],
+  "params": {},
+  "art_prompt": "a glowing green toxic splash ring on the ground with bubbling poison",
+  "placeholder": {
+    "color": "#7DD35A",
+    "glyph": "star"
+  }
+}

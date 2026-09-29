@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="TalentDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_o5dor"]
+[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_es87a"]
+
+[sub_resource type="Resource" id="Resource_o5dor"]
+script = ExtResource("1_o5dor")
+stat = "skips"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_es87a"]
+script = ExtResource("1_o5dor")
+stat = "revives"
+value = 1.0
+target = "player"
+
+[resource]
+script = ExtResource("2_es87a")
+order = 6
+cost = [220.0, 396.0, 660.0]
+forms = [{
+"effects": [SubResource("Resource_o5dor")],
+"name": "Skip Bonus",
+"text": "+15 gold a skip, a rank."
+}, {
+"effects": [SubResource("Resource_es87a")],
+"name": "Second Wind",
+"text": "+1 revive a run, a rank."
+}]
+id = "nerve"
+display_name = "Nerve"
+flavour = "Walk away richer, or get back up."
+icon_file = "nerve_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

@@ -1,0 +1,31 @@
+{
+  "id": "phalanx",
+  "name": "Phalanx",
+  "flavour": "Hold the line. Be the line.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "pike",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Three pikes fanned, −35% damage.",
+  "vfx": "three pikes fanned",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.35
+    }
+  ],
+  "params": {},
+  "art_prompt": "three spears bundled together pointing the same way",
+  "placeholder": {
+    "color": "#C8B890",
+    "glyph": "star"
+  }
+}

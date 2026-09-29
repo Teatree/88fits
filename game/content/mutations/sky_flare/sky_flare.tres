@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/sky_flare/sky_flare_icon.png" id="1_jw15t"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_wkcwf"]
+
+[resource]
+script = ExtResource("1_wkcwf")
+weapon = "flare_gun"
+text = "The flare bursts into five embers that fall in a ring around whatever it hits."
+vfx = "a red burst, five arcing embers, five small fire pools"
+params = {
+"burst_spawn": {
+"area": 1.2,
+"count": 5.0,
+"damage_mult": 0.6,
+"kind": "ember",
+"ring": 2.2
+},
+"size_mult": 1.15
+}
+id = "sky_flare"
+display_name = "Sky Flare"
+flavour = "Goes up. Comes down five times."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_jw15t")
+icon_file = "sky_flare_icon.png"
+placeholder = {
+"color": "#FF9A4A",
+"glyph": "star"
+}

@@ -1,0 +1,72 @@
+{
+  "id": "armadillo",
+  "name": "Armadillo",
+  "flavour": "Built like a helmet. Walks like one.",
+  "archetype": "walker",
+  "brain": "chase",
+  "hp": 20,
+  "armor": 1,
+  "speed": 1.6,
+  "damage": 5,
+  "radius": 0.45,
+  "size": 1.15,
+  "pack_size": 6,
+  "cap_share": 0.5,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.15,
+    "gold": 0.03,
+    "chest": 0.003
+  },
+  "frame_px": 160,
+  "xp_mult": 2.6,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_lizard_die"
+  },
+  "placeholder": {
+    "color": "#B08A5A",
+    "glyph": "toad"
+  },
+  "screen": "green",
+  "art_prompt": "a chunky desert armadillo walking on four stubby clawed legs, a big domed shell of overlapping sandy brown armour bands with darker seams, a long pointed snout, small beady black eyes, big upright pointed ears, a thick banded armoured tail, cute but tough, standing on the ground, not rolled up",
+  "motion": "trotting in place on four short stubby legs like on a treadmill, the domed armoured shell bobbing, the tail swaying",
+  "back_hint": "Seen from behind: the domed banded shell, the thick armoured tail and the two big ears poking up over it, no face visible.",
+  "dead_hint": "lying on its back on the ground, dead: the four little legs sticking up in the air, eyes shut, the banded shell underneath it",
+  "variance": {
+    "size": 0.12,
+    "speed": 0.1,
+    "tints": [
+      "#FFFFFF",
+      "#FFE0B8",
+      "#D8C8A8",
+      "#E8B888"
+    ],
+    "tint_strength": 0.22,
+    "special_chance": 0.06,
+    "special": {
+      "size": 1.35,
+      "hp": 2.2,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#5A3A2A",
+      "tint_strength": 0.55
+    }
+  },
+  "doc": "Arrives in the second half of stage 1 in packs of six like the goblins, but armoured: twenty HP behind one point of armour, slower than a goblin and harder to cut down, so a pack of them holds a line while the fodder dies around it. Counts as half a creature against the crowd cap.",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "strip_cols": 40,
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "head": 0.894
+}

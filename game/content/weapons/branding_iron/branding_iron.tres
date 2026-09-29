@@ -59,7 +59,6 @@ base = {
 "orbit_radius": 2.6
 }
 levels = [[], [SubResource("Resource_4igqv")], [SubResource("Resource_yr8lg")], [SubResource("Resource_8ncl0")], [SubResource("Resource_w7rou")], [SubResource("Resource_oncv0")], [SubResource("Resource_58pm5")], [SubResource("Resource_ug712")]]
-evolves_with = "might"
 evolves_into = "ring_of_fire"
 sfx = {
 "hit": "w_iron_hit"
@@ -74,6 +73,7 @@ display_name = "Branding Iron"
 flavour = "Everyone gets the mark."
 rarity = "rare"
 weight = 6.0
+hidden = true
 icon = ExtResource("1_4igqv")
 icon_file = "branding_iron_icon.png"
 placeholder = {

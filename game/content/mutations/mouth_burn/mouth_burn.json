@@ -1,0 +1,39 @@
+{
+  "id": "mouth_burn",
+  "name": "Slow Roast",
+  "flavour": "Well done.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "big_mouth",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "Whatever the beam touches catches fire for 3 s.",
+  "vfx": "the beam turns orange and leaves burning creatures behind it",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "add",
+      "value": 5
+    },
+    {
+      "stat": "fire_duration",
+      "op": "add",
+      "value": 3.0
+    }
+  ],
+  "params": {
+    "beam": {
+      "color": [
+        1.0,
+        0.45,
+        0.15
+      ]
+    }
+  },
+  "art_prompt": "a wide grinning mouth breathing a thick orange fire beam",
+  "placeholder": {
+    "color": "#FF7ABF",
+    "glyph": "star"
+  }
+}

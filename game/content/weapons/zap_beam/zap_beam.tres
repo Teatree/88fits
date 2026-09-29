@@ -57,7 +57,6 @@ base = {
 "range": 9.0
 }
 levels = [[], [SubResource("Resource_r8tns")], [SubResource("Resource_y1fi3")], [SubResource("Resource_7u84o")], [SubResource("Resource_887o3")], [SubResource("Resource_0g86e")], [SubResource("Resource_qrq2d")], [SubResource("Resource_s7ecw")]]
-evolves_with = "conductor"
 evolves_into = "storm_cloud"
 sfx = {
 "fire": "w_zap_fire",

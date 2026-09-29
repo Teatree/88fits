@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="TalentDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_maj8t"]
+[ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_oaynd"]
+
+[sub_resource type="Resource" id="Resource_maj8t"]
+script = ExtResource("1_maj8t")
+stat = "might"
+op = "mul"
+value = 0.06
+target = "player"
+
+[sub_resource type="Resource" id="Resource_oaynd"]
+script = ExtResource("1_maj8t")
+stat = "cooldown"
+op = "mul"
+value = -0.05
+target = "player"
+
+[resource]
+script = ExtResource("2_oaynd")
+order = 2
+cost = [160.0, 288.0, 480.0]
+forms = [{
+"effects": [SubResource("Resource_maj8t")],
+"name": "Muscle",
+"text": "+6% damage a rank."
+}, {
+"effects": [SubResource("Resource_oaynd")],
+"name": "Tempo",
+"text": "-5% cooldown a rank."
+}]
+id = "drive"
+display_name = "Drive"
+flavour = "Hit harder, or hit sooner."
+icon_file = "drive_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

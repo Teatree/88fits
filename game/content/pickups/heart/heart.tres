@@ -5,6 +5,7 @@
 
 [resource]
 script = ExtResource("1_se7pb")
+value = 0.2
 lifetime = 22.0
 color = Color(0.3529412, 0.8392157, 0.41568628, 1)
 id = "heart"

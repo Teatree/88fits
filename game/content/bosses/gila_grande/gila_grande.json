@@ -1,0 +1,89 @@
+{
+  "id": "gila_grande",
+  "name": "Gila Grande",
+  "flavour": "Slow to anger. You have angered it.",
+  "archetype": "boss",
+  "brain": "boss",
+  "hp": 1500,
+  "speed": 1.4,
+  "damage": 24,
+  "radius": 2.4,
+  "size": 5.5,
+  "pack_size": 1,
+  "drops": {
+    "large": 1.0,
+    "gold": 1.0,
+    "chests": 2,
+    "coins": 30
+  },
+  "frame_px": 256,
+  "xp_mult": 60,
+  "boss": {
+    "hp_mult_per_stage": 2.0,
+    "attacks": [
+      {
+        "name": "roll",
+        "windup": 1.0,
+        "speed": 13.0,
+        "duration": 1.1,
+        "damage": 28,
+        "telegraph": "line"
+      },
+      {
+        "name": "spit_volley",
+        "windup": 0.9,
+        "count": 7,
+        "spread_deg": 100,
+        "speed": 7.5,
+        "damage": 14,
+        "splash": 1.5,
+        "telegraph": "fan"
+      },
+      {
+        "name": "burrow",
+        "windup": 1.4,
+        "radius": 5.0,
+        "damage": 32,
+        "knockback": 9,
+        "telegraph": "ring_at_hero"
+      },
+      {
+        "name": "spawn_ring",
+        "windup": 0.8,
+        "enemy": "sand_lizard",
+        "count": 8,
+        "telegraph": "none"
+      }
+    ],
+    "cooldown_between": 2.2
+  },
+  "sfx": {
+    "spawn": "en_boss_roar",
+    "attack": "en_boss_attack",
+    "die": "en_boss_die",
+    "hit": "en_goblin_hit"
+  },
+  "placeholder": {
+    "color": "#F08030",
+    "glyph": "lizard"
+  },
+  "art_prompt": "a gigantic fat gila monster lizard boss, black and bright orange beaded scales in bold bands, a huge head with a wide toothy jaw and a small crown of bones on its head, hulking on four thick clawed legs, standing on the ground facing the viewer, its tail hidden behind its body and not visible, symmetrical body, no extra limbs",
+  "motion": "lumbering in place, heavy and slow, the tail swinging, jaw opening",
+  "strip_cols": 40,
+  "anim_negative": "two tails, extra tail, extra limbs, extra heads",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "doc": "Stage 2's boss: a lunge, a seven-shot fan, a burrow that surfaces under the hero, a ring of lizards. Pays two chests and thirty coins.",
+  "head": 0.922
+}

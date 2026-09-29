@@ -2,11 +2,18 @@
   "id": "dad",
   "name": "Dad",
   "flavour": "Has opinions about the lawn.",
+  "pronoun": "he",
   "trait": [
     {
       "stat": "might",
       "op": "mul",
-      "value": 0.2,
+      "value": 0.25,
+      "target": "player"
+    },
+    {
+      "stat": "area",
+      "op": "mul",
+      "value": 0.15,
       "target": "player"
     },
     {
@@ -34,7 +41,7 @@
     "idle": 4,
     "run": 24,
     "hit": 4,
-    "die": 1,
+    "die": 5,
     "cheer": 1,
     "idle_f": 4,
     "run_f": 24,
@@ -58,11 +65,20 @@
   "art_prompt": "a goofy suburban dad with a bald head, a thick brown mustache, a grey T-shirt, khaki shorts, white socks and sandals, a proud smile",
   "motion": "jogging in place, arms pumping, belly bouncing a little",
   "portrait_prompt": "grinning proudly with both thumbs up, his thick brown mustache and shiny bald head, a barbecue apron strap on one shoulder",
-  "anim_hint": "a goofy suburban dad, bald with a thick brown mustache, grey T-shirt, khaki shorts, white socks and sandals",
+  "anim_hint": "a goofy stocky suburban dad with a round belly, bald with a thick brown mustache, grey T-shirt, khaki shorts, white socks and sandals, jogging with short bouncy steps and the arms swinging",
   "anim_negative": "hair on the head, hat, long trousers",
   "strip_cols": 62,
   "fps": {
     "run": 36,
-    "hit": 12
-  }
+    "hit": 12,
+    "die": 8
+  },
+  "trait_name": "Dad Strength",
+  "trait_text": "+25% might and +15% area, but −10% move speed. His Boomstick fires two extra pellets.",
+  "pose_hint": "Both arms hang straight down at his sides, hands open and relaxed, not raised, not bent. The same stocky build with the round belly and short legs in every view.",
+  "back_hint": "He faces away from the viewer: only the back of his bald head, the back of the grey T-shirt and the heels are visible, no eyes, no mustache, no face at all.",
+  "side_hint": "In strict profile: the round belly pushing the T-shirt out in front, the bald head and the mustache seen from the side, the same short stocky proportions as the front view.",
+  "hurt_hint": "mustache intact, eyes squeezed shut, belly clenched",
+  "anim_seed": 9,
+  "hidden": true
 }

@@ -1,0 +1,24 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://art/props/singularity.glb" id="gun"]
+[ext_resource type="Shader" path="res://core/shaders/black_hole.gdshader" id="bh"]
+
+[sub_resource type="SphereMesh" id="proj"]
+radius = 0.28
+height = 0.56
+radial_segments = 16
+rings = 8
+
+[sub_resource type="ShaderMaterial" id="projmat"]
+shader = ExtResource("bh")
+
+[node name="SingularityVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+mesh = SubResource("proj")
+material_override = SubResource("projmat")
+
+[node name="Familiar" type="Node3D" parent="."]
+
+[node name="Gun" parent="Familiar" instance=ExtResource("gun")]
+transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, 0, 0, 0)

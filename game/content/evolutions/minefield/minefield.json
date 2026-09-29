@@ -1,0 +1,35 @@
+{
+  "id": "minefield",
+  "name": "Minefield",
+  "flavour": "Watch your step. They won't.",
+  "rarity": "epic",
+  "is_evolution": true,
+  "evolved_from": "land_mine",
+  "max_level": 1,
+  "behavior": "MineLayer",
+  "targeting": "ground",
+  "base": {
+    "damage": 40,
+    "cooldown": 1.4,
+    "amount": 2,
+    "area": 3.0,
+    "knockback": 11.0,
+    "lifetime": 30
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "max_mines": 16,
+    "trigger_radius": 0.8
+  },
+  "sfx": {
+    "place": "w_mine_arm",
+    "hit": "w_lob_boom"
+  },
+  "placeholder": {
+    "color": "#B08A3A",
+    "glyph": "mine"
+  },
+  "art_prompt": "a cluster of five olive-green land mines with red buttons on a patch of sand, one glowing"
+}

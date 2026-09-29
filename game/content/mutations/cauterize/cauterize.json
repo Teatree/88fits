@@ -1,0 +1,26 @@
+{
+  "id": "cauterize",
+  "name": "Cauterize",
+  "flavour": "Marked for everything.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "branding_iron",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "A branded creature takes +40% from everything for 3 s.",
+  "vfx": "a glowing brand on the creature that flares on every hit",
+  "effects": [
+    {
+      "stat": "mark",
+      "op": "add",
+      "value": 0.4
+    }
+  ],
+  "params": {},
+  "art_prompt": "a red-hot branding iron pressing a glowing brand mark",
+  "placeholder": {
+    "color": "#FF6A30",
+    "glyph": "star"
+  }
+}

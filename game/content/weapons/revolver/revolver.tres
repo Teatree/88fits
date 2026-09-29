@@ -1,0 +1,94 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/revolver/revolver_icon.png" id="1_5ayrc"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_re1is"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_5ayrc"]
+[ext_resource type="PackedScene" path="res://content/weapons/revolver/revolver_visual.tscn" id="3_87dax"]
+
+[sub_resource type="Resource" id="Resource_5ayrc"]
+script = ExtResource("1_re1is")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_87dax"]
+script = ExtResource("1_re1is")
+stat = "cooldown"
+op = "mul"
+value = -0.1
+
+[sub_resource type="Resource" id="Resource_aw0ce"]
+script = ExtResource("1_re1is")
+stat = "pierce"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_a46im"]
+script = ExtResource("1_re1is")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_v5pfy"]
+script = ExtResource("1_re1is")
+stat = "damage"
+op = "mul"
+value = 0.3
+
+[sub_resource type="Resource" id="Resource_ael43"]
+script = ExtResource("1_re1is")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[sub_resource type="Resource" id="Resource_fv18o"]
+script = ExtResource("1_re1is")
+stat = "amount"
+value = 1.0
+
+[resource]
+script = ExtResource("2_5ayrc")
+tags = ["gun"]
+base = {
+"amount": 1.0,
+"cooldown": 1.0,
+"damage": 20.0,
+"knockback": 2.0,
+"pierce": 1.0,
+"range": 14.0,
+"speed": 33.0
+}
+levels = [[], [SubResource("Resource_5ayrc")], [SubResource("Resource_87dax")], [SubResource("Resource_aw0ce")], [SubResource("Resource_a46im")], [SubResource("Resource_v5pfy")], [SubResource("Resource_ael43")], [SubResource("Resource_fv18o")]]
+evolves_into = "golden_revolver"
+sfx = {
+"fire": "w_revolver_fire",
+"hit": "w_pea_hit"
+}
+visual = ExtResource("3_87dax")
+visual_file = "revolver_visual.tscn"
+params = {
+"burst": true,
+"burst_gap": 0.14,
+"drum_axis": "forward",
+"drum_step": 1.0472,
+"familiar": {
+"bob": 0.08,
+"height": 1.4,
+"radius": 1.2,
+"speed": 1.2
+},
+"no_shells": true,
+"radius": 0.14,
+"scatter_deg": 1.5,
+"tracer": true
+}
+hero = "drifter"
+id = "revolver"
+display_name = "Revolver"
+flavour = "Six chances to be right."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_5ayrc")
+icon_file = "revolver_icon.png"
+placeholder = {
+"color": "#4A4A5A",
+"glyph": "gun"
+}

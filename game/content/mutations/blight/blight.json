@@ -1,0 +1,32 @@
+{
+  "id": "blight",
+  "name": "Blight",
+  "flavour": "It does not stop at one.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "poison_dart",
+  "kind": "element",
+  "element": "poison",
+  "hero": "",
+  "text": "+2 poison stacks, and a creature that dies poisoned passes it to the nearest one.",
+  "vfx": "a green wisp jumps from the corpse to its neighbour",
+  "effects": [
+    {
+      "stat": "poison_stacks",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "poison_pass",
+      "op": "add",
+      "value": 1.0,
+      "target": "player"
+    }
+  ],
+  "params": {},
+  "art_prompt": "a withered black thornbush dripping green ooze",
+  "placeholder": {
+    "color": "#6A9A3A",
+    "glyph": "star"
+  }
+}

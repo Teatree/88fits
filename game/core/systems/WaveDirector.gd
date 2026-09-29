@@ -41,7 +41,8 @@ func start(p_map: MapDef) -> void:
 		em.register_type(Registry.enemy(map.boss))
 	em.boss_died.connect(_on_boss_died)
 	var pk: Dictionary = timeline.pickups
-	_pickup_t = float(pk.get("first", 50.0)) if not pk.is_empty() and not (pk.get("roster", []) as Array).is_empty() else -1.0
+	# a timeline may still schedule pickups on a clock ("first"/"interval"); the desert drops them from kills instead
+	_pickup_t = float(pk.get("first", 50.0)) if pk.has("interval") and not (pk.get("roster", []) as Array).is_empty() else -1.0
 	_apply_mults()
 	stage_started.emit(Run.stage)
 
@@ -56,6 +57,9 @@ func _apply_mults() -> void:
 	em.stage_mult = Run.stage_mult()
 	em.stage_speed_mult = timeline.speed_mult(Run.stage)
 	em.hp_time_mult = timeline.hp_mult_at(Run.elapsed)
+	var lv := float(maxi(Run.level - 1, 0))
+	em.level_hp_mult = 1.0 + timeline.level_hp_per_level * lv
+	em.level_dmg_mult = 1.0 + timeline.level_damage_per_level * lv
 
 
 func current_cap() -> int:
@@ -76,6 +80,11 @@ func _process(delta: float) -> void:
 		Run.elapsed += delta
 		_apply_mults()
 		_process_events()
+		# the path slots: a stage puts a weapon's whole path on the table at set seconds into it
+		if Run.path_due(Run.elapsed - float(Run.stage) * timeline.stage_length) and game.has_method("present_path_offer"):
+			game.present_path_offer()
+	if phase != Phase.PORTAL:
+		_tick_specials(delta)
 	_spawn_t -= delta
 	if _spawn_t <= 0.0:
 		_spawn_t = timeline.spawn_interval
@@ -150,17 +159,19 @@ func _run_event(ev: Dictionary) -> void:
 		"boss":
 			_start_boss(str(ev.get("enemy", map.boss)))
 		"elite_boss":
-			_spawn_elite_boss(str(ev.get("enemy", "")))
+			# `enemy` may be a list: one of them, at random (the scorpion or the djinn)
+			_spawn_elite_boss(_pick_id(ev.get("enemy", "")))
 
 
-func _start_boss(id: String) -> void:
+func _start_boss(id: String, where: Vector3 = Vector3.INF) -> void:
 	var def: EnemyDef = Registry.enemy(id)
 	if def == null:
 		return
 	phase = Phase.BOSS
 	var em: EnemyManager = game.enemies
 	var mb: MapBase = game.map
-	var at: Vector3 = mb.flats_center + Vector3(0, 0, -10)
+	# the arena may name the spot; the timeline's boss comes up on the flats
+	var at: Vector3 = mb.flats_center + Vector3(0, 0, -10) if where == Vector3.INF else where
 	em.spawn_boss(id, at)
 	boss_started.emit(def)
 	game.toast(def.display_name.to_upper(), Color(0.93, 0.29, 0.36))
@@ -179,13 +190,19 @@ func _spawn_elite_boss(id: String) -> void:
 		game.toast(def.display_name.to_upper(), Color(0.98, 0.62, 0.25))
 
 
-## The mini-boss the endless loop repeats: the last elite_boss event in the timeline.
+## The mini-boss the endless loop repeats: the last elite_boss event in the timeline (one of its ids when it lists several).
 func _endless_elite_id() -> String:
 	for k in range(timeline.events.size() - 1, -1, -1):
 		var ev: Dictionary = timeline.events[k]
 		if str(ev.get("type", "")) == "elite_boss":
-			return str(ev.get("enemy", ""))
+			return _pick_id(ev.get("enemy", ""))
 	return ""
+
+
+func _pick_id(v) -> String:
+	if v is Array and not v.is_empty():
+		return str(v[_rng.randi() % v.size()])
+	return str(v)
 
 
 ## Position of the living mini-boss, or Vector3.INF when none.
@@ -199,7 +216,8 @@ func elite_position() -> Vector3:
 
 func _on_boss_died(def: EnemyDef, at: Vector3) -> void:
 	phase = Phase.PORTAL
-	game.pickups.spawn_chest(at + Vector3(2.0, 0, 0))
+	# the boss's own chest: it holds a mutation, and opening it is what calls every gem, coin and chest in (pass 30)
+	game.pickups.spawn_chest(at + Vector3(2.0, 0, 0), true)
 	Save.mark_once("boss_%s_%d" % [map.id, Run.stage + 1])
 	QuestTracker.check_run_events()
 	portal_ready.emit(at)
@@ -208,6 +226,7 @@ func _on_boss_died(def: EnemyDef, at: Vector3) -> void:
 ## Called by the game when the player chooses to continue through the portal.
 func continue_to_next_stage() -> void:
 	Run.stage += 1
+	Run.path_slot = 0
 	if Run.stage >= timeline.stages:
 		Run.endless = true
 		_endless_next_boss = Run.elapsed + 300.0
@@ -222,30 +241,146 @@ func continue_to_next_stage() -> void:
 func _spawn_burst() -> void:
 	var em: EnemyManager = game.enemies
 	var cap := current_cap()
-	var room := cap - em.alive_count()
-	if room <= 0:
+	# the cap counts each creature's share (the fodder counts half), and the map's hard cap is a count of bodies
+	var room: float = float(cap) - em.cap_load()
+	var bodies: int = timeline.hard_cap - em.alive_count()
+	if room <= 0.0 or bodies <= 0:
 		return
-	var roster := timeline.roster_at(Run.elapsed)
+	var roster := _roster_open(timeline.roster_at(Run.elapsed))
 	if roster.is_empty():
 		return
-	var burst: int = min(_rng.randi_range(timeline.burst_min, timeline.burst_max), room)
+	var burst: float = minf(float(_rng.randi_range(timeline.burst_min, timeline.burst_max)), room)
 	var total_w := 0.0
+	var ws: Array = []
 	for r in roster:
-		total_w += float(r.get("weight", 1.0))
-	while burst > 0:
+		ws.append(_roster_weight(r, Run.elapsed))
+		total_w += ws[ws.size() - 1]
+	while burst > 0.0 and bodies > 0:
 		var pick := _rng.randf() * total_w
 		var chosen: Dictionary = roster[0]
-		for r in roster:
-			pick -= float(r.get("weight", 1.0))
+		for k in range(roster.size()):
+			pick -= float(ws[k])
 			if pick <= 0.0:
-				chosen = r
+				chosen = roster[k]
 				break
 		var def: EnemyDef = Registry.enemy(str(chosen.get("enemy", "")))
 		if def == null:
 			return
-		var n: int = min(def.pack_size, burst)
+		var share: float = maxf(def.cap_share, 0.05)
+		var n: int = mini(mini(def.pack_size, maxi(int(ceil(burst / share)), 1)), bodies)
 		em.spawn_pack(def.id, _spawn_point(), n)
-		burst -= n
+		burst -= float(n) * share
+		bodies -= n
+
+
+## The roster without the rows whose creature is at its live limit (`max_alive`: the harpooner is never more than one).
+# ---------------------------------------------------------------- the specials
+
+## seconds until the next special; below zero while one is alive (the clock only starts once it is dead)
+var special_t := -1.0
+
+
+## The specials' clock (pass 33.4). From the timeline's `specials.from` in stage 1 (and all through every later stage),
+## while fewer than `max_alive` specials live, a countdown of `interval` seconds runs, and at its end one creature from
+## the pool comes in (a pool row with a `stage` waits for that stage: the harpooner is a stage 2 creature).
+func _tick_specials(delta: float) -> void:
+	var sp: Dictionary = timeline.specials
+	if sp.is_empty():
+		return
+	if Run.stage == 0 and Run.elapsed < float(sp.get("from", 150.0)):
+		return
+	var pool := specials_pool()
+	if pool.is_empty():
+		return
+	if specials_alive() >= int(sp.get("max_alive", 1)):
+		special_t = -1.0
+		return
+	if special_t < 0.0:
+		var iv: Array = sp.get("interval", [20.0, 40.0])
+		special_t = _rng.randf_range(float(iv[0]), float(iv[iv.size() - 1]))
+	special_t -= delta
+	if special_t > 0.0:
+		return
+	special_t = -1.0
+	var id: String = pool[_rng.randi() % pool.size()]
+	var em: EnemyManager = game.enemies
+	em.register_type(Registry.enemy(id))
+	em.spawn(id, _spawn_point())
+
+
+## The special ids that may come now: the pool rows whose stage has come.
+func specials_pool() -> Array:
+	var out: Array = []
+	for row in timeline.specials.get("pool", []):
+		var id := str(row.get("enemy", "")) if row is Dictionary else str(row)
+		var st := int(row.get("stage", 1)) if row is Dictionary else 1
+		if Registry.enemy(id) != null and Run.stage + 1 >= st:
+			out.append(id)
+	return out
+
+
+## How many specials are alive right now (any of the pool, whatever the stage).
+func specials_alive() -> int:
+	var em: EnemyManager = game.enemies
+	var n := 0
+	for row in timeline.specials.get("pool", []):
+		n += em.alive_of(str(row.get("enemy", "")) if row is Dictionary else str(row))
+	return n
+
+
+func _roster_open(rows: Array) -> Array:
+	var em: EnemyManager = game.enemies
+	var out: Array = []
+	for r in rows:
+		var def: EnemyDef = Registry.enemy(str(r.get("enemy", "")))
+		if def and def.max_alive > 0 and em.alive_of(def.id) >= def.max_alive:
+			continue
+		out.append(r)
+	return out
+
+
+## A roster row's weight at time `t`: `weight` when it arrives, sliding to `weight_late` (when the row has one) by the
+## timeline's `weight_late_t` (600 s, the end of stage 2), so the goblins thin out as the harder creatures take over.
+func _roster_weight(r: Dictionary, t: float) -> float:
+	var w := float(r.get("weight", 1.0))
+	if not r.has("weight_late"):
+		return w
+	var start := float(r.get("t", 0.0))
+	var late_t := float(timeline.weight_late_t)
+	var f := clampf((t - start) / maxf(late_t - start, 1.0), 0.0, 1.0)
+	return lerpf(w, float(r.get("weight_late", w)), f)
+
+
+## Power-ups drop from kills: a per-kill chance scaled by how hard the creature was (its xp_mult; elite variants count
+## double), and the rarer power-ups weigh more the harder the creature (hard_bias per roster row).
+func drop_pickup_from(def: EnemyDef, at: Vector3, elite: bool) -> void:
+	var pk: Dictionary = timeline.pickups
+	var roster: Array = pk.get("roster", [])
+	var per_kill := float(pk.get("per_kill", 0.0))
+	if roster.is_empty() or per_kill <= 0.0:
+		return
+	var hardness: float = def.xp_mult * (2.0 if elite else 1.0)
+	if _rng.randf() >= per_kill * hardness:
+		return
+	var total := 0.0
+	var weights: Array = []
+	for r in roster:
+		var w: float = float(r.get("weight", 1.0)) * (1.0 + float(r.get("hard_bias", 0.0)) * hardness / 3.0)
+		weights.append(w)
+		total += w
+	var pick := _rng.randf() * total
+	var chosen: Dictionary = roster[0]
+	for k in range(roster.size()):
+		pick -= float(weights[k])
+		if pick <= 0.0:
+			chosen = roster[k]
+			break
+	var pdef: PickupDef = Registry.pickup(str(chosen.get("id", "")))
+	if pdef == null:
+		return
+	var p := at + Vector3(_rng.randf_range(-0.8, 0.8), 0, _rng.randf_range(-0.8, 0.8))
+	p.y = (game.map as MapBase).height_at(p.x, p.z)
+	game.pickups.spawn_special(pdef, p)
 
 
 ## One pickup from the map's roster, a short run away from the hero, then the next one is scheduled.
@@ -296,10 +431,17 @@ func _spawn_point() -> Vector3:
 	return mb.clamp_to_arena(p)
 
 
+## The roster rows an elite modifier may land on: only a creature that can be an Elite (a cactus cannot, nor a special).
+static func elite_candidates(rows: Array) -> Array:
+	return rows.filter(func(r: Dictionary) -> bool:
+		var d: EnemyDef = Registry.enemy(str(r.get("enemy", "")))
+		return d != null and d.can_be_elite)
+
+
 func _spawn_elite(enemy_id: String, mod_id: String) -> void:
 	var em: EnemyManager = game.enemies
 	if enemy_id == "":
-		var roster := timeline.roster_at(Run.elapsed)
+		var roster := elite_candidates(_roster_open(timeline.roster_at(Run.elapsed)))
 		if roster.is_empty():
 			return
 		enemy_id = str(roster[_rng.randi() % roster.size()].get("enemy", ""))
@@ -320,6 +462,8 @@ func _cull_behind() -> void:
 	var fwd: Vector3 = player.forward()
 	for i in range(EnemyManager.MAX):
 		if em.alive[i] == 0 or i == em.boss_index or i == elite_index:
+			continue
+		if (em.types[em.type_idx[i]]["def"] as EnemyDef).brain == "artillery":
 			continue
 		var d := em.pos[i] - player.global_position
 		d.y = 0.0

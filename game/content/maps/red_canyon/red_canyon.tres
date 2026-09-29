@@ -1,0 +1,204 @@
+[gd_resource type="Resource" script_class="MapDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/maps/red_canyon/red_canyon_icon.png" id="1_i7xvp"]
+[ext_resource type="PackedScene" path="res://world/maps/red_canyon/RedCanyon.tscn" id="2_q2rce"]
+[ext_resource type="Script" path="res://core/data/MapDef.gd" id="3_nmc8t"]
+[ext_resource type="Script" path="res://core/data/WaveTimeline.gd" id="4_ixik5"]
+
+[sub_resource type="Resource" id="Resource_i7xvp"]
+script = ExtResource("4_ixik5")
+stage_mults = [1.0, 2.2, 3.6]
+speed_per_stage = 0.1
+cap_start = 25
+cap_per_minute = 8.35
+cap_max = 150
+hard_cap = 240
+specials = {
+"from": 150.0,
+"interval": [45.0, 60.0],
+"max_alive": 1.0,
+"pool": [{
+"enemy": "rocketeer"
+}, {
+"enemy": "harpoon_troglodyte",
+"stage": 2.0
+}]
+}
+hp_growth = 0.14
+hp_power = 1.25
+level_hp_per_level = 0.05
+level_damage_per_level = 0.03
+burst_min = 3
+burst_max = 12
+spawn_interval = 0.7
+roster = [{
+"enemy": "goblin",
+"t": 0.0,
+"weight": 10.0,
+"weight_late": 3.0
+}, {
+"enemy": "goblin_runt",
+"t": 30.0,
+"weight": 8.0,
+"weight_late": 3.0
+}, {
+"enemy": "fire_ant",
+"t": 60.0,
+"weight": 9.0,
+"weight_late": 7.0
+}, {
+"enemy": "buckshot_dwarf",
+"t": 130.0,
+"weight": 1.5,
+"weight_late": 2.0
+}, {
+"enemy": "armadillo",
+"t": 150.0,
+"weight": 8.0,
+"weight_late": 6.0
+}, {
+"enemy": "spit_cactus",
+"t": 160.0,
+"weight": 3.0,
+"weight_late": 4.0
+}, {
+"enemy": "dust_mummy",
+"t": 300.0,
+"weight": 3.0,
+"weight_late": 5.0
+}, {
+"enemy": "bull_beetle",
+"t": 340.0,
+"weight": 2.0,
+"weight_late": 3.0
+}, {
+"enemy": "horned_toad",
+"t": 390.0,
+"weight": 2.0,
+"weight_late": 4.0
+}, {
+"enemy": "dust_shaman",
+"t": 600.0,
+"weight": 1.0,
+"weight_late": 2.0
+}]
+events = [{
+"enemy": ["dune_scorpion", "sun_prophet"],
+"t": 150.0,
+"type": "elite_boss"
+}, {
+"interval": 90.0,
+"t": 210.0,
+"type": "elite_every"
+}, {
+"enemy": "tumbleweed_king",
+"t": 300.0,
+"type": "boss"
+}, {
+"count": 36.0,
+"enemy": "fire_ant",
+"t": 390.0,
+"type": "swarm"
+}, {
+"enemy": ["dune_scorpion", "sun_prophet"],
+"t": 450.0,
+"type": "elite_boss"
+}, {
+"count": 18.0,
+"enemy": "armadillo",
+"t": 510.0,
+"type": "swarm"
+}, {
+"enemy": "gila_grande",
+"t": 600.0,
+"type": "boss"
+}, {
+"count": 22.0,
+"enemy": "goblin_runt",
+"t": 690.0,
+"type": "swarm"
+}, {
+"count": 24.0,
+"enemy": "goblin",
+"t": 720.0,
+"type": "swarm"
+}, {
+"enemy": ["dune_scorpion", "sun_prophet"],
+"t": 750.0,
+"type": "elite_boss"
+}, {
+"count": 40.0,
+"enemy": "fire_ant",
+"t": 840.0,
+"type": "swarm"
+}, {
+"enemy": "tumbleweed_king",
+"t": 900.0,
+"type": "boss"
+}]
+pickups = {
+"per_kill": 0.0045,
+"roster": [{
+"hard_bias": 0.0,
+"id": "heart",
+"weight": 6.0
+}, {
+"hard_bias": 0.5,
+"id": "rage",
+"weight": 3.0
+}, {
+"hard_bias": 0.3,
+"id": "sprint",
+"weight": 3.0
+}, {
+"hard_bias": 0.8,
+"id": "shield",
+"weight": 2.0
+}, {
+"hard_bias": 0.6,
+"id": "magnet_pulse",
+"weight": 2.0
+}, {
+"hard_bias": 0.8,
+"id": "nuke",
+"weight": 2.0
+}]
+}
+structures = {
+"count": 9.0,
+"min_spacing": 22.0
+}
+path_times = [[55.0, 115.0, 175.0, 230.0, 270.0], [35.0, 90.0, 145.0, 200.0, 245.0, 280.0], [35.0, 90.0, 145.0, 200.0, 245.0, 280.0]]
+weapon_cap = [4.0, 6.0, 6.0]
+line_cap = [3.0, 4.0, 4.0]
+
+[resource]
+script = ExtResource("3_nmc8t")
+scene = ExtResource("2_q2rce")
+scene_file = "res://world/maps/red_canyon/RedCanyon.tscn"
+timeline = SubResource("Resource_i7xvp")
+skins = {
+"brute": "bull_beetle",
+"elite": "dune_scorpion",
+"runner": "goblin_runt",
+"spitter": "spit_cactus",
+"swarmer": "fire_ant",
+"tank": "dust_mummy",
+"walker": "goblin"
+}
+boss = "tumbleweed_king"
+music = {
+"ambient": "wd_ambient",
+"boss": "mu_boss",
+"run": ["mu_run_1", "mu_run_2", "mu_run_3"],
+"step": "pl_step_sand"
+}
+id = "red_canyon"
+display_name = "Red Canyon"
+flavour = "Red rock, dry rivers, and everything between wants you."
+icon = ExtResource("1_i7xvp")
+icon_file = "red_canyon_icon.png"
+placeholder = {
+"color": "#E4874C",
+"glyph": "sun"
+}

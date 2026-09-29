@@ -1,0 +1,27 @@
+{
+  "id": "rattle",
+  "name": "Rattle",
+  "flavour": "Hear that? Slow down.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "rattlesnake",
+  "kind": "element",
+  "element": "poison",
+  "hero": "",
+  "text": "Poisoned creatures move 30% slower.",
+  "vfx": "poisoned creatures drag their feet, a dust puff at each step",
+  "effects": [
+    {
+      "stat": "poison_slow",
+      "op": "add",
+      "value": 0.3,
+      "target": "player"
+    }
+  ],
+  "params": {},
+  "art_prompt": "a rattlesnake's rattle tail shaking with motion lines",
+  "placeholder": {
+    "color": "#C8B060",
+    "glyph": "star"
+  }
+}

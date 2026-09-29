@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/slingshot/slingshot_icon.png" id="1_135pt"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_jtt2a"]
+
+[resource]
+script = ExtResource("1_jtt2a")
+weapon = "gravity_gun"
+text = "The thrown enemy skips on to the next crowd for a second blast at 60%."
+vfx = "a bounce and a second blast"
+params = {
+"gravity": {
+"bounce": {
+"frac": 0.6,
+"reach": 6.0
+}
+}
+}
+id = "slingshot"
+display_name = "Slingshot"
+flavour = "Once more, with feeling."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("1_135pt")
+icon_file = "slingshot_icon.png"
+placeholder = {
+"color": "#C0D0F0",
+"glyph": "star"
+}

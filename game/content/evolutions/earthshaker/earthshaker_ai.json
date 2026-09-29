@@ -1,0 +1,17 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "a huge maul with a carved grey stone head bound in gold bands with glowing orange cracks running through the stone, a dark wooden handle with gold rings, lying on its side with the head to the right",
+ "renders": {
+  "icon": {
+   "key": "earthshaker_icon35_1",
+   "prompt": "a huge maul with a carved grey stone head bound in gold bands with glowing orange cracks running through the stone, a dark wooden handle with gold rings, lying on its side with the head to the right",
+   "refs": [
+    "earthshaker_ref.png"
+   ],
+   "screen": "green",
+   "picked": 1,
+   "of": 3
+  }
+ }
+}

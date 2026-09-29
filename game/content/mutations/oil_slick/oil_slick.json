@@ -1,0 +1,27 @@
+{
+  "id": "oil_slick",
+  "name": "Oil Slick",
+  "flavour": "A long line of bad decisions.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "molotov",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "The bottle leaks as it flies: a trail of small burning spills drips along the throw, and they slow.",
+  "vfx": "drops of burning oil fall from the bottle in flight; a line of small fires lands behind it, one after another",
+  "effects": [],
+  "params": {
+    "drip": {
+      "every": 0.9,
+      "start": 2.0,
+      "radius": 0.8,
+      "slow": 0.35
+    }
+  },
+  "art_prompt": "a puddle of black oil on fire stretching into a long streak",
+  "placeholder": {
+    "color": "#E06030",
+    "glyph": "star"
+  }
+}

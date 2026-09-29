@@ -24,6 +24,7 @@ effect_kind = "buff"
 value = 0.0
 duration = 15.0
 effects = [SubResource("Resource_tyq1b"), SubResource("Resource_6cy0j")]
+lifetime = 40.0
 color = Color(0.29803923, 0.7882353, 1, 1)
 id = "sprint"
 display_name = "Sprint"

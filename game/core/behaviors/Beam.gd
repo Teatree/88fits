@@ -7,7 +7,7 @@ var _cloud: Node3D
 
 
 func _shows_held() -> bool:
-	return bool(inst.def.params.get("follow", false))
+	return bool(inst.params.get("follow", false))
 
 
 func _on_setup() -> void:
@@ -28,6 +28,9 @@ func _fire() -> bool:
 		return false
 	var chains: int = max(stat_int("chains", 2), 0)
 	var damage := stat("damage", 12.0)
+	var pdmg := stat("poison_damage", 0.0)
+	var fdmg := stat("fire_damage", 0.0)
+	var zone = inst.params.get("zone")
 	var origin: Vector3 = _cloud.global_position if (_cloud and _cloud.visible) else player.global_position + Vector3(0, 1.0, 0)
 	var points: Array = [origin]
 	var hit: Array = []
@@ -38,6 +41,13 @@ func _fire() -> bool:
 		hit.append(current)
 		var p: Vector3 = enemies.pos[current] + Vector3(0, 0.6, 0)
 		points.append(p)
+		# Venom Arc, Plasma: the arc carries the element; Static Field: it leaves a shocking patch under every hit
+		if pdmg > 0.0:
+			enemies.poison(current, inst.def.id, pdmg, maxi(stat_int("poison_stacks", 1), 1), stat("poison_duration", 8.0))
+		if fdmg > 0.0:
+			enemies.ignite(current, inst.def.id, fdmg, stat("fire_duration", 1.8), stat("fire_spread", 0.4))
+		if zone is Dictionary:
+			game.spawn_zone(enemies.pos[current], float(zone.get("radius", 1.2)), float(zone.get("seconds", 2.0)), damage * float(zone.get("damage_mult", 0.35)) / maxf(float(zone.get("tick", 0.5)), 0.1), float(zone.get("tick", 0.5)), inst, 0.0)
 		if enemies.damage(current, damage, inst.def.id, enemies.pos[current] - player.global_position, stat("knockback", 0.0)):
 			inst.kills += 1
 		game.fx_hit(p, inst.def)

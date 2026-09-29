@@ -1,0 +1,17 @@
+{
+ "pipeline": "pass 35 icons (Klein, several seeds, picked by eye)",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "subject": "a chunky copper sci-fi gravity gun with orange hazard bands, a glowing glass coil window on top and a dark grip, three dark metal claws at the front holding a glowing cyan energy ball, seen from the side pointing to the right",
+ "renders": {
+  "icon": {
+   "key": "gravity_gun_icon35_0",
+   "prompt": "a chunky copper sci-fi gravity gun with orange hazard bands, a glowing glass coil window on top and a dark grip, three dark metal claws at the front holding a glowing cyan energy ball, seen from the side pointing to the right",
+   "refs": [
+    "gravity_gun_ref.png"
+   ],
+   "screen": "green",
+   "picked": 0,
+   "of": 3
+  }
+ }
+}

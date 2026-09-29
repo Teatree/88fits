@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="LineDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/lines/evade/evade_icon.png" id="1_3ydpn"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_ty6yb"]
+[ext_resource type="Script" path="res://core/data/LineDef.gd" id="2_3ydpn"]
+
+[sub_resource type="Resource" id="Resource_3ydpn"]
+script = ExtResource("1_ty6yb")
+stat = "evade"
+value = 0.03
+target = "player"
+
+[sub_resource type="Resource" id="Resource_gx6b8"]
+script = ExtResource("1_ty6yb")
+stat = "evade"
+value = 0.05
+target = "player"
+
+[sub_resource type="Resource" id="Resource_fsow7"]
+script = ExtResource("1_ty6yb")
+stat = "evade"
+value = 0.06
+target = "player"
+
+[sub_resource type="Resource" id="Resource_35by1"]
+script = ExtResource("1_ty6yb")
+stat = "evade"
+value = 0.06
+target = "player"
+
+[resource]
+script = ExtResource("2_3ydpn")
+evolves_into = "ghost_step"
+text = "A chance to take no hit at all: 3% at rank 1, 20% at rank 4."
+levels = [[SubResource("Resource_3ydpn")], [SubResource("Resource_gx6b8")], [SubResource("Resource_fsow7")], [SubResource("Resource_35by1")]]
+repeat_last_level = false
+max_level = 4
+id = "evade"
+display_name = "Evade"
+flavour = "Not there. Never was."
+rarity = "rare"
+weight = 9.0
+icon = ExtResource("1_3ydpn")
+icon_file = "evade_icon.png"
+placeholder = {
+"color": "#C8E0FF",
+"glyph": "star"
+}

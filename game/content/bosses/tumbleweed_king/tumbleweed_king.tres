@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_85nhh")
 archetype = "boss"
+doc = "Stage 1's boss, back for stage 3 at twice the health: a roll down a red line, a goblin ring, a slam."
 brain = "boss"
 hp = 900.0
 speed = 1.6
@@ -19,7 +20,7 @@ drops = {
 }
 anims = {
 "attack": 2.0,
-"die": 1.0,
+"die": 5.0,
 "hit": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
@@ -29,10 +30,12 @@ anims = {
 sprite = ExtResource("3_qvsew")
 sprite_file = "tumbleweed_king_sprite.png"
 frame_px = 256
-strip_cols = 36
+strip_cols = 40
 fps = {
+"die": 8.0,
 "run": 15.0
 }
+head = 0.984
 boss = {
 "attacks": [{
 "damage": 25.0,

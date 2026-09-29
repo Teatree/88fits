@@ -18,7 +18,7 @@ func _default() -> Dictionary:
 	return {
 		"version": 1,
 		"gold": 0,
-		"shop_tiers": {},
+		"talents": {}, "talent_spent": 0,
 		"quests_done": [],
 		"totals": {"kills": 0, "kills_with_weapon": {}, "kills_of_enemy": {}, "chests": 0, "evolutions": 0, "runs": 0, "extracts": 0},
 		"once": [],
@@ -26,8 +26,9 @@ func _default() -> Dictionary:
 		"settings": {},
 		"hints_seen": [],
 		"last_character": "astro",
-		"last_map": "dry_gulch",
+		"last_map": "red_canyon",
 		"runs_started": 0,
+		"materials": {"bones": 0, "relics": 0},
 	}
 
 
@@ -48,8 +49,12 @@ func load_save() -> void:
 	if Registry.characters.has("astro") and data.has("once") and data["once"] is Array and not data["once"].has("hero_astro"):
 		data["once"].append("hero_astro")
 		data["last_character"] = "astro"
+	# a hero that has been hidden since (pass 33.4) is not played any more
+	var lc: CharacterDef = Registry.playable_character(str(data.get("last_character", "astro")))
+	if lc:
+		data["last_character"] = lc.id
 	if not Registry.maps.has(str(data.get("last_map", ""))):
-		data["last_map"] = "dry_gulch"
+		data["last_map"] = "red_canyon"
 	Settings.from_dict(data.get("settings", {}))
 
 
@@ -98,36 +103,63 @@ func spend_gold(n: int) -> bool:
 	return true
 
 
-# ---------------------------------------------------------------- shop
+# ---------------------------------------------------------------- the Mirror
 
-func tier(upgrade_id: String) -> int:
-	return int(data["shop_tiers"].get(upgrade_id, 0))
+## What form of a talent is picked (0 or 1) and how many ranks of it are owned.
+func talent_form(id: String) -> int:
+	var t = data.get("talents", {}).get(id, {})
+	return int(t.get("form", 0)) if t is Dictionary else 0
 
 
-func buy_tier(def: ShopUpgradeDef) -> bool:
-	var t := tier(def.id)
-	var cost := def.cost_of_tier(t)
+func talent_rank(id: String) -> int:
+	var t = data.get("talents", {}).get(id, {})
+	return int(t.get("rank", 0)) if t is Dictionary else 0
+
+
+## Switching form is free and keeps the ranks: the Mirror is a choice, not a purchase you regret.
+func set_talent_form(id: String, form: int) -> void:
+	var all: Dictionary = data.get("talents", {})
+	var t: Dictionary = all.get(id, {"form": 0, "rank": 0})
+	t["form"] = clampi(form, 0, 1)
+	all[id] = t
+	data["talents"] = all
+	request_save()
+
+
+## Buy the next rank of a talent with gold.
+func buy_talent(def: TalentDef) -> bool:
+	var rank := talent_rank(def.id)
+	if rank >= def.ranks:
+		return false
+	var cost := def.cost_of_rank(rank)
 	if cost < 0 or not spend_gold(cost):
 		return false
-	data["shop_tiers"][def.id] = t + 1
+	var all: Dictionary = data.get("talents", {})
+	var t: Dictionary = all.get(def.id, {"form": 0, "rank": 0})
+	t["rank"] = rank + 1
+	all[def.id] = t
+	data["talents"] = all
+	data["talent_spent"] = talent_spent() + cost
 	request_save()
 	return true
 
 
-func refund_all() -> int:
-	var refund := 0
-	for id in data["shop_tiers"].keys():
-		var def: ShopUpgradeDef = Registry.shop.get(id)
-		if def == null:
-			continue
-		for t in range(int(data["shop_tiers"][id])):
-			refund += max(def.cost_of_tier(t), 0)
-	data["shop_tiers"] = {}
-	add_gold(refund)
-	return refund
+func talent_spent() -> int:
+	return int(data.get("talent_spent", 0))
 
 
-# ---------------------------------------------------------------- quests and totals
+## Everything back, to the last coin: the board empties and the gold returns.
+func talent_refund_all() -> int:
+	var back := talent_spent()
+	data["talents"] = {}
+	data["talent_spent"] = 0
+	add_gold(back)
+	request_save()
+	return back
+
+
+
+# ---------------------------------------------------------------- the homestead
 
 func quest_done(id: String) -> bool:
 	return data["quests_done"].has(id)

@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_h01x3"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_k0s2k"]
+[ext_resource type="Texture2D" path="res://content/mutations/homing_skulls/homing_skulls_icon.png" id="2_tc8fv"]
+
+[sub_resource type="Resource" id="Resource_k0s2k"]
+script = ExtResource("1_h01x3")
+stat = "speed"
+op = "set"
+value = 13.0
+
+[sub_resource type="Resource" id="Resource_tc8fv"]
+script = ExtResource("1_h01x3")
+stat = "range"
+value = 2.0
+
+[resource]
+script = ExtResource("2_k0s2k")
+weapon = "skull_rain"
+text = "The skulls seek."
+vfx = "skulls corkscrew, then dive with a green trail"
+effects = [SubResource("Resource_k0s2k"), SubResource("Resource_tc8fv")]
+params = {
+"missile": {
+"life": 3.5,
+"spiral": 9.0,
+"trail": 2.0,
+"turn": 6.0,
+"wander": 0.4
+},
+"size_mult": 0.9
+}
+behavior = "MissilePod"
+id = "homing_skulls"
+display_name = "Homing Skulls"
+flavour = "They know your name. Not yours. Theirs."
+rarity = "epic"
+weight = 8.0
+icon = ExtResource("2_tc8fv")
+icon_file = "homing_skulls_icon.png"
+placeholder = {
+"color": "#A0E080",
+"glyph": "star"
+}

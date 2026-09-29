@@ -1,0 +1,32 @@
+{
+  "id": "bristle",
+  "name": "Bristle",
+  "flavour": "Touch me. Go on.",
+  "rarity": "common",
+  "weight": 10,
+  "max_level": 4,
+  "levels": [
+    [
+      {
+        "stat": "thorns",
+        "op": "add",
+        "value": 8,
+        "target": "player"
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": 0.04,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "trade": "cooldowns 4% longer a rank",
+  "art_prompt": "a cactus pad bristling with long spines",
+  "placeholder": {
+    "color": "#80C060",
+    "glyph": "star"
+  },
+  "evolves_into": "cactus_hide"
+}

@@ -1,0 +1,83 @@
+{
+  "id": "harpoon_troglodyte",
+  "name": "Harpoon Troglodyte",
+  "flavour": "It cannot see you. It does not need to.",
+  "archetype": "brute",
+  "brain": "kite",
+  "hp": 23,
+  "armor": 2,
+  "speed": 2.4,
+  "damage": 10,
+  "radius": 1.1,
+  "size": 3.25,
+  "pack_size": 1,
+  "max_alive": 1,
+  "drops": {
+    "small": 0.5,
+    "medium": 1.0,
+    "gold": 0.15,
+    "chest": 0.35
+  },
+  "frame_px": 192,
+  "xp_mult": 6.0,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_beetle_die",
+    "attack": "en_beetle_charge"
+  },
+  "placeholder": {
+    "color": "#8A3A30",
+    "glyph": "spear"
+  },
+  "ranged": {
+    "straight": true,
+    "keep_distance": 12.0,
+    "range": 19.0,
+    "cooldown": 5.5,
+    "projectile_speed": 20.0,
+    "telegraph": 0.8,
+    "splash": 0.5,
+    "life": 1.4,
+    "harpoon": true,
+    "tether": {
+      "seconds": 5.0,
+      "away_speed": 0.7,
+      "min_length": 1.8
+    },
+    "lead": true
+  },
+  "art_prompt": "a squat hunched troglodyte, an eyeless blind lizard-skinned humanoid with mottled dark red hide, a row of short spines along its head and back, a wide toad-like mouth with small teeth, a ragged hide loincloth and bone bracelets, holding a long barbed iron harpoon upright with a coil of rope over its shoulder, standing, menacing",
+  "motion": "a heavy shuffling walk in place, the harpoon held ready, the eyeless head swaying as it listens",
+  "back_hint": "seen from behind: the spiny back, the coil of rope over one shoulder and the harpoon's shaft rising past it, no face",
+  "dead_hint": "lying dead on its back on the sand, the harpoon dropped beside it, the rope in a loose coil, the wide mouth open, the two arms and the two thick clawed legs sprawled out flat, feet with claws like the reference (no fins, no flippers, no tail)",
+  "variance": {
+    "size": 0.1,
+    "speed": 0.08,
+    "tints": [
+      "#FFFFFF",
+      "#F0D8C8"
+    ],
+    "tint_strength": 0.2,
+    "special_chance": 0.0,
+    "special": {}
+  },
+  "doc": "Blind, hardy and alone: never more than one on the map. It keeps twelve metres off and throws a bright red harpoon on a rope along a red line aimed at where you are going, not where you are. A hit ropes you to it for five seconds: it stays where it stood with its outline pulsing red and reels in any slack. Walking towards it costs nothing; walking away is 30% slower and drags it along behind you, digging in and kicking up sand. Kill it, or wait the rope out. A special from stage 2: specials come one at a time, the next 45 to 60 seconds after the last one dies.",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "strip_cols": 40,
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "badge": "gear",
+  "head": 0.974,
+  "can_be_elite": false,
+  "can_be_grabbed": false
+}

@@ -70,7 +70,7 @@
       }
     ]
   ],
-  "evolves_with": "haste",
+  "evolves_with": "",
   "evolves_into": "firestorm",
   "params": {
     "cloud_seconds": 3.0

@@ -6,7 +6,7 @@
  "renders": {
   "front": {
    "seed": 2476,
-   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a goofy suburban dad with a bald head, a thick brown mustache, a grey T-shirt, khaki shorts, white socks and sandals, a proud smile. Full body, front view, standing straight and facing the viewer, arms relaxed. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a goofy suburban dad with a bald head, a thick brown mustache, a grey T-shirt, khaki shorts, white socks and sandals, a proud smile. Full body, front view, standing straight and facing the viewer, arms relaxed, feet fully visible. Both arms hang straight down at his sides, hands open and relaxed, not raised, not bent. The same stocky build with the round belly and short legs in every view. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
    "refs": [
     "88fits/style_anchor.png"
    ],
@@ -16,15 +16,24 @@
     "ground": false,
     "text": false,
     "cropped": false,
+    "legs": true,
     "view": "front",
     "matches": true,
-    "problems": []
+    "problems": [],
+    "geometry": {
+     "left": 281,
+     "right": 285,
+     "top": 71,
+     "bottom": 61,
+     "height": 891,
+     "width": 457
+    }
    },
    "attempt": 0
   },
   "back": {
    "seed": 2477,
-   "prompt": "Turn this exact character around and show a full-body back view seen directly from behind: the back of the head or helmet, the back of the outfit and the heels, no face visible. Keep the same outfit, colors, proportions and art style, standing straight with arms relaxed. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "prompt": "Turn this exact character around and show a full-body back view seen directly from behind: the back of the head or helmet, the back of the outfit and the heels, no face visible. Keep the same outfit, colors, proportions and art style, standing straight with arms relaxed. Both arms hang straight down at his sides, hands open and relaxed, not raised, not bent. The same stocky build with the round belly and short legs in every view. He faces away from the viewer: only the back of his bald head, the back of the grey T-shirt and the heels are visible, no eyes, no mustache, no face at all. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dad_front.png"
    ],
@@ -34,15 +43,24 @@
     "ground": false,
     "text": false,
     "cropped": false,
+    "legs": true,
     "view": "back",
     "matches": true,
-    "problems": []
+    "problems": [],
+    "geometry": {
+     "left": 280,
+     "right": 281,
+     "top": 71,
+     "bottom": 63,
+     "height": 889,
+     "width": 462
+    }
    },
    "attempt": 0
   },
   "side": {
    "seed": 2482,
-   "prompt": "Turn this exact character to show a full-body side view in strict profile, facing to the right of the frame, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "prompt": "Turn this exact character to show a full-body side view in strict profile, facing to the right of the frame, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. Both arms hang straight down at his sides, hands open and relaxed, not raised, not bent. The same stocky build with the round belly and short legs in every view. In strict profile: the round belly pushing the T-shirt out in front, the bald head and the mustache seen from the side, the same short stocky proportions as the front view. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dad_front.png"
    ],
@@ -52,15 +70,24 @@
     "ground": false,
     "text": false,
     "cropped": false,
+    "legs": true,
     "view": "side",
     "matches": true,
-    "problems": []
+    "problems": [],
+    "geometry": {
+     "left": 359,
+     "right": 364,
+     "top": 72,
+     "bottom": 60,
+     "height": 891,
+     "width": 300
+    }
    },
    "attempt": 0
   },
   "fd": {
    "seed": 2483,
-   "prompt": "Turn this exact character to a three-quarter front view: turned 45 degrees so the character faces towards the lower right of the frame, face visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "prompt": "Turn this exact character to a three-quarter front view: turned 45 degrees so the character faces towards the lower right of the frame, face visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. Both arms hang straight down at his sides, hands open and relaxed, not raised, not bent. The same stocky build with the round belly and short legs in every view. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dad_front.png"
    ],
@@ -77,19 +104,19 @@
      "no-match"
     ],
     "geometry": {
-     "left": 347,
-     "right": 361,
-     "top": 71,
-     "bottom": 51,
-     "height": 901,
-     "width": 315
+     "left": 300,
+     "right": 302,
+     "top": 74,
+     "bottom": 58,
+     "height": 891,
+     "width": 421
     }
    },
    "attempt": 0
   },
   "bd": {
    "seed": 2484,
-   "prompt": "Turn this exact character to a three-quarter back view: turned 45 degrees away from the viewer so the character faces the upper right of the frame, the back and right shoulder visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "prompt": "Turn this exact character to a three-quarter back view: turned 45 degrees away from the viewer so the character faces the upper right of the frame, the back and right shoulder visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. Both arms hang straight down at his sides, hands open and relaxed, not raised, not bent. The same stocky build with the round belly and short legs in every view. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dad_front.png"
    ],
@@ -106,19 +133,19 @@
      "no-match"
     ],
     "geometry": {
-     "left": 342,
-     "right": 379,
-     "top": 65,
-     "bottom": 51,
-     "height": 907,
-     "width": 302
+     "left": 305,
+     "right": 338,
+     "top": 72,
+     "bottom": 57,
+     "height": 894,
+     "width": 380
     }
    },
    "attempt": 0
   },
   "cheer": {
-   "seed": 2495,
-   "prompt": "The exact same character seen directly from behind (no face visible), jumping for joy with both arms raised high above the head, feet together. Keep the same outfit, colors, proportions and art style as the reference. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "seed": 2486,
+   "prompt": "The exact same character seen directly from behind (no face visible), jumping for joy with both arms raised high above the head, feet together. Keep the same outfit, colors, proportions and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dad_back.png"
    ],
@@ -128,15 +155,24 @@
     "ground": false,
     "text": false,
     "cropped": false,
+    "legs": true,
     "view": "back",
     "matches": true,
-    "problems": []
+    "problems": [],
+    "geometry": {
+     "left": 283,
+     "right": 283,
+     "top": 82,
+     "bottom": 91,
+     "height": 850,
+     "width": 457
+    }
    },
    "attempt": 0
   },
   "hurt_back": {
-   "seed": 2506,
-   "prompt": "The exact same character seen directly from behind, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, eyes squeezed shut, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "seed": 2515,
+   "prompt": "The exact same character seen directly from behind, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, mustache intact, eyes squeezed shut, belly clenched, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dad_back_ref.png"
    ],
@@ -153,19 +189,19 @@
      "no-match"
     ],
     "geometry": {
-     "left": 343,
-     "right": 333,
-     "top": 65,
-     "bottom": 62,
-     "height": 896,
-     "width": 347
+     "left": 279,
+     "right": 256,
+     "top": 82,
+     "bottom": 71,
+     "height": 870,
+     "width": 488
     }
    },
    "attempt": 0
   },
   "hurt_front": {
-   "seed": 2507,
-   "prompt": "The exact same character facing the viewer, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, eyes squeezed shut, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "seed": 2516,
+   "prompt": "The exact same character facing the viewer, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, mustache intact, eyes squeezed shut, belly clenched, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dad_front_ref.png"
    ],
@@ -182,19 +218,19 @@
      "no-match"
     ],
     "geometry": {
-     "left": 341,
-     "right": 347,
-     "top": 64,
-     "bottom": 52,
-     "height": 907,
-     "width": 335
+     "left": 266,
+     "right": 268,
+     "top": 77,
+     "bottom": 62,
+     "height": 884,
+     "width": 489
     }
    },
    "attempt": 0
   },
   "hurt_side": {
-   "seed": 2508,
-   "prompt": "The exact same character in strict side profile facing right, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, eyes squeezed shut, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "seed": 2517,
+   "prompt": "The exact same character in strict side profile facing right, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, mustache intact, eyes squeezed shut, belly clenched, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dad_side_ref.png"
    ],
@@ -211,19 +247,19 @@
      "no-match"
     ],
     "geometry": {
-     "left": 409,
-     "right": 402,
-     "top": 64,
-     "bottom": 58,
-     "height": 901,
-     "width": 212
+     "left": 350,
+     "right": 358,
+     "top": 73,
+     "bottom": 61,
+     "height": 889,
+     "width": 315
     }
    },
    "attempt": 0
   },
   "hurt_bd": {
-   "seed": 2509,
-   "prompt": "The exact same character in three-quarter back view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, eyes squeezed shut, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "seed": 2518,
+   "prompt": "The exact same character in three-quarter back view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, mustache intact, eyes squeezed shut, belly clenched, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dad_bd_ref.png"
    ],
@@ -240,19 +276,19 @@
      "no-match"
     ],
     "geometry": {
-     "left": 353,
-     "right": 375,
-     "top": 67,
-     "bottom": 52,
-     "height": 904,
-     "width": 295
+     "left": 351,
+     "right": 310,
+     "top": 123,
+     "bottom": 81,
+     "height": 819,
+     "width": 362
     }
    },
    "attempt": 0
   },
   "hurt_fd": {
-   "seed": 2510,
-   "prompt": "The exact same character in three-quarter front view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, eyes squeezed shut, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "seed": 2519,
+   "prompt": "The exact same character in three-quarter front view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, mustache intact, eyes squeezed shut, belly clenched, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dad_fd_ref.png"
    ],
@@ -263,24 +299,53 @@
     "text": false,
     "cropped": false,
     "legs": true,
-    "view": "side",
+    "view": "front",
     "matches": false,
     "problems": [
      "no-match"
     ],
     "geometry": {
-     "left": 354,
-     "right": 362,
-     "top": 71,
-     "bottom": 50,
-     "height": 902,
-     "width": 307
+     "left": 312,
+     "right": 307,
+     "top": 119,
+     "bottom": 84,
+     "height": 820,
+     "width": 404
+    }
+   },
+   "attempt": 0
+  },
+  "dead": {
+   "seed": 2497,
+   "prompt": "This exact character lying flat on the ground on their back, knocked out: limbs sprawled, head to one side, seen from the front and a little above so the whole body is visible. Keep the same outfit, colors, proportions and art style. mustache intact, eyes squeezed shut, belly clenched. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/dad_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 99,
+     "right": 105,
+     "top": 153,
+     "bottom": 175,
+     "height": 695,
+     "width": 819
     }
    },
    "attempt": 0
   },
   "portrait": {
-   "seed": 10435,
+   "seed": 18363,
    "prompt": "A close-up portrait of this exact character for a mobile game avatar icon: only the head and shoulders, the head filling half of the frame, grinning proudly with both thumbs up, his thick brown mustache and shiny bald head, a barbecue apron strap on one shoulder, facing the viewer, the shoulders and chest running off the bottom edge of the frame, expressive and lively, no legs, no full body. Keep the same face, outfit, colors and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dad_front.png"
@@ -296,15 +361,15 @@
     "matches": true,
     "problems": [],
     "geometry": {
-     "left": 53,
-     "right": 57,
-     "top": 77,
-     "bottom": 0,
-     "height": 946,
-     "width": 913
+     "left": 18,
+     "right": 18,
+     "top": 168,
+     "bottom": 134,
+     "height": 721,
+     "width": 987
     }
    },
-   "attempt": 1
+   "attempt": 2
   }
  },
  "clips": {

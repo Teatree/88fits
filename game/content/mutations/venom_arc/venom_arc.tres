@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_jpedq"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_3j77w"]
+[ext_resource type="Texture2D" path="res://content/mutations/venom_arc/venom_arc_icon.png" id="2_8w66y"]
+
+[sub_resource type="Resource" id="Resource_3j77w"]
+script = ExtResource("1_jpedq")
+stat = "poison_damage"
+value = 4.0
+
+[sub_resource type="Resource" id="Resource_8w66y"]
+script = ExtResource("1_jpedq")
+stat = "poison_stacks"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_lj0sw"]
+script = ExtResource("1_jpedq")
+stat = "poison_duration"
+value = 8.0
+
+[resource]
+script = ExtResource("2_3j77w")
+weapon = "zap_beam"
+mutation_kind = "element"
+text = "The arc carries poison."
+vfx = "a green bolt instead of blue, green flashes on the chain"
+effects = [SubResource("Resource_3j77w"), SubResource("Resource_8w66y"), SubResource("Resource_lj0sw")]
+id = "venom_arc"
+display_name = "Venom Arc"
+flavour = "Electric and sick."
+rarity = "rare"
+element = "poison"
+weight = 8.0
+icon = ExtResource("2_8w66y")
+icon_file = "venom_arc_icon.png"
+placeholder = {
+"color": "#80FF80",
+"glyph": "star"
+}

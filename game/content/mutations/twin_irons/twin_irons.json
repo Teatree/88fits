@@ -1,0 +1,31 @@
+{
+  "id": "twin_irons",
+  "name": "Twin Irons",
+  "flavour": "Both hands.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "branding_iron",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "+2 irons, −30% damage.",
+  "vfx": "three irons on the ring",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.3
+    }
+  ],
+  "params": {},
+  "art_prompt": "two crossed glowing branding irons",
+  "placeholder": {
+    "color": "#FF9050",
+    "glyph": "star"
+  }
+}

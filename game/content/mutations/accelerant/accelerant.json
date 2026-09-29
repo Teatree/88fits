@@ -1,0 +1,38 @@
+{
+  "id": "accelerant",
+  "name": "Accelerant",
+  "flavour": "Longer. Meaner.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "molotov",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "Clouds last twice as long and burning creatures spread the fire when they die.",
+  "vfx": "pools that keep burning, a burst of flame when a burning creature dies",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "add",
+      "value": 0
+    },
+    {
+      "stat": "fire_duration",
+      "op": "add",
+      "value": 0
+    },
+    {
+      "stat": "fire_spread",
+      "op": "add",
+      "value": 0.4
+    }
+  ],
+  "params": {
+    "cloud_seconds": 6.0
+  },
+  "art_prompt": "a red jerry can of fuel splashing burning liquid",
+  "placeholder": {
+    "color": "#FF5030",
+    "glyph": "star"
+  }
+}

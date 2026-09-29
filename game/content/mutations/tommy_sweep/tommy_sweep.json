@@ -1,0 +1,22 @@
+{
+  "id": "tommy_sweep",
+  "name": "Sweep Fire",
+  "flavour": "Left to right. Then right to left.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "tommy_gun",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "The burst fans across 70° instead of a line.",
+  "vfx": "the muzzle swings as the burst walks across the crowd",
+  "effects": [],
+  "params": {
+    "sweep_deg": 70
+  },
+  "art_prompt": "a tommy gun muzzle drawn with a wide fan of bullet lines sweeping left to right",
+  "placeholder": {
+    "color": "#E0C080",
+    "glyph": "star"
+  }
+}

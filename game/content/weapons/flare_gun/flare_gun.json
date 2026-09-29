@@ -70,7 +70,7 @@
       }
     ]
   ],
-  "evolves_with": "kindling",
+  "evolves_with": "",
   "evolves_into": "roman_candle",
   "params": {
     "radius": 0.24,
@@ -89,5 +89,6 @@
     "color": "#FF7A3A",
     "glyph": "flare"
   },
-  "art_prompt": "a chunky orange flare pistol with a wide short barrel, a brass trigger and a burning red flare shooting out of it"
+  "art_prompt": "a chunky orange flare pistol with a wide short barrel, a brass trigger and a burning red flare shooting out of it",
+  "hidden": true
 }

@@ -1,0 +1,93 @@
+{
+  "id": "sabre",
+  "name": "Sabre",
+  "flavour": "Left, right, done. Ask the goblin.",
+  "rarity": "common",
+  "weight": 9,
+  "behavior": "Thruster",
+  "targeting": "nearest",
+  "tags": [
+    "blade"
+  ],
+  "base": {
+    "damage": 16,
+    "cooldown": 1.1,
+    "amount": 1,
+    "range": 2.6,
+    "area": 1.0,
+    "knockback": 6.0
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "range",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "range",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "zweihander",
+  "params": {
+    "thrust": {
+      "out": 0.06,
+      "slice": 0.16,
+      "back": 0.12,
+      "width": 0.7,
+      "slice_deg": 150,
+      "side": 1.0
+    }
+  },
+  "sfx": {
+    "fire": "w_saw_hit",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#C8D0E0",
+    "glyph": "sword"
+  },
+  "art_prompt": "a curved steel cavalry sabre with a brass hand guard and a leather-wrapped grip, the blade gleaming"
+}

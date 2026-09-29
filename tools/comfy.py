@@ -78,6 +78,41 @@ def upload_pil(img, name, subfolder="88fits"):
     return upload(buf.getvalue(), name, subfolder)
 
 
+SERVER_SSH = ["ssh", "-i", os.path.expanduser("~/.ssh/id_ed25519_ai_server"), "-o", "ConnectTimeout=10", "teatree@192.168.137.54"]
+
+
+def server_ram_used_gb():
+    """RAM in use on the server (GB), or -1 when ssh fails."""
+    import subprocess
+    try:
+        out = subprocess.run(SERVER_SSH + ["free -g | sed -n 2p"], capture_output=True, text=True, timeout=30).stdout.split()
+        return int(out[2])
+    except Exception:
+        return -1
+
+
+def release_models():
+    """Flux.2 dev (35 GB) and its text encoder (18 GB) do not both fit the server's 47 GB of RAM twice over: after a
+    render, ask ComfyUI to unload, and if the RAM does not come back restart the service (about 20 s)."""
+    import subprocess
+    try:
+        post("/free", {"unload_models": True, "free_memory": True})
+    except Exception:
+        pass
+    time.sleep(6)
+    if server_ram_used_gb() > 20:
+        subprocess.run(SERVER_SSH + ["systemctl --user restart ai-comfyui.service"], capture_output=True, timeout=60)
+        for _ in range(40):
+            time.sleep(3)
+            try:
+                get("/system_stats")
+                return "restarted"
+            except Exception:
+                continue
+        raise RuntimeError("ComfyUI did not come back after the restart")
+    return "freed"
+
+
 def run(graph, timeout=1200):
     """Queue a graph and wait for its SaveImage outputs. Returns (list of png bytes, seconds)."""
     r = post("/prompt", {"prompt": graph.api(), "client_id": "88fits-" + uuid.uuid4().hex[:8]})

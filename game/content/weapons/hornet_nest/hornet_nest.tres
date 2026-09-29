@@ -1,0 +1,93 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_e2c5j"]
+[ext_resource type="Texture2D" path="res://content/weapons/hornet_nest/hornet_nest_icon.png" id="1_yuxcn"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_yuxcn"]
+[ext_resource type="PackedScene" path="res://content/weapons/hornet_nest/hornet_nest_visual.tscn" id="3_buk75"]
+
+[sub_resource type="Resource" id="Resource_yuxcn"]
+script = ExtResource("1_e2c5j")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_buk75"]
+script = ExtResource("1_e2c5j")
+stat = "damage"
+op = "mul"
+value = 0.3
+
+[sub_resource type="Resource" id="Resource_ro7go"]
+script = ExtResource("1_e2c5j")
+stat = "cooldown"
+op = "mul"
+value = -0.1
+
+[sub_resource type="Resource" id="Resource_bn5we"]
+script = ExtResource("1_e2c5j")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_88tw7"]
+script = ExtResource("1_e2c5j")
+stat = "damage"
+op = "mul"
+value = 0.3
+
+[sub_resource type="Resource" id="Resource_c3twh"]
+script = ExtResource("1_e2c5j")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_rejie"]
+script = ExtResource("1_e2c5j")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[resource]
+script = ExtResource("2_yuxcn")
+behavior = "MissilePod"
+tags = ["homing"]
+base = {
+"amount": 2.0,
+"area": 0.0,
+"cooldown": 1.0,
+"damage": 5.0,
+"knockback": 1.0,
+"range": 11.0,
+"speed": 15.0
+}
+levels = [[], [SubResource("Resource_yuxcn")], [SubResource("Resource_buk75")], [SubResource("Resource_ro7go")], [SubResource("Resource_bn5we")], [SubResource("Resource_88tw7")], [SubResource("Resource_c3twh")], [SubResource("Resource_rejie")]]
+evolves_into = "killer_swarm"
+sfx = {
+"fire": "w_pea_fire",
+"hit": "w_pea_hit"
+}
+visual = ExtResource("3_buk75")
+visual_file = "hornet_nest_visual.tscn"
+params = {
+"familiar": {
+"bob": 0.14,
+"height": 1.5,
+"radius": 1.1,
+"speed": 1.2
+},
+"missile": {
+"life": 3.0,
+"spiral": 12.0,
+"trail": 2.0,
+"turn": 9.0,
+"wander": 0.3
+},
+"radius": 0.15
+}
+id = "hornet_nest"
+display_name = "Hornet Nest"
+flavour = "Angry. Small. Aimed."
+weight = 8.0
+icon = ExtResource("1_yuxcn")
+icon_file = "hornet_nest_icon.png"
+placeholder = {
+"color": "#E0B030",
+"glyph": "hive"
+}

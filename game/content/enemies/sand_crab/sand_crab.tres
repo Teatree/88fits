@@ -1,0 +1,81 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/sand_crab/sand_crab_icon.png" id="1_n8j3c"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_ssxd3"]
+[ext_resource type="Texture2D" path="res://content/enemies/sand_crab/sand_crab_sprite.png" id="3_5gmig"]
+
+[resource]
+script = ExtResource("1_ssxd3")
+archetype = "swarmer"
+doc = "A crab with a live mine on its back, and it arrives alone rather than in a pack. Fast, two hits kill it, and it goes off either way: a blast at the hero when it reaches him, marked by a red ring, or a smaller one on its own death that throws whatever stands beside it. From the fourth minute, and a swarm late."
+brain = "kamikaze"
+hp = 7.0
+speed = 3.4
+damage = 4.0
+radius = 0.32
+size = 0.75
+drops = {
+"chest": 0.0015,
+"gold": 0.015,
+"small": 0.7
+}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_5gmig")
+sprite_file = "sand_crab_sprite.png"
+strip_cols = 40
+fps = {
+"die": 8.0,
+"run": 15.0
+}
+head = 1.0
+retired = true
+death_burst = {
+"damage": 18.0,
+"delay": 0.0,
+"knockback": 7.0,
+"radius": 1.8
+}
+kamikaze = {
+"damage": 26.0,
+"knockback": 9.0,
+"radius": 2.2,
+"trigger": 1.1,
+"windup": 0.4
+}
+sfx = {
+"die": "en_beetle_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 1.1
+variance = {
+"size": 0.15,
+"special": {
+"damage": 1.4,
+"hp": 2.2,
+"size": 1.5,
+"tint": "#8A1A1A",
+"tint_strength": 0.6,
+"xp": 3.0
+},
+"special_chance": 0.08,
+"speed": 0.12,
+"tint_strength": 0.22,
+"tints": ["#FFFFFF", "#FFE0C0", "#E8D0B0", "#F0B890"]
+}
+id = "sand_crab"
+display_name = "Mine Crab"
+flavour = "It is not the claws you should worry about."
+icon = ExtResource("1_n8j3c")
+icon_file = "sand_crab_icon.png"
+placeholder = {
+"color": "#E08040",
+"glyph": "crab"
+}

@@ -1,0 +1,145 @@
+{
+  "id": "sun_prophet",
+  "name": "Sun Prophet",
+  "flavour": "He has seen the light. So will you.",
+  "archetype": "elite",
+  "brain": "caster",
+  "hp": 300,
+  "speed": 1.4,
+  "damage": 18,
+  "radius": 1.1,
+  "size": 3.3,
+  "pack_size": 1,
+  "elite": {
+    "hp_mult_per_stage": 1.8
+  },
+  "caster": {
+    "keep_distance": 8.0,
+    "side": 3.5,
+    "attack_range": 12.0
+  },
+  "boss": {
+    "attacks": [
+      {
+        "name": "spit_volley",
+        "windup": 0.9,
+        "count": 5,
+        "spread_deg": 64.0,
+        "speed": 18.0,
+        "damage": 13,
+        "splash": 0.5,
+        "life": 1.0,
+        "straight": true,
+        "shot": "shard",
+        "knockback": 7.0,
+        "telegraph": "fan"
+      },
+      {
+        "name": "erupt",
+        "windup": 0.9,
+        "count": 6,
+        "interval": 0.7,
+        "spread": 5.0,
+        "radius": 1.6,
+        "damage": 15,
+        "warn": 0.9,
+        "min_range": 5.0,
+        "pillar": true,
+        "telegraph": "none"
+      },
+      {
+        "name": "spit_volley",
+        "windup": 0.9,
+        "count": 5,
+        "spread_deg": 64.0,
+        "speed": 18.0,
+        "damage": 13,
+        "splash": 0.5,
+        "life": 1.0,
+        "straight": true,
+        "shot": "shard",
+        "knockback": 7.0,
+        "telegraph": "fan"
+      },
+      {
+        "name": "slam_at",
+        "windup": 1.2,
+        "radius": 2.8,
+        "damage": 20,
+        "knockback": 9,
+        "telegraph": "ring_at_hero"
+      },
+      {
+        "name": "blink",
+        "windup": 0.6,
+        "telegraph": "none",
+        "to": "screen"
+      }
+    ],
+    "cooldown_between": 2.0
+  },
+  "drops": {
+    "large": 1.0,
+    "medium": 1.0,
+    "gold": 1.0,
+    "chest": 1.0
+  },
+  "frame_px": 224,
+  "xp_mult": 12.0,
+  "outline_frac": 0.013,
+  "outline_color": "#1E1812",
+  "screen": "blue",
+  "directions": 8,
+  "art_prompt": "a tall lanky humanoid lizard prophet standing upright on two clawed legs: a very long thin neck rising from narrow shoulders to a small iguana-like head with a pointed snout, piercing golden eyes and a short crest of spines down the back of the neck, dusty olive-green scales with a pale yellow throat and belly, wearing a torn ragged black toga draped over one shoulder and hanging to the knees, its hem frayed and shredded with holes in the cloth, one clawed hand gripping a tall gnarled wooden staff topped with a golden sun disc with short straight rays (a plain gold disc, no face on it), a long tail curling behind its feet, a proud and sinister preacher's pose",
+  "motion": "walking in place on two legs like on a treadmill with a slow proud stride, planting the tall staff with each step, the long neck swaying gently, the torn black toga swinging",
+  "view_hints": {
+    "side": "the long neck stretched a little forward, the staff held upright in front of it, the black toga hanging from the shoulder, the tail trailing behind",
+    "bd": "the torn black toga across its back, the long neck and the back of the small head turned away, the staff at its side, no face visible",
+    "fd": "the lizard face and golden eyes turned towards the lower right, the staff held upright at its side"
+  },
+  "back_hint": "The torn black toga covers its back, the long neck and the back of the small head with its crest of spines are seen from behind, the tail hangs down behind the legs, the staff is held upright at its side, no face visible.",
+  "dead_hint": "lying dead on its side on the ground: the long neck limp and stretched out, eyes shut, the torn black toga spread around the body, the wooden staff lying beside it with its sun disc gone dark",
+  "sfx": {
+    "spawn": "en_boss_roar",
+    "attack": "en_cactus_spit",
+    "die": "en_boss_die",
+    "hit": "en_goblin_hit"
+  },
+  "placeholder": {
+    "color": "#5A7A3A",
+    "glyph": "star"
+  },
+  "variance": {
+    "size": 0.1,
+    "speed": 0.05,
+    "tints": [
+      "#FFFFFF",
+      "#F0FFE0"
+    ],
+    "tint_strength": 0.2,
+    "special_chance": 0.0,
+    "special": {}
+  },
+  "doc": "The Elite that fights at range: a long-necked lizard prophet in a torn black toga who walks to a spot eight metres up the screen from the hero, where he can be seen, and flings a fan of five golden sun-shards from his staff straight down the lines of its wedge, each one knocking the hero back. Every other attack he calls six pillars of light down around the hero, one every 0.7 s, each marked by a red ring and a column of gold that brightens for most of a second before it lands. He slams the hero's spot, then blinks to a fresh spot on the other side of the screen.",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4,
+    "run_s": 12,
+    "idle_s": 4,
+    "run_bd": 12,
+    "idle_bd": 4,
+    "run_fd": 12,
+    "idle_fd": 4
+  },
+  "strip_cols": 71,
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "head": 0.987
+}

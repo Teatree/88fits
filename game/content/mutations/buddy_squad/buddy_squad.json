@@ -1,0 +1,33 @@
+{
+  "id": "buddy_squad",
+  "name": "Buddy Squad",
+  "flavour": "It brought a friend. Do not name that one either.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "turret_buddy",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Two turrets a drop, −30% damage each.",
+  "vfx": "pairs of turrets",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 1
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.3
+    }
+  ],
+  "params": {
+    "max_turrets": 8
+  },
+  "art_prompt": "two small turrets with faces side by side",
+  "placeholder": {
+    "color": "#B0B8C0",
+    "glyph": "star"
+  }
+}

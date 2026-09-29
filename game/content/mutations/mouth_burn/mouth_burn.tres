@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_7iedq"]
+[ext_resource type="Texture2D" path="res://content/mutations/mouth_burn/mouth_burn_icon.png" id="2_sxc5q"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_uipts"]
+
+[sub_resource type="Resource" id="Resource_uipts"]
+script = ExtResource("1_7iedq")
+stat = "fire_damage"
+value = 5.0
+
+[sub_resource type="Resource" id="Resource_sxc5q"]
+script = ExtResource("1_7iedq")
+stat = "fire_duration"
+value = 3.0
+
+[resource]
+script = ExtResource("2_uipts")
+weapon = "big_mouth"
+mutation_kind = "element"
+text = "Whatever the beam touches catches fire for 3 s."
+vfx = "the beam turns orange and leaves burning creatures behind it"
+effects = [SubResource("Resource_uipts"), SubResource("Resource_sxc5q")]
+params = {
+"beam": {
+"color": [1.0, 0.45, 0.15]
+}
+}
+id = "mouth_burn"
+display_name = "Slow Roast"
+flavour = "Well done."
+rarity = "rare"
+element = "fire"
+weight = 8.0
+icon = ExtResource("2_sxc5q")
+icon_file = "mouth_burn_icon.png"
+placeholder = {
+"color": "#FF7ABF",
+"glyph": "star"
+}

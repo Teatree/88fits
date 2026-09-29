@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/supply_drop/supply_drop_icon.png" id="1_a8hon"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_gjw5r"]
+
+[resource]
+script = ExtResource("1_gjw5r")
+hero = "astro"
+text = "Every 40 s a supply pod crashes near her: a red ring, then the pod hits, hurting and throwing creatures, and leaves a power-up (a heart when she is hurt)."
+special = "supply_drop"
+params = {
+"damage": 30.0,
+"damage_per_level": 4.0,
+"every": 40.0,
+"first": 15.0,
+"knockback": 14.0,
+"radius": 2.6,
+"warn": 1.5
+}
+id = "supply_drop"
+display_name = "Supply Drop"
+flavour = "The mothership remembers her. Occasionally."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_a8hon")
+icon_file = "supply_drop_icon.png"
+placeholder = {
+"color": "#FF9A3C",
+"glyph": "star"
+}

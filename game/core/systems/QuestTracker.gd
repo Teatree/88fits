@@ -9,8 +9,11 @@ static var just_completed: Array = []
 static func check_all(in_run: bool) -> Array:
 	## Returns the ids completed by this check.
 	var done: Array = []
+	# nothing done in the debug arena counts (pass 33.4)
+	if Run.arena:
+		return done
 	for q in Registry.quests.values():
-		if Save.quest_done(q.id):
+		if Save.quest_done(q.id) or not Registry.quest_visible(q):
 			continue
 		if _satisfied(q, in_run):
 			Save.mark_quest(q.id)
@@ -52,14 +55,20 @@ static func _satisfied(q: QuestDef, in_run: bool) -> bool:
 
 
 static func progress_text(q: QuestDef) -> String:
+	var p := progress(q)
+	return "%d / %d" % [p.x, p.y] if p.y > 0 else ""
+
+
+## How far a counted quest has come: (so far, needed); (0, 0) for one that is done in a single run or has no count.
+static func progress(q: QuestDef) -> Vector2i:
 	var c := q.condition
 	match str(c.get("type", "")):
 		"kills_with_weapon":
-			return "%d / %d" % [Save.keyed_total("kills_with_weapon", str(c.get("weapon", ""))), int(c.get("count", 0))]
+			return Vector2i(Save.keyed_total("kills_with_weapon", str(c.get("weapon", ""))), int(c.get("count", 0)))
 		"kills_of_enemy":
-			return "%d / %d" % [Save.keyed_total("kills_of_enemy", str(c.get("enemy", ""))), int(c.get("count", 0))]
+			return Vector2i(Save.keyed_total("kills_of_enemy", str(c.get("enemy", ""))), int(c.get("count", 0)))
 		"open_chests":
-			return "%d / %d" % [Save.total("chests"), int(c.get("count", 0))]
+			return Vector2i(Save.total("chests"), int(c.get("count", 0)))
 		"evolve_any":
-			return "%d / %d" % [Save.total("evolutions"), int(c.get("count", 1))]
-	return ""
+			return Vector2i(Save.total("evolutions"), int(c.get("count", 1)))
+	return Vector2i.ZERO

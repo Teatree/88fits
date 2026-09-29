@@ -1,0 +1,33 @@
+{
+  "id": "saw_swarm",
+  "name": "Saw Swarm",
+  "flavour": "More blades than sense.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "orbit_saws",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "+3 saws, −35% damage, ×1.5 spin.",
+  "vfx": "a faster ring of five blades",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 3
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.35
+    }
+  ],
+  "params": {
+    "spin_speed": 3.9
+  },
+  "art_prompt": "a cluster of five small circular saw blades overlapping",
+  "placeholder": {
+    "color": "#D0D8E0",
+    "glyph": "star"
+  }
+}

@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_r56ng"]
+[ext_resource type="Texture2D" path="res://content/mutations/dragons_breath/dragons_breath_icon.png" id="2_3ebtw"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_4k11m"]
+
+[sub_resource type="Resource" id="Resource_4k11m"]
+script = ExtResource("1_r56ng")
+stat = "fire_damage"
+value = 4.0
+
+[sub_resource type="Resource" id="Resource_3ebtw"]
+script = ExtResource("1_r56ng")
+stat = "fire_duration"
+value = 1.8
+
+[sub_resource type="Resource" id="Resource_4huya"]
+script = ExtResource("1_r56ng")
+stat = "fire_spread"
+value = 0.4
+
+[resource]
+script = ExtResource("2_4k11m")
+weapon = "boomstick"
+mutation_kind = "element"
+text = "Pellets ignite."
+vfx = "an orange muzzle bloom and burning creatures"
+effects = [SubResource("Resource_4k11m"), SubResource("Resource_3ebtw"), SubResource("Resource_4huya")]
+id = "dragons_breath"
+display_name = "Dragon's Breath"
+flavour = "Loaded with something illegal."
+rarity = "rare"
+element = "fire"
+weight = 8.0
+icon = ExtResource("2_3ebtw")
+icon_file = "dragons_breath_icon.png"
+placeholder = {
+"color": "#FF7A2A",
+"glyph": "star"
+}

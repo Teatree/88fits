@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_fp3sa"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_labp7"]
+[ext_resource type="Texture2D" path="res://content/mutations/mouth_knock/mouth_knock_icon.png" id="2_ugl13"]
+
+[sub_resource type="Resource" id="Resource_labp7"]
+script = ExtResource("1_fp3sa")
+stat = "knockback"
+value = 11.0
+
+[sub_resource type="Resource" id="Resource_ugl13"]
+script = ExtResource("1_fp3sa")
+stat = "damage"
+op = "mul"
+value = 0.15
+
+[resource]
+script = ExtResource("2_labp7")
+weapon = "big_mouth"
+mutation_kind = "volume"
+text = "The first touch of the beam throws a creature back hard, and the beam is half again as wide."
+vfx = "a shove of light: everything the beam first meets is flung backwards"
+effects = [SubResource("Resource_labp7"), SubResource("Resource_ugl13")]
+params = {
+"beam": {
+"first_knock": true,
+"width_mult": 1.5
+}
+}
+id = "mouth_knock"
+display_name = "Bad Breath"
+flavour = "Stand back. Further."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_ugl13")
+icon_file = "mouth_knock_icon.png"
+placeholder = {
+"color": "#FF7ABF",
+"glyph": "star"
+}
