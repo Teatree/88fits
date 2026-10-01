@@ -1,0 +1,18 @@
+{
+  "id": "unlock_overkill",
+  "name": "Overkill",
+  "condition": {
+    "type": "kills_of_enemy",
+    "enemy": "dune_scorpion",
+    "count": 1
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "overkill"
+  },
+  "art_prompt": "a glass jar with a cracked skull inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

@@ -1,7 +1,8 @@
 ## Results (Wanted screen 16): the hero and the gold first, the tables last. "★ EXTRACTED ★" (or RUN OVER) over the
 ## time survived and one line of the run; a panel with the hero's portrait and what was banked, counting up, the purse
 ## before and after, and a NEW BEST seal hanging off it when the run beat the map's best; damage by weapon as bars with
-## the name and number inside the fill; what the run unlocked; PLAY AGAIN, then The Mirror and Title.
+## the name and number inside the fill; what the run unlocked; PLAY AGAIN, then Upgrade and Main Menu. A death (pass 44)
+## shows the gold left in the sand, struck through, and what a Strongbox banked on the way.
 extends ScreenBase
 
 var _count: WText
@@ -43,9 +44,13 @@ func build() -> void:
 	head.add_child(line)
 	content.add_child(head)
 	content.add_child(_gap(130))
-	# the hero and the gold
+	# the hero and the gold: banked on an extraction; on a death the purse stays in the sand (pass 44), all but what
+	# a Strongbox put away
 	var before := int(res.get("gold_before", Save.gold()))
 	_banked = int(res.get("banked", s["gold"]))
+	var lost := int(res.get("lost", 0))
+	var strongbox := int(res.get("strongbox", 0))
+	var dead: bool = s["died"] or lost > 0
 	var hero := PanelContainer.new()
 	hero.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hero.add_theme_stylebox_override("panel", W.box(W.PAPER, 6, 12).pad(42, 36, 42, 36))
@@ -64,18 +69,27 @@ func build() -> void:
 	gv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	gv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	gv.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gv.add_child(W.serif_text("Banked at ×1.25" if s["extracted"] else "Carried home", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	gv.add_child(W.serif_text("Left in the sand" if dead else "Banked", 26, W.ROCK if dead else W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	var gr := HBoxContainer.new()
 	gr.add_theme_constant_override("separation", 14)
 	gr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gr.add_child(WCoin.make(64.0, W.BRASS, 4.0))
-	_count = W.slab_text("+0", 110, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 110.0)
+	gr.add_child(WCoin.make(64.0, W.AGED if dead else W.BRASS, 4.0))
+	_count = W.slab_text("0", 110, W.ROCK if dead else W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 110.0)
+	_count.strike = dead
 	gr.add_child(_count)
 	gv.add_child(gr)
-	gv.add_child(W.serif_text("%s → %s" % [W.num(before), W.num(before + _banked)], 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	if dead:
+		_banked = lost
+		var purse := "The purse stays at %s" % W.num(before)
+		if strongbox > 0:
+			purse = "%s banked by the Strongbox on the way · the purse stays at %s" % [W.num(strongbox), W.num(before)]
+		gv.add_child(W.serif_text(purse, 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	else:
+		gv.add_child(W.serif_text("%s → %s" % [W.num(before), W.num(before + _banked)], 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	if not Save.hint_seen("results"):
 		Save.mark_hint("results")
-		gv.add_child(W.serif_text("Gold is kept. Spend it at the Mirror.", 24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+		gv.add_child(W.serif_text("Only an extraction brings the gold home. Spend it on Upgrades." if dead else "Gold is kept. Spend it on Upgrades.",
+			24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	hr.add_child(gv)
 	var hero_host := Control.new()
 	hero_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -149,7 +163,7 @@ func build() -> void:
 			content.add_child(_gap(16))
 		QuestTracker.just_completed.clear()
 	_count_up.call_deferred()
-	# the buttons: PLAY AGAIN, then The Mirror and Title
+	# the buttons: PLAY AGAIN, then Upgrade and Main Menu
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 22)
 	col.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
@@ -165,8 +179,8 @@ func build() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 22)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for spec in [["The Mirror", "res://ui/HomesteadScreen.tscn"], ["Title", TITLE]]:
-		var b := WButton.make([spec[0]], 30, WButton.SECONDARY, 5, 6, 20.0, 0.0)
+	for spec in [["Upgrade", "res://ui/HomesteadScreen.tscn", WButton.PRIMARY], ["Main Menu", TITLE, WButton.SECONDARY]]:
+		var b := WButton.make([spec[0]], 30, spec[2], 5, 6, 20.0, 0.0)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var path: String = spec[1]
 		b.pressed.connect(func(): go(path))
@@ -224,10 +238,11 @@ func _reward(q: QuestDef) -> ContentDef:
 	return null
 
 
-## The banked gold counts up over 900 ms with an ease-out.
+## The banked gold counts up over 900 ms with an ease-out (the lost gold too, struck through).
 func _count_up() -> void:
 	var tw := create_tween()
-	tw.tween_method(func(v: float): _count.text = "+" + W.num(int(round(v))), 0.0, float(_banked), 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	var pre := "−" if _count.strike else "+"
+	tw.tween_method(func(v: float): _count.text = pre + W.num(int(round(v))), 0.0, float(_banked), 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func on_back() -> void:

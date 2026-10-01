@@ -1,0 +1,18 @@
+{
+  "id": "unlock_hammer",
+  "name": "Hammer",
+  "condition": {
+    "type": "kill_boss",
+    "map": "red_canyon",
+    "stage": 1
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "hammer"
+  },
+  "art_prompt": "a glass jar with a stone war hammer inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

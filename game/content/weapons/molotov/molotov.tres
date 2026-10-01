@@ -10,44 +10,54 @@ script = ExtResource("1_s1w3i")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_ltqcv"]
 script = ExtResource("1_s1w3i")
 stat = "area"
 op = "mul"
 value = 0.15
+target = "self"
 
 [sub_resource type="Resource" id="Resource_84lem"]
 script = ExtResource("1_s1w3i")
 stat = "cooldown"
 op = "mul"
 value = -0.12
+target = "self"
 
 [sub_resource type="Resource" id="Resource_keo0u"]
 script = ExtResource("1_s1w3i")
 stat = "fire_spread"
+op = "add"
 value = 0.1
+target = "self"
 
 [sub_resource type="Resource" id="Resource_p7bql"]
 script = ExtResource("1_s1w3i")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_g0sfe"]
 script = ExtResource("1_s1w3i")
 stat = "area"
 op = "mul"
 value = 0.15
+target = "self"
 
 [sub_resource type="Resource" id="Resource_u8543"]
 script = ExtResource("1_s1w3i")
 stat = "fire_duration"
+op = "add"
 value = 0.6
+target = "self"
 
 [resource]
 script = ExtResource("2_8ub66")
 behavior = "Lobber"
+tags = []
 targeting = "densest_healthy"
 base = {
 "amount": 1.0,
@@ -62,7 +72,11 @@ base = {
 "speed": 10.0
 }
 levels = [[], [SubResource("Resource_8ub66")], [SubResource("Resource_ltqcv")], [SubResource("Resource_84lem")], [SubResource("Resource_keo0u")], [SubResource("Resource_p7bql")], [SubResource("Resource_g0sfe")], [SubResource("Resource_u8543")]]
+max_level = 8
+evolves_with = ""
 evolves_into = "firestorm"
+is_evolution = false
+evolved_from = ""
 sfx = {
 "fire": "w_molotov_throw",
 "hit": "w_molotov_boom"
@@ -72,11 +86,15 @@ visual_file = "molotov_visual.tscn"
 params = {
 "cloud_seconds": 3.0
 }
+hero = ""
 id = "molotov"
 display_name = "Molotov"
 flavour = "Bottle. Rag. Regret, for them."
 rarity = "rare"
+element = ""
 weight = 6.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_8ub66")
 icon_file = "molotov_icon.png"
 placeholder = {

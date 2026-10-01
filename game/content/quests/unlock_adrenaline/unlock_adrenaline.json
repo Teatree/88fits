@@ -1,0 +1,17 @@
+{
+  "id": "unlock_adrenaline",
+  "name": "Adrenaline",
+  "condition": {
+    "type": "kills_total",
+    "count": 400
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "adrenaline"
+  },
+  "art_prompt": "a glass jar with a red syringe inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

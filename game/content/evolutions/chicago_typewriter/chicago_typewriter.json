@@ -30,7 +30,8 @@
       "speed": 1.1,
       "bob": 0.08
     },
-    "tracer": true
+    "tracer": true,
+    "drum_axis": "forward"
   },
   "sfx": {
     "fire": "w_tommy_fire",

@@ -48,7 +48,7 @@ var speed := PackedFloat32Array()
 var dmg := PackedFloat32Array()
 var radius := PackedFloat32Array()
 var size := PackedFloat32Array()
-var armor := PackedFloat32Array()
+var dr := PackedFloat32Array()      # damage reduction: the share of every hit it shrugs off
 var type_idx := PackedInt32Array()
 var elite_idx := PackedInt32Array()
 var state := PackedInt32Array()
@@ -65,6 +65,12 @@ var xp_scale := PackedFloat32Array()
 var vtint := PackedColorArray()   # per-spawn tint (rgb) and strength (a) from the def's variance block
 var away := PackedByteArray()      # 1 while walking away from the camera (back-view frames)
 var view := PackedByteArray()      # eight-direction creatures: 0 front, 1 back, 2 side, 3 back-diagonal, 4 front-diagonal
+## Each view's span of the heading angle (0 = away from the camera, PI = towards it), the hysteresis past a boundary
+## before a creature changes view, and the dead band about the vertical before its picture mirrors (pass 43).
+const VIEW_LO := [PI * 0.875, 0.0, PI * 0.375, PI * 0.125, PI * 0.625]
+const VIEW_HI := [PI, PI * 0.125, PI * 0.625, PI * 0.375, PI * 0.875]
+const VIEW_HYST := PI * 0.07
+const FLIP_BAND := 0.2
 ## Poison: per enemy a dictionary of sources, weapon id -> {"stacks", "dmg", "t"}. One tick every POISON_TICK seconds
 ## deals the sum of stacks x dmg over all sources; a source hit again resets its timer instead of stacking.
 var poison_src: Array = []
@@ -111,6 +117,7 @@ var spin_t := PackedFloat32Array()
 var spin_to := PackedVector3Array()
 var hold_t := PackedFloat32Array()
 var _rains: Array = []   # the Djinn's strikes in flight: {left, next, interval, spread, radius, damage, strikes: [{at, t}]}
+var _rumbles: Array = []   # the Gila's ground waves running down its fan (pass 43): {from, dir, len, front, speed, width, damage, kb, lift, hit, fx_t, info}
 var lift_d := PackedFloat32Array() # total lift duration
 var lift_h := PackedFloat32Array() # current height above the ground
 var lift_a := PackedFloat32Array() # swirl angle around the tornado
@@ -178,7 +185,7 @@ var _drawn := -1
 func _ready() -> void:
 	_rng.randomize()
 	pos.resize(MAX); vel.resize(MAX); kb.resize(MAX); hp.resize(MAX); max_hp.resize(MAX)
-	speed.resize(MAX); dmg.resize(MAX); radius.resize(MAX); size.resize(MAX); armor.resize(MAX); blown.resize(MAX)
+	speed.resize(MAX); dmg.resize(MAX); radius.resize(MAX); size.resize(MAX); dr.resize(MAX); blown.resize(MAX)
 	hidden.resize(MAX); held.resize(MAX); atk_i.resize(MAX); atk_t.resize(MAX); atk_target.resize(MAX); frenzy_t.resize(MAX)
 	slow_t.resize(MAX); slow_f.resize(MAX); mark_t.resize(MAX); mark_mult.resize(MAX); spin_t.resize(MAX); spin_to.resize(MAX); hold_t.resize(MAX)
 	type_idx.resize(MAX); elite_idx.resize(MAX); state.resize(MAX); timer.resize(MAX); cooldown.resize(MAX)
@@ -342,6 +349,8 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 		# another art variant (the arena's comparison): the same creature, its own strip and type
 		def = def.variant_def(variant)
 	var t := register_type(def)
+	# met (pass 44): the Collection shows a creature once it has been on the sand
+	Save.mark_seen("enemy", def.id)
 	var i: int = free_list.pop_back()
 	blown[i] = 0
 	held[i] = 0
@@ -351,17 +360,17 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	var ehp := def.hp * stage_mult * hp_time_mult * hp_mult * level_hp_mult
 	var esp := def.speed * stage_speed_mult
 	var edm := def.damage * stage_mult * level_dmg_mult
-	var ear := def.armor
+	var ear := def.damage_reduction
 	var esz := def.size * scale_mult
 	var xps := def.xp_mult
 	elite_idx[i] = -1
 	if elite != null:
 		elite_idx[i] = elites.find(elite)
 		var sheet := StatSheet.new()
-		sheet.set_bases({"hp": ehp, "speed": esp, "damage": edm, "armor": def.armor, "size": esz})
+		sheet.set_bases({"hp": ehp, "speed": esp, "damage": edm, "damage_reduction": def.damage_reduction, "size": esz})
 		sheet.add_effects(elite.effects, elite.id)
 		ehp = sheet.get_stat("hp"); esp = sheet.get_stat("speed"); edm = sheet.get_stat("damage")
-		ear = sheet.get_stat("armor"); esz = sheet.get_stat("size") * elite.scale_mult
+		ear = clampf(sheet.get_stat("damage_reduction"), 0.0, 0.9); esz = sheet.get_stat("size") * elite.scale_mult
 		xps *= 4.0
 	var vt := Color(1, 1, 1, 0)
 	var vsize := 1.0
@@ -385,7 +394,7 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 				vt = Color(sc.r, sc.g, sc.b, float(sp.get("tint_strength", 0.6)))
 		esz *= vsize
 	vtint[i] = vt
-	hp[i] = ehp; max_hp[i] = ehp; speed[i] = esp; dmg[i] = edm; armor[i] = ear
+	hp[i] = ehp; max_hp[i] = ehp; speed[i] = esp; dmg[i] = edm; dr[i] = ear
 	radius[i] = def.radius * scale_mult * (elite.scale_mult if elite else 1.0) * vsize
 	_max_r = maxf(_max_r, radius[i])
 	size[i] = esz
@@ -489,7 +498,7 @@ func kill_all(reward: bool = false) -> void:
 func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vector3.ZERO, kb_force: float = 0.0, green: bool = false, hot: bool = false) -> bool:
 	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
 		return false
-	var dealt: float = max(amount - armor[i], amount * 0.15)
+	var dealt: float = amount * (1.0 - dr[i])
 	# Cauterize: a marked creature takes more from everything while the mark lasts
 	if mark_t[i] > 0.0:
 		dealt *= mark_mult[i]
@@ -1247,21 +1256,38 @@ func _physics_process(delta: float) -> void:
 				var fwd := face.dot(cf)
 				var right := face.dot(cr)
 				var a := absf(atan2(right, fwd))     # 0 = walking away from the camera, PI = towards it
+				# the view it would show, and the one it shows: a creature heading between two views (up and to the
+				# left, say) keeps the one it has until the heading is VIEW_HYST past the boundary (pass 43: the eight-way
+				# creatures used to flick between two sets every tick there)
+				var want := 0
 				if a < PI * 0.125:
-					view[i] = 1
+					want = 1
 				elif a < PI * 0.375:
-					view[i] = 3
+					want = 3
 				elif a < PI * 0.625:
-					view[i] = 2
+					want = 2
 				elif a < PI * 0.875:
-					view[i] = 4
-				else:
-					view[i] = 0
-				# side and diagonal sets face screen-right; mirror them when heading left
-				flip[i] = 1 if right < 0.0 else 0
+					want = 4
+				var cur := int(view[i])
+				if want != cur:
+					var lo: float = VIEW_LO[cur]
+					var hi: float = VIEW_HI[cur]
+					if a >= lo - VIEW_HYST and a <= hi + VIEW_HYST:
+						want = cur
+				view[i] = want
+				# side and diagonal sets face screen-right; mirror them when heading left, with a dead band about
+				# straight up and down so a heading that wobbles about the vertical never flips the picture
+				var len := face.length()
+				if right < -FLIP_BAND * len:
+					flip[i] = 1
+				elif right > FLIP_BAND * len:
+					flip[i] = 0
 		else:
-			if abs(face.x) > 0.05:
-				flip[i] = 1 if face.x < 0.0 else 0
+			var lenf := face.length()
+			if face.x < -FLIP_BAND * lenf:
+				flip[i] = 1
+			elif face.x > FLIP_BAND * lenf:
+				flip[i] = 0
 			# walking away from the camera shows the back-view set (the camera forward is world -Z in fixed mode)
 			if face.length_squared() > 0.04:
 				var cf := _cf_tick
@@ -1735,8 +1761,43 @@ func _tick_rains(delta: float, ppos: Vector3) -> void:
 	_rains = keep
 
 
+## The Gila's rumble (pass 43): a wave of heaving sand runs from the boss down each line of its fan; the hero is hit once
+## by each line he stands on as it passes (thrown along it), and the sand bursts at the wave's front as it goes.
+func _tick_rumbles(delta: float, ppos: Vector3) -> void:
+	if _rumbles.is_empty():
+		return
+	var keep: Array = []
+	for r in _rumbles:
+		var front: float = float(r["front"]) + float(r["speed"]) * delta
+		r["front"] = front
+		var from: Vector3 = r["from"]
+		var dir: Vector3 = r["dir"]
+		var at: Vector3 = from + dir * minf(front, float(r["len"]))
+		at.y = _height(at.x, at.z)
+		r["fx_t"] = float(r["fx_t"]) - delta
+		if float(r["fx_t"]) <= 0.0 and game:
+			r["fx_t"] = 0.07
+			game.fx_sand(at + Vector3(0, 0.2, 0), 1.3)
+			game.rumble_mark(at, float(r["width"]))
+		if not bool(r["hit"]) and player and not player.dead:
+			# the hero against the stretch the wave has covered
+			var rel := ppos - from
+			rel.y = 0.0
+			var along := clampf(rel.dot(dir), 0.0, minf(front, float(r["len"])))
+			var off := rel - dir * along
+			if off.length() <= float(r["width"]) + 0.35 and along > 0.3:
+				r["hit"] = true
+				player.take_damage(float(r["damage"]), at, r["info"])
+				if player.has_method("blast"):
+					player.blast(dir * float(r["kb"]), float(r["lift"]))
+		if front < float(r["len"]):
+			keep.append(r)
+	_rumbles = keep
+
+
 func _update_boss(delta: float, ppos: Vector3) -> void:
 	_tick_rains(delta, ppos)
+	_tick_rumbles(delta, ppos)
 	if boss_index >= 0:
 		_update_attacks(boss_index, delta, ppos)
 	for i in range(MAX):
@@ -1744,8 +1805,9 @@ func _update_boss(delta: float, ppos: Vector3) -> void:
 			var adef: EnemyDef = types[type_idx[i]]["def"]
 			# casters live by their script; any other Elite with one runs it between whatever its brain does. The script
 			# owns STATE_ATTACK, so it keeps running through the attack it started (pass 33.6: it only ran in STATE_MOVE,
-			# so an attack never finished: the Dune Scorpion went under the sand for its burrow and never came up)
-			if adef.brain == "caster" or (adef.archetype == "elite" and not (adef.boss.get("attacks", []) as Array).is_empty()):
+			# so an attack never finished: the Dune Scorpion went under the sand for its burrow and never came up).
+			# Pass 43: any creature with a script runs it (the Hammer Giant's slam, gated by its `reach`)
+			if adef.brain == "caster" or not (adef.boss.get("attacks", []) as Array).is_empty():
 				if state[i] == STATE_MOVE or state[i] == STATE_ATTACK or adef.brain == "caster":
 					_update_attacks(i, delta, ppos)
 				# and whatever happens, a scripted creature is never left buried outside its own attack
@@ -1778,6 +1840,13 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					atk_t[i] = 0.25
 					return
 			var atk: Dictionary = attacks[atk_i[i] % attacks.size()]
+			# an attack with a `reach` waits, walking on, until the hero is that close (the giant's hammer)
+			if atk.has("reach"):
+				var gap := ppos - pos[i]
+				gap.y = 0.0
+				if gap.length() > float(atk["reach"]) + radius[i]:
+					atk_t[i] = 0.15
+					return
 			# an attack with a minimum range is skipped while the hero is inside it (the rain never falls on his head)
 			var tries := 0
 			while atk.has("min_range") and (ppos - pos[i]).length() < float(atk["min_range"]) and tries < attacks.size():
@@ -1804,7 +1873,7 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 						var fn := int(atk.get("count", 7))
 						var fspread := deg_to_rad(float(atk.get("spread_deg", 90.0)))
 						for k in range(fn):
-							game.telegraph_line(pos[i], dir.rotated(Vector3.UP, -fspread * 0.5 + fspread * float(k) / float(maxi(fn - 1, 1))), 14.0, timer[i], Color(0.93, 0.29, 0.36))
+							game.telegraph_line(pos[i], dir.rotated(Vector3.UP, -fspread * 0.5 + fspread * float(k) / float(maxi(fn - 1, 1))), float(atk.get("length", 14.0)), timer[i], Color(0.93, 0.29, 0.36))
 			if str(atk.get("name", "")) == "burrow":
 				# under the sand for the wind-up; the ring on the hero says where it comes up
 				hidden[i] = 1
@@ -1912,11 +1981,35 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					var d := ppos - pos[i]
 					d.y = 0.0
 					if d.length() <= r + 0.5:
-						player.take_damage(float(atk.get("damage", 30)) * stage_mult, pos[i], hit_info(i, "melee", ["slam", "knocked back"]))
-						if player.has_method("apply_knockback"):
+						player.take_damage(float(atk.get("damage", 30)) * stage_mult * level_dmg_mult, pos[i], hit_info(i, "melee", ["slam", "knocked back"]))
+						if atk.has("lift") and player.has_method("blast"):
+							# the giant's hammer (pass 43): a real throw, past the shove's cap
+							player.blast(d.normalized() * float(atk.get("knockback", 6.0)), float(atk["lift"]))
+						elif player.has_method("apply_knockback"):
 							player.apply_knockback(d.normalized() * float(atk.get("knockback", 6.0)))
 					if game and game.has_method("shockwave"):
 						game.shockwave(pos[i], r)
+					if game and atk.has("lift"):
+						game.camera.shake(1.4)
+					state[i] = STATE_MOVE
+				"rumble":
+					# the Gila (pass 43): every line of the fan becomes a wave of heaving sand running out from the boss
+					var rn := int(atk.get("count", 7))
+					var rspread := deg_to_rad(float(atk.get("spread_deg", 90.0)))
+					for k in range(rn):
+						var ra := -rspread * 0.5 + rspread * float(k) / float(maxi(rn - 1, 1))
+						_rumbles.append({"from": pos[i], "dir": charge_dir[i].rotated(Vector3.UP, ra), "len": float(atk.get("length", 14.0)), "front": 0.0,
+							"speed": float(atk.get("speed", 13.0)), "width": float(atk.get("width", 1.2)), "damage": float(atk.get("damage", 16)) * stage_mult * level_dmg_mult,
+							"kb": float(atk.get("knockback", 10.0)), "lift": float(atk.get("lift", 3.0)), "hit": false, "fx_t": 0.0,
+							"info": hit_info(i, "ranged", ["ground rumble", "thrown"])})
+					if game:
+						game.camera.shake(0.8)
+					state[i] = STATE_MOVE
+				"brand":
+					# the Brander's iron (pass 43): a line of fire on the sand that burns whoever crosses it for a while
+					if game and game.has_method("hell_line"):
+						game.hell_line(pos[i], charge_dir[i], float(atk.get("length", 16.0)), float(atk.get("life", 9.0)), float(atk.get("width", 1.1)),
+							float(atk.get("damage", 12)) * stage_mult * level_dmg_mult, float(atk.get("tick", 0.5)), hit_info(i, "ranged", ["hellfire"]))
 					state[i] = STATE_MOVE
 				_:
 					state[i] = STATE_MOVE

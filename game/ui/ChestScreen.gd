@@ -22,7 +22,6 @@ var _reel: Control
 var _plates: Array = []       # [WPlate, def]
 var _hero: WPlate
 var _hero_glow: Control
-var _seal: WSeal
 var _panel: PanelContainer
 var _word: WText
 var _name: WText
@@ -165,9 +164,6 @@ func _build_reel(_kind: String) -> void:
 	if _hero:
 		_hero.queue_free()
 		_hero = null
-	if _seal:
-		_seal.queue_free()
-		_seal = null
 	for i in _defs.size():
 		var d: ContentDef = _defs[i]
 		var p := WPlate.new()
@@ -247,21 +243,8 @@ func _land() -> void:
 	var tw := create_tween()
 	_hero.scale = Vector2.ONE * (SMALL / BIG)
 	tw.tween_property(_hero, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	if def:
-		var r := W.rarity_of(def)
-		_seal = WSeal.new().for_rarity(r, 142.0)
-		_seal.border = 6
-		_seal.ring = 8
-		_seal.text_size = 24
-		_seal.glow = 40.0
-		_seal.position = _hero.position + Vector2(BIG - 142.0 + 30.0, -30.0)
-		_seal.pivot_offset = Vector2(71, 71)
-		_seal.scale = Vector2.ZERO
-		_reel.add_child(_seal)
-		var ts := create_tween()
-		ts.tween_interval(0.2)
-		ts.tween_property(_seal, "scale", Vector2(1.12, 1.12), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		ts.tween_property(_seal, "scale", Vector2.ONE, 0.12)
+	# the reveal (pass 44): a sunburst behind the landed plate, stars and paper scraps raining past it
+	WCelebrate.burst(self, _hero.position + Vector2(BIG, BIG) * 0.5, 2)
 	# the result
 	for c in _marks_host.get_children():
 		c.queue_free()
@@ -290,7 +273,7 @@ func _land() -> void:
 	_panel.modulate.a = 0.0
 	var tp := create_tween()
 	tp.tween_property(_panel, "modulate:a", 1.0, 0.2)
-	Audio.play("w_evo_reveal" if kind == "evolution" else "ui_levelup")
+	Audio.play("w_evo_reveal" if kind == "evolution" else "ui_jackpot")
 	_sell_btn.visible = def != null
 	_sell_btn.set_parts(["SELL ", {"coin": 32}, ["+%d" % _sell_gold, W.BRASS_DARK]])
 	buttons.visible = true

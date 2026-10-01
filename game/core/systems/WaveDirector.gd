@@ -20,6 +20,8 @@ var _cull_t := 0.0
 var _endless_next_boss := 0.0
 var _endless_next_elite := 0.0
 var _endless_next_elite_boss := 0.0
+var _endless_wave := 0
+var _endless_boss_i := 0   # the endless loop's bosses come in the timeline's order (pass 43)
 var elite_index := -1            # the mini-boss while it lives (the HUD points at it)
 var _rng := RandomNumberGenerator.new()
 var _pickup_t := -1.0          # seconds until the next pickup; negative = none scheduled
@@ -115,13 +117,20 @@ func _process_events() -> void:
 			et["next"] = t + float(et["interval"])
 			_spawn_elite("", "")
 	if Run.endless:
+		# every wave (a minute) the crowd gets endless_wave_mult tougher, compounding (pass 43); the multipliers follow
+		# through _apply_mults, this is the announcement
+		var wave := Run.endless_wave()
+		if wave != _endless_wave:
+			_endless_wave = wave
+			if wave > 1:
+				game.toast("WAVE %d · ×%.2f" % [wave, Run.stage_mult()], Color(0.93, 0.29, 0.36))
 		if t >= _endless_next_elite:
 			_endless_next_elite = t + 45.0
 			_spawn_elite("", "")
 		if t >= _endless_next_boss and map.boss != "":
 			_endless_next_boss = t + 300.0
 			_endless_next_elite_boss = t + 150.0
-			_run_event({"type": "boss", "enemy": map.boss})
+			_run_event({"type": "boss", "enemy": _endless_boss_id()})
 		if _endless_next_elite_boss > 0.0 and t >= _endless_next_elite_boss and _endless_elite_id() != "":
 			_endless_next_elite_boss = 0.0
 			_run_event({"type": "elite_boss", "enemy": _endless_elite_id()})
@@ -190,6 +199,20 @@ func _spawn_elite_boss(id: String) -> void:
 		game.toast(def.display_name.to_upper(), Color(0.98, 0.62, 0.25))
 
 
+## The boss the endless loop brings next: the timeline's boss events in order, round and round (the King, the Gila, the
+## Brander, the King...), the map's boss when it has none.
+func _endless_boss_id() -> String:
+	var ids: Array = []
+	for ev in timeline.events:
+		if str(ev.get("type", "")) == "boss" and Registry.enemy(str(ev.get("enemy", ""))) != null:
+			ids.append(str(ev.get("enemy", "")))
+	if ids.is_empty():
+		return map.boss
+	var id: String = ids[_endless_boss_i % ids.size()]
+	_endless_boss_i += 1
+	return id
+
+
 ## The mini-boss the endless loop repeats: the last elite_boss event in the timeline (one of its ids when it lists several).
 func _endless_elite_id() -> String:
 	for k in range(timeline.events.size() - 1, -1, -1):
@@ -229,6 +252,8 @@ func continue_to_next_stage() -> void:
 	Run.path_slot = 0
 	if Run.stage >= timeline.stages:
 		Run.endless = true
+		_endless_wave = 1
+		_endless_boss_i = 0
 		_endless_next_boss = Run.elapsed + 300.0
 		_endless_next_elite = Run.elapsed + 45.0
 		_endless_next_elite_boss = Run.elapsed + 150.0
@@ -241,14 +266,29 @@ func continue_to_next_stage() -> void:
 func _spawn_burst() -> void:
 	var em: EnemyManager = game.enemies
 	var cap := current_cap()
+	var all := timeline.roster_at(Run.elapsed)
+	# the hell channel (pass 43): its rows spawn against their own cap, a fraction of the regular one, so the regular
+	# roster keeps its mix and its count exactly; the hell crowd is bodies on top
+	var hell_rows: Array = all.filter(func(r: Dictionary) -> bool: return str(r.get("channel", "")) == "hell")
+	var hell_load := _hell_load(hell_rows)
 	# the cap counts each creature's share (the fodder counts half), and the map's hard cap is a count of bodies
-	var room: float = float(cap) - em.cap_load()
+	var room: float = float(cap) - (em.cap_load() - hell_load)
 	var bodies: int = timeline.hard_cap - em.alive_count()
-	if room <= 0.0 or bodies <= 0:
+	if bodies <= 0:
 		return
-	var roster := _roster_open(timeline.roster_at(Run.elapsed))
+	var regular: Array = all.filter(func(r: Dictionary) -> bool: return str(r.get("channel", "")) != "hell")
+	if room > 0.0:
+		bodies = _burst_from(_roster_open(regular), room, bodies)
+	var hell_room: float = timeline.hell_cap_at(Run.stage) * float(cap) - hell_load
+	if hell_room > 0.0 and bodies > 0 and not hell_rows.is_empty():
+		_burst_from(_roster_open(hell_rows), hell_room, bodies)
+
+
+## One burst from `roster` (weighted rows) into `room` of cap and `bodies` of the hard cap; returns the bodies left.
+func _burst_from(roster: Array, room: float, bodies: int) -> int:
+	var em: EnemyManager = game.enemies
 	if roster.is_empty():
-		return
+		return bodies
 	var burst: float = minf(float(_rng.randi_range(timeline.burst_min, timeline.burst_max)), room)
 	var total_w := 0.0
 	var ws: Array = []
@@ -265,12 +305,34 @@ func _spawn_burst() -> void:
 				break
 		var def: EnemyDef = Registry.enemy(str(chosen.get("enemy", "")))
 		if def == null:
-			return
+			return bodies
 		var share: float = maxf(def.cap_share, 0.05)
 		var n: int = mini(mini(def.pack_size, maxi(int(ceil(burst / share)), 1)), bodies)
 		em.spawn_pack(def.id, _spawn_point(), n)
 		burst -= float(n) * share
 		bodies -= n
+	return bodies
+
+
+## The hell channel's living creatures against its cap (each its cap_share), from its roster rows.
+func _hell_load(rows: Array) -> float:
+	var em: EnemyManager = game.enemies
+	var load := 0.0
+	var seen: Dictionary = {}
+	for r in rows:
+		var id := str(r.get("enemy", ""))
+		if seen.has(id):
+			continue
+		seen[id] = true
+		var def: EnemyDef = Registry.enemy(id)
+		if def:
+			load += float(em.alive_of(id)) * def.cap_share
+	return load
+
+
+## The hell channel's rows in the roster now (the arena's WAVES tab and the tests).
+func hell_rows() -> Array:
+	return timeline.roster_at(Run.elapsed).filter(func(r: Dictionary) -> bool: return str(r.get("channel", "")) == "hell")
 
 
 ## The roster without the rows whose creature is at its live limit (`max_alive`: the harpooner is never more than one).

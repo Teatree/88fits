@@ -16,6 +16,11 @@ var spawn_points: Array = []    # player start candidates
 var jump_pads: Array = []
 
 
+## Hell (pass 43): how red the ground is, 0 to 1, tweened in over `seconds`. Maps with painted terrain override it.
+func set_hell(_f: float, _seconds: float = 3.0) -> void:
+	pass
+
+
 func height_at(x: float, z: float) -> float:
 	if grid_n == 0:
 		return 0.0

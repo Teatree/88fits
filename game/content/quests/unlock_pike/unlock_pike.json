@@ -1,0 +1,17 @@
+{
+  "id": "unlock_pike",
+  "name": "Pike",
+  "condition": {
+    "type": "survive_minutes",
+    "minutes": 4
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "pike"
+  },
+  "art_prompt": "a glass jar with a long steel pike inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

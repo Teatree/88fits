@@ -20,6 +20,7 @@ var map: MapBase
 var director: WaveDirector
 var portal: Portal
 var structures: StructureManager
+var barrels: BarrelField
 var structure_shop: StructureShop
 var chest_screen: ChestScreen
 var resume_gate: ResumeGate
@@ -147,9 +148,18 @@ func _ready() -> void:
 	add_child(structures)
 	if mapdef and mapdef.timeline and not mapdef.timeline.structures.is_empty():
 		structures.setup(self, map, mapdef.timeline.structures)
+	# the barrels (pass 44): forty-odd by the run's seed, never behind a painting, broken by walking up to them
+	barrels = BarrelField.new()
+	barrels.name = "Barrels"
+	add_child(barrels)
+	barrels.setup(self, map)
 	director.portal_ready.connect(_on_portal_ready)
 	director.boss_started.connect(func(def): if hud: hud.show_boss(def))
-	director.stage_started.connect(func(s): if hud: hud.refresh_stage())
+	director.stage_started.connect(func(s):
+		if hud: hud.refresh_stage()
+		# stage 3 is hell: the sand goes a shade redder (pass 43), and stays so through endless
+		if map and map.has_method("set_hell"): map.set_hell(1.0 if s >= 2 else 0.0, 3.0))
+	director.boss_started.connect(_on_boss_started)
 	enemies.boss_hp_changed.connect(func(hp, mx): if hud: hud.set_boss_hp(hp, mx))
 	enemies.boss_died.connect(func(_d, _p): if hud: hud.hide_boss())
 	Run.level_up.connect(_on_level_up)
@@ -453,6 +463,7 @@ func _process(delta: float) -> void:
 	_tick_breadcrumb(delta)
 	_tick_water(delta)
 	_tick_berserk(delta)
+	_tick_hell(delta)
 	var t0 := Time.get_ticks_usec()
 	hud.tick(delta)
 	hints.tick(delta)
@@ -472,7 +483,9 @@ func _check_quests() -> void:
 	_last_quest_check = s
 	for id in QuestTracker.check_all(true):
 		var q: QuestDef = Registry.quests[id]
-		hud.banner("UNLOCKED: " + q.display_name, UiKit.GOOD)
+		# the banner carries the item's own icon (pass 44), so the unlock is seen, not only read
+		var def: ContentDef = Registry.unlocked_by(q)
+		hud.banner("UNLOCKED: " + (def.display_name if def else q.display_name), UiKit.GOOD, def.icon if def else null)
 		Audio.play("ui_unlock")
 
 
@@ -497,6 +510,8 @@ func _tick_perks(delta: float) -> void:
 		_tick_thrusters(delta)
 	if Run.has_perk("high_noon") or _noon_left > 0.0:
 		_tick_high_noon(delta)
+	if Run.has_perk("serenade"):
+		_tick_serenade(delta)
 	if not Run.has_perk("trail_dust"):
 		return
 	if player.velocity.length() < 0.8:
@@ -506,6 +521,25 @@ func _tick_perks(delta: float) -> void:
 		_dust_t = Run.perk_param("trail_dust", "every", 0.22)
 		spawn_zone(player.global_position - player.forward() * 0.6, Run.perk_param("trail_dust", "radius", 1.1), Run.perk_param("trail_dust", "seconds", 1.0),
 			0.0, 0.3, null, Run.perk_param("trail_dust", "slow", 0.25), Color(0.85, 0.72, 0.5, 0.3))
+
+
+## Serenade (pass 43, Calavera): whatever comes within the song's reach moves slower; a faint gold disc under him says
+## how far it carries.
+var _serenade_t := 0.0
+var _serenade_disc := -1
+
+
+func _tick_serenade(delta: float) -> void:
+	var r := Run.perk_param("serenade", "radius", 4.0)
+	var here: Vector3 = player.global_position
+	if _serenade_disc < 0:
+		_serenade_disc = telegraphs.hold_disc(here, r, Color(1.0, 0.85, 0.4, 0.09))
+	telegraphs.move_held(_serenade_disc, Vector3(here.x, map.height_at(here.x, here.z) if map else here.y, here.z))
+	_serenade_t -= delta
+	if _serenade_t > 0.0:
+		return
+	_serenade_t = Run.perk_param("serenade", "every", 0.3)
+	enemies.slow_radius(here, r, Run.perk_param("serenade", "slow", 0.25), _serenade_t + 0.25)
 
 
 ## Supply Drop: a red ring on the sand near her, a pod falling into it, a blast that hurts and throws, and a power-up
@@ -760,8 +794,8 @@ func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: 
 	var xp_scale := def.xp_mult * (4.0 if elite else 1.0)
 	pickups.drop_from(def, at, xp_scale, elite != null)
 	director.drop_pickup_from(def, at, elite != null)
-	# the drop passives (pass 33.2): Beef Jerky and Pickpocket roll on every kill for their own small pickups
-	for pair in [["heal_drop", "jerky"], ["coin_drop", "coin_bag"]]:
+	# the drop passives (pass 33.2): Cheese (Beef Jerky until pass 44) and Pickpocket roll on every kill for their own small pickups
+	for pair in [["heal_drop", "cheese_bite"], ["coin_drop", "coin_bag"]]:
 		var chance: float = Run.player_sheet.get_stat(str(pair[0]), 0.0)
 		if chance > 0.0 and randf() < chance:
 			var pd: PickupDef = Registry.pickup(str(pair[1]))
@@ -770,6 +804,31 @@ func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: 
 	# chests: every elite variant and the mini-boss, the odd regular creature (drops.chest in its JSON)
 	if elite != null or def.archetype == "elite" or (not no_random_chests and randf() < float(def.drops.get("chest", 0.0))):
 		pickups.spawn_chest(at)
+	# a creature's own power-up (pass 43: the giant drops a Berserk one time in three, drops.pickup {id, chance})
+	var own = def.drops.get("pickup", {})
+	if own is Dictionary and randf() < float(own.get("chance", 0.0)):
+		var od: PickupDef = Registry.pickup(str(own.get("id", "")))
+		if od:
+			pickups.spawn_special(od, at + Vector3(randf_range(-0.6, 0.6), 0, randf_range(-0.6, 0.6)))
+	# Brimstone Brand (pass 43, stage 3): a kill may set the sand alight where the body fell, burning the crowd
+	var brand: float = Run.player_sheet.get_stat("brand_chance", 0.0)
+	if brand > 0.0 and randf() < brand and def.archetype != "boss":
+		var bw: WeaponInstance = Run.weapon_instance(_weapon_id) if _weapon_id != "" else null
+		var bz := spawn_zone(at, 2.2, 3.0, 6.0 * Run.player_sheet.get_stat("might", 1.0), 0.25, bw, 0.0, Color(1.0, 0.42, 0.1, 0.3))
+		bz.flames = true
+		fx.ignite(at + Vector3(0, 0.2, 0), 1.4)
+	# Grand Finale (pass 43, Calavera): a boss or an Elite going down takes a share of every creature's health with it
+	if (def.archetype == "boss" or def.archetype == "elite" or elite != null) and Run.has_perk("grand_finale"):
+		var fr := Run.perk_param("grand_finale", "radius", 14.0)
+		var frac := Run.perk_param("grand_finale", "frac", 0.35)
+		for j in enemies.indices_in_radius(at, fr):
+			if j != enemies.boss_index:
+				enemies.damage(j, enemies.max_hp[j] * frac, "grand_finale")
+		enemies.throw_radius(at, fr, Run.perk_param("grand_finale", "throw", 16.0))
+		telegraphs.flash_ring(at, fr, Color(1.0, 0.82, 0.35), 0.6)
+		fx.burst(at + Vector3(0, 1.0, 0), Color(1.0, 0.82, 0.35), 4.0)
+		hud.toast("GRAND FINALE", Color(1.0, 0.82, 0.35))
+		camera.shake(1.2)
 	# materials for the homestead: bones from every Elite, relics from every boss; deeper stages and Mira's trait add one
 	# the Mirror spends gold, so what the deep parts of a run used to pay in bones and relics they pay in coin:
 	# an Elite is worth a purse, a boss a chest of them (Mira's Motherlode adds a half)
@@ -783,6 +842,8 @@ func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: 
 		Run.add_gold(chest_gold)
 		hud.toast("+%d GOLD" % chest_gold, Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss":
+		_end_ring()
+		_hell_lines.clear()
 		# the reward scales with the boss (drops.coins, drops.chests): the second boss pays for continuing
 		for k in range(int(def.drops.get("coins", 12))):
 			pickups.spawn(PickupManager.KIND_COIN, at + Vector3(randf_range(-2.5, 2.5), 0, randf_range(-2.5, 2.5)), 5.0)
@@ -801,6 +862,8 @@ func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: 
 
 ## Cactus Coat: whatever hits the hero gets a face full of spines, along with anything else standing close.
 func _on_player_hit() -> void:
+	# Crescendo (pass 43): a hit ends the song
+	Run.reset_crescendo()
 	# Tough Love: a hit makes Dad hit harder and wider for a few seconds
 	if Run.has_perk("tough_love"):
 		var e1 := Effect.make("might", "mul", Run.perk_param("tough_love", "might", 0.15), "player")
@@ -969,6 +1032,9 @@ func _roll_dice(def: StructureDef, at: Vector3) -> void:
 
 ## The hero walked into a pickup (content/pickups): heal, timed buff, shield or gem vacuum.
 func apply_pickup(def: PickupDef, at: Vector3) -> void:
+	# a power-up taken (pass 44: an unlock counts them); the small things underfoot (cheese, coin bags) are not power-ups
+	if not bool(def.params.get("small", false)) and not Run.arena:
+		Save.add_total("pickups", 1)
 	match def.effect_kind:
 		"heal":
 			var amount: float = player.max_hp * def.value
@@ -1060,10 +1126,8 @@ func _on_portal_ready(at: Vector3) -> void:
 func _on_portal_entered() -> void:
 	set_paused(true)
 	var final_stage: bool = Run.stage + 1 >= Run.map.timeline.stages if Run.map and Run.map.timeline else false
-	var can_continue := true
-	if final_stage and not Registry.is_unlocked("mode", "endless"):
-		can_continue = false
-	portal_dialog.open(Run.stage + 1, can_continue, final_stage)
+	# pass 43: after the last boss the choice is extract or stay (endless needs no unlock any more)
+	portal_dialog.open(Run.stage + 1, true, final_stage)
 	portal_dialog.decided.connect(_on_portal_decided, CONNECT_ONE_SHOT)
 
 
@@ -1081,7 +1145,12 @@ func _on_portal_decided(extract: bool) -> void:
 			portal.queue_free()
 			portal = null
 		director.continue_to_next_stage()
-		hud.banner("STAGE %d" % (Run.stage + 1) if not Run.endless else "ENDLESS", UiKit.ACCENT)
+		if Run.endless:
+			hud.banner("HELL STAYS", UiKit.ACCENT)
+		elif Run.stage + 1 >= 3:
+			hud.banner("STAGE %d · HELL" % (Run.stage + 1), UiKit.DANGER)
+		else:
+			hud.banner("STAGE %d" % (Run.stage + 1), UiKit.ACCENT)
 
 
 ## Down: the death plays out for a moment, then the game pauses behind the revive screen. One chance per run plus
@@ -1128,15 +1197,17 @@ func end_run() -> void:
 	_ended = true
 	tether_end()
 	director.stop()
-	QuestTracker.check_all(true)
-	var gold := Run.run_gold
-	if Run.extracted:
-		gold = int(round(gold * 1.25))
-	# what the results screen says: the purse before and after, and the best this map had before this run
+	# the run's gold comes home with the hero (pass 44): a death leaves it in the sand, all but what a Strongbox banked
+	# on the way; the results screen says which
+	var gold := Run.run_gold if not Run.died else 0
 	var map_id := Run.map.id if Run.map else ""
-	Run.last_result = {"gold_before": Save.gold(), "banked": gold, "prev_best": Save.best_run(map_id).duplicate()}
-	Save.add_gold(gold)
-	Save.record_run(map_id, Run.elapsed, Run.level, Run.stage + 1)
+	Run.last_result = {"gold_before": Save.gold(), "banked": gold, "lost": Run.run_gold if Run.died else 0,
+		"strongbox": Run.banked_gold, "prev_best": Save.best_run(map_id).duplicate()}
+	if gold > 0:
+		Save.add_gold(gold)
+	Save.record_run(map_id, Run.elapsed, Run.level, Run.stage + 1, Run.kills)
+	# after the run is counted, so "play N runs" sees this one
+	QuestTracker.check_all(true)
 	Save.save_now()
 	Run.end()
 	Audio.stop_music()
@@ -1157,11 +1228,12 @@ func telegraph_sector(center: Vector3, dir: Vector3, r: float, deg: float, dur: 
 
 
 ## A ground patch that keeps working for a while: damage through `w` every `tick`, and a slow (Zone).
-func spawn_zone(at: Vector3, radius: float, seconds: float, dps: float, tick: float, w: WeaponInstance, slow: float = 0.0, color: Color = Color(0.4, 0.75, 1.0, 0.4)) -> void:
+func spawn_zone(at: Vector3, radius: float, seconds: float, dps: float, tick: float, w: WeaponInstance, slow: float = 0.0, color: Color = Color(0.4, 0.75, 1.0, 0.4)) -> Zone:
 	var z := Zone.new()
 	z.setup(self, w, radius, seconds, dps, tick, slow, color)
 	z.position = Vector3(at.x, map.height_at(at.x, at.z) if map else at.y, at.z)
 	add_child(z)
+	return z
 
 
 ## The Singularity's black hole where its shot came down (pass 35, Vortex.gd).
@@ -1866,6 +1938,129 @@ func fx_burst(at: Vector3, color: Color, size: float) -> void:
 func fx_sand(at: Vector3, size: float = 1.0) -> void:
 	if fx:
 		fx.sand(at, size)
+
+
+## The Gila's rumble passing (pass 43): a brief orange ring where the sand heaves, so the wave's front reads.
+func rumble_mark(at: Vector3, width: float) -> void:
+	telegraphs.flash_ring(at, width * 1.1, Color(1.0, 0.6, 0.3), 0.25)
+	camera.shake(0.12)
+
+
+# ---------------------------------------------------------------- hell (pass 43: the Brander)
+
+## Lines of fire the Brander's iron leaves on the sand: {from, dir, len, width, life, damage, tick, next, fx_t, info}. The
+## hero on one takes `damage` every `tick` seconds; so does anything else standing in it (at half).
+var _hell_lines: Array = []
+## The brimstone ring: the fight's arena, closing in. {center, r, t, phase} while the boss with a `ring` lives.
+var _ring: Dictionary = {}
+var _ring_mark := -1
+var _ring_burn_t := 0.0
+var _ring_fx_t := 0.0
+
+
+func hell_line(from: Vector3, dir: Vector3, length: float, life: float, width: float, damage: float, tick: float, info: Dictionary) -> void:
+	var d := Vector3(dir.x, 0, dir.z).normalized()
+	var at := Vector3(from.x, map.height_at(from.x, from.z) if map else from.y, from.z)
+	_hell_lines.append({"from": at, "dir": d, "len": length, "width": width, "life": life, "damage": damage, "tick": tick, "next": 0.0, "fx_t": 0.0, "info": info})
+	# the mark on the ground for as long as it burns, in fire
+	telegraphs.line(at, d, length, life, Color(1.0, 0.45, 0.12, 0.55), width * 2.0)
+	for k in range(6):
+		fx.ignite(at + d * length * (float(k) + 0.5) / 6.0 + Vector3(0, 0.2, 0), 1.2)
+	Audio.play("w_flare_fire", at)
+
+
+## The boss that draws the ring starts it; the ring dies with the boss (_on_enemy_died).
+func _on_boss_started(def: EnemyDef) -> void:
+	var cfg = def.boss.get("ring", {})
+	if not (cfg is Dictionary) or cfg.is_empty():
+		return
+	var c: Vector3 = enemies.pos[enemies.boss_index] if enemies.boss_index >= 0 else player.global_position
+	_ring = {"center": Vector3(c.x, map.height_at(c.x, c.z) if map else c.y, c.z), "r": float(cfg.get("radius", 21.0)), "t": 0.0, "cfg": cfg}
+	_ring_mark = telegraphs.hold_ring(_ring["center"], _ring["r"], Color(1.0, 0.4, 0.1, 0.85))
+	hud.toast("THE RING OF FIRE CLOSES IN", Color(1.0, 0.45, 0.15))
+
+
+func _end_ring() -> void:
+	if _ring_mark >= 0:
+		telegraphs.release(_ring_mark)
+		_ring_mark = -1
+	_ring = {}
+
+
+func _tick_hell(delta: float) -> void:
+	if not _hell_lines.is_empty():
+		var keep: Array = []
+		var here: Vector3 = player.global_position
+		for l in _hell_lines:
+			l["life"] = float(l["life"]) - delta
+			l["next"] = float(l["next"]) - delta
+			l["fx_t"] = float(l["fx_t"]) - delta
+			var from: Vector3 = l["from"]
+			var d: Vector3 = l["dir"]
+			var ln: float = float(l["len"])
+			if float(l["fx_t"]) <= 0.0:
+				l["fx_t"] = 0.09
+				for k in range(3):
+					var s := randf() * ln
+					var side := randf_range(-0.4, 0.4) * float(l["width"])
+					fx.flame(from + d * s + Vector3(-d.z, 0, d.x) * side + Vector3(0, 0.05, 0), randf_range(0.8, 1.3), 0.45, Color(1.0, 0.42, 0.1))
+			if float(l["next"]) <= 0.0:
+				l["next"] = float(l["tick"])
+				var rel := here - from
+				rel.y = 0.0
+				var along := clampf(rel.dot(d), 0.0, ln)
+				if (rel - d * along).length() <= float(l["width"]) + 0.3 and not player.dead:
+					player.take_damage(float(l["damage"]), from + d * along, l["info"])
+				# the crowd burns on it too, at half
+				var steps := int(ceil(ln / 2.0))
+				for k in range(steps):
+					enemies.damage_radius(from + d * (float(k) + 0.5) * ln / float(steps), float(l["width"]) + 0.6, float(l["damage"]) * 0.5, "", 0.0)
+			if float(l["life"]) > 0.0:
+				keep.append(l)
+		_hell_lines = keep
+	if _ring.is_empty():
+		return
+	if enemies.boss_index < 0 or not enemies.is_alive(enemies.boss_index):
+		_end_ring()
+		return
+	var cfg: Dictionary = _ring["cfg"]
+	var r_max := float(cfg.get("radius", 21.0))
+	var r_min := float(cfg.get("min_radius", 8.0))
+	var shrink := float(cfg.get("shrink", 42.0))
+	var hold := float(cfg.get("hold", 8.0))
+	_ring["t"] = float(_ring["t"]) + delta
+	var t := fmod(float(_ring["t"]), shrink + hold)
+	var r: float = lerpf(r_max, r_min, clampf(t / shrink, 0.0, 1.0))
+	_ring["r"] = r
+	var c: Vector3 = _ring["center"]
+	telegraphs.move_held(_ring_mark, c, r)
+	_ring_fx_t -= delta
+	if _ring_fx_t <= 0.0:
+		_ring_fx_t = 0.05
+		for k in range(4):
+			var a := randf() * TAU
+			var p := c + Vector3(cos(a) * r, 0.05, sin(a) * r)
+			p.y = (map.height_at(p.x, p.z) if map else c.y) + 0.05
+			fx.flame(p, randf_range(1.0, 1.8), 0.5, Color(1.0, 0.4, 0.1))
+	_ring_burn_t -= delta
+	if _ring_burn_t > 0.0:
+		return
+	_ring_burn_t = 0.5
+	var here: Vector3 = player.global_position
+	var flat := here - c
+	flat.y = 0.0
+	if flat.length() > r + 0.4 and not player.dead:
+		player.take_damage(player.max_hp * float(cfg.get("burn", 0.07)) * 0.5, c, {"by": "the ring of fire", "kind": "boss", "fx": ["outside the ring"]})
+		hud.flash(Color(1.0, 0.35, 0.1, 0.3), 0.3)
+	# the crowd burns out there too, so the fight stays inside
+	var cb := float(cfg.get("creature_burn", 0.12)) * 0.5
+	if cb > 0.0:
+		for i in range(EnemyManager.MAX):
+			if enemies.alive[i] == 1 and i != enemies.boss_index:
+				var ep := enemies.pos[i] - c
+				ep.y = 0.0
+				if ep.length() > r + 0.4:
+					enemies.damage(i, enemies.max_hp[i] * cb, "", Vector3.ZERO, 0.0, false, true)
 
 
 func fx_lightning(points: Array) -> void:

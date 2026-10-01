@@ -1,0 +1,89 @@
+{
+  "id": "hammer_giant",
+  "name": "Hammer Giant",
+  "flavour": "Slow to arrive. Sudden when it does.",
+  "archetype": "brute",
+  "brain": "chase",
+  "hp": 280,
+  "speed": 0.95,
+  "damage": 14,
+  "radius": 1.1,
+  "size": 3.4,
+  "pack_size": 1,
+  "max_alive": 3,
+  "can_be_elite": false,
+  "can_be_grabbed": false,
+  "drops": {
+    "large": 1.0,
+    "medium": 1.0,
+    "gold": 0.5,
+    "chest": 0.22,
+    "pickup": {
+      "id": "rage",
+      "chance": 0.3
+    }
+  },
+  "frame_px": 256,
+  "xp_mult": 16,
+  "cap_share": 2.5,
+  "boss": {
+    "attacks": [
+      {
+        "name": "slam",
+        "windup": 1.1,
+        "radius": 3.6,
+        "damage": 42,
+        "knockback": 30,
+        "lift": 4.0,
+        "telegraph": "ring",
+        "reach": 3.4
+      }
+    ],
+    "cooldown_between": 2.6
+  },
+  "sfx": {
+    "attack": "en_boss_attack",
+    "hit": "en_goblin_hit",
+    "die": "en_mummy_die"
+  },
+  "placeholder": {
+    "color": "#8A7A66",
+    "ears": "none",
+    "eyes": 2,
+    "shape": "tall"
+  },
+  "art_prompt": "a hulking desert ogre giant with grey-brown weathered skin, a huge bald head with a heavy brow, small eyes and a wide underbite with two tusks, a ragged hide loincloth and a thick rope belt, tree-trunk legs and bare feet, holding an enormous stone sledgehammer with a thick wooden handle in both hands with its head resting on one shoulder, two arms and two legs, standing on the ground facing the viewer",
+  "variance": {
+    "size": 0.1,
+    "speed": 0.08,
+    "tints": [
+      "#FFFFFF",
+      "#D8C8B0",
+      "#B0B8C8"
+    ],
+    "tint_strength": 0.2,
+    "special_chance": 0.0
+  },
+  "motion": "lumbering in place with slow heavy steps, the huge stone hammer resting on its shoulder the whole time",
+  "anim_negative": "extra arms, a third arm, two hammers, extra legs, extra heads",
+  "dead_hint": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, the huge stone hammer lying on the ground beside its open hand",
+  "back_hint": "It still holds the enormous stone hammer over one shoulder, the hammer's head visible above its shoulder.",
+  "death": "clip",
+  "death_frames": 8,
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 8,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "fps": {
+    "run": 15,
+    "die": 12
+  },
+  "doc": "The giant: slow, three metres of it, 280 HP. Close enough, it raises the hammer (a red ring) and smacks the floor for 42 and a throw across the sand. Never more than three; a chest or a Berserk falls from one in four.",
+  "strip_cols": 43,
+  "head": 0.992
+}

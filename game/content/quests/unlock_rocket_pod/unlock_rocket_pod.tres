@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_rocket_pod/unlock_rocket_pod_icon.png" id="1_c6e0u"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_feycm"]
+
+[resource]
+script = ExtResource("2_feycm")
+condition = {
+"count": 3.0,
+"type": "open_chests"
+}
+unlocks = {
+"id": "rocket_pod",
+"type": "weapon"
+}
+id = "unlock_rocket_pod"
+display_name = "Rocket Pod"
+icon = ExtResource("1_c6e0u")
+icon_file = "unlock_rocket_pod_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

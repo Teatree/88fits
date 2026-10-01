@@ -13,7 +13,8 @@ extends MapBase
 @export var sand_color := Color(0.85, 0.66, 0.39)
 @export var river_color := Color(0.70, 0.46, 0.26)
 @export var wall_color := Color(0.56, 0.31, 0.17)
-@export var tumbleweeds := 6
+## Tumbleweeds are hidden since pass 44 (Garry: no more of them, the gusts carry the desert now); the feature stays.
+@export var tumbleweeds := 0
 @export var lake_depth := 0.45
 
 ## the run's roll: the river's waypoints, the lake's centre, radius, water level and floor
@@ -199,6 +200,7 @@ func _build_terrain() -> void:
 		mi.material_override = fallback
 	if mi.material_override == null:
 		mi.material_override = mat
+		_terrain_mat = mat
 	add_child(mi)
 	# collision
 	_static = StaticBody3D.new()
@@ -233,6 +235,10 @@ func _color_at(x: float, z: float, h: float) -> Color:
 # ---------------------------------------------------------------- geometry helpers
 
 var _stone_mat: StandardMaterial3D
+var _terrain_mat: ShaderMaterial
+var _env: Environment
+var _hell := 0.0
+var _hell_tween: Tween
 
 
 func _stone() -> StandardMaterial3D:
@@ -562,6 +568,7 @@ func _build_sky() -> void:
 	env.fog_density = 0.004
 	var we := WorldEnvironment.new()
 	we.environment = env
+	_env = env
 	add_child(we)
 	var sun := DirectionalLight3D.new()
 	sun.light_color = Color(1.0, 0.85, 0.65)
@@ -571,10 +578,32 @@ func _build_sky() -> void:
 	add_child(sun)
 
 
+## Stage 3 is hell (pass 43): the sand goes a shade redder and darker, the light and the haze with it, over `seconds`.
+func set_hell(f: float, seconds: float = 3.0) -> void:
+	if _hell_tween:
+		_hell_tween.kill()
+	_hell_tween = create_tween()
+	_hell_tween.tween_method(_apply_hell, _hell, clampf(f, 0.0, 1.0), maxf(seconds, 0.01))
+
+
+func _apply_hell(f: float) -> void:
+	_hell = f
+	if _terrain_mat:
+		_terrain_mat.set_shader_parameter("hell", f)
+	if _env:
+		_env.ambient_light_color = Color(0.95, 0.80, 0.66).lerp(Color(0.92, 0.70, 0.60), f)
+		_env.fog_light_color = Color(0.93, 0.66, 0.42).lerp(Color(0.86, 0.54, 0.38), f)
+
+
 func _build_movers() -> void:
 	var dd := DustDevil.new()
 	dd.loop_center = flats_center + Vector3(6, 0, 4)
 	add_child(dd)
+	# gusts of dusty wind now and then (pass 44), the look of the desert and nothing else
+	var gust := DustGust.new()
+	gust.name = "DustGust"
+	gust.map = self
+	add_child(gust)
 	for k in range(tumbleweeds):
 		var tw := Tumbleweed.new()
 		add_child(tw)
@@ -584,7 +613,7 @@ func _build_movers() -> void:
 
 func bind_game(game: Node) -> void:
 	for c in get_children():
-		if c is DustDevil:
+		if c is DustDevil or c is DustGust:
 			c.game = game
 
 
@@ -672,7 +701,7 @@ func _scatter_sprites() -> void:
 		var pt: Vector2 = around.call(_lake_c, _lake_r + 1.4, _lake_r + 5.0, 1.2)
 		if pt != Vector2.INF:
 			place.call("fan_palm", pt, rng.randf_range(0.9, 1.15), 0.05)
-	var oasis_low: Array = [["desert_bush", 3], ["creosote_bush", 2], ["agave", 2], ["prickly_pear", 2], ["yucca", 2], ["ocotillo", 1], ["mesquite_tree", 1], ["rock_small", 1]]
+	var oasis_low: Array = [["desert_bush", 3], ["creosote_bush", 2], ["agave", 2], ["yucca", 2], ["ocotillo", 1], ["mesquite_tree", 1], ["rock_small", 1]]
 	for k in range(rng.randi_range(22, 28)):
 		var pt: Vector2 = around.call(_lake_c, _lake_r + 1.0, _lake_r + 11.0, 0.6)
 		if pt != Vector2.INF:
@@ -693,7 +722,7 @@ func _scatter_sprites() -> void:
 				var pt: Vector2 = around.call(centre, 1.0, 7.0, 0.8)
 				if pt != Vector2.INF:
 					place.call("saguaro_small", pt, rng.randf_range(0.85, 1.1), 0.06)
-			var low: Array = [["barrel_cactus", 3], ["prickly_pear", 3], ["agave", 2], ["yucca", 2], ["ocotillo", 1.5], ["desert_bush", 2], ["dead_shrub", 1]]
+			var low: Array = [["barrel_cactus", 3], ["agave", 2], ["yucca", 2], ["ocotillo", 1.5], ["desert_bush", 2], ["dead_shrub", 1]]
 			for k in range(rng.randi_range(8, 12)):
 				var pt: Vector2 = around.call(centre, 1.0, 9.0, 0.6)
 				if pt != Vector2.INF:

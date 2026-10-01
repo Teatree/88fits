@@ -1,0 +1,51 @@
+{
+  "id": "requiem",
+  "name": "Requiem",
+  "flavour": "The last song. Played loud.",
+  "rarity": "epic",
+  "hero": "calavera",
+  "is_evolution": true,
+  "evolved_from": "guitarra",
+  "max_level": 1,
+  "behavior": "ProjectileEmitter",
+  "targeting": "nearest",
+  "tags": [
+    "gun"
+  ],
+  "base": {
+    "damage": 38,
+    "cooldown": 1.0,
+    "amount": 5,
+    "pierce": 4,
+    "speed": 19,
+    "range": 12,
+    "knockback": 6.0,
+    "spread_deg": 48
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "radius": 0.32,
+    "no_shells": true,
+    "strum": true,
+    "burst": true,
+    "burst_gap": 0.06,
+    "scatter_deg": 10,
+    "familiar": {
+      "radius": 1.25,
+      "height": 1.5,
+      "speed": 1.3,
+      "bob": 0.14
+    }
+  },
+  "sfx": {
+    "fire": "w_guitarra_strum",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#FFB13B",
+    "glyph": "star"
+  },
+  "art_prompt": "a gleaming black and gold mariachi guitar with a golden sugar-skull painted on its body, gold strings and a gold neck, seen from the front, the neck pointing to the upper right"
+}

@@ -2,11 +2,13 @@
 ## can be set beside its PNG (tools/wanted_compare.py). Windowed at the phone's canvas:
 ## godot --audio-driver Dummy --resolution 1080x1920 --path game --script res://tools/wanted_shots.gd -- out=<dir> [only=hud,levelup] [white=1]
 ## white=1 hides the world behind a white sheet, as the mocks were drawn (they are transparent where the world is).
+## inset=N puts the top inset the UI keeps clear of a camera cutout at N design px (pass 43), as a notched phone would.
 extends SceneTree
 
 var _out := "user://wanted_shots"
 var _only: Array = []
 var _white := false
+var _inset := -1
 var _run
 var _reg
 var _save
@@ -21,6 +23,8 @@ func _initialize() -> void:
 			_only = a.substr(5).split(",")
 		elif a == "white=1":
 			_white = true
+		elif a.begins_with("inset="):
+			_inset = int(a.substr(6))
 	DirAccess.make_dir_recursive_absolute(_out)
 	process_frame.connect(_main, CONNECT_ONE_SHOT)
 
@@ -41,6 +45,8 @@ func _shot(name: String) -> void:
 
 
 func _main() -> void:
+	if _inset >= 0:
+		root.get_node("Settings").top_inset = _inset
 	_run = root.get_node("Run")
 	_reg = root.get_node("Registry")
 	_save = root.get_node("Save")
@@ -140,6 +146,14 @@ func _menus() -> void:
 		current_scene._step(-1)
 		await _wait(0.5)
 		await _shot("02-title-astro")
+		# pass 43: Calavera, the third hero, with his favourite and his own weapon on the plaque
+		var tc = current_scene
+		for i in (tc._heroes as Array).size():
+			if (tc._heroes[i] as Resource).get("id") == "calavera":
+				tc._index = i
+				tc._show_hero(1)
+		await _wait(0.5)
+		await _shot("02b-title-calavera")
 		# the developer's preview: the hidden heroes ride the carousel, locked (Dad has an unlock quest, with a bar)
 		root.get_node("Settings").preview_locked_heroes = true
 		await _scene("res://ui/TitleScreen.tscn")
@@ -167,6 +181,20 @@ func _menus() -> void:
 		# a save part of the way through: the unlocks not yet earned show as the mock's locked tiles
 		var done: Array = _save.data["quests_done"]
 		_save.data["quests_done"] = done.slice(0, done.size() / 2)
+		# pass 44: the Collection shows what has been met; this save has met most of it
+		for w in _reg.weapons.values():
+			_save.mark_seen("weapon", w.id)
+		for p in _reg.passives.values():
+			_save.mark_seen("passive" if not (p is LineDef) else "line", p.id)
+		for l in _reg.lines.values():
+			_save.mark_seen("line", l.id)
+		for k in _reg.perks.values():
+			_save.mark_seen("perk", k.id)
+		var n_seen := 0
+		for e in _reg.enemies.values():
+			n_seen += 1
+			if n_seen % 4 != 0:
+				_save.mark_seen("enemy", e.id)
 		await _scene("res://ui/CollectionScreen.tscn")
 		await _shot("04-collection")
 		current_scene._open_page(_reg.weapon("boomstick"))
@@ -175,6 +203,15 @@ func _menus() -> void:
 		current_scene._open_page(_reg.enemy("dune_scorpion"))
 		await _wait(0.5)
 		await _shot("04c-collection-creature-page")
+		# 04d (pass 44): a locked item's page, the quest and its progress
+		_save.data["quests_done"] = []
+		_save.add_keyed_total("kills_of_enemy", "goblin", 61)
+		current_scene._open_locked(_reg.weapon("tumbleweed"))
+		await _wait(0.5)
+		await _shot("04d-collection-locked-page")
+		current_scene._show_grid()
+		await _wait(0.5)
+		await _shot("04e-collection-locked-tiles")
 	if _want("settings"):
 		var st := root.get_node("Settings")
 		st.camera_mode = 0
@@ -493,6 +530,15 @@ func _stage_clear() -> void:
 	await _wait(0.8)
 	await _shot("15-stage-clear")
 	g.portal_dialog.visible = false
+	# 15b (pass 43): after the last boss, the second road is Stay
+	_run.stage = 2
+	_run.elapsed = 900.0
+	_run.run_gold = 1840
+	g.portal_dialog.open(3, true, true)
+	await _wait(0.8)
+	await _shot("15b-stage-clear-final")
+	g.portal_dialog.visible = false
+	_run.stage = 0
 	g.set_paused(false)
 
 
@@ -515,3 +561,10 @@ func _results() -> void:
 	change_scene_to_file("res://ui/ResultsScreen.tscn")
 	await _wait(1.6)
 	await _shot("16-results")
+	# 16b (pass 44): the hero stayed down; the gold is left in the sand, all but what a Strongbox banked
+	_run.extracted = false
+	_run.died = true
+	_run.last_result = {"gold_before": 104711, "banked": 0, "lost": 992, "strongbox": 300, "prev_best": {"time": 480.0}}
+	change_scene_to_file("res://ui/ResultsScreen.tscn")
+	await _wait(1.6)
+	await _shot("16b-results-down")

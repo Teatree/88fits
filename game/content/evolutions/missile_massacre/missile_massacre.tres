@@ -8,6 +8,7 @@
 script = ExtResource("1_cy2l3")
 behavior = "MissilePod"
 tags = ["homing", "explosive"]
+targeting = "nearest"
 base = {
 "amount": 8.0,
 "area": 1.8,
@@ -19,6 +20,8 @@ base = {
 }
 levels = [[]]
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "rocket_pod"
 sfx = {
@@ -43,10 +46,15 @@ params = {
 },
 "radius": 0.24
 }
+hero = ""
 id = "missile_massacre"
 display_name = "Missile Massacre"
 flavour = "The sky fills. Then it empties."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_01x4p")
 icon_file = "missile_massacre_icon.png"
 placeholder = {

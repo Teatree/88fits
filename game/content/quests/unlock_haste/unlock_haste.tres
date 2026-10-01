@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_haste/unlock_haste_icon.png" id="1_ohd44"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_ju1qu"]
+
+[resource]
+script = ExtResource("2_ju1qu")
+condition = {
+"count": 30.0,
+"enemy": "bull_beetle",
+"type": "kills_of_enemy"
+}
+unlocks = {
+"id": "haste",
+"type": "passive"
+}
+id = "unlock_haste"
+display_name = "Haste"
+icon = ExtResource("1_ohd44")
+icon_file = "unlock_haste_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

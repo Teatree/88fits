@@ -30,13 +30,12 @@
     "stage_mults": [
       1.0,
       2.2,
-      3.6
+      3.34
     ],
-    "endless_mult_per_minute": 0.1,
     "cap_start": 25,
     "cap_per_minute": 8.35,
     "cap_max": 150,
-    "hard_cap": 240,
+    "hard_cap": 260,
     "specials": {
       "from": 150,
       "interval": [
@@ -119,6 +118,30 @@
         "enemy": "dust_shaman",
         "weight": 1,
         "weight_late": 2
+      },
+      {
+        "t": 300,
+        "enemy": "blue_slime",
+        "weight": 10,
+        "channel": "hell"
+      },
+      {
+        "t": 420,
+        "enemy": "hammer_giant",
+        "weight": 1.5,
+        "channel": "hell"
+      },
+      {
+        "t": 600,
+        "enemy": "imp",
+        "weight": 9,
+        "channel": "hell"
+      },
+      {
+        "t": 600,
+        "enemy": "hellhound",
+        "weight": 8,
+        "channel": "hell"
       }
     ],
     "events": [
@@ -168,8 +191,8 @@
       {
         "t": 690,
         "type": "swarm",
-        "enemy": "goblin_runt",
-        "count": 22
+        "enemy": "imp",
+        "count": 30
       },
       {
         "t": 720,
@@ -194,7 +217,7 @@
       {
         "t": 900,
         "type": "boss",
-        "enemy": "tumbleweed_king"
+        "enemy": "brander"
       }
     ],
     "pickups": {
@@ -275,6 +298,13 @@
       3,
       4,
       4
+    ],
+    "endless_wave_seconds": 60,
+    "endless_wave_mult": 1.12,
+    "hell_cap": [
+      0.0,
+      0.3,
+      0.4
     ]
   },
   "placeholder": {

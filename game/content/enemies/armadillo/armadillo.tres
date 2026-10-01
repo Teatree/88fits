@@ -6,7 +6,7 @@
 
 [resource]
 script = ExtResource("1_556uc")
-doc = "Arrives in the second half of stage 1 in packs of six like the goblins, but armoured: twenty HP behind one point of armour, slower than a goblin and harder to cut down, so a pack of them holds a line while the fodder dies around it. Counts as half a creature against the crowd cap."
+doc = "Arrives in the second half of stage 1 in packs of six like the goblins, but armoured: twenty HP and it takes a quarter less from everything, slower than a goblin and harder to cut down, so a pack of them holds a line while the fodder dies around it. Counts as half a creature against the crowd cap."
 hp = 20.0
 speed = 1.6
 radius = 0.45
@@ -35,7 +35,7 @@ fps = {
 "die": 8.0,
 "run": 15.0
 }
-armor = 1.0
+damage_reduction = 0.25
 head = 0.894
 cap_share = 0.5
 sfx = {

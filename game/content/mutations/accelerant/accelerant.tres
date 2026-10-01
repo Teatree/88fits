@@ -7,15 +7,23 @@
 [sub_resource type="Resource" id="Resource_8c12b"]
 script = ExtResource("1_tp2lg")
 stat = "fire_damage"
+op = "add"
+value = 0.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_pqfwe"]
 script = ExtResource("1_tp2lg")
 stat = "fire_duration"
+op = "add"
+value = 0.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_2mgrd"]
 script = ExtResource("1_tp2lg")
 stat = "fire_spread"
+op = "add"
 value = 0.4
+target = "self"
 
 [resource]
 script = ExtResource("2_8c12b")

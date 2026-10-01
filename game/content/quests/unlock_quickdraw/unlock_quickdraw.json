@@ -1,0 +1,17 @@
+{
+  "id": "unlock_quickdraw",
+  "name": "Quickdraw",
+  "condition": {
+    "type": "reach_level",
+    "level": 10
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "quickdraw"
+  },
+  "art_prompt": "a glass jar with a holstered pistol inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

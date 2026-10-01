@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_land_mine/unlock_land_mine_icon.png" id="1_g5218"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_m5o0j"]
+
+[resource]
+script = ExtResource("2_m5o0j")
+condition = {
+"count": 120.0,
+"enemy": "fire_ant",
+"type": "kills_of_enemy"
+}
+unlocks = {
+"id": "land_mine",
+"type": "weapon"
+}
+id = "unlock_land_mine"
+display_name = "Land Mine"
+icon = ExtResource("1_g5218")
+icon_file = "unlock_land_mine_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

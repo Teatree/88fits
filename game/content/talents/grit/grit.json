@@ -24,12 +24,12 @@
     },
     {
       "name": "Plate",
-      "text": "+1 armour a rank: every hit lands lighter.",
+      "text": "+6% damage reduction a rank: every hit lands lighter.",
       "effects": [
         {
-          "stat": "armor",
+          "stat": "damage_reduction",
           "op": "add",
-          "value": 1.0,
+          "value": 0.06,
           "target": "player"
         }
       ]

@@ -1,0 +1,298 @@
+<title>88fits Market Test</title>
+<meta name="description" content="The cheapest campaign that answers whether 88fits is worth more work: the method, the channels, the audiences, the budget and the benchmark numbers that say go or stop.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  :root {
+    --bg: #fff1f7;
+    --bg-2: #ffe1ee;
+    --panel: #ffffff;
+    --ink: #4a1532;
+    --ink-soft: #7a4260;
+    --pink: #ff4fa3;
+    --pink-deep: #d6187a;
+    --pink-dark: #a80f5c;
+    --blush: #ffc2dc;
+    --mint: #1f9e6b;
+    --amber: #d88a00;
+    --red: #d93636;
+    --rule: #f3b8d2;
+    --grid: #f0c6d9;
+    --mono-bg: #fff6fa;
+    --max: 62rem;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #22101b; --bg-2: #2e1625; --panel: #351a2b; --ink: #ffe6f1; --ink-soft: #e6b6cc; --pink: #ff6fb5; --pink-deep: #ff4fa3;
+      --pink-dark: #ffa0cf; --blush: #5a2342; --mint: #4fd39a; --amber: #ffb84d; --red: #ff6b6b; --rule: #5a2b45; --grid: #4a2439; --mono-bg: #2b1522;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #22101b; --bg-2: #2e1625; --panel: #351a2b; --ink: #ffe6f1; --ink-soft: #e6b6cc; --pink: #ff6fb5; --pink-deep: #ff4fa3;
+    --pink-dark: #ffa0cf; --blush: #5a2342; --mint: #4fd39a; --amber: #ffb84d; --red: #ff6b6b; --rule: #5a2b45; --grid: #4a2439; --mono-bg: #2b1522;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Nunito", "Segoe UI", system-ui, sans-serif; font-size: 17px; line-height: 1.55; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding-inline: 20px; padding-block: 28px 80px; }
+  h1, h2, h3 { font-family: "Baloo 2", "Nunito", sans-serif; font-weight: 800; line-height: 1.1; text-wrap: balance; margin: 0; color: var(--pink-dark); }
+  h1 { font-size: clamp(2.3rem, 6vw, 3.8rem); color: var(--pink-deep); }
+  h2 { font-size: clamp(1.5rem, 3.4vw, 2rem); margin-block: 3rem 1rem; padding-top: 1rem; border-top: 5px solid var(--pink); }
+  h3 { font-size: 1.2rem; margin-block: 1.8rem 0.6rem; }
+  p { margin: 0 0 1rem; max-width: 66ch; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.3rem; max-width: 66ch; }
+  li { margin-bottom: 0.4rem; }
+  a { color: var(--pink-deep); }
+  code, pre { font-family: "JetBrains Mono", Consolas, monospace; }
+  code { font-size: 0.86em; background: var(--mono-bg); border: 1px solid var(--rule); padding: 0.04em 0.35em; border-radius: 4px; }
+  .eyebrow { font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; font-size: 0.78rem; color: var(--pink-deep); margin-bottom: 0.6rem; }
+  .lede { font-size: 1.15rem; max-width: 60ch; color: var(--ink-soft); margin-top: 1rem; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 0.86rem; color: var(--ink-soft); margin-top: 1.2rem; }
+  .meta b { color: var(--ink); }
+  .toc { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.9rem; margin-top: 1.4rem; }
+  .toc a { text-decoration: none; border-bottom: 3px solid var(--pink); color: var(--ink); }
+  .verdict { background: var(--pink); color: #fff; border-radius: 18px; padding: 22px 26px; margin: 1.6rem 0; box-shadow: 0 10px 0 var(--pink-dark); }
+  .verdict h3 { color: #fff; margin-top: 0; font-size: 1.35rem; }
+  .verdict p { color: #fff; max-width: none; }
+  .verdict p:last-child { margin-bottom: 0; }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-block: 1rem 1.4rem; }
+  .card { background: var(--panel); border: 3px solid var(--blush); border-radius: 16px; padding: 16px 18px; box-shadow: 0 6px 0 var(--blush); }
+  .card h3 { margin-top: 0; }
+  .card p:last-child, .card ul:last-child { margin-bottom: 0; }
+  .card.pick { border-color: var(--pink); box-shadow: 0 6px 0 var(--pink); }
+  .tag { display: inline-block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 9px; border-radius: 999px; border: 2px solid currentColor; margin-left: 6px; vertical-align: middle; }
+  .tag.good { color: var(--mint); } .tag.warn { color: var(--amber); } .tag.bad { color: var(--red); } .tag.pink { color: var(--pink-deep); }
+  .tbl { overflow-x: auto; margin: 0 0 1.4rem; border: 3px solid var(--blush); border-radius: 14px; background: var(--panel); }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+  th { font-weight: 700; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pink-dark); background: var(--bg-2); position: sticky; top: 0; }
+  tr:last-child td { border-bottom: 0; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .good { color: var(--mint); font-weight: 700; } .warn { color: var(--amber); font-weight: 700; } .bad { color: var(--red); font-weight: 700; }
+  figure { margin: 0 0 2rem; background: var(--panel); border: 3px solid var(--blush); border-radius: 16px; padding: 14px 16px 10px; }
+  figure svg { width: 100%; height: auto; display: block; }
+  figcaption { font-size: 0.86rem; color: var(--ink-soft); margin-top: 8px; }
+  figcaption b { color: var(--ink); }
+  .example { color: var(--pink-deep); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
+  .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+  .charts figure { margin: 0; }
+  .steps { counter-reset: step; list-style: none; padding: 0; max-width: none; }
+  .steps li { counter-increment: step; display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: start; margin-bottom: 14px; }
+  .steps li::before { content: counter(step); font-family: "Baloo 2", sans-serif; font-weight: 800; font-size: 1.4rem; color: #fff; background: var(--pink); border-radius: 50%; width: 44px; height: 44px; display: grid; place-items: center; box-shadow: 0 4px 0 var(--pink-dark); }
+  .steps b { display: block; }
+  .note { border-left: 6px solid var(--pink); padding: 10px 14px; background: var(--bg-2); border-radius: 0 12px 12px 0; margin: 0 0 1.2rem; max-width: 66ch; }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; font-size: 0.95rem; margin: 0 0 1rem; max-width: 66ch; }
+  .kv dt { font-weight: 700; color: var(--pink-dark); } .kv dd { margin: 0; }
+  .big { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 1rem 0 1.4rem; }
+  .big div { background: var(--panel); border: 3px solid var(--blush); border-radius: 14px; padding: 14px 16px; }
+  .big b { display: block; font-family: "Baloo 2", sans-serif; font-weight: 800; font-size: 2rem; color: var(--pink-deep); line-height: 1; }
+  .big span { font-size: 0.86rem; color: var(--ink-soft); }
+  @media (max-width: 480px) { body { font-size: 16px; } .kv { grid-template-columns: 1fr; gap: 2px 0; } .kv dt { margin-top: 6px; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">88fits · pass 44 · 1 October 2026</div>
+    <h1>88fits Market Test</h1>
+    <p class="lede">The least money that buys a confident answer to one question: if we put 88fits in front of strangers, do enough of them install it and come back to make the game worth finishing? The method, the channels, who we show it to, what it costs, and the numbers that mean go, fix, or stop.</p>
+    <div class="meta"><span><b>Platform</b> Android first (the APK we ship today)</span><span><b>Model to prove</b> free to play, rewarded ads (the revive), small IAP later</span><span><b>Where the data lands</b> PostHog, per the telemetry plan</span><span><b>Author</b> Claude, for Garry</span></div>
+    <nav class="toc" aria-label="Sections">
+      <a href="#verdict">The rule</a><a href="#why">What a CPI test is</a><a href="#method">Method</a><a href="#channels">Channels</a><a href="#audience">Audience</a><a href="#creative">Creatives</a><a href="#budget">Budget</a><a href="#benchmarks">Benchmarks</a><a href="#decide">Deciding</a><a href="#before">Before day one</a><a href="#plan">The three weeks</a>
+    </nav>
+  </header>
+
+  <section id="verdict" class="verdict">
+    <h3>The rule, in one breath</h3>
+    <p>Run two weeks of Meta app-install ads to Tier-1 Android players with three to five gameplay videos. We are viable when a Tier-1 install costs under about one dollar, four in ten installers play again the next day and one in ten is still there a week later. Over three dollars an install, or under three in ten back on day one, and we stop and think again. In between, we fix the thing the numbers point at (the ad, the store page, or the first five minutes) and run one more week.</p>
+    <p>Minimum spend to hear the answer: about <b>$500</b>. Comfortable: <b>$1,500 to $2,500</b>. Nothing above that is worth spending before the retention numbers are in.</p>
+  </section>
+
+  <h2 id="why">What a CPI test is, and why CPI alone does not decide</h2>
+  <p>CPI is cost per install: what one new player costs when bought with ads. On its own it only says whether people like the <em>look</em> of the game enough to tap and install. A game that installs cheaply and is deleted the same evening is not viable; a game that installs dear but keeps people for weeks might be. So the test measures the whole funnel, from the ad to the seventh day, and the decision reads three numbers together: the install price, the share who come back on day one, and the share still there on day seven.</p>
+  <div class="grid2">
+    <div class="card"><h3>Ad metrics (the platforms report them)</h3><ul>
+      <li><b>CPM</b>: price per thousand impressions. Set by the audience and the market, not by us.</li>
+      <li><b>CTR</b>: clicks per impression. The creative's job.</li>
+      <li><b>IPM</b>: installs per thousand impressions. CTR times store conversion; the single best number for comparing creatives.</li>
+      <li><b>CPI</b>: spend divided by installs. What we are here for.</li>
+    </ul></div>
+    <div class="card"><h3>Store metrics (the Play Console reports them)</h3><ul>
+      <li><b>Store CVR</b>: installs per store-page visit. The listing's job: icon, screenshots, the trailer, the first sentence.</li>
+      <li><b>Install to open</b>: installs that opened the game at least once. Should be above 85%; lower means a download size or a crash problem.</li>
+    </ul></div>
+    <div class="card"><h3>Game metrics (PostHog, our events)</h3><ul>
+      <li><b>D1 / D3 / D7 retention</b>: the share of a day's new players who play again one, three, seven days later. The number the decision hangs on.</li>
+      <li><b>Playtime on day 0</b>, <b>runs per session</b>, how many reach the first boss, the first portal, stage 2.</li>
+      <li><b>Revive ad acceptance</b>: how often a dead hero takes the ad. Our first revenue proxy.</li>
+    </ul></div>
+    <div class="card"><h3>Money metrics (later)</h3><ul>
+      <li><b>ARPDAU</b>: ad revenue per daily active user. With rewarded revives plus a few interstitials, survivor-likes earn roughly $0.05 to $0.20 a day per US player.</li>
+      <li><b>LTV</b>: what a player earns over their life; about ARPDAU times the sum of the retention curve. Viable means LTV at ninety days beats CPI with room to spare.</li>
+    </ul></div>
+  </div>
+
+  <h2 id="method">The method: a store listing, three ads, two reads</h2>
+  <ol class="steps">
+    <li><b>Put the game where an ad can send people.</b> A Google Play listing in <em>open testing</em> (anyone with the link can install; no review beyond the basic policy checks) or a production release. Ads need a store URL; a Drive link cannot be measured and looks like malware to most people.</li>
+    <li><b>Wire the measurement before the first dollar.</b> The PostHog events from the telemetry plan, plus one new one: <code>install_attributed</code>, sent once on first launch with the campaign, ad set and creative names read from the <em>Google Play Install Referrer</em> (a free Android API; the ad's link carries <code>utm_</code> tags, Play passes them to the app on first open). This is how we know which ad brought which player and whether that player came back, without an attribution company in the middle.</li>
+    <li><b>Read one: the creative test (3 days, about $150).</b> Three to five videos in one Meta campaign, one ad set per video, same audience, same budget. After roughly 50,000 impressions each we know the CTR and IPM of each video to within a fifth. Keep the best two, drop the rest.</li>
+    <li><b>Read two: the install and retention test (7 days, the rest of the money).</b> The two winning videos, the Tier-1 audience, a steady daily budget so the installs spread over the week (retention needs a day-one cohort that is a week old by the end). The CPI is known after three days; D1 after four; D7 after the second week.</li>
+    <li><b>Decide with the table below.</b> Green on all three: build on. One amber: fix what it names, run one more week. Any red: stop spending; the game needs a different first hour or a different pitch, not more ads.</li>
+  </ol>
+  <div class="note"><b>Two ways to count installs.</b> <em>Route A, no SDK (the $500 test):</em> the ad sends people to the store page; Meta reports clicks, the Play Console reports installs by referrer, and the CPI is spend over installs by hand. Meta cannot optimise towards installs this way, so the CPI reads a little worse than it could; that is fine for a go/no-go read. <em>Route B, with install events (the $2,000 test):</em> an attribution partner on a free tier (AppsFlyer Zero or Adjust's free plan) posts installs back to Meta, which then optimises for them and typically brings the CPI down a third. Route B needs a small Android plugin in the Godot export; worth it only once Route A has said "promising".</div>
+
+  <h2 id="channels">Channels: which, in what order, and why</h2>
+  <div class="grid2">
+    <div class="card pick"><h3>Meta Ads (Facebook + Instagram) <span class="tag pink">first</span></h3><p>The cheapest place to learn, by a distance: self-serve, any budget, the best creative testing tools, the broadest reach in every market we care about, and the audience that plays survivor-likes on a phone is on Instagram. Use <em>Advantage+ app campaigns</em> once Route B is in; a plain conversion campaign to the store link for Route A.</p></div>
+    <div class="card"><h3>TikTok Ads <span class="tag good">second</span></h3><p>Cheaper impressions, a younger audience, and gameplay videos do well there without any polish. Run the two winning videos as a second cell in read two if the budget is the comfortable one; it tells us whether our CPI is a Meta number or a game number.</p></div>
+    <div class="card"><h3>Google Ads app campaigns <span class="tag warn">later</span></h3><p>Automated, needs install volume to learn (fifty a day at least), and it hides the creative-level read we want now. The right tool once the game is proven and the question is scale, not viability.</p></div>
+    <div class="card"><h3>Unity Ads, ironSource, AppLovin <span class="tag warn">later</span></h3><p>In-game inventory in other games, where survivor-like players actually are, and often the best CPI for mid-core. But they want their SDK in the build and minimum spends from the low thousands. Belongs to the scaling plan, with the ad revenue side of the same companies.</p></div>
+    <div class="card"><h3>Free channels <span class="tag good">always</span></h3><p>A devlog thread on r/AndroidGaming and r/incremental_games, the survivor-like Discords, a short trailer on YouTube and TikTok. Not for the CPI test (we cannot buy a controlled sample there) but for a baseline of organic installs to compare retention against: organic players retain better, so paid D1 under organic D1 by ten points is normal.</p></div>
+  </div>
+
+  <h2 id="audience">Who we show it to, and why</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Cell</th><th>Who</th><th>Why</th><th>Spend share</th></tr></thead>
+    <tbody>
+      <tr><td><b>Tier-1 English</b></td><td>United States, United Kingdom, Canada, Australia. Android, OS 10 and up, 18 to 45.</td><td>The markets every benchmark is quoted in and the ones that pay for ads later. Expensive, so only the install-and-retention read runs here.</td><td class="num">70%</td></tr>
+      <tr><td><b>Interest cell</b></td><td>Same countries; interests Vampire Survivors, Brotato, Survivor.io, Archero, Magic Survival, roguelike and roguelite games.</td><td>The people most likely to recognise the genre from a three-second clip. A better CTR here than in the broad cell says the pitch lands with the genre's fans; a worse one says the game does not read as the genre.</td><td class="num">half of the above</td></tr>
+      <tr><td><b>Broad cell</b></td><td>Same countries, no interests, Meta's own targeting.</td><td>The control. Meta finds survivor-like players on its own in most tests, and broad usually wins on CPI after a few days.</td><td class="num">half of the above</td></tr>
+      <tr><td><b>Creative-test cell</b></td><td>Brazil, Mexico, Philippines, Poland, Turkey. Android, 18 to 45, broad.</td><td>Cheap impressions, so the three to five videos get their 50,000 impressions each for little. CTR and IPM rank creatives the same way everywhere; the CPI from this cell is not a benchmark number and is never used for the decision.</td><td class="num">30%</td></tr>
+    </tbody>
+  </table></div>
+  <p>No gender targeting (the genre skews male, the platforms already know that), no lookalikes yet (they need a few hundred good players to learn from, which is what this test produces), and devices under Android 10 are excluded because the game needs a mid-range phone for its 3D.</p>
+
+  <h2 id="creative">The creatives</h2>
+  <p>Five vertical videos, 15 to 20 seconds, captured from the phone build at 1080 × 1920, no voice, big captions, the first two seconds the busiest frame we have. Each is one idea, so the test tells us which idea sells:</p>
+  <ol>
+    <li><b>The horde.</b> Minute twelve of a run, the screen full, the hero carving through. Caption: "One thumb. Survive the desert."</li>
+    <li><b>The satisfying one.</b> Barrels bursting into gems, the level-up reveal, a chest landing. Caption: "Every barrel is a present."</li>
+    <li><b>The choice.</b> The portal: Extract with the gold, or Continue into stage 2. Caption: "Take the gold or push your luck."</li>
+    <li><b>The bosses.</b> The Gila's rumble lines, the Brander's ring of fire closing in. Caption: "Three bosses. Then hell stays."</li>
+    <li><b>The heroes.</b> Astro, the Drifter and Calavera, ten seconds each of their special weapon. Caption: "Three heroes, three ways to die."</li>
+  </ol>
+  <p>Two static images as well (the hat icon on sand, a horde screenshot) because statics are cheap and sometimes win on CTR. Every ad links to the same store page with its own <code>utm_content</code> so the referrer tells the game which video brought the player.</p>
+
+  <h2 id="budget">Budget: the minimum and the comfortable</h2>
+  <div class="big">
+    <div><b>$500</b><span>the minimum that answers the question: ~$150 on the creative read, ~$350 on Tier-1 installs (300 to 450 installs at a $0.80 to $1.20 CPI), one channel, Route A</span></div>
+    <div><b>$2,000</b><span>the comfortable test: two channels, three markets, a second creative round, Route B attribution, 1,200 to 2,000 installs, D7 known to within three points</span></div>
+    <div><b>$0</b><span>the organic baseline: a store listing, a trailer, three forum posts; worth doing in the same weeks for the comparison</span></div>
+  </div>
+  <figure>
+    <span class="example">Estimate</span>
+    <svg viewBox="0 0 960 250" role="img" aria-label="Two stacked budget bars: the minimum test at $500 and the comfortable test at $2,000, each split into creative read, install read and attribution">
+      <g font-family="Nunito, sans-serif" font-size="14" fill="var(--ink)">
+        <text x="12" y="52" font-weight="700">Minimum · $500</text>
+        <rect x="200" y="32" width="112" height="34" fill="var(--pink)" stroke="var(--pink-dark)" stroke-width="2"/><text x="208" y="55" fill="#fff" font-weight="700">creative $150</text>
+        <rect x="312" y="32" width="262" height="34" fill="var(--pink-deep)" stroke="var(--pink-dark)" stroke-width="2"/><text x="320" y="55" fill="#fff" font-weight="700">Tier-1 installs $350</text>
+        <text x="12" y="132" font-weight="700">Comfortable · $2,000</text>
+        <rect x="200" y="112" width="150" height="34" fill="var(--pink)" stroke="var(--pink-dark)" stroke-width="2"/><text x="208" y="135" fill="#fff" font-weight="700">creative $200</text>
+        <rect x="350" y="112" width="412" height="34" fill="var(--pink-deep)" stroke="var(--pink-dark)" stroke-width="2"/><text x="358" y="135" fill="#fff" font-weight="700">Tier-1 Meta + TikTok $1,100</text>
+        <rect x="762" y="112" width="112" height="34" fill="var(--amber)" stroke="var(--pink-dark)" stroke-width="2"/><text x="770" y="135" fill="#fff" font-weight="700">2nd round $300</text>
+        <rect x="874" y="112" width="74" height="34" fill="var(--mint)" stroke="var(--pink-dark)" stroke-width="2"/><text x="880" y="135" fill="#fff" font-weight="700">tools $0</text>
+        <text x="200" y="190" fill="var(--ink-soft)">Scale: $1 = 0.37 px. Attribution and PostHog both sit on free tiers at this volume; the second round is spent only if the first comes back amber.</text>
+        <text x="200" y="214" fill="var(--ink-soft)">Not in the budget: the $25 Google Play developer registration (one-off) and the time to cut five videos.</text>
+      </g>
+    </svg>
+    <figcaption><b>Where the money goes.</b> Most of it buys Tier-1 installs, because that is the only cohort whose retention we can compare with the benchmarks.</figcaption>
+  </figure>
+  <p>Why these sizes: an install price is known to within about 20% after 250 installs; a day-one retention of 35% is known to within six points after 300 day-zero players, within three after 1,200. The minimum test can tell 30% from 40%; it cannot tell 36% from 40%, which is why an amber result sends us back for one more week rather than to a decision.</p>
+
+  <h2 id="benchmarks">Benchmarks: what the numbers mean</h2>
+  <p>Android, Tier-1, 2025 and 2026 figures for hybrid-casual and survivor-like games as the ad platforms and the usual industry reports put them. iOS costs about twice as much per install and retains a little better; we are not testing iOS yet.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Number</th><th class="num">Green</th><th class="num">Amber</th><th class="num">Red</th><th>What it is telling us</th></tr></thead>
+    <tbody>
+      <tr><td><b>CTR</b> (video, Meta)</td><td class="num good">≥ 1.5%</td><td class="num warn">0.8 to 1.5%</td><td class="num bad">&lt; 0.8%</td><td>The ad. Amber means a new hook or a busier first frame; red means the idea does not stop the thumb.</td></tr>
+      <tr><td><b>IPM</b> (installs per 1,000 impressions)</td><td class="num good">≥ 5</td><td class="num warn">2 to 5</td><td class="num bad">&lt; 2</td><td>The ad and the store page together. The number to rank creatives by.</td></tr>
+      <tr><td><b>Store CVR</b></td><td class="num good">≥ 25%</td><td class="num warn">15 to 25%</td><td class="num bad">&lt; 15%</td><td>The listing. Red with a green CTR means the page breaks the promise the ad made: screenshots, size, reviews.</td></tr>
+      <tr><td><b>CPI</b> (Tier-1 Android)</td><td class="num good">≤ $1.00</td><td class="num warn">$1.00 to $3.00</td><td class="num bad">&gt; $3.00</td><td>What a player costs. Survivor-likes run $0.50 to $1.50 when the pitch works; over three dollars no ad-funded game pays back.</td></tr>
+      <tr><td><b>D1 retention</b></td><td class="num good">≥ 40%</td><td class="num warn">30 to 40%</td><td class="num bad">&lt; 30%</td><td>The first session. Red means the first five minutes lose people: the starter pick, the joystick, the difficulty, the load.</td></tr>
+      <tr><td><b>D3 retention</b></td><td class="num good">≥ 22%</td><td class="num warn">15 to 22%</td><td class="num bad">&lt; 15%</td><td>The second and third runs. Whether the meta (the Upgrade board, the unlocks) pulls people back.</td></tr>
+      <tr><td><b>D7 retention</b></td><td class="num good">≥ 12%</td><td class="num warn">7 to 12%</td><td class="num bad">&lt; 7%</td><td>The habit. The number LTV is built on; green here with amber CPI is still a game worth finishing.</td></tr>
+      <tr><td><b>Playtime, day 0</b></td><td class="num good">≥ 15 min</td><td class="num warn">8 to 15 min</td><td class="num bad">&lt; 8 min</td><td>Did the first session hold them past one run. Under eight minutes is one run and out.</td></tr>
+      <tr><td><b>Revive ad accepted</b></td><td class="num good">≥ 50%</td><td class="num warn">30 to 50%</td><td class="num bad">&lt; 30%</td><td>The money proxy. If half the deaths take the ad, rewarded ads alone can carry the game.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 id="decide">Deciding</h2>
+  <figure>
+    <span class="example">The decision picture</span>
+    <svg viewBox="0 0 960 420" role="img" aria-label="A chart of cost per install against day-one retention with a green viable corner, an amber band and a red zone, and where the test result lands">
+      <g font-family="Nunito, sans-serif" font-size="14" fill="var(--ink)">
+        <rect x="80" y="20" width="840" height="340" fill="var(--bg-2)" stroke="var(--grid)"/>
+        <!-- zones: x = CPI 0..4 ($ per 210 px), y = D1 60%..0% top to bottom (340 px) -->
+        <rect x="80" y="20" width="210" height="113" fill="var(--mint)" opacity="0.28"/>
+        <rect x="290" y="20" width="420" height="113" fill="var(--amber)" opacity="0.28"/>
+        <rect x="80" y="133" width="630" height="57" fill="var(--amber)" opacity="0.28"/>
+        <rect x="710" y="20" width="210" height="340" fill="var(--red)" opacity="0.22"/>
+        <rect x="80" y="190" width="630" height="170" fill="var(--red)" opacity="0.22"/>
+        <!-- grid lines and labels -->
+        <line x1="80" y1="133" x2="920" y2="133" stroke="var(--ink-soft)" stroke-dasharray="6 6"/><text x="86" y="128" font-size="12" fill="var(--ink-soft)">D1 40%</text>
+        <line x1="80" y1="190" x2="920" y2="190" stroke="var(--ink-soft)" stroke-dasharray="6 6"/><text x="86" y="185" font-size="12" fill="var(--ink-soft)">D1 30%</text>
+        <line x1="290" y1="20" x2="290" y2="360" stroke="var(--ink-soft)" stroke-dasharray="6 6"/><text x="296" y="352" font-size="12" fill="var(--ink-soft)">$1.00</text>
+        <line x1="710" y1="20" x2="710" y2="360" stroke="var(--ink-soft)" stroke-dasharray="6 6"/><text x="716" y="352" font-size="12" fill="var(--ink-soft)">$3.00</text>
+        <text x="100" y="60" font-weight="700" fill="var(--mint)">VIABLE: finish the game</text>
+        <text x="400" y="60" font-weight="700" fill="var(--amber)">FIX THE AD OR THE PAGE, one more week</text>
+        <text x="100" y="170" font-weight="700" fill="var(--amber)">FIX THE FIRST FIVE MINUTES, one more week</text>
+        <text x="100" y="300" font-weight="700" fill="var(--red)">STOP: a different game or a different pitch</text>
+        <text x="730" y="300" font-weight="700" fill="var(--red)">STOP</text>
+        <!-- example results -->
+        <circle cx="248" cy="105" r="9" fill="var(--pink-deep)" stroke="#fff" stroke-width="3"/><text x="262" y="110" font-weight="700">a good week: $0.80 · D1 45%</text>
+        <circle cx="500" cy="162" r="9" fill="var(--pink)" stroke="#fff" stroke-width="3"/><text x="514" y="167" font-weight="700">a typical first week: $2.00 · D1 35%</text>
+        <!-- axes -->
+        <text x="500" y="400" text-anchor="middle" font-weight="700">cost per install, Tier-1 Android →</text>
+        <text x="30" y="190" transform="rotate(-90 30 190)" text-anchor="middle" font-weight="700">day-one retention →</text>
+      </g>
+    </svg>
+    <figcaption><b>Where a result lands.</b> The green corner is the only place that says "build on" without a condition. Amber above the line is an advertising problem (cheap to fix: new videos, a new store page). Amber to the right is a first-session problem (the game's problem). Red is red.</figcaption>
+  </figure>
+  <h3>The rules, written out</h3>
+  <ul>
+    <li><b>Viable:</b> CPI at or under $1.00 <em>and</em> D1 at or above 40% <em>and</em> D7 at or above 12% (or D3 at or above 22% if the week is not up). Keep building; the next question is monetisation, and the scaling plan starts.</li>
+    <li><b>Promising:</b> CPI under $2.00 and D1 at or above 35%, D7 at or above 8%. Fix what the amber names, spend the second round, decide again. A game can live here for a month of iteration; it should not live here for three.</li>
+    <li><b>Not yet:</b> D1 under 30% whatever the CPI. Ads are not the problem; the first run is. Stop spending, change the first five minutes, come back.</li>
+    <li><b>Stop:</b> CPI over $3.00 with every creative, or D7 under 5% with a good D1 (people try it and leave). The pitch or the game does not hold; more money will not change that.</li>
+  </ul>
+  <h3>How the funnel will read, with numbers for the shape of it</h3>
+  <figure>
+    <span class="example">Example, numbers invented</span>
+    <svg viewBox="0 0 960 300" role="img" aria-label="A funnel from impressions through clicks, store visits, installs, day-one and day-seven players, with example numbers">
+      <g font-family="Nunito, sans-serif" font-size="14" fill="var(--ink)">
+        <rect x="20" y="30" width="920" height="30" fill="var(--pink)" opacity="0.35"/><text x="30" y="51" font-weight="700">300,000 impressions</text>
+        <rect x="20" y="70" width="552" height="30" fill="var(--pink)" opacity="0.5"/><text x="30" y="91" font-weight="700">3,600 clicks · CTR 1.2%</text>
+        <rect x="20" y="110" width="414" height="30" fill="var(--pink)" opacity="0.65"/><text x="30" y="131" font-weight="700">2,700 store visits</text>
+        <rect x="20" y="150" width="276" height="30" fill="var(--pink-deep)" opacity="0.8"/><text x="30" y="171" font-weight="700" fill="#fff">600 installs · CVR 22% · CPI $1.17</text>
+        <rect x="20" y="190" width="120" height="30" fill="var(--pink-deep)"/><text x="30" y="211" font-weight="700" fill="#fff">216 back on day one · 36%</text>
+        <rect x="20" y="230" width="46" height="30" fill="var(--pink-dark)"/><text x="72" y="251" font-weight="700">54 on day seven · 9%</text>
+        <text x="30" y="290" fill="var(--ink-soft)">Bars are to scale from 300,000 impressions; this one lands "promising": fix the store page, run the second round.</text>
+      </g>
+    </svg>
+    <figcaption><b>A $700 week on Meta, Tier-1.</b> Each bar is the one above it times a rate; every rate maps to one thing we can change.</figcaption>
+  </figure>
+
+  <h2 id="before">Before day one: the checklist</h2>
+  <ol class="steps">
+    <li><b>A Google Play developer account</b> ($25 once), the app registered, a signed release build uploaded to open testing. The current keystore is the one we keep forever: a Play app's signature cannot change.</li>
+    <li><b>The store listing</b>: the hat icon, five screenshots with one-line captions (the horde, the level-up reveal, the portal, a boss, the Upgrade board), a 20-second trailer, a short description that says the genre in the first eight words ("A one-thumb survivor shooter in a desert that hates you"). Play's free <em>store listing experiments</em> can A/B the icon and the first screenshot during the test.</li>
+    <li><b>A privacy policy page</b> (PostHog, the EU region, the in-game switch) linked from the listing and the Data safety form filled in.</li>
+    <li><b>PostHog live</b> per the telemetry plan: at least <code>app_open</code>, <code>run_start</code>, <code>run_end</code>, <code>player_died</code>, <code>revive_decided</code>, and the new <code>install_attributed</code> from the Play referrer. Retention insights built before the first install lands.</li>
+    <li><b>A Meta Business account</b>, the ad account funded, the Play app registered under it; the pixel is not needed. For Route B, AppsFlyer Zero connected to Meta and the attribution plugin in the build.</li>
+    <li><b>The five videos</b> captured from the phone build (the capture tools in the repo give clean frames; the phone's own screen recorder gives the real thing), cut to 15 to 20 seconds, captions burnt in, 1080 × 1920.</li>
+    <li><b>The budget cap set on the ad account</b>, so an unwatched weekend cannot spend the comfortable test's money on the minimum test's question.</li>
+  </ol>
+
+  <h2 id="plan">The three weeks</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>When</th><th>What</th><th>What we know at the end</th></tr></thead>
+    <tbody>
+      <tr><td><b>Week 0</b></td><td>The checklist above. Organic posts go out the day the listing is live.</td><td>Whether the listing converts at all (the organic baseline CVR), and that the events arrive.</td></tr>
+      <tr><td><b>Week 1, days 1 to 3</b></td><td>The creative read: five videos, the cheap cell, $150.</td><td>CTR and IPM per video; the two winners.</td></tr>
+      <tr><td><b>Week 1, days 4 to 7, and week 2</b></td><td>The install read: the two winners, the Tier-1 interest and broad cells, a steady daily budget.</td><td>CPI by day 3; D1 by day 5; D3 by week 2; the store CVR; playtime; the revive ad rate.</td></tr>
+      <tr><td><b>Week 3</b></td><td>No spend. The D7 of the week-1 cohorts matures; the decision is written up with the table above.</td><td>Go, fix-and-repeat, or stop. If fix: which of the three things, and the second round's plan.</td></tr>
+    </tbody>
+  </table></div>
+  <p>One person can run this in about two hours a day, most of it in the first week. The only things that cannot be rushed are the days themselves: day-seven retention is seven days old by definition, and the whole point of paying for installs is to have a cohort to wait for.</p>
+</div>

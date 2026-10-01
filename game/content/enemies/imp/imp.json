@@ -1,0 +1,78 @@
+{
+  "id": "imp",
+  "name": "Imp",
+  "flavour": "Small. Red. Everywhere.",
+  "archetype": "runner",
+  "brain": "chase",
+  "hp": 14,
+  "speed": 2.4,
+  "damage": 6,
+  "radius": 0.4,
+  "size": 1.05,
+  "pack_size": 6,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.1,
+    "gold": 0.03,
+    "chest": 0.002
+  },
+  "frame_px": 128,
+  "xp_mult": 2.5,
+  "cap_share": 0.6,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_goblin_die"
+  },
+  "placeholder": {
+    "color": "#C8302A",
+    "ears": "pointed",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "art_prompt": "a small mischievous red imp devil with two short curved black horns on its head, bat-like pointed ears, a long thin pointed tail, glowing yellow eyes, a wicked grin with tiny fangs, a scrap of dark loincloth, holding a small black iron pitchfork upright in one hand, two arms and two legs, standing and facing the viewer",
+  "variance": {
+    "size": 0.2,
+    "speed": 0.15,
+    "tints": [
+      "#FFFFFF",
+      "#FFB090",
+      "#FF80A0",
+      "#FFD070"
+    ],
+    "tint_strength": 0.2,
+    "special_chance": 0.1,
+    "special": {
+      "size": 1.5,
+      "hp": 2.2,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#301030",
+      "tint_strength": 0.6
+    }
+  },
+  "motion": "scurrying in place with quick little steps, gripping its pitchfork in the same hand the whole time",
+  "gait": "scurrying in place on the spot with quick little steps, gripping the same small black iron pitchfork upright in one fist the whole time, the pitchfork keeps its exact shape and never changes hands",
+  "pose": "run_runt",
+  "stand": "still",
+  "death": "pose:death_back_runt",
+  "death_frames": 8,
+  "anim_negative": "extra horns, a third horn, extra arms, a third arm, extra hands, two pitchforks, extra fingers, extra legs, extra tails",
+  "dead_hint": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, arms flopped out limp, its pitchfork lying on the ground beside its open hand",
+  "back_hint": "It still holds its small iron pitchfork upright in the same hand as in the front view, the tines visible beside its head.",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "doc": "Stage 3's fodder: faster than a runt, twice its health, six to a pack, on top of the regular roster. The Brander calls rings of them.",
+  "strip_cols": 40,
+  "head": 0.961
+}

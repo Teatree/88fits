@@ -3,9 +3,9 @@
   "name": "Shielded",
   "effects": [
     {
-      "stat": "armor",
+      "stat": "damage_reduction",
       "op": "add",
-      "value": 4
+      "value": 0.4
     },
     {
       "stat": "hp",

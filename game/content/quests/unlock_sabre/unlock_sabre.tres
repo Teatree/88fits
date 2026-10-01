@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_sabre/unlock_sabre_icon.png" id="1_b7qbg"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_mjx7h"]
+
+[resource]
+script = ExtResource("2_mjx7h")
+condition = {
+"count": 80.0,
+"enemy": "goblin_runt",
+"type": "kills_of_enemy"
+}
+unlocks = {
+"id": "sabre",
+"type": "weapon"
+}
+id = "unlock_sabre"
+display_name = "Sabre"
+icon = ExtResource("1_b7qbg")
+icon_file = "unlock_sabre_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

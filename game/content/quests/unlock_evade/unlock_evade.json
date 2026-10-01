@@ -1,0 +1,17 @@
+{
+  "id": "unlock_evade",
+  "name": "Evade",
+  "condition": {
+    "type": "reach_stage",
+    "stage": 3
+  },
+  "unlocks": {
+    "type": "line",
+    "id": "evade"
+  },
+  "art_prompt": "a glass jar with a wisp of dust inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

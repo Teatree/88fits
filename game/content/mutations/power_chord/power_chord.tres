@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_3xmhx"]
+[ext_resource type="Texture2D" path="res://content/mutations/power_chord/power_chord_icon.png" id="2_6kdf8"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_s45v6"]
+
+[sub_resource type="Resource" id="Resource_s45v6"]
+script = ExtResource("1_3xmhx")
+stat = "amount"
+op = "add"
+value = 2.0
+target = "self"
+
+[sub_resource type="Resource" id="Resource_6kdf8"]
+script = ExtResource("1_3xmhx")
+stat = "spread_deg"
+op = "add"
+value = 22.0
+target = "self"
+
+[sub_resource type="Resource" id="Resource_ycddl"]
+script = ExtResource("1_3xmhx")
+stat = "damage"
+op = "mul"
+value = -0.25
+target = "self"
+
+[resource]
+script = ExtResource("2_s45v6")
+weapon = "guitarra"
+mutation_kind = "volume"
+text = "Two more notes a strum in a wider fan, −25% damage."
+vfx = "five notes in a wide fan"
+effects = [SubResource("Resource_s45v6"), SubResource("Resource_6kdf8"), SubResource("Resource_ycddl")]
+id = "power_chord"
+display_name = "Power Chord"
+flavour = "Turn it up."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_6kdf8")
+icon_file = "power_chord_icon.png"
+placeholder = {
+"color": "#D8E0F0",
+"glyph": "star"
+}

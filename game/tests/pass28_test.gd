@@ -48,7 +48,7 @@ func test_the_harpooner_is_one_at_a_time_with_a_tether() -> void:
 	assert_str(t.brain).is_equal("kite")
 	# 140, then 70 (pass 33.7), and since pass 33.8 the rocketeer's health; its armour keeps it the harder of the two
 	assert_float(t.hp).is_equal_approx(Registry.enemy("rocketeer").hp, 0.001)
-	assert_float(t.armor).is_greater(Registry.enemy("rocketeer").armor)
+	assert_float(t.damage_reduction).is_greater(Registry.enemy("rocketeer").damage_reduction)
 	var tether: Dictionary = t.ranged.get("tether", {})
 	# pass 33.10: a leash, not a flat slow: walking away runs at `away_speed` and towards is free, and the rope is as
 	# long as the throw (it was a fixed 4 m that snapped the thrower to the hero), shortening to `min_length` at most

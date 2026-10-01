@@ -54,7 +54,7 @@ ranged = {
 "seconds": 5.0
 }
 }
-armor = 2.0
+damage_reduction = 0.3
 max_alive = 1
 badge = "gear"
 head = 0.974

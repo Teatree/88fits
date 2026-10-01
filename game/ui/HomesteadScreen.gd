@@ -1,8 +1,8 @@
-## The Mirror (Wanted 03/03b): the meta between runs. Eight talents, each with two mutually exclusive forms and three
-## ranks. The board shows each talent's name, its rank notches, the live form and what it does, and the next rank's
-## price; a tap opens the talent's sheet over a sepia dim: the two forms side by side (switching is free and keeps the
-## ranks), what the ranks give now, and the next rank for gold. "Take it all back" empties the board and returns every
-## coin, so a build is a choice you can unmake, not a purchase you regret. The talents hold for every hero, so the
+## Upgrade (Wanted 03/03b; "The Mirror" until pass 44, when Garry asked for a name that says what it is for): the meta
+## between runs. Eight talents, each with two mutually exclusive forms and three ranks. The board shows each talent's
+## name, its rank notches, the live form and what it does, and the next rank's price; a tap opens the talent's sheet
+## over a sepia dim: the two forms side by side (switching is free and keeps the ranks), what the ranks give now, and
+## the next rank for gold. "Take it all back" empties the board and returns half the coins (Save.REFUND_FRAC). The talents hold for every hero, so the
 ## mirror shows none of them: something looks back out of the dark glass, two brass eyes (art/ui/wanted/mirror.png
 ## replaces the drawn mirror when it exists).
 extends ScreenBase
@@ -32,7 +32,7 @@ func board_bottom() -> float:
 
 
 func build() -> void:
-	set_title("The Mirror")
+	set_title("Upgrade")
 	content.add_theme_constant_override("separation", 0)
 	var stack := VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 10)
@@ -144,7 +144,8 @@ func _refresh() -> void:
 	if amount:
 		amount.text = W.num(Save.gold())
 	var spent := Save.talent_spent()
-	_refund_text.text = ("Take it all back · refund %s" % W.num(spent)) if spent > 0 else "Nothing to take back"
+	# half comes back (pass 44): the refund is a loss, not a free respec
+	_refund_text.text = ("Take it all back · %s of the %s spent comes back" % [W.num(Save.talent_refund()), W.num(spent)]) if spent > 0 else "Nothing to take back"
 	_refund.modulate.a = 1.0 if spent > 0 else 0.45
 
 

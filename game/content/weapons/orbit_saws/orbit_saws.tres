@@ -8,45 +8,56 @@
 [sub_resource type="Resource" id="Resource_shtm4"]
 script = ExtResource("2_shtm4")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_o1ibo"]
 script = ExtResource("2_shtm4")
 stat = "damage"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_lakte"]
 script = ExtResource("2_shtm4")
 stat = "orbit_radius"
 op = "mul"
 value = 0.15
+target = "self"
 
 [sub_resource type="Resource" id="Resource_xaqcr"]
 script = ExtResource("2_shtm4")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_uwa1h"]
 script = ExtResource("2_shtm4")
 stat = "damage"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_wby7v"]
 script = ExtResource("2_shtm4")
 stat = "area"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_y8jrs"]
 script = ExtResource("2_shtm4")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [resource]
 script = ExtResource("2_ik2tv")
 behavior = "Orbiter"
+tags = []
 targeting = "orbit"
 base = {
 "amount": 2.0,
@@ -57,7 +68,11 @@ base = {
 "orbit_radius": 2.0
 }
 levels = [[], [SubResource("Resource_shtm4")], [SubResource("Resource_o1ibo")], [SubResource("Resource_lakte")], [SubResource("Resource_xaqcr")], [SubResource("Resource_uwa1h")], [SubResource("Resource_wby7v")], [SubResource("Resource_y8jrs")]]
+max_level = 8
+evolves_with = ""
 evolves_into = "saw_halo"
+is_evolution = false
+evolved_from = ""
 sfx = {
 "hit": "w_saw_hit",
 "loop": "w_saw_loop"
@@ -67,9 +82,15 @@ visual_file = "orbit_saws_visual.tscn"
 params = {
 "spin_speed": 2.6
 }
+hero = ""
 id = "orbit_saws"
 display_name = "Orbit Saws"
 flavour = "Standing still is a choice now."
+rarity = "common"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_shtm4")
 icon_file = "orbit_saws_icon.png"
 placeholder = {

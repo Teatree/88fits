@@ -1,0 +1,79 @@
+{
+  "id": "hobgoblin",
+  "name": "Hobgoblin",
+  "flavour": "The goblin's big brother. He brought a cleaver.",
+  "archetype": "walker",
+  "brain": "chase",
+  "hp": 24,
+  "speed": 1.75,
+  "damage": 7,
+  "radius": 0.55,
+  "size": 1.6,
+  "pack_size": 4,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.4,
+    "gold": 0.05,
+    "chest": 0.004
+  },
+  "frame_px": 160,
+  "xp_mult": 3.5,
+  "cap_share": 1.0,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_goblin_die"
+  },
+  "placeholder": {
+    "color": "#6A8E3A",
+    "ears": "pointed",
+    "eyes": 2,
+    "shape": "wide"
+  },
+  "art_prompt": "a big burly hobgoblin with exactly two pointed ears, one on each side of its head and nothing else sticking out of its head, dark olive-green skin, a heavy jaw with two short tusks, small mean eyes under a heavy brow, wearing a dented scrap-iron chest plate over a ragged brown tunic, a spiked leather cap, iron bracers, holding a big rusty meat cleaver in one hand with the blade resting on its shoulder, two arms and two legs, standing and facing the viewer",
+  "variance": {
+    "size": 0.15,
+    "speed": 0.12,
+    "tints": [
+      "#FFFFFF",
+      "#C8FFB0",
+      "#FFD8A0",
+      "#B0D0FF"
+    ],
+    "tint_strength": 0.22,
+    "special_chance": 0.1,
+    "special": {
+      "size": 1.4,
+      "hp": 2.0,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#8A1428",
+      "tint_strength": 0.6
+    }
+  },
+  "motion": "swaggering in place with a heavy stomping gait, the cleaver resting on its shoulder the whole time",
+  "gait": "swaggering in place on the spot with a heavy stomping gait, gripping the same rusty meat cleaver in one fist the whole time, the cleaver keeps its exact shape and colour and never changes hands",
+  "pose": "bigguy_goblin",
+  "stand": "still",
+  "death": "pose:death_back_goblin",
+  "death_frames": 8,
+  "anim_negative": "extra ears, a third ear, ears growing or splitting, extra arms, a third arm, extra hands, two cleavers, extra fingers, extra legs",
+  "dead_hint": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, arms flopped out limp, its cleaver lying on the ground beside its open hand",
+  "back_hint": "It still holds its rusty cleaver in the same hand as in the front view, the blade visible over its shoulder.",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 8,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "fps": {
+    "run": 15,
+    "die": 12
+  },
+  "doc": "Retired in pass 44 (too many goblins): the Blue Slime took its stage-2 hell row. Stage 2's hell crowd: four times a goblin's health and twice its bite, in packs of four that come on top of the regular roster. It walks like a goblin and dies like one, slower.",
+  "strip_cols": 43,
+  "head": 1.0,
+  "retired": true
+}

@@ -10,51 +10,62 @@ script = ExtResource("1_xvvhp")
 stat = "damage"
 op = "mul"
 value = 0.25
+target = "self"
 
 [sub_resource type="Resource" id="Resource_7woj8"]
 script = ExtResource("1_xvvhp")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_t2o1m"]
 script = ExtResource("1_xvvhp")
 stat = "area"
 op = "mul"
 value = 0.25
+target = "self"
 
 [sub_resource type="Resource" id="Resource_goj63"]
 script = ExtResource("1_xvvhp")
 stat = "cooldown"
 op = "mul"
 value = -0.15
+target = "self"
 
 [sub_resource type="Resource" id="Resource_ubfqj"]
 script = ExtResource("1_xvvhp")
 stat = "damage"
 op = "mul"
 value = 0.3
+target = "self"
 
 [sub_resource type="Resource" id="Resource_s3ldp"]
 script = ExtResource("1_xvvhp")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_anvs1"]
 script = ExtResource("1_xvvhp")
 stat = "area"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_f34kp"]
 script = ExtResource("1_xvvhp")
 stat = "range"
 op = "mul"
 value = 0.15
+target = "self"
 
 [resource]
 script = ExtResource("2_na40a")
 behavior = "GravityGun"
 tags = ["gun"]
+targeting = "nearest"
 base = {
 "amount": 1.0,
 "area": 1.0,
@@ -64,7 +75,11 @@ base = {
 "range": 7.0
 }
 levels = [[], [SubResource("Resource_na40a")], [SubResource("Resource_7woj8")], [SubResource("Resource_t2o1m")], [SubResource("Resource_goj63")], [SubResource("Resource_ubfqj")], [SubResource("Resource_s3ldp")], [SubResource("Resource_anvs1"), SubResource("Resource_f34kp")]]
+max_level = 8
+evolves_with = ""
 evolves_into = "singularity"
+is_evolution = false
+evolved_from = ""
 sfx = {
 "fire": "w_grav_grab",
 "hit": "w_grav_throw",
@@ -94,7 +109,10 @@ id = "gravity_gun"
 display_name = "Gravity Gun"
 flavour = "Pick one. Throw it at the rest."
 rarity = "rare"
+element = ""
 weight = 7.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_na40a")
 icon_file = "gravity_gun_icon.png"
 placeholder = {

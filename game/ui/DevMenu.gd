@@ -37,7 +37,7 @@ func _ready() -> void:
 	add_child(header)
 	_scroll = ScrollContainer.new()
 	_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_scroll.offset_top = 200
+	_scroll.offset_top = 200 + W.safe_top()
 	_scroll.offset_bottom = -40
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
@@ -64,11 +64,19 @@ func _refresh() -> void:
 	_list.add_child(_row("Arena", "›", func():
 		Run.arena_next = true
 		UiFx.go(get_tree(), "res://game/Game.tscn")))
+	_list.add_child(_switch("Debug mode (the player's: 10 taps on the hints switch)", "debug_mode"))
 	_list.add_child(_switch("Debug panel in run", "debug_panel"))
 	_list.add_child(_switch("Debug buttons on modals", "debug_modal_buttons"))
 	_list.add_child(_switch("Free revive button", "free_revive_button"))
 	_list.add_child(_switch("Hit log on Down! · copy", "hit_log"))
 	_list.add_child(_switch("Hidden heroes as locked on the title", "preview_locked_heroes"))
+	# the top inset for a camera cutout: what the phone reports, or a fixed value to see the screens with one
+	var ins := int(Settings.top_inset)
+	_list.add_child(_row("Top inset · camera cutout", "AUTO (%d px)" % int(round(W.safe_top())) if ins < 0 else "%d px" % ins, func():
+		var steps := [-1, 0, 80, 130, 180]
+		var k := steps.find(int(Settings.top_inset))
+		Settings.set_value("top_inset", steps[(k + 1) % steps.size()])
+		_refresh()))
 	_list.add_child(_file_row("Last run's last second", "user://breadcrumb.txt", "no run has left a breadcrumb yet"))
 	_list.add_child(_file_row("Recent system pauses", "user://pauses.txt", "the phone has not paused a run"))
 	var hidden := CollectionScreen.hidden_items().size()

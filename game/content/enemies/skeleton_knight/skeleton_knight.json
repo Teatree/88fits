@@ -5,7 +5,6 @@
   "brain": "chase",
   "flavour": "Someone buried it in its armour. It kept the armour.",
   "hp": 10,
-  "armor": 1,
   "speed": 1.7,
   "damage": 4,
   "radius": 0.45,
@@ -68,7 +67,153 @@
     "run": 15,
     "die": 8
   },
-  "doc": "The skeleton that was buried in its armour: a dented breastplate and a kettle helm, one point of armour and nearly twice a plain skeleton's HP, a little slower, four to a pack from the thirtieth second. Falls apart into a heap of bones with its armour on top.",
+  "doc": "The skeleton that was buried in its armour: a dented breastplate and a kettle helm, a quarter off every hit and nearly twice a plain skeleton's HP, a little slower, four to a pack from the thirtieth second. Falls apart into a heap of bones with its armour on top.",
   "head": 1.0,
-  "retired": true
+  "retired": true,
+  "damage_reduction": 0.25,
+  "variants": {
+    "KN-A": {
+      "note": "arms down at its sides on Mixamo's plain walk; it falls apart in slices; a thin dark-brown outline",
+      "recipe": {
+        "stills": "va",
+        "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a clear ribcage, spine and pelvis, slim arm and leg bones with rounded joints, bony hands and feet, wearing a simple dented steel medieval breastplate strapped over its ribcage with worn leather straps and a simple round steel kettle helmet with a wide brim on its skull, bare bone arms and legs, no weapon, both arms hanging relaxed straight down at its sides, standing upright and facing the viewer",
+        "back_hint": "seen from behind: the back of the steel kettle helmet, the back plate of the armour with its leather straps, the pelvis and bare bone legs, both arms hanging straight down at its sides, no face",
+        "dead_hint": "collapsed into a low loose heap of bones, dead: every bone fallen into one flat pile, the dented steel breastplate lying on the pile and the steel kettle helmet resting on top with the skull under its brim, the ribcage broken apart, arm bones, leg bones, feet and vertebrae all jumbled inside the pile with nothing sticking out below it; the pile sits on nothing, with no ground, no sand, no dirt patch and no shadow under it",
+        "pose": "walk",
+        "pose_front": "walk",
+        "stand": "still",
+        "gait": "walking in place on the spot at a slow steady pace, both arms swinging gently at its sides",
+        "motion": "a skeleton walking slowly with its arms at its sides",
+        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing",
+        "death": "collapse",
+        "outline_frac": 0.012,
+        "outline_color": "#3a2a24"
+      },
+      "sprite": "skeleton_knight_sprite_a.png",
+      "icon": "skeleton_knight_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.963
+    },
+    "KN-B": {
+      "note": "a bandit skeleton (the poncho / cape covers the ribcage) on a light scurrying run, a small knife held low; it dies on the Falling Back Death clip",
+      "recipe": {
+        "stills": "vb",
+        "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a short tattered dark-red cape hanging from the shoulders of its dented steel breastplate, a round steel kettle helmet with a wide brim on its skull, bare bone arms and legs, a small bone-handled knife held low in one hand down at its side, the other arm hanging at its side, standing and facing the viewer",
+        "back_hint": "seen from behind: the back of the kettle helmet and the dark-red cape over the back plate, both arms hanging down at its sides, the small knife in the same hand, no face",
+        "dead_hint": "lying flat on its back on the ground, dead: its body stretched out sideways across the picture with the skull on the left and the feet on the right, arms flopped out limp, the small knife lying beside its open hand; it lies on nothing, with no ground and no shadow under it",
+        "pose": "run12",
+        "pose_front": "run12",
+        "stand": "still",
+        "gait": "jogging in place on the spot with a light quick scurrying run, holding the same small bone-handled knife low in one hand the whole time",
+        "motion": "a skeleton jogging lightly with a small knife held low",
+        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing",
+        "death": "pose:death_back",
+        "death_frames": 8,
+        "outline_frac": 0.018,
+        "outline_color": "#2a1a18"
+      },
+      "sprite": "skeleton_knight_sprite_b.png",
+      "icon": "skeleton_knight_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.975
+    },
+    "KN-C": {
+      "note": "a chunky cartoon skeleton with thick rounded bones and no gaps on a free Wan clip (the recipe clears the base's pose driver); a lighter warm-grey outline",
+      "recipe": {
+        "stills": "vc",
+        "art_prompt": "a chunky cartoon skeleton in a clean readable game-art style: thick heavy rounded ivory bones with soft warm beige shading, a big round skull with a wide square jaw and big dark eye sockets, a broad solid barrel ribcage with the ribs fused into one shape and no gaps between them, short thick arms and legs, big rounded bony fists, a small dented steel breastplate strapped over the ribcage and a round steel kettle helmet on the skull, no weapon, standing in a slight crouch with its fists held low at its sides, facing the viewer",
+        "back_hint": "seen from behind: the back of the big round skull under the kettle helmet, the back plate of the armour, the thick arms hanging at its sides, no face",
+        "dead_hint": "collapsed into a low heap of thick cartoon bones, dead: the big skull resting on top of a short pile of thick rounded bones, the breastplate and the kettle helmet lying on the pile, nothing sticking out below it; the pile sits on nothing, with no ground, no sand and no shadow under it",
+        "stand": "walk",
+        "motion": "a chunky heavy skeleton with thick rounded bones stomping forward in place like on a treadmill, its thick arms swinging its big bony fists low beside its hips, keeping the same broad solid ribcage, thick limbs and big round skull the whole time",
+        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing, arms folded, arms crossed over the chest, thin bones, slender limbs, a narrow ribcage, the figure shrinking",
+        "death": "clip",
+        "death_frames": 8,
+        "outline_frac": 0.024,
+        "outline_color": "#5a4a40",
+        "anim_seed": 7,
+        "pose": "",
+        "pose_front": ""
+      },
+      "sprite": "skeleton_knight_sprite_c.png",
+      "icon": "skeleton_knight_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0
+    },
+    "KN-D": {
+      "note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline",
+      "recipe": {
+        "stills": "vd",
+        "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a clear ribcage, spine and pelvis, slim arm and leg bones with rounded joints, bony hands and feet, wearing a simple dented steel medieval breastplate strapped over its ribcage with worn leather straps and a simple round steel kettle helmet with a wide brim on its skull, bare bone arms and legs, a small round wooden shield with an iron boss strapped to one forearm, the other arm hanging at its side, no weapon, standing with its shoulders squared and facing the viewer",
+        "back_hint": "seen from behind: the back of the steel kettle helmet, the back plate of the armour with its leather straps, the pelvis and bare bone legs, both arms hanging down at its sides, the round shield on the same forearm, no face",
+        "dead_hint": "lying flat on its back on the ground, dead: its body stretched out sideways across the picture with the skull on the left and the feet on the right, arms flopped out limp, the round shield lying beside it; it lies on nothing, with no ground and no shadow under it",
+        "pose": "bigguy",
+        "pose_front": "bigguy",
+        "stand": "still",
+        "gait": "swaggering in place on the spot with a heavy rolling walk, the same round wooden shield strapped to the same forearm the whole time",
+        "motion": "a skeleton walking with a heavy swagger",
+        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing",
+        "death": "pose:death_back",
+        "death_frames": 8,
+        "outline_frac": 0.024,
+        "outline_color": "#0e080c"
+      },
+      "sprite": "skeleton_knight_sprite_d.png",
+      "icon": "skeleton_knight_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 1.0
+    }
+  }
 }

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_field_notes/unlock_field_notes_icon.png" id="1_duyck"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_7k4bb"]
+
+[resource]
+script = ExtResource("2_7k4bb")
+condition = {
+"count": 3.0,
+"type": "runs_total"
+}
+unlocks = {
+"id": "field_notes",
+"type": "passive"
+}
+id = "unlock_field_notes"
+display_name = "Field Notes"
+icon = ExtResource("1_duyck")
+icon_file = "unlock_field_notes_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

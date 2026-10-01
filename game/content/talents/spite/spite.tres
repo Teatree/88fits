@@ -1,17 +1,20 @@
 [gd_resource type="Resource" script_class="TalentDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_nmbfl"]
+[ext_resource type="Texture2D" path="res://content/talents/spite/spite_icon.png" id="2_6ram5"]
 [ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_s2miy"]
-
-[sub_resource type="Resource" id="Resource_nmbfl"]
-script = ExtResource("1_nmbfl")
-stat = "thorns"
-value = 5.0
-target = "player"
 
 [sub_resource type="Resource" id="Resource_s2miy"]
 script = ExtResource("1_nmbfl")
+stat = "thorns"
+op = "add"
+value = 5.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_6ram5"]
+script = ExtResource("1_nmbfl")
 stat = "lifesteal"
+op = "add"
 value = 0.01
 target = "player"
 
@@ -20,17 +23,18 @@ script = ExtResource("2_s2miy")
 order = 8
 cost = [200.0, 360.0, 600.0]
 forms = [{
-"effects": [SubResource("Resource_nmbfl")],
+"effects": [SubResource("Resource_s2miy")],
 "name": "Thorns",
 "text": "+5 thorns a rank."
 }, {
-"effects": [SubResource("Resource_s2miy")],
+"effects": [SubResource("Resource_6ram5")],
 "name": "Thirst",
 "text": "+1% lifesteal a rank (capped as ever)."
 }]
 id = "spite"
 display_name = "Spite"
 flavour = "Punish the touch, or drink from it."
+icon = ExtResource("2_6ram5")
 icon_file = "spite_icon.png"
 placeholder = {
 "color": "#C9A227",

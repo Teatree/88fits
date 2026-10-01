@@ -20,9 +20,12 @@ func _default() -> Dictionary:
 		"gold": 0,
 		"talents": {}, "talent_spent": 0,
 		"quests_done": [],
-		"totals": {"kills": 0, "kills_with_weapon": {}, "kills_of_enemy": {}, "chests": 0, "evolutions": 0, "runs": 0, "extracts": 0},
+		"totals": {"kills": 0, "kills_with_weapon": {}, "kills_of_enemy": {}, "chests": 0, "evolutions": 0, "runs": 0, "extracts": 0,
+			"pickups": 0, "gold_earned": 0},
 		"once": [],
 		"best_runs": {},
+		# what the player has met in a run, by kind (pass 44): the Collection shows only these
+		"seen": {},
 		"settings": {},
 		"hints_seen": [],
 		"last_character": "astro",
@@ -55,7 +58,24 @@ func load_save() -> void:
 		data["last_character"] = lc.id
 	if not Registry.maps.has(str(data.get("last_map", ""))):
 		data["last_map"] = "red_canyon"
+	if not (data.get("seen") is Dictionary):
+		data["seen"] = {}
+	_migrate_seen()
 	Settings.from_dict(data.get("settings", {}))
+
+
+## A save from before pass 44 has no "seen" record: what its totals prove was met counts as seen (the creatures it
+## killed, the weapons it killed with), so the Collection does not go blank on an old save.
+func _migrate_seen() -> void:
+	if once("seen_migrated"):
+		return
+	for id in data["totals"].get("kills_of_enemy", {}).keys():
+		if int(data["totals"]["kills_of_enemy"][id]) > 0:
+			mark_seen("enemy", str(id))
+	for id in data["totals"].get("kills_with_weapon", {}).keys():
+		if int(data["totals"]["kills_with_weapon"][id]) > 0:
+			mark_seen("weapon", str(id))
+	mark_once("seen_migrated")
 
 
 func save_now() -> void:
@@ -148,9 +168,17 @@ func talent_spent() -> int:
 	return int(data.get("talent_spent", 0))
 
 
-## Everything back, to the last coin: the board empties and the gold returns.
+## Everything back, for half the gold (pass 44: the refund keeps REFUND_FRAC of what was spent): the board empties and
+## half the coins return.
+const REFUND_FRAC := 0.5
+
+
+func talent_refund() -> int:
+	return int(floor(talent_spent() * REFUND_FRAC))
+
+
 func talent_refund_all() -> int:
-	var back := talent_spent()
+	var back := talent_refund()
 	data["talents"] = {}
 	data["talent_spent"] = 0
 	add_gold(back)
@@ -202,13 +230,33 @@ func mark_once(key: String) -> void:
 
 # ---------------------------------------------------------------- runs and hints
 
-func record_run(map_id: String, time: float, level: int, stage: int) -> void:
-	var best: Dictionary = data["best_runs"].get(map_id, {"time": 0.0, "level": 0, "stage": 0})
+func record_run(map_id: String, time: float, level: int, stage: int, kills: int = 0) -> void:
+	var best: Dictionary = data["best_runs"].get(map_id, {"time": 0.0, "level": 0, "stage": 0, "kills": 0})
 	best["time"] = max(float(best.get("time", 0.0)), time)
 	best["level"] = max(int(best.get("level", 0)), level)
 	best["stage"] = max(int(best.get("stage", 0)), stage)
+	best["kills"] = max(int(best.get("kills", 0)), kills)
 	data["best_runs"][map_id] = best
 	add_total("runs", 1)
+	request_save()
+
+
+# ---------------------------------------------------------------- what has been met (pass 44)
+
+## Whether an item or creature of `kind` ("weapon", "passive", "line", "perk", "enemy") has been met in a run.
+func seen(kind: String, id: String) -> bool:
+	var s = data.get("seen", {}).get(kind, [])
+	return s is Array and s.has(id)
+
+
+func mark_seen(kind: String, id: String) -> void:
+	if id == "" or seen(kind, id):
+		return
+	if not (data.get("seen") is Dictionary):
+		data["seen"] = {}
+	if not (data["seen"].get(kind) is Array):
+		data["seen"][kind] = []
+	data["seen"][kind].append(id)
 	request_save()
 
 

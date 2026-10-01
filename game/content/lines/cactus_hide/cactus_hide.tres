@@ -7,13 +7,15 @@
 [sub_resource type="Resource" id="Resource_1ejfr"]
 script = ExtResource("1_0rwut")
 stat = "thorns"
+op = "add"
 value = 48.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_2af0r"]
 script = ExtResource("1_0rwut")
-stat = "armor"
-value = 2.0
+stat = "damage_reduction"
+op = "add"
+value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_uegva"]

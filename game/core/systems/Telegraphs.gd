@@ -109,6 +109,23 @@ func hold_disc(center: Vector3, r: float, color: Color) -> int:
 	return _hold(_add("disc_zone", center, color, color.a, Color(0.0, r, 0.0, TAU), MODE_HELD, 0.0, r))
 
 
+## A ring its owner keeps and resizes (the Brander's ring of fire, pass 43), in `color` (sRGB). Returns an id.
+func hold_ring(center: Vector3, r: float, color: Color) -> int:
+	return _hold(_add("band", center, color, color.a, Color(maxf(r - 0.35, 0.05), r, 0.0, TAU), MODE_HELD, 0.0, r))
+
+
+## Move a held disc or ring, and resize it (r < 0 keeps its size).
+func move_held(id: int, at: Vector3, r: float = -1.0) -> void:
+	var it: Dictionary = _held.get(id, {})
+	if it.is_empty():
+		return
+	it["at"] = at
+	if r > 0.0:
+		it["r"] = r
+		var k: Color = it["k"]
+		it["k"] = Color(maxf(r - 0.35, 0.05) if it["pool"] == "band" else k.r, r, k.b, k.a)
+
+
 ## A see-through sphere its owner moves every frame (the poison cloud's billows), in `color` (sRGB). Returns an id;
 ## place it with set_puff.
 func hold_puff(color: Color) -> int:

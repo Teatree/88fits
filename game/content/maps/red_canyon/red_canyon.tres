@@ -7,12 +7,14 @@
 
 [sub_resource type="Resource" id="Resource_i7xvp"]
 script = ExtResource("4_ixik5")
-stage_mults = [1.0, 2.2, 3.6]
+stage_mults = [1.0, 2.2, 3.34]
+endless_wave_mult = 1.12
+hell_cap = [0.0, 0.3, 0.4]
 speed_per_stage = 0.1
 cap_start = 25
 cap_per_minute = 8.35
 cap_max = 150
-hard_cap = 240
+hard_cap = 260
 specials = {
 "from": 150.0,
 "interval": [45.0, 60.0],
@@ -81,6 +83,26 @@ roster = [{
 "t": 600.0,
 "weight": 1.0,
 "weight_late": 2.0
+}, {
+"channel": "hell",
+"enemy": "blue_slime",
+"t": 300.0,
+"weight": 10.0
+}, {
+"channel": "hell",
+"enemy": "hammer_giant",
+"t": 420.0,
+"weight": 1.5
+}, {
+"channel": "hell",
+"enemy": "imp",
+"t": 600.0,
+"weight": 9.0
+}, {
+"channel": "hell",
+"enemy": "hellhound",
+"t": 600.0,
+"weight": 8.0
 }]
 events = [{
 "enemy": ["dune_scorpion", "sun_prophet"],
@@ -113,8 +135,8 @@ events = [{
 "t": 600.0,
 "type": "boss"
 }, {
-"count": 22.0,
-"enemy": "goblin_runt",
+"count": 30.0,
+"enemy": "imp",
 "t": 690.0,
 "type": "swarm"
 }, {
@@ -132,7 +154,7 @@ events = [{
 "t": 840.0,
 "type": "swarm"
 }, {
-"enemy": "tumbleweed_king",
+"enemy": "brander",
 "t": 900.0,
 "type": "boss"
 }]

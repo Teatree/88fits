@@ -1,0 +1,80 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a hulking desert ogre giant with grey-brown weathered skin, a huge bald head with a heavy brow, small eyes and a wide underbite with two tusks, a ragged hide loincloth and a thick rope belt, tree-trunk legs and bare feet, holding an enormous stone sledgehammer with a thick wooden handle in both hands with its head resting on one shoulder, two arms and two legs, standing on the ground facing the viewer",
+ "renders": {
+  "front": {
+   "seed": 39673,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a hulking desert ogre giant with grey-brown weathered skin, a huge bald head with a heavy brow, small eyes and a wide underbite with two tusks, a ragged hide loincloth and a thick rope belt, tree-trunk legs and bare feet, holding an enormous stone sledgehammer with a thick wooden handle in both hands with its head resting on one shoulder, two arms and two legs, standing on the ground facing the viewer. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "problems": []
+   },
+   "attempt": 0
+  },
+  "back": {
+   "seed": 15917,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. It still holds the enormous stone hammer over one shoulder, the hammer's head visible above its shoulder. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/hammer_giant_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "back",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 241,
+     "right": 233,
+     "top": 93,
+     "bottom": 53,
+     "height": 877,
+     "width": 549
+    }
+   },
+   "attempt": 0
+  },
+  "dead": {
+   "seed": 15925,
+   "prompt": "This exact creature lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, the huge stone hammer lying on the ground beside its open hand, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/hammer_giant_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 58,
+     "right": 53,
+     "top": 235,
+     "bottom": 212,
+     "height": 576,
+     "width": 912
+    }
+   },
+   "attempt": 0
+  }
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": ""
+ }
+}

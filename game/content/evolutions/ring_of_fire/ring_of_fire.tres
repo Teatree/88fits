@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_h7gdn")
 behavior = "Orbiter"
+tags = []
 targeting = "orbit"
 base = {
 "amount": 3.0,
@@ -21,6 +22,8 @@ base = {
 }
 levels = [[]]
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "branding_iron"
 sfx = {
@@ -31,10 +34,15 @@ visual_file = "ring_of_fire_visual.tscn"
 params = {
 "blade": "iron"
 }
+hero = ""
 id = "ring_of_fire"
 display_name = "Ring of Fire"
 flavour = "It burns, burns, burns."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_pt0qm")
 icon_file = "ring_of_fire_icon.png"
 placeholder = {

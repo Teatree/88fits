@@ -11,9 +11,9 @@
       "target": "player"
     },
     {
-      "stat": "armor",
+      "stat": "damage_reduction",
       "op": "add",
-      "value": 1,
+      "value": 0.05,
       "target": "player"
     }
   ],
@@ -71,5 +71,5 @@
   "hurt_hint": "her round helmet visor stays a completely dark opaque black mirror with no face behind it, the whole body tensing",
   "level_heal": 0.05,
   "trait_name": "Space Suit",
-  "trait_text": "+1 armor and +10% max HP. Every level-up patches the suit for 8% of her HP."
+  "trait_text": "+5% damage reduction and +10% max HP. Every level-up patches the suit for 5% of her HP."
 }

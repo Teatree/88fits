@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_energy_shield/unlock_energy_shield_icon.png" id="1_we8wk"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_pbgc6"]
+
+[resource]
+script = ExtResource("2_pbgc6")
+condition = {
+"minutes": 10.0,
+"type": "survive_minutes"
+}
+unlocks = {
+"id": "energy_shield",
+"type": "line"
+}
+id = "unlock_energy_shield"
+display_name = "Energy Shield"
+icon = ExtResource("1_we8wk")
+icon_file = "unlock_energy_shield_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

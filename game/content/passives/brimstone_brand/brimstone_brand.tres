@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_gqp1y"]
+[ext_resource type="Texture2D" path="res://content/passives/brimstone_brand/brimstone_brand_icon.png" id="1_xly7f"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_xly7f"]
+
+[sub_resource type="Resource" id="Resource_xly7f"]
+script = ExtResource("1_gqp1y")
+stat = "brand_chance"
+op = "add"
+value = 0.15
+target = "player"
+
+[resource]
+script = ExtResource("2_xly7f")
+levels = [[SubResource("Resource_xly7f")]]
+max_level = 3
+id = "brimstone_brand"
+display_name = "Brimstone Brand"
+flavour = "Hell keeps what it kills. Briefly."
+rarity = "rare"
+weight = 7.0
+from_stage = 3
+icon = ExtResource("1_xly7f")
+icon_file = "brimstone_brand_icon.png"
+placeholder = {
+"color": "#FF6A2A",
+"glyph": "fist"
+}

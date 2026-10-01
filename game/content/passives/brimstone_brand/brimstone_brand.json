@@ -1,0 +1,25 @@
+{
+  "id": "brimstone_brand",
+  "name": "Brimstone Brand",
+  "flavour": "Hell keeps what it kills. Briefly.",
+  "rarity": "rare",
+  "weight": 7,
+  "from_stage": 3,
+  "max_level": 3,
+  "levels": [
+    [
+      {
+        "stat": "brand_chance",
+        "op": "add",
+        "value": 0.15,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "placeholder": {
+    "color": "#FF6A2A",
+    "glyph": "fist"
+  },
+  "art_prompt": "a glowing red-hot branding iron with a flame-shaped brand at its tip"
+}

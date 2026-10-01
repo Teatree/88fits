@@ -5,7 +5,6 @@
   "archetype": "brute",
   "brain": "kite",
   "hp": 23,
-  "armor": 2,
   "speed": 2.4,
   "damage": 10,
   "radius": 1.1,
@@ -79,5 +78,6 @@
   "badge": "gear",
   "head": 0.974,
   "can_be_elite": false,
-  "can_be_grabbed": false
+  "can_be_grabbed": false,
+  "damage_reduction": 0.3
 }

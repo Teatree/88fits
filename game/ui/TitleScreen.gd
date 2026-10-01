@@ -5,9 +5,11 @@
 ## unlock ride the same carousel after the open ones: a dark silhouette with a padlock, a half-aged dot, what unlocks
 ## them and how far along that is, and PLAY reading LOCKED. (The developer menu can add the hidden heroes, locked, to
 ## preview the look.) The map line (a tap changes the map when there are
-## several), and The Mirror · Collection · Settings. No version label and no debug entry: both live in the developer
-## menu (Settings, hold the version label for 2 s). The top block hangs from the top edge, the plaque and the buttons
-## from the bottom; the hero keeps the middle.
+## several), and Upgrade · Collection · Settings, Upgrade in brass with a breathing glow and a mark when a rank is
+## affordable (pass 44: the Mirror's name said nothing about what it was for). No version label; the developer menu lives
+## in Settings (hold the version label for 2 s), and the player's own debug mode (ten taps on the hints switch) puts an
+## ARENA button top right. The top block hangs from the top edge, the plaque and the buttons from the bottom; the hero
+## keeps the middle.
 extends Control
 
 ## The cut-out box: 520 × 700 inside a 4 px dashed border, 24 px under the label (the mock's box is content-box).
@@ -23,7 +25,7 @@ const MAP_UP := 200.0
 ## A finger that travels this far sideways over the hero changes it.
 const SWIPE := 90.0
 ## The trait's numbers under short names (the rest fall back to TextGen's stat names).
-const SHORT := {"max_hp": "HP", "armor": "ARMOUR", "move_speed": "SPEED", "magnet": "REACH", "might": "MIGHT",
+const SHORT := {"max_hp": "HP", "damage_reduction": "DEFENCE", "move_speed": "SPEED", "magnet": "REACH", "might": "MIGHT",
 	"area": "AREA", "cooldown": "COOLDOWN", "luck": "LUCK", "greed": "GREED", "regen": "REGEN", "revives": "REVIVES",
 	"projectile_speed": "SHOT SPEED", "xp_gain": "XP", "crit_chance": "CRIT", "amount": "PROJECTILES"}
 
@@ -45,6 +47,10 @@ var _map_line: WText
 var _lower: Array = []
 var _swipe_id := -2   # -2 none, -1 the mouse, else a finger index
 var _swipe_from := Vector2.ZERO
+var _upgrade_btn: WButton
+var _glow: Control
+var _glow_t := 0.0
+var _arena_btn: WButton
 
 
 ## Back on the title leaves the game, as it always did (quit_on_go_back is off so a run can ignore the gesture).
@@ -58,6 +64,9 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	ScreenBase.add_backdrop(self)
 	add_child(_wash())
+	# quests a save's totals already satisfy (pass 44 added many) complete here, quietly, instead of all at once five
+	# seconds into the next run; the results screen still lists them
+	QuestTracker.check_all(false)
 	_heroes = _roster()
 	var last := Registry.playable_character(str(Save.data.get("last_character", "astro")))
 	_index = maxi(_heroes.find(last), 0)
@@ -67,14 +76,26 @@ func _ready() -> void:
 		_map_id = _maps[0].id if not _maps.is_empty() else "red_canyon"
 	# the gold plate, top-left
 	var gold := WMenuHeader.gold_plate(Save.gold(), 44, 40.0, 5, 4)
-	gold.position = Vector2(36, 44)
+	gold.position = Vector2(36, 44 + W.safe_top())
 	add_child(gold)
+	# the debug arena (pass 44: the player's debug mode, ten taps on the hints switch), top right
+	_arena_btn = WButton.make(["ARENA"], 24, WButton.SECONDARY, 4, 4, 10.0, 18.0)
+	_arena_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	_arena_btn.offset_left = -36 - 180
+	_arena_btn.offset_right = -36
+	_arena_btn.offset_top = 44 + W.safe_top()
+	_arena_btn.offset_bottom = 44 + W.safe_top() + 60
+	_arena_btn.visible = Settings.debug_mode
+	_arena_btn.pressed.connect(func():
+		Run.arena_next = true
+		UiFx.go(get_tree(), "res://game/Game.tscn"))
+	add_child(_arena_btn)
 	# the name stack
 	var stack := VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 0)
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	stack.offset_top = 150
+	stack.offset_top = 150 + W.safe_top()
 	add_child(stack)
 	var wanted := WStarLine.make("Wanted", 26, W.INK, 0.4)
 	wanted.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -193,13 +214,22 @@ func _build_lower() -> void:
 	row.offset_right = -60
 	row.offset_bottom = -60
 	row.offset_top = -60 - 91
+	# Upgrade (the Mirror until pass 44) is the one button in brass, with a pulsing glow and a mark when a rank can be
+	# bought: it is where the gold goes, and the row should say so
+	_glow = Control.new()
+	_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_glow.draw.connect(_draw_glow)
+	add_child(_glow)
 	add_child(row)
-	for pair in [["The Mirror", "res://ui/HomesteadScreen.tscn"], ["Collection", "res://ui/CollectionScreen.tscn"], ["Settings", "res://ui/SettingsScreen.tscn"]]:
-		var b := WButton.make([pair[0]], 30, WButton.SECONDARY, 5, 6, 20.0, 0.0)
+	for pair in [["Upgrade", "res://ui/HomesteadScreen.tscn"], ["Collection", "res://ui/CollectionScreen.tscn"], ["Settings", "res://ui/SettingsScreen.tscn"]]:
+		var primary: bool = pair[0] == "Upgrade"
+		var b := WButton.make([pair[0]], 30, WButton.PRIMARY if primary else WButton.SECONDARY, 5, 6, 20.0, 0.0)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var path: String = pair[1]
 		b.pressed.connect(func(): UiFx.go(get_tree(), path))
 		row.add_child(b)
+		if primary:
+			_upgrade_btn = b
 	_lower = [_plaque, _play, _map_tap, row]
 	_refresh_map()
 
@@ -215,7 +245,7 @@ func _place() -> void:
 	_play.size = Vector2(vp.x - 120, 0)
 	_map_tap.position = Vector2(0, vp.y - MAP_UP)
 	_map_tap.size = Vector2(vp.x, 0)
-	var top := HERO_TOP + (vp.y - 1920.0) * 0.5
+	var top := HERO_TOP + W.safe_top() + (vp.y - 1920.0) * 0.5
 	var room := plaque_top - 38.0 - 440.0
 	var k := clampf(room / HERO_SIZE.y, 0.5, 1.0)
 	if top + HERO_SIZE.y * k > plaque_top - 38.0:
@@ -416,17 +446,61 @@ func _step(dir: int) -> void:
 	_place()
 
 
+## The map's best run under PLAY: nothing until a run has been played (pass 44: the "no runs yet" line read like a
+## placeholder), then the true best: time, level, stage and kills.
 func _refresh_map() -> void:
 	var m := Registry.map(_map_id)
 	var bits: Array = [m.display_name if m else _map_id]
 	var best := Save.best_run(_map_id)
-	if best.is_empty():
-		bits.append("no runs yet")
-	else:
+	var played := not best.is_empty() and float(best.get("time", 0.0)) > 0.0
+	_map_tap.visible = played or _maps.size() > 1
+	if played:
 		bits.append("best " + W.mmss(float(best.get("time", 0.0))))
 		bits.append(W.lv(int(best.get("level", 0))))
 		bits.append("stage %d" % int(best.get("stage", 1)))
+		if int(best.get("kills", 0)) > 0:
+			bits.append("%s kills" % W.num(int(best.get("kills", 0))))
 	_map_line.text = " · ".join(bits)
+
+
+## The glow behind Upgrade: soft brass rings that breathe, and a brass mark on its corner when a rank can be bought.
+func _draw_glow() -> void:
+	if _upgrade_btn == null or not _upgrade_btn.is_visible_in_tree():
+		return
+	var r := _upgrade_btn.get_global_rect()
+	r.position -= _glow.global_position
+	var pulse := 0.5 + 0.5 * sin(_glow_t * 2.6)
+	for i in 6:
+		var k := float(i) / 6.0
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(W.BRASS, (0.05 + 0.07 * pulse) * (1.0 - k))
+		sb.set_corner_radius_all(int(10 + 26 * (1.0 - k)))
+		_glow.draw_style_box(sb, r.grow(8.0 + 26.0 * (1.0 - k) * (0.7 + 0.3 * pulse)))
+	if _rank_affordable():
+		var c := Vector2(r.end.x - 6.0, r.position.y + 6.0)
+		_glow.draw_circle(c, 22.0, W.INK, true, -1.0, true)
+		_glow.draw_circle(c, 17.0, W.BRASS, true, -1.0, true)
+		_glow.draw_rect(Rect2(c + Vector2(-3.0, -11.0), Vector2(6.0, 13.0)), W.INK)
+		_glow.draw_circle(c + Vector2(0.0, 7.5), 3.2, W.INK, true, -1.0, true)
+
+
+## Whether the purse buys the next rank of any open talent.
+func _rank_affordable() -> bool:
+	var gold := Save.gold()
+	for def: TalentDef in Registry.talents_list():
+		if not Registry.is_unlocked("talent", def.id):
+			continue
+		var cost := def.cost_of_rank(Save.talent_rank(def.id))
+		if cost >= 0 and cost <= gold:
+			return true
+	return false
+
+
+func _process(delta: float) -> void:
+	if _glow == null:
+		return
+	_glow_t += delta
+	_glow.queue_redraw()
 
 
 ## With more than one open map, the line under PLAY steps through them.

@@ -1,0 +1,18 @@
+{
+  "id": "unlock_haste",
+  "name": "Haste",
+  "condition": {
+    "type": "kills_of_enemy",
+    "enemy": "bull_beetle",
+    "count": 30
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "haste"
+  },
+  "art_prompt": "a glass jar with a winged boot inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

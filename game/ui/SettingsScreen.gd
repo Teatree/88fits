@@ -11,6 +11,11 @@ var _hold_t := 0.0
 var _hold_from := Vector2.ZERO
 var _wipe_armed := false
 var _wipe: WButton
+## Ten taps on the hints switch in one visit flip the player's debug mode (pass 44); it flips back only on a later
+## visit, with ten more (a fresh screen each time, so the count and the flip start over).
+const DEBUG_TAPS := 10
+var _hint_taps := 0
+var _debug_flipped := false
 
 
 func board_top() -> float:
@@ -53,14 +58,16 @@ func _refresh() -> void:
 	var box: VBoxContainer = sl.get_child(0)
 	box.add_child(_slider_row("Joystick size", Settings.stick_size, 0.6, 1.4, func(v): Settings.set_value("stick_size", v), 100.0))
 	box.add_child(_slider_row("Screen shake", Settings.screen_shake, 0.0, 1.5, func(v): Settings.set_value("screen_shake", v), 100.0))
-	box.add_child(_slider_row("Sound", Settings.sfx_volume, 0.0, 1.0, func(v): Settings.set_value("sfx_volume", v)))
-	box.add_child(_slider_row("Music", Settings.music_volume, 0.0, 1.0, func(v): Settings.set_value("music_volume", v)))
+	box.add_child(_slider_row("Sound", Settings.sfx_volume, 0.0, 1.0, func(v): Settings.set_value("sfx_volume", v), 0.0, 5))
+	box.add_child(_slider_row("Music", Settings.music_volume, 0.0, 1.0, func(v): Settings.set_value("music_volume", v), 0.0, 5))
 	content.add_child(sl)
 	# the hints
 	var hp := _panel(24)
 	var hints := _row("First-play hints")
 	var sw := WSwitch.make(Settings.show_hints)
-	sw.toggled.connect(func(on: bool): Settings.set_value("show_hints", on))
+	sw.toggled.connect(func(on: bool):
+		Settings.set_value("show_hints", on)
+		_count_hint_tap())
 	hints.add_child(sw)
 	hp.get_child(0).add_child(hints)
 	var again := _row("Show the hints again next run")
@@ -117,7 +124,7 @@ func _row(t: String) -> HBoxContainer:
 
 ## A setting as a slider row: the name (260 px), then the slider with its number on the thumb (`mult` x the value, or
 ## the fill as 0-100).
-func _slider_row(t: String, value: float, lo: float, hi: float, on_change: Callable, mult: float = 0.0) -> HBoxContainer:
+func _slider_row(t: String, value: float, lo: float, hi: float, on_change: Callable, mult: float = 0.0, levels: int = 0) -> HBoxContainer:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 30)
 	h.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -125,12 +132,31 @@ func _slider_row(t: String, value: float, lo: float, hi: float, on_change: Calla
 	l.custom_minimum_size.x = 260
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(l)
-	var s := WSlider.make(value, lo, hi)
+	var s := WSlider.make_levels(value, levels, lo, hi) if levels > 1 else WSlider.make(value, lo, hi)
 	if mult > 0.0:
 		s.shown = func(v: float) -> float: return v * mult
 	s.value_changed.connect(func(x): on_change.call(x))
 	h.add_child(s)
 	return h
+
+
+func _count_hint_tap() -> void:
+	_hint_taps += 1
+	if _hint_taps < DEBUG_TAPS or _debug_flipped:
+		return
+	_debug_flipped = true
+	Settings.set_value("debug_mode", not Settings.debug_mode)
+	Audio.play("ui_unlock" if Settings.debug_mode else "ui_locked")
+	# the version line says so for a moment
+	var version := str(ProjectSettings.get_setting("application/config/version", "0.28"))
+	_version.text = "debug options %s" % ("ON · arena on the title, any item on level-up, hold and respawn on Down!" if Settings.debug_mode else "OFF")
+	_version.color = W.BRASS_DARK
+	var tw := create_tween()
+	tw.tween_interval(3.0)
+	tw.tween_callback(func():
+		if is_instance_valid(_version):
+			_version.text = "88fits v" + version
+			_version.color = W.INK_SOFT)
 
 
 func _on_wipe() -> void:

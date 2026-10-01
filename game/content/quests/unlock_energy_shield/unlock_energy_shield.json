@@ -1,0 +1,17 @@
+{
+  "id": "unlock_energy_shield",
+  "name": "Energy Shield",
+  "condition": {
+    "type": "survive_minutes",
+    "minutes": 10
+  },
+  "unlocks": {
+    "type": "line",
+    "id": "energy_shield"
+  },
+  "art_prompt": "a glass jar with a glowing blue shield inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

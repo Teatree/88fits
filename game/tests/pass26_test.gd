@@ -14,12 +14,12 @@ func _give(id: String, level: int) -> WeaponInstance:
 
 
 func test_content_is_there() -> void:
-	assert_int(Registry.mutations.size()).is_equal(75)   # pass 29: a fourth turret stance; pass 30: the laser's three; pass 35: nine for three weapons
+	assert_int(Registry.mutations.size()).is_equal(79)   # pass 29: a fourth turret stance; pass 30: the laser's three; pass 35: nine for three weapons; pass 43: the Guitarra's three and Calavera's own
 	# pass 33.2: eight lines a level-up can offer, each with an evolution
 	assert_int(Registry.sorted_lines().size()).is_equal(8)
 	assert_int(Registry.lines.size()).is_equal(16)
 	# pass 34: two more perks each for the two heroes in play (Supply Drop, Thruster Burst; High Noon, Bounty Hunter)
-	assert_int(Registry.perks.size()).is_equal(9)
+	assert_int(Registry.perks.size()).is_equal(12)   # pass 43: Calavera's three
 	for w in Registry.base_weapons():
 		var path: Array = Registry.mutations_of(w.id)
 		assert_int(path.size()).override_failure_message("%s has %d path mutations" % [w.id, path.size()]).is_greater_equal(3)
@@ -30,14 +30,14 @@ func test_content_is_there() -> void:
 		assert_bool(kinds.slice(0, 3) == ["element", "volume", "motion"]).override_failure_message(w.id + " path kinds " + str(kinds)).is_true()
 		assert_str(w.evolves_with).is_equal("")
 	for c in Registry.characters.values():
-		var want := 3 if ["astro", "drifter"].has(c.id) else 1
+		var want := 3 if ["astro", "drifter", "calavera"].has(c.id) else 1
 		assert_int(Registry.perks_of(c.id).size()).override_failure_message("%s has %d perks, not %d" % [c.id, Registry.perks_of(c.id).size(), want]).is_equal(want)
 		assert_int(Registry.hero_mutations(c.id).size()).override_failure_message(c.id + " has no hero mutation").is_equal(1)
 		assert_str((Registry.hero_mutations(c.id)[0] as MutationDef).weapon).is_equal(c.favourite_weapon)
 	for pid in ["might", "spurs", "sombrero", "snake_oil", "leech", "cactus_coat", "guidance_fins", "payload", "whetstone", "long_arm", "conductor"]:
 		assert_bool(Registry.passives.has(pid)).override_failure_message(pid + " should be retired").is_false()
 	# pass 33.2: Beef Jerky and Pickpocket
-	assert_int(Registry.passives.size()).is_equal(15)
+	assert_int(Registry.passives.size()).is_equal(17)   # pass 43: the two hell items
 
 
 func test_weapon_cap_grows_with_the_stage() -> void:
@@ -136,10 +136,10 @@ func test_lines_capped_by_the_stage_with_ranks() -> void:
 	_start()
 	assert_bool(Run.add_or_rank_line("vigour")).is_true()
 	var hp1 := Run.player_sheet.get_stat("max_hp", 100.0)
-	var armor1 := Run.player_sheet.get_stat("armor", 0.0)
+	var dr1 := Run.player_sheet.get_stat("damage_reduction", 0.0)
 	assert_bool(Run.add_or_rank_line("vigour")).is_true()
 	assert_float(Run.player_sheet.get_stat("max_hp", 100.0)).is_greater(hp1)
-	assert_float(Run.player_sheet.get_stat("armor", 0.0)).is_equal_approx(armor1 + 1.0, 0.001)
+	assert_float(Run.player_sheet.get_stat("damage_reduction", 0.0)).is_equal_approx(dr1 + 0.05, 0.001)
 	assert_bool(Run.add_or_rank_line("brawn")).is_true()
 	assert_float(Run.player_sheet.get_stat("move_speed", 3.6)).is_less(3.6)
 	# pass 34: stage 1 opens three lines (the map's line_cap, 3 / 4 / 4), not two for the whole run

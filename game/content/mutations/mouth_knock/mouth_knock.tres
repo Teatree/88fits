@@ -7,13 +7,16 @@
 [sub_resource type="Resource" id="Resource_labp7"]
 script = ExtResource("1_fp3sa")
 stat = "knockback"
+op = "add"
 value = 11.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_ugl13"]
 script = ExtResource("1_fp3sa")
 stat = "damage"
 op = "mul"
 value = 0.15
+target = "self"
 
 [resource]
 script = ExtResource("2_labp7")

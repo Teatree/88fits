@@ -6,6 +6,9 @@
 
 [resource]
 script = ExtResource("1_r8k0c")
+behavior = "ProjectileEmitter"
+tags = []
+targeting = "nearest"
 base = {
 "amount": 3.0,
 "cooldown": 0.15,
@@ -17,6 +20,8 @@ base = {
 }
 levels = [[]]
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "peashooter"
 sfx = {
@@ -33,10 +38,15 @@ params = {
 "speed": 1.4
 }
 }
+hero = ""
 id = "bullet_hose"
 display_name = "Bullet Hose"
 flavour = "Continuous. Relentless. Peas."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_32l4p")
 icon_file = "bullet_hose_icon.png"
 placeholder = {

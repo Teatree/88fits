@@ -1,0 +1,17 @@
+{
+  "id": "unlock_rocket_pod",
+  "name": "Rocket Pod",
+  "condition": {
+    "type": "open_chests",
+    "count": 3
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "rocket_pod"
+  },
+  "art_prompt": "a glass jar with a small rocket inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "unlock_stride",
+  "name": "Stride",
+  "condition": {
+    "type": "survive_minutes_no_lift",
+    "minutes": 2
+  },
+  "unlocks": {
+    "type": "line",
+    "id": "stride"
+  },
+  "art_prompt": "a glass jar with a running boot inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

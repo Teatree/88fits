@@ -15,7 +15,7 @@ static func level_up_offer(count: int = 3, exclude: Array = []) -> Array:
 	var weapon_slot_free := Run.weapons.size() < Run.weapon_cap()
 	var passive_slot_free := Run.passives.size() < Run.MAX_PASSIVES
 	for w in Registry.unlocked_weapons():
-		if Run.banished.has(w.id) or exclude.has(w.id):
+		if Run.banished.has(w.id) or exclude.has(w.id) or not stage_open(w):
 			continue
 		var inst := Run.weapon_instance(w.id)
 		if inst == null:
@@ -24,7 +24,7 @@ static func level_up_offer(count: int = 3, exclude: Array = []) -> Array:
 		elif inst.level < w.max_level and not inst.def.is_evolution:
 			cands.append(_card("weapon", w, inst.level, inst.level + 1, _weight(w, true)))
 	for p in Registry.unlocked_passives():
-		if Run.banished.has(p.id) or exclude.has(p.id):
+		if Run.banished.has(p.id) or exclude.has(p.id) or not stage_open(p):
 			continue
 		var lv := int(Run.passives.get(p.id, 0))
 		if lv == 0:
@@ -33,8 +33,8 @@ static func level_up_offer(count: int = 3, exclude: Array = []) -> Array:
 		elif lv < p.max_level:
 			cands.append(_card("passive", p, lv, lv + 1, _weight(p, true)))
 	var lines_full := Run.lines.size() >= Run.line_cap()
-	for l: LineDef in Registry.sorted_lines():
-		if Run.banished.has(l.id) or exclude.has(l.id):
+	for l: LineDef in open_lines():
+		if Run.banished.has(l.id) or exclude.has(l.id) or not stage_open(l):
 			continue
 		var r := Run.line_rank(l.id)
 		if r == 0:
@@ -57,6 +57,16 @@ static func level_up_offer(count: int = 3, exclude: Array = []) -> Array:
 	if exclude.is_empty():
 		Run.note_offer(out)
 	return out
+
+
+## The base lines a run may be offered: the content listing less the ones behind an unlock quest (pass 44).
+static func open_lines() -> Array:
+	return Registry.sorted_lines().filter(func(l: LineDef) -> bool: return Registry.is_unlocked("line", l.id))
+
+
+## Whether the run's stage has reached an item's `from_stage` (pass 43: the hell items are stage 3's alone).
+static func stage_open(def: ContentDef) -> bool:
+	return def.from_stage <= 0 or Run.stage + 1 >= def.from_stage
 
 
 ## Which limited category a card falls in, "" for none.

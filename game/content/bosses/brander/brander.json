@@ -1,0 +1,111 @@
+{
+  "id": "brander",
+  "name": "The Brander",
+  "flavour": "Hell has a foreman. He brought the iron.",
+  "archetype": "boss",
+  "brain": "boss",
+  "hp": 3400,
+  "speed": 1.55,
+  "damage": 30,
+  "radius": 2.2,
+  "size": 5.2,
+  "pack_size": 1,
+  "drops": {
+    "large": 1.0,
+    "gold": 1.0,
+    "chests": 3,
+    "coins": 40
+  },
+  "frame_px": 256,
+  "xp_mult": 90,
+  "boss": {
+    "hp_mult_per_stage": 2.0,
+    "ring": {
+      "radius": 21.0,
+      "min_radius": 8.0,
+      "shrink": 42.0,
+      "hold": 8.0,
+      "burn": 0.07,
+      "creature_burn": 0.12
+    },
+    "attacks": [
+      {
+        "name": "brand",
+        "windup": 1.0,
+        "length": 16.0,
+        "life": 9.0,
+        "width": 1.1,
+        "damage": 12,
+        "tick": 0.5,
+        "telegraph": "line"
+      },
+      {
+        "name": "roll",
+        "windup": 1.0,
+        "speed": 14.0,
+        "duration": 1.0,
+        "damage": 32,
+        "telegraph": "line"
+      },
+      {
+        "name": "slam",
+        "windup": 1.2,
+        "radius": 6.0,
+        "damage": 36,
+        "knockback": 12,
+        "telegraph": "ring"
+      },
+      {
+        "name": "brand",
+        "windup": 1.0,
+        "length": 16.0,
+        "life": 9.0,
+        "width": 1.1,
+        "damage": 12,
+        "tick": 0.5,
+        "telegraph": "line"
+      },
+      {
+        "name": "spawn_ring",
+        "windup": 0.8,
+        "enemy": "imp",
+        "count": 10,
+        "telegraph": "none"
+      }
+    ],
+    "cooldown_between": 2.0
+  },
+  "sfx": {
+    "spawn": "en_boss_roar",
+    "attack": "en_boss_attack",
+    "die": "en_boss_die",
+    "hit": "en_goblin_hit"
+  },
+  "placeholder": {
+    "color": "#8A1A1A",
+    "ears": "horn",
+    "eyes": 2,
+    "shape": "tall"
+  },
+  "art_prompt": "a towering muscular devil with dark crimson skin, two heavy curved bull horns on its head, burning orange eyes and a wide grin of sharp teeth, wearing a tattered dusty brown poncho and a battered wide-brimmed black hat, cloven hooves, holding a long black iron branding iron with a glowing white-hot brand at its tip upright in one hand, two arms and two legs, standing on the ground facing the viewer",
+  "motion": "swaying in place menacingly, the branding iron glowing, the poncho swinging",
+  "anim_negative": "extra horns, extra arms, a third arm, two branding irons, extra legs, extra heads, wings",
+  "dead_hint": "lying flat on its back on the ground, dead: eyes shut, its body stretched out sideways across the picture with its head on the left and its hooves on the right, the branding iron lying on the ground beside its open hand",
+  "back_hint": "It still holds the branding iron upright in the same hand, the glowing tip visible above its shoulder.",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "doc": "Stage 3's boss. It draws a ring of fire round the fight that closes in for forty seconds and burns whoever stands outside it; its iron leaves burning lines on the sand for nine seconds; a charge, a slam, rings of imps. Pays three chests and forty coins.",
+  "strip_cols": 40,
+  "head": 0.988
+}

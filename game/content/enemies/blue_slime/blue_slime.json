@@ -1,0 +1,75 @@
+{
+  "id": "blue_slime",
+  "name": "Blue Slime",
+  "flavour": "It is not water. Do not drink it.",
+  "archetype": "walker",
+  "brain": "chase",
+  "hp": 26,
+  "speed": 1.7,
+  "damage": 7,
+  "radius": 0.6,
+  "size": 1.5,
+  "pack_size": 5,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.4,
+    "gold": 0.05,
+    "chest": 0.004
+  },
+  "frame_px": 160,
+  "xp_mult": 3.5,
+  "cap_share": 1.0,
+  "sfx": {
+    "hit": "en_slime_hit",
+    "die": "en_slime_die"
+  },
+  "placeholder": {
+    "color": "#2E7BFF",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "screen": "green",
+  "art_prompt": "a big round blob of glossy bright cobalt-blue slime jelly, a rounded dome shape sitting on the ground, translucent blue with a lighter cyan glow inside and bright white highlights on top, two large round black eyes with white highlights and a wide open happy mouth, a few small drips of blue slime running down its sides, no arms, no legs, no hair, nothing on its head, facing the viewer",
+  "variance": {
+    "size": 0.18,
+    "speed": 0.12,
+    "tints": [
+      "#FFFFFF",
+      "#D8F0FF",
+      "#C0FFF4",
+      "#E0D8FF"
+    ],
+    "tint_strength": 0.2,
+    "special_chance": 0.1,
+    "special": {
+      "size": 1.5,
+      "hp": 2.0,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#5A1078",
+      "tint_strength": 0.6
+    }
+  },
+  "motion": "bouncing up and down in place with a wobbling jelly squash and stretch, its drips swinging",
+  "anim_negative": "arms, legs, hands, a face splitting, two blobs, extra eyes, a mouth splitting",
+  "dead_hint": "splattered flat into a wide shallow puddle of blue slime, dead: the dome gone, only a flat spread of blue jelly with its two round black eyes floating on top, no body shape left; the puddle sits on nothing, with no ground, no sand and no shadow under it",
+  "back_hint": "Its back is a plain glossy blue dome with the drips, no eyes and no mouth visible.",
+  "death": "squash",
+  "directions": 2,
+  "doc": "Stage 2's hell crowd: a bouncing blue jelly, four times a goblin's health and twice its bite, five to a pack on top of the regular roster. It bursts into a puddle when it dies.",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 6,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "strip_cols": 41,
+  "fps": {
+    "run": 15,
+    "die": 8
+  },
+  "head": 0.894
+}

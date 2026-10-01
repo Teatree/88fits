@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/serenade/serenade_icon.png" id="1_4c48y"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_r4vym"]
+
+[resource]
+script = ExtResource("1_r4vym")
+hero = "calavera"
+text = "Creatures within 4 m of him move 25% slower."
+special = "serenade"
+params = {
+"every": 0.3,
+"radius": 4.0,
+"slow": 0.25
+}
+id = "serenade"
+display_name = "Serenade"
+flavour = "They stop to listen. Their mistake."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_4c48y")
+icon_file = "serenade_icon.png"
+placeholder = {
+"color": "#F0D080",
+"glyph": "star"
+}

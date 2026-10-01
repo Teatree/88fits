@@ -6,6 +6,9 @@
 
 [resource]
 script = ExtResource("1_37p72")
+behavior = "ProjectileEmitter"
+tags = []
+targeting = "nearest"
 base = {
 "amount": 14.0,
 "cooldown": 1.0,
@@ -18,6 +21,8 @@ base = {
 }
 levels = [[]]
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "tommy_gun"
 sfx = {
@@ -28,6 +33,7 @@ visual = ExtResource("3_emqyg")
 visual_file = "chicago_typewriter_visual.tscn"
 params = {
 "burst": true,
+"drum_axis": "forward",
 "familiar": {
 "bob": 0.08,
 "height": 1.4,
@@ -37,10 +43,15 @@ params = {
 "radius": 0.18,
 "tracer": true
 }
+hero = ""
 id = "chicago_typewriter"
 display_name = "Chicago Typewriter"
 flavour = "Every letter is a bullet."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_xfe87")
 icon_file = "chicago_typewriter_icon.png"
 placeholder = {

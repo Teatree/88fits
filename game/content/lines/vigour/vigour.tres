@@ -20,8 +20,9 @@ target = "player"
 
 [sub_resource type="Resource" id="Resource_u76pt"]
 script = ExtResource("1_qukw3")
-stat = "armor"
-value = 1.0
+stat = "damage_reduction"
+op = "add"
+value = 0.05
 target = "player"
 
 [sub_resource type="Resource" id="Resource_5a3gg"]
@@ -40,8 +41,9 @@ target = "player"
 
 [sub_resource type="Resource" id="Resource_50ymc"]
 script = ExtResource("1_qukw3")
-stat = "armor"
-value = 1.0
+stat = "damage_reduction"
+op = "add"
+value = 0.05
 target = "player"
 
 [resource]

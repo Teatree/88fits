@@ -10,45 +10,55 @@ script = ExtResource("1_xab5y")
 stat = "damage"
 op = "mul"
 value = 0.25
+target = "self"
 
 [sub_resource type="Resource" id="Resource_d2vsb"]
 script = ExtResource("1_xab5y")
 stat = "range"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_wqb54"]
 script = ExtResource("1_xab5y")
 stat = "cooldown"
 op = "mul"
 value = -0.12
+target = "self"
 
 [sub_resource type="Resource" id="Resource_t272n"]
 script = ExtResource("1_xab5y")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_wdn7y"]
 script = ExtResource("1_xab5y")
 stat = "damage"
 op = "mul"
 value = 0.25
+target = "self"
 
 [sub_resource type="Resource" id="Resource_o08gb"]
 script = ExtResource("1_xab5y")
 stat = "range"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_26381"]
 script = ExtResource("1_xab5y")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [resource]
 script = ExtResource("2_cxtc7")
 behavior = "Thruster"
 tags = ["blade"]
+targeting = "nearest"
 base = {
 "amount": 1.0,
 "area": 1.0,
@@ -58,7 +68,11 @@ base = {
 "range": 2.6
 }
 levels = [[], [SubResource("Resource_cxtc7")], [SubResource("Resource_d2vsb")], [SubResource("Resource_wqb54")], [SubResource("Resource_t272n")], [SubResource("Resource_wdn7y")], [SubResource("Resource_o08gb")], [SubResource("Resource_26381")]]
+max_level = 8
+evolves_with = ""
 evolves_into = "zweihander"
+is_evolution = false
+evolved_from = ""
 sfx = {
 "fire": "w_saw_hit",
 "hit": "w_pea_hit"
@@ -75,10 +89,15 @@ params = {
 "width": 0.7
 }
 }
+hero = ""
 id = "sabre"
 display_name = "Sabre"
 flavour = "Left, right, done. Ask the goblin."
+rarity = "common"
+element = ""
 weight = 9.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_cxtc7")
 icon_file = "sabre_icon.png"
 placeholder = {

@@ -42,7 +42,7 @@ Most of what remains falls into three causes:
 | | | The evolved slot's tag reads 1. | An evolution restarts at level 1. |
 | | | Evolved items are dark plates in a brass ring, not ember. | Pass 40: ember sat too close to brass on the phone, and evolved lines had no look of their own. |
 | 06c | HUD, full build (no PNG) | A build that would shrink below 85 % on one row splits: weapons keep a row, passives and lines take a second; the tap-to-pause strip and everything under the slots move down. | Pass 40: at 62 % the plates crowded each other's level tags and spilled a stray row. |
-| 07 | Level-up | Seals, stars and lines come from data. Bristle and Boomstick are common, not rare and epic. | Data. |
+| 07 | Level-up | Stars and lines come from data. No rarity seals anywhere since pass 43 (Garry: remove the indicator on every item). | Data. |
 | 08 | Path offer | Each card shows the path's first sentence. | The README asks for "one effect line"; the PNG prints the whole text. |
 | 09 | Gate | Captured at rest: the tag has landed and the slot wears brass. | The PNG freezes the tag mid-flight. The flight is built: 0.35 s, turns −8°, two streaks. |
 | 10 | Chest | The reel's items and result come from the roll; Orbit Saws is common. | Data. |
@@ -60,14 +60,16 @@ Most of what remains falls into three causes:
 | 17 | Developer menu | No build number. | The game has none to show. |
 | | | "Hidden items · 34". | Counts the data's hidden and retired items. |
 
-## Placeholders still to paint
+## Placeholders
 
-Drop a PNG into `game/art/ui/wanted/` and the slot shows it:
+All painted (pass 42, Flux.2 dev at full steps, four seeds each, picked by eye, `tools/gen_ui_art.py`; the heroes in pass 40 with `tools/gen_title_heroes.py`):
 
-- ~~`hero_astro.png` and `hero_drifter.png`~~ painted in pass 40 (`tools/gen_title_heroes.py`; Dad, Buck and Mira too, for the locked silhouettes)
-- `stranger.png`, 840 × 660
-- `strongbox.png` and `portal.png`, 180 × 180
-- `mirror.png`, 300 px
+- `hero_<id>.png`: the five heroes, full-body (Astro and the Drifter on the title; Dad, Buck and Mira as locked silhouettes)
+- `stranger.png`: the hooded figure holding out a glowing offering (an edit of the Stranger's painting in the world)
+- `strongbox.png`: an open strongbox heaped with gold (the Extract card), painted as an item icon (pass 43: the painted-scenery version read as a different art next to the icons)
+- `portal.png`: a sandstone gate with the green vortex in it (the Continue card), an item icon likewise
+- `mirror.png`: an ornate brass mirror, dark glass, two amber eyes looking out
+- In the world, the portal a boss leaves behind is the same gate (`art/sprites/props/boss_portal.png`, a billboard like the scenery) with the swirl turning in its opening; the old green torus is only a fallback.
 
 ## Outside the mocks
 
@@ -79,3 +81,11 @@ These changes came with the rebuild:
 - **Save file.** No new keys, apart from three developer switches in the saved settings. Old saves load unchanged.
 - **Analytics.** The game has none, so nothing to keep.
 - **Touch check.** `touch_audit.gd` passes 695 of 695 controls at 1080×1920 and at the phone's shape.
+
+## Pass 44 (2026-10-01)
+
+- The Mirror is **Upgrade** on every button and title (the mock still says The Mirror); the title's Upgrade button is brass with a breathing glow and a mark when a rank can be bought.
+- Results: "Main Menu" instead of "Title"; a death shows "Left in the sand" with the lost gold struck through and what the Strongbox banked (`16b-results-down`).
+- Collection: tiles show only what has been met; a locked tile carries the quest's words and a progress bar and opens a requirement page (`04d-collection-locked-page`, `04e-collection-locked-tiles`). The mock had no such page.
+- Level-up and chest: a sunburst, confetti and a stamped title on the reveal (`WCelebrate`), not in the mocks.
+- The title's map line is empty until a run has been played, then shows the true best with kills.

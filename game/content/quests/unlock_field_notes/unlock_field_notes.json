@@ -1,0 +1,17 @@
+{
+  "id": "unlock_field_notes",
+  "name": "Field Notes",
+  "condition": {
+    "type": "runs_total",
+    "count": 3
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "field_notes"
+  },
+  "art_prompt": "a glass jar with a small leather notebook inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

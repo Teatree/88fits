@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_ee7ke")
 behavior = "Lobber"
+tags = []
 targeting = "densest_healthy"
 base = {
 "amount": 3.0,
@@ -20,7 +21,10 @@ base = {
 "range": 13.0,
 "speed": 13.0
 }
+levels = []
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "skull_rain"
 sfx = {
@@ -32,10 +36,15 @@ visual_file = "dia_de_muertos_visual.tscn"
 params = {
 "cloud_seconds": 6.0
 }
+hero = ""
 id = "dia_de_muertos"
 display_name = "Dia de Muertos"
 flavour = "A festival. Not for them."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_qae70")
 icon_file = "dia_de_muertos_icon.png"
 placeholder = {

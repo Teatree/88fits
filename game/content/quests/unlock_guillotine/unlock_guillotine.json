@@ -1,0 +1,18 @@
+{
+  "id": "unlock_guillotine",
+  "name": "Guillotine",
+  "condition": {
+    "type": "kill_boss",
+    "map": "red_canyon",
+    "stage": 2
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "guillotine"
+  },
+  "art_prompt": "a glass jar with a guillotine blade inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

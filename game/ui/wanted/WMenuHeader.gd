@@ -17,8 +17,8 @@ static func make(t: String, right_node: Control = null) -> WMenuHeader:
 	h.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	h.offset_left = 36
 	h.offset_right = -36
-	h.offset_top = 44
-	h.offset_bottom = 44 + 114
+	h.offset_top = 44 + W.safe_top()
+	h.offset_bottom = 44 + W.safe_top() + 114
 	h.back_button = WTap.new()
 	var bb := W.box(W.PAPER, 5, 6)
 	h.back_button.box = bb

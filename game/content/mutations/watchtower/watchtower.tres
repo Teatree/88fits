@@ -9,17 +9,21 @@ script = ExtResource("1_t8w1n")
 stat = "range"
 op = "mul"
 value = 0.6
+target = "self"
 
 [sub_resource type="Resource" id="Resource_kgjf6"]
 script = ExtResource("1_t8w1n")
 stat = "pierce"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_b0rum"]
 script = ExtResource("1_t8w1n")
 stat = "lifetime"
 op = "mul"
 value = 0.5
+target = "self"
 
 [resource]
 script = ExtResource("2_wjsvw")

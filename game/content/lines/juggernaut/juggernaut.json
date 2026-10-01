@@ -14,9 +14,9 @@
         "target": "player"
       },
       {
-        "stat": "armor",
+        "stat": "damage_reduction",
         "op": "add",
-        "value": 2,
+        "value": 0.1,
         "target": "player"
       },
       {

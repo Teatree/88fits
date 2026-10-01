@@ -66,7 +66,8 @@ func build_debug_button(on_press: Callable) -> void:
 func _sync_debug_button() -> void:
 	if _debug_btn:
 		var s := W.node("Settings")
-		_debug_btn.visible = s != null and bool(s.get("debug_modal_buttons"))
+		# the developer menu's switch, or the player's own debug mode (pass 44: ten taps on the hints switch)
+		_debug_btn.visible = s != null and (bool(s.get("debug_modal_buttons")) or bool(s.get("debug_mode")))
 
 
 ## Show with the design's entry motion; `stagger` is the content's children that slide up one after another.

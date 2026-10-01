@@ -23,3 +23,11 @@ tools/dl/
 
 # release keystore + password: never commit
 tools/keys/
+
+# reference models and pictures Garry shared (pass 44): kept beside the repo, never committed
+_REFERENCES/
+
+# the browser automation scratch and the UI review pack outputs (pass 38) stay out of the branch
+.playwright-mcp/
+docs/ui_review/*.pdf
+docs/ui_review/*.zip

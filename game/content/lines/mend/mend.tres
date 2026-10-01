@@ -7,6 +7,7 @@
 [sub_resource type="Resource" id="Resource_hchci"]
 script = ExtResource("1_j0tyk")
 stat = "regen"
+op = "add"
 value = 0.45
 target = "player"
 

@@ -35,7 +35,7 @@ func _ready() -> void:
 	_list.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_list.offset_left = 48
 	_list.offset_right = -48
-	_list.offset_top = 470
+	_list.offset_top = 470 + W.safe_top()
 	_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_list)
 	_build_path_head()
@@ -71,7 +71,7 @@ func _build_path_head() -> void:
 	_path_head.alignment = BoxContainer.ALIGNMENT_BEGIN
 	_path_head.add_theme_constant_override("separation", 14)
 	_path_head.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_path_head.offset_top = 90
+	_path_head.offset_top = 90 + W.safe_top()
 	_path_head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_path_head.visible = false
 	add_child(_path_head)
@@ -140,6 +140,11 @@ func show_offer(offer: Array, title: String, starter: bool, with_hints: bool, pa
 	enter()
 	_slide_cards()
 	Audio.play("ui_card_pick")
+	if not starter and not path:
+		# the reveal (pass 44): a sunburst behind the title, stars and paper scraps falling, the title stamping in, a fanfare
+		WCelebrate.burst(self, Vector2(get_viewport_rect().size.x * 0.5, 250.0 + W.safe_top()), 1)
+		header.stamp.call_deferred()
+		Audio.play("ui_fanfare")
 
 
 func _refresh_buttons() -> void:
@@ -168,7 +173,7 @@ func _rebuild() -> void:
 		_cards.append(node)
 		_slots.append(slot)
 	_list.add_theme_constant_override("separation", 36 if path_mode else 44)
-	_list.offset_top = 720.0 if path_mode else 470.0
+	_list.offset_top = (720.0 if path_mode else 470.0) + W.safe_top()
 	_fit.call_deferred()
 
 
@@ -223,7 +228,7 @@ func _fit() -> void:
 	var vp := get_viewport_rect().size
 	var n := _cards.size()
 	var gap := 36.0 if path_mode else 44.0
-	var top := 720.0 if path_mode else 470.0
+	var top := (720.0 if path_mode else 470.0) + W.safe_top()
 	var total := 0.0
 	for c in _cards:
 		total += (c as Control).get_combined_minimum_size().y
@@ -233,7 +238,7 @@ func _fit() -> void:
 		gap = maxf((bottom - top - total) / maxf(n - 1, 1), 24.0)
 		span = total + gap * (n - 1)
 		if top + span > bottom:
-			top = maxf(bottom - span, 360.0)
+			top = maxf(bottom - span, 360.0 + W.safe_top())
 	elif vp.y > 1930.0:
 		gap = minf(gap + (bottom - top - span) / maxf(n + 1, 2), 60.0)
 		span = total + gap * (n - 1)
@@ -289,7 +294,7 @@ func take_pick() -> Dictionary:
 
 func _reroll() -> void:
 	if Run.rerolls_left <= 0:
-		header.set_line("No rerolls left. The Mirror's Choice talent gives more.")
+		header.set_line("No rerolls left. The Choice upgrade gives more.")
 		Audio.play("ui_locked")
 		return
 	Run.rerolls_left -= 1
@@ -301,7 +306,7 @@ func _reroll() -> void:
 
 func _toggle_banish() -> void:
 	if Run.banishes_left <= 0 and not _banish_mode:
-		header.set_line("No banishes left. The Mirror's Choice talent gives more.")
+		header.set_line("No banishes left. The Choice upgrade gives more.")
 		Audio.play("ui_locked")
 		return
 	_banish_mode = not _banish_mode

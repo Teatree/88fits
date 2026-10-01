@@ -114,11 +114,11 @@
 
   <h3>The other screens</h3>
   <dl class="kv">
-    <dt>title</dt><dd>PLAY, the current pick chip, Shop, Collection, Settings. Gold and best run at the top. Background is the live Dry Gulch skybox.</dd>
+    <dt>title</dt><dd>PLAY under the hero carousel; then <b>Upgrade</b> (in brass, with a breathing glow and a mark when a rank is affordable, v0.30), Collection and Settings. Gold top left; the map's best run (time, level, stage, kills) under PLAY once a run has been played, nothing before. Background is an arena still behind every menu.</dd>
     <dt>play flow</dt><dd>PLAY → play setup: hero cards (portrait, trait, favourite weapon, quest text if locked) and the map card on one screen → GO → starter pick → run. Two taps if you keep the last choice, because the chip remembers it.</dd>
-    <dt>shop</dt><dd>The permanent upgrade table from section 13 as a scrolling list with big buy buttons, tier pips, and a refund-all button.</dd>
-    <dt>collection</dt><dd>Every weapon, evolution, passive, creature, boss and hero with its icon and, when locked, the quest text. Tap for the full description, the same generated text the pause screen uses.</dd>
-    <dt>results</dt><dd>Time survived, stage reached, level, kills, gold earned with the extract bonus shown separately, damage by weapon as a bar list, quest progress ticks, then Shop, Play again, and Hub.</dd>
+    <dt>upgrade</dt><dd>The Upgrade board, below (the Mirror until v0.30; the name said nothing about what it was for).</dd>
+    <dt>collection</dt><dd>Every weapon, passive, line, perk and creature, but only once it has been <b>met in a run</b> (v0.30: an item held once, a creature seen on the sand once; the rest are aged plates that say Not found yet, and meeting them is not an event the results screen mentions). An item behind an unlock quest shows the quest's words and a progress bar on its tile and opens a page with the quest, the stage that can do it and what the item will do. Tap a found item for the full description, the same generated text the pause screen uses.</dd>
+    <dt>results</dt><dd>Time survived, stage reached, level, kills, the gold banked (or, on a death, the gold left in the sand, struck through, and what the Strongbox saved), damage by weapon as a bar list, what the run unlocked, then PLAY AGAIN, Upgrade and Main Menu.</dd>
   </dl>
 </section>
 
@@ -131,8 +131,8 @@
     <figcaption><b>The collection in the build.</b> Locked rows show the quest that unlocks them; every icon is painted from the item's own <code>art_prompt</code>.</figcaption>
   </figure>
 
-  <h3>The Mirror</h3>
-  <p class="lede">The meta is a <b>Mirror</b> (v0.22), cut down from the Mirror of Night in Hades. Eight talents, each with <b>two mutually exclusive forms</b>, three ranks apiece. A rank costs gold; switching a talent to its other form is free and keeps the ranks; and <b>Take it all back</b> empties the board and returns every coin ever spent on it. So the meta is a build you keep re-deciding, not a ratchet you climb once.</p>
+  <h3>Upgrade (the Mirror)</h3>
+  <p class="lede">The meta is the <b>Upgrade board</b> (v0.22, as the Mirror, cut down from the Mirror of Night in Hades; renamed Upgrade in v0.30 so the button says what it is for). Eight talents, each with <b>two mutually exclusive forms</b>, three ranks apiece. A rank costs gold; switching a talent to its other form is free and keeps the ranks; and <b>Take it all back</b> empties the board and returns half the coins spent on it (v0.30; until then all of them, which made the board a free respec). So the meta is a build you can re-decide, at a price.</p>
   <div class="callout rule"><div class="lab">The loop</div>
   <p>Run → gold (kills, chests, Elites and bosses pay purses now) → a rank of one form of a talent → a run that plays a little differently. Nothing is lost by changing your mind, so the interesting question is <i>which half of each pair</i> this run wants, not whether you can afford anything. It replaced the farm of v0.17 (five producers, a market, silver, stock, bones and relics), which was a second game rather than a frame around this one, and the flat gold-buys-stats shop before it, which was a list.</p>
   </div>
@@ -144,7 +144,7 @@
   </table></div>
   <figure>
     <div class="fig-frame"><div class="fig-grid">{{IMG:07_homestead|The build: the Mirror, eight talents down the screen, each with its two forms and its rank pips}}</div></div>
-    <figcaption><b>The Mirror in the build.</b> Each row is a talent: the two forms sit side by side, the live one lit; the pips show ranks owned; the button below buys the next rank at its gold price. The strip at the top counts the purse and what the board holds, and the button at the foot gives it all back.</figcaption>
+    <figcaption><b>The Upgrade board in the build.</b> Each row is a talent: the two forms sit side by side, the live one lit; the pips show ranks owned; the button below buys the next rank at its gold price. The strip at the top counts the purse and what the board holds, and the button at the foot gives it all back.</figcaption>
   </figure>
   <p>One more thing to spend a run's gold on before it ends: the <b>Strongbox</b> (v0.22), an eighth structure on the map. Stand in its ring and every coin you are carrying goes to the homestead at once, whether you extract afterwards or die in the next minute. It is the only way to bank mid-run, and the results screen counts what you sent. Since v0.23 it is a chest on a balloon (the first painted strongbox read as a heap of brown): a banded wooden chest with a gold lock and a gold coin on the front and a red balloon tied to its lid, painted 2.5D like every other structure (v0.23.1; a Blender model tried for one build was the only 3D structure on the map). When the purse goes in, the balloon lifts the painting off the sand and it drifts up and away over the canyon until it is gone.</p>
   <figure>
@@ -160,8 +160,9 @@
   <div class="tbl-wrap"><table>
     <thead><tr><th>Hero</th><th>Trait</th><th>Favourite weapon</th><th>Favourite bonus</th><th>Unlock</th></tr></thead>
     <tbody>
-      <tr><td><span class="name">Astro</span><span class="sub">Wrong planet. Right attitude.</span></td><td><b>Space Suit:</b> +1 armor and +10% max HP; every level-up patches the suit for 8% of her HP</td><td>Orbit Saws</td><td>+20% area</td><td>The default. A slim explorer in a puffy white-and-orange suit with an opaque mirrored visor and a backpack, Astroneer's silhouette in the game's anime line.</td></tr>
+      <tr><td><span class="name">Astro</span><span class="sub">Wrong planet. Right attitude.</span></td><td><b>Space Suit:</b> +5% damage reduction and +10% max HP; every level-up patches the suit for 5% of her HP</td><td>Orbit Saws</td><td>+20% area</td><td>The default. A slim explorer in a puffy white-and-orange suit with an opaque mirrored visor and a backpack, Astroneer's silhouette in the game's anime line.</td></tr>
       <tr><td><span class="name">Drifter</span><span class="sub">Wide hat. Long coat. Longer road.</span></td><td><b>Long Road:</b> +10% move speed and +25% pickup radius</td><td>Peashooter</td><td>starts at level 3</td><td>Available from the start. Wide-brimmed hat, long tan duster, red scarf.</td></tr>
+      <tr><td><span class="name">Calavera</span><span class="sub">He plays. They dance. Briefly.</span></td><td><b>Last Dance:</b> +25% might and +15% crit chance, but −15% max HP</td><td>Skull Rain</td><td>starts at level 2</td><td>Available from the start (v0.29). A lean mariachi with a sugar-skull painted face, a black charro suit with silver embroidery, a wide black sombrero, a red sash and bow tie. The damage dealer: his own weapon is the <b>Guitarra</b>, a companion guitar that strums three notes in a fan (Ember Chord, Power Chord, Tremolo; the <b>Requiem</b> when evolved, five notes in an arpeggio), and his perks are <b>Crescendo</b> (every kill +1% might up to +40%, a hit drops it), <b>Serenade</b> (creatures within 4 m move 25% slower) and <b>Grand Finale</b> (a boss or an Elite dying takes 35% off every creature within 14 m and throws them). His hero path on the Skull Rain is <b>Danza Macabra</b>.</td></tr>
       <tr><td><span class="name">Dad</span><span class="sub">Has opinions about the lawn.</span></td><td><b>Dad Strength:</b> +25% might and +15% area, but −10% move speed</td><td>Boomstick</td><td>+2 pellets</td><td>Kill 500 creatures with the Boomstick. Repainted in v0.14: his back still had turned out face-forward and his side still a slimmer man, so running up or sideways he was somebody else; every view and cycle was regenerated with pose hints (arms hanging, no face from behind, the belly in profile).</td></tr>
       <tr><td><span class="name">Mira</span><span class="sub">Digs for a living. Finds trouble for free.</span></td><td><b>Motherlode:</b> +30% gold and −10% might, and every Elite and boss drops one extra material</td><td>Land Mine</td><td>−20% cooldown</td><td>Available from the start. A small prospector with a long braid, a yellow mining helmet with goggles, a red bandana, blue overalls and boots. The hero built for the homestead: she brings the bones and relics home.</td></tr>
       <tr><td><span class="name">Buck</span><span class="sub">Slow to start. Impossible to stop.</span></td><td><b>Momentum:</b> starts 15% slower than the others; while he is not hit his speed climbs to +60% and his might to +50% over twelve seconds; one hit and both drop to nothing and the climb starts over. Dust puffs at his heels as it builds and warm streaks trail him past half charge, white sparks at full, so the moment to keep running is visible</td><td>Tommy Gun</td><td>+2 rounds a burst</td><td>Available from the start. A lanky deer man with tall antlers in a teal t-shirt and khaki shorts.</td></tr>
@@ -183,7 +184,6 @@
       <tr><td><span class="name">Lob Grenade</span></td><td><span class="chip w">weapon</span></td><td>Kill 200 fire ants in one run.</td></tr>
       <tr><td><span class="name">Conductor</span></td><td><span class="chip p">passive</span></td><td>Evolve any weapon once.</td></tr>
       <tr><td><span class="name">Dad</span></td><td><span class="chip">hero</span></td><td>Kill 500 creatures with the Boomstick.</td></tr>
-      <tr><td><span class="name">Endless</span></td><td><span class="chip">mode</span></td><td>Kill the Tumbleweed King at 15:00.</td></tr>
     </tbody>
   </table></div>
 </section>

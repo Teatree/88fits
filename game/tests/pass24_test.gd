@@ -10,11 +10,13 @@ func _start(hero: String = "astro") -> void:
 
 func test_space_suit_is_softer_early() -> void:
 	var c: CharacterDef = Registry.character("astro")
-	var armor := 0.0
+	var dr := 0.0
 	for e in c.trait_effects:
-		if e.stat == "armor":
-			armor = e.value
-	assert_float(armor).is_less_equal(1.0)
+		if e.stat == "damage_reduction":
+			dr = e.value
+	# pass 43: a flat armour became a share of every hit
+	assert_float(dr).is_greater(0.0)
+	assert_float(dr).is_less_equal(0.1)
 	assert_float(c.level_heal).is_less_equal(0.08)
 
 
@@ -59,7 +61,7 @@ func test_salvo_reaches_only_the_rocket_pod() -> void:
 func test_new_creatures_and_the_second_boss() -> void:
 	var toad: EnemyDef = Registry.enemy("horned_toad")
 	assert_object(toad).is_not_null()
-	assert_float(toad.armor).is_greater(0.0)
+	assert_float(toad.damage_reduction).is_greater(0.0)
 	# pass 28: the Sand Crab took the spider's place, a fast pack creature
 	var crab: EnemyDef = Registry.enemy("sand_crab")
 	assert_object(crab).is_not_null()
@@ -78,7 +80,7 @@ func test_new_creatures_and_the_second_boss() -> void:
 	for atk in gila.boss.get("attacks", []):
 		names.append(str(atk.get("name", "")))
 	assert_bool(names.has("burrow")).is_true()
-	assert_bool(names.has("spit_volley")).is_true()
+	assert_bool(names.has("rumble")).is_true()   # pass 43: the fan is a ground rumble now
 
 
 func test_stage_two_brings_new_creatures_and_the_second_boss() -> void:

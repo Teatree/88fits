@@ -114,8 +114,27 @@ def recipe(sid, cat, loop):
             out += chord([base * m, base * m * 1.5, base * m * 2.0], dur / len(pattern), "saw" if "run" in sid or "boss" in sid else "sine", 0.01)
         return out
     if cat == "world":
+        if "gust" in sid:
+            # a gust of wind (pass 44): low hiss that swells and dies away
+            raw = noise(2.4, 0.045, 0.0)
+            n = len(raw)
+            return [v * 0.7 * math.sin(math.pi * i / n) ** 1.5 for i, v in enumerate(raw)]
         return [v * 0.6 for v in noise(3.0, 0.03 if "ambient" in sid else 0.1, 0.0)]
     if cat == "ui":
+        if "fanfare" in sid:
+            # the level-up reveal (pass 44): a three-stab brass fanfare, then a held major chord with a little vibrato
+            out = []
+            for f in (392.0, 523.3, 659.3):
+                out += chord([f, f * 1.25, f * 1.5], 0.13, "saw", 0.0)
+            out += chord([523.3, 659.3, 784.0, 1046.5], 0.55, "saw", 0.012)
+            return mix(out, [v * 0.25 for v in noise(0.12, 0.6, 30)])
+        if "jackpot" in sid:
+            # the chest landing (pass 44): a rising run of bells and a shimmer on top
+            out = []
+            for k, f in enumerate((784.0, 987.8, 1174.7, 1568.0, 1975.5, 2349.3)):
+                out += sine(lambda t, f=f: f, 0.07)
+            out += [v * 0.8 for v in sine(lambda t: 2093.0, 0.5)]
+            return mix(out, [v * 0.3 for v in noise(0.9, 0.7, 6)])
         if "levelup" in sid or "unlock" in sid:
             return mix(sine(lambda t: 523 if t < 0.12 else (659 if t < 0.24 else 784), 0.45), noise(0.1, 0.5, 30))
         if "buy" in sid:
@@ -168,6 +187,17 @@ def recipe(sid, cat, loop):
             return [v * min(1.0, i / 3000.0) for i, v in enumerate(noise(0.3, 0.12, 5))]
         if "hammer_hit" in sid:
             return mix(noise(0.55, 0.05, 7), sine(lambda t: 70 - 35 * t / 0.4, 0.4), [v * 0.6 for v in noise(0.08, 0.9, 40)])
+        if "guitarra" in sid:
+            # a strummed chord (pass 43): three plucked strings a few ms apart, each a bright decaying tone with a pick tick
+            out = [0.0] * int(0.5 * RATE)
+            for k, f in enumerate((196.0, 246.9, 293.7)):
+                at = int(k * 0.018 * RATE)
+                for i in range(int(0.45 * RATE)):
+                    tt = i / RATE
+                    v = (math.sin(2 * math.pi * f * tt) * 0.7 + math.sin(2 * math.pi * f * 2.0 * tt) * 0.25 + math.sin(2 * math.pi * f * 3.0 * tt) * 0.1) * math.exp(-tt * 7.0)
+                    if at + i < len(out):
+                        out[at + i] += v / 3.0
+            return mix(out, [v * 0.35 for v in noise(0.03, 0.9, 80)])
         if "revolver" in sid:
             return mix(noise(0.22, 0.6, 18), sine(lambda t: 900 - 700 * t / 0.1, 0.1, "square"), sine(lambda t: 110, 0.12))
         if "grav_grab" in sid:
@@ -181,6 +211,9 @@ def recipe(sid, cat, loop):
         return noise(0.1, 0.5, 30)
     if cat == "pickup":
         f = {"pk_gem_s": 1046, "pk_gem_m": 1568, "pk_gem_l": 2093, "pk_coin": 1760}.get(sid, 1200)
+        if "barrel" in sid:
+            # a barrel bursting (pass 44): a sharp wooden crack, a low thump and planks clattering down
+            return mix(noise(0.14, 0.35, 28), sine(lambda t: 110 - 60 * t / 0.25, 0.25), clatter(r, 7, 0.45, (380, 1100)))
         if "chest" in sid:
             return mix(noise(0.4, 0.3, 6), sine(lambda t: 500 + 700 * t, 0.5))
         if "vacuum" in sid:
@@ -190,6 +223,12 @@ def recipe(sid, cat, loop):
             return mix(sine(lambda t: 300 + 1500 * t / 0.7 + 60 * math.sin(t * 70), 0.7), [v * 0.35 for v in noise(0.7, 0.6, 3)])
         return sine(lambda t: f, 0.09)
     if cat == "enemy":
+        if "slime_hit" in sid:
+            # the Blue Slime (pass 44): a wet squelch
+            return mix(noise(0.09, 0.12, 30), sine(lambda t: 320 - 190 * t / 0.09, 0.09))
+        if "slime_die" in sid:
+            # a bubbly pop as it bursts into a puddle
+            return mix(sine(lambda t: 520 - 420 * t / 0.3, 0.3), noise(0.22, 0.09, 14), [v * 0.5 for v in noise(0.06, 0.8, 50)])
         if "boss_roar" in sid:
             return mix(sine(lambda t: 80 + 30 * math.sin(t * 8), 1.2, "saw"), noise(1.0, 0.05, 3))
         if "boss_die" in sid:

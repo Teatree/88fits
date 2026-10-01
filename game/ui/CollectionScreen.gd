@@ -1,6 +1,7 @@
 ## Collection (Wanted 04/04b): five tabs (Weapons, Passives, Lines, Perks, Creatures), the open one showing how many of
-## its kind are found; a board of tiles (the item's plate with its rarity seal and its name, or, still to find, an aged
-## plate with the icon's shadow and what it takes). A tile opens the item's page: the plate, what it does in full, its
+## its kind are found; a board of tiles (the item's plate and its name once it has been met in a run, pass 44; an aged
+## plate with the icon's shadow and "Not found yet" until then; behind an unlock quest, the quest's words and its
+## progress, and a tap opens the requirement page). A tile opens the item's page: the plate, what it does in full, its
 ## levels, and for a weapon its three paths and its evolution. Evolutions and paths live on their weapon's page, heroes
 ## on the title. What is out of the game (hidden) is not here: the developer menu opens it (`hidden_only`).
 class_name CollectionScreen
@@ -97,16 +98,26 @@ static func hidden_items() -> Array:
 	return out
 
 
+## Met in a run (pass 44): an item held once, a creature on the sand once (Save.seen). The developer's hidden list
+## shows everything.
 func _found(def: ContentDef) -> bool:
 	if hidden_only:
 		return true
 	if def is EnemyDef:
-		return Save.keyed_total("kills_of_enemy", def.id) > 0
+		return Save.seen("enemy", def.id) or Save.keyed_total("kills_of_enemy", def.id) > 0
 	if def is PerkDef:
-		return Registry.is_unlocked("character", (def as PerkDef).hero)
+		return Save.seen("perk", def.id)
 	if def is WeaponDef and (def as WeaponDef).is_evolution:
-		return Save.keyed_total("kills_with_weapon", def.id) > 0
-	return Registry.is_unlocked(W.kind_of(def), def.id)
+		return Save.seen("weapon", def.id) or Save.keyed_total("kills_with_weapon", def.id) > 0
+	return Save.seen(W.kind_of(def), def.id)
+
+
+## Behind an unlock quest that is not done (pass 44: half the items are): the tile says what it takes and opens a page
+## with the quest, its progress and the stage that can do it.
+func _locked(def: ContentDef) -> bool:
+	if hidden_only or def is EnemyDef or def is PerkDef or def is MutationDef or def is CharacterDef:
+		return false
+	return not Registry.is_unlocked(W.kind_of(def), def.id)
 
 
 func _tally(tab: int) -> Vector2i:
@@ -153,10 +164,11 @@ func _show_grid() -> void:
 	scroll.set_deferred("scroll_vertical", _grid_scroll)
 
 
-## One tile: the plate (its kind's colour, the rarity seal over its corner) and the name; still to find, an aged plate
+## One tile: the plate (its kind's colour) and the name; still to find, an aged plate
 ## with the icon's shadow and what it takes.
 func _tile(def: ContentDef) -> WTap:
-	var found := _found(def)
+	var locked := _locked(def)
+	var found := _found(def) and not locked
 	var t := WTap.new()
 	var clear := W.box(Color(0, 0, 0, 0), 0, 0)
 	t.box = clear
@@ -169,25 +181,85 @@ func _tile(def: ContentDef) -> WTap:
 	var plate := WPlate.new().for_def(def, 210.0, not found)
 	plate.icon_frac = 160.0 / 210.0
 	plate.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	if found and not (def is EnemyDef) and not (def is PerkDef):
-		var seal := WSeal.new().for_rarity(W.rarity_of(def), 50.0)
-		seal.ring = 0
-		seal.position = Vector2(210.0 - 47.0, -3.0)
-		plate.add_child(seal)
 	v.add_child(plate)
 	var label := def.display_name
-	if not found:
+	if locked:
 		label = _still_to_find(def)
+	elif not found:
+		label = "Not met yet" if def is EnemyDef else "Not found yet"
 	var n := W.slab_text(label, 24, W.INK if found else W.COMMON, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	n.wrap = true
 	v.add_child(n)
+	if locked:
+		# how far the quest has come, when it counts
+		var q := Registry.quest_for(W.kind_of(def), def.id)
+		var p := QuestTracker.progress(q) if q else Vector2i.ZERO
+		if p.y > 0:
+			var bar := WBar.make(clampf(float(p.x) / float(p.y), 0.0, 1.0), W.BRASS, 24.0, 3, 0)
+			bar.text = "%s / %s" % [W.num(mini(p.x, p.y)), W.num(p.y)]
+			bar.text_px = 16
+			v.add_child(bar)
 	t.pressed.connect(func():
+		if locked:
+			_grid_scroll = scroll.scroll_vertical
+			_open_locked(def)
+			return
 		if not found:
 			Audio.play("ui_locked")
 			return
 		_grid_scroll = scroll.scroll_vertical
 		_open_page(def))
 	return t
+
+
+## A locked item's page (pass 44): the plate in its aged look, what the quest asks, how far along it is, the stage that
+## can do it, and what the item will do once it is open.
+func _open_locked(def: ContentDef) -> void:
+	_page = def
+	set_title(def.display_name)
+	_tabs.visible = false
+	_foot.visible = false
+	header.set_right(Control.new())
+	set_board(PAGE_TOP, 48.0)
+	clear_content()
+	var q := Registry.quest_for(W.kind_of(def), def.id)
+	var p := PanelContainer.new()
+	p.mouse_filter = Control.MOUSE_FILTER_PASS
+	p.add_theme_stylebox_override("panel", W.box(W.PAPER, 5, 8).pad(35, 35, 35, 35))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 30)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(h)
+	var plate := WPlate.new().for_def(def, 272.0, true)
+	plate.border = 6
+	plate.radius = 16
+	plate.icon_frac = 220.0 / 272.0
+	plate.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(plate)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 12)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(v)
+	v.add_child(W.label("Locked · " + _kind_line(def), 22, W.ROCK, 0.15))
+	v.add_child(W.serif_text(TextGen.quest_text(q) if q else "Not found yet.", 32, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 32.0 * 1.3, true))
+	if q:
+		var pr := QuestTracker.progress(q)
+		if pr.y > 0:
+			var bar := WBar.make(clampf(float(pr.x) / float(pr.y), 0.0, 1.0), W.BRASS, 40.0, 4, 0)
+			bar.text = "%s / %s" % [W.num(mini(pr.x, pr.y)), W.num(pr.y)]
+			bar.text_px = 24
+			v.add_child(bar)
+		var st := QuestTracker.stage_hint(q)
+		var where := "Any stage will do"
+		if st == 1:
+			where = "Stage 1 can do it"
+		elif st > 1:
+			where = "Takes stage %d: keep going at the portal%s" % [st, "s" if st > 2 else ""]
+		v.add_child(W.serif_text(where + ". Once done, it joins every run's offers.", 26, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	content.add_child(p)
+	_section("What it does", _cell("", _full_text(def)), 60.0)
 
 
 ## What a still-hidden item takes, short: the unlock's own words without the full stop.
@@ -198,6 +270,8 @@ func _still_to_find(def: ContentDef) -> String:
 		var hero := Registry.character((def as PerkDef).hero)
 		return "Play %s" % (hero.display_name if hero else (def as PerkDef).hero.capitalize())
 	var q := Registry.quest_for(W.kind_of(def), def.id)
+	if q == null and def.from_stage > 0:
+		return "Stage %d only" % def.from_stage
 	return TextGen.quest_text(q).strip_edges().trim_suffix(".") if q else "Not found yet"
 
 
@@ -208,10 +282,7 @@ func _open_page(def: ContentDef) -> void:
 	set_title(def.display_name)
 	_tabs.visible = false
 	_foot.visible = false
-	if def is EnemyDef or def is PerkDef:
-		header.set_right(Control.new())
-	else:
-		header.set_right(WSeal.new().for_rarity(W.rarity_of(def), 106.0))
+	header.set_right(Control.new())
 	set_board(PAGE_TOP, 48.0)
 	clear_content()
 	content.add_child(_hero_card(def))
@@ -456,8 +527,8 @@ func _creature_grid(e: EnemyDef) -> GridContainer:
 	grid.add_child(_cell("", "%s HP" % W.num(e.hp)))
 	grid.add_child(_cell("", "speed %s" % ("%.1f" % e.speed).trim_suffix(".0")))
 	grid.add_child(_cell("", "%s damage" % W.num(e.damage)))
-	if e.armor > 0.0:
-		grid.add_child(_cell("", "armour %s" % W.num(e.armor)))
+	if e.damage_reduction > 0.0:
+		grid.add_child(_cell("", "takes %d%% less" % int(round(e.damage_reduction * 100.0))))
 	return grid
 
 

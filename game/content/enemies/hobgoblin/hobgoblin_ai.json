@@ -1,0 +1,80 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a big burly hobgoblin with exactly two pointed ears, one on each side of its head and nothing else sticking out of its head, dark olive-green skin, a heavy jaw with two short tusks, small mean eyes under a heavy brow, wearing a dented scrap-iron chest plate over a ragged brown tunic, a spiked leather cap, iron bracers, holding a big rusty meat cleaver in one hand with the blade resting on its shoulder, two arms and two legs, standing and facing the viewer",
+ "renders": {
+  "front": {
+   "seed": 18468,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a big burly hobgoblin with exactly two pointed ears, one on each side of its head and nothing else sticking out of its head, dark olive-green skin, a heavy jaw with two short tusks, small mean eyes under a heavy brow, wearing a dented scrap-iron chest plate over a ragged brown tunic, a spiked leather cap, iron bracers, holding a big rusty meat cleaver in one hand with the blade resting on its shoulder, two arms and two legs, standing and facing the viewer. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "problems": []
+   },
+   "attempt": 0
+  },
+  "back": {
+   "seed": 10550,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. It still holds its rusty cleaver in the same hand as in the front view, the blade visible over its shoulder. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/hobgoblin_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "back",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 227,
+     "right": 227,
+     "top": 69,
+     "bottom": 64,
+     "height": 890,
+     "width": 569
+    }
+   },
+   "attempt": 0
+  },
+  "dead": {
+   "seed": 10558,
+   "prompt": "This exact creature lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, arms flopped out limp, its cleaver lying on the ground beside its open hand, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/hobgoblin_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 56,
+     "right": 84,
+     "top": 222,
+     "bottom": 234,
+     "height": 567,
+     "width": 883
+    }
+   },
+   "attempt": 0
+  }
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": "bigguy_goblin"
+ }
+}

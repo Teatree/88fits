@@ -1,0 +1,18 @@
+{
+  "id": "unlock_land_mine",
+  "name": "Land Mine",
+  "condition": {
+    "type": "kills_of_enemy",
+    "enemy": "fire_ant",
+    "count": 120
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "land_mine"
+  },
+  "art_prompt": "a glass jar with a small round land mine inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

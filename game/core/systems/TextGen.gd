@@ -9,7 +9,7 @@ const STATS := {
 	"pierce": ["pierce", "count"], "area": ["area", "pct"], "speed": ["projectile speed", "num"],
 	"duration": ["duration", "sec"], "knockback": ["knockback", "num"], "chains": ["chain jumps", "count"],
 	"range": ["range", "m"], "spread_deg": ["spread", "deg"], "orbit_radius": ["orbit radius", "m"],
-	"max_hp": ["max HP", "num"], "armor": ["armor", "num"], "regen": ["regen per second", "num"],
+	"max_hp": ["max HP", "num"], "damage_reduction": ["damage reduction", "pct"], "regen": ["regen per second", "num"],
 	"move_speed": ["move speed", "num"], "might": ["might", "pct"], "projectile_speed": ["projectile speed", "pct"],
 	"magnet": ["pickup radius", "m"], "luck": ["luck", "pct"], "greed": ["greed", "pct"], "revives": ["revives", "count"],
 	"rerolls": ["rerolls", "count"], "skips": ["skips", "count"], "banishes": ["banishes", "count"],
@@ -23,7 +23,8 @@ const STATS := {
 	"evade": ["evade chance", "pct"], "evade_invuln": ["untouchable after an evade", "sec"], "shield_max": ["shield", "num"],
 	"shield_delay": ["shield recharge wait", "sec"], "shield_rate": ["shield recharge a second", "pct"],
 	"regen_delay": ["regen wait after a hit", "sec"], "lifesteal_cap": ["life steal cap a second", "pct"],
-	"heal_drop": ["jerky drop chance", "pct"], "coin_drop": ["coin bag drop chance", "pct"],
+	"heal_drop": ["cheese drop chance", "pct"], "coin_drop": ["coin bag drop chance", "pct"],
+	"brand_chance": ["chance a kill burns the ground", "pct"],
 }
 
 const RARITY_NAMES := {"common": "Common", "rare": "Rare", "epic": "Epic"}
@@ -263,9 +264,10 @@ static func quest_text(q: QuestDef) -> String:
 	var c := q.condition
 	match str(c.get("type", "")):
 		"kills_with_weapon":
-			return "Kill %d enemies with %s." % [int(c.get("count", 0)), str(c.get("weapon", "")).capitalize()]
+			var w: WeaponDef = Registry.weapon(str(c.get("weapon", "")))
+			return "Kill %d creatures with the %s." % [int(c.get("count", 0)), w.display_name if w else str(c.get("weapon", "")).capitalize()]
 		"kills_of_enemy":
-			return "Kill %d %s." % [int(c.get("count", 0)), str(c.get("enemy", "")).capitalize() + "s"]
+			return "Kill %s." % creature_count(str(c.get("enemy", "")), int(c.get("count", 0)))
 		"reach_level":
 			return "Reach level %d in one run." % int(c.get("level", 0))
 		"survive_minutes":
@@ -277,12 +279,37 @@ static func quest_text(q: QuestDef) -> String:
 		"evolve_any":
 			return "Evolve any weapon%s." % ("" if int(c.get("count", 1)) <= 1 else " %d times" % int(c.get("count", 1)))
 		"extract_after_stage":
-			return "Extract after stage %d on %s." % [int(c.get("stage", 1)), str(c.get("map", "")).capitalize()]
+			return "Extract after stage %d on %s." % [int(c.get("stage", 1)), map_name(str(c.get("map", "")))]
 		"kill_boss":
-			return "Kill the stage %d boss on %s." % [int(c.get("stage", 1)), str(c.get("map", "")).capitalize()]
+			return "Kill the stage %d boss on %s." % [int(c.get("stage", 1)), map_name(str(c.get("map", "")))]
 		"kills_in_run_of_enemy":
-			return "Kill %d %s in one run." % [int(c.get("count", 0)), str(c.get("enemy", "")).capitalize() + "s"]
+			return "Kill %s in one run." % creature_count(str(c.get("enemy", "")), int(c.get("count", 0)))
+		# pass 44: totals across runs, and a stage reached in one
+		"kills_total":
+			return "Kill %d creatures, all time." % int(c.get("count", 0))
+		"runs_total":
+			return "Play %d runs." % int(c.get("count", 0))
+		"pickups_total":
+			return "Pick up %d power-ups." % int(c.get("count", 0))
+		"gold_total":
+			return "Earn %d gold, all time." % int(c.get("count", 0))
+		"reach_stage":
+			return "Reach stage %d." % int(c.get("stage", 1))
 	return "Complete a challenge."
+
+
+## "the Dune Scorpion", "150 Goblins", "30 Spit Cactuses": the creature by its name, counted.
+static func creature_count(id: String, n: int) -> String:
+	var e: EnemyDef = Registry.enemy(id)
+	var name: String = e.display_name if e else id.capitalize()
+	if n <= 1:
+		return "the " + name
+	return "%d %s" % [n, name + ("es" if name.ends_with("s") or name.ends_with("x") else "s")]
+
+
+static func map_name(id: String) -> String:
+	var m: MapDef = Registry.map(id)
+	return m.display_name if m else id.capitalize()
 
 
 static func time_mmss(t: float) -> String:

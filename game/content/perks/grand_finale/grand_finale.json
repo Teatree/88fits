@@ -1,0 +1,21 @@
+{
+  "id": "grand_finale",
+  "name": "Grand Finale",
+  "flavour": "Big finish.",
+  "rarity": "epic",
+  "weight": 6,
+  "hero": "calavera",
+  "text": "When a boss or an Elite dies, every creature within 14 m takes 35% of its health and is thrown back.",
+  "effects": [],
+  "special": "grand_finale",
+  "params": {
+    "radius": 14.0,
+    "frac": 0.35,
+    "throw": 16.0
+  },
+  "art_prompt": "a golden burst of musical notes exploding outward from a sugar skull",
+  "placeholder": {
+    "color": "#FF8A3C",
+    "glyph": "star"
+  }
+}

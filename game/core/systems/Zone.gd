@@ -13,6 +13,8 @@ var dps := 0.0
 var tick := 0.5
 var slow := 0.0
 var color := Color(0.4, 0.75, 1.0, 0.4)
+## A burning patch (Brimstone Brand, pass 43): tongues of flame over it while it lasts.
+var flames := false
 var _t := 0.0
 var _total := 2.0
 var _next := 0.0
@@ -59,7 +61,12 @@ func _process(delta: float) -> void:
 			em.damage_radius(global_position, radius, dps * tick, weapon.def.id if weapon else "", 0.0)
 			if weapon:
 				weapon.kills += Run.kills - before
-			if game.has_method("fx_burst"):
+			if flames and game.fx:
+				for k in range(3):
+					var a := randf() * TAU
+					var rr := sqrt(randf()) * radius * 0.85
+					game.fx.flame(global_position + Vector3(cos(a) * rr, 0.05, sin(a) * rr), randf_range(0.7, 1.1), 0.45, Color(1.0, 0.45, 0.12))
+			elif game.has_method("fx_burst"):
 				game.fx_burst(global_position + Vector3(0, 0.3, 0), Color(color.r, color.g, color.b), 0.5)
 		if slow > 0.0:
 			em.slow_radius(global_position, radius, slow, tick + 0.2)

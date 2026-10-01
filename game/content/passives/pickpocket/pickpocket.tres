@@ -7,6 +7,7 @@
 [sub_resource type="Resource" id="Resource_ejx7o"]
 script = ExtResource("1_wrnsf")
 stat = "coin_drop"
+op = "add"
 value = 0.004
 target = "player"
 

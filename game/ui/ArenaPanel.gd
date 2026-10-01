@@ -300,8 +300,8 @@ func _variants_section() -> void:
 
 func _enemy_sub(def: EnemyDef) -> String:
 	var bits: Array = ["%s hp" % str(snappedf(def.hp, 0.1))]
-	if def.armor > 0.0:
-		bits.append("armour %s" % str(snappedf(def.armor, 0.1)))
+	if def.damage_reduction > 0.0:
+		bits.append("takes %d%% less" % int(round(def.damage_reduction * 100.0)))
 	if def.pack_size > 1:
 		bits.append("packs of %d" % def.pack_size)
 	return " · ".join(bits)

@@ -1,15 +1,17 @@
 [gd_resource type="Resource" script_class="TalentDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_c31ff"]
+[ext_resource type="Texture2D" path="res://content/talents/fortune/fortune_icon.png" id="2_3n4ce"]
 [ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_gd47i"]
 
-[sub_resource type="Resource" id="Resource_c31ff"]
+[sub_resource type="Resource" id="Resource_gd47i"]
 script = ExtResource("1_c31ff")
 stat = "luck"
+op = "add"
 value = 0.12
 target = "player"
 
-[sub_resource type="Resource" id="Resource_gd47i"]
+[sub_resource type="Resource" id="Resource_3n4ce"]
 script = ExtResource("1_c31ff")
 stat = "greed"
 op = "mul"
@@ -21,17 +23,18 @@ script = ExtResource("2_gd47i")
 order = 4
 cost = [150.0, 270.0, 450.0]
 forms = [{
-"effects": [SubResource("Resource_c31ff")],
+"effects": [SubResource("Resource_gd47i")],
 "name": "Omen",
 "text": "+0.12 luck a rank: rarer cards, and a fourth more often."
 }, {
-"effects": [SubResource("Resource_gd47i")],
+"effects": [SubResource("Resource_3n4ce")],
 "name": "Greed",
 "text": "+12% gold a rank."
 }]
 id = "fortune"
 display_name = "Fortune"
 flavour = "Better cards, or fatter purses."
+icon = ExtResource("2_3n4ce")
 icon_file = "fortune_icon.png"
 placeholder = {
 "color": "#C9A227",

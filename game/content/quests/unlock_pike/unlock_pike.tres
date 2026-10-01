@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_pike/unlock_pike_icon.png" id="1_qxdga"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_kgyif"]
+
+[resource]
+script = ExtResource("2_kgyif")
+condition = {
+"minutes": 4.0,
+"type": "survive_minutes"
+}
+unlocks = {
+"id": "pike",
+"type": "weapon"
+}
+id = "unlock_pike"
+display_name = "Pike"
+icon = ExtResource("1_qxdga")
+icon_file = "unlock_pike_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

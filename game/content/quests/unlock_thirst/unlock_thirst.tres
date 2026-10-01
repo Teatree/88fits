@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_thirst/unlock_thirst_icon.png" id="1_ty15x"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_7c6vx"]
+
+[resource]
+script = ExtResource("2_7c6vx")
+condition = {
+"count": 60.0,
+"enemy": "dust_mummy",
+"type": "kills_of_enemy"
+}
+unlocks = {
+"id": "thirst",
+"type": "line"
+}
+id = "unlock_thirst"
+display_name = "Thirst"
+icon = ExtResource("1_ty15x")
+icon_file = "unlock_thirst_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

@@ -3,10 +3,18 @@
 [ext_resource type="Texture2D" path="res://content/enemies/skeleton_knight/skeleton_knight_icon.png" id="1_e2gww"]
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_s7gip"]
 [ext_resource type="Texture2D" path="res://content/enemies/skeleton_knight/skeleton_knight_sprite.png" id="3_tbhgy"]
+[ext_resource type="Texture2D" path="res://content/enemies/skeleton_knight/skeleton_knight_sprite_a.png" id="4_fx1c4"]
+[ext_resource type="Texture2D" path="res://content/enemies/skeleton_knight/skeleton_knight_icon_a.png" id="5_xb2ja"]
+[ext_resource type="Texture2D" path="res://content/enemies/skeleton_knight/skeleton_knight_sprite_b.png" id="6_b0avi"]
+[ext_resource type="Texture2D" path="res://content/enemies/skeleton_knight/skeleton_knight_icon_b.png" id="7_43lh7"]
+[ext_resource type="Texture2D" path="res://content/enemies/skeleton_knight/skeleton_knight_sprite_c.png" id="8_2o3j3"]
+[ext_resource type="Texture2D" path="res://content/enemies/skeleton_knight/skeleton_knight_icon_c.png" id="9_ndeoj"]
+[ext_resource type="Texture2D" path="res://content/enemies/skeleton_knight/skeleton_knight_sprite_d.png" id="10_iwjqq"]
+[ext_resource type="Texture2D" path="res://content/enemies/skeleton_knight/skeleton_knight_icon_d.png" id="11_t3jxi"]
 
 [resource]
 script = ExtResource("1_s7gip")
-doc = "The skeleton that was buried in its armour: a dented breastplate and a kettle helm, one point of armour and nearly twice a plain skeleton's HP, a little slower, four to a pack from the thirtieth second. Falls apart into a heap of bones with its armour on top."
+doc = "The skeleton that was buried in its armour: a dented breastplate and a kettle helm, a quarter off every hit and nearly twice a plain skeleton's HP, a little slower, four to a pack from the thirtieth second. Falls apart into a heap of bones with its armour on top."
 speed = 1.7
 damage = 4.0
 radius = 0.45
@@ -34,9 +42,95 @@ fps = {
 "die": 8.0,
 "run": 15.0
 }
-armor = 1.0
+damage_reduction = 0.25
 head = 1.0
 retired = true
+variants = {
+"KN-A": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"head": 0.963,
+"icon": ExtResource("5_xb2ja"),
+"note": "arms down at its sides on Mixamo's plain walk; it falls apart in slices; a thin dark-brown outline",
+"sprite": ExtResource("4_fx1c4"),
+"sprite_file": "skeleton_knight_sprite_a.png",
+"strip_cols": 40
+},
+"KN-B": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"head": 0.975,
+"icon": ExtResource("7_43lh7"),
+"note": "a bandit skeleton (the poncho / cape covers the ribcage) on a light scurrying run, a small knife held low; it dies on the Falling Back Death clip",
+"sprite": ExtResource("6_b0avi"),
+"sprite_file": "skeleton_knight_sprite_b.png",
+"strip_cols": 40
+},
+"KN-C": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"head": 1.0,
+"icon": ExtResource("9_ndeoj"),
+"note": "a chunky cartoon skeleton with thick rounded bones and no gaps on a free Wan clip (the recipe clears the base's pose driver); a lighter warm-grey outline",
+"sprite": ExtResource("8_2o3j3"),
+"sprite_file": "skeleton_knight_sprite_c.png",
+"strip_cols": 43
+},
+"KN-D": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"head": 1.0,
+"icon": ExtResource("11_t3jxi"),
+"note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline",
+"sprite": ExtResource("10_iwjqq"),
+"sprite_file": "skeleton_knight_sprite_d.png",
+"strip_cols": 40
+}
+}
 sfx = {
 "die": "en_bone_die",
 "hit": "en_bone_hit"

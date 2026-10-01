@@ -18,6 +18,8 @@ extends Resource
 ## Kept in the content but out of play (pass 34, any kind; heroes since pass 33.4): never offered, and the collection
 ## lists it apart. Registry.is_hidden also hides what only a hidden thing brings (its evolution, its paths, its perks).
 @export var hidden: bool = false
+## The first stage (1-based) whose offers may hold it; 0 = any (pass 43: the hell items appear on stage 3 only).
+@export var from_stage: int = 0
 ## Icon texture. Required by the rule; Registry substitutes a letter tile when missing.
 @export var icon: Texture2D
 ## File name of the icon inside the content folder, kept so re-import can resolve it.

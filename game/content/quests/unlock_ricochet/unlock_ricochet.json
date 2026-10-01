@@ -1,0 +1,18 @@
+{
+  "id": "unlock_ricochet",
+  "name": "Ricochet",
+  "condition": {
+    "type": "kills_of_enemy",
+    "enemy": "spit_cactus",
+    "count": 30
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "ricochet"
+  },
+  "art_prompt": "a glass jar with a bouncing bullet trail inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

@@ -1,0 +1,84 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_010kc"]
+[ext_resource type="Texture2D" path="res://content/enemies/hammer_giant/hammer_giant_icon.png" id="1_23x0u"]
+[ext_resource type="Texture2D" path="res://content/enemies/hammer_giant/hammer_giant_sprite.png" id="3_xj6re"]
+
+[resource]
+script = ExtResource("1_010kc")
+archetype = "brute"
+doc = "The giant: slow, three metres of it, 280 HP. Close enough, it raises the hammer (a red ring) and smacks the floor for 42 and a throw across the sand. Never more than three; a chest or a Berserk falls from one in four."
+hp = 280.0
+speed = 0.95
+damage = 14.0
+radius = 1.1
+size = 3.4
+drops = {
+"chest": 0.22,
+"gold": 0.5,
+"large": 1.0,
+"medium": 1.0,
+"pickup": {
+"chance": 0.3,
+"id": "rage"
+}
+}
+anims = {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_xj6re")
+sprite_file = "hammer_giant_sprite.png"
+frame_px = 256
+strip_cols = 43
+fps = {
+"die": 12.0,
+"run": 15.0
+}
+max_alive = 3
+head = 0.992
+can_be_elite = false
+can_be_grabbed = false
+cap_share = 2.5
+boss = {
+"attacks": [{
+"damage": 42.0,
+"knockback": 30.0,
+"lift": 4.0,
+"name": "slam",
+"radius": 3.6,
+"reach": 3.4,
+"telegraph": "ring",
+"windup": 1.1
+}],
+"cooldown_between": 2.6
+}
+sfx = {
+"attack": "en_boss_attack",
+"die": "en_mummy_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 16.0
+variance = {
+"size": 0.1,
+"special_chance": 0.0,
+"speed": 0.08,
+"tint_strength": 0.2,
+"tints": ["#FFFFFF", "#D8C8B0", "#B0B8C8"]
+}
+id = "hammer_giant"
+display_name = "Hammer Giant"
+flavour = "Slow to arrive. Sudden when it does."
+icon = ExtResource("1_23x0u")
+icon_file = "hammer_giant_icon.png"
+placeholder = {
+"color": "#8A7A66",
+"ears": "none",
+"eyes": 2.0,
+"shape": "tall"
+}

@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_t2ged")
 behavior = "Beam"
+tags = []
 targeting = "random"
 base = {
 "amount": 1.0,
@@ -18,6 +19,8 @@ base = {
 }
 levels = [[]]
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "zap_beam"
 sfx = {
@@ -29,10 +32,15 @@ visual_file = "storm_cloud_visual.tscn"
 params = {
 "follow": true
 }
+hero = ""
 id = "storm_cloud"
 display_name = "Storm Cloud"
 flavour = "Follows you. Strikes them."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_ibijk")
 icon_file = "storm_cloud_icon.png"
 placeholder = {

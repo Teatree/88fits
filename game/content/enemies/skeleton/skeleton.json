@@ -72,5 +72,150 @@
   "doc": "The crowd: bare bones shuffling in with their arms out like sleepwalkers, six to a pack, half a slot each against the cap. Everything else is measured against it. It falls apart into a heap of bones when it dies.",
   "cap_share": 0.5,
   "head": 1.0,
-  "retired": true
+  "retired": true,
+  "variants": {
+    "SK-A": {
+      "note": "arms down at its sides on Mixamo's plain walk; it falls apart in slices; a thin dark-brown outline",
+      "recipe": {
+        "stills": "va",
+        "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a clear ribcage, spine and pelvis, slim arm and leg bones with rounded joints, bony hands and feet, no clothes, no weapon, both arms hanging relaxed straight down at its sides, standing upright and facing the viewer",
+        "back_hint": "seen from behind: the back of the skull, the spine running down between the shoulder blades, the back of the ribcage and the pelvis, both arms hanging straight down at its sides, no face",
+        "dead_hint": "collapsed into a low loose heap of bones, dead: every bone fallen into one flat pile, the skull resting on top, the ribcage broken apart, arm bones, leg bones, feet and vertebrae all jumbled inside the pile with nothing sticking out below it; the pile sits on nothing, with no ground, no sand, no dirt patch and no shadow under it",
+        "pose": "walk",
+        "pose_front": "walk",
+        "stand": "still",
+        "gait": "walking in place on the spot at a slow steady pace, both arms swinging gently at its sides",
+        "motion": "a skeleton walking slowly with its arms at its sides",
+        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing",
+        "death": "collapse",
+        "outline_frac": 0.012,
+        "outline_color": "#3a2a24"
+      },
+      "sprite": "skeleton_sprite_a.png",
+      "icon": "skeleton_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.963
+    },
+    "SK-B": {
+      "note": "a bandit skeleton (the poncho / cape covers the ribcage) on a light scurrying run, a small knife held low; it dies on the Falling Back Death clip",
+      "recipe": {
+        "stills": "vb",
+        "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a ragged brown poncho draped over its shoulders and chest covering the ribcage, a battered flat-brimmed dark hat on its skull, bare bone arms and legs, a small bone-handled knife held low in one hand down at its side, the other arm hanging at its side, standing and facing the viewer",
+        "back_hint": "seen from behind: the back of the hat and the poncho hanging over its back, both arms hanging down at its sides, the small knife in the same hand, no face",
+        "dead_hint": "lying flat on its back on the ground, dead: its body stretched out sideways across the picture with the skull on the left and the feet on the right, arms flopped out limp, the small knife lying beside its open hand; it lies on nothing, with no ground and no shadow under it",
+        "pose": "run12",
+        "pose_front": "run12",
+        "stand": "still",
+        "gait": "jogging in place on the spot with a light quick scurrying run, holding the same small bone-handled knife low in one hand the whole time",
+        "motion": "a skeleton jogging lightly with a small knife held low",
+        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing",
+        "death": "pose:death_back",
+        "death_frames": 8,
+        "outline_frac": 0.018,
+        "outline_color": "#2a1a18"
+      },
+      "sprite": "skeleton_sprite_b.png",
+      "icon": "skeleton_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.963
+    },
+    "SK-C": {
+      "note": "a chunky cartoon skeleton with thick rounded bones and no gaps on a free Wan clip (the recipe clears the base's pose driver); a lighter warm-grey outline",
+      "recipe": {
+        "stills": "vc",
+        "art_prompt": "a chunky cartoon skeleton in a clean readable game-art style: thick heavy rounded ivory bones with soft warm beige shading, a big round skull with a wide square jaw and big dark eye sockets, a broad solid barrel ribcage with the ribs fused into one shape and no gaps between them, short thick arms and legs, big rounded bony fists, no clothes, no weapon, standing in a slight crouch with its fists held low at its sides, facing the viewer",
+        "back_hint": "seen from behind: the back of the big round skull, the thick spine and the broad solid back of the ribcage, the thick arms hanging at its sides, no face",
+        "dead_hint": "collapsed into a low heap of thick cartoon bones, dead: the big skull resting on top of a short pile of thick rounded bones, nothing sticking out below it; the pile sits on nothing, with no ground, no sand and no shadow under it",
+        "stand": "walk",
+        "motion": "a chunky heavy skeleton with thick rounded bones stomping forward in place like on a treadmill, its thick arms swinging its big bony fists low beside its hips, keeping the same broad solid ribcage, thick limbs and big round skull the whole time",
+        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing, arms folded, arms crossed over the chest, thin bones, slender limbs, a narrow ribcage, the figure shrinking",
+        "death": "clip",
+        "death_frames": 8,
+        "outline_frac": 0.024,
+        "outline_color": "#5a4a40",
+        "anim_seed": 7,
+        "pose": "",
+        "pose_front": ""
+      },
+      "sprite": "skeleton_sprite_c.png",
+      "icon": "skeleton_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0
+    },
+    "SK-D": {
+      "note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline",
+      "recipe": {
+        "stills": "vd",
+        "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a clear ribcage, spine and pelvis, slim arm and leg bones with rounded joints, bony hands and feet, no clothes, a rusted iron pauldron strapped over one shoulder, a short rusty hatchet held down at its side in one hand, the other arm hanging at its side, standing with its shoulders squared and facing the viewer",
+        "back_hint": "seen from behind: the back of the skull, the spine running down between the shoulder blades, the back of the ribcage and the pelvis, both arms hanging down at its sides, the rusted pauldron on the same shoulder and the hatchet in the same hand, no face",
+        "dead_hint": "lying flat on its back on the ground, dead: its body stretched out sideways across the picture with the skull on the left and the feet on the right, arms flopped out limp, the hatchet lying beside its open hand; it lies on nothing, with no ground and no shadow under it",
+        "pose": "bigguy",
+        "pose_front": "bigguy",
+        "stand": "still",
+        "gait": "swaggering in place on the spot with a heavy rolling walk, the same short rusty hatchet held down at its side in one hand the whole time, the hatchet keeps its exact shape and never changes hands",
+        "motion": "a skeleton walking with a heavy swagger",
+        "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing",
+        "death": "pose:death_back",
+        "death_frames": 8,
+        "outline_frac": 0.024,
+        "outline_color": "#0e080c"
+      },
+      "sprite": "skeleton_sprite_d.png",
+      "icon": "skeleton_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0
+    }
+  }
 }

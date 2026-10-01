@@ -2,7 +2,7 @@
 class_name EliteModDef
 extends ContentDef
 
-## Effects applied to the enemy's own stats (hp, speed, damage, armor, size).
+## Effects applied to the enemy's own stats (hp, speed, damage, damage_reduction, size).
 @export var effects: Array = []
 ## Outline colour drawn behind the sprite.
 @export var outline: Color = Color(1, 1, 1)

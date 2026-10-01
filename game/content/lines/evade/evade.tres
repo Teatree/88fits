@@ -7,24 +7,28 @@
 [sub_resource type="Resource" id="Resource_3ydpn"]
 script = ExtResource("1_ty6yb")
 stat = "evade"
+op = "add"
 value = 0.03
 target = "player"
 
 [sub_resource type="Resource" id="Resource_gx6b8"]
 script = ExtResource("1_ty6yb")
 stat = "evade"
+op = "add"
 value = 0.05
 target = "player"
 
 [sub_resource type="Resource" id="Resource_fsow7"]
 script = ExtResource("1_ty6yb")
 stat = "evade"
+op = "add"
 value = 0.06
 target = "player"
 
 [sub_resource type="Resource" id="Resource_35by1"]
 script = ExtResource("1_ty6yb")
 stat = "evade"
+op = "add"
 value = 0.06
 target = "player"
 

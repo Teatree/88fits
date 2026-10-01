@@ -7,17 +7,23 @@
 [sub_resource type="Resource" id="Resource_dygvk"]
 script = ExtResource("1_qf14p")
 stat = "poison_damage"
+op = "add"
 value = 3.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_mxm5u"]
 script = ExtResource("1_qf14p")
 stat = "poison_stacks"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_6eow5"]
 script = ExtResource("1_qf14p")
 stat = "poison_duration"
+op = "add"
 value = 8.0
+target = "self"
 
 [resource]
 script = ExtResource("2_dygvk")

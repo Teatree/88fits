@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_x6msc")
 behavior = "Orbiter"
+tags = []
 targeting = "orbit"
 base = {
 "amount": 8.0,
@@ -18,6 +19,8 @@ base = {
 }
 levels = [[]]
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "orbit_saws"
 sfx = {
@@ -30,10 +33,15 @@ params = {
 "solid_ring": true,
 "spin_speed": 3.2
 }
+hero = ""
 id = "saw_halo"
 display_name = "Saw Halo"
 flavour = "A solid ring of no."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_eho87")
 icon_file = "saw_halo_icon.png"
 placeholder = {

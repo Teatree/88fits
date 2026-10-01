@@ -8,6 +8,7 @@
 script = ExtResource("1_uhlbi")
 behavior = "Thruster"
 tags = ["blade"]
+targeting = "nearest"
 base = {
 "amount": 3.0,
 "area": 1.3,
@@ -18,6 +19,8 @@ base = {
 }
 levels = [[]]
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "sabre"
 sfx = {
@@ -36,10 +39,15 @@ params = {
 "width": 1.1
 }
 }
+hero = ""
 id = "zweihander"
 display_name = "Zweihänder"
 flavour = "Two hands. One argument."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_r8k84")
 icon_file = "zweihander_icon.png"
 placeholder = {

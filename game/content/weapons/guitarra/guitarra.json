@@ -1,0 +1,97 @@
+{
+  "id": "guitarra",
+  "name": "Guitarra",
+  "flavour": "Three notes. All of them hurt.",
+  "rarity": "rare",
+  "weight": 8,
+  "hero": "calavera",
+  "behavior": "ProjectileEmitter",
+  "targeting": "nearest",
+  "tags": [
+    "gun"
+  ],
+  "base": {
+    "damage": 15,
+    "cooldown": 1.25,
+    "amount": 3,
+    "pierce": 2,
+    "speed": 17,
+    "range": 10,
+    "knockback": 5.0,
+    "spread_deg": 34
+  },
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.1
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "pierce",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "requiem",
+  "params": {
+    "radius": 0.28,
+    "no_shells": true,
+    "strum": true,
+    "familiar": {
+      "radius": 1.25,
+      "height": 1.5,
+      "speed": 1.3,
+      "bob": 0.14
+    }
+  },
+  "sfx": {
+    "fire": "w_guitarra_strum",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#8A4A1A",
+    "glyph": "star"
+  },
+  "art_prompt": "a classic acoustic mariachi guitar with a warm orange-brown sunburst body, a dark neck, a black pickguard, and six silver strings, seen from the front, the neck pointing to the upper right"
+}

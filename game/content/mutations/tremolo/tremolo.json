@@ -1,0 +1,22 @@
+{
+  "id": "tremolo",
+  "name": "Tremolo",
+  "flavour": "It comes back around.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "guitarra",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "Notes fly out to their range and come back through the crowd.",
+  "vfx": "each note turns at its far point and flies home, hitting everything twice",
+  "effects": [],
+  "params": {
+    "return": true
+  },
+  "art_prompt": "a golden musical note with a curved motion trail looping back on itself",
+  "placeholder": {
+    "color": "#C0D0F0",
+    "glyph": "star"
+  }
+}

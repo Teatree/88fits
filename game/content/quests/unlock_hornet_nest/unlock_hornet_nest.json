@@ -1,0 +1,18 @@
+{
+  "id": "unlock_hornet_nest",
+  "name": "Hornet Nest",
+  "condition": {
+    "type": "kills_of_enemy",
+    "enemy": "armadillo",
+    "count": 40
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "hornet_nest"
+  },
+  "art_prompt": "a glass jar with a paper hornet nest inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

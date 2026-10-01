@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_4kqqn"]
+[ext_resource type="Texture2D" path="res://content/enemies/hellhound/hellhound_icon.png" id="1_c1nxu"]
+[ext_resource type="Texture2D" path="res://content/enemies/hellhound/hellhound_sprite.png" id="3_ns22p"]
+
+[resource]
+script = ExtResource("1_4kqqn")
+archetype = "runner"
+doc = "Stage 3's runner: faster than anything on the sand, five times a goblin's health, packs of four on top of the regular roster. It closes the gap a slow build lives on."
+hp = 30.0
+speed = 2.6
+damage = 9.0
+radius = 0.55
+size = 1.35
+pack_size = 4
+drops = {
+"chest": 0.004,
+"gold": 0.05,
+"medium": 0.35,
+"small": 1.0
+}
+anims = {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_ns22p")
+sprite_file = "hellhound_sprite.png"
+frame_px = 160
+strip_cols = 43
+fps = {
+"die": 12.0,
+"run": 15.0
+}
+head = 0.988
+sfx = {
+"die": "en_beetle_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 4.0
+variance = {
+"size": 0.15,
+"special": {
+"damage": 1.4,
+"hp": 2.0,
+"size": 1.4,
+"tint": "#8A1A00",
+"tint_strength": 0.5,
+"xp": 3.0
+},
+"special_chance": 0.08,
+"speed": 0.12,
+"tint_strength": 0.2,
+"tints": ["#FFFFFF", "#FFB080", "#C0A0FF", "#FFD8A0"]
+}
+id = "hellhound"
+display_name = "Hellhound"
+flavour = "Good dog. Bad news."
+icon = ExtResource("1_c1nxu")
+icon_file = "hellhound_icon.png"
+placeholder = {
+"color": "#2A1A1A",
+"ears": "pointed",
+"eyes": 2.0,
+"shape": "wide"
+}

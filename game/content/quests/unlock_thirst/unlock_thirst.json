@@ -1,0 +1,18 @@
+{
+  "id": "unlock_thirst",
+  "name": "Thirst",
+  "condition": {
+    "type": "kills_of_enemy",
+    "enemy": "dust_mummy",
+    "count": 60
+  },
+  "unlocks": {
+    "type": "line",
+    "id": "thirst"
+  },
+  "art_prompt": "a glass jar with a water canteen inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

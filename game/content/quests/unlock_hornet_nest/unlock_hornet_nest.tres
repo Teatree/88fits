@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_hornet_nest/unlock_hornet_nest_icon.png" id="1_3l7xe"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_ob8uq"]
+
+[resource]
+script = ExtResource("2_ob8uq")
+condition = {
+"count": 40.0,
+"enemy": "armadillo",
+"type": "kills_of_enemy"
+}
+unlocks = {
+"id": "hornet_nest",
+"type": "weapon"
+}
+id = "unlock_hornet_nest"
+display_name = "Hornet Nest"
+icon = ExtResource("1_3l7xe")
+icon_file = "unlock_hornet_nest_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

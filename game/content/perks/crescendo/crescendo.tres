@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/crescendo/crescendo_icon.png" id="1_1ysl7"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_3tlkr"]
+
+[resource]
+script = ExtResource("1_3tlkr")
+hero = "calavera"
+text = "Every kill raises his might 1%, up to +40%. A hit drops it back to nothing."
+special = "crescendo"
+params = {
+"max": 0.4,
+"per_kill": 0.01
+}
+id = "crescendo"
+display_name = "Crescendo"
+flavour = "Louder. Louder. Louder."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_1ysl7")
+icon_file = "crescendo_icon.png"
+placeholder = {
+"color": "#FFD23B",
+"glyph": "star"
+}

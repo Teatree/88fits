@@ -7,6 +7,7 @@
 [sub_resource type="Resource" id="Resource_gqdq0"]
 script = ExtResource("1_ctmu6")
 stat = "lifesteal"
+op = "add"
 value = 0.08
 target = "player"
 

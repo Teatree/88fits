@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_quickdraw/unlock_quickdraw_icon.png" id="1_0a4k1"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_d3f0p"]
+
+[resource]
+script = ExtResource("2_d3f0p")
+condition = {
+"level": 10.0,
+"type": "reach_level"
+}
+unlocks = {
+"id": "quickdraw",
+"type": "passive"
+}
+id = "unlock_quickdraw"
+display_name = "Quickdraw"
+icon = ExtResource("1_0a4k1")
+icon_file = "unlock_quickdraw_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

@@ -536,6 +536,48 @@
       "voices": 1,
       "pitch_spread": 0.0,
       "volume_db": -4
+    },
+    "w_guitarra_strum": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.06,
+      "volume_db": -8
+    },
+    "en_slime_hit": {
+      "category": "enemy",
+      "voices": 3,
+      "pitch_spread": 0.08,
+      "volume_db": -8
+    },
+    "en_slime_die": {
+      "category": "enemy",
+      "voices": 2,
+      "pitch_spread": 0.06,
+      "volume_db": -6
+    },
+    "st_barrel_break": {
+      "category": "pickup",
+      "voices": 2,
+      "pitch_spread": 0.06,
+      "volume_db": -4
+    },
+    "ui_fanfare": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -2
+    },
+    "ui_jackpot": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -3
+    },
+    "wd_gust": {
+      "category": "world",
+      "voices": 1,
+      "pitch_spread": 0.05,
+      "volume_db": -14
     }
   }
 }

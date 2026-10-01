@@ -7,6 +7,7 @@
 [sub_resource type="Resource" id="Resource_wdno6"]
 script = ExtResource("1_u21fe")
 stat = "overkill"
+op = "add"
 value = 0.34
 target = "player"
 

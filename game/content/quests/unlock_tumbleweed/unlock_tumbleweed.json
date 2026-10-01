@@ -1,0 +1,18 @@
+{
+  "id": "unlock_tumbleweed",
+  "name": "Tumbleweed",
+  "condition": {
+    "type": "kills_of_enemy",
+    "enemy": "goblin",
+    "count": 150
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "tumbleweed"
+  },
+  "art_prompt": "a glass jar with a small rolling tumbleweed inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

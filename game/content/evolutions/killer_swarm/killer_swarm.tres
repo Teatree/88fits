@@ -8,6 +8,7 @@
 script = ExtResource("1_sl7tq")
 behavior = "MissilePod"
 tags = ["homing"]
+targeting = "nearest"
 base = {
 "amount": 5.0,
 "area": 0.0,
@@ -19,6 +20,8 @@ base = {
 }
 levels = [[]]
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "hornet_nest"
 sfx = {
@@ -43,10 +46,15 @@ params = {
 },
 "radius": 0.15
 }
+hero = ""
 id = "killer_swarm"
 display_name = "Killer Swarm"
 flavour = "You cannot outrun a cloud."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_66rwv")
 icon_file = "killer_swarm_icon.png"
 placeholder = {

@@ -306,7 +306,7 @@ func test_the_goblins_are_back_and_the_skeletons_kept() -> void:
 	assert_float(w.hp).is_equal_approx(gob.hp, 0.001)
 	# the second kind is armoured (pass 33.4: a breastplate and a helm), not quicker
 	var r: EnemyDef = Registry.enemy("skeleton_knight")
-	assert_float(r.armor).is_greater_equal(1.0)
+	assert_float(r.damage_reduction).is_greater_equal(0.2)
 	assert_float(r.hp).is_greater(w.hp)
 	# they rattle
 	assert_str(str(w.sfx.get("die", ""))).is_equal("en_bone_die")

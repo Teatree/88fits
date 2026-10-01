@@ -237,6 +237,37 @@ static func pass_through(root: Node) -> void:
 		pass_through(n)
 
 
+# --- the phone's top edge -------------------------------------------------------------------------------------------
+static var _safe_cache := 0.0
+static var _safe_frame := -1
+
+
+## The top inset (design px) every screen keeps clear of the phone's camera cutout or status bar (pass 43): the display's
+## safe area converted to canvas pixels, or the developer menu's fixed value (Settings.top_inset >= 0). 0 on the PC.
+static func safe_top() -> float:
+	var s := node("Settings")
+	if s and int(s.get("top_inset")) >= 0:
+		return float(s.get("top_inset"))
+	var f := Engine.get_process_frames()
+	if f == _safe_frame:
+		return _safe_cache
+	_safe_frame = f
+	_safe_cache = 0.0
+	var ml := Engine.get_main_loop() as SceneTree
+	if ml == null or ml.root == null or DisplayServer.get_name() == "headless":
+		return 0.0
+	var win := DisplayServer.window_get_size()
+	if win.x <= 0:
+		return 0.0
+	var safe := DisplayServer.get_display_safe_area()
+	var inset_px := float(safe.position.y - DisplayServer.window_get_position().y)
+	# a desktop window sits a few pixels off its screen's safe area; only a real bar or cutout counts
+	if inset_px < 12.0:
+		return 0.0
+	_safe_cache = inset_px * ml.root.get_visible_rect().size.x / float(win.x)
+	return _safe_cache
+
+
 # --- autoloads, looked up at run time (tool scripts compile before the autoloads exist) ---------------------------------
 static func node(name: String) -> Node:
 	var ml := Engine.get_main_loop() as SceneTree

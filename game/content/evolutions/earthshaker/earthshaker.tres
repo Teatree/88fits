@@ -19,6 +19,8 @@ base = {
 }
 levels = [[]]
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "hammer"
 sfx = {
@@ -44,10 +46,15 @@ params = {
 "swing": 0.16
 }
 }
+hero = ""
 id = "earthshaker"
 display_name = "Earthshaker"
 flavour = "The ground has had enough."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_6vtkg")
 icon_file = "earthshaker_icon.png"
 placeholder = {

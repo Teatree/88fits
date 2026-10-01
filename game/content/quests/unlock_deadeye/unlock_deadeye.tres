@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_deadeye/unlock_deadeye_icon.png" id="1_smemt"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_8r7x7"]
+
+[resource]
+script = ExtResource("2_8r7x7")
+condition = {
+"count": 1.0,
+"type": "evolve_any"
+}
+unlocks = {
+"id": "deadeye",
+"type": "passive"
+}
+id = "unlock_deadeye"
+display_name = "Deadeye"
+icon = ExtResource("1_smemt")
+icon_file = "unlock_deadeye_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

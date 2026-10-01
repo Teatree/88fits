@@ -20,6 +20,8 @@ base = {
 }
 levels = [[]]
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "gravity_gun"
 sfx = {
@@ -48,10 +50,15 @@ params = {
 "blast": 1.9
 }
 }
+hero = ""
 id = "singularity"
 display_name = "Singularity"
 flavour = "Everything falls in eventually."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_1777w")
 icon_file = "singularity_icon.png"
 placeholder = {

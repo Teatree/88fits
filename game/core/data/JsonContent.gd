@@ -73,6 +73,7 @@ static func _common(res: ContentDef, d: Dictionary, dir: String) -> void:
 	res.element = str(d.get("element", ""))
 	res.weight = float(d.get("weight", 10.0))
 	res.hidden = bool(d.get("hidden", false))
+	res.from_stage = int(d.get("from_stage", 0))
 	res.icon_file = str(d.get("icon", res.id + "_icon.png"))
 	res.icon = resolve_texture(dir, res.icon_file)
 	var ph = d.get("placeholder", {})
@@ -217,7 +218,7 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 	e.ranged = r if r is Dictionary else {}
 	var c = d.get("charge", {})
 	e.charge = c if c is Dictionary else {}
-	e.armor = float(d.get("armor", 0.0))
+	e.damage_reduction = clampf(float(d.get("damage_reduction", 0.0)), 0.0, 0.9)
 	e.max_alive = int(d.get("max_alive", 0))
 	e.cap_share = float(d.get("cap_share", 1.0))
 	e.badge = str(d.get("badge", ""))
@@ -432,7 +433,11 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	w.stages = int(t.get("stages", 3))
 	var sm = t.get("stage_mults", [1.0, 1.35, 1.8])
 	w.stage_mults = sm if sm is Array else [1.0]
-	w.endless_mult_per_minute = float(t.get("endless_mult_per_minute", 0.1))
+	w.endless_mult_per_minute = float(t.get("endless_mult_per_minute", 0.0))
+	w.endless_wave_seconds = float(t.get("endless_wave_seconds", 60.0))
+	w.endless_wave_mult = float(t.get("endless_wave_mult", 1.0))
+	var hc = t.get("hell_cap", [])
+	w.hell_cap = hc if hc is Array else []
 	w.cap_per_stage = int(t.get("cap_per_stage", 0))
 	w.speed_per_stage = float(t.get("speed_per_stage", 0.0))
 	w.cap_start = int(t.get("cap_start", 100))

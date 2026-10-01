@@ -38,7 +38,7 @@ func _ready() -> void:
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.offset_left = 0
 	scroll.offset_right = 0
-	scroll.offset_top = board_top() - room
+	scroll.offset_top = board_top() - room + W.safe_top()
 	scroll.offset_bottom = -board_bottom()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER

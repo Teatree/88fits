@@ -14,6 +14,8 @@ uniform float tint_strength = 0.6;
 uniform float calm : hint_range(0.0, 1.0) = 0.4;
 uniform vec3 sand_flat : source_color = vec3(0.86, 0.68, 0.42);
 uniform vec3 cracked_flat : source_color = vec3(0.62, 0.44, 0.30);
+// hell (pass 43): stage 3 turns the ground a shade redder and darker; the map tweens it in over a few seconds
+uniform float hell : hint_range(0.0, 1.0) = 0.0;
 
 varying vec3 v_world;
 varying vec4 v_col;
@@ -38,6 +40,7 @@ void fragment() {
 	col = mix(col, flat_col * (0.7 + 0.5 * lum), calm) * 0.95;
 	// vertex colour green carries the scorch/shade variation from the builder
 	col *= mix(1.0, v_col.g, tint_strength);
+	col = mix(col, col * vec3(0.97, 0.79, 0.72) + vec3(0.02, 0.0, 0.0), hell);
 	ALBEDO = col;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.1;

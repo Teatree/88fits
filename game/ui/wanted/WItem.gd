@@ -62,7 +62,7 @@ static func _harms(e: Effect) -> bool:
 	match e.stat:
 		"cooldown":
 			return e.op == "mul" and v > 0.0
-		"max_hp", "move_speed", "might", "area", "armor", "regen", "luck":
+		"max_hp", "move_speed", "might", "area", "damage_reduction", "regen", "luck":
 			return (e.op == "mul" or e.op == "add") and v < 0.0
 	return false
 
@@ -102,7 +102,7 @@ static func options(card: Dictionary, extra: Dictionary = {}) -> Dictionary:
 	var def: ContentDef = card["def"]
 	var o := {
 		"word": word(card), "word_color": word_color(card), "stars": stars(card), "effect": effect(card),
-		"rarity": rarity(def), "plate_px": 180.0, "seal_px": 104.0, "icon_frac": 0.68,
+		"rarity": "", "plate_px": 180.0, "icon_frac": 0.68,
 		"evolution": kind(def) == "evolution" or bool(card.get("evolve", false)),
 	}
 	if bool(card.get("evolve", false)):

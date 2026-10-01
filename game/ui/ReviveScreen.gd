@@ -1,6 +1,6 @@
 ## Down! (Wanted screen 14): a rock dim; "★ 1 CHANCE LEFT ★ / DOWN!"; a paper disc with the count running out and "get
 ## up"; who put the hero down; then GET UP · WATCH AN AD (a stand-in: no ads yet), GET UP for 150 gold, STAY DOWN. One
-## chance per run plus the Mirror's; the hero comes back at half health. The hit log, its copy button and the free
+## chance per run plus the Upgrade board's; the hero comes back at half health. The hit log, its copy button and the free
 ## revive live in the developer menu (Settings.hit_log, free_revive_button); off, this screen shows neither.
 class_name ReviveScreen
 extends WModal
@@ -16,6 +16,8 @@ var _killer_row: HBoxContainer
 var _killer_icon: TextureRect
 var _killer: WText
 var _stats: WText
+var _gold_line: WText
+var _hold_btn2: WButton
 var _ad_btn: WButton
 var _gold_btn: WButton
 var _quit_btn: WButton
@@ -79,6 +81,9 @@ func _ready() -> void:
 	_killer_row.add_child(_killer)
 	_stats = W.serif_text("", 26, W.AGED, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	who.add_child(_stats)
+	# what staying down costs (pass 44): the run's gold does not come home with a dead hero
+	_gold_line = W.serif_text("", 26, W.PAPER, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	who.add_child(_gold_line)
 	# the hit log (developer menu): a dark panel under the line, with its copy button and a hold for the count
 	_log_panel = PanelContainer.new()
 	_log_panel.add_theme_stylebox_override("panel", W.box(W.INK, 4, 0).pad(20, 16, 20, 16))
@@ -149,6 +154,18 @@ func _ready() -> void:
 	_debug_btn2.modulate.a = 0.7
 	_debug_btn2.pressed.connect(func(): _decide("debug"))
 	add_child(_debug_btn2)
+	# the player's debug mode (pass 44): the count held, top left, beside the free respawn
+	_hold_btn2 = WButton.make(["hold time"], 20, WButton.SECONDARY, 3, 0, 6.0, 12.0)
+	_hold_btn2.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	_hold_btn2.offset_left = 24
+	_hold_btn2.offset_right = 220
+	_hold_btn2.offset_top = 24
+	_hold_btn2.offset_bottom = 74
+	_hold_btn2.modulate.a = 0.7
+	_hold_btn2.pressed.connect(func():
+		_toggle_hold()
+		_hold_btn2.set_parts(["go on" if _held else "hold time"]))
+	add_child(_hold_btn2)
 
 
 ## `gold` is the run's gold, `chances` how many revives are left (0 leaves only staying down), `log_text` the hero's
@@ -169,9 +186,15 @@ func open(gold: int, chances: int, log_text: String = "", killer: Dictionary = {
 	_killer_icon.texture = load(badge) if (kind == "boss" or kind == "elite") and ResourceLoader.exists(badge) else null
 	_killer_icon.visible = _killer_icon.texture != null
 	_stats.text = "%s · %s kills · %s" % [W.mmss(Run.elapsed), W.num(Run.kills), W.lv(Run.level)]
+	_gold_line.text = ("Stay down and the %s gold stays in the sand." % W.num(gold)) if gold > 0 else ""
+	_gold_line.visible = gold > 0
 	var s := W.node("Settings")
 	_log_panel.visible = s != null and bool(s.get("hit_log"))
-	_debug_btn2.visible = s != null and bool(s.get("free_revive_button"))
+	var debug: bool = s != null and (bool(s.get("free_revive_button")) or bool(s.get("debug_mode")))
+	_debug_btn2.visible = debug
+	_debug_btn2.set_parts(["respawn"])
+	_hold_btn2.visible = debug
+	_hold_btn2.set_parts(["hold time"])
 	_log_text = log_text if log_text != "" else "nothing hit you in the last 30 seconds"
 	_log.text = _log_text
 	_log_scroll.scroll_vertical = 0

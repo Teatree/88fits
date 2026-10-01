@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="StructureDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/structures/healing_well/healing_well_icon.png" id="1_3xjww"]
 [ext_resource type="Script" path="res://core/data/StructureDef.gd" id="1_x5axk"]
 
 [resource]
@@ -14,4 +15,5 @@ id = "healing_well"
 display_name = "Healing Well"
 flavour = "Cold water. Warm feeling."
 weight = 4.0
+icon = ExtResource("1_3xjww")
 icon_file = "healing_well_icon.png"

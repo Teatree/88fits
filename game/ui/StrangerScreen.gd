@@ -21,7 +21,7 @@ func _ready() -> void:
 	build_dim(W.DIM_STRANGER)
 	build_header("No name", "THE STRANGER", "", 120, W.PAPER, 60.0, W.AGED)
 	_portrait = WPlaceholder.make("stranger", "the Stranger, hooded, camera-facing cut-out\n840 × 660 · holding the item out", Vector2(840, 660), true)
-	_portrait.position = Vector2(120, 320)
+	_portrait.position = Vector2(120, 320 + W.safe_top())
 	add_child(_portrait)
 	_quote = W.serif_text("“A piece of you, for a piece of the world.”", 34, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	_quote.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)

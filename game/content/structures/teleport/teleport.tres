@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="StructureDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/structures/teleport/teleport_icon.png" id="1_hh61y"]
 [ext_resource type="Script" path="res://core/data/StructureDef.gd" id="1_xjour"]
 
 [resource]
@@ -21,4 +22,5 @@ id = "teleport"
 display_name = "Teleport"
 flavour = "Step in. Come out somewhere quieter."
 weight = 2.0
+icon = ExtResource("1_hh61y")
 icon_file = "teleport_icon.png"

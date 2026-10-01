@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_evade/unlock_evade_icon.png" id="1_lfarp"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_x0a22"]
+
+[resource]
+script = ExtResource("2_x0a22")
+condition = {
+"stage": 3.0,
+"type": "reach_stage"
+}
+unlocks = {
+"id": "evade",
+"type": "line"
+}
+id = "unlock_evade"
+display_name = "Evade"
+icon = ExtResource("1_lfarp")
+icon_file = "unlock_evade_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

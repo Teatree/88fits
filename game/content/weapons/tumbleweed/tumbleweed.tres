@@ -10,43 +10,55 @@ script = ExtResource("2_7vev6")
 stat = "damage"
 op = "mul"
 value = 0.25
+target = "self"
 
 [sub_resource type="Resource" id="Resource_7vev6"]
 script = ExtResource("2_7vev6")
 stat = "cooldown"
 op = "mul"
 value = -0.12
+target = "self"
 
 [sub_resource type="Resource" id="Resource_iccdk"]
 script = ExtResource("2_7vev6")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_on5nm"]
 script = ExtResource("2_7vev6")
 stat = "speed"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_h1xhm"]
 script = ExtResource("2_7vev6")
 stat = "damage"
 op = "mul"
 value = 0.25
+target = "self"
 
 [sub_resource type="Resource" id="Resource_j8xv1"]
 script = ExtResource("2_7vev6")
 stat = "cooldown"
 op = "mul"
 value = -0.12
+target = "self"
 
 [sub_resource type="Resource" id="Resource_t7day"]
 script = ExtResource("2_7vev6")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [resource]
 script = ExtResource("2_4evnd")
+behavior = "ProjectileEmitter"
+tags = []
+targeting = "nearest"
 base = {
 "amount": 1.0,
 "cooldown": 2.8,
@@ -57,7 +69,11 @@ base = {
 "speed": 6.0
 }
 levels = [[], [SubResource("Resource_4evnd")], [SubResource("Resource_7vev6")], [SubResource("Resource_iccdk")], [SubResource("Resource_on5nm")], [SubResource("Resource_h1xhm")], [SubResource("Resource_j8xv1")], [SubResource("Resource_t7day")]]
+max_level = 8
+evolves_with = ""
 evolves_into = "stampede"
+is_evolution = false
+evolved_from = ""
 sfx = {
 "fire": "w_tumble_roll",
 "hit": "w_tumble_hit"
@@ -67,11 +83,15 @@ visual_file = "tumbleweed_visual.tscn"
 params = {
 "radius": 0.7
 }
+hero = ""
 id = "tumbleweed"
 display_name = "Tumbleweed"
 flavour = "Rolls. Keeps rolling. Does not care."
 rarity = "rare"
+element = ""
 weight = 7.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_4evnd")
 icon_file = "tumbleweed_icon.png"
 placeholder = {

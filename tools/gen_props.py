@@ -35,7 +35,6 @@ PROPS = {
     "saguaro_big": ("a tall green saguaro cactus with two thick upraised arms, ribbed, with small spines" + NO_FACE, 4.4, 0.22, 384, 11, "blue"),
     "saguaro_small": ("a medium green saguaro cactus with one short arm, ribbed, with small spines" + NO_FACE, 2.8, 0.19, 256, 12, "blue"),
     "barrel_cactus": ("a fat round green barrel cactus with curved yellow spines and a ring of small pink flowers on top" + NO_FACE, 1.1, 0.25, 192, 13, "blue"),
-    "prickly_pear": ("a prickly pear cactus: a cluster of flat oval green paddles growing out of each other, with a few red fruits on the top edges" + NO_FACE, 1.4, 0.25, 192, 14, "blue"),
     "agave": ("a spiky blue-green agave plant with thick pointed leaves fanning out from the ground" + NO_FACE, 1.3, 0.25, 192, 15, "green"),
     "dead_shrub": ("a dry dead desert shrub of tangled grey-brown twigs" + NO_FACE, 1.2, 0.0, 192, 16, "blue"),
     "dead_tree": ("a gnarled dead desert tree with bare twisted branches and cracked grey bark" + NO_FACE, 4.2, 0.19, 384, 17, "blue"),

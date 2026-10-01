@@ -50,12 +50,12 @@ def strip_frames(folder, id_):
     im = Image.open(os.path.join(folder, id_ + "_sprite.png")).convert("RGBA")
     cell = int(d.get("frame_px", 128))
     cols = int(d.get("strip_cols", im.width // cell))
-    order = ENEMY_ORDER if "attack" in d["anims"] else CHAR_ORDER
+    order = ENEMY_ORDER if "attack" in d.get("anims", {}) else CHAR_ORDER
     off = {}
     n = 0
     for k in order:
         off[k] = n
-        n += int(d["anims"].get(k, 0))
+        n += int(d.get("anims", {}).get(k, 0))
 
     def frame(i):
         x = (i % cols) * cell
@@ -110,7 +110,7 @@ def cast_sheet():
             continue
         d, cell, off, frame = strip_frames(folder, id_)
         icon = Image.open(os.path.join(folder, id_ + "_icon.png")).convert("RGBA").resize((H, H), Image.LANCZOS)
-        n = int(d["anims"].get("run", 0))
+        n = int(d.get("anims", {}).get("run", 0))
         picks = [off["run"] + int(k * n / 6) for k in range(6)] if n else []
         row = Image.new("RGBA", (H + 20 + 6 * (H + 6) + 240, H + 10), (26, 24, 34, 255))
         row.paste(icon, (0, 5), icon)
@@ -137,14 +137,14 @@ def hero_cycles():
     f = font(18)
     rows = []
     for key, label in views:
-        n = int(d["anims"].get(key, 0))
+        n = int(d.get("anims", {}).get(key, 0))
         row = Image.new("RGBA", (150 + 8 * (S + 4), S + 6), (26, 24, 34, 255))
         ImageDraw.Draw(row).text((8, S // 2 - 10), label, fill=(181, 174, 200, 255), font=f)
         for k in range(8):
             fr = frame(off[key] + int(k * n / 8)).resize((S, S), Image.LANCZOS)
             row.paste(fr, (150 + k * (S + 4), 3), fr)
         rows.append(row)
-    n = int(d["anims"].get("hit_f", 0))
+    n = int(d.get("anims", {}).get("hit_f", 0))
     row = Image.new("RGBA", (150 + 9 * (S + 4), S + 6), (26, 24, 34, 255))
     ImageDraw.Draw(row).text((8, S // 2 - 10), "hit (front)", fill=(255, 133, 144, 255), font=f)
     for k in range(n):

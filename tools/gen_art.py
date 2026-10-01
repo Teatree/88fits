@@ -690,6 +690,10 @@ def process(type_, folder, id_):
     bg = bg_for(d, type_)
     refs = ensure_anchor_uploaded()
     seed = seed_for(id_)
+    # a creature may ask for other clip seeds ("anim_seed", pass 44: a free clip that drifted from its painting); the
+    # cached paintings keep their keys, so only the clips roll again
+    if type_ in ("enemies", "bosses"):
+        seed += int(d.get("anim_seed", 0))
     info = {"pipeline": "gen_art v2", "model": comfy.KLEIN_UNET, "anchor": anchor_hash() if USE_ANCHOR else "", "subject": subject, "renders": {}}
     many = any(w in subject.lower() for w in ("three ", "pile", "family", "six ", "splitting", "pair of"))
     if type_ in ("enemies", "bosses"):
@@ -786,6 +790,11 @@ def process(type_, folder, id_):
             fall = pose_death(img, ak + "_death", death[5:], seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")))
         if fall:
             frames["die"] = fall
+        elif death == "squash":
+            # a creature that splats instead of falling over (the Blue Slime, pass 44): the standing painting squashes flatter
+            # and wider over four frames into the painted puddle (the first-last-frame clip between the two grew it legs)
+            frames["die"] = [artkit.transform(base, sy=0.86, sx=1.08), artkit.transform(base, sy=0.68, sx=1.2), artkit.transform(base, sy=0.48, sx=1.36),
+                             artkit.transform(base, sy=0.3, sx=1.5), dead_cell, dead_cell]
         elif falls_apart:
             # a creature that falls apart instead of falling over (the skeletons, pass 33.3, JSON "death": "collapse"):
             # the standing painting itself drops apart in slices (artkit.crumble), then the painted heap it ends as. A
@@ -879,7 +888,10 @@ def process(type_, folder, id_):
             ("_fd", fd, fd_cell, "fd", gait + ", three-quarter front view, running towards the lower right")):
             k = {"": 20, "_f": 21, "_s": 22, "_bd": 23, "_fd": 24}[suffix]
             vh = str(d.get("back_hint", "")) if view in ("back", "bd") else ""
-            c = pose_cycle(still_img, id_ + "_pose_run_" + view, "run", view, seed + k, cell, cell_img, hint, negative_extra=anim_neg, view_hint=vh) if pose_ok else None
+            # a view may run on its own driver ("pose_drivers": {"back": "run_occ"}, pass 44: the back view's driver hides the
+            # hand that swings in front of the chest, which Wan Animate had painted on the back of Calavera's jacket)
+            drv = str((d.get("pose_drivers") or {}).get(view, "run"))
+            c = pose_cycle(still_img, id_ + "_pose_run_" + view, drv, view, seed + k, cell, cell_img, hint, negative_extra=anim_neg, view_hint=vh) if pose_ok else None
             if c is None:
                 c = video_cycle(still_img, id_ + "_run" + (suffix or "_b"), prompt, seed + k, cell, cell_img, N)
             clips[suffix] = c

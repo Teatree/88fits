@@ -5,7 +5,6 @@
   "archetype": "walker",
   "brain": "chase",
   "hp": 20,
-  "armor": 1,
   "speed": 1.6,
   "damage": 5,
   "radius": 0.45,
@@ -53,7 +52,7 @@
       "tint_strength": 0.55
     }
   },
-  "doc": "Arrives in the second half of stage 1 in packs of six like the goblins, but armoured: twenty HP behind one point of armour, slower than a goblin and harder to cut down, so a pack of them holds a line while the fodder dies around it. Counts as half a creature against the crowd cap.",
+  "doc": "Arrives in the second half of stage 1 in packs of six like the goblins, but armoured: twenty HP and it takes a quarter less from everything, slower than a goblin and harder to cut down, so a pack of them holds a line while the fodder dies around it. Counts as half a creature against the crowd cap.",
   "anims": {
     "idle": 4,
     "run": 12,
@@ -68,5 +67,6 @@
     "run": 15,
     "die": 8
   },
-  "head": 0.894
+  "head": 0.894,
+  "damage_reduction": 0.25
 }

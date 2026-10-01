@@ -1,0 +1,21 @@
+{
+  "id": "serenade",
+  "name": "Serenade",
+  "flavour": "They stop to listen. Their mistake.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "calavera",
+  "text": "Creatures within 4 m of him move 25% slower.",
+  "effects": [],
+  "special": "serenade",
+  "params": {
+    "radius": 4.0,
+    "slow": 0.25,
+    "every": 0.3
+  },
+  "art_prompt": "a golden musical note inside a soft glowing circle of light on the ground",
+  "placeholder": {
+    "color": "#F0D080",
+    "glyph": "star"
+  }
+}

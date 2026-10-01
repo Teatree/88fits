@@ -1,0 +1,18 @@
+{
+  "id": "unlock_sabre",
+  "name": "Sabre",
+  "condition": {
+    "type": "kills_of_enemy",
+    "enemy": "goblin_runt",
+    "count": 80
+  },
+  "unlocks": {
+    "type": "weapon",
+    "id": "sabre"
+  },
+  "art_prompt": "a glass jar with a curved sabre inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

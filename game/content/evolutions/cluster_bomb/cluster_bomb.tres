@@ -7,6 +7,7 @@
 [resource]
 script = ExtResource("1_ysqs6")
 behavior = "Lobber"
+tags = []
 targeting = "densest"
 base = {
 "amount": 2.0,
@@ -19,6 +20,8 @@ base = {
 }
 levels = [[]]
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "lob_grenade"
 sfx = {
@@ -32,10 +35,15 @@ params = {
 "bomblet_damage_mult": 0.5,
 "bomblets": 6.0
 }
+hero = ""
 id = "cluster_bomb"
 display_name = "Cluster Bomb"
 flavour = "Six small problems."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_uonds")
 icon_file = "cluster_bomb_icon.png"
 placeholder = {

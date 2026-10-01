@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_stride/unlock_stride_icon.png" id="1_w4dhe"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_xvx40"]
+
+[resource]
+script = ExtResource("2_xvx40")
+condition = {
+"minutes": 2.0,
+"type": "survive_minutes_no_lift"
+}
+unlocks = {
+"id": "stride",
+"type": "line"
+}
+id = "unlock_stride"
+display_name = "Stride"
+icon = ExtResource("1_w4dhe")
+icon_file = "unlock_stride_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

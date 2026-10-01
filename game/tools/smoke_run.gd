@@ -202,6 +202,11 @@ func _tick_run(dt: float) -> void:
 		for st in _game.structures.items:
 			kinds[st.def.id] = true
 		print("smoke_run: structures on the map %d, kinds present %d/%d, kinds used %d" % [_game.structures.items.size(), kinds.size(), reg.structures.size(), used])
+		# the barrels (pass 44): forty-odd placed, and the hero has walked into some
+		if _game.get("barrels") != null:
+			print("smoke_run: barrels placed %d, broken %d" % [_game.barrels.pos.size(), _game.barrels.broken])
+			if _game.barrels.pos.size() < 40:
+				_errors.append("fewer than 40 barrels placed")
 		# the mini-boss once, near the hero, and a chest on the ground to run the reel
 		_game.director._run_event({"type": "elite_boss", "enemy": _run.map.skins.get("elite", "")})
 		print("smoke_run: elite spawned at %s" % str(_game.director.elite_position().round()))

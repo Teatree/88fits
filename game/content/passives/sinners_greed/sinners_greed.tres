@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_fcmxi"]
+[ext_resource type="Texture2D" path="res://content/passives/sinners_greed/sinners_greed_icon.png" id="1_qj4a3"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_qj4a3"]
+
+[sub_resource type="Resource" id="Resource_qj4a3"]
+script = ExtResource("1_fcmxi")
+stat = "greed"
+op = "add"
+value = 0.3
+target = "player"
+
+[sub_resource type="Resource" id="Resource_c2e8p"]
+script = ExtResource("1_fcmxi")
+stat = "xp_gain"
+op = "add"
+value = 0.15
+target = "player"
+
+[resource]
+script = ExtResource("2_qj4a3")
+levels = [[SubResource("Resource_qj4a3"), SubResource("Resource_c2e8p")]]
+max_level = 3
+id = "sinners_greed"
+display_name = "Sinner's Greed"
+flavour = "Hell pays well. Hell pays everyone."
+rarity = "epic"
+weight = 6.0
+from_stage = 3
+icon = ExtResource("1_qj4a3")
+icon_file = "sinners_greed_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

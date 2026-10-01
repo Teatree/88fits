@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/cheese/cheese_icon.png" id="1_2e75x"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_yniou"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_15my1"]
+
+[sub_resource type="Resource" id="Resource_2e75x"]
+script = ExtResource("2_yniou")
+stat = "heal_drop"
+op = "add"
+value = 0.003
+target = "player"
+
+[resource]
+script = ExtResource("3_15my1")
+levels = [[SubResource("Resource_2e75x")]]
+max_level = 5
+id = "cheese"
+display_name = "Cheese"
+flavour = "Aged in a saddlebag. Still good."
+weight = 9.0
+icon = ExtResource("1_2e75x")
+icon_file = "cheese_icon.png"
+placeholder = {
+"color": "#F2C94C",
+"glyph": "star"
+}

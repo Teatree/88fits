@@ -1,0 +1,28 @@
+{
+  "id": "danza_macabra",
+  "name": "Danza Macabra",
+  "flavour": "Calavera's skulls keep time.",
+  "rarity": "epic",
+  "weight": 8,
+  "weapon": "skull_rain",
+  "kind": "hero",
+  "element": "",
+  "hero": "calavera",
+  "text": "Skulls fall 35% faster and every cloud of smoke lasts 2 s longer.",
+  "vfx": "skulls on the beat, the smoke lingering",
+  "effects": [
+    {
+      "stat": "cooldown",
+      "op": "mul",
+      "value": -0.35
+    }
+  ],
+  "params": {
+    "cloud_seconds": 6.0
+  },
+  "art_prompt": "a grinning sugar skull wearing a tiny sombrero with musical notes around it",
+  "placeholder": {
+    "color": "#C0B0F0",
+    "glyph": "star"
+  }
+}

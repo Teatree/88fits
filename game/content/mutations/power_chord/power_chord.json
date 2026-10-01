@@ -1,0 +1,36 @@
+{
+  "id": "power_chord",
+  "name": "Power Chord",
+  "flavour": "Turn it up.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "guitarra",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Two more notes a strum in a wider fan, −25% damage.",
+  "vfx": "five notes in a wide fan",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 2
+    },
+    {
+      "stat": "spread_deg",
+      "op": "add",
+      "value": 22
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.25
+    }
+  ],
+  "params": {},
+  "art_prompt": "a fan of five golden musical notes spreading out from a guitar pick",
+  "placeholder": {
+    "color": "#D8E0F0",
+    "glyph": "star"
+  }
+}

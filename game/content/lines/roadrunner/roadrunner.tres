@@ -14,6 +14,7 @@ target = "player"
 [sub_resource type="Resource" id="Resource_tm8fg"]
 script = ExtResource("1_r6fte")
 stat = "evade"
+op = "add"
 value = 0.1
 target = "player"
 

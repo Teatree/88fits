@@ -10,43 +10,55 @@ script = ExtResource("1_adtmj")
 stat = "damage"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_7wwo1"]
 script = ExtResource("1_adtmj")
 stat = "duration"
+op = "add"
 value = 0.4
+target = "self"
 
 [sub_resource type="Resource" id="Resource_8bfew"]
 script = ExtResource("1_adtmj")
 stat = "cooldown"
 op = "mul"
 value = -0.15
+target = "self"
 
 [sub_resource type="Resource" id="Resource_upgp2"]
 script = ExtResource("1_adtmj")
 stat = "damage"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_t3clq"]
 script = ExtResource("1_adtmj")
 stat = "range"
+op = "add"
 value = 3.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_3rvmq"]
 script = ExtResource("1_adtmj")
 stat = "duration"
+op = "add"
 value = 0.5
+target = "self"
 
 [sub_resource type="Resource" id="Resource_ljujr"]
 script = ExtResource("1_adtmj")
 stat = "damage"
 op = "mul"
 value = 0.25
+target = "self"
 
 [resource]
 script = ExtResource("2_6m2w6")
 behavior = "LaserBeam"
+tags = []
+targeting = "nearest"
 base = {
 "amount": 1.0,
 "cooldown": 2.6,
@@ -57,6 +69,9 @@ base = {
 "range": 16.0
 }
 levels = [[], [SubResource("Resource_6m2w6")], [SubResource("Resource_7wwo1")], [SubResource("Resource_8bfew")], [SubResource("Resource_upgp2")], [SubResource("Resource_t3clq")], [SubResource("Resource_3rvmq")], [SubResource("Resource_ljujr")]]
+max_level = 8
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "big_mouth"
 sfx = {
@@ -75,11 +90,15 @@ params = {
 "size": 1.5
 }
 }
+hero = ""
 id = "loudmouth"
 display_name = "Loudmouth"
 flavour = "It has opinions, and a wider mouth."
 rarity = "epic"
+element = ""
 weight = 7.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_6m2w6")
 icon_file = "loudmouth_icon.png"
 placeholder = {

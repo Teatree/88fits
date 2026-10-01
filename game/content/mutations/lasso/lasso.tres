@@ -7,7 +7,9 @@
 [sub_resource type="Resource" id="Resource_q02c3"]
 script = ExtResource("1_tss7q")
 stat = "pull"
+op = "add"
 value = 2.5
+target = "self"
 
 [resource]
 script = ExtResource("2_q02c3")

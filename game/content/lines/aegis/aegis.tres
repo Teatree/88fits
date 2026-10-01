@@ -7,6 +7,7 @@
 [sub_resource type="Resource" id="Resource_jc3uk"]
 script = ExtResource("1_8mujb")
 stat = "shield_max"
+op = "add"
 value = 90.0
 target = "player"
 

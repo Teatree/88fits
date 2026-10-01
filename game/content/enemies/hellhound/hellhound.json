@@ -1,0 +1,75 @@
+{
+  "id": "hellhound",
+  "name": "Hellhound",
+  "flavour": "Good dog. Bad news.",
+  "archetype": "runner",
+  "brain": "chase",
+  "hp": 30,
+  "speed": 2.6,
+  "damage": 9,
+  "radius": 0.55,
+  "size": 1.35,
+  "pack_size": 4,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.35,
+    "gold": 0.05,
+    "chest": 0.004
+  },
+  "frame_px": 160,
+  "xp_mult": 4.0,
+  "cap_share": 1.0,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_beetle_die"
+  },
+  "placeholder": {
+    "color": "#2A1A1A",
+    "ears": "pointed",
+    "eyes": 2,
+    "shape": "wide"
+  },
+  "art_prompt": "a lean muscular hellhound dog with charcoal-black fur, glowing orange cracks of ember running along its back and legs, a spiked iron collar, bared white fangs in a snarl, burning red eyes, pointed ears laid back, four legs, standing on all fours on the ground facing the viewer, its tail low behind it",
+  "variance": {
+    "size": 0.15,
+    "speed": 0.12,
+    "tints": [
+      "#FFFFFF",
+      "#FFB080",
+      "#C0A0FF",
+      "#FFD8A0"
+    ],
+    "tint_strength": 0.2,
+    "special_chance": 0.08,
+    "special": {
+      "size": 1.4,
+      "hp": 2.0,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#8A1A00",
+      "tint_strength": 0.5
+    }
+  },
+  "motion": "running in place on all fours with a fast bounding gallop, ears back, embers glowing",
+  "anim_negative": "extra legs, five legs, extra heads, two tails, extra ears, wings",
+  "dead_hint": "lying on its side on the ground, dead: eyes shut, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its tail on the right, its four legs limp",
+  "back_hint": "Its tail hangs low between its hind legs, the ember cracks visible along its back.",
+  "death": "clip",
+  "death_frames": 8,
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 8,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "fps": {
+    "run": 15,
+    "die": 12
+  },
+  "doc": "Stage 3's runner: faster than anything on the sand, five times a goblin's health, packs of four on top of the regular roster. It closes the gap a slow build lives on.",
+  "strip_cols": 43,
+  "head": 0.988
+}

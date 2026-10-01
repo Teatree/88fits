@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/version="0.28"
+config/version="0.30"
 config/name="88fits"
 config/description="Hold to run. Slide to steer. The guns fire themselves."
 run/main_scene="res://ui/Boot.tscn"

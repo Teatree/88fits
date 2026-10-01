@@ -80,7 +80,7 @@ func test_two_skeletons_walk_like_zombies() -> void:
 	assert_object(s).is_not_null()
 	assert_object(k).is_not_null()
 	# the second kind wears armour, and it is tougher for it
-	assert_float(k.armor).is_greater_equal(1.0)
+	assert_float(k.damage_reduction).is_greater_equal(0.2)
 	assert_float(k.hp).is_greater(s.hp)
 	for id in ["skeleton", "skeleton_knight"]:
 		var f := FileAccess.open("res://content/enemies/%s/%s.json" % [id, id], FileAccess.READ)
@@ -103,7 +103,7 @@ func test_two_skeletons_walk_like_zombies() -> void:
 
 func test_only_astro_and_the_drifter_are_played() -> void:
 	var ids: Array = Registry.sorted_characters().map(func(c): return c.id)
-	assert_array(ids).contains_exactly(["astro", "drifter"])
+	assert_array(ids).contains_exactly(["astro", "calavera", "drifter"])   # pass 43: Calavera
 	# the others are kept, just hidden
 	for id in ["buck", "dad", "mira"]:
 		assert_object(Registry.character(id)).is_not_null()

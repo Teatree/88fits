@@ -9,23 +9,28 @@ script = ExtResource("1_6ncsb")
 stat = "amount"
 op = "set"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_sb6un"]
 script = ExtResource("1_6ncsb")
 stat = "damage"
 op = "mul"
 value = 3.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_rkpsp"]
 script = ExtResource("1_6ncsb")
 stat = "pierce"
+op = "add"
 value = 5.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_tc2by"]
 script = ExtResource("1_6ncsb")
 stat = "knockback"
 op = "mul"
 value = 1.0
+target = "self"
 
 [resource]
 script = ExtResource("2_v3jod")

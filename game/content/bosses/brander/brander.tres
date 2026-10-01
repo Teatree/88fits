@@ -1,0 +1,109 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_1ri8u"]
+[ext_resource type="Texture2D" path="res://content/bosses/brander/brander_icon.png" id="1_a6rpm"]
+[ext_resource type="Texture2D" path="res://content/bosses/brander/brander_sprite.png" id="3_drkls"]
+
+[resource]
+script = ExtResource("1_1ri8u")
+archetype = "boss"
+doc = "Stage 3's boss. It draws a ring of fire round the fight that closes in for forty seconds and burns whoever stands outside it; its iron leaves burning lines on the sand for nine seconds; a charge, a slam, rings of imps. Pays three chests and forty coins."
+brain = "boss"
+hp = 3400.0
+speed = 1.55
+damage = 30.0
+radius = 2.2
+size = 5.2
+drops = {
+"chests": 3.0,
+"coins": 40.0,
+"gold": 1.0,
+"large": 1.0
+}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_drkls")
+sprite_file = "brander_sprite.png"
+frame_px = 256
+strip_cols = 40
+fps = {
+"die": 8.0,
+"run": 15.0
+}
+head = 0.988
+boss = {
+"attacks": [{
+"damage": 12.0,
+"length": 16.0,
+"life": 9.0,
+"name": "brand",
+"telegraph": "line",
+"tick": 0.5,
+"width": 1.1,
+"windup": 1.0
+}, {
+"damage": 32.0,
+"duration": 1.0,
+"name": "roll",
+"speed": 14.0,
+"telegraph": "line",
+"windup": 1.0
+}, {
+"damage": 36.0,
+"knockback": 12.0,
+"name": "slam",
+"radius": 6.0,
+"telegraph": "ring",
+"windup": 1.2
+}, {
+"damage": 12.0,
+"length": 16.0,
+"life": 9.0,
+"name": "brand",
+"telegraph": "line",
+"tick": 0.5,
+"width": 1.1,
+"windup": 1.0
+}, {
+"count": 10.0,
+"enemy": "imp",
+"name": "spawn_ring",
+"telegraph": "none",
+"windup": 0.8
+}],
+"cooldown_between": 2.0,
+"hp_mult_per_stage": 2.0,
+"ring": {
+"burn": 0.07,
+"creature_burn": 0.12,
+"hold": 8.0,
+"min_radius": 8.0,
+"radius": 21.0,
+"shrink": 42.0
+}
+}
+sfx = {
+"attack": "en_boss_attack",
+"die": "en_boss_die",
+"hit": "en_goblin_hit",
+"spawn": "en_boss_roar"
+}
+xp_mult = 90.0
+id = "brander"
+display_name = "The Brander"
+flavour = "Hell has a foreman. He brought the iron."
+icon = ExtResource("1_a6rpm")
+icon_file = "brander_icon.png"
+placeholder = {
+"color": "#8A1A1A",
+"ears": "horn",
+"eyes": 2.0,
+"shape": "tall"
+}

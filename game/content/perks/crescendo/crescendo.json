@@ -1,0 +1,20 @@
+{
+  "id": "crescendo",
+  "name": "Crescendo",
+  "flavour": "Louder. Louder. Louder.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "calavera",
+  "text": "Every kill raises his might 1%, up to +40%. A hit drops it back to nothing.",
+  "effects": [],
+  "special": "crescendo",
+  "params": {
+    "per_kill": 0.01,
+    "max": 0.4
+  },
+  "art_prompt": "a rising row of golden musical notes getting bigger from left to right",
+  "placeholder": {
+    "color": "#FFD23B",
+    "glyph": "star"
+  }
+}

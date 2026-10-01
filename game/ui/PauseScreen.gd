@@ -23,7 +23,8 @@ func _ready() -> void:
 	build_dim(W.DIM)
 	var paused := W.slab_text("PAUSED", 110, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 110.0)
 	paused.shadow = 8
-	paused.position = Vector2(48, 60)
+	var inset := W.safe_top()
+	paused.position = Vector2(48, 60 + inset)
 	paused.size = Vector2(600, 110)
 	add_child(paused)
 	var plate := PanelContainer.new()
@@ -34,13 +35,13 @@ func _ready() -> void:
 	plate.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	plate.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	plate.offset_right = -48
-	plate.offset_top = 84
+	plate.offset_top = 84 + inset
 	add_child(plate)
 	_tabs = WTabs.make(["Build", "Stats", "Options"], 30)
 	_tabs.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_tabs.offset_left = 48
 	_tabs.offset_right = -48
-	_tabs.offset_top = 230
+	_tabs.offset_top = 230 + inset
 	_tabs.changed.connect(func(i): _tab = i; _refresh())
 	add_child(_tabs)
 	# the board: paper, 5 px ink on three sides; the chosen tab opens into it
@@ -49,7 +50,7 @@ func _ready() -> void:
 	_board.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_board.offset_left = 48
 	_board.offset_right = -48
-	_board.offset_top = 308
+	_board.offset_top = 308 + inset
 	add_child(_board)
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -119,7 +120,7 @@ func _refresh() -> void:
 func _fit_board() -> void:
 	await get_tree().process_frame
 	var vp := get_viewport_rect().size
-	var room := vp.y - 90.0 - 124.0 - 40.0 - 308.0
+	var room := vp.y - 90.0 - 124.0 - 40.0 - _board.offset_top
 	var want := _content.get_combined_minimum_size().y
 	var st: StyleBox = _board.get_theme_stylebox("panel")
 	var pads: float = st.content_margin_top + st.content_margin_bottom if st else 0.0
@@ -254,7 +255,7 @@ func _evolve_note(inst: WeaponInstance) -> String:
 
 # ---------------------------------------------------------------- stats
 
-const STATS := ["armor", "regen", "move_speed", "might", "cooldown", "area", "projectile_speed", "duration", "amount",
+const STATS := ["damage_reduction", "regen", "move_speed", "might", "cooldown", "area", "projectile_speed", "duration", "amount",
 	"magnet", "luck", "greed", "xp_gain", "lifesteal", "evade", "crit_chance", "thorns", "execute_frac", "revives"]
 
 
@@ -367,8 +368,8 @@ func _spacer(h: float) -> Control:
 
 func _options_tab() -> void:
 	_content.add_theme_constant_override("separation", 44)
-	_content.add_child(_slider_row("Sound", Settings.sfx_volume, 0.0, 1.0, func(v): Settings.set_value("sfx_volume", v)))
-	_content.add_child(_slider_row("Music", Settings.music_volume, 0.0, 1.0, func(v): Settings.set_value("music_volume", v)))
+	_content.add_child(_slider_row("Sound", Settings.sfx_volume, 0.0, 1.0, func(v): Settings.set_value("sfx_volume", v), 5))
+	_content.add_child(_slider_row("Music", Settings.music_volume, 0.0, 1.0, func(v): Settings.set_value("music_volume", v), 5))
 	var shake := HBoxContainer.new()
 	shake.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sl := W.serif_text("Screen shake", 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
@@ -412,8 +413,8 @@ func _options_tab() -> void:
 	_content.add_child(ab)
 
 
-## A setting as a row: its name in Bitter 30 (200 px), then the slider.
-func _slider_row(name: String, value: float, lo: float, hi: float, on_change: Callable) -> Control:
+## A setting as a row: its name in Bitter 30 (200 px), then the slider (`levels` stops when it has them: the volumes).
+func _slider_row(name: String, value: float, lo: float, hi: float, on_change: Callable, levels: int = 0) -> Control:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 30)
 	h.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -421,7 +422,7 @@ func _slider_row(name: String, value: float, lo: float, hi: float, on_change: Ca
 	l.custom_minimum_size.x = 200
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(l)
-	var s := WSlider.make(value, lo, hi)
+	var s := WSlider.make_levels(value, levels, lo, hi) if levels > 1 else WSlider.make(value, lo, hi)
 	s.value_changed.connect(func(x): on_change.call(x))
 	h.add_child(s)
 	return h

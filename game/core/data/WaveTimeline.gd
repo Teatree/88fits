@@ -7,8 +7,14 @@ extends Resource
 @export var stages: int = 3
 ## Multipliers per stage applied to enemy hp, damage, gold. Index 0 = stage 1. Endless continues from the last.
 @export var stage_mults: Array = [1.0, 1.35, 1.8]
-## Extra multiplier per minute in endless mode.
-@export var endless_mult_per_minute: float = 0.1
+## Endless (pass 43): every `endless_wave_seconds` the creatures get `endless_wave_mult` tougher, compounding (×1.12 a wave). The
+## old linear `endless_mult_per_minute` still works for a map that sets it and no wave multiplier.
+@export var endless_mult_per_minute: float = 0.0
+@export var endless_wave_seconds: float = 60.0
+@export var endless_wave_mult: float = 1.0
+## The hell channel (pass 43): roster rows with `"channel": "hell"` spawn from their own cap, this fraction of the regular cap
+## per stage (index 0 = stage 1), with their own weighted draw, so they never change the regular roster's mix or count.
+@export var hell_cap: Array = []
 ## Extra live cap and extra creature speed for every stage after the first (stage 3 = twice this).
 @export var cap_per_stage: int = 0
 @export var speed_per_stage: float = 0.0
@@ -81,13 +87,27 @@ func line_cap_at(stage: int) -> int:
 	return int(line_cap[mini(maxi(stage, 0), line_cap.size() - 1)])
 
 
-func stage_mult(stage_index: int, minutes_into_endless: float = 0.0) -> float:
+func stage_mult(stage_index: int, seconds_into_endless: float = 0.0) -> float:
 	if stage_mults.is_empty():
 		return 1.0
 	if stage_index < stage_mults.size():
 		return float(stage_mults[stage_index])
 	var last := float(stage_mults[stage_mults.size() - 1])
-	return last * (1.0 + endless_mult_per_minute * minutes_into_endless)
+	if endless_wave_mult > 1.0:
+		return last * pow(endless_wave_mult, float(endless_wave(seconds_into_endless)))
+	return last * (1.0 + endless_mult_per_minute * seconds_into_endless / 60.0)
+
+
+## Which endless wave `seconds_into_endless` falls in (0 = the first).
+func endless_wave(seconds_into_endless: float) -> int:
+	return int(floor(maxf(seconds_into_endless, 0.0) / maxf(endless_wave_seconds, 1.0)))
+
+
+## The hell channel's cap on `stage_index`, as a fraction of the regular cap (0 = no channel on that stage).
+func hell_cap_at(stage_index: int) -> float:
+	if hell_cap.is_empty():
+		return 0.0
+	return float(hell_cap[mini(maxi(stage_index, 0), hell_cap.size() - 1)])
 
 
 func cap_at(t: float, stage_index: int = 0) -> int:

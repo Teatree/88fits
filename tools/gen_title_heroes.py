@@ -38,7 +38,13 @@ POSES = {
     "dad": "standing with his hands on his hips and his chest puffed out, grinning proudly under his thick brown mustache",
     "buck": "standing relaxed with one thumb hooked in the collar of his teal t-shirt, a slow easy grin and one eyebrow raised",
     "mira": "standing with one gloved hand raised holding up a fat gold nugget, grinning with a wink, her long braid over her shoulder",
+    # pass 44 (Garry: too happy, and he should hold a guitar): a solemn face, mouth closed, the guitar across his chest
+    "calavera": "standing with his feet apart, holding a dark wooden acoustic guitar with a red strap slung across his chest, one hand on the "
+                "neck of the guitar and the other resting on its strings, a calm solemn expression with his mouth closed and no smile under his "
+                "painted sugar-skull face, his wide black sombrero tipped a little forward, his red sash and bow tie bright against the black charro suit",
 }
+# heroes painted with something in their hands (the prompt otherwise forbids a weapon, which the model reads as any held thing)
+HOLDS = {"calavera": "the guitar is the only thing he holds"}
 
 
 def log(*a):
@@ -76,7 +82,7 @@ def paint(hid, seeds, first):
     pose = POSES.get(hid, str(d.get("portrait_prompt", "standing confidently")))
     prompt = ("A full-body character illustration of this exact character for a mobile game's hero select screen: " + pose +
               ", facing the viewer, seen from the front at eye level, the whole figure visible from the top of the head down to the "
-              "feet with empty space around it, no weapon. Keep the same face, outfit, colors and proportions as the reference. " +
+              "feet with empty space around it, " + HOLDS.get(hid, "no weapon") + ". Keep the same face, outfit, colors and proportions as the reference. " +
               STYLE + ". " + bg + ".")
     os.makedirs(OUT, exist_ok=True)
     made = []

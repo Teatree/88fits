@@ -9,6 +9,7 @@ script = ExtResource("1_xaoob")
 stat = "area"
 op = "mul"
 value = 0.25
+target = "self"
 
 [resource]
 script = ExtResource("2_rpk00")

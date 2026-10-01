@@ -1,0 +1,17 @@
+{
+  "id": "unlock_deadeye",
+  "name": "Deadeye",
+  "condition": {
+    "type": "evolve_any",
+    "count": 1
+  },
+  "unlocks": {
+    "type": "passive",
+    "id": "deadeye"
+  },
+  "art_prompt": "a glass jar with a crosshair inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

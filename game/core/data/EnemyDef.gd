@@ -36,7 +36,8 @@ extends ContentDef
 ## Chargers: {"windup": 0.8, "speed": 9.0, "duration": 0.6, "cooldown": 4.0, "trigger_range": 6.0}
 @export var charge: Dictionary = {}
 ## flat damage taken off every hit (a toad's hide); the elite modifiers add to it
-@export var armor: float = 0.0
+## Damage reduction (pass 43, was a flat `armor`): the fraction of every hit it shrugs off, 0..0.9.
+@export var damage_reduction: float = 0.0
 ## never more than this many alive at once (0 = no limit): the director skips the row while the count holds
 @export var max_alive: int = 0
 ## The icon that floats over it (pass 33.3): "crown", "skull", "gear" (art/ui/badges/<badge>.png) or "none"; empty takes

@@ -10,43 +10,54 @@ script = ExtResource("1_8jwhp")
 stat = "poison_damage"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_8unav"]
 script = ExtResource("1_8jwhp")
 stat = "cooldown"
 op = "mul"
 value = -0.12
+target = "self"
 
 [sub_resource type="Resource" id="Resource_e2kgj"]
 script = ExtResource("1_8jwhp")
 stat = "poison_damage"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_o5odp"]
 script = ExtResource("1_8jwhp")
 stat = "poison_stacks"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_8ebnl"]
 script = ExtResource("1_8jwhp")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_3o08y"]
 script = ExtResource("1_8jwhp")
 stat = "poison_damage"
 op = "mul"
 value = 0.25
+target = "self"
 
 [sub_resource type="Resource" id="Resource_ulljh"]
 script = ExtResource("1_8jwhp")
 stat = "cooldown"
 op = "mul"
 value = -0.12
+target = "self"
 
 [resource]
 script = ExtResource("1_vy7vr")
+behavior = "ProjectileEmitter"
+tags = []
 targeting = "healthy"
 base = {
 "amount": 1.0,
@@ -61,7 +72,11 @@ base = {
 "speed": 16.0
 }
 levels = [[], [SubResource("Resource_id6uf")], [SubResource("Resource_8unav")], [SubResource("Resource_e2kgj")], [SubResource("Resource_o5odp")], [SubResource("Resource_8ebnl")], [SubResource("Resource_3o08y")], [SubResource("Resource_ulljh")]]
+max_level = 8
+evolves_with = ""
 evolves_into = "plague_volley"
+is_evolution = false
+evolved_from = ""
 sfx = {
 "fire": "w_pea_fire",
 "hit": "w_pea_hit"
@@ -77,11 +92,15 @@ params = {
 },
 "radius": 0.22
 }
+hero = ""
 id = "poison_dart"
 display_name = "Poison Dart"
 flavour = "Barely a scratch. Then the scratch gets ideas."
+rarity = "common"
+element = ""
 weight = 9.0
 hidden = true
+from_stage = 0
 icon = ExtResource("1_id6uf")
 icon_file = "poison_dart_icon.png"
 placeholder = {

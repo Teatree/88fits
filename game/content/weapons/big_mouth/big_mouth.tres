@@ -10,43 +10,55 @@ script = ExtResource("1_46v6r")
 stat = "damage"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_s4tjk"]
 script = ExtResource("1_46v6r")
 stat = "duration"
+op = "add"
 value = 0.4
+target = "self"
 
 [sub_resource type="Resource" id="Resource_ybeac"]
 script = ExtResource("1_46v6r")
 stat = "cooldown"
 op = "mul"
 value = -0.15
+target = "self"
 
 [sub_resource type="Resource" id="Resource_vihw5"]
 script = ExtResource("1_46v6r")
 stat = "damage"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_15lai"]
 script = ExtResource("1_46v6r")
 stat = "range"
+op = "add"
 value = 3.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_kfbdn"]
 script = ExtResource("1_46v6r")
 stat = "duration"
+op = "add"
 value = 0.5
+target = "self"
 
 [sub_resource type="Resource" id="Resource_vqcmk"]
 script = ExtResource("1_46v6r")
 stat = "damage"
 op = "mul"
 value = 0.25
+target = "self"
 
 [resource]
 script = ExtResource("2_dassk")
 behavior = "LaserBeam"
+tags = []
+targeting = "nearest"
 base = {
 "amount": 1.0,
 "cooldown": 3.2,
@@ -57,7 +69,11 @@ base = {
 "range": 13.0
 }
 levels = [[], [SubResource("Resource_dassk")], [SubResource("Resource_s4tjk")], [SubResource("Resource_ybeac")], [SubResource("Resource_vihw5")], [SubResource("Resource_15lai")], [SubResource("Resource_kfbdn")], [SubResource("Resource_vqcmk")]]
+max_level = 8
+evolves_with = ""
 evolves_into = "loudmouth"
+is_evolution = false
+evolved_from = ""
 sfx = {
 "fire": "w_zap_fire",
 "hit": "w_zap_hit"
@@ -71,11 +87,15 @@ params = {
 "width": 0.34
 }
 }
+hero = ""
 id = "big_mouth"
 display_name = "Big Mouth"
 flavour = "Say aaah."
 rarity = "rare"
+element = ""
 weight = 7.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_dassk")
 icon_file = "big_mouth_icon.png"
 placeholder = {

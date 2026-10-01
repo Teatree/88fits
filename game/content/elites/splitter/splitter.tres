@@ -9,6 +9,7 @@ script = ExtResource("1_2qml0")
 stat = "hp"
 op = "mul"
 value = 1.5
+target = "self"
 
 [resource]
 script = ExtResource("2_2qml0")

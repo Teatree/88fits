@@ -19,6 +19,12 @@ var free_revive_button: bool = false
 var hit_log: bool = false
 ## Developer menu: the title's carousel also shows the hidden heroes, locked, to see how a locked hero reads.
 var preview_locked_heroes: bool = false
+## The top inset the UI keeps clear of a camera cutout, in design px: -1 = what the phone reports (W.safe_top).
+var top_inset: int = -1
+## The player's own debug switch (pass 44): ten taps on the first-play hints switch in Settings flip it (and ten more
+## on the next visit flip it back). On: the arena on the title, the debug hand on the pick screens, and holding the
+## clock and a free respawn on Down!.
+var debug_mode: bool = false
 
 
 func to_dict() -> Dictionary:
@@ -27,7 +33,7 @@ func to_dict() -> Dictionary:
 		"screen_shake": screen_shake, "sfx_volume": sfx_volume, "music_volume": music_volume,
 		"show_hints": show_hints, "debug_panel": debug_panel,
 		"debug_modal_buttons": debug_modal_buttons, "free_revive_button": free_revive_button, "hit_log": hit_log,
-		"preview_locked_heroes": preview_locked_heroes,
+		"preview_locked_heroes": preview_locked_heroes, "top_inset": top_inset, "debug_mode": debug_mode,
 	}
 
 
@@ -43,6 +49,8 @@ func from_dict(d: Dictionary) -> void:
 	free_revive_button = bool(d.get("free_revive_button", free_revive_button))
 	hit_log = bool(d.get("hit_log", hit_log))
 	preview_locked_heroes = bool(d.get("preview_locked_heroes", preview_locked_heroes))
+	top_inset = int(d.get("top_inset", top_inset))
+	debug_mode = bool(d.get("debug_mode", debug_mode))
 	changed.emit()
 
 

@@ -11,6 +11,8 @@ const THUMB := Vector2(90, 80)   # 80 x 70 inside a 5 px border
 const ROW_H := 36.0
 
 var shown: Callable
+## A stepped slider (pass 43: the volumes): this many stops, drawn as notches, the thumb naming the stop (0..n-1).
+var levels := 0
 
 
 func _init() -> void:
@@ -33,6 +35,14 @@ static func make(v: float, lo: float, hi: float, step_v: float = 0.01) -> WSlide
 	s.step = step_v
 	s.value = v
 	s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return s
+
+
+## A slider with `n` stops from `lo` to `hi` (the volumes: five levels, not a hundred).
+static func make_levels(v: float, n: int, lo: float = 0.0, hi: float = 1.0) -> WSlider:
+	var s := make(v, lo, hi, (hi - lo) / float(maxi(n - 1, 1)))
+	s.levels = n
+	s.shown = func(x: float) -> float: return (x - lo) / (hi - lo) * float(n - 1)
 	return s
 
 
@@ -63,6 +73,11 @@ func _draw() -> void:
 	var fw := inner.size.x * frac()
 	if fw > 0.0:
 		draw_rect(Rect2(inner.position, Vector2(fw, inner.size.y)), W.BRASS)
+	if levels > 1:
+		# the stops: an ink notch through the track at each (the thumb covers the one it sits on)
+		for k in range(levels):
+			var nx := inner.position.x + (inner.size.x - 4.0) * float(k) / float(levels - 1)
+			draw_rect(Rect2(nx, inner.position.y, 4.0, inner.size.y), Color(W.INK, 0.55))
 	var tx := maxf(inner.position.x + fw - 40.0, inner.position.x - 4.0)
 	var th := Rect2(Vector2(tx, track.position.y - 20.0), THUMB)
 	draw_rect(Rect2(th.position + Vector2(5, 5), th.size), W.INK)

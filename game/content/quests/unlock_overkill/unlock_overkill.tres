@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_overkill/unlock_overkill_icon.png" id="1_hnqci"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_1usdr"]
+
+[resource]
+script = ExtResource("2_1usdr")
+condition = {
+"count": 1.0,
+"enemy": "dune_scorpion",
+"type": "kills_of_enemy"
+}
+unlocks = {
+"id": "overkill",
+"type": "passive"
+}
+id = "unlock_overkill"
+display_name = "Overkill"
+icon = ExtResource("1_hnqci")
+icon_file = "unlock_overkill_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

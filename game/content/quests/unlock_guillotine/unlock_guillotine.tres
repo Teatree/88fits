@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_guillotine/unlock_guillotine_icon.png" id="1_fp7gy"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_07q6q"]
+
+[resource]
+script = ExtResource("2_07q6q")
+condition = {
+"map": "red_canyon",
+"stage": 2.0,
+"type": "kill_boss"
+}
+unlocks = {
+"id": "guillotine",
+"type": "passive"
+}
+id = "unlock_guillotine"
+display_name = "Guillotine"
+icon = ExtResource("1_fp7gy")
+icon_file = "unlock_guillotine_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

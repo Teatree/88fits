@@ -106,14 +106,14 @@ func test_the_fodder_comes_twice_as_many_at_half_each() -> void:
 	for k in range(4):
 		em.spawn("goblin", Vector3(k, 0, 0))
 	assert_float(em.cap_load()).is_equal_approx(2.0, 0.01)
-	assert_int(Registry.map("red_canyon").timeline.hard_cap).is_equal(240)
+	assert_int(Registry.map("red_canyon").timeline.hard_cap).is_equal(260)   # pass 43: room for the hell crowd
 
 
 func test_the_armadillo_arrives_half_way_through_stage_one() -> void:
 	var d: EnemyDef = Registry.enemy("armadillo")
 	assert_object(d).is_not_null()
 	assert_int(d.pack_size).is_greater_equal(5)
-	assert_float(d.armor).is_greater_equal(1.0)
+	assert_float(d.damage_reduction).is_greater_equal(0.2)
 	assert_float(d.hp).is_greater(Registry.enemy("goblin").hp * 2.0)
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
 	var arrives := -1.0
@@ -218,12 +218,12 @@ func test_a_maxed_line_is_offered_its_evolution() -> void:
 	CardPool.apply(evo_card)
 	assert_bool(Run.lines.has("vigour")).is_false()
 	assert_int(Run.line_rank("ironclad")).is_equal(1)
-	assert_float(Run.player_sheet.get_stat("armor", 0.0)).is_greater_equal(3.0)
+	assert_float(Run.player_sheet.get_stat("damage_reduction", 0.0)).is_greater_equal(0.15)
 
 
 func test_the_drop_passives_drop_small_pickups() -> void:
-	assert_float(float(Registry.passive("beef_jerky").effects_for_level(5)[0].value)).is_greater(0.0)
-	var j: PickupDef = Registry.pickup("jerky")
+	assert_float(float(Registry.passive("cheese").effects_for_level(5)[0].value)).is_greater(0.0)
+	var j: PickupDef = Registry.pickup("cheese_bite")
 	assert_str(j.effect_kind).is_equal("heal")
 	assert_bool(bool(j.params.get("small", false))).is_true()
 	var b: PickupDef = Registry.pickup("coin_bag")
@@ -231,7 +231,7 @@ func test_the_drop_passives_drop_small_pickups() -> void:
 	assert_bool(bool(b.params.get("magnet", false))).is_true()
 	# neither is in the random power-up table: they come only from the passives
 	for r in Registry.map("red_canyon").timeline.pickups.get("roster", []):
-		assert_bool(["jerky", "coin_bag"].has(str(r.get("id", "")))).is_false()
+		assert_bool(["cheese_bite", "coin_bag"].has(str(r.get("id", "")))).is_false()
 
 
 func test_far_zoom_marks_the_crowd() -> void:

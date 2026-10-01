@@ -10,43 +10,55 @@ script = ExtResource("1_re1is")
 stat = "damage"
 op = "mul"
 value = 0.25
+target = "self"
 
 [sub_resource type="Resource" id="Resource_87dax"]
 script = ExtResource("1_re1is")
 stat = "cooldown"
 op = "mul"
 value = -0.1
+target = "self"
 
 [sub_resource type="Resource" id="Resource_aw0ce"]
 script = ExtResource("1_re1is")
 stat = "pierce"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_a46im"]
 script = ExtResource("1_re1is")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_v5pfy"]
 script = ExtResource("1_re1is")
 stat = "damage"
 op = "mul"
 value = 0.3
+target = "self"
 
 [sub_resource type="Resource" id="Resource_ael43"]
 script = ExtResource("1_re1is")
 stat = "cooldown"
 op = "mul"
 value = -0.12
+target = "self"
 
 [sub_resource type="Resource" id="Resource_fv18o"]
 script = ExtResource("1_re1is")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [resource]
 script = ExtResource("2_5ayrc")
+behavior = "ProjectileEmitter"
 tags = ["gun"]
+targeting = "nearest"
 base = {
 "amount": 1.0,
 "cooldown": 1.0,
@@ -57,7 +69,11 @@ base = {
 "speed": 33.0
 }
 levels = [[], [SubResource("Resource_5ayrc")], [SubResource("Resource_87dax")], [SubResource("Resource_aw0ce")], [SubResource("Resource_a46im")], [SubResource("Resource_v5pfy")], [SubResource("Resource_ael43")], [SubResource("Resource_fv18o")]]
+max_level = 8
+evolves_with = ""
 evolves_into = "golden_revolver"
+is_evolution = false
+evolved_from = ""
 sfx = {
 "fire": "w_revolver_fire",
 "hit": "w_pea_hit"
@@ -85,7 +101,10 @@ id = "revolver"
 display_name = "Revolver"
 flavour = "Six chances to be right."
 rarity = "rare"
+element = ""
 weight = 8.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_5ayrc")
 icon_file = "revolver_icon.png"
 placeholder = {

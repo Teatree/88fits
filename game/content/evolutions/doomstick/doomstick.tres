@@ -6,6 +6,8 @@
 
 [resource]
 script = ExtResource("1_v8e2s")
+behavior = "ProjectileEmitter"
+tags = []
 targeting = "forward"
 base = {
 "amount": 12.0,
@@ -19,6 +21,8 @@ base = {
 }
 levels = [[]]
 max_level = 1
+evolves_with = ""
+evolves_into = ""
 is_evolution = true
 evolved_from = "boomstick"
 sfx = {
@@ -30,10 +34,15 @@ visual_file = "doomstick_visual.tscn"
 params = {
 "shockwave": true
 }
+hero = ""
 id = "doomstick"
 display_name = "Doomstick"
 flavour = "Double barrel. Double regret."
 rarity = "epic"
+element = ""
+weight = 10.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_3qfae")
 icon_file = "doomstick_icon.png"
 placeholder = {

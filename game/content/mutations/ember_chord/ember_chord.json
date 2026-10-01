@@ -1,0 +1,36 @@
+{
+  "id": "ember_chord",
+  "name": "Ember Chord",
+  "flavour": "Hot licks.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "guitarra",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "Every note sets what it hits alight.",
+  "vfx": "orange notes and the burn's flames",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "add",
+      "value": 4
+    },
+    {
+      "stat": "fire_duration",
+      "op": "add",
+      "value": 2.0
+    },
+    {
+      "stat": "fire_spread",
+      "op": "add",
+      "value": 0.3
+    }
+  ],
+  "params": {},
+  "art_prompt": "a golden musical note wrapped in orange flames",
+  "placeholder": {
+    "color": "#FF7040",
+    "glyph": "star"
+  }
+}

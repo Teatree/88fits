@@ -87,6 +87,13 @@
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_grav_land.wav" id="84_xcwxw"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_blackhole.wav" id="85_ubodm"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/st_teleport.wav" id="86_lq2am"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_guitarra_strum.wav" id="87_j54tl"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_slime_hit.wav" id="88_lq2am"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_slime_die.wav" id="89_espsa"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/st_barrel_break.wav" id="90_drtpa"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_fanfare.wav" id="91_7m1op"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_jackpot.wav" id="92_7drtm"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/wd_gust.wav" id="93_ypmax"]
 
 [resource]
 script = ExtResource("1_eeclh")
@@ -252,6 +259,24 @@ entries = {
 "stream": ExtResource("44_uwp6k"),
 "voices": 1,
 "volume_db": -4.0
+},
+"en_slime_die": {
+"category": "enemy",
+"file": "placeholder/en_slime_die.wav",
+"loop": false,
+"pitch_spread": 0.06,
+"stream": ExtResource("89_espsa"),
+"voices": 2,
+"volume_db": -6.0
+},
+"en_slime_hit": {
+"category": "enemy",
+"file": "placeholder/en_slime_hit.wav",
+"loop": false,
+"pitch_spread": 0.08,
+"stream": ExtResource("88_lq2am"),
+"voices": 3,
+"volume_db": -8.0
 },
 "mu_boss": {
 "category": "music",
@@ -433,6 +458,15 @@ entries = {
 "voices": 1,
 "volume_db": -18.0
 },
+"st_barrel_break": {
+"category": "pickup",
+"file": "placeholder/st_barrel_break.wav",
+"loop": false,
+"pitch_spread": 0.06,
+"stream": ExtResource("90_drtpa"),
+"voices": 2,
+"volume_db": -4.0
+},
 "st_teleport": {
 "category": "pickup",
 "file": "placeholder/st_teleport.wav",
@@ -457,6 +491,24 @@ entries = {
 "loop": false,
 "pitch_spread": 0.0,
 "stream": ExtResource("2_bgt4q"),
+"voices": 1,
+"volume_db": -3.0
+},
+"ui_fanfare": {
+"category": "ui",
+"file": "placeholder/ui_fanfare.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("91_7m1op"),
+"voices": 1,
+"volume_db": -2.0
+},
+"ui_jackpot": {
+"category": "ui",
+"file": "placeholder/ui_jackpot.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("92_7drtm"),
 "voices": 1,
 "volume_db": -3.0
 },
@@ -594,6 +646,15 @@ entries = {
 "stream": ExtResource("83_8yylk"),
 "voices": 3,
 "volume_db": -10.0
+},
+"w_guitarra_strum": {
+"category": "weapon",
+"file": "placeholder/w_guitarra_strum.wav",
+"loop": false,
+"pitch_spread": 0.06,
+"stream": ExtResource("87_j54tl"),
+"voices": 3,
+"volume_db": -8.0
 },
 "w_hammer_hit": {
 "category": "weapon",
@@ -846,6 +907,15 @@ entries = {
 "stream": ExtResource("48_trawe"),
 "voices": 1,
 "volume_db": 0.0
+},
+"wd_gust": {
+"category": "world",
+"file": "placeholder/wd_gust.wav",
+"loop": false,
+"pitch_spread": 0.05,
+"stream": ExtResource("93_ypmax"),
+"voices": 1,
+"volume_db": -14.0
 },
 "wd_portal_open": {
 "category": "world",

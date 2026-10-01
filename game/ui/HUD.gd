@@ -10,6 +10,7 @@ signal pause_requested
 
 ## Height of the strip in design px with one slot row: the top row and the slots. A build that needs two rows makes
 ## it taller (`band_h`); PlayerInput's thumb zone starts just below `band_h`, and a tap anywhere on the strip pauses.
+## Everything on the strip sits `W.safe_top()` lower on a phone with a camera cutout (pass 43).
 const BAND_H := 236
 ## The compact top (pass 41: the mock's row, 44 px plates from y 44 and 104 px weapon slots from y 170, took a fifth
 ## of the phone's height): the row's line and type, the pause disc, the slots' line and sizes.
@@ -126,7 +127,8 @@ func _build_band() -> void:
 	# the XP rail: 18 px of ink along the top edge, the fill 12 px inset 3 from its top
 	_rail = Control.new()
 	_rail.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_rail.offset_bottom = RAIL_H
+	_rail.offset_top = W.safe_top()
+	_rail.offset_bottom = W.safe_top() + RAIL_H
 	_rail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_rail.draw.connect(func():
 		_rail.draw_rect(Rect2(0, 0, _rail.size.x, RAIL_H), W.INK)
@@ -135,7 +137,8 @@ func _build_band() -> void:
 	add_child(_rail)
 	_top = Control.new()
 	_top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_top.offset_bottom = SLOT_Y - 10.0
+	_top.offset_top = W.safe_top()
+	_top.offset_bottom = W.safe_top() + SLOT_Y - 10.0
 	_top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_top)
 	_lv_plate = _plate()
@@ -181,7 +184,7 @@ func _build_band() -> void:
 	_top.add_child(_pause_btn)
 	# the held items, under the top row
 	_slots = Control.new()
-	_slots.position = Vector2(36, SLOT_Y)
+	_slots.position = Vector2(36, SLOT_Y + W.safe_top())
 	_slots.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_slots)
 	# timed power-ups (plates with their seconds) and the Adrenaline count, under the slots on the left
@@ -331,9 +334,15 @@ func _refresh_rows() -> void:
 			x += side + SLOT_GAP * k
 			row_h = maxf(row_h, side + (6.0 * k if not is_w and rows.size() == 1 else 0.0))
 		y += row_h + ROW_GAP
-	_slots_bottom = SLOT_Y + maxf(y - ROW_GAP, 0.0) + 6.0
+	var inset := W.safe_top()
+	_rail.offset_top = inset
+	_rail.offset_bottom = inset + RAIL_H
+	_top.offset_top = inset
+	_top.offset_bottom = inset + SLOT_Y - 10.0
+	_slots.position = Vector2(36, SLOT_Y + inset)
+	_slots_bottom = SLOT_Y + inset + maxf(y - ROW_GAP, 0.0) + 6.0
 	# the strip that pauses on a tap reaches under the slots (and the thumb zone starts below it)
-	band_h = maxf(float(BAND_H), _slots_bottom + 14.0)
+	band_h = maxf(float(BAND_H) + inset, _slots_bottom + 14.0)
 	_band.offset_bottom = band_h
 	_layout_toasts()
 	Perf.add("hud.rows", t0)
@@ -459,7 +468,7 @@ func clear_hint() -> void:
 func banner(text: String, color: Color = W.INK, icon: Texture2D = null) -> void:
 	var t := text.replace(": ", " · ")
 	var ember := t.begins_with("EVOLVED") or (icon != null)
-	_banner.play(t, ember, icon, TOP_Y)
+	_banner.play(t, ember, icon, TOP_Y + W.safe_top())
 
 
 func _on_banner(on: bool) -> void:
@@ -540,9 +549,14 @@ func _refresh_buffs() -> void:
 			_buffs.add_child(p)
 		_layout_toasts()
 	if _adren:
-		_adren.visible = Run.adrenaline > 0
+		var parts: Array = []
 		if Run.adrenaline > 0:
-			_adren.text = "ADRENALINE ×%d" % Run.adrenaline
+			parts.append("ADRENALINE ×%d" % Run.adrenaline)
+		if Run.crescendo > 0:
+			parts.append("CRESCENDO +%d%%" % int(round(Run.crescendo_might() * 100.0)))
+		_adren.visible = not parts.is_empty()
+		if not parts.is_empty():
+			_adren.text = " · ".join(parts)
 	var k := 0
 	for tb in Run.timed:
 		if k < _buffs.get_child_count():

@@ -77,11 +77,11 @@ func test_the_mirror_buys_forms_and_gives_it_all_back() -> void:
 	assert_int(Save.talent_rank("grit")).is_equal(1)
 	# and it folds into the hero's sheet
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
-	assert_float(Run.player_sheet.get_stat("armor", 0.0)).is_greater_equal(1.0)
-	# everything back, to the coin
+	assert_float(Run.player_sheet.get_stat("damage_reduction", 0.0)).is_greater_equal(0.05)
+	# everything back, for half the coins (pass 44)
 	var spent := Save.talent_spent()
 	var back := Save.talent_refund_all()
-	assert_int(back).is_equal(spent)
+	assert_int(back).is_equal(int(floor(spent * Save.REFUND_FRAC)))
 	assert_int(Save.talent_rank("grit")).is_equal(0)
 
 

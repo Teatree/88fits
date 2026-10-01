@@ -16,7 +16,7 @@ static func make(star: String, t: String, italic: String = "", title_px: int = 1
 	h.alignment = BoxContainer.ALIGNMENT_BEGIN
 	h.add_theme_constant_override("separation", 0)
 	h.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	h.offset_top = top
+	h.offset_top = top + W.safe_top()
 	h.offset_left = 0
 	h.offset_right = 0
 	if star != "":
@@ -40,6 +40,19 @@ func set_title(t: String) -> void:
 func set_line(t: String) -> void:
 	line.text = t
 	line.visible = t != ""
+
+
+## The title stamps in (pass 44, the level-up reveal): from half again its size and a tilt down to its place, with a
+## bounce. Called deferred, once the stack has laid out, so the pivot sits in the middle of the title.
+func stamp() -> void:
+	if title == null:
+		return
+	title.pivot_offset = title.size * 0.5
+	title.scale = Vector2(1.6, 1.6)
+	title.rotation = deg_to_rad(-4.0)
+	var tw := create_tween().set_parallel(true)
+	tw.tween_property(title, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(title, "rotation", 0.0, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 ## The entry motion: the stack drops 40 px with a 250 ms ease-out.

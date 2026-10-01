@@ -2,18 +2,20 @@
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xe2lu"]
 [ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_txams"]
+[ext_resource type="Texture2D" path="res://content/talents/grit/grit_icon.png" id="2_uoxua"]
 
-[sub_resource type="Resource" id="Resource_xe2lu"]
+[sub_resource type="Resource" id="Resource_txams"]
 script = ExtResource("1_xe2lu")
 stat = "max_hp"
 op = "mul"
 value = 0.1
 target = "player"
 
-[sub_resource type="Resource" id="Resource_txams"]
+[sub_resource type="Resource" id="Resource_uoxua"]
 script = ExtResource("1_xe2lu")
-stat = "armor"
-value = 1.0
+stat = "damage_reduction"
+op = "add"
+value = 0.06
 target = "player"
 
 [resource]
@@ -21,17 +23,18 @@ script = ExtResource("2_txams")
 order = 1
 cost = [140.0, 252.0, 420.0]
 forms = [{
-"effects": [SubResource("Resource_xe2lu")],
+"effects": [SubResource("Resource_txams")],
 "name": "Padding",
 "text": "+10% max HP a rank."
 }, {
-"effects": [SubResource("Resource_txams")],
+"effects": [SubResource("Resource_uoxua")],
 "name": "Plate",
-"text": "+1 armour a rank: every hit lands lighter."
+"text": "+6% damage reduction a rank: every hit lands lighter."
 }]
 id = "grit"
 display_name = "Grit"
 flavour = "Thicker skin, or harder bones."
+icon = ExtResource("2_uoxua")
 icon_file = "grit_icon.png"
 placeholder = {
 "color": "#C9A227",

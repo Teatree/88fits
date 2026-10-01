@@ -204,7 +204,8 @@ func perks_of(hero_id: String) -> Array:
 	return out
 
 
-## The lines a level-up can offer: evolved lines come only as the evolution of the line they replace.
+## The base lines, sorted: evolved lines come only as the evolution of the line they replace. (A line behind an unlock
+## quest, pass 44, is kept out of the offers by CardPool, not here: this is the content listing.)
 func sorted_lines() -> Array:
 	var out: Array = []
 	for l: LineDef in lines.values():
@@ -250,6 +251,23 @@ func is_unlocked(type: String, id: String) -> bool:
 	if q == null:
 		return true
 	return Save.quest_done(q.id)
+
+
+## What a quest hands over, as its content item (null for a mode or an unknown kind).
+func unlocked_by(q: QuestDef) -> ContentDef:
+	var id := str(q.unlocks.get("id", ""))
+	match str(q.unlocks.get("type", "")):
+		"weapon":
+			return weapons.get(id)
+		"passive":
+			return passives.get(id)
+		"line":
+			return lines.get(id)
+		"character":
+			return characters.get(id)
+		"map":
+			return maps.get(id)
+	return null
 
 
 func base_weapons() -> Array:
@@ -346,6 +364,8 @@ func quest_visible(q: QuestDef) -> bool:
 			return not is_hidden(weapons.get(what))
 		"passive":
 			return not is_hidden(passives.get(what))
+		"line":
+			return not is_hidden(lines.get(what))
 	return true
 
 

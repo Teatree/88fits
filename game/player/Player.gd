@@ -394,8 +394,9 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 		evaded.emit()
 		last_outcome = "evaded"
 		return
-	var armor := sheet.get_stat("armor", 0.0)
-	var dealt: float = max(amount - armor, amount * 0.2)
+	# damage reduction (pass 43): a share of every hit, capped so nothing makes him immune
+	var dr := clampf(sheet.get_stat("damage_reduction", 0.0), 0.0, 0.8)
+	var dealt: float = amount * (1.0 - dr)
 	invuln = 0.35
 	regen_hold = sheet.get_stat("regen_delay", REGEN_HOLD_AFTER_HIT)
 	_shield_wait = sheet.get_stat("shield_delay", 3.0)

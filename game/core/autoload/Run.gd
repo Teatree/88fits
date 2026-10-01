@@ -63,6 +63,10 @@ var banished: Array = []
 const ADRENALINE_MAX := 20
 const ADRENALINE_SECONDS := 4.0
 var adrenaline := 0
+## Calavera's Crescendo (pass 43): might per kill, up to the perk's cap, until a hit (Game resets it)
+var crescendo := 0
+var _crescendo_dirty := false
+var _crescendo_built := -1.0
 var adrenaline_until := 0.0
 var _adrenaline_dirty := false
 var _adrenaline_built := -1.0
@@ -138,6 +142,8 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	stranger_cost = 0.0
 	adrenaline = 0
 	adrenaline_until = 0.0
+	crescendo = 0
+	_crescendo_dirty = false
 	timed.clear()
 	lifesteal_pool = 0.0
 	_lifesteal_second = 0.0
@@ -191,7 +197,23 @@ func _build_player_sheet() -> void:
 			var a2 := Effect.new()
 			a2.stat = "might"; a2.op = "mul"; a2.value = mg; a2.target = "player"
 			player_sheet.add_effects([a1, a2], "Adrenaline ×%d" % adrenaline)
+	if crescendo > 0 and has_perk("crescendo"):
+		var c1 := Effect.new()
+		c1.stat = "might"; c1.op = "mul"; c1.value = crescendo_might(); c1.target = "player"
+		player_sheet.add_effects([c1], "Crescendo +%d%%" % int(round(crescendo_might() * 100.0)))
 	haste = player_sheet.get_stat("haste", 1.0)
+
+
+## What Crescendo adds to might right now (its stacks × the perk's per_kill, capped by its max).
+func crescendo_might() -> float:
+	return minf(float(crescendo) * perk_param("crescendo", "per_kill", 0.01), perk_param("crescendo", "max", 0.4))
+
+
+## A hit drops Crescendo to nothing.
+func reset_crescendo() -> void:
+	if crescendo > 0:
+		crescendo = 0
+		rebuild_sheets()
 
 
 func _apply_passives_to_sheet() -> void:
@@ -327,6 +349,7 @@ func add_or_rank_line(id: String) -> bool:
 		if lines.size() >= line_cap():
 			return false
 		lines[id] = 1
+		Save.mark_seen("line", id)
 	_apply_passives_to_sheet()
 	for w in weapons:
 		w.rebuild(player_sheet, weapons)
@@ -345,6 +368,7 @@ func evolve_line(src_id: String) -> bool:
 	lines.erase(src_id)
 	player_sheet.remove_source("line:" + src_id)
 	lines[evo.id] = 1
+	Save.mark_seen("line", evo.id)
 	_apply_passives_to_sheet()
 	haste = player_sheet.get_stat("haste", 1.0)
 	for w in weapons:
@@ -358,6 +382,7 @@ func add_perk(id: String) -> bool:
 	if def == null or perks.has(id):
 		return false
 	perks.append(id)
+	Save.mark_seen("perk", id)
 	_apply_passives_to_sheet()
 	for w in weapons:
 		w.rebuild(player_sheet, weapons)
@@ -450,6 +475,10 @@ func tick_timed() -> Array:
 	if _adrenaline_dirty and (adrenaline == 0 or elapsed >= _adrenaline_built + 0.25):
 		_adrenaline_dirty = false
 		_adrenaline_built = elapsed
+		rebuild_sheets()
+	elif _crescendo_dirty and elapsed >= _crescendo_built + 0.3:
+		_crescendo_dirty = false
+		_crescendo_built = elapsed
 		rebuild_sheets()
 	return ended
 
@@ -568,7 +597,11 @@ func spend_gold(n: int) -> bool:
 
 
 func add_gold(n: int) -> void:
-	run_gold += int(round(n * player_sheet.get_stat("greed", 1.0)))
+	var gained := int(round(n * player_sheet.get_stat("greed", 1.0)))
+	run_gold += gained
+	# all-time gold earned (pass 44: an unlock counts it), whatever becomes of the purse
+	if gained > 0 and not arena:
+		Save.add_total("gold_earned", gained)
 	gold_changed.emit(run_gold)
 
 
@@ -578,6 +611,11 @@ func add_kill(enemy_id: String, weapon_id: String) -> void:
 		adrenaline = mini(adrenaline + 1, ADRENALINE_MAX)
 		adrenaline_until = elapsed + ADRENALINE_SECONDS
 		_adrenaline_dirty = true
+	if has_perk("crescendo"):
+		var cap: int = int(round(perk_param("crescendo", "max", 0.4) / maxf(perk_param("crescendo", "per_kill", 0.01), 0.001)))
+		if crescendo < cap:
+			crescendo += 1
+			_crescendo_dirty = true
 	kills_by_enemy[enemy_id] = int(kills_by_enemy.get(enemy_id, 0)) + 1
 	if weapon_id != "":
 		kills_by_weapon[weapon_id] = int(kills_by_weapon.get(weapon_id, 0)) + 1
@@ -718,6 +756,7 @@ func add_weapon(def: WeaponDef, level_override: int = 1) -> WeaponInstance:
 	var inst := WeaponInstance.new(def, level_override)
 	inst.mutations = mutation_defs(inst.family_id())
 	weapons.append(inst)
+	Save.mark_seen("weapon", def.id)
 	inst.rebuild(player_sheet, weapons)
 	build_changed.emit()
 	return inst
@@ -740,6 +779,7 @@ func add_or_level_passive(id: String) -> void:
 		if passives.size() >= MAX_PASSIVES:
 			return
 		passives[id] = 1
+		Save.mark_seen("passive", id)
 	_apply_passives_to_sheet()
 	for w in weapons:
 		w.rebuild(player_sheet, weapons)
@@ -785,6 +825,7 @@ func evolve(w: WeaponInstance) -> WeaponInstance:
 		weapons[idx] = inst
 	else:
 		weapons.append(inst)
+	Save.mark_seen("weapon", into.id)
 	inst.rebuild(player_sheet, weapons)
 	evolutions += 1
 	Save.add_total("evolutions", 1)
@@ -883,10 +924,21 @@ func open_chest() -> Dictionary:
 func stage_mult() -> float:
 	if map == null or map.timeline == null:
 		return 1.0
-	var endless_minutes := 0.0
-	if endless:
-		endless_minutes = max(0.0, (elapsed - map.timeline.stage_length * map.timeline.stages) / 60.0)
-	return map.timeline.stage_mult(stage, endless_minutes)
+	return map.timeline.stage_mult(stage, endless_seconds())
+
+
+## Seconds into endless (0 before it).
+func endless_seconds() -> float:
+	if not endless or map == null or map.timeline == null:
+		return 0.0
+	return maxf(elapsed - map.timeline.stage_length * map.timeline.stages, 0.0)
+
+
+## The endless wave the run is in, 1-based (0 outside endless).
+func endless_wave() -> int:
+	if not endless or map == null or map.timeline == null:
+		return 0
+	return map.timeline.endless_wave(endless_seconds()) + 1
 
 
 func summary() -> Dictionary:

@@ -21,7 +21,7 @@ func _ready() -> void:
 	v.set_anchors_preset(Control.PRESET_FULL_RECT)
 	v.offset_left = 30
 	v.offset_right = -30
-	v.offset_top = 60
+	v.offset_top = 60 + W.safe_top()
 	v.offset_bottom = -40
 	add_child(v)
 	var head := UiKit.hbox(14)

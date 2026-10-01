@@ -10,46 +10,55 @@ script = ExtResource("1_sxqfe")
 stat = "damage"
 op = "mul"
 value = 0.25
+target = "self"
 
 [sub_resource type="Resource" id="Resource_nndpq"]
 script = ExtResource("1_sxqfe")
 stat = "cooldown"
 op = "mul"
 value = -0.12
+target = "self"
 
 [sub_resource type="Resource" id="Resource_a2so5"]
 script = ExtResource("1_sxqfe")
 stat = "range"
 op = "mul"
 value = 0.2
+target = "self"
 
 [sub_resource type="Resource" id="Resource_uvm3r"]
 script = ExtResource("1_sxqfe")
 stat = "knockback"
 op = "mul"
 value = 0.3
+target = "self"
 
 [sub_resource type="Resource" id="Resource_iwile"]
 script = ExtResource("1_sxqfe")
 stat = "damage"
 op = "mul"
 value = 0.25
+target = "self"
 
 [sub_resource type="Resource" id="Resource_mbdi8"]
 script = ExtResource("1_sxqfe")
 stat = "amount"
+op = "add"
 value = 1.0
+target = "self"
 
 [sub_resource type="Resource" id="Resource_8c31y"]
 script = ExtResource("1_sxqfe")
 stat = "damage"
 op = "mul"
 value = 0.3
+target = "self"
 
 [resource]
 script = ExtResource("2_8lbaj")
 behavior = "Thruster"
 tags = ["blade"]
+targeting = "nearest"
 base = {
 "amount": 1.0,
 "area": 1.0,
@@ -59,7 +68,11 @@ base = {
 "range": 4.6
 }
 levels = [[], [SubResource("Resource_8lbaj")], [SubResource("Resource_nndpq")], [SubResource("Resource_a2so5")], [SubResource("Resource_uvm3r")], [SubResource("Resource_iwile")], [SubResource("Resource_mbdi8")], [SubResource("Resource_8c31y")]]
+max_level = 8
+evolves_with = ""
 evolves_into = "halberd"
+is_evolution = false
+evolved_from = ""
 sfx = {
 "fire": "w_saw_hit",
 "hit": "w_pea_hit"
@@ -75,11 +88,15 @@ params = {
 "width": 0.55
 }
 }
+hero = ""
 id = "pike"
 display_name = "Pike"
 flavour = "Reach first. Everything else second."
 rarity = "rare"
+element = ""
 weight = 6.0
+hidden = false
+from_stage = 0
 icon = ExtResource("1_8lbaj")
 icon_file = "pike_icon.png"
 placeholder = {

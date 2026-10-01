@@ -346,6 +346,15 @@ func shell(at: Vector3, side: Vector3) -> void:
 	_emit(at, side * randf_range(1.2, 2.2) + Vector3(0, randf_range(2.2, 3.2), 0), 0.5, 0.12, 0.1, 1.0, 0.7, Color(0.95, 0.75, 0.3), 12.0, true)
 
 
+## Splinters (pass 44, the barrels): `n` tumbling chunks in `col` thrown up and out from `at`, falling under gravity.
+func splinters(at: Vector3, col: Color, n: int = 14, size: float = 0.2) -> void:
+	for k in n:
+		var a := randf() * TAU
+		var sp := randf_range(1.8, 5.5)
+		var v := Vector3(cos(a) * sp, randf_range(3.0, 6.8), sin(a) * sp)
+		_emit(at + Vector3(0, 0.45, 0), v, randf_range(0.7, 1.15), size * randf_range(0.7, 1.3), size * 0.6, 1.0, 0.75, col, 14.0, true, true)
+
+
 ## A jittered bolt through `points` as a camera-facing ribbon: a white-hot core and a wide coloured sheath (a one-pixel
 ## line was lost on the sand), a flash at every point, gone in a third of a second with a flicker.
 func lightning(points: Array, color: Color = Color(0.3, 0.58, 1.0)) -> void:

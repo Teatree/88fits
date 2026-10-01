@@ -9,11 +9,14 @@ script = ExtResource("1_4f6d5")
 stat = "cooldown"
 op = "mul"
 value = -0.25
+target = "self"
 
 [sub_resource type="Resource" id="Resource_5vutl"]
 script = ExtResource("1_4f6d5")
 stat = "knockback"
+op = "add"
 value = 9.0
+target = "self"
 
 [resource]
 script = ExtResource("2_pq6rx")
