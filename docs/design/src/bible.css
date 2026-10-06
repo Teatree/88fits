@@ -171,3 +171,79 @@ svg .dash{stroke-dasharray:4 4}
 .recipe .card p{font-size:13.5px;line-height:1.45;color:var(--ink-2);margin:0 2px;max-width:none}
 .recipe .card .tool{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;padding:4px 2px 0}
 .recipe .card .chip{font-size:10.5px}
+
+/* 08 Items (2026-10-02): the generated weapon / line / passive lists with icons and status chips */
+.it-legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:4px 0 14px;font-size:13px;color:var(--ink-2)}
+.it-legend > span{display:inline-flex;align-items:center;gap:6px}
+.it-rules{font-size:14px;color:var(--ink-2);max-width:76ch}
+table.items{font-size:13.5px}
+table.items td{vertical-align:middle}
+table.items td.it-i{width:56px;padding-right:2px}
+.it-ico{display:block;border-radius:8px;background:#0E0D13;object-fit:contain;max-width:none}
+.it-noico{display:block;border-radius:8px;background:var(--bg-3)}
+.cre-pic{display:block;border-radius:10px;background:#0E0D13;object-fit:contain;max-width:none}
+tr.it-hero td{color:var(--ink);text-transform:none;letter-spacing:0;font-family:inherit;font-size:14px}
+tr.it-hero td .it-ico{display:inline-block;vertical-align:middle;margin-right:8px}
+.chip.k{border-color:rgba(63,143,138,.7);color:#7FD6D0}
+img.shot,img.it-ico,img.cre-pic{cursor:zoom-in}
+#zoom{position:fixed;inset:0;z-index:50;background:rgba(6,5,9,.88);display:none;align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+#zoom.on{display:flex}
+#zoom img{max-width:min(96vw,1400px);max-height:92vh;width:auto;height:auto;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.6);background:#0E0D13;image-rendering:auto}
+#zoom .cap{position:absolute;left:0;right:0;bottom:14px;text-align:center;color:var(--ink-2);font-size:13px;padding:0 24px}
+tr.it-grp td{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--bg-3);padding:8px 12px;border-bottom-color:var(--line-2)}
+tr.it-w td{background:rgba(255,177,59,.045);border-top:2px solid var(--line-2)}
+tr.it-m td,tr.it-e td{padding-top:5px;padding-bottom:5px}
+tr.it-m td.it-i,tr.it-e td.it-i{padding-left:20px}
+tr.it-m .name,tr.it-e .name{font-weight:600}
+.it-tree{color:var(--ink-3);margin-right:7px;font-family:var(--mono);font-weight:400}
+tr.it-off td{opacity:.5}
+.it-beh{display:block;color:var(--ink-3);font-size:12px;margin-top:4px}
+td.it-what{color:var(--ink-2)}
+.it-req{display:block;font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-bottom:2px}
+td.it-status{min-width:150px}
+td.it-status .chip{margin:0 4px 4px 0}
+td.it-status .sub{margin-top:2px}
+.chip.it-open{color:var(--ink-3);border-style:dashed}
+.chip.it-lock{border-color:rgba(255,177,59,.7);color:var(--accent);background:rgba(255,177,59,.08)}
+.chip.it-hid{border-color:rgba(238,74,92,.7);color:#FF8590;background:rgba(238,74,92,.1)}
+.chip.it-evo{background:rgba(255,177,59,.1)}
+/* pass 47: a passive item's rarity in its World of Warcraft colour (the game paints the plate in it) */
+.chip.it-r{font-weight:700}
+.chip.it-r-common{border-color:rgba(255,255,255,.55);color:#F2F2F2}
+.chip.it-r-uncommon{border-color:rgba(30,255,0,.6);color:#5CFF45}
+.chip.it-r-rare{border-color:rgba(0,112,221,.8);color:#4DA6FF}
+.chip.it-r-epic{border-color:rgba(163,53,238,.8);color:#C87DFF}
+.chip.it-r-legendary{border-color:rgba(255,128,0,.8);color:#FF9933}
+.it-plates{display:flex;flex-wrap:wrap;gap:8px 18px;margin:6px 0 14px}
+.it-plates span{display:inline-flex;align-items:center;gap:8px}
+.it-sw{display:inline-block;width:22px;height:22px;border-radius:6px;border:2px solid #241B14}
+/* pass 47: the tuning list names long file paths; on a phone they break instead of widening the page */
+dl.kv.tuning dd{min-width:0;overflow-wrap:anywhere}
+dl.kv.tuning code{overflow-wrap:anywhere;word-break:break-word}
+.it-evocell{display:flex;gap:10px;align-items:center}
+.it-evocell .it-ico{flex:none}
+.it-notes details{max-width:none}
+.it-notes details > summary{font-size:15px}
+.it-notes h4{font-family:var(--display);font-size:16px;margin:18px 0 6px;color:var(--ink)}
+/* the item tables on a phone: every row a small card, the icon on the left, the cells stacked beside it */
+@media (max-width:680px){
+  .tbl-wrap table.items{min-width:0}
+  table.items thead{display:none}
+  table.items,table.items tbody{display:block}
+  table.items tr{display:grid;grid-template-columns:48px minmax(0,1fr);column-gap:10px;row-gap:4px;padding:10px 2px;border-bottom:1px solid var(--line)}
+  table.items td{display:block;border:0;padding:0;min-width:0;background:none}
+  table.items td.it-i{grid-column:1;grid-row:1 / span 8;width:auto;padding:2px 0 0}
+  table.items td:not(.it-i){grid-column:2}
+  table.items tr.it-grp{display:block;padding:0;border-bottom:0}
+  table.items tr.it-grp td{display:block;padding:8px 10px;margin-top:10px}
+  table.items tr.it-w{border-top:2px solid var(--line-2);background:rgba(255,177,59,.045)}
+  table.items tr.it-w td{border-top:0;background:none}
+  table.items tr.it-m,table.items tr.it-e{padding-left:16px}
+  table.items tr.it-m td.it-i,table.items tr.it-e td.it-i{padding-left:0}
+  table.items td.it-status{min-width:0}
+  table.items td.it-status:empty{display:none}
+  table.items td.num{font-family:var(--body);font-size:13.5px}
+  table.items td[data-label]::before{content:attr(data-label) " · ";font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+  .it-beh{display:inline;margin-left:6px}
+  .it-evocell{margin-top:2px}
+}

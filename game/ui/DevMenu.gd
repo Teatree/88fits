@@ -1,7 +1,11 @@
 ## The developer menu (Wanted 17): everything that used to leak into the player's screens, in one place, reached by
 ## holding the version line in Settings for 2 s. Ink, JetBrains Mono. The arena, the in-run debug panel, the debug
-## buttons on the pick screens, the free revive and the hit log on Down!, the last run's last second, the recent system
+## buttons on the pick screens, the free revive and the hit log on Down! (and Results), the last run's last second, the recent system
 ## pauses, the hidden items (the Collection in its hidden mode) and where the save file lives. Switches save at once.
+## Pass 48: the arena's training dummies, their health (UNDYING or 100 .. 10000 HP, Settings.dummy_hp) and how many
+## stand in the field (10 .. 30, Settings.dummy_count), each a row that steps on a tap. Pass 49: whether the field patrols
+## (Settings.dummy_patrol), the attacking dummies' health (Settings.attacker_dummy_hp), and the Elite dummy's and the Boss
+## dummy's health and behaviour (stand, patrol, melee, ranged), stepped the same way.
 extends Control
 
 const SETTINGS := "res://ui/SettingsScreen.tscn"
@@ -59,7 +63,9 @@ func _ready() -> void:
 
 
 func _refresh() -> void:
+	# out of the list at once (pass 48): a row only queued keeps its name, and the new one took a made-up one
 	for c in _list.get_children():
+		_list.remove_child(c)
 		c.queue_free()
 	_list.add_child(_row("Arena", "›", func():
 		Run.arena_next = true
@@ -70,6 +76,42 @@ func _refresh() -> void:
 	_list.add_child(_switch("Free revive button", "free_revive_button"))
 	_list.add_child(_switch("Hit log on Down! · copy", "hit_log"))
 	_list.add_child(_switch("Hidden heroes as locked on the title", "preview_locked_heroes"))
+	# the arena's training dummies (pass 48): a tap steps each one on, the arena lays them out from these
+	var hp_row := _row("Arena dummies · health", Settings.dummy_hp_label(Settings.dummy_hp), func():
+		Settings.set_value("dummy_hp", Settings.next_step(Settings.DUMMY_HP_STEPS, Settings.dummy_hp))
+		_refresh())
+	hp_row.name = "DummyHealth"
+	_list.add_child(hp_row)
+	var n_row := _row("Arena dummies · count", str(Settings.dummy_count), func():
+		Settings.set_value("dummy_count", Settings.next_step(Settings.DUMMY_COUNT_STEPS, Settings.dummy_count))
+		_refresh())
+	n_row.name = "DummyCount"
+	_list.add_child(n_row)
+	# pass 49: the field's patrol, the attackers' health, the Elite's and the Boss's health and behaviour
+	var p_row := _row("Arena dummies · patrol", "ON" if Settings.dummy_patrol else "OFF", func():
+		Settings.set_value("dummy_patrol", not Settings.dummy_patrol)
+		_refresh())
+	p_row.name = "DummyPatrol"
+	_list.add_child(p_row)
+	var a_row := _row("Arena attackers · health", Settings.dummy_hp_label(Settings.attacker_dummy_hp), func():
+		Settings.set_value("attacker_dummy_hp", Settings.next_step(Settings.ATTACKER_HP_STEPS, Settings.attacker_dummy_hp))
+		_refresh())
+	a_row.name = "AttackerHealth"
+	_list.add_child(a_row)
+	for spec in [["elite", "Elite", Settings.ELITE_DUMMY_HP_STEPS], ["boss", "Boss", Settings.BOSS_DUMMY_HP_STEPS]]:
+		var role: String = spec[0]
+		var word: String = spec[1]
+		var steps: Array = spec[2]
+		var h_row := _row("Arena %s dummy · health" % word, Settings.dummy_hp_label(int(Settings.get(role + "_dummy_hp"))), func():
+			Settings.set_value(role + "_dummy_hp", Settings.next_step(steps, int(Settings.get(role + "_dummy_hp"))))
+			_refresh())
+		h_row.name = word + "DummyHealth"
+		_list.add_child(h_row)
+		var m_row := _row("Arena %s dummy · behaviour" % word, str(Settings.get(role + "_dummy_mode")).to_upper(), func():
+			Settings.set_value(role + "_dummy_mode", Settings.next_mode(str(Settings.get(role + "_dummy_mode"))))
+			_refresh())
+		m_row.name = word + "DummyMode"
+		_list.add_child(m_row)
 	# the top inset for a camera cutout: what the phone reports, or a fixed value to see the screens with one
 	var ins := int(Settings.top_inset)
 	_list.add_child(_row("Top inset · camera cutout", "AUTO (%d px)" % int(round(W.safe_top())) if ins < 0 else "%d px" % ins, func():
@@ -86,8 +128,14 @@ func _refresh() -> void:
 	var save := _box()
 	var sv: VBoxContainer = save.get_child(0)
 	sv.add_child(W.text("Save file", W.mono(500), 30, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
-	var path := W.text(ProjectSettings.globalize_path("user://save.json"), W.mono(500), 22, Color(W.AGED, 0.7), HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	var path := W.text(ProjectSettings.globalize_path(Save.path()), W.mono(500), 22, Color(W.AGED, 0.7), HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 	sv.add_child(path)
+	# what the boot read, the last write and its error, whether a backup sits beside the file (pass 45)
+	var when: String = Time.get_datetime_string_from_unix_time(Save.last_saved_unix, true) + " UTC" if Save.last_saved_unix > 0 else "never"
+	for line: String in ["loaded from: %s" % Save.loaded_from,
+			"last write: %s%s" % [when, "" if Save.last_error == "" else " · " + Save.last_error],
+			"backup: %s" % ("yes" if FileAccess.file_exists(Save.bak_path()) else "none")]:
+		sv.add_child(W.text(line, W.mono(500), 22, Color(W.AGED, 0.7), HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	_list.add_child(save)
 
 

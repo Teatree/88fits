@@ -3,18 +3,24 @@
 Pure PIL + numpy (scipy optional, for connected-component cleanup). No ComfyUI here; see tools/comfy.py.
 """
 import colorsys
+import math
 import numpy as np
 from PIL import Image, ImageFilter, ImageEnhance
 
 
 # ---------------------------------------------------------------- keying
 
-def key_background(img, despill=0.09, despill_mix=0.45):
+def key_background(img, despill=0.09, despill_mix=0.45, cut_shadow=None):
     """RGB render on a flat green/cyan/blue screen -> RGBA with the screen removed.
 
     The screen colour is sampled from the top edge (Flux likes to paint a ground plane along the bottom),
     keyed by hue distance, then: stray blobs are dropped, ground-shadow lines in the bottom 20% of the figure are
-    cut, edges are despilled and sharpened."""
+    cut, edges are despilled and sharpened. `cut_shadow` False keeps the bottom whole (pass 49: a structure's stone
+    plinth, shaded with the screen's tint, lost its corner to the shadow cut). Left as None it follows KEY_CUT_SHADOW.
+    KEY_MIN_V, KEY_CUT_SHADOW and KEY_CLAMP_SCREEN (pass 54, Solenne's glossy black catsuit) let a figure keep the screen's
+    colour where it only reflects it: a screen-hued pixel darker than KEY_MIN_V is figure, not screen (a high KEY_SAT
+    keeps the paler highlights too), and with KEY_CLAMP_SCREEN the edges are not unmixed (a black figure's edge came out
+    magenta) and the screen's channel is held down to the other two in every figure pixel, so a reflection turns to grey shine."""
     arr = np.asarray(img.convert("RGB")).astype(np.float32) / 255.0
     h, w, _ = arr.shape
     edge = np.concatenate([arr[:24, :, :].reshape(-1, 3), arr[:h // 2, :24].reshape(-1, 3), arr[:h // 2, -24:].reshape(-1, 3)])
@@ -35,12 +41,14 @@ def key_background(img, despill=0.09, despill_mix=0.45):
     hue = hue / 6.0
     dh = np.abs(hue - bh)
     dh = np.minimum(dh, 1.0 - dh)
-    is_bg = (dh < 0.05) & (sat > KEY_SAT) & (mx > 0.2)
+    if cut_shadow is None:
+        cut_shadow = KEY_CUT_SHADOW
+    is_bg = (dh < 0.05) & (sat > KEY_SAT) & (mx > KEY_MIN_V)
     is_bg |= np.linalg.norm(arr - bg[None, None, :], axis=2) < 0.12
     alpha = (~is_bg).astype(np.float32)
     alpha = keep_main_components(alpha)
     ys = np.nonzero(alpha.max(axis=1) > 0.5)[0]
-    if len(ys) > 0:
+    if len(ys) > 0 and cut_shadow:
         # only the thin sliver where a cast shadow overlaps the feet, and only pixels close to the screen hue:
         # olive trousers and brown boots must survive (they did not, once, and the hero lost his legs)
         y_lo = int(ys.max() - (ys.max() - ys.min()) * 0.12)
@@ -54,12 +62,23 @@ def key_background(img, despill=0.09, despill_mix=0.45):
     alpha = np.asarray(a_img).astype(np.float32) / 255.0
     edge_px = (alpha > 0.05) & (alpha < 0.95)
     rgb = arr.copy()
-    rgb[edge_px] = np.clip((rgb[edge_px] - bg[None, :] * (1 - alpha[edge_px])[:, None]) / np.maximum(alpha[edge_px][:, None], 0.2), 0, 1)
+    if not KEY_CLAMP_SCREEN:
+        rgb[edge_px] = np.clip((rgb[edge_px] - bg[None, :] * (1 - alpha[edge_px])[:, None]) / np.maximum(alpha[edge_px][:, None], 0.2), 0, 1)
     # despill: pull the screen hue out of pixels that lean towards it (rim light bleed)
     spill = (dh < despill) & (sat > 0.2) & (alpha > 0.5)
     if spill.any():
         grey = rgb[spill].mean(axis=1, keepdims=True)
         rgb[spill] = rgb[spill] * (1.0 - despill_mix) + grey * despill_mix
+    if KEY_CLAMP_SCREEN:
+        # pass 54: glossy black latex reflects the screen; in a figure with none of the screen's colour every pixel has the
+        # screen's channel (green or blue) held down to the larger of the other two, so a reflection becomes grey shine
+        # and the screen's bleed on the edges goes dark
+        c = int(np.argmax(bg))
+        others = [k for k in range(3) if k != c]
+        ch = rgb[..., c]
+        cap = np.maximum(rgb[..., others[0]], rgb[..., others[1]])
+        fig = alpha > 0.02
+        rgb[..., c] = np.where(fig & (ch > cap), cap, ch)
     if GRADE:
         # the item's grade, on the figure only, after the screen is gone: a blue-grey garment on a blue screen can only be
         # keyed while it is grey; it becomes a real colour here and stays one in every still and frame
@@ -119,6 +138,11 @@ def _hsv_to_rgb(h, s, v):
 
 
 GRADE = None    # the current item's "grade" block (see grade()): applied inside key_background, after the screen is gone
+KEY_MIN_V = 0.2       # pass 54: a screen-hued pixel must be at least this bright to count as screen (JSON "key_min_value"):
+                      # Solenne's glossy black boots reflect the screen at 0.3-0.7 while the screen itself is 0.98+
+KEY_CUT_SHADOW = True  # pass 54: the cut of a cast shadow round the feet (JSON "key_cut_shadow"); a Wan clip has no shadow
+KEY_CLAMP_SCREEN = False  # pass 54: the figure has none of the screen's colour (JSON "key_clamp_screen"): every trace of it is
+                          # a reflection, held down to the pixel's other two channels (gen_ctl's no-green clamp, for any screen)
 KEY_SAT = 0.35  # how saturated a screen-hued pixel must be to count as screen; an item whose garment shares the screen's
                 # hue raises it (JSON "key_sat"): Mira's front still had denim at 0.4-0.48 and lost its overalls at 0.35
 
@@ -145,6 +169,49 @@ def grade_array(arr, hue=(0.5, 0.72), sat_mul=1.8, sat_range=(0.04, 0.45), hue_s
         return arr
     out = _hsv_to_rgb(h2, s2, v)
     return np.clip(np.where(sel[..., None], out, arr), 0, 1)
+
+
+def remap_hues(img, ranges, to_hue, sat_mult=0.55, min_sat=0.16, max_sat=1.01):
+    """Colour the video model smeared in that the painting does not have, put back into the figure's own hue (pass 46:
+    Ironwood's fringed buckskin left green and magenta streaks on the moving legs, keying residue of the motion blur).
+    `ranges` are hue intervals in degrees ([[70, 170], [280, 335]]); a visible pixel saturated past `min_sat` inside one
+    takes hue `to_hue` (degrees) at `sat_mult` of its saturation; value and alpha are kept. `max_sat` leaves the strongly
+    saturated alone (SC-D's peach side pulled to its cream while its amber stinger, the same hue, stays)."""
+    a = np.asarray(img.convert("RGBA")).astype(np.float32) / 255.0
+    h, s, v = _rgb_to_hsv(a[..., :3])
+    deg = h * 360.0
+    sel = (a[..., 3] > 0.02) & (s > min_sat) & (s <= max_sat)
+    hit = np.zeros_like(sel)
+    for lo, hi in ranges:
+        hit |= (deg >= float(lo)) & (deg <= float(hi))
+    sel &= hit
+    if not sel.any():
+        return img
+    rgb = _hsv_to_rgb(np.where(sel, (float(to_hue) / 360.0) % 1.0, h), np.where(sel, s * sat_mult, s), v)
+    a[..., :3] = np.where(sel[..., None], rgb, a[..., :3])
+    return Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8), "RGBA")
+
+
+def tint_range(img, ranges, to_hue, sat_set=0.55, value_mult=0.6, min_sat=0.06, max_sat=0.55, min_val=0.3):
+    """Recolour a pale material to a dark saturated one (pass 54, the dark-blue skeletons): a visible pixel whose hue is
+    inside one of `ranges`, whose saturation is between `min_sat` and `max_sat` and whose value is at least `min_val` takes
+    hue `to_hue`, saturation `sat_set` (absolute, not scaled: ivory bone has almost none) and `value_mult` of its value, so
+    the highlights go dark blue and the shading darker still. Dark lines, sockets and the outline (value under `min_val`)
+    and anything grey or cool (the knight's steel) stay as they are. remap_hues keeps value and scales saturation, which
+    cannot turn ivory into dark blue."""
+    a = np.asarray(img.convert("RGBA")).astype(np.float32) / 255.0
+    h, s, v = _rgb_to_hsv(a[..., :3])
+    deg = h * 360.0
+    sel = (a[..., 3] > 0.02) & (s >= min_sat) & (s <= max_sat) & (v >= min_val)
+    hit = np.zeros_like(sel)
+    for lo, hi in ranges:
+        hit |= (deg >= float(lo)) & (deg <= float(hi))
+    sel &= hit
+    if not sel.any():
+        return img
+    rgb = _hsv_to_rgb(np.where(sel, (float(to_hue) / 360.0) % 1.0, h), np.where(sel, float(sat_set), s), np.where(sel, v * float(value_mult), v))
+    a[..., :3] = np.where(sel[..., None], rgb, a[..., :3])
+    return Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8), "RGBA")
 
 
 def grade(img, hue=(0.5, 0.72), sat_mul=1.8, sat_range=(0.04, 0.45), hue_shift=0.0, sat_max=0.6):
@@ -233,7 +300,24 @@ def transform(cell_img, lean_deg=0.0, bob=0.0, sx=1.0, sy=1.0, tint=None, rotate
         col = np.array(tint, np.float32)
         arr[..., :3] = arr[..., :3] * 0.4 + col[None, None, :] * 0.6
         img = Image.fromarray(arr.astype(np.uint8), "RGBA")
-    return img
+    return keep_top(img)
+
+
+def keep_top(img, margin=2):
+    """A frame whose figure was pushed past the cell's top edge (a lunge scaled up from the feet: the Skeleton Knight's
+    second attack frame lost the crown of its helmet, pass 45) slides down until its top row sits inside the cell."""
+    a = np.asarray(img)[..., 3]
+    rows = np.nonzero(a.max(axis=1) > 0)[0]
+    if not len(rows) or rows.min() >= margin:
+        return img
+    shift = int(margin - rows.min())
+    # never push the feet out of the bottom: slide only as far as the cell allows
+    shift = min(shift, img.height - 1 - int(rows.max()))
+    if shift <= 0:
+        return img
+    canvas = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    canvas.alpha_composite(img, (0, shift))
+    return canvas
 
 
 ENEMY_ORDER = ["idle", "run", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd"]
@@ -375,6 +459,30 @@ def crumble(cell_img, t, seed=0, bands=8, pile=0.4):
     # the feet first, the skull last, so the upper slices land on the lower ones
     for k, piece, x, y in sorted(slices, key=lambda s: -s[0]):
         out.alpha_composite(piece, (max(x, 0), max(min(y, cell - piece.height), 0)), (max(-x, 0), 0))
+    return out
+
+
+def hop_cycle(stand, cell, n=12, height=0.13, ground=0.3):
+    """A hop drawn from one standing cell (pass 45: the Blue Slime and the Tumbleweed Minion). The painting itself squashes
+    as it lands, gathers, stretches as it leaves the ground and rides a parabola `height` of the cell high, so the face
+    never changes, the colours are the painting's and nothing can leave the cell (the video clips moved the slimes'
+    mouths, greyed them mid-hop and grew the minion legs). `ground` is the share of the cycle spent touching the sand.
+    Frame 0 is the landing; the cycle loops."""
+    out = []
+    for k in range(n):
+        t = k / float(n)
+        if t < ground:
+            # on the sand: flattest as it lands, rounder as it gathers, flat again as it crouches to jump
+            u = t / ground
+            sy = 0.78 + 0.16 * math.sin(math.pi * u)
+            bob = 0.0
+        else:
+            # in the air: stretched as it leaves and as it comes down, round at the top
+            v = (t - ground) / (1.0 - ground)
+            sy = 1.0 + 0.1 * abs(1.0 - 2.0 * v)
+            bob = 4.0 * v * (1.0 - v) * height * cell
+        sx = 1.0 + (1.0 - sy) * 0.9
+        out.append(transform(stand, bob=bob, sx=sx, sy=sy))
     return out
 
 

@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_55yv3"]
+[ext_resource type="Texture2D" path="res://content/passives/beer/beer_icon.png" id="1_a1v0s"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_a1v0s"]
+
+[sub_resource type="Resource" id="Resource_a1v0s"]
+script = ExtResource("1_55yv3")
+stat = "might"
+op = "mul"
+value = 0.12
+target = "player"
+
+[sub_resource type="Resource" id="Resource_nrwge"]
+script = ExtResource("1_55yv3")
+stat = "max_hp"
+op = "mul"
+value = -0.05
+target = "player"
+
+[resource]
+script = ExtResource("2_a1v0s")
+levels = [[SubResource("Resource_a1v0s"), SubResource("Resource_nrwge")]]
+max_level = 5
+trade = "−5% max HP a level"
+id = "beer"
+display_name = "Beer"
+flavour = "Liquid courage. Paid for in blood."
+weight = 9.0
+icon = ExtResource("1_a1v0s")
+icon_file = "beer_icon.png"
+placeholder = {
+"color": "#E8B840",
+"glyph": "star"
+}

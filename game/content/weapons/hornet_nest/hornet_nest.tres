@@ -8,57 +8,47 @@
 [sub_resource type="Resource" id="Resource_yuxcn"]
 script = ExtResource("1_e2c5j")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_buk75"]
 script = ExtResource("1_e2c5j")
 stat = "damage"
 op = "mul"
 value = 0.3
-target = "self"
 
 [sub_resource type="Resource" id="Resource_ro7go"]
 script = ExtResource("1_e2c5j")
 stat = "cooldown"
 op = "mul"
 value = -0.1
-target = "self"
 
 [sub_resource type="Resource" id="Resource_bn5we"]
 script = ExtResource("1_e2c5j")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_88tw7"]
 script = ExtResource("1_e2c5j")
 stat = "damage"
 op = "mul"
 value = 0.3
-target = "self"
 
 [sub_resource type="Resource" id="Resource_c3twh"]
 script = ExtResource("1_e2c5j")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_rejie"]
 script = ExtResource("1_e2c5j")
 stat = "cooldown"
 op = "mul"
 value = -0.12
-target = "self"
 
 [resource]
 script = ExtResource("2_yuxcn")
 behavior = "MissilePod"
 tags = ["homing"]
-targeting = "nearest"
+targeting = "priority"
 base = {
 "amount": 2.0,
 "area": 0.0,
@@ -68,12 +58,9 @@ base = {
 "range": 11.0,
 "speed": 15.0
 }
-levels = [[], [SubResource("Resource_yuxcn")], [SubResource("Resource_buk75")], [SubResource("Resource_ro7go")], [SubResource("Resource_bn5we")], [SubResource("Resource_88tw7")], [SubResource("Resource_c3twh")], [SubResource("Resource_rejie")]]
-max_level = 8
-evolves_with = ""
-evolves_into = "killer_swarm"
-is_evolution = false
-evolved_from = ""
+levels = [[], [SubResource("Resource_yuxcn"), SubResource("Resource_buk75")], [SubResource("Resource_ro7go"), SubResource("Resource_bn5we")], [SubResource("Resource_88tw7")], [SubResource("Resource_c3twh"), SubResource("Resource_rejie")]]
+max_level = 5
+evolves_into = "hive_queen"
 sfx = {
 "fire": "w_pea_fire",
 "hit": "w_pea_hit"
@@ -96,15 +83,10 @@ params = {
 },
 "radius": 0.15
 }
-hero = ""
 id = "hornet_nest"
-display_name = "Hornet Nest"
-flavour = "Angry. Small. Aimed."
-rarity = "common"
-element = ""
+display_name = "Killer Bees"
+flavour = "The hive holds a grudge."
 weight = 8.0
-hidden = false
-from_stage = 0
 icon = ExtResource("1_yuxcn")
 icon_file = "hornet_nest_icon.png"
 placeholder = {

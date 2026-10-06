@@ -1,0 +1,24 @@
+{
+  "id": "hush_money",
+  "name": "Hush Money",
+  "rarity": "uncommon",
+  "weight": 8,
+  "max_level": 5,
+  "flavour": "Every bruise has a price.",
+  "levels": [
+    [
+      {
+        "stat": "gold_on_hit",
+        "op": "add",
+        "value": 2,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "a fat brown money bag tied with string with gold coins spilling out and a bandage on it",
+  "placeholder": {
+    "color": "#C9932F",
+    "glyph": "star"
+  },
+  "repeat_last_level": true
+}

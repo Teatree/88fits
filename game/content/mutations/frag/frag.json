@@ -8,8 +8,8 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "The burst throws six shrapnel out.",
-  "vfx": "six sparks flying out of the blast",
+  "text": "The burst throws six steel spikes out past the blast.",
+  "vfx": "six steel spikes flying out of a small blast, trailing sparks",
   "effects": [],
   "params": {
     "burst_spawn": {

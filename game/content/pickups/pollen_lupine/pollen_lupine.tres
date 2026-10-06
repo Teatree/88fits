@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="PickupDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="1_buhda"]
+[ext_resource type="Texture2D" path="res://content/pickups/pollen_lupine/pollen_lupine_icon.png" id="1_d2iq1"]
+
+[resource]
+script = ExtResource("1_buhda")
+effect_kind = "pollen"
+value = 0.0
+duration = 5.0
+lifetime = 19.0
+params = {
+"small": true
+}
+color = Color(0.54901963, 0.42352942, 1, 1)
+id = "pollen_lupine"
+display_name = "Desert Lupine"
+flavour = "Pollen for the hive."
+weight = 0.0
+icon = ExtResource("1_d2iq1")
+icon_file = "pollen_lupine_icon.png"
+placeholder = {
+"color": "#8C6CFF",
+"glyph": "flower"
+}

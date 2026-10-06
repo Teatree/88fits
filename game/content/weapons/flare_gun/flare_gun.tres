@@ -10,54 +10,42 @@ script = ExtResource("1_dvusc")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_8qibb"]
 script = ExtResource("1_dvusc")
 stat = "cooldown"
 op = "mul"
 value = -0.12
-target = "self"
 
 [sub_resource type="Resource" id="Resource_guh2n"]
 script = ExtResource("1_dvusc")
 stat = "fire_spread"
-op = "add"
 value = 0.1
-target = "self"
 
 [sub_resource type="Resource" id="Resource_qqy6i"]
 script = ExtResource("1_dvusc")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_2oi1r"]
 script = ExtResource("1_dvusc")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_ox6w3"]
 script = ExtResource("1_dvusc")
 stat = "fire_duration"
-op = "add"
 value = 0.6
-target = "self"
 
 [sub_resource type="Resource" id="Resource_qrisg"]
 script = ExtResource("1_dvusc")
 stat = "fire_damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [resource]
 script = ExtResource("2_18vub")
-behavior = "ProjectileEmitter"
-tags = []
 targeting = "healthy"
 base = {
 "amount": 1.0,
@@ -71,12 +59,9 @@ base = {
 "range": 9.0,
 "speed": 11.0
 }
-levels = [[], [SubResource("Resource_18vub")], [SubResource("Resource_8qibb")], [SubResource("Resource_guh2n")], [SubResource("Resource_qqy6i")], [SubResource("Resource_2oi1r")], [SubResource("Resource_ox6w3")], [SubResource("Resource_qrisg")]]
-max_level = 8
-evolves_with = ""
+levels = [[], [SubResource("Resource_18vub"), SubResource("Resource_8qibb")], [SubResource("Resource_guh2n"), SubResource("Resource_qqy6i")], [SubResource("Resource_2oi1r")], [SubResource("Resource_ox6w3"), SubResource("Resource_qrisg")]]
+max_level = 5
 evolves_into = "roman_candle"
-is_evolution = false
-evolved_from = ""
 sfx = {
 "fire": "w_flare_fire",
 "hit": "w_flare_hit"
@@ -92,15 +77,11 @@ params = {
 },
 "radius": 0.24
 }
-hero = ""
 id = "flare_gun"
 display_name = "Flare Gun"
 flavour = "Not for signalling. For starting things."
-rarity = "common"
-element = ""
 weight = 9.0
 hidden = true
-from_stage = 0
 icon = ExtResource("1_18vub")
 icon_file = "flare_gun_icon.png"
 placeholder = {

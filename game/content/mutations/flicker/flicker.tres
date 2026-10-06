@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_n480u"]
+[ext_resource type="Texture2D" path="res://content/mutations/flicker/flicker_icon.png" id="2_exvxj"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_r1srg"]
+
+[sub_resource type="Resource" id="Resource_r1srg"]
+script = ExtResource("1_n480u")
+stat = "cooldown"
+op = "mul"
+value = -0.3
+
+[sub_resource type="Resource" id="Resource_exvxj"]
+script = ExtResource("1_n480u")
+stat = "damage"
+op = "mul"
+value = -0.25
+
+[resource]
+script = ExtResource("2_r1srg")
+weapon = "sun_scepter"
+mutation_kind = "volume"
+text = "Strikes 30% sooner for 25% less damage. The pillars burn thinner and yellower."
+vfx = "thinner, paler yellow pillars; a ring of light loading round the sceptre's handle"
+effects = [SubResource("Resource_r1srg"), SubResource("Resource_exvxj")]
+params = {
+"handle_ring": {
+"at": 0.4,
+"color": "#F39A1E",
+"head_color": "#FFE04A",
+"period": 2.5,
+"radius": 0.095,
+"spin": 0.6,
+"tilt_deg": 25.0,
+"track": 0.85,
+"track_color": "#5E3F14",
+"width": 0.045
+},
+"sun": {
+"beam_alpha": 0.4,
+"thin": 0.7,
+"tint": "#FFE86A"
+}
+}
+id = "flicker"
+display_name = "Flicker"
+flavour = "Quick light, quick strikes."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_exvxj")
+icon_file = "flicker_icon.png"
+placeholder = {
+"color": "#FFE86A",
+"glyph": "star"
+}

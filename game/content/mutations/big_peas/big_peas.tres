@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_vl60p"]
+[ext_resource type="Texture2D" path="res://content/mutations/big_peas/big_peas_icon.png" id="2_vl60p"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_bji7s"]
+
+[sub_resource type="Resource" id="Resource_vl60p"]
+script = ExtResource("1_vl60p")
+stat = "damage"
+op = "mul"
+value = 0.35
+
+[sub_resource type="Resource" id="Resource_0yuoi"]
+script = ExtResource("1_vl60p")
+stat = "knockback"
+op = "mul"
+value = 1.0
+
+[resource]
+script = ExtResource("3_bji7s")
+weapon = "peashooter"
+mutation_kind = "volume"
+text = "Peas half again as big: +35% damage and twice the knockback."
+vfx = "fat peas that shove what they hit"
+effects = [SubResource("Resource_vl60p"), SubResource("Resource_0yuoi")]
+params = {
+"radius_mult": 1.5,
+"size_mult": 1.5
+}
+id = "big_peas"
+display_name = "Big Peas"
+flavour = "Eat your greens."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_vl60p")
+icon_file = "big_peas_icon.png"
+placeholder = {
+"color": "#7CC64A",
+"glyph": "star"
+}

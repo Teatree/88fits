@@ -4,9 +4,10 @@
   "flavour": "Wears a crown. Rolls anyway.",
   "archetype": "boss",
   "brain": "boss",
-  "hp": 900,
+  "hp": 1440,
   "speed": 1.6,
   "damage": 20,
+  "knockback": 7.0,
   "radius": 2.2,
   "size": 5.0,
   "pack_size": 1,
@@ -37,9 +38,20 @@
         "telegraph": "line"
       },
       {
+        "name": "tumbleweed_volley",
+        "windup": 0.8,
+        "count": 12,
+        "speed": 9.0,
+        "life": 2.6,
+        "damage": 14,
+        "knockback": 14,
+        "lift": 2.5,
+        "telegraph": "spokes"
+      },
+      {
         "name": "spawn_ring",
         "windup": 0.8,
-        "enemy": "goblin",
+        "enemy": "tumbleweed_minion",
         "count": 12,
         "telegraph": "none"
       },
@@ -73,6 +85,6 @@
     "run": 15,
     "die": 8
   },
-  "doc": "Stage 1's boss, back for stage 3 at twice the health: a roll down a red line, a goblin ring, a slam.",
+  "doc": "Stage 1's boss, back for stage 3 at twice the health: a roll down a red line, a volley of twelve tumbleweeds rolled out in every direction (each throws you), a ring of tumbleweed minions, a slam.",
   "head": 0.984
 }

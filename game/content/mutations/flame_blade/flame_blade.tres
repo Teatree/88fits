@@ -7,23 +7,17 @@
 [sub_resource type="Resource" id="Resource_dmjq4"]
 script = ExtResource("1_5b5p3")
 stat = "fire_damage"
-op = "add"
 value = 4.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_8wv2h"]
 script = ExtResource("1_5b5p3")
 stat = "fire_duration"
-op = "add"
 value = 1.8
-target = "self"
 
 [sub_resource type="Resource" id="Resource_ah02x"]
 script = ExtResource("1_5b5p3")
 stat = "fire_spread"
-op = "add"
 value = 0.4
-target = "self"
 
 [resource]
 script = ExtResource("2_dmjq4")
@@ -38,6 +32,7 @@ flavour = "Hot steel."
 rarity = "rare"
 element = "fire"
 weight = 8.0
+hidden = true
 icon = ExtResource("2_8wv2h")
 icon_file = "flame_blade_icon.png"
 placeholder = {

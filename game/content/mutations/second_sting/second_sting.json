@@ -8,13 +8,13 @@
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "A hornet that kills turns and dives at the next creature, once.",
-  "vfx": "the hornet loops round and stings again",
+  "text": "A bee that kills turns and dives at the next creature, once.",
+  "vfx": "the bee loops round and stings again",
   "effects": [],
   "params": {
     "second_sting": true
   },
-  "art_prompt": "a hornet looping back on itself to sting a second time, curved motion lines",
+  "art_prompt": "one angry fuzzy killer bee, golden brown with black stripes and small clear wings, its stinger pointed forward, flying in a tight loop: a curved white motion line loops round behind it",
   "placeholder": {
     "color": "#F0D060",
     "glyph": "star"

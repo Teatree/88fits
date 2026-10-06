@@ -1,0 +1,38 @@
+{
+  "id": "heat_stroke",
+  "name": "Heat Stroke",
+  "flavour": "Too much sun.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "sun_scepter",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "35% of the enemies its pillars hit catch fire: 4 damage every 0.6 s for 3.6 s.",
+  "vfx": "the burn's flames on what a pillar sets alight; the sceptre's handle a shade more orange",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "add",
+      "value": 4
+    },
+    {
+      "stat": "fire_duration",
+      "op": "add",
+      "value": 1.8
+    }
+  ],
+  "params": {
+    "ignite_chance": 0.35,
+    "staff_tint": {
+      "color": "#D96B1F",
+      "amount": 0.25,
+      "glow": 0.3
+    }
+  },
+  "art_prompt": "a small blazing yellow sun disc with short rays beating straight down as a column of golden light onto a patch of sand that has caught fire, little orange flames licking up from it",
+  "placeholder": {
+    "color": "#FF8A3A",
+    "glyph": "star"
+  }
+}

@@ -14,7 +14,7 @@ unlocks = {
 "type": "weapon"
 }
 id = "unlock_pike"
-display_name = "Pike"
+display_name = "Spear"
 icon = ExtResource("1_qxdga")
 icon_file = "unlock_pike_icon.png"
 placeholder = {

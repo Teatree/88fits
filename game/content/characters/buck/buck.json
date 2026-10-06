@@ -71,7 +71,7 @@
     "die": 8
   },
   "trait_name": "Momentum",
-  "trait_text": "Starts 15% slower. While he is not hit, his speed climbs to +60% and his might to +50% over 12 s; one hit resets it. Dust and streaks behind him show the charge.",
+  "trait_text": "Starts 15% slower. While he is not hit, his speed climbs to +60% and his attack damage to +50% over 12 s; one hit resets it. Dust and streaks behind him show the charge.",
   "back_hint": "He faces away from the viewer: only the back of his head, the back of his antlers and ears, the back of the t-shirt and the heels are visible, no eyes, no muzzle, no face at all. Both arms hang straight down along his sides, relaxed.",
   "hidden": true
 }

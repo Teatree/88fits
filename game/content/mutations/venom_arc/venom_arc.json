@@ -4,6 +4,7 @@
   "flavour": "Electric and sick.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "zap_beam",
   "kind": "element",
   "element": "poison",

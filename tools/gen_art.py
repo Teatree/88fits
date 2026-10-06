@@ -70,6 +70,8 @@ FORCE_KEYS = []          # --keys=drifter_st1,drifter_sts1 re-renders just those
 # --variant=GOB-B (pass 34): paint one art variant of a creature (with --only <id>): the recipe in its JSON's
 # variants[code].recipe overrides the creature's art settings, the clips are cached under their own keys, and the strip
 # goes to <id>_sprite_<letter>.png with its counts written into variants[code]; the art the game uses is not touched
+# pass 55: heroes too (--only solenne --variant=SOL-B): the recipe may name other paintings per view ("still_keys"),
+# other drivers ("pose_drivers"), the clip's motion words ("pose_motion") and its rate ("run_fps"); the badge is left alone
 VARIANT = ""
 for a in sys.argv:
     if a.startswith("--variant="):
@@ -246,17 +248,18 @@ def figure_height_cell(cell_img):
     return float(ys.max() - ys.min()) if len(ys) else 0.0
 
 
-def video_cycle(still_rgb, key, motion, seed, cell, stand_cell, n_out=12, outline_frac=0.012, outline_color=(38, 24, 30, 255), length=81):
-    """A run/walk cycle from a Wan clip of the still, scaled so the figure matches its standing cell; None on failure."""
+def video_cycle(still_rgb, key, motion, seed, cell, stand_cell, n_out=12, outline_frac=0.012, outline_color=(38, 24, 30, 255), length=81, fill=0.72):
+    """A run/walk cycle from a Wan clip of the still, scaled so the figure matches its standing cell; None on failure.
+    `fill` (JSON "clip_fill") is the still's share of the clip canvas: less for a creature that bounces high (pass 45)."""
     if NO_VIDEO:
         return None
     try:
-        frames, meta = animate.cycle(still_rgb, key, motion, seed, n_out, length=length)
+        frames, meta = animate.cycle(still_rgb, key, motion, seed, n_out, length=length, fill=fill)
     except Exception as e:
         log("  (video cycle failed for %s: %s)" % (key, e))
         return None
-    # the still was scaled to 72% of the 640 px clip; match the standing figure's cell height
-    scale = figure_height_cell(stand_cell) / max(1.0, animate_still_height(still_rgb))
+    # the still was scaled to `fill` of the 640 px clip; match the standing figure's cell height
+    scale = figure_height_cell(stand_cell) / max(1.0, animate_still_height(still_rgb, fill))
     px = max(1, int(round(cell * outline_frac)))
     return artkit.place_clip_frames(frames, cell, scale, px, outline_color)
 
@@ -281,6 +284,10 @@ def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline
     hint = (hint + ", " if hint else "") + view_words.get(view, "") + (", " + view_hint if view_hint else "")
     if view in ("back", "bd"):
         negative_extra = (negative_extra + ", " if negative_extra else "") + "face, eyes, mouth, nose, looking at the viewer"
+    # a cycle already on disk was checked (and picked by eye) when it was made: the colour and facing checks below are
+    # for fresh rolls only, or every later run of the creature re-rolls a cycle that sits a hair over a threshold
+    # (Calavera's embroidery kept failing the foreign-hue check, so every run changed his front and side, pass 45)
+    cached = os.path.exists(os.path.join(animate.ANIM, key, "cycle.json"))
     frames = None
     for attempt in range(3):
         try:
@@ -293,6 +300,8 @@ def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline
                 shutil.rmtree(os.path.join(animate.ANIM, key), ignore_errors=True)
                 continue
             return None
+        if cached and attempt == 0:
+            break
         # a part that flashes a colour for a frame (the goblin's club end went white, then orange, pass 33.9) rolls the
         # cycle again; 0.08 passes every hero run in the game (the worst, Dad's front, is 0.07)
         hx = hue_excess(frames, cyclic=loop)
@@ -514,10 +523,10 @@ def _alpha_height(frame_rgba):
     return float(rows.max() - rows.min() + 1) if len(rows) else 0.0
 
 
-def animate_still_height(still_rgb):
-    """Height in clip pixels of the figure as tools/animate.py placed it (fill 0.72 of a 640 px canvas)."""
+def animate_still_height(still_rgb, fill=0.72):
+    """Height in clip pixels of the figure as tools/animate.py placed it (`fill` of a 640 px canvas, 0.72 unless the JSON says)."""
     keyed = artkit.crop_alpha(artkit.key_background(still_rgb))
-    s = min(640 * 0.72 / keyed.width, 640 * 0.72 / keyed.height)
+    s = min(640 * fill / keyed.width, 640 * fill / keyed.height)
     return keyed.height * s
 
 
@@ -626,10 +635,24 @@ def finish(img_rgb, cell, fill, bottom, scale=None, outline_frac=0.009, target_h
     return artkit.add_outline(canvas, px, outline_color), sc
 
 
-def portrait_badge(img_rgb, size=256):
+def portrait_badge(img_rgb, size=256, head_width=0.0, top_pad=0.03):
     """A round avatar badge: the keyed close-up scaled to the badge width, bottom-aligned so the bust fills the lower
-    half, masked to a circle with a dark rim. icon_view draws it inside the character plate."""
+    half, masked to a circle with a dark rim. icon_view draws it inside the character plate.
+    head_width > 0 (pass 56, Solenne's sun head): the head's widest span (the upper half's, her rays) is scaled to that
+    share of the badge and hung top_pad from the top, so the whole head shows and the shoulders run off the bottom; the
+    default zoom had cut her to the head alone."""
     keyed = artkit.crop_alpha(artkit.key_background(img_rgb))
+    if head_width > 0.0:
+        upper = np.asarray(keyed)[: keyed.height // 2, :, 3] > 127
+        cols = np.nonzero(upper.any(0))[0]
+        span = float(cols.max() - cols.min() + 1) if len(cols) else float(keyed.width)
+        mid = 0.5 * (cols.min() + cols.max()) if len(cols) else keyed.width * 0.5
+        scale = size * head_width / span
+        w, h = max(1, int(keyed.width * scale)), max(1, int(keyed.height * scale))
+        big = keyed.resize((w, h), Image.LANCZOS)
+        canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        canvas.alpha_composite(big, (int(round(size * 0.5 - mid * scale)), int(round(size * top_pad))))
+        return _badge_ring(canvas, size)
     # a render that runs down to the waist is cut to its top 60% so the head stays big; a head-and-shoulders render is kept whole
     if keyed.height > keyed.width * 1.15:
         keyed = artkit.crop_alpha(keyed.crop((0, 0, keyed.width, int(keyed.height * 0.6))))
@@ -639,6 +662,11 @@ def portrait_badge(img_rgb, size=256):
     big = keyed.resize((w, h), Image.LANCZOS)
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     canvas.alpha_composite(big, ((size - w) // 2, size - h + int(size * 0.03)))
+    return _badge_ring(canvas, size)
+
+
+def _badge_ring(canvas, size):
+    """The badge's circle mask and its thin dark rim."""
     mask = Image.new("L", (size * 4, size * 4), 0)
     ImageDraw.Draw(mask).ellipse((0, 0, size * 4 - 1, size * 4 - 1), fill=255)
     mask = mask.resize((size, size), Image.LANCZOS)
@@ -673,8 +701,13 @@ def anchor_hash():
 
 def process(type_, folder, id_):
     d = json.load(open(os.path.join(folder, id_ + ".json"), encoding="utf-8"))
+    # a creature that wears another's painting through a res:// "sprite" (pass 49: the arena's attacking, Elite and Boss
+    # dummies wear the training dummy's) has nothing of its own to paint
+    if type_ in ("enemies", "bosses") and str(d.get("sprite", "")).startswith("res://"):
+        log("  %s wears %s: nothing to paint" % (id_, d["sprite"]))
+        return
     base_d = d
-    vcode = VARIANT if (VARIANT and type_ in ("enemies", "bosses")) else ""
+    vcode = VARIANT if (VARIANT and type_ in ("enemies", "bosses", "characters")) else ""
     if vcode:
         ventry = (d.get("variants") or {}).get(vcode)
         if not isinstance(ventry, dict):
@@ -686,6 +719,10 @@ def process(type_, folder, id_):
     # shares the blue screen's hue, so it can only be keyed while grey and is turned blue afterwards
     artkit.GRADE = d.get("grade") if isinstance(d.get("grade"), dict) else None
     artkit.KEY_SAT = float(d.get("key_sat", 0.35))
+    # pass 54: a glossy black figure keeps the screen colour it reflects (Solenne's catsuit and boots)
+    artkit.KEY_MIN_V = float(d.get("key_min_value", 0.2))
+    artkit.KEY_CUT_SHADOW = bool(d.get("key_cut_shadow", True))
+    artkit.KEY_CLAMP_SCREEN = bool(d.get("key_clamp_screen", False))
     subject = subject_for(d, type_)
     bg = bg_for(d, type_)
     refs = ensure_anchor_uploaded()
@@ -722,12 +759,22 @@ def process(type_, folder, id_):
         if d.get("outline_color"):
             oc = str(d["outline_color"]).lstrip("#")
             CO = (int(oc[0:2], 16), int(oc[2:4], 16), int(oc[4:6], 16), 255)
-        base, sc = finish(img, cell, 0.86, True, None, CF, None, CO)
+        # "cell_fill": how much of the cell the standing figure takes (0.86); a creature that hops needs the headroom
+        base, sc = finish(img, cell, float(d.get("cell_fill", 0.86)), True, None, CF, None, CO)
         back_cell = finish(back_img, cell, 0.86, True, None, CF, figure_height_cell(base), CO)[0]
         motion = str(d.get("motion", "walking in place with a steady stomping gait"))
         clip = str(d.get("pose", ""))
         run_f = run_b = None
-        if clip:
+        if str(d.get("walk", "")) == "hop":
+            # a blob that hops instead of walking (pass 45, JSON "walk": "hop": the Blue Slime, the Tumbleweed Minion): the
+            # painting itself squashes, stretches and leaves the ground (artkit.hop_cycle), so the face never moves, the
+            # colours are the painting's and no frame can clip; the video clips moved the slimes' mouths, greyed them
+            # mid-hop and grew the minion legs
+            hh = float(d.get("hop_height", 0.13))
+            run_f = artkit.hop_cycle(base, cell, CREATURE_RUN_FRAMES, hh)
+            run_b = artkit.hop_cycle(back_cell, cell, CREATURE_RUN_FRAMES, hh)
+            clip = ""
+        elif clip:
             # a humanoid creature walks on a Mixamo stride (pass 33.4, the skeletons: "pose": "walk_zombie", rendered by
             # tools/pose_driver.py): Wan Animate paints the still onto the driver's skeleton, one sprite frame per driver
             # frame, front and back only
@@ -737,10 +784,13 @@ def process(type_, folder, id_):
             gait = str(d.get("gait", "walking in place on the spot like on a treadmill"))
             run_f = pose_cycle(img, ak + "_pose_f", str(d.get("pose_front", clip)), "front", seed, cell, base, motion, CF, CO, negative_extra=anim_neg, motion=gait)
             run_b = pose_cycle(back_img, ak + "_pose_b", clip, "back", seed + 1, cell, base, motion, CF, CO, negative_extra=anim_neg, motion=gait)
+        # "clip_fill": the still's share of the free clip's canvas (0.72); a creature that bounces high takes less so its
+        # frames never touch the edge (the Blue Slime's 0.56, pass 45)
+        cfill = float(d.get("clip_fill", 0.72))
         if run_f is None:
-            run_f = video_cycle(img, ak + "_walk_f", motion + ", facing the viewer, seen from the front", seed, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49)
+            run_f = video_cycle(img, ak + "_walk_f", motion + ", facing the viewer, seen from the front", seed, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49, cfill)
         if run_b is None:
-            run_b = video_cycle(back_img, ak + "_walk_b", motion + ", seen directly from behind, walking away from the viewer", seed + 1, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49)
+            run_b = video_cycle(back_img, ak + "_walk_b", motion + ", seen directly from behind, walking away from the viewer", seed + 1, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49, cfill)
         info["clips"] = {"walk_f": run_f is not None, "walk_b": run_b is not None, "pose": clip}
         views = {}
         if int(d.get("directions", 2)) == 8:
@@ -825,37 +875,46 @@ def process(type_, folder, id_):
     elif type_ == "characters":
         cell = int(d.get("frame_px", 256))
         pose_hint = str(d.get("pose_hint", ""))
-        front, inf = render(id_ + "_front", styled(subject, "Full body, front view, standing straight and facing the viewer, arms relaxed, feet fully visible. " + pose_hint, bg), refs,
+        # a hero's art variant (pass 55, Solenne's walks): "still_keys" in its recipe names other paintings for some views
+        # ({"side": "solenne_s55_side"}; the rest stay the hero's own, so the variants differ only where they should), and
+        # its clips are cached under their own keys (solenne_solb_pose_run_front)
+        skeys = d.get("still_keys") if isinstance(d.get("still_keys"), dict) else {}
+
+        def sk_(view):
+            return str(skeys.get(view, id_ + "_" + view))
+
+        ck = id_ + ("_" + vcode.lower().replace("-", "") if vcode else "")
+        front, inf = render(sk_("front"), styled(subject, "Full body, front view, standing straight and facing the viewer, arms relaxed, feet fully visible. " + pose_hint, bg), refs,
                             {"subject": subject, "view": "front", "subjects_max": 1, "legs": True}, seed)
         info["renders"]["front"] = inf
         front_ref = comfy.upload_pil(front, id_ + "_front.png")
         back_prompt = ("Turn this exact character around and show a full-body back view seen directly from behind: the back of the head or helmet, "
                        "the back of the outfit and the heels, no face visible. Keep the same outfit, colors, proportions and art style, standing "
                        "straight with arms relaxed. " + pose_hint + " " + str(d.get("back_hint", "")) + " " + bg + ".")
-        back, inf = render(id_ + "_back", back_prompt, [front_ref], {"subject": "the same character seen from behind", "view": "back", "subjects_max": 1, "legs": True, "ref_h": figure_height(front)}, seed + 1)
+        back, inf = render(sk_("back"), back_prompt, [front_ref], {"subject": "the same character seen from behind", "view": "back", "subjects_max": 1, "legs": True, "ref_h": figure_height(front)}, seed + 1)
         info["renders"]["back"] = inf
         back_ref = comfy.upload_pil(back, id_ + "_back.png")
         side_prompt = ("Turn this exact character to show a full-body side view in strict profile, facing to the right of the frame, standing "
                        "straight with arms relaxed. Keep the same outfit, colors, proportions and art style. " + pose_hint + " " + str(d.get("side_hint", "")) + " " + bg + ".")
-        side, inf = render(id_ + "_side", side_prompt, [front_ref], {"subject": "the same character seen from the side in profile", "view": "side", "subjects_max": 1, "legs": True, "ref_h": figure_height(front)}, seed + 6)
+        side, inf = render(sk_("side"), side_prompt, [front_ref], {"subject": "the same character seen from the side in profile", "view": "side", "subjects_max": 1, "legs": True, "ref_h": figure_height(front)}, seed + 6)
         info["renders"]["side"] = inf
         side_ref = comfy.upload_pil(side, id_ + "_side.png")
         front_h, back_h, side_h = figure_height(front), figure_height(back), figure_height(side)
         fd_prompt = ("Turn this exact character to a three-quarter front view: turned 45 degrees so the character faces towards the lower right of "
                      "the frame, face visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. " + pose_hint + " " + bg + ".")
-        fd, inf = render(id_ + "_fd", fd_prompt, [front_ref], {"subject": "the same character, three-quarter front view", "view": None, "subjects_max": 1, "legs": True, "ref_h": front_h}, seed + 7)
+        fd, inf = render(sk_("fd"), fd_prompt, [front_ref], {"subject": "the same character, three-quarter front view", "view": None, "subjects_max": 1, "legs": True, "ref_h": front_h}, seed + 7)
         info["renders"]["fd"] = inf
         bd_prompt = ("Turn this exact character to a three-quarter back view: turned 45 degrees away from the viewer so the character faces the upper "
                      "right of the frame, the back and right shoulder visible, standing straight with arms relaxed. Keep the same outfit, colors, "
                      "proportions and art style. " + pose_hint + " " + bg + ".")
-        bd, inf = render(id_ + "_bd", bd_prompt, [front_ref], {"subject": "the same character, three-quarter back view", "view": None, "subjects_max": 1, "legs": True, "ref_h": front_h}, seed + 8)
+        bd, inf = render(sk_("bd"), bd_prompt, [front_ref], {"subject": "the same character, three-quarter back view", "view": None, "subjects_max": 1, "legs": True, "ref_h": front_h}, seed + 8)
         info["renders"]["bd"] = inf
         poses = [("cheer", "seen directly from behind (no face visible), jumping for joy with both arms raised high above the head, feet together", back_ref, "back")]
         pose_imgs = {}
         for k, (name, pose, ref, view) in enumerate(poses):
             p = ("The exact same character " + pose + ". Keep the same outfit, colors, proportions and art style as the reference. " + bg + ".")
             ref_h = {"back": back_h, "front": front_h, "side": side_h}.get(view, 0)
-            im, inf = render(id_ + "_" + name, p, [ref], {"subject": "the same character", "view": view, "subjects_max": 1, "legs": True, "ref_h": ref_h}, seed + 10 + k)
+            im, inf = render(sk_(name), p, [ref], {"subject": "the same character", "view": view, "subjects_max": 1, "legs": True, "ref_h": ref_h}, seed + 10 + k)
             info["renders"][name] = inf
             pose_imgs[name] = im if not inf.get("qa", {}).get("problems") else None
         back_cell, sc = finish(back, cell, 0.84, True)
@@ -891,10 +950,18 @@ def process(type_, folder, id_):
             # a view may run on its own driver ("pose_drivers": {"back": "run_occ"}, pass 44: the back view's driver hides the
             # hand that swings in front of the chest, which Wan Animate had painted on the back of Calavera's jacket)
             drv = str((d.get("pose_drivers") or {}).get(view, "run"))
-            c = pose_cycle(still_img, id_ + "_pose_run_" + view, drv, view, seed + k, cell, cell_img, hint, negative_extra=anim_neg, view_hint=vh) if pose_ok else None
+            c = pose_cycle(still_img, ck + "_pose_run_" + view, drv, view, seed + k, cell, cell_img, hint, negative_extra=anim_neg, view_hint=vh,
+                           motion=str(d.get("pose_motion", "running in place on the spot like on a treadmill"))) if pose_ok else None
             if c is None:
-                c = video_cycle(still_img, id_ + "_run" + (suffix or "_b"), prompt, seed + k, cell, cell_img, N)
+                c = video_cycle(still_img, ck + "_run" + (suffix or "_b"), prompt, seed + k, cell, cell_img, N)
             clips[suffix] = c
+        # "remap_hues" (pass 46): hues the video model smeared into the clips that the hero's palette lacks go back to his
+        # own (Ironwood's fringed legs streaked green and magenta: keying residue of the motion blur)
+        rh = d.get("remap_hues")
+        if isinstance(rh, dict):
+            for sfx in list(clips.keys()):
+                if clips[sfx]:
+                    clips[sfx] = [artkit.remap_hues(f, rh.get("ranges", []), rh.get("to", 30), rh.get("sat", 0.55)) for f in clips[sfx]]
         info["clips"] = {k or "_b": v is not None for k, v in clips.items()}
         # hit reactions: a painted "hurt" still per view, edited from that view's still by the image model so it reads like
         # the rest of the sheet, then a short procedural wince around it (the pose-driven pain clip looked wrong on every hero)
@@ -907,8 +974,8 @@ def process(type_, folder, id_):
             h_prompt = ("One single figure alone in the frame: the exact same character " + view_words + ", flinching in pain from a hit: leaning back a little, shoulders hunched, "
                         "one hand raised towards the chest, " + hurt_hint + ", still standing on both feet, feet fully visible. Keep the same "
                         "outfit, colors, proportions, pose scale and art style as the reference. " + bg + ".")
-            ref = comfy.upload_pil(still_img, id_ + "_" + view + "_ref.png")
-            h_img, inf = render(id_ + "_hurt_" + view, h_prompt, [ref], {"subject": "the same character flinching", "view": view if view in ("front", "back", "side") else None,
+            ref = comfy.upload_pil(still_img, sk_(view) + "_ref.png")
+            h_img, inf = render(sk_("hurt_" + view), h_prompt, [ref], {"subject": "the same character flinching", "view": view if view in ("front", "back", "side") else None,
                                                                           "subjects_max": 1, "legs": True, "ref_h": ref_h}, seed + seedk)
             info["renders"]["hurt_" + view] = inf
             hurt_cell = finish(h_img, cell, 0.84, True, None, 0.012, stand_h)[0]
@@ -919,25 +986,38 @@ def process(type_, folder, id_):
         # the death: a painted "down" still edited from the front, and the flinch tipping over into it (one set, the body lies the same from every side)
         dead_prompt = ("This exact character lying flat on the ground on their back, knocked out: limbs sprawled, head to one side, seen from the front and a "
                        "little above so the whole body is visible. Keep the same outfit, colors, proportions and art style. " + hurt_hint + ". " + bg + ".")
-        dead_img, inf = render(id_ + "_dead", dead_prompt, [front_ref], {"subject": "the same character lying on the ground", "view": None, "subjects_max": 1}, seed + 12)
+        dead_img, inf = render(sk_("dead"), dead_prompt, [front_ref], {"subject": "the same character lying on the ground", "view": None, "subjects_max": 1}, seed + 12)
         info["renders"]["dead"] = inf
         dead_cell = finish(dead_img, cell, 0.66, True, None, 0.012)[0]
         hurt_f = hits["_f"][0] if hits.get("_f") else front_cell
         frames["die"] = [artkit.transform(hurt_f, lean_deg=-14, sy=0.97), artkit.fall(hurt_f, 38), artkit.fall(hurt_f, 66), dead_cell, dead_cell]
         strip, counts, cols = artkit.pack_strip(frames, artkit.CHAR_ORDER, cell)
-        strip.save(os.path.join(folder, d.get("sprite", id_ + "_sprite.png")))
-        # the icon: a painted close-up doing something, keyed and set into a round badge that fills the plate's lower half
-        pp = str(d.get("portrait_prompt", "smiling at the viewer"))
-        # edited from the front still so the face and outfit are this character's; the head fills half the frame
-        p_prompt = ("A close-up portrait of this exact character for a mobile game avatar icon: only the head and shoulders, the head filling "
-                    "half of the frame, " + pp + ", facing the viewer, the shoulders and chest running off the bottom edge of the frame, "
-                    "expressive and lively, no legs, no full body. Keep the same face, outfit, colors and art style as the reference. " + bg + ".")
-        p_img, inf = render(id_ + "_portrait", p_prompt, [front_ref], {"subject": subject, "view": "front", "subjects_max": 1, "bust": True}, seed + 40)
-        info["renders"]["portrait"] = inf
-        portrait_badge(p_img).save(os.path.join(folder, d.get("icon", id_ + "_icon.png")))
+        run_fps = int(d.get("run_fps", HERO_RUN_FPS)) if all(v is not None for v in clips.values()) else 14
+        if vcode:
+            # a hero's variant strip sits beside the one the game plays; the badge stays the hero's own (pass 55)
+            d["sprite"] = id_ + "_sprite_" + vcode.split("-")[-1].lower() + ".png"
+            strip.save(os.path.join(folder, d["sprite"]))
+        else:
+            strip.save(os.path.join(folder, d.get("sprite", id_ + "_sprite.png")))
+            # the icon: a painted close-up doing something, keyed and set into a round badge that fills the plate's lower half
+            pp = str(d.get("portrait_prompt", "smiling at the viewer"))
+            # edited from the front still so the face and outfit are this character's; the head fills half the frame
+            p_prompt = ("A close-up portrait of this exact character for a mobile game avatar icon: only the head and shoulders, the head filling "
+                        "half of the frame, " + pp + ", facing the viewer, the shoulders and chest running off the bottom edge of the frame, "
+                        "expressive and lively, no legs, no full body. Keep the same face, outfit, colors and art style as the reference. " + bg + ".")
+            # a hero JSON "badge" {still, head_width, top_pad} (pass 56, Solenne) names a painting picked by eye for the badge
+            # (a key in the paintings' cache) and how it sits in the circle, so a later run makes the same badge
+            bdg = d.get("badge") if isinstance(d.get("badge"), dict) else {}
+            if bdg.get("still") and os.path.exists(os.path.join(RAW, str(bdg["still"]) + ".png")):
+                p_img = Image.open(os.path.join(RAW, str(bdg["still"]) + ".png")).convert("RGB")
+                info["renders"]["portrait"] = {"still": str(bdg["still"])}
+            else:
+                p_img, inf = render(id_ + "_portrait", p_prompt, [front_ref], {"subject": subject, "view": "front", "subjects_max": 1, "bust": True}, seed + 40)
+                info["renders"]["portrait"] = inf
+            portrait_badge(p_img, head_width=float(bdg.get("head_width", 0.0)), top_pad=float(bdg.get("top_pad", 0.03))).save(os.path.join(folder, d.get("icon", id_ + "_icon.png")))
         d["anims"] = counts
         d["strip_cols"] = cols
-        d["fps"] = {"run": HERO_RUN_FPS if all(v is not None for v in clips.values()) else 14, "hit": HERO_HIT_FPS, "die": 8}
+        d["fps"] = {"run": run_fps, "hit": HERO_HIT_FPS, "die": 8}
     else:
         img, inf = render(id_ + "_icon2", subject + ". " + ICON_STYLE + ". " + bg + ".", [],
                           {"subject": subject, "view": None, "subjects_max": 6 if many else 1}, seed)
@@ -1096,7 +1176,7 @@ def main():
         pick_anchor(PICK)
         if "--only" not in sys.argv and not any(a.startswith("--only=") for a in sys.argv):
             return
-    types = ["characters", "enemies", "bosses", "weapons", "evolutions", "passives", "mutations", "lines", "perks", "resources", "shop", "elites", "maps", "quests", "pickups"]
+    types = ["characters", "enemies", "bosses", "weapons", "evolutions", "passives", "mutations", "perks", "resources", "shop", "elites", "maps", "quests", "pickups"]
     jobs = []
     for t in types:
         base = os.path.join(CONTENT, t)

@@ -1,15 +1,19 @@
 ## Title (Wanted 01/02), with play setup merged in: the gold plate, "★ WANTED ★ / 88fits / DRAG · DODGE · SURVIVE", the
 ## hero full-body (art/ui/wanted/hero_<id>.png, a striped slot until painted) between two arrow squares, swipe or tap
-## to change, a dot per hero under it, the hero plaque (name, italic line, the trait's numbers and the favourite weapon's
-## plate), PLAY, the map and its best run in one line (a tap changes the map when there are several). Heroes still to
-## unlock ride the same carousel after the open ones: a dark silhouette with a padlock, a half-aged dot, what unlocks
-## them and how far along that is, and PLAY reading LOCKED. (The developer menu can add the hidden heroes, locked, to
-## preview the look.) The map line (a tap changes the map when there are
-## several), and Upgrade · Collection · Settings, Upgrade in brass with a breathing glow and a mark when a rank is
-## affordable (pass 44: the Mirror's name said nothing about what it was for). No version label; the developer menu lives
-## in Settings (hold the version label for 2 s), and the player's own debug mode (ten taps on the hints switch) puts an
-## ARENA button top right. The top block hangs from the top edge, the plaque and the buttons from the bottom; the hero
-## keeps the middle.
+## to change, a dot per hero under it, the hero plaque (name, italic line, the trait's numbers and the favourite's plate:
+## his weapon, or the line or passive he favours, Ironwood's Brawn since pass 47, each plate in its colour), PLAY, the
+## map and its best run in one line (a tap changes the map when there are several). Heroes still to unlock ride the
+## same carousel after the open ones: a dark silhouette with a padlock, a half-aged dot, what unlocks them and how far
+## along that is, and PLAY reading LOCKED. (The developer menu can add the hidden heroes, locked, to preview the look.) Then Upgrade · Collection ·
+## Settings, Upgrade in turquoise (pass 46: brass is kept for buying) with a breathing glow and a mark when a rank is
+## affordable (pass 44: the Mirror's name said nothing about what it was for). No version label; the developer menu
+## lives in Settings (hold the version label for 2 s), and the player's own debug mode (ten taps on the hints switch)
+## puts an ARENA button top right. The top block hangs from the top edge, the plaque and the buttons from the bottom;
+## the hero keeps the middle.
+## Pass 52, two looks (Settings.menu_style, chosen in Settings under the player's debug mode): "painted" as above, or
+## "live": the level itself behind the UI instead of the still, and in place of the cut-out the hero as a run draws him,
+## smaller, standing on the sand with his start weapon circling him (ui/TitleStage.gd); a locked one is a dark figure
+## with the same padlock. Everything else (the plaque, PLAY, the map line, the buttons, the swipe) is the same.
 extends Control
 
 ## The cut-out box: 520 × 700 inside a 4 px dashed border, 24 px under the label (the mock's box is content-box).
@@ -24,10 +28,17 @@ const PLAQUE_GAP := 63.0
 const MAP_UP := 200.0
 ## A finger that travels this far sideways over the hero changes it.
 const SWIPE := 90.0
-## The trait's numbers under short names (the rest fall back to TextGen's stat names).
-const SHORT := {"max_hp": "HP", "damage_reduction": "DEFENCE", "move_speed": "SPEED", "magnet": "REACH", "might": "MIGHT",
-	"area": "AREA", "cooldown": "COOLDOWN", "luck": "LUCK", "greed": "GREED", "regen": "REGEN", "revives": "REVIVES",
+## The trait's numbers under short names (the rest fall back to TextGen's stat names: ATTACK DAMAGE, AREA OF EFFECT,
+## COIN GAIN since pass 45, so the words live in one place).
+const SHORT := {"max_hp": "HP", "damage_reduction": "DEFENCE", "move_speed": "SPEED", "magnet": "REACH",
+	"cooldown": "COOLDOWN", "luck": "LUCK", "regen": "REGEN", "regen_delay": "REGEN DELAY", "revives": "REVIVES",
 	"projectile_speed": "SHOT SPEED", "xp_gain": "XP", "crit_chance": "CRIT", "amount": "PROJECTILES"}
+## A unit after a number whose stat has none of its own (regen is health a second: "+1.2/s" over REGEN).
+const UNIT := {"regen": "/s"}
+## The breathing halo behind Upgrade: the button's own turquoise (pass 46; it was brass with the button).
+const GLOW := W.TURQUOISE
+## Stats a hero is better off with less of: a negative on these is a buff, and stays sage.
+const LOWER_BETTER := ["cooldown", "regen_delay", "shield_delay"]
 
 var _heroes: Array = []
 var _index := 0
@@ -49,31 +60,59 @@ var _swipe_id := -2   # -2 none, -1 the mouse, else a finger index
 var _swipe_from := Vector2.ZERO
 var _upgrade_btn: WButton
 var _glow: Control
+var _mark: Control
+var _halo := StyleBoxFlat.new()
+var _affordable := false
 var _glow_t := 0.0
 var _arena_btn: WButton
+## The live look (pass 52): the 3D stage behind everything, the padlock over a locked hero there, and the wash, whose
+## clear middle reaches down to the hero's feet (it is under the hero in this look, over the still in the other). The
+## stage's script by its path: a new class_name is unknown to a headless run until the editor rescans the project.
+const TitleStageScript := preload("res://ui/TitleStage.gd")
+var _live := false
+var _stage: TitleStageScript
+var _lock: Control
+var _wash_rect: TextureRect
+var _wash_grad: Gradient
 
 
 ## Back on the title leaves the game, as it always did (quit_on_go_back is off so a run can ignore the gesture).
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		Save.flush()
 		get_tree().quit()
 
 
 func _ready() -> void:
 	get_tree().paused = false
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	ScreenBase.add_backdrop(self)
-	add_child(_wash())
+	# the look (pass 52): the painted cut-out over the still of the desert, or the level itself with the hero standing in it
+	_live = str(Settings.menu_style) == "live"
+	if not _live:
+		ScreenBase.add_backdrop(self)
+		# a live title's world kept for the way back from a menu is not wanted any more
+		TitleStageScript.forget()
+	_wash_rect = _wash()
+	add_child(_wash_rect)
 	# quests a save's totals already satisfy (pass 44 added many) complete here, quietly, instead of all at once five
 	# seconds into the next run; the results screen still lists them
 	QuestTracker.check_all(false)
+	# gold cannot change on the title: the Upgrade mark is decided once
+	_affordable = _rank_affordable()
 	_heroes = _roster()
-	var last := Registry.playable_character(str(Save.data.get("last_character", "astro")))
+	var last := Registry.playable_character(str(Save.data.get("last_character", Save.DEFAULT_HERO)))
 	_index = maxi(_heroes.find(last), 0)
 	_maps = Registry.sorted_maps().filter(func(m: MapDef) -> bool: return Registry.is_unlocked("map", m.id))
 	_map_id = str(Save.data.get("last_map", ""))
 	if _maps.filter(func(m: MapDef) -> bool: return m.id == _map_id).is_empty():
 		_map_id = _maps[0].id if not _maps.is_empty() else "red_canyon"
+	if _live:
+		# behind everything: the map the line under PLAY names, laid out from the title's own roll
+		_stage = TitleStageScript.new()
+		_stage.name = "TitleStage"
+		_stage.map_id = _map_id
+		add_child(_stage)
+		move_child(_stage, 0)
 	# the gold plate, top-left
 	var gold := WMenuHeader.gold_plate(Save.gold(), 44, 40.0, 5, 4)
 	gold.position = Vector2(36, 44 + W.safe_top())
@@ -88,6 +127,7 @@ func _ready() -> void:
 	_arena_btn.visible = Settings.debug_mode
 	_arena_btn.pressed.connect(func():
 		Run.arena_next = true
+		_leave_for_a_run()
 		UiFx.go(get_tree(), "res://game/Game.tscn"))
 	add_child(_arena_btn)
 	# the name stack
@@ -118,12 +158,20 @@ func _ready() -> void:
 	Audio.play_music(["mu_title"], 1)
 
 
-## The title wash: warm at the top, clear through the middle where the hero stands, paper again at the foot.
+## The title wash: warm at the top, clear through the middle where the hero stands, paper again at the foot. In the live
+## look (pass 52) the hero stands in the scene under it, so its clear middle runs on down past his feet and turns to
+## paper only between them and the plaque (_live_wash sets the stops from the layout).
 func _wash() -> TextureRect:
 	var g := Gradient.new()
-	g.offsets = PackedFloat32Array([0.0, 0.3, 0.5, 0.78, 1.0])
-	g.colors = PackedColorArray([Color8(233, 201, 160, 242), Color8(233, 201, 160, 102), Color8(243, 230, 200, 0),
-		Color8(243, 230, 200, 178), Color8(243, 230, 200, 235)])
+	if _live:
+		g.offsets = PackedFloat32Array([0.0, 0.3, 0.5, 0.68, 0.72, 1.0])
+		g.colors = PackedColorArray([Color8(233, 201, 160, 242), Color8(233, 201, 160, 102), Color8(243, 230, 200, 0),
+			Color8(243, 230, 200, 0), Color8(243, 230, 200, 205), Color8(243, 230, 200, 235)])
+	else:
+		g.offsets = PackedFloat32Array([0.0, 0.3, 0.5, 0.78, 1.0])
+		g.colors = PackedColorArray([Color8(233, 201, 160, 242), Color8(233, 201, 160, 102), Color8(243, 230, 200, 0),
+			Color8(243, 230, 200, 178), Color8(243, 230, 200, 235)])
+	_wash_grad = g
 	var t := GradientTexture2D.new()
 	t.gradient = g
 	t.fill_from = Vector2(0, 0)
@@ -214,19 +262,32 @@ func _build_lower() -> void:
 	row.offset_right = -60
 	row.offset_bottom = -60
 	row.offset_top = -60 - 91
-	# Upgrade (the Mirror until pass 44) is the one button in brass, with a pulsing glow and a mark when a rank can be
-	# bought: it is where the gold goes, and the row should say so
+	# Upgrade (the Mirror until pass 44) is the one button in colour (turquoise since pass 46: brass is for buying), with
+	# a pulsing glow and a mark when a rank can be bought: it is where the gold goes, and the row should say so. The glow
+	# sits under the row and the mark over it (pass 45: both drawn under it, the mark showed as a crescent)
 	_glow = Control.new()
 	_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_glow.draw.connect(_draw_glow)
 	add_child(_glow)
+	_halo.draw_center = false
+	_halo.set_border_width_all(0)
+	_halo.set_corner_radius_all(14)
+	_halo.shadow_offset = Vector2.ZERO
 	add_child(row)
+	_mark = Control.new()
+	_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_mark.draw.connect(_draw_mark)
+	add_child(_mark)
 	for pair in [["Upgrade", "res://ui/HomesteadScreen.tscn"], ["Collection", "res://ui/CollectionScreen.tscn"], ["Settings", "res://ui/SettingsScreen.tscn"]]:
 		var primary: bool = pair[0] == "Upgrade"
-		var b := WButton.make([pair[0]], 30, WButton.PRIMARY if primary else WButton.SECONDARY, 5, 6, 20.0, 0.0)
+		var b := WButton.make([pair[0]], 30, WButton.UPGRADE if primary else WButton.SECONDARY, 5, 6, 20.0, 0.0)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var path: String = pair[1]
-		b.pressed.connect(func(): UiFx.go(get_tree(), path))
+		b.pressed.connect(func():
+			# the live look keeps its built world for the way back (pass 52)
+			if _stage:
+				_stage.keep_on_exit = true
+			UiFx.go(get_tree(), path))
 		row.add_child(b)
 		if primary:
 			_upgrade_btn = b
@@ -262,6 +323,20 @@ func _place() -> void:
 			a.position = Vector2(x, (HERO_SIZE.y * k - 86.0) * 0.5)
 	_dots.position = Vector2(0, top + HERO_SIZE.y * k - 12.0)
 	_dots.size = Vector2(vp.x, 26)
+	if _stage:
+		# the live hero stands in the same box the cut-out fills (pass 52)
+		_stage.frame(Rect2(_hero_row.position + _art_host.position, HERO_SIZE * k))
+		_live_wash(vp.y, plaque_top)
+		_place_lock()
+
+
+## The live look's wash stops (pass 52): clear to just under the hero's shadow, paper by a little past the plaque's top.
+func _live_wash(h: float, plaque_top: float) -> void:
+	if _wash_grad == null or _stage == null or h <= 0.0:
+		return
+	var clear_to := clampf((_stage.ground_px().y + 40.0) / h, 0.52, 0.95)
+	var paper_at := clampf((plaque_top + 40.0) / h, clear_to + 0.01, 0.98)
+	_wash_grad.offsets = PackedFloat32Array([0.0, 0.3, 0.5, clear_to, paper_at, 1.0])
 
 
 ## Every hero the carousel shows: the open ones first, then those still to unlock. With the developer's preview on,
@@ -291,23 +366,28 @@ func _show_hero(from_side: int) -> void:
 		return
 	var c: CharacterDef = _heroes[_index]
 	var locked := _is_locked(c)
-	if _art:
-		_art.queue_free()
-	var who := ("the " + c.display_name) if c.id == "drifter" else c.display_name
-	_art = WPlaceholder.make("hero_" + c.id, "%s, full-body cut-out\nfacing camera · 520 × 700" % who, HERO_SIZE)
-	if locked:
-		# painted: a dark silhouette; not yet painted: the striped slot, faded
-		_art.silhouette = true
-		_art.modulate.a = 1.0 if _art.tex else 0.45
-		_art.add_child(_padlock())
-	_art_host.add_child(_art)
-	if from_side != 0:
-		_art.position.x = 90.0 * from_side
-		var a := _art.modulate.a
-		_art.modulate.a = 0.0
-		var tw := create_tween().set_parallel(true)
-		tw.tween_property(_art, "position:x", 0.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		tw.tween_property(_art, "modulate:a", a, 0.16)
+	if _live:
+		# the hero on the sand (pass 52): he runs in from the side the finger came from, the last one runs off
+		_stage.show_hero(c, locked, from_side)
+		_show_lock(locked, from_side)
+	else:
+		if _art:
+			_art.queue_free()
+		var who := ("the " + c.display_name) if c.id == "drifter" else c.display_name
+		_art = WPlaceholder.make("hero_" + c.id, "%s, full-body cut-out\nfacing camera · 520 × 700" % who, HERO_SIZE)
+		if locked:
+			# painted: a dark silhouette; not yet painted: the striped slot, faded
+			_art.silhouette = true
+			_art.modulate.a = 1.0 if _art.tex else 0.45
+			_art.add_child(_padlock())
+		_art_host.add_child(_art)
+		if from_side != 0:
+			_art.position.x = 90.0 * from_side
+			var a := _art.modulate.a
+			_art.modulate.a = 0.0
+			var tw := create_tween().set_parallel(true)
+			tw.tween_property(_art, "position:x", 0.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			tw.tween_property(_art, "modulate:a", a, 0.16)
 	_dots.queue_redraw()
 	_name.text = ("The " + c.display_name) if c.id == "drifter" else c.display_name
 	# out of the row at once: a queued plate still counts, and the plaque sized in that moment stayed too wide
@@ -336,23 +416,60 @@ func _show_hero(from_side: int) -> void:
 		_line.color = W.INK_SOFT
 		_line.text = c.flavour
 		for st in _stats_of(c):
-			_stats.add_child(_stat(st[0], st[1]))
-		# the hero's weapons as plates: the favourite, then any weapon only this hero can find
-		var fav := Registry.weapon(c.favourite_weapon)
-		if fav:
-			_stats.add_child(_weapon_plate(fav, "Favourite"))
+			_stats.add_child(_stat(st[0], st[1], bool(st[2])))
+		# the hero's items as plates: the weapon he lands with (pass 47b, Garry: Ironwood's Spear did not show), the
+		# favourite, then any other weapon only this hero can find
+		var start := Registry.start_weapon_for(c)
+		if start:
+			_stats.add_child(_item_plate(start, "Start", start_level(c, start)))
+		var fav := _favourite_of(c)
+		if fav and fav != start:
+			_stats.add_child(_item_plate(fav, "Favourite", start_level(c, fav)))
 		for w: WeaponDef in _own_weapons(c):
-			_stats.add_child(_weapon_plate(w, "Special"))
+			if w != start:
+				_stats.add_child(_item_plate(w, "Special", 1))
 	_play.locked = locked
 	_play.set_parts(["LOCKED" if locked else "PLAY"])
 	if not locked:
 		Save.data["last_character"] = c.id
 
 
-## A weapon on the plaque: its 92 px plate and a tracked word under it (FAVOURITE, SPECIAL).
-func _weapon_plate(w: WeaponDef, word: String) -> VBoxContainer:
+## The hero's favourite: his weapon, or when he has none, the line or passive he favours (pass 46: Ironwood's Cake; pass
+## 47: his Brawn, a line on its light yellow plate).
+func _favourite_of(c: CharacterDef) -> ContentDef:
+	var w: WeaponDef = Registry.weapon(c.favourite_weapon) if c.favourite_weapon != "" else null
+	if w:
+		return w
+	return Registry.passive(c.favourite_passive) if c.favourite_passive != "" else null
+
+
+## The level a hero has an item at when he finds it or lands with it (pass 48: the plaque's plates take its colour): a
+## favourite at its bonus level (the Drifter's Peashooter and Calavera's Skull Rain 2, Ironwood's Brawn 2), else 1.
+static func start_level(c: CharacterDef, def: ContentDef) -> int:
+	if c == null or def == null:
+		return 1
+	if def is WeaponDef and def.id == c.favourite_weapon:
+		if str(c.favourite_bonus.get("type", "")) == "level":
+			return clampi(int(c.favourite_bonus.get("value", 1)), 1, maxi((def as WeaponDef).max_level, 1))
+		return 1
+	if def is PassiveDef and def.id == c.favourite_passive:
+		var mx := maxi((def as PassiveDef).max_level, 1)
+		match str(c.favourite_passive_bonus.get("type", "")):
+			"max":
+				return mx
+			"level":
+				return clampi(int(c.favourite_passive_bonus.get("value", 1)), 1, mx)
+	return 1
+
+
+## An item on the plaque: its 92 px plate in the colour of the level he has it at and a tracked word under it (START,
+## FAVOURITE, SPECIAL).
+func _item_plate(def: ContentDef, word: String, level: int = 1) -> VBoxContainer:
 	var col := _column()
-	var p := WPlate.new().for_def(w, 92.0)
+	col.name = word
+	col.set_meta("def", def)
+	col.set_meta("level", level)
+	var p := WPlate.new().for_def(def, 92.0, false, level)
 	p.icon_frac = 68.0 / 92.0
 	col.add_child(p)
 	col.add_child(W.label(word, 14, W.INK_SOFT, 0.1))
@@ -367,14 +484,16 @@ func _own_weapons(c: CharacterDef) -> Array:
 	return only
 
 
-## Up to three of the trait's numbers: its effects on the player, then the heal on every level.
+## Up to three of the trait's numbers: its effects on the player, then the heal on every level. Each is [value, label,
+## good]: a debuff (a negative, or a positive on a lower-is-better stat) is not good and reads in dark red (pass 45).
 func _stats_of(c: CharacterDef) -> Array:
 	var out: Array = []
 	for e in c.trait_effects:
 		if e is Effect and (e.target == "player" or e.target == ""):
-			out.append([TextGen.describe_effect(e, false), SHORT.get(e.stat, TextGen.stat_name(e.stat).to_upper())])
+			var good: bool = e.op == "set" or ((e.value >= 0.0) != (e.stat in LOWER_BETTER))
+			out.append([TextGen.describe_effect(e, false) + str(UNIT.get(e.stat, "")), SHORT.get(e.stat, TextGen.stat_name(e.stat).to_upper()), good])
 	if c.level_heal > 0.0:
-		out.append(["%d%%" % int(round(c.level_heal * 100.0)), "HEAL / LV"])
+		out.append(["%d%%" % int(round(c.level_heal * 100.0)), "HEAL / LV", true])
 	return out.slice(0, 3)
 
 
@@ -386,15 +505,47 @@ func _column() -> VBoxContainer:
 	return v
 
 
-## One number on the plaque: sage slab over a tracked label.
-func _stat(value: String, what: String) -> VBoxContainer:
+## One number on the plaque: sage slab (dark red for a debuff) over a tracked label.
+func _stat(value: String, what: String, good: bool = true) -> VBoxContainer:
 	var v := _column()
-	var n := W.slab_text(value, 34, W.SAGE, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	var n := W.slab_text(value, 34, W.SAGE if good else W.BAD_DARK, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	v.add_child(n)
 	var l := W.label(what, 14, W.INK_SOFT, 0.1)
 	l.align = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(l)
 	return v
+
+
+## The live look's padlock (pass 52): over a locked hero's chest as on the cut-out, showing once he has run in.
+func _show_lock(locked: bool, from_side: int) -> void:
+	if _lock:
+		_lock.queue_free()
+		_lock = null
+	if not locked:
+		return
+	_lock = _padlock()
+	_lock.name = "Padlock"
+	_art_host.add_child(_lock)
+	_place_lock()
+	if from_side != 0:
+		_lock.modulate.a = 0.0
+		var tw := _lock.create_tween()
+		tw.tween_interval(TitleStageScript.SWAP_TIME * 0.8)
+		tw.tween_property(_lock, "modulate:a", 1.0, 0.15)
+
+
+## The padlock on the live hero's chest, in the box's own (unscaled) units, three quarters of the cut-out's size since the
+## live figure is smaller.
+func _place_lock() -> void:
+	if _lock == null or _stage == null:
+		return
+	var k: float = _art_host.scale.y if _art_host.scale.y > 0.0 else 1.0
+	var origin := _hero_row.position + _art_host.position
+	var fig: Rect2 = _stage.figure_rect()
+	var s := 0.75
+	var chest := (fig.position.y + fig.size.y * 0.32 - origin.y) / k
+	_lock.scale = Vector2(s, s)
+	_lock.position = Vector2(HERO_SIZE.x * 0.5 - 60.0 * s, chest - 80.0 * s)
 
 
 ## A padlock over a locked hero's chest: an ink shackle over a brass body with a keyhole.
@@ -463,25 +614,30 @@ func _refresh_map() -> void:
 	_map_line.text = " · ".join(bits)
 
 
-## The glow behind Upgrade: soft brass rings that breathe, and a brass mark on its corner when a rank can be bought.
+## The glow behind Upgrade: one smooth turquoise halo that breathes, the button's own colour (a StyleBoxFlat's feathered
+## shadow ring, nothing drawn inside the button; pass 45: six stepped rings had read as a staircase).
 func _draw_glow() -> void:
 	if _upgrade_btn == null or not _upgrade_btn.is_visible_in_tree():
 		return
 	var r := _upgrade_btn.get_global_rect()
 	r.position -= _glow.global_position
 	var pulse := 0.5 + 0.5 * sin(_glow_t * 2.6)
-	for i in 6:
-		var k := float(i) / 6.0
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = Color(W.BRASS, (0.05 + 0.07 * pulse) * (1.0 - k))
-		sb.set_corner_radius_all(int(10 + 26 * (1.0 - k)))
-		_glow.draw_style_box(sb, r.grow(8.0 + 26.0 * (1.0 - k) * (0.7 + 0.3 * pulse)))
-	if _rank_affordable():
-		var c := Vector2(r.end.x - 6.0, r.position.y + 6.0)
-		_glow.draw_circle(c, 22.0, W.INK, true, -1.0, true)
-		_glow.draw_circle(c, 17.0, W.BRASS, true, -1.0, true)
-		_glow.draw_rect(Rect2(c + Vector2(-3.0, -11.0), Vector2(6.0, 13.0)), W.INK)
-		_glow.draw_circle(c + Vector2(0.0, 7.5), 3.2, W.INK, true, -1.0, true)
+	_halo.shadow_size = int(round(18.0 + 14.0 * pulse))
+	_halo.shadow_color = Color(GLOW, 0.42 + 0.22 * pulse)
+	_glow.draw_style_box(_halo, r)
+
+
+## The brass "!" on Upgrade's top-right corner when a rank can be bought, drawn over the row.
+func _draw_mark() -> void:
+	if _upgrade_btn == null or not _upgrade_btn.is_visible_in_tree() or not _affordable:
+		return
+	var r := _upgrade_btn.get_global_rect()
+	r.position -= _mark.global_position
+	var c := Vector2(r.end.x - 6.0, r.position.y + 6.0)
+	_mark.draw_circle(c, 22.0, W.INK, true, -1.0, true)
+	_mark.draw_circle(c, 17.0, W.BRASS, true, -1.0, true)
+	_mark.draw_rect(Rect2(c + Vector2(-3.0, -11.0), Vector2(6.0, 13.0)), W.INK)
+	_mark.draw_circle(c + Vector2(0.0, 7.5), 3.2, W.INK, true, -1.0, true)
 
 
 ## Whether the purse buys the next rank of any open talent.
@@ -501,6 +657,9 @@ func _process(delta: float) -> void:
 		return
 	_glow_t += delta
 	_glow.queue_redraw()
+	# the row slides in (_enter): the mark follows the button
+	if _mark:
+		_mark.queue_redraw()
 
 
 ## With more than one open map, the line under PLAY steps through them.
@@ -513,6 +672,8 @@ func _next_map() -> void:
 			i = j
 	_map_id = _maps[(i + 1) % _maps.size()].id
 	_refresh_map()
+	if _stage:
+		_stage.set_map(_map_id)
 
 
 func _on_play() -> void:
@@ -524,7 +685,15 @@ func _on_play() -> void:
 		Save.data["last_character"] = c.id
 	Save.data["last_map"] = _map_id
 	Save.request_save()
+	_leave_for_a_run()
 	UiFx.go(get_tree(), "res://game/Game.tscn")
+
+
+## A run starting lets the live look's world go (pass 52): the run builds its own map, and never carries two.
+func _leave_for_a_run() -> void:
+	if _stage:
+		_stage.keep_on_exit = false
+	TitleStageScript.forget()
 
 
 ## A sideways swipe over the hero changes it; the finger is read here so it works wherever it lands in the row.

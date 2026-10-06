@@ -42,7 +42,8 @@ func _ready() -> void:
 	col.add_child(_sub)
 
 
-## `pick` is {def, rect}: the card the player just took and where it was on screen (empty for a skip).
+## `pick` is {def, rect, level}: the card the player just took, where it was on screen and the level it lands on (pass
+## 48: the flying plate's colour; the level held when the pick does not say) (empty for a skip).
 func open(pick: Dictionary = {}) -> void:
 	_t = 0.0
 	visible = true
@@ -55,7 +56,7 @@ func open(pick: Dictionary = {}) -> void:
 	_slot_id = def.id if def else ""
 	var to := hud.slot_rect(_slot_id) if hud and def else Rect2()
 	if def and to.size.x > 0.0 and from.size.x > 0.0:
-		_fly(def, from, to)
+		_fly(def, from, to, int(pick.get("level", 0)))
 		tw.tween_interval(0.35)
 		tw.tween_callback(func():
 			if hud:
@@ -65,9 +66,20 @@ func open(pick: Dictionary = {}) -> void:
 	tw.parallel().tween_property(_sub, "modulate:a", 1.0, 0.3)
 
 
-## The card as a small paper tag (the plate and the name) that shrinks from where it was into the slot, turning -8
-## degrees, with two paper streaks behind it.
-func _fly(def: ContentDef, from: Rect2, to: Rect2) -> void:
+## The level `def` is held at now (the pick has landed by the time the gate opens): a weapon's, a passive's or a
+## line's; 0 for anything else.
+static func held_level(def: ContentDef) -> int:
+	if def is WeaponDef:
+		var inst: WeaponInstance = Run.weapon_instance(def.id)
+		return inst.level if inst else 0
+	if def is PassiveDef:
+		return Run.passive_level(def.id)
+	return 0
+
+
+## The card as a small paper tag (the plate, in the colour of the level it lands on, and the name) that shrinks from
+## where it was into the slot, turning -8 degrees, with two paper streaks behind it.
+func _fly(def: ContentDef, from: Rect2, to: Rect2, level: int = 0) -> void:
 	if _flyer:
 		_flyer.queue_free()
 	var p := PanelContainer.new()
@@ -76,7 +88,7 @@ func _fly(def: ContentDef, from: Rect2, to: Rect2) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var plate := WPlate.new().for_def(def, 118.0)
+	var plate := WPlate.new().for_def(def, 118.0, false, level if level > 0 else held_level(def))
 	plate.icon_frac = 0.7
 	row.add_child(plate)
 	var nm := W.slab_text(def.display_name, 40, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 40.0)

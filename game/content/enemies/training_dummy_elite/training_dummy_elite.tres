@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_dun48"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_5rjsx"]
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_sprite.png" id="3_t3kku"]
+
+[resource]
+script = ExtResource("2_5rjsx")
+archetype = "elite"
+doc = "The debug arena's Elite dummy (pass 49): a bigger training dummy with the Elites' crown, an Elite by its kind (Big Game Hunter, Giant Slayer, the priority aim, never grabbed or bounced), standing apart from the field; its health and behaviour (stand, patrol, melee for 20, ranged for 14) are the arena's settings, and it stands up again 5 s after it falls and pays nothing."
+brain = "dummy"
+hp = 2000.0
+speed = 1.6
+damage = 20.0
+radius = 0.71
+size = 2.7
+drops = {}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 6.0,
+"run_b": 6.0
+}
+sprite = ExtResource("3_t3kku")
+sprite_file = "res://content/enemies/training_dummy/training_dummy_sprite.png"
+frame_px = 160
+strip_cols = 28
+fps = {
+"die": 8.0,
+"run": 10.0
+}
+ranged = {
+"cooldown": 2.6,
+"damage": 14.0,
+"keep_distance": 5.5,
+"projectile_speed": 6.0,
+"range": 8.0,
+"splash": 1.4,
+"telegraph": 0.7
+}
+head = 0.981
+can_be_elite = false
+can_be_grabbed = false
+sfx = {
+"attack": "en_cactus_spit",
+"die": "st_barrel_break",
+"hit": "en_goblin_hit"
+}
+xp_mult = 0.0
+id = "training_dummy_elite"
+display_name = "Elite Dummy"
+flavour = "Crowned, and it knows it."
+hidden = true
+icon = ExtResource("1_dun48")
+icon_file = "res://content/enemies/training_dummy/training_dummy_icon.png"
+placeholder = {
+"color": "#C8A060",
+"eyes": 0.0,
+"shape": "tall"
+}

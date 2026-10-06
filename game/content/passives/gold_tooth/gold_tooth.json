@@ -1,0 +1,24 @@
+{
+  "id": "gold_tooth",
+  "name": "Gold Tooth",
+  "rarity": "common",
+  "weight": 10,
+  "max_level": 5,
+  "flavour": "Smile. It pays.",
+  "levels": [
+    [
+      {
+        "stat": "greed",
+        "op": "mul",
+        "value": 0.1,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "a single shiny gold tooth with a white highlight",
+  "placeholder": {
+    "color": "#E0B030",
+    "glyph": "star"
+  },
+  "repeat_last_level": true
+}

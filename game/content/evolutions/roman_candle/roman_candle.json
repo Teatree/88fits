@@ -2,7 +2,7 @@
   "id": "roman_candle",
   "name": "Roman Candle",
   "flavour": "Three flares. No signal. Just fire.",
-  "rarity": "epic",
+  "rarity": "rare",
   "is_evolution": true,
   "evolved_from": "flare_gun",
   "max_level": 1,

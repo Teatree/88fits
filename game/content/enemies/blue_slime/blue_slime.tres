@@ -1,8 +1,14 @@
 [gd_resource type="Resource" script_class="EnemyDef" format=3]
 
-[ext_resource type="Texture2D" path="res://content/enemies/blue_slime/blue_slime_icon.png" id="1_qusyu"]
+[ext_resource type="Texture2D" path="res://content/enemies/blue_slime/blue_slime_icon_a.png" id="1_gg7pv"]
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_qhq5a"]
-[ext_resource type="Texture2D" path="res://content/enemies/blue_slime/blue_slime_sprite.png" id="3_js4t5"]
+[ext_resource type="Texture2D" path="res://content/enemies/blue_slime/blue_slime_sprite_a.png" id="3_alkqh"]
+[ext_resource type="Texture2D" path="res://content/enemies/blue_slime/blue_slime_sprite_b.png" id="4_7bljb"]
+[ext_resource type="Texture2D" path="res://content/enemies/blue_slime/blue_slime_icon_b.png" id="5_yl05r"]
+[ext_resource type="Texture2D" path="res://content/enemies/blue_slime/blue_slime_sprite_c.png" id="6_2u3m5"]
+[ext_resource type="Texture2D" path="res://content/enemies/blue_slime/blue_slime_icon_c.png" id="7_3oknf"]
+[ext_resource type="Texture2D" path="res://content/enemies/blue_slime/blue_slime_sprite_d.png" id="8_my5k3"]
+[ext_resource type="Texture2D" path="res://content/enemies/blue_slime/blue_slime_icon_d.png" id="9_gcfmk"]
 
 [resource]
 script = ExtResource("2_qhq5a")
@@ -11,7 +17,7 @@ hp = 26.0
 speed = 1.7
 damage = 7.0
 radius = 0.6
-size = 1.5
+size = 1.8
 pack_size = 5
 drops = {
 "chest": 0.004,
@@ -28,15 +34,116 @@ anims = {
 "run": 12.0,
 "run_b": 12.0
 }
-sprite = ExtResource("3_js4t5")
-sprite_file = "blue_slime_sprite.png"
+sprite = ExtResource("6_2u3m5")
+sprite_file = "blue_slime_sprite_c.png"
 frame_px = 160
 strip_cols = 41
 fps = {
 "die": 8.0,
 "run": 15.0
 }
-head = 0.894
+knockback = 4.5
+head = 0.931
+front_faces = "left"
+variants = {
+"SL-A": {
+"anims": {
+"attack": 2.0,
+"die": 6.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.931,
+"icon": ExtResource("1_gg7pv"),
+"note": "a round ball of blue jelly with angry eyebrows and a closed smirk (pass 45, option A); it hops (the painting squashes, stretches and leaves the ground), its face never moves",
+"shadow": {},
+"sprite": ExtResource("3_alkqh"),
+"sprite_file": "blue_slime_sprite_a.png",
+"strip_cols": 41
+},
+"SL-B": {
+"anims": {
+"attack": 2.0,
+"die": 6.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.938,
+"icon": ExtResource("5_yl05r"),
+"note": "a tall drippy blue slime with beady eyes and a flat grumpy mouth (pass 45, option B); it hops (the painting squashes, stretches and leaves the ground), its face never moves",
+"shadow": {},
+"sprite": ExtResource("4_7bljb"),
+"sprite_file": "blue_slime_sprite_b.png",
+"strip_cols": 41
+},
+"SL-C": {
+"anims": {
+"attack": 2.0,
+"die": 6.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "left",
+"head": 0.931,
+"icon": ExtResource("7_3oknf"),
+"note": "a rounded cube of blue gelatin with a skull floating inside and no mouth at all (pass 45, option C; in play since pass 46); it hops (the painting squashes, stretches and leaves the ground), its face never moves; its front painting looks down to the viewer's left, so front_faces is left",
+"shadow": {},
+"sprite": ExtResource("6_2u3m5"),
+"sprite_file": "blue_slime_sprite_c.png",
+"strip_cols": 41
+},
+"SL-D": {
+"anims": {
+"attack": 2.0,
+"die": 6.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.931,
+"icon": ExtResource("9_gcfmk"),
+"note": "a blue slime in a tiny cowboy hat with fangs over a closed grin (pass 45, option D); it hops (the painting squashes, stretches and leaves the ground), its face never moves",
+"shadow": {},
+"sprite": ExtResource("8_my5k3"),
+"sprite_file": "blue_slime_sprite_d.png",
+"strip_cols": 41
+}
+}
+variant = "SL-C"
 sfx = {
 "die": "en_slime_die",
 "hit": "en_slime_hit"
@@ -60,7 +167,7 @@ variance = {
 id = "blue_slime"
 display_name = "Blue Slime"
 flavour = "It is not water. Do not drink it."
-icon = ExtResource("1_qusyu")
+icon = ExtResource("7_3oknf")
 icon_file = "blue_slime_icon.png"
 placeholder = {
 "color": "#2E7BFF",

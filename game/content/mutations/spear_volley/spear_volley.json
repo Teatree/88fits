@@ -1,0 +1,33 @@
+{
+  "id": "spear_volley",
+  "name": "Spear Volley",
+  "flavour": "Three in the air before the first one lands.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "spear",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Three spears for every one, fanned out, −40% damage each.",
+  "vfx": "a fan of three spears for every throw",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "mul",
+      "value": 2.0
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.4
+    }
+  ],
+  "params": {
+    "fan_step_deg": 12
+  },
+  "art_prompt": "three spears flying side by side in a fan with speed lines behind them",
+  "placeholder": {
+    "color": "#D8E0F0",
+    "glyph": "star"
+  }
+}

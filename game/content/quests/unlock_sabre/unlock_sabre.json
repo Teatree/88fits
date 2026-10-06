@@ -3,8 +3,8 @@
   "name": "Sabre",
   "condition": {
     "type": "kills_of_enemy",
-    "enemy": "goblin_runt",
-    "count": 80
+    "enemy": "skeleton_knight",
+    "count": 40
   },
   "unlocks": {
     "type": "weapon",

@@ -1,12 +1,13 @@
 {
   "id": "rocketeer",
-  "name": "Rocketeer",
-  "flavour": "One rocket at a time. There is always one.",
+  "name": "Vulture Raider",
+  "flavour": "He waits for you to tire. Then he waits a little less.",
   "archetype": "spitter",
   "brain": "artillery",
-  "hp": 23,
+  "hp": 35,
   "speed": 1.6,
   "damage": 8,
+  "knockback": 4.81,
   "radius": 0.9,
   "size": 3.0,
   "pack_size": 1,
@@ -25,7 +26,12 @@
       "throw": 26.0,
       "throw_radius": 4.5
     },
-    "reload": 2.5
+    "reload": 2.5,
+    "muzzle": {
+      "up": 2.6,
+      "side": 0.6,
+      "forward": 0.2
+    }
   },
   "drops": {
     "small": 1.0,
@@ -43,10 +49,10 @@
     "color": "#C0342B",
     "glyph": "star"
   },
-  "art_prompt": "a burly thug with smooth deep blue skin and orcish features: a heavy jutting jaw with two small tusks, a flat wide nose, small angry yellow eyes under a heavy brow, pointed ears, a shaved head, wearing bright red work overalls over a bare muscular chest and heavy boots, a big rusty steel rocket launcher tube braced on one shoulder loaded with a bright red rocket, crouching to aim, snarling",
-  "motion": "dancing on the spot: a cocky shuffling victory dance, hips swinging side to side, one fist pumping in the air, knees bobbing, the launcher rocking on the shoulder",
-  "back_hint": "seen from behind: the launcher tube on the shoulder with the red rocket's fins showing at the back, the red overalls' straps crossing the bare blue back, no face",
-  "dead_hint": "lying dead on its back on the sand, the launcher tube dropped beside it, the red overalls dusty, arms and legs sprawled, tusked jaw slack",
+  "art_prompt": "a vulture raider: a tall lean bird-man with a bald wrinkled bright pink vulture head and neck, a hooked pale yellow beak, small fierce angry eyes under a heavy frown, big dark brown feathered wings folded at his back, a thick cream-white shaggy fur ruff round his neck and shoulders, cream fur cuffs at his wrists and knees, a ragged dark brown feather kilt over a cream fur skirt, a brown leather strap across his pink muscular chest, a rusty spiked leather pauldron on his left shoulder, a brown belt with a round brass buckle and a leather pouch, pink bony bird legs with grey scaly taloned feet, and in his right hand an olive-green rocket launcher tube held up at his shoulder with yellow and black hazard stripes and an empty open black muzzle ringed in red, no rocket in it",
+  "motion": "walking in place with heavy steady strides like a soldier, the rocket launcher held still up at his shoulder in his right hand the whole time, the wings folded",
+  "back_hint": "seen from behind: his big dark brown feathered wings folded at his back, the back of his bald pink head and neck, the cream fur ruff, the spiked pauldron on his left shoulder, the olive launcher held up at his right shoulder seen from behind, no face, no beak",
+  "dead_hint": "lying dead sideways across the picture, his pink head on the left and his taloned feet on the right, his wings spread limp on the ground, the launcher dropped beside him",
   "variance": {
     "size": 0.1,
     "speed": 0.05,
@@ -58,7 +64,7 @@
     "special_chance": 0.0,
     "special": {}
   },
-  "doc": "Sits down far off and fires a slow bright-red rocket that hunts you and cannot be shot down; the moment it is gone (it hit, or it burnt out) he reloads and fires the next, so one of his is always in the air. The blast throws you hard off your feet and throws every creature near it clear. Kill him and his rocket goes wild. A special: specials come on their own clock from 2:30, one at a time (a rocketeer or, from stage 2, a harpooner), the next 45 to 60 seconds after the last one dies.",
+  "doc": "A vulture with a rocket launcher (Garry's picture): keeps 28 m off and sends one slow homing rocket at the hero, then reloads; kill him and the rocket goes loose and dives on the crowd.",
   "anims": {
     "idle": 4,
     "run": 12,
@@ -77,7 +83,10 @@
   "outline_frac": 0.02,
   "outline_color": "#FFD24A",
   "badge": "gear",
-  "head": 1.0,
+  "head": 0.969,
   "can_be_elite": false,
-  "can_be_grabbed": false
+  "can_be_grabbed": false,
+  "anim_negative": "a rocket in the launcher, a missile, a shell, flames, smoke, the launcher swinging, the launcher moving, extra arms, a second launcher, flying, wings flapping, a human face",
+  "pose": "walk_hold",
+  "stand": "still"
 }

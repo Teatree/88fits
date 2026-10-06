@@ -1,0 +1,32 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://art/props/sun_scepter.glb" id="model"]
+[ext_resource type="Shader" path="res://core/shaders/shine_aura.gdshader" id="shine"]
+
+[sub_resource type="QuadMesh" id="glow_quad"]
+size = Vector2(1, 1)
+
+[sub_resource type="ShaderMaterial" id="glow_mat"]
+shader = ExtResource("shine")
+shader_parameter/mode = 0
+shader_parameter/tint = Color(1, 0.8, 0.32, 1)
+shader_parameter/strength = 0.0
+shader_parameter/rays = 8.0
+shader_parameter/push_back = 0.35
+shader_parameter/phase = 0.0
+shader_parameter/slope = Vector2(0, 0)
+
+[node name="SunScepterVisual" type="Node3D"]
+
+[node name="Familiar" type="Node3D" parent="."]
+transform = Transform3D(1.19, 0, 0, 0, 1.19, 0, 0, 0, 1.19, 0, 0, 0)
+
+[node name="Scepter" parent="Familiar" instance=ExtResource("model")]
+
+[node name="SunGlow" type="MeshInstance3D" parent="Familiar"]
+transform = Transform3D(0.643, 0, 0, 0, 0.643, 0, 0, 0, 0.643, 0, 0.3, 0)
+visible = false
+cast_shadow = 0
+extra_cull_margin = 2.0
+mesh = SubResource("glow_quad")
+material_override = SubResource("glow_mat")

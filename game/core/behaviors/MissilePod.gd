@@ -1,11 +1,32 @@
 ## A launcher that floats beside the hero and fires homing missiles. Every volley queues `amount` missiles that leave
 ## one after another in a fan; each corkscrews for a moment before it locks on and dives (ProjectileManager.launch_missile,
-## tuned by `params.missile`). The "Familiar" node of the visual scene is the pod: it tracks the nearest creature between
-## volleys and kicks back per launch. The same behaviour runs the Hornet Nest with faster, smaller, non-exploding seekers.
+## tuned by `params.missile`). The "Familiar" node of the visual scene is the pod: it tracks its target between volleys
+## and kicks back per launch. The same behaviour runs the Killer Bees (pass 49, Garry: "change the whole naming for this
+## one to be about Killer Bees, not Hornets"; the id stays hornet_nest) with faster, smaller, non-exploding seekers, the
+## bees, from a beehive: they and the Tarantula Hawks come out of its door (an "Entrance" marker, _launch_point).
+## Pass 48: a priority weapon tracks and locks on the strong and the close (aim_index, EnemyManager.priority_index);
+## `params.pollen` keeps a FlowerField on the map while the weapon is held, and while a picked flower's buff lasts the
+## bees fly red with red trails (a red kind, trail 4); `params.hawk {every, stings, seconds, slow}` sends a Tarantula Hawk
+## every `every` bursts (every burst while the Pollen buff lasts) at the strongest creature near that no hawk holds.
+## Pass 53: the rocket flies nose first (the visual's Projectile node is turned so its capsule lies along -Z; that turn
+## goes to the shot's kind, ProjectileManager.set_kind_basis); the cluster's tips are any count (Tip1..TipN, the Hellfire
+## Battery's six) and `params.cluster_spin` false keeps a two-row battery from revolving. Pressure Cooker
+## (params.pressure {max, seconds, start, hit_keeps}; Garry: "the longer the Player isn't hit the lower the cooldown
+## between rocket launches, getting hit resets this ... the rocket launcher 3d object gradually looks hotter (but not in
+## an alarming way)"): the ramp is the seconds since the hero was last hit over `seconds` (0..1); the fire interval is
+## the cooldown over 1 + bonus, bonus = start + (max - start) x ramp; a hit on his health or his Energy Shield sets the
+## ramp back to `hit_keeps` of itself (none: "resets it back"). The pod's body and tubes glow a dull orange with the ramp
+## (HEAT_COLOR up to HEAT_ENERGY). The Hellfire Battery's overpressure (params.overpressure {every}): with the ramp at
+## its top every `every`th volley is a double volley.
 class_name MissilePod
 extends WeaponBehavior
 
 const LAUNCH_GAP := 0.09
+## A bee on Pollen's buff (pass 48).
+const RED_BEE := Color(1.0, 0.18, 0.12)
+## The Pressure Cooker's glow (pass 53).
+const HEAT_COLOR := Color(1.0, 0.45, 0.15)
+const HEAT_ENERGY := 0.9
 
 var _familiar: Node3D
 var _orbit := 0.0
@@ -22,18 +43,208 @@ var _next_tube := 0
 var _empty: Array = []
 var _reload_t := 0.0
 var _kick := 0.0
+## Bursts fired (pass 48: the Tarantula Hawk comes every `hawk.every` of them), hawks sent.
+var bursts := 0
+var hawks_sent := 0
+var _red_kind := -1
+## The hive's door (pass 49, an "Entrance" marker in the Killer Bees' visual): the bees and the hawks come out of it.
+## A pod without one launches from just over its middle, as before.
+var _entrance: Node3D
+## Pressure Cooker (pass 53): when the hero was last hit, on Run.buff_clock(); the pod's materials that warm with the
+## ramp (duplicated once at setup) and the ramp they show; volleys fired at the top of the ramp (the overpressure count);
+## whether the last _process fired (the re-arm is then the pressure's interval)
+var _last_hit := 0.0
+var _pressure_wired := false
+var _heat_mats: Array = []
+## each heated material's own emission before the ramp, {color, energy}: the bottom of its warming
+var _heat_base: Array = []
+var _heat_shown := -1.0
+var _top_volleys := 0
+var _fired := false
+var _cluster_spins := true
+## Double volleys the overpressure gave (tests).
+var doubled := 0
 
 
 func _on_setup() -> void:
 	_familiar = visual.get_node_or_null("Familiar")
 	_orbit = randf() * TAU
+	_entrance = visual.get_node_or_null("Familiar/Body/Entrance") as Node3D
 	_cluster = visual.get_node_or_null("Familiar/Body/Cluster")
+	_cluster_spins = bool(inst.params.get("cluster_spin", true))
 	_tips.clear()
-	for k in range(1, 5):
+	# every tip the cluster has, Tip1 up (pass 53: the pod's four, the Hellfire Battery's six)
+	var k := 1
+	while true:
 		var tip := visual.get_node_or_null("Familiar/Body/Cluster/Tip%d" % k)
-		if tip:
-			_tips.append(tip)
+		if tip == null:
+			break
+		_tips.append(tip)
+		k += 1
+	# the rocket flies nose first (pass 53): the visual's Projectile node is turned so its capsule's long axis lies along
+	# -Z, and that turn goes to the shot's kind (WeaponBehavior._load_visual hands it over since pass 53 too; this keeps
+	# the pod right with a loader that registers mesh and scale alone, as the old one did)
+	var proj := visual.get_node_or_null("Projectile")
+	if proj is Node3D and projectile_kind >= 0 and game.projectiles.has_method("set_kind_basis"):
+		game.projectiles.set_kind_basis(projectile_kind, (proj as Node3D).transform.basis.orthonormalized())
+	_pressure_setup()
 	_place(0.0)
+	_keep_field()
+
+
+# ---------------------------------------------------------------- Pressure Cooker (pass 53)
+
+## Wires the Pressure Cooker when the weapon carries it: at setup, and from refresh_marks when the pick is taken mid-run
+## (a mutation never rebuilds the behaviour). The ramp starts from nothing at the pick ("every second without a hit");
+## a hit on his health, and one his Energy Shield took, both count (the shield power-up's absorb is neither).
+func _pressure_setup() -> void:
+	if _pressure_wired or _pressure().is_empty():
+		return
+	_pressure_wired = true
+	_last_hit = Run.buff_clock()
+	if player:
+		if player.has_signal("hit") and not player.is_connected("hit", Callable(self, "note_hit")):
+			player.connect("hit", Callable(self, "note_hit"))
+		if player.has_signal("shield_hit") and not player.is_connected("shield_hit", Callable(self, "_on_shield_hit")):
+			player.connect("shield_hit", Callable(self, "_on_shield_hit"))
+	_heat_setup()
+
+
+func _pressure() -> Dictionary:
+	var pr = inst.params.get("pressure") if inst else null
+	return pr if pr is Dictionary else {}
+
+
+## How far the pressure has built, 0..1: the seconds since the hero was last hit over `pressure.seconds`.
+func pressure_ramp() -> float:
+	var pr := _pressure()
+	if pr.is_empty():
+		return 0.0
+	var secs: float = maxf(float(pr.get("seconds", 20.0)), 0.01)
+	return clampf((Run.buff_clock() - _last_hit) / secs, 0.0, 1.0)
+
+
+## The attack speed the pressure gives now: `start` at the bottom of the ramp (0 without it), `max` at its top.
+func pressure_bonus() -> float:
+	var pr := _pressure()
+	if pr.is_empty():
+		return 0.0
+	var start := float(pr.get("start", 0.0))
+	return start + (float(pr.get("max", 0.5)) - start) * pressure_ramp()
+
+
+## Seconds between volleys: the sheet's cooldown over 1 + the pressure's bonus.
+func fire_interval() -> float:
+	return maxf(stat("cooldown", 1.0) / (1.0 + pressure_bonus()), 0.05)
+
+
+## The hero was hit: the ramp drops to `hit_keeps` of itself (to nothing without it; Garry: "resets it back").
+func note_hit() -> void:
+	var pr := _pressure()
+	if pr.is_empty():
+		return
+	var keeps: float = clampf(float(pr.get("hit_keeps", 0.0)), 0.0, 1.0)
+	var secs: float = maxf(float(pr.get("seconds", 20.0)), 0.01)
+	_last_hit = Run.buff_clock() - pressure_ramp() * keeps * secs
+
+
+func _on_shield_hit(_broke: bool) -> void:
+	note_hit()
+
+
+## The pod's materials that warm up (Garry: "the rocket launcher 3d object gradually looks hotter"): every
+## StandardMaterial3D on the body, tubes, fins and plates under Familiar/Body, each duplicated once so the glow is this
+## pod's alone; the warheads (Tip*) and a vent strip that already burns (Vent) are left as they are. Each keeps the
+## emission it had as the bottom of its ramp (the companion glow of pass 53, WeaponBehavior.glow_companions, lights every
+## dim material a little) and warms from there to HEAT_COLOR at HEAT_ENERGY. Emission stays on from the start, so no
+## shader changes under it later.
+func _heat_setup() -> void:
+	_heat_mats.clear()
+	_heat_base.clear()
+	var body := visual.get_node_or_null("Familiar/Body")
+	if body == null:
+		return
+	var seen := {}
+	for mi in body.find_children("*", "MeshInstance3D", true, false):
+		var m: MeshInstance3D = mi
+		# MeshMerge joins parts sharing a material under one "Merged_<first>" node
+		var nm := str(m.name).trim_prefix("Merged_")
+		if nm.begins_with("Tip") or nm.begins_with("Vent"):
+			continue
+		if m.material_override is StandardMaterial3D:
+			m.material_override = _heat_copy(m.material_override, seen)
+		elif m.mesh:
+			for s in range(m.mesh.get_surface_count()):
+				var sm = m.get_surface_override_material(s)
+				if sm == null:
+					sm = m.mesh.surface_get_material(s)
+				if sm is StandardMaterial3D:
+					m.set_surface_override_material(s, _heat_copy(sm, seen))
+	_heat_shown = -1.0
+
+
+## The heated copy of `src` (one per material, shared by the parts that shared it), its own emission remembered.
+func _heat_copy(src: StandardMaterial3D, seen: Dictionary) -> StandardMaterial3D:
+	var key := src.get_instance_id()
+	if seen.has(key):
+		return seen[key]
+	var dup: StandardMaterial3D = src.duplicate()
+	var base_col := Color(dup.emission.r, dup.emission.g, dup.emission.b) if dup.emission_enabled else HEAT_COLOR
+	var base_energy: float = dup.emission_energy_multiplier if dup.emission_enabled else 0.0
+	dup.emission_enabled = true
+	dup.emission = base_col
+	dup.emission_energy_multiplier = base_energy
+	seen[key] = dup
+	_heat_mats.append(dup)
+	_heat_base.append({"color": base_col, "energy": base_energy})
+	return dup
+
+
+## The glow follows the ramp (written only when it moved: a material set every frame is a needless upload).
+func _tick_heat() -> void:
+	if _heat_mats.is_empty():
+		return
+	var r := pressure_ramp()
+	if absf(r - _heat_shown) < 0.02 and not (r >= 1.0 and _heat_shown < 1.0) and not (r <= 0.0 and _heat_shown > 0.0):
+		return
+	_heat_shown = r
+	for k in range(_heat_mats.size()):
+		var m: StandardMaterial3D = _heat_mats[k]
+		var b: Dictionary = _heat_base[k]
+		m.emission = (b["color"] as Color).lerp(HEAT_COLOR, r)
+		m.emission_energy_multiplier = lerpf(float(b["energy"]), maxf(HEAT_ENERGY, float(b["energy"])), r)
+
+
+## The glow the pod shows now, 0..1 (tests).
+func heat_shown() -> float:
+	return maxf(_heat_shown, 0.0)
+
+
+func _process(delta: float) -> void:
+	_fired = false
+	super._process(delta)
+	if _fired and not _pressure().is_empty():
+		# the re-arm is the pressure's interval (WeaponBehavior re-arms with the sheet's cooldown alone)
+		cooldown_left = fire_interval()
+
+
+## Game calls this on every build change (a mutation taken does not rebuild the behaviour): Pollen's field comes with it,
+## and the Pressure Cooker is wired the moment it is picked (pass 53).
+func refresh_marks() -> void:
+	super.refresh_marks()
+	_keep_field()
+	_pressure_setup()
+
+
+## While this weapon carries Pollen, there is a flower field on the map (one, however many carry it; it goes by itself).
+func _keep_field() -> void:
+	if inst and game and inst.params.get("pollen") is Dictionary:
+		FlowerField.ensure(game)
+
+
+## Whether a picked flower's buff is on this weapon now.
+func pollen_on() -> bool:
+	return inst != null and Run.boost_left(FlowerField.buff_id(inst.def.id)) > 0.0
 
 
 ## The reload: while nothing is queued, every empty tube gets its tip back in turn, spread over most of the cooldown,
@@ -47,7 +258,7 @@ func _tick_pod(delta: float) -> void:
 	if _queue.is_empty() and not _empty.is_empty():
 		_reload_t -= delta
 		if _reload_t <= 0.0:
-			var gap: float = maxf(stat("cooldown", 1.0) * 0.7 / float(maxi(_tips.size(), 1)), 0.12)
+			var gap: float = maxf(fire_interval() * 0.7 / float(maxi(_tips.size(), 1)), 0.12)
 			_reload_t = gap
 			var tip: Node3D = _empty.pop_front()
 			if is_instance_valid(tip):
@@ -94,42 +305,94 @@ func _tick(delta: float) -> void:
 			_queue_t = LAUNCH_GAP
 			_launch_one()
 	var enemies: EnemyManager = game.enemies
-	var t := enemies.nearest_index(player.global_position, stat("range", 12.0))
+	# the pod faces what its seekers will go for (pass 48: the strong and the close for a priority weapon); seekers hunt
+	# off the screen too (pass 54)
+	var t := aim_index(player.global_position, stat("range", 12.0), "", true)
 	var want: Vector3 = (enemies.pos[t] - player.global_position) if t >= 0 else player.forward()
 	want.y = 0.0
 	if want.length_squared() > 0.0001:
 		_aim_yaw = lerp_angle(_aim_yaw, atan2(-want.x, -want.z), clampf(delta * 8.0, 0.0, 1.0))
 	_recoil = maxf(_recoil - delta * 8.0, 0.0)
+	_tick_heat()
 	_tick_pod(delta)
 	_place(delta)
 
 
 func _fire() -> bool:
-	var enemies: EnemyManager = game.enemies
-	if enemies.nearest_index(player.global_position, stat("range", 12.0)) < 0:
+	# homing: it fires at prey off the screen too (pass 54)
+	if aim_index(player.global_position, stat("range", 12.0), "", true) < 0:
 		return false
 	var n: int = maxi(stat_int("amount", 1), 1)
 	for k in range(n):
 		_queue.append(k)
+	# the Hellfire Battery's overpressure (pass 53): at the top of the ramp every `every`th volley is a double one
+	var op = inst.params.get("overpressure")
+	if op is Dictionary and pressure_ramp() >= 1.0:
+		_top_volleys += 1
+		if _top_volleys % maxi(int((op as Dictionary).get("every", 4)), 1) == 0:
+			for k in range(n):
+				_queue.append(k)
+			doubled += 1
 	_queue_t = 0.0
+	_fired = true
+	bursts += 1
+	var hk = inst.params.get("hawk")
+	if hk is Dictionary:
+		var every: int = maxi(int((hk as Dictionary).get("every", 4)), 1)
+		if bursts % every == 0 or pollen_on():
+			_send_hawk(hk)
 	return true
+
+
+## Where a shot leaves the pod: the hive's door when it has one (pass 49), else just over the pod's middle.
+func _launch_point() -> Vector3:
+	if _entrance and _entrance.is_inside_tree():
+		return _entrance.global_position
+	return (_familiar.global_position if _familiar else player.aim_origin(player.forward())) + Vector3(0, 0.2, 0)
+
+
+## A Tarantula Hawk from the pod at the strongest creature near that no hawk holds yet (TarantulaHawk.pick).
+func _send_hawk(cfg: Dictionary) -> void:
+	var from := _launch_point()
+	var prey := TarantulaHawk.pick(game.enemies, player.global_position, stat("range", 12.0), TarantulaHawk.held_serials(game))
+	if prey < 0:
+		return
+	if TarantulaHawk.launch(game, inst, from, prey, cfg):
+		hawks_sent += 1
+
+
+## The bees' kind while Pollen's buff lasts: the same mesh, red (made the first time).
+func _red() -> int:
+	if _red_kind < 0:
+		var pm: ProjectileManager = game.projectiles
+		if projectile_kind < 0 or projectile_kind >= pm.kinds.size():
+			return projectile_kind
+		var kd: Dictionary = pm.kinds[projectile_kind]
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = RED_BEE
+		mat.emission_enabled = true
+		mat.emission = RED_BEE
+		mat.emission_energy_multiplier = 0.9
+		_red_kind = pm.register_kind((kd["mm"] as MultiMesh).mesh, mat, float(kd["scale"]) / ProjectileManager.CHUNK, false, kd.get("basis", Basis()))
+	return _red_kind
 
 
 func _launch_one() -> void:
 	var k: int = _queue.pop_front()
-	var from: Vector3 = (_familiar.global_position if _familiar else player.aim_origin(player.forward())) + Vector3(0, 0.2, 0)
+	var from := _launch_point()
 	var aim := Vector3(-sin(_aim_yaw), 0, -cos(_aim_yaw))
 	# a fan: alternate sides of the aim, wider for the later ones, all tilted up; the corkscrew does the rest
 	var side: float = (1.0 if k % 2 == 0 else -1.0) * (0.3 + 0.22 * float(k / 2))
 	var dir: Vector3 = (aim + aim.rotated(Vector3.UP, PI * 0.5) * side + Vector3(0, 0.9, 0)).normalized()
+	var red := pollen_on()
 	var params := {
 		"wander": _missile_param("wander", 0.5),
 		"turn": _missile_param("turn", 6.0) * Run.player_sheet.get_stat("homing_turn", 1.0),
 		"spiral": _missile_param("spiral", 7.0),
 		"life": _missile_param("life", 4.5),
-		"trail": int(_missile_param("trail", 1.0)),
+		"trail": 4 if red else int(_missile_param("trail", 1.0)),
 	}
-	game.projectiles.launch_missile(projectile_kind, from, dir, stat("speed", 13.0), stat("damage", 12.0), stat("area", 1.5), stat("range", 12.0), inst, params, stat("knockback", 3.0))
+	game.projectiles.launch_missile(_red() if red else projectile_kind, from, dir, stat("speed", 13.0), stat("damage", 12.0), stat("area", 1.5), stat("range", 12.0), inst, params, stat("knockback", 3.0))
 	_recoil = 1.0
 	# the tube that fired shows empty and the cluster turns the next one up
 	if not _tips.is_empty():
@@ -138,7 +401,8 @@ func _launch_one() -> void:
 		if tip.visible:
 			tip.visible = false
 			_empty.append(tip)
-		_spin_target += PI * 0.5
+		if _cluster_spins:
+			_spin_target += PI * 0.5
 		_kick = 1.0
 		_reload_t = 0.35
 	muzzle_flash(from)

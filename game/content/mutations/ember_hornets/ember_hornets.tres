@@ -7,37 +7,32 @@
 [sub_resource type="Resource" id="Resource_mlrob"]
 script = ExtResource("1_v518q")
 stat = "fire_damage"
-op = "add"
 value = 3.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_083c4"]
 script = ExtResource("1_v518q")
 stat = "fire_duration"
-op = "add"
 value = 1.5
-target = "self"
 
 [sub_resource type="Resource" id="Resource_ri0f1"]
 script = ExtResource("1_v518q")
 stat = "fire_spread"
-op = "add"
 value = 0.3
-target = "self"
 
 [resource]
 script = ExtResource("2_mlrob")
 weapon = "hornet_nest"
 mutation_kind = "element"
 text = "Stings burn."
-vfx = "orange hornets, burning creatures"
+vfx = "orange bees, burning creatures"
 effects = [SubResource("Resource_mlrob"), SubResource("Resource_083c4"), SubResource("Resource_ri0f1")]
 id = "ember_hornets"
-display_name = "Ember Hornets"
+display_name = "Ember Bees"
 flavour = "Angry and on fire."
 rarity = "rare"
 element = "fire"
 weight = 8.0
+hidden = true
 icon = ExtResource("2_083c4")
 icon_file = "ember_hornets_icon.png"
 placeholder = {

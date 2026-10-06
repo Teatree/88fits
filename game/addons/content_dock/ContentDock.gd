@@ -3,7 +3,7 @@
 @tool
 extends VBoxContainer
 
-const TYPES := ["weapons", "evolutions", "passives", "mutations", "lines", "perks", "enemies", "bosses", "elites", "characters", "shop", "quests", "maps"]
+const TYPES := ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters", "shop", "quests", "maps"]
 const ROOT := "res://content/"
 
 var plugin: EditorPlugin
@@ -114,9 +114,9 @@ func _on_button(item: TreeItem, _column: int, _id: int, _mouse: int) -> void:
 	var launch := {}
 	match type:
 		"weapons", "evolutions":
-			launch = {"weapon": id, "level": 4, "fixed_starter": false}
+			launch = {"weapon": id, "level": 4}
 		"characters":
-			launch = {"character": id}
+			launch = {"character": id, "spawn": true}
 		"enemies", "bosses":
 			launch = {"weapon": "boomstick", "spawn_enemy": id}
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)

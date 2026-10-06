@@ -5,7 +5,7 @@
   "rarity": "common",
   "weight": 9,
   "behavior": "Thruster",
-  "targeting": "nearest",
+  "targeting": "priority",
   "tags": [
     "blade"
   ],
@@ -17,6 +17,7 @@
     "area": 1.0,
     "knockback": 6.0
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -24,9 +25,7 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.25
-      }
-    ],
-    [
+      },
       {
         "stat": "range",
         "op": "mul",
@@ -38,9 +37,7 @@
         "stat": "cooldown",
         "op": "mul",
         "value": -0.12
-      }
-    ],
-    [
+      },
       {
         "stat": "amount",
         "op": "add",
@@ -59,9 +56,7 @@
         "stat": "range",
         "op": "mul",
         "value": 0.2
-      }
-    ],
-    [
+      },
       {
         "stat": "amount",
         "op": "add",
@@ -70,7 +65,7 @@
     ]
   ],
   "evolves_with": "",
-  "evolves_into": "zweihander",
+  "evolves_into": "whirlwind",
   "params": {
     "thrust": {
       "out": 0.06,

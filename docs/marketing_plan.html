@@ -78,8 +78,8 @@
   .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
   .charts figure { margin: 0; }
   .steps { counter-reset: step; list-style: none; padding: 0; max-width: none; }
-  .steps li { counter-increment: step; display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: start; margin-bottom: 14px; }
-  .steps li::before { content: counter(step); font-family: "Baloo 2", sans-serif; font-weight: 800; font-size: 1.4rem; color: #fff; background: var(--pink); border-radius: 50%; width: 44px; height: 44px; display: grid; place-items: center; box-shadow: 0 4px 0 var(--pink-dark); }
+  .steps li { counter-increment: step; position: relative; padding-left: 64px; min-height: 48px; margin-bottom: 14px; }
+  .steps li::before { content: counter(step); font-family: "Baloo 2", sans-serif; font-weight: 800; font-size: 1.4rem; color: #fff; background: var(--pink); border-radius: 50%; width: 44px; height: 44px; display: grid; place-items: center; position: absolute; left: 0; top: 0; box-shadow: 0 4px 0 var(--pink-dark); }
   .steps b { display: block; }
   .note { border-left: 6px solid var(--pink); padding: 10px 14px; background: var(--bg-2); border-radius: 0 12px 12px 0; margin: 0 0 1.2rem; max-width: 66ch; }
   .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; font-size: 0.95rem; margin: 0 0 1rem; max-width: 66ch; }
@@ -275,13 +275,13 @@
 
   <h2 id="before">Before day one: the checklist</h2>
   <ol class="steps">
-    <li><b>A Google Play developer account</b> ($25 once), the app registered, a signed release build uploaded to open testing. The current keystore is the one we keep forever: a Play app's signature cannot change.</li>
-    <li><b>The store listing</b>: the hat icon, five screenshots with one-line captions (the horde, the level-up reveal, the portal, a boss, the Upgrade board), a 20-second trailer, a short description that says the genre in the first eight words ("A one-thumb survivor shooter in a desert that hates you"). Play's free <em>store listing experiments</em> can A/B the icon and the first screenshot during the test.</li>
-    <li><b>A privacy policy page</b> (PostHog, the EU region, the in-game switch) linked from the listing and the Data safety form filled in.</li>
-    <li><b>PostHog live</b> per the telemetry plan: at least <code>app_open</code>, <code>run_start</code>, <code>run_end</code>, <code>player_died</code>, <code>revive_decided</code>, and the new <code>install_attributed</code> from the Play referrer. Retention insights built before the first install lands.</li>
-    <li><b>A Meta Business account</b>, the ad account funded, the Play app registered under it; the pixel is not needed. For Route B, AppsFlyer Zero connected to Meta and the attribution plugin in the build.</li>
-    <li><b>The five videos</b> captured from the phone build (the capture tools in the repo give clean frames; the phone's own screen recorder gives the real thing), cut to 15 to 20 seconds, captions burnt in, 1080 × 1920.</li>
-    <li><b>The budget cap set on the ad account</b>, so an unwatched weekend cannot spend the comfortable test's money on the minimum test's question.</li>
+    <li><b>A Google Play developer account</b> $25 once. The app registered, a signed release build uploaded to open testing. The current keystore is the one we keep forever: a Play app's signature cannot change.</li>
+    <li><b>The store listing</b> The hat icon, five screenshots with one-line captions (the horde, the level-up reveal, the portal, a boss, the Upgrade board), a 20-second trailer, a short description that says the genre in the first eight words ("A one-thumb survivor shooter in a desert that hates you"). Play's free <em>store listing experiments</em> can A/B the icon and the first screenshot during the test.</li>
+    <li><b>A privacy policy page</b> Covering PostHog, the EU region and the in-game switch, linked from the listing, and the Data safety form filled in.</li>
+    <li><b>PostHog live</b> Per the telemetry plan: at least <code>app_open</code>, <code>run_start</code>, <code>run_end</code>, <code>player_died</code>, <code>revive_decided</code>, and the new <code>install_attributed</code> from the Play referrer. Retention insights built before the first install lands.</li>
+    <li><b>A Meta Business account</b> The ad account funded, the Play app registered under it; the pixel is not needed. For Route B, AppsFlyer Zero connected to Meta and the attribution plugin in the build.</li>
+    <li><b>The five videos</b> Captured from the phone build (the capture tools in the repo give clean frames; the phone's own screen recorder gives the real thing), cut to 15 to 20 seconds, captions burnt in, 1080 × 1920.</li>
+    <li><b>The budget cap set on the ad account</b> So an unwatched weekend cannot spend the comfortable test's money on the minimum test's question.</li>
   </ol>
 
   <h2 id="plan">The three weeks</h2>

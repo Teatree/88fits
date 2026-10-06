@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_47rqv"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_5qya5"]
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_sprite.png" id="3_i6cym"]
+
+[resource]
+script = ExtResource("2_5qya5")
+archetype = "brute"
+doc = "The debug arena's punching bag: it stands where it is put, takes every hit like a creature and never hits back."
+brain = "dummy"
+hp = 500.0
+speed = 1.2
+damage = 0.0
+radius = 0.45
+size = 1.7
+drops = {}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 6.0,
+"run_b": 6.0
+}
+sprite = ExtResource("3_i6cym")
+sprite_file = "training_dummy_sprite.png"
+frame_px = 160
+strip_cols = 28
+fps = {
+"die": 8.0,
+"run": 10.0
+}
+badge = "none"
+head = 0.981
+can_be_elite = false
+sfx = {
+"die": "st_barrel_break",
+"hit": "en_goblin_hit"
+}
+xp_mult = 0.0
+id = "training_dummy"
+display_name = "Training Dummy"
+flavour = "It never complains."
+hidden = true
+icon = ExtResource("1_47rqv")
+icon_file = "training_dummy_icon.png"
+placeholder = {
+"color": "#C8A060",
+"eyes": 0.0,
+"shape": "tall"
+}

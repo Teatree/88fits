@@ -7,6 +7,7 @@
   "hp": 280,
   "speed": 0.95,
   "damage": 14,
+  "knockback": 6.36,
   "radius": 1.1,
   "size": 3.4,
   "pack_size": 1,
@@ -17,10 +18,10 @@
     "large": 1.0,
     "medium": 1.0,
     "gold": 0.5,
-    "chest": 0.22,
+    "chest": 0.08,
     "pickup": {
       "id": "rage",
-      "chance": 0.3
+      "chance": 0.12
     }
   },
   "frame_px": 256,
@@ -52,7 +53,7 @@
     "eyes": 2,
     "shape": "tall"
   },
-  "art_prompt": "a hulking desert ogre giant with grey-brown weathered skin, a huge bald head with a heavy brow, small eyes and a wide underbite with two tusks, a ragged hide loincloth and a thick rope belt, tree-trunk legs and bare feet, holding an enormous stone sledgehammer with a thick wooden handle in both hands with its head resting on one shoulder, two arms and two legs, standing on the ground facing the viewer",
+  "art_prompt": "a hulking desert ogre giant with grey-brown weathered skin, a huge bald head with a heavy brow, small eyes and a wide underbite with two tusks, a ragged hide loincloth and a thick rope belt, tree-trunk legs and bare feet, holding an enormous stone sledgehammer with a thick wooden handle in both hands with its head resting on one shoulder, two arms and two legs, standing on the ground facing the viewer, the sledgehammer has exactly one long straight wooden handle gripped in both fists",
   "variance": {
     "size": 0.1,
     "speed": 0.08,
@@ -65,9 +66,9 @@
     "special_chance": 0.0
   },
   "motion": "lumbering in place with slow heavy steps, the huge stone hammer resting on its shoulder the whole time",
-  "anim_negative": "extra arms, a third arm, two hammers, extra legs, extra heads",
+  "anim_negative": "extra arms, a third arm, two hammers, extra legs, extra heads, a second handle, two handles, two hammers",
   "dead_hint": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, the huge stone hammer lying on the ground beside its open hand",
-  "back_hint": "It still holds the enormous stone hammer over one shoulder, the hammer's head visible above its shoulder.",
+  "back_hint": "It still holds the enormous stone hammer over one shoulder, the hammer's head visible above its shoulder. The hammer has one single straight wooden handle.",
   "death": "clip",
   "death_frames": 8,
   "anims": {
@@ -83,7 +84,130 @@
     "run": 15,
     "die": 12
   },
-  "doc": "The giant: slow, three metres of it, 280 HP. Close enough, it raises the hammer (a red ring) and smacks the floor for 42 and a throw across the sand. Never more than three; a chest or a Berserk falls from one in four.",
+  "doc": "The giant: slow, three metres of it, 280 HP. Close enough, it raises the hammer (a red ring) and smacks the floor for 42 and a throw across the sand. Never more than three; now and then a chest (8%) or a Berserk (12%) falls from one.",
   "strip_cols": 43,
-  "head": 0.992
+  "head": 0.992,
+  "variant_base": "HG-0",
+  "variants": {
+    "HG-0": {
+      "note": "Pass 45: grey-brown, the hammer on the shoulder (its handle showed across the back)"
+    },
+    "HG-A": {
+      "note": "Ochre-sand skin, the hammer hanging at his side",
+      "recipe": {
+        "stills": "hga",
+        "art_prompt": "a hulking desert ogre giant with warm ochre-sand yellow-brown skin, a huge bald head with a heavy brow, small eyes and a wide underbite with two tusks, a ragged hide loincloth and a thick rope belt, tree-trunk legs and bare feet, holding the enormous stone hammer in his right fist down at his side, the handle hanging straight down beside his right leg and the stone head resting on the ground beside his right foot, two arms and two legs, standing on the ground facing the viewer, the sledgehammer has exactly one long straight wooden handle",
+        "back_hint": "It still holds the enormous stone hammer down at its right side: from behind, the handle hangs straight down beside its right leg and the stone head sits on the ground beside its right foot, fully visible beside the body. Nothing crosses its back.",
+        "motion": "lumbering in place with slow heavy steps, the stone hammer hanging at its right side in its fist the whole time, the head dragging by its right foot",
+        "screen": "green",
+        "anim_negative": "extra arms, a third arm, two hammers, extra legs, extra heads, a second handle, two handles, the hammer passing through the body, the hammer behind the back",
+        "dead_hint": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, the huge stone hammer lying on the ground beside its open hand"
+      },
+      "sprite": "hammer_giant_sprite_a.png",
+      "icon": "hammer_giant_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0
+    },
+    "HG-B": {
+      "note": "Slate blue-grey skin, the hammer held across the chest",
+      "recipe": {
+        "stills": "hgb",
+        "art_prompt": "a hulking desert ogre giant with slate blue-grey skin, a huge bald head with a heavy brow, small eyes and a wide underbite with two tusks, a ragged hide loincloth and a thick rope belt, tree-trunk legs and bare feet, holding the enormous stone hammer slanted across the front of his body in both fists, the stone head low beside his left hip and the end of the handle up by his right shoulder, two arms and two legs, standing on the ground facing the viewer, the sledgehammer has exactly one long straight wooden handle",
+        "back_hint": "It holds the enormous stone hammer slanted across the front of its body: from behind, only the stone head shows low beside its left hip and the end of the handle above its right shoulder; both elbows are bent forward. No handle crosses its back.",
+        "motion": "lumbering in place with slow heavy steps, holding the stone hammer slanted across its body in both fists the whole time",
+        "screen": "green",
+        "anim_negative": "extra arms, a third arm, two hammers, extra legs, extra heads, a second handle, two handles, the hammer passing through the body, the hammer behind the back",
+        "dead_hint": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, the huge stone hammer lying on the ground beside its open hand"
+      },
+      "sprite": "hammer_giant_sprite_b.png",
+      "icon": "hammer_giant_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0
+    },
+    "HG-C": {
+      "note": "Oxblood-red skin, the hammer on the shoulder, out to the side",
+      "recipe": {
+        "stills": "hgc",
+        "art_prompt": "a hulking desert ogre giant with deep oxblood-red skin, a huge bald head with a heavy brow, small eyes and a wide underbite with two tusks, a ragged hide loincloth and a thick rope belt, tree-trunk legs and bare feet, carrying the enormous stone hammer across the top of his shoulders behind his neck, the long handle lying across both shoulders and the stone head sticking out beside his left shoulder, his right fist resting on his chest, two arms and two legs, standing on the ground facing the viewer, the sledgehammer has exactly one long straight wooden handle",
+        "back_hint": "The enormous stone hammer lies across the top of its shoulders behind its neck: from behind, the long wooden handle is seen lying across the top of both shoulders, above its back and never through it, with the stone head sticking out beside one shoulder.",
+        "motion": "lumbering in place with slow heavy steps, the stone hammer lying across the top of its shoulders the whole time",
+        "screen": "green",
+        "anim_negative": "extra arms, a third arm, two hammers, extra legs, extra heads, a second handle, two handles, the hammer passing through the body, the hammer behind the back",
+        "dead_hint": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, the huge stone hammer lying on the ground beside its open hand"
+      },
+      "sprite": "hammer_giant_sprite_c.png",
+      "icon": "hammer_giant_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0
+    },
+    "HG-D": {
+      "note": "Mossy grey-green skin, the hammer held low in front",
+      "recipe": {
+        "stills": "hgd",
+        "art_prompt": "a hulking desert ogre giant with mossy grey-green skin with darker green patches, a huge bald head with a heavy brow, small eyes and a wide underbite with two tusks, a ragged hide loincloth and a thick rope belt, tree-trunk legs and bare feet, holding the enormous stone hammer low in front of him in both fists, the handle pointing straight down and the stone head hanging just above the ground between his feet, two arms and two legs, standing on the ground facing the viewer, the sledgehammer has exactly one long straight wooden handle",
+        "back_hint": "It holds the enormous stone hammer low in front of itself in both fists: from behind, only the bottom of the stone head shows between its feet, and both arms reach down in front. No handle crosses its back.",
+        "motion": "lumbering in place with slow heavy steps, the stone hammer hanging low in front of it in both fists the whole time",
+        "screen": "blue",
+        "anim_negative": "extra arms, a third arm, two hammers, extra legs, extra heads, a second handle, two handles, the hammer passing through the body, the hammer behind the back",
+        "dead_hint": "lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, the huge stone hammer lying on the ground beside its open hand"
+      },
+      "sprite": "hammer_giant_sprite_d.png",
+      "icon": "hammer_giant_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0
+    }
+  },
+  "variant": "HG-A"
 }

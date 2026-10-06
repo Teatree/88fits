@@ -1,13 +1,14 @@
 {
   "id": "stampede",
+  "hidden": true,
   "name": "Stampede",
   "flavour": "Every tumbleweed in the county, at once.",
-  "rarity": "epic",
+  "rarity": "rare",
   "is_evolution": true,
   "evolved_from": "tumbleweed",
   "max_level": 1,
   "behavior": "ProjectileEmitter",
-  "targeting": "nearest",
+  "targeting": "priority",
   "base": {
     "damage": 22,
     "cooldown": 2.0,

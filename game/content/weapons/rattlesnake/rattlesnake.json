@@ -20,6 +20,7 @@
   "params": {
     "spin_speed": 4.2
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -27,9 +28,7 @@
         "stat": "poison_damage",
         "op": "mul",
         "value": 0.2
-      }
-    ],
-    [
+      },
       {
         "stat": "orbit_radius",
         "op": "add",
@@ -41,9 +40,7 @@
         "stat": "poison_damage",
         "op": "mul",
         "value": 0.2
-      }
-    ],
-    [
+      },
       {
         "stat": "poison_stacks",
         "op": "add",
@@ -62,9 +59,7 @@
         "stat": "poison_damage",
         "op": "mul",
         "value": 0.25
-      }
-    ],
-    [
+      },
       {
         "stat": "poison_stacks",
         "op": "add",

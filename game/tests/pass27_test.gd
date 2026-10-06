@@ -11,7 +11,9 @@ func _start(hero: String = "astro") -> void:
 func test_path_slots_come_due_at_the_stage_times() -> void:
 	_start()
 	var times: Array = Run.map.timeline.path_times_at(0)
-	assert_int(times.size()).is_greater_equal(Run.weapon_cap() + 1)
+	# as many slots as stage 1's weapon cap was (four) and a spare; pass 47 opened all six weapon slots from the start, and
+	# whether stage 1 gets more path slots for them is the map's to say (red_canyon's path_times)
+	assert_int(times.size()).is_greater_equal(5)
 	assert_bool(Run.path_due(float(times[0]) - 1.0)).is_false()
 	assert_bool(Run.path_due(float(times[0]) + 0.1)).is_true()
 	assert_bool(Run.path_due(float(times[0]) + 0.2)).override_failure_message("a slot fired twice").is_false()
@@ -29,9 +31,10 @@ func test_the_path_table_holds_the_whole_path() -> void:
 	_start("astro")
 	Run.add_weapon(Registry.weapon("hornet_nest"), 1)
 	Run.add_weapon(Registry.weapon("orbit_saws"), 4)
-	# the highest-level open path goes first
+	# pass 54: the weapon is drawn at random among the open paths (it was the highest level); either may come
 	var w := Run.next_path_weapon()
-	assert_str(w.def.id).is_equal("orbit_saws")
+	assert_bool(w.def.id == "orbit_saws" or w.def.id == "hornet_nest").is_true()
+	w = Run.weapon_instance("orbit_saws")
 	var offer := CardPool.path_offer(w)
 	# three path picks and Astro's own Gyro Saws after them
 	assert_int(offer.size()).is_equal(4)
@@ -45,7 +48,7 @@ func test_the_path_table_holds_the_whole_path() -> void:
 	assert_str(Run.next_path_weapon().def.id).is_equal("hornet_nest")
 	CardPool.apply(CardPool.path_offer(Run.next_path_weapon())[1])   # the volume pick: no element commits the run
 	assert_object(Run.next_path_weapon()).is_null()
-	# the hero mutation never spends the pick
+	# next stage: the two path picks left and Astro's own option, which was not taken
 	Run.stage = 1
 	var o2 := CardPool.path_offer(Run.weapon_instance("orbit_saws"))
 	assert_int(o2.size()).is_equal(3)

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>88fits Level Editor</title>
+<meta name="description" content="The wave timeline of an 88fits map on a calendar: the cap, the roster, the waves, the events; edit, check, save, import.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%231a1a19'/%3E%3Cpath d='M2 11L6 7l3 2 5-5' fill='none' stroke='%233987e5' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- the glyphs every lane and chip uses: <use href="#g-name"> (pass 53); they take their fill from the <use> -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+  <symbol id="g-skull" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1.5C4.7 1.5 2.2 4 2.2 7.1c0 1.9.9 3.4 2.3 4.4V14h1.5v-1.6h1.2V14h1.6v-1.6h1.2V14h1.5v-2.5c1.4-1 2.3-2.5 2.3-4.4C13.8 4 11.3 1.5 8 1.5zM5.7 9.2a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm4.6 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM8 9.6l.9 1.6H7.1z"/></symbol>
+  <symbol id="g-crown" viewBox="0 0 16 16"><path d="M1.5 5.5l3.3 2.6L8 3l3.2 5.1 3.3-2.6-1.3 7H2.8zM2.8 13.5h10.4V15H2.8z"/></symbol>
+  <symbol id="g-star" viewBox="0 0 16 16"><path d="M8 1.3l2.05 4.35 4.75.6-3.5 3.3.9 4.7L8 12l-4.2 2.25.9-4.7-3.5-3.3 4.75-.6z"/></symbol>
+  <symbol id="g-repeat" viewBox="0 0 16 16"><path d="M8 2.5A5.5 5.5 0 0 1 13.5 8h2l-3 3-3-3h2A3.5 3.5 0 0 0 8 4.5zM8 13.5A5.5 5.5 0 0 1 2.5 8h-2l3-3 3 3h-2A3.5 3.5 0 0 0 8 11.5z"/></symbol>
+  <symbol id="g-ring" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 1 0 0-13zm0 2.6a3.9 3.9 0 1 1 0 7.8 3.9 3.9 0 1 1 0-7.8z"/></symbol>
+  <symbol id="g-wrench" viewBox="0 0 16 16"><path d="M14.6 4.4a4.2 4.2 0 0 1-5.2 5.1l-5.3 5.3L1.4 12l5.3-5.3a4.2 4.2 0 0 1 5.1-5.2L9.5 3.8l2.7 2.7z"/></symbol>
+  <symbol id="g-flag" viewBox="0 0 16 16"><path d="M3 1.5h1.6v13H3zM4.6 2.5h8.2l-2 3 2 3H4.6z"/></symbol>
+  <symbol id="g-warn" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 1.5l7 12.5H1zM7.2 6h1.6v4H7.2zm0 5h1.6v1.6H7.2z"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="brand">88fits · <span>Level Editor</span></div>
+  <label class="map-pick">Map <select id="map-select" title="which map's timeline to edit"></select></label>
+  <span id="map-name" class="map-name"></span>
+  <span id="map-file" class="map-file" title="the file Save writes"></span>
+  <span id="dirty-dot" class="dirty-dot" hidden title="unsaved changes">●</span>
+  <span class="spacer"></span>
+  <label class="level-pick" title="the hero level the hover cards and the readout assume: creatures gain level_hp_per_level of HP and level_damage_per_level of damage per level above 1 (a page setting, never written to the map)">Hero level <input id="assume-level" class="num tiny" type="number" min="1" max="99" step="1" value="1"></label>
+  <button id="btn-undo" class="btn" type="button" title="Undo (Ctrl+Z)" disabled>Undo</button>
+  <button id="btn-redo" class="btn" type="button" title="Redo (Ctrl+Y)" disabled>Redo</button>
+  <button id="btn-revert" class="btn" type="button" title="Back to the file as it was saved" disabled>Revert</button>
+  <button id="btn-export" class="btn" type="button" title="Download a copy of the map JSON">Export JSON</button>
+  <button id="btn-save" class="btn primary" type="button" title="Write the JSON and import it (Ctrl+S)" disabled>Save</button>
+</header>
+
+<nav class="tabs">
+  <button type="button" data-tab="timeline" class="active">Timeline</button>
+  <button type="button" data-tab="settings">Settings</button>
+  <button type="button" data-tab="creatures">Creatures</button>
+  <button type="button" data-tab="instructions">Instructions</button>
+  <span id="issues" class="issues good" title="what the checks say (the inspector lists them when nothing is selected)">no issues</span>
+  <span class="spacer"></span>
+  <span id="zoom-box" class="zoom-box">
+    <button id="zoom-out" class="btn small" type="button" title="zoom out (−, or Ctrl + wheel)">−</button>
+    <span id="zoom-label" class="zoom-label"></span>
+    <button id="zoom-in" class="btn small" type="button" title="zoom in (+, or Ctrl + wheel)">+</button>
+    <button id="zoom-fit" class="btn small" type="button" title="the whole run in the window">Fit</button>
+  </span>
+  <span id="clock" class="clock" title="the run clock under the mouse"></span>
+</nav>
+
+<div class="status-bar">
+  <span id="status" class="status"></span>
+  <pre id="status-detail" class="status-detail" hidden></pre>
+</div>
+
+<main>
+  <section id="tab-timeline" class="tab-panel">
+    <div id="timeline" class="timeline"></div>
+    <aside id="inspector" class="inspector"></aside>
+  </section>
+  <section id="tab-settings" class="tab-panel page" hidden></section>
+  <section id="tab-creatures" class="tab-panel page" hidden></section>
+  <section id="tab-instructions" class="tab-panel page" hidden></section>
+</main>
+
+<div id="toasts" class="toasts"></div>
+
+<script src="util.js"></script>
+<script src="model.js"></script>
+<script src="fields.js"></script>
+<script src="app.js"></script>
+<script src="timeline.js"></script>
+<script src="forms.js"></script>
+<script src="inspector.js"></script>
+<script src="settings.js"></script>
+<script src="creatures.js"></script>
+<script src="instructions.js"></script>
+</body>
+</html>

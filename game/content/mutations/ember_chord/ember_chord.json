@@ -4,12 +4,13 @@
   "flavour": "Hot licks.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "guitarra",
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "Every note sets what it hits alight.",
-  "vfx": "orange notes and the burn's flames",
+  "text": "Every chord sets what it lifts alight.",
+  "vfx": "an orange wash and orange notes, and the burn's flames on everything it lifts",
   "effects": [
     {
       "stat": "fire_damage",

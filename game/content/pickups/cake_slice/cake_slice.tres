@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PickupDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/pickups/cake_slice/cake_slice_icon.png" id="1_8t0li"]
+[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="2_gkrht"]
+
+[resource]
+script = ExtResource("2_gkrht")
+value = 0.06
+lifetime = 30.0
+params = {
+"quiet": true,
+"small": true
+}
+color = Color(0.95686275, 0.6509804, 0.72156864, 1)
+id = "cake_slice"
+display_name = "Cake Slice"
+flavour = "A small slice of health."
+weight = 0.0
+icon = ExtResource("1_8t0li")
+icon_file = "cake_slice_icon.png"
+placeholder = {
+"color": "#F4A6B8",
+"glyph": "heart"
+}

@@ -10,54 +10,42 @@ script = ExtResource("2_3s3cw")
 stat = "poison_damage"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_3s3cw"]
 script = ExtResource("2_3s3cw")
 stat = "orbit_radius"
-op = "add"
 value = 0.3
-target = "self"
 
 [sub_resource type="Resource" id="Resource_hfvfl"]
 script = ExtResource("2_3s3cw")
 stat = "poison_damage"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_kv68u"]
 script = ExtResource("2_3s3cw")
 stat = "poison_stacks"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_srr3h"]
 script = ExtResource("2_3s3cw")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_0i4tm"]
 script = ExtResource("2_3s3cw")
 stat = "poison_damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [sub_resource type="Resource" id="Resource_45p7q"]
 script = ExtResource("2_3s3cw")
 stat = "poison_stacks"
-op = "add"
 value = 1.0
-target = "self"
 
 [resource]
 script = ExtResource("2_viuen")
 behavior = "Orbiter"
-tags = []
 targeting = "orbit"
 base = {
 "amount": 1.0,
@@ -70,12 +58,9 @@ base = {
 "poison_duration": 10.0,
 "poison_stacks": 1.0
 }
-levels = [[], [SubResource("Resource_viuen")], [SubResource("Resource_3s3cw")], [SubResource("Resource_hfvfl")], [SubResource("Resource_kv68u")], [SubResource("Resource_srr3h")], [SubResource("Resource_0i4tm")], [SubResource("Resource_45p7q")]]
-max_level = 8
-evolves_with = ""
+levels = [[], [SubResource("Resource_viuen"), SubResource("Resource_3s3cw")], [SubResource("Resource_hfvfl"), SubResource("Resource_kv68u")], [SubResource("Resource_srr3h")], [SubResource("Resource_0i4tm"), SubResource("Resource_45p7q")]]
+max_level = 5
 evolves_into = "snake_pit"
-is_evolution = false
-evolved_from = ""
 sfx = {
 "hit": "w_snake_bite",
 "loop": "w_snake_rattle"
@@ -85,15 +70,12 @@ visual_file = "rattlesnake_visual.tscn"
 params = {
 "spin_speed": 4.2
 }
-hero = ""
 id = "rattlesnake"
 display_name = "Rattlesnake"
 flavour = "It is not venom. It is spite. Fine, it is venom."
 rarity = "rare"
-element = ""
 weight = 7.0
 hidden = true
-from_stage = 0
 icon = ExtResource("1_viuen")
 icon_file = "rattlesnake_icon.png"
 placeholder = {

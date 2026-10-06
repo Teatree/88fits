@@ -2,7 +2,7 @@
   "id": "grand_finale",
   "name": "Grand Finale",
   "flavour": "Big finish.",
-  "rarity": "epic",
+  "rarity": "rare",
   "weight": 6,
   "hero": "calavera",
   "text": "When a boss or an Elite dies, every creature within 14 m takes 35% of its health and is thrown back.",

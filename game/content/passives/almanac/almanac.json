@@ -1,0 +1,27 @@
+{
+  "id": "almanac",
+  "name": "Almanac",
+  "flavour": "Every lesson written down, and the weather besides.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "xp_gain",
+        "op": "mul",
+        "value": 0.5,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "field_notes",
+  "art_prompt": "a thick old leather-bound almanac book with brass corner guards and a golden sun emblem on its cover, a purple ribbon bookmark hanging out, faint purple glow from its pages",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

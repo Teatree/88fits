@@ -1,5 +1,6 @@
-## One talent on the Mirror (content/talents/<id>): two mutually exclusive forms, three ranks, a gold cost a rank.
-## The hero picks a form and buys ranks of it; switching form or refunding costs nothing (Save.talent_refund_all).
+## One talent on the Mirror (content/talents/<id>): two mutually exclusive forms, six ranks (three until pass 46), a gold cost a rank.
+## The hero picks a form and buys ranks of it; switching form is free, and taking it all back returns half the gold
+## (Save.REFUND_FRAC, Save.talent_refund_all).
 class_name TalentDef
 extends ContentDef
 
@@ -7,9 +8,10 @@ extends ContentDef
 @export var order: int = 0
 ## how many ranks a form may take
 @export var ranks: int = 3
-## gold for rank 1, 2, 3
+## gold for each rank, one entry a rank (as many as `ranks`)
 @export var cost: Array = []
-## two entries: {"name", "text", "effects": [Effect]}
+## two entries: {"name", "text", "effects": [Effect]}, and optionally "rank_effects": [[Effect], ...] (pass 46): one list
+## a rank, for a form whose ranks are not all the same step (rank 2 is lists 0 and 1); without it every rank is `effects`
 @export var forms: Array = []
 
 
@@ -25,10 +27,28 @@ func form_text(form: int) -> String:
 	return str((forms[form] as Dictionary).get("text", ""))
 
 
-## The effects of `form` at `rank` ranks: the form's own effects repeated, so rank 3 is three times rank 1.
+## How many ranks a form may take.
+func max_rank() -> int:
+	return ranks
+
+
+## The form's per-rank lists (pass 46), empty when every rank is the same step.
+func _rank_lists(form: int) -> Array:
+	var rl = (forms[form] as Dictionary).get("rank_effects", [])
+	return rl if rl is Array else []
+
+
+## The effects of `form` at `rank` ranks: its rank lists 0..rank-1 together when it has them, else the form's own effects
+## repeated, so rank 3 is three times rank 1.
 func effects_for(form: int, rank: int) -> Array:
 	var out: Array = []
 	if form < 0 or form >= forms.size() or rank <= 0:
+		return out
+	var rl := _rank_lists(form)
+	if not rl.is_empty():
+		for k in range(mini(rank, rl.size())):
+			if rl[k] is Array:
+				out.append_array(rl[k])
 		return out
 	var base: Array = (forms[form] as Dictionary).get("effects", [])
 	for k in range(rank):
@@ -36,8 +56,36 @@ func effects_for(form: int, rank: int) -> Array:
 	return out
 
 
-## The price of the next rank when `rank` are already owned, or -1 when the form is full.
+## The ranks summed for reading (pass 45): one Effect per stat at the ranks' total ("+30% max HP" at rank 3). Text
+## only; the sheet still folds effects_for.
+func summed_effects(form: int, rank: int) -> Array:
+	var out: Array = []
+	if form < 0 or form >= forms.size() or rank <= 0:
+		return out
+	if _rank_lists(form).is_empty():
+		for e in (forms[form] as Dictionary).get("effects", []):
+			if e is Effect:
+				out.append(Effect.make(e.stat, e.op, e.value * rank, e.target))
+		return out
+	# rank lists: one Effect per stat, op and target, in the order they first appear; a "set" keeps the last value
+	var at: Dictionary = {}
+	for e in effects_for(form, rank):
+		if not (e is Effect):
+			continue
+		var key := "%s|%s|%s" % [e.stat, e.op, e.target]
+		if at.has(key):
+			var acc: Effect = out[int(at[key])]
+			acc.value = e.value if e.op == "set" else acc.value + e.value
+		else:
+			at[key] = out.size()
+			out.append(Effect.make(e.stat, e.op, e.value, e.target))
+	return out
+
+
+## The price of the next rank when `rank` are already owned, or -1 when the form is full: past `ranks` or past the
+## price list, whichever ends first (pass 46: the two can never disagree silently; tools/import_json.gd warns when they
+## differ in length).
 func cost_of_rank(rank: int) -> int:
-	if rank < 0 or rank >= cost.size():
+	if rank < 0 or rank >= ranks or rank >= cost.size():
 		return -1
 	return int(cost[rank])

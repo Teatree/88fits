@@ -1,0 +1,46 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/skedaddle/skedaddle_icon.png" id="1_83buf"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_iprfb"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_83buf"]
+
+[sub_resource type="Resource" id="Resource_83buf"]
+script = ExtResource("1_iprfb")
+stat = "hurt_speed"
+value = 0.2
+target = "player"
+
+[sub_resource type="Resource" id="Resource_tk04s"]
+script = ExtResource("1_iprfb")
+stat = "hurt_speed_seconds"
+value = 1.5
+target = "player"
+
+[sub_resource type="Resource" id="Resource_cns2q"]
+script = ExtResource("1_iprfb")
+stat = "hurt_speed"
+value = 0.05
+target = "player"
+
+[sub_resource type="Resource" id="Resource_esmtn"]
+script = ExtResource("1_iprfb")
+stat = "hurt_speed_seconds"
+value = 0.5
+target = "player"
+
+[resource]
+script = ExtResource("2_83buf")
+levels = [[SubResource("Resource_83buf"), SubResource("Resource_tk04s")], [SubResource("Resource_cns2q"), SubResource("Resource_esmtn")]]
+max_level = 5
+text = "After a hit, run 20% faster for 1.5 s (+5% and +0.5 s a level)."
+id = "skedaddle"
+display_name = "Skedaddle"
+flavour = "When the lead flies, so do you."
+rarity = "rare"
+weight = 7.0
+icon = ExtResource("1_83buf")
+icon_file = "skedaddle_icon.png"
+placeholder = {
+"color": "#D0453A",
+"glyph": "boot"
+}

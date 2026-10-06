@@ -3,11 +3,14 @@
   "name": "Spite",
   "flavour": "Punish the touch, or drink from it.",
   "order": 8,
-  "ranks": 3,
+  "ranks": 6,
   "cost": [
     200,
     360,
-    600
+    600,
+    900,
+    1300,
+    1800
   ],
   "forms": [
     {

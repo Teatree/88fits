@@ -7,7 +7,7 @@
     "count": 60
   },
   "unlocks": {
-    "type": "line",
+    "type": "passive",
     "id": "thirst"
   },
   "art_prompt": "a glass jar with a water canteen inside",

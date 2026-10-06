@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_pr7ni"]
+[ext_resource type="Texture2D" path="res://content/passives/powder_keg/powder_keg_icon.png" id="1_wwjp8"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_wwjp8"]
+
+[sub_resource type="Resource" id="Resource_wwjp8"]
+script = ExtResource("1_pr7ni")
+stat = "powder_keg_chance"
+value = 0.05
+target = "player"
+
+[sub_resource type="Resource" id="Resource_jnkjt"]
+script = ExtResource("1_pr7ni")
+stat = "powder_keg_chance"
+value = 0.025
+target = "player"
+
+[resource]
+script = ExtResource("2_wwjp8")
+levels = [[SubResource("Resource_wwjp8")], [SubResource("Resource_jnkjt")]]
+max_level = 5
+text = "A kill has a 5% chance to blow up (+2.5% a level): a quarter of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow."
+id = "powder_keg"
+display_name = "Powder Keg"
+flavour = "Handle with care. Or don't."
+rarity = "uncommon"
+weight = 8.0
+icon = ExtResource("1_wwjp8")
+icon_file = "powder_keg_icon.png"
+placeholder = {
+"color": "#D08A3A",
+"glyph": "boom"
+}

@@ -1,13 +1,20 @@
 ## Upgrade (Wanted 03/03b; "The Mirror" until pass 44, when Garry asked for a name that says what it is for): the meta
-## between runs. Eight talents, each with two mutually exclusive forms and three ranks. The board shows each talent's
-## name, its rank notches, the live form and what it does, and the next rank's price; a tap opens the talent's sheet
-## over a sepia dim: the two forms side by side (switching is free and keeps the ranks), what the ranks give now, and
-## the next rank for gold. "Take it all back" empties the board and returns half the coins (Save.REFUND_FRAC). The talents hold for every hero, so the
-## mirror shows none of them: something looks back out of the dark glass, two brass eyes (art/ui/wanted/mirror.png
-## replaces the drawn mirror when it exists).
+## between runs. Eight talents, each with two mutually exclusive forms and six ranks (three until pass 46, Garry: "double
+## the number of possible Upgrades for each path"). The board shows each talent's name, its rank notches, the live form
+## and what it does, and the next rank's price on a paper tag (brass is the BUY button's alone, pass 46); a tap opens the
+## talent's sheet over a sepia dim: the two forms side by side (the live one in ink; switching is free and keeps the
+## ranks), what the ranks give now, and the next rank for gold. "Take it all back" asks in a pop-up, then empties the
+## board and returns half the coins (Save.REFUND_FRAC). The talents hold for every hero, so the mirror shows none of
+## them: something looks back out of the dark glass, two brass eyes (art/ui/wanted/mirror.png replaces the drawn mirror
+## when it exists).
 extends ScreenBase
 
 const MIRROR_ART := "res://art/ui/wanted/mirror.png"
+## A rank notch on a board tile and on the sheet, sized so six sit beside the name (42 and 68 px fitted three).
+const TILE_NOTCH := Vector2(28, 20)
+const TILE_NOTCH_GAP := 5.0
+const SHEET_NOTCH := Vector2(52, 30)
+const SHEET_NOTCH_GAP := 7.0
 
 var _gold: PanelContainer
 var _grid: GridContainer
@@ -177,9 +184,9 @@ func _card(def: TalentDef) -> WTap:
 	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(n)
 	var marks := WMarks.new()
-	marks.notch = Vector2(42, 22)
-	marks.gap = 6
-	marks.setup("notches", def.ranks, rank)
+	marks.notch = TILE_NOTCH
+	marks.gap = TILE_NOTCH_GAP
+	marks.setup("notches", def.max_rank(), rank)
 	marks.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(marks)
 	v.add_child(head)
@@ -190,7 +197,7 @@ func _card(def: TalentDef) -> WTap:
 		tag = _tag(TextGen.quest_text(q) if q else "Locked", W.PAPER, 0)
 	else:
 		var cost := def.cost_of_rank(rank)
-		if cost < 0:
+		if rank >= def.max_rank() or cost < 0:
 			tag = _tag("Full", W.AGED, 0)
 		else:
 			tag = _price(cost, Save.gold() >= cost)
@@ -209,18 +216,20 @@ func _short(t: String) -> String:
 	return t.strip_edges().trim_suffix(".")
 
 
-## The next rank's price: a paper coin and the number on brass (paper when the purse is short).
+## The next rank's price: the coin and the number in ink on a paper tag; aged, coin and all, when the purse is short
+## (pass 46: the tag was brass, and brass is kept for BUY).
 func _price(cost: int, can: bool) -> PanelContainer:
 	var p := PanelContainer.new()
+	p.name = "Price"
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_theme_stylebox_override("panel", W.box(W.BRASS if can else W.AGED, 4, 4 if can else 0).pad(22, 12, 22, 12))
+	p.add_theme_stylebox_override("panel", W.box(W.PAPER if can else W.AGED, 4, 4 if can else 0).pad(22, 12, 22, 12))
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 10)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var coin := WCoin.make(32.0, W.PAPER, 3.0)
+	var coin := WCoin.make(32.0, W.BRASS if can else W.AGED, 3.0)
 	coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(coin)
-	var t := W.slab_text(W.num(cost), 30, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	var t := W.slab_text(W.num(cost), 30, W.INK if can else W.INK_SOFT, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	h.add_child(t)
 	p.add_child(h)
 	return p
@@ -289,10 +298,10 @@ func _fill_sheet(sheet: PanelContainer) -> void:
 	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(n)
 	var marks := WMarks.new()
-	marks.notch = Vector2(68, 32)
-	marks.gap = 8
+	marks.notch = SHEET_NOTCH
+	marks.gap = SHEET_NOTCH_GAP
 	marks.notch_border = 4
-	marks.setup("notches", def.ranks, rank)
+	marks.setup("notches", def.max_rank(), rank)
 	marks.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(marks)
 	v.add_child(head)
@@ -306,18 +315,24 @@ func _fill_sheet(sheet: PanelContainer) -> void:
 			_fill_sheet.call_deferred(sheet))
 	v.add_child(choice)
 	var status := HBoxContainer.new()
+	status.add_theme_constant_override("separation", 20)
 	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var now := "No ranks yet"
 	if rank > 0:
-		now = "Rank %d owned · %s" % [rank, TextGen.describe_effects(def.effects_for(form, rank))]
-	var left := W.serif_text(now, 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+		# the ranks summed (pass 45): effects_for repeats the form's effect a rank, and three "+10% max HP" pushed the
+		# sheet off the right edge at FULL; out of how many (pass 46: six now)
+		now = "Rank %d of %d owned · %s" % [rank, def.max_rank(), TextGen.describe_effects(def.summed_effects(form, rank))]
+	# wrapping: a wrapped line's minimum width is nothing, so a long one breaks instead of widening the sheet
+	var left := W.serif_text(now, 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status.add_child(left)
-	status.add_child(W.serif_text("Switching form is free", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0))
+	var free := W.serif_text("Switching form is free", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	free.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	status.add_child(free)
 	v.add_child(status)
 	var cost := def.cost_of_rank(rank)
 	var buy: WButton
-	if cost < 0:
+	if rank >= def.max_rank() or cost < 0:
 		buy = WButton.make(["FULL"], 48, WButton.PRIMARY, 5, 8, 24.0, 24.0)
 		buy.locked = true
 	else:
@@ -357,13 +372,18 @@ func _close(animate: bool) -> void:
 	tw.tween_callback(root.queue_free)
 
 
+## The question before every rank goes (pass 45): what comes back and what does not, then the refund.
 func _take_back() -> void:
-	if Save.talent_spent() <= 0:
+	var spent := Save.talent_spent()
+	if spent <= 0:
 		Audio.play("ui_locked")
 		return
-	Save.talent_refund_all()
-	Audio.play("ui_buy")
-	_refresh()
+	WConfirm.open(self, "Take it all back?",
+		"Every rank on the board goes. %s of the %s gold spent comes back; the rest is gone." % [W.num(Save.talent_refund()), W.num(spent)],
+		"Take it back", "Keep them", func():
+			Save.talent_refund_all()
+			Audio.play("ui_buy")
+			_refresh())
 
 
 ## The back gesture (or Esc) closes an open talent first.

@@ -1,0 +1,36 @@
+{
+  "id": "fire_hardened",
+  "name": "Fire-Hardened",
+  "flavour": "The point was cured in the fire. It remembers.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "spear",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "The spear sets alight everything it passes through.",
+  "vfx": "the spear burns its way through the line; everything it touched is on fire",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "add",
+      "value": 5
+    },
+    {
+      "stat": "fire_duration",
+      "op": "add",
+      "value": 2.2
+    },
+    {
+      "stat": "fire_spread",
+      "op": "add",
+      "value": 0.3
+    }
+  ],
+  "params": {},
+  "art_prompt": "a spear point glowing orange-hot with small flames licking along the wooden shaft",
+  "placeholder": {
+    "color": "#FF7040",
+    "glyph": "star"
+  }
+}

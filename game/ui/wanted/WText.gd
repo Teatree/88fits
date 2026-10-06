@@ -1,6 +1,9 @@
 ## Text laid out the way the mock's CSS lays it out: one face at one size, an exact line height (the glyphs centred in
 ## each line box, as CSS half-leading does), wrapping to the width, and the kit's hard ink shadow and stroke. `runs`
 ## lets one line carry two colours ("REROLL ×1", "Weapons 7/12"): an array of [text, colour] (colour null = `color`).
+## Pass 54 (Garry: bold numbers in every item description): with `bold_numbers` and a `bold_font`, every number in the
+## text, with its sign and its unit ("+15%", "1.5 s", "×2", "3rd"), is set in the bold face (number_spans), one
+## paragraph of several spans that wraps and aligns as one; the runs path is left as it is.
 class_name WText
 extends Control
 
@@ -47,6 +50,26 @@ var stroke_color := W.INK
 ## A line drawn through the text (the struck "312" on the stage-clear card).
 var strike := false
 var underline := false
+## The numbers in the bold face (pass 54): W.serif_text turns it on for Bitter body text with Bitter 800 as `bold_font`.
+var bold_numbers := false:
+	set(v):
+		if v != bold_numbers:
+			bold_numbers = v
+			_dirty = true
+			update_minimum_size()
+			queue_redraw()
+var bold_font: Font:
+	set(v):
+		bold_font = v
+		_dirty = true
+		update_minimum_size()
+		queue_redraw()
+
+## A number with its sign and its unit: "+15%", "−20%", "×2", "1.5 s", "4 m", "90°", "3rd", "1,200"; not a digit
+## glued to a word ("SK2", nor the tail of "v0.39"), and a unit only when no letter follows it ("3 seconds" bolds the 3
+## alone).
+const NUMBER_PATTERN := r"(?<![A-Za-z\d.,])[+\-−×]?\d+(?:[.,]\d+)*(?:\s?(?:%|°|m/s|/s|s|m|x)(?![A-Za-z])|(?:st|nd|rd|th)(?![A-Za-z]))?"
+static var _num_re: RegEx
 
 var _para: TextParagraph
 var _lines: Array = []   # for runs: [[TextLine, colour], ...]
@@ -85,12 +108,45 @@ func _shape() -> void:
 		_para = null
 		return
 	_para = TextParagraph.new()
-	_para.add_string(text, _f(), font_size)
+	if bold_numbers and bold_font and text != "":
+		# the numbers in the bold face, the words between them in the text's own (pass 54)
+		for sp in number_spans(text):
+			_para.add_string(str(sp[0]), bold_font if sp[1] else _f(), font_size)
+	else:
+		_para.add_string(text, _f(), font_size)
 	_para.break_flags = TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
 	_para.width = size.x if wrap and size.x > 1.0 else -1.0
 	_para.alignment = align
 	if max_lines > 0:
 		_para.max_lines_visible = max_lines
+
+
+## `t` cut into [text, is_number] spans in order (pass 54): the numbers NUMBER_PATTERN finds and the words between them;
+## the spans joined give `t` back.
+static func number_spans(t: String) -> Array:
+	if _num_re == null:
+		_num_re = RegEx.create_from_string(NUMBER_PATTERN)
+	var out: Array = []
+	var at := 0
+	for m in _num_re.search_all(t):
+		if m.get_start() > at:
+			out.append([t.substr(at, m.get_start() - at), false])
+		out.append([m.get_string(), true])
+		at = m.get_end()
+	if at < t.length():
+		out.append([t.substr(at), false])
+	return out
+
+
+## The numbers this text sets in bold (none unless bold_numbers with a bold_font).
+func bold_spans() -> Array:
+	var out: Array = []
+	if not bold_numbers or bold_font == null:
+		return out
+	for sp in number_spans(text):
+		if sp[1]:
+			out.append(str(sp[0]))
+	return out
 
 
 func _runs_width() -> float:

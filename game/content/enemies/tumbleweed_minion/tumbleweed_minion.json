@@ -1,0 +1,195 @@
+{
+  "id": "tumbleweed_minion",
+  "name": "Tumbleweed Minion",
+  "flavour": "Sworn to the crown. Not sure which one.",
+  "archetype": "walker",
+  "brain": "chase",
+  "hp": 6.0,
+  "speed": 2.0,
+  "damage": 3.0,
+  "knockback": 2.94,
+  "radius": 0.45,
+  "size": 1.4,
+  "pack_size": 6,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.05,
+    "gold": 0.02,
+    "chest": 0.0028
+  },
+  "frame_px": 128,
+  "xp_mult": 1.5,
+  "cap_share": 0.5,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_goblin_die"
+  },
+  "variance": {
+    "size": 0.2,
+    "speed": 0.15,
+    "tints": [
+      "#FFFFFF",
+      "#FFE2B0",
+      "#E8D0A0",
+      "#D8C8B8"
+    ],
+    "tint_strength": 0.2,
+    "special_chance": 0.1,
+    "special": {
+      "size": 1.5,
+      "hp": 2.0,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#6A2A10",
+      "tint_strength": 0.6
+    }
+  },
+  "placeholder": {
+    "color": "#B8863E",
+    "ears": "none",
+    "eyes": 2,
+    "shape": "ball"
+  },
+  "screen": "blue",
+  "art_prompt": "a small round tumbleweed creature made of dry tangled brown twigs, with a serious stern face: narrow squinting eyes, thick straight eyebrows and a flat grim mouth, wearing a simple plain brown cloth peasant's cap, no crown, no gold, no arms, no legs, a loyal commoner soldier of the tumbleweeds, facing the viewer",
+  "motion": "bouncing in place",
+  "anim_negative": "arms, legs, hands, a crown, a smile, an open mouth, extra eyes, two creatures, the face moving or talking",
+  "back_hint": "seen from behind: the round tangle of twigs and the back of the cloth cap, no face",
+  "dead_hint": "lying on its side on the ground, dead: the ball of twigs sagged and flattened, eyes shut, the cloth cap fallen off beside it",
+  "death": "clip",
+  "death_frames": 8,
+  "doc": "The Tumbleweed King's own: little tumbleweed knights in commoner caps, goblins in all but looks and a touch faster. The King's ring calls them instead of goblins.",
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 8,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "strip_cols": 43,
+  "fps": {
+    "run": 15,
+    "die": 12
+  },
+  "head": 0.961,
+  "walk": "hop",
+  "cell_fill": 0.74,
+  "hop_height": 0.14,
+  "variant_base": "TM-0",
+  "variants": {
+    "TM-0": {
+      "note": "Pass 45: the brown cloth cap and the big stern face (kept to come back to)"
+    },
+    "TM-A": {
+      "note": "Red fez, a grumpy scowl",
+      "recipe": {
+        "stills": "tma",
+        "art_prompt": "a small round tumbleweed creature made of dry tangled brown twigs, with a small face set low in the middle third of the ball: a grumpy scowl: heavy angry eyebrows pulled down over small mean eyes and a sour downturned frown, wearing a small red fez with a short black tassel tilted on top of the ball, no arms, no legs, a mean little soldier of the tumbleweeds, facing the viewer",
+        "back_hint": "seen from behind: the round tangle of twigs and the back of the red fez with its black tassel hanging down, no face at all",
+        "dead_hint": "lying on its side on the ground, dead: the ball of twigs sagged and flattened, eyes shut, the red fez fallen off beside it",
+        "anim_negative": "arms, legs, hands, a crown, a cap, a smile, an open mouth, extra eyes, two creatures, the face moving or talking"
+      },
+      "sprite": "tumbleweed_minion_sprite_a.png",
+      "icon": "tumbleweed_minion_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.961
+    },
+    "TM-B": {
+      "note": "Red fez, a sly fanged sneer with a face woven from twigs",
+      "recipe": {
+        "stills": "tmb",
+        "art_prompt": "a small round tumbleweed creature made of dry tangled brown twigs, with a small face set low in the middle third of the ball: a sly sneer on a face woven from the twigs themselves: narrow scheming eyes and a crooked grin with one sharp fang, wearing a small red fez with a short black tassel tilted on top of the ball, no arms, no legs, a mean little soldier of the tumbleweeds, facing the viewer",
+        "back_hint": "seen from behind: the round tangle of twigs and the back of the red fez with its black tassel hanging down, no face at all",
+        "dead_hint": "lying on its side on the ground, dead: the ball of twigs sagged and flattened, eyes shut, the red fez fallen off beside it",
+        "anim_negative": "arms, legs, hands, a crown, a cap, a smile, an open mouth, extra eyes, two creatures, the face moving or talking"
+      },
+      "sprite": "tumbleweed_minion_sprite_b.png",
+      "icon": "tumbleweed_minion_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.961
+    },
+    "TM-C": {
+      "note": "Red fez, a mean glare with gritted teeth",
+      "recipe": {
+        "stills": "tmc",
+        "art_prompt": "a small round tumbleweed creature made of dry tangled brown twigs, with a small face set low in the middle third of the ball: a mean glare: narrow slit eyes under slanted brows and a grimace of gritted teeth, wearing a small red fez with a short black tassel tilted on top of the ball, no arms, no legs, a mean little soldier of the tumbleweeds, facing the viewer",
+        "back_hint": "seen from behind: the round tangle of twigs and the back of the red fez with its black tassel hanging down, no face at all",
+        "dead_hint": "lying on its side on the ground, dead: the ball of twigs sagged and flattened, eyes shut, the red fez fallen off beside it",
+        "anim_negative": "arms, legs, hands, a crown, a cap, a smile, an open mouth, extra eyes, two creatures, the face moving or talking"
+      },
+      "sprite": "tumbleweed_minion_sprite_c.png",
+      "icon": "tumbleweed_minion_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.961
+    },
+    "TM-D": {
+      "note": "Red fez, a bored deadpan",
+      "recipe": {
+        "stills": "tmd",
+        "art_prompt": "a small round tumbleweed creature made of dry tangled brown twigs, with a small face set low in the middle third of the ball: a bored deadpan: half-closed heavy-lidded eyes and a flat straight unimpressed mouth, wearing a small red fez with a short black tassel tilted on top of the ball, no arms, no legs, a mean little soldier of the tumbleweeds, facing the viewer",
+        "back_hint": "seen from behind: the round tangle of twigs and the back of the red fez with its black tassel hanging down, no face at all",
+        "dead_hint": "lying on its side on the ground, dead: the ball of twigs sagged and flattened, eyes shut, the red fez fallen off beside it",
+        "anim_negative": "arms, legs, hands, a crown, a cap, a smile, an open mouth, extra eyes, two creatures, the face moving or talking"
+      },
+      "sprite": "tumbleweed_minion_sprite_d.png",
+      "icon": "tumbleweed_minion_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.961
+    }
+  },
+  "variant": "TM-C"
+}

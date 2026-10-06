@@ -3,11 +3,17 @@
 [ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_n0q3u"]
 [ext_resource type="Texture2D" path="res://content/enemies/bull_beetle/bull_beetle_icon.png" id="1_ngdcv"]
 [ext_resource type="Texture2D" path="res://content/enemies/bull_beetle/bull_beetle_sprite.png" id="3_mcc66"]
+[ext_resource type="Texture2D" path="res://content/enemies/bull_beetle/bull_beetle_sprite_a.png" id="4_kpcix"]
+[ext_resource type="Texture2D" path="res://content/enemies/bull_beetle/bull_beetle_icon_a.png" id="5_bt2ga"]
+[ext_resource type="Texture2D" path="res://content/enemies/bull_beetle/bull_beetle_sprite_b.png" id="6_1wjvm"]
+[ext_resource type="Texture2D" path="res://content/enemies/bull_beetle/bull_beetle_icon_b.png" id="7_ypnoc"]
+[ext_resource type="Texture2D" path="res://content/enemies/bull_beetle/bull_beetle_sprite_d.png" id="8_1wjvm"]
+[ext_resource type="Texture2D" path="res://content/enemies/bull_beetle/bull_beetle_icon_d.png" id="9_ypnoc"]
 
 [resource]
 script = ExtResource("1_n0q3u")
 archetype = "brute"
-doc = "The charger: winds up, telegraphs a red line, and runs it. Eight directions of sprite so the line is readable."
+doc = "The charger: it crouches and shakes, legs scrabbling, while a red line shows where it will run, then runs it in a trail of dust, shoving the crowd aside. Eight directions of sprite so the line is readable."
 brain = "charge"
 hp = 70.0
 speed = 1.35
@@ -22,7 +28,7 @@ drops = {
 }
 anims = {
 "attack": 2.0,
-"die": 5.0,
+"die": 8.0,
 "hit": 1.0,
 "idle": 4.0,
 "idle_b": 4.0,
@@ -40,17 +46,169 @@ sprite_file = "bull_beetle_sprite.png"
 frame_px = 192
 strip_cols = 83
 fps = {
-"die": 8.0,
-"run": 15.0
+"die": 12.0,
+"run": 20.0
 }
 charge = {
 "cooldown": 4.0,
+"crouch": 0.12,
 "duration": 0.7,
+"dust": 1.0,
+"lean": 7.0,
+"legs": 2.5,
+"shake": 0.09,
+"shove": 2.8,
+"shove_walk": 1.0,
 "speed": 9.0,
 "trigger_range": 6.5,
 "windup": 0.8
 }
-head = 1.0
+knockback = 6.8
+head = 0.688
+shadow = {
+"drop": 0.07,
+"scale": [1.45, 1.7],
+"up": 0.35
+}
+variants = {
+"BB-A": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.568,
+"icon": ExtResource("5_bt2ga"),
+"note": "The most serious: a realistic beetle after Garry's model",
+"shadow": {
+"drop": 0.07,
+"scale": [1.45, 1.7],
+"up": 0.35
+},
+"sprite": ExtResource("4_kpcix"),
+"sprite_file": "bull_beetle_sprite_a.png",
+"strip_cols": 83
+},
+"BB-B": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.672,
+"icon": ExtResource("7_ypnoc"),
+"note": "Stylised: the same beetle with bigger glossy eyes and bold cartoon shine",
+"shadow": {
+"drop": 0.07,
+"scale": [1.45, 1.7],
+"up": 0.35
+},
+"sprite": ExtResource("6_1wjvm"),
+"sprite_file": "bull_beetle_sprite_b.png",
+"strip_cols": 83
+},
+"BB-C": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.688,
+"icon": ExtResource("1_ngdcv"),
+"note": "Cartoon: big white eyes with pupils and angry brows",
+"shadow": {
+"drop": 0.07,
+"scale": [1.45, 1.7],
+"up": 0.35
+},
+"sprite": ExtResource("3_mcc66"),
+"sprite_file": "bull_beetle_sprite.png",
+"strip_cols": 83
+},
+"BB-D": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"idle_bd": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 12.0,
+"run_b": 12.0,
+"run_bd": 12.0,
+"run_fd": 12.0,
+"run_s": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 0.63,
+"icon": ExtResource("9_ypnoc"),
+"note": "Quite cartoony: huge goofy eyes",
+"shadow": {
+"drop": 0.07,
+"scale": [1.45, 1.7],
+"up": 0.35
+},
+"sprite": ExtResource("8_1wjvm"),
+"sprite_file": "bull_beetle_sprite_d.png",
+"strip_cols": 83
+}
+}
+variant = "BB-C"
 sfx = {
 "attack": "en_beetle_charge",
 "die": "en_beetle_die",

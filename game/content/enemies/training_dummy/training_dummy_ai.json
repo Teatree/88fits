@@ -1,0 +1,55 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a straw training dummy: a burlap sack body stuffed with straw tied with rope at the neck and waist, a round burlap sack head with a red and white painted bullseye target on its face and no eyes, two stubby straw-stuffed arms sticking out sideways, straw poking out at the seams, standing on a single thick wooden post planted in a small wooden cross stand",
+ "renders": {
+  "front": {
+   "seed": 51685,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a straw training dummy: a burlap sack body stuffed with straw tied with rope at the neck and waist, a round burlap sack head with a red and white painted bullseye target on its face and no eyes, two stubby straw-stuffed arms sticking out sideways, straw poking out at the seams, standing on a single thick wooden post planted in a small wooden cross stand. Full body, front view, standing upright and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "problems": []
+   },
+   "attempt": 0
+  },
+  "back": {
+   "seed": 20557,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. seen from behind: the plain burlap back of the sack head and body, the rope ties, the post and the cross stand, no target isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/training_dummy_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 260,
+     "right": 262,
+     "top": 86,
+     "bottom": 80,
+     "height": 857,
+     "width": 501
+    }
+   },
+   "attempt": 0
+  },
+  "dead": {
+   "seed": 31902,
+   "prompt": "This exact straw training dummy knocked over and lying broken on its side on the ground, its wooden post snapped, straw spilling out of a torn seam, lying sideways across the picture with its target head on the LEFT. Keep the same colours, line art and art style. Nothing else. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/dummy_front_pick.png"
+   ],
+   "qa": {
+    "problems": []
+   },
+   "attempt": 0
+  }
+ },
+ "clips": {
+  "walk_f": false,
+  "walk_b": false,
+  "pose": ""
+ }
+}

@@ -36,6 +36,7 @@ fps = {
 "run": 15.0
 }
 damage_reduction = 0.25
+knockback = 3.8
 head = 0.894
 cap_share = 0.5
 sfx = {

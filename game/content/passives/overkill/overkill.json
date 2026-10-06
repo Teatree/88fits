@@ -2,7 +2,7 @@
   "id": "overkill",
   "name": "Overkill",
   "flavour": "The damage past a kill splashes onto whoever stood next to it.",
-  "rarity": "rare",
+  "rarity": "uncommon",
   "weight": 5,
   "max_level": 3,
   "levels": [

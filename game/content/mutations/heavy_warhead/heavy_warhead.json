@@ -1,0 +1,42 @@
+{
+  "id": "heavy_warhead",
+  "name": "Heavy Warhead",
+  "flavour": "More rocket per rocket.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "rocket_pod",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "+40% damage, ×2 knockback, +15% area of effect: bigger rockets, a stronger blast.",
+  "vfx": "fatter rockets, a white flash and a wider fireball with a ring of sparks",
+  "effects": [
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": 0.4
+    },
+    {
+      "stat": "knockback",
+      "op": "mul",
+      "value": 1.0
+    },
+    {
+      "stat": "area",
+      "op": "mul",
+      "value": 0.15
+    }
+  ],
+  "params": {
+    "size_mult": 1.35,
+    "blast_fx": {
+      "scale": 1.5,
+      "flash": true
+    }
+  },
+  "art_prompt": "one fat red-tipped rocket with a heavy steel warhead and a white flash behind it",
+  "placeholder": {
+    "color": "#D8D8E0",
+    "glyph": "star"
+  }
+}

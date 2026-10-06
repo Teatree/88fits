@@ -17,6 +17,7 @@
     "area": 1.0,
     "knockback": 10.0
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -24,9 +25,7 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.25
-      }
-    ],
-    [
+      },
       {
         "stat": "area",
         "op": "mul",
@@ -38,9 +37,7 @@
         "stat": "range",
         "op": "mul",
         "value": 0.2
-      }
-    ],
-    [
+      },
       {
         "stat": "amount",
         "op": "add",
@@ -64,9 +61,7 @@
         "stat": "area",
         "op": "mul",
         "value": 0.15
-      }
-    ],
-    [
+      },
       {
         "stat": "amount",
         "op": "add",
@@ -79,12 +74,16 @@
   "params": {
     "smash": {
       "radius": 1.6,
-      "rise": 0.22,
-      "swing": 0.16,
-      "hold": 0.14,
-      "fade": 0.2,
+      "rise": 0.12,
+      "windup": 0.34,
+      "windup_hold": 0.08,
+      "swing": 0.18,
+      "bounce": 0.18,
+      "fade": 0.22,
       "stagger": 0.14,
-      "shake": 0.35
+      "shake": 0.4,
+      "size": 1.4,
+      "grip_up": 2.2
     }
   },
   "sfx": {

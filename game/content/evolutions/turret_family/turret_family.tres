@@ -7,8 +7,7 @@
 [resource]
 script = ExtResource("1_c68db")
 behavior = "Spawner"
-tags = []
-targeting = "nearest"
+targeting = "priority"
 base = {
 "amount": 2.0,
 "cooldown": 5.0,
@@ -20,8 +19,6 @@ base = {
 }
 levels = [[]]
 max_level = 1
-evolves_with = ""
-evolves_into = ""
 is_evolution = true
 evolved_from = "turret_buddy"
 sfx = {
@@ -33,18 +30,16 @@ visual = ExtResource("2_3cgco")
 visual_file = "turret_family_visual.tscn"
 params = {
 "magnet": true,
+"marks": false,
 "max_turrets": 8.0,
+"tracer": true,
 "turret_fire_rate": 0.3
 }
-hero = ""
 id = "turret_family"
 display_name = "Turret Family"
 flavour = "They never leave. They pull gems."
-rarity = "epic"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
+rarity = "rare"
+hidden = true
 icon = ExtResource("1_wgjfn")
 icon_file = "turret_family_icon.png"
 placeholder = {

@@ -3,16 +3,19 @@
   "name": "Fortune",
   "flavour": "Better cards, or fatter purses.",
   "order": 4,
-  "ranks": 3,
+  "ranks": 6,
   "cost": [
     150,
     270,
-    450
+    450,
+    675,
+    975,
+    1350
   ],
   "forms": [
     {
       "name": "Omen",
-      "text": "+0.12 luck a rank: rarer cards, and a fourth more often.",
+      "text": "+0.12 luck a rank: rarer items turn up more often.",
       "effects": [
         {
           "stat": "luck",

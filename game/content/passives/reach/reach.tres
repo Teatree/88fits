@@ -8,7 +8,7 @@
 script = ExtResource("2_krbia")
 stat = "area"
 op = "mul"
-value = 0.1
+value = 0.08
 target = "player"
 
 [resource]
@@ -19,6 +19,7 @@ pairs_with = "orbit_saws"
 id = "reach"
 display_name = "Reach"
 flavour = "Bigger everything."
+rarity = "uncommon"
 icon = ExtResource("1_68y37")
 icon_file = "reach_icon.png"
 placeholder = {

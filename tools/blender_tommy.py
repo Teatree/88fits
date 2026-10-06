@@ -24,7 +24,7 @@ LENGTH_M = 0.85
 MATS = {}
 
 
-def mat(name, rgb, rough=0.6, metal=0.0):
+def mat(name, rgb, rough=0.6, metal=0.0, glow=0.0):
     key = (name, rgb)
     if key in MATS:
         return MATS[key]
@@ -34,6 +34,10 @@ def mat(name, rgb, rough=0.6, metal=0.0):
     bsdf.inputs["Base Color"].default_value = (rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0, 1.0)
     bsdf.inputs["Roughness"].default_value = rough
     bsdf.inputs["Metallic"].default_value = metal
+    if glow > 0.0:
+        # pass 48: a little of its own colour as emission, so gold stays gold under the desert sky instead of going tan
+        bsdf.inputs["Emission Color"].default_value = (rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0, 1.0)
+        bsdf.inputs["Emission Strength"].default_value = glow
     m.diffuse_color = (rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0, 1.0)   # what the Workbench render shows
     MATS[key] = m
     return m
@@ -43,7 +47,10 @@ STEEL = ("steel", (62, 62, 70), 0.45, 0.5)
 DRUM = ("drum", (48, 48, 56), 0.5, 0.5)
 DARK = ("dark", (26, 26, 30), 0.5, 0.4)
 WOOD = ("wood", (122, 72, 34), 0.7, 0.0)
-GOLD = ("gold", (255, 178, 59), 0.3, 0.8)
+GOLD = ("gold", (255, 150, 12), 0.3, 0.75, 0.35)
+# pass 48: the Chicago Typewriter is the golden gun (Garry: "change the texture to the golden version"): receiver, barrel and
+# drum all gold, the stock and grips dark polished walnut, the small parts dark steel
+WOOD_DARK = ("wood_dark", (62, 30, 12), 0.5, 0.0)
 
 # the OBJ's material groups, named by what they are (measured in pass 44: the receiver and barrel, the three wooden parts,
 # the rear sight, the drum, the stock bolt and the trigger)
@@ -75,16 +82,17 @@ def finish_parts(parts, trim):
     """Flat materials, true scale, the muzzle along +Y, the receiver's middle at the origin; the drum left apart."""
     for name, o in parts.items():
         o.data.materials.clear()
+        gold = trim is GOLD
         if name == "wood":
-            o.data.materials.append(mat(*WOOD))
+            o.data.materials.append(mat(*(WOOD_DARK if gold else WOOD)))
         elif name == "drum":
-            o.data.materials.append(mat(*(trim if trim is GOLD else DRUM)))
+            o.data.materials.append(mat(*(GOLD if gold else DRUM)))
         elif name == "body":
-            o.data.materials.append(mat(*STEEL))
+            o.data.materials.append(mat(*(GOLD if gold else STEEL)))
         elif name in ("sight", "bolt", "trigger"):
-            o.data.materials.append(mat(*(trim if trim is GOLD else DARK)))
+            o.data.materials.append(mat(*DARK))
         else:
-            o.data.materials.append(mat(*STEEL))
+            o.data.materials.append(mat(*(GOLD if gold else STEEL)))
     objs = list(parts.values())
     # the importer maps the OBJ's +Z (the muzzle) to Blender -Y: half a turn about Z points it +Y
     xs, ys, zs = [], [], []

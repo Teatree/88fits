@@ -1,0 +1,107 @@
+[gd_scene load_steps=12 format=3 uid="uid://vis_thunderlance1"]
+
+[sub_resource type="StandardMaterial3D" id="walnut"]
+albedo_color = Color(0.24, 0.14, 0.08, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="brass"]
+albedo_color = Color(0.85, 0.65, 0.25, 1)
+metallic = 0.6
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="feather"]
+albedo_color = Color(0.75, 0.12, 0.1, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="glow"]
+albedo_color = Color(0.85, 0.92, 1, 1)
+metallic = 0.3
+roughness = 0.3
+emission_enabled = true
+emission = Color(0.75, 0.85, 1, 1)
+emission_energy_multiplier = 1.2
+
+[sub_resource type="BoxMesh" id="m_shaft"]
+size = Vector3(0.08, 0.08, 0.7)
+
+[sub_resource type="BoxMesh" id="m_band"]
+size = Vector3(0.11, 0.11, 0.04)
+
+[sub_resource type="BoxMesh" id="m_socket"]
+size = Vector3(0.1, 0.1, 0.06)
+
+[sub_resource type="BoxMesh" id="m_feather"]
+size = Vector3(0.03, 0.01, 0.16)
+
+[sub_resource type="BoxMesh" id="m_tip"]
+size = Vector3(0.07, 0.045, 0.3)
+
+[sub_resource type="PrismMesh" id="m_point"]
+size = Vector3(0.07, 0.12, 0.045)
+
+[sub_resource type="BoxMesh" id="m_butt"]
+size = Vector3(0.1, 0.1, 0.06)
+
+[node name="ThunderLanceVisual" type="Node3D"]
+
+[node name="Blade" type="Node3D" parent="."]
+
+[node name="Shaft" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.35)
+mesh = SubResource("m_shaft")
+material_override = SubResource("walnut")
+
+[node name="BandA" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.24)
+mesh = SubResource("m_band")
+material_override = SubResource("brass")
+
+[node name="BandB" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
+mesh = SubResource("m_band")
+material_override = SubResource("brass")
+
+[node name="Socket" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.72)
+mesh = SubResource("m_socket")
+material_override = SubResource("brass")
+
+[node name="Butt" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.02)
+mesh = SubResource("m_butt")
+material_override = SubResource("brass")
+
+[node name="FeatherA" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(0.86603, 0, -0.5, 0, 1, 0, 0.5, 0, 0.86603, -0.04, -0.03, -0.710718)
+mesh = SubResource("m_feather")
+material_override = SubResource("feather")
+
+[node name="FeatherB" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(0.96593, 0, -0.25882, 0, 1, 0, 0.25882, 0, 0.96593, -0.020706, -0.03, -0.702726)
+mesh = SubResource("m_feather")
+material_override = SubResource("feather")
+
+[node name="FeatherC" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, -0.7)
+mesh = SubResource("m_feather")
+material_override = SubResource("feather")
+
+[node name="FeatherD" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(0.96593, 0, 0.25882, 0, 1, 0, -0.25882, 0, 0.96593, 0.020706, -0.03, -0.702726)
+mesh = SubResource("m_feather")
+material_override = SubResource("feather")
+
+[node name="FeatherE" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(0.86603, 0, 0.5, 0, 1, 0, -0.5, 0, 0.86603, 0.04, -0.03, -0.710718)
+mesh = SubResource("m_feather")
+material_override = SubResource("feather")
+
+[node name="Tip" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.87)
+mesh = SubResource("m_tip")
+material_override = SubResource("glow")
+
+[node name="TipPoint" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, -1.08)
+mesh = SubResource("m_point")
+material_override = SubResource("glow")

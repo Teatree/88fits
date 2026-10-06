@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/desperado/desperado_icon.png" id="1_hjmtm"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_pcxv7"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_qhifx"]
+
+[sub_resource type="Resource" id="Resource_hjmtm"]
+script = ExtResource("2_pcxv7")
+stat = "desperado"
+value = 0.12
+target = "player"
+
+[resource]
+script = ExtResource("3_qhifx")
+levels = [[SubResource("Resource_hjmtm")]]
+max_level = 5
+text = "The more you are hurt, the harder you hit: +1.2% attack damage for every 10% of health you are missing at level 1 (+12% near death), up to +60% at level 5."
+id = "desperado"
+display_name = "Desperado"
+flavour = "Nothing to lose. Everything to hit."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_hjmtm")
+icon_file = "desperado_icon.png"
+placeholder = {
+"color": "#B4472B",
+"glyph": "star"
+}

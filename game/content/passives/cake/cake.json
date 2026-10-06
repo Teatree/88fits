@@ -1,0 +1,24 @@
+{
+  "id": "cake",
+  "name": "Cake",
+  "flavour": "Carried across the desert in a hatbox. Still good.",
+  "rarity": "common",
+  "weight": 9,
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "heal_drop",
+        "op": "add",
+        "value": 0.003,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "art_prompt": "a round frosted layer cake with white icing, pink cream between its sponge layers, a red cherry on top and one slice cut out of it",
+  "placeholder": {
+    "color": "#F4A6B8",
+    "glyph": "star"
+  }
+}

@@ -7,23 +7,17 @@
 [sub_resource type="Resource" id="Resource_q5ris"]
 script = ExtResource("1_tb1vb")
 stat = "fire_damage"
-op = "add"
 value = 5.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_lhctw"]
 script = ExtResource("1_tb1vb")
 stat = "fire_duration"
-op = "add"
 value = 2.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_3etgl"]
 script = ExtResource("1_tb1vb")
 stat = "fire_spread"
-op = "add"
 value = 0.4
-target = "self"
 
 [resource]
 script = ExtResource("2_q5ris")
@@ -41,6 +35,7 @@ flavour = "Step on it. Stay a while."
 rarity = "rare"
 element = "fire"
 weight = 8.0
+hidden = true
 icon = ExtResource("2_lhctw")
 icon_file = "napalm_mine_icon.png"
 placeholder = {

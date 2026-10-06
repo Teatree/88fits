@@ -1,0 +1,64 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a hulking desert ogre giant with deep oxblood-red skin, a huge bald head with a heavy brow, small eyes and a wide underbite with two tusks, a ragged hide loincloth and a thick rope belt, tree-trunk legs and bare feet, carrying the enormous stone hammer across the top of his shoulders behind his neck, the long handle lying across both shoulders and the stone head sticking out beside his left shoulder, his right fist resting on his chest, two arms and two legs, standing on the ground facing the viewer, the sledgehammer has exactly one long straight wooden handle",
+ "renders": {
+  "front": {
+   "seed": 56567,
+   "prompt": "Edit this exact giant: keep the same hulking ogre build, huge bald head, heavy brow, small eyes, tusks, ragged hide loincloth, thick rope belt, bare feet, the same proportions, line art and art style. Change his skin colour to deep oxblood-red skin. He rests the enormous stone hammer on his right shoulder, his right fist gripping the handle in front of his shoulder, the stone head sticking out to the right beside his head, clear of his body; his left hand is an empty fist at his side. The hammer has exactly one long straight wooden handle and one stone head. Two arms, two legs, one head. Full body, front view, standing and facing the viewer, feet fully visible. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/hg_src.png"
+   ],
+   "qa": {
+    "problems": []
+   },
+   "attempt": 0
+  },
+  "back": {
+   "seed": 15917,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. The enormous stone hammer lies across the top of its shoulders behind its neck: from behind, the long wooden handle is seen lying across the top of both shoulders, above its back and never through it, with the stone head sticking out beside one shoulder. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/hammer_giant_hgc_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 192,
+     "right": 111,
+     "top": 65,
+     "bottom": 52,
+     "height": 906,
+     "width": 720
+    }
+   },
+   "attempt": 0
+  },
+  "dead": {
+   "seed": 15925,
+   "prompt": "This exact creature lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, its body stretched out sideways across the picture with its head on the left and its feet on the right, the huge stone hammer lying on the ground beside its open hand, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/hammer_giant_hgc_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 90,
+     "right": 54,
+     "top": 238,
+     "bottom": 196,
+     "height": 589,
+     "width": 879
+    }
+   },
+   "attempt": 0
+  }
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": ""
+ }
+}

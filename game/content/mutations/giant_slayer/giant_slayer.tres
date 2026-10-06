@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/giant_slayer/giant_slayer_icon.png" id="1_40nt3"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_qa4fh"]
+
+[resource]
+script = ExtResource("2_qa4fh")
+weapon = "hammer"
+mutation_kind = "volume"
+text = "Half of all impacts deal 2.5 times the damage to a boss, an Elite or an elite creature in the blast."
+vfx = "a gold flash ring and a kick of the camera on the big one"
+params = {
+"giant_slayer": {
+"chance": 0.5,
+"mult": 2.5
+}
+}
+id = "giant_slayer"
+display_name = "Giant Slayer"
+flavour = "The bigger they are."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_40nt3")
+icon_file = "giant_slayer_icon.png"
+placeholder = {
+"color": "#E8B040",
+"glyph": "star"
+}

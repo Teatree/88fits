@@ -1,0 +1,19 @@
+{
+  "id": "pollen_lupine",
+  "name": "Desert Lupine",
+  "flavour": "Pollen for the hive.",
+  "effect": "pollen",
+  "value": 0,
+  "duration": 5,
+  "lifetime": 19,
+  "color": "#8C6CFF",
+  "weight": 0,
+  "placeholder": {
+    "color": "#8C6CFF",
+    "glyph": "flower"
+  },
+  "art_prompt": "a desert lupine, a spike of small violet-blue pea flowers on an upright stem with palm-shaped leaves",
+  "params": {
+    "small": true
+  }
+}

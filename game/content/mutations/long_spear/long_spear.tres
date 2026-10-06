@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_8nmcb"]
+[ext_resource type="Texture2D" path="res://content/mutations/long_spear/long_spear_icon.png" id="2_1cwvj"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_kqy6h"]
+
+[sub_resource type="Resource" id="Resource_kqy6h"]
+script = ExtResource("1_8nmcb")
+stat = "range"
+op = "mul"
+value = 0.4
+
+[sub_resource type="Resource" id="Resource_1cwvj"]
+script = ExtResource("1_8nmcb")
+stat = "cooldown"
+op = "mul"
+value = 0.15
+
+[resource]
+script = ExtResource("2_kqy6h")
+weapon = "pike"
+mutation_kind = "volume"
+text = "+40% reach, strokes 15% slower."
+vfx = "a longer shaft, a slower stroke"
+effects = [SubResource("Resource_kqy6h"), SubResource("Resource_1cwvj")]
+id = "long_spear"
+display_name = "Long Spear"
+flavour = "Why get close."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_1cwvj")
+icon_file = "long_spear_icon.png"
+placeholder = {
+"color": "#C8A878",
+"glyph": "star"
+}

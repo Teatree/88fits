@@ -1,0 +1,25 @@
+{
+  "id": "gold_dust",
+  "name": "Gold Dust",
+  "flavour": "The light leaves something behind.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "sun_scepter",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "An enemy it kills drops a coin 30% of the time.",
+  "vfx": "a coin glinting where the pillar fell",
+  "effects": [],
+  "params": {
+    "gold_dust": {
+      "chance": 0.3,
+      "coins": 1
+    }
+  },
+  "art_prompt": "a column of golden sunlight landing on the ground where three round gold coins lie scattered in a drift of glittering gold dust",
+  "placeholder": {
+    "color": "#FFC23A",
+    "glyph": "star"
+  }
+}

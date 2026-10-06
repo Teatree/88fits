@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/hip_shot/hip_shot_icon.png" id="1_rp7j0"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_3u3nm"]
+
+[resource]
+script = ExtResource("2_3u3nm")
+weapon = "revolver"
+mutation_kind = "volume"
+text = "Every fifth pull fires three volleys 0.12 s apart, each the full round count, then the revolver spins."
+vfx = "three quick volleys and a twirl of the gun"
+params = {
+"hip_shot": {
+"every": 5.0,
+"gap": 0.12,
+"volleys": 3.0
+}
+}
+id = "hip_shot"
+display_name = "Hip Shot"
+flavour = "From the hip, three times over."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_rp7j0")
+icon_file = "hip_shot_icon.png"
+placeholder = {
+"color": "#D8B070",
+"glyph": "star"
+}

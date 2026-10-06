@@ -1,0 +1,24 @@
+{
+  "id": "big_game_hunter",
+  "name": "Big Game Hunter",
+  "flavour": "The bigger they come, the better the wall looks.",
+  "rarity": "uncommon",
+  "weight": 8,
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "elite_damage",
+        "op": "add",
+        "value": 0.15,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "art_prompt": "a hunting trophy: a big bleached bull skull with long curved horns mounted on a dark wooden shield-shaped plaque",
+  "placeholder": {
+    "color": "#E8E0D0",
+    "glyph": "star"
+  }
+}

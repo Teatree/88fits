@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/evade/evade_icon.png" id="1_lqhih"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_8m5kp"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_cbwdu"]
+
+[sub_resource type="Resource" id="Resource_lqhih"]
+script = ExtResource("2_8m5kp")
+stat = "evade"
+value = 0.03
+target = "player"
+
+[sub_resource type="Resource" id="Resource_8m5kp"]
+script = ExtResource("2_8m5kp")
+stat = "evade"
+value = 0.05
+target = "player"
+
+[sub_resource type="Resource" id="Resource_cbwdu"]
+script = ExtResource("2_8m5kp")
+stat = "evade"
+value = 0.06
+target = "player"
+
+[sub_resource type="Resource" id="Resource_x175u"]
+script = ExtResource("2_8m5kp")
+stat = "evade"
+value = 0.06
+target = "player"
+
+[resource]
+script = ExtResource("3_cbwdu")
+line = true
+levels = [[SubResource("Resource_lqhih")], [SubResource("Resource_8m5kp")], [SubResource("Resource_cbwdu")], [SubResource("Resource_x175u")]]
+repeat_last_level = false
+max_level = 4
+evolves_into = "ghost_step"
+text = "A chance to take no hit at all: 3% at level 1, 20% at level 4."
+id = "evade"
+display_name = "Evade"
+flavour = "Not there. Never was."
+rarity = "rare"
+weight = 9.0
+icon = ExtResource("1_lqhih")
+icon_file = "evade_icon.png"
+placeholder = {
+"color": "#C8E0FF",
+"glyph": "star"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "brawn",
+  "name": "Brawn",
+  "flavour": "Heavier hands, same old boots.",
+  "rarity": "common",
+  "weight": 10,
+  "line": true,
+  "max_level": 4,
+  "levels": [
+    [
+      {
+        "stat": "might",
+        "op": "mul",
+        "value": 0.1,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "trade": "",
+  "art_prompt": "a flexed muscular arm with a red band",
+  "placeholder": {
+    "color": "#FF8040",
+    "glyph": "star"
+  },
+  "evolves_into": "juggernaut"
+}

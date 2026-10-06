@@ -1,0 +1,311 @@
+{
+  "id": "lesser_scorpion",
+  "name": "Lesser Scorpion",
+  "flavour": "Half the scorpion. All of the sting.",
+  "archetype": "walker",
+  "brain": "chase",
+  "hp": 10.0,
+  "speed": 1.6,
+  "damage": 3.0,
+  "knockback": 2.94,
+  "radius": 0.55,
+  "size": 1.5,
+  "pack_size": 4,
+  "cap_share": 0.5,
+  "xp_mult": 1.5,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.05,
+    "gold": 0.02,
+    "chest": 0.0028
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 8,
+    "run_b": 12,
+    "idle_b": 4,
+    "run_s": 12,
+    "idle_s": 4,
+    "run_bd": 12,
+    "idle_bd": 4,
+    "run_fd": 12,
+    "idle_fd": 4
+  },
+  "frame_px": 160,
+  "fps": {
+    "run": 20,
+    "die": 12
+  },
+  "directions": 8,
+  "sfx": {
+    "attack": "en_beetle_charge",
+    "die": "en_scorpion_die",
+    "hit": "en_goblin_hit"
+  },
+  "placeholder": {
+    "color": "#1A1418",
+    "ears": "horn",
+    "eyes": 2,
+    "shape": "wide"
+  },
+  "art_prompt": "a small plain black desert scorpion, eight jointed legs, two pincers, one segmented tail curling over its back with one stinger, real scorpion anatomy, no face",
+  "motion": "scuttling in place on its eight legs like a real scorpion, pincers held forward and open, the tail swaying above its back",
+  "anim_negative": "a human face, eyebrows, a grin, teeth, standing upright, extra tails, extra pincers, legs merging",
+  "dead_hint": "lying flat on its back on the ground, dead: its eight legs curled up limp in the air, the pincers open and limp, the tail stretched out flat on the ground",
+  "view_hints": {
+    "side": "the scorpion stays low and horizontal on its eight legs like a real scorpion seen from the side, body parallel to the ground, both pincers reaching forward to the right, the segmented tail curling up and over its back with the stinger above its head, never standing upright on two legs",
+    "bd": "low on its eight legs, tail curled over its back, pincers ahead of it",
+    "fd": "low on its eight legs, tail curled over its back, pincers ahead of it"
+  },
+  "outline_frac": 0.016,
+  "outline_color": "#0A0608",
+  "shadow": {
+    "scale": [
+      1.3,
+      1.5
+    ],
+    "up": 0.3,
+    "drop": 0.06
+  },
+  "head": 0.831,
+  "doc": "The second thing the hero meets: a small black scorpion with the skeleton's numbers, in fours. Three looks (LS-A plain, LS-B plates, LS-C detailed) walked on the Dune Scorpion's 3D model at half its size.",
+  "note": "Pass 53 (Garry): the Dune Scorpion's rig and drivers (scorpion_walk / scorpion_death), half the size, black, no special features; three versions that differ in how much detail is painted on them.",
+  "variant_base": "LS-B",
+  "variant": "LS-B",
+  "variants": {
+    "LS-A": {
+      "note": "Simple: flat black, almost a silhouette, two tones",
+      "recipe": {
+        "drivers": "scorpion_walk",
+        "noun": "a scorpion",
+        "blockout": "a smooth plain clay 3D model of a scorpion: eight jointed legs, two big pincers on long arms, one segmented tail curling up over its back",
+        "words": {
+          "front": "walking straight towards the viewer, seen from the front and a little above: its two big pincers and its head are at the bottom of the picture, nearest the viewer, the body stretches away up the picture and the one tail rises from the far end and curls up at the top",
+          "fd": "walking towards the lower right corner of the picture, seen three-quarters from the front and a little above: the pincers and the head at the lower right, nearest the viewer, the one tail curling up at the upper left, farther away",
+          "bd": "walking away towards the upper right corner of the picture, seen three-quarters from behind and a little above: the one tail curling up nearest the viewer at the lower left, the body and the pincers at the upper right, farther away",
+          "back": "walking straight away from the viewer, seen from behind and a little above: its one tail rises nearest the viewer at the bottom of the picture and curls up, the body stretches away up the picture and the two pincers show at the far end, one on each side"
+        },
+        "motion": "scuttling in place on its eight legs like a real scorpion, the pincers held forward, the tail swaying a little above its back",
+        "anim_negative": "a human face, a grin, teeth, standing upright, two tails, extra tails, extra pincers, legs merging, a second scorpion",
+        "dead": "flipped over dead on its back, its eight legs curled up limp in the air, the pincers open and limp, the one tail lying flat",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "side_seeds": 3,
+        "death_drivers": "scorpion_death",
+        "death_keep": [
+          3,
+          5,
+          6,
+          7,
+          14,
+          16,
+          19,
+          24
+        ],
+        "outline_frac": 0.016,
+        "outline_color": "#0A0608",
+        "detail": "exactly eight jointed legs, two pincers held forward on long arms, one single segmented tail curling up and over its back ending in one curved stinger, a small low head with two tiny eyes, real scorpion anatomy, no face, no mouth, no teeth",
+        "prompt": "a small plain jet-black desert scorpion painted flat in the cel-shaded anime style with crisp black line art: two flat tones, black with dark grey lit faces, smooth plates with no texture and no markings, a plain dark stinger",
+        "keep": "jet-black armour all over, never brown, orange or tan; a painted cartoon look with crisp dark line art and flat cel shading in two tones, never a smooth 3D render, no surface detail, no texture",
+        "remap_hues": {
+          "ranges": [
+            [
+              0,
+              80
+            ],
+            [
+              280,
+              360
+            ]
+          ],
+          "to": 0,
+          "sat": 0.06,
+          "min_sat": 0.14
+        }
+      },
+      "sprite": "lesser_scorpion_sprite_a.png",
+      "icon": "lesser_scorpion_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.887,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "LS-B": {
+      "note": "Medium: plates and claws drawn, a little sheen",
+      "recipe": {
+        "drivers": "scorpion_walk",
+        "noun": "a scorpion",
+        "blockout": "a smooth plain clay 3D model of a scorpion: eight jointed legs, two big pincers on long arms, one segmented tail curling up over its back",
+        "words": {
+          "front": "walking straight towards the viewer, seen from the front and a little above: its two big pincers and its head are at the bottom of the picture, nearest the viewer, the body stretches away up the picture and the one tail rises from the far end and curls up at the top",
+          "fd": "walking towards the lower right corner of the picture, seen three-quarters from the front and a little above: the pincers and the head at the lower right, nearest the viewer, the one tail curling up at the upper left, farther away",
+          "bd": "walking away towards the upper right corner of the picture, seen three-quarters from behind and a little above: the one tail curling up nearest the viewer at the lower left, the body and the pincers at the upper right, farther away",
+          "back": "walking straight away from the viewer, seen from behind and a little above: its one tail rises nearest the viewer at the bottom of the picture and curls up, the body stretches away up the picture and the two pincers show at the far end, one on each side"
+        },
+        "motion": "scuttling in place on its eight legs like a real scorpion, the pincers held forward, the tail swaying a little above its back",
+        "anim_negative": "a human face, a grin, teeth, standing upright, two tails, extra tails, extra pincers, legs merging, a second scorpion",
+        "dead": "flipped over dead on its back, its eight legs curled up limp in the air, the pincers open and limp, the one tail lying flat",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "side_seeds": 3,
+        "death_drivers": "scorpion_death",
+        "death_keep": [
+          3,
+          5,
+          6,
+          7,
+          14,
+          16,
+          19,
+          24
+        ],
+        "outline_frac": 0.016,
+        "outline_color": "#0A0608",
+        "detail": "exactly eight jointed legs, two pincers held forward on long arms, one single segmented tail curling up and over its back ending in one curved stinger, a small low head with two tiny eyes, real scorpion anatomy, no face, no mouth, no teeth",
+        "prompt": "a small glossy black scorpion with its armour plates and tail segments clearly outlined, dark grey edges on every plate, a soft sheen on the back and the pincers, a dark stinger",
+        "keep": "jet-black glossy armour all over, never brown, orange or tan; a painted cartoon look with crisp black line art and clean cel shading, every plate outlined with a highlight, no patterns, no hairs, never a smooth 3D render",
+        "remap_hues": {
+          "ranges": [
+            [
+              0,
+              80
+            ],
+            [
+              280,
+              360
+            ]
+          ],
+          "to": 0,
+          "sat": 0.06,
+          "min_sat": 0.14
+        },
+        "walk_seeds": {
+          "bd": 1
+        }
+      },
+      "sprite": "lesser_scorpion_sprite_b.png",
+      "icon": "lesser_scorpion_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.831,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "LS-C": {
+      "note": "Detailed: full plates, highlights, hairs, texture",
+      "recipe": {
+        "drivers": "scorpion_walk",
+        "noun": "a scorpion",
+        "blockout": "a smooth plain clay 3D model of a scorpion: eight jointed legs, two big pincers on long arms, one segmented tail curling up over its back",
+        "words": {
+          "front": "walking straight towards the viewer, seen from the front and a little above: its two big pincers and its head are at the bottom of the picture, nearest the viewer, the body stretches away up the picture and the one tail rises from the far end and curls up at the top",
+          "fd": "walking towards the lower right corner of the picture, seen three-quarters from the front and a little above: the pincers and the head at the lower right, nearest the viewer, the one tail curling up at the upper left, farther away",
+          "bd": "walking away towards the upper right corner of the picture, seen three-quarters from behind and a little above: the one tail curling up nearest the viewer at the lower left, the body and the pincers at the upper right, farther away",
+          "back": "walking straight away from the viewer, seen from behind and a little above: its one tail rises nearest the viewer at the bottom of the picture and curls up, the body stretches away up the picture and the two pincers show at the far end, one on each side"
+        },
+        "motion": "scuttling in place on its eight legs like a real scorpion, the pincers held forward, the tail swaying a little above its back",
+        "anim_negative": "a human face, a grin, teeth, standing upright, two tails, extra tails, extra pincers, legs merging, a second scorpion",
+        "dead": "flipped over dead on its back, its eight legs curled up limp in the air, the pincers open and limp, the one tail lying flat",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "side_seeds": 3,
+        "death_drivers": "scorpion_death",
+        "death_keep": [
+          3,
+          5,
+          6,
+          7,
+          14,
+          16,
+          19,
+          24
+        ],
+        "outline_frac": 0.016,
+        "outline_color": "#0A0608",
+        "detail": "exactly eight jointed legs, two pincers held forward on long arms, one single segmented tail curling up and over its back ending in one curved stinger, a small low head with two tiny eyes, real scorpion anatomy, no face, no mouth, no teeth",
+        "prompt": "a small highly detailed glossy black scorpion with finely textured armour plates, bright specular highlights along the ridges, tiny bristle hairs on the legs and pincers, grooved tail segments and a sharp dark stinger with a faint red tip",
+        "keep": "jet-black glossy armour all over, never brown, orange or tan; a painted look with crisp black line art, rich detail, fine texture on the plates, bright specular highlights and tiny bristle hairs, never a smooth 3D render",
+        "remap_hues": {
+          "ranges": [
+            [
+              0,
+              80
+            ],
+            [
+              280,
+              360
+            ]
+          ],
+          "to": 0,
+          "sat": 0.06,
+          "min_sat": 0.14
+        }
+      },
+      "sprite": "lesser_scorpion_sprite_c.png",
+      "icon": "lesser_scorpion_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 91,
+      "head": 0.887,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    }
+  },
+  "sprite": "lesser_scorpion_sprite_b.png",
+  "icon": "lesser_scorpion_icon_b.png",
+  "strip_cols": 91
+}

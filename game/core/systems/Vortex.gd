@@ -2,6 +2,8 @@
 ## `radius` towards its middle (bosses and Elites a little, the rest hard) and eats `dps` into them; then it collapses
 ## with a pop (`pop` times the shot's damage, thrown outwards). A black sphere with a violet rim over a flat turning
 ## spiral, and dust drawn in from the rim. The numbers come from the weapon's params.gravity.black_hole block.
+## Pass 48: Repulsor carried on the Singularity sends `knock_mult` and `throw_mult` in that block: the pop throws that
+## much harder over that much wider a ring.
 class_name Vortex
 extends Node3D
 
@@ -17,6 +19,8 @@ var pull := 5.5
 var pop := 1.0
 var damage := 12.0
 var tick := 0.25
+var knock_mult := 1.0
+var throw_mult := 1.0
 var _t := 0.0
 var _total := 3.0
 var _next := 0.0
@@ -36,6 +40,8 @@ func setup(p_game: Node, w: WeaponInstance, r: float, cfg: Dictionary, shot_dama
 	pull = float(cfg.get("pull", 5.5))
 	pop = float(cfg.get("pop", 1.0))
 	tick = maxf(float(cfg.get("tick", 0.25)), 0.1)
+	knock_mult = maxf(float(cfg.get("knock_mult", 1.0)), 0.0)
+	throw_mult = maxf(float(cfg.get("throw_mult", 1.0)), 0.1)
 	damage = shot_damage
 
 
@@ -69,6 +75,11 @@ func _ready() -> void:
 	_disc.material_override = _swirl_mat
 	_disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_disc.position = Vector3(0, 0.08, 0)
+	# on the slope it lands on (pass 52), not level through it
+	if game and game.get("map") and game.map.has_method("normal_at"):
+		var n: Vector3 = game.map.normal_at(position.x, position.z, radius * 0.6)
+		_disc.basis = MapBase.ground_basis(n)
+		_disc.position = n * 0.08
 	add_child(_disc)
 	if game:
 		game.telegraphs.flash_ring(global_position, radius, Color(0.7, 0.35, 1.0), 0.4)
@@ -114,11 +125,12 @@ func _process(delta: float) -> void:
 func _collapse() -> void:
 	var em: EnemyManager = game.enemies
 	var before := Run.kills
-	em.damage_radius(global_position, radius * 0.7, damage * pop, weapon.def.id if weapon else "", 9.0)
+	var pop_r := radius * 0.7 * throw_mult
+	em.damage_radius(global_position, pop_r, damage * pop, weapon.def.id if weapon else "", 9.0 * knock_mult)
 	if weapon:
 		weapon.kills += Run.kills - before
-	game.fx.burst(global_position + Vector3(0, 0.8, 0), Color(0.75, 0.4, 1.0), radius * 0.7)
-	game.telegraphs.flash_ring(global_position, radius * 0.7, Color(0.8, 0.45, 1.0), 0.35)
+	game.fx.burst(global_position + Vector3(0, 0.8, 0), Color(0.75, 0.4, 1.0), pop_r)
+	game.telegraphs.flash_ring(global_position, pop_r, Color(0.8, 0.45, 1.0), 0.35)
 	game.camera.shake(0.35)
 	Audio.play("w_lob_boom", global_position)
 	queue_free()

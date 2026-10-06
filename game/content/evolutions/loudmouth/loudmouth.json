@@ -2,7 +2,7 @@
   "id": "loudmouth",
   "name": "Loudmouth",
   "flavour": "It has opinions, and a wider mouth.",
-  "rarity": "epic",
+  "rarity": "rare",
   "weight": 7,
   "behavior": "LaserBeam",
   "targeting": "nearest",
@@ -25,57 +25,9 @@
       "size": 1.5
     }
   },
+  "max_level": 1,
   "levels": [
-    [],
-    [
-      {
-        "stat": "damage",
-        "op": "mul",
-        "value": 0.2
-      }
-    ],
-    [
-      {
-        "stat": "duration",
-        "op": "add",
-        "value": 0.4
-      }
-    ],
-    [
-      {
-        "stat": "cooldown",
-        "op": "mul",
-        "value": -0.15
-      }
-    ],
-    [
-      {
-        "stat": "damage",
-        "op": "mul",
-        "value": 0.2
-      }
-    ],
-    [
-      {
-        "stat": "range",
-        "op": "add",
-        "value": 3
-      }
-    ],
-    [
-      {
-        "stat": "duration",
-        "op": "add",
-        "value": 0.5
-      }
-    ],
-    [
-      {
-        "stat": "damage",
-        "op": "mul",
-        "value": 0.25
-      }
-    ]
+    []
   ],
   "evolves_with": "",
   "evolves_into": "",

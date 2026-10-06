@@ -62,15 +62,13 @@ const INFO := Color(0.298, 0.788, 1.0)
 const OUTLINE := Color(0.06, 0.07, 0.12, 0.95)
 
 const TYPE_COLORS := {"weapon": ACCENT, "passive": XP, "evolution": Color(1.0, 0.827, 0.353), "shop": Color(0.27, 0.815, 0.815), "character": GOOD, "map": Color(0.94, 0.54, 0.29), "enemy": DANGER, "elite": DANGER, "pickup": GOOD,
-	"mutation": Color(1.0, 0.42, 0.8), "line": Color(0.96, 0.58, 0.36), "perk": GOOD}
+	"mutation": Color(1.0, 0.42, 0.8), "perk": GOOD}
 ## The kind a card or row is drawn as, from the def's class.
 static func kind_of(def: ContentDef) -> String:
 	if def is WeaponDef:
 		return "evolution" if def.is_evolution else "weapon"
 	if def is MutationDef:
 		return "mutation"
-	if def is LineDef:
-		return "line"
 	if def is PerkDef:
 		return "perk"
 	if def is PassiveDef:
@@ -250,8 +248,8 @@ static func icon_view(def: ContentDef, size: int = 120, kind: String = "") -> Co
 	var col: Color = TYPE_COLORS.get(k, BG3)
 	var plate := Panel.new()
 	# one short of half for the round plates: a radius of exactly half the size draws a seam down the middle
-	var radius := size / 2 - 1 if k == "passive" or k == "character" or k == "line" or k == "perk" else size / 5
-	# a mutation wears its own frame: thick, in the path colour, so it is never mistaken for a weapon or a passive
+	var radius := size / 2 - 1 if k == "passive" or k == "character" or k == "perk" else size / 5
+	# a mutation wears its own frame: thick, in the mutation colour, so it is never mistaken for a weapon or a passive
 	var rim_w := maxi(size / 10, 5) if k == "mutation" else maxi(size / 24, 3)
 	plate.add_theme_stylebox_override("panel", stylebox(col.darkened(0.62), radius, col, rim_w, true, false, false))
 	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -362,22 +360,14 @@ static func card_description(card: Dictionary) -> String:
 		return (def as MutationDef).text
 	if def is PerkDef:
 		return (def as PerkDef).text
-	if def is LineDef:
-		var ld := def as LineDef
-		if bool(card.get("evolve", false)):
-			# the evolution (pass 33.2): the whole of what the maxed line becomes, in place of its ranks
-			var src: LineDef = Registry.line(ld.evolves_from)
-			var se := "Replaces %s: %s" % [src.display_name if src else ld.evolves_from, TextGen.describe_effects(ld.effects_for_level(1))]
-			if ld.trade != "":
-				se += " (the trade: %s)" % ld.trade
-			return se
-		var lvl := int(card["level_to"])
-		var s2 := TextGen.describe_effects(ld.effects_at_level(lvl)) + " a rank"
-		if ld.trade != "":
-			s2 += " (the trade: %s)" % ld.trade
-		if int(card.get("level_from", 0)) == 0 and ld.text != "":
-			s2 = ld.text + " " + s2
-		return ("Next: " + s2) if int(card.get("level_from", 0)) > 0 else s2
+	if def is PassiveDef and bool(card.get("evolve", false)):
+		# the evolution (pass 33.2): the whole of what the maxed passive becomes, in place of its levels
+		var ed := def as PassiveDef
+		var src: PassiveDef = Registry.passive(ed.evolves_from)
+		var se := "Replaces %s: %s" % [src.display_name if src else ed.evolves_from, TextGen.describe_effects(ed.effects_for_level(1))]
+		if ed.trade != "":
+			se += " (the trade: %s)" % ed.trade
+		return se
 	if def is WeaponDef:
 		var inst := Run.weapon_instance(def.id)
 		if inst:
@@ -386,8 +376,13 @@ static func card_description(card: Dictionary) -> String:
 		tmp.rebuild(Run.player_sheet, Run.weapons)
 		return tmp.description()
 	elif def is PassiveDef:
+		var pd := def as PassiveDef
 		var lv := int(card["level_to"])
-		var s := TextGen.describe_effects(def.effects_at_level(lv)) + (" per level" if def.repeat_last_level else "")
+		var s := TextGen.describe_effects(pd.effects_at_level(lv)) + (" a level" if pd.repeat_last_level else "")
+		if pd.trade != "":
+			s += " (the trade: %s)" % pd.trade
+		if int(card.get("level_from", 0)) == 0 and pd.text != "":
+			s = pd.text + " " + s
 		return ("Next: " + s) if int(card.get("level_from", 0)) > 0 else s
 	return ""
 
@@ -401,12 +396,13 @@ static func level_chip(card: Dictionary) -> Control:
 	# a new item taken past level 1 in one go (the Stranger's, pass 34) says where it lands
 	var text := ("NEW · LV %d" % maxi(lt, 1) if lf == 0 else "LV %d → %d" % [lf, lt]) + (" · MAX" if lt >= mx and lf > 0 else "")
 	if def is MutationDef:
-		var fam_n: int = maxi(Registry.mutations_of((def as MutationDef).weapon).size(), 3)
-		text = "HERO" if (def as MutationDef).is_hero() else "PATH %d / %d" % [mini(Run.mutations_held((def as MutationDef).weapon).size() + 1, fam_n), fam_n]
-	elif def is LineDef:
-		text = ("NEW · RANK 1" if lf == 0 else "RANK %d → %d" % [lf, lt]) + (" · MAX" if lt >= mx and lf > 0 else "")
-		if bool(card.get("evolve", false)):
-			text = "EVOLVE"
+		# the path's real count (pass 48: every mutation of it is needed to evolve), the held ones read off the weapon
+		var fam_w := Run.family_instance((def as MutationDef).weapon)
+		var fam_n: int = maxi(Registry.mutations_of((def as MutationDef).weapon).size(), 1)
+		var held_n: int = Run.path_progress(fam_w).x if fam_w else 0
+		text = "HERO" if (def as MutationDef).is_hero() else "MUTATION %d / %d" % [mini(held_n + 1, fam_n), fam_n]
+	elif bool(card.get("evolve", false)):
+		text = "EVOLVE"
 	elif def is PerkDef:
 		text = "ONCE"
 	var l := label(text, 24, ACCENT_INK, HORIZONTAL_ALIGNMENT_CENTER)
@@ -437,7 +433,7 @@ static func level_pips(card: Dictionary, width: int = 320) -> Control:
 	var lt := int(card.get("level_to", 1))
 	var mx: int = def.max_level if (def is WeaponDef or def is PassiveDef) else 8
 	if def is MutationDef:
-		# a path has three pips: the picks held on the weapon, this one, the rest
+		# a weapon's mutations have three pips: the picks held on the weapon, this one, the rest
 		var held := Run.mutations_held((def as MutationDef).weapon).size()
 		if (def as MutationDef).is_hero():
 			return Control.new()
@@ -474,11 +470,9 @@ static func item_header(v: VBoxContainer, card: Dictionary, kind_col: Color, nam
 		var md := def as MutationDef
 		var wname: String = Registry.weapon(md.weapon).display_name.to_upper() if Registry.weapon(md.weapon) else md.weapon.to_upper()
 		tag_text = ("HERO MUTATION · " if md.is_hero() else "MUTATION · ") + wname + ("" if md.is_hero() else " · " + md.mutation_kind.to_upper()) + extra_tag
-	elif def is LineDef:
-		tag_text = "LINE" + (" · RANK UP" if int(card.get("level_from", 0)) > 0 else " · NEW") + extra_tag
-		if bool(card.get("evolve", false)):
-			var src: LineDef = Registry.line((def as LineDef).evolves_from)
-			tag_text = "LINE · EVOLUTION OF " + (src.display_name.to_upper() if src else "A LINE") + extra_tag
+	elif def is PassiveDef and bool(card.get("evolve", false)):
+		var src: PassiveDef = Registry.passive((def as PassiveDef).evolves_from)
+		tag_text = "PASSIVE · EVOLUTION OF " + (src.display_name.to_upper() if src else "A PASSIVE") + extra_tag
 	elif def is PerkDef:
 		tag_text = "HERO PERK" + extra_tag
 	var tl := label(tag_text, 22, kind_col)
@@ -507,10 +501,10 @@ static func card_tag(card: Dictionary) -> String:
 	var t := "WEAPON" if def is WeaponDef else "PASSIVE"
 	if def is MutationDef:
 		return "MUTATION · " + (Registry.weapon((def as MutationDef).weapon).display_name.to_upper() if Registry.weapon((def as MutationDef).weapon) else "")
-	if def is LineDef:
-		t = "LINE"
-	elif def is PerkDef:
+	if def is PerkDef:
 		return "HERO PERK"
+	if bool(card.get("evolve", false)):
+		return t + " · EVOLUTION"
 	if card.get("is_new", false):
 		return t + " · NEW"
 	return t + " · LV %d → %d" % [int(card["level_from"]), int(card["level_to"])]

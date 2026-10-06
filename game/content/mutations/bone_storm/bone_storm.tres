@@ -7,16 +7,13 @@
 [sub_resource type="Resource" id="Resource_v8fgk"]
 script = ExtResource("1_8caxk")
 stat = "amount"
-op = "add"
 value = 3.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_0wx8y"]
 script = ExtResource("1_8caxk")
 stat = "damage"
 op = "mul"
 value = -0.3
-target = "self"
 
 [resource]
 script = ExtResource("2_v8fgk")
@@ -33,6 +30,7 @@ display_name = "Bone Storm"
 flavour = "Skulls, with a chance of more skulls."
 rarity = "rare"
 weight = 8.0
+hidden = true
 icon = ExtResource("2_0wx8y")
 icon_file = "bone_storm_icon.png"
 placeholder = {

@@ -6,8 +6,6 @@
 
 [resource]
 script = ExtResource("1_k8cci")
-behavior = "ProjectileEmitter"
-tags = []
 targeting = "healthy"
 base = {
 "amount": 3.0,
@@ -23,8 +21,6 @@ base = {
 }
 levels = [[]]
 max_level = 1
-evolves_with = ""
-evolves_into = ""
 is_evolution = true
 evolved_from = "flare_gun"
 sfx = {
@@ -42,15 +38,10 @@ params = {
 },
 "radius": 0.26
 }
-hero = ""
 id = "roman_candle"
 display_name = "Roman Candle"
 flavour = "Three flares. No signal. Just fire."
-rarity = "epic"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
+rarity = "rare"
 icon = ExtResource("1_ktuh5")
 icon_file = "roman_candle_icon.png"
 placeholder = {

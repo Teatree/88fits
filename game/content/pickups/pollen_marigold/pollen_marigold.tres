@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="PickupDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/PickupDef.gd" id="1_5h7el"]
+[ext_resource type="Texture2D" path="res://content/pickups/pollen_marigold/pollen_marigold_icon.png" id="1_phkyw"]
+
+[resource]
+script = ExtResource("1_5h7el")
+effect_kind = "pollen"
+value = 0.0
+duration = 5.0
+lifetime = 19.0
+params = {
+"small": true
+}
+color = Color(1, 0.7882353, 0.1882353, 1)
+id = "pollen_marigold"
+display_name = "Desert Marigold"
+flavour = "Pollen for the hive."
+weight = 0.0
+icon = ExtResource("1_phkyw")
+icon_file = "pollen_marigold_icon.png"
+placeholder = {
+"color": "#FFC930",
+"glyph": "flower"
+}

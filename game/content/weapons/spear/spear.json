@@ -1,0 +1,90 @@
+{
+  "id": "spear",
+  "name": "Throwing Spear",
+  "flavour": "Thrown once. Through all of them.",
+  "hidden": true,
+  "rarity": "rare",
+  "weight": 8,
+  "hero": "ironwood",
+  "behavior": "ProjectileEmitter",
+  "targeting": "nearest",
+  "tags": [
+    "thrown"
+  ],
+  "base": {
+    "damage": 22,
+    "cooldown": 1.5,
+    "amount": 1,
+    "pierce": 99,
+    "speed": 20,
+    "range": 11,
+    "knockback": 4.0
+  },
+  "max_level": 5,
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.1
+      }
+    ],
+    [
+      {
+        "stat": "range",
+        "op": "add",
+        "value": 1.5
+      },
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "speed",
+        "op": "add",
+        "value": 4
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      },
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "war_lance",
+  "params": {
+    "plant": {
+      "seconds": 0.6,
+      "tilt_deg": 70,
+      "bury": 0.3
+    },
+    "no_spin": true,
+    "radius": 0.35
+  },
+  "sfx": {
+    "fire": "w_spear_throw",
+    "hit": "w_spear_hit"
+  },
+  "placeholder": {
+    "color": "#B04A2A",
+    "glyph": "star"
+  },
+  "art_prompt": "a long Plains war lance with a dark wooden shaft, a leaf-shaped steel point, a band of red cloth wrapped below the point and two white-and-black eagle feathers hanging from it on a thong, lying diagonally with the point to the upper right"
+}

@@ -2,7 +2,7 @@
   "id": "ring_of_fire",
   "name": "Ring of Fire",
   "flavour": "It burns, burns, burns.",
-  "rarity": "epic",
+  "rarity": "rare",
   "is_evolution": true,
   "evolved_from": "branding_iron",
   "max_level": 1,

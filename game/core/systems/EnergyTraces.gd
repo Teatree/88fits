@@ -112,9 +112,10 @@ func _process(_delta: float) -> void:
 			_mesh.clear_surfaces()
 			_mi.visible = false
 		return
-	_mi.visible = true
 	_mesh.clear_surfaces()
-	_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	# the surface opens with the first ribbon (pass 48): lines whose every piece is too short to draw (a round that ended
+	# where it left, a ricochet's first hop) left an empty surface, which the engine refuses
+	var begun := false
 	var k := 0
 	for ln: Dictionary in lines:
 		k += 1
@@ -130,9 +131,14 @@ func _process(_delta: float) -> void:
 			var p1: Vector3 = pts[s + 1] if s + 1 < pts.size() else head
 			if p0.distance_squared_to(p1) < 0.0004:
 				continue
+			if not begun:
+				_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+				begun = true
 			_ribbon(p0, p1, width, Color(COLOR.r, COLOR.g * 0.9, COLOR.b * 0.7, 0.32 * a))
 			_ribbon(p0, p1, width * 0.28, Color(1.0, 0.95, 0.75, 0.9 * a))
-	_mesh.surface_end()
+	if begun:
+		_mesh.surface_end()
+	_mi.visible = begun
 
 
 func _ribbon(p0: Vector3, p1: Vector3, width: float, col: Color) -> void:

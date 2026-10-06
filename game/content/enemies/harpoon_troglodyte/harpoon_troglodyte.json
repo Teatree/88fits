@@ -4,9 +4,10 @@
   "flavour": "It cannot see you. It does not need to.",
   "archetype": "brute",
   "brain": "kite",
-  "hp": 23,
+  "hp": 50,
   "speed": 2.4,
   "damage": 10,
+  "knockback": 5.38,
   "radius": 1.1,
   "size": 3.25,
   "pack_size": 1,
@@ -78,6 +79,5 @@
   "badge": "gear",
   "head": 0.974,
   "can_be_elite": false,
-  "can_be_grabbed": false,
-  "damage_reduction": 0.3
+  "can_be_grabbed": false
 }

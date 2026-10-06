@@ -2,7 +2,7 @@
 ## the first 30 s, "Drag anywhere to walk" until the hero moves, "He shoots by himself" (the hero's own pronoun) for a
 ## few seconds after, "The purple is XP" until the first gem. Each appears once and is remembered (the save's hint ids
 ## are the old ones, so a player who saw the old hints is not shown these again); the switch in Settings turns them off.
-## The level-up card frame carries the fourth ("the seal says how rare it is", CardScreen).
+## The level-up card frame carries the fourth ("the plate's colour says what it is", CardScreen; the rarity seals went in pass 43).
 class_name Hints
 extends Control
 

@@ -1,0 +1,55 @@
+{
+  "id": "moonshine",
+  "name": "Moonshine",
+  "flavour": "Blue fire always: pools burn three times as long and slowly spread 60% wider, the jug lays a burning line all along its throw, and an enemy that dies burning splashes a small blue pool (6 at most).",
+  "rarity": "rare",
+  "is_evolution": true,
+  "evolved_from": "molotov",
+  "max_level": 1,
+  "behavior": "Lobber",
+  "targeting": "densest_healthy",
+  "base": {
+    "damage": 10,
+    "cooldown": 2.0,
+    "amount": 2,
+    "area": 2.6,
+    "range": 12,
+    "knockback": 2.0,
+    "speed": 11,
+    "fire_damage": 6,
+    "fire_duration": 2.4,
+    "fire_spread": 0.7
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "fire_blue": true,
+    "final": {
+      "cloud_seconds": 9.0,
+      "pool_grow": 0.6,
+      "burn_line": {
+        "start": 1.5,
+        "step": 1.6,
+        "width": 1.1,
+        "seconds": 4.0,
+        "slow": 0.35
+      },
+      "death_pool": {
+        "radius": 1.0,
+        "seconds": 3.0,
+        "max": 6
+      }
+    }
+  },
+  "sfx": {
+    "fire": "w_molotov_throw",
+    "hit": "w_molotov_boom"
+  },
+  "placeholder": {
+    "color": "#FF6A1E",
+    "glyph": "bottle"
+  },
+  "art_prompt": "a clay moonshine jug marked XXX with blue flames licking from its neck",
+  "visual": "moonshine_visual.tscn"
+}

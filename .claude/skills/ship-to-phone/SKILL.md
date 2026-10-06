@@ -25,7 +25,7 @@ can tap exists. The route in use is Google Drive: Drive for Desktop is signed in
 ## Do not
 
 - Do not try to push the APK through the Drive connector (`create_file` carries content as text in the request; a
-  30 MB binary cannot travel that way) or the chat file card (30 MiB cap; the build is 32 to 34 MiB).
+  30 MB binary cannot travel that way) or the chat file card (30 MiB cap; the build is about 63 MiB since pass 48).
 - Do not switch to the debug export: it is signed differently and Android would demand an uninstall.
 
 ## Backup route

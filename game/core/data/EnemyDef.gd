@@ -31,6 +31,13 @@ extends ContentDef
 @export var strip_cols: int = 0
 ## Frames per second per animation prefix, e.g. {"run": 15}.
 @export var fps: Dictionary = {}
+## Seconds between two bites on the hero (pass 53, the wave schema's `contact_cd`; EnemyManager read a literal 0.6).
+@export var contact_cd: float = 0.6
+## Pass 53 (the wave schema): this creature's kills roll the timeline's power-up chance (`pickups.per_kill`) times this,
+## and a non-empty `pickup_weights` {id: weight} replaces the timeline's power-up roster for its kills (an id missing from
+## it is never dropped by this creature). Both may come from a roster row's `stats` (with_overrides).
+@export var pickup_chance_mult: float = 1.0
+@export var pickup_weights: Dictionary = {}
 ## Ranged enemies: {"range": 7.0, "keep_distance": 5.0, "cooldown": 2.5, "projectile_speed": 6.0, "telegraph": 0.6}
 @export var ranged: Dictionary = {}
 ## Chargers: {"windup": 0.8, "speed": 9.0, "duration": 0.6, "cooldown": 4.0, "trigger_range": 6.0}
@@ -38,6 +45,12 @@ extends ContentDef
 ## flat damage taken off every hit (a toad's hide); the elite modifiers add to it
 ## Damage reduction (pass 43, was a flat `armor`): the fraction of every hit it shrugs off, 0..0.9.
 @export var damage_reduction: float = 0.0
+## The shove the hero takes from this creature's bite, m/s (pass 54, Garry: every creature its own number, set from
+## its damage, melee about 35% over the old fixed 2.5; the Level Editor edits it per row as `stats.knockback`). 0 =
+## default_knockback(damage); hit_knockback() is what EnemyManager's bite loop reads. A hostile shot shoves by its
+## `ranged.knockback` when the block has one, else 0.7 of this; `charge.knockback`, `kamikaze.knockback`,
+## `artillery.missile.knockback` and the boss attacks keep their own numbers (the dwarf's shotgun, the rocketeer's rocket).
+@export var knockback: float = 0.0
 ## never more than this many alive at once (0 = no limit): the director skips the row while the count holds
 @export var max_alive: int = 0
 ## The icon that floats over it (pass 33.3): "crown", "skull", "gear" (art/ui/badges/<badge>.png) or "none"; empty takes
@@ -46,6 +59,21 @@ extends ContentDef
 ## The top of the figure as a fraction of the sprite's height (the badge hangs just above it); tools/measure_heads.py
 ## measures it from the strip's first frame.
 @export var head: float = 0.86
+## The blob shadow under it, tuned by eye (pass 47, Garry: the Dune Scorpion "looks like it's floating over" its
+## shadow): {"scale": [w, d] times the usual ellipse's width and depth (one number scales both), "up": metres up the
+## screen (the camera's forward on the ground, at the creature's own size) to slide the shadow under the body, "drop": a
+## share of the cell height to sink the painting by, so legs painted above the cell's bottom edge stand on the ground}.
+## A low, wide creature seen from above has its body up the screen from its foot point, and its frames carry empty cell
+## under the legs (the scorpion: 13 to 28 px of 224), so the shadow showed below it. A `variants` entry may carry its own
+## (apply_art); empty = the plain shadow at the foot point. EnemyManager reads it through shadow_tuning().
+@export var shadow: Dictionary = {}
+## Which way the front painting's three-quarter turns (pass 45): "right" (the default: shown as painted while the
+## creature heads screen-right, mirrored while it heads left, like every side set), "left" (painted heading screen-left,
+## so the mirror is inverted) or "straight" (never mirrored). The hellhound's front cycle came out running down and to
+## the viewer's left, so under the default it looked away from the hero on both halves of the screen. `back_faces` is
+## the same rule for run_b / idle_b.
+@export var front_faces: String = "right"
+@export var back_faces: String = "right"
 ## Out of the game but kept (pass 33.3: the goblins, the mine crab, the jackalope): no map brings it and the collection
 ## leaves it out; its art, data and brain stay for later.
 @export var retired: bool = false
@@ -55,6 +83,17 @@ extends ContentDef
 @export var variants: Dictionary = {}
 @export var variant: String = ""
 var variant_code := ""
+## Pass 53 (the wave schema's `stats`): a copy made by with_overrides() carries the first 8 hex chars of the md5 of its
+## stats' canonical JSON here, so equal overrides share one EnemyManager type (type_key = id[@variant][#key]), and the
+## stats themselves in `override_stats` (a split child spawns with its parent's). Empty on a creature as its JSON made it.
+var override_key := ""
+var override_stats: Dictionary = {}
+## Pass 54 (a roster row's `stats`, set by with_overrides): this row's weight when a random Elite candidate is drawn
+## for an `elite` / `elite_every` event that names no creature (0 = never, like can_be_elite false), and how its
+## elite-modified creature arrives, {single, pack, ring} chances (normalised; empty = single). Plain vars: they belong
+## to the row, never to a creature's JSON.
+var elite_weight := 1.0
+var elite_formats: Dictionary = {}
 ## Whether an elite modifier may be put on it (pass 33.4: a crowned spit cactus showed up; a planted cactus and the
 ## one-at-a-time specials are never Elites).
 @export var can_be_elite: bool = true
@@ -92,12 +131,15 @@ func kind() -> String:
 	return "enemy"
 
 
-## The EnemyManager's key for this def's type: its id, or id@code for another art variant than the game's.
+## The EnemyManager's key for this def's type: its id, id@code for another art variant than the game's, and #key on the
+## end for a copy with stat overrides (pass 53): "skeleton", "skeleton@SK-B", "skeleton@SK-B#1a2b3c4d".
 func type_key() -> String:
-	return id if variant_code == "" or variant_code == variant else id + "@" + variant_code
+	var k := id if variant_code == "" or variant_code == variant else id + "@" + variant_code
+	return k if override_key == "" else k + "#" + override_key
 
 
-## Takes one variant's art (a `variants` entry) as its own.
+## Takes one variant's art (a `variants` entry) as its own, and its facing when the entry gives one (pass 46: a
+## variant's painting may turn the other way from the top-level strip's).
 func apply_art(a: Dictionary) -> void:
 	sprite = a.get("sprite", sprite)
 	sprite_file = str(a.get("sprite_file", sprite_file))
@@ -107,6 +149,12 @@ func apply_art(a: Dictionary) -> void:
 	head = float(a.get("head", head))
 	if a.get("icon") != null:
 		icon = a["icon"]
+	if a.has("front_faces"):
+		front_faces = str(a["front_faces"])
+	if a.has("back_faces"):
+		back_faces = str(a["back_faces"])
+	if a.get("shadow") is Dictionary:
+		shadow = a["shadow"]
 
 
 ## This creature with another art variant (a copy; itself for its own code or an unknown one).
@@ -115,8 +163,212 @@ func variant_def(code: String) -> EnemyDef:
 		return self
 	var v: EnemyDef = duplicate()
 	v.variant_code = code
+	v.source_dir = source_dir
+	# its own shadow, not the one the def it was copied from plays (the variant entry's: JsonContent puts the creature's
+	# own block in an entry that has none)
+	v.shadow = {}
 	v.apply_art(variants[code])
 	return v
+
+
+## The wave schema's stat overrides that set one field as they are (pass 53): JSON key -> field. `pack` is the pack
+## size. The `*_mult` keys, the blocks and the three clock/speed/knockback multipliers are handled in with_overrides.
+const OVERRIDE_FIELDS := {"hp": "hp", "damage": "damage", "speed": "speed", "size": "size", "radius": "radius",
+	"damage_reduction": "damage_reduction", "contact_cd": "contact_cd", "pack": "pack_size", "max_alive": "max_alive",
+	"cap_share": "cap_share", "xp_mult": "xp_mult", "can_be_elite": "can_be_elite", "pickup_chance_mult": "pickup_chance_mult",
+	"knockback": "knockback"}
+## The `*_mult` overrides and the base field each multiplies (after a direct value for that field).
+const OVERRIDE_MULTS := {"hp_mult": "hp", "damage_mult": "damage", "speed_mult": "speed", "size_mult": "size", "radius_mult": "radius"}
+
+
+## This creature with the wave schema's `stats` overrides on it (pass 53; a roster row's, a wave alt's or an event's
+## `stats`, the Level Editor's "Stat overrides"): a copy, its art variant kept like variant_def's, whose type_key ends in
+## "#" + the stats' hash so EnemyManager keeps one type per distinct set (Registry.enemy_with caches them). Itself for
+## empty stats. Every key is optional and a missing one keeps the creature's own number: the direct fields
+## (OVERRIDE_FIELDS), then the `*_mult` keys on the base; `pickup_weights` replaces; ranged / charge / drops / elite /
+## kamikaze / artillery / boss deep-merge over the creature's blocks, `boss.attacks` as a name -> on/off map (false
+## removes that attack, true keeps it, an unknown name adds nothing; a list replaces the attacks); `attack_rate_mult`
+## divides ranged.cooldown, charge.cooldown, kamikaze.windup, boss.cooldown_between and contact_cd (the code's defaults
+## when a block has no such key); `projectile_speed_mult` multiplies ranged.projectile_speed (or `speed`),
+## artillery.missile.speed and the `speed` of every boss attack that has one; `knockback_mult` multiplies the knockback
+## of charge, ranged and kamikaze and of every boss attack, where one is written, and (pass 54) the contact knockback,
+## which the copy then carries resolved (hit_knockback() of the base times the multiplier). Pass 54 too: `knockback`
+## sets the contact knockback, `variance` deep-merges over the creature's variance block (its `tints` replaced whole
+## when given), `elite_weight` and `elite_formats` land on the copy's row fields.
+func with_overrides(stats: Dictionary) -> EnemyDef:
+	if stats.is_empty():
+		return self
+	var v: EnemyDef = duplicate()
+	v.variant_code = variant_code
+	v.source_dir = source_dir
+	v.override_key = override_key_of(stats)
+	v.override_stats = stats.duplicate(true)
+	# the row fields (pass 54): a duplicate() need not carry a plain var, so they are set here
+	v.elite_weight = maxf(float(stats.get("elite_weight", elite_weight)), 0.0)
+	v.elite_formats = (stats["elite_formats"] as Dictionary).duplicate(true) if stats.get("elite_formats") is Dictionary else elite_formats.duplicate(true)
+	if stats.get("variance") is Dictionary:
+		v.variance = deep_merge(variance, stats["variance"])
+	# the blocks the overrides may touch, as deep copies: a Resource's duplicate() leaves the nested dictionaries
+	# (boss.attacks, artillery.missile) shared with the original
+	v.ranged = ranged.duplicate(true)
+	v.charge = charge.duplicate(true)
+	v.drops = drops.duplicate(true)
+	v.elite = elite.duplicate(true)
+	v.boss = boss.duplicate(true)
+	v.kamikaze = kamikaze.duplicate(true)
+	v.artillery = artillery.duplicate(true)
+	v.pickup_weights = pickup_weights.duplicate(true)
+	for key: String in OVERRIDE_FIELDS.keys():
+		if stats.has(key):
+			var field: String = str(OVERRIDE_FIELDS[key])
+			v.set(field, _typed_like(v.get(field), stats[key]))
+	for key: String in OVERRIDE_MULTS.keys():
+		if stats.has(key):
+			var field: String = str(OVERRIDE_MULTS[key])
+			v.set(field, float(v.get(field)) * float(stats[key]))
+	v.damage_reduction = clampf(v.damage_reduction, 0.0, 0.9)
+	v.pack_size = maxi(v.pack_size, 1)
+	if stats.get("pickup_weights") is Dictionary:
+		v.pickup_weights = (stats["pickup_weights"] as Dictionary).duplicate(true)
+	for block: String in ["ranged", "charge", "drops", "elite", "kamikaze", "artillery"]:
+		if stats.get(block) is Dictionary:
+			v.set(block, deep_merge(v.get(block), stats[block]))
+	if stats.get("boss") is Dictionary:
+		var ob: Dictionary = (stats["boss"] as Dictionary).duplicate(true)
+		var atk_map = ob.get("attacks")
+		ob.erase("attacks")
+		v.boss = deep_merge(v.boss, ob)
+		if atk_map is Dictionary:
+			var kept: Array = []
+			for a in v.boss.get("attacks", []):
+				if a is Dictionary and bool((atk_map as Dictionary).get(str((a as Dictionary).get("name", "")), true)):
+					kept.append(a)
+			v.boss["attacks"] = kept
+		elif atk_map is Array:
+			v.boss["attacks"] = (atk_map as Array).duplicate(true)
+	var rate := float(stats.get("attack_rate_mult", 1.0))
+	if rate > 0.0 and rate != 1.0:
+		v.contact_cd /= rate
+		if not v.ranged.is_empty():
+			v.ranged["cooldown"] = float(v.ranged.get("cooldown", 2.5)) / rate
+		if not v.charge.is_empty():
+			v.charge["cooldown"] = float(v.charge.get("cooldown", 4.0)) / rate
+		if not v.kamikaze.is_empty():
+			v.kamikaze["windup"] = float(v.kamikaze.get("windup", 0.35)) / rate
+		if not v.boss.is_empty():
+			v.boss["cooldown_between"] = float(v.boss.get("cooldown_between", 2.0)) / rate
+	var psm := float(stats.get("projectile_speed_mult", 1.0))
+	if psm > 0.0 and psm != 1.0:
+		if v.ranged.has("speed"):
+			v.ranged["speed"] = float(v.ranged["speed"]) * psm
+		elif not v.ranged.is_empty():
+			v.ranged["projectile_speed"] = float(v.ranged.get("projectile_speed", ranged_speed_default(v.ranged))) * psm
+		if v.artillery.get("missile") is Dictionary:
+			var ms: Dictionary = v.artillery["missile"]
+			ms["speed"] = float(ms.get("speed", 4.0)) * psm
+		for a in v.boss.get("attacks", []):
+			if a is Dictionary and (a as Dictionary).has("speed"):
+				a["speed"] = float(a["speed"]) * psm
+	var kbm := float(stats.get("knockback_mult", 1.0))
+	if kbm >= 0.0 and kbm != 1.0:
+		for block: String in ["charge", "ranged", "kamikaze"]:
+			var b: Dictionary = v.get(block)
+			if b.has("knockback"):
+				b["knockback"] = float(b["knockback"]) * kbm
+		for a in v.boss.get("attacks", []):
+			if a is Dictionary and (a as Dictionary).has("knockback"):
+				a["knockback"] = float(a["knockback"]) * kbm
+		# the contact knockback too (pass 54), resolved from the default when the creature names none (a multiplier of 0
+		# leaves a hair over 0: a knockback of 0 means "the default")
+		v.knockback = maxf(v.hit_knockback() * kbm, 0.001)
+	return v
+
+
+## The contact knockback a bite deals when the creature's data names none (pass 54): from its damage, 3.4 m/s for a
+## 4-damage bite (about 35% over the old fixed 2.5), growing with the square root of the damage, never under 2.5 or
+## over 7 (a 3-damage skeleton 2.94, a 14-damage mummy 6.36, a boss 7).
+static func default_knockback(bite: float) -> float:
+	return clampf(3.4 * sqrt(maxf(bite, 0.0) / 4.0), 2.5, 7.0)
+
+
+## The shove the hero takes from this creature's bite, m/s (pass 54): its own `knockback`, else the default from its
+## damage. EnemyManager's bite loop reads it; a hostile shot without a `ranged.knockback` shoves by 0.7 of it.
+func hit_knockback() -> float:
+	return knockback if knockback > 0.0 else default_knockback(damage)
+
+
+## The shot speed EnemyManager plays when a `ranged` block names none (pass 53, for projectile_speed_mult): 16 for a
+## cone of pellets, 12 for a straight shot, 6 for a lobbed spit (its _do_attack defaults).
+static func ranged_speed_default(r: Dictionary) -> float:
+	if r.has("cone_deg"):
+		return 16.0
+	return 12.0 if bool(r.get("straight", false)) else 6.0
+
+
+## `value` cast to the type `current` has (pass 53): the JSON's 5.0 lands in an int field as 5, its 1 in a bool as true.
+static func _typed_like(current, value):
+	match typeof(current):
+		TYPE_INT:
+			return int(value)
+		TYPE_FLOAT:
+			return float(value)
+		TYPE_BOOL:
+			return bool(value)
+		TYPE_STRING:
+			return str(value)
+	return value
+
+
+## `over` laid over `base` (pass 53): a key whose value is a dictionary on both sides merges inside, anything else
+## replaces. A new dictionary; neither argument is touched.
+static func deep_merge(base: Dictionary, over: Dictionary) -> Dictionary:
+	var out: Dictionary = base.duplicate(true)
+	for k in over.keys():
+		if over[k] is Dictionary and out.get(k) is Dictionary:
+			out[k] = deep_merge(out[k], over[k])
+		elif over[k] is Dictionary or over[k] is Array:
+			out[k] = over[k].duplicate(true)
+		else:
+			out[k] = over[k]
+	return out
+
+
+## The hash two equal override sets share (pass 53): the first 8 hex chars of the md5 of their canonical JSON (keys
+## sorted at every level, whole floats written as integers, so the editor's 10 and the .tres's 10.0 are one set).
+## JSON.stringify keeps a dictionary's own order, so the canonical text is built here.
+static func override_key_of(stats: Dictionary) -> String:
+	return canonical_json(stats).md5_text().substr(0, 8)
+
+
+static func canonical_json(v) -> String:
+	if v is Dictionary:
+		var d: Dictionary = v
+		var by_name: Dictionary = {}
+		for k in d.keys():
+			by_name[str(k)] = k
+		var names: Array = by_name.keys()
+		names.sort()
+		var parts: PackedStringArray = PackedStringArray()
+		for n in names:
+			parts.append(JSON.stringify(str(n)) + ":" + canonical_json(d[by_name[n]]))
+		return "{" + ",".join(parts) + "}"
+	if v is Array:
+		var items: PackedStringArray = PackedStringArray()
+		for e in v:
+			items.append(canonical_json(e))
+		return "[" + ",".join(items) + "]"
+	if v is float:
+		var f: float = v
+		if f == floorf(f) and absf(f) < 1e15:
+			return str(int(f))
+		return JSON.stringify(f)
+	return JSON.stringify(v)
+
+
+## The shadow tuning this def draws with (pass 47): `shadow` as JsonContent loaded it, the variant entry's when the art
+## it plays has its own, else the creature's top-level block; empty = the plain shadow at the foot point.
+func shadow_tuning() -> Dictionary:
+	return shadow
 
 
 ## The variant codes in order (empty when it has one art).
@@ -130,8 +382,8 @@ func frames_of(anim: String) -> int:
 	return int(anims.get(anim, 1))
 
 
-## The badge shown over one of these: its own, else its role's. "" for none. The crown belongs to the two Elites (the
-## Dune Scorpion, the Sun Prophet) and nobody else: not a creature with an elite modifier, not a special variant, not a
+## The badge shown over one of these: its own, else its role's. "" for none. The crown belongs to the Elites (the
+## Dune Scorpion, the Sun Prophet, the Stone Golem since pass 45) and nobody else: not a creature with an elite modifier, not a special variant, not a
 ## JSON asking for one (pass 33.6: crowns showed up over ordinary creatures wearing a modifier).
 func badge_for() -> String:
 	var b := badge

@@ -1,0 +1,34 @@
+{
+  "id": "thorns",
+  "name": "Thorny Weed",
+  "flavour": "It was always a little mean.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "tumbleweed",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "Heavier and thornier: +35% damage. It rolls out slower and comes back faster.",
+  "vfx": "a heavier weed, slower out and quick home",
+  "effects": [
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": 0.35
+    }
+  ],
+  "params": {
+    "out_speed_mult": 0.7,
+    "back_speed_mult": 1.4,
+    "tint": {
+      "albedo": "#3A2412",
+      "emission": "#8A5A2A",
+      "energy": 0.35
+    }
+  },
+  "art_prompt": "a dry tumbleweed covered in sharp green poison thorns",
+  "placeholder": {
+    "color": "#A8B060",
+    "glyph": "star"
+  }
+}

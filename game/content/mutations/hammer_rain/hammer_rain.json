@@ -4,6 +4,7 @@
   "flavour": "Forecast: heavy.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "hammer",
   "kind": "volume",
   "element": "",

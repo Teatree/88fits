@@ -1,0 +1,21 @@
+{
+  "id": "lingering_light",
+  "name": "Lingering Light",
+  "flavour": "The glow fades slowly.",
+  "rarity": "rare",
+  "weight": 6,
+  "hidden": true,
+  "hero": "solenne",
+  "text": "Her burns and poison tick 30% harder and last 30% longer.",
+  "effects": [],
+  "special": "lingering_light",
+  "params": {
+    "harder": 0.3,
+    "longer": 0.3
+  },
+  "art_prompt": "a golden hourglass with sunlight pouring through it instead of sand, a thin trail of glowing yellow dots lingering in the air round its base",
+  "placeholder": {
+    "color": "#FFD86A",
+    "glyph": "star"
+  }
+}

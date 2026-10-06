@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_3tlkr")
 hero = "calavera"
-text = "Every kill raises his might 1%, up to +40%. A hit drops it back to nothing."
+text = "Every kill raises his attack damage 1%, up to +40%. A hit drops it back to nothing."
 special = "crescendo"
 params = {
 "max": 0.4,

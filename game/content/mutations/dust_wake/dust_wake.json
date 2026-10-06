@@ -1,0 +1,28 @@
+{
+  "id": "dust_wake",
+  "name": "Dust Wake",
+  "flavour": "Hard to run in a dust storm.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "tumbleweed",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "A faint dust wake: enemies within 1.6 m are slowed a little.",
+  "vfx": "a dark green dust ring round every weed, slowed creatures tinted dark green",
+  "effects": [],
+  "params": {
+    "aura": {
+      "radius": 1.6,
+      "slow": 0.2,
+      "seconds": 0.4,
+      "every": 0.2,
+      "tint": "#1A5A1E"
+    }
+  },
+  "art_prompt": "a rolling tumbleweed wrapped in a ring of dark green dust",
+  "placeholder": {
+    "color": "#508050",
+    "glyph": "star"
+  }
+}

@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_mdr45"]
+[ext_resource type="Texture2D" path="res://content/mutations/repulsor/repulsor_icon.png" id="2_mdr45"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_dt1nt"]
+
+[sub_resource type="Resource" id="Resource_mdr45"]
+script = ExtResource("1_mdr45")
+stat = "damage"
+op = "mul"
+value = 0.15
+
+[resource]
+script = ExtResource("3_dt1nt")
+weapon = "gravity_gun"
+mutation_kind = "element"
+text = "Landings throw 2.5 times as hard over a 40% wider blast, +15% damage."
+vfx = "a purple blast ring and burst where a throw lands"
+effects = [SubResource("Resource_mdr45")]
+params = {
+"gravity": {
+"knock_mult": 2.5,
+"purple": true,
+"throw_mult": 1.4
+}
+}
+id = "repulsor"
+display_name = "Repulsor"
+flavour = "Push, do not pull."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_mdr45")
+icon_file = "repulsor_icon.png"
+placeholder = {
+"color": "#9A5CFF",
+"glyph": "star"
+}

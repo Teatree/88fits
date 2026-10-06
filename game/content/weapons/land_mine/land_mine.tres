@@ -10,54 +10,45 @@ script = ExtResource("1_smvov")
 stat = "damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [sub_resource type="Resource" id="Resource_2rwqc"]
 script = ExtResource("1_smvov")
 stat = "cooldown"
 op = "mul"
 value = -0.15
-target = "self"
 
 [sub_resource type="Resource" id="Resource_e7w21"]
 script = ExtResource("1_smvov")
 stat = "area"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_8v23b"]
 script = ExtResource("1_smvov")
 stat = "damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [sub_resource type="Resource" id="Resource_f7mbw"]
 script = ExtResource("1_smvov")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_4t1lu"]
 script = ExtResource("1_smvov")
 stat = "cooldown"
 op = "mul"
 value = -0.15
-target = "self"
 
 [sub_resource type="Resource" id="Resource_k3qhb"]
 script = ExtResource("1_smvov")
 stat = "damage"
 op = "mul"
 value = 0.3
-target = "self"
 
 [resource]
 script = ExtResource("2_vrt8g")
 behavior = "MineLayer"
-tags = []
 targeting = "ground"
 base = {
 "amount": 1.0,
@@ -67,12 +58,9 @@ base = {
 "knockback": 9.0,
 "lifetime": 25.0
 }
-levels = [[], [SubResource("Resource_1khjf")], [SubResource("Resource_2rwqc")], [SubResource("Resource_e7w21")], [SubResource("Resource_8v23b")], [SubResource("Resource_f7mbw")], [SubResource("Resource_4t1lu")], [SubResource("Resource_k3qhb")]]
-max_level = 8
-evolves_with = ""
-evolves_into = "minefield"
-is_evolution = false
-evolved_from = ""
+levels = [[], [SubResource("Resource_1khjf"), SubResource("Resource_2rwqc")], [SubResource("Resource_e7w21"), SubResource("Resource_8v23b")], [SubResource("Resource_f7mbw")], [SubResource("Resource_4t1lu"), SubResource("Resource_k3qhb")]]
+max_level = 5
+evolves_into = "jackrabbit_mines"
 sfx = {
 "hit": "w_lob_boom",
 "place": "w_mine_arm"
@@ -83,15 +71,11 @@ params = {
 "max_mines": 8.0,
 "trigger_radius": 0.7
 }
-hero = ""
 id = "land_mine"
 display_name = "Land Mine"
 flavour = "Step on it. Please."
 rarity = "rare"
-element = ""
 weight = 6.0
-hidden = false
-from_stage = 0
 icon = ExtResource("1_1khjf")
 icon_file = "land_mine_icon.png"
 placeholder = {

@@ -11,7 +11,7 @@ condition = {
 }
 unlocks = {
 "id": "energy_shield",
-"type": "line"
+"type": "passive"
 }
 id = "unlock_energy_shield"
 display_name = "Energy Shield"

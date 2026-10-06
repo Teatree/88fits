@@ -5,7 +5,7 @@
   "rarity": "rare",
   "weight": 8,
   "weapon": "turret_buddy",
-  "kind": "stance",
+  "kind": "motion",
   "element": "",
   "hero": "",
   "text": "The buddy digs in behind sandbags: twin barrels, +40% damage, shots knock back, it turns slowly.",
@@ -26,7 +26,7 @@
     "turret": {
       "style": "bunker",
       "barrels": 2,
-      "turn": 2.5
+      "turn": 120
     }
   },
   "art_prompt": "a low round sandbag bunker with two gun barrels poking out",

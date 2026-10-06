@@ -3,7 +3,7 @@
 // particle's age; godotshaders.com "Stylized fire (3D)") with the hard toon bands of the papaya-games devlog "How to
 // make a stylized fire shader": a pale gold heart, an orange body and a dark red rim, each edge one smoothstep wide,
 // so the fire sits in the game's cel look instead of glowing like a photo.
-// INSTANCE_CUSTOM: x = age 0..1, y = seed 0..1
+// INSTANCE_CUSTOM: x = age 0..1, y = seed 0..1, z = 1 for a blue flame (pass 48: Methanol, Moonshine), 0 for fire's own
 // INSTANCE COLOR:  rgb = body colour, a = opacity
 shader_type spatial;
 render_mode cull_disabled, unshaded, skip_vertex_transform, depth_draw_never, blend_mix, shadows_disabled, fog_disabled;
@@ -11,16 +11,19 @@ render_mode cull_disabled, unshaded, skip_vertex_transform, depth_draw_never, bl
 uniform sampler2D noise_tex : filter_linear_mipmap, repeat_enable;
 uniform vec3 heart : source_color = vec3(1.0, 0.95, 0.62);
 uniform vec3 rim : source_color = vec3(0.8, 0.14, 0.04);
+// a blue flame's heart and rim (pass 48): a white-blue heart and a deep blue rim round the blue body Fx gives it
+uniform vec3 heart_blue : source_color = vec3(0.86, 0.95, 1.0);
+uniform vec3 rim_blue : source_color = vec3(0.08, 0.18, 0.72);
 uniform float scroll = 1.5;
 // drawn a little towards the camera, so a flame on a creature burns in front of its sprite instead of being cut by it
 uniform float toward_cam = 0.45;
 
 varying vec4 v_col;
-varying vec2 v_custom;
+varying vec3 v_custom;
 
 void vertex() {
 	v_col = COLOR;
-	v_custom = INSTANCE_CUSTOM.xy;
+	v_custom = INSTANCE_CUSTOM.xyz;
 	vec3 origin = MODEL_MATRIX[3].xyz;
 	float sx = length(MODEL_MATRIX[0].xyz);
 	float sy = length(MODEL_MATRIX[1].xyz);
@@ -58,8 +61,9 @@ void fragment() {
 	float a_rim = smoothstep(0.03, 0.03 + aa, v);
 	float a_body = smoothstep(0.2, 0.2 + aa, v);
 	float a_heart = smoothstep(0.42, 0.42 + aa, v);
-	vec3 col = mix(rim, v_col.rgb, a_body);
-	col = mix(col, heart, a_heart);
+	float blue = step(0.5, v_custom.z);
+	vec3 col = mix(mix(rim, rim_blue, blue), v_col.rgb, a_body);
+	col = mix(col, mix(heart, heart_blue, blue), a_heart);
 	ALBEDO = col;
 	ALPHA = a_rim * v_col.a;
 }

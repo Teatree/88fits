@@ -18,6 +18,7 @@ display_name = "Serenade"
 flavour = "They stop to listen. Their mistake."
 rarity = "rare"
 weight = 6.0
+hidden = true
 icon = ExtResource("1_4c48y")
 icon_file = "serenade_icon.png"
 placeholder = {

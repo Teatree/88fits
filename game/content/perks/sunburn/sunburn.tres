@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/sunburn/sunburn_icon.png" id="1_kicgm"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_y21dp"]
+
+[resource]
+script = ExtResource("1_y21dp")
+hero = "solenne"
+text = "A burning or poisoned enemy takes 20% more from everything she does."
+special = "sunburn"
+params = {
+"bonus": 0.2
+}
+id = "sunburn"
+display_name = "Sunburn"
+flavour = "Skin that never cools."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_kicgm")
+icon_file = "sunburn_icon.png"
+placeholder = {
+"color": "#E8603A",
+"glyph": "star"
+}

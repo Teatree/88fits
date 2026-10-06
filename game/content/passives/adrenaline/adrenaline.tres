@@ -7,14 +7,12 @@
 [sub_resource type="Resource" id="Resource_sr6b7"]
 script = ExtResource("1_3reom")
 stat = "adrenaline_speed"
-op = "add"
 value = 0.004
 target = "player"
 
 [sub_resource type="Resource" id="Resource_wnmcc"]
 script = ExtResource("1_3reom")
 stat = "adrenaline_might"
-op = "add"
 value = 0.003
 target = "player"
 
@@ -25,6 +23,7 @@ max_level = 5
 id = "adrenaline"
 display_name = "Adrenaline"
 flavour = "Every kill is a stack for 4 s, twenty at most: faster and harder while the streak holds."
+rarity = "uncommon"
 weight = 8.0
 icon = ExtResource("1_sr6b7")
 icon_file = "adrenaline_icon.png"

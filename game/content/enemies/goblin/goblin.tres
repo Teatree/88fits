@@ -41,7 +41,9 @@ fps = {
 "die": 12.0,
 "run": 15.0
 }
+knockback = 2.94
 head = 1.0
+retired = true
 variants = {
 "GOB-A": {
 "anims": {
@@ -53,13 +55,16 @@ variants = {
 "run": 12.0,
 "run_b": 12.0
 },
+"back_faces": "right",
 "fps": {
 "die": 12.0,
 "run": 15.0
 },
+"front_faces": "right",
 "head": 0.977,
 "icon": ExtResource("1_h5rwn"),
 "note": "the orc walk fitted to the goblin, the painted fall (pass 33.9)",
+"shadow": {},
 "sprite": ExtResource("3_pqa08"),
 "sprite_file": "goblin_sprite.png",
 "strip_cols": 43
@@ -74,13 +79,16 @@ variants = {
 "run": 12.0,
 "run_b": 12.0
 },
+"back_faces": "right",
 "fps": {
 "die": 12.0,
 "run": 15.0
 },
+"front_faces": "right",
 "head": 0.984,
 "icon": ExtResource("6_iyyin"),
 "note": "the same goblin on Mixamo's plain walk; it dies on the Falling Back Death clip",
+"shadow": {},
 "sprite": ExtResource("4_pqa08"),
 "sprite_file": "goblin_sprite_b.png",
 "strip_cols": 43
@@ -95,13 +103,16 @@ variants = {
 "run": 12.0,
 "run_b": 12.0
 },
+"back_faces": "right",
 "fps": {
 "die": 12.0,
 "run": 15.0
 },
+"front_faces": "right",
 "head": 0.961,
 "icon": ExtResource("7_w3xfa"),
 "note": "a new painting with the club held upright; the orc walk; the painted fall",
+"shadow": {},
 "sprite": ExtResource("5_vppjr"),
 "sprite_file": "goblin_sprite_c.png",
 "strip_cols": 43
@@ -116,13 +127,16 @@ variants = {
 "run": 12.0,
 "run_b": 12.0
 },
+"back_faces": "right",
 "fps": {
 "die": 12.0,
 "run": 15.0
 },
+"front_faces": "right",
 "head": 1.0,
 "icon": ExtResource("9_klujv"),
 "note": "a new painting; a swaggering big-guy walk; it dies on the Falling Back Death clip",
+"shadow": {},
 "sprite": ExtResource("6_l8cjg"),
 "sprite_file": "goblin_sprite_d.png",
 "strip_cols": 43

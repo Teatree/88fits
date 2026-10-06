@@ -1,0 +1,258 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a slender woman in a glossy black latex catsuit with a high collar, knee-high black boots, black gloves; her head is a bright yellow cartoon sun: a smooth round yellow face with calm half-lidded eyes, thin brows and small red lips, ringed by eight long pointed golden-yellow rays; standing straight, both arms relaxed at her sides",
+ "renders": {
+  "front": {
+   "seed": 0,
+   "prompt": "cut from Garry's turnaround picture (pass 54, tools/make_solenne_static.py)",
+   "refs": [
+    "Sun-Headed Catsuit Character Turnaround.png"
+   ],
+   "qa": {
+    "problems": [],
+    "source": "reference"
+   },
+   "attempt": 0
+  },
+  "back": {
+   "seed": 0,
+   "prompt": "cut from Garry's turnaround picture (pass 54, tools/make_solenne_static.py)",
+   "refs": [
+    "Sun-Headed Catsuit Character Turnaround.png"
+   ],
+   "qa": {
+    "problems": [],
+    "source": "reference"
+   },
+   "attempt": 0
+  },
+  "side": {
+   "seed": 7624,
+   "prompt": "Turn this exact character to show a full-body side view in strict profile, facing to the right of the frame, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. Both arms hang straight down at her sides, hands open, not on the hips. The same slim proportions in every view.  isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 419,
+     "right": 439,
+     "top": 101,
+     "bottom": 61,
+     "height": 861,
+     "width": 165
+    }
+   },
+   "attempt": 0
+  },
+  "fd": {
+   "seed": 7625,
+   "prompt": "Turn this exact character to a three-quarter front view: turned 45 degrees so the character faces towards the lower right of the frame, face visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. Both arms hang straight down at her sides, hands open, not on the hips. The same slim proportions in every view. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 373,
+     "right": 361,
+     "top": 93,
+     "bottom": 54,
+     "height": 876,
+     "width": 289
+    }
+   },
+   "attempt": 0
+  },
+  "bd": {
+   "seed": 7626,
+   "prompt": "Turn this exact character to a three-quarter back view: turned 45 degrees away from the viewer so the character faces the upper right of the frame, the back and right shoulder visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. Both arms hang straight down at her sides, hands open, not on the hips. The same slim proportions in every view. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 389,
+     "right": 387,
+     "top": 79,
+     "bottom": 60,
+     "height": 884,
+     "width": 247
+    }
+   },
+   "attempt": 0
+  },
+  "cheer": {
+   "seed": 7628,
+   "prompt": "The exact same character seen directly from behind (no face visible), jumping for joy with both arms raised high above the head, feet together. Keep the same outfit, colors, proportions and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 280,
+     "right": 280,
+     "top": 104,
+     "bottom": 80,
+     "height": 839,
+     "width": 463
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_back": {
+   "seed": 60116,
+   "prompt": "Edit this exact woman, keeping her seen directly from behind: the back of her yellow sun head with its pointed rays, the back of the glossy black catsuit, the backs of the black boots, no face at all, nothing of her face visible. She flinches from a hit: her shoulders hunched up, her sun head jerked a little to one side, one arm lifted a little away from her body, her knees slightly bent. Keep the same outfit, colours, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_back_hurt_src.png"
+   ],
+   "qa": {
+    "problems": []
+   },
+   "attempt": 0,
+   "source": "Klein edit of solenne_back (pass 54)"
+  },
+  "hurt_front": {
+   "seed": 7652,
+   "prompt": "One single figure alone in the frame: the exact same character facing the viewer, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, her sun face wincing, eyes shut, rays bent back, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_front_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 368,
+     "right": 367,
+     "top": 104,
+     "bottom": 64,
+     "height": 855,
+     "width": 288
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_side": {
+   "seed": 7653,
+   "prompt": "One single figure alone in the frame: the exact same character in strict side profile facing right, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, her sun face wincing, eyes shut, rays bent back, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_side_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 419,
+     "right": 426,
+     "top": 100,
+     "bottom": 62,
+     "height": 861,
+     "width": 178
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_bd": {
+   "seed": 7654,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter back view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, her sun face wincing, eyes shut, rays bent back, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_bd_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 389,
+     "right": 388,
+     "top": 80,
+     "bottom": 60,
+     "height": 883,
+     "width": 246
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_fd": {
+   "seed": 7655,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter front view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, her sun face wincing, eyes shut, rays bent back, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_fd_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 369,
+     "right": 367,
+     "top": 94,
+     "bottom": 58,
+     "height": 871,
+     "width": 287
+    }
+   },
+   "attempt": 0
+  },
+  "dead": {
+   "seed": 7633,
+   "prompt": "This exact character lying flat on the ground on their back, knocked out: limbs sprawled, head to one side, seen from the front and a little above so the whole body is visible. Keep the same outfit, colors, proportions and art style. her sun face wincing, eyes shut, rays bent back. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 100,
+     "right": 73,
+     "top": 254,
+     "bottom": 269,
+     "height": 500,
+     "width": 850
+    }
+   },
+   "attempt": 0
+  },
+  "portrait": {
+   "seed": 7661,
+   "prompt": "A close-up portrait of this exact character for a mobile game avatar icon: only the head and shoulders, the head filling half of the frame, head and shoulders, her sun face looking at the viewer with a small knowing smile, facing the viewer, the shoulders and chest running off the bottom edge of the frame, expressive and lively, no legs, no full body. Keep the same face, outfit, colors and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/solenne_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 113,
+     "right": 120,
+     "top": 56,
+     "bottom": 0,
+     "height": 967,
+     "width": 790
+    }
+   },
+   "attempt": 0
+  }
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ }
+}

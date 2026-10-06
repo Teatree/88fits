@@ -4,7 +4,7 @@
 class_name JsonContent
 extends RefCounted
 
-const TYPES := ["weapons", "evolutions", "passives", "mutations", "lines", "perks", "enemies", "bosses", "elites", "characters", "talents", "quests", "maps", "pickups", "structures"]
+const TYPES := ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters", "talents", "quests", "maps", "pickups", "structures"]
 
 
 static func load_json(path: String) -> Dictionary:
@@ -31,8 +31,6 @@ static func build(type: String, d: Dictionary, dir: String) -> ContentDef:
 			res = _passive(d, dir)
 		"mutations":
 			res = _mutation(d, dir)
-		"lines":
-			res = _line(d, dir)
 		"perks":
 			res = _perk(d, dir)
 		"enemies", "bosses":
@@ -62,6 +60,11 @@ static func build(type: String, d: Dictionary, dir: String) -> ContentDef:
 		var ed := res as EnemyDef
 		if ed.variant != "" and ed.variants.has(ed.variant) and ed.variants[ed.variant].get("icon") != null:
 			ed.icon = ed.variants[ed.variant]["icon"]
+	# and a hero playing a look with its own badge shows that one (pass 55, the same rule)
+	if res is CharacterDef:
+		var cd := res as CharacterDef
+		if cd.variant != "" and cd.variants.has(cd.variant) and cd.variants[cd.variant].get("icon") != null:
+			cd.icon = cd.variants[cd.variant]["icon"]
 	return res
 
 
@@ -144,12 +147,19 @@ static func _weapon(d: Dictionary, dir: String, is_evo: bool) -> WeaponDef:
 	return w
 
 
+## A passive (pass 46: the lines folded in, so a passive may carry a trade, an evolution pair and its own card text).
 static func _passive(d: Dictionary, dir: String) -> PassiveDef:
 	var p := PassiveDef.new()
 	p.levels = levels_list(d.get("levels", []), "player")
 	p.repeat_last_level = bool(d.get("repeat_last_level", true))
 	p.max_level = int(d.get("max_level", 8))
 	p.pairs_with = str(d.get("pairs_with", ""))
+	p.trade = str(d.get("trade", ""))
+	p.evolves_into = str(d.get("evolves_into", ""))
+	p.evolves_from = str(d.get("evolves_from", ""))
+	p.text = str(d.get("text", ""))
+	# pass 47: a line item (four levels, an evolution, one of six slots) or a passive item (no cap, off the HUD)
+	p.line = bool(d.get("line", false))
 	return p
 
 
@@ -169,17 +179,6 @@ static func _mutation(d: Dictionary, dir: String) -> MutationDef:
 		m.visual = resolve_scene(dir, m.visual_file)
 	return m
 
-
-static func _line(d: Dictionary, dir: String) -> LineDef:
-	var l := LineDef.new()
-	l.levels = levels_list(d.get("levels", []), "player")
-	l.repeat_last_level = bool(d.get("repeat_last_level", true))
-	l.max_level = int(d.get("max_level", 4))
-	l.trade = str(d.get("trade", ""))
-	l.evolves_into = str(d.get("evolves_into", ""))
-	l.evolves_from = str(d.get("evolves_from", ""))
-	l.text = str(d.get("text", ""))
-	return l
 
 
 static func _perk(d: Dictionary, dir: String) -> PerkDef:
@@ -219,11 +218,23 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 	var c = d.get("charge", {})
 	e.charge = c if c is Dictionary else {}
 	e.damage_reduction = clampf(float(d.get("damage_reduction", 0.0)), 0.0, 0.9)
+	# pass 54: the shove the hero takes from its bite, m/s (0 = EnemyDef.default_knockback from its damage)
+	e.knockback = maxf(float(d.get("knockback", 0.0)), 0.0)
 	e.max_alive = int(d.get("max_alive", 0))
 	e.cap_share = float(d.get("cap_share", 1.0))
+	# pass 53 (the wave schema): the bite's cadence and the creature's own power-up roll
+	e.contact_cd = maxf(float(d.get("contact_cd", 0.6)), 0.05)
+	e.pickup_chance_mult = maxf(float(d.get("pickup_chance_mult", 1.0)), 0.0)
+	var pw = d.get("pickup_weights", {})
+	e.pickup_weights = pw if pw is Dictionary else {}
 	e.badge = str(d.get("badge", ""))
 	e.head = float(d.get("head", 0.86))
+	e.front_faces = str(d.get("front_faces", "right"))
+	e.back_faces = str(d.get("back_faces", "right"))
 	e.retired = bool(d.get("retired", false))
+	# the blob shadow's tuning (pass 47: the Dune Scorpion floated over its shadow); a variant entry may carry its own
+	var sh = d.get("shadow", {})
+	e.shadow = sh if sh is Dictionary else {}
 	# art variants (pass 34): the top-level strip is `variant_base`'s; each other entry names its own strip (and icon). The
 	# code in `variant` is the art the game plays, so switching variants is one word in the JSON. (_common loads the icon
 	# after this, so the base icon is resolved here, and build() puts the chosen variant's back.)
@@ -234,8 +245,11 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 		var all: Dictionary = {}
 		if base_code != "":
 			var bnote = vs.get(base_code, {})
+			var bn: Dictionary = bnote if bnote is Dictionary else {}
 			all[base_code] = {"sprite": e.sprite, "sprite_file": e.sprite_file, "anims": e.anims, "fps": e.fps, "strip_cols": e.strip_cols,
-				"head": e.head, "icon": base_icon, "note": str(bnote.get("note", "")) if bnote is Dictionary else ""}
+				"head": e.head, "icon": base_icon, "note": str(bn.get("note", "")),
+				"front_faces": str(bn.get("front_faces", e.front_faces)), "back_faces": str(bn.get("back_faces", e.back_faces)),
+				"shadow": bn["shadow"] if bn.get("shadow") is Dictionary else e.shadow}
 		for code in vs.keys():
 			var v = vs[code]
 			if code == base_code or not v is Dictionary or not v.has("sprite"):
@@ -247,14 +261,22 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 			var vfp = v.get("fps", e.fps)
 			# a variant's own icon (its own painting), else the creature's
 			var vicon: Texture2D = resolve_texture(dir, str(v["icon"])) if v.has("icon") else null
+			# its facing (pass 46): a painting that turns the other way says so in its own entry (`front_faces` /
+			# `back_faces`, EnemyDef), else it faces like the top-level strip
 			all[str(code)] = {"sprite": tex, "sprite_file": str(v["sprite"]), "anims": van if van is Dictionary else e.anims,
 				"fps": vfp if vfp is Dictionary else e.fps, "strip_cols": int(v.get("strip_cols", 0)), "head": float(v.get("head", e.head)),
-				"icon": vicon if vicon else base_icon, "note": str(v.get("note", ""))}
+				"icon": vicon if vicon else base_icon, "note": str(v.get("note", "")),
+				"front_faces": str(v.get("front_faces", e.front_faces)), "back_faces": str(v.get("back_faces", e.back_faces)),
+				"shadow": v["shadow"] if v.get("shadow") is Dictionary else e.shadow}
 		e.variants = all
 		var use := str(d.get("variant", base_code))
 		e.variant = use if all.has(use) else base_code
 		if e.variant != base_code and all.has(e.variant):
 			e.apply_art(all[e.variant])
+		elif all.has(e.variant):
+			# the base strip's own entry may state its facing too
+			e.front_faces = str(all[e.variant].get("front_faces", e.front_faces))
+			e.back_faces = str(all[e.variant].get("back_faces", e.back_faces))
 	e.can_be_elite = bool(d.get("can_be_elite", true))
 	e.can_be_grabbed = bool(d.get("can_be_grabbed", true))
 	var km = d.get("kamikaze", {})
@@ -300,10 +322,17 @@ static func _character(d: Dictionary, dir: String) -> CharacterDef:
 	c.pronoun = str(d.get("pronoun", "they"))
 	c.level_heal = float(d.get("level_heal", 0.0))
 	c.favourite_weapon = str(d.get("favourite_weapon", ""))
+	c.start_weapon = str(d.get("start_weapon", ""))
 	var fb = d.get("favourite_bonus", {})
 	c.favourite_bonus = fb.duplicate() if fb is Dictionary else {}
 	if c.favourite_bonus.has("effects"):
 		c.favourite_bonus["effects"] = effects_list(c.favourite_bonus["effects"], "self")
+	# a favourite passive (pass 46: Ironwood's Cake) and what finding it gives, the same shape as favourite_bonus
+	c.favourite_passive = str(d.get("favourite_passive", ""))
+	var fpb = d.get("favourite_passive_bonus", {})
+	c.favourite_passive_bonus = fpb.duplicate() if fpb is Dictionary else {}
+	if c.favourite_passive_bonus.has("effects"):
+		c.favourite_passive_bonus["effects"] = effects_list(c.favourite_passive_bonus["effects"], "player")
 	var sp = d.get("specials", [])
 	c.specials = sp if sp is Array else []
 	var mo = d.get("momentum", {})
@@ -318,7 +347,52 @@ static func _character(d: Dictionary, dir: String) -> CharacterDef:
 	c.anims = an if an is Dictionary else {}
 	c.sprite_file = str(d.get("sprite", str(d.get("id", "")) + "_sprite.png"))
 	c.sprite = resolve_texture(dir, c.sprite_file)
+	_character_variants(c, d, dir)
 	return c
+
+
+## A hero's art variants (pass 55, the creatures' scheme of pass 34 in _enemy): `variant_base` names the top-level strip,
+## unless its entry names a strip of its own; every other entry names its strip, and one whose strip is not there yet is
+## left out. `variant` is the look the game plays (the player's kept look, Save.hero_look, wins over it), so switching
+## is one word in the JSON. The base entry carries the hero's own icon, the others their own or his (_common loads the
+## icon after this, so it is resolved here, and build() puts the playing look's back).
+static func _character_variants(c: CharacterDef, d: Dictionary, dir: String) -> void:
+	var vs = d.get("variants", {})
+	if not (vs is Dictionary) or (vs as Dictionary).is_empty():
+		return
+	var base_code := str(d.get("variant_base", ""))
+	var base_icon: Texture2D = resolve_texture(dir, str(d.get("icon", str(d.get("id", "")) + "_icon.png")))
+	var top := {"sprite": c.sprite, "sprite_file": c.sprite_file, "anims": c.anims, "fps": c.fps, "strip_cols": c.strip_cols,
+		"frame_px": c.frame_px, "icon": base_icon, "note": ""}
+	var all: Dictionary = {}
+	for code in vs.keys():
+		var v = vs[code]
+		if not (v is Dictionary):
+			continue
+		var e: Dictionary = v
+		var tex: Texture2D = resolve_texture(dir, str(e["sprite"])) if e.has("sprite") else null
+		if tex == null:
+			# no strip of its own (or not painted yet): the base look is the top-level strip, any other is left out
+			if str(code) == base_code:
+				var b := top.duplicate()
+				b["note"] = str(e.get("note", ""))
+				all[str(code)] = b
+			continue
+		var van = e.get("anims", c.anims)
+		var vfp = e.get("fps", c.fps)
+		var vicon: Texture2D = resolve_texture(dir, str(e["icon"])) if e.has("icon") else null
+		all[str(code)] = {"sprite": tex, "sprite_file": str(e["sprite"]), "anims": van if van is Dictionary else c.anims,
+			"fps": vfp if vfp is Dictionary else c.fps, "strip_cols": int(e.get("strip_cols", 0)),
+			"frame_px": int(e.get("frame_px", c.frame_px)), "icon": vicon if vicon else base_icon, "note": str(e.get("note", ""))}
+	if base_code != "" and not all.has(base_code):
+		all[base_code] = top
+	if all.is_empty():
+		return
+	c.variants = all
+	var use := str(d.get("variant", base_code))
+	c.variant = use if all.has(use) else (base_code if all.has(base_code) else "")
+	if c.variant != "":
+		c.apply_art(all[c.variant])
 
 
 static func _shop(d: Dictionary, dir: String) -> ShopUpgradeDef:
@@ -371,8 +445,13 @@ static func _talent(d: Dictionary, dir: String) -> TalentDef:
 	for f in (d.get("forms", []) as Array):
 		if not (f is Dictionary):
 			continue
-		forms.append({"name": str(f.get("name", "")), "text": str(f.get("text", "")),
-			"effects": effects_list(f.get("effects", []), "player")})
+		var form := {"name": str(f.get("name", "")), "text": str(f.get("text", "")),
+			"effects": effects_list(f.get("effects", []), "player")}
+		# one effect list a rank (pass 46), when the ranks are not all the same step
+		var re = f.get("rank_effects", [])
+		if re is Array and not (re as Array).is_empty():
+			form["rank_effects"] = levels_list(re, "player")
+		forms.append(form)
 	t.forms = forms
 	return t
 
@@ -444,6 +523,11 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	w.cap_per_minute = float(t.get("cap_per_minute", 10.0))
 	w.cap_max = int(t.get("cap_max", 250))
 	w.hard_cap = int(t.get("hard_cap", 300))
+	var cc = t.get("cap_curve", [])
+	w.cap_curve = cc if cc is Array else []
+	w.boss_cap_frac = float(t.get("boss_cap_frac", 0.3))
+	w.portal_cap = int(t.get("portal_cap", 10))
+	w.portal_spawn_seconds = float(t.get("portal_spawn_seconds", 30.0))
 	var spc = t.get("specials", {})
 	w.specials = spc if spc is Dictionary else {}
 	w.hp_growth = float(t.get("hp_growth", 0.08))
@@ -458,14 +542,35 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	w.roster = ro if ro is Array else []
 	var ev = t.get("events", [])
 	w.events = ev if ev is Array else []
+	# pass 53: explicit wave windows on top of the roster (docs/waves_schema.md), read by WaveDirector as plain dictionaries
+	var wv = t.get("waves", [])
+	w.waves = wv if wv is Array else []
 	var pk = t.get("pickups", {})
 	w.pickups = pk if pk is Dictionary else {}
 	var stc = t.get("structures", {})
 	w.structures = stc if stc is Dictionary else {}
-	var wc = t.get("weapon_cap", [4, 5, 6])
-	w.weapon_cap = wc if wc is Array else [4, 5, 6]
-	var lc = t.get("line_cap", [2])
-	w.line_cap = lc if lc is Array else [2]
+	# pass 47: six weapon slots and six line slots all run (Garry: "keep that static"); the run no longer reads these,
+	# the HUD still lays its padlocks from them, so a map that names none has six of each from the start
+	var wc = t.get("weapon_cap", [5, 5, 5])
+	w.weapon_cap = wc if wc is Array else [5, 5, 5]
+	var pc = t.get("passive_cap", [5, 5, 5])
+	w.passive_cap = pc if pc is Array else [5, 5, 5]
+	w.colour_after_kills = int(t.get("colour_after_kills", 0))
+	w.creature_hp_mult = float(t.get("creature_hp_mult", 1.0))
+	# pass 54: every hostile damage times this, the spawn sides, and the HP and damage curves (blocks read as they are)
+	w.creature_damage_mult = float(t.get("creature_damage_mult", 1.0))
+	var ss = t.get("spawn_sides", {})
+	w.spawn_sides = ss if ss is Dictionary else {}
+	var hcv = t.get("hp_curve", {})
+	w.hp_curve = hcv if hcv is Dictionary else {}
+	var dcv = t.get("damage_curve", {})
+	w.damage_curve = dcv if dcv is Dictionary else {}
+	w.contact_cap = float(t.get("contact_cap", 0.0))
+	w.xp_need_mult = float(t.get("xp_need_mult", 1.0))
+	# pass 48: the pace knob and the portal wait's wave (WaveTimeline)
+	w.move_pace = float(t.get("move_pace", 1.0))
+	var pw = t.get("portal_wave", {})
+	w.portal_wave = pw if pw is Dictionary else {}
 	var pt = t.get("path_times", [[55, 115, 175, 230, 270], [35, 90, 145, 200, 245, 280]])
 	w.path_times = pt if pt is Array else []
 	return w

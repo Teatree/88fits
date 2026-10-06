@@ -18,6 +18,7 @@
     "poison_stacks": 1,
     "poison_duration": 10
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -25,9 +26,7 @@
         "stat": "poison_damage",
         "op": "mul",
         "value": 0.2
-      }
-    ],
-    [
+      },
       {
         "stat": "cooldown",
         "op": "mul",
@@ -39,9 +38,7 @@
         "stat": "poison_damage",
         "op": "mul",
         "value": 0.2
-      }
-    ],
-    [
+      },
       {
         "stat": "poison_stacks",
         "op": "add",
@@ -60,9 +57,7 @@
         "stat": "poison_damage",
         "op": "mul",
         "value": 0.25
-      }
-    ],
-    [
+      },
       {
         "stat": "cooldown",
         "op": "mul",

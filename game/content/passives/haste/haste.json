@@ -4,6 +4,7 @@
   "flavour": "Everything fires sooner.",
   "rarity": "common",
   "weight": 10,
+  "line": true,
   "pairs_with": "lob_grenade",
   "levels": [
     [
@@ -16,10 +17,11 @@
     ]
   ],
   "repeat_last_level": true,
+  "evolves_into": "quicksilver",
   "placeholder": {
     "color": "#FFD166",
     "glyph": "clock"
   },
   "art_prompt": "a golden stopwatch with wings",
-  "max_level": 5
+  "max_level": 4
 }

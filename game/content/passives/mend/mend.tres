@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/mend/mend_icon.png" id="1_u86aa"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_ylpmn"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_3geg2"]
+
+[sub_resource type="Resource" id="Resource_u86aa"]
+script = ExtResource("2_ylpmn")
+stat = "regen"
+value = 0.45
+target = "player"
+
+[resource]
+script = ExtResource("3_3geg2")
+line = true
+levels = [[SubResource("Resource_u86aa")]]
+max_level = 4
+trade = "the tick waits 3 s after every hit"
+evolves_into = "second_wind"
+id = "mend"
+display_name = "Mend"
+flavour = "It knits."
+icon = ExtResource("1_u86aa")
+icon_file = "mend_icon.png"
+placeholder = {
+"color": "#70E090",
+"glyph": "star"
+}

@@ -8,7 +8,7 @@
 script = ExtResource("1_lx415")
 behavior = "Thruster"
 tags = ["blade"]
-targeting = "nearest"
+targeting = "priority"
 base = {
 "amount": 2.0,
 "area": 1.4,
@@ -19,8 +19,6 @@ base = {
 }
 levels = [[]]
 max_level = 1
-evolves_with = ""
-evolves_into = ""
 is_evolution = true
 evolved_from = "pike"
 sfx = {
@@ -39,15 +37,11 @@ params = {
 "width": 0.9
 }
 }
-hero = ""
 id = "halberd"
 display_name = "Halberd"
 flavour = "Point, edge, hook. Pick one. It picks all three."
-rarity = "epic"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
+rarity = "rare"
+hidden = true
 icon = ExtResource("1_siyvn")
 icon_file = "halberd_icon.png"
 placeholder = {

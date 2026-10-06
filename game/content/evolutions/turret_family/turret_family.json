@@ -2,12 +2,13 @@
   "id": "turret_family",
   "name": "Turret Family",
   "flavour": "They never leave. They pull gems.",
-  "rarity": "epic",
+  "rarity": "rare",
+  "hidden": true,
   "is_evolution": true,
   "evolved_from": "turret_buddy",
   "max_level": 1,
   "behavior": "Spawner",
-  "targeting": "nearest",
+  "targeting": "priority",
   "base": {
     "damage": 6,
     "cooldown": 5.0,
@@ -20,7 +21,9 @@
   "params": {
     "turret_fire_rate": 0.3,
     "magnet": true,
-    "max_turrets": 8
+    "max_turrets": 8,
+    "tracer": true,
+    "marks": false
   },
   "levels": [
     []

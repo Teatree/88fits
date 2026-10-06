@@ -2,7 +2,7 @@
   "id": "venom",
   "name": "Venom",
   "flavour": "Everything you poison, poisons harder.",
-  "rarity": "common",
+  "rarity": "uncommon",
   "weight": 8,
   "pairs_with": "poison_dart",
   "max_level": 5,

@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/wide_reach/wide_reach_icon.png" id="1_1fpit"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_t73w5"]
+
+[resource]
+script = ExtResource("2_t73w5")
+weapon = "land_mine"
+mutation_kind = "element"
+text = "A creature within 2.8 m makes the mine crouch and spring at it, blowing where it lands."
+vfx = "the mine squashes down, its lamp blinks fast, and it leaps on an arc onto the creature"
+params = {
+"spring": {
+"apex": 1.4,
+"flight": 0.4,
+"sense": 2.8,
+"windup": 0.25
+}
+}
+id = "wide_reach"
+display_name = "Wide Reach"
+flavour = "It comes to you."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_1fpit")
+icon_file = "wide_reach_icon.png"
+placeholder = {
+"color": "#C8C0A0",
+"glyph": "star"
+}

@@ -15,7 +15,7 @@ unlocks = {
 "type": "weapon"
 }
 id = "unlock_hornet_nest"
-display_name = "Hornet Nest"
+display_name = "Killer Bees"
 icon = ExtResource("1_3l7xe")
 icon_file = "unlock_hornet_nest_icon.png"
 placeholder = {

@@ -7,33 +7,69 @@
 [sub_resource type="Resource" id="Resource_es87a"]
 script = ExtResource("1_o5dor")
 stat = "skips"
-op = "add"
 value = 1.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_6pkpp"]
 script = ExtResource("1_o5dor")
 stat = "revives"
-op = "add"
 value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_0i6lo"]
+script = ExtResource("1_o5dor")
+stat = "revives"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_jphhs"]
+script = ExtResource("1_o5dor")
+stat = "revive_hp"
+value = 0.15
+target = "player"
+
+[sub_resource type="Resource" id="Resource_fhb1o"]
+script = ExtResource("1_o5dor")
+stat = "revives"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_05wi3"]
+script = ExtResource("1_o5dor")
+stat = "revive_hp"
+value = 0.15
+target = "player"
+
+[sub_resource type="Resource" id="Resource_5hqst"]
+script = ExtResource("1_o5dor")
+stat = "revives"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_bfk6d"]
+script = ExtResource("1_o5dor")
+stat = "revive_hp"
+value = 0.15
 target = "player"
 
 [resource]
 script = ExtResource("2_es87a")
 order = 6
-cost = [220.0, 396.0, 660.0]
+ranks = 6
+cost = [220.0, 396.0, 660.0, 990.0, 1430.0, 1980.0]
 forms = [{
 "effects": [SubResource("Resource_es87a")],
-"name": "Skip Bonus",
-"text": "+15 gold a skip, a rank."
+"name": "Skip",
+"text": "+1 skip a stage, a rank."
 }, {
 "effects": [SubResource("Resource_6pkpp")],
 "name": "Second Wind",
-"text": "+1 revive a run, a rank."
+"rank_effects": [[SubResource("Resource_0i6lo")], [SubResource("Resource_jphhs")], [SubResource("Resource_fhb1o")], [SubResource("Resource_05wi3")], [SubResource("Resource_5hqst")], [SubResource("Resource_bfk6d")]],
+"text": "+1 revive at ranks 1, 3, 5; +15% revive health at 2, 4, 6."
 }]
 id = "nerve"
 display_name = "Nerve"
-flavour = "Walk away richer, or get back up."
+flavour = "Pass on one more, or get back up."
 icon = ExtResource("2_6pkpp")
 icon_file = "nerve_icon.png"
 placeholder = {

@@ -1,0 +1,56 @@
+{
+  "id": "training_dummy_ranged",
+  "name": "Ranged Dummy",
+  "flavour": "It learned to spit from the cactus.",
+  "archetype": "spitter",
+  "brain": "dummy",
+  "hidden": true,
+  "hp": 500,
+  "speed": 1.2,
+  "damage": 8,
+  "radius": 0.61,
+  "size": 2.3,
+  "pack_size": 1,
+  "drops": {},
+  "xp_mult": 0.0,
+  "can_be_elite": false,
+  "badge": "none",
+  "sprite": "res://content/enemies/training_dummy/training_dummy_sprite.png",
+  "icon": "res://content/enemies/training_dummy/training_dummy_icon.png",
+  "anims": {
+    "idle": 4,
+    "run": 6,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 6,
+    "idle_b": 4
+  },
+  "frame_px": 160,
+  "strip_cols": 28,
+  "fps": {
+    "run": 10,
+    "die": 8
+  },
+  "head": 0.981,
+  "ranged": {
+    "range": 8.0,
+    "keep_distance": 5.5,
+    "cooldown": 2.6,
+    "projectile_speed": 6.0,
+    "telegraph": 0.7,
+    "splash": 1.2,
+    "damage": 8
+  },
+  "sfx": {
+    "attack": "en_cactus_spit",
+    "hit": "en_goblin_hit",
+    "die": "st_barrel_break"
+  },
+  "placeholder": {
+    "color": "#C8A060",
+    "eyes": 0,
+    "shape": "tall"
+  },
+  "doc": "The debug arena's ranged attacker (pass 49): a bigger training dummy that stands on its spot and spits at the hero within 8 m exactly like the Spit Cactus (a red ring where he stands, a lob, a splash); one that falls stands up again 5 s later and pays nothing."
+}

@@ -21,6 +21,37 @@ func set_hell(_f: float, _seconds: float = 3.0) -> void:
 	pass
 
 
+## The height of the water's surface (pass 54): a map with no water answers far below any ground, so a check against
+## it is never true; Red Canyon returns its lake's level. Pairs with `in_water` on maps that have one.
+func water_level() -> float:
+	return -1000.0
+
+
+## The ground's up at (x, z) (pass 52: a flat thing laid on the sand, a power-up's ring, a black hole's disc, a chest's
+## pool of light, tilts to it, so a slope no longer swallows half of it): from height_at `span` metres either side, so a
+## ring `span` wide sits on the plane of the sand it covers rather than on one bump.
+func normal_at(x: float, z: float, span: float = 0.5) -> Vector3:
+	var e := maxf(span, 0.05)
+	var dx := height_at(x + e, z) - height_at(x - e, z)
+	var dz := height_at(x, z + e) - height_at(x, z - e)
+	return Vector3(-dx / (2.0 * e), 1.0, -dz / (2.0 * e)).normalized()
+
+
+## The ground's rise per metre at (x, z) along x and along z (pass 52: the chest's pool of light, which its shader lays
+## out itself), over the same span as normal_at.
+func slope_at(x: float, z: float, span: float = 0.5) -> Vector2:
+	var e := maxf(span, 0.05)
+	return Vector2((height_at(x + e, z) - height_at(x - e, z)) / (2.0 * e), (height_at(x, z + e) - height_at(x, z - e)) / (2.0 * e))
+
+
+## A basis whose up is `n` (pass 52): the shortest turn from straight up to the ground's normal.
+static func ground_basis(n: Vector3) -> Basis:
+	var up := n.normalized() if n.length_squared() > 0.0001 else Vector3.UP
+	if up.is_equal_approx(Vector3.UP):
+		return Basis()
+	return Basis(Quaternion(Vector3.UP, up))
+
+
 func height_at(x: float, z: float) -> float:
 	if grid_n == 0:
 		return 0.0

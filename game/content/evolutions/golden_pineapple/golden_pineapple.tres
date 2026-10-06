@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/golden_pineapple/golden_pineapple_icon.png" id="1_klqd4"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_prud7"]
+[ext_resource type="PackedScene" path="res://content/evolutions/golden_pineapple/golden_pineapple_visual.tscn" id="3_klqd4"]
+
+[resource]
+script = ExtResource("2_prud7")
+behavior = "Lobber"
+targeting = "densest"
+base = {
+"amount": 2.0,
+"area": 3.0,
+"cooldown": 1.8,
+"damage": 45.0,
+"knockback": 9.0,
+"range": 11.0,
+"speed": 9.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "lob_grenade"
+sfx = {
+"fire": "w_lob_throw",
+"hit": "w_lob_boom"
+}
+visual = ExtResource("3_klqd4")
+visual_file = "golden_pineapple_visual.tscn"
+params = {
+"final": {
+"bomblet_area": 1.4,
+"bomblet_damage_mult": 0.4,
+"bomblet_size": 0.5,
+"bomblets": 4.0,
+"burst_spawn": {
+"count": 12.0,
+"damage_mult": 0.4,
+"kind": "shrapnel",
+"life": 0.45,
+"speed": 14.0
+},
+"sticky": {
+"blast_mult": 1.4,
+"bomblet_seconds": 0.7,
+"priority": true,
+"reach": 2.4,
+"seconds": 1.3
+}
+},
+"model": "res://art/props/golden_grenade.glb",
+"model_metallic": 0.45,
+"model_roughness": 0.3,
+"model_scale": 1.0
+}
+id = "golden_pineapple"
+display_name = "Golden Pineapple"
+flavour = "A big golden grenade that sticks to the strongest enemy in its crowd, rides it 1.3 s, then blows 40% wider, throwing 12 steel spikes and 4 small sticky golden bomblets."
+rarity = "rare"
+icon = ExtResource("1_klqd4")
+icon_file = "golden_pineapple_icon.png"
+placeholder = {
+"color": "#5C7A3A",
+"glyph": "grenade",
+"gold": true
+}

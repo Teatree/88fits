@@ -12,12 +12,17 @@
 ## throw), self_frac; `bounce` {frac}: the thrown creature bounces once on to the next crowd for a second blast.
 ## `black_hole` {...} (the Singularity): no grabbing; the gun charges a black hole between its claws and lobs it at
 ## the thickest crowd, where it lands as a Vortex (the numbers in the block, see Vortex.gd).
+## Pass 48, Repulsor (params.gravity {knock_mult, throw_mult, purple}): a landing throws the crowd `knock_mult` times as
+## hard over a blast `throw_mult` times as wide (the spot it picks counts the wider blast), and its flash ring, burst and
+## dust are purple; on the Singularity it is the black hole's pop that throws harder and wider.
 class_name GravityGun
 extends WeaponBehavior
 
 const PH_GRAB := 0
 const PH_HOLD := 1
 const PH_THROW := 2
+## Repulsor's blast
+const PURPLE := Color(0.62, 0.3, 0.95)
 
 var _familiar: Node3D
 var _spin: Node3D
@@ -72,7 +77,22 @@ func _gdict(key: String) -> Dictionary:
 
 
 func _blast_r() -> float:
-	return _g("blast", 1.9) * stat("area", 1.0)
+	return _g("blast", 1.9) * stat("area", 1.0) * maxf(_g("throw_mult", 1.0), 0.1)
+
+
+## Whether the blast is Repulsor's purple.
+func _purple() -> bool:
+	var s = inst.params.get("gravity", {})
+	return s is Dictionary and bool((s as Dictionary).get("purple", false))
+
+
+## The landing's colour: Repulsor's purple, the poison's green, else the gun's cyan.
+func blast_colour() -> Color:
+	if _purple():
+		return PURPLE
+	if stat("poison_damage", 0.0) > 0.0:
+		return Color(0.45, 0.95, 0.35)
+	return Color(0.45, 0.85, 1.0)
 
 
 func _hole() -> Dictionary:
@@ -92,7 +112,8 @@ func _fire() -> bool:
 	# the nearest creatures the gun may take
 	var cands: Array = []
 	for e in em.indices_in_radius(player.global_position, reach):
-		if em.grabbable(e):
+		# only what is on the screen (pass 54, Settings.ranged_on_screen)
+		if em.grabbable(e) and em.screen_ok(e):
 			cands.append(e)
 	if cands.is_empty():
 		return false
@@ -144,6 +165,9 @@ func _throw_hole() -> void:
 			var a := TAU * float(k) / float(amount) + randf() * 0.5
 			to += Vector3(cos(a), 0.0, sin(a)) * _g("blast", 1.9) * stat("area", 1.0) * 1.2
 		var lp: Dictionary = {"vortex": hb.duplicate(true)}
+		# Repulsor on the Singularity: the pop throws harder and wider
+		lp["vortex"]["knock_mult"] = _g("knock_mult", 1.0)
+		lp["vortex"]["throw_mult"] = _g("throw_mult", 1.0)
 		game.projectiles.lob(projectile_kind, from, to, stat("speed", 10.0), stat("damage", 12.0), stat("area", 1.0) * float(hb.get("radius", 3.2)), inst, 0.0, lp)
 	_recoil = 1.0
 	sfx("hit", from)
@@ -366,7 +390,7 @@ func _land(g: Dictionary) -> bool:
 func _blast(at: Vector3, r: float, dmg: float) -> void:
 	var em: EnemyManager = game.enemies
 	var wid := inst.def.id
-	var knock := stat("knockback", 9.0)
+	var knock := stat("knockback", 9.0) * _g("knock_mult", 1.0)
 	var pdmg := stat("poison_damage", 0.0)
 	var fdmg := stat("fire_damage", 0.0)
 	var caught := em.indices_in_radius(at, r)
@@ -381,12 +405,26 @@ func _blast(at: Vector3, r: float, dmg: float) -> void:
 			em.ignite(e, wid, fdmg, stat("fire_duration", 1.8), stat("fire_spread", 0.4))
 		if em.damage(e, dmg, wid, away, knock):
 			inst.kills += 1
-	var col := Color(0.45, 0.95, 0.35) if pdmg > 0.0 else Color(0.45, 0.85, 1.0)
-	game.fx.sand(at, 1.0)
+	var col := blast_colour()
+	if _purple():
+		_purple_dust(at, r)
+	else:
+		game.fx.sand(at, 1.0)
 	game.fx.burst(at + Vector3(0, 0.4, 0), col, r * 0.7)
 	game.telegraphs.flash_ring(at, r, col, 0.3)
 	game.camera.shake(0.3)
 	Audio.play(str(inst.def.sfx.get("land", "w_lob_boom")), at)
+
+
+## Repulsor's dust: a purple ring of it thrown out low along the ground, as far as the blast reaches.
+func _purple_dust(at: Vector3, r: float) -> void:
+	var fx = game.get("fx")
+	if fx == null or not fx.has_method("mote"):
+		return
+	for k in range(12):
+		var a := TAU * float(k) / 12.0 + randf() * 0.3
+		var out := Vector3(cos(a), 0.0, sin(a))
+		fx.mote(at + out * 0.3 + Vector3(0, 0.25, 0), out * r * 2.4 + Vector3(0, 0.5, 0), 0.45, 0.55, Color(PURPLE.r, PURPLE.g, PURPLE.b, 0.8))
 
 
 # ---------------------------------------------------------------- the gun

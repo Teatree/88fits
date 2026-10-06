@@ -9,14 +9,12 @@ script = ExtResource("1_ms1ta")
 stat = "speed"
 op = "mul"
 value = 0.7
-target = "self"
 
 [sub_resource type="Resource" id="Resource_tlh2m"]
 script = ExtResource("1_ms1ta")
 stat = "hp"
 op = "mul"
 value = 1.2
-target = "self"
 
 [resource]
 script = ExtResource("2_ms1ta")

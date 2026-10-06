@@ -1,0 +1,35 @@
+{
+  "id": "far_reach",
+  "name": "Far Reach",
+  "flavour": "They can hear it in the back row.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "guitarra",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Half a circle of sound, half again as far, half the damage.",
+  "vfx": "a half-circle wash of gold and a wide fan of notes",
+  "effects": [
+    {
+      "stat": "range",
+      "op": "mul",
+      "value": 0.5
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.5
+    }
+  ],
+  "params": {
+    "cone": {
+      "min_deg": 180
+    }
+  },
+  "art_prompt": "a wide half-circle fan of golden musical notes spreading out from a guitar's round soundhole",
+  "placeholder": {
+    "color": "#D8E0F0",
+    "glyph": "star"
+  }
+}

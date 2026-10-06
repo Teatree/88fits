@@ -6,26 +6,52 @@
 ## two-frame sprite of pass 33.2 (tools/gen_mouth.py), and the beam is one camera-facing ribbon (core/shaders/laser_beam) from
 ## the lips along its own axis. The 3D mouth it replaced was a torus that read as a red doughnut, and its beam boxes
 ## were stretched along the world's axes, so any beam not aimed north was drawn off to one side of the mouth.
+## Pass 46: every beam has a wind-up (the jaw clamps shut and the mouth squashes for WINDUP seconds), then the jaw snaps
+## open to JAW_OPEN_DEG on a spring that overshoots, the upper lip lifts and the cavity glows while it pours. At the lips:
+## a flash, sparks, a ring on the sand and a camera kick as it starts, the ring again every PULSE seconds while it pours.
+## The beam fires straight, through hills: wherever its line runs under a dune the sand over it boils, hot cracks and
+## scorches on the surface and embers and grit puffing up (boil_points, _boil). The damage line is what it was.
 class_name LaserBeam
 extends WeaponBehavior
+
+const WINDUP := 0.12
+const JAW_OPEN_DEG := 80.0
+## the jaw's spring (stiffness, damping): it snaps open past JAW_OPEN_DEG by about a sixth and settles
+const JAW_K := 900.0
+const JAW_D := 30.0
+const PULSE := 0.28
+const BOIL_STEP := 0.5
+const BOIL_EVERY := 0.07
+const CRACK_EVERY := 0.12
 
 var _familiar: Node3D
 ## the 3D mouth (pass 34): the visual scene's Familiar/Mouth, lips on a `Jaw` that opens while the beam pours
 var _model: Node3D
 var _jaw: Node3D
+var _upper: Node3D
+var _upper_rest := Vector3.ZERO
+var _cavity_mat: StandardMaterial3D
 var _open := 0.0
+var _jaw_a := 0.0   # radians; below zero is open
+var _jaw_v := 0.0
 var _model_scale := 1.0
 var _face_yaw := 0.0
 var _mouth: BillboardSprite
 var _mouth_open := false
 var _orbit := 0.0
 var _aim_yaw := 0.0
+var _windup_t := 0.0
 var _beam_t := 0.0
 var _tick_t := 0.0
+var _pulse_t := 0.0
+var _boil_t := 0.0
+var _crack_t := 0.0
 var _yaw0 := 0.0
 var _beam: MeshInstance3D
 var _beam_mat: ShaderMaterial
 var _hit_once: Dictionary = {}
+## beams poured so far (tests)
+var beams := 0
 const MOUTH_STRIP := "res://content/weapons/big_mouth/big_mouth_sprite.png"
 
 
@@ -58,6 +84,18 @@ func _on_setup() -> void:
 	_model = _familiar.get_node_or_null("Mouth")
 	if _model:
 		_jaw = _model.find_child("Jaw", true, false)
+		_upper = _model.find_child("Upper", true, false) as Node3D
+		if _upper:
+			_upper_rest = _upper.position
+		# the cavity lights up from inside while the beam pours: its own copy of its material, with emission
+		var cav := _model.find_child("Cavity", true, false) as MeshInstance3D
+		if cav and cav.mesh:
+			var base: Material = cav.material_override if cav.material_override else cav.mesh.surface_get_material(0)
+			_cavity_mat = (base.duplicate() if base is StandardMaterial3D else StandardMaterial3D.new()) as StandardMaterial3D
+			_cavity_mat.emission_enabled = true
+			_cavity_mat.emission = _beam_colour().lightened(0.35)
+			_cavity_mat.emission_energy_multiplier = 0.0
+			cav.material_override = _cavity_mat
 		_model_scale = _model.scale.x
 	# the painted mouth: a two-frame strip (shut, open), standing on its feet, so it hangs half its height down to put
 	# the lips on the familiar's point
@@ -96,41 +134,75 @@ func _place(delta: float) -> void:
 	var r := _familiar_param("radius", 1.25)
 	var h := _familiar_param("height", 1.3)
 	var bob := _familiar_param("bob", 0.09)
-	# the mouth holds still while it fires, and drifts around the hero the rest of the time
-	if _beam_t <= 0.0:
+	# the mouth holds still while it winds up and fires, and drifts around the hero the rest of the time
+	if _beam_t <= 0.0 and _windup_t <= 0.0:
 		_orbit += delta * _familiar_param("speed", 0.9)
 	var t := float(Time.get_ticks_msec()) * 0.001
 	var want: Vector3 = player.global_position + Vector3(cos(_orbit) * r, h + sin(t * 2.4) * bob, sin(_orbit) * r)
 	_familiar.global_position = want if delta <= 0.0 else _familiar.global_position.lerp(want, clampf(delta * 8.0, 0.0, 1.0))
+	var firing: bool = _beam_t > 0.0
+	var winding: bool = _windup_t > 0.0
 	if _model:
-		# the jaw drops wide while the beam pours and chews slowly between shots; the lips turn to the beam's line while
-		# it pours and to the nearest creature (else towards the camera) the rest of the time; a shake while it roars
-		var firing: bool = _beam_t > 0.0
-		_open = move_toward(_open, 1.0 if firing else 0.0, delta * 7.0)
-		if _jaw:
-			var chew := 0.5 + 0.5 * sin(t * 2.6)
-			_jaw.rotation.x = -deg_to_rad(46.0 * _open + 7.0 * chew * (1.0 - _open))
-		var face := _dir() if firing else Vector3.ZERO
-		if not firing:
-			var near: int = game.enemies.nearest_index(_familiar.global_position, stat("range", 12.0))
-			if near >= 0:
-				face = game.enemies.pos[near] - _familiar.global_position
-		face.y = 0.0
-		if face.length_squared() < 0.0001:
-			face = Vector3(0, 0, 1)
-		_face_yaw = lerp_angle(_face_yaw, atan2(-face.x, -face.z), clampf(delta * 9.0, 0.0, 1.0))
-		# tipped back 32 degrees so the lips face up towards the high camera (level, they read as a red bowl)
-		_model.rotation = Vector3(deg_to_rad(32.0), _face_yaw, 0.0)
-		var roar: float = (1.0 + 0.04 * sin(t * 38.0)) if firing else 1.0
-		_model.scale = Vector3.ONE * _model_scale * roar
+		_place_model(delta, t, firing, winding)
 	elif _mouth:
-		# open wide while the beam pours, shut between shots; a shake of the lips while it roars
-		var want_open: bool = _beam_t > 0.0
+		# open wide while the beam pours, shut between shots (and squashed through the wind-up); a shake while it roars
+		var want_open: bool = firing
 		if want_open != _mouth_open:
 			_mouth_open = want_open
 			_mouth.play("open" if want_open else "idle")
-		var sc: float = (1.1 + 0.05 * sin(t * 38.0)) if want_open else 1.0
-		_mouth.scale = _mouth.scale.lerp(Vector3(sc, sc, sc), clampf(delta * 14.0, 0.0, 1.0))
+		var sc := Vector3.ONE * ((1.1 + 0.05 * sin(t * 38.0)) if want_open else 1.0)
+		if winding:
+			sc = Vector3(1.12, 0.86, 1.12)
+		_mouth.scale = _mouth.scale.lerp(sc, clampf(delta * 14.0, 0.0, 1.0)) if delta > 0.0 else sc
+
+
+## The 3D mouth: the jaw on its spring (clamped shut through the wind-up, snapped wide while the beam pours, a slow chew
+## between), the upper lip lifting with it, the cavity glowing; it faces the beam's line while it pours and the nearest
+## creature (else the camera) the rest of the time, tipped back 32 degrees so the lips face up to the high camera (level,
+## they read as a red bowl); squashed through the wind-up, shaking while it roars.
+func _place_model(delta: float, t: float, firing: bool, winding: bool) -> void:
+	var target: float
+	if winding:
+		target = deg_to_rad(4.0)
+	elif firing:
+		target = -deg_to_rad(JAW_OPEN_DEG)
+	else:
+		target = -deg_to_rad(7.0 * (0.5 + 0.5 * sin(t * 2.6)))
+	if delta <= 0.0:
+		_jaw_a = target
+		_jaw_v = 0.0
+	else:
+		# small steps, so a long frame cannot shake the spring loose
+		var n: int = clampi(int(ceil(delta * 60.0)), 1, 6)
+		var hstep: float = delta / float(n)
+		for k in range(n):
+			_jaw_v += ((target - _jaw_a) * JAW_K - _jaw_v * JAW_D) * hstep
+			_jaw_a += _jaw_v * hstep
+	if _jaw:
+		_jaw.rotation.x = _jaw_a
+	_open = clampf(-_jaw_a / deg_to_rad(JAW_OPEN_DEG), 0.0, 1.25)
+	if _upper:
+		_upper.position = _upper_rest + Vector3(0, 0.05 * _open, 0)
+		_upper.rotation.x = 0.18 * _open
+	if _cavity_mat:
+		_cavity_mat.emission_energy_multiplier = ((2.2 + 0.6 * sin(t * 40.0)) * minf(_open, 1.0)) if firing else 0.0
+	var face := _dir() if (firing or winding) else Vector3.ZERO
+	if not firing and not winding:
+		var near: int = game.enemies.nearest_index(_familiar.global_position, stat("range", 12.0))
+		if near >= 0:
+			face = game.enemies.pos[near] - _familiar.global_position
+	face.y = 0.0
+	if face.length_squared() < 0.0001:
+		face = Vector3(0, 0, 1)
+	_face_yaw = lerp_angle(_face_yaw, atan2(-face.x, -face.z), clampf(delta * 9.0, 0.0, 1.0)) if delta > 0.0 else atan2(-face.x, -face.z)
+	_model.rotation = Vector3(deg_to_rad(32.0), _face_yaw, 0.0)
+	var sc := Vector3.ONE * _model_scale
+	if winding:
+		var sq := sin((1.0 - clampf(_windup_t / WINDUP, 0.0, 1.0)) * PI * 0.5)
+		sc = _model_scale * Vector3(1.0 + 0.12 * sq, 1.0 - 0.14 * sq, 1.0 + 0.12 * sq)
+	elif firing:
+		sc *= 1.0 + 0.04 * sin(t * 38.0)
+	_model.scale = sc
 
 
 func muzzle() -> Vector3:
@@ -150,14 +222,30 @@ func _fire() -> bool:
 		return false
 	_aim_yaw = atan2(-d.x, -d.z)
 	_yaw0 = _aim_yaw
-	_beam_t = maxf(stat("duration", 2.0), 0.2)
-	_tick_t = 0.0
-	_hit_once.clear()
-	sfx("fire", muzzle())
+	# the wind-up first: the beam pours when it is over
+	_windup_t = WINDUP
 	return true
 
 
+## The beam starts: the jaw is let go (its spring snaps it open), the flash at the lips.
+func _start_beam() -> void:
+	_beam_t = maxf(stat("duration", 2.0), 0.2)
+	_tick_t = 0.0
+	_pulse_t = PULSE
+	_boil_t = 0.0
+	_crack_t = 0.0
+	_hit_once.clear()
+	beams += 1
+	sfx("fire", muzzle())
+	_flash()
+
+
 func _tick(delta: float) -> void:
+	if _windup_t > 0.0:
+		_windup_t -= delta
+		if _windup_t <= 0.0:
+			_windup_t = 0.0
+			_start_beam()
 	if _beam_t > 0.0:
 		_beam_t -= delta
 		# Sweep: the line pans across while it burns, so it cuts through a crowd instead of one file
@@ -171,6 +259,11 @@ func _tick(delta: float) -> void:
 			_tick_t = maxf(_beam_param("tick", 0.18), 0.05)
 			_burn()
 		_draw_beam()
+		_pulse_t -= delta
+		if _pulse_t <= 0.0:
+			_pulse_t = PULSE
+			_pulse()
+		_boil(delta)
 	elif _beam and _beam.visible:
 		_beam.visible = false
 	_place(delta)
@@ -212,17 +305,21 @@ func _burn() -> void:
 				game.fx_hit(enemies.pos[e] + Vector3(0, enemies.size[e] * 0.4, 0), inst.def)
 
 
+## Where the drawn line ends: its reach along the aim, down at the hero's chest height.
+func _beam_end(from: Vector3) -> Vector3:
+	var to: Vector3 = from + _dir() * stat("range", 12.0)
+	to.y = player.global_position.y + 0.6
+	return to
+
+
 ## The line itself: one ribbon from the lips to the end of its reach, turned about its own axis to face the camera, its
 ## basis built from that axis (Basis.scaled scales along the world's axes, which is how the old beam missed the mouth).
 ## It runs down from the lips to chest height on its way out, where the burn is.
 func _draw_beam() -> void:
 	var from := muzzle()
-	var dir := _dir()
-	var reach := stat("range", 12.0)
 	var width: float = _beam_param("width", 0.34) * _beam_param("width_mult", 1.0)
 	var col := _beam_colour()
-	var to: Vector3 = from + dir * reach
-	to.y = player.global_position.y + 0.6
+	var to: Vector3 = _beam_end(from)
 	var axis := to - from
 	var mid: Vector3 = from + axis * 0.5
 	var cam := get_viewport().get_camera_3d()
@@ -238,4 +335,102 @@ func _draw_beam() -> void:
 	_beam_mat.set_shader_parameter("color", col)
 	# a small spark now and then just past the lips (a burst on the mouth itself hid the painting)
 	if randf() < 0.15:
-		game.fx_burst(from + dir * 0.8, col, 0.2)
+		game.fx_burst(from + _dir() * 0.8, col, 0.2)
+
+
+## The flash as the beam leaves the lips: a white-hot pop and a burst of its colour, sparks flung out along it, a ring on
+## the sand under the mouth and a small kick of the camera.
+func _flash() -> void:
+	var at := muzzle()
+	var dir := _dir()
+	var col := _beam_colour()
+	var fx = game.get("fx")
+	if fx:
+		fx.burst(at + dir * 0.25, Color(1.0, 1.0, 1.0), 0.55)
+		fx.burst(at + dir * 0.45, col, 0.75)
+		if fx.has_method("mote"):
+			var hot := col.lightened(0.45)
+			for k in range(10):
+				var d := dir.rotated(Vector3.UP, randf_range(-0.9, 0.9))
+				fx.mote(at + d * 0.3, d * randf_range(4.0, 8.0) + Vector3(0, randf_range(0.5, 2.5), 0), randf_range(0.25, 0.4), randf_range(0.12, 0.2), Color(hot.r, hot.g, hot.b, 1.0))
+	_ground_ring(1.6, 0.35)
+	var cam = game.get("camera")
+	if cam and cam.has_method("shake"):
+		cam.shake(0.18)
+
+
+## While it pours: a puff at the lips and the ring on the sand again.
+func _pulse() -> void:
+	var fx = game.get("fx")
+	if fx:
+		fx.burst(muzzle() + _dir() * 0.3, _beam_colour(), 0.4)
+	_ground_ring(1.15, 0.3)
+
+
+func _ground_ring(r: float, dur: float) -> void:
+	var tg = game.get("telegraphs")
+	if tg == null or not tg.has_method("flash_ring"):
+		return
+	var at := muzzle()
+	var map = game.get("map")
+	at.y = map.height_at(at.x, at.z) if map else player.global_position.y
+	tg.flash_ring(at, r, _beam_colour(), dur)
+
+
+## The spots on the sand over the beam where its line runs underground: the drawn line from the lips to its end, sampled
+## every BOIL_STEP metres; wherever the ground there stands higher than the line, the point on the surface. Empty without
+## a map.
+func boil_points(from: Vector3, to: Vector3) -> Array:
+	var out: Array = []
+	var map = game.get("map") if game else null
+	if map == null:
+		return out
+	var flat := Vector2(to.x - from.x, to.z - from.z).length()
+	if flat < BOIL_STEP:
+		return out
+	var n := int(floor(flat / BOIL_STEP))
+	for k in range(1, n + 1):
+		var p: Vector3 = from.lerp(to, float(k) * BOIL_STEP / flat)
+		var h: float = map.height_at(p.x, p.z)
+		if h > p.y:
+			out.append(Vector3(p.x, h, p.z))
+	return out
+
+
+## The boiling sand, throttled: every BOIL_EVERY seconds embers fly up from spots over the buried line, with a bubble of
+## hot sand or a puff of grit; every CRACK_EVERY hot cracks glow on the surface there, most with a glowing scorch.
+func _boil(delta: float) -> void:
+	_boil_t -= delta
+	_crack_t -= delta
+	if _boil_t > 0.0 and _crack_t > 0.0:
+		return
+	var from := muzzle()
+	var pts := boil_points(from, _beam_end(from))
+	if pts.is_empty():
+		_boil_t = maxf(_boil_t, BOIL_EVERY)
+		_crack_t = maxf(_crack_t, BOIL_EVERY)
+		return
+	if _boil_t <= 0.0:
+		_boil_t = BOIL_EVERY
+		var fx = game.get("fx")
+		if fx:
+			for k in range(mini(4, pts.size())):
+				var p: Vector3 = pts[randi() % pts.size()]
+				if fx.has_method("mote"):
+					fx.mote(p + Vector3(randf_range(-0.25, 0.25), 0.05, randf_range(-0.25, 0.25)), Vector3(randf_range(-0.5, 0.5), randf_range(1.8, 3.6), randf_range(-0.5, 0.5)), randf_range(0.4, 0.7), randf_range(0.18, 0.3), Color(1.0, 0.45 + 0.35 * randf(), 0.12, 1.0))
+				# a bubble of hot sand swelling and bursting
+				if randf() < 0.5 and fx.has_method("burst"):
+					fx.burst(p + Vector3(0, 0.12, 0), Color(1.0, 0.5, 0.15), 0.32)
+				elif randf() < 0.5 and fx.has_method("sand"):
+					fx.sand(p, 0.45)
+	if _crack_t <= 0.0:
+		_crack_t = CRACK_EVERY
+		var tg = game.get("telegraphs")
+		if tg:
+			for k in range(mini(2, pts.size())):
+				var q: Vector3 = pts[randi() % pts.size()]
+				var a := _dir().rotated(Vector3.UP, randf_range(-0.7, 0.7))
+				if tg.has_method("line"):
+					tg.line(q - a * 0.45, a, 0.9, 0.45, Color(1.0, 0.42, 0.08), 0.22)
+				if randf() < 0.7 and tg.has_method("scorch"):
+					tg.scorch(q, 0.42, Color(1.0, 0.52, 0.12, 0.6), Color(0.6, 0.12, 0.0, 0.0), 0.15, 0.6)

@@ -1,9 +1,10 @@
 {
   "id": "guillotine",
   "name": "Guillotine",
-  "flavour": "A creature below the threshold dies to any hit. Bosses are exempt.",
+  "flavour": "No appeals. No second hit.",
   "rarity": "rare",
   "weight": 5,
+  "text": "Finishes the job: a creature left under the threshold by any of your hits dies on the spot. 7% of its health at level 1, 21% at level 3. Bosses are spared.",
   "max_level": 3,
   "levels": [
     [

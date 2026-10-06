@@ -1,0 +1,71 @@
+{
+  "id": "thunder_lance",
+  "name": "Thunder Lance",
+  "flavour": "Every stroke is a 140° sweep of two lances and, straight after it, a thrust that throws half again as far. Every hit stuns for 0.8 s, and a stunned enemy takes ×1.5 from the lance: the sweep stuns, the thrust punishes.",
+  "rarity": "rare",
+  "is_evolution": true,
+  "evolved_from": "pike",
+  "max_level": 1,
+  "behavior": "Thruster",
+  "targeting": "priority",
+  "tags": [
+    "blade"
+  ],
+  "base": {
+    "damage": 58,
+    "cooldown": 1.5,
+    "amount": 2,
+    "range": 6.4,
+    "area": 1.3,
+    "knockback": 16.0
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "thrust": {
+      "out": 0.14,
+      "hold": 0.1,
+      "back": 0.26,
+      "width": 0.8,
+      "fan_deg": 30,
+      "slice": 0.18,
+      "slice_deg": 140,
+      "side": 0.5,
+      "amount_mode": "blades",
+      "stun": {
+        "chance": 1.0,
+        "seconds": 0.8
+      },
+      "alternate": true,
+      "crackle": true
+    },
+    "trail_color": "#B8D8FF",
+    "final": {
+      "thrust": {
+        "slice": 0.18,
+        "slice_deg": 140,
+        "side": 0.5,
+        "amount_mode": "blades",
+        "stun": {
+          "chance": 1.0,
+          "seconds": 0.8
+        },
+        "alternate": true,
+        "crackle": true
+      },
+      "stunned_mult": 1.5
+    }
+  },
+  "sfx": {
+    "fire": "w_saw_hit",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#B8D8FF",
+    "glyph": "spear",
+    "gold": true
+  },
+  "art_prompt": "a long dark walnut lance with two brass bands and a feathered tassel under a long pale blue-white glowing tip, lightning crackling off the point",
+  "visual": "thunder_lance_visual.tscn"
+}

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/unbroken/unbroken_icon.png" id="1_0g0ko"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="1_xefja"]
+
+[resource]
+script = ExtResource("1_xefja")
+hero = "ironwood"
+text = "Hits no longer pause his regen: he keeps healing while they land."
+special = "unbroken"
+id = "unbroken"
+display_name = "Unbroken"
+flavour = "Wounds close. He keeps walking."
+rarity = "rare"
+weight = 5.0
+icon = ExtResource("1_0g0ko")
+icon_file = "unbroken_icon.png"
+placeholder = {
+"color": "#6E8B5E",
+"glyph": "star"
+}

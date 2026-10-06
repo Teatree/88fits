@@ -38,13 +38,29 @@ POSES = {
     "dad": "standing with his hands on his hips and his chest puffed out, grinning proudly under his thick brown mustache",
     "buck": "standing relaxed with one thumb hooked in the collar of his teal t-shirt, a slow easy grin and one eyebrow raised",
     "mira": "standing with one gloved hand raised holding up a fat gold nugget, grinning with a wink, her long braid over her shoulder",
-    # pass 44 (Garry: too happy, and he should hold a guitar): a solemn face, mouth closed, the guitar across his chest
-    "calavera": "standing with his feet apart, holding a dark wooden acoustic guitar with a red strap slung across his chest, one hand on the "
-                "neck of the guitar and the other resting on its strings, a calm solemn expression with his mouth closed and no smile under his "
-                "painted sugar-skull face, his wide black sombrero tipped a little forward, his red sash and bow tie bright against the black charro suit",
+    # pass 46 (Garry): the cartoon guitar from his reference model, looking off to the side and down, smiling slightly
+    "calavera": "standing relaxed with his feet apart, holding the cartoon Mexican acoustic guitar from the second reference image across "
+                "his body in playing position, one hand on its neck and the other over its strings, his head turned to look off to the "
+                "side and down with a slight quiet smile under his painted sugar-skull face, his wide black sombrero tipped a little "
+                "forward, his red sash and bow tie bright against the black charro suit",
+    # pass 46: Ironwood, a serious fellow: arms crossed, looking down at us, his spear planted beside him
+    "ironwood": "standing tall and still with his arms crossed over his bare chest, his chin lowered a little, looking down at the viewer "
+                "with a calm, stern, unsmiling face, his long black hair over his shoulders, the tall spear from the second reference "
+                "image planted upright in the ground beside him",
 }
 # heroes painted with something in their hands (the prompt otherwise forbids a weapon, which the model reads as any held thing)
-HOLDS = {"calavera": "the guitar is the only thing he holds"}
+HOLDS = {"calavera": "the guitar is the only thing he holds",
+         "ironwood": "his hands hold nothing; the spear stands on its own, planted in the ground beside him"}
+# a second reference image per hero (pass 46): the object the pose shows, rendered from the game's own 3D model
+# (tools/dl/<x>_ref.png, transparent film laid on the screen colour)
+EXTRA_REFS = {"calavera": ("guitarra_ref.png", "The second reference image shows the guitar: copy its shape and colours exactly: a "
+                           "yellow top with a thin red line round its edge, green sides, a round rosette of red, white and blue "
+                           "triangles round a black soundhole, a black neck and headstock. "),
+              "ironwood": ("spear_ref.png", "The second reference image shows the spear: a long dark wooden shaft wrapped in red cloth "
+                           "at three places, two feathers hanging under a leaf-shaped steel point. ")}
+# the camera and the way the hero faces, when not the default (eye level, facing the viewer)
+CAMERA = {"ironwood": "his body facing the viewer, seen from the front and a little from below so that he looks down at the viewer"}
+FACING = {"calavera": "his body facing the viewer, seen from the front at eye level"}
 
 
 def log(*a):
@@ -79,16 +95,26 @@ def paint(hid, seeds, first):
     artkit.KEY_SAT = float(d.get("key_sat", 0.35))
     artkit.GRADE = d.get("grade")
     ref = comfy.upload_pil(still.convert("RGB"), "title_ref_" + hid + ".png")
+    refs = [ref]
+    extra = ""
+    if hid in EXTRA_REFS:
+        name, words = EXTRA_REFS[hid]
+        im = Image.open(os.path.join(REPO, "tools", "dl", name)).convert("RGBA")
+        g = Image.new("RGBA", im.size, (0, 255, 0, 255) if bg == BG_GREEN else (0, 0, 255, 255))
+        g.alpha_composite(im)
+        refs.append(comfy.upload_pil(g.convert("RGB"), "title_extra_" + name))
+        extra = words
     pose = POSES.get(hid, str(d.get("portrait_prompt", "standing confidently")))
+    view = CAMERA.get(hid) or FACING.get(hid) or "facing the viewer, seen from the front at eye level"
     prompt = ("A full-body character illustration of this exact character for a mobile game's hero select screen: " + pose +
-              ", facing the viewer, seen from the front at eye level, the whole figure visible from the top of the head down to the "
-              "feet with empty space around it, " + HOLDS.get(hid, "no weapon") + ". Keep the same face, outfit, colors and proportions as the reference. " +
+              ", " + view + ", the whole figure visible from the top of the head down to the "
+              "feet with empty space around it, " + HOLDS.get(hid, "no weapon") + ". " + extra + "Keep the same face, outfit, colors and proportions as the reference. " +
               STYLE + ". " + bg + ".")
     os.makedirs(OUT, exist_ok=True)
     made = []
     for n in range(seeds):
         seed = first + n * 101
-        imgs, secs = comfy.run(comfy.klein(prompt, seed, RENDER[0], RENDER[1], refs=[ref], prefix="88fits/title_" + hid))
+        imgs, secs = comfy.run(comfy.klein(prompt, seed, RENDER[0], RENDER[1], refs=refs, prefix="88fits/title_" + hid))
         raw = Image.open(io.BytesIO(imgs[0])).convert("RGB")
         raw.save(os.path.join(OUT, "%s_%d_raw.png" % (hid, n)))
         cut = fit(artkit.key_background(raw))

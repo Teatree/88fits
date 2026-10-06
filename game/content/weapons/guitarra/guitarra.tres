@@ -10,71 +10,55 @@ script = ExtResource("1_jn410")
 stat = "damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [sub_resource type="Resource" id="Resource_mwhn6"]
 script = ExtResource("1_jn410")
 stat = "cooldown"
 op = "mul"
 value = -0.1
-target = "self"
 
 [sub_resource type="Resource" id="Resource_7nws2"]
 script = ExtResource("1_jn410")
-stat = "amount"
-op = "add"
+stat = "range"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_qlwr3"]
 script = ExtResource("1_jn410")
-stat = "pierce"
-op = "add"
-value = 1.0
-target = "self"
-
-[sub_resource type="Resource" id="Resource_whrww"]
-script = ExtResource("1_jn410")
 stat = "damage"
 op = "mul"
-value = 0.3
-target = "self"
+value = 0.25
 
-[sub_resource type="Resource" id="Resource_8lf3n"]
+[sub_resource type="Resource" id="Resource_whrww"]
 script = ExtResource("1_jn410")
 stat = "cooldown"
 op = "mul"
 value = -0.12
-target = "self"
+
+[sub_resource type="Resource" id="Resource_8lf3n"]
+script = ExtResource("1_jn410")
+stat = "range"
+value = 1.0
 
 [sub_resource type="Resource" id="Resource_jkpjm"]
 script = ExtResource("1_jn410")
-stat = "amount"
-op = "add"
-value = 1.0
-target = "self"
+stat = "damage"
+op = "mul"
+value = 0.3
 
 [resource]
 script = ExtResource("2_5gs8j")
-behavior = "ProjectileEmitter"
-tags = ["gun"]
-targeting = "nearest"
+behavior = "ConeWave"
+tags = ["melody"]
 base = {
-"amount": 3.0,
-"cooldown": 1.25,
-"damage": 15.0,
-"knockback": 5.0,
-"pierce": 2.0,
-"range": 10.0,
-"speed": 17.0,
-"spread_deg": 34.0
+"amount": 1.0,
+"area": 1.0,
+"cooldown": 1.4,
+"damage": 14.0,
+"range": 6.0
 }
-levels = [[], [SubResource("Resource_6cl7l")], [SubResource("Resource_mwhn6")], [SubResource("Resource_7nws2")], [SubResource("Resource_qlwr3")], [SubResource("Resource_whrww")], [SubResource("Resource_8lf3n")], [SubResource("Resource_jkpjm")]]
-max_level = 8
-evolves_with = ""
+levels = [[], [SubResource("Resource_6cl7l"), SubResource("Resource_mwhn6")], [SubResource("Resource_7nws2"), SubResource("Resource_qlwr3")], [SubResource("Resource_whrww")], [SubResource("Resource_8lf3n"), SubResource("Resource_jkpjm")]]
+max_level = 5
 evolves_into = "requiem"
-is_evolution = false
-evolved_from = ""
 sfx = {
 "fire": "w_guitarra_strum",
 "hit": "w_pea_hit"
@@ -82,25 +66,27 @@ sfx = {
 visual = ExtResource("3_5gs8j")
 visual_file = "guitarra_visual.tscn"
 params = {
+"cone": {
+"color": [1.0, 0.82, 0.35],
+"deg": 70.0,
+"knock": 2.5,
+"lift": 0.6,
+"lift_time": 0.45,
+"notes": 8.0
+},
 "familiar": {
 "bob": 0.14,
 "height": 1.5,
 "radius": 1.25,
 "speed": 1.3
-},
-"no_shells": true,
-"radius": 0.28,
-"strum": true
+}
 }
 hero = "calavera"
 id = "guitarra"
 display_name = "Guitarra"
-flavour = "Three notes. All of them hurt."
+flavour = "A cone of melody: whatever stands in it is lifted and dropped."
 rarity = "rare"
-element = ""
 weight = 8.0
-hidden = false
-from_stage = 0
 icon = ExtResource("1_6cl7l")
 icon_file = "guitarra_icon.png"
 placeholder = {

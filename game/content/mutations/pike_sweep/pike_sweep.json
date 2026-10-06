@@ -2,18 +2,27 @@
   "id": "pike_sweep",
   "name": "Wide Sweep",
   "flavour": "Everything in front of you.",
-  "rarity": "epic",
+  "rarity": "rare",
   "weight": 8,
   "weapon": "pike",
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "A 120° sweep instead of a thrust.",
-  "vfx": "the pike swings across the front",
-  "effects": [],
+  "text": "A 120° sweep like a sabre's, with less knockback.",
+  "vfx": "the spear swings across the front, every spear of the volley sweeping together",
+  "effects": [
+    {
+      "stat": "knockback",
+      "op": "mul",
+      "value": -0.4
+    }
+  ],
   "params": {
     "thrust": {
-      "sweep_deg": 120
+      "slice": 0.16,
+      "slice_deg": 120,
+      "side": 0.5,
+      "amount_mode": "blades"
     }
   },
   "art_prompt": "a long spear swung in a wide arc with motion lines",

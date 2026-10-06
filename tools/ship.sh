@@ -5,6 +5,11 @@
 #   bash tools/ship.sh            # full: parse check, tests, smoke run, export, verify, install if a phone is connected
 #   bash tools/ship.sh --quick    # skip tests and the smoke run (export + verify + install only)
 #   bash tools/ship.sh --no-install
+#   bash tools/ship.sh --debug-key  # allow a debug-keystore build when tools/keys/keystore.env is missing (on purpose only)
+#
+# Never uninstall the app on the phone to fix an install: it deletes the save. A build signed with the same keystore
+# always updates in place (adb install -r); a build signed differently is refused by Android, and that is the right
+# outcome, so this script stops rather than export a debug-signed APK by accident (pass 45).
 set -u
 cd "$(dirname "$0")/.." || exit 1
 ROOT="$(pwd -W 2>/dev/null || pwd)"
@@ -15,10 +20,11 @@ ADB="${LOCALAPPDATA:-}/Android/Sdk/platform-tools/adb.exe"
 APKSIGNER="${LOCALAPPDATA:-}/Android/Sdk/build-tools/34.0.0/apksigner.bat"
 APK="$ROOT/game/export/88fits-debug.apk"
 PKG="$(grep -m1 'package/unique_name' "$ROOT/game/export_presets.cfg" | sed 's/.*="\(.*\)"/\1/')"
-QUICK=0; INSTALL=1
+QUICK=0; INSTALL=1; DEBUG_KEY=0
 for a in "$@"; do
   [ "$a" = "--quick" ] && QUICK=1
   [ "$a" = "--no-install" ] && INSTALL=0
+  [ "$a" = "--debug-key" ] && DEBUG_KEY=1
 done
 
 step() { printf '\n== %s\n' "$1"; }
@@ -50,6 +56,10 @@ if [ -f "$ROOT/tools/keys/keystore.env" ]; then
   APK="$ROOT/game/export/88fits.apk"
   "$GODOT" $P --export-release "Android" export/88fits.apk > /dev/null 2>&1
 else
+  if [ "$DEBUG_KEY" != "1" ]; then
+    echo "STOP: tools/keys/keystore.env is missing. A debug-signed APK cannot update the release build on the phone (signature mismatch -> 'App not installed' -> an uninstall wipes the save). Pass --debug-key to build one on purpose."
+    exit 1
+  fi
   "$GODOT" $P --export-debug "Android" export/88fits-debug.apk > /dev/null 2>&1
 fi
 python -c "import os,sys;print('%.1f MiB' % (os.path.getsize(sys.argv[1])/1048576))" "$APK"

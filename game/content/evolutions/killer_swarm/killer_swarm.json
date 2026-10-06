@@ -2,12 +2,13 @@
   "id": "killer_swarm",
   "name": "Killer Swarm",
   "flavour": "You cannot outrun a cloud.",
-  "rarity": "epic",
+  "rarity": "rare",
+  "hidden": true,
   "is_evolution": true,
   "evolved_from": "hornet_nest",
   "max_level": 1,
   "behavior": "MissilePod",
-  "targeting": "nearest",
+  "targeting": "priority",
   "tags": [
     "homing"
   ],
@@ -47,5 +48,5 @@
     "color": "#FFB13B",
     "glyph": "hive"
   },
-  "art_prompt": "a large golden hornet nest with a gold rim around its hole and a swarm of angry hornets pouring out"
+  "art_prompt": "a large golden beehive with a gold rim round its entrance and a swarm of angry killer bees pouring out"
 }

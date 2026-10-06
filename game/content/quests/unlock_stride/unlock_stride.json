@@ -6,7 +6,7 @@
     "minutes": 2
   },
   "unlocks": {
-    "type": "line",
+    "type": "passive",
     "id": "stride"
   },
   "art_prompt": "a glass jar with a running boot inside",

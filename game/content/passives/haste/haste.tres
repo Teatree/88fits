@@ -13,9 +13,11 @@ target = "player"
 
 [resource]
 script = ExtResource("2_wacgh")
+line = true
 levels = [[SubResource("Resource_wacgh")]]
-max_level = 5
+max_level = 4
 pairs_with = "lob_grenade"
+evolves_into = "quicksilver"
 id = "haste"
 display_name = "Haste"
 flavour = "Everything fires sooner."

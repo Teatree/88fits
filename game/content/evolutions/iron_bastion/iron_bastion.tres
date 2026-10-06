@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/iron_bastion/iron_bastion_icon.png" id="1_he7g1"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_p5gl4"]
+[ext_resource type="PackedScene" path="res://content/evolutions/iron_bastion/iron_bastion_visual.tscn" id="2_he7g1"]
+
+[resource]
+script = ExtResource("1_p5gl4")
+behavior = "Spawner"
+targeting = "priority"
+base = {
+"amount": 2.0,
+"cooldown": 5.0,
+"damage": 8.0,
+"knockback": 7.0,
+"lifetime": 30.0,
+"pierce": 1.0,
+"range": 10.0,
+"speed": 18.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "turret_buddy"
+sfx = {
+"fire": "w_turret_fire",
+"hit": "w_pea_hit",
+"place": "w_turret_place"
+}
+visual = ExtResource("2_he7g1")
+visual_file = "iron_bastion_visual.tscn"
+params = {
+"final": {
+"focus": {
+"mult": 0.2,
+"seconds": 2.0
+},
+"max_turrets_mult": 1.0,
+"turret": {
+"barrels": 2.0,
+"boom": {
+"damage_mult": 6.0,
+"knockback": 12.0,
+"radius": 4.5
+},
+"style": "bunker",
+"turn": 140.0
+}
+},
+"marks": false,
+"max_turrets": 6.0,
+"tracer": true,
+"turret_fire_rate": 0.3
+}
+id = "iron_bastion"
+display_name = "Iron Bastion"
+flavour = "Two armoured bunkers a drop, six standing: a creature one bastion hits takes +20% from every other for 2 s, and a bastion that goes blows in a 4.5 m blast for 6× its shot."
+rarity = "rare"
+icon = ExtResource("1_he7g1")
+icon_file = "iron_bastion_icon.png"
+placeholder = {
+"color": "#8A8F9A",
+"glyph": "turret",
+"gold": true
+}

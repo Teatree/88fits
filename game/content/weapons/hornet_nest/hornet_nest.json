@@ -1,11 +1,11 @@
 {
   "id": "hornet_nest",
-  "name": "Hornet Nest",
-  "flavour": "Angry. Small. Aimed.",
+  "name": "Killer Bees",
+  "flavour": "The hive holds a grudge.",
   "rarity": "common",
   "weight": 8,
   "behavior": "MissilePod",
-  "targeting": "nearest",
+  "targeting": "priority",
   "tags": [
     "homing"
   ],
@@ -18,6 +18,7 @@
     "range": 11,
     "knockback": 1.0
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -25,9 +26,7 @@
         "stat": "amount",
         "op": "add",
         "value": 1
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",
@@ -39,9 +38,7 @@
         "stat": "cooldown",
         "op": "mul",
         "value": -0.1
-      }
-    ],
-    [
+      },
       {
         "stat": "amount",
         "op": "add",
@@ -60,9 +57,7 @@
         "stat": "amount",
         "op": "add",
         "value": 1
-      }
-    ],
-    [
+      },
       {
         "stat": "cooldown",
         "op": "mul",
@@ -71,7 +66,7 @@
     ]
   ],
   "evolves_with": "",
-  "evolves_into": "killer_swarm",
+  "evolves_into": "hive_queen",
   "params": {
     "radius": 0.15,
     "missile": {
@@ -96,5 +91,5 @@
     "color": "#E0B030",
     "glyph": "hive"
   },
-  "art_prompt": "a papery grey hornet nest hanging from a short branch, with three angry yellow-and-black hornets flying out of its hole"
+  "art_prompt": "a cartoon beehive of stacked rounded honey-gold rings with a dark round door and a drop of honey, hanging from a short branch with two green leaves, angry fuzzy killer bees flying round it"
 }

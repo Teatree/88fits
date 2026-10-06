@@ -46,28 +46,21 @@
    "attempt": 0
   },
   "dead": {
-   "seed": 22615,
-   "prompt": "This exact creature collapsed into a low loose heap of bones, dead: every bone fallen into one flat pile, the dented steel breastplate lying on the pile and the steel kettle helmet resting on top with the skull under its brim, the ribcage broken apart, arm bones, leg bones, feet and vertebrae all jumbled inside the pile with nothing sticking out below it; the pile sits on nothing, with no ground, no sand, no dirt patch and no shadow under it, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "seed": 43839,
+   "prompt": "This exact skeleton has fallen over and lies on the ground on its side, dead and still in one piece: the whole body stretched out flat and sideways across the picture, the skull on the left side and the feet on the right side, the arms limp along the body, every bone connected, the dented steel breastplate and the round kettle helmet still on, seen from the front and a little above so the whole body is visible lying horizontally. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
-    "88fits/skeleton_knight_va_front.png"
+    "88fits/ref45_skeleton_knight_va.png"
    ],
    "qa": {
-    "subjects": 1,
-    "background": "flat",
-    "ground": false,
-    "text": false,
-    "cropped": false,
-    "legs": true,
-    "view": "front",
-    "matches": false,
+    "skipped": true,
     "problems": [],
     "geometry": {
-     "left": 70,
-     "right": 87,
-     "top": 50,
-     "bottom": 97,
-     "height": 876,
-     "width": 866
+     "left": 57,
+     "right": 60,
+     "top": 388,
+     "bottom": 342,
+     "height": 293,
+     "width": 906
     }
    },
    "attempt": 0

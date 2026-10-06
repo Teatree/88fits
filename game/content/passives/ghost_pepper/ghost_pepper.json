@@ -1,0 +1,27 @@
+{
+  "id": "ghost_pepper",
+  "name": "Ghost Pepper",
+  "flavour": "Even the dead come back for seconds.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "difficulty",
+        "op": "add",
+        "value": 1.6,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "hot_sauce",
+  "art_prompt": "a wrinkled glowing orange-red ghost pepper chili with a green stem, wisps of fiery red-orange steam curling up off it",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

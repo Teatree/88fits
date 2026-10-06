@@ -4,6 +4,8 @@
   "flavour": "Wanted: anything that moves.",
   "rarity": "rare",
   "weight": 6,
+  "hidden": true,
+  "note": "hidden in pass 53, Garry; remove hidden to bring it back",
   "hero": "drifter",
   "text": "Every 60 kills a creature near him is WANTED: it glows, has four times its health, and pays 40 gold and a chest when it drops.",
   "effects": [],

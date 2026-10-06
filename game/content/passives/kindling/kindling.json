@@ -2,7 +2,7 @@
   "id": "kindling",
   "name": "Kindling",
   "flavour": "Everything you light, burns hotter.",
-  "rarity": "common",
+  "rarity": "uncommon",
   "weight": 8,
   "element": "fire",
   "pairs_with": "flare_gun",

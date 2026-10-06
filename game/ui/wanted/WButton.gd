@@ -1,13 +1,17 @@
 ## The slab button: Alfa Slab One on a square box with an ink border and a hard shadow. Variants: primary (brass,
-## darkens to brass dark while held), secondary (paper), danger (rock with paper text), locked (aged at 45 %, still
-## emits `pressed` so the screen can say why). The label is parts: text runs in their own colours and coins
-## ("REROLL ×1", "SELL ○ +4", "RANK 2 ○ 252").
+## darkens to brass dark while held; since pass 46 brass means buying or the one big go, PLAY), secondary (paper),
+## danger (rock with paper text), upgrade (turquoise with paper text, darker while held: the way to the Upgrade board,
+## which wants to be seen without looking like a purchase), locked (aged at 45 %, still emits `pressed` so the screen can
+## say why). The label is parts: text runs in their own colours and coins ("REROLL ×1", "SELL ○ +4", "RANK 2 ○ 252").
 class_name WButton
 extends WTap
 
 const PRIMARY := "primary"
 const SECONDARY := "secondary"
 const DANGER := "danger"
+const UPGRADE := "upgrade"
+## The upgrade button while held: its turquoise a shade darker, as a primary goes to brass dark.
+const UPGRADE_DOWN := Color("2f6d69")
 
 var variant := SECONDARY
 var font_size := 34
@@ -28,9 +32,17 @@ static func make(parts: Array, px: int = 34, p_variant: String = SECONDARY, bord
 			fill = W.BRASS
 		DANGER:
 			fill = W.ROCK
+		UPGRADE:
+			fill = W.TURQUOISE
 	var hb := W.box(fill, border, shadow).pad(pad_h + border, pad_v + border, pad_h + border, pad_v + border)
 	b.box = hb
-	b.box_down = hb.pressed(W.BRASS_DARK if p_variant == PRIMARY else fill)
+	var held_fill := fill
+	match p_variant:
+		PRIMARY:
+			held_fill = W.BRASS_DARK
+		UPGRADE:
+			held_fill = UPGRADE_DOWN
+	b.box_down = hb.pressed(held_fill)
 	b._row = HBoxContainer.new()
 	b._row.alignment = BoxContainer.ALIGNMENT_CENTER
 	b._row.add_theme_constant_override("separation", int(px * 0.3))
@@ -43,7 +55,7 @@ static func make(parts: Array, px: int = 34, p_variant: String = SECONDARY, bord
 func set_parts(parts: Array) -> void:
 	for c in _row.get_children():
 		c.queue_free()
-	var ink := W.PAPER if variant == DANGER else W.INK
+	var ink := W.PAPER if variant == DANGER or variant == UPGRADE else W.INK
 	var runs: Array = []
 	var flush := func():
 		if runs.is_empty():

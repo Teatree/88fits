@@ -7,15 +7,16 @@
 [sub_resource type="Resource" id="Resource_h1hc5"]
 script = ExtResource("2_oqepf")
 stat = "amount"
-op = "add"
 value = 1.0
 target = "player"
 
 [resource]
 script = ExtResource("2_h1hc5")
+line = true
 levels = [[SubResource("Resource_h1hc5")]]
-max_level = 3
+max_level = 4
 pairs_with = "peashooter"
+evolves_into = "barrage"
 id = "multishot"
 display_name = "Multishot"
 flavour = "More things flying."

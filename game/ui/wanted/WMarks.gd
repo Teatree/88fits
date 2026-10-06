@@ -1,6 +1,7 @@
 ## Level, path and rank marks, drawn (no font here has a star):
-##   stars   weapons /8, passives and lines /their max: brass filled up to `held`, the one this pick gives in paper
-##           with a 2 px ink stroke, the rest aged with the stroke;
+##   stars   weapons /5 (pass 48; /8 before), passives and lines /their max: brass filled up to `held`, the one this
+##           pick gives in paper with a 2 px ink stroke, the rest aged with the stroke; `mark` is the star's size (pass
+##           48, bigger everywhere: 40 on a card, 48 on the chest, 34 on a pause row);
 ##   rivets  paths /3: brass circles held, aged the rest, 3 px ink;
 ##   notches ranks /3: 44 x 16 bars, brass owned, aged the rest, 3 px ink.
 class_name WMarks

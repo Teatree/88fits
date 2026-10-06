@@ -1,9 +1,27 @@
 ## Results (Wanted screen 16): the hero and the gold first, the tables last. "★ EXTRACTED ★" (or RUN OVER) over the
 ## time survived and one line of the run; a panel with the hero's portrait and what was banked, counting up, the purse
-## before and after, and a NEW BEST seal hanging off it when the run beat the map's best; damage by weapon as bars with
-## the name and number inside the fill; what the run unlocked; PLAY AGAIN, then Upgrade and Main Menu. A death (pass 44)
-## shows the gold left in the sand, struck through, and what a Strongbox banked on the way.
+## before and after, and a NEW BEST seal hanging off it when the run beat the map's best; the damage dealt, one row a
+## source (pass 47, Garry: "Each row must have both the icon and the text, with the absolute value of damage dealt":
+## the plate, the name and the number over a bar of its share, the percent beside it, for every weapon, perk, power-up,
+## fire, poison, the revive's blast and explosions, and a "?" plate for anything unknown); what the run unlocked; PLAY
+## AGAIN, then Upgrade (turquoise, pass 46: brass is for buying) and Main Menu. A death (pass 44) shows the gold left in the sand, struck through, and what a Strongbox banked on
+## the way, by its coin. The hero's last hits are on the Down! screen since pass 46, not here.
 extends ScreenBase
+
+## The damage sources' own pictures (pass 47, painted by the lead; until one is there its plate shows a "?").
+const SOURCE_ART := "res://art/ui/sources/%s.png"
+## Damage ids that are not an item: [picture, name]. A picture is a file in SOURCE_ART, or "passive:<id>" for a
+## passive's icon (poison is Venom's, thorns Bristle's, pass 48 the Powder Keg's blast the Powder Keg's; the explosions'
+## picture while a passive has no icon or is not in the game). Several ids can be one source ("burn" and "fire").
+const SOURCES := {
+	"": ["unknown", "Unknown"],
+	"revive": ["revive", "Revive blast"],
+	"fire": ["fire", "Fire"], "burn": ["fire", "Fire"], "burning": ["fire", "Fire"], "flames": ["fire", "Fire"],
+	"poison": ["passive:venom", "Poison"], "toxic": ["passive:venom", "Poison"],
+	"blast": ["blast", "Explosions"], "explosion": ["blast", "Explosions"], "loose_rocket": ["blast", "Explosions"],
+	"thorns": ["passive:bristle", "Thorns"],
+	"powder_keg": ["passive:powder_keg", "Powder Keg"],
+}
 
 var _count: WText
 var _banked := 0
@@ -82,8 +100,21 @@ func build() -> void:
 		_banked = lost
 		var purse := "The purse stays at %s" % W.num(before)
 		if strongbox > 0:
-			purse = "%s banked by the Strongbox on the way · the purse stays at %s" % [W.num(strongbox), W.num(before)]
-		gv.add_child(W.serif_text(purse, 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+			# what the Strongbox kept is gold the run brought home: its coin goes in front (pass 46)
+			var sb := HBoxContainer.new()
+			sb.name = "Strongbox"
+			sb.add_theme_constant_override("separation", 10)
+			sb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var coin := WCoin.make(30.0, W.BRASS, 3.0)
+			coin.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			sb.add_child(coin)
+			var said := W.serif_text("%s banked by the Strongbox on the way · the purse stays at %s" % [W.num(strongbox), W.num(before)],
+				26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+			said.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			sb.add_child(said)
+			gv.add_child(sb)
+		else:
+			gv.add_child(W.serif_text(purse, 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	else:
 		gv.add_child(W.serif_text("%s → %s" % [W.num(before), W.num(before + _banked)], 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	if not Save.hint_seen("results"):
@@ -91,8 +122,6 @@ func build() -> void:
 		gv.add_child(W.serif_text("Only an extraction brings the gold home. Spend it on Upgrades." if dead else "Gold is kept. Spend it on Upgrades.",
 			24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	hr.add_child(gv)
-	var hero_host := Control.new()
-	hero_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var prev: Dictionary = res.get("prev_best", {})
 	var new_best := not prev.is_empty() and float(s["time"]) > float(prev.get("time", 0.0)) + 0.5
 	content.add_child(hero)
@@ -113,45 +142,13 @@ func build() -> void:
 			seal.pivot_offset = Vector2(81, 81)
 			seal.rotation = deg_to_rad(12.0)
 			seal.position = Vector2(hero.size.x - 162.0 + 30.0, -40.0))
-	# damage by weapon
+	# the damage dealt, by source (pass 47: every row its plate, its name and its number)
 	var dmg: Dictionary = s["damage_by_weapon"]
 	if not dmg.is_empty():
 		content.add_child(_gap(76))
-		content.add_child(W.label("Damage by weapon", 22, W.INK_SOFT))
+		content.add_child(W.label("Damage dealt", 22, W.INK_SOFT))
 		content.add_child(_gap(16))
-		var total := 0.0
-		for v in dmg.values():
-			total += float(v)
-		var keys := dmg.keys()
-		keys.sort_custom(func(a, b): return float(dmg[a]) > float(dmg[b]))
-		var rows := VBoxContainer.new()
-		rows.add_theme_constant_override("separation", 16)
-		rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		for k in keys:
-			var def := Registry.weapon(k)
-			var frac := float(dmg[k]) / maxf(total, 1.0)
-			var h := HBoxContainer.new()
-			h.add_theme_constant_override("separation", 20)
-			h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			if def:
-				var p2 := WPlate.new().for_def(def, 96.0)
-				p2.icon_frac = 0.7
-				h.add_child(p2)
-			var bar := WBar.make(frac, W.BRASS, 52.0, 4, 0)
-			bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			bar.text_px = 26
-			# the name and number ride inside the fill when it is wide enough to hold them
-			var label := "%s · %s" % [def.display_name if def else k, W.num(int(dmg[k]))]
-			if frac > 0.14:
-				bar.text = label
-			h.add_child(bar)
-			var pc := W.slab_text("%d%%" % int(round(frac * 100.0)), 28, W.INK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
-			pc.custom_minimum_size.x = 90
-			pc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			h.add_child(pc)
-			rows.add_child(h)
-		content.add_child(rows)
+		content.add_child(damage_rows(dmg))
 	# what the run unlocked
 	if not QuestTracker.just_completed.is_empty():
 		content.add_child(_gap(66))
@@ -179,7 +176,7 @@ func build() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 22)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	for spec in [["Upgrade", "res://ui/HomesteadScreen.tscn", WButton.PRIMARY], ["Main Menu", TITLE, WButton.SECONDARY]]:
+	for spec in [["Upgrade", "res://ui/HomesteadScreen.tscn", WButton.UPGRADE], ["Main Menu", TITLE, WButton.SECONDARY]]:
 		var b := WButton.make([spec[0]], 30, spec[2], 5, 6, 20.0, 0.0)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var path: String = spec[1]
@@ -193,6 +190,148 @@ func _gap(h: float) -> Control:
 	c.custom_minimum_size.y = h
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return c
+
+
+## What dealt damage under the id Run.add_damage was handed (pass 47): {key, name, def, icon}. A weapon, perk,
+## power-up, passive, mutation, creature or structure is its content item (its plate, its icon); fire, poison, the
+## revive's blast, explosions and thorns have their own picture (SOURCES); anything else is unknown, a "?" plate named
+## after its id ("" is "Unknown"). `key` joins the ids that are one source.
+static func damage_source(id: String) -> Dictionary:
+	if SOURCES.has(id):
+		var spec: Array = SOURCES[id]
+		var pic := str(spec[0])
+		var icon: Texture2D = null
+		if pic.begins_with("passive:"):
+			var pd: PassiveDef = Registry.passive(pic.substr(8))
+			icon = pd.icon if pd else null
+			if icon == null:
+				var blast := SOURCE_ART % "blast"
+				icon = load(blast) as Texture2D if ResourceLoader.exists(blast) else null
+		else:
+			var path := SOURCE_ART % pic
+			icon = load(path) as Texture2D if ResourceLoader.exists(path) else null
+		return {"key": "source:" + str(spec[1]), "name": str(spec[1]), "def": null, "icon": icon}
+	var def: ContentDef = Registry.weapon(id)
+	if def == null:
+		def = Registry.perk(id)
+	if def == null:
+		def = Registry.pickup(id)
+	if def == null:
+		def = Registry.passive(id)
+	if def == null:
+		def = Registry.mutation(id)
+	if def == null:
+		def = Registry.enemy(id)
+	if def == null:
+		def = Registry.structure(id)
+	if def:
+		return {"key": id, "name": def.display_name, "def": def, "icon": def.icon}
+	var unknown := SOURCE_ART % "unknown"
+	return {"key": "id:" + id, "name": id.replace("_", " ").capitalize(), "def": null,
+		"icon": load(unknown) as Texture2D if ResourceLoader.exists(unknown) else null}
+
+
+## The damage dealt, one row a source, biggest first: the ids that are one source summed into one row.
+static func damage_rows(dmg: Dictionary) -> VBoxContainer:
+	var by_key: Dictionary = {}
+	var total := 0.0
+	for id in dmg.keys():
+		var amount := float(dmg[id])
+		total += amount
+		var src := damage_source(str(id))
+		var k := str(src["key"])
+		if by_key.has(k):
+			by_key[k]["amount"] = float(by_key[k]["amount"]) + amount
+		else:
+			src["amount"] = amount
+			by_key[k] = src
+	var sources: Array = by_key.values()
+	sources.sort_custom(func(a, b): return float(a["amount"]) > float(b["amount"]))
+	var rows := VBoxContainer.new()
+	rows.name = "DamageRows"
+	rows.add_theme_constant_override("separation", 18)
+	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for src in sources:
+		rows.add_child(damage_row(src, float(src["amount"]) / maxf(total, 1.0)))
+	return rows
+
+
+## One source: its 96 px plate (the item's in its kind's colour; a paper plate with the source's picture, or a "?"),
+## the name and the damage in slab over a bar of its share, and the percent at the end ("<1%" for a sliver).
+static func damage_row(src: Dictionary, frac: float) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.name = "Source"
+	h.set_meta("source", src)
+	h.add_theme_constant_override("separation", 20)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(source_plate(src, 96.0))
+	var mid := VBoxContainer.new()
+	mid.add_theme_constant_override("separation", 6)
+	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 14)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var nm := W.slab_text(str(src["name"]), 30, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	nm.name = "Name"
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(nm)
+	var num := W.slab_text(W.num(float(src["amount"])), 30, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	num.name = "Amount"
+	top.add_child(num)
+	mid.add_child(top)
+	var bar := WBar.make(frac, W.BRASS, 26.0, 4, 0)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mid.add_child(bar)
+	h.add_child(mid)
+	var pct := roundf(frac * 100.0)
+	var pc := W.slab_text("<1%" if frac > 0.0 and pct < 1.0 else "%d%%" % int(pct), 28, W.INK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	pc.name = "Share"
+	pc.custom_minimum_size.x = 96
+	pc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(pc)
+	return h
+
+
+## The level an item ended the run at (pass 48: its plate's colour): a weapon held, its level; one that evolved, the top
+## level it evolved from; a passive or a line, its level, a line that evolved its top; 1 for anything else not held.
+static func final_level(def: ContentDef) -> int:
+	if def is WeaponDef:
+		for w in Run.weapons:
+			var inst: WeaponInstance = w
+			if inst.def == def:
+				return inst.level
+			if inst.def.is_evolution and inst.def.evolved_from == def.id:
+				return (def as WeaponDef).max_level
+		return 1
+	if def is PassiveDef:
+		var pd := def as PassiveDef
+		var lv := Run.passive_level(pd.id)
+		if lv > 0:
+			return lv
+		if pd.evolves_into != "" and Run.passive_level(pd.evolves_into) > 0:
+			return pd.max_level
+		return 1
+	return 0
+
+
+## A source's plate: the item's own (in the colour of the level it ended at, pass 48), else a paper plate with the
+## source's picture, else a "?".
+static func source_plate(src: Dictionary, px: float) -> WPlate:
+	var p := WPlate.new()
+	var def: ContentDef = src.get("def")
+	if def:
+		p.for_def(def, px, false, final_level(def))
+	else:
+		p.side = px
+		p.fill = W.PAPER
+		p.tex = src.get("icon")
+		if p.tex == null:
+			p.glyph = "?"
+	p.icon_frac = 0.7
+	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return p
 
 
 ## One unlock: the item's plate, UNLOCKED in sage, its name, and what earned it on the right.

@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/clover/clover_icon.png" id="1_prts1"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xvq6q"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_prts1"]
+
+[sub_resource type="Resource" id="Resource_prts1"]
+script = ExtResource("1_xvq6q")
+stat = "luck"
+value = 0.1
+target = "player"
+
+[resource]
+script = ExtResource("2_prts1")
+line = true
+levels = [[SubResource("Resource_prts1")]]
+max_level = 4
+evolves_into = "golden_horseshoe"
+text = "+10% luck a level: rarer items turn up more often in level-ups and chests."
+id = "clover"
+display_name = "Clover"
+flavour = "Three leaves. Still counts."
+rarity = "uncommon"
+weight = 8.0
+icon = ExtResource("1_prts1")
+icon_file = "clover_icon.png"
+placeholder = {
+"color": "#4CC864",
+"glyph": "star"
+}

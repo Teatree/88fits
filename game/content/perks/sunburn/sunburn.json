@@ -1,0 +1,19 @@
+{
+  "id": "sunburn",
+  "name": "Sunburn",
+  "flavour": "Skin that never cools.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "solenne",
+  "text": "A burning or poisoned enemy takes 20% more from everything she does.",
+  "effects": [],
+  "special": "sunburn",
+  "params": {
+    "bonus": 0.2
+  },
+  "art_prompt": "a small bright sun with sharp rays scorching a dark red target ring on the ground, a thin curl of smoke and a crack of orange heat across the ring",
+  "placeholder": {
+    "color": "#E8603A",
+    "glyph": "star"
+  }
+}

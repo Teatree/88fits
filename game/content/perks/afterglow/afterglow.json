@@ -1,0 +1,24 @@
+{
+  "id": "afterglow",
+  "name": "Afterglow",
+  "flavour": "Warmth that stays.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "solenne",
+  "text": "Every heal on her is 40% bigger: hearts, cake, the well, life steal and her regen.",
+  "effects": [
+    {
+      "stat": "heal_mult",
+      "op": "mul",
+      "value": 0.4,
+      "target": "player"
+    }
+  ],
+  "special": "",
+  "params": {},
+  "art_prompt": "a green heart glowing warmly with a small golden sun rising behind its upper edge, soft yellow rays fanning out round it",
+  "placeholder": {
+    "color": "#8FD36A",
+    "glyph": "star"
+  }
+}

@@ -95,6 +95,24 @@ func hero_anchor() -> Dictionary:
 	return {"pos": Vector2(vp.x * 0.5 + local.x * ppm, vp.y * 0.5 - local.y * ppm), "ppm": ppm}
 
 
+## Whether the point `p` shows on the screen, or within `margin_px` canvas pixels of its edge (pass 54: the ranged
+## weapons aim only at what is on the screen, EnemyManager.refresh_onscreen). True with no camera (tools, tests).
+func on_screen(p: Vector3, margin_px: float = 0.0) -> bool:
+	if camera == null:
+		return true
+	if camera.is_position_behind(p):
+		return false
+	return get_viewport().get_visible_rect().grow(margin_px).has_point(camera.unproject_position(p))
+
+
+## How many canvas pixels a metre spans at the hero's feet right now (pass 54: the on-screen test's one-metre margin
+## shrinks as the camera pulls out); 90 without a target.
+func pixels_per_metre() -> float:
+	if target == null or camera == null:
+		return 90.0
+	return float(hero_anchor().get("ppm", 90.0))
+
+
 ## Yaw the player maps stick directions through (0 in fixed mode: screen up is world -Z).
 func current_yaw() -> float:
 	return yaw

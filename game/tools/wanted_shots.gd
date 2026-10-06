@@ -3,6 +3,22 @@
 ## godot --audio-driver Dummy --resolution 1080x1920 --path game --script res://tools/wanted_shots.gd -- out=<dir> [only=hud,levelup] [white=1]
 ## white=1 hides the world behind a white sheet, as the mocks were drawn (they are transparent where the world is).
 ## inset=N puts the top inset the UI keeps clear of a camera cutout at N design px (pass 43), as a notched phone would.
+## Pass 45 states beyond the mocks: 03c-mirror-talent-full (a FULL sheet, its summed status line), 05b-settings-wipe-confirm
+## and 13d-pause-abandon-confirm (the WConfirm pop-ups), 14b-down-hits (pass 46: the last 30 seconds of hits and heals on Down!, under the player's debug mode).
+## Pass 47: 02c-title-ironwood (his favourite line on the plaque), 04f/04g/04h the Collection's Lines, Passives and
+## Enemies tabs (the danger badges), 06 with the gold popup, 07 with a line, a passive item and a weapon on the cards,
+## 07b-level-up-spent (no skips or banishes left), 08b-path-no-skips, 10c-chest-opening (the chest low, its light rising),
+## 10d-chest-banished (the reel spun again after a banish), 10e-chest-gold (SKIP and BANISH locked on gold, BANISH
+## tapped), 13e-pause-build-passives (the Build tab's lines and passive
+## items), 16 with every kind of damage source and 16c scrolled to the last of them.
+## Pass 48: 06d-hud-levels (only=hud_levels: plates in their levels' colours, Lv 1 common .. Lv 5 legendary and lines
+## to epic, a weapon's mutation dots, the glow of one ready to evolve, an evolution's dark plate, the twelve equal
+## see-through slots; the brass line between the groups went in pass 53), 04j/04k the Collection's grid and an item's page with a
+## 130 px camera-cutout inset (only=collection_inset: the tabs and the board under the back square), and 15c the stage
+## clear with NOT YET held under the roads (only=stageclear).
+## Pass 54: 29b-path-reel (only=path: the mutation offer's pre-reel spinning past three weapons; 29c as it lands) before
+## 08-path-offer; 13c-pause-options at sound 100 and music 0 (both thumbs whole, the floating text block under them);
+## 06e-hud-phoenix (only=phoenix: Phoenix Feather's plate flying off the hero with its embers and its banner).
 extends SceneTree
 
 var _out := "user://wanted_shots"
@@ -52,14 +68,14 @@ func _main() -> void:
 	_save = root.get_node("Save")
 	# the captures fill the save with the mocks' numbers: the PC's own save goes back as it was at the end
 	var kept := FileAccess.get_file_as_string("user://save.json")
-	var in_run := ["backdrop", "hud", "hud_boss", "hud_full", "levelup", "gate", "path", "chest", "shop", "stranger", "pause", "down", "stageclear", "results"]
+	var in_run := ["backdrop", "hud", "hud_boss", "hud_full", "hud_levels", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results"]
 	var any_run := false
 	for n in in_run:
 		if _want(n):
 			any_run = true
 	if any_run:
 		await _in_run()
-	var menus := ["title", "mirror", "collection", "settings", "dev"]
+	var menus := ["title", "mirror", "collection", "collection_inset", "settings", "dev"]
 	var any_menu := false
 	for n in menus:
 		if _want(n):
@@ -154,6 +170,13 @@ func _menus() -> void:
 				tc._show_hero(1)
 		await _wait(0.5)
 		await _shot("02b-title-calavera")
+		# pass 47: Ironwood, his favourite a line (Brawn) on the plaque and no weapon of his own
+		for i in (tc._heroes as Array).size():
+			if (tc._heroes[i] as Resource).get("id") == "ironwood":
+				tc._index = i
+				tc._show_hero(1)
+		await _wait(0.5)
+		await _shot("02c-title-ironwood")
 		# the developer's preview: the hidden heroes ride the carousel, locked (Dad has an unlock quest, with a bar)
 		root.get_node("Settings").preview_locked_heroes = true
 		await _scene("res://ui/TitleScreen.tscn")
@@ -176,6 +199,16 @@ func _menus() -> void:
 		current_scene._open(_reg.talent("grit"))
 		await _wait(0.5)
 		await _shot("03b-mirror-talent-open")
+		# 03c (pass 45): a talent at FULL, its status line the ranks summed on one line, the sheet still 960 wide
+		_save.data["talents"]["grit"] = {"form": 1, "rank": 3}
+		_save.data["talent_spent"] = 900
+		current_scene._refresh()
+		current_scene._open(_reg.talent("grit"))
+		await _wait(0.5)
+		await _shot("03c-mirror-talent-full")
+		var sheet: Control = current_scene._sheet_root.find_child("Sheet", true, false)
+		print("wanted_shots: 03c the sheet is %d px wide" % int(sheet.size.x))
+		current_scene._close(false)
 	if _want("collection"):
 		_save.data["totals"]["kills"] = 12480
 		# a save part of the way through: the unlocks not yet earned show as the mock's locked tiles
@@ -185,9 +218,7 @@ func _menus() -> void:
 		for w in _reg.weapons.values():
 			_save.mark_seen("weapon", w.id)
 		for p in _reg.passives.values():
-			_save.mark_seen("passive" if not (p is LineDef) else "line", p.id)
-		for l in _reg.lines.values():
-			_save.mark_seen("line", l.id)
+			_save.mark_seen("passive", p.id)
 		for k in _reg.perks.values():
 			_save.mark_seen("perk", k.id)
 		var n_seen := 0
@@ -212,6 +243,29 @@ func _menus() -> void:
 		current_scene._show_grid()
 		await _wait(0.5)
 		await _shot("04e-collection-locked-tiles")
+		# pass 47: the Lines, the Passives (their rarity's colour) and the Enemies (the danger badges)
+		for pair in [[1, "04f-collection-lines"], [2, "04g-collection-passives"], [4, "04h-collection-enemies"]]:
+			current_scene._tab = int(pair[0])
+			current_scene._show_grid()
+			await _wait(0.5)
+			await _shot(str(pair[1]))
+		current_scene._open_page(_reg.enemy("brander"))
+		await _wait(0.5)
+		await _shot("04i-collection-boss-page")
+		current_scene._tab = 0
+	if _want("collection_inset"):
+		# pass 48: a 130 px camera cutout; the tabs and the board sit under the back square, which nothing covers
+		for w in _reg.weapons.values():
+			_save.mark_seen("weapon", w.id)
+		var stc := root.get_node("Settings")
+		var was: int = stc.top_inset
+		stc.top_inset = 130
+		await _scene("res://ui/CollectionScreen.tscn")
+		await _shot("04j-collection-inset130")
+		current_scene._open_page(_reg.weapon("boomstick"))
+		await _wait(0.5)
+		await _shot("04k-collection-page-inset130")
+		stc.top_inset = was
 	if _want("settings"):
 		var st := root.get_node("Settings")
 		st.camera_mode = 0
@@ -222,9 +276,15 @@ func _menus() -> void:
 		st.show_hints = true
 		await _scene("res://ui/SettingsScreen.tscn")
 		await _shot("05-settings")
+		# 05b (pass 45): the wipe asks in a pop-up
+		current_scene._ask_wipe()
+		await _wait(0.6)
+		await _shot("05b-settings-wipe-confirm")
+		_cancel_confirm(current_scene)
+		await _wait(0.3)
 	if _want("dev"):
 		var st2 := root.get_node("Settings")
-		for k in ["debug_panel", "debug_modal_buttons", "free_revive_button", "hit_log"]:
+		for k in ["debug_panel", "debug_modal_buttons", "free_revive_button", "hit_log", "debug_mode"]:
 			st2.set(k, false)
 		change_scene_to_file("res://ui/DevMenu.tscn")
 		await _wait(0.9)
@@ -261,12 +321,18 @@ func _in_run() -> void:
 		await _hud_boss()
 	if _want("hud_full"):
 		await _hud_full()
+	if _want("hud_levels"):
+		await _hud_levels()
+	if _want("phoenix"):
+		await _phoenix()
 	if _want("levelup") or _want("gate"):
 		await _levelup()
 	if _want("path"):
 		await _path()
 	if _want("chest"):
 		await _chest()
+	if _want("chest_boss"):
+		await _chest_boss()
 	if _want("shop"):
 		await _shop()
 	if _want("stranger"):
@@ -306,7 +372,7 @@ func _mut(weapon: String, n: int) -> void:
 
 func _hud_basic() -> void:
 	_build([["weapon", "hornet_nest", 3], ["weapon", "turret_buddy", 3], ["weapon", "big_mouth", 4], ["weapon", "molotov", 3],
-		["passive", "magnet", 2], ["line", "energy_shield", 4]])
+		["passive", "magnet", 2], ["passive", "energy_shield", 4]])
 	_mut("turret_buddy", 2)
 	_mut("molotov", 1)
 	_run.build_changed.emit()
@@ -318,6 +384,8 @@ func _hud_basic() -> void:
 	await _wait(0.7)
 	g.hud.toast("+22 HP", Color(0.35, 0.84, 0.42))
 	_run.xp_gained.emit(5.0)
+	# pass 47: the gold picked up rises from the hero too
+	_run.gold_gained.emit(24)
 	await _wait(0.45)
 	await _shot("06-hud")
 	g.hud.test_arrows = []
@@ -325,7 +393,7 @@ func _hud_basic() -> void:
 
 func _hud_boss() -> void:
 	_build([["evolution", "killer_swarm", 8], ["weapon", "turret_buddy", 6], ["weapon", "big_mouth", 7], ["weapon", "molotov", 5],
-		["weapon", "boomstick", 2], ["passive", "magnet", 5], ["passive", "field_notes", 3], ["line", "energy_shield", 4]])
+		["weapon", "boomstick", 2], ["passive", "magnet", 5], ["passive", "field_notes", 3], ["passive", "energy_shield", 4]])
 	_hud_common(9, 0.61, 10, 61.0)
 	var king = _reg.enemy("tumbleweed_king") if _reg.has_method("enemy") else null
 	if king:
@@ -343,13 +411,14 @@ func _hud_boss() -> void:
 	g.hud.hide_boss()
 
 
-## A full build: six weapons (two evolved), six passives, four lines (one evolved), a boss up and a toast: the slots
-## must wrap into rows and everything under them (the boss plate, the buffs, the toasts) move down.
+## A full build: five weapons (two evolved), five lines (one evolved), a boss up and a toast: every slot of the strip
+## filled, and everything under it (the boss plate, the buffs, the toasts) below it.
 func _hud_full() -> void:
-	_build([["evolution", "killer_swarm", 1], ["evolution", "doomstick", 1], ["weapon", "turret_buddy", 6], ["weapon", "big_mouth", 7],
-		["weapon", "molotov", 5], ["weapon", "hammer", 2], ["passive", "magnet", 5], ["passive", "field_notes", 3], ["passive", "deadeye", 2],
-		["passive", "guillotine", 1], ["passive", "haste", 4], ["passive", "overkill", 2], ["line", "aegis", 1], ["line", "evade", 3],
-		["line", "mend", 2], ["line", "bristle", 1]])
+	# five weapons and five lines on the strip (pass 52; six and six in pass 47); Magnet and Desperado are passive items,
+	# never on it. The capture runs as the arena, which would take a sixth line: a real run never holds one
+	_build([["evolution", "killer_swarm", 1], ["evolution", "doomstick", 1], ["weapon", "turret_buddy", 4], ["weapon", "big_mouth", 5],
+		["weapon", "molotov", 3], ["passive", "magnet", 5], ["passive", "field_notes", 3], ["passive", "deadeye", 2],
+		["passive", "aegis", 1], ["passive", "evade", 3], ["passive", "mend", 2], ["passive", "desperado", 2]])
 	_hud_common(21, 0.4, 312, 400.0)
 	var king = _reg.enemy("tumbleweed_king") if _reg.has_method("enemy") else null
 	if king:
@@ -359,6 +428,40 @@ func _hud_full() -> void:
 	await _wait(0.6)
 	await _shot("06c-hud-full-build")
 	g.hud.hide_boss()
+
+
+## 06d (pass 48): the strip by level. Five weapons from Lv 5 (legendary, every mutation held: the glow) down to Lv 1
+## (common, none) and an evolution (dark in its brass ring), four lines from Lv 4 (epic) down to Lv 1, the slots
+## see-through over the sand (pass 53: the weapons sit at the left edge, the lines at the right, no line between).
+func _hud_levels() -> void:
+	_clear_ui()
+	_build([["weapon", "peashooter", 5], ["weapon", "boomstick", 4], ["weapon", "tommy_gun", 3], ["weapon", "hammer", 2],
+		["weapon", "molotov", 1], ["evolution", "hive_queen", 1], ["passive", "brawn", 4], ["passive", "deadeye", 3],
+		["passive", "evade", 2], ["passive", "mend", 1]])
+	_mut("peashooter", 3)
+	_mut("boomstick", 2)
+	_mut("tommy_gun", 1)
+	_run.build_changed.emit()
+	_hud_common(14, 0.5, 240, 420.0)
+	await _wait(0.8)
+	await _shot("06d-hud-levels")
+
+
+## 06e (pass 54): Phoenix Feather standing the hero up: its plate flies off him in embers and its banner says so, in its
+## colour with its icon.
+func _phoenix() -> void:
+	_clear_ui()
+	_build([["weapon", "boomstick", 3], ["passive", "phoenix_feather", 1]])
+	_hud_common(6, 0.3, 40, 200.0)
+	await _wait(0.3)
+	var f = _reg.passive("phoenix_feather")
+	var cam: Camera3D = g.camera.camera
+	var at: Vector2 = cam.unproject_position(g.player.global_position + Vector3(0, 1.2, 0))
+	g.hud.fly_item(f, at, Color(1.0, 0.55, 0.15))
+	g.hud.banner("PHOENIX FEATHER", Color(1.0, 0.55, 0.15), f.icon if f else null)
+	await _wait(0.55)
+	await _shot("06e-hud-phoenix")
+	await _wait(1.6)
 
 
 ## A thumb held on the joystick at `origin`, pushed along `dir` (the HUD draws the ring from the player's input).
@@ -383,22 +486,42 @@ func _clear_ui() -> void:
 	g.player.input.wants_move = false
 
 
-## 07: Level 3, Bristle (a new line), Field Notes (a new passive, held down), Boomstick 5 -> 6; Banish spent.
+## Cancels a confirmation pop-up (WConfirm, pass 45) on `host`, by class name: this script compiles before the kit's
+## classes can be named.
+func _cancel_confirm(host: Node) -> void:
+	for n in host.get_children():
+		var sc: Script = n.get_script()
+		if sc and str(sc.get_global_name()) == "WConfirm" and not bool(n.get("_done")):
+			n.call("cancel")
+
+
+## 07: Level 3, Bristle (a new line with a trade), Desperado (a new passive item, its rarity's plate, held down),
+## Boomstick 3 -> 4 (pass 48: five levels, the plate in Lv 4's epic, its mutation dots); Banish spent. 07b (pass 47): no
+## skips and no banishes left this stage, SKIP tapped.
 func _levelup() -> void:
 	_clear_ui()
 	_build([["weapon", "hornet_nest", 3], ["weapon", "turret_buddy", 3], ["weapon", "big_mouth", 4], ["weapon", "molotov", 3],
-		["weapon", "boomstick", 5], ["passive", "magnet", 2]])
+		["weapon", "boomstick", 3], ["passive", "magnet", 2]])
+	_mut("boomstick", 1)
 	_hud_common(3, 0.06, 10, 61.0)
 	_run.rerolls_left = 1
+	_run.skips_left = 2
 	_run.banishes_left = 0
-	var offer := [_card("line", _reg.line("bristle"), 0, 1), _card("passive", _reg.passive("field_notes"), 0, 1),
-		_card("weapon", _reg.weapon("boomstick"), 5, 6)]
+	var offer := [_card("passive", _reg.passive("bristle"), 0, 1), _card("passive", _reg.passive("desperado"), 0, 1),
+		_card("weapon", _reg.weapon("boomstick"), 3, 4)]
 	g.set_paused(true)
-	g.cards.show_offer(offer, "LEVEL 3!", false, false)
+	g.cards.show_offer(offer, "LEVEL 3!", false)
 	await _wait(0.9)
 	g.cards._cards[1].show_held(true)
 	if _want("levelup"):
 		await _shot("07-level-up")
+		g.cards._cards[1].show_held(false)
+		_run.skips_left = 0
+		g.cards._refresh_buttons()
+		g.cards._skip()
+		await _wait(0.3)
+		await _shot("07b-level-up-spent")
+		_run.skips_left = 2
 	if _want("gate"):
 		# the pick: Field Notes lands in the passive row and flies there while the dim lifts
 		var rect: Rect2 = g.cards._cards[1].get_global_rect()
@@ -411,49 +534,105 @@ func _levelup() -> void:
 		await _wait(0.9)
 		await _shot("09-gate-tap-to-go")
 		g.resume_gate.tap()
+	# without the gate the cards stayed up under every later state
+	g.cards.visible = false
 	g.set_paused(false)
 
 
-## 08: the Boomstick's paths.
+## 08: the Boomstick's paths. 29b / 29c (pass 54): the pre-reel spinning past the three weapons with an open path, then
+## landing on the Boomstick, before the head and the cards come.
 func _path() -> void:
 	_clear_ui()
-	_build([["weapon", "boomstick", 3]])
+	_build([["weapon", "boomstick", 3], ["weapon", "peashooter", 2], ["weapon", "molotov", 2]])
 	var ms: Array = _reg.mutations_of("boomstick")
 	var offer: Array = []
 	for m in ms:
 		if offer.size() < 3 and not m.is_hero():
 			offer.append(_card("mutation", m, 0, 1))
 	g.set_paused(true)
-	g.cards.show_offer(offer, "PATH · BOOMSTICK", false, false, true)
+	_run.skips_left = 2
+	g.cards.show_offer(offer, "PATH · BOOMSTICK", false, true)
+	await _wait(0.45)
+	await _shot("29b-path-reel")
+	var waited := 0.0
+	while waited < 3.0 and g.cards._reel != null and not g.cards._reel.is_landed():
+		await _wait(0.05)
+		waited += 0.05
+	await _wait(0.12)
+	await _shot("29c-path-reel-landed")
+	waited = 0.0
+	while waited < 3.0 and g.cards.reel_running():
+		await _wait(0.1)
+		waited += 0.1
 	await _wait(0.9)
 	await _shot("08-path-offer")
+	# pass 47: the stage's skips spent, SKIP tapped: the line under the head says so
+	_run.skips_left = 0
+	g.cards._refresh_buttons()
+	g.cards._skip()
+	await _wait(0.3)
+	await _shot("08b-path-no-skips")
+	_run.skips_left = 2
 	g.cards.visible = false
 	g.set_paused(false)
 
 
-## 10: the reel lands on Orbit Saws, 3 -> 4.
+## 10: the reel lands on Orbit Saws, 3 -> 4. 10c (pass 47): the chest opening on the lower third, its light rising into
+## the reel; 10d: BANISH tapped, the reel spun again to a new roll.
 func _chest() -> void:
 	_clear_ui()
-	_build([["weapon", "orbit_saws", 3], ["weapon", "boomstick", 2], ["passive", "magnet", 2]])
+	_build([["weapon", "orbit_saws", 3], ["weapon", "boomstick", 2], ["passive", "magnet", 2], ["passive", "evade", 2]])
+	_run.skips_left = 2
+	_run.banishes_left = 1
 	g.set_paused(true)
 	var saws = _reg.weapon("orbit_saws")
-	g.chest_screen.open({"type": "weapon", "id": "orbit_saws", "def": saws, "level_from": 3, "level_to": 4, "is_new": false})
+	var roll := {"type": "weapon", "id": "orbit_saws", "def": saws, "level_from": 3, "level_to": 4, "is_new": false}
+	g.chest_screen.open(roll)
+	# the lid open, the light climbing towards the reel's row
+	g.chest_screen._tw.custom_step(0.86)
+	await _wait(0.05)
+	await _shot("10c-chest-opening")
 	g.chest_screen._tw.set_speed_scale(8.0)
 	await _wait(1.6)
 	await _shot("10-chest")
+	g.chest_screen._banish()
+	g.chest_screen._tw.set_speed_scale(6.0)
+	await _wait(1.2)
+	await _shot("10d-chest-banished")
+	# 10e: a purse of gold: SKIP and BANISH locked, TAKE IT
+	_run.banishes_left = 1
+	g.chest_screen.open({"type": "gold", "id": "", "def": null, "gold": 50, "level_from": 0, "level_to": 0, "is_new": false})
+	g.chest_screen._tw.set_speed_scale(8.0)
+	await _wait(1.6)
+	g.chest_screen._banish()
+	await _wait(0.2)
+	await _shot("10e-chest-gold")
 	g.chest_screen.visible = false
 	g.set_paused(false)
 
 
-## 11: 24 gold; Adrenaline 10, Thruster Burst 32 (8 short), Ghost Step 14.
+## 10b: the boss's reel (pass 45): nothing but the paths still open on the weapons held, landing on one of them.
+func _chest_boss() -> void:
+	_clear_ui()
+	_build([["weapon", "hornet_nest", 3], ["weapon", "boomstick", 2], ["passive", "magnet", 2]])
+	g.set_paused(true)
+	g.chest_screen.open(_run.chest_roll(true))
+	g.chest_screen._tw.set_speed_scale(8.0)
+	await _wait(1.6)
+	await _shot("10b-chest-boss")
+	g.chest_screen.visible = false
+	g.set_paused(false)
+
+
+## 11: 24 gold; Adrenaline 10, Thruster Burst 32 (8 short), Evade 16.
 func _shop() -> void:
 	_clear_ui()
 	_build([["weapon", "hornet_nest", 3], ["weapon", "turret_buddy", 3], ["weapon", "big_mouth", 4], ["weapon", "molotov", 3],
-		["passive", "magnet", 2], ["line", "energy_shield", 4]])
+		["passive", "magnet", 2], ["passive", "energy_shield", 4]])
 	_run.run_gold = 24
 	g.set_paused(true)
 	var offer := [_card("passive", _reg.passive("adrenaline"), 0, 1), _card("perk", _reg.perk("thruster_burst"), 0, 1),
-		_card("line", _reg.line("ghost_step") if _reg.line("ghost_step") else _reg.line("evade"), 0, 1)]
+		_card("passive", _reg.passive("evade"), 0, 1)]
 	g.structure_shop.open(offer)
 	await _wait(0.9)
 	await _shot("11-shop")
@@ -472,11 +651,13 @@ func _stranger() -> void:
 	g.set_paused(false)
 
 
-## 13, 13b, 13c: the build with Turret Buddy open, the stats, the options.
+## 13, 13b, 13c: the build with Turret Buddy open, the stats, the options. 13e (pass 47): the Build tab scrolled to its
+## lines and passive items (the passive items are on no HUD slot).
 func _pause() -> void:
 	_clear_ui()
 	_build([["weapon", "hornet_nest", 3], ["weapon", "turret_buddy", 3], ["weapon", "big_mouth", 4], ["weapon", "molotov", 3],
-		["passive", "magnet", 2], ["line", "energy_shield", 4]])
+		["passive", "magnet", 2], ["passive", "energy_shield", 4], ["passive", "clover", 2], ["passive", "desperado", 1],
+		["passive", "brimstone_brand", 1], ["passive", "kindling", 2], ["passive", "steady_hand", 1]])
 	_mut("turret_buddy", 2)
 	_mut("molotov", 1)
 	_run.build_changed.emit()
@@ -487,19 +668,31 @@ func _pause() -> void:
 	g.pause_screen._refresh()
 	await _wait(0.8)
 	await _shot("13-pause-build")
+	g.pause_screen._expanded = ""
+	g.pause_screen._refresh()
+	await _wait(0.5)
+	g.pause_screen._scroll.scroll_vertical = 999999
+	await _wait(0.3)
+	await _shot("13e-pause-build-passives")
 	g.pause_screen._tab = 1
 	g.pause_screen._refresh()
 	await _wait(0.5)
 	await _shot("13b-pause-stats")
-	# the mock's options: sound 80, music off, shake on
+	# the options: sound at the top (pass 54: its thumb whole at the list's right edge; the mock's was 80), music off, shake on
 	var st := root.get_node("Settings")
-	st.sfx_volume = 0.8
+	st.sfx_volume = 1.0
 	st.music_volume = 0.0
 	st.screen_shake = 1.0
 	g.pause_screen._tab = 2
 	g.pause_screen._refresh()
 	await _wait(0.5)
 	await _shot("13c-pause-options")
+	# 13d (pass 45): abandoning asks in a pop-up over the board
+	g.pause_screen._ask_abandon()
+	await _wait(0.6)
+	await _shot("13d-pause-abandon-confirm")
+	_cancel_confirm(g.pause_screen)
+	await _wait(0.3)
 	g.close_pause()
 
 
@@ -514,6 +707,14 @@ func _down() -> void:
 	g.revive_screen._held = true
 	await _wait(0.8)
 	await _shot("14-down")
+	# 14b (pass 46): debug mode lists the last 30 seconds of hits and pickup heals on Down!, the killing hit crossed out
+	var stx = root.get_node("Settings")
+	stx.debug_mode = true
+	g.revive_screen.open(0, 1, "", {"by": "The Brander", "kind": "boss", "role": "boss"}, _sample_hits())
+	g.revive_screen._held = true
+	await _wait(0.8)
+	await _shot("14b-down-hits")
+	stx.debug_mode = false
 	g.revive_screen._open = false
 	g.revive_screen.visible = false
 	g.set_paused(false)
@@ -529,6 +730,12 @@ func _stage_clear() -> void:
 	g.portal_dialog.open(1, true, false)
 	await _wait(0.8)
 	await _shot("15-stage-clear")
+	# 15c (pass 48): NOT YET under a finger
+	var nb = g.portal_dialog.find_child("NotYet", true, false)
+	if nb:
+		nb.show_held(true)
+		await _shot("15c-stage-clear-not-yet")
+		nb.show_held(false)
 	g.portal_dialog.visible = false
 	# 15b (pass 43): after the last boss, the second road is Stay
 	_run.stage = 2
@@ -553,7 +760,10 @@ func _results() -> void:
 	_run.chests_opened = 3
 	_run.evolutions = 1
 	_run.run_gold = 992
-	_run.damage_by_weapon = {"killer_swarm": 6540.0, "big_mouth": 3410.0, "turret_buddy": 2560.0, "molotov": 1690.0}
+	# pass 47: every kind of source, each row its plate, name and number (the ids Run.add_damage is handed)
+	_run.damage_by_weapon = {"killer_swarm": 6540.0, "big_mouth": 3410.0, "turret_buddy": 2560.0, "molotov": 1690.0,
+		"revive": 900.0, "blast": 420.0, "loose_rocket": 130.0, "supply_drop": 260.0, "nuke": 210.0, "burn": 160.0,
+		"poison": 95.0, "": 12.0, "mystery_beam": 6.0}
 	_run.last_result = {"gold_before": 104711, "banked": 1240, "prev_best": {"time": 480.0}}
 	var qt = load("res://core/systems/QuestTracker.gd")
 	qt.just_completed = ["unlock_turret_buddy"]
@@ -561,6 +771,10 @@ func _results() -> void:
 	change_scene_to_file("res://ui/ResultsScreen.tscn")
 	await _wait(1.6)
 	await _shot("16-results")
+	# 16c (pass 47): the damage rows scrolled to their end: fire, poison, the unknown "?"
+	current_scene.scroll.scroll_vertical = 999999
+	await _wait(0.4)
+	await _shot("16c-results-sources")
 	# 16b (pass 44): the hero stayed down; the gold is left in the sand, all but what a Strongbox banked
 	_run.extracted = false
 	_run.died = true
@@ -568,3 +782,22 @@ func _results() -> void:
 	change_scene_to_file("res://ui/ResultsScreen.tscn")
 	await _wait(1.6)
 	await _shot("16b-results-down")
+
+
+## Hit-log rows as Player.damage_log keeps them (pass 46): a plain hit, an elite-modded creature in its modifier's colour,
+## a ranged special, a pickup heal, an evaded Elite, and the boss's killing slam.
+func _sample_hits() -> Array:
+	return [
+		{"t": 50.2, "by": "Skeleton", "id": "skeleton", "kind": "melee", "role": "", "colour": "", "fx": [], "raw": 6.0, "dealt": 6.0,
+			"shield": 0.0, "note": "", "hp": 61.0, "fatal": false},
+		{"t": 52.0, "by": "Skeleton Knight", "id": "skeleton_knight", "kind": "melee", "role": "elite", "colour": "#ee4a5c", "fx": [],
+			"raw": 14.0, "dealt": 14.0, "shield": 0.0, "note": "", "hp": 47.0, "fatal": false},
+		{"t": 53.1, "by": "Cake Slice", "id": "", "kind": "heal", "role": "", "colour": "", "fx": [], "raw": 9.0, "amount": 9.0, "dealt": 0.0,
+			"shield": 0.0, "note": "", "hp": 56.0, "fatal": false},
+		{"t": 55.4, "by": "Harpoon Troglodyte", "id": "harpoon_troglodyte", "kind": "ranged", "role": "special", "colour": "", "fx": ["hooked"],
+			"raw": 12.0, "dealt": 12.0, "shield": 0.0, "note": "", "hp": 44.0, "fatal": false},
+		{"t": 57.0, "by": "Stone Golem (Elite)", "id": "stone_golem", "kind": "melee", "role": "elite", "colour": "", "fx": [], "raw": 30.0,
+			"dealt": 0.0, "shield": 0.0, "note": "evaded", "hp": 44.0, "fatal": false},
+		{"t": 59.6, "by": "The Brander", "id": "brander", "kind": "boss", "role": "boss", "colour": "", "fx": ["slam"], "raw": 60.0,
+			"dealt": 44.0, "shield": 0.0, "note": "", "hp": 0.0, "fatal": true},
+	]

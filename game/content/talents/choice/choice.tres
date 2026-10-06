@@ -7,21 +7,20 @@
 [sub_resource type="Resource" id="Resource_70wpa"]
 script = ExtResource("1_2qpam")
 stat = "rerolls"
-op = "add"
 value = 1.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_qnekd"]
 script = ExtResource("1_2qpam")
 stat = "banishes"
-op = "add"
 value = 1.0
 target = "player"
 
 [resource]
 script = ExtResource("2_70wpa")
 order = 5
-cost = [180.0, 324.0, 540.0]
+ranks = 6
+cost = [180.0, 324.0, 540.0, 810.0, 1170.0, 1620.0]
 forms = [{
 "effects": [SubResource("Resource_70wpa")],
 "name": "Reroll",
@@ -29,7 +28,7 @@ forms = [{
 }, {
 "effects": [SubResource("Resource_qnekd")],
 "name": "Banish",
-"text": "+1 banish a run, a rank."
+"text": "+1 banish a stage, a rank."
 }]
 id = "choice"
 display_name = "Choice"

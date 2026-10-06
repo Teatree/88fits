@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/loose_change/loose_change_icon.png" id="1_l6emd"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_und4n"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_l6emd"]
+
+[sub_resource type="Resource" id="Resource_l6emd"]
+script = ExtResource("1_und4n")
+stat = "coin_on_hit"
+value = 0.25
+target = "player"
+
+[sub_resource type="Resource" id="Resource_q2uoc"]
+script = ExtResource("1_und4n")
+stat = "coin_on_hit"
+value = 0.1
+target = "player"
+
+[resource]
+script = ExtResource("2_l6emd")
+levels = [[SubResource("Resource_l6emd")], [SubResource("Resource_q2uoc")]]
+max_level = 5
+text = "A hit has a 25% chance to knock a coin worth 10 gold out of you (+10% a level). It lands a few steps away: go and get it."
+id = "loose_change"
+display_name = "Loose Change"
+flavour = "Every bruise shakes something loose."
+rarity = "uncommon"
+weight = 8.0
+icon = ExtResource("1_l6emd")
+icon_file = "loose_change_icon.png"
+placeholder = {
+"color": "#E0B030",
+"glyph": "coin"
+}

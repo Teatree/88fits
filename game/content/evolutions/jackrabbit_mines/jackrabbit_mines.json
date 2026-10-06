@@ -1,0 +1,56 @@
+{
+  "id": "jackrabbit_mines",
+  "name": "Jackrabbit Mines",
+  "flavour": "They jump. Then they jump again.",
+  "rarity": "rare",
+  "is_evolution": true,
+  "evolved_from": "land_mine",
+  "max_level": 1,
+  "behavior": "MineLayer",
+  "targeting": "ground",
+  "base": {
+    "damage": 62,
+    "cooldown": 1.4,
+    "amount": 2,
+    "area": 3.0,
+    "knockback": 11.0,
+    "lifetime": 30
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "max_mines": 16,
+    "trigger_radius": 0.8,
+    "leap": {
+      "height": 1.2,
+      "seconds": 0.2,
+      "radius_mult": 1.5,
+      "kb_mult": 2.0
+    },
+    "jackrabbit": {
+      "sense": 6.0,
+      "windup": 0.2,
+      "flight": 0.42,
+      "apex": 1.8,
+      "double": true,
+      "hop": {
+        "reach": 5.0,
+        "frac": 0.6,
+        "flight": 0.32,
+        "apex": 0.9
+      }
+    },
+    "lay_ahead": 2.0
+  },
+  "sfx": {
+    "place": "w_mine_arm",
+    "hit": "w_lob_boom"
+  },
+  "placeholder": {
+    "color": "#B08A3A",
+    "glyph": "mine"
+  },
+  "art_prompt": "a land mine with long rabbit legs leaping high off the sand",
+  "visual": "res://content/evolutions/minefield/minefield_visual.tscn"
+}

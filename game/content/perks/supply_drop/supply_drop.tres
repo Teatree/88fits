@@ -6,13 +6,15 @@
 [resource]
 script = ExtResource("1_gjw5r")
 hero = "astro"
-text = "Every 40 s a supply pod crashes near her: a red ring, then the pod hits, hurting and throwing creatures, and leaves a power-up (a heart when she is hurt)."
+text = "Every 40 s a supply pod crashes near her: a red ring, then the pod hits, hurting and throwing creatures, and leaves a magnet pulse (a heart when she is hurt)."
 special = "supply_drop"
 params = {
-"damage": 30.0,
-"damage_per_level": 4.0,
+"damage": 15.0,
+"damage_per_level": 2.0,
+"drops": ["magnet_pulse"],
 "every": 40.0,
 "first": 15.0,
+"heart_below": 0.6,
 "knockback": 14.0,
 "radius": 2.6,
 "warn": 1.5

@@ -14,14 +14,14 @@ target = "player"
 [sub_resource type="Resource" id="Resource_uoxua"]
 script = ExtResource("1_xe2lu")
 stat = "damage_reduction"
-op = "add"
 value = 0.06
 target = "player"
 
 [resource]
 script = ExtResource("2_txams")
 order = 1
-cost = [140.0, 252.0, 420.0]
+ranks = 6
+cost = [140.0, 252.0, 420.0, 630.0, 910.0, 1260.0]
 forms = [{
 "effects": [SubResource("Resource_txams")],
 "name": "Padding",

@@ -2,38 +2,31 @@
  "pipeline": "gen_art v2",
  "model": "flux-2-klein-9b-fp8.safetensors",
  "anchor": "72ae817babd1",
- "subject": "a goofy huge armoured orange desert scorpion with two big raised pincers, a curled stinger tail held high, glossy segmented shell, angry eyebrows and a mean grin",
+ "subject": "a huge realistic desert scorpion monster with a glossy segmented golden-yellow and amber armoured exoskeleton, two big heavy pincers held forward and open, eight jointed legs, a thick segmented tail curling up high over its back ending in a sharp dark stinger, a small flat head with tiny black bead eyes and small mandibles, no human face, no eyebrows, no grin, no mouth, no teeth, a real scorpion's anatomy, menacing",
  "renders": {
   "front": {
-   "seed": 18377,
-   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a goofy huge armoured orange desert scorpion with two big raised pincers, a curled stinger tail held high, glossy segmented shell, angry eyebrows and a mean grin. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "seed": 26169,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a huge realistic desert scorpion monster with a glossy segmented golden-yellow and amber armoured exoskeleton, two big heavy pincers held forward and open, eight jointed legs, a thick segmented tail curling up high over its back ending in a sharp dark stinger, a small flat head with tiny black bead eyes and small mandibles, no human face, no eyebrows, no grin, no mouth, no teeth, a real scorpion's anatomy, menacing. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
    "refs": [
     "88fits/style_anchor.png"
    ],
    "qa": {
-    "subjects": 1,
-    "background": "flat",
-    "ground": false,
-    "text": false,
-    "cropped": false,
-    "legs": true,
-    "view": "front",
-    "matches": true,
+    "skipped": true,
     "problems": [],
     "geometry": {
-     "left": 191,
-     "right": 213,
-     "top": 87,
-     "bottom": 89,
-     "height": 847,
-     "width": 619
+     "left": 115,
+     "right": 132,
+     "top": 76,
+     "bottom": 57,
+     "height": 890,
+     "width": 776
     }
    },
    "attempt": 0
   },
   "back": {
    "seed": 18378,
-   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing.  isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dune_scorpion_front.png"
    ],
@@ -48,12 +41,12 @@
     "matches": true,
     "problems": [],
     "geometry": {
-     "left": 230,
-     "right": 224,
-     "top": 87,
-     "bottom": 88,
-     "height": 848,
-     "width": 569
+     "left": 217,
+     "right": 219,
+     "top": 80,
+     "bottom": 72,
+     "height": 871,
+     "width": 587
     }
    },
    "attempt": 0
@@ -73,14 +66,16 @@
     "legs": true,
     "view": "side",
     "matches": true,
-    "problems": [],
+    "problems": [
+     "too-short"
+    ],
     "geometry": {
-     "left": 156,
-     "right": 90,
-     "top": 199,
-     "bottom": 220,
-     "height": 604,
-     "width": 777
+     "left": 90,
+     "right": 86,
+     "top": 243,
+     "bottom": 256,
+     "height": 524,
+     "width": 847
     }
    },
    "attempt": 0
@@ -102,12 +97,12 @@
     "matches": true,
     "problems": [],
     "geometry": {
-     "left": 185,
-     "right": 207,
-     "top": 86,
-     "bottom": 117,
-     "height": 820,
-     "width": 631
+     "left": 132,
+     "right": 128,
+     "top": 111,
+     "bottom": 73,
+     "height": 839,
+     "width": 763
     }
    },
    "attempt": 0
@@ -125,23 +120,23 @@
     "text": false,
     "cropped": false,
     "legs": true,
-    "view": "front",
+    "view": "side",
     "matches": true,
     "problems": [],
     "geometry": {
-     "left": 203,
-     "right": 117,
-     "top": 145,
-     "bottom": 172,
-     "height": 706,
-     "width": 703
+     "left": 83,
+     "right": 108,
+     "top": 86,
+     "bottom": 95,
+     "height": 842,
+     "width": 832
     }
    },
    "attempt": 0
   },
   "dead": {
    "seed": 18386,
-   "prompt": "This exact creature lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, limbs sprawled limp in the air, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "prompt": "This exact creature lying flat on its back on the ground, dead: its eight legs curled up limp in the air, the pincers open and limp, the tail stretched out flat on the ground, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/dune_scorpion_front.png"
    ],
@@ -158,12 +153,12 @@
      "no-match"
     ],
     "geometry": {
-     "left": 24,
-     "right": 27,
-     "top": 417,
-     "bottom": 247,
-     "height": 359,
-     "width": 972
+     "left": 115,
+     "right": 132,
+     "top": 133,
+     "bottom": 57,
+     "height": 833,
+     "width": 776
     }
    },
    "attempt": 0
@@ -172,6 +167,7 @@
  "clips": {
   "walk_f": true,
   "walk_b": true,
+  "pose": "",
   "walk_side": true,
   "walk_bd": true,
   "walk_fd": true

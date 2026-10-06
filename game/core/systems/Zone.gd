@@ -69,6 +69,7 @@ func _process(delta: float) -> void:
 			elif game.has_method("fx_burst"):
 				game.fx_burst(global_position + Vector3(0, 0.3, 0), Color(color.r, color.g, color.b), 0.5)
 		if slow > 0.0:
-			em.slow_radius(global_position, radius, slow, tick + 0.2)
+			# a weapon's patch is a debuff Ducktape stretches (pass 47); a weaponless one is a hero's perk (Trail Dust)
+			em.slow_radius(global_position, radius, slow, tick + 0.2, weapon != null)
 	if life <= 0.0:
 		queue_free()

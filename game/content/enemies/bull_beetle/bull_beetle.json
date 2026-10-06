@@ -7,6 +7,7 @@
   "hp": 70,
   "speed": 1.35,
   "damage": 16,
+  "knockback": 6.8,
   "radius": 0.8,
   "size": 2.0,
   "pack_size": 1,
@@ -21,7 +22,7 @@
     "run": 12,
     "attack": 2,
     "hit": 1,
-    "die": 5,
+    "die": 8,
     "run_b": 12,
     "idle_b": 4,
     "run_s": 12,
@@ -37,7 +38,14 @@
     "speed": 9.0,
     "duration": 0.7,
     "cooldown": 4.0,
-    "trigger_range": 6.5
+    "trigger_range": 6.5,
+    "shake": 0.09,
+    "crouch": 0.12,
+    "legs": 2.5,
+    "lean": 7.0,
+    "dust": 1.0,
+    "shove": 2.8,
+    "shove_walk": 1.0
   },
   "sfx": {
     "attack": "en_beetle_charge",
@@ -50,7 +58,7 @@
     "eyes": 2,
     "shape": "wide"
   },
-  "art_prompt": "a goofy huge dark brown beetle with one big curved horn, angry eyebrows, a shiny shell and thick legs",
+  "art_prompt": "a cartoon rhino beetle with a glossy chestnut-brown shell, dark horns, stubby legs, two big round white eyes with small black pupils and heavy angry eyebrows on the front of its head under the horns, a determined frown",
   "xp_mult": 4.0,
   "variance": {
     "size": 0.15,
@@ -72,13 +80,234 @@
       "tint_strength": 0.6
     }
   },
-  "motion": "lumbering in place with slow heavy steps",
+  "motion": "walking in place on its six legs like a real beetle, the horns held forward, the shell bobbing a little",
   "strip_cols": 83,
   "fps": {
-    "run": 15,
-    "die": 8
+    "run": 20,
+    "die": 12
   },
   "directions": 8,
-  "doc": "The charger: winds up, telegraphs a red line, and runs it. Eight directions of sprite so the line is readable.",
-  "head": 1.0
+  "doc": "The charger: it crouches and shakes, legs scrabbling, while a red line shows where it will run, then runs it in a trail of dust, shoving the crowd aside. Eight directions of sprite so the line is readable.",
+  "head": 0.688,
+  "variants": {
+    "BB-A": {
+      "note": "The most serious: a realistic beetle after Garry's model",
+      "recipe": {
+        "drivers": "beetle_walk",
+        "noun": "a rhino beetle",
+        "blockout": "a smooth plain clay 3D model of a rhino beetle: a big rounded shell, a long curved horn rising from its head and a second horn curving forward from its back plate, the two horns like a pair of pincers, six jointed legs",
+        "detail": "exactly six jointed spiny legs, a long upper horn curving forward from the back plate and a shorter horn curving up from the head below it, a big domed glossy shell, real beetle anatomy, one body",
+        "words": {
+          "front": "walking straight towards the viewer, seen from the front and a little above: its two horns and its head are at the bottom of the picture, nearest the viewer, the domed shell rises behind them",
+          "fd": "walking towards the lower right corner of the picture, seen three-quarters from the front and a little above: the horns and the head at the lower right, nearest the viewer, the shell at the upper left",
+          "bd": "walking away towards the upper right corner of the picture, seen three-quarters from behind and a little above: the back of the shell nearest the viewer at the lower left, the horns at the upper right, farther away",
+          "back": "walking straight away from the viewer, seen from behind and a little above: the round back of its shell is nearest the viewer at the bottom of the picture, the horn tips show at the far end"
+        },
+        "motion": "walking in place on its six legs like a real beetle, the horns held forward, the shell bobbing a little",
+        "anim_negative": "standing upright, two legs, a human body, arms, extra legs, extra horns, wings spread open, a second beetle, the legs merging",
+        "death_drivers": "beetle_death",
+        "death_motion": "its legs buckle one after another and it slumps flat onto the ground with its six legs splayed out limp, still",
+        "dead": "slumped flat dead on the ground, its six legs splayed out limp, the horns resting on the ground",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.011,
+        "outline_color": "#24120A",
+        "side_seeds": 3,
+        "prompt": "a huge realistic rhino beetle with a glossy dark mahogany-brown shell with deep red highlights, black horns, spiny black-brown legs, two tiny dark beady eyes low on the sides of its head, no face, no mouth, menacing",
+        "look_ref": "tools/dl/drivers/beetle_walk/side/look.png",
+        "anatomy": "exactly one body, exactly six legs, exactly two horns and no tail"
+      },
+      "sprite": "bull_beetle_sprite_a.png",
+      "icon": "bull_beetle_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 83,
+      "head": 0.568,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "BB-B": {
+      "note": "Stylised: the same beetle with bigger glossy eyes and bold cartoon shine",
+      "recipe": {
+        "drivers": "beetle_walk_amp",
+        "noun": "a rhino beetle",
+        "blockout": "a smooth plain clay 3D model of a rhino beetle: a big rounded shell, a long curved horn rising from its head and a second horn curving forward from its back plate, the two horns like a pair of pincers, six jointed legs",
+        "detail": "exactly six jointed spiny legs, a long upper horn curving forward from the back plate and a shorter horn curving up from the head below it, a big domed glossy shell, real beetle anatomy, one body",
+        "words": {
+          "front": "walking straight towards the viewer, seen from the front and a little above: its two horns and its head are at the bottom of the picture, nearest the viewer, the domed shell rises behind them",
+          "fd": "walking towards the lower right corner of the picture, seen three-quarters from the front and a little above: the horns and the head at the lower right, nearest the viewer, the shell at the upper left",
+          "bd": "walking away towards the upper right corner of the picture, seen three-quarters from behind and a little above: the back of the shell nearest the viewer at the lower left, the horns at the upper right, farther away",
+          "back": "walking straight away from the viewer, seen from behind and a little above: the round back of its shell is nearest the viewer at the bottom of the picture, the horn tips show at the far end"
+        },
+        "motion": "walking in place on its six legs like a real beetle: every leg lifts, swings forward and plants again in turn, near legs and far legs alike, none of them standing still, the horns held forward, the shell bobbing a little",
+        "anim_negative": "standing upright, two legs, a human body, arms, extra legs, extra horns, wings spread open, a second beetle, the legs merging, legs standing still, frozen legs, legs sliding without stepping",
+        "death_drivers": "beetle_death",
+        "death_motion": "its legs buckle one after another and it slumps flat onto the ground with its six legs splayed out limp, still",
+        "dead": "slumped flat dead on the ground, its six legs splayed out limp, the horns resting on the ground",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.011,
+        "outline_color": "#24120A",
+        "side_seeds": 3,
+        "prompt": "a big chunky rhino beetle with a glossy dark brown shell with bold cartoon highlights, dark horns, sturdy spiny legs, two medium round shiny black eyes with one white glint each on the sides of its head, a stern look, no mouth",
+        "anatomy": "exactly one body, exactly six legs, exactly two horns and no tail",
+        "keep": "the same dark glossy chocolate-brown shell as the first image, as dark as in the side view, not red, not orange, with the same dark brown horns and legs",
+        "walk_seeds": {
+          "fd": 1
+        }
+      },
+      "sprite": "bull_beetle_sprite_b.png",
+      "icon": "bull_beetle_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 83,
+      "head": 0.672,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "BB-C": {
+      "note": "Cartoon: big white eyes with pupils and angry brows",
+      "recipe": {
+        "drivers": "beetle_walk_amp",
+        "noun": "a rhino beetle",
+        "blockout": "a smooth plain clay 3D model of a rhino beetle: a big rounded shell, a long curved horn rising from its head and a second horn curving forward from its back plate, the two horns like a pair of pincers, six jointed legs",
+        "detail": "exactly six jointed spiny legs, a long upper horn curving forward from the back plate and a shorter horn curving up from the head below it, a big domed glossy shell, real beetle anatomy, one body",
+        "words": {
+          "front": "walking straight towards the viewer, seen from the front and a little above: its two horns and its head are at the bottom of the picture, nearest the viewer, the domed shell rises behind them",
+          "fd": "walking towards the lower right corner of the picture, seen three-quarters from the front and a little above: the horns and the head at the lower right, nearest the viewer, the shell at the upper left",
+          "bd": "walking away towards the upper right corner of the picture, seen three-quarters from behind and a little above: the back of the shell nearest the viewer at the lower left, the horns at the upper right, farther away",
+          "back": "walking straight away from the viewer, seen from behind and a little above: the round back of its shell is nearest the viewer at the bottom of the picture, the horn tips show at the far end"
+        },
+        "motion": "walking in place on its six legs like a real beetle: every leg lifts, swings forward and plants again in turn, near legs and far legs alike, none of them standing still, the horns held forward, the shell bobbing a little",
+        "anim_negative": "standing upright, two legs, a human body, arms, extra legs, extra horns, wings spread open, a second beetle, the legs merging, legs standing still, frozen legs, legs sliding without stepping",
+        "death_drivers": "beetle_death",
+        "death_motion": "its legs buckle one after another and it slumps flat onto the ground with its six legs splayed out limp, still",
+        "dead": "slumped flat dead on the ground, its six legs splayed out limp, the horns resting on the ground",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.011,
+        "outline_color": "#24120A",
+        "side_seeds": 3,
+        "prompt": "a cartoon rhino beetle with a glossy chestnut-brown shell, dark horns, stubby legs, two big round white eyes with small black pupils and heavy angry eyebrows on the front of its head under the horns, a determined frown",
+        "anatomy": "exactly one body, exactly six legs, exactly two horns and no tail"
+      },
+      "sprite": "bull_beetle_sprite.png",
+      "icon": "bull_beetle_icon.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 83,
+      "head": 0.688,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    },
+    "BB-D": {
+      "note": "Quite cartoony: huge goofy eyes",
+      "recipe": {
+        "drivers": "beetle_walk",
+        "noun": "a rhino beetle",
+        "blockout": "a smooth plain clay 3D model of a rhino beetle: a big rounded shell, a long curved horn rising from its head and a second horn curving forward from its back plate, the two horns like a pair of pincers, six jointed legs",
+        "detail": "exactly six jointed spiny legs, a long upper horn curving forward from the back plate and a shorter horn curving up from the head below it, a big domed glossy shell, real beetle anatomy, one body",
+        "words": {
+          "front": "walking straight towards the viewer, seen from the front and a little above: its two horns and its head are at the bottom of the picture, nearest the viewer, the domed shell rises behind them",
+          "fd": "walking towards the lower right corner of the picture, seen three-quarters from the front and a little above: the horns and the head at the lower right, nearest the viewer, the shell at the upper left",
+          "bd": "walking away towards the upper right corner of the picture, seen three-quarters from behind and a little above: the back of the shell nearest the viewer at the lower left, the horns at the upper right, farther away",
+          "back": "walking straight away from the viewer, seen from behind and a little above: the round back of its shell is nearest the viewer at the bottom of the picture, the horn tips show at the far end"
+        },
+        "motion": "walking in place on its six legs like a real beetle, the horns held forward, the shell bobbing a little",
+        "anim_negative": "standing upright, two legs, a human body, arms, extra legs, extra horns, wings spread open, a second beetle, the legs merging",
+        "death_drivers": "beetle_death",
+        "death_motion": "its legs buckle one after another and it slumps flat onto the ground with its six legs splayed out limp, still",
+        "dead": "slumped flat dead on the ground, its six legs splayed out limp, the horns resting on the ground",
+        "fps": 20,
+        "directions": 8,
+        "screen": "green",
+        "outline_frac": 0.011,
+        "outline_color": "#24120A",
+        "side_seeds": 3,
+        "prompt": "a very cartoony rhino beetle with a bright glossy brown shell with orange highlights, dark horns, short stubby legs, two huge round googly eyes with big black pupils looking slightly different ways on the front of its head, a wide goofy grin",
+        "anatomy": "exactly one body, exactly six legs, exactly two horns and no tail"
+      },
+      "sprite": "bull_beetle_sprite_d.png",
+      "icon": "bull_beetle_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4,
+        "run_s": 12,
+        "idle_s": 4,
+        "run_bd": 12,
+        "idle_bd": 4,
+        "run_fd": 12,
+        "idle_fd": 4
+      },
+      "strip_cols": 83,
+      "head": 0.63,
+      "fps": {
+        "run": 20,
+        "die": 12
+      }
+    }
+  },
+  "variant_base": "BB-C",
+  "variant": "BB-C",
+  "shadow": {
+    "scale": [
+      1.45,
+      1.7
+    ],
+    "up": 0.35,
+    "drop": 0.07
+  }
 }

@@ -1,0 +1,25 @@
+{
+  "id": "giant_slayer",
+  "name": "Giant Slayer",
+  "flavour": "The bigger they are.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "hammer",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Half of all impacts deal 2.5 times the damage to a boss, an Elite or an elite creature in the blast.",
+  "vfx": "a gold flash ring and a kick of the camera on the big one",
+  "effects": [],
+  "params": {
+    "giant_slayer": {
+      "chance": 0.5,
+      "mult": 2.5
+    }
+  },
+  "art_prompt": "a hammer smashing down on a giant cracked crown",
+  "placeholder": {
+    "color": "#E8B040",
+    "glyph": "star"
+  }
+}

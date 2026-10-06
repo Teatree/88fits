@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_1dbhp"]
+[ext_resource type="Texture2D" path="res://content/mutations/echo_zap/echo_zap_icon.png" id="1_qervc"]
+
+[resource]
+script = ExtResource("1_1dbhp")
+weapon = "zap_beam"
+mutation_kind = "element"
+text = "20% of hits zap the same enemy 3 more times for 40% damage each."
+vfx = "small jagged bolts out of the air into the creature, sparks, a pale blue tint"
+params = {
+"echo_zap": {
+"chance": 0.2,
+"count": 3.0,
+"damage_frac": 0.4,
+"gap": 0.25
+}
+}
+id = "echo_zap"
+display_name = "Echo Zap"
+flavour = "It is not over."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_qervc")
+icon_file = "echo_zap_icon.png"
+placeholder = {
+"color": "#A0C8FF",
+"glyph": "star"
+}

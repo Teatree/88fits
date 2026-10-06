@@ -4,12 +4,13 @@
   "archetype": "walker",
   "brain": "chase",
   "flavour": "It does not know it is dead. It knows you are not.",
-  "hp": 6.0,
-  "speed": 1.8,
+  "hp": 10.0,
+  "speed": 1.6,
   "damage": 3.0,
-  "radius": 0.45,
-  "size": 1.35,
-  "pack_size": 6,
+  "knockback": 2.94,
+  "radius": 0.52,
+  "size": 1.75,
+  "pack_size": 5,
   "drops": {
     "small": 1.0,
     "medium": 0.05,
@@ -69,27 +70,28 @@
     "run": 15,
     "die": 8
   },
-  "doc": "The crowd: bare bones shuffling in with their arms out like sleepwalkers, six to a pack, half a slot each against the cap. Everything else is measured against it. It falls apart into a heap of bones when it dies.",
+  "doc": "The crowd since pass 45: bare bones walking in with their arms at their sides, five to a pack, half a slot each against the cap. Everything else is measured against it. It falls over backwards when it dies.",
   "cap_share": 0.5,
   "head": 1.0,
-  "retired": true,
+  "retired": false,
   "variants": {
     "SK-A": {
-      "note": "arms down at its sides on Mixamo's plain walk; it falls apart in slices; a thin dark-brown outline",
+      "note": "arms down at its sides on Mixamo's plain walk; it falls over sideways and lies whole (pass 45); a thin dark-brown outline",
       "recipe": {
         "stills": "va",
         "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a clear ribcage, spine and pelvis, slim arm and leg bones with rounded joints, bony hands and feet, no clothes, no weapon, both arms hanging relaxed straight down at its sides, standing upright and facing the viewer",
         "back_hint": "seen from behind: the back of the skull, the spine running down between the shoulder blades, the back of the ribcage and the pelvis, both arms hanging straight down at its sides, no face",
-        "dead_hint": "collapsed into a low loose heap of bones, dead: every bone fallen into one flat pile, the skull resting on top, the ribcage broken apart, arm bones, leg bones, feet and vertebrae all jumbled inside the pile with nothing sticking out below it; the pile sits on nothing, with no ground, no sand, no dirt patch and no shadow under it",
+        "dead_hint": "fallen over and lying on the ground on its side, dead and still in one piece: the whole body stretched out flat and sideways across the picture, the skull on the left side and the feet on the right side, the arms limp along the body, every bone connected, no clothes",
         "pose": "walk",
         "pose_front": "walk",
         "stand": "still",
         "gait": "walking in place on the spot at a slow steady pace, both arms swinging gently at its sides",
         "motion": "a skeleton walking slowly with its arms at its sides",
         "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing",
-        "death": "collapse",
+        "death": "clip",
         "outline_frac": 0.012,
-        "outline_color": "#3a2a24"
+        "outline_color": "#3a2a24",
+        "death_frames": 8
       },
       "sprite": "skeleton_sprite_a.png",
       "icon": "skeleton_icon_a.png",
@@ -98,14 +100,14 @@
         "run": 12,
         "attack": 2,
         "hit": 1,
-        "die": 5,
+        "die": 8,
         "run_b": 12,
         "idle_b": 4
       },
-      "strip_cols": 40,
+      "strip_cols": 43,
       "fps": {
         "run": 15,
-        "die": 8
+        "die": 12
       },
       "head": 0.963
     },
@@ -216,6 +218,42 @@
         "die": 12
       },
       "head": 1.0
+    },
+    "SK-E": {
+      "note": "the SK-A skeleton with dark blue bones (pass 54, Garry: a dark-blue version of my favourite skeletons; the same walk, the same fall); a frame-by-frame tint of the SK-A strip (tools/recolour_strip.py --mode tint)",
+      "recipe": {
+        "tint_of": "SK-A",
+        "tint": {
+          "ranges": [
+            [
+              10,
+              75
+            ]
+          ],
+          "to": 222,
+          "set_sat": 0.55,
+          "value": 0.6,
+          "min_val": 0.3
+        }
+      },
+      "sprite": "skeleton_sprite_e.png",
+      "icon": "skeleton_icon_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "strip_cols": 43,
+      "head": 0.963
     }
-  }
+  },
+  "variant": "SK-A"
 }

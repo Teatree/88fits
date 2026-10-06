@@ -4,6 +4,7 @@
   "flavour": "The whole field.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "land_mine",
   "kind": "volume",
   "element": "",

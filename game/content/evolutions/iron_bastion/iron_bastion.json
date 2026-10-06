@@ -1,0 +1,58 @@
+{
+  "id": "iron_bastion",
+  "name": "Iron Bastion",
+  "flavour": "Two armoured bunkers a drop, six standing: a creature one bastion hits takes +20% from every other for 2 s, and a bastion that goes blows in a 4.5 m blast for 6× its shot.",
+  "rarity": "rare",
+  "is_evolution": true,
+  "evolved_from": "turret_buddy",
+  "max_level": 1,
+  "behavior": "Spawner",
+  "targeting": "priority",
+  "base": {
+    "damage": 8,
+    "cooldown": 5.0,
+    "lifetime": 30,
+    "range": 10,
+    "amount": 2,
+    "speed": 18,
+    "pierce": 1,
+    "knockback": 7.0
+  },
+  "params": {
+    "turret_fire_rate": 0.3,
+    "max_turrets": 6,
+    "tracer": true,
+    "marks": false,
+    "final": {
+      "turret": {
+        "style": "bunker",
+        "barrels": 2,
+        "turn": 140,
+        "boom": {
+          "radius": 4.5,
+          "damage_mult": 6.0,
+          "knockback": 12
+        }
+      },
+      "focus": {
+        "mult": 0.2,
+        "seconds": 2.0
+      },
+      "max_turrets_mult": 1.0
+    }
+  },
+  "levels": [
+    []
+  ],
+  "sfx": {
+    "place": "w_turret_place",
+    "fire": "w_turret_fire",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#8A8F9A",
+    "glyph": "turret",
+    "gold": true
+  },
+  "art_prompt": "a heavy iron bunker turret behind a wide ring of sandbags, riveted dark iron armour with brass bands, two long gun barrels with muzzle brakes and a small searchlight on top"
+}

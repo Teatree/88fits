@@ -7,23 +7,17 @@
 [sub_resource type="Resource" id="Resource_jc7mc"]
 script = ExtResource("1_72jwi")
 stat = "poison_damage"
-op = "add"
 value = 5.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_f1wmw"]
 script = ExtResource("1_72jwi")
 stat = "poison_stacks"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_oohnu"]
 script = ExtResource("1_72jwi")
 stat = "poison_duration"
-op = "add"
 value = 8.0
-target = "self"
 
 [resource]
 script = ExtResource("2_jc7mc")
@@ -38,6 +32,7 @@ flavour = "A rattler in every chamber."
 rarity = "rare"
 element = "poison"
 weight = 8.0
+hidden = true
 icon = ExtResource("2_f1wmw")
 icon_file = "venom_rounds_icon.png"
 placeholder = {

@@ -1,0 +1,22 @@
+{
+  "id": "deep_breath",
+  "name": "Deep Breath",
+  "flavour": "One breath. Then back to work.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "ironwood",
+  "text": "Below 35% health his regen runs four times over for 6 s. Once every 40 s.",
+  "effects": [],
+  "special": "deep_breath",
+  "params": {
+    "below": 0.35,
+    "mult": 4.0,
+    "seconds": 6.0,
+    "cooldown": 40.0
+  },
+  "art_prompt": "a green heart with three curling white wind lines sweeping round it",
+  "placeholder": {
+    "color": "#8FD3B0",
+    "glyph": "star"
+  }
+}

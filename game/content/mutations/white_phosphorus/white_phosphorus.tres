@@ -7,28 +7,19 @@
 [sub_resource type="Resource" id="Resource_dcv5b"]
 script = ExtResource("1_0tgxu")
 stat = "fire_damage"
-op = "add"
-value = 0.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_0811i"]
 script = ExtResource("1_0tgxu")
 stat = "fire_duration"
-op = "add"
-value = 0.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_qjymp"]
 script = ExtResource("1_0tgxu")
 stat = "fire_spread"
-op = "add"
 value = 0.4
-target = "self"
 
 [sub_resource type="Resource" id="Resource_ddmwa"]
 script = ExtResource("1_0tgxu")
 stat = "fire_vuln"
-op = "add"
 value = 0.5
 target = "player"
 

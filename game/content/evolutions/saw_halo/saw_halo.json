@@ -2,7 +2,7 @@
   "id": "saw_halo",
   "name": "Saw Halo",
   "flavour": "A solid ring of no.",
-  "rarity": "epic",
+  "rarity": "rare",
   "is_evolution": true,
   "evolved_from": "orbit_saws",
   "max_level": 1,

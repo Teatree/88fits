@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1_162xy")
 weapon = "hornet_nest"
-text = "A hornet that kills turns and dives at the next creature, once."
-vfx = "the hornet loops round and stings again"
+text = "A bee that kills turns and dives at the next creature, once."
+vfx = "the bee loops round and stings again"
 params = {
 "second_sting": true
 }

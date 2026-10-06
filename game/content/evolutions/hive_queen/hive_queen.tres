@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/hive_queen/hive_queen_icon.png" id="1_n0p74"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_0um1n"]
+[ext_resource type="PackedScene" path="res://content/evolutions/hive_queen/hive_queen_visual.tscn" id="3_n0p74"]
+
+[resource]
+script = ExtResource("2_0um1n")
+behavior = "MissilePod"
+tags = ["homing"]
+targeting = "priority"
+base = {
+"amount": 5.0,
+"area": 0.0,
+"cooldown": 0.55,
+"damage": 7.0,
+"knockback": 1.2,
+"range": 12.0,
+"speed": 17.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "hornet_nest"
+sfx = {
+"fire": "w_pea_fire",
+"hit": "w_pea_hit"
+}
+visual = ExtResource("3_n0p74")
+visual_file = "hive_queen_visual.tscn"
+params = {
+"familiar": {
+"bob": 0.14,
+"height": 1.5,
+"radius": 1.1,
+"speed": 1.4
+},
+"final": {
+"flower_on_kill": 0.15,
+"hawk": {
+"every": 1.0,
+"seconds": 4.0,
+"slow": 0.1,
+"stings": 5.0
+},
+"second_sting": 2.0
+},
+"missile": {
+"life": 3.0,
+"spiral": 14.0,
+"trail": 2.0,
+"turn": 11.0,
+"wander": 0.3
+},
+"radius": 0.15
+}
+id = "hive_queen"
+display_name = "Hive Queen"
+flavour = "Every burst carries a Tarantula Hawk; a bee's kill sprouts a flower 15% of the time where the enemy fell; a bee that kills dives on twice."
+rarity = "rare"
+icon = ExtResource("1_n0p74")
+icon_file = "hive_queen_icon.png"
+placeholder = {
+"color": "#FFB13B",
+"glyph": "hive"
+}

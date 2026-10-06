@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/cluster_munitions/cluster_munitions_icon.png" id="1_2o63h"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_yqdlo"]
+
+[resource]
+script = ExtResource("1_yqdlo")
+weapon = "rocket_pod"
+mutation_kind = "volume"
+text = "30% of blasts scatter five bomblets: step on one and it pops for a quarter of the rocket's damage."
+vfx = "a field of small dark bomblets with blinking red lamps round the blast, each popping under a foot"
+params = {
+"cluster": {
+"chance": 0.3,
+"count": 5.0,
+"damage_frac": 0.25,
+"life": 6.0,
+"max": 20.0,
+"radius": 0.8,
+"spread": 1.6,
+"trigger": 0.55
+}
+}
+id = "cluster_munitions"
+display_name = "Cluster Munitions"
+flavour = "Mind your step."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_2o63h")
+icon_file = "cluster_munitions_icon.png"
+placeholder = {
+"color": "#C0A060",
+"glyph": "star"
+}

@@ -4,16 +4,18 @@
   "flavour": "A red tide with legs.",
   "archetype": "swarmer",
   "brain": "flock",
-  "hp": 2.0,
+  "hp": 36,
   "speed": 2.8,
-  "damage": 1.5,
-  "radius": 0.32,
-  "size": 0.8,
-  "pack_size": 16,
+  "damage": 8,
+  "knockback": 4.81,
+  "radius": 0.45,
+  "size": 1.15,
+  "pack_size": 8,
   "drops": {
-    "small": 0.5,
-    "gold": 0.005,
-    "chest": 0.0007
+    "small": 1.0,
+    "medium": 0.6,
+    "gold": 0.12,
+    "chest": 0.008
   },
   "anims": {
     "idle": 4,
@@ -25,7 +27,7 @@
     "idle_b": 4
   },
   "frame_px": 128,
-  "xp_mult": 0.9,
+  "xp_mult": 2.4,
   "sfx": {
     "hit": "en_ant_hit",
     "die": "en_ant_die"
@@ -63,8 +65,8 @@
     "run": 15,
     "die": 8
   },
-  "doc": "Tiny, fast, in eights: the first test of area damage.",
-  "cap_share": 0.5,
+  "doc": "From 5:00 (pass 53): a bigger ant, 0.6 of a mummy in health and bite, still quick, in packs of eight. It was the early swarm fodder before.",
+  "cap_share": 1.0,
   "head": 1.0,
   "variants": {
     "ANT-A": {

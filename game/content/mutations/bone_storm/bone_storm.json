@@ -4,6 +4,7 @@
   "flavour": "Skulls, with a chance of more skulls.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "skull_rain",
   "kind": "volume",
   "element": "",

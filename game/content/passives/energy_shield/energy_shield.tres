@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/energy_shield/energy_shield_icon.png" id="1_mvh5s"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_87rwo"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_iwg13"]
+
+[sub_resource type="Resource" id="Resource_mvh5s"]
+script = ExtResource("2_87rwo")
+stat = "shield_max"
+value = 15.0
+target = "player"
+
+[resource]
+script = ExtResource("3_iwg13")
+line = true
+levels = [[SubResource("Resource_mvh5s")]]
+max_level = 4
+evolves_into = "aegis"
+text = "A blue bar over your health. While it holds, a hit takes shield and no HP; it recharges once you go 3 s untouched."
+id = "energy_shield"
+display_name = "Energy Shield"
+flavour = "It hums. It holds."
+rarity = "rare"
+weight = 9.0
+icon = ExtResource("1_mvh5s")
+icon_file = "energy_shield_icon.png"
+placeholder = {
+"color": "#5AB8FF",
+"glyph": "star"
+}

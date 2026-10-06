@@ -1,0 +1,50 @@
+{
+  "id": "training_dummy",
+  "name": "Training Dummy",
+  "flavour": "It never complains.",
+  "archetype": "brute",
+  "brain": "dummy",
+  "hidden": true,
+  "hp": 500,
+  "speed": 1.2,
+  "damage": 0,
+  "radius": 0.45,
+  "size": 1.7,
+  "pack_size": 1,
+  "drops": {},
+  "xp_mult": 0.0,
+  "can_be_elite": false,
+  "badge": "none",
+  "anims": {
+    "idle": 4,
+    "run": 6,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 6,
+    "idle_b": 4
+  },
+  "frame_px": 160,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "st_barrel_break"
+  },
+  "placeholder": {
+    "color": "#C8A060",
+    "eyes": 0,
+    "shape": "tall"
+  },
+  "art_prompt": "a straw training dummy: a burlap sack body stuffed with straw tied with rope at the neck and waist, a round burlap sack head with a red and white painted bullseye target on its face and no eyes, two stubby straw-stuffed arms sticking out sideways, straw poking out at the seams, standing on a single thick wooden post planted in a small wooden cross stand",
+  "back_hint": "seen from behind: the plain burlap back of the sack head and body, the rope ties, the post and the cross stand, no target",
+  "dead_hint": "knocked over and lying broken on its side, its post snapped, straw spilling out, lying sideways across the picture with its target head on the left",
+  "screen": "blue",
+  "motion": "standing still on its post, wobbling very slightly",
+  "stand": "still",
+  "doc": "The debug arena's punching bag: it stands where it is put, takes every hit like a creature and never hits back.",
+  "strip_cols": 28,
+  "fps": {
+    "run": 10,
+    "die": 8
+  },
+  "head": 0.981
+}

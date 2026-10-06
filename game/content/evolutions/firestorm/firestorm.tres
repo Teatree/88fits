@@ -7,7 +7,6 @@
 [resource]
 script = ExtResource("1_shv00")
 behavior = "Lobber"
-tags = []
 targeting = "densest_healthy"
 base = {
 "amount": 2.0,
@@ -23,8 +22,6 @@ base = {
 }
 levels = [[]]
 max_level = 1
-evolves_with = ""
-evolves_into = ""
 is_evolution = true
 evolved_from = "molotov"
 sfx = {
@@ -36,15 +33,11 @@ visual_file = "firestorm_visual.tscn"
 params = {
 "cloud_seconds": 4.0
 }
-hero = ""
 id = "firestorm"
 display_name = "Firestorm"
 flavour = "Two bottles. One weather system."
-rarity = "epic"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
+rarity = "rare"
+hidden = true
 icon = ExtResource("1_qe42m")
 icon_file = "firestorm_icon.png"
 placeholder = {

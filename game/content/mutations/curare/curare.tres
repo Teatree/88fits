@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/curare/curare_icon.png" id="1_jhsef"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_wduvj"]
+
+[resource]
+script = ExtResource("2_wduvj")
+weapon = "skull_rain"
+mutation_kind = "volume"
+text = "Poisoning a creature may slow its moves and attacks by 50% for 3 s: a 20% chance that grows 20% with every re-poisoning, then 10 s before it can again."
+vfx = "a creature dark green while poisoned and slowed"
+params = {
+"curare": {
+"chance": 0.2,
+"cooldown": 10.0,
+"seconds": 3.0,
+"slow": 0.5,
+"step": 0.2
+}
+}
+id = "curare"
+display_name = "Curare"
+flavour = "From the arrow frogs, with love."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_jhsef")
+icon_file = "curare_icon.png"
+placeholder = {
+"color": "#2F6B3A",
+"glyph": "star"
+}

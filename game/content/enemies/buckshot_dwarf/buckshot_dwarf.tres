@@ -51,6 +51,7 @@ ranged = {
 "straight": true,
 "telegraph": 0.85
 }
+knockback = 4.16
 head = 0.983
 sfx = {
 "attack": "w_boom_fire",

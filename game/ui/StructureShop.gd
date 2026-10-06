@@ -69,17 +69,15 @@ func open(offer: Array) -> void:
 	for c in _hold_row.get_children():
 		c.queue_free()
 	_hold_row.add_child(W.label("You hold", 20, W.AGED))
+	# each in the colour of the level held (pass 48)
 	var held: Array = []
 	for w in Run.weapons:
-		held.append((w as WeaponInstance).def)
+		held.append([(w as WeaponInstance).def, (w as WeaponInstance).level])
 	for pid in Run.passives.keys():
 		if Registry.passive(pid):
-			held.append(Registry.passive(pid))
-	for lid in Run.lines.keys():
-		if Registry.line(lid):
-			held.append(Registry.line(lid))
-	for d in held:
-		var p := WPlate.new().for_def(d, 84.0)
+			held.append([Registry.passive(pid), int(Run.passives[pid])])
+	for h in held:
+		var p := WPlate.new().for_def(h[0], 84.0, false, int(h[1]))
 		p.icon_frac = 0.72
 		_hold_row.add_child(p)
 	for c in _cards:

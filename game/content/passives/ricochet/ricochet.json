@@ -2,7 +2,7 @@
   "id": "ricochet",
   "name": "Ricochet",
   "flavour": "A killing shot bounces to the next one, softer. Once.",
-  "rarity": "rare",
+  "rarity": "uncommon",
   "weight": 6,
   "pairs_with": "",
   "max_level": 4,

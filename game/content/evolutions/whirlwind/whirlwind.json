@@ -1,0 +1,50 @@
+{
+  "id": "whirlwind",
+  "name": "Whirlwind",
+  "flavour": "Every swing is a full circle, four a stroke; a swing that crits refunds 20% of the cooldown. Flurry doubles the swings, Riposte speeds them and Critical Thinking's crits refund them: it hardly stops spinning.",
+  "rarity": "rare",
+  "is_evolution": true,
+  "evolved_from": "sabre",
+  "max_level": 1,
+  "behavior": "Thruster",
+  "targeting": "priority",
+  "tags": [
+    "blade"
+  ],
+  "base": {
+    "damage": 30,
+    "cooldown": 0.9,
+    "amount": 4,
+    "range": 3.8,
+    "area": 1.2,
+    "knockback": 12.0
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "thrust": {
+      "out": 0.05,
+      "slice": 0.14,
+      "back": 0.1,
+      "width": 1.0,
+      "slice_deg": 360,
+      "side": 1.1
+    },
+    "trail_color": "#A8F0FF",
+    "final": {
+      "crit_refund": 0.2
+    }
+  },
+  "sfx": {
+    "fire": "w_saw_hit",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#A8F0FF",
+    "glyph": "sword",
+    "gold": true
+  },
+  "art_prompt": "a broad curved scimitar with a brass guard spinning in a full circle, a pale cyan ribbon of wind trailing the blade",
+  "visual": "whirlwind_visual.tscn"
+}

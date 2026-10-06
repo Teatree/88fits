@@ -1,0 +1,32 @@
+{
+  "id": "repulsor",
+  "name": "Repulsor",
+  "flavour": "Push, do not pull.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "gravity_gun",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "Landings throw 2.5 times as hard over a 40% wider blast, +15% damage.",
+  "vfx": "a purple blast ring and burst where a throw lands",
+  "effects": [
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": 0.15
+    }
+  ],
+  "params": {
+    "gravity": {
+      "knock_mult": 2.5,
+      "throw_mult": 1.4,
+      "purple": true
+    }
+  },
+  "art_prompt": "a glowing purple ring of force pushing outwards with motion lines",
+  "placeholder": {
+    "color": "#9A5CFF",
+    "glyph": "star"
+  }
+}

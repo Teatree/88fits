@@ -7,6 +7,7 @@
   "hp": 13,
   "speed": 2.7,
   "damage": 7,
+  "knockback": 4.5,
   "radius": 0.42,
   "size": 1.2,
   "pack_size": 4,

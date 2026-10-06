@@ -7,9 +7,9 @@
 [resource]
 script = ExtResource("1_85nhh")
 archetype = "boss"
-doc = "Stage 1's boss, back for stage 3 at twice the health: a roll down a red line, a goblin ring, a slam."
+doc = "Stage 1's boss, back for stage 3 at twice the health: a roll down a red line, a volley of twelve tumbleweeds rolled out in every direction (each throws you), a ring of tumbleweed minions, a slam."
 brain = "boss"
-hp = 900.0
+hp = 1440.0
 speed = 1.6
 damage = 20.0
 radius = 2.2
@@ -35,6 +35,7 @@ fps = {
 "die": 8.0,
 "run": 15.0
 }
+knockback = 7.0
 head = 0.984
 boss = {
 "attacks": [{
@@ -46,7 +47,17 @@ boss = {
 "windup": 1.0
 }, {
 "count": 12.0,
-"enemy": "goblin",
+"damage": 14.0,
+"knockback": 14.0,
+"life": 2.6,
+"lift": 2.5,
+"name": "tumbleweed_volley",
+"speed": 9.0,
+"telegraph": "spokes",
+"windup": 0.8
+}, {
+"count": 12.0,
+"enemy": "tumbleweed_minion",
 "name": "spawn_ring",
 "telegraph": "none",
 "windup": 0.8

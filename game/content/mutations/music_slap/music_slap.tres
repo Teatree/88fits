@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_f0tmd"]
+[ext_resource type="Texture2D" path="res://content/mutations/music_slap/music_slap_icon.png" id="2_2ka7b"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_ssad7"]
+
+[sub_resource type="Resource" id="Resource_f0tmd"]
+script = ExtResource("1_f0tmd")
+stat = "damage"
+op = "mul"
+value = 0.6
+
+[sub_resource type="Resource" id="Resource_2ka7b"]
+script = ExtResource("1_f0tmd")
+stat = "cooldown"
+op = "mul"
+value = 0.4
+
+[resource]
+script = ExtResource("3_ssad7")
+weapon = "guitarra"
+text = "Every chord slaps them sideways: +60% damage, 40% slower."
+vfx = "what the chord lifts comes down thrown to one side or the other"
+effects = [SubResource("Resource_f0tmd"), SubResource("Resource_2ka7b")]
+params = {
+"cone": {
+"knock": 7.0,
+"side_random": true
+}
+}
+id = "music_slap"
+display_name = "Music Slap"
+flavour = "A chord with a backhand."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_2ka7b")
+icon_file = "music_slap_icon.png"
+placeholder = {
+"color": "#F0C060",
+"glyph": "star"
+}

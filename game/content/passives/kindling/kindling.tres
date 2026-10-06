@@ -19,6 +19,7 @@ pairs_with = "flare_gun"
 id = "kindling"
 display_name = "Kindling"
 flavour = "Everything you light, burns hotter."
+rarity = "uncommon"
 element = "fire"
 weight = 8.0
 icon = ExtResource("1_opko1")

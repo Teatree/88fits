@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/brawn/brawn_icon.png" id="1_qbltm"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_ly3ca"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_mwkl6"]
+
+[sub_resource type="Resource" id="Resource_qbltm"]
+script = ExtResource("2_ly3ca")
+stat = "might"
+op = "mul"
+value = 0.1
+target = "player"
+
+[resource]
+script = ExtResource("3_mwkl6")
+line = true
+levels = [[SubResource("Resource_qbltm")]]
+max_level = 4
+evolves_into = "juggernaut"
+id = "brawn"
+display_name = "Brawn"
+flavour = "Heavier hands, same old boots."
+icon = ExtResource("1_qbltm")
+icon_file = "brawn_icon.png"
+placeholder = {
+"color": "#FF8040",
+"glyph": "star"
+}

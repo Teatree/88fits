@@ -2,7 +2,7 @@
   "id": "blasting_cap",
   "name": "Blasting Cap",
   "flavour": "Mira's mines pay for themselves.",
-  "rarity": "epic",
+  "rarity": "rare",
   "weight": 8,
   "weapon": "land_mine",
   "kind": "hero",

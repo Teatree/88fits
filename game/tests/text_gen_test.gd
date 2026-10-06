@@ -2,7 +2,10 @@ extends GdUnitTestSuite
 
 
 func test_describe_mul_percent() -> void:
-	assert_str(TextGen.describe_effect(Effect.make("might", "mul", 0.10))).is_equal("+10% might")
+	# pass 45: might, area and greed read as attack damage, area of effect and coin gain (the ids are unchanged)
+	assert_str(TextGen.describe_effect(Effect.make("might", "mul", 0.10))).is_equal("+10% attack damage")
+	assert_str(TextGen.describe_effect(Effect.make("area", "mul", 0.20))).is_equal("+20% area of effect")
+	assert_str(TextGen.describe_effect(Effect.make("greed", "mul", 0.12))).is_equal("+12% coin gain")
 
 
 func test_describe_negative_mul() -> void:

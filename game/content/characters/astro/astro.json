@@ -18,6 +18,7 @@
     }
   ],
   "favourite_weapon": "orbit_saws",
+  "start_weapon": "gravity_gun",
   "favourite_bonus": {
     "type": "effects",
     "effects": [

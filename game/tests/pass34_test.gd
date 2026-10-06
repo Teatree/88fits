@@ -39,9 +39,9 @@ func test_the_sand_lizard_is_out_of_the_waves() -> void:
 	for ev in m.timeline.events:
 		assert_str(str(ev.get("enemy", ""))).is_not_equal("sand_lizard")
 	assert_str(str(m.skins.get("runner", ""))).is_not_equal("sand_lizard")
-	# retired creatures count as hidden for the book
-	assert_bool(Registry.is_hidden(Registry.enemy("skeleton"))).is_true()
-	assert_bool(Registry.is_hidden(Registry.enemy("goblin"))).is_false()
+	# retired creatures count as hidden for the book (pass 45: the goblins are the retired ones, the skeletons are in play)
+	assert_bool(Registry.is_hidden(Registry.enemy("goblin"))).is_true()
+	assert_bool(Registry.is_hidden(Registry.enemy("skeleton"))).is_false()
 
 
 # ---------------------------------------------------------------- items
@@ -69,16 +69,25 @@ func test_wide_orbit_breathes_and_bats_aside() -> void:
 		assert_str(e.stat).is_not_equal("pull")
 
 
-func test_more_lines_on_stage_one() -> void:
+func test_six_lines_from_stage_one_and_passive_items_uncapped() -> void:
+	# pass 34 opened three lines on stage 1; pass 46 folded the lines into the passives, four slots on stage 1; pass 47
+	# split them again: six line slots from the start, whatever the stage, and the passive items without a cap
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
-	assert_int(Run.line_cap()).is_greater(2)
-	var opened := 0
-	for l: LineDef in Registry.sorted_lines():
-		if Run.add_or_rank_line(l.id):
-			opened += 1
-		if opened >= 3:
-			break
-	assert_int(Run.lines.size()).is_equal(3)
+	assert_int(Run.line_cap()).is_equal(5)
+	var lines := 0
+	var items := 0
+	for p: PassiveDef in Registry.base_passives():
+		if Run.add_or_level_passive(p.id):
+			if p.is_line():
+				lines += 1
+			else:
+				items += 1
+	# five since pass 52
+	assert_int(lines).is_equal(5)
+	assert_int(Run.held_lines().size()).is_equal(5)
+	assert_int(items).is_equal(Run.held_passives().size())
+	assert_int(items).is_greater(6)
+	Run.end()
 
 
 # ---------------------------------------------------------------- perks
@@ -89,7 +98,9 @@ func test_each_hero_has_two_new_perks() -> void:
 		assert_object(pk).override_failure_message(pair[1] + " missing").is_not_null()
 		assert_str(pk.hero).is_equal(pair[0])
 		assert_str(pk.special).is_equal(pair[1])
-		assert_bool(Registry.perks_of(pair[0]).has(pk)).is_true()
+		# pass 53 (Garry): Bounty Hunter is hidden, kept in the content and out of the hero's offers
+		assert_bool(pk.hidden).is_equal(pair[1] == "bounty_hunter")
+		assert_bool(Registry.perks_of(pair[0]).has(pk)).is_equal(not pk.hidden)
 	assert_float(float(Registry.perks["high_noon"].params.get("slow", 1.0))).is_less(1.0)
 
 

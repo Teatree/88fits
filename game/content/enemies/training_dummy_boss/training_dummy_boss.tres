@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_4dwn4"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_cfeu8"]
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_sprite.png" id="3_8nkdc"]
+
+[resource]
+script = ExtResource("2_cfeu8")
+archetype = "elite"
+doc = "The debug arena's Boss dummy (pass 49): the biggest training dummy, with a boss's skull drawn at a boss's size but an Elite by its kind (never the run's boss: no bar, no portal), standing apart from the field; its health and behaviour (stand, patrol, melee for 30, ranged for 22) are the arena's settings, and it stands up again 5 s after it falls and pays nothing."
+brain = "dummy"
+hp = 10000.0
+speed = 1.4
+damage = 30.0
+radius = 0.93
+size = 3.5
+drops = {}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 6.0,
+"run_b": 6.0
+}
+sprite = ExtResource("3_8nkdc")
+sprite_file = "res://content/enemies/training_dummy/training_dummy_sprite.png"
+frame_px = 160
+strip_cols = 28
+fps = {
+"die": 8.0,
+"run": 10.0
+}
+ranged = {
+"cooldown": 2.6,
+"damage": 22.0,
+"keep_distance": 5.5,
+"projectile_speed": 6.0,
+"range": 8.0,
+"splash": 1.6,
+"telegraph": 0.7
+}
+badge = "skull"
+head = 0.981
+can_be_elite = false
+can_be_grabbed = false
+sfx = {
+"attack": "en_cactus_spit",
+"die": "st_barrel_break",
+"hit": "en_goblin_hit"
+}
+xp_mult = 0.0
+id = "training_dummy_boss"
+display_name = "Boss Dummy"
+flavour = "The biggest sack of straw in the canyon."
+hidden = true
+icon = ExtResource("1_4dwn4")
+icon_file = "res://content/enemies/training_dummy/training_dummy_icon.png"
+placeholder = {
+"color": "#C8A060",
+"eyes": 0.0,
+"shape": "tall"
+}

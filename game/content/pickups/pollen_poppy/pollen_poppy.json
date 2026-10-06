@@ -1,0 +1,19 @@
+{
+  "id": "pollen_poppy",
+  "name": "Desert Poppy",
+  "flavour": "Pollen for the hive.",
+  "effect": "pollen",
+  "value": 0,
+  "duration": 5,
+  "lifetime": 19,
+  "color": "#FF7A3C",
+  "weight": 0,
+  "placeholder": {
+    "color": "#FF7A3C",
+    "glyph": "flower"
+  },
+  "art_prompt": "a bright orange desert poppy with four silky petals and a dark centre, growing from a small tuft of leaves",
+  "params": {
+    "small": true
+  }
+}

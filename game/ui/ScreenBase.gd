@@ -59,6 +59,10 @@ func _ready() -> void:
 	margin.add_child(content)
 	_touch = TouchScroll.new(scroll)
 	build()
+	# the header over everything a screen built (pass 48: the Collection's tabs sat over its back square on a phone
+	# with a camera cutout): nothing ever covers the back button
+	if header:
+		move_child(header, get_child_count() - 1)
 	_enter()
 
 
@@ -126,9 +130,11 @@ func board_side() -> float:
 	return 48.0
 
 
-## Move the board: its top edge and side margins (the Collection's item page sits higher and narrower than its grid).
+## Move the board: its top edge (in the design's px, the safe-area inset added as _ready adds it: pass 48, it was
+## dropped, and on a phone with a camera cutout the Collection's board slid up over its back button) and side margins
+## (the Collection's item page sits higher and narrower than its grid).
 func set_board(top: float, side: float) -> void:
-	scroll.offset_top = top - float(margin.get_theme_constant("margin_top"))
+	scroll.offset_top = top - float(margin.get_theme_constant("margin_top")) + W.safe_top()
 	margin.add_theme_constant_override("margin_left", int(side))
 	margin.add_theme_constant_override("margin_right", int(side))
 	scroll.scroll_vertical = 0
@@ -160,8 +166,9 @@ static func board(pad: Vector2 = Vector2(30, 30), shadow: int = 8, border: int =
 	return p
 
 
+## A question up (WConfirm, pass 45) keeps the board still: a drag that lands on its card does not scroll what is beneath.
 func _input(event: InputEvent) -> void:
-	if _touch:
+	if _touch and not WConfirm.is_open(self):
 		_touch.input(event)
 
 
@@ -170,14 +177,15 @@ func _process(_delta: float) -> void:
 		_touch.process()
 
 
-## Android's back button or gesture: the screen's own back (the title), as Esc does on a PC.
+## Android's back button or gesture: a question up is cancelled, else the screen's own back (the title), as Esc does
+## on a PC.
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		on_back()
+		if not WConfirm.dismiss(self):
+			on_back()
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		on_back()
-	elif event.is_action_pressed("ui_cancel"):
-		on_back()
+	if (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE) or event.is_action_pressed("ui_cancel"):
+		if not WConfirm.dismiss(self):
+			on_back()

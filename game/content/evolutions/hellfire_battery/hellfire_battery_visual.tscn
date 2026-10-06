@@ -1,0 +1,191 @@
+[gd_scene load_steps=16 format=3 uid="uid://vis_hellfire00001"]
+
+[sub_resource type="StandardMaterial3D" id="rocketmat"]
+albedo_color = Color(0.95, 0.28, 0.14, 1)
+emission_enabled = true
+emission = Color(1, 0.5, 0.18, 1)
+emission_energy_multiplier = 0.8
+
+[sub_resource type="CapsuleMesh" id="proj"]
+radius = 0.11
+height = 0.5
+radial_segments = 8
+rings = 3
+
+[sub_resource type="StandardMaterial3D" id="hull"]
+albedo_color = Color(0.22, 0.06, 0.06, 1)
+metallic = 0.4
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="brass"]
+albedo_color = Color(0.85, 0.62, 0.2, 1)
+metallic = 0.5
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="dark"]
+albedo_color = Color(0.08, 0.08, 0.1, 1)
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="vent"]
+albedo_color = Color(1, 0.45, 0.15, 1)
+emission_enabled = true
+emission = Color(1, 0.45, 0.15, 1)
+emission_energy_multiplier = 1.6
+
+[sub_resource type="BoxMesh" id="box"]
+size = Vector3(0.64, 0.38, 0.56)
+
+[sub_resource type="BoxMesh" id="ventstrip"]
+size = Vector3(0.5, 0.025, 0.07)
+
+[sub_resource type="CylinderMesh" id="tube"]
+top_radius = 0.075
+bottom_radius = 0.075
+height = 0.6
+radial_segments = 10
+
+[sub_resource type="BoxMesh" id="fin"]
+size = Vector3(0.03, 0.2, 0.22)
+
+[sub_resource type="CylinderMesh" id="tip"]
+top_radius = 0.0
+bottom_radius = 0.07
+height = 0.17
+radial_segments = 8
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="tipmat"]
+albedo_color = Color(0.9, 0.3, 0.2, 1)
+emission_enabled = true
+emission = Color(1, 0.45, 0.2, 1)
+emission_energy_multiplier = 0.9
+
+[sub_resource type="StandardMaterial3D" id="sparkmat"]
+shading_mode = 0
+albedo_color = Color(1, 0.8, 0.4, 1)
+emission_enabled = true
+emission = Color(1, 0.6, 0.2, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="SphereMesh" id="spark"]
+material = SubResource("sparkmat")
+radius = 0.08
+height = 0.16
+radial_segments = 5
+rings = 3
+
+[sub_resource type="BoxMesh" id="plate"]
+size = Vector3(0.66, 0.04, 0.3)
+
+[node name="HellfireBatteryVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
+mesh = SubResource("proj")
+material_override = SubResource("rocketmat")
+
+[node name="Familiar" type="Node3D" parent="."]
+
+[node name="Body" type="Node3D" parent="Familiar"]
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 0, 0, 0)
+
+[node name="Box" type="MeshInstance3D" parent="Familiar/Body"]
+mesh = SubResource("box")
+material_override = SubResource("hull")
+
+[node name="Plate" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0.08)
+mesh = SubResource("plate")
+material_override = SubResource("brass")
+
+[node name="Vent" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.225, 0.08)
+mesh = SubResource("ventstrip")
+material_override = SubResource("vent")
+
+[node name="Cluster" type="Node3D" parent="Familiar/Body"]
+
+[node name="Tube1" type="MeshInstance3D" parent="Familiar/Body/Cluster"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, -0.18, 0.09, -0.08)
+mesh = SubResource("tube")
+material_override = SubResource("dark")
+
+[node name="Tube2" type="MeshInstance3D" parent="Familiar/Body/Cluster"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.09, -0.08)
+mesh = SubResource("tube")
+material_override = SubResource("dark")
+
+[node name="Tube3" type="MeshInstance3D" parent="Familiar/Body/Cluster"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0.18, 0.09, -0.08)
+mesh = SubResource("tube")
+material_override = SubResource("dark")
+
+[node name="Tube4" type="MeshInstance3D" parent="Familiar/Body/Cluster"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, -0.18, -0.09, -0.08)
+mesh = SubResource("tube")
+material_override = SubResource("dark")
+
+[node name="Tube5" type="MeshInstance3D" parent="Familiar/Body/Cluster"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, -0.09, -0.08)
+mesh = SubResource("tube")
+material_override = SubResource("dark")
+
+[node name="Tube6" type="MeshInstance3D" parent="Familiar/Body/Cluster"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0.18, -0.09, -0.08)
+mesh = SubResource("tube")
+material_override = SubResource("dark")
+
+[node name="Tip1" type="MeshInstance3D" parent="Familiar/Body/Cluster"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -0.18, 0.09, -0.34)
+mesh = SubResource("tip")
+material_override = SubResource("tipmat")
+
+[node name="Tip2" type="MeshInstance3D" parent="Familiar/Body/Cluster"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0.09, -0.34)
+mesh = SubResource("tip")
+material_override = SubResource("tipmat")
+
+[node name="Tip3" type="MeshInstance3D" parent="Familiar/Body/Cluster"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.18, 0.09, -0.34)
+mesh = SubResource("tip")
+material_override = SubResource("tipmat")
+
+[node name="Tip4" type="MeshInstance3D" parent="Familiar/Body/Cluster"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -0.18, -0.09, -0.34)
+mesh = SubResource("tip")
+material_override = SubResource("tipmat")
+
+[node name="Tip5" type="MeshInstance3D" parent="Familiar/Body/Cluster"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, -0.09, -0.34)
+mesh = SubResource("tip")
+material_override = SubResource("tipmat")
+
+[node name="Tip6" type="MeshInstance3D" parent="Familiar/Body/Cluster"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.18, -0.09, -0.34)
+mesh = SubResource("tip")
+material_override = SubResource("tipmat")
+
+[node name="FinL" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.34, -0.02, 0.2)
+mesh = SubResource("fin")
+material_override = SubResource("brass")
+
+[node name="FinR" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.34, -0.02, 0.2)
+mesh = SubResource("fin")
+material_override = SubResource("brass")
+
+[node name="Muzzle" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 18
+lifetime = 0.32
+one_shot = true
+explosiveness = 1.0
+mesh = SubResource("spark")
+direction = Vector3(0, 1, 0)
+spread = 70.0
+initial_velocity_min = 2.5
+initial_velocity_max = 6.0
+gravity = Vector3(0, -1, 0)
+scale_amount_min = 0.5
+scale_amount_max = 1.3

@@ -1,0 +1,27 @@
+{
+  "id": "wide_reach",
+  "name": "Wide Reach",
+  "flavour": "It comes to you.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "land_mine",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "A creature within 2.8 m makes the mine crouch and spring at it, blowing where it lands.",
+  "vfx": "the mine squashes down, its lamp blinks fast, and it leaps on an arc onto the creature",
+  "effects": [],
+  "params": {
+    "spring": {
+      "sense": 2.8,
+      "windup": 0.25,
+      "flight": 0.4,
+      "apex": 1.4
+    }
+  },
+  "art_prompt": "a land mine leaping off the sand on a coiled spring",
+  "placeholder": {
+    "color": "#C8C0A0",
+    "glyph": "star"
+  }
+}

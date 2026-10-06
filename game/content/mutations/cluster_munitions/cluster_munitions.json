@@ -1,0 +1,31 @@
+{
+  "id": "cluster_munitions",
+  "name": "Cluster Munitions",
+  "flavour": "Mind your step.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "rocket_pod",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "30% of blasts scatter five bomblets: step on one and it pops for a quarter of the rocket's damage.",
+  "vfx": "a field of small dark bomblets with blinking red lamps round the blast, each popping under a foot",
+  "effects": [],
+  "params": {
+    "cluster": {
+      "chance": 0.3,
+      "count": 5,
+      "damage_frac": 0.25,
+      "radius": 0.8,
+      "life": 6.0,
+      "spread": 1.6,
+      "max": 20,
+      "trigger": 0.55
+    }
+  },
+  "art_prompt": "five small dark round bomblets with red lamps scattered on sand",
+  "placeholder": {
+    "color": "#C0A060",
+    "glyph": "star"
+  }
+}

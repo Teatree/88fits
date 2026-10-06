@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/mini_crits/mini_crits_icon.png" id="1_gp51g"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_anjcu"]
+
+[resource]
+script = ExtResource("2_anjcu")
+weapon = "tommy_gun"
+mutation_kind = "element"
+text = "A quarter of the rounds are mini crits: half a crit's extra damage, carried through every pierce."
+vfx = "paler gold crit numbers off the rounds that land them"
+params = {
+"mini_crit": 0.25
+}
+id = "mini_crits"
+display_name = "Mini Crits"
+flavour = "Not every round. Just enough."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_gp51g")
+icon_file = "mini_crits_icon.png"
+placeholder = {
+"color": "#FFE88A",
+"glyph": "star"
+}

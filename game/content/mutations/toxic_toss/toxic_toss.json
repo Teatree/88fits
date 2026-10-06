@@ -4,6 +4,7 @@
   "flavour": "Handle with gloves.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "gravity_gun",
   "kind": "element",
   "element": "poison",

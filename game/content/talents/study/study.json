@@ -3,11 +3,14 @@
   "name": "Study",
   "flavour": "Learn faster, or mend slower.",
   "order": 7,
-  "ranks": 3,
+  "ranks": 6,
   "cost": [
     170,
     306,
-    510
+    510,
+    765,
+    1105,
+    1530
   ],
   "forms": [
     {

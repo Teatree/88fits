@@ -2,7 +2,7 @@
   "id": "snake_pit",
   "name": "Snake Pit",
   "flavour": "A whole pit of them. All spiteful.",
-  "rarity": "epic",
+  "rarity": "rare",
   "is_evolution": true,
   "evolved_from": "rattlesnake",
   "max_level": 1,

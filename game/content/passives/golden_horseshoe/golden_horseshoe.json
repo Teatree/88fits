@@ -1,0 +1,27 @@
+{
+  "id": "golden_horseshoe",
+  "name": "Golden Horseshoe",
+  "flavour": "Nailed over the door, open end up, so the luck stays in.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "luck",
+        "op": "add",
+        "value": 0.6,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "clover",
+  "art_prompt": "a gleaming golden horseshoe standing upright with its open end up, a small green four-leaf clover tucked in its middle, a few white sparkles round it",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

@@ -61,7 +61,7 @@ func _tick() -> void:
 				_shot("arena_7_crowd")
 				# the hero's bars (pass 33.6): with the Energy Shield charged, then with the camera pulled out
 				g.arena_panel._clear_field()
-				root.get_node("Run").debug_set_item("line", "energy_shield", 3)
+				root.get_node("Run").debug_set_item("passive", "energy_shield", 3)
 				g.player.shield_pts = 999.0
 				g.player.hp = g.player.max_hp * 0.6
 				g.hud.set_hp(g.player.hp, g.player.max_hp)

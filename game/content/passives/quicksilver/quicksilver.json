@@ -1,0 +1,27 @@
+{
+  "id": "quicksilver",
+  "name": "Quicksilver",
+  "flavour": "Faster than the clock that holds it.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.4,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "haste",
+  "art_prompt": "a shiny silver stopwatch with spread silver wings on its sides, drops of bright liquid mercury flying off it",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

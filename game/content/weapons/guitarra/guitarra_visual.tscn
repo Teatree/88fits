@@ -1,28 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="PackedScene" path="res://art/props/guitarra.glb" id="guitar"]
 
-[sub_resource type="StandardMaterial3D" id="notemat"]
-shading_mode = 0
-albedo_color = Color(1, 0.86, 0.45, 1)
-emission_enabled = true
-emission = Color(1, 0.7, 0.2, 1)
-emission_energy_multiplier = 2.0
-
-[sub_resource type="SphereMesh" id="note"]
-material = SubResource("notemat")
-radius = 0.16
-height = 0.32
-radial_segments = 8
-rings = 4
-
 [node name="GuitarraVisual" type="Node3D"]
-
-[node name="Projectile" type="MeshInstance3D" parent="."]
-mesh = SubResource("note")
-material_override = SubResource("notemat")
 
 [node name="Familiar" type="Node3D" parent="."]
 
 [node name="Guitar" parent="Familiar" instance=ExtResource("guitar")]
-transform = Transform3D(1.15, 0, 0, 0, 1.15, 0, 0, 0, 1.15, 0, -0.45, 0)
+transform = Transform3D(1.2, 0, 0, 0, 1.2, 0, 0, 0, 1.2, 0, 0, 0)

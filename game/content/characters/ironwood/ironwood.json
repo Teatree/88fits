@@ -1,0 +1,91 @@
+{
+  "id": "ironwood",
+  "name": "Ironwood",
+  "flavour": "He has outlasted worse than you.",
+  "pronoun": "he",
+  "trait": [
+    {
+      "stat": "regen",
+      "op": "add",
+      "value": 1.2,
+      "target": "player"
+    },
+    {
+      "stat": "regen_delay",
+      "op": "add",
+      "value": -1.5,
+      "target": "player"
+    }
+  ],
+  "favourite_weapon": "",
+  "favourite_passive": "brawn",
+  "favourite_passive_bonus": {
+    "type": "level",
+    "value": 2
+  },
+  "start_weapon": "pike",
+  "specials": [],
+  "unlock_quest": "",
+  "frame_px": 256,
+  "anims": {
+    "idle": 4,
+    "run": 24,
+    "hit": 4,
+    "die": 5,
+    "cheer": 1,
+    "idle_f": 4,
+    "run_f": 24,
+    "idle_s": 4,
+    "run_s": 24,
+    "idle_bd": 4,
+    "run_bd": 24,
+    "idle_fd": 4,
+    "run_fd": 24,
+    "hit_f": 4,
+    "hit_s": 4,
+    "hit_bd": 4,
+    "hit_fd": 4
+  },
+  "fps": {
+    "run": 36,
+    "hit": 12,
+    "die": 8
+  },
+  "placeholder": {
+    "color": "#8A5A3A",
+    "hat": "#1A1410",
+    "eyes": 2,
+    "shape": "tall"
+  },
+  "art_prompt": "a tall lean Native American Plains warrior man with long straight black hair falling past his shoulders and one white-and-black eagle feather tied at the back of his head, a calm stern serious face with a strong jaw and high cheekbones and no smile, two short red paint stripes across his left cheek, a bone-bead choker around his neck, a bare lean muscular chest with two thin white paint stripes on his left upper arm, a red leather belt set with round brass discs, a fringed tan buckskin breechcloth over fringed tan buckskin leggings, beaded red-and-blue moccasins, standing straight with his hands relaxed and empty at his sides",
+  "motion": "running in place at a steady long-legged run, arms and legs swinging naturally, his long black hair flowing behind him",
+  "anim_hint": "a tall Native American Plains warrior with long black hair and one feather, red cheek stripes, a bone-bead choker, a bare chest, a red belt with brass discs and fringed tan buckskin leggings",
+  "anim_negative": "a war bonnet, a feather headdress, a smile, a grin, a shirt, a jacket, a hat, a weapon in his hands, a bow, a spear in his hands, a horse",
+  "anim_seed": 11,
+  "portrait_prompt": "his arms crossed over his bare chest, his chin a little lowered, looking down at the viewer with a calm, stern, unsmiling face, his long black hair over his shoulders",
+  "hurt_hint": "his stern face tightening, jaw clenched, eyes narrowed, no scream",
+  "back_hint": "He faces away from the viewer: only the back of his head with the long straight black hair hanging down his back and the feather, his bare back, the back of the belt and the fringed leggings and the heels are visible, no face at all. Both arms hang straight down along his sides, relaxed.",
+  "pose_hint": "Both arms hang straight down at his sides, hands open and empty, not raised, not bent. The same tall lean proportions in every view.",
+  "level_heal": 0.0,
+  "trait_name": "Enduring",
+  "trait_text": "+1.2 health a second, and his regen starts again 1.5 s after a hit instead of 3. No more health than anyone else. He finds Brawn at level 2.",
+  "pose_drivers": {
+    "back": "run_spread",
+    "bd": "run_spread"
+  },
+  "strip_cols": 62,
+  "remap_hues": {
+    "ranges": [
+      [
+        70,
+        170
+      ],
+      [
+        280,
+        335
+      ]
+    ],
+    "to": 32,
+    "sat": 0.55
+  }
+}

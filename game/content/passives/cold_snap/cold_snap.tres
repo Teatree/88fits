@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/cold_snap/cold_snap_icon.png" id="1_kdtnn"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_s4nu2"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_gfnve"]
+
+[sub_resource type="Resource" id="Resource_kdtnn"]
+script = ExtResource("2_s4nu2")
+stat = "freeze_chance"
+value = 0.02
+target = "player"
+
+[resource]
+script = ExtResource("3_gfnve")
+levels = [[SubResource("Resource_kdtnn")]]
+max_level = 5
+text = "A hit may freeze a creature for 1 second: blue, still and harmless. 2% at level 1, 10% at level 5. Bosses shrug it off."
+id = "cold_snap"
+display_name = "Cold Snap"
+flavour = "Even the desert gets a cold night."
+weight = 9.0
+icon = ExtResource("1_kdtnn")
+icon_file = "cold_snap_icon.png"
+placeholder = {
+"color": "#8CC8F0",
+"glyph": "star"
+}

@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/ghost_step/ghost_step_icon.png" id="1_mp14y"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_e2k5o"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_l2e50"]
+
+[sub_resource type="Resource" id="Resource_mp14y"]
+script = ExtResource("2_e2k5o")
+stat = "evade"
+value = 0.3
+target = "player"
+
+[sub_resource type="Resource" id="Resource_e2k5o"]
+script = ExtResource("2_e2k5o")
+stat = "evade_invuln"
+value = 0.6
+target = "player"
+
+[resource]
+script = ExtResource("3_l2e50")
+line = true
+levels = [[SubResource("Resource_mp14y"), SubResource("Resource_e2k5o")]]
+repeat_last_level = false
+max_level = 1
+evolves_from = "evade"
+id = "ghost_step"
+display_name = "Ghost Step"
+flavour = "You were never there."
+rarity = "rare"
+weight = 0.0
+icon = ExtResource("1_mp14y")
+icon_file = "ghost_step_icon.png"
+placeholder = {
+"color": "#FFB84A",
+"glyph": "star"
+}

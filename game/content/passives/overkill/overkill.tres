@@ -7,7 +7,6 @@
 [sub_resource type="Resource" id="Resource_wdno6"]
 script = ExtResource("1_u21fe")
 stat = "overkill"
-op = "add"
 value = 0.34
 target = "player"
 
@@ -18,7 +17,7 @@ max_level = 3
 id = "overkill"
 display_name = "Overkill"
 flavour = "The damage past a kill splashes onto whoever stood next to it."
-rarity = "rare"
+rarity = "uncommon"
 weight = 5.0
 icon = ExtResource("1_wdno6")
 icon_file = "overkill_icon.png"

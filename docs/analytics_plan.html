@@ -79,8 +79,10 @@
   .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
   .charts figure { margin: 0; }
   .steps { counter-reset: step; list-style: none; padding: 0; max-width: none; }
-  .steps li { counter-increment: step; display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: start; margin-bottom: 14px; }
-  .steps li::before { content: counter(step); font-family: "Alfa Slab One", serif; font-size: 1.5rem; color: var(--brass); border: 3px solid var(--ink); background: var(--paper-2); width: 46px; height: 46px; display: grid; place-items: center; }
+  /* the number sits in the left gutter; the step's text (bold title, sentences, code) flows as one block beside it */
+  .steps li { counter-increment: step; position: relative; padding-left: 64px; min-height: 52px; margin-bottom: 18px; max-width: calc(66ch + 64px); }
+  .steps li::before { content: counter(step); position: absolute; left: 0; top: 0; font-family: "Alfa Slab One", serif; font-size: 1.5rem; color: var(--brass); border: 3px solid var(--ink); background: var(--paper-2); width: 46px; height: 46px; display: grid; place-items: center; box-sizing: border-box; }
+  .steps li pre { max-width: 100%; overflow-x: auto; }
   .steps b { display: block; }
   .note { border-left: 6px solid var(--brass); padding: 8px 14px; background: var(--paper-2); margin: 0 0 1.2rem; max-width: 66ch; }
   .toc { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.9rem; margin-top: 1.4rem; }

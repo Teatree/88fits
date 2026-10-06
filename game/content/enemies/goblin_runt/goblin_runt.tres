@@ -40,7 +40,9 @@ fps = {
 "die": 12.0,
 "run": 20.0
 }
+knockback = 3.4
 head = 1.0
+retired = true
 variants = {
 "RUN-A": {
 "anims": {
@@ -52,13 +54,16 @@ variants = {
 "run": 12.0,
 "run_b": 12.0
 },
+"back_faces": "right",
 "fps": {
 "die": 12.0,
 "run": 15.0
 },
+"front_faces": "right",
 "head": 0.984,
 "icon": ExtResource("1_jb5bl"),
 "note": "Mixamo's walk fitted to the runt, the painted fall (pass 33.9)",
+"shadow": {},
 "sprite": ExtResource("3_u54fl"),
 "sprite_file": "goblin_runt_sprite.png",
 "strip_cols": 43
@@ -73,13 +78,16 @@ variants = {
 "run": 12.0,
 "run_b": 12.0
 },
+"back_faces": "right",
 "fps": {
 "die": 12.0,
 "run": 20.0
 },
+"front_faces": "right",
 "head": 0.969,
 "icon": ExtResource("6_gay8p"),
 "note": "the same runt on Mixamo's run, a quick scurry; it dies on the Falling Back Death clip",
+"shadow": {},
 "sprite": ExtResource("4_bpd8s"),
 "sprite_file": "goblin_runt_sprite_b.png",
 "strip_cols": 43
@@ -94,13 +102,16 @@ variants = {
 "run": 12.0,
 "run_b": 12.0
 },
+"back_faces": "right",
 "fps": {
 "die": 12.0,
 "run": 15.0
 },
+"front_faces": "right",
 "head": 0.969,
 "icon": ExtResource("7_lhlp4"),
 "note": "a new painting with the dagger held low; the walk; the painted fall",
+"shadow": {},
 "sprite": ExtResource("5_q3gms"),
 "sprite_file": "goblin_runt_sprite_c.png",
 "strip_cols": 43
@@ -115,13 +126,16 @@ variants = {
 "run": 12.0,
 "run_b": 12.0
 },
+"back_faces": "right",
 "fps": {
 "die": 12.0,
 "run": 20.0
 },
+"front_faces": "right",
 "head": 1.0,
 "icon": ExtResource("9_3asum"),
 "note": "a new painting with the dagger raised; the run; it dies on the Falling Back Death clip",
+"shadow": {},
 "sprite": ExtResource("6_ial0f"),
 "sprite_file": "goblin_runt_sprite_d.png",
 "strip_cols": 43

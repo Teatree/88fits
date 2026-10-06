@@ -135,6 +135,9 @@ def recipe(sid, cat, loop):
                 out += sine(lambda t, f=f: f, 0.07)
             out += [v * 0.8 for v in sine(lambda t: 2093.0, 0.5)]
             return mix(out, [v * 0.3 for v in noise(0.9, 0.7, 6)])
+        if "chest_knock" in sid:
+            # the chest jiggling before it opens (pass 46): a knock on a wooden lid
+            return mix(clack(r, 260, 0.08), [v * 0.5 for v in noise(0.06, 0.45, 35)])
         if "levelup" in sid or "unlock" in sid:
             return mix(sine(lambda t: 523 if t < 0.12 else (659 if t < 0.24 else 784), 0.45), noise(0.1, 0.5, 30))
         if "buy" in sid:
@@ -145,14 +148,30 @@ def recipe(sid, cat, loop):
             return sine(lambda t: 800 - 600 * t / 0.3, 0.3)
         if "resume" in sid:
             return sine(lambda t: 200 + 600 * t / 0.3, 0.3)
+        if "reel_tick" in sid:
+            # the mutation pre-reel (pass 54): a soft wooden click per weapon plate passing the window
+            return [v * 0.6 for v in clack(r, 420, 0.035)]
+        if sid == "ui_card":
+            # a level-up card dropping in (pass 54): a short soft flick, lighter than the pick
+            return [v * 0.7 for v in mix(noise(0.035, 0.85, 55), sine(lambda t: 1040, 0.06))]
         if "card" in sid:
             return mix(noise(0.05, 0.9, 40), sine(lambda t: 880, 0.12))
         return sine(lambda t: 900, 0.05)
     if cat == "player":
+        if "phoenix" in sid:
+            # Phoenix Feather (pass 48): a roar of flame swelling up and a bright major chord as he rises
+            whoosh = [v * min(1.0, i / 4000.0) for i, v in enumerate(noise(0.9, 0.12, 2.0))]
+            return mix(whoosh, sine(lambda t: 260 + 900 * t / 0.9, 0.9), [v * 0.45 for v in chord([523.3, 659.3, 784.0], 0.7, "sine")])
         if "step" in sid:
             return noise(0.08, 0.15, 40)
         if "jump" in sid:
             return sine(lambda t: 300 + 500 * t / 0.25, 0.25, "square")
+        if "spawn_beam" in sid:
+            # the spawn beam (pass 45): a rising shimmer while the hero comes down the light
+            return mix(sine(lambda t: 220 + 880 * t / 1.6, 1.6), [v * 0.4 for v in noise(1.6, 0.5, 2.0)])
+        if "spawn_land" in sid:
+            # the landing (pass 45): a thump with sand
+            return mix(sine(lambda t: 90 - 50 * t / 0.3, 0.3), noise(0.35, 0.12, 10))
         if "land" in sid:
             return mix(noise(0.15, 0.1, 25), sine(lambda t: 90, 0.12))
         if "hurt" in sid:
@@ -162,6 +181,40 @@ def recipe(sid, cat, loop):
         if "revive" in sid:
             return sine(lambda t: 300 + 900 * t / 0.7, 0.7)
     if cat == "weapon":
+        # pass 54, the Sun Scepter: a shimmer rising as the pillar warms, a bright chime with a soft thump as it lands, and
+        # Zenith's sweep, a swelling major chord with a ring on top
+        if "sun_warn" in sid:
+            rise = mix(sine(lambda t: 520 + 900 * t / 0.45, 0.45), [v * 0.35 for v in noise(0.45, 0.6, 3)])
+            return [v * min(1.0, i / (RATE * 0.3)) for i, v in enumerate(rise)]
+        if "sun_strike" in sid:
+            chime = [v * math.exp(-i / (RATE * 0.12)) for i, v in enumerate(sine(lambda t: 1568.0, 0.35))]
+            return mix(chime, sine(lambda t: 110 - 50 * t / 0.18, 0.18), [v * 0.3 for v in noise(0.12, 0.5, 20)])
+        if "sun_zenith" in sid:
+            return mix(chord([523.3, 659.3, 784.0, 1046.5], 0.9, "sine"), [v * 0.4 for v in sine(lambda t: 2093.0, 0.9)],
+                       [v * 0.25 for v in noise(0.9, 0.5, 2.0)])
+        # pass 48: the new mutations' and items' sounds
+        if "thor_zap" in sid:
+            # Thor's Wrath: a short crackling arc with a falling whine under it
+            crackle = [v * (1.0 if r.random() > 0.35 else 0.15) for v in noise(0.16, 0.9, 16)]
+            return mix(crackle, [v * 0.5 for v in sine(lambda t: 1900 - 1300 * t / 0.16, 0.16, "square")])
+        if "tinnitus" in sid:
+            # Tinnitus: a thin high ring that beats as it fades
+            return [v * math.exp(-i / (RATE * 0.25)) for i, v in enumerate(sine(lambda t: 3200 + 25 * math.sin(t * 40), 0.55))]
+        if "hawk_sting" in sid:
+            # the Tarantula Hawk's sting: a buzzy stab and a tick
+            return mix([v * (0.6 + 0.4 * math.sin(i / RATE * 260)) for i, v in enumerate(sine(lambda t: 240 - 60 * t / 0.12, 0.12, "saw"))], [v * 0.4 for v in noise(0.03, 0.9, 80)])
+        if "hip_spin" in sid:
+            # Hip Shot: the cylinder spun, clicks speeding up over a whoosh
+            return mix(clatter(r, 9, 0.38, (1900, 2700)), [v * 0.35 * min(1.0, i / 2500.0) for i, v in enumerate(noise(0.42, 0.25, 4))])
+        if "silver_fire" in sid:
+            # Silver Bullet: the revolver's crack with a bright ring after it
+            return mix(noise(0.2, 0.6, 18), sine(lambda t: 1400 - 900 * t / 0.1, 0.1, "square"), [v * 0.4 for v in sine(lambda t: 2600, 0.35)])
+        if "mine_spring" in sid:
+            # Wide Reach: the mine's spring, a boing that wobbles down, and a click as it lets go
+            return mix(sine(lambda t: 430 + 380 * math.sin(t * 55) * math.exp(-t * 6), 0.35), [v * 0.5 for v in clack(r, 900, 0.04)])
+        if "keg_boom" in sid:
+            # Powder Keg: a barrel of powder going up, a boom and staves clattering down
+            return mix(noise(0.7, 0.05, 5), sine(lambda t: 80 - 40 * t / 0.5, 0.5), [v * 0.5 for v in clatter(r, 6, 0.4, (300, 900))])
         if "pea_fire" in sid:
             return mix(sine(lambda t: 600 - 300 * t / 0.08, 0.08), noise(0.04, 0.8, 60))
         if "boom_fire" in sid:
@@ -182,6 +235,11 @@ def recipe(sid, cat, loop):
             return sine(lambda t: 1400 - 800 * t / 0.06, 0.06, "square")
         if "evo" in sid:
             return mix(sine(lambda t: 220 * (2 ** (t * 2)), 1.6), noise(0.5, 0.2, 4))
+        # pass 46: Ironwood's spear, a long rising whoosh as it leaves the hand, and a dull wooden thunk as it bites
+        if "spear_throw" in sid:
+            return mix([v * min(1.0, i / 2500.0) for i, v in enumerate(noise(0.34, 0.16, 6))], [v * 0.25 for v in sine(lambda t: 620 - 320 * t / 0.3, 0.3)])
+        if "spear_hit" in sid:
+            return mix(noise(0.12, 0.35, 22), sine(lambda t: 160 - 90 * t / 0.12, 0.12), [v * 0.6 for v in clack(r, 300, 0.07)])
         # pass 35: the Hammer, the Revolver, the Gravity Gun and the Singularity
         if "hammer_swing" in sid:
             return [v * min(1.0, i / 3000.0) for i, v in enumerate(noise(0.3, 0.12, 5))]
@@ -211,6 +269,19 @@ def recipe(sid, cat, loop):
         return noise(0.1, 0.5, 30)
     if cat == "pickup":
         f = {"pk_gem_s": 1046, "pk_gem_m": 1568, "pk_gem_l": 2093, "pk_coin": 1760}.get(sid, 1200)
+        # pass 48
+        if "flower" in sid:
+            # Pollen's flower picked: three quick rising notes and a shimmer
+            out = []
+            for k, fn in enumerate((880.0, 1174.7, 1568.0)):
+                out += sine(lambda t, fn=fn: fn, 0.07)
+            return mix(out, [v * 0.25 for v in noise(0.4, 0.7, 7)])
+        if "coin_drop" in sid:
+            # Loose Change: coins knocked out of a pocket, jingling down
+            return clatter(r, 7, 0.38, (2200, 3400))
+        if "portal_wait" in sid:
+            # the portal waits ("Not yet"): a soft hum settling down, a low chime on top
+            return mix(sine(lambda t: 330 - 80 * t / 0.7, 0.7), [v * 0.35 for v in sine(lambda t: 660, 0.5)], [v * 0.25 for v in noise(0.7, 0.05, 3)])
         if "barrel" in sid:
             # a barrel bursting (pass 44): a sharp wooden crack, a low thump and planks clattering down
             return mix(noise(0.14, 0.35, 28), sine(lambda t: 110 - 60 * t / 0.25, 0.25), clatter(r, 7, 0.45, (380, 1100)))
@@ -229,6 +300,27 @@ def recipe(sid, cat, loop):
         if "slime_die" in sid:
             # a bubbly pop as it bursts into a puddle
             return mix(sine(lambda t: 520 - 420 * t / 0.3, 0.3), noise(0.22, 0.09, 14), [v * 0.5 for v in noise(0.06, 0.8, 50)])
+        if "golem_attack" in sid:
+            # the Stone Golem (pass 45): a stone grind as it winds up
+            return mix(noise(0.6, 0.08, 4), sine(lambda t: 60 + 20 * math.sin(t * 30), 0.6, "saw"))
+        if "golem_throw" in sid:
+            # a heave and a whoosh
+            return [v * min(1.0, i / 4000.0) for i, v in enumerate(noise(0.5, 0.2, 6))]
+        if "golem_hit" in sid:
+            # a knock on rock
+            return mix(noise(0.08, 0.5, 30), sine(lambda t: 180 - 120 * t / 0.08, 0.08))
+        if "golem_die" in sid:
+            # a collapse of blocks (before the generic "die")
+            return mix(noise(1.2, 0.06, 3), clatter(r, 12, 1.0, (200, 700)))
+        if "boulder_land" in sid:
+            # the boulder coming down: a deep thump and rubble rolling
+            return mix(noise(0.9, 0.05, 4), sine(lambda t: 55 - 30 * t / 0.8, 0.8), clatter(r, 10, 0.6, (250, 900)))
+        if "stalactite" in sid:
+            # a stone spike into the sand
+            return mix(noise(0.1, 0.4, 25), clatter(r, 3, 0.15, (600, 1400)))
+        if "king_volley" in sid:
+            # the Tumbleweed King's volley (pass 45): a dry rustling rush with twigs snapping in it
+            return mix(noise(0.7, 0.06, 5), [v * 0.5 for v in clatter(r, 10, 0.5, (300, 900))])
         if "boss_roar" in sid:
             return mix(sine(lambda t: 80 + 30 * math.sin(t * 8), 1.2, "saw"), noise(1.0, 0.05, 3))
         if "boss_die" in sid:
@@ -249,6 +341,22 @@ def recipe(sid, cat, loop):
             return clatter(r, 3, 0.09, (900, 1700))
         if "bone_die" in sid:
             return clatter(r, 14, 0.55, (500, 1500))
+        if "rocket_loose" in sid:
+            # the loose rocket's blink (pass 45): a warning buzzer, six beeps rising, one per blink over 0.7 s
+            out = [0.0] * int(0.72 * RATE)
+            for k in range(6):
+                b = sine(lambda t, k=k: 1500 + 130 * k, 0.055, "square")
+                s = int(k * 0.125 * RATE)
+                for i, v in enumerate(b):
+                    if s + i < len(out):
+                        out[s + i] += v * 0.8
+            return out
+        if "rocket_wild" in sid:
+            # the wild climb: a whistle sweeping up with a flutter over a rush of air
+            return mix(sine(lambda t: 500 + 1600 * (t / 1.0) ** 1.6 + 40 * math.sin(t * 60), 1.0, "saw"), [v * 0.5 for v in noise(1.0, 0.25, 1.5)])
+        if "rocket_dive" in sid:
+            # the dive: a falling whistle
+            return mix(sine(lambda t: 2200 - 1500 * t / 0.8, 0.8), [v * 0.4 for v in noise(0.8, 0.3, 2.0)])
         if "rocket_boom" in sid:
             # a deep boom that rolls on: low rumble, a falling thump and a crackle on top
             return mix(noise(1.4, 0.03, 3.0), sine(lambda t: 70 - 40 * t / 1.2, 1.2), [v * 0.5 for v in noise(0.5, 0.35, 9.0)])

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_q41nf"]
+[ext_resource type="Texture2D" path="res://content/mutations/last_stand/last_stand_icon.png" id="1_vlbi0"]
+
+[resource]
+script = ExtResource("1_q41nf")
+weapon = "turret_buddy"
+mutation_kind = "element"
+text = "A turret that despawns explodes: a 3 m blast for 4× its shot's damage, throwing them back."
+vfx = "a fireball where the turret stood as it goes"
+params = {
+"turret": {
+"boom": {
+"damage_mult": 4.0,
+"knockback": 9.0,
+"radius": 3.0
+}
+}
+}
+id = "last_stand"
+display_name = "Last Stand"
+flavour = "It goes out with a bang."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_vlbi0")
+icon_file = "last_stand_icon.png"
+placeholder = {
+"color": "#FF9040",
+"glyph": "star"
+}

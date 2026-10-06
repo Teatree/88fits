@@ -6,7 +6,7 @@
     "stage": 3
   },
   "unlocks": {
-    "type": "line",
+    "type": "passive",
     "id": "evade"
   },
   "art_prompt": "a glass jar with a wisp of dust inside",

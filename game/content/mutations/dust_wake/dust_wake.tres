@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_57hhp"]
+[ext_resource type="Texture2D" path="res://content/mutations/dust_wake/dust_wake_icon.png" id="1_glh24"]
+
+[resource]
+script = ExtResource("1_57hhp")
+weapon = "tumbleweed"
+mutation_kind = "volume"
+text = "A faint dust wake: enemies within 1.6 m are slowed a little."
+vfx = "a dark green dust ring round every weed, slowed creatures tinted dark green"
+params = {
+"aura": {
+"every": 0.2,
+"radius": 1.6,
+"seconds": 0.4,
+"slow": 0.2,
+"tint": "#1A5A1E"
+}
+}
+id = "dust_wake"
+display_name = "Dust Wake"
+flavour = "Hard to run in a dust storm."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_glh24")
+icon_file = "dust_wake_icon.png"
+placeholder = {
+"color": "#508050",
+"glyph": "star"
+}

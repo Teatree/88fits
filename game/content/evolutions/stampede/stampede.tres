@@ -6,9 +6,7 @@
 
 [resource]
 script = ExtResource("1_hludc")
-behavior = "ProjectileEmitter"
-tags = []
-targeting = "nearest"
+targeting = "priority"
 base = {
 "amount": 4.0,
 "cooldown": 2.0,
@@ -18,10 +16,7 @@ base = {
 "range": 18.0,
 "speed": 7.0
 }
-levels = []
 max_level = 1
-evolves_with = ""
-evolves_into = ""
 is_evolution = true
 evolved_from = "tumbleweed"
 sfx = {
@@ -34,15 +29,11 @@ params = {
 "radius": 0.85,
 "spread_deg": 50.0
 }
-hero = ""
 id = "stampede"
 display_name = "Stampede"
 flavour = "Every tumbleweed in the county, at once."
-rarity = "epic"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
+rarity = "rare"
+hidden = true
 icon = ExtResource("1_w3tpl")
 icon_file = "stampede_icon.png"
 placeholder = {

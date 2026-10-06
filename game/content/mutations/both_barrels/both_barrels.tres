@@ -6,17 +6,16 @@
 [resource]
 script = ExtResource("1_cxjoj")
 weapon = "boomstick"
-mutation_kind = "hero"
-hero = "dad"
-text = "Every third shot fires twice."
+text = "Every third shot fires twice: a second blast right after the first."
 vfx = "a double muzzle bloom every third shot"
 params = {
-"double_every": 3.0
+"double_every": 3.0,
+"double_gap": 0.15
 }
 id = "both_barrels"
 display_name = "Both Barrels"
 flavour = "Dad does not do half."
-rarity = "epic"
+rarity = "rare"
 weight = 8.0
 icon = ExtResource("1_lmlbr")
 icon_file = "both_barrels_icon.png"

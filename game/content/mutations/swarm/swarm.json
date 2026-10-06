@@ -4,11 +4,12 @@
   "flavour": "You cannot count them. Do not try.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "hornet_nest",
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "+6 hornets, −60% damage each, cooldown −30%.",
+  "text": "+6 bees, −60% damage each, cooldown −30%.",
   "vfx": "a cloud of small seekers",
   "effects": [
     {
@@ -30,7 +31,7 @@
   "params": {
     "size_mult": 0.7
   },
-  "art_prompt": "a dense cloud of many tiny hornets",
+  "art_prompt": "a dense cloud of many tiny killer bees",
   "placeholder": {
     "color": "#E0B040",
     "glyph": "star"

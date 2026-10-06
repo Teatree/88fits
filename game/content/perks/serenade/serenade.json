@@ -4,6 +4,8 @@
   "flavour": "They stop to listen. Their mistake.",
   "rarity": "rare",
   "weight": 6,
+  "hidden": true,
+  "note": "hidden in pass 53, Garry; remove hidden to bring it back",
   "hero": "calavera",
   "text": "Creatures within 4 m of him move 25% slower.",
   "effects": [],

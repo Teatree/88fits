@@ -9,7 +9,6 @@ script = ExtResource("1_l8uru")
 stat = "cooldown"
 op = "mul"
 value = -0.35
-target = "self"
 
 [resource]
 script = ExtResource("2_lcku6")
@@ -25,7 +24,7 @@ params = {
 id = "danza_macabra"
 display_name = "Danza Macabra"
 flavour = "Calavera's skulls keep time."
-rarity = "epic"
+rarity = "rare"
 weight = 8.0
 icon = ExtResource("2_vpan0")
 icon_file = "danza_macabra_icon.png"

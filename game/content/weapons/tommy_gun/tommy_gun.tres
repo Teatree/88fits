@@ -8,57 +8,45 @@
 [sub_resource type="Resource" id="Resource_1elit"]
 script = ExtResource("1_ih4tt")
 stat = "amount"
-op = "add"
 value = 2.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_gvh8r"]
 script = ExtResource("1_ih4tt")
 stat = "damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [sub_resource type="Resource" id="Resource_jwkvf"]
 script = ExtResource("1_ih4tt")
 stat = "amount"
-op = "add"
 value = 2.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_wy63a"]
 script = ExtResource("1_ih4tt")
 stat = "damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [sub_resource type="Resource" id="Resource_jyo58"]
 script = ExtResource("1_ih4tt")
 stat = "amount"
-op = "add"
 value = 2.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_32bit"]
 script = ExtResource("1_ih4tt")
 stat = "cooldown"
 op = "mul"
 value = -0.12
-target = "self"
 
 [sub_resource type="Resource" id="Resource_6gotf"]
 script = ExtResource("1_ih4tt")
 stat = "damage"
 op = "mul"
 value = 0.3
-target = "self"
 
 [resource]
 script = ExtResource("2_conqo")
-behavior = "ProjectileEmitter"
-tags = []
-targeting = "nearest"
+targeting = "priority"
 base = {
 "amount": 6.0,
 "cooldown": 1.4,
@@ -69,12 +57,9 @@ base = {
 "speed": 22.0,
 "spread_deg": 8.0
 }
-levels = [[], [SubResource("Resource_1elit")], [SubResource("Resource_gvh8r")], [SubResource("Resource_jwkvf")], [SubResource("Resource_wy63a")], [SubResource("Resource_jyo58")], [SubResource("Resource_32bit")], [SubResource("Resource_6gotf")]]
-max_level = 8
-evolves_with = ""
+levels = [[], [SubResource("Resource_1elit"), SubResource("Resource_gvh8r")], [SubResource("Resource_jwkvf"), SubResource("Resource_wy63a")], [SubResource("Resource_jyo58")], [SubResource("Resource_32bit"), SubResource("Resource_6gotf")]]
+max_level = 5
 evolves_into = "chicago_typewriter"
-is_evolution = false
-evolved_from = ""
 sfx = {
 "fire": "w_tommy_fire",
 "hit": "w_pea_hit"
@@ -93,15 +78,11 @@ params = {
 "radius": 0.16,
 "tracer": true
 }
-hero = ""
 id = "tommy_gun"
 display_name = "Tommy Gun"
 flavour = "Says hello. Repeatedly."
 rarity = "rare"
-element = ""
 weight = 7.0
-hidden = false
-from_stage = 0
 icon = ExtResource("1_1elit")
 icon_file = "tommy_gun_icon.png"
 placeholder = {

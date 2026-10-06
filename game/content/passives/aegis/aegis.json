@@ -1,0 +1,39 @@
+{
+  "id": "aegis",
+  "name": "Aegis",
+  "flavour": "The hum becomes a wall.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "shield_max",
+        "op": "add",
+        "value": 90,
+        "target": "player"
+      },
+      {
+        "stat": "shield_delay",
+        "op": "set",
+        "value": 1.5,
+        "target": "player"
+      },
+      {
+        "stat": "shield_rate",
+        "op": "set",
+        "value": 1.0,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "energy_shield",
+  "art_prompt": "a glowing blue energy shield dome with a bright gold rim and a hexagon pattern",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

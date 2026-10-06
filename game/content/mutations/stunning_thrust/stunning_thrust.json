@@ -1,0 +1,27 @@
+{
+  "id": "stunning_thrust",
+  "name": "Stunning Thrust",
+  "flavour": "Right between the thoughts.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "pike",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "Every hit has a 15% chance to stun for a second.",
+  "vfx": "a stunned creature stands frozen in a pale yellow tint, little stars over it",
+  "effects": [],
+  "params": {
+    "thrust": {
+      "stun": {
+        "chance": 0.15,
+        "seconds": 1.0
+      }
+    }
+  },
+  "art_prompt": "a spear head striking with a burst of pale yellow stars and spiral dizzy lines",
+  "placeholder": {
+    "color": "#F0E080",
+    "glyph": "star"
+  }
+}

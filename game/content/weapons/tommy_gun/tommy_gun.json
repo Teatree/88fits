@@ -5,7 +5,7 @@
   "rarity": "rare",
   "weight": 7,
   "behavior": "ProjectileEmitter",
-  "targeting": "nearest",
+  "targeting": "priority",
   "base": {
     "damage": 3,
     "cooldown": 1.4,
@@ -16,6 +16,7 @@
     "range": 12,
     "knockback": 0.6
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -23,9 +24,7 @@
         "stat": "amount",
         "op": "add",
         "value": 2
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",
@@ -37,9 +36,7 @@
         "stat": "amount",
         "op": "add",
         "value": 2
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",
@@ -58,9 +55,7 @@
         "stat": "cooldown",
         "op": "mul",
         "value": -0.12
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",

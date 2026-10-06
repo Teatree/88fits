@@ -1,0 +1,166 @@
+[gd_scene load_steps=17 format=3]
+
+[sub_resource type="CapsuleMesh" id="proj"]
+radius = 0.07
+height = 0.5
+radial_segments = 6
+rings = 2
+
+[sub_resource type="StandardMaterial3D" id="projmat"]
+albedo_color = Color(1, 0.85, 0.45, 1)
+emission_enabled = true
+emission = Color(1, 0.7, 0.25, 1)
+emission_energy_multiplier = 1.2
+
+[sub_resource type="CylinderMesh" id="barrel"]
+top_radius = 0.045
+bottom_radius = 0.045
+height = 0.82
+radial_segments = 10
+
+[sub_resource type="StandardMaterial3D" id="steel"]
+albedo_color = Color(0.22, 0.2, 0.22, 1)
+metallic = 0.7
+roughness = 0.45
+
+[sub_resource type="BoxMesh" id="receiver"]
+size = Vector3(0.13, 0.15, 0.32)
+
+[sub_resource type="StandardMaterial3D" id="wood"]
+albedo_color = Color(0.75, 0.55, 0.15, 1)
+roughness = 0.4
+
+[sub_resource type="PrismMesh" id="stock"]
+size = Vector3(0.11, 0.2, 0.36)
+
+[sub_resource type="CylinderMesh" id="pump"]
+top_radius = 0.065
+bottom_radius = 0.065
+height = 0.2
+radial_segments = 10
+
+[sub_resource type="TorusMesh" id="guard"]
+inner_radius = 0.04
+outer_radius = 0.06
+rings = 8
+ring_segments = 6
+
+[sub_resource type="SphereMesh" id="spark"]
+radius = 0.07
+height = 0.14
+radial_segments = 4
+rings = 2
+
+[sub_resource type="StandardMaterial3D" id="gold"]
+albedo_color = Color(1, 0.78, 0.3, 1)
+metallic = 0.5
+roughness = 0.3
+emission_enabled = true
+emission = Color(0.55, 0.38, 0.1, 1)
+emission_energy_multiplier = 0.25
+
+[sub_resource type="CylinderMesh" id="bell"]
+top_radius = 0.19
+bottom_radius = 0.09
+height = 0.26
+radial_segments = 16
+rings = 2
+
+[sub_resource type="CylinderMesh" id="mouth"]
+top_radius = 0.16
+bottom_radius = 0.16
+height = 0.012
+radial_segments = 16
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="dark"]
+albedo_color = Color(0.06, 0.04, 0.03, 1)
+roughness = 0.9
+
+[sub_resource type="TorusMesh" id="band"]
+inner_radius = 0.085
+outer_radius = 0.112
+rings = 14
+ring_segments = 6
+
+[sub_resource type="SphereMesh" id="cap"]
+radius = 0.07
+height = 0.14
+radial_segments = 8
+rings = 4
+
+[node name="BlunderbussVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+mesh = SubResource("proj")
+material_override = SubResource("projmat")
+
+[node name="Held" type="Node3D" parent="."]
+
+[node name="BarrelL" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, -0.04, 0.09, -0.5)
+mesh = SubResource("barrel")
+material_override = SubResource("steel")
+
+[node name="BarrelR" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0.04, 0.09, -0.5)
+mesh = SubResource("barrel")
+material_override = SubResource("steel")
+
+[node name="Receiver" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, -0.08)
+mesh = SubResource("receiver")
+material_override = SubResource("steel")
+
+[node name="Stock" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(1, 0, 0, 0, 0.96, -0.28, 0, 0.28, 0.96, 0, -0.02, 0.24)
+mesh = SubResource("stock")
+material_override = SubResource("wood")
+
+[node name="Pump" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.02, -0.42)
+mesh = SubResource("pump")
+material_override = SubResource("wood")
+
+[node name="Guard" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0, -0.06, 0.02)
+mesh = SubResource("guard")
+material_override = SubResource("gold")
+
+[node name="Bell" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.09, -1.02)
+mesh = SubResource("bell")
+material_override = SubResource("gold")
+
+[node name="BellMouth" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.09, -1.153)
+mesh = SubResource("mouth")
+material_override = SubResource("dark")
+
+[node name="BandFront" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.09, -0.78)
+mesh = SubResource("band")
+material_override = SubResource("gold")
+
+[node name="BandBack" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.09, -0.3)
+mesh = SubResource("band")
+material_override = SubResource("gold")
+
+[node name="StockCap" type="MeshInstance3D" parent="Held"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.08, 0.42)
+mesh = SubResource("cap")
+material_override = SubResource("gold")
+
+[node name="Muzzle" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 14
+lifetime = 0.25
+one_shot = true
+explosiveness = 1.0
+mesh = SubResource("spark")
+direction = Vector3(0, 0, -1)
+spread = 40.0
+initial_velocity_min = 4.0
+initial_velocity_max = 9.0
+gravity = Vector3(0, -3, 0)

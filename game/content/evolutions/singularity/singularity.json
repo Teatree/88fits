@@ -2,7 +2,7 @@
   "id": "singularity",
   "name": "Singularity",
   "flavour": "Everything falls in eventually.",
-  "rarity": "epic",
+  "rarity": "rare",
   "is_evolution": true,
   "evolved_from": "gravity_gun",
   "max_level": 1,
@@ -12,8 +12,8 @@
     "gun"
   ],
   "base": {
-    "damage": 16,
-    "cooldown": 3.2,
+    "damage": 22,
+    "cooldown": 2.8,
     "amount": 1,
     "range": 9.0,
     "area": 1.0,
@@ -29,7 +29,7 @@
       "black_hole": {
         "radius": 3.2,
         "seconds": 3.0,
-        "dps_frac": 0.9,
+        "dps_frac": 1.0,
         "pull": 5.5,
         "pop": 1.5,
         "tick": 0.25,

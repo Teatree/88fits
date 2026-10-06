@@ -1,0 +1,25 @@
+{
+  "id": "siesta",
+  "name": "Siesta",
+  "flavour": "Sit a while. The desert can wait.",
+  "rarity": "uncommon",
+  "weight": 8,
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "still_regen",
+        "op": "add",
+        "value": 1.0,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "text": "Standing still heals you: +1 health a second a level.",
+  "art_prompt": "a wide straw sombrero resting on a plump white pillow, a small glowing red heart floating just above it",
+  "placeholder": {
+    "color": "#E8D080",
+    "glyph": "star"
+  }
+}

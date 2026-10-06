@@ -11,7 +11,7 @@ condition = {
 }
 unlocks = {
 "id": "evade",
-"type": "line"
+"type": "passive"
 }
 id = "unlock_evade"
 display_name = "Evade"

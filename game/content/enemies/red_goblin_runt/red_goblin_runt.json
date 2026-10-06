@@ -1,0 +1,101 @@
+{
+  "id": "red_goblin_runt",
+  "name": "Red Runt",
+  "flavour": "Small, red and quick to stab.",
+  "archetype": "walker",
+  "brain": "chase",
+  "hp": 10.0,
+  "speed": 1.6,
+  "damage": 3.0,
+  "knockback": 2.94,
+  "pack_size": 5,
+  "cap_share": 0.5,
+  "xp_mult": 1.5,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.05,
+    "gold": 0.02,
+    "chest": 0.0028
+  },
+  "radius": 0.35,
+  "size": 0.95,
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 8,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "frame_px": 128,
+  "strip_cols": 43,
+  "fps": {
+    "run": 20,
+    "die": 12
+  },
+  "head": 1.0,
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_goblin_die"
+  },
+  "placeholder": {
+    "color": "#C8352A",
+    "ears": "pointed",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "art_prompt": "a tiny scrawny red-skinned goblin with exactly two huge pointed ears, one on each side of its head and nothing else sticking out of its head, wide crazy eyes and a mischievous grin, wearing a torn grey rag and holding a rusty dagger in one hand, two arms and two legs, standing and facing the viewer",
+  "variance": {
+    "size": 0.22,
+    "speed": 0.18,
+    "tints": [
+      "#FFFFFF",
+      "#FFC8A0",
+      "#FFD27A",
+      "#C8A0FF",
+      "#FFB0B0"
+    ],
+    "tint_strength": 0.22,
+    "special_chance": 0.1,
+    "special": {
+      "size": 1.5,
+      "hp": 2.2,
+      "damage": 1.4,
+      "xp": 3.0,
+      "tint": "#5A1A80",
+      "tint_strength": 0.6
+    }
+  },
+  "motion": "scurrying in place with quick little steps, gripping its rusty dagger in the same hand the whole time",
+  "doc": "The runt in red: the skeleton's numbers, a runt's dagger. Placed by the Level Editor.",
+  "note": "Pass 53: goblin_runt's RUN-D strip recoloured frame by frame (tools/recolour_strip.py, hues 55-135 to red); the same walk, lines and death.",
+  "retired": false,
+  "variant_base": "RR-A",
+  "variant": "RR-A",
+  "variants": {
+    "RR-A": {
+      "note": "blood red (hue 357)"
+    },
+    "RR-B": {
+      "note": "brick red (hue 14)",
+      "sprite": "red_goblin_runt_sprite_b.png",
+      "icon": "red_goblin_runt_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 20,
+        "die": 12
+      },
+      "head": 1.0
+    }
+  }
+}

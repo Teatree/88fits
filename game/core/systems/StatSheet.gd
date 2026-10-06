@@ -7,17 +7,41 @@ extends RefCounted
 ## Known player stats with defaults. Weapons use their own keys from WeaponDef.base.
 const PLAYER_DEFAULTS := {
 	"max_hp": 100.0, "damage_reduction": 0.0, "regen": 0.0, "move_speed": 3.6, "might": 1.0, "cooldown": 1.0,
-	"area": 1.0, "projectile_speed": 1.0, "duration": 1.0, "amount": 0.0, "magnet": 1.5, "luck": 0.0,
-	"greed": 1.0, "lifesteal": 0.0, "revives": 0.0, "rerolls": 1.0, "skips": 0.0, "banishes": 1.0, "turn_rate": 180.0,
+	"area": 1.0, "projectile_speed": 1.0, "duration": 1.0, "amount": 0.0, "magnet": 1.5, "luck": 0.0, "freeze_chance": 0.0, "crit_heal_chance": 0.0, "gold_on_hit": 0.0,
+	"greed": 1.0, "lifesteal": 0.0, "revives": 0.0, "turn_rate": 180.0,
+	# the choices (pass 47, Garry: "only two skips per Stage ... initially 1 Banish"): skips and banishes are a stage's,
+	# refilled at the run's start and at every stage (Run.refill_choices), the Mirror's Skip and Banish a rank each more;
+	# rerolls stay a run's
+	"rerolls": 1.0, "skips": 2.0, "banishes": 1.0,
 	# passive mechanisms (pass 23): rolled or applied by the systems, never by the sheet itself
-	"crit_chance": 0.0, "crit_damage": 2.0, "execute_frac": 0.0, "thorns": 0.0, "adrenaline_speed": 0.0, "adrenaline_might": 0.0,
+	"crit_chance": 0.01, "crit_damage": 2.0, "execute_frac": 0.0, "thorns": 0.0, "adrenaline_speed": 0.0, "adrenaline_might": 0.0,
 	"overkill": 0.0, "cooldown_on_kill": 0.0, "xp_gain": 1.0, "ricochet": 0.0, "homing_turn": 1.0,
 	# Berserk (pass 33): every weapon's clock runs this much faster (cooldowns divided, blades spin, turrets fire)
 	"haste": 1.0,
 	# the protective lines and drops (pass 33.2): Evade and Ghost Step, the Energy Shield and Aegis, Second Wind's
-	# shorter wait, Bloodthirst's higher lifesteal cap, Beef Jerky and Pickpocket
+	# shorter wait, Bloodthirst's higher lifesteal cap, Cake and Pickpocket
 	"evade": 0.0, "evade_invuln": 0.0, "shield_max": 0.0, "shield_delay": 3.0, "shield_rate": 0.5,
 	"regen_delay": 3.0, "lifesteal_cap": 0.04, "heal_drop": 0.0, "coin_drop": 0.0,
+	# pass 46: the untouchable seconds after a hit, the share of max HP a revive stands up with, and Desperado (up to
+	# this much more attack damage as health falls)
+	"hit_invuln": 0.5, "revive_hp": 0.5, "desperado": 0.0,
+	# pass 47, the new lines and passive items (each read by the system it names): Ducktape's longer burns, poison, slows,
+	# marks and pins (a multiplier); Hot Sauce's difficulty (coloured creatures more often, better paid); Siesta's regen
+	# and Steady Hand's attack damage a second while the hero stands still (Run.note_still); Barrel Rush's speed and its
+	# seconds after a barrel (Run.barrel_rush); Prospector's chance of an extra XP gem a kill; Big Game Hunter's extra
+	# damage to Elites and bosses
+	"debuff_duration": 1.0, "difficulty": 0.0, "still_regen": 0.0, "still_might": 0.0, "barrel_speed": 0.0,
+	"barrel_seconds": 0.0, "xp_drop_chance": 0.0, "elite_damage": 0.0,
+	# pass 48, the new passive items (each read by the system it names): Phoenix Feather's free revive (Run.phoenix_ready,
+	# Game._on_player_died); Skedaddle's move speed and its seconds after a hit lands (Run.skedaddle); Powder Keg's chance
+	# a kill blows up (Game._on_enemy_died); Loose Change's chance a hit knocks a coin out of the hero (Game._on_player_hit);
+	# Gas Mask's most damage reduction from poisoned creatures (Run.poisoned_alive); pass 49: Hot Streak's attack damage per
+	# 1,000 kills made while it is held (Run.hot_streak_bonus)
+	"phoenix_revive": 0.0, "hurt_speed": 0.0, "hurt_speed_seconds": 0.0, "powder_keg_chance": 0.0, "coin_on_hit": 0.0,
+	"gas_mask_cap": 0.0, "kill_might": 0.0,
+	# pass 54, Solenne: how long every buff on her lasts (Run.buff_seconds: the power-ups, structures, Pollen, Barrel Rush,
+	# Skedaddle, the shield power-up), and how big every heal on her is (Player.heal and her regen, Afterglow)
+	"buff_duration": 1.0, "heal_mult": 1.0,
 }
 
 ## "player" for the hero's own sheet: effects aimed at weapons ("all_weapons", "weapon:<id>", "tag:<tag>") are carried

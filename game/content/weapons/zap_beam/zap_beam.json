@@ -14,6 +14,7 @@
     "amount": 1,
     "knockback": 3.0
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -21,9 +22,7 @@
         "stat": "chains",
         "op": "add",
         "value": 1
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",
@@ -35,9 +34,7 @@
         "stat": "cooldown",
         "op": "mul",
         "value": -0.1
-      }
-    ],
-    [
+      },
       {
         "stat": "chains",
         "op": "add",
@@ -56,9 +53,7 @@
         "stat": "chains",
         "op": "add",
         "value": 1
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",

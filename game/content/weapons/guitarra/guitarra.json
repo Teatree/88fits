@@ -1,25 +1,23 @@
 {
   "id": "guitarra",
   "name": "Guitarra",
-  "flavour": "Three notes. All of them hurt.",
+  "flavour": "A cone of melody: whatever stands in it is lifted and dropped.",
   "rarity": "rare",
   "weight": 8,
   "hero": "calavera",
-  "behavior": "ProjectileEmitter",
+  "behavior": "ConeWave",
   "targeting": "nearest",
   "tags": [
-    "gun"
+    "melody"
   ],
   "base": {
-    "damage": 15,
-    "cooldown": 1.25,
-    "amount": 3,
-    "pierce": 2,
-    "speed": 17,
-    "range": 10,
-    "knockback": 5.0,
-    "spread_deg": 34
+    "damage": 14,
+    "cooldown": 1.4,
+    "amount": 1,
+    "range": 6.0,
+    "area": 1.0
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -27,9 +25,7 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.25
-      }
-    ],
-    [
+      },
       {
         "stat": "cooldown",
         "op": "mul",
@@ -38,23 +34,14 @@
     ],
     [
       {
-        "stat": "amount",
+        "stat": "range",
         "op": "add",
-        "value": 1
-      }
-    ],
-    [
-      {
-        "stat": "pierce",
-        "op": "add",
-        "value": 1
-      }
-    ],
-    [
+        "value": 1.0
+      },
       {
         "stat": "damage",
         "op": "mul",
-        "value": 0.3
+        "value": 0.25
       }
     ],
     [
@@ -66,18 +53,32 @@
     ],
     [
       {
-        "stat": "amount",
+        "stat": "range",
         "op": "add",
-        "value": 1
+        "value": 1.0
+      },
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
       }
     ]
   ],
   "evolves_with": "",
   "evolves_into": "requiem",
   "params": {
-    "radius": 0.28,
-    "no_shells": true,
-    "strum": true,
+    "cone": {
+      "deg": 70,
+      "lift": 0.6,
+      "lift_time": 0.45,
+      "knock": 2.5,
+      "notes": 8,
+      "color": [
+        1.0,
+        0.82,
+        0.35
+      ]
+    },
     "familiar": {
       "radius": 1.25,
       "height": 1.5,

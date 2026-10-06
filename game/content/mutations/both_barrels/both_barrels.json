@@ -2,17 +2,18 @@
   "id": "both_barrels",
   "name": "Both Barrels",
   "flavour": "Dad does not do half.",
-  "rarity": "epic",
+  "rarity": "rare",
   "weight": 8,
   "weapon": "boomstick",
-  "kind": "hero",
+  "kind": "motion",
   "element": "",
-  "hero": "dad",
-  "text": "Every third shot fires twice.",
+  "hero": "",
+  "text": "Every third shot fires twice: a second blast right after the first.",
   "vfx": "a double muzzle bloom every third shot",
   "effects": [],
   "params": {
-    "double_every": 3
+    "double_every": 3,
+    "double_gap": 0.15
   },
   "art_prompt": "a double-barrelled shotgun with both barrels flashing",
   "placeholder": {

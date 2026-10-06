@@ -1,4 +1,5 @@
-## The portal that appears where a boss dies. Walking in asks: extract or continue.
+## The portal that appears where a boss dies. Walking in asks: extract or continue (or not yet: pass 48, the hero who
+## steps back out past REARM metres can walk in and be asked again).
 ## Painted like the scenery (pass 42): a sandstone moon gate (art/sprites/props/boss_portal.png, a billboard) with a green
 ## vortex turning in its round opening (the Teleport's swirl shader; where the opening is in the painting comes from
 ## boss_portal.json beside it, measured when tools/gen_ui_art.py installs the art). It rises out of the sand when it opens. The
@@ -11,6 +12,10 @@ signal entered
 const ART := "res://art/sprites/props/boss_portal.png"
 const MANIFEST := "res://art/sprites/props/boss_portal.json"
 const GREEN := Color(0.27, 0.83, 0.6)
+## Walking in (within ENTER metres) asks; after a "Not yet" the portal waits for the hero to be REARM metres out before it
+## asks again (pass 48), so the one who stands still in it is not asked every frame.
+const ENTER := 1.5
+const REARM := 2.5
 
 var _t := 0.0
 var armed := true
@@ -109,10 +114,12 @@ func _process(delta: float) -> void:
 
 
 func check_player(p: Node3D) -> void:
-	if not armed:
-		return
 	var d := p.global_position - global_position
 	d.y = 0.0
-	if d.length() < 1.5:
+	if not armed:
+		if d.length() > REARM:
+			armed = true
+		return
+	if d.length() < ENTER:
 		armed = false
 		entered.emit()

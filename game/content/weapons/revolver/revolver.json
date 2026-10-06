@@ -6,7 +6,7 @@
   "weight": 8,
   "hero": "drifter",
   "behavior": "ProjectileEmitter",
-  "targeting": "nearest",
+  "targeting": "priority",
   "tags": [
     "gun"
   ],
@@ -19,6 +19,7 @@
     "range": 14,
     "knockback": 2.0
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -26,9 +27,7 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.25
-      }
-    ],
-    [
+      },
       {
         "stat": "cooldown",
         "op": "mul",
@@ -40,9 +39,7 @@
         "stat": "pierce",
         "op": "add",
         "value": 1
-      }
-    ],
-    [
+      },
       {
         "stat": "amount",
         "op": "add",
@@ -61,9 +58,7 @@
         "stat": "cooldown",
         "op": "mul",
         "value": -0.12
-      }
-    ],
-    [
+      },
       {
         "stat": "amount",
         "op": "add",

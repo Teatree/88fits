@@ -7,6 +7,7 @@
   "hp": 60,
   "speed": 0.85,
   "damage": 14,
+  "knockback": 6.36,
   "radius": 0.6,
   "size": 1.9,
   "pack_size": 2,
@@ -65,5 +66,149 @@
     "die": 8
   },
   "doc": "The wall: slow, thick, fourteen damage a touch. It arrives when a build must have area damage or a way around.",
-  "head": 1.0
+  "head": 1.0,
+  "variant_base": "DM-0",
+  "variant": "DM-0",
+  "variants": {
+    "DM-0": {
+      "note": "Pass 22: the first mummy (a Klein still, free Wan clips)"
+    },
+    "DM-A": {
+      "note": "Tight old bandages, grey-sandy; walks on the zombie clip",
+      "recipe": {
+        "stills": "dma",
+        "art_prompt": "a stocky mummy wrapped head to toe in tight layers of old frayed grey-sandy bandages, no skin showing at all, the face fully wrapped except two glowing yellow eyes peeking through a gap, thick arms held out in front, a few bandage ends trailing",
+        "stand": "still",
+        "death": "clip",
+        "death_frames": 8,
+        "motion": "shuffling forward in place with stiff heavy steps, arms held out in front",
+        "gait": "shuffling in place on the spot with stiff heavy steps, the thick arms held out in front, bandages swaying",
+        "anim_negative": "extra arms, a third arm, extra legs, a second mummy, skin showing, a face with a nose or mouth",
+        "back_hint": "Its back is the same wrapped bandages, the head fully wrapped from behind, the arms held out ahead of it so only the shoulders and elbows show, strips trailing.",
+        "dead_hint": "lying flat on its back on the ground, dead: the glowing eyes gone dark, the arms flopped out to the sides, its body stretched out sideways across the picture with its head on the left and its feet on the right",
+        "pose": "zombie_walk",
+        "pose_front": "zombie_walk"
+      },
+      "sprite": "dust_mummy_sprite_a.png",
+      "icon": "dust_mummy_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0
+    },
+    "DM-B": {
+      "note": "Shredded, hanging strips everywhere; walks on the zombie clip",
+      "recipe": {
+        "stills": "dmb",
+        "art_prompt": "a hunched mummy wrapped in shredded, loose, dusty sandy bandages with many long strips hanging and trailing off its arms, legs and body, no skin or face showing, only two glowing yellow eyes in a gap between the wraps, thick arms held out in front",
+        "stand": "still",
+        "death": "clip",
+        "death_frames": 8,
+        "motion": "shuffling forward in place with stiff heavy steps, arms held out in front",
+        "gait": "shuffling in place on the spot with stiff heavy steps, the thick arms held out in front, bandages swaying",
+        "anim_negative": "extra arms, a third arm, extra legs, a second mummy, skin showing, a face with a nose or mouth",
+        "back_hint": "Its back is the same wrapped bandages, the head fully wrapped from behind, the arms held out ahead of it so only the shoulders and elbows show, strips trailing.",
+        "dead_hint": "lying flat on its back on the ground, dead: the glowing eyes gone dark, the arms flopped out to the sides, its body stretched out sideways across the picture with its head on the left and its feet on the right",
+        "pose": "zombie_walk",
+        "pose_front": "zombie_walk"
+      },
+      "sprite": "dust_mummy_sprite_b.png",
+      "icon": "dust_mummy_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0
+    },
+    "DM-C": {
+      "note": "Bulky, wide-wrapped; the skeletons' arms-out shamble",
+      "recipe": {
+        "stills": "dmc",
+        "art_prompt": "a bulky barrel-bodied mummy wrapped thickly in wide dusty sandy bandages layered like armour, no skin visible, the head fully wrapped with two glowing yellow eyes showing through, thick arms held out in front, bandage ends trailing from the elbows",
+        "stand": "still",
+        "death": "clip",
+        "death_frames": 8,
+        "motion": "shuffling forward in place with stiff heavy steps, arms held out in front",
+        "gait": "shuffling in place on the spot with stiff heavy steps, the thick arms held out in front, bandages swaying",
+        "anim_negative": "extra arms, a third arm, extra legs, a second mummy, skin showing, a face with a nose or mouth",
+        "back_hint": "Its back is the same wrapped bandages, the head fully wrapped from behind, the arms held out ahead of it so only the shoulders and elbows show, strips trailing.",
+        "dead_hint": "lying flat on its back on the ground, dead: the glowing eyes gone dark, the arms flopped out to the sides, its body stretched out sideways across the picture with its head on the left and its feet on the right",
+        "pose": "walk_zombie_low",
+        "pose_front": "walk_zombie_high"
+      },
+      "sprite": "dust_mummy_sprite_c.png",
+      "icon": "dust_mummy_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0
+    },
+    "DM-D": {
+      "note": "Goofy stocky, loose strips; a free clip",
+      "recipe": {
+        "stills": "dmd",
+        "art_prompt": "a goofy stocky mummy wrapped head to toe in loose dusty sandy bandages with lots of strips trailing off, no skin showing, the face wrapped over except two big glowing yellow eyes peeking through, thick arms held out in front",
+        "stand": "still",
+        "death": "clip",
+        "death_frames": 8,
+        "motion": "shuffling forward in place with stiff heavy steps, arms held out in front",
+        "gait": "shuffling in place on the spot with stiff heavy steps, the thick arms held out in front, bandages swaying",
+        "anim_negative": "extra arms, a third arm, extra legs, a second mummy, skin showing, a face with a nose or mouth",
+        "back_hint": "Its back is the same wrapped bandages, the head fully wrapped from behind, the arms held out ahead of it so only the shoulders and elbows show, strips trailing.",
+        "dead_hint": "lying flat on its back on the ground, dead: the glowing eyes gone dark, the arms flopped out to the sides, its body stretched out sideways across the picture with its head on the left and its feet on the right",
+        "pose": "",
+        "pose_front": ""
+      },
+      "sprite": "dust_mummy_sprite_d.png",
+      "icon": "dust_mummy_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0
+    }
+  },
+  "note": "Pass 53 (Garry): four new looks with more rags and no skin, each on its own walk (DM-A/B on Garry's Zombie monster walk GLB via tools/dl/drivers/zombie_walk, DM-C on the skeletons' arms-out shamble, DM-D a free Wan clip); the old painting kept as DM-0."
 }

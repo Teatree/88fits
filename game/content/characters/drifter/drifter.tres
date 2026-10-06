@@ -23,13 +23,14 @@ target = "player"
 script = ExtResource("1_tp357")
 trait_effects = [SubResource("Resource_ru77d"), SubResource("Resource_u8oit")]
 trait_name = "Long Road"
-trait_text = "+10% move speed and +25% pickup radius. His Peashooter starts at level 3."
+trait_text = "+10% move speed and +25% pickup radius. His Peashooter starts at level 2."
 pronoun = "he"
 favourite_weapon = "peashooter"
 favourite_bonus = {
 "type": "level",
-"value": 3.0
+"value": 2.0
 }
+start_weapon = "revolver"
 sprite = ExtResource("3_u8oit")
 sprite_file = "drifter_sprite.png"
 anims = {

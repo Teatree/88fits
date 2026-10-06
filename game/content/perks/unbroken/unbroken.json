@@ -1,0 +1,17 @@
+{
+  "id": "unbroken",
+  "name": "Unbroken",
+  "flavour": "Wounds close. He keeps walking.",
+  "rarity": "rare",
+  "weight": 5,
+  "hero": "ironwood",
+  "text": "Hits no longer pause his regen: he keeps healing while they land.",
+  "effects": [],
+  "special": "unbroken",
+  "params": {},
+  "art_prompt": "a green heart bound with a tight band of braided leather, a small crack in the heart closing up with a glow",
+  "placeholder": {
+    "color": "#6E8B5E",
+    "glyph": "star"
+  }
+}

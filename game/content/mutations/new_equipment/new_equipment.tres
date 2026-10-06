@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_hwxvp"]
+[ext_resource type="Texture2D" path="res://content/mutations/new_equipment/new_equipment_icon.png" id="2_hwxvp"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_67chx"]
+
+[sub_resource type="Resource" id="Resource_hwxvp"]
+script = ExtResource("1_hwxvp")
+stat = "knockback"
+op = "mul"
+value = 0.3
+
+[sub_resource type="Resource" id="Resource_x3dcu"]
+script = ExtResource("1_hwxvp")
+stat = "area"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_67chx"]
+script = ExtResource("1_hwxvp")
+stat = "damage"
+op = "mul"
+value = 0.2
+
+[resource]
+script = ExtResource("3_67chx")
+weapon = "lob_grenade"
+mutation_kind = "element"
+text = "+30% knockback, +20% area, +20% damage, and a grenade 35% bigger."
+vfx = "a bigger, shinier grenade"
+effects = [SubResource("Resource_hwxvp"), SubResource("Resource_x3dcu"), SubResource("Resource_67chx")]
+params = {
+"size_mult": 1.35
+}
+id = "new_equipment"
+display_name = "New Equipment"
+flavour = "Fresh from the quartermaster."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_hwxvp")
+icon_file = "new_equipment_icon.png"
+placeholder = {
+"color": "#7A8A4A",
+"glyph": "star"
+}

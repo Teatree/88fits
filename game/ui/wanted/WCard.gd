@@ -1,5 +1,6 @@
 ## The item card: paper, a 5 px ink border and a hard shadow, a brass rivet on the top edge, the plate on the left,
-## the wax seal top-right, and a column of: the kind in one word (tracked, in the kind's colour), the name, the level
+## the wax seal top-right (no item card has worn one since pass 43; a passive item's rarity is its plate's colour since
+## pass 47), and a column of: the kind in one word (tracked, in the kind's colour), the name, the level
 ## stars and one effect line. Variants: an evolution wears an ember band inside the border; a card the player cannot
 ## afford is aged at 60 % with its price button in paper ("· 8 short"). Held, it sits on its shadow with a brass band.
 class_name WCard
@@ -16,11 +17,16 @@ var effect_text: WText
 var seal_at := Vector2(20, 20)
 var _col: VBoxContainer
 var _shadow := 10
+## The stars' size on a card (pass 48, Garry: bigger stars everywhere; 28 before).
+const STAR_PX := 40.0
 
 
-## o: word, word_color, name, name_size (60), stars [total, held, upto] or [], effect, rarity ("" = no seal),
-## plate_px (170), evolution (bool), price (-1 = none), short (gold missing), shadow (10), pad [t, r, b, l], gap (28),
-## col_gap (8), effect_size (30), text_right (room for the seal, 110), seal_px (96), locked (bool).
+## o: word, word_color, name, name_size (60), stars [total, held, upto] or [], star_px (40; 28 before pass 48), effect,
+## rarity ("" = no seal), plate_px (170), level (the plate's colour for a weapon or a line, pass 48; 0 = common), dots
+## (Vector2i held/total mutation dots on a weapon's plate, pass 48) and dots_ready (the glow), evolution (bool), price
+## (-1 = none), short (gold missing), shadow (10), pad [t, r, b, l], gap (28), col_gap (8), effect_size (30), text_right
+## (room for the seal, 110), seal_px (96), locked (bool), kind_mark (pass 54: the plate's corner glyph, "weapon" or "line";
+## by default the def's own, W.kind_mark_of; "" for none).
 static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 	var c := WCard.new()
 	c.def = p_def
@@ -45,11 +51,17 @@ static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 	row.add_theme_constant_override("separation", int(o.get("gap", 28)))
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	c.add_child(row)
-	c.plate = WPlate.new().for_def(p_def, float(o.get("plate_px", 170.0)))
+	c.plate = WPlate.new().for_def(p_def, float(o.get("plate_px", 170.0)), false, int(o.get("level", 0)))
 	c.plate.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if o.has("plate_fill"):
 		c.plate.fill = o["plate_fill"]
+	var dots: Vector2i = o.get("dots", Vector2i.ZERO)
+	if dots.y > 0:
+		c.plate.set_dots(dots, bool(o.get("dots_ready", false)))
 	c.plate.icon_frac = float(o.get("icon_frac", 0.76))
+	# the kind's corner glyph (pass 54): a revolver on a weapon and its evolution (pass 56), a scroll on a line and its
+	# evolution, none on a passive item, a perk or a mutation
+	c.plate.set_kind_mark(str(o.get("kind_mark", W.kind_mark_of(p_def))))
 	row.add_child(c.plate)
 	c._col = VBoxContainer.new()
 	c._col.add_theme_constant_override("separation", int(o.get("col_gap", 8)))
@@ -71,7 +83,7 @@ static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 	c._col.add_child(W.slab_text(str(o.get("name", p_def.display_name if p_def else "")), name_px, W.INK))
 	var st: Array = o.get("stars", [])
 	if st.size() >= 2:
-		c._col.add_child(WMarks.new().setup("stars", int(st[0]), int(st[1]), int(st[2]) if st.size() > 2 else -1, float(o.get("star_px", 28.0))))
+		c._col.add_child(WMarks.new().setup("stars", int(st[0]), int(st[1]), int(st[2]) if st.size() > 2 else -1, float(o.get("star_px", STAR_PX))))
 	var eff := str(o.get("effect", ""))
 	if eff != "":
 		c.effect_text = W.serif_text(eff, int(o.get("effect_size", 30)), W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, -1.0, true)

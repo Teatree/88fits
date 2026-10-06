@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/stride/stride_icon.png" id="1_ldvml"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_ndof0"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_5i8ic"]
+
+[sub_resource type="Resource" id="Resource_ldvml"]
+script = ExtResource("2_ndof0")
+stat = "move_speed"
+op = "mul"
+value = 0.06
+target = "player"
+
+[resource]
+script = ExtResource("3_5i8ic")
+line = true
+levels = [[SubResource("Resource_ldvml")]]
+max_level = 4
+evolves_into = "roadrunner"
+id = "stride"
+display_name = "Stride"
+flavour = "Longer legs, somehow."
+icon = ExtResource("1_ldvml")
+icon_file = "stride_icon.png"
+placeholder = {
+"color": "#70D0FF",
+"glyph": "star"
+}

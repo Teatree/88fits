@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_a85a1"]
+[ext_resource type="Texture2D" path="res://content/evolutions/whirlwind/whirlwind_icon.png" id="1_csaeb"]
+[ext_resource type="PackedScene" path="res://content/evolutions/whirlwind/whirlwind_visual.tscn" id="2_csaeb"]
+
+[resource]
+script = ExtResource("1_a85a1")
+behavior = "Thruster"
+tags = ["blade"]
+targeting = "priority"
+base = {
+"amount": 4.0,
+"area": 1.2,
+"cooldown": 0.9,
+"damage": 30.0,
+"knockback": 12.0,
+"range": 3.8
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "sabre"
+sfx = {
+"fire": "w_saw_hit",
+"hit": "w_pea_hit"
+}
+visual = ExtResource("2_csaeb")
+visual_file = "whirlwind_visual.tscn"
+params = {
+"final": {
+"crit_refund": 0.2
+},
+"thrust": {
+"back": 0.1,
+"out": 0.05,
+"side": 1.1,
+"slice": 0.14,
+"slice_deg": 360.0,
+"width": 1.0
+},
+"trail_color": "#A8F0FF"
+}
+id = "whirlwind"
+display_name = "Whirlwind"
+flavour = "Every swing is a full circle, four a stroke; a swing that crits refunds 20% of the cooldown. Flurry doubles the swings, Riposte speeds them and Critical Thinking's crits refund them: it hardly stops spinning."
+rarity = "rare"
+icon = ExtResource("1_csaeb")
+icon_file = "whirlwind_icon.png"
+placeholder = {
+"color": "#A8F0FF",
+"glyph": "sword",
+"gold": true
+}

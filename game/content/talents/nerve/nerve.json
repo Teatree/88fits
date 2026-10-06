@@ -1,18 +1,21 @@
 {
   "id": "nerve",
   "name": "Nerve",
-  "flavour": "Walk away richer, or get back up.",
+  "flavour": "Pass on one more, or get back up.",
   "order": 6,
-  "ranks": 3,
+  "ranks": 6,
   "cost": [
     220,
     396,
-    660
+    660,
+    990,
+    1430,
+    1980
   ],
   "forms": [
     {
-      "name": "Skip Bonus",
-      "text": "+15 gold a skip, a rank.",
+      "name": "Skip",
+      "text": "+1 skip a stage, a rank.",
       "effects": [
         {
           "stat": "skips",
@@ -24,7 +27,7 @@
     },
     {
       "name": "Second Wind",
-      "text": "+1 revive a run, a rank.",
+      "text": "+1 revive at ranks 1, 3, 5; +15% revive health at 2, 4, 6.",
       "effects": [
         {
           "stat": "revives",
@@ -32,6 +35,56 @@
           "value": 1.0,
           "target": "player"
         }
+      ],
+      "rank_effects": [
+        [
+          {
+            "stat": "revives",
+            "op": "add",
+            "value": 1.0,
+            "target": "player"
+          }
+        ],
+        [
+          {
+            "stat": "revive_hp",
+            "op": "add",
+            "value": 0.15,
+            "target": "player"
+          }
+        ],
+        [
+          {
+            "stat": "revives",
+            "op": "add",
+            "value": 1.0,
+            "target": "player"
+          }
+        ],
+        [
+          {
+            "stat": "revive_hp",
+            "op": "add",
+            "value": 0.15,
+            "target": "player"
+          }
+        ],
+        [
+          {
+            "stat": "revives",
+            "op": "add",
+            "value": 1.0,
+            "target": "player"
+          }
+        ],
+        [
+          {
+            "stat": "revive_hp",
+            "op": "add",
+            "value": 0.15,
+            "target": "player"
+          }
+        ]
       ]
     }
   ],

@@ -87,7 +87,10 @@ func _manager(g: Node) -> EnemyManager:
 # ---------------------------------------------------------------- the harpooner
 
 func test_the_harpooner_has_the_rocketeers_health() -> void:
-	assert_float(Registry.enemy("harpoon_troglodyte").hp).is_equal_approx(Registry.enemy("rocketeer").hp, 0.001)
+	# the two specials shared their health from pass 33.8 (50 each since pass 45); pass 48 took the rocketeer, now the
+	# Vulture Raider, to 30% less (35) and kept the harpooner at 50
+	assert_float(Registry.enemy("harpoon_troglodyte").hp).is_equal_approx(50.0, 0.001)
+	assert_float(Registry.enemy("rocketeer").hp).is_equal_approx(35.0, 0.001)
 
 
 # ---------------------------------------------------------------- ground marks
@@ -277,7 +280,8 @@ func _old_strip(em: EnemyManager, i: int, def: EnemyDef) -> String:
 		if st == EnemyManager.STATE_CHARGE:
 			anim = "run"
 		elif st == EnemyManager.STATE_WINDUP and def.charge.size() > 0:
-			anim = "idle"
+			# pass 50: a charger with charge.legs scrabbles its legs in place through the wind-up
+			anim = "run" if float(def.charge.get("legs", 1.0)) > 1.0 else "idle"
 		if anim == "run" or anim == "idle":
 			var suffix: String = ["", "_b", "_s", "_bd", "_fd"][em.view[i]]
 			if def.frames_of(anim + suffix) > 0 and def.anims.has(anim + suffix):

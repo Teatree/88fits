@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/pinning_throw/pinning_throw_icon.png" id="1_dd4pi"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_xm26g"]
+
+[resource]
+script = ExtResource("2_xm26g")
+weapon = "spear"
+text = "The first enemy each spear strikes is pinned in place for 1.2 s."
+vfx = "the first creature a spear strikes stops dead, dust kicked up at its feet"
+params = {
+"pin": {
+"frac": 1.0,
+"seconds": 1.2
+}
+}
+id = "pinning_throw"
+display_name = "Pinning Throw"
+flavour = "It goes through them, and the first one stays."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_dd4pi")
+icon_file = "pinning_throw_icon.png"
+placeholder = {
+"color": "#C0D0F0",
+"glyph": "star"
+}

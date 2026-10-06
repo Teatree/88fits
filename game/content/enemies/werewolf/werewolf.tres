@@ -1,0 +1,135 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="1_25ufe"]
+[ext_resource type="Texture2D" path="res://content/enemies/werewolf/werewolf_icon_a.png" id="1_ku3jr"]
+[ext_resource type="Texture2D" path="res://content/enemies/werewolf/werewolf_sprite_a.png" id="3_pw0tq"]
+[ext_resource type="Texture2D" path="res://content/enemies/werewolf/werewolf_sprite_b.png" id="4_nolt5"]
+[ext_resource type="Texture2D" path="res://content/enemies/werewolf/werewolf_icon_b.png" id="5_ktmbk"]
+[ext_resource type="Texture2D" path="res://content/enemies/werewolf/werewolf_sprite_c.png" id="6_daa4o"]
+[ext_resource type="Texture2D" path="res://content/enemies/werewolf/werewolf_icon_c.png" id="7_3sfmv"]
+
+[resource]
+script = ExtResource("1_25ufe")
+doc = "A beast that walks like a skeleton (the skeleton's numbers) in threes; three looks from a real wolf to a cartoon (WW-A, WW-B, WW-C), walked on the Orc Walk retargeted to its long arms. Placed by the Level Editor."
+speed = 1.6
+damage = 3.0
+radius = 0.55
+size = 1.8
+pack_size = 3
+drops = {
+"chest": 0.0028,
+"gold": 0.02,
+"medium": 0.05,
+"small": 1.0
+}
+anims = {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_pw0tq")
+sprite_file = "werewolf_sprite_a.png"
+frame_px = 176
+strip_cols = 43
+fps = {
+"die": 12.0,
+"run": 15.0
+}
+knockback = 2.94
+head = 0.977
+variants = {
+"WW-A": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.977,
+"icon": ExtResource("1_ku3jr"),
+"note": "Like the reference: a realistic dark beast",
+"shadow": {},
+"sprite": ExtResource("3_pw0tq"),
+"sprite_file": "werewolf_sprite_a.png",
+"strip_cols": 43
+},
+"WW-B": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.972,
+"icon": ExtResource("5_ktmbk"),
+"note": "Stylised: bigger head and hands, tufted fur",
+"shadow": {},
+"sprite": ExtResource("4_nolt5"),
+"sprite_file": "werewolf_sprite_b.png",
+"strip_cols": 43
+},
+"WW-C": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.92,
+"icon": ExtResource("7_3sfmv"),
+"note": "Very cartoony: round head, chunky claws, short legs",
+"shadow": {},
+"sprite": ExtResource("6_daa4o"),
+"sprite_file": "werewolf_sprite_c.png",
+"strip_cols": 43
+}
+}
+variant = "WW-A"
+cap_share = 0.5
+sfx = {
+"die": "en_goblin_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 1.5
+id = "werewolf"
+display_name = "Werewolf"
+flavour = "Something howls where the skeletons walked."
+icon = ExtResource("1_ku3jr")
+icon_file = "werewolf_icon_a.png"
+placeholder = {
+"color": "#3A3238",
+"ears": "pointed",
+"eyes": 2.0,
+"shape": "tall"
+}

@@ -38,6 +38,7 @@ fps = {
 "die": 8.0,
 "run": 15.0
 }
+knockback = 4.5
 head = 0.806
 sfx = {
 "die": "en_lizard_die",

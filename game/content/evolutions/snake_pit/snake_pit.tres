@@ -7,7 +7,6 @@
 [resource]
 script = ExtResource("1_220q0")
 behavior = "Orbiter"
-tags = []
 targeting = "orbit"
 base = {
 "amount": 4.0,
@@ -20,10 +19,7 @@ base = {
 "poison_duration": 12.0,
 "poison_stacks": 3.0
 }
-levels = []
 max_level = 1
-evolves_with = ""
-evolves_into = ""
 is_evolution = true
 evolved_from = "rattlesnake"
 sfx = {
@@ -35,15 +31,10 @@ visual_file = "snake_pit_visual.tscn"
 params = {
 "spin_speed": 4.6
 }
-hero = ""
 id = "snake_pit"
 display_name = "Snake Pit"
 flavour = "A whole pit of them. All spiteful."
-rarity = "epic"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
+rarity = "rare"
 icon = ExtResource("1_yeego")
 icon_file = "snake_pit_icon.png"
 placeholder = {

@@ -1,0 +1,45 @@
+{
+  "id": "skedaddle",
+  "name": "Skedaddle",
+  "rarity": "rare",
+  "weight": 7,
+  "max_level": 5,
+  "flavour": "When the lead flies, so do you.",
+  "text": "After a hit, run 20% faster for 1.5 s (+5% and +0.5 s a level).",
+  "levels": [
+    [
+      {
+        "stat": "hurt_speed",
+        "op": "add",
+        "value": 0.2,
+        "target": "player"
+      },
+      {
+        "stat": "hurt_speed_seconds",
+        "op": "add",
+        "value": 1.5,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "hurt_speed",
+        "op": "add",
+        "value": 0.05,
+        "target": "player"
+      },
+      {
+        "stat": "hurt_speed_seconds",
+        "op": "add",
+        "value": 0.5,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "a brown leather cowboy boot in mid-stride, toe to the right, a silver spur wheel on the back of its heel, red speed lines streaming out behind",
+  "placeholder": {
+    "color": "#D0453A",
+    "glyph": "boot"
+  },
+  "repeat_last_level": true
+}

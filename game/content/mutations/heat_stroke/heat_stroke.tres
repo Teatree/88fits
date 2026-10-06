@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_vggjo"]
+[ext_resource type="Texture2D" path="res://content/mutations/heat_stroke/heat_stroke_icon.png" id="2_hidpx"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_tmdvo"]
+
+[sub_resource type="Resource" id="Resource_tmdvo"]
+script = ExtResource("1_vggjo")
+stat = "fire_damage"
+value = 4.0
+
+[sub_resource type="Resource" id="Resource_hidpx"]
+script = ExtResource("1_vggjo")
+stat = "fire_duration"
+value = 1.8
+
+[resource]
+script = ExtResource("2_tmdvo")
+weapon = "sun_scepter"
+mutation_kind = "element"
+text = "35% of the enemies its pillars hit catch fire: 4 damage every 0.6 s for 3.6 s."
+vfx = "the burn's flames on what a pillar sets alight; the sceptre's handle a shade more orange"
+effects = [SubResource("Resource_tmdvo"), SubResource("Resource_hidpx")]
+params = {
+"ignite_chance": 0.35,
+"staff_tint": {
+"amount": 0.25,
+"color": "#D96B1F",
+"glow": 0.3
+}
+}
+id = "heat_stroke"
+display_name = "Heat Stroke"
+flavour = "Too much sun."
+rarity = "rare"
+element = "fire"
+weight = 8.0
+icon = ExtResource("2_hidpx")
+icon_file = "heat_stroke_icon.png"
+placeholder = {
+"color": "#FF8A3A",
+"glyph": "star"
+}

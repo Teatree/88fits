@@ -14,6 +14,8 @@ uniform float rays = 12.0;
 // mode 0: drawn this far behind the chest, so the chest stands in front of its own light
 uniform float push_back = 0.35;
 uniform float phase = 0.0;
+// mode 2: the ground's rise per metre along x and z under the chest (pass 52), so the pool lies on a slope, not through it
+uniform vec2 slope = vec2(0.0);
 
 void vertex() {
 	vec3 origin = MODEL_MATRIX[3].xyz;
@@ -27,7 +29,9 @@ void vertex() {
 		vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), flat_back));
 		world = origin + right * VERTEX.x * sx + vec3(0.0, VERTEX.y * sy, 0.0);
 	} else if (mode == 2) {
-		world = origin + vec3(VERTEX.x * sx, 0.04, VERTEX.y * sy);
+		float px = VERTEX.x * sx;
+		float pz = VERTEX.y * sy;
+		world = origin + vec3(px, 0.06 + slope.x * px + slope.y * pz, pz);
 	} else {
 		vec3 up = normalize(INV_VIEW_MATRIX[1].xyz);
 		vec3 right = normalize(cross(up, cam_back));

@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/prospector/prospector_icon.png" id="1_ra7c3"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xgn1l"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_ra7c3"]
+
+[sub_resource type="Resource" id="Resource_ra7c3"]
+script = ExtResource("1_xgn1l")
+stat = "xp_drop_chance"
+value = 0.06
+target = "player"
+
+[resource]
+script = ExtResource("2_ra7c3")
+levels = [[SubResource("Resource_ra7c3")]]
+max_level = 5
+text = "A kill may drop an extra XP gem: 6% a level."
+id = "prospector"
+display_name = "Prospector"
+flavour = "There's always more in the ground."
+weight = 9.0
+icon = ExtResource("1_ra7c3")
+icon_file = "prospector_icon.png"
+placeholder = {
+"color": "#8A69F2",
+"glyph": "star"
+}

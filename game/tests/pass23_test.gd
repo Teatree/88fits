@@ -8,12 +8,14 @@ func _start(hero: String = "astro") -> void:
 	Run.start(Registry.character(hero), Registry.map("red_canyon"))
 
 
-func test_every_run_starts_with_a_reroll_and_a_banish_and_skip_always_pays() -> void:
+func test_every_run_starts_with_a_reroll_a_banish_and_the_stage_s_skips() -> void:
 	_start()
 	assert_int(Run.rerolls_left).is_greater_equal(1)
 	assert_int(Run.banishes_left).is_greater_equal(1)
-	assert_int(Run.skips_left).is_greater(0)
-	assert_int(Run.skip_gold()).is_greater_equal(10)
+	# pass 47: the skips are the stage's (two at base, shared by the level-ups and the chests) and pay nothing
+	# (pass47_hero_test plays one through the Game); skipping no longer pays gold
+	assert_int(Run.skips_left).is_equal(Run.player_sheet.get_int("skips"))
+	assert_int(Run.skips_left).is_greater_equal(2)
 
 
 func test_banish_removes_one_card_and_keeps_the_others() -> void:
@@ -65,9 +67,11 @@ func test_new_passives_are_content_with_their_mechanism_stats() -> void:
 
 func test_passive_stats_reach_the_player_sheet() -> void:
 	_start()
+	# six passives: stage 3's cap (pass 46: four on stage 1, five on stage 2)
+	Run.stage = 2
 	for id in ["deadeye", "guillotine", "overkill", "ricochet", "field_notes"]:
-		Run.add_or_level_passive(id)
-	Run.add_or_rank_line("bristle")   # thorns live on the Bristle line now (pass 26)
+		assert_bool(Run.add_or_level_passive(id)).override_failure_message(id + " found no slot").is_true()
+	assert_bool(Run.add_or_level_passive("bristle")).is_true()   # thorns live on Bristle (a line in pass 26, a passive since 46)
 	Run.rebuild_sheets()
 	assert_float(Run.player_sheet.get_stat("crit_chance", 0.0)).is_equal_approx(0.08, 0.001)
 	assert_float(Run.player_sheet.get_stat("crit_damage", 0.0)).is_equal_approx(2.0, 0.001)
@@ -83,11 +87,12 @@ func test_field_notes_scale_xp() -> void:
 	Run.add_xp(10.0)
 	var plain := Run.xp
 	_start()
-	for k in range(5):
+	# pass 47: a line of four levels (+8% each, ×1.36 at the top); it was five passive levels (×1.47)
+	for k in range(4):
 		Run.add_or_level_passive("field_notes")
 	Run.rebuild_sheets()
 	Run.add_xp(10.0)
-	assert_float(Run.xp).is_greater(plain * 1.4)
+	assert_float(Run.xp).is_greater(plain * 1.3)
 
 
 func test_adrenaline_stacks_on_kills_and_fades() -> void:
@@ -143,7 +148,8 @@ func test_boss_reward_pulls_chests() -> void:
 
 
 func test_multishot_is_three_real_levels() -> void:
+	# pass 47: a line of four real levels (Garry: one more upgrade), each a projectile
 	var m: PassiveDef = Registry.passive("multishot")
-	assert_int(m.max_level).is_equal(3)
-	for lv in range(1, 4):
+	assert_int(m.max_level).is_equal(4)
+	for lv in range(1, 5):
 		assert_int(m.effects_for_level(lv).size()).override_failure_message("multishot level %d is empty" % lv).is_greater_equal(1)

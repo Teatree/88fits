@@ -36,6 +36,7 @@ fps = {
 "die": 8.0,
 "run": 15.0
 }
+knockback = 4.16
 head = 0.961
 cap_share = 0.6
 sfx = {

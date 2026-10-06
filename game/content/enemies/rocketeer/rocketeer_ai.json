@@ -2,94 +2,45 @@
  "pipeline": "gen_art v2",
  "model": "flux-2-klein-9b-fp8.safetensors",
  "anchor": "72ae817babd1",
- "subject": "a burly thug with smooth deep blue skin and orcish features: a heavy jutting jaw with two small tusks, a flat wide nose, small angry yellow eyes under a heavy brow, pointed ears, a shaved head, wearing bright red work overalls over a bare muscular chest and heavy boots, a big rusty steel rocket launcher tube braced on one shoulder loaded with a bright red rocket, crouching to aim, snarling",
+ "subject": "a vulture raider: a tall lean bird-man with a bald wrinkled bright pink vulture head and neck, a hooked pale yellow beak, small fierce angry eyes under a heavy frown, big dark brown feathered wings folded at his back, a thick cream-white shaggy fur ruff round his neck and shoulders, cream fur cuffs at his wrists and knees, a ragged dark brown feather kilt over a cream fur skirt, a brown leather strap across his pink muscular chest, a rusty spiked leather pauldron on his left shoulder, a brown belt with a round brass buckle and a leather pouch, pink bony bird legs with grey scaly taloned feet, and in his right hand an olive-green rocket launcher tube held up at his shoulder with yellow and black hazard stripes and an empty open black muzzle ringed in red, no rocket in it",
  "renders": {
   "front": {
-   "seed": 10687,
-   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a burly thug with smooth deep blue skin and orcish features: a heavy jutting jaw with two small tusks, a flat wide nose, small angry yellow eyes under a heavy brow, pointed ears, a shaved head, wearing bright red work overalls over a bare muscular chest and heavy boots, a big rusty steel rocket launcher tube braced on one shoulder loaded with a bright red rocket, crouching to aim, snarling. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "seed": 22738,
+   "prompt": "Copy this exact character from the reference image: the same bird-man, the same design, the same colours, the same clothes and fur, the same proportions and the same rocket launcher, as close to the reference as possible. It is a vulture raider: a tall lean bird-man with a bald wrinkled bright pink vulture head and neck, a hooked pale yellow beak, small fierce angry eyes under a heavy frown, big dark brown feathered wings folded at his back, a thick cream-white shaggy fur ruff round his neck and shoulders, cream fur cuffs at his wrists and knees, a ragged dark brown feather kilt over a cream fur skirt, a brown leather strap across his pink muscular chest, a rusty spiked leather pauldron on his left shoulder, a brown belt with a round brass buckle and a leather pouch, pink bony bird legs with grey scaly taloned feet with black claws, and in his right hand an olive-green rocket launcher tube held up at his shoulder with yellow and black hazard stripes, a red light strip, a black grip, and an EMPTY open black muzzle ringed in red at its front end, with no rocket in it. Full body, front view, standing and facing the viewer the way the reference does, feet fully visible, the launcher held up in his right hand as in the reference. The launcher's front end is an empty open tube: no rocket, no missile, no shell anywhere. Keep the reference's crisp thick dark line art and cel shading. One single character. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
-    "88fits/style_anchor.png"
+    "88fits/vulture_ref.png"
    ],
    "qa": {
-    "subjects": 1,
-    "background": "flat",
-    "ground": false,
-    "text": false,
-    "cropped": false,
-    "legs": true,
-    "view": "front",
-    "matches": true,
-    "problems": [],
-    "geometry": {
-     "left": 98,
-     "right": 117,
-     "top": 82,
-     "bottom": 73,
-     "height": 868,
-     "width": 808
-    }
+    "problems": []
    },
    "attempt": 0
   },
   "back": {
-   "seed": 10688,
-   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. seen from behind: the launcher tube on the shoulder with the red rocket's fins showing at the back, the red overalls' straps crossing the bare blue back, no face isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "seed": 28609,
+   "prompt": "This exact vulture raider seen from behind, walking away from the viewer: his back to us, the big dark brown feathered wings folded at his back, the back of his bald pink head and neck, the cream fur ruff from behind, the spiked leather pauldron on his left shoulder, the ragged feather kilt, the olive-green rocket launcher held up at his right shoulder on the right side of the picture, its back end seen from behind; no face, no beak showing, no eyes. His legs are thin pink bony bird legs and his feet are grey scaly bird talons with long thin toes and black claws, exactly like the front view: no shoes, no boots, no human feet, no soles. Keep the same colours, proportions, line art and art style. Full body, feet fully visible. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
-    "88fits/rocketeer_front.png"
+    "88fits/vulture_front_pick.png"
    ],
    "qa": {
-    "subjects": 1,
-    "background": "flat",
-    "ground": false,
-    "text": false,
-    "cropped": false,
-    "legs": true,
-    "view": "back",
-    "matches": true,
-    "problems": [],
-    "geometry": {
-     "left": 142,
-     "right": 181,
-     "top": 82,
-     "bottom": 74,
-     "height": 867,
-     "width": 700
-    }
+    "problems": []
    },
    "attempt": 0
   },
   "dead": {
-   "seed": 10696,
-   "prompt": "This exact creature lying dead on its back on the sand, the launcher tube dropped beside it, the red overalls dusty, arms and legs sprawled, tusked jaw slack, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "seed": 19568,
+   "prompt": "This exact vulture raider lying dead on the ground, seen from the side and a little above: his body lying sideways across the picture with his pink head on the LEFT and his taloned feet on the RIGHT, his dark brown wings spread limp on the ground, his eyes closed as crosses, his beak open, the olive-green rocket launcher dropped on the ground beside him. Keep the same colours, proportions, line art and art style. Nothing else. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
-    "88fits/rocketeer_front.png"
+    "88fits/vulture_front_pick.png"
    ],
    "qa": {
-    "subjects": 1,
-    "background": "flat",
-    "ground": true,
-    "text": false,
-    "cropped": false,
-    "legs": true,
-    "view": "front",
-    "matches": false,
-    "problems": [
-     "no-match"
-    ],
-    "geometry": {
-     "left": 47,
-     "right": 51,
-     "top": 266,
-     "bottom": 192,
-     "height": 565,
-     "width": 925
-    }
+    "problems": []
    },
    "attempt": 0
   }
  },
  "clips": {
   "walk_f": true,
-  "walk_b": true
+  "walk_b": true,
+  "pose": "walk_hold"
  }
 }

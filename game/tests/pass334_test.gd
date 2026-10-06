@@ -93,8 +93,12 @@ func test_two_skeletons_walk_like_zombies() -> void:
 	assert_str(str(k.flavour + " " + FileAccess.open("res://content/enemies/skeleton_knight/skeleton_knight.json", FileAccess.READ).get_as_text())).contains("breastplate")
 	# kept for later (pass 33.5 brought the goblins back), and last pass's pair is gone
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
-	assert_str(str(tl.roster[0]["enemy"])).is_equal("goblin")
-	assert_bool(s.retired and k.retired).is_true()
+	# pass 45: the skeletons took the goblins' rows (SK-A / KN-A in play) and the goblins are the ones kept for later
+	# (pass 54: Garry's placement in the Level Editor opens with the red goblins; the skeletons are on the roster still)
+	var on_roster: Array = tl.roster.map(func(r): return str(r.get("enemy", "")))
+	assert_bool(on_roster.has("skeleton") and on_roster.has("skeleton_knight")).is_true()
+	assert_bool(s.retired or k.retired).is_false()
+	assert_bool(Registry.enemy("goblin").retired and Registry.enemy("goblin_runt").retired).is_true()
 	assert_object(Registry.enemy("skeleton_warrior")).is_null()
 	assert_object(Registry.enemy("skeleton_raider")).is_null()
 
@@ -103,7 +107,7 @@ func test_two_skeletons_walk_like_zombies() -> void:
 
 func test_only_astro_and_the_drifter_are_played() -> void:
 	var ids: Array = Registry.sorted_characters().map(func(c): return c.id)
-	assert_array(ids).contains_exactly(["astro", "calavera", "drifter"])   # pass 43: Calavera
+	assert_array(ids).contains_exactly(["astro", "calavera", "drifter", "ironwood", "solenne"])   # pass 43: Calavera; pass 46: Ironwood; pass 54: Solenne
 	# the others are kept, just hidden
 	for id in ["buck", "dad", "mira"]:
 		assert_object(Registry.character(id)).is_not_null()
@@ -135,33 +139,34 @@ func test_the_specials_come_one_at_a_time_on_their_own_clock() -> void:
 	# off the roster, onto their own clock
 	for r in tl.roster:
 		assert_bool(["rocketeer", "harpoon_troglodyte"].has(str(r["enemy"]))).is_false()
-	assert_float(float(tl.specials.get("from", 0))).is_equal(150.0)
+	# half way through stage 1: 2:30 until pass 46 stretched the clocks by 430/300, 3:35 since
+	assert_float(float(tl.specials.get("from", 0))).is_equal(215.0)
 	var d := _director()
 	# stage 1 before its half-way point: nothing
 	Run.stage = 0
 	Run.elapsed = 100.0
 	_tick(d, 60.0)
 	assert_int(d.specials_alive()).is_equal(0)
-	# from 2:30: one comes within 45 to 60 seconds (pass 33.7; 20 to 40 before), and only the rocketeer (the harpooner
-	# waits for stage 2)
-	Run.elapsed = 150.0
+	# from 3:35: one comes within 64 to 86 seconds (45 to 60 before the stretch, 20 to 40 before pass 33.7), and only the
+	# rocketeer (the harpooner waits for stage 2)
+	Run.elapsed = 215.0
 	assert_array(d.specials_pool()).contains_exactly(["rocketeer"])
-	_tick(d, 44.0)
+	_tick(d, 63.0)
 	assert_int(d.specials_alive()).is_equal(0)
-	_tick(d, 17.0)
+	_tick(d, 24.0)
 	assert_int(d.specials_alive()).is_equal(1)
 	# never a second while one lives, however long
 	_tick(d, 120.0)
 	assert_int(d.specials_alive()).is_equal(1)
-	# the clock starts when it dies: not before 45 s, by 60 s
+	# the clock starts when it dies: not before 64 s, by 86 s
 	var em: EnemyManager = d.game.enemies
 	for i in range(EnemyManager.MAX):
 		if em.alive[i] == 1:
 			em._die(i, "")
 	assert_int(d.specials_alive()).is_equal(0)
-	_tick(d, 44.0)
+	_tick(d, 63.0)
 	assert_int(d.specials_alive()).is_equal(0)
-	_tick(d, 17.0)
+	_tick(d, 24.0)
 	assert_int(d.specials_alive()).is_equal(1)
 	# stage 2 adds the harpooner to the pool
 	Run.stage = 1
@@ -180,13 +185,13 @@ func test_the_arena_sets_any_item_at_any_level() -> void:
 	assert_int(Run.debug_set_item("weapon", "peashooter", 99)).is_equal(Registry.weapon("peashooter").max_level)
 	assert_int(Run.debug_set_item("weapon", "sabre", 0)).is_equal(0)
 	assert_bool(Run.has_weapon("sabre")).is_false()
-	var pid: String = Registry.passives.keys()[0]
-	assert_int(Run.debug_set_item("passive", pid, 2)).is_equal(2)
+	assert_int(Run.debug_set_item("passive", "magnet", 2)).is_equal(2)
 	var shield_max_before := Run.player_sheet.get_stat("shield_max", 0.0)
-	assert_int(Run.debug_set_item("line", "energy_shield", 2)).is_equal(2)
+	# the Energy Shield, a line until pass 46, is a passive like the rest
+	assert_int(Run.debug_set_item("passive", "energy_shield", 2)).is_equal(2)
 	assert_float(Run.player_sheet.get_stat("shield_max", 0.0)).is_greater(shield_max_before)
-	# taking a line away takes its effect away too
-	Run.debug_set_item("line", "energy_shield", 0)
+	# taking a passive away takes its effect away too
+	Run.debug_set_item("passive", "energy_shield", 0)
 	assert_float(Run.player_sheet.get_stat("shield_max", 0.0)).is_equal_approx(shield_max_before, 0.001)
 	var mut: MutationDef = Registry.mutations_of("peashooter")[0]
 	assert_int(Run.debug_set_item("mutation", mut.id, 1)).is_equal(1)
@@ -205,8 +210,12 @@ func test_the_arena_panel_lists_everything() -> void:
 		seen += (g[1] as Array).size()
 	# every creature in the game has a tile
 	assert_int(seen).is_equal(Registry.enemies.size())
+	# every weapon's mutations and evolutions are stacked under it (pass 49), so they are counted from the stacks
 	var items := 0
 	for s in p.item_sections():
 		items += (s[2] as Array).size()
-	assert_int(items).is_equal(Registry.weapons.size() + Registry.passives.size() + Registry.lines.size() + Registry.perks.size() + Registry.mutations.size())
+		if str(s[1]) == "weapon":
+			for w in s[2]:
+				items += p.weapon_stack(w).size()
+	assert_int(items).is_equal(Registry.weapons.size() + Registry.passives.size() + Registry.perks.size() + Registry.mutations.size())
 	p.free()

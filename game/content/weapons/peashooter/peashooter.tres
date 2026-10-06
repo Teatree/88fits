@@ -10,55 +10,43 @@ script = ExtResource("2_fneh5")
 stat = "damage"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_5486l"]
 script = ExtResource("2_fneh5")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_t4qnk"]
 script = ExtResource("2_fneh5")
 stat = "cooldown"
 op = "mul"
 value = -0.1
-target = "self"
 
 [sub_resource type="Resource" id="Resource_bmlvy"]
 script = ExtResource("2_fneh5")
 stat = "damage"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_rjm48"]
 script = ExtResource("2_fneh5")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_7xshk"]
 script = ExtResource("2_fneh5")
 stat = "pierce"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_vwjlk"]
 script = ExtResource("2_fneh5")
 stat = "damage"
 op = "mul"
 value = 0.3
-target = "self"
 
 [resource]
 script = ExtResource("2_8ld32")
-behavior = "ProjectileEmitter"
-tags = []
-targeting = "nearest"
+targeting = "priority"
 base = {
 "amount": 1.0,
 "cooldown": 0.9,
@@ -68,12 +56,9 @@ base = {
 "range": 9.0,
 "speed": 14.0
 }
-levels = [[], [SubResource("Resource_fneh5")], [SubResource("Resource_5486l")], [SubResource("Resource_t4qnk")], [SubResource("Resource_bmlvy")], [SubResource("Resource_rjm48")], [SubResource("Resource_7xshk")], [SubResource("Resource_vwjlk")]]
-max_level = 8
-evolves_with = ""
-evolves_into = "bullet_hose"
-is_evolution = false
-evolved_from = ""
+levels = [[], [SubResource("Resource_fneh5"), SubResource("Resource_5486l")], [SubResource("Resource_t4qnk"), SubResource("Resource_bmlvy")], [SubResource("Resource_rjm48")], [SubResource("Resource_7xshk"), SubResource("Resource_vwjlk")]]
+max_level = 5
+evolves_into = "pea_cannon"
 sfx = {
 "fire": "w_pea_fire",
 "hit": "w_pea_hit"
@@ -88,15 +73,9 @@ params = {
 "speed": 1.4
 }
 }
-hero = ""
 id = "peashooter"
 display_name = "Peashooter"
 flavour = "It goes pew. Reliably."
-rarity = "common"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
 icon = ExtResource("1_fneh5")
 icon_file = "peashooter_icon.png"
 placeholder = {

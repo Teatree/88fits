@@ -3,11 +3,14 @@
   "name": "Grit",
   "flavour": "Thicker skin, or harder bones.",
   "order": 1,
-  "ranks": 3,
+  "ranks": 6,
   "cost": [
     140,
     252,
-    420
+    420,
+    630,
+    910,
+    1260
   ],
   "forms": [
     {

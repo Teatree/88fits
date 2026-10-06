@@ -15,8 +15,7 @@ target = "player"
 [sub_resource type="Resource" id="Resource_o2my1"]
 script = ExtResource("2_3ja4l")
 stat = "crit_chance"
-op = "add"
-value = 0.15
+value = 0.05
 target = "player"
 
 [sub_resource type="Resource" id="Resource_5otcb"]
@@ -30,13 +29,14 @@ target = "player"
 script = ExtResource("1_ecvu3")
 trait_effects = [SubResource("Resource_dwhhe"), SubResource("Resource_o2my1"), SubResource("Resource_5otcb")]
 trait_name = "Last Dance"
-trait_text = "+25% might and +15% crit chance, but −15% max HP. His Skull Rain starts at level 2."
+trait_text = "+25% attack damage and +5% crit chance, but −15% max HP. His Skull Rain starts at level 2."
 pronoun = "he"
 favourite_weapon = "skull_rain"
 favourite_bonus = {
 "type": "level",
 "value": 2.0
 }
+start_weapon = "guitarra"
 sprite = ExtResource("3_o2my1")
 sprite_file = "calavera_sprite.png"
 anims = {

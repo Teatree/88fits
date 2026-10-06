@@ -1,0 +1,79 @@
+{
+  "id": "zenith",
+  "name": "Zenith",
+  "flavour": "High noon, and it never sets.",
+  "rarity": "rare",
+  "hero": "solenne",
+  "is_evolution": true,
+  "evolved_from": "sun_scepter",
+  "max_level": 1,
+  "behavior": "SunScepter",
+  "targeting": "random",
+  "tags": [
+    "magic"
+  ],
+  "base": {
+    "damage": 24,
+    "cooldown": 1.0,
+    "amount": 3,
+    "area": 1.3,
+    "knockback": 6.0,
+    "range": 12.0
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "sun": {
+      "warn": 0.45,
+      "radius": 1.3,
+      "flash": 1.15,
+      "beam_alpha": 0.6,
+      "ring_alpha": 0.4,
+      "ring_color": "#FF381A",
+      "glint": 1.0,
+      "hold_when_empty": true,
+      "weight_power": 2.0,
+      "tint": "#FFC64A",
+      "thin": 1.0
+    },
+    "shine": {
+      "idle": 0.4,
+      "flare": 1.7,
+      "sweep": 2.6,
+      "pop": 0.25,
+      "charge": 0.45
+    },
+    "familiar": {
+      "radius": 1.25,
+      "height": 1.6,
+      "speed": 1.1,
+      "bob": 0.1,
+      "tilt_deg": 28
+    },
+    "marks": false,
+    "final": {
+      "sun": {
+        "tint": "#FFD24F",
+        "thin": 1.1,
+        "beam_alpha": 0.6
+      },
+      "zenith": {
+        "every": 10,
+        "frac": 0.8,
+        "radius": 1.0,
+        "max_pillars": 40
+      }
+    }
+  },
+  "sfx": {
+    "fire": "w_sun_warn",
+    "hit": "w_sun_strike",
+    "burst": "w_sun_zenith"
+  },
+  "placeholder": {
+    "color": "#FFD24F",
+    "glyph": "star"
+  },
+  "art_prompt": "a golden sceptre whose sun head blazes: a big golden sun disc with twelve long rays and a second thin brass ring round it, a white-hot corona, the slim dark staff below with brass bands"
+}

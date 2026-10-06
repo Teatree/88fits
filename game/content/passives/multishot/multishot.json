@@ -4,8 +4,9 @@
   "flavour": "More things flying.",
   "rarity": "rare",
   "weight": 7,
+  "line": true,
   "pairs_with": "peashooter",
-  "max_level": 3,
+  "max_level": 4,
   "levels": [
     [
       {
@@ -17,6 +18,7 @@
     ]
   ],
   "repeat_last_level": true,
+  "evolves_into": "barrage",
   "placeholder": {
     "color": "#7FD07A",
     "glyph": "triple"

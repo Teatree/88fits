@@ -1,0 +1,63 @@
+[gd_scene load_steps=9 format=3]
+
+[sub_resource type="CylinderMesh" id="jug"]
+top_radius = 0.075
+bottom_radius = 0.17
+height = 0.36
+radial_segments = 12
+rings = 3
+
+[sub_resource type="StandardMaterial3D" id="stoneware"]
+albedo_color = Color(0.8, 0.7, 0.54, 1)
+roughness = 0.85
+
+[sub_resource type="CylinderMesh" id="neck"]
+top_radius = 0.05
+bottom_radius = 0.075
+height = 0.1
+radial_segments = 10
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="glaze"]
+albedo_color = Color(0.36, 0.22, 0.12, 1)
+roughness = 0.35
+
+[sub_resource type="TorusMesh" id="handle"]
+inner_radius = 0.05
+outer_radius = 0.075
+rings = 12
+ring_segments = 5
+
+[sub_resource type="SphereMesh" id="flame"]
+radius = 0.12
+height = 0.3
+radial_segments = 8
+rings = 4
+
+[sub_resource type="StandardMaterial3D" id="bluefire"]
+shading_mode = 0
+albedo_color = Color(0.45, 0.72, 1, 1)
+emission_enabled = true
+emission = Color(0.3, 0.56, 1, 1)
+emission_energy_multiplier = 1.8
+
+[node name="MoonshineVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+mesh = SubResource("jug")
+material_override = SubResource("stoneware")
+
+[node name="Neck" type="MeshInstance3D" parent="Projectile"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.23, 0)
+mesh = SubResource("neck")
+material_override = SubResource("glaze")
+
+[node name="Handle" type="MeshInstance3D" parent="Projectile"]
+transform = Transform3D(0, 1, 0, -1, 0, 0, 0, 0, 1, 0.1, 0.08, 0)
+mesh = SubResource("handle")
+material_override = SubResource("glaze")
+
+[node name="Flame" type="MeshInstance3D" parent="Projectile"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.38, 0)
+mesh = SubResource("flame")
+material_override = SubResource("bluefire")

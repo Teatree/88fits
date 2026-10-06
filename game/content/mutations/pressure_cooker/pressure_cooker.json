@@ -1,0 +1,25 @@
+{
+  "id": "pressure_cooker",
+  "name": "Pressure Cooker",
+  "flavour": "Do not touch the pod.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "rocket_pod",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "Every second without a hit speeds the pod up, to +50% attack speed after 20 s. A hit resets it.",
+  "vfx": "the pod's tubes and body glow a dull orange as the pressure builds",
+  "effects": [],
+  "params": {
+    "pressure": {
+      "max": 0.5,
+      "seconds": 20.0
+    }
+  },
+  "art_prompt": "a rocket launcher pod glowing dull orange with heat and a rising pressure gauge",
+  "placeholder": {
+    "color": "#FF8040",
+    "glyph": "star"
+  }
+}

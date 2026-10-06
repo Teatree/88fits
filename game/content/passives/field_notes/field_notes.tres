@@ -13,8 +13,10 @@ target = "player"
 
 [resource]
 script = ExtResource("2_f1vgw")
+line = true
 levels = [[SubResource("Resource_f1vgw")]]
-max_level = 5
+max_level = 4
+evolves_into = "almanac"
 id = "field_notes"
 display_name = "Field Notes"
 flavour = "More XP from every gem. Every kill, a lesson."

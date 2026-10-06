@@ -4,6 +4,7 @@
   "flavour": "Turn it on. Walk away.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "peashooter",
   "kind": "volume",
   "element": "",

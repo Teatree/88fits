@@ -1,0 +1,36 @@
+{
+  "id": "silver_bullet",
+  "name": "Silver Bullet",
+  "flavour": "For the things that do not stay dead.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "revolver",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "+50% damage and +1 pierce, in rounds half again as big that hit wider.",
+  "vfx": "a bluish silver round with a pale tracer and flash, a harder kick",
+  "effects": [
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": 0.5
+    },
+    {
+      "stat": "pierce",
+      "op": "add",
+      "value": 1
+    }
+  ],
+  "params": {
+    "size_mult": 1.5,
+    "radius_mult": 1.5,
+    "speed_mult": 1.15,
+    "silver": true
+  },
+  "art_prompt": "a gleaming silver revolver bullet with a faint blue shine",
+  "placeholder": {
+    "color": "#C8D8F0",
+    "glyph": "star"
+  }
+}

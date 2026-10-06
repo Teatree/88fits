@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/gold_dust/gold_dust_icon.png" id="1_7xdk8"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_mb5pu"]
+
+[resource]
+script = ExtResource("1_mb5pu")
+weapon = "sun_scepter"
+text = "An enemy it kills drops a coin 30% of the time."
+vfx = "a coin glinting where the pillar fell"
+params = {
+"gold_dust": {
+"chance": 0.3,
+"coins": 1.0
+}
+}
+id = "gold_dust"
+display_name = "Gold Dust"
+flavour = "The light leaves something behind."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_7xdk8")
+icon_file = "gold_dust_icon.png"
+placeholder = {
+"color": "#FFC23A",
+"glyph": "star"
+}

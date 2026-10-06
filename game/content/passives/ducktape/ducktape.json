@@ -1,0 +1,28 @@
+{
+  "id": "ducktape",
+  "name": "Ducktape",
+  "flavour": "Holds a wagon wheel. Holds a grudge longer.",
+  "rarity": "common",
+  "weight": 9,
+  "line": true,
+  "max_level": 4,
+  "levels": [
+    [
+      {
+        "stat": "debuff_duration",
+        "op": "mul",
+        "value": 0.15,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "trade": "",
+  "text": "Your burns, poison, slows, marks and pins last 15% longer a level.",
+  "evolves_into": "shackles",
+  "art_prompt": "a thick roll of shiny silver-grey duct tape seen at a slight angle, a torn strip of tape curling off it",
+  "placeholder": {
+    "color": "#A8B0B8",
+    "glyph": "star"
+  }
+}

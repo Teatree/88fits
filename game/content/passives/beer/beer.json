@@ -1,0 +1,31 @@
+{
+  "id": "beer",
+  "name": "Beer",
+  "flavour": "Liquid courage. Paid for in blood.",
+  "rarity": "common",
+  "weight": 9,
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "might",
+        "op": "mul",
+        "value": 0.12,
+        "target": "player"
+      },
+      {
+        "stat": "max_hp",
+        "op": "mul",
+        "value": -0.05,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "trade": "−5% max HP a level",
+  "art_prompt": "a big wooden beer tankard with two brass bands and a handle, full of golden beer with thick white foam overflowing down its side",
+  "placeholder": {
+    "color": "#E8B840",
+    "glyph": "star"
+  }
+}

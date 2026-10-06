@@ -1,0 +1,27 @@
+{
+  "id": "stride",
+  "name": "Stride",
+  "flavour": "Longer legs, somehow.",
+  "rarity": "common",
+  "weight": 10,
+  "line": true,
+  "max_level": 4,
+  "levels": [
+    [
+      {
+        "stat": "move_speed",
+        "op": "mul",
+        "value": 0.06,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "trade": "",
+  "art_prompt": "a pair of cowboy boots with speed wings",
+  "placeholder": {
+    "color": "#70D0FF",
+    "glyph": "star"
+  },
+  "evolves_into": "roadrunner"
+}

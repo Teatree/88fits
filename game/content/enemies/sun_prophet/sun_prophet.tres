@@ -43,6 +43,7 @@ fps = {
 "die": 8.0,
 "run": 15.0
 }
+knockback = 7.0
 head = 0.987
 caster = {
 "attack_range": 12.0,

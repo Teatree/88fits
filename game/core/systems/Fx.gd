@@ -1,5 +1,6 @@
-## Cheap visual effects. Every burst, puff, spark and flash is one instance in one of three pooled MultiMeshes
-## (spheres with alpha, opaque shards, flame tongues), so a hundred deaths a minute cost three draw calls and no nodes.
+## Cheap visual effects. Every burst, puff, spark and flash is one instance in one of four pooled MultiMeshes
+## (spheres with alpha, opaque shards, flame tongues, musical notes), so a hundred deaths a minute cost four draw calls
+## and no nodes.
 ## Lightning bolts are ribbons in two shared ImmediateMeshes, a coloured sheath and a white core (pass 33.8: two nodes,
 ## two materials and two draw calls per strike before). Lights are skipped on phones.
 class_name Fx
@@ -18,8 +19,9 @@ var _a0 := PackedFloat32Array()
 var _a1 := PackedFloat32Array()
 var _grav := PackedFloat32Array()
 var _col := PackedColorArray()
-var _shard := PackedByteArray()   # 1 = box shard pool, 0 = sphere pool, 2 = flame pool
-var _seed := PackedFloat32Array()  # flames: where each one reads the noise, so no two burn alike
+var _shard := PackedByteArray()   # 1 = box shard pool, 0 = sphere pool, 2 = flame pool, 3 = note pool, 4 = dust pool
+var _seed := PackedFloat32Array()  # flames: where each one reads the noise, so no two burn alike; notes: glyph + phase
+var _blue := PackedByteArray()     # flames: 1 = the blue palette (pass 48: Methanol, Moonshine), the shader's custom z
 var _n := 0
 
 var _sph_mm: MultiMesh
@@ -27,6 +29,53 @@ var _box_mm: MultiMesh
 ## Flame tongues (pass 33): camera-facing quads drawn by core/shaders/fire_billboard.gdshader
 var _flame_mm: MultiMesh
 const FLAME_ORANGE := Color(1.0, 0.56, 0.13)
+## A blue flame's body (pass 48: Methanol and Moonshine burn blue); the shader swaps its heart and rim to match. The blue
+## drop and sparks go with it.
+const FLAME_BLUE := Color(0.3, 0.56, 1.0)
+const DROP_BLUE := Color(0.36, 0.62, 1.0)
+const SPARK_BLUE := Color(0.62, 0.82, 1.0)
+## Musical notes (pass 46, the Guitarra's cone of melody): camera-facing glyphs cut from art/fx/notes.png by
+## core/shaders/note_billboard.gdshader; they pop in, wobble, slow down and fade.
+var _note_mm: MultiMesh
+## Dust puffs (pass 50, the Bull Beetle's charge): camera-facing quads drawn by core/shaders/dust_puff.gdshader, soft
+## clouds frayed by the flames' noise; they drift, slow, swell and thin out.
+var _dust_mm: MultiMesh
+const DUST_DRAG := 1.8
+const NOTES_PNG := "res://art/fx/notes.png"
+const NOTE_CELLS := 4
+const NOTE_DRAG := 1.6
+## Barrel Rush's gold (pass 47).
+const RUSH_GOLD := Color(1.0, 0.8, 0.28)
+## The hero's speed trails (pass 48, Garry: "the speed VFX after a barrel looks bad, simpler; a different, stronger one
+## for the movement power-up; both must work together"): one ribbon per source along the last seconds of his path, a
+## point every RUSH_TRAIL_STEP, widest at his back and nothing at its tail, facing the camera and additive, each at its
+## own height so two or three run side by side: Barrel Rush's thin faint gold at the hips ("gold"), a Sprint's strong blue
+## higher up ("blue", with its wind: wind()), Skedaddle's red lower down ("red"). One ImmediateMesh per source in the
+## glow-ribbon material, rebuilt only while it has points. RUSH_TRAIL_SECONDS is the gold one's length in seconds.
+const RUSH_TRAIL_SECONDS := 0.45
+const RUSH_TRAIL_STEP := 0.025
+const RUSH_TRAIL_HIP := 0.85
+const SPRINT_BLUE := Color(0.3, 0.72, 1.0)
+const SKEDADDLE_RED := Color(1.0, 0.24, 0.18)
+## per source: colour, height above his feet, width at his back (m), brightness there, seconds of tail
+const TRAILS := {
+	"gold": {"col": RUSH_GOLD, "hip": RUSH_TRAIL_HIP, "width": 0.3, "alpha": 0.42, "seconds": RUSH_TRAIL_SECONDS},
+	"blue": {"col": SPRINT_BLUE, "hip": 1.3, "width": 0.95, "alpha": 0.9, "seconds": 0.55},
+	"red": {"col": SKEDADDLE_RED, "hip": 0.42, "width": 0.6, "alpha": 0.75, "seconds": 0.4},
+}
+var _trails: Dictionary = {}   # source -> SpeedTrail
+## A Sprint's wind (pass 48): thin blue-white streaks rushing back past the running hero at every height from his knees
+## to over his head (standing, they rise round him), feathered at both ends; one ImmediateMesh, rebuilt while any live.
+const WIND_COL := Color(0.62, 0.88, 1.0)
+const WIND_MAX := 28
+const WIND_WIDTH := 0.07
+var _wind_pos := PackedVector3Array()   # each streak's head
+var _wind_vel := PackedVector3Array()
+var _wind_age := PackedFloat32Array()
+var _wind_life := PackedFloat32Array()
+var _wind_len := PackedFloat32Array()
+var _wind_clock := 0.0
+var _wind_mesh: ImmediateMesh
 var _live := 0   # bolts still showing
 const MAX_LIVE := 40
 ## live bolts: {sheath: PackedVector3Array, core: PackedVector3Array (triangles, built once), color: Color, t: seconds}
@@ -48,7 +97,7 @@ static func want_lights() -> bool:
 func _ready() -> void:
 	_pos.resize(MAX_P); _vel.resize(MAX_P); _age.resize(MAX_P); _life.resize(MAX_P)
 	_s0.resize(MAX_P); _s1.resize(MAX_P); _a0.resize(MAX_P); _a1.resize(MAX_P); _grav.resize(MAX_P)
-	_col.resize(MAX_P); _shard.resize(MAX_P); _seed.resize(MAX_P)
+	_col.resize(MAX_P); _shard.resize(MAX_P); _seed.resize(MAX_P); _blue.resize(MAX_P)
 	var s := SphereMesh.new()
 	s.radius = 0.5
 	s.height = 1.0
@@ -59,7 +108,17 @@ func _ready() -> void:
 	b.size = Vector3(0.26, 0.26, 0.26)
 	_box_mm = _pool(b, false)
 	_flame_mm = _flame_pool()
+	_note_mm = _note_pool()
+	_dust_mm = _dust_pool()
 	_build_bolt_meshes()
+	# one invisible note far under the map on the first frames, so the note shader compiles with the rest of the start
+	# (under the spawn beam), not on the guitar's first chord
+	_emit(Vector3(0, -60.0, 0), Vector3.ZERO, 0.5, 0.1, 0.1, 0.01, 0.0, Color(1, 1, 1), 0.0, false, true)
+	_shard[_n - 1] = 3
+	_seed[_n - 1] = 0.0
+	# and one puff of dust (pass 50), so the dust shader compiles with them (its seed fixed: the start draws nothing from
+	# the shared random sequence, which the tests replay)
+	_emit_dust(Vector3(0, -60.0, 0), Vector3.ZERO, 0.5, 0.1, 0.1, 0.01, Color(1, 1, 1), true, 0.0)
 
 
 ## The two meshes every bolt is drawn into: see-through, both sides, over everything (as the per-strike ones were).
@@ -112,6 +171,72 @@ func _flame_pool() -> MultiMesh:
 	return mm
 
 
+## The note pool: unit quads the note shader turns to the camera, each showing one cell of the atlas.
+func _note_pool() -> MultiMesh:
+	var q := QuadMesh.new()
+	q.size = Vector2(1.0, 1.0)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.use_custom_data = true
+	mm.mesh = q
+	mm.instance_count = MAX_P
+	mm.visible_instance_count = 0
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://core/shaders/note_billboard.gdshader")
+	var tex := note_atlas()
+	mat.set_shader_parameter("has_atlas", tex != null)
+	if tex:
+		mat.set_shader_parameter("atlas", tex)
+	mat.set_shader_parameter("cells", float(NOTE_CELLS))
+	mmi.material_override = mat
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.custom_aabb = AABB(Vector3(-200, -80, -200), Vector3(400, 120, 400))
+	add_child(mmi)
+	return mm
+
+
+## The dust pool (pass 50): unit quads the dust shader turns to the camera, each a soft cloud frayed by the noise the
+## flames use.
+func _dust_pool() -> MultiMesh:
+	var q := QuadMesh.new()
+	q.size = Vector2(1.0, 1.0)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.use_custom_data = true
+	mm.mesh = q
+	mm.instance_count = MAX_P
+	mm.visible_instance_count = 0
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://core/shaders/dust_puff.gdshader")
+	mat.set_shader_parameter("noise_tex", load("res://art/fx/fire_noise.png"))
+	mmi.material_override = mat
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.custom_aabb = AABB(Vector3(-200, -80, -200), Vector3(400, 120, 400))
+	add_child(mmi)
+	return mm
+
+
+## The notes' atlas: NOTE_CELLS glyphs side by side. Read straight from the PNG while it waits for its import (a new
+## file the editor has not seen), so the notes show from the first run; null when it is not there at all.
+static func note_atlas() -> Texture2D:
+	if ResourceLoader.exists(NOTES_PNG):
+		var t = load(NOTES_PNG)
+		if t is Texture2D:
+			return t
+	if FileAccess.file_exists(NOTES_PNG):
+		var img := Image.load_from_file(ProjectSettings.globalize_path(NOTES_PNG))
+		if img and not img.is_empty():
+			img.generate_mipmaps()
+			return ImageTexture.create_from_image(img)
+	return null
+
+
 func _pool(mesh: Mesh, alpha: bool) -> MultiMesh:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -152,11 +277,28 @@ func _emit(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, a0: flo
 	_n += 1
 	_pos[i] = at; _vel[i] = vel; _age[i] = 0.0; _life[i] = maxf(life, 0.01)
 	_s0[i] = s0; _s1[i] = s1; _a0[i] = a0; _a1[i] = a1; _grav[i] = grav
-	_col[i] = col; _shard[i] = 1 if shard else 0
+	_col[i] = col; _shard[i] = 1 if shard else 0; _blue[i] = 0
 
 
-## One flame tongue: it grows from `s0` to `s1` metres tall while the shader's noise eats it away with age.
-func _emit_flame(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, col: Color, must := false) -> void:
+## One flame tongue: it grows from `s0` to `s1` metres tall while the shader's noise eats it away with age. `blue` (pass
+## 48) burns it in the blue palette: a blue body (FLAME_BLUE at `col`'s alpha) and the shader's blue heart and rim.
+func _emit_flame(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, col: Color, must := false, blue := false) -> void:
+	if _n >= MAX_P:
+		return
+	if not must and _busy_skip():
+		return
+	var i := _n
+	_n += 1
+	if blue:
+		col = Color(FLAME_BLUE.r, FLAME_BLUE.g, FLAME_BLUE.b, col.a)
+	_pos[i] = at; _vel[i] = vel; _age[i] = 0.0; _life[i] = maxf(life, 0.01)
+	_s0[i] = s0; _s1[i] = s1; _a0[i] = col.a; _a1[i] = col.a * 0.85; _grav[i] = 0.0
+	_col[i] = col; _shard[i] = 2; _seed[i] = randf(); _blue[i] = 1 if blue else 0
+
+
+## One dust puff (pass 50): a soft cloud from `s0` to `s1` metres across over `life` seconds, `a0` opaque at first and
+## thinning to nothing, fraying as it ages (the shader). `noise_seed` places its noise (negative: a random one).
+func _emit_dust(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, a0: float, col: Color, must := false, noise_seed := -1.0) -> void:
 	if _n >= MAX_P:
 		return
 	if not must and _busy_skip():
@@ -164,24 +306,44 @@ func _emit_flame(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, c
 	var i := _n
 	_n += 1
 	_pos[i] = at; _vel[i] = vel; _age[i] = 0.0; _life[i] = maxf(life, 0.01)
-	_s0[i] = s0; _s1[i] = s1; _a0[i] = col.a; _a1[i] = col.a * 0.85; _grav[i] = 0.0
-	_col[i] = col; _shard[i] = 2; _seed[i] = randf()
+	_s0[i] = s0; _s1[i] = s1; _a0[i] = a0; _a1[i] = 0.0; _grav[i] = 0.0
+	_col[i] = col; _shard[i] = 4; _seed[i] = randf() if noise_seed < 0.0 else noise_seed; _blue[i] = 0
 
 
-## A flame standing on `at`, `height` metres tall at its fullest (a burning pool, a Berserk hero).
-func flame(at: Vector3, height: float, life: float = 0.55, col: Color = FLAME_ORANGE) -> void:
-	_emit_flame(at, Vector3(randf_range(-0.12, 0.12), randf_range(0.5, 0.9), randf_range(-0.12, 0.12)), life, height * 0.5, height, col)
+## A flame standing on `at`, `height` metres tall at its fullest (a burning pool, a Berserk hero); `blue` (pass 48) in
+## the blue palette.
+func flame(at: Vector3, height: float, life: float = 0.55, col: Color = FLAME_ORANGE, blue: bool = false) -> void:
+	_emit_flame(at, Vector3(randf_range(-0.12, 0.12), randf_range(0.5, 0.9), randf_range(-0.12, 0.12)), life, height * 0.5, height, col, false, blue)
 
 
-## A drop of burning oil falling from `at` for `fall` seconds (the Oil Slick's leak).
-func drop(at: Vector3, fall: float) -> void:
-	_emit(at, Vector3(0, -0.5, 0), maxf(fall, 0.05), 0.2, 0.14, 1.0, 1.0, Color(1.0, 0.62, 0.2), 24.0)
+## A drop of burning oil falling from `at` for `fall` seconds (the Oil Slick's leak); `blue` (pass 48: Methanol) a blue one.
+func drop(at: Vector3, fall: float, blue: bool = false) -> void:
+	_emit(at, Vector3(0, -0.5, 0), maxf(fall, 0.05), 0.2, 0.14, 1.0, 1.0, DROP_BLUE if blue else Color(1.0, 0.62, 0.2), 24.0)
 
 
-func burst(at: Vector3, color: Color, size: float = 1.0) -> void:
+func burst(at: Vector3, color: Color, size: float = 1.0, strength: float = 1.0) -> void:
 	# the coloured cloud that grows and fades, and a hot white core that pops first so the burst has a snap
 	_emit(at, Vector3.ZERO, 0.34, 0.2, size * 2.2, 0.9, 0.0, color)
 	_emit(at, Vector3.ZERO, 0.16, 0.1, size * 1.1, 0.95, 0.0, Color(1, 1, 1))
+	if strength > 1.0:
+		burst_strength(at, color, size, strength)
+
+
+## The extra of a strong burst (pass 53, the Heavy Warhead's `blast_fx`; Garry: "the visual of the explosion becomes
+## 'stronger' looking"): a wide white flash that pops (`flash`), a second hotter ball swelling up, and a ring of sparks
+## flung out and up, more of them as `strength` grows past 1. None of it is thinned for the budget: a rocket's blast must
+## read.
+func burst_strength(at: Vector3, color: Color, size: float, strength: float, flash: bool = true) -> void:
+	var k: float = clampf(strength - 1.0, 0.0, 2.0)
+	var c := at + Vector3(0, 0.3, 0)
+	if flash:
+		_emit(c, Vector3.ZERO, 0.14, 0.3 * size, size * (2.6 + 0.8 * k), 1.0, 0.0, Color(1.0, 0.97, 0.88), 0.0, false, true)
+	_emit(c, Vector3(0, 1.2, 0), 0.4, 0.3 * size, size * (1.6 + 0.5 * k), 0.9, 0.0, color.lerp(Color(1.0, 0.5, 0.12), 0.5), 0.0, false, true)
+	var n: int = int(8 + 6 * k)
+	for j in range(n):
+		var a: float = TAU * float(j) / float(n) + randf() * 0.3
+		var v := Vector3(cos(a), 0, sin(a)) * randf_range(3.5, 6.5) * (0.6 + 0.4 * size) + Vector3(0, randf_range(2.5, 5.5), 0)
+		_emit(c, v, randf_range(0.35, 0.6), 0.5, 0.1, 1.0, 0.9, Color(1.0, 0.82, 0.35), 12.0, true, true)
 
 
 ## A big explosion (pass 33.3, the rocketeer's rocket), `r` metres: a white flash that pops, orange and red balls
@@ -250,9 +412,102 @@ func drag_dust(at: Vector3, pull: Vector3) -> void:
 		_emit(at + Vector3(0, 0.1, 0), v, randf_range(0.3, 0.5), 0.12, 0.05, 1.0, 0.6, Color(0.78, 0.6, 0.36), 10.0, true)
 
 
+## The sand a charging brute throws up (pass 50, Garry: "a dust trail effect behind the Bull Beetle as it runs"): pooled
+## puffs and grains like every other burst, thinned by the budget. `back` is the way behind it on the ground (a unit
+## vector), `width` how wide its body is in metres, `k` how strong (its charge.dust, 1 a full trail).
+const DUST_TAN := Color(0.86, 0.73, 0.52)
+const DUST_PALE := Color(0.95, 0.88, 0.72)
+const DUST_GRAIN := Color(0.76, 0.58, 0.36)
+
+
+## One beat of the trail behind a charging brute (thirty a second while it runs): a low puff from under its back end,
+## somewhere across its width, that drifts back and up, swells and thins out over most of a second; now and then a paler
+## one inside it, and a couple of grains kicked back.
+func charge_dust(at: Vector3, back: Vector3, width: float, k: float = 1.0) -> void:
+	var side := Vector3(-back.z, 0.0, back.x)
+	var o := at + side * randf_range(-0.45, 0.45) * width + Vector3(0, 0.2, 0)
+	_emit_dust(o, back * randf_range(0.5, 1.2) + side * randf_range(-0.5, 0.5) + Vector3(0, randf_range(0.3, 0.7), 0),
+		randf_range(0.75, 1.05), 0.35 * width, randf_range(1.1, 1.45) * width * k, 0.62 * minf(k, 1.2), DUST_TAN)
+	if randf() < 0.4:
+		_emit_dust(o + Vector3(0, 0.12, 0), back * 0.4 + Vector3(0, 0.55, 0), 0.55, 0.2 * width, 0.75 * width * k, 0.55, DUST_PALE)
+	if _busy_skip():
+		return
+	for n in range(2):
+		var v := back * randf_range(1.5, 3.5) + side * randf_range(-1.0, 1.0) + Vector3(0, randf_range(1.5, 3.2), 0)
+		_emit(o, v, randf_range(0.3, 0.5), 0.1, 0.05, 1.0, 0.6, DUST_GRAIN, 12.0, true)
+
+
+## Sand pawed back from under a brute winding up its charge: a small puff behind it and a spray of grains flung back and
+## up, harder as `k` grows towards the launch.
+func paw_dust(at: Vector3, back: Vector3, width: float, k: float = 1.0) -> void:
+	var side := Vector3(-back.z, 0.0, back.x)
+	var o := at + side * randf_range(-0.4, 0.4) * width + Vector3(0, 0.1, 0)
+	_emit_dust(o, back * 0.8 + Vector3(0, 0.45, 0), randf_range(0.5, 0.65), 0.2 * width, (0.55 + 0.4 * k) * width, 0.6, DUST_TAN)
+	for n in range(2 + int(2.0 * k)):
+		var v := back * randf_range(1.2, 2.8) * (0.6 + 0.6 * k) + side * randf_range(-0.8, 0.8) + Vector3(0, randf_range(1.8, 3.4), 0)
+		_emit(o, v, randf_range(0.3, 0.45), 0.09, 0.05, 1.0, 0.6, DUST_GRAIN, 12.0, true)
+
+
+## The launch: a burst of sand thrown back as it springs off, a wide low cloud across its back end and a spray of grains.
+## The cloud is never thinned: it is the moment the charge starts.
+func charge_launch(at: Vector3, back: Vector3, width: float, k: float = 1.0) -> void:
+	var side := Vector3(-back.z, 0.0, back.x)
+	for n in range(4):
+		var u := float(n) / 3.0 - 0.5
+		_emit_dust(at + side * u * width + Vector3(0, 0.2, 0), back * randf_range(1.2, 2.2) + side * u * 1.5 + Vector3(0, randf_range(0.5, 0.9), 0),
+			randf_range(0.65, 0.9), 0.4 * width, randf_range(1.2, 1.6) * width * k, 0.7, DUST_TAN, true)
+	for n in range(8):
+		var v := back * randf_range(2.0, 4.5) + side * randf_range(-1.6, 1.6) + Vector3(0, randf_range(2.0, 4.0), 0)
+		_emit(at + Vector3(0, 0.1, 0), v, randf_range(0.35, 0.55), 0.11, 0.05, 1.0, 0.6, DUST_GRAIN, 12.0, true)
+
+
+## The skid at the end of a charge: sand pushed out ahead and to both sides as it digs in.
+func skid_dust(at: Vector3, ahead: Vector3, width: float, k: float = 1.0) -> void:
+	var side := Vector3(-ahead.z, 0.0, ahead.x)
+	for n in range(3):
+		var u := float(n) - 1.0
+		_emit_dust(at + side * u * 0.4 * width + Vector3(0, 0.16, 0), ahead * randf_range(0.8, 1.6) + side * u * 1.2 + Vector3(0, 0.4, 0),
+			randf_range(0.55, 0.75), 0.3 * width, 1.15 * width * k, 0.6, DUST_TAN)
+
+
+## A little sand scuffed up at the feet of a creature a charger shoves aside, `dir` the way it is pushed: it trails the
+## other way.
+func shove_dust(at: Vector3, dir: Vector3) -> void:
+	if _busy_skip():
+		return
+	_emit_dust(at + Vector3(0, 0.15, 0), -dir * 0.6 + Vector3(0, 0.4, 0), 0.5, 0.2, 0.8, 0.55, DUST_TAN)
+	for n in range(2):
+		var v := -dir * randf_range(1.0, 2.0) + Vector3(randf_range(-0.6, 0.6), randf_range(1.5, 2.5), randf_range(-0.6, 0.6))
+		_emit(at + Vector3(0, 0.1, 0), v, randf_range(0.25, 0.4), 0.08, 0.04, 1.0, 0.6, DUST_GRAIN, 12.0, true)
+
+
 ## A mote drifting along `vel` and shrinking as it goes (pass 35: dust drawn into the Singularity's black hole).
 func mote(at: Vector3, vel: Vector3, life: float, size: float, col: Color) -> void:
 	_emit(at, vel, life, size, size * 0.3, col.a, 0.0, Color(col.r, col.g, col.b))
+
+
+## A musical note (pass 46, the Guitarra): it pops out at `at` to `size` metres, flies along `vel` slowing as it goes,
+## wobbles, and fades over the last half of `life`; `col` tints the white glyph (its outline stays dark), `glyph` picks
+## the atlas cell (-1 any).
+func note(at: Vector3, vel: Vector3, life: float, size: float, col: Color, glyph: int = -1) -> void:
+	if _n >= MAX_P or _busy_skip():
+		return
+	var i := _n
+	_n += 1
+	_pos[i] = at; _vel[i] = vel; _age[i] = 0.0; _life[i] = maxf(life, 0.01)
+	_s0[i] = size * 0.3; _s1[i] = size; _a0[i] = col.a; _a1[i] = 0.0; _grav[i] = 0.0
+	_col[i] = Color(col.r, col.g, col.b); _shard[i] = 3; _blue[i] = 0
+	var g: int = glyph if glyph >= 0 else randi() % NOTE_CELLS
+	_seed[i] = float(clampi(g, 0, NOTE_CELLS - 1)) + randf() * 0.99
+
+
+## How many notes are flying (tests).
+func note_count() -> int:
+	var n := 0
+	for i in range(_n):
+		if _shard[i] == 3:
+			n += 1
+	return n
 
 
 ## The material every swept trail shares (pass 35: the Sabre's crescent, the Hammer's smear, the Gravity Gun's beam, the
@@ -276,6 +531,21 @@ static func tint_ribbon_material() -> StandardMaterial3D:
 	return _tint_ribbon
 
 
+## The hero's speed trails and a Sprint's wind (pass 49, Garry: "rendered underneath the 2.5d sprite of the hero"): the
+## glow ribbon at SPEED_TRAIL_PRIORITY in the see-through queue, so they draw before the hero's second pass
+## (BillboardSprite.enable_over_trails, at OVER_PRIORITY) and he covers them wherever they cross him.
+const SPEED_TRAIL_PRIORITY := -2
+static var _speed_ribbon: StandardMaterial3D
+
+
+static func speed_ribbon_material() -> StandardMaterial3D:
+	if _speed_ribbon == null:
+		var m := glow_ribbon_material().duplicate() as StandardMaterial3D
+		m.render_priority = SPEED_TRAIL_PRIORITY
+		_speed_ribbon = m
+	return _speed_ribbon
+
+
 static func glow_ribbon_material() -> StandardMaterial3D:
 	if _glow_ribbon == null:
 		var m := StandardMaterial3D.new()
@@ -297,24 +567,24 @@ func poison(at: Vector3) -> void:
 
 
 ## A burning creature, every 0.18 s: one flame tongue licking up its body (a gold heart, an orange body, a red rim),
-## and now and then an ember flying off the top.
-func fire(at: Vector3, size: float = 1.0) -> void:
+## and now and then an ember flying off the top. `blue` (pass 48: a creature Methanol or Moonshine set burning) blue.
+func fire(at: Vector3, size: float = 1.0, blue: bool = false) -> void:
 	var p := at + Vector3(randf_range(-0.28, 0.28) * size, randf_range(-0.1, 0.2) * size, randf_range(-0.2, 0.2) * size)
 	var h: float = clampf(0.75 + 0.5 * size, 0.8, 2.6) * randf_range(0.85, 1.15)
-	_emit_flame(p, Vector3(randf_range(-0.2, 0.2), randf_range(0.8, 1.3), randf_range(-0.2, 0.2)), randf_range(0.45, 0.6), h * 0.5, h, FLAME_ORANGE)
+	_emit_flame(p, Vector3(randf_range(-0.2, 0.2), randf_range(0.8, 1.3), randf_range(-0.2, 0.2)), randf_range(0.45, 0.6), h * 0.5, h, FLAME_ORANGE, false, blue)
 	if randf() < 0.3:
-		_emit(p + Vector3(0, h * 0.6, 0), Vector3(randf_range(-0.8, 0.8), randf_range(2.0, 3.0), randf_range(-0.8, 0.8)), 0.4, 0.3, 0.12, 1.0, 0.8, Color(1.0, 0.8, 0.35), 2.0, true)
+		_emit(p + Vector3(0, h * 0.6, 0), Vector3(randf_range(-0.8, 0.8), randf_range(2.0, 3.0), randf_range(-0.8, 0.8)), 0.4, 0.3, 0.12, 1.0, 0.8, SPARK_BLUE if blue else Color(1.0, 0.8, 0.35), 2.0, true)
 
 
-## Catching fire: three tongues flare up at once, and a ring of sparks.
-func ignite(at: Vector3, size: float = 1.0) -> void:
+## Catching fire: three tongues flare up at once, and a ring of sparks; `blue` (pass 48) in the blue palette.
+func ignite(at: Vector3, size: float = 1.0, blue: bool = false) -> void:
 	for k in range(3):
 		var p := at + Vector3(randf_range(-0.3, 0.3) * size, -0.15 * size, randf_range(-0.2, 0.2) * size)
 		var h: float = clampf(0.9 + 0.55 * size, 1.0, 3.0)
-		_emit_flame(p, Vector3(0, 1.4, 0), 0.5, h * 0.4, h, FLAME_ORANGE)
+		_emit_flame(p, Vector3(0, 1.4, 0), 0.5, h * 0.4, h, FLAME_ORANGE, false, blue)
 	for k in range(5):
 		var a := TAU * k / 5.0 + randf() * 0.5
-		_emit(at + Vector3(0, 0.3, 0), Vector3(cos(a) * 2.5, 3.0, sin(a) * 2.5), 0.35, 0.5, 0.05, 1.0, 1.0, Color(1.0, 0.8, 0.3), 12.0, true)
+		_emit(at + Vector3(0, 0.3, 0), Vector3(cos(a) * 2.5, 3.0, sin(a) * 2.5), 0.35, 0.5, 0.05, 1.0, 1.0, SPARK_BLUE if blue else Color(1.0, 0.8, 0.3), 12.0, true)
 
 
 func hit(at: Vector3, color: Color) -> void:
@@ -355,9 +625,245 @@ func splinters(at: Vector3, col: Color, n: int = 14, size: float = 0.2) -> void:
 		_emit(at + Vector3(0, 0.45, 0), v, randf_range(0.7, 1.15), size * randf_range(0.7, 1.3), size * 0.6, 1.0, 0.75, col, 14.0, true, true)
 
 
+## One source's ribbon (pass 48, TRAILS): its points along his path and their ages, its clock and its mesh.
+class SpeedTrail:
+	var pts := PackedVector3Array()
+	var age := PackedFloat32Array()
+	var clock := 0.0
+	var mesh: ImmediateMesh
+	var col := Color.WHITE
+	var hip := 0.85
+	var width := 0.3
+	var alpha := 0.5
+	var seconds := 0.45
+
+
+## A speed trail (pass 48, TRAILS): `source` "gold", "blue" or "red"; `at` is the hero's feet this frame; `moving` adds to
+## the tail (standing, or once the boost is over, it shrinks away over its seconds).
+func speed_trail(source: String, at: Vector3, delta: float, moving: bool) -> void:
+	var tr := _trail(source)
+	if tr == null:
+		return
+	for k in range(tr.age.size()):
+		tr.age[k] += delta
+	while not tr.age.is_empty() and tr.age[0] >= tr.seconds:
+		tr.age.remove_at(0)
+		tr.pts.remove_at(0)
+	var hip := at + Vector3(0.0, tr.hip, 0.0)
+	if moving:
+		tr.clock -= delta
+		if tr.clock <= 0.0 or tr.pts.is_empty():
+			tr.clock = RUSH_TRAIL_STEP
+			tr.pts.append(hip)
+			tr.age.append(0.0)
+		else:
+			# the head keeps to him between the points it leaves behind
+			tr.pts[tr.pts.size() - 1] = hip
+	_draw_trail(tr)
+
+
+## Whether a source's ribbon still has a tail to fade out.
+func speed_trail_live(source: String) -> bool:
+	var tr: SpeedTrail = _trails.get(source)
+	return tr != null and not tr.pts.is_empty()
+
+
+## How many points a source's ribbon has now (tests: the gold one is all there is of Barrel Rush).
+func speed_trail_points(source: String) -> int:
+	var tr: SpeedTrail = _trails.get(source)
+	return tr.pts.size() if tr else 0
+
+
+## Barrel Rush's ribbon (the gold trail under its pass 47 name).
+func rush_trail(at: Vector3, delta: float, moving: bool) -> void:
+	speed_trail("gold", at, delta, moving)
+
+
+func rush_trail_live() -> bool:
+	return speed_trail_live("gold")
+
+
+func _trail(source: String) -> SpeedTrail:
+	var tr: SpeedTrail = _trails.get(source)
+	if tr:
+		return tr
+	if not TRAILS.has(source):
+		return null
+	var cfg: Dictionary = TRAILS[source]
+	tr = SpeedTrail.new()
+	tr.col = cfg["col"]
+	tr.hip = float(cfg["hip"])
+	tr.width = float(cfg["width"])
+	tr.alpha = float(cfg["alpha"])
+	tr.seconds = float(cfg["seconds"])
+	tr.mesh = ImmediateMesh.new()
+	var mi := MeshInstance3D.new()
+	mi.name = "Trail_" + source
+	mi.mesh = tr.mesh
+	# under the hero, never over him (pass 49)
+	mi.material_override = speed_ribbon_material()
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
+	mi.top_level = true
+	add_child(mi)
+	_trails[source] = tr
+	return tr
+
+
+func _draw_trail(tr: SpeedTrail) -> void:
+	tr.mesh.clear_surfaces()
+	var n := tr.pts.size()
+	if n < 2:
+		return
+	var cam := get_viewport().get_camera_3d()
+	var to_cam: Vector3 = (cam.global_position - tr.pts[n - 1]).normalized() if cam else Vector3.UP
+	tr.mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
+	for k in range(n):
+		var p := tr.pts[k]
+		var dir := (tr.pts[mini(k + 1, n - 1)] - tr.pts[maxi(k - 1, 0)])
+		if dir.length_squared() < 0.000001:
+			dir = Vector3.FORWARD
+		var side := dir.normalized().cross(to_cam)
+		if side.length_squared() < 0.000001:
+			side = Vector3.RIGHT
+		# 1 at his back, 0 at the tail: wide and bright there, nothing here
+		var f := clampf(1.0 - tr.age[k] / tr.seconds, 0.0, 1.0)
+		var half := side.normalized() * tr.width * 0.5 * f
+		var c := Color(tr.col, tr.alpha * f * f)
+		tr.mesh.surface_set_color(c)
+		tr.mesh.surface_add_vertex(p - half)
+		tr.mesh.surface_set_color(c)
+		tr.mesh.surface_add_vertex(p + half)
+	tr.mesh.surface_end()
+
+
+## A Sprint's wind (pass 48): `at` the hero's feet, `forward` where he runs; `on` while the boost lasts (new streaks come
+## only then), `moving` while he runs (streaks rush back past him; standing, they rise round him). Old streaks fly on and
+## fade after the boost.
+func wind(at: Vector3, forward: Vector3, delta: float, on: bool, moving: bool) -> void:
+	var k := 0
+	while k < _wind_age.size():
+		_wind_age[k] += delta
+		if _wind_age[k] >= _wind_life[k]:
+			var last := _wind_age.size() - 1
+			_wind_pos[k] = _wind_pos[last]
+			_wind_vel[k] = _wind_vel[last]
+			_wind_age[k] = _wind_age[last]
+			_wind_life[k] = _wind_life[last]
+			_wind_len[k] = _wind_len[last]
+			_wind_pos.resize(last)
+			_wind_vel.resize(last)
+			_wind_age.resize(last)
+			_wind_life.resize(last)
+			_wind_len.resize(last)
+			continue
+		_wind_pos[k] += _wind_vel[k] * delta
+		k += 1
+	if on:
+		_wind_clock -= delta
+		var f := Vector3(forward.x, 0.0, forward.z)
+		var runs: bool = moving and f.length_squared() > 0.01
+		while _wind_clock <= 0.0:
+			_wind_clock += 0.035 if runs else 0.11
+			if _wind_age.size() >= WIND_MAX:
+				continue
+			if runs:
+				var fw := f.normalized()
+				var side := Vector3(-fw.z, 0.0, fw.x)
+				_wind_pos.append(at + fw * randf_range(0.6, 1.8) + side * randf_range(-1.2, 1.2) + Vector3(0, randf_range(0.25, 2.0), 0))
+				_wind_vel.append(-fw * randf_range(9.0, 13.0))
+				_wind_life.append(randf_range(0.22, 0.34))
+				_wind_len.append(randf_range(1.0, 1.8))
+			else:
+				var a := randf() * TAU
+				var r := randf_range(0.5, 0.95)
+				_wind_pos.append(at + Vector3(cos(a) * r, randf_range(0.1, 0.7), sin(a) * r))
+				_wind_vel.append(Vector3(0, randf_range(3.0, 4.5), 0))
+				_wind_life.append(0.35)
+				_wind_len.append(0.7)
+			_wind_age.append(0.0)
+	_draw_wind()
+
+
+## Whether any streak of a Sprint's wind is still in the air, and how many.
+func wind_live() -> bool:
+	return not _wind_age.is_empty()
+
+
+func wind_count() -> int:
+	return _wind_age.size()
+
+
+func _draw_wind() -> void:
+	if _wind_mesh == null:
+		if _wind_age.is_empty():
+			return
+		_wind_mesh = ImmediateMesh.new()
+		var mi := MeshInstance3D.new()
+		mi.name = "Wind"
+		mi.mesh = _wind_mesh
+		mi.material_override = speed_ribbon_material()
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
+		mi.top_level = true
+		add_child(mi)
+	_wind_mesh.clear_surfaces()
+	if _wind_age.is_empty():
+		return
+	var cam := get_viewport().get_camera_3d()
+	_wind_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in range(_wind_age.size()):
+		var head := _wind_pos[k]
+		var dir: Vector3 = _wind_vel[k].normalized() if _wind_vel[k].length_squared() > 0.0001 else Vector3.UP
+		var tail := head - dir * _wind_len[k]
+		var mid := head - dir * _wind_len[k] * 0.4
+		var to_cam: Vector3 = (cam.global_position - mid).normalized() if cam else Vector3.UP
+		var side := dir.cross(to_cam)
+		side = side.normalized() * WIND_WIDTH * 0.5 if side.length_squared() > 0.000001 else Vector3.RIGHT * WIND_WIDTH * 0.5
+		var f: float = _wind_age[k] / maxf(_wind_life[k], 0.01)
+		# in quickly, out slowly: bright while it passes him
+		var a: float = clampf(f * 6.0, 0.0, 1.0) * (1.0 - f * f) * 0.85
+		var c0 := Color(WIND_COL, 0.0)
+		var c1 := Color(WIND_COL, a)
+		# tail to the middle, the middle to the head: see-through at both ends
+		_wind_quad(tail, mid, side, c0, c1)
+		_wind_quad(mid, head, side, c1, c0)
+	_wind_mesh.surface_end()
+
+
+func _wind_quad(p0: Vector3, p1: Vector3, side: Vector3, c0: Color, c1: Color) -> void:
+	_wind_mesh.surface_set_color(c0)
+	_wind_mesh.surface_add_vertex(p0 - side)
+	_wind_mesh.surface_set_color(c0)
+	_wind_mesh.surface_add_vertex(p0 + side)
+	_wind_mesh.surface_set_color(c1)
+	_wind_mesh.surface_add_vertex(p1 + side)
+	_wind_mesh.surface_set_color(c0)
+	_wind_mesh.surface_add_vertex(p0 - side)
+	_wind_mesh.surface_set_color(c1)
+	_wind_mesh.surface_add_vertex(p1 + side)
+	_wind_mesh.surface_set_color(c1)
+	_wind_mesh.surface_add_vertex(p1 - side)
+
+
+## A speed boost starting (pass 48: a Sprint's blue, Skedaddle's red): a flash at his middle and a ring of `col` streaks
+## flung out low and fast; `small` for a lighter one (Skedaddle starts on every hit).
+func speed_burst(at: Vector3, col: Color, small: bool = false) -> void:
+	var c := at + Vector3(0, 0.9, 0)
+	_emit(c, Vector3.ZERO, 0.3, 0.3, 1.5 if small else 2.6, 0.8, 0.0, col, 0.0, false, true)
+	if not small:
+		_emit(c, Vector3.ZERO, 0.14, 0.2, 1.3, 1.0, 0.0, Color(1, 1, 1), 0.0, false, true)
+	var n := 7 if small else 16
+	for k in range(n):
+		var a := TAU * float(k) / float(n) + randf() * 0.3
+		var v := Vector3(cos(a), 0, sin(a)) * randf_range(5.0, 7.5 if small else 10.0) + Vector3(0, randf_range(0.5, 2.0), 0)
+		_emit(at + Vector3(0, 0.5, 0), v, randf_range(0.25, 0.4), 0.42 if small else 0.55, 0.05, 1.0, 1.0, col, 3.0, true, true)
+
+
 ## A jittered bolt through `points` as a camera-facing ribbon: a white-hot core and a wide coloured sheath (a one-pixel
 ## line was lost on the sand), a flash at every point, gone in a third of a second with a flicker.
-func lightning(points: Array, color: Color = Color(0.3, 0.58, 1.0)) -> void:
+## `width` (pass 48): Thor's Wrath's and the Earthshaker's small zaps are thinner bolts with a tighter zigzag (0.5).
+func lightning(points: Array, color: Color = Color(0.3, 0.58, 1.0), width: float = 1.0) -> void:
 	if points.size() < 2 or _live >= MAX_LIVE:
 		return
 	# a zigzag between the points: a bolt, not a line (additive washed to white over the sand, so the sheath is a
@@ -370,13 +876,13 @@ func lightning(points: Array, color: Color = Color(0.3, 0.58, 1.0)) -> void:
 		for s in range(segs + (1 if k == points.size() - 2 else 0)):
 			var p := a.lerp(b, float(s) / segs)
 			if s > 0 and s < segs:
-				var side := 0.55 if s % 2 == 0 else -0.55
-				p += Vector3(randf_range(-0.2, 0.2) + side * randf_range(0.5, 1.0), randf_range(-0.2, 0.2), randf_range(-0.2, 0.2) + side * randf_range(0.5, 1.0))
+				var side := (0.55 if s % 2 == 0 else -0.55) * width
+				p += Vector3(randf_range(-0.2, 0.2) * width + side * randf_range(0.5, 1.0), randf_range(-0.2, 0.2) * width, randf_range(-0.2, 0.2) * width + side * randf_range(0.5, 1.0))
 			jit.append(p)
 	var cam := get_viewport().get_camera_3d()
 	var to_cam: Vector3 = (cam.global_position - jit[0]).normalized() if cam else Vector3.UP
 	# the sheath fades from 0.85 and the core from 1.0, each on a quadratic ease-in, as their tweens did
-	_bolts.append({"sheath": _ribbon_tris(jit, 0.36, to_cam), "core": _ribbon_tris(jit, 0.12, to_cam), "color": color, "t": 0.0})
+	_bolts.append({"sheath": _ribbon_tris(jit, 0.36 * width, to_cam), "core": _ribbon_tris(jit, 0.12 * width, to_cam), "color": color, "t": 0.0})
 	_live += 1
 	# into the meshes now, so the strike shows this frame (a node added mid-frame did)
 	_draw_bolts(0.0)
@@ -484,6 +990,8 @@ func _process(delta: float) -> void:
 	var ns := 0
 	var nb := 0
 	var nf := 0
+	var nn := 0
+	var nd := 0
 	while i < _n:
 		_age[i] += delta
 		if _age[i] >= _life[i]:
@@ -492,7 +1000,7 @@ func _process(delta: float) -> void:
 			if i != _n:
 				_pos[i] = _pos[_n]; _vel[i] = _vel[_n]; _age[i] = _age[_n]; _life[i] = _life[_n]
 				_s0[i] = _s0[_n]; _s1[i] = _s1[_n]; _a0[i] = _a0[_n]; _a1[i] = _a1[_n]; _grav[i] = _grav[_n]
-				_col[i] = _col[_n]; _shard[i] = _shard[_n]; _seed[i] = _seed[_n]
+				_col[i] = _col[_n]; _shard[i] = _shard[_n]; _seed[i] = _seed[_n]; _blue[i] = _blue[_n]
 			continue
 		_vel[i].y -= _grav[i] * delta
 		_pos[i] += _vel[i] * delta
@@ -512,8 +1020,28 @@ func _process(delta: float) -> void:
 			# a flame is taller than it is wide; the shader faces it to the camera and eats it away by its age
 			_flame_mm.set_instance_transform(nf, Transform3D(Basis().scaled(Vector3(s * 0.75, s, s)), _pos[i]))
 			_flame_mm.set_instance_color(nf, c)
-			_flame_mm.set_instance_custom_data(nf, Color(f, _seed[i], 0.0, 0.0))
+			_flame_mm.set_instance_custom_data(nf, Color(f, _seed[i], float(_blue[i]), 0.0))
 			nf += 1
+		elif _shard[i] == 3:
+			# a note: full size in the first third, slowing as it flies, a wobble, held bright and then faded
+			_vel[i] *= maxf(1.0 - NOTE_DRAG * delta, 0.0)
+			var pop: float = 1.0 - pow(1.0 - minf(f * 3.0, 1.0), 2.0)
+			var ns2: float = lerpf(_s0[i], _s1[i], pop)
+			c.a = _a0[i] * clampf((1.0 - f) * 2.2, 0.0, 1.0)
+			var g := floorf(_seed[i])
+			var tilt: float = 0.35 * sin(_age[i] * 8.0 + (_seed[i] - g) * TAU)
+			_note_mm.set_instance_transform(nn, Transform3D(Basis().scaled(Vector3(ns2, ns2, ns2)), _pos[i]))
+			_note_mm.set_instance_color(nn, c)
+			_note_mm.set_instance_custom_data(nn, Color(g, tilt, 0.0, 0.0))
+			nn += 1
+		elif _shard[i] == 4:
+			# a dust puff (pass 50): it slows as it drifts, swells, holds its body and then thins out, fraying (the shader)
+			_vel[i] *= maxf(1.0 - DUST_DRAG * delta, 0.0)
+			c.a = _a0[i] * (1.0 - f * f)
+			_dust_mm.set_instance_transform(nd, xf)
+			_dust_mm.set_instance_color(nd, c)
+			_dust_mm.set_instance_custom_data(nd, Color(f, _seed[i], 0.0, 0.0))
+			nd += 1
 		else:
 			_sph_mm.set_instance_transform(ns, xf)
 			_sph_mm.set_instance_color(ns, c)
@@ -522,4 +1050,6 @@ func _process(delta: float) -> void:
 	_sph_mm.visible_instance_count = ns
 	_box_mm.visible_instance_count = nb
 	_flame_mm.visible_instance_count = nf
+	_note_mm.visible_instance_count = nn
+	_dust_mm.visible_instance_count = nd
 	Perf.add("fx", t0)

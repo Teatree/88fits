@@ -5,7 +5,7 @@
   "rarity": "rare",
   "weight": 6,
   "hero": "dad",
-  "text": "Taking a hit gives +15% might and +15% area for 4 s.",
+  "text": "Taking a hit gives +15% attack damage and +15% area of effect for 4 s.",
   "effects": [],
   "special": "tough_love",
   "params": {

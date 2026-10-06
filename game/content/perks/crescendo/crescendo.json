@@ -5,7 +5,7 @@
   "rarity": "rare",
   "weight": 6,
   "hero": "calavera",
-  "text": "Every kill raises his might 1%, up to +40%. A hit drops it back to nothing.",
+  "text": "Every kill raises his attack damage 1%, up to +40%. A hit drops it back to nothing.",
   "effects": [],
   "special": "crescendo",
   "params": {

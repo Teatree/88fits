@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://art/props/war_lance.glb" id="lance"]
+
+[node name="WarLanceVisual" type="Node3D"]
+
+[node name="Projectile" parent="." instance=ExtResource("lance")]
+transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 0, 0, 0)

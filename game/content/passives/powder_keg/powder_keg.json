@@ -1,0 +1,33 @@
+{
+  "id": "powder_keg",
+  "name": "Powder Keg",
+  "rarity": "uncommon",
+  "weight": 8,
+  "max_level": 5,
+  "flavour": "Handle with care. Or don't.",
+  "text": "A kill has a 5% chance to blow up (+2.5% a level): a quarter of its max health to everything within 2.4 m, and a shove. Kills from the blast never blow.",
+  "levels": [
+    [
+      {
+        "stat": "powder_keg_chance",
+        "op": "add",
+        "value": 0.05,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "powder_keg_chance",
+        "op": "add",
+        "value": 0.025,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "a small round dark wooden powder keg with black iron hoops, a short lit fuse sparking bright yellow at its top",
+  "placeholder": {
+    "color": "#D08A3A",
+    "glyph": "boom"
+  },
+  "repeat_last_level": true
+}

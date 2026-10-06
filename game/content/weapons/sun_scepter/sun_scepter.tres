@@ -1,0 +1,111 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_75rcb"]
+[ext_resource type="Texture2D" path="res://content/weapons/sun_scepter/sun_scepter_icon.png" id="1_nq0oe"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_nq0oe"]
+[ext_resource type="PackedScene" path="res://content/weapons/sun_scepter/sun_scepter_visual.tscn" id="3_gth1u"]
+
+[sub_resource type="Resource" id="Resource_nq0oe"]
+script = ExtResource("1_75rcb")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_gth1u"]
+script = ExtResource("1_75rcb")
+stat = "area"
+op = "mul"
+value = 0.15
+
+[sub_resource type="Resource" id="Resource_mj521"]
+script = ExtResource("1_75rcb")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[sub_resource type="Resource" id="Resource_1f3mh"]
+script = ExtResource("1_75rcb")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_klltv"]
+script = ExtResource("1_75rcb")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_agpiq"]
+script = ExtResource("1_75rcb")
+stat = "area"
+op = "mul"
+value = 0.2
+
+[sub_resource type="Resource" id="Resource_gltro"]
+script = ExtResource("1_75rcb")
+stat = "amount"
+value = 1.0
+
+[resource]
+script = ExtResource("2_nq0oe")
+behavior = "SunScepter"
+tags = ["magic"]
+targeting = "random"
+base = {
+"amount": 1.0,
+"area": 1.0,
+"cooldown": 1.1,
+"damage": 14.0,
+"knockback": 4.0,
+"range": 12.0
+}
+levels = [[], [SubResource("Resource_nq0oe"), SubResource("Resource_gth1u")], [SubResource("Resource_mj521"), SubResource("Resource_1f3mh")], [SubResource("Resource_klltv")], [SubResource("Resource_agpiq"), SubResource("Resource_gltro")]]
+max_level = 5
+evolves_into = "zenith"
+sfx = {
+"burst": "w_sun_zenith",
+"fire": "w_sun_warn",
+"hit": "w_sun_strike"
+}
+visual = ExtResource("3_gth1u")
+visual_file = "sun_scepter_visual.tscn"
+params = {
+"familiar": {
+"bob": 0.1,
+"height": 1.55,
+"radius": 1.25,
+"speed": 1.1,
+"tilt_deg": 28.0
+},
+"marks": false,
+"shine": {
+"flare": 1.1,
+"idle": 0.0,
+"pop": 0.0,
+"sweep": 1.1
+},
+"sun": {
+"beam_alpha": 0.55,
+"flash": 1.0,
+"glint": 0.0,
+"hold_when_empty": true,
+"radius": 1.3,
+"ring_alpha": 0.35,
+"ring_color": "#FF381A",
+"thin": 1.0,
+"tint": "#FFC64A",
+"warn": 0.45,
+"weight_power": 2.0
+}
+}
+hero = "solenne"
+id = "sun_scepter"
+display_name = "Sun Scepter"
+flavour = "Noon, wherever she points it."
+rarity = "rare"
+weight = 7.0
+icon = ExtResource("1_nq0oe")
+icon_file = "sun_scepter_icon.png"
+placeholder = {
+"color": "#F2C037",
+"glyph": "star"
+}

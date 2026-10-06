@@ -1,0 +1,53 @@
+{
+  "id": "war_lance",
+  "name": "War Lance",
+  "flavour": "Two of them, and the dust they leave holds the rest.",
+  "rarity": "rare",
+  "hero": "ironwood",
+  "is_evolution": true,
+  "evolved_from": "spear",
+  "max_level": 1,
+  "behavior": "ProjectileEmitter",
+  "targeting": "nearest",
+  "tags": [
+    "thrown"
+  ],
+  "base": {
+    "damage": 44,
+    "cooldown": 1.35,
+    "amount": 2,
+    "pierce": 99,
+    "speed": 22,
+    "range": 12,
+    "knockback": 5.0
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "plant": {
+      "seconds": 0.8,
+      "tilt_deg": 70,
+      "bury": 0.3
+    },
+    "no_spin": true,
+    "radius": 0.4,
+    "fan_step_deg": 10,
+    "trail_zone": {
+      "every": 1.6,
+      "radius": 0.85,
+      "seconds": 1.6,
+      "slow": 0.45
+    }
+  },
+  "sfx": {
+    "fire": "w_spear_throw",
+    "hit": "w_spear_hit"
+  },
+  "placeholder": {
+    "color": "#FFB13B",
+    "glyph": "star",
+    "gold": true
+  },
+  "art_prompt": "a long golden war lance with a broad gilded steel point, a band of red cloth wrapped below the point and two golden eagle feathers hanging from it, lying diagonally with the point to the upper right"
+}

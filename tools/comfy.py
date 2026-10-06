@@ -101,16 +101,41 @@ def release_models():
         pass
     time.sleep(6)
     if server_ram_used_gb() > 20:
-        subprocess.run(SERVER_SSH + ["systemctl --user restart ai-comfyui.service"], capture_output=True, timeout=60)
-        for _ in range(40):
-            time.sleep(3)
-            try:
-                get("/system_stats")
-                return "restarted"
-            except Exception:
-                continue
-        raise RuntimeError("ComfyUI did not come back after the restart")
+        return restart_server()
     return "freed"
+
+
+def restart_server():
+    """Restart the ComfyUI service and wait until it answers (about 20 s). Uploaded references live in its input folder
+    and survive the restart."""
+    import subprocess
+    subprocess.run(SERVER_SSH + ["systemctl --user restart ai-comfyui.service"], capture_output=True, timeout=60)
+    for _ in range(40):
+        time.sleep(3)
+        try:
+            get("/system_stats")
+            return "restarted"
+        except Exception:
+            continue
+    raise RuntimeError("ComfyUI did not come back after the restart")
+
+
+def run_dev(graph, timeout=1500, tries=2):
+    """A Flux.2 dev render on a freshly started server (pass 46: the third dev render in one process sat for half an hour
+    loading the models into a full RAM, then timed out and blocked the queue behind it), retried once after a restart
+    when it times out."""
+    for attempt in range(tries):
+        restart_server()
+        try:
+            return run(graph, timeout=timeout)
+        except RuntimeError as e:
+            if "timeout" not in str(e) or attempt == tries - 1:
+                raise
+            try:
+                post("/queue", {"clear": True})
+                post("/interrupt", {})
+            except Exception:
+                pass
 
 
 def run(graph, timeout=1200):

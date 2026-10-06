@@ -9,7 +9,7 @@ script = ExtResource("1_h6e4h")
 archetype = "boss"
 doc = "Stage 2's boss: a lunge, a seven-line rumble that runs down every line of its fan, a burrow that surfaces under the hero, a ring of lizards. Pays two chests and thirty coins."
 brain = "boss"
-hp = 1500.0
+hp = 2400.0
 speed = 1.4
 damage = 24.0
 radius = 2.4
@@ -37,6 +37,7 @@ fps = {
 "die": 8.0,
 "run": 15.0
 }
+knockback = 7.0
 head = 0.922
 boss = {
 "attacks": [{

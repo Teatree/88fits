@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/siesta/siesta_icon.png" id="1_0gpd0"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_b5a0q"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_0gpd0"]
+
+[sub_resource type="Resource" id="Resource_0gpd0"]
+script = ExtResource("1_b5a0q")
+stat = "still_regen"
+value = 1.0
+target = "player"
+
+[resource]
+script = ExtResource("2_0gpd0")
+levels = [[SubResource("Resource_0gpd0")]]
+max_level = 5
+text = "Standing still heals you: +1 health a second a level."
+id = "siesta"
+display_name = "Siesta"
+flavour = "Sit a while. The desert can wait."
+rarity = "uncommon"
+weight = 8.0
+icon = ExtResource("1_0gpd0")
+icon_file = "siesta_icon.png"
+placeholder = {
+"color": "#E8D080",
+"glyph": "star"
+}

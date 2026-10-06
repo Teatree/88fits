@@ -10,54 +10,43 @@ script = ExtResource("2_c0d5c")
 stat = "damage"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_n6aji"]
 script = ExtResource("2_c0d5c")
 stat = "area"
-op = "add"
 value = 0.5
-target = "self"
 
 [sub_resource type="Resource" id="Resource_xrml6"]
 script = ExtResource("2_c0d5c")
 stat = "cooldown"
 op = "mul"
 value = -0.1
-target = "self"
 
 [sub_resource type="Resource" id="Resource_j2c1t"]
 script = ExtResource("2_c0d5c")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_gpbls"]
 script = ExtResource("2_c0d5c")
 stat = "damage"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_1bixm"]
 script = ExtResource("2_c0d5c")
 stat = "area"
-op = "add"
 value = 0.5
-target = "self"
 
 [sub_resource type="Resource" id="Resource_ikrwc"]
 script = ExtResource("2_c0d5c")
 stat = "damage"
 op = "mul"
 value = 0.3
-target = "self"
 
 [resource]
 script = ExtResource("2_yk424")
 behavior = "Lobber"
-tags = []
 targeting = "densest"
 base = {
 "amount": 1.0,
@@ -68,28 +57,20 @@ base = {
 "range": 10.0,
 "speed": 9.0
 }
-levels = [[], [SubResource("Resource_c0d5c")], [SubResource("Resource_n6aji")], [SubResource("Resource_xrml6")], [SubResource("Resource_j2c1t")], [SubResource("Resource_gpbls")], [SubResource("Resource_1bixm")], [SubResource("Resource_ikrwc")]]
-max_level = 8
-evolves_with = ""
-evolves_into = "cluster_bomb"
-is_evolution = false
-evolved_from = ""
+levels = [[], [SubResource("Resource_c0d5c"), SubResource("Resource_n6aji")], [SubResource("Resource_xrml6"), SubResource("Resource_j2c1t")], [SubResource("Resource_gpbls")], [SubResource("Resource_1bixm"), SubResource("Resource_ikrwc")]]
+max_level = 5
+evolves_into = "golden_pineapple"
 sfx = {
 "fire": "w_lob_throw",
 "hit": "w_lob_boom"
 }
 visual = ExtResource("3_yk424")
 visual_file = "lob_grenade_visual.tscn"
-params = {}
-hero = ""
 id = "lob_grenade"
 display_name = "Lob Grenade"
 flavour = "Big numbers on big groups."
 rarity = "rare"
-element = ""
 weight = 7.0
-hidden = false
-from_stage = 0
 icon = ExtResource("1_c0d5c")
 icon_file = "lob_grenade_icon.png"
 placeholder = {

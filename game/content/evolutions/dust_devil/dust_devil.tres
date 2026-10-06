@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="1_uqrj6"]
+[ext_resource type="Texture2D" path="res://content/evolutions/dust_devil/dust_devil_icon.png" id="1_vqfj1"]
+[ext_resource type="PackedScene" path="res://content/evolutions/dust_devil/dust_devil_visual.tscn" id="2_vqfj1"]
+
+[resource]
+script = ExtResource("1_uqrj6")
+targeting = "priority"
+base = {
+"amount": 3.0,
+"cooldown": 2.4,
+"damage": 30.0,
+"knockback": 14.0,
+"pierce": 80.0,
+"range": 18.0,
+"speed": 7.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "tumbleweed"
+sfx = {
+"fire": "w_tumble_roll",
+"hit": "w_tumble_hit"
+}
+visual = ExtResource("2_vqfj1")
+visual_file = "dust_devil_visual.tscn"
+params = {
+"fan_step_deg": 14.0,
+"final": {
+"aura": {
+"every": 0.2,
+"pull": 2.5,
+"radius": 2.6,
+"seconds": 0.4,
+"slow": 0.35,
+"tint": "#1A5A1E"
+},
+"back_speed_mult": 1.5,
+"out_speed_mult": 0.8,
+"return_damage_mult": 2.0,
+"second_pass": true
+},
+"radius": 0.9,
+"return": true,
+"roll_radius": 0.75
+}
+id = "dust_devil"
+display_name = "Dust Devil"
+flavour = "Three big black thorny weeds that roll out, turn, and come back through the crowd at twice the damage, then go out and back once more. Each drags a wake of dark green dust 2.6 m wide that slows what stands in it and pulls it gently along."
+rarity = "rare"
+icon = ExtResource("1_vqfj1")
+icon_file = "dust_devil_icon.png"
+placeholder = {
+"color": "#1A5A1E",
+"glyph": "ball",
+"gold": true
+}

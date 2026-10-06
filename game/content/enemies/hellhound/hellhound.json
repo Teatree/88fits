@@ -7,6 +7,7 @@
   "hp": 30,
   "speed": 2.6,
   "damage": 9,
+  "knockback": 5.1,
   "radius": 0.55,
   "size": 1.35,
   "pack_size": 4,
@@ -71,5 +72,6 @@
   },
   "doc": "Stage 3's runner: faster than anything on the sand, five times a goblin's health, packs of four on top of the regular roster. It closes the gap a slow build lives on.",
   "strip_cols": 43,
-  "head": 0.988
+  "head": 0.988,
+  "front_faces": "left"
 }

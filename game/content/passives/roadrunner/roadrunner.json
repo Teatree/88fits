@@ -1,0 +1,33 @@
+{
+  "id": "roadrunner",
+  "name": "Roadrunner",
+  "flavour": "Meep meep.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "move_speed",
+        "op": "mul",
+        "value": 0.3,
+        "target": "player"
+      },
+      {
+        "stat": "evade",
+        "op": "add",
+        "value": 0.1,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "stride",
+  "art_prompt": "a pair of cowboy boots with little white wings and a trail of dust clouds",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

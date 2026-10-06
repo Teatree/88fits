@@ -1,6 +1,6 @@
 {
   "id": "unlock_pike",
-  "name": "Pike",
+  "name": "Spear",
   "condition": {
     "type": "survive_minutes",
     "minutes": 4

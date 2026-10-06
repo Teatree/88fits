@@ -1,5 +1,6 @@
 {
   "id": "venom_tip",
+  "hidden": true,
   "name": "Venom Tip",
   "flavour": "Dipped in something.",
   "rarity": "rare",

@@ -1,0 +1,28 @@
+{
+  "id": "hot_sauce",
+  "name": "Hot Sauce",
+  "flavour": "The desert can smell it a mile off.",
+  "rarity": "common",
+  "weight": 8,
+  "line": true,
+  "max_level": 4,
+  "levels": [
+    [
+      {
+        "stat": "difficulty",
+        "op": "add",
+        "value": 0.25,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "trade": "",
+  "text": "+25% difficulty a level: coloured creatures come more often. They are tougher, but each pays more XP and may drop a chest.",
+  "evolves_into": "ghost_pepper",
+  "art_prompt": "a small glass bottle of bright red hot sauce with a red screw cap and a cream label showing a red chili pepper, a drop of sauce running down its side",
+  "placeholder": {
+    "color": "#E0402A",
+    "glyph": "flame"
+  }
+}

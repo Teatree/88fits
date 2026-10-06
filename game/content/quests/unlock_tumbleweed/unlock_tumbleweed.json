@@ -3,7 +3,7 @@
   "name": "Tumbleweed",
   "condition": {
     "type": "kills_of_enemy",
-    "enemy": "goblin",
+    "enemy": "skeleton",
     "count": 150
   },
   "unlocks": {

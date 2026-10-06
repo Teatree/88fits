@@ -1,0 +1,22 @@
+{
+  "id": "extra_supply",
+  "name": "Extra Supply",
+  "flavour": "Somebody over-ordered.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "land_mine",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "One drop in four lays twice as many mines.",
+  "vfx": "a double drop of mines",
+  "effects": [],
+  "params": {
+    "extra_supply": 0.25
+  },
+  "art_prompt": "a wooden supply crate full of land mines",
+  "placeholder": {
+    "color": "#A08050",
+    "glyph": "star"
+  }
+}

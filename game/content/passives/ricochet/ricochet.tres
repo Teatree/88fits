@@ -7,7 +7,6 @@
 [sub_resource type="Resource" id="Resource_sejey"]
 script = ExtResource("1_vbni0")
 stat = "ricochet"
-op = "add"
 value = 0.2
 target = "player"
 
@@ -18,7 +17,7 @@ max_level = 4
 id = "ricochet"
 display_name = "Ricochet"
 flavour = "A killing shot bounces to the next one, softer. Once."
-rarity = "rare"
+rarity = "uncommon"
 weight = 6.0
 icon = ExtResource("1_sejey")
 icon_file = "ricochet_icon.png"

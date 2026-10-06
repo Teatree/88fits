@@ -13,7 +13,7 @@
     {
       "stat": "crit_chance",
       "op": "add",
-      "value": 0.15,
+      "value": 0.05,
       "target": "player"
     },
     {
@@ -24,6 +24,7 @@
     }
   ],
   "favourite_weapon": "skull_rain",
+  "start_weapon": "guitarra",
   "favourite_bonus": {
     "type": "level",
     "value": 2
@@ -71,9 +72,9 @@
   "hurt_hint": "his painted skull face grimacing, teeth clenched",
   "level_heal": 0.0,
   "trait_name": "Last Dance",
-  "trait_text": "+25% might and +15% crit chance, but −15% max HP. His Skull Rain starts at level 2.",
+  "trait_text": "+25% attack damage and +5% crit chance, but −15% max HP. His Skull Rain starts at level 2.",
   "pose_drivers": {
-    "back": "run_occ",
-    "bd": "run_occ"
+    "back": "run_spread",
+    "bd": "run_spread"
   }
 }

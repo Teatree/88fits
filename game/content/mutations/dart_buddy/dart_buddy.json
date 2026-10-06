@@ -4,6 +4,7 @@
   "flavour": "It spits now.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "turret_buddy",
   "kind": "element",
   "element": "poison",

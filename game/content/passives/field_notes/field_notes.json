@@ -4,7 +4,8 @@
   "flavour": "More XP from every gem. Every kill, a lesson.",
   "rarity": "common",
   "weight": 9,
-  "max_level": 5,
+  "line": true,
+  "max_level": 4,
   "levels": [
     [
       {
@@ -16,6 +17,7 @@
     ]
   ],
   "repeat_last_level": true,
+  "evolves_into": "almanac",
   "placeholder": {
     "color": "#8A69F2",
     "glyph": "book"

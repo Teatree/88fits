@@ -8,6 +8,8 @@
 //   shape 2, spill (blobs):   UV.x = 0 centre .. 1 rim, UV.y = 0..1 round; INSTANCE_CUSTOM.x = radius, .y = seed
 //            (the lobed rim of Telegraphs.draped_blob); colour runs from inner_color to outer_color by UV.x squared
 // COLOR (the instance colour): rgb tint, a = alpha, taken as a StandardMaterial3D albedo would be.
+// The basis is the identity, except for a mark floated over the ground (pass 54, Telegraphs._lift_basis: the ripples on
+// the lake): its y column's length is 1 + the lift in metres.
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, blend_mix, skip_vertex_transform;
 
@@ -62,7 +64,9 @@ void vertex() {
 		// blended over the sand twice: the same colour at 1 - (1 - a)^2, measured against the old ones
 		v_color.a = 1.0 - (1.0 - v_color.a) * (1.0 - v_color.a);
 	}
-	vec3 world = vec3(p.x, ground(p) + lift, p.y);
+	// a mark floated over the ground (pass 54): the lift rides in the basis's y column, 1 + metres (1 for every other mark)
+	float extra = max(MODEL_MATRIX[1].y - 1.0, 0.0);
+	vec3 world = vec3(p.x, ground(p) + lift + extra, p.y);
 	VERTEX = (VIEW_MATRIX * vec4(world, 1.0)).xyz;
 	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
 }

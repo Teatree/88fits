@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_kp24c")
 hero = "dad"
-text = "Taking a hit gives +15% might and +15% area for 4 s."
+text = "Taking a hit gives +15% attack damage and +15% area of effect for 4 s."
 special = "tough_love"
 params = {
 "area": 0.15,

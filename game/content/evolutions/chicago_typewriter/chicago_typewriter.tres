@@ -6,13 +6,11 @@
 
 [resource]
 script = ExtResource("1_37p72")
-behavior = "ProjectileEmitter"
-tags = []
-targeting = "nearest"
+targeting = "priority"
 base = {
 "amount": 14.0,
 "cooldown": 1.0,
-"damage": 4.0,
+"damage": 5.5,
 "knockback": 0.8,
 "pierce": 3.0,
 "range": 13.0,
@@ -21,8 +19,6 @@ base = {
 }
 levels = [[]]
 max_level = 1
-evolves_with = ""
-evolves_into = ""
 is_evolution = true
 evolved_from = "tommy_gun"
 sfx = {
@@ -43,15 +39,10 @@ params = {
 "radius": 0.18,
 "tracer": true
 }
-hero = ""
 id = "chicago_typewriter"
 display_name = "Chicago Typewriter"
 flavour = "Every letter is a bullet."
-rarity = "epic"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
+rarity = "rare"
 icon = ExtResource("1_xfe87")
 icon_file = "chicago_typewriter_icon.png"
 placeholder = {

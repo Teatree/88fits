@@ -63,7 +63,8 @@ def sand(size=1024):
     ripples = 0.5 + 0.5 * np.sin((x * 9.0 + n * 2.5 + y * 2.0) * math.pi * 2.0)
     ripples = ripples ** 2
     blotch = tileable_noise(size, octaves=3, base_freq=2, seed=6)
-    base = lerp_color((196, 146, 84), (240, 202, 136), n * 0.5 + blotch * 0.5)
+    # pass 54 (Garry: the sand a little lighter and less orange): value +6 %, saturation -10 %, a touch toward beige
+    base = lerp_color((206, 160, 104), (246, 214, 156), n * 0.5 + blotch * 0.5)
     base = base * (0.80 + 0.36 * ripples[..., None]) * (0.92 + 0.16 * grain[..., None])
     img = to_rgb(base)
     return img
@@ -71,7 +72,8 @@ def sand(size=1024):
 
 def cracked(size=1024):
     n = tileable_noise(size, octaves=5, base_freq=4, seed=3)
-    base = lerp_color((132, 82, 44), (196, 136, 80), n)
+    # pass 54: the river bed follows the sand, lighter and less orange
+    base = lerp_color((142, 96, 58), (206, 152, 98), n)
     img = to_rgb(base)
     draw = ImageDraw.Draw(img)
     # cracks: a jittered Voronoi-ish polygon web drawn as dark lines, wrapped
@@ -83,7 +85,7 @@ def cracked(size=1024):
             x2, y2 = px + math.cos(ang) * length, py + math.sin(ang) * length
             for ox in (-size, 0, size):
                 for oy in (-size, 0, size):
-                    draw.line((px + ox, py + oy, x2 + ox, y2 + oy), fill=(96, 58, 30), width=int(2 + rng.random() * 3))
+                    draw.line((px + ox, py + oy, x2 + ox, y2 + oy), fill=(104, 68, 40), width=int(2 + rng.random() * 3))
     img = img.filter(ImageFilter.GaussianBlur(0.8))
     arr = np.asarray(img).astype(np.float32) / 255.0
     plates = tileable_noise(size, octaves=2, base_freq=12, seed=4)
@@ -196,7 +198,7 @@ def main():
     redrock().save(os.path.join(ROOT, "redrock.png"))
     sky_panorama().save(os.path.join(ROOT, "sky_panorama.png"))
     props_atlas().save(os.path.join(ROOT, "props_atlas.png"))
-    print("gen_textures: wrote 5 textures into", ROOT)
+    print("gen_textures: wrote 6 textures into", ROOT)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,6 @@
 [resource]
 script = ExtResource("1_jhdch")
 behavior = "MineLayer"
-tags = []
 targeting = "ground"
 base = {
 "amount": 2.0,
@@ -19,8 +18,6 @@ base = {
 }
 levels = [[]]
 max_level = 1
-evolves_with = ""
-evolves_into = ""
 is_evolution = true
 evolved_from = "land_mine"
 sfx = {
@@ -33,15 +30,11 @@ params = {
 "max_mines": 16.0,
 "trigger_radius": 0.8
 }
-hero = ""
 id = "minefield"
 display_name = "Minefield"
 flavour = "Watch your step. They won't."
-rarity = "epic"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
+rarity = "rare"
+hidden = true
 icon = ExtResource("1_g3nee")
 icon_file = "minefield_icon.png"
 placeholder = {

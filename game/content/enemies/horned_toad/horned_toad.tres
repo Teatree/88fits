@@ -38,6 +38,7 @@ fps = {
 "run": 15.0
 }
 damage_reduction = 0.4
+knockback = 5.89
 head = 0.912
 death_burst = {
 "damage": 12.0,

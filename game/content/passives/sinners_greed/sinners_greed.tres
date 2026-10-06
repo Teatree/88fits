@@ -7,14 +7,12 @@
 [sub_resource type="Resource" id="Resource_qj4a3"]
 script = ExtResource("1_fcmxi")
 stat = "greed"
-op = "add"
 value = 0.3
 target = "player"
 
 [sub_resource type="Resource" id="Resource_c2e8p"]
 script = ExtResource("1_fcmxi")
 stat = "xp_gain"
-op = "add"
 value = 0.15
 target = "player"
 

@@ -23,9 +23,10 @@ func test_new_items_are_content() -> void:
 
 func test_lifesteal_heals_from_damage() -> void:
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
-	# lifesteal is the Thirst line (pass 26); pass 31 cut it to 1.5% a rank and capped what it may heal a second
-	Run.add_or_rank_line("thirst")
-	Run.add_or_rank_line("thirst")
+	# lifesteal is Thirst (a line from pass 26, a passive since pass 46); pass 31 cut it to 1.5% a level and capped what
+	# it may heal a second
+	Run.add_or_level_passive("thirst")
+	Run.add_or_level_passive("thirst")
 	Run.rebuild_sheets()
 	assert_float(Run.player_sheet.get_stat("lifesteal", 0.0)).is_equal_approx(0.03, 0.0001)
 	var healed := [0.0]

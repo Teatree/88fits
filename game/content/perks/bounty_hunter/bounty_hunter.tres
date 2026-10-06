@@ -19,6 +19,7 @@ display_name = "Bounty Hunter"
 flavour = "Wanted: anything that moves."
 rarity = "rare"
 weight = 6.0
+hidden = true
 icon = ExtResource("1_ei3ir")
 icon_file = "bounty_hunter_icon.png"
 placeholder = {

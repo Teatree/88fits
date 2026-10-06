@@ -9,7 +9,9 @@ class_name MeshMerge
 extends RefCounted
 
 const KEEP := ["Held", "Familiar", "Projectile", "Muzzle", "WingL", "WingR", "Drum", "Blade", "Lid", "Cluster", "Body", "Jaw", "Balloon", "Flame", "Gun",
-		"Hammer", "Handle", "Head", "Spin", "Core", "ClawA", "ClawB", "ClawC"]
+		"Hammer", "Handle", "Head", "Spin", "Core", "ClawA", "ClawB", "ClawC",
+		# pass 54, the Sun Scepter: the sceptre, its staff and sun, Zenith's count ring, the glint's anchor, the sunburst
+		"Scepter", "Staff", "Sun", "Charge", "Glint", "SunGlow"]
 ## Off for a before/after capture only.
 static var enabled := true
 

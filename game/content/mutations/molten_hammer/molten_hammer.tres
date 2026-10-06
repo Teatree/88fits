@@ -7,23 +7,17 @@
 [sub_resource type="Resource" id="Resource_3uyg8"]
 script = ExtResource("1_l8ohe")
 stat = "fire_damage"
-op = "add"
 value = 5.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_r27sm"]
 script = ExtResource("1_l8ohe")
 stat = "fire_duration"
-op = "add"
 value = 2.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_ef66y"]
 script = ExtResource("1_l8ohe")
 stat = "fire_spread"
-op = "add"
 value = 0.4
-target = "self"
 
 [resource]
 script = ExtResource("2_3uyg8")
@@ -38,6 +32,7 @@ flavour = "Straight off the anvil."
 rarity = "rare"
 element = "fire"
 weight = 8.0
+hidden = true
 icon = ExtResource("2_r27sm")
 icon_file = "molten_hammer_icon.png"
 placeholder = {

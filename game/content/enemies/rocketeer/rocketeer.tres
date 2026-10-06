@@ -7,9 +7,9 @@
 [resource]
 script = ExtResource("1_07ndq")
 archetype = "spitter"
-doc = "Sits down far off and fires a slow bright-red rocket that hunts you and cannot be shot down; the moment it is gone (it hit, or it burnt out) he reloads and fires the next, so one of his is always in the air. The blast throws you hard off your feet and throws every creature near it clear. Kill him and his rocket goes wild. A special: specials come on their own clock from 2:30, one at a time (a rocketeer or, from stage 2, a harpooner), the next 45 to 60 seconds after the last one dies."
+doc = "A vulture with a rocket launcher (Garry's picture): keeps 28 m off and sends one slow homing rocket at the hero, then reloads; kill him and the rocket goes loose and dives on the crowd."
 brain = "artillery"
-hp = 23.0
+hp = 35.0
 speed = 1.6
 damage = 8.0
 radius = 0.9
@@ -36,9 +36,10 @@ fps = {
 "die": 8.0,
 "run": 15.0
 }
+knockback = 4.81
 max_alive = 1
 badge = "gear"
-head = 1.0
+head = 0.969
 can_be_elite = false
 can_be_grabbed = false
 artillery = {
@@ -52,6 +53,11 @@ artillery = {
 "throw": 26.0,
 "throw_radius": 4.5,
 "turn": 1.3
+},
+"muzzle": {
+"forward": 0.2,
+"side": 0.6,
+"up": 2.6
 },
 "reload": 2.5,
 "stand_off": 28.0,
@@ -72,8 +78,8 @@ variance = {
 "tints": ["#FFFFFF", "#E8F0D0"]
 }
 id = "rocketeer"
-display_name = "Rocketeer"
-flavour = "One rocket at a time. There is always one."
+display_name = "Vulture Raider"
+flavour = "He waits for you to tire. Then he waits a little less."
 icon = ExtResource("1_rscen")
 icon_file = "rocketeer_icon.png"
 placeholder = {

@@ -6,9 +6,8 @@
 
 [resource]
 script = ExtResource("1_awnjn")
-behavior = "ProjectileEmitter"
 tags = ["gun"]
-targeting = "nearest"
+targeting = "priority"
 base = {
 "amount": 2.0,
 "cooldown": 0.8,
@@ -20,8 +19,6 @@ base = {
 }
 levels = [[]]
 max_level = 1
-evolves_with = ""
-evolves_into = ""
 is_evolution = true
 evolved_from = "revolver"
 sfx = {
@@ -41,6 +38,21 @@ params = {
 "radius": 1.2,
 "speed": 1.2
 },
+"final": {
+"hip_shot": {
+"every": 3.0,
+"gap": 0.12,
+"volleys": 3.0
+},
+"radius_mult": 1.5,
+"ricochet_any": {
+"count": 2.0,
+"frac": 0.8
+},
+"silver": true,
+"size_mult": 1.5,
+"speed_mult": 1.15
+},
 "no_shells": true,
 "radius": 0.14,
 "scatter_deg": 1.5,
@@ -55,12 +67,8 @@ params = {
 hero = "drifter"
 id = "golden_revolver"
 display_name = "Golden Revolver"
-flavour = "It leaves a mark. In the air."
-rarity = "epic"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
+flavour = "Every round a silver bullet that ricochets twice at 80% without needing a kill; every third pull is a hip shot; every shot leaves a line of golden energy in the air."
+rarity = "rare"
 icon = ExtResource("1_yiqsx")
 icon_file = "golden_revolver_icon.png"
 placeholder = {

@@ -9,7 +9,6 @@ script = ExtResource("1_xaoob")
 stat = "area"
 op = "mul"
 value = 0.25
-target = "self"
 
 [resource]
 script = ExtResource("2_rpk00")
@@ -25,7 +24,7 @@ params = {
 id = "blasting_cap"
 display_name = "Blasting Cap"
 flavour = "Mira's mines pay for themselves."
-rarity = "epic"
+rarity = "rare"
 weight = 8.0
 icon = ExtResource("2_nd1cq")
 icon_file = "blasting_cap_icon.png"

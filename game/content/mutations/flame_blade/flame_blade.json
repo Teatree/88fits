@@ -1,5 +1,6 @@
 {
   "id": "flame_blade",
+  "hidden": true,
   "name": "Flame Blade",
   "flavour": "Hot steel.",
   "rarity": "rare",

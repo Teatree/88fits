@@ -1,0 +1,25 @@
+{
+  "id": "cold_snap",
+  "name": "Cold Snap",
+  "rarity": "common",
+  "weight": 9,
+  "max_level": 5,
+  "flavour": "Even the desert gets a cold night.",
+  "text": "A hit may freeze a creature for 1 second: blue, still and harmless. 2% at level 1, 10% at level 5. Bosses shrug it off.",
+  "levels": [
+    [
+      {
+        "stat": "freeze_chance",
+        "op": "add",
+        "value": 0.02,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "a pale blue ice crystal snowflake inside a small block of ice",
+  "placeholder": {
+    "color": "#8CC8F0",
+    "glyph": "star"
+  },
+  "repeat_last_level": true
+}

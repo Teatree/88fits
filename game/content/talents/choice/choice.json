@@ -3,11 +3,14 @@
   "name": "Choice",
   "flavour": "See another, or throw one away.",
   "order": 5,
-  "ranks": 3,
+  "ranks": 6,
   "cost": [
     180,
     324,
-    540
+    540,
+    810,
+    1170,
+    1620
   ],
   "forms": [
     {
@@ -24,7 +27,7 @@
     },
     {
       "name": "Banish",
-      "text": "+1 banish a run, a rank.",
+      "text": "+1 banish a stage, a rank.",
       "effects": [
         {
           "stat": "banishes",

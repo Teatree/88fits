@@ -1,0 +1,49 @@
+{
+  "id": "flicker",
+  "name": "Flicker",
+  "flavour": "Quick light, quick strikes.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "sun_scepter",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Strikes 30% sooner for 25% less damage. The pillars burn thinner and yellower.",
+  "vfx": "thinner, paler yellow pillars; a ring of light loading round the sceptre's handle",
+  "effects": [
+    {
+      "stat": "cooldown",
+      "op": "mul",
+      "value": -0.3
+    },
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.25
+    }
+  ],
+  "params": {
+    "sun": {
+      "beam_alpha": 0.4,
+      "tint": "#FFE86A",
+      "thin": 0.7
+    },
+    "handle_ring": {
+      "at": 0.4,
+      "radius": 0.095,
+      "width": 0.045,
+      "track": 0.85,
+      "track_color": "#5E3F14",
+      "color": "#F39A1E",
+      "head_color": "#FFE04A",
+      "period": 2.5,
+      "spin": 0.6,
+      "tilt_deg": 25.0
+    }
+  },
+  "art_prompt": "three thin pale-yellow beams of light flashing down side by side at slightly different heights, each a quick narrow shaft with a small sparkle at its foot",
+  "placeholder": {
+    "color": "#FFE86A",
+    "glyph": "star"
+  }
+}

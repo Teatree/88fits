@@ -5,7 +5,7 @@
   "rarity": "rare",
   "weight": 6,
   "hero": "astro",
-  "text": "Every 40 s a supply pod crashes near her: a red ring, then the pod hits, hurting and throwing creatures, and leaves a power-up (a heart when she is hurt).",
+  "text": "Every 40 s a supply pod crashes near her: a red ring, then the pod hits, hurting and throwing creatures, and leaves a magnet pulse (a heart when she is hurt).",
   "effects": [],
   "special": "supply_drop",
   "params": {
@@ -13,9 +13,13 @@
     "first": 15.0,
     "warn": 1.5,
     "radius": 2.6,
-    "damage": 30.0,
-    "damage_per_level": 4.0,
-    "knockback": 14.0
+    "damage": 15.0,
+    "damage_per_level": 2.0,
+    "knockback": 14.0,
+    "heart_below": 0.6,
+    "drops": [
+      "magnet_pulse"
+    ]
   },
   "art_prompt": "a small silver space supply pod with an orange stripe falling from the sky on a trail of fire",
   "placeholder": {

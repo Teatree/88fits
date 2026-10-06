@@ -17,6 +17,9 @@ var _last_report := -1
 var _boss_at := -1.0
 var _gila_at := -1.0
 var _giant_slams := 0
+var _ring_r0 := -1.0   # pass 48: the ring's radius and the play clock 3 s into the fight, to time its closing
+var _ring_t0 := 0.0
+var _play_t := 0.0     # seconds the game ran unpaused (the ring closes only then)
 
 
 func _init() -> void:
@@ -43,6 +46,8 @@ func _start() -> void:
 func _tick() -> void:
 	var dt: float = root.get_process_delta_time()
 	_t += dt
+	if _game != null and is_instance_valid(_game) and not _game.paused:
+		_play_t += dt
 	if _game == null:
 		_game = current_scene
 		if _game == null or not _game.has_method("open_pause"):
@@ -74,16 +79,18 @@ func _tick() -> void:
 		"boot":
 			if _t > 3.0:
 				_phase = "stage3"
-				# stage 3, three seconds into it, the director past every earlier event; a stage-3 build
-				_run.stage = 2
-				_run.elapsed = 603.0
+				# stage 3, three seconds into it, the director past every earlier event; a stage-3 build (the stage clock is
+				# the timeline's: pass 46 stretched Red Canyon's stages from 300 s to 430 s)
 				var tl = _game.director.timeline
+				var at: float = 2.0 * float(tl.stage_length) + 3.0
+				_run.stage = 2
+				_run.elapsed = at
 				for k in range(tl.events.size()):
-					if float(tl.events[k].get("t", 0.0)) < 603.0:
+					if float(tl.events[k].get("t", 0.0)) < at:
 						_game.director._event_i = k + 1
 				_game.director.continue_to_next_stage()
 				_run.stage = 2
-				_run.elapsed = 603.0
+				_run.elapsed = at
 				_game.director._apply_mults()
 				for k in range(12):
 					_run.add_xp(_run.xp_to_next() + 1.0)
@@ -114,10 +121,20 @@ func _tick() -> void:
 					em.atk_i[i] = 1   # the rumble is its second attack
 			if not em._rumbles.is_empty():
 				_seen["rumble"] = true
-			# a giant right by the hero so its slam runs
+			# a giant right by the hero so its slam runs: one the director brought, walked over, or a new one when there is
+			# none (pass 48: a fourth one spawned by hand next to the director's three tripped the three-at-most check)
 			if _t > 12.0 and not _seen.has("giant_spawned"):
 				_seen["giant_spawned"] = true
-				em.spawn("hammer_giant", _game.player.global_position + Vector3(2.5, 0, 0))
+				var near_at: Vector3 = _game.player.global_position + Vector3(2.5, 0, 0)
+				var gi := -1
+				for i in range(em.MAX):
+					if em.is_alive(i) and (em.types[em.type_idx[i]]["def"]).id == "hammer_giant":
+						gi = i
+						break
+				if gi >= 0:
+					em.pos[gi] = Vector3(near_at.x, _game.map.height_at(near_at.x, near_at.z), near_at.z)
+				else:
+					em.spawn("hammer_giant", near_at)
 			for i in range(em.MAX):
 				if em.alive[i] == 1 and (em.types[em.type_idx[i]]["def"]).id == "hammer_giant" and em.state[i] == em.STATE_ATTACK:
 					_seen["giant_windup"] = true
@@ -130,8 +147,28 @@ func _tick() -> void:
 				if not _game._ring.is_empty():
 					_seen["ring"] = true
 					_seen["ring_r"] = snappedf(float(_game._ring["r"]), 0.1)
+					# pass 48: the ring closes at the pace knob, (radius - min_radius) / shrink metres a second times the pace
+					var rr: float = float(_game._ring["r"])
+					if _t > _boss_at + 3.0 and _ring_r0 < 0.0:
+						_ring_r0 = rr
+						_ring_t0 = _play_t
+					elif _ring_r0 > 0.0 and _play_t > _ring_t0 + 6.0 and not _seen.has("ring_rate"):
+						var cfg: Dictionary = _game._ring["cfg"]
+						var want: float = (float(cfg.get("radius", 21.0)) - float(cfg.get("min_radius", 8.0))) / float(cfg.get("shrink", 42.0)) * float(_run.move_pace())
+						var rate: float = (_ring_r0 - rr) / (_play_t - _ring_t0)
+						_seen["ring_rate"] = "%.3f m/s (pace %.2f wants %.3f)" % [rate, float(_run.move_pace()), want]
+						if absf(rate - want) > want * 0.2:
+							_errors.append("the ring closes at %.3f m/s, the pace wants %.3f" % [rate, want])
 				if not _game._hell_lines.is_empty():
 					_seen["brand_lines"] = true
+					# pass 45: the Brander never burns on his own brand lines (he stands at their start and rolls down them).
+					# One full tick of every line and the ring, nothing else between the two reads of his HP.
+					if em.boss_alive() and not _seen.has("self_burn"):
+						var hb: float = em.hp[em.boss_index]
+						_game._tick_hell(0.6)
+						if em.hp[em.boss_index] < hb - 0.001:
+							_errors.append("the Brander burned on his own brand line: %.1f -> %.1f" % [hb, em.hp[em.boss_index]])
+						_seen["self_burn"] = em.hp[em.boss_index] < hb - 0.001
 				# a hero outside the ring burns (god mode keeps him alive; the log says so)
 				if _t > _boss_at + 30.0 and _t < _boss_at + 31.0 and not _game._ring.is_empty():
 					var c: Vector3 = _game._ring["center"]
@@ -146,7 +183,8 @@ func _tick() -> void:
 					_seen["endless"] = true
 					_seen["wave"] = _run.endless_wave()
 					if _t > _boss_at + 44.0:
-						_run.elapsed += 60.0   # a wave a second, to see the multiplier climb
+						# a wave a frame, to see the multiplier climb (a wave is the timeline's endless_wave_seconds)
+						_run.elapsed += float(_game.director.timeline.endless_wave_seconds)
 						_seen["endless_mult"] = snappedf(_run.stage_mult(), 0.01)
 			if _run.endless and _run.endless_wave() >= 4:
 				_finish("")
@@ -155,15 +193,21 @@ func _tick() -> void:
 	if sec != _last_report and sec % 4 == 0:
 		_last_report = sec
 		var em2 = _game.enemies
-		print("t=%3ds stage=%d clock=%s alive=%3d hob=%d imp=%d hound=%d giant=%d boss=%s ring=%s lines=%d crescendo=%d mult=%.2f" % [sec, _run.stage + 1,
+		var up: Array = []
+		for k in ["cards", "chest_screen", "resume_gate", "portal_dialog", "stranger_screen", "revive_screen", "structure_shop", "pause_screen"]:
+			var c = _game.get(k)
+			if c != null and c is CanvasItem and (c as CanvasItem).visible:
+				up.append(k)
+		print("t=%3ds stage=%d clock=%s alive=%3d hob=%d imp=%d hound=%d giant=%d boss=%s ring=%s lines=%d crescendo=%d mult=%.2f play=%.0fs paused=%s %s" % [sec, _run.stage + 1,
 			"%d:%02d" % [int(_run.elapsed) / 60, int(_run.elapsed) % 60], _run.alive, em2.alive_of("blue_slime"), em2.alive_of("imp"), em2.alive_of("hellhound"),
-			em2.alive_of("hammer_giant"), str(em2.boss_alive()), str(_game._ring.get("r", "-")), _game._hell_lines.size(), _run.crescendo, _run.stage_mult()])
+			em2.alive_of("hammer_giant"), str(em2.boss_alive()), str(_game._ring.get("r", "-")), _game._hell_lines.size(), _run.crescendo, _run.stage_mult(),
+			_play_t, str(_game.paused), str(up)])
 	if _t >= _seconds:
 		_finish("timeout in phase " + _phase)
 
 
 func _finish(why: String) -> void:
-	var want := ["blue_slime", "imp", "hellhound", "hammer_giant", "hell_tint", "rumble", "giant_windup", "ring", "brand_lines", "ring_gone", "endless", "portal_final"]
+	var want := ["blue_slime", "imp", "hellhound", "hammer_giant", "hell_tint", "rumble", "giant_windup", "ring", "ring_rate", "brand_lines", "ring_gone", "endless", "portal_final"]
 	var missing: Array = []
 	for k in want:
 		if not _seen.has(k):

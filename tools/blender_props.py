@@ -2,16 +2,20 @@
 
 Low-poly, painted-flat materials (colour per material, no textures), origin at the base so Godot can
 drop them on the terrain. Run headless:
-  "<blender.exe>" -b --python tools/blender_props.py -- out=D:/_projects/88fits/game/art/props
+  "<blender.exe>" -b --python tools/blender_props.py -- out=D:/_projects/88fits/game/art/props [only=tumbleweed_dark,...]
 Props: saguaro, barrel_cactus, rock_small, rock_big, boulder, mesa_block, signpost, skull, bone,
-       pickup_wreck, gas_station, water_tower, wind_pump, tumbleweed, campfire, ramp
+       pickup_wreck, gas_station, water_tower, wind_pump, tumbleweed, campfire, ramp, tumbleweed_dark (pass 54)
+`only=` builds just the props it names (pass 54: the dark weed alone, the rest of the kit untouched).
 """
 import bpy, bmesh, math, os, random, sys
 
 OUT = "D:/_projects/88fits/game/art/props"
+ONLY = []
 for a in sys.argv:
     if a.startswith("out="):
         OUT = a[4:]
+    if a.startswith("only="):
+        ONLY = [s for s in a[5:].split(",") if s]
 os.makedirs(OUT, exist_ok=True)
 random.seed(88)
 
@@ -231,6 +235,44 @@ def tumbleweed():
     return o
 
 
+def _srgb_to_linear(c):
+    c = c / 255.0
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+
+def tumbleweed_dark():
+    """The Tumbleweed weapon's shot (pass 54, Garry: the tan weed vanished on the sand): the same tangle in dark brown
+    with thicker wires (0.09) and a faint glow of its own colour, so it reads in shade. Its colour is given as the game
+    shows it (sRGB 74, 46, 24): Blender's base colour is linear. The mesh keeps the name "tumbleweed", so the visual
+    scenes' material overrides find it by the same path. Its own seed: built alone (only=) or with the kit, it is the
+    same weed. The King's black weeds and the world's rolling ones keep tumbleweed.glb."""
+    random.seed(8854)
+    rgb = (74, 46, 24)
+    lin = tuple(_srgb_to_linear(c) for c in rgb)
+    m = bpy.data.materials.new("tumble_dark")
+    m.use_nodes = True
+    bsdf = m.node_tree.nodes.get("Principled BSDF")
+    bsdf.inputs["Base Color"].default_value = (lin[0], lin[1], lin[2], 1.0)
+    bsdf.inputs["Roughness"].default_value = 0.9
+    bsdf.inputs["Emission Color"].default_value = (lin[0], lin[1], lin[2], 1.0)
+    bsdf.inputs["Emission Strength"].default_value = 0.15
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=0.8, location=(0, 0, 0.8))
+    o = bpy.context.active_object
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    for v in bm.verts:
+        v.co += v.normal * random.uniform(-0.12, 0.12) * 0.8
+    bm.to_mesh(o.data)
+    bm.free()
+    o.data.materials.clear()
+    o.data.materials.append(m)
+    mod = o.modifiers.new("wire", "WIREFRAME")
+    mod.thickness = 0.09
+    bpy.ops.object.modifier_apply(modifier="wire")
+    o.name = "tumbleweed"
+    return o
+
+
 def campfire():
     stones = [ico(0.22, (math.cos(a) * 0.7, math.sin(a) * 0.7, 0.15), ROCK, 1, 0.1) for a in [k * math.tau / 8 for k in range(8)]]
     logs = [cyl(0.1, 0.1, 1.1, (0, 0, 0.18), WOOD_DARK, 6, (0, math.pi / 2, r)) for r in (0.3, 1.4, 2.4)]
@@ -391,7 +433,10 @@ def main():
         ("oak_tree", oak_tree), ("pine_tree", pine_tree), ("bush", bush), ("mushroom_big", mushroom_big), ("log", log_prop), ("stump", stump),
         ("magnet_shrine", magnet_shrine), ("shop_stall", shop_stall), ("healing_well", healing_well), ("loot_cache", loot_cache),
         ("war_drum", war_drum), ("dice_shrine", dice_shrine), ("beacon", beacon),
+        ("tumbleweed_dark", tumbleweed_dark),
     ]
+    if ONLY:
+        builders = [b for b in builders if b[0] in ONLY]
     for name, fn in builders:
         clear()
         obj = fn()

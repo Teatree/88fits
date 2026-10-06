@@ -28,6 +28,8 @@ var revive_screen: ReviveScreen
 var stranger_screen: StrangerScreen
 var paused := false
 var hud: HUD
+## the floating damage numbers (pass 46, DamageNumbers): on the UI layer under the HUD
+var damage_numbers: DamageNumbers
 var cards: CardScreen
 var pause_screen: PauseScreen
 var portal_dialog: PortalDialog
@@ -40,6 +42,8 @@ var _rocket_kind := -1
 var _pellet_kind := -1
 var _spike_kind := -1
 var _shard_kind := -1
+var _tumble_kind := -1
+const TUMBLE_R := 0.55   # the King's volley (pass 45): tumbleweeds 1.1 m across
 ## chests waiting for the reel while one is open (a boss drops two, and both fly in together)
 var _chest_queue: Array = []
 var _breadcrumb_t := 0.0
@@ -63,11 +67,10 @@ var _ended := false
 var _run_started := false
 
 
-## The debug arena (pass 33.4): the panel over it, whether a level-up shows its cards, and the save as it was when it
-## opened (put back when it closes, so nothing done in the arena is kept).
+## The debug arena (pass 33.4): the panel over it, whether a level-up shows its cards; Save.begin_sandbox keeps the save
+## off the disk while it is open (pass 45), so nothing done in the arena is kept.
 var arena_panel: ArenaPanel = null
 var arena_cards := false
-var _arena_save: Dictionary = {}
 
 
 func _ready() -> void:
@@ -75,8 +78,8 @@ func _ready() -> void:
 	Run.arena_next = false
 	# the arena keeps nothing: the save as it is now (before Run.start counts a run) goes back when it closes
 	if arena:
-		_arena_save = Save.data.duplicate(true)
-	var character_id: String = str(Save.data.get("last_character", "astro"))
+		Save.begin_sandbox()
+	var character_id: String = str(Save.data.get("last_character", Save.DEFAULT_HERO))
 	var map_id: String = str(Save.data.get("last_map", "red_canyon"))
 	var debug_launch := _read_debug_launch()
 	if debug_launch.has("character"):
@@ -118,11 +121,19 @@ func _ready() -> void:
 		fx.burst(player.global_position + Vector3(0, 0.9, 0), Color(0.8, 0.9, 1.0), 0.8)
 		telegraphs.flash_ring(player.global_position, 0.9, Color(0.85, 0.95, 1.0), 0.25))
 	player.shield_hit.connect(func(broke: bool):
+		# Skedaddle runs on a hit that lands on the Energy Shield too (pass 48); Hot Streak and Loose Change are his health's
+		_skedaddle()
 		telegraphs.flash_ring(player.global_position, 1.1, Color(0.36, 0.74, 1.0), 0.3)
 		if broke:
 			fx.burst(player.global_position + Vector3(0, 1.0, 0), Color(0.36, 0.74, 1.0), 1.3)
 			Audio.play("ui_pause", player.global_position))
 	player.momentum_trail.connect(func(at, back, strength): fx.trail(at, back, strength))
+	# Deep Breath (pass 46, Ironwood): the regen surge shows where he stands
+	player.deep_breath.connect(func():
+		telegraphs.flash_ring(player.global_position, 1.4, UiKit.GOOD, 0.45)
+		fx.burst(player.global_position + Vector3(0, 0.9, 0), UiKit.GOOD, 1.0)
+		if hud: hud.toast("DEEP BREATH", UiKit.GOOD)
+		Audio.play("pk_heart", player.global_position))
 	# systems
 	enemies.game = self
 	enemies.player = player
@@ -136,10 +147,15 @@ func _ready() -> void:
 	pickups.game = self
 	_spit_kind = projectiles.register_kind(_spit_mesh(), _spit_material(), 1.0)
 	_harpoon_kind = projectiles.register_kind(_harpoon_mesh(), _harpoon_material(), 1.0)
-	_rocket_kind = projectiles.register_kind(_rocket_mesh(), _rocket_material(), 1.0)
+	# custom data: the loose rocket's blink and heat reach its shader per instance (pass 45); white instance colours so its
+	# vertex paint reaches the shader (pass 48, paint_white)
+	_rocket_kind = projectiles.register_kind(_rocket_mesh(), _rocket_material(), 1.0, true)
+	paint_white(projectiles.kinds[_rocket_kind]["mm"])
 	_pellet_kind = projectiles.register_kind(_pellet_mesh(), _pellet_material(), 1.0)
 	_spike_kind = projectiles.register_kind(_spike_mesh(), _spike_material(), 1.0)
 	_shard_kind = projectiles.register_kind(_shard_mesh(), _shard_material(), 1.0)
+	# the GLB ball is 0.8 m and register_kind multiplies by CHUNK, so this lands the tumbleweed at TUMBLE_R
+	_tumble_kind = projectiles.register_kind(_tumble_mesh(), _tumble_material(), TUMBLE_R / 0.8 / ProjectileManager.CHUNK)
 	director = WaveDirector.new()
 	director.game = self
 	add_child(director)
@@ -148,7 +164,9 @@ func _ready() -> void:
 	add_child(structures)
 	if mapdef and mapdef.timeline and not mapdef.timeline.structures.is_empty():
 		structures.setup(self, map, mapdef.timeline.structures)
-	# the barrels (pass 44): forty-odd by the run's seed, never behind a painting, broken by walking up to them
+	# the signposts (pass 54): four to six, their arms pointing at the structures; before the barrels, which keep clear of them
+	preload("res://core/systems/SignField.gd").spawn(self, map)
+	# the barrels (pass 44): thirty-three by the run's seed, never behind a painting, broken by walking up to them
 	barrels = BarrelField.new()
 	barrels.name = "Barrels"
 	add_child(barrels)
@@ -166,8 +184,18 @@ func _ready() -> void:
 	Run.lifesteal_healed.connect(func(n): if player and not player.dead: player.heal(n))
 	Run.build_changed.connect(_sync_weapons)
 	Run.weapon_evolved.connect(_on_evolved)
+	# the run recorder (pass 45): a row a second for analytics/dashboard.html; the arena never records, and a tool's
+	# launch file may say "analytics": false (perf_late's A/B of the recorder's cost)
+	if not arena and bool(debug_launch.get("analytics", true)): RunAnalytics.create(self)
 	# ui
 	ui.process_mode = Node.PROCESS_MODE_ALWAYS
+	# the damage numbers first: the HUD and every screen draw over them
+	damage_numbers = DamageNumbers.new()
+	damage_numbers.name = "DamageNumbers"
+	damage_numbers.game = self
+	damage_numbers.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	damage_numbers.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.add_child(damage_numbers)
 	hud = HUD.new()
 	hud.game = self
 	ui.add_child(hud)
@@ -178,6 +206,10 @@ func _ready() -> void:
 	ui.add_child(pause_screen)
 	portal_dialog = PortalDialog.new()
 	ui.add_child(portal_dialog)
+	# once for the run (pass 48: it was connected one-shot on every entry, and a "Not yet" left the old one waiting)
+	portal_dialog.decided.connect(_on_portal_decided)
+	if portal_dialog.has_signal("declined"):
+		portal_dialog.declined.connect(_on_portal_declined)
 	structure_shop = StructureShop.new()
 	ui.add_child(structure_shop)
 	chest_screen = ChestScreen.new()
@@ -213,25 +245,26 @@ func _ready() -> void:
 	if Run.arena:
 		_start_arena()
 		return
-	# starter pick
-	var fixed: Array = []
-	if not Save.first_run_done() or debug_launch.get("fixed_starter", false):
-		fixed = ["peashooter", "boomstick", "orbit_saws"]
+	# the hero's own gun from the first second (pass 45): no starter pick; a launch file may name another weapon and level
+	var start: WeaponDef = null
+	var start_level := 1
 	if debug_launch.has("weapon"):
-		var w: WeaponDef = Registry.weapon(str(debug_launch["weapon"]))
-		if w:
-			Run.add_weapon(w, int(debug_launch.get("level", 1)))
-			_start_run()
-			return
-	var offer := CardPool.starter_offer(fixed)
-	if offer.is_empty():
+		start = Registry.weapon(str(debug_launch["weapon"]))
+		start_level = int(debug_launch.get("level", 1))
+	if start == null:
+		start = Registry.start_weapon_for(character)
+	if start:
+		if RunAnalytics.I: RunAnalytics.I.via = "starter"
+		var inst := Run.add_weapon(start, start_level)
+		if inst and Run.character and start.id == Run.character.favourite_weapon:
+			CardPool.apply_favourite(inst)
+	# the beam (the cinematic) for a real launch; a tool's launch file gets the instant start unless it says "spawn": true
+	if bool(debug_launch.get("spawn", debug_launch.is_empty())):
+		_spawn_begin()
+	else:
+		# everything the run can draw, drawn once under the hero, so no first-appearance hitch
+		Warmup.run(self)
 		_start_run()
-		return
-	set_paused(true)
-	cards.show_offer(offer, "PICK YOUR STARTER", true, not Save.first_run_done())
-	# everything the run can draw, drawn once under the hero while the cards are up, so no first-appearance hitch
-	Warmup.run(self)
-	cards.chosen.connect(_on_starter_chosen, CONNECT_ONE_SHOT)
 
 
 func _read_debug_launch() -> Dictionary:
@@ -244,12 +277,6 @@ func _read_debug_launch() -> Dictionary:
 	return d if d is Dictionary else {}
 
 
-func _on_starter_chosen(card: Dictionary) -> void:
-	CardPool.apply(card)
-	set_paused(false)
-	_start_run()
-
-
 func _start_run() -> void:
 	_run_started = true
 	_sync_weapons()
@@ -259,12 +286,13 @@ func _start_run() -> void:
 	hud.refresh_stage()
 
 
-## The debug arena: the hero with his favourite weapon, god mode on, the director set up but holding its clock and its
-## spawns, and the arena panel over the HUD. The save is copied now and put back when the arena closes.
+## The debug arena: the hero with the gun a run starts him with, god mode on, the director set up but holding its clock
+## and its spawns, and the arena panel over the HUD. The save is sandboxed now and put back when the arena closes.
 func _start_arena() -> void:
-	if _arena_save.is_empty():
-		_arena_save = Save.data.duplicate(true)
-	var fav: WeaponDef = Registry.weapon(Run.character.favourite_weapon) if Run.character else null
+	if not Save.sandboxed():
+		Save.begin_sandbox()
+	# his own gun (pass 46: Ironwood's favourite is a passive, so the favourite weapon no longer says)
+	var fav: WeaponDef = Registry.start_weapon_for(Run.character)
 	if fav == null:
 		fav = Registry.weapon("peashooter")
 	if fav:
@@ -277,6 +305,341 @@ func _start_arena() -> void:
 	arena_panel.game = self
 	ui.add_child(arena_panel)
 	hud.banner("DEBUG ARENA", UiKit.INFO)
+	# a field of training dummies to hit (pass 48), as many and as tough as the developer menu says, and the Elite dummy
+	# and the Boss dummy apart from it (pass 49)
+	arena_dummies(Settings.dummy_count, Settings.dummy_hp)
+
+
+## The debug arena's training dummies (pass 48, content/enemies/training_dummy: the `dummy` brain, never bites, drops
+## nothing, counts for no quest): the old field goes, and `count` of them (at least DUMMY_MIN) stand in rows of DUMMY_ROW,
+## DUMMY_GAP apart, the nearest row DUMMY_AHEAD north of the hero. `hp` 0 makes them undying (EnemyManager.undying: a hit
+## that would kill one fills it up again; every number, flash, status, shove, freeze and grab shows as on a creature);
+## any other `hp` is each one's health, and one that dies stands up again on its spot DUMMY_BACK seconds later. Shoved
+## off its spot, a dummy walks back (the brain). The arena's CLEAR takes them away for good (EnemyManager.cleared).
+## Pass 49 (Garry's arena list): the field patrols while Settings.dummy_patrol says so (EnemyManager.DUMMY_PATROL: left
+## and right round each spot); the Elite dummy (the Elites' crown) and the Boss dummy (a skull at a boss's size, but an
+## Elite by its kind too, never the run's boss: no bar, no portal) stand apart from it, behind it to the left and to the
+## right (DUMMY_SIDE, DUMMY_BEHIND), with a health and a behaviour of their own (Settings.elite_dummy_* and
+## boss_dummy_*: stand, patrol, melee, ranged); and attackers are added one at a time from the WORLD tab (add_attacker: a
+## melee one that chases and bites, a ranged one that spits like the Spit Cactus), each on a spot of its own by the hero,
+## at Settings.attacker_dummy_hp, never touching the field. Every one of them stands up again DUMMY_BACK seconds after it
+## falls and pays nothing (_kill_effects), and the first attacking one on the field turns god mode off (_check_attackers).
+const DUMMY_ID := "training_dummy"
+const ELITE_DUMMY_ID := "training_dummy_elite"
+const BOSS_DUMMY_ID := "training_dummy_boss"
+## the attackers' creatures by kind (pass 49)
+const ATTACKER_IDS := {"melee": "training_dummy_melee", "ranged": "training_dummy_ranged"}
+## Settings' behaviour words as EnemyManager's DUMMY_* codes (stand 0, patrol 1, melee 2, ranged 3)
+const DUMMY_MODE_CODES := {"stand": 0, "patrol": 1, "melee": 2, "ranged": 3}
+const DUMMY_MIN := 10
+const DUMMY_ROW := 5
+const DUMMY_GAP := 1.6
+const DUMMY_AHEAD := 7.0
+const DUMMY_BACK := 5.0
+## the Elite and the Boss dummy stand DUMMY_BEHIND m north of the field's back row, DUMMY_SIDE m left and right of its
+## middle. Not beside the field: on a phone the view is about 5.8 m either side at the field's depth, and the arena's
+## column of quick buttons covers the right edge there, so a dummy 6 m to the side was cut off or hidden (pass 49)
+const DUMMY_SIDE := 3.0
+const DUMMY_BEHIND := 4.5
+## an attacker's spot: ATTACKER_RING m from the hero, round his south side first (the field stands north of the spawn) and
+## no more than ATTACKER_ARC degrees either side of due south, at least ATTACKER_GAP from every other attacker's spot and
+## clear of the field's rows, the Elite's and the Boss's; then rings 2.5 m wider
+const ATTACKER_RING := 5.0
+const ATTACKER_GAP := 2.6
+const ATTACKER_ARC := 100.0
+## each dummy: {"at": its spot, "i": its creature index, "serial": that spawn's serial, "dead_t": seconds until it stands
+## up again (below zero while it stands), "id": its creature, "role": field | elite | boss | melee | ranged (pass 49),
+## "dir": the way its patrol sets off, +1 east, -1 west}. The field, the Elite and the Boss are `_dummies` (arena_dummies
+## lays them out); the attackers are `_attackers`, which a new field leaves be.
+var _dummies: Array = []
+var _attackers: Array = []
+var _dummy_hp := 0
+## whether a dummy on the field attacks (an attacker, or the Elite or the Boss set to melee or ranged): god mode goes off
+## when this turns true (_check_attackers)
+var _attacking := false
+
+
+func arena_dummies(count: int, hp: int) -> void:
+	clear_dummies()
+	if Registry.enemy(DUMMY_ID) == null or enemies == null:
+		return
+	_watch_dummies()
+	_dummy_hp = maxi(hp, 0)
+	var n := maxi(count, DUMMY_MIN)
+	var base: Vector3 = player.global_position if player else Vector3.ZERO
+	for k in range(n):
+		var row := k / DUMMY_ROW
+		var in_row := mini(DUMMY_ROW, n - row * DUMMY_ROW)
+		var col := k % DUMMY_ROW
+		var at := _dummy_ground(base + Vector3((float(col) - float(in_row - 1) * 0.5) * DUMMY_GAP, 0.0, -DUMMY_AHEAD - float(row) * DUMMY_GAP))
+		# a patrolling field sets off row against row: the first row east, the second west
+		var rec := {"at": at, "i": -1, "serial": -1, "dead_t": -1.0, "id": DUMMY_ID, "role": "field", "dir": 1.0 if row % 2 == 0 else -1.0}
+		_dummies.append(rec)
+		_stand_dummy(rec)
+	# the Elite dummy behind the field on the left and the Boss dummy behind it on the right (pass 49); a patrol of theirs
+	# sets off outwards
+	var back_z := -DUMMY_AHEAD - floorf(float(n - 1) / float(DUMMY_ROW)) * DUMMY_GAP
+	for spec in [[ELITE_DUMMY_ID, "elite", -1.0], [BOSS_DUMMY_ID, "boss", 1.0]]:
+		if Registry.enemy(str(spec[0])) == null:
+			continue
+		var side: float = spec[2]
+		var at2 := _dummy_ground(base + Vector3(DUMMY_SIDE * side, 0.0, back_z - DUMMY_BEHIND))
+		var rec2 := {"at": at2, "i": -1, "serial": -1, "dead_t": -1.0, "id": str(spec[0]), "role": str(spec[1]), "dir": side}
+		_dummies.append(rec2)
+		_stand_dummy(rec2)
+	_check_attackers()
+
+
+## A spot on the ground inside the arena's wall (as it is without a map).
+func _dummy_ground(at: Vector3) -> Vector3:
+	if map:
+		at = map.clamp_to_arena(at)
+		at.y = map.height_at(at.x, at.z)
+	return at
+
+
+## The dummies' two ears on the crowd, put on once: a fall (it stands up again) and the arena's CLEAR (they stay away).
+func _watch_dummies() -> void:
+	if not enemies.creature_dying.is_connected(_on_creature_dying):
+		enemies.creature_dying.connect(_on_creature_dying)
+	if not enemies.cleared.is_connected(_on_field_cleared):
+		enemies.cleared.connect(_on_field_cleared)
+
+
+## Every dummy of the layout off the field now (the arena's reset, a new field): the field, the Elite and the Boss. The
+## attackers stay (remove_attackers takes them).
+func clear_dummies() -> void:
+	_free_dummies(_dummies)
+
+
+## Every attacker off the field now (pass 49, the WORLD tab's REMOVE ATTACKERS); the field stays.
+func remove_attackers() -> void:
+	_free_dummies(_attackers)
+	_check_attackers()
+
+
+func _free_dummies(list: Array) -> void:
+	for rec in list:
+		var i := int(rec["i"])
+		if i >= 0 and enemies.alive[i] == 1 and enemies.serial[i] == int(rec["serial"]):
+			enemies._free(i)
+	list.clear()
+
+
+## How many dummies of the field stand now (tests, the arena's tools); the Elite and the Boss dummy are dummy_index's,
+## the attackers attackers_standing's.
+func dummies_standing() -> int:
+	var n := 0
+	for rec in _dummies:
+		if str(rec.get("role", "field")) == "field" and _standing(rec) >= 0:
+			n += 1
+	return n
+
+
+## The creature index of the Elite dummy ("elite") or the Boss dummy ("boss") while it stands, else -1 (pass 49).
+func dummy_index(role: String) -> int:
+	for rec in _dummies:
+		if str(rec.get("role", "")) == role:
+			return _standing(rec)
+	return -1
+
+
+## How many attackers stand now (pass 49): of one kind ("melee", "ranged"), or all of them ("").
+func attackers_standing(kind: String = "") -> int:
+	var n := 0
+	for rec in _attackers:
+		if (kind == "" or str(rec["role"]) == kind) and _standing(rec) >= 0:
+			n += 1
+	return n
+
+
+## What creature `i` is in the arena's layout while it stands (pass 49): "field", "elite", "boss", "melee" or "ranged";
+## "" for any other creature (tests, the arena's tools).
+func dummy_role(i: int) -> String:
+	if i < 0:
+		return ""
+	for rec in _dummies + _attackers:
+		if _standing(rec) == i:
+			return str(rec.get("role", "field"))
+	return ""
+
+
+## The record's creature while it stands (alive, not falling, still the spawn it made), else -1.
+func _standing(rec: Dictionary) -> int:
+	var i := int(rec["i"])
+	if i >= 0 and enemies.is_alive(i) and enemies.serial[i] == int(rec["serial"]):
+		return i
+	return -1
+
+
+func _stand_dummy(rec: Dictionary) -> void:
+	var i := enemies.spawn(str(rec.get("id", DUMMY_ID)), rec["at"])
+	rec["dead_t"] = -1.0
+	if i < 0:
+		rec["i"] = -1
+		return
+	rec["i"] = i
+	rec["serial"] = enemies.serial[i]
+	_dress_dummy(rec, true)
+
+
+## A standing dummy's health and behaviour put in place (pass 49: out of _stand_dummy, so a setting changed in the arena
+## reaches the ones already standing): its role's health (dummy_hp_of; 0 = undying, its bar then the def's health), its
+## role's behaviour (dummy_mode_of), a patrol for an attacker with nothing to hit while the field patrols, and the damage
+## that goes with the behaviour, as its JSON says and not scaled by the arena's clock: `damage` on a touch,
+## `ranged.damage` on a spit. `fresh`: it has just stood up, so it is whole and its patrol sets off its own way;
+## otherwise its health is touched only when the setting changed.
+func _dress_dummy(rec: Dictionary, fresh: bool = false) -> void:
+	var i := _standing(rec)
+	if i < 0:
+		return
+	var def: EnemyDef = Registry.enemy(str(rec.get("id", DUMMY_ID)))
+	if def == null:
+		return
+	var role := str(rec.get("role", "field"))
+	var hp_set := dummy_hp_of(role)
+	var hp: float = float(hp_set) if hp_set > 0 else def.hp
+	var und := 0 if hp_set > 0 else 1
+	if fresh or not is_equal_approx(enemies.max_hp[i], hp) or int(enemies.undying[i]) != und:
+		enemies.hp[i] = hp
+		enemies.max_hp[i] = hp
+	enemies.undying[i] = und
+	var mode := dummy_mode_of(role)
+	var roam: bool = Settings.dummy_patrol and (role == "melee" or role == "ranged")
+	enemies.set_dummy_mode(i, mode, roam, float(rec.get("dir", 1.0)) if fresh else 0.0)
+	enemies.dmg[i] = float(def.ranged.get("damage", def.damage)) if mode == EnemyManager.DUMMY_RANGED else def.damage
+
+
+## The health a dummy of `role` stands up with (pass 49): the field's from arena_dummies, the Elite's, the Boss's and the
+## attackers' from the arena's settings; 0 = undying.
+func dummy_hp_of(role: String) -> int:
+	match role:
+		"elite":
+			return Settings.elite_dummy_hp
+		"boss":
+			return Settings.boss_dummy_hp
+		"melee", "ranged":
+			return Settings.attacker_dummy_hp
+	return _dummy_hp
+
+
+## The behaviour a dummy of `role` has (pass 49, EnemyManager.DUMMY_*): the field stands or patrols (Settings.dummy_patrol),
+## the Elite and the Boss do as their settings say, an attacker is melee or ranged by its kind.
+func dummy_mode_of(role: String) -> int:
+	match role:
+		"elite":
+			return int(DUMMY_MODE_CODES.get(Settings.elite_dummy_mode, EnemyManager.DUMMY_STAND))
+		"boss":
+			return int(DUMMY_MODE_CODES.get(Settings.boss_dummy_mode, EnemyManager.DUMMY_STAND))
+		"melee":
+			return EnemyManager.DUMMY_MELEE
+		"ranged":
+			return EnemyManager.DUMMY_RANGED
+	return EnemyManager.DUMMY_PATROL if Settings.dummy_patrol else EnemyManager.DUMMY_STAND
+
+
+## The arena's dummy settings changed (pass 49, the WORLD tab): the patrol, the attackers' health and the Elite's and the
+## Boss's health and behaviour reach the dummies standing at once (one that has fallen takes them as it stands up); the
+## field's health and count wait for RESET DUMMIES (arena_dummies). The first attacking one turns god mode off.
+func apply_dummy_settings() -> void:
+	for rec in _dummies + _attackers:
+		_dress_dummy(rec)
+	_check_attackers()
+
+
+## One more attacking dummy (pass 49, the WORLD tab's + MELEE DUMMY and + RANGED DUMMY): `kind` "melee" (chases the hero
+## near its spot and bites) or "ranged" (spits like the Spit Cactus), on a spot of its own by the hero (_attacker_spot).
+## The field is left as it is; the first attacker turns god mode off. The creature's index, -1 when none could stand.
+func add_attacker(kind: String) -> int:
+	var id := str(ATTACKER_IDS.get(kind, ""))
+	if id == "" or enemies == null or Registry.enemy(id) == null:
+		return -1
+	_watch_dummies()
+	var rec := {"at": _attacker_spot(), "i": -1, "serial": -1, "dead_t": -1.0, "id": id, "role": kind, "dir": 1.0}
+	_attackers.append(rec)
+	_stand_dummy(rec)
+	_check_attackers()
+	return int(rec["i"])
+
+
+## Where the next attacker stands (pass 49): ATTACKER_RING m from the hero, tried from due south (the field stands north)
+## outwards to either side, a step apart that keeps neighbours ATTACKER_GAP apart, to ATTACKER_ARC degrees, then on rings
+## 2.5 m wider; the first spot at least ATTACKER_GAP from every other attacker's and clear of the field's rows, the Elite
+## and the Boss with their patrol beats. The first three land on a phone's screen with the hero at the spawn.
+func _attacker_spot() -> Vector3:
+	var base: Vector3 = player.global_position if player else Vector3.ZERO
+	for ring in range(4):
+		var r := ATTACKER_RING + 2.5 * float(ring)
+		var step := 1.1 * 2.0 * asin(minf(ATTACKER_GAP / (2.0 * r), 1.0))
+		var k := 0
+		while true:
+			# due south, then a step to the east, a step to the west, two steps to the east ...
+			var a := step * ceilf(float(k) * 0.5) * (1.0 if k % 2 == 1 else -1.0)
+			if absf(a) > deg_to_rad(ATTACKER_ARC):
+				break
+			var at := _dummy_ground(base + Vector3(sin(a), 0.0, cos(a)) * r)
+			if _attacker_spot_free(at):
+				return at
+			k += 1
+	return _dummy_ground(base + Vector3(0.0, 0.0, ATTACKER_RING))
+
+
+func _attacker_spot_free(at: Vector3) -> bool:
+	for rec in _attackers:
+		var s: Vector3 = rec["at"]
+		if Vector2(s.x - at.x, s.z - at.z).length() < ATTACKER_GAP:
+			return false
+	for rec in _dummies:
+		var s2: Vector3 = rec["at"]
+		if absf(s2.z - at.z) < ATTACKER_GAP and absf(s2.x - at.x) < EnemyManager.DUMMY_BEAT + ATTACKER_GAP:
+			return false
+	return true
+
+
+## How many attacking dummies the layout has (pass 49): the attackers (standing, or about to stand up again), and the
+## Elite and the Boss while their behaviour is melee or ranged.
+func attackers_on_field() -> int:
+	var n := _attackers.size()
+	for rec in _dummies:
+		var m := dummy_mode_of(str(rec.get("role", "field")))
+		if m == EnemyManager.DUMMY_MELEE or m == EnemyManager.DUMMY_RANGED:
+			n += 1
+	return n
+
+
+## God mode goes off when the first attacking dummy comes on the field (pass 49, Garry: they "take away HP"), and a toast
+## says so; the HERO tab shows it and turns it on again. More attackers after the first leave his choice alone.
+func _check_attackers() -> void:
+	var now := attackers_on_field() > 0
+	if now and not _attacking and player and player.god:
+		player.god = false
+		if hud:
+			hud.toast("GOD MODE OFF: the dummies hit back", UiKit.DANGER)
+	_attacking = now
+
+
+## A creature went down: a dummy of the layout or an attacker stands up again DUMMY_BACK seconds later.
+func _on_creature_dying(i: int, _weapon_id: String) -> void:
+	for rec in _dummies + _attackers:
+		if int(rec["i"]) == i and enemies.serial[i] == int(rec["serial"]):
+			rec["dead_t"] = DUMMY_BACK
+			return
+
+
+## The field was cleared without a fight (the arena's CLEAR): the dummies stay away until the next reset, the attackers
+## until more are added.
+func _on_field_cleared() -> void:
+	_dummies.clear()
+	_attackers.clear()
+	_attacking = false
+
+
+func _tick_dummies(delta: float) -> void:
+	for rec in _dummies + _attackers:
+		if float(rec["dead_t"]) >= 0.0:
+			rec["dead_t"] = float(rec["dead_t"]) - delta
+			if float(rec["dead_t"]) < 0.0:
+				_stand_dummy(rec)
 
 
 ## Out of the arena, back to the title, the save as it was (kills, chests, gold and unlocks from the arena all go).
@@ -287,14 +650,159 @@ func leave_arena() -> void:
 	Engine.time_scale = 1.0
 	tether_end()
 	director.stop()
-	if not _arena_save.is_empty():
-		Save.data = _arena_save
-		Save.save_now()
+	Save.end_sandbox()
 	Run.end()
 	Run.arena = false
 	Audio.stop_music()
 	set_paused(false)
 	UiFx.go(get_tree(), "res://ui/TitleScreen.tscn")
+
+
+# ---------------------------------------------------------------- the spawn beam (pass 45)
+
+## The landing: a beam of light stands on the spot alone for half a second, the hero comes down it white-hot over a
+## second and a half, lands in a ring of dust, the HUD fades in and the clock starts. The tree is not paused (the
+## tweens and the warm-up run under it); the stick is locked through `player.input.ui_blocking` and `Player.cinematic`,
+## and the camera sits on an anchor at the landing spot, not on the hero 12 m up. A tap after SPAWN_SKIP_AFTER lands him
+## at once (that touch is swallowed: the next one walks). Tools get the instant start unless their launch file says
+## "spawn": true.
+const SPAWN_HEIGHT := 12.0
+const SPAWN_HOLD := 0.5         # the beam alone
+const SPAWN_FALL := 1.5         # the descent
+const SPAWN_SETTLE := 1.0       # dust settling, the HUD fading in, then the zoom handed back to the camera
+const SPAWN_SKIP_AFTER := 1.0
+const SPAWN_FLASH := 0.35       # how lit the hero is at the top of the beam (1 = white: he vanished in the beam)
+const SPAWN_BEAM_BACK := 2.2    # metres the beam stands behind him as the camera sees it (his sprite leans back towards the camera: its top passes 1.7 m back)
+var spawning := false
+var _spawn_t := 0.0
+var _spawn_land := Vector3.ZERO
+var _spawn_anchor: Node3D
+var _spawn_beam: Node3D
+var _spawn_quads: Array = []    # the shine quads (MeshInstance3D): two beams and the pool
+var _spawn_spark_t := 0.0
+
+
+func _spawn_begin() -> void:
+	_spawn_land = player.global_position
+	# the warm-up first: its pit is eight metres under wherever the hero stands now
+	Warmup.run(self)
+	Audio.set_listener(_spawn_land)
+	player.input.ui_blocking = true
+	player.input.force_release()
+	player.cinematic = true
+	player.invuln = 0.0
+	_spawn_anchor = Node3D.new()
+	world.add_child(_spawn_anchor)
+	_spawn_anchor.global_position = _spawn_land
+	camera.snap_to(_spawn_anchor)
+	camera.zoom_override = 1.6
+	player.global_position = _spawn_land + Vector3(0, SPAWN_HEIGHT, 0)
+	player.visible = false
+	player.shadow.visible = false
+	# lit but in colour: a white-hot hero inside the white beam read as nothing at all (pass 45 capture)
+	player.sprite.set_flash(SPAWN_FLASH)
+	if player.sprite.has_animation("idle_f"):
+		player.sprite.play("idle_f")
+	# the behaviours tick on game.paused alone: held off, or the saws would orbit 12 m up
+	weapon_host.visible = false
+	weapon_host.process_mode = Node.PROCESS_MODE_DISABLED
+	hud.modulate.a = 0.0
+	_spawn_beam = Node3D.new()
+	world.add_child(_spawn_beam)
+	_spawn_beam.global_position = _spawn_land - Vector3(0, 0.45, 0)
+	_spawn_quads = [
+		Chest.shine_quad(1, Vector2(2.6, 34.0), Color(1.0, 0.9, 0.55), 0.0),
+		Chest.shine_quad(1, Vector2(0.9, 34.0), Color(1.0, 1.0, 0.9), 0.0),
+		Chest.shine_quad(2, Vector2(5.2, 5.2), Color(1.0, 0.85, 0.45), 0.0)]
+	var strengths: Array = [1.1, 1.5, 0.8]
+	# the beam stands a step behind the hero as the camera sees it and draws before him, so its glow lights the sand
+	# round him instead of washing him out (additive quads drawn over the hero turned him into a white silhouette)
+	var away := Vector3(0, 0, -1)
+	if camera:
+		away = -camera.global_transform.basis.z
+		away.y = 0.0
+		away = away.normalized() if away.length_squared() > 0.0001 else Vector3(0, 0, -1)
+	for k in _spawn_quads.size():
+		var q: MeshInstance3D = _spawn_quads[k]
+		_spawn_beam.add_child(q)
+		(q.material_override as ShaderMaterial).render_priority = -10
+		if k < 2:
+			q.position = away * SPAWN_BEAM_BACK
+		create_tween().tween_method(func(v: float): _spawn_strength(q, v), 0.0, float(strengths[k]), 0.25)
+	camera.shake(0.35)
+	Audio.play("pl_spawn_beam", _spawn_land)
+	spawning = true
+	_spawn_t = 0.0
+	_spawn_spark_t = 0.0
+
+
+func _spawn_strength(q: MeshInstance3D, v: float) -> void:
+	if is_instance_valid(q):
+		(q.material_override as ShaderMaterial).set_shader_parameter("strength", v)
+
+
+func _tick_spawn(delta: float) -> void:
+	_spawn_t += delta
+	_spawn_spark_t -= delta
+	if _spawn_spark_t <= 0.0:
+		_spawn_spark_t = 0.04
+		fx.mote(_spawn_land + Vector3(randf_range(-0.9, 0.9), randf_range(0.2, 6.0), randf_range(-0.9, 0.9)), Vector3(0, 2.5, 0), 0.6, 0.14, Color(1.0, 0.95, 0.7, 0.9))
+	if _spawn_t < SPAWN_HOLD:
+		return
+	var f := clampf((_spawn_t - SPAWN_HOLD) / SPAWN_FALL, 0.0, 1.0)
+	var e := f * f * (3.0 - 2.0 * f)
+	player.visible = true
+	player.global_position = _spawn_land + Vector3(0, SPAWN_HEIGHT * (1.0 - e), 0)
+	player.sprite.set_flash(SPAWN_FLASH * (1.0 - e))
+	player.sprite.set_squash(1.0 - 0.12 * (1.0 - e), 1.0 + 0.3 * (1.0 - e))
+	# the core eases as he comes down, so the landing reads against it
+	if _spawn_quads.size() > 1:
+		_spawn_strength(_spawn_quads[1], lerpf(1.5, 0.8, e))
+	camera.zoom_override = lerpf(1.6, 1.0, e)
+	if f >= 1.0:
+		_spawn_land_now()
+
+
+func _spawn_land_now() -> void:
+	spawning = false
+	player.global_position = _spawn_land
+	player.velocity = Vector3.ZERO
+	player.visible = true
+	player.sprite.set_flash(0.0)
+	player.sprite.set_squash(1.0, 1.0)
+	player.shadow.visible = true
+	player.cinematic = false
+	player.input.ui_blocking = false
+	player.invuln = 1.0
+	telegraphs.flash_ring(_spawn_land, 2.8, Color(1.0, 0.9, 0.6), 0.5)
+	fx.burst(_spawn_land + Vector3(0, 0.9, 0), Color(1.0, 0.95, 0.75), 1.4)
+	for k in 5:
+		var a := TAU * float(k) / 5.0
+		fx.sand(_spawn_land + Vector3(cos(a) * 0.9, 0.1, sin(a) * 0.9), 1.4)
+	camera.shake(1.2)
+	hud.flash(Color(1.0, 0.95, 0.8, 0.3), 0.35)
+	Audio.play("pl_spawn_land", _spawn_land)
+	# the beam goes out, the pool last
+	var beam: Node3D = _spawn_beam
+	var tw := create_tween().set_parallel(true)
+	for k in _spawn_quads.size():
+		var q: MeshInstance3D = _spawn_quads[k]
+		var from: float = (q.material_override as ShaderMaterial).get_shader_parameter("strength")
+		tw.tween_method(func(v: float): _spawn_strength(q, v), from, 0.0, 0.8 if k == 2 else 0.45)
+	tw.chain().tween_callback(beam.queue_free)
+	_spawn_quads = []
+	_spawn_beam = null
+	weapon_host.visible = true
+	weapon_host.process_mode = Node.PROCESS_MODE_INHERIT
+	# the anchor sits on his feet, so the camera hands over without a jump; the zoom goes back to the camera's own after
+	# the dust settles
+	camera.zoom_override = 1.0
+	camera.target = player
+	_spawn_anchor.queue_free()
+	_spawn_anchor = null
+	create_tween().tween_property(hud, "modulate:a", 1.0, 0.6)
+	create_tween().tween_callback(func(): camera.zoom_override = 0.0).set_delay(SPAWN_SETTLE)
+	_start_run()
 
 
 # ---------------------------------------------------------------- pause
@@ -310,7 +818,7 @@ func set_paused(v: bool) -> void:
 
 
 func open_pause() -> void:
-	if paused or _ended:
+	if paused or _ended or spawning:
 		return
 	set_paused(true)
 	Audio.play("ui_pause")
@@ -324,12 +832,19 @@ func close_pause() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if spawning:
+		# a tap after the first second lands him at once; the touch is swallowed (it does not start the stick)
+		if _spawn_t >= SPAWN_SKIP_AFTER and event.is_pressed() and (event is InputEventScreenTouch or event is InputEventMouseButton or event is InputEventKey):
+			_spawn_t = SPAWN_HOLD + SPAWN_FALL
+		return
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_ESCAPE:
 			if structure_shop and structure_shop.visible:
 				structure_shop._finish(false)
 			elif pause_screen.visible:
-				close_pause()
+				# the abandon question first (pass 45), then the pause itself
+				if not WConfirm.dismiss(pause_screen):
+					close_pause()
 			elif not cards.visible and not portal_dialog.visible:
 				open_pause()
 		elif event.keycode == KEY_F1:
@@ -340,6 +855,9 @@ func _notification(what: int) -> void:
 	# the app really left the screen (a call, the home button): the run waits behind the pause menu
 	if what == NOTIFICATION_APPLICATION_PAUSED:
 		_log_pause("the app went to the background")
+		if RunAnalytics.I and _run_started and not _ended: RunAnalytics.I.checkpoint()
+		# the run's tallies reach the disk before Android may kill the backgrounded app (Save flushes on its own too)
+		Save.flush()
 		if _run_started and not paused and not _ended:
 			open_pause()
 	# Android's back gesture is a swipe in from a side edge, and a thumb steering near the edge makes one by accident:
@@ -434,6 +952,11 @@ func _make_behavior(name: String) -> WeaponBehavior:
 			return Smasher.new()
 		"GravityGun":
 			return GravityGun.new()
+		"ConeWave":
+			return ConeWave.new()
+		"SunScepter":
+			# pass 54: Solenne's Sun Scepter and Zenith, pillars of sunlight on what she can see
+			return preload("res://core/behaviors/SunScepter.gd").new()
 	push_warning("Unknown weapon behaviour: " + name)
 	return null
 
@@ -448,6 +971,9 @@ func _on_evolved(id: String) -> void:
 # ---------------------------------------------------------------- run flow
 
 func _process(delta: float) -> void:
+	if spawning:
+		_tick_spawn(delta)
+		return
 	if paused or _ended or not _run_started:
 		return
 	Audio.set_listener(player.global_position)
@@ -456,6 +982,7 @@ func _process(delta: float) -> void:
 	if portal and is_instance_valid(portal):
 		portal.check_player(player)
 	Run.alive = enemies.alive_count()
+	if RunAnalytics.I: RunAnalytics.I.tick(delta)
 	for label in Run.tick_timed():
 		hud.toast("%s wore off" % label, UiKit.INK3)
 	_tick_perks(delta)
@@ -463,7 +990,10 @@ func _process(delta: float) -> void:
 	_tick_breadcrumb(delta)
 	_tick_water(delta)
 	_tick_berserk(delta)
+	_tick_hero_fx(delta)
 	_tick_hell(delta)
+	if not _dummies.is_empty() or not _attackers.is_empty():
+		_tick_dummies(delta)
 	var t0 := Time.get_ticks_usec()
 	hud.tick(delta)
 	hints.tick(delta)
@@ -483,6 +1013,7 @@ func _check_quests() -> void:
 	_last_quest_check = s
 	for id in QuestTracker.check_all(true):
 		var q: QuestDef = Registry.quests[id]
+		if RunAnalytics.I: RunAnalytics.I.event("unlock", str(id))
 		# the banner carries the item's own icon (pass 44), so the unlock is seen, not only read
 		var def: ContentDef = Registry.unlocked_by(q)
 		hud.banner("UNLOCKED: " + (def.display_name if def else q.display_name), UiKit.GOOD, def.icon if def else null)
@@ -539,11 +1070,14 @@ func _tick_serenade(delta: float) -> void:
 	if _serenade_t > 0.0:
 		return
 	_serenade_t = Run.perk_param("serenade", "every", 0.3)
-	enemies.slow_radius(here, r, Run.perk_param("serenade", "slow", 0.25), _serenade_t + 0.25)
+	# a hero's perk: Ducktape (debuff_duration) does not stretch it (pass 47)
+	enemies.slow_radius(here, r, Run.perk_param("serenade", "slow", 0.25), _serenade_t + 0.25, false)
 
 
-## Supply Drop: a red ring on the sand near her, a pod falling into it, a blast that hurts and throws, and a power-up
-## where it landed (a heart when she is below 60%).
+## Supply Drop: a red ring on the sand near her, a pod falling into it, a blast that hurts and throws, and a pickup where
+## it landed: a heart when she is below `heart_below` (60%) of her health, else one of the perk's `drops` (pass 53: only
+## the magnet pulse; Garry: "Supply Drop is insanely powerful, nerf it" and "It feels op, power-ups feel powerful": no
+## Berserk, Shield or Sprint from the pod any more, and the blast does half, `damage` 15 + 2 a level).
 func _tick_supply(delta: float) -> void:
 	if _supply_t < 0.0:
 		_supply_t = Run.perk_param("supply_drop", "first", 15.0)
@@ -586,7 +1120,7 @@ func _supply_land(at: Vector3, r: float, pod: MeshInstance3D) -> void:
 	fx.explosion(at, 1.4)
 	camera.shake(0.6)
 	Audio.play("en_rocket_boom", at)
-	var id: String = "heart" if player and player.hp < player.max_hp * 0.6 else ["magnet_pulse", "rage", "shield", "sprint"][randi() % 4]
+	var id := supply_drop_pick(player.hp if player else 1.0, player.max_hp if player else 1.0)
 	var pd: PickupDef = Registry.pickup(id)
 	if pd:
 		pickups.spawn_special(pd, at)
@@ -594,6 +1128,23 @@ func _supply_land(at: Vector3, r: float, pod: MeshInstance3D) -> void:
 	tw.tween_interval(1.2)
 	tw.tween_property(pod, "scale", Vector3(0.01, 0.01, 0.01), 0.4)
 	tw.tween_callback(pod.queue_free)
+
+
+## What the pod leaves (pass 53, data-driven): a heart while the hero's health is under the perk's `heart_below` share of
+## her maximum, else one of the perk's `drops` ids at random (supply_drop.json: ["magnet_pulse"]; a perk with no list
+## gives the pulse). Static so a test can ask it without a Game.
+static func supply_drop_pick(hp: float, max_hp: float) -> String:
+	if hp < max_hp * Run.perk_param("supply_drop", "heart_below", 0.6):
+		return "heart"
+	var drops: Array = []
+	for pk in Run.perks:
+		var def: PerkDef = Registry.perk(str(pk))
+		if def and def.special == "supply_drop" and def.params.get("drops") is Array:
+			drops = def.params["drops"]
+			break
+	if drops.is_empty():
+		return "magnet_pulse"
+	return str(drops[randi() % drops.size()])
 
 
 ## Thruster Burst: when the crowd closes in, the suit fires her clear towards the emptiest ground and throws the ring.
@@ -717,27 +1268,20 @@ func present_path_offer() -> void:
 		return
 	set_paused(true)
 	Audio.play("ui_levelup")
-	cards.show_offer(offer, "PATH · %s" % w.def.display_name.to_upper(), false, not Save.hint_seen("paths"), true)
+	cards.show_offer(offer, "MUTATION · %s" % w.def.display_name.to_upper(), not Save.hint_seen("paths"), true)
 	cards.chosen.connect(_on_path_chosen, CONNECT_ONE_SHOT)
 
 
 func _on_path_chosen(card: Dictionary) -> void:
 	Perf.context = "path chosen"
 	if card.get("skipped", false):
-		var g := Run.skip_gold()
-		Run.add_gold(g)
-		hud.toast("Path skipped. +%d gold" % g, UiKit.INK2)
+		# a skip pays nothing (pass 47): two a stage, shared with the chests (the card screen spends it)
+		hud.toast("Mutation skipped", UiKit.INK2)
+		if RunAnalytics.I: RunAnalytics.I.event("skip", "path", 0, {"left": Run.skips_left})
 	else:
+		if RunAnalytics.I: RunAnalytics.I.via = "path"
 		var line := CardPool.apply(card)
 		hud.toast(line, UiKit.TYPE_COLORS["mutation"])
-		# the hero's own option does not spend the stage's pick: the path itself comes straight back
-		var def: ContentDef = card["def"]
-		if def is MutationDef and (def as MutationDef).is_hero():
-			var w := Run.family_instance((def as MutationDef).weapon)
-			if w and Run.can_mutate(w) and not Run.open_mutations(w).is_empty():
-				cards.show_offer(CardPool.path_offer(w), "PATH · %s" % w.def.display_name.to_upper(), false, false, true)
-				cards.chosen.connect(_on_path_chosen, CONNECT_ONE_SHOT)
-				return
 	Save.mark_hint("paths")
 	if _pending_levels > 0:
 		await get_tree().create_timer(0.2).timeout
@@ -750,26 +1294,27 @@ func _show_next_level_cards() -> void:
 	if _pending_levels <= 0 or _ended:
 		return
 	_pending_levels -= 1
-	var n := 3
-	if randf() < CardPool.bonus_card_chance():
-		n = 4
-	var offer := CardPool.level_up_offer(n)
+	# three cards, always (pass 52, Garry: "I get 4 choices for a Level Up ... I don't remember asking for that"; luck had
+	# added a fourth half its value of the time: it lifts the rarer items' odds and nothing else now)
+	var offer := CardPool.level_up_offer(3)
 	if offer.is_empty():
 		Run.add_gold(10)
 		hud.toast("Nothing left to pick. +10 gold", UiKit.INK2)
 		return
 	set_paused(true)
-	cards.show_offer(offer, "LEVEL %d!" % Run.level, false, not Save.hint_seen("cards"))
+	cards.show_offer(offer, "LEVEL %d!" % Run.level, not Save.hint_seen("cards"))
 	cards.chosen.connect(_on_card_chosen, CONNECT_ONE_SHOT)
 
 
 func _on_card_chosen(card: Dictionary) -> void:
 	Perf.context = "card chosen"
 	if card.get("skipped", false):
-		var g := Run.skip_gold()
-		Run.add_gold(g)
-		hud.toast("Skipped. +%d gold" % g, UiKit.INK2)
+		# a skip pays nothing (pass 47, Garry: "only two skips per Stage, and those skips work for both Level Ups and
+		# Chests"); the card screen spends it
+		hud.toast("Skipped", UiKit.INK2)
+		if RunAnalytics.I: RunAnalytics.I.event("skip", "", 0, {"left": Run.skips_left})
 	else:
+		if RunAnalytics.I: RunAnalytics.I.via = "card"
 		var t1 := Time.get_ticks_usec()
 		var line := CardPool.apply(card)
 		Perf.add("card.apply", t1)
@@ -791,11 +1336,28 @@ func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: 
 	if cut > 0.0:
 		for b in _behaviors.values():
 			b.cooldown_left = maxf(b.cooldown_left - cut, 0.0)
-	var xp_scale := def.xp_mult * (4.0 if elite else 1.0)
+	# a training dummy (pass 48, the arena) drops nothing at all: no gem, no power-up, no small pickup, no chest. What a
+	# kill sets off (Trigger Happy above, Powder Keg and Brimstone Brand below) still goes, so the items can be tried on it
+	if def.brain != "dummy":
+		_drop_from_kill(def, at, elite)
+	# what the kill sets off and pays, a dummy's too
+	_kill_effects(def, at, elite, _weapon_id)
+
+
+## What a kill drops (out of _on_enemy_died, pass 48, so a training dummy can skip it): its gems at its XP scale,
+## Prospector's extra gem, the timeline's power-up roll, the drop passives' small pickups, a chest and its own power-up.
+func _drop_from_kill(def: EnemyDef, at: Vector3, elite: EliteModDef) -> void:
+	# the creature's own XP scale (pass 47: a variance special's `xp` was never paid), else its type's
+	var xp_scale: float = enemies.died_xp_scale if enemies and enemies.died_xp_scale > 0.0 else def.xp_mult * (4.0 if elite else 1.0)
 	pickups.drop_from(def, at, xp_scale, elite != null)
+	# Prospector (pass 47): a chance of one more XP gem, the size this creature mostly drops
+	var xp_chance: float = Run.player_sheet.get_stat("xp_drop_chance", 0.0)
+	if xp_chance > 0.0:
+		pickups.prospector(def, at, xp_scale, xp_chance)
 	director.drop_pickup_from(def, at, elite != null)
-	# the drop passives (pass 33.2): Cheese (Beef Jerky until pass 44) and Pickpocket roll on every kill for their own small pickups
-	for pair in [["heal_drop", "cheese_bite"], ["coin_drop", "coin_bag"]]:
+	# the drop passives (pass 33.2): Cake (Cheese until pass 46, Beef Jerky until pass 44) and Pickpocket roll on every
+	# kill for their own small pickups
+	for pair in [["heal_drop", "cake_slice"], ["coin_drop", "coin_bag"]]:
 		var chance: float = Run.player_sheet.get_stat(str(pair[0]), 0.0)
 		if chance > 0.0 and randf() < chance:
 			var pd: PickupDef = Registry.pickup(str(pair[1]))
@@ -810,6 +1372,15 @@ func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: 
 		var od: PickupDef = Registry.pickup(str(own.get("id", "")))
 		if od:
 			pickups.spawn_special(od, at + Vector3(randf_range(-0.6, 0.6), 0, randf_range(-0.6, 0.6)))
+
+
+## What a kill sets off and pays (out of _on_enemy_died, pass 48): Powder Keg, Brimstone Brand, Grand Finale, an Elite's
+## purse and a boss's reward, and the burst where it fell. A training dummy sets everything off and pays nothing (pass 49).
+func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: String) -> void:
+	# Powder Keg (pass 48, a passive item): a kill may blow the body up; a keg's own kills never roll again (no chains)
+	var keg: float = Run.player_sheet.get_stat("powder_keg_chance", 0.0)
+	if keg > 0.0 and _weapon_id != POWDER_KEG and randf() < keg:
+		_powder_keg(at, enemies.died_max_hp if enemies and enemies.died_max_hp > 0.0 else def.hp)
 	# Brimstone Brand (pass 43, stage 3): a kill may set the sand alight where the body fell, burning the crowd
 	var brand: float = Run.player_sheet.get_stat("brand_chance", 0.0)
 	if brand > 0.0 and randf() < brand and def.archetype != "boss":
@@ -817,6 +1388,11 @@ func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: 
 		var bz := spawn_zone(at, 2.2, 3.0, 6.0 * Run.player_sheet.get_stat("might", 1.0), 0.25, bw, 0.0, Color(1.0, 0.42, 0.1, 0.3))
 		bz.flames = true
 		fx.ignite(at + Vector3(0, 0.2, 0), 1.4)
+	# Gold Dust (pass 54, the Sun Scepter's motion path): a kill by a weapon carrying it, by a pillar or by its burn, drops
+	# its coins `chance` of the time (SunScepter.gold_dust_coins); a training dummy pays nothing
+	if _weapon_id != "" and def.brain != "dummy":
+		for k in range(preload("res://core/behaviors/SunScepter.gd").gold_dust_coins(Run.weapon_instance(_weapon_id))):
+			pickups.spawn(PickupManager.KIND_COIN, at, 1.0 + float(randi() % 2))
 	# Grand Finale (pass 43, Calavera): a boss or an Elite going down takes a share of every creature's health with it
 	if (def.archetype == "boss" or def.archetype == "elite" or elite != null) and Run.has_perk("grand_finale"):
 		var fr := Run.perk_param("grand_finale", "radius", 14.0)
@@ -831,17 +1407,19 @@ func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: 
 		camera.shake(1.2)
 	# materials for the homestead: bones from every Elite, relics from every boss; deeper stages and Mira's trait add one
 	# the Mirror spends gold, so what the deep parts of a run used to pay in bones and relics they pay in coin:
-	# an Elite is worth a purse, a boss a chest of them (Mira's Motherlode adds a half)
+	# an Elite is worth a purse, a boss a chest of them (Mira's Motherlode adds a half). A training dummy pays nothing
+	# (pass 49: the arena's Elite dummy and Boss dummy are Elites by their kind)
 	var lode: float = 1.5 if (Run.character and Run.character.specials.has("motherlode")) else 1.0
-	if elite != null or def.archetype == "elite":
+	var pays := def.brain != "dummy"
+	if (elite != null or def.archetype == "elite") and pays:
 		var purse := int((90 + 60 * Run.stage) * lode)
 		Run.add_gold(purse)
 		hud.toast("+%d GOLD" % purse, Color(1.0, 0.85, 0.35))
-	if def.archetype == "boss":
+	if def.archetype == "boss" and pays:
 		var chest_gold := int((260 + 140 * Run.stage) * lode)
 		Run.add_gold(chest_gold)
 		hud.toast("+%d GOLD" % chest_gold, Color(1.0, 0.85, 0.35))
-	if def.archetype == "boss":
+	if def.archetype == "boss" and pays:
 		_end_ring()
 		_hell_lines.clear()
 		# the reward scales with the boss (drops.coins, drops.chests): the second boss pays for continuing
@@ -860,10 +1438,42 @@ func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: 
 		fx.burst(at + Vector3(0, 0.4, 0), Color(0.95, 0.85, 0.7), def.size * 0.6)
 
 
+## Powder Keg's blast (pass 48): KEG_FRAC of the dead creature's max HP to everything within KEG_RADIUS of the body, thrown
+## with KEG_KNOCK, recorded as the source POWDER_KEG (Results, the run recorder), whose kills never roll a keg again.
+const POWDER_KEG := "powder_keg"
+const KEG_RADIUS := 2.4
+const KEG_FRAC := 0.25
+const KEG_KNOCK := 9.0
+const KEG_COLOUR := Color(1.0, 0.55, 0.15)
+
+
+func _powder_keg(at: Vector3, dead_max_hp: float) -> void:
+	enemies.damage_radius(at, KEG_RADIUS, dead_max_hp * KEG_FRAC, POWDER_KEG, KEG_KNOCK)
+	fx.burst(at + Vector3(0, 0.5, 0), KEG_COLOUR, 1.1)
+	if telegraphs and map:
+		telegraphs.flash_ring(Vector3(at.x, map.height_at(at.x, at.z) + 0.05, at.z), KEG_RADIUS, KEG_COLOUR, 0.3)
+	Audio.play("it_keg_boom", at)
+
+
+## Skedaddle (pass 48, a passive item): a hit that lands, on his health or on his Energy Shield, sends him running; a small
+## red burst when the boost starts or starts again (Run.skedaddle says so), and its red ribbon follows him for as long as
+## Run.skedaddle_left() lasts (_tick_speed_fx).
+func _skedaddle() -> void:
+	if Run.skedaddle() and player and not player.dead:
+		fx.speed_burst(player.global_position, Fx.SKEDADDLE_RED, true)
+
+
 ## Cactus Coat: whatever hits the hero gets a face full of spines, along with anything else standing close.
 func _on_player_hit() -> void:
-	# Crescendo (pass 43): a hit ends the song
+	# Crescendo (pass 43): a hit ends the song (pass 49: Hot Streak's kills are kept whatever hits him)
 	Run.reset_crescendo()
+	# Skedaddle (pass 48, a passive item): a hit sends him running
+	_skedaddle()
+	# Loose Change (pass 48, a passive item): a hit may knock a coin out of him (PickupManager.toss_coin)
+	var lc: float = Run.player_sheet.get_stat("coin_on_hit", 0.0)
+	if lc > 0.0 and player and pickups and randf() < lc:
+		if pickups.toss_coin(player.global_position) >= 0:
+			Audio.play("it_coin_drop", player.global_position)
 	# Tough Love: a hit makes Dad hit harder and wider for a few seconds
 	if Run.has_perk("tough_love"):
 		var e1 := Effect.make("might", "mul", Run.perk_param("tough_love", "might", 0.15), "player")
@@ -874,11 +1484,26 @@ func _on_player_hit() -> void:
 	if th > 0.0 and player and not player.dead:
 		enemies.damage_radius(player.global_position, 2.3, th, "", 6.0)
 		fx.burst(player.global_position + Vector3(0, 0.6, 0), Color(0.45, 0.8, 0.35), 1.2)
+	# the hit is felt (pass 54, Garry: a hit on his health had only a number and a shake): a red rim round the screen
+	# (HUD.vignette, else a faint red flash), sand kicked up at his feet, and a 45 ms hit-stop, the world's clock nearly
+	# held and given back on a real-time timer; never in the arena, never while the run is paused, never on top of one
+	# already running (the clock below 1 is the sign) and never once he is down
+	if hud:
+		if hud.has_method("vignette"):
+			hud.vignette(Color(0.85, 0.1, 0.08, 0.55), 0.3)
+		else:
+			hud.flash(Color(0.8, 0.1, 0.1, 0.25), 0.2)
+	if player and fx:
+		fx.sand(player.global_position, 0.7)
+	if not Run.arena and not paused and not get_tree().paused and player and not player.dead and Engine.time_scale >= 0.999:
+		Engine.time_scale = 0.08
+		get_tree().create_timer(0.045, true, false, true).timeout.connect(func(): Engine.time_scale = 1.0)
 
 
 ## The hero finished using a structure (content/structures).
 func use_structure(def: StructureDef, at: Vector3) -> void:
 	var p: Dictionary = def.params
+	if RunAnalytics.I: RunAnalytics.I.event("structure", def.id, 0, {"effect": def.effect_kind})
 	Audio.play("pk_chest_open", at)
 	fx.burst(at + Vector3(0, 1.0, 0), def.color, 2.0)
 	telegraphs.flash_ring(at, def.radius + 0.5, def.color, 0.5)
@@ -911,6 +1536,7 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 			stranger_screen.closed.connect(func(took):
 				set_paused(false)
 				if took:
+					if RunAnalytics.I: RunAnalytics.I.via = "stranger"
 					var line := Run.stranger_take(offer, cost)
 					player.refresh_stats()
 					hud.toast("The deal: %s, for %d%% of your health" % [line, int(round(cost * 100.0))], Color(0.75, 0.6, 1.0))
@@ -923,11 +1549,13 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 				hud.toast("The shop had nothing left. +50 gold", UiKit.ACCENT)
 				return
 			set_paused(true)
+			if RunAnalytics.I: RunAnalytics.I.via = "shop"
 			structure_shop.open(offer)
 			structure_shop.closed.connect(func(bought): set_paused(false); if bought: hud.toast("Bought!", UiKit.ACCENT), CONNECT_ONE_SHOT)
 		"heal":
 			var amount: float = player.max_hp * float(p.get("fraction", 0.5))
-			player.heal(amount)
+			# named, so the Down! list shows it (pass 46)
+			player.heal(amount, def.display_name)
 			hud.toast("+%d HP" % int(round(amount)), UiKit.GOOD)
 		"loot":
 			var gold := int(p.get("gold", 60))
@@ -1012,7 +1640,7 @@ func _roll_dice(def: StructureDef, at: Vector3) -> void:
 	var pick := str(outcomes[randi() % outcomes.size()])
 	match pick:
 		"heal":
-			player.heal(player.max_hp)
+			player.heal(player.max_hp, def.display_name)
 			hud.banner("DICE: FULL HEAL", UiKit.GOOD)
 		"gold":
 			Run.add_gold(150)
@@ -1032,13 +1660,15 @@ func _roll_dice(def: StructureDef, at: Vector3) -> void:
 
 ## The hero walked into a pickup (content/pickups): heal, timed buff, shield or gem vacuum.
 func apply_pickup(def: PickupDef, at: Vector3) -> void:
-	# a power-up taken (pass 44: an unlock counts them); the small things underfoot (cheese, coin bags) are not power-ups
+	if RunAnalytics.I: RunAnalytics.I.event("pickup", def.id, 0, {"small": bool(def.params.get("small", false)), "effect": def.effect_kind})
+	# a power-up taken (pass 44: an unlock counts them); the small things underfoot (cake slices, coin bags) are not power-ups
 	if not bool(def.params.get("small", false)) and not Run.arena:
 		Save.add_total("pickups", 1)
 	match def.effect_kind:
 		"heal":
 			var amount: float = player.max_hp * def.value
-			player.heal(amount)
+			# the Heart, a Cake Slice: named, so the Down! list shows it (pass 46)
+			player.heal(amount, def.display_name)
 			if not bool(def.params.get("quiet", false)):
 				hud.toast("+%d HP" % int(round(amount)), UiKit.GOOD)
 			Audio.play("pk_heart", at)
@@ -1048,11 +1678,18 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 			Audio.play("pk_coin", at)
 		"buff":
 			Run.add_timed_effects(def.id, def.display_name, def.effects, def.duration)
-			hud.toast("%s: %s for %d s" % [def.display_name.to_upper(), TextGen.describe_effects(def.effects), int(def.duration)], def.color)
+			# the seconds as they run on this hero (pass 54: Solenne's buffs last longer, Run.buff_seconds)
+			hud.toast("%s: %s for %d s" % [def.display_name.to_upper(), TextGen.describe_effects(def.effects), int(round(Run.buff_seconds(def.duration)))], def.color)
 			Audio.play("pk_powerup", at)
+			# a power-up that makes him faster (a Sprint, by its effects, pass 48): its blue look runs while it lasts
+			if _speeds_up(def) and player:
+				if not _speed_buffs.has(def.id):
+					_speed_buffs.append(def.id)
+				fx.speed_burst(player.global_position, Fx.SPRINT_BLUE)
+				telegraphs.flash_ring(player.global_position, 2.8, Fx.SPRINT_BLUE, 0.4)
 		"shield":
-			player.shield(def.duration)
-			hud.toast("SHIELD for %d s" % int(def.duration), def.color)
+			player.shield(Run.buff_seconds(def.duration))
+			hud.toast("SHIELD for %d s" % int(round(Run.buff_seconds(def.duration))), def.color)
 			Audio.play("pk_powerup", at)
 		"vacuum":
 			# everything on the map, the coins and the chests too, as a boss kill does it
@@ -1062,6 +1699,11 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 			var np: Dictionary = def.params
 			nuke_blast(player.global_position, float(np.get("radius", 16.0)), def.value, float(np.get("knockback", 14.0)))
 			hud.toast("NUKE", def.color)
+		"pollen":
+			# a Pollen flower (pass 48, FlowerField): one dropped as a pickup (the arena's DROPS tab) gives every held Pollen
+			# weapon its buff, as the field's own flowers do (FlowerField._pick)
+			FlowerField.give_buff(self)
+			Audio.play("pk_flower", at)
 		_:
 			Audio.play("pk_powerup", at)
 	fx.burst(at + Vector3(0, 0.8, 0), def.color, 1.3)
@@ -1084,20 +1726,26 @@ func open_chest(at: Vector3, boss: bool = false) -> void:
 		hud.toast("THE SPOILS COME TO YOU", Color(1.0, 0.82, 0.35))
 	var r := Run.chest_roll(boss)
 	set_paused(true)
+	if RunAnalytics.I: RunAnalytics.I.via = "boss_chest" if boss else "chest"
 	chest_screen.open(r)
 
 
+## The reel closed (pass 47): taken, or let go for one of the stage's skips (Run.chest_skip: nothing gained; it was sold
+## for gold before). A banish on the reel never closes it: the screen spins again to Run.chest_banish's new roll, and
+## Run tells the recorder. With no skip left the chest cannot be let go, so what it holds is taken.
 func _on_chest_closed(take: bool) -> void:
 	var r := chest_screen.result()
-	var line: String
-	if take:
-		line = Run.chest_take(r)
-		Audio.play("ui_buy")
+	var skipped := false
+	if not take:
+		skipped = Run.chest_skip(r) != ""
+	if skipped:
+		Audio.play("ui_tap")
+		hud.toast("Chest skipped", UiKit.INK2)
 	else:
-		line = Run.chest_sell(r, chest_screen.sell_gold())
-		Audio.play("pk_coin")
-	if str(r.get("type", "")) != "evolution" or not take:
-		hud.toast("Chest: " + line, UiKit.ACCENT)
+		var line := Run.chest_take(r)
+		Audio.play("ui_buy")
+		if str(r.get("type", "")) != "evolution":
+			hud.toast("Chest: " + line, UiKit.ACCENT)
 	if not _chest_queue.is_empty():
 		var next: Dictionary = _chest_queue.pop_front()
 		await get_tree().create_timer(0.25).timeout
@@ -1106,6 +1754,7 @@ func _on_chest_closed(take: bool) -> void:
 				pickups.vacuum_all(true, true)
 				hud.toast("THE SPOILS COME TO YOU", Color(1.0, 0.82, 0.35))
 			var r2 := Run.chest_roll(bool(next.get("boss", false)))
+			if RunAnalytics.I: RunAnalytics.I.via = "boss_chest" if bool(next.get("boss", false)) else "chest"
 			chest_screen.open(r2)
 			return
 	if _pending_levels > 0:
@@ -1128,10 +1777,26 @@ func _on_portal_entered() -> void:
 	var final_stage: bool = Run.stage + 1 >= Run.map.timeline.stages if Run.map and Run.map.timeline else false
 	# pass 43: after the last boss the choice is extract or stay (endless needs no unlock any more)
 	portal_dialog.open(Run.stage + 1, true, final_stage)
-	portal_dialog.decided.connect(_on_portal_decided, CONNECT_ONE_SHOT)
+
+
+## "Not yet" (pass 48, PortalDialog.declined: the button, or back): the run goes on with the portal where it is, and it
+## asks again once the hero has stepped out past Portal.REARM and walks back in (Portal.check_player). A second of grace,
+## as after every screen.
+func _on_portal_declined() -> void:
+	if _ended:
+		return
+	if portal_dialog.visible:
+		portal_dialog.visible = false
+	set_paused(false)
+	if player and not player.dead:
+		player.invuln = maxf(player.invuln, 1.0)
+	hud.toast("The portal waits", UiKit.GOOD)
+	Audio.play("st_portal_wait", portal.global_position if portal and is_instance_valid(portal) else player.global_position)
+	if RunAnalytics.I: RunAnalytics.I.event("portal_wait", "", Run.stage + 1)
 
 
 func _on_portal_decided(extract: bool) -> void:
+	if RunAnalytics.I: RunAnalytics.I.event("portal", "", Run.stage + 1, {"extract": extract})
 	if extract:
 		Run.extracted = true
 		Save.mark_once("extract_%s_%d" % [Run.map.id, Run.stage + 1])
@@ -1154,15 +1819,56 @@ func _on_portal_decided(extract: bool) -> void:
 
 
 ## Down: the death plays out for a moment, then the game pauses behind the revive screen. One chance per run plus
-## one per Revive shop tier; the count runs out into the results screen.
+## one per Revive shop tier; the count runs out into the results screen. Phoenix Feather (pass 48) comes first: once a
+## run he gets up by himself PHOENIX_DELAY seconds after he falls, with no Down! screen.
+const PHOENIX_DELAY := 2.0
+const PHOENIX_COLOUR := Color(1.0, 0.55, 0.15)
+## Death in the arena (pass 49, Garry: "If Player dies they just respawn without the Revive Effect"): he is up again at
+## once, whole (his health and his Energy Shield), on the arena's start spot, blinking for ARENA_RESPAWN_INVULN seconds,
+## and a RESPAWNED toast says so; no Down! screen, no revive blast, nothing spent (no revive, no Phoenix Feather). The HERO
+## tab's "Go down" asks for the real fall first (`arena_real_down`), so Down! and Phoenix Feather can still be tried.
+const ARENA_RESPAWN_INVULN := 2.0
+var arena_real_down := false
+## how many times the arena has stood him up again (tests, the arena's tools)
+var arena_respawns := 0
+
+
 func _on_player_died() -> void:
+	# the arena (pass 49): straight back up on the start spot, unless the HERO tab asked for the real fall
+	if Run.arena and not arena_real_down:
+		arena_respawn()
+		return
+	arena_real_down = false
+	if RunAnalytics.I: RunAnalytics.I.death()
 	hud.hide_player_bar()
+	if Run.phoenix_ready():
+		Run.use_phoenix()
+		# the feather leaves him while he lies there (pass 54): its plate rises off him in embers and its banner (with
+		# its icon, in its colour) says what is standing him up; the one held is the spent one (Run.item_spent)
+		var feather: ContentDef = Registry.passive("phoenix_feather")
+		for pid in Run.passives.keys():
+			var pd: ContentDef = Registry.passive(str(pid))
+			if pd and Run.item_spent(pd):
+				feather = pd
+				break
+		if feather and camera and camera.camera and player:
+			var wp: Vector3 = player.global_position + Vector3(0, 1.2, 0)
+			if not camera.camera.is_position_behind(wp):
+				hud.fly_item(feather, camera.camera.unproject_position(wp), PHOENIX_COLOUR)
+		hud.banner("PHOENIX FEATHER", PHOENIX_COLOUR, feather.icon if feather else null)
+		await get_tree().create_timer(PHOENIX_DELAY, false).timeout
+		if _ended or player == null:
+			return
+		_revive("phoenix")
+		return
 	await get_tree().create_timer(1.2).timeout
 	if _ended:
 		return
 	set_paused(true)
 	var chances: int = 1 + Run.player_sheet.get_int("revives", 0) - Run.revives_used
-	revive_screen.open(Run.run_gold, chances, player.damage_log_text(), player.damage_log.back() if not player.damage_log.is_empty() else {})
+	# the last 30 s as rows for the list and as text for its copy button (pass 46)
+	revive_screen.open(Run.run_gold, chances, player.damage_log_text(), player.damage_log.back() if not player.damage_log.is_empty() else {},
+		player.damage_log.duplicate(true))
 
 
 func _on_revive_decided(kind: String) -> void:
@@ -1172,20 +1878,100 @@ func _on_revive_decided(kind: String) -> void:
 			Run.died = true
 			end_run()
 		_:
-			if kind == "gold":
-				# a flat price: add_gold would scale it by greed
-				Run.run_gold = maxi(Run.run_gold - ReviveScreen.GOLD_COST, 0)
-				Run.gold_changed.emit(Run.run_gold)
-			if kind != "debug":
-				Run.revives_used += 1
-			player.revive()
-			# he comes back with a bang: a wave a third of the nuke's that clears everything but the big ones
-			revive_blast()
-			enemies.damage_radius(player.global_position, 6.0, 0.0, "", 12.0)
-			telegraphs.flash_ring(player.global_position, 6.0, UiKit.GOOD, 0.6)
-			hud.show_player_bar()
-			hud.banner("REVIVED" if kind != "debug" else "DEBUG REVIVE", UiKit.GOOD)
-			Perf.context = "revived " + kind
+			_revive(kind)
+
+
+## The hero stands up again (pass 48, out of _on_revive_decided): a revive bought on Down! ("gold", an ad), the debug one,
+## or Phoenix Feather's ("phoenix"). He comes back at the revive's health with a bang that clears what stands round him;
+## a bought one counts against the run's chances, the debug one and Phoenix Feather's (once a run of its own) do not.
+func _revive(kind: String) -> void:
+	if RunAnalytics.I: RunAnalytics.I.event("revive", kind)
+	if kind == "gold":
+		# a flat price: add_gold would scale it by greed
+		Run.run_gold = maxi(Run.run_gold - ReviveScreen.GOLD_COST, 0)
+		Run.gold_changed.emit(Run.run_gold)
+	if kind != "debug" and kind != "phoenix":
+		Run.revives_used += 1
+	player.revive()
+	# he comes back with a bang: a wave a third of the nuke's that clears everything but the big ones
+	revive_blast()
+	enemies.damage_radius(player.global_position, 6.0, 0.0, "", 12.0)
+	if kind == "phoenix":
+		# Phoenix Feather: he rises out of a ring of fire
+		var at := player.global_position
+		telegraphs.flash_ring(at, 6.0, PHOENIX_COLOUR, 0.6)
+		for k in range(14):
+			var a := TAU * float(k) / 14.0
+			var p := at + Vector3(cos(a), 0, sin(a)) * 2.6
+			if map:
+				p.y = map.height_at(p.x, p.z)
+			fx.flame(p, 1.5, randf_range(0.6, 0.8))
+		fx.burst(at + Vector3(0, 1.0, 0), PHOENIX_COLOUR, 2.0)
+		Audio.play("it_phoenix", at)
+		hud.show_player_bar()
+		hud.banner("PHOENIX FEATHER", PHOENIX_COLOUR)
+	else:
+		telegraphs.flash_ring(player.global_position, 6.0, UiKit.GOOD, 0.6)
+		hud.show_player_bar()
+		hud.banner("REVIVED" if kind != "debug" else "DEBUG REVIVE", UiKit.GOOD)
+	Perf.context = "revived " + kind
+
+
+## The arena's respawn (pass 49, _on_player_died): up at once, whole, on the start spot, ARENA_RESPAWN_INVULN seconds of
+## blinking; no blast (the creatures round him are left as they are), no Down!, no revive or Phoenix Feather spent.
+func arena_respawn() -> void:
+	if player == null or _ended:
+		return
+	tether_end()
+	player.revive()
+	player.hp = player.max_hp
+	if player.sheet:
+		player.shield_pts = player.sheet.get_stat("shield_max", 0.0)
+	player.invuln = ARENA_RESPAWN_INVULN
+	player.velocity = Vector3.ZERO
+	if map:
+		player.global_position = map.player_start()
+	player.damaged.emit(player.hp, player.max_hp)
+	if camera:
+		camera.snap_to(player)
+	arena_respawns += 1
+	if hud:
+		hud.show_player_bar()
+		hud.toast("RESPAWNED", UiKit.GOOD)
+
+
+## The arena's hero swap (pass 55, Garry: "an option in the hero tab of the Arena Debug menu which allows switching
+## between heroes on the fly"; ArenaPanel's HERO tab): hero `id` takes over where he stands. His trait replaces the old
+## one on the sheet (max health follows, kept in proportion), the old hero's perks leave with him and the new one's are
+## not handed over (ITEMS hands perks out), nor is his start weapon (ITEMS again); the weapons, passives and mutations
+## held stay, god mode stays as it was, Buck's momentum and Calavera's Crescendo start from nothing. He wears the look
+## kept for him (Save.hero_look). Run.character stays the hero's own def: only the Player's strip wears a look. Returns
+## whether the hero changed (false for the one playing, an unknown id, or outside the arena).
+func arena_swap_hero(id: String) -> bool:
+	var def: CharacterDef = Registry.character(id)
+	if def == null or player == null or not Run.arena or (Run.character != null and Run.character.id == id):
+		return false
+	var old: CharacterDef = Run.character
+	if old:
+		for pk in Run.perks.duplicate():
+			var pd: PerkDef = Registry.perk(str(pk))
+			if pd and pd.hero == old.id:
+				Run.perks.erase(pk)
+	# Serenade's gold disc lies under him only while the perk is held
+	if not Run.has_perk("serenade") and _serenade_disc >= 0 and telegraphs:
+		telegraphs.release(_serenade_disc)
+		_serenade_disc = -1
+	Run.character = def
+	Run.momentum = 0.0
+	Run.momentum_def = def.momentum
+	Run.crescendo = 0
+	player.setup(def)
+	Run.rebuild_sheets()
+	# build_changed brings refresh_stats in a live game (_sync_weapons); once more here does no harm, and a bare one needs it
+	player.refresh_stats()
+	if hud:
+		hud.toast(def.display_name.to_upper(), UiKit.INFO)
+	return true
 
 
 func end_run() -> void:
@@ -1198,7 +1984,7 @@ func end_run() -> void:
 	tether_end()
 	director.stop()
 	# the run's gold comes home with the hero (pass 44): a death leaves it in the sand, all but what a Strongbox banked
-	# on the way; the results screen says which
+	# on the way; the results screen says which (the last 30 s of hits are Down!'s since pass 46, not the results')
 	var gold := Run.run_gold if not Run.died else 0
 	var map_id := Run.map.id if Run.map else ""
 	Run.last_result = {"gold_before": Save.gold(), "banked": gold, "lost": Run.run_gold if Run.died else 0,
@@ -1208,7 +1994,8 @@ func end_run() -> void:
 	Save.record_run(map_id, Run.elapsed, Run.level, Run.stage + 1, Run.kills)
 	# after the run is counted, so "play N runs" sees this one
 	QuestTracker.check_all(true)
-	Save.save_now()
+	Save.flush()
+	if RunAnalytics.I: RunAnalytics.I.finish()
 	Run.end()
 	Audio.stop_music()
 	await get_tree().create_timer(1.2).timeout
@@ -1217,6 +2004,7 @@ func end_run() -> void:
 
 
 func abandon_run() -> void:
+	if RunAnalytics.I: RunAnalytics.I.abandoned = true
 	Run.died = true
 	end_run()
 
@@ -1319,6 +2107,25 @@ func enemy_shot_straight(from: Vector3, target: Vector3, speed: float, damage: f
 		_harpoon_shooter = int(params.get("shooter", -1))
 
 
+## The Tumbleweed King's volley (pass 45): `count` tumbleweeds roll out from `at` in every direction, the first down
+## `first` (the spokes' phase), at `speed` for `life` seconds (9 m/s x 2.6 s: about 24 m, so he reaches a hero across
+## the screen). Each hits the hero once: `damage`, and a throw back of `knockback` with `lift` (Player.blast, past the
+## shove's cap). They roll (params.roll = their radius) and raise dust; they are hostile shots, so High Noon slows them.
+func tumbleweed_volley(at: Vector3, first: Vector3, count: int, speed: float, damage: float, life: float, knockback: float, lift: float, info: Dictionary) -> void:
+	var phase := atan2(first.z, first.x) if first.length_squared() > 0.0001 else 0.0
+	var ground: float = map.height_at(at.x, at.z) if map else at.y
+	var from := Vector3(at.x, ground + TUMBLE_R, at.z)
+	for k in range(count):
+		var a := phase + TAU * float(k) / float(maxi(count, 1))
+		var dir := Vector3(cos(a), 0, sin(a))
+		projectiles.hostile_shot(_tumble_kind, from + dir * 1.2, dir * speed, damage, 0.0, life, false,
+			{"shot": "tumbleweed", "roll": TUMBLE_R, "hit_radius": 0.6, "knockback": knockback, "lift": lift, "info": info, "origin": from})
+	fx_sand(from + Vector3(0, 0.3, 0), 3.0)
+	if camera:
+		camera.shake(0.5)
+	Audio.play("en_king_volley", at)
+
+
 # ---------------------------------------------------------------- the harpoon tether
 
 func _harpoon_mesh() -> Mesh:
@@ -1354,6 +2161,38 @@ func _pellet_material() -> Material:
 	m.albedo_color = Color(0.2, 0.2, 0.23)
 	m.metallic = 0.7
 	m.roughness = 0.35
+	return m
+
+
+## The King's tumbleweed (pass 45) is the desert's own model (art/props/tumbleweed.glb: a 0.8 m wire ball of twigs,
+## the one world/features/Tumbleweed.gd rolls); the mesh alone, centred, so a MultiMesh can draw a dozen. A lattice
+## sphere stands in without the file.
+func _tumble_mesh() -> Mesh:
+	if ResourceLoader.exists("res://art/props/tumbleweed.glb"):
+		var scene: Node = load("res://art/props/tumbleweed.glb").instantiate()
+		var found: Mesh = null
+		for n in scene.find_children("*", "MeshInstance3D", true, false):
+			found = (n as MeshInstance3D).mesh
+			break
+		scene.free()
+		if found:
+			return found
+	var s := SphereMesh.new()
+	s.radius = 0.8
+	s.height = 1.6
+	s.radial_segments = 8
+	s.rings = 5
+	return s
+
+
+## Jet black (pass 48, Garry): the King's own tumbleweeds are his, not the desert's straw-coloured ones.
+const TUMBLE_BLACK := Color(0.035, 0.03, 0.03)
+
+
+func _tumble_material() -> Material:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = TUMBLE_BLACK
+	m.roughness = 0.85
 	return m
 
 
@@ -1448,10 +2287,38 @@ func _spike_material() -> Material:
 
 # ---------------------------------------------------------------- the rocketeer's rocket
 
-## A rocket, not a pill: a body, a nose cone and three fins, all one mesh so it can be a projectile kind.
+## The Vulture Raider's rocket (pass 48): art/props/enemy_rocket.glb, one mesh painted in vertex colours (a near-black
+## body, dark red warhead band and fins, a steel nozzle, a hot orange exhaust cup), its node's turn baked in so the nose
+## points down -Z like every projectile; the procedural one below, painted the same, without the file.
+const ROCKET_GLB := "res://art/props/enemy_rocket.glb"
+
+
 func _rocket_mesh() -> Mesh:
+	if ResourceLoader.exists(ROCKET_GLB):
+		var scene: Node = load(ROCKET_GLB).instantiate()
+		var found: Mesh = null
+		for n in scene.find_children("*", "MeshInstance3D", true, false):
+			var mi := n as MeshInstance3D
+			if mi.mesh == null:
+				continue
+			var st := SurfaceTool.new()
+			st.append_from(mi.mesh, 0, mi.transform)
+			found = st.commit()
+			break
+		scene.free()
+		if found:
+			return found
+	return _rocket_mesh_drawn()
+
+
+## A rocket, not a pill: a body, a nose cone and three fins, all one mesh so it can be a projectile kind, painted in
+## vertex colours as the model is (pass 48: the shader paints COLOR and glows only on the hot exhaust).
+func _rocket_mesh_drawn() -> Mesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var body := Color(0.05, 0.05, 0.05)
+	var band := Color(0.3, 0.05, 0.0)
+	var hot := Color(1.0, 0.45, 0.1)
 	var segs := 10
 	var r := 0.17
 	var body_back := 0.42
@@ -1463,16 +2330,20 @@ func _rocket_mesh() -> Mesh:
 		var p0 := Vector3(cos(a0) * r, sin(a0) * r, 0)
 		var p1 := Vector3(cos(a1) * r, sin(a1) * r, 0)
 		# the body, wound so the outside faces out
+		st.set_color(body)
 		for v in [p0 + Vector3(0, 0, body_back), p1 + Vector3(0, 0, body_back), p1 + Vector3(0, 0, body_front),
 				p0 + Vector3(0, 0, body_back), p1 + Vector3(0, 0, body_front), p0 + Vector3(0, 0, body_front)]:
 			st.add_vertex(v)
 		# the nose cone
+		st.set_color(band)
 		for v in [p0 + Vector3(0, 0, body_front), p1 + Vector3(0, 0, body_front), Vector3(0, 0, nose)]:
 			st.add_vertex(v)
-		# the tail cap
+		# the tail cap: the hot exhaust
+		st.set_color(hot)
 		for v in [Vector3(0, 0, body_back), p1 + Vector3(0, 0, body_back), p0 + Vector3(0, 0, body_back)]:
 			st.add_vertex(v)
 	# three fins at the tail
+	st.set_color(band)
 	for k in range(3):
 		var a := TAU * float(k) / 3.0
 		var out := Vector3(cos(a), sin(a), 0)
@@ -1487,16 +2358,32 @@ func _rocket_mesh() -> Mesh:
 	return st.commit()
 
 
+## A projectile kind's MultiMesh with instance colours on, every one white (pass 48, the vertex-painted rocket). A MultiMesh
+## with custom data and no colours hands a spatial shader COLOR = 0 in Godot 4.7 (a capture showed the dark rocket bright
+## yellow: no paint, and its exhaust mask everywhere), so the rocket kind carries white colours and COLOR is the paint.
+## Call it before anything is drawn: the count is rebuilt.
+static func paint_white(mm: MultiMesh) -> void:
+	var n := mm.instance_count
+	var vis := mm.visible_instance_count
+	mm.instance_count = 0
+	mm.use_colors = true
+	mm.instance_count = n
+	mm.visible_instance_count = vis
+	for k in range(n):
+		mm.set_instance_color(k, Color(1, 1, 1, 1))
+
+
+## The rocket's paint (its vertex colours) on a shader that lights only the hot exhaust, and turns the whole of it
+## white-hot by the instance's heat (pass 45: a loose rocket blinks red and white, then burns white through its climb
+## and dive). Pass 48: dark on the sand, no longer a red glow all over.
 func _rocket_material() -> Material:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(1.0, 0.1, 0.08)
-	m.emission_enabled = true
-	m.emission = Color(1.0, 0.25, 0.1)
-	m.emission_energy_multiplier = 2.4
+	var m := ShaderMaterial.new()
+	m.shader = preload("res://core/shaders/rocket.gdshader")
 	return m
 
 
-## A rocketeer fired: one slow red rocket that hunts the hero; only its goblin's death ends it early.
+## A rocketeer fired: one slow rocket that hunts the hero, from his launcher's open end (EnemyManager.muzzle_point); only
+## his death ends it early.
 ## `speed_of_hero` > 0: the rocket flies at that fraction of the hero's top speed, whatever he is carrying (pass 33.2).
 func enemy_missile(shooter: int, from: Vector3, speed: float, turn: float, damage: float, area: float, speed_of_hero: float = 0.0, info: Dictionary = {}, blast: Dictionary = {}) -> void:
 	var dir := player.global_position + Vector3(0, 0.9, 0) - from
@@ -1543,6 +2430,154 @@ func rocket_blast(at: Vector3, r: float, damage: float, info: Dictionary, blast:
 	if caught:
 		hud.flash(Color(1.0, 0.45, 0.12, 0.45), 0.4)
 	Audio.play("en_rocket_boom", at)
+
+
+## A loose rocket's warning (pass 45): a red ring on the sand under the crowd it will dive on, blinking with the rocket
+## (ProjectileManager._tick_loose_mark owns the alpha and moves it with the crowd; _free releases it).
+func loose_mark(at: Vector3, r: float) -> int:
+	if telegraphs == null:
+		return -1
+	return telegraphs.hold_ring(_on_ground(at), r, Color(1.0, 0.22, 0.1, 0.9))
+
+
+func loose_mark_move(id: int, at: Vector3, alpha: float) -> void:
+	if telegraphs == null or id < 0:
+		return
+	telegraphs.move_held(id, _on_ground(at))
+	telegraphs.set_alpha(id, alpha)
+
+
+func loose_mark_end(id: int) -> void:
+	if id >= 0 and is_instance_valid(telegraphs):
+		telegraphs.release(id)
+
+
+func _on_ground(at: Vector3) -> Vector3:
+	return Vector3(at.x, map.height_at(at.x, at.z) if map else at.y, at.z)
+
+
+## A loose rocket comes down on the crowd (pass 45): the pass 33.3 fireball, the crowd thrown by the rocket's own
+## `blast.throw` within `blast.throw_radius`, a ring, a scorch and a kick; the hero is never touched (the scratch of
+## damage to the crowd is ProjectileManager._explode_loose's).
+func loose_rocket_blast(at: Vector3, r: float, blast: Dictionary) -> void:
+	if _ended:
+		return
+	var ground := _on_ground(at)
+	var reach: float = maxf(float(blast.get("throw_radius", r * 2.0)), r)
+	enemies.throw_radius(ground, reach, float(blast.get("throw", 20.0)))
+	fx.explosion(ground, maxf(r, 1.2))
+	telegraphs.flash_ring(ground, reach, Color(1.0, 0.55, 0.2), 0.45)
+	_scorch(ground, maxf(r, 1.2) * 1.2)
+	camera.shake(1.3)
+	Audio.play("en_rocket_boom", at)
+
+
+# ---------------------------------------------------------------- the golem's stone (pass 45)
+
+const STONE := Color(0.5, 0.46, 0.42)
+const BOULDER_SCRIPT := preload("res://core/systems/Boulder.gd")
+var _stone_mat: StandardMaterial3D
+var _stalactite_mesh: Mesh
+
+
+func stone_material() -> StandardMaterial3D:
+	if _stone_mat == null:
+		_stone_mat = StandardMaterial3D.new()
+		_stone_mat.albedo_color = STONE
+		_stone_mat.roughness = 0.95
+	return _stone_mat
+
+
+## The golem winds up and throws: the rock leaves `from` and comes down at `to` (the ring it marked) `flight` seconds
+## later whatever the hero does. The attack's numbers ride along: radius, damage (x `mult`, the stage), knockback, lift,
+## creature_frac, throw, throw_radius, size, arc.
+func throw_boulder(thrower: int, from: Vector3, to: Vector3, atk: Dictionary, mult: float, info: Dictionary) -> void:
+	if _ended:
+		return
+	var cfg := {"radius": float(atk.get("radius", 4.6)), "damage": float(atk.get("damage", 30)) * mult,
+		"knockback": float(atk.get("knockback", 26.0)), "lift": float(atk.get("lift", 6.0)), "creature_frac": float(atk.get("creature_frac", 0.5)),
+		"throw": float(atk.get("throw", 22.0)), "throw_radius": float(atk.get("throw_radius", 6.5)), "size": float(atk.get("size", 1.7)), "arc": float(atk.get("arc", 9.0))}
+	var ground := Vector3(to.x, map.height_at(to.x, to.z) if map else to.y, to.z)
+	# by path, not by class name: a headless run before the next import does not know a new class_name yet
+	var b = BOULDER_SCRIPT.new()
+	b.setup(self, from, ground, float(atk.get("flight", 1.6)), cfg, info, thrower)
+	add_child(b)
+	Audio.play("en_golem_throw", from)
+
+
+## The boulder comes down (rocket_blast's shape in stone): the hero inside `radius` takes `damage` and is thrown with
+## `knockback`/`lift` (an evade leaves him standing); the crowd takes `creature_frac` of it and is thrown out to
+## `throw_radius` with `throw`, the golem itself never; a burst, stone splinters, sand, a crater mark, a kick, a flash.
+func boulder_land(at: Vector3, cfg: Dictionary, info: Dictionary, thrower: int = -1) -> void:
+	if _ended:
+		return
+	var ground := Vector3(at.x, map.height_at(at.x, at.z) if map else at.y, at.z)
+	var r: float = float(cfg.get("radius", 4.6))
+	var bdmg: float = float(cfg.get("damage", 30.0))
+	var caught := false
+	if player and not player.dead:
+		var d: Vector3 = player.global_position - ground
+		d.y = 0.0
+		if d.length() <= r + 0.4:
+			player.take_damage(bdmg, ground, info.duplicate(true))
+			if str(player.get("last_outcome")) != "evaded":
+				caught = true
+				var away: Vector3 = d if d.length_squared() > 0.01 else -player.forward()
+				player.blast(away.normalized() * float(cfg.get("knockback", 26.0)), float(cfg.get("lift", 6.0)))
+	var frac: float = float(cfg.get("creature_frac", 0.5))
+	if frac > 0.0:
+		for j in enemies.indices_in_radius(ground, r):
+			if j != thrower:
+				enemies.damage(j, bdmg * frac, "blast", enemies.pos[j] - ground, 0.0)
+	var tr: float = float(cfg.get("throw_radius", r * 1.4))
+	enemies.throw_radius(ground, tr, float(cfg.get("throw", 22.0)), thrower)
+	fx.explosion(ground, 1.2 * (1.3 if caught else 1.0))
+	fx.splinters(ground, STONE, 22, 0.3)
+	for k in range(6):
+		var a := TAU * float(k) / 6.0
+		fx.sand(ground + Vector3(cos(a), 0.1, sin(a)) * r * 0.5, 1.4)
+	telegraphs.flash_ring(ground, tr, Color(0.9, 0.7, 0.45), 0.45)
+	_scorch(ground, r * 0.55)
+	camera.shake(2.4 if caught else 1.6)
+	if caught:
+		hud.flash(Color(0.75, 0.6, 0.45, 0.35), 0.3)
+	Audio.play("en_boulder_land", ground)
+
+
+## One stalactite of the swoop: a stone spike drops from `height` metres onto `at` over `fall` seconds, stands in the
+## sand a moment and sinks away. The impact itself is stalactite_hit, called by EnemyManager when the spike's clock
+## runs out, so the picture and the hit agree.
+func stalactite(at: Vector3, fall: float, spike_scale: float = 1.0, height: float = 9.0) -> void:
+	if _stalactite_mesh == null:
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.0
+		cm.bottom_radius = 0.24
+		cm.height = 1.5
+		cm.radial_segments = 6
+		cm.rings = 1
+		_stalactite_mesh = cm
+	var m := MeshInstance3D.new()
+	m.mesh = _stalactite_mesh
+	m.material_override = stone_material()
+	m.rotation.x = PI                      # the cone's point is +Y; turned over it falls point first
+	m.scale = Vector3.ONE * spike_scale
+	m.position = at + Vector3(0, height, 0)
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(m)
+	var tw := create_tween()
+	tw.tween_property(m, "position:y", at.y + 0.55 * spike_scale, fall).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_interval(0.5)
+	tw.tween_property(m, "position:y", at.y - 1.2 * spike_scale, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(m.queue_free)
+
+
+## A stalactite lands: stone chips, a puff of sand, a small ring and a kick (the throw and the hit are EnemyManager's).
+func stalactite_hit(at: Vector3) -> void:
+	fx.splinters(at, STONE, 7, 0.16)
+	fx.sand(at + Vector3(0, 0.2, 0), 0.8)
+	telegraphs.flash_ring(at, 1.0, Color(0.85, 0.7, 0.5), 0.25)
+	camera.shake(0.25)
+	Audio.play("en_stalactite_hit", at)
 
 
 ## A dark scorch on the sand where something went off: it holds a moment, then fades out (a pooled ground mark).
@@ -1601,6 +2636,9 @@ func erupt_mound(at: Vector3, r: float, warn: float) -> void:
 	rmat.roughness = 1.0
 	ring.material_override = rmat
 	ring.position = at + Vector3(0, 0.08, 0)
+	# lying on the slope it opens in (pass 52), not level through it
+	if map:
+		ring.basis = MapBase.ground_basis(map.normal_at(at.x, at.z, r * 0.5))
 	ring.scale = Vector3(0.3, 0.5, 0.3)
 	add_child(ring)
 	var tw := create_tween()
@@ -1636,24 +2674,15 @@ func erupt_mound(at: Vector3, r: float, warn: float) -> void:
 ## The Nuke: a wave from the hero that hits everything within `radius` for `damage` and throws it back, with a ring
 ## that races out over the sand, a flash and a long shake. Bosses take it too.
 func nuke_blast(at: Vector3, radius: float, damage: float, knock: float) -> void:
-	enemies.damage_radius(at, radius, damage, "nuke", knock)
-	# the wave: a fat additive ring growing to the radius over half a second, then fading
-	var ring := MeshInstance3D.new()
-	var tm := TorusMesh.new()
-	tm.inner_radius = 0.7
-	tm.outer_radius = 1.0
-	tm.rings = 48
-	tm.ring_segments = 8
-	ring.mesh = tm
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	mat.albedo_color = Color(1.0, 0.75, 0.35, 1.0)
-	ring.material_override = mat
-	ring.position = at + Vector3(0, 0.6, 0)
-	ring.scale = Vector3(0.3, 0.6, 0.3)
-	add_child(ring)
+	if damage > 0.0:
+		enemies.damage_radius(at, radius, damage, "nuke", knock)
+	else:
+		# the revive's ring (pass 48): no damage, so no hit at all (a zero hit still flashed, rolled crits and froze), only
+		# the throw
+		enemies.throw_radius(at, radius, knock)
+	# the wave: a fat band racing out to the radius over half a second, laid on the sand (pass 52: it was a flat torus at
+	# the hero's height, and every hill on its way cut through it)
+	telegraphs.race_ring(at, radius, 0.55, Color(1.0, 0.75, 0.35, 0.9), 0.3)
 	var wall := MeshInstance3D.new()
 	var cm := CylinderMesh.new()
 	cm.top_radius = 1.0
@@ -1674,11 +2703,9 @@ func nuke_blast(at: Vector3, radius: float, damage: float, knock: float) -> void
 	add_child(wall)
 	var tw := create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(ring, "scale", Vector3(radius, 1.0, radius), 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(wall, "scale", Vector3(radius, 1.0, radius), 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_property(mat, "albedo_color:a", 0.0, 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_property(wmat, "albedo_color:a", 0.0, 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tw.chain().tween_callback(func(): ring.queue_free(); wall.queue_free())
+	tw.chain().tween_callback(func(): wall.queue_free())
 	fx.burst(at + Vector3(0, 1.0, 0), Color(1.0, 0.95, 0.8), 6.0)
 	fx.burst(at + Vector3(0, 0.6, 0), Color(1.0, 0.55, 0.2), 9.0)
 	for k in range(14):
@@ -1718,18 +2745,195 @@ func _tick_berserk(delta: float) -> void:
 	fx.flame(at, randf_range(0.9, 1.3), randf_range(0.35, 0.5), Color(1.0, 0.36, 0.1))
 
 
+## The hero's own buffs where they show: his speed boosts (pass 48, _tick_speed_fx) and Steady Hand's ring at his feet,
+## wider and brighter the longer he has stood still (only while he holds it).
+func _tick_hero_fx(delta: float) -> void:
+	if player == null:
+		return
+	_tick_speed_fx(delta)
+	if player.dead:
+		_end_steady_mark()
+		return
+	_tick_steady(delta)
+
+
+## Barrel Rush, from BarrelField when a smashed barrel started (`fresh`) or refreshed the boost: a word and a sound when
+## it starts (pass 48: the gold burst and ring are gone; the boost shows as its thin ribbon, _tick_speed_fx).
+func barrel_rush_fx(fresh: bool) -> void:
+	if player == null or player.dead:
+		return
+	if fresh:
+		hud.toast("BARREL RUSH", Fx.RUSH_GOLD)
+		Audio.play("pk_powerup", player.global_position)
+	_rush_running = true
+
+
+var _rush_running := false
+## The ids of the power-ups that made him faster this run (a Sprint): their look runs while any lasts.
+var _speed_buffs: Array = []
+
+
+## Whether a power-up's buff makes him faster (a positive move_speed effect: the Sprint), read from its data.
+static func _speeds_up(def: PickupDef) -> bool:
+	for e in def.effects:
+		if e is Effect and (e as Effect).stat == "move_speed" and (e as Effect).value > 0.0:
+			return true
+	return false
+
+
+## Seconds left of the longest speed power-up he has on (0 when none).
+func _speed_buff_left() -> float:
+	var left := 0.0
+	for id in _speed_buffs:
+		left = maxf(left, Run.boost_left(str(id)))
+	return left
+
+
+## Skedaddle's seconds left (Run.skedaddle_left: 0 when it is not running).
+func _skedaddle_left() -> float:
+	return Run.skedaddle_left()
+
+
+## His speed boosts, each its own look so two or three read together (pass 48, Garry: "the speed VFX after a barrel looks
+## bad, simpler; a different, stronger one for the movement power-up; both must work together"): Barrel Rush is one thin
+## faint gold ribbon at his hips, a Sprint a strong blue ribbon higher up with wind streaming past him, Skedaddle a red
+## ribbon low down (Fx.speed_trail, Fx.wind). Each ribbon follows him while he runs and shrinks away when he stops or
+## the boost ends.
+func _tick_speed_fx(delta: float) -> void:
+	var up: bool = not player.dead
+	var rush_on := _rush_running
+	if Engine.get_process_frames() % 6 == 0 or rush_on:
+		rush_on = Run.boost_left(Run.BARREL_RUSH) > 0.0
+		_rush_running = rush_on
+	var flat := Vector3(player.velocity.x, 0.0, player.velocity.z)
+	var moving: bool = up and flat.length() > 0.6
+	var feet: Vector3 = player.global_position
+	if rush_on or fx.speed_trail_live("gold"):
+		fx.speed_trail("gold", feet, delta, rush_on and moving)
+	var sprint_on: bool = up and not _speed_buffs.is_empty() and _speed_buff_left() > 0.0
+	if sprint_on or fx.speed_trail_live("blue"):
+		fx.speed_trail("blue", feet, delta, sprint_on and moving)
+	if sprint_on or fx.wind_live():
+		fx.wind(feet, flat if moving else player.forward(), delta, sprint_on, moving)
+	var red_on: bool = up and _skedaddle_left() > 0.0
+	if red_on or fx.speed_trail_live("red"):
+		fx.speed_trail("red", feet, delta, red_on and moving)
+
+
+## Steady Hand's ring (pass 47): a held ground ring under his feet, red-gold, from 0.7 m to 1.2 m and from faint to bright
+## as the bonus grows to its top (Run.steady_might, +100%), breathing once it is there; embers rise off it, faster as it
+## grows. Gone the moment he moves.
+const STEADY_COLOUR := Color(1.0, 0.45, 0.2)
+var _steady_mark := -1
+var _steady_mote_t := 0.0
+
+
+func _tick_steady(delta: float) -> void:
+	var f := _steady_frac()
+	if f <= 0.0:
+		_end_steady_mark()
+		return
+	var here: Vector3 = player.global_position
+	var g := Vector3(here.x, map.height_at(here.x, here.z) if map else here.y, here.z)
+	var r := lerpf(0.7, 1.2, f)
+	if _steady_mark < 0:
+		_steady_mark = telegraphs.hold_ring(g, r, Color(STEADY_COLOUR, 1.0))
+	telegraphs.move_held(_steady_mark, g, r)
+	var pulse := 1.0 if f < 1.0 else 0.82 + 0.18 * sin(float(Time.get_ticks_msec()) * 0.008)
+	telegraphs.set_alpha(_steady_mark, lerpf(0.22, 0.7, f) * pulse)
+	_steady_mote_t -= delta
+	if _steady_mote_t <= 0.0:
+		_steady_mote_t = lerpf(0.45, 0.12, f)
+		var a := randf() * TAU
+		fx.mote(g + Vector3(cos(a) * r * 0.8, 0.12, sin(a) * r * 0.8), Vector3(0, 1.3 + f, 0), 0.6, 0.12 + 0.1 * f, Color(1.0, 0.62, 0.3, 0.9))
+
+
+## How far Steady Hand has grown, 0 to 1 of its top (Run.STEADY_MAX, +100%); always 0 when he does not hold it (Run only
+## counts buckets of the passive's `still_might`).
+func _steady_frac() -> float:
+	return clampf(Run.steady_might() / Run.STEADY_MAX, 0.0, 1.0)
+
+
+func _end_steady_mark() -> void:
+	if _steady_mark >= 0:
+		telegraphs.release(_steady_mark)
+		_steady_mark = -1
+
+
+## The lake (pass 54 for the shadows and the waders): the hero casts no shadow while he stands in the water (its blob lay
+## on the lake bed and drew over the water as a dark plate; EnemyManager skips the creatures' the same way), and every
+## 0.28 s whoever wades shows it: rings on the water's surface (lifted off the lake bed the marks drape, by the map's
+## water_level, 0.3 m without one) round the hero and round up to 12 creatures that move in it, and a little splash.
+## Every frame he also sinks into it like the creatures (pass 56, _sink_hero).
 func _tick_water(delta: float) -> void:
 	if map == null or not map.has_method("in_water") or player == null or player.dead:
 		return
+	_sink_hero()
+	var wet: bool = map.call("in_water", player.global_position)
+	if not player.cinematic and player.shadow:
+		player.shadow.visible = not wet
 	_ripple_t -= delta
 	if _ripple_t > 0.0:
 		return
 	_ripple_t = 0.28
-	if map.call("in_water", player.global_position):
+	var has_level: bool = map.has_method("water_level")
+	var level: float = float(map.call("water_level")) if has_level else 0.0
+	if wet:
 		var moving: bool = player.velocity.length() > 0.5
-		telegraphs.flash_ring(player.global_position, 0.55 if moving else 0.35, Color(0.9, 0.98, 1.0), 0.45)
+		var at: Vector3 = player.global_position
+		var lift: float = maxf(level - map.height_at(at.x, at.z), 0.0) if has_level else 0.3
+		telegraphs.flash_ring(at, 0.55 if moving else 0.35, Color(0.9, 0.98, 1.0), 0.45, lift)
 		if moving:
-			fx.burst(player.global_position + Vector3(0, 0.25, 0), Color(0.85, 0.95, 1.0), 0.5)
+			fx.burst(Vector3(at.x, maxf(at.y, level), at.z) + Vector3(0, 0.25, 0), Color(0.85, 0.95, 1.0), 0.5)
+	if enemies == null or not map.has_method("lake_center") or not map.has_method("lake_radius"):
+		return
+	var lr: float = float(map.call("lake_radius"))
+	if lr <= 0.0:
+		return
+	var lc: Vector2 = map.call("lake_center")
+	var n := 0
+	for i in enemies.indices_in_radius(Vector3(lc.x, 0.0, lc.y), lr * 1.02):
+		if n >= 12:
+			break
+		if enemies.vel[i].length() <= 0.5 or enemies.lift_h[i] > 0.05:
+			continue
+		var p: Vector3 = enemies.pos[i]
+		var plift: float = maxf(level - map.height_at(p.x, p.z), 0.0) if has_level else 0.3
+		telegraphs.flash_ring(p, 0.45 * clampf(enemies.size[i], 0.7, 1.8), Color(0.9, 0.98, 1.0), 0.4, plift)
+		fx.burst(Vector3(p.x, maxf(p.y, level), p.z) + Vector3(0, 0.2, 0), Color(0.85, 0.95, 1.0), 0.35)
+		n += 1
+
+
+## How far from the water's disc the hero's second pass keeps it (pass 56, _sink_hero): the disc can cover a hero standing
+## up to about a metre outside it (0.85 m at most on ten rolls of Red Canyon: a bank still under the water's surface, seen
+## across the water), and a throw moves him well under half a metre a frame.
+const WADE_REACH := 2.5
+## the map's water_disc, read once per map
+var _wade_disc: Dictionary = {}
+var _wade_map: Node = null
+
+
+## The hero wades like the creatures (pass 56, Garry: "Hero for some reason walks on water, they are not submerged at all
+## for some reason. Should be submerged like all the enemies"). The oasis is a see-through disc that tints whatever stands
+## under its surface, and his second pass (BillboardSprite.enable_over_trails, drawn after it so his speed trails go under
+## him) painted his whole figure over it again. While he is within WADE_REACH of the disc's edge that pass gets the disc
+## (the map's water_disc) and leaves out, pixel by pixel, what the disc covers on his first pass; further off it is whole.
+## Every frame and at once, so no step in or out shows him on the water, or cut off on dry sand, for a beat (the ripples
+## above keep their own 0.28 s). Purely a look: nothing about play changes.
+func _sink_hero() -> void:
+	var sprite: BillboardSprite = player.sprite
+	if sprite == null:
+		return
+	if _wade_map != map:
+		_wade_map = map
+		_wade_disc = map.call("water_disc") if map.has_method("water_disc") else {}
+	var r: float = float(_wade_disc.get("radius", 0.0))
+	var c: Vector2 = _wade_disc.get("center", Vector2.ZERO)
+	var at: Vector3 = player.global_position
+	if r > 0.0 and Vector2(at.x, at.z).distance_to(c) < r + WADE_REACH:
+		sprite.set_water(c, float(_wade_disc["top"]), r, float(_wade_disc.get("thick", 0.0)))
+	else:
+		sprite.clear_water()
 
 
 func _tick_breadcrumb(delta: float) -> void:
@@ -1880,12 +3084,13 @@ func fx_poison(at: Vector3) -> void:
 	fx.poison(at)
 
 
-func fx_fire(at: Vector3, size: float = 1.0) -> void:
-	fx.fire(at, size)
+## A burning creature's flame; `blue` (pass 48) when its fire is Methanol's or Moonshine's (EnemyManager.fire_blue).
+func fx_fire(at: Vector3, size: float = 1.0, blue: bool = false) -> void:
+	fx.fire(at, size, blue)
 
 
-func fx_ignite(at: Vector3, size: float = 1.0) -> void:
-	fx.ignite(at, size)
+func fx_ignite(at: Vector3, size: float = 1.0, blue: bool = false) -> void:
+	fx.ignite(at, size, blue)
 	Audio.play("w_ignite", at)
 
 
@@ -1894,6 +3099,9 @@ func fx_ignite(at: Vector3, size: float = 1.0) -> void:
 func spawn_cloud(at: Vector3, w: WeaponInstance, radius: float, element: String = "poison", params: Dictionary = {}) -> void:
 	var c := ElementCloud.new()
 	c.slow = float(params.get("slow", 0.0))
+	# pass 48: a blue-fire weapon's pool burns blue (WeaponInstance.blue_fire), and the cloud keeps the params it came with
+	c.blue = w != null and w.blue_fire()
+	c.params = params
 	if element == "fire":
 		c.setup(self, w, radius, float(w.params.get("cloud_seconds", 3.0)), w.stat("fire_damage", 4.0), 1, w.stat("fire_duration", 1.8), "fire", w.stat("fire_spread", 0.5))
 	else:
@@ -1911,7 +3119,7 @@ func oil_drip(at: Vector3, w: WeaponInstance, dp: Dictionary) -> void:
 		return
 	var g: float = map.height_at(at.x, at.z)
 	var fall: float = sqrt(2.0 * maxf(at.y - g, 0.05) / 24.0)
-	fx.drop(at, fall)
+	fx.drop(at, fall, w != null and w.blue_fire())
 	var land := Vector3(at.x, g, at.z)
 	var r := float(dp.get("radius", 0.8))
 	var slow := float(dp.get("slow", 0.35))
@@ -1958,10 +3166,10 @@ var _ring_burn_t := 0.0
 var _ring_fx_t := 0.0
 
 
-func hell_line(from: Vector3, dir: Vector3, length: float, life: float, width: float, damage: float, tick: float, info: Dictionary) -> void:
+func hell_line(from: Vector3, dir: Vector3, length: float, life: float, width: float, damage: float, tick: float, info: Dictionary, owner_i: int = -1) -> void:
 	var d := Vector3(dir.x, 0, dir.z).normalized()
 	var at := Vector3(from.x, map.height_at(from.x, from.z) if map else from.y, from.z)
-	_hell_lines.append({"from": at, "dir": d, "len": length, "width": width, "life": life, "damage": damage, "tick": tick, "next": 0.0, "fx_t": 0.0, "info": info})
+	_hell_lines.append({"from": at, "dir": d, "len": length, "width": width, "life": life, "damage": damage, "tick": tick, "next": 0.0, "fx_t": 0.0, "info": info, "owner": owner_i})
 	# the mark on the ground for as long as it burns, in fire
 	telegraphs.line(at, d, length, life, Color(1.0, 0.45, 0.12, 0.55), width * 2.0)
 	for k in range(6):
@@ -2011,10 +3219,23 @@ func _tick_hell(delta: float) -> void:
 				var along := clampf(rel.dot(d), 0.0, ln)
 				if (rel - d * along).length() <= float(l["width"]) + 0.3 and not player.dead:
 					player.take_damage(float(l["damage"]), from + d * along, l["info"])
-				# the crowd burns on it too, at half
-				var steps := int(ceil(ln / 2.0))
-				for k in range(steps):
-					enemies.damage_radius(from + d * (float(k) + 0.5) * ln / float(steps), float(l["width"]) + 0.6, float(l["damage"]) * 0.5, "", 0.0)
+				# the crowd burns on it too, at half: never the one that drew it nor any boss (pass 45: the Brander's line
+				# starts at his own feet and he rolls down it next, so he burned himself for nine seconds a line); one test
+				# per creature against the segment, where the eight overlapping discs hit the ones in the overlaps twice a tick
+				var reach := float(l["width"]) + 0.6
+				var owner_i := int(l.get("owner", -1))
+				for j in enemies.indices_in_radius(from + d * ln * 0.5, ln * 0.5 + reach):
+					if j == owner_i or j == enemies.boss_index:
+						continue
+					var jdef: EnemyDef = enemies.types[enemies.type_idx[j]]["def"]
+					if jdef.archetype == "boss":
+						continue
+					var er: Vector3 = enemies.pos[j] - from
+					er.y = 0.0
+					var ea := clampf(er.dot(d), 0.0, ln)
+					var off := er - d * ea
+					if off.length() <= reach:
+						enemies.damage(j, float(l["damage"]) * 0.5, "", off, 0.0)
 			if float(l["life"]) > 0.0:
 				keep.append(l)
 		_hell_lines = keep
@@ -2028,7 +3249,8 @@ func _tick_hell(delta: float) -> void:
 	var r_min := float(cfg.get("min_radius", 8.0))
 	var shrink := float(cfg.get("shrink", 42.0))
 	var hold := float(cfg.get("hold", 8.0))
-	_ring["t"] = float(_ring["t"]) + delta
+	# the ring closes at the pace knob (pass 48): the slower hero has as long to keep inside it
+	_ring["t"] = float(_ring["t"]) + delta * (enemies.pace if enemies else 1.0)
 	var t := fmod(float(_ring["t"]), shrink + hold)
 	var r: float = lerpf(r_max, r_min, clampf(t / shrink, 0.0, 1.0))
 	_ring["r"] = r
@@ -2050,13 +3272,16 @@ func _tick_hell(delta: float) -> void:
 	var flat := here - c
 	flat.y = 0.0
 	if flat.length() > r + 0.4 and not player.dead:
-		player.take_damage(player.max_hp * float(cfg.get("burn", 0.07)) * 0.5, c, {"by": "the ring of fire", "kind": "boss", "fx": ["outside the ring"]})
+		# pass 54: times the creatures' damage multipliers like every hostile hit (EnemyManager.hostile_mult), and no shove
+		# ("knock" 0: the hit comes from the ring's middle, so the old shove threw him further out into the fire)
+		var burn: float = player.max_hp * float(cfg.get("burn", 0.07)) * 0.5 * enemies.creature_damage_mult * enemies.damage_time_mult
+		player.take_damage(burn, c, {"by": "the ring of fire", "kind": "boss", "fx": ["outside the ring"], "knock": 0.0})
 		hud.flash(Color(1.0, 0.35, 0.1, 0.3), 0.3)
 	# the crowd burns out there too, so the fight stays inside
 	var cb := float(cfg.get("creature_burn", 0.12)) * 0.5
 	if cb > 0.0:
 		for i in range(EnemyManager.MAX):
-			if enemies.alive[i] == 1 and i != enemies.boss_index:
+			if enemies.alive[i] == 1 and i != enemies.boss_index and (enemies.types[enemies.type_idx[i]]["def"] as EnemyDef).archetype != "boss":
 				var ep := enemies.pos[i] - c
 				ep.y = 0.0
 				if ep.length() > r + 0.4:

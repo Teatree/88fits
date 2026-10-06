@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/thirst/thirst_icon.png" id="1_y1hv3"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_la4ov"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_dfxbo"]
+
+[sub_resource type="Resource" id="Resource_y1hv3"]
+script = ExtResource("2_la4ov")
+stat = "lifesteal"
+value = 0.015
+target = "player"
+
+[sub_resource type="Resource" id="Resource_la4ov"]
+script = ExtResource("2_la4ov")
+stat = "max_hp"
+op = "mul"
+value = -0.06
+target = "player"
+
+[resource]
+script = ExtResource("3_dfxbo")
+line = true
+levels = [[SubResource("Resource_y1hv3"), SubResource("Resource_la4ov")]]
+max_level = 4
+trade = "−6% max HP a level"
+evolves_into = "bloodthirst"
+id = "thirst"
+display_name = "Thirst"
+flavour = "Their blood. Less of yours."
+icon = ExtResource("1_y1hv3")
+icon_file = "thirst_icon.png"
+placeholder = {
+"color": "#C03050",
+"glyph": "star"
+}

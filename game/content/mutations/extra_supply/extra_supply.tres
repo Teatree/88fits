@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/extra_supply/extra_supply_icon.png" id="1_wsnyw"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_br55k"]
+
+[resource]
+script = ExtResource("2_br55k")
+weapon = "land_mine"
+mutation_kind = "volume"
+text = "One drop in four lays twice as many mines."
+vfx = "a double drop of mines"
+params = {
+"extra_supply": 0.25
+}
+id = "extra_supply"
+display_name = "Extra Supply"
+flavour = "Somebody over-ordered."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_wsnyw")
+icon_file = "extra_supply_icon.png"
+placeholder = {
+"color": "#A08050",
+"glyph": "star"
+}

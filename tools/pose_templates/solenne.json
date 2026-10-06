@@ -1,0 +1,100 @@
+{
+  "note": "Solenne (pass 55), measured off her stills as tools/animate._prep_still places them on the 640 px canvas: the neck point between the shoulders, the ankle line, the sun disc's middle and radius, the face on the disc per view (offsets from the disc's middle; a view without nose and eyes shows no face). The disc faces the viewer in every view, like a badge. The side view's head sits 8 px ahead of the neck (head_dx), as on the composed side still solenne_s55_side.",
+  "canvas": 640,
+  "neck_to_ankle": 288,
+  "ankle_y": 510,
+  "centre_x": 318,
+  "head_up": 55,
+  "hands": 0.8,
+  "faces": {
+    "front": {
+      "nose": [
+        0,
+        13
+      ],
+      "reye": [
+        -17,
+        2
+      ],
+      "leye": [
+        17,
+        2
+      ],
+      "rear": [
+        -35,
+        0
+      ],
+      "lear": [
+        35,
+        0
+      ]
+    },
+    "fd": {
+      "nose": [
+        25,
+        13
+      ],
+      "reye": [
+        2,
+        1
+      ],
+      "leye": [
+        30,
+        1
+      ],
+      "rear": [
+        -35,
+        0
+      ],
+      "lear": [
+        35,
+        0
+      ]
+    },
+    "side": {
+      "nose": [
+        23,
+        14
+      ],
+      "reye": [
+        0,
+        1
+      ],
+      "leye": [
+        28,
+        3
+      ],
+      "rear": [
+        -35,
+        0
+      ],
+      "lear": [
+        35,
+        0
+      ]
+    },
+    "bd": {
+      "rear": [
+        35,
+        0
+      ],
+      "lear": [
+        -35,
+        0
+      ]
+    },
+    "back": {
+      "rear": [
+        35,
+        0
+      ],
+      "lear": [
+        -35,
+        0
+      ]
+    }
+  },
+  "head_dx": {
+    "side": 8
+  }
+}

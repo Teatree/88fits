@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/gold_tooth/gold_tooth_icon.png" id="1_dbkqi"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_iaxgh"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_mvea4"]
+
+[sub_resource type="Resource" id="Resource_dbkqi"]
+script = ExtResource("2_iaxgh")
+stat = "greed"
+op = "mul"
+value = 0.1
+target = "player"
+
+[resource]
+script = ExtResource("3_mvea4")
+levels = [[SubResource("Resource_dbkqi")]]
+max_level = 5
+id = "gold_tooth"
+display_name = "Gold Tooth"
+flavour = "Smile. It pays."
+icon = ExtResource("1_dbkqi")
+icon_file = "gold_tooth_icon.png"
+placeholder = {
+"color": "#E0B030",
+"glyph": "star"
+}

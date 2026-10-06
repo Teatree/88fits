@@ -12,16 +12,14 @@ targeting = "densest"
 base = {
 "amount": 1.0,
 "area": 1.0,
-"cooldown": 3.2,
-"damage": 16.0,
+"cooldown": 2.8,
+"damage": 22.0,
 "knockback": 0.0,
 "range": 9.0,
 "speed": 10.0
 }
 levels = [[]]
 max_level = 1
-evolves_with = ""
-evolves_into = ""
 is_evolution = true
 evolved_from = "gravity_gun"
 sfx = {
@@ -40,7 +38,7 @@ params = {
 "gravity": {
 "black_hole": {
 "charge": 0.4,
-"dps_frac": 0.9,
+"dps_frac": 1.0,
 "pop": 1.5,
 "pull": 5.5,
 "radius": 3.2,
@@ -50,15 +48,10 @@ params = {
 "blast": 1.9
 }
 }
-hero = ""
 id = "singularity"
 display_name = "Singularity"
 flavour = "Everything falls in eventually."
-rarity = "epic"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
+rarity = "rare"
 icon = ExtResource("1_1777w")
 icon_file = "singularity_icon.png"
 placeholder = {

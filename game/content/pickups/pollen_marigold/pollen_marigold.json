@@ -1,0 +1,19 @@
+{
+  "id": "pollen_marigold",
+  "name": "Desert Marigold",
+  "flavour": "Pollen for the hive.",
+  "effect": "pollen",
+  "value": 0,
+  "duration": 5,
+  "lifetime": 19,
+  "color": "#FFC930",
+  "weight": 0,
+  "placeholder": {
+    "color": "#FFC930",
+    "glyph": "flower"
+  },
+  "art_prompt": "a golden yellow desert marigold, a daisy-like flower with many rounded petals and a yellow centre, on a short grey-green stem",
+  "params": {
+    "small": true
+  }
+}

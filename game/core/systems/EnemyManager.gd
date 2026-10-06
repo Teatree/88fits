@@ -7,6 +7,11 @@ signal enemy_died(def: EnemyDef, pos: Vector3, elite: EliteModDef, weapon_id: St
 signal boss_spawned(def: EnemyDef)
 signal boss_died(def: EnemyDef, pos: Vector3)
 signal boss_hp_changed(hp: float, max_hp: float)
+## A creature is going down (pass 48), emitted in _die once it is STATE_DYING but before its poisons and burns are cleared,
+## so a listener reads what it carried (a Moonshine body's splash, a Tarantula Hawk dying with its prey).
+signal creature_dying(i: int, weapon_id: String)
+## The field was emptied without a fight (pass 48: kill_all(false), the arena's CLEAR): the arena's dummies stay gone.
+signal cleared
 
 const MAX := 320
 const CELL := 2.5
@@ -19,6 +24,14 @@ const STATE_SPAWN := 5
 ## Seconds a body stays: the die frames play at the def's die fps, the body holds, then sinks in the last DIE_SINK.
 const DIE_TIME := 1.4
 const DIE_SINK := 0.3
+## A hit's flags (pass 48, damage's `flags`): HIT_MINI is a mini crit (the Tommy Gun's Mini Crits, rolled as the round
+## left the gun): half a crit's extra damage, 1 + (crit_damage - 1) / 2, unless a full crit rolled.
+const HIT_MINI := 1
+## Priority targeting (pass 48, priority_index): a creature weighs its max HP over the crowd's mean, from 1 up to this,
+## and big game (a boss, an Elite, an elite-modded creature) weighs this; the smallest distance over weight is taken.
+const PRIORITY_CAP := 3.0
+## A blue burn's tint (pass 48: a creature Methanol or Moonshine set burning).
+const BLUE_BURN := Color(0.25, 0.55, 1.0, 1.0)
 
 var game: Node = null
 var player: Node3D = null
@@ -37,6 +50,81 @@ var level_hp_mult := 1.0
 var level_dmg_mult := 1.0
 var stage_speed_mult := 1.0
 var hp_time_mult := 1.0
+## Pass 46, set by the director from the timeline. Every creature but a boss is `creature_hp_mult` beefier (1.3 on Red
+## Canyon: Garry wanted them to take a little longer to fall). Colour waits for the run's `colour_after_kills`-th kill: no
+## variance tint and no special before it, so the opening crowd is a plain one (the elite modifiers wait in the
+## director). A touch from anything but a boss takes at most `contact_cap` of the hero's max HP (0 = no cap), so a
+## ring of creatures can wear him down but never land a one-shot.
+var creature_hp_mult := 1.0
+var colour_after_kills := 0
+var contact_cap := 0.0
+## Pass 54 (Garry: the creatures hit 25% harder), set by the director from the timeline through set() (lane WD): every
+## hostile damage, a bite, a shot, a blast, a boss's or a caster's attack, is `creature_damage_mult` times its number
+## (1.25 on Red Canyon, 1 in the arena) and `damage_time_mult` times, the timeline's damage curve now (1 without one).
+## hostile_mult() is the two together; the Brander's ring of fire (Game._tick_hell) reads them too.
+var creature_damage_mult := 1.0
+var damage_time_mult := 1.0
+## Pass 54 (Garry: "ranged weapons target only what is on screen", with a metre to spare): 1 for a creature on the screen
+## or within SCREEN_MARGIN_M of its edge, refreshed for half the crowd every tick (refresh_onscreen), 1 for a fresh spawn
+## and everywhere without a camera (tools, tests). nearest_index, priority_index, random_in_range and densest_point (and
+## WeaponBehavior.crowd_spots) skip the 0s unless the caller asks for `any_screen` (the homing weapons, a pick close to a
+## spot already chosen, a trigger) or Settings.ranged_on_screen is off; `screen_filter_on` is a switch a tool may clear.
+var onscreen := PackedByteArray()
+var screen_filter_on := true
+const SCREEN_MARGIN_M := 1.0
+## The shove a boss's, an Elite's or an elite-modded creature's bite gives the hero is this many times its number (pass 54).
+const BIG_KNOCK := 1.6
+## The blob shadows draw before the gems and coins among the see-through things (pass 54), so a gem at a creature's feet
+## is not darkened by its shadow: one under PickupManager.PICKUP_PRIORITY. The hero's shadow (Player) takes it too.
+const SHADOW_PRIORITY := -3
+## Pass 47, the hero's sheet as this manager reads it: refreshed once a tick and whenever the build changes
+## (Run.build_changed), never per creature. Ducktape's `debuff_duration` stretches every debuff put on a creature here
+## (a burn, poison, a slow or a pin, Cauterize's mark; never a knockback, a lift, a bounce or a twister, nor a hero's
+## perk), Big Game Hunter's `elite_damage` is extra damage on a boss, an Elite or an elite-modded creature, Hot Sauce's
+## `difficulty` brings more coloured creatures and pays for them, White Phosphorus's `fire_vuln` and Rattle's
+## `poison_slow` were read per creature before.
+var _debuff_mult := 1.0
+## Cold Snap (pass 47c): the chance a weapon hit freezes a creature for FREEZE_SECONDS, and Vulture's chance a crit heals
+var _freeze_chance := 0.0
+var _crit_heal := 0.0
+const FREEZE_SECONDS := 1.0
+## Vulture: a healing crit gives back this share of the hero's max HP
+const CRIT_HEAL_FRAC := 0.02
+## seconds a creature stays frozen (blue, still, harmless); a separate clock from slow_t so the tint knows
+var freeze_t := PackedFloat32Array()
+## A stun (pass 53, the Spear lane's `stun`): seconds the creature neither walks nor attacks, no ice, a pale yellow; never a
+## boss, an Elite or an elite-modded one. Counted down in _steer like freeze_t.
+var stun_t := PackedFloat32Array()
+const STUN_TINT := Color(0.95, 0.9, 0.45, 0.75)
+var _elite_dmg := 0.0
+var _difficulty := 0.0
+var _fire_vuln := 0.0
+## Solenne's perks (pass 54): Sunburn's extra share on a burning or poisoned creature (0 without it), Lingering Light's
+## burn and poison ticks (`_ll_harder` times as hard) and clocks (`_ll_longer` times as long; 1 and 1 without it)
+var _sunburn := 0.0
+var _ll_harder := 1.0
+var _ll_longer := 1.0
+var _pstats_dirty := true
+## Hot Sauce (pass 47): a coloured creature (a variance special, or one wearing an elite modifier) killed while the hero
+## carries `difficulty` drops a gem worth HOT_XP x difficulty of its XP, and a variance special a chest at
+## HOT_CHEST_CHANCE x difficulty (an elite-modded one drops a chest anyway), no more than one every HOT_CHEST_GAP seconds
+## of play so a run of coloured kills cannot bury the hero in reels.
+const HOT_XP := 0.25
+const HOT_CHEST_CHANCE := 0.05
+const HOT_CHEST_GAP := 40.0
+var _hot_chest_cd := 0.0
+## Hot Sauce chests dropped this run (tests, the run recorder)
+var hot_chests := 0
+## The King's volley reaches this far past speed x life (pass 47): Game.tumbleweed_volley starts each tumbleweed 1.2 m
+## out from the King, and one hits 0.6 m either side of its line.
+const VOLLEY_START := 1.2
+const VOLLEY_HIT := 0.6
+## The pace of a creature's attack frames while it stands to attack (a wind-up, a scripted attack), whatever shoves it.
+const ATTACK_FPS := 3.0
+## A charger's carriage (pass 50, charge_pose): how far it rocks on its feet at the end of its wind-up (radians) and how
+## high it bounces at each step of its charge (a share of its size).
+const ROCK := 0.05
+const BOUNCE := 0.035
 
 # per-enemy data
 var pos := PackedVector3Array()
@@ -62,7 +150,11 @@ var contact_cd := PackedFloat32Array()
 var alive := PackedByteArray()
 var charge_dir := PackedVector3Array()
 var xp_scale := PackedFloat32Array()
+## The dying creature's whole XP scale while enemy_died is out (pass 47): its type's xp_mult, ×4 for an elite variant
+## and its variance special's own `xp` (Game had paid the first two only, so the dark specials never paid more).
+var died_xp_scale := 0.0
 var vtint := PackedColorArray()   # per-spawn tint (rgb) and strength (a) from the def's variance block
+var vspecial := PackedByteArray()  # 1 = rolled its variance special (the dark, big one): the hit log names its colour
 var away := PackedByteArray()      # 1 while walking away from the camera (back-view frames)
 var view := PackedByteArray()      # eight-direction creatures: 0 front, 1 back, 2 side, 3 back-diagonal, 4 front-diagonal
 ## Each view's span of the heading angle (0 = away from the camera, PI = towards it), the hysteresis past a boundary
@@ -87,7 +179,7 @@ var flash_hot := PackedByteArray()
 const FIRE_TICK := 0.6
 const CHILD_SPREAD := 0.4
 var lift_t := PackedFloat32Array() # seconds left in the air (tornado)
-## Pass 26 statuses: a slow (fraction, seconds), a mark (damage taken multiplier, seconds), the hornets' twister (seconds and
+## Pass 26 statuses: a slow (fraction, seconds), a mark (damage taken multiplier, seconds), the bees' old twister (seconds and
 ## where it drags the creature to) and a hold (a caster standing still while its rain falls).
 var slow_t := PackedFloat32Array()
 ## the creature holding the hero on a rope (Game sets it): it stands where it threw from and never walks; its outline
@@ -118,10 +210,71 @@ var spin_to := PackedVector3Array()
 var hold_t := PackedFloat32Array()
 var _rains: Array = []   # the Djinn's strikes in flight: {left, next, interval, spread, radius, damage, strikes: [{at, t}]}
 var _rumbles: Array = []   # the Gila's ground waves running down its fan (pass 43): {from, dir, len, front, speed, width, damage, kb, lift, hit, fx_t, info}
+var _stalactites: Array = []   # the golem's swoops (pass 45): {center, dir, r, deg, left, gap, next, fall, damage, kb, lift, throw, throw_r, owner, hit, falling: [{at, t}], info}
 var lift_d := PackedFloat32Array() # total lift duration
 var lift_h := PackedFloat32Array() # current height above the ground
 var lift_a := PackedFloat32Array() # swirl angle around the tornado
 var lift_cd := PackedFloat32Array() # seconds before a tornado may grab this one again
+## What kind of lift (pass 46): 0 the tornado's toss (spin, flung out, hurt on landing), 1 a bounce (`bounce`: straight
+## up and down on the spot, no spin, no harm, the shove in `lift_knock` on landing, `lift_peak` metres at the top)
+var lift_mode := PackedByteArray()
+var lift_peak := PackedFloat32Array()
+var lift_knock := PackedVector3Array()
+## Pass 48, per creature: the spawn's running number (`serial`: a weapon can tell a creature from the next one put in its
+## slot); a slow of its moves AND its attacks (`hamper_f` for `hamper_t` seconds: hamper, attack_clock); a tint held for a
+## few seconds (`status_tint` for `status_t`: set_status_tint); a blue burn (`fire_blue`: Methanol, Moonshine); and the
+## training dummy's two (`undying`: a hit that would kill it fills it up again; `home`: where the dummy brain walks back to,
+## the spot it spawned on)
+var serial := PackedInt32Array()
+var hamper_t := PackedFloat32Array()
+var hamper_f := PackedFloat32Array()
+var status_tint := PackedColorArray()
+var status_t := PackedFloat32Array()
+var fire_blue := PackedByteArray()
+var undying := PackedByteArray()
+var home := PackedVector3Array()
+## The training dummies' behaviours (pass 49, Garry's arena list; Game sets them per dummy through set_dummy_mode):
+## DUMMY_STAND stands on its spot and walks back when shoved (pass 48); DUMMY_PATROL walks left and right along world X,
+## DUMMY_BEAT metres either side of its spot, turning at the ends (shoved off, it carries on from where it lands, _patrol);
+## DUMMY_MELEE chases the hero while he is within DUMMY_CHASE of its spot (else it goes back) and bites on a touch like a
+## creature; DUMMY_RANGED stands and spits at him within its `ranged` block's range exactly like the Spit Cactus (the red
+## ring where he stands, the lob, the splash). `dummy_roam` 1: an attacker with nothing to chase or spit at patrols
+## instead of standing (the arena's Patrol setting); `patrol_dir` is the way its beat is heading, +1 east, -1 west.
+const DUMMY_STAND := 0
+const DUMMY_PATROL := 1
+const DUMMY_MELEE := 2
+const DUMMY_RANGED := 3
+const DUMMY_BEAT := 2.0
+const DUMMY_CHASE := 12.0
+var dummy_mode := PackedByteArray()
+var dummy_roam := PackedByteArray()
+var patrol_dir := PackedFloat32Array()
+## Pass 50 (Garry: the Bull Beetle should "push enemies out of the way, always to the side, and only a little bit"): the
+## seconds before this creature can be shoved aside by a charger again, so a charger passing through gives it one shove
+## (SHOVE_GRACE) instead of one on every tick it overlaps. SHOVE_REACH is how far past touching the shove reaches, so the
+## crowd parts as the charger arrives rather than after it has run into them.
+var shove_t := PackedFloat32Array()
+const SHOVE_GRACE := 0.6
+## Pass 51 (Garry: Dragon's Breath should give "a chance that an enemy will catch fire", 60%): a weapon's
+## `params.ignite_chance` (WeaponInstance.ignite_chance) is rolled once per creature per shot. The pellets of one volley
+## land on a creature within a few frames, so a roll holds IGNITE_ROLL_HOLD seconds for that weapon (`ign_t`, `ign_w`)
+## and every pellet of the volley reads the same answer (`ign_ok`); the next volley, a second barrel 0.15 s later
+## included, rolls again. Rolled on the crowd's own generator, never the shared one.
+var ign_t := PackedFloat32Array()
+var ign_ok := PackedByteArray()
+var ign_w := PackedStringArray()
+const IGNITE_ROLL_HOLD := 0.1
+const SHOVE_REACH := 0.25
+var _serial := 0
+## The map's pace knob (pass 48, Run.move_pace, read every tick and at every spawn): a creature walks at its speed times
+## this, a charge and a scripted roll run at it and last 1/pace as long (so they cover the same ground), every wind-up,
+## telegraph and warning lasts 1/pace, and the creatures' shots fly on hostile_clock(). Never put into the creatures'
+## shared delta: poison and fire ticks, attack cooldowns and the spawns keep their clocks.
+var pace := 1.0
+## The crowd's mean max HP (priority_index's yardstick), refreshed once a tick (and by refresh_crowd_stats).
+var _mean_max_hp := 0.0
+## The dying creature's max HP while enemy_died is out (pass 48: Powder Keg's blast is a share of it).
+var died_max_hp := 0.0
 
 var free_list: Array = []
 var count_alive := 0
@@ -130,7 +283,10 @@ var _tick := 0
 
 # types
 var types: Array = []          # {def, mm, mmi, frames, shadow}
-var type_by_id: Dictionary = {}
+var type_by_id: Dictionary = {}   # EnemyDef.type_key() -> index in `types` (id, id@variant, id@variant#overrides)
+## Every type of one creature id (pass 53): the base, its art variants and its overridden copies, so alive_of / load_of
+## and the director's max_alive see them as one creature. id -> Array of type indices.
+var _types_of_id: Dictionary = {}
 var elites: Array = []         # EliteModDef
 var _shader: Shader = preload("res://core/shaders/enemy_billboard.gdshader")
 var _sil_shader: Shader = preload("res://core/shaders/enemy_silhouette.gdshader")
@@ -160,12 +316,33 @@ var _t_eight := PackedByteArray()
 var _t_run_fps := PackedFloat32Array()
 var _t_die_fps := PackedFloat32Array()
 var _t_faces := PackedByteArray()
+## per type, two entries (front set, back set): how its painting is mirrored, 0 = painted facing screen-right (mirror
+## while heading left), 1 = painted facing left (the mirror inverted), 2 = straight on (never mirrored); pass 45
+var _t_face_fix := PackedByteArray()
 var _t_mm: Array = []
 var _t_badge := PackedStringArray()
 var _t_hit_ok := PackedByteArray()
 var _t_charge := PackedByteArray()
 var _t_off := PackedInt32Array()
 var _t_cnt := PackedInt32Array()
+## per type (pass 47): 1 for an Elite or a boss by its kind (Big Game Hunter), and four numbers of its shadow tuning
+## (EnemyDef.shadow): width and depth multipliers, metres up the screen at the def's size per metre of it, and the share
+## of the cell the painting sinks
+var _t_big := PackedByteArray()
+var _t_sh := PackedFloat32Array()
+## per type (pass 48): 1 for the training dummy's brain, whose touch never reaches the hero (pass 49: unless it is set
+## to melee, dummy_mode)
+var _t_dummy := PackedByteArray()
+## seconds between two bites, per type (pass 53: EnemyDef.contact_cd, the wave schema's `contact_cd`; it was a literal 0.6)
+var _t_ccd := PackedFloat32Array()
+## per type (pass 50, Garry: the Bull Beetle's charge "feels too static"): how a charger carries its charge, CV_N numbers
+## each read off its `charge` block by charge_numbers(): the shake at the end of the wind-up (metres side to side), the
+## crouch (a share of its height), the legs' speed (times its walk: the wind-up scrabbles up to it in place, the charge
+## runs at it), the lean into the run (radians, the full angle heading straight across the screen), the dust (1 a full
+## trail), the sideways shove for each creature in its way while it charges and while it walks (metres a second), and
+## the wind-up's seconds. Every key is off by default, so a charger without them (the Dune Scorpion) is as it was.
+var _t_cv := PackedFloat32Array()
+const CV_N := 8
 var _t_ok := PackedByteArray()     # eight-direction: the strip exists (frames_of > 0 and in the anims)
 var _t_okb := PackedByteArray()    # the back strip counts (frames_of > 0, as the old check read it): run_b, idle_b
 const ANIM_NAMES := ["run", "idle", "attack", "hit", "die", "run_b", "idle_b", "run_s", "idle_s", "run_bd", "idle_bd", "run_fd", "idle_fd"]
@@ -187,10 +364,16 @@ func _ready() -> void:
 	pos.resize(MAX); vel.resize(MAX); kb.resize(MAX); hp.resize(MAX); max_hp.resize(MAX)
 	speed.resize(MAX); dmg.resize(MAX); radius.resize(MAX); size.resize(MAX); dr.resize(MAX); blown.resize(MAX)
 	hidden.resize(MAX); held.resize(MAX); atk_i.resize(MAX); atk_t.resize(MAX); atk_target.resize(MAX); frenzy_t.resize(MAX)
+	freeze_t.resize(MAX); stun_t.resize(MAX); onscreen.resize(MAX)
+	serial.resize(MAX); hamper_t.resize(MAX); hamper_f.resize(MAX); status_tint.resize(MAX); status_t.resize(MAX)
+	fire_blue.resize(MAX); undying.resize(MAX); home.resize(MAX)
+	dummy_mode.resize(MAX); dummy_roam.resize(MAX); patrol_dir.resize(MAX); shove_t.resize(MAX)
+	ign_t.resize(MAX); ign_ok.resize(MAX); ign_w.resize(MAX)
 	slow_t.resize(MAX); slow_f.resize(MAX); mark_t.resize(MAX); mark_mult.resize(MAX); spin_t.resize(MAX); spin_to.resize(MAX); hold_t.resize(MAX)
 	type_idx.resize(MAX); elite_idx.resize(MAX); state.resize(MAX); timer.resize(MAX); cooldown.resize(MAX)
 	anim_t.resize(MAX); flash.resize(MAX); squash.resize(MAX); flip.resize(MAX); contact_cd.resize(MAX)
-	alive.resize(MAX); charge_dir.resize(MAX); xp_scale.resize(MAX); vtint.resize(MAX)
+	alive.resize(MAX); charge_dir.resize(MAX); xp_scale.resize(MAX); vtint.resize(MAX); vspecial.resize(MAX)
+	lift_mode.resize(MAX); lift_peak.resize(MAX); lift_knock.resize(MAX)
 	away.resize(MAX); view.resize(MAX); poison_tick.resize(MAX); flash_green.resize(MAX)
 	poison_src.resize(MAX); fire_src.resize(MAX); fire_tick.resize(MAX); flash_hot.resize(MAX); fire_puff.resize(MAX)
 	for i in range(MAX):
@@ -199,6 +382,142 @@ func _ready() -> void:
 		free_list.append(i)
 	elites = Registry.elites_list()
 	_build_shadows()
+	if not Run.build_changed.is_connected(_on_build_changed):
+		Run.build_changed.connect(_on_build_changed)
+
+
+func _on_build_changed() -> void:
+	_pstats_dirty = true
+
+
+## The hero's numbers this manager reads (pass 47), read again only when marked stale: every tick and on a build change.
+func _pstats() -> void:
+	if not _pstats_dirty:
+		return
+	_pstats_dirty = false
+	var s: StatSheet = Run.player_sheet
+	if s == null:
+		return
+	_debuff_mult = maxf(s.get_stat("debuff_duration", 1.0), 0.0)
+	_freeze_chance = clampf(s.get_stat("freeze_chance", 0.0), 0.0, 1.0)
+	_crit_heal = clampf(s.get_stat("crit_heal_chance", 0.0), 0.0, 1.0)
+	_elite_dmg = s.get_stat("elite_damage", 0.0)
+	_difficulty = maxf(s.get_stat("difficulty", 0.0), 0.0)
+	_fire_vuln = s.get_stat("fire_vuln", 0.0)
+	_poison_slow = s.get_stat("poison_slow", 0.0)
+	_sunburn = maxf(Run.perk_param("sunburn", "bonus", 0.2), 0.0) if Run.has_perk("sunburn") else 0.0
+	var ll := Run.has_perk("lingering_light")
+	_ll_harder = 1.0 + maxf(Run.perk_param("lingering_light", "harder", 0.3), 0.0) if ll else 1.0
+	_ll_longer = 1.0 + maxf(Run.perk_param("lingering_light", "longer", 0.3), 0.0) if ll else 1.0
+
+
+## Reads the hero's numbers again now (a test or a tool that edits Run.player_sheet by hand).
+func refresh_player_stats() -> void:
+	_pstats_dirty = true
+	_pstats()
+
+
+## Ducktape (pass 47): how many times longer a debuff lasts on the creatures (1 = as the item says).
+func debuff_mult() -> float:
+	_pstats()
+	return _debuff_mult
+
+
+## Big Game Hunter's prey (pass 47): the boss, an Elite (its kind) or a creature wearing an elite modifier.
+func is_big_game(i: int) -> bool:
+	if i < 0 or i >= MAX or alive[i] == 0:
+		return false
+	return i == boss_index or elite_idx[i] >= 0 or _t_big[type_idx[i]] == 1
+
+
+## Every hostile damage's multiplier now (pass 54): the timeline's creature_damage_mult times its damage curve's value.
+func hostile_mult() -> float:
+	return creature_damage_mult * damage_time_mult
+
+
+## The shove creature `i`'s bite gives the hero, m/s (pass 54, Garry: every creature its own number): its def's
+## hit_knockback() (its own `knockback`, a row's override, else the default from its damage), BIG_KNOCK times for a boss,
+## an Elite or a creature wearing an elite modifier. 0 for no creature.
+func bite_knock(i: int) -> float:
+	if i < 0 or i >= MAX or alive[i] == 0 or type_idx[i] < 0 or type_idx[i] >= types.size():
+		return 0.0
+	var def: EnemyDef = types[type_idx[i]]["def"]
+	return def.hit_knockback() * (BIG_KNOCK if is_big_game(i) else 1.0)
+
+
+## Which creatures show on the screen (pass 54): half the crowd a tick by `parity` (the other half on the next; -1 all of
+## them), each tested a little above its feet against the screen grown by SCREEN_MARGIN_M at the hero's feet. Without a
+## camera that can say (tools, tests, a stand-in rig) every creature counts as on the screen.
+func refresh_onscreen(parity: int = -1) -> void:
+	if onscreen.size() != MAX:
+		return
+	var rig = game.get("camera") if game != null else null
+	var cam: Camera3D = null
+	if rig is Node and (rig as Node).has_method("on_screen"):
+		cam = (rig as Node).get("camera") as Camera3D
+	if cam == null or not cam.is_inside_tree():
+		onscreen.fill(1)
+		return
+	var ppm: float = float((rig as Node).call("pixels_per_metre")) if (rig as Node).has_method("pixels_per_metre") else 90.0
+	var rect := cam.get_viewport().get_visible_rect().grow(SCREEN_MARGIN_M * ppm)
+	for i in range(MAX):
+		if alive[i] == 0 or (parity >= 0 and (i & 1) != parity):
+			continue
+		var p := pos[i] + Vector3(0, 0.6 + lift_h[i], 0)
+		onscreen[i] = 0 if cam.is_position_behind(p) or not rect.has_point(cam.unproject_position(p)) else 1
+
+
+## Whether the ranged weapons' picks skip what is off the screen (pass 54): unless the caller asks for `any_screen`, while
+## Settings.ranged_on_screen and screen_filter_on are both on.
+func _screen_only(any_screen: bool) -> bool:
+	return not any_screen and screen_filter_on and onscreen.size() == MAX and Settings.ranged_on_screen
+
+
+## Whether creature `i` may be a ranged weapon's pick (pass 54): it is on the screen, or the pick may be anywhere.
+func screen_ok(i: int, any_screen: bool = false) -> bool:
+	return not _screen_only(any_screen) or (i >= 0 and i < onscreen.size() and onscreen[i] == 1)
+
+
+## The lake (pass 54): a creature wading in it casts no shadow (its blob lay on the lake bed and drew over the water as a
+## dark plate). Read off the map's lake_center / lake_radius the first time it is asked and again when the map changes;
+## no lake, never in it. The edge is the map's in_water edge (1.02 of the radius).
+var _lake_map := 0
+var _lake_c := Vector2.ZERO
+var _lake_r2 := 0.0
+
+
+func _lake_refresh() -> bool:
+	if _lake_map == -1:
+		# set by hand (set_lake): kept as it is
+		return _lake_r2 > 0.0
+	var map = game.get("map") if game != null else null
+	if map == null or not is_instance_valid(map):
+		_lake_map = 0
+		_lake_r2 = 0.0
+		return false
+	var id: int = (map as Object).get_instance_id()
+	if id != _lake_map:
+		_lake_map = id
+		_lake_r2 = 0.0
+		if map.has_method("lake_center") and map.has_method("lake_radius"):
+			var c = map.call("lake_center")
+			var r := float(map.call("lake_radius"))
+			if c is Vector2 and r > 0.0:
+				_lake_c = c
+				_lake_r2 = (r * 1.02) * (r * 1.02)
+	return _lake_r2 > 0.0
+
+
+## Whether `p` stands in the lake (pass 54, see _lake_refresh; set_lake for tests and tools without a map).
+func in_lake(p: Vector3) -> bool:
+	return _lake_r2 > 0.0 and Vector2(p.x, p.z).distance_squared_to(_lake_c) < _lake_r2
+
+
+## The lake by hand (tests, tools): centre and radius as the map gives them; a radius of 0 means none.
+func set_lake(center: Vector2, r: float) -> void:
+	_lake_c = center
+	_lake_r2 = (r * 1.02) * (r * 1.02) if r > 0.0 else 0.0
+	_lake_map = -1
 
 
 func _build_shadows() -> void:
@@ -214,6 +533,8 @@ func _build_shadows() -> void:
 	_shadow_mmi.multimesh = _shadow_mm
 	var mat := ShaderMaterial.new()
 	mat.shader = _shadow_shader
+	# under the gems and coins (pass 54): a gem by a creature's feet lay in its shadow and read murky
+	mat.render_priority = SHADOW_PRIORITY
 	_shadow_mmi.material_override = mat
 	_shadow_mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_shadow_mmi)
@@ -238,12 +559,23 @@ func _camera_forward() -> Vector3:
 	return Vector3(-sin(yaw), 0, -cos(yaw))
 
 
+## The camera's up, the billboards' own up (pass 47: a painting that sinks slides down it): the live camera's, else the
+## fixed rig's, 46 degrees down along the camera's forward.
+func _cam_up() -> Vector3:
+	var vp := get_viewport()
+	var cam: Camera3D = vp.get_camera_3d() if vp else null
+	if cam:
+		return cam.global_transform.basis.y
+	return Vector3(0, 0.695, 0) + _cf_tick * 0.719
+
+
 ## Tornado: every grounded enemy inside the radius is thrown into the air for `duration` seconds.
 func lift_radius(center: Vector3, radius: float, duration: float = 1.6) -> int:
 	var n := 0
 	for i in indices_in_radius(center, radius):
 		if lift_t[i] > 0.0 or lift_cd[i] > 0.0 or state[i] == STATE_DYING or i == boss_index:
 			continue
+		lift_mode[i] = 0
 		lift_t[i] = duration
 		lift_d[i] = duration
 		lift_a[i] = atan2(pos[i].z - center.z, pos[i].x - center.x)
@@ -255,7 +587,7 @@ func lift_radius(center: Vector3, radius: float, duration: float = 1.6) -> int:
 ## Tornado: airborne enemies near the centre swirl around it and drift with it.
 func swirl(center: Vector3, radius: float, delta: float) -> void:
 	for i in range(MAX):
-		if alive[i] == 0 or lift_t[i] <= 0.0:
+		if alive[i] == 0 or lift_t[i] <= 0.0 or lift_mode[i] == 1:
 			continue
 		var d := pos[i] - center
 		d.y = 0.0
@@ -316,10 +648,17 @@ func register_type(def: EnemyDef) -> int:
 		"badge": def.badge_for(), "head": def.head}
 	types.append(t)
 	type_by_id[key] = types.size() - 1
+	# every type of this creature id under one name (pass 53): alive_of counts them together
+	if not _types_of_id.has(def.id):
+		_types_of_id[def.id] = []
+	(_types_of_id[def.id] as Array).append(types.size() - 1)
+	_t_ccd.append(maxf(def.contact_cd, 0.05))
 	_t_eight.append(1 if bool(t["eight"]) else 0)
 	_t_run_fps.append(float(t["run_fps"]))
 	_t_die_fps.append(float(t["die_fps"]))
 	_t_faces.append(1 if def.brain in ["caster", "kite", "artillery", "support"] else 0)
+	_t_face_fix.append(_face_fix(def.front_faces))
+	_t_face_fix.append(_face_fix(def.back_faces))
 	_t_mm.append(mm)
 	_t_badge.append(str(t["badge"]))
 	_t_hit_ok.append(1 if def.frames_of("hit") > 0 else 0)
@@ -330,7 +669,50 @@ func register_type(def: EnemyDef) -> int:
 		_t_ok.append(1 if def.frames_of(a) > 0 and def.anims.has(a) else 0)
 	_t_okb.append(1 if def.frames_of("run_b") > 0 else 0)
 	_t_okb.append(1 if def.frames_of("idle_b") > 0 else 0)
+	_t_big.append(1 if def.archetype == "elite" or def.archetype == "boss" else 0)
+	_t_dummy.append(1 if def.brain == "dummy" else 0)
+	_t_sh.append_array(shadow_numbers(def))
+	_t_cv.append_array(charge_numbers(def))
 	return types.size() - 1
+
+
+## A def's charge carriage as the tick and the render read it (pass 50): [shake, crouch, legs, lean (radians), dust, shove,
+## shove_walk, windup]. Each key of the `charge` block is off when it is missing: no shake, no crouch, legs at the walk's
+## speed, no lean, no dust, no shove.
+static func charge_numbers(def: EnemyDef) -> PackedFloat32Array:
+	var c: Dictionary = def.charge
+	return PackedFloat32Array([maxf(float(c.get("shake", 0.0)), 0.0), clampf(float(c.get("crouch", 0.0)), 0.0, 0.5),
+		maxf(float(c.get("legs", 1.0)), 1.0), deg_to_rad(clampf(float(c.get("lean", 0.0)), -30.0, 30.0)), maxf(float(c.get("dust", 0.0)), 0.0),
+		maxf(float(c.get("shove", 0.0)), 0.0), maxf(float(c.get("shove_walk", 0.0)), 0.0), maxf(float(c.get("windup", 0.8)), 0.05)])
+
+
+## A def's shadow tuning as the render reads it (pass 47): [width mult, depth mult, up per metre of size, drop].
+static func shadow_numbers(def: EnemyDef) -> PackedFloat32Array:
+	var sh: Dictionary = def.shadow_tuning()
+	var sw := 1.0
+	var sd := 1.0
+	var sc = sh.get("scale", 1.0)
+	if sc is Array and (sc as Array).size() >= 2:
+		sw = float(sc[0])
+		sd = float(sc[1])
+	elif sc is float or sc is int:
+		sw = float(sc)
+		sd = float(sc)
+	var up := float(sh.get("up", 0.0)) / maxf(def.size, 0.01)
+	return PackedFloat32Array([maxf(sw, 0.0), maxf(sd, 0.0), up, clampf(float(sh.get("drop", 0.0)), -0.5, 0.5)])
+
+
+## Puts a type's shadow tuning in place now (pass 47: the capture tools try numbers by eye without an import).
+func set_shadow_tuning(t: int, tuning: Dictionary) -> void:
+	if t < 0 or t >= types.size():
+		return
+	var def: EnemyDef = types[t]["def"]
+	var keep := def.shadow
+	def.shadow = tuning
+	var n := shadow_numbers(def)
+	def.shadow = keep
+	for k in range(4):
+		_t_sh[t * 4 + k] = n[k]
 
 
 func _height(x: float, z: float) -> float:
@@ -341,25 +723,34 @@ func _height(x: float, z: float) -> float:
 
 # ---------------------------------------------------------------- spawning
 
-func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult := 1.0, hp_mult := 1.0, variant := "") -> int:
-	var def: EnemyDef = Registry.enemy(def_id)
+## One creature of `def_id` at `at`: wearing `elite` (a modifier) when given, at `scale_mult` of its size and `hp_mult`
+## of its health (a split child), as art variant `variant` (the arena's comparison, a roster row's; its own when "") and
+## with the wave schema's `overrides` on its numbers (pass 53, EnemyDef.with_overrides through Registry.enemy_with: the
+## copy is its own type, so a row's tougher skeletons and the plain ones live side by side). The index, or -1.
+func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult := 1.0, hp_mult := 1.0, variant := "", overrides := {}) -> int:
+	var def: EnemyDef = Registry.enemy_with(def_id, variant, overrides)
 	if def == null or free_list.is_empty():
 		return -1
-	if variant != "":
-		# another art variant (the arena's comparison): the same creature, its own strip and type
-		def = def.variant_def(variant)
 	var t := register_type(def)
 	# met (pass 44): the Collection shows a creature once it has been on the sand
 	Save.mark_seen("enemy", def.id)
+	# the pace knob as it is now (pass 48): the walk speed below is set with it
+	pace = Run.move_pace()
 	var i: int = free_list.pop_back()
+	_serial += 1
+	serial[i] = _serial
 	blown[i] = 0
 	held[i] = 0
+	# on the screen until the next refresh says otherwise (pass 54)
+	if onscreen.size() == MAX:
+		onscreen[i] = 1
 	pos[i] = Vector3(at.x, _height(at.x, at.z), at.z)
 	vel[i] = Vector3.ZERO
 	kb[i] = Vector3.ZERO
-	var ehp := def.hp * stage_mult * hp_time_mult * hp_mult * level_hp_mult
+	# creature_hp_mult reaches everything but a boss (the boss branch below sets its own health)
+	var ehp := def.hp * stage_mult * hp_time_mult * hp_mult * level_hp_mult * creature_hp_mult
 	var esp := def.speed * stage_speed_mult
-	var edm := def.damage * stage_mult * level_dmg_mult
+	var edm := def.damage * stage_mult * level_dmg_mult * hostile_mult()
 	var ear := def.damage_reduction
 	var esz := def.size * scale_mult
 	var xps := def.xp_mult
@@ -374,27 +765,34 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 		xps *= 4.0
 	var vt := Color(1, 1, 1, 0)
 	var vsize := 1.0
+	vspecial[i] = 0
 	if elite == null and not def.variance.is_empty():
 		# every spawn is a little different: size, speed, a tint from the palette, and the odd special one
 		var vr: Dictionary = def.variance
 		vsize = 1.0 + _rng.randf_range(-float(vr.get("size", 0.0)), float(vr.get("size", 0.0)))
 		esp *= 1.0 + _rng.randf_range(-float(vr.get("speed", 0.0)), float(vr.get("speed", 0.0)))
-		var tints: Array = vr.get("tints", [])
-		if not tints.is_empty():
-			var c := Color(str(tints[_rng.randi() % tints.size()]))
-			vt = Color(c.r, c.g, c.b, float(vr.get("tint_strength", 0.35)))
-		if _rng.randf() < float(vr.get("special_chance", 0.0)):
-			var sp: Dictionary = vr.get("special", {})
-			vsize *= float(sp.get("size", 1.3))
-			ehp *= float(sp.get("hp", 1.6))
-			edm *= float(sp.get("damage", 1.2))
-			xps *= float(sp.get("xp", 2.0))
-			if sp.has("tint"):
-				var sc := Color(str(sp["tint"]))
-				vt = Color(sc.r, sc.g, sc.b, float(sp.get("tint_strength", 0.6)))
+		# the tint and the special are colour, and colour comes after the run's first kills (pass 46); the size and
+		# speed jitter above is not colour and is always on
+		if Run.kills >= colour_after_kills:
+			var tints: Array = vr.get("tints", [])
+			if not tints.is_empty():
+				var c := Color(str(tints[_rng.randi() % tints.size()]))
+				vt = Color(c.r, c.g, c.b, float(vr.get("tint_strength", 0.35)))
+			# Hot Sauce (pass 47): the dark special comes (1 + difficulty) times as often
+			_pstats()
+			if _rng.randf() < float(vr.get("special_chance", 0.0)) * (1.0 + _difficulty):
+				var sp: Dictionary = vr.get("special", {})
+				vsize *= float(sp.get("size", 1.3))
+				ehp *= float(sp.get("hp", 1.6))
+				edm *= float(sp.get("damage", 1.2))
+				xps *= float(sp.get("xp", 2.0))
+				vspecial[i] = 1
+				if sp.has("tint"):
+					var sc := Color(str(sp["tint"]))
+					vt = Color(sc.r, sc.g, sc.b, float(sp.get("tint_strength", 0.6)))
 		esz *= vsize
 	vtint[i] = vt
-	hp[i] = ehp; max_hp[i] = ehp; speed[i] = esp; dmg[i] = edm; dr[i] = ear
+	hp[i] = ehp; max_hp[i] = ehp; speed[i] = esp * pace; dmg[i] = edm; dr[i] = ear
 	radius[i] = def.radius * scale_mult * (elite.scale_mult if elite else 1.0) * vsize
 	_max_r = maxf(_max_r, radius[i])
 	size[i] = esz
@@ -406,7 +804,14 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	atk_i[i] = 0
 	atk_t[i] = 2.0
 	frenzy_t[i] = 0.0
+	freeze_t[i] = 0.0
+	stun_t[i] = 0.0
 	slow_t[i] = 0.0; slow_f[i] = 0.0; mark_t[i] = 0.0; mark_mult[i] = 1.0; spin_t[i] = 0.0; hold_t[i] = 0.0
+	hamper_t[i] = 0.0; hamper_f[i] = 0.0; status_t[i] = 0.0; fire_blue[i] = 0; undying[i] = 0
+	home[i] = pos[i]
+	dummy_mode[i] = DUMMY_STAND; dummy_roam[i] = 0; patrol_dir[i] = 1.0
+	shove_t[i] = 0.0
+	ign_t[i] = 0.0
 	if def.brain == "ambush":
 		# it waits under the sand for the hero to walk over it
 		hidden[i] = 1
@@ -428,11 +833,15 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	lift_d[i] = 0.0
 	lift_h[i] = 0.0
 	lift_cd[i] = 0.0
+	lift_mode[i] = 0
+	lift_peak[i] = 0.0
+	lift_knock[i] = Vector3.ZERO
 	contact_cd[i] = 0.0
 	charge_dir[i] = Vector3.ZERO
 	xp_scale[i] = xps
 	alive[i] = 1
 	count_alive += 1
+	if RunAnalytics.I: RunAnalytics.I.spawned(def)
 	if def.archetype == "boss":
 		boss_index = i
 		atk_i[i] = 0
@@ -446,7 +855,7 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	elif def.archetype == "elite":
 		# the mini-boss: scales with the stage like a boss does, but no bar, no intro, no phase change
 		var extra := pow(float(def.elite.get("hp_mult_per_stage", 1.8)), float(Run.stage))
-		hp[i] = def.hp * extra * max(stage_mult, 1.0)
+		hp[i] = def.hp * extra * maxf(stage_mult, 1.0) * creature_hp_mult
 		max_hp[i] = hp[i]
 		Audio.play("en_elite_spawn", pos[i])
 	elif elite != null:
@@ -456,25 +865,34 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	return i
 
 
-func spawn_pack(def_id: String, center: Vector3, n: int, elite: EliteModDef = null) -> void:
-	var def: EnemyDef = Registry.enemy(def_id)
+## `n` of a creature spread round `center` (its art variant and overrides passed on, pass 53). Returns how many came.
+func spawn_pack(def_id: String, center: Vector3, n: int, elite: EliteModDef = null, variant := "", overrides := {}) -> int:
+	var def: EnemyDef = Registry.enemy_with(def_id, variant, overrides)
 	if def == null:
-		return
+		return 0
 	var spread: float = clamp(0.6 * sqrt(float(n)) * def.radius * 2.0, 1.0, 6.0)
+	var came := 0
 	for k in range(n):
 		var off := Vector3(_rng.randf_range(-spread, spread), 0, _rng.randf_range(-spread, spread))
-		spawn(def_id, _clamp_arena(center + off), elite)
+		if spawn(def_id, _clamp_arena(center + off), elite, 1.0, 1.0, variant, overrides) >= 0:
+			came += 1
+	return came
 
 
-func spawn_ring(def_id: String, count: int, center: Vector3, ring_radius: float) -> void:
+## `count` of a creature on a ring of `ring_radius` round `center` (a swarm event, the King's minions); the art variant
+## and overrides are passed on (pass 53). Returns how many came.
+func spawn_ring(def_id: String, count: int, center: Vector3, ring_radius: float, variant := "", overrides := {}) -> int:
+	var came := 0
 	for k in range(count):
 		var a := TAU * float(k) / float(maxi(count, 1)) + _rng.randf_range(-0.1, 0.1)
 		var p := center + Vector3(cos(a), 0, sin(a)) * ring_radius
-		spawn(def_id, _clamp_arena(p))
+		if spawn(def_id, _clamp_arena(p), null, 1.0, 1.0, variant, overrides) >= 0:
+			came += 1
+	return came
 
 
-func spawn_boss(def_id: String, at: Vector3) -> int:
-	return spawn(def_id, at)
+func spawn_boss(def_id: String, at: Vector3, variant := "", overrides := {}) -> int:
+	return spawn(def_id, at, null, 1.0, 1.0, variant, overrides)
 
 
 func _clamp_arena(p: Vector3) -> Vector3:
@@ -484,31 +902,70 @@ func _clamp_arena(p: Vector3) -> Vector3:
 	return Vector3(flat.x, p.y, flat.y)
 
 
+## Everything on the field dies (`reward`: as a kill, with its drops) or simply goes. An undying training dummy (pass 48)
+## never dies, so a kill leaves it standing; going takes it like anything else.
 func kill_all(reward: bool = false) -> void:
 	for i in range(MAX):
 		if alive[i] == 1 and state[i] != STATE_DYING:
 			if reward:
-				_die(i, "")
+				if undying[i] == 0:
+					_die(i, "")
 			else:
 				_free(i)
+	if not reward:
+		cleared.emit()
+
+
+## Whether creature `i` is a training dummy (pass 48: the `dummy` brain, the debug arena's): it drops nothing and counts
+## for no quest, and it never bites unless it is set to melee (pass 49, set_dummy_mode).
+func is_dummy(i: int) -> bool:
+	return i >= 0 and i < MAX and alive[i] == 1 and _t_dummy[type_idx[i]] == 1
+
+
+## A training dummy's behaviour (pass 49, Game sets it as the dummy stands and when the arena's settings change): one of
+## DUMMY_STAND, DUMMY_PATROL, DUMMY_MELEE, DUMMY_RANGED; `roam`, whether it patrols while it has nothing to hit; `dir`, the
+## way its beat sets off (+1 east, -1 west; 0 keeps the way it has). A change of behaviour drops a spit it was winding up.
+func set_dummy_mode(i: int, mode: int, roam: bool = false, dir: float = 0.0) -> void:
+	if i < 0 or i >= MAX or alive[i] == 0:
+		return
+	if dummy_mode[i] != mode and state[i] == STATE_WINDUP:
+		state[i] = STATE_MOVE
+		timer[i] = 0.0
+	dummy_mode[i] = clampi(mode, DUMMY_STAND, DUMMY_RANGED)
+	dummy_roam[i] = 1 if roam else 0
+	if dir != 0.0:
+		patrol_dir[i] = signf(dir)
 
 
 # ---------------------------------------------------------------- damage
 
-func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vector3.ZERO, kb_force: float = 0.0, green: bool = false, hot: bool = false) -> bool:
+## `flags` (pass 48): HIT_MINI makes the hit a mini crit. What the run records for the weapon (Run.add_damage: the
+## Results screen, the run recorder, life steal) is the damage the creature still had in it, never the overkill; the
+## floating number shows the whole hit.
+func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vector3.ZERO, kb_force: float = 0.0, green: bool = false, hot: bool = false, flags: int = 0) -> bool:
 	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
 		return false
 	var dealt: float = amount * (1.0 - dr[i])
+	# Big Game Hunter (pass 47): more on a boss, an Elite or an elite-modded creature, from all the hero sends (the
+	# revive's flat tenth and a dead rocketeer's loose rocket are not his to aim)
+	_pstats()
+	if _elite_dmg > 0.0 and weapon_id != "revive" and weapon_id != "loose_rocket" and is_big_game(i):
+		dealt *= 1.0 + _elite_dmg
 	# Cauterize: a marked creature takes more from everything while the mark lasts
 	if mark_t[i] > 0.0:
 		dealt *= mark_mult[i]
+	# Sunburn (pass 54, Solenne's perk): a burning or poisoned creature takes `bonus` more from everything she sends (the
+	# revive's flat tenth and a loose rocket are not hers to aim)
+	if _sunburn > 0.0 and weapon_id != "" and weapon_id != "revive" and weapon_id != "loose_rocket" and (is_burning(i) or is_poisoned(i)):
+		dealt *= 1.0 + _sunburn
 	# a weapon's own statuses: the mark, the twister, the pull (Wide Orbit, Lasso)
 	if weapon_id != "" and not green and not hot:
 		var wi := Run.weapon_instance(weapon_id)
 		if wi:
 			var mk: float = wi.stat("mark", 0.0)
 			if mk > 0.0:
-				mark_t[i] = 3.0
+				# three seconds, stretched by Ducktape (pass 47)
+				mark_t[i] = 3.0 * _debuff_mult
 				mark_mult[i] = 1.0 + mk
 			var sp: float = wi.stat("spin", 0.0)
 			if sp > 0.0 and spin_t[i] <= 0.0 and i != boss_index:
@@ -526,15 +983,32 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 		if cc > 0.0 and randf() < cc:
 			dealt *= Run.player_sheet.get_stat("crit_damage", 2.0)
 			crit = true
+			# Vulture (pass 47c): a crit may heal the hero a little
+			if _crit_heal > 0.0 and randf() < _crit_heal and game and game.player and not game.player.dead:
+				game.player.heal(game.player.max_hp * CRIT_HEAL_FRAC, "Vulture")
+		# Cold Snap (pass 47c): a weapon hit may freeze the creature for a second, never a boss
+		if _freeze_chance > 0.0 and i != boss_index and randf() < _freeze_chance:
+			freeze(i, FREEZE_SECONDS)
+	# a mini crit (pass 48, HIT_MINI): half a crit's extra damage, when no full crit rolled
+	var mini := false
+	if not crit and (flags & HIT_MINI) != 0:
+		dealt *= 1.0 + (Run.player_sheet.get_stat("crit_damage", 2.0) - 1.0) * 0.5
+		mini = true
+	var hp_before: float = hp[i]
 	hp[i] -= dealt
+	# the floating number over it (pass 46): one call, nothing when the HUD has no numbers up (tools, tests, the setting off)
+	if DamageNumbers.I: DamageNumbers.I.add(i, pos[i] + Vector3(0, size[i] * 1.2 + lift_h[i], 0), dealt, crit, green, hot, mini)
 	flash[i] = 1.0
 	flash_green[i] = 1 if green else 0
 	flash_hot[i] = 1 if hot else 0
-	squash[i] = 0.55 if crit else (0.9 if (green or hot) else 0.75)
+	squash[i] = 0.55 if crit else (0.65 if mini else (0.9 if (green or hot) else 0.75))
 	if crit and game:
 		game.fx.burst(pos[i] + Vector3(0, size[i] * 0.7, 0), Color(1.0, 0.9, 0.35), 0.6)
 	if weapon_id != "":
-		Run.add_damage(weapon_id, dealt)
+		# recorded up to what it had left (pass 48: a 500 hit on 20 HP is 20 dealt; a zero ring records nothing)
+		var rec := minf(dealt, maxf(hp_before, 0.0))
+		if rec > 0.0:
+			Run.add_damage(weapon_id, rec)
 	# Guillotine: a weapon hit finishes anything but a boss that is already below the threshold
 	if hp[i] > 0.0 and weapon_id != "" and i != boss_index and str((types[type_idx[i]]["def"] as EnemyDef).archetype) != "boss":
 		var ex: float = Run.player_sheet.get_stat("execute_frac", 0.0)
@@ -553,6 +1027,11 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 	if i == boss_index:
 		boss_hp_changed.emit(max(hp[i], 0.0), max_hp[i])
 	var def: EnemyDef = types[type_idx[i]]["def"]
+	if hp[i] <= 0.0 and undying[i] == 1:
+		# a training dummy (pass 48): it never falls; the hit showed, its statuses stay, and it is whole again
+		hp[i] = max_hp[i]
+		Audio.play(str(def.sfx.get("hit", "")), pos[i])
+		return false
 	if hp[i] <= 0.0:
 		var overflow: float = -hp[i]
 		_die(i, weapon_id)
@@ -570,9 +1049,14 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 
 
 ## Poison from one item: a new source, or the same source's timer reset (stacks and damage take the higher value).
-func poison(i: int, weapon_id: String, dmg_per_tick: float, stacks: int, duration: float) -> void:
+## `scaled` (pass 47): the duration is stretched by Ducktape's debuff_duration; false for a clock already stretched
+## (Blight handing on what is left of a poison).
+func poison(i: int, weapon_id: String, dmg_per_tick: float, stacks: int, duration: float, scaled: bool = true) -> void:
 	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
 		return
+	if scaled:
+		# Ducktape stretches it, and Lingering Light (pass 54, Solenne's hidden perk)
+		duration *= debuff_mult() * _ll_longer
 	var src: Dictionary = poison_src[i]
 	var fresh := src.is_empty()
 	if src.has(weapon_id):
@@ -586,32 +1070,158 @@ func poison(i: int, weapon_id: String, dmg_per_tick: float, stacks: int, duratio
 		poison_tick[i] = POISON_TICK
 
 
-## A slow: the stronger of the two when one is already on.
-func slow(i: int, frac: float, seconds: float) -> void:
+## A slow: the stronger of the two when one is already on. A frac of 1 is a pin (the Spear). `scaled` (pass 47): the
+## seconds are stretched by Ducktape's debuff_duration; a hero's perk (Serenade, Trail Dust) passes false.
+func slow(i: int, frac: float, seconds: float, scaled: bool = true) -> void:
 	if i < 0 or i >= MAX or alive[i] == 0:
 		return
+	if scaled:
+		seconds *= debuff_mult()
 	slow_f[i] = maxf(slow_f[i] if slow_t[i] > 0.0 else 0.0, frac)
 	slow_t[i] = maxf(slow_t[i], seconds)
 
 
-func slow_radius(center: Vector3, r: float, frac: float, seconds: float) -> void:
+## A slow of moves AND attacks (pass 48: Curare, the Tarantula Hawk): its walk through slow(), and its attack clocks (a
+## bite's and a shot's cooldown, a wind-up, a boss's script) run at 1 - frac while it lasts (attack_clock). A boss takes
+## half the frac. `scaled` stretches the seconds by Ducktape's debuff_duration, as slow() does; the stronger of two holds.
+func hamper(i: int, frac: float, seconds: float, scaled: bool = true) -> void:
+	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+		return
+	var f := clampf(frac, 0.0, 1.0)
+	if i == boss_index or (types[type_idx[i]]["def"] as EnemyDef).archetype == "boss":
+		f *= 0.5
+	if scaled:
+		seconds *= debuff_mult()
+	slow(i, f, seconds, false)
+	hamper_f[i] = maxf(hamper_f[i] if hamper_t[i] > 0.0 else 0.0, f)
+	hamper_t[i] = maxf(hamper_t[i], seconds)
+
+
+## How fast creature `i`'s attack clocks run right now (pass 48): 1, or 1 - its hamper while one lasts.
+func attack_clock(i: int) -> float:
+	return 1.0 - hamper_f[i] if hamper_t[i] > 0.0 else 1.0
+
+
+## Holds `col` as creature `i`'s tint for `seconds` (pass 48: Curare's dark green, a Tarantula Hawk's purple prey), over a
+## burn's or a poison's tint; a frozen creature's ice blue still wins. The colour's alpha is its strength (the shader mixes
+## 65% of it). A new call replaces the old tint and its clock.
+func set_status_tint(i: int, col: Color, seconds: float) -> void:
+	if i < 0 or i >= MAX or alive[i] == 0:
+		return
+	status_tint[i] = col
+	status_t[i] = maxf(seconds, 0.0)
+
+
+## The clock the creatures' shots fly on (pass 48): High Noon's time_scale times the pace knob, so a shot crosses the same
+## ground as before in 1/pace the time and the slower hero can still step out of its way (ProjectileManager's hostile
+## shots and the rocketeer's rocket, the golem's boulder).
+func hostile_clock() -> float:
+	return time_scale * pace
+
+
+## Cold Snap (pass 47c, Garry: "N% chance that enemies will freeze on hit ... only 1 second ... coloured blue ... a vfx"):
+## the creature stops dead, bites nobody, shows ice blue, and a puff of frost bursts off it. Not stretched by Ducktape.
+func freeze(i: int, seconds: float) -> void:
+	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+		return
+	var fresh := freeze_t[i] <= 0.0
+	freeze_t[i] = maxf(freeze_t[i], seconds)
+	slow(i, 1.0, seconds, false)
+	if fresh and game and game.get("fx"):
+		var at := pos[i] + Vector3(0, size[i] * 0.6, 0)
+		game.fx.burst(at, Color(0.7, 0.9, 1.0), 0.8)
+		for k in 6:
+			var a := TAU * float(k) / 6.0 + randf() * 0.4
+			game.fx.mote(at, Vector3(cos(a) * 2.2, 1.6 + randf(), sin(a) * 2.2), 0.45, 0.16, Color(0.8, 0.95, 1.0, 0.9))
+
+
+## A stun (pass 53, for the Spear lane): creature `i` stops walking and attacking for `seconds`, like a freeze without the
+## ice: no bites, no wind-up, charge or scripted attack goes on (one under way is dropped: its red mark on the sand would
+## outlive it), a pale yellow tint (set_status_tint) and a few yellow motes. Never a boss, an Elite archetype or a
+## creature wearing an elite modifier (nothing happens), never stretched by Ducktape's debuff multiplier; a longer stun
+## on one already stunned holds the longer time.
+func stun(i: int, seconds: float) -> void:
+	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or seconds <= 0.0:
+		return
+	if i == boss_index or elite_idx[i] >= 0 or _t_big[type_idx[i]] == 1:
+		return
+	var def: EnemyDef = types[type_idx[i]]["def"]
+	var fresh := stun_t[i] <= 0.0
+	stun_t[i] = maxf(stun_t[i], seconds)
+	vel[i] = Vector3.ZERO
+	match state[i]:
+		STATE_WINDUP:
+			# the shot or charge it was winding up never comes; a beat before it tries again
+			state[i] = STATE_MOVE
+			cooldown[i] = maxf(cooldown[i], 1.0)
+		STATE_CHARGE:
+			state[i] = STATE_MOVE
+			cooldown[i] = float(def.charge.get("cooldown", 4.0)) if def.brain != "boss" else cooldown[i]
+			_skid(i)
+		STATE_ATTACK:
+			# a scripted attack (the Hammer Giant's slam) is interrupted; its script goes on after the stun
+			state[i] = STATE_MOVE
+			atk_t[i] = maxf(atk_t[i], 1.0)
+	set_status_tint(i, STUN_TINT, stun_t[i])
+	if fresh and game and game.get("fx"):
+		var fx = game.fx
+		var at := pos[i] + Vector3(0, size[i] * 0.8, 0)
+		if fx.has_method("mote"):
+			for k in 5:
+				var a := TAU * float(k) / 5.0 + randf() * 0.5
+				fx.mote(at, Vector3(cos(a) * 1.4, 1.2 + randf() * 0.8, sin(a) * 1.4), 0.4, 0.14, Color(1.0, 0.92, 0.45, 0.9))
+		elif fx.has_method("burst"):
+			fx.burst(at, Color(1.0, 0.92, 0.45), 0.6)
+
+
+## Whether creature `i` is stunned right now (pass 53).
+func is_stunned(i: int) -> bool:
+	return i >= 0 and i < MAX and alive[i] == 1 and stun_t[i] > 0.0
+
+
+func slow_radius(center: Vector3, r: float, frac: float, seconds: float, scaled: bool = true) -> void:
+	if scaled:
+		seconds *= debuff_mult()
 	for i in indices_in_radius(center, r):
-		slow(i, frac, seconds)
+		slow(i, frac, seconds, false)
 
 
-## The hornets' twister: the creature is lifted for `seconds`, cannot walk or bite, and drifts towards `to`.
+## The bees' old twister (a Hornet Nest path until pass 30): the creature is lifted for `seconds`, cannot walk or bite, and drifts towards `to`.
 func twist(i: int, seconds: float, to: Vector3) -> void:
 	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
 		return
 	spin_t[i] = seconds
 	spin_to[i] = to
 	if lift_t[i] <= 0.0:
+		lift_mode[i] = 0
 		lift_t[i] = seconds
 		lift_d[i] = seconds
 		lift_a[i] = atan2(pos[i].z - to.z, pos[i].x - to.x)
 	kb[i] = Vector3.ZERO
 	if game:
 		game.fx_burst(pos[i] + Vector3(0, size[i] * 0.4, 0), Color(0.98, 0.9, 0.6), 1.2)
+
+
+## A bounce (pass 46): creature `i` goes `height` metres straight up and comes down on the same spot after `seconds`,
+## with no spin, no turn and no harm, landing with `knock` as its shove (none by default). Never a boss, an Elite (by
+## its archetype or a modifier), a held, buried or dying creature, or one already in the air (lift_t > 0). Returns
+## whether it went up.
+func bounce(i: int, height: float, seconds: float, knock: Vector3 = Vector3.ZERO) -> bool:
+	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
+		return false
+	if i == boss_index or elite_idx[i] >= 0 or lift_t[i] > 0.0 or seconds <= 0.0:
+		return false
+	var def: EnemyDef = types[type_idx[i]]["def"]
+	if def.archetype == "elite" or def.archetype == "boss":
+		return false
+	lift_mode[i] = 1
+	lift_t[i] = seconds
+	lift_d[i] = seconds
+	lift_peak[i] = maxf(height, 0.0)
+	lift_knock[i] = Vector3(knock.x, 0.0, knock.z)
+	kb[i] = Vector3.ZERO
+	vel[i] = Vector3.ZERO
+	return true
 
 
 func is_poisoned(i: int) -> bool:
@@ -623,19 +1233,66 @@ func is_poisoned(i: int) -> bool:
 func ignite(i: int, weapon_id: String, dmg_per_tick: float, duration: float, spread: float, from_enemy: int = -1, root_spread: float = -1.0) -> void:
 	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
 		return
+	# a weapon that sets only some of what it hits alight (pass 51, params.ignite_chance: Dragon's Breath, 60%): one roll a
+	# creature a shot. A fire jumping on from a burning creature has its own odds (the spread) and never rolls.
+	if from_enemy < 0 and not ignite_roll(i, weapon_id, _ignite_chance(weapon_id)):
+		return
 	var src: Dictionary = fire_src[i]
 	var fresh := src.is_empty()
+	# Ducktape (pass 47) stretches the burn; "dur" keeps the item's own seconds, so a fire that jumps on is stretched once,
+	# not once more at every jump
+	var burn: float = duration * debuff_mult() * _ll_longer
+	# blue fire (pass 48): a source whose weapon burns blue (WeaponInstance.blue_fire: Methanol, Moonshine) burns blue,
+	# and so does every creature it jumps to (the jump keeps the source's id)
+	var blue := _burns_blue(weapon_id)
 	if src.has(weapon_id):
 		var e: Dictionary = src[weapon_id]
-		e["t"] = duration
+		e["t"] = burn
 		e["dmg"] = maxf(float(e["dmg"]), dmg_per_tick)
 		e["spread"] = maxf(float(e["spread"]), spread)
 	else:
-		src[weapon_id] = {"dmg": dmg_per_tick, "t": duration, "dur": duration, "spread": spread, "root": root_spread if root_spread >= 0.0 else spread, "from": from_enemy}
+		src[weapon_id] = {"dmg": dmg_per_tick, "t": burn, "dur": duration, "spread": spread, "root": root_spread if root_spread >= 0.0 else spread, "from": from_enemy, "blue": blue}
+	if blue:
+		fire_blue[i] = 1
+	elif fresh:
+		fire_blue[i] = 0
 	if fresh:
 		fire_tick[i] = FIRE_TICK
 		if game and game.has_method("fx_ignite"):
-			game.fx_ignite(pos[i] + Vector3(0, size[i] * 0.4, 0), size[i])
+			game.fx_ignite(pos[i] + Vector3(0, size[i] * 0.4, 0), size[i], fire_blue[i] == 1)
+
+
+## Whether weapon `weapon_id`'s hit sets creature `i` alight at `chance` (pass 51): always at 1 or more, never at 0, else
+## one roll a creature a shot (the roll holds IGNITE_ROLL_HOLD seconds for that weapon, see ign_t).
+func ignite_roll(i: int, weapon_id: String, chance: float) -> bool:
+	if chance >= 1.0:
+		return true
+	if chance <= 0.0:
+		return false
+	if ign_t[i] > 0.0 and ign_w[i] == weapon_id:
+		return ign_ok[i] == 1
+	var ok := _rng.randf() < chance
+	ign_t[i] = IGNITE_ROLL_HOLD
+	ign_w[i] = weapon_id
+	ign_ok[i] = 1 if ok else 0
+	return ok
+
+
+## The share of the creatures it hits that weapon `weapon_id` sets alight (pass 51): the held weapon's
+## WeaponInstance.ignite_chance(), 1 for anything else (a structure's fire, a creature's).
+func _ignite_chance(weapon_id: String) -> float:
+	if weapon_id == "":
+		return 1.0
+	var wi := Run.weapon_instance(weapon_id)
+	return wi.ignite_chance() if wi else 1.0
+
+
+## Whether fire from `weapon_id` burns blue (pass 48): the held weapon's WeaponInstance.blue_fire().
+func _burns_blue(weapon_id: String) -> bool:
+	if weapon_id == "":
+		return false
+	var wi := Run.weapon_instance(weapon_id)
+	return wi != null and wi.blue_fire()
 
 
 func is_burning(i: int) -> bool:
@@ -661,11 +1318,13 @@ func _tick_fire(i: int, delta: float) -> void:
 	var total := 0.0
 	var best_id := ""
 	var best := 0.0
+	var gone := false
 	for k in src.keys():
 		var e: Dictionary = src[k]
 		e["t"] = float(e["t"]) - delta
 		if float(e["t"]) <= 0.0:
 			src.erase(k)
+			gone = true
 			continue
 		var part: float = float(e["dmg"])
 		total += part
@@ -673,13 +1332,22 @@ func _tick_fire(i: int, delta: float) -> void:
 			best = part
 			best_id = str(k)
 	if src.is_empty():
+		fire_blue[i] = 0
 		return
+	if gone and fire_blue[i] == 1:
+		# a blue source burnt out (pass 48): blue while one is left
+		var still := 0
+		for k in src.keys():
+			if bool((src[k] as Dictionary).get("blue", false)):
+				still = 1
+				break
+		fire_blue[i] = still
 	# flames lick up the whole time it burns, not only on the damage ticks
 	fire_puff[i] -= delta
 	if fire_puff[i] <= 0.0:
 		fire_puff[i] = 0.18
 		if game and game.has_method("fx_fire"):
-			game.fx_fire(pos[i] + Vector3(0, size[i] * 0.3, 0), size[i])
+			game.fx_fire(pos[i] + Vector3(0, size[i] * 0.3, 0), size[i], fire_blue[i] == 1)
 	fire_tick[i] -= delta
 	if fire_tick[i] <= 0.0:
 		fire_tick[i] = FIRE_TICK
@@ -702,7 +1370,9 @@ func _tick_fire(i: int, delta: float) -> void:
 				if _rng.randf() < chance:
 					# every caught fire spreads at a fixed fraction of the original weapon's chance, however far down the chain
 					ignite(j, str(k), float(e["dmg"]), float(e["dur"]), float(e["root"]) * CHILD_SPREAD, i, float(e["root"]))
-		damage(i, (total) * (1.0 + Run.player_sheet.get_stat("fire_vuln", 0.0)), best_id, Vector3.ZERO, 0.0, false, true)
+		_pstats()
+		# White Phosphorus's extra, and Lingering Light's harder ticks (pass 54)
+		damage(i, (total) * (1.0 + _fire_vuln) * _ll_harder, best_id, Vector3.ZERO, 0.0, false, true)
 
 
 ## Runs the poison clocks of one enemy: expires sources, and every POISON_TICK seconds deals the sum of their ticks.
@@ -729,7 +1399,9 @@ func _tick_poison(i: int, delta: float) -> void:
 	poison_tick[i] -= delta
 	if poison_tick[i] <= 0.0:
 		poison_tick[i] = POISON_TICK
-		var was_dead := damage(i, total, best_id, Vector3.ZERO, 0.0, true)
+		# Lingering Light (pass 54) makes every tick harder
+		_pstats()
+		var was_dead := damage(i, total * _ll_harder, best_id, Vector3.ZERO, 0.0, true)
 		if game and game.has_method("fx_poison"):
 			game.fx_poison(pos[i] + Vector3(0, size[i] * 0.5, 0))
 		if was_dead:
@@ -741,10 +1413,13 @@ func _tick_poison(i: int, delta: float) -> void:
 ## barely scratches it.
 ## A blast throws everything within `r` away from `center` without hurting it (pass 33.3, the rocketeer's rocket): the
 ## push falls off to half at the rim, heavy creatures budge less and the boss barely, and each lands squashed.
-func throw_radius(center: Vector3, r: float, force: float) -> int:
+## `except_i` is spared (pass 45: the golem stands at its own stalactites' apex and inside its own boulder's blast).
+func throw_radius(center: Vector3, r: float, force: float, except_i: int = -1) -> int:
 	var n := 0
 	for i in indices_in_radius(center, r):
 		if hidden[i] == 1 or state[i] == STATE_DYING or lift_t[i] > 0.0:
+			continue
+		if i == except_i:
 			continue
 		var d := pos[i] - center
 		d.y = 0.0
@@ -793,31 +1468,45 @@ func _die(i: int, weapon_id: String) -> void:
 		if best >= 0:
 			for wid in (poison_src[i] as Dictionary).keys():
 				var src: Dictionary = poison_src[i][wid]
-				poison(best, str(wid), float(src.get("dmg", 3.0)), int(src.get("stacks", 1)), float(src.get("t", 8.0)))
+				poison(best, str(wid), float(src.get("dmg", 3.0)), int(src.get("stacks", 1)), float(src.get("t", 8.0)), false)
 			if game:
 				game.fx_burst(pos[best] + Vector3(0, size[best] * 0.6, 0), Color(0.5, 1.0, 0.4), 0.9)
 	state[i] = STATE_DYING
 	timer[i] = DIE_TIME
 	anim_t[i] = 0.0
 	kb[i] = Vector3.ZERO
+	# pass 48: whoever listens reads the creature as it fell, its poisons and burns still on it (it is dying already, so a
+	# hit from a listener cannot kill it twice)
+	creature_dying.emit(i, weapon_id)
 	poison_src[i] = {}
 	fire_src[i] = {}
+	fire_blue[i] = 0
+	hamper_t[i] = 0.0
+	status_t[i] = 0.0
 	vel[i] = Vector3.ZERO
 	count_alive -= 1
 	Audio.play(str(def.sfx.get("die", "")), pos[i])
 	Run.add_kill(def.id, weapon_id)
-	Save.add_total("kills", 1)
-	Save.add_keyed_total("kills_of_enemy", def.id, 1)
-	if weapon_id != "":
-		Save.add_keyed_total("kills_with_weapon", weapon_id, 1)
+	# a training dummy (pass 48) counts for no quest: the run's own kill above still feeds what the hero carries
+	if _t_dummy[type_idx[i]] == 0:
+		Save.add_total("kills", 1)
+		Save.add_keyed_total("kills_of_enemy", def.id, 1)
+		if weapon_id != "":
+			Save.add_keyed_total("kills_with_weapon", weapon_id, 1)
+	died_xp_scale = xp_scale[i]
+	died_max_hp = max_hp[i]
 	enemy_died.emit(def, pos[i], elite, weapon_id)
+	died_xp_scale = 0.0
+	died_max_hp = 0.0
+	_hot_sauce_pay(i, def, elite)
 	if game and game.has_method("on_creature_died_index"):
 		game.on_creature_died_index(i)
 	if not def.death_burst.is_empty() and blown[i] == 0 and game and game.has_method("elite_explosion"):
 		# the body goes off after a moment: a red ring on the corpse says so; the crowd around it takes a fifth
 		var dbst: Dictionary = def.death_burst
-		game.elite_explosion(pos[i], float(dbst.get("radius", 2.4)), float(dbst.get("damage", 12.0)) * stage_mult * level_dmg_mult,
-			float(dbst.get("delay", 2.0)), float(dbst.get("knockback", 0.0)), 0.2, hit_info(i, "melee", ["death burst"]))
+		# the warning lasts 1/pace (pass 48)
+		game.elite_explosion(pos[i], float(dbst.get("radius", 2.4)), float(dbst.get("damage", 12.0)) * stage_mult * level_dmg_mult * hostile_mult(),
+			float(dbst.get("delay", 2.0)) / pace, float(dbst.get("knockback", 0.0)), 0.2, hit_info(i, "melee", ["death burst"]))
 	if elite != null:
 		match elite.on_death:
 			"split":
@@ -826,16 +1515,42 @@ func _die(i: int, weapon_id: String) -> void:
 				for k in range(n):
 					var a := TAU * k / n
 					var p := pos[i] + Vector3(cos(a), 0, sin(a)) * 1.2
-					var j := spawn(def.id, p, null, sc, 0.5)
+					# the children are their parent's kind (pass 53): its art variant and its row's overrides
+					var j := spawn(def.id, p, null, sc, 0.5, def.variant_code, def.override_stats)
 					if j >= 0:
 						kb[j] = Vector3(cos(a), 0, sin(a)) * 4.0
 			"explode":
 				if game and game.has_method("elite_explosion"):
-					game.elite_explosion(pos[i], float(elite.params.get("explode_radius", 3.0)), float(elite.params.get("explode_damage", 25.0)), float(elite.params.get("telegraph", 0.5)), 0.0, 0.2, hit_info(i, "melee", ["explosion"]))
+					game.elite_explosion(pos[i], float(elite.params.get("explode_radius", 3.0)), float(elite.params.get("explode_damage", 25.0)) * hostile_mult(), float(elite.params.get("telegraph", 0.5)) / pace, 0.0, 0.2, hit_info(i, "melee", ["explosion"]))
 	if i == boss_index:
 		boss_index = -1
 		Run.bosses_killed += 1
 		boss_died.emit(def, pos[i])
+
+
+## Hot Sauce's pay (pass 47) for a coloured creature the hero kills while he carries `difficulty`: a gem worth HOT_XP x
+## difficulty of the kill's XP (as Game drops it: PickupManager.drop_from's 1, 5 and 25 at the def's chances, four times
+## for an elite modifier), and for a variance special a chest at HOT_CHEST_CHANCE x difficulty, one per HOT_CHEST_GAP
+## seconds at most (an elite-modded one drops a chest anyway). Never for a boss or an Elite, which pay anyway.
+func _hot_sauce_pay(i: int, def: EnemyDef, elite: EliteModDef) -> void:
+	_pstats()
+	if _difficulty <= 0.0 or game == null or (vspecial[i] == 0 and elite == null):
+		return
+	if i == boss_index or def.archetype == "boss" or def.archetype == "elite":
+		return
+	var pk = game.get("pickups")
+	if pk == null:
+		return
+	var d: Dictionary = def.drops
+	var xp: float = xp_scale[i] * (float(d.get("small", 0.0)) + 5.0 * float(d.get("medium", 0.0)) + 25.0 * float(d.get("large", 0.0)))
+	var bonus: float = xp * HOT_XP * _difficulty
+	if bonus > 0.0:
+		var gem: int = PickupManager.KIND_GEM_S if bonus < 5.0 else (PickupManager.KIND_GEM_M if bonus < 25.0 else PickupManager.KIND_GEM_L)
+		pk.spawn(gem, pos[i], bonus)
+	if elite == null and _hot_chest_cd <= 0.0 and game.get("no_random_chests") != true and _rng.randf() < HOT_CHEST_CHANCE * _difficulty:
+		_hot_chest_cd = HOT_CHEST_GAP
+		hot_chests += 1
+		pk.spawn_chest(pos[i])
 
 
 func _free(i: int) -> void:
@@ -845,6 +1560,8 @@ func _free(i: int) -> void:
 		count_alive -= 1
 	alive[i] = 0
 	held[i] = 0
+	lift_mode[i] = 0
+	vspecial[i] = 0
 	free_list.append(i)
 	if i == boss_index:
 		boss_index = -1
@@ -937,10 +1654,64 @@ func _obstacle_cells() -> void:
 				_obst_cells[key] = arr
 
 
-func nearest_index(from: Vector3, max_range: float, avoid: String = "") -> int:
+## The creature a priority weapon takes (pass 48: the single-target weapons with `"targeting": "priority"`,
+## WeaponBehavior.aim_index): the one in range with the smallest distance over its weight, the weight its max HP over the
+## crowd's mean, from 1 up to PRIORITY_CAP, and PRIORITY_CAP for big game (is_big_game). A creature twice the crowd's health
+## is worth going twice as far for. `avoid` leaves out creatures carrying that element, as in nearest_index. -1 for none.
+## Only what is on the screen unless `any_screen` (pass 54, _screen_only).
+func priority_index(from: Vector3, max_range: float, avoid: String = "", any_screen: bool = false) -> int:
+	if _mean_max_hp <= 0.0:
+		refresh_crowd_stats()
+	var inv_mean := 1.0 / maxf(_mean_max_hp, 0.001)
+	var best := -1
+	var best_k := INF
+	var has_avoid := avoid != ""
+	var so := _screen_only(any_screen)
+	# is_big_game inlined (array reads, no call per candidate): the held gun's tracking asks every frame, every priority
+	# weapon and every seeker's lock too, over most of the crowd (pass 48, perf_late)
+	for i in indices_in_radius(from, max_range):
+		if so and onscreen[i] == 0:
+			continue
+		if has_avoid and has_element(i, avoid):
+			continue
+		var dx := pos[i].x - from.x
+		var dz := pos[i].z - from.z
+		var w: float = PRIORITY_CAP
+		if i != boss_index and elite_idx[i] < 0 and _t_big[type_idx[i]] == 0:
+			w = clampf(max_hp[i] * inv_mean, 1.0, PRIORITY_CAP)
+		var k := (dx * dx + dz * dz) / (w * w)
+		if k < best_k:
+			best_k = k
+			best = i
+	return best
+
+
+## The crowd's numbers (pass 48), kept once a tick by the simulation and here for whoever places creatures by hand (tests,
+## tools): its mean max HP (priority_index) and how many are poisoned (Run.poisoned_alive, Gas Mask).
+func refresh_crowd_stats() -> void:
+	var total := 0.0
+	var n := 0
+	var poisoned := 0
+	for i in range(MAX):
+		if alive[i] == 0 or state[i] == STATE_DYING:
+			continue
+		total += max_hp[i]
+		n += 1
+		if not (poison_src[i] as Dictionary).is_empty():
+			poisoned += 1
+	_mean_max_hp = total / float(n) if n > 0 else 0.0
+	Run.poisoned_alive = poisoned
+
+
+## The nearest creature within `max_range` (not carrying `avoid`'s element), on the screen unless `any_screen` (pass 54).
+## -1 for none.
+func nearest_index(from: Vector3, max_range: float, avoid: String = "", any_screen: bool = false) -> int:
 	var best := -1
 	var best_d := max_range * max_range
+	var so := _screen_only(any_screen)
 	for i in indices_in_radius(from, max_range):
+		if so and onscreen[i] == 0:
+			continue
 		if avoid != "" and has_element(i, avoid):
 			continue
 		var d := pos[i] - from
@@ -952,10 +1723,15 @@ func nearest_index(from: Vector3, max_range: float, avoid: String = "") -> int:
 	return best
 
 
-func random_in_range(from: Vector3, max_range: float, exclude: Array = [], avoid: String = "") -> int:
+## A creature within `max_range` at random (not in `exclude`, not carrying `avoid`'s element), on the screen unless
+## `any_screen` (pass 54). -1 for none.
+func random_in_range(from: Vector3, max_range: float, exclude: Array = [], avoid: String = "", any_screen: bool = false) -> int:
 	var cands := indices_in_radius(from, max_range)
 	var pool: Array = []
+	var so := _screen_only(any_screen)
 	for i in cands:
+		if so and onscreen[i] == 0:
+			continue
 		if avoid != "" and has_element(i, avoid):
 			continue
 		if not exclude.has(i):
@@ -967,8 +1743,9 @@ func random_in_range(from: Vector3, max_range: float, exclude: Array = [], avoid
 
 ## The creature in range with the most others within 2.5 m. `avoid` leaves out creatures carrying that element (a fire
 ## bomb wants the unburnt); `keep_away` leaves out creatures within `keep_r` of those spots, as candidates and in the
-## count (pass 36: where other bombs are headed or just landed, so two bomb weapons pick two crowds).
-func densest_point(from: Vector3, max_range: float, avoid: String = "", keep_away: Array = [], keep_r: float = 0.0) -> Vector3:
+## count (pass 36: where other bombs are headed or just landed, so two bomb weapons pick two crowds). Only what is on the
+## screen counts, as a candidate and in the count, unless `any_screen` (pass 54).
+func densest_point(from: Vector3, max_range: float, avoid: String = "", keep_away: Array = [], keep_r: float = 0.0, any_screen: bool = false) -> Vector3:
 	var cands := indices_in_radius(from, max_range)
 	if cands.is_empty():
 		return Vector3.INF
@@ -976,14 +1753,19 @@ func densest_point(from: Vector3, max_range: float, avoid: String = "", keep_awa
 	var best_n := -1
 	var step: int = max(1, cands.size() / 40)
 	var kr2 := keep_r * keep_r
+	var so := _screen_only(any_screen)
 	for k in range(0, cands.size(), step):
 		var i := cands[k]
+		if so and onscreen[i] == 0:
+			continue
 		if avoid != "" and has_element(i, avoid):
 			continue
 		if _near_any(pos[i], keep_away, kr2):
 			continue
 		var n := 0
 		for j in indices_in_radius(pos[i], 2.5):
+			if so and onscreen[j] == 0:
+				continue
 			if (avoid == "" or not has_element(j, avoid)) and not _near_any(pos[j], keep_away, kr2):
 				n += 1
 		if n > best_n:
@@ -1030,28 +1812,68 @@ func cap_load() -> float:
 
 ## Who hit the hero, for his death log (pass 33.2): the creature's name ("Goblin", "Sun Prophet (Elite)"), how it hit
 ## ("melee", "ranged", or "boss" for anything a boss does) and what came with it ("knocked back", "roped" ...).
+## Pass 46, for the Down! screen's rows: `role` is "boss", "elite" (the Elite archetype or a creature wearing an elite
+## modifier), "special" (a gear badge: the rocketeer, the harpooner) or "", and `colour` the "#rrggbb" it wore: an
+## elite modifier's outline, a variance special's dark tint, else "".
 func hit_info(i: int, kind: String, fx: Array = []) -> Dictionary:
 	var name := "something"
 	var boss := false
+	var id := ""
+	var elite := false
+	var role := ""
+	var colour := ""
 	if i >= 0 and i < MAX and type_idx[i] >= 0 and type_idx[i] < types.size():
 		var def: EnemyDef = types[type_idx[i]]["def"]
 		name = def.display_name
+		id = def.id
+		elite = elite_idx[i] >= 0 or def.archetype == "elite"
 		if def.archetype == "elite":
 			name += " (Elite)"
 		boss = i == boss_index or def.archetype == "boss"
-	return {"by": name, "kind": "boss" if boss else kind, "fx": fx}
+		if boss:
+			role = "boss"
+		elif elite:
+			role = "elite"
+		elif _t_badge[type_idx[i]] == "gear":
+			role = "special"
+		if elite_idx[i] >= 0 and elite_idx[i] < elites.size():
+			colour = "#" + (elites[elite_idx[i]] as EliteModDef).outline.to_html(false)
+		elif vspecial[i] == 1:
+			colour = "#" + Color(vtint[i].r, vtint[i].g, vtint[i].b).to_html(false)
+	# `id` and `elite` are for the run recorder (pass 45): damage taken keyed by creature, not by display name
+	return {"by": name, "kind": "boss" if boss else kind, "fx": fx, "id": id, "elite": elite, "role": role, "colour": colour}
 
 
-## How many of one creature are alive right now (the director's `max_alive` rows).
+## How many of one creature are alive right now (the director's `max_alive` rows): every type of that id together, the
+## base, its art variants and its overridden copies (pass 53), so a row's limit holds across them.
 func alive_of(id: String) -> int:
-	var ti: int = type_by_id.get(id, -1)
-	if ti < 0:
+	var tis: Array = _types_of_id.get(id, [])
+	if tis.is_empty():
 		return 0
 	var n := 0
+	if tis.size() == 1:
+		var ti: int = tis[0]
+		for i in range(MAX):
+			if alive[i] == 1 and type_idx[i] == ti and state[i] != STATE_DYING:
+				n += 1
+		return n
 	for i in range(MAX):
-		if alive[i] == 1 and type_idx[i] == ti and state[i] != STATE_DYING:
+		if alive[i] == 1 and state[i] != STATE_DYING and tis.has(type_idx[i]):
 			n += 1
 	return n
+
+
+## The load one creature id puts on the director's cap right now (pass 53): each living one its own type's cap_share (an
+## overridden copy may carry another share than the base).
+func load_of(id: String) -> float:
+	var tis: Array = _types_of_id.get(id, [])
+	if tis.is_empty():
+		return 0.0
+	var load := 0.0
+	for i in range(MAX):
+		if alive[i] == 1 and state[i] != STATE_DYING and tis.has(type_idx[i]):
+			load += float(types[type_idx[i]].get("share", 1.0))
+	return load
 
 
 ## The rope: a creature on a tether is pulled to `length` of the hero whenever the rope is taut, so the hero drags it
@@ -1171,14 +1993,25 @@ func _physics_process(delta: float) -> void:
 	_rebuild_grid()
 	_obstacle_cells()
 	_cf_tick = _camera_forward()
+	refresh_onscreen(parity)
+	# the pace knob (pass 48): read once a tick, and never folded into the shared delta below (poison and fire ticks and
+	# the cooldowns keep their clocks); walks, charges and rolls, wind-ups and warnings carry it themselves
+	pace = Run.move_pace()
 	# High Noon slows the whole crowd's clock: steering, attacks, animations
 	delta *= time_scale
 	var ppos: Vector3 = player.global_position
 	var sdt := delta * 2.0
 	tether_drag_t = maxf(tether_drag_t - delta, 0.0)
 	_glow_clock += delta
-	# one sheet lookup a frame instead of one per creature (Rattle's slow, read 150 times a frame at the new caps)
-	_poison_slow = Run.player_sheet.get_stat("poison_slow", 0.0)
+	_hot_chest_cd = maxf(_hot_chest_cd - delta, 0.0)
+	# the hero's numbers once a tick instead of once per creature (Rattle's slow, read 150 times a frame at the new caps;
+	# pass 47: Ducktape, Big Game Hunter, Hot Sauce and White Phosphorus with it)
+	_pstats_dirty = true
+	_pstats()
+	# the crowd's numbers, kept as the loop passes (pass 48): its mean max HP (priority_index) and the poisoned (Gas Mask)
+	var crowd_hp := 0.0
+	var crowd_n := 0
+	var poisoned := 0
 	for i in range(MAX):
 		if alive[i] == 0:
 			continue
@@ -1193,11 +2026,34 @@ func _physics_process(delta: float) -> void:
 			if timer[i] <= 0.0:
 				_free(i)
 			continue
+		crowd_hp += max_hp[i]
+		crowd_n += 1
+		if not (poison_src[i] as Dictionary).is_empty():
+			poisoned += 1
 		if held[i] == 1:
 			# in the Gravity Gun's grip: its legs go, nothing else (the gun places it)
 			anim_t[i] += delta * 20.0
 			flash[i] = max(flash[i] - delta * 3.0, 0.0)
 			squash[i] = lerp(squash[i], 1.0, delta * 6.0)
+			continue
+		if lift_t[i] > 0.0 and lift_mode[i] == 1:
+			# a bounce (pass 46): up and down on the spot, no spin, no turn; it lands squashed, with its shove and no harm
+			lift_t[i] -= delta
+			var fb := 1.0 - clampf(lift_t[i] / maxf(lift_d[i], 0.01), 0.0, 1.0)
+			lift_h[i] = sin(fb * PI) * lift_peak[i]
+			vel[i] = Vector3.ZERO
+			if lift_t[i] <= 0.0:
+				lift_h[i] = 0.0
+				lift_mode[i] = 0
+				squash[i] = 0.7
+				flash[i] = maxf(flash[i], 0.3)
+				lift_cd[i] = 0.3
+				if lift_knock[i].length_squared() > 0.0:
+					kb[i] = lift_knock[i]
+				lift_knock[i] = Vector3.ZERO
+				var fx = game.get("fx") if game != null else null
+				if fx != null and fx.has_method("sand"):
+					fx.sand(pos[i], 0.5)
 			continue
 		if lift_t[i] > 0.0:
 			# tossed by a tornado: rises, spins, drops, then lands with a thump; no steering meanwhile
@@ -1228,8 +2084,18 @@ func _physics_process(delta: float) -> void:
 		# decay flash and squash
 		flash[i] = max(flash[i] - delta * 6.0, 0.0)
 		squash[i] = lerp(squash[i], 1.0, delta * 10.0)
-		contact_cd[i] = max(contact_cd[i] - delta, 0.0)
-		cooldown[i] = max(cooldown[i] - delta, 0.0)
+		# a hampered creature's attack clocks run slow (pass 48, hamper); the hamper and a held tint run out on its clock
+		var ac := attack_clock(i)
+		contact_cd[i] = max(contact_cd[i] - delta * ac, 0.0)
+		cooldown[i] = max(cooldown[i] - delta * ac, 0.0)
+		if hamper_t[i] > 0.0:
+			hamper_t[i] = maxf(hamper_t[i] - delta, 0.0)
+		if status_t[i] > 0.0:
+			status_t[i] = maxf(status_t[i] - delta, 0.0)
+		if shove_t[i] > 0.0:
+			shove_t[i] -= delta
+		if ign_t[i] > 0.0:
+			ign_t[i] -= delta
 		if (i & 1) == parity:
 			_steer(i, ppos, sdt)
 		# integrate
@@ -1243,9 +2109,12 @@ func _physics_process(delta: float) -> void:
 		var face := v
 		if (state[i] == STATE_WINDUP or state[i] == STATE_CHARGE) and charge_dir[i].length_squared() > 0.01:
 			face = charge_dir[i]
-		elif face.length_squared() <= 0.04 and player:
-			# standing still: a creature that fights at range turns to face the hero (the centipede's eight views)
-			if _t_faces[ti] == 1:
+		else:
+			if state[i] == STATE_ATTACK:
+				# a scripted attack keeps the facing it started with: the crowd shoving it is not a turn (pass 47)
+				face = Vector3.ZERO
+			if face.length_squared() <= 0.04 and player and _t_faces[ti] == 1:
+				# standing still: a creature that fights at range turns to face the hero (the centipede's eight views)
 				var tf := player.global_position - pos[i]
 				tf.y = 0.0
 				face = tf
@@ -1298,15 +2167,31 @@ func _physics_process(delta: float) -> void:
 		_tick_fire(i, delta)
 		if alive[i] == 0:
 			continue
-		# walk cycles cut from video clips carry their own frame rate (EnemyDef.fps); the old six-frame walks run at 10
+		# walk cycles cut from video clips carry their own frame rate (EnemyDef.fps); the old six-frame walks run at 10. A
+		# creature standing to attack (a wind-up, a scripted attack) plays its frames at ATTACK_FPS whatever shoves it
+		# (pass 47: the crowd pressing on the Tumbleweed King made every other tick a walking one, so the two frames of
+		# his wind-up before the minion ring flicked at 9 a second instead of 3). The walk plays at the pace knob too (pass
+		# 48): a creature that covers 0.8 of the ground a second takes 0.8 of the steps, so its feet keep to the sand
 		var run_fps: float = _t_run_fps[ti]
-		anim_t[i] += delta * ((run_fps if run_fps > 0.0 else 10.0) if v.length() > 0.2 else 3.0)
+		var walking: bool = v.length() > 0.2 and state[i] != STATE_ATTACK and state[i] != STATE_WINDUP
+		var steps: float = (run_fps if run_fps > 0.0 else 10.0) * pace if walking else ATTACK_FPS
+		# a charger's legs (pass 50, charge.legs): they scrabble in place through the wind-up, from the walk's speed up to
+		# `legs` times it by the launch, and run at `legs` times it through the charge (at the walk's speed the beetle's
+		# feet slid over the sand at seven times their pace)
+		var legs: float = _t_cv[ti * CV_N + 2]
+		if legs > 1.0 and (state[i] == STATE_WINDUP or state[i] == STATE_CHARGE):
+			var lf: float = legs if state[i] == STATE_CHARGE else lerpf(1.0, legs, windup_progress(i))
+			steps = (run_fps if run_fps > 0.0 else 10.0) * pace * lf
+		anim_t[i] += delta * steps
 		# contact damage
 		var d := ppos - pos[i]
 		d.y = 0.0
 		var reach := radius[i] + 0.45
-		if d.length_squared() < reach * reach and contact_cd[i] <= 0.0 and hidden[i] == 0:
-			contact_cd[i] = 0.6
+		# a training dummy's touch never reaches the hero (pass 48: even a 0 would be a hit, a flash and a shake), but a
+		# melee one's does (pass 49: the arena's attackers, an Elite or Boss dummy set to melee)
+		if d.length_squared() < reach * reach and contact_cd[i] <= 0.0 and hidden[i] == 0 and freeze_t[i] <= 0.0 and stun_t[i] <= 0.0 and (_t_dummy[ti] == 0 or dummy_mode[i] == DUMMY_MELEE):
+			# the bite's cadence is the creature's own (pass 53, EnemyDef.contact_cd; 0.6 for everyone before)
+			contact_cd[i] = _t_ccd[ti]
 			var extra := 1.0
 			var cfx: Array = []
 			if state[i] == STATE_CHARGE:
@@ -1331,7 +2216,20 @@ func _physics_process(delta: float) -> void:
 				if game:
 					game.fx_burst(pos[i] + Vector3(0, size[i] * 0.5, 0), Color(0.95, 0.75, 0.4), 1.0)
 				continue
-			player.take_damage(dmg[i] * extra, pos[i], hit_info(i, "melee", cfx))
+			var touch: float = dmg[i] * extra
+			# no touch takes more than contact_cap of his health (pass 46: a ring of brutes could land a one-shot); a
+			# boss's weight is its own. A stand-in hero without max_hp (the headless tests) is not capped.
+			if contact_cap > 0.0 and i != boss_index and (types[ti]["def"] as EnemyDef).archetype != "boss":
+				var mhp = player.get("max_hp")
+				if mhp != null:
+					touch = minf(touch, float(mhp) * contact_cap)
+			# the bite shoves him by the creature's own number (pass 54, bite_knock); Player.take_damage applies it to a hit
+			# or a shield's catch, never to an evaded or an immune one
+			var binfo := hit_info(i, "melee", cfx)
+			binfo["knock"] = bite_knock(i)
+			player.take_damage(touch, pos[i], binfo)
+	_mean_max_hp = crowd_hp / float(crowd_n) if crowd_n > 0 else 0.0
+	Run.poisoned_alive = poisoned
 	_update_boss(delta, ppos)
 	_ticks += 1
 	Perf.add("enemies.sim", t0)
@@ -1356,12 +2254,24 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 	var dir := to_player / dist if dist > 0.001 else Vector3.ZERO
 	var desired := Vector3.ZERO
 	var spd := speed[i]
+	# a training dummy on its way home walks through the crowd (pass 48: one shoved past its neighbour in the row was
+	# held off its spot by that neighbour for good); rocks still push it
+	var ghost := false
 	if frenzy_t[i] > 0.0:
 		frenzy_t[i] -= dt
 		spd *= 1.3
+	if freeze_t[i] > 0.0:
+		freeze_t[i] -= dt
+	if stun_t[i] > 0.0:
+		# stunned (pass 53): it stands where it is and nothing of its brain runs, no wind-up, no charge, no shot; its
+		# knockback still carries it, and the crowd still steps round it
+		stun_t[i] -= dt
+		vel[i] = Vector3.ZERO
+		return
 	if slow_t[i] > 0.0:
 		slow_t[i] -= dt
-		spd *= 1.0 - clampf(slow_f[i], 0.0, 0.9)
+		# 1.0 is a pin (pass 46: the Spear's Pinning Throw): it stands where it was struck; every other slow is a third or less
+		spd *= 1.0 - clampf(slow_f[i], 0.0, 1.0)
 		# a slowed creature kicks up dust at its feet
 		if game and int(slow_t[i] * 3.0) != int((slow_t[i] + dt) * 3.0):
 			game.fx_burst(pos[i] + Vector3(0, 0.15, 0), Color(0.85, 0.72, 0.5), 0.45)
@@ -1387,31 +2297,45 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 		return
 	match state[i]:
 		STATE_WINDUP:
-			timer[i] -= dt
+			# a hampered creature winds up slower (pass 48)
+			timer[i] -= dt * attack_clock(i)
 			desired = Vector3.ZERO
+			if def.brain == "charge" and timer[i] > 0.0:
+				_paw(i, dt)
 			if timer[i] <= 0.0:
 				if def.brain == "artillery":
 					_fire_artillery(i, def, ppos)
 					state[i] = STATE_MOVE
-				elif def.brain == "kite" or def.brain == "boss" or def.brain == "ambush" or def.brain == "support":
+				elif def.brain == "kite" or def.brain == "boss" or def.brain == "ambush" or def.brain == "support" or def.brain == "dummy":
+					# a ranged training dummy's spit too (pass 49): the only wind-up a dummy has
 					_do_attack(i, def, ppos)
 					state[i] = STATE_MOVE
 				else:
 					# the charge runs along the line that was telegraphed at the start of the wind-up; the hero
 					# moving in the meantime is exactly what the telegraph is for
+					# at the pace knob's speed and 1/pace as long (pass 48): the same ground as the line on the sand
 					state[i] = STATE_CHARGE
-					timer[i] = float(def.charge.get("duration", 0.7))
+					timer[i] = float(def.charge.get("duration", 0.7)) / pace
 					if charge_dir[i].length_squared() < 0.01:
 						charge_dir[i] = dir
 					Audio.play(str(def.sfx.get("attack", "")), pos[i])
+					_launch(i)
 		STATE_ATTACK:
 			desired = Vector3.ZERO
 		STATE_CHARGE:
-			timer[i] -= dt
-			desired = charge_dir[i] * float(def.charge.get("speed", 9.0))
-			if timer[i] <= 0.0:
-				state[i] = STATE_MOVE
-				cooldown[i] = float(def.charge.get("cooldown", 4.0))
+			if def.brain == "boss":
+				# a scripted roll (the King, the Gila, the Brander): _update_attacks owns its clock and its end. This branch
+				# ran the same timer a second time at the steer rate, so every roll ended at half its `duration`, and read
+				# charge.speed (9: no boss has a charge block) on steer ticks instead of the attack's `speed` (pass 45)
+				desired = charge_dir[i] * _scripted_speed(i, def)
+			else:
+				timer[i] -= dt
+				desired = charge_dir[i] * float(def.charge.get("speed", 9.0)) * pace
+				_charge_dust(i)
+				if timer[i] <= 0.0:
+					state[i] = STATE_MOVE
+					cooldown[i] = float(def.charge.get("cooldown", 4.0))
+					_skid(i)
 		_:
 			match def.brain:
 				"kamikaze":
@@ -1426,13 +2350,13 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 					desired = (dir + kwob * 0.45).normalized() * spd
 					if timer[i] > 0.0:
 						desired = Vector3.ZERO
-						timer[i] -= dt
+						timer[i] -= dt * attack_clock(i)
 						flash[i] = 1.0
 						flash_hot[i] = 1
 						if timer[i] <= 0.0:
 							_blow_up(i, def)
 					elif dist < float(def.kamikaze.get("trigger", 1.1)) + size[i] * 0.4:
-						timer[i] = float(def.kamikaze.get("windup", 0.35))
+						timer[i] = float(def.kamikaze.get("windup", 0.35)) / pace
 						if game:
 							game.telegraph_ring(pos[i], float(def.kamikaze.get("radius", 2.6)), timer[i], Color(0.93, 0.29, 0.36), true)
 				"chase":
@@ -1456,7 +2380,7 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 					if atk_i[i] == 0 and cooldown[i] <= 0.0:
 						atk_i[i] = 1
 						state[i] = STATE_WINDUP
-						timer[i] = float(def.artillery.get("windup", 1.4))
+						timer[i] = float(def.artillery.get("windup", 1.4)) / pace
 						charge_dir[i] = dir
 						if game and game.has_method("telegraph_line"):
 							game.telegraph_line(pos[i], dir, 5.0, timer[i], Color(0.93, 0.29, 0.36))
@@ -1475,18 +2399,48 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 						desired = Vector3.ZERO
 						if cooldown[i] <= 0.0:
 							state[i] = STATE_WINDUP
-							timer[i] = float(def.ranged.get("telegraph", 0.6))
+							timer[i] = float(def.ranged.get("telegraph", 0.6)) / pace
 							_telegraph_shot(i, def, ppos, dir, dist)
 				"charge":
 					desired = dir * spd
 					if cooldown[i] <= 0.0 and dist < float(def.charge.get("trigger_range", 6.0)):
 						state[i] = STATE_WINDUP
-						timer[i] = float(def.charge.get("windup", 0.8))
+						timer[i] = float(def.charge.get("windup", 0.8)) / pace
 						charge_dir[i] = dir
 						if game and game.has_method("telegraph_line"):
 							game.telegraph_line(pos[i], dir, dist + 4.0, timer[i], Color(0.93, 0.29, 0.36))
 				"boss":
 					desired = dir * spd if atk_t[i] > 0.0 else Vector3.ZERO
+				"dummy":
+					# a training dummy (pass 48, the debug arena): it stands where it was put and walks back there at its
+					# speed once it is shoved more than 0.3 m off, through the crowd. Pass 49 (set_dummy_mode): a patrolling
+					# one walks its beat, through the crowd too; a melee one chases the hero while he is near its spot; a
+					# ranged one winds up a spit at him in range (the kite brain's telegraph, fired from the wind-up above)
+					var dm := int(dummy_mode[i])
+					var busy := false
+					if dm == DUMMY_MELEE:
+						var from_home := ppos - home[i]
+						from_home.y = 0.0
+						if from_home.length() < DUMMY_CHASE:
+							desired = dir * spd
+							busy = true
+					elif dm == DUMMY_RANGED and not def.ranged.is_empty() and freeze_t[i] <= 0.0:
+						if dist < float(def.ranged.get("range", 8.0)) and cooldown[i] <= 0.0:
+							state[i] = STATE_WINDUP
+							timer[i] = float(def.ranged.get("telegraph", 0.6)) / pace
+							_telegraph_shot(i, def, ppos, dir, dist)
+							desired = Vector3.ZERO
+							busy = true
+					if not busy:
+						if dm == DUMMY_PATROL or (dummy_roam[i] == 1 and dm != DUMMY_STAND):
+							desired = _patrol(i, spd)
+							ghost = true
+						else:
+							var to_home := home[i] - pos[i]
+							to_home.y = 0.0
+							var hd := to_home.length()
+							desired = to_home / hd * spd if hd > 0.3 else Vector3.ZERO
+							ghost = hd > 0.3
 				"ambush":
 					# under the sand until the hero is close, then out and straight at him; a chaser after that, and
 					# back under when it loses him
@@ -1499,7 +2453,7 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 							# up out of the sand, and straight into a silk line at the hero
 							hidden[i] = 0
 							state[i] = STATE_WINDUP
-							timer[i] = float(def.ranged.get("telegraph", 0.45))
+							timer[i] = float(def.ranged.get("telegraph", 0.45)) / pace
 							if game:
 								game.fx_burst(pos[i] + Vector3(0, 0.3, 0), Color(0.9, 0.75, 0.5), 1.8)
 								game.hint_once("spider", "TRAPDOOR SPIDER: its silk pulls you in. Step off the red line.")
@@ -1514,7 +2468,7 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 								game.fx_burst(pos[i] + Vector3(0, 0.2, 0), Color(0.86, 0.72, 0.5), 1.2)
 						elif cooldown[i] <= 0.0 and dist > 2.5 and dist < float(def.ranged.get("range", 9.0)):
 							state[i] = STATE_WINDUP
-							timer[i] = float(def.ranged.get("telegraph", 0.45))
+							timer[i] = float(def.ranged.get("telegraph", 0.45)) / pace
 							_telegraph_shot(i, def, ppos, dir, dist)
 				"caster":
 					# the ranged Elite walks to a spot keep_distance off the hero ON his portrait screen (see
@@ -1548,7 +2502,20 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 	var my_r := radius[i]
 	var gx := _gcol(pos[i].x)
 	var gz := _gcol(pos[i].z)
+	# a charger shoves what stands in its way out to the side (pass 50, charge.shove while it charges, shove_walk while it
+	# walks): the heading it is pushing along, and how hard
+	var shove := 0.0
+	var head := Vector3.ZERO
+	var cvb := type_idx[i] * CV_N
+	if state[i] == STATE_CHARGE and def.brain == "charge" and _t_cv[cvb + 5] > 0.0:
+		shove = _t_cv[cvb + 5]
+		head = charge_dir[i]
+	elif state[i] == STATE_MOVE and _t_cv[cvb + 6] > 0.0 and desired.length_squared() > 0.01:
+		shove = _t_cv[cvb + 6]
+		head = desired.normalized()
 	for cx in range(maxi(gx - 1, 0), mini(gx + 2, _gw)):
+		if ghost:
+			break
 		for cz in range(maxi(gz - 1, 0), mini(gz + 2, _gw)):
 			var j := _g_head[cz * _gw + cx]
 			while j >= 0:
@@ -1557,6 +2524,8 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 					d.y = 0.0
 					var min_d := my_r + radius[j]
 					var l2 := d.length_squared()
+					if shove > 0.0 and shove_t[j] <= 0.0 and l2 < (min_d + SHOVE_REACH) * (min_d + SHOVE_REACH):
+						_shove(i, j, d, head, shove)
 					if l2 < min_d * min_d and l2 > 0.0001:
 						var l := sqrt(l2)
 						sep += d / l * (min_d - l) / min_d
@@ -1564,6 +2533,129 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 	sep += _obstacle_push(i)
 	var sep_w := 4.0 if state[i] != STATE_CHARGE else 0.5
 	vel[i] = desired + sep * sep_w
+
+
+## Creature `j` shoved aside by charger `i` heading `head` (pass 50, Garry: "push enemies out of the way, always to the
+## side, and only a little bit (enough for it to be noticeable, not enough to change the course of enemies movement)"):
+## only one ahead of it or beside it, never one it has passed; straight out to the side it stands on (one dead ahead goes
+## the way its index says, so a file splits both ways); `force` metres a second whatever its weight, about half a metre
+## aside before it walks on (knockback dies away at 6 a second); never a boss, an Elite, one in the air or one bigger
+## than the charger. It flinches (a squash) and, under a charge, scuffs a little sand. `d` = pos[i] - pos[j].
+func _shove(i: int, j: int, d: Vector3, head: Vector3, force: float) -> void:
+	var rel := -d
+	if rel.dot(head) < -radius[i] * 0.3:
+		return
+	if j == boss_index or _t_big[type_idx[j]] == 1 or lift_t[j] > 0.0 or size[j] > size[i] * 1.05:
+		return
+	var side := Vector3(-head.z, 0.0, head.x)
+	var across := rel.dot(side)
+	var sgn := 1.0 if across > 0.02 else (-1.0 if across < -0.02 else (1.0 if (j & 1) == 0 else -1.0))
+	kb[j] += side * (sgn * force)
+	shove_t[j] = SHOVE_GRACE
+	squash[j] = minf(squash[j], 0.86)
+	if state[i] == STATE_CHARGE and game:
+		var fx = game.get("fx")
+		if fx and fx.has_method("shove_dust"):
+			fx.shove_dust(pos[j], side * sgn)
+
+
+## How far creature `i` is through its charge's wind-up (pass 50): 0 at the start, 1 at the launch.
+func windup_progress(i: int) -> float:
+	var total: float = _t_cv[type_idx[i] * CV_N + 7] / maxf(pace, 0.05)
+	return clampf(1.0 - timer[i] / maxf(total, 0.01), 0.0, 1.0)
+
+
+## The sand a charger with `charge.dust` paws back while it winds up (pass 50): from a fifth of the way in, more often
+## and harder towards the launch.
+func _paw(i: int, dt: float) -> void:
+	var dust: float = _t_cv[type_idx[i] * CV_N + 4]
+	if dust <= 0.0 or game == null:
+		return
+	var f := windup_progress(i)
+	if f < 0.2 or _rng.randf() > dt * lerpf(4.0, 12.0, f):
+		return
+	var fx = game.get("fx")
+	if fx and fx.has_method("paw_dust"):
+		var back := -charge_dir[i]
+		fx.paw_dust(pos[i] + back * radius[i] * 0.6, back, radius[i] * 1.2, dust * f)
+
+
+## The launch (pass 50): it springs out of its crouch stretched long, with a burst of sand thrown back.
+func _launch(i: int) -> void:
+	var t := type_idx[i] * CV_N
+	if _t_cv[t + 1] > 0.0:
+		squash[i] = 1.0 + _t_cv[t + 1] * 1.6
+	if _t_cv[t + 4] > 0.0 and game:
+		var fx = game.get("fx")
+		if fx and fx.has_method("charge_launch"):
+			fx.charge_launch(pos[i] - charge_dir[i] * radius[i] * 0.6, -charge_dir[i], radius[i] * 1.2, _t_cv[t + 4])
+
+
+## One beat of a charger's dust trail (pass 50, Garry: "a dust trail effect behind the Beetle as it runs"), every time it
+## steers through its charge (thirty a second).
+func _charge_dust(i: int) -> void:
+	var dust: float = _t_cv[type_idx[i] * CV_N + 4]
+	if dust <= 0.0 or game == null:
+		return
+	var fx = game.get("fx")
+	if fx and fx.has_method("charge_dust"):
+		var back := -charge_dir[i]
+		fx.charge_dust(pos[i] + back * radius[i] * 0.7, back, radius[i] * 1.3, dust)
+
+
+## The end of a charge (pass 50): it digs in squashed, pushing a little sand out ahead of it.
+func _skid(i: int) -> void:
+	var t := type_idx[i] * CV_N
+	if _t_cv[t + 1] > 0.0:
+		squash[i] = 1.0 - _t_cv[t + 1]
+	if _t_cv[t + 4] > 0.0 and game:
+		var fx = game.get("fx")
+		if fx and fx.has_method("skid_dust"):
+			fx.skid_dust(pos[i] + charge_dir[i] * radius[i] * 0.5, charge_dir[i], radius[i] * 1.3, _t_cv[t + 4])
+
+
+## Creature `i`'s carriage through its charge (pass 50, Garry: the Bull Beetle's charge "feels too static"), as the render
+## draws it and a test reads it: x metres along the screen's right (`scr`), y metres up, z the squash it multiplies in,
+## w the roll about its feet in radians (the billboard shaders read the angle of the instance's x column). Winding up it
+## crouches (charge.crouch, all the way down by 40% of the wind-up), rocks on its feet and shakes from side to side,
+## harder and harder up to charge.shake metres at the launch; charging it bounces at every step with a little squash and
+## stretch, rumbles, and leans into the run (charge.lean: the full angle heading straight across the screen, none heading
+## up or down it, where a lean cannot show). Vector4(0, 0, 1, 0) for anything else.
+func charge_pose(i: int, scr: Vector3) -> Vector4:
+	var t := type_idx[i] * CV_N
+	var shake: float = _t_cv[t]
+	var crouch: float = _t_cv[t + 1]
+	var lean: float = _t_cv[t + 3]
+	var clock := _glow_clock + float(i) * 0.37
+	if state[i] == STATE_WINDUP and (shake > 0.0 or crouch > 0.0):
+		var f := windup_progress(i)
+		var shk := shake * (0.25 + 0.75 * f * f) * (0.7 * sin(clock * TAU * 17.0) + 0.3 * sin(clock * TAU * 29.0 + 1.3))
+		var rock := ROCK * f * sin(clock * TAU * 9.0) if shake > 0.0 else 0.0
+		return Vector4(shk, 0.0, 1.0 - crouch * smoothstep(0.0, 0.4, f), rock)
+	if state[i] == STATE_CHARGE and (shake > 0.0 or lean != 0.0 or crouch > 0.0):
+		var ph := anim_t[i] * PI / 6.0
+		return Vector4(shake * 0.25 * sin(clock * TAU * 23.0), absf(sin(ph)) * BOUNCE * size[i], 1.0 + 0.05 * cos(ph * 2.0),
+			-lean * charge_dir[i].dot(scr))
+	return Vector4(0.0, 0.0, 1.0, 0.0)
+
+
+## The instance basis of a creature `s` metres tall rolled `roll` radians about its feet (pass 50, a charger's rock and
+## lean): the billboard shaders read the columns' lengths as its size and the angle of the x column as the roll.
+static func roll_basis(s: float, roll: float) -> Basis:
+	return Basis(Vector3(cos(roll), sin(roll), 0.0) * s, Vector3(-sin(roll), cos(roll), 0.0) * s, Vector3(0.0, 0.0, s))
+
+
+## A patrolling training dummy's walk (pass 49): towards the end of its beat it is heading for, DUMMY_BEAT metres east or
+## west of its spot on the spot's line, turning round once it is level with that end. Shoved off, it carries on from
+## where it landed and comes back onto the line on its way to the end. The velocity it wants, at `spd`.
+func _patrol(i: int, spd: float) -> Vector3:
+	var end_x := home[i].x + DUMMY_BEAT * patrol_dir[i]
+	if (end_x - pos[i].x) * patrol_dir[i] <= 0.15:
+		patrol_dir[i] = -patrol_dir[i]
+		end_x = home[i].x + DUMMY_BEAT * patrol_dir[i]
+	var to := Vector3(end_x - pos[i].x, 0.0, home[i].z - pos[i].z)
+	var l := to.length()
+	return to / l * spd if l > 0.01 else Vector3.ZERO
 
 
 func _do_attack(i: int, def: EnemyDef, ppos: Vector3) -> void:
@@ -1600,15 +2692,45 @@ func _do_attack(i: int, def: EnemyDef, ppos: Vector3) -> void:
 		game.enemy_spit(from, ppos, float(def.ranged.get("projectile_speed", 6.0)), dmg[i], float(def.ranged.get("splash", 1.2)), hit_info(i, "ranged", ["spit"]))
 
 
-## The rocketeer's shot: a slow red rocket that hunts the hero and goes loose only when he dies (Game.enemy_missile).
+## The rocketeer's shot: a slow rocket that hunts the hero and goes loose only when he dies (Game.enemy_missile). It
+## leaves the launcher's open end (muzzle_point, pass 48).
 func _fire_artillery(i: int, def: EnemyDef, ppos: Vector3) -> void:
 	var ms: Dictionary = def.artillery.get("missile", {})
 	if game and game.has_method("enemy_missile"):
-		game.enemy_missile(i, pos[i] + Vector3(0, size[i] * 0.8, 0), float(ms.get("speed", 4.0)), float(ms.get("turn", 1.3)),
-			float(ms.get("damage", 22.0)) * stage_mult * level_dmg_mult, float(ms.get("area", 1.6)),
+		game.enemy_missile(i, muzzle_point(i, ppos - pos[i]), float(ms.get("speed", 4.0)), float(ms.get("turn", 1.3)),
+			float(ms.get("damage", 22.0)) * stage_mult * level_dmg_mult * hostile_mult(), float(ms.get("area", 1.6)),
 			float(ms.get("speed_of_hero", 0.0)), hit_info(i, "ranged", ["rocket"]), ms)
 	atk_i[i] = 2
 	Audio.play(str(def.sfx.get("attack", "")), pos[i])
+
+
+## Where creature `i`'s rocket leaves (pass 48, the Vulture Raider: "the rocket appears at the open end of the tube"): the
+## def's `artillery.muzzle` {up, side, forward}, metres measured on the painting at the def's size and scaled with this
+## spawn's. `up` runs up the painting (the billboard's own up, the camera's: a point high on a figure is up and a little
+## north of his feet); `side` is towards the hand that holds the launcher, his right: screen-left in the front painting,
+## screen-right in the back one, and the other way round when the picture is mirrored (the strip and the mirror bit the
+## render would draw him with this tick); `forward` is along `aim` (towards the hero), out of the painting's plane, so the
+## rocket starts in front of a figure facing the camera and behind one walking away. Without a muzzle, 0.8 of his size
+## straight up, as it was.
+func muzzle_point(i: int, aim: Vector3 = Vector3.ZERO) -> Vector3:
+	var def: EnemyDef = types[type_idx[i]]["def"]
+	var mz = def.artillery.get("muzzle", {})
+	if not (mz is Dictionary) or (mz as Dictionary).is_empty():
+		return pos[i] + Vector3(0, size[i] * 0.8, 0)
+	var k: float = size[i] / maxf(def.size, 0.01)
+	var t := type_idx[i]
+	var strip := _strip_of(i, t)
+	var sgn := -1.0
+	if _face_bit(flip[i], t, strip) > 0.5:
+		sgn = -sgn
+	if strip == 5 or strip == 6:
+		sgn = -sgn
+	var scr := Vector3(-_cf_tick.z, 0, _cf_tick.x)
+	var cam_up := _cam_up()
+	var a := Vector3(aim.x, 0, aim.z)
+	a = a.normalized() if a.length_squared() > 0.0001 else Vector3.ZERO
+	var at := pos[i] + Vector3(0, lift_h[i], 0) - sprite_sink(i, 1.0, cam_up)
+	return at + cam_up * (float(mz.get("up", 0.0)) * k) + scr * (sgn * float(mz.get("side", 0.0)) * k) + a * (float(mz.get("forward", 0.0)) * k)
 
 
 ## An artillery creature spawns at its stand-off from the hero, never closer, inside the wall.
@@ -1635,7 +2757,7 @@ func _stand_off(i: int, def: EnemyDef) -> void:
 func _blow_up(i: int, def: EnemyDef) -> void:
 	var km: Dictionary = def.kamikaze
 	if game and game.has_method("elite_explosion"):
-		game.elite_explosion(pos[i], float(km.get("radius", 2.6)), float(km.get("damage", 26.0)) * stage_mult * level_dmg_mult,
+		game.elite_explosion(pos[i], float(km.get("radius", 2.6)), float(km.get("damage", 26.0)) * stage_mult * level_dmg_mult * hostile_mult(),
 			0.0, float(km.get("knockback", 9.0)), 0.2, hit_info(i, "melee", ["mine"]))
 	blown[i] = 1
 	_die(i, "")
@@ -1675,7 +2797,8 @@ func _telegraph_shot(i: int, def: EnemyDef, ppos: Vector3, dir: Vector3, dist: f
 			# the harpooner leads its throw: where the hero will be when the harpoon gets there, at his current pace
 			var v: Vector3 = player.velocity
 			v.y = 0.0
-			var flight: float = (dist + 1.0) / maxf(float(def.ranged.get("projectile_speed", 12.0)), 1.0) + timer[i] * 0.5
+			# the throw flies on the paced shot clock (pass 48), so it is 1/pace as long in the air
+			var flight: float = (dist + 1.0) / maxf(float(def.ranged.get("projectile_speed", 12.0)) * pace, 1.0) + timer[i] * 0.5
 			var at := ppos + v * flight
 			var to := at - pos[i]
 			to.y = 0.0
@@ -1795,9 +2918,59 @@ func _tick_rumbles(delta: float, ppos: Vector3) -> void:
 	_rumbles = keep
 
 
+## The golem's swoop (pass 45): every `gap` seconds a stalactite is placed on a random spot of the wedge (evenly over its
+## area, never on the golem) and falls for `fall` seconds (Game.stalactite draws it). Where one lands the crowd is thrown
+## back unhurt (never the golem) and, once per swoop, a hero still inside the wedge is hit and thrown away from its apex.
+func _tick_stalactites(delta: float, ppos: Vector3) -> void:
+	if _stalactites.is_empty():
+		return
+	var keep: Array = []
+	for s in _stalactites:
+		s["next"] = float(s["next"]) - delta
+		var c: Vector3 = s["center"]
+		var dir: Vector3 = s["dir"]
+		var r: float = float(s["r"])
+		var half: float = deg_to_rad(float(s["deg"])) * 0.5
+		while float(s["next"]) <= 0.0 and int(s["left"]) > 0:
+			s["next"] = float(s["next"]) + float(s["gap"])
+			s["left"] = int(s["left"]) - 1
+			var a := _rng.randf_range(-half, half)
+			var d := r * sqrt(_rng.randf_range(0.04, 1.0))
+			var at := c + dir.rotated(Vector3.UP, a) * d
+			at.y = _height(at.x, at.z)
+			(s["falling"] as Array).append({"at": at, "t": float(s["fall"])})
+			if game and game.has_method("stalactite"):
+				game.stalactite(at, float(s["fall"]), 1.0)
+		var still: Array = []
+		for f in s["falling"]:
+			f["t"] = float(f["t"]) - delta
+			if float(f["t"]) > 0.0:
+				still.append(f)
+				continue
+			var at: Vector3 = f["at"]
+			throw_radius(at, float(s["throw_r"]), float(s["throw"]), int(s["owner"]))
+			if game and game.has_method("stalactite_hit"):
+				game.stalactite_hit(at)
+			if not bool(s["hit"]) and player and not player.dead:
+				var rel := ppos - c
+				rel.y = 0.0
+				var inside: bool = rel.length() <= r + 0.35 and (rel.length() < 0.5 or absf(dir.signed_angle_to(rel.normalized(), Vector3.UP)) <= half + 0.08)
+				if inside:
+					s["hit"] = true
+					player.take_damage(float(s["damage"]), at, s["info"])
+					if player.has_method("blast") and str(player.get("last_outcome")) != "evaded":
+						var fling: Vector3 = rel if rel.length_squared() > 0.01 else dir
+						player.blast(fling.normalized() * float(s["kb"]), float(s["lift"]))
+		s["falling"] = still
+		if int(s["left"]) > 0 or not still.is_empty():
+			keep.append(s)
+	_stalactites = keep
+
+
 func _update_boss(delta: float, ppos: Vector3) -> void:
 	_tick_rains(delta, ppos)
 	_tick_rumbles(delta, ppos)
+	_tick_stalactites(delta, ppos)
 	if boss_index >= 0:
 		_update_attacks(boss_index, delta, ppos)
 	for i in range(MAX):
@@ -1820,6 +2993,10 @@ func _update_boss(delta: float, ppos: Vector3) -> void:
 func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 	if alive[i] == 0 or state[i] == STATE_DYING:
 		return
+	if stun_t[i] > 0.0:
+		# a stunned creature's script waits (pass 53; a boss or an Elite is never stunned, so this is the Hammer Giant's)
+		vel[i] = Vector3.ZERO
+		return
 	var def: EnemyDef = types[type_idx[i]]["def"]
 	var attacks: Array = def.boss.get("attacks", [])
 	if attacks.is_empty():
@@ -1830,7 +3007,8 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 			hold_t[i] -= delta
 			vel[i] = Vector3.ZERO
 			return
-		atk_t[i] -= delta
+		# a hampered creature's script runs slow (pass 48)
+		atk_t[i] -= delta * attack_clock(i)
 		if atk_t[i] <= 0.0:
 			# a caster saves its script for when the hero can see it: nothing new starts from past `attack_range`
 			if def.brain == "caster" and def.caster.has("attack_range"):
@@ -1840,55 +3018,85 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					atk_t[i] = 0.25
 					return
 			var atk: Dictionary = attacks[atk_i[i] % attacks.size()]
+			var gap := ppos - pos[i]
+			gap.y = 0.0
+			var gap_d := gap.length()
 			# an attack with a `reach` waits, walking on, until the hero is that close (the giant's hammer)
 			if atk.has("reach"):
-				var gap := ppos - pos[i]
-				gap.y = 0.0
-				if gap.length() > float(atk["reach"]) + radius[i]:
+				if gap_d > float(atk["reach"]) + radius[i]:
 					atk_t[i] = 0.15
 					return
-			# an attack with a minimum range is skipped while the hero is inside it (the rain never falls on his head)
+			# an attack with a minimum range is skipped while the hero is inside it (the rain never falls on his head);
+			# one with a maximum range is skipped while he is beyond it (pass 45: the golem's smack and swoop give way to
+			# its boulder when he keeps his distance)
 			var tries := 0
-			while atk.has("min_range") and (ppos - pos[i]).length() < float(atk["min_range"]) and tries < attacks.size():
+			while _attack_out_of_range(atk, gap_d) and tries < attacks.size():
 				atk_i[i] += 1
 				atk = attacks[atk_i[i] % attacks.size()]
 				tries += 1
 			atk_i[i] += 1
 			state[i] = STATE_ATTACK
-			timer[i] = float(atk.get("windup", 1.0))
+			# every wind-up and its telegraph last 1/pace (pass 48), so the slower hero still has the time to get clear
+			timer[i] = float(atk.get("windup", 1.0)) / pace
 			var dir := ppos - pos[i]
 			dir.y = 0.0
 			dir = dir.normalized()
 			charge_dir[i] = dir
 			match str(atk.get("telegraph", "none")):
 				"line":
-					if game: game.telegraph_line(pos[i], dir, 22.0, timer[i], Color(0.93, 0.29, 0.36))
+					# as long as the attack: a roll's speed x duration plus the body in front of its centre, a brand's `length`;
+					# 22 m for anything else (pass 45: it was 22 for every line, so the King's 14.4 m roll looked like it
+					# stopped half way)
+					var tl: float = float(atk.get("length", 0.0))
+					if tl <= 0.0:
+						tl = float(atk.get("speed", 12.0)) * float(atk.get("duration", 1.2)) + radius[i] if str(atk.get("name", "")) == "roll" else 22.0
+					if game: game.telegraph_line(pos[i], dir, tl, timer[i], Color(0.93, 0.29, 0.36))
 				"ring":
 					if game: game.telegraph_ring(pos[i], float(atk.get("radius", 6.0)), timer[i], Color(0.93, 0.29, 0.36))
 				"ring_at_hero":
 					atk_target[i] = ppos
 					if game: game.telegraph_ring(ppos, float(atk.get("radius", 5.0)), timer[i], Color(0.93, 0.29, 0.36))
+				"sector":
+					# a wedge on the ground from the creature along its aim (pass 45: the golem's swoop, 180 degrees)
+					if game and game.has_method("telegraph_sector"):
+						game.telegraph_sector(pos[i], dir, float(atk.get("radius", 6.5)), float(atk.get("deg", 180.0)), timer[i], Color(0.93, 0.29, 0.36))
 				"fan":
 					if game:
 						var fn := int(atk.get("count", 7))
 						var fspread := deg_to_rad(float(atk.get("spread_deg", 90.0)))
 						for k in range(fn):
 							game.telegraph_line(pos[i], dir.rotated(Vector3.UP, -fspread * 0.5 + fspread * float(k) / float(maxi(fn - 1, 1))), float(atk.get("length", 14.0)), timer[i], Color(0.93, 0.29, 0.36))
+				"spokes":
+					# the King's volley (pass 45): a red line down every direction a tumbleweed will roll; the first spoke's
+					# direction rides in charge_dir so the shots leave down the lines drawn. Pass 47 (Garry: "Marker for the
+					# Tumbleweed attack is short while the attack is long"): each line runs as far as a tumbleweed rolls
+					# (volley_reach), not 5 m; a positive `spoke_length` still names its own
+					var sn := int(atk.get("count", 12))
+					var sphase := _rng.randf() * TAU
+					charge_dir[i] = Vector3(cos(sphase), 0, sin(sphase))
+					var slen := float(atk.get("spoke_length", 0.0))
+					if slen <= 0.0:
+						slen = volley_reach(atk)
+					if game:
+						for k in range(sn):
+							var sa := sphase + TAU * float(k) / float(maxi(sn, 1))
+							game.telegraph_line(pos[i], Vector3(cos(sa), 0, sin(sa)), slen, timer[i], Color(0.93, 0.29, 0.36))
 			if str(atk.get("name", "")) == "burrow":
 				# under the sand for the wind-up; the ring on the hero says where it comes up
 				hidden[i] = 1
 				if game: game.fx_burst(pos[i] + Vector3(0, 0.5, 0), Color(0.85, 0.7, 0.5), 4.0)
 			Audio.play(str(def.sfx.get("attack", "en_boss_attack")), pos[i])
 	elif state[i] == STATE_ATTACK:
-		timer[i] -= delta
+		timer[i] -= delta * attack_clock(i)
 		vel[i] = Vector3.ZERO
 		if timer[i] <= 0.0:
 			var atk: Dictionary = attacks[(atk_i[i] - 1) % attacks.size()]
 			match str(atk.get("name", "")):
 				"roll":
+					# at the pace knob's speed (_scripted_speed) and 1/pace as long: the length of its red line (pass 48)
 					state[i] = STATE_CHARGE
-					timer[i] = float(atk.get("duration", 1.2))
-					dmg[i] = float(atk.get("damage", 25)) * stage_mult
+					timer[i] = float(atk.get("duration", 1.2)) / pace
+					dmg[i] = float(atk.get("damage", 25)) * stage_mult * hostile_mult()
 				"spawn_ring":
 					spawn_ring(str(atk.get("enemy", "coyote")), int(atk.get("count", 10)), pos[i], 5.0)
 					state[i] = STATE_MOVE
@@ -1898,7 +3106,7 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					var ds := ppos - atk_target[i]
 					ds.y = 0.0
 					if ds.length() <= rs + 0.4:
-						player.take_damage(float(atk.get("damage", 18)) * stage_mult, atk_target[i], hit_info(i, "ranged", ["rock slam", "knocked back"]))
+						player.take_damage(float(atk.get("damage", 18)) * stage_mult * hostile_mult(), atk_target[i], hit_info(i, "ranged", ["rock slam", "knocked back"]))
 						if player.has_method("shove") and ds.length_squared() > 0.01:
 							player.shove(ds.normalized() * float(atk.get("knockback", 6.0)))
 					if game:
@@ -1943,7 +3151,7 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					var db := ppos - pos[i]
 					db.y = 0.0
 					if db.length() <= rb + 0.5:
-						player.take_damage(float(atk.get("damage", 28)) * stage_mult, pos[i], hit_info(i, "melee", ["burst up from the sand", "knocked back"]))
+						player.take_damage(float(atk.get("damage", 28)) * stage_mult * hostile_mult(), pos[i], hit_info(i, "melee", ["burst up from the sand", "knocked back"]))
 						if player.has_method("shove"):
 							player.shove(db.normalized() * float(atk.get("knockback", 8.0)))
 					if game:
@@ -1955,11 +3163,11 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					# a sequence of small strikes around the hero, each a red ring first: a dodge that lasts a few seconds;
 					# "erupt" also brings a creature up through the sand at every ring (the Dune Centipede's young)
 					_rains.append({"left": int(atk.get("count", 10)), "next": 0.0, "interval": float(atk.get("interval", 0.3)),
-						"spread": float(atk.get("spread", 5.0)), "radius": float(atk.get("radius", 1.6)), "damage": float(atk.get("damage", 14)) * stage_mult,
-						"warn": float(atk.get("warn", 0.55)), "strikes": [], "first": true, "spawn": str(atk.get("spawn", "")),
+						"spread": float(atk.get("spread", 5.0)), "radius": float(atk.get("radius", 1.6)), "damage": float(atk.get("damage", 14)) * stage_mult * hostile_mult(),
+						"warn": float(atk.get("warn", 0.55)) / pace, "strikes": [], "first": true, "spawn": str(atk.get("spawn", "")),
 						"pillar": bool(atk.get("pillar", false)), "knockback": float(atk.get("knockback", 0.0)),
 						"info": hit_info(i, "ranged", ["pillar of light" if bool(atk.get("pillar", false)) else "eruption"])})
-					hold_t[i] = float(atk.get("count", 10)) * float(atk.get("interval", 0.3)) + float(atk.get("warn", 0.55)) + 0.3
+					hold_t[i] = float(atk.get("count", 10)) * float(atk.get("interval", 0.3)) + float(atk.get("warn", 0.55)) / pace + 0.3
 					state[i] = STATE_MOVE
 				"spit_volley":
 					var vn := int(atk.get("count", 7))
@@ -1970,18 +3178,18 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 						var vfrom: Vector3 = pos[i] + Vector3(0, size[i] * 0.6, 0)
 						if bool(atk.get("straight", false)) and game and game.has_method("enemy_shot_straight"):
 							# the fan on the ground is a set of lines: the shots fly down them, not over them
-							game.enemy_shot_straight(vfrom, target, float(atk.get("speed", 14.0)), float(atk.get("damage", 12)) * stage_mult * level_dmg_mult,
+							game.enemy_shot_straight(vfrom, target, float(atk.get("speed", 14.0)), float(atk.get("damage", 12)) * stage_mult * level_dmg_mult * hostile_mult(),
 								float(atk.get("splash", 0.5)), {"life": float(atk.get("life", 1.0)), "shot": str(atk.get("shot", "")),
 								"knockback": float(atk.get("knockback", 0.0)), "info": hit_info(i, "ranged", [str(atk.get("shot", "volley"))])})
 						elif game and game.has_method("enemy_spit"):
-							game.enemy_spit(vfrom, target, float(atk.get("speed", 7.0)), float(atk.get("damage", 12)) * stage_mult, float(atk.get("splash", 1.4)), hit_info(i, "ranged", ["volley"]))
+							game.enemy_spit(vfrom, target, float(atk.get("speed", 7.0)), float(atk.get("damage", 12)) * stage_mult * hostile_mult(), float(atk.get("splash", 1.4)), hit_info(i, "ranged", ["volley"]))
 					state[i] = STATE_MOVE
 				"slam":
 					var r := float(atk.get("radius", 6.0))
 					var d := ppos - pos[i]
 					d.y = 0.0
 					if d.length() <= r + 0.5:
-						player.take_damage(float(atk.get("damage", 30)) * stage_mult * level_dmg_mult, pos[i], hit_info(i, "melee", ["slam", "knocked back"]))
+						player.take_damage(float(atk.get("damage", 30)) * stage_mult * level_dmg_mult * hostile_mult(), pos[i], hit_info(i, "melee", ["slam", "knocked back"]))
 						if atk.has("lift") and player.has_method("blast"):
 							# the giant's hammer (pass 43): a real throw, past the shove's cap
 							player.blast(d.normalized() * float(atk.get("knockback", 6.0)), float(atk["lift"]))
@@ -1999,7 +3207,7 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					for k in range(rn):
 						var ra := -rspread * 0.5 + rspread * float(k) / float(maxi(rn - 1, 1))
 						_rumbles.append({"from": pos[i], "dir": charge_dir[i].rotated(Vector3.UP, ra), "len": float(atk.get("length", 14.0)), "front": 0.0,
-							"speed": float(atk.get("speed", 13.0)), "width": float(atk.get("width", 1.2)), "damage": float(atk.get("damage", 16)) * stage_mult * level_dmg_mult,
+							"speed": float(atk.get("speed", 13.0)) * pace, "width": float(atk.get("width", 1.2)), "damage": float(atk.get("damage", 16)) * stage_mult * level_dmg_mult * hostile_mult(),
 							"kb": float(atk.get("knockback", 10.0)), "lift": float(atk.get("lift", 3.0)), "hit": false, "fx_t": 0.0,
 							"info": hit_info(i, "ranged", ["ground rumble", "thrown"])})
 					if game:
@@ -2008,23 +3216,78 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 				"brand":
 					# the Brander's iron (pass 43): a line of fire on the sand that burns whoever crosses it for a while
 					if game and game.has_method("hell_line"):
+						# the line knows whose it is (pass 45): the Brander stood at its start and burned on his own iron
 						game.hell_line(pos[i], charge_dir[i], float(atk.get("length", 16.0)), float(atk.get("life", 9.0)), float(atk.get("width", 1.1)),
-							float(atk.get("damage", 12)) * stage_mult * level_dmg_mult, float(atk.get("tick", 0.5)), hit_info(i, "ranged", ["hellfire"]))
+							float(atk.get("damage", 12)) * stage_mult * level_dmg_mult * hostile_mult(), float(atk.get("tick", 0.5)), hit_info(i, "ranged", ["hellfire"]), i)
+					state[i] = STATE_MOVE
+				"tumbleweed_volley":
+					# the King (pass 45): tumbleweeds roll out in every direction, far, whether the hero is near or not
+					if game and game.has_method("tumbleweed_volley"):
+						game.tumbleweed_volley(pos[i], charge_dir[i], int(atk.get("count", 12)), float(atk.get("speed", 9.0)),
+							float(atk.get("damage", 14)) * stage_mult * level_dmg_mult * hostile_mult(), float(atk.get("life", 2.6)),
+							float(atk.get("knockback", 14.0)), float(atk.get("lift", 2.5)), hit_info(i, "ranged", ["tumbleweed"]))
+					state[i] = STATE_MOVE
+				"swoop":
+					# the golem's swoop (pass 45): stalactites blanket the half-disc it marked, `count` of them over `duration`
+					# seconds, each falling `fall` seconds; the hero is hit once if he is still inside when one lands
+					# (_tick_stalactites); the golem stands under them for the whole of it
+					var sc := int(atk.get("count", 14))
+					var sdur := float(atk.get("duration", 0.8))
+					var sfall := float(atk.get("fall", 0.45)) / pace
+					_stalactites.append({"center": pos[i], "dir": charge_dir[i], "r": float(atk.get("radius", 6.5)), "deg": float(atk.get("deg", 180.0)),
+						"left": sc, "gap": sdur / maxf(float(sc), 1.0), "next": 0.0, "fall": sfall,
+						"damage": float(atk.get("damage", 24)) * stage_mult * level_dmg_mult * hostile_mult(), "kb": float(atk.get("knockback", 14.0)), "lift": float(atk.get("lift", 3.0)),
+						"throw": float(atk.get("throw", 12.0)), "throw_r": float(atk.get("throw_radius", 1.8)), "owner": i, "hit": false, "falling": [],
+						"info": hit_info(i, "ranged", ["stalactites", "thrown"])})
+					hold_t[i] = sdur + sfall + 0.2
+					if game and game.camera:
+						game.camera.shake(0.5)
+					state[i] = STATE_MOVE
+				"boulder":
+					# the golem's boulder (pass 45): a rock on a high arc to the spot it marked, a blast when it lands
+					# (Game.throw_boulder -> Boulder -> Game.boulder_land); the ring stays on the spot for the flight
+					var bflight := float(atk.get("flight", 1.6))
+					if game and game.has_method("throw_boulder"):
+						game.throw_boulder(i, pos[i] + Vector3(0, size[i] * 0.8, 0), atk_target[i], atk, stage_mult * level_dmg_mult * hostile_mult(), hit_info(i, "ranged", ["boulder", "thrown"]))
+						# the boulder flies on hostile_clock (pass 48), so its ring stays 1/pace as long
+						game.telegraph_ring(atk_target[i], float(atk.get("radius", 4.6)), bflight / pace, Color(0.93, 0.29, 0.36))
 					state[i] = STATE_MOVE
 				_:
 					state[i] = STATE_MOVE
 			atk_t[i] = float(def.boss.get("cooldown_between", 2.0))
 	elif state[i] == STATE_CHARGE and str(def.brain) == "boss":
 		timer[i] -= delta
-		vel[i] = charge_dir[i] * float(attacks[(atk_i[i] - 1) % attacks.size()].get("speed", 12.0))
+		vel[i] = charge_dir[i] * _scripted_speed(i, def)
 		if timer[i] <= 0.0:
 			state[i] = STATE_MOVE
-			dmg[i] = def.damage * stage_mult
+			dmg[i] = def.damage * stage_mult * hostile_mult()
 			atk_t[i] = float(def.boss.get("cooldown_between", 2.0))
 
 
+## How far from the King a tumbleweed of his volley reaches (pass 47): it starts VOLLEY_START out, rolls `speed` x
+## `life`, and hits VOLLEY_HIT past its centre.
+static func volley_reach(atk: Dictionary) -> float:
+	return VOLLEY_START + float(atk.get("speed", 9.0)) * float(atk.get("life", 2.6)) + VOLLEY_HIT
+
+
+## An attack with `min_range` is skipped while the hero is inside it (the rain never falls on his head); one with
+## `max_range` is skipped while he is beyond it (pass 45: the golem's smack and swoop give way to its boulder when he
+## keeps his distance). `reach` is different: it waits, walking on, which would hold a cycle of close attacks for ever.
+func _attack_out_of_range(atk: Dictionary, dist: float) -> bool:
+	return (atk.has("min_range") and dist < float(atk["min_range"])) or (atk.has("max_range") and dist > float(atk["max_range"]))
+
+
+## The speed of the scripted attack a creature is in the middle of (a boss's roll): _steer and the runner read one value.
+## The pace knob is in it (pass 48).
+func _scripted_speed(i: int, def: EnemyDef) -> float:
+	var attacks: Array = def.boss.get("attacks", [])
+	if attacks.is_empty():
+		return float(def.charge.get("speed", 9.0)) * pace
+	return float((attacks[(atk_i[i] - 1) % attacks.size()] as Dictionary).get("speed", 12.0)) * pace
+
+
 ## Warm-up: every type draws one instance at `at` (Vector3.INF stops it) so its shader variants compile behind the
-## starter pick. The render loop keeps that extra instance while the warm-up is on.
+## spawn beam. The render loop keeps that extra instance while the warm-up is on.
 var _warm_at := Vector3.INF
 
 
@@ -2134,7 +3397,8 @@ func _strip_of(i: int, t: int) -> int:
 		if st == STATE_CHARGE:
 			a = A_RUN
 		elif st == STATE_WINDUP and _t_charge[t] == 1:
-			a = A_IDLE
+			# one with charge.legs scrabbles in place (pass 50); the others hold their idle set
+			a = A_RUN if _t_cv[t * CV_N + 2] > 1.0 else A_IDLE
 		if a == A_RUN or a == A_IDLE:
 			var cand: int = VIEW_ANIM[a][view[i]]
 			if _t_ok[t * N_ANIMS + cand] == 1:
@@ -2145,9 +3409,74 @@ func _strip_of(i: int, t: int) -> int:
 	return a
 
 
+## The tint creature `i` is drawn with (the shader mixes 65% of its alpha; pass 48: out of _render, so a test reads what is
+## drawn): its variance tint, an elite modifier's outline colour over that, a burn's flicker (blue for a blue burn) or
+## poison's green over those, a weapon's held tint (set_status_tint) over a burn or poison, and a frozen creature's ice
+## blue over everything.
+func tint_of(i: int) -> Color:
+	var tint := vtint[i]
+	if elite_idx[i] >= 0:
+		var e: EliteModDef = elites[elite_idx[i]]
+		tint = Color(e.outline.r, e.outline.g, e.outline.b, 0.7)
+	if not (fire_src[i] as Dictionary).is_empty():
+		if fire_blue[i] == 1:
+			# a blue burn (pass 48: Methanol, Moonshine), flickering a little like the orange one
+			tint = Color(BLUE_BURN.r, BLUE_BURN.g + 0.12 * absf(sin(anim_t[i] * 5.0 + float(i))), BLUE_BURN.b, 1.0)
+		else:
+			# red-orange that flickers between ember and flame while burning
+			tint = Color(1.0, 0.18 + 0.22 * absf(sin(anim_t[i] * 5.0 + float(i))), 0.02, 1.0)
+	elif not (poison_src[i] as Dictionary).is_empty():
+		tint = Color(0.45, 1.0, 0.3, 0.8)   # bright green while poisoned
+	if status_t[i] > 0.0:
+		tint = status_tint[i]   # a weapon's held tint (pass 48, set_status_tint) over a burn or poison
+	if freeze_t[i] > 0.0:
+		tint = Color(0.2, 0.5, 1.0, 1.0)   # ice blue while frozen (Cold Snap)
+	return tint
+
+
+## The blob shadow under creature `i`: the plain ellipse at its feet (0.55 by 0.34 of its size, smaller while it is up in
+## the air) with its type's tuning (pass 47, EnemyDef.shadow): wider or deeper, and slid `up` the screen along the
+## camera's forward on the ground (`scf`; `scr` is the screen's right), on the ground there.
+func shadow_xform(i: int, scf: Vector3, scr: Vector3) -> Transform3D:
+	var sb := type_idx[i] * 4
+	var s := size[i]
+	var shs: float = s / (1.0 + lift_h[i] * 0.5)
+	var at := pos[i]
+	var up: float = _t_sh[sb + 2] * s
+	if up != 0.0:
+		at += scf * up
+		at.y = _height(at.x, at.z)
+	return Transform3D(Basis(scr * (shs * 0.55 * _t_sh[sb]), Vector3.UP, -scf * (shs * 0.34 * _t_sh[sb + 1])), at + Vector3(0, 0.03, 0))
+
+
+## How far creature `i`'s painting sinks (pass 47, EnemyDef.shadow "drop"): down the billboard's own plane (`cam_up`) by
+## its type's share of the cell, at its size and squash `sq`. Zero for a type without a drop.
+func sprite_sink(i: int, sq: float, cam_up: Vector3) -> Vector3:
+	var drop: float = _t_sh[type_idx[i] * 4 + 3]
+	return cam_up * (drop * size[i] * maxf(sq, 0.2)) if drop != 0.0 else Vector3.ZERO
+
+
 ## The first frame of strip `strip` in type `t`'s sheet, and how many frames it has.
 func strip_frames(t: int, strip: int) -> Vector2i:
 	return Vector2i(_t_off[t * N_ANIMS + strip], _t_cnt[t * N_ANIMS + strip])
+
+
+## EnemyDef.front_faces / back_faces as the _t_face_fix code (pass 45).
+static func _face_fix(s: String) -> int:
+	return 1 if s == "left" else (2 if s == "straight" else 0)
+
+
+## The mirror bit the shader sees for creature `i`'s strip (pass 45): the tick's `flip` ("heading screen-left") as it
+## is, inverted for a front or back painting that turns the other way (the hellhound's front cycle runs down-left, so
+## as painted it looked away from the hero on both sides), cleared for one painted straight on. Side and diagonal sets
+## (strips 7..12) always face right, so only the front set (0..4) and the back set (5, 6) read the table.
+func _face_bit(f: int, t: int, strip: int) -> float:
+	var fix: int = _t_face_fix[t * 2 + (1 if strip == 5 or strip == 6 else 0)]
+	if fix == 1:
+		return 1.0 - float(f)
+	elif fix == 2:
+		return 0.0
+	return float(f)
 
 
 func _render() -> void:
@@ -2163,6 +3492,13 @@ func _render() -> void:
 	var badge_n: Dictionary = {}
 	var ppos2: Vector3 = player.global_position if player else Vector3.ZERO
 	var cam_x := 0.0
+	# the shadow's axes follow the camera (screen-right, towards the camera on the ground), and a painting that sinks
+	# (EnemyDef.shadow "drop", pass 47) slides down the billboard's own plane, the camera's up
+	var scf := _cf_tick
+	var scr := Vector3(-scf.z, 0, scf.x)
+	var cam_up := _cam_up()
+	# a creature wading in the lake casts no shadow (pass 54, in_lake)
+	var lake := _lake_refresh()
 	for i in range(MAX):
 		if alive[i] == 0 or hidden[i] == 1:
 			continue
@@ -2170,8 +3506,6 @@ func _render() -> void:
 		var mm: MultiMesh = _t_mm[t]
 		var k := counters[t]
 		var s := size[i]
-		var xf := Transform3D(Basis().scaled(Vector3(s, s, s)), pos[i] + Vector3(0, lift_h[i], 0))
-		mm.set_instance_transform(k, xf)
 		var st := state[i]
 		var strip := _strip_of(i, t)
 		var n := _t_cnt[t * N_ANIMS + strip]
@@ -2180,6 +3514,19 @@ func _render() -> void:
 		# procedural bob while moving
 		if strip == A_RUN:
 			sq += sin(anim_t[i] * 1.5) * 0.05
+		# a charger's carriage through its wind-up and charge (pass 50, charge_pose): crouch, shake and rock, then bounce,
+		# rumble and lean
+		var cp := Vector4(0.0, 0.0, 1.0, 0.0)
+		if st == STATE_WINDUP or st == STATE_CHARGE:
+			cp = charge_pose(i, scr)
+			sq *= cp.z
+		# the painting sinks by its tuning's share of the cell (pass 47): the empty cell under painted legs goes under the
+		# sand, and the legs stand on the foot point
+		var drop: float = _t_sh[t * 4 + 3]
+		var at := pos[i] + Vector3(0, lift_h[i] + cp.y, 0) + scr * cp.x
+		if drop != 0.0:
+			at -= sprite_sink(i, sq, cam_up)
+		mm.set_instance_transform(k, Transform3D(Basis().scaled(Vector3(s, s, s)) if cp.w == 0.0 else roll_basis(s, cp.w), at))
 		# the flash: white, green for a poison tick (negative), orange for a fire tick (2 + flash)
 		var fl: float = flash[i]
 		if i == bounty_i and fl < 0.4:
@@ -2190,21 +3537,12 @@ func _render() -> void:
 			fl = -fl
 		elif flash_hot[i] == 1:
 			fl = 2.0 + fl
-		var fy := float(flip[i])
+		var fy := _face_bit(flip[i], t, strip)
 		if i == tethered_i and st != STATE_DYING:
 			# the red outline of the creature holding the rope (levels 0..16 on top of the flip bit)
 			fy += 2.0 * roundf(tether_glow() * 16.0)
 		mm.set_instance_custom_data(k, Color(float(frame), fy, fl, sq))
-		var tint := vtint[i]
-		if elite_idx[i] >= 0:
-			var e: EliteModDef = elites[elite_idx[i]]
-			tint = Color(e.outline.r, e.outline.g, e.outline.b, 0.7)
-		if not (fire_src[i] as Dictionary).is_empty():
-			# red-orange that flickers between ember and flame while burning (the shader mixes 65% of the tint's alpha)
-			tint = Color(1.0, 0.18 + 0.22 * absf(sin(anim_t[i] * 5.0 + float(i))), 0.02, 1.0)
-		elif not (poison_src[i] as Dictionary).is_empty():
-			tint = Color(0.45, 1.0, 0.3, 0.8)   # bright green while poisoned
-		mm.set_instance_color(k, tint)
+		mm.set_instance_color(k, tint_of(i))
 		counters[t] = k + 1
 		# the badge over its head: from the feet up the screen past the top of the figure, then half the badge
 		var bk: String = _t_badge[t]
@@ -2215,17 +3553,17 @@ func _render() -> void:
 				if bn < BADGE_MAX:
 					var td: Dictionary = types[t]
 					var def: EnemyDef = td["def"]
-					var bs: float = BADGE_SIZE * _badge_scale * (1.3 if i == boss_index or def.archetype == "boss" else 1.0)
+					# a skull is a boss's, and drawn at a boss's size wherever it hangs (pass 49: the arena's Boss dummy is an
+					# Elite by its kind)
+					var bs: float = BADGE_SIZE * _badge_scale * (1.3 if i == boss_index or def.archetype == "boss" or bk == "skull" else 1.0)
 					bmm.set_instance_transform(bn, Transform3D(Basis(), pos[i] + Vector3(0, lift_h[i], 0)))
-					bmm.set_instance_custom_data(bn, Color(s * float(td["head"]) * maxf(sq, 0.2) + 0.12 + bs * 0.5, bs, float(i) * 1.7, 0.0))
+					bmm.set_instance_custom_data(bn, Color(s * (float(td["head"]) - drop) * maxf(sq, 0.2) + 0.12 + bs * 0.5, bs, float(i) * 1.7, 0.0))
 					badge_n[bk] = bn + 1
-		# shadow (stays on the ground and shrinks while the creature is in the air)
-		if shadow_all or shadow_n < SHADOW_BUDGET:
+		# shadow (stays on the ground and shrinks while the creature is in the air; none in the water, pass 54)
+		if (shadow_all or shadow_n < SHADOW_BUDGET) and not (lake and in_lake(pos[i])):
 			var d2: float = pos[i].distance_squared_to(ppos2)
 			if shadow_all or d2 < shadow_r2:
-				var shs: float = s / (1.0 + lift_h[i] * 0.5)
-				var sh := Transform3D(Basis().scaled(Vector3(shs * 0.55, 1, shs * 0.34)), pos[i] + Vector3(0, 0.03, 0))
-				_shadow_mm.set_instance_transform(shadow_n, sh)
+				_shadow_mm.set_instance_transform(shadow_n, shadow_xform(i, scf, scr))
 				shadow_n += 1
 	for t in range(types.size()):
 		if _warm_at != Vector3.INF:
@@ -2235,6 +3573,10 @@ func _render() -> void:
 			mm.set_instance_color(counters[t], Color(1, 1, 1, 0))
 			counters[t] += 1
 		types[t]["mm"].visible_instance_count = counters[t]
+	if _warm_at != Vector3.INF and shadow_n < MAX:
+		# one shadow in the warm-up pit too, so its blend shader compiles behind the spawn beam (pass 47)
+		_shadow_mm.set_instance_transform(shadow_n, Transform3D(Basis().scaled(Vector3(0.5, 1, 0.3)), _warm_at))
+		shadow_n += 1
 	_shadow_mm.visible_instance_count = shadow_n
 	for bk in _badges.keys():
 		var bmm2: MultiMesh = _badges[bk]

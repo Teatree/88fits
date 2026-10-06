@@ -1,15 +1,16 @@
 {
   "id": "ember_hornets",
-  "name": "Ember Hornets",
+  "name": "Ember Bees",
   "flavour": "Angry and on fire.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "hornet_nest",
   "kind": "element",
   "element": "fire",
   "hero": "",
   "text": "Stings burn.",
-  "vfx": "orange hornets, burning creatures",
+  "vfx": "orange bees, burning creatures",
   "effects": [
     {
       "stat": "fire_damage",
@@ -28,7 +29,7 @@
     }
   ],
   "params": {},
-  "art_prompt": "an angry hornet with a glowing orange fiery abdomen",
+  "art_prompt": "an angry killer bee with a glowing orange fiery abdomen",
   "placeholder": {
     "color": "#FF9030",
     "glyph": "star"

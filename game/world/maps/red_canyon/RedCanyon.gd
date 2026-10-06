@@ -10,12 +10,17 @@ extends MapBase
 @export var river_depth := 2.0
 @export var river_width := 6.0
 @export var flats_radius := 16.0
-@export var sand_color := Color(0.85, 0.66, 0.39)
-@export var river_color := Color(0.70, 0.46, 0.26)
+## The ground's flat tones (pass 54): the painted terrain shader mixes its textures towards these (`calm`), so they are
+## the knob for the sand's and the river bed's colour; a little lighter and less orange than before (Garry).
+@export var sand_color := Color(0.88, 0.72, 0.48)
+@export var river_color := Color(0.66, 0.50, 0.36)
 @export var wall_color := Color(0.56, 0.31, 0.17)
 ## Tumbleweeds are hidden since pass 44 (Garry: no more of them, the gusts carry the desert now); the feature stays.
 @export var tumbleweeds := 0
 @export var lake_depth := 0.45
+## The Oasis disc (pass 56: _build_lake draws it, water_disc tells it): its radius over the lake's, and its thickness
+const LAKE_DISC := 1.06
+const LAKE_THICK := 0.08
 
 ## the run's roll: the river's waypoints, the lake's centre, radius, water level and floor
 var _river: Array = []
@@ -194,6 +199,9 @@ func _build_terrain() -> void:
 		mat.set_shader_parameter("cracked_tex", load("res://art/env/cracked.png"))
 		if ResourceLoader.exists("res://art/env/redrock.png"):
 			mat.set_shader_parameter("rock_tex", load("res://art/env/redrock.png"))
+		# the flat tones the textures are calmed towards (pass 54): the exports, so the ground is tunable in the editor
+		mat.set_shader_parameter("sand_flat", sand_color)
+		mat.set_shader_parameter("cracked_flat", river_color)
 	else:
 		var fallback := StandardMaterial3D.new()
 		fallback.vertex_color_use_as_albedo = true
@@ -505,15 +513,15 @@ func _ridge(r: float, h: float, h_var: float, segs: int, mat: Material, noise_of
 	return mi
 
 
-## The oasis: a rippling water disc in the dish (core/shaders/oasis_water.gdshader), a collider and an obstacle
-## circle so nobody walks into it.
+## The oasis: one flat half-transparent disc at the water level (`_lake_y`) over the dish; no collider and no obstacle
+## circle, anyone wades in (pass 29; the pass 31 shader is gone, the collider went with the dish).
 func _build_lake() -> void:
 	var mi := MeshInstance3D.new()
 	mi.name = "Oasis"
 	var cm := CylinderMesh.new()
-	cm.top_radius = _lake_r * 1.06
-	cm.bottom_radius = _lake_r * 1.06
-	cm.height = 0.08
+	cm.top_radius = _lake_r * LAKE_DISC
+	cm.bottom_radius = _lake_r * LAKE_DISC
+	cm.height = LAKE_THICK
 	cm.radial_segments = 40
 	cm.rings = 1
 	mi.mesh = cm
@@ -535,6 +543,18 @@ func _build_lake() -> void:
 ## Standing in the water? (the hero's ripples, Game)
 func in_water(p: Vector3) -> bool:
 	return Vector2(p.x, p.z).distance_to(_lake_c) < _lake_r * 1.02
+
+
+## The water's surface height (pass 54): where the ripples of anyone wading are drawn and under which a shadow is
+## hidden; the lake's floor lies `lake_depth` under the shore, the surface 4 cm under it.
+func water_level() -> float:
+	return _lake_y
+
+
+## The water's disc as it is drawn (pass 56): its middle (x, z), the height of its top face, its radius and its
+## thickness, for whatever must leave out what the water covers (the hero's second pass, Game._sink_hero).
+func water_disc() -> Dictionary:
+	return {"center": _lake_c, "top": _lake_y + LAKE_THICK * 0.5, "radius": _lake_r * LAKE_DISC, "thick": LAKE_THICK}
 
 
 func _build_props() -> void:
@@ -650,7 +670,8 @@ func _scatter_sprites() -> void:
 		return true
 
 	var place := func(id: String, pt: Vector2, scale: float, sway: float) -> void:
-		if not props.has(id):
+		# a hidden painting (props.json "hidden": the signpost and the yucca since pass 49) is never placed
+		if not props.has(id) or props.is_hidden(id):
 			return
 		var g := _ground(pt.x, pt.y)
 		props.add(id, g, scale, rng.randf() < 0.5, sway)
@@ -684,16 +705,19 @@ func _scatter_sprites() -> void:
 		return Vector2.INF
 
 	var pick := func(table: Array) -> String:
-		# [[id, weight], ...]
+		# [[id, weight], ...]; a hidden painting's row is left out, so the others fill its share
+		var rows: Array = table.filter(func(row) -> bool: return not props.is_hidden(str(row[0])))
+		if rows.is_empty():
+			rows = table
 		var total := 0.0
-		for row in table:
+		for row in rows:
 			total += float(row[1])
 		var x := rng.randf() * total
-		for row in table:
+		for row in rows:
 			x -= float(row[1])
 			if x <= 0.0:
 				return str(row[0])
-		return str(table[0][0])
+		return str(rows[0][0])
 
 	# --- the oasis: palms right at the shore, green a little further out, a rock or two at the water
 	var greens: Array = [_lake_c]
@@ -784,7 +808,7 @@ func _scatter_sprites() -> void:
 			var pt: Vector2 = around.call(centre, 2.0, 9.0, 0.5)
 			if pt != Vector2.INF:
 				place.call("skull" if rng.randf() < 0.5 else "bones", pt, rng.randf_range(0.8, 1.2), 0.0)
-	# --- a few lone things: bushes and shrubs in the open, three signposts near the flats
+	# --- a few lone things: bushes and shrubs in the open, three signposts near the flats (hidden since pass 49)
 	for k in range(6):
 		var pt: Vector2 = spot.call(1.5, 16.0, arena_radius - 8.0, [], 0.0)
 		if pt != Vector2.INF:

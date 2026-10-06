@@ -19,6 +19,7 @@
     "range": 12,
     "knockback": 3.0
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -26,9 +27,7 @@
         "stat": "amount",
         "op": "add",
         "value": 1
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",
@@ -40,9 +39,7 @@
         "stat": "cooldown",
         "op": "mul",
         "value": -0.12
-      }
-    ],
-    [
+      },
       {
         "stat": "area",
         "op": "mul",
@@ -61,9 +58,7 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.25
-      }
-    ],
-    [
+      },
       {
         "stat": "amount",
         "op": "add",
@@ -72,7 +67,7 @@
     ]
   ],
   "evolves_with": "",
-  "evolves_into": "missile_massacre",
+  "evolves_into": "hellfire_battery",
   "params": {
     "radius": 0.24,
     "missile": {

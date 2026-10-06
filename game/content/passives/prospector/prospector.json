@@ -1,0 +1,25 @@
+{
+  "id": "prospector",
+  "name": "Prospector",
+  "flavour": "There's always more in the ground.",
+  "rarity": "common",
+  "weight": 9,
+  "max_level": 5,
+  "levels": [
+    [
+      {
+        "stat": "xp_drop_chance",
+        "op": "add",
+        "value": 0.06,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "text": "A kill may drop an extra XP gem: 6% a level.",
+  "art_prompt": "a miner's pickaxe with a wooden handle leaning on a grey rock, a big glowing purple crystal gem growing out of the rock",
+  "placeholder": {
+    "color": "#8A69F2",
+    "glyph": "star"
+  }
+}

@@ -13,18 +13,19 @@
 [resource]
 script = ExtResource("1_4ysan")
 archetype = "swarmer"
-doc = "Tiny, fast, in eights: the first test of area damage."
+doc = "From 5:00 (pass 53): a bigger ant, 0.6 of a mummy in health and bite, still quick, in packs of eight. It was the early swarm fodder before."
 brain = "flock"
-hp = 2.0
+hp = 36.0
 speed = 2.8
-damage = 1.5
-radius = 0.32
-size = 0.8
-pack_size = 16
+damage = 8.0
+radius = 0.45
+size = 1.15
+pack_size = 8
 drops = {
-"chest": 0.0007,
-"gold": 0.005,
-"small": 0.5
+"chest": 0.008,
+"gold": 0.12,
+"medium": 0.6,
+"small": 1.0
 }
 anims = {
 "attack": 2.0,
@@ -42,6 +43,7 @@ fps = {
 "die": 12.0,
 "run": 20.0
 }
+knockback = 4.81
 head = 0.883
 variants = {
 "ANT-A": {
@@ -54,13 +56,16 @@ variants = {
 "run": 12.0,
 "run_b": 12.0
 },
+"back_faces": "right",
 "fps": {
 "die": 12.0,
 "run": 20.0
 },
+"front_faces": "right",
 "head": 0.883,
 "icon": ExtResource("5_54l0u"),
 "note": "the classic: glossy red-orange worker, curved black mandibles; a steady tripod walk",
+"shadow": {},
 "sprite": ExtResource("4_jckre"),
 "sprite_file": "fire_ant_sprite_a.png",
 "strip_cols": 43
@@ -81,13 +86,16 @@ variants = {
 "run_fd": 12.0,
 "run_s": 12.0
 },
+"back_faces": "right",
 "fps": {
 "die": 12.0,
 "run": 16.0
 },
+"front_faces": "right",
 "head": 0.742,
 "icon": ExtResource("7_42pfp"),
 "note": "a soldier: big square head, huge mandibles, ember cracks on its gaster; a heavier, slower gait",
+"shadow": {},
 "sprite": ExtResource("6_s1rl7"),
 "sprite_file": "fire_ant_sprite_b.png",
 "strip_cols": 91
@@ -108,13 +116,16 @@ variants = {
 "run_fd": 12.0,
 "run_s": 12.0
 },
+"back_faces": "right",
 "fps": {
 "die": 12.0,
 "run": 26.0
 },
+"front_faces": "right",
 "head": 0.844,
 "icon": ExtResource("1_ge3ms"),
 "note": "a slim fast worker: bright scarlet, long legs, a flame on the tip of its gaster; a quick scuttle",
+"shadow": {},
 "sprite": ExtResource("3_gwvye"),
 "sprite_file": "fire_ant_sprite_c.png",
 "strip_cols": 91
@@ -135,25 +146,27 @@ variants = {
 "run_fd": 12.0,
 "run_s": 12.0
 },
+"back_faces": "right",
 "fps": {
 "die": 12.0,
 "run": 22.0
 },
+"front_faces": "right",
 "head": 0.625,
 "icon": ExtResource("9_cnewe"),
 "note": "chunky: a big yellow-banded gaster, angry white eyes; a bouncy walk",
+"shadow": {},
 "sprite": ExtResource("8_g3pqb"),
 "sprite_file": "fire_ant_sprite_d.png",
 "strip_cols": 91
 }
 }
 variant = "ANT-A"
-cap_share = 0.5
 sfx = {
 "die": "en_ant_die",
 "hit": "en_ant_hit"
 }
-xp_mult = 0.9
+xp_mult = 2.4
 variance = {
 "size": 0.2,
 "special": {

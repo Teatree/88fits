@@ -24,13 +24,14 @@ FINISHES = {
     # metal kept low: the desert sky in a mirror-finish gun washes it out to white from the camera's height. The numbers
     # are linear (the game shows them lighter): blued steel is (20, 22, 30) here
     "revolver": {"gunMetal": ((20, 22, 30), 0.5, 0.35), "gunWood": ((110, 50, 16), 0.65, 0.0)},
-    "golden_revolver": {"gunMetal": ((255, 176, 48), 0.4, 0.55), "gunWood": ((238, 228, 204), 0.45, 0.0)},
+    # pass 48: the old (255, 176, 48) at metal 0.55 read tan in the game; a deeper gold with a little of its own glow reads gold
+    "golden_revolver": {"gunMetal": ((255, 150, 12), 0.3, 0.75, 0.35), "gunWood": ((245, 236, 214), 0.4, 0.0)},
 }
 
 
-def fresh(name, rgb, rough, metal):
+def fresh(name, rgb, rough, metal, glow=0.0):
     """A clean Principled material: the reference's own have a second output fed by a plain Diffuse node, which is what
-    the glTF export follows (it came out white)."""
+    the glTF export follows (it came out white). `glow` (pass 48): its own colour as emission, so gold stays gold."""
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     bsdf = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
@@ -38,6 +39,9 @@ def fresh(name, rgb, rough, metal):
     bsdf.inputs["Base Color"].default_value = col
     bsdf.inputs["Roughness"].default_value = rough
     bsdf.inputs["Metallic"].default_value = metal
+    if glow > 0.0:
+        bsdf.inputs["Emission Color"].default_value = col
+        bsdf.inputs["Emission Strength"].default_value = glow
     m.diffuse_color = col
     return m
 

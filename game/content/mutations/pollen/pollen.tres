@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/pollen/pollen_icon.png" id="1_uw2d4"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_0iexx"]
+
+[resource]
+script = ExtResource("2_0iexx")
+weapon = "hornet_nest"
+mutation_kind = "element"
+text = "While held, a flower grows from the sand every 8-12 s, 10-18 m away (3 at most, 15 s each); walk into one for 4 times the bees at 1.5 times the speed for 5 s."
+vfx = "desert flowers on the sand, red bees with red trails while the buff lasts"
+params = {
+"pollen": {
+"amount_mult": 4.0,
+"blink": 4.0,
+"every": [8.0, 12.0],
+"far": 18.0,
+"life": 15.0,
+"max": 3.0,
+"near": 10.0,
+"seconds": 5.0,
+"speed_mult": 1.5
+}
+}
+id = "pollen"
+display_name = "Pollen"
+flavour = "Stop and smell them."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_uw2d4")
+icon_file = "pollen_icon.png"
+placeholder = {
+"color": "#FF7AB8",
+"glyph": "star"
+}

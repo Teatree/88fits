@@ -1,0 +1,26 @@
+{
+  "id": "tinnitus",
+  "name": "Tinnitus",
+  "flavour": "The ringing never stops.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "guitarra",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "Every third hit on the same creature deals double damage and 50% more knockback.",
+  "vfx": "a small white ring on the creature the third hit lands on",
+  "effects": [],
+  "params": {
+    "tinnitus": {
+      "every": 3,
+      "damage_mult": 2.0,
+      "knock_mult": 1.5
+    }
+  },
+  "art_prompt": "a cartoon ear with white ringing sound waves around it",
+  "placeholder": {
+    "color": "#F4F4F0",
+    "glyph": "star"
+  }
+}

@@ -3,8 +3,11 @@
 ## crowd, shots and particles, and (windowed) the draw calls. With --fixed-fps every frame is exactly one frame of game
 ## time, so --fixed-fps 60 is a 60 fps phone and --fixed-fps 30 one that has dropped to 30 (two physics ticks a frame).
 ##   "$GODOT" --audio-driver Dummy --resolution 504x1122 --fixed-fps 60 --path game --script res://tools/perf_late.gd -- seconds=40 build=six
-##   args: seconds= (measured, default 40), warm= (seconds before measuring, 15), build=six|six_b|none, t= (the clock, 700),
-##         level= (45). Headless works too, without the draw calls.
+##   args: seconds= (measured, default 40), warm= (seconds before measuring, 15), build=six|six_b|none, t= (the clock; by
+##         default a third of the way into stage 3: 700 s of 300 s stages, 1003 s of Red Canyon's 430 s stages since pass
+##         46, the same crowd), level= (45), analytics=0, numbers=0 (no damage numbers: the game's DamageNumbers is
+##         suppressed, Settings never touched, so the save keeps the player's switch; pass 47). Headless works too, without
+##         the draw calls.
 ## Autoloads are reached through the tree: SceneTree scripts compile before they exist.
 extends SceneTree
 
@@ -17,7 +20,7 @@ const PASSIVES := ["multishot", "haste", "reach", "quickdraw", "overkill", "rico
 var _secs := 40.0
 var _warm := 15.0
 var _build := "six"
-var _clock := 700.0
+var _clock := -1.0        # below zero: from the map's stage length (see the header)
 var _level := 45
 var _t := 0.0
 var _game: Node
@@ -29,6 +32,8 @@ var _measuring := false
 var _next := 0.0
 var _wall := 0
 var _frames := 0
+var _analytics := true   # analytics=0: no run recorder (pass 45), the A/B of its cost
+var _numbers := true     # numbers=0: no damage numbers (pass 46), the A/B of their cost (never through Settings: pass 47)
 var _sum := {}
 
 
@@ -44,6 +49,10 @@ func _init() -> void:
 			_clock = float(a.substr(2))
 		elif a.begins_with("level="):
 			_level = int(a.substr(6))
+		elif a == "analytics=0":
+			_analytics = false
+		elif a == "numbers=0":
+			_numbers = false
 	process_frame.connect(_start, CONNECT_ONE_SHOT)
 
 
@@ -51,7 +60,7 @@ func _start() -> void:
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 	Engine.max_fps = 0
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
-	f.store_string(JSON.stringify({"weapon": "peashooter", "level": 1, "character": "astro", "map": "red_canyon", "map_seed": 7}))
+	f.store_string(JSON.stringify({"weapon": "peashooter", "level": 1, "character": "astro", "map": "red_canyon", "map_seed": 7, "analytics": _analytics}))
 	f.close()
 	root.get_node("Save").data["runs_started"] = 1
 	_run = root.get_node("Run")
@@ -70,6 +79,10 @@ func _tick() -> void:
 			return
 		_game = g
 		_game.player.god = true
+		# numbers=0 switches off this run's numbers only: setting Settings.damage_numbers here was saved by the run's
+		# next save and left the PC without numbers (pass 47)
+		if not _numbers and _game.get("damage_numbers") != null:
+			_game.damage_numbers.suppressed = true
 	var inp = _game.player.input
 	if inp and not _game.paused:
 		inp.wants_move = true
@@ -110,6 +123,9 @@ func _make_build() -> void:
 		for id in BUILDS.get(_build, BUILDS["six"]):
 			_run.debug_set_item("evolution", id, 99)
 			var inst = _run.weapon_instance(id)
+			if inst == null:
+				# past the weapon slots (five since pass 52): the build is the first five
+				continue
 			var picks := 0
 			for m in reg.mutations_of(inst.family_id()):
 				if picks < 2 and not m.is_hero():
@@ -119,6 +135,9 @@ func _make_build() -> void:
 			_run.debug_set_item("passive", p, 99)
 	_run.level = _level
 	_run.stage = 2
+	if _clock < 0.0:
+		var sl: float = float(_game.director.timeline.stage_length)
+		_clock = 2.0 * sl + sl / 3.0
 	_run.elapsed = _clock
 	var d = _game.director
 	for k in range(d.timeline.events.size()):

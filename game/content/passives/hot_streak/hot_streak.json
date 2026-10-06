@@ -1,0 +1,25 @@
+{
+  "id": "hot_streak",
+  "name": "Hot Streak",
+  "rarity": "rare",
+  "weight": 6,
+  "max_level": 5,
+  "flavour": "It only gets hotter.",
+  "text": "Kills make you stronger for the rest of the run: +5% attack damage per 1,000 kills (+5% a level), up to +100%.",
+  "levels": [
+    [
+      {
+        "stat": "kill_might",
+        "op": "add",
+        "value": 0.05,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "two white six-sided dice, true cubes with neat black pips, both showing six, wreathed in bright orange and red flames",
+  "placeholder": {
+    "color": "#E0542A",
+    "glyph": "sun"
+  },
+  "repeat_last_level": true
+}

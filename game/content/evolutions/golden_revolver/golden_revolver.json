@@ -1,14 +1,14 @@
 {
   "id": "golden_revolver",
   "name": "Golden Revolver",
-  "flavour": "It leaves a mark. In the air.",
-  "rarity": "epic",
+  "flavour": "Every round a silver bullet that ricochets twice at 80% without needing a kill; every third pull is a hip shot; every shot leaves a line of golden energy in the air.",
+  "rarity": "rare",
   "hero": "drifter",
   "is_evolution": true,
   "evolved_from": "revolver",
   "max_level": 1,
   "behavior": "ProjectileEmitter",
-  "targeting": "nearest",
+  "targeting": "priority",
   "tags": [
     "gun"
   ],
@@ -44,6 +44,21 @@
       "frac": 0.35,
       "tick": 0.5,
       "width": 0.5
+    },
+    "final": {
+      "silver": true,
+      "size_mult": 1.5,
+      "radius_mult": 1.5,
+      "speed_mult": 1.15,
+      "ricochet_any": {
+        "count": 2,
+        "frac": 0.8
+      },
+      "hip_shot": {
+        "every": 3,
+        "volleys": 3,
+        "gap": 0.12
+      }
     }
   },
   "sfx": {

@@ -20,7 +20,7 @@ REST_LEN = 1.1
 MATS = {}
 
 
-def mat(name, rgb, rough=0.6, metal=0.0, glow=None):
+def mat(name, rgb, rough=0.6, metal=0.0, glow=None, glow_strength=3.0):
     if name in MATS:
         return MATS[name]
     m = bpy.data.materials.new(name)
@@ -32,7 +32,7 @@ def mat(name, rgb, rough=0.6, metal=0.0, glow=None):
     bsdf.inputs["Metallic"].default_value = metal
     if glow:
         bsdf.inputs["Emission Color"].default_value = (glow[0] / 255.0, glow[1] / 255.0, glow[2] / 255.0, 1.0)
-        bsdf.inputs["Emission Strength"].default_value = 3.0
+        bsdf.inputs["Emission Strength"].default_value = glow_strength
     m.diffuse_color = col
     MATS[name] = m
     return m
@@ -72,8 +72,71 @@ def join(objs, name, origin=(0.0, 0.0, 0.0)):
     return o
 
 
+def earthshaker():
+    """The Earthshaker as its icon draws it (pass 48, Garry: the 3D object as in the icon): a tall block of dark grey stone
+    with a web of glowing orange-yellow cracks over every side; a bright gold frame on each broad side (a bar near the top,
+    a bar near the bottom and an upright joining them in the middle), gold strips down the four corners and a gold plate
+    capping each striking face; a dark brown handle with gold rings and a gold knob at its end."""
+    import random
+    rng = random.Random(48)
+    wood = mat("es_wood", (52, 30, 16), 0.65)
+    grip = mat("es_grip", (34, 20, 12), 0.8)
+    gold = mat("es_gold", (255, 150, 12), 0.3, 0.75, glow=(255, 150, 12), glow_strength=0.25)
+    # the icon's stone is a cool mid grey; the desert light warms and lifts it, so it is painted darker than it should read
+    stone = mat("es_stone", (34, 36, 42), 0.8)
+    # orange cracks: a strong glow washed them out to white in the game (pass 48 capture), so a modest one on an orange base
+    crack = mat("es_crack", (255, 110, 10), 0.5, 0.0, glow=(255, 90, 5), glow_strength=1.4)
+    handle = []
+    handle.append(cyl(0.044, REST_LEN, (0, REST_LEN / 2, 0), wood, "y", 12))
+    handle.append(cyl(0.052, 0.3, (0, 0.17, 0), grip, "y", 12))
+    handle.append(cyl(0.07, 0.07, (0, -0.03, 0), gold, "y", 12))          # the knob
+    for k in range(4):
+        handle.append(cyl(0.054, 0.035, (0, 0.42 + 0.12 * k, 0), gold, "y", 12))
+    handle.append(cyl(0.06, 0.05, (0, REST_LEN - 0.3, 0), gold, "y", 12))
+    h = join(handle, "Handle")
+    # the head: X across the hammer (the broad sides face +-X), Y along the handle, Z the striking axis
+    W, D, H = 0.42, 0.4, 0.78
+    c = (0, REST_LEN, 0)
+    head = [box((W, D, H), c, stone)]
+    t = 0.022   # how far the gold stands proud of the stone
+    for sx in (-1, 1):
+        x = sx * (W / 2 + t / 2)
+        for sz in (-1, 1):
+            head.append(box((t, D * 0.96, 0.07), (x, REST_LEN, sz * H * 0.27), gold))
+        head.append(box((t, 0.07, H * 0.54), (x, REST_LEN, 0.0), gold))
+    # as the icon draws them: short gold brackets at the corners near each end, no full-length strips and no end caps (the
+    # strips and caps made the head read as a gold crate in the game)
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            for sz in (-1, 1):
+                head.append(box((0.05, 0.05, H * 0.16), (sx * W / 2, REST_LEN + sy * D / 2, sz * H * 0.36), gold))
+    # the cracks: thin glowing slivers laid on every side of the stone, a jagged web the gold frames sit over
+    def crack_on(face, n):
+        for _ in range(n):
+            ln = rng.uniform(0.07, 0.17)
+            ang = rng.uniform(-1.2, 1.2)
+            if face in ("+x", "-x"):
+                sx = 1 if face == "+x" else -1
+                y = rng.uniform(-D * 0.42, D * 0.42)
+                z = rng.uniform(-H * 0.45, H * 0.45)
+                head.append(box((0.006, ln, 0.016), (sx * (W / 2 + 0.003), REST_LEN + y, z), crack, (ang, 0, 0)))
+            else:
+                sy = 1 if face == "+y" else -1
+                x = rng.uniform(-W * 0.42, W * 0.42)
+                z = rng.uniform(-H * 0.45, H * 0.45)
+                head.append(box((ln, 0.006, 0.016), (x, REST_LEN + sy * (D / 2 + 0.003), z), crack, (0, ang, 0)))
+    for face in ("+x", "-x"):
+        crack_on(face, 16)
+    for face in ("+y", "-y"):
+        crack_on(face, 9)
+    hd = join(head, "Head", (0.0, REST_LEN, 0.0))
+    return h, hd
+
+
 def hammer(kind):
     """kind "hammer": oak and steel with brass bands; "earthshaker": a carved stone block, gold bands, glowing cracks."""
+    if kind == "earthshaker":
+        return earthshaker()
     earth = kind == "earthshaker"
     wood = mat(kind + "_wood", (70, 44, 26) if earth else (150, 96, 52), 0.7)
     grip = mat(kind + "_grip", (48, 30, 22), 0.8)

@@ -1,0 +1,35 @@
+[gd_scene load_steps=5 format=3]
+
+[sub_resource type="CylinderMesh" id="bottle"]
+top_radius = 0.09
+bottom_radius = 0.13
+height = 0.42
+radial_segments = 8
+
+[sub_resource type="StandardMaterial3D" id="bottlemat"]
+albedo_color = Color(0.64, 0.84, 1, 0.82)
+transparency = 1
+
+[sub_resource type="SphereMesh" id="flame"]
+radius = 0.13
+height = 0.26
+radial_segments = 6
+rings = 3
+
+[sub_resource type="StandardMaterial3D" id="flamemat"]
+shading_mode = 0
+albedo_color = Color(0.45, 0.72, 1, 1)
+emission_enabled = true
+emission = Color(0.3, 0.56, 1, 1)
+emission_energy_multiplier = 1.5
+
+[node name="MethanolVisual" type="Node3D"]
+
+[node name="Projectile" type="MeshInstance3D" parent="."]
+mesh = SubResource("bottle")
+material_override = SubResource("bottlemat")
+
+[node name="Flame" type="MeshInstance3D" parent="Projectile"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+mesh = SubResource("flame")
+material_override = SubResource("flamemat")

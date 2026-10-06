@@ -1,0 +1,33 @@
+{
+  "id": "loose_change",
+  "name": "Loose Change",
+  "rarity": "uncommon",
+  "weight": 8,
+  "max_level": 5,
+  "flavour": "Every bruise shakes something loose.",
+  "text": "A hit has a 25% chance to knock a coin worth 10 gold out of you (+10% a level). It lands a few steps away: go and get it.",
+  "levels": [
+    [
+      {
+        "stat": "coin_on_hit",
+        "op": "add",
+        "value": 0.25,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "coin_on_hit",
+        "op": "add",
+        "value": 0.1,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "three shiny gold coins tumbling out of a torn brown leather trouser pocket, one coin in mid-air",
+  "placeholder": {
+    "color": "#E0B030",
+    "glyph": "coin"
+  },
+  "repeat_last_level": true
+}

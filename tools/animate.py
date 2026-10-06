@@ -241,6 +241,84 @@ def cycle_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative_e
     raise RuntimeError("no usable control clip for %s: %s" % (key, last_err))
 
 
+def _crop_kept(frames, size, pad=6):
+    """Frames cropped to the box round all of them."""
+    boxes = []
+    for f in frames:
+        a = np.asarray(f)[..., 3] > 127
+        ys, xs = np.nonzero(a)
+        if len(xs) >= 50:
+            boxes.append((xs.min(), ys.min(), xs.max(), ys.max()))
+    box = (max(0, min(b[0] for b in boxes) - pad), max(0, min(b[1] for b in boxes) - pad),
+           min(size, max(b[2] for b in boxes) + pad + 1), min(size, max(b[3] for b in boxes) + pad + 1))
+    return [f.crop(box) for f in frames]
+
+
+def oneshot_control(ref_rgb, key, ctl_dir, seed=0, size=640, prompt="", negative_extra="", keep=(1, 4, 7, 10, 13, 16, 20, 24), tries=2):
+    """A one-shot clip (a death) that follows a 3D model's control video (tools/blender_scorpion.py mode=death): the
+    frames at `keep` from the start to the end, keyed and cropped to one box. Cached in ANIM/<key>/ like the cycles."""
+    os.makedirs(os.path.join(ANIM, key), exist_ok=True)
+    meta_p = os.path.join(ANIM, key, "cycle.json")
+    keep = list(keep)
+    if os.path.exists(meta_p):
+        meta = json.load(open(meta_p, encoding="utf-8"))
+        if meta.get("oneshot") and meta.get("keep") == keep:
+            frames = [Image.open(os.path.join(ANIM, key, "out_%02d.png" % k)).convert("RGBA") for k in range(len(keep))]
+            return frames, meta
+        fulls = [os.path.join(ANIM, key, "full_%02d.png" % k) for k in keep]
+        if meta.get("oneshot") and all(os.path.exists(f) for f in fulls):
+            # other frames of the clip already rendered (a smeared stretch left out): picked again, no render
+            out = _crop_kept([Image.open(f).convert("RGBA") for f in fulls], size)
+            for k, f in enumerate(out):
+                f.save(os.path.join(ANIM, key, "out_%02d.png" % k))
+            artkit.contact_sheet(out, len(out), 200).save(os.path.join(ANIM, key, "cycle_sheet.png"))
+            meta["keep"] = keep
+            json.dump(meta, open(meta_p, "w", encoding="utf-8", newline=chr(10)), indent=1)
+            print("  shot %-24s frames %s picked again from the cached clip" % (key, keep), flush=True)
+            return out, meta
+    ctls = sorted(f for f in os.listdir(ctl_dir) if f.startswith("ctl_") and f.endswith(".png"))
+    ref = ref_rgb.convert("RGB").resize((size, size), Image.LANCZOS)
+    ref_name = comfy.upload_pil(ref, key + "_ref.png")
+    ctl_names = [comfy.upload(open(os.path.join(ctl_dir, f), "rb").read(), key + "_" + f) for f in ctls]
+    neg = NEGATIVE + ", extra legs, missing legs, a second head, duplicate body, morphing, melting" + (", " + negative_extra if negative_extra else "")
+    last_err = None
+    for attempt in range(tries):
+        s = seed + attempt * 7919
+        pngs, secs = comfy.run(wan_fun_control(prompt, ref_name, ctl_names, s, size, size, negative=neg, prefix="88fits/ctl_" + key), timeout=3600)
+        raw = [Image.open(io.BytesIO(b)).convert("RGB") for b in pngs]
+        if len(raw) <= max(keep):
+            last_err = "got %d frames" % len(raw)
+            print("  shot %-24s seed %-7d %5.0fs  retry: %s" % (key, s, secs, last_err), flush=True)
+            continue
+        keyed = [artkit.key_background(im, 0.16, 0.7) for im in raw]
+        picked = [keyed[k] for k in keep]
+        boxes = []
+        for f in picked:
+            a = np.asarray(f)[..., 3] > 127
+            ys, xs = np.nonzero(a)
+            if len(xs) >= 50:
+                boxes.append((xs.min(), ys.min(), xs.max(), ys.max()))
+        if len(boxes) < len(keep):
+            last_err = "the figure vanished"
+            print("  shot %-24s seed %-7d %5.0fs  retry: %s" % (key, s, secs, last_err), flush=True)
+            continue
+        pad = 6
+        box = (max(0, min(b[0] for b in boxes) - pad), max(0, min(b[1] for b in boxes) - pad),
+               min(size, max(b[2] for b in boxes) + pad + 1), min(size, max(b[3] for b in boxes) + pad + 1))
+        for k, f in enumerate(keyed):
+            f.save(os.path.join(ANIM, key, "full_%02d.png" % k))
+        out = [f.crop(box) for f in picked]
+        for k, f in enumerate(out):
+            f.save(os.path.join(ANIM, key, "out_%02d.png" % k))
+        artkit.contact_sheet(out, len(out), 200).save(os.path.join(ANIM, key, "cycle_sheet.png"))
+        meta = {"key": key, "seed": s, "oneshot": True, "keep": keep, "ctl_dir": os.path.abspath(ctl_dir), "frames": len(raw),
+                "box": [int(v) for v in box], "seconds": round(secs, 1), "prompt": prompt}
+        json.dump(meta, open(meta_p, "w", encoding="utf-8", newline=chr(10)), indent=1)
+        print("  shot %-24s seed %-7d %5.0fs  %d frames of %d, box %s" % (key, s, secs, len(out), len(raw), box), flush=True)
+        return out, meta
+    raise RuntimeError("no usable one-shot clip for %s: %s" % (key, last_err))
+
+
 WAN_ANIMATE = "wan2.2_animate_14B_fp8_e4m3fn_scaled_KJ.safetensors"
 WAN_ANIMATE_LORA = "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors"
 WAN_CLIP_VISION = "clip_vision_h.safetensors"
@@ -426,8 +504,9 @@ def find_cycle(frames_rgba, skip=8, pmin=10, pmax=48):
     return best[1], best[2], best[0]
 
 
-def cycle(still_rgb, key, motion, seed=0, n_out=12, tries=2, length=81, size=640):
-    """Returns n_out RGBA frames of one loop of `motion`, cropped to a common box (feet may leave the ground), plus info."""
+def cycle(still_rgb, key, motion, seed=0, n_out=12, tries=2, length=81, size=640, fill=0.72):
+    """Returns n_out RGBA frames of one loop of `motion`, cropped to a common box (feet may leave the ground), plus info.
+    `fill` is how much of the canvas the still takes (a creature that bounces high needs headroom: the slime's 0.56, pass 45)."""
     os.makedirs(os.path.join(ANIM, key), exist_ok=True)
     meta_p = os.path.join(ANIM, key, "cycle.json")
     if os.path.exists(meta_p):
@@ -441,7 +520,7 @@ def cycle(still_rgb, key, motion, seed=0, n_out=12, tries=2, length=81, size=640
         if len(fulls) >= length - 1:
             keyed = [Image.open(os.path.join(ANIM, key, f)).convert("RGBA") for f in fulls]
             return _cut(keyed, key, n_out, size, meta.get("seed", seed), meta.get("prompt", ""), meta.get("seconds", 0)), json.load(open(meta_p, encoding="utf-8"))
-    still, bg = _prep_still(still_rgb, size)
+    still, bg = _prep_still(still_rgb, size, fill)
     name = comfy.upload_pil(still, key + "_still.png")
     prompt = ("A 2D anime game character sprite, " + motion + ". The character stays exactly in the centre of the frame and does not travel, "
               "like running on a treadmill: a smooth, energetic, seamlessly looping animation cycle at a steady pace. The camera is completely "

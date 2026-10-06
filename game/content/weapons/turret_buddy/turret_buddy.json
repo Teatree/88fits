@@ -5,7 +5,7 @@
   "rarity": "rare",
   "weight": 7,
   "behavior": "Spawner",
-  "targeting": "nearest",
+  "targeting": "priority",
   "base": {
     "damage": 4,
     "cooldown": 6.0,
@@ -16,8 +16,11 @@
     "knockback": 4.0
   },
   "params": {
-    "turret_fire_rate": 0.35
+    "turret_fire_rate": 0.35,
+    "tracer": true,
+    "marks": false
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -25,9 +28,7 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.25
-      }
-    ],
-    [
+      },
       {
         "stat": "lifetime",
         "op": "add",
@@ -39,9 +40,7 @@
         "stat": "cooldown",
         "op": "add",
         "value": -1
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",
@@ -60,9 +59,7 @@
         "stat": "lifetime",
         "op": "add",
         "value": 4
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",
@@ -71,7 +68,7 @@
     ]
   ],
   "evolves_with": "",
-  "evolves_into": "turret_family",
+  "evolves_into": "iron_bastion",
   "sfx": {
     "place": "w_turret_place",
     "fire": "w_turret_fire",

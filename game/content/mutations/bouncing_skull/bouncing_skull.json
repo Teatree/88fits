@@ -1,0 +1,41 @@
+{
+  "id": "bouncing_skull",
+  "name": "Bouncing Skull",
+  "flavour": "It is not done with you.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "skull_rain",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "After its blast the skull bounces on twice, turning up to 30° toward the nearest enemy ahead: the first bounce lands 1.6x the blast's radius + 1.5 m on with a 70% blast and cloud, the second 1.2x + 1 m on at 50%.",
+  "vfx": "the skull hops on twice past its blast, smaller each time",
+  "effects": [],
+  "params": {
+    "bounce": {
+      "count": 2,
+      "steer_deg": 30,
+      "scale": [
+        0.7,
+        0.5
+      ],
+      "size": [
+        0.8,
+        0.6
+      ],
+      "reach_mult": [
+        1.6,
+        1.2
+      ],
+      "reach_add": [
+        1.5,
+        1.0
+      ]
+    }
+  },
+  "art_prompt": "a painted sugar skull bouncing along the sand with motion arcs behind it",
+  "placeholder": {
+    "color": "#E8E0C8",
+    "glyph": "star"
+  }
+}

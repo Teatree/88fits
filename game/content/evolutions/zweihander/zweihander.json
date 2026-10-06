@@ -1,13 +1,14 @@
 {
   "id": "zweihander",
+  "hidden": true,
   "name": "Zweihänder",
   "flavour": "Two hands. One argument.",
-  "rarity": "epic",
+  "rarity": "rare",
   "is_evolution": true,
   "evolved_from": "sabre",
   "max_level": 1,
   "behavior": "Thruster",
-  "targeting": "nearest",
+  "targeting": "priority",
   "tags": [
     "blade"
   ],

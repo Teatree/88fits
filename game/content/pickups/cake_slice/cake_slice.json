@@ -1,0 +1,20 @@
+{
+  "id": "cake_slice",
+  "name": "Cake Slice",
+  "flavour": "A small slice of health.",
+  "effect": "heal",
+  "value": 0.06,
+  "duration": 0,
+  "lifetime": 30,
+  "color": "#F4A6B8",
+  "weight": 0,
+  "placeholder": {
+    "color": "#F4A6B8",
+    "glyph": "heart"
+  },
+  "art_prompt": "a small slice of layer cake with white icing, pink cream between its sponge layers, a red cherry on top and a small green plus sign in its lower right",
+  "params": {
+    "small": true,
+    "quiet": true
+  }
+}

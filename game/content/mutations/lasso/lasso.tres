@@ -7,9 +7,7 @@
 [sub_resource type="Resource" id="Resource_q02c3"]
 script = ExtResource("1_tss7q")
 stat = "pull"
-op = "add"
 value = 2.5
-target = "self"
 
 [resource]
 script = ExtResource("2_q02c3")
@@ -27,7 +25,7 @@ params = {
 id = "lasso"
 display_name = "Lasso"
 flavour = "Reach out and touch someone."
-rarity = "epic"
+rarity = "rare"
 weight = 8.0
 icon = ExtResource("2_ssks3")
 icon_file = "lasso_icon.png"

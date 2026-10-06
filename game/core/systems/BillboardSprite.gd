@@ -17,8 +17,16 @@ var _fps: Dictionary = {}     # prefix -> frames per second, from the content de
 var _total := 1
 var _mat: ShaderMaterial
 var _sil: ShaderMaterial
+var _over: ShaderMaterial
 ## The hero wants an outline where props hide him; pickups and the like do not.
 var outline_when_hidden := false
+## The see-through queue's place of the hero's second pass (pass 49, enable_over_trails): after his speed trails
+## (Fx.SPEED_TRAIL_PRIORITY), before every other effect (0).
+const OVER_PRIORITY := -1
+## The water the second pass leaves out (pass 56, set_water): x and z the disc's centre, y its top face, w its radius
+## (0 = no water), and how far its rim reaches under the top face. Kept here so a pass made later gets it too.
+var _water := Vector4(0.0, -1000.0, 0.0, 0.0)
+var _water_thick := 0.0
 
 
 func _ready() -> void:
@@ -50,12 +58,89 @@ func enable_outline() -> void:
 	_sil = ShaderMaterial.new()
 	_sil.shader = load("res://core/shaders/sprite_silhouette.gdshader")
 	_mat.next_pass = _sil
+	if _over:
+		_sil.next_pass = _over
+
+
+## The painting drawn once more over the hero's speed trails (pass 49, Garry: "the speed up trail should be rendered
+## underneath the 2.5d sprite of the hero"; core/shaders/sprite_billboard_over): the same quad and frame in the see-through
+## queue at OVER_PRIORITY, a hair towards the camera, so a trail running between him and the camera goes under him while
+## anything really in front of him still hides him. Call before setup().
+func enable_over_trails() -> void:
+	_ensure()
+	if _over:
+		return
+	_over = ShaderMaterial.new()
+	_over.shader = load("res://core/shaders/sprite_billboard_over.gdshader")
+	_over.render_priority = OVER_PRIORITY
+	if _water.w > 0.0:
+		_apply_water()
+	# after the outline pass when there is one (where a prop hides him the depth test drops this one anyway)
+	if _sil:
+		_sil.next_pass = _over
+	else:
+		_mat.next_pass = _over
+
+
+## The water he wades in (pass 56, Garry: "Hero for some reason walks on water ... Should be submerged like all the
+## enemies"): the second pass (enable_over_trails) is drawn after the see-through oasis and painted his whole figure over
+## it, so it leaves out what the water's disc covers on his first pass (core/shaders/sprite_billboard_over), and the
+## water tints him there as it tints a creature. `center` is the disc's middle (x, z), `top` its top face's height,
+## `radius` its radius, `thick` how far its rim reaches under the top. Only the second pass gets it: his first pass, his
+## outline and every creature are drawn as before. Game._sink_hero hands it over while he is near the water.
+func set_water(center: Vector2, top: float, radius: float, thick: float) -> void:
+	var w := Vector4(center.x, top, center.y, maxf(radius, 0.0))
+	if w == _water and thick == _water_thick:
+		return
+	_water = w
+	_water_thick = thick
+	_apply_water()
+
+
+## No water for the second pass (away from the lake, or a map without one): his whole painting again.
+func clear_water() -> void:
+	set_water(Vector2.ZERO, -1000.0, 0.0, 0.0)
+
+
+## Whether the second pass has a water disc to leave out now (pass 56).
+func has_water() -> bool:
+	return _water.w > 0.0
+
+
+## The disc the second pass leaves out (pass 56): x and z its centre, y its top face, w its radius (0 = none).
+func water() -> Vector4:
+	return _water
+
+
+func _apply_water() -> void:
+	if _over:
+		_over.set_shader_parameter("water", _water)
+		_over.set_shader_parameter("water_thick", _water_thick)
+
+
+## The second pass's water test in GDScript (pass 56; the shader's fragment does the same per pixel, here for tests and
+## tools): whether the water's `disc` (x, z centre, y top face, w radius) with a rim `thick` deep covers `point` seen
+## from `camera`, so the pass leaves that point out and the water tints his first pass there.
+static func water_covers(point: Vector3, camera: Vector3, disc: Vector4, thick: float) -> bool:
+	if disc.w <= 0.0 or point.y >= disc.y:
+		return false
+	var drop := camera.y - point.y
+	if drop <= 0.0001:
+		return false
+	var cam := Vector2(camera.x, camera.z)
+	var run := Vector2(point.x, point.z) - cam
+	var c := Vector2(disc.x, disc.z)
+	var at_top := cam + run * ((camera.y - disc.y) / drop)
+	var at_rim := cam + run * ((camera.y - maxf(point.y, disc.y - thick)) / drop)
+	return at_top.distance_to(c) < disc.w or at_rim.distance_to(c) < disc.w
 
 
 func _param(key: String, value: Variant) -> void:
 	_mat.set_shader_parameter(key, value)
 	if _sil:
 		_sil.set_shader_parameter(key, value)
+	if _over:
+		_over.set_shader_parameter(key, value)
 
 
 func setup(tex: Texture2D, anims: Dictionary, order: Array, height_m: float, cols: int = 0, fps: Dictionary = {}) -> void:

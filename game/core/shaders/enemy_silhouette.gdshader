@@ -48,7 +48,12 @@ void vertex() {
 	vec3 right = normalize(cross(up, cam_back));
 	float w = sx * (1.0 + (1.0 - squash) * 0.5);
 	float h = sy * squash;
-	vec3 world = origin + right * VERTEX.x * w + up * (VERTEX.y + 0.5) * h;
+	// a roll about the feet (pass 50: a charger's rock and lean), read off the angle of the instance's x column; a plain
+	// scaled basis rolls 0
+	float roll = atan(MODEL_MATRIX[0].y, MODEL_MATRIX[0].x);
+	vec2 q = vec2(VERTEX.x * w, (VERTEX.y + 0.5) * h);
+	q = vec2(q.x * cos(roll) - q.y * sin(roll), q.x * sin(roll) + q.y * cos(roll));
+	vec3 world = origin + right * q.x + up * q.y;
 	VERTEX = (VIEW_MATRIX * vec4(world, 1.0)).xyz;
 	NORMAL = normalize((VIEW_MATRIX * vec4(cam_back, 0.0)).xyz);
 }

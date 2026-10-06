@@ -4,7 +4,8 @@
   "flavour": "Every hit has a chance to land for double. Aim for the eyes.",
   "rarity": "rare",
   "weight": 6,
-  "max_level": 5,
+  "line": true,
+  "max_level": 4,
   "levels": [
     [
       {
@@ -16,6 +17,7 @@
     ]
   ],
   "repeat_last_level": true,
+  "evolves_into": "eagle_eye",
   "placeholder": {
     "color": "#FFD23B",
     "glyph": "target"

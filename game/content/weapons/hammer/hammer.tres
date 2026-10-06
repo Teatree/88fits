@@ -10,56 +10,46 @@ script = ExtResource("1_e4q5a")
 stat = "damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [sub_resource type="Resource" id="Resource_mtujd"]
 script = ExtResource("1_e4q5a")
 stat = "area"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_r86cd"]
 script = ExtResource("1_e4q5a")
 stat = "range"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_tie6w"]
 script = ExtResource("1_e4q5a")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_u8vb3"]
 script = ExtResource("1_e4q5a")
 stat = "damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [sub_resource type="Resource" id="Resource_bd18a"]
 script = ExtResource("1_e4q5a")
 stat = "range"
 op = "mul"
 value = 0.15
-target = "self"
 
 [sub_resource type="Resource" id="Resource_1drw5"]
 script = ExtResource("1_e4q5a")
 stat = "area"
 op = "mul"
 value = 0.15
-target = "self"
 
 [sub_resource type="Resource" id="Resource_xmtgw"]
 script = ExtResource("1_e4q5a")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [resource]
 script = ExtResource("2_jh2qy")
@@ -74,12 +64,9 @@ base = {
 "knockback": 10.0,
 "range": 4.6
 }
-levels = [[], [SubResource("Resource_jh2qy")], [SubResource("Resource_mtujd")], [SubResource("Resource_r86cd")], [SubResource("Resource_tie6w")], [SubResource("Resource_u8vb3")], [SubResource("Resource_bd18a"), SubResource("Resource_1drw5")], [SubResource("Resource_xmtgw")]]
-max_level = 8
-evolves_with = ""
+levels = [[], [SubResource("Resource_jh2qy"), SubResource("Resource_mtujd")], [SubResource("Resource_r86cd"), SubResource("Resource_tie6w")], [SubResource("Resource_u8vb3")], [SubResource("Resource_bd18a"), SubResource("Resource_1drw5"), SubResource("Resource_xmtgw")]]
+max_level = 5
 evolves_into = "earthshaker"
-is_evolution = false
-evolved_from = ""
 sfx = {
 "fire": "w_hammer_swing",
 "hit": "w_hammer_hit"
@@ -88,24 +75,24 @@ visual = ExtResource("3_mtujd")
 visual_file = "hammer_visual.tscn"
 params = {
 "smash": {
-"fade": 0.2,
-"hold": 0.14,
+"bounce": 0.18,
+"fade": 0.22,
+"grip_up": 2.2,
 "radius": 1.6,
-"rise": 0.22,
-"shake": 0.35,
+"rise": 0.12,
+"shake": 0.4,
+"size": 1.4,
 "stagger": 0.14,
-"swing": 0.16
+"swing": 0.18,
+"windup": 0.34,
+"windup_hold": 0.08
 }
 }
-hero = ""
 id = "hammer"
 display_name = "Hammer"
 flavour = "Everything looks like a nail."
 rarity = "rare"
-element = ""
 weight = 7.0
-hidden = false
-from_stage = 0
 icon = ExtResource("1_jh2qy")
 icon_file = "hammer_icon.png"
 placeholder = {

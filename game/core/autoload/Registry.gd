@@ -5,9 +5,8 @@ extends Node
 const CONTENT_ROOT := "res://content/"
 
 var weapons: Dictionary = {}     # includes evolutions
-var passives: Dictionary = {}
+var passives: Dictionary = {}    # includes the evolved ones (pass 46: the lines folded in)
 var mutations: Dictionary = {}   # a weapon's path (three picks) and the hero mutations
-var lines: Dictionary = {}       # the six character lines
 var perks: Dictionary = {}       # one per hero
 var enemies: Dictionary = {}     # includes bosses
 var elites: Dictionary = {}
@@ -29,9 +28,9 @@ func _ready() -> void:
 
 
 func scan() -> void:
-	weapons.clear(); passives.clear(); mutations.clear(); lines.clear(); perks.clear(); enemies.clear(); elites.clear()
+	weapons.clear(); passives.clear(); mutations.clear(); perks.clear(); enemies.clear(); elites.clear()
 	characters.clear(); talents.clear(); quests.clear(); maps.clear(); pickups.clear(); structures.clear()
-	missing_icons.clear(); problems.clear()
+	missing_icons.clear(); problems.clear(); _enemy_cache.clear()
 	for type: String in JsonContent.TYPES:
 		_scan_type(type)
 	_load_soundmap()
@@ -87,8 +86,6 @@ func _store(type: String, res: ContentDef) -> void:
 			passives[res.id] = res
 		"mutations":
 			mutations[res.id] = res
-		"lines":
-			lines[res.id] = res
 		"perks":
 			perks[res.id] = res
 		"enemies", "bosses":
@@ -138,6 +135,34 @@ func _validate() -> void:
 			problems.append("weapon %s evolves into missing %s" % [w.id, w.evolves_into])
 		if w.evolves_with != "" and not passives.has(w.evolves_with):
 			problems.append("weapon %s needs missing passive %s" % [w.id, w.evolves_with])
+	# a passive's evolution pair names each other (pass 46: the lines' evolutions, now every passive's); pass 47: a line
+	# and its evolution are both lines
+	for p: PassiveDef in passives.values():
+		if p.evolves_into != "" and passives.has(p.evolves_into) and (passives[p.evolves_into] as PassiveDef).is_line() != p.is_line():
+			problems.append("passive %s and its evolution %s disagree on being a line" % [p.id, p.evolves_into])
+		if p.evolves_into != "":
+			var into: PassiveDef = passives.get(p.evolves_into)
+			if into == null:
+				problems.append("passive %s evolves into missing %s" % [p.id, p.evolves_into])
+			elif into.evolves_from != p.id:
+				problems.append("passive %s evolves into %s, which says it evolves from '%s'" % [p.id, into.id, into.evolves_from])
+		if p.evolves_from != "":
+			var src: PassiveDef = passives.get(p.evolves_from)
+			if src == null:
+				problems.append("passive %s evolves from missing %s" % [p.id, p.evolves_from])
+			elif src.evolves_into != p.id:
+				problems.append("passive %s evolves from %s, which evolves into '%s'" % [p.id, src.id, src.evolves_into])
+	# what a hero names must exist once he is played; a hidden hero may name things still being made (pass 46:
+	# Ironwood's spear and Cake come with their own lanes)
+	for c: CharacterDef in characters.values():
+		if c.hidden:
+			continue
+		if c.start_weapon != "" and not weapons.has(c.start_weapon):
+			problems.append("character %s starts with missing weapon %s" % [c.id, c.start_weapon])
+		if c.favourite_weapon != "" and not weapons.has(c.favourite_weapon):
+			problems.append("character %s favours missing weapon %s" % [c.id, c.favourite_weapon])
+		if c.favourite_passive != "" and not passives.has(c.favourite_passive):
+			problems.append("character %s favours missing passive %s" % [c.id, c.favourite_passive])
 	for m in maps.values():
 		for a in m.skins.keys():
 			if not enemies.has(m.skins[a]):
@@ -165,15 +190,12 @@ func mutation(id: String) -> MutationDef:
 	return mutations.get(id)
 
 
-func line(id: String) -> LineDef:
-	return lines.get(id)
-
-
 func perk(id: String) -> PerkDef:
 	return perks.get(id)
 
 
-const MUTATION_ORDER := {"element": 0, "volume": 1, "motion": 2, "hero": 3}
+## A path's order: element, volume, motion, then a stance (the turret's fourth), the hero's own last.
+const MUTATION_ORDER := {"element": 0, "volume": 1, "motion": 2, "stance": 3, "hero": 4}
 
 
 ## A weapon's path: its three mutations in element, volume, motion order (hero mutations are not part of the path).
@@ -186,13 +208,37 @@ func mutations_of(weapon_id: String) -> Array:
 	return out
 
 
-## The hero mutations a hero is offered (its favourite weapon's extra option).
+## The hero mutations a hero is offered (its favourite weapon's extra option). A hidden hero is out of play and so are
+## his (pass 46), and a mutation marked hidden is never offered.
 func hero_mutations(hero_id: String) -> Array:
 	var out: Array = []
+	var c: CharacterDef = characters.get(hero_id)
+	if c == null or c.hidden:
+		return out
 	for m: MutationDef in mutations.values():
-		if m.hero == hero_id:
+		if m.hero == hero_id and not m.hidden:
 			out.append(m)
 	return out
+
+
+## Every hero's own mutation on a weapon family, the heroes in play only, by hero name (pass 46: the Collection lists
+## them on the weapon's page, each marked with the hero who alone can take it).
+func weapon_hero_mutations(weapon_id: String) -> Array:
+	var out: Array = []
+	for m: MutationDef in mutations.values():
+		if m.weapon != weapon_id or not m.is_hero() or m.hidden:
+			continue
+		var c: CharacterDef = characters.get(m.hero)
+		if c != null and not c.hidden:
+			out.append(m)
+	out.sort_custom(func(a: MutationDef, b: MutationDef) -> bool: return _hero_name(a.hero) < _hero_name(b.hero))
+	return out
+
+
+## A hero's shown name (his id when there is no such hero).
+func _hero_name(hero_id: String) -> String:
+	var c: CharacterDef = characters.get(hero_id)
+	return c.display_name if c else hero_id
 
 
 func perks_of(hero_id: String) -> Array:
@@ -204,15 +250,26 @@ func perks_of(hero_id: String) -> Array:
 	return out
 
 
-## The base lines, sorted: evolved lines come only as the evolution of the line they replace. (A line behind an unlock
-## quest, pass 44, is kept out of the offers by CardPool, not here: this is the content listing.)
-func sorted_lines() -> Array:
+## The base passives, sorted by id: not hidden and not evolved (an evolved passive comes only as the evolution of the
+## one it replaces, pass 46). The content listing: an unlock quest does not keep one out of it (unlocked_passives does).
+func base_passives() -> Array:
 	var out: Array = []
-	for l: LineDef in lines.values():
-		if l.evolves_from == "" and not l.hidden:
-			out.append(l)
+	for p: PassiveDef in passives.values():
+		if not p.is_evolved() and not p.hidden:
+			out.append(p)
 	out.sort_custom(func(a, b): return a.id < b.id)
 	return out
+
+
+## The base line items (pass 47), by id: not hidden, not evolved (an evolved line comes only as its source's evolution).
+## The content listing, like base_passives: an unlock quest does not keep one out.
+func sorted_lines() -> Array:
+	return base_passives().filter(func(p: PassiveDef) -> bool: return p.is_line())
+
+
+## The passive items (pass 47: content/passives that are not lines), by id, not hidden. The content listing too.
+func sorted_passives_only() -> Array:
+	return base_passives().filter(func(p: PassiveDef) -> bool: return not p.is_line())
 
 
 func passive(id: String) -> PassiveDef:
@@ -221,6 +278,33 @@ func passive(id: String) -> PassiveDef:
 
 func enemy(id: String) -> EnemyDef:
 	return enemies.get(id)
+
+
+## Copies of creatures with another art variant and/or stat overrides (pass 53), by their type_key; each entry remembers
+## the base def it was made from, so a def swapped under the same id (the tests, a rescan) is never served a stale copy.
+var _enemy_cache: Dictionary = {}
+
+
+## The creature `id` as the wave schema spawns it (pass 53): with art variant `variant` (its own when "" or unknown) and
+## the `overrides` of a roster row, a wave alt or an event laid on it (EnemyDef.with_overrides; none when empty). The
+## variant comes first, then the overrides, so the key is id[@variant][#hash]; equal asks return the same copy, and so
+## one EnemyManager type. Null for an unknown creature.
+func enemy_with(id: String, variant := "", overrides := {}) -> EnemyDef:
+	var base: EnemyDef = enemies.get(id)
+	if base == null:
+		return null
+	if variant == "" and overrides.is_empty():
+		return base
+	var vd: EnemyDef = base.variant_def(variant) if variant != "" else base
+	var key := vd.type_key()
+	if not overrides.is_empty():
+		key += "#" + EnemyDef.override_key_of(overrides)
+	var hit = _enemy_cache.get(key)
+	if hit is Dictionary and (hit as Dictionary).get("base") == base:
+		return (hit as Dictionary)["def"]
+	var def: EnemyDef = vd.with_overrides(overrides) if not overrides.is_empty() else vd
+	_enemy_cache[key] = {"def": def, "base": base}
+	return def
 
 
 func character(id: String) -> CharacterDef:
@@ -261,8 +345,6 @@ func unlocked_by(q: QuestDef) -> ContentDef:
 			return weapons.get(id)
 		"passive":
 			return passives.get(id)
-		"line":
-			return lines.get(id)
 		"character":
 			return characters.get(id)
 		"map":
@@ -294,13 +376,28 @@ func hero_may_use(w: WeaponDef) -> bool:
 	return c == null or str(c.id) == w.hero
 
 
+## The weapon a hero lands with (pass 45): `start_weapon`, else the first base weapon that is his alone (WeaponDef.hero),
+## else his favourite, else the Peashooter; unlock quests do not apply to a hero's own gun.
+func start_weapon_for(c: CharacterDef) -> WeaponDef:
+	if c and c.start_weapon != "":
+		var w := weapon(c.start_weapon)
+		if w:
+			return w
+	if c:
+		for bw: WeaponDef in base_weapons():
+			if bw.hero == c.id and not bw.hidden:
+				return bw
+	if c and c.favourite_weapon != "":
+		var f := weapon(c.favourite_weapon)
+		if f:
+			return f
+	return weapon("peashooter")
+
+
+## The passives a run may be offered: base ones only (an evolved passive is its source's evolution card, never one of
+## its own), not hidden, unlocked.
 func unlocked_passives() -> Array:
-	var out: Array = []
-	for p in passives.values():
-		if not p.hidden and is_unlocked("passive", p.id):
-			out.append(p)
-	out.sort_custom(func(a, b): return a.id < b.id)
-	return out
+	return base_passives().filter(func(p: PassiveDef) -> bool: return is_unlocked("passive", p.id))
 
 
 func sorted_shop() -> Array:
@@ -364,8 +461,6 @@ func quest_visible(q: QuestDef) -> bool:
 			return not is_hidden(weapons.get(what))
 		"passive":
 			return not is_hidden(passives.get(what))
-		"line":
-			return not is_hidden(lines.get(what))
 	return true
 
 

@@ -25,6 +25,7 @@ Most of what remains falls into three causes:
 | 03b | Talent open | The board shows through the sepia dim. | The PNG draws the dim alone; the README calls it "a dim over the board". |
 | | | The sheet is about 30 px taller. | Plate's text wraps to two lines (data). |
 | | | The status line reads "+10% max HP", not "+10% HP". | The text generator's wording. |
+| | | At rank 2 or 3 the status line sums the ranks ("Rank 3 owned · +30% max HP") and wraps. | Pass 45: the effect repeated per rank ran the sheet off the right edge at FULL. |
 | | | RANK 2's word, coin and price sit 14 px apart, not 16 and 10. | The button has one gap. |
 | 04 | Collection | The board meets the tab strip. | The PNG leaves a 5 px gap, which looks like a slip; the README says the open tab opens into the board. |
 | | | 19 weapons, of which 2 are locked. | Data. Captions are the quests' own words, such as "Kill 300 Armadillos". |
@@ -36,16 +37,19 @@ Most of what remains falls into three causes:
 | | | The Evolution section sits about 45 px lower. | Slug's line runs to three lines. |
 | 05 | Settings | Sliders use the settings' real ranges. Joystick size runs 0.6–1.4, so 100 sits mid-track. Shake runs 0–150 %, so 65 sits at 43 %. | Real ranges. |
 | | | Version reads v0.28. | This build. |
+| | | A small italic "saved 3 min ago" line sits over the version line. | Pass 45: the save's last write (red when the disk refused), so the player can see progress is kept. |
+| | | Wipe opens a pop-up (WConfirm: "★ HOLD ON ★", the question, KEEP IT / WIPE) instead of changing its words to "Sure? Tap again". | Pass 45: every irreversible action asks in a pop-up (Garry). The row's "asks twice" line stays true. |
 | 06 | HUD | Slots, toasts and pointers show the capture's build. | Capture data. |
 | | | The HUD hides under the full modals: cards, chest, shop, Stranger, pause, Down!, stage clear. The gate keeps it, as its PNG does. | The README asks for this on the chest; applied to all full modals. |
 | 06b | HUD, boss + banner | The boss plate wears the **skull**, not the crown. | Since pass 33.3 the game gives bosses the skull and Elites the crown. |
 | | | The evolved slot's tag reads 1. | An evolution restarts at level 1. |
 | | | Evolved items are dark plates in a brass ring, not ember. | Pass 40: ember sat too close to brass on the phone, and evolved lines had no look of their own. |
+| | | The banner sits at 38 % of the screen's height and pops in place; the top row stays. | Pass 45: on the top row it went unnoticed (Garry). |
 | 06c | HUD, full build (no PNG) | A build that would shrink below 85 % on one row splits: weapons keep a row, passives and lines take a second; the tap-to-pause strip and everything under the slots move down. | Pass 40: at 62 % the plates crowded each other's level tags and spilled a stray row. |
 | 07 | Level-up | Stars and lines come from data. No rarity seals anywhere since pass 43 (Garry: remove the indicator on every item). | Data. |
 | 08 | Path offer | Each card shows the path's first sentence. | The README asks for "one effect line"; the PNG prints the whole text. |
 | 09 | Gate | Captured at rest: the tag has landed and the slot wears brass. | The PNG freezes the tag mid-flight. The flight is built: 0.35 s, turns −8°, two streaks. |
-| 10 | Chest | The reel's items and result come from the roll; Orbit Saws is common. | Data. |
+| 10 | Chest | The reel's items and result come from the roll; Orbit Saws is common. A boss chest's reel holds only the open paths (pass 45). | Data. |
 | | | The glow is concentric rings. | The rules allow no blur. |
 | 11 | Shop | Items, prices and "N short" come from the offer. | Data. |
 | 12 | Stranger | Guillotine is rare with 3 levels, not epic with 5. Its line is generated. | Data. |
@@ -53,10 +57,11 @@ Most of what remains falls into three causes:
 | 13 | Pause · Build | One-liners are generated, for example "Sends 3 seekers after enemies within 11 m". | The mock's lines were hand-written. |
 | | | The open weapon's grid shows its own first three stats, for example turret lifetime. | Not always damage, cooldown and range. |
 | 13b | Pause · Stats | Rows and sources are the real stat sheet's. | Data. |
-| 13c | Pause · Options | Matches. | — |
+| 13c | Pause · Options | Abandon opens a pop-up (KEEP PLAYING / ABANDON, with the gold at stake) instead of changing its words. | Pass 45: every irreversible action asks in a pop-up. Down!'s STAY DOWN and Upgrade's "Take it all back" ask the same way. |
 | 14 | Down! | The killer line shows the skull for a boss. | Same as 06b. |
 | 15 | Stage clear | Continue's lines come from the map's timeline: "+2 weapon slots open", "66 creatures at once, each ×2.2 as tough", "×1.0 gold, until you extract or die". | The mock's "×2 gold per pickup" and "Elites every minute" are not rules in the game. |
 | 16 | Results | The unlock card is the quest the run finished; numbers are the run's. | Data. |
+| | | With the player's debug mode on, a "Last hits" ink panel with a copy chip sits at the foot of the board. | Pass 45: the Down! screen's hit log, for players who find the secret switch (ten taps on the hints switch); off by default. |
 | 17 | Developer menu | No build number. | The game has none to show. |
 | | | "Hidden items · 34". | Counts the data's hidden and retired items. |
 

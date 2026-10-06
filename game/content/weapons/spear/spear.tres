@@ -1,0 +1,90 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/spear/spear_icon.png" id="1_obcj2"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_3w3bq"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_05vki"]
+[ext_resource type="PackedScene" path="res://content/weapons/spear/spear_visual.tscn" id="4_rurrr"]
+
+[sub_resource type="Resource" id="Resource_obcj2"]
+script = ExtResource("2_3w3bq")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_3w3bq"]
+script = ExtResource("2_3w3bq")
+stat = "cooldown"
+op = "mul"
+value = -0.1
+
+[sub_resource type="Resource" id="Resource_05vki"]
+script = ExtResource("2_3w3bq")
+stat = "range"
+value = 1.5
+
+[sub_resource type="Resource" id="Resource_rurrr"]
+script = ExtResource("2_3w3bq")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_ponup"]
+script = ExtResource("2_3w3bq")
+stat = "speed"
+value = 4.0
+
+[sub_resource type="Resource" id="Resource_0fn7n"]
+script = ExtResource("2_3w3bq")
+stat = "cooldown"
+op = "mul"
+value = -0.12
+
+[sub_resource type="Resource" id="Resource_mdkl3"]
+script = ExtResource("2_3w3bq")
+stat = "damage"
+op = "mul"
+value = 0.3
+
+[resource]
+script = ExtResource("3_05vki")
+tags = ["thrown"]
+base = {
+"amount": 1.0,
+"cooldown": 1.5,
+"damage": 22.0,
+"knockback": 4.0,
+"pierce": 99.0,
+"range": 11.0,
+"speed": 20.0
+}
+levels = [[], [SubResource("Resource_obcj2"), SubResource("Resource_3w3bq")], [SubResource("Resource_05vki"), SubResource("Resource_rurrr")], [SubResource("Resource_ponup")], [SubResource("Resource_0fn7n"), SubResource("Resource_mdkl3")]]
+max_level = 5
+evolves_into = "war_lance"
+sfx = {
+"fire": "w_spear_throw",
+"hit": "w_spear_hit"
+}
+visual = ExtResource("4_rurrr")
+visual_file = "spear_visual.tscn"
+params = {
+"no_spin": true,
+"plant": {
+"bury": 0.3,
+"seconds": 0.6,
+"tilt_deg": 70.0
+},
+"radius": 0.35
+}
+hero = "ironwood"
+id = "spear"
+display_name = "Throwing Spear"
+flavour = "Thrown once. Through all of them."
+rarity = "rare"
+weight = 8.0
+hidden = true
+icon = ExtResource("1_obcj2")
+icon_file = "spear_icon.png"
+placeholder = {
+"color": "#B04A2A",
+"glyph": "star"
+}

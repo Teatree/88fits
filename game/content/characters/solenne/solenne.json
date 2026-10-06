@@ -1,0 +1,268 @@
+{
+  "id": "solenne",
+  "name": "Solenne",
+  "flavour": "She brings the noon with her.",
+  "pronoun": "she",
+  "trait": [
+    {
+      "stat": "buff_duration",
+      "op": "mul",
+      "value": 0.25,
+      "target": "player"
+    },
+    {
+      "stat": "cooldown",
+      "op": "mul",
+      "value": -0.13,
+      "target": "player"
+    },
+    {
+      "stat": "max_hp",
+      "op": "mul",
+      "value": -0.2,
+      "target": "player"
+    },
+    {
+      "stat": "debuff_duration",
+      "op": "mul",
+      "value": 0.25,
+      "target": "player"
+    }
+  ],
+  "favourite_weapon": "",
+  "favourite_passive": "haste",
+  "favourite_passive_bonus": {
+    "type": "level",
+    "value": 2
+  },
+  "start_weapon": "sun_scepter",
+  "specials": [],
+  "unlock_quest": "",
+  "frame_px": 256,
+  "anims": {
+    "idle": 4,
+    "run": 24,
+    "hit": 4,
+    "die": 5,
+    "cheer": 1,
+    "idle_f": 4,
+    "run_f": 24,
+    "idle_s": 4,
+    "run_s": 24,
+    "idle_bd": 4,
+    "run_bd": 24,
+    "idle_fd": 4,
+    "run_fd": 24,
+    "hit_f": 4,
+    "hit_s": 4,
+    "hit_bd": 4,
+    "hit_fd": 4
+  },
+  "fps": {
+    "run": 36,
+    "hit": 12,
+    "die": 8
+  },
+  "strip_cols": 62,
+  "placeholder": {
+    "color": "#141418",
+    "hat": "#F2C037",
+    "eyes": 2,
+    "shape": "tall"
+  },
+  "art_prompt": "a slender woman in a glossy black latex catsuit with a high collar, knee-high black boots, black gloves; her head is a bright yellow cartoon sun: a smooth round yellow face with calm half-lidded eyes, thin brows and small red lips, ringed by eight long pointed golden-yellow rays; standing straight, both arms relaxed at her sides",
+  "motion": "walking in place with a slow confident catwalk sway, arms swinging gently",
+  "anim_hint": "a woman in a glossy black catsuit whose head is a yellow cartoon sun with pointed rays",
+  "anim_negative": "a human head, hair, a helmet, a face on the body, a second head, a weapon, a cape",
+  "anim_seed": 3,
+  "portrait_prompt": "head and shoulders, her sun face looking at the viewer with a small knowing smile",
+  "hurt_hint": "her sun face wincing, eyes shut, rays bent back",
+  "back_hint": "She faces away: the back of the yellow sun head with its rays, the zip line down the black catsuit's back, the heels of the boots, no face at all. Both arms hang straight down.",
+  "pose_hint": "Both arms hang straight down at her sides, hands open, not on the hips. The same slim proportions in every view.",
+  "level_heal": 0.0,
+  "trait_name": "Magic Hour",
+  "trait_text": "Her buffs last 25% longer and so do her burns, poison and slows. +15% attack speed, −20% max HP. She finds Haste at level 2.",
+  "pose_drivers": {
+    "back": "walk_sun_spread85",
+    "bd": "walk_sun_spread85",
+    "side": "walk_sun",
+    "fd": "walk_sun",
+    "front": "walk_sun"
+  },
+  "screen": "blue",
+  "key_min_value": 0.8,
+  "key_cut_shadow": false,
+  "key_sat": 0.85,
+  "key_clamp_screen": true,
+  "variant_base": "SOL-A",
+  "variant": "SOL-B",
+  "variants": {
+    "SOL-A": {
+      "note": "Pass 54's walk on Garry's Walking_sun as first rendered: its side view turned a quarter away, her head grew walking down and shrank walking up.",
+      "sprite": "solenne_sprite.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
+    },
+    "SOL-B": {
+      "note": "Walking_sun again, fitted to her (tools/pose_fit.py): squared to her hips, her body, hands and sun disc at her painted size, the disc facing the viewer in every view, a side still with the disc turned to the viewer.",
+      "recipe": {
+        "pose_drivers": {
+          "back": "walk_sun_b_fit_spread",
+          "bd": "walk_sun_b_fit_spread",
+          "side": "walk_sun_b_fit",
+          "fd": "walk_sun_b_fit",
+          "front": "walk_sun_b_fit"
+        },
+        "still_keys": {
+          "side": "solenne_s55_side",
+          "hurt_side": "solenne_s55_hurt_side"
+        },
+        "anim_hint": "a woman in a glossy black catsuit whose head is a flat round yellow cartoon sun disc with pointed rays all around it, never seen edge-on",
+        "pose_motion": "walking in place on the spot like on a treadmill, a light confident stride"
+      },
+      "sprite": "solenne_sprite_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
+    },
+    "SOL-C": {
+      "note": "Mixamo's Catwalk Walking (Garry's _REFERENCES/3d/Catwalk Walking.fbx), fitted to her the same way.",
+      "recipe": {
+        "pose_drivers": {
+          "back": "catwalk_fit_spread",
+          "bd": "catwalk_fit_spread",
+          "side": "catwalk_fit",
+          "fd": "catwalk_fit",
+          "front": "catwalk_fit"
+        },
+        "still_keys": {
+          "side": "solenne_s55_side",
+          "hurt_side": "solenne_s55_hurt_side"
+        },
+        "anim_hint": "a woman in a glossy black catsuit whose head is a flat round yellow cartoon sun disc with pointed rays all around it, never seen edge-on",
+        "pose_motion": "walking in place on the spot like on a treadmill, a catwalk stride with the hips swaying"
+      },
+      "sprite": "solenne_sprite_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
+    },
+    "SOL-D": {
+      "note": "The run every other hero uses (Mixamo Running), fitted to her the same way.",
+      "recipe": {
+        "pose_drivers": {
+          "back": "run_b_fit_spread",
+          "bd": "run_b_fit_spread",
+          "side": "run_b_fit",
+          "fd": "run_b_fit",
+          "front": "run_b_fit"
+        },
+        "still_keys": {
+          "side": "solenne_s55_side",
+          "hurt_side": "solenne_s55_hurt_side"
+        },
+        "anim_hint": "a woman in a glossy black catsuit whose head is a flat round yellow cartoon sun disc with pointed rays all around it, never seen edge-on",
+        "pose_motion": "running in place on the spot like on a treadmill"
+      },
+      "sprite": "solenne_sprite_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
+    }
+  },
+  "badge": {
+    "still": "solenne_badge",
+    "head_width": 0.8,
+    "top_pad": 0.03,
+    "note": "pass 56: a Klein close-up with a wink and a sly smile (tools/dl/stills56, c0 of six), the whole sun across 80 % of the badge, solid shoulders below"
+  }
+}

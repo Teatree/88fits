@@ -1,0 +1,265 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a tall lean Native American Plains warrior man with long straight black hair falling past his shoulders and one white-and-black eagle feather tied at the back of his head, a calm stern serious face with a strong jaw and high cheekbones and no smile, two short red paint stripes across his left cheek, a bone-bead choker around his neck, a bare lean muscular chest with two thin white paint stripes on his left upper arm, a red leather belt set with round brass discs, a fringed tan buckskin breechcloth over fringed tan buckskin leggings, beaded red-and-blue moccasins, standing straight with his hands relaxed and empty at his sides",
+ "renders": {
+  "front": {
+   "seed": 36571,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image shows the man's look: his long black hair, the red stripes on his cheek, the choker, the white stripes on his arm, the red belt with brass discs and the fringed buckskin; use it for his look only, not for the pose, the horse, the spear or the background. Draw a new full-body character: a tall lean Native American Plains warrior man with long straight black hair falling past his shoulders and one white-and-black eagle feather tied at the back of his head, a calm stern serious face with a strong jaw and high cheekbones and no smile, two short red paint stripes across his left cheek, a bone-bead choker around his neck, a bare lean muscular chest with two thin white paint stripes on his left upper arm, a red leather belt set with round brass discs, a fringed tan buckskin breechcloth over fringed tan buckskin leggings, beaded red-and-blue moccasins, standing straight with his hands relaxed and empty at his sides. He stands on his own two feet, not riding. Full body, front view, standing straight and facing the viewer, arms relaxed, feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/indian_ref.png"
+   ],
+   "qa": {
+    "problems": []
+   },
+   "attempt": 0
+  },
+  "back": {
+   "seed": 9331,
+   "prompt": "Turn this exact character around and show a full-body back view seen directly from behind: the back of the head or helmet, the back of the outfit and the heels, no face visible. Keep the same outfit, colors, proportions and art style, standing straight with arms relaxed. Both arms hang straight down at his sides, hands open and empty, not raised, not bent. The same tall lean proportions in every view. He faces away from the viewer: only the back of his head with the long straight black hair hanging down his back and the feather, his bare back, the back of the belt and the fringed leggings and the heels are visible, no face at all. Both arms hang straight down along his sides, relaxed. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 363,
+     "right": 364,
+     "top": 46,
+     "bottom": 36,
+     "height": 941,
+     "width": 296
+    }
+   },
+   "attempt": 0
+  },
+  "side": {
+   "seed": 9336,
+   "prompt": "Turn this exact character to show a full-body side view in strict profile, facing to the right of the frame, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. Both arms hang straight down at his sides, hands open and empty, not raised, not bent. The same tall lean proportions in every view.  isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 423,
+     "right": 408,
+     "top": 48,
+     "bottom": 32,
+     "height": 943,
+     "width": 192
+    }
+   },
+   "attempt": 0
+  },
+  "fd": {
+   "seed": 9337,
+   "prompt": "Turn this exact character to a three-quarter front view: turned 45 degrees so the character faces towards the lower right of the frame, face visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. Both arms hang straight down at his sides, hands open and empty, not raised, not bent. The same tall lean proportions in every view. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 366,
+     "right": 383,
+     "top": 45,
+     "bottom": 25,
+     "height": 953,
+     "width": 274
+    }
+   },
+   "attempt": 0
+  },
+  "bd": {
+   "seed": 9338,
+   "prompt": "Turn this exact character to a three-quarter back view: turned 45 degrees away from the viewer so the character faces the upper right of the frame, the back and right shoulder visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. Both arms hang straight down at his sides, hands open and empty, not raised, not bent. The same tall lean proportions in every view. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 367,
+     "right": 380,
+     "top": 51,
+     "bottom": 39,
+     "height": 933,
+     "width": 276
+    }
+   },
+   "attempt": 0
+  },
+  "cheer": {
+   "seed": 9340,
+   "prompt": "The exact same character seen directly from behind (no face visible), jumping for joy with both arms raised high above the head, feet together. Keep the same outfit, colors, proportions and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 291,
+     "right": 304,
+     "top": 40,
+     "bottom": 36,
+     "height": 947,
+     "width": 428
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_back": {
+   "seed": 45439,
+   "prompt": "One single figure alone in the frame: this exact man seen directly from behind, his back turned fully to the viewer, so only the back of his head with the long straight black hair and the feathers, his bare back, the back of the red belt, the fringed buckskin leggings and his heels are visible, no face at all. He flinches in pain from a hit: his shoulders hunched up, leaning back a little, his head jerked to one side, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/iw_back_src.png"
+   ],
+   "qa": {
+    "problems": []
+   },
+   "attempt": 0
+  },
+  "hurt_front": {
+   "seed": 9364,
+   "prompt": "One single figure alone in the frame: the exact same character facing the viewer, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, his stern face tightening, jaw clenched, eyes narrowed, no scream, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_front_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 351,
+     "right": 363,
+     "top": 47,
+     "bottom": 31,
+     "height": 945,
+     "width": 309
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_side": {
+   "seed": 9365,
+   "prompt": "One single figure alone in the frame: the exact same character in strict side profile facing right, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, his stern face tightening, jaw clenched, eyes narrowed, no scream, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_side_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 423,
+     "right": 406,
+     "top": 48,
+     "bottom": 32,
+     "height": 943,
+     "width": 194
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_bd": {
+   "seed": 9366,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter back view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, his stern face tightening, jaw clenched, eyes narrowed, no scream, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_bd_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 367,
+     "right": 380,
+     "top": 51,
+     "bottom": 40,
+     "height": 932,
+     "width": 276
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_fd": {
+   "seed": 9367,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter front view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, his stern face tightening, jaw clenched, eyes narrowed, no scream, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_fd_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 375,
+     "right": 384,
+     "top": 53,
+     "bottom": 28,
+     "height": 942,
+     "width": 264
+    }
+   },
+   "attempt": 0
+  },
+  "dead": {
+   "seed": 9345,
+   "prompt": "This exact character lying flat on the ground on their back, knocked out: limbs sprawled, head to one side, seen from the front and a little above so the whole body is visible. Keep the same outfit, colors, proportions and art style. his stern face tightening, jaw clenched, eyes narrowed, no scream. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 124,
+     "right": 134,
+     "top": 283,
+     "bottom": 131,
+     "height": 609,
+     "width": 765
+    }
+   },
+   "attempt": 0
+  },
+  "portrait": {
+   "seed": 9373,
+   "prompt": "A close-up portrait of this exact character for a mobile game avatar icon: only the head and shoulders, the head filling half of the frame, his arms crossed over his bare chest, his chin a little lowered, looking down at the viewer with a calm, stern, unsmiling face, his long black hair over his shoulders, facing the viewer, the shoulders and chest running off the bottom edge of the frame, expressive and lively, no legs, no full body. Keep the same face, outfit, colors and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/ironwood_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 117,
+     "right": 123,
+     "top": 72,
+     "bottom": 0,
+     "height": 951,
+     "width": 783
+    }
+   },
+   "attempt": 0
+  }
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ }
+}

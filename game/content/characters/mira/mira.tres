@@ -10,7 +10,6 @@ script = ExtResource("1_fg1hg")
 stat = "cooldown"
 op = "mul"
 value = -0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_w8apu"]
 script = ExtResource("1_fg1hg")
@@ -30,7 +29,7 @@ target = "player"
 script = ExtResource("2_jchtx")
 trait_effects = [SubResource("Resource_w8apu"), SubResource("Resource_3p01h")]
 trait_name = "Motherlode"
-trait_text = "+30% gold and −10% might. Elites and bosses drop one extra material for the homestead."
+trait_text = "+30% coin gain and −10% attack damage. Elites and bosses drop one extra material for the homestead."
 pronoun = "she"
 favourite_weapon = "land_mine"
 favourite_bonus = {

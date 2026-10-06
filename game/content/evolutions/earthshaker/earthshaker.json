@@ -2,7 +2,7 @@
   "id": "earthshaker",
   "name": "Earthshaker",
   "flavour": "The ground has had enough.",
-  "rarity": "epic",
+  "rarity": "rare",
   "is_evolution": true,
   "evolved_from": "hammer",
   "max_level": 1,
@@ -12,10 +12,10 @@
     "melee"
   ],
   "base": {
-    "damage": 42,
-    "cooldown": 2.0,
-    "amount": 2,
-    "range": 5.2,
+    "damage": 40,
+    "cooldown": 2.2,
+    "amount": 3,
+    "range": 6.4,
     "area": 1.5,
     "knockback": 14.0
   },
@@ -25,18 +25,36 @@
   "params": {
     "smash": {
       "radius": 1.7,
-      "rise": 0.24,
-      "swing": 0.16,
-      "hold": 0.16,
-      "fade": 0.22,
+      "rise": 0.12,
+      "windup": 0.36,
+      "windup_hold": 0.08,
+      "swing": 0.18,
+      "bounce": 0.2,
+      "fade": 0.24,
       "stagger": 0.16,
-      "shake": 0.5,
+      "shake": 0.55,
+      "size": 1.5,
+      "grip_up": 2.3,
       "quake": {
         "lines": 4,
         "length": 4.5,
         "width": 0.9,
-        "frac": 0.6
+        "frac": 0.6,
+        "zap": {
+          "reach": 1.5,
+          "frac": 0.5
+        },
+        "roll": {
+          "delay": 0.3,
+          "frac": 0.4,
+          "steps": 4,
+          "step": 0.07
+        }
       }
+    },
+    "giant_slayer": {
+      "always": true,
+      "mult": 2.5
     }
   },
   "sfx": {

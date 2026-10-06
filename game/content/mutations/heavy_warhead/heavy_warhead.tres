@@ -1,0 +1,49 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_yk8dx"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_0qye6"]
+[ext_resource type="Texture2D" path="res://content/mutations/heavy_warhead/heavy_warhead_icon.png" id="2_m68v7"]
+
+[sub_resource type="Resource" id="Resource_0qye6"]
+script = ExtResource("1_yk8dx")
+stat = "damage"
+op = "mul"
+value = 0.4
+
+[sub_resource type="Resource" id="Resource_m68v7"]
+script = ExtResource("1_yk8dx")
+stat = "knockback"
+op = "mul"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_ialr6"]
+script = ExtResource("1_yk8dx")
+stat = "area"
+op = "mul"
+value = 0.15
+
+[resource]
+script = ExtResource("2_0qye6")
+weapon = "rocket_pod"
+mutation_kind = "element"
+text = "+40% damage, ×2 knockback, +15% area of effect: bigger rockets, a stronger blast."
+vfx = "fatter rockets, a white flash and a wider fireball with a ring of sparks"
+effects = [SubResource("Resource_0qye6"), SubResource("Resource_m68v7"), SubResource("Resource_ialr6")]
+params = {
+"blast_fx": {
+"flash": true,
+"scale": 1.5
+},
+"size_mult": 1.35
+}
+id = "heavy_warhead"
+display_name = "Heavy Warhead"
+flavour = "More rocket per rocket."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_m68v7")
+icon_file = "heavy_warhead_icon.png"
+placeholder = {
+"color": "#D8D8E0",
+"glyph": "star"
+}

@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/war_lance/war_lance_icon.png" id="1_ddlg5"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_5hqll"]
+[ext_resource type="PackedScene" path="res://content/evolutions/war_lance/war_lance_visual.tscn" id="3_c31vw"]
+
+[resource]
+script = ExtResource("2_5hqll")
+tags = ["thrown"]
+base = {
+"amount": 2.0,
+"cooldown": 1.35,
+"damage": 44.0,
+"knockback": 5.0,
+"pierce": 99.0,
+"range": 12.0,
+"speed": 22.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "spear"
+sfx = {
+"fire": "w_spear_throw",
+"hit": "w_spear_hit"
+}
+visual = ExtResource("3_c31vw")
+visual_file = "war_lance_visual.tscn"
+params = {
+"fan_step_deg": 10.0,
+"no_spin": true,
+"plant": {
+"bury": 0.3,
+"seconds": 0.8,
+"tilt_deg": 70.0
+},
+"radius": 0.4,
+"trail_zone": {
+"every": 1.6,
+"radius": 0.85,
+"seconds": 1.6,
+"slow": 0.45
+}
+}
+hero = "ironwood"
+id = "war_lance"
+display_name = "War Lance"
+flavour = "Two of them, and the dust they leave holds the rest."
+rarity = "rare"
+icon = ExtResource("1_ddlg5")
+icon_file = "war_lance_icon.png"
+placeholder = {
+"color": "#FFB13B",
+"glyph": "star",
+"gold": true
+}

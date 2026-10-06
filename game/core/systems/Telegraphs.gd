@@ -15,6 +15,8 @@ const MODE_FADE := 0     # fades to half and blinks in its last 40%
 const MODE_GROW := 1     # the same, and the ring grows from 40% to its full radius
 const MODE_SCORCH := 2   # holds `hold` seconds, then fades out over the rest of `dur`
 const MODE_HELD := 3     # its owner sets the alpha (set_alpha) and takes it away (release)
+const MODE_WASH := 4     # sweeps out from the centre over the first half of `dur` and fades away smoothly, no blink
+const MODE_RACE := 5     # a wave: a band a share of its radius wide races out from the centre with an ease-out, fading
 ## Draw order among the marks (all under whatever stands on the ground): scorch, spills, discs, lines, rings.
 const PRIO_SCORCH := -5
 const PRIO_SPILL := -4
@@ -70,10 +72,16 @@ func _ground_uniforms(mat: ShaderMaterial) -> void:
 # ---------------------------------------------------------------- what the game calls
 
 ## A ring on the ground: a band between r - 0.12 and r that grows from 40% to full over `dur`; `filled` adds a faint disc.
-func ring(center: Vector3, r: float, dur: float, color: Color, filled := false) -> void:
-	_add("band", center, color, 0.85, Color(maxf(r * 0.4 - 0.12, 0.05), r * 0.4, 0.0, TAU), MODE_GROW, dur, r)
+## `y_lift` floats it that many metres over the ground it drapes (pass 54: a wader's ripples lie on the water's surface,
+## not on the lake bed under it; the shader reads the lift off the instance's basis, see _lift_basis).
+func ring(center: Vector3, r: float, dur: float, color: Color, filled := false, y_lift := 0.0) -> void:
+	var it := _add("band", center, color, 0.85, Color(maxf(r * 0.4 - 0.12, 0.05), r * 0.4, 0.0, TAU), MODE_GROW, dur, r)
+	if y_lift > 0.0:
+		it["lift"] = y_lift
 	if filled:
-		_add("disc", center, color, 0.25, Color(0.0, r, 0.0, TAU), MODE_FADE, dur, r)
+		var d := _add("disc", center, color, 0.25, Color(0.0, r, 0.0, TAU), MODE_FADE, dur, r)
+		if y_lift > 0.0:
+			d["lift"] = y_lift
 
 
 func line(from: Vector3, dir: Vector3, length: float, dur: float, color: Color, width := 1.2) -> void:
@@ -88,8 +96,33 @@ func sector(center: Vector3, dir: Vector3, r: float, deg: float, dur: float, col
 	_add("disc", center, color, 0.45, Color(0.0, r, a0, deg_to_rad(deg)), MODE_FADE, dur, r)
 
 
-func flash_ring(center: Vector3, r: float, color: Color, dur := 0.35) -> void:
-	ring(center, r, dur, color, false)
+## A wash of colour over the ground (pass 46, the Guitarra's chord): a wedge `deg` wide along `dir` (360 a disc) that
+## sweeps out from `center` to `r` over the first half of `dur` and fades away, at `alpha` at its brightest.
+func wash(center: Vector3, dir: Vector3, r: float, deg: float, dur: float, color: Color, alpha := 0.4) -> void:
+	var d := Vector3(dir.x, 0, dir.z)
+	d = d.normalized() if d.length_squared() > 0.0001 else Vector3.FORWARD
+	var sweep := deg_to_rad(clampf(deg, 1.0, 360.0))
+	var a0 := atan2(d.z, d.x) - sweep * 0.5
+	_add("disc", center, color, alpha, Color(0.0, r, a0, sweep), MODE_WASH, dur, r)
+
+
+func flash_ring(center: Vector3, r: float, color: Color, dur := 0.35, y_lift := 0.0) -> void:
+	ring(center, r, dur, color, false, y_lift)
+
+
+## A mark's instance basis (pass 54): the identity, or for a mark floated `lift` metres over the ground a y scale of
+## 1 + lift, which core/shaders/ground_mark.gdshader adds to its height (the marks' shapes ignore the basis otherwise).
+static func _lift_basis(it: Dictionary) -> Basis:
+	var lift := float(it.get("lift", 0.0))
+	return Basis.from_scale(Vector3(1.0, 1.0 + lift, 1.0)) if lift > 0.0 else Basis()
+
+
+## A wave racing out over the sand (pass 52: the Nuke's and the revive's, which had been a flat torus at the hero's
+## height that every hill cut through): a band `width_frac` of its radius wide, out from the centre to `r` over `dur`
+## with an ease-out, fading as it goes; draped like every mark. `color`'s alpha is its strength.
+func race_ring(center: Vector3, r: float, dur: float, color: Color, width_frac := 0.3) -> void:
+	var it := _add("band", center, color, color.a, Color(0.0, 0.05, 0.0, TAU), MODE_RACE, dur, r)
+	it["w"] = clampf(width_frac, 0.02, 1.0)
 
 
 ## A dark scorch where something went off: it holds `hold` seconds, then fades out over `fade`.
@@ -114,7 +147,7 @@ func hold_ring(center: Vector3, r: float, color: Color) -> int:
 	return _hold(_add("band", center, color, color.a, Color(maxf(r - 0.35, 0.05), r, 0.0, TAU), MODE_HELD, 0.0, r))
 
 
-## Move a held disc or ring, and resize it (r < 0 keeps its size).
+## Move a held disc, ring or blob, and resize it (r < 0 keeps its size).
 func move_held(id: int, at: Vector3, r: float = -1.0) -> void:
 	var it: Dictionary = _held.get(id, {})
 	if it.is_empty():
@@ -123,7 +156,11 @@ func move_held(id: int, at: Vector3, r: float = -1.0) -> void:
 	if r > 0.0:
 		it["r"] = r
 		var k: Color = it["k"]
-		it["k"] = Color(maxf(r - 0.35, 0.05) if it["pool"] == "band" else k.r, r, k.b, k.a)
+		# a band is (inner, outer), a disc (0, r); a blob is (r, seed) (pass 48: a blob used to get the radius in its seed slot)
+		if str(it["pool"]).begins_with("blob:"):
+			it["k"] = Color(r, k.g, k.b, k.a)
+		else:
+			it["k"] = Color(maxf(r - 0.35, 0.05) if it["pool"] == "band" else k.r, r, k.b, k.a)
 
 
 ## A see-through sphere its owner moves every frame (the poison cloud's billows), in `color` (sRGB). Returns an id;
@@ -317,14 +354,14 @@ func _unit_blob() -> Mesh:
 	return _blob_mesh
 
 
-## Warm-up: one of every kind drawn at `at` for the frames the starter pick covers, so the shader compiles there.
+## Warm-up: one of every kind drawn at `at` for the frames the spawn beam covers, so the shader compiles there.
 func warm_draw(at: Vector3) -> void:
 	ring(at, 1.0, 0.4, Color(1, 1, 1), true)
 	line(at, Vector3.FORWARD, 1.0, 0.4, Color(1, 1, 1))
 	scorch(at, 1.0, Color(0, 0, 0, 0.5), Color(0, 0, 0, 0), 0.2, 0.2)
 	var puff := hold_puff(Color(1, 1, 1, 0.2))
 	set_puff(puff, Transform3D(Basis(), at), 0.2)
-	# the tree is paused under the starter pick, so nothing ticks: the marks go into their MultiMeshes now
+	# nothing may tick before the first frame (the arena's warm-up runs paused): the marks go into their MultiMeshes now
 	_advance(0.0)
 	_write()
 	get_tree().create_timer(0.4, true, false, true).timeout.connect(func() -> void: release(puff))
@@ -495,6 +532,17 @@ func _advance(delta: float) -> void:
 			if mode == MODE_SCORCH:
 				var hold: float = it.get("hold", 0.0)
 				alpha = 1.0 - clampf((t - hold) / maxf(float(it["dur"]) - hold, 0.01), 0.0, 1.0)
+			elif mode == MODE_RACE:
+				# out from the middle fast, slowing as it goes; thinner and fainter at the end
+				var out: float = 1.0 - pow(1.0 - f, 3.0)
+				var rr: float = maxf(float(it["r"]) * out, 0.1)
+				alpha = float(it["a"]) * (1.0 - f * f)
+				k = Color(maxf(rr * (1.0 - float(it.get("w", 0.3))), 0.0), rr, k.b, k.a)
+			elif mode == MODE_WASH:
+				# out from the middle with an ease-out, then gone with an ease-in
+				var grow: float = 1.0 - pow(1.0 - minf(f * 2.0, 1.0), 2.0)
+				alpha = float(it["a"]) * (1.0 - f * f)
+				k = Color(0.0, maxf(float(it["r"]) * (0.25 + 0.75 * grow), 0.05), k.b, k.a)
 			else:
 				# fades to half over its life and blinks in its last 40%
 				alpha = float(it["a"]) * (1.0 - f * 0.5) * (1.0 if int(t * 12.0) % 2 == 0 or f < 0.6 else 0.45)
@@ -528,7 +576,7 @@ func _write() -> void:
 		if it["pool"] == "puff":
 			mm.set_instance_transform(n, it["xf"])
 		else:
-			mm.set_instance_transform(n, Transform3D(Basis(), it["at"]))
+			mm.set_instance_transform(n, Transform3D(_lift_basis(it), it["at"]))
 			mm.set_instance_custom_data(n, it["_k"])
 		mm.set_instance_color(n, c)
 		pool["n"] = n + 1

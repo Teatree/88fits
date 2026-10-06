@@ -2,13 +2,14 @@
   "id": "bunker_buster",
   "name": "Bunker Buster",
   "flavour": "One rocket. One crater.",
-  "rarity": "epic",
+  "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "rocket_pod",
   "kind": "motion",
   "element": "",
   "hero": "",
-  "text": "One rocket: ×3 damage, ×1.8 area, ×2 knockback.",
+  "text": "One rocket: ×3 damage, ×1.8 area of effect, ×2 knockback.",
   "vfx": "one fat rocket, one big ring blast",
   "effects": [
     {

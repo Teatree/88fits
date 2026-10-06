@@ -64,16 +64,20 @@ func test_the_harpooner_throws_far_and_leads() -> void:
 	assert_bool(bool(t.ranged.get("lead", false))).is_true()
 
 
-func test_the_turret_has_two_stances_and_no_walking() -> void:
+func test_the_turret_has_one_stance_and_no_walking() -> void:
 	assert_bool(Registry.mutations.has("walking_buddy")).is_false()
 	assert_bool(Registry.mutations.has("hornet_twister")).is_false()
+	# pass 47: the Watchtower is shelved (tools/dl/backup/mutations47), so the Bunker is the one stance and the path is
+	# three picks, any two of which open the Turret Family
+	assert_bool(Registry.mutations.has("watchtower")).is_false()
 	var styles: Array = []
 	for m: MutationDef in Registry.mutations_of("turret_buddy"):
 		var tp = m.params.get("turret")
-		if tp is Dictionary:
+		# pass 53: Last Stand carries a `turret.boom` block with no stance; only a stance counts here
+		if tp is Dictionary and tp.has("style"):
 			styles.append(str(tp.get("style", "")))
-	assert_bool(styles.has("tower") and styles.has("bunker")).is_true()
-	assert_int(Registry.mutations_of("turret_buddy").size()).is_equal(4)
+	assert_array(styles).is_equal(["bunker"])
+	assert_int(Registry.mutations_of("turret_buddy").size()).is_equal(3)
 
 
 func test_the_oasis_is_wadeable() -> void:

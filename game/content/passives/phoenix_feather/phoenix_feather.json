@@ -1,0 +1,25 @@
+{
+  "id": "phoenix_feather",
+  "name": "Phoenix Feather",
+  "rarity": "uncommon",
+  "weight": 6,
+  "max_level": 1,
+  "flavour": "Some birds will not stay down.",
+  "text": "Once a run: two seconds after you fall, you get back up with the revive's blast. Gone once used.",
+  "levels": [
+    [
+      {
+        "stat": "phoenix_revive",
+        "op": "add",
+        "value": 1,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "one long fiery phoenix feather glowing red, orange and gold, curling at its tip, a few small embers rising off it",
+  "placeholder": {
+    "color": "#E8603A",
+    "glyph": "wing"
+  },
+  "repeat_last_level": true
+}

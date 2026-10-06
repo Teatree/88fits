@@ -1,0 +1,54 @@
+{
+  "id": "dust_devil",
+  "name": "Dust Devil",
+  "flavour": "Three big black thorny weeds that roll out, turn, and come back through the crowd at twice the damage, then go out and back once more. Each drags a wake of dark green dust 2.6 m wide that slows what stands in it and pulls it gently along.",
+  "rarity": "rare",
+  "is_evolution": true,
+  "evolved_from": "tumbleweed",
+  "max_level": 1,
+  "behavior": "ProjectileEmitter",
+  "targeting": "priority",
+  "base": {
+    "damage": 30,
+    "cooldown": 2.4,
+    "amount": 3,
+    "range": 18,
+    "pierce": 80,
+    "knockback": 14.0,
+    "speed": 7
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "radius": 0.9,
+    "fan_step_deg": 14,
+    "return": true,
+    "final": {
+      "out_speed_mult": 0.8,
+      "back_speed_mult": 1.5,
+      "aura": {
+        "radius": 2.6,
+        "slow": 0.35,
+        "seconds": 0.4,
+        "every": 0.2,
+        "tint": "#1A5A1E",
+        "pull": 2.5
+      },
+      "return_damage_mult": 2.0,
+      "second_pass": true
+    },
+    "roll_radius": 0.75
+  },
+  "sfx": {
+    "fire": "w_tumble_roll",
+    "hit": "w_tumble_hit"
+  },
+  "placeholder": {
+    "color": "#1A5A1E",
+    "glyph": "ball",
+    "gold": true
+  },
+  "art_prompt": "a big jet-black thorny tumbleweed rolling inside a spinning ring of dark green dust",
+  "visual": "dust_devil_visual.tscn"
+}

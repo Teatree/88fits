@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_3upw0"]
+[ext_resource type="Texture2D" path="res://content/mutations/methanol/methanol_icon.png" id="2_qn6kh"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_3778e"]
+[ext_resource type="PackedScene" path="res://content/mutations/methanol/methanol_visual.tscn" id="4_qn6kh"]
+
+[sub_resource type="Resource" id="Resource_qn6kh"]
+script = ExtResource("1_3upw0")
+stat = "fire_damage"
+op = "mul"
+value = -0.2
+
+[sub_resource type="Resource" id="Resource_3778e"]
+script = ExtResource("1_3upw0")
+stat = "fire_duration"
+op = "mul"
+value = 0.75
+
+[resource]
+script = ExtResource("3_3778e")
+weapon = "molotov"
+mutation_kind = "volume"
+text = "The fire burns blue: pools 50% bigger, burns last 75% longer, −20% burn damage."
+vfx = "blue flames in the pools, on burning creatures and dripping from the bottle"
+effects = [SubResource("Resource_qn6kh"), SubResource("Resource_3778e")]
+params = {
+"cloud_mult": 1.5,
+"fire_blue": true
+}
+visual = ExtResource("4_qn6kh")
+visual_file = "methanol_visual.tscn"
+id = "methanol"
+display_name = "Methanol"
+flavour = "Burns cold. Burns long."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_qn6kh")
+icon_file = "methanol_icon.png"
+placeholder = {
+"color": "#5A8CFF",
+"glyph": "star"
+}

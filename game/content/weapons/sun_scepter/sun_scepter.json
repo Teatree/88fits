@@ -1,0 +1,109 @@
+{
+  "id": "sun_scepter",
+  "name": "Sun Scepter",
+  "flavour": "Noon, wherever she points it.",
+  "rarity": "rare",
+  "weight": 7,
+  "hero": "solenne",
+  "behavior": "SunScepter",
+  "targeting": "random",
+  "tags": [
+    "magic"
+  ],
+  "base": {
+    "damage": 14,
+    "cooldown": 1.1,
+    "amount": 1,
+    "area": 1.0,
+    "knockback": 4.0,
+    "range": 12.0
+  },
+  "max_level": 5,
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      },
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.15
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      },
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.2
+      },
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "zenith",
+  "params": {
+    "sun": {
+      "warn": 0.45,
+      "radius": 1.3,
+      "flash": 1.0,
+      "beam_alpha": 0.55,
+      "ring_alpha": 0.35,
+      "ring_color": "#FF381A",
+      "glint": 0.0,
+      "hold_when_empty": true,
+      "weight_power": 2.0,
+      "tint": "#FFC64A",
+      "thin": 1.0
+    },
+    "shine": {
+      "idle": 0.0,
+      "flare": 1.1,
+      "sweep": 1.1,
+      "pop": 0.0
+    },
+    "familiar": {
+      "radius": 1.25,
+      "height": 1.55,
+      "speed": 1.1,
+      "bob": 0.1,
+      "tilt_deg": 28
+    },
+    "marks": false
+  },
+  "sfx": {
+    "fire": "w_sun_warn",
+    "hit": "w_sun_strike",
+    "burst": "w_sun_zenith"
+  },
+  "placeholder": {
+    "color": "#F2C037",
+    "glyph": "star"
+  },
+  "art_prompt": "a golden sceptre: a dark lacquered staff with brass bands topped by a shining golden sun disc with eight straight rays, a small glint on its rim"
+}

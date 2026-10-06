@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/thors_wrath/thors_wrath_icon.png" id="1_hgyej"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_p1crn"]
+
+[resource]
+script = ExtResource("2_p1crn")
+weapon = "hammer"
+mutation_kind = "element"
+text = "Half of all impacts throw lightning at the three nearest creatures outside the blast within 7 m, 35% of the hit each."
+vfx = "thin blue bolts jump off the blast to creatures outside it, a small spark where each lands"
+params = {
+"thor": {
+"chance": 0.5,
+"frac": 0.35,
+"reach": 7.0,
+"zaps": 3.0
+}
+}
+id = "thors_wrath"
+display_name = "Thor's Wrath"
+flavour = "Borrowed, not stolen."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_hgyej")
+icon_file = "thors_wrath_icon.png"
+placeholder = {
+"color": "#6FA8FF",
+"glyph": "star"
+}

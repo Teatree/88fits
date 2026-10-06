@@ -5,7 +5,7 @@
   "rarity": "rare",
   "weight": 7,
   "behavior": "ProjectileEmitter",
-  "targeting": "nearest",
+  "targeting": "priority",
   "base": {
     "damage": 16,
     "cooldown": 2.8,
@@ -16,8 +16,10 @@
     "speed": 6
   },
   "params": {
-    "radius": 0.7
+    "radius": 0.7,
+    "roll_radius": 0.6
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -25,9 +27,7 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.25
-      }
-    ],
-    [
+      },
       {
         "stat": "cooldown",
         "op": "mul",
@@ -39,9 +39,7 @@
         "stat": "amount",
         "op": "add",
         "value": 1
-      }
-    ],
-    [
+      },
       {
         "stat": "speed",
         "op": "mul",
@@ -60,9 +58,7 @@
         "stat": "cooldown",
         "op": "mul",
         "value": -0.12
-      }
-    ],
-    [
+      },
       {
         "stat": "amount",
         "op": "add",
@@ -71,7 +67,7 @@
     ]
   ],
   "evolves_with": "",
-  "evolves_into": "stampede",
+  "evolves_into": "dust_devil",
   "sfx": {
     "fire": "w_tumble_roll",
     "hit": "w_tumble_hit"

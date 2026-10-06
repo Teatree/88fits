@@ -7,17 +7,23 @@
 
 [sub_resource type="Resource" id="Resource_i7xvp"]
 script = ExtResource("4_ixik5")
+stage_length = 430.0
 stage_mults = [1.0, 2.2, 3.34]
+endless_wave_seconds = 86.0
 endless_wave_mult = 1.12
 hell_cap = [0.0, 0.3, 0.4]
 speed_per_stage = 0.1
-cap_start = 25
-cap_per_minute = 8.35
+cap_start = 10
+cap_per_minute = 7.81
 cap_max = 150
 hard_cap = 260
+cap_curve = [[0.0, 10.0], [63.0, 27.0], [122.0, 38.0], [123.0, 76.0], [187.0, 85.0], [192.0, 38.0], [286.0, 52.0], [363.0, 60.0], [430.0, 66.0], [860.0, 108.0], [1290.0, 150.0]]
+boss_cap_frac = 0.6
+portal_cap = -1
+portal_spawn_seconds = -1.0
 specials = {
-"from": 150.0,
-"interval": [45.0, 60.0],
+"from": 215.0,
+"interval": [64.0, 86.0],
 "max_alive": 1.0,
 "pool": [{
 "enemy": "rocketeer"
@@ -26,136 +32,211 @@ specials = {
 "stage": 2.0
 }]
 }
-hp_growth = 0.14
+hp_growth = 0.0977
 hp_power = 1.25
+hp_curve = {
+"formula": {
+"a": 0.0977,
+"b": 1.25,
+"kind": "power"
+},
+"mode": "formula",
+"points": [[0.0, 1.0], [430.0, 1.9414], [860.0, 2.9878], [1290.0, 4.1143]]
+}
+damage_curve = {
+"formula": {
+"a": 0.0,
+"kind": "linear"
+},
+"mode": "formula",
+"points": [[0.0, 1.0], [1290.0, 1.0]]
+}
 level_hp_per_level = 0.05
 level_damage_per_level = 0.03
 burst_min = 3
 burst_max = 12
 spawn_interval = 0.7
 roster = [{
-"enemy": "goblin",
+"enemy": "red_goblin",
+"id": "r1",
+"stats": {
+"elite": {
+"hp_mult_per_stage": 0.0
+}
+},
 "t": 0.0,
-"weight": 10.0,
-"weight_late": 3.0
+"until": 122.0,
+"variant": "RG-B",
+"weights": [[0.0, 9.0], [59.0, 5.1], [63.0, 8.8], [118.0, 8.4]]
 }, {
-"enemy": "goblin_runt",
-"t": 30.0,
-"weight": 8.0,
-"weight_late": 3.0
+"enemy": "red_goblin_runt",
+"id": "r2",
+"t": 0.0,
+"until": 59.0,
+"weights": [[0.0, 3.0], [60.0, 3.7]]
 }, {
-"enemy": "fire_ant",
-"t": 60.0,
-"weight": 9.0,
-"weight_late": 7.0
+"enemy": "blue_slime",
+"id": "r18",
+"stats": {
+"hp": 40.0
+},
+"t": 58.0,
+"until": 123.0,
+"weights": [[58.0, 2.5], [121.0, 2.5]]
 }, {
-"enemy": "buckshot_dwarf",
-"t": 130.0,
-"weight": 1.5,
-"weight_late": 2.0
-}, {
-"enemy": "armadillo",
-"t": 150.0,
-"weight": 8.0,
-"weight_late": 6.0
-}, {
-"enemy": "spit_cactus",
-"t": 160.0,
-"weight": 3.0,
-"weight_late": 4.0
+"enemy": "lesser_scorpion",
+"id": "r3",
+"t": 123.0,
+"until": 192.0,
+"weights": [[121.0, 8.0], [203.0, 9.6]]
 }, {
 "enemy": "dust_mummy",
-"t": 300.0,
-"weight": 3.0,
-"weight_late": 5.0
+"id": "r4",
+"t": 430.0,
+"weights": [[430.0, 3.0], [860.0, 5.0]]
 }, {
 "enemy": "bull_beetle",
-"t": 340.0,
-"weight": 2.0,
-"weight_late": 3.0
+"id": "r5",
+"t": 487.0,
+"weights": [[487.0, 2.0], [860.0, 3.0]]
 }, {
 "enemy": "horned_toad",
-"t": 390.0,
-"weight": 2.0,
-"weight_late": 4.0
+"id": "r6",
+"t": 559.0,
+"weights": [[559.0, 2.0], [860.0, 4.0]]
 }, {
 "enemy": "dust_shaman",
-"t": 600.0,
-"weight": 1.0,
-"weight_late": 2.0
+"id": "r7",
+"t": 860.0,
+"weights": [[860.0, 1.0], [861.0, 2.0]]
 }, {
 "channel": "hell",
 "enemy": "blue_slime",
-"t": 300.0,
-"weight": 10.0
+"id": "r8",
+"t": 430.0,
+"weights": [[430.0, 10.0]]
 }, {
 "channel": "hell",
 "enemy": "hammer_giant",
-"t": 420.0,
-"weight": 1.5
+"id": "r9",
+"t": 602.0,
+"weights": [[602.0, 1.5]]
 }, {
 "channel": "hell",
 "enemy": "imp",
-"t": 600.0,
-"weight": 9.0
+"id": "r10",
+"t": 860.0,
+"weights": [[860.0, 9.0]]
 }, {
 "channel": "hell",
 "enemy": "hellhound",
-"t": 600.0,
-"weight": 8.0
+"id": "r11",
+"t": 860.0,
+"weights": [[860.0, 8.0]]
+}, {
+"enemy": "skeleton",
+"id": "r12",
+"stats": {
+"hp": 20.0
+},
+"t": 192.0,
+"until": 301.0,
+"weights": [[193.0, 6.7]]
+}, {
+"enemy": "skeleton_knight",
+"id": "r13",
+"pattern": "scatter",
+"stats": {
+"hp": 35.0
+},
+"t": 192.0,
+"until": 322.0,
+"weights": [[193.0, 2.9]]
+}, {
+"enemy": "spit_cactus",
+"id": "r14",
+"pattern": "scatter",
+"t": 192.0,
+"until": 250.0,
+"weights": [[193.0, 1.8]]
+}, {
+"enemy": "spit_cactus",
+"id": "r17",
+"pattern": "scatter",
+"t": 368.0,
+"until": 430.0,
+"weights": [[369.0, 1.8]]
+}, {
+"enemy": "bull_beetle",
+"id": "r15",
+"pattern": "scatter",
+"t": 250.0,
+"until": 368.0,
+"weights": [[250.0, 2.0]]
+}, {
+"enemy": "werewolf",
+"id": "r16",
+"stats": {
+"hp": 20.0,
+"size": 1.4
+},
+"t": 300.0,
+"until": 430.0,
+"weights": [[300.0, 5.4]]
 }]
+weight_late_t = 860.0
 events = [{
-"enemy": ["dune_scorpion", "sun_prophet"],
-"t": 150.0,
+"enemy": ["dune_scorpion", "sun_prophet", "stone_golem"],
+"t": 215.0,
 "type": "elite_boss"
 }, {
-"interval": 90.0,
-"t": 210.0,
+"interval": 129.0,
+"t": 301.0,
 "type": "elite_every"
 }, {
 "enemy": "tumbleweed_king",
-"t": 300.0,
+"t": 430.0,
 "type": "boss"
 }, {
-"count": 36.0,
+"count": 20.0,
 "enemy": "fire_ant",
-"t": 390.0,
+"t": 559.0,
 "type": "swarm"
 }, {
-"enemy": ["dune_scorpion", "sun_prophet"],
-"t": 450.0,
+"enemy": ["dune_scorpion", "sun_prophet", "stone_golem"],
+"t": 645.0,
 "type": "elite_boss"
 }, {
 "count": 18.0,
 "enemy": "armadillo",
-"t": 510.0,
+"t": 731.0,
 "type": "swarm"
 }, {
 "enemy": "gila_grande",
-"t": 600.0,
+"t": 860.0,
 "type": "boss"
 }, {
 "count": 30.0,
 "enemy": "imp",
-"t": 690.0,
+"t": 989.0,
 "type": "swarm"
 }, {
 "count": 24.0,
-"enemy": "goblin",
-"t": 720.0,
+"enemy": "skeleton",
+"t": 1032.0,
 "type": "swarm"
 }, {
-"enemy": ["dune_scorpion", "sun_prophet"],
-"t": 750.0,
+"enemy": ["dune_scorpion", "sun_prophet", "stone_golem"],
+"t": 1075.0,
 "type": "elite_boss"
 }, {
-"count": 40.0,
+"count": 24.0,
 "enemy": "fire_ant",
-"t": 840.0,
+"t": 1204.0,
 "type": "swarm"
 }, {
 "enemy": "brander",
-"t": 900.0,
+"t": 1290.0,
 "type": "boss"
 }]
 pickups = {
@@ -190,9 +271,27 @@ structures = {
 "count": 9.0,
 "min_spacing": 22.0
 }
-path_times = [[55.0, 115.0, 175.0, 230.0, 270.0], [35.0, 90.0, 145.0, 200.0, 245.0, 280.0], [35.0, 90.0, 145.0, 200.0, 245.0, 280.0]]
-weapon_cap = [4.0, 6.0, 6.0]
-line_cap = [3.0, 4.0, 4.0]
+path_times = [[79.0, 140.0, 200.0, 260.0, 315.0, 365.0, 405.0], [50.0, 105.0, 160.0, 215.0, 270.0, 325.0, 380.0, 410.0], [50.0, 105.0, 160.0, 215.0, 270.0, 325.0, 380.0, 410.0]]
+weapon_cap = [5.0, 5.0, 5.0]
+passive_cap = [5.0, 5.0, 5.0]
+colour_after_kills = 50
+creature_hp_mult = 1.3
+creature_damage_mult = 1.25
+spawn_sides = {
+"bottom": 15.0,
+"facing_share": 0.7,
+"facing_spread_deg": 60.0,
+"left": 15.0,
+"mode": "sides",
+"right": 15.0,
+"top": 55.0
+}
+contact_cap = 0.22
+xp_need_mult = 2.1
+move_pace = 0.9
+portal_wave = {
+"count": 12.0
+}
 
 [resource]
 script = ExtResource("3_nmc8t")
@@ -202,11 +301,11 @@ timeline = SubResource("Resource_i7xvp")
 skins = {
 "brute": "bull_beetle",
 "elite": "dune_scorpion",
-"runner": "goblin_runt",
+"runner": "skeleton_knight",
 "spitter": "spit_cactus",
 "swarmer": "fire_ant",
 "tank": "dust_mummy",
-"walker": "goblin"
+"walker": "skeleton"
 }
 boss = "tumbleweed_king"
 music = {

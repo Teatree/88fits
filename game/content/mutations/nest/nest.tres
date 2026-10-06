@@ -7,16 +7,13 @@
 [sub_resource type="Resource" id="Resource_at6db"]
 script = ExtResource("1_rmjp2")
 stat = "amount"
-op = "add"
 value = 2.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_h58l1"]
 script = ExtResource("1_rmjp2")
 stat = "damage"
 op = "mul"
 value = -0.25
-target = "self"
 
 [resource]
 script = ExtResource("2_at6db")

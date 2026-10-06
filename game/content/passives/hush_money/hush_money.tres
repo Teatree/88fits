@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/hush_money/hush_money_icon.png" id="1_3noeg"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_qywe3"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_hiw3h"]
+
+[sub_resource type="Resource" id="Resource_3noeg"]
+script = ExtResource("2_qywe3")
+stat = "gold_on_hit"
+value = 2.0
+target = "player"
+
+[resource]
+script = ExtResource("3_hiw3h")
+levels = [[SubResource("Resource_3noeg")]]
+max_level = 5
+id = "hush_money"
+display_name = "Hush Money"
+flavour = "Every bruise has a price."
+rarity = "uncommon"
+weight = 8.0
+icon = ExtResource("1_3noeg")
+icon_file = "hush_money_icon.png"
+placeholder = {
+"color": "#C9932F",
+"glyph": "star"
+}

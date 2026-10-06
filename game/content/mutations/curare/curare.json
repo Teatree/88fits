@@ -1,0 +1,28 @@
+{
+  "id": "curare",
+  "name": "Curare",
+  "flavour": "From the arrow frogs, with love.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "skull_rain",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Poisoning a creature may slow its moves and attacks by 50% for 3 s: a 20% chance that grows 20% with every re-poisoning, then 10 s before it can again.",
+  "vfx": "a creature dark green while poisoned and slowed",
+  "effects": [],
+  "params": {
+    "curare": {
+      "chance": 0.2,
+      "step": 0.2,
+      "slow": 0.5,
+      "seconds": 3.0,
+      "cooldown": 10.0
+    }
+  },
+  "art_prompt": "a small clay pot of dark green curare poison with a dart dipped in it",
+  "placeholder": {
+    "color": "#2F6B3A",
+    "glyph": "star"
+  }
+}

@@ -4,9 +4,9 @@
   "flavour": "Red rock, dry rivers, and everything between wants you.",
   "scene": "res://world/maps/red_canyon/RedCanyon.tscn",
   "skins": {
-    "walker": "goblin",
+    "walker": "skeleton",
     "swarmer": "fire_ant",
-    "runner": "goblin_runt",
+    "runner": "skeleton_knight",
     "spitter": "spit_cactus",
     "tank": "dust_mummy",
     "brute": "bull_beetle",
@@ -25,22 +25,74 @@
     "step": "pl_step_sand"
   },
   "timeline_data": {
-    "stage_length": 300,
+    "stage_length": 430,
     "stages": 3,
     "stage_mults": [
       1.0,
       2.2,
       3.34
     ],
-    "cap_start": 25,
-    "cap_per_minute": 8.35,
+    "cap_start": 10,
+    "cap_per_minute": 7.81,
     "cap_max": 150,
     "hard_cap": 260,
-    "specials": {
-      "from": 150,
-      "interval": [
-        45,
+    "cap_curve": [
+      [
+        0,
+        10
+      ],
+      [
+        63,
+        27
+      ],
+      [
+        122,
+        38
+      ],
+      [
+        123,
+        76
+      ],
+      [
+        187,
+        85
+      ],
+      [
+        192,
+        38
+      ],
+      [
+        286,
+        52
+      ],
+      [
+        363,
         60
+      ],
+      [
+        430,
+        66
+      ],
+      [
+        860,
+        108
+      ],
+      [
+        1290,
+        150
+      ]
+    ],
+    "boss_cap_frac": 0.6,
+    "portal_cap": -1,
+    "portal_spawn_seconds": -1,
+    "portal_wave": {
+      "count": 12
+    },
+    "specials": {
+      "from": 215,
+      "interval": [
+        64,
+        86
       ],
       "max_alive": 1,
       "pool": [
@@ -53,169 +105,415 @@
         }
       ]
     },
-    "hp_growth": 0.14,
+    "hp_growth": 0.0977,
     "hp_power": 1.25,
+    "hp_curve": {
+      "mode": "formula",
+      "formula": {
+        "kind": "power",
+        "a": 0.0977,
+        "b": 1.25
+      },
+      "points": [
+        [
+          0,
+          1.0
+        ],
+        [
+          430,
+          1.9414
+        ],
+        [
+          860,
+          2.9878
+        ],
+        [
+          1290,
+          4.1143
+        ]
+      ]
+    },
+    "damage_curve": {
+      "mode": "formula",
+      "formula": {
+        "kind": "linear",
+        "a": 0.0
+      },
+      "points": [
+        [
+          0,
+          1.0
+        ],
+        [
+          1290,
+          1.0
+        ]
+      ]
+    },
     "burst_min": 3,
     "burst_max": 12,
     "spawn_interval": 0.7,
+    "spawn_sides": {
+      "mode": "sides",
+      "top": 55,
+      "bottom": 15,
+      "left": 15,
+      "right": 15,
+      "facing_share": 0.7,
+      "facing_spread_deg": 60
+    },
     "roster": [
       {
+        "id": "r1",
         "t": 0,
-        "enemy": "goblin",
-        "weight": 10,
-        "weight_late": 3
+        "enemy": "red_goblin",
+        "weights": [
+          [
+            0,
+            9
+          ],
+          [
+            59,
+            5.1
+          ],
+          [
+            63,
+            8.8
+          ],
+          [
+            118,
+            8.4
+          ]
+        ],
+        "stats": {
+          "elite": {
+            "hp_mult_per_stage": 0
+          }
+        },
+        "until": 122,
+        "variant": "RG-B"
       },
       {
-        "t": 30,
-        "enemy": "goblin_runt",
-        "weight": 8,
-        "weight_late": 3
+        "id": "r2",
+        "t": 0,
+        "enemy": "red_goblin_runt",
+        "weights": [
+          [
+            0,
+            3
+          ],
+          [
+            60,
+            3.7
+          ]
+        ],
+        "until": 59
       },
       {
-        "t": 60,
-        "enemy": "fire_ant",
-        "weight": 9,
-        "weight_late": 7
-      },
-      {
-        "t": 130,
-        "enemy": "buckshot_dwarf",
-        "weight": 1.5,
-        "weight_late": 2
-      },
-      {
-        "t": 150,
-        "enemy": "armadillo",
-        "weight": 8,
-        "weight_late": 6
-      },
-      {
-        "t": 160,
-        "enemy": "spit_cactus",
-        "weight": 3,
-        "weight_late": 4
-      },
-      {
-        "t": 300,
-        "enemy": "dust_mummy",
-        "weight": 3,
-        "weight_late": 5
-      },
-      {
-        "t": 340,
-        "enemy": "bull_beetle",
-        "weight": 2,
-        "weight_late": 3
-      },
-      {
-        "t": 390,
-        "enemy": "horned_toad",
-        "weight": 2,
-        "weight_late": 4
-      },
-      {
-        "t": 600,
-        "enemy": "dust_shaman",
-        "weight": 1,
-        "weight_late": 2
-      },
-      {
-        "t": 300,
+        "id": "r18",
+        "t": 58,
         "enemy": "blue_slime",
-        "weight": 10,
+        "weights": [
+          [
+            58,
+            2.5
+          ],
+          [
+            121,
+            2.5
+          ]
+        ],
+        "until": 123,
+        "stats": {
+          "hp": 40
+        }
+      },
+      {
+        "id": "r3",
+        "t": 123,
+        "enemy": "lesser_scorpion",
+        "weights": [
+          [
+            121,
+            8
+          ],
+          [
+            203,
+            9.6
+          ]
+        ],
+        "until": 192
+      },
+      {
+        "id": "r4",
+        "t": 430,
+        "enemy": "dust_mummy",
+        "weights": [
+          [
+            430,
+            3.0
+          ],
+          [
+            860,
+            5
+          ]
+        ]
+      },
+      {
+        "id": "r5",
+        "t": 487,
+        "enemy": "bull_beetle",
+        "weights": [
+          [
+            487,
+            2.0
+          ],
+          [
+            860,
+            3
+          ]
+        ]
+      },
+      {
+        "id": "r6",
+        "t": 559,
+        "enemy": "horned_toad",
+        "weights": [
+          [
+            559,
+            2
+          ],
+          [
+            860,
+            4
+          ]
+        ]
+      },
+      {
+        "id": "r7",
+        "t": 860,
+        "enemy": "dust_shaman",
+        "weights": [
+          [
+            860,
+            1
+          ],
+          [
+            861,
+            2
+          ]
+        ]
+      },
+      {
+        "id": "r8",
+        "t": 430,
+        "enemy": "blue_slime",
+        "weights": [
+          [
+            430,
+            10
+          ]
+        ],
         "channel": "hell"
       },
       {
-        "t": 420,
+        "id": "r9",
+        "t": 602,
         "enemy": "hammer_giant",
-        "weight": 1.5,
+        "weights": [
+          [
+            602,
+            1.5
+          ]
+        ],
         "channel": "hell"
       },
       {
-        "t": 600,
+        "id": "r10",
+        "t": 860,
         "enemy": "imp",
-        "weight": 9,
+        "weights": [
+          [
+            860,
+            9
+          ]
+        ],
         "channel": "hell"
       },
       {
-        "t": 600,
+        "id": "r11",
+        "t": 860,
         "enemy": "hellhound",
-        "weight": 8,
+        "weights": [
+          [
+            860,
+            8
+          ]
+        ],
         "channel": "hell"
+      },
+      {
+        "id": "r12",
+        "t": 192,
+        "enemy": "skeleton",
+        "weights": [
+          [
+            193,
+            6.7
+          ]
+        ],
+        "until": 301,
+        "stats": {
+          "hp": 20
+        }
+      },
+      {
+        "id": "r13",
+        "t": 192,
+        "enemy": "skeleton_knight",
+        "weights": [
+          [
+            193,
+            2.9
+          ]
+        ],
+        "until": 322,
+        "stats": {
+          "hp": 35
+        },
+        "pattern": "scatter"
+      },
+      {
+        "id": "r14",
+        "t": 192,
+        "enemy": "spit_cactus",
+        "weights": [
+          [
+            193,
+            1.8
+          ]
+        ],
+        "until": 250,
+        "pattern": "scatter"
+      },
+      {
+        "id": "r17",
+        "t": 368,
+        "enemy": "spit_cactus",
+        "weights": [
+          [
+            369,
+            1.8
+          ]
+        ],
+        "until": 430,
+        "pattern": "scatter"
+      },
+      {
+        "id": "r15",
+        "t": 250,
+        "enemy": "bull_beetle",
+        "weights": [
+          [
+            250,
+            2
+          ]
+        ],
+        "until": 368,
+        "pattern": "scatter"
+      },
+      {
+        "id": "r16",
+        "t": 300,
+        "enemy": "werewolf",
+        "weights": [
+          [
+            300,
+            5.4
+          ]
+        ],
+        "until": 430,
+        "stats": {
+          "hp": 20,
+          "size": 1.4
+        }
       }
     ],
     "events": [
       {
-        "t": 150,
+        "t": 215,
         "type": "elite_boss",
         "enemy": [
           "dune_scorpion",
-          "sun_prophet"
+          "sun_prophet",
+          "stone_golem"
         ]
       },
       {
-        "t": 210,
+        "t": 301,
         "type": "elite_every",
-        "interval": 90
+        "interval": 129
       },
       {
-        "t": 300,
+        "t": 430,
         "type": "boss",
         "enemy": "tumbleweed_king"
       },
       {
-        "t": 390,
+        "t": 559,
         "type": "swarm",
         "enemy": "fire_ant",
-        "count": 36
+        "count": 20
       },
       {
-        "t": 450,
+        "t": 645,
         "type": "elite_boss",
         "enemy": [
           "dune_scorpion",
-          "sun_prophet"
+          "sun_prophet",
+          "stone_golem"
         ]
       },
       {
-        "t": 510,
+        "t": 731,
         "type": "swarm",
         "enemy": "armadillo",
         "count": 18
       },
       {
-        "t": 600,
+        "t": 860,
         "type": "boss",
         "enemy": "gila_grande"
       },
       {
-        "t": 690,
+        "t": 989,
         "type": "swarm",
         "enemy": "imp",
         "count": 30
       },
       {
-        "t": 720,
+        "t": 1032,
         "type": "swarm",
-        "enemy": "goblin",
+        "enemy": "skeleton",
         "count": 24
       },
       {
-        "t": 750,
+        "t": 1075,
         "type": "elite_boss",
         "enemy": [
           "dune_scorpion",
-          "sun_prophet"
+          "sun_prophet",
+          "stone_golem"
         ]
       },
       {
-        "t": 840,
+        "t": 1204,
         "type": "swarm",
         "enemy": "fire_ant",
-        "count": 40
+        "count": 24
       },
       {
-        "t": 900,
+        "t": 1290,
         "type": "boss",
         "enemy": "brander"
       }
@@ -261,51 +559,63 @@
     },
     "cap_per_stage": 0,
     "speed_per_stage": 0.1,
-    "weight_late_t": 600,
+    "weight_late_t": 860,
     "weapon_cap": [
-      4,
-      6,
-      6
+      5,
+      5,
+      5
     ],
     "path_times": [
       [
-        55,
-        115,
-        175,
-        230,
-        270
+        79,
+        140,
+        200,
+        260,
+        315,
+        365,
+        405
       ],
       [
-        35,
-        90,
-        145,
-        200,
-        245,
-        280
+        50,
+        105,
+        160,
+        215,
+        270,
+        325,
+        380,
+        410
       ],
       [
-        35,
-        90,
-        145,
-        200,
-        245,
-        280
+        50,
+        105,
+        160,
+        215,
+        270,
+        325,
+        380,
+        410
       ]
     ],
     "level_hp_per_level": 0.05,
     "level_damage_per_level": 0.03,
-    "line_cap": [
-      3,
-      4,
-      4
-    ],
-    "endless_wave_seconds": 60,
+    "endless_wave_seconds": 86,
     "endless_wave_mult": 1.12,
     "hell_cap": [
       0.0,
       0.3,
       0.4
-    ]
+    ],
+    "colour_after_kills": 50,
+    "creature_hp_mult": 1.3,
+    "creature_damage_mult": 1.25,
+    "contact_cap": 0.22,
+    "passive_cap": [
+      5,
+      5,
+      5
+    ],
+    "xp_need_mult": 2.1,
+    "move_pace": 0.9
   },
   "placeholder": {
     "color": "#E4874C",

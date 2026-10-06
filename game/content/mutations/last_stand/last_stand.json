@@ -1,0 +1,28 @@
+{
+  "id": "last_stand",
+  "name": "Last Stand",
+  "flavour": "It goes out with a bang.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "turret_buddy",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "A turret that despawns explodes: a 3 m blast for 4× its shot's damage, throwing them back.",
+  "vfx": "a fireball where the turret stood as it goes",
+  "effects": [],
+  "params": {
+    "turret": {
+      "boom": {
+        "radius": 3.0,
+        "damage_mult": 4.0,
+        "knockback": 9.0
+      }
+    }
+  },
+  "art_prompt": "a small turret with a face bursting apart in an orange explosion",
+  "placeholder": {
+    "color": "#FF9040",
+    "glyph": "star"
+  }
+}

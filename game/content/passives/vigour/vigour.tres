@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/vigour/vigour_icon.png" id="1_8xdgh"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_s2arj"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_7ovpq"]
+
+[sub_resource type="Resource" id="Resource_8xdgh"]
+script = ExtResource("2_s2arj")
+stat = "max_hp"
+op = "mul"
+value = 0.08
+target = "player"
+
+[sub_resource type="Resource" id="Resource_s2arj"]
+script = ExtResource("2_s2arj")
+stat = "max_hp"
+op = "mul"
+value = 0.08
+target = "player"
+
+[sub_resource type="Resource" id="Resource_7ovpq"]
+script = ExtResource("2_s2arj")
+stat = "damage_reduction"
+value = 0.05
+target = "player"
+
+[sub_resource type="Resource" id="Resource_bbf4l"]
+script = ExtResource("2_s2arj")
+stat = "max_hp"
+op = "mul"
+value = 0.08
+target = "player"
+
+[sub_resource type="Resource" id="Resource_wa4rc"]
+script = ExtResource("2_s2arj")
+stat = "max_hp"
+op = "mul"
+value = 0.08
+target = "player"
+
+[sub_resource type="Resource" id="Resource_2stpk"]
+script = ExtResource("2_s2arj")
+stat = "damage_reduction"
+value = 0.05
+target = "player"
+
+[resource]
+script = ExtResource("3_7ovpq")
+line = true
+levels = [[SubResource("Resource_8xdgh")], [SubResource("Resource_s2arj"), SubResource("Resource_7ovpq")], [SubResource("Resource_bbf4l")], [SubResource("Resource_wa4rc"), SubResource("Resource_2stpk")]]
+repeat_last_level = false
+max_level = 4
+evolves_into = "ironclad"
+id = "vigour"
+display_name = "Vigour"
+flavour = "Thick skin. Thicker skull."
+icon = ExtResource("1_8xdgh")
+icon_file = "vigour_icon.png"
+placeholder = {
+"color": "#FF6070",
+"glyph": "star"
+}

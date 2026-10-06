@@ -5,6 +5,10 @@
 // INSTANCE COLOR:  rgb = tint (elite colour), a = tint strength
 shader_type spatial;
 render_mode cull_disabled, unshaded, skip_vertex_transform, depth_draw_opaque;
+// Every painting writes stencil 1 where it draws a pixel (pass 54, Garry: gems and coins drawn under every 2.5D sprite):
+// the gems and coins (PickupManager, see-through, drawn after every opaque thing) skip those pixels, so they lie under
+// the creatures, the hero, the props and the structures wherever they overlap, in front of a painting's plane or not.
+stencil_mode write, compare_always, 1;
 
 uniform sampler2D sprite : source_color, filter_linear_mipmap, repeat_disable;
 uniform float frames = 8.0;
@@ -49,7 +53,12 @@ void vertex() {
 	vec3 right = normalize(cross(up, cam_back));
 	float w = sx * (1.0 + (1.0 - squash) * 0.5);
 	float h = sy * squash;
-	vec3 world = origin + right * VERTEX.x * w + up * (VERTEX.y + 0.5) * h;
+	// a roll about the feet (pass 50: a charger's rock and lean), read off the angle of the instance's x column; a plain
+	// scaled basis rolls 0
+	float roll = atan(MODEL_MATRIX[0].y, MODEL_MATRIX[0].x);
+	vec2 q = vec2(VERTEX.x * w, (VERTEX.y + 0.5) * h);
+	q = vec2(q.x * cos(roll) - q.y * sin(roll), q.x * sin(roll) + q.y * cos(roll));
+	vec3 world = origin + right * q.x + up * q.y;
 	VERTEX = (VIEW_MATRIX * vec4(world, 1.0)).xyz;
 	NORMAL = normalize((VIEW_MATRIX * vec4(cam_back, 0.0)).xyz);
 }

@@ -35,7 +35,7 @@ PROPS = {
     "saguaro_big": ("a tall green saguaro cactus with two thick upraised arms, ribbed, with small spines" + NO_FACE, 4.4, 0.22, 384, 11, "blue"),
     "saguaro_small": ("a medium green saguaro cactus with one short arm, ribbed, with small spines" + NO_FACE, 2.8, 0.19, 256, 12, "blue"),
     "barrel_cactus": ("a fat round green barrel cactus with curved yellow spines and a ring of small pink flowers on top" + NO_FACE, 1.1, 0.25, 192, 13, "blue"),
-    "agave": ("a spiky blue-green agave plant with thick pointed leaves fanning out from the ground" + NO_FACE, 1.3, 0.25, 192, 15, "green"),
+    "agave": ("a spiky blue-green agave plant with thick pointed leaves fanning out from the ground" + NO_FACE, 1.3, 0.0, 192, 15, "green"),   # radius 0 since pass 54: the hero walks through it
     "dead_shrub": ("a dry dead desert shrub of tangled grey-brown twigs" + NO_FACE, 1.2, 0.0, 192, 16, "blue"),
     "dead_tree": ("a gnarled dead desert tree with bare twisted branches and cracked grey bark" + NO_FACE, 4.2, 0.19, 384, 17, "blue"),
     "rock_small": ("a small rounded sandstone rock, orange and tan with a few cracks" + NO_FACE, 0.8, 0.22, 128, 18, "blue"),
@@ -62,7 +62,8 @@ PROPS = {
     "st_shop": ("a small travelling merchant stall with a striped red and white awning, a wooden counter and hanging wares" + NO_FACE, 2.6, 0.0, 256, 44, "green"),
     "st_war_drum": ("a big tribal war drum on a wooden stand with two crossed drumsticks and red tassels" + NO_FACE, 1.7, 0.0, 192, 45, "blue"),
     "st_dice_shrine": ("a small stone shrine with two giant carved dice on top, purple candles at its base" + NO_FACE, 2.0, 0.0, 256, 46, "blue"),
-    "st_uber_magnet": ("a giant red and silver horseshoe magnet standing upright on a stone plinth, crackling with golden sparks" + NO_FACE, 2.2, 0.0, 256, 47, "blue"),
+    # pass 48 (Garry): nothing on it that looks like it should move: no sparks, no lightning, no electricity
+    "st_uber_magnet": ("a giant red and silver horseshoe magnet standing upright on a square grey stone plinth, solid painted metal, clean and still, nothing glowing, no sparks, no lightning, no electricity, no energy, no motion lines" + NO_FACE, 2.2, 0.0, 256, 48, "blue"),
     # the Strongbox (pass 33.1): a chest on a balloon, painted like every other structure
     "st_gold_bank": ("a small sturdy wooden treasure chest with dark iron bands, a gold lock and a round gold coin emblem on the front, closed, standing on the ground, and a big shiny red balloon tied to the top of its lid by a thin white string, the balloon floating straight up above the chest" + NO_FACE, 2.8, 0.0, 256, 50, "green"),
     # pass 35: the Teleport, a stone ring gate; its middle is left open (the game swirls the portal in the hole)
@@ -79,7 +80,7 @@ OFF = {
     "st_shop": "the stall shuttered, the awning rolled up, the counter bare, no wares",
     "st_war_drum": "the drum skin torn through, the sticks lying on the ground, the tassels limp",
     "st_dice_shrine": "the candles out, the dice greyed and cracked, the shrine dark",
-    "st_uber_magnet": "the magnet dark, rusty and dull, no sparks, no glow",
+    "st_uber_magnet": "the magnet dark, rusty and dull, still standing on the same square grey stone plinth, no sparks, no glow",
     "st_teleport": "the runes dark and dead, the stone dull grey and cracked, one block chipped, no glow at all, the middle of the ring still empty and open",
     "st_hooded_figure": "the figure gone: only the ragged dark violet cloak left lying empty in a heap on the ground, nobody inside it, no hood standing, no glow",
 }
@@ -179,7 +180,8 @@ def main():
     manifest_p = os.path.join(OUT, "props.json")
     manifest = json.load(open(manifest_p, encoding="utf-8")) if os.path.exists(manifest_p) else {}
     for id_, (subject, height, radius, cell, seed, screen) in PROPS.items():
-        manifest[id_] = {"file": id_ + ".png", "height": height, "radius": radius, "cell": cell}
+        # the entry's own extra keys stay (pass 49: "hidden" keeps a painting out of the scatter, "off" names a spent one)
+        manifest[id_] = dict(manifest.get(id_, {}), **{"file": id_ + ".png", "height": height, "radius": radius, "cell": cell})
         if ONLY and id_ not in ONLY:
             continue
         png = os.path.join(OUT, id_ + ".png")

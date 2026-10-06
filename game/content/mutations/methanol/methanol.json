@@ -1,0 +1,35 @@
+{
+  "id": "methanol",
+  "name": "Methanol",
+  "flavour": "Burns cold. Burns long.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "molotov",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "The fire burns blue: pools 50% bigger, burns last 75% longer, −20% burn damage.",
+  "vfx": "blue flames in the pools, on burning creatures and dripping from the bottle",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "mul",
+      "value": -0.2
+    },
+    {
+      "stat": "fire_duration",
+      "op": "mul",
+      "value": 0.75
+    }
+  ],
+  "params": {
+    "fire_blue": true,
+    "cloud_mult": 1.5
+  },
+  "art_prompt": "a glass bottle of clear methanol with a rag in its neck burning with a pale blue flame",
+  "placeholder": {
+    "color": "#5A8CFF",
+    "glyph": "star"
+  },
+  "visual": "methanol_visual.tscn"
+}

@@ -14,6 +14,7 @@
     "knockback": 9.0,
     "lifetime": 25
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -21,9 +22,7 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.25
-      }
-    ],
-    [
+      },
       {
         "stat": "cooldown",
         "op": "mul",
@@ -35,9 +34,7 @@
         "stat": "area",
         "op": "mul",
         "value": 0.2
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",
@@ -56,9 +53,7 @@
         "stat": "cooldown",
         "op": "mul",
         "value": -0.15
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",
@@ -67,7 +62,7 @@
     ]
   ],
   "evolves_with": "",
-  "evolves_into": "minefield",
+  "evolves_into": "jackrabbit_mines",
   "params": {
     "max_mines": 8,
     "trigger_radius": 0.7

@@ -1,0 +1,141 @@
+{
+  "id": "werewolf",
+  "name": "Werewolf",
+  "flavour": "Something howls where the skeletons walked.",
+  "archetype": "walker",
+  "brain": "chase",
+  "hp": 10.0,
+  "speed": 1.6,
+  "damage": 3.0,
+  "knockback": 2.94,
+  "radius": 0.55,
+  "size": 1.8,
+  "pack_size": 3,
+  "cap_share": 0.5,
+  "xp_mult": 1.5,
+  "drops": {
+    "small": 1.0,
+    "medium": 0.05,
+    "gold": 0.02,
+    "chest": 0.0028
+  },
+  "anims": {
+    "idle": 4,
+    "run": 12,
+    "attack": 2,
+    "hit": 1,
+    "die": 8,
+    "run_b": 12,
+    "idle_b": 4
+  },
+  "frame_px": 176,
+  "fps": {
+    "run": 15,
+    "die": 12
+  },
+  "sfx": {
+    "hit": "en_goblin_hit",
+    "die": "en_goblin_die"
+  },
+  "placeholder": {
+    "color": "#3A3238",
+    "ears": "pointed",
+    "eyes": 2,
+    "shape": "tall"
+  },
+  "screen": "blue",
+  "art_prompt": "a hulking werewolf with dark grey-black shaggy fur, a wolf's head with a long snout, two small yellow eyes, its mouth open wide showing white fangs and a red tongue, long muscular arms with big clawed hands hanging low, ragged torn green trousers with a rope belt, hunched forward, realistic beast proportions",
+  "motion": "stalking forward in place with a heavy hunched beast walk, long arms swinging low",
+  "gait": "stalking in place on the spot, hunched, the long clawed arms swinging low, the wolf head forward",
+  "pose": "orc_walk_wolf",
+  "stand": "still",
+  "death": "clip",
+  "death_frames": 8,
+  "anim_negative": "extra arms, a third arm, extra legs, extra heads, a second creature, a human face, standing straight",
+  "back_hint": "Its back is covered in the same dark shaggy fur, the wolf ears show above the head from behind, the long arms hang at its sides with the claws visible, the torn green trousers and rope belt stay.",
+  "dead_hint": "lying flat on its back on the ground, dead: eyes shut, jaw slack with the tongue out, the long arms flopped out to the sides with the claws up, its body stretched out sideways across the picture with its head on the left and its feet on the right",
+  "outline_frac": 0.02,
+  "outline_color": "#0E080C",
+  "head": 0.977,
+  "doc": "A beast that walks like a skeleton (the skeleton's numbers) in threes; three looks from a real wolf to a cartoon (WW-A, WW-B, WW-C), walked on the Orc Walk retargeted to its long arms. Placed by the Level Editor.",
+  "note": "Pass 53 (Garry): from _REFERENCES/2d/Werewolf.webp (Klein edits picked by eye, tools/gen_edit_stills.py), small eyes and a mouth showing teeth in every look; the walk is Mixamo's Orc Walk on tools/dl/drivers/orc_walk_wolf.",
+  "variant_base": "WW-A",
+  "variant": "WW-A",
+  "variants": {
+    "WW-A": {
+      "note": "Like the reference: a realistic dark beast",
+      "recipe": {
+        "stills": "wwa",
+        "art_prompt": "a hulking werewolf with dark grey-black shaggy fur, a wolf's head with a long snout, two small yellow eyes, its mouth open wide showing white fangs and a red tongue, long muscular arms with big clawed hands hanging low, ragged torn green trousers with a rope belt, hunched forward, realistic beast proportions"
+      },
+      "sprite": "werewolf_sprite_a.png",
+      "icon": "werewolf_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.977
+    },
+    "WW-B": {
+      "note": "Stylised: bigger head and hands, tufted fur",
+      "recipe": {
+        "stills": "wwb",
+        "art_prompt": "a werewolf in a stylised cartoon style with a bigger wolf head, thick arms and big clawed hands, dark grey-black fur drawn as bold tufts, two small yellow eyes, a wide open mouth full of white fangs, ragged torn green trousers with a rope belt, hunched, bold simple shapes"
+      },
+      "sprite": "werewolf_sprite_b.png",
+      "icon": "werewolf_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.972
+    },
+    "WW-C": {
+      "note": "Very cartoony: round head, chunky claws, short legs",
+      "recipe": {
+        "stills": "wwc",
+        "art_prompt": "a very cartoony werewolf with a big round wolf head, tiny bead-like yellow eyes, a huge grinning mouth full of white fangs, short stumpy legs, oversized chunky clawed hands, dark grey-black fur painted flat and simple, ragged green trousers with a rope belt, hunched and goofy"
+      },
+      "sprite": "werewolf_sprite_c.png",
+      "icon": "werewolf_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 0.92
+    }
+  },
+  "sprite": "werewolf_sprite_a.png",
+  "icon": "werewolf_icon_a.png",
+  "strip_cols": 43
+}

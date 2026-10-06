@@ -1,0 +1,31 @@
+{
+  "id": "long_spear",
+  "name": "Long Spear",
+  "flavour": "Why get close.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "pike",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "+40% reach, strokes 15% slower.",
+  "vfx": "a longer shaft, a slower stroke",
+  "effects": [
+    {
+      "stat": "range",
+      "op": "mul",
+      "value": 0.4
+    },
+    {
+      "stat": "cooldown",
+      "op": "mul",
+      "value": 0.15
+    }
+  ],
+  "params": {},
+  "art_prompt": "a very long wooden spear with a leaf-shaped steel head, drawn diagonally across the frame",
+  "placeholder": {
+    "color": "#C8A878",
+    "glyph": "star"
+  }
+}

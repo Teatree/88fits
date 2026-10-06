@@ -22,6 +22,7 @@
       "arch_deg": 0.0
     }
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -29,9 +30,7 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.2
-      }
-    ],
-    [
+      },
       {
         "stat": "duration",
         "op": "add",
@@ -43,9 +42,7 @@
         "stat": "cooldown",
         "op": "mul",
         "value": -0.15
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",
@@ -64,9 +61,7 @@
         "stat": "duration",
         "op": "add",
         "value": 0.5
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",

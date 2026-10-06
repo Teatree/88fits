@@ -16,6 +16,7 @@ display_name = "Suit Seals"
 flavour = "The suit patches itself and everything on it."
 rarity = "rare"
 weight = 6.0
+hidden = true
 icon = ExtResource("1_gho8c")
 icon_file = "suit_seals_icon.png"
 placeholder = {

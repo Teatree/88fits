@@ -1,0 +1,51 @@
+{
+  "id": "blunderbuss",
+  "name": "Blunderbuss",
+  "flavour": "A bell for a mouth: everything in a 75° cone out to 10 m takes 30% of the whole volley at once, burns, and is thrown back; every second shot fires twice.",
+  "rarity": "rare",
+  "is_evolution": true,
+  "evolved_from": "boomstick",
+  "max_level": 1,
+  "behavior": "ProjectileEmitter",
+  "targeting": "forward",
+  "base": {
+    "damage": 9,
+    "cooldown": 1.0,
+    "amount": 12,
+    "spread_deg": 75,
+    "range": 10,
+    "pierce": 1,
+    "knockback": 12.0,
+    "speed": 18,
+    "fire_damage": 6,
+    "fire_duration": 2.2,
+    "fire_spread": 0.2
+  },
+  "params": {
+    "final": {
+      "blast": {
+        "shape": "cone",
+        "deg": 75,
+        "range": 10,
+        "frac": 0.3
+      },
+      "double_every": 2,
+      "fire_blind": true,
+      "ignite_chance": 1.0
+    }
+  },
+  "levels": [
+    []
+  ],
+  "sfx": {
+    "fire": "w_boom_fire",
+    "hit": "w_boom_hit"
+  },
+  "placeholder": {
+    "color": "#FFB13B",
+    "glyph": "shotgun",
+    "gold": true
+  },
+  "art_prompt": "a bell-mouthed gilded blunderbuss with a wide flared brass muzzle",
+  "visual": "blunderbuss_visual.tscn"
+}

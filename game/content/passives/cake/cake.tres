@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/cake/cake_icon.png" id="1_20ofu"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_8m2bd"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_tatj6"]
+
+[sub_resource type="Resource" id="Resource_20ofu"]
+script = ExtResource("2_8m2bd")
+stat = "heal_drop"
+value = 0.003
+target = "player"
+
+[resource]
+script = ExtResource("3_tatj6")
+levels = [[SubResource("Resource_20ofu")]]
+max_level = 5
+id = "cake"
+display_name = "Cake"
+flavour = "Carried across the desert in a hatbox. Still good."
+weight = 9.0
+icon = ExtResource("1_20ofu")
+icon_file = "cake_icon.png"
+placeholder = {
+"color": "#F4A6B8",
+"glyph": "star"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "echo_zap",
+  "name": "Echo Zap",
+  "flavour": "It is not over.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "zap_beam",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "20% of hits zap the same enemy 3 more times for 40% damage each.",
+  "vfx": "small jagged bolts out of the air into the creature, sparks, a pale blue tint",
+  "effects": [],
+  "params": {
+    "echo_zap": {
+      "chance": 0.2,
+      "count": 3,
+      "damage_frac": 0.4,
+      "gap": 0.25
+    }
+  },
+  "art_prompt": "a creature outlined in pale blue with three small lightning bolts striking it from the air",
+  "placeholder": {
+    "color": "#A0C8FF",
+    "glyph": "star"
+  }
+}

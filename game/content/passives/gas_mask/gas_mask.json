@@ -1,0 +1,25 @@
+{
+  "id": "gas_mask",
+  "name": "Gas Mask",
+  "rarity": "epic",
+  "weight": 5,
+  "max_level": 5,
+  "flavour": "Breathe easy in the bad air.",
+  "text": "1% damage reduction for every poisoned enemy, up to 8% (+8% a level, 40% at level 5).",
+  "levels": [
+    [
+      {
+        "stat": "gas_mask_cap",
+        "op": "add",
+        "value": 0.08,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "an old dark grey rubber gas mask with two round amber eye lenses, a round steel filter canister and brown leather straps, nothing around it",
+  "placeholder": {
+    "color": "#6E8F5A",
+    "glyph": "shield"
+  },
+  "repeat_last_level": true
+}

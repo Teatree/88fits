@@ -2,7 +2,7 @@
   "id": "static_field",
   "name": "Static Field",
   "flavour": "The floor is electric.",
-  "rarity": "epic",
+  "rarity": "rare",
   "weight": 8,
   "weapon": "zap_beam",
   "kind": "motion",

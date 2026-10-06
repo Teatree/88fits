@@ -6,6 +6,9 @@ func test_registry_has_base_content() -> void:
 	assert_bool(Registry.passives.has("haste")).is_true()
 	assert_bool(Registry.enemies.has("goblin")).is_true()
 	assert_bool(Registry.maps.has("red_canyon")).is_true()
+	# pass 46: the lines are passives (content/lines is gone as a type), and every evolution pair names the other
+	assert_bool(JsonContent.TYPES.has("lines")).is_false()
+	assert_bool(Registry.passives.has("energy_shield")).is_true()
 	assert_array(Registry.problems).is_empty()
 
 
@@ -19,8 +22,10 @@ func test_every_weapon_evolution_resolves() -> void:
 func test_json_roundtrip_effects() -> void:
 	var d := JsonContent.load_json("res://content/weapons/boomstick/boomstick.json")
 	var w: WeaponDef = JsonContent.build("weapons", d, "res://content/weapons/boomstick/")
-	assert_int(w.levels.size()).is_equal(8)
-	assert_int(w.effects_for_level(8).size()).is_equal(7)
+	# pass 48: five weapon levels (pairs of the old eight folded together, tools/compress_levels.py), the same seven effects
+	assert_int(w.levels.size()).is_equal(5)
+	assert_int(w.max_level).is_equal(5)
+	assert_int(w.effects_for_level(5).size()).is_equal(7)
 	var eff: Effect = w.effects_at_level(2)[0]
 	assert_str(eff.stat).is_equal("amount")
 

@@ -4,12 +4,13 @@
   "archetype": "walker",
   "brain": "chase",
   "flavour": "Someone buried it in its armour. It kept the armour.",
-  "hp": 10,
-  "speed": 1.7,
+  "hp": 15,
+  "speed": 1.5,
   "damage": 4,
-  "radius": 0.45,
-  "size": 1.4,
-  "pack_size": 4,
+  "knockback": 3.4,
+  "radius": 0.54,
+  "size": 1.85,
+  "pack_size": 5,
   "drops": {
     "small": 1.0,
     "gold": 0.01,
@@ -27,7 +28,7 @@
   },
   "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a clear ribcage, spine and pelvis, slim arm and leg bones with rounded joints, bony hands and feet, wearing a simple dented steel medieval breastplate strapped over its ribcage with worn leather straps and a simple round steel kettle helmet with a wide brim on its skull, bare bone arms and legs, no weapon, both arms stretched straight out in front at shoulder height like a sleepwalking zombie, the bony hands reaching forward, standing and facing the viewer",
   "screen": "blue",
-  "xp_mult": 2.5,
+  "xp_mult": 2.0,
   "variance": {
     "size": 0.22,
     "speed": 0.18,
@@ -67,27 +68,29 @@
     "run": 15,
     "die": 8
   },
-  "doc": "The skeleton that was buried in its armour: a dented breastplate and a kettle helm, a quarter off every hit and nearly twice a plain skeleton's HP, a little slower, four to a pack from the thirtieth second. Falls apart into a heap of bones with its armour on top.",
+  "doc": "The skeleton that was buried in its armour: a dented breastplate and a kettle helm, a quarter off every hit and half again a plain skeleton's HP, a little slower, one to every two and a half skeletons from the thirtieth second. Falls over backwards with its armour on.",
+  "cap_share": 0.5,
   "head": 1.0,
-  "retired": true,
+  "retired": false,
   "damage_reduction": 0.25,
   "variants": {
     "KN-A": {
-      "note": "arms down at its sides on Mixamo's plain walk; it falls apart in slices; a thin dark-brown outline",
+      "note": "arms down at its sides on Mixamo's plain walk; it falls over sideways and lies whole (pass 45); a thin dark-brown outline",
       "recipe": {
         "stills": "va",
         "art_prompt": "a skeleton in a clean readable game-art style: warm ivory bone with soft warm beige shading, clean with no stains, a slightly large skull with big dark hollow eye sockets and a row of square teeth, a clear ribcage, spine and pelvis, slim arm and leg bones with rounded joints, bony hands and feet, wearing a simple dented steel medieval breastplate strapped over its ribcage with worn leather straps and a simple round steel kettle helmet with a wide brim on its skull, bare bone arms and legs, no weapon, both arms hanging relaxed straight down at its sides, standing upright and facing the viewer",
         "back_hint": "seen from behind: the back of the steel kettle helmet, the back plate of the armour with its leather straps, the pelvis and bare bone legs, both arms hanging straight down at its sides, no face",
-        "dead_hint": "collapsed into a low loose heap of bones, dead: every bone fallen into one flat pile, the dented steel breastplate lying on the pile and the steel kettle helmet resting on top with the skull under its brim, the ribcage broken apart, arm bones, leg bones, feet and vertebrae all jumbled inside the pile with nothing sticking out below it; the pile sits on nothing, with no ground, no sand, no dirt patch and no shadow under it",
+        "dead_hint": "fallen over and lying on the ground on its side, dead and still in one piece: the whole body stretched out flat and sideways across the picture, the skull on the left side and the feet on the right side, the arms limp along the body, every bone connected, the dented steel breastplate and the round kettle helmet still on",
         "pose": "walk",
         "pose_front": "walk",
         "stand": "still",
         "gait": "walking in place on the spot at a slow steady pace, both arms swinging gently at its sides",
         "motion": "a skeleton walking slowly with its arms at its sides",
         "anim_negative": "extra arms, a third arm, extra legs, extra skulls, two heads, extra hands, arms stretched out in front, a weapon appearing or changing",
-        "death": "collapse",
+        "death": "clip",
         "outline_frac": 0.012,
-        "outline_color": "#3a2a24"
+        "outline_color": "#3a2a24",
+        "death_frames": 8
       },
       "sprite": "skeleton_knight_sprite_a.png",
       "icon": "skeleton_knight_icon_a.png",
@@ -96,14 +99,14 @@
         "run": 12,
         "attack": 2,
         "hit": 1,
-        "die": 5,
+        "die": 8,
         "run_b": 12,
         "idle_b": 4
       },
-      "strip_cols": 40,
+      "strip_cols": 43,
       "fps": {
         "run": 15,
-        "die": 8
+        "die": 12
       },
       "head": 0.963
     },
@@ -214,6 +217,42 @@
         "die": 8
       },
       "head": 1.0
+    },
+    "KN-E": {
+      "note": "the KN-A knight with dark blue bones and its steel and leather left alone (pass 54; a two-pass tint of the KN-A strip, tools/recolour_strip.py --mode tint)",
+      "recipe": {
+        "tint_of": "KN-A",
+        "tint": {
+          "ranges": [
+            [
+              10,
+              75
+            ]
+          ],
+          "to": 222,
+          "set_sat": 0.55,
+          "value": 0.6,
+          "min_val": 0.3
+        }
+      },
+      "sprite": "skeleton_knight_sprite_e.png",
+      "icon": "skeleton_knight_icon_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "strip_cols": 43,
+      "head": 0.963
     }
-  }
+  },
+  "variant": "KN-A"
 }

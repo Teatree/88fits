@@ -1,6 +1,6 @@
 {
   "id": "unlock_hornet_nest",
-  "name": "Hornet Nest",
+  "name": "Killer Bees",
   "condition": {
     "type": "kills_of_enemy",
     "enemy": "armadillo",
@@ -10,7 +10,7 @@
     "type": "weapon",
     "id": "hornet_nest"
   },
-  "art_prompt": "a glass jar with a paper hornet nest inside",
+  "art_prompt": "a glass jar with a small golden beehive and a few killer bees inside",
   "placeholder": {
     "color": "#C9A227",
     "glyph": "star"

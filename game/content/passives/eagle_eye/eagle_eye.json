@@ -1,0 +1,33 @@
+{
+  "id": "eagle_eye",
+  "name": "Eagle Eye",
+  "flavour": "Sees the soft spot from a mile off.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "crit_chance",
+        "op": "add",
+        "value": 0.45,
+        "target": "player"
+      },
+      {
+        "stat": "crit_damage",
+        "op": "add",
+        "value": 0.5,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "deadeye",
+  "art_prompt": "a round gold marksman medal with a fierce golden eagle's eye in its centre ringed by a red target ring, two small golden wings spread at its sides",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

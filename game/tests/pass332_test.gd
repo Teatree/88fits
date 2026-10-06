@@ -95,10 +95,11 @@ func test_the_fodder_comes_twice_as_many_at_half_each() -> void:
 	assert_int(g.pack_size).is_equal(6)
 	assert_float(g.hp).is_equal_approx(6.0, 0.01)
 	assert_float(g.cap_share).is_equal_approx(0.5, 0.001)
+	# pass 53 (Garry: the ants come at 5:00 as "0.6 of a mummy"): no longer half-share fodder, a full slot each in eights
 	var a: EnemyDef = Registry.enemy("fire_ant")
-	assert_int(a.pack_size).is_equal(16)
-	assert_float(a.hp).is_equal_approx(2.0, 0.01)
-	assert_float(a.cap_share).is_equal_approx(0.5, 0.001)
+	assert_int(a.pack_size).is_equal(8)
+	assert_float(a.hp).is_equal_approx(36.0, 0.01)
+	assert_float(a.cap_share).is_equal_approx(1.0, 0.001)
 	# half a slot each against the director's cap
 	var em: EnemyManager = auto_free(EnemyManager.new())
 	add_child(em)
@@ -120,7 +121,16 @@ func test_the_armadillo_arrives_half_way_through_stage_one() -> void:
 	for r in tl.roster:
 		if str(r["enemy"]) == "armadillo":
 			arrives = float(r["t"])
-	assert_float(arrives).is_between(140.0, 160.0)
+	# half way through stage 1: 2:30 before pass 46 stretched the stage from 300 s to 430 s, 3:35 since; pass 54: Garry's
+	# placement in the Level Editor (2026-10-06) brings it in the 12:11 swarm instead of a roster row
+	if arrives >= 0.0:
+		assert_float(arrives).is_between(200.0, 230.0)
+	else:
+		var swarm := false
+		for ev in tl.events:
+			if str(ev.get("type", "")) == "swarm" and str(ev.get("enemy", "")) == "armadillo":
+				swarm = true
+		assert_bool(swarm).is_true()
 
 
 func test_the_rocket_keeps_to_nine_tenths_of_the_hero() -> void:
@@ -142,13 +152,16 @@ func test_the_death_log_names_the_killer() -> void:
 	var text := p.damage_log_text()
 	var lines := text.split("\n")
 	assert_int(lines.size()).is_equal(3)
-	# newest first: the killing blow on top, with the skull and the boss's crown
-	assert_str(lines[0]).starts_with("💀 👑")
+	# newest first, in plain words since pass 46 (the Down! list draws the badges): the killing blow on top
+	assert_str(lines[0]).starts_with("FATAL ")
+	assert_str(lines[0]).contains("  boss  ")
 	assert_str(lines[0]).contains("Tumbleweed King")
-	assert_str(lines[1]).contains("🏹")
+	assert_str(lines[1]).contains("  ranged  ")
 	assert_str(lines[1]).contains("knocked back")
-	assert_str(lines[2]).contains("🗡️")
+	assert_str(lines[2]).contains("  melee  ")
 	assert_str(lines[2]).contains("Goblin")
+	for emoji: String in [char(0x1F480), char(0x1F451), char(0x1F3F9), char(0x1F5E1)]:
+		assert_str(text).not_contains(emoji)
 
 
 func test_evade_takes_no_hit() -> void:
@@ -191,21 +204,26 @@ func test_the_energy_shield_takes_whole_hits_then_breaks() -> void:
 	Run.player_sheet.remove_source("test")
 
 
-func test_every_line_evolves() -> void:
-	var offered: Array = Registry.sorted_lines()
-	assert_int(offered.size()).is_equal(8)
-	for l: LineDef in offered:
-		assert_str(l.evolves_into).override_failure_message(l.id + " has no evolution").is_not_empty()
-		var evo: LineDef = Registry.line(l.evolves_into)
-		assert_object(evo).is_not_null()
-		assert_str(evo.evolves_from).is_equal(l.id)
+func test_every_former_line_evolves() -> void:
+	# the eight lines a level-up offered (pass 33.2), passives since pass 46, each with its single-level evolution; pass
+	# 47: fifteen lines (the line flag on the passives), every one evolving into a line
+	var evolving: Array = Registry.base_passives().filter(func(p: PassiveDef) -> bool: return p.evolves_into != "")
+	assert_int(evolving.size()).is_equal(15)
+	for p: PassiveDef in evolving:
+		var evo: PassiveDef = Registry.passive(p.evolves_into)
+		assert_object(evo).override_failure_message(p.id + " evolves into nothing").is_not_null()
+		assert_str(evo.evolves_from).is_equal(p.id)
+		assert_bool(evo.is_evolved()).is_true()
 		assert_int(evo.max_level).is_equal(1)
+		assert_bool(p.is_line() and evo.is_line()).override_failure_message(p.id + " is not a line pair").is_true()
 
 
-func test_a_maxed_line_is_offered_its_evolution() -> void:
+func test_a_maxed_passive_is_offered_its_evolution_in_the_same_slot() -> void:
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
+	Run.add_or_level_passive("magnet")
 	for k in range(4):
-		Run.add_or_rank_line("vigour")
+		Run.add_or_level_passive("vigour")
+	Run.add_or_level_passive("haste")
 	var evo_card: Dictionary = {}
 	for k in range(60):
 		for c in CardPool.level_up_offer(4):
@@ -214,16 +232,21 @@ func test_a_maxed_line_is_offered_its_evolution() -> void:
 		if not evo_card.is_empty():
 			break
 	assert_bool(evo_card.is_empty()).override_failure_message("no evolution card in sixty offers").is_false()
-	assert_str((evo_card["def"] as LineDef).id).is_equal("ironclad")
+	assert_str(str(evo_card["type"])).is_equal("passive")
+	assert_str((evo_card["def"] as PassiveDef).id).is_equal("ironclad")
+	assert_str(str(evo_card["src_id"])).is_equal("vigour")
 	CardPool.apply(evo_card)
-	assert_bool(Run.lines.has("vigour")).is_false()
-	assert_int(Run.line_rank("ironclad")).is_equal(1)
+	assert_bool(Run.passives.has("vigour")).is_false()
+	assert_int(Run.passive_level("ironclad")).is_equal(1)
+	# the evolution stands where its source stood: the second of the three
+	assert_array(Run.passives.keys()).is_equal(["magnet", "ironclad", "haste"])
 	assert_float(Run.player_sheet.get_stat("damage_reduction", 0.0)).is_greater_equal(0.15)
 
 
 func test_the_drop_passives_drop_small_pickups() -> void:
-	assert_float(float(Registry.passive("cheese").effects_for_level(5)[0].value)).is_greater(0.0)
-	var j: PickupDef = Registry.pickup("cheese_bite")
+	# pass 46: Cheese is Cake, its bite a Cake Slice, the same numbers
+	assert_float(float(Registry.passive("cake").effects_for_level(5)[0].value)).is_greater(0.0)
+	var j: PickupDef = Registry.pickup("cake_slice")
 	assert_str(j.effect_kind).is_equal("heal")
 	assert_bool(bool(j.params.get("small", false))).is_true()
 	var b: PickupDef = Registry.pickup("coin_bag")
@@ -231,7 +254,7 @@ func test_the_drop_passives_drop_small_pickups() -> void:
 	assert_bool(bool(b.params.get("magnet", false))).is_true()
 	# neither is in the random power-up table: they come only from the passives
 	for r in Registry.map("red_canyon").timeline.pickups.get("roster", []):
-		assert_bool(["cheese_bite", "coin_bag"].has(str(r.get("id", "")))).is_false()
+		assert_bool(["cake_slice", "coin_bag"].has(str(r.get("id", "")))).is_false()
 
 
 func test_far_zoom_marks_the_crowd() -> void:

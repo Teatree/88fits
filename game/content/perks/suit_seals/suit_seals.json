@@ -4,6 +4,8 @@
   "flavour": "The suit patches itself and everything on it.",
   "rarity": "rare",
   "weight": 6,
+  "hidden": true,
+  "note": "hidden in pass 53, Garry; remove hidden to bring it back",
   "hero": "astro",
   "text": "The level-up patch also gives 1.5 s of invulnerability.",
   "effects": [],

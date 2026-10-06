@@ -7,31 +7,28 @@
 [sub_resource type="Resource" id="Resource_4k11m"]
 script = ExtResource("1_r56ng")
 stat = "fire_damage"
-op = "add"
 value = 4.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_3ebtw"]
 script = ExtResource("1_r56ng")
 stat = "fire_duration"
-op = "add"
 value = 1.8
-target = "self"
 
 [sub_resource type="Resource" id="Resource_4huya"]
 script = ExtResource("1_r56ng")
 stat = "fire_spread"
-op = "add"
 value = 0.4
-target = "self"
 
 [resource]
 script = ExtResource("2_4k11m")
 weapon = "boomstick"
 mutation_kind = "element"
-text = "Pellets ignite."
+text = "Pellets set 60% of the enemies they hit on fire."
 vfx = "an orange muzzle bloom and burning creatures"
 effects = [SubResource("Resource_4k11m"), SubResource("Resource_3ebtw"), SubResource("Resource_4huya")]
+params = {
+"ignite_chance": 0.6
+}
 id = "dragons_breath"
 display_name = "Dragon's Breath"
 flavour = "Loaded with something illegal."

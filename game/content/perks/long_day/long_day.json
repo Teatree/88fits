@@ -1,0 +1,25 @@
+{
+  "id": "long_day",
+  "name": "Long Day",
+  "flavour": "The sun takes its time going down.",
+  "rarity": "rare",
+  "weight": 6,
+  "hidden": true,
+  "hero": "solenne",
+  "text": "Her power-ups and every other buff on her last twice as long.",
+  "effects": [
+    {
+      "stat": "buff_duration",
+      "op": "mul",
+      "value": 1.0,
+      "target": "player"
+    }
+  ],
+  "special": "",
+  "params": {},
+  "art_prompt": "a low golden sun sitting on a flat horizon line with long rays stretching sideways, a small round clock face beside it with its hands near six",
+  "placeholder": {
+    "color": "#F2B04A",
+    "glyph": "star"
+  }
+}

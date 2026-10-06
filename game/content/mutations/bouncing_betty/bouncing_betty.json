@@ -2,7 +2,7 @@
   "id": "bouncing_betty",
   "name": "Bouncing Betty",
   "flavour": "Up, then everywhere.",
-  "rarity": "epic",
+  "rarity": "rare",
   "weight": 8,
   "weapon": "land_mine",
   "kind": "motion",

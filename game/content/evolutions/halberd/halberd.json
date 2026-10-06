@@ -1,13 +1,14 @@
 {
   "id": "halberd",
+  "hidden": true,
   "name": "Halberd",
   "flavour": "Point, edge, hook. Pick one. It picks all three.",
-  "rarity": "epic",
+  "rarity": "rare",
   "is_evolution": true,
   "evolved_from": "pike",
   "max_level": 1,
   "behavior": "Thruster",
-  "targeting": "nearest",
+  "targeting": "priority",
   "tags": [
     "blade"
   ],

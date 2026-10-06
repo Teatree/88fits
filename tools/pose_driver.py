@@ -15,6 +15,8 @@ Loops (loop=1, default): N frames of the whole action plus a repeat of the first
 arms=zombie (pass 33.4, the skeletons): both arms held straight out in front at shoulder height through the whole
 stride, the upper and fore arms pinned by damped-track constraints to points ahead of the shoulders, the legs and the
 torso left to the clip.
+arms=hold_r (pass 48, the Vulture Raider): the right arm pinned holding something up at the shoulder (upper arm down, forearm
+up), the left arm and the legs walking as the clip does.
 One-shots (loop=0): N frames evenly from `start` to `end` seconds, N itself 4k+1.
 body=<part:fraction,...> (pass 33.9, the goblin): retarget the stride to a creature's proportions. Wan Animate paints the
 figure on the driver's bones, so a goblin walked on a man's skeleton came out with a small head and long legs. Each part is
@@ -25,6 +27,13 @@ from the hips out with each bone scaled by the ratio, the head and its face poin
 lowest ankle put back where the clip's lowest ankle was, so the feet stay planted.
     "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/orc_walk.fbx out=tools/dl/drivers/orc_walk_goblin frames=12 \
         body=top_nose:0.21,nose_neck:0.134,torso:0.292,thigh:0.16,shin:0.14,shoulder:0.119,hip:0.068,upper:0.174,fore:0.139,hand:0.078
+glb=<file> rig=sm (pass 53, the mummy on Garry's "Zombie monster walk.glb"): a glTF clip instead of a Mixamo FBX. Its
+bones are renamed to Mixamo's through the RIGS table (rig=sm is the Bone_SM_* skeleton that Cinema 4D exports; add a
+table for another), a centimetre rig is scaled to metres, and start=/end= seconds pick the one stride to loop when the
+clip holds more than one (they slice loops too since pass 53).
+    "$BLENDER" -b --python tools/pose_driver.py -- glb="_REFERENCES/3d/Zombie monster walk.glb" rig=sm out=tools/dl/drivers/zombie_walk frames=12
+fwd=body (pass 55, Solenne's walks): the character's forward is taken square to the hip and shoulder lines instead of
+along the feet; a walk with the toes turned out had turned every view up to 20 degrees.
 Output: <out>/<view>/poses.json, <out>/<view>/driver_NN.png, <out>/<view>_sheet.png, <out>/meta.json.
 """
 import json
@@ -44,6 +53,14 @@ COLORS = [(255, 0, 0), (255, 85, 0), (255, 170, 0), (255, 255, 0), (170, 255, 0)
 # DWPose hand: wrist, then thumb, index, middle, ring, pinky, four joints each from the base to the tip
 HAND_BONES = ["Hand"] + [f + str(k) for f in ("HandThumb", "HandIndex", "HandMiddle", "HandRing", "HandPinky") for k in (1, 2, 3, 4)]
 HAND_EDGES = [(0, 1), (1, 2), (2, 3), (3, 4), (0, 5), (5, 6), (6, 7), (7, 8), (0, 9), (9, 10), (10, 11), (11, 12), (0, 13), (13, 14), (14, 15), (15, 16), (0, 17), (17, 18), (18, 19), (19, 20)]
+# Other rigs' bone names -> Mixamo's (pass 53): the Bone_SM_* skeleton of "Zombie monster walk.glb" (Cinema 4D; its
+# deform bones; the _guideBn_* and *Roll bones are left out, and its fingers have three joints, so no hands are drawn)
+RIGS = {"sm": {"Bone_SM_Pelvis": "Hips", "Bone_SM_Spine1": "Spine", "Bone_SM_Spine2": "Spine1", "Bone_SM_Neck": "Neck",
+               "Bone_SM_Head": "Head", "Bone_SM_Clavicle_L": "LeftShoulder", "Bone_SM_Clavicle_R": "RightShoulder",
+               "Bone_SM_UpperArm_L": "LeftArm", "Bone_SM_ForeArm_L": "LeftForeArm", "Bone_SM_Hand_L": "LeftHand",
+               "Bone_SM_UpperArm_R": "RightArm", "Bone_SM_ForeArm_R": "RightForeArm", "Bone_SM_Hand_R": "RightHand",
+               "Bone_SM_Thigh_L": "LeftUpLeg", "Bone_SM_Calf_L": "LeftLeg", "Bone_SM_Ankle_L": "LeftFoot", "Bone_SM_Toes_L": "LeftToeBase",
+               "Bone_SM_Thigh_R": "RightUpLeg", "Bone_SM_Calf_R": "RightLeg", "Bone_SM_Ankle_R": "RightFoot", "Bone_SM_Toes_R": "RightToeBase"}}
 BONES = {"neck": "Neck", "rsho": "RightArm", "relb": "RightForeArm", "rwri": "RightHand", "lsho": "LeftArm", "lelb": "LeftForeArm",
          "lwri": "LeftHand", "rhip": "RightUpLeg", "rknee": "RightLeg", "rank": "RightFoot", "lhip": "LeftUpLeg", "lknee": "LeftLeg", "lank": "LeftFoot"}
 
@@ -64,23 +81,32 @@ def extract():
     import bpy
     from mathutils import Vector, Matrix
     a = _args()
-    fbx = a["fbx"]
+    fbx = a.get("fbx") or a["glb"]
     out = a["out"]
     n = int(a.get("frames", 24))
     loop = a.get("loop", "1") not in ("0", "false", "no")
     pitch = math.radians(float(a.get("pitch", 25.0)))
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.fbx(filepath=fbx)
+    if a.get("glb"):
+        bpy.ops.import_scene.gltf(filepath=a["glb"])
+    else:
+        bpy.ops.import_scene.fbx(filepath=fbx)
     sc = bpy.context.scene
     arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
+    if arm.dimensions.z > 20.0:
+        # a centimetre rig (the zombie GLB stands 180 units tall): every offset below is in metres
+        arm.scale = (0.01, 0.01, 0.01)
+        bpy.context.view_layer.update()
+        print("pose_driver: a centimetre rig, scaled to metres")
     act = arm.animation_data.action
     f0, f1 = act.frame_range
     fps = sc.render.fps
-    if not loop:
-        # a one-shot: the slice of the action between start and end seconds
-        f0 = f0 + float(a.get("start", 0.0)) * fps
-        f1 = min(f1, act.frame_range[0] + float(a.get("end", (act.frame_range[1] - act.frame_range[0]) / fps)) * fps)
-    pb = {b.name.split(":")[-1]: b for b in arm.pose.bones}
+    if not loop or a.get("start") or a.get("end"):
+        # a one-shot, or one stride out of a longer loop: the slice of the action between start and end seconds
+        f0 = act.frame_range[0] + float(a.get("start", 0.0)) * fps
+        f1 = min(act.frame_range[1], act.frame_range[0] + float(a.get("end", (act.frame_range[1] - act.frame_range[0]) / fps)) * fps)
+    alias = RIGS.get(a.get("rig", "mixamo"), {})
+    pb = {alias.get(b.name, b.name.split(":")[-1]): b for b in arm.pose.bones}
 
     def joint(name, f):
         sc.frame_set(int(math.floor(f)), subframe=f - math.floor(f))
@@ -96,6 +122,23 @@ def extract():
             fwd += v
     fwd.normalize()
     up = Vector((0, 0, 1))
+    if a.get("fwd") == "body":
+        # pass 55 (Solenne): forward square to the hips and shoulders instead of along the feet. A walk with the toes turned
+        # out reads its forward off the feet up to 20 degrees wrong (Walking_sun: the side view showed her a quarter turned
+        # away, so Wan painted her walking up the screen); the hip and shoulder lines, averaged over the stride, are square
+        # to where the body goes
+        lat = Vector((0, 0, 0))
+        for k in range(16):
+            f = f0 + (f1 - f0) * k / 16.0
+            for l_b, r_b in (("LeftUpLeg", "RightUpLeg"), ("LeftArm", "RightArm")):
+                v = joint(l_b, f) - joint(r_b, f)
+                v.z = 0.0
+                lat += v
+        cand = up.cross(lat)
+        cand = cand if cand.dot(fwd) > 0 else -cand
+        cand.normalize()
+        print("pose_driver: forward from the body %.1f deg (the feet said %.1f)" % (math.degrees(math.atan2(cand.y, cand.x)), math.degrees(math.atan2(fwd.y, fwd.x))))
+        fwd = cand
     yaw0 = math.atan2(fwd.y, fwd.x)   # world yaw of "forward"
     if a.get("arms") == "zombie":
         # the arms reach forward like a sleepwalker's: each upper arm and forearm tracks a point ahead of its shoulder
@@ -115,6 +158,21 @@ def extract():
                 c.target = e
                 c.track_axis = "TRACK_Y"
         print("pose_driver: zombie arms")
+    if a.get("arms") == "hold_r":
+        # pass 48 (the Vulture Raider): the right hand holds a launcher up at the shoulder through the whole stride: the
+        # upper arm hangs down and a little forward and out, the forearm points up and forward, so the hand sits in front of
+        # the shoulder and the launcher it holds never swings; the left arm and the legs keep the clip's walk
+        side_v = fwd.cross(up)
+        sh = joint("RightArm", f0)
+        el = sh + fwd * 0.1 - up * 0.26 + side_v * 0.1
+        for bone, tgt in (("RightArm", el), ("RightForeArm", el + fwd * 0.16 + up * 0.3 - side_v * 0.04)):
+            e = bpy.data.objects.new("hold_" + bone, None)
+            sc.collection.objects.link(e)
+            e.location = tgt
+            c = pb[bone].constraints.new("DAMPED_TRACK")
+            c.target = e
+            c.track_axis = "TRACK_Y"
+        print("pose_driver: right hand held up at the shoulder")
     def skeleton(f):
         """Every point the drivers draw at source frame f, in world space: the body joints, the head's base and top,
         and the 21 points of each hand (under "l:<bone>" / "r:<bone>")."""
@@ -132,7 +190,7 @@ def extract():
     hd = 1.0
     if a.get("body"):
         want = {kv.split(":")[0]: float(kv.split(":")[1]) for kv in a["body"].split(",") if ":" in kv}
-        rest = {b.name.split(":")[-1]: arm.matrix_world @ b.head_local for b in arm.data.bones}
+        rest = {alias.get(b.name, b.name.split(":")[-1]): arm.matrix_world @ b.head_local for b in arm.data.bones}
         rtop = rest["HeadTop_End"] if "HeadTop_End" in rest else rest["Head"] + Vector((0, 0, 0.2))
         rsole = min(rest.get("LeftToe_End", rest["LeftFoot"]).z, rest.get("RightToe_End", rest["RightFoot"]).z)
         H = rtop.z - rsole
@@ -242,7 +300,7 @@ def extract():
                   open(os.path.join(d, "poses.json"), "w"), indent=0)
         print("pose_driver: wrote", d, len(frames), "frames")
     json.dump({"fbx": os.path.basename(fbx), "frames": n, "loop": loop, "pitch": math.degrees(pitch), "start": a.get("start"), "end": a.get("end"),
-               "body": a.get("body"), "retarget": {k: round(v, 3) for k, v in R.items()}},
+               "body": a.get("body"), "fwd": a.get("fwd", "feet"), "retarget": {k: round(v, 3) for k, v in R.items()}},
               open(os.path.join(out, "meta.json"), "w"), indent=1)
 
 

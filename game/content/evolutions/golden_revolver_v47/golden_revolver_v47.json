@@ -1,0 +1,60 @@
+{
+  "id": "golden_revolver_v47",
+  "name": "Golden Revolver",
+  "flavour": "It leaves a mark. In the air.",
+  "rarity": "rare",
+  "hero": "drifter",
+  "is_evolution": true,
+  "evolved_from": "revolver",
+  "max_level": 1,
+  "behavior": "ProjectileEmitter",
+  "targeting": "priority",
+  "tags": [
+    "gun"
+  ],
+  "base": {
+    "damage": 40,
+    "cooldown": 0.8,
+    "amount": 2,
+    "pierce": 2,
+    "speed": 36,
+    "range": 15,
+    "knockback": 3.0
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "radius": 0.14,
+    "burst": true,
+    "burst_gap": 0.14,
+    "scatter_deg": 1.5,
+    "drum_axis": "forward",
+    "drum_step": 1.0472,
+    "no_shells": true,
+    "tracer": true,
+    "familiar": {
+      "radius": 1.2,
+      "height": 1.4,
+      "speed": 1.2,
+      "bob": 0.08
+    },
+    "trace": {
+      "seconds": 3.0,
+      "frac": 0.35,
+      "tick": 0.5,
+      "width": 0.5
+    }
+  },
+  "sfx": {
+    "fire": "w_revolver_fire",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#FFB13B",
+    "glyph": "gun"
+  },
+  "art_prompt": "a gleaming solid gold western six-shooter revolver with ivory grips, seen from the side, the long barrel pointing to the right",
+  "visual": "res://content/evolutions/golden_revolver/golden_revolver_visual.tscn",
+  "hidden": true
+}

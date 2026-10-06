@@ -8,57 +8,46 @@
 [sub_resource type="Resource" id="Resource_crxc3"]
 script = ExtResource("1_neawg")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_bvome"]
 script = ExtResource("1_neawg")
 stat = "damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [sub_resource type="Resource" id="Resource_ogjuu"]
 script = ExtResource("1_neawg")
 stat = "cooldown"
 op = "mul"
 value = -0.12
-target = "self"
 
 [sub_resource type="Resource" id="Resource_bafhi"]
 script = ExtResource("1_neawg")
 stat = "area"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_vpfp2"]
 script = ExtResource("1_neawg")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_jtqd0"]
 script = ExtResource("1_neawg")
 stat = "damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [sub_resource type="Resource" id="Resource_ia05c"]
 script = ExtResource("1_neawg")
 stat = "amount"
-op = "add"
 value = 2.0
-target = "self"
 
 [resource]
 script = ExtResource("2_crxc3")
 behavior = "MissilePod"
 tags = ["homing", "explosive"]
-targeting = "nearest"
 base = {
 "amount": 3.0,
 "area": 1.5,
@@ -68,12 +57,9 @@ base = {
 "range": 12.0,
 "speed": 13.0
 }
-levels = [[], [SubResource("Resource_crxc3")], [SubResource("Resource_bvome")], [SubResource("Resource_ogjuu")], [SubResource("Resource_bafhi")], [SubResource("Resource_vpfp2")], [SubResource("Resource_jtqd0")], [SubResource("Resource_ia05c")]]
-max_level = 8
-evolves_with = ""
-evolves_into = "missile_massacre"
-is_evolution = false
-evolved_from = ""
+levels = [[], [SubResource("Resource_crxc3"), SubResource("Resource_bvome")], [SubResource("Resource_ogjuu"), SubResource("Resource_bafhi")], [SubResource("Resource_vpfp2")], [SubResource("Resource_jtqd0"), SubResource("Resource_ia05c")]]
+max_level = 5
+evolves_into = "hellfire_battery"
 sfx = {
 "fire": "w_lob_throw",
 "hit": "w_lob_boom"
@@ -96,15 +82,11 @@ params = {
 },
 "radius": 0.24
 }
-hero = ""
 id = "rocket_pod"
 display_name = "Rocket Pod"
 flavour = "They take the scenic route. They arrive."
 rarity = "rare"
-element = ""
 weight = 6.0
-hidden = false
-from_stage = 0
 icon = ExtResource("1_crxc3")
 icon_file = "rocket_pod_icon.png"
 placeholder = {

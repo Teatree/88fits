@@ -10,13 +10,18 @@ config_version=5
 
 [application]
 
-config/version="0.30"
 config/name="88fits"
 config/description="Hold to run. Slide to steer. The guns fire themselves."
+config/version="0.41"
 run/main_scene="res://ui/Boot.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.png"
+boot_splash/bg_color=Color(0.9529412, 0.9019608, 0.78431374, 1)
+boot_splash/image="res://art/ui/splash.png"
+boot_splash/stretch_mode=1
+boot_splash/use_filter=true
+boot_splash/minimum_display_time=0
 
 [autoload]
 
@@ -25,6 +30,7 @@ Settings="*res://core/autoload/Settings.gd"
 Save="*res://core/autoload/Save.gd"
 Audio="*res://core/autoload/Audio.gd"
 Run="*res://core/autoload/Run.gd"
+CutoutBand="*res://ui/wanted/CutoutBand.gd"
 
 [display]
 

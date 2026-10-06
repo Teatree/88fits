@@ -18,6 +18,7 @@
     "fire_duration": 1.8,
     "fire_spread": 0.5
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -25,9 +26,7 @@
         "stat": "fire_damage",
         "op": "mul",
         "value": 0.2
-      }
-    ],
-    [
+      },
       {
         "stat": "area",
         "op": "mul",
@@ -39,9 +38,7 @@
         "stat": "cooldown",
         "op": "mul",
         "value": -0.12
-      }
-    ],
-    [
+      },
       {
         "stat": "fire_spread",
         "op": "add",
@@ -60,9 +57,7 @@
         "stat": "area",
         "op": "mul",
         "value": 0.15
-      }
-    ],
-    [
+      },
       {
         "stat": "fire_duration",
         "op": "add",
@@ -71,7 +66,7 @@
     ]
   ],
   "evolves_with": "",
-  "evolves_into": "firestorm",
+  "evolves_into": "moonshine",
   "params": {
     "cloud_seconds": 3.0
   },

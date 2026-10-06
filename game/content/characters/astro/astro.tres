@@ -10,7 +10,6 @@ script = ExtResource("1_bgsxw")
 stat = "area"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_nv1wx"]
 script = ExtResource("1_bgsxw")
@@ -22,7 +21,6 @@ target = "player"
 [sub_resource type="Resource" id="Resource_2ke28"]
 script = ExtResource("1_bgsxw")
 stat = "damage_reduction"
-op = "add"
 value = 0.05
 target = "player"
 
@@ -38,6 +36,7 @@ favourite_bonus = {
 "effects": [SubResource("Resource_bgsxw")],
 "type": "effects"
 }
+start_weapon = "gravity_gun"
 sprite = ExtResource("4_nv1wx")
 sprite_file = "astro_sprite.png"
 anims = {

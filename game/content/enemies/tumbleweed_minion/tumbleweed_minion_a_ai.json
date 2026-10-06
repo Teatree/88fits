@@ -1,0 +1,64 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a small round tumbleweed creature made of dry tangled brown twigs, with a small face set low in the middle third of the ball: a grumpy scowl: heavy angry eyebrows pulled down over small mean eyes and a sour downturned frown, wearing a small red fez with a short black tassel tilted on top of the ball, no arms, no legs, a mean little soldier of the tumbleweeds, facing the viewer",
+ "renders": {
+  "front": {
+   "seed": 57694,
+   "prompt": "Edit this exact creature: keep the same round ball of tangled dry brown twigs, the same size, colours, line art and art style. Replace the brown cloth cap with a small red fez with a short black tassel hanging from its top, sitting a little tilted on top of the ball. Make the face much smaller: the eyes, eyebrows and mouth take up only the middle third of the ball, set a little low, with twigs all round them. Give it a grumpy scowl: heavy angry eyebrows pulled down hard over small mean eyes and a sour downturned frown, not cute. No arms, no legs, no hands. One single creature, facing the viewer. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/tm_src.png"
+   ],
+   "qa": {
+    "problems": []
+   },
+   "attempt": 0
+  },
+  "back": {
+   "seed": 27235,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. seen from behind: the round tangle of twigs and the back of the red fez with its black tassel hanging down, no face at all isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/tumbleweed_minion_tma_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 176,
+     "right": 180,
+     "top": 115,
+     "bottom": 167,
+     "height": 741,
+     "width": 667
+    }
+   },
+   "attempt": 0
+  },
+  "dead": {
+   "seed": 27243,
+   "prompt": "This exact creature lying on its side on the ground, dead: the ball of twigs sagged and flattened, eyes shut, the red fez fallen off beside it, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/tumbleweed_minion_tma_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 170,
+     "right": 96,
+     "top": 205,
+     "bottom": 233,
+     "height": 585,
+     "width": 757
+    }
+   },
+   "attempt": 0
+  }
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": ""
+ }
+}

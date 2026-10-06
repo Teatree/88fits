@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/tinnitus/tinnitus_icon.png" id="1_634la"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_rn0kh"]
+
+[resource]
+script = ExtResource("2_rn0kh")
+weapon = "guitarra"
+mutation_kind = "element"
+text = "Every third hit on the same creature deals double damage and 50% more knockback."
+vfx = "a small white ring on the creature the third hit lands on"
+params = {
+"tinnitus": {
+"damage_mult": 2.0,
+"every": 3.0,
+"knock_mult": 1.5
+}
+}
+id = "tinnitus"
+display_name = "Tinnitus"
+flavour = "The ringing never stops."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_634la")
+icon_file = "tinnitus_icon.png"
+placeholder = {
+"color": "#F4F4F0",
+"glyph": "star"
+}

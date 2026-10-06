@@ -25,7 +25,8 @@
 		"titleBar.activeBackground": "#004a00",
 		"titleBar.activeForeground": "#e7e7e7",
 		"titleBar.inactiveBackground": "#004a0099",
-		"titleBar.inactiveForeground": "#e7e7e799"
+		"titleBar.inactiveForeground": "#e7e7e799",
+		"statusBar.inactiveBackground": "#004a00"
 	},
 	"peacock.color": "#004a00",
 	"godotTools.editorPath.godot4": "d:\\_projects\\88fits\\Godot_v4.7.2-stable_win64\\Godot_v4.7.2-stable_win64.exe"

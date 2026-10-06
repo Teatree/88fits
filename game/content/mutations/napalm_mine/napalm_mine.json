@@ -4,6 +4,7 @@
   "flavour": "Step on it. Stay a while.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "land_mine",
   "kind": "element",
   "element": "fire",

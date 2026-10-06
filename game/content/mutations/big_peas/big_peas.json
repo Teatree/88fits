@@ -1,0 +1,34 @@
+{
+  "id": "big_peas",
+  "name": "Big Peas",
+  "flavour": "Eat your greens.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "peashooter",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Peas half again as big: +35% damage and twice the knockback.",
+  "vfx": "fat peas that shove what they hit",
+  "effects": [
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": 0.35
+    },
+    {
+      "stat": "knockback",
+      "op": "mul",
+      "value": 1.0
+    }
+  ],
+  "params": {
+    "size_mult": 1.5,
+    "radius_mult": 1.5
+  },
+  "art_prompt": "one huge round green pea, glossy, with a small leaf",
+  "placeholder": {
+    "color": "#7CC64A",
+    "glyph": "star"
+  }
+}

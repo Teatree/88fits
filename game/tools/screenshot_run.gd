@@ -7,6 +7,7 @@ var _out := "user://shots"
 var _t := 0.0
 var _game: Node
 var _step := 0
+var _after_chest := 0.0   # when the tap-to-continue gate may be shot (the chest closes a beat after its reel lands)
 var _run: Node
 var _map := "red_canyon"
 var _weapon := "boomstick"
@@ -298,12 +299,14 @@ func _tick() -> void:
 		_game.player.input.stick_dir = Vector2.ZERO
 		_game.pickups.spawn_chest(_game.player.global_position + Vector3(0.3, 0, 0))
 		_step = 20
-	elif _step == 20 and _t > 17.1:
+	elif _step == 20 and _t > 17.1 and not (_game.chest_screen and _game.chest_screen.visible and _game.chest_screen._spinning):
+		# pass 46: the chest opens before the reel spins, so the reel lands later than it did; wait for it to land
 		_shot("13_chest")
 		if _game.chest_screen and _game.chest_screen.visible:
 			_game.chest_screen._finish(true)
+		_after_chest = _t + 0.8
 		_step = 27
-	elif _step == 27 and _t > 17.9:
+	elif _step == 27 and _t > maxf(17.9, _after_chest):
 		_shot("17_tap_to_continue")
 		_game.resume_gate.tap()
 		_step = 21
@@ -348,7 +351,7 @@ func _tick() -> void:
 		print("screenshot_run: centipede rains ", _game.enemies._rains.size(), " telegraphs ", _game.telegraphs.get_child_count(), " alive ", _game.enemies.alive_count(), " hold ", (_game.enemies.hold_t[_game.director.elite_index] if _game.director.elite_index >= 0 else -1.0), " state ", (_game.enemies.state[_game.director.elite_index] if _game.director.elite_index >= 0 else -1))
 		_shot("28b_erupt")
 		_game.weapon_host.process_mode = Node.PROCESS_MODE_INHERIT
-		# the paths: a Hornet Nest at level 3 shows its three mutations beside a weapon and a line on one offer
+		# the mutations: a Hornet Nest at level 3 puts its three on the path table
 		_game.enemies.kill_all(false)
 		_game.projectiles.clear_all()
 		# the real path table: a slot come due for the highest open path among the weapons held (Game.present_path_offer)
@@ -505,11 +508,11 @@ func _tick() -> void:
 		_step = 2219
 	elif _step == 2219 and _t > 46.1:
 		_shot("40_nuke")
-		# the turret stances: a watchtower placed, then the bunker (the second path pick, forced) placed beside it
+		# the turret: a plain turret placed, then the bunker (its motion pick, forced) placed beside it (pass 47: the
+		# Watchtower mutation is gone)
 		_game.enemies.kill_all(false)
 		_game.projectiles.clear_all()
 		_run.add_weapon(root.get_node("Registry").weapon("turret_buddy"), 3)
-		_run.add_mutation("watchtower", true)
 		_step = 2220
 	elif _step == 2220 and _t > 46.5:
 		if _game._behaviors.has("turret_buddy"):
@@ -607,15 +610,13 @@ func _tick() -> void:
 		# Berserk off again, so the fire gif is only the skeletons' fire
 		for tb in _run.timed:
 			tb["until"] = 0.0
-		# the Energy Shield (pass 33.2): three ranks, a moment to charge, then a skeleton.s bite on it
+		# the Energy Shield (pass 33.2): three levels, a moment to charge, then a skeleton's bite on it
 		_game.enemies.kill_all(false)
 		_game.projectiles.clear_all()
-		# the capture's own card picks may have filled both line slots: clear them for the frame
-		for lid in _run.lines.keys():
-			_run.player_sheet.remove_source("line:" + str(lid))
-		_run.lines.clear()
-		for k in range(3):
-			_run.add_or_rank_line("energy_shield")
+		# the capture's own card picks may have filled the passive slots: the last one taken makes room for the frame
+		if not _run.passives.has("energy_shield") and _run.passives.size() >= 6:
+			_run.passives.erase(_run.passives.keys()[_run.passives.size() - 1])
+		_run.debug_set_item("passive", "energy_shield", 3)
 		_game.camera.fixed_distance = 10.0
 		_game.camera.snap_to(_game.player)
 		_step = 3401
@@ -625,8 +626,8 @@ func _tick() -> void:
 		_step = 3402
 	elif _step == 3402 and _t > 59.5:
 		_shot("48_energy_shield")
-		# a maxed line's evolution on the level-up table: the fourth rank, then an offer that holds the Aegis card
-		_run.add_or_rank_line("energy_shield")
+		# a maxed passive's evolution on the level-up table: the fourth level, then an offer that holds the Aegis card
+		_run.debug_set_item("passive", "energy_shield", 4)
 		var evo_offer: Array = []
 		# CardPool uses the Run autoload, so it is loaded here rather than named (tools compile before autoloads)
 		var card_pool = load("res://core/systems/CardPool.gd")
@@ -639,10 +640,10 @@ func _tick() -> void:
 				break
 		if not evo_offer.is_empty():
 			_game.set_paused(true)
-			_game.cards.show_offer(evo_offer, "LEVEL %d!" % _run.level, false, false)
+			_game.cards.show_offer(evo_offer, "LEVEL %d!" % _run.level, false)
 		_step = 3403
 	elif _step == 3403 and _t > 60.3:
-		_shot("49_line_evolution")
+		_shot("49_passive_evolution")
 		if _game.cards.visible:
 			for c in _game.cards._offer:
 				if bool(c.get("evolve", false)):
@@ -651,9 +652,9 @@ func _tick() -> void:
 	elif _step == 3404 and _t > 60.9:
 		_game.resume_gate.tap()
 		_game.set_paused(false)
-		# the drop passives' pickups on the sand: a strip of jerky and a coin bag
+		# the drop passives' pickups on the sand: a slice of cake and a coin bag
 		var reg2 = root.get_node("Registry")
-		_game.pickups.spawn_special(reg2.pickup("jerky"), _game.player.global_position + Vector3(1.8, 0, -1.2), true)
+		_game.pickups.spawn_special(reg2.pickup("cake_slice"), _game.player.global_position + Vector3(1.8, 0, -1.2), true)
 		_game.pickups.spawn_special(reg2.pickup("coin_bag"), _game.player.global_position + Vector3(-1.8, 0, -1.0), true)
 		_step = 3405
 	elif _step == 3405 and _t > 61.7:

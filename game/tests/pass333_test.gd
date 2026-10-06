@@ -111,12 +111,13 @@ func test_badges_follow_the_role_and_the_data() -> void:
 	assert_str(Registry.enemy("sun_prophet").badge_for()).is_equal("crown")
 	assert_str(Registry.enemy("tumbleweed_king").badge_for()).is_equal("skull")
 	assert_str(Registry.enemy("gila_grande").badge_for()).is_equal("skull")
-	# only the two Elites ever wear a crown (pass 33.6): no ordinary creature, whatever its data asks for
+	# only the Elites ever wear a crown (pass 33.6; the Stone Golem joined them in pass 45): no ordinary creature, whatever its data asks for
 	var crowned: Array = []
 	for d: EnemyDef in Registry.enemies.values():
 		if d.badge_for() == "crown":
 			crowned.append(d.id)
-	assert_array(crowned).contains_exactly_in_any_order(["dune_scorpion", "sun_prophet"])
+	# pass 49: and the debug arena's Elite dummy, an Elite by its archetype so the items that care see one
+	assert_array(crowned).contains_exactly_in_any_order(["dune_scorpion", "sun_prophet", "stone_golem", "training_dummy_elite"])
 	var sk: EnemyDef = Registry.enemy("goblin").duplicate()
 	assert_str(sk.badge_for()).is_equal("")
 	sk.badge = "crown"
@@ -156,7 +157,11 @@ func test_the_rocketeer_fires_again_once_his_rocket_is_gone() -> void:
 	var em := _manager(g)
 	var i := em.spawn("rocketeer", Vector3(0, 0, -30))
 	assert_int(i).is_greater_equal(0)
-	_step(em, 3.0)
+	# its first rocket: the spawn, a random first wait and the wind-up at the map's pace (Garry set 0.6 by hand, pass 52)
+	var t0 := 0.0
+	while g.missiles.is_empty() and t0 < 10.0:
+		_step(em, 0.1)
+		t0 += 0.1
 	assert_int(g.missiles.size()).is_equal(1)
 	assert_float(float((g.missiles[0]["blast"] as Dictionary).get("knockback", 0.0))).is_greater(20.0)
 	# while his rocket flies he only watches
@@ -166,7 +171,8 @@ func test_the_rocketeer_fires_again_once_his_rocket_is_gone() -> void:
 	g.rocket_alive = false
 	var reload := float(Registry.enemy("rocketeer").artillery.get("reload", 2.5))
 	var windup := float(Registry.enemy("rocketeer").artillery.get("windup", 1.4))
-	_step(em, reload + windup + 0.5)
+	# the wind-up lasts 1 / pace as long (pass 48)
+	_step(em, reload + windup / Run.move_pace() + 0.5)
 	assert_int(g.missiles.size()).is_equal(2)
 
 
@@ -276,7 +282,8 @@ func test_the_portal_keeps_a_green_marker() -> void:
 # ---------------------------------------------------------------- the skeletons
 
 func test_the_goblins_are_back_and_the_skeletons_kept() -> void:
-	# pass 33.5: the goblins took their places back from the skeletons; the skeletons are kept, retired
+	# pass 33.5 brought the goblins back; pass 45 gave their places to the skeletons for good (SK-A and KN-A in play),
+	# and the goblins are now the ones kept, retired
 	var m: MapDef = Registry.map("red_canyon")
 	var ids: Array = []
 	for r in m.timeline.roster:
@@ -284,18 +291,18 @@ func test_the_goblins_are_back_and_the_skeletons_kept() -> void:
 	for ev in m.timeline.events:
 		if ev.get("enemy") is String:
 			ids.append(str(ev["enemy"]))
-	assert_bool(ids.has("goblin")).is_true()
-	assert_bool(ids.has("goblin_runt")).is_true()
-	assert_bool(ids.has("skeleton")).is_false()
-	assert_bool(ids.has("skeleton_knight")).is_false()
-	assert_str(str(m.skins.get("walker", ""))).is_equal("goblin")
-	# the Tumbleweed King rings the hero with goblins again
+	assert_bool(ids.has("skeleton")).is_true()
+	assert_bool(ids.has("skeleton_knight")).is_true()
+	assert_bool(ids.has("goblin")).is_false()
+	assert_bool(ids.has("goblin_runt")).is_false()
+	assert_str(str(m.skins.get("walker", ""))).is_equal("skeleton")
+	# the King rings the hero with its minions (pass 45: tumbleweed_minion; goblins from pass 33.5 to 44)
 	for a in Registry.enemy("tumbleweed_king").boss.get("attacks", []):
 		if str(a.get("name", "")) == "spawn_ring":
-			assert_str(str(a.get("enemy", ""))).is_equal("goblin")
-	for id in ["skeleton", "skeleton_knight", "sand_crab", "jackalope"]:
+			assert_str(str(a.get("enemy", ""))).is_equal("tumbleweed_minion")
+	for id in ["goblin", "goblin_runt", "sand_crab", "jackalope"]:
 		assert_bool(Registry.enemy(id).retired).override_failure_message(id + " is not retired").is_true()
-	for id in ["goblin", "goblin_runt"]:
+	for id in ["skeleton", "skeleton_knight"]:
 		assert_bool(Registry.enemy(id).retired).override_failure_message(id + " is still retired").is_false()
 	# the goblin as it was before the skeletons: pass 33.2's numbers
 	var w: EnemyDef = Registry.enemy("skeleton")
@@ -303,7 +310,8 @@ func test_the_goblins_are_back_and_the_skeletons_kept() -> void:
 	assert_float(gob.hp).is_equal_approx(6.0, 0.001)
 	assert_int(gob.pack_size).is_equal(6)
 	assert_float(gob.cap_share).is_equal_approx(0.5, 0.001)
-	assert_float(w.hp).is_equal_approx(gob.hp, 0.001)
+	# the skeleton's health is Garry's to tune (pass 47: he raised it to 10 by hand): no weaker than the goblin it replaced
+	assert_float(w.hp).is_greater_equal(gob.hp)
 	# the second kind is armoured (pass 33.4: a breastplate and a helm), not quicker
 	var r: EnemyDef = Registry.enemy("skeleton_knight")
 	assert_float(r.damage_reduction).is_greater_equal(0.2)
@@ -314,9 +322,9 @@ func test_the_goblins_are_back_and_the_skeletons_kept() -> void:
 
 
 func test_skeletons_fall_apart_into_a_heap() -> void:
-	# kept for later (pass 33.5): the death strip ends in the painted heap, five frames, the last two the same still
+	# pass 45: in play again as SK-A / KN-A, and they fall over whole instead of dropping apart in slices
 	for id in ["skeleton", "skeleton_knight"]:
 		var d: EnemyDef = Registry.enemy(id)
 		assert_object(d.sprite).override_failure_message(id + " has no painted strip").is_not_null()
-		assert_int(d.frames_of("die")).is_equal(5)
+		assert_int(d.frames_of("die")).is_greater_equal(5)
 		assert_int(d.frames_of("run")).is_greater_equal(8)

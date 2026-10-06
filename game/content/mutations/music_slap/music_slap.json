@@ -1,0 +1,36 @@
+{
+  "id": "music_slap",
+  "name": "Music Slap",
+  "flavour": "A chord with a backhand.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "guitarra",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "Every chord slaps them sideways: +60% damage, 40% slower.",
+  "vfx": "what the chord lifts comes down thrown to one side or the other",
+  "effects": [
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": 0.6
+    },
+    {
+      "stat": "cooldown",
+      "op": "mul",
+      "value": 0.4
+    }
+  ],
+  "params": {
+    "cone": {
+      "side_random": true,
+      "knock": 7.0
+    }
+  },
+  "art_prompt": "a big golden musical note being slapped sideways by an open hand, a white impact star and speed lines",
+  "placeholder": {
+    "color": "#F0C060",
+    "glyph": "star"
+  }
+}

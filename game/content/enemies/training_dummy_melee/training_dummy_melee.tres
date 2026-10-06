@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_fnlxo"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_xaj0m"]
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_sprite.png" id="3_1sc57"]
+
+[resource]
+script = ExtResource("2_xaj0m")
+archetype = "brute"
+doc = "The debug arena's melee attacker (pass 49): a bigger training dummy (the training dummy's painting) that chases the hero while he is within 12 m of its spot and hits on a touch like a creature; one that falls stands up again 5 s later and pays nothing."
+brain = "dummy"
+hp = 500.0
+speed = 2.0
+damage = 10.0
+radius = 0.61
+size = 2.3
+drops = {}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 6.0,
+"run_b": 6.0
+}
+sprite = ExtResource("3_1sc57")
+sprite_file = "res://content/enemies/training_dummy/training_dummy_sprite.png"
+frame_px = 160
+strip_cols = 28
+fps = {
+"die": 8.0,
+"run": 10.0
+}
+badge = "none"
+head = 0.981
+can_be_elite = false
+sfx = {
+"die": "st_barrel_break",
+"hit": "en_goblin_hit"
+}
+xp_mult = 0.0
+id = "training_dummy_melee"
+display_name = "Melee Dummy"
+flavour = "It hugs back."
+hidden = true
+icon = ExtResource("1_fnlxo")
+icon_file = "res://content/enemies/training_dummy/training_dummy_icon.png"
+placeholder = {
+"color": "#C8A060",
+"eyes": 0.0,
+"shape": "tall"
+}

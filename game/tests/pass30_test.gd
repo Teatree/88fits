@@ -69,6 +69,9 @@ func test_power_ups_last_twice_as_long() -> void:
 	# pass 30: every power-up waits twice as long as it did (the heart was the short one at 11 s, the rest 20 s)
 	for id in Registry.pickups.keys():
 		var p: PickupDef = Registry.pickup(id)
+		# pass 48: Pollen's flowers are not power-ups (never dropped, weight 0): they grow, live 15 s, blink 4 s and wilt
+		if p.effect_kind == "pollen":
+			continue
 		assert_float(p.lifetime).override_failure_message(id + " lifetime " + str(p.lifetime)).is_greater_equal(22.0)
 	for id in ["shield", "rage", "sprint", "magnet_pulse", "nuke"]:
 		assert_float(Registry.pickup(id).lifetime).is_greater_equal(40.0)

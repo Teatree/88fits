@@ -1,0 +1,56 @@
+{
+  "id": "training_dummy_elite",
+  "name": "Elite Dummy",
+  "flavour": "Crowned, and it knows it.",
+  "archetype": "elite",
+  "brain": "dummy",
+  "hidden": true,
+  "hp": 2000,
+  "speed": 1.6,
+  "damage": 20,
+  "radius": 0.71,
+  "size": 2.7,
+  "pack_size": 1,
+  "drops": {},
+  "xp_mult": 0.0,
+  "can_be_elite": false,
+  "can_be_grabbed": false,
+  "sprite": "res://content/enemies/training_dummy/training_dummy_sprite.png",
+  "icon": "res://content/enemies/training_dummy/training_dummy_icon.png",
+  "anims": {
+    "idle": 4,
+    "run": 6,
+    "attack": 2,
+    "hit": 1,
+    "die": 5,
+    "run_b": 6,
+    "idle_b": 4
+  },
+  "frame_px": 160,
+  "strip_cols": 28,
+  "fps": {
+    "run": 10,
+    "die": 8
+  },
+  "head": 0.981,
+  "ranged": {
+    "range": 8.0,
+    "keep_distance": 5.5,
+    "cooldown": 2.6,
+    "projectile_speed": 6.0,
+    "telegraph": 0.7,
+    "splash": 1.4,
+    "damage": 14
+  },
+  "sfx": {
+    "attack": "en_cactus_spit",
+    "hit": "en_goblin_hit",
+    "die": "st_barrel_break"
+  },
+  "placeholder": {
+    "color": "#C8A060",
+    "eyes": 0,
+    "shape": "tall"
+  },
+  "doc": "The debug arena's Elite dummy (pass 49): a bigger training dummy with the Elites' crown, an Elite by its kind (Big Game Hunter, Giant Slayer, the priority aim, never grabbed or bounced), standing apart from the field; its health and behaviour (stand, patrol, melee for 20, ranged for 14) are the arena's settings, and it stands up again 5 s after it falls and pays nothing."
+}

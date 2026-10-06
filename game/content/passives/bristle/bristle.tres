@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/bristle/bristle_icon.png" id="1_eg2c6"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_g1s7f"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_1ro7p"]
+
+[sub_resource type="Resource" id="Resource_eg2c6"]
+script = ExtResource("2_g1s7f")
+stat = "thorns"
+value = 8.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_g1s7f"]
+script = ExtResource("2_g1s7f")
+stat = "cooldown"
+op = "mul"
+value = 0.04
+target = "player"
+
+[resource]
+script = ExtResource("3_1ro7p")
+line = true
+levels = [[SubResource("Resource_eg2c6"), SubResource("Resource_g1s7f")]]
+max_level = 4
+trade = "cooldowns 4% longer a level"
+evolves_into = "cactus_hide"
+id = "bristle"
+display_name = "Bristle"
+flavour = "Touch me. Go on."
+icon = ExtResource("1_eg2c6")
+icon_file = "bristle_icon.png"
+placeholder = {
+"color": "#80C060",
+"glyph": "star"
+}

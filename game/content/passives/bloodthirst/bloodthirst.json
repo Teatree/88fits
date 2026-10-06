@@ -1,0 +1,39 @@
+{
+  "id": "bloodthirst",
+  "name": "Bloodthirst",
+  "flavour": "It was never enough.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "lifesteal",
+        "op": "add",
+        "value": 0.08,
+        "target": "player"
+      },
+      {
+        "stat": "max_hp",
+        "op": "mul",
+        "value": -0.12,
+        "target": "player"
+      },
+      {
+        "stat": "lifesteal_cap",
+        "op": "set",
+        "value": 0.08,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "−12% max HP",
+  "evolves_from": "thirst",
+  "art_prompt": "a glowing red crystal fang with a single red drop hanging from its tip",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

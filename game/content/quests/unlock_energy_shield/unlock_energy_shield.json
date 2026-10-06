@@ -6,7 +6,7 @@
     "minutes": 10
   },
   "unlocks": {
-    "type": "line",
+    "type": "passive",
     "id": "energy_shield"
   },
   "art_prompt": "a glass jar with a glowing blue shield inside",

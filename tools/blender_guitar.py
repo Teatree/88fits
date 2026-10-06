@@ -1,172 +1,183 @@
-"""The Guitarra and the Requiem as real models (pass 43, Calavera's weapon), built from primitives and exported as GLB
-for the ProjectileEmitter's companion (art/props/guitarra.glb, requiem.glb), each rendered once from the front on green
-(tools/dl/guitarra_ref.png, requiem_ref.png) as the reference the icons are painted from.
+"""The Guitarra and the Requiem from Garry's cartoon guitar (pass 46; pass 43 built a guitar from primitives).
 
-One object, "Body": the guitar standing on its end, the neck running up +Y (the y-up export makes that Godot's -Z, the
-way the companion aims), the soundboard facing +Z (Godot's +Y, up at the camera). LENGTH metres from the tail to the
-headstock.
+The mesh is his: _REFERENCES/3d/cartoon-mexican-guitar.zip holds source/guitar.zip, which holds guitar.glb (seven meshes,
+flat colours: a yellow top with a red line round it, green sides, a red-white-blue rosette, a black neck and headstock,
+grey strings). It is imported as it is, the strings kept apart and the rest joined and decimated to a phone's budget,
+stood upright and exported for ConeWave's companion:
+
+  Body        everything but the strings, decimated (about TARGET_TRIS triangles)
+  Strings     the six strings, their own node so the strum can shimmer them
+  Soundhole   an empty at the middle of the soundhole: where the notes leave from
+
+Upright: the neck runs up +Z (Godot's +Y), the top faces -Y (Godot's +Z, towards the game camera, which sits south of the
+hero looking north), the origin at the soundhole, LENGTH metres from the tail to the headstock. requiem.glb is the same
+mesh recoloured black and gold. Each is rendered three-quarters from the front on green as the reference its icon is
+painted from (tools/dl/guitarra_ref.png, requiem_ref.png).
 
   "$BLENDER" -b --python tools/blender_guitar.py
 """
+import io
 import math
 import os
+import zipfile
 
 import bpy
+from mathutils import Vector
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(REPO, "game", "art", "props")
 DL = os.path.join(REPO, "tools", "dl")
-LENGTH = 0.9
-MATS = {}
+ZIP = os.path.join(REPO, "_REFERENCES", "3d", "cartoon-mexican-guitar.zip")
+SRC = os.path.join(DL, "refs46", "guitar", "guitar.glb")
+LENGTH = 0.95
+TARGET_TRIS = 7000
+# the Requiem's colours: the yellow top black, the green sides and the red line gold, the rosette's blue white
+REQUIEM = {"yellow": (0.035, 0.03, 0.04), "green": (0.85, 0.6, 0.16), "red": (0.95, 0.72, 0.22), "blue": (0.9, 0.88, 0.8)}
 
 
-def mat(name, rgb, rough=0.6, metal=0.0, glow=None):
-    if name in MATS:
-        return MATS[name]
-    m = bpy.data.materials.new(name)
-    m.use_nodes = True
-    bsdf = m.node_tree.nodes.get("Principled BSDF")
-    col = (rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0, 1.0)
-    bsdf.inputs["Base Color"].default_value = col
-    bsdf.inputs["Roughness"].default_value = rough
-    bsdf.inputs["Metallic"].default_value = metal
-    if glow:
-        bsdf.inputs["Emission Color"].default_value = (glow[0] / 255.0, glow[1] / 255.0, glow[2] / 255.0, 1.0)
-        bsdf.inputs["Emission Strength"].default_value = 2.0
-    m.diffuse_color = col
-    MATS[name] = m
-    return m
+def source():
+    if not os.path.exists(SRC):
+        os.makedirs(os.path.dirname(SRC), exist_ok=True)
+        outer = zipfile.ZipFile(ZIP)
+        inner = zipfile.ZipFile(io.BytesIO(outer.read("source/guitar.zip")))
+        open(SRC, "wb").write(inner.read("guitar.glb"))
+    return SRC
 
 
-def part(op, m, **kw):
-    op(**kw)
-    o = bpy.context.active_object
-    o.data.materials.clear()
-    o.data.materials.append(m)
-    return o
+def tri_count(o):
+    return sum(len(p.vertices) - 2 for p in o.data.polygons)
 
 
-def cyl(r, depth, loc, m, axis="z", verts=16, r2=None):
-    rot = {"y": (math.pi / 2, 0, 0), "x": (0, math.pi / 2, 0), "z": (0, 0, 0)}[axis]
-    return part(bpy.ops.mesh.primitive_cone_add, m, vertices=verts, radius1=r, radius2=r if r2 is None else r2, depth=depth, location=loc, rotation=rot)
-
-
-def box(size, loc, m, rot=(0, 0, 0)):
-    o = part(bpy.ops.mesh.primitive_cube_add, m, size=1.0, location=loc, rotation=rot)
-    o.scale = size
-    return o
-
-
-def join(objs, name, origin=(0.0, 0.0, 0.0)):
-    for o in bpy.context.scene.objects:
-        o.select_set(False)
-    for o in objs:
+def build():
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.ops.import_scene.gltf(filepath=source())
+    meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    # bake the hierarchy: every mesh in world space, no parents
+    for o in meshes:
+        mw = o.matrix_world.copy()
+        o.parent = None
+        o.matrix_world = mw
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in meshes:
         o.select_set(True)
-    bpy.context.view_layer.objects.active = objs[0]
+        bpy.context.view_layer.objects.active = o
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    strings = [o for o in meshes if any(m and m.name == "gray" for m in o.data.materials)]
+    body_parts = [o for o in meshes if o not in strings]
+    # the soundhole: the middle of the rosette's blue faces (the round red-blue-white ring round the black hole)
+    ring = []
+    for o in body_parts:
+        for p in o.data.polygons:
+            m = o.data.materials[p.material_index] if p.material_index < len(o.data.materials) else None
+            if m and m.name == "blue":
+                ring.append(o.matrix_world @ p.center)
+    hole = sum(ring, Vector()) / len(ring) if ring else Vector()
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in body_parts:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = body_parts[0]
     bpy.ops.object.join()
-    o = bpy.context.active_object
-    o.name = name
-    bpy.context.scene.cursor.location = origin
-    bpy.ops.object.origin_set(type="ORIGIN_CURSOR")
-    return o
-
-
-def guitar(kind):
-    """kind "guitarra": a sunburst spruce top, a dark neck, a black pickguard, steel strings; "requiem": black lacquer,
-    a gold rosette and gold strings, glowing."""
-    gold = kind == "requiem"
-    top = mat(kind + "_top", (16, 14, 16) if gold else (214, 140, 52), 0.35 if gold else 0.55)
-    burst = mat(kind + "_burst", (60, 20, 10) if gold else (110, 46, 20), 0.5)
-    side = mat(kind + "_side", (26, 18, 14) if gold else (96, 52, 26), 0.6)
-    neck = mat(kind + "_neck", (30, 22, 18) if gold else (58, 36, 24), 0.6)
-    fret = mat(kind + "_fret", (255, 190, 70) if gold else (200, 200, 210), 0.4, 0.5)
-    string = mat(kind + "_string", (255, 200, 80) if gold else (225, 225, 235), 0.35, 0.6, glow=(255, 170, 40) if gold else None)
-    hole = mat(kind + "_hole", (8, 6, 6), 0.9)
-    guard = mat(kind + "_guard", (255, 180, 50) if gold else (18, 16, 18), 0.4, 0.4 if gold else 0.0)
-    parts = []
-    # the body: two flattened drums (the lower and upper bouts) and a waist block between them, the top a shade lighter
-    thick = 0.11
-    lower_r, upper_r = 0.2, 0.15
-    ly, uy = 0.2, 0.46
-    for r, y in ((lower_r, ly), (upper_r, uy)):
-        parts.append(cyl(r, thick, (0, y, 0), side, "z", 24))
-        parts.append(cyl(r * 0.985, 0.012, (0, y, thick * 0.5), top, "z", 24))
-        parts.append(cyl(r * 0.985, 0.012, (0, y, -thick * 0.5), burst, "z", 24))
-    parts.append(box((0.24, 0.16, thick), (0, (ly + uy) * 0.5, 0), side))
-    parts.append(box((0.235, 0.155, 0.012), (0, (ly + uy) * 0.5, thick * 0.5), top))
-    # the burst: a darker rim on the soundboard's lower bout
-    parts.append(cyl(lower_r * 0.985, 0.006, (0, ly, thick * 0.5 + 0.007), burst, "z", 24, r2=lower_r * 0.985))
-    parts.append(cyl(lower_r * 0.7, 0.008, (0, ly, thick * 0.5 + 0.008), top, "z", 24))
-    # the sound hole with a rosette, the bridge and the pickguard
-    parts.append(cyl(0.055, 0.02, (0, 0.34, thick * 0.5 + 0.004), hole, "z", 20))
-    parts.append(cyl(0.068, 0.004, (0, 0.34, thick * 0.5 + 0.012), fret, "z", 24))
-    parts.append(box((0.13, 0.03, 0.014), (0, 0.15, thick * 0.5 + 0.012), neck))
-    parts.append(box((0.07, 0.11, 0.006), (0.09, 0.3, thick * 0.5 + 0.012), guard, (0, 0, -0.5)))
-    # the neck up +Y, the fretboard on its face, frets across it, the headstock with six pegs
-    neck_y0, neck_y1 = uy, LENGTH - 0.1
-    parts.append(box((0.055, neck_y1 - neck_y0 + 0.02, 0.04), (0, (neck_y0 + neck_y1) * 0.5, 0.01), neck))
-    parts.append(box((0.056, neck_y1 - neck_y0, 0.008), (0, (neck_y0 + neck_y1) * 0.5, 0.034), neck))
-    for k in range(9):
-        fy = neck_y0 + 0.04 + (neck_y1 - neck_y0 - 0.06) * (1.0 - 0.92 ** k) / (1.0 - 0.92 ** 9)
-        parts.append(box((0.056, 0.004, 0.004), (0, fy, 0.04), fret))
-    parts.append(box((0.075, 0.12, 0.028), (0, LENGTH - 0.05, 0.004), neck, (0.2, 0, 0)))
-    for sx in (-1, 1):
-        for k in range(3):
-            parts.append(cyl(0.008, 0.02, (sx * 0.044, LENGTH - 0.085 + 0.03 * k, 0.004), fret, "x", 8))
-    # six strings from the bridge to the nut
-    for k in range(6):
-        x = -0.023 + 0.0092 * k
-        parts.append(box((0.0025, LENGTH - 0.1 - 0.15, 0.0025), (x, (LENGTH - 0.1 + 0.15) * 0.5, thick * 0.5 + 0.022), string))
-    return join(parts, "Body")
-
-
-def export(objs, name):
-    for o in bpy.context.scene.objects:
-        o.select_set(False)
-    for o in objs:
+    body = bpy.context.active_object
+    body.name = "Body"
+    tris = tri_count(body)
+    if tris > TARGET_TRIS:
+        dec = body.modifiers.new("dec", "DECIMATE")
+        dec.ratio = TARGET_TRIS / float(tris)
+        bpy.ops.object.modifier_apply(modifier=dec.name)
+    st = None
+    if strings:
+        bpy.ops.object.select_all(action="DESELECT")
+        for o in strings:
+            o.select_set(True)
+        bpy.context.view_layer.objects.active = strings[0]
+        if len(strings) > 1:
+            bpy.ops.object.join()
+        st = bpy.context.active_object
+        st.name = "Strings"
+    # scale to LENGTH and move the soundhole to the origin
+    zs = [(body.matrix_world @ Vector(v)).z for v in body.bound_box]
+    s = LENGTH / (max(zs) - min(zs))
+    for o in [body] + ([st] if st else []):
+        o.location = (o.location - hole) * s
+        o.scale = (s, s, s)
+        bpy.ops.object.select_all(action="DESELECT")
         o.select_set(True)
-    bpy.context.view_layer.objects.active = objs[0]
-    path = os.path.join(OUT, name + ".glb")
-    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_apply=True, export_yup=True)
-    print("exported", path)
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+        # origin at the soundhole for both (the strum rocks the body about it; the strings shimmer about it)
+        bpy.context.scene.cursor.location = (0, 0, 0)
+        bpy.ops.object.origin_set(type="ORIGIN_CURSOR")
+    for m in bpy.data.materials:
+        if m.node_tree:
+            b = m.node_tree.nodes.get("Principled BSDF")
+            if b:
+                b.inputs["Roughness"].default_value = 0.55
+                b.inputs["Metallic"].default_value = 0.0
+    e = bpy.data.objects.new("Soundhole", None)
+    bpy.context.scene.collection.objects.link(e)
+    e.location = (0, 0, 0)
+    print("guitar: body %d tris (from %d), strings %s, soundhole at the origin, scale %.4f" % (tri_count(body), tris, "yes" if st else "no", s))
+    return body, st
 
 
-def render_front(path):
-    """The soundboard to the camera, the neck up, on flat green."""
+def recolour(mapping):
+    for m in list(bpy.data.materials):
+        if m.name in mapping and m.node_tree:
+            b = m.node_tree.nodes.get("Principled BSDF")
+            rgb = mapping[m.name]
+            b.inputs["Base Color"].default_value = (rgb[0], rgb[1], rgb[2], 1.0)
+            if m.name in ("green", "red"):
+                b.inputs["Metallic"].default_value = 0.35
+                b.inputs["Roughness"].default_value = 0.35
+
+
+def export(path):
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True, export_yup=True, export_apply=True)
+    print("guitar: wrote", path)
+
+
+def render_ref(path):
     scene = bpy.context.scene
-    cam_data = bpy.data.cameras.new("cam")
-    cam_data.type = "ORTHO"
-    cam_data.ortho_scale = LENGTH * 1.15
-    cam = bpy.data.objects.new("cam", cam_data)
-    scene.collection.objects.link(cam)
-    cam.location = (0.0, LENGTH * 0.47, 3.0)
-    cam.rotation_euler = (0, 0, 0)
-    scene.camera = cam
-    scene.render.engine = "BLENDER_WORKBENCH"
-    scene.display.shading.light = "STUDIO"
-    scene.display.shading.color_type = "MATERIAL"
-    scene.display.shading.show_shadows = False
-    scene.display.shading.background_type = "WORLD"
-    if scene.world is None:
-        scene.world = bpy.data.worlds.new("world")
-    scene.world.color = (0.0, 1.0, 0.0)
-    scene.render.film_transparent = False
+    engines = [e.identifier for e in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items]
+    scene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in engines else "BLENDER_EEVEE"
     scene.render.resolution_x = 1024
     scene.render.resolution_y = 1024
-    scene.render.image_settings.file_format = "PNG"
+    w = bpy.data.worlds.new("w")
+    scene.world = w
+    w.color = (0.0, 1.0, 0.0)
+    scene.view_settings.view_transform = "Standard"
+    cd = bpy.data.cameras.new("cam")
+    cam = bpy.data.objects.new("cam", cd)
+    scene.collection.objects.link(cam)
+    scene.camera = cam
+    cd.type = "ORTHO"
+    cd.ortho_scale = LENGTH * 1.25
+    # three-quarters from the front-left and a little above, the neck leaning to the upper right
+    d = Vector((-0.55, -0.8, 0.3)).normalized()
+    centre = Vector((0, 0, LENGTH * 0.12))
+    cam.location = centre + d * 4.0
+    cam.rotation_euler = (centre - cam.location).to_track_quat("-Z", "Y").to_euler()
+    cam.rotation_euler.rotate_axis("Z", math.radians(-28))
+    sun = bpy.data.lights.new("sun", "SUN")
+    sun.energy = 3.5
+    so = bpy.data.objects.new("sun", sun)
+    scene.collection.objects.link(so)
+    so.rotation_euler = (0.6, -0.3, -0.5)
     scene.render.filepath = path
     bpy.ops.render.render(write_still=True)
-    print("rendered", path)
+    print("guitar: rendered", path)
 
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    for kind in ("guitarra", "requiem"):
-        bpy.ops.wm.read_factory_settings(use_empty=True)
-        MATS.clear()
-        body = guitar(kind)
-        export([body], kind)
-        render_front(os.path.join(DL, kind + "_ref.png"))
+    build()
+    export(os.path.join(OUT, "guitarra.glb"))
+    render_ref(os.path.join(DL, "guitarra_ref.png"))
+    build()
+    recolour(REQUIEM)
+    export(os.path.join(OUT, "requiem.glb"))
+    render_ref(os.path.join(DL, "requiem_ref.png"))
 
 
 main()

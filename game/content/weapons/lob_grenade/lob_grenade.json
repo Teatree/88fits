@@ -15,6 +15,7 @@
     "knockback": 7.0,
     "speed": 9
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -22,9 +23,7 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.2
-      }
-    ],
-    [
+      },
       {
         "stat": "area",
         "op": "add",
@@ -36,9 +35,7 @@
         "stat": "cooldown",
         "op": "mul",
         "value": -0.1
-      }
-    ],
-    [
+      },
       {
         "stat": "amount",
         "op": "add",
@@ -57,9 +54,7 @@
         "stat": "area",
         "op": "add",
         "value": 0.5
-      }
-    ],
-    [
+      },
       {
         "stat": "damage",
         "op": "mul",
@@ -68,7 +63,7 @@
     ]
   ],
   "evolves_with": "",
-  "evolves_into": "cluster_bomb",
+  "evolves_into": "golden_pineapple",
   "sfx": {
     "fire": "w_lob_throw",
     "hit": "w_lob_boom"

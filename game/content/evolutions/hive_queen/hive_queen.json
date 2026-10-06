@@ -1,0 +1,62 @@
+{
+  "id": "hive_queen",
+  "name": "Hive Queen",
+  "flavour": "Every burst carries a Tarantula Hawk; a bee's kill sprouts a flower 15% of the time where the enemy fell; a bee that kills dives on twice.",
+  "rarity": "rare",
+  "is_evolution": true,
+  "evolved_from": "hornet_nest",
+  "max_level": 1,
+  "behavior": "MissilePod",
+  "targeting": "priority",
+  "tags": [
+    "homing"
+  ],
+  "base": {
+    "damage": 7,
+    "cooldown": 0.55,
+    "amount": 5,
+    "area": 0,
+    "speed": 17,
+    "range": 12,
+    "knockback": 1.2
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "radius": 0.15,
+    "missile": {
+      "wander": 0.3,
+      "turn": 11.0,
+      "spiral": 14.0,
+      "life": 3.0,
+      "trail": 2
+    },
+    "familiar": {
+      "radius": 1.1,
+      "height": 1.5,
+      "speed": 1.4,
+      "bob": 0.14
+    },
+    "final": {
+      "hawk": {
+        "every": 1,
+        "stings": 5,
+        "seconds": 4.0,
+        "slow": 0.1
+      },
+      "second_sting": 2,
+      "flower_on_kill": 0.15
+    }
+  },
+  "sfx": {
+    "fire": "w_pea_fire",
+    "hit": "w_pea_hit"
+  },
+  "placeholder": {
+    "color": "#FFB13B",
+    "glyph": "hive"
+  },
+  "art_prompt": "a big cartoon beehive of stacked shining gold rings with a dark round door, a gold crown with a red jewel on top, the queen bee in a tiny crown at the door, angry killer bees round it",
+  "visual": "hive_queen_visual.tscn"
+}

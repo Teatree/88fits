@@ -1,0 +1,35 @@
+{
+  "id": "pollen",
+  "name": "Pollen",
+  "flavour": "Stop and smell them.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "hornet_nest",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "While held, a flower grows from the sand every 8-12 s, 10-18 m away (3 at most, 15 s each); walk into one for 4 times the bees at 1.5 times the speed for 5 s.",
+  "vfx": "desert flowers on the sand, red bees with red trails while the buff lasts",
+  "effects": [],
+  "params": {
+    "pollen": {
+      "every": [
+        8,
+        12
+      ],
+      "near": 10,
+      "far": 18,
+      "max": 3,
+      "life": 15,
+      "blink": 4,
+      "seconds": 5,
+      "amount_mult": 4,
+      "speed_mult": 1.5
+    }
+  },
+  "art_prompt": "a bright pink desert flower with yellow pollen drifting off it",
+  "placeholder": {
+    "color": "#FF7AB8",
+    "glyph": "star"
+  }
+}

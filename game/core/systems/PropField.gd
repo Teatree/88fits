@@ -48,6 +48,13 @@ func setup(manifest_path: String = "res://art/sprites/props/props.json") -> void
 		_types[id] = {"mm": mm, "n": 0, "height": float(row.get("height", 1.0)), "radius": float(row.get("radius", 0.0))}
 
 
+## Whether a painting is kept out of the scatter (pass 49, Garry: "hide signpost.png and yucca.png"): its manifest entry
+## says `"hidden": true`; the painting and its entry stay, so it can come back by deleting the key.
+func is_hidden(id: String) -> bool:
+	var row = manifest.get(id)
+	return row is Dictionary and bool((row as Dictionary).get("hidden", false))
+
+
 func has(id: String) -> bool:
 	return _types.has(id)
 

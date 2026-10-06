@@ -9,19 +9,15 @@ script = ExtResource("1_vifv3")
 stat = "damage"
 op = "mul"
 value = 0.4
-target = "self"
 
 [sub_resource type="Resource" id="Resource_omuuo"]
 script = ExtResource("1_vifv3")
 stat = "knockback"
-op = "add"
 value = 4.0
-target = "self"
 
 [resource]
 script = ExtResource("2_itak6")
 weapon = "turret_buddy"
-mutation_kind = "stance"
 text = "The buddy digs in behind sandbags: twin barrels, +40% damage, shots knock back, it turns slowly."
 vfx = "a low sandbag bunker with two barrels"
 effects = [SubResource("Resource_itak6"), SubResource("Resource_omuuo")]
@@ -29,7 +25,7 @@ params = {
 "turret": {
 "barrels": 2.0,
 "style": "bunker",
-"turn": 2.5
+"turn": 120.0
 }
 }
 id = "bunker"

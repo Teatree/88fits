@@ -4,6 +4,7 @@
   "flavour": "Reads 'do not shake'.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "lob_grenade",
   "kind": "element",
   "element": "fire",

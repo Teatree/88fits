@@ -51,7 +51,8 @@ func test_salvo_reaches_only_the_rocket_pod() -> void:
 	var pea := Run.weapon_instance("peashooter")
 	var pod_before := pod.stat_int("amount", 0)
 	var pea_before := pea.stat_int("amount", 0)
-	Run.add_mutation("salvo")
+	# pass 53: Salvo is hidden (kept in the content), so it is forced on as the debug hand would; held, it still applies
+	Run.add_mutation("salvo", true)
 	assert_int(pod.stat_int("amount", 0)).is_equal(pod_before + 3)
 	assert_int(pea.stat_int("amount", 0)).is_equal(pea_before)
 	# the hero's own amount stays untouched: a weapon-targeted effect never leaks through the player sheet
@@ -90,7 +91,8 @@ func test_stage_two_brings_new_creatures_and_the_second_boss() -> void:
 	for r in tl.roster_at(100.0):
 		ids_at_100.append(str(r["enemy"]))
 	var ids_at_400: Array = []
-	for r in tl.roster_at(400.0):
+	# pass 46: the run is stretched by 430/300, so the old 400 s point is 573 s
+	for r in tl.roster_at(573.0):
 		ids_at_400.append(str(r["enemy"]))
 	var ids_late: Array = []
 	for r in tl.roster_at(899.0):
@@ -98,8 +100,13 @@ func test_stage_two_brings_new_creatures_and_the_second_boss() -> void:
 	# pass 28: arrivals are spread over all three stages (the jackalope in stage 2, the shaman only in stage 3)
 	assert_bool(ids_at_100.has("jackalope")).is_false()
 	assert_bool(ids_at_400.has("horned_toad")).is_true()
-	# pass 33.2: the crab and the jackalope are out of the rotation, the armadillo arrives half way through stage 1
-	assert_bool(ids_at_400.has("armadillo")).is_true()
+	# pass 33.2: the crab and the jackalope are out of the rotation, the armadillo arrives half way through stage 1 (pass
+	# 54: Garry's placement in the Level Editor brings it in a swarm instead of a roster row)
+	var swarms: Array = []
+	for ev in tl.events:
+		if str(ev.get("type", "")) == "swarm":
+			swarms.append(str(ev.get("enemy", "")))
+	assert_bool(ids_at_400.has("armadillo") or swarms.has("armadillo")).is_true()
 	assert_bool(ids_at_400.has("sand_crab")).is_false()
 	assert_bool(ids_at_400.has("dust_shaman")).is_false()
 	assert_bool(ids_late.has("jackalope")).is_false()
@@ -110,9 +117,12 @@ func test_stage_two_brings_new_creatures_and_the_second_boss() -> void:
 			bosses.append(str(ev.get("enemy", "")))
 	assert_bool(bosses.has("gila_grande")).is_true()
 	assert_bool(bosses.has("tumbleweed_king")).is_true()
-	# goblins thin out: their weight at the end of stage 2 is a third of the start
-	var goblin: Dictionary = tl.roster[0]
-	assert_float(float(goblin.get("weight_late", 10.0))).is_less(float(goblin.get("weight", 10.0)))
+	# the opening fodder thins out (pass 54: presence keyframes, the row's draw weight over the run clock; Garry's red
+	# goblins slide from 9 at 0:00 towards 3 at 14:20)
+	var fodder: Dictionary = tl.roster[0]
+	var keys: Array = fodder.get("weights", [])
+	assert_int(keys.size()).is_greater_equal(2)
+	assert_float(float(keys[keys.size() - 1][1])).is_less(float(keys[0][1]))
 
 
 func test_revive_returns_half_health_once() -> void:

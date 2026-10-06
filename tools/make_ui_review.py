@@ -242,7 +242,7 @@ SCREENS = [
                  "Text drawn over the world loses contrast on bright sand.",
                  "Toasts land in the middle of the action."],
      "ask": ["What would you take out of the strip altogether?"]},
-    {"id": "07_levelup", "name": "Level-up cards", "when": "every level-up (every 20 to 40 seconds early in a run)", "shots": [("02_cards", "shots"), ("49_line_evolution", "shots")],
+    {"id": "07_levelup", "name": "Level-up cards", "when": "every level-up (every 20 to 40 seconds early in a run)", "shots": [("02_cards", "shots"), ("49_passive_evolution", "shots")],
      "job": "Pick one of three or four upgrades, quickly, with the run paused.",
      "on": ["LEVEL 3! and pick one · game is paused.",
             "Three or four full-width cards. Each has the icon in a frame of its kind's colour; a kind tag (PASSIVE · NEW, WEAPON · UPGRADE, LINE · EVOLUTION OF ENERGY SHIELD); the name; a chip (NEW · LV 1, LV 3 → 4, EVOLVE); level pips; what it does (+25% pickup radius per level); and a flavour line.",
@@ -585,7 +585,6 @@ def art_sections():
     items = [("Weapons", section("weapons")),
              ("Evolutions", section("evolutions", lambda cid, d: cid not in hidden_evo and d.get("evolved_from") not in hidden_w)),
              ("Passives", section("passives")),
-             ("Lines", section("lines")),
              ("Hero perks", section("perks", lambda cid, d: d.get("hero") not in hidden_h))]
     more = [("Mutations (a weapon's path picks)", section("mutations", lambda cid, d: d.get("weapon") not in hidden_w and (d.get("hero") or "") not in hidden_h)),
             ("Creatures and Elites", section("enemies")),

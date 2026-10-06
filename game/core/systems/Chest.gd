@@ -6,6 +6,9 @@ extends Node3D
 var boss := false
 var opened := false
 var pulled := false        # flying to the hero (a boss kill pulls every chest in)
+## the pool of light on the sand, and where the chest stood when its slope was last read (pass 52)
+var _pool: MeshInstance3D
+var _pool_at := Vector3.INF
 var pull_speed := 0.0
 var _lid: Node3D
 var _t := 0.0
@@ -70,7 +73,7 @@ func _ready() -> void:
 	# A boss chest shines violet and bigger.
 	var tint := Color(0.8, 0.5, 1.0) if boss else Color(1.0, 0.8, 0.32)
 	var ks := 1.35 if boss else 1.0
-	_shine(2, Vector2(4.6, 4.6) * ks, tint, 0.7, Vector3.ZERO)
+	_pool = _shine(2, Vector2(4.6, 4.6) * ks, tint, 0.7, Vector3.ZERO)
 	_shine(0, Vector2(4.4, 4.4) * ks, tint, 0.8, Vector3(0, 1.0 * ks, 0))
 	_shine(1, Vector2(1.2 * ks, 9.0), tint, 0.75, Vector3.ZERO)
 	for s in range(6):
@@ -99,8 +102,22 @@ func _ready() -> void:
 		add_child(light)
 
 
-## One quad of the shine, drawn by core/shaders/shine_aura.gdshader in `mode` (0 sunburst, 1 beam, 2 pool, 3 sparkle).
-func _shine(mode: int, size: Vector2, tint: Color, strength: float, at: Vector3) -> MeshInstance3D:
+## The pool of light lies on the sand's slope under the chest (pass 52: on a slope half of it sank out of sight), read
+## again whenever the chest has moved (a boss kill pulls it in).
+func _slope_pool() -> void:
+	if _pool == null or global_position.distance_squared_to(_pool_at) < 0.01:
+		return
+	_pool_at = global_position
+	var g = get_parent().get("game") if get_parent() else null
+	var map = g.get("map") if g else null
+	if map == null or not map.has_method("slope_at"):
+		return
+	(_pool.material_override as ShaderMaterial).set_shader_parameter("slope", map.slope_at(_pool_at.x, _pool_at.z, 2.0))
+
+
+## One quad of a shine, drawn by core/shaders/shine_aura.gdshader in `mode` (0 sunburst, 1 beam, 2 pool, 3 sparkle);
+## the spawn beam (Game._spawn_begin) uses it too.
+static func shine_quad(mode: int, size: Vector2, tint: Color, strength: float) -> MeshInstance3D:
 	var q := QuadMesh.new()
 	q.size = size
 	if mode == 1:
@@ -117,7 +134,13 @@ func _shine(mode: int, size: Vector2, tint: Color, strength: float, at: Vector3)
 	mi.material_override = m
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# the shader moves the corners (it faces the camera, lays the pool flat, stands the beam up): cull generously
-	mi.extra_cull_margin = 9.0
+	mi.extra_cull_margin = maxf(9.0, size.y)
+	return mi
+
+
+## One quad of the chest's own shine at `at`.
+func _shine(mode: int, size: Vector2, tint: Color, strength: float, at: Vector3) -> MeshInstance3D:
+	var mi := shine_quad(mode, size, tint, strength)
 	mi.position = at
 	add_child(mi)
 	return mi
@@ -125,6 +148,7 @@ func _shine(mode: int, size: Vector2, tint: Color, strength: float, at: Vector3)
 
 func _process(delta: float) -> void:
 	_t += delta
+	_slope_pool()
 	if not opened:
 		_lid.position.y = (0.82 if _lid.get_parent() == self else 0.0) + sin(_t * 4.0) * 0.03
 		rotation.y += delta * (4.0 if pulled else 0.6)

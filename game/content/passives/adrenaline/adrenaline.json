@@ -2,7 +2,7 @@
   "id": "adrenaline",
   "name": "Adrenaline",
   "flavour": "Every kill is a stack for 4 s, twenty at most: faster and harder while the streak holds.",
-  "rarity": "common",
+  "rarity": "uncommon",
   "weight": 8,
   "max_level": 5,
   "levels": [

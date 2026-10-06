@@ -69,6 +69,18 @@
       "pitch_spread": 0.05,
       "volume_db": -8
     },
+    "pl_spawn_beam": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -4
+    },
+    "pl_spawn_land": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.03,
+      "volume_db": -5
+    },
     "pl_hurt": {
       "category": "player",
       "voices": 1,
@@ -298,6 +310,12 @@
       "volume_db": 0,
       "file": "voice/en_boss_die.wav"
     },
+    "en_king_volley": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.05,
+      "volume_db": -4
+    },
     "wd_ambient": {
       "category": "world",
       "voices": 1,
@@ -489,6 +507,24 @@
       "pitch_spread": 0.06,
       "volume_db": 0
     },
+    "en_rocket_loose": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -3
+    },
+    "en_rocket_wild": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.05,
+      "volume_db": -4
+    },
+    "en_rocket_dive": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.05,
+      "volume_db": -3
+    },
     "w_hammer_swing": {
       "category": "weapon",
       "voices": 3,
@@ -543,6 +579,36 @@
       "pitch_spread": 0.06,
       "volume_db": -8
     },
+    "w_sun_warn": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.08,
+      "volume_db": -12
+    },
+    "w_sun_strike": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.1,
+      "volume_db": -8
+    },
+    "w_sun_zenith": {
+      "category": "weapon",
+      "voices": 1,
+      "pitch_spread": 0.03,
+      "volume_db": -5
+    },
+    "w_spear_throw": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.1,
+      "volume_db": -9
+    },
+    "w_spear_hit": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.12,
+      "volume_db": -8
+    },
     "en_slime_hit": {
       "category": "enemy",
       "voices": 3,
@@ -554,6 +620,42 @@
       "voices": 2,
       "pitch_spread": 0.06,
       "volume_db": -6
+    },
+    "en_golem_attack": {
+      "category": "enemy",
+      "voices": 2,
+      "pitch_spread": 0.05,
+      "volume_db": -4
+    },
+    "en_golem_throw": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.05,
+      "volume_db": -3
+    },
+    "en_golem_hit": {
+      "category": "enemy",
+      "voices": 3,
+      "pitch_spread": 0.1,
+      "volume_db": -10
+    },
+    "en_golem_die": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.04,
+      "volume_db": -2
+    },
+    "en_boulder_land": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.05,
+      "volume_db": 0
+    },
+    "en_stalactite_hit": {
+      "category": "enemy",
+      "voices": 4,
+      "pitch_spread": 0.15,
+      "volume_db": -8
     },
     "st_barrel_break": {
       "category": "pickup",
@@ -578,6 +680,90 @@
       "voices": 1,
       "pitch_spread": 0.05,
       "volume_db": -14
+    },
+    "ui_chest_knock": {
+      "category": "ui",
+      "voices": 2,
+      "pitch_spread": 0.08,
+      "volume_db": -4
+    },
+    "w_thor_zap": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.1,
+      "volume_db": -8
+    },
+    "w_tinnitus_ring": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.06,
+      "volume_db": -10
+    },
+    "w_hawk_sting": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.1,
+      "volume_db": -10
+    },
+    "w_hip_spin": {
+      "category": "weapon",
+      "voices": 1,
+      "pitch_spread": 0.04,
+      "volume_db": -6
+    },
+    "w_silver_fire": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.06,
+      "volume_db": -6
+    },
+    "w_mine_spring": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.08,
+      "volume_db": -8
+    },
+    "it_keg_boom": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.08,
+      "volume_db": -4
+    },
+    "it_phoenix": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -2
+    },
+    "it_coin_drop": {
+      "category": "pickup",
+      "voices": 2,
+      "pitch_spread": 0.08,
+      "volume_db": -8
+    },
+    "pk_flower": {
+      "category": "pickup",
+      "voices": 2,
+      "pitch_spread": 0.06,
+      "volume_db": -6
+    },
+    "st_portal_wait": {
+      "category": "pickup",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -6
+    },
+    "ui_reel_tick": {
+      "category": "ui",
+      "voices": 6,
+      "pitch_spread": 0.04,
+      "volume_db": -8
+    },
+    "ui_card": {
+      "category": "ui",
+      "voices": 4,
+      "pitch_spread": 0.05,
+      "volume_db": -10
     }
   }
 }

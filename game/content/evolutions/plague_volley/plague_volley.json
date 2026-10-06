@@ -2,7 +2,7 @@
   "id": "plague_volley",
   "name": "Plague Volley",
   "flavour": "Three darts. Three ideas.",
-  "rarity": "epic",
+  "rarity": "rare",
   "is_evolution": true,
   "evolved_from": "poison_dart",
   "max_level": 1,

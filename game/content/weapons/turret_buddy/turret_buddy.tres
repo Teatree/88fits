@@ -10,55 +10,43 @@ script = ExtResource("2_o0ly8")
 stat = "damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [sub_resource type="Resource" id="Resource_ausxe"]
 script = ExtResource("2_o0ly8")
 stat = "lifetime"
-op = "add"
 value = 4.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_xkci4"]
 script = ExtResource("2_o0ly8")
 stat = "cooldown"
-op = "add"
 value = -1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_gf3xs"]
 script = ExtResource("2_o0ly8")
 stat = "damage"
 op = "mul"
 value = 0.25
-target = "self"
 
 [sub_resource type="Resource" id="Resource_3mwyn"]
 script = ExtResource("2_o0ly8")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_6lnlb"]
 script = ExtResource("2_o0ly8")
 stat = "lifetime"
-op = "add"
 value = 4.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_mnysx"]
 script = ExtResource("2_o0ly8")
 stat = "damage"
 op = "mul"
 value = 0.3
-target = "self"
 
 [resource]
 script = ExtResource("2_slb8c")
 behavior = "Spawner"
-tags = []
-targeting = "nearest"
+targeting = "priority"
 base = {
 "amount": 1.0,
 "cooldown": 6.0,
@@ -68,12 +56,9 @@ base = {
 "range": 8.0,
 "speed": 16.0
 }
-levels = [[], [SubResource("Resource_o0ly8")], [SubResource("Resource_ausxe")], [SubResource("Resource_xkci4")], [SubResource("Resource_gf3xs")], [SubResource("Resource_3mwyn")], [SubResource("Resource_6lnlb")], [SubResource("Resource_mnysx")]]
-max_level = 8
-evolves_with = ""
-evolves_into = "turret_family"
-is_evolution = false
-evolved_from = ""
+levels = [[], [SubResource("Resource_o0ly8"), SubResource("Resource_ausxe")], [SubResource("Resource_xkci4"), SubResource("Resource_gf3xs")], [SubResource("Resource_3mwyn")], [SubResource("Resource_6lnlb"), SubResource("Resource_mnysx")]]
+max_level = 5
+evolves_into = "iron_bastion"
 sfx = {
 "fire": "w_turret_fire",
 "hit": "w_pea_hit",
@@ -82,17 +67,15 @@ sfx = {
 visual = ExtResource("3_slb8c")
 visual_file = "turret_buddy_visual.tscn"
 params = {
+"marks": false,
+"tracer": true,
 "turret_fire_rate": 0.35
 }
-hero = ""
 id = "turret_buddy"
 display_name = "Turret Buddy"
 flavour = "It has a face. Do not name it."
 rarity = "rare"
-element = ""
 weight = 7.0
-hidden = false
-from_stage = 0
 icon = ExtResource("1_o0ly8")
 icon_file = "turret_buddy_icon.png"
 placeholder = {

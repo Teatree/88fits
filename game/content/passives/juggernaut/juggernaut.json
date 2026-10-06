@@ -1,0 +1,33 @@
+{
+  "id": "juggernaut",
+  "name": "Juggernaut",
+  "flavour": "Nothing moves you. You move everything.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "might",
+        "op": "mul",
+        "value": 0.5,
+        "target": "player"
+      },
+      {
+        "stat": "damage_reduction",
+        "op": "add",
+        "value": 0.1,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "brawn",
+  "art_prompt": "a huge riveted iron gauntlet fist punching down and cracking the ground",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

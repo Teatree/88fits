@@ -6,8 +6,6 @@
 
 [resource]
 script = ExtResource("1_l22xk")
-behavior = "ProjectileEmitter"
-tags = []
 targeting = "healthy"
 base = {
 "amount": 3.0,
@@ -23,8 +21,6 @@ base = {
 }
 levels = [[]]
 max_level = 1
-evolves_with = ""
-evolves_into = ""
 is_evolution = true
 evolved_from = "poison_dart"
 sfx = {
@@ -42,15 +38,10 @@ params = {
 },
 "radius": 0.24
 }
-hero = ""
 id = "plague_volley"
 display_name = "Plague Volley"
 flavour = "Three darts. Three ideas."
-rarity = "epic"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
+rarity = "rare"
 icon = ExtResource("1_07xp3")
 icon_file = "plague_volley_icon.png"
 placeholder = {

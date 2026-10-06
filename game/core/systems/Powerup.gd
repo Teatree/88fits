@@ -10,6 +10,8 @@ var _t := 0.0
 var _sprite: BillboardSprite
 var _ring: MeshInstance3D
 var _light: OmniLight3D
+## whether the ring lies on the slope yet (pass 52: done on the first frame, once the pickup stands where it was dropped)
+var _laid := false
 
 
 func setup(p_def: PickupDef) -> void:
@@ -48,7 +50,7 @@ func _ready() -> void:
 		add_child(_light)
 	scale = Vector3(0.01, 0.01, 0.01)
 	var tw := create_tween()
-	# the drop passives' jerky and coin bags are small things underfoot, not power-ups on a plinth
+	# the drop passives' cake slices and coin bags are small things underfoot, not power-ups on a plinth
 	var size: float = 0.62 if (def and bool(def.params.get("small", false))) else 1.0
 	tw.tween_property(self, "scale", Vector3.ONE * size, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -56,10 +58,13 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if taken:
 		return
+	if not _laid:
+		_lay_ring()
 	_t += delta
 	life -= delta
 	_sprite.position.y = 0.35 + sin(_t * 2.6) * 0.12
-	_ring.rotation.y += delta * 1.2
+	# it turns about the slope's up, not the world's
+	_ring.rotate_object_local(Vector3.UP, delta * 1.2)
 	var pulse := 1.0 + sin(_t * 4.0) * 0.06
 	_ring.scale = Vector3(pulse, 0.35, pulse)
 	# the last four seconds blink, so a pickup never just vanishes
@@ -67,6 +72,20 @@ func _process(delta: float) -> void:
 		_sprite.visible = int(life * 5.0) % 2 == 0
 	if life <= 0.0:
 		queue_free()
+
+
+## The ring lies on the sand under the pickup (pass 52, Garry: the power-up's ring "isn't always displayed correctly"): a
+## level ring on a slope sank into the uphill side and stood off the downhill one; tilted to the ground's plane over its
+## own width, it sits on it whole.
+func _lay_ring() -> void:
+	_laid = true
+	var g = get_parent().get("game") if get_parent() else null
+	var map = g.get("map") if g else null
+	if map == null or not map.has_method("normal_at"):
+		return
+	var n: Vector3 = map.normal_at(global_position.x, global_position.z, 0.8)
+	_ring.basis = MapBase.ground_basis(n)
+	_ring.position = n * 0.06
 
 
 func collect_anim() -> void:

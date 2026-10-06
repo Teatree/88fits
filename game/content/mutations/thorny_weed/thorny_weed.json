@@ -1,5 +1,6 @@
 {
   "id": "thorny_weed",
+  "hidden": true,
   "name": "Thorny Weed",
   "flavour": "It was always a little mean.",
   "rarity": "rare",

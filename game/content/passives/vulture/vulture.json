@@ -1,0 +1,25 @@
+{
+  "id": "vulture",
+  "name": "Vulture",
+  "rarity": "uncommon",
+  "weight": 8,
+  "max_level": 5,
+  "flavour": "Feeds on a good shot.",
+  "text": "A critical hit may heal you for 2% of your max health. 4% of crits at level 1, 20% at level 5.",
+  "levels": [
+    [
+      {
+        "stat": "crit_heal_chance",
+        "op": "add",
+        "value": 0.04,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "a bald desert vulture head with a red target crosshair behind it",
+  "placeholder": {
+    "color": "#B04A3A",
+    "glyph": "star"
+  },
+  "repeat_last_level": true
+}

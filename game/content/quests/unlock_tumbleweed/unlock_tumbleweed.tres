@@ -7,7 +7,7 @@
 script = ExtResource("2_x5q8x")
 condition = {
 "count": 150.0,
-"enemy": "goblin",
+"enemy": "skeleton",
 "type": "kills_of_enemy"
 }
 unlocks = {

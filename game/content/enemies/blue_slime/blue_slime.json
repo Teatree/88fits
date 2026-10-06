@@ -7,8 +7,9 @@
   "hp": 26,
   "speed": 1.7,
   "damage": 7,
+  "knockback": 4.5,
   "radius": 0.6,
-  "size": 1.5,
+  "size": 1.8,
   "pack_size": 5,
   "drops": {
     "small": 1.0,
@@ -71,5 +72,146 @@
     "run": 15,
     "die": 8
   },
-  "head": 0.894
+  "head": 0.894,
+  "variants": {
+    "SL-A": {
+      "note": "a round ball of blue jelly with angry eyebrows and a closed smirk (pass 45, option A); it hops (the painting squashes, stretches and leaves the ground), its face never moves",
+      "recipe": {
+        "stills": "sla1",
+        "art_prompt": "a round blob of glossy translucent blue jelly slime with a big shiny highlight, two large angry white eyes with black pupils under heavy slanted dark eyebrows, a wide closed smug smirk, a few small bubbles inside it, a goofy mean cartoon slime",
+        "screen": "green",
+        "motion": "bouncing up and down in place with a wobbling jelly squash and stretch, the whole body as one blob, its face completely still and unchanged: the mouth closed and fixed, the eyes open and fixed, no blinking, no talking",
+        "anim_negative": "mouth opening, mouth moving, talking, chewing, blinking, changing expression, eyes closing, arms, legs, hands, a face splitting, two blobs, extra eyes, a mouth splitting, the hat falling off, a hat, a hat appearing, arms growing, legs growing",
+        "back_hint": "seen directly from behind: the same smooth blue jelly blob with no face, no eyes, no hat, no arms, no legs, no features at all, just the plain glossy back of the blob",
+        "dead_hint": "splattered flat into one wide round puddle of blue jelly on the ground, dead: its eyes shut on top of the puddle, no arms, no legs, no limbs",
+        "death": "squash",
+        "stand": "still",
+        "walk": "hop",
+        "cell_fill": 0.72,
+        "hop_height": 0.13
+      },
+      "sprite": "blue_slime_sprite_a.png",
+      "icon": "blue_slime_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 6,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 41,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.931
+    },
+    "SL-B": {
+      "note": "a tall drippy blue slime with beady eyes and a flat grumpy mouth (pass 45, option B); it hops (the painting squashes, stretches and leaves the ground), its face never moves",
+      "recipe": {
+        "stills": "slb0",
+        "art_prompt": "a lumpy blue slime with a tall drippy top and thick drips running down its sides, two small beady black eyes close together, a flat grumpy closed mouth, a thin dark blue outline, a mean little slime",
+        "screen": "green",
+        "motion": "bouncing up and down in place with a wobbling jelly squash and stretch, the whole body as one blob, its face completely still and unchanged: the mouth closed and fixed, the eyes open and fixed, no blinking, no talking",
+        "anim_negative": "mouth opening, mouth moving, talking, chewing, blinking, changing expression, eyes closing, arms, legs, hands, a face splitting, two blobs, extra eyes, a mouth splitting, the hat falling off, a hat, a hat appearing, arms growing, legs growing",
+        "back_hint": "seen directly from behind: the same smooth blue jelly blob with no face, no eyes, no hat, no arms, no legs, no features at all, just the plain glossy back of the blob",
+        "dead_hint": "splattered flat into one wide round puddle of blue jelly on the ground, dead: its eyes shut on top of the puddle, no arms, no legs, no limbs",
+        "death": "squash",
+        "stand": "still",
+        "walk": "hop",
+        "cell_fill": 0.72,
+        "hop_height": 0.13
+      },
+      "sprite": "blue_slime_sprite_b.png",
+      "icon": "blue_slime_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 6,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 41,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.938
+    },
+    "SL-C": {
+      "note": "a rounded cube of blue gelatin with a skull floating inside and no mouth at all (pass 45, option C; in play since pass 46); it hops (the painting squashes, stretches and leaves the ground), its face never moves; its front painting looks down to the viewer's left, so front_faces is left",
+      "recipe": {
+        "stills": "slc1",
+        "art_prompt": "a blue gelatin slime shaped like a rounded cube, translucent with a small sun-bleached animal skull floating inside it, two glowing pale eyes on its front face and no mouth, a glossy highlight on the top corner",
+        "screen": "green",
+        "motion": "bouncing up and down in place with a wobbling jelly squash and stretch, the whole body as one blob, its face completely still and unchanged: the mouth closed and fixed, the eyes open and fixed, no blinking, no talking",
+        "anim_negative": "mouth opening, mouth moving, talking, chewing, blinking, changing expression, eyes closing, arms, legs, hands, a face splitting, two blobs, extra eyes, a mouth splitting, the hat falling off, a hat, a hat appearing, arms growing, legs growing",
+        "back_hint": "seen directly from behind: the same smooth blue jelly blob with no face, no eyes, no hat, no arms, no legs, no features at all, just the plain glossy back of the blob",
+        "dead_hint": "splattered flat into one wide round puddle of blue jelly on the ground, dead: its eyes shut on top of the puddle, no arms, no legs, no limbs",
+        "death": "squash",
+        "stand": "still",
+        "walk": "hop",
+        "cell_fill": 0.72,
+        "hop_height": 0.13
+      },
+      "sprite": "blue_slime_sprite_c.png",
+      "icon": "blue_slime_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 6,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 41,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.931,
+      "front_faces": "left",
+      "back_faces": "right"
+    },
+    "SL-D": {
+      "note": "a blue slime in a tiny cowboy hat with fangs over a closed grin (pass 45, option D); it hops (the painting squashes, stretches and leaves the ground), its face never moves",
+      "recipe": {
+        "stills": "sld0",
+        "art_prompt": "a blue slime blob wearing a tiny battered brown cowboy hat, two angry white eyes with slanted eyebrows, a wide closed grin with two little fangs showing over the lip, drips down its sides, a goofy desert bandit slime",
+        "screen": "green",
+        "motion": "bouncing up and down in place with a wobbling jelly squash and stretch, the whole body as one blob, its face completely still and unchanged: the mouth closed and fixed, the eyes open and fixed, no blinking, no talking",
+        "anim_negative": "mouth opening, mouth moving, talking, chewing, blinking, changing expression, eyes closing, arms, legs, hands, a face splitting, two blobs, extra eyes, a mouth splitting, the hat falling off",
+        "back_hint": "seen directly from behind: the same blue jelly blob with no face, no arms, no legs, just the plain glossy back of the blob with the back of the tiny brown cowboy hat on top",
+        "dead_hint": "splattered flat into one wide round puddle of blue jelly on the ground, dead: its eyes shut on top of the puddle, no arms, no legs, no limbs, the hat lying on top of the puddle",
+        "death": "squash",
+        "stand": "still",
+        "walk": "hop",
+        "cell_fill": 0.72,
+        "hop_height": 0.13
+      },
+      "sprite": "blue_slime_sprite_d.png",
+      "icon": "blue_slime_icon_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 6,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 41,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.931
+    }
+  },
+  "variant": "SL-C"
 }

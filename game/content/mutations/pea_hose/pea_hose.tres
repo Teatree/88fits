@@ -7,23 +7,19 @@
 [sub_resource type="Resource" id="Resource_k03k3"]
 script = ExtResource("1_8xkv0")
 stat = "amount"
-op = "add"
 value = 3.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_7has5"]
 script = ExtResource("1_8xkv0")
 stat = "damage"
 op = "mul"
 value = -0.4
-target = "self"
 
 [sub_resource type="Resource" id="Resource_fg3i3"]
 script = ExtResource("1_8xkv0")
 stat = "cooldown"
 op = "mul"
 value = -0.2
-target = "self"
 
 [resource]
 script = ExtResource("2_k03k3")
@@ -40,6 +36,7 @@ display_name = "Pea Hose"
 flavour = "Turn it on. Walk away."
 rarity = "rare"
 weight = 8.0
+hidden = true
 icon = ExtResource("2_7has5")
 icon_file = "pea_hose_icon.png"
 placeholder = {

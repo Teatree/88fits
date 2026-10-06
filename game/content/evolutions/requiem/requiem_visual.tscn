@@ -1,28 +1,10 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="PackedScene" path="res://art/props/requiem.glb" id="guitar"]
 
-[sub_resource type="StandardMaterial3D" id="notemat"]
-shading_mode = 0
-albedo_color = Color(1, 0.8, 0.3, 1)
-emission_enabled = true
-emission = Color(1, 0.55, 0.1, 1)
-emission_energy_multiplier = 2.4
-
-[sub_resource type="SphereMesh" id="note"]
-material = SubResource("notemat")
-radius = 0.18
-height = 0.36
-radial_segments = 8
-rings = 4
-
 [node name="RequiemVisual" type="Node3D"]
-
-[node name="Projectile" type="MeshInstance3D" parent="."]
-mesh = SubResource("note")
-material_override = SubResource("notemat")
 
 [node name="Familiar" type="Node3D" parent="."]
 
 [node name="Guitar" parent="Familiar" instance=ExtResource("guitar")]
-transform = Transform3D(1.25, 0, 0, 0, 1.25, 0, 0, 0, 1.25, 0, -0.5, 0)
+transform = Transform3D(1.3, 0, 0, 0, 1.3, 0, 0, 0, 1.3, 0, 0, 0)

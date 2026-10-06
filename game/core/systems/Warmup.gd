@@ -1,6 +1,7 @@
 ## Shader and font warm-up. The Compatibility renderer compiles a shader the first time something is drawn with it,
 ## which on a phone is a visible hitch the first time a creature type, a weapon, a burst or a big label appears.
-## So, behind the starter-pick overlay, everything the run can show is drawn once in a pit eight metres under the
+## So, under the spawn beam (Game._spawn_begin; the arena and a tool's instant start call it too), everything the run
+## can show is drawn once in a pit eight metres under the
 ## hero for a few frames: every creature type and projectile kind (through their MultiMeshes, so the instanced
 ## variants compile), every weapon visual, the effect pools, the ground-mark and cloud materials, chests, mines,
 ## turrets, power-ups, the portal, and the fonts at every size the overlays use.
@@ -19,7 +20,7 @@ static func run(game: Node) -> void:
 	game.add_child(w)
 	w.position = game.player.global_position + PIT
 	w._build(game)
-	# the timer runs while the tree is paused (the starter pick is up), then everything goes
+	# the timer runs paused or not, then everything goes
 	var t := game.get_tree().create_timer(FRAMES_S, true, false, true)
 	t.timeout.connect(func(): w._finish(game))
 
@@ -36,13 +37,48 @@ func _build(game: Node) -> void:
 		if wdef.visual:
 			var vis: Node3D = wdef.visual.instantiate()
 			add_child(vis)
+			# the shot's mesh as WeaponBehavior._load_visual registers it: the Projectile node, or (pass 46, the Spear) the first
+			# mesh of the model under it, each part keeping its own material
 			var proj := vis.get_node_or_null("Projectile")
-			if proj is MeshInstance3D and proj.mesh:
-				var mat: Material = proj.material_override
-				if mat == null and proj.mesh.get_surface_count() > 0:
-					mat = proj.mesh.surface_get_material(0)
-				pm.register_kind(proj.mesh, mat, proj.scale.x)
+			var src := WeaponBehavior.projectile_source(vis)
+			if src:
+				var mat: Material = src.material_override
+				var sc: float = src.scale.x
+				if src == proj:
+					if mat == null and src.mesh.get_surface_count() > 0:
+						mat = src.mesh.surface_get_material(0)
+				else:
+					if mat == null and src.mesh.get_surface_count() == 1:
+						mat = src.mesh.surface_get_material(0)
+					sc *= (proj as Node3D).scale.x
+				pm.register_kind(src.mesh, mat, sc)
+		# pass 48: a shot drawn from a model in the weapon's params (the Golden Pineapple's grenade), with the material
+		# Lobber._use_model gives it
+		var mp := str(wdef.params.get("model", ""))
+		if mp != "" and ResourceLoader.exists(mp):
+			var scn = load(mp)
+			if scn is PackedScene:
+				var root: Node = (scn as PackedScene).instantiate()
+				for c in root.find_children("*", "MeshInstance3D", true, false):
+					if (c as MeshInstance3D).mesh:
+						var gm := StandardMaterial3D.new()
+						gm.vertex_color_use_as_albedo = true
+						gm.metallic = float(wdef.params.get("model_metallic", 0.45))
+						gm.roughness = float(wdef.params.get("model_roughness", 0.35))
+						pm.register_kind((c as MeshInstance3D).mesh, gm, float(wdef.params.get("model_scale", 1.0)))
+						break
+				root.free()
 	pm.warm_draw(global_position)
+	# pass 54: the gems and coins draw see-through and read the stencil now: one of each under the beam, so their
+	# materials compile here rather than at the first kill (PickupManager.warm_draw)
+	if game.get("pickups") and game.pickups.has_method("warm_draw"):
+		game.pickups.warm_draw(global_position)
+	# pass 48: the Tarantula Hawk is built from its own meshes when it launches; one sits here (no game, so it never moves)
+	add_child(TarantulaHawk.new())
+	# pass 54: the Sun Scepter's pillars of sunlight, one MultiMesh on their own shader: one faint pillar here
+	var sb: Node3D = preload("res://core/systems/SunBeams.gd").new()
+	add_child(sb)
+	sb.warm(global_position)
 	# the effect pools: one of each particle kind
 	game.fx.burst(global_position, Color(1, 1, 1), 0.5)
 	game.fx.hit(global_position, Color(1, 1, 1))
@@ -73,7 +109,11 @@ func _build(game: Node) -> void:
 	_quad(vc)
 	# pass 35: the swept trails' additive ribbon, the black hole's rim and the swirl (the Singularity, the Teleport)
 	_quad(Fx.glow_ribbon_material())
+	# the hero's speed trails, drawn under him (pass 49)
+	_quad(Fx.speed_ribbon_material())
 	_quad(Fx.tint_ribbon_material())
+	# the coin (pass 52: its own unshaded look)
+	_quad(PickupManager.coin_material())
 	for sh: Shader in [preload("res://core/shaders/black_hole.gdshader"), preload("res://core/shaders/swirl.gdshader")]:
 		var sm := ShaderMaterial.new()
 		sm.shader = sh
@@ -87,7 +127,7 @@ func _build(game: Node) -> void:
 		var pu := Powerup.new()
 		pu.setup(pdef)
 		add_child(pu)
-	# the fonts: every size the overlays draw, once, almost invisible under the starter pick
+	# the fonts: every size the overlays draw, once, almost invisible under the beam
 	_labels = Control.new()
 	_labels.modulate.a = 0.02
 	_labels.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -130,4 +170,6 @@ func _finish(game: Node) -> void:
 		game.enemies.warm_draw(Vector3.INF)
 	if is_instance_valid(game) and game.projectiles:
 		game.projectiles.warm_draw(Vector3.INF)
+	if is_instance_valid(game) and game.get("pickups") and game.pickups.has_method("warm_draw"):
+		game.pickups.warm_draw(Vector3.INF)
 	queue_free()

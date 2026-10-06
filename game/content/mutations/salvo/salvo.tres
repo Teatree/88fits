@@ -7,16 +7,13 @@
 [sub_resource type="Resource" id="Resource_x4773"]
 script = ExtResource("1_xe52b")
 stat = "amount"
-op = "add"
 value = 3.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_6sfhl"]
 script = ExtResource("1_xe52b")
 stat = "damage"
 op = "mul"
 value = -0.35
-target = "self"
 
 [resource]
 script = ExtResource("2_x4773")
@@ -33,6 +30,7 @@ display_name = "Salvo"
 flavour = "All of them. Now."
 rarity = "rare"
 weight = 8.0
+hidden = true
 icon = ExtResource("2_6sfhl")
 icon_file = "salvo_icon.png"
 placeholder = {

@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/grave_hail/grave_hail_icon.png" id="1_amxid"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_skb50"]
+[ext_resource type="PackedScene" path="res://content/evolutions/dia_de_muertos/dia_de_muertos_visual.tscn" id="3_1e4hs"]
+
+[resource]
+script = ExtResource("2_skb50")
+behavior = "Lobber"
+targeting = "densest_healthy"
+base = {
+"amount": 3.0,
+"area": 2.8,
+"cooldown": 1.8,
+"damage": 8.0,
+"knockback": 3.0,
+"poison_damage": 6.0,
+"poison_duration": 12.0,
+"poison_stacks": 3.0,
+"range": 13.0,
+"speed": 13.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "skull_rain"
+sfx = {
+"fire": "w_skull_throw",
+"hit": "w_skull_boom"
+}
+visual = ExtResource("3_1e4hs")
+visual_file = "res://content/evolutions/dia_de_muertos/dia_de_muertos_visual.tscn"
+params = {
+"cloud_seconds": 6.0,
+"final": {
+"bounce": {
+"count": 3.0,
+"reach_add": [1.5, 1.2, 1.0],
+"reach_mult": [1.6, 1.3, 1.15],
+"scale": [1.0, 1.0, 1.0],
+"size": [1.0, 1.0, 1.0],
+"steer_deg": 30.0
+},
+"curare": {
+"chance": 1.0,
+"cooldown": 5.0,
+"double_poison": 2.0,
+"seconds": 3.0,
+"slow": 0.5,
+"step": 0.2
+}
+}
+}
+id = "grave_hail"
+display_name = "Grave Hail"
+flavour = "Every skull bounces on three times at full size, each blast leaving a full cloud; Curare takes on the first poisoning (5 s between), and an enemy it holds takes this weapon's poison twice over."
+rarity = "rare"
+icon = ExtResource("1_amxid")
+icon_file = "grave_hail_icon.png"
+placeholder = {
+"color": "#F0EAD6",
+"glyph": "skull",
+"gold": true
+}

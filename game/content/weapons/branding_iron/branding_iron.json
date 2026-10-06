@@ -17,6 +17,7 @@
     "fire_duration": 1.8,
     "fire_spread": 0.5
   },
+  "max_level": 5,
   "levels": [
     [],
     [
@@ -24,9 +25,7 @@
         "stat": "fire_damage",
         "op": "mul",
         "value": 0.2
-      }
-    ],
-    [
+      },
       {
         "stat": "orbit_radius",
         "op": "add",
@@ -38,9 +37,7 @@
         "stat": "amount",
         "op": "add",
         "value": 1
-      }
-    ],
-    [
+      },
       {
         "stat": "fire_spread",
         "op": "add",
@@ -59,9 +56,7 @@
         "stat": "damage",
         "op": "mul",
         "value": 0.3
-      }
-    ],
-    [
+      },
       {
         "stat": "fire_duration",
         "op": "add",

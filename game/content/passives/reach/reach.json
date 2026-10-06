@@ -2,7 +2,7 @@
   "id": "reach",
   "name": "Reach",
   "flavour": "Bigger everything.",
-  "rarity": "common",
+  "rarity": "uncommon",
   "weight": 10,
   "pairs_with": "orbit_saws",
   "levels": [
@@ -10,7 +10,7 @@
       {
         "stat": "area",
         "op": "mul",
-        "value": 0.1,
+        "value": 0.08,
         "target": "player"
       }
     ]

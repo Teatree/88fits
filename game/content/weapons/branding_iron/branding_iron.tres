@@ -10,54 +10,42 @@ script = ExtResource("1_jo5fm")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_yr8lg"]
 script = ExtResource("1_jo5fm")
 stat = "orbit_radius"
-op = "add"
 value = 0.3
-target = "self"
 
 [sub_resource type="Resource" id="Resource_8ncl0"]
 script = ExtResource("1_jo5fm")
 stat = "amount"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_w7rou"]
 script = ExtResource("1_jo5fm")
 stat = "fire_spread"
-op = "add"
 value = 0.1
-target = "self"
 
 [sub_resource type="Resource" id="Resource_oncv0"]
 script = ExtResource("1_jo5fm")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
-target = "self"
 
 [sub_resource type="Resource" id="Resource_58pm5"]
 script = ExtResource("1_jo5fm")
 stat = "damage"
 op = "mul"
 value = 0.3
-target = "self"
 
 [sub_resource type="Resource" id="Resource_ug712"]
 script = ExtResource("1_jo5fm")
 stat = "fire_duration"
-op = "add"
 value = 0.6
-target = "self"
 
 [resource]
 script = ExtResource("2_4igqv")
 behavior = "Orbiter"
-tags = []
 targeting = "orbit"
 base = {
 "amount": 1.0,
@@ -70,12 +58,9 @@ base = {
 "knockback": 2.0,
 "orbit_radius": 2.6
 }
-levels = [[], [SubResource("Resource_4igqv")], [SubResource("Resource_yr8lg")], [SubResource("Resource_8ncl0")], [SubResource("Resource_w7rou")], [SubResource("Resource_oncv0")], [SubResource("Resource_58pm5")], [SubResource("Resource_ug712")]]
-max_level = 8
-evolves_with = ""
+levels = [[], [SubResource("Resource_4igqv"), SubResource("Resource_yr8lg")], [SubResource("Resource_8ncl0"), SubResource("Resource_w7rou")], [SubResource("Resource_oncv0")], [SubResource("Resource_58pm5"), SubResource("Resource_ug712")]]
+max_level = 5
 evolves_into = "ring_of_fire"
-is_evolution = false
-evolved_from = ""
 sfx = {
 "hit": "w_iron_hit"
 }
@@ -84,15 +69,12 @@ visual_file = "branding_iron_visual.tscn"
 params = {
 "blade": "iron"
 }
-hero = ""
 id = "branding_iron"
 display_name = "Branding Iron"
 flavour = "Everyone gets the mark."
 rarity = "rare"
-element = ""
 weight = 6.0
 hidden = true
-from_stage = 0
 icon = ExtResource("1_4igqv")
 icon_file = "branding_iron_icon.png"
 placeholder = {

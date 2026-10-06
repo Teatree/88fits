@@ -1,6 +1,6 @@
-[gd_scene load_steps=9 format=3 uid="uid://vis_hornetnest001"]
+[gd_scene load_steps=27 format=3 uid="uid://vis_hornetnest001"]
 
-[sub_resource type="StandardMaterial3D" id="hornetmat"]
+[sub_resource type="StandardMaterial3D" id="beemat"]
 albedo_color = Color(1, 0.8, 0.2, 1)
 emission_enabled = true
 emission = Color(1, 0.7, 0.1, 1)
@@ -12,64 +12,264 @@ height = 0.24
 radial_segments = 6
 rings = 2
 
-[sub_resource type="StandardMaterial3D" id="paper"]
-albedo_color = Color(0.72, 0.66, 0.55, 1)
+[sub_resource type="StandardMaterial3D" id="bark"]
+albedo_color = Color(0.36, 0.22, 0.12, 1)
 roughness = 0.9
 
-[sub_resource type="StandardMaterial3D" id="hole"]
-albedo_color = Color(0.12, 0.08, 0.05, 1)
-roughness = 1.0
+[sub_resource type="StandardMaterial3D" id="leaf"]
+albedo_color = Color(0.4, 0.64, 0.22, 1)
+roughness = 0.7
 
-[sub_resource type="StandardMaterial3D" id="rim"]
-albedo_color = Color(0.55, 0.48, 0.38, 1)
-metallic = 0.6
-roughness = 0.4
+[sub_resource type="StandardMaterial3D" id="straw"]
+albedo_color = Color(1, 0.74, 0.17, 1)
+roughness = 0.55
+emission_enabled = true
+emission = Color(0.5, 0.3, 0.03, 1)
+emission_energy_multiplier = 0.25
 
-[sub_resource type="SphereMesh" id="nest"]
-radius = 0.32
-height = 0.7
-radial_segments = 12
-rings = 8
+[sub_resource type="StandardMaterial3D" id="comb"]
+albedo_color = Color(0.72, 0.42, 0.08, 1)
+roughness = 0.7
 
-[sub_resource type="CylinderMesh" id="mouth"]
-top_radius = 0.1
-bottom_radius = 0.12
-height = 0.06
-radial_segments = 10
+[sub_resource type="StandardMaterial3D" id="honey"]
+albedo_color = Color(1, 0.6, 0.08, 1)
+roughness = 0.15
+emission_enabled = true
+emission = Color(0.85, 0.45, 0.04, 1)
+emission_energy_multiplier = 0.35
+
+[sub_resource type="StandardMaterial3D" id="dark"]
+albedo_color = Color(0.12, 0.07, 0.04, 1)
+roughness = 0.9
 
 [sub_resource type="CylinderMesh" id="branch"]
-top_radius = 0.025
-bottom_radius = 0.03
-height = 0.4
-radial_segments = 6
+top_radius = 0.032
+bottom_radius = 0.042
+height = 0.86
+radial_segments = 7
+rings = 1
 
-[node name="HornetNestVisual" type="Node3D"]
+[sub_resource type="CylinderMesh" id="twig"]
+top_radius = 0.012
+bottom_radius = 0.02
+height = 0.2
+radial_segments = 5
+rings = 1
+
+[sub_resource type="SphereMesh" id="leafmesh"]
+radius = 0.5
+height = 1.0
+radial_segments = 8
+rings = 4
+
+[sub_resource type="CylinderMesh" id="neck"]
+top_radius = 0.05
+bottom_radius = 0.1
+height = 0.12
+radial_segments = 10
+rings = 1
+
+[sub_resource type="SphereMesh" id="core"]
+radius = 0.5
+height = 1.0
+radial_segments = 14
+rings = 8
+
+[sub_resource type="TorusMesh" id="ring0"]
+inner_radius = 0.068
+outer_radius = 0.192
+rings = 20
+ring_segments = 8
+
+[sub_resource type="TorusMesh" id="ring1"]
+inner_radius = 0.138
+outer_radius = 0.262
+rings = 20
+ring_segments = 8
+
+[sub_resource type="TorusMesh" id="ring2"]
+inner_radius = 0.183
+outer_radius = 0.307
+rings = 20
+ring_segments = 8
+
+[sub_resource type="TorusMesh" id="ring3"]
+inner_radius = 0.193
+outer_radius = 0.317
+rings = 20
+ring_segments = 8
+
+[sub_resource type="TorusMesh" id="ring4"]
+inner_radius = 0.163
+outer_radius = 0.287
+rings = 20
+ring_segments = 8
+
+[sub_resource type="TorusMesh" id="ring5"]
+inner_radius = 0.098
+outer_radius = 0.222
+rings = 20
+ring_segments = 8
+
+[sub_resource type="TorusMesh" id="ring6"]
+inner_radius = 0.018
+outer_radius = 0.142
+rings = 20
+ring_segments = 8
+
+[sub_resource type="CylinderMesh" id="door"]
+top_radius = 0.068
+bottom_radius = 0.068
+height = 0.04
+radial_segments = 14
+rings = 1
+
+[sub_resource type="TorusMesh" id="lip"]
+inner_radius = 0.064
+outer_radius = 0.088
+rings = 16
+ring_segments = 6
+
+[sub_resource type="CapsuleMesh" id="drip"]
+radius = 0.026
+height = 0.15
+radial_segments = 8
+rings = 2
+
+[sub_resource type="SphereMesh" id="drop"]
+radius = 0.034
+height = 0.074
+radial_segments = 8
+rings = 4
+
+[sub_resource type="CapsuleMesh" id="restbee"]
+radius = 0.034
+height = 0.11
+radial_segments = 6
+rings = 2
+
+[sub_resource type="TorusMesh" id="band"]
+inner_radius = 0.028
+outer_radius = 0.042
+rings = 12
+ring_segments = 4
+
+[node name="KillerBeesVisual" type="Node3D"]
 
 [node name="Projectile" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
 mesh = SubResource("proj")
-material_override = SubResource("hornetmat")
+material_override = SubResource("beemat")
 
 [node name="Familiar" type="Node3D" parent="."]
 
 [node name="Body" type="Node3D" parent="Familiar"]
-transform = Transform3D(1.1, 0, 0, 0, 1.1, 0, 0, 0, 1.1, 0, 0, 0)
-
-[node name="Nest" type="MeshInstance3D" parent="Familiar/Body"]
-mesh = SubResource("nest")
-material_override = SubResource("paper")
-
-[node name="Band" type="MeshInstance3D" parent="Familiar/Body"]
-transform = Transform3D(0.98, 0, 0, 0, 0.35, 0, 0, 0, 0.98, 0, -0.14, 0)
-mesh = SubResource("nest")
-material_override = SubResource("rim")
-
-[node name="Mouth" type="MeshInstance3D" parent="Familiar/Body"]
-transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, -0.08, -0.3)
-mesh = SubResource("mouth")
-material_override = SubResource("hole")
+transform = Transform3D(1.05, 0, 0, 0, 1.05, 0, 0, 0, 1.05, 0, 0, 0)
 
 [node name="Branch" type="MeshInstance3D" parent="Familiar/Body"]
-transform = Transform3D(1, 0, 0, 0, 0.9, -0.44, 0, 0.44, 0.9, 0, 0.4, 0.05)
+transform = Transform3D(0.1045, 0.9945, 0, -0.9945, 0.1045, 0, 0, 0, 1, 0, 0.42, 0)
 mesh = SubResource("branch")
-material_override = SubResource("hole")
+material_override = SubResource("bark")
+
+[node name="Twig" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(0.766, -0.6428, 0, 0.6428, 0.766, 0, 0, 0, 1, 0.3, 0.47, 0.02)
+mesh = SubResource("twig")
+material_override = SubResource("bark")
+
+[node name="LeafA" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(0.1277, -0.0513, -0.0596, 0.0077, 0.0235, -0.0036, 0.0317, 0, 0.068, 0.39, 0.55, 0.03)
+mesh = SubResource("leafmesh")
+material_override = SubResource("leaf")
+
+[node name="LeafB" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(0.1029, 0.0336, 0.072, -0.0047, 0.0213, -0.0033, -0.0373, 0, 0.0532, -0.36, 0.48, -0.04)
+mesh = SubResource("leafmesh")
+material_override = SubResource("leaf")
+
+[node name="Neck" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 0.69, 0, 0, 0, 1, 0, 0.3786, 0)
+mesh = SubResource("neck")
+material_override = SubResource("comb")
+
+[node name="Inside" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(0.5, 0, 0, 0, 0.66, 0, 0, 0, 0.5, 0, -0.01, 0)
+mesh = SubResource("core")
+material_override = SubResource("comb")
+
+[node name="Ring1" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
+mesh = SubResource("ring0")
+material_override = SubResource("straw")
+
+[node name="Ring2" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+mesh = SubResource("ring1")
+material_override = SubResource("straw")
+
+[node name="Ring3" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, 0)
+mesh = SubResource("ring2")
+material_override = SubResource("straw")
+
+[node name="Ring4" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, 0)
+mesh = SubResource("ring3")
+material_override = SubResource("straw")
+
+[node name="Ring5" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.14, 0)
+mesh = SubResource("ring4")
+material_override = SubResource("straw")
+
+[node name="Ring6" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.235, 0)
+mesh = SubResource("ring5")
+material_override = SubResource("straw")
+
+[node name="Ring7" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.31, 0)
+mesh = SubResource("ring6")
+material_override = SubResource("straw")
+
+[node name="Door" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, -0.07, -0.3008)
+mesh = SubResource("door")
+material_override = SubResource("dark")
+
+[node name="Lip" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, -0.074, -0.2868)
+mesh = SubResource("lip")
+material_override = SubResource("straw")
+
+[node name="Entrance" type="Marker3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.07, -0.3768)
+
+[node name="Drip" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.05, -0.38, -0.03)
+mesh = SubResource("drip")
+material_override = SubResource("honey")
+
+[node name="Drop" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.05, -0.47, -0.03)
+mesh = SubResource("drop")
+material_override = SubResource("honey")
+
+[node name="Bee1" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(0.7648, 0, -0.6442, 0, 1, 0, 0.6442, 0, 0.7648, -0.2084, 0.02, -0.2475)
+mesh = SubResource("restbee")
+material_override = SubResource("beemat")
+
+[node name="Band1" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(0.7648, 0, -0.6442, 0, 1, 0, 0.6442, 0, 0.7648, -0.2084, 0.02, -0.2475)
+mesh = SubResource("band")
+material_override = SubResource("dark")
+
+[node name="Bee2" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(-0.3233, 0, 0.9463, 0, 1, 0, -0.9463, 0, -0.3233, 0.2658, 0.18, 0.0908)
+mesh = SubResource("restbee")
+material_override = SubResource("beemat")
+
+[node name="Band2" type="MeshInstance3D" parent="Familiar/Body"]
+transform = Transform3D(-0.3233, 0, 0.9463, 0, 1, 0, -0.9463, 0, -0.3233, 0.2658, 0.18, 0.0908)
+mesh = SubResource("band")
+material_override = SubResource("dark")

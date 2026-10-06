@@ -1,0 +1,27 @@
+{
+  "id": "tarantula_hawk",
+  "name": "Tarantula Hawk",
+  "flavour": "It hunts what is bigger than it.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "hornet_nest",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Every fourth burst (every burst while a flower's buff lasts) sends a big purple bee at the strongest enemy near: it buzzes round it and darts in to sting five times over 4 s, each a bee's damage, slowing its moves and attacks 10%.",
+  "vfx": "a big glowing purple ball that buzzes round its prey in circles and darts in to sting, its prey tinted purple",
+  "effects": [],
+  "params": {
+    "hawk": {
+      "every": 4,
+      "stings": 5,
+      "seconds": 4.0,
+      "slow": 0.1
+    }
+  },
+  "art_prompt": "a big tarantula hawk wasp, dark blue-purple body, bright orange wings",
+  "placeholder": {
+    "color": "#7A3CC8",
+    "glyph": "star"
+  }
+}

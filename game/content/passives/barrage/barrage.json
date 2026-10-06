@@ -1,0 +1,27 @@
+{
+  "id": "barrage",
+  "name": "Barrage",
+  "flavour": "More things flying. A lot more.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 6,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "multishot",
+  "art_prompt": "five glowing bright green energy spheres bursting outwards in a wide fan from one point, motion streaks behind each sphere, a bright flash at the point they burst from",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

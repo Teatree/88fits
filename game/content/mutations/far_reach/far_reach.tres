@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_tmvs5"]
+[ext_resource type="Texture2D" path="res://content/mutations/far_reach/far_reach_icon.png" id="2_76pjn"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_fxq3e"]
+
+[sub_resource type="Resource" id="Resource_tmvs5"]
+script = ExtResource("1_tmvs5")
+stat = "range"
+op = "mul"
+value = 0.5
+
+[sub_resource type="Resource" id="Resource_76pjn"]
+script = ExtResource("1_tmvs5")
+stat = "damage"
+op = "mul"
+value = -0.5
+
+[resource]
+script = ExtResource("3_fxq3e")
+weapon = "guitarra"
+mutation_kind = "volume"
+text = "Half a circle of sound, half again as far, half the damage."
+vfx = "a half-circle wash of gold and a wide fan of notes"
+effects = [SubResource("Resource_tmvs5"), SubResource("Resource_76pjn")]
+params = {
+"cone": {
+"min_deg": 180.0
+}
+}
+id = "far_reach"
+display_name = "Far Reach"
+flavour = "They can hear it in the back row."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_76pjn")
+icon_file = "far_reach_icon.png"
+placeholder = {
+"color": "#D8E0F0",
+"glyph": "star"
+}

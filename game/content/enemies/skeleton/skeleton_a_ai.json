@@ -43,28 +43,21 @@
    "attempt": 1
   },
   "dead": {
-   "seed": 9245,
-   "prompt": "This exact creature collapsed into a low loose heap of bones, dead: every bone fallen into one flat pile, the skull resting on top, the ribcage broken apart, arm bones, leg bones, feet and vertebrae all jumbled inside the pile with nothing sticking out below it; the pile sits on nothing, with no ground, no sand, no dirt patch and no shadow under it, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "seed": 25142,
+   "prompt": "This exact skeleton has fallen over and lies on the ground on its side, dead and still in one piece: the whole body stretched out flat and sideways across the picture, the skull on the left side and the feet on the right side, the arms limp along the body, every bone connected, no clothes, seen from the front and a little above so the whole body is visible lying horizontally. Keep the same colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
-    "88fits/skeleton_va_front.png"
+    "88fits/ref45_skeleton_va.png"
    ],
    "qa": {
-    "subjects": 1,
-    "background": "flat",
-    "ground": false,
-    "text": false,
-    "cropped": false,
-    "legs": true,
-    "view": "front",
-    "matches": false,
+    "skipped": true,
     "problems": [],
     "geometry": {
-     "left": 68,
-     "right": 93,
-     "top": 130,
-     "bottom": 140,
-     "height": 753,
-     "width": 862
+     "left": 73,
+     "right": 56,
+     "top": 378,
+     "bottom": 327,
+     "height": 318,
+     "width": 894
     }
    },
    "attempt": 0

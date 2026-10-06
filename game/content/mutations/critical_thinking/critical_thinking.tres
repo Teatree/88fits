@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_lvqv1"]
+[ext_resource type="Texture2D" path="res://content/mutations/critical_thinking/critical_thinking_icon.png" id="2_k1j3d"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_o7njk"]
+
+[sub_resource type="Resource" id="Resource_o7njk"]
+script = ExtResource("1_lvqv1")
+stat = "crit_chance"
+value = 0.1
+target = "player"
+
+[resource]
+script = ExtResource("2_o7njk")
+weapon = "sabre"
+mutation_kind = "element"
+text = "+10% critical hit chance for every weapon."
+vfx = "gold crit numbers more often, from every weapon"
+effects = [SubResource("Resource_o7njk")]
+id = "critical_thinking"
+display_name = "Critical Thinking"
+flavour = "Aim for the soft parts. All of them."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_k1j3d")
+icon_file = "critical_thinking_icon.png"
+placeholder = {
+"color": "#FFD860",
+"glyph": "star"
+}

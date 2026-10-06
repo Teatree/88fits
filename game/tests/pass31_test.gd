@@ -13,16 +13,18 @@ func test_the_rocketeer_is_lit_and_dances() -> void:
 	f.close()
 	assert_float(float(d.get("outline_frac", 0.0))).is_greater(0.0)
 	assert_str(str(d.get("outline_color", ""))).is_not_equal("")
-	assert_bool(str(d.get("motion", "")).to_lower().contains("danc")).override_failure_message(str(d.get("motion", ""))).is_true()
+	# pass 48: the Rocketeer is Garry's Vulture Raider, and he walks heavily instead of dancing
+	assert_bool(str(d.get("motion", "")).to_lower().contains("heavy")).override_failure_message(str(d.get("motion", ""))).is_true()
+	assert_bool(str(d.get("motion", "")).to_lower().contains("danc")).override_failure_message(str(d.get("motion", ""))).is_false()
 
 
 func test_healing_is_a_trickle() -> void:
 	_start()
-	# the lines pay less than they did, and Mend says what it costs
-	var mend: LineDef = Registry.line("mend")
+	# the healing passives (lines until pass 46) pay less than they did, and Mend says what it costs
+	var mend: PassiveDef = Registry.passive("mend")
 	assert_float(float(mend.levels[0][0].value)).is_less_equal(0.5)
 	assert_str(mend.trade).is_not_equal("")
-	var thirst: LineDef = Registry.line("thirst")
+	var thirst: PassiveDef = Registry.passive("thirst")
 	assert_float(float(thirst.levels[0][0].value)).is_less_equal(0.015)
 	assert_float(Registry.pickup("heart").value).is_less_equal(0.2)
 	assert_float(Registry.character("astro").level_heal).is_less_equal(0.05)
@@ -30,8 +32,8 @@ func test_healing_is_a_trickle() -> void:
 
 func test_lifesteal_cannot_outrun_a_crowd() -> void:
 	_start()
-	Run.add_or_rank_line("thirst")
-	Run.add_or_rank_line("thirst")
+	Run.add_or_level_passive("thirst")
+	Run.add_or_level_passive("thirst")
 	Run.rebuild_sheets()
 	var healed := 0.0
 	var tally := func(n: float): healed += n

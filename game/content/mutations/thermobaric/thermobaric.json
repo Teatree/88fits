@@ -4,6 +4,7 @@
   "flavour": "The air itself.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "rocket_pod",
   "kind": "element",
   "element": "fire",

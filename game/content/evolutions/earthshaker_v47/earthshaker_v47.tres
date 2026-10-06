@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/earthshaker_v47/earthshaker_v47_icon.png" id="1_esefd"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_iwsqg"]
+[ext_resource type="PackedScene" path="res://content/evolutions/earthshaker/earthshaker_visual.tscn" id="3_jld7e"]
+
+[resource]
+script = ExtResource("2_iwsqg")
+behavior = "Smasher"
+tags = ["melee"]
+targeting = "densest"
+base = {
+"amount": 2.0,
+"area": 1.5,
+"cooldown": 2.0,
+"damage": 42.0,
+"knockback": 14.0,
+"range": 5.2
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "hammer"
+sfx = {
+"fire": "w_hammer_swing",
+"hit": "w_hammer_hit"
+}
+visual = ExtResource("3_jld7e")
+visual_file = "res://content/evolutions/earthshaker/earthshaker_visual.tscn"
+params = {
+"smash": {
+"bounce": 0.2,
+"fade": 0.24,
+"grip_up": 2.3,
+"quake": {
+"frac": 0.6,
+"length": 4.5,
+"lines": 4.0,
+"width": 0.9
+},
+"radius": 1.7,
+"rise": 0.12,
+"shake": 0.55,
+"size": 1.5,
+"stagger": 0.16,
+"swing": 0.18,
+"windup": 0.36,
+"windup_hold": 0.08
+}
+}
+id = "earthshaker_v47"
+display_name = "Earthshaker"
+flavour = "The ground has had enough."
+rarity = "rare"
+hidden = true
+icon = ExtResource("1_esefd")
+icon_file = "earthshaker_v47_icon.png"
+placeholder = {
+"color": "#FFB13B",
+"glyph": "hammer"
+}

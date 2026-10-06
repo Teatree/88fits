@@ -1,5 +1,6 @@
-## The two-way choice: one bordered strip split by a 5 px ink line; the chosen half brass, the other paper with
-## ink-soft text. Each half is a slab word with an optional Bitter line under it. Never a purchase.
+## The two-way choice: one bordered strip split by a 5 px ink line; the chosen half ink with paper text, the other paper
+## with ink-soft text (pass 46: brass is for buying alone, Garry: "yellow buttons should be reserved for the Buy action").
+## Each half is a slab word with an optional Bitter line under it. Never a purchase.
 class_name WChoice
 extends HBoxContainer
 
@@ -46,14 +47,14 @@ func choose(i: int, emit: bool = false) -> void:
 	for k in n:
 		var on := k == i
 		var pad: float = _halves[k].get_meta("pad")
-		var b := W.box(W.BRASS if on else W.PAPER, 5, 0).pad(pad + (5.0 if k == 0 else 5.0), pad + 5.0, pad + (5.0 if k == n - 1 else 0.0), pad + 5.0)
+		var b := W.box(W.INK if on else W.PAPER, 5, 0).pad(pad + (5.0 if k == 0 else 5.0), pad + 5.0, pad + (5.0 if k == n - 1 else 0.0), pad + 5.0)
 		# one strip: the halves share the middle line, and the strip carries the shadow
 		b.sides = [true, true, k == n - 1, true]
 		(_halves[k] as WTap).box = b
 		(_halves[k] as WTap).box_down = b
 		for t in _texts[k]:
 			if t:
-				(t as WText).color = W.INK if on else W.INK_SOFT
+				(t as WText).color = W.PAPER if on else W.INK_SOFT
 	if emit:
 		chosen.emit(i)
 

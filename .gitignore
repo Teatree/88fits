@@ -31,3 +31,6 @@ _REFERENCES/
 .playwright-mcp/
 docs/ui_review/*.pdf
 docs/ui_review/*.zip
+
+# the run recorder's output (pass 45): one JSON per run, latest.js and the index; dashboard.html and lib/ stay tracked
+analytics/runs/

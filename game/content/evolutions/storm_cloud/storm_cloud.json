@@ -1,8 +1,8 @@
 {
   "id": "storm_cloud",
   "name": "Storm Cloud",
-  "flavour": "Follows you. Strikes them.",
-  "rarity": "epic",
+  "flavour": "Follows you. Strikes them. Its echoes come 35% of the time: three more zaps on the same enemy at 40% damage.",
+  "rarity": "rare",
   "is_evolution": true,
   "evolved_from": "zap_beam",
   "max_level": 1,
@@ -17,7 +17,15 @@
     "knockback": 4.0
   },
   "params": {
-    "follow": true
+    "follow": true,
+    "final": {
+      "echo_zap": {
+        "chance": 0.35,
+        "count": 3,
+        "damage_frac": 0.4,
+        "gap": 0.2
+      }
+    }
   },
   "levels": [
     []

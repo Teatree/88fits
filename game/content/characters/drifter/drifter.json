@@ -18,9 +18,10 @@
     }
   ],
   "favourite_weapon": "peashooter",
+  "start_weapon": "revolver",
   "favourite_bonus": {
     "type": "level",
-    "value": 3
+    "value": 2
   },
   "specials": [],
   "unlock_quest": "",
@@ -60,5 +61,5 @@
   },
   "portrait_prompt": "tipping the brim of his wide hat with two fingers, a confident half-smile, the collar of his brown duster turned up, the red scarf catching the wind",
   "trait_name": "Long Road",
-  "trait_text": "+10% move speed and +25% pickup radius. His Peashooter starts at level 3."
+  "trait_text": "+10% move speed and +25% pickup radius. His Peashooter starts at level 2."
 }

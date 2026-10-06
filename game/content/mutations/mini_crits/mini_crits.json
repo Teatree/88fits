@@ -1,0 +1,22 @@
+{
+  "id": "mini_crits",
+  "name": "Mini Crits",
+  "flavour": "Not every round. Just enough.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "tommy_gun",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "A quarter of the rounds are mini crits: half a crit's extra damage, carried through every pierce.",
+  "vfx": "paler gold crit numbers off the rounds that land them",
+  "effects": [],
+  "params": {
+    "mini_crit": 0.25
+  },
+  "art_prompt": "a brass bullet cartridge with a small yellow starburst at its tip",
+  "placeholder": {
+    "color": "#FFE88A",
+    "glyph": "star"
+  }
+}

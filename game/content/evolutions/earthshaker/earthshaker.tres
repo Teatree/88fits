@@ -10,17 +10,15 @@ behavior = "Smasher"
 tags = ["melee"]
 targeting = "densest"
 base = {
-"amount": 2.0,
+"amount": 3.0,
 "area": 1.5,
-"cooldown": 2.0,
-"damage": 42.0,
+"cooldown": 2.2,
+"damage": 40.0,
 "knockback": 14.0,
-"range": 5.2
+"range": 6.4
 }
 levels = [[]]
 max_level = 1
-evolves_with = ""
-evolves_into = ""
 is_evolution = true
 evolved_from = "hammer"
 sfx = {
@@ -30,31 +28,44 @@ sfx = {
 visual = ExtResource("2_6vtkg")
 visual_file = "earthshaker_visual.tscn"
 params = {
+"giant_slayer": {
+"always": true,
+"mult": 2.5
+},
 "smash": {
-"fade": 0.22,
-"hold": 0.16,
+"bounce": 0.2,
+"fade": 0.24,
+"grip_up": 2.3,
 "quake": {
 "frac": 0.6,
 "length": 4.5,
 "lines": 4.0,
-"width": 0.9
+"roll": {
+"delay": 0.3,
+"frac": 0.4,
+"step": 0.07,
+"steps": 4.0
+},
+"width": 0.9,
+"zap": {
+"frac": 0.5,
+"reach": 1.5
+}
 },
 "radius": 1.7,
-"rise": 0.24,
-"shake": 0.5,
+"rise": 0.12,
+"shake": 0.55,
+"size": 1.5,
 "stagger": 0.16,
-"swing": 0.16
+"swing": 0.18,
+"windup": 0.36,
+"windup_hold": 0.08
 }
 }
-hero = ""
 id = "earthshaker"
 display_name = "Earthshaker"
 flavour = "The ground has had enough."
-rarity = "epic"
-element = ""
-weight = 10.0
-hidden = false
-from_stage = 0
+rarity = "rare"
 icon = ExtResource("1_6vtkg")
 icon_file = "earthshaker_icon.png"
 placeholder = {

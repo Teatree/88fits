@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_orgw6"]
+[ext_resource type="Texture2D" path="res://content/passives/barrel_rush/barrel_rush_icon.png" id="1_r41bd"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_r41bd"]
+
+[sub_resource type="Resource" id="Resource_r41bd"]
+script = ExtResource("1_orgw6")
+stat = "barrel_speed"
+value = 0.25
+target = "player"
+
+[sub_resource type="Resource" id="Resource_ys0jd"]
+script = ExtResource("1_orgw6")
+stat = "barrel_seconds"
+value = 3.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_3taro"]
+script = ExtResource("1_orgw6")
+stat = "barrel_speed"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_705si"]
+script = ExtResource("1_orgw6")
+stat = "barrel_seconds"
+value = 0.75
+target = "player"
+
+[resource]
+script = ExtResource("2_r41bd")
+levels = [[SubResource("Resource_r41bd"), SubResource("Resource_ys0jd")], [SubResource("Resource_3taro"), SubResource("Resource_705si")]]
+max_level = 5
+text = "Smash a barrel to run 25% faster for 3 s. Each level after: +10% and +0.75 s more."
+id = "barrel_rush"
+display_name = "Barrel Rush"
+flavour = "Nothing gets a man moving like splinters."
+weight = 9.0
+icon = ExtResource("1_r41bd")
+icon_file = "barrel_rush_icon.png"
+placeholder = {
+"color": "#A0703A",
+"glyph": "star"
+}

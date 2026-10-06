@@ -1,0 +1,27 @@
+{
+  "id": "thors_wrath",
+  "name": "Thor's Wrath",
+  "flavour": "Borrowed, not stolen.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "hammer",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "Half of all impacts throw lightning at the three nearest creatures outside the blast within 7 m, 35% of the hit each.",
+  "vfx": "thin blue bolts jump off the blast to creatures outside it, a small spark where each lands",
+  "effects": [],
+  "params": {
+    "thor": {
+      "chance": 0.5,
+      "zaps": 3,
+      "reach": 7.0,
+      "frac": 0.35
+    }
+  },
+  "art_prompt": "a war hammer head crackling with blue lightning",
+  "placeholder": {
+    "color": "#6FA8FF",
+    "glyph": "star"
+  }
+}

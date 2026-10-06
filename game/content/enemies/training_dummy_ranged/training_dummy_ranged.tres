@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_icon.png" id="1_ec7p2"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_0iywn"]
+[ext_resource type="Texture2D" path="res://content/enemies/training_dummy/training_dummy_sprite.png" id="3_f1lrr"]
+
+[resource]
+script = ExtResource("2_0iywn")
+archetype = "spitter"
+doc = "The debug arena's ranged attacker (pass 49): a bigger training dummy that stands on its spot and spits at the hero within 8 m exactly like the Spit Cactus (a red ring where he stands, a lob, a splash); one that falls stands up again 5 s later and pays nothing."
+brain = "dummy"
+hp = 500.0
+speed = 1.2
+damage = 8.0
+radius = 0.61
+size = 2.3
+drops = {}
+anims = {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 6.0,
+"run_b": 6.0
+}
+sprite = ExtResource("3_f1lrr")
+sprite_file = "res://content/enemies/training_dummy/training_dummy_sprite.png"
+frame_px = 160
+strip_cols = 28
+fps = {
+"die": 8.0,
+"run": 10.0
+}
+ranged = {
+"cooldown": 2.6,
+"damage": 8.0,
+"keep_distance": 5.5,
+"projectile_speed": 6.0,
+"range": 8.0,
+"splash": 1.2,
+"telegraph": 0.7
+}
+badge = "none"
+head = 0.981
+can_be_elite = false
+sfx = {
+"attack": "en_cactus_spit",
+"die": "st_barrel_break",
+"hit": "en_goblin_hit"
+}
+xp_mult = 0.0
+id = "training_dummy_ranged"
+display_name = "Ranged Dummy"
+flavour = "It learned to spit from the cactus."
+hidden = true
+icon = ExtResource("1_ec7p2")
+icon_file = "res://content/enemies/training_dummy/training_dummy_icon.png"
+placeholder = {
+"color": "#C8A060",
+"eyes": 0.0,
+"shape": "tall"
+}

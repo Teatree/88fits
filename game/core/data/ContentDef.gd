@@ -4,11 +4,15 @@
 class_name ContentDef
 extends Resource
 
+## The rarity tiers, lowest first (pass 47: uncommon and legendary joined common, rare and epic).
+const RARITIES := ["common", "uncommon", "rare", "epic", "legendary"]
+
 @export var id: String = ""
 @export var display_name: String = ""
 ## Optional flavour line shown under the generated description.
 @export var flavour: String = ""
-## common | rare | epic. Affects card weight and backplate.
+## common | uncommon | rare | epic | legendary (pass 47: five tiers, RARITIES). Weighs the card and chest offers
+## (CardPool.RARITY_W, with luck lifting the higher tiers); a passive item shows it as its plate's colour.
 @export var rarity: String = "common"
 ## "poison" | "fire" | "": the element the item carries (weapons derive it from their base stats); since pass 36 a run may
 ## hold both

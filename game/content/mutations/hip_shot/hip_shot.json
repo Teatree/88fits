@@ -1,0 +1,26 @@
+{
+  "id": "hip_shot",
+  "name": "Hip Shot",
+  "flavour": "From the hip, three times over.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "revolver",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Every fifth pull fires three volleys 0.12 s apart, each the full round count, then the revolver spins.",
+  "vfx": "three quick volleys and a twirl of the gun",
+  "effects": [],
+  "params": {
+    "hip_shot": {
+      "every": 5,
+      "volleys": 3,
+      "gap": 0.12
+    }
+  },
+  "art_prompt": "a revolver spinning on a finger with three muzzle flashes",
+  "placeholder": {
+    "color": "#D8B070",
+    "glyph": "star"
+  }
+}

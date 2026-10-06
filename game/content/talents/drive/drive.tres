@@ -21,11 +21,12 @@ target = "player"
 [resource]
 script = ExtResource("2_oaynd")
 order = 2
-cost = [160.0, 288.0, 480.0]
+ranks = 6
+cost = [160.0, 288.0, 480.0, 720.0, 1040.0, 1440.0]
 forms = [{
 "effects": [SubResource("Resource_oaynd")],
 "name": "Muscle",
-"text": "+6% damage a rank."
+"text": "+6% attack damage a rank."
 }, {
 "effects": [SubResource("Resource_c7fsi")],
 "name": "Tempo",

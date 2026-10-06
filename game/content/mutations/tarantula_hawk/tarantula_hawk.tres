@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/tarantula_hawk/tarantula_hawk_icon.png" id="1_yk5ee"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_n8m2i"]
+
+[resource]
+script = ExtResource("2_n8m2i")
+weapon = "hornet_nest"
+mutation_kind = "volume"
+text = "Every fourth burst (every burst while a flower's buff lasts) sends a big purple bee at the strongest enemy near: it buzzes round it and darts in to sting five times over 4 s, each a bee's damage, slowing its moves and attacks 10%."
+vfx = "a big glowing purple ball that buzzes round its prey in circles and darts in to sting, its prey tinted purple"
+params = {
+"hawk": {
+"every": 4.0,
+"seconds": 4.0,
+"slow": 0.1,
+"stings": 5.0
+}
+}
+id = "tarantula_hawk"
+display_name = "Tarantula Hawk"
+flavour = "It hunts what is bigger than it."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_yk5ee")
+icon_file = "tarantula_hawk_icon.png"
+placeholder = {
+"color": "#7A3CC8",
+"glyph": "star"
+}

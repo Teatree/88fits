@@ -1,0 +1,27 @@
+{
+  "id": "critical_thinking",
+  "name": "Critical Thinking",
+  "flavour": "Aim for the soft parts. All of them.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "sabre",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "+10% critical hit chance for every weapon.",
+  "vfx": "gold crit numbers more often, from every weapon",
+  "effects": [
+    {
+      "stat": "crit_chance",
+      "op": "add",
+      "value": 0.1,
+      "target": "player"
+    }
+  ],
+  "params": {},
+  "art_prompt": "a curved sabre with a glowing gold star at the point of the blade and a target ring behind it",
+  "placeholder": {
+    "color": "#FFD860",
+    "glyph": "star"
+  }
+}

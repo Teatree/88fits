@@ -1,6 +1,7 @@
-## The banner: takes the HUD's top row for 2 s. It drops from above the screen to the row's line over 250 ms, holds,
-## and rises out. Ink with paper text for news (BOSS DOWN, STAGE 2), ember with the weapon's icon for EVOLVED · NAME.
-## Alfa Slab 36, tracked (the compact row since pass 41; the mock's was 44).
+## The banner: sits at 38 % of the screen's height for 2 s (pass 45; it took the HUD's top row before). It pops in
+## place, rising 60 px as it fades in over 250 ms, holds, and fades out rising a little. Ink with paper text for news
+## (BOSS DOWN, STAGE 2), ember with the weapon's icon for EVOLVED · NAME. Alfa Slab 36, tracked (the compact row since
+## pass 41; the mock's was 44).
 class_name WBanner
 extends PanelContainer
 
@@ -33,8 +34,8 @@ func _init() -> void:
 	_row.add_child(_text)
 
 
-## Show `t`; `ember` for an evolution (with its icon), ink otherwise.
-func play(t: String, ember: bool = false, icon: Texture2D = null, top: float = 30.0) -> void:
+## Show `t` with its top edge at `top`; `ember` for an evolution (with its icon), ink otherwise.
+func play(t: String, ember: bool = false, icon: Texture2D = null, top: float = 730.0) -> void:
 	_text.text = t.to_upper()
 	_text.color = W.INK if ember else W.PAPER
 	_icon.texture = icon
@@ -46,16 +47,20 @@ func play(t: String, ember: bool = false, icon: Texture2D = null, top: float = 3
 	var w := get_combined_minimum_size().x
 	size = Vector2(w, get_combined_minimum_size().y)
 	var vp := get_viewport_rect().size
-	position = Vector2((vp.x - size.x) * 0.5, -120.0)
+	position = Vector2((vp.x - size.x) * 0.5, top - 60.0)
+	modulate.a = 0.0
 	if _tw:
 		_tw.kill()
 	shown.emit(true)
-	_tw = create_tween()
+	_tw = create_tween().set_parallel(true)
 	_tw.tween_property(self, "position:y", top, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_tw.tween_interval(HOLD)
-	_tw.tween_property(self, "position:y", -140.0, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	_tw.tween_callback(func():
+	_tw.tween_property(self, "modulate:a", 1.0, 0.18)
+	_tw.chain().tween_interval(HOLD)
+	_tw.chain().tween_property(self, "position:y", top - 40.0, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_tw.tween_property(self, "modulate:a", 0.0, 0.2)
+	_tw.chain().tween_callback(func():
 		visible = false
+		modulate.a = 1.0
 		shown.emit(false))
 
 

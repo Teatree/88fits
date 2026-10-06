@@ -1,0 +1,123 @@
+[gd_resource type="Resource" script_class="EnemyDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/enemies/red_goblin_runt/red_goblin_runt_icon.png" id="1_syoh2"]
+[ext_resource type="Script" path="res://core/data/EnemyDef.gd" id="2_ktqem"]
+[ext_resource type="Texture2D" path="res://content/enemies/red_goblin_runt/red_goblin_runt_sprite.png" id="3_hyccl"]
+[ext_resource type="Texture2D" path="res://content/enemies/red_goblin_runt/red_goblin_runt_sprite_b.png" id="4_a54xo"]
+[ext_resource type="Texture2D" path="res://content/enemies/red_goblin_runt/red_goblin_runt_icon_b.png" id="5_jwwl6"]
+
+[resource]
+script = ExtResource("2_ktqem")
+doc = "The runt in red: the skeleton's numbers, a runt's dagger. Placed by the Level Editor."
+speed = 1.6
+damage = 3.0
+radius = 0.35
+size = 0.95
+pack_size = 5
+drops = {
+"chest": 0.0028,
+"gold": 0.02,
+"medium": 0.05,
+"small": 1.0
+}
+anims = {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+}
+sprite = ExtResource("3_hyccl")
+sprite_file = "red_goblin_runt_sprite.png"
+strip_cols = 43
+fps = {
+"die": 12.0,
+"run": 20.0
+}
+knockback = 2.94
+head = 1.0
+variants = {
+"RR-A": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 1.0,
+"icon": ExtResource("1_syoh2"),
+"note": "blood red (hue 357)",
+"shadow": {},
+"sprite": ExtResource("3_hyccl"),
+"sprite_file": "red_goblin_runt_sprite.png",
+"strip_cols": 43
+},
+"RR-B": {
+"anims": {
+"attack": 2.0,
+"die": 8.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 12.0,
+"run": 20.0
+},
+"front_faces": "right",
+"head": 1.0,
+"icon": ExtResource("5_jwwl6"),
+"note": "brick red (hue 14)",
+"shadow": {},
+"sprite": ExtResource("4_a54xo"),
+"sprite_file": "red_goblin_runt_sprite_b.png",
+"strip_cols": 43
+}
+}
+variant = "RR-A"
+cap_share = 0.5
+sfx = {
+"die": "en_goblin_die",
+"hit": "en_goblin_hit"
+}
+xp_mult = 1.5
+variance = {
+"size": 0.22,
+"special": {
+"damage": 1.4,
+"hp": 2.2,
+"size": 1.5,
+"tint": "#5A1A80",
+"tint_strength": 0.6,
+"xp": 3.0
+},
+"special_chance": 0.1,
+"speed": 0.18,
+"tint_strength": 0.22,
+"tints": ["#FFFFFF", "#FFC8A0", "#FFD27A", "#C8A0FF", "#FFB0B0"]
+}
+id = "red_goblin_runt"
+display_name = "Red Runt"
+flavour = "Small, red and quick to stab."
+icon = ExtResource("1_syoh2")
+icon_file = "red_goblin_runt_icon.png"
+placeholder = {
+"color": "#C8352A",
+"ears": "pointed",
+"eyes": 2.0,
+"shape": "blob"
+}

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_8dbrk"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_7ks2w"]
+[ext_resource type="Texture2D" path="res://content/perks/afterglow/afterglow_icon.png" id="2_h7pla"]
+
+[sub_resource type="Resource" id="Resource_7ks2w"]
+script = ExtResource("1_8dbrk")
+stat = "heal_mult"
+op = "mul"
+value = 0.4
+target = "player"
+
+[resource]
+script = ExtResource("2_7ks2w")
+hero = "solenne"
+text = "Every heal on her is 40% bigger: hearts, cake, the well, life steal and her regen."
+effects = [SubResource("Resource_7ks2w")]
+id = "afterglow"
+display_name = "Afterglow"
+flavour = "Warmth that stays."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("2_h7pla")
+icon_file = "afterglow_icon.png"
+placeholder = {
+"color": "#8FD36A",
+"glyph": "star"
+}

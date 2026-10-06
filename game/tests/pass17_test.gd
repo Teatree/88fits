@@ -6,15 +6,20 @@ func test_desert_roster_has_seven_creatures_and_the_elite() -> void:
 	var ids: Array = []
 	for r in m.timeline.roster:
 		ids.append(str(r["enemy"]))
-	# the sand lizard is hidden since pass 34 (its row went to the runts, ants and armadillos)
-	for id in ["goblin", "goblin_runt", "fire_ant", "spit_cactus", "dust_mummy", "bull_beetle"]:
+	# the sand lizard is hidden since pass 34 (its row went to the runts, ants and armadillos); pass 45: the skeletons
+	# took the goblins' two rows; pass 54: on the roster or in a swarm (Garry's placement in the Level Editor brings the
+	# fire ants in the swarms only)
+	for ev in m.timeline.events:
+		if str(ev.get("type", "")) == "swarm":
+			ids.append(str(ev.get("enemy", "")))
+	for id in ["skeleton", "skeleton_knight", "fire_ant", "spit_cactus", "dust_mummy", "bull_beetle"]:
 		assert_bool(ids.has(id)).override_failure_message("roster lacks " + id).is_true()
 	var elite_ts: Array = []
 	for ev in m.timeline.events:
 		if str(ev.get("type", "")) == "elite_boss":
 			elite_ts.append(float(ev["t"]))
 	assert_int(elite_ts.size()).is_greater_equal(3)
-	assert_float(elite_ts[0]).is_equal(150.0)
+	assert_float(elite_ts[0]).is_equal(215.0)  # pass 46: the run stretched by 430/300
 	assert_str(Registry.enemy("dune_scorpion").archetype).is_equal("elite")
 	assert_float(float(Registry.enemy("dune_scorpion").drops.get("chest", 0.0))).is_equal(1.0)
 
@@ -33,6 +38,9 @@ func test_chest_roll_is_dry_until_taken() -> void:
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 	Run.add_weapon(Registry.weapon("peashooter"), 2)
 	var before := Run.weapon_instance("peashooter").level
+	# pass 47: a chest may also hold a new passive item; with every passive banished the peashooter's level is the roll
+	for p: PassiveDef in Registry.passives.values():
+		Run.banished.append(p.id)
 	var r := Run.chest_roll()
 	assert_str(str(r["type"])).is_equal("weapon")
 	assert_int(Run.weapon_instance("peashooter").level).is_equal(before)
@@ -41,9 +49,10 @@ func test_chest_roll_is_dry_until_taken() -> void:
 	assert_int(Run.weapon_instance("peashooter").level).is_equal(before + 1)
 	assert_int(Run.chests_opened).is_equal(1)
 	assert_str(line).contains("Lv")
+	# pass 47: a chest is never sold; letting it go takes one of the stage's skips and pays nothing
 	var gold := Run.run_gold
-	Run.chest_sell(Run.chest_roll(), 5)
-	assert_int(Run.run_gold).is_equal(gold + 5)
+	assert_str(Run.chest_skip(Run.chest_roll())).is_not_empty()
+	assert_int(Run.run_gold).is_equal(gold)
 	assert_int(Run.chests_opened).is_equal(2)
 
 
@@ -51,10 +60,13 @@ func test_chest_roll_prefers_a_ready_evolution() -> void:
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 	var w: WeaponDef = Registry.weapon("peashooter")
 	var inst := Run.add_weapon(w, w.max_level)
-	# pass 26: the path is the key, two mutations over two stages
+	# pass 26: the path is the key; pass 48: all of it, the three mutations over three stages (Pea Hose is hidden, Big Peas
+	# took its slot)
 	Run.add_mutation("toxic_peas")
 	Run.stage = 1
-	Run.add_mutation("pea_hose")
+	Run.add_mutation("big_peas")
+	Run.stage = 2
+	Run.add_mutation("bouncing_peas")
 	Run.stage = 0
 	Run.rebuild_sheets()
 	var r := Run.chest_roll()

@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_5a83v"]
+[ext_resource type="Texture2D" path="res://content/passives/steady_hand/steady_hand_icon.png" id="1_gxlqm"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_gxlqm"]
+
+[sub_resource type="Resource" id="Resource_gxlqm"]
+script = ExtResource("1_5a83v")
+stat = "still_might"
+value = 0.1
+target = "player"
+
+[sub_resource type="Resource" id="Resource_wftx0"]
+script = ExtResource("1_5a83v")
+stat = "still_might"
+value = 0.05
+target = "player"
+
+[resource]
+script = ExtResource("2_gxlqm")
+levels = [[SubResource("Resource_gxlqm")], [SubResource("Resource_wftx0")]]
+max_level = 5
+text = "The longer you stand still, the harder you hit: +10% attack damage a second (5% faster each level), up to +100%. Moving drops it."
+id = "steady_hand"
+display_name = "Steady Hand"
+flavour = "Breathe out. Squeeze."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_gxlqm")
+icon_file = "steady_hand_icon.png"
+placeholder = {
+"color": "#C0C8D0",
+"glyph": "target"
+}

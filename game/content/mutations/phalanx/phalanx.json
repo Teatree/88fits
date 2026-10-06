@@ -1,5 +1,6 @@
 {
   "id": "phalanx",
+  "hidden": true,
   "name": "Phalanx",
   "flavour": "Hold the line. Be the line.",
   "rarity": "rare",
@@ -8,8 +9,8 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Three pikes fanned, −35% damage.",
-  "vfx": "three pikes fanned",
+  "text": "Three spears fanned, −35% damage.",
+  "vfx": "three spears fanned",
   "effects": [
     {
       "stat": "amount",

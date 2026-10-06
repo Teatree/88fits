@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_x7mkx"]
+[ext_resource type="Texture2D" path="res://content/perks/long_day/long_day_icon.png" id="2_e365c"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_i66li"]
+
+[sub_resource type="Resource" id="Resource_i66li"]
+script = ExtResource("1_x7mkx")
+stat = "buff_duration"
+op = "mul"
+value = 1.0
+target = "player"
+
+[resource]
+script = ExtResource("2_i66li")
+hero = "solenne"
+text = "Her power-ups and every other buff on her last twice as long."
+effects = [SubResource("Resource_i66li")]
+id = "long_day"
+display_name = "Long Day"
+flavour = "The sun takes its time going down."
+rarity = "rare"
+weight = 6.0
+hidden = true
+icon = ExtResource("2_e365c")
+icon_file = "long_day_icon.png"
+placeholder = {
+"color": "#F2B04A",
+"glyph": "star"
+}

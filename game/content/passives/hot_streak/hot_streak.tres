@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/hot_streak/hot_streak_icon.png" id="1_174sl"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_m68yq"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="2_174sl"]
+
+[sub_resource type="Resource" id="Resource_174sl"]
+script = ExtResource("1_m68yq")
+stat = "kill_might"
+value = 0.05
+target = "player"
+
+[resource]
+script = ExtResource("2_174sl")
+levels = [[SubResource("Resource_174sl")]]
+max_level = 5
+text = "Kills make you stronger for the rest of the run: +5% attack damage per 1,000 kills (+5% a level), up to +100%."
+id = "hot_streak"
+display_name = "Hot Streak"
+flavour = "It only gets hotter."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_174sl")
+icon_file = "hot_streak_icon.png"
+placeholder = {
+"color": "#E0542A",
+"glyph": "sun"
+}

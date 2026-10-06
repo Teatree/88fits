@@ -8,18 +8,13 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Three slices a stroke, −40% damage.",
-  "vfx": "three swings back and forth across the target",
+  "text": "Twice the slices a stroke.",
+  "vfx": "twice the swings back and forth across the target",
   "effects": [
     {
       "stat": "amount",
-      "op": "add",
-      "value": 2
-    },
-    {
-      "stat": "damage",
       "op": "mul",
-      "value": -0.4
+      "value": 1.0
     }
   ],
   "params": {},

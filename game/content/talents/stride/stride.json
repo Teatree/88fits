@@ -3,11 +3,14 @@
   "name": "Stride",
   "flavour": "Cover the ground, or pull it to you.",
   "order": 3,
-  "ranks": 3,
+  "ranks": 6,
   "cost": [
     120,
     216,
-    360
+    360,
+    540,
+    780,
+    1080
   ],
   "forms": [
     {

@@ -65,7 +65,9 @@ func test_the_mirror_buys_forms_and_gives_it_all_back() -> void:
 	assert_int(Registry.talents.size()).is_equal(8)
 	var grit: TalentDef = Registry.talent("grit")
 	assert_int(grit.forms.size()).is_equal(2)
-	assert_int(grit.ranks).is_equal(3)
+	# six ranks since pass 46 (three before)
+	assert_int(grit.ranks).is_equal(6)
+	assert_int(grit.max_rank()).is_equal(6)
 	Save.add_gold(100000)
 	var before := Save.gold()
 	assert_bool(Save.buy_talent(grit)).is_true()
@@ -135,11 +137,24 @@ func test_elite_events_pick_between_the_two() -> void:
 			assert_bool((e as Array).has("dune_scorpion") and (e as Array).has("sun_prophet")).is_true()
 			found = true
 	assert_bool(found).is_true()
-	var slinger_early := false
-	for r in m.timeline.roster_at(140.0):
-		if str(r["enemy"]) == "buckshot_dwarf":
-			slinger_early = true
-	assert_bool(slinger_early).is_true()
+	# by 140 s of a 300 s stage, at the same point of a longer one (pass 46 stretched the clock by 430/300), the dwarf was
+	# on the roster; pass 54: Garry's placement in the Level Editor (2026-10-06) has no dwarf row, so this only holds
+	# while one is there
+	var dwarf_row := tl_has(m.timeline, "buckshot_dwarf")
+	if dwarf_row:
+		var slinger_early := false
+		for r in m.timeline.roster_at(140.0 * float(m.timeline.stage_length) / 300.0):
+			if str(r["enemy"]) == "buckshot_dwarf":
+				slinger_early = true
+		assert_bool(slinger_early).is_true()
+
+
+## Whether the timeline has a roster row for `id` (pass 54).
+func tl_has(tl: WaveTimeline, id: String) -> bool:
+	for r in tl.roster:
+		if str(r.get("enemy", "")) == id:
+			return true
+	return false
 
 
 func test_mira_is_the_economy_hero() -> void:

@@ -35,6 +35,7 @@ fps = {
 "die": 8.0,
 "run": 15.0
 }
+knockback = 3.4
 head = 1.0
 retired = true
 death_burst = {

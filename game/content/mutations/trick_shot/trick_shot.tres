@@ -7,16 +7,13 @@
 [sub_resource type="Resource" id="Resource_6p3jn"]
 script = ExtResource("1_f0n88")
 stat = "ricochet"
-op = "add"
 value = 1.0
-target = "self"
 
 [sub_resource type="Resource" id="Resource_mwry7"]
 script = ExtResource("1_f0n88")
 stat = "ricochet_damage"
 op = "set"
 value = 0.8
-target = "self"
 
 [resource]
 script = ExtResource("2_6p3jn")
@@ -27,7 +24,7 @@ effects = [SubResource("Resource_6p3jn"), SubResource("Resource_mwry7")]
 id = "trick_shot"
 display_name = "Trick Shot"
 flavour = "Off the wall, into the other one."
-rarity = "epic"
+rarity = "rare"
 weight = 8.0
 icon = ExtResource("2_mwry7")
 icon_file = "trick_shot_icon.png"

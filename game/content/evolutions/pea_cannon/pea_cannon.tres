@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/pea_cannon/pea_cannon_icon.png" id="1_8shj2"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_u3set"]
+[ext_resource type="PackedScene" path="res://content/evolutions/pea_cannon/pea_cannon_visual.tscn" id="3_8shj2"]
+
+[resource]
+script = ExtResource("2_u3set")
+targeting = "priority"
+base = {
+"amount": 3.0,
+"cooldown": 0.6,
+"damage": 15.0,
+"knockback": 6.0,
+"pierce": 1.0,
+"poison_damage": 3.0,
+"poison_duration": 8.0,
+"poison_stacks": 1.0,
+"range": 11.0,
+"speed": 16.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "peashooter"
+sfx = {
+"fire": "w_pea_fire",
+"hit": "w_pea_hit"
+}
+visual = ExtResource("3_8shj2")
+visual_file = "pea_cannon_visual.tscn"
+params = {
+"familiar": {
+"bob": 0.12,
+"height": 1.55,
+"radius": 1.35,
+"speed": 1.4
+},
+"final": {
+"radius_mult": 2.0,
+"ricochet_any": {
+"count": 3.0,
+"frac": 1.0,
+"puff": 0.9,
+"puff_seconds": 1.5
+},
+"size_mult": 2.0
+}
+}
+id = "pea_cannon"
+display_name = "Pea Cannon"
+flavour = "Toxic peas twice the size that bounce on to three more enemies at full damage, a puff of poison at every bounce."
+rarity = "rare"
+icon = ExtResource("1_8shj2")
+icon_file = "pea_cannon_icon.png"
+placeholder = {
+"color": "#7FD07A",
+"glyph": "pea",
+"gold": true
+}

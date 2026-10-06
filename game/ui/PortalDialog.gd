@@ -1,11 +1,19 @@
 ## Stage clear (Wanted screen 15), the game's biggest decision, shown as two roads: Extract (safe, the run ends, this
-## run's gold banked, the number big in brass) and Continue (the next stage: the slots it opens, how many creatures come
-## at once, how much tougher). After the last stage the second road is Stay: hell keeps coming, tougher every wave, and
+## run's gold banked, the number big in brass) and Continue (the next stage: how many creatures come at once, how much
+## tougher; pass 47: no slot lines, the six weapon and six line slots are open from the start). After the last stage the second road is Stay: hell keeps coming, tougher every wave, and
 ## the next boss opens another portal. Tap a card. (Pass 43: the ×1.25 extract bonus and the "×1.0 gold" line are gone.)
+## Pass 48 (Garry: a way out of the dialog): NOT YET under the two roads, and Esc or the back gesture, close it with no
+## decision; the run goes on and the portal waits for the hero to step out and walk back in.
 class_name PortalDialog
 extends WModal
 
 signal decided(extract: bool)
+## The hero is not ready to choose (NOT YET, Esc, the back gesture): the dialog closes with no decision, the run goes
+## on (Game unpauses), and the portal arms again once he steps out.
+signal declined
+
+## The footer: what NOT YET means.
+const FOOT := "Not ready? Step out, and walk back in when you are."
 
 var _tag: PanelContainer
 var _extract: WTap
@@ -16,6 +24,7 @@ var _gold_to: WText
 var _cont_title: WText
 var _cont_tag: WText
 var _cont_lines: VBoxContainer
+var _not_yet: WButton
 
 
 func _ready() -> void:
@@ -36,7 +45,7 @@ func _ready() -> void:
 	_cards.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_cards.offset_left = 48
 	_cards.offset_right = -48
-	_cards.offset_top = 500
+	_cards.offset_top = 500 + W.safe_top()
 	_cards.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_cards)
 	_extract = _road("Extract", "Safe · run ends", W.SAGE, "strongbox", "strongbox\nart")
@@ -56,11 +65,41 @@ func _ready() -> void:
 	_cont_title = _continue.get_meta("title")
 	_cont_tag = _continue.get_meta("tag")
 	_cont_lines = _continue.get_meta("body")
-	_foot = W.serif_text("Tap a card. The portal stays open as long as you like.", 28, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	# NOT YET (pass 48), centred under the roads
+	_not_yet = WButton.make(["NOT YET"], 34, WButton.SECONDARY, 5, 8, 26.0, 0.0)
+	_not_yet.name = "NotYet"
+	_not_yet.custom_minimum_size.x = 420
+	_not_yet.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_not_yet.pressed.connect(decline)
+	_cards.add_child(_not_yet)
+	_foot = W.serif_text(FOOT, 28, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	_foot.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	_foot.offset_bottom = -80
 	_foot.offset_top = -80 - 34
 	add_child(_foot)
+
+
+## Not now: the dialog closes with no decision (`declined`; Game unpauses and the portal re-arms once the hero is out).
+func decline() -> void:
+	if not visible:
+		return
+	visible = false
+	declined.emit()
+
+
+## The back gesture does what NOT YET does while the dialog is up (in a run it otherwise does nothing).
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST and visible:
+		decline()
+
+
+## Esc on a PC, the same.
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE) or event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		decline()
 
 
 ## One road: a paper card (6 px ink, a 12 px shadow), its name in 64 px slab with a tracked tag on the right, the art
@@ -145,9 +184,6 @@ func open(stage_cleared: int, can_continue: bool, final_stage: bool) -> void:
 			_cont_title.text = "Continue"
 			_cont_tag.text = ("STAGE %d · HELL" if stage_cleared + 1 >= 3 else "STAGE %d · HARDER") % (stage_cleared + 1)
 			if tl:
-				var slots: int = tl.weapon_cap_at(next) - tl.weapon_cap_at(next - 1)
-				if slots > 0:
-					_cont_lines.add_child(_fact("+%d" % slots, W.SAGE, "weapon slot%s open" % ("" if slots == 1 else "s")))
 				var at: int = tl.cap_at(tl.stage_length * next, next)
 				var tough := ("%.1f" % float(tl.stage_mult(next))).trim_suffix(".0")
 				_cont_lines.add_child(_fact(W.num(at), W.ROCK, ("creatures at once, each ×%s as tough" % tough) if next < tl.stage_mults.size() else "creatures at once"))

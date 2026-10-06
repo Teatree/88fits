@@ -8,22 +8,22 @@
   "kind": "volume",
   "element": "",
   "hero": "",
-  "text": "Two turrets a drop, −30% damage each.",
-  "vfx": "pairs of turrets",
+  "text": "Twice the turrets a drop and twice as many standing, −40% damage each.",
+  "vfx": "turrets dropped in twos (or fours), ringed round the hero",
   "effects": [
     {
       "stat": "amount",
-      "op": "add",
-      "value": 1
+      "op": "mul",
+      "value": 1.0
     },
     {
       "stat": "damage",
       "op": "mul",
-      "value": -0.3
+      "value": -0.4
     }
   ],
   "params": {
-    "max_turrets": 8
+    "max_turrets_mult": 2.0
   },
   "art_prompt": "two small turrets with faces side by side",
   "placeholder": {

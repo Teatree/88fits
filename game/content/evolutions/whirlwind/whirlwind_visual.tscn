@@ -1,0 +1,78 @@
+[gd_scene load_steps=11 format=3 uid="uid://vis_whirlwind001"]
+
+[sub_resource type="StandardMaterial3D" id="brass"]
+albedo_color = Color(0.85, 0.65, 0.25, 1)
+metallic = 0.6
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="grip"]
+albedo_color = Color(0.2, 0.12, 0.08, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="steel"]
+albedo_color = Color(0.86, 0.95, 1, 1)
+metallic = 0.7
+roughness = 0.25
+emission_enabled = true
+emission = Color(0.45, 0.85, 1, 1)
+emission_energy_multiplier = 0.9
+
+[sub_resource type="BoxMesh" id="m_seg0"]
+size = Vector3(0.26, 0.05, 0.21)
+
+[sub_resource type="BoxMesh" id="m_seg1"]
+size = Vector3(0.3, 0.05, 0.21)
+
+[sub_resource type="BoxMesh" id="m_seg2"]
+size = Vector3(0.36, 0.05, 0.21)
+
+[sub_resource type="BoxMesh" id="m_seg3"]
+size = Vector3(0.42, 0.05, 0.21)
+
+[sub_resource type="PrismMesh" id="m_tip"]
+size = Vector3(0.44, 0.28, 0.05)
+
+[sub_resource type="BoxMesh" id="m_guard"]
+size = Vector3(0.72, 0.09, 0.06)
+
+[sub_resource type="BoxMesh" id="m_pommel"]
+size = Vector3(0.12, 0.12, 0.08)
+
+[node name="WhirlwindVisual" type="Node3D"]
+
+[node name="Blade" type="Node3D" parent="."]
+
+[node name="Seg0" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.155)
+mesh = SubResource("m_seg0")
+material_override = SubResource("steel")
+
+[node name="Seg1" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(0.99255, 0, 0.12187, 0, 1, 0, -0.12187, 0, 0.99255, -0.011578, 0, -0.344292)
+mesh = SubResource("m_seg1")
+material_override = SubResource("steel")
+
+[node name="Seg2" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(0.9703, 0, 0.24192, 0, 1, 0, -0.24192, 0, 0.9703, -0.046137, 0, -0.530764)
+mesh = SubResource("m_seg2")
+material_override = SubResource("steel")
+
+[node name="Seg3" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(0.93358, 0, 0.35837, 0, 1, 0, -0.35837, 0, 0.93358, -0.103165, 0, -0.711632)
+mesh = SubResource("m_seg3")
+material_override = SubResource("steel")
+
+[node name="Tip" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(0.93358, -0.35837, 0, 0, 0, 1, -0.35837, -0.93358, 0, -0.187382, 0, -0.931023)
+mesh = SubResource("m_tip")
+material_override = SubResource("steel")
+
+[node name="Guard" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.02)
+mesh = SubResource("m_guard")
+material_override = SubResource("brass")
+
+[node name="Grip" type="MeshInstance3D" parent="Blade"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.1)
+mesh = SubResource("m_pommel")
+material_override = SubResource("grip")

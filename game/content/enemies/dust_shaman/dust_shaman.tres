@@ -37,6 +37,7 @@ fps = {
 "die": 8.0,
 "run": 15.0
 }
+knockback = 4.16
 head = 1.0
 support = {
 "frenzy": 0.3,

@@ -8,7 +8,7 @@
   "kind": "element",
   "element": "fire",
   "hero": "",
-  "text": "Pellets ignite.",
+  "text": "Pellets set 60% of the enemies they hit on fire.",
   "vfx": "an orange muzzle bloom and burning creatures",
   "effects": [
     {
@@ -27,7 +27,9 @@
       "value": 0.4
     }
   ],
-  "params": {},
+  "params": {
+    "ignite_chance": 0.6
+  },
   "art_prompt": "a sawn-off shotgun shell cracked open with a burst of orange flame coming out of it",
   "placeholder": {
     "color": "#FF7A2A",

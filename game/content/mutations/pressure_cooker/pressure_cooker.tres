@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_j336g"]
+[ext_resource type="Texture2D" path="res://content/mutations/pressure_cooker/pressure_cooker_icon.png" id="1_u5obo"]
+
+[resource]
+script = ExtResource("1_j336g")
+weapon = "rocket_pod"
+text = "Every second without a hit speeds the pod up, to +50% attack speed after 20 s. A hit resets it."
+vfx = "the pod's tubes and body glow a dull orange as the pressure builds"
+params = {
+"pressure": {
+"max": 0.5,
+"seconds": 20.0
+}
+}
+id = "pressure_cooker"
+display_name = "Pressure Cooker"
+flavour = "Do not touch the pod."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_u5obo")
+icon_file = "pressure_cooker_icon.png"
+placeholder = {
+"color": "#FF8040",
+"glyph": "star"
+}

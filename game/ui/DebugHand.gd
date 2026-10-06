@@ -1,5 +1,5 @@
-## The debug hand: a list of every weapon, evolution, passive, line, perk and mutation in the game, with a level box
-## beside each one, opened from a small button on the level-up screen. Tap a few, set how many levels of each, and
+## The debug hand: a list of every weapon, evolution, line, passive, perk and mutation in the game, with a level box
+## beside each one (a line is handed over as the passive it is, pass 47), opened from a small button on the level-up screen. Tap a few, set how many levels of each, and
 ## "Give" hands them over and closes. For trying a build out without playing to it.
 class_name DebugHand
 extends Control
@@ -53,9 +53,7 @@ func _rows() -> Array:
 	for w: WeaponDef in Registry.weapons.values():
 		out.append(["evolution" if w.is_evolution else "weapon", w])
 	for p: PassiveDef in Registry.passives.values():
-		out.append(["passive", p])
-	for l: LineDef in Registry.lines.values():
-		out.append(["line", l])
+		out.append(["line" if W.is_line(p) else "passive", p])
 	for pk: PerkDef in Registry.perks.values():
 		out.append(["perk", pk])
 	for m: MutationDef in Registry.mutations.values():
@@ -113,12 +111,9 @@ func _give() -> void:
 					Run.add_weapon(w, 1)
 				for k in range(n - 1):
 					Run.level_weapon(w.id)
-			"passive":
+			"passive", "line":
 				for k in range(n):
 					Run.add_or_level_passive(str(id))
-			"line":
-				for k in range(n):
-					Run.add_or_rank_line(str(id))
 			"perk":
 				Run.add_perk(str(id))
 			"mutation":

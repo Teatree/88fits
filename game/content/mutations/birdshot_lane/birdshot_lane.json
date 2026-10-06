@@ -1,0 +1,27 @@
+{
+  "id": "birdshot_lane",
+  "name": "Birdshot",
+  "flavour": "For birds. Big birds.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "boomstick",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "No pellet flies loose: everything in a 2.6 m wide lane a quarter longer than the range takes 40% of a full point-blank volley at once and is knocked down the lane.",
+  "vfx": "pellets streak down the lane and a pale gold wash marks it on the sand for a moment",
+  "effects": [],
+  "params": {
+    "blast": {
+      "shape": "lane",
+      "width": 2.6,
+      "length_mult": 1.25,
+      "frac": 0.4
+    }
+  },
+  "art_prompt": "a shotgun shell with a long straight streak of tiny lead pellets flying out of it in a narrow lane",
+  "placeholder": {
+    "color": "#E8C070",
+    "glyph": "star"
+  }
+}

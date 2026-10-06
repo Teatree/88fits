@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_orbpd"]
+[ext_resource type="Texture2D" path="res://content/mutations/fire_hardened/fire_hardened_icon.png" id="2_bp32v"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_sojo6"]
+
+[sub_resource type="Resource" id="Resource_orbpd"]
+script = ExtResource("1_orbpd")
+stat = "fire_damage"
+value = 5.0
+
+[sub_resource type="Resource" id="Resource_bp32v"]
+script = ExtResource("1_orbpd")
+stat = "fire_duration"
+value = 2.2
+
+[sub_resource type="Resource" id="Resource_sojo6"]
+script = ExtResource("1_orbpd")
+stat = "fire_spread"
+value = 0.3
+
+[resource]
+script = ExtResource("3_sojo6")
+weapon = "spear"
+mutation_kind = "element"
+text = "The spear sets alight everything it passes through."
+vfx = "the spear burns its way through the line; everything it touched is on fire"
+effects = [SubResource("Resource_orbpd"), SubResource("Resource_bp32v"), SubResource("Resource_sojo6")]
+id = "fire_hardened"
+display_name = "Fire-Hardened"
+flavour = "The point was cured in the fire. It remembers."
+rarity = "rare"
+element = "fire"
+weight = 8.0
+icon = ExtResource("2_bp32v")
+icon_file = "fire_hardened_icon.png"
+placeholder = {
+"color": "#FF7040",
+"glyph": "star"
+}

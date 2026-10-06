@@ -19,6 +19,7 @@ pairs_with = "poison_dart"
 id = "venom"
 display_name = "Venom"
 flavour = "Everything you poison, poisons harder."
+rarity = "uncommon"
 element = "poison"
 weight = 8.0
 icon = ExtResource("1_s6rgr")

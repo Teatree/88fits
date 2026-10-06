@@ -1,5 +1,6 @@
 {
   "id": "weed_storm",
+  "hidden": true,
   "name": "Weed Storm",
   "flavour": "The wind picked up.",
   "rarity": "rare",
