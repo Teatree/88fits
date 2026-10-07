@@ -1,5 +1,5 @@
 <title>88fits Telemetry Plan</title>
-<meta name="description" content="How 88fits will collect, store and read player analytics: the tool, the Godot client, every event with its fields, and the dashboards they feed.">
+<meta name="description" content="How 88fits collects and reads play data with PostHog: what changed since the first plan, the Godot client as built, every event with its fields, the boards, the setup steps and the Level Editor loop.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Bitter:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
   :root {
@@ -90,513 +90,346 @@
   .toc a:focus-visible, a:focus-visible { outline: 3px solid var(--turquoise); outline-offset: 2px; }
   @media (max-width: 480px) { body { font-size: 16px; } .kv { grid-template-columns: 1fr; gap: 2px 0; } .kv dt { margin-top: 6px; } }
 </style>
-
 <div class="wrap">
   <header>
-    <div class="eyebrow">88fits · pass 43, pulse and setup added in pass 44 · 1 October 2026</div>
+    <div class="eyebrow">88fits · rewritten in pass 57 · 7 October 2026 · replaces the pass 43/44 plan</div>
     <h1>88fits Telemetry Plan</h1>
-    <p class="lede">What to measure while people play, which tool to send it to, the Godot client that sends it, every event with its fields, and the pictures the numbers will make. Nothing here is built yet; this is the plan to build from.</p>
-    <div class="meta"><span><b>Engine</b> Godot 4.7.2, GDScript</span><span><b>Platform</b> Android APK by Google Drive, later the Play Store</span><span><b>Players today</b> one phone; the plan is sized for a soft launch of a few thousand</span><span><b>Author</b> Claude, for Garry</span></div>
+    <p class="lede">What to measure while people play, how it gets from the phone to PostHog, every event with its fields, and the boards you will read. The first plan was written before the game had a run recorder, a Level Editor or half its items. This one is built on what the game is now, and its first step is built: the key file, the client and the run's story.</p>
+    <div class="meta"><span><b>Engine</b> Godot 4.7.2, GDScript</span><span><b>Platform</b> Android APK by Google Drive, later the Play Store</span><span><b>Players today</b> you, on one phone; sized for a soft launch of a few thousand</span><span><b>Status</b> <span class="stamp">step 1 built</span></span></div>
     <nav class="toc" aria-label="Sections">
-      <a href="#questions">Questions</a><a href="#tool">The tool</a><a href="#client">The Godot client</a><a href="#events">Events</a><a href="#dashboards">Dashboards</a><a href="#setup">Setup</a><a href="#pulse">The pulse</a><a href="#privacy">Privacy</a><a href="#rollout">Rollout</a>
+      <a href="#changes">What changed</a><a href="#questions">Questions</a><a href="#flow">How it flows</a><a href="#client">The client</a><a href="#events">Events</a><a href="#dashboards">Dashboards</a><a href="#setup">Setup</a><a href="#editor">The editor loop</a><a href="#pulse">The pulse</a><a href="#privacy">Privacy</a><a href="#rollout">Rollout</a>
     </nav>
   </header>
 
+  <h2 id="changes">What changed since the first plan, and why</h2>
+  <p>The first plan (pass 43, setup added in pass 44) still picked the right tool. Most of what sits around the tool has moved on, because the game moved on. Twelve passes later, this is what I would change, and what this version does.</p>
+  <div class="grid2">
+    <div class="card pick"><h3>One set of hooks, two destinations</h3><p>Pass 45 built a run recorder (<code>RunAnalytics</code>) that already hears every moment of a run: each pick and its route, chests, skips and banishes, bosses, portals, the death and its last hits, and a sample every second. The old plan wanted a second set of hooks all over the game. Now the PostHog client listens to the recorder instead, so the local file and PostHog can never disagree.</p></div>
+    <div class="card pick"><h3>The file you were looking for now exists</h3><p>The old plan told you to paste the key into <code>game/content/analytics/analytics.json</code>. That file was part of the plan and was never built, which is why you could not find it. It now lives at <code>game/config/analytics.json</code> (outside <code>content/</code>, which the game scans for items), and the code that reads it is built.</p></div>
+    <div class="card pick"><h3>Every run knows which Level Editor version it played</h3><p>You tune the run in the Level Editor, often several times a day. Every event now carries <code>map_rev</code>, a short fingerprint of the map's timeline as the game loaded it. A board can then put "before my cap-curve change" beside "after it", which the old plan could not do.</p></div>
+    <div class="card pick"><h3>Your local dashboard, for every phone</h3><p>The charts you asked for in the local dashboard (power against pressure, the crowd against the cap, spawns and kills, health, damage per weapon, what hurt you) were all per second. Per-second rows from every phone would burn the free tier. Each run now sends one <code>run_summary</code> with the same curves per minute, so PostHog can draw the median player's version of your dashboard.</p></div>
+    <div class="card"><h3>The catalogue follows the game as it is</h3><p>No starter pick (every hero lands with a start weapon down the spawn beam), no selling at chests (skip, banish or take), three kinds of item (weapons to level 5, lines to level 4, passive items), skips and banishes per stage, mutation offers with the weapon reel, five heroes and their art looks, the Phoenix Feather, gold left in the sand on a death, the Upgrade board with six ranks.</p></div>
+    <div class="card"><h3>Boards built around how you tune</h3><p>The old six boards opened with retention. You are one player today, so retention can wait; what you do every day is pace the run and balance items. The boards now open with Level Editor versions and the run's curves, then deaths, builds, heroes and looks, the economy and performance. Retention joins when there are players.</p></div>
+    <div class="card"><h3>Tag your own runs, do not hide them</h3><p>The old plan routed test runs to a second project. With you as the only player that would leave the real project empty. Instead every event carries <code>dev</code>: true for runs from the editor binary or with debug mode on. The arena, the test runner and every tool never send at all.</p></div>
+    <div class="card"><h3>The editor learns from real runs</h3><p>The Level Editor's new "Spawned so far" row has to guess how fast the hero kills. It reads that from your recorded runs today, and later from the field. The plan now closes that loop instead of stopping at the dashboards.</p></div>
+  </div>
+
   <h2 id="questions">What we want to know</h2>
-  <p>Analytics earns its place by answering questions that change the game. These are the ones 88fits has, in the order they will matter.</p>
+  <p>In the order they matter to you now.</p>
   <div class="grid2">
-    <div class="card"><h3>Is it fun enough to come back to?</h3><p>Day 1, day 7 and day 30 retention; session length; runs per session; how many players ever finish a stage. The number every decision hangs on.</p></div>
-    <div class="card"><h3>Where does the difficulty curve break?</h3><p>Deaths by minute and stage, what killed the hero, the hero's level and build at death, how many reach the Gila, the Brander, endless. Stage 2 is meant to be a wall, not a cliff; this says which.</p></div>
-    <div class="card"><h3>Which builds win, which never get picked?</h3><p>Pick rate against extract rate for every weapon, path, line, passive and perk; rerolls and banishes by item (a banish is a vote); the level-up decision time.</p></div>
-    <div class="card"><h3>Does the meta pull?</h3><p>Gold banked against gold spent on the Upgrade board, which talents and forms, how many runs between purchases, whether players extract early to bank or push for the boss chest.</p></div>
-    <div class="card"><h3>Does it run on their phones?</h3><p>Frame time by device model and stage, the worst frames, memory, load time, thermal throttling in endless, script errors in the field with the breadcrumb that led to them.</p></div>
-    <div class="card"><h3>Does anyone read the hints?</h3><p>Which first-play hints show, whether the joystick is found in the first ten seconds, how often the pause strip is tapped by mistake, whether the top inset is right on notched phones.</p></div>
+    <div class="card"><h3>Did my Level Editor change make the run harder or easier?</h3><p>Deaths per minute, the extract rate, the level reached at the King and the Gila, split by <code>map_rev</code>. The question every editor save raises.</p></div>
+    <div class="card"><h3>Is the pacing right, minute by minute?</h3><p>The crowd against the cap, spawns against kills, the crowd's pressure against the build's power, the hero's lowest health: the median and the spread across runs, per minute of play.</p></div>
+    <div class="card"><h3>Where, and to what, do heroes die?</h3><p>Deaths by stage and minute, the killer, the last hits, the build at death. Stage 2 should be a wall, not a cliff.</p></div>
+    <div class="card"><h3>Which items win, which are skipped?</h3><p>Pick rate against extract rate for weapons, lines, passive items, mutations and evolutions; what gets skipped and banished (a banish is a vote); the chest's take, skip and banish.</p></div>
+    <div class="card"><h3>Do the heroes and their looks pull?</h3><p>Runs per hero and their extract rate; which art look players keep (Solenne's four walks); whether locked heroes get looked at.</p></div>
+    <div class="card"><h3>Does the meta pull?</h3><p>Gold earned, banked and left in the sand; Upgrade ranks bought and refunded; runs between purchases.</p></div>
+    <div class="card"><h3>Does it run on their phones?</h3><p>Frame rate by device and stage, the worst frames, and later script errors from the field.</p></div>
+    <div class="card"><h3>Do they come back?</h3><p>Day 1, 7 and 30 retention and session length. Waits for players; the events for it are sent from day one.</p></div>
   </div>
 
-  <h2 id="tool">The tool: PostHog, through its HTTP API</h2>
-  <p>Three candidates were weighed against what a one-person Godot project on Android can actually run. The choice is <b>PostHog Cloud (EU region)</b>: a hosted event store with funnels, retention, trends, session properties and a SQL layer, a free tier of one million events a month, and a plain HTTPS batch endpoint that Godot's <code>HTTPRequest</code> talks to in forty lines. No SDK to port, no Android plugin to rebuild for every Godot release, and if the free tier is ever outgrown the same client points at a self-hosted PostHog on the art server.</p>
-  <div class="grid2">
-    <div class="card pick"><h3>PostHog Cloud <span class="tag good">chosen</span></h3>
-      <ul>
-        <li><b>How Godot talks to it:</b> <code>POST https://eu.i.posthog.com/batch/</code> with a JSON body of events and the project's public key. No signing, no SDK.</li>
-        <li><b>Free tier:</b> 1M events a month, 1 year of history; at ~40 events a run that is 25,000 runs a month before a bill.</li>
-        <li><b>What it gives back:</b> funnels, retention tables, trends with breakdowns by any property, cohorts, dashboards, and HogQL (SQL) for anything else, all in the browser and readable on a phone.</li>
-        <li><b>Risk:</b> a general product tool, so game-shaped views (a death heatmap) are built from properties, not offered ready-made.</li>
-      </ul></div>
-    <div class="card"><h3>GameAnalytics <span class="tag info">runner-up</span></h3>
-      <ul>
-        <li>Made for games: progression, resource and design events, funnels per level, free with no event cap.</li>
-        <li>No Godot 4 SDK; the REST collector needs an HMAC signature over the body and a server-time handshake, which is doable but every event must fit its five fixed shapes.</li>
-        <li>Property breakdowns are weaker: a death broken down by weapon, level and killer at once is not a view it offers.</li>
-      </ul></div>
-    <div class="card"><h3>Firebase Analytics <span class="tag warn">passed over</span></h3>
-      <ul>
-        <li>Free and unlimited, with the Play Store's crash reporting next door.</li>
-        <li>Needs a native Android plugin compiled against the Godot version in use; the community plugins lag each release and the export pipeline is already fragile enough (JDK, templates, keystore).</li>
-        <li>Event shapes are capped (25 properties, 500 event names) and the console lags a day; fine later, wrong for the first month of tuning.</li>
-      </ul></div>
-    <div class="card"><h3>Own server <span class="tag warn">later, maybe</span></h3>
-      <ul>
-        <li>A Postgres table and a script on the art server would hold the same JSON; the client is written so the endpoint is a setting.</li>
-        <li>Everything else (dashboards, retention maths, uptime) would be ours to build. Not before there are players.</li>
-      </ul></div>
-  </div>
+  <h2 id="flow">How the data flows</h2>
+  <figure>
+    <svg viewBox="0 0 720 300" role="img" aria-label="Diagram: the game's run recorder writes local files and hands events to the Analytics client, which batches them to PostHog; the Level Editor reads the local records">
+      <g font-family="Bitter, serif" font-size="13" fill="var(--ink)">
+        <rect x="14" y="110" width="150" height="80" fill="var(--paper)" stroke="var(--ink)" stroke-width="3"/>
+        <text x="89" y="140" text-anchor="middle" font-weight="700">The run</text>
+        <text x="89" y="160" text-anchor="middle" font-size="11">picks, chests, bosses,</text>
+        <text x="89" y="175" text-anchor="middle" font-size="11">deaths, a sample a second</text>
+        <rect x="214" y="110" width="160" height="80" fill="var(--paper)" stroke="var(--brass)" stroke-width="3"/>
+        <text x="294" y="140" text-anchor="middle" font-weight="700">RunAnalytics</text>
+        <text x="294" y="160" text-anchor="middle" font-size="11">the recorder (pass 45)</text>
+        <text x="294" y="175" text-anchor="middle" font-size="11">one hook for everything</text>
+        <rect x="430" y="24" width="270" height="70" fill="var(--paper)" stroke="var(--ink)" stroke-width="3"/>
+        <text x="565" y="52" text-anchor="middle" font-weight="700">Local record (your PC runs)</text>
+        <text x="565" y="72" text-anchor="middle" font-size="11">analytics/runs/*.json · dashboard.html</text>
+        <rect x="430" y="122" width="270" height="70" fill="var(--paper)" stroke="var(--brass)" stroke-width="3"/>
+        <text x="565" y="150" text-anchor="middle" font-weight="700">Analytics client (pass 57)</text>
+        <text x="565" y="170" text-anchor="middle" font-size="11">queue · batch · retry · key file</text>
+        <rect x="430" y="220" width="270" height="62" fill="var(--paper)" stroke="var(--sage)" stroke-width="3"/>
+        <text x="565" y="246" text-anchor="middle" font-weight="700">PostHog (EU cloud)</text>
+        <text x="565" y="266" text-anchor="middle" font-size="11">events + one run_summary a run · boards</text>
+      </g>
+      <g stroke="var(--ink)" stroke-width="2.5" fill="none" marker-end="url(#arr)">
+        <path d="M164 150 L210 150"/>
+        <path d="M374 140 L426 70"/>
+        <path d="M374 156 L426 156"/>
+        <path d="M565 192 L565 216"/>
+      </g>
+      <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-soft)">
+        <text x="316" y="100">every second</text>
+        <text x="379" y="147">curated</text>
+        <text x="379" y="172">events</text>
+        <text x="577" y="209">HTTPS batch</text>
+      </g>
+      <g font-family="Bitter, serif" font-size="11" fill="var(--turquoise)">
+        <path d="M430 60 C 330 20, 210 40, 160 92" stroke="var(--turquoise)" stroke-width="2" fill="none" stroke-dasharray="5 4" marker-end="url(#arr2)"/>
+        <text x="176" y="15">the Level Editor reads the records (kill rate)</text>
+      </g>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--ink)"/></marker>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="var(--turquoise)"/></marker>
+      </defs>
+    </svg>
+    <figcaption><b>One recorder, two destinations.</b> The recorder keeps writing the per-second file on your PC exactly as before. The client takes a curated set of its events, adds the identity and the run's labels, and sends them in batches. The Level Editor reads the local records to estimate how fast creatures die.</figcaption>
+  </figure>
 
-  <h2 id="client">The Godot client</h2>
-  <p>One autoload, <code>Analytics</code>, beside <code>Save</code> and <code>Run</code>. Every other script calls <code>Analytics.track("run_end", {...})</code> and nothing else; the autoload owns identity, batching, the queue on disk and the network.</p>
+  <h2 id="client">The Godot client, as built</h2>
+  <p>One autoload, <code>Analytics</code> (<code>game/core/autoload/Analytics.gd</code>), beside <code>Save</code> and <code>Run</code>. It owns the key file, identity, the queue on disk and the network. The recorder hands it events; nothing else in the game calls it.</p>
+  <h3>The key file</h3>
+<pre><code>game/config/analytics.json
+{
+  "host": "https://eu.i.posthog.com",
+  "key": "",            &lt;- paste the phc_... Project API key here
+  "enabled": false      &lt;- set to true
+}</code></pre>
+  <p>An empty key, a key that is not a <code>phc_</code> Project key (a personal <code>phx_</code> key is a secret, and the client refuses it) or <code>"enabled": false</code> means nothing is queued and nothing is sent. The key is write-only (it can send events, never read them), which is why every mobile app ships one inside the binary; it is safe to commit.</p>
   <dl class="kv">
-    <dt>Identity</dt><dd>A random UUID made on first launch and kept in the save file (<code>install_id</code>). It is the PostHog <code>distinct_id</code>. No account, no advertising id, no device serial. Wiping the save makes a new one.</dd>
-    <dt>Session</dt><dd>A new <code>session_id</code> when the app opens or comes back after five minutes in the background; every event carries it, so runs and menu time group under it.</dd>
-    <dt>Super properties</dt><dd>Stamped on every event: app version, Godot version, OS and version, device model, screen size and the top inset, language, and during a run the hero, map, stage and run id. Set once, changed when the run changes.</dd>
-    <dt>Queue</dt><dd>Events go into an array and to <code>user://analytics_queue.json</code> on every change past twenty events, so a crash or a killed process loses at most a handful. On launch the file is sent first.</dd>
-    <dt>Flush</dt><dd>Every 30 s, at 20 queued events, on <code>run_end</code>, when the app pauses (Android's <code>NOTIFICATION_APPLICATION_PAUSED</code>) and on quit. One <code>HTTPRequest</code> in flight at a time; a failure keeps the batch and retries with backoff (30 s, 60 s, 5 min), so a phone with no signal on the bus sends everything at home.</dd>
-    <dt>Rate</dt><dd>High-frequency things are sampled, never streamed: a <code>perf_sample</code> every 15 s of play, a damage summary per stage instead of a hit event per hit.</dd>
-    <dt>Off switch</dt><dd><code>Settings.analytics</code>, on by default after the consent line, a switch in Settings under Sound and Music. Off means <code>track()</code> returns at once and the queue file is deleted.</dd>
-    <dt>Schema</dt><dd>Every event carries <code>schema: 1</code>. A field's meaning never changes; a change is a new field or a new schema number, so old dashboards keep reading.</dd>
-    <dt>Debug</dt><dd>The developer menu shows the queue length, the last send's status, and a switch that routes events to a separate PostHog project so Garry's test runs never pollute the players' numbers.</dd>
+    <dt>Never sends</dt><dd>From headless runs (every tool and smoke run), the test runner, the debug arena, or with the Settings switch off.</dd>
+    <dt>Your runs</dt><dd>Runs from the editor binary or with debug mode on are sent with <code>dev: true</code>; filter <code>dev = false</code> once there are players.</dd>
+    <dt>Identity</dt><dd>A random <code>install_id</code> made once and kept in the save; wiping the save makes a new anonymous player. A <code>session_id</code> per app open and after five minutes away. No account, no advertising id, no identify calls, no person profiles, and PostHog's IP location switched off on every event (<code>$geoip_disable</code>).</dd>
+    <dt>Labels on every event</dt><dd><code>schema</code> 1, <code>app_version</code>, <code>os</code>, <code>os_version</code>, <code>device</code>, <code>screen</code>, <code>top_inset</code>, <code>lang</code>, <code>dev</code>; during a run also <code>run_id</code>, <code>hero</code>, <code>hero_look</code>, <code>map</code>, <code>map_rev</code> and <code>stage</code>.</dd>
+    <dt>Queue</dt><dd>In memory and in <code>user://analytics_queue.json</code> (saved every few events and when the app pauses), sent first on the next launch; at most 2000 kept, the oldest dropped.</dd>
+    <dt>Sending</dt><dd>A POST to <code>{host}/batch/</code> every 30 s, at 20 queued events, at the run's end, when Android pauses the app and on quit. One request at a time; a failure keeps the batch and waits 30 s, then 60 s, up to 5 minutes, so a phone with no signal sends everything later.</dd>
+    <dt>Off switch</dt><dd>Settings, "Anonymous play data": off stops sending and deletes the queue at once.</dd>
+    <dt>Readout</dt><dd>The developer menu shows whether the key is set (never the key), whether sending is on, the queue length, how many events went this session, the last send's status and time, and a Send now button.</dd>
   </dl>
-  <h3>The autoload, sketched</h3>
-<pre><code>## core/autoload/Analytics.gd
-extends Node
-
-const ENDPOINT := "https://eu.i.posthog.com/batch/"
-const KEY := "phc_..."            # the project's public key (safe to ship)
-const FLUSH_EVERY := 30.0
-const FLUSH_AT := 20
-
-var _queue: Array = []
-var _http: HTTPRequest
-var _timer := 0.0
-var _backoff := 0.0
-var _super: Dictionary = {}
-
-func _ready() -> void:
-    _http = HTTPRequest.new()
-    add_child(_http)
-    _http.request_completed.connect(_on_done)
-    _super = {"app_version": ProjectSettings.get_setting("application/config/version"),
-        "os": OS.get_name(), "os_version": OS.get_version(), "device": OS.get_model_name(),
-        "screen": "%dx%d" % [DisplayServer.screen_get_size().x, DisplayServer.screen_get_size().y],
-        "top_inset": W.safe_top(), "lang": OS.get_locale_language(), "schema": 1}
-    _load_queue()
-
-func set_run(props: Dictionary) -> void:     # hero, map, stage, run_id; {} when no run
-    for k in ["hero", "map", "stage", "run_id"]:
-        _super.erase(k)
-    _super.merge(props)
-
-func track(event: String, props: Dictionary = {}) -> void:
-    if not Settings.analytics:
-        return
-    var p := _super.duplicate()
-    p.merge(props, true)
-    p["session_id"] = Save.session_id()
-    _queue.append({"event": event, "distinct_id": Save.install_id(), "timestamp": Time.get_datetime_string_from_system(true), "properties": p})
-    if _queue.size() >= FLUSH_AT:
-        flush()
-    elif _queue.size() % 5 == 0:
-        _save_queue()
-
-func flush() -> void:
-    if _queue.is_empty() or _http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED or _backoff > 0.0:
-        return
-    var body := JSON.stringify({"api_key": KEY, "batch": _queue})
-    _http.request(ENDPOINT, ["Content-Type: application/json"], HTTPClient.METHOD_POST, body)
-
-func _on_done(_r: int, code: int, _h: PackedStringArray, _b: PackedByteArray) -> void:
-    if code == 200:
-        _queue.clear()
-        _save_queue()
-        _backoff = 0.0
-    else:
-        _backoff = 30.0 if _backoff == 0.0 else minf(_backoff * 2.0, 300.0)
-
-func _process(delta: float) -> void:
-    _timer += delta
-    _backoff = maxf(_backoff - delta, 0.0)
-    if _timer >= FLUSH_EVERY:
-        _timer = 0.0
-        flush()
-
-func _notification(what: int) -> void:
-    if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
-        _save_queue()
-        flush()</code></pre>
-  <p>The hooks are all in places the code already has: <code>Game._start_run</code>, <code>_on_level_up</code>, <code>CardPool.apply</code>, <code>_on_boss_died</code>, <code>_on_portal_decided</code>, <code>_on_player_died</code>, <code>_on_revive_decided</code>, <code>end_run</code>, <code>Save.buy_talent</code>, <code>Settings.set_value</code>, the breadcrumb ticker and <code>Perf.report()</code>. Each becomes one <code>Analytics.track</code> line.</p>
 
   <h2 id="events">Every event, with its fields</h2>
-  <p>Names are <code>snake_case</code> verbs in the past tense where something happened and nouns where something is described. Fields common to a family are listed once at the top of it. Times are seconds into the run (<code>t</code>) unless named otherwise; ids are the content ids from the JSON folders, so a dashboard and the data speak the same names.</p>
+  <p>Names are <code>snake_case</code>; times are seconds of play (<code>t</code>) unless named; ids are the content ids, so a board and the JSON folders speak the same names. Every run event also carries the run labels above.</p>
 
   <h3>App and session</h3>
   <div class="tbl"><table>
     <thead><tr><th>Event</th><th>When</th><th>Fields</th><th>Answers</th></tr></thead>
     <tbody>
-      <tr><td class="ev">app_open</td><td>The app starts or comes back after 5 min away</td><td class="props">cold: bool, load_ms, first_launch: bool, save_runs (runs in the save), gold_banked</td><td>Sessions, retention, load time by device</td></tr>
-      <tr><td class="ev">app_background</td><td>Android pauses the app</td><td class="props">session_s, in_run: bool, run_t</td><td>Session length; how often a run is interrupted mid-way</td></tr>
-      <tr><td class="ev">consent</td><td>The first-launch line is answered</td><td class="props">accepted: bool</td><td>Opt-out rate (the denominator for everything)</td></tr>
-      <tr><td class="ev">settings_changed</td><td>Any setting is set</td><td class="props">key, value, from_screen (settings | pause)</td><td>Whether the five volume steps, joystick size and the top inset get used</td></tr>
-      <tr><td class="ev">screen_opened</td><td>A hub screen opens</td><td class="props">screen (title | collection | mirror | settings | results | dev), tab</td><td>Where menu time goes; whether the Collection is read</td></tr>
-      <tr><td class="ev">hint_shown</td><td>A first-play hint appears</td><td class="props">hint_id, run_t, resolved_ms (walk found, XP taken)</td><td>Whether the hints teach the joystick in the first seconds</td></tr>
-      <tr><td class="ev">pause_opened</td><td>The pause screen opens</td><td class="props">by (disc | strip_tap | system), run_t, resumed_ms, tab_opened</td><td>Accidental pauses from the strip; the Stats tab's use</td></tr>
+      <tr><td class="ev">app_open</td><td>The app starts, or comes back after 5 min away</td><td class="props">cold, first_launch, runs, gold; away_s when it comes back</td><td>Sessions; retention later</td></tr>
+      <tr><td class="ev">app_background</td><td>Android takes the app off the screen, or it quits</td><td class="props">session_s, in_run, quit</td><td>Session length; runs interrupted mid-way</td></tr>
     </tbody>
   </table></div>
 
   <h3>The run</h3>
-  <p>Every run event carries the super properties <code>run_id</code> (a UUID), <code>hero</code>, <code>map</code> and <code>stage</code>.</p>
   <div class="tbl"><table>
     <thead><tr><th>Event</th><th>When</th><th>Fields</th><th>Answers</th></tr></thead>
     <tbody>
-      <tr><td class="ev">run_start</td><td>PLAY on the title, after the starter pick</td><td class="props">starter_weapon, starter_offer[3], talents {id: rank}, talent_forms {id: form}, gold_before, runs_before, heroes_unlocked[]</td><td>Hero and starter popularity; the meta's state at each run</td></tr>
-      <tr><td class="ev">level_up</td><td>A level-up offer is settled</td><td class="props">level, t, offer[] {id, kind, level_to, rarity}, picked, rerolled: bool, skipped: bool, banished, decision_ms, weapons_held, passives_held, lines_held</td><td>Pick rates, banish rates, what wins against what, how long a choice takes</td></tr>
-      <tr><td class="ev">path_offer</td><td>A weapon's path table is shown</td><td class="props">weapon, t, offer[] (mutation ids), picked, decision_ms</td><td>Which paths are taken and which never</td></tr>
-      <tr><td class="ev">chest_opened</td><td>The reel stops</td><td class="props">t, boss_chest: bool, result_kind (weapon | passive | evolution | mutation | gold), result_id, taken: bool (else sold), gold_if_sold</td><td>Take against sell, evolution timing</td></tr>
-      <tr><td class="ev">evolved</td><td>A weapon or line evolves</td><td class="props">from_id, into_id, t, level</td><td>How early builds come online</td></tr>
-      <tr><td class="ev">structure_used</td><td>A structure fires</td><td class="props">structure_id, t, outcome (the Stranger's deal, the bank's sum, the teleport's distance)</td><td>Which structures matter; the Stranger's take rate</td></tr>
-      <tr><td class="ev">pickup_taken</td><td>A power-up is picked up</td><td class="props">pickup_id, t, hp_frac</td><td>Whether Berserk and the Nuke land when they are needed</td></tr>
-      <tr><td class="ev">boss_started</td><td>A boss comes up</td><td class="props">boss_id, t, level, weapons[], hp_frac</td><td>Reach rate per boss</td></tr>
-      <tr><td class="ev">boss_killed</td><td>A boss dies</td><td class="props">boss_id, t, fight_s, hp_lost, hits_taken, revives_used, level</td><td>Fight length and cost; the Brander's ring against the others</td></tr>
-      <tr><td class="ev">elite_killed</td><td>An Elite dies</td><td class="props">elite_id, t, fight_s</td><td>Elite difficulty</td></tr>
-      <tr><td class="ev">stage_cleared</td><td>The portal dialog is answered</td><td class="props">stage, t, choice (extract | continue | stay), decision_ms, gold, level, kills, hp_frac</td><td>The extract rate per stage; whether the numbers on the card sway the choice</td></tr>
-      <tr><td class="ev">endless_wave</td><td>A new endless wave begins</td><td class="props">wave, mult, alive, level, hp_frac</td><td>How far endless holds up; where it turns into a wall</td></tr>
-      <tr><td class="ev">damage_summary</td><td>Every stage end and at death</td><td class="props">stage, hits_by_kind {creature_id: {hits, damage}}, hits_by_type {melee, ranged, boss}, evaded, shielded, healed</td><td>What actually hurts, per stage, without an event per hit</td></tr>
-      <tr><td class="ev">player_died</td><td>The hero falls</td><td class="props">t, stage, wave, level, killed_by, kind, last_hits[5] (the damage log's tail), max_hp, dr, weapons[] {id, level, mutations[]}, passives{}, lines{}, perks[], gold, alive, fps_1s</td><td>The death heatmap; killers; the builds that fail</td></tr>
-      <tr><td class="ev">revive_decided</td><td>The revive screen is answered</td><td class="props">choice (free | gold | give_up | timeout | debug), chances_left, gold, decision_ms</td><td>Whether the paid revive is ever taken; the ad slot's value</td></tr>
-      <tr><td class="ev">run_end</td><td>The run ends, any way</td><td class="props">result (extract | death | abandon), t, stage, wave, level, kills, gold_banked, gold_before, damage_by_weapon {id: total} (top 5), build (weapons, passives, lines, perks, mutations), best_before {time, stage}, new_best: bool</td><td>Everything the results screen knows; the one row per run every chart starts from</td></tr>
+      <tr><td class="ev">run_start</td><td>The hero lands</td><td class="props">start_weapon, talents {id: rank}, talent_forms, gold_before, runs_before, seed</td><td>Hero popularity; the meta's state at each run</td></tr>
+      <tr><td class="ev">level_up, path_offer</td><td>A level-up's (or a mutation offer's) cards are settled</td><td class="props">t, clock, level, picked ("" on a skip), cards[], kinds[], levels[], skipped, skips_left, rerolls, banished[], decision_ms; path_offer adds weapon</td><td>Offer rate against pick rate; what is skipped; how long a pick takes</td></tr>
+      <tr><td class="ev">item_picked</td><td>An item joins the build, by any route</td><td class="props">t, id, level, item_kind (weapon | passive | mutation | perk | evolution | passive_evolution), new, via (card | path | chest | boss_chest | stranger | shop | starter | debug), est_before, est_after; from (evolutions), weapon and hero_mutation (mutations)</td><td>How builds grow; what each pick did to the estimated DPS</td></tr>
+      <tr><td class="ev">card_banished</td><td>A banish is spent</td><td class="props">t, id, where (cards | chest), roll</td><td>What players refuse</td></tr>
+      <tr><td class="ev">chest_opened</td><td>A chest is answered</td><td class="props">t, id, level, roll, taken, skipped, skips_left, boss</td><td>Chest value; evolution timing</td></tr>
+      <tr><td class="ev">structure_used</td><td>A structure fires</td><td class="props">t, id, effect</td><td>Which structures matter</td></tr>
+      <tr><td class="ev">pickup_taken</td><td>A power-up is picked up (cake slices and coin bags are counted in the summary instead)</td><td class="props">t, id, effect</td><td>Whether Berserk and the Nuke land when needed</td></tr>
+      <tr><td class="ev">elite_spawned</td><td>An Elite arrives</td><td class="props">t, id</td><td>Elite pacing</td></tr>
+      <tr><td class="ev">boss_started, boss_killed</td><td>A boss comes up, a boss dies</td><td class="props">t, boss</td><td>Reach rate; fight length (the two t apart)</td></tr>
+      <tr><td class="ev">stage_started, portal_reached, stage_cleared</td><td>A stage begins, the portal opens, the portal is answered</td><td class="props">t, stage; stage_cleared: choice (continue | extract | stay)</td><td>The extract rate per stage; how long portals wait</td></tr>
+      <tr><td class="ev">endless_wave</td><td>An endless wave begins</td><td class="props">t, wave</td><td>How deep endless goes</td></tr>
+      <tr><td class="ev">player_died</td><td>The hero falls</td><td class="props">t, killer (creature id), killer_kind (melee | ranged | boss), level, kills, gold, wave, weapons [{id, level}]</td><td>The death map; the killers</td></tr>
+      <tr><td class="ev">revive_chosen</td><td>Down! is answered</td><td class="props">t, choice</td><td>Whether a revive is ever bought</td></tr>
+      <tr><td class="ev">quest_completed</td><td>A quest unlocks an item or a hero</td><td class="props">t, quest</td><td>Unlock pacing</td></tr>
+      <tr><td class="ev">run_end</td><td>The run ends, any way</td><td class="props">result (extract | death | abandon | quit | end), t, clock, stage, wave, level, kills, gold, banked, strongbox, revives</td><td>The one row per run every chart starts from</td></tr>
+      <tr><td class="ev">run_summary</td><td>With run_end</td><td class="props">per minute of play: m_secs, m_stage, m_level, m_alive, m_cap, m_spawned, m_killed, m_press, m_press_hp, m_press_dmg, m_est, m_dmg, m_hp, m_took, m_hits, m_low_s, m_gold; totals (top 10 each): dmg_by_weapon, est_by_weapon, took_by_creature, spawned_by_creature, killed_by_creature; evaded, shielded, healed, small_pickups; fps_avg, fps_low</td><td>Your local dashboard's curves, from every phone</td></tr>
+      <tr><td class="ev">debug_item</td><td>The debug hand gives an item (dev runs only)</td><td class="props">t, id, level, item_kind</td><td>Keeps test builds apart in the data</td></tr>
     </tbody>
   </table></div>
 
-  <h3>The meta</h3>
+<h3>Later</h3>
   <div class="tbl"><table>
     <thead><tr><th>Event</th><th>When</th><th>Fields</th><th>Answers</th></tr></thead>
     <tbody>
-      <tr><td class="ev">talent_bought</td><td>A rank is bought at the Mirror</td><td class="props">talent_id, form, rank, cost, gold_after, runs_since_last</td><td>Spend order, forms chosen, how long gold sits</td></tr>
-      <tr><td class="ev">talent_refunded</td><td>Refund all</td><td class="props">refunded_gold, ranks_total</td><td>Whether respec is used to try builds</td></tr>
-      <tr><td class="ev">hero_viewed</td><td>The carousel lands on a hero for 1 s+</td><td class="props">hero_id, locked: bool, dwell_ms</td><td>Whether locked heroes are looked at (the quest text's pull)</td></tr>
-      <tr><td class="ev">quest_completed</td><td>A quest finishes</td><td class="props">quest_id, unlock_type, unlock_id, runs_taken</td><td>Unlock pacing</td></tr>
-      <tr><td class="ev">collection_item_opened</td><td>An item page opens</td><td class="props">item_id, kind, found: bool</td><td>What players read up on</td></tr>
+      <tr><td class="ev">talent_bought</td><td>An Upgrade rank is bought</td><td class="props">talent_id, form, rank, cost, gold_after</td><td>Spend order, how long gold sits</td></tr>
+      <tr><td class="ev">look_kept</td><td>A hero look is kept in the arena</td><td class="props">hero, look</td><td>Which looks win</td></tr>
+      <tr><td class="ev">consent</td><td>The first-launch line is answered (before the Play Store)</td><td class="props">accepted</td><td>The opt-out rate</td></tr>
+      <tr><td class="ev">script_error</td><td>A script error in the field</td><td class="props">hash, file, line, message (200 chars), t</td><td>Bugs players hit</td></tr>
+      <tr><td class="ev">perf_slow</td><td>A frame over 100 ms (at most 5 a run)</td><td class="props">ms, t, context</td><td>Hitches: chest open, boss spawn</td></tr>
     </tbody>
   </table></div>
 
-  <h3>Technical</h3>
-  <div class="tbl"><table>
-    <thead><tr><th>Event</th><th>When</th><th>Fields</th><th>Answers</th></tr></thead>
-    <tbody>
-      <tr><td class="ev">perf_sample</td><td>Every 15 s of play</td><td class="props">t, stage, fps_avg, fps_low1 (1% low), worst_ms, ms {director, enemies, projectiles, pickups, fx, hud}, alive, projectiles, draw_calls, mem_mb, battery_saver: bool</td><td>Frame time by device and stage; which system to optimise next</td></tr>
-      <tr><td class="ev">slow_frame</td><td>A frame over 100 ms (at most 5 a run)</td><td class="props">ms, t, ctx (Perf.context), parts{}</td><td>The hitches: chest open, boss spawn, evolution</td></tr>
-      <tr><td class="ev">script_error</td><td>A script error is caught in the field</td><td class="props">hash (of file:line), file, line, message (200 chars), breadcrumb, t</td><td>Bugs players hit and the state they were in</td></tr>
-      <tr><td class="ev">unclean_exit</td><td>On launch, when the last run's breadcrumb was not followed by run_end</td><td class="props">breadcrumb (the last line), app_version, device</td><td>Crashes and kills, with the last thing the run did</td></tr>
-      <tr><td class="ev">install_failed_check</td><td>The APK's signature or version check fails</td><td class="props">expected, found</td><td>Side-load problems from the Drive route</td></tr>
-    </tbody>
-  </table></div>
-
-  <h3>One event as sent</h3>
+  <h3>One run_summary as sent</h3>
 <pre><code>{
-  "event": "player_died",
+  "event": "run_summary",
   "distinct_id": "0f1c8e2a-6d3b-4a7f-9b1e-2c5d8a9e4f10",
-  "timestamp": "2026-10-01T18:42:07Z",
   "properties": {
-    "schema": 1, "app_version": "0.29", "os": "Android", "os_version": "14", "device": "Pixel 7a",
-    "screen": "1080x2400", "top_inset": 118, "session_id": "8b0…", "run_id": "c41…",
-    "hero": "calavera", "map": "red_canyon", "stage": 3,
-    "t": 741.6, "wave": 0, "level": 24, "killed_by": "hammer_giant", "kind": "melee",
-    "last_hits": [{"by": "Hellhound", "dealt": 22}, {"by": "Imp", "dealt": 14}, {"by": "Hammer Giant", "dealt": 61, "fx": ["slam", "knocked back"]}],
-    "max_hp": 118, "dr": 0.11,
-    "weapons": [{"id": "guitarra", "level": 7, "mutations": ["ember_chord", "power_chord"]}, {"id": "skull_rain", "level": 8, "mutations": ["plague", "danza_macabra"]}],
-    "passives": {"deadeye": 3, "magnet": 2, "brimstone_brand": 1}, "lines": {"vigour": 3}, "perks": ["crescendo"],
-    "gold": 412, "alive": 187, "fps_1s": 41
+    "schema": 1, "app_version": "0.43", "dev": true, "device": "SM-S918B",
+    "run_id": "c41…", "hero": "solenne", "hero_look": "SOL-B", "map": "red_canyon", "map_rev": "7f3a91c2", "stage": 2,
+    "result": "death", "t": 642.0,
+    "m_cap":     [10, 27, 38, 80, 85, 75, 100, 100, 54, 98, 102],
+    "m_alive":   [ 8, 25, 36, 74, 82, 71,  96,  98, 50, 90,  95],
+    "m_spawned": [14, 41, 52, 96, 88, 79, 104,  92, 61, 99, 108],
+    "m_killed":  [ 6, 24, 50, 58, 85, 83, 100,  90, 70, 91, 103],
+    "m_press":   [0.2, 0.9, 1.6, 4.8, 5.1, 4.4, 7.9, 8.2, 4.1, 9.6, 11.0],
+    "m_est":     [21, 38, 55, 70, 88, 104, 131, 140, 152, 160, 171],
+    "m_hp":      [1.0, 1.0, 0.92, 0.61, 0.7, 0.84, 0.38, 0.55, 0.9, 0.42, 0.0],
+    "dmg_by_weapon": {"sun_scepter": 41250, "boomstick": 18840},
+    "took_by_creature": {"werewolf": 612, "lesser_scorpion": 402, "fire_ant": 220},
+    "fps_avg": 58, "fps_low": 41
   }
 }</code></pre>
+  <p class="note">Example numbers. Eleven entries is eleven minutes of play; PostHog's SQL can unroll the arrays into one row per minute, so a board can draw the median and the spread of every curve, per stage, per hero or per <code>map_rev</code>.</p>
 
-  <h2 id="dashboards">The dashboards, with what they will look like</h2>
-  <p>Six boards in PostHog, each a handful of insights. The charts below are drawn from <span class="example">invented example numbers</span> to show the shape of each view; the real ones fill in once events flow. Every one is a standard PostHog insight (trend, funnel, retention, breakdown) over the fields above, so nothing needs custom code.</p>
+  <h2 id="dashboards">The boards, with what they will look like</h2>
+  <p>Seven boards and the pulse. Each chart below is drawn from <span class="example">invented example numbers</span> to show its shape; the real ones fill in once events flow.</p>
 
-  <h3>Board 1 · Retention and sessions</h3>
+  <h3>Board 1 · Level Editor versions</h3>
   <div class="charts">
     <figure>
-      <svg viewBox="0 0 360 220" role="img" aria-label="Example retention curve: share of installs still playing by day since install">
-        <g fill="none" stroke="var(--chart-grid)" stroke-width="1">
-          <line x1="44" y1="20" x2="44" y2="180"/><line x1="44" y1="180" x2="340" y2="180"/>
-          <line x1="44" y1="140" x2="340" y2="140"/><line x1="44" y1="100" x2="340" y2="100"/><line x1="44" y1="60" x2="340" y2="60"/><line x1="44" y1="20" x2="340" y2="20"/>
-        </g>
-        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-soft)">
-          <text x="38" y="184" text-anchor="end">0%</text><text x="38" y="144" text-anchor="end">25%</text><text x="38" y="104" text-anchor="end">50%</text><text x="38" y="64" text-anchor="end">75%</text><text x="38" y="24" text-anchor="end">100%</text>
-          <text x="44" y="198" text-anchor="middle">D0</text><text x="84" y="198" text-anchor="middle">D1</text><text x="124" y="198" text-anchor="middle">D3</text><text x="164" y="198" text-anchor="middle">D7</text><text x="224" y="198" text-anchor="middle">D14</text><text x="340" y="198" text-anchor="middle">D30</text>
-        </g>
-        <path d="M44 20 L84 116 L124 141 L164 151 L224 160 L340 167" fill="none" stroke="var(--brass)" stroke-width="3"/>
-        <g fill="var(--brass)"><circle cx="44" cy="20" r="4"/><circle cx="84" cy="116" r="4"/><circle cx="124" cy="141" r="4"/><circle cx="164" cy="151" r="4"/><circle cx="224" cy="160" r="4"/><circle cx="340" cy="167" r="4"/></g>
-        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink)"><text x="90" y="110">40%</text><text x="130" y="135">24%</text><text x="170" y="146">18%</text><text x="230" y="156">12%</text><text x="318" y="160">8%</text></g>
-        <text x="340" y="212" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">days since install</text>
+      <svg viewBox="0 0 360 230" role="img" aria-label="Example: deaths per minute of play for two Level Editor versions">
+        <g fill="none" stroke="var(--chart-grid)" stroke-width="1"><line x1="44" y1="20" x2="44" y2="180"/><line x1="44" y1="180" x2="340" y2="180"/><line x1="44" y1="100" x2="340" y2="100"/></g>
+        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-soft)"><text x="38" y="184" text-anchor="end">0%</text><text x="38" y="104" text-anchor="end">10%</text><text x="38" y="24" text-anchor="end">20%</text>
+          <text x="44" y="196" text-anchor="middle">0</text><text x="118" y="196" text-anchor="middle">3</text><text x="192" y="196" text-anchor="middle">6</text><text x="266" y="196" text-anchor="middle">9</text><text x="340" y="196" text-anchor="middle">12</text></g>
+        <path d="M44 176 L80 172 L118 160 L155 150 L192 132 L229 124 L266 92 L303 120 L340 104" fill="none" stroke="var(--aged)" stroke-width="3"/>
+        <path d="M44 176 L80 164 L118 128 L155 140 L192 120 L229 100 L266 70 L303 96 L340 80" fill="none" stroke="var(--rock)" stroke-width="3"/>
+        <g font-family="Bitter, serif" font-size="11"><text x="60" y="40" fill="var(--aged)">7f3a91c2 · before</text><text x="60" y="56" fill="var(--rock)">b21c044e · after the cap spike</text></g>
+        <text x="340" y="214" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">minute of play · share of runs ending in a death that minute</text>
       </svg>
-      <figcaption><b>Retention curve.</b> A PostHog retention insight on <code>app_open</code>, first-touch cohorts by install week. <span class="example">Example figures.</span> The 40% day-1 shown is the genre's good mark; under 25% means the first run is not landing.</figcaption>
+      <figcaption><b>Before and after an editor save.</b> <code>player_died.t</code> by minute, one line per <code>map_rev</code>. <span class="example">Example figures.</span> The second version's rush at 2:03 shows as a jump in deaths two minutes in.</figcaption>
     </figure>
     <figure>
-      <svg viewBox="0 0 360 220" role="img" aria-label="Example histogram of session length in minutes">
-        <g fill="none" stroke="var(--chart-grid)" stroke-width="1"><line x1="44" y1="180" x2="340" y2="180"/><line x1="44" y1="20" x2="44" y2="180"/><line x1="44" y1="100" x2="340" y2="100"/></g>
-        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-soft)"><text x="38" y="184" text-anchor="end">0</text><text x="38" y="104" text-anchor="end">20%</text><text x="38" y="24" text-anchor="end">40%</text></g>
-        <g fill="var(--sage)">
-          <rect x="52" y="124" width="30" height="56"/><rect x="88" y="68" width="30" height="112"/><rect x="124" y="52" width="30" height="128"/><rect x="160" y="92" width="30" height="88"/><rect x="196" y="132" width="30" height="48"/><rect x="232" y="156" width="30" height="24"/><rect x="268" y="164" width="30" height="16"/><rect x="304" y="172" width="30" height="8"/>
+      <svg viewBox="0 0 360 230" role="img" aria-label="Example table of Level Editor versions with runs, extract rate and level at the first boss">
+        <g font-family="Bitter, serif" font-size="11" fill="var(--ink-soft)"><text x="12" y="30">map_rev</text><text x="120" y="30">runs</text><text x="180" y="30">extract</text><text x="250" y="30">level at the King</text></g>
+        <line x1="12" y1="38" x2="348" y2="38" stroke="var(--rule)"/>
+        <g font-family="JetBrains Mono, monospace" font-size="11" fill="var(--ink)">
+          <text x="12" y="62">b21c044e</text><text x="120" y="62">14</text><text x="180" y="62" fill="var(--rock)">21%</text><text x="250" y="62">19</text>
+          <text x="12" y="88">7f3a91c2</text><text x="120" y="88">22</text><text x="180" y="88">36%</text><text x="250" y="88">21</text>
+          <text x="12" y="114">e09d3b17</text><text x="120" y="114">9</text><text x="180" y="114" fill="var(--sage)">48%</text><text x="250" y="114">22</text>
         </g>
-        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-soft)">
-          <text x="67" y="198" text-anchor="middle">&lt;3</text><text x="103" y="198" text-anchor="middle">3-6</text><text x="139" y="198" text-anchor="middle">6-10</text><text x="175" y="198" text-anchor="middle">10-15</text><text x="211" y="198" text-anchor="middle">15-20</text><text x="247" y="198" text-anchor="middle">20-30</text><text x="283" y="198" text-anchor="middle">30-45</text><text x="319" y="198" text-anchor="middle">45+</text>
-        </g>
-        <text x="340" y="212" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">minutes per session</text>
+        <text x="12" y="150" font-family="Bitter, serif" font-size="11" fill="var(--ink-soft)">newest first; a version with fewer than 10 runs is greyed</text>
       </svg>
-      <figcaption><b>Session length.</b> From <code>app_background.session_s</code>. <span class="example">Example figures.</span> A peak at 6 to 10 minutes matches one run to the first boss; a second bump at 15 to 20 would mean players push into stage 2.</figcaption>
+      <figcaption><b>The versions side by side.</b> <code>run_end</code> grouped by <code>map_rev</code>. <span class="example">Example figures.</span> One glance says whether the last save went the way you meant.</figcaption>
     </figure>
   </div>
 
-  <h3>Board 2 · The run funnel and where it breaks</h3>
+  <h3>Board 2 · The run's curves</h3>
   <div class="charts">
     <figure>
-      <svg viewBox="0 0 360 250" role="img" aria-label="Example funnel of runs reaching each milestone">
-        <g font-family="Bitter, serif" font-size="11" fill="var(--ink)">
-          <text x="8" y="30">run started</text><text x="8" y="60">1:00 alive</text><text x="8" y="90">King (5:00)</text><text x="8" y="120">stage 2</text><text x="8" y="150">Gila (10:00)</text><text x="8" y="180">stage 3</text><text x="8" y="210">Brander</text><text x="8" y="240">extracted</text>
-        </g>
-        <g fill="var(--rock)">
-          <rect x="100" y="18" width="240" height="18"/><rect x="100" y="48" width="221" height="18"/><rect x="100" y="78" width="132" height="18"/><rect x="100" y="108" width="98" height="18"/><rect x="100" y="138" width="46" height="18"/><rect x="100" y="168" width="29" height="18"/><rect x="100" y="198" width="12" height="18"/>
-        </g>
-        <rect x="100" y="228" width="72" height="18" fill="var(--sage)"/>
-        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink)">
-          <text x="344" y="31" text-anchor="end">100%</text><text x="326" y="61">92%</text><text x="237" y="91">55%</text><text x="203" y="121">41%</text><text x="151" y="151">19%</text><text x="134" y="181">12%</text><text x="117" y="211">5%</text><text x="177" y="241">30% (any stage)</text>
-        </g>
+      <svg viewBox="0 0 360 230" role="img" aria-label="Example: median creatures alive against the live cap per minute, with a band for the middle half of runs">
+        <g fill="none" stroke="var(--chart-grid)" stroke-width="1"><line x1="44" y1="20" x2="44" y2="180"/><line x1="44" y1="180" x2="340" y2="180"/></g>
+        <path d="M44 172 L74 150 L104 136 L134 104 L164 100 L194 108 L224 76 L254 72 L284 116 L314 80 L340 76 L340 98 L314 102 L284 132 L254 92 L224 98 L194 124 L164 118 L134 124 L104 150 L74 160 L44 176 Z" fill="var(--sage)" opacity="0.25"/>
+        <path d="M44 174 L74 155 L104 143 L134 114 L164 109 L194 116 L224 87 L254 82 L284 124 L314 91 L340 87" fill="none" stroke="var(--sage)" stroke-width="3"/>
+        <path d="M44 172 L74 148 L104 134 L134 98 L164 92 L194 104 L224 70 L254 70 L284 112 L314 74 L340 70" fill="none" stroke="var(--ink)" stroke-width="2" stroke-dasharray="6 4"/>
+        <g font-family="Bitter, serif" font-size="11"><text x="54" y="36" fill="var(--ink)">dashed: the live cap</text><text x="54" y="52" fill="var(--sage)">line: median alive · band: middle half of runs</text></g>
+        <text x="340" y="214" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">minute of play (from m_alive and m_cap)</text>
       </svg>
-      <figcaption><b>Run funnel.</b> A PostHog funnel over <code>run_start</code>, <code>boss_started</code> and <code>stage_cleared</code>, per run id. <span class="example">Example figures.</span> The step from the King to the Gila is where a wall would show; the last bar is the extract rate at any stage, the number the gold economy is tuned on.</figcaption>
+      <figcaption><b>Is the crowd at the cap?</b> A gap under the dashed line means creatures die faster than the director tops them up: the build outruns the pacing there. <span class="example">Example figures.</span></figcaption>
     </figure>
     <figure>
-      <svg viewBox="0 0 360 250" role="img" aria-label="Example heatmap of deaths by run minute and stage">
+      <svg viewBox="0 0 360 230" role="img" aria-label="Example: median crowd pressure against the build's estimated damage per minute">
+        <g fill="none" stroke="var(--chart-grid)" stroke-width="1"><line x1="44" y1="20" x2="44" y2="180"/><line x1="44" y1="180" x2="340" y2="180"/></g>
+        <path d="M44 176 L74 170 L104 162 L134 140 L164 136 L194 140 L224 110 L254 104 L284 132 L314 92 L340 80" fill="none" stroke="var(--rock)" stroke-width="3"/>
+        <path d="M44 172 L74 160 L104 148 L134 136 L164 124 L194 112 L224 96 L254 88 L284 80 L314 74 L340 66" fill="none" stroke="var(--brass)" stroke-width="3"/>
+        <g font-family="Bitter, serif" font-size="11"><text x="54" y="36" fill="var(--rock)">red: the crowd's pressure</text><text x="54" y="52" fill="var(--brass)">brass: the build's estimated damage</text></g>
+        <text x="340" y="214" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">minute of play (m_press, m_est), both scaled to their median at 5:00</text>
+      </svg>
+      <figcaption><b>Power against pressure.</b> Your local dashboard's main chart, as the median run. Where red climbs over brass the run starts to hurt. <span class="example">Example figures.</span></figcaption>
+    </figure>
+  </div>
+
+  <h3>Board 3 · Deaths</h3>
+  <div class="charts">
+    <figure>
+      <svg viewBox="0 0 360 250" role="img" aria-label="Example heatmap of deaths by stage and minute">
         <g font-family="Bitter, serif" font-size="11" fill="var(--ink)"><text x="8" y="52">stage 1</text><text x="8" y="92">stage 2</text><text x="8" y="132">stage 3</text><text x="8" y="172">endless</text></g>
         <g>
-          <rect x="70" y="36" width="50" height="30" fill="var(--rock)" opacity="0.15"/><rect x="124" y="36" width="50" height="30" fill="var(--rock)" opacity="0.35"/><rect x="178" y="36" width="50" height="30" fill="var(--rock)" opacity="0.55"/><rect x="232" y="36" width="50" height="30" fill="var(--rock)" opacity="0.5"/><rect x="286" y="36" width="50" height="30" fill="var(--rock)" opacity="0.8"/>
-          <rect x="70" y="76" width="50" height="30" fill="var(--rock)" opacity="0.7"/><rect x="124" y="76" width="50" height="30" fill="var(--rock)" opacity="0.5"/><rect x="178" y="76" width="50" height="30" fill="var(--rock)" opacity="0.45"/><rect x="232" y="76" width="50" height="30" fill="var(--rock)" opacity="0.6"/><rect x="286" y="76" width="50" height="30" fill="var(--rock)" opacity="1"/>
-          <rect x="70" y="116" width="50" height="30" fill="var(--rock)" opacity="0.9"/><rect x="124" y="116" width="50" height="30" fill="var(--rock)" opacity="0.6"/><rect x="178" y="116" width="50" height="30" fill="var(--rock)" opacity="0.4"/><rect x="232" y="116" width="50" height="30" fill="var(--rock)" opacity="0.45"/><rect x="286" y="116" width="50" height="30" fill="var(--rock)" opacity="0.7"/>
-          <rect x="70" y="156" width="50" height="30" fill="var(--rock)" opacity="0.3"/><rect x="124" y="156" width="50" height="30" fill="var(--rock)" opacity="0.4"/><rect x="178" y="156" width="50" height="30" fill="var(--rock)" opacity="0.55"/><rect x="232" y="156" width="50" height="30" fill="var(--rock)" opacity="0.7"/><rect x="286" y="156" width="50" height="30" fill="var(--rock)" opacity="0.85"/>
+          <rect x="70" y="36" width="36" height="30" fill="var(--rock)" opacity="0.12"/><rect x="108" y="36" width="36" height="30" fill="var(--rock)" opacity="0.4"/><rect x="146" y="36" width="36" height="30" fill="var(--rock)" opacity="0.35"/><rect x="184" y="36" width="36" height="30" fill="var(--rock)" opacity="0.3"/><rect x="222" y="36" width="36" height="30" fill="var(--rock)" opacity="0.45"/><rect x="260" y="36" width="36" height="30" fill="var(--rock)" opacity="0.5"/><rect x="298" y="36" width="36" height="30" fill="var(--rock)" opacity="0.85"/>
+          <rect x="70" y="76" width="36" height="30" fill="var(--rock)" opacity="0.6"/><rect x="108" y="76" width="36" height="30" fill="var(--rock)" opacity="0.4"/><rect x="146" y="76" width="36" height="30" fill="var(--rock)" opacity="0.45"/><rect x="184" y="76" width="36" height="30" fill="var(--rock)" opacity="0.5"/><rect x="222" y="76" width="36" height="30" fill="var(--rock)" opacity="0.7"/><rect x="260" y="76" width="36" height="30" fill="var(--rock)" opacity="0.3"/><rect x="298" y="76" width="36" height="30" fill="var(--rock)" opacity="1"/>
+          <rect x="70" y="116" width="36" height="30" fill="var(--rock)" opacity="0.9"/><rect x="108" y="116" width="36" height="30" fill="var(--rock)" opacity="0.6"/><rect x="146" y="116" width="36" height="30" fill="var(--rock)" opacity="0.45"/><rect x="184" y="116" width="36" height="30" fill="var(--rock)" opacity="0.4"/><rect x="222" y="116" width="36" height="30" fill="var(--rock)" opacity="0.5"/><rect x="260" y="116" width="36" height="30" fill="var(--rock)" opacity="0.55"/><rect x="298" y="116" width="36" height="30" fill="var(--rock)" opacity="0.8"/>
+          <rect x="70" y="156" width="36" height="30" fill="var(--rock)" opacity="0.3"/><rect x="108" y="156" width="36" height="30" fill="var(--rock)" opacity="0.35"/><rect x="146" y="156" width="36" height="30" fill="var(--rock)" opacity="0.5"/><rect x="184" y="156" width="36" height="30" fill="var(--rock)" opacity="0.6"/><rect x="222" y="156" width="36" height="30" fill="var(--rock)" opacity="0.7"/><rect x="260" y="156" width="36" height="30" fill="var(--rock)" opacity="0.8"/><rect x="298" y="156" width="36" height="30" fill="var(--rock)" opacity="0.9"/>
         </g>
-        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-soft)"><text x="95" y="204" text-anchor="middle">0-1</text><text x="149" y="204" text-anchor="middle">1-2</text><text x="203" y="204" text-anchor="middle">2-3</text><text x="257" y="204" text-anchor="middle">3-4</text><text x="311" y="204" text-anchor="middle">4-5</text></g>
-        <text x="340" y="224" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">minute into the stage · darker = more deaths</text>
-        <g font-family="JetBrains Mono, monospace" font-size="9" fill="var(--paper)"><text x="311" y="95" text-anchor="middle">31%</text><text x="95" y="135" text-anchor="middle">22%</text></g>
+        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-soft)"><text x="88" y="204" text-anchor="middle">0-1</text><text x="164" y="204" text-anchor="middle">2-3</text><text x="240" y="204" text-anchor="middle">4-5</text><text x="316" y="204" text-anchor="middle">6-7</text></g>
+        <text x="340" y="224" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">minute into the stage (7:10 stages) · darker = more deaths</text>
       </svg>
-      <figcaption><b>Death heatmap.</b> <code>player_died</code> broken down by <code>stage</code> and the minute of <code>t</code> within it (a HogQL table). <span class="example">Example figures.</span> A dark last minute of stage 2 is the Gila; a dark first minute of stage 3 is the hell crowd's arrival, which this pass just doubled.</figcaption>
+      <figcaption><b>Death heatmap.</b> <code>player_died</code> by stage and minute. <span class="example">Example figures.</span> A dark last column of stage 2 is the Gila; a dark first column of stage 3 is the hell crowd's arrival.</figcaption>
+    </figure>
+    <figure>
+      <svg viewBox="0 0 360 230" role="img" aria-label="Example share of deaths by killer">
+        <g font-family="Bitter, serif" font-size="11" fill="var(--ink)"><text x="8" y="32">Werewolf</text><text x="8" y="58">Gila Grande</text><text x="8" y="84">Lesser Scorpion</text><text x="8" y="110">Hammer Giant</text><text x="8" y="136">Vulture Raider</text><text x="8" y="162">The Brander</text><text x="8" y="188">Stone Golem</text><text x="8" y="214">others</text></g>
+        <g fill="var(--plum)"><rect x="122" y="20" width="160" height="16"/><rect x="122" y="46" width="128" height="16"/><rect x="122" y="72" width="104" height="16"/><rect x="122" y="98" width="86" height="16"/><rect x="122" y="124" width="64" height="16"/><rect x="122" y="150" width="46" height="16"/><rect x="122" y="176" width="40" height="16"/><rect x="122" y="202" width="70" height="16"/></g>
+        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink)"><text x="286" y="32">22%</text><text x="254" y="58">18%</text><text x="230" y="84">14%</text><text x="212" y="110">12%</text><text x="190" y="136">9%</text><text x="172" y="162">6%</text><text x="166" y="188">5%</text><text x="196" y="214">14%</text></g>
+      </svg>
+      <figcaption><b>Killers.</b> <code>player_died.killed_by</code> as a share, filterable by stage, hero and <code>map_rev</code>. <span class="example">Example figures.</span></figcaption>
     </figure>
   </div>
 
-  <h3>Board 3 · What kills, what wins</h3>
+  <h3>Board 4 · Builds</h3>
   <div class="charts">
     <figure>
-      <svg viewBox="0 0 360 230" role="img" aria-label="Example share of deaths by killer">
-        <g font-family="Bitter, serif" font-size="11" fill="var(--ink)">
-          <text x="8" y="32">Hammer Giant</text><text x="8" y="58">Gila Grande</text><text x="8" y="84">Hellhound</text><text x="8" y="110">Bull Beetle</text><text x="8" y="136">Rocketeer</text><text x="8" y="162">The Brander</text><text x="8" y="188">Dune Scorpion</text><text x="8" y="214">others</text>
-        </g>
-        <g fill="var(--plum)">
-          <rect x="112" y="20" width="176" height="16"/><rect x="112" y="46" width="132" height="16"/><rect x="112" y="72" width="110" height="16"/><rect x="112" y="98" width="88" height="16"/><rect x="112" y="124" width="66" height="16"/><rect x="112" y="150" width="44" height="16"/><rect x="112" y="176" width="40" height="16"/><rect x="112" y="202" width="72" height="16"/>
-        </g>
-        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink)"><text x="292" y="32">24%</text><text x="248" y="58">18%</text><text x="226" y="84">15%</text><text x="204" y="110">12%</text><text x="182" y="136">9%</text><text x="160" y="162">6%</text><text x="156" y="188">5%</text><text x="188" y="214">11%</text></g>
-      </svg>
-      <figcaption><b>Killers.</b> <code>player_died.killed_by</code> as a share, filterable by stage and hero. <span class="example">Example figures.</span> The giant's slam is new this pass; if it tops this list in stage 2 its 42 damage is the first number to touch.</figcaption>
-    </figure>
-    <figure>
-      <svg viewBox="0 0 360 230" role="img" aria-label="Example scatter of weapon pick rate against extract rate">
+      <svg viewBox="0 0 360 230" role="img" aria-label="Example scatter of item pick rate against extract rate">
         <g fill="none" stroke="var(--chart-grid)" stroke-width="1"><line x1="44" y1="20" x2="44" y2="190"/><line x1="44" y1="190" x2="340" y2="190"/><line x1="44" y1="105" x2="340" y2="105" stroke-dasharray="4 4"/></g>
         <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-soft)"><text x="38" y="194" text-anchor="end">0%</text><text x="38" y="109" text-anchor="end">30%</text><text x="38" y="24" text-anchor="end">60%</text><text x="44" y="208" text-anchor="middle">0%</text><text x="192" y="208" text-anchor="middle">50%</text><text x="340" y="208" text-anchor="middle">100%</text></g>
         <text x="340" y="222" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">pick rate when offered → · extract rate of runs holding it ↑</text>
-        <g fill="var(--brass)" opacity="0.85">
-          <circle cx="284" cy="62" r="11"/><circle cx="230" cy="90" r="9"/><circle cx="200" cy="120" r="8"/><circle cx="150" cy="128" r="7"/><circle cx="120" cy="82" r="6"/><circle cx="92" cy="150" r="6"/><circle cx="70" cy="70" r="5"/><circle cx="255" cy="156" r="8"/>
-        </g>
-        <g font-family="Bitter, serif" font-size="10" fill="var(--ink)">
-          <text x="298" y="58">Orbit Saws</text><text x="242" y="86">Boomstick</text><text x="212" y="124">Peashooter</text><text x="120" y="66">Big Mouth</text><text x="60" y="166">Pike</text><text x="266" y="174">Tommy Gun</text>
-        </g>
+        <g opacity="0.85"><circle cx="284" cy="62" r="11" fill="var(--brass)"/><circle cx="230" cy="96" r="9" fill="var(--brass)"/><circle cx="196" cy="126" r="8" fill="var(--brass)"/><circle cx="116" cy="80" r="7" fill="var(--turquoise)"/><circle cx="90" cy="150" r="6" fill="var(--turquoise)"/><circle cx="70" cy="70" r="6" fill="var(--plum)"/><circle cx="256" cy="156" r="8" fill="var(--plum)"/></g>
+        <g font-family="Bitter, serif" font-size="10" fill="var(--ink)"><text x="298" y="58">Sun Scepter</text><text x="242" y="92">Boomstick</text><text x="208" y="130">Orbit Saws</text><text x="128" y="76">Clover (line)</text><text x="58" y="170">Hot Sauce (line)</text><text x="80" y="62">Cold Snap</text><text x="268" y="174">Hot Streak</text></g>
       </svg>
-      <figcaption><b>Pick against win.</b> X from <code>level_up.offer</code> and <code>picked</code>; Y from <code>run_end.result</code> over runs whose build held the item. <span class="example">Example placements.</span> Top-left (rarely picked, wins when it is) is an item to make more visible; bottom-right (always picked, loses) is one to tune down.</figcaption>
+      <figcaption><b>Pick against win.</b> From <code>level_up</code> and <code>run_end</code>: brass weapons, turquoise lines, plum passive items. <span class="example">Example placements.</span> Top-left is an item to show more; bottom-right one to tune down.</figcaption>
+    </figure>
+    <figure>
+      <svg viewBox="0 0 360 230" role="img" aria-label="Example bars of the most skipped and banished items">
+        <g font-family="Bitter, serif" font-size="11" fill="var(--ink)"><text x="8" y="40">Peashooter</text><text x="8" y="70">Land Mine</text><text x="8" y="100">Ducktape</text><text x="8" y="130">Turret Buddy</text><text x="8" y="160">Siesta</text></g>
+        <g><rect x="110" y="28" width="150" height="16" fill="var(--rock)"/><rect x="110" y="58" width="118" height="16" fill="var(--rock)"/><rect x="110" y="88" width="96" height="16" fill="var(--rock)"/><rect x="110" y="118" width="80" height="16" fill="var(--rock)"/><rect x="110" y="148" width="64" height="16" fill="var(--rock)"/></g>
+        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink)"><text x="264" y="40">31%</text><text x="232" y="70">24%</text><text x="210" y="100">20%</text><text x="194" y="130">17%</text><text x="178" y="160">13%</text></g>
+        <text x="340" y="200" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">share of offers skipped or banished</text>
+      </svg>
+      <figcaption><b>What players refuse.</b> <code>skip</code> and <code>banish</code> by item over the times it was offered. <span class="example">Example figures.</span></figcaption>
     </figure>
   </div>
 
-  <h3>Board 4 · Heroes and builds</h3>
-  <div class="charts">
-    <figure>
-      <svg viewBox="0 0 360 200" role="img" aria-label="Example bars of runs per hero with extract rate">
-        <g fill="none" stroke="var(--chart-grid)" stroke-width="1"><line x1="44" y1="160" x2="340" y2="160"/><line x1="44" y1="20" x2="44" y2="160"/></g>
-        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-soft)"><text x="38" y="164" text-anchor="end">0</text><text x="38" y="94" text-anchor="end">25%</text><text x="38" y="24" text-anchor="end">50%</text></g>
-        <g fill="var(--aged)"><rect x="70" y="34" width="40" height="126"/><rect x="160" y="76" width="40" height="84"/><rect x="250" y="104" width="40" height="56"/></g>
-        <g fill="var(--sage)"><rect x="114" y="82" width="26" height="78"/><rect x="204" y="94" width="26" height="66"/><rect x="294" y="66" width="26" height="94"/></g>
-        <g font-family="Bitter, serif" font-size="11" fill="var(--ink)"><text x="105" y="180" text-anchor="middle">Astro</text><text x="195" y="180" text-anchor="middle">Drifter</text><text x="285" y="180" text-anchor="middle">Calavera</text></g>
-        <g font-family="JetBrains Mono, monospace" font-size="9" fill="var(--ink)"><text x="90" y="30" text-anchor="middle">45%</text><text x="127" y="78" text-anchor="middle">28%</text><text x="180" y="72" text-anchor="middle">30%</text><text x="217" y="90" text-anchor="middle">24%</text><text x="270" y="100" text-anchor="middle">20%</text><text x="307" y="62" text-anchor="middle">34%</text></g>
-        <text x="340" y="196" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">wide bar: share of runs · thin bar: extract rate</text>
-      </svg>
-      <figcaption><b>Heroes.</b> <code>run_start.hero</code> against <code>run_end.result</code>. <span class="example">Example figures.</span> A hero with a low share and a high extract rate is one the title screen is not selling; a high share with a low rate is the default hero carrying beginners.</figcaption>
-    </figure>
-    <figure>
-      <svg viewBox="0 0 360 200" role="img" aria-label="Example distribution of level-up decision time">
-        <g fill="none" stroke="var(--chart-grid)" stroke-width="1"><line x1="44" y1="160" x2="340" y2="160"/><line x1="44" y1="20" x2="44" y2="160"/></g>
-        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-soft)"><text x="38" y="164" text-anchor="end">0</text><text x="38" y="94" text-anchor="end">20%</text><text x="38" y="24" text-anchor="end">40%</text></g>
-        <g fill="var(--turquoise)"><rect x="54" y="118" width="34" height="42"/><rect x="94" y="46" width="34" height="114"/><rect x="134" y="62" width="34" height="98"/><rect x="174" y="110" width="34" height="50"/><rect x="214" y="134" width="34" height="26"/><rect x="254" y="148" width="34" height="12"/><rect x="294" y="154" width="34" height="6"/></g>
-        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-soft)"><text x="71" y="178" text-anchor="middle">&lt;1</text><text x="111" y="178" text-anchor="middle">1-2</text><text x="151" y="178" text-anchor="middle">2-4</text><text x="191" y="178" text-anchor="middle">4-6</text><text x="231" y="178" text-anchor="middle">6-10</text><text x="271" y="178" text-anchor="middle">10-20</text><text x="311" y="178" text-anchor="middle">20+</text></g>
-        <text x="340" y="196" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">seconds to pick a level-up card</text>
-      </svg>
-      <figcaption><b>Decision time.</b> <code>level_up.decision_ms</code>. <span class="example">Example figures.</span> Under a second means the cards are read by plate colour alone; a fat 10+ tail on new items means their line does not say enough.</figcaption>
-    </figure>
-  </div>
+  <h3>Board 5 · Heroes and looks</h3>
+  <p>Runs per hero and their extract rate (<code>run_start.hero</code> against <code>run_end.result</code>), the looks played per hero (<code>hero_look</code>: Solenne's SOL-A to SOL-D), and the level each hero reaches at the King. A hero with few runs and a high extract rate is one the title screen is not selling.</p>
 
-  <h3>Board 5 · Performance in the field</h3>
-  <div class="charts">
-    <figure>
-      <svg viewBox="0 0 360 210" role="img" aria-label="Example grouped bars of median fps by device class and stage">
-        <g fill="none" stroke="var(--chart-grid)" stroke-width="1"><line x1="44" y1="170" x2="340" y2="170"/><line x1="44" y1="20" x2="44" y2="170"/><line x1="44" y1="95" x2="340" y2="95" stroke-dasharray="4 4"/></g>
-        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink-soft)"><text x="38" y="174" text-anchor="end">0</text><text x="38" y="99" text-anchor="end">30</text><text x="38" y="24" text-anchor="end">60</text></g>
-        <g><rect x="60" y="25" width="18" height="145" fill="var(--sage)"/><rect x="80" y="30" width="18" height="140" fill="var(--sage)" opacity="0.7"/><rect x="100" y="42" width="18" height="128" fill="var(--sage)" opacity="0.45"/></g>
-        <g><rect x="150" y="45" width="18" height="125" fill="var(--brass)"/><rect x="170" y="62" width="18" height="108" fill="var(--brass)" opacity="0.7"/><rect x="190" y="88" width="18" height="82" fill="var(--brass)" opacity="0.45"/></g>
-        <g><rect x="240" y="80" width="18" height="90" fill="var(--rock)"/><rect x="260" y="105" width="18" height="65" fill="var(--rock)" opacity="0.7"/><rect x="280" y="128" width="18" height="42" fill="var(--rock)" opacity="0.45"/></g>
-        <g font-family="Bitter, serif" font-size="11" fill="var(--ink)"><text x="89" y="188" text-anchor="middle">flagship</text><text x="179" y="188" text-anchor="middle">mid-range</text><text x="269" y="188" text-anchor="middle">budget</text></g>
-        <text x="340" y="204" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">median fps · bars: stage 1, 2, 3 · dashed: the 30 fps floor</text>
-      </svg>
-      <figcaption><b>Frame rate by device.</b> <code>perf_sample.fps_avg</code> broken down by a device class derived from <code>device</code> and by stage. <span class="example">Example figures.</span> Budget phones under the 30 line in stage 3 would argue for a lower hell cap on weak devices, which the client can decide from the same class.</figcaption>
-    </figure>
-    <figure>
-      <svg viewBox="0 0 360 210" role="img" aria-label="Example stacked bar of milliseconds per system in a late frame">
-        <g font-family="Bitter, serif" font-size="11" fill="var(--ink)"><text x="8" y="40">stage 1</text><text x="8" y="90">stage 3</text><text x="8" y="140">endless w8</text></g>
-        <g>
-          <rect x="90" y="26" width="34" height="20" fill="var(--rock)"/><rect x="124" y="26" width="18" height="20" fill="var(--brass)"/><rect x="142" y="26" width="12" height="20" fill="var(--turquoise)"/><rect x="154" y="26" width="10" height="20" fill="var(--plum)"/>
-          <rect x="90" y="76" width="92" height="20" fill="var(--rock)"/><rect x="182" y="76" width="44" height="20" fill="var(--brass)"/><rect x="226" y="76" width="30" height="20" fill="var(--turquoise)"/><rect x="256" y="76" width="18" height="20" fill="var(--plum)"/>
-          <rect x="90" y="126" width="120" height="20" fill="var(--rock)"/><rect x="210" y="126" width="58" height="20" fill="var(--brass)"/><rect x="268" y="126" width="36" height="20" fill="var(--turquoise)"/><rect x="304" y="126" width="24" height="20" fill="var(--plum)"/>
-        </g>
-        <g font-family="JetBrains Mono, monospace" font-size="10" fill="var(--ink)"><text x="170" y="41">3.7 ms</text><text x="280" y="91">9.2 ms</text><text x="332" y="141" text-anchor="end">11.9</text></g>
-        <g font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)"><rect x="90" y="166" width="10" height="10" fill="var(--rock)"/><text x="104" y="175">enemies</text><rect x="160" y="166" width="10" height="10" fill="var(--brass)"/><text x="174" y="175">projectiles</text><rect x="244" y="166" width="10" height="10" fill="var(--turquoise)"/><text x="258" y="175">fx</text><rect x="284" y="166" width="10" height="10" fill="var(--plum)"/><text x="298" y="175">hud</text></g>
-        <text x="340" y="204" text-anchor="end" font-family="Bitter, serif" font-size="10" fill="var(--ink-soft)">ms per system, median mid-range phone</text>
-      </svg>
-      <figcaption><b>Where the frame goes.</b> <code>perf_sample.ms</code> stacked, the same breakdown <code>tools/perf_late.gd</code> prints on the PC, but from real phones. <span class="example">Example figures.</span> This tells the next optimisation pass what to touch.</figcaption>
-    </figure>
-  </div>
+  <h3>Board 6 · Economy and the Upgrade board</h3>
+  <p>Gold per run earned, banked by extraction or a Strongbox, and left in the sand by a death; Upgrade ranks bought and refunded; runs between purchases. If gold piles up unspent, the board's prices are too high; if every run dies with a full purse, extraction is not tempting enough.</p>
 
-  <h3>Board 6 · Live and errors</h3>
-  <p>A table, not a chart: the last hundred <code>script_error</code> and <code>unclean_exit</code> rows with their breadcrumbs, grouped by <code>hash</code> and app version, and a live-events feed filtered to <code>run_end</code> so a new build's first runs in the field can be watched as they end. PostHog's own live view does the second one with no setup.</p>
-
+  <h3>Board 7 · Performance</h3>
+  <p><code>run_summary.fps_avg</code> and <code>fps_low</code> by device model and stage, with the 30 fps floor drawn in. Budget phones under the line in stage 3 argue for a lower hell cap on weak devices.</p>
 
   <h2 id="setup">Setting up PostHog, step by step</h2>
-  <p>What you do at the PostHog end and at the game end, in order. Nothing here needs a credit card: the free plan carries a million events a month, and a run sends about two hundred, so the first five thousand runs a month cost nothing. Budget half an hour for steps 1 to 6; the dashboards in step 8 are an evening.</p>
+  <p>What you do at the PostHog end and at the game end, in order. Nothing needs a card: the free plan carries a million events a month, and a run sends a few dozen. Budget half an hour for steps 1 to 6; the boards are an evening.</p>
   <ol class="steps">
-    <li><b>Make the account on the EU cloud.</b> Go to <a href="https://eu.posthog.com/signup" rel="noopener">eu.posthog.com/signup</a> (the EU address, not app.posthog.com: the data then lives in Frankfurt, which keeps the GDPR story short). Sign up with the Google account, name the organisation <code>88fits</code>. Skip the onboarding wizard's "install a snippet" page: there is no website to put it in.</li>
-    <li><b>Make the project.</b> One project, <code>88fits Android</code>. In <em>Settings → Project</em> switch <em>Autocapture</em> off (it is for web pages) and leave <em>Session replay</em> off. Under <em>Person profiles</em> pick <em>identified only</em>: the game never identifies anyone, so no person profiles get created and the bill stays at events only.</li>
-    <li><b>Copy the two strings the game needs.</b> <em>Settings → Project → Project API key</em>: a key that starts with <code>phc_</code>. It is a write-only key (it can send events, never read them), which is why every mobile app ships one inside the binary. The host is <code>https://eu.i.posthog.com</code>.</li>
-    <li><b>Give them to the game.</b> Put both into <code>game/content/analytics/analytics.json</code> (the file the <code>Analytics</code> autoload reads; the plan's client section shows it):
+    <li><b>Make the account on the EU cloud.</b> Go to <code>eu.posthog.com/signup</code> (the EU address, so the data lives in Frankfurt). Name the organisation 88fits. Skip the wizard's "install a snippet" page: there is no website.</li>
+    <li><b>Make the project.</b> One project, <em>88fits Android</em>. In Settings → Project switch Autocapture off and leave Session replay off. Under Person profiles pick <em>identified only</em>: the game never identifies anyone, so the bill stays at events.</li>
+    <li><b>Copy the key.</b> Settings → Project → <em>Project API key</em>: it starts with <code>phc_</code>. The host is <code>https://eu.i.posthog.com</code>.</li>
+    <li><b>Give it to the game.</b> Open <code>game/config/analytics.json</code>, paste the key between the quotes after <code>"key":</code> and change <code>"enabled": false</code> to <code>true</code>:
 <pre><code>{ "host": "https://eu.i.posthog.com", "key": "phc_…", "enabled": true }</code></pre>
-      Commit it: the key is public by design. A build with <code>"enabled": false</code> sends nothing, which is how the arena and the capture tools stay out of the numbers.</li>
-    <li><b>Ship a build and watch it arrive.</b> Install the APK, open the game, play a minute. In PostHog open <em>Activity → Live events</em>: <code>app_open</code>, <code>run_start</code>, <code>level_up</code> should appear within a few seconds of each other, with the properties the catalogue above lists. If nothing comes: the phone is on a network that blocks the host (try mobile data), the key has a typo, or the breadcrumb file in Settings shows the queue file growing (the client stores and retries, so the events come later).</li>
-    <li><b>Name the properties once.</b> <em>Data management → Properties</em>: mark <code>hero</code>, <code>stage</code>, <code>killed_by</code>, <code>weapon</code>, <code>device_model</code> as the ones you will group by; PostHog then offers them first in every insight. Mark <code>run_seconds</code> and <code>frame_ms_p95</code> as numeric.</li>
-    <li><b>Define the three actions the dashboards lean on.</b> <em>Data management → Actions</em>: <em>Played a run</em> = <code>run_end</code>; <em>Extracted</em> = <code>run_end</code> where <code>outcome = extracted</code>; <em>Died</em> = <code>player_died</code>. Retention and funnels are built from these, so a renamed event later is a one-line fix here instead of twelve dashboards.</li>
-    <li><b>Build the boards.</b> Six dashboards as described in the previous section, plus the pulse board below. Each insight is a few clicks: <em>New insight → Trends / Funnel / Retention</em>, pick the action, group by the property, save to the dashboard. Set each dashboard's date range in its own header so the whole board moves together.</li>
-    <li><b>Turn on the one alert that matters.</b> On the retention board, <em>Subscribe</em> to a daily email of Day-1 retention and of <code>script_error</code> counts. The first tells you if a build hurt the game, the second if it broke it, without opening the site.</li>
-    <li><b>Say so in the store listing.</b> The Play Console's <em>Data safety</em> form: analytics, device identifiers, app activity; collected, not shared; encrypted in transit; the in-game switch lets the player turn it off. The privacy page the listing links to names PostHog and the EU region.</li>
+    Commit it: the key is public by design.</li>
+    <li><b>Ship a build and check it from the phone.</b> Run <code>bash tools/ship.sh</code>, install from Drive, play a minute. In the game, open the developer menu (hold the version line in Settings for two seconds): the Analytics lines should say the key is set, sending is on, and the last send was <em>200</em>. In PostHog open Activity → Live events: <code>app_open</code>, <code>run_start</code> and <code>level_up</code> should arrive within seconds. If nothing comes: check the readout's last status (401 means the key is wrong), try mobile data, or tap Send now.</li>
+    <li><b>Pin the properties you will group by.</b> Data management → Properties: mark <code>map_rev</code>, <code>hero</code>, <code>hero_look</code>, <code>stage</code>, <code>killed_by</code> and <code>dev</code>, so PostHog offers them first in every insight.</li>
+    <li><b>Define the actions the boards lean on.</b> Data management → Actions: <em>Played a run</em> = <code>run_end</code>; <em>Extracted</em> = <code>run_end</code> where result = extract; <em>Died</em> = <code>player_died</code>. A renamed event later is then a one-line fix.</li>
+    <li><b>Build the boards.</b> The seven boards above and the pulse below. Most insights are New insight → Trends / Funnel, pick the action, break down by a property. The run curves (board 2) use one SQL insight that unrolls <code>run_summary</code>'s arrays; it is written out in the client's notes when the board is built.</li>
+    <li><b>One alert.</b> On board 1, subscribe to a daily email of runs and deaths by <code>map_rev</code>: it tells you how the last editor save played without opening the site.</li>
+    <li><b>Before the Play Store.</b> The consent card, and the store's Data safety form (analytics, app activity, device id; collected, not shared, encrypted in transit; the Settings switch turns it off). Not needed while you are the only player.</li>
   </ol>
-  <div class="note"><b>What not to do.</b> Do not add the PostHog Android SDK: the game is Godot, and the plain HTTP batch endpoint the autoload uses is the same thing with none of the Gradle work. Do not identify players (no <code>identify</code> calls, no emails, no names): the device id is the whole identity. Do not send the save file or the breadcrumb: both are the player's.</div>
+  <p class="note"><b>What not to do.</b> Do not add the PostHog Android SDK (the game is Godot; the batch endpoint is the same thing with no Gradle work). Do not identify players. Do not send the save file or the breadcrumb.</p>
+
+  <h2 id="editor">The Level Editor loop</h2>
+  <p>The editor's new <b>Spawned so far</b> row estimates every creature a run makes: regular, coloured, Elites, Specials and Bosses, under your caps and patterns. A run only spawns what the hero kills, so the estimate needs a kill rate. Today it reads that from your recorded runs on the PC (<code>analytics/runs/</code>): the share of the live crowd killed each second, and how long boss fights last. Once PostHog has runs, the same numbers per <code>map_rev</code> come from the field: one SQL insight over <code>run_summary</code>'s <code>m_killed</code> and <code>m_alive</code>, exported as a small JSON the editor reads. Then the editor shows its estimate beside what real players saw on that version.</p>
 
   <h2 id="pulse">The pulse: what is happening right now</h2>
-  <p>The dashboards above answer questions over days. This board answers one question in a glance: is anyone playing right now, and how is it going for them. Every tile looks at the last fifteen minutes or the last hour, the board refreshes itself every minute (dashboard settings → auto refresh), and nothing on it needs a date picker. It is the board to leave open on a second screen the week the game goes out.</p>
-  <h3>The tiles</h3>
+  <p>A board for the week the game goes out: every tile looks at the last fifteen minutes or hour and the board refreshes itself every minute.</p>
   <div class="tbl"><table>
-    <thead><tr><th>Tile</th><th>What it counts</th><th>How (HogQL, PostHog's SQL)</th></tr></thead>
+    <thead><tr><th>Tile</th><th>What it counts</th><th>How (HogQL)</th></tr></thead>
     <tbody>
-      <tr><td><b>Players right now</b></td><td>Devices that sent any event in the last 15 minutes.</td><td class="props">SELECT count(DISTINCT distinct_id) FROM events WHERE timestamp &gt; now() - INTERVAL 15 MINUTE</td></tr>
-      <tr><td><b>Runs in progress</b></td><td>Runs that started in the last 30 minutes and have not ended.</td><td class="props">SELECT count() FROM (SELECT properties.run_id AS r, max(event = 'run_end') AS ended FROM events WHERE event IN ('run_start', 'run_end') AND timestamp &gt; now() - INTERVAL 30 MINUTE GROUP BY r) WHERE ended = 0</td></tr>
-      <tr><td><b>Runs started, last hour</b></td><td>How busy the hour was, next to the same hour yesterday.</td><td class="props">SELECT count() FROM events WHERE event = 'run_start' AND timestamp &gt; now() - INTERVAL 1 HOUR</td></tr>
-      <tr><td><b>Deaths, last 15 minutes</b></td><td>Heroes down, and the three creatures that did it most.</td><td class="props">SELECT properties.killed_by, count() FROM events WHERE event = 'player_died' AND timestamp &gt; now() - INTERVAL 15 MINUTE GROUP BY 1 ORDER BY 2 DESC LIMIT 3</td></tr>
-      <tr><td><b>Extractions, last hour</b></td><td>Runs that came home, as a share of runs ended in the hour.</td><td class="props">SELECT countIf(properties.outcome = 'extracted') / count() FROM events WHERE event = 'run_end' AND timestamp &gt; now() - INTERVAL 1 HOUR</td></tr>
-      <tr><td><b>Where the live runs are</b></td><td>Stage 1 / 2 / 3 / endless, from each live run's latest stage event.</td><td class="props">SELECT argMax(properties.stage, timestamp) AS stage, count() FROM events WHERE event IN ('run_start', 'stage_cleared', 'endless_wave') AND timestamp &gt; now() - INTERVAL 30 MINUTE GROUP BY properties.run_id</td></tr>
-      <tr><td><b>Live hero level</b></td><td>The median level of the runs in progress.</td><td class="props">SELECT quantile(0.5)(properties.level) FROM (SELECT properties.run_id, argMax(properties.level, timestamp) AS level FROM events WHERE event = 'level_up' AND timestamp &gt; now() - INTERVAL 30 MINUTE GROUP BY 1)</td></tr>
-      <tr><td><b>Bosses being fought</b></td><td><code>boss_started</code> without a matching <code>boss_killed</code> or <code>player_died</code> in the last 10 minutes.</td><td class="props">SELECT countIf(event = 'boss_started') - countIf(event IN ('boss_killed')) FROM events WHERE timestamp &gt; now() - INTERVAL 10 MINUTE</td></tr>
-      <tr><td><b>New players today</b></td><td>Devices whose first <code>app_open</code> ever was today.</td><td class="props">SELECT count() FROM (SELECT distinct_id, min(timestamp) AS first FROM events WHERE event = 'app_open' GROUP BY 1) WHERE first &gt; today()</td></tr>
-      <tr><td><b>Errors, last hour</b></td><td><code>script_error</code> and <code>unclean_exit</code>, with the newest message.</td><td class="props">SELECT event, count(), argMax(properties.message, timestamp) FROM events WHERE event IN ('script_error', 'unclean_exit') AND timestamp &gt; now() - INTERVAL 1 HOUR GROUP BY 1</td></tr>
-      <tr><td><b>Gold banked, last hour</b></td><td>What the hour's extractions brought home, summed.</td><td class="props">SELECT sum(properties.gold_banked) FROM events WHERE event = 'run_end' AND timestamp &gt; now() - INTERVAL 1 HOUR</td></tr>
-      <tr><td><b>Peak today</b></td><td>The busiest fifteen minutes of the day, in players.</td><td class="props">SELECT max(n) FROM (SELECT toStartOfFifteenMinutes(timestamp) AS t, count(DISTINCT distinct_id) AS n FROM events WHERE timestamp &gt; today() GROUP BY t)</td></tr>
-      <tr><td><b>The ticker</b></td><td>The last twenty events as they come, one line each: a death and its killer, a boss down, an extraction, an unlock. PostHog's <em>Live events</em> view, filtered to the eight run events.</td><td class="props">(a saved filter on Activity → Live events)</td></tr>
+      <tr><td>Players right now</td><td>Devices that sent any event in the last 15 minutes</td><td class="props">SELECT count(DISTINCT distinct_id) FROM events WHERE timestamp &gt; now() - INTERVAL 15 MINUTE</td></tr>
+      <tr><td>Runs in progress</td><td>Runs started in the last 30 minutes with no end yet</td><td class="props">SELECT count() FROM (SELECT properties.run_id AS r, max(event = 'run_end') AS ended FROM events WHERE event IN ('run_start', 'run_end') AND timestamp &gt; now() - INTERVAL 30 MINUTE GROUP BY r) WHERE ended = 0</td></tr>
+      <tr><td>Deaths, last 15 minutes</td><td>Heroes down and the three creatures that did it most</td><td class="props">SELECT properties.killed_by, count() FROM events WHERE event = 'player_died' AND timestamp &gt; now() - INTERVAL 15 MINUTE GROUP BY 1 ORDER BY 2 DESC LIMIT 3</td></tr>
+      <tr><td>Extracted, last hour</td><td>Runs that came home, as a share of runs ended</td><td class="props">SELECT countIf(properties.result = 'extract') / count() FROM events WHERE event = 'run_end' AND timestamp &gt; now() - INTERVAL 1 HOUR</td></tr>
+      <tr><td>Versions in play</td><td>Runs per app version and <code>map_rev</code>, last hour</td><td class="props">SELECT properties.app_version, properties.map_rev, count() FROM events WHERE event = 'run_start' AND timestamp &gt; now() - INTERVAL 1 HOUR GROUP BY 1, 2</td></tr>
+      <tr><td>The ticker</td><td>The last twenty run events, one line each</td><td class="props">Activity → Live events, filtered to the run events</td></tr>
     </tbody>
   </table></div>
-  <h3>What the board will look like</h3>
-  <figure>
-    <span class="example">Example, numbers invented</span>
-    <svg viewBox="0 0 960 300" role="img" aria-label="Six big-number tiles: players right now, runs in progress, runs started last hour, deaths last 15 minutes, extractions last hour, errors last hour">
-      <g font-family="Bitter, serif">
-        <g transform="translate(0,0)"><rect x="8" y="8" width="300" height="130" rx="4" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="3"/><text x="24" y="40" font-size="14" fill="var(--ink-soft)" font-weight="700" letter-spacing="1.5">PLAYERS RIGHT NOW</text><text x="24" y="112" font-size="66" fill="var(--brass-dark)" font-family="Alfa Slab One, serif">23</text><text x="130" y="112" font-size="16" fill="var(--sage)">▲ 7 vs the hour before</text></g>
-        <g transform="translate(320,0)"><rect x="8" y="8" width="300" height="130" rx="4" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="3"/><text x="24" y="40" font-size="14" fill="var(--ink-soft)" font-weight="700" letter-spacing="1.5">RUNS IN PROGRESS</text><text x="24" y="112" font-size="66" fill="var(--brass-dark)" font-family="Alfa Slab One, serif">14</text><text x="130" y="112" font-size="16" fill="var(--ink-soft)">median Lv 17</text></g>
-        <g transform="translate(640,0)"><rect x="8" y="8" width="300" height="130" rx="4" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="3"/><text x="24" y="40" font-size="14" fill="var(--ink-soft)" font-weight="700" letter-spacing="1.5">RUNS STARTED, LAST HOUR</text><text x="24" y="112" font-size="66" fill="var(--brass-dark)" font-family="Alfa Slab One, serif">61</text><text x="130" y="112" font-size="16" fill="var(--ink-soft)">yesterday 48</text></g>
-        <g transform="translate(0,150)"><rect x="8" y="8" width="300" height="130" rx="4" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="3"/><text x="24" y="40" font-size="14" fill="var(--ink-soft)" font-weight="700" letter-spacing="1.5">DEATHS, LAST 15 MIN</text><text x="24" y="112" font-size="66" fill="var(--rock)" font-family="Alfa Slab One, serif">9</text><text x="110" y="92" font-size="15" fill="var(--ink)">Gila Grande 4</text><text x="110" y="112" font-size="15" fill="var(--ink)">Hammer Giant 3 · Imp 2</text></g>
-        <g transform="translate(320,150)"><rect x="8" y="8" width="300" height="130" rx="4" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="3"/><text x="24" y="40" font-size="14" fill="var(--ink-soft)" font-weight="700" letter-spacing="1.5">EXTRACTED, LAST HOUR</text><text x="24" y="112" font-size="66" fill="var(--sage)" font-family="Alfa Slab One, serif">38%</text><text x="150" y="112" font-size="16" fill="var(--ink-soft)">17 of 45 ended</text></g>
-        <g transform="translate(640,150)"><rect x="8" y="8" width="300" height="130" rx="4" fill="var(--paper-2)" stroke="var(--ink)" stroke-width="3"/><text x="24" y="40" font-size="14" fill="var(--ink-soft)" font-weight="700" letter-spacing="1.5">ERRORS, LAST HOUR</text><text x="24" y="112" font-size="66" fill="var(--ink)" font-family="Alfa Slab One, serif">0</text><text x="110" y="112" font-size="16" fill="var(--sage)">clean since the 0.30 build</text></g>
-      </g>
-    </svg>
-    <figcaption><b>The top row.</b> Six numbers, each with one line of context under it (the comparison, the top killers, the share). Red only when something is wrong.</figcaption>
-  </figure>
-  <div class="charts">
-    <figure>
-      <span class="example">Example, numbers invented</span>
-      <svg viewBox="0 0 480 220" role="img" aria-label="A sparkline of players per fifteen minutes over the last 24 hours, peaking in the evening">
-        <g font-family="Bitter, serif" font-size="12" fill="var(--ink-soft)">
-          <line x1="40" y1="180" x2="470" y2="180" stroke="var(--chart-grid)"/>
-          <line x1="40" y1="120" x2="470" y2="120" stroke="var(--chart-grid)"/>
-          <line x1="40" y1="60" x2="470" y2="60" stroke="var(--chart-grid)"/>
-          <text x="8" y="184">0</text><text x="8" y="124">20</text><text x="8" y="64">40</text>
-          <text x="40" y="205">24 h ago</text><text x="240" y="205">12 h ago</text><text x="440" y="205">now</text>
-          <polyline fill="none" stroke="var(--brass-dark)" stroke-width="3" points="40,172 58,170 76,174 94,176 112,177 130,176 148,174 166,168 184,160 202,150 220,142 238,136 256,128 274,124 292,118 310,112 328,104 346,96 364,84 382,78 400,86 418,98 436,110 454,122 470,118"/>
-          <circle cx="470" cy="118" r="5" fill="var(--brass)" stroke="var(--ink)" stroke-width="2"/>
-          <text x="384" y="70" fill="var(--ink)" font-weight="700">peak 36 · 21:15</text>
-        </g>
-      </svg>
-      <figcaption><b>Players per quarter hour, last 24 hours.</b> The evening hump is the thing to watch grow from one week to the next; a dent in it the night of a build is the first sign of a crash.</figcaption>
-    </figure>
-    <figure>
-      <span class="example">Example, numbers invented</span>
-      <svg viewBox="0 0 480 220" role="img" aria-label="Where the live runs are: a bar per stage">
-        <g font-family="Bitter, serif" font-size="13" fill="var(--ink)">
-          <text x="10" y="36">Stage 1</text><rect x="90" y="22" width="248" height="22" fill="var(--sage)" stroke="var(--ink)" stroke-width="2"/><text x="346" y="39">8</text>
-          <text x="10" y="80">Stage 2</text><rect x="90" y="66" width="124" height="22" fill="var(--brass)" stroke="var(--ink)" stroke-width="2"/><text x="222" y="83">4</text>
-          <text x="10" y="124">Stage 3</text><rect x="90" y="110" width="31" height="22" fill="var(--rock)" stroke="var(--ink)" stroke-width="2"/><text x="129" y="127">1</text>
-          <text x="10" y="168">Endless</text><rect x="90" y="154" width="31" height="22" fill="var(--plum)" stroke="var(--ink)" stroke-width="2"/><text x="129" y="171">1</text>
-          <text x="10" y="205" fill="var(--ink-soft)">14 runs in progress · 1 boss fight on now</text>
-        </g>
-      </svg>
-      <figcaption><b>Where the live runs are.</b> A bar per stage for the runs in progress. When stage 3 and endless stay empty for a week, the wall is too high.</figcaption>
-    </figure>
-  </div>
-  <figure>
-    <span class="example">Example, numbers invented</span>
-    <svg viewBox="0 0 960 190" role="img" aria-label="The ticker: the last events one per line">
-      <g font-family="JetBrains Mono, monospace" font-size="14" fill="var(--ink)">
-        <text x="12" y="28"><tspan fill="var(--ink-soft)">21:17:04</tspan>  <tspan fill="var(--rock)">down</tspan>      Drifter · stage 2 · 09:41 · Lv 19 · the Gila Grande</text>
-        <text x="12" y="54"><tspan fill="var(--ink-soft)">21:16:51</tspan>  <tspan fill="var(--sage)">extracted</tspan> Astro · stage 1 · 1,240 gold banked</text>
-        <text x="12" y="80"><tspan fill="var(--ink-soft)">21:16:30</tspan>  <tspan fill="var(--brass-dark)">boss down</tspan> Calavera · the Tumbleweed King · 04:58</text>
-        <text x="12" y="106"><tspan fill="var(--ink-soft)">21:16:12</tspan>  <tspan fill="var(--turquoise)">unlocked</tspan>  Drifter · Hammer (killed the stage 1 boss)</text>
-        <text x="12" y="132"><tspan fill="var(--ink-soft)">21:15:58</tspan>  <tspan fill="var(--plum)">evolved</tspan>   Astro · Chicago Typewriter</text>
-        <text x="12" y="158"><tspan fill="var(--ink-soft)">21:15:40</tspan>  <tspan fill="var(--ink)">run start</tspan> Calavera · Red Canyon · a new player's 2nd run</text>
-        <text x="12" y="184"><tspan fill="var(--ink-soft)">21:15:22</tspan>  <tspan fill="var(--rock)">down</tspan>      Astro · stage 3 · 13:20 · Lv 31 · the Brander</text>
-      </g>
-    </svg>
-    <figcaption><b>The ticker.</b> One line per event as it arrives, the player named by hero only. It is the closest thing to watching over someone's shoulder, and the fastest way to learn what a new build changed.</figcaption>
-  </figure>
-  <h3>A few more pulse numbers worth a tile later</h3>
-  <ul>
-    <li><b>Revive ad acceptance, last hour:</b> <code>revive_decided</code> where <code>choice = ad</code> over all <code>player_died</code>; the number the ad revenue stands on.</li>
-    <li><b>Level-up decision time, live:</b> the median seconds between a <code>level_up</code> and the next card pick, from the runs in progress; a jump means a confusing new card.</li>
-    <li><b>Builds in the field:</b> players by app version in the last hour, so a rollout can be watched taking over.</li>
-    <li><b>Slow frames per run, live:</b> <code>slow_frame</code> counts for the runs in progress, grouped by device model; the first warning of a build that drops frames.</li>
-    <li><b>Hints shown to new players, last hour:</b> which first-play hints fire and whether the joystick is found inside ten seconds (<code>hint_shown</code> and the first move).</li>
-    <li><b>Portal choices, last hour:</b> continue against extract at each portal, and Stay at the last one; the live read of how far people dare to go.</li>
-  </ul>
 
   <h2 id="privacy">Privacy and consent</h2>
-  <p>Nothing collected identifies a person: a random install id, a device model, an OS version, a language and what happened in a game. No location, no contacts, no advertising id, no account. That still counts as personal data under the GDPR where it is combined with an install id, so the rules are short and kept:</p>
   <ul>
-    <li><b>Say so once.</b> A one-line card on first launch: "88fits sends anonymous play statistics (what you picked, where you died, how the phone kept up) to help tune the game. No account, no location. You can turn it off in Settings." Two buttons, both proceed. Recorded as <code>consent</code>.</li>
-    <li><b>An off switch in Settings</b>, next to Sound and Music, that stops sending and deletes the queue file at once.</li>
-    <li><b>Wipe the save, wipe the id.</b> The install id lives in the save file the wipe already clears; a new id means a new anonymous player.</li>
-    <li><b>EU region.</b> The PostHog project is created in the EU cloud so the data stays there; the endpoint above is the EU one.</li>
-    <li><b>Keep it lean.</b> No free-text fields from the player, no screenshots, the error message capped at 200 characters and hashed for grouping. The Play Store's data-safety form will list "app interactions and performance, anonymous, optional".</li>
+    <li><b>Nothing identifies a person:</b> a random install id, a device model, an OS version, a language and what happened in a game. No location, no contacts, no advertising id, no account.</li>
+    <li><b>An off switch now:</b> Settings → Anonymous play data stops sending and deletes the queue.</li>
+    <li><b>Wipe the save, wipe the id:</b> the install id lives in the save the wipe clears.</li>
+    <li><b>EU region:</b> the project lives in PostHog's EU cloud.</li>
+    <li><b>Before the Play Store:</b> a one-line card on first launch ("88fits sends anonymous play statistics to help tune the game. No account, no location. You can turn it off in Settings."), recorded as <code>consent</code>, and a privacy page naming PostHog and the EU region.</li>
   </ul>
 
   <h2 id="rollout">Rollout</h2>
   <ol class="steps">
-    <li><div><b>Client and consent (one pass).</b> The <code>Analytics</code> autoload, the queue file, the consent card, the Settings switch, the developer menu's queue readout and the test-project routing. Shipped with no events but <code>app_open</code> and <code>consent</code>, and checked from the phone against the PostHog live view.</div></li>
-    <li><div><b>The run's spine.</b> <code>run_start</code>, <code>level_up</code>, <code>boss_started</code> / <code>boss_killed</code>, <code>stage_cleared</code>, <code>player_died</code>, <code>run_end</code>. Boards 2 and 3 built. This is the pass that starts answering the difficulty question.</div></li>
-    <li><div><b>The rest of the catalogue.</b> Chests, paths, structures, pickups, the meta, hints, pause. Boards 1 and 4.</div></li>
-    <li><div><b>Performance and errors.</b> <code>perf_sample</code> from <code>Perf.report()</code>, <code>slow_frame</code>, <code>script_error</code> from a logger hook, <code>unclean_exit</code> from the breadcrumb. Board 5 and 6.</div></li>
-    <li><div><b>Read it monthly, act on it per pass.</b> Each balance pass opens with the death heatmap and the pick-against-win chart for the last build, and its CLAUDE.md paragraph records which number it was answering.</div></li>
+    <li><b>The client and the run's story · built in pass 57.</b> The key file, the autoload, the queue, the Settings switch, the developer-menu readout, the run events forwarded from the recorder and the per-minute <code>run_summary</code>. Waiting on your key.</li>
+    <li><b>The boards.</b> Boards 1 to 4 first (versions, curves, deaths, builds), from your own runs: they already answer your tuning questions with one player.</li>
+    <li><b>The field into the editor.</b> The per-version kill rate exported from PostHog for the Spawned so far row.</li>
+    <li><b>Store readiness.</b> The consent card, the privacy page, the Data safety form; then boards 5 to 7 and the pulse.</li>
+    <li><b>Errors and hitches.</b> Script errors from the field and slow frames, once players' phones are not yours.</li>
   </ol>
-  <div class="note"><b>Cost and effort.</b> PostHog's free tier covers the numbers above until there are tens of thousands of runs a month. The client is a day of work; the events are a line each at hooks the code already has; the six boards are an afternoon in PostHog's UI. The consent card and the data-safety form are the only parts that touch the store.</div>
-  <p class="meta"><span class="stamp">Plan · not built</span></p>
+  <p class="note"><b>Cost.</b> The free tier covers tens of thousands of runs a month. The client is built; the boards are an afternoon in PostHog; the consent card and the store forms are the only parts that touch the store.</p>
 </div>
