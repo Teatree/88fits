@@ -97,7 +97,7 @@
     <p class="lede">What to measure while people play, how it gets from the phone to PostHog, every event with its fields, and the boards you will read. The first plan was written before the game had a run recorder, a Level Editor or half its items. This one is built on what the game is now, and its first step is built: the key file, the client and the run's story.</p>
     <div class="meta"><span><b>Engine</b> Godot 4.7.2, GDScript</span><span><b>Platform</b> Android APK by Google Drive, later the Play Store</span><span><b>Players today</b> you, on one phone; sized for a soft launch of a few thousand</span><span><b>Status</b> <span class="stamp">step 1 built</span></span></div>
     <nav class="toc" aria-label="Sections">
-      <a href="#changes">What changed</a><a href="#questions">Questions</a><a href="#flow">How it flows</a><a href="#client">The client</a><a href="#events">Events</a><a href="#dashboards">Dashboards</a><a href="#setup">Setup</a><a href="#editor">The editor loop</a><a href="#pulse">The pulse</a><a href="#privacy">Privacy</a><a href="#rollout">Rollout</a>
+      <a href="#changes">What changed</a><a href="#next">Players, phone, surveys</a><a href="#questions">Questions</a><a href="#flow">How it flows</a><a href="#client">The client</a><a href="#events">Events</a><a href="#dashboards">Dashboards</a><a href="#setup">Setup</a><a href="#editor">The editor loop</a><a href="#pulse">The pulse</a><a href="#privacy">Privacy</a><a href="#rollout">Rollout</a>
     </nav>
   </header>
 
@@ -113,6 +113,56 @@
     <div class="card"><h3>Tag your own runs, do not hide them</h3><p>The old plan routed test runs to a second project. With you as the only player that would leave the real project empty. Instead every event carries <code>dev</code>: true for runs from the editor binary or with debug mode on. The arena, the test runner and every tool never send at all.</p></div>
     <div class="card"><h3>The editor learns from real runs</h3><p>The Level Editor's new "Spawned so far" row has to guess how fast the hero kills. It reads that from your recorded runs today, and later from the field. The plan now closes that loop instead of stopping at the dashboards.</p></div>
   </div>
+
+  <h2 id="next">Next: knowing each player, reading it on the phone, asking them</h2>
+  <p>Your three requirements (7 October, after the PostHog project went live and your test events arrived). What is proposed for each, what it would add, and the questions still open. Nothing here is built yet. <span class="stamp">proposal</span></p>
+
+  <h3>1. Identify a player and follow them</h3>
+  <p>You asked to see one player on their own (their sessions and a breakdown of every run, like the local dashboard), with an id or a name the system gives them, and a name you can give them that sticks from then on.</p>
+  <ul>
+    <li><b>Person profiles on.</b> The client sends today with person profiles switched off (<code>$process_person_profile: false</code>), so PostHog keeps no Person page. Turning them on gives every install a Person page in PostHog with all its sessions and events in order. The id stays the random <code>install_id</code> already in the save, sent as <code>distinct_id</code>.</li>
+    <li><b>A name from the game.</b> On its first launch each install picks a readable name from a word list in the western theme ("Dusty Coyote 41"), kept in the save and sent once as a person property (<code>$set: {player_name}</code>). It shows in Settings under the play-data switch, so a tester can read it out to you.</li>
+    <li><b>Your label.</b> In PostHog, open a person and add a property <code>label</code> ("Sasha, my brother"). The game never writes <code>label</code>, so it is never overwritten; every board can filter or break down by it, and a cohort per label keeps "always treat their data as such" true.</li>
+    <li><b>A player's runs.</b> The Person page lists their sessions and events. For the run-by-run picture (the minute curves, the build, the death), a "One player" board takes the person as a filter: a runs table (one row per <code>run_end</code>: date, hero, result, minutes, level, kills, killer) and the minute curves from that player's <code>run_summary</code> rows.</li>
+    <li><b>Wipes and new phones.</b> A wipe in Settings makes a new <code>install_id</code>, so a new person. A reinstall keeps it only if Android restores the backed-up save. Suggestion: keep the id through a wipe (it is not progress), so one tester stays one person.</li>
+  </ul>
+
+  <h3>2. Read it on the phone</h3>
+  <p>PostHog has no phone app; its web app works in a phone browser, but a board of wide charts is hard to read on one.</p>
+  <ul>
+    <li><b>Boards built for a narrow screen.</b> One column, each board short (at most six tiles), numbers before charts (a number tile reads at any width), trends as single-series lines, tables with at most four columns. Wide tables (the item pick rates) live on their own board, read on the PC.</li>
+    <li><b>A daily digest.</b> PostHog can email a dashboard on a schedule (subscriptions). A morning email of the pulse board (runs yesterday, players, extract rate, deaths by stage, new survey answers) means you open nothing on most days.</li>
+    <li><b>A home-screen link.</b> The pulse board pinned to the phone's home screen from the browser, signed in once.</li>
+    <li><b>Option, later:</b> a phone-first page of our own in the Wanted style that reads PostHog's query API. It needs a personal API key kept off the phone, so it is a bigger step; only if the PostHog boards stay awkward.</li>
+  </ul>
+
+  <h3>3. A survey at the end of a run</h3>
+  <p>You asked for a couple of questions at a run's end, using an existing system, with a way for players to opt out that you can see in PostHog.</p>
+  <ul>
+    <li><b>PostHog Surveys, "API" mode.</b> The questions are written in PostHog (no build to change them); the game fetches the active surveys with the project key and draws them itself in the Wanted style on the Results screen, then sends PostHog's own events: <code>survey shown</code>, <code>survey sent</code> (the answers) and <code>survey dismissed</code>. PostHog's survey page then shows the response rate and every answer, per player.</li>
+    <li><b>Question types that suit a thumb.</b> A rating (1 to 5 or five faces), a single choice ("What ended this run? Too hard / Got bored / Ran out of time / Other"), and at most one short open text, which is optional (typing on a phone after a run is a lot to ask).</li>
+    <li><b>Opting out.</b> A "Don't ask me again" link on the card and a "Ask me about the game" switch in Settings. Either sends <code>survey_opt_out</code> {where} and sets the person property <code>surveys_opt_out: true</code>, so PostHog shows who opted out and when; switching back sends <code>survey_opt_in</code>.</li>
+    <li><b>Not every run.</b> A survey card on every Results screen would be ignored within a day. Proposed: at most one survey every few runs, never after a run under a minute, never twice in a session.</li>
+  </ul>
+
+  <h3>Suggested additions</h3>
+  <ul>
+    <li><b>Feedback any time:</b> a "Send feedback" row in Settings with one open question and the run's context attached, for the moment a player has something to say, not only at a run's end.</li>
+    <li><b>Session replay is not for this game:</b> PostHog's replays record web pages and native views; a Godot game draws its own pixels, so a replay would show nothing useful. The run story events are the replay.</li>
+    <li><b>Feature flags later:</b> the same key can turn on a flag per player (a different cap curve for half the testers, say) to compare two Level Editor versions at the same time instead of one after the other.</li>
+    <li><b>Consent card first:</b> with person profiles and surveys the data is per person (pseudonymous, still personal data under EU rules), so the one-line consent card moves from "before the Play Store" to "before the first tester who is not you".</li>
+  </ul>
+
+  <h3>Open questions</h3>
+  <ol>
+    <li>Who are the players you want to follow now: friends with the APK from Drive, or the public later? (It decides how soon the consent card is needed.)</li>
+    <li>Should the game's own name ("Dusty Coyote 41") be shown to the player, or stay a PostHog-only id?</li>
+    <li>Should the id survive a save wipe, so one tester stays one person?</li>
+    <li>On the phone, is PostHog's web app with narrow boards plus a daily email enough, or do you want the phone-first page of our own?</li>
+    <li>Which questions do you want in the first survey, and how often should it come (every third run? only after a death or only after an extraction?)</li>
+    <li>Should answering pay anything (a little gold)? It lifts the response rate, but players then answer to get paid, which bends the answers.</li>
+    <li>Should a survey ever come mid-run (at a portal, say), or only on the Results screen?</li>
+  </ol>
 
   <h2 id="questions">What we want to know</h2>
   <p>In the order they matter to you now.</p>
@@ -416,7 +466,7 @@
 
   <h2 id="privacy">Privacy and consent</h2>
   <ul>
-    <li><b>Nothing identifies a person:</b> a random install id, a device model, an OS version, a language and what happened in a game. No location, no contacts, no advertising id, no account.</li>
+    <li><b>Nothing identifies a person by name:</b> a random install id, a device model, an OS version, a language and what happened in a game. No location, no contacts, no advertising id, no account. With person profiles and surveys (see <a href="#next">Next</a>) each install becomes a pseudonymous person in PostHog, which is still personal data under EU rules: the consent card comes first.</li>
     <li><b>An off switch now:</b> Settings → Anonymous play data stops sending and deletes the queue.</li>
     <li><b>Wipe the save, wipe the id:</b> the install id lives in the save the wipe clears.</li>
     <li><b>EU region:</b> the project lives in PostHog's EU cloud.</li>
@@ -428,6 +478,7 @@
     <li><b>The client and the run's story · built in pass 57.</b> The key file, the autoload, the queue, the Settings switch, the developer-menu readout, the run events forwarded from the recorder and the per-minute <code>run_summary</code>. Waiting on your key.</li>
     <li><b>The boards.</b> Boards 1 to 4 first (versions, curves, deaths, builds), from your own runs: they already answer your tuning questions with one player.</li>
     <li><b>The field into the editor.</b> The per-version kill rate exported from PostHog for the Spawned so far row.</li>
+    <li><b>Players, the phone, surveys.</b> Person profiles with the game-given name and your <code>label</code>; the "One player" board and phone-sized boards with a daily email; the end-of-run survey on PostHog Surveys with its opt-out. Once the open questions above are answered.</li>
     <li><b>Store readiness.</b> The consent card, the privacy page, the Data safety form; then boards 5 to 7 and the pulse.</li>
     <li><b>Errors and hitches.</b> Script errors from the field and slow frames, once players' phones are not yours.</li>
   </ol>
