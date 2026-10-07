@@ -574,10 +574,13 @@ func test_send_now_and_the_readout() -> void:
 	assert_str(text).contains("last send: HTTP 200")
 	# never the key itself
 	assert_str(text).not_contains(KEY)
-	# the line under the Settings switch says what goes, or that the key file is empty
+	# the line under the Settings switch says what goes, or why nothing does (pass 58: the reason, not "the key file is
+	# empty" whatever the reason was)
 	assert_str(a.settings_line()).contains("no name")
 	var empty := _client(true, "")
-	assert_str(empty.settings_line()).contains("key file is empty")
+	assert_str(empty.settings_line()).contains("the key is empty")
+	var off := _client(false)
+	assert_str(off.settings_line()).contains("enabled is false")
 	assert_str("\n".join(empty.status_lines())).contains("key: empty")
 
 
@@ -595,3 +598,35 @@ func test_fps_from_the_frame_clock() -> void:
 	assert_float(float(f["fps_avg"])).is_equal_approx(1000.0 * 100.0 / (99 * 16.5 + 40.5), 0.1)
 	# the 1 % low is the slowest frame's bin
 	assert_float(float(f["fps_low"])).is_equal_approx(1000.0 / 40.5, 0.1)
+
+
+## Pass 58 (the pass-57 review): turning the switch off and on while a batch is on the wire must not let that batch's
+## answer take the new events off the front of the queue, and no second request may start while it is out.
+func test_a_purge_during_a_send_keeps_the_new_events() -> void:
+	var a := _client()
+	for i in 3:
+		a.track("old_%d" % i)
+	assert_bool(a.flush()).is_true()
+	assert_int(a.in_flight()).is_equal(3)
+	a.purge()
+	assert_int(a.queue.size()).is_equal(0)
+	a.track("new_0")
+	a.track("new_1")
+	# the old request is still out: nothing else goes until it answers
+	assert_bool(a.flush()).is_false()
+	a.send_done(true, "HTTP 200", 200)
+	assert_int(a.queue.size()).is_equal(2)
+	assert_str(str(a.queue[0]["event"])).is_equal("new_0")
+	assert_int(a.sent_session).is_equal(0)
+	# and then they go
+	assert_bool(a.flush()).is_true()
+	a.send_done(true, "HTTP 200", 200)
+	assert_int(a.queue.size()).is_equal(0)
+	assert_int(a.sent_session).is_equal(2)
+
+
+## Pass 58 (the pass-57 review): the Android export asks for the INTERNET permission, or the phone can never send.
+func test_the_android_export_may_use_the_network() -> void:
+	var cfg := ConfigFile.new()
+	assert_int(cfg.load("res://export_presets.cfg")).is_equal(OK)
+	assert_bool(bool(cfg.get_value("preset.0.options", "permissions/internet", false))).is_true()

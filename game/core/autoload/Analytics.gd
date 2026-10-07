@@ -84,6 +84,9 @@ var run_props: Dictionary = {}
 
 var _http: HTTPRequest
 var _in_flight := 0
+## A request is on the wire (pass 58 review): kept apart from _in_flight, which counts the queued events that request
+## carries; purge() and the queue cap can take those away while it is out, and a new request must still wait for it.
+var _requesting := false
 var _since_save := 0
 var _next_flush_ms := 0
 var _retry_at_ms := 0
@@ -571,6 +574,8 @@ func load_queue() -> void:
 ## Off in Settings: the queue goes, on disk too.
 func purge() -> void:
 	queue.clear()
+	# a batch on the wire no longer stands for anything queued: its answer must not take new events off the front
+	_in_flight = 0
 	_since_save = 0
 	_remove(queue_path)
 	_remove(queue_path + ".tmp")
@@ -590,13 +595,14 @@ func _on_settings_changed() -> void:
 
 ## Sends the oldest BATCH_MAX events when nothing is on the wire and no backoff is running. Returns whether it sent.
 func flush() -> bool:
-	if queue.is_empty() or _in_flight > 0 or not active():
+	if queue.is_empty() or _in_flight > 0 or _requesting or not active():
 		return false
 	if Time.get_ticks_msec() < _retry_at_ms:
 		return false
 	var n := mini(queue.size(), BATCH_MAX)
 	var body := JSON.stringify({"api_key": key, "batch": queue.slice(0, n), "sent_at": iso_now()})
 	_in_flight = n
+	_requesting = true
 	_next_flush_ms = Time.get_ticks_msec() + FLUSH_EVERY_MS
 	sender.call(endpoint(), body)
 	return true
@@ -640,6 +646,7 @@ func _on_request_completed(result: int, code: int, _headers: PackedStringArray, 
 func send_done(ok: bool, status: String, code: int = 0) -> void:
 	var n := mini(_in_flight, queue.size())
 	_in_flight = 0
+	_requesting = false
 	last_status = status
 	last_send_unix = int(Time.get_unix_time_from_system())
 	if ok or code == 400 or code == 413:
@@ -696,7 +703,7 @@ func _result_name(r: int) -> String:
 
 func _process(_delta: float) -> void:
 	var now := Time.get_ticks_msec()
-	if _retry_at_ms > 0 and now >= _retry_at_ms and _in_flight == 0:
+	if _retry_at_ms > 0 and now >= _retry_at_ms and _in_flight == 0 and not _requesting:
 		_retry_at_ms = 0
 		flush()
 	elif _next_flush_ms > 0 and now >= _next_flush_ms:
@@ -732,8 +739,9 @@ func status_lines() -> PackedStringArray:
 	return out
 
 
-## Settings' one line under the switch: what goes, and that an empty key file means nothing does.
+## Settings' one line under the switch: what goes, or why nothing does (pass 58 review: a key pasted with "enabled"
+## still false had said the key file was empty).
 func settings_line() -> String:
 	if configured():
 		return "Runs, picks, falls and frame rate, no name or account. Off deletes what waits."
-	return "Nothing is sent: this build's key file is empty."
+	return "Nothing is sent: %s." % block_reason()
