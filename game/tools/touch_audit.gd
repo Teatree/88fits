@@ -42,6 +42,10 @@
 ## Pass 56: gate_strip (run with cards too): after a real pick, a finger on the HUD's strip (under the clock, at the
 ## strip's foot, on the pause disc) lets the resume gate go and opens nothing (the same touch had reached the strip,
 ## which paused the run as it went on), and a finger under the strip lets it go and starts the stick.
+## Pass 57: settings_analytics (run with settings: "Anonymous play data" has its line, and two real taps on its switch
+## flip Settings.analytics and back; a tool run never sends and never touches the queue file, so the flip is safe) and
+## dev_analytics (run with dev: the developer menu's PostHog readout is there and a real tap on Send now reaches
+## Analytics.send_now; from a tool it sends nothing and says why).
 extends SceneTree
 
 const MAX_PER_KIND := 40     # cards of one screen tapped at most (a long list: a sample, spread over it)
@@ -438,6 +442,8 @@ func _run() -> void:
 		await _confirm_audit("settings_confirm", current_scene, func(): current_scene._ask_wipe())
 	if _want("settings") or _want("settings_debug"):
 		await _settings_menu_style()
+	if _want("settings") or _want("settings_analytics"):
+		await _settings_analytics()
 	if _want("dev"):
 		await _version_hold()
 	await _screen("collection", "res://ui/CollectionScreen.tscn")
@@ -666,6 +672,61 @@ func _settings_menu_style() -> void:
 	root.get_node("Save").flush()
 
 
+## Anonymous play data in Settings (pass 57): the line under the switch says something, and a real tap on the switch
+## flips Settings.analytics, a second one back; put back after whatever happened.
+func _settings_analytics() -> void:
+	var st = root.get_node("Settings")
+	var keep: bool = bool(st.get("analytics"))
+	change_scene_to_file("res://ui/SettingsScreen.tscn")
+	await _wait(1.2)
+	var line: Control = current_scene.find_child("AnalyticsLine", true, false)
+	var has_line: bool = line != null and str(line.get("text")) != ""
+	_count("settings_analytics", has_line)
+	if not has_line:
+		_fail("settings_analytics", "AnalyticsLine", "no line under the switch")
+	var sw: Control = current_scene.find_child("AnalyticsSwitch", true, false)
+	if sw == null:
+		_count("settings_analytics", false)
+		_fail("settings_analytics", "AnalyticsSwitch", "the switch is not in Settings")
+	else:
+		for k in range(2):
+			var was: bool = bool(st.get("analytics"))
+			var at: Vector2 = await _spot(sw)
+			await _tap(at)
+			await _wait(0.2)
+			var ok: bool = bool(st.get("analytics")) != was
+			_count("settings_analytics", ok)
+			if not ok:
+				_fail("settings_analytics", "AnalyticsSwitch", "a tap did not flip Settings.analytics (it was %s)" % str(was))
+	st.set("analytics", keep)
+	root.get_node("Save").request_save()
+	root.get_node("Save").flush()
+
+
+## The developer menu's PostHog readout (pass 57) is there, and a real tap on Send now reaches Analytics.send_now (a tool
+## run sends nothing: the readout says why, and the tap still counts in manual_sends).
+func _dev_analytics() -> void:
+	var an: Node = root.get_node_or_null("Analytics")
+	var box: Control = current_scene.find_child("Analytics", true, false)
+	var ok_box: bool = box != null and box.find_children("*", "Control", true, false).size() > 3
+	_count("dev_analytics", ok_box)
+	if not ok_box:
+		_fail("dev_analytics", "Analytics", "the readout is not in the developer menu")
+	var row: Control = current_scene.find_child("AnalyticsSendNow", true, false)
+	if row == null or an == null:
+		_count("dev_analytics", false)
+		_fail("dev_analytics", "AnalyticsSendNow", "the row (or the autoload) is not there")
+		return
+	var before: int = int(an.get("manual_sends"))
+	var at: Vector2 = await _spot(row)
+	await _tap(at)
+	await _wait(0.4)
+	var now: int = int(an.get("manual_sends"))
+	_count("dev_analytics", now == before + 1)
+	if now != before + 1:
+		_fail("dev_analytics", "AnalyticsSendNow", "a tap did not reach Analytics.send_now (%d -> %d)" % [before, now])
+
+
 ## Holding the version line in Settings for 2 s opens the developer menu; then the menu itself is audited.
 func _version_hold() -> void:
 	change_scene_to_file("res://ui/SettingsScreen.tscn")
@@ -684,6 +745,7 @@ func _version_hold() -> void:
 		await _wait(1.2)
 	await _audit("dev", current_scene)
 	await _dev_dummies()
+	await _dev_analytics()
 
 
 ## The developer menu's dummy rows (pass 48) under a real finger: each tap steps its setting on; all put back after.

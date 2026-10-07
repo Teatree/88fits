@@ -135,6 +135,765 @@ def creature_at(tl, c, stats, t, level):
     return hp, dmg * sm * lv_dmg * cdm * dmg_t
 
 
+# ---------------------------------------------------------------- the spawn estimate, in Python (pass 57)
+#
+# A line-by-line copy of model.js's spawnEstimate (the "Spawned so far" lane): the same steps in the same order, so the two
+# agree to the last bit (only + - * / and comparisons; JavaScript's Math.round is floor(x + 0.5) here, Python's round()
+# rounds halves to even). The checks run both on the same timelines and compare every point.
+
+EST_HZ = 20
+MAX_BODIES = 320
+HAIR = 1e-4
+EST_DEF = {"turnover": 0.06, "bossSeconds": 60, "portalSeconds": 30}
+TL_SPAWN_DEF = {"cap_start": 100, "cap_per_minute": 10, "cap_max": 250, "hard_cap": 300, "cap_per_stage": 0,
+                "boss_cap_frac": 0.3, "portal_cap": 10, "portal_spawn_seconds": 30, "burst_min": 5, "burst_max": 20,
+                "spawn_interval": 0.5, "colour_after_kills": 0}
+INF = float("inf")
+
+
+def js_round(x):
+    return math.floor(x + 0.5)
+
+
+def trunc(v):
+    return math.ceil(v) if v < 0 else math.floor(v)
+
+
+def numv(v, d):
+    """model.js num(): a number, or `d` for a missing, empty or non-numeric value."""
+    if v is None or v == "" or isinstance(v, (dict, list)):
+        return d
+    try:
+        n = float(v)
+    except (TypeError, ValueError):
+        return d
+    return n if math.isfinite(n) else d
+
+
+def is_obj(x):
+    return isinstance(x, dict)
+
+
+def pick_shares(v, weights=None):
+    if v is None or v == "":
+        ids = []
+    elif isinstance(v, list):
+        ids = [str(x) for x in v]
+    else:
+        ids = [str(v)]
+    if not ids:
+        return []
+    if isinstance(v, list) and isinstance(weights, list) and weights:
+        ws = [max(numv(weights[k], 0) if k < len(weights) else 1, 0) for k in range(len(ids))]
+        total = 0.0
+        for w in ws:
+            total += w
+        if total > 0:
+            return [{"id": i, "share": ws[k] / total} for k, i in enumerate(ids) if ws[k] / total > 0]
+    return [{"id": i, "share": 1 / len(ids)} for i in ids]
+
+
+def elite_count(formats, pack):
+    f = formats if is_obj(formats) else {}
+    s, p, r = max(numv(f.get("single"), 0), 0), max(numv(f.get("pack"), 0), 0), max(numv(f.get("ring"), 0), 0)
+    total = s + p + r
+    if not total > 0:
+        return 1
+    return (s + (p + r) * pack) / total
+
+
+def burst_once(rows, start):
+    out = [0.0] * len(rows)
+    W = 0.0
+    for x in rows:
+        if x["w"] > 0:
+            W += x["w"]
+    if not W > 0 or not start > 0:
+        return out
+    mass, rem = 1.0, start
+    step = 0
+    while step < 64 and mass > 1e-9 and rem > 1e-9:
+        cm = cr = 0.0
+        for k, x in enumerate(rows):
+            if not x["w"] > 0:
+                continue
+            p = x["w"] / W
+            n = 1 if x["single"] else x["pack"]
+            fit = rem / x["s"]
+            if fit < n:
+                n = fit
+            if x["room"] < n:
+                n = x["room"]
+            out[k] += mass * p * n
+            left = rem - n * x["s"]
+            if left > 1e-9 and n > 1e-9:
+                cm += p
+                cr += p * left
+        if not cm > 0:
+            break
+        rem = cr / cm
+        mass *= cm
+        step += 1
+    return out
+
+
+def burst_avg(rows, room, lo, hi):
+    acc = [0.0] * len(rows)
+    nb = 0
+    last_start, last = None, None
+    for b in range(lo, hi + 1):
+        start = min(b, room)
+        if start != last_start:
+            last = burst_once(rows, start)
+            last_start = start
+        for k in range(len(rows)):
+            acc[k] += last[k]
+        nb += 1
+    if nb > 0:
+        for k in range(len(rows)):
+            acc[k] /= nb
+    return acc
+
+
+def boss_brood(script, cooldown, seconds, pace):
+    out = []
+    if not isinstance(script, list) or not script:
+        return out
+    pc = pace if pace > 0 else 1
+    t = 2
+    k = 0
+    while k < 1000 and t < seconds:
+        a = script[k % len(script)] if is_obj(script[k % len(script)]) else {}
+        name = str("" if a.get("name") is None else a.get("name"))
+        wind = numv(a.get("windup"), 1) / pc
+        at = t + wind
+        busy = wind
+        if name == "roll":
+            busy += numv(a.get("duration"), 1.2) / pc
+        if name in ("rain", "erupt"):
+            busy += numv(a.get("count"), 10) * numv(a.get("interval"), 0.3) + numv(a.get("warn"), 0.55) / pc + 0.3
+        if at <= seconds:
+            if name == "spawn_ring":
+                out.append({"t": at, "id": str("coyote" if a.get("enemy") is None else a.get("enemy")), "n": max(trunc(numv(a.get("count"), 10)), 0)})
+            elif name == "erupt" and a.get("spawn"):
+                out.append({"t": at, "id": str(a["spawn"]), "n": max(trunc(numv(a.get("count"), 10)), 0)})
+        t += busy + cooldown
+        k += 1
+    return out
+
+
+def stage_length(tl):
+    v = numv(tl.get("stage_length"), 300)
+    return v or 300
+
+
+def spawn_estimate(tl, creatures, opts=None):
+    """model.js spawnEstimate, step for step."""
+    o = opts if is_obj(opts) else {}
+    by_id = {}
+    if isinstance(creatures, list):
+        for c in creatures:
+            if c and c.get("id"):
+                by_id[c["id"]] = c
+    elif is_obj(creatures):
+        by_id.update(creatures)
+
+    def g(key):
+        return numv(tl.get(key), TL_SPAWN_DEF[key])
+
+    SL = stage_length(tl)
+    NST = max(1, numv(tl.get("stages"), 3))
+    end = numv(o.get("end"), 0) if o.get("end") is not None else NST * SL + max(120, js_round(SL * 0.35))
+    tin = o.get("turnover")
+    tv_curve = [[numv(q[0], 0), max(numv(q[1], 0), 0)] for q in tin if isinstance(q, list) and len(q) >= 2] \
+        if isinstance(tin, list) and tin and isinstance(tin[0], list) else None
+    tv_stages = [max(numv(v, EST_DEF["turnover"]), 0) for v in tin] if tv_curve is None and isinstance(tin, list) and tin else None
+    tv_flat = max(numv(None if isinstance(tin, list) else tin, EST_DEF["turnover"]), 0)
+    boss_steps = max(1, js_round(min(max(numv(o.get("bossSeconds"), EST_DEF["bossSeconds"]), 0), 1800) * EST_HZ))
+    portal_steps = max(1, js_round(min(max(numv(o.get("portalSeconds"), EST_DEF["portalSeconds"]), 0), 1800) * EST_HZ))
+    burst_every = max(1, js_round(g("spawn_interval") * EST_HZ))
+    b_lo = trunc(g("burst_min"))
+    b_hi = max(trunc(g("burst_max")), b_lo)
+    hard, cap_max, cap_per_stage = trunc(g("hard_cap")), trunc(g("cap_max")), trunc(g("cap_per_stage"))
+    colour_after = trunc(g("colour_after_kills"))
+    boss_frac = g("boss_cap_frac")
+    portal_cap, portal_spawn = trunc(g("portal_cap")), g("portal_spawn_seconds")
+    pw_block = tl.get("portal_wave") if is_obj(tl.get("portal_wave")) else {}
+    portal_wave_count = trunc(numv(pw_block.get("count"), 0))
+    hell_cap = tl.get("hell_cap") if isinstance(tl.get("hell_cap"), list) else []
+    curve = tl.get("cap_curve") if isinstance(tl.get("cap_curve"), list) else []
+    late_t = numv(tl.get("weight_late_t"), 600)
+    pace = numv(tl.get("move_pace"), 1) if numv(tl.get("move_pace"), 1) > 0 else 1
+    ev_list = tl.get("events") if isinstance(tl.get("events"), list) else []
+
+    def_cache = {}
+
+    def def_of(cid, stats):
+        st = stats if is_obj(stats) else {}
+        key = cid + "|" + json.dumps(st, sort_keys=True)
+        if key in def_cache:
+            return def_cache[key]
+        c = by_id.get(cid)
+        d = None
+        if c:
+            vr = c.get("variance") if is_obj(c.get("variance")) else {}
+            vo = st.get("variance") if is_obj(st.get("variance")) else {}
+            has_var = len(vr) > 0 or len(vo) > 0
+            d = {
+                "id": cid,
+                "arch": "boss" if c.get("archetype") == "boss" or c.get("kind") == "boss" else "elite" if c.get("archetype") == "elite" else "regular",
+                "share": numv(st.get("cap_share"), numv(c.get("cap_share"), 1)),
+                "pack": max(trunc(numv(st.get("pack"), numv(c.get("pack_size"), 1))), 1),
+                "maxAlive": trunc(numv(st.get("max_alive"), numv(c.get("max_alive"), 0))),
+                "canBeElite": bool(st["can_be_elite"]) if st.get("can_be_elite") is not None else c.get("can_be_elite") is not False,
+                "eliteWeight": max(numv(st.get("elite_weight"), 1), 0),
+                "formats": st.get("elite_formats") if is_obj(st.get("elite_formats")) else {},
+                "chance": max(numv(vo.get("special_chance"), numv(vr.get("special_chance"), 0)), 0) if has_var else 0,
+            }
+            cb = c.get("boss") if is_obj(c.get("boss")) else {}
+            sb = st.get("boss") if is_obj(st.get("boss")) else {}
+            script = [a for a in cb["script"] if is_obj(a)] if isinstance(cb.get("script"), list) else []
+            if is_obj(sb.get("attacks")):
+                script = [a for a in script if a.get("name") not in sb["attacks"] or bool(sb["attacks"][a.get("name")])]
+            elif isinstance(sb.get("attacks"), list):
+                script = [a for a in sb["attacks"] if is_obj(a)]
+            cooldown = numv(sb.get("cooldown_between"), numv(cb.get("cooldown_between"), 2))
+            rate = numv(st.get("attack_rate_mult"), 1)
+            if rate > 0 and rate != 1:
+                cooldown /= rate
+            d["script"] = script
+            d["cooldown"] = cooldown
+        def_cache[key] = d
+        return d
+
+    roster = []
+    for r in tl.get("roster") if isinstance(tl.get("roster"), list) else []:
+        if not is_obj(r):
+            continue
+        d = def_of(str("" if r.get("enemy") is None else r.get("enemy")), r.get("stats"))
+        if d:
+            until = 1e9 if r.get("until") is None or r.get("until") == "" else numv(r.get("until"), 1e9)
+            roster.append({"r": r, "d": d, "t": numv(r.get("t"), 0), "until": until, "hell": r.get("channel") == "hell",
+                           "pack": max(trunc(numv(r.get("pack"), d["pack"])), 1), "single": r.get("pattern") == "single"})
+
+    alive = {}
+    sp_live = []
+    S = {"k": 0, "play": 0, "stage": 0, "phase": 0, "phase_left": 0, "portal_t": 0.0, "spawn_step": 0, "fight": None,
+         "endless": False, "en_next_boss": 0.0, "en_next_elite": 0.0, "en_next_elite_boss": 0.0, "en_boss_i": 0,
+         "boss_alive": None, "kills": 0.0, "colour_at": None, "ev_i": 0, "held_retry": 0.0, "sp_left": -1}
+    cum, col, mod = {}, {}, {}
+    cat = {"reg": 0.0, "col": 0.0, "mod": 0.0, "elite": 0.0, "special": 0.0, "boss": 0.0, "minion": 0.0}
+    marks, fights = [], []
+
+    def clock():
+        return S["k"] / EST_HZ
+
+    def now():
+        return S["k"] / EST_HZ if S["phase"] == 0 else S["k"] / EST_HZ + HAIR
+
+    def turnover_now():
+        if tv_curve is not None:
+            v = sample_points(tv_curve, clock()) if tv_curve else 0
+        elif tv_stages is not None:
+            v = tv_stages[min(max(S["stage"], 0), len(tv_stages) - 1)]
+        else:
+            v = tv_flat
+        return min(v, 1)
+
+    def alive_of(cid):
+        n = 0.0
+        for a in alive.values():
+            if a["id"] == cid:
+                n += a["n"]
+        return n
+
+    def bodies():
+        n = 0.0
+        for a in alive.values():
+            n += a["n"]
+        return n + len(sp_live) + (1 if S["boss_alive"] else 0)
+
+    def load_of(ids):
+        l = 0.0
+        for a in alive.values():
+            if a["id"] in ids:
+                l += a["n"] * a["share"]
+        return l
+
+    def load_all():
+        l = 0.0
+        for a in alive.values():
+            l += a["n"] * a["share"]
+        for s in sp_live:
+            l += s["share"]
+        return l + (S["boss_alive"]["share"] if S["boss_alive"] else 0)
+
+    def total():
+        return cat["reg"] + cat["elite"] + cat["special"] + cat["boss"]
+
+    def colour_open():
+        return S["kills"] >= colour_after
+
+    def bump(m, cid, n):
+        m[cid] = m.get(cid, 0) + n
+
+    def add(d, n, kind):
+        if not n > 0 or not d:
+            return
+        key = d["id"] + "|" + repr(float(d["share"]))
+        a = alive.get(key)
+        if a:
+            a["n"] += n
+        else:
+            alive[key] = {"id": d["id"], "share": d["share"], "n": n}
+        bump(cum, d["id"], n)
+        if kind == "elite":
+            cat["elite"] += n
+            return
+        cat["reg"] += n
+        if kind == "mod":
+            cat["mod"] += n
+            bump(mod, d["id"], n)
+            return
+        if d["arch"] == "regular" and d["chance"] > 0 and colour_open():
+            c = n * d["chance"]
+            cat["col"] += c
+            bump(col, d["id"], c)
+
+    def cap_now():
+        t = now()
+        base = sample_points(curve, t) if curve else trunc(g("cap_start")) + g("cap_per_minute") * (t / 60)
+        cap = min(trunc(base + cap_per_stage * S["stage"]), cap_max)
+        if S["phase"] == 1:
+            return trunc(cap * boss_frac)
+        if S["phase"] == 2:
+            if portal_wave_count > 0:
+                return 0
+            if portal_spawn >= 0 and S["portal_t"] >= portal_spawn:
+                return 0
+            return cap if portal_cap < 0 else portal_cap
+        return cap
+
+    def hell_frac():
+        return numv(hell_cap[min(max(S["stage"], 0), len(hell_cap) - 1)], 0) if hell_cap else 0
+
+    def rows_at(tr, hell):
+        out = []
+        for x in roster:
+            if not (tr >= x["t"] and tr < x["until"]):
+                continue
+            if hell is not None and x["hell"] != hell:
+                continue
+            out.append(x)
+        return out
+
+    def open_rows(rows):
+        out = []
+        for x in rows:
+            room = INF
+            if x["d"]["maxAlive"] > 0:
+                room = x["d"]["maxAlive"] - alive_of(x["d"]["id"])
+                if not room > 1e-9:
+                    continue
+            out.append({"x": x, "room": room})
+        return out
+
+    waves = []
+    for w in tl.get("waves") if isinstance(tl.get("waves"), list) else []:
+        if not is_obj(w):
+            continue
+        alts = [a for a in (w.get("alts") if isinstance(w.get("alts"), list) else []) if is_obj(a)]
+        lst = alts if alts else [{"chance": 1, "enemy": w.get("enemy"), "pack": w.get("pack"), "stats": w.get("stats")}]
+        s = 0.0
+        for a in lst:
+            s += max(numv(a.get("chance"), 1), 0)
+        branches = []
+        for a in lst:
+            p = ((max(numv(a.get("chance"), 1), 0) / s) if s > 0 else 0) if alts else 1
+            d = def_of(str("" if a.get("enemy") is None else a.get("enemy")), a.get("stats"))
+            if p > 0:
+                branches.append({"p": p, "d": d, "spawned": 0, "next": numv(w.get("t"), 0), "done": not d})
+        waves.append({"t": numv(w.get("t"), 0), "until": None if w.get("until") is None or w.get("until") == "" else numv(w.get("until"), 0),
+                      "count": trunc(numv(w.get("count"), 0)), "burst": max(trunc(numv(w.get("burst"), 5)), 1),
+                      "every": numv(w.get("every"), 0), "respect": w.get("respect_cap") is not False,
+                      "hell": w.get("channel") == "hell", "elite": str(w["elite"]) if w.get("elite") else "", "branches": branches})
+
+    def hell_ids(rows):
+        s = set()
+        for x in rows:
+            s.add(x["d"]["id"])
+        t = clock()
+        for w in waves:
+            if not w["hell"] or t < w["t"] or (w["until"] is not None and t >= w["until"]):
+                continue
+            for b in w["branches"]:
+                if not b["done"] and b["d"]:
+                    s.add(b["d"]["id"])
+        return s
+
+    def channel_room(hell):
+        cap = cap_now()
+        hl = load_of(hell_ids(rows_at(clock(), True)))
+        return hell_frac() * cap - hl if hell else cap - (load_all() - hl)
+
+    def tick_waves():
+        t = clock()
+        for w in waves:
+            if t < w["t"]:
+                continue
+            room = None
+            for b in w["branches"]:
+                if b["done"]:
+                    continue
+                if w["until"] is not None and t >= w["until"]:
+                    b["done"] = True
+                    continue
+                if w["count"] > 0 and b["spawned"] >= w["count"]:
+                    b["done"] = True
+                    continue
+                fired = 0
+                while t >= b["next"] and fired < 8:
+                    fired += 1
+                    n = w["burst"]
+                    if w["count"] > 0:
+                        n = min(n, w["count"] - b["spawned"])
+                    n = min(n, math.floor(hard - bodies()))
+                    if w["respect"]:
+                        if room is None:
+                            room = channel_room(w["hell"])
+                        n = min(n, max(math.ceil(room / max(b["d"]["share"], 0.05)), 1)) if room > 0 else 0
+                    came = n if n > 0 else 0
+                    if came > 0:
+                        add(b["d"], b["p"] * came, "mod" if w["elite"] and colour_open() else "reg")
+                        b["spawned"] += came
+                    if w["every"] <= 0:
+                        if came > 0:
+                            b["done"] = True
+                        else:
+                            b["next"] = t + burst_every / EST_HZ
+                        break
+                    b["next"] += w["every"]
+                    if w["count"] > 0 and b["spawned"] >= w["count"]:
+                        b["done"] = True
+                        break
+                if not b["done"] and fired >= 8 and t >= b["next"]:
+                    b["next"] = t
+
+    held, timers = [], []
+
+    def spawn_elite(enemy, weights, stats, p):
+        if not colour_open():
+            held.append({"enemy": enemy, "weights": weights, "stats": stats, "p": p})
+            return
+        st = stats if is_obj(stats) else {}
+        n, cid = 0.0, ""
+        picks = pick_shares(enemy, weights)
+        if not picks:
+            cands = [c for c in open_rows(rows_at(clock(), None)) if c["x"]["d"]["canBeElite"] and c["x"]["d"]["eliteWeight"] > 0]
+            s = 0.0
+            for c in cands:
+                s += c["x"]["d"]["eliteWeight"]
+            for c in cands:
+                d = def_of(c["x"]["d"]["id"], st) if len(st) else c["x"]["d"]
+                if not d:
+                    continue
+                pack = max(trunc(numv(c["x"]["r"].get("pack"), d["pack"])), 1)
+                m = p * (c["x"]["d"]["eliteWeight"] / s) * elite_count(d["formats"], pack)
+                add(d, m, "mod")
+                n += m
+                if not cid:
+                    cid = d["id"]
+        else:
+            for pk in picks:
+                d = def_of(pk["id"], st)
+                if not d:
+                    continue
+                m = p * pk["share"] * elite_count(d["formats"], d["pack"])
+                add(d, m, "mod")
+                n += m
+                if not cid:
+                    cid = d["id"]
+        if n > 0:
+            marks.append({"t": clock(), "kind": "mod", "id": cid, "n": n})
+
+    def spawn_elite_boss(enemy, weights, stats, p):
+        n, cid = 0.0, ""
+        for pk in pick_shares(enemy, weights):
+            d = def_of(pk["id"], stats)
+            if not d:
+                continue
+            add(d, p * pk["share"], "elite")
+            n += p * pk["share"]
+            if not cid:
+                cid = d["id"]
+        if n > 0:
+            marks.append({"t": clock(), "kind": "elite", "id": cid, "n": n})
+
+    def start_boss(enemy, weights, stats):
+        picks = [pk for pk in pick_shares(enemy, weights) if def_of(pk["id"], stats)]
+        if not picks:
+            return
+        share = 0.0
+        for pk in picks:
+            d = def_of(pk["id"], stats)
+            bump(cum, d["id"], pk["share"])
+            share += pk["share"] * d["share"]
+        cat["boss"] += 1
+        S["boss_alive"] = {"share": share}
+        S["phase"], S["phase_left"] = 1, boss_steps
+        S["fight"] = {"t": clock(), "boss": picks[0]["id"], "seconds": boss_steps / EST_HZ, "portal": portal_steps / EST_HZ,
+                      "before": total() - 1, "spawned": 0, "minions": 0, "brood": []}
+        for pk in picks:
+            d = def_of(pk["id"], stats)
+            for b in boss_brood(d["script"], d["cooldown"], boss_steps / EST_HZ, pace):
+                S["fight"]["brood"].append({"step": S["play"] + max(1, js_round(b["t"] * EST_HZ)), "id": b["id"], "n": b["n"] * pk["share"]})
+        S["fight"]["brood"].sort(key=lambda b: b["step"])
+        marks.append({"t": clock(), "kind": "boss", "id": picks[0]["id"], "n": 1})
+
+    def run_event(ev, p):
+        stats = ev.get("stats") if is_obj(ev.get("stats")) else {}
+        typ = str("" if ev.get("type") is None else ev.get("type"))
+        if typ == "elite":
+            spawn_elite(ev.get("enemy"), ev.get("weights"), stats, p)
+        elif typ == "elite_every":
+            iv = ev.get("interval")
+            lo = numv(iv[0], 90) if isinstance(iv, list) and iv else numv(iv, 90)
+            hi = numv(iv[-1], 90) if isinstance(iv, list) and iv else lo
+            timers.append({"next": clock(), "mean": (lo + hi) / 2, "enemy": ev.get("enemy"), "weights": ev.get("weights"), "stats": stats, "p": p})
+        elif typ == "swarm":
+            picks = pick_shares(ev.get("enemy"), ev.get("weights"))
+            if not picks and o.get("skin"):
+                picks = [{"id": str(o["skin"]), "share": 1}]
+            n = min(p * max(trunc(numv(ev.get("count"), 40)), 0), max(MAX_BODIES - bodies(), 0))
+            cid = ""
+            for pk in picks:
+                d = def_of(pk["id"], stats)
+                if d:
+                    add(d, n * pk["share"], "reg")
+                    if not cid:
+                        cid = d["id"]
+            if n > 0 and cid:
+                marks.append({"t": clock(), "kind": "swarm", "id": cid, "n": n})
+        elif typ == "boss":
+            if p >= 0.5:
+                start_boss(ev["enemy"] if "enemy" in ev else o.get("boss"), ev.get("weights"), stats)
+        elif typ == "elite_boss":
+            spawn_elite_boss(ev.get("enemy"), ev.get("weights"), stats, p)
+
+    events = [{"ev": ev, "i": i, "t": max(numv(ev.get("t"), 0), 0) if is_obj(ev) else 0} for i, ev in enumerate(ev_list)]
+    events = [e for e in events if is_obj(e["ev"]) and numv(e["ev"].get("chance"), 1) > 0]
+    events.sort(key=lambda e: (e["t"], e["i"]))
+    boss_ids = [ev["enemy"] for ev in ev_list if is_obj(ev) and ev.get("type") == "boss" and isinstance(ev.get("enemy"), str) and ev["enemy"] in by_id]
+    last_elite_boss = None
+    for ev in ev_list:
+        if is_obj(ev) and ev.get("type") == "elite_boss":
+            last_elite_boss = ev
+
+    def process_events():
+        t = clock()
+        while S["ev_i"] < len(events):
+            e = events[S["ev_i"]]
+            if e["t"] > t:
+                break
+            S["ev_i"] += 1
+            run_event(e["ev"], min(max(numv(e["ev"].get("chance"), 1), 0), 1))
+            if S["phase"] != 0:
+                return
+        for tm in timers:
+            if t >= tm["next"]:
+                if not colour_open():
+                    tm["next"] = t + 1
+                    continue
+                tm["next"] = t + tm["mean"]
+                spawn_elite(tm["enemy"], tm["weights"], tm["stats"], tm["p"])
+        if held and t >= S["held_retry"]:
+            S["held_retry"] = t + 1
+            if colour_open():
+                h = held.pop(0)
+                spawn_elite(h["enemy"], h["weights"], h["stats"], h["p"])
+        if S["endless"]:
+            if t >= S["en_next_elite"]:
+                if colour_open():
+                    S["en_next_elite"] = t + SL * 0.15
+                    spawn_elite("", None, {}, 1)
+                else:
+                    S["en_next_elite"] = t + 1
+            if t >= S["en_next_boss"] and o.get("boss"):
+                S["en_next_boss"] = t + SL
+                S["en_next_elite_boss"] = t + SL * 0.5
+                cid = boss_ids[S["en_boss_i"] % len(boss_ids)] if boss_ids else str(o["boss"])
+                S["en_boss_i"] += 1
+                run_event({"type": "boss", "enemy": cid}, 1)
+            if S["en_next_elite_boss"] > 0 and t >= S["en_next_elite_boss"] and last_elite_boss and pick_shares(last_elite_boss.get("enemy")):
+                S["en_next_elite_boss"] = 0
+                run_event({"type": "elite_boss", "enemy": last_elite_boss.get("enemy")}, 1)
+
+    sp_block = tl.get("specials") if is_obj(tl.get("specials")) else {}
+    sp_on = len(sp_block) > 0
+    sp_from = numv(sp_block.get("from"), SL * 0.5)
+    sp_iv = sp_block.get("interval") if isinstance(sp_block.get("interval"), list) and sp_block.get("interval") else [20, 40]
+    sp_steps = max(1, js_round(((numv(sp_iv[0], 20) + numv(sp_iv[-1], 40)) / 2) * EST_HZ))
+    sp_max = trunc(numv(sp_block.get("max_alive"), 1))
+
+    def tick_specials():
+        if not sp_on:
+            return
+        if S["stage"] == 0 and clock() < sp_from:
+            return
+        pool = []
+        for row in sp_block.get("pool") if isinstance(sp_block.get("pool"), list) else []:
+            cid = str("" if row.get("enemy") is None else row.get("enemy")) if is_obj(row) else str(row)
+            st = trunc(numv(row.get("stage"), 1)) if is_obj(row) else 1
+            if cid in by_id and S["stage"] + 1 >= st:
+                pool.append(cid)
+        if not pool:
+            return
+        if len(sp_live) >= sp_max:
+            S["sp_left"] = -1
+            return
+        if S["sp_left"] < 0:
+            S["sp_left"] = sp_steps
+        S["sp_left"] -= 1
+        if S["sp_left"] > 0:
+            return
+        S["sp_left"] = -1
+        tv = turnover_now()
+        life = max(1, js_round(EST_HZ / tv)) if tv > 0 else INF
+        share = 0.0
+        for cid in pool:
+            bump(cum, cid, 1 / len(pool))
+            share += def_of(cid, None)["share"] / len(pool)
+        cat["special"] += 1
+        sp_live.append({"share": share, "die": S["play"] + life})
+        marks.append({"t": clock(), "kind": "special", "id": "/".join(pool), "n": 1})
+
+    def burst_rows(lst, room, left):
+        t = now()
+        rows = [{"w": roster_weight(c["x"]["r"], t, late_t), "s": max(c["x"]["d"]["share"], 0.05), "pack": c["x"]["pack"],
+                 "single": c["x"]["single"], "room": c["room"]} for c in lst]
+        got = burst_avg(rows, room, b_lo, b_hi)
+        s = 0.0
+        for n in got:
+            s += n
+        scale = left / s if s > left else 1
+        used = 0.0
+        for i, c in enumerate(lst):
+            n = got[i] * scale
+            add(c["x"]["d"], n, "reg")
+            used += n
+        return left - used
+
+    def spawn_burst():
+        cap = cap_now()
+        if cap <= 0:
+            return
+        tr = now() if S["phase"] == 0 else now() - 1
+        hell_rows = rows_at(tr, True)
+        hl = load_of(hell_ids(hell_rows))
+        room = cap - (load_all() - hl)
+        left = hard - bodies()
+        if left <= 0:
+            return
+        regular = open_rows(rows_at(tr, False))
+        if room > 0 and regular:
+            left = burst_rows(regular, room, left)
+        hell_room = hell_frac() * cap - hl
+        if hell_room > 0 and left > 0 and hell_rows:
+            ho = open_rows(hell_rows)
+            if ho:
+                burst_rows(ho, hell_room, left)
+
+    def portal_wave():
+        if portal_wave_count <= 0:
+            return
+        lst = open_rows(rows_at(now() - 1, False))
+        if not lst:
+            return
+        left = min(portal_wave_count, math.floor(hard - bodies()))
+        if left <= 0:
+            return
+        t = now()
+        rows = [{"w": roster_weight(c["x"]["r"], t, late_t), "s": 1, "pack": c["x"]["pack"], "single": c["x"]["single"], "room": INF} for c in lst]
+        got = burst_once(rows, left)
+        for i, c in enumerate(lst):
+            add(c["x"]["d"], got[i], "reg")
+
+    points = []
+
+    def record(after):
+        by = {cid: [cum[cid], col.get(cid, 0), mod.get(cid, 0)] for cid in cum}
+        points.append({"t": clock(), "after": after, "all": total(), "reg": cat["reg"], "col": cat["col"], "mod": cat["mod"],
+                       "elite": cat["elite"], "special": cat["special"], "boss": cat["boss"], "minion": cat["minion"], "kills": S["kills"], "alive": bodies(), "by": by})
+
+    record(False)
+    end_k = js_round(end * EST_HZ)
+    guard = 0
+    while (S["k"] < end_k or S["phase"] != 0) and guard < 4000000:
+        guard += 1
+        S["play"] += 1
+        kd = turnover_now() / EST_HZ
+        if kd > 0:
+            for a in alive.values():
+                dn = a["n"] * kd
+                a["n"] -= dn
+                S["kills"] += dn
+        for i in range(len(sp_live) - 1, -1, -1):
+            if sp_live[i]["die"] <= S["play"]:
+                sp_live.pop(i)
+                S["kills"] += 1
+        if S["colour_at"] is None and colour_open():
+            S["colour_at"] = clock()
+        if S["phase"] == 0:
+            S["k"] += 1
+            process_events()
+            if S["phase"] == 0:
+                tick_waves()
+        elif S["phase"] == 1:
+            S["phase_left"] -= 1
+            while S["fight"] and S["fight"]["brood"] and S["fight"]["brood"][0]["step"] <= S["play"]:
+                b = S["fight"]["brood"].pop(0)
+                d = def_of(b["id"], None)
+                n = min(b["n"], max(MAX_BODIES - bodies(), 0))
+                if d and n > 0:
+                    add(d, n, "reg")
+                    cat["minion"] += n
+                    S["fight"]["minions"] += n
+            if S["phase_left"] <= 0:
+                S["boss_alive"] = None
+                S["kills"] += 1
+                S["phase"], S["phase_left"], S["portal_t"] = 2, portal_steps, 0.0
+                portal_wave()
+        else:
+            S["phase_left"] -= 1
+            S["portal_t"] += 1 / EST_HZ
+        if S["phase"] != 2:
+            tick_specials()
+        S["spawn_step"] -= 1
+        if S["spawn_step"] <= 0:
+            S["spawn_step"] = burst_every
+            spawn_burst()
+        if S["phase"] == 2 and S["phase_left"] <= 0:
+            S["stage"] += 1
+            if S["stage"] >= NST:
+                S["endless"] = True
+                S["en_boss_i"] = 0
+                S["en_next_boss"] = clock() + SL
+                S["en_next_elite"] = clock() + SL * 0.15
+                S["en_next_elite_boss"] = clock() + SL * 0.5
+            S["phase"] = 0
+            S["fight"]["spawned"] = total() - S["fight"]["before"] - 1
+            del S["fight"]["brood"]
+            fights.append(S["fight"])
+            S["fight"] = None
+            record(True)
+            continue
+        if S["k"] % EST_HZ == 0 and (S["phase"] == 0 or points[-1]["t"] != clock()):
+            record(False)
+    last = points[-1]["by"]
+    ids = sorted(last, key=lambda cid: (-last[cid][0], cid))
+    return {"points": points, "ids": ids, "marks": marks, "fights": fights, "colourAt": S["colour_at"]}
+
+
 # ---------------------------------------------------------------- model.js under node
 
 
@@ -157,12 +916,12 @@ process.stdin.on('end', () => {
 """
 
 
-def run_node(query):
+def run_node(query, runner_src=None):
     node = shutil.which("node")
     if not node:
         return None
     with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False, encoding="utf-8") as f:
-        f.write(NODE_RUNNER)
+        f.write(runner_src or NODE_RUNNER)
         runner = f.name
     try:
         p = subprocess.run([node, runner, os.path.join(HERE, "model.js")], input=json.dumps(query), capture_output=True,
@@ -319,6 +1078,333 @@ def model_checks():
           "seed points on the formula, 4 decimals: %s" % seeded)
 
 
+# ---------------------------------------------------------------- the "Spawned so far" estimate (pass 57)
+
+ESTIMATE_RUNNER = r"""
+const M = require(process.argv[2]);
+let src = '';
+process.stdin.on('data', (d) => { src += d; });
+process.stdin.on('end', () => {
+  const q = JSON.parse(src);
+  const t0 = Date.now();
+  const out = q.cases.map(([tl, cr, opts]) => {
+    const e = M.spawnEstimate(tl, cr, opts);
+    return { points: e.points, ids: e.ids, marks: e.marks, fights: e.fights, colourAt: e.colourAt };
+  });
+  const at = q.at.map(([k, t, before]) => { const e = M.spawnEstimate(q.cases[k][0], q.cases[k][1], q.cases[k][2]); const p = M.estimateAt(e, t, before); return [p.t, p.after, p.all]; });
+  const brood = q.brood.map(([script, cd, secs, pace]) => M.bossBrood(script, cd, secs, pace));
+  process.stdout.write(JSON.stringify({ out, at, brood, ms: Date.now() - t0 }));
+});
+"""
+
+# the hand-checked case: one row of a pack-10 creature under a flat cap of 10, bursts of exactly 10 load every 0.5 s,
+# 10 % of the crowd killed a second (0.5 % a step): the first burst fills the crowd to 10, then every burst refills what
+# the ten steps since killed, 10 x (1 - 0.995^10)
+EST_A_TL = {"stage_length": 100, "stages": 1, "cap_curve": [[0, 10]], "cap_max": 100, "hard_cap": 300, "burst_min": 10,
+            "burst_max": 10, "spawn_interval": 0.5, "colour_after_kills": 5,
+            "roster": [{"id": "r1", "t": 0, "enemy": "a", "weights": [[0, 1]]}],
+            "events": [{"t": 30, "type": "swarm", "enemy": "b", "count": 20}, {"t": 40, "type": "elite_boss", "enemy": "e"},
+                       {"t": 50, "type": "boss", "enemy": "z"}],
+            "boss_cap_frac": 0.5, "portal_cap": 0}
+EST_A_CR = [{"id": "a", "kind": "enemy", "archetype": "walker", "cap_share": 1, "pack_size": 10, "max_alive": 0, "variance": {"special_chance": 0.1}},
+            {"id": "b", "kind": "enemy", "archetype": "walker", "cap_share": 1, "pack_size": 5},
+            {"id": "e", "kind": "enemy", "archetype": "elite", "cap_share": 1, "pack_size": 1},
+            {"id": "z", "kind": "boss", "archetype": "boss", "cap_share": 1, "pack_size": 1}]
+
+# every rule at once on a small two-stage map: waves (alternatives, count, until, every 0, no cap, an elite modifier,
+# the hell channel), held elites, elite_every with [min, max] and formats, swarms (the map's skin, a weighted list at
+# 50 %), an Elite pair by weights, a boss under 0.5 (no fight), an event dated on a boss (after the portal), the map's
+# boss, the specials with a stage-2 pool row, a max_alive row, single / scatter / ring / in_front rows, the portal cap
+# for 10 s of the wait, then endless
+EST_C_CR = [
+    {"id": "fod", "kind": "enemy", "archetype": "walker", "cap_share": 0.5, "pack_size": 5, "max_alive": 0, "variance": {"special_chance": 0.1, "tints": ["#ff0000"]}},
+    {"id": "tank", "kind": "enemy", "archetype": "tank", "cap_share": 1.0, "pack_size": 2, "max_alive": 0, "variance": {"special_chance": 0.05}},
+    {"id": "big", "kind": "enemy", "archetype": "brute", "cap_share": 2.5, "pack_size": 1, "max_alive": 2, "can_be_elite": False, "variance": {}},
+    {"id": "hellish", "kind": "enemy", "archetype": "runner", "cap_share": 0.6, "pack_size": 6, "variance": {"special_chance": 0.08}},
+    {"id": "eli", "kind": "enemy", "archetype": "elite", "cap_share": 1.0, "pack_size": 1, "variance": {}},
+    {"id": "eli2", "kind": "enemy", "archetype": "elite", "cap_share": 1.0, "pack_size": 1},
+    {"id": "spec", "kind": "enemy", "archetype": "spitter", "cap_share": 1.0, "pack_size": 1, "max_alive": 1, "can_be_elite": False},
+    {"id": "spec2", "kind": "enemy", "archetype": "brute", "cap_share": 1.0, "pack_size": 1, "max_alive": 1},
+    {"id": "bossy", "kind": "boss", "archetype": "boss", "cap_share": 1.0, "pack_size": 1,
+     "boss": {"cooldown_between": 2.0, "script": [{"name": "roll", "windup": 1.0, "duration": 1.2}, {"name": "spawn_ring", "windup": 0.8, "count": 5, "enemy": "fod"}]}},
+    {"id": "bossy2", "kind": "boss", "archetype": "boss", "cap_share": 1.0, "pack_size": 1},
+]
+EST_C_TL = {
+    "stage_length": 120, "stages": 2, "cap_curve": [[0, 8], [60, 30], [120, 40], [200, 60]], "cap_max": 50, "hard_cap": 90,
+    "boss_cap_frac": 0.5, "burst_min": 2, "burst_max": 7, "spawn_interval": 0.7, "hell_cap": [0, 0.5], "colour_after_kills": 20,
+    "portal_cap": -1, "portal_spawn_seconds": 10,
+    "specials": {"from": 40, "interval": [10, 20], "max_alive": 1, "pool": [{"enemy": "spec"}, {"enemy": "spec2", "stage": 2}]},
+    "roster": [
+        {"id": "r1", "t": 0, "until": 100, "enemy": "fod", "weights": [[0, 6], [80, 2]]},
+        {"id": "r2", "t": 20, "enemy": "tank", "weights": [[20, 0], [50, 3]], "pattern": "single",
+         "stats": {"variance": {"special_chance": 0.3}, "elite_formats": {"single": 1, "pack": 1}}},
+        {"id": "r3", "t": 30, "enemy": "big", "weights": [[30, 1]], "pattern": "scatter"},
+        {"id": "r4", "t": 100, "enemy": "fod", "weights": [[100, 4]], "pattern": "ring", "pack": 8,
+         "stats": {"cap_share": 1.0, "elite_weight": 3, "elite_formats": {"ring": 1}}},
+        {"id": "r5", "t": 120, "enemy": "hellish", "weights": [[120, 5]], "channel": "hell", "pattern": "in_front"},
+    ],
+    "waves": [
+        {"id": "w1", "t": 10, "count": 12, "burst": 4, "every": 3,
+         "alts": [{"chance": 0.75, "enemy": "fod", "pack": 4}, {"chance": 0.25, "enemy": "tank", "stats": {"cap_share": 2}}]},
+        {"id": "w2", "t": 70, "until": 90, "burst": 6, "every": 5, "respect_cap": False, "enemy": "tank", "elite": "random"},
+        {"id": "w3", "t": 130, "count": 10, "burst": 10, "every": 0, "channel": "hell", "enemy": "hellish"},
+    ],
+    "events": [
+        {"t": 5, "type": "elite", "enemy": "tank"},
+        {"t": 45, "type": "elite_every", "interval": [20, 40]},
+        {"t": 50, "type": "swarm", "count": 15},
+        {"t": 55, "type": "swarm", "enemy": ["fod", "tank"], "weights": [3, 1], "count": 12, "chance": 0.5},
+        {"t": 60, "type": "elite_boss", "enemy": ["eli", "eli2"], "weights": [2, 1]},
+        {"t": 70, "type": "boss", "enemy": "bossy", "chance": 0.3},
+        {"t": 120, "type": "boss", "enemy": "bossy"},
+        {"t": 120, "type": "swarm", "enemy": "fod", "count": 10},
+        {"t": 240, "type": "boss"},
+    ],
+}
+EST_C_OPTS = {"turnover": [0.05, 0.08], "bossSeconds": 20, "portalSeconds": 15, "skin": "fod", "boss": "bossy2", "end": 400}
+
+
+def est_close(a, b, eps=1e-9):
+    if a is None or b is None:
+        return a is b
+    return abs(float(a) - float(b)) <= eps * max(1.0, abs(float(a)), abs(float(b)))
+
+
+def estimate_diff(js, py):
+    """Where the page's estimate and the Python copy differ (empty: they agree)."""
+    out = []
+    if len(js["points"]) != len(py["points"]):
+        return ["%d points against %d" % (len(js["points"]), len(py["points"]))]
+    for pj, pp in zip(js["points"], py["points"]):
+        if pj["t"] != pp["t"] or pj["after"] != pp["after"]:
+            out.append("point at %s/%s after %s/%s" % (pj["t"], pp["t"], pj["after"], pp["after"]))
+            break
+        for k in ("all", "reg", "col", "mod", "elite", "special", "boss", "minion", "kills", "alive"):
+            if not est_close(pj[k], pp[k]):
+                out.append("%s at %s: js %s py %s" % (k, pj["t"], pj[k], pp[k]))
+        if set(pj["by"]) != set(pp["by"]):
+            out.append("ids at %s: js %s py %s" % (pj["t"], sorted(pj["by"]), sorted(pp["by"])))
+        else:
+            for cid in pj["by"]:
+                if not all(est_close(x, y) for x, y in zip(pj["by"][cid], pp["by"][cid])):
+                    out.append("%s at %s: js %s py %s" % (cid, pj["t"], pj["by"][cid], pp["by"][cid]))
+        if len(out) > 5:
+            break
+    if js["ids"] != py["ids"]:
+        out.append("ids order: js %s py %s" % (js["ids"], py["ids"]))
+    if len(js["marks"]) != len(py["marks"]):
+        out.append("%d marks against %d" % (len(js["marks"]), len(py["marks"])))
+    else:
+        for mj, mp in zip(js["marks"], py["marks"]):
+            if not (est_close(mj["t"], mp["t"]) and mj["kind"] == mp["kind"] and mj["id"] == mp["id"] and est_close(mj["n"], mp["n"])):
+                out.append("mark js %s py %s" % (mj, mp))
+                break
+    if len(js["fights"]) != len(py["fights"]) or not all(est_close(a["t"], b["t"]) and a["boss"] == b["boss"] and est_close(a["spawned"], b["spawned"])
+                                                       for a, b in zip(js["fights"], py["fights"])):
+        out.append("fights js %s py %s" % (js["fights"], py["fights"]))
+    if not est_close(js["colourAt"], py["colourAt"]):
+        out.append("colour js %s py %s" % (js["colourAt"], py["colourAt"]))
+    return out
+
+
+def point_at(est, t, before=False):
+    pts = est["points"]
+    best = 0
+    for i, p in enumerate(pts):
+        if p["t"] <= t:
+            best = i
+    if before and pts[best]["t"] == t:
+        while best > 0 and pts[best - 1]["t"] == pts[best]["t"]:
+            best -= 1
+    return pts[best]
+
+
+def estimate_checks():
+    rc = server.load_json(server.map_path("red_canyon"))
+    rc_tl = rc.get("timeline_data", {})
+    creatures = server.list_creatures()
+    skin = list((rc.get("skins") or {}).values())[0] if rc.get("skins") else ""
+    rc_opts = {"turnover": 0.0557, "bossSeconds": 44.2, "portalSeconds": 34.9, "skin": skin, "boss": rc.get("boss", "")}
+    cases = [
+        [EST_A_TL, EST_A_CR, {"turnover": 0.1, "bossSeconds": 10, "portalSeconds": 5, "end": 70}],
+        [EST_A_TL, EST_A_CR, {"turnover": 0, "end": 45}],
+        [EST_C_TL, EST_C_CR, EST_C_OPTS],
+        [rc_tl, creatures, rc_opts],
+        [rc_tl, creatures, dict(rc_opts, turnover=[0.0573, 0.0441])],
+        [rc_tl, creatures, dict(rc_opts, turnover=[[30, 0.03], [90, 0.07], [330, 0.09], [600, 0.05]])],
+        [EST_C_TL, EST_C_CR, dict(EST_C_OPTS, turnover=7, bossSeconds=1e9, portalSeconds=-5, end=300)],
+    ]
+    king = [{"name": "roll", "windup": 1.0, "duration": 1.2}, {"name": "tumbleweed_volley", "windup": 0.8, "count": 12},
+            {"name": "spawn_ring", "windup": 0.8, "count": 12, "enemy": "tumbleweed_minion"}, {"name": "slam", "windup": 1.2}]
+    brood_cases = [[king, 2.0, 44.2, 0.9], [king, 2.0, 10.0, 0.9], [king, 1.0, 44.2, 1.0], [[{"name": "erupt", "windup": 1.0, "count": 6, "interval": 0.5, "spawn": "imp"}], 3.0, 20, 1.0], [[], 2.0, 60, 1.0]]
+    q = {"cases": cases, "at": [[0, 50, True], [0, 50, False], [0, 50.5, True], [0, 49.99, False], [3, 430, True], [3, 430, False]], "brood": brood_cases}
+    res = run_node(q, ESTIMATE_RUNNER)
+    if res is None:
+        print("node not found: the estimate's model.js checks are skipped")
+        return
+    if not res:
+        return
+    names = ["hand-checked", "nothing dies", "every rule", "Red Canyon flat", "Red Canyon per stage", "Red Canyon curve", "silly numbers"]
+    import time
+    t0 = time.time()
+    pys = [spawn_estimate(tl, cr, opts) for tl, cr, opts in cases]
+    py_secs = time.time() - t0
+    print("estimate: model.js %d ms for %d runs (and %d lookups), the Python copy %.1f s" % (res["ms"], len(cases), len(q["at"]), py_secs))
+    for name, js, py in zip(names, res["out"], pys):
+        diff = estimate_diff(js, py)
+        check(not diff, "the estimate of %s: model.js and the Python copy agree: %s" % (name, diff[:6]))
+        # the books balance at every point: the total is its four parts and the sum of the creatures
+        bad = [p["t"] for p in js["points"] if not (est_close(p["all"], p["reg"] + p["elite"] + p["special"] + p["boss"], 1e-9)
+                                                     and est_close(p["all"], sum(v[0] for v in p["by"].values()), 1e-9)
+                                                     and p["col"] <= p["reg"] + 1e-9 and p["mod"] <= p["reg"] + 1e-9)]
+        check(not bad, "%s: every point's total is its parts and its creatures (first bad at %s)" % (name, bad[:3]))
+        alls = [p["all"] for p in js["points"]]
+        check(all(b >= a - 1e-9 for a, b in zip(alls, alls[1:])), "%s: the total never falls" % name)
+        ts = [p["t"] for p in js["points"]]
+        check(all(b >= a for a, b in zip(ts, ts[1:])), "%s: the points run in clock order" % name)
+
+    # the hand-checked numbers
+    a = res["out"][0]
+    refill = 10 - 10 * 0.995 ** 10
+    p29 = point_at(a, 29)
+    # bursts at steps 1, 11, ..., 571 by 29 s (k = 580): 58 bursts, the first fills 10, the other 57 refill
+    check(est_close(p29["all"], 10 + 57 * refill, 1e-9), "hand-checked: 10 + 57 refills of 10 x (1 - 0.995^10) by 0:29: %s, want %s" % (p29["all"], 10 + 57 * refill))
+    check(est_close(p29["alive"], 10 * 0.995 ** 9, 1e-9), "hand-checked: nine steps after the last refill 10 x 0.995^9 alive: %s" % p29["alive"])
+    check(est_close(p29["kills"], p29["all"] - p29["alive"], 1e-9), "hand-checked: what spawned and is not alive was killed")
+    p30, p31 = point_at(a, 30), point_at(a, 31)
+    check(est_close(p30["by"].get("b", [0])[0], 20, 1e-12), "hand-checked: the swarm brings its 20 at 0:30 on top of the cap: %s" % p30["by"].get("b"))
+    check(p31["by"]["a"][0] - p30["by"]["a"][0] < 1e-9, "hand-checked: the swarm over the cap stops the roster's refills for a while")
+    check(point_at(a, 39)["elite"] == 0 and point_at(a, 40)["elite"] == 1, "hand-checked: the Elite at 0:40")
+    pb, pa = point_at(a, 50, True), point_at(a, 50)
+    check(pb["boss"] == 1 and pa["after"] and pa["t"] == 50 and not pb["after"], "hand-checked: the boss at 0:50, a point before and after its fight")
+    check(len(a["fights"]) == 1 and a["fights"][0]["seconds"] == 10 and a["fights"][0]["portal"] == 5, "hand-checked: one fight of 10 s and a 5 s wait: %s" % a["fights"])
+    check(est_close(a["colourAt"], 5.05, 1e-9) or (a["colourAt"] is not None and 4 < a["colourAt"] < 6),
+          "hand-checked: colour after the 5th kill, about 5 s in (10 a second x 0.5 %% a step): %s" % a["colourAt"])
+    # coloured: 10 % of what spawned once colour came (the first refill after it)
+    pc = point_at(a, 29)
+    before_colour = point_at(a, math.floor(a["colourAt"]))
+    want = 0.1 * (pc["by"]["a"][0] - before_colour["by"]["a"][0])
+    check(abs(pc["col"] - want) <= 0.1 * refill + 1e-9, "hand-checked: 10 %% of the spawns after colour came are coloured: %s, want about %s" % (pc["col"], want))
+    z = res["out"][1]
+    check(all(est_close(p["by"].get("a", [0])[0], 10, 1e-12) for p in z["points"] if 1 <= p["t"] < 30), "nothing dies: the crowd fills to the cap once and nothing more comes")
+    check(est_close(point_at(z, 31)["all"], 30, 1e-12) and est_close(point_at(z, 44)["all"], 31, 1e-12), "nothing dies: the swarm's 20 and the Elite still come")
+    # the lookups: at a fight's own second the point before it unless asked for after, past it the point after
+    at = res["at"]
+    check(at[0][2] == pb["all"] and not at[0][1] and at[1][1] and at[1][2] == pa["all"], "estimateAt at a fight's second: before %s / after %s" % (at[0], at[1]))
+    check(at[2][1] and at[2][2] == pa["all"] and at[3][0] == 49, "estimateAt just past and just before the fight: %s %s" % (at[2], at[3]))
+    check(at[4][0] == 430 and not at[4][1] and at[5][1], "estimateAt on Red Canyon's first boss: %s %s" % (at[4], at[5]))
+
+    # a boss's own script: the King on Red Canyon's pace 0.9 rings 12 minions every 4 x 2 s of cooldown plus the wind-ups
+    # (1.0 + 0.8 + 0.8 + 1.2) / 0.9 and the roll's 1.2 / 0.9: the first ring as its wind-up ends, 2 + (1.0 + 1.2) / 0.9 + 2
+    # + 0.8 / 0.9 + 2 + 0.8 / 0.9 = 10.22 s in, then one a cycle of 8 + 3.8 / 0.9 + 1.2 / 0.9 = 13.56 s
+    br = res["brood"]
+    first = 2 + (1.0 + 1.2) / 0.9 + 2 + 0.8 / 0.9 + 2 + 0.8 / 0.9
+    cyc = 8 + 3.8 / 0.9 + 1.2 / 0.9
+    check([round(b["t"], 6) for b in br[0]] == [round(first + k * cyc, 6) for k in range(3)] and all(b["n"] == 12 and b["id"] == "tumbleweed_minion" for b in br[0]),
+          "the King's script in a 44.2 s fight: three rings of 12 (as the records show: 36 minions in a 44 s fight): %s" % br[0])
+    check(br[1] == [], "a fight over before the first ring brings none: %s" % br[1])
+    check([round(b["t"], 6) for b in br[2]] == [7.8, 16.8, 25.8, 34.8, 43.8], "a 1 s cooldown at pace 1: a 9 s cycle, five rings in 44.2 s: %s" % [round(b["t"], 2) for b in br[2]])
+    # an eruption holds the caster for its strikes: 1 + 6 x 0.5 + 0.55 + 0.3 = 4.85 s, so one every 7.85 s from 3 s
+    check([round(b["t"], 6) for b in br[3]] == [3, 10.85, 18.7] and br[3][0]["id"] == "imp" and br[3][0]["n"] == 6, "an eruption with a spawn brings one a strike: %s" % br[3])
+    check(br[4] == [], "no script, no minions")
+    for (script, cd, secs, pace), got in zip(brood_cases, br):
+        py = boss_brood(script, cd, secs, pace)
+        check(len(py) == len(got) and all(est_close(a["t"], b["t"]) and a["n"] == b["n"] and a["id"] == b["id"] for a, b in zip(py, got)), "boss_brood agrees with bossBrood: %s vs %s" % (py, got))
+    silly = res["out"][6]
+    check(all(f["seconds"] == 1800 and f["portal"] == 0.05 for f in silly["fights"]) and all(p["alive"] >= 0 for p in silly["points"]),
+          "a 1e9 s fight is kept to half an hour, a negative wait to a step, a 700 %% kill rate to the whole crowd: %s" % [(f["seconds"], f["portal"]) for f in silly["fights"]])
+    rc_est = res["out"][3]
+    f430 = [f for f in rc_est["fights"] if f["t"] == 430]
+    check(f430 and f430[0]["minions"] > 0, "Red Canyon's first fight brings the King's minions: %s" % (f430[0] if f430 else None))
+
+    # every rule: the parts each did what they should
+    c = res["out"][2]
+    kinds = {}
+    for m in c["marks"]:
+        kinds.setdefault(m["kind"], []).append(m)
+    check([m["t"] for m in kinds.get("swarm", [])][:3] == [50, 55, 120.05], "every rule: swarms at 0:50, 0:55 (its 50 %%) and the one dated on the boss after the portal: %s" % [(m["t"], m["n"]) for m in kinds.get("swarm", [])])
+    sw = kinds.get("swarm", [])
+    check(len(sw) >= 2 and est_close(sw[1]["n"], 6, 1e-12) and sw[0]["id"] == "fod", "every rule: the skin's swarm, and 12 x 50 %% = 6 from the list: %s" % [(m["id"], m["n"]) for m in sw])
+    check([f["boss"] for f in c["fights"]] == ["bossy", "bossy2", "bossy"], "every rule: the 30 %% boss never fights; the map's boss at 4:00; endless brings the timeline's: %s" % [(f["t"], f["boss"]) for f in c["fights"]])
+    el = kinds.get("elite", [])
+    check(len(el) >= 1 and el[0]["t"] == 60 and el[0]["id"] == "eli", "every rule: the Elite pair at 1:00: %s" % el[:1])
+    p60 = point_at(c, 61)
+    check(est_close(p60["by"].get("eli", [0])[0], 2 / 3, 1e-12) and est_close(p60["by"].get("eli2", [0])[0], 1 / 3, 1e-12), "every rule: the Elites split 2 : 1: %s %s" % (p60["by"].get("eli"), p60["by"].get("eli2")))
+    mods = kinds.get("mod", [])
+    check(mods and mods[0]["t"] >= c["colourAt"] and mods[0]["t"] > 5, "every rule: the 0:05 elite waits for colour (opened %s): first at %s" % (c["colourAt"], mods[0]["t"] if mods else None))
+    sp = kinds.get("special", [])
+    # the countdown starts on the step that reaches 0:40 and spends its first step there, as the game's frame does
+    check(sp and abs(sp[0]["t"] - 55) <= 0.05 + 1e-9 and sp[0]["id"] == "spec", "every rule: the first special 15 s after 0:40: %s" % sp[:1])
+    check(any(m["id"] == "spec/spec2" for m in sp), "every rule: stage 2 adds its own special to the pool")
+    big = [p["by"].get("big", [0])[0] for p in c["points"]]
+    check(max(big) > 0, "every rule: the max_alive row spawns")
+    p125 = point_at(c, 140)
+    check(p125["by"].get("hellish", [0])[0] > 0 and point_at(c, 119)["by"].get("hellish", [0])[0] == 0, "every rule: the hell row only from stage 2, where hell_cap opens")
+    check(p125["col"] > 0 and point_at(c, 15)["col"] == 0, "every rule: no colour before 20 kills, colour after")
+    check(point_at(c, 89)["mod"] > point_at(c, 69)["mod"], "every rule: the elite wave's tanks wear their modifier")
+    w1 = point_at(c, 45)
+    check(w1["by"]["fod"][0] > 0 and w1["by"]["tank"][0] > 0, "every rule: the wave's two alternatives both count, by their chances")
+    fb = [f for f in c["fights"] if f["boss"] == "bossy"]
+    # bossy's 20 s fight: roll at 2 (busy 2.2), ring at 2 + 2.2 + 2 + 0.8 = 7.0, next ring 4.4 + 2.2 + 0.8 + ... = 7.0 + 0.8 + 2 + 2.2 + 2 + 0.8 = 14.8
+    check(fb and est_close(fb[0]["minions"], 10, 1e-9), "every rule: bossy's script rings 5 twice in its 20 s fight: %s" % fb[:1])
+    mb = [f for f in c["fights"] if f["boss"] == "bossy2"]
+    check(mb and mb[0]["minions"] == 0, "every rule: a boss without a script brings none")
+
+
+def fit_checks():
+    """fit_turnover on hand-made records: the pooled kill rate, the stages, the curve, the fights and waits, which
+    records count and the fallback."""
+    tmp = tempfile.mkdtemp(prefix="le_fit_")
+
+    def rec(name, kills, alive, n=120, mapid="red_canyon", headless=False, start=0.0, jump=False, boss=None, stage2=0):
+        samples = []
+        for i in range(n):
+            t = start + i + 1.0
+            samples.append({"t": t, "clock": t + (500 if jump and i == 5 else 0), "stage": 1, "killed": {"x": kills}, "alive_by": {"x": alive / 2, "y": alive / 2}, "alive": alive + 3})
+        for i in range(stage2):
+            t = start + n + i + 1.0
+            samples.append({"t": t + 60, "clock": t, "stage": 2, "killed": {"x": kills * 2}, "alive_by": {"x": alive}, "alive": alive})
+        samples.append({"t": n + 1.0, "clock": n * 1.0, "stage": 1, "phase": 1, "killed": {"x": 99}, "alive_by": {"x": 1}})
+        events = []
+        if boss:
+            events = [{"kind": "boss_start", "t": boss[0]}, {"kind": "boss_end", "t": boss[1]}, {"kind": "portal", "t": boss[2]}]
+        with open(os.path.join(tmp, name), "w", encoding="utf-8") as f:
+            json.dump({"schema": 1, "map": mapid, "hero": "astro", "version": "0.42", "result": "death", "length": n,
+                       "headless": headless, "samples": samples, "events": events}, f)
+
+    try:
+        empty = server.fit_turnover("red_canyon", runs_dir=tmp)
+        check(empty["source"] == "fallback" and empty["turnover"] == 0.06 and empty["boss_seconds"] == 60 and empty["portal_seconds"] == 30,
+              "no records: the fallback 6 %%, 60 s and 30 s: %s" % empty)
+        rec("2026-10-01T10-00-00.json", 2, 40, boss=(121, 161, 181))
+        rec("2026-10-01T11-00-00.json", 3, 30, boss=(121, 151, 171))
+        rec("2026-10-01T12-00-00.json", 50, 10, headless=True)
+        rec("2026-10-01T13-00-00.json", 50, 10, mapid="other")
+        rec("2026-10-01T14-00-00.json", 50, 10, jump=True)
+        rec("2026-10-01T15-00-00.json", 50, 10, n=30)
+        f = server.fit_turnover("red_canyon", runs_dir=tmp)
+        check(f["source"] == "records" and [r["file"] for r in f["runs"]] == ["2026-10-01T10-00-00.json", "2026-10-01T11-00-00.json"],
+              "only Garry's own runs of this map, played as they came, a minute or more: %s" % [r["file"] for r in f["runs"]])
+        # pooled: 120 s x (2 kills over 40 alive) and 120 s x (3 over 30): (240 + 360) / (4800 + 3600)
+        check(close(f["turnover"], round(600 / 8400, 4)), "the pooled kill rate over the creatures alive (dying left out): %s" % f["turnover"])
+        check(f["by_stage"] == [round(600 / 8400, 4)], "one stage of records, one number: %s" % f["by_stage"])
+        check([p[0] for p in f["curve"]] == [30, 90] and close(f["curve"][0][1], round(300 / 4200, 4)),
+              "minute by minute of the run clock, a minute with under 30 s of records left out: %s" % f["curve"])
+        check(f["boss_seconds"] == 35.0 and f["portal_seconds"] == 20.0 and f["fights"] == 2, "the mean fight (40 and 30 s) and wait (20 s): %s %s" % (f["boss_seconds"], f["portal_seconds"]))
+        fa = server.fit_turnover("red_canyon", include_headless=True, runs_dir=tmp)
+        check(len(fa["runs"]) == 3, "/all takes the tools' headless runs too: %d" % len(fa["runs"]))
+        rec("2026-10-01T16-00-00.json", 2, 40, stage2=100)
+        f2 = server.fit_turnover("red_canyon", runs_dir=tmp)
+        check(len(f2["by_stage"]) == 2 and close(f2["by_stage"][1], 0.1), "a stage with a minute of records gets its own number (4 over 40): %s" % f2["by_stage"])
+        for i in range(14):
+            rec("2026-10-02T%02d-00-00.json" % i, 1, 50)
+        f3 = server.fit_turnover("red_canyon", runs_dir=tmp)
+        check(len(f3["runs"]) == server.FIT_MAX_RUNS and f3["runs"][-1]["file"] == "2026-10-02T13-00-00.json",
+              "the latest %d runs count: %s .. %s" % (server.FIT_MAX_RUNS, f3["runs"][0]["file"], f3["runs"][-1]["file"]))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 # ---------------------------------------------------------------- the server
 
 
@@ -395,7 +1481,9 @@ def server_checks():
 
 def main():
     model_checks()
+    estimate_checks()
     server_checks()
+    fit_checks()
     print("%d checks passed, %d failed" % (PASSES[0], len(FAILS)))
     return 1 if FAILS else 0
 

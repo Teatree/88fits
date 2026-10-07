@@ -1,0 +1,6 @@
+{
+	"host": "https://eu.i.posthog.com",
+	"key": "",
+	"enabled": false,
+	"note": "Paste the PostHog Project API key (phc_...) into key and set enabled to true. It is a write-only key and is safe to ship and commit."
+}

@@ -58,7 +58,8 @@ extends Resource
 @export var spawn_interval: float = 0.5
 ## Roster entries: {"t": seconds, "enemy": "goblin", "weight": 10, "until": optional seconds}. Pass 53 (the wave
 ## schema, docs/waves_schema.md): a row may add `pack` (how many spawn together, default the creature's pack_size),
-## `pattern` ("pack" at one point | "scatter" each at its own spawn point | "single" one a draw), `variant` (an art
+## `pattern` ("pack" at one point | "scatter" each at its own spawn point | "single" one a draw; pass 57: "ring" round the
+## hero at WaveDirector.RING_RADIUS | "in_front" from the top of the screen), `variant` (an art
 ## variant code) and `stats` (overrides, EnemyDef.with_overrides). Pass 54: `weights` [[t, w], ...], the row's draw
 ## weight over the run clock as presence keyframes (linear between, flat outside; WaveDirector._roster_weight), in place
 ## of `weight` / `weight_late` (a row with those still slides as before); `id` is the editor's label, the game ignores it.

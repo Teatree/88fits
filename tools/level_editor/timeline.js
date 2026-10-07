@@ -5,7 +5,8 @@
 // never has to patch anything. Pass 54: a roster row's bar is a little graph of its presence keyframes (drag the points,
 // double-click to add or remove one), the rows reorder from a gutter at the left, the Share band stacks each creature's
 // share of the draw, and hovering a bar, a block, a stripe, a flag or the specials band shows a card with the creature's
-// HP and ATK at that second.
+// HP and ATK at that second. Pass 57: the "Spawned so far" lane under the cap (model.js spawnEstimate: every creature a run
+// spawns by each second, with its hover card and the kill rate / boss fight / portal wait boxes in its label).
 'use strict';
 
 const Timeline = (() => {
@@ -15,6 +16,9 @@ const Timeline = (() => {
   const ALT_COLORS = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9', '#e66767', '#4cb5c3'];
   const HANDLE = 8;
   const CAP_HELP = 'The points are the control points of the live cap curve (how many creatures may be alive): linear between them, flat before the first and after the last. They are not spawn events: the director spawns up to the cap on its own interval.';
+  // pass 57: the "Spawned so far" lane under the cap
+  const SPAWN_H = 132;
+  const SPAWN_HELP = 'Every creature a run has spawned by each second, counted from 0:00: the regular crowd (blue), the coloured specials among it (orange), the elite-modified (purple) and the Elites, specials and bosses (gold, marked where they arrive). An estimate: a run only spawns what the hero kills, so it assumes the hero kills a share of the living crowd each second (from your own runs; the boxes change it) while the director refills to the cap under every rule of the timeline. Hover for the numbers.';
   let spp = 1.0;                       // seconds per pixel
   let root = null, scrollBox = null, content = null, cursorEl = null, readout = null, card = null, menu = null;
   const lanes = {};                    // name -> {row, label, svg}
@@ -34,6 +38,7 @@ const Timeline = (() => {
     const spec = [
       ['ruler', 'Time', null, 'ruler', ''],
       ['cap', 'Cap', null, '', CAP_HELP],
+      ['spawned', 'Spawned so far', null, '', SPAWN_HELP],
       ['hp', 'HP ×', null, '', 'Creature health over the run clock (hp_curve): click to edit the curve, drag its points, double-click to add or remove one.'],
       ['dmg', 'ATK ×', null, '', 'Creature damage over the run clock (damage_curve): click to edit, drag its points, double-click to add or remove one.'],
       ['roster', 'Roster', { text: '+ Row', title: 'Add a roster row at the view\'s centre', onclick: () => App.newRow(null, viewCenter()) }, '', ''],
@@ -49,6 +54,7 @@ const Timeline = (() => {
         ? el('div', { class: 'lane-label roster-label' }, head, el('div', { class: 'gutter' }))
         : el('div', { class: 'lane-label', title: help }, el('div', { class: 'lane-name', text: title }), el('div', { class: 'lane-sub' }), name === 'share' ? el('div', { class: 'share-legend' }) : null);
       if (plus) (head || label).appendChild(el('button', { class: 'btn small plus', text: plus.text, title: plus.title, onclick: plus.onclick }));
+      if (name === 'spawned') label.appendChild(spawnControls());
       const s = svg('svg', { class: 'lane-svg', height: 10 });
       const row = el('div', { class: 'lane lane-' + name + (cls ? ' ' + cls : '') }, label, s);
       label.addEventListener('click', (e) => {
@@ -75,6 +81,12 @@ const Timeline = (() => {
   // A double-click is detected by hand (same key, under 450 ms, within 8 px): the first click re-renders the lane, so the
   // element under the pointer is a new one by the second click and the browser's own dblclick never completes on it.
   let lastTap = { key: '', t: 0, x: 0, y: 0 };
+  // a pattern's label as the field's picker shows it ("In front", not "in_front"; pass 57)
+  function patternLabel(v) {
+    const o = FIELDS.PATTERNS.find((p) => p.v === v) || FIELDS.SWARM_PATTERNS.find((p) => p.v === v);
+    return o ? o.label : v;
+  }
+
   function isDoubleTap(key, e) {
     const now = performance.now();
     const dbl = lastTap.key === key && now - lastTap.t < 450 && Math.abs(e.clientX - lastTap.x) < 8 && Math.abs(e.clientY - lastTap.y) < 8;
@@ -169,6 +181,7 @@ const Timeline = (() => {
     for (const name of Object.keys(lanes)) lanes[name].svg.setAttribute('width', w);
     renderRuler(w);
     renderCap(w);
+    renderSpawned(w);
     renderCurve(w, 'hp', 'hp_curve');
     renderCurve(w, 'dmg', 'damage_curve');
     renderRoster(w);
@@ -273,9 +286,15 @@ const Timeline = (() => {
     for (const ev of d.events || []) {
       if (ev.type !== 'boss') continue;
       const t = Number(ev.t) || 0, cap = App.capAt(t);
+      // pass 57: the fight reads the cap a hair past its second (the frame that fired the event is past it), so on a
+      // step of the curve it keeps its share of the step's far side: Red Canyon's first fight is 0.6 of 54, not of 100
+      // (the run records show 32). The stage's cap_per_stage stays the fight's own stage's.
+      const capIn = Math.max(0, App.capAt(t + 1e-4) - (Number(d.cap_per_stage) || 0) * (App.stageAt(t + 1e-4) - App.stageAt(Math.max(0, t - 1e-4))));
       const px = x(t);
-      s.appendChild(svg('path', { d: `M${px - 9},${y(cap)} L${px - 4},${y(cap * frac)} L${px + 4},${y(cap * frac)} L${px + 9},${y(cap)} Z`, class: 'boss-dip' }));
-      s.appendChild(svg('text', { x: px + 11, y: y(cap * frac) + 4, class: 'dip-text', text: `boss ×${fmtN(frac, 2)} = ${Math.floor(cap * frac)}` }));
+      const dip = svg('path', { d: `M${px - 9},${y(cap)} L${px - 4},${y(capIn * frac)} L${px + 4},${y(capIn * frac)} L${px + 9},${y(cap)} Z`, class: 'boss-dip' });
+      if (capIn !== cap) dip.appendChild(svg('title', {}, `the fight reads the cap just past ${fmtT(t)}: the curve steps from ${cap} to ${capIn} there, so the fight keeps ${fmtN(frac, 2)} × ${capIn} = ${Math.floor(capIn * frac)}`));
+      s.appendChild(dip);
+      s.appendChild(svg('text', { x: px + 11, y: y(capIn * frac) + 4, class: 'dip-text', text: `boss ×${fmtN(frac, 2)} = ${Math.floor(capIn * frac)}${capIn !== cap ? ` (of ${capIn})` : ''}` }));
     }
     // a wide invisible stroke takes the clicks: one selects the lane, a double one adds a point where it landed
     const hit = svg('polyline', { points: pts, class: 'cap-hit' }, svg('title', {}, `${CAP_HELP}\nClick to edit; double-click to add a point here.`));
@@ -314,6 +333,217 @@ const Timeline = (() => {
     const b = issueBadge('cap', 14, 14);
     if (b) s.appendChild(b);
     lanes.cap.label.querySelector('.lane-sub').textContent = `${plural((d.cap_curve || []).length, 'control point')} · hard ${hard}`;
+  }
+
+  // ------------------------------------------------------------------ spawned so far (pass 57)
+
+  // Garry: "I want to be able to hover over this data and get actual numbers of totals ever spawned."
+  const GEAR = 'M8 5.3a2.7 2.7 0 1 0 0 5.4 2.7 2.7 0 1 0 0-5.4zM6.9 1h2.2l.3 1.8 1.2.5 1.5-1.1 1.6 1.6-1.1 1.5.5 1.2 1.8.3v2.2l-1.8.3-.5 1.2 1.1 1.5-1.6 1.6-1.5-1.1-1.2.5-.3 1.8H6.9l-.3-1.8-1.2-.5-1.5 1.1-1.6-1.6 1.1-1.5-.5-1.2L1 9.1V6.9l1.8-.3.5-1.2-1.1-1.5 1.6-1.6 1.5 1.1 1.2-.5z';
+  const MARKS = { elite: { glyph: 'crown', color: '#e6a04a', what: 'an Elite' }, mod: { glyph: 'star', color: '#9085e9', what: 'elite-modified creatures' }, special: { glyph: 'gear', color: '#4cb5c3', what: 'a special' }, boss: { glyph: 'skull', color: '#e66767', what: 'a boss' } };
+  const spawnInputs = {};
+  let lastSpawn = null;              // the estimate the lane drew last (its hover card and the readout read it)
+
+  /** A count as the cards print it: whole and grouped from 10 up, one decimal under 10 (an expected 0.3 of an Elite). */
+  function fmtCount(n) {
+    const v = Number(n) || 0;
+    if (Math.abs(v) >= 10) return Math.round(v).toLocaleString('en-US');
+    const r = Math.round(v * 10) / 10;
+    return String(r);
+  }
+
+  /** The kill rate, boss fight and portal wait boxes in the lane's label: empty shows the fitted number as its
+   *  placeholder (from Garry's runs), a typed one replaces it (↺ goes back). */
+  function spawnControls() {
+    const box = el('div', { class: 'sp-ctl' });
+    const mk = (key, text, unit, step, toValue) => {
+      const inp = el('input', { type: 'number', class: 'num sp-in', min: 0, step });
+      inp.addEventListener('change', () => {
+        const raw = inp.value.trim();
+        const v = raw === '' ? null : Number(raw);
+        App.setAssume(key, v == null || !isFinite(v) || v < 0 ? null : toValue(v));
+      });
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
+      const reset = el('button', { class: 'sp-reset', type: 'button', text: '↺', title: 'back to the number from your runs', hidden: true, onclick: (e) => { e.stopPropagation(); App.setAssume(key, null); } });
+      const row = el('label', { class: 'sp-row' }, el('span', { class: 'sp-lab', text }), inp, el('span', { class: 'sp-unit', text: unit }), reset);
+      spawnInputs[key] = { inp, reset, row };
+      return row;
+    };
+    box.appendChild(mk('turnover', 'kills', '%/s', 0.1, (v) => v / 100));
+    box.appendChild(mk('bossSeconds', 'boss', 's', 1, (v) => v));
+    box.appendChild(mk('portalSeconds', 'portal', 's', 1, (v) => v));
+    return box;
+  }
+
+  /** The boxes show the page's own numbers, or the fitted ones as placeholders; each one's tooltip says where the
+   *  number comes from. */
+  function syncSpawnControls() {
+    const f = App.S.fit;
+    const a = App.S.assume;
+    const fromRuns = f && f.source === 'records';
+    const fitTv = fromRuns ? (Array.isArray(f.by_stage) && f.by_stage.length ? f.by_stage[0] : f.turnover) : Model.EST_DEF.turnover;
+    const fitBoss = f && f.boss_seconds != null ? f.boss_seconds : Model.EST_DEF.bossSeconds;
+    const fitPortal = f && f.portal_seconds != null ? f.portal_seconds : Model.EST_DEF.portalSeconds;
+    const runs = fromRuns ? (f.runs || []).length : 0;
+    const stagesTxt = fromRuns && Array.isArray(f.by_stage) && f.by_stage.length > 1 ? ` (${f.by_stage.map((v, k) => `stage ${k + 1} ${fmtN(v * 100, 1)} %`).join(', ')})` : '';
+    const curveTxt = fromRuns && Array.isArray(f.curve) && f.curve.length ? ', minute by minute as your runs went (a young build kills slowly)' : '';
+    const fits = {
+      turnover: [fitTv * 100, `The share of the living crowd the hero kills a second. Empty = from ${fromRuns ? `your ${runs} run${runs === 1 ? '' : 's'} on this map: ${fmtN(fitTv * 100, 1)} %${stagesTxt}${curveTxt}` : 'the default 6 % (no runs on this map yet)'}. A number here replaces it for the whole run. 6 % = an average creature lives about 17 s.`, 1],
+      bossSeconds: [fitBoss, `How long a boss fight lasts (the run clock stands still; the crowd keeps boss_cap_frac of the cap). Empty = ${f && f.fights ? `the mean of your ${f.fights} fight${f.fights === 1 ? '' : 's'}` : 'the default'}: ${fmtN(fitBoss, 1)} s.`, 0],
+      portalSeconds: [fitPortal, `How long you stand at the portal before walking through (a portal wave, or portal_cap for portal_spawn_seconds; no specials). Empty = ${f && f.waits ? `the mean of your ${f.waits} wait${f.waits === 1 ? '' : 's'}` : 'the default'}: ${fmtN(fitPortal, 1)} s.`, 0],
+    };
+    for (const [key, [val, title, digits]] of Object.entries(fits)) {
+      const c = spawnInputs[key];
+      if (!c) continue;
+      c.inp.placeholder = fmtN(val, digits);
+      c.row.title = title;
+      const own = a[key];
+      const want = own == null ? '' : String(key === 'turnover' ? Model.round(own * 100, 2) : Model.round(own, 1));
+      if (document.activeElement !== c.inp && c.inp.value !== want) c.inp.value = want;
+      c.inp.classList.toggle('set', own != null);
+      c.reset.hidden = own == null;
+    }
+  }
+
+  /** Round grid steps for a count axis. */
+  function countStep(span) {
+    for (const s of [10, 20, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 50000]) if (span / s <= 4) return s;
+    return 100000;
+  }
+
+  /** The lane: the run's cumulative spawns on the run clock, stacked (the plain crowd, its coloured specials, the
+   *  elite-modified, the Elites + specials + bosses), the total as a line, a glyph where each Elite, elite modifier,
+   *  special and boss arrives, a step at each boss fight (the clock stands still through it) and the second colour
+   *  comes in. Hover anywhere for the numbers. */
+  function renderSpawned(w) {
+    const s = clear(lanes.spawned.svg);
+    setHeight('spawned', SPAWN_H);
+    stageShade(s, SPAWN_H);
+    syncSpawnControls();
+    const res = App.spawned(!!drag);
+    lastSpawn = res;
+    const est = res.est;
+    const pts = est.points;
+    let maxV = 10;
+    for (const p of pts) if (p.all > maxV) maxV = p.all;
+    maxV *= 1.12;
+    const top = 14, bottom = SPAWN_H - 10;
+    const y = (v) => bottom - (Math.max(0, v) / maxV) * (bottom - top);
+    const g = svg('g', { class: 'spawned', 'data-hover': 'spawned' });
+    g.appendChild(svg('rect', { x: 0, y: 0, width: w, height: SPAWN_H, class: 'sp-hit' }));
+    const gstep = countStep(maxV);
+    for (let v = gstep; v < maxV; v += gstep) {
+      g.appendChild(svg('line', { x1: 0, x2: w, y1: y(v), y2: y(v), class: 'grid' }));
+      g.appendChild(svg('text', { x: 4, y: y(v) - 2, class: 'grid-text', text: fmtCount(v) }));
+    }
+    // the stacked layers, bottom up: plain, coloured, elite-modified, then the Elites, specials and bosses
+    const xs = pts.map((p) => x(p.t));
+    const bounds = [
+      pts.map(() => 0),
+      pts.map((p) => Math.max(p.reg - p.col - p.mod, 0)),
+      pts.map((p) => Math.max(p.reg - p.mod, 0)),
+      pts.map((p) => p.reg),
+      pts.map((p) => p.all),
+    ];
+    const layer = ['plain', 'col', 'mod', 'top'];
+    for (let L = 0; L < 4; L++) {
+      const upper = xs.map((px, i) => `${px},${y(bounds[L + 1][i])}`);
+      const lower = xs.map((px, i) => `${px},${y(bounds[L][i])}`).reverse();
+      g.appendChild(svg('polygon', { points: upper.concat(lower).join(' '), class: 'sp-area sp-' + layer[L] }));
+    }
+    g.appendChild(svg('polyline', { points: xs.map((px, i) => `${px},${y(bounds[4][i])}`).join(' '), class: 'sp-line' + (res.stale ? ' stale' : '') }));
+    // colour comes in after colour_after_kills kills
+    if (est.colourAt != null && est.colourAt > 0) {
+      const cx = x(est.colourAt);
+      g.appendChild(svg('line', { x1: cx, x2: cx, y1: top, y2: bottom, class: 'sp-colour' }));
+      g.appendChild(svg('text', { x: cx + 3, y: bottom - 12, class: 'sp-colour-text', text: 'colour' }, svg('title', {}, `colour comes in at ${fmtT(est.colourAt)}: the run's ${App.tl().colour_after_kills || 0}th kill (colour_after_kills); from here the coloured specials and the elite modifiers come`)));
+    }
+    // each boss fight's step: what the fight and its portal wait brought
+    for (const f of est.fights) {
+      const after = Model.estimateAt(est, f.t);
+      g.appendChild(svg('text', { x: x(f.t) + 4, y: Math.max(top + 8, y(after.all) + 12), class: 'sp-fight', text: `+${fmtCount(f.spawned)} in the fight` }, svg('title', {}, `the boss fight at ${fmtT(f.t)} (${fmtN(f.seconds, 1)} s, the run clock standing still) and its portal wait (${fmtN(f.portal, 1)} s): +${fmtCount(f.spawned)}${f.minions > 0 ? `, ${fmtCount(f.minions)} of them the boss's own minions` : ''}`)));
+    }
+    // the arrivals: a crown per Elite, a star per elite modifier, a gear per special, a skull per boss
+    for (const m of est.marks) {
+      const info = MARKS[m.kind];
+      if (!info) continue;
+      const p = Model.estimateAt(est, m.t, true);
+      const mx = x(m.t), my = Math.max(2, Math.min(bottom - 14, y(p ? p.all : 0) - 15));
+      if (info.glyph === 'gear') g.appendChild(svg('path', { d: GEAR, transform: `translate(${mx - 6}, ${my}) scale(0.75)`, fill: info.color, 'fill-rule': 'evenodd', class: 'sp-mark' }));
+      else g.appendChild(svg('use', { href: '#g-' + info.glyph, x: mx - 6, y: my, width: 12, height: 12, fill: info.color, class: 'sp-mark' }));
+    }
+    const shape = Array.isArray(res.opts.turnover) ? (Array.isArray(res.opts.turnover[0]) ? ', minute by minute' : ', stage by stage') : '';
+    g.appendChild(svg('text', { x: 48, y: 11, class: 'sp-est', text: `estimate · kill rate from ${App.turnoverSource()}${shape}${res.stale ? ' · updating after the drag' : ''}` }));
+    hovers.spawned = (t) => spawnedCard(t);
+    s.appendChild(g);
+    const SL = App.stageLength();
+    const atStage = Model.estimateAt(est, SL, true);
+    lanes.spawned.label.querySelector('.lane-sub').textContent = `estimate · ${fmtCount(atStage ? atStage.all : 0)} by ${fmtT(SL)}`;
+  }
+
+  /** Which of the card's groups a creature belongs to: a boss, an Elite (the mini-bosses), a special (the specials'
+   *  pool) or the regular crowd. */
+  function spawnGroup(id) {
+    const c = App.creature(id);
+    if (c && (c.kind === 'boss' || c.archetype === 'boss')) return 'boss';
+    if (c && c.archetype === 'elite') return 'elite';
+    const pool = ((App.tl().specials || {}).pool || []).map((r) => (typeof r === 'string' ? r : r && r.enemy));
+    if (pool.includes(id)) return 'special';
+    return 'regular';
+  }
+
+  /** The hover card: the time, every creature spawned by then (the total, each creature largest first with its coloured
+   *  share), the Elites, specials and bosses by name, the coloured and elite-modified totals, and the assumptions. */
+  function spawnedCard(t) {
+    const res = lastSpawn;
+    if (!res) return null;
+    const est = res.est;
+    const p = Model.estimateAt(est, t);
+    if (!p) return null;
+    const box = el('div', { class: 'sp-card' });
+    box.appendChild(el('div', { class: 'hc-head' }, el('b', { text: 'Spawned so far' }), el('span', { class: 'hc-time', text: ` ${fmtT(p.t)} · ${App.stageName(App.stageAt(p.t))} · an estimate${res.stale ? ' (updating after the drag)' : ''}` })));
+    box.appendChild(el('div', { class: 'sp-total' }, el('b', { text: fmtCount(p.all) }), ` creatures by ${fmtT(p.t)}`));
+    const fight = p.after ? est.fights.find((f) => f.t === p.t) : null;
+    if (fight) box.appendChild(el('div', { class: 'hc-line' }, `the boss fight at ${fmtT(fight.t)} (${fmtN(fight.seconds, 1)} s) and its portal wait (${fmtN(fight.portal, 1)} s) brought `, el('b', { text: `+${fmtCount(fight.spawned)}` }), fight.minions > 0 ? `, ${fmtCount(fight.minions)} of them the boss's own minions` : ''));
+    const named = (grp) => est.ids.filter((id) => p.by[id] && spawnGroup(id) === grp).map((id) => `${App.creatureName(id)} ${fmtCount(p.by[id][0])}`);
+    const swatch = (cls) => el('i', { class: 'sw sp-' + cls });
+    const regular = p.reg;
+    box.appendChild(el('div', { class: 'sp-cat' }, swatch('plain'), el('b', { text: `Regular ${fmtCount(regular)}` }),
+      ' · ', swatch('col'), `coloured ≈ ${fmtCount(p.col)}${regular > 0 ? ` (${fmtN((p.col / regular) * 100, 1)} %)` : ''}`,
+      ' · ', swatch('mod'), `elite-modified ≈ ${fmtCount(p.mod)}`, p.minion > 0 ? ` · bosses' minions ${fmtCount(p.minion)}` : ''));
+    const others = [['elite', 'Elites', p.elite], ['special', 'Specials', p.special], ['boss', 'Bosses', p.boss]];
+    for (const [grp, label, n] of others) {
+      const list = named(grp);
+      box.appendChild(el('div', { class: 'sp-cat' }, swatch('top'), el('b', { text: `${label} ${fmtCount(n)}` }), list.length ? `: ${list.join(', ')}` : ''));
+    }
+    const ids = est.ids.filter((id) => p.by[id] && p.by[id][0] > 0.05).sort((a, b) => p.by[b][0] - p.by[a][0]);
+    if (ids.length) {
+      box.appendChild(el('div', { class: 'ro-title', text: 'every creature, most first · coloured share · elite-modified' }));
+      const grid = el('div', { class: 'sp-grid' });
+      for (const id of ids) {
+        const [n, col, mod] = p.by[id];
+        const grp = spawnGroup(id);
+        const tag = grp === 'boss' ? 'boss' : grp === 'elite' ? 'Elite' : grp === 'special' ? 'special' : '';
+        const colTxt = [col > 0.05 ? `${fmtN((col / n) * 100, 0)} % · ${fmtCount(col)}` : '', mod > 0.05 ? `${fmtCount(mod)} modified` : ''].filter(Boolean).join(' · ');
+        grid.appendChild(el('div', { class: 'sp-r' },
+          el('img', { src: App.iconFor(id), alt: '' }),
+          el('span', { class: 'nm' }, App.creatureName(id), tag ? el('span', { class: 'hc-chip ' + (grp === 'boss' ? 'boss' : grp === 'elite' ? 'elite' : ''), text: tag }) : null),
+          el('span', { class: 'n', text: fmtCount(n) }),
+          el('span', { class: 'c', text: colTxt })));
+      }
+      box.appendChild(grid);
+    }
+    const o = res.opts;
+    let tvTxt;
+    if (Array.isArray(o.turnover) && Array.isArray(o.turnover[0])) {
+      const f = App.S.fit;
+      const st = f && Array.isArray(f.by_stage) && f.by_stage.length ? f.by_stage : null;
+      tvTxt = `a share of the living crowd each second that changes minute by minute as ${App.turnoverSource()} did${st ? ` (${st.map((v, k) => `${fmtN(v * 100, 1)} % in stage ${k + 1}`).join(', ')} on average)` : ''}`;
+    } else if (Array.isArray(o.turnover)) {
+      tvTxt = `${o.turnover.map((v, k) => `${fmtN(v * 100, 1)} % in stage ${k + 1}`).join(', ')} of the living crowd a second (${App.turnoverSource()})`;
+    } else tvTxt = `${fmtN(o.turnover * 100, 1)} % of the living crowd a second (${App.turnoverSource()})`;
+    box.appendChild(el('div', { class: 'sp-note', text: `alive now ≈ ${fmtCount(p.alive)} · killed ≈ ${fmtCount(p.kills)}` }));
+    box.appendChild(el('div', { class: 'sp-note', text: `Assumes the hero kills ${tvTxt}, boss fights of ${fmtN(o.bossSeconds, 1)} s and portal waits of ${fmtN(o.portalSeconds, 1)} s; the director refills to the cap under every rule of the timeline. Coloured = the variance specials, once colour_after_kills kills are made.` }));
+    return box;
   }
 
   // ------------------------------------------------------------------ HP x and ATK x (pass 54)
@@ -459,7 +689,7 @@ const Timeline = (() => {
       const chips = [];
       if (r.variant) chips.push({ text: r.variant, cls: 'chip-variant' });
       if (r.pack != null) chips.push({ text: `×${r.pack}`, cls: 'chip-pack' });
-      if (r.pattern && r.pattern !== 'pack') chips.push({ text: r.pattern, cls: 'chip-pattern' });
+      if (r.pattern && r.pattern !== 'pack') chips.push({ text: patternLabel(r.pattern), cls: 'chip-pattern' });
       if (r.stats && Object.keys(r.stats).length) chips.push({ glyph: 'wrench', cls: 'chip-wrench' });
       for (const ch of chips) tx = chip(inner, tx, y0 + 2, ch);
       g.appendChild(inner);
@@ -691,7 +921,7 @@ const Timeline = (() => {
         if (wv.respect_cap === false) tx = chip(inner, tx, y0 + 3, { text: 'no cap', cls: 'chip-nocap' });
         if (wv.elite) tx = chip(inner, tx, y0 + 3, { glyph: 'crown', cls: 'chip-crown' });
         if (wv.channel === 'hell') tx = chip(inner, tx, y0 + 3, { text: 'hell', cls: 'chip-hell' });
-        if (wv.pattern && wv.pattern !== 'pack') tx = chip(inner, tx, y0 + 3, { text: wv.pattern, cls: 'chip-pattern' });
+        if (wv.pattern && wv.pattern !== 'pack') tx = chip(inner, tx, y0 + 3, { text: patternLabel(wv.pattern), cls: 'chip-pattern' });
         if (wv.toast) tx = chip(inner, tx, y0 + 3, { text: `“${wv.toast}”`, cls: 'chip-toast' });
       }
       b.alts.forEach((a, k) => {
@@ -1109,6 +1339,8 @@ const Timeline = (() => {
     const cap = App.capAt(t), hell = App.hellCapAt(t);
     readout.appendChild(el('div', { class: 'ro-head' }, el('b', { text: fmtT(t) }), ` · ${App.stageName(s)} · hero level ${App.S.level}`));
     readout.appendChild(el('div', { class: 'ro-line' }, `cap ${cap}`, hell > 0 ? ` + hell ${Math.floor(hell)}` : ''));
+    const sp = lastSpawn ? Model.estimateAt(lastSpawn.est, t) : null;
+    if (sp) readout.appendChild(el('div', { class: 'ro-line' }, `spawned so far ≈ ${fmtCount(sp.all)}`, el('small', { text: ` (estimate; ${fmtCount(sp.col)} coloured, ${fmtCount(sp.elite + sp.special + sp.boss)} Elites, specials and bosses)` })));
     readout.appendChild(el('div', { class: 'ro-line' }, `HP ×${fmtN(hp.total, 2)}`, el('small', { text: ` (time ${fmtN(hp.time, 2)} × stage ${fmtN(hp.stage, 2)} × level ${fmtN(hp.level, 2)} × creature ${fmtN(hp.creature, 2)})` })));
     readout.appendChild(el('div', { class: 'ro-line' }, `ATK ×${fmtN(dm.total, 2)}`, el('small', { text: ` (time ${fmtN(dm.time, 2)} × stage ${fmtN(dm.stage, 2)} × level ${fmtN(dm.level, 2)} × creature ${fmtN(dm.creature, 2)})` })));
     const rows = App.rosterAt(t);

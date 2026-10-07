@@ -2,7 +2,8 @@
 // item, typed, with the creature's own numbers as placeholders under the overrides so Garry sees what he is overriding;
 // with nothing selected it lists the validation issues (each a button that selects the item). Pass 54: a roster row's
 // presence points and order buttons, the Elite overrides as the variance block with colour swatches, the HP x / ATK x
-// curves with their mode switch, and the Share band's table.
+// curves with their mode switch, and the Share band's table. Pass 57: a note under a row's, a wave's or a swarm's Pattern
+// field: for Ring how many of the creature make a thick ring and how many really come at once, for In front where from.
 'use strict';
 
 const Inspector = (() => {
@@ -76,8 +77,102 @@ const Inspector = (() => {
       case 'overrides':
         return overridesBlock(obj, def.key, ctx.enemyId, (ctx && ctx.pathPrefix ? ctx.pathPrefix + '.' : '') + def.key);
       default:
-        return Forms.fieldRow(def, obj, { pathPrefix: ctx && ctx.pathPrefix, placeholder: ctx && ctx.placeholders ? ctx.placeholders[def.key] : undefined, allowRandom: def.type === 'elite' });
+        return Forms.fieldRow(def, obj, { pathPrefix: ctx && ctx.pathPrefix, placeholder: ctx && ctx.placeholders ? ctx.placeholders[def.key] : undefined, allowRandom: def.type === 'elite', note: ctx && ctx.note });
     }
+  }
+
+  // ------------------------------------------------------------------ the Pattern field's notes (pass 57)
+
+  const b = (text) => el('b', { text: String(text) });
+  /** "a Skeleton", "an Imp", "The Brander". */
+  const aName = (name) => (/^the\s/i.test(String(name)) ? String(name) : (/^[aeiou]/i.test(String(name)) ? 'an ' : 'a ') + name);
+
+  /** What a row, a wave (its alternatives, else its own creature) or an event spawns: [{c, stats}] for the known
+   *  creatures, distinct by creature and body radius, in order. An event with no creature named spawns the map's walker
+   *  (WaveDirector's swarm). */
+  function spawnedBy(kind, obj) {
+    const out = [];
+    const add = (id, stats) => {
+      const c = App.creature(id);
+      if (!c) return;
+      const st = U.isObj(stats) ? stats : {};
+      const radius = st.radius != null ? Number(st.radius) : Number(c.radius);
+      if (!out.find((x) => x.c.id === c.id && x.radius === radius)) out.push({ c, stats: st, radius });
+    };
+    if (kind === 'wave') {
+      const alts = Array.isArray(obj.alts) && obj.alts.length ? obj.alts : [obj];
+      for (const a of alts) add(a.enemy, a.stats);
+    } else if (kind === 'event') {
+      let ids = U.idList(obj.enemy);
+      const skins = App.S.map && U.isObj(App.S.map.skins) ? Object.values(App.S.map.skins) : [];
+      if (!ids.length && skins.length) ids = [String(skins[0])];
+      for (const id of ids) add(id, obj.stats);
+    } else add(obj.enemy, obj.stats);
+    return out;
+  }
+
+  /** "about 105 Skeletons (70 close one row)" for each creature, joined by "or" (three at most). */
+  function ringCounts(list, radius) {
+    const parts = [];
+    list.slice(0, 3).forEach((x, k) => {
+      const rc = U.ringCount(x.radius, radius);
+      if (k > 0) parts.push(' or ');
+      parts.push('about ', b(rc.thick), ` ${U.plural(x.c.name)} (${rc.row} close one row)`);
+    });
+    if (list.length > 3) parts.push(' …');
+    return parts;
+  }
+
+  /** The note under the Pattern field (pass 57): for Ring, how many make "a thick ring with few gaps" (Garry) for the
+   *  creature(s), from the body radius (U.ringCount), and how many this row, wave or swarm really sends at once; for In
+   *  front, where they come from. Null for the other patterns. */
+  function patternNote(kind, obj) {
+    const tl = App.tl();
+    const pattern = obj.pattern == null || obj.pattern === '' ? (kind === 'event' ? 'ring' : 'pack') : String(obj.pattern);
+    const hard = Number(tl.hard_cap) || 300;
+    const list = spawnedBy(kind, obj);
+    if (pattern === 'in_front') {
+      const what = kind === 'roster' ? 'this row\'s pack comes' : kind === 'wave' ? 'every burst comes' : `all ${Number(obj.count) || 40} come`;
+      return [b('In front: '), `${what} from the top of the screen, each at its own point 19–24 m up within ±45° of straight up, whatever Settings → Spawning → Spawn side says.`];
+    }
+    if (pattern !== 'ring') return null;
+    if (kind === 'event') {
+      if (obj.type !== 'swarm') return null;
+      if (!list.length) return [b('Ring (16 m, the swarm\'s own): '), 'pick a creature to see how many make a thick ring.'];
+      return [b('Ring (16 m, the swarm\'s own): '), ...ringCounts(list, U.SWARM_RING_RADIUS), ' make a thick ring with few gaps 16 m round the hero; this swarm sends ', b(Number(obj.count) || 40), ' (Count), on top of the cap.'];
+    }
+    if (!list.length) return [b('Ring: '), 'pick a creature to see how many make a thick ring with few gaps, 11.7 m round the hero.'];
+    const head = [b('Ring: '), ...ringCounts(list, U.RING_RADIUS), ' make a thick ring with few gaps, 11.7 m round the hero (the arena\'s ring × 1.3).'];
+    const thick = U.ringCount(list[0].radius).thick;
+    if (kind === 'roster') {
+      const x = list[0];
+      const pack = Math.max(1, Math.round(Number(obj.pack != null ? obj.pack : (x.stats.pack != null ? x.stats.pack : x.c.pack_size)) || 1));
+      const rawShare = x.stats.cap_share != null ? x.stats.cap_share : x.c.cap_share;
+      const share = Math.max(rawShare == null || isNaN(Number(rawShare)) ? 1 : Number(rawShare), 0.05);
+      const burstMax = Number(tl.burst_max != null ? tl.burst_max : 20);
+      // the most one burst holds of this creature (WaveDirector._burst_from cuts a row's spawn to the burst's load)
+      const burstCap = U.ringAtOnce(1e9, share, burstMax);
+      const why = `Burst max ${burstMax} load units, ${aName(x.c.name)} takes ${fmtN(share)}`;
+      const useWave = `for a thick ring use a wave with Per burst about ${thick} and Respect the cap off`;
+      // a creature with a live limit: the row is not drawn while that many live (WaveDirector._roster_open)
+      const maxAlive = Math.round(Number(x.stats.max_alive != null ? x.stats.max_alive : x.c.max_alive) || 0);
+      const limit = maxAlive > 0 ? ` The row is never drawn while ${maxAlive} ${maxAlive === 1 ? 'is' : 'are'} alive (Max alive).` : '';
+      if (pack > burstCap) return [...head, ` This row spawns its pack (${pack}) at once, but never more than one burst holds: at most `, b(burstCap), ` here (${why}). So ${useWave}.${limit}`];
+      const lead = [...head, ' This row spawns its pack (', b(pack), ') at once, as far as the cap has room'];
+      if (pack >= thick) return [...lead, `.${limit}`];
+      if (burstCap >= thick) return [...lead, `: set Pack to about ${thick} for a thick ring.${limit}`];
+      return [...lead, `; one burst holds at most ${burstCap} here (${why}), so ${useWave}.${limit}`];
+    }
+    // a wave: its burst is one ring, cut by the count, the hard cap and, when it respects one, the cap's free room
+    const burst = Math.max(1, Math.round(Number(obj.burst == null ? 5 : obj.burst) || 1));
+    const count = Number(obj.count == null ? 20 : obj.count) || 0;
+    const forWhom = list.length > 1 ? ` for the ${U.plural(list[0].c.name)}` : '';
+    const parts = burst >= thick ? [...head, ' Per burst (', b(burst), `) makes one${forWhom}.`] : [...head, ` Set Per burst to about ${thick}${forWhom} (now `, b(burst), ').'];
+    if (count > 0 && count < burst) parts.push(` Total count (${count}) cuts the burst to ${count}.`);
+    parts.push(obj.respect_cap === false
+      ? ` Respect the cap is off: the whole burst comes at once (the hard cap of ${hard} bodies still holds).`
+      : ' With Respect the cap on, a burst is cut to the free room under the cap; turn it off for the whole ring at once (the hard cap still holds).');
+    return parts;
   }
 
   // ------------------------------------------------------------------ overrides
@@ -205,7 +300,7 @@ const Inspector = (() => {
     for (const def of FIELDS.roster) {
       if (def.key === 'id') continue;
       if (def.type === 'weights') { form.appendChild(Forms.row(def, Forms.weightsBlock(r), { cls: 'wide-ctl' })); continue; }
-      form.appendChild(fieldFor(def, r, { enemyId: r.enemy, placeholders: { pack: c ? c.pack_size : '' } }));
+      form.appendChild(fieldFor(def, r, { enemyId: r.enemy, placeholders: { pack: c ? c.pack_size : '' }, note: def.key === 'pattern' ? patternNote('roster', r) : null }));
     }
     const t0 = Math.max(Number(r.t) || 0, 0);
     const open = App.rosterAt(t0).find((o) => o.i === i);
@@ -230,7 +325,7 @@ const Inspector = (() => {
     const form = el('div', { class: 'form' });
     for (const def of FIELDS.wave) {
       if (def.type === 'alts') continue;
-      form.appendChild(fieldFor(def, w, {}));
+      form.appendChild(fieldFor(def, w, { note: def.key === 'pattern' ? patternNote('wave', w) : null }));
     }
     const cnt = Number(w.count) || 0, burst = Number(w.burst == null ? 5 : w.burst), every = Number(w.every == null ? 2 : w.every);
     const bursts = cnt > 0 ? Math.ceil(cnt / burst) : null;
@@ -307,7 +402,7 @@ const Inspector = (() => {
       } else if (def.type === 'overrides') {
         form.appendChild(overridesBlock(ev, 'stats', ids[0] || '', 'stats'));
       } else {
-        form.appendChild(Forms.fieldRow(def, ev, { allowRandom: false, emptyLabel: def.key === 'mod' ? 'random modifier' : undefined }));
+        form.appendChild(Forms.fieldRow(def, ev, { allowRandom: false, emptyLabel: def.key === 'mod' ? 'random modifier' : undefined, note: def.key === 'pattern' ? patternNote('event', ev) : null }));
       }
     }
     if (ev.type === 'elite_every') {
@@ -478,5 +573,5 @@ const Inspector = (() => {
     return kind;
   }
 
-  return { render, overridesBlock, formatShares };
+  return { render, overridesBlock, formatShares, patternNote };
 })();

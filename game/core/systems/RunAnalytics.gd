@@ -4,7 +4,14 @@
 ## (`window.RUN = {...}`) and index.js (`window.RUNS = [...]`) for analytics/dashboard.html, which opens from file://.
 ## A Game child created only for a real run (`RunAnalytics.create(game)`): the arena never has one, and every hook in
 ## the game is one line, `if RunAnalytics.I: RunAnalytics.I.<hook>(...)`, so nothing records outside a run.
-## Cost: two float adds a frame, one dictionary add per hit, kill and spawn, one row a second, one JSON.stringify a run.
+## Cost: two float adds and a clock read a frame, one dictionary add per hit, kill and spawn, one row a second, one
+## JSON.stringify a run.
+## Pass 57: the same story goes to PostHog through the Analytics autoload (core/autoload/Analytics.gd): every event as it
+## is recorded (an item's once its est_after is known), run_start at the begin, and at the end run_end and run_summary
+## (summary(): the rows folded into per-minute series and the run's totals, with the frame clock's fps_avg and
+## fps_low). Each settled offer is recorded as an "offer" event (the cards shown, the pick or the skip, the rerolls and
+## banishes on the way, how long it took), read off the card screen's own signals; the run's id and the map's Level
+## Editor version (map_rev) are in the header.
 class_name RunAnalytics
 extends Node
 
@@ -24,6 +31,13 @@ const ITEM_KINDS := ["weapon", "passive", "mutation", "perk", "evolution", "pass
 ## was picked since the last snapshot.
 const SNAPSHOT_EVERY := 5.0
 const INDEX_KEEP := 500
+## The frame clock (pass 57): every unpaused frame's wall time in whole-millisecond bins; a gap longer than FRAME_GAP_MS
+## is a pause, not a frame.
+const FRAME_BINS := 200
+const FRAME_GAP_MS := 250.0
+## The run summary stays well under PostHog's ~32 KB an event (Analytics.EVENT_MAX): past this it is folded into
+## two-minute buckets, then four, ...
+const SUMMARY_MAX := 24000
 
 var game: Node
 var play_t := 0.0            # unpaused play seconds: the x axis (Run.elapsed is the stage clock and freezes in boss and portal phases)
@@ -57,6 +71,17 @@ var _healed := 0.0
 var _kills: Dictionary = {}
 var _elite_kills := 0
 var _spawns: Dictionary = {}
+# the offer on the table (pass 57): when it showed, its rerolls and banishes so far
+var _offer_t0 := 0
+var _offer_rerolls := 0
+var _offer_banished: Array = []
+# an item event waiting for its est_after before it goes to PostHog ({} = none)
+var _held: Dictionary = {}
+# the frame clock
+var _frame_hist := PackedInt32Array()
+var _frame_n := 0
+var _frame_ms := 0.0
+var _frame_last_us := 0
 
 
 ## The one line Game._ready needs: a recorder under the game, begun.
@@ -83,6 +108,11 @@ func begin(p_game: Node) -> void:
 		"headless": DisplayServer.get_name() == "headless", "platform": OS.get_name(), "device": OS.get_model_name(),
 		"pid": OS.get_process_id(), "result": "in_progress",
 	}
+	# PostHog (pass 57): the run's id goes out on every event of the run and stays in this record, so a local file and its
+	# rows in PostHog find each other; map_rev is the Level Editor version of the map the run played
+	header["run_id"] = Analytics.uuid7()
+	header["map_rev"] = Analytics.map_rev(mapdef)
+	Analytics.run_begin(str(header["run_id"]))
 	var em = game.get("enemies")
 	var dir = game.get("director")
 	_connect(em, "enemy_died", _on_enemy_died)
@@ -92,22 +122,36 @@ func begin(p_game: Node) -> void:
 	Run.level_up.connect(func(l): event("level", "", int(l)))
 	Run.build_changed.connect(_on_build_changed)
 	_on_build_changed()
+	# the card screen is made after the recorder (Game._ready): its signals are joined once the game is built
+	call_deferred("_join_cards")
+
+
+## The settled offers (pass 57): the card screen's own signals, so the pick screens need no hook of their own.
+func _join_cards() -> void:
+	if game == null or not is_instance_valid(game):
+		return
+	var cs = game.get("cards")
+	_connect(cs, "visibility_changed", _on_cards_shown)
+	_connect(cs, "chosen", _on_offer_chosen)
 
 
 func _connect(obj, sig: String, cb: Callable) -> void:
-	if obj != null and obj is Object and obj.has_signal(sig):
+	if obj != null and obj is Object and obj.has_signal(sig) and not obj.is_connected(sig, cb):
 		obj.connect(sig, cb)
 
 
 func _exit_tree() -> void:
 	if I == self:
 		I = null
-	# the game went away without an end (a quit mid-run, a tool that stops early): the record still lands
+	# the game went away without an end (a quit mid-run, a tool that stops early): the record still lands, and PostHog
+	# hears the run ended (the queue is on disk before the app is gone; it goes at the next launch)
 	if not _finished and not samples.is_empty():
 		_finished = true
 		header["result"] = "quit"
 		_fill_end(false)
 		_write(true)
+		_send_held()
+		Analytics.run_finish(_end_props(0), _summary_props())
 
 
 # ---------------------------------------------------------------- hooks (hot: one dictionary op each)
@@ -161,6 +205,58 @@ func _on_build_changed() -> void:
 	if _pending_event >= 0 and _pending_event < events.size():
 		events[_pending_event]["est_after"] = snappedf(total, 0.1)
 	_pending_event = -1
+	_send_held()
+
+
+## The card screen came up: an offer is on the table (rerolls and banishes keep it up; the pick takes it down).
+func _on_cards_shown() -> void:
+	var cs = game.get("cards") if game != null and is_instance_valid(game) else null
+	if cs != null and bool(cs.get("visible")) and _offer_t0 == 0:
+		_offer_t0 = Time.get_ticks_msec()
+		_offer_rerolls = 0
+		_offer_banished = []
+
+
+## An offer settled (pass 57, the card screen's `chosen`, heard before Game applies the pick): what was on the table,
+## what was taken or that it was skipped, the rerolls and banishes on the way and how long it took. "route" is path
+## for a weapon's mutation offer, level_up for the level-up cards.
+func _on_offer_chosen(card: Dictionary) -> void:
+	var cs = game.get("cards") if game != null and is_instance_valid(game) else null
+	var offer: Array = []
+	var path := false
+	if cs != null:
+		var o = cs.get("_offer")
+		if o is Array:
+			offer = o
+		path = bool(cs.get("path_mode"))
+	var ids: Array = []
+	var kinds: Array = []
+	var levels: Array = []
+	var weapon := ""
+	for c in offer:
+		if not (c is Dictionary):
+			continue
+		ids.append(str(c.get("id", "")))
+		kinds.append(str(c.get("type", "")))
+		levels.append(int(c.get("level_to", 0)))
+		var d = c.get("def")
+		if path and weapon == "" and d is MutationDef:
+			weapon = (d as MutationDef).weapon
+	var skipped := bool(card.get("skipped", false))
+	var extra := {"route": "path" if path else "level_up", "cards": ids, "kinds": kinds, "levels": levels, "skipped": skipped,
+		"decision_ms": (Time.get_ticks_msec() - _offer_t0) if _offer_t0 > 0 else 0}
+	if weapon != "":
+		extra["weapon"] = weapon
+	if skipped:
+		extra["left"] = Run.skips_left
+	if _offer_rerolls > 0:
+		extra["rerolls"] = _offer_rerolls
+	if not _offer_banished.is_empty():
+		extra["banished"] = _offer_banished.duplicate()
+	_offer_t0 = 0
+	_offer_rerolls = 0
+	_offer_banished = []
+	event("offer", "" if skipped else str(card.get("id", "")), Run.level, extra)
 
 
 # ---------------------------------------------------------------- events
@@ -168,6 +264,10 @@ func _on_build_changed() -> void:
 ## A moment in the run: {t, clock, kind, id?, level?} plus `extra`. Pass 47: a skip carries the skips left (no gold any
 ## more) and a chest let go adds "chest_skip" (Game); a chest's banish is Run's "banish" with "where": "chest". An item kind also records how it arrived (`via`)
 ## and the build's estimated DPS before it; the next build_changed fills `est_after`.
+## Pass 57: the keys every event has (t, clock, kind) are never overwritten by `extra` (the death's hit kind and the
+## debug hand's item kind came as "kind" and replaced the event's own: the death was recorded as "melee"); the debug
+## hand's is kept as item_kind, the death's is `hit`. The event goes on to PostHog (Analytics.run_event); an item's
+## waits for its est_after (the next build_changed) or the next event, whichever comes first.
 func event(kind: String, id: String = "", level: int = 0, extra: Dictionary = {}) -> void:
 	var e := {"t": snappedf(play_t, 0.1), "clock": snappedf(Run.elapsed, 0.1), "kind": kind}
 	if id != "":
@@ -175,18 +275,40 @@ func event(kind: String, id: String = "", level: int = 0, extra: Dictionary = {}
 	if level != 0:
 		e["level"] = level
 	for k in extra:
-		e[k] = extra[k]
+		if k == "kind":
+			e["item_kind"] = extra[k]
+		elif k != "t" and k != "clock":
+			e[k] = extra[k]
 	if kind in ITEM_KINDS:
 		e["via"] = via
 		e["est_before"] = snappedf(_est_now, 0.1)
 		_pending_event = events.size()
 		_item_since_snapshot = true
+	# what the offer on the table went through: its rerolls and its banishes go out with its pick
+	if kind == "reroll":
+		_offer_rerolls += 1
+	elif kind == "banish" and str(extra.get("where", "")) != "chest":
+		_offer_banished.append(id)
+	_send_held()
 	events.append(e)
+	if kind in ITEM_KINDS:
+		_held = e
+	else:
+		Analytics.run_event(e)
+
+
+## The item event waiting for its est_after goes to PostHog now (pass 57).
+func _send_held() -> void:
+	if _held.is_empty():
+		return
+	var e := _held
+	_held = {}
+	Analytics.run_event(e)
 
 
 ## Game._on_player_died: the killer is the last creature whose hit the recorder saw.
 func death() -> void:
-	event("death", _last_hit_key, 0, {"kind": _last_hit_kind})
+	event("death", _last_hit_key, 0, {"hit": _last_hit_kind})
 
 
 # ---------------------------------------------------------------- the clock and the row
@@ -195,9 +317,41 @@ func death() -> void:
 func tick(delta: float) -> void:
 	play_t += delta
 	_acc_t += delta
+	_frame()
 	if _acc_t >= 1.0:
 		_acc_t -= 1.0
 		_sample()
+
+
+## The frame clock (pass 57): this frame's wall time since the last unpaused one, into its millisecond bin.
+func _frame() -> void:
+	var now := Time.get_ticks_usec()
+	if _frame_last_us > 0:
+		var ms := float(now - _frame_last_us) / 1000.0
+		if ms < FRAME_GAP_MS:
+			if _frame_hist.is_empty():
+				_frame_hist.resize(FRAME_BINS)
+			var b := mini(int(ms), FRAME_BINS - 1)
+			_frame_hist[b] = _frame_hist[b] + 1
+			_frame_n += 1
+			_frame_ms += ms
+	_frame_last_us = now
+
+
+## {fps_avg, fps_low} from the frame clock ({} before any frame): the mean, and the 1 % low (1000 over the 99th
+## percentile frame time, read at the middle of its bin).
+func fps_stats() -> Dictionary:
+	if _frame_n <= 0 or _frame_ms <= 0.0 or _frame_hist.is_empty():
+		return {}
+	var need := maxi(int(ceil(float(_frame_n) * 0.01)), 1)
+	var seen := 0
+	var low_ms := float(FRAME_BINS)
+	for b in range(FRAME_BINS - 1, -1, -1):
+		seen += _frame_hist[b]
+		if seen >= need:
+			low_ms = float(b) + 0.5
+			break
+	return {"fps_avg": snappedf(1000.0 * float(_frame_n) / _frame_ms, 0.1), "fps_low": snappedf(1000.0 / low_ms, 0.1)}
 
 
 func _put(row: Dictionary, key: String, v: int) -> void:
@@ -387,6 +541,8 @@ func finish() -> void:
 		header["result"] = "end"
 	_fill_end(true)
 	_write(true)
+	_send_held()
+	Analytics.run_finish(_end_props(int(Run.last_result.get("banked", 0))), _summary_props())
 
 
 ## Game._notification on APPLICATION_PAUSED: the record so far, before Android may drop the process.
@@ -415,6 +571,169 @@ func _fill_end(with_log: bool) -> void:
 		var player = game.get("player")
 		if player != null and player.get("damage_log") != null:
 			header["hit_log"] = (player.damage_log as Array).duplicate(true)
+
+
+## What PostHog's run_end carries (pass 57), from the completed header; `banked` is the gold that came home (0 for a
+## quit: the run never reached end_run).
+func _end_props(banked: int) -> Dictionary:
+	return {"result": str(header.get("result", "")), "t": header.get("length", 0.0), "clock": header.get("clock", 0.0),
+		"stage": header.get("stage", 1), "wave": header.get("endless_wave", 0), "level": header.get("level", 1),
+		"kills": header.get("kills", 0), "gold": header.get("gold", 0), "banked": banked,
+		"strongbox": header.get("strongbox", 0), "revives": header.get("revives", 0)}
+
+
+## PostHog's run_summary (pass 57): the rows folded (fit_summary) and the frame clock's numbers.
+func _summary_props() -> Dictionary:
+	var s := RunAnalytics.fit_summary(samples)
+	s.merge(fps_stats(), true)
+	return s
+
+
+## The run as PostHog's run_summary carries it (pass 57: Garry's local dashboard in one event). Per bucket of `bucket_s`
+## play seconds (a minute; `m_secs` says how many rows it holds, the last one is short): the stage and level at its
+## end (m_stage, m_level), the crowd against the cap (m_alive, m_cap: means), what came and went (m_spawned, m_killed:
+## sums), the pressure (m_press, m_press_hp, m_press_dmg: means), the build's promise against the damage that landed
+## (m_est: mean estimated DPS, m_dmg: damage dealt in the bucket), the hero (m_hp: lowest health fraction, m_took: HP
+## lost, m_hits: hits taken, m_low_s: seconds under 30 %, m_gold: the purse at its end); then the run's totals by id,
+## the top ten each (dmg_by_weapon, est_by_weapon = the estimate summed over the seconds held, took_by_creature,
+## spawned_by_creature, killed_by_creature) and the survivability sums (evaded, shielded, healed).
+static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
+	var n := 0
+	for r in rows:
+		if r is Dictionary:
+			n = maxi(n, _bucket_of(float((r as Dictionary).get("t", 0.0)), bucket_s) + 1)
+	var secs := _zeros(n)
+	var stage := _zeros(n)
+	var level := _zeros(n)
+	var alive := _zeros(n)
+	var cap := _zeros(n)
+	var press := _zeros(n)
+	var press_hp := _zeros(n)
+	var press_dmg := _zeros(n)
+	var est := _zeros(n)
+	var dmg := _zeros(n)
+	var took := _zeros(n)
+	var hits := _zeros(n)
+	var low := _zeros(n)
+	var gold := _zeros(n)
+	var spawned := _zeros(n)
+	var killed := _zeros(n)
+	var hp := _zeros(n)
+	hp.fill(1.0)
+	var dmg_by := {}
+	var est_by := {}
+	var took_by := {}
+	var spawned_by := {}
+	var killed_by := {}
+	var evaded := 0
+	var shielded := 0.0
+	var healed := 0.0
+	for r in rows:
+		if not (r is Dictionary):
+			continue
+		var row: Dictionary = r
+		var i := _bucket_of(float(row.get("t", 0.0)), bucket_s)
+		secs[i] += 1.0
+		stage[i] = maxf(stage[i], float(row.get("stage", 1)))
+		level[i] = maxf(level[i], float(row.get("level", 1)))
+		alive[i] += float(row.get("alive", 0))
+		cap[i] += float(row.get("cap", 0))
+		press[i] += float(row.get("press", 0.0))
+		press_hp[i] += float(row.get("press_hp", 0.0))
+		press_dmg[i] += float(row.get("press_dmg", 0.0))
+		est[i] += float(row.get("est_total", 0.0))
+		hits[i] += float(row.get("hits", 0))
+		# the rows run in time order: the bucket's last row leaves its purse
+		gold[i] = float(row.get("gold", 0))
+		spawned[i] += _add_into(spawned_by, row.get("spawned"))
+		killed[i] += _add_into(killed_by, row.get("killed"))
+		dmg[i] += _add_into(dmg_by, row.get("dmg"))
+		took[i] += _add_into(took_by, row.get("took"))
+		_add_into(est_by, row.get("est"))
+		if row.has("hp") and float(row.get("hp_max", 0.0)) > 0.0:
+			var f := float(row["hp"]) / float(row["hp_max"])
+			hp[i] = minf(hp[i], f)
+			if f < 0.3:
+				low[i] += 1.0
+		evaded += int(row.get("evaded", 0))
+		shielded += float(row.get("shielded", 0.0))
+		healed += float(row.get("healed", 0.0))
+	for i in range(n):
+		var k := maxf(secs[i], 1.0)
+		alive[i] /= k
+		cap[i] /= k
+		press[i] /= k
+		press_hp[i] /= k
+		press_dmg[i] /= k
+		est[i] /= k
+	return {"bucket_s": int(bucket_s), "minutes": n, "m_secs": _ints(secs), "m_stage": _ints(stage), "m_level": _ints(level),
+		"m_alive": _ints(alive), "m_cap": _ints(cap), "m_spawned": _ints(spawned), "m_killed": _ints(killed),
+		"m_press": _ints(press), "m_press_hp": _ints(press_hp), "m_press_dmg": _ints(press_dmg), "m_est": _snaps(est, 0.1),
+		"m_dmg": _ints(dmg), "m_hp": _snaps(hp, 0.01), "m_took": _snaps(took, 0.1), "m_hits": _ints(hits),
+		"m_low_s": _ints(low), "m_gold": _ints(gold),
+		"dmg_by_weapon": _top(dmg_by, 10, 1.0), "est_by_weapon": _top(est_by, 10, 1.0),
+		"took_by_creature": _top(took_by, 10, 0.1), "spawned_by_creature": _top(spawned_by, 10, 1.0),
+		"killed_by_creature": _top(killed_by, 10, 1.0),
+		"evaded": evaded, "shielded": snappedf(shielded, 0.1), "healed": snappedf(healed, 0.1)}
+
+
+## summary() in minute buckets, folded into two-minute ones (then four, ...) while it is bigger than `max_bytes`.
+static func fit_summary(rows: Array, max_bytes: int = SUMMARY_MAX) -> Dictionary:
+	var b := 60.0
+	var s := summary(rows, b)
+	while JSON.stringify(s).length() > max_bytes and int(s.get("minutes", 0)) > 1:
+		b *= 2.0
+		s = summary(rows, b)
+	return s
+
+
+## The bucket a row at play second `t` falls in: (0, b] is the first, so the row stamped 60.0 closes minute one.
+static func _bucket_of(t: float, b: float) -> int:
+	return maxi(int(ceil(t / b - 0.0001)) - 1, 0)
+
+
+static func _zeros(n: int) -> PackedFloat64Array:
+	var a := PackedFloat64Array()
+	a.resize(n)
+	a.fill(0.0)
+	return a
+
+
+static func _ints(a: PackedFloat64Array) -> Array:
+	var out: Array = []
+	for v in a:
+		out.append(int(round(v)))
+	return out
+
+
+static func _snaps(a: PackedFloat64Array, step: float) -> Array:
+	var out: Array = []
+	for v in a:
+		out.append(snappedf(v, step))
+	return out
+
+
+## Adds every value of `d` (a row's {id: amount} map, or nothing) into `acc`; returns their sum.
+static func _add_into(acc: Dictionary, d: Variant) -> float:
+	if not (d is Dictionary):
+		return 0.0
+	var total := 0.0
+	for k in (d as Dictionary).keys():
+		var v := float(d[k])
+		acc[k] = float(acc.get(k, 0.0)) + v
+		total += v
+	return total
+
+
+## The `n` biggest of an {id: amount} map, whole numbers when `step` is 1 or more, else snapped to it.
+static func _top(d: Dictionary, n: int, step: float) -> Dictionary:
+	var ks: Array = d.keys()
+	ks.sort_custom(func(a, b) -> bool: return float(d[a]) > float(d[b]))
+	var out := {}
+	for i in range(mini(n, ks.size())):
+		var v := float(d[ks[i]])
+		out[str(ks[i])] = int(round(v)) if step >= 1.0 else snappedf(v, step)
+	return out
 
 
 func _build() -> Dictionary:

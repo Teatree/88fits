@@ -5,7 +5,10 @@
 ## Pass 48: the arena's training dummies, their health (UNDYING or 100 .. 10000 HP, Settings.dummy_hp) and how many
 ## stand in the field (10 .. 30, Settings.dummy_count), each a row that steps on a tap. Pass 49: whether the field patrols
 ## (Settings.dummy_patrol), the attacking dummies' health (Settings.attacker_dummy_hp), and the Elite dummy's and the Boss
-## dummy's health and behaviour (stand, patrol, melee, ranged), stepped the same way.
+## dummy's health and behaviour (stand, patrol, melee, ranged), stepped the same way. Pass 57: the PostHog client's
+## readout (core/autoload/Analytics.gd: whether the key file has a key, never the key itself, whether anything is sent and
+## why not, the queue, the events sent this session, the last send) and a Send now row that pushes the queue out with a
+## dev_ping, so PostHog's live view shows something at once.
 extends Control
 
 const SETTINGS := "res://ui/SettingsScreen.tscn"
@@ -14,6 +17,7 @@ var _list: VBoxContainer
 var _scroll: ScrollContainer
 var _touch: TouchScroll
 var _open := ""
+var _refresh_due := false
 
 
 func _ready() -> void:
@@ -59,7 +63,26 @@ func _ready() -> void:
 	_list.mouse_filter = Control.MOUSE_FILTER_PASS
 	m.add_child(_list)
 	_touch = TouchScroll.new(_scroll)
+	# a send that finishes while the menu is up puts its status in the readout
+	Analytics.sent.connect(_on_analytics_sent)
 	_refresh()
+
+
+func _on_analytics_sent(_ok: bool) -> void:
+	_refresh_soon()
+
+
+func _refresh_soon() -> void:
+	if _refresh_due:
+		return
+	_refresh_due = true
+	call_deferred("_refresh_now")
+
+
+func _refresh_now() -> void:
+	_refresh_due = false
+	if is_inside_tree():
+		_refresh()
 
 
 func _refresh() -> void:
@@ -125,6 +148,19 @@ func _refresh() -> void:
 	_list.add_child(_row("Hidden items · %d" % hidden, "›", func():
 		CollectionScreen.hidden_only = true
 		UiFx.go(get_tree(), "res://ui/CollectionScreen.tscn")))
+	# PostHog (pass 57): the key file, whether anything goes and why not, the queue and the last send; never the key
+	var an := _box()
+	an.name = "Analytics"
+	var av: VBoxContainer = an.get_child(0)
+	av.add_child(W.text("Analytics · PostHog", W.mono(500), 30, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	for line: String in Analytics.status_lines():
+		av.add_child(W.text(line, W.mono(500), 22, Color(W.AGED, 0.7), HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	_list.add_child(an)
+	var send := _row("Analytics · send now (a ping goes too)", "›", func():
+		Analytics.send_now()
+		_refresh_soon())
+	send.name = "AnalyticsSendNow"
+	_list.add_child(send)
 	var save := _box()
 	var sv: VBoxContainer = save.get_child(0)
 	sv.add_child(W.text("Save file", W.mono(500), 30, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0))

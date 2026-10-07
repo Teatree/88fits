@@ -4,7 +4,9 @@
 ## load for `portal_spawn_seconds` (-1 / -1 = the stage-end cap for as long as the hero stays out) unless the timeline has
 ## a `portal_wave` (pass 48: one small wave round the hero as the portal opens, then nothing). Pass 46 stretched Red
 ## Canyon's clock by 430/300 (stages of 7:10), so every clock here reads the timeline (`stage_length`) instead of a fixed
-## number of seconds, and the elite modifiers wait for the run's `colour_after_kills`-th kill.
+## number of seconds, and the elite modifiers wait for the run's `colour_after_kills`-th kill. Pass 57: a roster row's or a
+## wave's `pattern` may be "ring" (the whole spawn evenly round the hero at RING_RADIUS) or "in_front" (from the top of
+## the screen whatever the timeline's `spawn_sides` says); a swarm event takes "in_front" too.
 class_name WaveDirector
 extends Node
 
@@ -280,10 +282,13 @@ func _run_event(ev: Dictionary) -> void:
 				id = map.skins.values()[0]
 			var count := int(ev.get("count", 40))
 			match str(ev.get("pattern", "ring")):
-				"pack", "scatter":
-					# through the spawn points instead of the ring (pass 53), still on top of the cap like the ring
+				"pack", "scatter", "in_front":
+					# through the spawn points instead of the ring (pass 53), still on top of the cap like the ring;
+					# "in_front" (pass 57) from the top of the screen whatever spawn_sides says
 					_spawn_group(id, count, str(ev["pattern"]), int(ev.get("pack", 0)), null, variant, stats)
 				_:
+					# the swarm's own ring, 16 m round the hero as it always was (the rows' and waves' "ring" is
+					# RING_RADIUS, pass 57)
 					em.spawn_ring(id, count, game.player.global_position, 16.0, variant, stats)
 			game.toast("SWARM!", SWARM_COLOR)
 		"boss":
@@ -393,9 +398,19 @@ static func _row_def(r: Dictionary) -> EnemyDef:
 ## `n` creatures of `id` through the spawn points (pass 53, the roster's and the waves' `pattern`): "pack" puts them at
 ## one point (`pack` or more of them in several packs, each at its own point; pack 0 = all together), "scatter" and
 ## "single" each at a point of its own. `point` picks the points (`_spawn_point` when not given; the portal wave hands
-## `_around_point`). Returns how many came.
+## `_around_point`). Pass 57: "ring" puts all `n` evenly round the hero (_spawn_ring_group: a row's pack, a wave's
+## burst, whatever `pack` says), and "in_front" puts each of the `n` at its own point at the top of the screen
+## (_in_front_point) whatever `point` and the timeline's spawn_sides say: a loose band across the top, which read as
+## "they come from above" better than packs sharing a top point did (both were captured in the arena). Any other
+## pattern is "pack", as it always was. Returns how many came.
 func _spawn_group(id: String, n: int, pattern: String, pack: int, mod: EliteModDef, variant: String, stats: Dictionary, point: Callable = Callable()) -> int:
 	var em: EnemyManager = game.enemies
+	if pattern == "ring":
+		return _spawn_ring_group(id, n, mod, variant, stats)
+	if pattern == "in_front":
+		# Garry: "an override to the Spawning part in the Settings"
+		point = _in_front_point
+		pattern = "scatter"
 	if not point.is_valid():
 		point = _spawn_point
 	var came := 0
@@ -411,6 +426,62 @@ func _spawn_group(id: String, n: int, pattern: String, pack: int, mod: EliteModD
 		came += em.spawn_pack(id, point.call(), m, mod, variant, stats)
 		left -= m
 	return came
+
+
+## The "ring" pattern's radius round the hero (pass 57, Garry: "spawn in a Ring around the Player (kind of like what we
+## have in the debug option in the Arena), but about 30% further from the Player"): the arena's ring (ArenaPanel
+## _place_point "ring", 9 m) times 1.3. The swarm event's own ring stays 16 m, and the elite "ring" format 12 m.
+const RING_RADIUS := 9.0 * 1.3
+## How far a ring point may stray in or out (pass 57): a full ring reads as a thick band, not a drawn line.
+const RING_JITTER := 0.6
+## How far a ring point may slide round the circle, as a share of the even spacing (pass 57): small enough that no two
+## come closer than half the spacing.
+const RING_SLIDE := 0.2
+
+
+## `n` creatures of `id` on a ring round the hero (pass 57, the "ring" pattern; ring_points places them). Each may wear
+## `mod` (a wave's elite modifier). Returns how many came.
+func _spawn_ring_group(id: String, n: int, mod: EliteModDef, variant: String, stats: Dictionary) -> int:
+	var em: EnemyManager = game.enemies
+	var came := 0
+	for p: Vector3 in ring_points(n):
+		if em.spawn(id, p, mod, 1.0, 1.0, variant, stats) >= 0:
+			came += 1
+	return came
+
+
+## Where a ring of `n` stands (pass 57): evenly round the hero at RING_RADIUS from a random start angle, each point slid
+## up to RING_SLIDE of the spacing round the circle and RING_JITTER in or out, clamped to the arena like every spawn point
+## (the rocks push a creature off as it walks, as they do wherever it spawns). The editor's hint says how many make "a
+## thick ring with few gaps" (Garry): about 1.5 times the circle over a body's width.
+func ring_points(n: int) -> Array:
+	var out: Array = []
+	if n <= 0 or game == null or game.player == null:
+		return out
+	var center: Vector3 = game.player.global_position
+	var mb: MapBase = game.map
+	var step := TAU / float(n)
+	var turn := _rng.randf() * TAU
+	for k in range(n):
+		var a := turn + step * (float(k) + _rng.randf_range(-RING_SLIDE, RING_SLIDE))
+		var r := RING_RADIUS + _rng.randf_range(-RING_JITTER, RING_JITTER)
+		var p: Vector3 = center + Vector3(cos(a), 0, sin(a)) * r
+		out.append(mb.clamp_to_arena(p) if mb else p)
+	return out
+
+
+## A point for the "in_front" pattern (pass 57, Garry: "makes the enemies spawn above the Player, basically an override to
+## the Spawning part in the Settings"): the usual 19-24 m from the hero, clamped to the arena, within 45 degrees either
+## side of straight up the screen (the side spawn_sides calls top; the follow camera's yaw turns it with the screen),
+## whatever the timeline's spawn_sides says, mode sides or facing.
+func _in_front_point() -> Vector3:
+	return _point_at(_camera_yaw() + _rng.randf_range(-SIDE_HALF_ARC, SIDE_HALF_ARC))
+
+
+## The camera's yaw in the hero's convention (0 = -Z, straight up the screen under the fixed camera, which never turns);
+## the follow camera's own yaw when it has one (pass 54's spawn sides, pass 57's in_front).
+func _camera_yaw() -> float:
+	return game.camera.current_yaw() if game.get("camera") and game.camera and game.camera.has_method("current_yaw") else 0.0
 
 
 ## Position of the living mini-boss, or Vector3.INF when none.
@@ -570,7 +641,8 @@ func _burst_from(roster: Array, room: float, bodies: int) -> int:
 		if def == null:
 			return bodies
 		var share: float = maxf(def.cap_share, 0.05)
-		# the row's `pack` and `pattern` (pass 53): a pack at one point, a scatter each at its own, a single one a draw
+		# the row's `pack` and `pattern` (pass 53): a pack at one point, a scatter each at its own, a single one a draw;
+		# a ring (pass 57) is the pack round the hero and in_front the pack from the top of the screen, counted as a pack
 		var pattern := str(chosen.get("pattern", "pack"))
 		var pack: int = maxi(int(chosen.get("pack", def.pack_size)), 1)
 		var n: int = mini(mini(pack, maxi(int(ceil(burst / share)), 1)), bodies)
@@ -1009,8 +1081,7 @@ func _spawn_angle() -> float:
 		var side := _pick_side(ss)
 		if side != "":
 			# the camera's yaw (0 under the fixed camera: screen up is north), so follow mode keeps its sides too
-			var yaw: float = game.camera.current_yaw() if game.get("camera") and game.camera and game.camera.has_method("current_yaw") else 0.0
-			return yaw + float(SIDE_TURN[side]) + _rng.randf_range(-SIDE_HALF_ARC, SIDE_HALF_ARC)
+			return _camera_yaw() + float(SIDE_TURN[side]) + _rng.randf_range(-SIDE_HALF_ARC, SIDE_HALF_ARC)
 	return _facing_angle(ss)
 
 

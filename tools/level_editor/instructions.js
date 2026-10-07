@@ -2,6 +2,7 @@
 // fields.js, so these words and the forms never drift apart), a worked example with its block, its inspector values and
 // the JSON it writes, how Save works, the two .cmd files, the keys, and the schema doc itself (docs/waves_schema.md via
 // /api/schema) at the end. Garry asked for "an Instructions tab describing each tool with a simple example with graphics".
+// Pass 57: the Ring and In front spawn patterns, with a picture of each.
 'use strict';
 
 const Instructions = (() => {
@@ -22,6 +23,7 @@ const Instructions = (() => {
     const root = el('div', { class: 'instr' });
     intro(root);
     pass54(root);
+    pass57(root);
     picture(root);
     lanes(root);
     fields(root);
@@ -66,6 +68,60 @@ const Instructions = (() => {
       li('<b>Elite overrides</b> are the variance block (size and speed spread, tints, the coloured special and its numbers) plus <code>elite_weight</code> (how often a random coloured elite is drawn from the row; 0 = never) and <code>elite_formats</code> (alone / as its pack / as a ring). The old <code>elite.hp_mult_per_stage</code> lives under <b>Mini-boss</b>: only Elite-archetype creatures read it.'),
       li('<b>Knockback</b> per creature (Body → Knockback; the grey number is its own, or <code>clamp(3.4 × √(damage / 4), 2.5, 7)</code>), <b>creature_damage_mult</b> (Settings → Scaling: every hostile damage) and the <b>spawn sides</b> (Settings → Spawning: top / bottom / left / right weights, or the old facing rule).'),
       li('<b>Default look</b>: on the Creatures tab, click a variant and "Set as default look"; after you confirm, the server writes that creature JSON\'s <code>variant</code> (after a backup) and imports it.')));
+  }
+
+  // ------------------------------------------------------------------ the two spawn patterns pass 57 added
+
+  function pass57(root) {
+    root.appendChild(el('h2', { text: 'Pass 57: the Ring and In front patterns' }));
+    root.appendChild(p('Two more choices in a roster row\'s or a wave\'s <b>Pattern</b> (a swarm event takes In front too). The note under the field says what the choice will do with that row\'s numbers.'));
+    root.appendChild(el('ul', {},
+      li('<b>Ring</b>: the creatures of one spawn stand evenly round the hero on a ring <b>11.7 m</b> out (the debug arena\'s 9 m ring × 1.3; Garry: "about 30% further from the Player"), slid a little in and out so a full ring reads thick. A row\'s spawn is its pack, cut as always to what one burst holds and to the cap\'s room (at most 24 skeletons at once on Red Canyon: <code>burst_max</code> 12 load units, a skeleton takes 0.5); a wave\'s is its whole burst, at once. The note says how many of that creature make <i>a thick ring with few gaps</i>: the ring\'s 73.5 m over a body\'s width (2 × its radius) closes one row, and about 1.5 times that is a thick ring: about <b>105 skeletons</b> (70 close one row). A ring that big is a wave\'s job: Per burst about 105, Respect the cap off. The swarm event keeps its own 16 m ring (its note counts for 16 m).'),
+      li('<b>In front</b>: every creature of the spawn comes from the top of the screen, each at its own point 19–24 m up within ±45° of straight up, <b>whatever Settings → Spawning → Spawn side says</b> (Garry: "an override to the Spawning part in the Settings"): a loose band across the top that walks down at the hero. The follow camera turns it with the screen.')));
+    root.appendChild(el('div', { class: 'instr-pic' }, patternPic()));
+  }
+
+  /** The two patterns at one scale (6 px a metre): the screen at the run's zoom round the hero, a ring of 40 at 11.7 m,
+   *  and a band of 14 in the top wedge 19-24 m out. A fixed jitter, so the picture never changes. */
+  function patternPic() {
+    const W = 760, H = 304, S = 6;
+    const s = svg('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+    const screen = (cx, cy, labelY) => {
+      s.appendChild(svg('rect', { x: cx - 8 * S, y: cy - 17 * S, width: 16 * S, height: 28 * S, rx: 6, fill: 'none', stroke: '#898781', 'stroke-dasharray': '4 3' }));
+      s.appendChild(svg('text', { x: cx - 8 * S + 5, y: labelY, class: 'pic-small', text: 'the screen' }));
+      s.appendChild(svg('circle', { cx, cy, r: 5, fill: '#ffd166' }));
+    };
+    const dot = (x, y) => s.appendChild(svg('circle', { cx: x, cy: y, r: 3.2, fill: '#c3c2b7' }));
+    const jit = (k) => Math.sin(k * 12.9898) * 0.5;      // a fixed -0.5..0.5 per index
+    // the ring: 40 round the hero at 11.7 m, slid up to 0.2 of the spacing and 0.6 m in or out, as the game places them
+    const rx = 190, ry = 162;
+    screen(rx, ry, ry - 17 * S + 13);
+    for (let k = 0; k < 40; k++) {
+      const a = (k + jit(k) * 0.4) * Math.PI * 2 / 40;
+      const r = (11.7 + jit(k + 99) * 1.2) * S;
+      dot(rx + Math.cos(a) * r, ry + Math.sin(a) * r);
+    }
+    s.appendChild(svg('line', { x1: rx, y1: ry, x2: rx + 11.7 * S - 6, y2: ry, stroke: '#ffd166', 'stroke-width': 1 }));
+    s.appendChild(svg('text', { x: rx + 20, y: ry - 7, class: 'pic-small', text: '11.7 m' }));
+    s.appendChild(svg('text', { x: rx - 14, y: ry + 19, class: 'pic-small', text: 'hero' }));
+    s.appendChild(svg('text', { x: 20, y: 22, class: 'pic-text strong', text: 'Ring: the whole spawn round the hero' }));
+    s.appendChild(svg('text', { x: 20, y: H - 10, class: 'pic-small', text: 'a row: its pack · a wave: its burst · thick ≈ 1.5 × one closed row' }));
+    // in front: 14 each at its own point in the top wedge, 19-24 m out, +-45 degrees of straight up
+    const fx = 570, fy = 212;
+    screen(fx, fy, fy + 11 * S - 6);
+    for (const sgn of [-1, 1]) {
+      const a = sgn * Math.PI / 4;
+      s.appendChild(svg('line', { x1: fx, y1: fy, x2: fx + Math.sin(a) * 24 * S, y2: fy - Math.cos(a) * 24 * S, stroke: '#46d39a', 'stroke-dasharray': '3 3', opacity: 0.8 }));
+    }
+    for (let k = 0; k < 14; k++) {
+      const a = (-0.9 + 1.8 * (k + 0.5 + jit(k * 3 + 1) * 0.8) / 14) * Math.PI / 4;
+      const r = (21.5 + jit(k * 7 + 5) * 5) * S;
+      dot(fx + Math.sin(a) * r, fy - Math.cos(a) * r);
+    }
+    s.appendChild(svg('text', { x: fx + 9, y: fy + 4, class: 'pic-small', text: 'hero' }));
+    s.appendChild(svg('text', { x: 430, y: 22, class: 'pic-text strong', text: 'In front: from the top of the screen' }));
+    s.appendChild(svg('text', { x: 430, y: H - 10, class: 'pic-small', text: '19–24 m up, ±45°, whatever the spawn side says' }));
+    return s;
   }
 
   // ------------------------------------------------------------------ the model in one picture

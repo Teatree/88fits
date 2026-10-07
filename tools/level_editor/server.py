@@ -15,6 +15,10 @@ Serves this folder (index.html, the scripts, the styles) on 127.0.0.1 and a smal
     GET  /icon/<kind>/<id>[/<code>]  a creature's icon PNG (kind enemy|boss|elite|pickup; code = an art variant)
     POST /api/enemy/<id>/variant   {"code": "SK-B"}: the creature's default look (pass 54): its JSON's top-level
                                    `variant`, after a backup, then the JSON -> .tres import of that one creature
+    GET  /api/turnover/<map>[/all] the "Spawned so far" lane's assumptions (pass 57): the hero's kill rate (a share of
+                                   the living crowd a second: one number, per stage, minute by minute), the mean boss
+                                   fight and portal wait, fitted from analytics/runs/*.json (Garry's runs; /all adds
+                                   the tools' headless ones), read only
 
 Garry (the user) is not a programmer, so the server stays plain: the standard library only, nothing installed, nothing
 fetched from the internet. It writes exactly two kinds of thing: the map JSON it was asked to save, and (pass 54) the
@@ -57,6 +61,8 @@ STATIC_TYPES = {
 }
 # the folders the API reads, by the kind the page names
 KIND_FOLDERS = {"enemy": "enemies", "boss": "bosses", "elite": "elites", "pickup": "pickups"}
+# the keys of a boss attack the estimate times its script by (pass 57)
+SCRIPT_KEYS = ("name", "windup", "duration", "count", "enemy", "interval", "warn", "spawn")
 
 _write_lock = threading.Lock()
 
@@ -126,6 +132,9 @@ def creature_record(kind, cid, folder, d):
         for k in ("cooldown_between", "hp_mult_per_stage"):
             if k in boss:
                 boss_out[k] = boss[k]
+        # pass 57: the script's timing and what it brings, for the "Spawned so far" estimate (a boss's spawn_ring adds
+        # its minions to the fight: the Tumbleweed King's 12 a ring)
+        boss_out["script"] = [{k: a[k] for k in SCRIPT_KEYS if k in a} for a in boss.get("attacks", []) or [] if isinstance(a, dict)]
     variants = []
     vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
     base_code = str(d.get("variant_base", ""))
@@ -460,6 +469,145 @@ def write_variant(cid, code):
             "import_ok": import_ok, "output": output}
 
 
+# ---------------------------------------------------------------- the kill rate from Garry's run records (pass 57)
+
+ANALYTICS_RUNS = os.path.join(ROOT, "analytics", "runs")
+# what the "Spawned so far" lane assumes with no record to learn from: 6 % of the crowd killed a second (an average
+# creature lives about 17 s), a 60 s boss fight and a 30 s portal wait
+TURNOVER_FALLBACK = {"turnover": 0.06, "boss_seconds": 60.0, "portal_seconds": 30.0}
+# a minute of the run clock joins the curve when the pooled records hold this many seconds of it
+CURVE_MIN_SECONDS = 30
+# a stage gets its own number when the pooled records hold this many seconds of it (else the stage before's)
+STAGE_MIN_SECONDS = 60
+# only the latest runs speak for the game as it is now (the file names are the runs' start times, so they sort in time)
+FIT_MAX_RUNS = 12
+_run_cache = {}  # path -> (mtime, size, summary or None)
+
+
+def run_summary(path):
+    """What the kill-rate fit needs from one run record (analytics/SCHEMA.md), or None when it cannot be used: the header
+    (map, hero, version, result, length, headless), per second of the normal phase the run clock, the stage, the kills
+    and the creatures alive (alive_by, which leaves out the dying), the boss fights' lengths (boss_start to boss_end, in
+    play seconds) and the portal waits' (boss_end to the portal). A record whose clock runs ahead of its play time (a tool
+    that jumped the clock) is not a run as played. Cached by modification time and size."""
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    hit = _run_cache.get(path)
+    if hit and hit[0] == st.st_mtime and hit[1] == st.st_size:
+        return hit[2]
+    out = None
+    try:
+        d = load_json(path)
+    except (OSError, ValueError):
+        d = None
+    if isinstance(d, dict) and isinstance(d.get("samples"), list):
+        rows = []
+        jumped = False
+        for r in d["samples"]:
+            if not isinstance(r, dict):
+                continue
+            t, clock = float(r.get("t", 0) or 0), float(r.get("clock", 0) or 0)
+            if clock > t + 3.0:
+                jumped = True
+                break
+            if int(r.get("phase", 0) or 0) != 0:
+                continue
+            living = r.get("alive_by")
+            if not isinstance(living, dict):
+                continue
+            killed = r.get("killed") if isinstance(r.get("killed"), dict) else {}
+            rows.append((clock, int(r.get("stage", 1) or 1), float(sum(killed.values())), float(sum(living.values()))))
+        fights, waits = [], []
+        start = end = None
+        for e in d.get("events", []) if isinstance(d.get("events"), list) else []:
+            if not isinstance(e, dict):
+                continue
+            kind, t = e.get("kind"), float(e.get("t", 0) or 0)
+            if kind == "boss_start":
+                start, end = t, None
+            elif kind == "boss_end" and start is not None:
+                fights.append(t - start)
+                start, end = None, t
+            elif kind == "portal" and end is not None:
+                waits.append(t - end)
+                end = None
+        if not jumped:
+            out = {"file": os.path.basename(path), "map": str(d.get("map", "")), "hero": str(d.get("hero", "")),
+                   "version": str(d.get("version", "")), "result": str(d.get("result", "")),
+                   "length": float(d.get("length", 0) or 0), "headless": bool(d.get("headless", False)),
+                   "rows": rows, "fights": fights, "waits": waits}
+    _run_cache[path] = (st.st_mtime, st.st_size, out)
+    return out
+
+
+def fit_turnover(map_id, include_headless=False, runs_dir=None):
+    """The "Spawned so far" lane's assumptions from the run records under analytics/runs (the local recorder's files,
+    pass 45): the share of the living crowd the hero kills a second (kills over creatures alive, normal phase only,
+    pooled over the latest FIT_MAX_RUNS runs of the map), as one number, per stage (a stage with under
+    STAGE_MIN_SECONDS of records takes the stage before's) and minute by minute of the run clock (the curve the lane
+    plays: a hero kills slowly while his build is young), the mean boss fight and the mean portal wait. Only Garry's own
+    runs count unless `include_headless`: a headless record is a tool's bot. A run counts with a minute or more of the
+    normal phase, played as it came (no jumped clock). With nothing to learn from, the fallback numbers and
+    `source: "fallback"`."""
+    base = runs_dir or ANALYTICS_RUNS
+    used, fights, waits = [], [], []
+    by_min, by_stage = {}, {}
+    k_all = a_all = 0.0
+    names = sorted(os.listdir(base)) if os.path.isdir(base) else []
+    picked = []
+    for name in reversed(names):
+        if len(picked) >= FIT_MAX_RUNS:
+            break
+        if not name.endswith(".json") or name.startswith("index"):
+            continue
+        s = run_summary(os.path.join(base, name))
+        if not s or s["map"] != map_id or (s["headless"] and not include_headless) or len(s["rows"]) < 60:
+            continue
+        picked.append(s)
+    for s in reversed(picked):
+        k_run = a_run = 0.0
+        for clock, stage, k, a in s["rows"]:
+            m = int(clock // 60)
+            b = by_min.setdefault(m, [0.0, 0.0, 0])
+            b[0] += k
+            b[1] += a
+            b[2] += 1
+            g = by_stage.setdefault(stage, [0.0, 0.0, 0])
+            g[0] += k
+            g[1] += a
+            g[2] += 1
+            k_run += k
+            a_run += a
+        k_all += k_run
+        a_all += a_run
+        fights += s["fights"]
+        waits += s["waits"]
+        used.append({"file": s["file"], "hero": s["hero"], "version": s["version"], "result": s["result"],
+                     "length": round(s["length"], 1), "seconds": len(s["rows"]),
+                     "turnover": round(k_run / a_run, 4) if a_run > 0 else None})
+    fb = dict(TURNOVER_FALLBACK)
+    if not used or a_all <= 0:
+        return {"ok": True, "map": map_id, "source": "fallback", "runs": [], "turnover": fb["turnover"],
+                "by_stage": [], "curve": [], "boss_seconds": fb["boss_seconds"], "portal_seconds": fb["portal_seconds"],
+                "fights": 0, "waits": 0, "fallback": fb}
+    flat = k_all / a_all
+    stages = []
+    prev = flat
+    for st in range(1, (max(by_stage) if by_stage else 1) + 1):
+        g = by_stage.get(st)
+        if g and g[2] >= STAGE_MIN_SECONDS and g[1] > 0:
+            prev = g[0] / g[1]
+        stages.append(round(prev, 4))
+    curve = [[m * 60 + 30, round(b[0] / b[1], 4)] for m, b in sorted(by_min.items()) if b[2] >= CURVE_MIN_SECONDS and b[1] > 0]
+    return {"ok": True, "map": map_id, "source": "records", "runs": used, "turnover": round(flat, 4), "by_stage": stages,
+            "curve": curve,
+            "boss_seconds": round(sum(fights) / len(fights), 1) if fights else fb["boss_seconds"],
+            "portal_seconds": round(sum(waits) / len(waits), 1) if waits else fb["portal_seconds"],
+            "fights": len(fights), "waits": len(waits), "fallback": fb}
+
+
 # ---------------------------------------------------------------- the handler
 
 class Handler(BaseHTTPRequestHandler):
@@ -521,6 +669,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, f.read(), "text/markdown; charset=utf-8")
         if parts == ["status"]:
             return self._send(200, {"ok": True, "root": ROOT, "godot": os.path.isfile(GODOT), "backups": BACKUPS})
+        if len(parts) in (2, 3) and parts[0] == "turnover" and (len(parts) == 2 or parts[2] == "all"):
+            # pass 57: the "Spawned so far" lane's kill rate and boss fight from the run records (/all: tools' runs too)
+            if not ID_RE.match(parts[1]):
+                return self._error(404, "bad map id")
+            return self._send(200, fit_turnover(parts[1], include_headless=len(parts) == 3))
         return self._error(404, "unknown API path")
 
     def _icon(self, parts):

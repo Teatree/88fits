@@ -49,3 +49,10 @@ maps every id in the file to its display name so the page needs no content folde
 
 A tool's `user://debug_launch.json` may say `"analytics": false` to launch a run without the recorder (perf_late's
 `analytics=0` does, for the A/B of the recorder's cost).
+
+## PostHog (pass 57)
+
+The same run's story also goes to PostHog through `game/core/autoload/Analytics.gd` once `game/config/analytics.json`
+holds the Project API key (`phc_...`) and `"enabled": true`: the recorder's events renamed (`Analytics.KIND_EVENTS`),
+`run_start`, `run_end` and one `run_summary` carrying this dashboard's per-minute series. Tool runs, the gdUnit runner
+and the debug arena never send. The plan, the boards and the setup steps are in `docs/analytics_plan.html`.

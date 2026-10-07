@@ -207,6 +207,8 @@ next launch. To undo it, set the old look the same way, or copy the backup back 
 - `GET /api/status`: `{ok, root, godot, backups}`.
 - `GET /icon/<kind>/<id>[/<code>]`: a PNG (kind enemy|boss|elite|pickup; code = an art variant: its own icon when the
   file is on disk, else the creature's, the game's order).
+- `GET /api/turnover/<map>[/all]` (pass 57): the Spawned so far lane's assumptions fitted from `analytics/runs/*.json`:
+  `{ok, map, source (records|fallback), runs, turnover, by_stage, curve, boss_seconds, portal_seconds}`.
 - `POST /api/enemy/<id>/variant` (pass 54): body `{"code": "SK-B"}`; `{ok, id, kind, variant, was, wrote, backup,
   import_ok, output}`, or 400 with `{ok: false, error}` when the creature does not exist or the code is unknown or not
   painted yet (the error names the codes it can play).
@@ -259,3 +261,34 @@ Garry's list for the editor (2026-10-06), and where each piece is:
   hero level 10), `p54_curves.png` (the HP × inspector), `p54_roster_row.png` (a row selected: gutter, order buttons,
   presence points), `p54_creatures.png` (Set as default look asking to confirm), `p54_elite.png` (the Elite override
   group) and `p54_picker.png` (the creature picture list open).
+
+## Pass 57
+
+Garry's list for the editor (2026-10-07), and where each piece is:
+
+- **Ring** and **In front** under Pattern (roster rows and waves; the swarm event takes In front, and keeps its own
+  16 m ring). A ring puts the whole spawn evenly round the hero 11.7 m out (the debug arena's 9 m ring × 1.3, Garry:
+  "about 30% further"): a row's pack, a wave's burst, all at once. A note under the field says how many make "a thick
+  ring with few gaps" for that creature: one closed row shoulder to shoulder is 2π × 11.7 / (2 × radius × size), a
+  thick ring about 1.5 times that, rounded to 5 (skeletons: about 105, 70 close one row), and what the row or wave
+  spawns at once. In front puts every creature of the spawn at its own point 19–24 m up the screen within ±45° of
+  straight up, whatever Settings → Spawning says (Garry: "basically an override to the Spawning part in the
+  Settings"). `U.RING_RADIUS` in util.js mirrors `WaveDirector.RING_RADIUS`: change both together.
+- **Spawned so far**, a lane under Cap: the cumulative number of creatures a run spawns by each second, an estimate
+  (`model.js` `spawnEstimate`, a Python twin in selftest.py). It plays the director's rules second by second with
+  expected values: the live cap and its curve, `boss_cap_frac` in the fights, `cap_share` load units, the presence
+  keyframes, packs and patterns, `max_alive`, the hell channel, waves (alternatives by chance), swarms over the cap,
+  Elites, specials, bosses, the portal wave and endless. A run only spawns what the hero kills, so it assumes the hero
+  kills a share of the living crowd each second (the **kills** box, %/s) while the director refills to the cap, a boss
+  fight of **boss** seconds and a portal wait of **portal** seconds. By default these come from Garry's own runs
+  (`GET /api/turnover/<map>`: the latest 12 records in `analytics/runs/` from runs played from the editor binary;
+  `/all` adds the headless tool runs), minute by minute where the records allow; with no records, 6 %/s, 60 s and
+  30 s. Type a number to try another; clear the box to go back to the fit (kept per map in the browser). The lane is
+  stacked: regular, coloured (the variance specials once `colour_after_kills` kills are made), Elites, specials,
+  bosses, with a mark where each Elite, special and boss arrives and "+N in the fight" under each fight. Hover
+  anywhere for a card with the time, the total, every creature by count (the coloured share of each), Elites,
+  Specials, Bosses and the coloured total.
+- Checked against a real run (`smoke_run.gd -- perf=1`, the astro bot, 2026-10-07): with the kill rate fitted minute
+  by minute, the estimate was 4.4 % over the record at 2:00, 4.3 % at 4:00 and 8.2 % at 7:10 (19 % at 1:00, while
+  the young build kills slowly). A flat rate is 95 % over at 1:00 and within 14 % after 2:00.
+- `selftest.py`: 13832 checks pass (the estimate on seven timelines, JS against Python, and hand-checked cases).

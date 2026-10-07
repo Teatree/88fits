@@ -30,7 +30,9 @@ at `stage_length`, stage 3 at `2 × stage_length`.
 - `channel: "hell"`: the hell channel's own cap (`hell_cap`).
 - **new** `pack`: how many spawn together (default the creature's `pack_size`).
 - **new** `pattern`: `"pack"` (the default: the pack at one point, spread out), `"scatter"` (each one at its own spawn
-  point), `"single"` (one creature per draw, whatever the pack).
+  point), `"single"` (one creature per draw, whatever the pack); pass 57: `"ring"` (the pack evenly round the hero at
+  11.7 m) and `"in_front"` (each of the pack at its own point at the top of the screen, whatever `spawn_sides` says): see
+  "Pass 57" below. Any other value plays as `"pack"`.
 - **new** `variant`: the art variant code to spawn with (default the creature's own).
 - **new** `stats`: overrides (see below).
 
@@ -49,7 +51,8 @@ Explicit windows on top of the roster, under `"waves": [ ... ]`:
 - `alts`: one of them is rolled **once per wave per run** (fresh every run, not the map seed) by `chance` (the chances
   are normalised). A wave with no `alts` carries `enemy` / `variant` / `pack` / `stats` itself (= one alt).
 - `pattern`: as a roster row. `pack` on the alt caps how many of a burst stand together; a burst bigger than the pack
-  is several packs.
+  is several packs. A `"ring"` is the whole burst round the hero at once, whatever the pack; `"in_front"` puts each
+  creature of the burst at its own point at the top of the screen (pass 57).
 - `respect_cap` (default true): the burst spawns only into free cap room (load units, each creature its `cap_share`,
   against `channel`'s cap: `"regular"` or `"hell"`); false = on top of the cap like a SWARM event (the `hard_cap`
   still holds).
@@ -68,7 +71,9 @@ Types: `elite` {enemy?, mod?}, `elite_every` {interval}, `swarm` {enemy, count},
 rolled per run), `stats`, `variant`. **New**: `enemy` may be a list on every type, with an optional parallel
 `weights` list (equal when missing; `elite_boss` lists were already random). `elite_every.interval` may be
 `[min, max]` (a fresh random interval every firing). `swarm.pattern`: `"ring"` (the default, as before: a ring 16 m
-round the hero, ignores the cap), `"pack"` or `"scatter"` (through the spawn points, ignores the cap).
+round the hero, ignores the cap), `"pack"` or `"scatter"` (through the spawn points, ignores the cap); pass 57:
+`"in_front"` (every one at its own point at the top of the screen, ignores the cap). The swarm keeps its own 16 m ring:
+the rows' and waves' `"ring"` is 11.7 m.
 
 ## Stat overrides (`stats`, **new**)
 Every key optional; a missing key keeps the creature's own number. Multipliers (`*_mult`) stack on the base.
@@ -151,7 +156,8 @@ creature met (1:00); `fire_ant` from 5:00 as 0.6 of a mummy (36 HP, bite 8, size
   axis. `mode: "facing"`: the old rule (`facing_share`, default 0.7, of the spawns within ±`facing_spread_deg`, default 60,
   of where the hero faces; the rest anywhere). Absent, or sides whose weights are all 0 = `facing`. Red Canyon: sides
   55 / 15 / 15 / 15. Rings and swarms, the portal wave and bosses are placed as before, and the Elite bosses keep the old
-  facing rule (with the block's `facing_share` / `facing_spread_deg` when it names them) whatever the mode.
+  facing rule (with the block's `facing_share` / `facing_spread_deg` when it names them) whatever the mode. A row's, a
+  wave's or a swarm's `"in_front"` pattern (pass 57) ignores the block: always the top of the screen.
 
 ### Creature JSON
 - `knockback` (top level, m/s): the shove the hero takes from this creature's bite. Absent (or 0) = `EnemyDef.default_knockback
@@ -161,3 +167,24 @@ creature met (1:00); `fire_ant` from 5:00 as 0.6 of a mummy (36 HP, bite 8, size
   hostile shot shoves by `ranged.knockback` when it has one, else `knockback * 0.7`; `charge.knockback`,
   `kamikaze.knockback`, `artillery.missile.knockback` and boss attacks keep their own numbers. Overridable per row
   (`stats.knockback`), and `stats.knockback_mult` multiplies it too (a multiplier of 0 leaves no shove).
+
+## Pass 57: the Ring and In front patterns
+- `"ring"` (roster rows and waves; Garry: "spawn in a Ring around the Player (kind of like what we have in the debug
+  option in the Arena), but about 30% further from the Player"): the creatures of one spawn stand evenly round the hero on
+  a circle of `WaveDirector.RING_RADIUS` = the arena's ring (9 m) x 1.3 = **11.7 m**, from a random start angle, each slid
+  up to 0.2 of the even spacing round the circle and up to 0.6 m in or out (`RING_SLIDE`, `RING_JITTER`), so a full ring
+  reads as a thick band; each point is clamped to the arena like every spawn point. A roster row's spawn is its pack, cut
+  as always to what one burst holds (`burst_max` load units over the creature's `cap_share`: at most 24 skeletons on Red
+  Canyon) and to the cap's room; a wave's is its whole `burst`, cut by `count`, the hard cap and, with `respect_cap`, the
+  cap's free room. Counted like `"pack"` everywhere (the cap rules are unchanged). In the portal wave a ring row is still a
+  ring round the hero. The swarm event's ring stays 16 m and the elite format `"ring"` 12 m.
+- The editor's hint under the Pattern field (`U.ringCount` in `tools/level_editor/util.js`): one closed row shoulder to
+  shoulder is the circle (2 x pi x 11.7 = 73.5 m) over a body's width, 2 x its radius (the row's `stats.radius` when set:
+  the game keeps bodies that far apart, a painting's `size` does not change it); "a thick ring with few gaps" (Garry) is
+  about 1.5 times that, rounded to 5: the skeleton (radius 0.52) closes one row with 70 and makes a thick ring with about
+  105. The swarm's own ring gets the same hint at 16 m.
+- `"in_front"` (roster rows, waves and swarm events; Garry: "spawn above the Player, basically an override to the
+  Spawning part in the Settings"): every creature of the spawn at its own point 19-24 m from the hero (clamped to the
+  arena) within 45 degrees either side of straight up the screen (the side `spawn_sides` calls top; the follow camera's yaw
+  turns it), whatever `spawn_sides` says, mode sides or facing: a loose band across the top. Packs sharing a top point
+  were tried too and read less as "they come from above". In the portal wave an in-front row still comes from the top.

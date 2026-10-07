@@ -9,15 +9,20 @@
 'use strict';
 
 const FIELDS = (() => {
+  // pass 57: Ring (Garry: "spawn in a Ring around the Player ... about 30% further" than the arena's 9 m ring) and In
+  // front (Garry: "spawn above the Player, basically an override to the Spawning part in the Settings")
   const PATTERNS = [
-    { v: 'pack', label: 'pack', help: 'the whole pack at one spawn point, spread out (the default)' },
-    { v: 'scatter', label: 'scatter', help: 'each creature at its own spawn point round the hero' },
-    { v: 'single', label: 'single', help: 'one creature per draw, whatever the pack size' },
+    { v: 'pack', label: 'Pack', help: 'the whole pack at one spawn point, spread out (the default)' },
+    { v: 'scatter', label: 'Scatter', help: 'each creature at its own spawn point round the hero' },
+    { v: 'single', label: 'Single', help: 'one creature per draw, whatever the pack size' },
+    { v: 'ring', label: 'Ring', help: 'the whole spawn evenly round the hero on a ring 11.7 m out (the arena\'s 9 m ring × 1.3): a row\'s pack, a wave\'s burst, all at once; the hint under the field says how many make a thick ring' },
+    { v: 'in_front', label: 'In front', help: 'from the top of the screen, whatever Settings → Spawning says: each creature at its own point 19–24 m up, within ±45° of straight up (a loose band across the top)' },
   ];
   const SWARM_PATTERNS = [
-    { v: 'ring', label: 'ring', help: 'a ring 16 m round the hero, as the SWARM events always came (ignores the cap)' },
-    { v: 'pack', label: 'pack', help: 'packs through the spawn points (ignores the cap)' },
-    { v: 'scatter', label: 'scatter', help: 'one by one through the spawn points (ignores the cap)' },
+    { v: 'ring', label: 'Ring (16 m)', help: 'a ring 16 m round the hero, as the SWARM events always came (ignores the cap); the swarm keeps its own 16 m ring, a row\'s or a wave\'s Ring is 11.7 m' },
+    { v: 'pack', label: 'Pack', help: 'packs through the spawn points (ignores the cap)' },
+    { v: 'scatter', label: 'Scatter', help: 'one by one through the spawn points (ignores the cap)' },
+    { v: 'in_front', label: 'In front', help: 'all of them from the top of the screen, whatever Settings → Spawning says: each at its own point 19–24 m up, within ±45° of straight up (ignores the cap)' },
   ];
   const CHANNELS = [
     { v: 'regular', label: 'regular', help: 'the regular crowd: spawns into the live cap' },
@@ -43,7 +48,7 @@ const FIELDS = (() => {
     { key: 'weights', label: 'Presence', type: 'weights', help: 'the row\'s draw weight over the run clock as [time, weight] points: linear between them, flat before the first and after the last; its share of a burst is its weight against the other open rows of its channel (10 against 4 = 71% / 29%). Drag the points on the bar; double-click the bar to add one, a point to remove it' },
     { key: 'channel', label: 'Channel', type: 'select', options: CHANNELS, def: 'regular', help: 'regular crowd, or the hell channel with its own cap' },
     { key: 'pack', label: 'Pack', type: 'int', min: 1, help: 'how many spawn together; empty = the creature\'s own pack size' },
-    { key: 'pattern', label: 'Pattern', type: 'select', options: PATTERNS, def: 'pack', help: 'pack at one point, scattered, or one at a time' },
+    { key: 'pattern', label: 'Pattern', type: 'select', options: PATTERNS, def: 'pack', help: 'pack at one point, scattered, one at a time, a ring round the hero (the pack at once, 11.7 m out) or in front (from the top of the screen, whatever the spawn side in Settings says)' },
     { key: 'variant', label: 'Art variant', type: 'variant', help: 'the art variant code to spawn with; empty = the one in play (the creature JSON\'s own `variant`)' },
     { key: 'stats', label: 'Overrides', type: 'overrides', help: 'stat overrides for this row\'s creatures (every key optional)' },
   ];
@@ -57,7 +62,7 @@ const FIELDS = (() => {
     { key: 'count', label: 'Total count', type: 'int', min: 0, def: 20, help: 'how many creatures in all; 0 = no total (runs until `until`)' },
     { key: 'burst', label: 'Per burst', type: 'int', min: 1, def: 5, help: 'how many spawn together in each burst' },
     { key: 'every', label: 'Every (s)', type: 'number', min: 0, step: 0.5, def: 2, help: 'seconds between bursts' },
-    { key: 'pattern', label: 'Pattern', type: 'select', options: PATTERNS, def: 'pack', help: 'pack at one point, scattered, or one at a time' },
+    { key: 'pattern', label: 'Pattern', type: 'select', options: PATTERNS, def: 'pack', help: 'packs at one point each, scattered, one at a time, a ring round the hero (the whole burst at once, 11.7 m out) or in front (from the top of the screen, whatever the spawn side in Settings says)' },
     { key: 'respect_cap', label: 'Respect the cap', type: 'bool', def: true, help: 'on: a burst spawns only into free cap room; off: on top of the cap like a SWARM (the hard cap still holds)' },
     { key: 'channel', label: 'Channel', type: 'select', options: CHANNELS, def: 'regular', help: 'which cap the burst counts against when it respects one' },
     { key: 'elite', label: 'Elite modifier', type: 'elite', def: '', help: 'every creature of the wave wears this modifier: none, random, or one by name (waits for colour_after_kills)' },
@@ -79,7 +84,7 @@ const FIELDS = (() => {
     elite_boss: { label: 'Elite', glyph: 'crown', color: '#e6a04a', help: 'a mini-boss creature near the hero (one of the list at random), no clock stop; always drops a chest' },
     elite: { label: 'Coloured elite', glyph: 'star', color: '#c98500', help: 'one roster creature wearing an elite modifier (random creature / modifier when empty; the creature by the rows\' elite_weight); waits for colour_after_kills' },
     elite_every: { label: 'Elites every', glyph: 'repeat', color: '#9085e9', help: 'from t, a coloured elite every `interval` seconds (a fresh random interval each time when [min, max]) for the rest of the run' },
-    swarm: { label: 'Swarm', glyph: 'ring', color: '#46d39a', help: '`count` creatures at once round the hero, on top of the cap (a SWARM! banner)' },
+    swarm: { label: 'Swarm', glyph: 'ring', color: '#46d39a', help: '`count` creatures at once, on top of the cap (a SWARM! banner): a ring 16 m round the hero, packs or singles through the spawn points, or all from the top of the screen (Pattern)' },
   };
   const event = [
     { key: 'type', label: 'Type', type: 'select', options: Object.keys(EVENT_TYPES).map((k) => ({ v: k, label: EVENT_TYPES[k].label, help: EVENT_TYPES[k].help })), required: true, help: 'what happens' },
@@ -89,7 +94,7 @@ const FIELDS = (() => {
     { key: 'mod', label: 'Modifier', type: 'elite', def: '', only: ['elite'], help: 'the elite modifier; empty = a random one' },
     { key: 'interval', label: 'Interval (s)', type: 'interval', only: ['elite_every'], def: 90, help: 'seconds between coloured elites: one number, or min and max for a fresh random interval each time' },
     { key: 'count', label: 'Count', type: 'int', min: 1, def: 40, only: ['swarm'], help: 'how many come at once' },
-    { key: 'pattern', label: 'Pattern', type: 'select', options: SWARM_PATTERNS, def: 'ring', only: ['swarm'], help: 'a ring round the hero, or packs / singles through the spawn points' },
+    { key: 'pattern', label: 'Pattern', type: 'select', options: SWARM_PATTERNS, def: 'ring', only: ['swarm'], help: 'the swarm\'s own ring 16 m round the hero, packs / singles through the spawn points, or all from the top of the screen (in front)' },
     { key: 'chance', label: 'Chance', type: 'percent', def: 1, help: 'the chance the event happens at all, rolled per run (100 = always)' },
     { key: 't_jitter', label: 'Jitter (± s)', type: 'number', min: 0, step: 1, def: 0, help: 'the time moves by up to this many seconds either way, rolled per run' },
     { key: 'variant', label: 'Art variant', type: 'variant', help: 'the art variant code for what it spawns; empty = the one in play' },

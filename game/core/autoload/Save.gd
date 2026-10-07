@@ -1,4 +1,5 @@
-## One JSON save file: gold, talents, quests, totals, best runs, settings, hint flags, what has been met.
+## One JSON save file: gold, talents, quests, totals, best runs, settings, hint flags, what has been met, and (pass 57)
+## the anonymous install id the play data goes out under.
 ## Pass 45: the write is atomic (save.json.tmp, the old file to save.json.bak, the tmp into place), a file that cannot
 ## be read falls back to the backup and is kept aside, versions migrate forward only, writes are debounced and flushed
 ## when the app goes to the background or quits, and the debug arena runs in a sandbox that never reaches the disk.
@@ -86,6 +87,8 @@ func _default() -> Dictionary:
 		# the look each hero is drawn with, kept from the arena's HERO tab (pass 55): hero id -> art variant code; a hero
 		# missing here wears his JSON's `variant`
 		"hero_look": {},
+		# the anonymous id the play data goes out under (pass 57, install_id()): made the first time it is asked for
+		"install_id": "",
 	}
 
 
@@ -366,6 +369,40 @@ func set_hero_look(id: String, code: String) -> void:
 		_write(_sandbox_backup)
 	else:
 		request_save()
+
+
+# ---------------------------------------------------------------- the install id (pass 57)
+
+## The anonymous id the play data goes out under (pass 57, core/autoload/Analytics.gd, PostHog's distinct_id): a random
+## UUID v4, made the first time it is asked for and kept in the save. No account, no advertising id, no device serial:
+## a wipe makes a new one, and with it a new anonymous player. Made inside the arena's sandbox (it is not: the arena
+## sends nothing), it goes into the copy end_sandbox puts back too, so it is never made twice.
+func install_id() -> String:
+	var id := str(data.get("install_id", ""))
+	if id != "":
+		return id
+	id = new_uuid4()
+	data["install_id"] = id
+	if _sandboxed:
+		_sandbox_backup["install_id"] = id
+		_write(_sandbox_backup)
+	else:
+		request_save()
+	return id
+
+
+## Whether this save has an install id yet (the first app_open after an install or a wipe is the one without).
+func has_install_id() -> bool:
+	return str(data.get("install_id", "")) != ""
+
+
+## A random UUID v4 (RFC 4122: version 4, variant 10) from the crypto generator.
+static func new_uuid4() -> String:
+	var b := Crypto.new().generate_random_bytes(16)
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	var h := b.hex_encode()
+	return "%s-%s-%s-%s-%s" % [h.substr(0, 8), h.substr(8, 4), h.substr(12, 4), h.substr(16, 4), h.substr(20, 12)]
 
 
 ## A wipe is a wipe: the backup is removed too, so nothing comes back from it.

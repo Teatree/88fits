@@ -8,11 +8,14 @@
 const Forms = (() => {
   const { el, fmtT, fmtN, parseT, parseNum, clear } = U;
 
-  /** A labelled row: the label (with the help as a tooltip and a "?" that unfolds it), then the control. */
+  /** A labelled row: the label (with the help as a tooltip and a "?" that unfolds it), then the control. `opts.note` (a
+   *  node, a string or a list of both; pass 57) is a line always shown under the control across the row: the Pattern
+   *  field's ring hint. */
   function row(def, control, opts) {
     const o = opts || {};
     const lab = el('label', { class: 'flabel', title: def.help || '' }, def.label, def.required ? el('span', { class: 'req', text: ' *' }) : null);
     const r = el('div', { class: 'frow' + (o.cls ? ' ' + o.cls : '') }, lab, el('div', { class: 'fctl' }, control, o.after || null));
+    if (o.note) r.appendChild(el('div', { class: 'fhelp fnote', 'data-note': def.key || '', style: 'border-left: 3px solid var(--sel); color: var(--ink);' }, o.note));
     if (def.help) {
       const help = el('div', { class: 'fhelp', text: def.help, hidden: true });
       lab.appendChild(el('button', { class: 'qmark', text: '?', type: 'button', title: 'what this does', onclick: (e) => { e.preventDefault(); help.hidden = !help.hidden; } }));

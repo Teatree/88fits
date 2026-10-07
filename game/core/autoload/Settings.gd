@@ -88,6 +88,11 @@ const ATTACKER_HP_STEPS := [0, 100, 500, 2000]
 const ELITE_DUMMY_HP_STEPS := [0, 500, 2000, 10000, 50000]
 const BOSS_DUMMY_HP_STEPS := [0, 2000, 10000, 50000, 200000]
 const DUMMY_MODES := ["stand", "patrol", "melee", "ranged"]
+## Anonymous play data (pass 57, core/autoload/Analytics.gd): what a run picks, where it falls and how the phone keeps up
+## goes to PostHog under a random install id. On by default; it sends only when game/config/analytics.json holds a key
+## (an empty key file means nothing is sent or kept, whatever this says). Off stops it and deletes what waits to be sent.
+## No consent card yet: Garry is the only player; the plan's rollout puts one before the Play Store.
+var analytics: bool = true
 
 
 func to_dict() -> Dictionary:
@@ -103,6 +108,7 @@ func to_dict() -> Dictionary:
 		"dummy_patrol": dummy_patrol, "attacker_dummy_hp": attacker_dummy_hp,
 		"elite_dummy_hp": elite_dummy_hp, "elite_dummy_mode": elite_dummy_mode,
 		"boss_dummy_hp": boss_dummy_hp, "boss_dummy_mode": boss_dummy_mode,
+		"analytics": analytics,
 	}
 
 
@@ -135,6 +141,7 @@ func from_dict(d: Dictionary) -> void:
 	elite_dummy_mode = str(d.get("elite_dummy_mode", elite_dummy_mode))
 	boss_dummy_hp = int(d.get("boss_dummy_hp", boss_dummy_hp))
 	boss_dummy_mode = str(d.get("boss_dummy_mode", boss_dummy_mode))
+	analytics = bool(d.get("analytics", analytics))
 	changed.emit()
 
 

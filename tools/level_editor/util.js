@@ -1,4 +1,5 @@
-// Small helpers shared by every part of the Level Editor (pass 53): element builders, time formatting, JSON helpers.
+// Small helpers shared by every part of the Level Editor (pass 53): element builders, time formatting, JSON helpers, and
+// (pass 57) the ring spawn pattern's maths (ringCount, ringAtOnce), pure so they can be checked outside the page.
 'use strict';
 
 const U = (() => {
@@ -143,6 +144,60 @@ const U = (() => {
   /** "the Skeleton", but "The Tumbleweed King" keeps its own article. */
   const theName = (name) => (/^the\s/i.test(String(name)) ? String(name) : 'the ' + name);
 
+  /** A creature name in the plural (pass 57, the ring hint): "Skeletons", "Dust Mummies", "Werewolves", "Spit Cacti";
+   *  a leading "The" goes ("Tumbleweed Kings"). */
+  function plural(name) {
+    const s = String(name == null ? '' : name).replace(/^the\s+/i, '');
+    if (s === '') return s;
+    if (/wolf$/i.test(s)) return s.slice(0, -1) + 'ves';
+    if (/[^aeiou]y$/i.test(s)) return s.slice(0, -1) + 'ies';
+    if (/us$/i.test(s)) return s.slice(0, -2) + 'i';
+    if (/(s|x|z|ch|sh)$/i.test(s)) return s + 'es';
+    return s + 's';
+  }
+
+  // ------------------------------------------------------------------ the ring spawn pattern (pass 57)
+
+  /** The "ring" pattern's radius in the game (WaveDirector.RING_RADIUS): the debug arena's ring (9 m) times 1.3, Garry:
+   *  "kind of like what we have in the debug option in the Arena, but about 30% further from the Player". */
+  const RING_RADIUS = 9.0 * 1.3;
+  /** The swarm event's own ring (EnemyManager.spawn_ring from WaveDirector's swarm event), unchanged since pass 53. */
+  const SWARM_RING_RADIUS = 16.0;
+
+  /** "About n": a whole number under 20, else the nearest 5 ("about 105"); never below 1. */
+  function aboutN(n) {
+    const x = Number(n);
+    if (!isFinite(x) || x <= 0) return 1;
+    return x < 20 ? Math.max(1, Math.round(x)) : Math.max(20, Math.round(x / 5) * 5);
+  }
+
+  /** How many creatures of body radius `radius` (metres) make a ring of `ringRadius` (RING_RADIUS when not given) round
+   *  the hero (pass 57, the editor's hint, Garry: "how many enemies should spawn to create a kind of a thick ring with few
+   *  gaps"): one closed row shoulder to shoulder is the circle over a body's width, 2 × radius (the game keeps bodies that
+   *  far apart; a painting's height does not change it); a thick ring with few gaps is about 1.5 times that. Returns
+   *  {circumference, rowExact, thickExact, row, thick} with row and thick as aboutN. */
+  function ringCount(radius, ringRadius) {
+    const r = Number(radius) > 0 ? Number(radius) : 0.5;
+    const R = Number(ringRadius) > 0 ? Number(ringRadius) : RING_RADIUS;
+    const circumference = 2 * Math.PI * R;
+    const rowExact = circumference / (2 * r);
+    const thickExact = rowExact * 1.5;
+    return { circumference, rowExact, thickExact, row: aboutN(rowExact), thick: aboutN(thickExact) };
+  }
+
+  /** How many of a roster row's ring come at once at most (pass 57): its pack, as far as one burst has room. A burst is at
+   *  most `burstMax` load units and each creature takes its cap `share` (WaveDirector._burst_from: n = min(pack,
+   *  ceil(burst / share))). */
+  function ringAtOnce(pack, share, burstMax) {
+    const p = Math.max(1, Math.round(Number(pack) || 1));
+    // a missing share is the game's default 1; a share of 0 counts 0.05, as the game floors it
+    const sv = share == null || share === '' ? 1 : Number(share);
+    const s = Math.max(isFinite(sv) ? sv : 1, 0.05);
+    const b = Math.max(Number(burstMax) || 0, 0);
+    // the game's own float sum (12 / 0.6 is a hair over 20, so 21, there as here)
+    return Math.min(p, Math.max(Math.ceil(b / s), 1));
+  }
+
   /** A tiny Markdown renderer for the schema doc: headings, fenced code, lists, paragraphs, inline code, bold, links. */
   function markdown(src) {
     const out = [];
@@ -188,5 +243,5 @@ const U = (() => {
     return svg('svg', { class: 'glyph ' + (cls || ''), viewBox: '0 0 16 16', width: 14, height: 14 }, svg('use', { href: '#g-' + name }));
   }
 
-  return { el, svg, clear, fmtT, parseT, parseNum, roundTo, fmtN, pct, clone, same, clamp, isObj, setKey, getPath, setPath, idList, debounce, theName, markdown, download, glyph, SVG_NS };
+  return { el, svg, clear, fmtT, parseT, parseNum, roundTo, fmtN, pct, clone, same, clamp, isObj, setKey, getPath, setPath, idList, debounce, theName, plural, markdown, download, glyph, SVG_NS, RING_RADIUS, SWARM_RING_RADIUS, aboutN, ringCount, ringAtOnce };
 })();

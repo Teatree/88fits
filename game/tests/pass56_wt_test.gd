@@ -155,6 +155,8 @@ func _skeleton(em: EnemyManager, x: float, z: float) -> int:
 	var i := em.spawn("skeleton", Vector3(x, 0.0, z))
 	assert_int(i).is_greater_equal(0)
 	em.state[i] = EnemyManager.STATE_MOVE
+	# at its JSON's size: the variance's size jitter (always on) had made the 0.45 m bank check flaky in the full suite
+	em.size[i] = Registry.enemy("skeleton").size
 	return i
 
 

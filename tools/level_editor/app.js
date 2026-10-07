@@ -21,6 +21,9 @@ const App = (() => {
     issues: { errors: [], warnings: [], marks: {} },
     saving: false,
     level: 1,                   // the hero level the hover cards and the readout assume (pass 54)
+    enemiesRev: 0,              // bumped whenever the creature list is read again (the estimate's cache key)
+    fit: null,                  // pass 57: the server's kill rate, boss fight and portal wait from the run records
+    assume: { turnover: null, bossSeconds: null, portalSeconds: null },  // pass 57: the page's own numbers (null = the fit)
   };
 
   // ------------------------------------------------------------------ loading
@@ -33,6 +36,7 @@ const App = (() => {
 
   function setEnemies(list) {
     S.enemies = list;
+    S.enemiesRev++;
     S.byId = {};
     for (const c of list) S.byId[c.id] = c;
   }
@@ -85,6 +89,9 @@ const App = (() => {
       document.getElementById('map-file').textContent = m ? m.file : '';
       const note = conv.converted || conv.ided ? ` · ${conv.converted ? `${conv.converted} roster rows read from weight / weight_late as presence keyframes` : ''}${conv.converted && conv.ided ? ', ' : ''}${conv.ided ? `${conv.ided} rows given an id` : ''} (the next Save writes the new shape)` : '';
       status(`Loaded ${m ? m.file : id}${note}`);
+      loadAssume(id);
+      S.fit = null;
+      fetchFit(id);
       render('all');
       if (Timeline.fit) Timeline.fit();
     } catch (e) {
@@ -274,6 +281,80 @@ const App = (() => {
     const alts = Array.isArray(w.alts) && w.alts.length ? w.alts : [{ chance: 1, enemy: w.enemy, variant: w.variant, pack: w.pack, stats: w.stats, own: true }];
     const total = alts.reduce((a, x) => a + (x.chance == null ? 1 : Number(x.chance)), 0) || 1;
     return alts.map((a, k) => ({ alt: a, k, share: (a.chance == null ? 1 : Number(a.chance)) / total }));
+  }
+
+  // ------------------------------------------------------------------ the "Spawned so far" estimate (pass 57)
+
+  /** The kill rate, the boss fight and the portal wait the server fits from Garry's run records for this map
+   *  (/api/turnover); the lane draws with the fallback until it answers. */
+  async function fetchFit(id) {
+    try {
+      const f = await getJSON('/api/turnover/' + id);
+      if (S.mapId !== id) return;
+      S.fit = f;
+      if (S.tab === 'timeline') render('timeline');
+    } catch (_) { /* no fit: the lane keeps the fallback numbers */ }
+  }
+
+  const assumeKey = (id) => `88fits-editor-spawned-${id}`;
+  /** The page's own assumptions for this map (a page setting like the hero level: never written to the map). */
+  function loadAssume(id) {
+    S.assume = { turnover: null, bossSeconds: null, portalSeconds: null };
+    try {
+      const a = JSON.parse(localStorage.getItem(assumeKey(id)) || 'null');
+      if (U.isObj(a)) for (const k of Object.keys(S.assume)) if (typeof a[k] === 'number' && isFinite(a[k]) && a[k] >= 0) S.assume[k] = a[k];
+    } catch (_) { /* no storage: the fit's numbers */ }
+  }
+
+  /** Set one assumption (null = back to the fit's number) and draw again. */
+  function setAssume(key, value) {
+    S.assume[key] = value == null || !isFinite(value) || value < 0 ? null : value;
+    try { localStorage.setItem(assumeKey(S.mapId), JSON.stringify(S.assume)); } catch (_) { /* fine */ }
+    render('timeline');
+  }
+
+  /** What the estimate plays with: the page's numbers where set, else the fit's (the kill rate minute by minute when the
+   *  records allow, else per stage, else one number), else the model's fallback; the map's first skin and boss. */
+  function spawnOpts() {
+    const f = S.fit || {};
+    const a = S.assume || {};
+    let turnover;
+    if (a.turnover != null) turnover = a.turnover;
+    else if (Array.isArray(f.curve) && f.curve.length) turnover = f.curve;
+    else if (Array.isArray(f.by_stage) && f.by_stage.length) turnover = f.by_stage;
+    else turnover = f.turnover != null ? f.turnover : M.EST_DEF.turnover;
+    const skins = S.map && U.isObj(S.map.skins) ? Object.values(S.map.skins) : [];
+    return {
+      turnover,
+      bossSeconds: a.bossSeconds != null ? a.bossSeconds : (f.boss_seconds != null ? f.boss_seconds : M.EST_DEF.bossSeconds),
+      portalSeconds: a.portalSeconds != null ? a.portalSeconds : (f.portal_seconds != null ? f.portal_seconds : M.EST_DEF.portalSeconds),
+      skin: skins.length ? String(skins[0]) : '',
+      boss: S.map && S.map.boss ? String(S.map.boss) : '',
+      end: viewEnd(),
+    };
+  }
+
+  /** Where the kill rate comes from, in words (the lane's label and its card). */
+  function turnoverSource() {
+    const f = S.fit;
+    if (S.assume.turnover != null) return 'your number';
+    if (!f || f.source !== 'records') return f ? 'the default (no runs on this map yet)' : 'the default (reading your runs…)';
+    const n = (f.runs || []).length;
+    return `your ${n} run${n === 1 ? '' : 's'}`;
+  }
+
+  let spawnCache = { key: '', est: null, ms: 0 };
+  /** The estimate for the map as it is (cached until the timeline, the assumptions or the creatures change). With
+   *  `allowStale` (a drag in progress) the last one comes back instead of a fresh run. */
+  function spawned(allowStale) {
+    const opts = spawnOpts();
+    const key = JSON.stringify([S.mapId, S.enemiesRev, opts, S.tl]);
+    if (key === spawnCache.key && spawnCache.est) return { est: spawnCache.est, stale: false, opts, ms: spawnCache.ms };
+    if (allowStale && spawnCache.est) return { est: spawnCache.est, stale: true, opts, ms: spawnCache.ms };
+    const t0 = performance.now();
+    const est = M.spawnEstimate(tl(), S.enemies, opts);
+    spawnCache = { key, est, ms: performance.now() - t0 };
+    return { est, stale: false, opts, ms: spawnCache.ms };
   }
 
   // ------------------------------------------------------------------ history
@@ -806,5 +887,6 @@ const App = (() => {
     eventLabel, eventShares, waveAlts, snapshot, pushHistory, apply, undo, redo, dirty, selected, select, selKey, newWave,
     newRow, newEvent, deleteSelected, duplicateSelected, moveRow, moveRowTo, shiftWeights, sortPoints, nudge, validate,
     issuesFor, save, revert, exportJson, render, status, setClock, toast, switchTab, BOSS_WINDOW,
+    spawned, spawnOpts, setAssume, turnoverSource,
   };
 })();

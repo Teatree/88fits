@@ -3,7 +3,9 @@
 ## for next run), and wiping the save, which a pop-up asks about first. The version line at the foot opens the developer
 ## menu when held for 2 s. Pass 52: while the player's debug mode is on, a Debug panel above the wipe holds the title's
 ## look (Painted or Live, Settings.menu_style); pass 54 adds a switch for the ranged weapons' aim (on screen only, or
-## anywhere in reach: Settings.ranged_on_screen).
+## anywhere in reach: Settings.ranged_on_screen). Pass 57: "Anonymous play data" (Settings.analytics, the PostHog client
+## in core/autoload/Analytics.gd), a switch with one line under it saying what goes, or that this build's key file is
+## empty and nothing does.
 extends ScreenBase
 
 const HOLD := 2.0
@@ -142,6 +144,21 @@ func _refresh() -> void:
 	again.add_child(reset)
 	hp.get_child(0).add_child(again)
 	content.add_child(hp)
+	# anonymous play data (pass 57): the switch, and one line under it (what goes, or that the key file is empty); off
+	# deletes what waits to be sent
+	var ap := _panel(10)
+	ap.name = "AnalyticsPanel"
+	var arow := _row("Anonymous play data")
+	var asw := WSwitch.make(Settings.analytics)
+	asw.name = "AnalyticsSwitch"
+	asw.toggled.connect(func(on: bool): Settings.set_value("analytics", on))
+	arow.add_child(asw)
+	ap.get_child(0).add_child(arow)
+	var aline := W.serif_text(Analytics.settings_line(), 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	aline.name = "AnalyticsLine"
+	aline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ap.get_child(0).add_child(aline)
+	content.add_child(ap)
 	# the player's debug options (pass 52): only while the debug mode is on
 	if Settings.debug_mode:
 		content.add_child(_debug_panel())
