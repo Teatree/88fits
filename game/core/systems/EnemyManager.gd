@@ -480,10 +480,19 @@ func screen_ok(i: int, any_screen: bool = false) -> bool:
 
 ## The lake (pass 54): a creature wading in it casts no shadow (its blob lay on the lake bed and drew over the water as a
 ## dark plate). Read off the map's lake_center / lake_radius the first time it is asked and again when the map changes;
-## no lake, never in it. The edge is the map's in_water edge (1.02 of the radius).
+## no lake, never in it. The edge is the map's in_water edge (1.02 of the radius). Pass 56: nor where the water as it is
+## drawn (the map's water_disc, 1.06 of the radius) covers any of the blob from the camera, the hero's rule (shadow_wet).
 var _lake_map := 0
 var _lake_c := Vector2.ZERO
 var _lake_r2 := 0.0
+## The water's disc as the map draws it (pass 56): x and z its centre, y its top face, w its radius (0 = none); how far
+## its rim reaches under the top; and, squared, how far from the lake's centre a shadow can be wet at all.
+var _disc := Vector4.ZERO
+var _disc_thick := 0.0
+var _wet_far2 := 0.0
+## Past the disc's edge, the widest blob (a big creature's, slid up the screen) and the line of sight's shift on a bank
+## under the water's top stay inside this (pass 56): shadows further out are never asked.
+const DISC_REACH := 4.0
 
 
 func _lake_refresh() -> bool:
@@ -494,18 +503,38 @@ func _lake_refresh() -> bool:
 	if map == null or not is_instance_valid(map):
 		_lake_map = 0
 		_lake_r2 = 0.0
+		_set_disc(Vector4.ZERO, 0.0)
 		return false
 	var id: int = (map as Object).get_instance_id()
 	if id != _lake_map:
 		_lake_map = id
 		_lake_r2 = 0.0
+		_set_disc(Vector4.ZERO, 0.0)
 		if map.has_method("lake_center") and map.has_method("lake_radius"):
 			var c = map.call("lake_center")
 			var r := float(map.call("lake_radius"))
 			if c is Vector2 and r > 0.0:
 				_lake_c = c
 				_lake_r2 = (r * 1.02) * (r * 1.02)
+				# the drawn water (pass 56), when the map tells it
+				var dv: Variant = map.call("water_disc") if map.has_method("water_disc") else null
+				if dv is Dictionary:
+					var d: Dictionary = dv
+					var dc: Vector2 = d.get("center", c)
+					_set_disc(Vector4(dc.x, float(d.get("top", 0.0)), dc.y, float(d.get("radius", 0.0))), float(d.get("thick", 0.0)))
+				else:
+					_set_disc(Vector4.ZERO, 0.0)
 	return _lake_r2 > 0.0
+
+
+## The drawn water's disc (pass 56, see _disc), and how far from the lake's centre a shadow can be wet with it.
+func _set_disc(disc: Vector4, thick: float) -> void:
+	_disc = disc if disc.w > 0.0 else Vector4.ZERO
+	_disc_thick = maxf(thick, 0.0)
+	var far := sqrt(_lake_r2)
+	if _disc.w > 0.0:
+		far = maxf(far, Vector2(_disc.x, _disc.z).distance_to(_lake_c) + _disc.w + DISC_REACH)
+	_wet_far2 = far * far
 
 
 ## Whether `p` stands in the lake (pass 54, see _lake_refresh; set_lake for tests and tools without a map).
@@ -513,11 +542,27 @@ func in_lake(p: Vector3) -> bool:
 	return _lake_r2 > 0.0 and Vector2(p.x, p.z).distance_squared_to(_lake_c) < _lake_r2
 
 
-## The lake by hand (tests, tools): centre and radius as the map gives them; a radius of 0 means none.
-func set_lake(center: Vector2, r: float) -> void:
+## The lake by hand (tests, tools): centre and radius as the map gives them; a radius of 0 means none. `disc` and
+## `thick` are the water as the map draws it (pass 56, its water_disc as a Vector4: x, z centre, y top face, w radius);
+## without them only a wading creature loses its shadow.
+func set_lake(center: Vector2, r: float, disc := Vector4.ZERO, thick := 0.0) -> void:
 	_lake_c = center
 	_lake_r2 = (r * 1.02) * (r * 1.02) if r > 0.0 else 0.0
+	_set_disc(disc if r > 0.0 else Vector4.ZERO, thick)
 	_lake_map = -1
+
+
+## Whether creature `i`'s blob shadow, drawn with `xf` (shadow_xform), lies over the water (pass 54: it wades; pass 56:
+## or the drawn disc covers any of the blob as the camera at `eye` sees it, Vector3.INF meaning from straight above):
+## BillboardSprite.water_covers_blob, the very test of the hero's shadow in Game._sink_hero, so the two go at the same
+## spot. Ask after _lake_refresh.
+func shadow_wet(i: int, xf: Transform3D, eye: Vector3) -> bool:
+	if in_lake(pos[i]):
+		return true
+	if _disc.w <= 0.0:
+		return false
+	# the quad is a metre square (_build_shadows): its edges, halved, as drawn, are the blob's half-axes
+	return BillboardSprite.water_covers_blob(xf.origin, xf.basis.x * 0.5, xf.basis.z * 0.5, eye, _disc, _disc_thick)
 
 
 func _build_shadows() -> void:
@@ -3497,8 +3542,14 @@ func _render() -> void:
 	var scf := _cf_tick
 	var scr := Vector3(-scf.z, 0, scf.x)
 	var cam_up := _cam_up()
-	# a creature wading in the lake casts no shadow (pass 54, in_lake)
+	# a creature wading in the lake casts no shadow (pass 54, in_lake), nor one the drawn water covers any of from the
+	# camera (pass 56, shadow_wet); only those near the lake are asked
 	var lake := _lake_refresh()
+	var wet_far2 := _wet_far2
+	var lake_c := _lake_c
+	var vp := get_viewport()
+	var eye_cam: Camera3D = vp.get_camera_3d() if vp else null
+	var eye: Vector3 = eye_cam.global_position if eye_cam else Vector3.INF
 	for i in range(MAX):
 		if alive[i] == 0 or hidden[i] == 1:
 			continue
@@ -3559,12 +3610,14 @@ func _render() -> void:
 					bmm.set_instance_transform(bn, Transform3D(Basis(), pos[i] + Vector3(0, lift_h[i], 0)))
 					bmm.set_instance_custom_data(bn, Color(s * (float(td["head"]) - drop) * maxf(sq, 0.2) + 0.12 + bs * 0.5, bs, float(i) * 1.7, 0.0))
 					badge_n[bk] = bn + 1
-		# shadow (stays on the ground and shrinks while the creature is in the air; none in the water, pass 54)
-		if (shadow_all or shadow_n < SHADOW_BUDGET) and not (lake and in_lake(pos[i])):
+		# shadow (stays on the ground and shrinks while the creature is in the air; none over the water, pass 54 and 56)
+		if shadow_all or shadow_n < SHADOW_BUDGET:
 			var d2: float = pos[i].distance_squared_to(ppos2)
 			if shadow_all or d2 < shadow_r2:
-				_shadow_mm.set_instance_transform(shadow_n, shadow_xform(i, scf, scr))
-				shadow_n += 1
+				var sxf := shadow_xform(i, scf, scr)
+				if not (lake and Vector2(pos[i].x, pos[i].z).distance_squared_to(lake_c) < wet_far2 and shadow_wet(i, sxf, eye)):
+					_shadow_mm.set_instance_transform(shadow_n, sxf)
+					shadow_n += 1
 	for t in range(types.size()):
 		if _warm_at != Vector3.INF:
 			var mm: MultiMesh = types[t]["mm"]

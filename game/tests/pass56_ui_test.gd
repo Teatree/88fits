@@ -3,6 +3,10 @@
 ## constants, and the top row, the slots, the strip, the thumb zone and everything under them sit 18 px lower with every
 ## gap as it was, with or without a camera cutout), and "Change the marker for a weapon ... It should be a single
 ## revolver and it should look a bit more different from the scroll glyph" (one solid revolver, tools/make_kind_glyphs.py).
+## The fix round: the boss's plate under the power-ups (its bar had run across them), the level-up screen's header, the
+## mutation offer's head and the cards 18 px lower too (and a long mutation offer kept between its head and its skip),
+## the arena's quick column under the camera cutout and the boss's plate, and a tap on the strip that lets the resume
+## gate go no longer opens the pause menu.
 extends GdUnitTestSuite
 
 ## The rail before pass 56, and the top row, the slots and the strip it set.
@@ -25,6 +29,10 @@ func after_test() -> void:
 	DamageNumbers.I = null
 	# the next suite builds its HUD from scratch: band_h back to the strip's own height
 	HUD.band_h = float(HUD.BAND_H)
+	# a write the test asked for (a weapon seen) may have gone to the test save while the inset was 130, and the next
+	# run would boot with it: the settings as they are now go on the file before the next test
+	Save.request_save()
+	Save.flush()
 
 
 ## A HUD in the tree with a run's weapons on it, laid out (the top row is placed a frame after _ready).
@@ -284,3 +292,209 @@ func test_the_revolver_stays_one_shape_at_the_size_the_cards_draw_it() -> void:
 		assert_int(_shapes(ink).size()).override_failure_message("%d px" % side).is_equal(1)
 		var box := _box(ink)
 		assert_int(box.size.x).override_failure_message("%d px" % side).is_greater(box.size.y)
+
+
+# ---------------------------------------------------------------- 5. the fix round: under the strip
+
+func _touch(at: Vector2, pressed: bool) -> void:
+	var ev := InputEventScreenTouch.new()
+	ev.index = 0
+	ev.position = at
+	ev.pressed = pressed
+	get_tree().root.push_input(ev, true)
+
+
+## Berserk and Sprint up (their plates under the slots), then the HUD laid out.
+func _power_ups(hud: HUD) -> void:
+	Run.add_timed_effects("rage", "Berserk", [], 30.0)
+	Run.add_timed_effects("sprint", "Sprint", [], 22.0)
+	hud._refresh_buffs()
+	await get_tree().process_frame
+
+
+## The power-ups' plates on screen.
+func _plates(hud: HUD) -> Array:
+	var out: Array = []
+	for c in hud._buffs.get_children():
+		out.append((c as Control).get_global_rect())
+	return out
+
+
+func test_the_boss_plate_sits_under_the_power_ups_and_the_words_and_toasts_under_both() -> void:
+	var king: EnemyDef = Registry.enemy("tumbleweed_king")
+	for inset: int in [0, 130]:
+		Settings.top_inset = inset
+		var hud := await _hud()
+		var why := "inset %d" % inset
+		# no power-ups: the boss's plate where it always was, 20 px under the slots
+		hud.show_boss(king)
+		assert_float(hud._boss_box.position.y).override_failure_message(why).is_equal(hud._slots_bottom + HUD.BOSS_GAP)
+		await _power_ups(hud)
+		var plates := _plates(hud)
+		assert_int(plates.size()).override_failure_message(why).is_equal(2)
+		var boss := hud._boss_box.get_global_rect()
+		for r: Rect2 in plates:
+			# under the plates and their seconds' tags (which hang 6 px under them), never across them
+			assert_bool(r.intersects(boss)).override_failure_message(why).is_false()
+			assert_float(boss.position.y).override_failure_message(why).is_greater_equal(r.end.y + 6.0)
+		assert_float(boss.position.y).override_failure_message(why).is_equal(plates[0].end.y + HUD.BOSS_UNDER_BUFFS)
+		assert_float(hud.boss_plate_bottom()).override_failure_message(why).is_equal(boss.end.y)
+		# the words under the boss's bar, the toasts under the words
+		Run.adrenaline = 5
+		Run.adrenaline_until = Run.buff_clock() + 30.0
+		hud._refresh_buffs()
+		assert_bool(hud._adren.visible).override_failure_message(why).is_true()
+		var words := hud._adren.get_global_rect()
+		assert_float(words.position.y).override_failure_message(why).is_greater_equal(boss.end.y)
+		assert_float(hud._toasts.position.y).override_failure_message(why).is_greater_equal(words.end.y)
+		assert_float(hud._under_bottom).override_failure_message(why).is_equal(words.end.y)
+		# the boss gone: the words under the plates' tags, the toasts under the words
+		hud.hide_boss()
+		assert_float(hud.boss_plate_bottom()).is_equal(-1.0)
+		words = hud._adren.get_global_rect()
+		for r: Rect2 in _plates(hud):
+			assert_float(words.position.y).override_failure_message(why).is_greater_equal(r.end.y + 6.0)
+		assert_float(hud._toasts.position.y).override_failure_message(why).is_greater_equal(words.end.y)
+		# the words gone too: the toasts under the plates
+		Run.adrenaline = 0
+		hud._refresh_buffs()
+		assert_bool(hud._adren.visible).is_false()
+		assert_float(hud._toasts.position.y).override_failure_message(why).is_equal(plates[0].end.y + HUD.TOAST_GAP)
+		Run.timed.clear()
+		hud.queue_free()
+		await get_tree().process_frame
+
+
+func test_the_arena_column_keeps_under_the_camera_cutout_and_the_boss_plate() -> void:
+	# it sat at a fixed y 380: with a 130 px inset the boss's bar ran beneath ARENA and AGAIN
+	Settings.top_inset = 130
+	assert_float(ArenaPanel.column_top(-1.0)).is_equal(380.0 + 130.0)
+	assert_float(ArenaPanel.column_top(400.0)).is_equal(380.0 + 130.0)
+	assert_float(ArenaPanel.column_top(600.0)).is_equal(600.0 + ArenaPanel.COLUMN_GAP)
+	var hud := await _hud()
+	var panel: ArenaPanel = auto_free(ArenaPanel.new())
+	add_child(panel)
+	await get_tree().process_frame
+	var col: Control = panel.find_child("QuickColumn", false, false)
+	assert_object(col).is_not_null()
+	assert_float(col.get_global_rect().position.y).is_equal(380.0 + 130.0)
+	hud.show_boss(Registry.enemy("tumbleweed_king"))
+	await _power_ups(hud)
+	panel.place_column(hud)
+	await get_tree().process_frame
+	# under the boss's bar, which sits under the power-ups
+	var boss := hud._boss_box.get_global_rect()
+	assert_float(col.get_global_rect().position.y).is_greater_equal(boss.end.y + ArenaPanel.COLUMN_GAP - 0.5)
+	assert_bool(col.get_global_rect().intersects(boss)).is_false()
+	# and back once the boss is gone
+	hud.hide_boss()
+	panel.place_column(hud)
+	await get_tree().process_frame
+	assert_float(col.get_global_rect().position.y).is_equal(380.0 + 130.0)
+	Run.timed.clear()
+
+
+func test_a_tap_on_the_strip_that_lets_the_gate_go_does_not_open_the_pause_menu() -> void:
+	var hud := await _hud()
+	var gate: ResumeGate = auto_free(ResumeGate.new())
+	gate.hud = hud
+	add_child(gate)
+	await get_tree().process_frame
+	var pauses := [0]
+	hud.pause_requested.connect(func(): pauses[0] += 1)
+	var vp := hud.get_viewport_rect().size
+	var k := vp.x / 1080.0
+	# on the strip (the pause strip's and the gate's, whatever the canvas width): under the clock, just over the strip's
+	# foot, and on the pause disc
+	var foot := HUD.band_h * minf(k, 1.0) - 6.0
+	var spots: Array = [Vector2(vp.x * 0.5, HUD.TOP_Y + 20.0), Vector2(vp.x * 0.5, foot), hud._pause_btn.get_global_rect().get_center()]
+	for at: Vector2 in spots:
+		assert_bool(ResumeGate.on_strip(at, vp)).override_failure_message(str(at)).is_true()
+		gate.open({})
+		gate._t = 1.0
+		_touch(at, true)
+		await get_tree().process_frame
+		_touch(at, false)
+		await get_tree().process_frame
+		assert_bool(gate.visible).override_failure_message(str(at)).is_false()
+		assert_int(pauses[0]).override_failure_message("a tap at %s let the gate go and paused" % str(at)).is_equal(0)
+	# lower down the touch goes on (it can start the stick): the gate goes and the strip hears nothing
+	var low := Vector2(vp.x * 0.5, HUD.band_h * maxf(k, 1.0) + 300.0)
+	assert_bool(ResumeGate.on_strip(low, vp)).is_false()
+	gate.open({})
+	gate._t = 1.0
+	_touch(low, true)
+	await get_tree().process_frame
+	_touch(low, false)
+	await get_tree().process_frame
+	assert_bool(gate.visible).is_false()
+	assert_int(pauses[0]).is_equal(0)
+	# with no gate up a tap on the strip still pauses (the strip hears these touches)
+	_touch(spots[1], true)
+	await get_tree().process_frame
+	_touch(spots[1], false)
+	await get_tree().process_frame
+	assert_int(pauses[0]).is_equal(1)
+
+
+# ---------------------------------------------------------------- 6. the fix round: the level-up screen under the rail
+
+func test_the_level_up_screen_moves_down_with_the_rail_and_keeps_its_gaps() -> void:
+	assert_float(CardScreen.RAIL_GROWTH).is_equal(HUD.RAIL_H - OLD_RAIL)
+	assert_float(CardScreen.TITLE_MID_Y).is_equal(110.0 + CardScreen.RAIL_GROWTH + 38.0 + 75.0)
+	for inset: int in [0, 130]:
+		Settings.top_inset = inset
+		var cs: CardScreen = auto_free(CardScreen.new())
+		add_child(cs)
+		await get_tree().process_frame
+		var rail_foot := float(inset) + HUD.RAIL_H
+		var why := "inset %d" % inset
+		# from the rail's foot: 92 px to the header, 72 to the mutation offer's head, 452 and 702 to the cards, as under
+		# the 18 px rail
+		assert_float(cs.header.offset_top - rail_foot).override_failure_message(why).is_equal(110.0 - OLD_RAIL)
+		assert_float(cs._path_head.offset_top - rail_foot).override_failure_message(why).is_equal(90.0 - OLD_RAIL)
+		assert_float(cs._list.offset_top - rail_foot).override_failure_message(why).is_equal(470.0 - OLD_RAIL)
+		assert_float(CardScreen.PATH_LIST_TOP + inset - rail_foot).override_failure_message(why).is_equal(720.0 - OLD_RAIL)
+		cs.queue_free()
+		await get_tree().process_frame
+
+
+func test_a_long_mutation_offer_stays_between_its_head_and_its_skip() -> void:
+	# four cards (the Peashooter's three and the Drifter's Fan the Hammer), with and without a camera cutout: under one
+	# they ran over the weapon's name before the fix round, and three ran into SKIP
+	for inset: int in [0, 130]:
+		Settings.top_inset = inset
+		_start("drifter")
+		Run.debug_clear_items()
+		Run.add_weapon(Registry.weapon("peashooter"), 3)
+		var offer: Array = []
+		for m: MutationDef in Registry.mutations_of("peashooter"):
+			if offer.size() < 3:
+				offer.append({"type": "mutation", "id": m.id, "def": m, "level_from": 0, "level_to": 1, "is_new": true})
+		for m: MutationDef in Registry.weapon_hero_mutations("peashooter"):
+			offer.append({"type": "mutation", "id": m.id, "def": m, "level_from": 0, "level_to": 1, "is_new": true})
+			break
+		assert_int(offer.size()).is_equal(4)
+		var cs: CardScreen = auto_free(CardScreen.new())
+		add_child(cs)
+		cs.show_offer(offer, "MUTATION", false, true)
+		cs.skip_reel()
+		# fitted a frame after the landing; the cards still drop into their places, so the places are measured
+		for f in 4:
+			await get_tree().process_frame
+		var why := "inset %d, the canvas %s" % [inset, str(cs.get_viewport_rect().size)]
+		var head_foot := cs._path_head.get_global_rect().end.y
+		var note_top := cs._path_note.get_global_rect().position.y
+		var skip := cs._path_skip.get_global_rect()
+		assert_int(cs._slots.size()).is_equal(4)
+		for c: Control in cs._slots:
+			var r := c.get_global_rect()
+			why = "inset %d, the canvas %s, head foot %.1f, card %s" % [inset, str(cs.get_viewport_rect().size), head_foot, str(r)]
+			assert_float(r.position.y).override_failure_message(why).is_greater_equal(head_foot + CardScreen.HEAD_CLEAR - 0.5)
+			assert_float(r.end.y).override_failure_message(why).is_less_equal(note_top - 12.0 + 0.5)
+			assert_bool(r.intersects(skip)).override_failure_message(why).is_false()
+		# the skip stays on the screen
+		assert_float(skip.end.y).is_less_equal(cs.get_viewport_rect().size.y)
+		cs.visible = false
+		cs.queue_free()
+		await get_tree().process_frame

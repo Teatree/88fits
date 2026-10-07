@@ -166,11 +166,14 @@ func test_the_blue_slime_took_the_hobgoblins_row() -> void:
 	assert_bool(Registry.enemy("hobgoblin").retired).is_true()
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
 	var rows: Array = tl.roster.filter(func(r): return str(r.get("enemy", "")) == "blue_slime")
-	assert_int(rows.size()).is_equal(1)
-	assert_str(str(rows[0].get("channel", ""))).is_equal("hell")
+	assert_int(rows.size()).is_greater_equal(1)
 	assert_int(tl.roster.filter(func(r): return str(r.get("enemy", "")) == "hobgoblin").size()).is_equal(0)
-	# stage 2's hell row: the start of stage 2 (430 s since pass 46 stretched the stages)
-	assert_float(QuestTracker.first_arrival(tl, "blue_slime")).is_equal(430.0)
+	# pass 56 (re-pinned): Garry moved the slime to a regular row in stage 1 (0:58) in the Level Editor; its quest's
+	# stage hint follows its earliest row wherever he puts it
+	var first := INF
+	for r in rows:
+		first = minf(first, float(r.get("t", 0.0)))
+	assert_float(QuestTracker.first_arrival(tl, "blue_slime")).is_equal(first)
 
 
 func test_the_skeletons_carry_four_variants_and_stay_out() -> void:

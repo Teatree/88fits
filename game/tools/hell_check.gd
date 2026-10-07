@@ -1,5 +1,5 @@
 ## Headless check of pass 43's Stage 3 (run with --script): a run jumped to stage 3 with a stage-3 build; the hell crowd
-## spawning on its own cap beside the regular roster (blue slimes, imps, hellhounds, at most three giants), the ground
+## spawning on its own cap beside the regular roster (the map's hell rows: imps and hellhounds; at most three giants), the ground
 ## gone red, the Brander's ring of fire and brand lines, the giant's slam, the Gila's rumble, then endless waves after
 ## the boss. Prints what it saw and exits non-zero on a script error or a missing piece.
 ##
@@ -105,7 +105,7 @@ func _tick() -> void:
 				print("hell_check: jumped to stage 3 (event %d), stage mult %.2f, hell cap %.2f, perks %s" % [_game.director._event_i, _run.stage_mult(), tl.hell_cap_at(2), str(_run.perks)])
 		"stage3":
 			var em = _game.enemies
-			for id in ["blue_slime", "imp", "hellhound", "hammer_giant"]:
+			for id in _hell_ids() + ["hammer_giant"]:
 				if em.alive_of(id) > 0:
 					_seen[id] = maxi(int(_seen.get(id, 0)), em.alive_of(id))
 			if em.alive_of("hammer_giant") > 3:
@@ -206,8 +206,22 @@ func _tick() -> void:
 		_finish("timeout in phase " + _phase)
 
 
+## The creatures of the map's hell-channel rows (pass 56: Garry places them in the Level Editor; on 2026-10-07 he moved the
+## blue slime to a regular stage-1 row, so a fixed list asked for slimes the hell crowd no longer has).
+func _hell_ids() -> Array:
+	var out: Array = []
+	if _game == null or _game.get("director") == null or _game.director.timeline == null:
+		return ["imp", "hellhound"]
+	for r in _game.director.timeline.roster:
+		if str(r.get("channel", "")) == "hell":
+			var id := str(r.get("enemy", ""))
+			if id != "" and not out.has(id):
+				out.append(id)
+	return out
+
+
 func _finish(why: String) -> void:
-	var want := ["blue_slime", "imp", "hellhound", "hammer_giant", "hell_tint", "rumble", "giant_windup", "ring", "ring_rate", "brand_lines", "ring_gone", "endless", "portal_final"]
+	var want: Array = _hell_ids() + ["hammer_giant", "hell_tint", "rumble", "giant_windup", "ring", "ring_rate", "brand_lines", "ring_gone", "endless", "portal_final"]
 	var missing: Array = []
 	for k in want:
 		if not _seen.has(k):

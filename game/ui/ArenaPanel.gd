@@ -29,6 +29,11 @@ extends Control
 
 const TABS := [["enemy", "ENEMY"], ["waves", "WAVES"], ["items", "ITEMS"], ["hero", "HERO"], ["drops", "DROPS"], ["world", "WORLD"]]
 const SHEET_H := 1180
+## The quick column's top (pass 56): COLUMN_TOP under the camera cutout, and COLUMN_GAP under the boss's plate and bar
+## while one is up and reaches lower (it sat at a fixed y 380, so with a 130 px inset, or under the power-ups, the boss's
+## bar ran beneath ARENA and AGAIN).
+const COLUMN_TOP := 380.0
+const COLUMN_GAP := 20.0
 
 var game: Node
 var _tab := "enemy"
@@ -36,6 +41,7 @@ var _sheet: PanelContainer
 var _content: VBoxContainer
 var _scroll: ScrollContainer
 var _tab_buttons: Dictionary = {}
+var _col: VBoxContainer
 var _waves_btn: Button
 var _again_btn: Button
 var _status: Label
@@ -79,12 +85,14 @@ func _ready() -> void:
 
 func _build_toolbar() -> void:
 	var col := UiKit.vbox(10)
+	col.name = "QuickColumn"
 	col.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	col.offset_left = -196
 	col.offset_right = -16
-	col.offset_top = 380
+	col.offset_top = column_top(-1.0)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(col)
+	_col = col
 	col.add_child(_tool("ARENA", open, true))
 	_again_btn = _tool("AGAIN", _do_again)
 	col.add_child(_again_btn)
@@ -96,6 +104,27 @@ func _build_toolbar() -> void:
 	_status.autowrap_mode = TextServer.AUTOWRAP_OFF
 	_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_status)
+
+
+## Where the quick column starts: COLUMN_TOP under the camera cutout (W.safe_top()), and COLUMN_GAP under the boss's
+## plate when its foot (`boss_bottom`, -1 for none) reaches lower.
+static func column_top(boss_bottom: float) -> float:
+	var y := COLUMN_TOP + W.safe_top()
+	if boss_bottom >= 0.0:
+		y = maxf(y, boss_bottom + COLUMN_GAP)
+	return y
+
+
+## The quick column at its top for `hud` (the run's HUD: its boss plate) now.
+func place_column(hud: Node) -> void:
+	if _col == null:
+		return
+	var b := -1.0
+	if hud != null and hud.has_method("boss_plate_bottom"):
+		b = float(hud.call("boss_plate_bottom"))
+	var y := column_top(b)
+	if absf(_col.offset_top - y) > 0.5:
+		_col.offset_top = y
 
 
 func _tool(text: String, cb: Callable, primary := false) -> Button:
@@ -1310,6 +1339,7 @@ func _do_again() -> void:
 func _process(delta: float) -> void:
 	if game == null:
 		return
+	place_column(game.get("hud"))
 	_status_t -= delta
 	if _status_t <= 0.0:
 		_status_t = 0.25

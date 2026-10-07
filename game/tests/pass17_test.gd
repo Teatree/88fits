@@ -12,8 +12,16 @@ func test_desert_roster_has_seven_creatures_and_the_elite() -> void:
 	for ev in m.timeline.events:
 		if str(ev.get("type", "")) == "swarm":
 			ids.append(str(ev.get("enemy", "")))
-	for id in ["skeleton", "skeleton_knight", "fire_ant", "spit_cactus", "dust_mummy", "bull_beetle"]:
-		assert_bool(ids.has(id)).override_failure_message("roster lacks " + id).is_true()
+	# pass 56 (re-pinned): Garry places the creatures himself in the Level Editor (2026-10-07 he took the mummy, the toad,
+	# the shaman and the armadillo off the roster), so this checks what the map brings, not a fixed cast: a varied roster
+	# of creatures the game knows
+	var distinct: Dictionary = {}
+	for id in ids:
+		if id == "":
+			continue
+		distinct[id] = true
+		assert_object(Registry.enemy(id)).override_failure_message("unknown creature " + id).is_not_null()
+	assert_int(distinct.size()).is_greater_equal(6)
 	var elite_ts: Array = []
 	for ev in m.timeline.events:
 		if str(ev.get("type", "")) == "elite_boss":

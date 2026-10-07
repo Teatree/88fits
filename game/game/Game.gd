@@ -2864,14 +2864,13 @@ func _end_steady_mark() -> void:
 ## on the lake bed and drew over the water as a dark plate; EnemyManager skips the creatures' the same way), and every
 ## 0.28 s whoever wades shows it: rings on the water's surface (lifted off the lake bed the marks drape, by the map's
 ## water_level, 0.3 m without one) round the hero and round up to 12 creatures that move in it, and a little splash.
-## Every frame he also sinks into it like the creatures (pass 56, _sink_hero).
+## Every frame he also sinks into it like the creatures, and his shadow goes wherever the drawn water covers any of it
+## (pass 56, _sink_hero).
 func _tick_water(delta: float) -> void:
 	if map == null or not map.has_method("in_water") or player == null or player.dead:
 		return
-	_sink_hero()
 	var wet: bool = map.call("in_water", player.global_position)
-	if not player.cinematic and player.shadow:
-		player.shadow.visible = not wet
+	_sink_hero(wet)
 	_ripple_t -= delta
 	if _ripple_t > 0.0:
 		return
@@ -2916,11 +2915,14 @@ var _wade_map: Node = null
 ## The hero wades like the creatures (pass 56, Garry: "Hero for some reason walks on water, they are not submerged at all
 ## for some reason. Should be submerged like all the enemies"). The oasis is a see-through disc that tints whatever stands
 ## under its surface, and his second pass (BillboardSprite.enable_over_trails, drawn after it so his speed trails go under
-## him) painted his whole figure over it again. While he is within WADE_REACH of the disc's edge that pass gets the disc
-## (the map's water_disc) and leaves out, pixel by pixel, what the disc covers on his first pass; further off it is whole.
-## Every frame and at once, so no step in or out shows him on the water, or cut off on dry sand, for a beat (the ripples
-## above keep their own 0.28 s). Purely a look: nothing about play changes.
-func _sink_hero() -> void:
+## him) painted his whole figure over it again. While he is within WADE_REACH of the disc's edge that pass and his outline
+## get the disc (the map's water_disc) and leave out, pixel by pixel, what the disc covers on his first pass; further off
+## he is whole. His blob shadow, drawn after the water too, goes while he wades (`wet`, in_water) and wherever the drawn
+## disc covers any of it from the camera (BillboardSprite.water_covers_blob, the creatures' rule in
+## EnemyManager.shadow_wet): it lay on the water as a dark plate in the band at the shore. Every frame and at once, so no
+## step in or out shows him on the water, cut off on dry sand or with a plate under him for a beat (the ripples above
+## keep their own 0.28 s). Purely a look: nothing about play changes.
+func _sink_hero(wet := false) -> void:
 	var sprite: BillboardSprite = player.sprite
 	if sprite == null:
 		return
@@ -2930,10 +2932,26 @@ func _sink_hero() -> void:
 	var r: float = float(_wade_disc.get("radius", 0.0))
 	var c: Vector2 = _wade_disc.get("center", Vector2.ZERO)
 	var at: Vector3 = player.global_position
-	if r > 0.0 and Vector2(at.x, at.z).distance_to(c) < r + WADE_REACH:
+	var near: bool = r > 0.0 and Vector2(at.x, at.z).distance_to(c) < r + WADE_REACH
+	if near:
 		sprite.set_water(c, float(_wade_disc["top"]), r, float(_wade_disc.get("thick", 0.0)))
 	else:
 		sprite.clear_water()
+	var shadow: MeshInstance3D = player.shadow
+	if shadow == null or player.cinematic:
+		# the spawn beam shows and hides it itself
+		return
+	var under := wet
+	if not under and near:
+		# the blob: a flat quad (Player.tscn), its half-axes as it is drawn now (it turns with him and grows while he is
+		# in the air), seen from the camera that draws him (his viewport's)
+		var quad := shadow.mesh as QuadMesh
+		var half: Vector2 = quad.size * 0.5 if quad else Vector2(0.7, 0.7)
+		var b: Basis = shadow.global_transform.basis
+		var vp := player.get_viewport()
+		var eye: Camera3D = vp.get_camera_3d() if vp else null
+		under = BillboardSprite.water_covers_blob(shadow.global_position, b.x * half.x, b.z * half.y, eye.global_position if eye else Vector3.INF, sprite.water(), float(_wade_disc.get("thick", 0.0)))
+	shadow.visible = not under
 
 
 func _tick_breadcrumb(delta: float) -> void:

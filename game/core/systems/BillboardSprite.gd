@@ -21,10 +21,11 @@ var _over: ShaderMaterial
 ## The hero wants an outline where props hide him; pickups and the like do not.
 var outline_when_hidden := false
 ## The see-through queue's place of the hero's second pass (pass 49, enable_over_trails): after his speed trails
-## (Fx.SPEED_TRAIL_PRIORITY), before every other effect (0).
+## (Fx.SPEED_TRAIL_PRIORITY), before every other effect (0). Above the oasis's surface that puts a trail under him; below
+## it the pass leaves him out, so there a trail crosses him as it crosses the water (pass 56, set_water).
 const OVER_PRIORITY := -1
-## The water the second pass leaves out (pass 56, set_water): x and z the disc's centre, y its top face, w its radius
-## (0 = no water), and how far its rim reaches under the top face. Kept here so a pass made later gets it too.
+## The water the second pass and the outline leave out (pass 56, set_water): x and z the disc's centre, y its top face,
+## w its radius (0 = no water), and how far its rim reaches under the top face. Kept here so a pass made later gets it.
 var _water := Vector4(0.0, -1000.0, 0.0, 0.0)
 var _water_thick := 0.0
 
@@ -60,12 +61,15 @@ func enable_outline() -> void:
 	_mat.next_pass = _sil
 	if _over:
 		_sil.next_pass = _over
+	if _water.w > 0.0:
+		_apply_water()
 
 
 ## The painting drawn once more over the hero's speed trails (pass 49, Garry: "the speed up trail should be rendered
 ## underneath the 2.5d sprite of the hero"; core/shaders/sprite_billboard_over): the same quad and frame in the see-through
 ## queue at OVER_PRIORITY, a hair towards the camera, so a trail running between him and the camera goes under him while
-## anything really in front of him still hides him. Call before setup().
+## anything really in front of him still hides him. In the oasis, below the water's surface, the pass leaves him out
+## (set_water), so there a trail crosses him as it crosses the water (pass 56). Call before setup().
 func enable_over_trails() -> void:
 	_ensure()
 	if _over:
@@ -85,9 +89,11 @@ func enable_over_trails() -> void:
 ## The water he wades in (pass 56, Garry: "Hero for some reason walks on water ... Should be submerged like all the
 ## enemies"): the second pass (enable_over_trails) is drawn after the see-through oasis and painted his whole figure over
 ## it, so it leaves out what the water's disc covers on his first pass (core/shaders/sprite_billboard_over), and the
-## water tints him there as it tints a creature. `center` is the disc's middle (x, z), `top` its top face's height,
-## `radius` its radius, `thick` how far its rim reaches under the top. Only the second pass gets it: his first pass, his
-## outline and every creature are drawn as before. Game._sink_hero hands it over while he is near the water.
+## water tints him there as it tints a creature. The outline where something hides him (enable_outline) is drawn after
+## the water too and leaves out the same (core/shaders/sprite_silhouette): his legs' rim no longer shows over the water
+## when a creature stands in front of him as he wades. `center` is the disc's middle (x, z), `top` its top face's
+## height, `radius` its radius, `thick` how far its rim reaches under the top. His first pass and every creature are
+## drawn as before. Game._sink_hero hands it over while he is near the water.
 func set_water(center: Vector2, top: float, radius: float, thick: float) -> void:
 	var w := Vector4(center.x, top, center.y, maxf(radius, 0.0))
 	if w == _water and thick == _water_thick:
@@ -102,20 +108,22 @@ func clear_water() -> void:
 	set_water(Vector2.ZERO, -1000.0, 0.0, 0.0)
 
 
-## Whether the second pass has a water disc to leave out now (pass 56).
+## Whether the second pass and the outline have a water disc to leave out now (pass 56).
 func has_water() -> bool:
 	return _water.w > 0.0
 
 
-## The disc the second pass leaves out (pass 56): x and z its centre, y its top face, w its radius (0 = none).
+## The disc the second pass and the outline leave out (pass 56): x and z its centre, y its top face, w its radius
+## (0 = none).
 func water() -> Vector4:
 	return _water
 
 
 func _apply_water() -> void:
-	if _over:
-		_over.set_shader_parameter("water", _water)
-		_over.set_shader_parameter("water_thick", _water_thick)
+	for m: ShaderMaterial in [_sil, _over]:
+		if m:
+			m.set_shader_parameter("water", _water)
+			m.set_shader_parameter("water_thick", _water_thick)
 
 
 ## The second pass's water test in GDScript (pass 56; the shader's fragment does the same per pixel, here for tests and
@@ -133,6 +141,31 @@ static func water_covers(point: Vector3, camera: Vector3, disc: Vector4, thick: 
 	var at_top := cam + run * ((camera.y - disc.y) / drop)
 	var at_rim := cam + run * ((camera.y - maxf(point.y, disc.y - thick)) / drop)
 	return at_top.distance_to(c) < disc.w or at_rim.distance_to(c) < disc.w
+
+
+## Whether the water's `disc` covers any of a blob shadow lying flat at `at` (its middle, at the height it is drawn),
+## an oval with the half-axes `half_a` and `half_b` (flat vectors: its quad's edges, halved, as drawn), seen from
+## `camera` (pass 56; Vector3.INF = no camera: seen from straight above). The blob is drawn after the see-through oasis,
+## so wherever the disc lies between it and the camera it showed as a dark plate on the water: in the band between
+## in_water's edge (1.02 of the lake's radius) and the drawn disc's (1.06), and on a bank just outside the disc that
+## lies under its top face. From straight above that is the disc's radius plus as far as the blob reaches towards the
+## water's middle, while the blob lies below the disc's top; from the run's camera the line of sight moves that edge
+## (further out on the far shore, where the bank shows through the water; on the near shore a blob reaches a little
+## under the disc before the water hides it). The hero's shadow (Game._sink_hero) and the creatures'
+## (EnemyManager.shadow_wet) both ask here, so they go at the same spot.
+static func water_covers_blob(at: Vector3, half_a: Vector3, half_b: Vector3, camera: Vector3, disc: Vector4, thick: float) -> bool:
+	if disc.w <= 0.0:
+		return false
+	var eye := camera if camera != Vector3.INF else at + Vector3(0.0, 1000.0, 0.0)
+	# how far the oval reaches towards the water's middle (its half-axes along that line: a blob is wider than it is
+	# deep, so a creature on the north or south shore reaches the water with its shallow side)
+	var to_c := Vector2(disc.x - at.x, disc.z - at.z)
+	var d := to_c.normalized() if to_c.length_squared() > 0.000001 else Vector2(1.0, 0.0)
+	var ra := Vector2(half_a.x, half_a.z).dot(d)
+	var rb := Vector2(half_b.x, half_b.z).dot(d)
+	# the lines to the blob's points cross each plane in an oval no bigger than the blob (it lies flat, under the
+	# camera), so the disc covers some of it when the disc grown by that reach covers its middle
+	return water_covers(at, eye, Vector4(disc.x, disc.y, disc.z, disc.w + sqrt(ra * ra + rb * rb)), thick)
 
 
 func _param(key: String, value: Variant) -> void:

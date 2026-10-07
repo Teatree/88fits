@@ -304,12 +304,13 @@ func test_the_dwarf_replaces_the_slinger() -> void:
 	# 2:20 before the clocks were stretched by 430/300 (pass 46): the dwarf came at 3:06; pass 54: Garry's placement in
 	# the Level Editor (2026-10-06) has no dwarf row, so this only holds while one is there
 	var rows: Array = m.timeline.roster.filter(func(r): return str(r.get("enemy", "")) == "buckshot_dwarf")
-	if not rows.is_empty():
-		var early := false
-		for r in m.timeline.roster_at(201.0):
+	# pass 56 (re-pinned): Garry's placement (2026-10-07) brings the dwarf at 9:54; whatever he picks, the row plays
+	for row in rows:
+		var on := false
+		for r in m.timeline.roster_at(float(row.get("t", 0.0)) + 1.0):
 			if str(r["enemy"]) == "buckshot_dwarf":
-				early = true
-		assert_bool(early).is_true()
+				on = true
+		assert_bool(on).is_true()
 	# pass 47: six from the start
 	assert_int(m.timeline.weapon_cap_at(0)).is_equal(5)
 	assert_int(m.timeline.weapon_cap_at(9)).is_equal(5)

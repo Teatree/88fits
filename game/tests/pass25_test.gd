@@ -140,13 +140,16 @@ func test_elite_events_pick_between_the_two() -> void:
 	# by 140 s of a 300 s stage, at the same point of a longer one (pass 46 stretched the clock by 430/300), the dwarf was
 	# on the roster; pass 54: Garry's placement in the Level Editor (2026-10-06) has no dwarf row, so this only holds
 	# while one is there
+	# pass 56 (re-pinned): Garry's own placement (2026-10-07) brings the dwarf in stage 2 (9:54); whatever he picks, a
+	# dwarf row is on the roster a second after its own start
 	var dwarf_row := tl_has(m.timeline, "buckshot_dwarf")
 	if dwarf_row:
-		var slinger_early := false
-		for r in m.timeline.roster_at(140.0 * float(m.timeline.stage_length) / 300.0):
-			if str(r["enemy"]) == "buckshot_dwarf":
-				slinger_early = true
-		assert_bool(slinger_early).is_true()
+		for row in m.timeline.roster.filter(func(r): return str(r.get("enemy", "")) == "buckshot_dwarf"):
+			var on := false
+			for r in m.timeline.roster_at(float(row.get("t", 0.0)) + 1.0):
+				if str(r["enemy"]) == "buckshot_dwarf":
+					on = true
+			assert_bool(on).is_true()
 
 
 ## Whether the timeline has a roster row for `id` (pass 54).

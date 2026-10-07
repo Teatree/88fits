@@ -1,7 +1,8 @@
 ## The gate (Wanted screen 09): not a screen. After a pick or the chest, the run stays paused while the dim lifts from
 ## 78 % to 40 % and the picked card shrinks and flies (rotating -8 degrees) into its HUD slot, which takes a brass
 ## border and a brass level tag; "TAP TO GO" and "Still paused. They'll wait." wait at y 1500. Any touch resumes, and
-## the same touch can start the joystick (the gate lets it through).
+## the same touch can start the joystick (the gate lets it through), unless it lands on the HUD's strip: there the gate
+## keeps it (pass 56: the strip pauses on a tap, so letting it through opened the pause menu the moment the run went on).
 class_name ResumeGate
 extends Control
 
@@ -151,3 +152,15 @@ func _input(event: InputEvent) -> void:
 		return
 	if (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.pressed):
 		tap()
+		# a tap on the strip ends here (pass 56): let through, it also reached the strip, which paused the run the gate had
+		# just let go (the pause menu opened on the tap to go); lower down it goes on and can start the stick
+		if on_strip(event.position, get_viewport_rect().size):
+			get_viewport().set_input_as_handled()
+
+
+## Whether a finger at `p` (canvas px, the visible canvas `vp` across) is on the HUD's strip, where a tap pauses: what
+## PlayerInput's thumb zone leaves out (HUD.band_h, scaled with the canvas width as there).
+static func on_strip(p: Vector2, vp: Vector2) -> bool:
+	if vp.x <= 0.0 or vp.y <= 0.0:
+		return false
+	return p.y <= HUD.band_h * vp.x / 1080.0

@@ -9,7 +9,9 @@
 // (his first pass's too) and this pass, drawn after it, painted his whole figure over it again. So the pass leaves out
 // each pixel the water's disc covers on his first pass: where the line from the camera down to the point on his painting
 // crosses the disc's top face inside its radius, or its rim on the way down. The water then tints him there exactly as it
-// tints a creature, and stepping in or out needs no switch (BillboardSprite.set_water hands the disc over).
+// tints a creature, and stepping in or out needs no switch (BillboardSprite.set_water hands the disc over). A speed trail
+// (drawn before this pass) shows across him there as it shows across the water, and his outline where something hides
+// him (sprite_silhouette) leaves out the same pixels with the same test.
 shader_type spatial;
 render_mode cull_disabled, unshaded, skip_vertex_transform, depth_draw_never, blend_mix;
 

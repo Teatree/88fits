@@ -146,10 +146,12 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 		assert_float(float(tl.events[k]["t"])).is_equal(roundf(old_events[k] * K))
 	for r in tl.roster:
 		assert_float(fmod(float(r.get("t", 0.0)), 1.0)).is_equal(0.0)
-	# the cap follows the stretched curve: the stage ends at 66, 108 and 150
-	assert_int(tl.cap_at(tl.stage_length, 0)).is_equal(66)
-	assert_int(tl.cap_at(2.0 * tl.stage_length, 1)).is_equal(108)
-	assert_int(tl.cap_at(3.0 * tl.stage_length, 2)).is_equal(150)
+	# the cap follows the curve at the stage ends (pass 56, re-pinned: Garry draws it in the Level Editor, so the
+	# expected values come from his points, sampled by the curve rule, not from pinned numbers)
+	for k in [1, 2, 3]:
+		var t: float = float(k) * float(tl.stage_length)
+		var want := mini(int(WaveTimeline.sample_points(tl.cap_curve, t)), tl.cap_max)
+		assert_int(tl.cap_at(t, k - 1)).is_equal(want)
 	for p in tl.cap_curve:
 		assert_float(fmod(float(p[0]), 1.0)).is_equal(0.0)
 	# the rest of the clock: the late weights, the specials, the endless waves, the path slots

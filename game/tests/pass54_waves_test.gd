@@ -618,7 +618,12 @@ func test_an_elite_row_may_send_its_whole_pack_or_a_ring_all_wearing_the_modifie
 func test_red_canyon_in_the_pass_54_shape() -> void:
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
 	assert_float(tl.creature_damage_mult).is_equal_approx(1.25, 0.0001)
-	assert_str(str(tl.spawn_sides.get("mode", ""))).is_equal("sides")
+	# pass 56 (re-pinned): Garry switched the map back to the facing rule in the Level Editor (2026-10-07); the side
+	# weights stay in the file for when he switches again
+	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://content/maps/red_canyon/red_canyon.json"))
+	var mode := str(tl.spawn_sides.get("mode", ""))
+	assert_bool(["sides", "facing"].has(mode)).is_true()
+	assert_str(mode).is_equal(str(((d["timeline_data"] as Dictionary)["spawn_sides"] as Dictionary).get("mode", "")))
 	assert_int(int(tl.spawn_sides.get("top", 0))).is_equal(55)
 	for s in ["bottom", "left", "right"]:
 		assert_int(int(tl.spawn_sides.get(s, 0))).is_equal(15)

@@ -17,7 +17,7 @@ cap_start = 10
 cap_per_minute = 7.81
 cap_max = 150
 hard_cap = 260
-cap_curve = [[0.0, 10.0], [63.0, 27.0], [122.0, 38.0], [123.0, 76.0], [187.0, 85.0], [192.0, 38.0], [286.0, 52.0], [363.0, 60.0], [430.0, 66.0], [860.0, 108.0], [1290.0, 150.0]]
+cap_curve = [[0.0, 10.0], [63.0, 27.0], [122.0, 38.0], [123.0, 76.0], [192.0, 85.0], [192.0, 45.0], [286.0, 75.0], [363.0, 100.0], [430.0, 100.0], [430.0, 54.0], [526.0, 98.0], [593.0, 102.0], [593.0, 150.0], [690.0, 168.0], [692.0, 104.0], [860.0, 108.0], [1290.0, 150.0]]
 boss_cap_frac = 0.6
 portal_cap = -1
 portal_spawn_seconds = -1.0
@@ -90,37 +90,48 @@ roster = [{
 "until": 192.0,
 "weights": [[121.0, 8.0], [203.0, 9.6]]
 }, {
-"enemy": "dust_mummy",
+"enemy": "fire_ant",
 "id": "r4",
+"stats": {
+"hp": 55.0
+},
 "t": 430.0,
-"weights": [[430.0, 3.0], [860.0, 5.0]]
+"until": 613.0,
+"weights": [[430.0, 3.0], [537.0, 6.2]]
 }, {
 "enemy": "bull_beetle",
 "id": "r5",
 "t": 487.0,
-"weights": [[487.0, 2.0], [860.0, 3.0]]
+"until": 549.0,
+"weights": [[487.0, 2.0], [550.0, 3.0]]
 }, {
-"enemy": "horned_toad",
-"id": "r6",
-"t": 559.0,
-"weights": [[559.0, 2.0], [860.0, 4.0]]
-}, {
-"enemy": "dust_shaman",
-"id": "r7",
-"t": 860.0,
-"weights": [[860.0, 1.0], [861.0, 2.0]]
-}, {
-"channel": "hell",
-"enemy": "blue_slime",
+"enemy": "buckshot_dwarf",
 "id": "r8",
-"t": 430.0,
-"weights": [[430.0, 10.0]]
+"t": 594.0,
+"until": 692.0,
+"weights": [[594.0, 2.0], [657.0, 3.0]]
 }, {
-"channel": "hell",
+"enemy": "spit_cactus",
+"id": "r6",
+"pattern": "scatter",
+"t": 526.0,
+"until": 692.0,
+"weights": [[526.0, 2.0], [596.0, 4.4], [600.0, 1.6]]
+}, {
 "enemy": "hammer_giant",
+"id": "r7",
+"pattern": "scatter",
+"t": 549.0,
+"until": 593.0,
+"weights": [[549.0, 1.0], [550.0, 2.0]]
+}, {
+"channel": "regular",
+"enemy": "lesser_scorpion",
 "id": "r9",
-"t": 602.0,
-"weights": [[602.0, 1.5]]
+"pattern": "pack",
+"t": 593.0,
+"until": 691.0,
+"weights": [[605.0, 8.0]]
 }, {
 "channel": "hell",
 "enemy": "imp",
@@ -282,7 +293,7 @@ spawn_sides = {
 "facing_share": 0.7,
 "facing_spread_deg": 60.0,
 "left": 15.0,
-"mode": "sides",
+"mode": "facing",
 "right": 15.0,
 "top": 55.0
 }

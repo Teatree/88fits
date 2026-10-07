@@ -533,7 +533,9 @@ static func tint_ribbon_material() -> StandardMaterial3D:
 
 ## The hero's speed trails and a Sprint's wind (pass 49, Garry: "rendered underneath the 2.5d sprite of the hero"): the
 ## glow ribbon at SPEED_TRAIL_PRIORITY in the see-through queue, so they draw before the hero's second pass
-## (BillboardSprite.enable_over_trails, at OVER_PRIORITY) and he covers them wherever they cross him.
+## (BillboardSprite.enable_over_trails, at OVER_PRIORITY) and he covers them wherever they cross him. In the oasis, below
+## the water's surface, that pass leaves him out (BillboardSprite.set_water), so there a trail crosses him as it crosses
+## the water (pass 56).
 const SPEED_TRAIL_PRIORITY := -2
 static var _speed_ribbon: StandardMaterial3D
 

@@ -2,12 +2,14 @@
 // (shine_aura mode 3) on a camera-facing quad, added to what is behind it. Drawn on PickupManager's glint MultiMesh:
 // INSTANCE COLOR rgb = its tint (a pale shade of the gem's colour), a = how bright it is now; INSTANCE_CUSTOM.x = how
 // far the star is turned (radians). Like the gems it lies under every painting: it draws only where no painting wrote
-// stencil 1 (PickupManager.PAINTING_STENCIL), and a little towards the camera so its gem never covers it.
+// stencil 1 (PickupManager.PAINTING_STENCIL). Its gem never covers it because it draws after the gems
+// (PickupManager.GLINT_PRIORITY, one past theirs, and the gems write no depth); `toward_cam` pushes it a little towards
+// the camera so the depth of the sand behind and under the gem never cuts into its rays.
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, blend_add, shadows_disabled, skip_vertex_transform, fog_disabled;
 stencil_mode read, compare_not_equal, 1;
 
-uniform float toward_cam = 0.3;
+uniform float toward_cam = 0.3;   // metres towards the camera (above)
 
 varying vec4 v_col;
 varying float v_turn;

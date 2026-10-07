@@ -43,26 +43,10 @@ func test_the_curve_is_flat_outside_its_points() -> void:
 
 func test_red_canyon_opens_with_twenty_bodies_and_keeps_the_old_line_from_the_first_stage_end() -> void:
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
-	# pass 54 (re-pinned): Garry's own curve from the Level Editor (2026-10-06), ten points with a rush to 62 at 1:31 and
-	# a dip to 36 at 2:53; the opening and the line from the first stage's end are as they were
-	assert_int(tl.cap_curve.size()).is_equal(10)
-	assert_int(tl.cap_start).is_equal(10)
-	assert_int(tl.cap_at(0.0, 0)).is_equal(10)
-	# the skeletons count half a slot each, so ten load units are twenty bodies
-	assert_int(int(10.0 / Registry.enemy("skeleton").cap_share)).is_equal(20)
-	# pass 46: the old minute marks are 86 s apart now (pass 54: on Garry's curve)
-	assert_int(tl.cap_at(86.0, 0)).is_equal(29)
-	assert_int(tl.cap_at(172.0, 0)).is_equal(38)
-	assert_int(tl.cap_at(258.0, 0)).is_equal(48)
-	assert_int(tl.cap_at(344.0, 0)).is_equal(58)
-	# from the first stage's end (7:10) on it is pass 29's line: 66 -> 108 -> 150
-	assert_int(tl.cap_at(430.0, 0)).is_equal(66)
-	assert_int(tl.cap_at(645.0, 1)).is_equal(87)
-	assert_int(tl.cap_at(860.0, 1)).is_equal(108)
-	assert_int(tl.cap_at(1290.0, 2)).is_equal(150)
-	assert_int(tl.cap_at(2150.0, 2)).is_equal(150)
+	# pass 54 and 56 (re-pinned): Garry draws the curve in the Level Editor (2026-10-07: seventeen points, rushes and
+	# drops), so the test checks the game plays the curve his map file holds instead of pinning his numbers
+	_check_curve(tl)
 	assert_int(tl.cap_max).is_equal(150)
-
 
 func test_the_boss_fight_keeps_six_in_ten() -> void:
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
@@ -76,10 +60,11 @@ func test_the_boss_fight_keeps_six_in_ten() -> void:
 	var d: WaveDirector = auto_free(WaveDirector.new())
 	d.timeline = tl
 	d.phase = WaveDirector.Phase.NORMAL
-	assert_int(d.current_cap()).is_equal(66)
-	# six in ten of the stage-end cap: int(66 x 0.6)
+	# pass 56 (re-pinned): the stage-end cap comes from Garry's curve, whatever he draws; the boss fight keeps six in ten
+	var full := d.current_cap()
+	assert_int(full).is_equal(tl.cap_at(float(tl.stage_length), 0))
 	d.phase = WaveDirector.Phase.BOSS
-	assert_int(d.current_cap()).is_equal(39)
+	assert_int(d.current_cap()).is_equal(int(full * 0.6))
 	Run.elapsed = 0.0
 
 
@@ -110,10 +95,11 @@ func test_red_canyon_keeps_spawning_through_the_portal_wait() -> void:
 	var keep := tl.duplicate() as WaveTimeline
 	keep.portal_wave = {}
 	d.timeline = keep
-	assert_int(d.current_cap()).is_equal(108)
+	# pass 56 (re-pinned): the stage-end caps come from Garry's curve, whatever he draws in the Level Editor
+	assert_int(d.current_cap()).is_equal(keep.cap_at(860.0, 1))
 	Run.elapsed = 430.0
 	Run.stage = 0
-	assert_int(d.current_cap()).is_equal(66)
+	assert_int(d.current_cap()).is_equal(keep.cap_at(430.0, 0))
 	Run.elapsed = 0.0
 	Run.stage = 0
 
@@ -191,7 +177,47 @@ func test_the_boundary_rows_wait_for_their_stage() -> void:
 	var late: Array = []
 	for r in tl.roster_at(430.2):
 		late.append(str(r.get("enemy", "")))
-	assert_bool(early.has("dust_mummy")).is_false()
-	assert_bool(late.has("dust_mummy")).is_true()
-	# the stage's last rows are open a hair before its end (pass 54: Garry's red goblins close stage 1, 5:00 to 7:10)
-	assert_bool(early.has("red_goblin")).is_true()
+	# pass 56 (re-pinned): Garry places the rows in the Level Editor, so the rows checked are whichever start or end on
+	# the stage's boundary in his map: one that starts there is not open a hair before it and is a hair after; one that
+	# ends there is still open a hair before it
+	var starts: Array = []
+	var ends: Array = []
+	for r in tl.roster:
+		if is_equal_approx(float(r.get("t", -1.0)), float(tl.stage_length)):
+			starts.append(str(r.get("enemy", "")))
+		if r.get("until") != null and is_equal_approx(float(r.get("until")), float(tl.stage_length)):
+			ends.append(str(r.get("enemy", "")))
+	for id in starts:
+		if not ends.has(id):
+			assert_bool(early.has(id)).override_failure_message(id + " early").is_false()
+		assert_bool(late.has(id)).override_failure_message(id + " late").is_true()
+	for id in ends:
+		assert_bool(early.has(id)).override_failure_message(id + " before the end").is_true()
+	assert_int(starts.size() + ends.size()).is_greater(0)
+
+
+## The cap curve as the map file holds it (pass 56: Garry draws it in the Level Editor, so the tests read his points
+## instead of pinning numbers that change every time he saves).
+func _map_cap_curve() -> Array:
+	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://content/maps/red_canyon/red_canyon.json"))
+	return (d.get("timeline_data", {}) as Dictionary).get("cap_curve", [])
+
+
+## The game plays that curve: its points as loaded, linear between two points (checked half way), the first point's
+## value at 0:00, flat after the last, all clamped by cap_max.
+func _check_curve(tl: WaveTimeline) -> void:
+	var src: Array = _map_cap_curve()
+	assert_int(src.size()).is_greater_equal(2)
+	assert_int(tl.cap_curve.size()).is_equal(src.size())
+	assert_int(tl.cap_per_stage).is_equal(0)
+	assert_int(tl.cap_at(0.0, 0)).is_equal(mini(int(float(src[0][1])), tl.cap_max))
+	for k in range(src.size() - 1):
+		var a: Array = src[k]
+		var b: Array = src[k + 1]
+		if float(b[0]) <= float(a[0]):
+			continue
+		var mid := (float(a[0]) + float(b[0])) * 0.5
+		var want := mini(int(lerpf(float(a[1]), float(b[1]), 0.5)), tl.cap_max)
+		assert_int(tl.cap_at(mid, mini(int(mid / float(tl.stage_length)), 2))).override_failure_message("at %.1f s" % mid).is_equal(want)
+	var last: Array = src[src.size() - 1]
+	assert_int(tl.cap_at(float(last[0]) + 600.0, 2)).is_equal(mini(int(float(last[1])), tl.cap_max))

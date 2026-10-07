@@ -62,8 +62,25 @@ const REEL_SECONDS := 1.5
 ## The cards' drop (pass 54): each from DROP_PX above, DROP_GAP after the one before.
 const DROP_PX := 40.0
 const DROP_GAP := 0.05
-## The middle of the LEVEL N title at 1080 x 1920 (the header's top 110, its star line, half the 150 px title).
-const TITLE_MID_Y := 110.0 + 38.0 + 75.0
+## What the rail gained over the 18 px the screen was laid out under (pass 56, Garry: "Make the EXP bar twice as thick,
+## move all the other UI with it accordingly"): everything placed from the top sits this much lower, so the gaps under
+## the rail stay as they were (92 px to the header's top, 72 to the mutation offer's head).
+const RAIL_GROWTH := HUD.RAIL_H - 18.0
+## The header's top (WModal's 110), the mutation offer's head's top (90), the cards' top under each (470 and 720) and
+## the highest a long list may lift to under the header (360, the header's foot and 13 px), all at 1080 x 1920 and under
+## the camera cutout (W.safe_top()).
+const HEADER_TOP := 110.0 + RAIL_GROWTH
+const PATH_HEAD_TOP := 90.0 + RAIL_GROWTH
+const LIST_TOP := 470.0 + RAIL_GROWTH
+const PATH_LIST_TOP := 720.0 + RAIL_GROWTH
+const LIST_FLOOR := 360.0 + RAIL_GROWTH
+## Under the mutation offer's head a long list stops HEAD_CLEAR short of it (pass 56: four cards under a camera cutout ran
+## over the weapon's name), and one that still does not fit between there and the bottom row shrinks, to MIN_SCALE at
+## the least, rather than run over the skip.
+const HEAD_CLEAR := 16.0
+const MIN_SCALE := 0.6
+## The middle of the LEVEL N title (the header's top, its star line, half the 150 px title).
+const TITLE_MID_Y := HEADER_TOP + 38.0 + 75.0
 ## The pre-reel by path: a new class_name is known only once the global class cache is made again (the next import).
 const WWeaponReelScript := preload("res://ui/wanted/WWeaponReel.gd")
 
@@ -71,12 +88,12 @@ const WWeaponReelScript := preload("res://ui/wanted/WWeaponReel.gd")
 func _ready() -> void:
 	build_dim(W.DIM)
 	_build_rail()
-	build_header("Wanted", "LEVEL 1", "Pick one. The desert waits.")
+	build_header("Wanted", "LEVEL 1", "Pick one. The desert waits.", 150, W.PAPER, HEADER_TOP)
 	_list = VBoxContainer.new()
 	_list.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_list.offset_left = 48
 	_list.offset_right = -48
-	_list.offset_top = 470 + W.safe_top()
+	_list.offset_top = LIST_TOP + W.safe_top()
 	_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_list)
 	_build_path_head()
@@ -163,7 +180,7 @@ func _build_path_head() -> void:
 	_path_head.alignment = BoxContainer.ALIGNMENT_BEGIN
 	_path_head.add_theme_constant_override("separation", 14)
 	_path_head.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_path_head.offset_top = 90 + W.safe_top()
+	_path_head.offset_top = PATH_HEAD_TOP + W.safe_top()
 	_path_head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_path_head.visible = false
 	add_child(_path_head)
@@ -303,7 +320,7 @@ func path_plate_center_y() -> float:
 	var star_h := 38.0
 	if _path_head.get_child_count() > 0 and _path_head.get_child(0) is Control:
 		star_h = (_path_head.get_child(0) as Control).get_combined_minimum_size().y
-	return 90.0 + W.safe_top() + star_h + 14.0 + 272.0 * 0.5
+	return PATH_HEAD_TOP + W.safe_top() + star_h + 14.0 + 272.0 * 0.5
 
 
 ## The head's plate, name and rivets shown or held back (the star line stays).
@@ -337,6 +354,9 @@ func _after_reel() -> void:
 	_list.visible = true
 	_path_skip.visible = true
 	_drop_cards()
+	# held back while the reel ran, the cards were never laid out (their text unwrapped, so they measured short and a long
+	# list ran over the skip): they are fitted now (pass 56)
+	_fit()
 
 
 ## A reel still running is dropped (a new offer, a skip, a pick).
@@ -411,7 +431,7 @@ func _rebuild() -> void:
 		_cards.append(node)
 		_slots.append(slot)
 	_list.add_theme_constant_override("separation", 36 if path_mode else 44)
-	_list.offset_top = (720.0 if path_mode else 470.0) + W.safe_top()
+	_list.offset_top = (PATH_LIST_TOP if path_mode else LIST_TOP) + W.safe_top()
 	_fit.call_deferred()
 
 
@@ -451,32 +471,51 @@ func _make_card(card: Dictionary) -> WCard:
 	return c
 
 
-## The cards between the header and the buttons: at 1080 x 1920 from y 470 (720 under a path head), 44 px apart (36 on
-## a path); a taller screen centres them with up to 60 px between; a fourth card squeezes the gap to 24 and lifts the list.
+## The cards between the header and the buttons: at 1080 x 1920 from LIST_TOP (PATH_LIST_TOP under a mutation offer's
+## head), 44 px apart (36 on a path); a taller screen centres them with up to 60 px between; a list too long squeezes the
+## gap to 24 and lifts, up to LIST_FLOOR under the header (on a mutation offer HEAD_CLEAR under its head, pass 56), and
+## one still too long shrinks to fit. On a mutation offer the cards stop 12 px over the line above its skip (pass 56: a
+## long list ran over it).
 func _fit() -> void:
 	if _cards.is_empty():
 		return
 	await get_tree().process_frame
+	# while the mutation offer's reel runs the cards wait hidden and unsorted: the landing fits them (_after_reel)
+	if not _list.visible or _cards.is_empty():
+		return
 	var vp := get_viewport_rect().size
 	var n := _cards.size()
 	var gap := 36.0 if path_mode else 44.0
-	var top := (720.0 if path_mode else 470.0) + W.safe_top()
+	var top := (PATH_LIST_TOP if path_mode else LIST_TOP) + W.safe_top()
 	var total := 0.0
 	for c in _cards:
-		total += (c as Control).get_combined_minimum_size().y
+		if is_instance_valid(c):
+			total += (c as Control).get_combined_minimum_size().y
 	var bottom := vp.y - 90.0 - 108.0 - 40.0
+	var floor_y := LIST_FLOOR + W.safe_top()
+	if path_mode:
+		bottom = vp.y + _path_note.offset_top - 12.0
+		floor_y = PATH_HEAD_TOP + W.safe_top() + _path_head.get_combined_minimum_size().y + HEAD_CLEAR
+	# never over the head (a weapon's name on two lines makes it taller)
+	top = maxf(top, floor_y)
 	var span := total + gap * (n - 1)
+	var k := 1.0
 	if top + span > bottom:
 		gap = maxf((bottom - top - total) / maxf(n - 1, 1), 24.0)
 		span = total + gap * (n - 1)
 		if top + span > bottom:
-			top = maxf(bottom - span, 360.0 + W.safe_top())
+			top = maxf(bottom - span, floor_y)
+			if top + span > bottom:
+				k = clampf((bottom - top) / maxf(span, 1.0), MIN_SCALE, 1.0)
 	elif vp.y > 1930.0:
 		gap = minf(gap + (bottom - top - span) / maxf(n + 1, 2), 60.0)
 		span = total + gap * (n - 1)
 		top = top + (bottom - top - span) * 0.5
 	_list.add_theme_constant_override("separation", int(gap))
 	_list.offset_top = top
+	# shrunk about its top's middle, so it stays centred and starts where it did
+	_list.pivot_offset = Vector2(_list.size.x * 0.5, 0.0)
+	_list.scale = Vector2(k, k)
 
 
 func _pick(card: Dictionary, button: Control = null) -> void:

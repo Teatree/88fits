@@ -39,6 +39,9 @@
 ## Pass 55: arena_hero (the arena's HERO tab under real fingers: another hero's tile swaps him in and the first hero's
 ## brings him back, a look chip draws that look on the hero for the visit, USE FROM NOW ON keeps it; all put back after;
 ## run on its own with only=arena_hero, which audits the tab's controls first).
+## Pass 56: gate_strip (run with cards too): after a real pick, a finger on the HUD's strip (under the clock, at the
+## strip's foot, on the pause disc) lets the resume gate go and opens nothing (the same touch had reached the strip,
+## which paused the run as it went on), and a finger under the strip lets it go and starts the stick.
 extends SceneTree
 
 const MAX_PER_KIND := 40     # cards of one screen tapped at most (a long list: a sample, spread over it)
@@ -820,6 +823,8 @@ func _in_game() -> void:
 			if g.resume_gate.visible:
 				_fail("resume_gate", "the tap to go on", "tap did not close it")
 				g.resume_gate.tap()
+	if _want("cards") or _want("gate_strip"):
+		await _gate_strip(g)
 	if _want("path") or _want("path_offer"):
 		await _path_offer(g)
 	if _want("path"):
@@ -934,6 +939,61 @@ func _in_game() -> void:
 				a.arena_panel._refresh()
 				await _wait(0.4)
 				await _confirm_audit("arena_confirm", a.arena_panel, func(): a.arena_panel._ask_leave())
+
+
+## The resume gate under a finger on the HUD's strip (pass 56): after a level-up's pick, a tap under the clock, at the
+## strip's foot or on the pause disc lets the run go and does nothing else (the gate let the touch through, the strip
+## heard it and the pause menu opened as the run went on); a tap under the strip lets the run go and starts the stick.
+func _gate_strip(g) -> void:
+	var vp := root.get_visible_rect().size
+	var bh: float = float(g.hud.get("band_h"))
+	var spots: Array = [["the strip under the clock", Vector2(vp.x * 0.5, bh * 0.45)],
+		["the strip's foot", Vector2(vp.x * 0.5, bh - 6.0)]]
+	var pb: Control = g.hud.get("_pause_btn")
+	if pb:
+		spots.append(["the pause disc", pb.get_global_rect().get_center()])
+	spots.append(["under the strip", Vector2(vp.x * 0.5, vp.y * 0.7)])
+	for s in spots:
+		var what: String = s[0]
+		var at: Vector2 = s[1]
+		var under: bool = what == "under the strip"
+		# a level-up and a pick for real, so the gate opens as in a run
+		g._pending_levels += 1
+		g._show_next_level_cards()
+		await _wait(1.0)
+		if g.cards.visible and not g.cards._offer.is_empty():
+			g.cards._pick(g.cards._offer[0])
+		await _wait(0.6)
+		if g.resume_gate == null or not g.resume_gate.visible:
+			_count("gate_strip", false)
+			_fail("gate_strip", what, "the gate did not open after the pick")
+			g.cards.visible = false
+			g.set_paused(false)
+			continue
+		_touch(at, true)
+		await _frames(2)
+		var gone: bool = not g.resume_gate.visible
+		var paused: bool = g.pause_screen.visible
+		var stick: bool = g.player.input.wants_move
+		_touch(at, false)
+		await _frames(2)
+		var ok: bool = gone and not paused and stick == under
+		_count("gate_strip", ok)
+		if not gone:
+			_fail("gate_strip", what, "the tap did not let the gate go")
+		elif paused:
+			_fail("gate_strip", what, "the tap that let the gate go opened the pause menu")
+		elif under and not stick:
+			_fail("gate_strip", what, "the tap under the strip did not start the stick")
+		elif stick and not under:
+			_fail("gate_strip", what, "the tap on the strip started the stick")
+		# put the run back as it was
+		if g.pause_screen.visible:
+			g.close_pause()
+			await _wait(0.3)
+		if g.resume_gate.visible:
+			g.resume_gate.tap()
+		await _wait(0.3)
 
 
 ## The stage clear's NOT YET (pass 48) under a real finger: the dialog closes, `declined` is heard and nothing is decided.

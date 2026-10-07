@@ -97,20 +97,16 @@ func test_stage_two_brings_new_creatures_and_the_second_boss() -> void:
 	var ids_late: Array = []
 	for r in tl.roster_at(899.0):
 		ids_late.append(str(r["enemy"]))
-	# pass 28: arrivals are spread over all three stages (the jackalope in stage 2, the shaman only in stage 3)
-	assert_bool(ids_at_100.has("jackalope")).is_false()
-	assert_bool(ids_at_400.has("horned_toad")).is_true()
-	# pass 33.2: the crab and the jackalope are out of the rotation, the armadillo arrives half way through stage 1 (pass
-	# 54: Garry's placement in the Level Editor brings it in a swarm instead of a roster row)
-	var swarms: Array = []
-	for ev in tl.events:
-		if str(ev.get("type", "")) == "swarm":
-			swarms.append(str(ev.get("enemy", "")))
-	assert_bool(ids_at_400.has("armadillo") or swarms.has("armadillo")).is_true()
-	assert_bool(ids_at_400.has("sand_crab")).is_false()
-	assert_bool(ids_at_400.has("dust_shaman")).is_false()
-	assert_bool(ids_late.has("jackalope")).is_false()
-	assert_bool(ids_late.has("dust_shaman")).is_true()
+	# pass 28: arrivals are spread over the stages. Pass 56 (re-pinned): Garry places them himself in the Level Editor, so
+	# this checks the rule, not his cast: stage 2 brings at least one creature stage 1's opening did not have, and the
+	# crab and the jackalope (out of the rotation since pass 33.2) never come
+	var new_in_two := false
+	for id in ids_at_400:
+		if not ids_at_100.has(id):
+			new_in_two = true
+	assert_bool(new_in_two).is_true()
+	for id in ["sand_crab", "jackalope"]:
+		assert_bool(ids_at_100.has(id) or ids_at_400.has(id) or ids_late.has(id)).override_failure_message(id).is_false()
 	var bosses: Array = []
 	for ev in tl.events:
 		if str(ev.get("type", "")) == "boss":

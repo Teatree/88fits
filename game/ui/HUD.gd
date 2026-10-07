@@ -63,6 +63,25 @@ const LINE_SLOTS := 5
 const COIN_GOLD := Color("ffc93c")
 ## The boss's name over the world (pass 47): paper slab with an ink outline and shadow instead of the ink box.
 const BOSS_NAME_PX := 30
+## Under the slots (pass 56): the power-ups' plates (BUFF_PX) BUFF_GAP under them; the boss's plate and bar BOSS_GAP under
+## the slots, or BOSS_UNDER_BUFFS under the power-ups while any are up (both had started at the slots' foot, so the
+## boss's bar ran across Berserk's and Sprint's plates); the words for what is building up (Adrenaline, Hot Streak...)
+## WORDS_UNDER_BUFFS under the power-ups (clear of their seconds' tags, which hang 6 px under the plates; 2 px since pass
+## 47 had the words touching them) or WORDS_UNDER_BOSS under the boss's bar; the toasts TOAST_GAP under the slots or the
+## power-ups, TOAST_UNDER_BOSS under the bar, TOAST_UNDER_WORDS under the words.
+const BUFF_PX := 72.0
+const BUFF_GAP := 14.0
+const BOSS_GAP := 20.0
+const BOSS_UNDER_BUFFS := 16.0
+const WORDS_UNDER_BUFFS := 12.0
+const WORDS_UNDER_BOSS := 12.0
+const TOAST_GAP := 18.0
+## seconds a toast on screen takes to slide to its new place when the layout under the strip changes (pass 56)
+const TOAST_SLIDE := 0.18
+const TOAST_UNDER_BOSS := 20.0
+const TOAST_UNDER_WORDS := 10.0
+## A pointer on the screen's edge keeps its middle this far under all of them (pass 56: half a pointer and a gap).
+const POINTER_CLEAR := 40.0
 
 var game: Node
 var _band: Control
@@ -319,19 +338,60 @@ func hide_boss() -> void:
 	_layout_toasts()
 
 
-## Under the slots: the boss's plate and bar while a boss lives, the power-ups on the left, and the toasts below
-## whichever is lowest.
+## Under the slots, one under the other (pass 56, the lead: "when buff plates are up, put the boss box under them (and
+## the adrenaline/streak labels and toasts under the lower of the two)"; the boss's bar had run across the power-up
+## plates, both laid out from the slots' foot): the power-ups on the left, the boss's plate and bar while a boss lives
+## (under the power-ups while any are up), the words for what is building up under the lower of the two, and the toasts
+## under all of it. With no power-ups up everything sits where it did. `_under_bottom` is the foot of the lowest of them
+## (the toasts aside), which the pointers on the screen's edges keep under.
+var _under_bottom := 0.0
+var _toast_tw: Tween
+
+
 func _layout_toasts() -> void:
 	var w := get_viewport_rect().size.x
-	_boss_box.position = Vector2(60, _slots_bottom + 20.0)
+	var has_buffs := _buffs.get_child_count() > 0
+	_buffs.position = Vector2(36, _slots_bottom + BUFF_GAP)
+	var low := _buffs.position.y + BUFF_PX if has_buffs else _slots_bottom
+	_boss_box.position = Vector2(60, low + BOSS_UNDER_BUFFS if has_buffs else _slots_bottom + BOSS_GAP)
 	_boss_box.size = Vector2(w - 120, 0)
-	_buffs.position = Vector2(36, _slots_bottom + 14.0)
-	_adren.position = Vector2(36, _slots_bottom + 14.0 + (74.0 if _buffs.get_child_count() > 0 else 0.0))
-	var y := _slots_bottom + 18.0
 	if _boss_box.visible:
-		y = _boss_box.position.y + _boss_box.get_combined_minimum_size().y + 20.0
-	_toasts.position = Vector2(0, y)
+		low = _boss_box.position.y + _boss_box.get_combined_minimum_size().y
+	var words_y := _slots_bottom + BUFF_GAP
+	if _boss_box.visible:
+		words_y = low + WORDS_UNDER_BOSS
+	elif has_buffs:
+		words_y = low + WORDS_UNDER_BUFFS
+	_adren.position = Vector2(36, words_y)
+	var y := _slots_bottom + TOAST_GAP
+	if _adren.visible:
+		low = words_y + _adren.get_combined_minimum_size().y
+		y = low + TOAST_UNDER_WORDS
+	elif _boss_box.visible:
+		y = low + TOAST_UNDER_BOSS
+	elif has_buffs:
+		y = low + TOAST_GAP
+	_under_bottom = low
+	# a toast on screen slides to its new place rather than jumping (pass 56, the lead: the words under the plates come
+	# and go all the time, Steady Hand's whenever he stops, and a toast that snapped 44 px each time read as a glitch)
+	var to := Vector2(0, y)
+	if _toast_tw:
+		_toast_tw.kill()
+		_toast_tw = null
+	if _toasts.get_child_count() > 0 and is_inside_tree() and absf(_toasts.position.y - y) > 0.5:
+		_toast_tw = create_tween()
+		_toast_tw.tween_property(_toasts, "position", to, TOAST_SLIDE).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	else:
+		_toasts.position = to
 	_toasts.size = Vector2(w, 200)
+
+
+## The foot of the boss's plate and bar on screen, or -1 while no boss is up (pass 56: the arena's quick column keeps
+## under it; with a camera cutout, or under the power-ups, the bar had run beneath ARENA and AGAIN).
+func boss_plate_bottom() -> float:
+	if _boss_box == null or not _boss_box.visible:
+		return -1.0
+	return _boss_box.position.y + _boss_box.get_combined_minimum_size().y
 
 
 ## The strip's slots in order (pass 46; pass 47: weapons and lines, the passive items stay off the HUD), as [def (null
@@ -823,7 +883,7 @@ func _refresh_buffs() -> void:
 			var def := plate_def(k)
 			if def == null:
 				continue
-			var p := WPlate.new().for_def(def, 72.0)
+			var p := WPlate.new().for_def(def, BUFF_PX)
 			p.fill = W.SAGE
 			p.icon_frac = 0.66
 			p.level_size = 20
@@ -833,9 +893,12 @@ func _refresh_buffs() -> void:
 		_layout_toasts()
 	if _adren:
 		var parts := buff_parts()
-		_adren.visible = not parts.is_empty()
 		if not parts.is_empty():
 			_adren.text = " · ".join(parts)
+		# the toasts sit under the words while they show (pass 56), so their coming and going lays the column out again
+		if _adren.visible == parts.is_empty():
+			_adren.visible = not parts.is_empty()
+			_layout_toasts()
 	for c in _buffs.get_children():
 		var p := c as WPlate
 		if p == null:
@@ -956,7 +1019,10 @@ func _tick_arrow() -> void:
 func _edge_arrow(target: Vector3, color: Color, name: String) -> void:
 	var cam: Camera3D = game.camera.camera
 	var vp := get_viewport().get_visible_rect().size
-	var rect := Rect2(Vector2(0, _slots_bottom + 140.0), Vector2(vp.x, vp.y - _slots_bottom - 340.0))
+	# from 140 px under the slots (and POINTER_CLEAR under whatever hangs lowest under them, pass 56: the boss's bar sits
+	# lower under the power-ups) to 200 px over the screen's foot
+	var top := maxf(_slots_bottom + 140.0, _under_bottom + POINTER_CLEAR)
+	var rect := Rect2(Vector2(0, top), Vector2(vp.x, maxf(vp.y - 200.0 - top, 0.0)))
 	if not cam.is_position_behind(target + Vector3(0, 1, 0)):
 		var sp := cam.unproject_position(target + Vector3(0, 1, 0))
 		if Rect2(Vector2.ZERO, vp).has_point(sp) and sp.y > _slots_bottom:

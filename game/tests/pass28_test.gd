@@ -9,33 +9,27 @@ func _start(hero: String = "astro") -> void:
 
 
 func test_the_cap_starts_at_twenty_skeletons_and_ends_at_one_fifty() -> void:
-	# pass 29: six times the start by the end of stage 3; pass 45: a curve, 10 load (twenty fodder bodies) at 0:00 up to
-	# the old line's 66 at the first stage's end, then that line on to 150, never resetting between stages; pass 46: the
-	# stages are 430 s (the clock stretched by 430/300)
+	# pass 29: six times the start by the end of stage 3; pass 45: a curve; pass 46: the stages are 430 s. Pass 56
+	# (re-pinned): Garry draws the curve himself in the Level Editor (2026-10-07: rushes and drops on purpose, 10 at the
+	# start, 150 at the end), so this checks that the game plays the curve his map file holds
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
-	assert_int(tl.cap_at(0.0, 0)).is_equal(10)
-	assert_int(int(10.0 / Registry.enemy("skeleton").cap_share)).is_equal(20)
-	assert_int(tl.cap_at(430.0, 0)).is_equal(66)
-	assert_int(tl.cap_at(860.0, 1)).is_equal(108)
-	assert_int(tl.cap_at(1290.0, 2)).is_equal(150)
-	assert_int(tl.cap_at(2150.0, 2)).is_equal(150)
-	# pass 54 (re-pinned): Garry's curve from the Level Editor (2026-10-06) rushes to 71 by 2:40 and drops to 36 at 2:53
-	# on purpose; from that dip on it never falls
-	var prev := 0
-	for s in range(173, 1291, 15):
-		var c := tl.cap_at(float(s), mini(s / 430, 2))
-		assert_int(c).override_failure_message("the cap fell at %d s" % s).is_greater_equal(prev)
-		prev = c
-	assert_int(tl.cap_per_stage).is_equal(0)
-
+	_check_curve(tl)
+	# the skeletons count half a slot each: the opening's load is twice as many bodies
+	assert_float(Registry.enemy("skeleton").cap_share).is_equal_approx(0.5, 0.0001)
 
 func test_the_roster_keeps_arriving_through_every_stage() -> void:
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
-	var n1 := tl.roster_at(429.0).size()
-	var n2 := tl.roster_at(859.0).size()
-	var n3 := tl.roster_at(1289.0).size()
-	assert_int(n2).is_greater(n1)
-	assert_int(n3).is_greater(n2)
+	# pass 56 (re-pinned): Garry places the rows himself in the Level Editor, each with its own window (2026-10-07 stage
+	# 2 ends on swarms after 11:32), so the rule checked is that every stage has rows of its own, not that the roster grows
+	for k in range(tl.stages):
+		var a: float = float(k) * float(tl.stage_length)
+		var b: float = a + float(tl.stage_length)
+		var any := false
+		for t in range(int(a), int(b), 5):
+			if not tl.roster_at(float(t)).is_empty():
+				any = true
+				break
+		assert_bool(any).override_failure_message("stage %d has no roster row" % (k + 1)).is_true()
 	var ids: Array = []
 	for r in tl.roster_at(1289.0):
 		ids.append(str(r.get("enemy", "")))
@@ -116,3 +110,30 @@ func test_bushes_have_no_collider() -> void:
 	assert_float(pf.radius_of("dead_shrub")).is_equal(0.0)
 	assert_bool(pf.has("fan_palm") and pf.has("ocotillo") and pf.has("yucca")).is_true()
 	pf.free()
+
+
+## The cap curve as the map file holds it (pass 56: Garry draws it in the Level Editor, so the tests read his points
+## instead of pinning numbers that change every time he saves).
+func _map_cap_curve() -> Array:
+	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://content/maps/red_canyon/red_canyon.json"))
+	return (d.get("timeline_data", {}) as Dictionary).get("cap_curve", [])
+
+
+## The game plays that curve: its points as loaded, linear between two points (checked half way), the first point's
+## value at 0:00, flat after the last, all clamped by cap_max.
+func _check_curve(tl: WaveTimeline) -> void:
+	var src: Array = _map_cap_curve()
+	assert_int(src.size()).is_greater_equal(2)
+	assert_int(tl.cap_curve.size()).is_equal(src.size())
+	assert_int(tl.cap_per_stage).is_equal(0)
+	assert_int(tl.cap_at(0.0, 0)).is_equal(mini(int(float(src[0][1])), tl.cap_max))
+	for k in range(src.size() - 1):
+		var a: Array = src[k]
+		var b: Array = src[k + 1]
+		if float(b[0]) <= float(a[0]):
+			continue
+		var mid := (float(a[0]) + float(b[0])) * 0.5
+		var want := mini(int(lerpf(float(a[1]), float(b[1]), 0.5)), tl.cap_max)
+		assert_int(tl.cap_at(mid, mini(int(mid / float(tl.stage_length)), 2))).override_failure_message("at %.1f s" % mid).is_equal(want)
+	var last: Array = src[src.size() - 1]
+	assert_int(tl.cap_at(float(last[0]) + 600.0, 2)).is_equal(mini(int(float(last[1])), tl.cap_max))

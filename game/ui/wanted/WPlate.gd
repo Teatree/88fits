@@ -6,13 +6,14 @@
 ## ones; the plate glows soft brass while its evolution waits at the next chest), and a locked look (aged plate, the icon a
 ## 30 % ink silhouette). Portraits are round (`round_plate`). The HUD's slots that hold nothing (pass 46) are plates too:
 ## an open one aged with a dashed line inside (`empty`), one the stage has not opened aged with a drawn padlock and the
-## stage that opens it (`padlock`, `lock_stage`; no slot is shut since pass 47, the caps are a static six and six).
+## stage that opens it (`padlock`, `lock_stage`; no slot is shut since pass 47, the caps are static: five and five
+## since pass 52).
 ## `plate_alpha` (pass 48: the HUD's see-through slots) fades the fill and the frame and keeps the icon, the level tag,
 ## the dots and a padlock solid. Without an icon a plate can carry a slab `glyph` (the results' "?" for a damage source
 ## with no picture yet), and a `badge` (a creature's skull, crown or gear) hangs over its top-left corner. Pass 54: a
 ## card's plate (the level-up's, the chest's) carries its kind's corner glyph over the bottom-left corner (`kind_mark`:
 ## a revolver on a weapon (pass 56), a rolled scroll on a line, in a paper disc with an ink ring). Drawn in one pass, so a
-## HUD row of twelve stays cheap.
+## HUD row of ten (five weapons and five lines since pass 52) stays cheap.
 class_name WPlate
 extends Control
 

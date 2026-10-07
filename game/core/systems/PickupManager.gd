@@ -10,9 +10,11 @@
 ## only where no painting wrote the stencil (PAINTING_STENCIL), so creatures, the hero, props and structures cover them.
 ## Pass 56 (Garry: "more of a Rhombohedron shape, but 3d obviously ... like a gem", then "I mean octahedron"; "just 5%
 ## bigger"; "an occasional, very rare, little extra hop" on top of the float; the medium and large gems "glint now and
-## then"): every gem and the vacuum are a faceted octahedron (octahedron_mesh), the gems 5 % bigger on the screen
-## (GEM_GROW, GEM_LOOK) and the bigger ones resting a little higher (rest_of), a gem lying on the sand hops now and then
-## (HOP_EXTRA_*, _idle) and a medium or large one glints (GLINT_*, core/shaders/gem_glint.gdshader).
+## then"): every gem and the vacuum are a faceted octahedron (octahedron_mesh), the gems 5 % bigger on the screen and the
+## vacuum the size it was (GEM_GROW, GEM_LOOK, VACUUM_LOOK), the bigger ones resting a little higher (rest_of) and
+## dropping from as much higher (_drop_y), a gem lying on the sand hops now and then but never more than one on the
+## screen every HOP_EXTRA_GAP s (HOP_EXTRA_*, _idle), and a medium or large one glints where it can be seen (GLINT_*,
+## core/shaders/gem_glint.gdshader).
 class_name PickupManager
 extends Node3D
 
@@ -42,12 +44,17 @@ const GEM_GROW := 1.05
 const GEM_R := [0.11 * GEM_GROW, 0.16 * GEM_GROW, 0.225 * GEM_GROW]
 ## GEM_R and VACUUM_R are sizes as pass 54's wedge (a PrismMesh 2 r wide, 2.4 r tall, 2 r deep) measured them. The
 ## octahedron that replaced it (pass 56) keeps the wedge's proportions, GEM_TALL times its own radius from tip to tip and
-## twice it across, but is drawn GEM_LOOK times as large (gem_radius): an octahedron as wide and tall as the wedge covers
-## only 37 % of the screen the wedge covered from the run's camera (46 degrees down, spinning; pass56_pk_test projects
-## both), so at the wedge's size the gems looked a third smaller, not 5 % bigger. At GEM_LOOK it covers what the wedge
-## covered, and GEM_GROW makes it 5 % bigger than that.
+## twice it across, but is drawn larger (gem_radius), by its kind's factor: an octahedron as wide and tall as the wedge
+## covers only 37 % of the screen the wedge covered from the run's camera, so at the wedge's size the gems looked a third
+## smaller, not 5 % bigger. The factors are measured as the camera sees both shapes (46 degrees down, spinning, over the
+## whole float, the sand hiding whatever dips into it: the old wedge at REST, the octahedron at rest_of, where the sand
+## never cuts it; pass56_pk_test measures them): GEM_LOOK makes each gem GEM_GROW times what its wedge showed, and
+## VACUUM_LOOK makes the vacuum show what its wedge did. The large wedge sat 5 % in the sand at the float's lowest and the
+## vacuum's 23 %, so their factors are smaller (the fix round of pass 56, the lead: one factor of 1.64 for every kind had
+## made the large gem 1.08 times its old size and the vacuum 1.14 times, 1.5 m from tip to tip).
 const GEM_TALL := 2.4
-const GEM_LOOK := 1.64
+const GEM_LOOK := [1.641, 1.641, 1.598]
+const VACUUM_LOOK := 1.444
 ## The lower tip of a gem tall enough to reach the sand at the bottom of its float would dip into it: such a gem rests
 ## higher (rest_of), its tip GEM_CLEAR m over the sand at the float's lowest.
 const GEM_CLEAR := 0.04
@@ -80,9 +87,16 @@ const FLY_CURVE := 0.35     # the sideways share of its heading as it sets off, 
 const FLY_CURVE_TIME := 0.35
 const CHEST := 0.8          # where it flies to: metres above the hero's feet
 const COLLECT_R := 0.45     # taken this close to his chest (0.6 before pass 46)
-const REST := 0.22          # how high a gem rests over the sand (0.35 before pass 54 halved the gems)
+## How high a pickup rests over the sand (0.35 before pass 54 halved the gems): where a coin rests, and the lowest any
+## pickup rests. Since pass 56 the gems and the vacuum rest at their own rest_of, higher for the bigger octahedra.
+const REST := 0.22
 const BOB := 0.09           # how far it bobs (0.13 before pass 54)
-const SPARK_GAP := 0.04     # at most one glint this often (a vacuum takes hundreds at once)
+## A drop starts DROP_FROM m over where it was let go (a creature's feet), plus as much as its kind rests higher than
+## REST (_drop_y), and pops up from there.
+const DROP_FROM := 0.4
+## The mote a pickup leaves where it is taken, or a tossed coin where it lands (_glint): at most one this often (a
+## vacuum takes hundreds at once). The gems' star glints keep their own spacing (GLINT_GAP).
+const SPARK_GAP := 0.04
 ## What a gem of each size (small, medium, large) is worth before the creature's xp scale, as drop_from pays it.
 const GEM_VALUE := [1.0, 5.0, 25.0]
 ## The idle hop (pass 56, Garry: "an occasional, very rare, little extra hop to the idle float that they are doing right
@@ -103,6 +117,12 @@ const HOP_EXTRA_STRETCH := 1.1
 const HOP_EXTRA_SQUASH_Y := 0.85
 const HOP_EXTRA_SQUASH_XZ := 1.1
 const HOP_EXTRA_SQUASH_TIME := 0.09
+## The field's pace (the fix round of pass 56, the lead: with 150 to 210 gems resting on the screen, each on its own 40 to
+## 60 s, the field hopped 1.3 to 3.6 times a second, which does not read as "very rare"): a hop that would start on the
+## screen (anywhere the camera shows, the HUD's strip too) waits until HOP_EXTRA_GAP s after the last one that did, and
+## a gem whose turn comes inside the gap lets it pass and draws a new HOP_EXTRA_MIN..HOP_EXTRA_MAX wait. Off the screen a
+## gem hops on its own clock: nobody sees it.
+const HOP_EXTRA_GAP := 0.75
 ## Glints (pass 56, Garry: the medium and large gems "glint now and then"): a medium or large gem resting on the sand
 ## flashes a small four-point star (core/shaders/gem_glint.gdshader, the chest's sparkle) at its own random moments,
 ## GLINT_EVERY[size] s apart (x..y; the large a little more often), a GLINT_TIME s flare GLINT_SIZE times the gem's
@@ -173,6 +193,7 @@ var _glint_mm: MultiMesh        # the glints' four-point stars (GLINT_*)
 var _glints := 0                # glints showing now
 var _glint_last := -INF         # when the last one started
 var _rest_k := PackedFloat32Array()   # rest_of by kind, read every tick
+var _hop_last := -INF           # when the last idle hop on the screen started (HOP_EXTRA_GAP)
 
 
 func _ready() -> void:
@@ -198,12 +219,13 @@ func _gem_mesh(r: float) -> Mesh:
 	return octahedron_mesh(r)
 
 
-## The radius of kind `k`'s octahedron as drawn (pass 56): its size (GEM_R, VACUUM_R) times GEM_LOOK; 0 for a coin.
+## The radius of kind `k`'s octahedron as drawn (pass 56): its size (GEM_R, VACUUM_R) times its kind's look factor
+## (GEM_LOOK, VACUUM_LOOK); 0 for a coin.
 static func gem_radius(k: int) -> float:
 	if k >= KIND_GEM_S and k <= KIND_GEM_L:
-		return float(GEM_R[k]) * GEM_LOOK
+		return float(GEM_R[k]) * float(GEM_LOOK[k])
 	if k == KIND_VACUUM:
-		return VACUUM_R * GEM_LOOK
+		return VACUUM_R * VACUUM_LOOK
 	return 0.0
 
 
@@ -216,15 +238,26 @@ static func rest_of(k: int) -> float:
 	return maxf(REST, half + GEM_CLEAR - (0.06 - BOB))
 
 
-## Pickup `i` starts no lower than where it rests over the sand (pass 56: a drop starts 0.4 m over the creature's feet,
-## under a big gem's rest_of; it pops up from its rest instead of snapping up to it a frame later).
+## Pickup `i` starts no lower than where it rests over the sand (pass 56: a gem merged at the middle of smaller ones lies
+## under a large gem's rest_of; it pops up from its rest instead of snapping up to it a frame later).
 func _lift_to_rest(i: int) -> void:
-	if _rest_k.size() <= kind[i]:
-		return
+	var rest: float = _ground_at(pos[i].x, pos[i].z) + rest_of(kind[i])
+	if pos[i].y < rest:
+		pos[i].y = rest
+
+
+## The sand's height at (x, z): the map's, 0 without one (tests).
+func _ground_at(x: float, z: float) -> float:
 	var map = game.get("map") if game != null else null
-	var ground: float = (map.height_at(pos[i].x, pos[i].z) if map else 0.0) + _rest_k[kind[i]]
-	if pos[i].y < ground:
-		pos[i].y = ground
+	return map.height_at(x, z) if map else 0.0
+
+
+## How high a drop of kind `k` let go at `p` starts (the fix round of pass 56, the lead: the bigger gems rest higher since
+## pass 56, rest_of, and from DROP_FROM over the creature's feet they fell about half as far after the pop as in v0.41):
+## DROP_FROM - REST over its own rest, so every size falls from its pop as far as v0.41's did. One let go above the sand
+## (a barrel's burst, a creature dying in the air) keeps that height on top, as it always did.
+func _drop_y(k: int, p: Vector3) -> float:
+	return maxf(p.y, _ground_at(p.x, p.z)) + DROP_FROM + rest_of(k) - REST
 
 
 ## The gem (pass 56, Garry: "more of a Rhombohedron shape, but 3d obviously ... like a gem", then "I mean octahedron"):
@@ -351,7 +384,9 @@ func spawn(p_kind: int, at: Vector3, v: float) -> int:
 			push_warning("PickupManager: the pool of %d is full and nothing far from the hero can merge; a drop was lost" % MAX)
 		return -1
 	var i: int = free_list.pop_back()
-	pos[i] = at + Vector3(randf_range(-0.4, 0.4), 0.4, randf_range(-0.4, 0.4))
+	pos[i] = at + Vector3(randf_range(-0.4, 0.4), 0.0, randf_range(-0.4, 0.4))
+	# DROP_FROM over where it was let go, and as much higher again as its kind rests (the fix round of pass 56)
+	pos[i].y = _drop_y(p_kind, pos[i])
 	kind[i] = p_kind
 	value[i] = v
 	vel[i] = Vector3(randf_range(-1.5, 1.5), 3.0, randf_range(-1.5, 1.5))
@@ -365,8 +400,6 @@ func spawn(p_kind: int, at: Vector3, v: float) -> int:
 	hop_t[i] = -1.0
 	glint_next[i] = -1.0
 	idle_due[i] = -1.0
-	# a big gem rests higher than a drop starts (pass 56, rest_of): it pops up from there instead
-	_lift_to_rest(i)
 	alive[i] = 1
 	born[i] = _time
 	count += 1
@@ -769,8 +802,9 @@ func _physics_process(delta: float) -> void:
 
 
 ## One tick of gem `i` lying on the sand (pass 56): its idle hop's clock (the first one HOP_EXTRA_MIN..HOP_EXTRA_MAX s
-## after it lands, then as long again after each), and a medium or large gem's glint (its own GLINT_EVERY wait, then a
-## glint if the field's GLINT_GAP and GLINT_MAX allow and it is on the screen; a turn passed up waits a full wait again).
+## after it lands, then as long again after each; a turn on the screen inside HOP_EXTRA_GAP of the last hop there passes
+## and waits a full wait again), and a medium or large gem's glint (its own GLINT_EVERY wait, then a glint if the field's
+## GLINT_GAP and GLINT_MAX allow and it can be seen, _on_screen; a turn passed up waits a full wait again).
 func _idle(i: int, delta: float) -> void:
 	if hop_t[i] >= 0.0:
 		hop_t[i] += delta
@@ -780,7 +814,14 @@ func _idle(i: int, delta: float) -> void:
 	elif hop_next[i] < 0.0:
 		hop_next[i] = _time + _rng.randf_range(HOP_EXTRA_MIN, HOP_EXTRA_MAX)
 	elif _time >= hop_next[i]:
-		hop_t[i] = 0.0
+		# on the screen, one hop every HOP_EXTRA_GAP s at most across the field (the fix round of pass 56)
+		var seen := _in_view(pos[i])
+		if seen and _time - _hop_last < HOP_EXTRA_GAP:
+			hop_next[i] = _time + _rng.randf_range(HOP_EXTRA_MIN, HOP_EXTRA_MAX)
+		else:
+			hop_t[i] = 0.0
+			if seen:
+				_hop_last = _time
 	var k := kind[i]
 	var glints := k == KIND_GEM_M or k == KIND_GEM_L
 	if glints:
@@ -844,16 +885,35 @@ func _end_idle(i: int) -> void:
 	_end_glint(i)
 
 
-## Whether `p` shows on the screen (pass 56, a glint's turn): the camera's view; true without a camera (tests, tools).
-func _on_screen(p: Vector3) -> bool:
+## The run's camera rig (Game.camera) while it is in the tree; null without one (tests, tools).
+func _rig() -> CameraRig:
 	var rig = game.get("camera") if game != null else null
-	if not (rig is Node):
+	if rig is CameraRig and (rig as CameraRig).is_inside_tree():
+		return rig
+	return null
+
+
+## Whether `p` shows anywhere on the screen (the fix round of pass 56: the camera rig's own on_screen; the idle hops'
+## gap reads it). True without a camera (tests, tools).
+func _in_view(p: Vector3) -> bool:
+	var rig := _rig()
+	return rig == null or rig.on_screen(p)
+
+
+## Whether a glint at `p` would be seen (pass 56; the fix round, the lead: a glint under the HUD's strip spent the
+## allowance unseen): on the screen and lower than the strip, HUD.band_h design pixels scaled to the canvas's width the
+## way PlayerInput's thumb zone reads it. True without a camera (tests, tools).
+func _on_screen(p: Vector3) -> bool:
+	var rig := _rig()
+	if rig == null:
 		return true
-	var cam = (rig as Node).get("camera")
-	if not (cam is Camera3D) or not (cam as Camera3D).is_inside_tree():
+	if not rig.on_screen(p):
+		return false
+	var cam: Camera3D = rig.camera
+	if cam == null:
 		return true
-	var c: Camera3D = cam
-	return not c.is_position_behind(p) and c.get_viewport().get_visible_rect().has_point(c.unproject_position(p))
+	var vp := rig.get_viewport().get_visible_rect().size
+	return cam.unproject_position(p).y > HUD.band_h * vp.x / 1080.0
 
 
 ## The float every resting pickup does (pass 54, unchanged in pass 56): `i`'s height over where it lies at `t` s.

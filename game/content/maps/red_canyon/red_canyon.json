@@ -54,24 +54,48 @@
         76
       ],
       [
-        187,
+        192,
         85
       ],
       [
         192,
-        38
+        45
       ],
       [
         286,
-        52
+        75
       ],
       [
         363,
-        60
+        100
       ],
       [
         430,
-        66
+        100
+      ],
+      [
+        430,
+        54
+      ],
+      [
+        526,
+        98
+      ],
+      [
+        593,
+        102
+      ],
+      [
+        593,
+        150
+      ],
+      [
+        690,
+        168
+      ],
+      [
+        692,
+        104
       ],
       [
         860,
@@ -154,7 +178,7 @@
     "burst_max": 12,
     "spawn_interval": 0.7,
     "spawn_sides": {
-      "mode": "sides",
+      "mode": "facing",
       "top": 55,
       "bottom": 15,
       "left": 15,
@@ -247,17 +271,21 @@
       {
         "id": "r4",
         "t": 430,
-        "enemy": "dust_mummy",
+        "enemy": "fire_ant",
         "weights": [
           [
             430,
             3.0
           ],
           [
-            860,
-            5
+            537,
+            6.2
           ]
-        ]
+        ],
+        "until": 613,
+        "stats": {
+          "hp": 55
+        }
       },
       {
         "id": "r5",
@@ -269,64 +297,79 @@
             2.0
           ],
           [
-            860,
+            550,
             3
           ]
-        ]
-      },
-      {
-        "id": "r6",
-        "t": 559,
-        "enemy": "horned_toad",
-        "weights": [
-          [
-            559,
-            2
-          ],
-          [
-            860,
-            4
-          ]
-        ]
-      },
-      {
-        "id": "r7",
-        "t": 860,
-        "enemy": "dust_shaman",
-        "weights": [
-          [
-            860,
-            1
-          ],
-          [
-            861,
-            2
-          ]
-        ]
+        ],
+        "until": 549
       },
       {
         "id": "r8",
-        "t": 430,
-        "enemy": "blue_slime",
+        "t": 594,
+        "enemy": "buckshot_dwarf",
         "weights": [
           [
-            430,
-            10
+            594,
+            2
+          ],
+          [
+            657,
+            3
           ]
         ],
-        "channel": "hell"
+        "until": 692
       },
       {
-        "id": "r9",
-        "t": 602,
+        "id": "r6",
+        "t": 526,
+        "enemy": "spit_cactus",
+        "weights": [
+          [
+            526,
+            2
+          ],
+          [
+            596,
+            4.4
+          ],
+          [
+            600,
+            1.6
+          ]
+        ],
+        "until": 692,
+        "pattern": "scatter"
+      },
+      {
+        "id": "r7",
+        "t": 549,
         "enemy": "hammer_giant",
         "weights": [
           [
-            602,
-            1.5
+            549,
+            1
+          ],
+          [
+            550,
+            2
           ]
         ],
-        "channel": "hell"
+        "until": 593,
+        "pattern": "scatter"
+      },
+      {
+        "id": "r9",
+        "t": 593,
+        "enemy": "lesser_scorpion",
+        "weights": [
+          [
+            605,
+            8.0
+          ]
+        ],
+        "channel": "regular",
+        "until": 691,
+        "pattern": "pack"
       },
       {
         "id": "r10",
