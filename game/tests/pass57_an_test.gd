@@ -85,12 +85,13 @@ func test_the_key_file_parses_and_an_empty_key_sends_nothing() -> void:
 	var a: Node = auto_free(AnalyticsScript.new())
 	a.test_mode = true
 	a.load_config()
-	# the shipped file: the EU host, no key, not enabled
+	# the shipped file: the EU host; its key is Garry's to fill (pass 58: the test no longer pins it empty, or pasting
+	# his key would stop ship.sh), but it must be empty or a phc_ project key, never a secret one
 	assert_bool(a.config_found).is_true()
 	assert_str(a.host).is_equal("https://eu.i.posthog.com")
-	assert_str(a.key).is_equal("")
-	assert_bool(a.config_enabled).is_false()
-	assert_bool(a.configured()).is_false()
+	assert_bool(a.key == "" or a.key.begins_with("phc_")).override_failure_message("game/config/analytics.json holds a key that is not a phc_ project key (a phx_/phs_ key is a secret: never ship it)").is_true()
+	# an empty key sends nothing
+	a.set_config({"key": "", "enabled": true})
 	assert_str(a.block_reason()).is_equal("the key is empty")
 	assert_bool(a.track("app_open", {})).is_false()
 	assert_int(a.queue.size()).is_equal(0)
