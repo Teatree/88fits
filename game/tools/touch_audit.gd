@@ -701,9 +701,43 @@ func _settings_analytics() -> void:
 			_count("settings_analytics", ok)
 			if not ok:
 				_fail("settings_analytics", "AnalyticsSwitch", "a tap did not flip Settings.analytics (it was %s)" % str(was))
+	# pass 59: the end-of-run questions' switch flips under a finger too
+	var keep_s: bool = bool(st.get("surveys"))
+	var ssw: Control = current_scene.find_child("SurveySwitch", true, false)
+	if ssw == null:
+		_count("settings_analytics", false)
+		_fail("settings_analytics", "SurveySwitch", "the switch is not in Settings")
+	else:
+		var was_s: bool = bool(st.get("surveys"))
+		await _tap(await _spot(ssw))
+		await _wait(0.2)
+		_count("settings_analytics", bool(st.get("surveys")) != was_s)
+		if bool(st.get("surveys")) == was_s:
+			_fail("settings_analytics", "SurveySwitch", "a tap did not flip Settings.surveys")
+	st.set("surveys", keep_s)
 	st.set("analytics", keep)
 	root.get_node("Save").request_save()
 	root.get_node("Save").flush()
+	await _cards59()
+
+
+## The play-data card and the survey card (pass 59): every button answers a finger (the audit unplugs handlers while it
+## taps, so nothing is answered or sent). Opened over the title by hand: a tool run never sends, so neither comes by itself.
+func _cards59() -> void:
+	change_scene_to_file("res://ui/TitleScreen.tscn")
+	await _wait(1.2)
+	var consent: Control = load("res://ui/wanted/WConsent.gd").open(current_scene)
+	await _wait(0.6)
+	await _audit("consent_card", consent)
+	consent.queue_free()
+	var sv := {"id": "audit", "name": "Audit", "questions": [
+		{"id": "a1", "type": "rating", "question": "How much fun?", "description": "", "optional": false, "choices": [], "scale": 5, "lower": "Not fun", "upper": "Loved it"},
+		{"id": "a2", "type": "single_choice", "question": "Better?", "description": "", "optional": false, "choices": ["More", "Less"], "scale": 5, "lower": "", "upper": ""}]}
+	var card: Control = load("res://ui/wanted/WSurvey.gd").open(current_scene, sv)
+	await _wait(0.6)
+	await _audit("survey_card", card)
+	card.queue_free()
+	await _wait(0.2)
 
 
 ## The developer menu's PostHog readout (pass 57) is there, and a real tap on Send now reaches Analytics.send_now (a tool

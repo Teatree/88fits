@@ -91,8 +91,11 @@ const DUMMY_MODES := ["stand", "patrol", "melee", "ranged"]
 ## Anonymous play data (pass 57, core/autoload/Analytics.gd): what a run picks, where it falls and how the phone keeps up
 ## goes to PostHog under a random install id. On by default; it sends only when game/config/analytics.json holds a key
 ## (an empty key file means nothing is sent or kept, whatever this says). Off stops it and deletes what waits to be sent.
-## No consent card yet: Garry is the only player; the plan's rollout puts one before the Play Store.
+## Pass 59: the play-data card (ui/wanted/WConsent.gd) sets it the first time; the switch is the answer from then on.
 var analytics: bool = true
+## A couple of questions on the Results screen now and then (pass 59, PostHog Surveys through Analytics): "Questions after
+## a run" in Settings, or "Don't ask me again" on the card.
+var surveys: bool = true
 
 
 func to_dict() -> Dictionary:
@@ -108,7 +111,7 @@ func to_dict() -> Dictionary:
 		"dummy_patrol": dummy_patrol, "attacker_dummy_hp": attacker_dummy_hp,
 		"elite_dummy_hp": elite_dummy_hp, "elite_dummy_mode": elite_dummy_mode,
 		"boss_dummy_hp": boss_dummy_hp, "boss_dummy_mode": boss_dummy_mode,
-		"analytics": analytics,
+		"analytics": analytics, "surveys": surveys,
 	}
 
 
@@ -142,6 +145,7 @@ func from_dict(d: Dictionary) -> void:
 	boss_dummy_hp = int(d.get("boss_dummy_hp", boss_dummy_hp))
 	boss_dummy_mode = str(d.get("boss_dummy_mode", boss_dummy_mode))
 	analytics = bool(d.get("analytics", analytics))
+	surveys = bool(d.get("surveys", surveys))
 	changed.emit()
 
 

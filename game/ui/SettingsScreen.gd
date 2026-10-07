@@ -33,14 +33,13 @@ func board_bottom() -> float:
 
 func build() -> void:
 	set_title("Settings")
-	var version := str(ProjectSettings.get_setting("application/config/version", "0.28"))
-	_version = W.serif_text("88fits v" + version, 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
+	_version = W.serif_text(version_line(), 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
 	_version.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	_version.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_version.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_version.offset_bottom = -50
-	_version.offset_left = -200
-	_version.offset_right = 200
+	_version.offset_left = -460
+	_version.offset_right = 460
 	_version.offset_top = -50 - 29
 	_version.mouse_filter = Control.MOUSE_FILTER_STOP
 	_version.gui_input.connect(_on_version_input)
@@ -158,6 +157,13 @@ func _refresh() -> void:
 	aline.name = "AnalyticsLine"
 	aline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ap.get_child(0).add_child(aline)
+	# the end-of-run questions (pass 59): off sends survey_opt_out, so Garry sees it in PostHog
+	var srow := _row("Questions after a run")
+	var ssw := WSwitch.make(Settings.surveys)
+	ssw.name = "SurveySwitch"
+	ssw.toggled.connect(func(on: bool): Analytics.set_surveys(on, "settings"))
+	srow.add_child(ssw)
+	ap.get_child(0).add_child(srow)
 	content.add_child(ap)
 	# the player's debug options (pass 52): only while the debug mode is on
 	if Settings.debug_mode:
@@ -275,14 +281,13 @@ func _count_hint_tap() -> void:
 	Audio.play("ui_unlock" if Settings.debug_mode else "ui_locked")
 	_sync_debug_panel()
 	# the version line says so for a moment
-	var version := str(ProjectSettings.get_setting("application/config/version", "0.28"))
 	_version.text = "debug options %s" % ("ON · arena on the title, any item on level-up, hold, respawn and the last hits on Down!" if Settings.debug_mode else "OFF")
 	_version.color = W.BRASS_DARK
 	var tw := create_tween()
 	tw.tween_interval(3.0)
 	tw.tween_callback(func():
 		if is_instance_valid(_version):
-			_version.text = "88fits v" + version
+			_version.text = version_line()
 			_version.color = W.INK_SOFT)
 
 
@@ -298,6 +303,12 @@ func _wipe_now() -> void:
 	if is_instance_valid(_saved_line):
 		_saved_line.text = _saved_text()
 	_refresh()
+
+
+## The foot line (pass 59): the build and the player's name in PostHog, "88fits v0.45 · Dusty Coyote 41", so a tester can
+## read it out.
+static func version_line() -> String:
+	return "88fits v%s · %s" % [str(ProjectSettings.get_setting("application/config/version", "")), Save.player_name()]
 
 
 ## Holding the version line for 2 s opens the developer menu; lifting or sliding the finger away cancels it.

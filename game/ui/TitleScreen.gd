@@ -69,6 +69,9 @@ var _arena_btn: WButton
 ## clear middle reaches down to the hero's feet (it is under the hero in this look, over the still in the other). The
 ## stage's script by its path: a new class_name is unknown to a headless run until the editor rescans the project.
 const TitleStageScript := preload("res://ui/TitleStage.gd")
+## The play-data card (pass 59) and how long after the title comes in it asks.
+const WConsentScript := preload("res://ui/wanted/WConsent.gd")
+const CONSENT_DELAY := 0.8
 var _live := false
 var _stage: TitleStageScript
 var _lock: Control
@@ -156,6 +159,11 @@ func _ready() -> void:
 	_place()
 	_enter()
 	Audio.play_music(["mu_title"], 1)
+	# the play-data card (pass 59): once, the first time a build that can send starts, after the title has come in
+	if Analytics.consent_needed():
+		get_tree().create_timer(CONSENT_DELAY).timeout.connect(func():
+			if is_inside_tree() and Analytics.consent_needed() and get_node_or_null("Consent") == null:
+				WConsentScript.open(self))
 
 
 ## The title wash: warm at the top, clear through the middle where the hero stands, paper again at the foot. In the live

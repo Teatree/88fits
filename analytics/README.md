@@ -56,3 +56,7 @@ The same run's story also goes to PostHog through `game/core/autoload/Analytics.
 holds the Project API key (`phc_...`) and `"enabled": true`: the recorder's events renamed (`Analytics.KIND_EVENTS`),
 `run_start`, `run_end` and one `run_summary` carrying this dashboard's per-minute series. Tool runs, the gdUnit runner
 and the debug arena never send. The plan, the boards and the setup steps are in `docs/analytics_plan.html`.
+
+Pass 59: every install is a Person in PostHog named by the game (`player_name`, shown in Settings), nothing is sent before the
+play-data card on the first launch is answered, and end-of-run surveys come from PostHog Surveys (API presentation). The
+how-to (the first survey, editing questions, following a friend) is in `docs/analytics_plan.html`.

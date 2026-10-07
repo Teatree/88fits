@@ -13,9 +13,17 @@
 ## "enabled": false means nothing is sent and nothing is queued. Runs from the editor binary, debug builds and runs with
 ## the player's debug mode on do send, tagged dev: true (Garry is the only player now; the dashboards filter dev = false
 ## once there are others).
-## No consent card yet (Garry is the only player): the plan's rollout puts one in front of the first launch before the
-## Play Store. No identify calls, no account, no advertising id, no person profiles, and PostHog's IP location is
-## switched off on every event ($geoip_disable).
+## Pass 59 (Garry: "I want to be able to Identify the Player who is playing and view only their behaviour"): person
+## profiles are on, so every install is a Person in PostHog under its install id, named by `Save.player_name()` ("Dusty
+## Coyote 41", sent as the person property player_name, shown in Settings by the version); Garry labels a person in
+## PostHog with his own `label` property, which the game never writes. Nothing leaves before the play-data card
+## (ui/wanted/WConsent.gd, on the title the first time a build with a key starts) is answered: events wait in memory,
+## "No thanks" deletes them and turns the switch off. End-of-run surveys come from PostHog Surveys in API mode
+## (`fetch_surveys`: GET {host}/api/surveys/?token=<key>, cached in user://surveys_cache.json): the Results screen asks
+## `survey_after_run` and draws the questions itself (ui/wanted/WSurvey.gd), sending PostHog's own "survey shown",
+## "survey sent" and "survey dismissed"; "Don't ask me again" and Settings' switch send survey_opt_out / survey_opt_in
+## and set the person property surveys_opt_out. No account, no advertising id, and PostHog's IP location is switched
+## off on every event ($geoip_disable).
 extends Node
 
 ## A send finished (the developer menu refreshes its readout).
@@ -41,6 +49,15 @@ const EVENT_MAX := 32000
 ## The first send after launch waits this long, so last time's queue and this app_open go together.
 const LAUNCH_SEND_MS := 3000
 const HTTP_TIMEOUT := 20.0
+## The active surveys as last fetched (pass 59), so a survey can come with no network at the run's end.
+const SURVEYS_PATH := "user://surveys_cache.json"
+## A survey comes at most once every SURVEY_EVERY runs of at least SURVEY_MIN_RUN seconds, never twice in one session,
+## and each survey only until the player answers it (the first qualifying run of an install can bring one).
+const SURVEY_EVERY := 3
+const SURVEY_MIN_RUN := 60.0
+## The question types the game can draw; a survey with none of them is skipped, a question of another type (a link) is
+## left out.
+const SURVEY_TYPES := ["rating", "single_choice", "multiple_choice", "open"]
 
 ## The run recorder's event kinds and the PostHog events they become. A kind not here stays in the local record only:
 ## "level" (each level reached: the settled offer carries it), "skip" and "reroll" (folded into the offer they belong
@@ -73,6 +90,17 @@ var last_status := ""
 var last_send_unix := 0
 ## A test's own instance: the runtime gate is open (the arena and the switch still count) and the sender is its own.
 var test_mode := false
+## A test that checks the play-data card's gate turns it on (other tests' instances skip it).
+var test_consent_gate := false
+## The surveys PostHog says are running (pass 59): [{id, name, questions: [{id, type, question, description, optional,
+## choices, scale, display, lower, upper}]}], from the cache at launch and from fetch_surveys after.
+var surveys: Array = []
+## The last survey fetch's answer ("HTTP 200 · 1 active", "network: ...", "" = none yet) for the developer menu.
+var survey_status := ""
+var survey_cache_path := SURVEYS_PATH
+var _survey_http: HTTPRequest
+var _survey_fetching := false
+var _survey_this_session := false
 ## The one place a batch leaves the game: (url: String, body: String) -> void, answered by send_done(). A test puts its
 ## own Callable here (no network in tests).
 var sender: Callable
@@ -120,12 +148,21 @@ func _ready() -> void:
 	_http.timeout = HTTP_TIMEOUT
 	add_child(_http)
 	_http.request_completed.connect(_on_request_completed)
+	_survey_http = HTTPRequest.new()
+	_survey_http.name = "SurveyHttp"
+	_survey_http.timeout = HTTP_TIMEOUT
+	add_child(_survey_http)
+	_survey_http.request_completed.connect(_on_surveys_done)
 	Settings.changed.connect(_on_settings_changed)
 	load_queue()
+	load_survey_cache()
 	var first := not Save.has_install_id()
 	new_session()
-	track("app_open", {"cold": true, "first_launch": first, "runs": Save.total("runs"), "gold": Save.gold()})
+	track("app_open", {"cold": true, "first_launch": first, "runs": Save.total("runs"), "gold": Save.gold(),
+		"$set": person_properties(), "$set_once": {"first_app_version": str(ProjectSettings.get_setting("application/config/version", ""))}})
 	_next_flush_ms = Time.get_ticks_msec() + LAUNCH_SEND_MS
+	if Save.consent() == "yes":
+		fetch_surveys.call_deferred()
 
 
 # ---------------------------------------------------------------- the key file and the gate
@@ -241,7 +278,7 @@ func super_properties() -> Dictionary:
 		_fixed = {"schema": SCHEMA, "app_version": str(ProjectSettings.get_setting("application/config/version", "")),
 			"os": OS.get_name(), "os_version": OS.get_version(), "device": OS.get_model_name(),
 			"screen": "%dx%d" % [scr.x, scr.y], "lang": OS.get_locale_language(),
-			"$lib": LIB, "$lib_version": str(SCHEMA), "$process_person_profile": false, "$geoip_disable": true}
+			"$lib": LIB, "$lib_version": str(SCHEMA), "$geoip_disable": true}
 	var did := Save.install_id()
 	var p := _fixed.duplicate()
 	p["top_inset"] = int(round(W.safe_top()))
@@ -539,7 +576,7 @@ func map_rev(m: MapDef) -> String:
 ## queue removes the file. A tool or the test runner never touches the player's file.
 func save_queue() -> void:
 	_since_save = 0
-	if runtime_block() != "":
+	if runtime_block() != "" or awaiting_consent():
 		return
 	if queue.is_empty():
 		_remove(queue_path)
@@ -589,13 +626,22 @@ func _remove(p: String) -> void:
 func _on_settings_changed() -> void:
 	if not Settings.analytics and runtime_block() == "" and (not queue.is_empty() or FileAccess.file_exists(queue_path)):
 		purge()
+	if _answering or runtime_block() != "" or Save.consent() == "":
+		return
+	# the switch is the answer from then on (pass 59): on after a "no" records a yes (and says so), off records a no
+	if Settings.analytics and Save.consent() == "no":
+		Save.set_consent("yes")
+		track("consent", {"accepted": true, "where": "settings", "$set": person_properties()})
+		fetch_surveys()
+	elif not Settings.analytics and Save.consent() == "yes":
+		Save.set_consent("no")
 
 
 # ---------------------------------------------------------------- the wire
 
 ## Sends the oldest BATCH_MAX events when nothing is on the wire and no backoff is running. Returns whether it sent.
 func flush() -> bool:
-	if queue.is_empty() or _in_flight > 0 or _requesting or not active():
+	if queue.is_empty() or _in_flight > 0 or _requesting or not active() or awaiting_consent():
 		return false
 	if Time.get_ticks_msec() < _retry_at_ms:
 		return false
@@ -724,6 +770,8 @@ func status_lines() -> PackedStringArray:
 	out.append("tagged dev: %s" % ("yes" if is_dev() else "no"))
 	out.append("host: " + host)
 	out.append("install id: " + (str(Save.data.get("install_id", "")) if Save.has_install_id() else "none yet"))
+	out.append("player: %s · play-data card: %s" % [Save.player_name(), {"": "not answered", "yes": "yes", "no": "no"}.get(Save.consent(), "?")])
+	out.append("surveys: %d running · %s · questions after a run %s" % [surveys.size(), survey_status if survey_status != "" else "not fetched", "on" if Settings.surveys else "off"])
 	if session_id != "":
 		out.append("session: %s · %d min" % [session_id.left(8), int((Time.get_unix_time_from_system() - _session_start) / 60.0)])
 	out.append("queue: %d waiting%s" % [queue.size(), (" · %d on the wire" % _in_flight) if _in_flight > 0 else ""])
@@ -743,5 +791,211 @@ func status_lines() -> PackedStringArray:
 ## still false had said the key file was empty).
 func settings_line() -> String:
 	if configured():
-		return "Runs, picks, falls and frame rate, no name or account. Off deletes what waits."
+		return "Your runs (picks, falls, frame rate) go to the maker under your player name, at the foot of this screen. No account, no location. Off deletes what waits."
 	return "Nothing is sent: %s." % block_reason()
+
+# ---------------------------------------------------------------- the player (pass 59)
+
+## The person properties every app_open and consent sets: the game's name for the install, the build, the survey switch.
+## Garry's own `label` is never among them, so PostHog keeps it.
+func person_properties() -> Dictionary:
+	return {"player_name": Save.player_name(), "app_version": str(ProjectSettings.get_setting("application/config/version", "")),
+		"surveys_opt_out": not Settings.surveys, "analytics_consent": Save.consent() == "yes"}
+
+
+## The play-data card has not been answered: events wait in memory, nothing goes out or to disk.
+func awaiting_consent() -> bool:
+	if test_mode and not test_consent_gate:
+		return false
+	return Save.consent() == ""
+
+
+## Whether the title shows the play-data card: a build that could send (a key, enabled, a real run of the app, not
+## the arena) whose player has not answered it.
+func consent_needed() -> bool:
+	return Save.consent() == "" and configured() and runtime_block() == "" and not in_arena()
+
+
+var _answering := false
+
+
+## The card's answer. Yes: the switch on, a "consent" event with the person's properties, what waited goes, the
+## surveys are fetched. No: the switch off and everything that waited is deleted; nothing is sent.
+func answer_consent(yes: bool) -> void:
+	_answering = true
+	Save.set_consent("yes" if yes else "no")
+	Settings.set_value("analytics", yes)
+	_answering = false
+	if yes:
+		track("consent", {"accepted": true, "where": "card", "$set": person_properties()})
+		save_queue()
+		flush()
+		fetch_surveys()
+	else:
+		purge()
+
+
+# ---------------------------------------------------------------- surveys (pass 59)
+
+## PostHog's public survey list for this project (the project key is enough to read it).
+func surveys_url() -> String:
+	return host + "/api/surveys/?token=" + key.uri_encode()
+
+
+## Asks PostHog for the running surveys (once at launch after consent, and after a yes on the card).
+func fetch_surveys() -> void:
+	if _survey_http == null or _survey_fetching or not active() or awaiting_consent():
+		return
+	_survey_fetching = true
+	var err := _survey_http.request(surveys_url())
+	if err != OK:
+		_survey_fetching = false
+		survey_status = "request: " + error_string(err)
+
+
+func _on_surveys_done(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	_survey_fetching = false
+	if result != HTTPRequest.RESULT_SUCCESS:
+		survey_status = "network: %s" % _result_name(result)
+		return
+	if code != 200:
+		survey_status = "HTTP %d" % code
+		return
+	var n := set_surveys_from(JSON.parse_string(body.get_string_from_utf8()))
+	survey_status = "HTTP 200 · %d running" % n
+	save_survey_cache()
+
+
+## PostHog's answer ({"surveys": [...]}) made into the surveys the game can ask: launched (a start date), not ended,
+## not archived, with at least one question it can draw. Returns how many.
+func set_surveys_from(j) -> int:
+	surveys = []
+	if not (j is Dictionary):
+		return 0
+	var list = (j as Dictionary).get("surveys", [])
+	if not (list is Array):
+		return 0
+	for sv in list:
+		var n := normalise_survey(sv)
+		if not n.is_empty():
+			surveys.append(n)
+	return surveys.size()
+
+
+## One survey as the card needs it, or {} when the game cannot or should not ask it.
+static func normalise_survey(sv) -> Dictionary:
+	if not (sv is Dictionary):
+		return {}
+	var d: Dictionary = sv
+	var id := str(d.get("id", ""))
+	if id == "" or str(d.get("type", "")) == "external_survey" or bool(d.get("archived", false)):
+		return {}
+	if d.get("start_date") == null or str(d.get("start_date", "")) == "":
+		return {}
+	if d.get("end_date") != null and str(d.get("end_date", "")) != "":
+		return {}
+	var qs: Array = []
+	var raw = d.get("questions", [])
+	for q in (raw if raw is Array else []):
+		if not (q is Dictionary) or not SURVEY_TYPES.has(str(q.get("type", ""))):
+			continue
+		var choices: Array = []
+		for c in (q.get("choices", []) if q.get("choices") is Array else []):
+			choices.append(str(c))
+		if str(q.get("type")) in ["single_choice", "multiple_choice"] and choices.is_empty():
+			continue
+		qs.append({"id": str(q.get("id", "")), "type": str(q.get("type")), "question": str(q.get("question", "")),
+			"description": str(q.get("description", "")) if q.get("description") != null else "",
+			"optional": bool(q.get("optional", false)), "choices": choices,
+			"scale": clampi(int(q.get("scale", 5)) if q.get("scale") != null else 5, 2, 10),
+			"lower": str(q.get("lowerBoundLabel", "")) if q.get("lowerBoundLabel") != null else "",
+			"upper": str(q.get("upperBoundLabel", "")) if q.get("upperBoundLabel") != null else ""})
+	if qs.is_empty():
+		return {}
+	return {"id": id, "name": str(d.get("name", "")), "questions": qs}
+
+
+func save_survey_cache() -> void:
+	if runtime_block() != "":
+		return
+	var f := FileAccess.open(survey_cache_path, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify({"surveys": surveys}))
+		f.close()
+
+
+func load_survey_cache() -> void:
+	surveys = []
+	if not FileAccess.file_exists(survey_cache_path):
+		return
+	var j = JSON.parse_string(FileAccess.get_file_as_string(survey_cache_path))
+	if j is Dictionary and j.get("surveys") is Array:
+		for sv in j["surveys"]:
+			if sv is Dictionary and str(sv.get("id", "")) != "" and sv.get("questions") is Array and not (sv["questions"] as Array).is_empty():
+				surveys.append(sv)
+
+
+## The Results screen's question (Garry: "ask people a couple of questions at the end of the run ... Only the Result
+## Screens"): counts this run when it lasted SURVEY_MIN_RUN seconds and returns the survey to ask now, or {}. At most
+## one every SURVEY_EVERY counted runs, never twice in a session, each survey until it is answered, none when the
+## player said "Don't ask me again" or play data is off.
+func survey_after_run(run_seconds: float) -> Dictionary:
+	if not Settings.surveys or not active() or awaiting_consent() or run_seconds < SURVEY_MIN_RUN:
+		return {}
+	var st := Save.survey_state()
+	var since := int(st.get("runs_since", SURVEY_EVERY - 1)) + 1
+	st["runs_since"] = since
+	Save.request_save()
+	if since < SURVEY_EVERY or _survey_this_session:
+		return {}
+	var answered: Array = st.get("answered", []) if st.get("answered") is Array else []
+	for sv in surveys:
+		if not answered.has(str(sv.get("id", ""))):
+			st["runs_since"] = 0
+			_survey_this_session = true
+			return sv
+	return {}
+
+
+func survey_shown(sv: Dictionary) -> void:
+	track("survey shown", {"$survey_id": str(sv.get("id", "")), "$survey_name": str(sv.get("name", ""))})
+
+
+## Closed without answering ("Not now"): PostHog marks it dismissed for this person; it may come again in a later run.
+func survey_dismissed(sv: Dictionary) -> void:
+	var id := str(sv.get("id", ""))
+	track("survey dismissed", {"$survey_id": id, "$survey_name": str(sv.get("name", "")), "$set": {"$survey_dismissed/" + id: true}})
+
+
+## The answers ({question id: value}: a rating an int, a choice a String, several choices an Array, a text a String) in
+## PostHog's own shape: one $survey_response_<question id> each and the $survey_questions list. The survey is not
+## asked again.
+func survey_sent(sv: Dictionary, answers: Dictionary) -> Dictionary:
+	var id := str(sv.get("id", ""))
+	var listed: Array = []
+	var p := {"$survey_id": id, "$survey_name": str(sv.get("name", "")), "$survey_completed": true,
+		"$survey_submission_id": uuid7(), "$set": {"$survey_responded/" + id: true}}
+	for q in sv.get("questions", []):
+		var qid := str(q.get("id", ""))
+		var has := answers.has(qid)
+		listed.append({"id": qid, "question": str(q.get("question", "")), "response": answers[qid] if has else null})
+		if has:
+			p["$survey_response_" + qid] = answers[qid]
+	p["$survey_questions"] = listed
+	track("survey sent", p)
+	var st := Save.survey_state()
+	var answered: Array = st.get("answered", []) if st.get("answered") is Array else []
+	if not answered.has(id):
+		answered.append(id)
+	st["answered"] = answered
+	Save.request_save()
+	return p
+
+
+## The survey switch (Settings' "Questions after a run", or "Don't ask me again" on the card): opting out is told to
+## PostHog (survey_opt_out, surveys_opt_out on the person) so Garry sees who did; opting back in likewise.
+func set_surveys(on: bool, where: String) -> void:
+	if Settings.surveys == on:
+		return
+	Settings.set_value("surveys", on)
+	track("survey_opt_in" if on else "survey_opt_out", {"where": where, "$set": {"surveys_opt_out": not on}})

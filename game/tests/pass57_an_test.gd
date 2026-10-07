@@ -157,10 +157,9 @@ func test_the_install_id_is_made_once_and_kept() -> void:
 	var in_arena := Save.install_id()
 	Save.end_sandbox()
 	assert_str(Save.install_id()).is_equal(in_arena)
-	# a wipe makes a new anonymous player
+	# pass 59 (Garry: "they should keep the same id"): a wipe keeps the player
 	Save.wipe()
-	assert_bool(Save.has_install_id()).is_false()
-	assert_str(Save.install_id()).is_not_equal(in_arena)
+	assert_str(Save.install_id()).is_equal(in_arena)
 	Save.dir = _save_dir
 	Save.load_save()
 
@@ -171,12 +170,13 @@ func test_events_carry_the_super_properties_and_the_run_ids() -> void:
 	var e: Dictionary = a.queue[0]
 	var p: Dictionary = e["properties"]
 	for k in ["schema", "app_version", "os", "os_version", "device", "screen", "top_inset", "lang", "dev", "session_id",
-			"$session_id", "distinct_id", "$lib", "$process_person_profile", "$geoip_disable"]:
+			"$session_id", "distinct_id", "$lib", "$geoip_disable"]:
 		assert_bool(p.has(k)).override_failure_message("missing " + k).is_true()
 	assert_int(int(p["schema"])).is_equal(1)
 	assert_str(str(p["app_version"])).is_equal(str(ProjectSettings.get_setting("application/config/version")))
 	assert_bool(bool(p["dev"])).is_true()   # the editor binary runs the tests
-	assert_bool(bool(p["$process_person_profile"])).is_false()
+	# pass 59: person profiles are on (no $process_person_profile: false)
+	assert_bool(p.has("$process_person_profile")).is_false()
 	assert_str(str(p["distinct_id"])).is_equal(Save.install_id())
 	assert_str(str(e["distinct_id"])).is_equal(Save.install_id())
 	assert_str(str(p["session_id"])).is_equal(a.session_id)
@@ -577,7 +577,7 @@ func test_send_now_and_the_readout() -> void:
 	assert_str(text).not_contains(KEY)
 	# the line under the Settings switch says what goes, or why nothing does (pass 58: the reason, not "the key file is
 	# empty" whatever the reason was)
-	assert_str(a.settings_line()).contains("no name")
+	assert_str(a.settings_line()).contains("player name")
 	var empty := _client(true, "")
 	assert_str(empty.settings_line()).contains("the key is empty")
 	var off := _client(false)

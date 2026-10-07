@@ -89,6 +89,12 @@ func _default() -> Dictionary:
 		"hero_look": {},
 		# the anonymous id the play data goes out under (pass 57, install_id()): made the first time it is asked for
 		"install_id": "",
+		# pass 59: the name PostHog shows for this install ("Dusty Coyote 41", player_name()), the answer to the play-data
+		# card ("" not asked yet, "yes", "no") and the end-of-run survey record (Analytics.survey_after_run). All four are
+		# the player, not the progress: a wipe keeps them (KEEP_ON_WIPE)
+		"player_name": "",
+		"consent": "",
+		"survey": {},
 	}
 
 
@@ -374,8 +380,8 @@ func set_hero_look(id: String, code: String) -> void:
 # ---------------------------------------------------------------- the install id (pass 57)
 
 ## The anonymous id the play data goes out under (pass 57, core/autoload/Analytics.gd, PostHog's distinct_id): a random
-## UUID v4, made the first time it is asked for and kept in the save. No account, no advertising id, no device serial:
-## a wipe makes a new one, and with it a new anonymous player. Made inside the arena's sandbox (it is not: the arena
+## UUID v4, made the first time it is asked for and kept in the save. No account, no advertising id, no device serial.
+## Pass 59 (Garry: "they should keep the same id"): a wipe keeps it, so one tester stays one person in PostHog. Made inside the arena's sandbox (it is not: the arena
 ## sends nothing), it goes into the copy end_sandbox puts back too, so it is never made twice.
 func install_id() -> String:
 	var id := str(data.get("install_id", ""))
@@ -405,9 +411,75 @@ static func new_uuid4() -> String:
 	return "%s-%s-%s-%s-%s" % [h.substr(0, 8), h.substr(8, 4), h.substr(12, 4), h.substr(16, 4), h.substr(20, 12)]
 
 
-## A wipe is a wipe: the backup is removed too, so nothing comes back from it.
+## The player's own keys a wipe keeps (pass 59): who they are to PostHog, their answer to the play-data card and their
+## survey record. Everything else (gold, talents, quests, totals, what has been met, settings) goes.
+const KEEP_ON_WIPE := ["install_id", "player_name", "consent", "survey"]
+
+## The western words a player's name is made of (pass 59, Garry: "assign them some type of ID / name"): an adjective, a
+## noun and a number, 32 x 32 x 90 = 92,160 names.
+const NAME_ADJ := ["Dusty", "Rusty", "Lucky", "Salty", "Crooked", "Quiet", "Lonesome", "Sly", "Rowdy", "Gritty",
+	"Sunburnt", "Wild", "Copper", "Brass", "Ragged", "Smoky", "Thirsty", "Restless", "Stubborn", "Lanky",
+	"Grumpy", "Sleepy", "Jolly", "Silver", "Midnight", "Red", "Desert", "Prairie", "Canyon", "Hungry", "Lazy", "Swift"]
+const NAME_NOUN := ["Coyote", "Rattler", "Buzzard", "Mustang", "Drifter", "Outlaw", "Prospector", "Tumbleweed",
+	"Jackrabbit", "Gila", "Scorpion", "Bandit", "Wrangler", "Cactus", "Vulture", "Bronco", "Sheriff", "Deputy",
+	"Gambler", "Stranger", "Rustler", "Cowpoke", "Roadrunner", "Armadillo", "Lizard", "Mule", "Hawk", "Bison",
+	"Ranger", "Miner", "Tinker", "Nomad"]
+
+
+## The name this install goes by in PostHog (pass 59), made from its install id, so the same id always reads the same
+## name ("Dusty Coyote 41"); shown in Settings beside the version so a tester can read it out.
+func player_name() -> String:
+	var n := str(data.get("player_name", ""))
+	if n != "":
+		return n
+	n = name_for(install_id())
+	data["player_name"] = n
+	if _sandboxed:
+		_sandbox_backup["player_name"] = n
+		_write(_sandbox_backup)
+	else:
+		request_save()
+	return n
+
+
+## The name an id reads as: an adjective, a noun and a number from the id's own hash.
+static func name_for(id: String) -> String:
+	var h := id.md5_buffer()
+	return "%s %s %d" % [NAME_ADJ[h[0] % NAME_ADJ.size()], NAME_NOUN[h[1] % NAME_NOUN.size()], 10 + (h[2] % 90)]
+
+
+## The answer to the play-data card (pass 59): "" not asked yet, "yes" or "no".
+func consent() -> String:
+	return str(data.get("consent", ""))
+
+
+func set_consent(answer: String) -> void:
+	data["consent"] = answer
+	if _sandboxed:
+		_sandbox_backup["consent"] = answer
+		_write(_sandbox_backup)
+	else:
+		request_save()
+
+
+## The end-of-run survey record (pass 59): {answered: [survey ids], runs_since: runs since the last one shown}.
+func survey_state() -> Dictionary:
+	var st = data.get("survey", {})
+	if not (st is Dictionary):
+		st = {}
+	data["survey"] = st
+	return st
+
+
+## A wipe takes the progress: the backup is removed too, so nothing comes back from it. The player's own keys stay
+## (KEEP_ON_WIPE, pass 59).
 func wipe() -> void:
+	var keep := {}
+	for k in KEEP_ON_WIPE:
+		if data.has(k):
+			keep[k] = data[k]
 	data = _default()
+	data.merge(keep, true)
 	save_now()
 	if FileAccess.file_exists(bak_path()):
 		DirAccess.remove_absolute(bak_path())

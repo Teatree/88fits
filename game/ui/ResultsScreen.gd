@@ -25,6 +25,10 @@ const SOURCES := {
 
 var _count: WText
 var _banked := 0
+## The end-of-run survey (pass 59): PostHog's questions, when Analytics has one due, SURVEY_DELAY after the screen comes in.
+const WSurveyScript := preload("res://ui/wanted/WSurvey.gd")
+const SURVEY_DELAY := 1.4
+var _survey: Control
 
 
 func use_header() -> bool:
@@ -160,6 +164,7 @@ func build() -> void:
 			content.add_child(_gap(16))
 		QuestTracker.just_completed.clear()
 	_count_up.call_deferred()
+	_offer_survey.call_deferred(float(s["time"]))
 	# the buttons: PLAY AGAIN, then Upgrade and Main Menu
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 22)
@@ -385,4 +390,20 @@ func _count_up() -> void:
 
 
 func on_back() -> void:
+	# the back gesture closes the survey card first ("Not now")
+	if is_instance_valid(_survey) and not bool(_survey.call("is_done")):
+		_survey.call("dismiss")
+		return
 	go(TITLE)
+
+
+## Asks Analytics whether this run brings a survey (pass 59: at most one every few runs of a minute or more, never in a
+## run's first minute, never twice a session, never after "Don't ask me again") and opens it after a beat.
+func _offer_survey(run_seconds: float) -> void:
+	var sv: Dictionary = Analytics.survey_after_run(run_seconds)
+	if sv.is_empty():
+		return
+	await get_tree().create_timer(SURVEY_DELAY).timeout
+	if not is_inside_tree():
+		return
+	_survey = WSurveyScript.open(self, sv)
