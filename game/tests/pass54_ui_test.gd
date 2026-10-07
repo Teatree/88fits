@@ -231,8 +231,8 @@ func test_the_mutation_offer_runs_the_reel_before_its_head_and_cards() -> void:
 	assert_bool(cs._path_skip.visible).is_true()
 	assert_float(cs._path_name.modulate.a).is_equal(1.0)
 	assert_int(cs._cards.size()).is_equal(offer.size())
-	# the rail shows the run's XP on a mutation offer
-	assert_float(cs.rail_frac()).is_equal_approx(clampf(Run.xp / maxf(Run.xp_to_next(), 1.0), 0.0, 1.0), 0.0001)
+	# pass 58: the rail is full on a mutation offer too (Garry: "it should be the full EXP bar every time")
+	assert_float(cs.rail_frac()).is_equal(1.0)
 	# a skip mid-reel closes on nothing and leaves no reel behind
 	cs.show_offer(CardPool.path_offer(w), "MUTATION", false, true)
 	assert_bool(cs.reel_running()).is_true()

@@ -6,6 +6,7 @@
 //   interval (a number or [min, max]) | overrides | alts | list (array of numbers) | points (cap curve)
 //   weights (presence keyframes [[t, w], ...]) | swatch (one hex colour) | swatches (a list of hex colours)
 //   curve ({mode, points, formula}: the HP x / ATK x lanes) | spawn_sides (the compass block)
+//   size_range (pass 58: one size or [min, max]) | tint (pass 58: {hue: [from, to], sat, val, amount})
 'use strict';
 
 const FIELDS = (() => {
@@ -49,7 +50,7 @@ const FIELDS = (() => {
     { key: 'channel', label: 'Channel', type: 'select', options: CHANNELS, def: 'regular', help: 'regular crowd, or the hell channel with its own cap' },
     { key: 'pack', label: 'Pack', type: 'int', min: 1, help: 'how many spawn together; empty = the creature\'s own pack size' },
     { key: 'pattern', label: 'Pattern', type: 'select', options: PATTERNS, def: 'pack', help: 'pack at one point, scattered, one at a time, a ring round the hero (the pack at once, 11.7 m out) or in front (from the top of the screen, whatever the spawn side in Settings says)' },
-    { key: 'variant', label: 'Art variant', type: 'variant', help: 'the art variant code to spawn with; empty = the one in play (the creature JSON\'s own `variant`)' },
+    { key: 'variant', label: 'Art variant', type: 'variant', help: 'the look to spawn with. Default = the creature\'s default look (set on the Creatures tab; the row follows it when it changes); a code picked here pins the row to that look' },
     { key: 'stats', label: 'Overrides', type: 'overrides', help: 'stat overrides for this row\'s creatures (every key optional)' },
   ];
 
@@ -73,7 +74,7 @@ const FIELDS = (() => {
   const alt = [
     { key: 'chance', label: 'Chance', type: 'percent', def: 1, help: 'its share of the roll (the chances are normalised: 50 / 50 or 1 / 1 both mean half)' },
     { key: 'enemy', label: 'Creature', type: 'enemy', required: true, help: 'the creature' },
-    { key: 'variant', label: 'Art variant', type: 'variant', help: 'the art variant code; empty = the one in play' },
+    { key: 'variant', label: 'Art variant', type: 'variant', help: 'the look; Default = the creature\'s default look (the Creatures tab), a code pins this alternative to that look' },
     { key: 'pack', label: 'Pack', type: 'int', min: 1, help: 'how many of a burst stand together; a burst bigger than the pack is several packs; empty = the creature\'s pack size' },
     { key: 'stats', label: 'Overrides', type: 'overrides', help: 'stat overrides for this alternative\'s creatures' },
   ];
@@ -97,7 +98,7 @@ const FIELDS = (() => {
     { key: 'pattern', label: 'Pattern', type: 'select', options: SWARM_PATTERNS, def: 'ring', only: ['swarm'], help: 'the swarm\'s own ring 16 m round the hero, packs / singles through the spawn points, or all from the top of the screen (in front)' },
     { key: 'chance', label: 'Chance', type: 'percent', def: 1, help: 'the chance the event happens at all, rolled per run (100 = always)' },
     { key: 't_jitter', label: 'Jitter (± s)', type: 'number', min: 0, step: 1, def: 0, help: 'the time moves by up to this many seconds either way, rolled per run' },
-    { key: 'variant', label: 'Art variant', type: 'variant', help: 'the art variant code for what it spawns; empty = the one in play' },
+    { key: 'variant', label: 'Art variant', type: 'variant', help: 'the look of what it spawns; Default = each creature\'s default look (the Creatures tab), a code pins it' },
     { key: 'stats', label: 'Overrides', type: 'overrides', help: 'stat overrides for what it spawns' },
   ];
 
@@ -107,17 +108,24 @@ const FIELDS = (() => {
   const sub = (c, blk, k) => (c && c[blk] && c[blk][k] != null ? c[blk][k] : '');
   const sub2 = (c, blk, blk2, k) => (c && c[blk] && c[blk][blk2] && c[blk][blk2][k] != null ? c[blk][blk2][k] : '');
   const OVERRIDES = [
-    { path: 'hp', group: 'Body', label: 'HP', type: 'number', min: 0, ph: (c) => n(c, 'hp'), help: 'health before the time, stage and level multipliers' },
+    // pass 58 (R1): the grey number is the row's own HP, the creature's × the HP curve at the row's start, fixed for the
+    // row's whole life; the inspector fills it in (the `ph` here is the creature's plain number, for the other uses)
+    { path: 'hp', group: 'Body', label: 'HP', type: 'number', min: 0, ph: (c) => n(c, 'hp'), help: 'the row\'s health. Empty = the creature\'s own × the HP curve at the row\'s start (the grey number: it follows the bar when you move it), fixed for all the row\'s creatures; a number typed here takes no curve. The stage multiplier, creature_hp_mult and the hero level come on top in the game' },
     { path: 'hp_mult', group: 'Body', label: 'HP ×', type: 'number', min: 0, step: 0.1, ph: () => 1, help: 'multiplies the health (stacks on hp)' },
-    { path: 'damage', group: 'Body', label: 'Damage', type: 'number', min: 0, ph: (c) => n(c, 'damage'), help: 'a bite\'s damage (ranged shots use their own)' },
+    { path: 'damage', group: 'Body', label: 'Damage', type: 'number', min: 0, ph: (c) => n(c, 'damage'), help: 'a bite\'s damage (ranged shots use their own). Empty = the creature\'s own × the damage curve at the row\'s start (the grey number), fixed for the row\'s creatures and every hit they deal; a number typed here takes no curve' },
     { path: 'damage_mult', group: 'Body', label: 'Damage ×', type: 'number', min: 0, step: 0.1, ph: () => 1, help: 'multiplies the damage' },
     { path: 'speed', group: 'Body', label: 'Speed', type: 'number', min: 0, step: 0.1, ph: (c) => n(c, 'speed'), help: 'move speed in m/s (before move_pace)' },
     { path: 'speed_mult', group: 'Body', label: 'Speed ×', type: 'number', min: 0, step: 0.1, ph: () => 1, help: 'multiplies the move speed' },
-    { path: 'size', group: 'Body', label: 'Size', type: 'number', min: 0.1, step: 0.05, ph: (c) => n(c, 'size'), help: 'the painting\'s height in metres' },
+    // pass 58 (R2, Garry: "editable as a kind of a range (between 3-5 for example) and there should be the default one
+    // already set for them so I have a reference"): one number, or a range each creature rolls its own size in
+    { path: 'size', group: 'Body', label: 'Size (m)', type: 'size_range', min: 0.05, step: 0.05, ph: (c) => n(c, 'size'), help: 'the painting\'s height in metres: one number (the variance\'s size spread still on top, the body\'s radius unchanged), or from / to: each creature rolls its own size in the range instead of the spread, and its collision radius follows its size (radius × size / its own size) unless Radius is set; a coloured special grows by its size factor but never past the range\'s top, an elite-modified one takes its modifier\'s scale on top. A list of one size written by hand ([2]) is every creature exactly that size, no spread, its radius following (the game reads it as a range). The grey numbers are the creature\'s own size and its spread' },
     { path: 'radius', group: 'Body', label: 'Radius', type: 'number', min: 0.05, step: 0.05, ph: (c) => n(c, 'radius'), help: 'the body\'s collision radius in metres' },
     { path: 'damage_reduction', group: 'Body', label: 'Damage reduction', type: 'number', min: 0, max: 0.95, step: 0.05, ph: (c) => n(c, 'damage_reduction'), help: 'the share of every hit it shrugs off (0.25 = a quarter less)' },
     { path: 'knockback', group: 'Body', label: 'Knockback (m/s)', type: 'number', min: 0, step: 0.5, ph: (c) => (c ? App.knockbackOf(c) : ''), help: 'the shove the hero takes from a bite, in m/s; the grey number is the creature\'s own, or the game\'s default from its damage: clamp(3.4 × √(damage / 4), 2.5, 7) (a 4-damage bite shoves 3.4). A shot without its own knockback shoves 0.7 of it' },
     { path: 'knockback_mult', group: 'Body', label: 'Knockback ×', type: 'number', min: 0, step: 0.1, ph: () => 1, help: 'multiplies the bite\'s knockback and the charge, ranged, kamikaze and boss-attack knockback' },
+    // pass 58 (R3, Garry: "I want a version that kind of colours all the enemies that come out of that wave. I'd like a
+    // colour slider and a preview showing the actual enemy")
+    { path: 'tint', group: 'Colour', label: 'Colour range', type: 'tint', help: 'every creature of this row rolls a hue in the range (from → to on the colour wheel; a range whose end is below its start runs through red) and is washed with that colour at this strength, the saturation and brightness as set. It replaces the creature\'s own random tints (Elite group). A coloured special of this row (once Colour after kills is reached) is a darker, stronger shade of the hue it rolled: saturation +0.15, brightness ×0.7, at the larger of Amount and its own tint strength, +0.15 (the last picture). An elite modifier\'s colour and burn, poison and freeze still show over it. On from the first creature (not held back by Colour after kills)' },
     { path: 'contact_cd', group: 'Attacks', label: 'Bite every (s)', type: 'number', min: 0.05, step: 0.05, ph: (c) => n(c, 'contact_cd'), help: 'seconds between bites (the creature\'s default 0.6)' },
     { path: 'attack_rate_mult', group: 'Attacks', label: 'Attack rate ×', type: 'number', min: 0.1, step: 0.1, ph: () => 1, help: '2 = attacks twice as often: divides ranged / charge cooldowns, the kamikaze wind-up, boss cooldowns and the bite time' },
     { path: 'projectile_speed_mult', group: 'Attacks', label: 'Projectile speed ×', type: 'number', min: 0.1, step: 0.1, ph: () => 1, help: 'multiplies the shots\' speed (ranged, artillery missiles, boss attacks)' },
@@ -150,8 +158,8 @@ const FIELDS = (() => {
     { path: 'variance.special.hp', group: 'Elite', label: 'Special HP ×', type: 'number', min: 0.1, step: 0.1, ph: (c) => sub2(c, 'variance', 'special', 'hp'), help: 'a special has this much more health (default 1.6)' },
     { path: 'variance.special.damage', group: 'Elite', label: 'Special damage ×', type: 'number', min: 0.1, step: 0.1, ph: (c) => sub2(c, 'variance', 'special', 'damage'), help: 'a special bites this much harder (default 1.2)' },
     { path: 'variance.special.xp', group: 'Elite', label: 'Special XP ×', type: 'number', min: 0.1, step: 0.1, ph: (c) => sub2(c, 'variance', 'special', 'xp'), help: 'a special pays this much more XP (default 2)' },
-    { path: 'variance.special.tint', group: 'Elite', label: 'Special tint', type: 'swatch', ph: (c) => sub2(c, 'variance', 'special', 'tint'), help: 'the special\'s colour (the dark saturated wash that marks it)' },
-    { path: 'variance.special.tint_strength', group: 'Elite', label: 'Special tint strength', type: 'number', min: 0, max: 1, step: 0.05, ph: (c) => sub2(c, 'variance', 'special', 'tint_strength'), help: 'how strongly the special\'s colour shows (default 0.6)' },
+    { path: 'variance.special.tint', group: 'Elite', label: 'Special tint', type: 'swatch', ph: (c) => sub2(c, 'variance', 'special', 'tint'), help: 'the special\'s colour (the dark saturated wash that marks it); in a row with a Colour range the special takes a darker shade of the hue it rolled instead' },
+    { path: 'variance.special.tint_strength', group: 'Elite', label: 'Special tint strength', type: 'number', min: 0, max: 1, step: 0.05, ph: (c) => sub2(c, 'variance', 'special', 'tint_strength'), help: 'how strongly the special\'s colour shows (default 0.6); in a row with a Colour range its shade shows at the larger of this and Amount, +0.15' },
     { path: 'elite_weight', group: 'Elite', label: 'Elite weight', type: 'number', min: 0, step: 0.5, ph: () => 1, help: 'this row\'s weight when a coloured-elite event with no creature named draws one from the open rows (0 = never, like Can be elite = no; every row 1 = an even draw)' },
     { path: 'elite_formats.single', group: 'Elite', label: 'Comes alone', type: 'number', min: 0, step: 0.5, ph: () => 1, help: 'chance a coloured elite drawn from this row arrives on its own (the three chances are normalised: 1 / 1 / 0 = half and half)' },
     { path: 'elite_formats.pack', group: 'Elite', label: 'Comes as its pack', type: 'number', min: 0, step: 0.5, ph: () => 0, help: 'chance it arrives as its whole pack, every one wearing the modifier' },
@@ -161,9 +169,10 @@ const FIELDS = (() => {
     { path: 'boss.cooldown_between', group: 'Boss', label: 'Seconds between attacks', type: 'number', min: 0.1, step: 0.1, ph: (c) => sub(c, 'boss', 'cooldown_between'), help: 'the pause between a scripted creature\'s attacks', needs: 'boss' },
     { path: 'boss.attacks', group: 'Boss', label: 'Attacks', type: 'attacks', help: 'untick an attack to take it out of the creature\'s script (true keeps it; an unknown name adds nothing)', needs: 'boss' },
   ];
-  const OVERRIDE_GROUPS = ['Body', 'Attacks', 'Ranged', 'Charge', 'Spawning', 'Drops', 'Power-ups', 'Elite', 'Mini-boss (Elite archetype only)', 'Boss'];
+  const OVERRIDE_GROUPS = ['Body', 'Colour', 'Attacks', 'Ranged', 'Charge', 'Spawning', 'Drops', 'Power-ups', 'Elite', 'Mini-boss (Elite archetype only)', 'Boss'];
   // what each override group is, for the legend and the Instructions tab (pass 54)
   const OVERRIDE_GROUP_HELP = {
+    Colour: 'pass 58: wash every creature of this row in a colour from a range, each its own hue; the pictures are its standing frame as the game tints it',
     Elite: 'the variance block: the size and speed spread, the tints, the coloured specials and their numbers, merged over the creature\'s own block (a tint list replaces the whole list); plus how a random coloured elite is drawn from this row and how it arrives',
     'Mini-boss': 'Elite archetype only: the three mini-bosses\' own health rule',
   };
@@ -198,8 +207,8 @@ const FIELDS = (() => {
     { key: 'portal_cap', group: 'Portal', label: 'Portal cap', type: 'int', min: -1, def: 10, help: 'load kept up while the portal waits: -1 = the stage-end cap, 0 = nothing; ignored when the portal wave has a count' },
     { key: 'portal_spawn_seconds', group: 'Portal', label: 'Portal spawns for (s)', type: 'number', min: -1, step: 1, def: 30, help: 'how long after the boss dies the portal cap still spawns; -1 = for as long as the portal waits' },
     { key: 'portal_wave.count', group: 'Portal', label: 'Portal wave count', type: 'int', min: 0, def: 0, help: 'one wave of this many roster creatures round the hero as the portal opens, then nothing until he steps through (0 = off)' },
-    { key: 'hp_curve', group: 'Scaling', label: 'HP × over time', type: 'curve', def: {}, help: 'the multiplier on every creature\'s health over the run clock (the HP × lane): manual points, or a formula sampled onto the line. Absent = the legacy hp_growth / hp_power pair below' },
-    { key: 'damage_curve', group: 'Scaling', label: 'ATK × over time', type: 'curve', def: {}, help: 'the multiplier on every creature\'s damage over the run clock (the ATK × lane); absent = 1 all run' },
+    { key: 'hp_curve', group: 'Scaling', label: 'HP × over time', type: 'curve', def: {}, help: 'the multiplier on every creature\'s health over the run clock (the HP × lane): manual points, or a formula sampled onto the line. Since pass 58 each row (wave, event) reads it once, at its start, and keeps that for all its creatures (the Actual HP × lane shows what that makes). Absent = the legacy hp_growth / hp_power pair below' },
+    { key: 'damage_curve', group: 'Scaling', label: 'ATK × over time', type: 'curve', def: {}, help: 'the multiplier on every creature\'s damage over the run clock (the ATK × lane), read once at each row\'s start like the HP curve (pass 58); absent = 1 all run' },
     { key: 'hp_growth', group: 'Scaling', label: 'HP growth per minute (legacy)', type: 'number', min: 0, step: 0.005, def: 0.08, help: 'legacy (used only when hp_curve is absent): creature HP × (1 + growth × minutes)^power on the run clock' },
     { key: 'hp_power', group: 'Scaling', label: 'HP growth power (legacy)', type: 'number', min: 0, step: 0.05, def: 1.2, help: 'legacy (used only when hp_curve is absent): the exponent of the HP growth' },
     { key: 'creature_hp_mult', group: 'Scaling', label: 'Creature HP ×', type: 'number', min: 0, step: 0.05, def: 1, help: 'a multiplier on every creature\'s health, never a boss (1 = as its JSON says)' },
@@ -241,8 +250,10 @@ const FIELDS = (() => {
   // ------------------------------------------------------------------ the lanes (the Instructions tab)
   const LANES = [
     { id: 'cap', name: 'Cap', text: 'The ceiling: how many creatures may be alive (in cap load units; the fodder counts half). The points are the control points of the live cap curve: linear between them, flat before the first and after the last. They are not spawn events: the director spawns up to the cap on its own interval (spawn_interval), in bursts of burst_min to burst_max. Drag a point; double-click the line to add one, double-click a point to remove it. The dashed line is the hard cap of bodies, the dips are the boss fights\' share.' },
-    { id: 'hp', name: 'HP ×', text: 'The multiplier on every creature\'s health over the run clock (hp_curve): a line like the cap\'s, as manual points you drag, or a formula (linear, power, exponential) sampled onto it; the inspector switches. Absent, the lane shows the legacy hp_growth / hp_power formula. The stage multiplier and creature_hp_mult come on top of it (the readout shows the product).' },
-    { id: 'dmg', name: 'ATK ×', text: 'The multiplier on every creature\'s damage over the run clock (damage_curve), the same two modes. Absent = 1 all run. The stage multiplier and creature_damage_mult come on top.' },
+    { id: 'hp_act', name: 'Actual HP ×', text: 'Pass 58: the HP multiple the creatures really come with at each second, on the HP × lane\'s scale while the rows fit under it (higher multiples give it its own, up to 1.5 times as tall, and a ▲ with the number marks anything past its top; the curve you drag keeps its scale). A row\'s numbers are fixed from its start (Garry: "a single wave of those enemies will stay consistent for the duration of their spawns"): a row without an HP override keeps the HP curve of the second it starts for its whole life, a row with one keeps its own HP (its multiple is that HP over the creature\'s). The solid line is the average over the roster rows and wave alternatives spawning round that second, each weighted by how many it spawns there (the Spawned so far estimate); the dashed line is the largest; the intended curve is dotted behind them. Hover for the rows behind the numbers. The stage multiplier, creature_hp_mult and the hero level come on top in the game.' },
+    { id: 'hp', name: 'HP ×', text: 'The multiplier on every creature\'s health over the run clock (hp_curve): a line like the cap\'s, as manual points you drag, or a formula (linear, power, exponential) sampled onto it; the inspector switches. Absent, the lane shows the legacy hp_growth / hp_power formula. The stage multiplier and creature_hp_mult come on top of it (the readout shows the product). Since pass 58 a row reads it once, at its start (the Actual HP × lane shows what that makes).' },
+    { id: 'dmg_act', name: 'Actual ATK ×', text: 'Pass 58: the same for damage: each row\'s ATK multiple, the damage curve at its start or its own damage over the creature\'s, averaged by the spawns round each second (solid), the largest (dashed), the intended ATK × curve dotted behind.' },
+    { id: 'dmg', name: 'ATK ×', text: 'The multiplier on every creature\'s damage over the run clock (damage_curve), the same two modes. Absent = 1 all run. The stage multiplier and creature_damage_mult come on top. Since pass 58 a row reads it once, at its start, and every later bite or shot of its creatures keeps that.' },
     { id: 'roster', name: 'Roster', text: 'The stream under the ceiling: whenever there is room, a burst is drawn from the rows open at that second by their weights. A bar runs from its start to its end (or the run\'s end); the filled area inside it is the row\'s presence over time (its weight), with a point per keyframe: drag a point up or down (or along), double-click the bar to add one, a point to remove it. Red bars are the hell channel, a wrench marks stat overrides, a chip the art variant. Drag a bar to move it, its right edge to end it. The grip and the arrows at the left reorder the rows (display only: the game ignores the order).' },
     { id: 'share', name: 'Share', text: 'The draw as the director sees it: each open row\'s share of a burst over time, stacked, one colour per creature, normalised per channel (the regular crowd above, the hell channel below when the map has one). The icons are the legend. A row that is heavy on the Roster lane but drawn against many others is thin here.' },
     { id: 'waves', name: 'Waves', text: 'Scripted windows on top of the roster: from t, a burst every few seconds until the count or the end. Stripes are the alternatives (one is rolled per run); "no cap" means it spawns on top of the crowd. Drag to move, drag the right edge to end, click to edit.' },

@@ -540,6 +540,53 @@ func use_banish() -> bool:
 	return true
 
 
+## Why an offer card (a level-up's, a chest's roll) may not be banished, "" when it may go (pass 58, Garry: "Banish
+## option should not allow Banishing items that Player already has, because this way they can lock themselves out of
+## progression for those weapons"):
+##   "gold"       a purse of gold, or a card with no item
+##   "evolution"  an evolution of something held: a maxed line's evolution card, a chest's weapon evolution
+##   "held"       something the hero has: every upgrade card (level_from above 0), a weapon, a line or a passive item held,
+##                and a base weapon whose evolution he carries (the family is his)
+##   "path"       a mutation on the path of a weapon the hero holds (a boss chest's pick): its evolution needs every one,
+##                so it would be locked away for the run (a hero's own mutation is optional and may go)
+## A new weapon, line, passive item or perk may go.
+func banish_refusal(card: Dictionary) -> String:
+	var type := str(card.get("type", ""))
+	var id := str(card.get("id", ""))
+	var def = card.get("def")
+	if type == "gold" or id == "" or def == null:
+		return "gold"
+	if type == "evolution" or bool(card.get("evolve", false)):
+		return "evolution"
+	if (def is WeaponDef and (def as WeaponDef).is_evolution) or (def is PassiveDef and (def as PassiveDef).is_evolved()):
+		return "evolution"
+	if int(card.get("level_from", 0)) > 0 or has_weapon(id) or passives.has(id):
+		return "held"
+	# the Boomstick while the Blunderbuss is held (pass 58 review: a level-up had offered it again as NEW, banishable)
+	if def is WeaponDef and family_instance(id) != null:
+		return "held"
+	if def is MutationDef and not (def as MutationDef).is_hero() and family_instance((def as MutationDef).weapon) != null:
+		return "path"
+	return ""
+
+
+## Whether an offer card may be banished (banish_refusal says why not).
+func can_banish_card(card: Dictionary) -> bool:
+	return banish_refusal(card) == ""
+
+
+## A level-up card banished (pass 58): refused (false, nothing spent, nothing struck) when banish_refusal refuses it or
+## the stage has no banish left; else one of the stage's banishes spent and its id out of this run's offers, chests and
+## the Stranger's.
+func banish_card(card: Dictionary) -> bool:
+	if not can_banish_card(card) or not use_banish():
+		return false
+	var id := str(card.get("id", ""))
+	if not banished.has(id):
+		banished.append(id)
+	return true
+
+
 func mutations_held(family: String) -> Array:
 	var v = mutations.get(family, [])
 	return v if v is Array else []
@@ -570,18 +617,20 @@ func can_mutate(w: WeaponInstance) -> bool:
 
 
 ## The mutation cards a weapon has open right now: its path and the hero's own option for it, both only while
-## the stage's pick is unspent (pass 45: the hero option is that pick, not a free extra).
+## the stage's pick is unspent (pass 45: the hero option is that pick, not a free extra). Never a banished one (pass 58:
+## a hero's own mutation struck from a boss chest; path_offer drops them too, so a weapon whose only option left is
+## banished no longer takes a path slot and puts nothing on the table).
 func open_mutations(w: WeaponInstance) -> Array:
 	var out: Array = []
 	if not can_mutate(w):
 		return out
 	var fam := w.family_id()
 	for m: MutationDef in Registry.mutations_of(fam):
-		if not w.has_mutation(m.id):
+		if not w.has_mutation(m.id) and not banished.has(m.id):
 			out.append(m)
 	if character:
 		for hm: MutationDef in Registry.hero_mutations(character.id):
-			if hm.weapon == fam and not w.has_mutation(hm.id):
+			if hm.weapon == fam and not w.has_mutation(hm.id) and not banished.has(hm.id):
 				out.append(hm)
 	return out
 
@@ -1081,6 +1130,9 @@ func stranger_offer() -> Dictionary:
 			continue
 		# five weapon levels since pass 48: a new one at level 2, a held one a level up (they were 3 and +2 of eight)
 		var inst := weapon_instance(w.id)
+		# its evolution held (pass 58 review): the family is the hero's, never a second copy carrying the same path
+		if inst == null and family_instance(w.id) != null:
+			continue
 		if inst == null and weapons.size() < weapon_cap():
 			cands.append({"type": "weapon", "id": w.id, "def": w, "level_from": 0, "level_to": mini(2, w.max_level), "is_new": true})
 		elif inst and inst.level < w.max_level:
@@ -1276,8 +1328,9 @@ func any_evolution_ready() -> WeaponInstance:
 
 
 ## The paths a boss chest can hold: every mutation still open on a weapon held (not held, not banished) and the hero's
-## own option for that weapon. The Stranger's loophole: the stage's pick may be spent, the chest still fits one more.
-## The reel (ChestScreen) shows exactly this list (pass 45).
+## own option for that weapon (not banished either: pass 58 review, a hero's own mutation is the one a boss chest lets
+## the player banish, and it came back on the respin, the reel and later chests). The Stranger's loophole: the stage's
+## pick may be spent, the chest still fits one more. The reel (ChestScreen) shows exactly this list (pass 45).
 func boss_chest_mutations() -> Array:
 	var out: Array = []
 	for wi in weapons:
@@ -1286,7 +1339,7 @@ func boss_chest_mutations() -> Array:
 				out.append(m)
 		if character:
 			for hm: MutationDef in Registry.hero_mutations(character.id):
-				if hm.weapon == wi.family_id() and not wi.has_mutation(hm.id):
+				if hm.weapon == wi.family_id() and not wi.has_mutation(hm.id) and not banished.has(hm.id):
 					out.append(hm)
 	return out
 
@@ -1398,11 +1451,14 @@ func chest_skip(r: Dictionary) -> String:
 
 
 ## What the chest held, banished (pass 47): a banish spent, its id out of this run (no card, no chest, no Stranger offers
-## it again; on an evolution the weapon stays unevolved), and a new roll for the reel to spin to. {} (nothing spent)
-## when the stage has no banish left or the roll is gold.
+## it again), and a new roll for the reel to spin to. {} (nothing spent) when the stage has no banish left, the roll is
+## gold, or (pass 58) banish_refusal refuses it: never an upgrade of what the hero has, an evolution or a path mutation
+## of a weapon held.
 func chest_banish(r: Dictionary) -> Dictionary:
 	var id := str(r.get("id", ""))
 	if id == "" or str(r.get("type", "")) == "gold" or banishes_left <= 0:
+		return {}
+	if not can_banish_card(r):
 		return {}
 	use_banish()
 	if not banished.has(id):

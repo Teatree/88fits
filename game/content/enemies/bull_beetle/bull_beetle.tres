@@ -70,6 +70,7 @@ shadow = {
 "scale": [1.45, 1.7],
 "up": 0.35
 }
+blood = Color(0.38431373, 0.78431374, 0.10980392, 1)
 variants = {
 "BB-A": {
 "anims": {

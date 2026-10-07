@@ -48,6 +48,7 @@ ranged = {
 }
 knockback = 4.81
 head = 0.981
+blood = Color(0.29411766, 0.77254903, 0.12156863, 1)
 can_be_elite = false
 sfx = {
 "attack": "en_cactus_spit",

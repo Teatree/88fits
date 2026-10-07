@@ -155,6 +155,25 @@ var xp_scale := PackedFloat32Array()
 var died_xp_scale := 0.0
 var vtint := PackedColorArray()   # per-spawn tint (rgb) and strength (a) from the def's variance block
 var vspecial := PackedByteArray()  # 1 = rolled its variance special (the dark, big one): the hit log names its colour
+## Pass 58 (R1, Garry: "I don't actually want it to change for the same 'wave' of enemies on the fly, because then it feels
+## weird for the Player that shooting the same enemy with the same weapon suddenly doesn't kill it"): a creature a spawn
+## source brought (a roster row, a wave, an event; WaveDirector hands spawn() the source's `src`) carries its numbers
+## fixed from that source: `fixed` 1, the stage multiplier at its spawn (`f_stage`), the source's HP and damage time
+## factors (`f_hpt`, `f_dmt`: the curves at the source's start, 1 for an overridden number) and hero-level factors
+## (`f_lvh`, `f_lvd`: the hero's level at the source's first spawn). Every hit it deals later reads these (stage_of, lvd_of,
+## host_of) instead of the live values. `fixed` 0 (spawned by hand, a test, the arena; a boss or an Elite by its kind)
+## plays the live numbers as before.
+var fixed := PackedByteArray()
+var f_stage := PackedFloat32Array()
+var f_hpt := PackedFloat32Array()
+var f_lvh := PackedFloat32Array()
+var f_dmt := PackedFloat32Array()
+var f_lvd := PackedFloat32Array()
+## The fix round of pass 58 (the review: a split child re-rolled its row's size and hue and took the live stage): the size
+## this creature rolled in its row's range, before any scale (`f_bsz`, 0 for none), and the share `u` its row's colour
+## range rolled (`f_tu`, -1 for none). src_of hands both to a split child, with the stage at the parent's spawn.
+var f_bsz := PackedFloat32Array()
+var f_tu := PackedFloat32Array()
 var away := PackedByteArray()      # 1 while walking away from the camera (back-view frames)
 var view := PackedByteArray()      # eight-direction creatures: 0 front, 1 back, 2 side, 3 back-diagonal, 4 front-diagonal
 ## Each view's span of the heading angle (0 = away from the camera, PI = towards it), the hysteresis past a boundary
@@ -275,6 +294,9 @@ var pace := 1.0
 var _mean_max_hp := 0.0
 ## The dying creature's max HP while enemy_died is out (pass 48: Powder Keg's blast is a share of it).
 var died_max_hp := 0.0
+## The dying creature's own size while enemy_died is out (pass 58: a size-range row rolls each creature's size, while its
+## def's `size` stays the painting's JSON size), for whatever sizes an effect by the body.
+var died_size := 0.0
 
 var free_list: Array = []
 var count_alive := 0
@@ -309,6 +331,14 @@ var _obst_cells: Dictionary = {}   # Vector2i -> PackedInt32Array of obstacle in
 var _obst_n := -1
 var _obst_margin := 0.0
 var _max_r := 0.0
+## The wide bodies (pass 58 fix round, the review: a size range makes a giant of any creature, and _steer's 3 x 3 cells
+## only see neighbours within one CELL, so two bodies wider than that together could stand inside each other): every
+## creature in the grid wider than BIG_R (half a cell) and the widest radius, both as the grid saw them this tick. A wide
+## body scans as many cells as its reach needs; a narrow one also checks the wide ones past its 3 x 3 while they are few.
+const BIG_R := CELL * 0.5
+const BIG_LIST_MAX := 16
+var _big := PackedInt32Array()
+var _grid_max_r := 0.0
 ## Per type, read every tick (pass 33.8: a dictionary lookup per creature per tick before): an eight-direction strip,
 ## its walk and death frame rates, whether it turns to face the hero when it stands (the ranged brains), its MultiMesh,
 ## its badge, and the frame table (offset and count of each of the 13 strips, and which of them exist).
@@ -373,6 +403,8 @@ func _ready() -> void:
 	type_idx.resize(MAX); elite_idx.resize(MAX); state.resize(MAX); timer.resize(MAX); cooldown.resize(MAX)
 	anim_t.resize(MAX); flash.resize(MAX); squash.resize(MAX); flip.resize(MAX); contact_cd.resize(MAX)
 	alive.resize(MAX); charge_dir.resize(MAX); xp_scale.resize(MAX); vtint.resize(MAX); vspecial.resize(MAX)
+	fixed.resize(MAX); f_stage.resize(MAX); f_hpt.resize(MAX); f_lvh.resize(MAX); f_dmt.resize(MAX); f_lvd.resize(MAX)
+	f_bsz.resize(MAX); f_tu.resize(MAX)
 	lift_mode.resize(MAX); lift_peak.resize(MAX); lift_knock.resize(MAX)
 	away.resize(MAX); view.resize(MAX); poison_tick.resize(MAX); flash_green.resize(MAX)
 	poison_src.resize(MAX); fire_src.resize(MAX); fire_tick.resize(MAX); flash_hot.resize(MAX); fire_puff.resize(MAX)
@@ -431,8 +463,62 @@ func is_big_game(i: int) -> bool:
 
 
 ## Every hostile damage's multiplier now (pass 54): the timeline's creature_damage_mult times its damage curve's value.
+## Pass 58: a creature's own hits read host_of(i) instead; this is for what no creature owns (the Brander's ring, which
+## Game burns with) and for a creature spawned by hand.
 func hostile_mult() -> float:
 	return creature_damage_mult * damage_time_mult
+
+
+## The stage multiplier creature `i`'s hits carry (pass 58, R1): the one at its spawn when a source fixed its numbers,
+## else the live one (a creature spawned by hand, a boss, an Elite by its kind: as before).
+func stage_of(i: int) -> float:
+	return f_stage[i] if fixed[i] == 1 else stage_mult
+
+
+## The hero-level damage factor creature `i`'s hits carry (pass 58): its source's, fixed at the source's first spawn, else
+## the live one.
+func lvd_of(i: int) -> float:
+	return f_lvd[i] if fixed[i] == 1 else level_dmg_mult
+
+
+## creature_damage_mult times the damage curve creature `i`'s hits carry (pass 58): the curve at its source's start (1 for
+## a source that overrides `damage`), else hostile_mult() now.
+func host_of(i: int) -> float:
+	return creature_damage_mult * f_dmt[i] if fixed[i] == 1 else hostile_mult()
+
+
+## The source numbers creature `i` was spawned with (pass 58), as spawn() takes them: {} for a plain creature on the live
+## numbers. A split child spawns with its parent's: the fixed factors and the stage at the parent's spawn (`stage`; the
+## fix round: a stage-1 splitter killed after the portal made stage-2 children), and the parent's rolled size and hue
+## (`size`, `tint_u`: a child re-rolled them, so a splitter of a [1, 3] row could burst into children bigger than itself,
+## each a different colour).
+func src_of(i: int) -> Dictionary:
+	if i < 0 or i >= MAX:
+		return {}
+	var out: Dictionary = {}
+	if fixed[i] == 1:
+		out = {"hp_time": f_hpt[i], "dmg_time": f_dmt[i], "lv_hp": f_lvh[i], "lv_dmg": f_lvd[i], "stage": f_stage[i]}
+	if f_bsz[i] > 0.0:
+		out["size"] = f_bsz[i]
+	if f_tu[i] >= 0.0:
+		out["tint_u"] = f_tu[i]
+	return out
+
+
+## The source numbers of something that comes now (pass 58: a boss's brood, "the moment it fires"): the director's values
+## of the moment (the clock stands still through a boss fight, so they are the fight's).
+func now_src() -> Dictionary:
+	return {"hp_time": hp_time_mult, "dmg_time": damage_time_mult, "lv_hp": level_hp_mult, "lv_dmg": level_dmg_mult}
+
+
+## What a boss's brood of `id` plays (pass 58), as {stats, src}: the director's event_numbers (the moment it is called,
+## or, the fix round, the numbers of a roster row or wave bringing the same creature then: the Brander's imps beside the
+## imp row's), now_src() without a director (a test's crowd).
+func brood_numbers(id: String) -> Dictionary:
+	var d = game.get("director") if game else null
+	if d != null and d.has_method("event_numbers"):
+		return d.event_numbers(id, "", {})
+	return {"stats": {}, "src": now_src()}
 
 
 ## The shove creature `i`'s bite gives the hero, m/s (pass 54, Garry: every creature its own number): its def's
@@ -771,8 +857,12 @@ func _height(x: float, z: float) -> float:
 ## One creature of `def_id` at `at`: wearing `elite` (a modifier) when given, at `scale_mult` of its size and `hp_mult`
 ## of its health (a split child), as art variant `variant` (the arena's comparison, a roster row's; its own when "") and
 ## with the wave schema's `overrides` on its numbers (pass 53, EnemyDef.with_overrides through Registry.enemy_with: the
-## copy is its own type, so a row's tougher skeletons and the plain ones live side by side). The index, or -1.
-func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult := 1.0, hp_mult := 1.0, variant := "", overrides := {}) -> int:
+## copy is its own type, so a row's tougher skeletons and the plain ones live side by side). The index, or -1. Pass 58:
+## `src` is the spawn source's fixed numbers (R1, WaveDirector.source_for / fixed_numbers: {hp_time, dmg_time, lv_hp,
+## lv_dmg}), used in place of the live time and hero-level factors and kept for its later hits; {} = the live numbers, as
+## before (a creature spawned by hand). A boss or an Elite by its kind ignores it. A size-range row (R2) rolls the size
+## and a colour-range row (R3) the tint, per creature.
+func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult := 1.0, hp_mult := 1.0, variant := "", overrides := {}, src := {}) -> int:
 	var def: EnemyDef = Registry.enemy_with(def_id, variant, overrides)
 	if def == null or free_list.is_empty():
 		return -1
@@ -792,12 +882,37 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	pos[i] = Vector3(at.x, _height(at.x, at.z), at.z)
 	vel[i] = Vector3.ZERO
 	kb[i] = Vector3.ZERO
+	# pass 58 (R1): a creature its source brought plays the source's numbers, fixed from its start (the time curves at the
+	# source's start, the hero's level at its first spawn) and the stage multiplier now, and keeps them for every later
+	# hit; a boss and an Elite by its kind keep their own rules, and a creature spawned by hand the live numbers, as before
+	var own := src.has("hp_time") and def.archetype != "boss" and def.archetype != "elite"
+	var hpt: float = float(src.get("hp_time", 1.0)) if own else hp_time_mult
+	var lvh: float = float(src.get("lv_hp", 1.0)) if own else level_hp_mult
+	var dmt: float = float(src.get("dmg_time", 1.0)) if own else damage_time_mult
+	var lvd: float = float(src.get("lv_dmg", 1.0)) if own else level_dmg_mult
+	# the stage multiplier now, or a split child's parent's at its spawn (the fix round)
+	var stg: float = float(src.get("stage", stage_mult)) if own else stage_mult
+	fixed[i] = 1 if own else 0
+	f_stage[i] = stg
+	f_hpt[i] = hpt
+	f_lvh[i] = lvh
+	f_dmt[i] = dmt
+	f_lvd[i] = lvd
 	# creature_hp_mult reaches everything but a boss (the boss branch below sets its own health)
-	var ehp := def.hp * stage_mult * hp_time_mult * hp_mult * level_hp_mult * creature_hp_mult
+	var ehp := def.hp * stg * hpt * hp_mult * lvh * creature_hp_mult
 	var esp := def.speed * stage_speed_mult
-	var edm := def.damage * stage_mult * level_dmg_mult * hostile_mult()
+	var edm := def.damage * stg * lvd * creature_damage_mult * dmt
 	var ear := def.damage_reduction
-	var esz := def.size * scale_mult
+	# pass 58 (R2): a size-range row rolls this creature's size in its range (in place of the variance's jitter below), and
+	# its body's radius follows the rolled size unless the row set a radius; a split child takes its parent's roll (the
+	# fix round)
+	var ranged_size := def.size_range != Vector2.ZERO
+	var base_sz: float = def.size
+	if ranged_size:
+		base_sz = clampf(float(src["size"]), def.size_range.x, def.size_range.y) if src.has("size") else _rng.randf_range(def.size_range.x, def.size_range.y)
+	f_bsz[i] = base_sz if ranged_size else 0.0
+	var esz := base_sz * scale_mult
+	var rad: float = def.radius * (base_sz / maxf(def.size_ref, 0.01) if ranged_size and def.radius_follows else 1.0)
 	var xps := def.xp_mult
 	elite_idx[i] = -1
 	if elite != null:
@@ -809,18 +924,30 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 		ear = clampf(sheet.get_stat("damage_reduction"), 0.0, 0.9); esz = sheet.get_stat("size") * elite.scale_mult
 		xps *= 4.0
 	var vt := Color(1, 1, 1, 0)
+	# pass 58 (R3): a colour-range row's own tint, a hue rolled in its range, from the row's first creature on (it is the
+	# row's design, not the random colour that waits for colour_after_kills); it stands in for the variance palette's
+	# tint, and a special's own tint, an elite modifier's colour and the status tints still win (tint_of)
+	var row_tint := not def.tint_range.is_empty()
+	var tint_u := 0.0
+	if row_tint:
+		# a split child keeps its parent's hue (the fix round)
+		tint_u = clampf(float(src["tint_u"]), 0.0, 1.0) if src.has("tint_u") else _rng.randf()
+		vt = EnemyDef.tint_color(def.tint_range, tint_u)
+	f_tu[i] = tint_u if row_tint else -1.0
 	var vsize := 1.0
 	vspecial[i] = 0
 	if elite == null and not def.variance.is_empty():
 		# every spawn is a little different: size, speed, a tint from the palette, and the odd special one
 		var vr: Dictionary = def.variance
-		vsize = 1.0 + _rng.randf_range(-float(vr.get("size", 0.0)), float(vr.get("size", 0.0)))
+		# a size-range row's size was rolled above: no jitter on top (pass 58)
+		var jit := 0.0 if ranged_size else float(vr.get("size", 0.0))
+		vsize = 1.0 + _rng.randf_range(-jit, jit)
 		esp *= 1.0 + _rng.randf_range(-float(vr.get("speed", 0.0)), float(vr.get("speed", 0.0)))
 		# the tint and the special are colour, and colour comes after the run's first kills (pass 46); the size and
 		# speed jitter above is not colour and is always on
 		if Run.kills >= colour_after_kills:
 			var tints: Array = vr.get("tints", [])
-			if not tints.is_empty():
+			if not tints.is_empty() and not row_tint:
 				var c := Color(str(tints[_rng.randi() % tints.size()]))
 				vt = Color(c.r, c.g, c.b, float(vr.get("tint_strength", 0.35)))
 			# Hot Sauce (pass 47): the dark special comes (1 + difficulty) times as often
@@ -828,17 +955,26 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 			if _rng.randf() < float(vr.get("special_chance", 0.0)) * (1.0 + _difficulty):
 				var sp: Dictionary = vr.get("special", {})
 				vsize *= float(sp.get("size", 1.3))
+				if ranged_size:
+					# a size-range row's special stays inside the range (the fix round; Garry: "between 3-5 for example"): its
+					# size factor lifts it towards the top, never past it; its HP, damage, XP and colour are the special's
+					vsize = minf(vsize, def.size_range.y / maxf(base_sz, 0.01))
 				ehp *= float(sp.get("hp", 1.6))
 				edm *= float(sp.get("damage", 1.2))
 				xps *= float(sp.get("xp", 2.0))
 				vspecial[i] = 1
-				if sp.has("tint"):
+				if row_tint:
+					# a colour-range row's special keeps the row's colour (pass 58, the lead): a darker, stronger shade of the
+					# hue this one rolled, so it still reads as the special one of that wave (its own wine tint had read as
+					# "lost the colour"); its size factor above stays
+					vt = EnemyDef.tint_special_color(def.tint_range, tint_u, float(sp.get("tint_strength", 0.6)))
+				elif sp.has("tint"):
 					var sc := Color(str(sp["tint"]))
 					vt = Color(sc.r, sc.g, sc.b, float(sp.get("tint_strength", 0.6)))
 		esz *= vsize
 	vtint[i] = vt
 	hp[i] = ehp; max_hp[i] = ehp; speed[i] = esp * pace; dmg[i] = edm; dr[i] = ear
-	radius[i] = def.radius * scale_mult * (elite.scale_mult if elite else 1.0) * vsize
+	radius[i] = rad * scale_mult * (elite.scale_mult if elite else 1.0) * vsize
 	_max_r = maxf(_max_r, radius[i])
 	size[i] = esz
 	type_idx[i] = t
@@ -910,8 +1046,9 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	return i
 
 
-## `n` of a creature spread round `center` (its art variant and overrides passed on, pass 53). Returns how many came.
-func spawn_pack(def_id: String, center: Vector3, n: int, elite: EliteModDef = null, variant := "", overrides := {}) -> int:
+## `n` of a creature spread round `center` (its art variant and overrides passed on, pass 53; its source's fixed numbers,
+## pass 58). Returns how many came.
+func spawn_pack(def_id: String, center: Vector3, n: int, elite: EliteModDef = null, variant := "", overrides := {}, src := {}) -> int:
 	var def: EnemyDef = Registry.enemy_with(def_id, variant, overrides)
 	if def == null:
 		return 0
@@ -919,31 +1056,323 @@ func spawn_pack(def_id: String, center: Vector3, n: int, elite: EliteModDef = nu
 	var came := 0
 	for k in range(n):
 		var off := Vector3(_rng.randf_range(-spread, spread), 0, _rng.randf_range(-spread, spread))
-		if spawn(def_id, _clamp_arena(center + off), elite, 1.0, 1.0, variant, overrides) >= 0:
+		if spawn(def_id, _clamp_arena(center + off), elite, 1.0, 1.0, variant, overrides, src) >= 0:
 			came += 1
 	return came
 
 
 ## `count` of a creature on a ring of `ring_radius` round `center` (a swarm event, the King's minions); the art variant
-## and overrides are passed on (pass 53). Returns how many came.
-func spawn_ring(def_id: String, count: int, center: Vector3, ring_radius: float, variant := "", overrides := {}) -> int:
+## and overrides are passed on (pass 53), and the source's fixed numbers (pass 58). Pass 58 too: by the wall the ring
+## keeps to the arc of it inside the arena instead of piling onto the wall beside the centre, and a spot on a rock's
+## painting or in the lake steps aside (ring_spots). Returns how many came.
+func spawn_ring(def_id: String, count: int, center: Vector3, ring_radius: float, variant := "", overrides := {}, src := {}) -> int:
 	var came := 0
-	for k in range(count):
-		var a := TAU * float(k) / float(maxi(count, 1)) + _rng.randf_range(-0.1, 0.1)
-		var p := center + Vector3(cos(a), 0, sin(a)) * ring_radius
-		if spawn(def_id, _clamp_arena(p), null, 1.0, 1.0, variant, overrides) >= 0:
+	var slide := 0.1 / (TAU / float(maxi(count, 1)))
+	var mp: Node = game.get("map") if game else null
+	for p: Vector3 in ring_spots(center, ring_radius, count, arena_radius - 2.0, _rng, 0.0, slide, 0.0, mp):
+		if spawn(def_id, _clamp_arena(p), null, 1.0, 1.0, variant, overrides, src) >= 0:
 			came += 1
 	return came
 
 
-func spawn_boss(def_id: String, at: Vector3, variant := "", overrides := {}) -> int:
-	return spawn(def_id, at, null, 1.0, 1.0, variant, overrides)
+## A boss (or whatever a boss event names): a boss or an Elite by its kind keeps its own rules whatever `src` says (pass 58).
+func spawn_boss(def_id: String, at: Vector3, variant := "", overrides := {}, src := {}) -> int:
+	return spawn(def_id, at, null, 1.0, 1.0, variant, overrides, src)
 
 
 func _clamp_arena(p: Vector3) -> Vector3:
 	var flat := Vector2(p.x, p.z)
 	if flat.length() > arena_radius - 2.0:
 		flat = flat.normalized() * (arena_radius - 2.0)
+	return Vector3(flat.x, p.y, flat.y)
+
+
+# ---------------------------------------------------------------- spawn spots by the wall (pass 58)
+
+## A rock's painted foot is its collider over 0.62 (the props' colliders are 62% of the painting, pass 22); a ring point
+## keeps this much more than that, a body's width, so nothing comes up inside a rock's painting.
+const ROCK_FOOT := 1.0 / 0.62
+const ROCK_PAD := 0.5
+
+
+## The arc of a ring of `ring_r` round `center` that lies inside a disc of `lim` round the arena's middle (pass 58, the
+## review of pass 57: a ring round a hero by the wall was clamped onto the wall right beside him): Vector2(the arc's
+## middle angle, its half width) in the ring's own angle (a point at angle `a` is center + (cos a, 0, sin a) x ring_r);
+## the half width is PI for a ring that fits whole, 0 when none of it fits (never, for a hero inside the arena).
+static func ring_arc(center: Vector3, ring_r: float, lim: float) -> Vector2:
+	var d := Vector2(center.x, center.z).length()
+	if d < 0.001 or ring_r <= 0.0:
+		return Vector2(0.0, PI)
+	# |center + ring_r u(a)|^2 <= lim^2  <=>  cos(a - phi) <= c, phi the angle of the centre from the middle
+	var c := (lim * lim - d * d - ring_r * ring_r) / (2.0 * ring_r * d)
+	if c >= 1.0:
+		return Vector2(0.0, PI)
+	var phi := atan2(center.z, center.x)
+	if c <= -1.0:
+		return Vector2(phi + PI, 0.0)
+	return Vector2(phi + PI, PI - acos(c))
+
+
+## The map's lake for the spawn spots (pass 58 fix round) as Vector3(x, z, radius), the radius as in_water() reads it
+## (Red Canyon: 1.02 x the lake's); Vector3.ZERO when the map names no lake (a map that only answers in_water(): the
+## spots ask it point by point instead).
+static func lake_of(map: Node) -> Vector3:
+	if map == null or not map.has_method("lake_center") or not map.has_method("lake_radius"):
+		return Vector3.ZERO
+	var c: Vector2 = map.lake_center()
+	var r := float(map.lake_radius())
+	return Vector3(c.x, c.y, r * 1.02) if r > 0.0 else Vector3.ZERO
+
+
+## The arc of a circle of `ring_r` round `center` that lies inside a disc of `disc_r` round `disc_c` (x, z) (pass 58 fix
+## round, the lake): Vector2(the arc's middle angle, its half width) in the ring's own angle (a point at angle `a` is
+## center + (cos a, 0, sin a) x ring_r); the half width is below 0 when the circle misses the disc, PI when it lies in it
+## whole.
+static func ring_in_disc(center: Vector3, ring_r: float, disc_c: Vector2, disc_r: float) -> Vector2:
+	var dx := disc_c.x - center.x
+	var dz := disc_c.y - center.z
+	var d := sqrt(dx * dx + dz * dz)
+	if d < 0.001 or ring_r <= 0.0:
+		return Vector2(0.0, PI if ring_r < disc_r else -1.0)
+	var c := (ring_r * ring_r + d * d - disc_r * disc_r) / (2.0 * ring_r * d)
+	if c >= 1.0:
+		return Vector2(0.0, -1.0)
+	var phi := atan2(dz, dx)
+	if c <= -1.0:
+		return Vector2(phi, PI)
+	return Vector2(phi, acos(c))
+
+
+## The yaws (0 = -Z, the hero's facing convention) that take a point `r` metres from `from` past the lake when the one at
+## yaw `a` lies in it (pass 58 fix round, the review: in_front's few degrees of steps could not clear a lake 13 m across,
+## which spans some 40 degrees 20 m off): the nearer edge of the lake's arc at that distance first, then the farther,
+## each a body (ROCK_PAD) and a little more clear of the water; [] when the point is dry or the map names no lake.
+static func lake_turns(map: Node, from: Vector3, a: float, r: float) -> Array:
+	var lake := lake_of(map)
+	if lake.z <= 0.0:
+		return []
+	var wet := ring_in_disc(from, r, Vector2(lake.x, lake.y), lake.z + ROCK_PAD)
+	if wet.y <= 0.0 or wet.y >= PI:
+		return []
+	# the yaw's angle on the ring: (-sin a, -cos a) = (cos t, sin t)
+	var t := -a - PI * 0.5
+	var off := wrapf(t - wet.x, -PI, PI)
+	if absf(off) >= wet.y:
+		return []
+	var side := 1.0 if off >= 0.0 else -1.0
+	var near_t := wet.x + side * (wet.y + LAKE_TURN_MARGIN)
+	var far_t := wet.x - side * (wet.y + LAKE_TURN_MARGIN)
+	return [-near_t - PI * 0.5, -far_t - PI * 0.5]
+
+
+## How far past the lake's edge (radians) lake_turns puts a point.
+const LAKE_TURN_MARGIN := 0.05
+
+
+## Whether a creature may come up at `p` (pass 58, the ring patterns, which put creatures on the screen): outside every
+## rock's painted foot (ROCK_FOOT x its collider, plus ROCK_PAD) and out of the map's water (`in_water`, Red Canyon's lake).
+static func spawn_clear(map: Node, p: Vector3) -> bool:
+	if map == null:
+		return true
+	var obs = map.get("obstacles")
+	if obs is Array:
+		for o in obs:
+			if o is Vector3:
+				var ov: Vector3 = o
+				var keep := ov.z * ROCK_FOOT + ROCK_PAD
+				if Vector2(p.x - ov.x, p.z - ov.y).length_squared() < keep * keep:
+					return false
+	if map.has_method("in_water") and map.in_water(p):
+		return false
+	return true
+
+
+## `n` spots on a ring of `ring_r` round `center` (pass 57's rings; pass 58: one that would cross the arena's wall spreads
+## its spots evenly over the arc of it inside `lim` instead of piling them onto the wall beside the hero, so every spot
+## stays a ring's width from him and the count is kept). From the angle `turn` (a random one for the director's rings),
+## each slid up to `slide` of the spacing round the ring and `jitter` metres in or out (drawn on `rng`), then stepped a
+## little round the ring or in and out when it lands on a rock's painting or in the water (spawn_clear on `map`; it stays
+## put when nothing near is clear: the steering walks it out). `lim` is the usable radius; a spot is never outside it.
+## Pass 58 fix round (the review: by the oasis 11-14% of the spots stayed in the water, and a 105-ring there cost 8-10 ms):
+## the lake is cut out of the ring like the wall, by the circle's arc inside the lake (ring_in_disc, a body and the jitter
+## wider than the water), and the `n` spots are spread over the dry arcs that are left, each arc its share by its length;
+## the rocks a spot must keep off are gathered once a ring (_clear_ctx) instead of every rock of the map for every try.
+static func ring_spots(center: Vector3, ring_r: float, n: int, lim: float, rng: RandomNumberGenerator, turn: float, slide: float, jitter: float, map: Node = null) -> Array:
+	var out: Array = []
+	if n <= 0:
+		return out
+	var jit := maxf(jitter, 0.0)
+	# the arc for the outermost a spot may stray, so a jittered spot still fits
+	var arc := ring_arc(center, ring_r + jit, lim)
+	var whole := arc.y >= PI - 0.0001
+	var ctx: Dictionary = _clear_ctx(map, center, ring_r - jit - 2.5, ring_r + jit + 3.0) if map != null else {}
+	if not ctx.is_empty():
+		var lake: Vector3 = ctx["lake"]
+		if lake.z > 0.0:
+			var wet := ring_in_disc(center, ring_r, Vector2(lake.x, lake.y), lake.z + ROCK_PAD + jit)
+			if wet.y > 0.0 and wet.y < PI:
+				var dry := _dry_arcs(arc, whole, turn, wet)
+				if not dry.is_empty():
+					return _spots_on(dry, center, ring_r, n, lim, rng, slide, jitter, ctx)
+	var step := TAU / float(n) if whole else 2.0 * arc.y / float(n)
+	var start := turn if whole else arc.x - arc.y + step * 0.5
+	for k in range(n):
+		var a := start + step * (float(k) + rng.randf_range(-slide, slide))
+		var r := ring_r + rng.randf_range(-jitter, jitter)
+		var p := center + Vector3(cos(a), 0, sin(a)) * r
+		if not ctx.is_empty() and not _clear_in(ctx, p):
+			p = _step_clear(ctx, center, a, r, step, lim, p)
+		out.append(_inside(p, lim))
+	return out
+
+
+## What a ring's spots must keep clear of (pass 58 fix round), gathered once a ring: the rocks whose painted foot (ROCK_FOOT
+## x the collider + ROCK_PAD) reaches the band `r_in`..`r_out` round `center` that a spot or its steps may land in, as
+## Vector3(x, z, the foot's radius), the map's lake (lake_of) and the map (asked in_water() when it names no lake).
+static func _clear_ctx(map: Node, center: Vector3, r_in: float, r_out: float) -> Dictionary:
+	var near: Array = []
+	var obs = map.get("obstacles") if map else null
+	if obs is Array:
+		for o in obs:
+			if o is Vector3:
+				var ov: Vector3 = o
+				var keep := ov.z * ROCK_FOOT + ROCK_PAD
+				var d := Vector2(ov.x - center.x, ov.y - center.z).length()
+				if d - keep <= r_out and d + keep >= r_in:
+					near.append(Vector3(ov.x, ov.y, keep))
+	return {"obs": near, "lake": lake_of(map), "map": map}
+
+
+## spawn_clear() on a ring's gathered rocks and lake (_clear_ctx).
+static func _clear_in(ctx: Dictionary, p: Vector3) -> bool:
+	for o: Vector3 in ctx["obs"]:
+		if Vector2(p.x - o.x, p.z - o.y).length_squared() < o.z * o.z:
+			return false
+	var lake: Vector3 = ctx["lake"]
+	if lake.z > 0.0:
+		return Vector2(p.x - lake.x, p.z - lake.y).length_squared() >= lake.z * lake.z
+	var map: Node = ctx["map"]
+	return map == null or not map.has_method("in_water") or not map.in_water(p)
+
+
+## The arcs of a ring left dry (pass 58 fix round): the arena's arc of it (`arc` from ring_arc; the whole circle from
+## `turn` when `whole`) less the lake's arc `wet` (ring_in_disc), as Vector2(start, end) angles, end > start; a sliver too
+## short for a body is dropped.
+static func _dry_arcs(arc: Vector2, whole: bool, turn: float, wet: Vector2) -> Array:
+	var a0 := turn if whole else arc.x - arc.y
+	var a1 := a0 + (TAU if whole else 2.0 * arc.y)
+	# the wet arc moved by whole turns to start in a0 .. a0 + TAU
+	var w0 := a0 + fposmod(wet.x - wet.y - a0, TAU)
+	var w1 := w0 + 2.0 * wet.y
+	var ivs := _cut_arc([Vector2(a0, a1)], w0, w1)
+	if w1 > a0 + TAU:
+		ivs = _cut_arc(ivs, a0, w1 - TAU)
+	var out: Array = []
+	for v: Vector2 in ivs:
+		if v.y - v.x > 0.02:
+			out.append(v)
+	return out
+
+
+## `ivs` (Vector2(start, end) angle spans) less the span c0..c1.
+static func _cut_arc(ivs: Array, c0: float, c1: float) -> Array:
+	var out: Array = []
+	for v: Vector2 in ivs:
+		if c1 <= v.x or c0 >= v.y:
+			out.append(v)
+			continue
+		if c0 > v.x:
+			out.append(Vector2(v.x, c0))
+		if c1 < v.y:
+			out.append(Vector2(c1, v.y))
+	return out
+
+
+## `n` ring spots over the dry arcs `dry` (pass 58 fix round): each arc takes its share of `n` by its length (the largest
+## remainders round up), spread evenly along it half a spacing in from its ends, each slid up to `slide` of its spacing
+## and `jitter` in or out, then stepped off a rock as ring_spots does.
+static func _spots_on(dry: Array, center: Vector3, ring_r: float, n: int, lim: float, rng: RandomNumberGenerator, slide: float, jitter: float, ctx: Dictionary) -> Array:
+	var total := 0.0
+	for v: Vector2 in dry:
+		total += v.y - v.x
+	var counts: Array = []
+	var rems: Array = []
+	var given := 0
+	for v: Vector2 in dry:
+		var share := float(n) * (v.y - v.x) / total
+		counts.append(int(floor(share)))
+		rems.append(share - floor(share))
+		given += int(floor(share))
+	while given < n:
+		var best := 0
+		for k in range(rems.size()):
+			if float(rems[k]) > float(rems[best]):
+				best = k
+		counts[best] = int(counts[best]) + 1
+		rems[best] = -1.0
+		given += 1
+	var out: Array = []
+	for k in range(dry.size()):
+		var v: Vector2 = dry[k]
+		var m := int(counts[k])
+		if m <= 0:
+			continue
+		var step := (v.y - v.x) / float(m)
+		for q in range(m):
+			var a := v.x + step * (float(q) + 0.5 + rng.randf_range(-slide, slide))
+			var r := ring_r + rng.randf_range(-jitter, jitter)
+			var p := center + Vector3(cos(a), 0, sin(a)) * r
+			if not _clear_in(ctx, p):
+				p = _step_clear(ctx, center, a, r, step, lim, p)
+			out.append(_inside(p, lim))
+	return out
+
+
+## Ring spot steps (pass 58): metres out (+) or in (-) from the ring, and shares of the spacing round it (never past half
+## a spacing, so the spots keep their order); the smallest moves first, and never more than 2.5 m nearer the centre.
+const RING_STEPS_OUT := [0.0, 1.0, -1.0, 2.0, -2.0, 3.0, -2.5]
+const RING_STEPS_ROUND := [0.0, 0.2, -0.2, 0.4, -0.4]
+
+
+## A ring spot at angle `a`, `r` from `center`, stepped off a rock's painting or the water (pass 58): the first clear spot
+## (_clear_in on the ring's gathered rocks and lake, `ctx`) inside `lim` among RING_STEPS_OUT x RING_STEPS_ROUND (`step`
+## the spacing in radians), else `fallback` (the steering walks a creature out of a rock, and one in the lake wades).
+static func _step_clear(ctx: Dictionary, center: Vector3, a: float, r: float, step: float, lim: float, fallback: Vector3) -> Vector3:
+	for d_out: float in RING_STEPS_OUT:
+		for d_round: float in RING_STEPS_ROUND:
+			if d_out == 0.0 and d_round == 0.0:
+				continue
+			var aa := a + step * d_round
+			var q := center + Vector3(cos(aa), 0, sin(aa)) * maxf(r + d_out, 0.5)
+			if Vector2(q.x, q.z).length() <= lim and _clear_in(ctx, q):
+				return q
+	return fallback
+
+
+## The point `r` metres from `from` towards the yaw `a` (0 = -Z, the hero's facing convention), turned round the least
+## way that keeps it inside a disc of `lim` round the arena's middle (pass 58, the review of pass 57: a spawn towards the
+## wall was clamped onto the wall, beside a hero standing by it; now it keeps its distance from him). Each turn of 5
+## degrees is tried both ways, the one deeper inside first; straight towards the middle fits whenever r < lim.
+static func point_inside(from: Vector3, a: float, r: float, lim: float) -> Vector3:
+	var p := from + Vector3(-sin(a), 0, -cos(a)) * r
+	if Vector2(p.x, p.z).length() <= lim:
+		return p
+	for k in range(1, 37):
+		var da := deg_to_rad(5.0 * float(k))
+		var p1 := from + Vector3(-sin(a + da), 0, -cos(a + da)) * r
+		var p2 := from + Vector3(-sin(a - da), 0, -cos(a - da)) * r
+		var l1 := Vector2(p1.x, p1.z).length()
+		var l2 := Vector2(p2.x, p2.z).length()
+		if l1 <= lim or l2 <= lim:
+			return p1 if (l1 <= lim and (l2 > lim or l1 <= l2)) else p2
+	return _inside(p, lim)
+
+
+## `p` pulled in onto a disc of `lim` round the arena's middle when it lies outside it.
+static func _inside(p: Vector3, lim: float) -> Vector3:
+	var flat := Vector2(p.x, p.z)
+	if flat.length() > lim:
+		flat = flat.normalized() * lim
 	return Vector3(flat.x, p.y, flat.y)
 
 
@@ -1540,17 +1969,19 @@ func _die(i: int, weapon_id: String) -> void:
 			Save.add_keyed_total("kills_with_weapon", weapon_id, 1)
 	died_xp_scale = xp_scale[i]
 	died_max_hp = max_hp[i]
+	died_size = size[i]
 	enemy_died.emit(def, pos[i], elite, weapon_id)
 	died_xp_scale = 0.0
 	died_max_hp = 0.0
+	died_size = 0.0
 	_hot_sauce_pay(i, def, elite)
 	if game and game.has_method("on_creature_died_index"):
 		game.on_creature_died_index(i)
 	if not def.death_burst.is_empty() and blown[i] == 0 and game and game.has_method("elite_explosion"):
 		# the body goes off after a moment: a red ring on the corpse says so; the crowd around it takes a fifth
 		var dbst: Dictionary = def.death_burst
-		# the warning lasts 1/pace (pass 48)
-		game.elite_explosion(pos[i], float(dbst.get("radius", 2.4)), float(dbst.get("damage", 12.0)) * stage_mult * level_dmg_mult * hostile_mult(),
+		# the warning lasts 1/pace (pass 48); the body's own fixed numbers (pass 58)
+		game.elite_explosion(pos[i], float(dbst.get("radius", 2.4)), float(dbst.get("damage", 12.0)) * stage_of(i) * lvd_of(i) * host_of(i),
 			float(dbst.get("delay", 2.0)) / pace, float(dbst.get("knockback", 0.0)), 0.2, hit_info(i, "melee", ["death burst"]))
 	if elite != null:
 		match elite.on_death:
@@ -1560,13 +1991,14 @@ func _die(i: int, weapon_id: String) -> void:
 				for k in range(n):
 					var a := TAU * k / n
 					var p := pos[i] + Vector3(cos(a), 0, sin(a)) * 1.2
-					# the children are their parent's kind (pass 53): its art variant and its row's overrides
-					var j := spawn(def.id, p, null, sc, 0.5, def.variant_code, def.override_stats)
+					# the children are their parent's kind (pass 53): its art variant and its row's overrides, and its
+					# source's fixed numbers (pass 58)
+					var j := spawn(def.id, p, null, sc, 0.5, def.variant_code, def.override_stats, src_of(i))
 					if j >= 0:
 						kb[j] = Vector3(cos(a), 0, sin(a)) * 4.0
 			"explode":
 				if game and game.has_method("elite_explosion"):
-					game.elite_explosion(pos[i], float(elite.params.get("explode_radius", 3.0)), float(elite.params.get("explode_damage", 25.0)) * hostile_mult(), float(elite.params.get("telegraph", 0.5)) / pace, 0.0, 0.2, hit_info(i, "melee", ["explosion"]))
+					game.elite_explosion(pos[i], float(elite.params.get("explode_radius", 3.0)), float(elite.params.get("explode_damage", 25.0)) * host_of(i), float(elite.params.get("telegraph", 0.5)) / pace, 0.0, 0.2, hit_info(i, "melee", ["explosion"]))
 	if i == boss_index:
 		boss_index = -1
 		Run.bosses_killed += 1
@@ -1632,6 +2064,8 @@ func _rebuild_grid() -> void:
 		_g_head.resize(_gw * _gw)
 		_g_next.resize(MAX)
 	_g_head.fill(-1)
+	_big.clear()
+	_grid_max_r = 0.0
 	# backwards, so every cell lists its creatures in index order
 	for i in range(MAX - 1, -1, -1):
 		if alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
@@ -1639,6 +2073,11 @@ func _rebuild_grid() -> void:
 		var c := _gcol(pos[i].z) * _gw + _gcol(pos[i].x)
 		_g_next[i] = _g_head[c]
 		_g_head[c] = i
+		var r := radius[i]
+		if r > _grid_max_r:
+			_grid_max_r = r
+		if r > BIG_R:
+			_big.append(i)
 
 
 func indices_in_radius(center: Vector3, r: float) -> PackedInt32Array:
@@ -2558,10 +2997,15 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 	elif state[i] == STATE_MOVE and _t_cv[cvb + 6] > 0.0 and desired.length_squared() > 0.01:
 		shove = _t_cv[cvb + 6]
 		head = desired.normalized()
-	for cx in range(maxi(gx - 1, 0), mini(gx + 2, _gw)):
+	# the cells round it: 3 x 3, more for a body so wide that a neighbour past the next cell can still touch it (the fix
+	# round of pass 58: a size range's giants)
+	var reach := 1
+	if my_r > BIG_R:
+		reach = maxi(ceili((my_r + _grid_max_r) / CELL), 1)
+	for cx in range(maxi(gx - reach, 0), mini(gx + reach + 1, _gw)):
 		if ghost:
 			break
-		for cz in range(maxi(gz - 1, 0), mini(gz + 2, _gw)):
+		for cz in range(maxi(gz - reach, 0), mini(gz + reach + 1, _gw)):
 			var j := _g_head[cz * _gw + cx]
 			while j >= 0:
 				if j != i:
@@ -2575,6 +3019,19 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 						var l := sqrt(l2)
 						sep += d / l * (min_d - l) / min_d
 				j = _g_next[j]
+	# a narrow body also feels the wide ones whose edge reaches past its 3 x 3 (a boss, an Elite, a size range's giants),
+	# while they are few (the fix round; a wide one sees it from its own side anyway)
+	if not ghost and my_r <= BIG_R and not _big.is_empty() and _big.size() <= BIG_LIST_MAX:
+		for j: int in _big:
+			if j == i or (absi(_gcol(pos[j].x) - gx) <= 1 and absi(_gcol(pos[j].z) - gz) <= 1):
+				continue
+			var d := pos[i] - pos[j]
+			d.y = 0.0
+			var min_d := my_r + radius[j]
+			var l2 := d.length_squared()
+			if l2 < min_d * min_d and l2 > 0.0001:
+				var l := sqrt(l2)
+				sep += d / l * (min_d - l) / min_d
 	sep += _obstacle_push(i)
 	var sep_w := 4.0 if state[i] != STATE_CHARGE else 0.5
 	vel[i] = desired + sep * sep_w
@@ -2743,7 +3200,7 @@ func _fire_artillery(i: int, def: EnemyDef, ppos: Vector3) -> void:
 	var ms: Dictionary = def.artillery.get("missile", {})
 	if game and game.has_method("enemy_missile"):
 		game.enemy_missile(i, muzzle_point(i, ppos - pos[i]), float(ms.get("speed", 4.0)), float(ms.get("turn", 1.3)),
-			float(ms.get("damage", 22.0)) * stage_mult * level_dmg_mult * hostile_mult(), float(ms.get("area", 1.6)),
+			float(ms.get("damage", 22.0)) * stage_of(i) * lvd_of(i) * host_of(i), float(ms.get("area", 1.6)),
 			float(ms.get("speed_of_hero", 0.0)), hit_info(i, "ranged", ["rocket"]), ms)
 	atk_i[i] = 2
 	Audio.play(str(def.sfx.get("attack", "")), pos[i])
@@ -2802,7 +3259,7 @@ func _stand_off(i: int, def: EnemyDef) -> void:
 func _blow_up(i: int, def: EnemyDef) -> void:
 	var km: Dictionary = def.kamikaze
 	if game and game.has_method("elite_explosion"):
-		game.elite_explosion(pos[i], float(km.get("radius", 2.6)), float(km.get("damage", 26.0)) * stage_mult * level_dmg_mult * hostile_mult(),
+		game.elite_explosion(pos[i], float(km.get("radius", 2.6)), float(km.get("damage", 26.0)) * stage_of(i) * lvd_of(i) * host_of(i),
 			0.0, float(km.get("knockback", 9.0)), 0.2, hit_info(i, "melee", ["mine"]))
 	blown[i] = 1
 	_die(i, "")
@@ -2898,7 +3355,8 @@ func _tick_rains(delta: float, ppos: Vector3) -> void:
 			var sp_id: String = str(r.get("spawn", ""))
 			if sp_id != "":
 				# the sand bursts and something comes up through it, thrown a little towards the hero
-				var j := spawn(sp_id, at)
+				# on the numbers of the moment the eruption was called (pass 58, R1; brood_numbers)
+				var j := spawn(sp_id, at, null, 1.0, 1.0, "", r.get("stats", {}), r.get("src", {}))
 				if j >= 0:
 					var tow := ppos - at
 					tow.y = 0.0
@@ -3034,7 +3492,9 @@ func _update_boss(delta: float, ppos: Vector3) -> void:
 
 
 ## The attack runner: a creature with a `boss.attacks` list (the bosses, the casters) cycles through them, each with a
-## wind-up and a telegraph, then the effect. State lives per creature, so a caster and the boss can run at once.
+## wind-up and a telegraph, then the effect. State lives per creature, so a caster and the boss can run at once. Every
+## attack's damage reads the attacker's own factors (pass 58: stage_of, lvd_of, host_of): fixed from its source for a
+## creature a row brought (the Hammer Giant), the live ones for a boss or an Elite as before.
 func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 	if alive[i] == 0 or state[i] == STATE_DYING:
 		return
@@ -3141,9 +3601,13 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					# at the pace knob's speed (_scripted_speed) and 1/pace as long: the length of its red line (pass 48)
 					state[i] = STATE_CHARGE
 					timer[i] = float(atk.get("duration", 1.2)) / pace
-					dmg[i] = float(atk.get("damage", 25)) * stage_mult * hostile_mult()
+					dmg[i] = float(atk.get("damage", 25)) * stage_of(i) * host_of(i)
 				"spawn_ring":
-					spawn_ring(str(atk.get("enemy", "coyote")), int(atk.get("count", 10)), pos[i], 5.0)
+					# a boss's brood comes on the numbers of the moment it is called (pass 58, R1), or on a row's that
+					# brings the same creature then (the fix round, brood_numbers)
+					var bid := str(atk.get("enemy", "coyote"))
+					var bn := brood_numbers(bid)
+					spawn_ring(bid, int(atk.get("count", 10)), pos[i], 5.0, "", bn["stats"], bn["src"])
 					state[i] = STATE_MOVE
 				"slam_at":
 					# a rock on the marked spot: damage there, the caster stays where it is
@@ -3151,7 +3615,7 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					var ds := ppos - atk_target[i]
 					ds.y = 0.0
 					if ds.length() <= rs + 0.4:
-						player.take_damage(float(atk.get("damage", 18)) * stage_mult * hostile_mult(), atk_target[i], hit_info(i, "ranged", ["rock slam", "knocked back"]))
+						player.take_damage(float(atk.get("damage", 18)) * stage_of(i) * host_of(i), atk_target[i], hit_info(i, "ranged", ["rock slam", "knocked back"]))
 						if player.has_method("shove") and ds.length_squared() > 0.01:
 							player.shove(ds.normalized() * float(atk.get("knockback", 6.0)))
 					if game:
@@ -3196,7 +3660,7 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					var db := ppos - pos[i]
 					db.y = 0.0
 					if db.length() <= rb + 0.5:
-						player.take_damage(float(atk.get("damage", 28)) * stage_mult * hostile_mult(), pos[i], hit_info(i, "melee", ["burst up from the sand", "knocked back"]))
+						player.take_damage(float(atk.get("damage", 28)) * stage_of(i) * host_of(i), pos[i], hit_info(i, "melee", ["burst up from the sand", "knocked back"]))
 						if player.has_method("shove"):
 							player.shove(db.normalized() * float(atk.get("knockback", 8.0)))
 					if game:
@@ -3207,9 +3671,11 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 				"rain", "erupt":
 					# a sequence of small strikes around the hero, each a red ring first: a dodge that lasts a few seconds;
 					# "erupt" also brings a creature up through the sand at every ring (the Dune Centipede's young)
+					var eid := str(atk.get("spawn", ""))
+					var en: Dictionary = brood_numbers(eid) if eid != "" else {"stats": {}, "src": {}}
 					_rains.append({"left": int(atk.get("count", 10)), "next": 0.0, "interval": float(atk.get("interval", 0.3)),
-						"spread": float(atk.get("spread", 5.0)), "radius": float(atk.get("radius", 1.6)), "damage": float(atk.get("damage", 14)) * stage_mult * hostile_mult(),
-						"warn": float(atk.get("warn", 0.55)) / pace, "strikes": [], "first": true, "spawn": str(atk.get("spawn", "")),
+						"spread": float(atk.get("spread", 5.0)), "radius": float(atk.get("radius", 1.6)), "damage": float(atk.get("damage", 14)) * stage_of(i) * host_of(i),
+						"warn": float(atk.get("warn", 0.55)) / pace, "strikes": [], "first": true, "spawn": eid, "src": en["src"], "stats": en["stats"],
 						"pillar": bool(atk.get("pillar", false)), "knockback": float(atk.get("knockback", 0.0)),
 						"info": hit_info(i, "ranged", ["pillar of light" if bool(atk.get("pillar", false)) else "eruption"])})
 					hold_t[i] = float(atk.get("count", 10)) * float(atk.get("interval", 0.3)) + float(atk.get("warn", 0.55)) / pace + 0.3
@@ -3223,18 +3689,18 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 						var vfrom: Vector3 = pos[i] + Vector3(0, size[i] * 0.6, 0)
 						if bool(atk.get("straight", false)) and game and game.has_method("enemy_shot_straight"):
 							# the fan on the ground is a set of lines: the shots fly down them, not over them
-							game.enemy_shot_straight(vfrom, target, float(atk.get("speed", 14.0)), float(atk.get("damage", 12)) * stage_mult * level_dmg_mult * hostile_mult(),
+							game.enemy_shot_straight(vfrom, target, float(atk.get("speed", 14.0)), float(atk.get("damage", 12)) * stage_of(i) * lvd_of(i) * host_of(i),
 								float(atk.get("splash", 0.5)), {"life": float(atk.get("life", 1.0)), "shot": str(atk.get("shot", "")),
 								"knockback": float(atk.get("knockback", 0.0)), "info": hit_info(i, "ranged", [str(atk.get("shot", "volley"))])})
 						elif game and game.has_method("enemy_spit"):
-							game.enemy_spit(vfrom, target, float(atk.get("speed", 7.0)), float(atk.get("damage", 12)) * stage_mult * hostile_mult(), float(atk.get("splash", 1.4)), hit_info(i, "ranged", ["volley"]))
+							game.enemy_spit(vfrom, target, float(atk.get("speed", 7.0)), float(atk.get("damage", 12)) * stage_of(i) * host_of(i), float(atk.get("splash", 1.4)), hit_info(i, "ranged", ["volley"]))
 					state[i] = STATE_MOVE
 				"slam":
 					var r := float(atk.get("radius", 6.0))
 					var d := ppos - pos[i]
 					d.y = 0.0
 					if d.length() <= r + 0.5:
-						player.take_damage(float(atk.get("damage", 30)) * stage_mult * level_dmg_mult * hostile_mult(), pos[i], hit_info(i, "melee", ["slam", "knocked back"]))
+						player.take_damage(float(atk.get("damage", 30)) * stage_of(i) * lvd_of(i) * host_of(i), pos[i], hit_info(i, "melee", ["slam", "knocked back"]))
 						if atk.has("lift") and player.has_method("blast"):
 							# the giant's hammer (pass 43): a real throw, past the shove's cap
 							player.blast(d.normalized() * float(atk.get("knockback", 6.0)), float(atk["lift"]))
@@ -3252,7 +3718,7 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					for k in range(rn):
 						var ra := -rspread * 0.5 + rspread * float(k) / float(maxi(rn - 1, 1))
 						_rumbles.append({"from": pos[i], "dir": charge_dir[i].rotated(Vector3.UP, ra), "len": float(atk.get("length", 14.0)), "front": 0.0,
-							"speed": float(atk.get("speed", 13.0)) * pace, "width": float(atk.get("width", 1.2)), "damage": float(atk.get("damage", 16)) * stage_mult * level_dmg_mult * hostile_mult(),
+							"speed": float(atk.get("speed", 13.0)) * pace, "width": float(atk.get("width", 1.2)), "damage": float(atk.get("damage", 16)) * stage_of(i) * lvd_of(i) * host_of(i),
 							"kb": float(atk.get("knockback", 10.0)), "lift": float(atk.get("lift", 3.0)), "hit": false, "fx_t": 0.0,
 							"info": hit_info(i, "ranged", ["ground rumble", "thrown"])})
 					if game:
@@ -3263,13 +3729,13 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					if game and game.has_method("hell_line"):
 						# the line knows whose it is (pass 45): the Brander stood at its start and burned on his own iron
 						game.hell_line(pos[i], charge_dir[i], float(atk.get("length", 16.0)), float(atk.get("life", 9.0)), float(atk.get("width", 1.1)),
-							float(atk.get("damage", 12)) * stage_mult * level_dmg_mult * hostile_mult(), float(atk.get("tick", 0.5)), hit_info(i, "ranged", ["hellfire"]), i)
+							float(atk.get("damage", 12)) * stage_of(i) * lvd_of(i) * host_of(i), float(atk.get("tick", 0.5)), hit_info(i, "ranged", ["hellfire"]), i)
 					state[i] = STATE_MOVE
 				"tumbleweed_volley":
 					# the King (pass 45): tumbleweeds roll out in every direction, far, whether the hero is near or not
 					if game and game.has_method("tumbleweed_volley"):
 						game.tumbleweed_volley(pos[i], charge_dir[i], int(atk.get("count", 12)), float(atk.get("speed", 9.0)),
-							float(atk.get("damage", 14)) * stage_mult * level_dmg_mult * hostile_mult(), float(atk.get("life", 2.6)),
+							float(atk.get("damage", 14)) * stage_of(i) * lvd_of(i) * host_of(i), float(atk.get("life", 2.6)),
 							float(atk.get("knockback", 14.0)), float(atk.get("lift", 2.5)), hit_info(i, "ranged", ["tumbleweed"]))
 					state[i] = STATE_MOVE
 				"swoop":
@@ -3281,7 +3747,7 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					var sfall := float(atk.get("fall", 0.45)) / pace
 					_stalactites.append({"center": pos[i], "dir": charge_dir[i], "r": float(atk.get("radius", 6.5)), "deg": float(atk.get("deg", 180.0)),
 						"left": sc, "gap": sdur / maxf(float(sc), 1.0), "next": 0.0, "fall": sfall,
-						"damage": float(atk.get("damage", 24)) * stage_mult * level_dmg_mult * hostile_mult(), "kb": float(atk.get("knockback", 14.0)), "lift": float(atk.get("lift", 3.0)),
+						"damage": float(atk.get("damage", 24)) * stage_of(i) * lvd_of(i) * host_of(i), "kb": float(atk.get("knockback", 14.0)), "lift": float(atk.get("lift", 3.0)),
 						"throw": float(atk.get("throw", 12.0)), "throw_r": float(atk.get("throw_radius", 1.8)), "owner": i, "hit": false, "falling": [],
 						"info": hit_info(i, "ranged", ["stalactites", "thrown"])})
 					hold_t[i] = sdur + sfall + 0.2
@@ -3293,7 +3759,7 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					# (Game.throw_boulder -> Boulder -> Game.boulder_land); the ring stays on the spot for the flight
 					var bflight := float(atk.get("flight", 1.6))
 					if game and game.has_method("throw_boulder"):
-						game.throw_boulder(i, pos[i] + Vector3(0, size[i] * 0.8, 0), atk_target[i], atk, stage_mult * level_dmg_mult * hostile_mult(), hit_info(i, "ranged", ["boulder", "thrown"]))
+						game.throw_boulder(i, pos[i] + Vector3(0, size[i] * 0.8, 0), atk_target[i], atk, stage_of(i) * lvd_of(i) * host_of(i), hit_info(i, "ranged", ["boulder", "thrown"]))
 						# the boulder flies on hostile_clock (pass 48), so its ring stays 1/pace as long
 						game.telegraph_ring(atk_target[i], float(atk.get("radius", 4.6)), bflight / pace, Color(0.93, 0.29, 0.36))
 					state[i] = STATE_MOVE
@@ -3305,7 +3771,7 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 		vel[i] = charge_dir[i] * _scripted_speed(i, def)
 		if timer[i] <= 0.0:
 			state[i] = STATE_MOVE
-			dmg[i] = def.damage * stage_mult * hostile_mult()
+			dmg[i] = def.damage * stage_of(i) * host_of(i)
 			atk_t[i] = float(def.boss.get("cooldown_between", 2.0))
 
 

@@ -38,6 +38,7 @@ fps = {
 }
 knockback = 2.94
 head = 1.0
+blood = Color(0.78431374, 0.08627451, 0.11764706, 1)
 variants = {
 "RG-A": {
 "anims": {

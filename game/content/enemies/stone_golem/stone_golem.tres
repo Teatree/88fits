@@ -38,6 +38,7 @@ fps = {
 }
 knockback = 6.8
 head = 0.949
+blood = Color(0.3529412, 0.32156864, 0.9254902, 1)
 can_be_elite = false
 can_be_grabbed = false
 boss = {

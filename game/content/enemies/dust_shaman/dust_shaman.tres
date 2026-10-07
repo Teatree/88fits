@@ -39,6 +39,7 @@ fps = {
 }
 knockback = 4.16
 head = 1.0
+blood = Color(0.78431374, 0.08627451, 0.11764706, 1)
 support = {
 "frenzy": 0.3,
 "frenzy_seconds": 3.0,

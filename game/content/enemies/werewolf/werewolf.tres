@@ -41,6 +41,7 @@ fps = {
 }
 knockback = 2.94
 head = 0.977
+blood = Color(0.72156864, 0.05490196, 0.101960786, 1)
 variants = {
 "WW-A": {
 "anims": {

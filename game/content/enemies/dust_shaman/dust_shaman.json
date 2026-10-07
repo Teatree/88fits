@@ -10,6 +10,7 @@
   "knockback": 4.16,
   "radius": 0.42,
   "size": 1.15,
+  "blood": "#C8161E",
   "pack_size": 1,
   "support": {
     "keep_distance": 7.0,

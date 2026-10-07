@@ -45,6 +45,7 @@ fps = {
 }
 knockback = 4.81
 head = 0.883
+blood = Color(0.22352941, 0.76862746, 0.16862746, 1)
 variants = {
 "ANT-A": {
 "anims": {

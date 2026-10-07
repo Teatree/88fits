@@ -235,6 +235,10 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 	# the blob shadow's tuning (pass 47: the Dune Scorpion floated over its shadow); a variant entry may carry its own
 	var sh = d.get("shadow", {})
 	e.shadow = sh if sh is Dictionary else {}
+	# the death splash's colour (pass 58): "#rrggbb", red when missing or unreadable
+	var bl := str(d.get("blood", ""))
+	if bl != "" and Color.html_is_valid(bl):
+		e.blood = Color.html(bl)
 	# art variants (pass 34): the top-level strip is `variant_base`'s; each other entry names its own strip (and icon). The
 	# code in `variant` is the art the game plays, so switching variants is one word in the JSON. (_common loads the icon
 	# after this, so the base icon is resolved here, and build() puts the chosen variant's back.)

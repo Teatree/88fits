@@ -2,7 +2,11 @@
 // the readout and the hover cards show what a run will do. The same rules as game/core/data/WaveTimeline.gd
 // (sample_points, curve_mult, hp_mult_at, damage_mult_at), WaveDirector._roster_weight and EnemyManager.spawn's health
 // and damage. tools/level_editor/selftest.py loads this file under node and checks it against a Python copy of the game's
-// formulas, so keep it free of the DOM.
+// formulas, so keep it free of the DOM. Pass 58: a row's HP and ATK are fixed from its start (rowNumbers, R1), the Actual
+// HP x / ATK x lanes (actualAt, actualScale), the size and colour ranges (sizeRange, tintRange, tintPixel: R2, R3), a
+// coloured row's special shade (tintSpecial), an "Elites every" event's firings (eliteEveryTimes), and lane WV's fix
+// round: an event of a creature a row brings then plays that row's numbers (eventNumbers, openSourceOf) and endless
+// fixes every row afresh at each wave (fixedFrom).
 'use strict';
 
 const Model = (() => {
@@ -197,6 +201,123 @@ const Model = (() => {
     return { hp, dmg };
   }
 
+  /** "boss", "elite" (an Elite-archetype mini-boss) or "regular". */
+  const archOf = (c) => (c && (c.archetype === 'boss' || c.kind === 'boss') ? 'boss' : c && c.archetype === 'elite' ? 'elite' : 'regular');
+  /** Whether a stats block sets a key (a number the game would read). */
+  const setNum = (st, k) => st[k] != null && st[k] !== '' && isFinite(Number(st[k]));
+
+  /** A row's own HP and ATK (pass 58, R1, Garry: "I don't actually want it to change for the same 'wave' of enemies on
+   *  the fly"): fixed from the row's start `t0`. HP is the row's `hp` when it overrides it (no time curve: "the multiplier
+   *  will inform what the HP should be for enemy rows whose stats weren't overridden"), else the creature's JSON hp × the
+   *  HP curve at t0; then × hp_mult. ATK the same with `damage`, damage_mult and the damage curve. An Elite-archetype
+   *  mini-boss and a boss take no curve here (their own rules). `hpMult` / `atkMult` are the row's numbers over the JSON's
+   *  (the Actual lanes; null when the JSON number is 0). */
+  function rowNumbers(tl, c, stats, t0) {
+    const st = isObj(stats) ? stats : {};
+    const cc = c || {};
+    const arch = archOf(cc);
+    const at = Math.max(num(t0, 0), 0);
+    const hpOver = setNum(st, 'hp'), dmgOver = setNum(st, 'damage');
+    const hpTime = arch === 'regular' && !hpOver ? hpTimeMult(tl, at) : 1;
+    const dmgTime = arch === 'regular' && !dmgOver ? dmgTimeMult(tl, at) : 1;
+    const jsonHp = num(cc.hp, 0), jsonDmg = num(cc.damage, 0);
+    const hp = (hpOver ? Number(st.hp) : jsonHp * hpTime) * num(st.hp_mult, 1);
+    const atk = (dmgOver ? Number(st.damage) : jsonDmg * dmgTime) * num(st.damage_mult, 1);
+    return {
+      arch, t0: at, hp, atk, hpTime, dmgTime, hpOver, dmgOver, jsonHp, jsonDmg,
+      hpMult: jsonHp > 0 ? hp / jsonHp : null, atkMult: jsonDmg > 0 ? atk / jsonDmg : null,
+    };
+  }
+
+  /** The second a row's numbers are fixed from when a creature of it comes at run second t (the fix round of lane WV,
+   *  WaveDirector.source_for): its own start `t0` through the stages; in endless wave N (from 1) the later of that and the
+   *  wave's start, stage_length × stages + (N - 1) × endless_wave_seconds, since every row and wave fixes its numbers
+   *  afresh at each endless wave (the step comes with the WAVE toast, like the stage multiplier's). */
+  function fixedFrom(tl, t0, t) {
+    const from = Math.max(num(t0, 0), 0);
+    const end = runEnd(tl);
+    const at = num(t, 0);
+    if (!(at >= end)) return from;
+    const ews = Math.max(num(tl.endless_wave_seconds, 60), 1);
+    return Math.max(from, end + Math.floor((at - end) / ews) * ews);
+  }
+
+  /** The look creature `c` plays with `variant` asked for (WaveDirector._look_of): '' for its own (no code, its default
+   *  look, a code it does not have), else the code. */
+  function lookOf(c, variant) {
+    const v = variant == null ? '' : String(variant);
+    if (!c || v === '' || v === String(c.variant == null ? '' : c.variant)) return '';
+    return Array.isArray(c.variants) && c.variants.some((x) => x && String(x.code) === v) ? v : '';
+  }
+
+  /** Where a wave stops sending (App.waveEnd): its `until`, else its last burst when it has a count, else never. */
+  function waveEndOf(w) {
+    const t = num(w.t, 0);
+    if (w.until != null && w.until !== '') return num(w.until, Infinity);
+    const count = num(w.count, 0), burst = Math.max(1, num(w.burst, 1)), every = num(w.every, 0);
+    return count > 0 ? t + every * Math.ceil(count / burst) : Infinity;
+  }
+
+  /** The roster row, else the wave, that brings creature `id` in the look `variant` at run second t (the fix round of
+   *  lane WV, WaveDirector.open_source_of): a roster row of either channel open at t (from its `t`, before its `until`)
+   *  at a weight above 0, the heaviest when several are; else a wave inside its window (from its `t`, before its end)
+   *  with an alternative that brings it, the first such (`share`: that alternative's share of the roll the game makes
+   *  once a run; 1 for a wave's own creature). {kind: 'roster' | 'wave', i, k, t0, stats, share, w} or null. */
+  function openSourceOf(tl, byId, id, variant, t, lateT) {
+    const c = byId ? byId[id] : null;
+    if (!c) return null;
+    const late = lateT == null ? num(tl.weight_late_t, DEF.weight_late_t) : lateT;
+    const look = lookOf(c, variant);
+    let best = null, bestW = 0;
+    (Array.isArray(tl.roster) ? tl.roster : []).forEach((r, i) => {
+      if (!isObj(r) || String(r.enemy == null ? '' : r.enemy) !== id || lookOf(c, r.variant) !== look) return;
+      const start = num(r.t, 0), until = r.until == null || r.until === '' ? Infinity : num(r.until, Infinity);
+      if (!(t >= start && t < until)) return;
+      const w = rowWeight(r, t, late);
+      if (w > bestW) { bestW = w; best = { kind: 'roster', i, k: 0, t0: Math.max(start, 0), stats: isObj(r.stats) ? r.stats : {}, share: 1, w }; }
+    });
+    if (best) return best;
+    const waves = Array.isArray(tl.waves) ? tl.waves : [];
+    for (let i = 0; i < waves.length; i++) {
+      const wv = waves[i];
+      if (!isObj(wv) || !(t >= num(wv.t, 0) && t < waveEndOf(wv))) continue;
+      const alts = Array.isArray(wv.alts) && wv.alts.length ? wv.alts : [wv];
+      const total = alts.reduce((a, x) => a + (isObj(x) ? Math.max(num(x.chance, 1), 0) : 0), 0);
+      for (let k = 0; k < alts.length; k++) {
+        const a = alts[k];
+        if (!isObj(a) || String(a.enemy == null ? '' : a.enemy) !== id || lookOf(c, a.variant) !== look) continue;
+        return { kind: 'wave', i, k, t0: Math.max(num(wv.t, 0), 0), stats: isObj(a.stats) ? a.stats : {}, share: total > 0 ? Math.max(num(a.chance, 1), 0) / total : 1, w: 0 };
+      }
+    }
+    return null;
+  }
+
+  /** An event's numbers (the fix round of lane WV, WaveDirector.event_numbers; Garry: "shooting the same enemy with the
+   *  same weapon suddenly doesn't kill it"): the curves at the second it fires (rowNumbers at t), except that while a
+   *  roster row or a wave brings the same creature in the same look (openSourceOf), each half the event's own `stats`
+   *  leave alone (HP when they set neither hp nor hp_mult, ATK when neither damage nor damage_mult) is that row's Row HP /
+   *  Row ATK, fixed from the row's start (in endless, its wave's). A boss and an Elite by their kind never join.
+   *  rowNumbers' fields with the joined halves in, and joined (openSourceOf's, or null), hpJoined, dmgJoined, hpFrom,
+   *  dmgFrom (the second each half is fixed from). */
+  function eventNumbers(tl, byId, id, variant, stats, t, lateT) {
+    const c = byId ? byId[id] : null;
+    const st = isObj(stats) ? stats : {};
+    const at = Math.max(num(t, 0), 0);
+    const out = Object.assign(rowNumbers(tl, c, st, at), { joined: null, hpJoined: false, dmgJoined: false, hpFrom: at, dmgFrom: at });
+    if (!c || out.arch !== 'regular') return out;
+    const has = (k) => Object.prototype.hasOwnProperty.call(st, k);
+    const hpOwn = has('hp') || has('hp_mult'), dmgOwn = has('damage') || has('damage_mult');
+    if (hpOwn && dmgOwn) return out;
+    const src = openSourceOf(tl, byId, id, variant, at, lateT);
+    if (!src) return out;
+    const from = fixedFrom(tl, src.t0, at);
+    const rn = rowNumbers(tl, c, src.stats, from);
+    out.joined = src;
+    if (!hpOwn) Object.assign(out, { hp: rn.hp, hpTime: rn.hpTime, hpOver: rn.hpOver, hpMult: rn.hpMult, hpJoined: true, hpFrom: from });
+    if (!dmgOwn) Object.assign(out, { atk: rn.atk, dmgTime: rn.dmgTime, dmgOver: rn.dmgOver, atkMult: rn.atkMult, dmgJoined: true, dmgFrom: from });
+    return out;
+  }
+
   /** The knockback (m/s) a bite of this creature gives with the row's overrides: stats.knockback, else the JSON's own,
    *  else the default from its (overridden) damage; × knockback_mult. `from` says where the number came from. */
   function knockbackOf(c, stats) {
@@ -210,10 +331,15 @@ const Model = (() => {
 
   /** HP and ATK of one creature spawned at run second t (EnemyManager.spawn): a boss scales by its own
    *  boss.hp_mult_per_stage^stage × the stage multiplier; an Elite-archetype mini-boss by elite.hp_mult_per_stage^stage ×
-   *  the stage multiplier × creature_hp_mult (no time, no level); everyone else by the stage, the HP curve, the hero's
-   *  level and creature_hp_mult. Damage is the stage, the hero's level, the damage curve and creature_damage_mult for
-   *  all. `parts` lists the factors for the cards; `level` is the hero level the page assumes. */
-  function creatureAt(tl, c, stats, t, level) {
+   *  the stage multiplier × creature_hp_mult (no time, no level); everyone else by the row's own numbers, fixed from its
+   *  start `t0` (pass 58, R1: rowNumbers, the time curves read at t0, never later), × the stage at t, the hero's level and
+   *  creature_hp_mult. Damage: a regular creature's row ATK (its curve at t0) × the stage, the hero's level and
+   *  creature_damage_mult; an Elite or a boss keeps the live damage curve at t (WV: "their hits read the live values").
+   *  `t0` missing = t (a creature with no row: a special spawns at its own second); in endless a row's numbers are fixed
+   *  afresh at each wave (fixedFrom). `given`: numbers already worked out (an event's, eventNumbers) in place of the row's.
+   *  `parts` lists the factors for the cards; `level` is the hero level the page assumes (in a run, the level at the row's
+   *  first spawn). */
+  function creatureAt(tl, c, stats, t, level, t0, given) {
     const st = isObj(stats) ? stats : {};
     const s = stageAt(tl, t);
     const sm = stageMult(tl, s, t);
@@ -221,9 +347,10 @@ const Model = (() => {
     const lvHp = 1 + num(tl.level_hp_per_level, 0) * Math.max(lv - 1, 0);
     const lvDmg = 1 + num(tl.level_damage_per_level, 0) * Math.max(lv - 1, 0);
     const chm = num(tl.creature_hp_mult, 1), cdm = num(tl.creature_damage_mult, 1);
-    const hpT = hpTimeMult(tl, t), dmgT = dmgTimeMult(tl, t);
+    const from = t0 == null || t0 === '' ? t : fixedFrom(tl, num(t0, t), t);
     const base = baseNumbers(c, st);
-    const arch = c.archetype === 'boss' || c.kind === 'boss' ? 'boss' : c.archetype === 'elite' ? 'elite' : 'regular';
+    const row = given || rowNumbers(tl, c, st, from);
+    const arch = row.arch;
     let hp, hpParts;
     if (arch === 'boss') {
       const per = num(getPath(st, 'boss.hp_mult_per_stage'), num(c.boss && c.boss.hp_mult_per_stage, 1.6));
@@ -234,18 +361,257 @@ const Model = (() => {
       hp = base.hp * Math.pow(per, s) * Math.max(sm, 1) * chm;
       hpParts = [['base', base.hp], [`elite ${round(per, 2)}^${s}`, Math.pow(per, s)], ['stage', Math.max(sm, 1)], ['creature', chm]];
     } else {
-      hp = base.hp * sm * hpT * lvHp * chm;
-      hpParts = [['base', base.hp], ['stage', sm], ['time', hpT], ['level', lvHp], ['creature', chm]];
+      hp = row.hp * sm * lvHp * chm;
+      // the base the row's own curve multiplies (a joined event's is the row's)
+      hpParts = [['base', row.hpTime > 0 ? row.hp / row.hpTime : base.hp], ['time', row.hpTime], ['stage', sm], ['level', lvHp], ['creature', chm]];
     }
-    const atk = base.dmg * sm * lvDmg * cdm * dmgT;
-    const atkParts = [['base', base.dmg], ['stage', sm], ['time', dmgT], ['level', lvDmg], ['creature', cdm]];
+    const dmgT = arch === 'regular' ? row.dmgTime : dmgTimeMult(tl, t);
+    const atk = arch === 'regular' ? row.atk * sm * lvDmg * cdm : base.dmg * sm * lvDmg * cdm * dmgT;
+    const atkParts = [['base', arch === 'regular' && row.dmgTime > 0 ? row.atk / row.dmgTime : base.dmg], ['time', dmgT], ['stage', sm], ['level', lvDmg], ['creature', cdm]];
     // the coloured variance special (EnemyManager: × special.hp / special.damage, defaults 1.6 / 1.2)
-    const vr = isObj(c.variance) ? c.variance : {};
+    const vs = varianceSpecial(c, st);
+    const special = arch === 'regular' && vs.chance > 0 ? { chance: vs.chance, hp: hp * num(vs.sp.hp, 1.6), atk: atk * num(vs.sp.damage, 1.2) } : null;
+    return { arch, stage: s, stageMult: sm, hp, atk, hpParts, atkParts, special, base, row, t0: given ? Math.min(given.hpFrom, given.dmgFrom) : from, lvHp, lvDmg, chm, cdm };
+  }
+
+  // ------------------------------------------------------------------ the Actual HP x / ATK x lanes (pass 58)
+  //
+  // Garry (2026-10-07): "We keep the multiplier of HP curve that we control, but we also will add the 'Actual HP multiple'
+  // curve ... For the 'Actual HP multiple' we want to show the average and max actual HP multiple that accounts for
+  // overrides. It shows it at that moment in time." A row's multiple is its row HP over the creature's JSON hp (R1: the
+  // curve at the row's start, or the override); at a second t the lane averages the multiples of the roster rows (both
+  // channels) and the waves' alternatives that spawn round t, each weighted by how many it spawns there (the Spawned so
+  // far estimate's tallies per source), and takes the largest.
+
+  /** Every source the Actual lanes read: a roster row (`roster:<i>`, t0 its `t`) or a wave's alternative (`wave:<i>:<k>`,
+   *  t0 the wave's `t`; a wave with no alts is its own alternative 0), with its creature and stats. */
+  function actualSources(tl) {
+    const out = [];
+    (Array.isArray(tl.roster) ? tl.roster : []).forEach((r, i) => {
+      if (!isObj(r)) return;
+      out.push({ key: 'roster:' + i, kind: 'roster', i, k: 0, id: String(r.enemy == null ? '' : r.enemy), stats: isObj(r.stats) ? r.stats : {}, variant: r.variant || '', t0: Math.max(num(r.t, 0), 0), hell: r.channel === 'hell' });
+    });
+    (Array.isArray(tl.waves) ? tl.waves : []).forEach((w, i) => {
+      if (!isObj(w)) return;
+      const alts = Array.isArray(w.alts) ? w.alts : [];
+      const list = alts.length ? alts.map((a, k) => ({ a, k })).filter((x) => isObj(x.a)) : [{ a: w, k: 0 }];
+      for (const { a, k } of list) {
+        out.push({ key: `wave:${i}:${k}`, kind: 'wave', i, k, id: String(a.enemy == null ? '' : a.enemy), stats: isObj(a.stats) ? a.stats : {}, variant: a.variant || '', t0: Math.max(num(w.t, 0), 0), hell: w.channel === 'hell' });
+      }
+    });
+    return out;
+  }
+
+  /** The Actual lanes at second t: each source that spawned in the `win` seconds round t (the estimate `est`'s `src`
+   *  tallies: what it had spawned by t + win / 2 less what it had by t - win / 2), its multiples (rowNumbers at its t0, in
+   *  endless the start of the wave t is in: fixedFrom; an Elite or a boss in a row keeps the live damage curve at t), its
+   *  share of those spawns; then {avg, max} of the HP and
+   *  ATK multiples (avg weighted by the spawns; null when nothing spawned). `byId` maps creature ids to records. */
+  function actualAt(tl, byId, est, t, win, sources) {
+    const w = num(win, 10) > 0 ? num(win, 10) : 10;
+    const srcs = sources || actualSources(tl);
+    const hi = estimateAt(est, t + w / 2), lo = t - w / 2 >= 0 ? estimateAt(est, t - w / 2) : null;
+    const rows = [];
+    let total = 0;
+    for (const s of srcs) {
+      const c = byId[s.id];
+      if (!c) continue;
+      const n = (hi && hi.src ? num(hi.src[s.key], 0) : 0) - (lo && lo.src ? num(lo.src[s.key], 0) : 0);
+      if (!(n > 1e-9)) continue;
+      // in endless every row is fixed afresh at each wave (fixedFrom; `start` keeps its own start for the card)
+      const from = fixedFrom(tl, s.t0, t);
+      const rn = rowNumbers(tl, c, s.stats, from);
+      const atk = rn.atkMult == null ? null : rn.arch === 'regular' ? rn.atkMult : rn.atkMult * dmgTimeMult(tl, t);
+      rows.push({ key: s.key, kind: s.kind, i: s.i, k: s.k, id: s.id, variant: s.variant, t0: from, start: s.t0, hell: s.hell, n, hp: rn.hpMult, atk, hpOver: rn.hpOver, dmgOver: rn.dmgOver, arch: rn.arch, hpTime: rn.hpTime, dmgTime: rn.dmgTime });
+      total += n;
+    }
+    for (const r of rows) r.share = total > 0 ? r.n / total : 0;
+    const agg = (key) => {
+      let sw = 0, sv = 0, mx = null;
+      for (const r of rows) {
+        if (r[key] == null) continue;
+        sw += r.n; sv += r.n * r[key];
+        if (mx == null || r[key] > mx) mx = r[key];
+      }
+      return { avg: sw > 0 ? sv / sw : null, max: mx };
+    };
+    rows.sort((a, b) => b.n - a.n || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    return { t, win: w, total, rows, hp: agg('hp'), atk: agg('atk') };
+  }
+
+  /** The two lanes over the run clock: actualAt every `step` seconds from 0 to `end`. */
+  function actualSeries(tl, byId, est, end, step, win) {
+    const st = num(step, 1) > 0 ? num(step, 1) : 1;
+    const sources = actualSources(tl);
+    const out = { ts: [], hp: { avg: [], max: [] }, atk: { avg: [], max: [] } };
+    for (let t = 0; t <= end + 1e-9; t += st) {
+      const a = actualAt(tl, byId, est, t, win, sources);
+      out.ts.push(t);
+      out.hp.avg.push(a.hp.avg); out.hp.max.push(a.hp.max);
+      out.atk.avg.push(a.atk.avg); out.atk.max.push(a.atk.max);
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------------ size and colour ranges (pass 58, R2 and R3)
+
+  /** `stats.size` read as the game reads it (WV): a number = the creature's size as before (the variance jitter on top);
+   *  [min, max] = each creature rolls its own size in the range (a reversed pair is swapped). A one-number list is a range
+   *  of one size, as EnemyDef.size_range_of reads it (the review of pass 58): every creature exactly that size, no spread,
+   *  its radius following. {min, max, range} or null when unset or unreadable. */
+  function sizeRange(v) {
+    if (v == null || v === '') return null;
+    if (Array.isArray(v)) {
+      const ns = v.map(Number).filter((x) => isFinite(x));
+      if (!ns.length || ns.length !== v.length) return null;
+      if (ns.length === 1) return { min: ns[0], max: ns[0], range: true };
+      return { min: Math.min(ns[0], ns[1]), max: Math.max(ns[0], ns[1]), range: true };
+    }
+    const n = Number(v);
+    return isFinite(n) ? { min: n, max: n, range: false } : null;
+  }
+
+  /** What is wrong with a `stats.size` (the editor's check, Garry's "0 < min <= max"): [] when it is fine. */
+  function sizeIssues(v) {
+    if (v == null || v === '') return [];
+    if (Array.isArray(v)) {
+      if (v.length < 1 || v.length > 2 || v.some((x) => x === null || x === '' || typeof x === 'boolean' || !isFinite(Number(x)))) return ['size must be a number or [min, max]'];
+      const a = Number(v[0]), b = Number(v[v.length - 1]);
+      const out = [];
+      if (!(a > 0) || !(b > 0)) out.push('a size must be above 0');
+      if (a > b) out.push(`the size range runs backwards (min ${a} is above max ${b})`);
+      return out;
+    }
+    if (typeof v === 'boolean' || !isFinite(Number(v))) return ['size must be a number or [min, max]'];
+    return Number(v) > 0 ? [] : ['a size must be above 0'];
+  }
+
+  /** R3's defaults: the saturation, value and amount a `stats.tint` block leaves out. */
+  const TINT_DEF = { sat: 0.85, val: 1.0, amount: 0.5 };
+
+  /** `stats.tint` as the game reads it (WV): {hue: [h0, h1] (or one hue), sat, val, amount}, the hues clamped to 0..360,
+   *  the rest to 0..1, the defaults filled in; null when unset or unreadable. */
+  function tintRange(v) {
+    if (!isObj(v)) return null;
+    let h0, h1;
+    if (Array.isArray(v.hue)) {
+      if (!v.hue.length) return null;
+      h0 = num(v.hue[0], NaN); h1 = num(v.hue[v.hue.length - 1], NaN);
+    } else { h0 = num(v.hue, NaN); h1 = h0; }
+    if (!isFinite(h0) || !isFinite(h1)) return null;
+    return {
+      h0: clamp(h0, 0, 360), h1: clamp(h1, 0, 360),
+      sat: clamp(num(v.sat, TINT_DEF.sat), 0, 1), val: clamp(num(v.val, TINT_DEF.val), 0, 1), amount: clamp(num(v.amount, TINT_DEF.amount), 0, 1),
+    };
+  }
+
+  /** What is wrong with a `stats.tint`: [] when it is fine. */
+  function tintIssues(v) {
+    if (v == null) return [];
+    if (!isObj(v)) return ['the colour range must be a block {hue: [from, to], sat, val, amount}'];
+    const out = [];
+    const hue = v.hue;
+    const hues = Array.isArray(hue) ? hue : [hue];
+    if (hue == null || (Array.isArray(hue) && (hue.length < 1 || hue.length > 2))) out.push('the colour range needs a hue: [from, to] in degrees');
+    else if (hues.some((h) => h === null || h === '' || typeof h === 'boolean' || !isFinite(Number(h)))) out.push('a hue is not a number');
+    else if (hues.some((h) => Number(h) < 0 || Number(h) > 360)) out.push('a hue is outside 0–360°');
+    for (const k of ['sat', 'val', 'amount']) {
+      if (v[k] == null) continue;
+      const n = Number(v[k]);
+      if (typeof v[k] === 'boolean' || !isFinite(n)) out.push(`${k} is not a number`);
+      else if (n < 0 || n > 1) out.push(`${k} must be between 0 and 1`);
+    }
+    return out;
+  }
+
+  /** The degrees from h0 up to h1, through red (360 → 0) when h1 is below h0 (R3: "h1 < h0 wraps through red"). */
+  const hueSpan = (h0, h1) => (h1 >= h0 ? h1 - h0 : h1 - h0 + 360);
+  /** The hue a fraction f (0..1) of the way from h0 to h1 (the game's roll: fmod(h0 + u × span, 360)). */
+  const hueAt = (h0, h1, f) => { const h = (h0 + clamp(f, 0, 1) * hueSpan(h0, h1)) % 360; return h < 0 ? h + 360 : h; };
+
+  /** Color.from_hsv(h / 360, s, v) as [r, g, b] 0..1. */
+  function hsvToRgb(h, s, v) {
+    const hh = ((((h % 360) + 360) % 360) / 60);
+    const i = Math.floor(hh), f = hh - i;
+    const p = v * (1 - s), q = v * (1 - s * f), u = v * (1 - s * (1 - f));
+    switch (i % 6) {
+      case 0: return [v, u, p];
+      case 1: return [q, v, p];
+      case 2: return [p, v, u];
+      case 3: return [p, q, v];
+      case 4: return [u, p, v];
+      default: return [v, p, q];
+    }
+  }
+
+  /** An sRGB channel (0..1) in linear light, and back. */
+  const toLinear = (c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  const toSrgb = (c) => (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
+
+  /** A colour-range row's variance special (WV's follow-up, EnemyDef.tint_special_color): the hue a fraction f of the way
+   *  across the range in a darker, stronger shade: saturation + 0.15 (at most 1), brightness × 0.7, drawn at the row's
+   *  amount or the special's own tint strength, whichever is more, + 0.15 (at most 1). `r` is a tintRange.
+   *  {h, rgb, amount}. */
+  const SPECIAL_TINT = { satAdd: 0.15, valMult: 0.7, strengthAdd: 0.15, strength: 0.6 };
+  function tintSpecial(r, specialStrength, f) {
+    const h = hueAt(r.h0, r.h1, f);
+    const ss = num(specialStrength, SPECIAL_TINT.strength);
+    return {
+      h, rgb: hsvToRgb(h, Math.min(r.sat + SPECIAL_TINT.satAdd, 1), r.val * SPECIAL_TINT.valMult),
+      amount: Math.min(Math.max(r.amount, ss) + SPECIAL_TINT.strengthAdd, 1),
+    };
+  }
+
+  /** The coloured variance special a row's creatures may roll (EnemyManager.spawn): the creature's variance block with
+   *  the row's `variance` overrides merged over it (EnemyDef.with_overrides' deep merge). chance 0 = none (no variance
+   *  block, or no special_chance); strength = the special's tint_strength (the game's default 0.6), size its size factor
+   *  (default 1.3). */
+  function varianceSpecial(c, stats) {
+    const st = isObj(stats) ? stats : {};
+    const vr = c && isObj(c.variance) ? c.variance : {};
     const vo = isObj(st.variance) ? st.variance : {};
     const sp = Object.assign({}, isObj(vr.special) ? vr.special : {}, isObj(vo.special) ? vo.special : {});
-    const spChance = num(vo.special_chance, num(vr.special_chance, 0));
-    const special = arch === 'regular' && spChance > 0 ? { chance: spChance, hp: hp * num(sp.hp, 1.6), atk: atk * num(sp.damage, 1.2) } : null;
-    return { arch, stage: s, stageMult: sm, hp, atk, hpParts, atkParts, special, base };
+    const any = Object.keys(vr).length > 0 || Object.keys(vo).length > 0;
+    return { chance: any ? num(vo.special_chance, num(vr.special_chance, 0)) : 0, sp, strength: num(sp.tint_strength, SPECIAL_TINT.strength), size: num(sp.size, 1.3) };
+  }
+
+  /** The top of the Actual lane (the review of pass 58: one row with hp 200 over 10 had lifted both lanes to ×23, so the
+   *  curve Garry drags sat in the bottom fifth of its lane): the curve lane keeps its own top `own`, and the Actual lane
+   *  shares it while the rows' largest multiple fits under it; past it the Actual lane rises to show that multiple with a
+   *  margin, but never past ACTUAL_CLAMP times `own`. Anything above is drawn at the top with its number. */
+  const ACTUAL_CLAMP = 1.5;
+  function actualScale(own, actualMax) {
+    const o = num(own, 0) > 0 ? num(own, 0) : 1.5;
+    const m = num(actualMax, 0);
+    if (!(m > o)) return o;
+    return Math.min(m * 1.15, o * ACTUAL_CLAMP);
+  }
+
+  /** When an "Elites every" event fires (WaveDirector: at its `t`, then every `interval`; [min, max] = a fresh draw each
+   *  time, its middle here): the first `n` seconds, none past `end` but the first. Each firing takes the curves at its own
+   *  second (WaveDirector._spawn_elite: fixed_numbers(Run.elapsed)). Hot Sauce brings them sooner and one held back for
+   *  colour comes later: neither is counted here. */
+  function eliteEveryTimes(ev, n, end) {
+    const e = isObj(ev) ? ev : {};
+    const t0 = Math.max(num(e.t, 0), 0);
+    const iv = e.interval;
+    const step = Array.isArray(iv) && iv.length ? (num(iv[0], 90) + num(iv[iv.length - 1], 90)) / 2 : num(iv, 90);
+    const out = [t0];
+    if (!(step > 0)) return out;
+    for (let k = 1; k < Math.max(1, Math.round(num(n, 4))); k++) {
+      const t = t0 + k * step;
+      if (end != null && t > num(end, Infinity)) break;
+      out.push(t);
+    }
+    return out;
+  }
+
+  /** One pixel (sRGB 0..1) as the creature billboard draws it with an instance tint (R3: mix(rgb, tint, amount × 0.65)).
+   *  The game samples the painting in linear light (`source_color`) and mixes the tint's numbers in as they are, so the
+   *  mix runs in linear light here too and comes back to sRGB (the game's Filmic tone mapping is left out). */
+  function tintPixel(rgb, tint, amount) {
+    const k = clamp(amount, 0, 1) * 0.65;
+    return [0, 1, 2].map((j) => clamp(toSrgb(toLinear(rgb[j]) * (1 - k) + tint[j] * k), 0, 1));
   }
 
   /** The override keys of a stats block other than the ones the HP / ATK numbers already show, as short words. */
@@ -413,7 +779,8 @@ const Model = (() => {
    *  portalSeconds, end (the run clock to stop at; default the editor's view end), skin (the map's first skin, for a swarm
    *  that names no creature), boss (the map's boss, for a boss event that names none and for endless)}. Returns
    *  {points: one per run second (and one after each boss fight, at the fight's second), each {t, after, all, reg, col,
-   *  mod, elite, special, boss, kills, alive, by: {id: [spawned, coloured, elite-modified]}}, ids (largest first), marks
+   *  mod, elite, special, boss, kills, alive, by: {id: [spawned, coloured, elite-modified]}, src: {'roster:<i>' |
+   *  'wave:<i>:<k>': what that roster row or wave alternative has spawned (pass 58)}}, ids (largest first), marks
    *  [{t, kind elite|mod|special|boss|swarm, id, n}], fights [{t, boss, seconds, portal, spawned}], colourAt, assume}. */
   function spawnEstimate(tl, creatures, opts) {
     const o = isObj(opts) ? opts : {};
@@ -485,19 +852,21 @@ const Model = (() => {
       defCache.set(key, d);
       return d;
     }
-    // every roster row with its creature, in the timeline's order (the game reads them in that order)
+    // every roster row with its creature, in the timeline's order (the game reads them in that order); `key` names it in
+    // the per-source tallies (pass 58: the Actual HP x / ATK x lanes weigh each row by what it spawned)
     const roster = [];
-    for (const r of Array.isArray(tl.roster) ? tl.roster : []) {
-      if (!isObj(r)) continue;
+    (Array.isArray(tl.roster) ? tl.roster : []).forEach((r, ri) => {
+      if (!isObj(r)) return;
       const d = defOf(String(r.enemy == null ? '' : r.enemy), r.stats);
-      if (d) roster.push({ r, d, t: num(r.t, 0), until: r.until == null || r.until === '' ? 1e9 : num(r.until, 1e9), hell: r.channel === 'hell', pack: Math.max(trunc(num(r.pack, d.pack)), 1), single: r.pattern === 'single' });
-    }
+      if (d) roster.push({ r, d, key: 'roster:' + ri, t: num(r.t, 0), until: r.until == null || r.until === '' ? 1e9 : num(r.until, 1e9), hell: r.channel === 'hell', pack: Math.max(trunc(num(r.pack, d.pack)), 1), single: r.pattern === 'single' });
+    });
 
     // ---- the crowd: expected bodies per type (an id and its load per body)
     const alive = new Map();           // id|share -> {id, share, n}
     const spLive = [];                 // the specials alive: [{share, die (play step)}]
     let bossAlive = null;              // {share} while a boss fight runs
     const cum = {}, col = {}, mod = {};
+    const srcCum = {};                 // pass 58: what each roster row ('roster:<i>') and wave alternative ('wave:<i>:<k>') spawned
     const cat = { reg: 0, col: 0, mod: 0, elite: 0, special: 0, boss: 0, minion: 0 };
     let kills = 0, colourAt = null;
     const marks = [], fights = [];
@@ -581,24 +950,25 @@ const Model = (() => {
 
     // ---- the waves: one branch per alternative, weighted by its chance (the game rolls one of them per run)
     const waves = [];
-    for (const w of Array.isArray(tl.waves) ? tl.waves : []) {
-      if (!isObj(w)) continue;
-      const alts = (Array.isArray(w.alts) ? w.alts : []).filter(isObj);
-      const list = alts.length ? alts : [{ chance: 1, enemy: w.enemy, pack: w.pack, stats: w.stats }];
+    (Array.isArray(tl.waves) ? tl.waves : []).forEach((w, wi) => {
+      if (!isObj(w)) return;
+      // each alternative keeps its index in the file (the key its tallies go under)
+      const alts = (Array.isArray(w.alts) ? w.alts : []).map((a, k) => ({ a, k })).filter((x) => isObj(x.a));
+      const list = alts.length ? alts : [{ a: { chance: 1, enemy: w.enemy, pack: w.pack, stats: w.stats }, k: 0 }];
       let sum = 0;
-      for (const a of list) sum += Math.max(num(a.chance, 1), 0);
+      for (const { a } of list) sum += Math.max(num(a.chance, 1), 0);
       const branches = [];
-      for (const a of list) {
+      for (const { a, k } of list) {
         const p = alts.length ? (sum > 0 ? Math.max(num(a.chance, 1), 0) / sum : 0) : 1;
         const d = defOf(String(a.enemy == null ? '' : a.enemy), a.stats);
-        if (p > 0) branches.push({ p, d, spawned: 0, next: num(w.t, 0), done: !d });
+        if (p > 0) branches.push({ p, d, key: `wave:${wi}:${k}`, spawned: 0, next: num(w.t, 0), done: !d });
       }
       waves.push({
         t: num(w.t, 0), until: w.until == null || w.until === '' ? null : num(w.until, 0), count: trunc(num(w.count, 0)),
         burst: Math.max(trunc(num(w.burst, 5)), 1), every: num(w.every, 0), respect: w.respect_cap !== false,
         hell: w.channel === 'hell', elite: w.elite ? String(w.elite) : '', branches,
       });
-    }
+    });
     function hellIds(rows) {
       const s = new Set();
       for (const x of rows) s.add(x.d.id);
@@ -637,7 +1007,7 @@ const Model = (() => {
               n = room > 0 ? Math.min(n, Math.max(Math.ceil(room / Math.max(b.d.share, 0.05)), 1)) : 0;
             }
             const came = n > 0 ? n : 0;
-            if (came > 0) { add(b.d, b.p * came, w.elite && colourOpen() ? 'mod' : 'reg'); b.spawned += came; }
+            if (came > 0) { add(b.d, b.p * came, w.elite && colourOpen() ? 'mod' : 'reg'); bump(srcCum, b.key, b.p * came); b.spawned += came; }
             if (w.every <= 0) { if (came > 0) b.done = true; else b.next = t + burstEvery / EST_HZ; break; }
             b.next += w.every;
             if (w.count > 0 && b.spawned >= w.count) { b.done = true; break; }
@@ -822,7 +1192,7 @@ const Model = (() => {
       for (const n of got) sum += n;
       const scale = sum > left ? left / sum : 1;
       let used = 0;
-      for (let i = 0; i < list.length; i++) { const n = got[i] * scale; add(list[i].x.d, n, 'reg'); used += n; }
+      for (let i = 0; i < list.length; i++) { const n = got[i] * scale; add(list[i].x.d, n, 'reg'); bump(srcCum, list[i].x.key, n); used += n; }
       return left - used;
     }
     function spawnBurst() {
@@ -860,7 +1230,7 @@ const Model = (() => {
     function record(after) {
       const by = {};
       for (const id of Object.keys(cum)) by[id] = [cum[id], col[id] || 0, mod[id] || 0];
-      points.push({ t: clock(), after, all: total(), reg: cat.reg, col: cat.col, mod: cat.mod, elite: cat.elite, special: cat.special, boss: cat.boss, minion: cat.minion, kills, alive: bodies(), by });
+      points.push({ t: clock(), after, all: total(), reg: cat.reg, col: cat.col, mod: cat.mod, elite: cat.elite, special: cat.special, boss: cat.boss, minion: cat.minion, kills, alive: bodies(), by, src: Object.assign({}, srcCum) });
     }
     record(false);
 
@@ -943,6 +1313,10 @@ const Model = (() => {
     stageLength, stages, runEnd, stageAt, stageMult, rowWeight, keyframesOf, convertRow, normaliseRoster, newRowId,
     defaultKnockback, baseNumbers, knockbackOf, creatureAt, otherOverrides, seedPoints, getPath,
     MAX_BODIES, EST_HZ, EST_DEF, pickShares, eliteCount, burstOnce, burstAvg, bossBrood, spawnEstimate, estimateAt,
+    archOf, rowNumbers, actualSources, actualAt, actualSeries, ACTUAL_CLAMP, actualScale, eliteEveryTimes,
+    fixedFrom, lookOf, waveEndOf, openSourceOf, eventNumbers,
+    sizeRange, sizeIssues, TINT_DEF, tintRange, tintIssues, hueSpan, hueAt, hsvToRgb, toLinear, toSrgb, tintPixel,
+    SPECIAL_TINT, tintSpecial, varianceSpecial,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

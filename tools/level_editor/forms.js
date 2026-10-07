@@ -2,7 +2,8 @@
 // so each change is one undo step and the lanes redraw; a value cleared deletes its key (U.setKey / U.setPath), so the
 // JSON only ever holds what Garry set. Pass 54: the creature, art variant, elite modifier and power-up picks are one
 // combobox with pictures (iconSelect); colours have swatches; a roster row's presence points, the HP x / ATK x curves and
-// the spawn sides have blocks of their own.
+// the spawn sides have blocks of their own. Pass 58: the art variant's empty choice reads "Default (CODE)", the
+// creature's default look from the Creatures tab, which a row that names none follows.
 'use strict';
 
 const Forms = (() => {
@@ -274,22 +275,25 @@ const Forms = (() => {
     return el('div', { class: 'enemy-pick' }, sel, o.summary === false ? null : creatureSummary(value));
   }
 
-  /** The creature's art variants with their pictures; the empty choice is the look in play (the JSON's own `variant`). */
+  /** The creature's art variants with their pictures; the empty choice is the creature's default look (pass 58: "Default
+   *  (SK-A)", the look its JSON plays, set on the Creatures tab; a row that names none follows it when it changes). A code
+   *  picked here pins the row to that look. */
   function variantSelect(enemyId, value, onChange, opts) {
     const o = opts || {};
     const c = App.creature(enemyId);
     const vs = c ? c.variants : [];
     const codes = vs.map((v) => ({
       v: v.code,
-      label: v.code + (v.code === c.play ? ' · in play' : '') + (v.base ? ' · base strip' : '') + (v.ready ? '' : ' · not painted yet'),
-      icon: v.icon, help: v.note || '', sub: v.note || '', dim: !v.ready,
+      label: v.code + (v.code === c.play ? ' · the default' : '') + (v.base ? ' · base strip' : '') + (v.ready ? '' : ' · not painted yet'),
+      icon: v.icon, help: `${v.note || ''}${v.note ? ' · ' : ''}this row plays ${v.code} whatever the default`, sub: v.note || '', dim: !v.ready,
     }));
     const inPlay = c ? (c.play || c.variant || '') : '';
     const sel = iconSelect(codes, value || '', onChange, {
-      emptyLabel: c ? (inPlay ? `in play: ${inPlay}` : 'its one painting') : '—', emptyIcon: c ? c.icon_play || c.icon : '',
-      emptyHelp: 'empty = the look the creature JSON plays (its own `variant`)', path: o.path || 'variant', popWidth: 300,
+      emptyLabel: c ? (inPlay ? `Default (${inPlay})` : 'Default (its one painting)') : '—', emptyIcon: c ? c.icon_play || c.icon : '',
+      emptyHelp: 'the creature\'s default look (the Creatures tab sets it): this row follows it when it changes', emptySub: 'follows the Creatures tab', path: o.path || 'variant', popWidth: 300,
     });
     if (!codes.length && !value) { sel.disabled = true; sel.title = 'this creature has one painting'; }
+    if (value && c) sel.title = `this row plays ${value} (pinned); the default is ${inPlay || 'its one painting'}: pick "Default" to follow it`;
     return sel;
   }
 
@@ -444,6 +448,7 @@ const Forms = (() => {
     const pts = get() || [];
     const wrap = el('div', { class: 'points' + (sp.extra ? ' with-extra' : '') + (sp.dim ? ' dim' : '') });
     wrap.appendChild(el('div', { class: 'points-head' }, el('span', { text: 'time' }), el('span', { text: sp.valueLabel || 'value' }), sp.extra ? el('span', { text: sp.extraLabel || '' }) : null, el('span')));
+    const rows = [];
     pts.forEach((p, k) => {
       const t = el('input', { type: 'text', class: 'num secs', value: p[0], 'data-path': `${sp.path}.${k}.0`, title: 'seconds or mm:ss' });
       const v = el('input', { type: 'number', class: 'num short', value: p[1], min: sp.min == null ? 0 : sp.min, step: sp.step == null ? 'any' : sp.step, 'data-path': `${sp.path}.${k}.1` });
@@ -451,10 +456,25 @@ const Forms = (() => {
       v.addEventListener('change', () => { const n = parseNum(v.value, sp.int); if (n == null) return; App.apply(() => { get()[k][1] = Math.max(sp.min == null ? 0 : sp.min, n); }); });
       for (const i of [t, v]) i.addEventListener('keydown', (e) => { if (e.key === 'Enter') i.blur(); });
       const canRemove = pts.length > (sp.minPoints || 0);
-      wrap.appendChild(el('div', { class: 'points-row' }, el('span', { class: 'with-hint' }, t, el('span', { class: 'hint', text: fmtT(p[0]) })), v,
-        sp.extra ? el('span', { class: 'hint', text: sp.extra(p, k) }) : null,
+      const hintT = el('span', { class: 'hint', text: fmtT(p[0]) });
+      const extraEl = sp.extra ? el('span', { class: 'hint', text: sp.extra(p, k) }) : null;
+      rows.push({ t, v, hintT, extraEl });
+      wrap.appendChild(el('div', { class: 'points-row' }, el('span', { class: 'with-hint' }, t, hintT), v, extraEl,
         el('button', { class: 'x', type: 'button', text: '×', title: canRemove ? 'remove the point' : `at least ${sp.minPoints} points`, disabled: !canRemove, onclick: () => App.apply(() => { get().splice(k, 1); }) })));
     });
+    // the boxes brought up to date in place (pass 58 review: a roster row's Presence times stayed put while its bar was
+    // dragged; Inspector.live calls this on every move)
+    wrap.refresh = () => {
+      const L = get() || [];
+      rows.forEach((row, k) => {
+        const p = L[k];
+        if (!Array.isArray(p)) return;
+        if (document.activeElement !== row.t) row.t.value = p[0];
+        row.hintT.textContent = fmtT(p[0]);
+        if (document.activeElement !== row.v) row.v.value = p[1];
+        if (row.extraEl) row.extraEl.textContent = sp.extra(p, k);
+      });
+    };
     wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: '+ point', onclick: () => App.apply(() => {
       const L = sp.ensure ? sp.ensure() : get();
       const last = L[L.length - 1] || sp.first || [0, 1];

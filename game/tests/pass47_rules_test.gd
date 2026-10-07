@@ -417,8 +417,20 @@ func test_a_chest_takes_a_skip_or_a_banish() -> void:
 	# none left: nothing spent, nothing counted
 	assert_str(Run.chest_skip(Run.chest_roll())).is_empty()
 	assert_int(Run.chests_opened).is_equal(chests + 2)
-	# a banish: the id is out of the run and a new roll comes back
-	var r2 := Run.chest_roll()
+	# pass 58 (Garry: "Banish option should not allow Banishing items that Player already has"): a level of the held
+	# Peashooter is refused, nothing spent
+	var held_roll := {"type": "weapon", "id": "peashooter", "def": Registry.weapon("peashooter"), "level_from": 2, "level_to": 3, "is_new": false}
+	assert_bool(Run.chest_banish(held_roll).is_empty()).is_true()
+	assert_int(Run.banishes_left).is_equal(1)
+	assert_bool(Run.banished.has("peashooter")).is_false()
+	# a banish of a new item: the id is out of the run and a new roll comes back
+	var r2 := {}
+	for k in range(200):
+		var r3 := Run.chest_roll()
+		if Run.can_banish_card(r3):
+			r2 = r3
+			break
+	assert_bool(r2.is_empty()).is_false()
 	var again := Run.chest_banish(r2)
 	assert_bool(Run.banished.has(str(r2["id"]))).is_true()
 	assert_int(Run.banishes_left).is_equal(0)
@@ -431,7 +443,8 @@ func test_a_chest_takes_a_skip_or_a_banish() -> void:
 	Run.banishes_left = 1
 	assert_bool(Run.chest_banish({"type": "gold", "id": "", "gold": 50}).is_empty()).is_true()
 	assert_int(Run.banishes_left).is_equal(1)
-	# banishing an evolution keeps the weapon as it is for the run
+	# pass 58: an evolution is never banished (it grows out of a weapon the hero has): refused, nothing spent, the weapon
+	# still ready to evolve (pass 47 banished it and kept the weapon as it was for the run)
 	Run.stage = 0
 	var w := Run.add_weapon(Registry.weapon("boomstick"), 5)
 	# pass 48: every mutation of the path
@@ -442,9 +455,11 @@ func test_a_chest_takes_a_skip_or_a_banish() -> void:
 	Run.add_mutation("both_barrels")
 	var evo := Run.chest_roll()
 	assert_str(str(evo["type"])).is_equal("evolution")
-	var instead := Run.chest_banish(evo)
-	assert_str(str(instead["type"])).is_not_equal("evolution")
-	assert_bool(Run.evolution_ready(w)).is_false()
+	var left := Run.banishes_left
+	assert_bool(Run.chest_banish(evo).is_empty()).is_true()
+	assert_int(Run.banishes_left).is_equal(left)
+	assert_bool(Run.banished.has(str(evo["id"]))).is_false()
+	assert_bool(Run.evolution_ready(w)).is_true()
 
 
 func test_the_mirror_says_skip_and_banish_a_stage() -> void:

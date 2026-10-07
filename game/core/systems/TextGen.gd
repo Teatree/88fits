@@ -306,7 +306,9 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 			if gd.get("black_hole") is Dictionary:
 				text = "Lobs %d black hole%s at the thickest crowd: %s drag%s everything in and eat%s it, then pop%s." % [amount, "" if amount == 1 else "s", "it" if amount == 1 else "they", "s" if amount == 1 else "", "s" if amount == 1 else "", "s" if amount == 1 else ""]
 			else:
-				text = "Picks up %d enem%s within %.0f m and throws %s into the thickest crowd: a %.1f m blast. What it throws takes a hit when it lands." % [amount, "y" if amount == 1 else "ies", range_m, "it" if amount == 1 else "them", float(gd.get("blast", 1.9)) * sheet.get_stat("area", 1.0)]
+				# the blast the landing makes, Repulsor's 40% wider one too (area_radius, pass 58: the card's change row
+				# reads the same number)
+				text = "Picks up %d enem%s within %.0f m and throws %s into the thickest crowd: a %.1f m blast. What it throws takes a hit when it lands." % [amount, "y" if amount == 1 else "ies", range_m, "it" if amount == 1 else "them", float(area_radius(def, sheet, pr)[1])]
 		"Spawner":
 			var cap: int = int(round(float(pr.get("max_turrets", 6)) * float(pr.get("max_turrets_mult", 1.0))))
 			var life := sheet.get_stat("lifetime", 12.0)
@@ -480,6 +482,256 @@ static func next_level_text(def: ContentDef, level: int) -> String:
 		return "Maxed."
 	var s := describe_effects(eff)
 	return "Next level: " + (s if s != "" else "nothing new")
+
+
+# --- what an upgrade changes (pass 58) -------------------------------------------------------------------------------
+## The most rows a card lists of what an upgrade changes (pass 58, Garry: "Maybe we show which stats are actually
+## changing as well with the upgrade, rather than just giving the line with a little arrow that shows a number turning
+## into a different one").
+const CHANGE_ROWS := 4
+## A weapon's rows that follow from the others (the estimate, a blast's shape and what each creature in it takes): never
+## listed as a change, since the stat that moved them is.
+const CHANGE_SKIP := ["dps", "blast", "blast_hit"]
+## Stats whose smaller number is the better one (a shorter cooldown or wait): a rise in one of them is a loss.
+const LOWER_BETTER := ["cooldown", "shield_delay", "regen_delay"]
+
+
+## What a weapon's step from `level_from` to `level_to` changes: its rows (WeaponInstance.stat_rows, the pause screen's
+## names and numbers) at both levels, the ones that differ, then any other stat its levels move, at most CHANGE_ROWS.
+## `held` is the hero's copy (its mutations and its bonus go along); `player` is the hero's sheet (his attack damage,
+## cooldown and area fold in, as the pause screen shows them). Each row: {stat, name, before, after, worse}. Two rows
+## read as the weapon's description reads them (_weapon_row): the amount names what it counts ("Hammers 2 → 3") and an
+## area that is a radius on the sand is in metres ("Blast radius 2.4 m → 2.9 m").
+static func weapon_changes(def: WeaponDef, level_from: int, level_to: int, held: WeaponInstance = null,
+		player: StatSheet = null, all_weapons: Array = []) -> Array:
+	if def == null or def.is_evolution or level_from < 1 or level_to <= level_from:
+		return []
+	var a := _weapon_at(def, level_from, held, player, all_weapons)
+	var b := _weapon_at(def, level_to, held, player, all_weapons)
+	var was: Dictionary = {}
+	for r: Dictionary in a.stat_rows():
+		was[str(r["stat"])] = str(r["value"])
+	var out: Array = []
+	var covered: Array = []
+	for r: Dictionary in b.stat_rows():
+		var st := str(r["stat"])
+		covered.append(st)
+		if CHANGE_SKIP.has(st) or not was.has(st):
+			continue
+		var row := _weapon_row(a, b, st, str(was[st]), str(r["value"]), str(r["name"]))
+		if not row.is_empty():
+			out.append(row)
+	# a stat the levels move that the rows leave out; the area is already there as the Sun Scepter's pillar radius or
+	# the Guitarra's cone width
+	var shaped := covered.has("radius") or covered.has("cone_deg")
+	for k in range(level_from + 1, level_to + 1):
+		for e in def.effects_at_level(k):
+			var st2 := (e as Effect).stat
+			if covered.has(st2) or (st2 == "area" and shaped):
+				continue
+			covered.append(st2)
+			var row2 := _weapon_row(a, b, st2, format_value(st2, a.stat(st2)), format_value(st2, b.stat(st2)), stat_name(st2))
+			if not row2.is_empty():
+				out.append(row2)
+	return out.slice(0, CHANGE_ROWS)
+
+
+## One row of a weapon's step, {} when the stat reads the same at both levels: `before` and `after` as the Build tab
+## shows them, except two the Build tab words loosely (pass 58 review): the amount takes the noun the weapon's
+## description uses (amount_noun: "Hammers", "Blades", "Rockets", not "Projectiles" on weapons that fire none), and an
+## area that is a radius on the sand reads in metres (area_radius: the Land Mine's "Blast radius 2.4 m → 2.9 m", not
+## "Area of effect 240% → 288%", which reads as 2.4 times the area).
+static func _weapon_row(a: WeaponInstance, b: WeaponInstance, st: String, before: String, after: String, label: String) -> Dictionary:
+	var v0 := a.stat(st)
+	var v1 := b.stat(st)
+	if st == "amount":
+		label = amount_noun(b.def, b.sheet, b.params)
+	elif st == "area":
+		var r0 := area_radius(a.def, a.sheet, a.params)
+		var r1 := area_radius(b.def, b.sheet, b.params)
+		if not r0.is_empty() and not r1.is_empty():
+			label = str(r1[0])
+			v0 = float(r0[1])
+			v1 = float(r1[1])
+			before = "%.1f m" % v0
+			after = "%.1f m" % v1
+	if before == after:
+		return {}
+	var pair := _tidy_pair(before, after)
+	return {"stat": st, "name": _sentence(label), "before": pair[0], "after": pair[1], "worse": _worse(st, v0, v1)}
+
+
+## What a weapon's `amount` counts, in the word its description uses (pass 58 review: the change rows said "Projectiles
+## 2 → 3" on the Hammer, the Gravity Gun and the Orbit Saws): plural, lower case. `sheet` and `params` are the weapon's as
+## it is carried (WeaponInstance.sheet, .params; empty params = the def's). The Sun Scepter's pillars and the Guitarra's
+## waves are the words their Build tab rows already use; the Build tab's other rows keep "projectiles".
+static func amount_noun(def: WeaponDef, sheet: StatSheet = null, params: Dictionary = {}) -> String:
+	if def == null:
+		return stat_name("amount")
+	var pr: Dictionary = params if not params.is_empty() else def.params
+	var fire := sheet != null and sheet.get_stat("fire_damage", 0.0) > 0.0
+	var poison := sheet != null and sheet.get_stat("poison_damage", 0.0) > 0.0
+	match def.behavior:
+		"ProjectileEmitter":
+			# the Spear is thrown like any shot and reads as what it is (weapon_description)
+			if pr.has("plant"):
+				return "spears"
+			match def.targeting:
+				"forward":
+					return "pellets"
+				"healthy":
+					return "flares" if fire else "darts"
+			return "shots"
+		"Orbiter":
+			return "blades"
+		"Lobber":
+			return "bottles" if fire else ("bombs" if poison else "grenades")
+		"Thruster":
+			# a slice swings `amount` times a stroke; the Spear's sweep (amount_mode "blades") and a thrust are blades
+			var th = pr.get("thrust", {})
+			var td: Dictionary = th if th is Dictionary else {}
+			if float(td.get("slice_deg", 0.0)) > 0.0 and str(td.get("amount_mode", "")) != "blades":
+				return "swings"
+			return "blades"
+		"Smasher":
+			return "hammers"
+		"MineLayer":
+			return "mines"
+		"GravityGun":
+			var gv = pr.get("gravity", {})
+			return "black holes" if gv is Dictionary and (gv as Dictionary).get("black_hole") is Dictionary else "enemies thrown"
+		"Spawner":
+			return "turrets"
+		"MissilePod":
+			# rockets with a blast, or the Killer Bees' seekers (no blast)
+			var blast_m := sheet.get_stat("area", 0.0) if sheet else float(def.base.get("area", 0.0))
+			return "rockets" if blast_m > 0.3 else "bees"
+		"ConeWave":
+			return "waves"
+		"SunScepter":
+			return "pillars"
+		"Beam", "LaserBeam":
+			return "beams"
+	return stat_name("amount")
+
+
+## A weapon's area as the radius it reaches on the sand, [what the radius is called, metres], for the weapons whose area
+## is one (pass 58 review): a Lobber's area is its pool's, cloud's or blast's radius, a mine's and a rocket's the same,
+## the Hammer's blast is smash.radius x area and the Gravity Gun's landing gravity.blast x area x Repulsor's throw_mult
+## (as GravityGun._blast_r). [] for a weapon whose area is a share of its own size (blades, swings, cones, the bees) and
+## for the Singularity's hole. `sheet` and `params` as amount_noun's.
+static func area_radius(def: WeaponDef, sheet: StatSheet, params: Dictionary = {}) -> Array:
+	if def == null or sheet == null:
+		return []
+	var pr: Dictionary = params if not params.is_empty() else def.params
+	match def.behavior:
+		"Lobber":
+			var r := sheet.get_stat("area", 2.5)
+			if sheet.get_stat("fire_damage", 0.0) > 0.0:
+				return ["pool radius", r]
+			if sheet.get_stat("poison_damage", 0.0) > 0.0:
+				return ["cloud radius", r]
+			return ["blast radius", r]
+		"MineLayer":
+			return ["blast radius", sheet.get_stat("area", 2.2)]
+		"MissilePod":
+			var rm := sheet.get_stat("area", 0.0)
+			return ["blast radius", rm] if rm > 0.3 else []
+		"Smasher":
+			var sm = pr.get("smash", {})
+			return ["blast radius", (float((sm as Dictionary).get("radius", 1.6)) if sm is Dictionary else 1.6) * sheet.get_stat("area", 1.0)]
+		"GravityGun":
+			var gv = pr.get("gravity", {})
+			var gd: Dictionary = gv if gv is Dictionary else {}
+			if gd.get("black_hole") is Dictionary:
+				return []
+			return ["blast radius", float(gd.get("blast", 1.9)) * sheet.get_stat("area", 1.0) * maxf(float(gd.get("throw_mult", 1.0)), 0.1)]
+	return []
+
+
+static var _whole_re: RegEx
+
+
+## A row's two numbers without the zeros neither needs ("12.00 s → 16.00 s" reads "12 s → 16 s"); a pair where one
+## needs its decimals keeps both as they are (the cooldown's "1.10 s → 0.95 s").
+static func _tidy_pair(a: String, b: String) -> Array:
+	if _whole_re == null:
+		_whole_re = RegEx.create_from_string(r"^([+\-−]?\d+)\.0+(\D.*)?$")
+	var ma := _whole_re.search(a)
+	var mb := _whole_re.search(b)
+	if ma and mb:
+		return [ma.get_string(1) + ma.get_string(2), mb.get_string(1) + mb.get_string(2)]
+	return [a, b]
+
+
+## The weapon at `level` as the hero would carry it: his copy's mutations and bonus, his sheet folded in.
+static func _weapon_at(def: WeaponDef, level: int, held: WeaponInstance, player: StatSheet, all_weapons: Array) -> WeaponInstance:
+	var w := WeaponInstance.new(def, level)
+	if held:
+		w.mutations = held.mutations
+		w.bonus_effects = held.bonus_effects
+	w.rebuild(player if player else StatSheet.new(), all_weapons)
+	return w
+
+
+## What a line's or a passive item's step from `level_from` to `level_to` changes: its effects summed at both levels (as
+## the pause screen sums them), the ones that differ, at most CHANGE_ROWS. A trade's growing price is a row too, marked
+## worse. Each row: {stat, name, before, after, worse}.
+static func passive_changes(def: PassiveDef, level_from: int, level_to: int) -> Array:
+	if def == null or level_from < 1 or level_to <= level_from:
+		return []
+	var was: Dictionary = {}
+	for e: Effect in _sum_effects(def.effects_for_level(level_from)):
+		was[e.stat + "|" + e.op + "|" + e.target] = e.value
+	var out: Array = []
+	for e: Effect in _sum_effects(def.effects_for_level(level_to)):
+		var v0 := float(was.get(e.stat + "|" + e.op + "|" + e.target, 0.0))
+		var s0 := change_value(e.stat, e.op, v0)
+		var s1 := change_value(e.stat, e.op, e.value)
+		if s0 == s1:
+			continue
+		var label := _sentence(stat_name(e.stat)) + _target_words(e.target)
+		# a ceiling keeps its "up to" (pass 58 review: Gas Mask's "+8% → +16%" read as a flat bonus; it is 1% a poisoned
+		# enemy up to that, and Desperado's grows as health falls), after the name so it covers both numbers; its words
+		# joined by a no-break space, so a long name wraps before "up to", never between them ("falls, up / to")
+		if e.op != "set" and PREFIX.has(e.stat):
+			label += ", " + str(PREFIX[e.stat]).strip_edges().replace(" ", "\u00a0")
+		out.append({"stat": e.stat, "name": label, "before": s0, "after": s1, "worse": _worse(e.stat, v0, e.value)})
+	return out.slice(0, CHANGE_ROWS)
+
+
+## A summed effect's amount as a change row shows it, with its sign and unit ("+16%", "+1", "+0.5 s", "−4%"), the
+## way describe_effect words it; none yet is "0" in that unit.
+static func change_value(stat: String, op: String, v: float) -> String:
+	if op == "set":
+		return format_value(stat, v)
+	var kind := stat_kind(stat)
+	if op == "mul":
+		var pct := int(round(v * 100.0))
+		return "0%" if pct == 0 else ("+" if pct > 0 else "−") + str(absi(pct)) + "%"
+	var unit: String = {"pct": "%", "sec": " s", "m": " m", "deg": "°"}.get(kind, "")
+	var x := v * 100.0 if kind == "pct" else v
+	if kind == "count":
+		x = float(int(round(x)))
+	if absf(x) < 0.0005:
+		return "0" + unit
+	return _signed(x, unit)
+
+
+## Whether going from `v0` to `v1` is a loss: a smaller number, or a larger one where smaller is better (LOWER_BETTER).
+static func _worse(stat: String, v0: float, v1: float) -> bool:
+	if absf(v1 - v0) < 0.000001:
+		return false
+	return v1 > v0 if LOWER_BETTER.has(stat) else v1 < v0
+
+
+## The weapons an effect aims at, after its stat's name, as describe_effect says them.
+static func _target_words(target: String) -> String:
+	if target == "all_weapons":
+		return ", all weapons"
+	if target.begins_with("weapon:"):
+		return ", " + weapon_name(target.trim_prefix("weapon:"))
+	return ""
 
 
 static func rarity_name(r: String) -> String:

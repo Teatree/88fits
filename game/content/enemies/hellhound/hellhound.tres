@@ -39,6 +39,7 @@ fps = {
 }
 knockback = 5.1
 head = 0.988
+blood = Color(1, 0.2901961, 0.05490196, 1)
 front_faces = "left"
 sfx = {
 "die": "en_beetle_die",

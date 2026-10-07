@@ -336,10 +336,6 @@ details.overrides summary { cursor: pointer; font-size: 0.88rem; padding: 4px 0;
 .cstats { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 2px 8px; margin: 0; font-size: 0.82rem; }
 .cstats dt { color: var(--muted); }
 .cstats dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
-.variants { display: flex; flex-wrap: wrap; gap: 6px; }
-.variant { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 0.7rem; color: var(--muted); border: 1px solid transparent; border-radius: 6px; padding: 3px; }
-.variant img { width: 40px; height: 40px; object-fit: contain; background: var(--surface-2); border-radius: 6px; }
-.variant.in-play { border-color: var(--s3); color: var(--s3); }
 .doc { color: var(--ink-2); font-size: 0.82rem; margin: 0; font-style: italic; }
 .ccard-actions { display: flex; gap: 8px; margin-top: auto; }
 
@@ -551,17 +547,27 @@ input.sw-color.ph { opacity: 0.45; }
 .hc-line.others { color: #ffb366; font-size: 11px; }
 .hc-line.bad { color: var(--s8); }
 
-/* the Creatures tab: variants to pick, the default-look button, the confirm line */
-.variants-wrap { display: flex; flex-direction: column; gap: 6px; }
-.variant { cursor: pointer; position: relative; }
-.variant:hover { border-color: var(--border-2); }
-.variant.picked { border-color: var(--sel); color: var(--sel); }
-.variant.not-ready img { opacity: 0.45; }
-.variant .set-default { display: none; position: absolute; left: 50%; top: 100%; transform: translate(-50%, 2px); z-index: 3; white-space: nowrap; font: inherit; font-size: 0.72rem; background: var(--s1); color: #fff; border: 0; border-radius: 5px; padding: 2px 7px; cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,0.5); }
-.variant .set-default:disabled { background: var(--surface-3); color: var(--muted); cursor: default; }
-.variant:hover .set-default, .variant.picked .set-default, .variant:focus-within .set-default { display: block; }
-.variants { padding-bottom: 24px; }
-.confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: rgba(57,135,229,0.12); border: 1px solid rgba(57,135,229,0.45); border-radius: 8px; padding: 6px 8px; font-size: 0.82rem; color: var(--ink-2); margin-top: 18px; }
+/* the Creatures tab (pass 58): the default look as an always-visible strip of pictures, the confirm line, the blood row */
+.look-wrap { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--grid); padding-top: 8px; }
+.look-head { font-size: 0.86rem; }
+.looks { display: flex; flex-wrap: wrap; gap: 6px; }
+.look { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 74px; padding: 4px 2px 5px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--border); border-radius: 8px; font: inherit; cursor: pointer; }
+.look img { width: 48px; height: 48px; object-fit: contain; }
+.look:hover:not(:disabled) { border-color: var(--s1); background: var(--surface-3); }
+.look-code { font-size: 0.74rem; font-weight: 600; }
+.look-tag { font-size: 0.66rem; padding: 0 5px; border-radius: 4px; background: rgba(57,135,229,0.35); color: #fff; white-space: nowrap; }
+.look-tag.on { background: var(--s3); }
+.look-tag.na { background: none; color: var(--muted); }
+.look.default { border: 2px solid var(--s3); color: var(--ink); cursor: default; }
+.look.asking { border: 2px solid var(--sel); }
+.look.not-ready img { opacity: 0.4; }
+.look:disabled:not(.default) { cursor: default; }
+.confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: rgba(57,135,229,0.12); border: 1px solid rgba(57,135,229,0.45); border-radius: 8px; padding: 6px 8px; font-size: 0.82rem; color: var(--ink-2); }
+.blood-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.blood-lab { color: var(--muted); font-size: 0.8rem; min-width: 34px; }
+.blood-row .splash { flex: 0 0 auto; }
+.blood-row input.hex { width: 82px; }
+.blood-row.changed input.hex { border-color: var(--sel); }
 .cvariance { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 
 /* ------------------------------------------------------------ the "Spawned so far" lane (pass 57) */
@@ -603,3 +609,74 @@ input.sp-in.set { border-color: var(--sel); color: var(--sel); }
 .sp-grid .n { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
 .sp-grid .c { text-align: right; color: #ffb366; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sp-note { color: var(--muted); font-size: 11px; margin-top: 5px; }
+
+/* ---------------------------------------------------------------- pass 58 */
+/* the Actual HP x / ATK x lanes: the intended curve faint, the band from the average to the largest, the largest dashed */
+.act-intended { fill: none; stroke-width: 1.6; opacity: 0.8; stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
+.act-intended.hp, .act-max.hp, .act-avg.hp { stroke: var(--s3); }
+.act-intended.dmg, .act-max.dmg, .act-avg.dmg { stroke: var(--s2); }
+.act-band { stroke: none; }
+.act-band.hp { fill: rgba(25,158,112,0.22); }
+.act-band.dmg { fill: rgba(217,89,38,0.22); }
+.act-max { fill: none; stroke-width: 1.4; stroke-dasharray: 5 3; }
+.act-avg { fill: none; stroke-width: 2.4; }
+.act-card { min-width: 330px; }
+.act-big { display: flex; gap: 14px; font-size: 13px; margin: 2px 0 4px; font-variant-numeric: tabular-nums; }
+.act-big b { font-size: 15px; }
+.act-grid { display: grid; grid-template-columns: 18px minmax(120px, 1fr) auto auto auto; gap: 2px 8px; align-items: center; margin-top: 4px; font-size: 11.5px; }
+.act-grid .act-r { display: contents; }
+.act-grid img { width: 18px; height: 18px; object-fit: contain; }
+.act-grid .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.act-grid .nm small { color: var(--muted); }
+.act-grid .mx { text-align: right; font-variant-numeric: tabular-nums; }
+.act-grid .mx.top { color: var(--sel); }
+.act-grid .why { color: var(--muted); white-space: nowrap; }
+.act-grid .pc { text-align: right; color: var(--s4); font-variant-numeric: tabular-nums; }
+.act-grid .act-r.hell .nm { color: #f0a59c; }
+/* the cards: "fixed from" and the ranges */
+.hc-line.fixed { color: #9fd8bf; font-size: 11.5px; margin-top: 3px; }
+.hc-line.ranges { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; color: var(--ink-2); font-size: 11.5px; margin-top: 3px; }
+.hue-strip { display: inline-block; width: 46px; height: 10px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.35); }
+.chip-size rect { fill: rgba(76,181,195,0.4); }
+.chip-hue .hue-rect { stroke: rgba(255,255,255,0.55); stroke-width: 1; }
+/* the row's fixed numbers, under From / Until (a wave's and an event's under the creature): always in sight */
+.rn-note { display: block; border-left: 3px solid var(--s3); color: var(--ink); }
+.rn-note .rn-main { display: block; font-size: 0.86rem; }
+.rn-note .rn-sub { display: block; color: var(--ink-2); font-size: 0.78rem; margin-top: 2px; }
+.rn-note .rn-play { display: block; color: var(--ink-2); font-size: 0.78rem; margin-top: 2px; }
+.rn-note .rn-hint { display: block; color: #e0b56a; font-size: 0.78rem; margin-top: 2px; }
+.rn-note .rn-who { display: block; color: var(--s4); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.form > .rn-line, .alts > .rn-line, .alt-card > .rn-line { margin: 4px 0 6px; }
+/* the Actual lane: a multiple past its top */
+.act-clip { font-size: 10.5px; font-weight: 600; paint-order: stroke; stroke: #0d0d0d; stroke-width: 3px; stroke-linejoin: round; }
+.act-clip.hp { fill: #6fe0b4; }
+.act-clip.dmg { fill: #ff9a6b; }
+.row-facts p { margin: 6px 0; }
+/* the size range */
+.size-range { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.size-ref { color: var(--muted); font-size: 0.78rem; }
+.size-ref.bad { color: var(--crit); }
+input.num.bad { border-color: var(--crit); box-shadow: 0 0 0 1px var(--crit) inset; }
+/* the colour range */
+.tint-ctl { display: flex; flex-direction: column; gap: 7px; width: 100%; min-width: 0; }
+.hue-track { position: relative; height: 24px; border-radius: 7px; border: 1px solid var(--border-2); cursor: pointer; touch-action: none; margin: 2px 8px 0; }
+.hue-track.off { opacity: 0.45; cursor: default; height: 14px; }
+.hue-dim { position: absolute; top: 0; bottom: 0; background: rgba(13,13,13,0.72); pointer-events: none; }
+.hue-handle { position: absolute; top: -5px; bottom: -5px; width: 14px; margin-left: -7px; border-radius: 5px; border: 2px solid #fff; box-shadow: 0 0 0 1px #000, 0 2px 6px rgba(0,0,0,0.6); cursor: ew-resize; touch-action: none; }
+.hue-handle.to { border-style: double; border-width: 3px; }
+.tint-hues { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.tint-row { display: grid; grid-template-columns: 78px minmax(0, 1fr) 40px; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--ink-2); }
+.tint-slider { width: 100%; accent-color: var(--s1); }
+.tint-val { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+/* the pictures four to a row (about 90 px in the inspector), one clicked spans the row at up to 240 px */
+.tint-preview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 6px; }
+.tint-fig { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: zoom-in; min-width: 0; }
+.tint-fig[hidden] { display: none; }
+.tint-fig.big { grid-column: 1 / -1; cursor: zoom-out; }
+.tint-pic { width: 100%; max-width: 120px; height: auto; aspect-ratio: 1; border-radius: 7px; background: radial-gradient(circle at 50% 60%, #dcc394 0%, #c9a874 70%, #b8935e 100%); border: 1px solid rgba(255,255,255,0.12); }
+.tint-fig.big .tint-pic { max-width: 240px; }
+.tint-fig.orig .tint-pic { outline: 1px dashed rgba(255,255,255,0.35); outline-offset: 2px; }
+.tint-fig.special .tint-pic { box-shadow: 0 0 0 2px var(--s7); }
+.tint-fig.special .tint-cap { color: var(--s7); }
+.tint-cap { font-size: 0.72rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tint-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

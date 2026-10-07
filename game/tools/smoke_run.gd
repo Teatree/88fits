@@ -134,7 +134,9 @@ func _tick_run(dt: float) -> void:
 		_game.cards._pick(_game.cards._offer[0])
 	if _game.get("chest_screen") and _game.chest_screen and _game.chest_screen.visible and not _game.chest_screen._spinning:
 		var cs = _game.chest_screen
-		if not _chest_banished and cs.has_method("_banish") and _run.banishes_left > 0 and cs.result().get("def") != null:
+		# pass 58: only a roll the chest may banish (a new item; never one the hero holds, an evolution or gold)
+		var may_banish: bool = not cs.has_method("can_banish") or bool(cs.can_banish(cs.result()))
+		if not _chest_banished and cs.has_method("_banish") and _run.banishes_left > 0 and cs.result().get("def") != null and may_banish:
 			# pass 47: the first chest with an item banishes it once, and the reel spins again to a new roll
 			_chest_banished = true
 			var gone := str(cs.result().get("id", ""))

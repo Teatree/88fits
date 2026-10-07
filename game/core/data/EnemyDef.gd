@@ -67,6 +67,10 @@ extends ContentDef
 ## under the legs (the scorpion: 13 to 28 px of 224), so the shadow showed below it. A `variants` entry may carry its own
 ## (apply_art); empty = the plain shadow at the foot point. EnemyManager reads it through shadow_tuning().
 @export var shadow: Dictionary = {}
+## The colour of the splash it leaves when it dies (pass 58, Garry: "a red splash VFX ... The colour of the poor is
+## different for different enemies (it's supposed to be blood kind of ...)"): the JSON's `blood` ("#rrggbb"), red when
+## it has none. The Level Editor's Creatures tab sets it.
+@export var blood: Color = Color(0.78, 0.05, 0.05)
 ## Which way the front painting's three-quarter turns (pass 45): "right" (the default: shown as painted while the
 ## creature heads screen-right, mirrored while it heads left, like every side set), "left" (painted heading screen-left,
 ## so the mirror is inverted) or "straight" (never mirrored). The hellhound's front cycle came out running down and to
@@ -94,6 +98,20 @@ var override_stats: Dictionary = {}
 ## to the row, never to a creature's JSON.
 var elite_weight := 1.0
 var elite_formats: Dictionary = {}
+## Pass 58 (a row's `stats.size` as [min, max], Garry: "editable as a kind of a range (between 3-5 for example)"): every
+## creature of the row rolls its own size in `size_range` (x = min, y = max; ZERO = no range, `size` as it is) instead of
+## the variance's size jitter. A range copy keeps `size` at the painting's JSON size, so the per-type numbers measured on
+## the painting (the shadow's slide, the rocket's muzzle) stay right, and remembers it in `size_ref`: the radius follows
+## the rolled size (radius x rolled / size_ref) unless the row sets `stats.radius` (`radius_follows` false). Row fields
+## like the two above, set by with_overrides.
+var size_range := Vector2.ZERO
+var size_ref := 0.0
+var radius_follows := false
+## Pass 58 (a row's `stats.tint`, Garry: "a version that kind of colours all the enemies that come out of that wave"):
+## {h0, h1, sat, val, amount} as tint_range_of() reads it, {} for none. Every creature of the row rolls a hue in
+## h0..h1 (degrees, through red when h1 < h0, roll_hue) and is tinted Color.from_hsv(h / 360, sat, val) at strength
+## `amount` through EnemyManager.vtint, in place of the variance palette's tint.
+var tint_range: Dictionary = {}
 ## Whether an elite modifier may be put on it (pass 33.4: a crowned spit cactus showed up; a planted cactus and the
 ## one-at-a-time specials are never Elites).
 @export var can_be_elite: bool = true
@@ -194,7 +212,9 @@ const OVERRIDE_MULTS := {"hp_mult": "hp", "damage_mult": "damage", "speed_mult":
 ## of charge, ranged and kamikaze and of every boss attack, where one is written, and (pass 54) the contact knockback,
 ## which the copy then carries resolved (hit_knockback() of the base times the multiplier). Pass 54 too: `knockback`
 ## sets the contact knockback, `variance` deep-merges over the creature's variance block (its `tints` replaced whole
-## when given), `elite_weight` and `elite_formats` land on the copy's row fields.
+## when given), `elite_weight` and `elite_formats` land on the copy's row fields. Pass 58: `size` may be [min, max] (the
+## copy's size_range, `size_mult` scaling both ends; its `size` stays the JSON size) and `tint` a colour range
+## (tint_range); EnemyManager.spawn rolls both per creature, so a range never makes one type per rolled value.
 func with_overrides(stats: Dictionary) -> EnemyDef:
 	if stats.is_empty():
 		return self
@@ -218,12 +238,28 @@ func with_overrides(stats: Dictionary) -> EnemyDef:
 	v.kamikaze = kamikaze.duplicate(true)
 	v.artillery = artillery.duplicate(true)
 	v.pickup_weights = pickup_weights.duplicate(true)
+	# pass 58: `size` may be a range [min, max] (each creature rolls its own; `size_mult` scales both ends), and `tint` a
+	# colour range; a plain size goes through the direct fields as before
+	var sr := size_range_of(stats.get("size"))
+	if sr != Vector2.ZERO:
+		var sm := float(stats.get("size_mult", 1.0))
+		v.size_range = Vector2(maxf(sr.x * sm, SIZE_MIN), maxf(sr.y * sm, SIZE_MIN))
+		v.size_ref = size
+		v.radius_follows = not stats.has("radius")
+	if stats.get("tint") is Dictionary:
+		v.tint_range = tint_range_of(stats["tint"])
 	for key: String in OVERRIDE_FIELDS.keys():
 		if stats.has(key):
+			# a range was read above; a list or a block where a number belongs (a malformed range) is left alone rather
+			# than cast (float() of a list is an error)
+			if stats[key] is Array or stats[key] is Dictionary:
+				continue
 			var field: String = str(OVERRIDE_FIELDS[key])
 			v.set(field, _typed_like(v.get(field), stats[key]))
 	for key: String in OVERRIDE_MULTS.keys():
 		if stats.has(key):
+			if key == "size_mult" and v.size_range != Vector2.ZERO:
+				continue
 			var field: String = str(OVERRIDE_MULTS[key])
 			v.set(field, float(v.get(field)) * float(stats[key]))
 	v.damage_reduction = clampf(v.damage_reduction, 0.0, 0.9)
@@ -295,6 +331,87 @@ static func default_knockback(bite: float) -> float:
 ## damage. EnemyManager's bite loop reads it; a hostile shot without a `ranged.knockback` shoves by 0.7 of it.
 func hit_knockback() -> float:
 	return knockback if knockback > 0.0 else default_knockback(damage)
+
+
+## The smallest size a range may roll (pass 58): a range end under it is lifted to it.
+const SIZE_MIN := 0.05
+## The colour range's defaults (pass 58, docs/waves_schema.md): saturation, value and strength when the row names none.
+const TINT_SAT := 0.85
+const TINT_VAL := 1.0
+const TINT_AMOUNT := 0.5
+
+
+## A row's `stats.size` as a range (pass 58): [min, max] as Vector2(min, max) (two numbers in either order; a list of one
+## number is that number for both ends), Vector2.ZERO for a plain number, a missing key or anything unreadable (the plain
+## size path takes a number as it always did).
+static func size_range_of(v) -> Vector2:
+	if not (v is Array) or (v as Array).is_empty():
+		return Vector2.ZERO
+	var a: Array = v
+	var nums: Array = []
+	for e in a:
+		if e is float or e is int:
+			nums.append(float(e))
+	if nums.size() != a.size() or nums.size() > 2:
+		return Vector2.ZERO
+	var lo: float = nums[0]
+	var hi: float = nums[nums.size() - 1]
+	return Vector2(maxf(minf(lo, hi), SIZE_MIN), maxf(maxf(lo, hi), SIZE_MIN))
+
+
+## A row's `stats.tint` read (pass 58): {"hue": [h0, h1] (degrees 0..360; one number = that hue), "sat", "val", "amount"
+## (0..1; defaults TINT_SAT, TINT_VAL, TINT_AMOUNT)} -> {h0, h1, sat, val, amount}, everything clamped; {} without a
+## readable hue.
+static func tint_range_of(d: Dictionary) -> Dictionary:
+	var hv = d.get("hue")
+	var hs: Array = []
+	if hv is float or hv is int:
+		hs = [float(hv), float(hv)]
+	elif hv is Array:
+		for e in hv:
+			if e is float or e is int:
+				hs.append(float(e))
+		if hs.size() == 1:
+			hs.append(hs[0])
+	if hs.size() != 2:
+		return {}
+	return {"h0": clampf(float(hs[0]), 0.0, 360.0), "h1": clampf(float(hs[1]), 0.0, 360.0),
+		"sat": clampf(float(d.get("sat", TINT_SAT)), 0.0, 1.0), "val": clampf(float(d.get("val", TINT_VAL)), 0.0, 1.0),
+		"amount": clampf(float(d.get("amount", TINT_AMOUNT)), 0.0, 1.0)}
+
+
+## The hue (degrees, 0 <= h < 360) at `u` (0..1) of the way from h0 to h1 going up the colour wheel (pass 58): when h1 is
+## below h0 the range runs on through red (350 -> 10 is twenty degrees round red, not 340 the other way).
+static func roll_hue(h0: float, h1: float, u: float) -> float:
+	var span := h1 - h0
+	if span < 0.0:
+		span += 360.0
+	return fposmod(h0 + clampf(u, 0.0, 1.0) * span, 360.0)
+
+
+## The tint a creature of a colour-range row is drawn with (pass 58): the hue rolled at `u`, the range's saturation and
+## value, and its strength as the alpha (the billboard draws mix(rgb, tint, alpha x 0.65)).
+static func tint_color(range_: Dictionary, u: float) -> Color:
+	var h := roll_hue(float(range_.get("h0", 0.0)), float(range_.get("h1", 0.0)), u)
+	var c := Color.from_hsv(h / 360.0, float(range_.get("sat", TINT_SAT)), float(range_.get("val", TINT_VAL)))
+	return Color(c.r, c.g, c.b, float(range_.get("amount", TINT_AMOUNT)))
+
+
+## A colour-range row's variance special (pass 58, the lead: in its own wine tint it "lost the colour" of its wave): the
+## hue this creature rolled at `u`, in a darker, stronger shade: saturation + SPECIAL_SAT_ADD (at most 1), value x
+## SPECIAL_VAL_MULT, at the row's `amount` or the special's own `tint_strength`, whichever is more, + SPECIAL_STRENGTH_ADD
+## (at most 1). Tuned by eye in the arena: the lead's first numbers (value x 0.55 at the plain strength) came out muddy
+## olive on green skeletons and maroon, not blue, on red goblins in a blue row (a dark tint brings little hue against a
+## painting's own colour); value x 0.7 at 0.15 more strength reads as the row's colour, deeper, on all of them.
+const SPECIAL_SAT_ADD := 0.15
+const SPECIAL_VAL_MULT := 0.7
+const SPECIAL_STRENGTH_ADD := 0.15
+
+
+static func tint_special_color(range_: Dictionary, u: float, special_strength: float) -> Color:
+	var h := roll_hue(float(range_.get("h0", 0.0)), float(range_.get("h1", 0.0)), u)
+	var c := Color.from_hsv(h / 360.0, minf(float(range_.get("sat", TINT_SAT)) + SPECIAL_SAT_ADD, 1.0), float(range_.get("val", TINT_VAL)) * SPECIAL_VAL_MULT)
+	return Color(c.r, c.g, c.b, minf(maxf(float(range_.get("amount", TINT_AMOUNT)), special_strength) + SPECIAL_STRENGTH_ADD, 1.0))
 
 
 ## The shot speed EnemyManager plays when a `ranged` block names none (pass 53, for projectile_speed_mult): 16 for a

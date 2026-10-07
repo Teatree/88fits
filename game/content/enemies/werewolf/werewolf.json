@@ -10,6 +10,7 @@
   "knockback": 2.94,
   "radius": 0.55,
   "size": 1.8,
+  "blood": "#B80E1A",
   "pack_size": 3,
   "cap_share": 0.5,
   "xp_mult": 1.5,

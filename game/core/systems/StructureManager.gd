@@ -5,9 +5,34 @@
 class_name StructureManager
 extends Node3D
 
+## The Strongbox's coin stream (pass 58, core/systems/CoinStream.gd; by path: a new script's class name is unknown until
+## the editor imports it)
+const COIN_STREAM := preload("res://core/systems/CoinStream.gd")
+## Where the coins go into the Strongbox: this share of its painting's height up the picture (the lid's top is at 0.44 of
+## st_gold_bank.png), and this far in front of it, so a coin drops onto the lid rather than through the picture
+const LID := 0.4
+const LID_TOWARD := 0.3
+## The box's bounce as a coin drops in: a spring (stiffness, damping) kicked down by BOUNCE_KICK (less per coin the denser
+## the stream, so a big deposit is a jiggle, not a jump), the squash it shows (BOUNCE_SQUASH of the spring's swing
+## across), and a shine: a flicker of white over the painting, SHINE of it at a landing (less the denser the stream),
+## gone at SHINE_FADE a second, so the box glints as each coin goes in and never stays washed out; the last coin kicks it
+## LAST_KICK times as hard and shines LAST_SHINE
+const BOUNCE_K := 420.0
+const BOUNCE_DAMP := 16.0
+const BOUNCE_KICK := 2.4
+const BOUNCE_SQUASH := 0.55
+const SHINE := 0.24
+const SHINE_FADE := 6.0
+const LAST_KICK := 1.8
+const LAST_SHINE := 0.5
+## The beat between the last coin in and the balloon lifting the box off (the lift's own wait before, pass 33)
+const LIFT_BEAT := 0.35
+
 var game: Node
 var map: MapBase
 var items: Array = []   # Structure nodes
+## the coins flying into a Strongbox (pass 58): one CoinStream for every deposit
+var coins: Node3D
 var _rng := RandomNumberGenerator.new()
 
 
@@ -26,12 +51,22 @@ class Structure:
 	var _t := 0.0
 	var _last_frac := -1.0
 	var _mote_t := 0.0
+	## the Strongbox (pass 58): coins still flying into it, the lift waiting on them, leaving on its balloon, and its
+	## bounce (a spring, its swing and speed) and shine while they land
+	var streaming := false
+	var lift_waiting := false
+	var leaving := false
+	var bounce := 0.0
+	var bounce_v := 0.0
+	var shine := 0.0
+	var reacting := false
 
 
 func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 	game = p_game
 	map = p_map
 	_rng.randomize()
+	_make_coin_stream()
 	var count := int(plan.get("count", 8))
 	var spacing := float(plan.get("min_spacing", 16.0))
 	var roster: Array = plan.get("roster", [])
@@ -218,6 +253,10 @@ func _fallback_visual(def: StructureDef) -> Node3D:
 
 func _process(delta: float) -> void:
 	var _t0 := Time.get_ticks_usec()
+	# a Strongbox taking coins bounces and shines whatever the hero is doing (pass 58)
+	for s: Structure in items:
+		if s.reacting:
+			_tick_bounce(s, delta)
 	if game == null or game.paused or game.player == null or game.player.dead:
 		Perf.add("structures", _t0)
 		return
@@ -284,21 +323,34 @@ func _use(s: Structure) -> void:
 	if s.glow:
 		s.glow.light_energy = 0.0
 	# the spent painting (art/sprites/props/st_<id>_off.png) when there is one, a grey tint otherwise; a prop with
-	# params.spent "fly_away" leaves on its balloon instead
+	# params.spent "fly_away" leaves on its balloon instead, once what it was given is in (pass 58: the Strongbox's
+	# coins, so the game is told first: its deposit starts the coin stream the lift waits for)
 	var off_path := "res://art/sprites/props/st_%s_off.png" % s.def.id
-	if str(s.def.params.get("spent", "")) == "fly_away":
-		_fly_away(s)
-	elif s.visual is BillboardSprite and ResourceLoader.exists(off_path):
-		(s.visual as BillboardSprite).set_texture(load(off_path))
-		(s.visual as BillboardSprite).set_tint(Color(0.8, 0.78, 0.78, 1.0))
-	else:
-		_grey_out(s.visual)
+	var flies := str(s.def.params.get("spent", "")) == "fly_away"
+	if not flies:
+		if s.visual is BillboardSprite and ResourceLoader.exists(off_path):
+			(s.visual as BillboardSprite).set_texture(load(off_path))
+			(s.visual as BillboardSprite).set_tint(Color(0.8, 0.78, 0.78, 1.0))
+		else:
+			_grey_out(s.visual)
 	game.use_structure(s.def, s.global_position)
+	if flies:
+		_fly_away(s)
 
 
-## The Strongbox's exit (pass 33): a beat for the coins to go in, then the balloon lifts the painted box off the sand,
-## slow at first, and it drifts up and away over the canyon until it is gone. The gold is safe whatever happens next.
+## The Strongbox's exit: once the coins are in (pass 58: the lift waits for the stream, deposit), the balloon lifts it.
 func _fly_away(s: Structure) -> void:
+	if s.streaming:
+		s.lift_waiting = true
+		return
+	_lift(s)
+
+
+## The balloon lifts the painted box off the sand (pass 33): a beat, then up, slow at first, and it drifts up and away over
+## the canyon until it is gone. The gold is safe whatever happens next.
+func _lift(s: Structure) -> void:
+	s.lift_waiting = false
+	s.leaving = true
 	var v := s.visual
 	if v == null:
 		return
@@ -311,6 +363,104 @@ func _fly_away(s: Structure) -> void:
 	tw.tween_property(v, "position", start + drift, 4.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.parallel().tween_property(v, "rotation:y", v.rotation.y + 1.4, 4.5)
 	tw.tween_callback(v.hide)
+
+
+## The coin stream (pass 58), made once at setup and warmed (its coin drawn under the map while the run starts).
+func _make_coin_stream() -> void:
+	if coins != null:
+		return
+	coins = COIN_STREAM.new()
+	coins.name = "CoinStream"
+	coins.game = game
+	coins.map = map
+	add_child(coins)
+	coins.warm()
+
+
+## The Strongbox's deposit (pass 58, Game.use_structure's "bank", Garry: "coins flying out of the player and into the
+## chest ... After the coins arrive the chest flies away"): `gold` flies from the hero into the box standing at `at`
+## (CoinStream), the box bouncing and shining as each coin drops in, and the balloon lifts it only once the last is in
+## (_fly_away waits). Returns the stream's seconds; 0 when there is nothing to show (no gold, no box there).
+func deposit(at: Vector3, gold: int) -> float:
+	if gold <= 0:
+		return 0.0
+	_make_coin_stream()
+	var s := _structure_at(at)
+	if s == null:
+		return 0.0
+	var hero: Node3D = game.player if game and game.get("player") else null
+	var dur: float = coins.start(hero, _lid_point(s), gold, func(landed: int, count: int) -> void: _on_coin(s, landed, count),
+		func() -> void: _on_stream_done(s))
+	if dur > 0.0:
+		s.streaming = true
+	return dur
+
+
+## The structure standing at `at` (the spot use_structure was given).
+func _structure_at(at: Vector3) -> Structure:
+	var best: Structure = null
+	var best_d := 0.25
+	for s: Structure in items:
+		var d := Vector2(s.global_position.x - at.x, s.global_position.z - at.z).length()
+		if d < best_d:
+			best_d = d
+			best = s
+	return best
+
+
+## Where the coins go in: the box's lid on its painting (camera-facing, standing on its feet), a little in front of it;
+## the middle of a 3D stand-in.
+func _lid_point(s: Structure) -> Vector3:
+	if s.visual is BillboardSprite:
+		var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+		var up: Vector3 = cam.global_transform.basis.y.normalized() if cam else Vector3.UP
+		var back: Vector3 = cam.global_transform.basis.z.normalized() if cam else Vector3.BACK
+		var foot := s.global_position + Vector3(0.0, s.visual.position.y, 0.0)
+		return foot + up * (LID * s.def.height * 1.15) + back * LID_TOWARD
+	return s.global_position + Vector3(0.0, s.def.height * 0.5, 0.0)
+
+
+## A coin dropped in: the box gives a little bounce and a shine (the last one a bigger one).
+func _on_coin(s: Structure, landed: int, count: int) -> void:
+	var dense: float = clampf(sqrt(float(count)) / 4.0, 1.0, 3.0)
+	var kick := BOUNCE_KICK / dense
+	if landed >= count:
+		kick = BOUNCE_KICK * LAST_KICK
+	s.bounce_v -= kick
+	s.shine = maxf(s.shine, LAST_SHINE if landed >= count else SHINE / dense)
+	s.reacting = true
+
+
+func _on_stream_done(s: Structure) -> void:
+	s.streaming = false
+	if s.lift_waiting:
+		get_tree().create_timer(LIFT_BEAT, false).timeout.connect(func() -> void:
+			if is_instance_valid(s):
+				_lift(s))
+
+
+## The Strongbox's spring and shine: squashed wide and short as a coin lands, springing back; settles and stops.
+func _tick_bounce(s: Structure, delta: float) -> void:
+	var dt := minf(delta, 0.05)
+	s.bounce_v += (-BOUNCE_K * s.bounce - BOUNCE_DAMP * s.bounce_v) * dt
+	s.bounce += s.bounce_v * dt
+	s.shine = maxf(s.shine - SHINE_FADE * dt, 0.0)
+	var sy := 1.0 + s.bounce
+	var sx := 1.0 - s.bounce * BOUNCE_SQUASH
+	if s.visual is BillboardSprite:
+		(s.visual as BillboardSprite).set_squash(sx, sy)
+		(s.visual as BillboardSprite).set_flash(s.shine)
+	elif s.visual:
+		s.visual.scale = Vector3(sx, sy, sx)
+	if s.shine <= 0.0 and absf(s.bounce) < 0.002 and absf(s.bounce_v) < 0.02:
+		s.reacting = false
+		s.bounce = 0.0
+		s.bounce_v = 0.0
+		if s.visual is BillboardSprite:
+			(s.visual as BillboardSprite).set_squash(1.0, 1.0)
+			(s.visual as BillboardSprite).set_flash(0.0)
+		elif s.visual:
+			s.visual.scale = Vector3.ONE
 
 
 func _grey_out(n: Node) -> void:

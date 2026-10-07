@@ -145,7 +145,7 @@ func test_info_shows_the_words_a_player_reads_for_every_kind() -> void:
 	for pair in t:
 		by[str(pair[0])] = str(pair[1])
 	assert_str(str(by.get("Evolution", ""))).is_equal(PauseScreen.evolve_note(inst))
-	assert_str(str(by.get("Next level · the level-up card", ""))).is_equal(WItem.effect({"def": pea, "level_from": 3, "level_to": 4}))
+	assert_str(str(by.get("Next level · the level-up card", ""))).is_equal(WItem.card_text({"def": pea, "level_from": 3, "level_to": 4}))
 	assert_str(str(by.get("The Build tab", ""))).contains(str(inst.stat_rows()[0]["value"]))
 	# at the top there is no next level
 	Run.debug_set_item("weapon", "peashooter", pea.max_level)
@@ -156,7 +156,7 @@ func test_info_shows_the_words_a_player_reads_for_every_kind() -> void:
 	var dd: PassiveDef = Registry.passive("deadeye")
 	t = ArenaPanel.item_texts("passive", dd)
 	assert_str(str(t[0][1])).is_equal(PauseScreen.passive_now(dd, 2))
-	assert_str(str(t[1][1])).is_equal(WItem.effect({"def": dd, "level_from": 2, "level_to": 3}))
+	assert_str(str(t[1][1])).is_equal(WItem.card_text({"def": dd, "level_from": 2, "level_to": 3}))
 	# maxed, its evolution's card
 	Run.debug_set_item("passive", "deadeye", dd.max_level)
 	t = ArenaPanel.item_texts("passive", dd)

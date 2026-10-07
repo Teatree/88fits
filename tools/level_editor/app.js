@@ -1,6 +1,8 @@
 // The Level Editor's hub (pass 53, pass 54): the map in memory, undo history, validation, the time maths every lane
 // shares (model.js holds the formulas), selection, Save / Revert / Export and the keyboard. The tabs (timeline.js,
-// inspector.js, settings.js, creatures.js, instructions.js) read App.S and call back into App.
+// inspector.js, settings.js, creatures.js, instructions.js) read App.S and call back into App. Pass 58: a row's numbers
+// from its start (creatureAt's t0, rowNumbers), the Actual lanes' series, the estimate refreshed during a drag, and the
+// size and colour ranges checked before a save.
 'use strict';
 
 const App = (() => {
@@ -208,8 +210,22 @@ const App = (() => {
     return { time, stage, level, creature: cdm, total: time * stage * level * cdm };
   }
 
-  /** One creature's HP and ATK at t with a row's overrides, at the assumed hero level (model.js creatureAt). */
-  function creatureAt(c, stats, t) { return M.creatureAt(tl(), c, stats, t, S.level); }
+  /** One creature's HP and ATK at t with a row's overrides, at the assumed hero level (model.js creatureAt); pass 58:
+   *  `t0` is the row's start (its numbers fixed from there, R1), missing = t. */
+  function creatureAt(c, stats, t, t0, given) { return M.creatureAt(tl(), c, stats, t, S.level, t0, given); }
+  /** An event's numbers at second t (the fix round of lane WV: a row or wave bringing the same creature in the same look
+   *  then lends it its numbers; model.js eventNumbers). */
+  function eventNumbers(id, variant, stats, t) { return M.eventNumbers(tl(), S.byId, id, variant, stats, t, lateT()); }
+  /** "row r12", or "wave Test wave (alternative 2, 33% of runs)": the source an event joins (openSourceOf's result). */
+  function sourceName(j) {
+    if (!j) return '';
+    if (j.kind === 'roster') { const r = (tl().roster || [])[j.i] || {}; return `row ${r.id || j.i + 1}`; }
+    const w = (tl().waves || [])[j.i] || {};
+    const many = Array.isArray(w.alts) && w.alts.length > 1;
+    return `wave ${w.name || w.id || j.i + 1}${many ? ` (alternative ${j.k + 1}, ${Math.round(j.share * 100)}% of runs)` : ''}`;
+  }
+  /** A row's own HP and ATK, fixed from its start t0 (pass 58, R1: model.js rowNumbers). */
+  function rowNumbers(c, stats, t0) { return M.rowNumbers(tl(), c, stats, t0); }
   /** The bite's knockback in m/s with a row's overrides (the creature's own, else the game's default). */
   function knockbackOf(c, stats) { return M.knockbackOf(c, stats).value; }
 
@@ -343,19 +359,32 @@ const App = (() => {
     return `your ${n} run${n === 1 ? '' : 's'}`;
   }
 
-  let spawnCache = { key: '', est: null, ms: 0 };
+  let spawnCache = { key: '', est: null, ms: 0, at: 0 };
+  /** While a drag runs the estimate is run again at most this often (pass 58: the Actual lanes follow a dragged row a few
+   *  times a second; it was the last one until the drop). */
+  const DRAG_ESTIMATE_MS = 350;
   /** The estimate for the map as it is (cached until the timeline, the assumptions or the creatures change). With
-   *  `allowStale` (a drag in progress) the last one comes back instead of a fresh run. */
+   *  `allowStale` (a drag in progress) the last one comes back unless it is older than DRAG_ESTIMATE_MS. */
   function spawned(allowStale) {
     const opts = spawnOpts();
     const key = JSON.stringify([S.mapId, S.enemiesRev, opts, S.tl]);
     if (key === spawnCache.key && spawnCache.est) return { est: spawnCache.est, stale: false, opts, ms: spawnCache.ms };
-    if (allowStale && spawnCache.est) return { est: spawnCache.est, stale: true, opts, ms: spawnCache.ms };
+    if (allowStale && spawnCache.est && performance.now() - spawnCache.at < DRAG_ESTIMATE_MS) return { est: spawnCache.est, stale: true, opts, ms: spawnCache.ms };
     const t0 = performance.now();
     const est = M.spawnEstimate(tl(), S.enemies, opts);
-    spawnCache = { key, est, ms: performance.now() - t0 };
+    spawnCache = { key, est, ms: performance.now() - t0, at: performance.now() };
     return { est, stale: false, opts, ms: spawnCache.ms };
   }
+
+  /** The Actual HP x / ATK x lanes (pass 58): Model.actualSeries every second over the view, from the estimate's
+   *  per-source tallies and every row's multiples as the map stands now. `res` is spawned()'s result. */
+  const ACTUAL_WINDOW = 10;
+  function actual(res) {
+    const r = res || spawned(false);
+    return { series: M.actualSeries(tl(), S.byId, r.est, viewEnd(), 1, ACTUAL_WINDOW), est: r.est, stale: r.stale };
+  }
+  /** The Actual lanes at one second, with the rows behind the numbers (the hover card). */
+  function actualAt(t, est) { return M.actualAt(tl(), S.byId, est || spawned(false).est, t, ACTUAL_WINDOW); }
 
   // ------------------------------------------------------------------ history
 
@@ -565,6 +594,13 @@ const App = (() => {
     }
   }
 
+  /** A stats block's size and colour ranges (pass 58, R2 / R3; Garry's "0 < min <= max"): errors block Save. */
+  function statsIssues(st, key, mark, prefix) {
+    if (!U.isObj(st)) return;
+    for (const m of M.sizeIssues(st.size)) mark(key, 'error', `${prefix}${m}`);
+    for (const m of M.tintIssues(st.tint)) mark(key, 'error', `${prefix}${m}`);
+  }
+
   function validate() {
     const errors = [], warnings = [], marks = {};
     const d = tl();
@@ -597,6 +633,7 @@ const App = (() => {
         else ids.set(r.id, i);
       }
       if (r.channel === 'hell' && !(d.hell_cap || []).some((h) => Number(h) > 0)) mark(key, 'warn', 'a hell row, but hell_cap is 0 on every stage: it never spawns');
+      statsIssues(r.stats, key, mark, '');
     });
     (d.waves || []).forEach((w, i) => {
       const key = `wave:${i}`;
@@ -607,9 +644,11 @@ const App = (() => {
         alts.forEach((a, k) => {
           if (!creature(a.enemy)) mark(key, 'error', `alternative ${k + 1}: unknown creature "${a.enemy || ''}"`);
           else if (!variantOk(a.enemy, a.variant)) mark(key, 'error', `alternative ${k + 1}: ${U.theName(creatureName(a.enemy))} has no art variant "${a.variant}"`);
+          statsIssues(a.stats, key, mark, `alternative ${k + 1}: `);
         });
       } else if (!creature(w.enemy)) mark(key, 'error', `unknown creature "${w.enemy || ''}" (no alternatives either)`);
       else if (!variantOk(w.enemy, w.variant)) mark(key, 'error', `${U.theName(creatureName(w.enemy))} has no art variant "${w.variant}"`);
+      if (!alts.length) statsIssues(w.stats, key, mark, '');
       if (count === 0 && (w.until == null || w.until === '')) mark(key, 'warn', 'count 0 and no until: the wave runs forever');
       if (burst < 1) mark(key, 'error', 'burst must be at least 1');
       if (burst > hard) mark(key, 'error', `burst ${burst} is over the hard cap (${hard})`);
@@ -639,6 +678,7 @@ const App = (() => {
       if (ev.type === 'swarm' && Number(ev.count || 40) > hard) mark(key, 'error', `a swarm of ${ev.count} is over the hard cap (${hard})`);
       if (ev.chance != null && (Number(ev.chance) < 0 || Number(ev.chance) > 1)) mark(key, 'error', 'chance must be between 0 and 1');
       if (ev.chance != null && Number(ev.chance) === 0) mark(key, 'warn', 'chance 0: it never happens');
+      statsIssues(ev.stats, key, mark, '');
       if (ev.type === 'boss' && t > 0 && Math.abs(t / SL - Math.round(t / SL)) > 1e-6) mark(key, 'warn', `a boss away from a stage boundary (${fmtT(SL)} × n): the portal after it starts the next stage early`);
       if (ev.type !== 'boss') {
         for (const bt of bosses) {
@@ -853,7 +893,8 @@ const App = (() => {
       const tgt = e.target;
       const typing = tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.tagName === 'SELECT' || tgt.isContentEditable);
       const ctrl = e.ctrlKey || e.metaKey;
-      if (ctrl && e.key.toLowerCase() === 's') { e.preventDefault(); save(); return; }
+      // a box still being typed in commits first, so Ctrl+S saves what it shows (pass 58 review)
+      if (ctrl && e.key.toLowerCase() === 's') { e.preventDefault(); if (typing && typeof tgt.blur === 'function') tgt.blur(); save(); return; }
       if (typing) { if (e.key === 'Escape') tgt.blur(); return; }
       if (ctrl && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
       if (ctrl && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
@@ -883,7 +924,7 @@ const App = (() => {
   return {
     S, init, loadMap, refreshCreatures, creature, creatureName, elite, pickup, variantOk, iconFor, playCode, creatureColor,
     tl, stageLength, stages, runEnd, viewEnd, stageAt, stageName, stageMult, samplePoints, capAt, hellCapAt,
-    hpTimeMult, dmgTimeMult, hpMultAt, dmgMultAt, creatureAt, knockbackOf, rowWeight, rosterAt, waveEnd, wavesAt, nextEvent,
+    hpTimeMult, dmgTimeMult, hpMultAt, dmgMultAt, creatureAt, rowNumbers, eventNumbers, sourceName, actual, actualAt, knockbackOf, rowWeight, rosterAt, waveEnd, wavesAt, nextEvent,
     eventLabel, eventShares, waveAlts, snapshot, pushHistory, apply, undo, redo, dirty, selected, select, selKey, newWave,
     newRow, newEvent, deleteSelected, duplicateSelected, moveRow, moveRowTo, shiftWeights, sortPoints, nudge, validate,
     issuesFor, save, revert, exportJson, render, status, setClock, toast, switchTab, BOSS_WINDOW,

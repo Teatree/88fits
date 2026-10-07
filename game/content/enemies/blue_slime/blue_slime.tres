@@ -44,6 +44,7 @@ fps = {
 }
 knockback = 4.5
 head = 0.931
+blood = Color(0.10980392, 0.6156863, 1, 1)
 front_faces = "left"
 variants = {
 "SL-A": {

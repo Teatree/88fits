@@ -6,7 +6,12 @@
 ## Canyon's clock by 430/300 (stages of 7:10), so every clock here reads the timeline (`stage_length`) instead of a fixed
 ## number of seconds, and the elite modifiers wait for the run's `colour_after_kills`-th kill. Pass 57: a roster row's or a
 ## wave's `pattern` may be "ring" (the whole spawn evenly round the hero at RING_RADIUS) or "in_front" (from the top of
-## the screen whatever the timeline's `spawn_sides` says); a swarm event takes "in_front" too.
+## the screen whatever the timeline's `spawn_sides` says); a swarm event takes "in_front" too. Pass 58: every roster row
+## and wave fixes its creatures' numbers at its first spawn (the time curves at its start, the hero's level then:
+## source_for; afresh at each endless wave), an event and a special the moment they come (fixed_numbers) unless a row or
+## wave brings the same creature then (event_numbers: the row's), the portal wave the row it drew, and EnemyManager.spawn
+## plays them for each creature's life; a row's `stats.size` may be a range and `stats.tint` a colour range, rolled per
+## creature.
 class_name WaveDirector
 extends Node
 
@@ -42,8 +47,12 @@ var portal_wave_spawned := 0
 ## The timeline's waves as this run plays them (pass 53, docs/waves_schema.md), one entry per wave in the timeline's
 ## order: {id, alt (the alternative rolled for this run), spawned, next_t (the run clock of the next burst), toasted,
 ## done}. Rolled at start() (_roll_waves) with the fresh _rng, never from the map seed (Garry: the alternatives "run
-## fresh every run"); a director that never started rolls on its first tick (_ensure_rolled).
+## fresh every run"); a director that never started rolls on its first tick (_ensure_rolled). Pass 58: `k` is the wave's
+## place in the timeline (its key in the fixed numbers, "wave#k").
 var _waves: Array = []
+## Pass 58 (R1): each roster row's and wave's numbers as the run fixed them at its first spawn, key -> {t0, hp_time,
+## dmg_time, lv_hp, lv_dmg} (source_for, fixed_numbers; in endless one per endless wave); cleared when a run starts.
+var _src: Dictionary = {}
 ## The events as this run plays them (pass 53): a copy of the timeline's events, each with its effective `t` (its own
 ## +- `t_jitter`, rolled at start), `_i` its place in the timeline and `_skip` when its `chance` failed, sorted by t then
 ## _i; _process_events walks it with _event_i. Without jitter or chance it is the timeline's list in the timeline's
@@ -65,6 +74,8 @@ func start(p_map: MapDef) -> void:
 	_elite_retry = 0.0
 	_portal_t = 0.0
 	_rng.randomize()
+	# pass 58: every row and wave fixes its numbers afresh at its first spawn of this run
+	forget_sources()
 	# pass 53: the events' jitter and chance and the waves' alternatives, rolled once for this run
 	_roll_events()
 	_roll_waves()
@@ -281,15 +292,20 @@ func _run_event(ev: Dictionary) -> void:
 			if id == "" and not map.skins.is_empty():
 				id = map.skins.values()[0]
 			var count := int(ev.get("count", 40))
+			# an event's numbers are the moment it fires (pass 58, R1), or the row's that brings the same creature then
+			# (the fix round: a fire-ant swarm beside the fire-ant row had 1.6 times their HP)
+			var en := event_numbers(id, variant, stats)
+			var est: Dictionary = en["stats"]
+			var src: Dictionary = en["src"]
 			match str(ev.get("pattern", "ring")):
 				"pack", "scatter", "in_front":
 					# through the spawn points instead of the ring (pass 53), still on top of the cap like the ring;
 					# "in_front" (pass 57) from the top of the screen whatever spawn_sides says
-					_spawn_group(id, count, str(ev["pattern"]), int(ev.get("pack", 0)), null, variant, stats)
+					_spawn_group(id, count, str(ev["pattern"]), int(ev.get("pack", 0)), null, variant, est, Callable(), src)
 				_:
 					# the swarm's own ring, 16 m round the hero as it always was (the rows' and waves' "ring" is
 					# RING_RADIUS, pass 57)
-					em.spawn_ring(id, count, game.player.global_position, 16.0, variant, stats)
+					em.spawn_ring(id, count, game.player.global_position, 16.0, variant, est, src)
 			game.toast("SWARM!", SWARM_COLOR)
 		"boss":
 			_start_boss(_pick_id(ev.get("enemy", map.boss), ev.get("weights", [])), Vector3.INF, variant, stats)
@@ -305,9 +321,11 @@ func _start_boss(id: String, where: Vector3 = Vector3.INF, variant := "", stats 
 	phase = Phase.BOSS
 	var em: EnemyManager = game.enemies
 	var mb: MapBase = game.map
-	# the arena may name the spot; the timeline's boss comes up on the flats
+	# the arena may name the spot; the timeline's boss comes up on the flats. A boss keeps its own rules (pass 58: the
+	# fixed numbers reach only a regular creature a boss event might name)
 	var at: Vector3 = mb.flats_center + Vector3(0, 0, -10) if where == Vector3.INF else where
-	em.spawn_boss(id, at, variant, stats)
+	var en := event_numbers(id, variant, stats)
+	em.spawn_boss(id, at, variant, en["stats"], en["src"])
 	boss_started.emit(def)
 	game.toast(def.display_name.to_upper(), Color(0.93, 0.29, 0.36))
 
@@ -318,8 +336,10 @@ func _spawn_elite_boss(id: String, variant := "", stats := {}) -> void:
 	if def == null:
 		return
 	var em: EnemyManager = game.enemies
-	# where the hero is headed, as before the spawn sides (pass 54: the schema keeps the Elite bosses on the old rule)
-	var i := em.spawn(id, _facing_point(), null, 1.0, 1.0, variant, stats)
+	# where the hero is headed, as before the spawn sides (pass 54: the schema keeps the Elite bosses on the old rule); an
+	# Elite by its kind keeps its own numbers (pass 58), the event's fixed ones reach only a regular creature it names
+	var en := event_numbers(id, variant, stats)
+	var i := em.spawn(id, _facing_point(), null, 1.0, 1.0, variant, en["stats"], en["src"])
 	if i >= 0:
 		elite_index = i
 		game.toast(def.display_name.to_upper(), Color(0.98, 0.62, 0.25))
@@ -395,6 +415,171 @@ static func _row_def(r: Dictionary) -> EnemyDef:
 	return Registry.enemy_with(str(r.get("enemy", "")), str(r.get("variant", "")), _stats_of(r))
 
 
+# ---------------------------------------------------------------- a source's numbers fixed from its start (pass 58)
+
+## The fixed numbers of a spawn source that starts at `t0` with `stats` overrides, read now (pass 58, R1 of the pass's
+## rules, docs/waves_schema.md "Pass 58"; Garry: "While I want the HP of enemies to increase over time, I don't actually
+## want it to change for the same 'wave' of enemies on the fly"): the HP and damage curves at t0, 1 for a number the stats
+## set themselves (Garry: "the multiplier will inform what the HP should be for enemy rows whose stats weren't
+## overridden"), and the hero-level factors at the hero's level now. EnemyManager.spawn takes it as `src`: the creature
+## plays these instead of the live curve and level, times the stage multiplier at its spawn, and keeps them for its hits.
+func fixed_numbers(t0: float, stats: Dictionary = {}) -> Dictionary:
+	var tl: WaveTimeline = timeline if timeline else WaveTimeline.new()
+	var lv := float(maxi(Run.level - 1, 0))
+	return {"t0": t0,
+		"hp_time": 1.0 if stats.has("hp") else tl.hp_mult_at(t0),
+		"dmg_time": 1.0 if stats.has("damage") else tl.damage_mult_at(t0),
+		"lv_hp": 1.0 + tl.level_hp_per_level * lv,
+		"lv_dmg": 1.0 + tl.level_damage_per_level * lv}
+
+
+## A roster row's or a wave's fixed numbers (pass 58): made at its first spawn of the run (the hero's level then) and kept
+## for every later creature of it. Events, specials and a boss's brood take theirs the moment they come instead
+## (fixed_numbers), or a row's that brings the same creature then (event_numbers). The fix round (the review: Red
+## Canyon's hell rows have no end, so stage 3 and the whole of endless kept 14:20's curve and hero level, and only the
+## x1.12 a wave was left of endless's growth): in endless every row and wave fixes its numbers afresh at each endless
+## wave, from the wave's start (or its own `t`, if later) and the hero's level at its first spawn in that wave; the step
+## comes with the WAVE toast, like the stage multiplier's, so nothing changes in the middle of a wave.
+func source_for(key: String, t0: float, stats: Dictionary) -> Dictionary:
+	var ew := endless_wave_now()
+	if ew > 0:
+		key += "@w%d" % ew
+		t0 = maxf(t0, endless_wave_start(ew))
+	var s = _src.get(key)
+	if s is Dictionary:
+		return s
+	var made := fixed_numbers(t0, stats)
+	_src[key] = made
+	return made
+
+
+## The endless wave the run is in by this director's timeline (pass 58 fix round; Run.endless_wave() reads the map's, the
+## same timeline in a run), 1-based, 0 outside endless.
+func endless_wave_now() -> int:
+	if not Run.endless or timeline == null:
+		return 0
+	var secs := maxf(Run.elapsed - timeline.stage_length * float(timeline.stages), 0.0)
+	return timeline.endless_wave(secs) + 1
+
+
+## The run clock at which endless wave `w` (1-based) starts (pass 58 fix round).
+func endless_wave_start(w: int) -> float:
+	return timeline.stage_length * float(timeline.stages) + float(maxi(w - 1, 0)) * maxf(timeline.endless_wave_seconds, 1.0)
+
+
+## Forgets every row's and wave's fixed numbers (pass 58): the next spawn of each fixes them again, from the hero's level
+## then. A run starts this way (start()); the debug arena's "Run from the clock" may call it, since the hero's level and
+## the clock there are whatever was set since the director last ran.
+func forget_sources() -> void:
+	_src.clear()
+
+
+## The run's fixed numbers of the source called `key` ("row:<id>#<index>", "row#<index>", "wave#<index>", and in endless
+## "@w<wave>" on the end), {} before its first spawn (the tests, a tool).
+func source_state(key: String) -> Dictionary:
+	var s = _src.get(key)
+	return (s as Dictionary).duplicate() if s is Dictionary else {}
+
+
+## A roster row's key in the fixed numbers (pass 58): its `id` and its place in the timeline's roster ("row:<id>#<index>";
+## the fix round: two rows of a hand-made JSON that share an id kept one snapshot), "row#<index>" for a row without an id,
+## else (a row built by hand: the tests) "row:<id>" or its creature and start.
+func row_key(r: Dictionary) -> String:
+	var id := str(r.get("id", ""))
+	if timeline:
+		for k in range(timeline.roster.size()):
+			if is_same(timeline.roster[k], r):
+				return ("row:%s#%d" % [id, k]) if id != "" else "row#%d" % k
+	if id != "":
+		return "row:" + id
+	return "row?%s@%s" % [str(r.get("enemy", "")), str(r.get("t", 0.0))]
+
+
+## A roster row's fixed numbers (pass 58): from its `t` (0 when it has none) and its own stats.
+func _row_src(r: Dictionary) -> Dictionary:
+	return source_for(row_key(r), float(r.get("t", 0.0)), _stats_of(r))
+
+
+## The numbers an event's creatures play (pass 58; this rule is the fix round's, docs/waves_schema.md "Pass 58"): the
+## moment's (fixed_numbers), except that while a roster row or a wave brings the same creature in the same look
+## (open_source_of), each half the event's own stats leave alone (HP: `hp`, `hp_mult`; ATK: `damage`, `damage_mult`) is
+## that row's: its overrides and its fixed numbers. The review had a fire-ant swarm at 9:19 come with 520 HP beside the
+## 7:10 row's 322-HP ants, the very "shooting the same enemy with the same weapon suddenly doesn't kill it" Garry wanted
+## gone. {stats (the event's, with the row's numbers in), src, joined (the row's key, "" for none)}. A boss and an Elite by
+## their kind never join (their own rules). EnemyManager.brood_numbers asks it for a boss's brood too.
+func event_numbers(id: String, variant: String, stats: Dictionary) -> Dictionary:
+	var src := fixed_numbers(Run.elapsed, stats)
+	var out := {"stats": stats, "src": src, "joined": ""}
+	var base: EnemyDef = Registry.enemy(id)
+	if base == null or base.archetype == "boss" or base.archetype == "elite" or timeline == null:
+		return out
+	var hp_own := stats.has("hp") or stats.has("hp_mult")
+	var dmg_own := stats.has("damage") or stats.has("damage_mult")
+	if hp_own and dmg_own:
+		return out
+	var row := open_source_of(id, variant)
+	if row.is_empty():
+		return out
+	var rstats: Dictionary = row["stats"]
+	var rs := source_for(str(row["key"]), float(row["t0"]), rstats)
+	var merged: Dictionary = stats.duplicate(true)
+	if not hp_own:
+		src["hp_time"] = rs["hp_time"]
+		src["lv_hp"] = rs["lv_hp"]
+		for k: String in ["hp", "hp_mult"]:
+			if rstats.has(k):
+				merged[k] = rstats[k]
+	if not dmg_own:
+		src["dmg_time"] = rs["dmg_time"]
+		src["lv_dmg"] = rs["lv_dmg"]
+		for k: String in ["damage", "damage_mult"]:
+			if rstats.has(k):
+				merged[k] = rstats[k]
+	return {"stats": merged, "src": src, "joined": str(row["key"])}
+
+
+## The roster row, else the wave, bringing creature `id` in the look `variant` right now (pass 58 fix round): a row of
+## either channel open now at a weight above 0 (the heaviest when several are), else a wave inside its window and not
+## spent whose rolled alternative brings it; {key, t0, stats} as source_for takes them, {} when none. "Now" is the clock a
+## hair back outside the normal phase, as the bursts read it (the frozen clock sits on the stage boundary).
+func open_source_of(id: String, variant: String) -> Dictionary:
+	if timeline == null:
+		return {}
+	var t := Run.elapsed if phase == Phase.NORMAL else Run.elapsed - 1.0
+	var look := _look_of(id, variant)
+	var best: Dictionary = {}
+	var best_w := 0.0
+	for r in timeline.roster_at(t):
+		if not (r is Dictionary) or str(r.get("enemy", "")) != id or _look_of(id, str(r.get("variant", ""))) != look:
+			continue
+		var w := _roster_weight(r, t)
+		if w > best_w:
+			best_w = w
+			best = {"key": row_key(r), "t0": float(r.get("t", 0.0)), "stats": _stats_of(r)}
+	if not best.is_empty() or timeline.waves.is_empty():
+		return best
+	_ensure_rolled()
+	for k in range(_waves.size()):
+		var ws: Dictionary = _waves[k]
+		var wv: Dictionary = timeline.waves[k] if timeline.waves[k] is Dictionary else {}
+		if wv.is_empty() or bool(ws.get("done", false)) or t < float(wv.get("t", 0.0)) or (wv.has("until") and t >= float(wv["until"])):
+			continue
+		var alt: Dictionary = ws["alt"]
+		if str(alt.get("enemy", "")) != id or _look_of(id, str(alt.get("variant", ""))) != look:
+			continue
+		return {"key": "wave#%d" % k, "t0": float(wv.get("t", 0.0)), "stats": _stats_of(alt)}
+	return {}
+
+
+## The art variant creature `id` plays with `variant` asked for (pass 58 fix round): the code itself when it is one of the
+## creature's other looks, "" for its own (an empty code, its default or an unknown one: EnemyDef.variant_def's rule).
+static func _look_of(id: String, variant: String) -> String:
+	var base: EnemyDef = Registry.enemy(id)
+	if base == null or variant == "" or variant == base.variant or not base.variants.has(variant):
+		return ""
+	return variant
+
+
 ## `n` creatures of `id` through the spawn points (pass 53, the roster's and the waves' `pattern`): "pack" puts them at
 ## one point (`pack` or more of them in several packs, each at its own point; pack 0 = all together), "scatter" and
 ## "single" each at a point of its own. `point` picks the points (`_spawn_point` when not given; the portal wave hands
@@ -402,11 +587,12 @@ static func _row_def(r: Dictionary) -> EnemyDef:
 ## burst, whatever `pack` says), and "in_front" puts each of the `n` at its own point at the top of the screen
 ## (_in_front_point) whatever `point` and the timeline's spawn_sides say: a loose band across the top, which read as
 ## "they come from above" better than packs sharing a top point did (both were captured in the arena). Any other
-## pattern is "pack", as it always was. Returns how many came.
-func _spawn_group(id: String, n: int, pattern: String, pack: int, mod: EliteModDef, variant: String, stats: Dictionary, point: Callable = Callable()) -> int:
+## pattern is "pack", as it always was. Returns how many came. Pass 58: `src` is the source's fixed numbers
+## (source_for / fixed_numbers), handed to every creature; {} = the live numbers.
+func _spawn_group(id: String, n: int, pattern: String, pack: int, mod: EliteModDef, variant: String, stats: Dictionary, point: Callable = Callable(), src: Dictionary = {}) -> int:
 	var em: EnemyManager = game.enemies
 	if pattern == "ring":
-		return _spawn_ring_group(id, n, mod, variant, stats)
+		return _spawn_ring_group(id, n, mod, variant, stats, src)
 	if pattern == "in_front":
 		# Garry: "an override to the Spawning part in the Settings"
 		point = _in_front_point
@@ -416,14 +602,14 @@ func _spawn_group(id: String, n: int, pattern: String, pack: int, mod: EliteModD
 	var came := 0
 	if pattern == "scatter" or pattern == "single":
 		for k in range(n):
-			if em.spawn(id, point.call(), mod, 1.0, 1.0, variant, stats) >= 0:
+			if em.spawn(id, point.call(), mod, 1.0, 1.0, variant, stats, src) >= 0:
 				came += 1
 		return came
 	var left := n
 	var chunk: int = pack if pack > 0 else n
 	while left > 0:
 		var m: int = mini(chunk, left)
-		came += em.spawn_pack(id, point.call(), m, mod, variant, stats)
+		came += em.spawn_pack(id, point.call(), m, mod, variant, stats, src)
 		left -= m
 	return came
 
@@ -440,42 +626,50 @@ const RING_SLIDE := 0.2
 
 
 ## `n` creatures of `id` on a ring round the hero (pass 57, the "ring" pattern; ring_points places them). Each may wear
-## `mod` (a wave's elite modifier). Returns how many came.
-func _spawn_ring_group(id: String, n: int, mod: EliteModDef, variant: String, stats: Dictionary) -> int:
+## `mod` (a wave's elite modifier) and carry the source's fixed numbers `src` (pass 58). Returns how many came.
+func _spawn_ring_group(id: String, n: int, mod: EliteModDef, variant: String, stats: Dictionary, src: Dictionary = {}) -> int:
 	var em: EnemyManager = game.enemies
 	var came := 0
 	for p: Vector3 in ring_points(n):
-		if em.spawn(id, p, mod, 1.0, 1.0, variant, stats) >= 0:
+		if em.spawn(id, p, mod, 1.0, 1.0, variant, stats, src) >= 0:
 			came += 1
 	return came
 
 
 ## Where a ring of `n` stands (pass 57): evenly round the hero at RING_RADIUS from a random start angle, each point slid
-## up to RING_SLIDE of the spacing round the circle and RING_JITTER in or out, clamped to the arena like every spawn point
-## (the rocks push a creature off as it walks, as they do wherever it spawns). The editor's hint says how many make "a
-## thick ring with few gaps" (Garry): about 1.5 times the circle over a body's width.
+## up to RING_SLIDE of the spacing round the circle and RING_JITTER in or out. The editor's hint says how many make "a
+## thick ring with few gaps" (Garry): about 1.5 times the circle over a body's width. Pass 58 (the review of pass 57: by
+## the wall the ring's outer part was clamped onto the wall right beside the hero, 7 of a 105-ring within 2 m of him): a
+## ring that would cross the wall spreads all `n` evenly over the arc of it inside the arena, and a point on a rock's
+## painting or in the lake steps a little round the ring or in and out (EnemyManager.ring_spots); every point stays a
+## ring's width from the hero.
 func ring_points(n: int) -> Array:
 	var out: Array = []
 	if n <= 0 or game == null or game.player == null:
 		return out
 	var center: Vector3 = game.player.global_position
 	var mb: MapBase = game.map
-	var step := TAU / float(n)
 	var turn := _rng.randf() * TAU
-	for k in range(n):
-		var a := turn + step * (float(k) + _rng.randf_range(-RING_SLIDE, RING_SLIDE))
-		var r := RING_RADIUS + _rng.randf_range(-RING_JITTER, RING_JITTER)
-		var p: Vector3 = center + Vector3(cos(a), 0, sin(a)) * r
+	for p: Vector3 in EnemyManager.ring_spots(center, RING_RADIUS, n, _spawn_lim(), _rng, turn, RING_SLIDE, RING_JITTER, mb):
 		out.append(mb.clamp_to_arena(p) if mb else p)
 	return out
+
+
+## The usable radius of the arena for a spawn point (pass 58): MapBase.clamp_to_arena's own limit, so a point placed inside
+## it is never moved by the clamp.
+func _spawn_lim() -> float:
+	var mb: MapBase = game.map if game else null
+	return mb.arena_radius - 1.5 if mb else INF
 
 
 ## A point for the "in_front" pattern (pass 57, Garry: "makes the enemies spawn above the Player, basically an override to
 ## the Spawning part in the Settings"): the usual 19-24 m from the hero, clamped to the arena, within 45 degrees either
 ## side of straight up the screen (the side spawn_sides calls top; the follow camera's yaw turns it with the screen),
-## whatever the timeline's spawn_sides says, mode sides or facing.
+## whatever the timeline's spawn_sides says, mode sides or facing. Pass 58: by the north wall it turns round inside the
+## arena instead of piling onto the wall beside him (_point_at), and it steps off a rock's painting or the lake (it can be
+## on the screen when the camera has pulled out).
 func _in_front_point() -> Vector3:
-	return _point_at(_camera_yaw() + _rng.randf_range(-SIDE_HALF_ARC, SIDE_HALF_ARC))
+	return _point_at(_camera_yaw() + _rng.randf_range(-SIDE_HALF_ARC, SIDE_HALF_ARC), true)
 
 
 ## The camera's yaw in the hero's convention (0 = -Z, straight up the screen under the fixed camera, which never turns);
@@ -534,7 +728,8 @@ func spawn_portal_wave() -> int:
 		var pack: int = maxi(int(row.get("pack", def.pack_size)), 1)
 		var pattern := str(row.get("pattern", "pack"))
 		var n: int = mini(pack, left) if pattern != "single" else 1
-		_spawn_group(def.id, n, pattern, pack, null, str(row.get("variant", "")), _stats_of(row), _around_point)
+		# the row's own numbers (pass 58 fix round: it is that row's creature, beside the ones the hero was just shooting)
+		_spawn_group(def.id, n, pattern, pack, null, str(row.get("variant", "")), _stats_of(row), _around_point, _row_src(row))
 		left -= n
 	portal_wave_spawned = maxi(em.alive_count() - before, 0)
 	return portal_wave_spawned
@@ -561,12 +756,14 @@ func _weighted_row(rows: Array) -> Dictionary:
 	return last
 
 
-## A spot all round the hero, just off his screen (the portal wave comes from every side, not mostly ahead).
+## A spot all round the hero, just off his screen (the portal wave comes from every side, not mostly ahead). Pass 58: a
+## spot past the wall turns round inside the arena at the same distance (EnemyManager.point_inside) instead of being
+## clamped onto the wall beside him.
 func _around_point() -> Vector3:
 	var player: Node3D = game.player
 	var mb: MapBase = game.map
 	var a := _rng.randf() * TAU
-	var p: Vector3 = player.global_position + Vector3(cos(a), 0, sin(a)) * _rng.randf_range(15.0, 20.0)
+	var p := EnemyManager.point_inside(player.global_position, a, _rng.randf_range(15.0, 20.0), _spawn_lim())
 	return mb.clamp_to_arena(p) if mb else p
 
 
@@ -648,7 +845,8 @@ func _burst_from(roster: Array, room: float, bodies: int) -> int:
 		var n: int = mini(mini(pack, maxi(int(ceil(burst / share)), 1)), bodies)
 		if pattern == "single":
 			n = 1
-		_spawn_group(def.id, n, pattern, pack, null, str(chosen.get("variant", "")), _stats_of(chosen))
+		# the row's numbers as its first spawn of the run fixed them (pass 58, R1)
+		_spawn_group(def.id, n, pattern, pack, null, str(chosen.get("variant", "")), _stats_of(chosen), Callable(), _row_src(chosen))
 		burst -= float(n) * share
 		bodies -= n
 	return bodies
@@ -747,7 +945,7 @@ func _roll_waves() -> void:
 	for k in range(timeline.waves.size()):
 		var src = timeline.waves[k]
 		if not (src is Dictionary):
-			_waves.append({"id": "w%d" % k, "alt": {}, "spawned": 0, "next_t": 0.0, "toasted": false, "done": true})
+			_waves.append({"id": "w%d" % k, "k": k, "alt": {}, "spawned": 0, "next_t": 0.0, "toasted": false, "done": true})
 			continue
 		var w: Dictionary = src
 		var alt: Dictionary = {}
@@ -773,7 +971,7 @@ func _roll_waves() -> void:
 					pick -= c
 					if pick <= 0.0:
 						break
-		_waves.append({"id": str(w.get("id", "w%d" % k)), "alt": alt, "spawned": 0, "next_t": float(w.get("t", 0.0)), "toasted": false, "done": false})
+		_waves.append({"id": str(w.get("id", "w%d" % k)), "k": k, "alt": alt, "spawned": 0, "next_t": float(w.get("t", 0.0)), "toasted": false, "done": false})
 
 
 ## The run's state of the wave called `id` (pass 53; the tests and the arena): {id, alt, spawned, next_t, toasted, done}
@@ -867,7 +1065,10 @@ func _wave_burst(w: Dictionary, ws: Dictionary) -> int:
 				mod = list[_rng.randi() % list.size()]
 		else:
 			mod = Registry.elites.get(el)
-	var came := _spawn_group(id, n, str(w.get("pattern", "pack")), int(alt.get("pack", def.pack_size)), mod, variant, stats)
+	# the wave's numbers as its first burst of the run fixed them, from its `t` and the rolled alt's stats (pass 58, R1)
+	var key: String = "wave#%d" % int(ws["k"]) if ws.has("k") else "wave:" + str(ws.get("id", ""))
+	var src := source_for(key, float(w.get("t", 0.0)), stats)
+	var came := _spawn_group(id, n, str(w.get("pattern", "pack")), int(alt.get("pack", def.pack_size)), mod, variant, stats, Callable(), src)
 	if came > 0:
 		ws["spawned"] = int(ws["spawned"]) + came
 		if not bool(ws["toasted"]) and str(w.get("toast", "")) != "":
@@ -918,7 +1119,9 @@ func _tick_specials(delta: float) -> void:
 	var id: String = pool[_rng.randi() % pool.size()]
 	var em: EnemyManager = game.enemies
 	em.register_type(Registry.enemy(id))
-	em.spawn(id, _spawn_point())
+	# a special's numbers are the moment it comes (pass 58, R1), or a row's that brings it then (event_numbers)
+	var en := event_numbers(id, "", {})
+	em.spawn(id, _spawn_point(), null, 1.0, 1.0, "", en["stats"], en["src"])
 
 
 ## The special ids that may come now: the pool rows whose stage has come.
@@ -1065,13 +1268,39 @@ func _facing_point() -> Vector3:
 
 
 ## A point 19-24 m from the hero towards the yaw `a` (the hero's `facing` convention: 0 = -Z), clamped to the arena.
-func _point_at(a: float) -> Vector3:
+## Pass 58 (the review of pass 57: by the wall, points past it were clamped onto the wall beside the hero): a point past
+## the wall turns round the least way that keeps it inside, at the same distance (EnemyManager.point_inside), so it is
+## never nearer him than 19 m. `avoid` (the in_front pattern's points) also steps it a few degrees or a metre or two off a
+## rock's painting or the lake.
+func _point_at(a: float, avoid := false) -> Vector3:
 	var player: Node3D = game.player
 	var mb: MapBase = game.map
 	var r := _rng.randf_range(19.0, 24.0)
-	var dir := Vector3(-sin(a), 0, -cos(a))
-	var p: Vector3 = player.global_position + dir * r
-	return mb.clamp_to_arena(p)
+	var from: Vector3 = player.global_position
+	var lim := _spawn_lim()
+	var p := EnemyManager.point_inside(from, a, r, lim)
+	if avoid and mb and not EnemyManager.spawn_clear(mb, p):
+		# past the lake first when the point is in it (the fix round: the steps reach 12 degrees, and the oasis spans some
+		# 40 degrees 20 m off), round the yaw that clears it the least way, then the other way; else the steps round `a`
+		var turns: Array = EnemyManager.lake_turns(mb, from, a, r)
+		var bases: Array = turns if not turns.is_empty() else [a]
+		var done := false
+		for b: float in bases:
+			for t: Vector2 in AVOID_STEPS:
+				var q := EnemyManager.point_inside(from, b + deg_to_rad(t.x), r + t.y, lim)
+				if EnemyManager.spawn_clear(mb, q):
+					p = q
+					done = true
+					break
+			if done:
+				break
+	return mb.clamp_to_arena(p) if mb else p
+
+
+## The steps (degrees round, metres out) _point_at tries for a point on a rock's painting or in the lake (pass 58), the
+## point itself first.
+const AVOID_STEPS := [Vector2(0, 0), Vector2(4, 0), Vector2(-4, 0), Vector2(0, 1.5), Vector2(0, -1.5), Vector2(8, 0),
+	Vector2(-8, 0), Vector2(4, 1.5), Vector2(-4, 1.5), Vector2(12, 0), Vector2(-12, 0), Vector2(8, -1.5), Vector2(-8, -1.5)]
 
 
 ## The yaw of the next spawn point (_spawn_point): 0 = -Z, the hero's `facing` convention.
@@ -1176,17 +1405,18 @@ func _elite_format(def: EnemyDef) -> String:
 
 
 ## `n` of a creature, every one wearing `mod`, on a ring of ELITE_RING_RADIUS round the hero (pass 54, the "ring"
-## elite format; EnemyManager.spawn_ring takes no modifier). Returns how many came.
-func _spawn_elite_ring(id: String, n: int, mod: EliteModDef, variant: String, stats: Dictionary) -> int:
+## elite format; EnemyManager.spawn_ring takes no modifier), on the event's fixed numbers `src` (pass 58). Returns how many
+## came.
+func _spawn_elite_ring(id: String, n: int, mod: EliteModDef, variant: String, stats: Dictionary, src: Dictionary = {}) -> int:
 	var em: EnemyManager = game.enemies
 	var mb: MapBase = game.map
 	var center: Vector3 = game.player.global_position
 	var came := 0
 	var turn := _rng.randf() * TAU
-	for k in range(n):
-		var a := turn + TAU * float(k) / float(maxi(n, 1)) + _rng.randf_range(-0.1, 0.1)
-		var p := center + Vector3(cos(a), 0, sin(a)) * ELITE_RING_RADIUS
-		if em.spawn(id, mb.clamp_to_arena(p) if mb else p, mod, 1.0, 1.0, variant, stats) >= 0:
+	# +-0.1 radians round the ring as before; by the wall the ring keeps to the arc inside it (pass 58, ring_spots)
+	var slide := 0.1 / (TAU / float(maxi(n, 1)))
+	for p: Vector3 in EnemyManager.ring_spots(center, ELITE_RING_RADIUS, n, _spawn_lim(), _rng, turn, slide, 0.0, mb):
+		if em.spawn(id, mb.clamp_to_arena(p) if mb else p, mod, 1.0, 1.0, variant, stats, src) >= 0:
 			came += 1
 	return came
 
@@ -1202,6 +1432,7 @@ func _spawn_elite(enemy_id: String, mod_id: String, variant := "", stats := {}) 
 		return
 	var em: EnemyManager = game.enemies
 	var row: Dictionary = {}
+	var row_stats := false
 	if enemy_id == "":
 		var roster := elite_candidates(_roster_open(timeline.roster_at(Run.elapsed)))
 		if roster.is_empty():
@@ -1213,6 +1444,7 @@ func _spawn_elite(enemy_id: String, mod_id: String, variant := "", stats := {}) 
 			variant = str(row.get("variant", ""))
 		if stats.is_empty():
 			stats = _stats_of(row)
+			row_stats = true
 	var mod: EliteModDef = Registry.elites.get(mod_id)
 	if mod == null:
 		var list := Registry.elites_list()
@@ -1223,14 +1455,26 @@ func _spawn_elite(enemy_id: String, mod_id: String, variant := "", stats := {}) 
 	if def == null:
 		return
 	var pack: int = maxi(int(row.get("pack", def.pack_size)), 1)
+	# an elite event's numbers are the moment it comes (pass 58, R1), or, the fix round, a row's that brings the same
+	# creature then (event_numbers); one drawn from a row with the row's own stats comes on that row's numbers
+	var src: Dictionary
+	if row_stats:
+		src = _row_src(row)
+	else:
+		var en := event_numbers(enemy_id, variant, stats)
+		stats = en["stats"]
+		src = en["src"]
+		def = Registry.enemy_with(enemy_id, variant, stats)
+		if def == null:
+			return
 	var came := 0
 	match _elite_format(def):
 		"pack":
-			came = em.spawn_pack(enemy_id, _spawn_point(), pack, mod, variant, stats)
+			came = em.spawn_pack(enemy_id, _spawn_point(), pack, mod, variant, stats, src)
 		"ring":
-			came = _spawn_elite_ring(enemy_id, pack, mod, variant, stats)
+			came = _spawn_elite_ring(enemy_id, pack, mod, variant, stats, src)
 		_:
-			came = 1 if em.spawn(enemy_id, _spawn_point(), mod, 1.0, 1.0, variant, stats) >= 0 else 0
+			came = 1 if em.spawn(enemy_id, _spawn_point(), mod, 1.0, 1.0, variant, stats, src) >= 0 else 0
 	if came > 0:
 		var title := ("%s %s" % [mod.display_name, def.display_name]).to_upper()
 		game.toast(title if came == 1 else "%s ×%d" % [title, came], mod.outline)

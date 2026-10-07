@@ -441,7 +441,8 @@ func test_a_tap_on_the_strip_that_lets_the_gate_go_does_not_open_the_pause_menu(
 
 func test_the_level_up_screen_moves_down_with_the_rail_and_keeps_its_gaps() -> void:
 	assert_float(CardScreen.RAIL_GROWTH).is_equal(HUD.RAIL_H - OLD_RAIL)
-	assert_float(CardScreen.TITLE_MID_Y).is_equal(110.0 + CardScreen.RAIL_GROWTH + 38.0 + 75.0)
+	# pass 58 review: the star line over LEVEL N is STAR_LINE_PX (34) where the kit's is 30, 42.5 px tall (was 38)
+	assert_float(CardScreen.TITLE_MID_Y).is_equal(110.0 + CardScreen.RAIL_GROWTH + CardScreen.STAR_LINE_PX * 1.25 + 75.0)
 	for inset: int in [0, 130]:
 		Settings.top_inset = inset
 		var cs: CardScreen = auto_free(CardScreen.new())

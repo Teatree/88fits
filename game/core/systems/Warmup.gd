@@ -132,6 +132,8 @@ func _build(game: Node) -> void:
 	_labels.modulate.a = 0.02
 	_labels.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	game.ui.add_child(_labels)
+	# the level-up's and the chest's turning shine (pass 58): its shader compiles here, under the spawn beam
+	preload("res://ui/wanted/WShine.gd").warm(_labels)
 	var y := 0.0
 	for size in [22, 24, 26, 28, 30, 32, 34, 36, 40, 44, 46, 56, 64, 84, 96]:
 		var l := UiKit.outline(UiKit.label("ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 +%→·!?", size, UiKit.INK), 6)

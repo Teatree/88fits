@@ -19,6 +19,7 @@
   },
   "radius": 0.45,
   "size": 1.2,
+  "blood": "#C8161E",
   "anims": {
     "idle": 4,
     "run": 12,

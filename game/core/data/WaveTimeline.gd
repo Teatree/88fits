@@ -44,8 +44,11 @@ extends Resource
 ## "a", "b"}}. `points` is linear between its points and flat outside; `formula` reads m = t / 60 minutes: linear
 ## 1 + a*m, power (1 + a*m)^b (the hp_growth / hp_power form), exponential (1 + a)^m. Both blocks may be present, `mode`
 ## picks (absent: points when there are any, else the formula). Empty = the hp_growth / hp_power pair (hp_mult_at).
+## Pass 58: each roster row, wave and event reads it once, at its own start (WaveDirector.fixed_numbers), and its creatures
+## keep that value; a row that sets `stats.hp` takes none.
 @export var hp_curve: Dictionary = {}
-## The same shape for creature damage over the run clock (pass 54; there was no time growth on damage): empty = 1.
+## The same shape for creature damage over the run clock (pass 54; there was no time growth on damage): empty = 1. Read
+## at each source's start like hp_curve (pass 58); a row that sets `stats.damage` takes none.
 @export var damage_curve: Dictionary = {}
 ## Creatures grow with the hero: +this much HP and damage per hero level above 1 (pass 29: the crowd kept up with
 ## the clock but not with the build).

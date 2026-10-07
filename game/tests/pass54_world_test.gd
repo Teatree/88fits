@@ -513,7 +513,8 @@ func test_the_boot_splash_is_ours() -> void:
 	assert_bool(bool(ProjectSettings.get_setting("application/boot_splash/show_image"))).is_true()
 	assert_int(int(ProjectSettings.get_setting("application/boot_splash/stretch_mode"))).is_equal(1)   # Keep
 	assert_int(int(ProjectSettings.get_setting("application/boot_splash/minimum_display_time"))).is_equal(0)
-	# the picture: 1080 x 1920, paper in the middle, an ink band at the top, under 600 KB
+	# the picture: 1080 x 1920, paper in the middle and, since pass 58, at the top and the foot too (its ink bands
+	# floated inside a 20:9 screen: tests/pass58_boot_test.gd), under 600 KB
 	var bytes := FileAccess.get_file_as_bytes("res://art/ui/splash.png")
 	assert_int(bytes.size()).is_between(1000, 600 * 1024)
 	var img := Image.new()
@@ -521,8 +522,8 @@ func test_the_boot_splash_is_ours() -> void:
 	assert_int(img.get_width()).is_equal(1080)
 	assert_int(img.get_height()).is_equal(1920)
 	assert_bool(img.get_pixel(40, 300).is_equal_approx(W.PAPER)).is_true()
-	assert_float(img.get_pixel(540, 20).v).is_less(0.2)
-	assert_float(img.get_pixel(540, 1900).v).is_less(0.2)
+	assert_bool(img.get_pixel(540, 20).is_equal_approx(W.PAPER)).is_true()
+	assert_bool(img.get_pixel(540, 1900).is_equal_approx(W.PAPER)).is_true()
 	# Android: Godot's own boot splash off, the system splash in paper with our disc
 	var cfg := ConfigFile.new()
 	assert_int(cfg.load("res://export_presets.cfg")).is_equal(OK)

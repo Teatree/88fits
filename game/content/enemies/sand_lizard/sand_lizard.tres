@@ -40,6 +40,7 @@ fps = {
 }
 knockback = 4.5
 head = 0.806
+blood = Color(0.8156863, 0.09411765, 0.16470589, 1)
 sfx = {
 "die": "en_lizard_die",
 "hit": "en_goblin_hit"

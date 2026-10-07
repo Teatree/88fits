@@ -115,14 +115,23 @@ func test_kinds_and_their_words() -> void:
 	assert_str(W.content_kind(magnet)).is_equal("passive")
 	assert_str(W.content_kind(Registry.weapon("boomstick"))).is_equal("weapon")
 	assert_bool(W.KIND.has("line") and W.KIND_WORD.has("line")).is_true()
-	# the cards' one word
-	assert_str(WItem.word({"def": brawn, "level_from": 0, "level_to": 1})).is_equal("NEW LINE")
-	assert_str(WItem.word({"def": brawn, "level_from": 2, "level_to": 3})).is_equal("LINE · LV 2 → 3")
+	# the cards' one word, and beside it the tag (pass 58: NEW and UPGRADE moved out of the word into the tag, and the
+	# "LV 2 → 3" went for the stars and the change rows; Garry: "There should be some kind of an indicator on items when
+	# they are upgraded rather than a new item")
+	assert_str(WItem.word({"def": brawn, "level_from": 0, "level_to": 1})).is_equal("LINE")
+	assert_str(WItem.tag({"def": brawn, "level_from": 0, "level_to": 1})).is_equal("NEW")
+	assert_str(WItem.word({"def": brawn, "level_from": 2, "level_to": 3})).is_equal("LINE")
+	assert_str(WItem.tag({"def": brawn, "level_from": 2, "level_to": 3})).is_equal("UPGRADE")
 	assert_str(WItem.word({"def": Registry.passive("juggernaut"), "level_from": 4, "level_to": 5, "evolve": true})).is_equal("EVOLVES BRAWN")
-	assert_str(WItem.word({"def": magnet, "level_from": 0, "level_to": 1})).is_equal("NEW PASSIVE")
-	assert_str(WItem.word({"def": magnet, "level_from": 1, "level_to": 2})).is_equal("PASSIVE · LV 1 → 2")
-	assert_str(WItem.word({"def": Registry.weapon("boomstick"), "level_from": 0, "level_to": 1})).is_equal("NEW WEAPON")
-	assert_str(WItem.word({"def": Registry.weapon("boomstick"), "level_from": 5, "level_to": 6})).is_equal("WEAPON · LV 5 → 6")
+	assert_str(WItem.tag({"def": Registry.passive("juggernaut"), "level_from": 4, "level_to": 5, "evolve": true})).is_equal("EVOLUTION")
+	assert_str(WItem.word({"def": magnet, "level_from": 0, "level_to": 1})).is_equal("PASSIVE")
+	assert_str(WItem.tag({"def": magnet, "level_from": 0, "level_to": 1})).is_equal("NEW")
+	assert_str(WItem.word({"def": magnet, "level_from": 1, "level_to": 2})).is_equal("PASSIVE")
+	assert_str(WItem.tag({"def": magnet, "level_from": 1, "level_to": 2})).is_equal("UPGRADE")
+	assert_str(WItem.word({"def": Registry.weapon("boomstick"), "level_from": 0, "level_to": 1})).is_equal("WEAPON")
+	assert_str(WItem.tag({"def": Registry.weapon("boomstick"), "level_from": 0, "level_to": 1})).is_equal("NEW")
+	assert_str(WItem.word({"def": Registry.weapon("boomstick"), "level_from": 5, "level_to": 6})).is_equal("WEAPON")
+	assert_str(WItem.tag({"def": Registry.weapon("boomstick"), "level_from": 5, "level_to": 6})).is_equal("UPGRADE")
 	assert_bool(WItem.word_color({"def": brawn}).is_equal_approx(W.LINE_INK)).is_true()
 	assert_bool(WItem.word_color({"def": Registry.weapon("boomstick")}).is_equal_approx(W.WEAPON_INK)).is_true()
 	# no seal and no rarity word on a passive item's card: its plate says it
@@ -301,9 +310,9 @@ func test_the_level_up_skip_and_banish_take_the_stage_s() -> void:
 	cs._skip()
 	assert_int(got.size()).is_equal(1)
 	assert_str(cs.header.line.text).is_equal("No skips left this stage.")
-	# a banish takes the stage's one
+	# a banish takes the stage's one; pass 58: only a card that may go (never the held Boomstick's upgrade)
 	cs._toggle_banish()
-	var struck: Dictionary = cs._offer[0]
+	var struck: Dictionary = CardPool.banishable(cs._offer)[0]
 	cs._pick(struck)
 	assert_int(Run.banishes_left).is_equal(0)
 	assert_bool(Run.banished.has(struck["id"])).is_true()
@@ -355,10 +364,23 @@ func test_the_chest_skips_banishes_and_spins_again() -> void:
 	cs._skip()
 	assert_int(closed.size()).is_equal(0)
 	assert_str(cs.header.line.text).is_equal("No skips left this stage.")
-	# a banish: the stage's one taken, the item struck, the reel spun again and landed, the chest still open
+	# pass 58 (Garry: "Banish option should not allow Banishing items that Player already has"): the Boomstick is held,
+	# so BANISH is locked on its next level and a tap says why, spending nothing
+	assert_bool(cs._banish_btn.locked).is_true()
+	cs._banish()
+	assert_str(cs.header.line.text).is_equal(ChestScreen.banish_refusal(r))
+	assert_int(Run.banishes_left).is_equal(1)
+	assert_bool(Run.banished.has("boomstick")).is_false()
+	assert_int(cs.respins).is_equal(0)
+	# a banish of a new passive item: the stage's one taken, the item struck, the reel spun again and landed, the chest
+	# still open
+	var fresh := {"type": "passive", "id": "magnet", "def": Registry.passive("magnet"), "level_from": 0, "level_to": 1, "is_new": true}
+	cs.open(fresh)
+	await _land(cs)
+	assert_bool(cs._banish_btn.locked).is_false()
 	cs._banish()
 	assert_int(Run.banishes_left).is_equal(0)
-	assert_bool(Run.banished.has("boomstick")).is_true()
+	assert_bool(Run.banished.has("magnet")).is_true()
 	assert_int(cs.respins).is_equal(1)
 	assert_bool(cs._spinning).is_true()
 	assert_float(cs._spin_total).is_equal_approx(ChestScreen.RESPIN + 0.22, 0.001)
@@ -366,7 +388,7 @@ func test_the_chest_skips_banishes_and_spins_again() -> void:
 	await _land(cs)
 	assert_bool(cs._spinning).is_false()
 	assert_bool(cs.buttons.visible).is_true()
-	assert_str(str(cs.result().get("id", ""))).is_not_equal("boomstick")
+	assert_str(str(cs.result().get("id", ""))).is_not_equal("magnet")
 	assert_bool(cs._banish_btn.locked).is_true()
 	# with a skip again it closes on nothing
 	Run.skips_left = 1
@@ -399,14 +421,21 @@ func test_the_chest_skips_banishes_and_spins_again() -> void:
 	assert_str(cs.header.line.text).is_equal("An evolution cannot be banished.")
 	assert_int(cs.respins).is_equal(0)
 	assert_int(Run.banishes_left).is_equal(1)
-	assert_bool(ChestScreen.can_banish({"type": "weapon", "id": "x", "def": Registry.weapon("boomstick")})).is_true()
-	assert_bool(ChestScreen.can_banish({"type": "mutation", "id": "x", "def": Registry.mutation("dragons_breath")})).is_true()
+	# pass 58 (Run.banish_refusal, the game's one rule): a held weapon's next level and a path mutation of a held weapon
+	# cannot go either; a new passive item can
+	assert_bool(ChestScreen.can_banish({"type": "weapon", "id": "boomstick", "def": Registry.weapon("boomstick")})).is_false()
+	assert_bool(ChestScreen.can_banish({"type": "mutation", "id": "dragons_breath", "def": Registry.mutation("dragons_breath")})).is_false()
+	assert_bool(ChestScreen.can_banish({"type": "passive", "id": "cake", "def": Registry.passive("cake"), "level_from": 0, "level_to": 1, "is_new": true})).is_true()
 	assert_bool(ChestScreen.can_banish({"type": "evolution", "id": "x", "def": evo})).is_false()
 	assert_bool(ChestScreen.can_banish({"type": "gold", "def": null})).is_false()
 	cs.visible = false
 
 
-func test_a_boss_chest_banishes_to_another_mutation() -> void:
+## Pass 58 (Garry: "Banish option should not allow Banishing items that Player already has, because this way they can
+## lock themselves out of progression for those weapons"): the boss chest's mutation is for a weapon the hero carries,
+## and a banished path mutation would keep that weapon from its evolution all run, so BANISH is locked and says why (it
+## spun to another mutation until pass 58).
+func test_a_boss_chest_never_banishes_its_mutation() -> void:
 	_start()
 	Run.add_weapon(Registry.weapon("hornet_nest"), 3)
 	var cs: ChestScreen = auto_free(ChestScreen.new())
@@ -417,11 +446,14 @@ func test_a_boss_chest_banishes_to_another_mutation() -> void:
 	cs.open(r)
 	assert_bool(cs._chest.boss).is_true()
 	await _land(cs)
+	assert_bool(cs._banish_btn.locked).is_true()
+	var left := Run.banishes_left
 	cs._banish()
-	assert_int(cs.respins).is_equal(1)
-	assert_bool(Run.banished.has(str(r["id"]))).is_true()
-	await _land(cs)
-	assert_str(str(cs.result().get("id", ""))).is_not_equal(str(r["id"]))
+	assert_int(cs.respins).is_equal(0)
+	assert_bool(Run.banished.has(str(r["id"]))).is_false()
+	assert_int(Run.banishes_left).is_equal(left)
+	assert_str(cs.header.line.text).contains("mutation")
+	assert_str(cs.header.line.text).contains(Registry.weapon("hornet_nest").display_name)
 	cs.visible = false
 
 

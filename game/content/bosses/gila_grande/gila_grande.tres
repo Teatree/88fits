@@ -39,6 +39,7 @@ fps = {
 }
 knockback = 7.0
 head = 0.922
+blood = Color(0.7647059, 0.05882353, 0.11764706, 1)
 boss = {
 "attacks": [{
 "damage": 28.0,

@@ -2,7 +2,8 @@
 // fields.js, so these words and the forms never drift apart), a worked example with its block, its inspector values and
 // the JSON it writes, how Save works, the two .cmd files, the keys, and the schema doc itself (docs/waves_schema.md via
 // /api/schema) at the end. Garry asked for "an Instructions tab describing each tool with a simple example with graphics".
-// Pass 57: the Ring and In front spawn patterns, with a picture of each.
+// Pass 57: the Ring and In front spawn patterns, with a picture of each. Pass 58: rows fixed from their start, the Actual
+// lanes, the size and colour ranges, the default look strip and the blood colour, with a picture of "fixed from its start".
 'use strict';
 
 const Instructions = (() => {
@@ -22,6 +23,7 @@ const Instructions = (() => {
     clear(container);
     const root = el('div', { class: 'instr' });
     intro(root);
+    pass58(root);
     pass54(root);
     pass57(root);
     picture(root);
@@ -48,7 +50,7 @@ const Instructions = (() => {
     root.appendChild(el('ul', {},
       li('<b>Every time is a second of the run clock</b>, shown as mm:ss. The clock runs only while the hero is in the open: it stands still through a boss fight and while the portal waits. Stage 2 starts at <code>stage_length</code>, stage 3 at twice it; after the last stage the run is endless.'),
       li('<b>Timeline</b> is the calendar: the cap (the ceiling), the HP × and ATK × curves, the roster (the stream) and its share band, the waves (scripted bursts), the events (bosses, Elites, swarms), the specials and the path offers, on one time axis. Hover for the readout of any second or the card of any item; click anything to edit it in the inspector on the right; drag to move it.'),
-      li('<b>Settings</b> holds every number of the timeline in a form, each with a one-line help. <b>Creatures</b> is the palette: what every creature is made of, with a button that starts a wave or a row with it, and its art variants: a click on one sets it as the creature\'s default look. <b>Instructions</b> is this page.'),
+      li('<b>Settings</b> holds every number of the timeline in a form, each with a one-line help. <b>Creatures</b> is the palette: what every creature is made of, with a button that starts a wave or a row with it, its looks as pictures (a click on one, and a yes, makes it the creature\'s default look) and its blood colour (the death splash). <b>Instructions</b> is this page.'),
       li(`<b>Save</b> (${kbd('Ctrl+S')}) writes the JSON (after a backup) and runs the JSON → .tres import, so the next launch of the game from the editor binary plays it. The JSON is what goes into git. Errors (red) block the save; warnings (yellow) never do.`)));
     root.appendChild(p('The loop Garry asked for: look at the long map of the run, pick the snippets of time when creatures appear, set their count, their bursts, their numbers, their look, save, play, come back. Every change is one undo step.'));
   }
@@ -67,7 +69,51 @@ const Instructions = (() => {
       li('<b>Creature pickers with pictures</b>: every creature, art variant, elite modifier and power-up choice is a list with icons (the look in play), a filter box and the keyboard (↑ ↓ Enter Esc). An empty art variant means the look in play, named in the box.'),
       li('<b>Elite overrides</b> are the variance block (size and speed spread, tints, the coloured special and its numbers) plus <code>elite_weight</code> (how often a random coloured elite is drawn from the row; 0 = never) and <code>elite_formats</code> (alone / as its pack / as a ring). The old <code>elite.hp_mult_per_stage</code> lives under <b>Mini-boss</b>: only Elite-archetype creatures read it.'),
       li('<b>Knockback</b> per creature (Body → Knockback; the grey number is its own, or <code>clamp(3.4 × √(damage / 4), 2.5, 7)</code>), <b>creature_damage_mult</b> (Settings → Scaling: every hostile damage) and the <b>spawn sides</b> (Settings → Spawning: top / bottom / left / right weights, or the old facing rule).'),
-      li('<b>Default look</b>: on the Creatures tab, click a variant and "Set as default look"; after you confirm, the server writes that creature JSON\'s <code>variant</code> (after a backup) and imports it.')));
+      li('<b>Default look</b>: on the Creatures tab (since pass 58 an always-visible strip of pictures on every card): click a look; after you confirm, the server writes that creature JSON\'s <code>variant</code> (after a backup) and imports it.')));
+  }
+
+  // ------------------------------------------------------------------ what pass 58 added
+
+  function pass58(root) {
+    root.appendChild(el('h2', { text: 'Pass 58: a row keeps its numbers, Actual HP × / ATK ×, sizes, colours, looks and blood' }));
+    root.appendChild(p('Garry: <i>"I don\'t actually want it to change for the same \'wave\' of enemies on the fly, because then it feels weird for the Player that shooting the same enemy with the same weapon suddenly doesn\'t kill it even though it was killing them just a 20 seconds ago."</i> So a row reads the HP × and ATK × curves <b>once, at its start</b>, and every creature it sends keeps those numbers. The stage multiplier still steps them up at a new stage (and each endless wave), and the hero level is the one at the row\'s first spawn.'));
+    root.appendChild(el('ul', {},
+      li('<b>A row\'s HP and Damage</b>: the green line under From / Until (in sight whether Overrides is open or not) says <code>Row HP · ATK, fixed from mm:ss</code>: the creature\'s own × the curves <i>at the row\'s start</i>, where each number comes from, and what a creature of it has in play there (× the stage, creature_hp_mult and the hero level). Drag the bar and it follows, with the grey numbers in Overrides → Body → HP and Damage and the Presence times. A number typed into HP or Damage takes no curve. A wave shows it under each creature (its own start), an event under its creature (the second it fires; an <b>Elites every</b> lists its first firings, each taking the curves at its own second), the specials the second each one comes. An Overrides block you open stays open.'),
+      li('<b>An event joins a row</b> (the game\'s rule since lane WV\'s fix round): a swarm, a coloured elite, a firing of an Elites every, a special or a boss\'s brood of a creature that a roster row (or else a wave) is bringing at that second in the same look plays that row\'s HP and ATK, fixed from the row\'s start, for each of the two its own Overrides leave alone, so the same creature never comes with two different numbers at once. Its green line names the row it joins. An elite drawn from the rows comes with its row\'s numbers. <b>Endless</b>: every row and wave is fixed afresh at each endless wave, from the wave\'s start (the step comes with the WAVE banner); the lanes and the cards show it. <b>A long bar</b>: on a bar longer than three minutes whose HP curve has climbed more than 15% past its start by its last second, its green line says so in yellow (its creatures keep the start\'s numbers all the way): split the bar for a step up.'),
+      li('<b>Actual HP ×</b> and <b>Actual ATK ×</b>, a lane above each curve, on its scale while the rows fit under it (higher multiples give the Actual lane its own, up to 1.5 times as tall, and a ▲ with the number marks anything past its top, so the curve you drag never shrinks): what the creatures spawning at each second really carry. Solid: the average of the rows and waves spawning round that second, each weighted by how many it spawns there (the Spawned so far estimate); dashed: the largest; dotted: the intended curve. A long row lags the curve, a row with its own HP sits wherever that puts it. Hover for the rows behind the numbers; the curve\'s inspector has the same as a table.'),
+      li('<b>Size (m)</b> in Overrides → Body: one number as before, or <i>from</i> and <i>to</i>: every creature of the row rolls its own size in that range (instead of the variance\'s spread) and its body grows with it (radius × size / its own size) unless Radius is set. The creature\'s own size and spread show under the boxes; a range that runs backwards or a size of 0 is an error. A list of one size written by hand, <code>[2]</code>, is read as the game reads it: every creature exactly 2 m, no spread, its radius following.'),
+      li('<b>Colour</b> (a new override group): a hue range on the colour wheel (two handles; an end below the start runs through red, ⇄ takes the other side), saturation, brightness and amount, and the creature\'s standing frame on the sand washed as the game washes it at five hues across the range. Every creature of the row rolls its own hue; it replaces the creature\'s own random tints from its first spawn. A coloured special of the row (once Colour after kills is reached) is a darker, stronger shade of the hue it rolled (saturation +0.15, brightness ×0.7, amount +0.15 over the larger of Amount and its own tint strength): the last picture, at the middle hue. An elite modifier, burn, poison and freeze still show over it. Click a picture to see it larger. A bright colour at a high amount reads pale in the game (it mixes in linear light): lower the brightness for deep colours.'),
+      li('<b>Default look</b> on the Creatures tab: every card shows its looks as pictures, the default ringed and tagged; a click on another one asks, then writes the creature\'s <code>variant</code> (after a backup) and imports it. A row whose Art variant says <b>Default (CODE)</b> follows it; a code picked there pins the row. New rows, waves and events name no look.'),
+      li('<b>Blood</b> on the Creatures tab: the colour of the creature\'s death splash, a picker and its hex; Save writes its <code>blood</code> (after a backup) and imports it.')));
+    root.appendChild(el('div', { class: 'instr-pic' }, fixedPic()));
+  }
+
+  /** R1 in one picture: the intended HP × curve rising, two rows that each keep the curve of their own start, a row with
+   *  its own HP flat above it, and the Actual average between them. A fixed drawing, no map data. */
+  function fixedPic() {
+    const W = 760, H = 230, X0 = 50, X1 = 720, Y0 = 190, Y1 = 52;
+    const s = svg('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+    const xt = (t) => X0 + (X1 - X0) * t / 1290, ym = (m) => Y0 - (Y0 - Y1) * (m - 0.8) / 3.4;
+    const curve = (t) => Math.pow(1 + 0.0977 * t / 60, 1.25);
+    s.appendChild(svg('line', { x1: X0, x2: X1, y1: Y0, y2: Y0, stroke: '#383835' }));
+    for (const [t, lab] of [[0, '0:00'], [430, '7:10'], [860, '14:20'], [1290, '21:30']]) {
+      s.appendChild(svg('line', { x1: xt(t), x2: xt(t), y1: Y0, y2: Y0 + 5, stroke: '#898781' }));
+      s.appendChild(svg('text', { x: xt(t) - 12, y: Y0 + 18, class: 'pic-text', text: lab }));
+    }
+    let d = '';
+    for (let t = 0; t <= 1290; t += 15) d += `${xt(t)},${ym(curve(t))} `;
+    s.appendChild(svg('polyline', { points: d, fill: 'none', stroke: '#199e70', 'stroke-width': 1.6, 'stroke-dasharray': '1.5 3.5', 'stroke-linecap': 'round' }));
+    s.appendChild(svg('text', { x: xt(1290) - 150, y: ym(curve(1290)) - 10, class: 'pic-text', text: 'the HP × curve (intended)' }));
+    const row = (t0, t1, m, color, label) => {
+      s.appendChild(svg('line', { x1: xt(t0), x2: xt(t1), y1: ym(m), y2: ym(m), stroke: color, 'stroke-width': 5, 'stroke-linecap': 'round', opacity: 0.85 }));
+      s.appendChild(svg('circle', { cx: xt(t0), cy: ym(m), r: 4, fill: '#fff' }));
+      s.appendChild(svg('text', { x: xt(t0) + 6, y: ym(m) - 9, class: 'pic-text', text: label }));
+    };
+    row(192, 700, curve(192), '#3987e5', 'a row from 3:12 keeps ×1.41');
+    row(860, 1290, curve(860), '#d95926', 'a row from 14:20 keeps ×2.99');
+    row(192, 430, 2.0, '#c98500', 'hp 20 over 10: ×2 (no curve)');
+    s.appendChild(svg('text', { x: X0, y: 14, class: 'pic-text', text: 'every creature of a row has the row\'s numbers; the stage multiplier and the hero level come on top in the game' }));
+    return s;
   }
 
   // ------------------------------------------------------------------ the two spawn patterns pass 57 added
@@ -216,7 +262,7 @@ const Instructions = (() => {
     for (const l of FIELDS.LANES) list.appendChild(el('div', { class: 'lane-card' }, el('b', { text: l.name }), l.text));
     root.appendChild(list);
     root.appendChild(p('Above the lanes the <b>ruler</b> shows the stages as coloured bands with their multipliers, mm:ss ticks, a skull for every boss and a crown for every Elite event. Under the mouse a dashed <b>cursor</b> and a <b>readout</b> tell what the director does at that second: the stage, the cap, the HP multiplier <code>HP curve × stage_mult × level × creature_hp_mult</code> and the damage multiplier <code>damage curve × stage_mult × level × creature_damage_mult</code> (level = 1 + level_hp_per_level × (hero level − 1), the hero level from the top bar\'s box), the roster rows open then with their normalised weights, the waves running and the next event. Over a bar, a block, a stripe, a flag or the specials band the readout gives way to that item\'s <b>hover card</b>. The same mm:ss, stage and cap stand in the top bar.'));
-    root.appendChild(p('The hover card\'s numbers follow the game (EnemyManager.spawn): an ordinary creature has <code>HP = hp × stage_mult × HP curve(t) × level × creature_hp_mult</code>; an Elite-archetype mini-boss <code>hp × elite.hp_mult_per_stage^stage × stage_mult × creature_hp_mult</code> (no curve, no level); a boss <code>hp × boss.hp_mult_per_stage^stage × stage_mult</code>. ATK is <code>damage × stage_mult × damage curve(t) × level × creature_damage_mult</code> for all of them. A row\'s <code>hp</code> / <code>damage</code> overrides replace the base and its <code>*_mult</code> keys multiply it.'));
+    root.appendChild(p('The hover card\'s numbers follow the game (EnemyManager.spawn, pass 58): an ordinary creature has <code>HP = row HP × stage_mult(t) × level × creature_hp_mult</code>, where <code>row HP = (hp × HP curve(t0), or the row\'s own hp) × hp_mult</code> and <code>t0</code> is the row\'s start: the curve is read once, at the start, and the row keeps that number (an <code>hp</code> override takes no curve); an Elite-archetype mini-boss <code>hp × elite.hp_mult_per_stage^stage × stage_mult × creature_hp_mult</code> (no curve, no level); a boss <code>hp × boss.hp_mult_per_stage^stage × stage_mult</code>. ATK is the same with <code>damage</code>, the damage curve at <code>t0</code> and <code>creature_damage_mult</code> (an Elite or a boss keeps the live damage curve). The level is the hero\'s level at the row\'s first spawn (the top bar\'s box stands in for it).'));
     root.appendChild(p(`Red <b>!</b> marks on a bar, block or marker are errors (the inspector says what), yellow ones warnings. With nothing selected the inspector lists every issue; click one to jump to it. The lanes zoom with ${kbd('+')} / ${kbd('−')} or ${kbd('Ctrl')} + wheel (at the mouse), "Fit" shows the whole run.`));
   }
 
@@ -244,6 +290,8 @@ const Instructions = (() => {
       case 'curve': return '{mode, points, formula}';
       case 'swatch': return 'colour #RRGGBB';
       case 'swatches': return 'list of colours';
+      case 'size_range': return 'metres, or [min, max]';
+      case 'tint': return '{hue: [from, to], sat, val, amount}';
       case 'text': return 'text';
       case 'path_times': return 'one list of seconds per stage';
       case 'pickup': return 'power-up id';

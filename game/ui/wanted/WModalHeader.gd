@@ -6,6 +6,8 @@ extends VBoxContainer
 var star_line: WStarLine
 var title: WText
 var line: WText
+## The star line's size as made (shadow_star draws its stars' shadows at it).
+var star_size := 30
 
 
 ## title_px: 150 for most modals (DOWN! 170, STAGE 1 CLEAR 108, a weapon name 96).
@@ -19,6 +21,7 @@ static func make(star: String, t: String, italic: String = "", title_px: int = 1
 	h.offset_top = top + W.safe_top()
 	h.offset_left = 0
 	h.offset_right = 0
+	h.star_size = star_px
 	if star != "":
 		h.star_line = WStarLine.make(star, star_px, star_color)
 		h.add_child(h.star_line)
@@ -62,6 +65,43 @@ func set_star(t: String, col: Color) -> void:
 func set_line(t: String) -> void:
 	line.text = t
 	line.visible = t != ""
+
+
+## The kit's hard ink shadow, `px` down and right, under the star line's words and its two stars (pass 58: the
+## level-up's LEVEL UP is read over its turning shine, where the bare paper capitals were the faintest words on the
+## screen); 0 takes it away. A header that never calls it keeps its plain line, as every other modal does.
+func shadow_star(px: int = 2) -> void:
+	if star_line == null:
+		return
+	shadow_line(star_line, px, star_size)
+
+
+## The same shadow on any star line made at `size_px` (pass 58: the mutation offer's head has one of its own, outside a
+## header, read over the shine behind the weapon's plate).
+static func shadow_line(s: WStarLine, px: int, size_px: int) -> void:
+	if s == null:
+		return
+	for k in s.get_children():
+		if k is WText:
+			(k as WText).shadow = maxi(px, 0)
+			(k as WText).queue_redraw()
+		elif k is Control:
+			var star := k as Control
+			var old := star.get_node_or_null("Shadow")
+			if old:
+				star.remove_child(old)
+				old.queue_free()
+			if px <= 0:
+				continue
+			# a child of the star, drawn behind it (a child draws over its parent unless it shows behind it)
+			var sh := Control.new()
+			sh.name = "Shadow"
+			sh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			sh.show_behind_parent = true
+			var r := size_px * 0.4
+			sh.draw.connect(func(): WMarks.star(sh, star.size * 0.5 + Vector2(px, px), r, W.INK))
+			star.resized.connect(sh.queue_redraw)
+			star.add_child(sh)
 
 
 ## The title stamps in (pass 44, the level-up reveal): from half again its size and a tilt down to its place, with a

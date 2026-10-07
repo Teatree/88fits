@@ -1434,8 +1434,8 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 	elif def.archetype == "elite":
 		fx.burst(at + Vector3(0, 0.8, 0), Color(1.0, 0.65, 0.3), 3.0)
 		camera.shake(0.9)
-	else:
-		fx.burst(at + Vector3(0, 0.4, 0), Color(0.95, 0.85, 0.7), def.size * 0.6)
+	# a regular creature's pale puff is gone (pass 58): its splash in its own blood says it died (_death_splash, from
+	# on_creature_died_index, which knows the size it was drawn at)
 
 
 ## Powder Keg's blast (pass 48): KEG_FRAC of the dead creature's max HP to everything within KEG_RADIUS of the body, thrown
@@ -1510,15 +1510,18 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 	camera.shake(0.4)
 	match def.effect_kind:
 		"bank":
-			# the Strongbox: everything in the purse goes to the homestead now, whatever happens to the run
-			var carried := Run.run_gold
-			if carried > 0:
-				Save.add_gold(carried)
-				Run.run_gold = 0
-				Run.gold_changed.emit(0)
-				Run.banked_gold += carried
+			# the Strongbox: everything in the purse goes to the homestead now, whatever happens to the run (a death while
+			# its coins are still flying keeps it too)
+			var carried := bank_purse()
+			# and it is seen (pass 58, Garry: "coins flying out of the player and into the chest ... it should take 3
+			# seconds at least. After the coins arrive the chest flies away"): the coins fly from the hero into the box
+			# (StructureManager.deposit, CoinStream), pinging as they drop in, the purse on the HUD counting down as they
+			# leave him; the box lifts off once the last is in. With nothing carried it flies off at once, as before
+			var streamed: bool = structures != null and structures.deposit(at, carried) > 0.0
+			if not streamed:
+				Run.gold_changed.emit(Run.run_gold)
+				Audio.play("pk_coin", player.global_position)
 			hud.toast("BANKED %d GOLD" % carried, Color(1.0, 0.85, 0.35))
-			Audio.play("pk_coin", player.global_position)
 		"vacuum_all":
 			pickups.vacuum_all(true)
 			hud.banner(def.display_name.to_upper(), def.color)
@@ -1575,6 +1578,17 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 			_roll_dice(def, at)
 		_:
 			hud.toast(def.display_name, def.color)
+
+
+## The Strongbox's purse (use_structure's "bank"; out of it in pass 58, so the deposit's coins can show it leaving): every
+## coin the hero carries goes to the save at once and counts as banked. Returns how many.
+func bank_purse() -> int:
+	var carried := Run.run_gold
+	if carried > 0:
+		Save.add_gold(carried)
+		Run.run_gold = 0
+		Run.banked_gold += carried
+	return carried
 
 
 ## The Teleport (pass 35): the hero comes out far across the map, where the crowd is thinnest of forty spots tried at
@@ -2585,8 +2599,10 @@ func _scorch(at: Vector3, r: float) -> void:
 	telegraphs.scorch(at, r, Color(0.1, 0.06, 0.05, 0.6), Color(0.22, 0.14, 0.1, 0.0), 1.5, 3.0)
 
 
-## Every creature death, by index (EnemyManager): the rockets of a dead rocketeer go with it, and so does the rope.
+## Every creature death, by index (EnemyManager): its splash (pass 58), the rockets of a dead rocketeer go with it, and
+## so does the rope.
 func on_creature_died_index(i: int) -> void:
+	_death_splash(i)
 	projectiles.kill_rockets_of(i)
 	if tether_i == i:
 		tether_end()
@@ -2601,6 +2617,25 @@ func on_creature_died_index(i: int) -> void:
 		hud.toast("BOUNTY +%d" % gold, Color(1.0, 0.82, 0.35))
 		Audio.play("pk_coin", at)
 	_count_bounty()
+
+
+## The death splash (pass 58, Garry: "Add a red splash VFX effect ... to enemies when they die ... This way it will make
+## it easier to tell when an enemy died ... The colour ... is different for different enemies"): Fx.blood in the
+## creature's own `blood` (EnemyDef.blood, its JSON, the Level Editor's Creatures tab) at its body, sized by the size it
+## was drawn at (variance, an elite modifier, a split, a row's size range; never the def's JSON `size`): EnemyManager's
+## size[i], the very value its `died_size` carries while enemy_died is out (this hook runs just after, when died_size is
+## back to 0, and has the index), bigger for an Elite, an elite-modded creature and a boss; a creature that dies in the air
+## (thrown, lifted, bounced) splashes up there. One buried out of sight (hidden) splashes nothing.
+func _death_splash(i: int) -> void:
+	if fx == null or enemies == null or i < 0 or i >= enemies.size.size() or enemies.hidden[i] == 1:
+		return
+	var def: EnemyDef = enemies.types[enemies.type_idx[i]]["def"]
+	var big := 0
+	if def.archetype == "boss" or i == enemies.boss_index:
+		big = 2
+	elif def.archetype == "elite" or enemies.elite_idx[i] >= 0:
+		big = 1
+	fx.blood(enemies.pos[i] + Vector3(0.0, enemies.lift_h[i], 0.0), def.blood, enemies.size[i], big)
 
 
 # ---------------------------------------------------------------- the eruption's mounds

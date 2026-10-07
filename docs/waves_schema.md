@@ -76,7 +76,9 @@ round the hero, ignores the cap), `"pack"` or `"scatter"` (through the spawn poi
 the rows' and waves' `"ring"` is 11.7 m.
 
 ## Stat overrides (`stats`, **new**)
-Every key optional; a missing key keeps the creature's own number. Multipliers (`*_mult`) stack on the base.
+Every key optional; a missing key keeps the creature's own number. Multipliers (`*_mult`) stack on the base. Pass 58:
+`size` may also be a range `[min, max]` and `tint` a colour range, and a row that sets `hp` (or `damage`) takes no time
+curve on it (see "Pass 58" below).
 ```json
 {"hp": 10, "hp_mult": 1.5, "damage": 3, "damage_mult": 1.2, "speed": 1.6, "speed_mult": 1.1,
  "size": 1.2, "radius": 0.5, "damage_reduction": 0.1, "knockback_mult": 1.5,
@@ -100,8 +102,8 @@ Every key optional; a missing key keeps the creature's own number. Multipliers (
 - `pickup_chance_mult` scales the timeline's `pickups.per_kill` for this creature's kills; `pickup_weights` replaces
   the timeline's pickup roster for its kills (ids → weights, missing = not dropped).
 - Implementation: `EnemyDef.with_overrides(stats)` returns a cached copy whose `type_key()` is `id[@variant][#hash]`;
-  `EnemyManager.spawn(def_id, at, elite, scale_mult, hp_mult, variant, overrides)`; `alive_of(id)` and `max_alive`
-  count every type of that id.
+  `EnemyManager.spawn(def_id, at, elite, scale_mult, hp_mult, variant, overrides, src)` (pass 58: `src`, the source's
+  fixed numbers); `alive_of(id)` and `max_alive` count every type of that id.
 
 ## Where the new creatures sit (pass 53)
 `skeleton` and `skeleton_knight` from 0:00 at 9 : 3 (three skeletons to a knight); `lesser_scorpion` the second
@@ -143,7 +145,8 @@ creature met (1:00); `fire_ant` from 5:00 as 0.6 of a mummy (36 HP, bite 8, size
 - `hp_curve` and `damage_curve`: `{"mode": "points" | "formula", "points": [[t, mult], ...], "formula": {"kind": "linear" |
   "power" | "exponential", "a": 0.0977, "b": 1.25}}`. The multiplier on creature HP (replaces `hp_growth` / `hp_power` when
   present; absent = the old pair) and on creature damage (a new factor, absent = 1; `EnemyManager.damage_time_mult`) over
-  the run clock. `points` is linear between the points, flat outside; `formula` with `m` = minutes: linear `1 + a*m`, power
+  the run clock. Pass 58: each roster row, wave and event reads them once, at its own start, and keeps that value for
+  every creature it brings (see "Pass 58"). `points` is linear between the points, flat outside; `formula` with `m` = minutes: linear `1 + a*m`, power
   `(1 + a*m)^b` (today's hp_growth / hp_power form), exponential `(1 + a)^m`. Both blocks may be present and `mode` picks;
   without a `mode` the points are used when there are any, else the formula; `a` defaults to 0.0977 and `b` to 1.25; an
   unknown mode or kind is 1 (`WaveTimeline.curve_mult`). Red Canyon: `hp_curve` the power formula 0.0977 / 1.25 (its old
@@ -173,7 +176,9 @@ creature met (1:00); `fire_ant` from 5:00 as 0.6 of a mummy (36 HP, bite 8, size
   option in the Arena), but about 30% further from the Player"): the creatures of one spawn stand evenly round the hero on
   a circle of `WaveDirector.RING_RADIUS` = the arena's ring (9 m) x 1.3 = **11.7 m**, from a random start angle, each slid
   up to 0.2 of the even spacing round the circle and up to 0.6 m in or out (`RING_SLIDE`, `RING_JITTER`), so a full ring
-  reads as a thick band; each point is clamped to the arena like every spawn point. A roster row's spawn is its pack, cut
+  reads as a thick band; each point is clamped to the arena like every spawn point (pass 58: a ring that would cross the
+  wall spreads over the arc of it inside the arena instead, and steps off rocks and the lake; see "Pass 58"). A roster
+  row's spawn is its pack, cut
   as always to what one burst holds (`burst_max` load units over the creature's `cap_share`: at most 24 skeletons on Red
   Canyon) and to the cap's room; a wave's is its whole `burst`, cut by `count`, the hard cap and, with `respect_cap`, the
   cap's free room. Counted like `"pack"` everywhere (the cap rules are unchanged). In the portal wave a ring row is still a
@@ -188,3 +193,120 @@ creature met (1:00); `fire_ant` from 5:00 as 0.6 of a mummy (36 HP, bite 8, size
   arena) within 45 degrees either side of straight up the screen (the side `spawn_sides` calls top; the follow camera's yaw
   turns it), whatever `spawn_sides` says, mode sides or facing: a loose band across the top. Packs sharing a top point
   were tried too and read less as "they come from above". In the portal wave an in-front row still comes from the top.
+
+## Pass 58: a row's numbers fixed from its start, size ranges, colour ranges
+
+### A row's HP and ATK are fixed from its start
+Garry: "While I want the HP of enemies to increase over time, I don't actually want it to change for the same 'wave' of
+enemies on the fly, because then it feels weird for the Player that shooting the same enemy with the same weapon suddenly
+doesn't kill it even though it was killing them just a 20 seconds ago."
+- Every spawn source has a start second `t0` on the run clock: a roster row its `t` (0 when it has none); a wave its `t`
+  (the alternative rolled for this run decides its overrides); an event the second it actually spawns (its `t` +- its
+  rolled `t_jitter`; each `elite_every` firing on its own; an elite held back by `colour_after_kills` when it is let out).
+  Specials and a boss's brood (its `spawn_ring` attack, an `erupt`'s creatures) come on the numbers of the moment they
+  come.
+- **An event joins the row that brings its creature** (the fix round of pass 58: a fire-ant swarm at 9:19 came with 520
+  HP beside the 7:10 fire-ant row's 322-HP ants, the very "shooting the same enemy with the same weapon suddenly doesn't
+  kill it" this rule is for): while a roster row (either channel, open and at a weight above 0 at that moment; the
+  heaviest when several are) or else a wave (inside its window, not spent) brings the same creature in the same look (the
+  same art variant, the creature's own look when none is named), an event of it (a swarm, an elite or `elite_every`, a
+  special, a boss's brood, an Elite boss event that names a regular creature) plays that row's numbers for each half its
+  own `stats` leave alone: HP (`hp`, `hp_mult`) and ATK (`damage`, `damage_mult`), each the row's override and the row's
+  fixed factors (its `hp_time` / `dmg_time` and its hero-level factor). A half the event sets itself is its own, at the
+  moment it fires. An elite drawn from a roster row (an `elite` event that names no creature) comes on that row's
+  numbers. `WaveDirector.event_numbers(id, variant, stats)` -> `{stats, src, joined}`, `open_source_of(id, variant)`.
+- The portal wave brings each row's creatures on that row's own numbers (the fix round: they stand beside the ones the
+  hero was just shooting).
+- The time factors are read once, at `t0`: `hp_time = hp_mult_at(t0)` and `dmg_time = damage_mult_at(t0)`, except that
+  a source whose `stats` set `hp` takes no HP curve (1) and one that sets `damage` no damage curve (Garry: "the
+  multiplier will inform what the HP should be for enemy rows whose stats weren't overridden").
+- The hero-level factors `1 + level_hp_per_level x (L - 1)` and `1 + level_damage_per_level x (L - 1)` use the hero's
+  level `L` at the source's first spawn of the run, and keep it for every later creature of that row or wave.
+- **Endless fixes the rows afresh at each endless wave** (the fix round: Red Canyon's two hell rows have no `until`, so
+  without it stage 3 and the whole of endless kept 14:20's curve and hero level, and only the x1.12 a wave was left of
+  endless's growth): from the last stage's portal on, every row and wave takes `t0` = the later of its own `t` and the
+  start of the endless wave it spawns in (`stage_length x stages + (N - 1) x endless_wave_seconds` for wave N, from 1)
+  and the hero's level at its first creature in that wave. The step comes with the wave's toast (WAVE N), like the stage
+  multiplier's, so nothing changes in the middle of a wave. Before endless, a row with no `until` keeps the numbers of its
+  start for the rest of the run's stages: split a long bar where its creatures should get tougher.
+- **Row HP** = (`stats.hp` if set, else the creature's JSON `hp` x `hp_time`) x `stats.hp_mult` (1 when missing); **row
+  ATK** the same with `damage`, `damage_mult` and `dmg_time`. The Level Editor's stats show these numbers.
+- In game a creature's HP = row HP x the stage multiplier at its spawn (`Run.stage_mult()`: it steps at a new stage and
+  each endless wave, both announced) x `creature_hp_mult` x the row's hero-level factor x what goes on top (the variance
+  special, an elite modifier, a split child's half). Its damage the same with `creature_damage_mult`. Every hit it deals
+  later (its bite, its shots, its attack script, its death burst, a kamikaze blast, a rocket) uses those same factors of
+  its own (`EnemyManager.stage_of`, `lvd_of`, `host_of`), never the live curve; an attack script's own `damage` takes
+  `dmg_time` too (1 for a row that sets `damage`).
+- Bosses and the Elite-archetype creatures (the Dune Scorpion, the Sun Prophet, the Stone Golem) keep their own rules, as
+  before (no time curve on their HP). A creature spawned by hand (the arena's ENEMY tab, a test, a tool) plays the live
+  numbers as before. `EnemyManager.hostile_mult()` stays for what no creature owns (the Brander's ring of fire).
+- Implementation: `WaveDirector.fixed_numbers(t0, stats)` -> `{t0, hp_time, dmg_time, lv_hp, lv_dmg}`;
+  `source_for(key, t0, stats)` makes a roster row's ("row:<id>#<index in the roster>", "row#<index>" for a row without
+  an id: two rows sharing an id keep their own) or a wave's ("wave#<index>"; in endless "@w<N>" on the end) at its first
+  spawn and keeps it (`source_state(key)` reads it); `EnemyManager.spawn(..., src)` plays it (`fixed`, `f_stage`,
+  `f_hpt`, `f_lvh`, `f_dmt`, `f_lvd` per creature; `src_of(i)` hands a split child its parent's, with the stage at the
+  parent's spawn and, the fix round, its rolled size `f_bsz` and hue `f_tu`, so a child is never bigger than its parent
+  nor another colour; `brood_numbers(id)` is a brood's, the director's `event_numbers`, else `now_src()`). `spawn_pack`,
+  `spawn_ring` and `spawn_boss` pass it on.
+- What it does to Red Canyon as Garry left it: the rows without `stats.hp` keep the HP of their first second all through
+  (the red goblins 13 HP at level 1 from 0:00 to 2:02, where they had grown to 16.3), and the rows that set `hp` lose the
+  curve they had on top of it (fire ants at 7:10 at level 1: 305 HP before, 157 now; skeletons at 3:12: 36.5 -> 26). ATK
+  is unchanged there (the damage curve is flat) except for the hero's level being the row's first. The hero levels along
+  a row, and pass 57 gave each later creature the higher level, so a row's last creature also loses
+  `0.05 / (1 + 0.05 x (L - 1))` of its HP for every level the hero gained during the row (5 % at level 1, 3.4 % at 10,
+  2.6 % at 20, 2 % at 30), and `0.03 / (1 + 0.03 x (L - 1))` of its damage.
+
+### Size ranges
+- `stats.size` (a roster row, a wave or its alt, an event): a number as before (the creature's size; the variance's
+  size jitter on top; the radius unchanged), or `[min, max]` (Garry: "editable as a kind of a range (between 3-5 for
+  example)"): every creature rolls its own size uniformly in the range (two numbers in either order, each at least
+  0.05; `size_mult` scales both ends), in place of the variance's size jitter; the variance special's size factor
+  lifts it at most to the range's top (the fix round, below) and an elite modifier's scale still multiplies on top.
+  Its collision radius follows: the JSON radius (x `radius_mult`) x rolled size / the JSON size, unless the row sets
+  `radius`. The shadow and the badge follow the rolled size. One EnemyManager type per row, whatever each creature
+  rolled (`EnemyDef.size_range`, `size_ref`, `radius_follows`; the copy's `size` stays the painting's JSON size).
+- The fix round: a variance special of a size-range row stays inside the range: its size factor (x1.5 on the skeleton)
+  lifts the rolled size towards the top and is cut there, `min(rolled x factor, max)`, its HP, damage, XP and colour
+  still the special's (a [3, 5] row's specials had stood up to 7.5). An elite modifier's scale still goes on top (an
+  elite-modded creature is bigger by its kind: x1.4 to x1.6). A split child takes its parent's roll (x the split's 0.6).
+- Bodies that wide outgrow the crowd grid's 2.5 m cells: since the fix round a creature wider than half a cell scans as
+  many cells as its reach needs and a narrow one also feels the wide ones past its 3 x 3 cells (while there are no more
+  than 16 of them), so two giants no longer stand inside each other (`EnemyManager.BIG_R`, `_big`, `_grid_max_r`).
+
+### Colour ranges
+- `stats.tint`: `{"hue": [h0, h1], "sat": 0.85, "val": 1.0, "amount": 0.5}` (Garry: "a version that kind of colours all
+  the enemies that come out of that wave"): hue in degrees 0..360 (a single number = that hue), `sat`, `val`, `amount`
+  0..1 with those defaults. Each creature rolls `u` in 0..1 and takes the hue `fmod(h0 + u x span, 360)` with `span = h1 -
+  h0`, plus 360 when that is negative (so `[340, 20]` runs through red). Its tint is `Color.from_hsv(h / 360, sat, val)` at
+  strength `amount`, drawn as `mix(rgb, tint, amount x 0.65)` (EnemyManager.vtint, the billboard's mix). It is on from the
+  row's first creature (it is the row's design: `colour_after_kills` holds only the random variance palette and the
+  specials) and replaces the variance palette's tint; an elite modifier's colour and the burn, poison, freeze, stun and
+  status tints still win (`EnemyManager.tint_of`).
+- A variance special of a colour-range row keeps the row's colour instead of its own tint (in its wine it read as having
+  "lost the colour" of its wave): a darker, stronger shade of the hue that creature rolled,
+  `Color.from_hsv(h / 360, min(sat + 0.15, 1), val x 0.7)` at strength `min(max(amount, the special's tint_strength) +
+  0.15, 1)` (`EnemyDef.tint_special_color`, SPECIAL_SAT_ADD / SPECIAL_VAL_MULT / SPECIAL_STRENGTH_ADD), and its size
+  factor as before. Tuned by eye in the arena: value x 0.55 at the plain strength came out muddy on green skeletons and
+  maroon, not blue, on red goblins in a blue row. A row without a tint keeps the special's own tint, exactly as before.
+
+### Spawn points by the wall (the review of pass 57)
+- A hero standing by the arena's wall had the "ring" pattern's outer part clamped onto the wall right beside him (a
+  105-ring 64 m out: 7 within 2 m) and the "in_front" points at the north wall the same (47% within 6 m). Now a ring
+  spreads all its creatures evenly over the arc of it inside the arena (`EnemyManager.ring_arc`, `ring_spots`), every
+  spot a ring's width from him; the swarm's 16 m ring, the elite format's 12 m ring and a boss's brood ring do the same
+  round their centre. A 19-24 m spawn point (every side, facing, in_front, the Elite bosses, the cull) and the portal
+  wave's 15-20 m point turn round the least way that keeps them inside the arena at the same distance
+  (`EnemyManager.point_inside`) instead of being clamped onto the wall. Counts are kept.
+- Ring spots (on the screen at 11.7 m) step off a rock's painted foot (its collider / 0.62 + 0.5 m) and out of the lake
+  (`EnemyManager.spawn_clear`): up to 0.4 of the spacing round the ring and up to 3 m out or 2.5 m in, the smallest move
+  first; in_front points the same by up to 12 degrees round and 1.5 m in or out. When nothing near is clear the spot stays
+  (the steering walks a creature out of a rock, and one in the lake wades).
+- The lake (the fix round: by the oasis 11 to 14 % of the ring and in_front spots stayed in the water, and a 105-ring
+  there cost 8 to 10 ms on the PC): it is cut out of a ring like the wall, by the circle's arc inside the lake a body and
+  the jitter wider than the water (`EnemyManager.ring_in_disc`, the map's `lake_center()` / `lake_radius()` through
+  `lake_of`), and the ring's creatures spread over the dry arcs that are left, each its share by length
+  (`_dry_arcs`, `_spots_on`); the rocks a ring must keep off are gathered once a ring (`_clear_ctx`). An in_front point in
+  the lake turns past the lake's whole width at its distance, the nearer way first (`EnemyManager.lake_turns`), then
+  steps off rocks as before. Measured on Red Canyon (seed 4242, lake 6.76 m): no spot in the lake or on a rock out of
+  10,500 (105-rings round heroes 3 m from the shore), 3,000 (the swarm's ring) and 2,100 (in_front with the lake ahead);
+  a 105-ring there 0.17 ms on average, 0.54 ms at worst.

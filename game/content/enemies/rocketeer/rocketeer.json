@@ -10,6 +10,7 @@
   "knockback": 4.81,
   "radius": 0.9,
   "size": 3.0,
+  "blood": "#C0101C",
   "pack_size": 1,
   "max_alive": 1,
   "artillery": {

@@ -34,6 +34,7 @@ fps = {
 }
 badge = "none"
 head = 0.981
+blood = Color(0.9098039, 0.1254902, 0.17254902, 1)
 can_be_elite = false
 sfx = {
 "die": "st_barrel_break",

@@ -37,6 +37,7 @@ fps = {
 }
 knockback = 3.4
 head = 1.0
+blood = Color(0.23529412, 0.5254902, 0.9411765, 1)
 retired = true
 death_burst = {
 "damage": 18.0,

@@ -10,6 +10,7 @@
   "knockback": 6.36,
   "radius": 1.1,
   "size": 3.4,
+  "blood": "#C21018",
   "pack_size": 1,
   "max_alive": 3,
   "can_be_elite": false,

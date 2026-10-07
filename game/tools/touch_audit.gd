@@ -46,6 +46,9 @@
 ## flip Settings.analytics and back; a tool run never sends and never touches the queue file, so the flip is safe) and
 ## dev_analytics (run with dev: the developer menu's PostHog readout is there and a real tap on Send now reaches
 ## Analytics.send_now; from a tool it sends nothing and says why).
+## Pass 58: card_choices (run with cards) lays out one held card between two new ones for banish by real fingers: BANISH
+## turns banish mode on and every control in it answers (cards_banish), the held card refuses, CANCEL turns it off, a new
+## card is struck and the table answers again after (cards_after_banish), a table of upgrades only locks BANISH.
 extends SceneTree
 
 const MAX_PER_KIND := 40     # cards of one screen tapped at most (a long list: a sample, spread over it)
@@ -1327,7 +1330,7 @@ func _arena_items(panel) -> void:
 
 ## The level-up's choices by real fingers (pass 47: two skips and one banish a stage): SKIP with none left stays open and
 ## says so; BANISH then a card strikes that card, puts another in its place and spends the banish; SKIP with one left
-## closes the screen on nothing and spends it.
+## closes the screen on nothing and spends it. Pass 58: the banish states on a table laid out for them (_banish_states).
 func _card_choices(g) -> void:
 	var cards = g.cards
 	var run = root.get_node("Run")
@@ -1342,20 +1345,7 @@ func _card_choices(g) -> void:
 	_count("card_choices", stayed)
 	if not stayed:
 		_fail("card_choices", "SKIP ×0", "with no skip left the tap did not stay and say so")
-	run.banishes_left = 1
-	cards._refresh_buttons()
-	await _frames(2)
-	await _tap(cards._banish_btn.get_global_rect().get_center())
-	await _wait(0.3)
-	if cards._cards.is_empty():
-		return
-	var id: String = str(cards._offer[0]["id"])
-	await _tap((cards._cards[0] as Control).get_global_rect().get_center())
-	await _wait(0.4)
-	var struck: bool = run.banished.has(id) and run.banishes_left == 0 and cards.visible
-	_count("card_choices", struck)
-	if not struck:
-		_fail("card_choices", "BANISH, then a card", "the card was not struck from the run (banished %s, left %d)" % [str(run.banished.has(id)), run.banishes_left])
+	await _banish_states(g)
 	run.skips_left = 1
 	cards._refresh_buttons()
 	await _frames(2)
@@ -1365,6 +1355,97 @@ func _card_choices(g) -> void:
 	_count("card_choices", skipped)
 	if not skipped:
 		_fail("card_choices", "SKIP ×1", "the tap did not close the cards on a skip")
+
+
+## Banish by real fingers (pass 58, Garry: "Banish option should not allow Banishing items that Player already has"), on
+## a table of one held card (a level of a weapon the hero has) between two new passive items: BANISH turns banish mode
+## on and every control in it answers (cards_banish; a held card is locked but still takes the tap, to say why); a
+## finger on the held card is refused (nothing spent, nothing struck, the card and the mode stay); BANISH again (CANCEL)
+## turns it off; BANISH and a finger on a new card strike it (the banish spent, another card in its place, the mode off),
+## and once the struck card's ghost has gone the table answers again (cards_after_banish); a table of upgrades only locks
+## BANISH and its tap says why. The "banish" hint the first banish mode marks is put back as it was.
+func _banish_states(g) -> void:
+	var cards = g.cards
+	var run = root.get_node("Run")
+	var save = root.get_node("Save")
+	var had_hint: bool = save.hint_seen("banish")
+	var table := _banish_table(run, root.get_node("Registry"))
+	if table.size() < 3:
+		_fail("card_choices", "the banish table", "no weapon to level and two new passive items to lay out")
+		return
+	run.banishes_left = 1
+	cards.show_offer(table, "LEVEL 9!", false)
+	await _wait(1.0)
+	await _tap(cards._banish_btn.get_global_rect().get_center())
+	await _wait(0.4)
+	var on: bool = cards.banish_mode()
+	_count("card_choices", on)
+	if not on:
+		_fail("card_choices", "BANISH", "the tap did not turn banish mode on")
+		return
+	await _audit("cards_banish", cards)
+	# the held card: refused
+	var before: Array = run.banished.duplicate()
+	var held_id := str(table[1]["id"])
+	await _tap((cards._cards[1] as Control).get_global_rect().get_center())
+	await _wait(0.4)
+	var refused: bool = cards.banish_mode() and run.banished == before and run.banishes_left == 1 and str(cards._offer[1]["id"]) == held_id
+	_count("card_choices", refused)
+	if not refused:
+		_fail("card_choices", "a held card in banish mode", "it was not refused (banished %s, left %d)" % [str(run.banished), run.banishes_left])
+	# CANCEL
+	await _tap(cards._banish_btn.get_global_rect().get_center())
+	await _wait(0.3)
+	var off: bool = not cards.banish_mode() and run.banishes_left == 1
+	_count("card_choices", off)
+	if not off:
+		_fail("card_choices", "CANCEL", "the tap did not take banish mode back")
+	# BANISH, then a new card: struck
+	await _tap(cards._banish_btn.get_global_rect().get_center())
+	await _wait(0.3)
+	var id := str(cards._offer[0]["id"])
+	await _tap((cards._cards[0] as Control).get_global_rect().get_center())
+	await _wait(0.4)
+	var struck: bool = run.banished.has(id) and run.banishes_left == 0 and cards.visible and not cards.banish_mode() \
+		and str(cards._offer[0]["id"]) != id
+	_count("card_choices", struck)
+	if not struck:
+		_fail("card_choices", "BANISH, then a new card", "the card was not struck from the run (banished %s, left %d)" % [str(run.banished.has(id)), run.banishes_left])
+	# the ghost gone, the replacement dropped in: the table answers again
+	await _wait(1.0)
+	await _audit("cards_after_banish", cards)
+	# upgrades only: BANISH locked, its tap says why, nothing changes
+	run.banishes_left = 1
+	cards.show_offer([table[1]], "LEVEL 9!", false)
+	await _wait(1.0)
+	await _tap(cards._banish_btn.get_global_rect().get_center())
+	await _wait(0.3)
+	var locked: bool = cards._banish_btn.locked and not cards.banish_mode() and run.banishes_left == 1 \
+		and str(cards.header.line.text).begins_with("Nothing here can be banished")
+	_count("card_choices", locked)
+	if not locked:
+		_fail("card_choices", "BANISH on upgrades only", "it did not stay locked and say why")
+	if not had_hint:
+		(save.data["hints_seen"] as Array).erase("banish")
+
+
+## One held card (a level of the run's first weapon that can still grow) between two new passive items the run may find.
+func _banish_table(run, reg) -> Array:
+	var news: Array = []
+	for p in reg.unlocked_passives():
+		if p.is_line() or run.passives.has(p.id) or run.is_favourite(p) or run.banished.has(p.id):
+			continue
+		news.append({"type": "passive", "id": p.id, "def": p, "level_from": 0, "level_to": 1, "is_new": true, "weight": 1.0})
+		if news.size() >= 2:
+			break
+	var held = null
+	for w in run.weapons:
+		if w.level < w.def.max_level and not w.def.is_evolution:
+			held = {"type": "weapon", "id": w.def.id, "def": w.def, "level_from": w.level, "level_to": w.level + 1, "is_new": false, "weight": 1.0}
+			break
+	if held == null or news.size() < 2:
+		return []
+	return [news[0], held, news[1]]
 
 
 ## The mutation offer (pass 47): its buttons answer, and a real SKIP spends one of the stage's skips and closes it.
@@ -1535,12 +1616,13 @@ func _pause_options(g) -> void:
 
 ## The chest's choices by real fingers (pass 47): BANISH spends the stage's banish, spins the reel again to a new roll and
 ## leaves the chest open (the new landing is audited as chest_respin); SKIP with none left stays and says so; SKIP with
-## one closes the chest on nothing.
+## one closes the chest on nothing. Pass 58: a roll that cannot be banished (Run.banish_refusal: gold, an evolution, a
+## level of something the hero has, a path mutation of a weapon he holds) keeps BANISH locked.
 func _chest_choices(g) -> void:
 	var cs = g.chest_screen
 	var run = root.get_node("Run")
 	if not cs.visible or not cs.can_banish(cs.result()):
-		# gold or an evolution: BANISH stays locked, a tap spins nothing
+		# a roll that cannot be banished: BANISH stays locked, a tap spins nothing
 		if cs.visible:
 			var was: int = cs.respins
 			await _tap(cs._banish_btn.get_global_rect().get_center())
@@ -1548,7 +1630,8 @@ func _chest_choices(g) -> void:
 			var held: bool = cs.respins == was and cs.visible
 			_count("chest_choices", held)
 			if not held:
-				_fail("chest_choices", "BANISH (locked)", "a tap on gold or an evolution spun the reel")
+				_fail("chest_choices", "BANISH (locked)", "a tap on a roll that cannot be banished spun the reel (%s)" \
+					% str(cs.banish_refusal(cs.result())))
 		return
 	run.banishes_left = 1
 	cs._refresh_buttons()

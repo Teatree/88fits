@@ -35,7 +35,9 @@ const EVOLVE_WEIGHT := 3.0
 ## free, at most one an offer), lines and passive items (pass 47: a new line only while a line slot is free, a passive
 ## item always, there is no cap on them; a maxed line offers its evolution instead) and the hero's perks (at most one in
 ## five offers). Mutations have their own table at the stage's path slots (path_offer). A weapon or passive already held
-## is levelled whatever its unlock quest (Ironwood lands with the Spear, the pike, which may still be locked).
+## is levelled whatever its unlock quest (Ironwood lands with the Spear, the pike, which may still be locked). A base
+## weapon whose evolution is held is never offered (pass 58 review: it came back as NEW, so banishable, and taken it was
+## a second copy that already carried the whole path, a second evolution one chest later).
 static func level_up_offer(count: int = 3, exclude: Array = []) -> Array:
 	var cands: Array = []
 	var weapon_slot_free := Run.weapons.size() < Run.weapon_cap()
@@ -45,6 +47,9 @@ static func level_up_offer(count: int = 3, exclude: Array = []) -> Array:
 			continue
 		var inst := Run.weapon_instance(w.id)
 		if inst == null:
+			# its evolution held: the family is the hero's already
+			if Run.family_instance(w.id) != null:
+				continue
 			if weapon_slot_free:
 				cands.append(_favourite(_card("weapon", w, 0, 1, weight_of(w, 0))))
 		elif inst.level < w.max_level and not inst.def.is_evolution:
@@ -123,6 +128,13 @@ static func offer_passives() -> Array:
 		if fav and not fav.hidden and not fav.is_evolved() and not out.has(fav):
 			out.append(fav)
 	return out
+
+
+## The cards of an offer that may be banished (pass 58, Garry: "Banish option should not allow Banishing items that
+## Player already has"): never an upgrade of something the hero has, never an evolution of it (Run.banish_refusal). The
+## level-up's BANISH locks when none may.
+static func banishable(offer: Array) -> Array:
+	return offer.filter(func(c) -> bool: return c is Dictionary and Run.can_banish_card(c))
 
 
 ## One card drawn from `cands` in proportion to their "weight" ({} when there is none): a chest's roll (Run.chest_roll).

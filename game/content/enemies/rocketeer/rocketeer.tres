@@ -40,6 +40,7 @@ knockback = 4.81
 max_alive = 1
 badge = "gear"
 head = 0.969
+blood = Color(0.7529412, 0.0627451, 0.10980392, 1)
 can_be_elite = false
 can_be_grabbed = false
 artillery = {

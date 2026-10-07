@@ -206,13 +206,20 @@ def creature_rows():
         return "%d:%02d" % (int(t) // 60, int(t) % 60)
 
     def numbers(d):
-        parts = ["%g hp" % d.get("hp", 0)]
+        parts = []
+        # pass 58: the colour of its death splash (the creature JSON's "blood"), a dot before the numbers
+        bl = str(d.get("blood", ""))
+        if bl.startswith("#") and len(bl) == 7:
+            parts.append('<span class="blood" style="background:%s" title="blood %s"></span>' % (bl, bl.upper()))
+        parts.append("%g hp" % d.get("hp", 0))
         if d.get("armor"):
             parts.append("%g armor" % d["armor"])
         parts.append("%g m/s" % d.get("speed", 0))
         parts.append("%g dmg" % d.get("damage", 0))
         ps = int(d.get("pack_size", 1))
         parts.append({1: "alone", 2: "pairs"}.get(ps, "packs of %d" % ps))
+        if parts and parts[0].startswith("<span"):
+            return parts[0] + " · ".join(parts[1:])
         return " · ".join(parts)
 
     rows = []

@@ -6,7 +6,10 @@
 // double-click to add or remove one), the rows reorder from a gutter at the left, the Share band stacks each creature's
 // share of the draw, and hovering a bar, a block, a stripe, a flag or the specials band shows a card with the creature's
 // HP and ATK at that second. Pass 57: the "Spawned so far" lane under the cap (model.js spawnEstimate: every creature a run
-// spawns by each second, with its hover card and the kill rate / boss fight / portal wait boxes in its label).
+// spawns by each second, with its hover card and the kill rate / boss fight / portal wait boxes in its label). Pass 58: a
+// row's numbers are fixed from its start (the cards say so), the Actual HP x / ATK x lanes above the curves (model.js
+// actualAt, on the curve's scale while the rows fit under it), a size range and a colour swatch on the bars, and a pressed
+// bar is selected at once so its inspector follows the drag (Inspector.live; a box still being typed in commits first).
 'use strict';
 
 const Timeline = (() => {
@@ -16,6 +19,11 @@ const Timeline = (() => {
   const ALT_COLORS = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9', '#e66767', '#4cb5c3'];
   const HANDLE = 8;
   const CAP_HELP = 'The points are the control points of the live cap curve (how many creatures may be alive): linear between them, flat before the first and after the last. They are not spawn events: the director spawns up to the cap on its own interval.';
+  // pass 58: the Actual HP x / ATK x lanes above their curves
+  const ACT_HELP = {
+    hp: 'The HP multiple the creatures really come with (pass 58): each roster row and wave keeps the HP curve of its own start (or its HP override) for its whole life. Solid: the average over what spawns round each second, weighted by how many each row spawns; dashed: the largest; dotted: the intended HP × curve. The HP × lane\'s scale while the rows fit under it; higher multiples give this lane its own (up to 1.5 times as tall) and a ▲ marks anything past the top. Hover for the rows behind the numbers; click for the curve.',
+    dmg: 'The ATK multiple the creatures really come with (pass 58): each roster row and wave keeps the damage curve of its own start (or its damage override). Solid: the spawn-weighted average round each second; dashed: the largest; dotted: the intended ATK × curve. Hover for the rows behind the numbers.',
+  };
   // pass 57: the "Spawned so far" lane under the cap
   const SPAWN_H = 132;
   const SPAWN_HELP = 'Every creature a run has spawned by each second, counted from 0:00: the regular crowd (blue), the coloured specials among it (orange), the elite-modified (purple) and the Elites, specials and bosses (gold, marked where they arrive). An estimate: a run only spawns what the hero kills, so it assumes the hero kills a share of the living crowd each second (from your own runs; the boxes change it) while the director refills to the cap under every rule of the timeline. Hover for the numbers.';
@@ -39,8 +47,10 @@ const Timeline = (() => {
       ['ruler', 'Time', null, 'ruler', ''],
       ['cap', 'Cap', null, '', CAP_HELP],
       ['spawned', 'Spawned so far', null, '', SPAWN_HELP],
-      ['hp', 'HP ×', null, '', 'Creature health over the run clock (hp_curve): click to edit the curve, drag its points, double-click to add or remove one.'],
-      ['dmg', 'ATK ×', null, '', 'Creature damage over the run clock (damage_curve): click to edit, drag its points, double-click to add or remove one.'],
+      ['hp_act', 'Actual HP ×', null, '', ACT_HELP.hp],
+      ['hp', 'HP ×', null, '', 'Creature health over the run clock (hp_curve): click to edit the curve, drag its points, double-click to add or remove one. Since pass 58 a row reads it once, at its start.'],
+      ['dmg_act', 'Actual ATK ×', null, '', ACT_HELP.dmg],
+      ['dmg', 'ATK ×', null, '', 'Creature damage over the run clock (damage_curve): click to edit, drag its points, double-click to add or remove one. Since pass 58 a row reads it once, at its start.'],
       ['roster', 'Roster', { text: '+ Row', title: 'Add a roster row at the view\'s centre', onclick: () => App.newRow(null, viewCenter()) }, '', ''],
       ['share', 'Share', null, '', 'Each creature\'s share of the draw over time, stacked, normalised per channel; click for the table.'],
       ['waves', 'Waves', { text: '+ Wave', title: 'Add a wave at the view\'s centre', onclick: () => App.newWave(null, viewCenter()) }, '', ''],
@@ -60,6 +70,8 @@ const Timeline = (() => {
       label.addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON' || e.target.closest('.gutter')) return;
         if (['cap', 'hp', 'dmg', 'share', 'specials', 'paths'].includes(name)) App.select({ kind: name });
+        // an Actual lane opens its curve's inspector, which compares the two (pass 58)
+        if (name === 'hp_act' || name === 'dmg_act') App.select({ kind: name === 'hp_act' ? 'hp' : 'dmg' });
       });
       content.appendChild(row);
       lanes[name] = { row, label, svg: s };
@@ -181,8 +193,13 @@ const Timeline = (() => {
     for (const name of Object.keys(lanes)) lanes[name].svg.setAttribute('width', w);
     renderRuler(w);
     renderCap(w);
-    renderSpawned(w);
+    // the estimate once a render: the Spawned so far lane and the Actual lanes' weights (pass 58)
+    const res = App.spawned(!!drag);
+    lastActual = App.actual(res);
+    renderSpawned(w, res);
+    renderActual(w, 'hp_act', true);
     renderCurve(w, 'hp', 'hp_curve');
+    renderActual(w, 'dmg_act', false);
     renderCurve(w, 'dmg', 'damage_curve');
     renderRoster(w);
     renderShare(w);
@@ -192,6 +209,8 @@ const Timeline = (() => {
     renderPaths(w);
     const selKey = App.selKey();
     for (const name of ['cap', 'hp', 'dmg', 'share', 'specials', 'paths']) lanes[name].row.classList.toggle('selected', selKey === name);
+    lanes.hp_act.row.classList.toggle('selected', selKey === 'hp');
+    lanes.dmg_act.row.classList.toggle('selected', selKey === 'dmg');
     updateZoomLabel();
   }
 
@@ -414,12 +433,12 @@ const Timeline = (() => {
    *  elite-modified, the Elites + specials + bosses), the total as a line, a glyph where each Elite, elite modifier,
    *  special and boss arrives, a step at each boss fight (the clock stands still through it) and the second colour
    *  comes in. Hover anywhere for the numbers. */
-  function renderSpawned(w) {
+  function renderSpawned(w, given) {
     const s = clear(lanes.spawned.svg);
     setHeight('spawned', SPAWN_H);
     stageShade(s, SPAWN_H);
     syncSpawnControls();
-    const res = App.spawned(!!drag);
+    const res = given || App.spawned(!!drag);
     lastSpawn = res;
     const est = res.est;
     const pts = est.points;
@@ -472,7 +491,7 @@ const Timeline = (() => {
       else g.appendChild(svg('use', { href: '#g-' + info.glyph, x: mx - 6, y: my, width: 12, height: 12, fill: info.color, class: 'sp-mark' }));
     }
     const shape = Array.isArray(res.opts.turnover) ? (Array.isArray(res.opts.turnover[0]) ? ', minute by minute' : ', stage by stage') : '';
-    g.appendChild(svg('text', { x: 48, y: 11, class: 'sp-est', text: `estimate · kill rate from ${App.turnoverSource()}${shape}${res.stale ? ' · updating after the drag' : ''}` }));
+    g.appendChild(svg('text', { x: 48, y: 11, class: 'sp-est', text: `estimate · kill rate from ${App.turnoverSource()}${shape}${res.stale ? ' · catching up with the drag' : ''}` }));
     hovers.spawned = (t) => spawnedCard(t);
     s.appendChild(g);
     const SL = App.stageLength();
@@ -546,6 +565,144 @@ const Timeline = (() => {
     return box;
   }
 
+  // ------------------------------------------------------------------ Actual HP x and ATK x (pass 58)
+
+  let lastActual = null;             // {series, est, stale}: what the Actual lanes drew last (their hover cards read it)
+
+  /** The curve lane's y-scale: the curve over the view and its points, plus a margin. Its own (the review of pass 58: a
+   *  scale shared with the Actual lane let one big HP override squash the curve Garry drags into the bottom of its lane). */
+  function curveScale(isHp) {
+    const d = App.tl();
+    const key = isHp ? 'hp_curve' : 'damage_curve';
+    const c = Model.hasCurve(d[key]) ? d[key] : null;
+    const f = (t) => (isHp ? App.hpTimeMult(t) : App.dmgTimeMult(t));
+    const end = App.viewEnd();
+    let maxV = 1.5;
+    for (let k = 0; k <= 120; k++) maxV = Math.max(maxV, f(end * k / 120));
+    for (const p of (c && Array.isArray(c.points) ? c.points : [])) maxV = Math.max(maxV, Number(p[1]) || 0);
+    return maxV * 1.15;
+  }
+
+  /** The Actual lane's y-scale (Garry: "so I would be able to compare how the intended HP multiple looks vs 'Actual'"):
+   *  the curve lane's while the rows' multiples fit under it, so the two compare by eye; higher multiples lift it up to
+   *  Model.ACTUAL_CLAMP times that (Model.actualScale), and anything above is drawn at the top with its number.
+   *  {maxV, own, top: the rows' largest multiple}. */
+  function actualScaleOf(isHp) {
+    const own = curveScale(isHp);
+    let top = 0;
+    if (lastActual) for (const v of (isHp ? lastActual.series.hp.max : lastActual.series.atk.max)) if (v != null && isFinite(v)) top = Math.max(top, v);
+    return { maxV: Model.actualScale(own, top), own, top };
+  }
+
+  /** An Actual lane: the intended curve dotted, the band from the average up to the largest, the largest dashed, the
+   *  average solid; a gap where none of the roster or the waves spawns. A multiple past the lane's top is drawn at the top
+   *  with a ▲ and its number. Hover for the rows behind the numbers. */
+  function renderActual(w, name, isHp) {
+    const s = clear(lanes[name].svg);
+    setHeight(name, CURVE_H);
+    stageShade(s, CURVE_H);
+    const sc = actualScaleOf(isHp);
+    const maxV = sc.maxV;
+    // the lines keep below the legend along the lane's top
+    const top = 16, bottom = CURVE_H - 10;
+    const y = (v) => bottom - (Math.min(Math.max(0, v), maxV) / maxV) * (bottom - top);
+    const gstep = [0.25, 0.5, 1, 2, 5, 10, 20, 50].find((g) => maxV / g <= 4) || 100;
+    for (let v = gstep; v < maxV; v += gstep) {
+      s.appendChild(svg('line', { x1: 0, x2: w, y1: y(v), y2: y(v), class: 'grid' + (Math.abs(v - 1) < 1e-9 ? ' one' : '') }));
+      s.appendChild(svg('text', { x: 4, y: y(v) - 2, class: 'grid-text', text: `×${fmtN(v, 2)}` }));
+    }
+    const kind = isHp ? 'hp' : 'dmg';
+    const g = svg('g', { class: 'actual ' + kind, 'data-hover': name });
+    g.appendChild(svg('rect', { x: 0, y: 0, width: w, height: CURVE_H, class: 'sp-hit' }));
+    const f = (t) => (isHp ? App.hpTimeMult(t) : App.dmgTimeMult(t));
+    const end = App.viewEnd();
+    let line = '';
+    for (let px = 0; px <= x(end); px += 3) line += `${px},${y(f(px * spp))} `;
+    g.appendChild(svg('polyline', { points: line, class: 'act-intended ' + kind }));
+    const ser = lastActual ? lastActual.series : null;
+    let spans = 0, clipped = 0;
+    if (ser) {
+      const avg = isHp ? ser.hp.avg : ser.atk.avg, mx = isHp ? ser.hp.max : ser.atk.max;
+      // runs of seconds where something spawns
+      let run = [];
+      const flush = () => {
+        if (!run.length) return;
+        spans++;
+        const up = run.map((i) => `${x(ser.ts[i])},${y(mx[i])}`);
+        const down = run.map((i) => `${x(ser.ts[i])},${y(avg[i])}`);
+        g.appendChild(svg('polygon', { points: up.concat(down.slice().reverse()).join(' '), class: 'act-band ' + kind }));
+        g.appendChild(svg('polyline', { points: up.join(' '), class: 'act-max ' + kind }));
+        g.appendChild(svg('polyline', { points: down.join(' '), class: 'act-avg ' + kind }));
+        // past the top: a ▲ and the number at the run's highest second
+        let peak = run[0];
+        for (const i of run) if (mx[i] > mx[peak]) peak = i;
+        if (mx[peak] > maxV + 1e-9) {
+          clipped++;
+          const px = Math.min(Math.max(x(ser.ts[peak]), 4), w - 60);
+          // just under the lane's top, haloed over the band
+          g.appendChild(svg('text', { x: px, y: top + 13, class: 'act-clip ' + kind, text: `▲ ×${fmtN(mx[peak], 2)}` }));
+        }
+        run = [];
+      };
+      for (let i = 0; i < ser.ts.length; i++) {
+        if (avg[i] == null || mx[i] == null) flush(); else run.push(i);
+      }
+      flush();
+    }
+    const what = isHp ? 'HP' : 'ATK';
+    const scaleNote = sc.maxV > sc.own + 1e-9 ? ` · its own scale, up to ×${fmtN(sc.maxV, 2)} (the ${what} × lane's top is ×${fmtN(sc.own, 2)})` : '';
+    const clipNote = clipped ? ' · ▲ past the top, with its number' : '';
+    g.appendChild(svg('text', { x: 48, y: 11, class: 'sp-est', text: `solid: the average · dashed: the largest · dotted: the intended ${what} × below${scaleNote}${clipNote}${lastActual && lastActual.stale ? ' · catching up with the drag' : ''}` }));
+    hovers[name] = (t) => actualCard(t, isHp);
+    s.appendChild(g);
+    lanes[name].label.querySelector('.lane-sub').textContent = spans ? 'each row fixed from its start' : 'nothing spawns from the roster or the waves';
+  }
+
+  /** "×1.62" for a multiple, "–" for none. */
+  const fmtX = (v) => (v == null ? '–' : `×${fmtN(v, 2)}`);
+
+  /** The Actual lane's card: the average, the largest and the intended at that second, then every row and wave spawning
+   *  round it (the estimate's window) with its start, its multiple, why (the curve at its start, or its override) and its
+   *  share of those spawns. */
+  function actualCard(t, isHp) {
+    if (!lastActual) return null;
+    const a = App.actualAt(t, lastActual.est);
+    const what = isHp ? 'HP' : 'ATK';
+    const intended = isHp ? App.hpTimeMult(t) : App.dmgTimeMult(t);
+    const agg = isHp ? a.hp : a.atk;
+    const box = el('div', { class: 'act-card' });
+    box.appendChild(el('div', { class: 'hc-head' }, el('b', { text: `Actual ${what} ×` }), el('span', { class: 'hc-time', text: ` ${fmtT(t)} · ${App.stageName(App.stageAt(t))}${lastActual.stale ? ' · catching up with the drag' : ''}` })));
+    box.appendChild(el('div', { class: 'act-big' },
+      el('span', {}, 'average ', el('b', { text: fmtX(agg.avg) })), el('span', {}, 'largest ', el('b', { text: fmtX(agg.max) })),
+      el('span', { class: 'muted' }, 'intended ', el('b', { text: fmtX(intended) }))));
+    if (!a.rows.length) {
+      box.appendChild(el('div', { class: 'hc-line muted', text: `Nothing of the roster or the waves spawns round this second. Swarms, coloured elites and the specials are not counted in this lane: each takes the curves at the second it comes, or the numbers of a row or wave bringing the same creature then. Elite mini-bosses and bosses keep their own rules.` }));
+      return box;
+    }
+    box.appendChild(el('div', { class: 'hc-line muted', text: `What spawns from ${fmtT(Math.max(0, t - a.win / 2))} to ${fmtT(t + a.win / 2)} (the Spawned so far estimate), each row's numbers fixed from its start:` }));
+    const grid = el('div', { class: 'act-grid' });
+    const tl = App.tl();
+    for (const r of a.rows.slice(0, 12)) {
+      const m = isHp ? r.hp : r.atk;
+      const over = isHp ? r.hpOver : r.dmgOver;
+      const src = r.kind === 'roster' ? ((tl.roster || [])[r.i] || {}) : ((tl.waves || [])[r.i] || {});
+      const who = r.kind === 'roster' ? `row ${src.id || r.i + 1}` : `${src.name || src.id || 'wave'}${Array.isArray(src.alts) && src.alts.length > 1 ? ` · alt ${r.k + 1}` : ''}`;
+      const why = r.arch !== 'regular' ? (isHp ? 'an Elite / boss: no curve' : `live curve ${fmtX(App.dmgTimeMult(t))}`)
+        : over ? `its own ${isHp ? 'HP' : 'damage'} (no curve)` : `the curve at ${fmtT(r.t0)}`;
+      grid.appendChild(el('div', { class: 'act-r' + (r.hell ? ' hell' : '') },
+        el('img', { src: App.iconFor(r.id, r.variant), alt: '' }),
+        // in endless a row is fixed afresh at each wave (lane WV's fix round): its own start, then the wave's
+        el('span', { class: 'nm' }, App.creatureName(r.id), el('small', { text: ` ${who} · from ${fmtT(r.start == null ? r.t0 : r.start)}${r.start != null && r.t0 > r.start + 1e-9 ? `, afresh at ${fmtT(r.t0)}` : ''}` })),
+        el('b', { class: 'mx' + (agg.max != null && m != null && Math.abs(m - agg.max) < 1e-9 && a.rows.length > 1 ? ' top' : ''), text: fmtX(m) }),
+        el('span', { class: 'why', text: why }),
+        el('span', { class: 'pc', text: `${Math.round(r.share * 100)}%` })));
+    }
+    box.appendChild(grid);
+    if (a.rows.length > 12) box.appendChild(el('div', { class: 'hc-line muted', text: `… and ${a.rows.length - 12} more` }));
+    box.appendChild(el('div', { class: 'hc-line muted', text: `In the game the stage multiplier, creature_${isHp ? 'hp' : 'damage'}_mult and the hero level come on top of these. Swarms, coloured elites and the specials are not counted here: each takes the curves at the second it comes, or the numbers of a row or wave bringing the same creature then.` }));
+    return box;
+  }
+
   // ------------------------------------------------------------------ HP x and ATK x (pass 54)
 
   /** A curve lane: the multiplier the curve gives over the run clock, its points draggable in "points" mode, the formula
@@ -561,10 +718,8 @@ const Timeline = (() => {
     const f = (t) => (isHp ? App.hpTimeMult(t) : App.dmgTimeMult(t));
     const end = App.viewEnd();
     const pts = c && Array.isArray(c.points) ? c.points : [];
-    let maxV = 1.5;
-    for (let k = 0; k <= 120; k++) maxV = Math.max(maxV, f(end * k / 120));
-    for (const p of pts) maxV = Math.max(maxV, Number(p[1]) || 0);
-    maxV *= 1.15;
+    // its own scale (the Actual lane above shares it while the rows' multiples fit under it, pass 58)
+    const maxV = curveScale(isHp);
     const top = 8, bottom = CURVE_H - 10;
     const y = (v) => bottom - (Math.max(0, v) / maxV) * (bottom - top);
     // at most four grid lines, on round multipliers
@@ -690,6 +845,11 @@ const Timeline = (() => {
       if (r.variant) chips.push({ text: r.variant, cls: 'chip-variant' });
       if (r.pack != null) chips.push({ text: `×${r.pack}`, cls: 'chip-pack' });
       if (r.pattern && r.pattern !== 'pack') chips.push({ text: patternLabel(r.pattern), cls: 'chip-pattern' });
+      // pass 58: a size range and a swatch of the colour range
+      const sr = Model.sizeRange(r.stats && r.stats.size);
+      if (sr && sr.range) chips.push(sr.min === sr.max ? { text: `${fmtN(sr.min, 2)} m`, cls: 'chip-size', title: 'every creature of the row this size (a list of one size: no spread)' } : { text: `${fmtN(sr.min, 2)}–${fmtN(sr.max, 2)} m`, cls: 'chip-size', title: 'each creature of the row its own size in this range' });
+      const tr = Model.tintRange(r.stats && r.stats.tint);
+      if (tr) chips.push({ hue: tr, cls: 'chip-hue', title: `coloured ${Math.round(tr.h0)}°–${Math.round(tr.h1)}° at ${Math.round(tr.amount * 100)}%` });
       if (r.stats && Object.keys(r.stats).length) chips.push({ glyph: 'wrench', cls: 'chip-wrench' });
       for (const ch of chips) tx = chip(inner, tx, y0 + 2, ch);
       g.appendChild(inner);
@@ -812,10 +972,22 @@ const Timeline = (() => {
 
   const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
+  let gradSeq = 0;
   function chip(parent, tx, ty, ch) {
-    const w = ch.glyph ? 20 : textWidth(ch.text, 10) + 10;
+    const w = ch.glyph ? 20 : ch.hue ? 30 : textWidth(ch.text, 10) + 10;
     const g = svg('g', { class: 'chip ' + (ch.cls || '') });
     if (ch.title) g.appendChild(svg('title', {}, ch.title));
+    if (ch.hue) {
+      // a swatch of the colour range (pass 58): the hues from → to, wrapping through red when the range does
+      const id = `hue-grad-${++gradSeq}`;
+      const grad = svg('linearGradient', { id, x1: 0, x2: 1, y1: 0, y2: 0 });
+      for (const [off, rgb] of U.hueStops(ch.hue.h0, ch.hue.h1, ch.hue.sat, ch.hue.val, 7)) grad.appendChild(svg('stop', { offset: off, 'stop-color': rgb }));
+      g.appendChild(grad);
+      // an inline fill: the chips' own `.chip rect` fill in style.css would win over the attribute
+      g.appendChild(svg('rect', { x: tx, y: ty, width: w, height: 15, rx: 7, style: `fill:url(#${id})`, class: 'hue-rect' }));
+      parent.appendChild(g);
+      return tx + w + 5;
+    }
     g.appendChild(svg('rect', { x: tx, y: ty, width: w, height: 15, rx: 7 }));
     if (ch.glyph) g.appendChild(svg('use', { href: '#g-' + ch.glyph, x: tx + 3, y: ty + 0.5, width: 14, height: 14 }));
     else g.appendChild(svg('text', { x: tx + 5, y: ty + 11, class: 'chip-text', text: ch.text }));
@@ -962,7 +1134,10 @@ const Timeline = (() => {
   function overridesShort(st) {
     const parts = [];
     for (const [k, v] of Object.entries(st)) {
-      if (typeof v === 'object') parts.push(k);
+      // pass 58: a size range reads "size 1.2–1.6", a colour range "colour 200–260°"
+      if (k === 'size' && Array.isArray(v)) parts.push(`size ${v.join('–')}`);
+      else if (k === 'tint' && U.isObj(v)) { const tr = Model.tintRange(v); parts.push(tr ? `colour ${Math.round(tr.h0)}–${Math.round(tr.h1)}°` : 'colour'); }
+      else if (typeof v === 'object') parts.push(k);
       else parts.push(`${k} ${v}`);
     }
     return parts.slice(0, 4).join(', ') + (parts.length > 4 ? ' …' : '');
@@ -1085,11 +1260,23 @@ const Timeline = (() => {
 
   // ------------------------------------------------------------------ drag
 
+  /** A box still being typed in (the inspector's, the Hero level, a Spawned so far box) commits before a drag starts
+   *  (the review of pass 58): its blur fires 'change', its own undo step, and the drag starts from the map with that edit
+   *  in it. Left focused, the select-on-press below cleared the inspector round it, the box committed from inside that
+   *  clear, its apply drew the inspector again, and the clear threw NotFoundError half way: the drag never started and the
+   *  hover cards stayed dead. (The pointerdown's preventDefault keeps the focus where it was, so nothing else blurs it.) */
+  function commitPending() {
+    const ae = document.activeElement;
+    if (!ae || ae === document.body || typeof ae.blur !== 'function') return;
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName) || ae.isContentEditable) ae.blur();
+  }
+
   function startDrag(e, spec) {
     if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
     hideCard();
+    commitPending();
     const tl = App.tl();
     const item = spec.kind === 'roster' || spec.kind === 'weight' ? tl.roster[spec.i] : spec.kind === 'wave' ? tl.waves[spec.i] : spec.kind === 'event' ? tl.events[spec.i] : null;
     const pair = (p) => [Number(p[0]) || 0, Number(p[1]) || 0];
@@ -1102,9 +1289,18 @@ const Timeline = (() => {
       w0: spec.kind === 'roster' && item && Array.isArray(item.weights) ? item.weights.map(pair) : null,
     };
     if (spec.kind === 'weight') frozenMax = spec.maxW;
+    // the drag's own listeners first, so nothing below can leave `drag` set with no pointerup to end it (the hover cards
+    // wait while it is set)
     document.body.classList.add('dragging');
     window.addEventListener('pointermove', onDragMove);
     window.addEventListener('pointerup', onDragUp, { once: true });
+    // pass 58: a bar, block or flag pressed is selected at once, so its inspector shows the row's fixed HP and ATK
+    // changing while it is dragged (Garry: "as I move the enemy bar left and right the actual HP value in the stats
+    // changes")
+    if ((spec.kind === 'roster' || spec.kind === 'wave' || spec.kind === 'event') && App.selKey() !== `${spec.kind}:${spec.i}`) {
+      App.S.sel = { kind: spec.kind, i: spec.i };
+      try { Inspector.render(document.getElementById('inspector')); } catch (err) { console.error('the inspector could not be drawn for the drag', err); }
+    }
   }
 
   function onDragMove(e) {
@@ -1130,6 +1326,8 @@ const Timeline = (() => {
       const dw = -((e.clientY - drag.y0) / sp.span) * sp.maxW;
       p[1] = Math.max(0, Model.round(drag.p0[1] + dw, 1));
       render();
+      // the row's Presence boxes follow the point (when the inspector shows that row)
+      Inspector.live();
       App.setClock(p[0], `weight ${p[1]}`);
       return;
     }
@@ -1146,6 +1344,7 @@ const Timeline = (() => {
       item.until = Math.max((Number(item.t) || 0) + 1, Math.round(base + dt));
     }
     render();
+    Inspector.live();
     App.setClock(sp.mode === 'until' ? Number(item.until) : Number(item.t), sp.mode === 'until' ? 'until' : 'from');
   }
 
@@ -1185,29 +1384,69 @@ const Timeline = (() => {
 
   /** "HP 39 · ATK 5" for one creature at t with the row's overrides: an orange dot before a number an override changed,
    *  `*` after the pair when other stats are overridden (listed on the next line), the factors on a muted line. */
+  /** A row's size and colour ranges for a card (pass 58): "size 1.2–1.6 m, each its own" and a strip of the hue range
+   *  with "200°–260° at 50%". Null when the row sets neither. */
+  function rangeLine(st, c) {
+    const sr = Model.sizeRange(st.size);
+    const tr = Model.tintRange(st.tint);
+    if (!sr && !tr) return null;
+    const line = el('div', { class: 'hc-line ranges' });
+    if (sr) line.appendChild(el('span', { text: sr.range ? (sr.min === sr.max ? `size ${fmtN(sr.min, 2)} m, all alike (no spread)` : `size ${fmtN(sr.min, 2)}–${fmtN(sr.max, 2)} m, each its own`) + (c ? ` (its own ${fmtN(Number(c.size), 2)} m)` : '') : `size ${fmtN(sr.min, 2)} m` }));
+    if (sr && tr) line.appendChild(document.createTextNode(' · '));
+    if (tr) {
+      line.appendChild(el('span', { class: 'hue-strip', style: `background:${U.hueGradient(tr.h0, tr.h1, tr.sat, tr.val)}` }));
+      line.appendChild(el('span', { text: ` ${Math.round(tr.h0)}°–${Math.round(tr.h1)}° at ${Math.round(tr.amount * 100)}%` }));
+    }
+    return line;
+  }
+
   function creatureBlock(id, variant, stats, t, opts) {
     const o = opts || {};
     const c = App.creature(id);
     if (!c) return el('div', { class: 'hc-line bad', text: `unknown creature "${id || ''}"` });
     const st = U.isObj(stats) ? stats : {};
-    const at = App.creatureAt(c, st, t);
+    // pass 58 (R1): a row's numbers are fixed from its start (o.t0); the stage at t and the hero level come on top. An
+    // event (o.event) plays a row's numbers while that row brings the same creature in the same look (lane WV's fix round)
+    const given = o.event && o.t0 != null ? App.eventNumbers(id, variant, st, o.t0) : null;
+    const at = App.creatureAt(c, st, t, o.t0, given && given.joined ? given : null);
     const setHp = st.hp != null || st.hp_mult != null || (at.arch === 'elite' && U.getPath(st, 'elite.hp_mult_per_stage') != null) || (at.arch === 'boss' && U.getPath(st, 'boss.hp_mult_per_stage') != null);
     const setAtk = st.damage != null || st.damage_mult != null;
-    const others = Model.otherOverrides(st).filter((s) => !(at.arch === 'elite' && s.startsWith('elite.hp_mult_per_stage')) && !(at.arch === 'boss' && s.startsWith('boss.hp_mult_per_stage')));
+    const others = Model.otherOverrides(st).filter((s) => !(at.arch === 'elite' && s.startsWith('elite.hp_mult_per_stage')) && !(at.arch === 'boss' && s.startsWith('boss.hp_mult_per_stage'))
+      && !/^size\b/.test(s) && !/^tint\b/.test(s));
     const dot = (on) => (on ? el('span', { class: 'hc-dot', title: 'an override changes this number' }) : null);
     const code = App.playCode(id, variant);
     const head = el('div', { class: 'hc-creature' },
       el('img', { src: App.iconFor(id, variant), width: o.small ? 24 : 36, height: o.small ? 24 : 36, alt: '' }),
       el('div', { class: 'hc-who' },
-        el('div', { class: 'hc-name' }, el('b', { text: c.name }), code ? el('span', { class: 'hc-chip', text: code }) : null, at.arch !== 'regular' ? el('span', { class: 'hc-chip ' + at.arch, text: at.arch === 'boss' ? 'boss' : 'Elite' }) : null, o.share ? el('span', { class: 'hc-share', text: o.share }) : null),
+        el('div', { class: 'hc-name' }, el('b', { text: c.name }), code ? el('span', { class: 'hc-chip', text: variant ? code : `${code} · default`, title: variant ? 'this row\'s own look' : 'the creature\'s default look (the Creatures tab sets it)' }) : null, at.arch !== 'regular' ? el('span', { class: 'hc-chip ' + at.arch, text: at.arch === 'boss' ? 'boss' : 'Elite' }) : null, o.share ? el('span', { class: 'hc-share', text: o.share }) : null),
         el('div', { class: 'hc-stats' }, dot(setHp), `HP ${fmtN(at.hp, 1)}`, ' · ', dot(setAtk), `ATK ${fmtN(at.atk, 1)}`, others.length ? el('span', { class: 'hc-star', text: ' *', title: 'other stats are overridden' }) : null)));
     const box = el('div', { class: 'hc-block' }, head);
     if (others.length && !o.small) box.appendChild(el('div', { class: 'hc-line others', text: `* also: ${others.slice(0, 8).join(', ')}${others.length > 8 ? ' …' : ''}` }));
+    const ranges = rangeLine(st, c);
+    if (ranges) box.appendChild(ranges);
     if (!o.small) {
-      const parts = (ps) => ps.map(([k, v], n) => (n === 0 ? fmtN(v, 2) : `${k} ${fmtN(v, 2)}`)).join(' × ');
+      // the time factor is the row's own, read at its start (pass 58): "time@3:12 1.94"
+      const fixed = o.t0 != null && at.arch === 'regular';
+      const parts = (ps) => ps.map(([k, v], n) => (n === 0 ? fmtN(v, 2) : `${k === 'time' && fixed ? `time@${fmtT(at.t0)}` : k} ${fmtN(v, 2)}`)).join(' × ');
       box.appendChild(el('div', { class: 'hc-line muted', text: `HP ${parts(at.hpParts)}` }));
       box.appendChild(el('div', { class: 'hc-line muted', text: `ATK ${parts(at.atkParts)} · knock ${fmtN(App.knockbackOf(c, st), 2)} m/s` }));
-      if (at.special) box.appendChild(el('div', { class: 'hc-line muted', text: `a coloured special (${Math.round(at.special.chance * 100)}% after colour_after_kills): HP ${fmtN(at.special.hp, 1)} · ATK ${fmtN(at.special.atk, 1)}` }));
+      const joinedTo = given && given.joined ? App.sourceName(given.joined) : '';
+      const halves = given && given.joined ? (given.hpJoined && given.dmgJoined ? 'its HP and ATK' : given.hpJoined ? 'its HP (the damage is the one the event sets, at this second)' : 'its ATK (the HP is the one the event sets, at this second)') : '';
+      if (fixed && o.eachFiring) {
+        // an "Elites every" event: every firing reads the curves at its own second, or the numbers of a row bringing the
+        // same creature then (the review of pass 58, lane WV's fix round)
+        const next = Model.eliteEveryTimes(o.eachFiring, 3, App.runEnd()).slice(1).map(fmtT).join(', ');
+        box.appendChild(el('div', { class: 'hc-line fixed', text: `Each firing takes the curves at its own second, or the numbers of a row or wave bringing the same creature then: these are the first one's, at ${fmtT(o.t0)}${joinedTo ? ` (it joins ${joinedTo})` : ''}${next ? `; the next about ${next}` : ''}.` }));
+      } else if (fixed && joinedTo) {
+        box.appendChild(el('div', { class: 'hc-line fixed', text: `Joins ${joinedTo}: while it brings the ${c.name} in the same look, a creature this event sends plays ${halves}, fixed from ${fmtT(at.t0)}.` }));
+      } else if (fixed && at.t0 > Math.max(Number(o.t0) || 0, 0) + 1e-9) {
+        box.appendChild(el('div', { class: 'hc-line fixed', text: `Fixed afresh from ${fmtT(at.t0)}, the start of this endless wave: in endless every row and wave takes the curves again at each wave (from ${fmtT(o.t0)} before).` }));
+      } else if (fixed) {
+        const why = [at.row.hpOver ? 'its own HP takes no curve' : '', at.row.dmgOver ? 'its own damage takes no curve' : ''].filter(Boolean).join(', ');
+        box.appendChild(el('div', { class: 'hc-line fixed', text: `Fixed from ${fmtT(at.t0)}, the ${o.from || 'row'}'s start: every creature of it has these numbers wherever it spawns in ${App.stageName(at.stage)}${why ? ` (${why})` : ''}; only the stage steps them up, and the hero level at its first spawn.` }));
+      }
+      // an elite-modified creature (a coloured-elite event, a wave with a modifier) never rolls the variance special
+      if (at.special && !o.modded) box.appendChild(el('div', { class: 'hc-line muted', text: `a coloured special (${Math.round(at.special.chance * 100)}% after colour_after_kills${Model.tintRange(st.tint) ? ', a darker shade of the hue it rolled' : ''}): HP ${fmtN(at.special.hp, 1)} · ATK ${fmtN(at.special.atk, 1)}` }));
     }
     return box;
   }
@@ -1222,7 +1461,7 @@ const Timeline = (() => {
     const open = App.rosterAt(t).find((o) => o.i === i);
     const share = open ? `${Math.round(open.norm * 100)}% of the ${r.channel === 'hell' ? 'hell channel\'s' : 'regular'} draw` : 'not drawn at this second';
     const box = el('div', {}, cardHead('Roster row', t, `${fmtT(r.t)} → ${r.until == null || r.until === '' ? 'end' : fmtT(r.until)}${r.id ? ` · ${r.id}` : ''}`));
-    box.appendChild(creatureBlock(r.enemy, r.variant, r.stats, t));
+    box.appendChild(creatureBlock(r.enemy, r.variant, r.stats, t, { t0: Number(r.t) || 0, from: 'row' }));
     box.appendChild(el('div', { class: 'hc-line' }, el('b', { text: share }), open ? ` · weight ${fmtN(open.w, 2)}` : ''));
     return box;
   }
@@ -1233,7 +1472,11 @@ const Timeline = (() => {
     const end = App.waveEnd(wv);
     const flags = [wv.respect_cap === false ? 'no cap' : '', wv.elite ? `elite ${wv.elite}` : '', wv.channel === 'hell' ? 'hell' : '', wv.toast ? `"${wv.toast}"` : ''].filter(Boolean).join(' · ');
     const box = el('div', {}, cardHead(waveHead(wv), t, `${fmtT(wv.t)} → ${end === Infinity ? 'no end' : fmtT(end)}${flags ? ' · ' + flags : ''}`));
-    for (const a of App.waveAlts(wv).slice(0, 6)) box.appendChild(creatureBlock(a.alt.enemy, a.alt.variant, a.alt.stats, t, { small: true, share: `${Math.round(a.share * 100)}%` }));
+    for (const a of App.waveAlts(wv).slice(0, 6)) box.appendChild(creatureBlock(a.alt.enemy, a.alt.variant, a.alt.stats, t, { small: true, share: `${Math.round(a.share * 100)}%`, t0: Number(wv.t) || 0, from: 'wave' }));
+    const from = Model.fixedFrom(App.tl(), wv.t, t);
+    box.appendChild(el('div', { class: 'hc-line fixed', text: from > (Number(wv.t) || 0) + 1e-9
+      ? `Its numbers are fixed afresh from ${fmtT(from)}, the start of this endless wave: in endless every row and wave takes the curves again at each wave.`
+      : `Its numbers are fixed from ${fmtT(wv.t)}, its start: the same for every creature it sends; only the stage steps them up.` }));
     return box;
   }
 
@@ -1243,7 +1486,7 @@ const Timeline = (() => {
     const a = App.waveAlts(wv)[k];
     if (!a) return null;
     const box = el('div', {}, cardHead(a.alt.own ? 'Wave creature' : `Alternative ${k + 1}`, t, `${wv.name || wv.id || 'wave'} · ${Math.round(a.share * 100)}% of the roll${a.alt.pack != null ? ` · packs of ${a.alt.pack}` : ''}`));
-    box.appendChild(creatureBlock(a.alt.enemy, a.alt.variant, a.alt.stats, t));
+    box.appendChild(creatureBlock(a.alt.enemy, a.alt.variant, a.alt.stats, t, { t0: Number(wv.t) || 0, from: 'wave', modded: !!wv.elite }));
     return box;
   }
 
@@ -1255,8 +1498,9 @@ const Timeline = (() => {
     const bits = [ev.chance != null && Number(ev.chance) < 1 ? `${Math.round(Number(ev.chance) * 100)}% chance` : '', ev.t_jitter ? `± ${ev.t_jitter} s` : '', ev.type === 'swarm' ? `${ev.count || 40} at once` : '', ev.mod ? `modifier ${ev.mod}` : ''].filter(Boolean).join(' · ');
     const box = el('div', {}, cardHead(App.eventLabel(ev), t, (info ? info.label : ev.type) + (bits ? ' · ' + bits : '')));
     const shares = App.eventShares(ev);
-    if (shares.length) for (const s of shares.slice(0, 4)) box.appendChild(creatureBlock(s.id, ev.variant, ev.stats, t, { small: shares.length > 1, share: shares.length > 1 ? `${Math.round(s.share * 100)}%` : '' }));
-    else if (ev.type === 'elite' || ev.type === 'elite_every') box.appendChild(el('div', { class: 'hc-line muted', text: 'a creature drawn from the roster rows open then, by their Elite weight, wearing a modifier' }));
+    if (shares.length) for (const s of shares.slice(0, 4)) box.appendChild(creatureBlock(s.id, ev.variant, ev.stats, t, { small: shares.length > 1, share: shares.length > 1 ? `${Math.round(s.share * 100)}%` : '', t0: t, from: 'event', event: true, eachFiring: ev.type === 'elite_every' ? ev : null, modded: ev.type === 'elite' || ev.type === 'elite_every' }));
+    else if (ev.type === 'elite' || ev.type === 'elite_every') box.appendChild(el('div', { class: 'hc-line muted', text: 'a creature drawn from the roster rows open then, by their Elite weight, wearing a modifier, with that row\'s HP and ATK' }));
+    if (shares.length > 1 && ev.type === 'elite_every') box.appendChild(el('div', { class: 'hc-line fixed', text: 'Each firing takes the curves at its own second, or the numbers of a row bringing the same creature then.' }));
     return box;
   }
 
@@ -1266,7 +1510,8 @@ const Timeline = (() => {
     for (const row of (sp.pool || []).slice(0, 4)) {
       const id = typeof row === 'string' ? row : row.enemy;
       const st = typeof row === 'string' ? 1 : Number(row.stage || 1);
-      box.appendChild(creatureBlock(id, '', null, t, { small: true, share: st > 1 ? `from stage ${st}` : '' }));
+      // a special's numbers are the second it comes, or a row's bringing the same creature then (lane WV's fix round)
+      box.appendChild(creatureBlock(id, '', null, t, { small: true, share: st > 1 ? `from stage ${st}` : '', t0: t, event: true }));
     }
     return box;
   }
@@ -1341,8 +1586,14 @@ const Timeline = (() => {
     readout.appendChild(el('div', { class: 'ro-line' }, `cap ${cap}`, hell > 0 ? ` + hell ${Math.floor(hell)}` : ''));
     const sp = lastSpawn ? Model.estimateAt(lastSpawn.est, t) : null;
     if (sp) readout.appendChild(el('div', { class: 'ro-line' }, `spawned so far ≈ ${fmtCount(sp.all)}`, el('small', { text: ` (estimate; ${fmtCount(sp.col)} coloured, ${fmtCount(sp.elite + sp.special + sp.boss)} Elites, specials and bosses)` })));
-    readout.appendChild(el('div', { class: 'ro-line' }, `HP ×${fmtN(hp.total, 2)}`, el('small', { text: ` (time ${fmtN(hp.time, 2)} × stage ${fmtN(hp.stage, 2)} × level ${fmtN(hp.level, 2)} × creature ${fmtN(hp.creature, 2)})` })));
+    readout.appendChild(el('div', { class: 'ro-line' }, `HP ×${fmtN(hp.total, 2)}`, el('small', { text: ` (a row starting now: time ${fmtN(hp.time, 2)} × stage ${fmtN(hp.stage, 2)} × level ${fmtN(hp.level, 2)} × creature ${fmtN(hp.creature, 2)})` })));
     readout.appendChild(el('div', { class: 'ro-line' }, `ATK ×${fmtN(dm.total, 2)}`, el('small', { text: ` (time ${fmtN(dm.time, 2)} × stage ${fmtN(dm.stage, 2)} × level ${fmtN(dm.level, 2)} × creature ${fmtN(dm.creature, 2)})` })));
+    // pass 58: what the rows spawning now really carry (each fixed from its own start)
+    const ser = lastActual ? lastActual.series : null;
+    const si = ser ? Math.max(0, Math.min(ser.ts.length - 1, Math.round(t))) : -1;
+    if (ser && si >= 0 && ser.hp.avg[si] != null) {
+      readout.appendChild(el('div', { class: 'ro-line' }, `actual HP ${fmtX(ser.hp.avg[si])} · ${fmtX(ser.hp.max[si])} max`, el('small', { text: ` · ATK ${fmtX(ser.atk.avg[si])} · ${fmtX(ser.atk.max[si])} max (the rows spawning now, each fixed from its start)` })));
+    }
     const rows = App.rosterAt(t);
     if (rows.length) {
       readout.appendChild(el('div', { class: 'ro-title', text: 'Roster drawn now' }));

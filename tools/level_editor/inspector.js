@@ -4,16 +4,36 @@
 // presence points and order buttons, the Elite overrides as the variance block with colour swatches, the HP x / ATK x
 // curves with their mode switch, and the Share band's table. Pass 57: a note under a row's, a wave's or a swarm's Pattern
 // field: for Ring how many of the creature make a thick ring and how many really come at once, for In front where from.
+// Pass 58: HP and Damage default to the row's own numbers at its start (R1), and a green line under From / Until (a
+// wave's and an event's under the creature) says them, kept up to date while the bar is dragged (live()); the size as a
+// range; the Colour group (a hue range, the sliders and the creature tinted as the game tints it, its coloured special
+// too); the curves' inspector compares the intended curve with what the rows really carry. A box being typed in commits
+// before the form is drawn again, and an Overrides block opened by hand stays open.
 'use strict';
 
 const Inspector = (() => {
   const { el, fmtT, fmtN, clear } = U;
+  // pass 58: what follows the dragged bar without a new form: the From box, the title, the row's fixed HP and ATK
+  let liveFns = [];
+
+  /** Bring the live parts of the form up to date (the timeline calls it on every move of a drag): cheap, in place. */
+  function live() {
+    for (const f of liveFns) {
+      try { f(); } catch (_) { /* a part whose item is gone: the next render drops it */ }
+    }
+  }
 
   function render(container) {
     Forms.closePop();
-    const active = container.contains(document.activeElement) ? document.activeElement.dataset.path : null;
+    const focused = container.contains(document.activeElement) ? document.activeElement : null;
+    const active = focused ? focused.dataset.path : null;
     const scroll = container.scrollTop;
     const sameItem = container.dataset.sel === App.selKey();
+    // the review of pass 58: a box still being typed in commits before the form goes. Its blur fires 'change', whose apply
+    // draws this inspector itself; left to the clear below, that commit and its draw ran from inside the clear, which
+    // then threw NotFoundError half way. Committed here, the draw it makes is whole, and the one below draws it again.
+    if (focused && typeof focused.blur === 'function') focused.blur();
+    liveFns = [];
     clear(container);
     container.dataset.sel = App.selKey();
     const sel = App.S.sel;
@@ -36,8 +56,10 @@ const Inspector = (() => {
 
   // ------------------------------------------------------------------ pieces
 
+  /** The form's head; returns the title element (a drag keeps it up to date, pass 58). */
   function header(container, kind, title, key, actions, sub) {
-    const h = el('div', { class: 'insp-head' }, el('div', { class: 'insp-kind', text: kind }), el('div', { class: 'insp-title', text: title }));
+    const titleEl = el('div', { class: 'insp-title', text: title });
+    const h = el('div', { class: 'insp-head' }, el('div', { class: 'insp-kind', text: kind }), titleEl);
     const acts = el('div', { class: 'insp-actions' });
     for (const a of actions || []) acts.appendChild(el('button', { class: 'btn small' + (a.danger ? ' danger' : '') + (a.cls ? ' ' + a.cls : ''), type: 'button', text: a.text, title: a.title || '', disabled: !!a.disabled, onclick: a.onclick }));
     acts.appendChild(el('button', { class: 'btn small ghost', type: 'button', text: '✕', title: 'close (Esc)', onclick: () => App.select(null) }));
@@ -46,6 +68,22 @@ const Inspector = (() => {
     container.appendChild(h);
     const m = App.issuesFor(key);
     if (m) container.appendChild(el('div', { class: 'insp-issues ' + m.level }, m.msgs.map((x) => el('div', { text: x }))));
+    return titleEl;
+  }
+
+  /** Keep a run-clock field (From, Until, At) and the title in step with a drag (pass 58). */
+  function liveTimes(container, titleEl, titleFn, obj, keys) {
+    liveFns.push(() => {
+      titleEl.textContent = titleFn();
+      for (const k of keys) {
+        const inp = container.querySelector(`.form [data-path="${k}"]`);
+        if (!inp || document.activeElement === inp) continue;
+        const v = obj[k];
+        inp.value = v == null ? '' : v;
+        const hint = inp.parentElement && inp.parentElement.querySelector('.hint');
+        if (hint) hint.textContent = v == null || v === '' ? '' : fmtT(v);
+      }
+    });
   }
 
   function jsonPeek(container, obj) {
@@ -75,7 +113,7 @@ const Inspector = (() => {
       case 'variant':
         return Forms.row(def, Forms.variantSelect(ctx.enemyId, obj.variant, (v) => App.apply(() => U.setKey(obj, 'variant', v)), { path: (ctx && ctx.pathPrefix ? ctx.pathPrefix + '.' : '') + 'variant' }));
       case 'overrides':
-        return overridesBlock(obj, def.key, ctx.enemyId, (ctx && ctx.pathPrefix ? ctx.pathPrefix + '.' : '') + def.key);
+        return overridesBlock(obj, def.key, ctx.enemyId, (ctx && ctx.pathPrefix ? ctx.pathPrefix + '.' : '') + def.key, ctx);
       default:
         return Forms.fieldRow(def, obj, { pathPrefix: ctx && ctx.pathPrefix, placeholder: ctx && ctx.placeholders ? ctx.placeholders[def.key] : undefined, allowRandom: def.type === 'elite', note: ctx && ctx.note });
     }
@@ -96,7 +134,11 @@ const Inspector = (() => {
       const c = App.creature(id);
       if (!c) return;
       const st = U.isObj(stats) ? stats : {};
-      const radius = st.radius != null ? Number(st.radius) : Number(c.radius);
+      // pass 58 (R2): a size range moves the body's radius with the rolled size (radius × size / its own size): count
+      // with the middle of the range; one plain size leaves the radius as it was
+      const sr = Model.sizeRange(st.size);
+      const follow = sr && sr.range && Number(c.size) > 0 ? ((sr.min + sr.max) / 2) / Number(c.size) : 1;
+      const radius = st.radius != null ? Number(st.radius) : Number(c.radius) * follow;
       if (!out.find((x) => x.c.id === c.id && x.radius === radius)) out.push({ c, stats: st, radius });
     };
     if (kind === 'wave') {
@@ -198,18 +240,148 @@ const Inspector = (() => {
     return w;
   }
 
-  /** The `stats` block of `holder[key]` for `creatureId`: every override key, the creature's own value as the placeholder. */
-  function overridesBlock(holder, key, creatureId, pathPrefix) {
+  /** The grey HP and Damage of a row (pass 58, R1): the creature's own × the curves at the row's start (no curve for an
+   *  Elite or a boss); what the row's creatures have when the box is left empty. */
+  function rowDefaults(c, t0) {
+    const rn = App.rowNumbers(c, {}, t0);
+    return { hp: rn.hp, atk: rn.atk, arch: rn.arch };
+  }
+
+  /** A row's own HP and ATK (pass 58, R1, Garry: "as I move the enemy bar left and right the actual HP value in the stats
+   *  changes to reflect the multiple being applied to it at the point of the start of the enemy wave"): the two numbers
+   *  fixed from its start, where each comes from (the creature's own × the curve there, or a number typed in Overrides),
+   *  and what a creature of it has in play at that start (× the stage, creature_hp_mult / creature_damage_mult and the
+   *  hero level). `from`: 'row' | 'wave' | 'event'. */
+  function rowNote(c, stats, t0, from, end) {
+    const st = U.isObj(stats) ? stats : {};
+    const rn = App.rowNumbers(c, st, t0);
+    if (rn.arch !== 'regular') {
+      return [el('span', { class: 'rn-main' }, b(`${U.theName(c.name)} is ${rn.arch === 'boss' ? 'a boss' : 'an Elite-archetype mini-boss'}: `), 'its own rules, no time curve (its HP × per stage under ', rn.arch === 'boss' ? 'Boss' : 'Mini-boss', '); the stage multiplier on top.')];
+    }
+    const at = App.creatureAt(c, st, t0, t0);
+    const mult = (k) => (st[k] != null && st[k] !== '' && isFinite(Number(st[k])) && Number(st[k]) !== 1 ? ` × ${fmtN(Number(st[k]), 2)} (${k === 'hp_mult' ? 'HP ×' : 'Damage ×'})` : '');
+    const hpSrc = rn.hpOver ? `its own ${fmtN(Number(st.hp), 2)}, typed in Overrides (no curve)` : `${U.theName(c.name)}'s ${fmtN(rn.jsonHp, 2)} × the HP curve ×${fmtN(rn.hpTime, 2)} at ${fmtT(t0)}`;
+    const atkSrc = rn.dmgOver ? `its own ${fmtN(Number(st.damage), 2)}, typed in Overrides (no curve)` : `its ${fmtN(rn.jsonDmg, 2)} × the damage curve ×${fmtN(rn.dmgTime, 2)}`;
+    return [
+      el('span', { class: 'rn-main' }, 'Row HP ', b(fmtN(rn.hp, 2)), ' · ATK ', b(fmtN(rn.atk, 2)), ', fixed from ', b(fmtT(t0)), `, the ${from || 'row'}'s start`),
+      el('span', { class: 'rn-sub' }, `HP: ${hpSrc}${mult('hp_mult')}. ATK: ${atkSrc}${mult('damage_mult')}.`),
+      el('span', { class: 'rn-play' }, 'In play at its start: HP ', b(fmtN(at.hp, 1)), ' · ATK ', b(fmtN(at.atk, 1)),
+        ` (${App.stageName(at.stage)} ×${fmtN(at.stageMult, 2)}, creature ×${fmtN(at.chm, 2)} / ×${fmtN(at.cdm, 2)}, hero level ${App.S.level} ×${fmtN(at.lvHp, 2)} / ×${fmtN(at.lvDmg, 2)}); one it sends in a later stage takes that stage's multiplier instead.`),
+      ...longBarNote(rn, t0, end),
+    ];
+  }
+
+  /** For a row or a wave (`end` given; Infinity = no end) the review's two notes on a long bar (lane WV's fix round): on
+   *  a bar longer than three minutes the HP curve has climbed more than 15% by its last second while its creatures keep
+   *  the start's numbers (a split bar steps up), and a bar running into endless is fixed afresh at each endless wave. */
+  function longBarNote(rn, t0, end) {
+    if (end === undefined || rn.arch !== 'regular') return [];
+    const tl = App.tl();
+    const runEnd = App.runEnd();
+    const last = Math.min(Number(end), runEnd);
+    const out = [];
+    if (!rn.hpOver && last > t0 + LONG_BAR) {
+      const later = App.hpTimeMult(last);
+      if (later > rn.hpTime * 1.15) out.push(`By ${fmtT(last)} the HP curve says ×${fmtN(later, 2)} while its creatures keep ×${fmtN(rn.hpTime, 2)} all the way: split the bar for a step up.`);
+    }
+    if (!(Number(end) <= runEnd)) out.push(`In endless it is fixed afresh at each wave (every ${fmtN(Math.max(Number(tl.endless_wave_seconds) || 60, 1), 0)} s), from the wave's start.`);
+    return out.length ? [el('span', { class: 'rn-hint' }, out.join(' '))] : [];
+  }
+
+  const LONG_BAR = 180;
+
+  /** What an event's creatures carry (lane WV's fix round, WaveDirector.event_numbers): the curves at the second it fires,
+   *  or, while a roster row or a wave brings the same creature in the same look, that row's numbers for each half (HP,
+   *  ATK) the event's own overrides leave alone; the line names the row. */
+  function eventNote(c, stats, t, variant) {
+    const st = U.isObj(stats) ? stats : {};
+    const en = App.eventNumbers(c.id, variant, st, t);
+    if (!en.joined || en.arch !== 'regular') return rowNote(c, st, t, 'event');
+    const who = App.sourceName(en.joined);
+    const halves = en.hpJoined && en.dmgJoined ? 'its HP and ATK' : en.hpJoined ? 'its HP (the Damage typed here is the event\'s own, at this second)' : 'its ATK (the HP typed here is the event\'s own, at this second)';
+    const at = App.creatureAt(c, st, t, t, en);
+    return [
+      el('span', { class: 'rn-main' }, 'HP ', b(fmtN(en.hp, 2)), ' · ATK ', b(fmtN(en.atk, 2)), ', joining ', b(who), ` (${U.theName(c.name)} from ${fmtT(en.joined.t0)})`),
+      el('span', { class: 'rn-sub' }, `At ${fmtT(t)} ${who} brings ${U.theName(c.name)} in the same look, so the creatures this event sends play ${halves}, fixed from ${fmtT(en.hpJoined ? en.hpFrom : en.dmgFrom)}: the same creature with the same numbers as the ones already there. An HP or a Damage typed in Overrides is the event's own instead.`),
+      el('span', { class: 'rn-play' }, 'In play: HP ', b(fmtN(at.hp, 1)), ' · ATK ', b(fmtN(at.atk, 1)),
+        ` (${App.stageName(at.stage)} ×${fmtN(at.stageMult, 2)}, creature ×${fmtN(at.chm, 2)} / ×${fmtN(at.cdm, 2)}, hero level ${App.S.level} ×${fmtN(at.lvHp, 2)} / ×${fmtN(at.lvDmg, 2)}).`),
+    ];
+  }
+
+  /** An "Elites every" event's numbers (the review of pass 58): every firing takes the curves at its own second
+   *  (WaveDirector._spawn_elite), or the numbers of a row bringing the same creature then (lane WV's fix round), so the
+   *  first few firings and their HP and ATK. */
+  function firingsNote(c, stats, ev) {
+    const st = U.isObj(stats) ? stats : {};
+    const times = Model.eliteEveryTimes(ev, 4, App.runEnd());
+    const rn0 = App.rowNumbers(c, st, times[0]);
+    if (rn0.arch !== 'regular') return rowNote(c, st, times[0], 'event');
+    const main = el('span', { class: 'rn-main' }, 'Each firing takes the curves at its own second, or the numbers of a row bringing the same creature then: ');
+    let joins = 0;
+    times.forEach((t, k) => {
+      const en = App.eventNumbers(c.id, ev.variant, st, t);
+      if (k) main.appendChild(document.createTextNode(' · '));
+      main.append(b(fmtT(t)), ` HP ${fmtN(en.hp, 2)} · ATK ${fmtN(en.atk, 2)}`);
+      if (en.joined) { joins++; main.append(el('small', { text: ` (${App.sourceName(en.joined)})` })); }
+    });
+    const iv = ev.interval;
+    const every = Array.isArray(iv) && iv.length ? `${fmtN(Number(iv[0]), 1)}–${fmtN(Number(iv[iv.length - 1]), 1)} s (about the middle here)` : `${fmtN(iv == null ? 90 : Number(iv), 1)} s`;
+    return [main, el('span', { class: 'rn-sub' }, `Every ${every}${rn0.hpOver ? '; the HP typed in Overrides takes no curve' : ''}.${joins ? ' A firing in brackets joins that row: the same creature in the same look as the ones it brings, with their numbers.' : ''} Hot Sauce brings them sooner and one held back for colour comes later, with the numbers of that second. In play × the stage then × creature × the hero level then.`)];
+  }
+
+  /** The row's numbers where they are always in sight (the review of pass 58: under HP / Damage they sat inside the
+   *  Overrides block, which is closed on a row with no overrides): under From / Until on a roster row, under the creature
+   *  of a wave (each alternative) and of an event. Redrawn while the bar is dragged. `statsOf` reads the item's stats
+   *  afresh (an edit replaces the block). */
+  function numbersLine(c, statsOf, t0, from, ev, label, endOf) {
+    const box = el('div', { class: 'fhelp fnote rn-note rn-line', 'data-note': 'row-numbers' });
+    const fill = () => {
+      clear(box);
+      const t = Math.max(Number(t0()) || 0, 0);
+      const parts = ev && ev.type === 'elite_every' ? firingsNote(c, statsOf(), Object.assign({}, ev, { t }))
+        : ev ? eventNote(c, statsOf(), t, ev.variant) : rowNote(c, statsOf(), t, from, endOf ? endOf() : undefined);
+      if (label) box.appendChild(el('span', { class: 'rn-who', text: label }));
+      for (const x of parts) box.appendChild(typeof x === 'string' ? document.createTextNode(x) : x);
+    };
+    fill();
+    liveFns.push(fill);
+    return box;
+  }
+
+  /** The `stats` block of `holder[key]` for `creatureId`: every override key, the creature's own value as the placeholder.
+   *  `ctx` (pass 58): t0 (a function: the row's start, for the HP / Damage defaults and the note), from ('row' | 'wave' |
+   *  'event'), look (a function: the art variant the row plays, for the colour preview). */
+  // the review of pass 58: an Overrides block opened (or closed) by hand stays so when the form is drawn again (a drop, an
+  // edit); it used to fall back to "open when something is set" every time. Keyed by the item and the block's path.
+  const overridesOpen = new Map();
+
+  function overridesBlock(holder, key, creatureId, pathPrefix, ctx) {
+    const o = ctx || {};
     const c = App.creature(creatureId);
     const stats = U.isObj(holder[key]) ? holder[key] : {};
     const n = countLeaves(stats);
-    const det = el('details', { class: 'overrides', open: n > 0 });
-    det.appendChild(el('summary', {}, el('b', { text: `Overrides · ${n} set` }), el('span', { class: 'muted', text: c ? ` · grey = ${U.theName(c.name)}'s own numbers` : '' })));
+    const openKey = `${App.selKey()}|${pathPrefix}`;
+    const det = el('details', { class: 'overrides', open: overridesOpen.has(openKey) ? overridesOpen.get(openKey) : n > 0 });
+    det.addEventListener('toggle', () => overridesOpen.set(openKey, det.open));
+    const whose = o.each ? "the first firing's" : o.event ? "what the event's creatures carry" : `the ${o.from || 'row'}'s at its start`;
+    det.appendChild(el('summary', {}, el('b', { text: `Overrides · ${n} set` }), el('span', { class: 'muted', text: c ? ` · grey = ${U.theName(c.name)}'s own numbers${o.t0 ? `, HP and Damage ${whose} (the green line above)` : ''}` : '' })));
     const write = (path, v) => App.apply(() => {
       if (!U.isObj(holder[key])) holder[key] = {};
       U.setPath(holder[key], path, v);
       if (!Object.keys(holder[key]).length) delete holder[key];
     });
+    const t0 = () => (o.t0 ? Math.max(Number(o.t0()) || 0, 0) : null);
+    // the grey HP and Damage: what the box means left empty. A row's: the creature's own × the curves at its start. An
+    // event's (lane WV's fix round): the numbers of a row bringing the same creature then, when the event's other
+    // override of that half leaves it free to join, else its own at its second.
+    const greyOf = (which) => {
+      const own = rowDefaults(c, t0())[which];
+      if (!o.event) return own;
+      const st2 = Object.assign({}, U.isObj(holder[key]) ? holder[key] : {});
+      delete st2[which === 'hp' ? 'hp' : 'damage'];
+      const en = App.eventNumbers(c.id, o.event.variant, st2, t0());
+      return which === 'hp' ? (en.hpJoined ? en.hp : own) : (en.dmgJoined ? en.atk : own);
+    };
     for (const group of FIELDS.OVERRIDE_GROUPS) {
       const defs = FIELDS.OVERRIDES.filter((d) => d.group === group);
       if (!defs.length) continue;
@@ -222,8 +394,11 @@ const Inspector = (() => {
       if (only && c && !only.onlyIf(c)) { fs.classList.add('dim'); fs.appendChild(el('div', { class: 'note small', text: `${only.onlyNote}: ${U.theName(c.name)} is not one, so these change nothing for it` })); }
       for (const def of defs) {
         const value = U.getPath(stats, def.path);
-        const ph = def.ph ? def.ph(c, App.tl()) : '';
+        let ph = def.ph ? def.ph(c, App.tl()) : '';
         const path = `${pathPrefix}.${def.path}`;
+        // pass 58 (R1): a row's HP and Damage default to the creature's own × the curves at the row's start
+        const r1 = c && t0() != null && (def.path === 'hp' || def.path === 'damage');
+        if (r1) ph = Model.round(greyOf(def.path === 'hp' ? 'hp' : 'atk'), 2);
         let ctl;
         if (def.type === 'number' || def.type === 'int') ctl = Forms.numberInput(def, value, (v) => write(def.path, v), { placeholder: ph === '' ? '—' : (typeof ph === 'number' ? fmtN(ph, 3) : ph), path });
         else if (def.type === 'bool3') ctl = Forms.bool3Input(def, value, (v) => write(def.path, v), { placeholder: ph, path });
@@ -232,8 +407,16 @@ const Inspector = (() => {
         else if (def.type === 'pickup_weights') ctl = pickupWeightsControl(stats, write, path);
         else if (def.type === 'swatch') ctl = Forms.swatchInput(value, (v) => write(def.path, v), { placeholder: ph, path });
         else if (def.type === 'swatches') ctl = Forms.swatchesInput(value, (v) => write(def.path, v), { placeholder: ph, path });
+        else if (def.type === 'size_range') ctl = sizeRangeControl(stats, c, write, path);
+        else if (def.type === 'tint') ctl = tintControl(stats, c, write, path, o);
         else ctl = el('span', { class: 'muted', text: def.type });
-        fs.appendChild(Forms.row(def, ctl, { cls: value !== undefined ? 'is-set' : '' }));
+        if (r1) {
+          // the grey number follows the bar while it is dragged
+          const inp = ctl;
+          const which = def.path === 'hp' ? 'hp' : 'atk';
+          liveFns.push(() => { inp.placeholder = fmtN(Model.round(greyOf(which), 2), 3); });
+        }
+        fs.appendChild(Forms.row(def, ctl, { cls: (value !== undefined ? 'is-set' : '') + (def.type === 'tint' ? ' wide-ctl' : '') }));
       }
       if (group === 'Elite') {
         const fsh = formatShares(stats);
@@ -242,6 +425,262 @@ const Inspector = (() => {
       det.appendChild(fs);
     }
     return det;
+  }
+
+  // ------------------------------------------------------------------ the size range (pass 58, R2)
+
+  /** Size as one number or a range (Garry: "editable as a kind of a range (between 3-5 for example) and there should be
+   *  the default one already set for them so I have a reference"): from / to boxes, the creature's own size and its
+   *  variance spread as the grey reference under them. Equal boxes or one box write one number. */
+  function sizeRangeControl(stats, c, write, path) {
+    const v = U.getPath(stats, 'size');
+    const isList = Array.isArray(v);
+    const lo = isList ? v[0] : v, hi = isList ? v[v.length - 1] : null;
+    const own = c && c.size != null ? Number(c.size) : null;
+    const spread = c && U.isObj(c.variance) ? Number(c.variance.size) || 0 : 0;
+    const bad = Model.sizeIssues(v).length > 0;
+    const a = el('input', { type: 'number', class: 'num short' + (bad ? ' bad' : ''), min: 0.05, step: 0.05, value: lo == null ? '' : lo, placeholder: own == null ? 'from' : fmtN(own, 3), 'data-path': `${path}.0`, title: 'one size, or the smallest of the range' });
+    const bx = el('input', { type: 'number', class: 'num short' + (bad ? ' bad' : ''), min: 0.05, step: 0.05, value: hi == null ? '' : hi, placeholder: 'to', 'data-path': `${path}.1`, title: 'the largest of the range (empty: one size)' });
+    const fire = () => {
+      const x = U.parseNum(a.value), y = U.parseNum(bx.value);
+      if (x == null && y == null) return write('size', null);
+      if (x == null || y == null) return write('size', x == null ? y : x);
+      if (x === y) return write('size', x);
+      write('size', [x, y]);
+    };
+    for (const inp of [a, bx]) {
+      inp.addEventListener('change', fire);
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
+    }
+    const sr = Model.sizeRange(v);
+    let ref;
+    if (!own) ref = 'pick a creature for its own size';
+    else if (sr && sr.range && sr.min === sr.max) ref = `a list of one size: every creature exactly ${fmtN(sr.min, 2)} m (no spread), its radius following, as the game reads it; its own: ${fmtN(own, 2)} m${spread ? `, spread ±${Math.round(spread * 100)}%` : ''}`;
+    else if (sr && sr.range) {
+      // lane WV's fix round: a coloured special is cut at the range's top; an elite modifier's scale still goes on top
+      const vs = Model.varianceSpecial(c, stats);
+      const sp = vs.chance > 0 ? `; a coloured special ×${fmtN(vs.size, 2)} but never past ${fmtN(sr.max, 2)} m` : '';
+      ref = `each creature its own size from ${fmtN(sr.min, 2)} to ${fmtN(sr.max, 2)} m (no spread), its radius following${sp}; an elite-modified one × its modifier's scale on top; its own: ${fmtN(own, 2)} m${spread ? `, spread ±${Math.round(spread * 100)}%` : ''}`;
+    }
+    else ref = `its own: ${fmtN(own, 2)} m${spread ? `, spread ±${Math.round(spread * 100)}% = ${fmtN(own * (1 - spread), 2)}–${fmtN(own * (1 + spread), 2)} m` : ''}${sr ? `; set to ${fmtN(sr.min, 2)} m (the spread still on top)` : ''}`;
+    return el('div', { class: 'size-range' },
+      el('span', { class: 'interval' }, a, el('span', { class: 'hint', text: 'to' }), bx, el('span', { class: 'hint', text: 'm' })),
+      el('div', { class: 'size-ref' + (bad ? ' bad' : ''), text: bad ? Model.sizeIssues(v).join('; ') : ref }));
+  }
+
+  // ------------------------------------------------------------------ the colour range (pass 58, R3)
+
+  /** The standing frame of a look (frame 0 of its strip, `cell` px square), scaled to S x S, with each pixel in linear
+   *  light: {S, alpha, lin}. One fetch and decode per strip, kept for the page's life. Painted at 192 px: the pictures
+   *  show at about 90 px in a row of four and at 240 px when clicked (the review of pass 58: at 58 px a tint was hard to
+   *  judge). */
+  const PREVIEW_S = 192;
+  const frameCache = new Map();
+  function standingFrame(url, cell) {
+    const key = `${url}|${cell}`;
+    if (frameCache.has(key)) return frameCache.get(key);
+    const p = new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const size = Math.max(1, Math.min(Number(cell) || 128, img.naturalWidth, img.naturalHeight));
+          const cv = document.createElement('canvas');
+          cv.width = PREVIEW_S; cv.height = PREVIEW_S;
+          const ctx = cv.getContext('2d', { willReadFrequently: true });
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, size, size, 0, 0, PREVIEW_S, PREVIEW_S);
+          const d = ctx.getImageData(0, 0, PREVIEW_S, PREVIEW_S).data;
+          const n = PREVIEW_S * PREVIEW_S;
+          const lin = new Float32Array(n * 3), alpha = new Uint8ClampedArray(n);
+          for (let i = 0; i < n; i++) {
+            alpha[i] = d[i * 4 + 3];
+            for (let j = 0; j < 3; j++) lin[i * 3 + j] = LIN8[d[i * 4 + j]];
+          }
+          resolve({ S: PREVIEW_S, alpha, lin });
+        } catch (e) { reject(e); }
+      };
+      img.onerror = () => reject(new Error('no strip at ' + url));
+      img.src = url;
+    });
+    frameCache.set(key, p);
+    return p;
+  }
+  // sRGB 0..255 -> linear, and linear 0..1 (4096 steps) -> sRGB 0..255
+  const LIN8 = new Float32Array(256).map((_, i) => Model.toLinear(i / 255));
+  const SRGB12 = new Uint8ClampedArray(4096).map((_, i) => Math.round(Model.toSrgb(i / 4095) * 255));
+
+  /** Paint `frame` into `canvas` washed with `tint` ([r, g, b] 0..1, as the game feeds it) at `amount` (R3: mix(rgb,
+   *  tint, amount × 0.65), in linear light like the billboard shader; Model.tintPixel is the same per pixel). Without a
+   *  tint the painting as it is. */
+  function paintFrame(canvas, frame, tint, amount) {
+    const S = frame.S;
+    canvas.width = S; canvas.height = S;
+    const ctx = canvas.getContext('2d');
+    const out = ctx.createImageData(S, S);
+    const k = tint ? Math.min(Math.max(Number(amount) || 0, 0), 1) * 0.65 : 0;
+    const t = tint || [0, 0, 0];
+    for (let i = 0, n = S * S; i < n; i++) {
+      const a = frame.alpha[i];
+      if (!a) continue;
+      for (let j = 0; j < 3; j++) {
+        const v = frame.lin[i * 3 + j] * (1 - k) + t[j] * k;
+        out.data[i * 4 + j] = SRGB12[Math.round(Math.min(Math.max(v, 0), 1) * 4095)];
+      }
+      out.data[i * 4 + 3] = a;
+    }
+    ctx.putImageData(out, 0, 0);
+  }
+
+  /** The strip of the look a row plays: its own art variant, else the creature's default; and its cell. */
+  function lookStrip(c, code) {
+    const v = code ? (c.variants || []).find((x) => x.code === code && x.ready) : null;
+    return { url: v && v.sprite ? v.sprite : c.sprite_play, cell: c.frame_px || 128, code: v ? v.code : (c.play || '') };
+  }
+
+  /** Garry: "Add option to change enemy colour (should be a kind of a range) ... I want a version that kind of colours all
+   *  the enemies that come out of that wave. I'd like a colour slider and a preview showing the actual enemy." The hue
+   *  range on a colour-wheel track with two handles (an end below the start runs through red; ⇄ takes the other side of
+   *  the wheel), saturation, brightness and amount sliders, Clear, and the creature's standing frame as the game tints it
+   *  at five hues across the range, then the row's coloured special in its darker shade (a click on a picture shows it
+   *  larger). A handle or a slider redraws the track at once and the pictures once a frame; the file is written when it
+   *  is let go (one undo step). */
+  function tintControl(stats, c, write, path, ctx) {
+    const cur = Model.tintRange(U.getPath(stats, 'tint'));
+    const wrap = el('div', { class: 'tint-ctl' + (cur ? '' : ' unset') });
+    const look = c ? lookStrip(c, ctx && ctx.look ? ctx.look() : '') : null;
+    const preview = el('div', { class: 'tint-preview' });
+    const pics = [];
+    const addPic = (label, cls, title) => {
+      const cv = el('canvas', { class: 'tint-pic', width: PREVIEW_S, height: PREVIEW_S });
+      const cap = el('div', { class: 'tint-cap', text: label });
+      // a click shows the picture larger (a click again, smaller)
+      const fig = el('figure', { class: 'tint-fig' + (cls ? ' ' + cls : ''), title: (title ? title + '. ' : '') + 'Click to see it larger' }, cv, cap);
+      fig.addEventListener('click', () => fig.classList.toggle('big'));
+      preview.appendChild(fig);
+      pics.push({ cv, cap, fig });
+    };
+    let frame = null;
+    if (!cur) {
+      addPic('as painted', 'orig');
+      wrap.appendChild(el('div', { class: 'hue-track off', style: `background:${U.hueGradient(0, 360, 0.85, 1, 13)}` }));
+      wrap.appendChild(el('div', { class: 'muted small', text: c ? `No colour range: ${U.theName(c.name)} keeps its own random tints (the Elite group).` : 'pick a creature first' }));
+      wrap.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small', type: 'button', text: 'Add a colour range', 'data-path': path, disabled: !c, onclick: () => write('tint', { hue: [200, 260], sat: Model.TINT_DEF.sat, val: Model.TINT_DEF.val, amount: Model.TINT_DEF.amount }) })));
+      if (look) {
+        wrap.appendChild(preview);
+        standingFrame(look.url, look.cell).then((f) => paintFrame(pics[0].cv, f, null, 0)).catch(() => { pics[0].cap.textContent = 'no picture'; });
+      }
+      return wrap;
+    }
+    const st = { h0: cur.h0, h1: cur.h1, sat: cur.sat, val: cur.val, amount: cur.amount };
+    const commit = () => write('tint', { hue: [Math.round(st.h0), Math.round(st.h1)], sat: Model.round(st.sat, 2), val: Model.round(st.val, 2), amount: Model.round(st.amount, 2) });
+    // the track: the wheel left to right (0° to 360°), the parts outside the range dimmed, a handle at each end
+    const track = el('div', { class: 'hue-track', title: 'drag a handle, or press the track to move the nearer one' });
+    const dimA = el('div', { class: 'hue-dim' }), dimB = el('div', { class: 'hue-dim' });
+    const hA = el('div', { class: 'hue-handle from', title: 'from' }), hB = el('div', { class: 'hue-handle to', title: 'to' });
+    track.append(dimA, dimB, hA, hB);
+    const n0 = el('input', { type: 'number', class: 'num tiny', min: 0, max: 360, step: 1, 'data-path': `${path}.hue.0`, title: 'from (degrees)' });
+    const n1 = el('input', { type: 'number', class: 'num tiny', min: 0, max: 360, step: 1, 'data-path': `${path}.hue.1`, title: 'to (degrees)' });
+    const spanTxt = el('span', { class: 'hint' });
+    const flip = el('button', { class: 'btn small ghost', type: 'button', text: '⇄', title: 'the other side of the wheel: swap from and to (a range through red becomes the hues between, and back)', onclick: () => { const t = st.h0; st.h0 = st.h1; st.h1 = t; commit(); } });
+    const sliders = {};
+    const slider = (k, label, help) => {
+      const r = el('input', { type: 'range', class: 'tint-slider', min: 0, max: 1, step: 0.01, value: st[k], 'data-path': `${path}.${k}`, title: help });
+      const out = el('span', { class: 'tint-val', text: fmtN(st[k], 2) });
+      r.addEventListener('input', () => { st[k] = Number(r.value); redraw(); });
+      r.addEventListener('change', () => { st[k] = Number(r.value); commit(); });
+      sliders[k] = { r, out };
+      return el('label', { class: 'tint-row', title: help }, el('span', { class: 'tint-lab', text: label }), r, out);
+    };
+    const redraw = () => {
+      const p0 = st.h0 / 360 * 100, p1 = st.h1 / 360 * 100;
+      track.style.background = U.hueGradient(0, 360, st.sat, st.val, 13);
+      if (st.h1 >= st.h0) {
+        Object.assign(dimA.style, { left: '0%', width: `${p0}%` });
+        Object.assign(dimB.style, { left: `${p1}%`, width: `${100 - p1}%` });
+      } else {
+        // through red: the hues between "to" and "from" are out
+        Object.assign(dimA.style, { left: `${p1}%`, width: `${p0 - p1}%` });
+        Object.assign(dimB.style, { left: '0%', width: '0%' });
+      }
+      hA.style.left = `${p0}%`; hB.style.left = `${p1}%`;
+      hA.style.background = U.hsvHex(st.h0, st.sat, st.val); hB.style.background = U.hsvHex(st.h1, st.sat, st.val);
+      if (document.activeElement !== n0) n0.value = Math.round(st.h0);
+      if (document.activeElement !== n1) n1.value = Math.round(st.h1);
+      const span = Model.hueSpan(st.h0, st.h1);
+      spanTxt.textContent = `${Math.round(span)}° wide${st.h1 < st.h0 ? ', through red' : ''}`;
+      for (const [k, s] of Object.entries(sliders)) s.out.textContent = fmtN(st[k], 2);
+      schedulePaint();
+    };
+    // the pictures: as painted, then five hues across the range (one when the range is a single hue), then the row's
+    // coloured special at the middle hue when the creature has specials (WV's follow-up: a darker, stronger shade of the
+    // hue it rolled, Model.tintSpecial; the review of pass 58: the help had promised the special's own colour)
+    const fracs = () => (Model.hueSpan(st.h0, st.h1) < 1e-9 ? [0] : [0, 0.25, 0.5, 0.75, 1]);
+    // an elite-modified creature (a coloured-elite event, a wave wearing a modifier) never rolls the special
+    const vs = c && !(ctx && ctx.modded) ? Model.varianceSpecial(c, stats) : { chance: 0 };
+    addPic('as painted', 'orig');
+    for (let i = 0; i < 5; i++) addPic('');
+    const spPic = vs.chance > 0 ? (addPic('special', 'special', `A coloured special of this row (${Math.round(vs.chance * 100)}% of them once Colour after kills is reached): the hue it rolled in a darker, stronger shade (saturation +0.15, brightness ×0.7, amount +0.15 over the larger of Amount and its own tint strength ${fmtN(vs.strength, 2)}), ×${fmtN(vs.size, 2)} the size`), pics[pics.length - 1]) : null;
+    const paintAll = () => {
+      paintFrame(pics[0].cv, frame, null, 0);
+      const fs = fracs();
+      for (let i = 1; i <= 5; i++) {
+        const f = fs[i - 1];
+        const fig = pics[i].fig;
+        if (f == null) { fig.hidden = true; continue; }
+        fig.hidden = false;
+        const h = Model.hueAt(st.h0, st.h1, f);
+        paintFrame(pics[i].cv, frame, Model.hsvToRgb(h, st.sat, st.val), st.amount);
+        pics[i].cap.textContent = `${Math.round(h)}°`;
+      }
+      if (spPic) {
+        const sp = Model.tintSpecial(st, vs.strength, fs.length > 1 ? 0.5 : 0);
+        paintFrame(spPic.cv, frame, sp.rgb, sp.amount);
+        spPic.cap.textContent = `special ${Math.round(sp.h)}°`;
+      }
+    };
+    // a slider or a handle repaints once a frame at most (seven 192 px pictures each time)
+    let paintRaf = 0;
+    const schedulePaint = () => {
+      if (!frame || paintRaf) return;
+      paintRaf = requestAnimationFrame(() => { paintRaf = 0; if (frame) paintAll(); });
+    };
+    // dragging a handle (or the track: the nearer handle jumps there)
+    const hueAtX = (clientX) => { const r = track.getBoundingClientRect(); return Math.min(Math.max((clientX - r.left) / Math.max(r.width, 1), 0), 1) * 360; };
+    const startDrag = (e, which) => {
+      if (e.button !== 0) return;
+      e.preventDefault(); e.stopPropagation();
+      const move = (ev) => { st[which] = hueAtX(ev.clientX); redraw(); };
+      const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); commit(); };
+      move(e);
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    };
+    hA.addEventListener('pointerdown', (e) => startDrag(e, 'h0'));
+    hB.addEventListener('pointerdown', (e) => startDrag(e, 'h1'));
+    track.addEventListener('pointerdown', (e) => {
+      if (e.target === hA || e.target === hB) return;
+      const h = hueAtX(e.clientX);
+      const near = (a2, b2) => Math.min(Math.abs(a2 - b2), 360 - Math.abs(a2 - b2));
+      startDrag(e, near(h, st.h0) <= near(h, st.h1) ? 'h0' : 'h1');
+    });
+    for (const [inp, k] of [[n0, 'h0'], [n1, 'h1']]) {
+      inp.addEventListener('change', () => { const v = U.parseNum(inp.value); if (v == null) return; st[k] = Math.min(Math.max(v, 0), 360); commit(); });
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
+    }
+    wrap.appendChild(track);
+    wrap.appendChild(el('div', { class: 'tint-hues' }, el('span', { class: 'hint', text: 'from' }), n0, el('span', { class: 'hint', text: '° to' }), n1, el('span', { class: 'hint', text: '°' }), flip, spanTxt));
+    wrap.appendChild(slider('sat', 'Saturation', 'how strong the colour is (0 = grey; the game\'s default 0.85)'));
+    wrap.appendChild(slider('val', 'Brightness', 'how light the colour is (0 = black; default 1)'));
+    wrap.appendChild(slider('amount', 'Amount', 'how much of the colour washes over the painting (0 = none, 1 = the most the game draws: 65% of the colour; default 0.5)'));
+    wrap.appendChild(preview);
+    wrap.appendChild(el('div', { class: 'tint-foot' },
+      el('span', { class: 'muted small', text: look ? `${U.theName(c.name)}${look.code ? ` (${look.code})` : ''} on the sand as the game washes it (each creature rolls its own hue in the range)` : '' }),
+      el('button', { class: 'btn small danger', type: 'button', text: 'Clear', title: 'no colour range: the creature\'s own tints again', onclick: () => write('tint', null) })));
+    redraw();
+    if (look) {
+      standingFrame(look.url, look.cell).then((f) => { frame = f; paintAll(); }).catch(() => { pics[0].cap.textContent = 'no picture'; });
+    }
+    return wrap;
   }
 
   function attacksControl(stats, c, write, path) {
@@ -290,29 +729,44 @@ const Inspector = (() => {
   function rosterForm(container, r, i) {
     const key = `roster:${i}`;
     const rows = App.tl().roster || [];
-    header(container, 'Roster row', `${App.creatureName(r.enemy)} · ${fmtT(r.t)} → ${r.until == null ? 'end' : fmtT(r.until)}`, key, [
+    const title = () => `${App.creatureName(r.enemy)} · ${fmtT(r.t)} → ${r.until == null ? 'end' : fmtT(r.until)}`;
+    const titleEl = header(container, 'Roster row', title(), key, [
       { text: '▲', title: 'move the row up (Alt+↑): the order is for this page only, the game draws by weight', disabled: i === 0, cls: 'order', onclick: () => App.moveRow(i, -1) },
       { text: '▼', title: 'move the row down (Alt+↓)', disabled: i >= rows.length - 1, cls: 'order', onclick: () => App.moveRow(i, 1) },
       ...listActions(),
     ], `${r.id ? `id ${r.id} · ` : ''}row ${i + 1} of ${rows.length}`);
     const c = App.creature(r.enemy);
     const form = el('div', { class: 'form' });
+    // pass 58: the row's numbers are fixed from its start; its look (its own variant, else the default) for the colours
+    const octx = { t0: () => r.t, from: 'row', look: () => r.variant };
     for (const def of FIELDS.roster) {
       if (def.key === 'id') continue;
-      if (def.type === 'weights') { form.appendChild(Forms.row(def, Forms.weightsBlock(r), { cls: 'wide-ctl' })); continue; }
-      form.appendChild(fieldFor(def, r, { enemyId: r.enemy, placeholders: { pack: c ? c.pack_size : '' }, note: def.key === 'pattern' ? patternNote('roster', r) : null }));
+      if (def.type === 'weights') {
+        // the Presence boxes follow a dragged bar or point (the review of pass 58: the time stayed put until the drop)
+        const pres = Forms.weightsBlock(r);
+        if (pres.refresh) liveFns.push(pres.refresh);
+        form.appendChild(Forms.row(def, pres, { cls: 'wide-ctl' }));
+        continue;
+      }
+      form.appendChild(fieldFor(def, r, Object.assign({ enemyId: r.enemy, placeholders: { pack: c ? c.pack_size : '' }, note: def.key === 'pattern' ? patternNote('roster', r) : null }, octx)));
+      // pass 58 review: the row's HP and ATK under From / Until, in sight with Overrides closed, following a dragged bar
+      if (def.key === 'until' && c) form.appendChild(numbersLine(c, () => (U.isObj(r.stats) ? r.stats : {}), () => r.t, 'row', null, '', () => (r.until == null || r.until === '' ? Infinity : Number(r.until))));
     }
-    const t0 = Math.max(Number(r.t) || 0, 0);
-    const open = App.rosterAt(t0).find((o) => o.i === i);
-    const lines = [];
-    if (open) lines.push(`At ${fmtT(t0)} this row weighs ${fmtN(open.w, 2)}: ${Math.round(open.norm * 100)}% of its channel's draw.`);
-    if (c) {
-      const at = App.creatureAt(c, r.stats, t0);
-      lines.push(`One spawned at ${fmtT(t0)}: HP ${fmtN(at.hp, 1)} · ATK ${fmtN(at.atk, 1)} (hero level ${App.S.level}; hover the bar for any other time).`);
-    }
-    lines.push('The order of the rows is for this page only: the game draws a burst by the weights, whatever the order.');
-    for (const l of lines) form.appendChild(el('p', { class: 'muted small', text: l }));
+    const facts = el('div', { class: 'row-facts' });
+    const fill = () => {
+      clear(facts);
+      const t0 = Math.max(Number(r.t) || 0, 0);
+      const open = App.rosterAt(t0).find((o) => o.i === i);
+      const lines = [];
+      if (open) lines.push(`At ${fmtT(t0)} this row weighs ${fmtN(open.w, 2)}: ${Math.round(open.norm * 100)}% of its channel's draw.`);
+      lines.push('The order of the rows is for this page only: the game draws a burst by the weights, whatever the order.');
+      for (const l of lines) facts.appendChild(el('p', { class: 'muted small', text: l }));
+    };
+    fill();
+    form.appendChild(facts);
     container.appendChild(form);
+    liveTimes(container, titleEl, title, r, ['t', 'until']);
+    liveFns.push(fill);
     jsonPeek(container, r);
   }
 
@@ -320,8 +774,9 @@ const Inspector = (() => {
 
   function waveForm(container, w, i) {
     const key = `wave:${i}`;
-    const end = App.waveEnd(w);
-    header(container, 'Wave', `${w.name || w.id || 'wave'} · ${fmtT(w.t)} → ${end === Infinity ? 'no end' : fmtT(end)}`, key, listActions());
+    const title = () => { const e = App.waveEnd(w); return `${w.name || w.id || 'wave'} · ${fmtT(w.t)} → ${e === Infinity ? 'no end' : fmtT(e)}`; };
+    const titleEl = header(container, 'Wave', title(), key, listActions());
+    liveTimes(container, titleEl, title, w, ['t', 'until']);
     const form = el('div', { class: 'form' });
     for (const def of FIELDS.wave) {
       if (def.type === 'alts') continue;
@@ -344,7 +799,8 @@ const Inspector = (() => {
       const c = App.creature(w.enemy);
       for (const def of FIELDS.alt) {
         if (def.key === 'chance') continue;
-        wrap.appendChild(fieldFor(def, w, { enemyId: w.enemy, placeholders: { pack: c ? c.pack_size : '' } }));
+        wrap.appendChild(fieldFor(def, w, { enemyId: w.enemy, placeholders: { pack: c ? c.pack_size : '' }, t0: () => w.t, from: 'wave', modded: !!w.elite, look: () => w.variant }));
+        if (def.key === 'enemy' && c) wrap.appendChild(numbersLine(c, () => (U.isObj(w.stats) ? w.stats : {}), () => w.t, 'wave', null, '', () => App.waveEnd(w)));
       }
       wrap.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small', type: 'button', text: 'Split into alternatives', title: defAlts.help, onclick: () => App.apply(() => {
         const first = { chance: 1 };
@@ -363,7 +819,10 @@ const Inspector = (() => {
         el('span', { class: 'spacer' }),
         el('button', { class: 'btn small', type: 'button', text: 'Copy', onclick: () => App.apply(() => { w.alts.splice(k + 1, 0, U.clone(a)); }) }),
         el('button', { class: 'btn small danger', type: 'button', text: '×', title: 'remove this alternative', disabled: alts.length <= 1, onclick: () => App.apply(() => { w.alts.splice(k, 1); }) })));
-      for (const def of FIELDS.alt) card.appendChild(fieldFor(def, a, { enemyId: a.enemy, pathPrefix: `alts.${k}`, placeholders: { pack: c ? c.pack_size : '' } }));
+      for (const def of FIELDS.alt) {
+        card.appendChild(fieldFor(def, a, { enemyId: a.enemy, pathPrefix: `alts.${k}`, placeholders: { pack: c ? c.pack_size : '' }, t0: () => w.t, from: 'wave', modded: !!w.elite, look: () => a.variant }));
+        if (def.key === 'enemy' && c) card.appendChild(numbersLine(c, () => (U.isObj(a.stats) ? a.stats : {}), () => w.t, 'wave', null, '', () => App.waveEnd(w)));
+      }
       wrap.appendChild(card);
     });
     wrap.appendChild(el('div', { class: 'alt-actions' },
@@ -381,7 +840,9 @@ const Inspector = (() => {
   function eventForm(container, ev, i) {
     const key = `event:${i}`;
     const info = FIELDS.EVENT_TYPES[ev.type];
-    header(container, 'Event', `${App.eventLabel(ev)} · ${fmtT(ev.t)}`, key, listActions());
+    const title = () => `${App.eventLabel(ev)} · ${fmtT(ev.t)}`;
+    const titleEl = header(container, 'Event', title(), key, listActions());
+    liveTimes(container, titleEl, title, ev, ['t']);
     if (info) container.appendChild(el('p', { class: 'insp-help' }, U.glyph(info.glyph), ' ', info.help));
     const form = el('div', { class: 'form' });
     const ids = U.idList(ev.enemy);
@@ -397,10 +858,23 @@ const Inspector = (() => {
         }), { path: 'type' })));
       } else if (def.type === 'enemies') {
         form.appendChild(Forms.row(def, enemiesControl(ev), {}));
+        // pass 58 review: what it spawns has these numbers (each creature of a list its own line, three at most)
+        const named = ids.map((id) => App.creature(id)).filter(Boolean);
+        const regular = named.filter((c) => Model.archOf(c) === 'regular');
+        regular.slice(0, 3).forEach((c) => form.appendChild(numbersLine(c, () => (U.isObj(ev.stats) ? ev.stats : {}), () => ev.t, 'event', ev, regular.length > 1 ? c.name : '')));
+        // Elites and bosses by their kind: one line for the lot (their own rules)
+        if (named.length && !regular.length) {
+          const bosses = named.every((c) => Model.archOf(c) === 'boss');
+          form.appendChild(el('div', { class: 'fhelp fnote rn-note rn-line', 'data-note': 'row-numbers' }, el('span', { class: 'rn-main' },
+            b(named.length > 1 ? `${named.map((c) => c.name).join(', ')}: ` : `${U.theName(named[0].name)}: `),
+            bosses ? 'a boss keeps its own rules: no time curve (its HP × per stage under Boss); the stage multiplier on top.'
+              : `${named.length > 1 ? 'Elite-archetype mini-bosses keep their' : 'an Elite-archetype mini-boss keeps its'} own rules: no time curve (HP × per stage under Mini-boss); the stage multiplier on top.`)));
+        }
       } else if (def.type === 'variant') {
         form.appendChild(Forms.row(def, Forms.variantSelect(ids[0] || '', ev.variant, (v) => App.apply(() => U.setKey(ev, 'variant', v)), { path: 'variant' })));
       } else if (def.type === 'overrides') {
-        form.appendChild(overridesBlock(ev, 'stats', ids[0] || '', 'stats'));
+        // pass 58: an event's creatures take their numbers from the second it fires (each firing of an "Elites every")
+        form.appendChild(overridesBlock(ev, 'stats', ids[0] || '', 'stats', { t0: () => ev.t, from: 'event', event: ev, each: ev.type === 'elite_every', modded: ev.type === 'elite' || ev.type === 'elite_every', look: () => ev.variant }));
       } else {
         form.appendChild(Forms.fieldRow(def, ev, { allowRandom: false, emptyLabel: def.key === 'mod' ? 'random modifier' : undefined, note: def.key === 'pattern' ? patternNote('event', ev) : null }));
       }
@@ -410,7 +884,7 @@ const Inspector = (() => {
       const lo = Array.isArray(iv) ? Number(iv[0]) : Number(iv == null ? 90 : iv);
       const hi = Array.isArray(iv) ? Number(iv[iv.length - 1]) : lo;
       const left = App.runEnd() - (Number(ev.t) || 0);
-      if (lo > 0) form.appendChild(el('p', { class: 'muted small', text: `About ${Math.floor(left / ((lo + hi) / 2))} coloured elites before the last boss (Hot Sauce makes them come sooner). With no creature named, each is drawn from the open roster rows by their Elite weight (Overrides → Elite).` }));
+      if (lo > 0) form.appendChild(el('p', { class: 'muted small', text: `About ${Math.floor(left / ((lo + hi) / 2))} coloured elites before the last boss (Hot Sauce makes them come sooner). With no creature named, each is drawn from the open roster rows by their Elite weight (Overrides → Elite) and comes with that row's HP and ATK, fixed from the row's start.` }));
     }
     container.appendChild(form);
     jsonPeek(container, ev);
@@ -499,8 +973,22 @@ const Inspector = (() => {
     }
     container.appendChild(t);
     container.appendChild(el('p', { class: 'muted small', text: isHp
-      ? `For an ordinary creature (hero level ${App.S.level}, the box in the top bar). An Elite-archetype mini-boss ignores the curve and the level (elite.hp_mult_per_stage^stage × stage × creature_hp_mult); a boss ignores creature_hp_mult too.`
-      : `Every hostile damage (hero level ${App.S.level}): bites, shots, spit, artillery, blasts, boss attacks. creature_damage_mult is in Settings → Scaling.` }));
+      ? `For an ordinary creature of a row starting at that second (hero level ${App.S.level}, the box in the top bar). An Elite-archetype mini-boss ignores the curve and the level (elite.hp_mult_per_stage^stage × stage × creature_hp_mult); a boss ignores creature_hp_mult too.`
+      : `Every hostile damage of a row starting at that second (hero level ${App.S.level}): bites, shots, spit, artillery, blasts, boss attacks. creature_damage_mult is in Settings → Scaling.` }));
+    // pass 58: the intended curve against what the rows really carry (the Actual lane above it)
+    container.appendChild(section(`Intended and actual`, 'each row keeps the curve of its own start (or its override): the Actual lane averages what spawns round each second'));
+    const act = App.actual();
+    const ser = act.series;
+    const ta = el('table', { class: 'kv wide' });
+    ta.appendChild(el('tr', {}, el('td', { text: 'time' }), el('td', { text: 'intended' }), el('td', { text: 'actual average' }), el('td', { text: 'actual largest' })));
+    for (const tt of times) {
+      const k = Math.max(0, Math.min(ser.ts.length - 1, Math.round(tt)));
+      const pick = isHp ? ser.hp : ser.atk;
+      const fx = (v) => (v == null ? '–' : `×${fmtN(v, 2)}`);
+      ta.appendChild(el('tr', {}, el('td', { text: fmtT(tt) }), el('td', { text: fx(isHp ? App.hpTimeMult(tt) : App.dmgTimeMult(tt)) }), el('td', { text: fx(pick.avg[k]) }), el('td', { text: fx(pick.max[k]) })));
+    }
+    container.appendChild(ta);
+    container.appendChild(el('p', { class: 'muted small', text: `A row keeps the ${isHp ? 'HP' : 'damage'} curve of its own start for its whole life (Garry: "a single wave of those enemies will stay consistent for the duration of their spawns"), so a long row lags the curve and a row with its own ${isHp ? 'HP' : 'damage'} sits wherever that puts it. "–": nothing of the roster or the waves spawns round that second (swarms, coloured elites and the specials are not counted: each takes the curves at the second it comes, or the numbers of a row or wave bringing the same creature then). The average weighs each row by what it spawns (the Spawned so far estimate). The Actual lane shares this curve's scale while the rows fit under it; higher multiples give it its own, up to ${fmtN(Model.ACTUAL_CLAMP, 1)} times as tall, and a ▲ marks anything past its top.` }));
   }
 
   /** The Share band's table: each creature's share of its channel's draw at the stage marks and halfway through. */
@@ -573,5 +1061,5 @@ const Inspector = (() => {
     return kind;
   }
 
-  return { render, overridesBlock, formatShares, patternNote };
+  return { render, live, overridesBlock, formatShares, patternNote };
 })();

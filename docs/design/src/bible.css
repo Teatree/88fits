@@ -247,3 +247,5 @@ dl.kv.tuning code{overflow-wrap:anywhere;word-break:break-word}
   .it-beh{display:inline;margin-left:6px}
   .it-evocell{margin-top:2px}
 }
+/* pass 58: a creature's blood colour (its death splash) before its numbers */
+.blood { display: inline-block; width: 0.8em; height: 0.8em; border-radius: 50%; border: 1.5px solid var(--ink, #241b14); margin-right: 0.4em; vertical-align: -0.08em; }

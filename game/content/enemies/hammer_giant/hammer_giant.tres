@@ -51,6 +51,7 @@ fps = {
 knockback = 6.36
 max_alive = 3
 head = 1.0
+blood = Color(0.7607843, 0.0627451, 0.09411765, 1)
 variants = {
 "HG-0": {
 "anims": {

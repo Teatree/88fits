@@ -39,6 +39,7 @@ fps = {
 }
 knockback = 3.8
 head = 1.0
+blood = Color(0.8235294, 0.09411765, 0.16470589, 1)
 retired = true
 sfx = {
 "die": "en_lizard_die",

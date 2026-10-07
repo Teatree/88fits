@@ -38,6 +38,7 @@ fps = {
 }
 knockback = 4.16
 head = 0.961
+blood = Color(1, 0.41568628, 0.07058824, 1)
 cap_share = 0.6
 sfx = {
 "die": "en_goblin_die",

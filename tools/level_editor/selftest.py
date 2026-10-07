@@ -12,12 +12,22 @@
    copy of a creature (only its `variant` line changes, the file's own line endings and final newline kept, an unpainted
    or unknown code refused). Nothing under game/ is written.
 
+3. Pass 58: a row's HP and ATK fixed from its start (R1: rowNumbers and creatureAt's t0, hand-checked and against the
+   Python copy), the estimate's per-source tallies and the Actual HP x / ATK x lanes (average and largest, by hand on a
+   small timeline and against the Python copy on Red Canyon), the size and colour range checks and maths (the tint mixed
+   in linear light like the billboard shader), the records' strips and blood, the line-level key writer (mixed line
+   endings kept) and the blood endpoint on temporary copies (one line changed, bad colours refused, over HTTP too).
+   The pass 58 review: a coloured row's special shade against EnemyDef.tint_special_color (and its constants read from
+   EnemyDef.gd), the variance special a row reads, the Actual lane's own top, an "Elites every" event's firings, and a
+   one-number size list read as the game reads it (a range of one size).
+
 Without node the first part is skipped (said so) and the second still runs. Exit code 0 = every check passed.
 """
 import json
 import math
 import os
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -110,9 +120,127 @@ def stage_mult(tl, s, t):
     return last
 
 
-def creature_at(tl, c, stats, t, level):
-    """EnemyManager.spawn's health (regular / Elite archetype / boss) and the pass-54 damage (stage x level x
-    creature_damage_mult x damage curve)."""
+def hp_time(tl, t):
+    return curve_mult(tl["hp_curve"], t) if tl.get("hp_curve") else (1 + float(tl.get("hp_growth", 0.08)) * t / 60) ** float(tl.get("hp_power", 1.2))
+
+
+def dmg_time(tl, t):
+    return curve_mult(tl["damage_curve"], t) if tl.get("damage_curve") else 1.0
+
+
+def arch_of(c):
+    if c.get("archetype") == "boss" or c.get("kind") == "boss":
+        return "boss"
+    return "elite" if c.get("archetype") == "elite" else "regular"
+
+
+def row_numbers(tl, c, stats, t0):
+    """Pass 58, R1 (WV's "For ED"): a row's HP and ATK fixed from its start t0. hp_time = 1 when the stats have `hp`,
+    else the HP curve at t0; Row HP = (stats.hp, else JSON hp x hp_time) x hp_mult; ATK the same; an Elite-archetype
+    creature or a boss takes no curve. The multiples are row / JSON."""
+    st = stats or {}
+    arch = arch_of(c)
+    hp_over, dmg_over = st.get("hp") is not None, st.get("damage") is not None
+    ht = hp_time(tl, t0) if arch == "regular" and not hp_over else 1.0
+    dt = dmg_time(tl, t0) if arch == "regular" and not dmg_over else 1.0
+    jh, jd = float(c.get("hp", 0)), float(c.get("damage", 0))
+    hp = (float(st["hp"]) if hp_over else jh * ht) * float(st.get("hp_mult", 1.0))
+    atk = (float(st["damage"]) if dmg_over else jd * dt) * float(st.get("damage_mult", 1.0))
+    return {"arch": arch, "hp": hp, "atk": atk, "hp_time": ht, "dmg_time": dt,
+            "hp_mult": hp / jh if jh > 0 else None, "atk_mult": atk / jd if jd > 0 else None}
+
+
+def fixed_from(tl, t0, t):
+    """WaveDirector.source_for after lane WV's fix round: a row's numbers are fixed from its start t0 through the stages;
+    in endless wave N (from 1) from the later of t0 and the wave's start, stage_length x stages + (N - 1) x
+    endless_wave_seconds (60 when the map has none)."""
+    frm = max(numv(t0, 0), 0)
+    end = float(tl.get("stage_length", 300)) * max(1, int(tl.get("stages", 3)))
+    if not t >= end:
+        return frm
+    ews = max(float(tl.get("endless_wave_seconds", 60)), 1.0)
+    return max(frm, end + math.floor((t - end) / ews) * ews)
+
+
+def look_of(c, variant):
+    """WaveDirector._look_of: "" for the creature's own look (no code, its default, a code it does not have)."""
+    v = "" if variant is None else str(variant)
+    if not c or v == "" or v == str(c.get("variant") or ""):
+        return ""
+    return v if any(str(x.get("code")) == v for x in (c.get("variants") or []) if isinstance(x, dict)) else ""
+
+
+def wave_end_of(w):
+    """App.waveEnd: `until`, else the last burst of a counted wave, else never."""
+    t = numv(w.get("t"), 0)
+    if w.get("until") not in (None, ""):
+        return numv(w.get("until"), INF)
+    count, burst, every = numv(w.get("count"), 0), max(1, numv(w.get("burst"), 1)), numv(w.get("every"), 0)
+    return t + every * math.ceil(count / burst) if count > 0 else INF
+
+
+def open_source_of(tl, by_id, cid, variant, t, late_t=600):
+    """WaveDirector.open_source_of: the heaviest roster row (either channel) open at t with weight above 0 bringing the
+    creature in the same look, else the first wave in its window with an alternative that does. (kind, i, k, t0, stats)."""
+    c = by_id.get(cid)
+    if not c:
+        return None
+    look = look_of(c, variant)
+    best, best_w = None, 0.0
+    for i, r in enumerate(tl.get("roster") or []):
+        if not is_obj(r) or str(r.get("enemy") or "") != cid or look_of(c, r.get("variant")) != look:
+            continue
+        start = numv(r.get("t"), 0)
+        until = INF if r.get("until") in (None, "") else numv(r.get("until"), INF)
+        if not (start <= t < until):
+            continue
+        w = roster_weight(r, t, late_t)
+        if w > best_w:
+            best_w, best = w, ("roster", i, 0, max(start, 0), r.get("stats") if is_obj(r.get("stats")) else {})
+    if best:
+        return best
+    for i, w in enumerate(tl.get("waves") or []):
+        if not is_obj(w) or not (numv(w.get("t"), 0) <= t < wave_end_of(w)):
+            continue
+        alts = w.get("alts") if isinstance(w.get("alts"), list) and w.get("alts") else [w]
+        for k, a in enumerate(alts):
+            if is_obj(a) and str(a.get("enemy") or "") == cid and look_of(c, a.get("variant")) == look:
+                return ("wave", i, k, max(numv(w.get("t"), 0), 0), a.get("stats") if is_obj(a.get("stats")) else {})
+    return None
+
+
+def event_numbers(tl, by_id, cid, variant, stats, t, late_t=600):
+    """WaveDirector.event_numbers: the curves at t, except that each half (HP, ATK) the event's own stats leave alone is
+    the row's (fixed from its start, afresh in endless) while a row or wave brings the creature in the same look; a boss
+    or an Elite never joins. (hp, atk, joined, hp_joined, dmg_joined, hp_from, dmg_from)."""
+    c = by_id.get(cid)
+    st = stats or {}
+    at = max(numv(t, 0), 0)
+    own = row_numbers(tl, c or {"hp": 0, "damage": 0}, st, at)
+    out = {"hp": own["hp"], "atk": own["atk"], "joined": None, "hp_joined": False, "dmg_joined": False, "hp_from": at, "dmg_from": at}
+    if not c or own["arch"] != "regular":
+        return out
+    hp_own, dmg_own = ("hp" in st or "hp_mult" in st), ("damage" in st or "damage_mult" in st)
+    if hp_own and dmg_own:
+        return out
+    src = open_source_of(tl, by_id, cid, variant, at, late_t)
+    if not src:
+        return out
+    frm = fixed_from(tl, src[3], at)
+    rn = row_numbers(tl, c, src[4], frm)
+    out["joined"] = list(src[:3])
+    if not hp_own:
+        out.update(hp=rn["hp"], hp_joined=True, hp_from=frm)
+    if not dmg_own:
+        out.update(atk=rn["atk"], dmg_joined=True, dmg_from=frm)
+    return out
+
+
+def creature_at(tl, c, stats, t, level, t0=None):
+    """EnemyManager.spawn's health (regular / Elite archetype / boss) and damage. Pass 58 (R1): a regular creature's
+    numbers are its row's, fixed from the row's start t0 (the curves read at t0, an override takes none), times the stage
+    at t, the hero level and creature_hp_mult / creature_damage_mult; an Elite or a boss as before (its damage on the live
+    curve at t). t0 None = t."""
     st = stats or {}
     s = int(math.floor(t / float(tl.get("stage_length", 300))))
     sm = stage_mult(tl, s, t)
@@ -120,19 +248,66 @@ def creature_at(tl, c, stats, t, level):
     lv_dmg = 1 + float(tl.get("level_damage_per_level", 0)) * max(level - 1, 0)
     chm = float(tl.get("creature_hp_mult", 1.0))
     cdm = float(tl.get("creature_damage_mult", 1.0))
-    hp_t = curve_mult(tl["hp_curve"], t) if tl.get("hp_curve") else (1 + float(tl.get("hp_growth", 0.08)) * t / 60) ** float(tl.get("hp_power", 1.2))
-    dmg_t = curve_mult(tl["damage_curve"], t) if tl.get("damage_curve") else 1.0
     hp = float(st.get("hp", c["hp"])) * float(st.get("hp_mult", 1.0))
     dmg = float(st.get("damage", c["damage"])) * float(st.get("damage_mult", 1.0))
-    if c.get("archetype") == "boss":
+    row = row_numbers(tl, c, st, t if t0 is None else fixed_from(tl, t0, t))
+    if arch_of(c) == "boss":
         per = float((st.get("boss") or {}).get("hp_mult_per_stage", (c.get("boss") or {}).get("hp_mult_per_stage", 1.6)))
         hp = hp * per ** s * max(sm, 1.0)
-    elif c.get("archetype") == "elite":
+    elif arch_of(c) == "elite":
         per = float((st.get("elite") or {}).get("hp_mult_per_stage", (c.get("elite") or {}).get("hp_mult_per_stage", 1.8)))
         hp = hp * per ** s * max(sm, 1.0) * chm
     else:
-        hp = hp * sm * hp_t * lv_hp * chm
-    return hp, dmg * sm * lv_dmg * cdm * dmg_t
+        return row["hp"] * sm * lv_hp * chm, row["atk"] * sm * lv_dmg * cdm
+    return hp, dmg * sm * lv_dmg * cdm * dmg_time(tl, t)
+
+
+def actual_sources(tl):
+    """model.js actualSources: every roster row and every wave alternative with its creature, stats and start."""
+    out = []
+    for i, r in enumerate(tl.get("roster") or []):
+        if is_obj(r):
+            out.append({"key": "roster:%d" % i, "id": str(r.get("enemy") or ""), "stats": r.get("stats") if is_obj(r.get("stats")) else {}, "t0": max(numv(r.get("t"), 0), 0)})
+    for i, w in enumerate(tl.get("waves") or []):
+        if not is_obj(w):
+            continue
+        alts = w.get("alts") if isinstance(w.get("alts"), list) else []
+        lst = [(a, k) for k, a in enumerate(alts) if is_obj(a)] if alts else [(w, 0)]
+        for a, k in lst:
+            out.append({"key": "wave:%d:%d" % (i, k), "id": str(a.get("enemy") or ""), "stats": a.get("stats") if is_obj(a.get("stats")) else {}, "t0": max(numv(w.get("t"), 0), 0)})
+    return out
+
+
+def actual_at(tl, by_id, est, t, win=10):
+    """model.js actualAt: the sources that spawned in the `win` seconds round t (the estimate's tallies), their
+    multiples, and the spawn-weighted average and the largest of the HP and ATK multiples."""
+    hi = point_at(est, t + win / 2)
+    lo = point_at(est, t - win / 2) if t - win / 2 >= 0 else None
+    rows = []
+    for s in actual_sources(tl):
+        c = by_id.get(s["id"])
+        if not c:
+            continue
+        n = (hi["src"].get(s["key"], 0) if hi else 0) - (lo["src"].get(s["key"], 0) if lo else 0)
+        if not n > 1e-9:
+            continue
+        rn = row_numbers(tl, c, s["stats"], fixed_from(tl, s["t0"], t))
+        atk = rn["atk_mult"]
+        if atk is not None and rn["arch"] != "regular":
+            atk *= dmg_time(tl, t)
+        rows.append({"key": s["key"], "n": n, "hp": rn["hp_mult"], "atk": atk})
+
+    def agg(key):
+        sw = sv = 0.0
+        mx = None
+        for r in rows:
+            if r[key] is None:
+                continue
+            sw += r["n"]
+            sv += r["n"] * r[key]
+            mx = r[key] if mx is None or r[key] > mx else mx
+        return {"avg": sv / sw if sw > 0 else None, "max": mx}
+    return {"rows": rows, "hp": agg("hp"), "atk": agg("atk")}
 
 
 # ---------------------------------------------------------------- the spawn estimate, in Python (pass 57)
@@ -367,13 +542,13 @@ def spawn_estimate(tl, creatures, opts=None):
         return d
 
     roster = []
-    for r in tl.get("roster") if isinstance(tl.get("roster"), list) else []:
+    for ri, r in enumerate(tl.get("roster") if isinstance(tl.get("roster"), list) else []):
         if not is_obj(r):
             continue
         d = def_of(str("" if r.get("enemy") is None else r.get("enemy")), r.get("stats"))
         if d:
             until = 1e9 if r.get("until") is None or r.get("until") == "" else numv(r.get("until"), 1e9)
-            roster.append({"r": r, "d": d, "t": numv(r.get("t"), 0), "until": until, "hell": r.get("channel") == "hell",
+            roster.append({"r": r, "d": d, "key": "roster:%d" % ri, "t": numv(r.get("t"), 0), "until": until, "hell": r.get("channel") == "hell",
                            "pack": max(trunc(numv(r.get("pack"), d["pack"])), 1), "single": r.get("pattern") == "single"})
 
     alive = {}
@@ -382,6 +557,7 @@ def spawn_estimate(tl, creatures, opts=None):
          "endless": False, "en_next_boss": 0.0, "en_next_elite": 0.0, "en_next_elite_boss": 0.0, "en_boss_i": 0,
          "boss_alive": None, "kills": 0.0, "colour_at": None, "ev_i": 0, "held_retry": 0.0, "sp_left": -1}
     cum, col, mod = {}, {}, {}
+    src_cum = {}
     cat = {"reg": 0.0, "col": 0.0, "mod": 0.0, "elite": 0.0, "special": 0.0, "boss": 0.0, "minion": 0.0}
     marks, fights = [], []
 
@@ -499,20 +675,20 @@ def spawn_estimate(tl, creatures, opts=None):
         return out
 
     waves = []
-    for w in tl.get("waves") if isinstance(tl.get("waves"), list) else []:
+    for wi, w in enumerate(tl.get("waves") if isinstance(tl.get("waves"), list) else []):
         if not is_obj(w):
             continue
-        alts = [a for a in (w.get("alts") if isinstance(w.get("alts"), list) else []) if is_obj(a)]
-        lst = alts if alts else [{"chance": 1, "enemy": w.get("enemy"), "pack": w.get("pack"), "stats": w.get("stats")}]
+        alts = [(a, k) for k, a in enumerate(w.get("alts") if isinstance(w.get("alts"), list) else []) if is_obj(a)]
+        lst = alts if alts else [({"chance": 1, "enemy": w.get("enemy"), "pack": w.get("pack"), "stats": w.get("stats")}, 0)]
         s = 0.0
-        for a in lst:
+        for a, _k in lst:
             s += max(numv(a.get("chance"), 1), 0)
         branches = []
-        for a in lst:
+        for a, k in lst:
             p = ((max(numv(a.get("chance"), 1), 0) / s) if s > 0 else 0) if alts else 1
             d = def_of(str("" if a.get("enemy") is None else a.get("enemy")), a.get("stats"))
             if p > 0:
-                branches.append({"p": p, "d": d, "spawned": 0, "next": numv(w.get("t"), 0), "done": not d})
+                branches.append({"p": p, "d": d, "key": "wave:%d:%d" % (wi, k), "spawned": 0, "next": numv(w.get("t"), 0), "done": not d})
         waves.append({"t": numv(w.get("t"), 0), "until": None if w.get("until") is None or w.get("until") == "" else numv(w.get("until"), 0),
                       "count": trunc(numv(w.get("count"), 0)), "burst": max(trunc(numv(w.get("burst"), 5)), 1),
                       "every": numv(w.get("every"), 0), "respect": w.get("respect_cap") is not False,
@@ -565,6 +741,7 @@ def spawn_estimate(tl, creatures, opts=None):
                     came = n if n > 0 else 0
                     if came > 0:
                         add(b["d"], b["p"] * came, "mod" if w["elite"] and colour_open() else "reg")
+                        bump(src_cum, b["key"], b["p"] * came)
                         b["spawned"] += came
                     if w["every"] <= 0:
                         if came > 0:
@@ -780,6 +957,7 @@ def spawn_estimate(tl, creatures, opts=None):
         for i, c in enumerate(lst):
             n = got[i] * scale
             add(c["x"]["d"], n, "reg")
+            bump(src_cum, c["x"]["key"], n)
             used += n
         return left - used
 
@@ -823,7 +1001,8 @@ def spawn_estimate(tl, creatures, opts=None):
     def record(after):
         by = {cid: [cum[cid], col.get(cid, 0), mod.get(cid, 0)] for cid in cum}
         points.append({"t": clock(), "after": after, "all": total(), "reg": cat["reg"], "col": cat["col"], "mod": cat["mod"],
-                       "elite": cat["elite"], "special": cat["special"], "boss": cat["boss"], "minion": cat["minion"], "kills": S["kills"], "alive": bodies(), "by": by})
+                       "elite": cat["elite"], "special": cat["special"], "boss": cat["boss"], "minion": cat["minion"], "kills": S["kills"], "alive": bodies(), "by": by,
+                       "src": dict(src_cum)})
 
     record(False)
     end_k = js_round(end * EST_HZ)
@@ -908,7 +1087,22 @@ process.stdin.on('end', () => {
   out.curve = q.curve.map(([c, t]) => M.curveMult(c, t));
   out.conv = q.conv.map(([tl]) => { const copy = JSON.parse(JSON.stringify(tl)); const n = M.normaliseRoster(copy); return { roster: copy.roster, n }; });
   out.weight = q.weight.map(([r, t, late]) => M.rowWeight(r, t, late));
-  out.creature = q.creature.map(([tl, c, st, t, lv]) => { const r = M.creatureAt(tl, c, st, t, lv); return [r.hp, r.atk, r.arch]; });
+  out.creature = q.creature.map(([tl, c, st, t, lv, t0]) => { const r = M.creatureAt(tl, c, st, t, lv, t0); return [r.hp, r.atk, r.arch]; });
+  out.rows = (q.rows || []).map(([tl, c, st, t0]) => { const r = M.rowNumbers(tl, c, st, t0); return [r.hp, r.atk, r.hpMult, r.atkMult, r.arch]; });
+  out.size = (q.size || []).map((v) => [M.sizeIssues(v), M.sizeRange(v)]);
+  out.tint = (q.tint || []).map((v) => [M.tintIssues(v), M.tintRange(v)]);
+  out.hue = (q.hue || []).map(([h0, h1, f]) => [M.hueSpan(h0, h1), M.hueAt(h0, h1, f)]);
+  out.hsv = (q.hsv || []).map(([h, s, v]) => M.hsvToRgb(h, s, v));
+  out.px = (q.px || []).map(([rgb, tint, amount]) => M.tintPixel(rgb, tint, amount));
+  out.special = (q.special || []).map(([r, ss, f]) => M.tintSpecial(r, ss, f));
+  out.vspecial = (q.vspecial || []).map(([c, st]) => M.varianceSpecial(c, st));
+  out.ascale = (q.ascale || []).map(([own, top]) => M.actualScale(own, top));
+  out.firings = (q.firings || []).map(([ev, n, end]) => M.eliteEveryTimes(ev, n, end));
+  out.fixed = (q.fixed || []).map(([tl, t0, t]) => M.fixedFrom(tl, t0, t));
+  out.events = (q.events || []).map(([tl, byId, id, variant, stats, t]) => {
+    const r = M.eventNumbers(tl, byId, id, variant, stats, t);
+    return { hp: r.hp, atk: r.atk, joined: r.joined ? [r.joined.kind, r.joined.i, r.joined.k] : null, hpJoined: r.hpJoined, dmgJoined: r.dmgJoined, hpFrom: r.hpFrom, dmgFrom: r.dmgFrom, share: r.joined ? r.joined.share : null };
+  });
   out.knock = q.knock.map(([c, st]) => M.knockbackOf(c, st));
   out.seed = q.seed.map(([tl, f]) => M.seedPoints(tl, f));
   process.stdout.write(JSON.stringify(out));
@@ -1026,6 +1220,58 @@ def model_checks():
              (tl_legacy, walker, {}, 600, 1), (tl_legacy, boss, {"hp_mult": 0.5}, 1290, 3)]
     for c in cases:
         q["creature"].append(list(c))
+    # pass 58, R1: a row's numbers fixed from its start t0 (the 6th item); the hand-checked ones are read back below
+    r1_cases = [(tl, walker, {}, 900, 10, 192), (tl, walker, {"hp": 20}, 900, 10, 192), (tl, walker, {}, 200, 1, 192),
+                (tl, walker, {}, 400, 1, 192), (tl, elite, {}, 1000, 7, 200), (tl, elite, {}, 1000, 7, None),
+                (tl, walker, {"damage": 6, "hp_mult": 1.5}, 600, 4, 100), (tl, boss, {}, 860, 1, 0), (tl_legacy, walker, {}, 700, 3, 50),
+                # lane WV's fix round: in endless a row is fixed afresh from its wave's start (1376 here, not 192)
+                (tl, walker, {}, 1400, 5, 192)]
+    q["creature"] += [list(c) for c in r1_cases]
+    q["rows"] = [[tl, walker, {}, 192], [tl, walker, {"hp": 20}, 192], [tl, walker, {"damage": 6, "damage_mult": 2}, 430],
+                 [tl, elite, {"hp_mult": 2}, 645], [tl, boss, {}, 860], [tl, {"id": "z", "hp": 0, "damage": 0}, {}, 10]]
+    # pass 58, R2 / R3: the size and colour ranges' checks and maths
+    q["size"] = [None, 1.4, [1.2, 1.6], [1.6, 1.2], [0, 1], [-1], [2], [1, 2, 3], "x", [None, 1], True, 0, [1.5, 1.5]]
+    q["tint"] = [None, {"hue": [200, 260]}, {"hue": [340, 20], "sat": 0.5, "val": 0.8, "amount": 1}, {"hue": 120},
+                 {"hue": [10, 400]}, {"hue": [10, 20], "amount": 1.5}, {"sat": 0.5}, {"hue": []}, "red", {"hue": ["a", 2]},
+                 {"hue": [0, 360], "val": -0.1}]
+    q["hue"] = [[200, 260, 0.5], [340, 20, 0.5], [340, 20, 0], [340, 20, 1], [0, 360, 1], [90, 90, 0.7], [350, 10, 0.75]]
+    q["hsv"] = [[0, 1, 1], [120, 1, 1], [240, 1, 1], [60, 0.5, 0.8], [300, 0.85, 1.0], [0, 0, 0.5], [359.9, 1, 1]]
+    q["px"] = [[[0.5, 0.5, 0.5], [1, 0, 0], 0], [[0.5, 0.5, 0.5], [1, 0, 0], 1], [[1, 1, 1], [0, 0, 1], 0.5], [[0.2, 0.4, 0.6], [0.2, 0.4, 0.6], 0.7]]
+    # the review of pass 58: a coloured row's special (EnemyDef.tint_special_color), the variance block it reads, the
+    # Actual lane's own top, and an "Elites every" event's firings
+    q["special"] = [[{"h0": 200, "h1": 260, "sat": 0.85, "val": 1, "amount": 0.5}, 0.45, 0.5],
+                    [{"h0": 330, "h1": 30, "sat": 0.9, "val": 0.6, "amount": 0.9}, 0.45, 0.5],
+                    [{"h0": 120, "h1": 120, "sat": 0.2, "val": 0.5, "amount": 0.1}, None, 0],
+                    [{"h0": 10, "h1": 50, "sat": 1, "val": 0.3, "amount": 0.2}, 0.7, 1]]
+    skel_var = {"size": 0.2, "tints": ["#FFFFFF"], "tint_strength": 0.18, "special_chance": 0.12,
+                "special": {"size": 1.5, "hp": 2.0, "tint": "#6E1A2A", "tint_strength": 0.45}}
+    q["vspecial"] = [[{"variance": skel_var}, {}], [{"variance": skel_var}, {"variance": {"special": {"tint_strength": 0.8}}}],
+                     [{"variance": skel_var}, {"variance": {"special_chance": 0}}], [{}, {}],
+                     [{"variance": {"special_chance": 0.1}}, {}], [{}, {"variance": {"special_chance": 0.2}}]]
+    q["ascale"] = [[5.21, 20], [5.21, 2.33], [5.21, 5.0], [5.21, 5.3], [0, 3], [4, None]]
+    q["firings"] = [[{"t": 301, "interval": 129}, 4, 1290], [{"t": 301, "interval": [60, 120]}, 3, None],
+                    [{"t": 1200, "interval": 129}, 4, 1290], [{"t": 0, "interval": 0}, 4, None], [{"t": 100}, 2, None]]
+    # lane WV's fix round: endless fixes every row afresh at each wave, and an event of a creature a row or a wave
+    # brings then plays that row's numbers (WaveDirector.source_for, event_numbers, open_source_of)
+    tl_short = {"stage_length": 300, "stages": 3}
+    q["fixed"] = [[tl, 860, 1400], [tl, 192, 1000], [tl, 1300, 1400], [tl, 1500, 1500], [tl, 0, 1290], [tl_short, 100, 1400], [tl, 860, 1375.9]]
+    ev_tl = dict(tl, roster=[
+        {"id": "a", "t": 192, "until": 400, "enemy": "skeleton", "weights": [[192, 5]], "stats": {"hp": 20}},
+        {"id": "b", "t": 300, "until": 600, "enemy": "skeleton", "weights": [[300, 8]]},
+        {"id": "c", "t": 0, "until": 100, "enemy": "skeleton", "variant": "SK-B", "weights": [[0, 3]]},
+        {"id": "d", "t": 860, "enemy": "imp", "channel": "hell", "weights": [[860, 9]]},
+        {"id": "z", "t": 500, "until": 700, "enemy": "skeleton", "weights": [[500, 0], [700, 0]]}],
+        waves=[{"t": 700, "until": 800, "enemy": "skeleton", "stats": {"damage": 9}},
+               {"t": 1000, "count": 10, "burst": 5, "every": 10, "alts": [{"chance": 1, "enemy": "goblin"}, {"chance": 3, "enemy": "imp", "variant": "IM-B"}]}])
+    ev_by = {"skeleton": {"id": "skeleton", "hp": 10, "damage": 3, "variant": "SK-A", "variants": [{"code": "SK-A"}, {"code": "SK-B"}]},
+             "imp": {"id": "imp", "hp": 20, "damage": 5, "variant": "", "variants": [{"code": "IM-B"}]},
+             "goblin": {"id": "goblin", "hp": 8, "damage": 2, "variants": []},
+             "dune_scorpion": {"id": "dune_scorpion", "archetype": "elite", "hp": 260, "damage": 10, "variants": []}}
+    q["events"] = [[ev_tl, ev_by, cid, var, st, t] for cid, var, st, t in [
+        ("skeleton", "", {}, 250), ("skeleton", "", {}, 350), ("skeleton", "SK-A", {}, 350), ("skeleton", "SK-B", {}, 50),
+        ("skeleton", "SK-B", {}, 350), ("skeleton", "", {"hp": 50}, 350), ("skeleton", "", {"hp": 50, "damage_mult": 2}, 350),
+        ("skeleton", "", {}, 650), ("skeleton", "", {}, 750), ("imp", "", {}, 900), ("imp", "", {}, 1400), ("imp", "IM-B", {}, 1005),
+        ("goblin", "", {}, 1005), ("dune_scorpion", "", {}, 350), ("nobody", "", {}, 350), ("skeleton", "XX-9", {}, 350)]]
     q["knock"] = [[{"damage": 4}, {}], [{"damage": 4, "knockback": 5.5}, {}], [{"damage": 100}, {}], [{"damage": 0.5}, {}],
                   [{"damage": 4}, {"knockback": 6, "knockback_mult": 0.5}], [{"damage": 4}, {"damage": 16}]]
     q["seed"] = [[{"stage_length": 430, "stages": 3}, {"kind": "power", "a": 0.0977, "b": 1.25}]]
@@ -1066,9 +1312,143 @@ def model_checks():
                   "row %s: the page converts as WD did (%s vs %s)" % (c.get("id"), m["weights"], c["weights"]))
     else:
         print("note: Red Canyon's roster no longer matches the pre-pass-54 rows; the WD agreement check is skipped")
-    for (tlc, c, st, t, lv), got in zip(q["creature"], res["creature"]):
-        hp, atk = creature_at(tlc, c, st, t, lv)
-        check(close(got[0], hp) and close(got[1], atk), "%s at %s level %s with %s: js HP %s ATK %s, py HP %s ATK %s" % (c["id"], t, lv, st, got[0], got[1], hp, atk))
+    for case, got in zip(q["creature"], res["creature"]):
+        tlc, c, st, t, lv = case[:5]
+        t0 = case[5] if len(case) > 5 else None
+        hp, atk = creature_at(tlc, c, st, t, lv, t0)
+        check(close(got[0], hp) and close(got[1], atk), "%s at %s level %s from %s with %s: js HP %s ATK %s, py HP %s ATK %s" % (c["id"], t, lv, t0, st, got[0], got[1], hp, atk))
+    # R1 by hand (Red Canyon-like: the power curve 0.0977 / 1.25, stage 3 x3.34 at 15:00, level 10 = x1.45 HP, x1.27 ATK)
+    r1 = res["creature"][len(cases):]
+    ht192 = (1 + 0.0977 * 192 / 60) ** 1.25
+    dt192 = 1 + 0.5 * 192 / 860
+    check(close(r1[0][0], 10 * ht192 * 3.34 * 1.45 * 1.3) and close(r1[0][1], 3 * dt192 * 3.34 * 1.27 * 1.25),
+          "R1: a row from 3:12 met at 15:00 keeps the HP curve of 3:12 (x%.4f), the stage steps live: %s" % (ht192, r1[0]))
+    check(close(r1[1][0], 20 * 3.34 * 1.45 * 1.3), "R1: a row with hp 20 takes no curve: %s" % r1[1])
+    check(close(r1[2][0], r1[3][0]) and close(r1[2][1], r1[3][1]), "R1: the same row at 3:20 and 6:40 (stage 1): the same HP and ATK: %s %s" % (r1[2], r1[3]))
+    check(close(r1[4][0], r1[5][0]) and close(r1[4][1], r1[5][1]), "R1: an Elite ignores the row's start: %s %s" % (r1[4], r1[5]))
+    ht100 = (1 + 0.0977 * 100 / 60) ** 1.25
+    check(close(r1[6][0], 10 * ht100 * 1.5 * 2.2 * 1.15 * 1.3) and close(r1[6][1], 6 * 2.2 * 1.09 * 1.25),
+          "R1: hp_mult on the curve's HP, a damage override takes no curve: %s" % r1[6])
+    rows = res["rows"]
+    check(close(rows[0][2], ht192) and close(rows[0][0], 10 * ht192) and close(rows[0][3], dt192), "rowNumbers: the multiples at 3:12: %s" % rows[0])
+    check(close(rows[1][0], 20) and close(rows[1][2], 2.0) and close(rows[1][3], dt192), "rowNumbers: an hp override over the JSON's 10 is x2: %s" % rows[1])
+    check(close(rows[2][1], 12) and close(rows[2][3], 4.0), "rowNumbers: damage 6 x damage_mult 2 over the JSON's 3 is x4 (no curve): %s" % rows[2])
+    check(close(rows[3][2], 2.0) and rows[3][4] == "elite", "rowNumbers: an Elite takes no curve, only hp_mult: %s" % rows[3])
+    check(close(rows[4][2], 1.0) and rows[4][4] == "boss", "rowNumbers: a boss takes no curve: %s" % rows[4])
+    check(rows[5][2] is None and rows[5][3] is None, "rowNumbers: no multiple when the JSON's number is 0: %s" % rows[5])
+    for (tlc, c, st, t0), got in zip(q["rows"], rows):
+        py = row_numbers(tlc, c, st, t0)
+        check(close(got[0], py["hp"]) and close(got[1], py["atk"]) and (got[2] is None) == (py["hp_mult"] is None) and got[4] == py["arch"],
+              "rowNumbers %s from %s with %s: js %s py %s" % (c["id"], t0, st, got, py))
+    # R2: sizes
+    sz = res["size"]
+    want_ok = [True, True, True, False, False, False, True, False, False, False, False, False, True]
+    for v, (issues, rng), ok in zip(q["size"], sz, want_ok):
+        check((not issues) == ok, "size %r: %s (want %s)" % (v, issues or "fine", "fine" if ok else "an issue"))
+    check(sz[2][1] == {"min": 1.2, "max": 1.6, "range": True} and sz[1][1] == {"min": 1.4, "max": 1.4, "range": False}, "sizeRange: a pair and a number: %s %s" % (sz[2][1], sz[1][1]))
+    check(sz[3][1]["min"] == 1.2 and sz[3][1]["max"] == 1.6 and "backwards" in sz[3][0][0], "a reversed pair is an error, read as the game swaps it: %s" % (sz[3],))
+    # the review of pass 58: EnemyDef.size_range_of reads [2] as Vector2(2, 2), a range (no spread, the radius following)
+    check(sz[6][1] == {"min": 2, "max": 2, "range": True}, "a one-number list is a range of one size, as the game reads it: %s" % (sz[6][1],))
+    check(sz[12][1] == {"min": 1.5, "max": 1.5, "range": True}, "two equal numbers are a range of one size too: %s" % (sz[12][1],))
+    # R3: colour ranges
+    tn = res["tint"]
+    want_ok = [True, True, True, True, False, False, False, False, False, False, False]
+    for v, (issues, rng), ok in zip(q["tint"], tn, want_ok):
+        check((not issues) == ok, "tint %r: %s (want %s)" % (v, issues or "fine", "fine" if ok else "an issue"))
+    check(tn[1][1] == {"h0": 200, "h1": 260, "sat": 0.85, "val": 1, "amount": 0.5}, "tintRange fills R3's defaults (0.85, 1.0, 0.5): %s" % tn[1][1])
+    check(tn[3][1]["h0"] == 120 and tn[3][1]["h1"] == 120, "a plain hue is that hue (WV): %s" % tn[3][1])
+    hu = res["hue"]
+    check(hu[0] == [60, 230] and hu[1] == [40, 0] and hu[2][1] == 340 and hu[3][1] == 20 and hu[4][1] == 0 and hu[5] == [0, 90] and close(hu[6][1], 5),
+          "hues: 200..260 halfway 230; 340..20 wraps through red (span 40, halfway 0); 350..10 three quarters = 5: %s" % hu)
+    hs = res["hsv"]
+    import colorsys
+    for (h, s, v), got in zip(q["hsv"], hs):
+        want = colorsys.hsv_to_rgb((h % 360) / 360.0, s, v)
+        check(all(close(a, b, 1e-9) for a, b in zip(got, want)), "hsvToRgb(%s, %s, %s): %s, want %s" % (h, s, v, got, want))
+
+    def lin(c):
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+    def srgb(c):
+        return c * 12.92 if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055
+    for (rgb, tint, amount), got in zip(q["px"], res["px"]):
+        k = amount * 0.65
+        want = [min(max(srgb(lin(a) * (1 - k) + b * k), 0), 1) for a, b in zip(rgb, tint)]
+        check(all(close(a, b, 1e-9) for a, b in zip(got, want)), "tintPixel(%s, %s, %s): %s, want %s (the shader's mix in linear light)" % (rgb, tint, amount, got, want))
+    check(all(close(a, b, 1e-9) for a, b in zip(res["px"][0], [0.5, 0.5, 0.5])), "amount 0 leaves the pixel as painted")
+
+    # the review of pass 58: a coloured row's special, EnemyDef.tint_special_color (saturation + SPECIAL_SAT_ADD 0.15 at
+    # most 1, value x SPECIAL_VAL_MULT 0.7, strength max(amount, the special's tint_strength, 0.6 when it has none) +
+    # SPECIAL_STRENGTH_ADD 0.15 at most 1), with the hue EnemyDef.roll_hue gives at u = f
+    def roll_hue(h0, h1, u):
+        span = h1 - h0
+        if span < 0:
+            span += 360
+        return (h0 + min(max(u, 0), 1) * span) % 360
+    for (r, ss, f), got in zip(q["special"], res["special"]):
+        h = roll_hue(r["h0"], r["h1"], f)
+        want = colorsys.hsv_to_rgb(h / 360.0, min(r["sat"] + 0.15, 1.0), r["val"] * 0.7)
+        amt = min(max(r["amount"], 0.6 if ss is None else ss) + 0.15, 1.0)
+        check(close(got["h"], h) and all(close(a, b, 1e-9) for a, b in zip(got["rgb"], want)) and close(got["amount"], amt),
+              "tintSpecial(%s, %s, %s): %s, want hue %s rgb %s strength %s" % (r, ss, f, got, h, want, amt))
+    # the game's own constants, read from EnemyDef.gd, are the ones the copy above (and model.js) use
+    gd = os.path.join(ROOT, "game", "core", "data", "EnemyDef.gd")
+    if os.path.isfile(gd):
+        src = open(gd, encoding="utf-8").read()
+        for name, want in (("SPECIAL_SAT_ADD", 0.15), ("SPECIAL_VAL_MULT", 0.7), ("SPECIAL_STRENGTH_ADD", 0.15)):
+            m = re.search(r"const\s+%s\s*:?=\s*([0-9.]+)" % name, src)
+            check(m is not None and close(float(m.group(1)), want), "EnemyDef.%s is %s, as model.js tintSpecial assumes (%s)" % (name, m.group(1) if m else "missing", want))
+    sp = res["special"]
+    check(close(sp[0]["h"], 230) and close(sp[0]["amount"], 0.65) and close(max(sp[0]["rgb"]), 0.7),
+          "special by hand: 200-260 at amount 0.5 with the skeleton's 0.45 is hue 230 at value 0.7, strength 0.65: %s" % sp[0])
+    check(close(sp[1]["h"], 0) and close(sp[1]["amount"], 1.0), "special by hand: 330-30 through red, middle hue 0, strength capped at 1: %s" % sp[1])
+    check(close(sp[2]["amount"], 0.75), "special by hand: no tint_strength = the game's 0.6, + 0.15: %s" % sp[2])
+    vs = res["vspecial"]
+    want_vs = [(0.12, 0.45, 1.5), (0.12, 0.8, 1.5), (0, 0.45, 1.5), (0, 0.6, 1.3), (0.1, 0.6, 1.3), (0.2, 0.6, 1.3)]
+    for (c, st), got, (ch, stg, sz_) in zip(q["vspecial"], vs, want_vs):
+        check(close(got["chance"], ch) and close(got["strength"], stg) and close(got["size"], sz_),
+              "varianceSpecial(%s, %s): %s, want chance %s strength %s size %s (the row's variance deep-merged over the creature's)" % (c, st, got, ch, stg, sz_))
+    want_sc = [5.21 * 1.5, 5.21, 5.21, 5.3 * 1.15, 1.5 * 1.5, 4]
+    for (own, top), got, want in zip(q["ascale"], res["ascale"], want_sc):
+        check(close(got, want), "actualScale(%s, %s): %s, want %s (the curve's top while the rows fit under it, else up to 1.5 times it)" % (own, top, got, want))
+    want_fi = [[301, 430, 559, 688], [301, 391, 481], [1200], [0], [100, 190]]
+    for (ev, n, end), got, want in zip(q["firings"], res["firings"], want_fi):
+        check(len(got) == len(want) and all(close(a, b) for a, b in zip(got, want)), "eliteEveryTimes(%s, %s, %s): %s, want %s" % (ev, n, end, got, want))
+
+    # lane WV's fix round, endless: every row fixed afresh at each wave (1290 + N x 86 on the Red Canyon-like timeline)
+    want_fx = [1376, 192, 1376, 1500, 1290, 1380, 1290]
+    for (tlc, t0, t), got, want in zip(q["fixed"], res["fixed"], want_fx):
+        check(close(got, want) and close(got, fixed_from(tlc, t0, t)), "fixedFrom(t0 %s, t %s): %s, want %s" % (t0, t, got, want))
+    r1x = res["creature"][len(cases) + len(r1_cases) - 1]
+    check(close(r1x[0], 10 * hp_time(tl, 1376) * stage_mult(tl, 3, 1400) * 1.2 * 1.3),
+          "R1 in endless: a row from 3:12 met at 23:20 takes the curve at its wave's start 22:56, not 3:12: %s" % r1x)
+    # lane WV's fix round, events: the joined row's numbers for the halves the event leaves alone
+    ev_cases = q["events"]
+    for case, got in zip(ev_cases, res["events"]):
+        tlc, by, cid, var, st, t = case
+        py = event_numbers(tlc, by, cid, var, st, t)
+        check(close(got["hp"], py["hp"]) and close(got["atk"], py["atk"]) and got["joined"] == py["joined"] and got["hpJoined"] == py["hp_joined"]
+              and got["dmgJoined"] == py["dmg_joined"] and close(got["hpFrom"], py["hp_from"]) and close(got["dmgFrom"], py["dmg_from"]),
+              "eventNumbers(%s %r %s at %s): js %s py %s" % (cid, var, st, t, got, py))
+    ev = res["events"]
+    dt = lambda s_: 1 + 0.5 * s_ / 860  # noqa: E731 (the damage curve's points [[0, 1], [860, 1.5]])
+    check(ev[0]["joined"] == ["roster", 0, 0] and close(ev[0]["hp"], 20) and close(ev[0]["atk"], 3 * dt(192)) and close(ev[0]["hpFrom"], 192),
+          "an event at 4:10 joins row a: its own hp 20 (no curve) and the damage curve at its 3:12: %s" % ev[0])
+    check(ev[1]["joined"] == ["roster", 1, 0] and close(ev[1]["hp"], 10 * hp_time(tl, 300)), "two rows open: the heavier (b, 8 over 5) lends its numbers: %s" % ev[1])
+    check(ev[2]["joined"] == ev[1]["joined"], "the creature's default code is its own look: %s" % ev[2])
+    check(ev[3]["joined"] == ["roster", 2, 0] and ev[4]["joined"] is None and close(ev[4]["hp"], 10 * hp_time(tl, 350)),
+          "another look joins only a row in that look: %s / %s" % (ev[3], ev[4]))
+    check(not ev[5]["hpJoined"] and ev[5]["dmgJoined"] and close(ev[5]["hp"], 50) and close(ev[5]["atk"], 3 * dt(300)),
+          "an event's own hp is its own; the half it leaves alone joins: %s" % ev[5])
+    check(ev[6]["joined"] is None and close(ev[6]["atk"], 3 * dt(350) * 2), "both halves its own: no join: %s" % ev[6])
+    check(ev[7]["joined"] is None, "a row at weight 0 brings nothing: %s" % ev[7])
+    check(ev[8]["joined"] == ["wave", 0, 0] and close(ev[8]["atk"], 9) and close(ev[8]["hp"], 10 * hp_time(tl, 700)), "no row: an open wave lends its numbers: %s" % ev[8])
+    check(ev[10]["joined"] == ["roster", 3, 0] and close(ev[10]["hp"], 20 * hp_time(tl, 1376)) and close(ev[10]["hpFrom"], 1376),
+          "in endless the joined row is fixed afresh at the wave's start: %s" % ev[10])
+    check(ev[11]["joined"] == ["wave", 1, 1] and close(ev[11]["share"], 0.75) and ev[12]["joined"] == ["wave", 1, 0],
+          "a wave's alternative that brings the creature in that look joins (its share of the roll): %s / %s" % (ev[11], ev[12]))
+    check(ev[13]["joined"] is None and ev[14]["joined"] is None, "an Elite by its kind, or an unknown creature, never joins: %s / %s" % (ev[13], ev[14]))
+    check(ev[15]["joined"] == ev[1]["joined"], "an unknown code is the creature's own look: %s" % ev[15])
     expect_kb = [3.4, 5.5, 7.0, 2.5, 3.0, 6.8]
     for (c, st), got, want in zip(q["knock"], res["knock"], expect_kb):
         check(close(got["value"], want, 1e-6), "knockback of %s with %s: %s, want %s" % (c, st, got, want))
@@ -1087,13 +1467,18 @@ process.stdin.on('data', (d) => { src += d; });
 process.stdin.on('end', () => {
   const q = JSON.parse(src);
   const t0 = Date.now();
-  const out = q.cases.map(([tl, cr, opts]) => {
-    const e = M.spawnEstimate(tl, cr, opts);
-    return { points: e.points, ids: e.ids, marks: e.marks, fights: e.fights, colourAt: e.colourAt };
+  const ests = q.cases.map(([tl, cr, opts]) => M.spawnEstimate(tl, cr, opts));
+  const out = ests.map((e) => ({ points: e.points, ids: e.ids, marks: e.marks, fights: e.fights, colourAt: e.colourAt }));
+  // pass 58: the Actual HP x / ATK x lanes read the estimate's per-source tallies
+  const byIdOf = (cr) => { const m = {}; for (const c of cr) m[c.id] = c; return m; };
+  const actual = (q.actual || []).map(([k, t, win]) => {
+    const a = M.actualAt(q.cases[k][0], byIdOf(q.cases[k][1]), ests[k], t, win);
+    return { hp: a.hp, atk: a.atk, total: a.total, rows: a.rows.map((r) => ({ key: r.key, n: r.n, hp: r.hp, atk: r.atk, share: r.share, t0: r.t0, start: r.start })) };
   });
+  const series = (q.series || []).map(([k, end, step, win]) => M.actualSeries(q.cases[k][0], byIdOf(q.cases[k][1]), ests[k], end, step, win));
   const at = q.at.map(([k, t, before]) => { const e = M.spawnEstimate(q.cases[k][0], q.cases[k][1], q.cases[k][2]); const p = M.estimateAt(e, t, before); return [p.t, p.after, p.all]; });
   const brood = q.brood.map(([script, cd, secs, pace]) => M.bossBrood(script, cd, secs, pace));
-  process.stdout.write(JSON.stringify({ out, at, brood, ms: Date.now() - t0 }));
+  process.stdout.write(JSON.stringify({ out, at, brood, actual, series, ms: Date.now() - t0 }));
 });
 """
 
@@ -1163,6 +1548,18 @@ EST_C_TL = {
 }
 EST_C_OPTS = {"turnover": [0.05, 0.08], "bossSeconds": 20, "portalSeconds": 15, "skin": "fod", "boss": "bossy2", "end": 400}
 
+# pass 58, the Actual lanes by hand: three rows of one pack-5 creature at equal weights (so every burst gives each open row
+# the same), A plain from 0:00, B with hp 30 / damage 4 (x3 / x2 of the JSON's 10 / 2), C plain from 0:50 (its multiples
+# the curves at 0:50 for good: x1.5 HP, x2 ATK); a no-cap wave of 2 a second from 0:30 to 0:40 with hp_mult 2 (x2.6)
+EST_D_TL = {"stage_length": 100, "stages": 1, "cap_curve": [[0, 10]], "cap_max": 100, "hard_cap": 300, "burst_min": 10,
+            "burst_max": 10, "spawn_interval": 0.5, "hp_curve": {"mode": "points", "points": [[0, 1], [100, 2]]},
+            "damage_curve": {"mode": "points", "points": [[0, 1], [100, 3]]},
+            "roster": [{"id": "rA", "t": 0, "enemy": "a", "weights": [[0, 1]]},
+                       {"id": "rB", "t": 0, "enemy": "a", "weights": [[0, 1]], "stats": {"hp": 30, "damage": 4}},
+                       {"id": "rC", "t": 50, "enemy": "a", "weights": [[50, 1]]}],
+            "waves": [{"id": "w1", "t": 30, "until": 40, "burst": 2, "every": 1, "respect_cap": False, "enemy": "a", "stats": {"hp_mult": 2}}]}
+EST_D_CR = [{"id": "a", "kind": "enemy", "archetype": "walker", "hp": 10, "damage": 2, "cap_share": 1, "pack_size": 5, "max_alive": 0}]
+
 
 def est_close(a, b, eps=1e-9):
     if a is None or b is None:
@@ -1188,6 +1585,14 @@ def estimate_diff(js, py):
             for cid in pj["by"]:
                 if not all(est_close(x, y) for x, y in zip(pj["by"][cid], pp["by"][cid])):
                     out.append("%s at %s: js %s py %s" % (cid, pj["t"], pj["by"][cid], pp["by"][cid]))
+        # pass 58: what each roster row and wave alternative spawned (the Actual lanes' weights)
+        sj, sp = pj.get("src", {}), pp.get("src", {})
+        if set(sj) != set(sp):
+            out.append("sources at %s: js %s py %s" % (pj["t"], sorted(sj), sorted(sp)))
+        else:
+            for key in sj:
+                if not est_close(sj[key], sp[key]):
+                    out.append("source %s at %s: js %s py %s" % (key, pj["t"], sj[key], sp[key]))
         if len(out) > 5:
             break
     if js["ids"] != py["ids"]:
@@ -1233,18 +1638,22 @@ def estimate_checks():
         [rc_tl, creatures, dict(rc_opts, turnover=[0.0573, 0.0441])],
         [rc_tl, creatures, dict(rc_opts, turnover=[[30, 0.03], [90, 0.07], [330, 0.09], [600, 0.05]])],
         [EST_C_TL, EST_C_CR, dict(EST_C_OPTS, turnover=7, bossSeconds=1e9, portalSeconds=-5, end=300)],
+        [EST_D_TL, EST_D_CR, {"turnover": 0.1, "end": 100}],
     ]
     king = [{"name": "roll", "windup": 1.0, "duration": 1.2}, {"name": "tumbleweed_volley", "windup": 0.8, "count": 12},
             {"name": "spawn_ring", "windup": 0.8, "count": 12, "enemy": "tumbleweed_minion"}, {"name": "slam", "windup": 1.2}]
     brood_cases = [[king, 2.0, 44.2, 0.9], [king, 2.0, 10.0, 0.9], [king, 1.0, 44.2, 1.0], [[{"name": "erupt", "windup": 1.0, "count": 6, "interval": 0.5, "spawn": "imp"}], 3.0, 20, 1.0], [[], 2.0, 60, 1.0]]
-    q = {"cases": cases, "at": [[0, 50, True], [0, 50, False], [0, 50.5, True], [0, 49.99, False], [3, 430, True], [3, 430, False]], "brood": brood_cases}
+    actual_q = [[7, 20, 10], [7, 70, 10], [7, 35, 10], [7, 2, 10], [3, 200, 10], [3, 450, 10], [3, 900, 10], [3, 1300, 10],
+                [3, 60, 4], [2, 45, 10], [2, 135, 10], [2, 75, 6], [5, 330, 10], [3, 1420, 10]]
+    q = {"cases": cases, "at": [[0, 50, True], [0, 50, False], [0, 50.5, True], [0, 49.99, False], [3, 430, True], [3, 430, False]], "brood": brood_cases,
+         "actual": actual_q, "series": [[3, 1500, 5, 10], [7, 100, 1, 10]]}
     res = run_node(q, ESTIMATE_RUNNER)
     if res is None:
         print("node not found: the estimate's model.js checks are skipped")
         return
     if not res:
         return
-    names = ["hand-checked", "nothing dies", "every rule", "Red Canyon flat", "Red Canyon per stage", "Red Canyon curve", "silly numbers"]
+    names = ["hand-checked", "nothing dies", "every rule", "Red Canyon flat", "Red Canyon per stage", "Red Canyon curve", "silly numbers", "Actual by hand"]
     import time
     t0 = time.time()
     pys = [spawn_estimate(tl, cr, opts) for tl, cr, opts in cases]
@@ -1350,6 +1759,61 @@ def estimate_checks():
     mb = [f for f in c["fights"] if f["boss"] == "bossy2"]
     check(mb and mb[0]["minions"] == 0, "every rule: a boss without a script brings none")
 
+    # pass 58: the per-source tallies and the Actual HP x / ATK x lanes
+    for name, js in zip(names, res["out"]):
+        bad = []
+        for p in js["points"]:
+            reg = sum(v for k, v in p["src"].items())
+            if reg > p["reg"] + 1e-6:
+                bad.append(p["t"])
+        check(not bad, "%s: the rows' and waves' tallies never pass the regular crowd spawned (first bad at %s)" % (name, bad[:3]))
+    d = res["out"][7]
+    p40 = point_at(d, 40)
+    check(est_close(p40["src"].get("wave:0:0", 0), 20, 1e-12), "Actual by hand: the wave's 10 bursts of 2 are its tally: %s" % p40["src"].get("wave:0:0"))
+    pa = point_at(d, 49)
+    check(est_close(pa["src"]["roster:0"], pa["src"]["roster:1"], 1e-12) and "roster:2" not in pa["src"],
+          "Actual by hand: two rows at equal weights spawn the same; C not yet: %s" % pa["src"])
+    pb = point_at(d, 90)
+    check(est_close(pb["src"]["roster:2"] - point_at(d, 60)["src"]["roster:2"], pb["src"]["roster:0"] - point_at(d, 60)["src"]["roster:0"], 1e-12),
+          "Actual by hand: three rows at equal weights spawn the same: %s" % pb["src"])
+    act = {tuple(k[:2]): a for k, a in zip(actual_q, res["actual"])}
+    a20, a70, a35, a2 = act[(7, 20)], act[(7, 70)], act[(7, 35)], act[(7, 2)]
+    check(est_close(a20["hp"]["avg"], 2.0, 1e-12) and est_close(a20["hp"]["max"], 3.0, 1e-12), "Actual HP at 0:20: half x1, half x3 = avg x2, max x3: %s" % a20["hp"])
+    check(est_close(a20["atk"]["avg"], 1.5, 1e-12) and est_close(a20["atk"]["max"], 2.0, 1e-12), "Actual ATK at 0:20: avg x1.5, max x2: %s" % a20["atk"])
+    check(est_close(a70["hp"]["avg"], (1 + 3 + 1.5) / 3, 1e-12) and est_close(a70["hp"]["max"], 3.0, 1e-12),
+          "Actual HP at 1:10: C keeps the curve of its start 0:50 (x1.5, while the curve says x1.7): avg %s" % a70["hp"])
+    check(est_close(a70["atk"]["avg"], (1 + 2 + 2) / 3, 1e-12) and est_close(a70["atk"]["max"], 2.0, 1e-12), "Actual ATK at 1:10: (1 + 2 + 2) / 3: %s" % a70["atk"])
+    w35 = [r for r in a35["rows"] if r["key"] == "wave:0:0"]
+    # the window is 0:30 to 0:40: the point at 0:30 already holds the first burst, the wave ends before 0:40's, so 9 x 2
+    check(w35 and est_close(w35[0]["hp"], 1.3 * 2, 1e-12) and est_close(w35[0]["n"], 18, 1e-12) and est_close(w35[0]["t0"], 30, 1e-12),
+          "Actual at 0:35: the wave's 18 in the window carry x2.6 (the curve at its start 0:30 x hp_mult 2): %s" % w35)
+    # the no-cap wave keeps the crowd over the cap of 10 from 0:30, so the roster refills nothing until it has thinned:
+    # the window holds the wave alone (avg = max = x2.6); at 0:25 its first burst weighs in beside A and B
+    check(len(a35["rows"]) == 1 and est_close(a35["hp"]["max"], 2.6, 1e-12) and est_close(a35["hp"]["avg"], 2.6, 1e-12) and abs(sum(r["share"] for r in a35["rows"]) - 1) < 1e-9,
+          "Actual at 0:35: the wave alone over the cap: %s" % [(r["key"], r["n"]) for r in a35["rows"]])
+    check(a2["hp"]["avg"] is not None and a2["total"] > 0, "Actual at 0:02: the window starts at 0:00: %s" % a2["hp"])
+    # the page and the Python copy agree on every sample
+    by_ids = [{c0["id"]: c0 for c0 in cr} for _tl, cr, _o in cases]
+    for (k, t, win), got in zip(actual_q, res["actual"]):
+        py = actual_at(cases[k][0], by_ids[k], pys[k], t, win)
+        same = len(py["rows"]) == len(got["rows"]) and all(est_close(a, b) for a, b in [(got["hp"]["avg"], py["hp"]["avg"]), (got["hp"]["max"], py["hp"]["max"]), (got["atk"]["avg"], py["atk"]["avg"]), (got["atk"]["max"], py["atk"]["max"])])
+        check(same, "actualAt(%s at %s, window %s): js hp %s atk %s (%d rows), py hp %s atk %s (%d rows)" % (names[k], t, win, got["hp"], got["atk"], len(got["rows"]), py["hp"], py["atk"], len(py["rows"])))
+    # lane WV's fix round: in endless every row is fixed afresh at its wave's start (Red Canyon: 21:30 + 86 s a wave)
+    rc_tl = cases[3][0]
+    rc_end = float(rc_tl.get("stage_length", 300)) * int(rc_tl.get("stages", 3))
+    rc_ews = max(float(rc_tl.get("endless_wave_seconds", 60)), 1.0)
+    w_start = rc_end + math.floor((1420 - rc_end) / rc_ews) * rc_ews
+    rows1420 = act[(3, 1420)]["rows"]
+    check(rows1420 and all(est_close(r["t0"], max(r["start"], w_start), 1e-12) for r in rows1420),
+          "Actual in endless: every row at 23:40 fixed from its wave's start %s: %s" % (w_start, [(r["key"], r["start"], r["t0"]) for r in rows1420]))
+    rc200 = act[(3, 200)]
+    check(rc200["hp"]["max"] is not None and rc200["hp"]["max"] >= rc200["hp"]["avg"] - 1e-12, "Red Canyon at 3:20: the max is never under the average: %s" % rc200["hp"])
+    ser = res["series"][1]
+    check(len(ser["ts"]) == 101 and est_close(ser["hp"]["avg"][20], a20["hp"]["avg"], 1e-12) and est_close(ser["hp"]["max"][70], 3.0, 1e-12),
+          "actualSeries samples actualAt each second: %d samples" % len(ser["ts"]))
+    rs = res["series"][0]
+    check(all(m is None or a is None or m >= a - 1e-9 for a, m in zip(rs["hp"]["avg"], rs["hp"]["max"])), "Red Canyon: the HP max never under the average")
+
 
 def fit_checks():
     """fit_turnover on hand-made records: the pooled kill rate, the stages, the curve, the fights and waits, which
@@ -1418,6 +1882,17 @@ def server_checks():
         check(sk["knockback"] is None or isinstance(sk["knockback"], (int, float)), "knockback is a number or null")
         check(any(v.get("ready") for v in sk["variants"]), "the skeleton's variants say which are painted")
     check(not any(cid.startswith("training_dummy") for cid in recs), "no training dummy in the palette")
+    # pass 58: the look in play's strip and its cell (the colour preview), every look's strip, the blood colour
+    if sk:
+        check(sk["sprite_play"] == "/sprite/enemy/skeleton/%s" % sk["play"] and isinstance(sk["frame_px"], int) and sk["frame_px"] > 0,
+              "the skeleton's record names its strip in play and its cell: %s %s" % (sk["sprite_play"], sk["frame_px"]))
+        check(all(v.get("sprite", "").startswith("/sprite/enemy/skeleton/") for v in sk["variants"]), "every look names its strip")
+        sp = server.sprite_path("enemy", "skeleton", sk["play"])
+        check(sp is not None and os.path.basename(sp) == "skeleton_sprite_a.png" if sk["play"] == "SK-A" else sp is not None, "the strip in play is on disk: %s" % sp)
+        check(os.path.basename(server.sprite_path("enemy", "skeleton", "") or "") == "skeleton_sprite.png", "no code: the top-level strip")
+        check(os.path.basename(server.sprite_path("enemy", "skeleton", "NOPE") or "") == "skeleton_sprite.png", "an unknown code: the top-level strip")
+    check(server.sprite_path("enemy", "../etc", "") is None and server.sprite_path("elite", "speedy", "") is None, "a bad id or kind has no strip")
+    check(all(c["blood"] is None or server.HEX_RE.match(c["blood"]) for c in recs.values()), "every record's blood is #rrggbb or null")
     # a base strip without its own entry is a look of its own
     for c in recs.values():
         if c["variant_base"]:
@@ -1474,6 +1949,90 @@ def server_checks():
         keys = list(json.loads(open(path, encoding="utf-8").read()).keys())
         check(keys.index("variant") == keys.index("variants") - 1, "variant added just before variants: %s" % keys)
         check(len([f for f in os.listdir(server.BACKUPS) if f.startswith("testbeast-")]) >= 3, "every write left a backup")
+
+        # pass 58: a file with LF lines and a CRLF only on its last line (fire_ant, the red goblins): the default look
+        # changes that one line and keeps every line's own ending (the old re-dump made the whole file CRLF)
+        mixed = json.dumps(d, indent=2, ensure_ascii=False) + "\r\n"   # LF lines, the closing brace's line CRLF
+        with open(path, "wb") as f:
+            f.write(mixed.encode("utf-8"))
+        check(mixed.count("\r\n") == 1, "the mixed test file has one CRLF: %d" % mixed.count("\r\n"))
+        server.write_variant("testbeast", "TB-B")
+        after = open(path, "rb").read().decode("utf-8")
+        changed = [(a, b) for a, b in zip(mixed.splitlines(True), after.splitlines(True)) if a != b]
+        check(after.count("\r\n") == 1 and len(changed) == 1 and '"TB-B"' in changed[0][1], "mixed line endings kept by the default look: %s" % changed)
+
+        # pass 58, R4: the blood colour, written like the default look
+        bfolder = os.path.join(server.CONTENT, "enemies", "bleeder")
+        os.makedirs(bfolder)
+        bd = {"id": "bleeder", "name": "Bleeder", "hp": 10.0, "damage": 3.0, "knockback": 2.94, "radius": 0.52, "size": 1.75, "drops": {"small": 1.0}, "variance": {"tints": ["#FFFFFF"]}}
+        bpath = os.path.join(bfolder, "bleeder.json")
+        btext = json.dumps(bd, indent=2, ensure_ascii=False) + "\r\n"   # LF lines, the closing brace's line CRLF (fire_ant's shape)
+        with open(bpath, "wb") as f:
+            f.write(btext.encode("utf-8"))
+        res = server.write_blood("bleeder", "#8a1428")
+        after = open(bpath, "rb").read().decode("utf-8")
+        a_lines, b_lines = btext.splitlines(True), after.splitlines(True)
+        check(res.get("ok") and res.get("blood") == "#8A1428" and res.get("was") is None, "write_blood writes a new colour in capitals, as the files spell theirs: %s" % {k: res.get(k) for k in ("ok", "blood", "was", "error")})
+        check(len(b_lines) == len(a_lines) + 1 and all(x in b_lines for x in a_lines), "a missing blood is one new line, every old line kept byte for byte")
+        keys = list(json.loads(after).keys())
+        check(keys.index("blood") == keys.index("size") + 1, "blood goes just after size, where lane FX put every creature's: %s" % keys)
+        check('  "blood": "#8A1428",\n' in b_lines and after.count("\r\n") == btext.count("\r\n"), "its line is LF like its neighbour, the file's CRLFs kept")
+        check(json.loads(after)["hp"] == 10.0 and '"hp": 10.0' in after, "numbers kept as they were")
+        n_backups = len([f for f in os.listdir(server.BACKUPS) if f.startswith("bleeder-")])
+        same = server.write_blood("bleeder", "#8a1428")
+        check(same.get("ok") and same.get("unchanged") and len([f for f in os.listdir(server.BACKUPS) if f.startswith("bleeder-")]) == n_backups,
+              "the colour it has already writes nothing (any case): %s" % same.get("output"))
+        res2 = server.write_blood("bleeder", " #33cc99 ")
+        after2 = open(bpath, "rb").read().decode("utf-8")
+        changed = [(a, b) for a, b in zip(after.splitlines(True), after2.splitlines(True)) if a != b]
+        check(res2.get("ok") and res2.get("was") == "#8A1428" and len(changed) == 1 and '"#33CC99"' in changed[0][1] and len(after2.splitlines()) == len(after.splitlines()),
+              "a new colour replaces its own line in place: %s" % changed)
+        for bad in ("red", "#12345", "#1234567", "#GGGGGG", "8a1428", 123, None, "", ["#8a1428"]):
+            r = server.write_blood("bleeder", bad)
+            check(not r.get("ok") and "#rrggbb" in r.get("error", ""), "a bad colour is refused: %r -> %s" % (bad, r.get("error")))
+        check(open(bpath, "rb").read().decode("utf-8") == after2, "a refused colour leaves the file alone")
+        check(not server.write_blood("nobody", "#8a1428").get("ok") and not server.write_blood("../x", "#8a1428").get("ok"), "an unknown creature is refused")
+        check({c["id"]: c for c in server.list_creatures()}["bleeder"]["blood"] == "#33CC99", "the record carries the colour written")
+        # a creature with no size and no knockback: after damage
+        b2 = {"id": "bleeder2", "name": "B2", "hp": 5, "damage": 1, "radius": 0.5}
+        os.makedirs(os.path.join(server.CONTENT, "enemies", "bleeder2"))
+        p2 = os.path.join(server.CONTENT, "enemies", "bleeder2", "bleeder2.json")
+        with open(p2, "w", encoding="utf-8", newline="\n") as f:
+            f.write(json.dumps(b2, indent=2) + "\n")
+        server.write_blood("bleeder2", "#123456")
+        k2 = list(json.loads(open(p2, encoding="utf-8").read()).keys())
+        check(k2.index("blood") == k2.index("damage") + 1, "no size and no knockback: blood after damage: %s" % k2)
+
+        # the route itself, over HTTP on a free port (a bad body and a good one)
+        import threading
+        import urllib.request
+        import urllib.error
+        httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
+        th = threading.Thread(target=httpd.serve_forever, daemon=True)
+        th.start()
+        try:
+            base = "http://127.0.0.1:%d" % httpd.server_address[1]
+
+            def post(url, body):
+                req = urllib.request.Request(base + url, data=body, method="POST", headers={"Content-Type": "application/json"})
+                try:
+                    with urllib.request.urlopen(req, timeout=20) as r:
+                        return r.status, json.loads(r.read().decode("utf-8"))
+                except urllib.error.HTTPError as e:
+                    return e.code, json.loads(e.read().decode("utf-8"))
+            st, body = post("/api/enemy/bleeder/blood", json.dumps({"color": "#abcdef"}).encode("utf-8"))
+            check(st == 200 and body.get("ok") and body.get("blood") == "#ABCDEF", "POST /api/enemy/bleeder/blood: %s %s" % (st, body.get("error")))
+            st, body = post("/api/enemy/bleeder/blood", json.dumps({"color": "blue"}).encode("utf-8"))
+            check(st == 400 and not body.get("ok"), "a bad colour over HTTP is a 400: %s" % st)
+            st, body = post("/api/enemy/bleeder/blood", b"not json")
+            check(st == 400, "a body that is not JSON is a 400: %s" % st)
+            with urllib.request.urlopen(base + "/sprite/enemy/bleeder", timeout=20) as r:
+                check(False, "a creature without a strip has no /sprite: %s" % r.status)
+        except urllib.error.HTTPError as e:
+            check(e.code == 404, "a creature without a strip: /sprite is a 404: %s" % e.code)
+        finally:
+            httpd.shutdown()
+            httpd.server_close()
     finally:
         server.CONTENT, server.GODOT, server.BACKUPS = saved
         shutil.rmtree(tmp, ignore_errors=True)

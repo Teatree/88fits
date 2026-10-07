@@ -1,5 +1,6 @@
-// Small helpers shared by every part of the Level Editor (pass 53): element builders, time formatting, JSON helpers, and
-// (pass 57) the ring spawn pattern's maths (ringCount, ringAtOnce), pure so they can be checked outside the page.
+// Small helpers shared by every part of the Level Editor (pass 53): element builders, time formatting, JSON helpers,
+// (pass 57) the ring spawn pattern's maths (ringCount, ringAtOnce), pure so they can be checked outside the page, and
+// (pass 58) a colour range's swatch stops and gradient (hueStops, hueGradient, hsvHex).
 'use strict';
 
 const U = (() => {
@@ -198,6 +199,31 @@ const U = (() => {
     return Math.min(p, Math.max(Math.ceil(b / s), 1));
   }
 
+  // ------------------------------------------------------------------ colour ranges (pass 58)
+
+  /** [[offset 0..1, "rgb(r, g, b)"], ...]: `n` colours evenly from hue h0 to h1 (through red when h1 is below h0) at that
+   *  saturation and value: the stops of a range's swatch (model.js hueAt / hsvToRgb, read when called). */
+  function hueStops(h0, h1, sat, val, n) {
+    const k = Math.max(2, Math.round(Number(n) || 7));
+    const out = [];
+    for (let i = 0; i < k; i++) {
+      const f = i / (k - 1);
+      const rgb = Model.hsvToRgb(Model.hueAt(h0, h1, f), sat, val).map((c) => Math.round(clamp(c, 0, 1) * 255));
+      out.push([f, `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`]);
+    }
+    return out;
+  }
+
+  /** A CSS gradient of a hue range (left to right). */
+  function hueGradient(h0, h1, sat, val, n) {
+    return `linear-gradient(90deg, ${hueStops(h0, h1, sat, val, n || 9).map(([f, c]) => `${c} ${Math.round(f * 100)}%`).join(', ')})`;
+  }
+
+  /** "#rrggbb" of Color.from_hsv(h / 360, s, v). */
+  function hsvHex(h, s, v) {
+    return '#' + Model.hsvToRgb(h, s, v).map((c) => Math.round(clamp(c, 0, 1) * 255).toString(16).padStart(2, '0')).join('');
+  }
+
   /** A tiny Markdown renderer for the schema doc: headings, fenced code, lists, paragraphs, inline code, bold, links. */
   function markdown(src) {
     const out = [];
@@ -243,5 +269,5 @@ const U = (() => {
     return svg('svg', { class: 'glyph ' + (cls || ''), viewBox: '0 0 16 16', width: 14, height: 14 }, svg('use', { href: '#g-' + name }));
   }
 
-  return { el, svg, clear, fmtT, parseT, parseNum, roundTo, fmtN, pct, clone, same, clamp, isObj, setKey, getPath, setPath, idList, debounce, theName, plural, markdown, download, glyph, SVG_NS, RING_RADIUS, SWARM_RING_RADIUS, aboutN, ringCount, ringAtOnce };
+  return { el, svg, clear, fmtT, parseT, parseNum, roundTo, fmtN, pct, clone, same, clamp, isObj, setKey, getPath, setPath, idList, debounce, theName, plural, markdown, download, glyph, SVG_NS, RING_RADIUS, SWARM_RING_RADIUS, aboutN, ringCount, ringAtOnce, hueStops, hueGradient, hsvHex };
 })();

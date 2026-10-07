@@ -38,6 +38,7 @@ fps = {
 damage_reduction = 0.25
 knockback = 3.8
 head = 0.894
+blood = Color(0.78431374, 0.078431375, 0.11764706, 1)
 cap_share = 0.5
 sfx = {
 "die": "en_lizard_die",

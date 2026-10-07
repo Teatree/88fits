@@ -47,6 +47,7 @@ fps = {
 }
 knockback = 6.36
 head = 1.0
+blood = Color(0.60784316, 0.20392157, 0.9098039, 1)
 variants = {
 "DM-0": {
 "anims": {

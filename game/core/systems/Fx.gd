@@ -1,6 +1,6 @@
-## Cheap visual effects. Every burst, puff, spark and flash is one instance in one of four pooled MultiMeshes
-## (spheres with alpha, opaque shards, flame tongues, musical notes), so a hundred deaths a minute cost four draw calls
-## and no nodes.
+## Cheap visual effects. Every burst, puff, spark and flash is one instance in one of five pooled MultiMeshes
+## (spheres with alpha, opaque shards, flame tongues, musical notes, soft dust), so a hundred deaths a minute cost five
+## draw calls and no nodes; the death splashes (pass 58) have a sixth pool of their own, animated by its shader.
 ## Lightning bolts are ribbons in two shared ImmediateMeshes, a coloured sheath and a white core (pass 33.8: two nodes,
 ## two materials and two draw calls per strike before). Lights are skipped on phones.
 class_name Fx
@@ -41,6 +41,68 @@ var _note_mm: MultiMesh
 ## clouds frayed by the flames' noise; they drift, slow, swell and thin out.
 var _dust_mm: MultiMesh
 const DUST_DRAG := 1.8
+## The death splash (pass 58, Garry: "a red splash VFX ... a kind of a puff or something. This way it will make it easier
+## to tell when an enemy died. It should[n't] be a lot, but it should be noticeable saturated colour that is visible on
+## enemies when they die. The animation is brief. The colour ... is different for different enemies"): a splat in the
+## creature's own blood (EnemyDef.blood) at its body, popping open and breaking up in about a third of a second, and a few
+## drops flung out of it. A pool of its own, apart from the shared particles above (perf_late: they sit at their cap, 394
+## of 400, all through a late-game crowd, so a splash there would be thinned away): a ring of BLOOD_MAX instances on one
+## MultiMesh, drawn by core/shaders/blood_splash.gdshader, which moves, sizes and fades every piece from what was written
+## once when it was thrown, so the only work a frame is the clock. The cap is the ring: past it the oldest pieces, nearly
+## faded, are reused. A regular creature's splash throws fewer drops while many die at once (BLOOD_BUSY_*), and its
+## splat is smaller when a crowd dies in the same moment (BLOOD_BURST_*); the splat always shows, and an Elite's and a
+## boss's are never thinned.
+const BLOOD_MAX := 384
+## The splat's width against the creature's size (its painting's height in metres) and its life in seconds; an Elite's
+## and a boss's splash (any elite-modded creature's too) are BLOOD_BIG times as wide and live longer. Past BLOOD_SOFT m
+## the splash grows only with the square root of the size (blood_size; pass 58 review: a boss's splat was 4.2 m across,
+## a third of the screen, and hid its fall): the Brander's is 2.6 m across, still the biggest.
+const BLOOD_SPLAT := 0.62
+const BLOOD_SOFT := 2.0
+const BLOOD_LIFE := 0.36
+const BLOOD_BIG := [1.0, 1.2, 1.3]
+## Drops a splash throws (a regular creature, an Elite, a boss); with more than BLOOD_BUSY_MID deaths in the last moment a
+## regular one throws half as many, past BLOOD_BUSY_HIGH two, past BLOOD_BUSY_MAX none (`_blood_busy` decays by
+## BLOOD_BUSY_DECAY a second: ten deaths a second hold it near five)
+const BLOOD_DROPS := [6, 10, 16]
+const BLOOD_BUSY_MID := 8.0
+const BLOOD_BUSY_HIGH := 16.0
+const BLOOD_BUSY_MAX := 48.0
+const BLOOD_BUSY_DECAY := 2.0
+## A crowd dying in the same moment (an explosion, a hammer, a black hole; pass 58 review: 37 killed at once had merged
+## into one sheet of colour at the late zoom): `_blood_burst` counts deaths with a short memory (it falls by
+## BLOOD_BURST_DECAY a second, so thirty deaths a second, two at a time, hold it near four). Past BLOOD_BURST_FROM a
+## regular creature's splat shrinks, down to BLOOD_BURST_SHRINK of its width and BLOOD_BURST_SHORT of its life
+## BLOOD_BURST_SPAN deaths later, so a mass kill reads as many small pops; a lone death, a pair and a steady stream keep
+## the full splat.
+const BLOOD_BURST_DECAY := 10.0
+const BLOOD_BURST_FROM := 3.0
+const BLOOD_BURST_SPAN := 10.0
+const BLOOD_BURST_SHRINK := 0.55
+const BLOOD_BURST_SHORT := 0.75
+## Where the body is: the splash starts this share of the creature's size above its feet; it is drawn BLOOD_TOWARD m
+## (and a quarter of its size) towards the camera, so it lies over the dying creature's painting
+const BLOOD_BODY := 0.55
+const BLOOD_TOWARD := 0.45
+const BLOOD_GRAV := 14.0
+## Over the other effects (an Elite's gold burst must not wash over its splash)
+const BLOOD_PRIORITY := 1
+var _blood_mm: MultiMesh
+var _blood_mat: ShaderMaterial
+var _blood_end := PackedFloat32Array()   # per slot: when its piece is gone (Fx's clock)
+## per slot, kept here as well as on the MultiMesh (a headless run's renderer gives nothing back): its kind (0 the splat,
+## 1 a drop), its colour and its size at its fullest
+var _blood_kind := PackedByteArray()
+var _blood_col := PackedColorArray()
+var _blood_w := PackedFloat32Array()
+var _blood_head := 0                     # the next slot of the ring
+var _blood_used := 0                     # slots written so far (drawn while anything lives)
+var _blood_clock := 0.0                  # Fx's own clock (it stops with the game); the shader's `now`
+var _blood_last := -1.0                  # when the last piece is gone
+var _blood_busy := 0.0                   # deaths lately (decaying)
+var _blood_burst := 0.0                  # deaths this very moment (decaying fast)
+## its own random sequence: the shared one is replayed by the tests, and a death must not shift it
+var _blood_rng := RandomNumberGenerator.new()
 const NOTES_PNG := "res://art/fx/notes.png"
 const NOTE_CELLS := 4
 const NOTE_DRAG := 1.6
@@ -110,6 +172,7 @@ func _ready() -> void:
 	_flame_mm = _flame_pool()
 	_note_mm = _note_pool()
 	_dust_mm = _dust_pool()
+	_blood_pool()
 	_build_bolt_meshes()
 	# one invisible note far under the map on the first frames, so the note shader compiles with the rest of the start
 	# (under the spawn beam), not on the guitar's first chord
@@ -119,6 +182,9 @@ func _ready() -> void:
 	# and one puff of dust (pass 50), so the dust shader compiles with them (its seed fixed: the start draws nothing from
 	# the shared random sequence, which the tests replay)
 	_emit_dust(Vector3(0, -60.0, 0), Vector3.ZERO, 0.5, 0.1, 0.1, 0.01, Color(1, 1, 1), true, 0.0)
+	# and one piece of blood (pass 58) for its shader, kept out of blood_count
+	_blood_piece(Vector3(0, -60.0, 0), Vector3(0, 0.1, 0), 0.1, 0.1, 0.0, 0.5, 0.0, 0.0, Color(1, 1, 1), 0.0, 0.0, 0.0)
+	_blood_end[0] = 0.0
 
 
 ## The two meshes every bolt is drawn into: see-through, both sides, over everything (as the per-strike ones were).
@@ -220,6 +286,170 @@ func _dust_pool() -> MultiMesh:
 	mmi.custom_aabb = AABB(Vector3(-200, -80, -200), Vector3(400, 120, 400))
 	add_child(mmi)
 	return mm
+
+
+## The blood pool (pass 58): unit quads the splash shader moves and faces to the camera. Its instance transforms are data
+## (see core/shaders/blood_splash.gdshader), so both bounding boxes are fixed: no box is ever worked out from them.
+func _blood_pool() -> void:
+	_blood_end.resize(BLOOD_MAX)
+	_blood_kind.resize(BLOOD_MAX)
+	_blood_col.resize(BLOOD_MAX)
+	_blood_w.resize(BLOOD_MAX)
+	_blood_rng.randomize()
+	var q := QuadMesh.new()
+	q.size = Vector2(1.0, 1.0)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.use_custom_data = true
+	mm.mesh = q
+	mm.instance_count = BLOOD_MAX
+	mm.visible_instance_count = 0
+	mm.custom_aabb = AABB(Vector3(-200, -80, -200), Vector3(400, 120, 400))
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "Blood"
+	mmi.multimesh = mm
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://core/shaders/blood_splash.gdshader")
+	mat.set_shader_parameter("noise_tex", load("res://art/fx/fire_noise.png"))
+	mat.render_priority = BLOOD_PRIORITY
+	mmi.material_override = mat
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.custom_aabb = AABB(Vector3(-200, -80, -200), Vector3(400, 120, 400))
+	add_child(mmi)
+	_blood_mm = mm
+	_blood_mat = mat
+
+
+## One piece of blood into the ring: it starts at `at` `delay` seconds from now and flies on `vel` under `grav`, from
+## `s0` to `s1` metres across over `life` seconds; `stretch` how much longer a drop is drawn per m/s; `kind` 0 the splat,
+## 1 a drop; `toward` metres towards the camera.
+func _blood_piece(at: Vector3, vel: Vector3, s0: float, s1: float, grav: float, life: float, delay: float, stretch: float, col: Color, seed_v: float, kind: float, toward: float) -> void:
+	var i := _blood_head
+	_blood_head = (_blood_head + 1) % BLOOD_MAX
+	_blood_used = maxi(_blood_used, i + 1)
+	var birth := _blood_clock + delay
+	_blood_mm.set_instance_transform(i, Transform3D(Basis(vel, Vector3(s0, s1, grav), Vector3(birth, maxf(life, 0.01), stretch)), at))
+	_blood_mm.set_instance_color(i, Color(col.r, col.g, col.b, 1.0))
+	_blood_mm.set_instance_custom_data(i, Color(seed_v, kind, toward, 0.0))
+	_blood_end[i] = birth + life
+	_blood_kind[i] = 1 if kind > 0.5 else 0
+	_blood_col[i] = Color(col.r, col.g, col.b, 1.0)
+	_blood_w[i] = maxf(s0, s1)
+	_blood_last = maxf(_blood_last, birth + life)
+	_blood_mm.visible_instance_count = _blood_used
+	_blood_mat.set_shader_parameter("now", _blood_clock)
+
+
+## A creature's death splash (pass 58): `at` its feet, `col` its blood (EnemyDef.blood), `size` its size (the painting's
+## height in metres), `big` 0 a regular creature, 1 an Elite (or any elite-modded one), 2 a boss. A splat at its body that
+## pops open in the creature's colour with a pale hot middle and breaks into spatter, and drops flung out across the
+## screen that fall and shrink; a boss's bursts twice.
+func blood(at: Vector3, col: Color, size: float = 1.0, big: int = 0) -> void:
+	if _blood_mm == null:
+		return
+	big = clampi(big, 0, 2)
+	var k: float = BLOOD_BIG[big]
+	var s: float = maxf(size, 0.3)
+	# the splash's own size (past BLOOD_SOFT only the square root); the body it starts at is the creature's own
+	var sw: float = blood_size(s)
+	var c := at + Vector3(0.0, s * BLOOD_BODY, 0.0)
+	var toward: float = BLOOD_TOWARD + s * 0.25
+	_blood_busy += 1.0
+	_blood_burst += 1.0
+	# the screen's own axes, so the drops fly out across it (the camera is north-up: right is east)
+	var right := Vector3.RIGHT
+	var up := Vector3.UP
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam:
+		right = cam.global_transform.basis.x.normalized()
+		up = cam.global_transform.basis.y.normalized()
+	# a crowd dying in the same moment: a regular creature's splat smaller and shorter (many small pops, not one sheet)
+	var thin := 0.0
+	if big == 0:
+		thin = clampf((_blood_burst - BLOOD_BURST_FROM) / BLOOD_BURST_SPAN, 0.0, 1.0)
+	var w: float = sw * BLOOD_SPLAT * k * lerpf(1.0, BLOOD_BURST_SHRINK, thin)
+	var life: float = BLOOD_LIFE * lerpf(1.0, k, 1.5) * lerpf(1.0, BLOOD_BURST_SHORT, thin)
+	# the drops first: a MultiMesh draws in slot order, so the splat written after them lies on top and they burst out
+	# from under its edge (on top they read as beads stuck to it)
+	var n: int = BLOOD_DROPS[big]
+	if big == 0:
+		if _blood_busy > BLOOD_BUSY_MAX:
+			n = 0
+		elif _blood_busy > BLOOD_BUSY_HIGH:
+			n = 2
+		elif _blood_busy > BLOOD_BUSY_MID:
+			n = int(n * 0.5)
+	for j in range(n):
+		var a: float = TAU * (float(j) + _blood_rng.randf() * 0.8) / float(n)
+		var dir: Vector3 = right * cos(a) + up * sin(a) * 0.85
+		var sp: float = _blood_rng.randf_range(2.2, 4.4) * (0.75 + 0.25 * sw) * lerpf(1.0, k, 0.5)
+		var v: Vector3 = dir * sp + Vector3(0.0, _blood_rng.randf_range(1.2, 2.8), 0.0)
+		var d: float = sw * _blood_rng.randf_range(0.1, 0.17) * lerpf(1.0, k, 0.5)
+		_blood_piece(c + dir * w * 0.15, v, d, d * 0.45, BLOOD_GRAV, _blood_rng.randf_range(0.26, 0.4) * lerpf(1.0, k, 1.2),
+			_blood_rng.randf_range(0.0, 0.03), 0.06, col, _blood_rng.randf(), 1.0, toward)
+	_blood_piece(c, Vector3(0, 0.45, 0), w * 0.3, w, 0.0, life, 0.0, 0.0, col, _blood_rng.randf(), 0.0, toward)
+	if big == 2:
+		# a boss bursts twice: a second splat a beat later, beside the first
+		var o := (right * _blood_rng.randf_range(-0.25, 0.25) + up * _blood_rng.randf_range(0.05, 0.3)) * sw
+		_blood_piece(c + o, Vector3(0, 0.6, 0), w * 0.25, w * 0.8, 0.0, life, 0.14, 0.0, col, _blood_rng.randf(), 0.0, toward + 0.1)
+
+
+## The size a creature's splash is drawn for (pass 58 review): its own up to BLOOD_SOFT m, past it growing only with the
+## square root (the Brander, 5.2 m tall, splashes as if 3.2 m).
+static func blood_size(size: float) -> float:
+	if size <= BLOOD_SOFT:
+		return size
+	return BLOOD_SOFT * sqrt(size / BLOOD_SOFT)
+
+
+## How many pieces of blood are showing or about to (tests: a splash shows, then is gone within a second).
+func blood_count() -> int:
+	var n := 0
+	for i in range(_blood_used):
+		if _blood_end[i] > _blood_clock:
+			n += 1
+	return n
+
+
+## The colours of the pieces showing now (tests: a splash is in the creature's own colour).
+func blood_colors() -> Array:
+	var out: Array = []
+	for i in range(_blood_used):
+		if _blood_end[i] > _blood_clock:
+			out.append(_blood_col[i])
+	return out
+
+
+## The splats showing now, as their widths at their fullest (tests: one a death, two for a boss, wider for bigger ones).
+func blood_splats() -> Array:
+	var out: Array = []
+	for i in range(_blood_used):
+		if _blood_end[i] > _blood_clock and _blood_kind[i] == 0:
+			out.append(_blood_w[i])
+	return out
+
+
+## How many drops are flying now (tests).
+func blood_drops() -> int:
+	var n := 0
+	for i in range(_blood_used):
+		if _blood_end[i] > _blood_clock and _blood_kind[i] == 1:
+			n += 1
+	return n
+
+
+## Fx's clock and the shader's `now`; the pool stops drawing once its last piece is gone.
+func _tick_blood(delta: float) -> void:
+	_blood_clock += delta
+	_blood_busy *= exp(-BLOOD_BUSY_DECAY * delta)
+	_blood_burst *= exp(-BLOOD_BURST_DECAY * delta)
+	if _blood_mm == null or _blood_mm.visible_instance_count == 0:
+		return
+	if _blood_clock > _blood_last:
+		_blood_mm.visible_instance_count = 0
+		return
+	_blood_mat.set_shader_parameter("now", _blood_clock)
 
 
 ## The notes' atlas: NOTE_CELLS glyphs side by side. Read straight from the PNG while it waits for its import (a new
@@ -987,6 +1217,7 @@ func _ribbon(pts: Array, width: float, to_cam: Vector3) -> Mesh:
 
 func _process(delta: float) -> void:
 	var t0 := Time.get_ticks_usec()
+	_tick_blood(delta)
 	_draw_bolts(delta)
 	var i := 0
 	var ns := 0

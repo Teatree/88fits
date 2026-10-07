@@ -10,6 +10,7 @@
   "knockback": 5.38,
   "radius": 1.1,
   "size": 3.25,
+  "blood": "#5B3BE6",
   "pack_size": 1,
   "max_alive": 1,
   "drops": {

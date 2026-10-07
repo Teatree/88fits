@@ -43,6 +43,7 @@ ranged = {
 }
 badge = "skull"
 head = 0.981
+blood = Color(0.9098039, 0.1254902, 0.17254902, 1)
 can_be_elite = false
 can_be_grabbed = false
 sfx = {

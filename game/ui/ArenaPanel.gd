@@ -586,6 +586,8 @@ func run_director() -> void:
 	while d._event_i < d.timeline.events.size() and float(d.timeline.events[d._event_i].get("t", 0.0)) < Run.elapsed:
 		d._event_i += 1
 	d.special_t = -1.0
+	# a row's numbers are fixed at its first spawn (pass 58): a re-run from another minute or hero level starts them afresh
+	d.forget_sources()
 	d.running = true
 
 
@@ -948,7 +950,7 @@ static func item_texts(kind: String, def: ContentDef) -> Array:
 		if note != "":
 			out.append(["Evolution", note])
 		if inst.level < w.max_level:
-			out.append(["Next level · the level-up card", WItem.effect({"def": w, "level_from": inst.level, "level_to": inst.level + 1})])
+			out.append(["Next level · the level-up card", WItem.card_text({"def": w, "level_from": inst.level, "level_to": inst.level + 1})])
 		return out
 	if def is PassiveDef:
 		var pd := def as PassiveDef
@@ -958,7 +960,7 @@ static func item_texts(kind: String, def: ContentDef) -> Array:
 			return out
 		out.append(["Lv %d of %d · the Build tab" % [lv, pd.max_level], PauseScreen.passive_now(pd, lv)])
 		if lv < pd.max_level:
-			out.append(["Next level · the level-up card", WItem.effect({"def": pd, "level_from": lv, "level_to": lv + 1})])
+			out.append(["Next level · the level-up card", WItem.card_text({"def": pd, "level_from": lv, "level_to": lv + 1})])
 		elif pd.evolves_into != "":
 			var evo: PassiveDef = Registry.passive(pd.evolves_into)
 			if evo:

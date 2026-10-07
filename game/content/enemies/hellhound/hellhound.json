@@ -10,6 +10,7 @@
   "knockback": 5.1,
   "radius": 0.55,
   "size": 1.35,
+  "blood": "#FF4A0E",
   "pack_size": 4,
   "drops": {
     "small": 1.0,

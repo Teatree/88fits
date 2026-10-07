@@ -15,6 +15,11 @@
 ## Pass 54 (Garry: the boss's chest should say what it is): a chest that rolls a path (the boss's) reads MUTATION CHEST in
 ## purple under "★ A PATH OPENS ★", its light and its burst violet; an ordinary chest CHEST in brass under "★ LOOT ★".
 ## The reel's plates and the landed one carry their kind's corner glyph (a revolver since pass 56, a scroll).
+## Pass 58: the landed item says UPGRADE, NEW or EVOLUTION in a tag beside its word, an upgrade's new stars pulse and it
+## lists what it changes, a row a stat, in place of its effect line (WItem, WCard, as on the level-up's cards); BANISH
+## strikes only a new item (Run.banish_refusal: the next level of anything the hero holds and a path mutation of one of
+## his weapons lock it) and a tap says why (Garry: "Banish option should not allow Banishing items that Player already
+## has"); a turning shine (WShine) stands behind the chest as it opens and behind the landed plate after.
 class_name ChestScreen
 extends WModal
 
@@ -42,8 +47,21 @@ const TAIL := 4
 ## The chest that opens before the reel, by path: a new class_name is known only once the global class cache is made
 ## again (the next import), and the chest screen must not wait on that.
 const WChestScript := preload("res://ui/wanted/WChest.gd")
+## The turning shine behind the chest (pass 58, lane UIA's piece), by path for the same reason.
+const WShineScript := preload("res://ui/wanted/WShine.gd")
+## The shine (pass 58, Garry: "can you add a kind of animated shine effect behind the Level N header part? ... Do the
+## Same for the loot Chest visual of the Chest Opening Screen"): its reach behind the chest and, once the light has
+## carried it up, behind the reel's landing cell and the landed plate; how bright it stays while the plates run past it
+## (dimmer, so the reel reads) and how far it swells when the reel lands.
+const SHINE_CHEST_R := 470.0
+const SHINE_PLATE_R := 430.0
+const SHINE_LANDED_R := 600.0
+const SHINE_SPIN := 0.45
+const SHINE_FLARE := 1.12
 
 var _beam: Control
+var _shine: WShineScript
+var _shine_tw: Tween
 var _reel: Control
 var _chest: WChestScript
 var _plates: Array = []       # [WPlate, def]
@@ -54,6 +72,14 @@ var _word: WText
 var _name: WText
 var _marks_host: CenterContainer
 var _effect: WText
+## The landed item's word and its tag (pass 58: UPGRADE, NEW or EVOLUTION, WItem.tag), side by side and centred.
+var _word_row: HBoxContainer
+var _tag: PanelContainer
+## The stars of the landed item (null for gold, a mutation or an evolution): an upgrade's new ones pulse (pass 58).
+var _marks: WMarks
+## An upgrade's change rows in place of the effect line (pass 58), centred CHANGES_W wide.
+var _changes_host: CenterContainer
+var _changes: VBoxContainer
 var _skip_btn: WButton
 var _banish_btn: WButton
 var _take_btn: WButton
@@ -81,10 +107,20 @@ const BOSS_TITLE_COLOR := W.TOAST_PURPLE
 ## The violet the boss chest's light and glow take: WChest's violet, lifted towards the toast purple so it shows on the
 ## dark dim.
 const BOSS_LIGHT := Color("9262ca")
+## The landed item's tag and change rows (pass 58): the tag's type, the rows' type and the width they are centred in.
+const TAG_PX := 30
+const CHANGE_PX := 34
+const CHANGES_W := 700.0
 
 
 func _ready() -> void:
 	build_dim(W.DIM_CHEST)
+	# the shine (pass 58): over the dim, under the chest's light, the reel, the chest and the result; out of sight
+	# until a chest lands
+	_shine = WShineScript.make(Vector2(540.0, 1400.0), SHINE_CHEST_R) as WShineScript
+	_shine.name = "Shine"
+	_shine.put(self)
+	_shine.visible = false
 	# the beam: a trapezoid 700 wide at its base, 38 %-62 % at the top, brass fading to nothing, from the top edge
 	_beam = Control.new()
 	_beam.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -119,9 +155,17 @@ func _ready() -> void:
 	col.add_theme_constant_override("separation", 14)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel.add_child(col)
+	# the word and the tag beside it, centred as one (pass 58)
+	_word_row = HBoxContainer.new()
+	_word_row.name = "WordRow"
+	_word_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_word_row.add_theme_constant_override("separation", 16)
+	_word_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(_word_row)
 	_word = W.label("", 22, W.BRASS_DARK)
 	_word.align = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(_word)
+	_word.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_word_row.add_child(_word)
 	_name = W.slab_text("", 84, W.INK, HORIZONTAL_ALIGNMENT_CENTER, 84.0)
 	col.add_child(_name)
 	_marks_host = CenterContainer.new()
@@ -129,6 +173,11 @@ func _ready() -> void:
 	col.add_child(_marks_host)
 	_effect = W.serif_text("", 34, W.INK, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0, true)
 	col.add_child(_effect)
+	_changes_host = CenterContainer.new()
+	_changes_host.name = "ChangesHost"
+	_changes_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_changes_host.visible = false
+	col.add_child(_changes_host)
 	build_buttons(114.0)
 	_skip_btn = WButton.make(["SKIP"], 34, WButton.SECONDARY, 5, 8, 30.0, 0.0)
 	_skip_btn.name = "Skip"
@@ -224,6 +273,7 @@ func open(result: Dictionary) -> void:
 	_chest.setup(boss, Vector2(vp.x * 0.5, roundf(vp.y * CHEST_FRAC)), 420.0)
 	# the open chest's mouth (WChest stands on its foot, side * 0.3 under its middle; the light leaves 0.42 above that)
 	_mouth = Vector2(vp.x * 0.5, _chest.center.y + _chest.side * 0.3 - _chest.side * 0.42)
+	_shine_reset(boss)
 	_beam_rise = 0.0
 	_reel.modulate.a = 0.0
 	_reel.position.y = RISE_PX
@@ -281,6 +331,77 @@ func _intro_at(t: float) -> void:
 	var k := clampf((t - WChestScript.SPIN_AT) / RISE, 0.0, 1.0)
 	_reel.modulate.a = k
 	_reel.position.y = RISE_PX * pow(1.0 - k, 3.0)
+	_shine_at(t)
+
+
+## The shine for a new chest (pass 58): brass and paper, or the boss chest's violet (Garry: the boss chest's in purple);
+## at the open chest's mouth, out of sight until the chest lands.
+func _shine_reset(boss: bool) -> void:
+	if boss:
+		_shine.tint(BOSS_LIGHT)
+	else:
+		_shine.color = W.BRASS
+		_shine.color2 = W.PAPER
+	_kill_shine_tween()
+	_shine.center = _mouth
+	_shine.radius = SHINE_CHEST_R
+	_shine.strength = 1.0
+	_shine.grow = 0.0
+	_shine.fade = 0.0
+	_shine.visible = true
+
+
+## The middle of the reel's landing cell, where the landed plate grows.
+func landing_center() -> Vector2:
+	return Vector2(get_viewport_rect().size.x * 0.5, REEL_Y + BIG * 0.5)
+
+
+## The shine `t` seconds into the chest's intro (pass 58), on the chest's own clock (a tap that skips or hurries moves it
+## too): it grows in behind the chest as the chest lands and knocks, swells as the lid cracks and throws open, then rides
+## the light up into the reel's row, narrowing to the landing cell and dimming while the plates run past it.
+func _shine_at(t: float) -> void:
+	var land := clampf((t - WChestScript.DROP) / (WChestScript.CRACK - WChestScript.DROP), 0.0, 1.0)
+	var opened := clampf((t - WChestScript.CRACK) / (WChestScript.OPEN + 0.14 - WChestScript.CRACK), 0.0, 1.0)
+	var rise := clampf((t - WChestScript.SPIN_AT) / (WChestScript.LIFE - WChestScript.SPIN_AT), 0.0, 1.0)
+	var e_land := 1.0 - pow(1.0 - land, 3.0)
+	var e_open := 1.0 - pow(1.0 - opened, 3.0)
+	var e_rise := rise * rise * (3.0 - 2.0 * rise)
+	# grows to 70 % with the knocks, to full with the lid (a little past it at the throw), the fade the same
+	_shine.grow = 0.7 * e_land + 0.3 * e_open + 0.1 * sin(opened * PI)
+	_shine.fade = 0.65 * e_land + 0.35 * e_open
+	_shine.center = _mouth.lerp(landing_center(), e_rise)
+	_shine.radius = lerpf(SHINE_CHEST_R, SHINE_PLATE_R, e_rise)
+	_shine.strength = lerpf(1.0, SHINE_SPIN, e_rise)
+
+
+## The reel landed (pass 58): the shine brightens back to full behind the landed plate, opens out past it (the plate
+## would hide a shine its own size) with a swell, and stays there turning for as long as the result is up.
+func _shine_flare() -> void:
+	_kill_shine_tween()
+	_shine.center = landing_center()
+	_shine.fade = 1.0
+	_shine_tw = create_tween().set_parallel(true)
+	_shine_tw.tween_property(_shine, "strength", 1.0, 0.25)
+	_shine_tw.tween_property(_shine, "radius", SHINE_LANDED_R, 0.35).from(SHINE_PLATE_R).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_shine_tw.tween_property(_shine, "grow", SHINE_FLARE, 0.16).from(1.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_shine_tw.chain().tween_property(_shine, "grow", 1.0, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## A banish spins the reel again (pass 58): the shine dims and narrows back to the landing cell while the plates run
+## past it.
+func _shine_dim() -> void:
+	_kill_shine_tween()
+	_shine.grow = 1.0
+	_shine.fade = 1.0
+	_shine_tw = create_tween().set_parallel(true)
+	_shine_tw.tween_property(_shine, "strength", SHINE_SPIN, 0.2)
+	_shine_tw.tween_property(_shine, "radius", SHINE_PLATE_R, 0.2)
+
+
+func _kill_shine_tween() -> void:
+	if _shine_tw and _shine_tw.is_valid():
+		_shine_tw.kill()
+	_shine_tw = null
 
 
 ## The chest is still opening: the reel has not started.
@@ -426,30 +547,9 @@ func _land() -> void:
 	tw.tween_property(_hero, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	# the reveal (pass 44): a sunburst behind the landed plate, stars and paper scraps raining past it
 	WCelebrate.burst(self, _hero.position + Vector2(BIG, BIG) * 0.5, 2, 1.0, light_colour())
+	_shine_flare()
 	# the result
-	for c in _marks_host.get_children():
-		c.queue_free()
-	if def:
-		if kind == "evolution":
-			_word.text = "EVOLUTION"
-			_word.color = W.EMBER
-			_name.text = def.display_name
-			var tmp := WeaponInstance.new(def, 1)
-			tmp.rebuild(Run.player_sheet, Run.weapons)
-			_effect.text = tmp.description()
-		else:
-			_word.text = WItem.word(_result)
-			_word.color = WItem.word_color(_result)
-			_name.text = def.display_name
-			_effect.text = WItem.effect(_result)
-			var st := WItem.stars(_result)
-			if st.size() >= 2:
-				_marks_host.add_child(WMarks.new().setup("stars", int(st[0]), int(st[1]), int(st[2]), STAR_PX))
-	else:
-		_word.text = "GOLD"
-		_word.color = W.BRASS_DARK
-		_name.text = "+%s gold" % W.num(int(_result.get("gold", 50)))
-		_effect.text = "Straight into the purse."
+	_show_result(kind, def)
 	_panel.visible = true
 	_panel.modulate.a = 0.0
 	var tp := create_tween()
@@ -457,6 +557,60 @@ func _land() -> void:
 	Audio.play("w_evo_reveal" if kind == "evolution" else "ui_jackpot")
 	_refresh_buttons()
 	buttons.visible = true
+
+
+## The result panel for the landed roll: the kind's word and its tag (pass 58: UPGRADE, NEW or EVOLUTION, as the
+## level-up's cards say it), the name, the stars (an upgrade's new ones pulsing) and either what the upgrade changes, a
+## row a stat, or the one effect line (a new item, an evolution, a mutation, gold).
+func _show_result(kind: String, def: ContentDef) -> void:
+	# out of the tree at once (a node only queued still takes its room for the frame)
+	for c in _marks_host.get_children():
+		_marks_host.remove_child(c)
+		c.queue_free()
+	_marks = null
+	if _tag:
+		_word_row.remove_child(_tag)
+		_tag.queue_free()
+		_tag = null
+	if _changes:
+		_changes_host.remove_child(_changes)
+		_changes.queue_free()
+		_changes = null
+	_changes_host.visible = false
+	_effect.visible = true
+	if def == null:
+		_word.text = "GOLD"
+		_word.color = W.BRASS_DARK
+		_name.text = "+%s gold" % W.num(int(_result.get("gold", 50)))
+		_effect.text = "Straight into the purse."
+		return
+	_word.text = WItem.word(_result)
+	_word.color = WItem.word_color(_result)
+	_name.text = def.display_name
+	var t := WItem.tag(_result)
+	if t != "":
+		_tag = WCard.tag_pill(t, TAG_PX)
+		_word_row.add_child(_tag)
+	if kind == "evolution":
+		var tmp := WeaponInstance.new(def, 1)
+		tmp.rebuild(Run.player_sheet, Run.weapons)
+		_effect.text = tmp.description()
+		return
+	var st := WItem.stars(_result)
+	if st.size() >= 2:
+		_marks = WMarks.new().setup("stars", int(st[0]), int(st[1]), int(st[2]), STAR_PX)
+		_marks.pulse = _marks.has_next()
+		_marks_host.add_child(_marks)
+	var rows := WItem.changes(_result)
+	if rows.is_empty():
+		_effect.text = WItem.effect(_result)
+		return
+	_effect.text = ""
+	_effect.visible = false
+	_changes = WCard.change_rows(rows, CHANGE_PX)
+	_changes.custom_minimum_size.x = CHANGES_W
+	_changes_host.add_child(_changes)
+	_changes_host.visible = true
 
 
 ## SKIP ×N and BANISH ×N (pass 47): the stage's skips and banishes, locked at none (still tappable, to say why); BANISH
@@ -474,9 +628,44 @@ static func is_gold(r: Dictionary) -> bool:
 
 
 ## Whether a roll may be banished (pass 47, the lead): not gold, and not an evolution (banished, the weapon would stay
-## unevolved all run).
+## unevolved all run). Pass 58 (Garry: "Banish option should not allow Banishing items that Player already has, because
+## this way they can lock themselves out of progression for those weapons"): the game's one rule, Run.banish_refusal
+## (lane UIA's, the level-up's too): never the next level of a weapon, a line or a passive item the hero holds, never an
+## evolution, and never a mutation on the path of a weapon he carries (the boss chest's: its evolution needs every one);
+## a new passive item, or a hero's own optional mutation, can go.
 static func can_banish(r: Dictionary) -> bool:
-	return not is_gold(r) and str(r.get("type", "")) != "evolution"
+	return banish_refusal(r) == ""
+
+
+## Why a roll cannot be banished, in plain words for the header line (pass 58); "" when it can be.
+static func banish_refusal(r: Dictionary) -> String:
+	if is_gold(r):
+		return "Gold cannot be banished."
+	var def: ContentDef = r.get("def")
+	match str(Run.banish_refusal(r)):
+		"":
+			return ""
+		"gold":
+			return "Gold cannot be banished."
+		"evolution":
+			return "An evolution cannot be banished."
+		"path":
+			return "A mutation for your %s cannot be banished: its evolution needs it." % _family_name(def)
+		"held":
+			return "You have %s. Only new items can be banished." % def.display_name
+	return "Only new items can be banished."
+
+
+## The weapon a mutation is for, as the hero carries it (its evolution's name once evolved).
+static func _family_name(def: ContentDef) -> String:
+	var md := def as MutationDef
+	if md == null:
+		return "weapon"
+	var wi := Run.family_instance(md.weapon)
+	if wi:
+		return wi.def.display_name
+	var wd: WeaponDef = Registry.weapon(md.weapon)
+	return wd.display_name if wd else md.weapon.capitalize()
 
 
 ## SKIP: the chest closes on nothing (Game takes one of the stage's skips, Run.chest_skip); with none left, or on gold,
@@ -496,17 +685,15 @@ func _skip() -> void:
 
 
 ## BANISH: the item leaves the run (Run.chest_banish takes the banish and rolls the chest again) and the reel spins once
-## more, about two seconds, to the new roll; the chest stays open. With none left, on gold or on an evolution it stays
-## and says why.
+## more, about two seconds, to the new roll; the chest stays open. With none left, on gold, an evolution, a path
+## mutation of a weapon held or the next level of something held (pass 58, banish_refusal) it stays and says why.
 func _banish() -> void:
 	if _spinning:
 		return
-	if is_gold(_result):
-		header.set_line("Gold cannot be banished.")
-		Audio.play("ui_locked")
-		return
-	if not can_banish(_result):
-		header.set_line("An evolution cannot be banished.")
+	# gold, an evolution, a path mutation or the next level of something held: the header says why (pass 58)
+	var why := banish_refusal(_result)
+	if why != "":
+		header.set_line(why)
 		Audio.play("ui_locked")
 		return
 	var def: ContentDef = _result.get("def")
@@ -535,6 +722,7 @@ func respin(result: Dictionary) -> void:
 	buttons.visible = false
 	_hero_glow.visible = false
 	_chest.visible = false
+	_shine_dim()
 	var kind := str(result.get("type", "gold"))
 	var def: ContentDef = result.get("def")
 	_fill_strip(_pool_for(kind, def), def)

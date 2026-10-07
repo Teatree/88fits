@@ -10,6 +10,7 @@
   "knockback": 3.4,
   "radius": 0.35,
   "size": 0.95,
+  "blood": "#C8161E",
   "pack_size": 4,
   "drops": {
     "small": 1.0,

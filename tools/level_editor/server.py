@@ -13,17 +13,23 @@ Serves this folder (index.html, the scripts, the styles) on 127.0.0.1 and a smal
     GET  /api/pickups              the power-ups [{id, name, small}]
     GET  /api/schema               docs/waves_schema.md as text (the Instructions tab)
     GET  /icon/<kind>/<id>[/<code>]  a creature's icon PNG (kind enemy|boss|elite|pickup; code = an art variant)
+    GET  /sprite/<kind>/<id>[/<code>]  a creature's animation strip PNG (kind enemy|boss; code = an art variant): the
+                                   colour range's preview crops its standing frame (pass 58)
     POST /api/enemy/<id>/variant   {"code": "SK-B"}: the creature's default look (pass 54): its JSON's top-level
                                    `variant`, after a backup, then the JSON -> .tres import of that one creature
+    POST /api/enemy/<id>/blood     {"color": "#rrggbb"}: the colour of its death splash (pass 58): its JSON's top-level
+                                   `blood`, after a backup, then the import of that one creature
     GET  /api/turnover/<map>[/all] the "Spawned so far" lane's assumptions (pass 57): the hero's kill rate (a share of
                                    the living crowd a second: one number, per stage, minute by minute), the mean boss
                                    fight and portal wait, fitted from analytics/runs/*.json (Garry's runs; /all adds
                                    the tools' headless ones), read only
 
 Garry (the user) is not a programmer, so the server stays plain: the standard library only, nothing installed, nothing
-fetched from the internet. It writes exactly two kinds of thing: the map JSON it was asked to save, and (pass 54) the
-one key `variant` of a creature JSON when the Creatures tab sets a default look; both after a backup under
-tools/level_editor/backups/, and nothing else. The import is the same command CLAUDE.md gives for a hand edit:
+fetched from the internet. It writes exactly two kinds of thing: the map JSON it was asked to save, and one key of a
+creature JSON when the Creatures tab sets it: `variant` (pass 54, the default look) or `blood` (pass 58, the death
+splash's colour); each after a backup under tools/level_editor/backups/, and nothing else. A creature key is written on
+its own line (in place, or a new line beside its neighbours), so every other byte of the file stays as it was. The
+import is the same command CLAUDE.md gives for a hand edit:
     Godot --headless --path game --script res://tools/import_json.gd -- only=maps/<id>   (or only=enemies/<id>)
 """
 import argparse
@@ -50,6 +56,9 @@ KEEP_BACKUPS = 30
 IMPORT_TIMEOUT = 120
 ID_RE = re.compile(r"^[a-z0-9_]+$")
 CODE_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+HEX_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
+# what a creature with no `blood` bleeds (EnemyDef.blood's default, Color(0.78, 0.05, 0.05), pass 58)
+BLOOD_DEFAULT = "#c70d0d"
 STATIC_TYPES = {
     ".html": "text/html; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
@@ -142,11 +151,13 @@ def creature_record(kind, cid, folder, d):
     if base_code and base_code not in vs:
         # the top-level strip is a look of its own even when the JSON gives it no entry (JsonContent adds it)
         variants.append({"code": base_code, "note": "the top-level strip", "icon": "/icon/%s/%s/%s" % (kind, cid, base_code),
-                         "ready": True, "base": True})
+                         "sprite": "/sprite/%s/%s/%s" % (kind, cid, base_code), "ready": True, "base": True})
     for code, entry in vs.items():
         entry = entry if isinstance(entry, dict) else {}
         variants.append({"code": str(code), "note": str(entry.get("note", "")),
                          "icon": "/icon/%s/%s/%s" % (kind, cid, code),
+                         # pass 58: the look's animation strip (the colour range's preview crops its standing frame)
+                         "sprite": "/sprite/%s/%s/%s" % (kind, cid, code),
                          # `ready`: the game can play it (the base strip, or an entry whose strip is on disk); a code
                          # still waiting for its painting falls back to the base in play
                          "ready": str(code) in playable, "base": str(code) == base_code})
@@ -156,7 +167,10 @@ def creature_record(kind, cid, folder, d):
     want = str(d.get("variant", base_code))
     play = want if want in playable else base_code
     icon_play = "/icon/%s/%s/%s" % (kind, cid, play) if play and play in vs else "/icon/%s/%s" % (kind, cid)
+    sprite_play = "/sprite/%s/%s/%s" % (kind, cid, play) if play and play in vs else "/sprite/%s/%s" % (kind, cid)
     variance = d.get("variance") if isinstance(d.get("variance"), dict) else {}
+    blood = d.get("blood")
+    frame_px = d.get("frame_px", 128)
     return {
         "id": cid,
         "name": str(d.get("name", cid)),
@@ -197,6 +211,11 @@ def creature_record(kind, cid, folder, d):
         "variants": variants,
         "icon": "/icon/%s/%s" % (kind, cid),
         "icon_play": icon_play,
+        # pass 58: the look in play's strip and its cell (frame 0 is the standing idle frame the colour preview tints),
+        # and the death splash's colour as the JSON spells it (null: none, the game bleeds BLOOD_DEFAULT)
+        "sprite_play": sprite_play,
+        "frame_px": int(frame_px) if isinstance(frame_px, (int, float)) and not isinstance(frame_px, bool) and frame_px > 0 else 128,
+        "blood": blood if isinstance(blood, str) and HEX_RE.match(blood) else None,
     }
 
 
@@ -291,6 +310,29 @@ def icon_path(kind, cid, code):
             if own:
                 return own
     return resolve_file(folder, name)
+
+
+def sprite_path(kind, cid, code):
+    """The animation strip PNG of a creature's look (pass 58, the colour range's preview): the variant entry's `sprite`
+    when its file is on disk, else the JSON's top-level `sprite`, else <id>_sprite.png (JsonContent._enemy's order; a
+    base strip's own code is the top-level strip). Cells are `frame_px` square, frame 0 the standing idle frame."""
+    if kind not in ("enemy", "boss") or not ID_RE.match(cid):
+        return None
+    folder = os.path.join(CONTENT, KIND_FOLDERS[kind], cid)
+    path = os.path.join(folder, cid + ".json")
+    if not os.path.isfile(path):
+        return None
+    try:
+        d = load_json(path)
+    except (OSError, ValueError):
+        return None
+    if code:
+        entry = (d.get("variants") or {}).get(code) if isinstance(d.get("variants"), dict) else None
+        if isinstance(entry, dict) and entry.get("sprite"):
+            own = resolve_file(folder, str(entry["sprite"]))
+            if own:
+                return own
+    return resolve_file(folder, str(d.get("sprite", cid + "_sprite.png")))
 
 
 # ---------------------------------------------------------------- writing a map
@@ -418,13 +460,139 @@ def creature_file(cid):
     return None, None
 
 
+_TOP_KEY_RE = re.compile(r'^"((?:[^"\\]|\\.)*)"\s*:\s*(.*?)\s*$')
+
+
+def _one_line_value(text):
+    """Whether `text` (what follows a key's colon on its line, the trailing comma gone) is a whole JSON value."""
+    try:
+        json.loads(text)
+        return True
+    except ValueError:
+        return False
+
+
+def set_top_key(src, key, value, places=()):
+    """`src` (a creature JSON as on disk: one top-level key per line, the content tools' layout) with its top-level `key`
+    set to `value` and every other byte as it was (pass 58). A key already there with a one-line value has that line
+    rewritten in place: its indent, its trailing comma and its own line ending kept. Otherwise a new line goes at the
+    first of `places` that fits: ("after", k) right after top-level key k's one-line value, ("before", k) right before
+    top-level key k's line, ("end", None) after the last key; indented like that neighbour, with its line ending, and the
+    commas set so the object still reads. The result is parsed back and must be the old object with only `key` set, in
+    the expected key order; None when it is not (or the file is laid out some other way), and the caller re-dumps."""
+    lines = src.splitlines(True)
+    if len(lines) < 2 or lines[0].strip() != "{":
+        return None
+    try:
+        old = json.loads(src)
+    except ValueError:
+        return None
+    if not isinstance(old, dict) or not old:
+        return None
+    first = re.match(r'^([ \t]+)"', lines[1])
+    if not first:
+        return None
+    ind = first.group(1)
+
+    def body(line):
+        return line.rstrip("\r\n")
+
+    def ending(line):
+        return line[len(body(line)):]
+
+    # every top-level key's line: its index, its value text (trailing comma off) and whether the comma was there
+    tops = {}
+    for i, line in enumerate(lines):
+        b = body(line)
+        if not b.startswith(ind + '"') or b[len(ind)] != '"':
+            continue
+        m = _TOP_KEY_RE.match(b[len(ind):])
+        if not m:
+            continue
+        try:
+            k = json.loads('"%s"' % m.group(1))
+        except ValueError:
+            continue
+        if k in old and k not in tops:
+            val = m.group(2)
+            comma = val.endswith(",")
+            tops[k] = (i, val[:-1].rstrip() if comma else val, comma)
+    if set(tops) != set(old):
+        return None
+    new_line = ind + json.dumps(key, ensure_ascii=False) + ": " + json.dumps(value, ensure_ascii=False)
+    order = list(old.keys())
+    out = list(lines)
+    if key in tops:
+        i, val, comma = tops[key]
+        if not _one_line_value(val):
+            return None
+        out[i] = new_line + ("," if comma else "") + ending(lines[i])
+    else:
+        for where, at in places:
+            if where == "after" and at in tops and _one_line_value(tops[at][1]):
+                i, val, comma = tops[at]
+                if comma:
+                    out.insert(i + 1, new_line + "," + ending(lines[i]))
+                else:
+                    # the last key gains a comma; the new line ends the object
+                    out[i] = body(lines[i]) + "," + ending(lines[i])
+                    out.insert(i + 1, new_line + ending(lines[i]))
+                order.insert(order.index(at) + 1, key)
+                break
+            if where == "before" and at in tops:
+                i = tops[at][0]
+                out.insert(i, new_line + "," + ending(lines[i]))
+                order.insert(order.index(at), key)
+                break
+            if where == "end":
+                last = order[-1]
+                i, val, comma = tops[last]
+                # after the last key's value, wherever its lines end: the line before the closing brace
+                close = max(j for j, line in enumerate(lines) if body(line).strip() == "}")
+                prev = close - 1
+                out[prev] = body(lines[prev]) + "," + ending(lines[prev])
+                out.insert(close, new_line + ending(lines[prev]))
+                order.append(key)
+                break
+        else:
+            return None
+    text = "".join(out)
+    try:
+        got = json.loads(text)
+    except ValueError:
+        return None
+    want = dict(old)
+    want[key] = value
+    if got != want or list(got.keys()) != order:
+        return None
+    return text
+
+
+def _redump(src, d):
+    """The old way (pass 54): the whole object dumped with indent 2, the file's final newline and (when it has any) CRLF.
+    Only for a file set_top_key cannot edit line by line."""
+    text = json.dumps(d, indent=2, ensure_ascii=False)
+    if src.endswith("\n"):
+        text += "\n"
+    if "\r\n" in src:
+        text = text.replace("\n", "\r\n")
+    return text
+
+
+def _write_creature(path, text):
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(text.encode("utf-8"))
+    os.replace(tmp, path)
+
+
 def write_variant(cid, code):
     """Set the creature JSON's top-level `variant` to `code` (one of the looks the game can play: the base strip or an
-    entry of `variants` whose strip is on disk): a backup like a map's, the file written back with its own key order, its
-    numbers as they were (json keeps 10.0 a float), its own line endings and final newline, `variant` replaced in place
-    or added just before `variants`, then the JSON -> .tres import of that one creature. The Creatures tab's "Set as
-    default look" (pass 54; `tools/import_json.gd` accepts only=<type>/<id>). A JSON re-dumped this way differs from
-    every creature file only on that one line."""
+    entry of `variants` whose strip is on disk): a backup like a map's, then that one line written (set_top_key: in place,
+    or a new line just before `variants`), every other byte as it was (pass 58: the old re-dump turned the three files
+    with a CRLF only on their last line, fire_ant and the red goblins, into CRLF throughout), then the JSON -> .tres
+    import of that one creature. The Creatures tab's "Default look" (pass 54; `tools/import_json.gd` accepts
+    only=<type>/<id>)."""
     kind, path = creature_file(cid)
     if path is None:
         return {"ok": False, "error": "no creature %s under content/enemies or content/bosses" % cid}
@@ -442,31 +610,66 @@ def write_variant(cid, code):
             why = "its strip is not painted yet" if code in vs else "it has no such variant"
             return {"ok": False, "error": "%s cannot play %s: %s (it can play: %s)" % (cid, code, why, known)}
         before = str(d.get("variant", ""))
-        if "variant" in d:
-            d["variant"] = code
-        else:
-            out = {}
-            for k, v in d.items():
-                if k == "variants":
+        text = set_top_key(src, "variant", code, [("before", "variants"), ("end", None)])
+        if text is None:
+            if "variant" in d:
+                d["variant"] = code
+            else:
+                out = {}
+                for k, v in d.items():
+                    if k == "variants":
+                        out["variant"] = code
+                    out[k] = v
+                if "variant" not in out:
                     out["variant"] = code
-                out[k] = v
-            if "variant" not in out:
-                out["variant"] = code
-            d = out
-        text = json.dumps(d, indent=2, ensure_ascii=False)
-        if src.endswith("\n"):
-            text += "\n"
-        if "\r\n" in src:
-            text = text.replace("\n", "\r\n")
+                d = out
+            text = _redump(src, d)
         backup_rel = backup(cid, path)
-        tmp = path + ".tmp"
-        with open(tmp, "wb") as f:
-            f.write(text.encode("utf-8"))
-        os.replace(tmp, path)
+        _write_creature(path, text)
     import_ok, output = run_import("%s/%s" % (KIND_FOLDERS[kind], cid))
     return {"ok": True, "id": cid, "kind": kind, "variant": code, "was": before,
             "wrote": rel(path), "backup": backup_rel,
             "import_ok": import_ok, "output": output}
+
+
+def write_blood(cid, color):
+    """Set the creature JSON's top-level `blood` (pass 58, R4: the colour of its death splash, EnemyDef.blood) to `color`
+    ("#rrggbb", written in capitals as the creature files spell their colours: lane FX's blood, the variance tints): the
+    same way as the default look (a backup, that one line in place or a new line after `size`, where lane FX put every
+    creature's, else after `knockback` or `damage`, else at the end; every other byte as it was), then the import of that
+    one creature. The colour it already has (any case) writes nothing and imports nothing."""
+    kind, path = creature_file(cid)
+    if path is None:
+        return {"ok": False, "error": "no creature %s under content/enemies or content/bosses" % cid}
+    if not isinstance(color, str) or not HEX_RE.match(color.strip()):
+        return {"ok": False, "error": "the body needs a colour as #rrggbb: {\"color\": \"#8A1428\"} (got %s)" % json.dumps(color)}
+    value = color.strip().upper()
+    with _write_lock:
+        with open(path, "rb") as f:
+            raw = f.read()
+        src = raw.decode("utf-8")
+        d = json.loads(src)
+        was = d.get("blood")
+        if isinstance(was, str) and was.strip().upper() == value:
+            return {"ok": True, "id": cid, "kind": kind, "blood": was, "was": was, "unchanged": True,
+                    "wrote": "", "backup": "", "import_ok": True, "output": "the colour was already %s: nothing written" % was}
+        text = set_top_key(src, "blood", value, [("after", "size"), ("after", "knockback"), ("after", "damage"), ("end", None)])
+        if text is None:
+            anchor = next((k for k in ("size", "knockback", "damage") if k in d), None)
+            out = {}
+            for k, v in d.items():
+                if k != "blood":
+                    out[k] = v
+                if k == anchor:
+                    out["blood"] = value
+            if "blood" not in out:
+                out["blood"] = value
+            text = _redump(src, out)
+        backup_rel = backup(cid, path)
+        _write_creature(path, text)
+    import_ok, output = run_import("%s/%s" % (KIND_FOLDERS[kind], cid))
+    return {"ok": True, "id": cid, "kind": kind, "blood": value, "was": was if isinstance(was, str) else None,
+            "wrote": rel(path), "backup": backup_rel, "import_ok": import_ok, "output": output}
 
 
 # ---------------------------------------------------------------- the kill rate from Garry's run records (pass 57)
@@ -642,6 +845,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._api_get(parts[1:])
             if parts[:1] == ["icon"]:
                 return self._icon(parts[1:])
+            if parts[:1] == ["sprite"]:
+                return self._sprite(parts[1:])
             return self._static(parts)
         except Exception as e:  # a bug should show in the page, not kill the server
             import traceback
@@ -685,6 +890,25 @@ class Handler(BaseHTTPRequestHandler):
         full = icon_path(parts[0], parts[1], code)
         if not full:
             return self._error(404, "no icon")
+        with open(full, "rb") as f:
+            data = f.read()
+        self.send_response(200)
+        self.send_header("Content-Type", "image/png")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "max-age=60")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _sprite(self, parts):
+        """A creature's animation strip (pass 58): /sprite/<kind>/<id>[/<code>], kind enemy|boss."""
+        if len(parts) not in (2, 3):
+            return self._error(404, "sprite paths are /sprite/<kind>/<id>[/<code>]")
+        code = parts[2] if len(parts) == 3 else ""
+        if code and not CODE_RE.match(code):
+            return self._error(404, "bad variant code")
+        full = sprite_path(parts[0], parts[1], code)
+        if not full:
+            return self._error(404, "no strip")
         with open(full, "rb") as f:
             data = f.read()
         self.send_response(200)
@@ -741,6 +965,17 @@ class Handler(BaseHTTPRequestHandler):
                     return self._error(400, err)
                 code = data.get("code") if isinstance(data, dict) else None
                 result = write_variant(cid, code)
+                return self._send(200 if result.get("ok") else 400, result)
+            if len(parts) == 4 and parts[:2] == ["api", "enemy"] and parts[3] == "blood":
+                # pass 58: the death splash's colour from the Creatures tab
+                cid = parts[2]
+                if not ID_RE.match(cid):
+                    return self._error(400, "bad creature id")
+                data, err = self._body()
+                if err:
+                    return self._error(400, err)
+                color = data.get("color") if isinstance(data, dict) else None
+                result = write_blood(cid, color)
                 return self._send(200 if result.get("ok") else 400, result)
             return self._error(404, "unknown API path")
         except Exception as e:

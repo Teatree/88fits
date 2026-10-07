@@ -10,6 +10,7 @@
   "damage": 8,
   "radius": 0.61,
   "size": 2.3,
+  "blood": "#E8202C",
   "pack_size": 1,
   "drops": {},
   "xp_mult": 0.0,

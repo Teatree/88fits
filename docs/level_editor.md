@@ -132,7 +132,8 @@ with the import's output a click away.
    above. **Set as default look** (pass 54): click a figure that is not in play, then its button; the card asks "Make
    DM-A the default look of the Dust Mummy? ..." and "Yes, play DM-A" writes it (below), "Cancel" leaves everything as
    it was. A figure whose strip is not painted yet is faded and cannot be chosen. Every other creature number lives in
-   the creature's own JSON.
+   the creature's own JSON. (Pass 58 made the default look an always-visible strip and added the blood colour: see
+   "Pass 58" below.)
 4. **Instructions**: what the editor is, "Pass 54: what is new", the model in one picture, every lane, field and
    override (generated from the same table the forms use), a worked example (Garry's "20 in bursts of 5 every 2 s, 50 %
    skeletons 10 hp 15 atk / 50 % goblins 15 hp 10 atk") with its block, its inspector values and the JSON it writes, how
@@ -211,7 +212,15 @@ next launch. To undo it, set the old look the same way, or copy the backup back 
   `{ok, map, source (records|fallback), runs, turnover, by_stage, curve, boss_seconds, portal_seconds}`.
 - `POST /api/enemy/<id>/variant` (pass 54): body `{"code": "SK-B"}`; `{ok, id, kind, variant, was, wrote, backup,
   import_ok, output}`, or 400 with `{ok: false, error}` when the creature does not exist or the code is unknown or not
-  painted yet (the error names the codes it can play).
+  painted yet (the error names the codes it can play). Pass 58: only that line of the file is written (see below).
+- `POST /api/enemy/<id>/blood` (pass 58): body `{"color": "#8A1428"}`; `{ok, id, kind, blood, was, wrote, backup,
+  import_ok, output}` (`unchanged: true` and nothing written when the creature already bleeds that colour, any case), or
+  400 with `{ok: false, error}` when the creature does not exist or the colour is not `#rrggbb`.
+- `GET /sprite/<kind>/<id>[/<code>]` (pass 58): a creature's animation strip PNG (kind enemy|boss; code = an art variant,
+  the variant's own strip when it is on disk, else the top-level one). Cells are `frame_px` square; cell 0 is the standing
+  idle frame the colour preview tints.
+- `GET /api/enemies` (pass 58) adds `sprite_play` (the default look's strip), `frame_px`, `blood` (the JSON's, null when
+  it has none) and a `sprite` URL on every variant.
 
 ## Self-test (pass 54)
 
@@ -292,3 +301,115 @@ Garry's list for the editor (2026-10-07), and where each piece is:
   by minute, the estimate was 4.4 % over the record at 2:00, 4.3 % at 4:00 and 8.2 % at 7:10 (19 % at 1:00, while
   the young build kills slowly). A flat rate is 95 % over at 1:00 and within 14 % after 2:00.
 - `selftest.py`: 13832 checks pass (the estimate on seven timelines, JS against Python, and hand-checked cases).
+
+## Pass 58
+
+Garry's list for the editor (2026-10-07), and where each piece is. The game side is lane WV's (`docs/waves_schema.md`,
+"Pass 58"); the editor shows exactly those rules.
+
+- **A row keeps its numbers** (Garry: "I don't actually want it to change for the same 'wave' of enemies on the fly").
+  A row reads the HP × and ATK × curves once, at its start `t0` (a roster row's `t`, a wave's `t`, an event's `t`; a
+  special the second it comes): row HP = (its `hp`, else the creature's JSON hp × the HP curve at `t0`) × `hp_mult`, row
+  ATK the same with `damage`, `damage_mult` and the damage curve. A row with its own `hp` / `damage` takes no curve. In the
+  game the stage multiplier at the creature's spawn, `creature_hp_mult` / `creature_damage_mult` and the hero level at
+  the row's first spawn (the Hero level box stands in for it) come on top; an Elite-archetype mini-boss and a boss keep
+  their own rules. `model.js`: `rowNumbers`, `creatureAt(..., t0)`.
+  - **The inspector**: a green line right under From / Until, in sight whether Overrides is open or not, says "Row HP
+    39.01 · ATK 8, fixed from 8:46, the row's start", where each number comes from ("the Spit Cactus's 18 × the HP curve
+    ×2.17 at 8:46", or "its own 25, typed in Overrides (no curve)") and what a creature of it has in play there ("In play
+    at its start: HP 111.6 · ATK 22 (stage 2 ×2.2, creature ×1.3 / ×1.25, hero level 1 ×1 / ×1); one it sends in a
+    later stage takes that stage's multiplier instead"). The grey numbers in Overrides → Body → HP and Damage are the
+    same row HP and ATK. A wave shows the line under each creature (each alternative, the wave's start), an event under
+    its creature (the second it fires); an "Elites every" lists its first four firings, each with the HP and ATK of its
+    own second ("5:01 HP 16.46 · 7:10 HP 19.41 · ..."), since every firing takes the curves then. Pressing a bar selects
+    it at once (a box still being typed in commits first, its own undo step), and while it is dragged the From / Until
+    boxes, the title, the line, the grey numbers and the Presence times follow it (nothing else of the form is
+    rebuilt). An Overrides block opened or closed by hand stays so when the form is drawn again.
+  - **An event joins a row** (lane WV's fix round, `WaveDirector.event_numbers`): a swarm, a coloured elite (one named
+    or drawn from the rows), a firing of an "Elites every", a special, a boss's brood or a boss / Elite event naming a
+    regular creature, of a creature that a roster row of either channel (open then at a weight above 0, the heaviest when
+    several) or else a wave in its window brings at that second in the same look (the same art variant; none, the
+    default or an unknown code all mean the creature's own), plays that row's HP and ATK, fixed from the row's start, for
+    each of the two its own Overrides leave alone (HP: `hp` / `hp_mult`; ATK: `damage` / `damage_mult`). The event's
+    green line then reads "HP 55 · ATK 8, joining row r4 (the Fire Ant from 7:10)" (Red Canyon's 9:19 swarm; the 16:29
+    imp swarm joins row r10), its grey HP and Damage show the row's numbers, its hover card says "Joins row r4", and an
+    "Elites every" marks each firing that joins. `model.js`: `openSourceOf`, `eventNumbers`, `lookOf`.
+  - **Endless** (the same fix round, `WaveDirector.source_for`): every row and wave fixes its numbers afresh at each
+    endless wave N, from the later of its own start and the wave's start, stage_length × stages + (N - 1) ×
+    endless_wave_seconds. The Actual lanes step there, the cards say "fixed afresh from 22:56, the start of this endless
+    wave", and a row running into endless says so on its green line. `model.js`: `fixedFrom`.
+  - **A long bar**: on a row or wave longer than three minutes whose HP curve has climbed more than 15% past its start
+    by its last second (the run's end at most), the green line adds in yellow "By 21:30 the HP curve says ×4.11 while
+    its creatures keep ×2.99 all the way: split the bar for a step up" (the review's suggestion; nothing blocks Save).
+  - **The hover cards**: the factor line reads `time@3:12 1.41` and a line says the numbers are fixed from the row's
+    start; a wave card says it for the wave. The cursor's readout says "a row starting now" and adds the actual line.
+- **Actual HP ×** and **Actual ATK ×**: a lane above each curve, on the curve lane's scale while the rows' multiples
+  fit under it; higher multiples give the Actual lane its own scale, up to 1.5 times as tall (`model.js` `actualScale`),
+  and a ▲ with the number marks anything past its top, so the curve you drag never shrinks (one row with `hp` 200 over
+  a creature's 10 had squashed it into the bottom fifth of its lane). At every
+  second: the average of the multiples (row HP over the creature's JSON hp, row ATK over its damage) of the roster rows
+  (both channels) and wave alternatives spawning in the 10 seconds round it, each weighted by what it spawns there (the
+  Spawned so far estimate keeps a tally per row and per wave alternative, `src` on its points), drawn solid; the largest,
+  dashed; the intended curve, dotted; nothing where none of the roster or the waves spawns. Hover for a card with the
+  average, the largest and the intended, then every row behind them: its picture, name, row id or wave, start, multiple,
+  why (the curve at its start, or its own HP) and its share of the spawns. The curve's inspector adds an "Intended and
+  actual" table at the stage marks. During a drag the estimate is run again at most every 350 ms (it was the last one
+  until the drop). `model.js`: `actualSources`, `actualAt`, `actualSeries`.
+  - Red Canyon as Garry left it: the skeleton and knight rows (`hp` 20 and 35 over 10 and 15) carry ×2 and ×2.33 from
+    3:12 where the curve says ×1.41; the fire ants (`hp` 55 over 36) ×1.53 from 7:10 where it says ×1.94; none of the
+    roster spawns from 11:32 to 14:20; the imp and hellhound rows keep the ×2.99 of 14:20 to the end of stage 3 while the
+    curve climbs to ×4.11 at 21:30, then each endless wave fixes them afresh (×4.11 from 21:30, ×4.35 from 22:56, ×4.58
+    from 24:22, ...).
+- **Size (m)** (Overrides → Body; R2, Garry: "editable as a kind of a range (between 3-5 for example) and there should be
+  the default one already set for them so I have a reference"): a from and a to box. One number (or equal ones) writes a
+  number, as before (the variance's spread on top, the radius unchanged); two write `[min, max]`: every creature of the
+  row rolls its own size in the range instead of the spread, and its collision radius follows (radius × size / its own
+  size) unless Radius is set. Under the boxes: the creature's own size and its spread ("its own: 1.75 m, spread ±20% =
+  1.4–2.1 m"). A size of 0 or below, or a range that runs backwards, is an error (red boxes, Save blocked). The bar gets a
+  "1.4–2.2 m" chip, the cards say it, and the Ring hint counts bodies at the middle of the range. A list of one size
+  written by hand (`[2]`) is read as the game reads it (`EnemyDef.size_range_of`): a range of one size, every creature
+  exactly 2 m, no spread, its radius following (the editor itself writes equal boxes as one number).
+- **Colour** (a new override group; R3, Garry: "I'd like a colour slider and a preview showing the actual enemy"): "Add a
+  colour range" writes `{"hue": [200, 260], "sat": 0.85, "val": 1, "amount": 0.5}`. The hue range is a strip of the
+  colour wheel (0° to 360°) with a handle at each end (drag one, or press the strip to move the nearer one; an end below
+  the start runs through red, the part left out is dimmed; ⇄ takes the other side of the wheel), the two hues in degrees,
+  then Saturation, Brightness and Amount sliders, Clear, and the pictures, four to a row at about 90 px (a click shows
+  one at 240 px): the row's look (its own art variant, else the default) as painted, then washed at five hues across
+  the range, on the sand, then, for a creature with coloured specials, the special at the middle hue in its own shade:
+  a coloured special of a colour-range row (once Colour after kills is reached) is a darker, stronger shade of the hue
+  it rolled, saturation +0.15 (at most 1), brightness ×0.7, at the larger of Amount and the special's own tint strength
+  (0.6 when it has none) +0.15 (at most 1) (`EnemyDef.tint_special_color`; `model.js` `tintSpecial`; a coloured-elite
+  event or a wave wearing a modifier never rolls one, so it shows none). The pictures copy the billboard shader:
+  `mix(rgb, tint, amount × 0.65)` on the painting in linear light with the tint's numbers as they are (`model.js`
+  `tintPixel`; the game's Filmic tone mapping is left out), so a bright colour at a high amount looks pale in the game
+  as it does here: lower the brightness for deep colours. A handle or a slider redraws the strip at once and the
+  pictures once a frame; the file is written when it is let go (one undo step). The bar gets a swatch chip of the
+  range; the cards show it. A hue outside 0–360 or a
+  number outside 0–1 is an error.
+- **Default look** (Garry: "I should be able to set the default Art Variant for those enemies from the Creatures tab").
+  What was wrong with pass 54's button, seen in a browser: it was hidden (`display: none`) until a figure was hovered or
+  clicked, and nothing on a card said it was there (the one hint was a grey line above the tab); on a card's first
+  figure it stuck out past the card's edge, cut to "et as default look"; it took a click, the button and a confirm; and
+  a row's look field said "in play: SL-C", which did not read as the default. The rows did follow it (a row that names
+  no variant plays the JSON's), and every creature plays a look shown among its figures. The writer also re-dumped the
+  whole file, which turned fire_ant's and the two red goblins' LF lines (they end in one CRLF) into CRLF throughout.
+  Now every card has a **Default look** strip: its looks as 48 px pictures, the default ringed and tagged "default",
+  every other painted look tagged "make default" (a click asks "Make SL-A the default look of the Blue Slime? ..." with
+  "Yes, make SL-A the default" / "Cancel"), an unpainted one faded; a creature with one painting says so. The row's,
+  alternative's and event's Art variant reads **Default (SL-C)** with its picture until one picks its own (which pins
+  it; the list marks the default). New rows, waves and events still name none. The server writes only that one line
+  (`set_top_key`: in place, or a new line before `variants`; parsed back and checked, else the old re-dump).
+- **Blood** (R4): every card has a blood row: a splash in the colour, a colour picker and its hex. A change shows Save and
+  ↺; Save posts `/api/enemy/<id>/blood`: a backup, the one `blood` line written in place (or a new line after `size`,
+  where lane FX put every creature's, else after `knockback` or `damage`), in capitals like the files' other colours,
+  every other byte as it was, then that creature's import; the card reloads with the new colour. A creature with none
+  shows the game's default red (`#c70d0d`, "none set").
+- `selftest.py`: 14038 checks pass: the above on top of pass 57's (R1 by hand and against the Python copy, the
+  per-source tallies, the Actual average and largest on a hand-made timeline (three rows of one creature, a no-cap wave
+  that keeps the crowd over the cap) and on Red Canyon, the size and colour checks, the tint mix, the records' strips and
+  blood, the line writer on mixed line endings, the blood endpoint on temporary copies and over HTTP; after the review:
+  the special's shade against `EnemyDef.tint_special_color` and its constants read from `EnemyDef.gd`, the variance
+  special a row reads, the Actual lane's own top, an "Elites every" event's firings, the one-size list, and lane WV's
+  fix round: the event join on sixteen hand-made cases (the heavier row, the look, a half the event sets itself, a row at
+  weight 0, a wave and its alternative's share, endless, an Elite) and the endless re-fix, by hand and against the
+  Python copy, in the Actual lanes too).
