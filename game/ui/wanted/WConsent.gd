@@ -1,6 +1,6 @@
 ## The play-data card (pass 59, Garry: the consent card before the first tester who is not him): the first time a build
 ## that can send starts (a key in game/config/analytics.json, `Analytics.consent_needed()`), the title shows this card
-## over an ink dim. It says in plain words what goes to the maker and under which name, and asks once: OK or No thanks.
+## over an ink dim. It says in plain words what goes and under which name, and asks once: OK or No thanks.
 ## The answer is kept in the save (`Save.consent()`, through a wipe) and Settings' "Anonymous play data" switch is the
 ## answer from then on. Until it is answered nothing is sent or written to disk (`Analytics.awaiting_consent`); a tap on
 ## the dim does nothing (the card wants an answer); the back gesture leaves it unanswered, and it comes again next launch.
@@ -27,11 +27,12 @@ static func open(host: Control) -> Control:
 	return c
 
 
-## The words on the card (tests read them).
+## The words on the card (tests read them). Pass 60 (Garry: "make the text simpler please. Don't mention me"): plain
+## words, no maker; the player's name stays, so they can find themselves.
 static func body_text(player_name: String) -> String:
-	return ("88fits sends what happens in your runs (the items you pick, where you fall, how smoothly it runs) to its "
-		+ "maker, to make the game better. You are \"%s\" there: no account, no location, nothing else about you. "
-		+ "Now and then it asks two or three quick questions after a run. You can turn either off in Settings.") % player_name
+	return ("The game sends what happens in your runs (the items you pick, where you fall, how smoothly it runs) so it "
+		+ "can get better. You appear there only as \"%s\": no account, no location, nothing else about you. "
+		+ "Now and then it asks a few quick questions after a run. Both can be turned off in Settings.") % player_name
 
 
 func _init() -> void:

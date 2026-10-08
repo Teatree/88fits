@@ -131,6 +131,11 @@ func passive_cap_at(stage: int) -> int:
 ## missiles, kamikaze blasts, death bursts, boss and caster attacks and the Brander's ring. EnemyManager.creature_damage_mult
 ## carries it (WaveDirector._apply_mults). Red Canyon: 1.25. 1 = as the creature's data says.
 @export var creature_damage_mult: float = 1.0
+## A multiplier on EVERY creature's pace (pass 60, Garry: "reduce the movement speed of all enemies by 10%" as "a
+## multiplier for all"): every creature, Elite and boss walks, charges, rolls, winds up (1/mult as long) and shoots at
+## this multiple; the hero is not affected (he keeps `move_pace`). EnemyManager folds it into its `pace`
+## (WaveDirector._apply_mults, the arena too). Red Canyon: 0.9. 1 = as the creatures' data says.
+@export var creature_speed_mult: float = 1.0
 ## Where the roster's bursts and the waves come from (pass 54, Garry: 55 / 15 / 15 / 15): {"mode": "sides" | "facing",
 ## "top", "bottom", "left", "right" (the weights of the four screen sides in camera space, top = up the screen = north
 ## in the fixed camera), "facing_share" (the old rule's share of spawns ahead of the hero, default 0.7),

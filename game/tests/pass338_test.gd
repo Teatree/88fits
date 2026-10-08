@@ -282,6 +282,10 @@ func _old_strip(em: EnemyManager, i: int, def: EnemyDef) -> String:
 		elif st == EnemyManager.STATE_WINDUP and def.charge.size() > 0:
 			# pass 50: a charger with charge.legs scrabbles its legs in place through the wind-up
 			anim = "run" if float(def.charge.get("legs", 1.0)) > 1.0 else "idle"
+		if (anim == "hit" or anim == "attack") and em.view[i] != 0:
+			# pass 60: the hit and attack frames are painted facing the camera only; off the front view the creature keeps
+			# its stand or walk in the view it shows (the Sun Prophet's flicker)
+			anim = "idle" if (st == EnemyManager.STATE_SPAWN or em.vel[i].length_squared() < 0.04) else "run"
 		if anim == "run" or anim == "idle":
 			var suffix: String = ["", "_b", "_s", "_bd", "_fd"][em.view[i]]
 			if def.frames_of(anim + suffix) > 0 and def.anims.has(anim + suffix):
@@ -307,6 +311,8 @@ func test_the_frame_table_picks_the_strip_the_names_did() -> void:
 						for aw in [0, 1]:
 							em.state[i] = st
 							em.vel[i] = Vector3(1, 0, 0) if moving else Vector3.ZERO
+							# pass 60: a creature that fights at range walks by its brain's intent; here it means what it does
+							em.intent[i] = em.vel[i]
 							em.flash[i] = fl
 							em.view[i] = v
 							em.away[i] = aw

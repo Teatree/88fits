@@ -631,8 +631,8 @@ static func is_gold(r: Dictionary) -> bool:
 ## unevolved all run). Pass 58 (Garry: "Banish option should not allow Banishing items that Player already has, because
 ## this way they can lock themselves out of progression for those weapons"): the game's one rule, Run.banish_refusal
 ## (lane UIA's, the level-up's too): never the next level of a weapon, a line or a passive item the hero holds, never an
-## evolution, and never a mutation on the path of a weapon he carries (the boss chest's: its evolution needs every one);
-## a new passive item, or a hero's own optional mutation, can go.
+## evolution, and (pass 60, Garry: "mutations shouldn't be banishable anywhere") never a mutation, the boss chest's hero
+## option included; a new passive item can go.
 static func can_banish(r: Dictionary) -> bool:
 	return banish_refusal(r) == ""
 
@@ -649,23 +649,11 @@ static func banish_refusal(r: Dictionary) -> String:
 			return "Gold cannot be banished."
 		"evolution":
 			return "An evolution cannot be banished."
-		"path":
-			return "A mutation for your %s cannot be banished: its evolution needs it." % _family_name(def)
+		"mutation":
+			return "A mutation cannot be banished."
 		"held":
 			return "You have %s. Only new items can be banished." % def.display_name
 	return "Only new items can be banished."
-
-
-## The weapon a mutation is for, as the hero carries it (its evolution's name once evolved).
-static func _family_name(def: ContentDef) -> String:
-	var md := def as MutationDef
-	if md == null:
-		return "weapon"
-	var wi := Run.family_instance(md.weapon)
-	if wi:
-		return wi.def.display_name
-	var wd: WeaponDef = Registry.weapon(md.weapon)
-	return wd.display_name if wd else md.weapon.capitalize()
 
 
 ## SKIP: the chest closes on nothing (Game takes one of the stage's skips, Run.chest_skip); with none left, or on gold,
@@ -685,12 +673,12 @@ func _skip() -> void:
 
 
 ## BANISH: the item leaves the run (Run.chest_banish takes the banish and rolls the chest again) and the reel spins once
-## more, about two seconds, to the new roll; the chest stays open. With none left, on gold, an evolution, a path
-## mutation of a weapon held or the next level of something held (pass 58, banish_refusal) it stays and says why.
+## more, about two seconds, to the new roll; the chest stays open. With none left, on gold, an evolution, any mutation
+## (pass 60) or the next level of something held (pass 58, banish_refusal) it stays and says why.
 func _banish() -> void:
 	if _spinning:
 		return
-	# gold, an evolution, a path mutation or the next level of something held: the header says why (pass 58)
+	# gold, an evolution, a mutation or the next level of something held: the header says why (pass 58)
 	var why := banish_refusal(_result)
 	if why != "":
 		header.set_line(why)

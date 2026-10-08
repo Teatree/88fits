@@ -116,6 +116,9 @@ func _apply_mults() -> void:
 	# (lane C); set() is a quiet no-op on a manager that has not got them yet
 	em.set("creature_damage_mult", 1.0 if Run.arena else timeline.creature_damage_mult)
 	em.set("damage_time_mult", timeline.damage_mult_at(Run.elapsed))
+	# pass 60: every creature's pace times the timeline's creature_speed_mult (0.9 on Red Canyon), the arena included (it
+	# is where the walks are looked at, and they should go as they do in a run); the hero keeps his move_pace
+	em.creature_speed_mult = timeline.creature_speed_mult
 
 
 ## Whether colour may come yet (pass 46): the run has made its first `colour_after_kills` kills (the arena always may).

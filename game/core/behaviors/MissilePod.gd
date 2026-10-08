@@ -10,23 +10,26 @@
 ## every `every` bursts (every burst while the Pollen buff lasts) at the strongest creature near that no hawk holds.
 ## Pass 53: the rocket flies nose first (the visual's Projectile node is turned so its capsule lies along -Z; that turn
 ## goes to the shot's kind, ProjectileManager.set_kind_basis); the cluster's tips are any count (Tip1..TipN, the Hellfire
-## Battery's six) and `params.cluster_spin` false keeps a two-row battery from revolving. Pressure Cooker
-## (params.pressure {max, seconds, start, hit_keeps}; Garry: "the longer the Player isn't hit the lower the cooldown
-## between rocket launches, getting hit resets this ... the rocket launcher 3d object gradually looks hotter (but not in
-## an alarming way)"): the ramp is the seconds since the hero was last hit over `seconds` (0..1); the fire interval is
-## the cooldown over 1 + bonus, bonus = start + (max - start) x ramp; a hit on his health or his Energy Shield sets the
-## ramp back to `hit_keeps` of itself (none: "resets it back"). The pod's body and tubes glow a dull orange with the ramp
-## (HEAT_COLOR up to HEAT_ENERGY). The Hellfire Battery's overpressure (params.overpressure {every}): with the ramp at
-## its top every `every`th volley is a double volley.
+## Battery's six) and `params.cluster_spin` false keeps a two-row battery from revolving. Pressure Cooker (pass 60,
+## Garry: "while standing still the rate of fire of the Rocket Pod increases, every second, up to +200%. Being hit or
+## moving stops it. Takes like 15 seconds to get to max, increases linearly"; params.pressure {max, seconds, hit_vent,
+## start}): `pressure` (0..1) climbs by dt / `seconds` while the hero stands still (Player.is_still, with its half-second
+## grace), is all let out the moment he moves, and a hit on his health or his Energy Shield vents `hit_vent` of it (a puff
+## of steam off the pod); the fire interval is the cooldown over 1 + bonus, bonus = start + (max - start) x pressure
+## (start is 0 without it: the Hellfire Battery starts hot). The pod's body and tubes glow with the pressure (HEAT_COLOR
+## up to HEAT_ENERGY, clearly hot at the top). The Hellfire Battery's overpressure (params.overpressure {every}): at full
+## pressure every `every`th volley is a double volley.
 class_name MissilePod
 extends WeaponBehavior
 
 const LAUNCH_GAP := 0.09
 ## A bee on Pollen's buff (pass 48).
 const RED_BEE := Color(1.0, 0.18, 0.12)
-## The Pressure Cooker's glow (pass 53).
-const HEAT_COLOR := Color(1.0, 0.45, 0.15)
-const HEAT_ENERGY := 0.9
+## The Pressure Cooker's glow (pass 53; hotter since pass 60, the glow is its only gauge) and the steam a vented hit lets
+## out (pass 60).
+const HEAT_COLOR := Color(1.0, 0.36, 0.08)
+const HEAT_ENERGY := 1.4
+const STEAM := Color(0.93, 0.92, 0.9)
 
 var _familiar: Node3D
 var _orbit := 0.0
@@ -50,10 +53,14 @@ var _red_kind := -1
 ## The hive's door (pass 49, an "Entrance" marker in the Killer Bees' visual): the bees and the hawks come out of it.
 ## A pod without one launches from just over its middle, as before.
 var _entrance: Node3D
-## Pressure Cooker (pass 53): when the hero was last hit, on Run.buff_clock(); the pod's materials that warm with the
-## ramp (duplicated once at setup) and the ramp they show; volleys fired at the top of the ramp (the overpressure count);
-## whether the last _process fired (the re-arm is then the pressure's interval)
-var _last_hit := 0.0
+## Pressure Cooker (pass 53, the stillness rule since pass 60): the pressure built, 0..1; the pod's materials that warm
+## with it (duplicated once at setup) and the level they show; volleys fired at full pressure (the overpressure count);
+## whether the last _process fired (the re-arm is then the pressure's interval); hits that vented some (tests)
+var pressure := 0.0
+## seconds after a hit during which the ramp neither climbs nor dumps (the knock's step is not a move)
+const VENT_HOLD := 0.8
+var _vent_hold := 0.0
+var vents := 0
 var _pressure_wired := false
 var _heat_mats: Array = []
 ## each heated material's own emission before the ramp, {color, energy}: the bottom of its warming
@@ -92,16 +99,16 @@ func _on_setup() -> void:
 	_keep_field()
 
 
-# ---------------------------------------------------------------- Pressure Cooker (pass 53)
+# ---------------------------------------------------------------- Pressure Cooker (pass 53, stillness since pass 60)
 
 ## Wires the Pressure Cooker when the weapon carries it: at setup, and from refresh_marks when the pick is taken mid-run
-## (a mutation never rebuilds the behaviour). The ramp starts from nothing at the pick ("every second without a hit");
-## a hit on his health, and one his Energy Shield took, both count (the shield power-up's absorb is neither).
+## (a mutation never rebuilds the behaviour). The pressure starts from nothing at the pick; a hit on his health, and one
+## his Energy Shield took, both vent it (the Invincibility bubble's absorb is neither: nothing touched him).
 func _pressure_setup() -> void:
 	if _pressure_wired or _pressure().is_empty():
 		return
 	_pressure_wired = true
-	_last_hit = Run.buff_clock()
+	pressure = 0.0
 	if player:
 		if player.has_signal("hit") and not player.is_connected("hit", Callable(self, "note_hit")):
 			player.connect("hit", Callable(self, "note_hit"))
@@ -115,22 +122,30 @@ func _pressure() -> Dictionary:
 	return pr if pr is Dictionary else {}
 
 
-## How far the pressure has built, 0..1: the seconds since the hero was last hit over `pressure.seconds`.
-func pressure_ramp() -> float:
+## The pressure's clock (pass 60): while the hero stands still (Player.is_still: no stick, next to no speed, on the
+## ground, for half a second) it climbs by delta / `seconds`, to 1; the moment he moves it is all let out. For
+## VENT_HOLD after a hit it does neither: the hit's knock carries him a step, which is not him moving (the review:
+## a bite had dumped the pressure to 0 instead of venting half).
+func _tick_pressure(delta: float) -> void:
 	var pr := _pressure()
 	if pr.is_empty():
-		return 0.0
-	var secs: float = maxf(float(pr.get("seconds", 20.0)), 0.01)
-	return clampf((Run.buff_clock() - _last_hit) / secs, 0.0, 1.0)
+		return
+	if _vent_hold > 0.0:
+		_vent_hold = maxf(_vent_hold - delta, 0.0)
+		return
+	if player != null and player.has_method("is_still") and bool(player.is_still()):
+		pressure = minf(pressure + delta / maxf(float(pr.get("seconds", 15.0)), 0.01), 1.0)
+	elif pressure > 0.0:
+		pressure = 0.0
 
 
-## The attack speed the pressure gives now: `start` at the bottom of the ramp (0 without it), `max` at its top.
+## The attack speed the pressure gives now: `start` with none built (0 without it), `max` at full pressure.
 func pressure_bonus() -> float:
 	var pr := _pressure()
 	if pr.is_empty():
 		return 0.0
 	var start := float(pr.get("start", 0.0))
-	return start + (float(pr.get("max", 0.5)) - start) * pressure_ramp()
+	return start + (float(pr.get("max", 2.0)) - start) * pressure
 
 
 ## Seconds between volleys: the sheet's cooldown over 1 + the pressure's bonus.
@@ -138,14 +153,23 @@ func fire_interval() -> float:
 	return maxf(stat("cooldown", 1.0) / (1.0 + pressure_bonus()), 0.05)
 
 
-## The hero was hit: the ramp drops to `hit_keeps` of itself (to nothing without it; Garry: "resets it back").
+## The hero was touched (his health, or his Energy Shield): `hit_vent` of the pressure escapes (half without it), a puff
+## of steam off the pod when any did.
 func note_hit() -> void:
 	var pr := _pressure()
-	if pr.is_empty():
+	if pr.is_empty() or pressure <= 0.0:
 		return
-	var keeps: float = clampf(float(pr.get("hit_keeps", 0.0)), 0.0, 1.0)
-	var secs: float = maxf(float(pr.get("seconds", 20.0)), 0.01)
-	_last_hit = Run.buff_clock() - pressure_ramp() * keeps * secs
+	var vent: float = clampf(float(pr.get("hit_vent", 0.5)), 0.0, 1.0)
+	if vent <= 0.0:
+		return
+	pressure = maxf(pressure * (1.0 - vent), 0.0)
+	if pressure < 0.02:
+		pressure = 0.0
+	_vent_hold = VENT_HOLD
+	vents += 1
+	if game and game.has_method("fx_burst"):
+		var at: Vector3 = (_familiar.global_position if _familiar else player.global_position) + Vector3(0, 0.25, 0)
+		game.fx_burst(at, STEAM, 0.3)
 
 
 func _on_shield_hit(_broke: bool) -> void:
@@ -200,11 +224,11 @@ func _heat_copy(src: StandardMaterial3D, seen: Dictionary) -> StandardMaterial3D
 	return dup
 
 
-## The glow follows the ramp (written only when it moved: a material set every frame is a needless upload).
+## The glow follows the pressure (written only when it moved: a material set every frame is a needless upload).
 func _tick_heat() -> void:
 	if _heat_mats.is_empty():
 		return
-	var r := pressure_ramp()
+	var r := pressure
 	if absf(r - _heat_shown) < 0.02 and not (r >= 1.0 and _heat_shown < 1.0) and not (r <= 0.0 and _heat_shown > 0.0):
 		return
 	_heat_shown = r
@@ -313,6 +337,7 @@ func _tick(delta: float) -> void:
 	if want.length_squared() > 0.0001:
 		_aim_yaw = lerp_angle(_aim_yaw, atan2(-want.x, -want.z), clampf(delta * 8.0, 0.0, 1.0))
 	_recoil = maxf(_recoil - delta * 8.0, 0.0)
+	_tick_pressure(delta)
 	_tick_heat()
 	_tick_pod(delta)
 	_place(delta)
@@ -327,7 +352,7 @@ func _fire() -> bool:
 		_queue.append(k)
 	# the Hellfire Battery's overpressure (pass 53): at the top of the ramp every `every`th volley is a double one
 	var op = inst.params.get("overpressure")
-	if op is Dictionary and pressure_ramp() >= 1.0:
+	if op is Dictionary and pressure >= 1.0:
 		_top_volleys += 1
 		if _top_volleys % maxi(int((op as Dictionary).get("every", 4)), 1) == 0:
 			for k in range(n):
@@ -405,5 +430,5 @@ func _launch_one() -> void:
 			_spin_target += PI * 0.5
 		_kick = 1.0
 		_reload_t = 0.35
-	muzzle_flash(from)
+	muzzle_flash(from, aim)
 	sfx("fire", from)

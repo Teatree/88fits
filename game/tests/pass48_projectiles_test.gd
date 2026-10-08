@@ -995,12 +995,19 @@ func test_a_hive_queen_kill_sprouts_a_flower_where_it_fell() -> void:
 
 # ---------------------------------------------------------------- the rest
 
-func test_an_element_slot_without_an_element_hangs_a_silver_emblem() -> void:
+func test_no_mutation_hangs_an_emblem_any_more() -> void:
+	# re-pinned in pass 60 (Garry: "remove all the current little halos that appear over weapons after a mutation is
+	# applied"): the emblem builder and its colours are gone; refresh_marks builds nothing and frees one left hanging
 	var b: WeaponBehavior = auto_free(WeaponBehavior.new())
-	for id in ["mini_crits", "silver_bullet", "pollen", "new_equipment"]:
-		assert_bool(b._mark_colour(Registry.mutation(id)).is_equal_approx(WeaponBehavior.MARK_SILVER)).override_failure_message(id).is_true()
-	assert_bool(b._mark_colour(Registry.mutation("dragons_breath")).is_equal_approx(Color(1.0, 0.5, 0.15))).is_true()
-	assert_bool(b._mark_colour(Registry.mutation("toxic_peas")).is_equal_approx(Color(0.45, 1.0, 0.35))).is_true()
+	assert_bool(b.has_method("_mark_colour")).is_false()
+	assert_bool(b.has_method("_mark_for")).is_false()
+	assert_bool(b.has_method("_tick_marks")).is_false()
+	assert_bool(b.has_method("shows_marks")).is_false()
+	var old := Node3D.new()
+	old.name = "MutationMarks"
+	b.add_child(old)
+	b.refresh_marks()
+	assert_object(b.get_node_or_null("MutationMarks")).is_null()
 
 
 func test_the_new_mutations_and_evolutions_say_what_they_do() -> void:

@@ -7,6 +7,13 @@
 ## turns Settings' "Questions after a run" off and tells PostHog (survey_opt_out). A tap on the dim does nothing.
 ## No class_name: open it with preload("res://ui/wanted/WSurvey.gd").open(host, survey).
 ## Names for tools: "NotNow", "Next", "NeverAsk", "Choice<i>", "Rate<n>", "Answer" (the text box).
+## Pass 60 (Garry: "Survey Type here doesn't seem to work. I tap and the ability to type doesn't appear (the keyboard)"):
+## the game keeps emulate_mouse_from_touch off, and Godot's TextEdit takes focus only from a mouse click, so a finger on
+## the box did nothing on the phone. The box now takes focus from a finger (its gui_input), which raises the phone's
+## keyboard (TextEdit shows it on focus; a belt-and-braces DisplayServer.virtual_keyboard_show follows a frame later when
+## none has come up), wears a brass ring while focused, the card rises so its foot (the SEND row) stays over the keyboard
+## (keyboard_canvas_height / lift_for, polled in _process), and a finger anywhere outside the box lets the focus go, which
+## hides the keyboard.
 extends Control
 
 ## "sent", "dismissed" or "opted_out"
@@ -16,6 +23,10 @@ const WIDTH_INSET := 50.0
 ## The card's top under the camera cutout, high enough that a phone's keyboard leaves the text box in view.
 const CARD_TOP := 330.0
 const THANKS_HOLD := 1.2
+## The card's foot stays this far over the phone's keyboard (pass 60), and its top never rises past this under the cutout.
+const KEYBOARD_GAP := 24.0
+const LIFT_TOP_MIN := 20.0
+const LIFT_SECONDS := 0.2
 
 var survey: Dictionary = {}
 var answers: Dictionary = {}
@@ -31,6 +42,14 @@ var _value: Variant = null
 var _choices: Array = []
 var _text: TextEdit
 var _done := false
+## The card's top is composed (pass 60): its resting top (CARD_TOP under the cutout), less the lift drawn for the
+## keyboard (tweened toward the lift asked, _kb_lift), plus the entrance's slide (60 px at first, tweened to 0); two
+## tweens on the one offset had fought (the entrance's last write undid a lift asked while it ran).
+var _base_top := 0.0
+var _kb_lift := 0.0
+var _lift_shown := 0.0
+var _drop := 0.0
+var _lift_tw: Tween
 
 
 static func open(host: Control, sv: Dictionary) -> Control:
@@ -69,7 +88,8 @@ func _build() -> void:
 	card.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	card.offset_left = WIDTH_INSET
 	card.offset_right = -WIDTH_INSET
-	card.offset_top = CARD_TOP + W.safe_top()
+	_base_top = CARD_TOP + W.safe_top()
+	card.offset_top = _base_top
 	add_child(card)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 26)
@@ -132,10 +152,9 @@ func _enter() -> void:
 	if _done or not is_inside_tree():
 		return
 	_place_never()
-	var y := card.offset_top
-	card.offset_top = y + 60.0
+	_set_drop(60.0)
 	var tw := create_tween().set_parallel(true)
-	tw.tween_property(card, "offset_top", y, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_method(_set_drop, 60.0, 0.0, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tw.tween_property(card, "modulate:a", 1.0, 0.2)
 	tw.tween_property(never_btn, "modulate:a", 1.0, 0.3)
 
@@ -252,9 +271,121 @@ func _open_text(q: Dictionary) -> void:
 	_text.add_theme_color_override("caret_color", W.INK)
 	var box := W.box(W.AGED, 4, 0).pad(18, 14, 18, 14)
 	_text.add_theme_stylebox_override("normal", box)
-	_text.add_theme_stylebox_override("focus", box)
+	# focused: paper in a brass ring, the kit's mark of the piece in hand (pass 60)
+	var focus := W.box(W.PAPER, 4, 0).pad(18, 14, 18, 14)
+	focus.border_color = W.BRASS
+	_text.add_theme_stylebox_override("focus", focus)
 	_text.text_changed.connect(_refresh_next)
+	# a finger on the box focuses it (pass 60): the engine's TextEdit listens to the mouse alone, and the phone sends none
+	_text.gui_input.connect(_on_answer_input)
 	_q_box.add_child(_text)
+
+
+## A finger (or a click) on the answer box: the box takes focus, which raises the phone's keyboard; if none has come up a
+## frame later (a TextEdit that was not asked to), it is asked for outright.
+func _on_answer_input(event: InputEvent) -> void:
+	if _text == null or _done:
+		return
+	var pressed := (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed) \
+		or (event is InputEventMouseButton and (event as InputEventMouseButton).pressed)
+	if not pressed or _text.has_focus():
+		return
+	_text.grab_focus()
+	_ensure_keyboard.call_deferred()
+
+
+## The keyboard, asked for by hand when focus alone did not raise it (only where there is one to raise: the phone).
+func _ensure_keyboard() -> void:
+	if _text == null or not is_instance_valid(_text) or not _text.has_focus():
+		return
+	if not DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+		return
+	if DisplayServer.virtual_keyboard_get_height() <= 0:
+		DisplayServer.virtual_keyboard_show(_text.text, _text.get_global_rect(), DisplayServer.KEYBOARD_TYPE_MULTILINE)
+
+
+## Whether the answer box is the focused piece (tests, tools).
+func answer_focused() -> bool:
+	return _text != null and is_instance_valid(_text) and _text.has_focus()
+
+
+## A finger anywhere outside the answer box lets its focus go (the keyboard goes with it); the finger still reaches
+## whatever it landed on (SEND, a choice), since nothing here is marked handled.
+func _input(event: InputEvent) -> void:
+	if _done or not answer_focused():
+		return
+	var pressed := (event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed) \
+		or (event is InputEventMouseButton and (event as InputEventMouseButton).pressed)
+	if not pressed:
+		return
+	var at: Vector2 = (event as InputEvent).get("position")
+	if not _text.get_global_rect().has_point(at):
+		_text.release_focus()
+
+
+## The phone's keyboard, as the canvas measures it (its height comes in the window's pixels, like W.safe_top's inset);
+## 0 where there is none.
+func keyboard_canvas_height() -> float:
+	if not DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
+		return 0.0
+	var h := float(DisplayServer.virtual_keyboard_get_height())
+	if h <= 0.0:
+		return 0.0
+	var win := DisplayServer.window_get_size()
+	if win.x <= 0:
+		return h
+	return h * get_viewport_rect().size.x / float(win.x)
+
+
+## How far the card must rise so its foot (the rule and the SEND row under the box) stays KEYBOARD_GAP over a keyboard
+## `kb_px` tall (canvas px): 0 while the card already clears it, never so far that its top passes LIFT_TOP_MIN under
+## the cutout.
+func lift_for(kb_px: float) -> float:
+	if kb_px <= 0.0 or card == null:
+		return 0.0
+	var h := maxf(card.size.y, card.get_combined_minimum_size().y)
+	var foot := _base_top + h + KEYBOARD_GAP
+	var kb_top := get_viewport_rect().size.y - kb_px
+	var lift := maxf(foot - kb_top, 0.0)
+	return minf(lift, maxf(_base_top - (W.safe_top() + LIFT_TOP_MIN), 0.0))
+
+
+## The card's top from its parts: the resting top, the lift drawn and the entrance's slide.
+func _place_card() -> void:
+	card.offset_top = _base_top - _lift_shown + _drop
+
+
+func _set_drop(d: float) -> void:
+	_drop = d
+	_place_card()
+
+
+func _set_lift_shown(l: float) -> void:
+	_lift_shown = l
+	_place_card()
+
+
+## The card slides to its lifted place (and back when the keyboard goes); "Don't ask me again" follows its foot.
+func _set_lift(lift: float) -> void:
+	_kb_lift = lift
+	if _lift_tw and _lift_tw.is_valid():
+		_lift_tw.kill()
+	_lift_tw = create_tween()
+	_lift_tw.tween_method(_set_lift_shown, _lift_shown, lift, LIFT_SECONDS).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_lift_tw.tween_callback(_place_never)
+
+
+## The lift the keyboard asks for right now (tests, tools): applied when it changes.
+func keyboard_lift() -> float:
+	return _kb_lift
+
+
+func _process(_delta: float) -> void:
+	if _done or card == null:
+		return
+	var want := lift_for(keyboard_canvas_height())
+	if not is_equal_approx(want, _kb_lift):
+		_set_lift(want)
 
 
 ## A choice picked: brass, the others paper again.

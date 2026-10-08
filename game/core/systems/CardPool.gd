@@ -131,8 +131,8 @@ static func offer_passives() -> Array:
 
 
 ## The cards of an offer that may be banished (pass 58, Garry: "Banish option should not allow Banishing items that
-## Player already has"): never an upgrade of something the hero has, never an evolution of it (Run.banish_refusal). The
-## level-up's BANISH locks when none may.
+## Player already has"): never an upgrade of something the hero has, never an evolution of it, never a mutation (pass 60;
+## Run.banish_refusal). The level-up's BANISH locks when none may.
 static func banishable(offer: Array) -> Array:
 	return offer.filter(func(c) -> bool: return c is Dictionary and Run.can_banish_card(c))
 

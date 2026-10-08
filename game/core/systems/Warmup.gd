@@ -70,7 +70,9 @@ func _build(game: Node) -> void:
 				root.free()
 	pm.warm_draw(global_position)
 	# pass 54: the gems and coins draw see-through and read the stencil now: one of each under the beam, so their
-	# materials compile here rather than at the first kill (PickupManager.warm_draw)
+	# materials compile here rather than at the first kill (PickupManager.warm_draw). Pass 60: that one gem of each kind
+	# is drawn charged, so core/shaders/gem.gdshader compiles here on the gem MultiMeshes themselves (a quad would compile
+	# the un-instanced variant, not theirs) and the first magnet pull never stalls.
 	if game.get("pickups") and game.pickups.has_method("warm_draw"):
 		game.pickups.warm_draw(global_position)
 	# pass 48: the Tarantula Hawk is built from its own meshes when it launches; one sits here (no game, so it never moves)

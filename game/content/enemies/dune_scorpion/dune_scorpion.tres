@@ -247,7 +247,7 @@ boss = {
 "name": "burrow",
 "radius": 4.6,
 "telegraph": "ring_at_hero",
-"windup": 1.3
+"windup": 2.3
 }, {
 "damage": 20.0,
 "knockback": 8.0,

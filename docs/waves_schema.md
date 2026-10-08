@@ -17,7 +17,8 @@ at `stage_length`, stage 3 at `2 × stage_length`.
 `creature_hp_mult`, `level_hp_per_level`, `level_damage_per_level`, `burst_min`, `burst_max`, `spawn_interval`,
 `weight_late_t`, `pickups{per_kill, roster[{id, weight, hard_bias}]}`, `structures{count, min_spacing}`,
 `path_times[[...], ...]`, `weapon_cap[]`, `passive_cap[]`, `colour_after_kills`, `contact_cap`, `xp_need_mult`,
-`move_pace`, `hell_cap[]`, `endless_wave_seconds`, `endless_wave_mult`.
+`move_pace`, `hell_cap[]`, `endless_wave_seconds`, `endless_wave_mult`; pass 54 added `creature_damage_mult`, `spawn_sides`,
+`hp_curve`, `damage_curve` (below), pass 60 `creature_speed_mult` (the last section).
 
 ## Roster rows
 ```json
@@ -310,3 +311,14 @@ doesn't kill it even though it was killing them just a 20 seconds ago."
   steps off rocks as before. Measured on Red Canyon (seed 4242, lake 6.76 m): no spot in the lake or on a rock out of
   10,500 (105-rings round heroes 3 m from the shore), 3,000 (the swarm's ring) and 2,100 (in_front with the lake ahead);
   a 105-ring there 0.17 ms on average, 0.54 ms at worst.
+
+## Pass 60: creature_speed_mult
+
+### Scalars
+- `creature_speed_mult` (default 1.0): multiplies EVERY creature's pace: each creature, Elite and boss walks, charges and
+  rolls at this multiple of its speed, winds up and warns 1/mult as long, and its shots (spit, shards, barbs, the harpoon,
+  the tumbleweeds, the boulder, the rumble, the Vulture Raider's rocket) fly at it too; the hero is not affected (he keeps
+  `move_pace`, which is everyone's knob). Red Canyon: 0.9 (pass 60, Garry: "reduce the movement speed of all enemies by
+  10%" as "a multiplier for all"). WaveDirector hands it to `EnemyManager.creature_speed_mult` at a run's start and every
+  tick of the normal phase, the debug arena included, and EnemyManager folds it into its `pace` (so `hostile_clock()`
+  carries it). Level Editor: Settings, Scaling, "Creature speed x".

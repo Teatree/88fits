@@ -335,8 +335,12 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 						", setting off their neighbours" if bool((cl as Dictionary).get("chain", false)) else ""]
 				var ps = pr.get("pressure")
 				if ps is Dictionary:
-					text += " Fires up to %d%% faster the longer you go unhit (%.0f s to the top); a hit vents it%s." % [int(round(float((ps as Dictionary).get("max", 0.5)) * 100.0)),
-						float((ps as Dictionary).get("seconds", 20.0)), " by half" if float((ps as Dictionary).get("hit_keeps", 0.0)) > 0.0 else ""]
+					# pass 60 (lane WP): the pressure is built by standing still (MissilePod._tick_pressure), moving lets it
+					# all out and a hit vents `hit_vent` of it (half without the key)
+					var vent := clampf(float((ps as Dictionary).get("hit_vent", 0.5)), 0.0, 1.0)
+					var vent_s := "half" if absf(vent - 0.5) < 0.01 else ("all of it" if vent >= 0.999 else "%d%%" % int(round(vent * 100.0)))
+					text += " Standing still builds pressure: up to %d%% faster after %.0f s; moving lets it out, a hit vents %s." % [int(round(float((ps as Dictionary).get("max", 2.0)) * 100.0)),
+						float((ps as Dictionary).get("seconds", 15.0)), vent_s]
 				var op = pr.get("overpressure")
 				if op is Dictionary:
 					text += " At full pressure every %s volley fires twice." % ordinal(int((op as Dictionary).get("every", 4)))

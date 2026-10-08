@@ -60,3 +60,5 @@ and the debug arena never send. The plan, the boards and the setup steps are in 
 Pass 59: every install is a Person in PostHog named by the game (`player_name`, shown in Settings), nothing is sent before the
 play-data card on the first launch is answered, and end-of-run surveys come from PostHog Surveys (API presentation). The
 how-to (the first survey, editing questions, following a friend) is in `docs/analytics_plan.html`.
+
+Pass 60: `run_summary` carries the rest of this dashboard's curves (`m_hp_max`, `m_shield`, `m_took_raw`, `m_evaded`, `m_shielded`, `m_healed`, `m_shield_s`, `m_invuln_s`, `m_load`, `m_hard_cap`, `m_xp`, `m_banked`, `m_kills`, `m_phase`, `dmg_by_minute` for the top eight weapons, `kills_by_weapon`, `took_kind`, the final `build` / `build_text` and `est_end`), and `tools/posthog_boards.py` draws them on the Run curves board and the new Run health & weapons board, keeping every board's id when it reruns.

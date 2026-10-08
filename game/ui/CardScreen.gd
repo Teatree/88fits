@@ -921,10 +921,8 @@ static func refusal_line(card: Dictionary, why: String) -> String:
 			return "You have %s: banishing it would lock its upgrades." % nm
 		"evolution":
 			return "%s evolves what you have: it can't be banished." % nm
-		"path":
-			var md := def as MutationDef
-			var wd: WeaponDef = Registry.weapon(md.weapon) if md else null
-			return "%s is on your %s's path: its evolution needs it." % [nm, wd.display_name if wd else "weapon"]
+		"mutation":
+			return "%s is a mutation: mutations can't be banished." % nm
 		"gold":
 			return "Gold cannot be banished."
 	return ""

@@ -25,8 +25,9 @@ func _ready() -> void:
 	add_child(_portrait)
 	_quote = W.serif_text("“A piece of you, for a piece of the world.”", 34, W.AGED, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	_quote.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_quote.offset_top = 1012
-	_quote.offset_bottom = 1012 + 41
+	# under a camera cutout the quote and the panel move down with the portrait (pass 60; the header already does)
+	_quote.offset_top = 1012 + W.safe_top()
+	_quote.offset_bottom = 1012 + 41 + W.safe_top()
 	add_child(_quote)
 	_panel = PanelContainer.new()
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -34,7 +35,7 @@ func _ready() -> void:
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	_panel.offset_left = 60
 	_panel.offset_right = -60
-	_panel.offset_top = 1100
+	_panel.offset_top = 1100 + W.safe_top()
 	add_child(_panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 22)

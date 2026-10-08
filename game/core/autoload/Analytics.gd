@@ -788,10 +788,10 @@ func status_lines() -> PackedStringArray:
 
 
 ## Settings' one line under the switch: what goes, or why nothing does (pass 58 review: a key pasted with "enabled"
-## still false had said the key file was empty).
+## still false had said the key file was empty). Pass 60 (Garry: simpler, no mention of him): no "maker".
 func settings_line() -> String:
 	if configured():
-		return "Your runs (picks, falls, frame rate) go to the maker under your player name, at the foot of this screen. No account, no location. Off deletes what waits."
+		return "Your runs (picks, falls, frame rate) are sent under your player name, shown at the foot of this screen. No account, no location. Off deletes what waits."
 	return "Nothing is sent: %s." % block_reason()
 
 # ---------------------------------------------------------------- the player (pass 59)

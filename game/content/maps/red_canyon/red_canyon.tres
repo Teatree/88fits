@@ -17,7 +17,7 @@ cap_start = 10
 cap_per_minute = 7.81
 cap_max = 150
 hard_cap = 260
-cap_curve = [[0.0, 10.0], [63.0, 27.0], [122.0, 38.0], [123.0, 76.0], [192.0, 85.0], [192.0, 45.0], [286.0, 75.0], [363.0, 100.0], [430.0, 100.0], [430.0, 54.0], [526.0, 98.0], [593.0, 102.0], [593.0, 150.0], [690.0, 168.0], [692.0, 104.0], [860.0, 108.0], [1290.0, 150.0]]
+cap_curve = [[0.0, 10.0], [63.0, 27.0], [122.0, 45.0], [123.0, 80.0], [176.0, 80.0], [176.0, 45.0], [213.0, 56.0], [232.0, 84.0], [286.0, 84.0], [363.0, 100.0], [430.0, 100.0], [430.0, 54.0], [526.0, 98.0], [593.0, 102.0], [593.0, 150.0], [690.0, 168.0], [692.0, 104.0], [860.0, 108.0], [1290.0, 150.0]]
 boss_cap_frac = 0.6
 portal_cap = -1
 portal_spawn_seconds = -1.0
@@ -86,9 +86,15 @@ roster = [{
 }, {
 "enemy": "lesser_scorpion",
 "id": "r3",
+"pack": 100.0,
+"pattern": "in_front",
+"stats": {
+"hp_mult": 1.2,
+"speed": 1.5
+},
 "t": 123.0,
-"until": 192.0,
-"weights": [[121.0, 8.0], [203.0, 9.6]]
+"until": 176.0,
+"weights": [[121.0, 8.0], [174.0, 7.6]]
 }, {
 "enemy": "fire_ant",
 "id": "r4",
@@ -150,9 +156,9 @@ roster = [{
 "stats": {
 "hp": 20.0
 },
-"t": 192.0,
-"until": 301.0,
-"weights": [[193.0, 6.7]]
+"t": 176.0,
+"until": 285.0,
+"weights": [[177.0, 6.7]]
 }, {
 "enemy": "skeleton_knight",
 "id": "r13",
@@ -160,30 +166,30 @@ roster = [{
 "stats": {
 "hp": 35.0
 },
-"t": 192.0,
-"until": 322.0,
-"weights": [[193.0, 2.9]]
+"t": 176.0,
+"until": 306.0,
+"weights": [[177.0, 2.9]]
 }, {
 "enemy": "spit_cactus",
 "id": "r14",
 "pattern": "scatter",
-"t": 192.0,
-"until": 250.0,
-"weights": [[193.0, 1.8]]
+"t": 176.0,
+"until": 234.0,
+"weights": [[177.0, 1.8]]
 }, {
 "enemy": "spit_cactus",
 "id": "r17",
 "pattern": "scatter",
 "t": 368.0,
 "until": 430.0,
-"weights": [[369.0, 1.8]]
+"weights": [[369.0, 1.2]]
 }, {
 "enemy": "bull_beetle",
 "id": "r15",
 "pattern": "scatter",
 "t": 250.0,
 "until": 368.0,
-"weights": [[250.0, 2.0]]
+"weights": [[250.0, 1.0]]
 }, {
 "enemy": "werewolf",
 "id": "r16",
@@ -288,6 +294,7 @@ passive_cap = [5.0, 5.0, 5.0]
 colour_after_kills = 50
 creature_hp_mult = 1.3
 creature_damage_mult = 1.25
+creature_speed_mult = 0.9
 spawn_sides = {
 "bottom": 15.0,
 "facing_share": 0.7,

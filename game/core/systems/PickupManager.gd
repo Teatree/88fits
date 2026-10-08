@@ -15,6 +15,15 @@
 ## dropping from as much higher (_drop_y), a gem lying on the sand hops now and then but never more than one on the
 ## screen every HOP_EXTRA_GAP s (HOP_EXTRA_*, _idle), and a medium or large one glints where it can be seen (GLINT_*,
 ## core/shaders/gem_glint.gdshader).
+## Pass 60 (Garry: the magnet "should make the gems fly up and then down to the Player", "a cheap shader that makes the
+## gems look like they are 'charged' while they are flying", for "the things that do big pulls" only, and the gems "a
+## shade darker so they are more easily visible on the sand ... maybe add low emit"): a big pull (vacuum_all: the Magnet
+## Pulse, the Uber Magnet, the boss chest's opening, the Elite's vacuum gem; a Turret Family attractor) starts the trip
+## with `arc`: the gem waits its turn in a ripple spreading from the hero (PHASE_ARC_WAIT), is thrown straight up with a
+## little outward drift to an apex metres over where it lay (PHASE_ARC_RISE), hangs a beat and dives into him on the
+## flight's own code (PHASE_FLY), charged the whole way (charge_of -> INSTANCE_CUSTOM.x on core/shaders/gem.gdshader,
+## which now draws every gem kind: brighter, shimmering, a pale rim); the walk-up pull keeps the hop. The gems are
+## GEM_SHADE darker with a low glow (GEM_EMISSION) and the motes and glints keep the bright colours (GLINT_COLOURS).
 class_name PickupManager
 extends Node3D
 
@@ -69,14 +78,47 @@ const PICKUP_PRIORITY := -2
 ## prop_billboard say `stencil_mode write, compare_always, 1`): the gems and the coin (coin.gdshader) draw only where the
 ## stencil is not this, so they lie under every 2.5D sprite, in front of its plane or behind it.
 const PAINTING_STENCIL := 1
-## each kind's colour (gem small, medium, large, coin, vacuum): the mesh and the glint when it is taken
-const COLOURS := [Color(0.62, 0.48, 1.0), Color(0.45, 0.85, 1.0), Color(1.0, 0.55, 0.85), Color(1.0, 0.72, 0.25), Color(1.0, 1.0, 1.0)]
+## each kind's colour (gem small, medium, large, coin, vacuum): the mesh. Pass 60 (Garry: "a shade darker so they are
+## more easily visible on the sand"): the three gems are GEM_SHADE of their pass-46 colours (the same hues), so they read
+## as solid coloured stones on the pale sand instead of pale lit glass; the coin and the vacuum are as they were.
+const GEM_SHADE := 0.78
+const COLOURS := [Color(0.4836, 0.3744, 0.78), Color(0.351, 0.663, 0.78), Color(0.78, 0.429, 0.663), Color(1.0, 0.72, 0.25), Color(1.0, 1.0, 1.0)]
+## The bright copy (pass 60): the colours before GEM_SHADE, for the mote where a pickup is taken or a merge pops
+## (_glint, _merge_glint) and the resting gems' star glints (glint_color), which stay as bright as they were.
+const GLINT_COLOURS := [Color(0.62, 0.48, 1.0), Color(0.45, 0.85, 1.0), Color(1.0, 0.55, 0.85), Color(1.0, 0.72, 0.25), Color(1.0, 1.0, 1.0)]
+## The gems' glow (gem.gdshader `rest_emission`; pass 60: 0.3, was 0.6 on the old StandardMaterial3D) and what it climbs
+## to while charged on the magnet arc (`charged_emission`, before the shimmer; the shader puts it on the stone's bright
+## pass-46 colour, so 1.0 is that colour lit from within: the Compatibility renderer clips at 1 with no tonemapping, and
+## 1.8 had read as white paper scraps in the capture).
+const GEM_EMISSION := 0.3
+const CHARGED_EMISSION := 1.0
 ## The trip in (pass 46). 0 on the ground (or still falling from the kill), 1 the hop out, 2 the flight in.
 const PHASE_GROUND := 0
 const PHASE_HOP := 1
 const PHASE_FLY := 2
 ## A coin knocked out of the hero (pass 48, Loose Change) on its arc to where it lands (toss_coin); on the ground after.
 const PHASE_TOSS := 3
+## The magnet arc (pass 60, Garry: the magnet "should make the gems fly up and then down to the Player", as Megabonk's
+## throws every gem into the air to shower down on him; "only ... the things that do big pulls": vacuum_all's callers
+## and the Turret Family's attractors; the walk-up pull keeps the hop). 4: it waits its turn, charging, where it lies;
+## 5: thrown up, then hanging at the apex; then FLY, the dive, on the flight's own code.
+const PHASE_ARC_WAIT := 4
+const PHASE_ARC_RISE := 5
+const ARC_WAIT_PER_M := 0.035   # s of wait a metre from the hero, so the pull ripples outward from him ...
+const ARC_WAIT_MAX := 0.5       # ... up to this ...
+const ARC_WAIT_JITTER := 0.12   # ... plus up to this, random (never past 0.62 s in all)
+const ARC_HEIGHT_MIN := 2.4     # m over where it lies the apex sits, at least ...
+const ARC_HEIGHT_RANGE := 1.4   # ... plus up to this, random ...
+const ARC_HEIGHT_PER_M := 0.02  # ... plus this a metre from the hero (a far gem goes a little higher)
+const ARC_GRAV := 20.0          # the rise's gravity: it leaves at sqrt(2 g h) m/s
+const ARC_DRIFT_MIN := 0.4      # m/s outward as it rises, random between the two ...
+const ARC_DRIFT_MAX := 0.9
+const ARC_DRIFT_FAN := 0.5      # radians either side of straight away the drift may point, so the dives fan out
+const ARC_HANG_MIN := 0.06      # s it hangs at the apex before the dive, random between the two
+const ARC_HANG_MAX := 0.16
+const ARC_SPIN := 9.0           # radians a second of extra spin while it rises (half that through the dive)
+const ARC_POP_TIME := 0.3       # the launch's scale pop (HOP_POP) eases back to 1 over this
+const CHARGE_RISE := 0.05       # the charge fades in over the wait; a wait shorter than this charges at once
 const HOP_TIME := 0.22      # seconds of the hop
 const HOP_OUT := 3.5        # m/s away from the hero
 const HOP_UP := 4.0         # m/s up at the start of the hop, under the drop's own gravity
@@ -166,6 +208,14 @@ var phase := PackedByteArray()        # where it is on the trip in (PHASE_*); `f
 var phase_t := PackedFloat32Array()   # seconds into the phase
 var hop_dir := PackedVector3Array()   # the way it hopped (flat, away from the hero); the flight bends off across it
 var hold := PackedFloat32Array()      # seconds the magnet and the pull leave it alone (a tossed coin once it lands)
+## The magnet arc (pass 60): 1 while its trip is an arc (the charge and the extra spin read it; 0 on the walk-up hop)
+var arced := PackedByteArray()
+var arc_delay := PackedFloat32Array()   # ARC_WAIT: seconds it waits its turn
+var arc_v0 := PackedFloat32Array()      # the launch: m/s up ...
+var arc_drift := PackedFloat32Array()   # ... and m/s along hop_dir
+var arc_hang := PackedFloat32Array()    # ARC_RISE: seconds it hangs at the apex
+var arc_apex := PackedFloat32Array()    # ARC_RISE: phase_t at the apex; < 0 while still rising
+var arc_spin := PackedFloat32Array()    # radians of extra spin it has turned on its arc
 var hop_next := PackedFloat32Array()  # pass 56: when its next idle hop starts (_time); < 0 until it lies on the sand
 var hop_t := PackedFloat32Array()     # seconds into its idle hop and the squash after it; < 0 when it is not hopping
 var glint_next := PackedFloat32Array()  # pass 56: when it next glints (_time); < 0 until it lies on the sand
@@ -194,6 +244,12 @@ var _glints := 0                # glints showing now
 var _glint_last := -INF         # when the last one started
 var _rest_k := PackedFloat32Array()   # rest_of by kind, read every tick
 var _hop_last := -INF           # when the last idle hop on the screen started (HOP_EXTRA_GAP)
+## Pass 60: each slot's seed for the gem shader's shimmer (custom y), the MultiMesh slots whose custom data is not zero
+## (_cd_hot, by kind x MAX + slot: a slot is written again only while a charge is on or once to clear an old one), and
+## how many custom-data writes the draws made (tests: a field of resting gems makes none).
+var _seed := PackedFloat32Array()
+var _cd_hot := PackedByteArray()
+var custom_writes := 0
 
 
 func _ready() -> void:
@@ -202,6 +258,12 @@ func _ready() -> void:
 	# (packed arrays are values: each is sized where it lives)
 	hop_next.resize(MAX); hop_t.resize(MAX); glint_next.resize(MAX); glint_t.resize(MAX); idle_due.resize(MAX)
 	hop_next.fill(-1.0); hop_t.fill(-1.0); glint_next.fill(-1.0); glint_t.fill(-1.0); idle_due.fill(-1.0)
+	# the magnet arc (pass 60)
+	arced.resize(MAX); arc_delay.resize(MAX); arc_v0.resize(MAX); arc_drift.resize(MAX); arc_hang.resize(MAX); arc_apex.resize(MAX); arc_spin.resize(MAX)
+	_seed.resize(MAX)
+	for i in range(MAX):
+		_seed[i] = fmod(float(i) * 0.6180339887, 1.0)
+	_cd_hot.resize((KIND_VACUUM + 1) * MAX)
 	for i in range(MAX - 1, -1, -1):
 		free_list.append(i)
 	_mms.append(_make_mm(_gem_mesh(gem_radius(KIND_GEM_S)), COLOURS[KIND_GEM_S]))
@@ -315,31 +377,39 @@ static func coin_material() -> ShaderMaterial:
 	return _coin_mat
 
 
-## One kind's MultiMesh: lit gold-and-glow by `color`, or `mat` when it has a look of its own (the coin).
+## The gems' material (pass 60): core/shaders/gem.gdshader in `color` with the rest glow GEM_EMISSION, see-through and
+## depth-less at PICKUP_PRIORITY and reading the stencil (the shader says so: pass 54's rules), one a kind. The charge
+## rides on the MultiMesh's custom data (charge_of, _render).
+static var _gem_shader: Shader = null
+static func gem_material(color: Color) -> ShaderMaterial:
+	if _gem_shader == null:
+		_gem_shader = load("res://core/shaders/gem.gdshader")
+	var m := ShaderMaterial.new()
+	m.shader = _gem_shader
+	m.set_shader_parameter("albedo", Color(color.r, color.g, color.b, 1.0))
+	m.set_shader_parameter("rest_emission", GEM_EMISSION)
+	m.set_shader_parameter("charged_emission", CHARGED_EMISSION)
+	m.render_priority = PICKUP_PRIORITY
+	return m
+
+
+## One kind's MultiMesh: a gem in `color` on the gem shader (gem_material; pass 60: with custom data for the charge), or
+## `mat` when it has a look of its own (the coin).
 func _make_mm(mesh: Mesh, color: Color, mat: Material = null) -> MultiMesh:
+	var gem := mat == null
+	if gem:
+		# see-through and depth-less (pass 54): drawn after every opaque thing, and only where no painting is (the
+		# stencil, PAINTING_STENCIL), so a creature's, the hero's or a prop's painting covers a gem at its feet
+		mat = gem_material(color)
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
+	# the charge (pass 60), set before the count: a MultiMesh lays its buffer out when it is sized
+	mm.use_custom_data = gem
 	mm.mesh = mesh
 	mm.instance_count = MAX
 	mm.visible_instance_count = 0
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
-	if mat == null:
-		var sm := StandardMaterial3D.new()
-		sm.albedo_color = Color(color.r, color.g, color.b, 1.0)
-		sm.emission_enabled = true
-		sm.emission = color
-		sm.emission_energy_multiplier = 0.6
-		# see-through and depth-less (pass 54): drawn after every opaque thing, and only where no painting is (the
-		# stencil, PAINTING_STENCIL), so a creature's, the hero's or a prop's painting covers a gem at its feet
-		sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		sm.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-		sm.render_priority = PICKUP_PRIORITY
-		sm.stencil_mode = BaseMaterial3D.STENCIL_MODE_CUSTOM
-		sm.stencil_flags = BaseMaterial3D.STENCIL_FLAG_READ
-		sm.stencil_compare = BaseMaterial3D.STENCIL_COMPARE_NOT_EQUAL
-		sm.stencil_reference = PAINTING_STENCIL
-		mat = sm
 	mmi.material_override = mat
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
@@ -395,6 +465,7 @@ func spawn(p_kind: int, at: Vector3, v: float) -> int:
 	phase_t[i] = 0.0
 	hop_dir[i] = Vector3.ZERO
 	hold[i] = 0.0
+	arced[i] = 0
 	# its idle hop and glint clocks start when it lands (pass 56, _idle)
 	hop_next[i] = -1.0
 	hop_t[i] = -1.0
@@ -535,9 +606,12 @@ func prospector(def: EnemyDef, at: Vector3, xp_scale: float, chance: float) -> b
 	return spawn(k, at, float(GEM_VALUE[k]) * xp_scale) >= 0
 
 
+## The big pull (the Magnet Pulse, the Uber Magnet, the boss chest's opening, the Elite's vacuum gem, the arena's button):
+## every pickup on the field (coins only with `coins_too`) goes up on the magnet arc and dives into the hero (pass 60,
+## _start_trip with `arc`; the hop and the flight before), and with `chests_too` the chests slide to him.
 func vacuum_all(coins_too: bool = false, chests_too: bool = false) -> void:
-	# every one hops out and flies in like a magnet catch (pass 46); the pools are only read for a pickup that is there
-	# (a manager that never entered the tree has `alive` and nothing else)
+	# the pools are only read for a pickup that is there (a manager that never entered the tree has `alive` and nothing
+	# else)
 	var hero := Vector3.INF
 	var asked := false
 	for i in range(MAX):
@@ -545,7 +619,7 @@ func vacuum_all(coins_too: bool = false, chests_too: bool = false) -> void:
 			if not asked:
 				asked = true
 				hero = _hero_at()
-			_start_trip(i, hero)
+			_start_trip(i, hero, true)
 	if chests_too:
 		# a boss kill: the chests come to the hero too, instead of the hero crossing the arena for them
 		for c in chests:
@@ -566,9 +640,14 @@ func _hero_at() -> Vector3:
 	return p.global_position
 
 
-## A pickup the hero has called sets off: a hop out, straight away from him (any way when he stands on it). One already
-## on its way is left alone, so a magnet, a turret or a vacuum never restarts a trip.
-func _start_trip(i: int, hero: Vector3) -> void:
+## A pickup the hero has called sets off. The walk-up pull (his magnet's reach, his feet on a held coin): a hop out,
+## straight away from him (any way when he stands on it), then the flight. A big pull (`arc`, pass 60: vacuum_all, a
+## turret's attractor): the magnet arc, ARC_WAIT its turn in the ripple (ARC_WAIT_* by its distance from him), then thrown
+## ARC_HEIGHT_* over where it lies with a little drift (ARC_DRIFT_*) along a line turned up to ARC_DRIFT_FAN off straight
+## away, a hang at the apex and the dive. One already on its way is left alone, so a magnet, a turret or a vacuum never
+## restarts a trip (a gem waiting its turn counts as on its way). The arc's dice are the manager's own (_rng), like the
+## idle looks', so a pull never moves the run's shared random sequence.
+func _start_trip(i: int, hero: Vector3, arc: bool = false) -> void:
 	if flying[i] == 1:
 		return
 	# called mid idle hop (pass 56): it sets off from the height it was drawn at, never dropping back to the sand first
@@ -576,22 +655,80 @@ func _start_trip(i: int, hero: Vector3) -> void:
 		pos[i].y += hop_extra_y(hop_t[i])
 	_end_idle(i)
 	flying[i] = 1
-	phase[i] = PHASE_HOP
 	phase_t[i] = 0.0
 	var away := Vector3.ZERO
 	if hero != Vector3.INF:
 		away = Vector3(pos[i].x - hero.x, 0.0, pos[i].z - hero.z)
-	if away.length_squared() < 0.0004:
+	var d := away.length()
+	if d < 0.02:
 		var a := randf() * TAU
 		away = Vector3(cos(a), 0.0, sin(a))
+	arced[i] = 1 if arc else 0
+	arc_spin[i] = 0.0
+	if arc:
+		phase[i] = PHASE_ARC_WAIT
+		arc_delay[i] = minf(ARC_WAIT_PER_M * d, ARC_WAIT_MAX) + _rng.randf() * ARC_WAIT_JITTER
+		arc_hang[i] = _rng.randf_range(ARC_HANG_MIN, ARC_HANG_MAX)
+		arc_apex[i] = -1.0
+		# thrown up to its apex (v0 = sqrt(2 g h)) and a little outward along a line turned off straight away, so the
+		# dives fan out; the flight's bend goes off that line too
+		var h: float = ARC_HEIGHT_MIN + _rng.randf() * ARC_HEIGHT_RANGE + ARC_HEIGHT_PER_M * d
+		arc_v0[i] = sqrt(2.0 * ARC_GRAV * h)
+		arc_drift[i] = _rng.randf_range(ARC_DRIFT_MIN, ARC_DRIFT_MAX)
+		hop_dir[i] = away.normalized().rotated(Vector3.UP, _rng.randf_range(-ARC_DRIFT_FAN, ARC_DRIFT_FAN))
+		# until its turn it goes on settling where it lies (vel as it was)
+		return
+	phase[i] = PHASE_HOP
 	hop_dir[i] = away.normalized()
 	vel[i] = hop_dir[i] * HOP_OUT + Vector3.UP * HOP_UP
 
 
-## One tick of a pickup on its trip: the hop (out and up, falling back under gravity), then the flight to his chest, its
-## speed climbing at FLY_ACCEL to `top`, bending off sideways as it sets out; taken when it is COLLECT_R from his chest.
+## How charged pickup `i` looks (pass 60, the gem shader's INSTANCE_CUSTOM.x): 1 on the magnet arc's rise and dive,
+## fading in over its wait (full by the launch, at once for a wait under CHARGE_RISE); 0 lying on the sand and on the
+## walk-up hop and its flight. A coin on the arc is charged too, but its own shader (coin.gdshader) shows none.
+func charge_of(i: int) -> float:
+	if flying[i] == 0 or arced[i] == 0:
+		return 0.0
+	if phase[i] == PHASE_ARC_WAIT:
+		return clampf(phase_t[i] / maxf(arc_delay[i], CHARGE_RISE), 0.0, 1.0)
+	return 1.0
+
+
+## One tick of a pickup on its trip: the hop (out and up, falling back under gravity), or the magnet arc (pass 60: the
+## wait, settling where it lies; the rise under ARC_GRAV with its drift; the hang at the apex), then the flight to his
+## chest, its speed climbing at FLY_ACCEL to `top`, bending off sideways as it sets out; taken when it is COLLECT_R from
+## his chest.
 func _travel(i: int, chest: Vector3, top: float, delta: float, map) -> void:
 	phase_t[i] += delta
+	if phase[i] == PHASE_ARC_WAIT:
+		if phase_t[i] >= arc_delay[i]:
+			# its turn in the ripple: thrown up
+			phase[i] = PHASE_ARC_RISE
+			phase_t[i] = 0.0
+			vel[i] = hop_dir[i] * arc_drift[i] + Vector3.UP * arc_v0[i]
+			return
+		# until then it settles where it lies, as a resting one does (a drop still falling when the pull came)
+		vel[i].y -= HOP_GRAV * delta
+		pos[i] += vel[i] * delta
+		var rest: float = (map.height_at(pos[i].x, pos[i].z) if map else 0.0) + _rest_k[kind[i]]
+		if pos[i].y < rest:
+			pos[i].y = rest
+			if vel[i].y <= 0.0:
+				vel[i] = Vector3.ZERO
+		return
+	if phase[i] == PHASE_ARC_RISE:
+		arc_spin[i] += ARC_SPIN * delta
+		if arc_apex[i] < 0.0:
+			vel[i].y -= ARC_GRAV * delta
+			pos[i] += vel[i] * delta
+			if vel[i].y <= 0.0:
+				# the apex: it hangs a beat, then dives
+				arc_apex[i] = phase_t[i]
+				vel[i] = Vector3.ZERO
+		elif phase_t[i] - arc_apex[i] >= arc_hang[i]:
+			phase[i] = PHASE_FLY
+			phase_t[i] = 0.0
+		return
 	if phase[i] == PHASE_HOP:
 		vel[i].y -= HOP_GRAV * delta
 		pos[i] += vel[i] * delta
@@ -604,10 +741,16 @@ func _travel(i: int, chest: Vector3, top: float, delta: float, map) -> void:
 			phase_t[i] = 0.0
 			vel[i] = Vector3.ZERO
 		return
+	if arced[i] == 1:
+		# the dive keeps some of the rise's extra spin (pass 60)
+		arc_spin[i] += ARC_SPIN * 0.5 * delta
 	var to := chest - pos[i]
 	var l := to.length()
 	if l < COLLECT_R:
-		_collect(i)
+		if _down:
+			_drop_here(i, map)
+		else:
+			_collect(i)
 		return
 	var dir := to / l
 	# every other one bends the other way; the bend fades as it gets going and as it closes in, so it always arrives
@@ -618,7 +761,10 @@ func _travel(i: int, chest: Vector3, top: float, delta: float, map) -> void:
 	var sp: float = minf(FLY_ACCEL * phase_t[i], top)
 	pos[i] += dir * minf(sp * delta, l)
 	if pos[i].distance_squared_to(chest) < COLLECT_R * COLLECT_R:
-		_collect(i)
+		if _down:
+			_drop_here(i, map)
+		else:
+			_collect(i)
 
 
 ## Frees about `n` slots by fusing pickups (pass 54, Garry: a gem by the hero vanished and its XP turned up far away;
@@ -702,7 +848,7 @@ func _merge(n: int, which: int = KIND_GEM_L) -> int:
 func _merge_glint(i: int) -> void:
 	var fx = game.get("fx") if game != null else null
 	if fx != null and fx.has_method("mote"):
-		fx.mote(pos[i] + Vector3(0, 0.15, 0), Vector3(0, 2.2, 0), 0.45, 0.32, COLOURS[clampi(kind[i], 0, COLOURS.size() - 1)])
+		fx.mote(pos[i] + Vector3(0, 0.15, 0), Vector3(0, 2.2, 0), 0.45, 0.32, GLINT_COLOURS[clampi(kind[i], 0, GLINT_COLOURS.size() - 1)])
 
 
 ## The hero's magnet reach as the pull reads it (the stat, 1.6 times for an auto-magnet hero); 1.5 without a run sheet.
@@ -739,6 +885,10 @@ func clear_all() -> void:
 		_free(i)
 
 
+## true while the hero is down (pass 60): see _physics_process
+var _down := false
+
+
 func _physics_process(delta: float) -> void:
 	_time += delta
 	if game == null or game.player == null:
@@ -746,6 +896,9 @@ func _physics_process(delta: float) -> void:
 	var t0 := Time.get_ticks_usec()
 	var player: Node3D = game.player
 	var hero: Vector3 = player.global_position
+	# pass 60 (death wins): while the hero is down nothing is collected and no pull starts; a gem that reaches him
+	# lies down where it is and the pull takes it again once he is up
+	_down = bool(player.get("dead"))
 	var chest: Vector3 = hero + Vector3(0, CHEST, 0)
 	var magnet: float = Run.player_sheet.get_stat("magnet", 1.5)
 	if player.character and player.character.specials.has("auto_magnet"):
@@ -786,13 +939,15 @@ func _physics_process(delta: float) -> void:
 				_start_trip(i, hero)
 			continue
 		if dd.length_squared() < m2:
-			_start_trip(i, hero)
+			if not _down:
+				_start_trip(i, hero)
 		else:
 			for a in _attractors:
 				var da: Vector3 = a["pos"] - pos[i]
 				da.y = 0.0
-				if da.length() < a["r"]:
-					_start_trip(i, hero)
+				if da.length() < a["r"] and not _down:
+					# a turret's pull is a big one (pass 60): the magnet arc
+					_start_trip(i, hero, true)
 					break
 	_attractors.clear()
 	_check_chests(player, delta)
@@ -974,6 +1129,17 @@ func _process(_delta: float) -> void:
 	Perf.add("pickups.draw", t0)
 
 
+## A pickup that reached a hero who is down lies down where it is (pass 60: death wins; no XP on the corpse).
+func _drop_here(i: int, map) -> void:
+	flying[i] = 0
+	if arced.size() == MAX:
+		arced[i] = 0
+	phase[i] = PHASE_GROUND
+	phase_t[i] = 0.0
+	vel[i] = Vector3.ZERO
+	pos[i].y = (map.height_at(pos[i].x, pos[i].z) if map else 0.0) + _rest_k[kind[i]]
+
+
 func _collect(i: int) -> void:
 	match kind[i]:
 		KIND_COIN:
@@ -1001,7 +1167,7 @@ func _glint(i: int) -> void:
 	_spark_last = _time
 	var fx = game.get("fx") if game != null else null
 	if fx != null and fx.has_method("mote"):
-		fx.mote(pos[i], Vector3(randf_range(-0.6, 0.6), 1.8, randf_range(-0.6, 0.6)), 0.3, 0.24, COLOURS[clampi(kind[i], 0, COLOURS.size() - 1)])
+		fx.mote(pos[i], Vector3(randf_range(-0.6, 0.6), 1.8, randf_range(-0.6, 0.6)), 0.3, 0.24, GLINT_COLOURS[clampi(kind[i], 0, GLINT_COLOURS.size() - 1)])
 
 
 func spawn_chest(at: Vector3, boss: bool = false) -> void:
@@ -1034,10 +1200,11 @@ func _check_specials(player: Node3D, delta: float = 0.0) -> void:
 		# a coin bag picks up like coins: inside the magnet's reach it flies to the hero
 		if bool(p.def.params.get("magnet", false)) and d.length() < magnet * 1.6 and delta > 0.0:
 			p.global_position += d.normalized() * minf(d.length(), (8.0 + magnet * 6.0) * delta)
-		if d.length() < 1.25:
+		if d.length() < 1.25 and not _down:
 			p.collect_anim()
 			game.apply_pickup(p.def, p.global_position)
 		else:
+			# pass 60: a power-up waits while he is down (death wins: no Nuke, no pulse, no Berserk clock on the corpse)
 			keep.append(p)
 	specials = keep
 
@@ -1070,6 +1237,7 @@ var _warm_at := Vector3.INF
 ## record_draws is on, because a MultiMesh gives nothing back in a headless run.
 var record_draws := false
 var drawn_xf: Array = []
+var drawn_charge := PackedFloat32Array()   # pass 60: the charge handed the gem shader (charge_of), by slot
 
 
 func warm_draw(at: Vector3) -> void:
@@ -1084,6 +1252,7 @@ func _render() -> void:
 	var rec := record_draws
 	if rec and drawn_xf.size() != MAX:
 		drawn_xf.resize(MAX)
+		drawn_charge.resize(MAX)
 	for i in range(MAX):
 		if alive[i] == 0:
 			continue
@@ -1107,15 +1276,39 @@ func _render() -> void:
 			var hs := hop_extra_scale(ht)
 			b = b.scaled(Vector3(hs.x, hs.y, hs.x))
 			lift += hop_extra_y(ht)
-		if phase[i] == PHASE_HOP:
-			# the pop: big as it leaves the sand, its own size again at the top of the hop
-			var sc: float = lerpf(HOP_POP, 1.0, clampf(phase_t[i] / HOP_TIME, 0.0, 1.0))
-			b = b.scaled(Vector3(sc, sc, sc))
+		var ch := 0.0
+		if flying[i] == 1:
+			var ph := phase[i]
+			if ph == PHASE_HOP:
+				# the pop: big as it leaves the sand, its own size again at the top of the hop
+				var sc: float = lerpf(HOP_POP, 1.0, clampf(phase_t[i] / HOP_TIME, 0.0, 1.0))
+				b = b.scaled(Vector3(sc, sc, sc))
+			elif arced[i] == 1:
+				# the magnet arc (pass 60): charged, spinning faster from the launch, with the hop's pop as it leaves
+				ch = charge_of(i)
+				if ph != PHASE_ARC_WAIT:
+					b = b.rotated(Vector3.UP, arc_spin[i])
+					if ph == PHASE_ARC_RISE:
+						var sc: float = lerpf(HOP_POP, 1.0, clampf(phase_t[i] / ARC_POP_TIME, 0.0, 1.0))
+						b = b.scaled(Vector3(sc, sc, sc))
 		var xf := Transform3D(b, pos[i] + Vector3(0, lift, 0))
 		mm.set_instance_transform(n, xf)
+		# the charge reaches the gem shader as custom data (pass 60), written only while one is on or while the slot still
+		# holds an old one (_cd_hot), so a field of resting gems costs the draw nothing more; the coin's shader has none
+		if k != KIND_COIN:
+			var slot := k * MAX + n
+			if ch > 0.0:
+				mm.set_instance_custom_data(n, Color(ch, _seed[i], 0.0, 0.0))
+				_cd_hot[slot] = 1
+				custom_writes += 1
+			elif _cd_hot[slot] == 1:
+				mm.set_instance_custom_data(n, Color(0.0, 0.0, 0.0, 0.0))
+				_cd_hot[slot] = 0
+				custom_writes += 1
 		counters[k] = n + 1
 		if rec:
 			drawn_xf[i] = xf
+			drawn_charge[i] = ch
 		if glint_t[i] >= 0.0 and ng < GLINT_MAX:
 			_glint_mm.set_instance_transform(ng, glint_xform(i, xf.origin))
 			_glint_mm.set_instance_color(ng, glint_color(i))
@@ -1125,6 +1318,10 @@ func _render() -> void:
 		for k in range(_mms.size()):
 			if counters[k] < MAX:
 				(_mms[k] as MultiMesh).set_instance_transform(counters[k], Transform3D(Basis(), _warm_at))
+				# charged (pass 60), so the gem shader runs its charged sums under the beam too
+				if k != KIND_COIN:
+					(_mms[k] as MultiMesh).set_instance_custom_data(counters[k], Color(1.0, 0.5, 0.0, 0.0))
+					_cd_hot[k * MAX + counters[k]] = 1
 				counters[k] += 1
 		# and one all but invisible glint, so its shader compiles under the spawn beam too (pass 56)
 		_glint_mm.set_instance_transform(ng, Transform3D(Basis().scaled(Vector3.ONE * 0.2), _warm_at))
@@ -1149,5 +1346,5 @@ func glint_xform(i: int, at: Vector3) -> Transform3D:
 
 ## Gem `i`'s glint colour now (pass 56): its own colour paled GLINT_PALE towards white, as bright (alpha) as the flare.
 func glint_color(i: int) -> Color:
-	var c: Color = (COLOURS[clampi(kind[i], 0, COLOURS.size() - 1)] as Color).lerp(Color.WHITE, GLINT_PALE)
+	var c: Color = (GLINT_COLOURS[clampi(kind[i], 0, GLINT_COLOURS.size() - 1)] as Color).lerp(Color.WHITE, GLINT_PALE)
 	return Color(c.r, c.g, c.b, glint_level(glint_t[i]))

@@ -90,8 +90,9 @@ func test_shop_prices_scale_with_power() -> void:
 	var dear := StructureShop.price_of({"def": pea, "type": "weapon", "level_from": 4, "level_to": 5})
 	assert_int(dear).is_greater(cheap)
 	assert_int(cheap).is_greater(0)
-	# a fresh common item must be within a few coins' reach
-	assert_int(cheap).is_less_equal(15)
+	# pass 60 (Garry: "Player can afford like 2 items per Stage"): a price is half a stage's gold by kind and rarity
+	# (StructureShop.price_of; pass60_ui_test pins the table), so a fresh common weapon costs 0.8 of the stage's base
+	assert_int(cheap).is_equal(int(round(float(StructureShop.PRICE_BASE_BY_STAGE[StructureShop.price_stage() - 1]) * 0.8)))
 
 
 func test_timed_buffs_apply_and_expire() -> void:

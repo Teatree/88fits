@@ -547,8 +547,8 @@ func use_banish() -> bool:
 ##   "evolution"  an evolution of something held: a maxed line's evolution card, a chest's weapon evolution
 ##   "held"       something the hero has: every upgrade card (level_from above 0), a weapon, a line or a passive item held,
 ##                and a base weapon whose evolution he carries (the family is his)
-##   "path"       a mutation on the path of a weapon the hero holds (a boss chest's pick): its evolution needs every one,
-##                so it would be locked away for the run (a hero's own mutation is optional and may go)
+##   "mutation"   any mutation (pass 60, Garry: "mutations shouldn't be banishable anywhere"; pass 58 had let a hero's
+##                own go): a path's pick is the weapon's progress and a hero's own is his alone, so none is struck
 ## A new weapon, line, passive item or perk may go.
 func banish_refusal(card: Dictionary) -> String:
 	var type := str(card.get("type", ""))
@@ -556,6 +556,8 @@ func banish_refusal(card: Dictionary) -> String:
 	var def = card.get("def")
 	if type == "gold" or id == "" or def == null:
 		return "gold"
+	if type == "mutation" or def is MutationDef:
+		return "mutation"
 	if type == "evolution" or bool(card.get("evolve", false)):
 		return "evolution"
 	if (def is WeaponDef and (def as WeaponDef).is_evolution) or (def is PassiveDef and (def as PassiveDef).is_evolved()):
@@ -565,8 +567,6 @@ func banish_refusal(card: Dictionary) -> String:
 	# the Boomstick while the Blunderbuss is held (pass 58 review: a level-up had offered it again as NEW, banishable)
 	if def is WeaponDef and family_instance(id) != null:
 		return "held"
-	if def is MutationDef and not (def as MutationDef).is_hero() and family_instance((def as MutationDef).weapon) != null:
-		return "path"
 	return ""
 
 
@@ -1452,8 +1452,8 @@ func chest_skip(r: Dictionary) -> String:
 
 ## What the chest held, banished (pass 47): a banish spent, its id out of this run (no card, no chest, no Stranger offers
 ## it again), and a new roll for the reel to spin to. {} (nothing spent) when the stage has no banish left, the roll is
-## gold, or (pass 58) banish_refusal refuses it: never an upgrade of what the hero has, an evolution or a path mutation
-## of a weapon held.
+## gold, or (pass 58) banish_refusal refuses it: never an upgrade of what the hero has, an evolution or (pass 60) any
+## mutation.
 func chest_banish(r: Dictionary) -> Dictionary:
 	var id := str(r.get("id", ""))
 	if id == "" or str(r.get("type", "")) == "gold" or banishes_left <= 0:

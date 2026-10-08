@@ -1,23 +1,35 @@
-[gd_scene load_steps=6 format=3 uid="uid://vis_tommygun001"]
+[gd_scene load_steps=10 format=3 uid="uid://vis_tommygun001"]
 
 [ext_resource type="PackedScene" path="res://art/props/tommy_gun.glb" id="gun"]
 
 [sub_resource type="BoxMesh" id="proj"]
-size = Vector3(0.15, 0.15, 0.6)
+size = Vector3(0.12, 0.12, 0.95)
 
 [sub_resource type="StandardMaterial3D" id="projmat"]
 shading_mode = 0
-albedo_color = Color(1, 0.96, 0.7, 1)
+albedo_color = Color(1, 1, 0.94, 1)
 emission_enabled = true
-emission = Color(1, 0.75, 0.25, 1)
-emission_energy_multiplier = 1.7
+emission = Color(1, 0.9, 0.6, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="CapsuleMesh" id="halo"]
+radius = 0.105
+height = 1.08
+radial_segments = 8
+rings = 3
+
+[sub_resource type="StandardMaterial3D" id="halomat"]
+transparency = 1
+shading_mode = 0
+cull_mode = 1
+albedo_color = Color(1, 0.38, 0.05, 0.72)
 
 [sub_resource type="StandardMaterial3D" id="sparkmat"]
 shading_mode = 0
-albedo_color = Color(1, 0.85, 0.4, 1)
+albedo_color = Color(1, 0.92, 0.6, 1)
 emission_enabled = true
-emission = Color(1, 0.7, 0.2, 1)
-emission_energy_multiplier = 2.0
+emission = Color(1, 0.72, 0.25, 1)
+emission_energy_multiplier = 2.6
 
 [sub_resource type="SphereMesh" id="spark"]
 material = SubResource("sparkmat")
@@ -26,11 +38,29 @@ height = 0.1
 radial_segments = 5
 rings = 3
 
+[sub_resource type="StandardMaterial3D" id="flashmat"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.9, 0.62, 0.9)
+
+[sub_resource type="SphereMesh" id="flash"]
+material = SubResource("flashmat")
+radius = 0.19
+height = 0.38
+radial_segments = 8
+rings = 4
+
 [node name="TommyGunVisual" type="Node3D"]
 
 [node name="Projectile" type="MeshInstance3D" parent="."]
 mesh = SubResource("proj")
 material_override = SubResource("projmat")
+
+[node name="Halo" type="MeshInstance3D" parent="Projectile"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
+visible = false
+mesh = SubResource("halo")
+material_override = SubResource("halomat")
 
 [node name="Familiar" type="Node3D" parent="."]
 
@@ -40,14 +70,27 @@ transform = Transform3D(1.35, 0, 0, 0, 1.35, 0, 0, 0, 1.35, 0, 0, 0)
 [node name="Muzzle" type="CPUParticles3D" parent="."]
 emitting = false
 amount = 10
-lifetime = 0.18
+lifetime = 0.16
 one_shot = true
 explosiveness = 1.0
 mesh = SubResource("spark")
 direction = Vector3(0, 0, -1)
-spread = 25.0
-initial_velocity_min = 5.0
-initial_velocity_max = 9.0
+spread = 22.0
+initial_velocity_min = 6.0
+initial_velocity_max = 11.0
 gravity = Vector3(0, -2, 0)
-scale_amount_min = 0.6
+scale_amount_min = 0.5
 scale_amount_max = 1.0
+
+[node name="Flash" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 1
+lifetime = 0.07
+one_shot = true
+explosiveness = 1.0
+mesh = SubResource("flash")
+direction = Vector3(0, 0, -1)
+spread = 0.0
+initial_velocity_min = 1.5
+initial_velocity_max = 1.5
+gravity = Vector3(0, 0, 0)

@@ -685,11 +685,11 @@ func test_the_turret_turns_its_head_before_it_fires() -> void:
 func test_the_turrets_mutations_hang_nothing_over_the_hero() -> void:
 	var w := _world()
 	var sp := _spawner(w, "turret_buddy", ["bunker", "buddy_squad"])
-	assert_bool(sp.shows_marks()).is_false()
-	assert_int(sp.mark_count()).is_equal(0)
+	# pass 60: no weapon hangs emblems any more (WeaponBehavior.refresh_marks only frees an old "MutationMarks" node)
+	assert_object(sp.get_node_or_null("MutationMarks")).is_null()
 	assert_bool(bool(Registry.weapon("iron_bastion").params.get("marks", true))).is_false()
-	# another weapon still hangs one per pick
+	# another weapon hangs none either since pass 60
 	var lb := Lobber.new()
 	(w["g"] as Node).add_child(lb)
 	lb.setup(_inst("lob_grenade", ["frag"]), w["g"])
-	assert_int(lb.mark_count()).is_equal(1)
+	assert_object(lb.get_node_or_null("MutationMarks")).is_null()

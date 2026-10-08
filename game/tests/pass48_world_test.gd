@@ -688,6 +688,8 @@ func test_the_vulture_raider_has_less_health_and_fires_from_his_launcher() -> vo
 	em.flip[i] = 0
 	em.away[i] = 1
 	em.vel[i] = Vector3(0, 0, -1)
+	# pass 60: a creature that fights at range walks by its brain's intent (a shove is no walk); here the test means the walk
+	em.intent[i] = em.vel[i]
 	assert_int(em._strip_of(i, em.type_idx[i])).is_equal(5)
 	assert_float(em.muzzle_point(i, aim).x).is_equal_approx(em.pos[i].x + float(mz["side"]), 0.01)
 	# the wind-up ends and the rocket leaves from there (the front attack painting, not mirrored)

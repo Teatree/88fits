@@ -533,12 +533,14 @@ func test_a_flying_gem_is_taken_at_the_new_reach_and_never_sent_back() -> void:
 	assert_float(pm.phase_t[i]).is_equal(pt)
 	pm._physics_process(DT)
 	assert_int(pm.alive[i]).is_equal(0)
-	# a gem far off on the sand sets out with the hop when the vacuum calls it
+	# a gem far off on the sand sets out when the vacuum calls it: on the magnet arc since pass 60 (re-pinned: it waits
+	# its turn, then goes up; the walk-up pull keeps the hop, pass60_pk_test), its line out inside the arc's fan of
+	# straight away from him
 	var j := pm.spawn(PickupManager.KIND_GEM_S, Vector3(20, 0, 0), 1.0)
 	pm.vacuum_all()
 	assert_int(pm.flying[j]).is_equal(1)
-	assert_int(pm.phase[j]).is_equal(PickupManager.PHASE_HOP)
-	assert_float(pm.hop_dir[j].x).is_greater(0.9)
+	assert_int(pm.phase[j]).is_equal(PickupManager.PHASE_ARC_WAIT)
+	assert_float(pm.hop_dir[j].x).is_greater(cos(PickupManager.ARC_DRIFT_FAN) - 0.01)
 	# a merge leaves a gem on its trip alone
 	pm._merge(1)
 	assert_int(pm.alive[j]).is_equal(1)

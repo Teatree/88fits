@@ -7,29 +7,30 @@
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="3_jilq0"]
 [ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite_c.png" id="6_5woph"]
 [ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite_d.png" id="7_v4tah"]
+[ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite_e.png" id="8_5woph"]
 
-[sub_resource type="Resource" id="Resource_06g83"]
+[sub_resource type="Resource" id="Resource_5woph"]
 script = ExtResource("3_jilq0")
 stat = "buff_duration"
 op = "mul"
 value = 0.25
 target = "player"
 
-[sub_resource type="Resource" id="Resource_5woph"]
+[sub_resource type="Resource" id="Resource_v4tah"]
 script = ExtResource("3_jilq0")
 stat = "cooldown"
 op = "mul"
 value = -0.13
 target = "player"
 
-[sub_resource type="Resource" id="Resource_v4tah"]
+[sub_resource type="Resource" id="Resource_oqq31"]
 script = ExtResource("3_jilq0")
 stat = "max_hp"
 op = "mul"
 value = -0.2
 target = "player"
 
-[sub_resource type="Resource" id="Resource_oqq31"]
+[sub_resource type="Resource" id="Resource_gk8vw"]
 script = ExtResource("3_jilq0")
 stat = "debuff_duration"
 op = "mul"
@@ -38,7 +39,7 @@ target = "player"
 
 [resource]
 script = ExtResource("2_1go7i")
-trait_effects = [SubResource("Resource_06g83"), SubResource("Resource_5woph"), SubResource("Resource_v4tah"), SubResource("Resource_oqq31")]
+trait_effects = [SubResource("Resource_5woph"), SubResource("Resource_v4tah"), SubResource("Resource_oqq31"), SubResource("Resource_gk8vw")]
 trait_name = "Magic Hour"
 trait_text = "Her buffs last 25% longer and so do her burns, poison and slows. +15% attack speed, −20% max HP. She finds Haste at level 2."
 pronoun = "she"
@@ -202,6 +203,38 @@ variants = {
 "note": "The run every other hero uses (Mixamo Running), fitted to her the same way.",
 "sprite": ExtResource("7_v4tah"),
 "sprite_file": "solenne_sprite_d.png",
+"strip_cols": 62
+},
+"SOL-E": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": ExtResource("1_6nfm6"),
+"note": "the catwalk again, with a tighter prompt (pass 60): SOL-C's words ('a catwalk stride with the hips swaying') let the model add runway poses: a hand on the hip and a body turning through the three-quarter front cycle, a lean-back crouch in the side cycle. These say what each part of the body does and what stays put, and roll new seeds (anim_seed 4). The three-quarter back view walks on catwalk_fit_wide_spread (pose_spread at 0.10): on the 0.06 spread the driver's wrists passed the hips at hip height and Wan planted both hands on them, elbows out.",
+"sprite": ExtResource("8_5woph"),
+"sprite_file": "solenne_sprite_e.png",
 "strip_cols": 62
 }
 }

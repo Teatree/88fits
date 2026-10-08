@@ -23,7 +23,7 @@
 ## strength at rest, at a strike's flare and at a sweep's, how much it swells, and what Zenith's count adds: the plain
 ## sceptre has none at rest (its SunGlow hidden, the quad at 45% of its old size: the shine at a smaller scale is the
 ## glint now), Zenith keeps its constant shine and flares harder. The crossed-bar glint comes only with sun.glint > 0
-## (Zenith's). Its mutations show on the sceptre itself, no floating emblems (params.marks false): Heat Stroke's
+## (Zenith's). Its mutations show on the sceptre itself (the floating emblems went in pass 60): Heat Stroke's
 ## `staff_tint` warms the lacquered handle a little, Flicker's `handle_ring` is a ring round the handle that loads round
 ## and round, Gold Dust shows nothing (_refresh_looks, run from refresh_marks on every build change).
 class_name SunScepter
@@ -546,7 +546,7 @@ func glow_now() -> float:
 
 # ---------------------------------------------------------------- its path, on the sceptre itself (pass 55)
 
-## The emblems (none on this family: params.marks is false) and the sceptre's own signs of its path, on every build
+## The sceptre's own signs of its path (the floating emblems went in pass 60), on every build
 ## change (Game._sync_weapons calls this; setup too).
 func refresh_marks() -> void:
 	super.refresh_marks()

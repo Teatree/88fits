@@ -125,11 +125,12 @@ func test_the_coin_is_drawn_in_its_own_look() -> void:
 	assert_object(mmi).is_not_null()
 	assert_object(mmi.material_override).is_same(PickupManager.coin_material())
 	assert_str(((mmi.material_override as ShaderMaterial).shader as Shader).resource_path).is_equal("res://core/shaders/coin.gdshader")
-	# the gems keep their glowing gold-and-colour look
+	# the gems have a look of their own too (re-pinned in pass 60: the charged gem shader, pass60_pk_test)
 	var gem_mm: MultiMesh = pm._mms[PickupManager.KIND_GEM_S]
 	for c in pm.get_children():
 		if c is MultiMeshInstance3D and (c as MultiMeshInstance3D).multimesh == gem_mm:
-			assert_bool(c.material_override is StandardMaterial3D).is_true()
+			assert_bool(c.material_override is ShaderMaterial).is_true()
+			assert_str(((c.material_override as ShaderMaterial).shader as Shader).resource_path).is_equal("res://core/shaders/gem.gdshader")
 
 
 # ---------------------------------------------------------------- on the slope

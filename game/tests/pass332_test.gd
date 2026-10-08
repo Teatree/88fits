@@ -23,7 +23,9 @@ var velocity := Vector3.ZERO
 func take_damage(_a: float, _f: Vector3, _i: Dictionary = {}) -> void:
 	pass
 func max_speed() -> float:
-	return 5.0
+	# like the real hero's, with the map's move_pace in it (pass 60: the rocket divides that knob out, so a flat 5 read
+	# as 5 / 0.9 whenever an earlier suite had left Red Canyon loaded)
+	return 5.0 * Run.move_pace()
 func aim_origin(_d: Vector3) -> Vector3:
 	return global_position + Vector3(0, 1.0, 0)
 func forward() -> Vector3:

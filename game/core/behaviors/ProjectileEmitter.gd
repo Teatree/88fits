@@ -314,7 +314,7 @@ func _fire_burst_shot() -> void:
 		_turn_drum()
 		if not bool(inst.params.get("no_shells", false)):
 			game.fx.shell(_familiar.global_position + Vector3(0, 0.05, 0), dir.rotated(Vector3.UP, -PI * 0.5))
-	muzzle_flash(from)
+	muzzle_flash(from, d)
 
 
 ## The companion's drum turns a notch: a drum magazine about the axis running sideways through the gun, a revolver's
@@ -444,7 +444,7 @@ func _second_barrel() -> void:
 	_aim_yaw = atan2(-dir.x, -dir.z)
 	_blast(bl, dir, stat("damage", 5.0), maxi(stat_int("amount", 1), 1), stat("knockback", 0.0), _speed())
 	var from: Vector3 = player.aim_origin(dir)
-	muzzle_flash(from)
+	muzzle_flash(from, dir)
 	sfx("fire", from)
 
 
@@ -458,7 +458,7 @@ func _volley(mult: float) -> void:
 	if inst.def.targeting == "forward":
 		half_spread = deg_to_rad(stat("spread_deg", 30.0)) * 0.5
 	_volley_at(dir, from, amount, stat("damage", 5.0) * mult, speed, stat_int("pierce", 0), _prad(), stat("range", 9.0) / maxf(speed, 1.0), stat("knockback", 0.0), half_spread)
-	muzzle_flash(from)
+	muzzle_flash(from, dir)
 	sfx("fire", from)
 
 
@@ -479,7 +479,7 @@ func _hip_volley() -> void:
 	if _familiar:
 		_kick()
 		_turn_drum()
-	muzzle_flash(from)
+	muzzle_flash(from, dir)
 	sfx("fire", from)
 	if _hip_left <= 0:
 		_spin_t = 0.0
@@ -560,7 +560,7 @@ func _fire() -> bool:
 		# Birdshot's lane, the Blunderbuss's cone (pass 48): all of it at once; Both Barrels fires the pull again a beat later
 		_blast(bl, dir, damage, amount, knock, speed)
 		_arm_second_barrel()
-		muzzle_flash(from)
+		muzzle_flash(from, dir)
 		sfx("fire", from)
 		return true
 	var hs = inst.params.get("hip_shot")
@@ -596,7 +596,7 @@ func _fire() -> bool:
 	if bool(inst.params.get("shockwave", false)):
 		enemies.damage_radius(player.global_position, 1.8, damage * 0.5, inst.def.id, knock)
 		game.telegraphs.flash_ring(player.global_position, 1.8, Color(1.0, 0.7, 0.3))
-	muzzle_flash(from)
+	muzzle_flash(from, dir)
 	sfx("fire", from)
 	return true
 

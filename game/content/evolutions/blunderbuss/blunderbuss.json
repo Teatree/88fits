@@ -22,6 +22,11 @@
     "fire_spread": 0.2
   },
   "params": {
+    "tracer": true,
+    "tracer_step": 0.02,
+    "tracer_life": 0.16,
+    "tracer_size": 0.32,
+    "tail_fade": 0.25,
     "final": {
       "blast": {
         "shape": "cone",

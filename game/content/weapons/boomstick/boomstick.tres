@@ -65,6 +65,13 @@ sfx = {
 }
 visual = ExtResource("3_7mrvs")
 visual_file = "boomstick_visual.tscn"
+params = {
+"tail_fade": 0.25,
+"tracer": true,
+"tracer_life": 0.16,
+"tracer_size": 0.32,
+"tracer_step": 0.02
+}
 id = "boomstick"
 display_name = "Boomstick"
 flavour = "Steer into the crowd."

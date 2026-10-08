@@ -151,6 +151,14 @@ func _tick_run(dt: float) -> void:
 			print("smoke_run: chest %d -> %s (%s, skips left %d)" % [_chests, "take" if take else "skip", str(cs.result().get("id", "gold")), _run.skips_left])
 	if _game.get("resume_gate") and _game.resume_gate and _game.resume_gate.visible:
 		_game.resume_gate.tap()
+	# pass 60 (the one-screen rule): the Stranger's and the shop's overlays close through their own path, so the
+	# arbiter hands the run back (a hand-set `visible = false` would leave it paused)
+	if _game.get("stranger_screen") and _game.stranger_screen and _game.stranger_screen.visible:
+		_game.stranger_screen._finish(false)
+		print("smoke_run: the Stranger -> declined")
+	if _game.get("structure_shop") and _game.structure_shop and _game.structure_shop.visible:
+		_game.structure_shop._finish(false)
+		print("smoke_run: the shop -> left")
 	if _game.portal_dialog and _game.portal_dialog.visible:
 		if not _declined and _game.portal_dialog.has_signal("declined"):
 			# pass 48: "Not yet" the first time: unpaused, the portal still there; out past 2.5 m and back in, it asks again
@@ -332,6 +340,10 @@ func _tick_run(dt: float) -> void:
 		print("t=%3ds  stage=%d  clock=%s  alive=%3d  cap=%3d  kills=%4d  level=%2d  proj=%3d  gems=%3d  weapons=%d  passives=%d  cards=%d  pos=%s" % [
 			sec, _run.stage + 1, "%d:%02d" % [int(_run.elapsed) / 60, int(_run.elapsed) % 60], _run.alive, cap, _run.kills, _run.level, _game.projectiles.count, _game.pickups.count,
 			_run.weapons.size(), _run.passives.size(), _cards_picked, str(_game.player.global_position.round()) if _game.player else "?"])
+		# pass 60: the one-screen rule's state, so a stall shows what holds the run
+		if _game.has_method("visible_modals"):
+			print("   screens: modal=%d queue=%s up=%s paused=%s gate=%s banked=%d" % [int(_game.current_modal()), str(_game.modal_queue_kinds()), str(_game.visible_modals()),
+				str(_game.paused), str(_game.resume_gate.visible if _game.get("resume_gate") else false), int(_game.get("_pending_levels"))])
 
 
 ## The map's stage length in seconds (the director's timeline once the game is up, else the map's own, else 300).

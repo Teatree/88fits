@@ -292,14 +292,13 @@ func test_run_never_banishes_what_the_hero_has() -> void:
 	var evo_w: WeaponDef = Registry.weapon(Registry.weapon("boomstick").evolves_into)
 	assert_str(Run.banish_refusal({"type": "evolution", "id": evo_w.id, "def": evo_w, "src_id": "boomstick", "level_from": 0, "level_to": 1})).is_equal("evolution")
 	assert_str(Run.banish_refusal({"type": "gold", "id": "", "def": null, "gold": 50})).is_equal("gold")
-	# a path mutation of a weapon held: its evolution needs every one (a boss chest's pick)
+	# a mutation, any (pass 60, Garry: "mutations shouldn't be banishable anywhere"): a path's pick and a hero's own
 	var path_m: MutationDef = Registry.mutations_of("boomstick")[0]
-	assert_str(Run.banish_refusal(_card("mutation", path_m))).is_equal("path")
-	# a hero's own mutation is optional: it may go
+	assert_str(Run.banish_refusal(_card("mutation", path_m))).is_equal("mutation")
 	for hm: MutationDef in Registry.hero_mutations("drifter"):
 		if Run.family_instance(hm.weapon) == null:
 			Run.add_weapon(Registry.weapon(hm.weapon), 1)
-		assert_str(Run.banish_refusal(_card("mutation", hm))).is_equal("")
+		assert_str(Run.banish_refusal(_card("mutation", hm))).is_equal("mutation")
 		break
 	# a weapon the hero does not have (picked after the hero's mutation brought its weapon in)
 	for w: WeaponDef in Registry.unlocked_weapons():
@@ -359,7 +358,10 @@ func test_card_pool_never_offers_a_banished_id() -> void:
 ## A hero's own mutation banished from a boss chest (the one mutation a boss chest lets go) is out of the run (the
 ## review: it stayed on the reel's list, came back on the respin and in 88 of 400 later boss chests): never on the list,
 ## the respin, a later boss chest, or the weapon's path offer.
-func test_a_banished_hero_mutation_never_comes_back() -> void:
+func test_a_hero_mutation_cannot_be_banished_and_a_struck_id_never_comes_back() -> void:
+	# re-pinned in pass 60 (Garry: "mutations shouldn't be banishable anywhere"; pass 58 had let a hero's own go): a
+	# boss chest landing on a hero's own mutation refuses the banish and spends nothing, and the plumbing that keeps a
+	# banished id out of every later offer (pass 58's review) is proved with the id struck by hand
 	_start("drifter")
 	var hm: MutationDef = null
 	for m: MutationDef in Registry.hero_mutations("drifter"):
@@ -370,16 +372,19 @@ func test_a_banished_hero_mutation_never_comes_back() -> void:
 	var wi := Run.add_weapon(Registry.weapon(hm.weapon), 3)
 	assert_bool(Run.boss_chest_mutations().has(hm)).is_true()
 	assert_bool(Run.open_mutations(wi).has(hm)).is_true()
-	# a boss chest lands on it: it may go
+	# a boss chest lands on it: it may not go, nothing is spent, it stays on offer
 	Run.banishes_left = 1
 	var roll := {"type": "mutation", "id": hm.id, "def": hm, "level_from": 0, "level_to": 1, "is_new": true, "boss": true}
-	assert_str(Run.banish_refusal(roll)).is_equal("")
+	assert_str(Run.banish_refusal(roll)).is_equal("mutation")
 	var again := Run.chest_banish(roll)
-	assert_bool(Run.banished.has(hm.id)).is_true()
-	assert_int(Run.banishes_left).is_equal(0)
-	assert_bool(again.is_empty()).is_false()
-	assert_str(str(again.get("id", ""))).is_not_equal(hm.id)
-	# gone from the reel's list, every later boss chest and the path offer
+	assert_bool(again.is_empty()).is_true()
+	assert_bool(Run.banished.has(hm.id)).is_false()
+	assert_int(Run.banishes_left).is_equal(1)
+	assert_bool(Run.boss_chest_mutations().has(hm)).is_true()
+	assert_bool(Run.open_mutations(wi).has(hm)).is_true()
+	# an id struck from the run (by hand: no route strikes a mutation any more) is gone from the reel's list, every
+	# later boss chest and the path offer
+	Run.banished.append(hm.id)
 	assert_bool(Run.boss_chest_mutations().has(hm)).is_false()
 	for i in 200:
 		assert_str(str(Run.chest_roll(true).get("id", ""))).override_failure_message("a boss chest rolled the banished %s" % hm.id).is_not_equal(hm.id)

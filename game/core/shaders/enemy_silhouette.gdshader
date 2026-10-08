@@ -4,6 +4,9 @@
 // so a sprite is never seen edge-on from the high camera. face_camera = 0 gives the old upright Y-billboard.
 // INSTANCE_CUSTOM: x = frame index, y = flip (0/1), z = flash (-1..1, negative = poison green), w = squash (1 = normal)
 // INSTANCE COLOR:  rgb = tint (elite colour), a = tint strength
+// Pass 60: x carries 0.5 in its fraction (EnemyManager.RISE_FLAG) while the creature rises out of the sand after a burrow:
+// nothing is drawn for it then, or the part still under the sand, which the terrain hides from the main pass, would show
+// through this pass as a ghost of the whole figure.
 shader_type spatial;
 render_mode cull_disabled, unshaded, skip_vertex_transform, depth_test_inverted, depth_draw_never, blend_mix;
 
@@ -21,11 +24,13 @@ uniform float rim_texels = 1.5;
 varying vec2 v_uv;
 varying vec4 v_tint;
 varying float v_flash;
+varying float v_rise;
 
 void vertex() {
 	float frame = floor(INSTANCE_CUSTOM.x);
 	float flip = mod(INSTANCE_CUSTOM.y, 2.0);   // above 1: the glow level rides on it (enemy_billboard)
 	v_flash = INSTANCE_CUSTOM.z;
+	v_rise = fract(INSTANCE_CUSTOM.x);
 	float squash = max(INSTANCE_CUSTOM.w, 0.2);
 	vec2 uv = UV;
 	if (flip > 0.5) {
@@ -59,6 +64,10 @@ void vertex() {
 }
 
 void fragment() {
+	if (v_rise > 0.25) {
+		// rising out of the sand (pass 60): no ghost of the part still under it
+		discard;
+	}
 	vec4 c = texture(sprite, v_uv);
 	if (c.a < alpha_cut) {
 		discard;

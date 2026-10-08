@@ -452,8 +452,8 @@ func test_a_boss_chest_never_banishes_its_mutation() -> void:
 	assert_int(cs.respins).is_equal(0)
 	assert_bool(Run.banished.has(str(r["id"]))).is_false()
 	assert_int(Run.banishes_left).is_equal(left)
+	# pass 60: no mutation can be banished; the line says so plainly
 	assert_str(cs.header.line.text).contains("mutation")
-	assert_str(cs.header.line.text).contains(Registry.weapon("hornet_nest").display_name)
 	cs.visible = false
 
 

@@ -121,7 +121,8 @@ with the import's output a click away.
    edge bands are as thick as their shares, the percent under each; the facing share and spread, dimmed in sides mode;
    switching to sides with no weights starts from 55 / 15 / 15 / 15; "Remove the block" goes back to the facing rule),
    and **Scaling** has the HP × and ATK × curves (the inspector's form), `creature_hp_mult`, **`creature_damage_mult`**
-   (multiplies every hostile damage) and `hp_growth` / `hp_power` marked legacy (used only when `hp_curve` is absent).
+   (multiplies every hostile damage), **`creature_speed_mult`** (pass 60: every creature, Elite and boss moves, winds up and
+   shoots at this multiple; 0.9 on Red Canyon; the hero is not affected) and `hp_growth` / `hp_power` marked legacy (used only when `hp_curve` is absent).
    Keys the editor does not know are shown as they are and written back unchanged.
 3. **Creatures**: the palette. A card per creature of `content/enemies` and `content/bosses`: the in-play look's icon,
    name, archetype / brain and the code it plays, HP / bite / speed / size, pack, cap share, XP, **knock** (its
@@ -413,3 +414,9 @@ Garry's list for the editor (2026-10-07), and where each piece is. The game side
   fix round: the event join on sixteen hand-made cases (the heavier row, the look, a half the event sets itself, a row at
   weight 0, a wave and its alternative's share, endless, an Elite) and the endless re-fix, by hand and against the
   Python copy, in the Actual lanes too).
+
+## Pass 60
+
+- **Creature speed ×** (Settings → Scaling, `creature_speed_mult`): one multiplier for every creature's movement, wind-ups and
+  hostile shots (Garry: "reduce the movement speed of all enemies by 10%" as a multiplier for all). The hero's own pace
+  (`move_pace`) is separate. Red Canyon ships at 0.9.

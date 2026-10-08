@@ -111,6 +111,13 @@ python tools/gen_title_heroes.py --pick drifter=2              # install -> game
   `gen_art.py --only <id> --variant=<CODE>` into `<id>_sprite_<letter>.png`; Garry picks in the arena's HERO tab.
 - A painting the image model will not give (Klein turned Solenne's sun disc edge-on in a side view six times): compose
   it from the paintings you have (her side still is the side body under the three-quarter-front head).
+- **Pass 60 lessons (the werewolf's back, Solenne's fifth walk)**: a driven cycle whose figure touches the clip's bottom edge
+  fails gen_art's frame check and silently falls back to the free video clip (WW-A's and WW-B's back walks: an upright man's
+  gait under a hunched front); shrink that view's driver (`pose_scale.py ... scale=0.88 views=back` -> `orc_walk_wolf_b88`) and
+  pair it as `pose` (back) with `pose_front` in the recipe. A catwalk driver that swings the wrists across the body reads as
+  "hands on the hips" at a 0.06 spread: widen the spread for that view (`catwalk_fit_wide_spread`, 0.10). Wan Animate runs
+  at cfg 1.0 with the distilled LoRA, so `anim_negative` is never evaluated: say in the positive prompt what every body part
+  does and what stays put (SOL-E's `pose_motion`), the negative only documents.
 - **The badge** (pass 56): gen_art paints a close-up and `portrait_badge` zooms it to fill the circle. A hero whose head
   is wider than his shoulders (Solenne's sun) lost everything but the head that way. Paint several close-ups, pick one
   by eye, copy it into the paintings' cache under its own key, and name it in the hero JSON:

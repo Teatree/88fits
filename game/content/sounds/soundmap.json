@@ -4,351 +4,397 @@
       "category": "ui",
       "voices": 2,
       "pitch_spread": 0.02,
-      "volume_db": -6
+      "volume_db": -6,
+      "file": "real/ui_tap.wav"
     },
     "ui_card_pick": {
       "category": "ui",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -3
+      "volume_db": -3,
+      "file": "real/ui_card_pick.wav"
     },
     "ui_levelup": {
       "category": "ui",
       "voices": 1,
       "pitch_spread": 0.04,
       "volume_db": 0,
-      "file": "voice/ui_levelup.wav"
+      "file": "real/ui_levelup.wav"
     },
     "ui_pause": {
       "category": "ui",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -6
+      "volume_db": 0,
+      "file": "real/ui_pause.wav"
     },
     "ui_resume": {
       "category": "ui",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -6
+      "volume_db": -6,
+      "file": "real/ui_resume.wav"
     },
     "ui_buy": {
       "category": "ui",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -3
+      "volume_db": -3,
+      "file": "real/ui_buy.wav"
     },
     "ui_locked": {
       "category": "ui",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -6
+      "volume_db": 0,
+      "file": "real/ui_locked.wav"
     },
     "ui_unlock": {
       "category": "ui",
       "voices": 1,
       "pitch_spread": 0.04,
       "volume_db": 0,
-      "file": "voice/ui_unlock.wav"
+      "file": "real/ui_unlock.wav"
     },
     "pl_step_sand": {
       "category": "player",
       "voices": 1,
       "pitch_spread": 0.08,
-      "volume_db": -18
+      "volume_db": -18,
+      "file": "real/pl_step_sand.wav"
     },
     "pl_jump": {
       "category": "player",
       "voices": 1,
       "pitch_spread": 0.05,
       "volume_db": -6,
-      "file": "voice/pl_jump.wav"
+      "file": "real/silence.wav"
     },
     "pl_land": {
       "category": "player",
       "voices": 1,
       "pitch_spread": 0.05,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/pl_land.wav"
     },
     "pl_spawn_beam": {
       "category": "player",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -4
+      "volume_db": -4,
+      "file": "real/pl_spawn_beam.wav"
     },
     "pl_spawn_land": {
       "category": "player",
       "voices": 1,
       "pitch_spread": 0.03,
-      "volume_db": -5
+      "volume_db": -5,
+      "file": "real/pl_spawn_land.wav"
     },
     "pl_hurt": {
       "category": "player",
       "voices": 1,
       "pitch_spread": 0.12,
       "volume_db": -3,
-      "file": "voice/pl_hurt.wav"
+      "file": "real/silence.wav"
     },
     "pl_death": {
       "category": "player",
       "voices": 1,
       "pitch_spread": 0.04,
       "volume_db": 0,
-      "file": "voice/pl_death.wav"
+      "file": "real/pl_death.wav"
     },
     "pl_revive": {
       "category": "player",
       "voices": 1,
       "pitch_spread": 0.04,
       "volume_db": 0,
-      "file": "voice/pl_revive.wav"
+      "file": "real/pl_revive.wav"
     },
     "w_pea_fire": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.1,
-      "volume_db": -12
+      "volume_db": -12,
+      "file": "real/w_pea_fire.wav"
     },
     "w_pea_hit": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.15,
-      "volume_db": -14
+      "volume_db": -14,
+      "file": "real/w_pea_hit.wav"
     },
     "w_boom_fire": {
       "category": "weapon",
       "voices": 2,
       "pitch_spread": 0.06,
-      "volume_db": -6
+      "volume_db": -6,
+      "file": "real/w_boom_fire.wav"
     },
     "w_boom_hit": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.15,
-      "volume_db": -14
+      "volume_db": -14,
+      "file": "real/w_boom_hit.wav"
     },
     "w_saw_loop": {
       "category": "weapon",
       "voices": 1,
       "pitch_spread": 0.0,
       "volume_db": -20,
-      "loop": true
+      "loop": true,
+      "file": "real/w_saw_loop.wav"
     },
     "w_saw_hit": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.15,
-      "volume_db": -14
+      "volume_db": -14,
+      "file": "real/w_saw_hit.wav"
     },
     "w_lob_throw": {
       "category": "weapon",
       "voices": 2,
       "pitch_spread": 0.05,
-      "volume_db": -10
+      "volume_db": -4,
+      "file": "real/w_lob_throw.wav"
     },
     "w_lob_boom": {
       "category": "weapon",
       "voices": 2,
       "pitch_spread": 0.08,
-      "volume_db": -4
+      "volume_db": -4,
+      "file": "real/w_lob_boom.wav"
     },
     "w_zap_fire": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.1,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/w_zap_fire.wav"
     },
     "w_zap_hit": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.2,
-      "volume_db": -14
+      "volume_db": -20,
+      "file": "real/w_zap_hit.wav"
     },
     "w_turret_place": {
       "category": "weapon",
       "voices": 2,
       "pitch_spread": 0.05,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/w_turret_place.wav"
     },
     "w_turret_fire": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.1,
-      "volume_db": -14
+      "volume_db": -14,
+      "file": "real/w_turret_fire.wav"
     },
     "w_evo_reveal": {
       "category": "weapon",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": 0
+      "volume_db": 0,
+      "file": "real/w_evo_reveal.wav"
     },
     "pk_gem_s": {
       "category": "pickup",
       "voices": 6,
       "pitch_spread": 0.1,
-      "volume_db": -16
+      "volume_db": -16,
+      "file": "real/pk_gem_s.wav"
     },
     "pk_gem_m": {
       "category": "pickup",
       "voices": 4,
       "pitch_spread": 0.08,
-      "volume_db": -14
+      "volume_db": -14,
+      "file": "real/pk_gem_m.wav"
     },
     "pk_gem_l": {
       "category": "pickup",
       "voices": 2,
       "pitch_spread": 0.05,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/pk_gem_l.wav"
     },
     "pk_coin": {
       "category": "pickup",
       "voices": 3,
       "pitch_spread": 0.08,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/pk_coin.wav"
     },
     "pk_chest_open": {
       "category": "pickup",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -3
+      "volume_db": -3,
+      "file": "real/pk_chest_open.wav"
     },
     "pk_vacuum": {
       "category": "pickup",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -3
+      "volume_db": -3,
+      "file": "real/pk_vacuum.wav"
     },
     "en_goblin_hit": {
       "category": "enemy",
       "voices": 4,
       "pitch_spread": 0.2,
-      "volume_db": -16
+      "volume_db": -16,
+      "file": "real/en_goblin_hit.wav"
     },
     "en_goblin_die": {
       "category": "enemy",
       "voices": 3,
       "pitch_spread": 0.2,
-      "volume_db": -12
+      "volume_db": -6,
+      "file": "real/en_goblin_die.wav"
     },
     "en_ant_hit": {
       "category": "enemy",
       "voices": 4,
       "pitch_spread": 0.25,
-      "volume_db": -20
+      "volume_db": -20,
+      "file": "real/en_ant_hit.wav"
     },
     "en_ant_die": {
       "category": "enemy",
       "voices": 6,
       "pitch_spread": 0.25,
-      "volume_db": -18
+      "volume_db": -18,
+      "file": "real/en_ant_die.wav"
     },
     "en_cactus_spit": {
       "category": "enemy",
       "voices": 3,
       "pitch_spread": 0.1,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/en_cactus_spit.wav"
     },
     "en_cactus_die": {
       "category": "enemy",
       "voices": 2,
       "pitch_spread": 0.15,
-      "volume_db": -10
+      "volume_db": -4,
+      "file": "real/en_cactus_die.wav"
     },
     "en_beetle_charge": {
       "category": "enemy",
       "voices": 2,
       "pitch_spread": 0.05,
-      "volume_db": -6
+      "volume_db": -6,
+      "file": "real/en_beetle_charge.wav"
     },
     "en_beetle_die": {
       "category": "enemy",
       "voices": 2,
       "pitch_spread": 0.1,
-      "volume_db": -6
+      "volume_db": 0,
+      "file": "real/en_beetle_die.wav"
     },
     "en_lizard_die": {
       "category": "enemy",
       "voices": 3,
       "pitch_spread": 0.12,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/en_lizard_die.wav"
     },
     "en_mummy_die": {
       "category": "enemy",
       "voices": 2,
       "pitch_spread": 0.08,
-      "volume_db": -6
+      "volume_db": -6,
+      "file": "real/en_mummy_die.wav"
     },
     "en_scorpion_die": {
       "category": "enemy",
       "voices": 1,
       "pitch_spread": 0.05,
-      "volume_db": -4
+      "volume_db": 0,
+      "file": "real/en_scorpion_die.wav"
     },
     "en_elite_spawn": {
       "category": "enemy",
       "voices": 1,
       "pitch_spread": 0.04,
       "volume_db": -3,
-      "file": "voice/en_elite_spawn.wav"
+      "file": "real/en_elite_spawn.wav"
     },
     "en_boss_roar": {
       "category": "enemy",
       "voices": 1,
       "pitch_spread": 0.04,
       "volume_db": 0,
-      "file": "voice/en_boss_roar.wav"
+      "file": "real/en_boss_roar.wav"
     },
     "en_boss_attack": {
       "category": "enemy",
       "voices": 2,
       "pitch_spread": 0.05,
-      "volume_db": -3
+      "volume_db": -3,
+      "file": "real/en_boss_attack.wav"
     },
     "en_boss_die": {
       "category": "enemy",
       "voices": 1,
       "pitch_spread": 0.04,
       "volume_db": 0,
-      "file": "voice/en_boss_die.wav"
+      "file": "real/en_boss_die.wav"
     },
     "en_king_volley": {
       "category": "enemy",
       "voices": 1,
       "pitch_spread": 0.05,
-      "volume_db": -4
+      "volume_db": -10,
+      "file": "real/en_king_volley.wav"
     },
     "wd_ambient": {
       "category": "world",
       "voices": 1,
       "pitch_spread": 0.0,
       "volume_db": -18,
-      "loop": true
+      "loop": true,
+      "file": "real/wd_ambient.wav"
     },
     "wd_portal_open": {
       "category": "world",
       "voices": 1,
       "pitch_spread": 0.0,
       "volume_db": -8,
-      "loop": true
+      "loop": true,
+      "file": "real/wd_portal_open.wav"
     },
     "wd_extract": {
       "category": "world",
       "voices": 1,
       "pitch_spread": 0.04,
       "volume_db": 0,
-      "file": "voice/wd_extract.wav"
+      "file": "real/wd_extract.wav"
     },
     "wd_dust_devil": {
       "category": "world",
       "voices": 1,
       "pitch_spread": 0.0,
       "volume_db": -14,
-      "loop": true
+      "loop": true,
+      "file": "real/wd_dust_devil.wav"
     },
     "wd_tumbleweed": {
       "category": "world",
       "voices": 2,
       "pitch_spread": 0.1,
-      "volume_db": -18
+      "volume_db": -18,
+      "file": "real/wd_tumbleweed.wav"
     },
     "mu_title": {
       "category": "music",
@@ -396,374 +442,443 @@
       "category": "weapon",
       "voices": 2,
       "pitch_spread": 0.1,
-      "volume_db": -16
+      "volume_db": -16,
+      "file": "real/w_tumble_roll.wav"
     },
     "w_tumble_hit": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.15,
-      "volume_db": -14
+      "volume_db": -14,
+      "file": "real/w_tumble_hit.wav"
     },
     "w_snake_rattle": {
       "category": "weapon",
       "voices": 1,
       "pitch_spread": 0.0,
       "volume_db": -20,
-      "loop": true
+      "loop": true,
+      "file": "real/w_snake_rattle.wav"
     },
     "w_snake_bite": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.15,
-      "volume_db": -14
+      "volume_db": -14,
+      "file": "real/w_snake_bite.wav"
     },
     "w_skull_throw": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.1,
-      "volume_db": -16
+      "volume_db": -16,
+      "file": "real/w_skull_throw.wav"
     },
     "w_skull_boom": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.15,
-      "volume_db": -12
+      "volume_db": -12,
+      "file": "real/w_skull_boom.wav"
     },
     "w_flare_fire": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.08,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/w_flare_fire.wav"
     },
     "w_flare_hit": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.1,
-      "volume_db": -9
+      "volume_db": -9,
+      "file": "real/w_flare_hit.wav"
     },
     "w_molotov_throw": {
       "category": "weapon",
       "voices": 2,
       "pitch_spread": 0.08,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/w_molotov_throw.wav"
     },
     "w_molotov_boom": {
       "category": "weapon",
       "voices": 2,
       "pitch_spread": 0.06,
-      "volume_db": -5
+      "volume_db": -11,
+      "file": "real/w_molotov_boom.wav"
     },
     "w_iron_hit": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.12,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/w_iron_hit.wav"
     },
     "w_ignite": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.15,
-      "volume_db": -12
+      "volume_db": -12,
+      "file": "real/w_ignite.wav"
     },
     "w_tommy_fire": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.06,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/w_tommy_fire.wav"
     },
     "w_mine_arm": {
       "category": "weapon",
       "voices": 2,
       "pitch_spread": 0.05,
-      "volume_db": -12
+      "volume_db": -12,
+      "file": "real/w_mine_arm.wav"
     },
     "pk_powerup": {
       "category": "pickup",
       "voices": 2,
       "pitch_spread": 0.05,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/pk_powerup.wav"
     },
     "pk_heart": {
       "category": "pickup",
       "voices": 2,
       "pitch_spread": 0.05,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/pk_heart.wav"
     },
     "en_bone_hit": {
       "category": "enemy",
       "voices": 4,
       "pitch_spread": 0.25,
-      "volume_db": -14
+      "volume_db": -14,
+      "file": "real/en_bone_hit.wav"
     },
     "en_bone_die": {
       "category": "enemy",
       "voices": 3,
       "pitch_spread": 0.2,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/en_bone_die.wav"
     },
     "en_rocket_boom": {
       "category": "enemy",
       "voices": 2,
       "pitch_spread": 0.06,
-      "volume_db": 0
+      "volume_db": 0,
+      "file": "real/en_rocket_boom.wav"
     },
     "en_rocket_loose": {
       "category": "enemy",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -3
+      "volume_db": -3,
+      "file": "real/en_rocket_loose.wav"
     },
     "en_rocket_wild": {
       "category": "enemy",
       "voices": 1,
       "pitch_spread": 0.05,
-      "volume_db": -4
+      "volume_db": -4,
+      "file": "real/en_rocket_wild.wav"
     },
     "en_rocket_dive": {
       "category": "enemy",
       "voices": 1,
       "pitch_spread": 0.05,
-      "volume_db": -3
+      "volume_db": -3,
+      "file": "real/en_rocket_dive.wav"
     },
     "w_hammer_swing": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.12,
-      "volume_db": -12
+      "volume_db": -12,
+      "file": "real/w_hammer_swing.wav"
     },
     "w_hammer_hit": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.12,
-      "volume_db": -6
+      "volume_db": -6,
+      "file": "real/w_hammer_hit.wav"
     },
     "w_revolver_fire": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.08,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/w_revolver_fire.wav"
     },
     "w_grav_grab": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.1,
-      "volume_db": -12
+      "volume_db": -12,
+      "file": "real/w_grav_grab.wav"
     },
     "w_grav_throw": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.1,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/w_grav_throw.wav"
     },
     "w_grav_land": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.12,
-      "volume_db": -7
+      "volume_db": -7,
+      "file": "real/w_grav_land.wav"
     },
     "w_blackhole": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.08,
-      "volume_db": -9
+      "volume_db": -9,
+      "file": "real/w_blackhole.wav"
     },
     "st_teleport": {
       "category": "pickup",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -4
+      "volume_db": -4,
+      "file": "real/st_teleport.wav"
     },
     "w_guitarra_strum": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.06,
-      "volume_db": -8
+      "volume_db": -14,
+      "file": "real/w_guitarra_strum.wav"
     },
     "w_sun_warn": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.08,
-      "volume_db": -12
+      "volume_db": -12,
+      "file": "real/w_sun_warn.wav"
     },
     "w_sun_strike": {
       "category": "weapon",
       "voices": 4,
       "pitch_spread": 0.1,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/w_sun_strike.wav"
     },
     "w_sun_zenith": {
       "category": "weapon",
       "voices": 1,
       "pitch_spread": 0.03,
-      "volume_db": -5
+      "volume_db": -5,
+      "file": "real/w_sun_zenith.wav"
     },
     "w_spear_throw": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.1,
-      "volume_db": -9
+      "volume_db": -9,
+      "file": "real/w_spear_throw.wav"
     },
     "w_spear_hit": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.12,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/w_spear_hit.wav"
     },
     "en_slime_hit": {
       "category": "enemy",
       "voices": 3,
       "pitch_spread": 0.08,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/en_slime_hit.wav"
     },
     "en_slime_die": {
       "category": "enemy",
       "voices": 2,
       "pitch_spread": 0.06,
-      "volume_db": -6
+      "volume_db": -6,
+      "file": "real/en_slime_die.wav"
     },
     "en_golem_attack": {
       "category": "enemy",
       "voices": 2,
       "pitch_spread": 0.05,
-      "volume_db": -4
+      "volume_db": -4,
+      "file": "real/en_golem_attack.wav"
     },
     "en_golem_throw": {
       "category": "enemy",
       "voices": 1,
       "pitch_spread": 0.05,
-      "volume_db": -3
+      "volume_db": -3,
+      "file": "real/en_golem_throw.wav"
     },
     "en_golem_hit": {
       "category": "enemy",
       "voices": 3,
       "pitch_spread": 0.1,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/en_golem_hit.wav"
     },
     "en_golem_die": {
       "category": "enemy",
       "voices": 1,
       "pitch_spread": 0.04,
-      "volume_db": -2
+      "volume_db": -8,
+      "file": "real/en_golem_die.wav"
     },
     "en_boulder_land": {
       "category": "enemy",
       "voices": 1,
       "pitch_spread": 0.05,
-      "volume_db": 0
+      "volume_db": 0,
+      "file": "real/en_boulder_land.wav"
     },
     "en_stalactite_hit": {
       "category": "enemy",
       "voices": 4,
       "pitch_spread": 0.15,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/en_stalactite_hit.wav"
     },
     "st_barrel_break": {
       "category": "pickup",
       "voices": 2,
       "pitch_spread": 0.06,
-      "volume_db": -4
+      "volume_db": -4,
+      "file": "real/st_barrel_break.wav"
     },
     "ui_fanfare": {
       "category": "ui",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -2
+      "volume_db": -2,
+      "file": "real/ui_fanfare.wav"
     },
     "ui_jackpot": {
       "category": "ui",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -3
+      "volume_db": -3,
+      "file": "real/ui_jackpot.wav"
     },
     "wd_gust": {
       "category": "world",
       "voices": 1,
       "pitch_spread": 0.05,
-      "volume_db": -14
+      "volume_db": -14,
+      "file": "real/wd_gust.wav"
     },
     "ui_chest_knock": {
       "category": "ui",
       "voices": 2,
       "pitch_spread": 0.08,
-      "volume_db": -4
+      "volume_db": -4,
+      "file": "real/ui_chest_knock.wav"
     },
     "w_thor_zap": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.1,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/w_thor_zap.wav"
     },
     "w_tinnitus_ring": {
       "category": "weapon",
       "voices": 2,
       "pitch_spread": 0.06,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/w_tinnitus_ring.wav"
     },
     "w_hawk_sting": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.1,
-      "volume_db": -10
+      "volume_db": -16,
+      "file": "real/w_hawk_sting.wav"
     },
     "w_hip_spin": {
       "category": "weapon",
       "voices": 1,
       "pitch_spread": 0.04,
-      "volume_db": -6
+      "volume_db": -6,
+      "file": "real/w_hip_spin.wav"
     },
     "w_silver_fire": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.06,
-      "volume_db": -6
+      "volume_db": -6,
+      "file": "real/w_silver_fire.wav"
     },
     "w_mine_spring": {
       "category": "weapon",
       "voices": 3,
       "pitch_spread": 0.08,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/w_mine_spring.wav"
     },
     "it_keg_boom": {
       "category": "weapon",
       "voices": 2,
       "pitch_spread": 0.08,
-      "volume_db": -4
+      "volume_db": -4,
+      "file": "real/it_keg_boom.wav"
     },
     "it_phoenix": {
       "category": "player",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -2
+      "volume_db": -2,
+      "file": "real/it_phoenix.wav"
     },
     "it_coin_drop": {
       "category": "pickup",
       "voices": 2,
       "pitch_spread": 0.08,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/it_coin_drop.wav"
     },
     "pk_flower": {
       "category": "pickup",
       "voices": 2,
       "pitch_spread": 0.06,
-      "volume_db": -6
+      "volume_db": -6,
+      "file": "real/pk_flower.wav"
+    },
+    "pk_nuke": {
+      "category": "pickup",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": 0,
+      "file": "real/pk_nuke.wav"
     },
     "st_portal_wait": {
       "category": "pickup",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -6
+      "volume_db": -6,
+      "file": "real/st_portal_wait.wav"
     },
     "ui_reel_tick": {
       "category": "ui",
       "voices": 6,
       "pitch_spread": 0.04,
-      "volume_db": -8
+      "volume_db": -8,
+      "file": "real/ui_reel_tick.wav"
     },
     "ui_card": {
       "category": "ui",
       "voices": 4,
       "pitch_spread": 0.05,
-      "volume_db": -10
+      "volume_db": -10,
+      "file": "real/ui_card.wav"
     }
   }
 }

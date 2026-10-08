@@ -41,7 +41,12 @@ params = {
 "double_every": 2.0,
 "fire_blind": true,
 "ignite_chance": 1.0
-}
+},
+"tail_fade": 0.25,
+"tracer": true,
+"tracer_life": 0.16,
+"tracer_size": 0.32,
+"tracer_step": 0.02
 }
 id = "blunderbuss"
 display_name = "Blunderbuss"

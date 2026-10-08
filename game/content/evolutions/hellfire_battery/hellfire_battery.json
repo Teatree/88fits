@@ -1,7 +1,7 @@
 {
   "id": "hellfire_battery",
   "name": "Hellfire Battery",
-  "flavour": "Every rocket scatters six bomblets and a popped bomblet sets off every one within 1.2 m; the pressure starts at +25% and climbs to +80% attack speed, and a hit only halves it; at full pressure every fourth volley is a double volley.",
+  "flavour": "Every rocket scatters six bomblets and a popped bomblet sets off every one within 1.2 m; standing still builds pressure from +25% to +200% attack speed in 15 s, and a hit only vents half; at full pressure every fourth volley is a double volley.",
   "rarity": "rare",
   "is_evolution": true,
   "evolved_from": "rocket_pod",
@@ -48,10 +48,10 @@
         "max": 30
       },
       "pressure": {
-        "max": 0.8,
-        "seconds": 20.0,
+        "max": 2.0,
+        "seconds": 15.0,
         "start": 0.25,
-        "hit_keeps": 0.5
+        "hit_vent": 0.5
       },
       "size_mult": 1.5,
       "blast_fx": {

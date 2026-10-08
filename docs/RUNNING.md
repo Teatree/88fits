@@ -39,7 +39,7 @@ python tools/gen_textures.py                                   # sand, cracked e
 "<blender.exe>" -b --python tools/blender_props.py -- out=D:/_projects/88fits/game/art/props   # 16 GLB props
 python tools/gen_music.py                                      # music loops and stems
 python tools/gen_sfx.py                                        # placeholder effects (skips existing files)
-python tools/gen_voice.py                                      # goofy voice barks via the local Kokoro TTS (Pinokio, port 7860)
+python tools/ai_sfx.py --report                                # pass 60: every sound effect comes from Stable Audio (tools/ai_sfx.py; the voice barks are gone, gen_voice.py lives in tools/dl/backup/)
 "<godot>" --headless --path game --script res://tools/gen_placeholders.gd -- force   # flat sprite strips + icons
 python tools/paint_pass.py                                     # shading, brush dabs, outlines on procedural sprites and icons
 python tools/gen_art.py --anchor && python tools/gen_art.py --pick=N   # paint style-anchor candidates, install one (tools/dl/review/anchor_candidates.png)

@@ -3,463 +3,715 @@
   "group": "UI",
   "id": "ui_tap",
   "trigger": "any button",
-  "prompt": "Soft wooden tick, cartoony, 80 ms"
+  "prompt": "A single soft knock of a fingertip on a thick wooden table, short, dry, close-miked, low-pitched and dull. Sound effect, no music, no voice."
  },
  {
   "group": "UI",
   "id": "ui_card_pick",
   "trigger": "choosing a card",
-  "prompt": "Paper card flick plus a bright two-note chime"
+  "prompt": "A playing card slapped down onto a wooden table, a short low thump of paper on wood, dry and close. Sound effect, no music, no voice."
  },
  {
   "group": "UI",
   "id": "ui_levelup",
   "trigger": "XP bar fills",
-  "prompt": "Short rising three-note sting, goofy brass and synth, 700 ms"
+  "prompt": "A short low brass stab and a big wooden drum hit together, a triumphant announcement in a saloon, deep and warm. Sound effect, no voice, no words."
  },
  {
   "group": "UI",
   "id": "ui_pause",
   "trigger": "pause opens",
-  "prompt": "Time-freeze whoosh sweeping down"
+  "prompt": "A deep slow whoosh of air sweeping downward, muffled and soft, like a heavy curtain drawn shut. Sound effect, no music, no voice."
  },
  {
   "group": "UI",
   "id": "ui_resume",
   "trigger": "countdown ends",
-  "prompt": "Same whoosh sweeping up"
+  "prompt": "A deep whoosh of air sweeping upward, muffled and soft, like a heavy curtain drawn open. Sound effect, no music, no voice."
  },
  {
   "group": "UI",
   "id": "ui_buy",
-  "trigger": "shop purchase",
-  "prompt": "Coins pouring into a tin cup, 500 ms"
+  "trigger": "a purchase",
+  "prompt": "A heavy leather coin purse dropped onto a wooden counter, a dull low thud with a muted clink of big coins. Sound effect, no music, no voice."
  },
  {
   "group": "UI",
   "id": "ui_locked",
   "trigger": "tapping a locked item",
-  "prompt": "Dull rubber thud"
+  "prompt": "A dull thud of a padlock bumping against a thick wooden door, low, short and dry. Sound effect, no music, no voice."
  },
  {
   "group": "UI",
   "id": "ui_unlock",
   "trigger": "quest completed",
-  "prompt": "One-second fanfare on a kazoo-like trumpet with a cymbal"
+  "prompt": "A heavy iron lock clunking open followed by a warm low bell chime resonating softly. Sound effect, no voice, no words."
+ },
+ {
+  "group": "UI",
+  "id": "ui_fanfare",
+  "trigger": "the level-up reveal",
+  "prompt": "A short triumphant fanfare of low brass horns with a deep bass drum hit, in a big wooden hall. Sound effect, no voice, no words."
+ },
+ {
+  "group": "UI",
+  "id": "ui_jackpot",
+  "trigger": "the chest's landing",
+  "prompt": "A heap of heavy gold coins pouring onto a wooden table with a deep warm bell ring, a jackpot payout, low and rich. Sound effect, no voice, no words."
+ },
+ {
+  "group": "UI",
+  "id": "ui_chest_knock",
+  "trigger": "the chest jiggles before it opens",
+  "prompt": "A single knock on the lid of a heavy wooden chest, dull, low and short. Sound effect, no music, no voice."
+ },
+ {
+  "group": "UI",
+  "id": "ui_reel_tick",
+  "trigger": "a plate passing the reel's window",
+  "prompt": "A single soft wooden click of a ratchet, short, dry and dull. Sound effect, no music, no voice."
+ },
+ {
+  "group": "UI",
+  "id": "ui_card",
+  "trigger": "a card dropping in",
+  "prompt": "A playing card landing flat on a felt table, a soft muffled thup, short and quiet. Sound effect, no music, no voice."
  },
  {
   "group": "Player",
   "id": "pl_step_sand",
-  "trigger": "running, looped",
-  "prompt": "Soft sand crunch footsteps, eight per second, quiet"
+  "trigger": "running, eight a second",
+  "prompt": "A single heavy boot stepping onto soft dry sand, a soft dull low crunch, close and muffled, no grit, no scrape. Sound effect, no music, no voice."
  },
  {
   "group": "Player",
   "id": "pl_jump",
-  "trigger": "auto-jump",
-  "prompt": "Cartoon spring boing, short"
+  "trigger": "auto-jump (silenced: was a voice bark)",
+  "prompt": "Silent (a 50 ms file): the voice bark is gone, nothing replaces it"
  },
  {
   "group": "Player",
   "id": "pl_land",
   "trigger": "landing",
-  "prompt": "Thud with a puff of sand"
+  "prompt": "Boots landing on dry sand, a dull low thump with a puff of sand. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Player",
+  "id": "pl_spawn_beam",
+  "trigger": "the hero comes down the spawn beam",
+  "prompt": "A beam of light descending with a steady low-mid electric hum and a gentle rising airy whoosh of wind, smooth and warm. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Player",
+  "id": "pl_spawn_land",
+  "trigger": "the hero lands",
+  "prompt": "A heavy body landing on sand from a height, a weighty thump with a crunch and a spray of sand. Sound effect, no music, no voice."
  },
  {
   "group": "Player",
   "id": "pl_hurt",
-  "trigger": "taking damage",
-  "prompt": "Comedic \"oof\" grunt, three pitch variants"
+  "trigger": "taking damage (silenced: was a voice bark)",
+  "prompt": "Silent (a 50 ms file): the voice bark is gone, nothing replaces it"
  },
  {
   "group": "Player",
   "id": "pl_death",
   "trigger": "HP reaches zero",
-  "prompt": "Slide whistle down ending in a wet splat"
+  "prompt": "A heavy body collapsing onto dry sand, a dull low thud and a slide of sand, then quiet. Sound effect, no music, no voice."
  },
  {
   "group": "Player",
   "id": "pl_revive",
   "trigger": "revive used",
-  "prompt": "Reverse cymbal into a sparkle burst"
+  "prompt": "A soft rising airy whoosh of warm wind swelling up with a gentle shimmer, then two muffled knocks on wood like a heartbeat, gentle. Sound effect, no voice, no words."
+ },
+ {
+  "group": "Player",
+  "id": "it_phoenix",
+  "trigger": "Phoenix Feather",
+  "prompt": "A roar of flames swelling up with a deep whoosh and the heavy beat of huge wings rising. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_pea_fire",
   "trigger": "Peashooter shot",
-  "prompt": "Cork popping from a bottle, tiny"
+  "prompt": "A cork popping out of a bottle, a single low pop, short and dry. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_pea_hit",
   "trigger": "Peashooter hit",
-  "prompt": "Small wet splat"
+  "prompt": "A small soft fruit splatting onto the ground, a single low wet thud, short and dull. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_boom_fire",
   "trigger": "Boomstick shot",
-  "prompt": "Cartoon shotgun bark with a spring twang tail"
+  "prompt": "A deep shotgun blast with a low booming echo in a canyon, heavy and full. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_boom_hit",
   "trigger": "pellets land",
-  "prompt": "Cluster of soft thuds"
+  "prompt": "A cluster of soft pellets thudding into sand and a wooden post, low and dull. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_saw_loop",
   "trigger": "Orbit Saws, looped and spatial",
-  "prompt": "Low circular-saw whir, muffled, cartoonish"
+  "prompt": "A circular saw spinning steadily, a muffled low-mid whir with a grainy mechanical buzz, constant, close, no high whine. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_saw_hit",
-  "trigger": "saw touches enemy",
-  "prompt": "Metallic zing with a spark crackle"
+  "trigger": "saw touches a creature",
+  "prompt": "A spinning saw blade biting into wood briefly, a short low grinding thunk. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_lob_throw",
   "trigger": "grenade thrown",
-  "prompt": "Falling-bomb whistle, descending, 600 ms"
+  "prompt": "A heavy object thrown through the air, a low whooshing arc of wind, falling. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_lob_boom",
   "trigger": "grenade explodes",
-  "prompt": "Big bassy cartoon explosion with rattling debris"
+  "prompt": "A heavy explosion with a firm low-mid punch and rattling debris falling onto sand, muffled. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_zap_fire",
   "trigger": "chain lightning",
-  "prompt": "Crackling electric arc, 300 ms"
+  "prompt": "A low-pitched electric arc discharging, a deep buzzing zap with a muffled crackle, close. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_zap_hit",
   "trigger": "each chain hop",
-  "prompt": "Short sizzle, pitched up per hop"
+  "prompt": "A short low electric buzz and a dull crackle, a spark hitting metal, muffled. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_turret_place",
   "trigger": "turret dropped",
-  "prompt": "Mechanical clunk and a servo whine settling"
+  "prompt": "A heavy metal machine dropped onto sand with a clunk and a low servo motor whine settling. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_turret_fire",
   "trigger": "turret shot",
-  "prompt": "Rapid toy \"pew\""
- },
- {
-  "group": "Weapons",
-  "id": "w_tumble_roll",
-  "trigger": "tumbleweed launched",
-  "prompt": "Dry rolling rustle"
- },
- {
-  "group": "Weapons",
-  "id": "w_tumble_hit",
-  "trigger": "tumbleweed hits",
-  "prompt": "Twiggy thump"
- },
- {
-  "group": "Weapons",
-  "id": "w_snake_rattle",
-  "trigger": "rattlesnake orbiting (loop)",
-  "prompt": "Rattle, quiet"
- },
- {
-  "group": "Weapons",
-  "id": "w_snake_bite",
-  "trigger": "snake hits",
-  "prompt": "Quick hiss and snap"
- },
- {
-  "group": "Weapons",
-  "id": "w_skull_throw",
-  "trigger": "skull lobbed",
-  "prompt": "Whoosh with a cackle"
- },
- {
-  "group": "Weapons",
-  "id": "w_skull_boom",
-  "trigger": "skull bursts",
-  "prompt": "Purple-flame poof"
- },
- {
-  "group": "Weapons",
-  "id": "w_flare_fire",
-  "trigger": "flare gun fires",
-  "prompt": "Hollow thump of a flare pistol with a short whistling tail, 400 ms"
- },
- {
-  "group": "Weapons",
-  "id": "w_flare_hit",
-  "trigger": "a flare lands",
-  "prompt": "Soft fiery whoomp with crackle, 300 ms"
- },
- {
-  "group": "Weapons",
-  "id": "w_molotov_throw",
-  "trigger": "molotov thrown",
-  "prompt": "Glass bottle whooshing through the air with a rag flutter, 500 ms"
- },
- {
-  "group": "Weapons",
-  "id": "w_molotov_boom",
-  "trigger": "molotov shatters",
-  "prompt": "Glass smash into a whoosh of igniting fuel, 700 ms"
- },
- {
-  "group": "Weapons",
-  "id": "w_iron_hit",
-  "trigger": "branding iron touches a creature",
-  "prompt": "Short hot sizzle with a tiny yelp, 250 ms"
- },
- {
-  "group": "Weapons",
-  "id": "w_ignite",
-  "trigger": "a creature catches fire",
-  "prompt": "Quick match-strike flare, fwoosh, 300 ms"
- },
- {
-  "group": "Weapons",
-  "id": "w_tommy_fire",
-  "trigger": "tommy gun burst",
-  "prompt": "A rattling cartoon submachine-gun burst, six quick pops, 500 ms"
- },
- {
-  "group": "Weapons",
-  "id": "w_mine_arm",
-  "trigger": "a mine is laid",
-  "prompt": "A metal click and a rising beep, armed, 300 ms"
+  "prompt": "A single muffled gunshot from a small automatic turret, a short low pop. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_evo_reveal",
   "trigger": "evolution at a chest",
-  "prompt": "Two-second ascending magical fanfare ending on a gong"
+  "prompt": "A deep swelling drone rising slowly and ending in a big low gong strike with a long resonance. Sound effect, no voice, no words."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_tumble_roll",
+  "trigger": "tumbleweed launched",
+  "prompt": "A heavy dry tumbleweed rolling over packed sand, low thuds and a soft rustle, muffled. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_tumble_hit",
+  "trigger": "tumbleweed hits",
+  "prompt": "A bundle of dry twigs thumping against a wooden fence, low and dull. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_snake_rattle",
+  "trigger": "rattlesnake orbiting (loop)",
+  "prompt": "A big maraca shaken steadily, a dry low rattle of seeds inside a large hollow gourd, muffled, constant, no hiss. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_snake_bite",
+  "trigger": "snake hits",
+  "prompt": "A wooden jaw trap snapping shut once onto packed sand, a quick dull low thud and a soft clack, muffled and close. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_skull_throw",
+  "trigger": "skull lobbed",
+  "prompt": "A heavy skull thrown through the air, a low whoosh with a hollow rattle. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_skull_boom",
+  "trigger": "skull bursts",
+  "prompt": "A hollow skull bursting with a low puff of flame and bone fragments scattering. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_flare_fire",
+  "trigger": "flare gun fires",
+  "prompt": "A flare gun fired, a hollow thump like a cork from a wide tube and a short soft fizz fading, low-mid. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_flare_hit",
+  "trigger": "a flare lands",
+  "prompt": "A flare landing in sand and igniting, a low fiery whoomp with a crackle. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_molotov_throw",
+  "trigger": "molotov thrown",
+  "prompt": "A glass bottle thrown through the air with a burning rag fluttering, a low whoosh. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_molotov_boom",
+  "trigger": "molotov shatters",
+  "prompt": "A glass bottle shattering and fuel igniting with a deep whoosh of flames. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_iron_hit",
+  "trigger": "branding iron touches a creature",
+  "prompt": "A red-hot branding iron pressed onto thick hide, a low muffled sizzle and a dull press, soft, no high hiss. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_ignite",
+  "trigger": "a creature catches fire",
+  "prompt": "A quick low whoosh of flames catching, a burst of fire igniting. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_tommy_fire",
+  "trigger": "tommy gun burst",
+  "prompt": "A short burst of a submachine gun, six rapid muffled shots, deep and dull. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_mine_arm",
+  "trigger": "a mine is laid",
+  "prompt": "A heavy metal click of a mine being armed, a low mechanical clunk and a short deep beep. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_hammer_swing",
   "trigger": "a hammer rears up over the hero",
-  "prompt": "Heavy whoosh building up, a big object swung overhead, 300 ms"
+  "prompt": "A huge heavy hammer swung overhead through the air, a deep slow whoosh building up. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_hammer_hit",
   "trigger": "a hammer lands",
-  "prompt": "Deep ground thump with a crack of stone and a short rumble, 500 ms"
+  "prompt": "A giant hammer slamming into the ground, a deep thump with cracking stone and a short low rumble. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_revolver_fire",
   "trigger": "a Revolver round",
-  "prompt": "Sharp single-action revolver crack with a short western echo, 200 ms"
+  "prompt": "A single revolver gunshot with a deep echo across a canyon, low and heavy. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_grav_grab",
   "trigger": "the Gravity Gun lifts a creature",
-  "prompt": "Rising electric hum with a wobble, a tractor beam locking on, 400 ms"
+  "prompt": "A low electric hum rising with a wobble, a tractor beam locking onto something heavy. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_grav_throw",
   "trigger": "the Gravity Gun throws",
-  "prompt": "Falling zap and a whoosh, a push of force, 300 ms"
+  "prompt": "A deep electric zap falling in pitch and a low whoosh of force pushing outward. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_grav_land",
   "trigger": "a thrown creature lands",
-  "prompt": "Soft body thump into sand with a small blast, 400 ms"
+  "prompt": "A heavy body slamming into sand with a dull low thump and a small blast of dust. Sound effect, no music, no voice."
  },
  {
   "group": "Weapons",
   "id": "w_blackhole",
   "trigger": "a Singularity black hole opens",
-  "prompt": "Low descending warble, air sucked inward, 1.2 s"
+  "prompt": "Air sucked inward into a vortex, a descending whirling warble with a low rumbling suction and a swirl, dramatic. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_guitarra_strum",
+  "trigger": "the Guitarra's wave",
+  "prompt": "A single low strum on the bass strings of an acoustic guitar, a deep warm chord, close-miked. Sound effect, no voice, no words."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_sun_warn",
+  "trigger": "a Sun Scepter pillar warms",
+  "prompt": "A warm shimmering low-mid hum swelling with a soft airy whoosh of hot air rising, gentle. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_sun_strike",
+  "trigger": "a pillar of light strikes",
+  "prompt": "A pillar of warm light slamming into the sand, a solid punchy impact with a round resonant tone around middle pitch, muffled, no shimmer, no hiss. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_sun_zenith",
+  "trigger": "Zenith's sweep",
+  "prompt": "A deep swelling drone with a low resonant gong strike and a long warm ring. Sound effect, no voice, no words."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_spear_throw",
+  "trigger": "the Spear thrown",
+  "prompt": "A heavy spear thrown through the air, a low whoosh of a long shaft spinning. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_spear_hit",
+  "trigger": "the Spear bites",
+  "prompt": "A spear tip thunking into wood and hide, a short low dull thunk. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_thor_zap",
+  "trigger": "Thor's Wrath",
+  "prompt": "A low thunder crack with a short electric crackle, a close lightning strike, deep. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_tinnitus_ring",
+  "trigger": "Tinnitus",
+  "prompt": "A soft muffled ringing tone in the middle range, like a small bell heard through a wall, fading slowly after a blast, dull, no high whine. Sound effect, no voice, no words."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_hawk_sting",
+  "trigger": "the Tarantula Hawk stings",
+  "prompt": "A large wasp buzzing briefly and stinging, a short low buzz and a tick. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_hip_spin",
+  "trigger": "Hip Shot spins the cylinder",
+  "prompt": "A revolver cylinder spun fast, rapid low metallic clicks slowing down, dull and close. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_silver_fire",
+  "trigger": "Silver Bullet",
+  "prompt": "A single revolver gunshot followed by a low metallic ring, a deep echo. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "w_mine_spring",
+  "trigger": "Wide Reach's mine springs",
+  "prompt": "A heavy spring releasing with a low boing and a metal click, a trap springing. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Weapons",
+  "id": "it_keg_boom",
+  "trigger": "Powder Keg",
+  "prompt": "A barrel of gunpowder exploding with a deep boom and wooden staves clattering down. Sound effect, no music, no voice."
  },
  {
   "group": "Pickups",
   "id": "pk_gem_s",
   "trigger": "small gem",
-  "prompt": "Glass chime, low, very short, friendly when rapid"
+  "prompt": "A single soft tap on a hollow wooden block, a short low dull note, close-miked. Sound effect, no music, no voice."
  },
  {
   "group": "Pickups",
   "id": "pk_gem_m",
   "trigger": "medium gem",
-  "prompt": "Same chime, a fifth higher"
+  "prompt": "A single soft tap on a thick clay pot, a short low dull note, close-miked. Sound effect, no music, no voice."
  },
  {
   "group": "Pickups",
   "id": "pk_gem_l",
   "trigger": "large gem",
-  "prompt": "Same chime, an octave higher with a sparkle"
+  "prompt": "A single soft note on a wooden marimba in its middle range, warm, short and close-miked. Sound effect, no music, no voice."
  },
  {
   "group": "Pickups",
   "id": "pk_coin",
   "trigger": "coin",
-  "prompt": "Bright coin ding"
+  "prompt": "A single heavy coin dropped onto a wooden table, a low metallic clink, dull. Sound effect, no music, no voice."
  },
  {
   "group": "Pickups",
   "id": "pk_chest_open",
   "trigger": "chest opens",
-  "prompt": "Wooden creak then a confetti burst"
+  "prompt": "A heavy wooden chest lid creaking open with a low groan of hinges and a deep thump. Sound effect, no music, no voice."
  },
  {
   "group": "Pickups",
   "id": "pk_vacuum",
-  "trigger": "vacuum pickup",
-  "prompt": "Long rising suction whoosh, 1.5 s, ending in a pop"
- },
- {
-  "group": "Pickups",
-  "id": "pk_heart",
-  "trigger": "a heart is picked up",
-  "prompt": "Warm two-note heal chime with a soft heartbeat thump, 400 ms"
+  "trigger": "the magnet pulse",
+  "prompt": "A long rising suction whoosh of air being pulled in, deep and powerful, ending in a low pop. Sound effect, no music, no voice."
  },
  {
   "group": "Pickups",
   "id": "pk_powerup",
   "trigger": "a power-up is picked up",
-  "prompt": "Bright rising power chord with a sparkle tail, 500 ms"
+  "prompt": "A rising power-up surge, a warm low-mid hum sweeping upward into a resonant chord, smooth. Sound effect, no voice, no words."
+ },
+ {
+  "group": "Pickups",
+  "id": "pk_heart",
+  "trigger": "a heart is picked up",
+  "prompt": "Two soft knocks on a hollow wooden box like a heartbeat, warm, muffled and close, with a gentle mellow low-mid tone, not bassy. Sound effect, no voice, no words."
+ },
+ {
+  "group": "Pickups",
+  "id": "pk_nuke",
+  "trigger": "the Nuke power-up goes off (Game.nuke_blast played en_boss_die, the King's old 'My crown!')",
+  "prompt": "A massive explosion close by, a hard cracking blast with debris and dust flying, then a rumble rolling away across a canyon, heavy and muffled. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Pickups",
+  "id": "pk_flower",
+  "trigger": "Pollen's flower picked",
+  "prompt": "A flower plucked with a soft low puff of pollen, a gentle muffled pop and a rustle. Sound effect, no music, no voice."
  },
  {
   "group": "Pickups",
   "id": "st_teleport",
   "trigger": "the Teleport fires",
-  "prompt": "Rising shimmering sweep with sparkles, a whoosh out and in, 700 ms"
+  "prompt": "A deep swirling whoosh of energy sweeping out and back in, a low magical teleport. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Pickups",
+  "id": "st_barrel_break",
+  "trigger": "a barrel bursts",
+  "prompt": "A wooden barrel bursting apart with a low crack, planks clattering down onto sand. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Pickups",
+  "id": "st_portal_wait",
+  "trigger": "the portal waits (Not yet)",
+  "prompt": "A single soft muffled bell note in the middle range, like a small bell struck under a thick blanket, warm, fading gently. Sound effect, no voice, no words."
+ },
+ {
+  "group": "Pickups",
+  "id": "it_coin_drop",
+  "trigger": "Loose Change",
+  "prompt": "Three heavy gold coins tumbling out of a pocket and landing on a wooden floor, low dull clinks. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_goblin_hit",
-  "trigger": "goblin damaged",
-  "prompt": "Short yelp"
+  "trigger": "a goblin or skeleton is hit",
+  "prompt": "A club thudding into a sack of grain, a short dull low smack. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_goblin_die",
-  "trigger": "goblin dies",
-  "prompt": "Comedic howl fading out, 500 ms"
+  "trigger": "a goblin dies",
+  "prompt": "A small body tumbling onto sand with a dull thud and a wooden club dropping and rolling. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_ant_hit",
   "trigger": "fire ant damaged",
-  "prompt": "Tiny click"
+  "prompt": "A single short click of a hard insect shell tapped, low and dull. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_ant_die",
   "trigger": "fire ant dies",
-  "prompt": "Tiny pop, many at once should sound like popcorn"
+  "prompt": "A small hard shell cracking with a single low dull pop, short and muffled. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_cactus_spit",
   "trigger": "cactus shoots",
-  "prompt": "Wet \"ptoo\" spit"
+  "prompt": "A wet low spit of liquid shot out of a tube, a short deep squirt. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_cactus_die",
   "trigger": "cactus dies",
-  "prompt": "Deflating balloon squeak"
+  "prompt": "A thick cactus splitting and collapsing with a wet low squelch and a soft thud on sand. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_beetle_charge",
   "trigger": "beetle winds up",
-  "prompt": "Snort and three hoof stomps, the telegraph"
+  "prompt": "A large bull snorting low and stomping its hooves three times on hard ground, an animal, not a person. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_beetle_die",
   "trigger": "beetle dies",
-  "prompt": "Heavy crunch with a comedic groan"
+  "prompt": "A heavy insect shell crunching and a large body dropping onto sand with a low thud. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_lizard_die",
-  "trigger": "a sand lizard dies",
-  "prompt": "A wet cartoon splat with a short hiss, 300 ms"
+  "trigger": "a lizard dies",
+  "prompt": "A wet low splat and a short reptile hiss fading, a lizard collapsing. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_mummy_die",
   "trigger": "a dust mummy dies",
-  "prompt": "Dry bandages unravelling with a puff of dust and a low groan, 500 ms"
+  "prompt": "Heavy old cloth tearing slowly and dropping in a heap with a puff of dust and a low wooden creak, muffled. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_scorpion_die",
   "trigger": "the Dune Scorpion dies",
-  "prompt": "Big chitin crack and a hiss deflating, weighty, 700 ms"
+  "prompt": "A big armoured shell cracking loudly and a slow low hiss deflating, heavy and weighty. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_elite_spawn",
-  "trigger": "elite appears",
-  "prompt": "Ominous but silly drone hit with a cowbell"
+  "trigger": "an Elite appears",
+  "prompt": "A single big war drum hit with a sharp slap of the skin and a low gust of desert wind, ominous, full. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_boss_roar",
-  "trigger": "boss appears",
-  "prompt": "Rustling tumbleweed roar with a crown clink"
+  "trigger": "a boss appears",
+  "prompt": "A deep monstrous roar of a huge beast echoing across a canyon, low and growling, an animal, not a person. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_boss_attack",
   "trigger": "each boss attack",
-  "prompt": "Big whoosh, one variant per attack"
+  "prompt": "A big heavy whoosh of a huge limb swinging through the air, deep and fast. Sound effect, no music, no voice."
  },
  {
   "group": "Enemies",
   "id": "en_boss_die",
-  "trigger": "boss dies",
-  "prompt": "Long crumbling collapse into a victory sting"
+  "trigger": "a boss dies",
+  "prompt": "A huge beast groaning low in its death throes and collapsing with a heavy crash and rubble falling, an animal, not a person. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_king_volley",
+  "trigger": "the Tumbleweed King's volley",
+  "prompt": "A rush of heavy tumbleweeds rolling fast across sand, low rumbling thuds and a muffled rustle. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_bone_hit",
+  "trigger": "a skeleton is hit",
+  "prompt": "Two dry bones knocking together once, a short low hollow clack. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_bone_die",
+  "trigger": "a skeleton collapses",
+  "prompt": "A pile of thick dry bones tumbling down onto sand and settling, hollow low knocks. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_rocket_boom",
+  "trigger": "a hostile rocket goes off",
+  "prompt": "A deep rocket explosion with a long low rumble and crackling debris, heavy and distant. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_rocket_loose",
+  "trigger": "the loose rocket blinks",
+  "prompt": "A low warning buzzer beeping six times quickly, a deep muffled alarm tone. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_rocket_wild",
+  "trigger": "the loose rocket's wild climb",
+  "prompt": "A rocket spiralling wildly with a low roaring engine and a fluttering whoosh of air. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_rocket_dive",
+  "trigger": "the loose rocket dives",
+  "prompt": "A rocket diving down with a deep roaring whoosh descending in pitch. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_slime_hit",
+  "trigger": "the Blue Slime is hit",
+  "prompt": "A wet low squelch of thick slime being hit, short and gooey. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_slime_die",
+  "trigger": "the Blue Slime bursts",
+  "prompt": "A thick blob of slime bursting with a low bubbly pop and a wet splat on the ground. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_golem_attack",
+  "trigger": "the Stone Golem winds up",
+  "prompt": "Heavy stone grinding against stone as a huge rock figure winds up, a deep low rumble. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_golem_throw",
+  "trigger": "the Stone Golem heaves a boulder",
+  "prompt": "A huge boulder heaved into the air, a deep scrape of stone and a low heavy whoosh. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_golem_hit",
+  "trigger": "the Stone Golem is hit",
+  "prompt": "A single knock on solid rock, a short low dull thunk. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_golem_die",
+  "trigger": "the Stone Golem collapses",
+  "prompt": "A tower of stone blocks collapsing and tumbling down with a deep rumble and rocks settling. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_boulder_land",
+  "trigger": "the boulder lands",
+  "prompt": "A huge boulder crashing down onto sand, a deep heavy thump with rubble rolling. Sound effect, no music, no voice."
+ },
+ {
+  "group": "Enemies",
+  "id": "en_stalactite_hit",
+  "trigger": "a stalactite lands",
+  "prompt": "A stone spike stabbing into packed sand with a short low crack and a thud. Sound effect, no music, no voice."
  },
  {
   "group": "World",
   "id": "wd_ambient",
   "trigger": "always, looped",
-  "prompt": "Desert wind, distant hawk, occasional cicadas"
+  "prompt": "Steady desert wind blowing across open dunes, a soft airy broadband hush with blowing sand, calm, no tone. Sound effect, no music, no voice."
  },
  {
   "group": "World",
   "id": "wd_portal_open",
-  "trigger": "portal appears",
-  "prompt": "Shimmering hum loop"
+  "trigger": "the portal stands open (loop)",
+  "prompt": "A magical gateway standing open, a steady low-mid resonant hum with a soft swirling whirl of air and a faint shimmer, constant. Sound effect, no music, no voice."
  },
  {
   "group": "World",
   "id": "wd_extract",
   "trigger": "walking into the portal",
-  "prompt": "Whoosh into a cash-register ding"
+  "prompt": "A deep whoosh of air rushing past and a heavy iron chest lid slamming shut with coins settling. Sound effect, no voice, no words."
  },
  {
   "group": "World",
   "id": "wd_dust_devil",
-  "trigger": "dust devil near, spatial",
-  "prompt": "Swirling wind loop"
+  "trigger": "dust devil near, spatial (loop)",
+  "prompt": "A dust devil spinning past, a steady whirling wind with grainy sand hissing and whipping, airy, mid-band, constant. Sound effect, no music, no voice."
  },
  {
   "group": "World",
   "id": "wd_tumbleweed",
   "trigger": "tumbleweed rolling past",
-  "prompt": "Dry rustling roll"
+  "prompt": "A heavy dry tumbleweed bouncing past over sand, soft low thumps and a muffled rustle, distant. Sound effect, no music, no voice."
+ },
+ {
+  "group": "World",
+  "id": "wd_gust",
+  "trigger": "a dust gust sweeps past",
+  "prompt": "A gust of desert wind swelling and dying away, low and soft with sand blowing. Sound effect, no music, no voice."
  },
  {
   "group": "Music",

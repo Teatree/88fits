@@ -330,17 +330,18 @@ func test_the_chest_never_banishes_a_held_item() -> void:
 	assert_bool(ChestScreen.can_banish(fresh)).is_true()
 	assert_bool(ChestScreen.can_banish({"type": "evolution", "id": evo.id, "def": evo, "src_id": boom.id})).is_false()
 	assert_bool(ChestScreen.can_banish({"type": "mutation", "id": mut.id, "def": mut, "boss": true})).is_false()
-	# a hero's own mutation is optional (no evolution waits on it): it may go
+	# a hero's own mutation too (pass 60, Garry: "mutations shouldn't be banishable anywhere")
 	var hm: MutationDef = Registry.mutation("danza_macabra")
 	assert_bool(hm.is_hero()).is_true()
-	assert_bool(ChestScreen.can_banish({"type": "mutation", "id": hm.id, "def": hm, "boss": true})).is_true()
+	assert_bool(ChestScreen.can_banish({"type": "mutation", "id": hm.id, "def": hm, "boss": true})).is_false()
 	assert_bool(ChestScreen.can_banish({"type": "gold", "def": null})).is_false()
 	# a roll with no level on it still counts what the hero holds
 	assert_bool(ChestScreen.can_banish({"type": "weapon", "id": boom.id, "def": boom})).is_false()
 	# the words say why, plainly
 	assert_str(ChestScreen.banish_refusal(held_w)).is_equal("You have %s. Only new items can be banished." % boom.display_name)
 	assert_str(ChestScreen.banish_refusal(held_p)).contains("You have Brawn")
-	assert_str(ChestScreen.banish_refusal({"type": "mutation", "id": mut.id, "def": mut})).is_equal("A mutation for your %s cannot be banished: its evolution needs it." % boom.display_name)
+	assert_str(ChestScreen.banish_refusal({"type": "mutation", "id": mut.id, "def": mut})).is_equal("A mutation cannot be banished.")
+	assert_str(ChestScreen.banish_refusal({"type": "mutation", "id": hm.id, "def": hm, "boss": true})).is_equal("A mutation cannot be banished.")
 	assert_str(ChestScreen.banish_refusal({"type": "evolution", "id": evo.id, "def": evo})).is_equal("An evolution cannot be banished.")
 	assert_str(ChestScreen.banish_refusal({"type": "gold", "def": null})).is_equal("Gold cannot be banished.")
 	assert_str(ChestScreen.banish_refusal(fresh)).is_equal("")
@@ -621,9 +622,10 @@ func test_a_starless_upgrade_card_says_its_step() -> void:
 	assert_str(WItem.card_text(fresh)).is_equal(WItem.effect(fresh))
 
 
-func test_a_banished_hero_mutation_never_comes_back_on_the_boss_chest() -> void:
-	# the review: Calavera's own Danza Macabra, the one boss-chest roll BANISH allows, came back on the re-spin (53 of
-	# 200 rolls) with the banish already spent (Run.boss_chest_mutations now leaves it out)
+func test_the_boss_chest_locks_banish_on_a_hero_mutation() -> void:
+	# re-pinned in pass 60 (Garry: "mutations shouldn't be banishable anywhere"): Calavera's own Danza Macabra was the
+	# one boss-chest roll BANISH allowed (pass 58's review fixed its re-spin); now the button is locked with the reason,
+	# a press spends nothing and spins nothing, and the mutation stays on the boss chest's list
 	_start("calavera")
 	Run.debug_set_item("weapon", "skull_rain", 3)
 	var hm: MutationDef = Registry.mutation("danza_macabra")
@@ -637,18 +639,14 @@ func test_a_banished_hero_mutation_never_comes_back_on_the_boss_chest() -> void:
 	var left := Run.banishes_left
 	cs.open(roll)
 	await _land(cs)
-	assert_bool(cs._banish_btn.locked).is_false()
+	assert_bool(cs._banish_btn.locked).is_true()
+	assert_bool(ChestScreen.can_banish(roll)).is_false()
+	assert_str(ChestScreen.banish_refusal(roll)).is_equal("A mutation cannot be banished.")
 	cs._banish()
-	assert_int(cs.respins).is_equal(1)
-	assert_int(Run.banishes_left).is_equal(left - 1)
-	assert_bool(Run.banished.has(hm.id)).is_true()
-	# the re-spin's strip never shows the struck plate, and it lands elsewhere
-	for p: Array in cs._plates:
-		assert_bool(p[1] == hm).is_false()
-	await _land(cs)
-	assert_str(str(cs.result().get("id", ""))).is_not_equal(hm.id)
-	# nor does a later boss chest hold it
-	assert_bool(Run.boss_chest_mutations().has(hm)).is_false()
-	for k in 60:
-		assert_str(str(Run.chest_roll(true).get("id", ""))).is_not_equal(hm.id)
+	assert_int(cs.respins).is_equal(0)
+	assert_int(Run.banishes_left).is_equal(left)
+	assert_bool(Run.banished.has(hm.id)).is_false()
+	assert_str(str(cs.result().get("id", ""))).is_equal(hm.id)
+	# and a later boss chest still holds it
+	assert_bool(Run.boss_chest_mutations().has(hm)).is_true()
 	cs.visible = false

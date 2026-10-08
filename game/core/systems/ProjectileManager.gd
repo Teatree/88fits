@@ -52,6 +52,8 @@ var trail_pos := PackedVector3Array()
 var trail_age := PackedFloat32Array()
 var trail_col := PackedColorArray()   # per dot: spit is green, rocket smoke warm, bees gold
 var trail_size := PackedFloat32Array()   # per dot: rocket smoke puffs are bigger than a spit trail's beads
+## per dot: how long it lives (TRAIL_LIFE, or a tracer's own `tracer_life`, pass 60: the Tommy Gun's streak is short)
+var trail_life := PackedFloat32Array()
 var trail_next := 0
 var trail_count := 0
 var _trail_t := PackedFloat32Array()   # per projectile: seconds until its next trail dot
@@ -136,9 +138,10 @@ func _ready() -> void:
 	for i in range(MAX - 1, -1, -1):
 		free_list.append(i)
 	trail_pos.resize(TRAIL_MAX)
-	trail_age.resize(TRAIL_MAX); trail_col.resize(TRAIL_MAX); trail_size.resize(TRAIL_MAX)
+	trail_age.resize(TRAIL_MAX); trail_col.resize(TRAIL_MAX); trail_size.resize(TRAIL_MAX); trail_life.resize(TRAIL_MAX)
 	for k in range(TRAIL_MAX):
 		trail_age[k] = TRAIL_LIFE
+		trail_life[k] = TRAIL_LIFE
 	_build_trail()
 	_path_mesh = ImmediateMesh.new()
 	var pmi := MeshInstance3D.new()
@@ -179,7 +182,9 @@ func _build_trail() -> void:
 	add_child(mmi)
 
 
-func _drop_trail(at: Vector3, col: Color = Color(0.62, 0.95, 0.5, 0.45), size_mult: float = 1.0) -> void:
+## A bead at `at`, `size_mult` of the bead sphere, fading over `life` seconds (TRAIL_LIFE unless a tracer says shorter,
+## pass 60).
+func _drop_trail(at: Vector3, col: Color = Color(0.62, 0.95, 0.5, 0.45), size_mult: float = 1.0, life: float = TRAIL_LIFE) -> void:
 	# a screen full of shots drops every other bead: the line still reads, the fill rate halves
 	if count > 60 and (trail_next & 1) == 0:
 		trail_next = (trail_next + 1) % TRAIL_MAX
@@ -188,6 +193,7 @@ func _drop_trail(at: Vector3, col: Color = Color(0.62, 0.95, 0.5, 0.45), size_mu
 	trail_age[trail_next] = 0.0
 	trail_col[trail_next] = col
 	trail_size[trail_next] = size_mult
+	trail_life[trail_next] = maxf(life, 0.05)
 	trail_next = (trail_next + 1) % TRAIL_MAX
 
 
@@ -274,6 +280,9 @@ func fire(p_kind: int, from: Vector3, velocity: Vector3, damage: float, p_pierce
 				extra[i]["passes"] = 0
 		if w.params.get("aura") is Dictionary:
 			extra[i]["aura_t"] = 0.0
+		if w.params.has("tail_fade"):
+			# pass 60: the flight this shot fades over the end of (its life as it leaves, after any out_speed stretch)
+			extra[i]["fade0"] = life[i]
 	if w and bool(w.params.get("no_spin", false)):
 		spin[i] = 0.0
 		extra[i]["no_spin"] = true
@@ -614,7 +623,12 @@ func _physics_process(delta: float) -> void:
 										game.fx_burst(pos[i], Color(0.72, 0.56, 0.3), 1.2)
 									Audio.play("w_tumble_hit", pos[i])
 							elif player.has_method("shove"):
-								player.shove(away.normalized() * kn)
+								# its own line (pass 60): a shot's push goes the way it flew, not out of the crowd (a fake
+								# hero with the one-argument shove still takes it)
+								if player.get_method_argument_count("shove") >= 2:
+									player.shove(away.normalized() * kn, false)
+								else:
+									player.shove(away.normalized() * kn)
 					# a silk line: the hero is yanked towards whoever fired it
 					if extra[i].has("pull") and extra[i].has("origin") and player.has_method("apply_knockback"):
 						var to: Vector3 = Vector3(extra[i]["origin"]) - player.global_position
@@ -641,14 +655,25 @@ func _physics_process(delta: float) -> void:
 				_trail_t[i] = SHRAPNEL_TRAIL
 				_drop_trail(pos[i], Color(1.0, 0.82, 0.45, 0.9), 0.6)
 		# a tracer round (params.tracer): a bright short line behind every bullet, so a burst reads as shots fired; gold,
-		# or the weapon's element (a Dart Buddy's rounds trail green)
+		# or the weapon's element (a Dart Buddy's rounds trail green). Pass 60: the weapon may set the beads' step,
+		# life and size (params.tracer_step / tracer_life / tracer_size: the Tommy Gun drops them denser and shorter-
+		# lived, so each round reads as one hot streak; the Boomstick's spray a short-lived one)
 		if w and bool(w.params.get("tracer", false)):
 			_trail_t[i] -= delta
 			if _trail_t[i] <= 0.0:
-				_trail_t[i] = 0.022
+				_trail_t[i] = maxf(float(w.params.get("tracer_step", 0.022)), 0.005)
 				if not extra[i].has("tc"):
 					extra[i]["tc"] = _tracer_colour(w)
-				_drop_trail(pos[i], extra[i]["tc"], 0.9)
+				_drop_trail(pos[i], extra[i]["tc"], float(w.params.get("tracer_size", 0.9)), float(w.params.get("tracer_life", TRAIL_LIFE)))
+		# a shot that fades at the end of its range (pass 60, params.tail_fade = the last share of its flight; the
+		# Boomstick's pellets lose their energy instead of popping out at the range's end): drawn shrunk over that
+		# last part, never under a quarter; the hit radius is untouched. The size it had as it left is read once, so a
+		# blast's ghost pellets (sized after they are fired) shrink from their own
+		if extra[i].has("fade0"):
+			if not extra[i].has("fade_s"):
+				extra[i]["fade_s"] = psize[i]
+			var fw: float = maxf(float(extra[i]["fade0"]) * float(w.params.get("tail_fade", 0.25)), 0.01) if w else 0.01
+			psize[i] = float(extra[i]["fade_s"]) * clampf(life[i] / fw, 0.25, 1.0)
 		# a pellet streaking down a Birdshot lane or a Blunderbuss cone (pass 48) is only seen: the blast has hit already
 		if extra[i].has("ghost"):
 			continue
@@ -1215,9 +1240,10 @@ func _fly_rocket(i: int, delta: float, map) -> void:
 	var soh: float = float(p.get("speed_of_hero", 0.0))
 	if soh > 0.0 and player and player.has_method("max_speed"):
 		# the hero's top speed has the pace knob in it and the rocket flies on the paced shot clock (pass 48): taken out
-		# here once, so the rocket keeps to its share of his speed instead of paying the pace twice
-		var em: EnemyManager = game.enemies
-		var pc: float = maxf(em.pace, 0.05) if em else 1.0
+		# here once, so the rocket keeps to its share of his speed instead of paying the pace twice. Pass 60: the hero's own
+		# knob (Run.move_pace) comes out, so the creatures' creature_speed_mult in the shot clock stays in, and the rocket is
+		# 10% slower with every other hostile shot
+		var pc: float = maxf(Run.move_pace(), 0.05)
 		p["speed"] = maxf(player.max_speed() * soh / pc, 1.0)
 	if player and not player.dead:
 		var want: Vector3 = (player.global_position + Vector3(0, 0.9, 0) - pos[i])
@@ -1540,10 +1566,15 @@ func _fly_missile(i: int, delta: float, enemies: EnemyManager, map) -> void:
 func _tick_trail(delta: float) -> void:
 	var n := 0
 	for k in range(TRAIL_MAX):
-		if trail_age[k] >= TRAIL_LIFE:
+		# each bead on its own life (pass 60: a tracer's beads go sooner than a spit trail's); one that reaches it this
+		# frame is not drawn once more at nothing
+		var tl: float = trail_life[k]
+		if trail_age[k] >= tl:
 			continue
 		trail_age[k] += delta
-		var f: float = clampf(trail_age[k] / TRAIL_LIFE, 0.0, 1.0)
+		if trail_age[k] >= tl:
+			continue
+		var f: float = clampf(trail_age[k] / tl, 0.0, 1.0)
 		var s: float = (1.0 - f * 0.7) * maxf(trail_size[k], 0.1)
 		_trail_mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(s, s, s)), trail_pos[k]))
 		var c: Color = trail_col[k]

@@ -563,6 +563,8 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	w.creature_hp_mult = float(t.get("creature_hp_mult", 1.0))
 	# pass 54: every hostile damage times this, the spawn sides, and the HP and damage curves (blocks read as they are)
 	w.creature_damage_mult = float(t.get("creature_damage_mult", 1.0))
+	# pass 60: every creature's, Elite's, boss's and hostile shot's pace times this (never the hero's)
+	w.creature_speed_mult = float(t.get("creature_speed_mult", 1.0))
 	var ss = t.get("spawn_sides", {})
 	w.spawn_sides = ss if ss is Dictionary else {}
 	var hcv = t.get("hp_curve", {})

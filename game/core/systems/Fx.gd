@@ -691,6 +691,41 @@ func charge_launch(at: Vector3, back: Vector3, width: float, k: float = 1.0) -> 
 		_emit(at + Vector3(0, 0.1, 0), v, randf_range(0.35, 0.55), 0.11, 0.05, 1.0, 0.6, DUST_GRAIN, 12.0, true)
 
 
+## The poof of a creature bursting up out of the sand (pass 60, Garry: "use dust effect from the Bull Beetle, but as a
+## poof when Scorpion actually pops out"; the Dune Scorpion's and the Gila's burrow): the launch's soft cloud as one
+## burst all round the spot, 12 to 16 puffs flung out and up (a paler one in every three), a column of three rising
+## about 1.5 m from the middle, and a spray of grains; never thinned, it is the moment. `size` is the creature's size in
+## metres: the body is about 0.7 of it wide, and the puffs are sized to that.
+func pop_dust(at: Vector3, size: float = 1.0) -> void:
+	var w := maxf(size * 0.7, 0.6)
+	var n := 12 + mini(int(size), 4)
+	var phase := randf() * TAU
+	for k in range(n):
+		var ang := phase + TAU * float(k) / float(n)
+		var out := Vector3(cos(ang), 0.0, sin(ang))
+		var o := at + out * randf_range(0.1, 0.3) * w + Vector3(0, 0.2, 0)
+		var v := out * randf_range(0.9, 1.6) * w + Vector3(0, randf_range(0.7, 1.4), 0)
+		_emit_dust(o, v, randf_range(0.7, 1.0), 0.35 * w, randf_range(1.1, 1.5) * w, 0.72, DUST_PALE if k % 3 == 1 else DUST_TAN, true)
+	for k in range(3):
+		# the column: up the middle, each puff a little higher and slower than the last
+		var vy := 2.2 - 0.4 * float(k)
+		_emit_dust(at + Vector3(randf_range(-0.1, 0.1) * w, 0.25 + 0.3 * float(k), randf_range(-0.1, 0.1) * w), Vector3(0, vy, 0),
+			randf_range(0.75, 0.95), 0.3 * w, randf_range(0.8, 1.1) * w, 0.7, DUST_TAN if k != 1 else DUST_PALE, true)
+	for k in range(10):
+		var ga := randf() * TAU
+		var gv := Vector3(cos(ga), 0.0, sin(ga)) * randf_range(1.5, 4.0) * w * 0.5 + Vector3(0, randf_range(2.5, 4.5), 0)
+		_emit(at + Vector3(0, 0.1, 0), gv, randf_range(0.35, 0.55), 0.11, 0.05, 1.0, 0.6, DUST_GRAIN, 12.0, true)
+	for k in range(6):
+		# clods of the mound thrown out and up, falling back under gravity (the Centipede's eruption throws them too)
+		var ca := phase + TAU * (float(k) + 0.5) / 6.0
+		var cv := Vector3(cos(ca), 0.0, sin(ca)) * randf_range(1.2, 2.2) * w * 0.5 + Vector3(0, randf_range(3.0, 4.5), 0)
+		_emit(at + Vector3(cos(ca) * 0.2 * w, 0.25, sin(ca) * 0.2 * w), cv, randf_range(0.5, 0.7), 0.1 * w, 0.07 * w, 1.0, 0.9, CLOD, 12.0, true, true)
+
+
+## The colour of a clod of packed sand (pass 60, pop_dust): the mound's, a shade deeper than the dust.
+const CLOD := Color(0.86, 0.68, 0.42)
+
+
 ## The skid at the end of a charge: sand pushed out ahead and to both sides as it digs in.
 func skid_dust(at: Vector3, ahead: Vector3, width: float, k: float = 1.0) -> void:
 	var side := Vector3(-ahead.z, 0.0, ahead.x)

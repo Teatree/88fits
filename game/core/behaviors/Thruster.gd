@@ -193,7 +193,12 @@ func _begin_phase(slicing: bool) -> void:
 	# Lunge: the stroke carries the hero at the target
 	var lg := _thrust("lunge", 0.0)
 	if lg > 0.0 and player.has_method("apply_knockback"):
-		player.apply_knockback(_dir * lg * 4.5)
+		# his own stroke, not a hostile pull: it carries him under the Invincibility bubble too (pass 60, lane WP; a fake
+		# hero with the one-argument apply_knockback still takes it)
+		if player.get_method_argument_count("apply_knockback") >= 2:
+			player.apply_knockback(_dir * lg * 4.5, false)
+		else:
+			player.apply_knockback(_dir * lg * 4.5)
 
 
 ## A half of a stroke is over: the blades go, the thrust of an alternate stroke follows its sweep straight away (aimed

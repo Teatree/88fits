@@ -37,7 +37,10 @@ params = {
 "speed": 1.1
 },
 "radius": 0.18,
-"tracer": true
+"tracer": true,
+"tracer_life": 0.2,
+"tracer_size": 0.4,
+"tracer_step": 0.016
 }
 id = "chicago_typewriter"
 display_name = "Chicago Typewriter"

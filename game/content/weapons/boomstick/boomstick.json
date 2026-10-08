@@ -65,6 +65,13 @@
   ],
   "evolves_with": "",
   "evolves_into": "blunderbuss",
+  "params": {
+    "tracer": true,
+    "tracer_step": 0.02,
+    "tracer_life": 0.16,
+    "tracer_size": 0.32,
+    "tail_fade": 0.25
+  },
   "sfx": {
     "fire": "w_boom_fire",
     "hit": "w_boom_hit"

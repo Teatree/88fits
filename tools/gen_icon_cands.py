@@ -478,6 +478,17 @@ JOBS = {
                                     "in from the upper right, its brand at the bottom a flat symbol bent from thin iron bars, the outline "
                                     "of a devil's head with two horns glowing red-hot orange, and beside it on the plank the same horned "
                                     "symbol already burned in black, a curl of smoke rising from it"},
+    # pass 60 (Garry: "Critical Thinking - also regenerate that icon, it's nonsensical"; the set-53 one was a bare blade with
+    # a yellow dot): two concepts, four seeds each, picked by eye at HUD size. 2 = precise hits (a sabre's point dead in a
+    # bullseye), 3 = the pun (thinking + a critical hit: a lightbulb run through by the blade)
+    "critical_thinking2": {"set": "60", "kind": "mutations", "id": "critical_thinking",
+                           "subject": "a curved steel cavalry sabre with a brass guard pointing straight up, and floating at its tip a "
+                                      "round red-and-white bullseye target with three rings, the sabre's point touching the exact "
+                                      "centre of the bullseye with a small bright yellow starburst where it meets"},
+    "critical_thinking3": {"set": "60", "kind": "mutations", "id": "critical_thinking",
+                           "subject": "a glowing yellow lightbulb with a grey screw base, a curved steel sabre blade run right through "
+                                      "it from the lower left to the upper right, the blade's point sticking out of the top of the "
+                                      "bulb with a small bright yellow starburst where it exits"},
 }
 
 

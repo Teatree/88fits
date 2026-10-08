@@ -1,428 +1,428 @@
 [gd_resource type="Resource" script_class="SoundMap" format=3]
 
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_tap.wav" id="1_d6xxj"]
 [ext_resource type="Script" path="res://core/data/SoundMap.gd" id="1_eeclh"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_tap.wav" id="1_iwces"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_card_pick.wav" id="2_bgt4q"]
-[ext_resource type="AudioStream" path="res://content/sounds/voice/ui_levelup.wav" id="3_iwces"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_pause.wav" id="4_yoifr"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_resume.wav" id="5_btvmr"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_buy.wav" id="6_8m4un"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_locked.wav" id="7_qm05p"]
-[ext_resource type="AudioStream" path="res://content/sounds/voice/ui_unlock.wav" id="8_bgt4q"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pl_step_sand.wav" id="9_3s6mt"]
-[ext_resource type="AudioStream" path="res://content/sounds/voice/pl_jump.wav" id="10_j0iij"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pl_land.wav" id="11_eq6ve"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pl_spawn_beam.wav" id="12_7m1op"]
-[ext_resource type="AudioStream" path="res://content/sounds/voice/pl_hurt.wav" id="12_yoifr"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pl_spawn_land.wav" id="13_7drtm"]
-[ext_resource type="AudioStream" path="res://content/sounds/voice/pl_death.wav" id="13_btvmr"]
-[ext_resource type="AudioStream" path="res://content/sounds/voice/pl_revive.wav" id="14_8m4un"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_pea_fire.wav" id="15_7csky"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_pea_hit.wav" id="16_lme2m"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_boom_fire.wav" id="17_rhw68"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_boom_hit.wav" id="18_tl11e"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_saw_loop.wav" id="19_2jsub"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_saw_hit.wav" id="20_ibu0u"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_lob_throw.wav" id="21_684d2"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_lob_boom.wav" id="22_vxxld"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_zap_fire.wav" id="23_5mtkb"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_zap_hit.wav" id="24_krekp"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_turret_place.wav" id="25_plmlw"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_turret_fire.wav" id="26_qqvqe"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_evo_reveal.wav" id="27_kweuk"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_gem_s.wav" id="28_1e4aj"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_gem_m.wav" id="29_ygu0l"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_gem_l.wav" id="30_5osg4"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_coin.wav" id="31_vf22y"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_chest_open.wav" id="32_j54tl"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_vacuum.wav" id="33_udple"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_goblin_hit.wav" id="34_iwces"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_goblin_die.wav" id="35_bgt4q"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_ant_hit.wav" id="36_xcwxw"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_ant_die.wav" id="37_ubodm"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_cactus_spit.wav" id="38_lq2am"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_cactus_die.wav" id="39_espsa"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_beetle_charge.wav" id="40_drtpa"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_beetle_die.wav" id="41_7m1op"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_lizard_die.wav" id="42_ibu0u"]
-[ext_resource type="AudioStream" path="res://content/sounds/voice/en_elite_spawn.wav" id="42_qm05p"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_mummy_die.wav" id="43_1gduf"]
-[ext_resource type="AudioStream" path="res://content/sounds/voice/en_boss_roar.wav" id="43_5q0nc"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_boss_attack.wav" id="44_1mowr"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_scorpion_die.wav" id="44_uwp6k"]
-[ext_resource type="AudioStream" path="res://content/sounds/voice/en_boss_die.wav" id="45_3s6mt"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/wd_ambient.wav" id="46_mvbh6"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/wd_portal_open.wav" id="47_43y5l"]
-[ext_resource type="AudioStream" path="res://content/sounds/voice/wd_extract.wav" id="48_trawe"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/wd_dust_devil.wav" id="49_hg4c8"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/wd_tumbleweed.wav" id="50_rhgox"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_card_pick.wav" id="2_dwv2n"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_levelup.wav" id="3_jwgha"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_pause.wav" id="4_dbfc3"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_resume.wav" id="5_hak36"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_buy.wav" id="6_2ptiy"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_locked.wav" id="7_v2i6p"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_unlock.wav" id="8_ytoq0"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pl_step_sand.wav" id="9_ibn11"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/silence.wav" id="10_8jmeg"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pl_land.wav" id="11_5cb8c"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pl_spawn_beam.wav" id="12_jajjq"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pl_spawn_land.wav" id="13_lmdu7"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pl_death.wav" id="14_4dcas"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pl_revive.wav" id="15_dq7kx"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_pea_fire.wav" id="16_ryw4h"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_pea_hit.wav" id="17_37qjc"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_boom_fire.wav" id="18_7prrv"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_boom_hit.wav" id="19_kg3fm"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_saw_loop.wav" id="20_s7xia"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_saw_hit.wav" id="21_c4ys3"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_lob_throw.wav" id="22_22ghm"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_lob_boom.wav" id="23_onxl1"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_zap_fire.wav" id="24_cmm58"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_zap_hit.wav" id="25_mlt6y"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_turret_place.wav" id="26_lfe3q"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_turret_fire.wav" id="27_dlbqk"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_evo_reveal.wav" id="28_3iyoe"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_gem_s.wav" id="29_es18q"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_gem_m.wav" id="30_6a21h"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_gem_l.wav" id="31_8nlyu"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_coin.wav" id="32_i00ay"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_chest_open.wav" id="33_584dl"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_vacuum.wav" id="34_0rvqa"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_goblin_hit.wav" id="35_csrvp"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_goblin_die.wav" id="36_0vh7m"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_ant_hit.wav" id="37_4y466"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_ant_die.wav" id="38_5kk5y"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_cactus_spit.wav" id="39_c0ydf"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_cactus_die.wav" id="40_f0f0k"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_beetle_charge.wav" id="41_50wug"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_beetle_die.wav" id="42_myot0"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_lizard_die.wav" id="43_w3bam"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_mummy_die.wav" id="44_jmdm2"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_scorpion_die.wav" id="45_hq4u3"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_elite_spawn.wav" id="46_b114b"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_boss_roar.wav" id="47_ltb8y"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_boss_attack.wav" id="48_w1ihe"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_boss_die.wav" id="49_fibt7"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_king_volley.wav" id="50_eugay"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/mu_title.wav" id="51_5is2x"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_king_volley.wav" id="51_ypmax"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/wd_ambient.wav" id="51_ftp8c"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/mu_run_1.wav" id="52_e8ub3"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/wd_portal_open.wav" id="52_gxk3b"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/mu_run_2.wav" id="53_1rsc2"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/wd_extract.wav" id="53_gvf8j"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/mu_run_3.wav" id="54_5tucu"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/wd_dust_devil.wav" id="54_77khn"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/mu_boss.wav" id="55_d0h0o"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/wd_tumbleweed.wav" id="55_nnu2g"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/mu_results.wav" id="56_kgcti"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_tumble_roll.wav" id="57_qm05p"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_tumble_hit.wav" id="58_5q0nc"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_snake_rattle.wav" id="59_3s6mt"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_snake_bite.wav" id="60_trawe"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_skull_throw.wav" id="61_eq6ve"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_skull_boom.wav" id="62_d00ok"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_powerup.wav" id="65_1gduf"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_flare_fire.wav" id="66_2jsub"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_heart.wav" id="66_uwp6k"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_flare_hit.wav" id="67_ibu0u"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_molotov_throw.wav" id="68_684d2"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_molotov_boom.wav" id="69_vxxld"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_iron_hit.wav" id="70_5mtkb"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_ignite.wav" id="71_krekp"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_tommy_fire.wav" id="72_684d2"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_mine_arm.wav" id="73_vxxld"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_bone_hit.wav" id="76_5mtkb"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_bone_die.wav" id="77_krekp"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_rocket_boom.wav" id="78_plmlw"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_hammer_swing.wav" id="79_vf22y"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_hammer_hit.wav" id="80_j54tl"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_revolver_fire.wav" id="81_udple"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_rocket_loose.wav" id="82_rhgox"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_grav_grab.wav" id="82_v7cr5"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_rocket_wild.wav" id="83_5is2x"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_grav_throw.wav" id="83_8yylk"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_rocket_dive.wav" id="84_e8ub3"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_grav_land.wav" id="84_xcwxw"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_blackhole.wav" id="85_ubodm"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/st_teleport.wav" id="86_lq2am"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_guitarra_strum.wav" id="87_j54tl"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_slime_hit.wav" id="88_lq2am"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_slime_die.wav" id="89_espsa"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/st_barrel_break.wav" id="90_drtpa"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_fanfare.wav" id="91_7m1op"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_jackpot.wav" id="92_7drtm"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/wd_gust.wav" id="93_ypmax"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_sun_warn.wav" id="94_dwv2n"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_spear_throw.wav" id="94_e8ub3"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_spear_hit.wav" id="95_1rsc2"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_sun_strike.wav" id="95_jwgha"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_golem_attack.wav" id="96_1rsc2"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_sun_zenith.wav" id="96_dbfc3"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_golem_throw.wav" id="97_5tucu"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_golem_hit.wav" id="98_d0h0o"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_golem_die.wav" id="99_kgcti"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_boulder_land.wav" id="100_y2yde"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/en_stalactite_hit.wav" id="101_ln17m"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_chest_knock.wav" id="108_1rsc2"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_thor_zap.wav" id="109_1oju8"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_tinnitus_ring.wav" id="110_adbe3"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_hawk_sting.wav" id="111_etsj0"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_hip_spin.wav" id="112_to3hg"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_silver_fire.wav" id="113_d6xxj"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_mine_spring.wav" id="114_dwv2n"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/it_keg_boom.wav" id="115_jwgha"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/it_phoenix.wav" id="116_dbfc3"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/it_coin_drop.wav" id="117_hak36"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_flower.wav" id="118_2ptiy"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/st_portal_wait.wav" id="119_v2i6p"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_reel_tick.wav" id="123_hak36"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_card.wav" id="124_2ptiy"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_tumble_roll.wav" id="62_paaeo"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_tumble_hit.wav" id="63_huw6y"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_snake_rattle.wav" id="64_aepul"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_snake_bite.wav" id="65_3st1m"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_skull_throw.wav" id="66_iroj4"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_skull_boom.wav" id="67_6xhrr"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_flare_fire.wav" id="68_4g866"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_flare_hit.wav" id="69_y0ijy"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_molotov_throw.wav" id="70_vqldt"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_molotov_boom.wav" id="71_k18m2"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_iron_hit.wav" id="72_nqef3"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_ignite.wav" id="73_yyts0"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_tommy_fire.wav" id="74_dejs5"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_mine_arm.wav" id="75_5sn0k"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_powerup.wav" id="76_l5q0b"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_heart.wav" id="77_1v17w"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_bone_hit.wav" id="78_mr741"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_bone_die.wav" id="79_jpvm8"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_rocket_boom.wav" id="80_x1283"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_rocket_loose.wav" id="81_5bbq1"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_rocket_wild.wav" id="82_8jytq"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_rocket_dive.wav" id="83_i3agp"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_hammer_swing.wav" id="84_sg4vx"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_hammer_hit.wav" id="85_70qyg"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_revolver_fire.wav" id="86_twxnu"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_grav_grab.wav" id="87_yuqpm"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_grav_throw.wav" id="88_860vp"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_grav_land.wav" id="89_bnp46"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_blackhole.wav" id="90_22p6y"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/st_teleport.wav" id="91_d1815"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_guitarra_strum.wav" id="92_efncg"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_sun_warn.wav" id="93_v3qvh"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_sun_strike.wav" id="94_ypnwe"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_sun_zenith.wav" id="95_6mt6w"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_spear_throw.wav" id="96_bx6sg"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_spear_hit.wav" id="97_16cdd"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_slime_hit.wav" id="98_mnsro"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_slime_die.wav" id="99_lg442"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_golem_attack.wav" id="100_cvnyb"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_golem_throw.wav" id="101_rjcot"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_golem_hit.wav" id="102_51u3q"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_golem_die.wav" id="103_66y4v"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_boulder_land.wav" id="104_xrm7m"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_stalactite_hit.wav" id="105_unais"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/st_barrel_break.wav" id="106_hnqb7"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_fanfare.wav" id="107_qt2ln"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_jackpot.wav" id="108_p6aee"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/wd_gust.wav" id="109_etrcm"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_chest_knock.wav" id="110_trye0"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_thor_zap.wav" id="111_0acob"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_tinnitus_ring.wav" id="112_ii8vk"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_hawk_sting.wav" id="113_gsbxx"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_hip_spin.wav" id="114_xidwk"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_silver_fire.wav" id="115_qa6jr"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_mine_spring.wav" id="116_ovo2j"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_keg_boom.wav" id="117_jrmqa"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_phoenix.wav" id="118_bo366"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_coin_drop.wav" id="119_ham0l"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_flower.wav" id="120_53nby"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_nuke.wav" id="121_dwv2n"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/st_portal_wait.wav" id="121_x5hj5"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_reel_tick.wav" id="122_cfgc2"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_card.wav" id="123_ob4g5"]
 
 [resource]
 script = ExtResource("1_eeclh")
 entries = {
 "en_ant_die": {
 "category": "enemy",
-"file": "placeholder/en_ant_die.wav",
+"file": "real/en_ant_die.wav",
 "loop": false,
 "pitch_spread": 0.25,
-"stream": ExtResource("37_ubodm"),
+"stream": ExtResource("38_5kk5y"),
 "voices": 6,
 "volume_db": -18.0
 },
 "en_ant_hit": {
 "category": "enemy",
-"file": "placeholder/en_ant_hit.wav",
+"file": "real/en_ant_hit.wav",
 "loop": false,
 "pitch_spread": 0.25,
-"stream": ExtResource("36_xcwxw"),
+"stream": ExtResource("37_4y466"),
 "voices": 4,
 "volume_db": -20.0
 },
 "en_beetle_charge": {
 "category": "enemy",
-"file": "placeholder/en_beetle_charge.wav",
+"file": "real/en_beetle_charge.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("40_drtpa"),
+"stream": ExtResource("41_50wug"),
 "voices": 2,
 "volume_db": -6.0
 },
 "en_beetle_die": {
 "category": "enemy",
-"file": "placeholder/en_beetle_die.wav",
+"file": "real/en_beetle_die.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("41_7m1op"),
+"stream": ExtResource("42_myot0"),
 "voices": 2,
-"volume_db": -6.0
+"volume_db": 0.0
 },
 "en_bone_die": {
 "category": "enemy",
-"file": "placeholder/en_bone_die.wav",
+"file": "real/en_bone_die.wav",
 "loop": false,
 "pitch_spread": 0.2,
-"stream": ExtResource("77_krekp"),
+"stream": ExtResource("79_jpvm8"),
 "voices": 3,
 "volume_db": -10.0
 },
 "en_bone_hit": {
 "category": "enemy",
-"file": "placeholder/en_bone_hit.wav",
+"file": "real/en_bone_hit.wav",
 "loop": false,
 "pitch_spread": 0.25,
-"stream": ExtResource("76_5mtkb"),
+"stream": ExtResource("78_mr741"),
 "voices": 4,
 "volume_db": -14.0
 },
 "en_boss_attack": {
 "category": "enemy",
-"file": "placeholder/en_boss_attack.wav",
+"file": "real/en_boss_attack.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("44_1mowr"),
+"stream": ExtResource("48_w1ihe"),
 "voices": 2,
 "volume_db": -3.0
 },
 "en_boss_die": {
 "category": "enemy",
-"file": "voice/en_boss_die.wav",
+"file": "real/en_boss_die.wav",
 "loop": false,
 "pitch_spread": 0.04,
-"stream": ExtResource("45_3s6mt"),
+"stream": ExtResource("49_fibt7"),
 "voices": 1,
 "volume_db": 0.0
 },
 "en_boss_roar": {
 "category": "enemy",
-"file": "voice/en_boss_roar.wav",
+"file": "real/en_boss_roar.wav",
 "loop": false,
 "pitch_spread": 0.04,
-"stream": ExtResource("43_5q0nc"),
+"stream": ExtResource("47_ltb8y"),
 "voices": 1,
 "volume_db": 0.0
 },
 "en_boulder_land": {
 "category": "enemy",
-"file": "placeholder/en_boulder_land.wav",
+"file": "real/en_boulder_land.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("100_y2yde"),
+"stream": ExtResource("104_xrm7m"),
 "voices": 1,
 "volume_db": 0.0
 },
 "en_cactus_die": {
 "category": "enemy",
-"file": "placeholder/en_cactus_die.wav",
+"file": "real/en_cactus_die.wav",
 "loop": false,
 "pitch_spread": 0.15,
-"stream": ExtResource("39_espsa"),
+"stream": ExtResource("40_f0f0k"),
 "voices": 2,
-"volume_db": -10.0
+"volume_db": -4.0
 },
 "en_cactus_spit": {
 "category": "enemy",
-"file": "placeholder/en_cactus_spit.wav",
+"file": "real/en_cactus_spit.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("38_lq2am"),
+"stream": ExtResource("39_c0ydf"),
 "voices": 3,
 "volume_db": -10.0
 },
 "en_elite_spawn": {
 "category": "enemy",
-"file": "voice/en_elite_spawn.wav",
+"file": "real/en_elite_spawn.wav",
 "loop": false,
 "pitch_spread": 0.04,
-"stream": ExtResource("42_qm05p"),
+"stream": ExtResource("46_b114b"),
 "voices": 1,
 "volume_db": -3.0
 },
 "en_goblin_die": {
 "category": "enemy",
-"file": "placeholder/en_goblin_die.wav",
+"file": "real/en_goblin_die.wav",
 "loop": false,
 "pitch_spread": 0.2,
-"stream": ExtResource("35_bgt4q"),
+"stream": ExtResource("36_0vh7m"),
 "voices": 3,
-"volume_db": -12.0
+"volume_db": -6.0
 },
 "en_goblin_hit": {
 "category": "enemy",
-"file": "placeholder/en_goblin_hit.wav",
+"file": "real/en_goblin_hit.wav",
 "loop": false,
 "pitch_spread": 0.2,
-"stream": ExtResource("34_iwces"),
+"stream": ExtResource("35_csrvp"),
 "voices": 4,
 "volume_db": -16.0
 },
 "en_golem_attack": {
 "category": "enemy",
-"file": "placeholder/en_golem_attack.wav",
+"file": "real/en_golem_attack.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("96_1rsc2"),
+"stream": ExtResource("100_cvnyb"),
 "voices": 2,
 "volume_db": -4.0
 },
 "en_golem_die": {
 "category": "enemy",
-"file": "placeholder/en_golem_die.wav",
+"file": "real/en_golem_die.wav",
 "loop": false,
 "pitch_spread": 0.04,
-"stream": ExtResource("99_kgcti"),
+"stream": ExtResource("103_66y4v"),
 "voices": 1,
-"volume_db": -2.0
+"volume_db": -8.0
 },
 "en_golem_hit": {
 "category": "enemy",
-"file": "placeholder/en_golem_hit.wav",
+"file": "real/en_golem_hit.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("98_d0h0o"),
+"stream": ExtResource("102_51u3q"),
 "voices": 3,
 "volume_db": -10.0
 },
 "en_golem_throw": {
 "category": "enemy",
-"file": "placeholder/en_golem_throw.wav",
+"file": "real/en_golem_throw.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("97_5tucu"),
+"stream": ExtResource("101_rjcot"),
 "voices": 1,
 "volume_db": -3.0
 },
 "en_king_volley": {
 "category": "enemy",
-"file": "placeholder/en_king_volley.wav",
+"file": "real/en_king_volley.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("51_ypmax"),
+"stream": ExtResource("50_eugay"),
 "voices": 1,
-"volume_db": -4.0
+"volume_db": -10.0
 },
 "en_lizard_die": {
 "category": "enemy",
-"file": "placeholder/en_lizard_die.wav",
+"file": "real/en_lizard_die.wav",
 "loop": false,
 "pitch_spread": 0.12,
-"stream": ExtResource("42_ibu0u"),
+"stream": ExtResource("43_w3bam"),
 "voices": 3,
 "volume_db": -8.0
 },
 "en_mummy_die": {
 "category": "enemy",
-"file": "placeholder/en_mummy_die.wav",
+"file": "real/en_mummy_die.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("43_1gduf"),
+"stream": ExtResource("44_jmdm2"),
 "voices": 2,
 "volume_db": -6.0
 },
 "en_rocket_boom": {
 "category": "enemy",
-"file": "placeholder/en_rocket_boom.wav",
+"file": "real/en_rocket_boom.wav",
 "loop": false,
 "pitch_spread": 0.06,
-"stream": ExtResource("78_plmlw"),
+"stream": ExtResource("80_x1283"),
 "voices": 2,
 "volume_db": 0.0
 },
 "en_rocket_dive": {
 "category": "enemy",
-"file": "placeholder/en_rocket_dive.wav",
+"file": "real/en_rocket_dive.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("84_e8ub3"),
+"stream": ExtResource("83_i3agp"),
 "voices": 1,
 "volume_db": -3.0
 },
 "en_rocket_loose": {
 "category": "enemy",
-"file": "placeholder/en_rocket_loose.wav",
+"file": "real/en_rocket_loose.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("82_rhgox"),
+"stream": ExtResource("81_5bbq1"),
 "voices": 1,
 "volume_db": -3.0
 },
 "en_rocket_wild": {
 "category": "enemy",
-"file": "placeholder/en_rocket_wild.wav",
+"file": "real/en_rocket_wild.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("83_5is2x"),
+"stream": ExtResource("82_8jytq"),
 "voices": 1,
 "volume_db": -4.0
 },
 "en_scorpion_die": {
 "category": "enemy",
-"file": "placeholder/en_scorpion_die.wav",
+"file": "real/en_scorpion_die.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("44_uwp6k"),
+"stream": ExtResource("45_hq4u3"),
 "voices": 1,
-"volume_db": -4.0
+"volume_db": 0.0
 },
 "en_slime_die": {
 "category": "enemy",
-"file": "placeholder/en_slime_die.wav",
+"file": "real/en_slime_die.wav",
 "loop": false,
 "pitch_spread": 0.06,
-"stream": ExtResource("89_espsa"),
+"stream": ExtResource("99_lg442"),
 "voices": 2,
 "volume_db": -6.0
 },
 "en_slime_hit": {
 "category": "enemy",
-"file": "placeholder/en_slime_hit.wav",
+"file": "real/en_slime_hit.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("88_lq2am"),
+"stream": ExtResource("98_mnsro"),
 "voices": 3,
 "volume_db": -8.0
 },
 "en_stalactite_hit": {
 "category": "enemy",
-"file": "placeholder/en_stalactite_hit.wav",
+"file": "real/en_stalactite_hit.wav",
 "loop": false,
 "pitch_spread": 0.15,
-"stream": ExtResource("101_ln17m"),
+"stream": ExtResource("105_unais"),
 "voices": 4,
 "volume_db": -8.0
 },
 "it_coin_drop": {
 "category": "pickup",
-"file": "placeholder/it_coin_drop.wav",
+"file": "real/it_coin_drop.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("117_hak36"),
+"stream": ExtResource("119_ham0l"),
 "voices": 2,
 "volume_db": -8.0
 },
 "it_keg_boom": {
 "category": "weapon",
-"file": "placeholder/it_keg_boom.wav",
+"file": "real/it_keg_boom.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("115_jwgha"),
+"stream": ExtResource("117_jrmqa"),
 "voices": 2,
 "volume_db": -4.0
 },
 "it_phoenix": {
 "category": "player",
-"file": "placeholder/it_phoenix.wav",
+"file": "real/it_phoenix.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("116_dbfc3"),
+"stream": ExtResource("118_bo366"),
 "voices": 1,
 "volume_db": -2.0
 },
@@ -482,766 +482,775 @@ entries = {
 },
 "pk_chest_open": {
 "category": "pickup",
-"file": "placeholder/pk_chest_open.wav",
+"file": "real/pk_chest_open.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("32_j54tl"),
+"stream": ExtResource("33_584dl"),
 "voices": 1,
 "volume_db": -3.0
 },
 "pk_coin": {
 "category": "pickup",
-"file": "placeholder/pk_coin.wav",
+"file": "real/pk_coin.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("31_vf22y"),
+"stream": ExtResource("32_i00ay"),
 "voices": 3,
 "volume_db": -10.0
 },
 "pk_flower": {
 "category": "pickup",
-"file": "placeholder/pk_flower.wav",
+"file": "real/pk_flower.wav",
 "loop": false,
 "pitch_spread": 0.06,
-"stream": ExtResource("118_2ptiy"),
+"stream": ExtResource("120_53nby"),
 "voices": 2,
 "volume_db": -6.0
 },
 "pk_gem_l": {
 "category": "pickup",
-"file": "placeholder/pk_gem_l.wav",
+"file": "real/pk_gem_l.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("30_5osg4"),
+"stream": ExtResource("31_8nlyu"),
 "voices": 2,
 "volume_db": -10.0
 },
 "pk_gem_m": {
 "category": "pickup",
-"file": "placeholder/pk_gem_m.wav",
+"file": "real/pk_gem_m.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("29_ygu0l"),
+"stream": ExtResource("30_6a21h"),
 "voices": 4,
 "volume_db": -14.0
 },
 "pk_gem_s": {
 "category": "pickup",
-"file": "placeholder/pk_gem_s.wav",
+"file": "real/pk_gem_s.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("28_1e4aj"),
+"stream": ExtResource("29_es18q"),
 "voices": 6,
 "volume_db": -16.0
 },
 "pk_heart": {
 "category": "pickup",
-"file": "placeholder/pk_heart.wav",
+"file": "real/pk_heart.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("66_uwp6k"),
+"stream": ExtResource("77_1v17w"),
 "voices": 2,
 "volume_db": -10.0
 },
+"pk_nuke": {
+"category": "pickup",
+"file": "real/pk_nuke.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("121_dwv2n"),
+"voices": 1,
+"volume_db": 0.0
+},
 "pk_powerup": {
 "category": "pickup",
-"file": "placeholder/pk_powerup.wav",
+"file": "real/pk_powerup.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("65_1gduf"),
+"stream": ExtResource("76_l5q0b"),
 "voices": 2,
 "volume_db": -10.0
 },
 "pk_vacuum": {
 "category": "pickup",
-"file": "placeholder/pk_vacuum.wav",
+"file": "real/pk_vacuum.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("33_udple"),
+"stream": ExtResource("34_0rvqa"),
 "voices": 1,
 "volume_db": -3.0
 },
 "pl_death": {
 "category": "player",
-"file": "voice/pl_death.wav",
+"file": "real/pl_death.wav",
 "loop": false,
 "pitch_spread": 0.04,
-"stream": ExtResource("13_btvmr"),
+"stream": ExtResource("14_4dcas"),
 "voices": 1,
 "volume_db": 0.0
 },
 "pl_hurt": {
 "category": "player",
-"file": "voice/pl_hurt.wav",
+"file": "real/silence.wav",
 "loop": false,
 "pitch_spread": 0.12,
-"stream": ExtResource("12_yoifr"),
+"stream": ExtResource("10_8jmeg"),
 "voices": 1,
 "volume_db": -3.0
 },
 "pl_jump": {
 "category": "player",
-"file": "voice/pl_jump.wav",
+"file": "real/silence.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("10_j0iij"),
+"stream": ExtResource("10_8jmeg"),
 "voices": 1,
 "volume_db": -6.0
 },
 "pl_land": {
 "category": "player",
-"file": "placeholder/pl_land.wav",
+"file": "real/pl_land.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("11_eq6ve"),
+"stream": ExtResource("11_5cb8c"),
 "voices": 1,
 "volume_db": -8.0
 },
 "pl_revive": {
 "category": "player",
-"file": "voice/pl_revive.wav",
+"file": "real/pl_revive.wav",
 "loop": false,
 "pitch_spread": 0.04,
-"stream": ExtResource("14_8m4un"),
+"stream": ExtResource("15_dq7kx"),
 "voices": 1,
 "volume_db": 0.0
 },
 "pl_spawn_beam": {
 "category": "player",
-"file": "placeholder/pl_spawn_beam.wav",
+"file": "real/pl_spawn_beam.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("12_7m1op"),
+"stream": ExtResource("12_jajjq"),
 "voices": 1,
 "volume_db": -4.0
 },
 "pl_spawn_land": {
 "category": "player",
-"file": "placeholder/pl_spawn_land.wav",
+"file": "real/pl_spawn_land.wav",
 "loop": false,
 "pitch_spread": 0.03,
-"stream": ExtResource("13_7drtm"),
+"stream": ExtResource("13_lmdu7"),
 "voices": 1,
 "volume_db": -5.0
 },
 "pl_step_sand": {
 "category": "player",
-"file": "placeholder/pl_step_sand.wav",
+"file": "real/pl_step_sand.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("9_3s6mt"),
+"stream": ExtResource("9_ibn11"),
 "voices": 1,
 "volume_db": -18.0
 },
 "st_barrel_break": {
 "category": "pickup",
-"file": "placeholder/st_barrel_break.wav",
+"file": "real/st_barrel_break.wav",
 "loop": false,
 "pitch_spread": 0.06,
-"stream": ExtResource("90_drtpa"),
+"stream": ExtResource("106_hnqb7"),
 "voices": 2,
 "volume_db": -4.0
 },
 "st_portal_wait": {
 "category": "pickup",
-"file": "placeholder/st_portal_wait.wav",
+"file": "real/st_portal_wait.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("119_v2i6p"),
+"stream": ExtResource("121_x5hj5"),
 "voices": 1,
 "volume_db": -6.0
 },
 "st_teleport": {
 "category": "pickup",
-"file": "placeholder/st_teleport.wav",
+"file": "real/st_teleport.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("86_lq2am"),
+"stream": ExtResource("91_d1815"),
 "voices": 1,
 "volume_db": -4.0
 },
 "ui_buy": {
 "category": "ui",
-"file": "placeholder/ui_buy.wav",
+"file": "real/ui_buy.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("6_8m4un"),
+"stream": ExtResource("6_2ptiy"),
 "voices": 1,
 "volume_db": -3.0
 },
 "ui_card": {
 "category": "ui",
-"file": "placeholder/ui_card.wav",
+"file": "real/ui_card.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("124_2ptiy"),
+"stream": ExtResource("123_ob4g5"),
 "voices": 4,
 "volume_db": -10.0
 },
 "ui_card_pick": {
 "category": "ui",
-"file": "placeholder/ui_card_pick.wav",
+"file": "real/ui_card_pick.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("2_bgt4q"),
+"stream": ExtResource("2_dwv2n"),
 "voices": 1,
 "volume_db": -3.0
 },
 "ui_chest_knock": {
 "category": "ui",
-"file": "placeholder/ui_chest_knock.wav",
+"file": "real/ui_chest_knock.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("108_1rsc2"),
+"stream": ExtResource("110_trye0"),
 "voices": 2,
 "volume_db": -4.0
 },
 "ui_fanfare": {
 "category": "ui",
-"file": "placeholder/ui_fanfare.wav",
+"file": "real/ui_fanfare.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("91_7m1op"),
+"stream": ExtResource("107_qt2ln"),
 "voices": 1,
 "volume_db": -2.0
 },
 "ui_jackpot": {
 "category": "ui",
-"file": "placeholder/ui_jackpot.wav",
+"file": "real/ui_jackpot.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("92_7drtm"),
+"stream": ExtResource("108_p6aee"),
 "voices": 1,
 "volume_db": -3.0
 },
 "ui_levelup": {
 "category": "ui",
-"file": "voice/ui_levelup.wav",
+"file": "real/ui_levelup.wav",
 "loop": false,
 "pitch_spread": 0.04,
-"stream": ExtResource("3_iwces"),
+"stream": ExtResource("3_jwgha"),
 "voices": 1,
 "volume_db": 0.0
 },
 "ui_locked": {
 "category": "ui",
-"file": "placeholder/ui_locked.wav",
+"file": "real/ui_locked.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("7_qm05p"),
+"stream": ExtResource("7_v2i6p"),
 "voices": 1,
-"volume_db": -6.0
+"volume_db": 0.0
 },
 "ui_pause": {
 "category": "ui",
-"file": "placeholder/ui_pause.wav",
+"file": "real/ui_pause.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("4_yoifr"),
+"stream": ExtResource("4_dbfc3"),
 "voices": 1,
-"volume_db": -6.0
+"volume_db": 0.0
 },
 "ui_reel_tick": {
 "category": "ui",
-"file": "placeholder/ui_reel_tick.wav",
+"file": "real/ui_reel_tick.wav",
 "loop": false,
 "pitch_spread": 0.04,
-"stream": ExtResource("123_hak36"),
+"stream": ExtResource("122_cfgc2"),
 "voices": 6,
 "volume_db": -8.0
 },
 "ui_resume": {
 "category": "ui",
-"file": "placeholder/ui_resume.wav",
+"file": "real/ui_resume.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("5_btvmr"),
+"stream": ExtResource("5_hak36"),
 "voices": 1,
 "volume_db": -6.0
 },
 "ui_tap": {
 "category": "ui",
-"file": "placeholder/ui_tap.wav",
+"file": "real/ui_tap.wav",
 "loop": false,
 "pitch_spread": 0.02,
-"stream": ExtResource("1_iwces"),
+"stream": ExtResource("1_d6xxj"),
 "voices": 2,
 "volume_db": -6.0
 },
 "ui_unlock": {
 "category": "ui",
-"file": "voice/ui_unlock.wav",
+"file": "real/ui_unlock.wav",
 "loop": false,
 "pitch_spread": 0.04,
-"stream": ExtResource("8_bgt4q"),
+"stream": ExtResource("8_ytoq0"),
 "voices": 1,
 "volume_db": 0.0
 },
 "w_blackhole": {
 "category": "weapon",
-"file": "placeholder/w_blackhole.wav",
+"file": "real/w_blackhole.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("85_ubodm"),
+"stream": ExtResource("90_22p6y"),
 "voices": 3,
 "volume_db": -9.0
 },
 "w_boom_fire": {
 "category": "weapon",
-"file": "placeholder/w_boom_fire.wav",
+"file": "real/w_boom_fire.wav",
 "loop": false,
 "pitch_spread": 0.06,
-"stream": ExtResource("17_rhw68"),
+"stream": ExtResource("18_7prrv"),
 "voices": 2,
 "volume_db": -6.0
 },
 "w_boom_hit": {
 "category": "weapon",
-"file": "placeholder/w_boom_hit.wav",
+"file": "real/w_boom_hit.wav",
 "loop": false,
 "pitch_spread": 0.15,
-"stream": ExtResource("18_tl11e"),
+"stream": ExtResource("19_kg3fm"),
 "voices": 3,
 "volume_db": -14.0
 },
 "w_evo_reveal": {
 "category": "weapon",
-"file": "placeholder/w_evo_reveal.wav",
+"file": "real/w_evo_reveal.wav",
 "loop": false,
 "pitch_spread": 0.0,
-"stream": ExtResource("27_kweuk"),
+"stream": ExtResource("28_3iyoe"),
 "voices": 1,
 "volume_db": 0.0
 },
 "w_flare_fire": {
 "category": "weapon",
-"file": "placeholder/w_flare_fire.wav",
+"file": "real/w_flare_fire.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("66_2jsub"),
+"stream": ExtResource("68_4g866"),
 "voices": 3,
 "volume_db": -8.0
 },
 "w_flare_hit": {
 "category": "weapon",
-"file": "placeholder/w_flare_hit.wav",
+"file": "real/w_flare_hit.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("67_ibu0u"),
+"stream": ExtResource("69_y0ijy"),
 "voices": 3,
 "volume_db": -9.0
 },
 "w_grav_grab": {
 "category": "weapon",
-"file": "placeholder/w_grav_grab.wav",
+"file": "real/w_grav_grab.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("82_v7cr5"),
+"stream": ExtResource("87_yuqpm"),
 "voices": 3,
 "volume_db": -12.0
 },
 "w_grav_land": {
 "category": "weapon",
-"file": "placeholder/w_grav_land.wav",
+"file": "real/w_grav_land.wav",
 "loop": false,
 "pitch_spread": 0.12,
-"stream": ExtResource("84_xcwxw"),
+"stream": ExtResource("89_bnp46"),
 "voices": 4,
 "volume_db": -7.0
 },
 "w_grav_throw": {
 "category": "weapon",
-"file": "placeholder/w_grav_throw.wav",
+"file": "real/w_grav_throw.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("83_8yylk"),
+"stream": ExtResource("88_860vp"),
 "voices": 3,
 "volume_db": -10.0
 },
 "w_guitarra_strum": {
 "category": "weapon",
-"file": "placeholder/w_guitarra_strum.wav",
+"file": "real/w_guitarra_strum.wav",
 "loop": false,
 "pitch_spread": 0.06,
-"stream": ExtResource("87_j54tl"),
+"stream": ExtResource("92_efncg"),
 "voices": 3,
-"volume_db": -8.0
+"volume_db": -14.0
 },
 "w_hammer_hit": {
 "category": "weapon",
-"file": "placeholder/w_hammer_hit.wav",
+"file": "real/w_hammer_hit.wav",
 "loop": false,
 "pitch_spread": 0.12,
-"stream": ExtResource("80_j54tl"),
+"stream": ExtResource("85_70qyg"),
 "voices": 4,
 "volume_db": -6.0
 },
 "w_hammer_swing": {
 "category": "weapon",
-"file": "placeholder/w_hammer_swing.wav",
+"file": "real/w_hammer_swing.wav",
 "loop": false,
 "pitch_spread": 0.12,
-"stream": ExtResource("79_vf22y"),
+"stream": ExtResource("84_sg4vx"),
 "voices": 3,
 "volume_db": -12.0
 },
 "w_hawk_sting": {
 "category": "weapon",
-"file": "placeholder/w_hawk_sting.wav",
+"file": "real/w_hawk_sting.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("111_etsj0"),
+"stream": ExtResource("113_gsbxx"),
 "voices": 3,
-"volume_db": -10.0
+"volume_db": -16.0
 },
 "w_hip_spin": {
 "category": "weapon",
-"file": "placeholder/w_hip_spin.wav",
+"file": "real/w_hip_spin.wav",
 "loop": false,
 "pitch_spread": 0.04,
-"stream": ExtResource("112_to3hg"),
+"stream": ExtResource("114_xidwk"),
 "voices": 1,
 "volume_db": -6.0
 },
 "w_ignite": {
 "category": "weapon",
-"file": "placeholder/w_ignite.wav",
+"file": "real/w_ignite.wav",
 "loop": false,
 "pitch_spread": 0.15,
-"stream": ExtResource("71_krekp"),
+"stream": ExtResource("73_yyts0"),
 "voices": 4,
 "volume_db": -12.0
 },
 "w_iron_hit": {
 "category": "weapon",
-"file": "placeholder/w_iron_hit.wav",
+"file": "real/w_iron_hit.wav",
 "loop": false,
 "pitch_spread": 0.12,
-"stream": ExtResource("70_5mtkb"),
+"stream": ExtResource("72_nqef3"),
 "voices": 4,
 "volume_db": -10.0
 },
 "w_lob_boom": {
 "category": "weapon",
-"file": "placeholder/w_lob_boom.wav",
+"file": "real/w_lob_boom.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("22_vxxld"),
+"stream": ExtResource("23_onxl1"),
 "voices": 2,
 "volume_db": -4.0
 },
 "w_lob_throw": {
 "category": "weapon",
-"file": "placeholder/w_lob_throw.wav",
+"file": "real/w_lob_throw.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("21_684d2"),
+"stream": ExtResource("22_22ghm"),
 "voices": 2,
-"volume_db": -10.0
+"volume_db": -4.0
 },
 "w_mine_arm": {
 "category": "weapon",
-"file": "placeholder/w_mine_arm.wav",
+"file": "real/w_mine_arm.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("73_vxxld"),
+"stream": ExtResource("75_5sn0k"),
 "voices": 2,
 "volume_db": -12.0
 },
 "w_mine_spring": {
 "category": "weapon",
-"file": "placeholder/w_mine_spring.wav",
+"file": "real/w_mine_spring.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("114_dwv2n"),
+"stream": ExtResource("116_ovo2j"),
 "voices": 3,
 "volume_db": -8.0
 },
 "w_molotov_boom": {
 "category": "weapon",
-"file": "placeholder/w_molotov_boom.wav",
+"file": "real/w_molotov_boom.wav",
 "loop": false,
 "pitch_spread": 0.06,
-"stream": ExtResource("69_vxxld"),
+"stream": ExtResource("71_k18m2"),
 "voices": 2,
-"volume_db": -5.0
+"volume_db": -11.0
 },
 "w_molotov_throw": {
 "category": "weapon",
-"file": "placeholder/w_molotov_throw.wav",
+"file": "real/w_molotov_throw.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("68_684d2"),
+"stream": ExtResource("70_vqldt"),
 "voices": 2,
 "volume_db": -8.0
 },
 "w_pea_fire": {
 "category": "weapon",
-"file": "placeholder/w_pea_fire.wav",
+"file": "real/w_pea_fire.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("15_7csky"),
+"stream": ExtResource("16_ryw4h"),
 "voices": 4,
 "volume_db": -12.0
 },
 "w_pea_hit": {
 "category": "weapon",
-"file": "placeholder/w_pea_hit.wav",
+"file": "real/w_pea_hit.wav",
 "loop": false,
 "pitch_spread": 0.15,
-"stream": ExtResource("16_lme2m"),
+"stream": ExtResource("17_37qjc"),
 "voices": 4,
 "volume_db": -14.0
 },
 "w_revolver_fire": {
 "category": "weapon",
-"file": "placeholder/w_revolver_fire.wav",
+"file": "real/w_revolver_fire.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("81_udple"),
+"stream": ExtResource("86_twxnu"),
 "voices": 4,
 "volume_db": -8.0
 },
 "w_saw_hit": {
 "category": "weapon",
-"file": "placeholder/w_saw_hit.wav",
+"file": "real/w_saw_hit.wav",
 "loop": false,
 "pitch_spread": 0.15,
-"stream": ExtResource("20_ibu0u"),
+"stream": ExtResource("21_c4ys3"),
 "voices": 4,
 "volume_db": -14.0
 },
 "w_saw_loop": {
 "category": "weapon",
-"file": "placeholder/w_saw_loop.wav",
+"file": "real/w_saw_loop.wav",
 "loop": true,
 "pitch_spread": 0.0,
-"stream": ExtResource("19_2jsub"),
+"stream": ExtResource("20_s7xia"),
 "voices": 1,
 "volume_db": -20.0
 },
 "w_silver_fire": {
 "category": "weapon",
-"file": "placeholder/w_silver_fire.wav",
+"file": "real/w_silver_fire.wav",
 "loop": false,
 "pitch_spread": 0.06,
-"stream": ExtResource("113_d6xxj"),
+"stream": ExtResource("115_qa6jr"),
 "voices": 3,
 "volume_db": -6.0
 },
 "w_skull_boom": {
 "category": "weapon",
-"file": "placeholder/w_skull_boom.wav",
+"file": "real/w_skull_boom.wav",
 "loop": false,
 "pitch_spread": 0.15,
-"stream": ExtResource("62_d00ok"),
+"stream": ExtResource("67_6xhrr"),
 "voices": 4,
 "volume_db": -12.0
 },
 "w_skull_throw": {
 "category": "weapon",
-"file": "placeholder/w_skull_throw.wav",
+"file": "real/w_skull_throw.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("61_eq6ve"),
+"stream": ExtResource("66_iroj4"),
 "voices": 3,
 "volume_db": -16.0
 },
 "w_snake_bite": {
 "category": "weapon",
-"file": "placeholder/w_snake_bite.wav",
+"file": "real/w_snake_bite.wav",
 "loop": false,
 "pitch_spread": 0.15,
-"stream": ExtResource("60_trawe"),
+"stream": ExtResource("65_3st1m"),
 "voices": 4,
 "volume_db": -14.0
 },
 "w_snake_rattle": {
 "category": "weapon",
-"file": "placeholder/w_snake_rattle.wav",
+"file": "real/w_snake_rattle.wav",
 "loop": true,
 "pitch_spread": 0.0,
-"stream": ExtResource("59_3s6mt"),
+"stream": ExtResource("64_aepul"),
 "voices": 1,
 "volume_db": -20.0
 },
 "w_spear_hit": {
 "category": "weapon",
-"file": "placeholder/w_spear_hit.wav",
+"file": "real/w_spear_hit.wav",
 "loop": false,
 "pitch_spread": 0.12,
-"stream": ExtResource("95_1rsc2"),
+"stream": ExtResource("97_16cdd"),
 "voices": 3,
 "volume_db": -8.0
 },
 "w_spear_throw": {
 "category": "weapon",
-"file": "placeholder/w_spear_throw.wav",
+"file": "real/w_spear_throw.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("94_e8ub3"),
+"stream": ExtResource("96_bx6sg"),
 "voices": 3,
 "volume_db": -9.0
 },
 "w_sun_strike": {
 "category": "weapon",
-"file": "placeholder/w_sun_strike.wav",
+"file": "real/w_sun_strike.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("95_jwgha"),
+"stream": ExtResource("94_ypnwe"),
 "voices": 4,
 "volume_db": -8.0
 },
 "w_sun_warn": {
 "category": "weapon",
-"file": "placeholder/w_sun_warn.wav",
+"file": "real/w_sun_warn.wav",
 "loop": false,
 "pitch_spread": 0.08,
-"stream": ExtResource("94_dwv2n"),
+"stream": ExtResource("93_v3qvh"),
 "voices": 3,
 "volume_db": -12.0
 },
 "w_sun_zenith": {
 "category": "weapon",
-"file": "placeholder/w_sun_zenith.wav",
+"file": "real/w_sun_zenith.wav",
 "loop": false,
 "pitch_spread": 0.03,
-"stream": ExtResource("96_dbfc3"),
+"stream": ExtResource("95_6mt6w"),
 "voices": 1,
 "volume_db": -5.0
 },
 "w_thor_zap": {
 "category": "weapon",
-"file": "placeholder/w_thor_zap.wav",
+"file": "real/w_thor_zap.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("109_1oju8"),
+"stream": ExtResource("111_0acob"),
 "voices": 3,
 "volume_db": -8.0
 },
 "w_tinnitus_ring": {
 "category": "weapon",
-"file": "placeholder/w_tinnitus_ring.wav",
+"file": "real/w_tinnitus_ring.wav",
 "loop": false,
 "pitch_spread": 0.06,
-"stream": ExtResource("110_adbe3"),
+"stream": ExtResource("112_ii8vk"),
 "voices": 2,
 "volume_db": -10.0
 },
 "w_tommy_fire": {
 "category": "weapon",
-"file": "placeholder/w_tommy_fire.wav",
+"file": "real/w_tommy_fire.wav",
 "loop": false,
 "pitch_spread": 0.06,
-"stream": ExtResource("72_684d2"),
+"stream": ExtResource("74_dejs5"),
 "voices": 3,
 "volume_db": -10.0
 },
 "w_tumble_hit": {
 "category": "weapon",
-"file": "placeholder/w_tumble_hit.wav",
+"file": "real/w_tumble_hit.wav",
 "loop": false,
 "pitch_spread": 0.15,
-"stream": ExtResource("58_5q0nc"),
+"stream": ExtResource("63_huw6y"),
 "voices": 4,
 "volume_db": -14.0
 },
 "w_tumble_roll": {
 "category": "weapon",
-"file": "placeholder/w_tumble_roll.wav",
+"file": "real/w_tumble_roll.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("57_qm05p"),
+"stream": ExtResource("62_paaeo"),
 "voices": 2,
 "volume_db": -16.0
 },
 "w_turret_fire": {
 "category": "weapon",
-"file": "placeholder/w_turret_fire.wav",
+"file": "real/w_turret_fire.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("26_qqvqe"),
+"stream": ExtResource("27_dlbqk"),
 "voices": 3,
 "volume_db": -14.0
 },
 "w_turret_place": {
 "category": "weapon",
-"file": "placeholder/w_turret_place.wav",
+"file": "real/w_turret_place.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("25_plmlw"),
+"stream": ExtResource("26_lfe3q"),
 "voices": 2,
 "volume_db": -8.0
 },
 "w_zap_fire": {
 "category": "weapon",
-"file": "placeholder/w_zap_fire.wav",
+"file": "real/w_zap_fire.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("23_5mtkb"),
+"stream": ExtResource("24_cmm58"),
 "voices": 3,
 "volume_db": -10.0
 },
 "w_zap_hit": {
 "category": "weapon",
-"file": "placeholder/w_zap_hit.wav",
+"file": "real/w_zap_hit.wav",
 "loop": false,
 "pitch_spread": 0.2,
-"stream": ExtResource("24_krekp"),
+"stream": ExtResource("25_mlt6y"),
 "voices": 4,
-"volume_db": -14.0
+"volume_db": -20.0
 },
 "wd_ambient": {
 "category": "world",
-"file": "placeholder/wd_ambient.wav",
+"file": "real/wd_ambient.wav",
 "loop": true,
 "pitch_spread": 0.0,
-"stream": ExtResource("46_mvbh6"),
+"stream": ExtResource("51_ftp8c"),
 "voices": 1,
 "volume_db": -18.0
 },
 "wd_dust_devil": {
 "category": "world",
-"file": "placeholder/wd_dust_devil.wav",
+"file": "real/wd_dust_devil.wav",
 "loop": true,
 "pitch_spread": 0.0,
-"stream": ExtResource("49_hg4c8"),
+"stream": ExtResource("54_77khn"),
 "voices": 1,
 "volume_db": -14.0
 },
 "wd_extract": {
 "category": "world",
-"file": "voice/wd_extract.wav",
+"file": "real/wd_extract.wav",
 "loop": false,
 "pitch_spread": 0.04,
-"stream": ExtResource("48_trawe"),
+"stream": ExtResource("53_gvf8j"),
 "voices": 1,
 "volume_db": 0.0
 },
 "wd_gust": {
 "category": "world",
-"file": "placeholder/wd_gust.wav",
+"file": "real/wd_gust.wav",
 "loop": false,
 "pitch_spread": 0.05,
-"stream": ExtResource("93_ypmax"),
+"stream": ExtResource("109_etrcm"),
 "voices": 1,
 "volume_db": -14.0
 },
 "wd_portal_open": {
 "category": "world",
-"file": "placeholder/wd_portal_open.wav",
+"file": "real/wd_portal_open.wav",
 "loop": true,
 "pitch_spread": 0.0,
-"stream": ExtResource("47_43y5l"),
+"stream": ExtResource("52_gxk3b"),
 "voices": 1,
 "volume_db": -8.0
 },
 "wd_tumbleweed": {
 "category": "world",
-"file": "placeholder/wd_tumbleweed.wav",
+"file": "real/wd_tumbleweed.wav",
 "loop": false,
 "pitch_spread": 0.1,
-"stream": ExtResource("50_rhgox"),
+"stream": ExtResource("55_nnu2g"),
 "voices": 2,
 "volume_db": -18.0
 }

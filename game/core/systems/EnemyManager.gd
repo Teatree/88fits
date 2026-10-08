@@ -288,8 +288,36 @@ var _serial := 0
 ## The map's pace knob (pass 48, Run.move_pace, read every tick and at every spawn): a creature walks at its speed times
 ## this, a charge and a scripted roll run at it and last 1/pace as long (so they cover the same ground), every wind-up,
 ## telegraph and warning lasts 1/pace, and the creatures' shots fly on hostile_clock(). Never put into the creatures'
-## shared delta: poison and fire ticks, attack cooldowns and the spawns keep their clocks.
+## shared delta: poison and fire ticks, attack cooldowns and the spawns keep their clocks. Pass 60: times
+## `creature_speed_mult` (the timeline's, 0.9 on Red Canyon; Garry: "reduce the movement speed of all enemies by 10%"
+## as "a multiplier for all"): the creatures, Elites, bosses and their shots, never the hero (Player reads Run.move_pace()).
 var pace := 1.0
+## The timeline's creature_speed_mult (pass 60, WaveTimeline.creature_speed_mult, set by WaveDirector._apply_mults at a
+## run's start and every normal tick, in the arena too): folded into `pace` wherever it is read, so every walk, charge,
+## roll, wind-up, warning and hostile shot goes at this multiple. 1 = as the creatures' data says.
+var creature_speed_mult := 1.0
+## How far up out of the sand a creature is (pass 60, Garry: "a visible sequence of the Scorpion actually popping from
+## the ground"): 1 = standing on it, as every creature is; 0 at the moment a burrow brings one up. It climbs to 1 over
+## RISE_TIME (at the creatures' pace), the painting rising out of the ground (_render sinks it along the billboard's up by
+## the part still under, the terrain hides that part), its shadow growing with it; a rising creature can be hit (it is
+## there to see) but does not bite and starts no attack until it is up.
+var rise_t := PackedFloat32Array()
+const RISE_TIME := 0.4
+## Rides on the frame index's fraction in the instance data while a creature rises (both creature shaders floor the frame):
+## enemy_silhouette.gdshader draws nothing for it then, since the part still under the sand, which the terrain hides from
+## the main pass, had shown through the see-through pass as a ghost of the whole figure.
+const RISE_FLAG := 0.5
+## The burrow's mound: its radius as a share of the creature's size (0.9 m for the 3 m scorpion, 1.5 for the 5 m Gila), a
+## dome of sand swelling under the ring through the wind-up (_mound_start, below rise_ease).
+const MOUND_FRAC := 0.3
+## Where each creature's brain means to go this tick (the `desired` velocity _steer computes, before the crowd's
+## separation and any knockback), pass 60: a creature that fights at range (_t_faces) faces and walks by this, so a shove
+## or a knock no longer turns it round (the Sun Prophet "flickered between frames": his view flipped every tick between
+## his walk and the hero as the crowd pressed him).
+var intent := PackedVector3Array()
+## An eight-direction creature's view holds at least VIEW_MIN seconds after a change (pass 60), on top of the hysteresis.
+var view_t := PackedFloat32Array()
+const VIEW_MIN := 0.25
 ## The crowd's mean max HP (priority_index's yardstick), refreshed once a tick (and by refresh_crowd_stats).
 var _mean_max_hp := 0.0
 ## The dying creature's max HP while enemy_died is out (pass 48: Powder Keg's blast is a share of it).
@@ -408,6 +436,8 @@ func _ready() -> void:
 	lift_mode.resize(MAX); lift_peak.resize(MAX); lift_knock.resize(MAX)
 	away.resize(MAX); view.resize(MAX); poison_tick.resize(MAX); flash_green.resize(MAX)
 	poison_src.resize(MAX); fire_src.resize(MAX); fire_tick.resize(MAX); flash_hot.resize(MAX); fire_puff.resize(MAX)
+	# pass 60: everyone starts up on the sand, meaning to go nowhere, free to turn
+	rise_t.resize(MAX); rise_t.fill(1.0); intent.resize(MAX); view_t.resize(MAX)
 	for i in range(MAX):
 		poison_src[i] = {}; fire_src[i] = {}; lift_t.resize(MAX); lift_d.resize(MAX); lift_h.resize(MAX); lift_a.resize(MAX); lift_cd.resize(MAX)
 	for i in range(MAX - 1, -1, -1):
@@ -869,8 +899,8 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	var t := register_type(def)
 	# met (pass 44): the Collection shows a creature once it has been on the sand
 	Save.mark_seen("enemy", def.id)
-	# the pace knob as it is now (pass 48): the walk speed below is set with it
-	pace = Run.move_pace()
+	# the pace knob as it is now (pass 48): the walk speed below is set with it; times the creatures' own multiplier (pass 60)
+	pace = Run.move_pace() * creature_speed_mult
 	var i: int = free_list.pop_back()
 	_serial += 1
 	serial[i] = _serial
@@ -982,6 +1012,9 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	timer[i] = 0.35
 	cooldown[i] = _rng.randf_range(0.5, 2.0)
 	hidden[i] = 0
+	rise_t[i] = 1.0
+	intent[i] = Vector3.ZERO
+	view_t[i] = 0.0
 	atk_i[i] = 0
 	atk_t[i] = 2.0
 	frenzy_t[i] = 0.0
@@ -1319,7 +1352,9 @@ static func _spots_on(dry: Array, center: Vector3, ring_r: float, n: int, lim: f
 			continue
 		var step := (v.y - v.x) / float(m)
 		for q in range(m):
-			var a := v.x + step * (float(q) + 0.5 + rng.randf_range(-slide, slide))
+			# the slide stays inside the arc (pass 60: an end spot slid past a wall-clipped arc was pulled in radially by
+			# _inside and landed under the ring's distance to the wall once in a few runs)
+			var a := clampf(v.x + step * (float(q) + 0.5 + rng.randf_range(-slide, slide)), v.x + 0.02, v.y - 0.02)
 			var r := ring_r + rng.randf_range(-jitter, jitter)
 			var p := center + Vector3(cos(a), 0, sin(a)) * r
 			if not _clear_in(ctx, p):
@@ -1588,7 +1623,8 @@ func set_status_tint(i: int, col: Color, seconds: float) -> void:
 
 ## The clock the creatures' shots fly on (pass 48): High Noon's time_scale times the pace knob, so a shot crosses the same
 ## ground as before in 1/pace the time and the slower hero can still step out of its way (ProjectileManager's hostile
-## shots and the rocketeer's rocket, the golem's boulder).
+## shots and the rocketeer's rocket, the golem's boulder). Pass 60: the pace carries creature_speed_mult, so every
+## hostile shot flies at the creatures' multiple too.
 func hostile_clock() -> float:
 	return time_scale * pace
 
@@ -2039,6 +2075,8 @@ func _free(i: int) -> void:
 	held[i] = 0
 	lift_mode[i] = 0
 	vspecial[i] = 0
+	# one freed under the sand leaves no mound behind (pass 60)
+	_mound_end(i)
 	free_list.append(i)
 	if i == boss_index:
 		boss_index = -1
@@ -2479,8 +2517,9 @@ func _physics_process(delta: float) -> void:
 	_cf_tick = _camera_forward()
 	refresh_onscreen(parity)
 	# the pace knob (pass 48): read once a tick, and never folded into the shared delta below (poison and fire ticks and
-	# the cooldowns keep their clocks); walks, charges and rolls, wind-ups and warnings carry it themselves
-	pace = Run.move_pace()
+	# the cooldowns keep their clocks); walks, charges and rolls, wind-ups and warnings carry it themselves. Times the
+	# timeline's creature_speed_mult (pass 60): the creatures' own knob, the hero's pace untouched
+	pace = Run.move_pace() * creature_speed_mult
 	# High Noon slows the whole crowd's clock: steering, attacks, animations
 	delta *= time_scale
 	var ppos: Vector3 = player.global_position
@@ -2580,6 +2619,11 @@ func _physics_process(delta: float) -> void:
 			shove_t[i] -= delta
 		if ign_t[i] > 0.0:
 			ign_t[i] -= delta
+		# coming up out of the sand (pass 60): RISE_TIME at the creatures' pace, then it is up
+		if rise_t[i] < 1.0:
+			rise_t[i] = minf(rise_t[i] + delta * pace / RISE_TIME, 1.0)
+		if view_t[i] > 0.0:
+			view_t[i] -= delta
 		if (i & 1) == parity:
 			_steer(i, ppos, sdt)
 		# integrate
@@ -2591,6 +2635,10 @@ func _physics_process(delta: float) -> void:
 		pos[i] = np
 		# the direction the creature faces: where it charges while winding up or charging, else where it moves
 		var face := v
+		if _t_faces[ti] == 1:
+			# a creature that fights at range faces where its brain means to go (pass 60), never where the crowd shoves it
+			# or a hit knocks it: the Sun Prophet turned his back on every knock and snapped round the next tick
+			face = intent[i]
 		if (state[i] == STATE_WINDUP or state[i] == STATE_CHARGE) and charge_dir[i].length_squared() > 0.01:
 			face = charge_dir[i]
 		else:
@@ -2627,6 +2675,11 @@ func _physics_process(delta: float) -> void:
 					var hi: float = VIEW_HI[cur]
 					if a >= lo - VIEW_HYST and a <= hi + VIEW_HYST:
 						want = cur
+					elif view_t[i] > 0.0:
+						# a view holds VIEW_MIN after a change (pass 60): no set flicks back and forth within a quarter second
+						want = cur
+					else:
+						view_t[i] = VIEW_MIN
 				view[i] = want
 				# side and diagonal sets face screen-right; mirror them when heading left, with a dead band about
 				# straight up and down so a heading that wobbles about the vertical never flips the picture
@@ -2657,7 +2710,9 @@ func _physics_process(delta: float) -> void:
 		# his wind-up before the minion ring flicked at 9 a second instead of 3). The walk plays at the pace knob too (pass
 		# 48): a creature that covers 0.8 of the ground a second takes 0.8 of the steps, so its feet keep to the sand
 		var run_fps: float = _t_run_fps[ti]
-		var walking: bool = v.length() > 0.2 and state[i] != STATE_ATTACK and state[i] != STATE_WINDUP
+		# a creature that fights at range walks when its brain walks it (pass 60, intent), not when the crowd shoves it
+		var mv: Vector3 = intent[i] if _t_faces[ti] == 1 else v
+		var walking: bool = mv.length() > 0.2 and state[i] != STATE_ATTACK and state[i] != STATE_WINDUP
 		var steps: float = (run_fps if run_fps > 0.0 else 10.0) * pace if walking else ATTACK_FPS
 		# a charger's legs (pass 50, charge.legs): they scrabble in place through the wind-up, from the walk's speed up to
 		# `legs` times it by the launch, and run at `legs` times it through the charge (at the walk's speed the beetle's
@@ -2673,7 +2728,8 @@ func _physics_process(delta: float) -> void:
 		var reach := radius[i] + 0.45
 		# a training dummy's touch never reaches the hero (pass 48: even a 0 would be a hit, a flash and a shake), but a
 		# melee one's does (pass 49: the arena's attackers, an Elite or Boss dummy set to melee)
-		if d.length_squared() < reach * reach and contact_cd[i] <= 0.0 and hidden[i] == 0 and freeze_t[i] <= 0.0 and stun_t[i] <= 0.0 and (_t_dummy[ti] == 0 or dummy_mode[i] == DUMMY_MELEE):
+		# (pass 60: one still rising out of the sand bites nobody until it is up)
+		if d.length_squared() < reach * reach and contact_cd[i] <= 0.0 and hidden[i] == 0 and rise_t[i] >= 1.0 and freeze_t[i] <= 0.0 and stun_t[i] <= 0.0 and (_t_dummy[ti] == 0 or dummy_mode[i] == DUMMY_MELEE):
 			# the bite's cadence is the creature's own (pass 53, EnemyDef.contact_cd; 0.6 for everyone before)
 			contact_cd[i] = _t_ccd[ti]
 			var extra := 1.0
@@ -2715,6 +2771,8 @@ func _physics_process(delta: float) -> void:
 	_mean_max_hp = crowd_hp / float(crowd_n) if crowd_n > 0 else 0.0
 	Run.poisoned_alive = poisoned
 	_update_boss(delta, ppos)
+	# the burrows' mounds swell with their wind-ups (pass 60), after the runner has moved the timers
+	_tick_mounds()
 	_ticks += 1
 	Perf.add("enemies.sim", t0)
 
@@ -2751,6 +2809,12 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 		# knockback still carries it, and the crowd still steps round it
 		stun_t[i] -= dt
 		vel[i] = Vector3.ZERO
+		intent[i] = Vector3.ZERO
+		return
+	if rise_t[i] < 1.0:
+		# still coming up out of the sand (pass 60): it stands where it broke through until it is up, no walk, no wind-up
+		vel[i] = Vector3.ZERO
+		intent[i] = Vector3.ZERO
 		return
 	if slow_t[i] > 0.0:
 		slow_t[i] -= dt
@@ -2776,6 +2840,7 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 		if tow.length() > 0.3:
 			pos[i] += tow.normalized() * 0.6 * dt
 		vel[i] = Vector3.ZERO
+		intent[i] = Vector3.ZERO
 		if game and int(spin_t[i] * 8.0) != int((spin_t[i] + dt) * 8.0):
 			game.fx_burst(pos[i] + Vector3(0, size[i] * 0.3, 0), Color(0.95, 0.85, 0.55), 0.7)
 		return
@@ -2963,7 +3028,9 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 					var to_spot := spot - pos[i]
 					to_spot.y = 0.0
 					var sd := to_spot.length()
-					desired = to_spot / sd * spd * clampf(sd / 1.5, 0.3, 1.0) if sd > 0.6 else Vector3.ZERO
+					# standing to cast (hold_t, the Prophet's pillars) it stays put (pass 60: the walk to the spot on every
+					# steer tick against the hold's stop on the others tore him between the two, a view flip a tick)
+					desired = to_spot / sd * spd * clampf(sd / 1.5, 0.3, 1.0) if sd > 0.6 and hold_t[i] <= 0.0 else Vector3.ZERO
 				"support":
 					# keeps its distance and, every few seconds, mends whatever stands around it
 					var su: Dictionary = def.support
@@ -3035,6 +3102,8 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 	sep += _obstacle_push(i)
 	var sep_w := 4.0 if state[i] != STATE_CHARGE else 0.5
 	vel[i] = desired + sep * sep_w
+	# what the brain meant, before the crowd's push (pass 60): a ranged creature's facing and walk read this
+	intent[i] = desired
 
 
 ## Creature `j` shoved aside by charger `i` heading `head` (pass 50, Garry: "push enemies out of the way, always to the
@@ -3486,9 +3555,11 @@ func _update_boss(delta: float, ppos: Vector3) -> void:
 			if adef.brain == "caster" or not (adef.boss.get("attacks", []) as Array).is_empty():
 				if state[i] == STATE_MOVE or state[i] == STATE_ATTACK or adef.brain == "caster":
 					_update_attacks(i, delta, ppos)
-				# and whatever happens, a scripted creature is never left buried outside its own attack
+				# and whatever happens, a scripted creature is never left buried outside its own attack (pass 60: it rises
+				# out of the sand like one a burrow brings up, instead of standing there at once)
 				if hidden[i] == 1 and state[i] != STATE_ATTACK and adef.brain != "ambush":
 					hidden[i] = 0
+					rise_t[i] = 0.0
 
 
 ## The attack runner: a creature with a `boss.attacks` list (the bosses, the casters) cycles through them, each with a
@@ -3507,10 +3578,16 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 	if attacks.is_empty():
 		return
 	if state[i] == STATE_MOVE:
+		if rise_t[i] < 1.0:
+			# still rising out of the sand (pass 60): nothing new until it is up
+			vel[i] = Vector3.ZERO
+			intent[i] = Vector3.ZERO
+			return
 		if hold_t[i] > 0.0:
 			# standing and casting (the rain falls): no walking, nothing new
 			hold_t[i] -= delta
 			vel[i] = Vector3.ZERO
+			intent[i] = Vector3.ZERO
 			return
 		# a hampered creature's script runs slow (pass 48)
 		atk_t[i] -= delta * attack_clock(i)
@@ -3587,13 +3664,22 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 							var sa := sphase + TAU * float(k) / float(maxi(sn, 1))
 							game.telegraph_line(pos[i], Vector3(cos(sa), 0, sin(sa)), slen, timer[i], Color(0.93, 0.29, 0.36))
 			if str(atk.get("name", "")) == "burrow":
-				# under the sand for the wind-up; the ring on the hero says where it comes up
+				# under the sand for the wind-up: it digs in with a poof of its own and a small burst (pass 60; the 4.0 burst
+				# was an 8 m pale disc); the ring on the hero says where it comes up, and the sand there swells into a mound
+				# through the wind-up (_mound_start, ticked from the wind-up's timer, gone at the pop)
 				hidden[i] = 1
-				if game: game.fx_burst(pos[i] + Vector3(0, 0.5, 0), Color(0.85, 0.7, 0.5), 4.0)
+				if game:
+					game.fx_burst(pos[i] + Vector3(0, 0.5, 0), Color(0.85, 0.7, 0.5), 0.4 * size[i])
+					var dfx = game.get("fx")
+					if dfx and dfx.has_method("pop_dust"):
+						dfx.pop_dust(pos[i], size[i] * 0.6)
+				var mt: Vector3 = atk_target[i]
+				_mound_start(i, Vector3(mt.x, _height(mt.x, mt.z), mt.z), MOUND_FRAC * size[i])
 			Audio.play(str(def.sfx.get("attack", "en_boss_attack")), pos[i])
 	elif state[i] == STATE_ATTACK:
 		timer[i] -= delta * attack_clock(i)
 		vel[i] = Vector3.ZERO
+		intent[i] = Vector3.ZERO
 		if timer[i] <= 0.0:
 			var atk: Dictionary = attacks[(atk_i[i] - 1) % attacks.size()]
 			match str(atk.get("name", "")):
@@ -3654,8 +3740,18 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 						game.fx_burst(pos[i] + Vector3(0, size[i] * 0.5, 0), Color(0.9, 0.78, 0.55), 2.2)
 					state[i] = STATE_MOVE
 				"burrow":
+					# up it comes (pass 60): the figure rises out of the sand over RISE_TIME (rise_t, drawn sunk by the part
+					# still under) in a poof of soft dust (Fx.pop_dust, the Bull Beetle's dust as one burst), the damage
+					# landing at this moment as before
 					hidden[i] = 0
-					pos[i] = atk_target[i]
+					rise_t[i] = 0.0
+					_mound_end(i)
+					var bp: Vector3 = atk_target[i]
+					pos[i] = Vector3(bp.x, _height(bp.x, bp.z), bp.z)
+					if game:
+						var pfx = game.get("fx")
+						if pfx and pfx.has_method("pop_dust"):
+							pfx.pop_dust(pos[i], size[i])
 					var rb := float(atk.get("radius", 5.0))
 					var db := ppos - pos[i]
 					db.y = 0.0
@@ -3664,9 +3760,17 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 						if player.has_method("shove"):
 							player.shove(db.normalized() * float(atk.get("knockback", 8.0)))
 					if game:
-						if game.has_method("shockwave"):
+						# the hit's ring and the camera's kick without the shockwave's 6 m burst, and the old 5.0 burst (an 11 m
+						# pale disc) cut to the body's size (pass 60: they swamped the poof and hid the figure coming up)
+						var tg = game.get("telegraphs")
+						if tg and tg.has_method("flash_ring"):
+							tg.flash_ring(pos[i], rb, Color(1.0, 0.6, 0.3), 0.4)
+						elif game.has_method("shockwave"):
 							game.shockwave(pos[i], rb)
-						game.fx_burst(pos[i] + Vector3(0, 0.5, 0), Color(0.85, 0.7, 0.5), 5.0)
+						var cam = game.get("camera")
+						if cam and cam.has_method("shake"):
+							cam.shake(1.0)
+						game.fx_burst(pos[i] + Vector3(0, 0.5, 0), Color(0.85, 0.7, 0.5), 0.4 * size[i])
 					state[i] = STATE_MOVE
 				"rain", "erupt":
 					# a sequence of small strikes around the hero, each a red ring first: a dodge that lasts a few seconds;
@@ -3886,15 +3990,15 @@ func _update_mark() -> void:
 ## list of strips, for every creature every tick).
 func _strip_of(i: int, t: int) -> int:
 	var st := state[i]
-	var a := A_RUN
+	# the walk or the stand (pass 60: a creature that fights at range by what its brain means, `intent`, so the crowd
+	# shoving it is no walk)
+	var mv: Vector3 = intent[i] if _t_faces[t] == 1 else vel[i]
+	var move := A_IDLE if st == STATE_SPAWN or mv.length_squared() < 0.04 else A_RUN
+	var a := move
 	if st == STATE_DYING:
 		a = A_DIE
 	elif st == STATE_WINDUP or st == STATE_ATTACK:
 		a = A_ATTACK
-	elif st == STATE_SPAWN:
-		a = A_IDLE
-	elif vel[i].length_squared() < 0.04:
-		a = A_IDLE
 	if held[i] == 1 and st != STATE_DYING:
 		# kicking its legs in the air
 		a = A_RUN
@@ -3910,6 +4014,11 @@ func _strip_of(i: int, t: int) -> int:
 		elif st == STATE_WINDUP and _t_charge[t] == 1:
 			# one with charge.legs scrabbles in place (pass 50); the others hold their idle set
 			a = A_RUN if _t_cv[t * CV_N + 2] > 1.0 else A_IDLE
+		if (a == A_HIT or a == A_ATTACK) and view[i] != 0:
+			# the hit and attack frames are painted facing the camera only (pass 60): off the front view the creature
+			# keeps its stand or walk in the view it shows (the white flash still says it was hit), instead of popping
+			# round to face the camera for a frame (the Sun Prophet's "flicker")
+			a = move
 		if a == A_RUN or a == A_IDLE:
 			var cand: int = VIEW_ANIM[a][view[i]]
 			if _t_ok[t * N_ANIMS + cand] == 1:
@@ -3965,6 +4074,130 @@ func shadow_xform(i: int, scf: Vector3, scr: Vector3) -> Transform3D:
 func sprite_sink(i: int, sq: float, cam_up: Vector3) -> Vector3:
 	var drop: float = _t_sh[type_idx[i] * 4 + 3]
 	return cam_up * (drop * size[i] * maxf(sq, 0.2)) if drop != 0.0 else Vector3.ZERO
+
+
+## How far creature `i`'s painting sits down the billboard's up (`cam_up`) while it rises out of the sand (pass 60,
+## rise_t): the part still under, the whole figure (its top at `head` of the cell, at its size and squash `sq`) at 0 and
+## nothing at 1, eased so it comes up quick and settles (rise_ease). Zero once it is up.
+func rise_sink(i: int, sq: float, cam_up: Vector3) -> Vector3:
+	var rise: float = rise_t[i]
+	if rise >= 1.0:
+		return Vector3.ZERO
+	var head: float = float((types[type_idx[i]] as Dictionary).get("head", 1.0))
+	return cam_up * ((1.0 - rise_ease(rise)) * size[i] * head * maxf(sq, 0.2))
+
+
+## The drawn share of a rise 0..1 (pass 60): an ease-out, so a figure pops up fast and settles into its last inch.
+static func rise_ease(rise: float) -> float:
+	var r := clampf(rise, 0.0, 1.0)
+	return 1.0 - (1.0 - r) * (1.0 - r)
+
+
+## The frame index as the instance data carries it (INSTANCE_CUSTOM.x, pass 60): the whole frame, plus RISE_FLAG in its
+## fraction while the figure is still rising (`rise` < 1), which enemy_silhouette.gdshader reads to draw nothing; both
+## creature shaders floor it for the frame.
+static func frame_code(frame: int, rise: float) -> float:
+	return float(frame) + (RISE_FLAG if rise < 1.0 else 0.0)
+
+
+## The burrow's mound (pass 60, Garry: "a visible sequence of the Scorpion actually popping from the ground"): a dome of
+## sand swelling out of the ground at the ring's centre through the whole wind-up, a dark ring of cracks widening round
+## its foot, driven from the wind-up's timer (no Tween: the tests step it and it freezes with the pause); gone the moment
+## the creature comes up (the poof and its clods are the mound bursting). One per creature, by its index. Game.erupt_mound
+## (the Centipede's) was tried first: made for a 0.55 s warn, its ball starts 0.3 r under the sand and eases in, so over a
+## 2.8 s wind-up it stayed buried for the first 60%.
+var _mounds: Dictionary = {}
+const MOUND_COLOR := Color(0.86, 0.68, 0.42)
+const MOUND_CRACK := Color(0.36, 0.22, 0.12)
+## The dome's height at its fullest as a share of its radius (a hemisphere SphereMesh of `height` 2 x this x r).
+const MOUND_DOME := 0.45
+
+
+func _mound_start(i: int, at: Vector3, r: float) -> void:
+	_mound_end(i)
+	var dome := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = r
+	sm.height = r * MOUND_DOME * 2.0
+	sm.is_hemisphere = true
+	sm.radial_segments = 16
+	sm.rings = 6
+	dome.mesh = sm
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = MOUND_COLOR
+	mat.roughness = 1.0
+	dome.material_override = mat
+	dome.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	dome.position = at
+	add_child(dome)
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = r * 0.95
+	tm.outer_radius = r * 1.08
+	tm.rings = 20
+	tm.ring_segments = 5
+	ring.mesh = tm
+	var rmat := StandardMaterial3D.new()
+	rmat.albedo_color = MOUND_CRACK
+	rmat.roughness = 1.0
+	ring.material_override = rmat
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	ring.position = at + Vector3(0, 0.02, 0)
+	# lying on the slope it opens in (pass 52), not level through it
+	var mp = game.get("map") if game else null
+	if mp and mp.has_method("normal_at"):
+		ring.basis = MapBase.ground_basis(mp.normal_at(at.x, at.z, r))
+	add_child(ring)
+	_mounds[i] = {"dome": dome, "ring": ring, "t0": maxf(timer[i], 0.01)}
+	_mound_shape(i, 0.0)
+
+
+## The mound's shape at `p` of its wind-up (0 just started, 1 about to burst): the dome from a bump (0.12 of its height,
+## 0.3 of its width) to its full dome, the cracks from 0.6 to 1.25 of its radius, on a sine ease-out so the swell shows
+## from the first tick.
+func _mound_shape(i: int, p: float) -> void:
+	var m: Dictionary = _mounds[i]
+	var q := mound_ease(p)
+	(m["dome"] as MeshInstance3D).scale = Vector3(lerpf(0.3, 1.0, q), lerpf(0.12, 1.0, q), lerpf(0.3, 1.0, q))
+	(m["ring"] as MeshInstance3D).scale = Vector3(lerpf(0.6, 1.25, q), lerpf(0.5, 0.7, q), lerpf(0.6, 1.25, q))
+
+
+static func mound_ease(p: float) -> float:
+	return sin(clampf(p, 0.0, 1.0) * PI * 0.5)
+
+
+## The mounds swell with their wind-ups (every tick, after the attack runner has moved the timers); one whose creature is
+## up, gone or out of its attack is cleared.
+func _tick_mounds() -> void:
+	if _mounds.is_empty():
+		return
+	for key in _mounds.keys():
+		var i: int = key
+		if alive[i] == 0 or hidden[i] == 0 or state[i] != STATE_ATTACK:
+			_mound_end(i)
+			continue
+		var m: Dictionary = _mounds[i]
+		_mound_shape(i, 1.0 - timer[i] / float(m["t0"]))
+
+
+func _mound_end(i: int) -> void:
+	if not _mounds.has(i):
+		return
+	var m: Dictionary = _mounds[i]
+	# hidden at once (a queued free is still drawn this frame, a frame of mound under the poof), then freed
+	(m["dome"] as Node3D).visible = false
+	(m["ring"] as Node3D).visible = false
+	(m["dome"] as Node).queue_free()
+	(m["ring"] as Node).queue_free()
+	_mounds.erase(i)
+
+
+## How far the mound under creature `i`'s coming-up stands out of the sand (metres; -1 without one), for tests and tools.
+func mound_top(i: int) -> float:
+	if not _mounds.has(i):
+		return -1.0
+	var dome: MeshInstance3D = _mounds[i]["dome"]
+	return dome.scale.y * float((dome.mesh as SphereMesh).height) * 0.5
 
 
 ## The first frame of strip `strip` in type `t`'s sheet, and how many frames it has.
@@ -4043,6 +4276,12 @@ func _render() -> void:
 		var at := pos[i] + Vector3(0, lift_h[i] + cp.y, 0) + scr * cp.x
 		if drop != 0.0:
 			at -= sprite_sink(i, sq, cam_up)
+		# rising out of the sand (pass 60): the painting sits down the billboard's up by the part still under, the terrain
+		# hiding it; quick at first and settling (an ease-out), the figure's top (`head`) reaching the ground at 0
+		var rise: float = rise_t[i]
+		var rise_k := rise_ease(rise)
+		if rise < 1.0:
+			at -= rise_sink(i, sq, cam_up)
 		mm.set_instance_transform(k, Transform3D(Basis().scaled(Vector3(s, s, s)) if cp.w == 0.0 else roll_basis(s, cp.w), at))
 		# the flash: white, green for a poison tick (negative), orange for a fire tick (2 + flash)
 		var fl: float = flash[i]
@@ -4058,7 +4297,8 @@ func _render() -> void:
 		if i == tethered_i and st != STATE_DYING:
 			# the red outline of the creature holding the rope (levels 0..16 on top of the flip bit)
 			fy += 2.0 * roundf(tether_glow() * 16.0)
-		mm.set_instance_custom_data(k, Color(float(frame), fy, fl, sq))
+		# (the frame carries RISE_FLAG in its fraction while the figure rises: no silhouette of the part under the sand)
+		mm.set_instance_custom_data(k, Color(frame_code(frame, rise), fy, fl, sq))
 		mm.set_instance_color(k, tint_of(i))
 		counters[t] = k + 1
 		# the badge over its head: from the feet up the screen past the top of the figure, then half the badge
@@ -4074,13 +4314,18 @@ func _render() -> void:
 					# Elite by its kind)
 					var bs: float = BADGE_SIZE * _badge_scale * (1.3 if i == boss_index or def.archetype == "boss" or bk == "skull" else 1.0)
 					bmm.set_instance_transform(bn, Transform3D(Basis(), pos[i] + Vector3(0, lift_h[i], 0)))
-					bmm.set_instance_custom_data(bn, Color(s * (float(td["head"]) - drop) * maxf(sq, 0.2) + 0.12 + bs * 0.5, bs, float(i) * 1.7, 0.0))
+					# (pass 60: riding up with a rising figure's top)
+					bmm.set_instance_custom_data(bn, Color(s * maxf(float(td["head"]) * rise_k - drop, 0.0) * maxf(sq, 0.2) + 0.12 + bs * 0.5, bs, float(i) * 1.7, 0.0))
 					badge_n[bk] = bn + 1
 		# shadow (stays on the ground and shrinks while the creature is in the air; none over the water, pass 54 and 56)
 		if shadow_all or shadow_n < SHADOW_BUDGET:
 			var d2: float = pos[i].distance_squared_to(ppos2)
 			if shadow_all or d2 < shadow_r2:
 				var sxf := shadow_xform(i, scf, scr)
+				if rise < 1.0:
+					# the shadow grows in under a figure rising out of the sand (pass 60; the blob has no alpha of its own)
+					var sk := lerpf(0.35, 1.0, rise_k)
+					sxf.basis = sxf.basis.scaled(Vector3(sk, 1.0, sk))
 				if not (lake and Vector2(pos[i].x, pos[i].z).distance_squared_to(lake_c) < wet_far2 and shadow_wet(i, sxf, eye)):
 					_shadow_mm.set_instance_transform(shadow_n, sxf)
 					shadow_n += 1

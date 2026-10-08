@@ -365,28 +365,35 @@ func test_a_used_structure_blanks_the_arms_that_point_at_it() -> void:
 	var blanked := 0
 	for rec: Dictionary in arms:
 		var node: MeshInstance3D = rec["node"]
-		var wood := _wood_material(node)
 		if rec["structure"] == target:
 			blanked += 1
 			assert_bool(bool(rec["blank"])).is_true()
 			# the board a shade paler, the arm still there
 			assert_bool(node.visible).is_true()
-			assert_bool(wood.albedo_color.is_equal_approx(SIGNS.WOOD_SPENT)).is_true()
-			assert_float(wood.albedo_color.v).is_greater(SIGNS.WOOD.v)
+			assert_bool(_wood_colour(node).is_equal_approx(SIGNS.WOOD_SPENT)).is_true()
+			assert_float(_wood_colour(node).v).is_greater(SIGNS.WOOD.v)
 		else:
 			assert_bool(bool(rec["blank"])).is_false()
-			assert_bool(wood.albedo_color.is_equal_approx(SIGNS.WOOD)).is_true()
+			assert_bool(_wood_colour(node).is_equal_approx(SIGNS.WOOD)).is_true()
 	assert_int(blanked).is_equal(n)
 	# a second look changes nothing
 	assert_int(f.check_used(false)).is_equal(0)
 
 
-## The material on an arm's "wood" surface.
-func _wood_material(node: MeshInstance3D) -> StandardMaterial3D:
+## The material on an arm's "wood" surface (pass 60: the sign depth ShaderMaterial, its colour in `albedo`; a plain
+## StandardMaterial3D only while the shader is missing).
+func _wood_material(node: MeshInstance3D) -> Material:
 	for i in node.mesh.get_surface_count():
 		if SIGNS.surface_key(node.mesh, i) == "wood":
-			return node.get_surface_override_material(i) as StandardMaterial3D
+			return node.get_surface_override_material(i)
 	return null
+
+
+func _wood_colour(node: MeshInstance3D) -> Color:
+	var m := _wood_material(node)
+	if m is ShaderMaterial:
+		return (m as ShaderMaterial).get_shader_parameter("albedo")
+	return (m as StandardMaterial3D).albedo_color
 
 
 func test_a_used_structure_pales_its_arms_while_the_game_runs() -> void:
@@ -398,7 +405,7 @@ func test_a_used_structure_pales_its_arms_while_the_game_runs() -> void:
 	# the field looks every half second
 	f._process(SIGNS.POLL + 0.01)
 	assert_bool(bool(rec["blank"])).is_true()
-	assert_bool(_wood_material(rec["node"]).albedo_color.is_equal_approx(SIGNS.WOOD_SPENT)).is_true()
+	assert_bool(_wood_colour(rec["node"]).is_equal_approx(SIGNS.WOOD_SPENT)).is_true()
 
 
 func test_a_used_structure_gets_no_arm_and_no_structures_no_signs() -> void:

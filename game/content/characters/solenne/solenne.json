@@ -257,6 +257,53 @@
         "hit": 12,
         "die": 8
       }
+    },
+    "SOL-E": {
+      "note": "the catwalk again, with a tighter prompt (pass 60): SOL-C's words ('a catwalk stride with the hips swaying') let the model add runway poses: a hand on the hip and a body turning through the three-quarter front cycle, a lean-back crouch in the side cycle. These say what each part of the body does and what stays put, and roll new seeds (anim_seed 4). The three-quarter back view walks on catwalk_fit_wide_spread (pose_spread at 0.10): on the 0.06 spread the driver's wrists passed the hips at hip height and Wan planted both hands on them, elbows out.",
+      "recipe": {
+        "pose_drivers": {
+          "back": "catwalk_fit_spread",
+          "bd": "catwalk_fit_wide_spread",
+          "side": "catwalk_fit",
+          "fd": "catwalk_fit",
+          "front": "catwalk_fit"
+        },
+        "still_keys": {
+          "side": "solenne_s55_side",
+          "hurt_side": "solenne_s55_hurt_side"
+        },
+        "anim_hint": "a slender woman in a glossy black latex catsuit, black gloves and knee-high black boots, her head a flat round yellow cartoon sun disc with pointed rays all round it, the disc turned flat to the camera like a badge with its whole round face showing, the same slim proportions and the same height in every frame",
+        "pose_motion": "walking in place on the spot like on a treadmill with a slow catwalk stride: one foot placed straight in front of the other on one line, the hips swaying from side to side, the shoulders level and still, the chin up, both arms hanging loose at her sides and swinging gently, the hands open and away from the hips, her body facing the same way the whole time",
+        "anim_negative": "a human head, hair, a helmet, a face on the body, a second head, a weapon, a cape, turning round, a hand on the hip, hands behind the back, arms crossed, the sun disc seen edge-on, crouching, bending forward, jumping, a second figure",
+        "back_hint": "the back of the yellow sun disc with its rays and no face, the zip line down the catsuit's back, the heels of the boots; both arms swing loosely at her sides and never reach behind her back",
+        "anim_seed": 4
+      },
+      "sprite": "solenne_sprite_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
     }
   },
   "badge": {

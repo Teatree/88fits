@@ -312,6 +312,12 @@ func test_gems_and_coins_are_drawn_under_every_painting() -> void:
 			assert_int(sm.stencil_flags).is_equal(BaseMaterial3D.STENCIL_FLAG_READ)
 			assert_int(sm.stencil_compare).is_equal(BaseMaterial3D.STENCIL_COMPARE_NOT_EQUAL)
 			assert_int(sm.stencil_reference).is_equal(PickupManager.PAINTING_STENCIL)
+		elif mat is ShaderMaterial:
+			# pass 60: the gems draw through core/shaders/gem.gdshader (the charged look): the same rules in its source
+			var gem_code: String = ((mat as ShaderMaterial).shader as Shader).code
+			assert_str(gem_code).contains("depth_draw_never")
+			assert_str(gem_code).contains("blend_mix")
+			assert_str(gem_code).contains("stencil_mode read, compare_not_equal, %d;" % PickupManager.PAINTING_STENCIL)
 	var coin: String = PickupManager.coin_material().shader.code
 	assert_str(coin).contains("depth_draw_never")
 	assert_str(coin).contains("stencil_mode read, compare_not_equal, %d;" % PickupManager.PAINTING_STENCIL)
@@ -387,20 +393,18 @@ func test_shield_hits_shove_too_and_immune_ones_do_not() -> void:
 	assert_str(p.last_outcome).is_equal("shield")
 	assert_float(p.hp).is_equal(hp0)
 	assert_float(p._kb.x).is_equal_approx(3.0, 0.0001)
-	# the Shield power-up's bubble: shoved once, then not again until hit_invuln has passed
+	# the Shield power-up's bubble (pass 60, Garry: "Invincibility (shield) Power Up should null out the knockback from
+	# enemies"): the hit is taken and nothing shoves him, however many land
 	p.shield_pts = 0.0
 	p.invuln = 0.0
 	p._kb = Vector3.ZERO
 	p.shield_t = 5.0
 	p.take_damage(5.0, Vector3(-1, 0, 0), {"knock": 3.0})
 	assert_str(p.last_outcome).is_equal("shield")
-	assert_float(p._kb.x).is_equal_approx(3.0, 0.0001)
-	p._kb = Vector3.ZERO
+	assert_vector(p._kb).is_equal(Vector3.ZERO)
 	p.take_damage(5.0, Vector3(-1, 0, 0), {"knock": 3.0})
 	assert_vector(p._kb).is_equal(Vector3.ZERO)
-	p._bubble_knock = 0.0
-	p.take_damage(5.0, Vector3(-1, 0, 0), {"knock": 3.0})
-	assert_float(p._kb.x).is_equal_approx(3.0, 0.0001)
+	assert_bool(p.knock_immune()).is_true()
 	# an immune hit (the blink after a hit, god mode) never shoves
 	p.shield_t = 0.0
 	p._kb = Vector3.ZERO

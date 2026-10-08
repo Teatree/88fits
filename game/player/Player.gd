@@ -229,7 +229,7 @@ func _physics_process(delta: float) -> void:
 	invuln = max(invuln - delta, 0.0)
 	_knock_grace = maxf(_knock_grace - delta, 0.0)
 	_stick_lock = maxf(_stick_lock - delta, 0.0)
-	_bubble_knock = maxf(_bubble_knock - delta, 0.0)
+	_settle_t = maxf(_settle_t - delta, 0.0)
 	if momentum and not dead:
 		_tick_momentum(delta)
 	if shield_t > 0.0:
@@ -465,49 +465,86 @@ func launch(v: Vector3) -> void:
 ## could pin him in the air. The hero's own knockback (a harpoon rope, a tornado) goes through `apply_knockback`.
 const KNOCK_GRACE := 1.0
 var _knock_grace := 0.0
+## Out of the crowd (pass 60, Garry: "currently it's possible for Player to get knocked about between enemies, but the
+## idea is that the knockback would throw the Player away from the enemies"): a creature's knock (a bite, a charge, a
+## slam) goes the emptiest way out, escape_dir, and for KNOCK_SETTLE seconds after one lands no creature knock may turn
+## him back the way he came (settle_knock: the part against the last knock dropped, at least SETTLE_KEEP of the push kept
+## so the hit still reads). A hostile shot's shove and a blast keep their own line (ProjectileManager passes
+## from_creature false; _knock_from reads the hit's kind).
+const KNOCK_SETTLE := 0.45
+const SETTLE_KEEP := 0.35
+const ESCAPE_REACH := 4.5
+const ESCAPE_DIRS := 16
+const ESCAPE_PUSH_W := 0.6
+var _settle_t := 0.0
+var _last_knock := Vector3.ZERO
+## the crowd escape_dir reads: Game's EnemyManager, found on the parent the first time (tests set it; none on the title)
+var enemies: EnemyManager = null
 ## A landed hit's shove (pass 54, Garry: every creature its own knockback): take_damage shoves him away from where the
 ## hit came from by the number its caller names in `info.knock` (a bite: the creature's own, EnemyDef.hit_knockback, a
 ## boss's or an Elite's 1.6 times; a hostile shot with no weight of its own: 0.7 of its shooter's; the ring of fire:
 ## none), or HIT_KNOCK when it names none (an eruption, a hell line, a blast's own hit: the fixed shove every hit gave
-## before). A hit the Energy Shield or the Shield power-up takes shoves him too; an evaded or an immune one never does.
-## hit_knock is the shove itself: past the shove's grace (the bites are already spaced by hit_invuln), never past
-## HIT_KNOCK_MAX m/s in all (a blast already flinging him harder keeps its own speed), and for STICK_LOCK seconds the
-## stick does not move him, so the shove reads instead of being walked through.
+## before). A hit the Energy Shield takes shoves him too; an evaded or an immune one never does, and (pass 60) neither
+## does one the Invincibility bubble takes (knock_immune). hit_knock is the shove itself: past the shove's grace (the
+## bites are already spaced by hit_invuln), never past HIT_KNOCK_MAX m/s in all (a blast already flinging him harder
+## keeps its own speed), and for STICK_LOCK seconds the stick does not move him, so the shove reads instead of being
+## walked through.
 const HIT_KNOCK := 2.5
 const HIT_KNOCK_MAX := 9.0
 const STICK_LOCK := 0.12
 var _stick_lock := 0.0
-## the Shield power-up sets no hit_invuln, so the shoves of the bites it takes are spaced by hand (one per hit_invuln):
-## a ring of creatures biting at the bubble must not hold the stick for good
-var _bubble_knock := 0.0
 ## what the last take_damage came to: "hit", "shield", "evaded", "immune" or "none" (a blast reads it: an evade
 ## leaves him standing)
 var last_outcome := "none"
 
 
-func shove(v: Vector3) -> bool:
-	if _knock_grace > 0.0 or dead:
+## `from_creature` (the default): a creature's own shove, turned out of the crowd and settled (_crowd_knock); a hostile
+## shot's passes false and keeps its line. Nothing while the Invincibility bubble holds (pass 60).
+func shove(v: Vector3, from_creature: bool = true) -> bool:
+	if _knock_grace > 0.0 or dead or knock_immune():
 		return false
 	_knock_grace = KNOCK_GRACE
 	# whatever the source, the shove itself is bounded: the physics never sees a metre a frame
 	var f: float = minf(v.length(), 14.0)
 	if f > 0.01:
-		_kb += v.normalized() * f
+		var push := v.normalized() * f
+		if from_creature:
+			push = _crowd_knock(push)
+		_kb += push
 	return true
 
 
-func apply_knockback(v: Vector3) -> void:
+## The hero's own knockback and the pulls on him: a `hostile` one (the default: a harpoon rope's, a silk line's, a
+## blast's throw) is nothing while the Invincibility bubble holds; his own (Thruster's lunge passes false) always moves
+## him.
+func apply_knockback(v: Vector3, hostile: bool = true) -> void:
+	if hostile and knock_immune():
+		return
 	_kb += v
 
 
+## The Invincibility power-up's rule (pass 60, Garry: "Invincibility (shield) Power Up should null out the knockback
+## from enemies"): while its bubble is up no hostile shove, hit knock, pull or blast moves him. Only the power-up: the
+## Energy Shield line's points still take the shove of what they catch, and the blink after a hit or a revive is no
+## bubble.
+func knock_immune() -> bool:
+	return shield_t > 0.0
+
+
 ## A landed hit's shove (pass 54): `v` (m/s, flat) on top of whatever moves him, past the shove's grace, the whole never
-## past HIT_KNOCK_MAX (or past what a blast already gave him), and the stick held off for STICK_LOCK seconds.
-func hit_knock(v: Vector3) -> void:
-	if dead:
+## past HIT_KNOCK_MAX (or past what a blast already gave him), and the stick held off for STICK_LOCK seconds. A
+## creature's (`from_creature`, the default) goes out of the crowd and never straight back (pass 60, _crowd_knock); a
+## shot's keeps its line. Nothing while the Invincibility bubble holds.
+func hit_knock(v: Vector3, from_creature: bool = true) -> void:
+	if dead or knock_immune():
 		return
 	var flat := Vector3(v.x, 0.0, v.z)
 	if flat.length_squared() < 0.0001:
 		return
+	if from_creature:
+		flat = _crowd_knock(flat)
+		if flat.length_squared() < 0.0001:
+			return
 	var cap := maxf(HIT_KNOCK_MAX, _kb.length())
 	_kb += flat
 	if _kb.length() > cap:
@@ -515,8 +552,98 @@ func hit_knock(v: Vector3) -> void:
 	_stick_lock = STICK_LOCK
 
 
+## A creature's knock as it lands (pass 60): turned the emptiest way out of the crowd (escape_dir) and, within
+## KNOCK_SETTLE of the last one, never back against it (settle_knock); the way it went is kept for the next.
+func _crowd_knock(push: Vector3) -> Vector3:
+	var out := escape_dir(push)
+	if _settle_t > 0.0 and _last_knock.length_squared() > 0.0001:
+		out = settle_knock(out, _last_knock)
+	if out.length_squared() > 0.0001:
+		_last_knock = out.normalized()
+		_settle_t = KNOCK_SETTLE
+	return out
+
+
+## The no-ping-pong rule on its own: `push` with its part against `last` (the last knock's way) dropped, and at least
+## SETTLE_KEEP of its length kept, along what is left or, when nothing is, along `last`.
+static func settle_knock(push: Vector3, last: Vector3) -> Vector3:
+	var mag := push.length()
+	if mag < 0.0001 or last.length_squared() < 0.0001:
+		return push
+	var l := last.normalized()
+	var out := push
+	var against := push.dot(l)
+	if against < 0.0:
+		out = push - l * against
+	var keep := mag * SETTLE_KEEP
+	if out.length() < keep:
+		out = (out.normalized() if out.length_squared() > 0.000001 else l) * keep
+	return out
+
+
+## The emptiest way out for a push (pass 60): of ESCAPE_DIRS flat directions, the one with the least crowd ahead of it
+## (every live creature within ESCAPE_REACH, weighed 1 - d / reach times how squarely it lies that way) less a pull of
+## ESCAPE_PUSH_W towards the push's own line, at the push's length. A lone biter: straight away from it, as before; one
+## on each side: out through the gap, not into the other. Without a crowd to read (the title, tests) the push as it was.
+func escape_dir(push: Vector3) -> Vector3:
+	var flat := Vector3(push.x, 0.0, push.z)
+	var mag := flat.length()
+	if mag < 0.0001:
+		return Vector3.ZERO
+	var em := _crowd()
+	if em == null:
+		return flat
+	var near: PackedInt32Array = em.indices_in_radius(global_position, ESCAPE_REACH)
+	var here := global_position
+	var cands: Array = []
+	for i in near:
+		if em.alive[i] == 0 or em.hidden[i] == 1 or em.held[i] == 1:
+			continue
+		var to: Vector3 = em.pos[i] - here
+		to.y = 0.0
+		var d := to.length()
+		if d < 0.001 or d > ESCAPE_REACH:
+			continue
+		cands.append([to / d, 1.0 - d / ESCAPE_REACH])
+	if cands.is_empty():
+		return flat
+	var pdir := flat / mag
+	var a0 := atan2(pdir.x, pdir.z)
+	var best := pdir
+	var best_score := INF
+	for k in range(ESCAPE_DIRS):
+		var a := a0 + TAU * float(k) / float(ESCAPE_DIRS)
+		var dir := Vector3(sin(a), 0.0, cos(a))
+		var crowd := 0.0
+		for c: Array in cands:
+			var u: Vector3 = c[0]
+			crowd += float(c[1]) * maxf(0.0, dir.dot(u))
+		var score := crowd - ESCAPE_PUSH_W * dir.dot(pdir)
+		if score < best_score - 0.0001:
+			best_score = score
+			best = dir
+	return best * mag
+
+
+## The crowd he reads: `enemies` when set, else the nearest ancestor's (Game.enemies: the hero is Game's own child, a
+## holder or two up is allowed), found once; null when there is none (the title's stage, a bare test).
+func _crowd() -> EnemyManager:
+	if enemies == null or not is_instance_valid(enemies):
+		enemies = null
+		var p := get_parent()
+		var hops := 0
+		while p != null and hops < 3:
+			if "enemies" in p:
+				enemies = p.get("enemies") as EnemyManager
+				break
+			p = p.get_parent()
+			hops += 1
+	return enemies
+
+
 ## The shove of a hit that landed from `from` (pass 54): `info.knock` m/s straight away from it, HIT_KNOCK when the
-## caller names none, nothing at 0 (the ring of fire) or when it came from right where he stands.
+## caller names none, nothing at 0 (the ring of fire) or when it came from right where he stands. A creature's hit (any
+## kind but "ranged") goes out of the crowd (pass 60); a shot's keeps its line.
 func _knock_from(from: Vector3, info: Dictionary) -> void:
 	var f := float(info.get("knock", HIT_KNOCK))
 	if f <= 0.0:
@@ -525,13 +652,15 @@ func _knock_from(from: Vector3, info: Dictionary) -> void:
 	away.y = 0.0
 	if away.length_squared() < 0.0001:
 		return
-	hit_knock(away.normalized() * f)
+	hit_knock(away.normalized() * f, str(info.get("kind", "melee")) != "ranged")
 
 
 ## A blast throws him (pass 33.3, the rocketeer's rocket): past the shove's cap and its grace, `up` metres a second off
-## the ground with it, and the grace starts again so no shove stacks on top while he flies.
-func blast(v: Vector3, up: float = 0.0) -> void:
-	if dead:
+## the ground with it, and the grace starts again so no shove stacks on top while he flies. A `hostile` one (the
+## default) is nothing while the Invincibility bubble holds (pass 60); his own (Astro's thruster burst passes false)
+## throws him anyway.
+func blast(v: Vector3, up: float = 0.0, hostile: bool = true) -> void:
+	if dead or (hostile and knock_immune()):
 		return
 	_knock_grace = KNOCK_GRACE
 	_kb += Vector3(v.x, 0, v.z)
@@ -609,14 +738,11 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 	if dead:
 		return
 	if shield_t > 0.0:
-		# the shield power-up takes it: a flash on the sphere, nothing on the hero
+		# the shield power-up takes it: a flash on the sphere, nothing on the hero, and (pass 60) no shove either
 		_shield_hit = 1.0
 		_log_hit(amount, 0.0, 0.0, info, "power-up")
 		last_outcome = "shield"
 		if DamageNumbers.I: DamageNumbers.I.hero_block()
-		if _bubble_knock <= 0.0:
-			_bubble_knock = sheet.get_stat("hit_invuln", 0.5)
-			_knock_from(from, info)
 		return
 	if god or invuln > 0.0:
 		last_outcome = "immune"

@@ -54,8 +54,11 @@ var facing := 0.0
 var velocity := Vector3.ZERO
 var last_outcome := "hit"
 var hip: Node3D = null
+var still := false
 signal hit
 signal shield_hit(broke: bool)
+func is_still() -> bool:
+	return still
 func take_damage(_a: float, _f: Vector3, _i: Dictionary = {}) -> void:
 	pass
 func shove(_v: Vector3) -> bool:
@@ -281,7 +284,7 @@ func test_the_evolutions_are_repointed_and_the_old_ones_hidden() -> void:
 	# the mutation's numbers the final does not name stay (the bomblet's quarter damage, its 0.8 m pop)
 	assert_float(float((hb.params["cluster"] as Dictionary).get("damage_frac", 0.0))).is_equal_approx(0.25, 0.0001)
 	assert_float(float((hb.params["pressure"] as Dictionary).get("start", 0.0))).is_equal_approx(0.25, 0.0001)
-	assert_float(float((hb.params["pressure"] as Dictionary).get("hit_keeps", 0.0))).is_equal_approx(0.5, 0.0001)
+	assert_float(float((hb.params["pressure"] as Dictionary).get("hit_vent", 0.0))).is_equal_approx(0.5, 0.0001)
 	assert_float(float(hb.params.get("size_mult", 0.0))).is_equal_approx(1.5, 0.0001)
 	assert_int(int((hb.params["overpressure"] as Dictionary).get("every", 0))).is_equal(4)
 	assert_bool(bool(hb.params.get("cluster_spin", true))).is_false()
@@ -512,26 +515,30 @@ func test_bomblets_keep_to_their_cap_and_the_batterys_chain_pops_them_all() -> v
 	assert_int(field.count_of(inst)).is_greater(0)
 
 
-func test_pressure_cooker_builds_attack_speed_between_hits_and_the_pod_glows() -> void:
+func test_pressure_cooker_builds_attack_speed_standing_still_and_the_pod_glows() -> void:
+	# re-pinned in pass 60 (Garry: "while standing still the rate of fire of the Rocket Pod increases, every second, up
+	# to +200%. Being hit or moving stops it. Takes like 15 seconds to get to max"): the pressure climbs with stillness
 	var w := _world()
 	var em: EnemyManager = w["em"]
 	var inst := _inst("rocket_pod", ["pressure_cooker"])
-	Run.elapsed = 0.0
-	Run.held_time = 0.0
 	var mp := _pod(w, inst)
 	var cd := inst.stat("cooldown")
-	assert_float(mp.pressure_ramp()).is_equal_approx(0.0, 0.0001)
+	var hero: Node3D = w["hero"]
+	assert_float(mp.pressure).is_equal_approx(0.0, 0.0001)
 	assert_float(mp.pressure_bonus()).is_equal_approx(0.0, 0.0001)
 	assert_float(mp.fire_interval()).is_equal_approx(cd, 0.0001)
-	# halfway at 10 s, the top at 20 (+50%)
-	Run.elapsed = 10.0
-	assert_float(mp.pressure_ramp()).is_equal_approx(0.5, 0.0001)
-	assert_float(mp.fire_interval()).is_equal_approx(cd / 1.25, 0.0001)
-	Run.elapsed = 25.0
-	assert_float(mp.pressure_ramp()).is_equal_approx(1.0, 0.0001)
-	assert_float(mp.pressure_bonus()).is_equal_approx(0.5, 0.0001)
-	assert_float(mp.fire_interval()).is_equal_approx(cd / 1.5, 0.0001)
-	# the glow follows the ramp: the pod's body and tube materials, duplicated for this pod, warm to a dull orange
+	# standing still: halfway at 7.5 s, the top (+200%) at 15
+	hero.set("still", true)
+	for k in range(int(round(7.5 / DT))):
+		mp._tick(DT)
+	assert_float(mp.pressure).is_equal_approx(0.5, 0.01)
+	assert_float(mp.fire_interval()).is_equal_approx(cd / 2.0, 0.02)
+	for k in range(int(round(8.0 / DT))):
+		mp._tick(DT)
+	assert_float(mp.pressure).is_equal_approx(1.0, 0.0001)
+	assert_float(mp.pressure_bonus()).is_equal_approx(2.0, 0.0001)
+	assert_float(mp.fire_interval()).is_equal_approx(cd / 3.0, 0.0001)
+	# the glow follows the pressure: the pod's body and tube materials, duplicated for this pod, warm to hot orange
 	assert_int(mp._heat_mats.size()).is_greater_equal(2)
 	mp._tick_heat()
 	assert_float(mp.heat_shown()).is_equal_approx(1.0, 0.0001)
@@ -542,28 +549,32 @@ func test_pressure_cooker_builds_attack_speed_between_hits_and_the_pod_glows() -
 	# the pod's own materials, not the scene's: the tips' emissive material is left alone
 	var tip := mp.visual.get_node("Familiar/Body/Cluster/Tip1") as MeshInstance3D
 	assert_bool(mp._heat_mats.has(tip.material_override)).is_false()
-	# a hit on the hero resets it ("resets it back"), and the glow dies with it
-	var hero: Node3D = w["hero"]
+	# a hit on the hero vents half, and the glow follows
 	hero.emit_signal("hit")
-	assert_float(mp.pressure_ramp()).is_equal_approx(0.0, 0.0001)
-	assert_float(mp.fire_interval()).is_equal_approx(cd, 0.0001)
+	assert_float(mp.pressure).is_equal_approx(0.5, 0.0001)
+	assert_float(mp.fire_interval()).is_equal_approx(cd / 2.0, 0.0001)
 	mp._tick_heat()
-	assert_float(mp.heat_shown()).is_equal_approx(0.0, 0.0001)
-	# a hit the Energy Shield took counts too
-	Run.elapsed = 45.0
-	assert_float(mp.pressure_ramp()).is_equal_approx(1.0, 0.0001)
+	assert_float(mp.heat_shown()).is_equal_approx(0.5, 0.0001)
+	# a hit the Energy Shield took vents too
 	hero.emit_signal("shield_hit", false)
-	assert_float(mp.pressure_ramp()).is_equal_approx(0.0, 0.0001)
+	assert_float(mp.pressure).is_equal_approx(0.25, 0.0001)
+	# a step lets it all out (once the hit's hold is over: the knock's own step is not him moving, pass 60)
+	hero.set("still", false)
+	for k in range(int(MissilePod.VENT_HOLD / DT) + 2):
+		mp._tick(DT)
+	assert_float(mp.pressure).is_equal_approx(0.0, 0.0001)
+	assert_float(mp.fire_interval()).is_equal_approx(cd, 0.0001)
 	# the re-arm after a volley is the pressure's interval, not the sheet's cooldown
-	Run.elapsed = 65.0
+	hero.set("still", true)
+	mp.pressure = 1.0
 	_creature(em, Vector3(4, 0, 0))
 	em._rebuild_grid()
 	em.refresh_crowd_stats()
 	mp.cooldown_left = 0.0
 	mp._process(DT)
 	assert_int(mp.bursts).is_equal(1)
-	assert_float(mp.cooldown_left).is_equal_approx(cd / 1.5, 0.0001)
-	# a pod without the pick is untouched: no ramp, no glow, the sheet's cooldown
+	assert_float(mp.cooldown_left).is_equal_approx(cd / 3.0, 0.0001)
+	# a pod without the pick is untouched: no pressure, no glow, the sheet's cooldown
 	var plain := _pod(w, _inst("rocket_pod"))
 	assert_float(plain.pressure_bonus()).is_equal_approx(0.0, 0.0001)
 	assert_int(plain._heat_mats.size()).is_equal(0)
@@ -581,16 +592,16 @@ func test_the_hellfire_battery_starts_hot_keeps_half_on_a_hit_and_doubles_every_
 	var mp := _pod(w, inst)
 	var cd := inst.stat("cooldown")
 	assert_float(cd).is_equal_approx(1.6, 0.0001)
-	# +25% from the start, +80% at the top
+	# +25% from the start, +200% at full pressure (pass 60: the Cooker's ceiling and 15 s, the Battery's own +25% start;
+	# the pressure is built by standing still, not by going unhit)
 	assert_float(mp.pressure_bonus()).is_equal_approx(0.25, 0.0001)
 	assert_float(mp.fire_interval()).is_equal_approx(cd / 1.25, 0.0001)
-	Run.elapsed = 20.0
-	assert_float(mp.pressure_ramp()).is_equal_approx(1.0, 0.0001)
-	assert_float(mp.pressure_bonus()).is_equal_approx(0.8, 0.0001)
-	# a hit keeps half of the ramp
+	mp.pressure = 1.0
+	assert_float(mp.pressure_bonus()).is_equal_approx(2.0, 0.0001)
+	# a hit vents half of it
 	mp.note_hit()
-	assert_float(mp.pressure_ramp()).is_equal_approx(0.5, 0.0001)
-	assert_float(mp.pressure_bonus()).is_equal_approx(0.25 + 0.55 * 0.5, 0.0001)
+	assert_float(mp.pressure).is_equal_approx(0.5, 0.0001)
+	assert_float(mp.pressure_bonus()).is_equal_approx(0.25 + 1.75 * 0.5, 0.0001)
 	# the battery: six tubes and six tips, no quarter turns of the cluster, a vent
 	assert_int(mp._tips.size()).is_equal(6)
 	assert_bool(mp._cluster_spins).is_false()
@@ -604,12 +615,11 @@ func test_the_hellfire_battery_starts_hot_keeps_half_on_a_hit_and_doubles_every_
 	var pod := _pod(w, _inst("rocket_pod"))
 	assert_int(pod._tips.size()).is_equal(4)
 	assert_bool(pod._cluster_spins).is_true()
-	# at the top of the ramp every fourth volley is a double volley
+	# at full pressure every fourth volley is a double volley
 	_creature(em, Vector3(4, 0, 0))
 	em._rebuild_grid()
 	em.refresh_crowd_stats()
-	Run.elapsed = 60.0
-	assert_float(mp.pressure_ramp()).is_equal_approx(1.0, 0.0001)
+	mp.pressure = 1.0
 	var n := inst.stat_int("amount")
 	assert_int(n).is_equal(8)
 	var sizes: Array = []

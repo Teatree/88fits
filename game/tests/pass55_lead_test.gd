@@ -163,16 +163,17 @@ func test_the_dust_devil_rolls_too_and_a_pea_still_tumbles_on_its_flight() -> vo
 	assert_float(absf(b.z.dot(pm.vel[j].normalized()))).is_greater(0.99)
 
 
-func test_solenne_carries_her_four_walks_as_art_variants() -> void:
+func test_solenne_carries_her_five_walks_as_art_variants() -> void:
 	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://content/characters/solenne/solenne.json"))
 	assert_str(str(d.get("variant_base"))).is_equal("SOL-A")
 	var v: Dictionary = d.get("variants", {})
-	for code in ["SOL-A", "SOL-B", "SOL-C", "SOL-D"]:
+	# pass 60: SOL-E, the catwalk again with a tighter prompt and its own seeds
+	for code in ["SOL-A", "SOL-B", "SOL-C", "SOL-D", "SOL-E"]:
 		assert_bool(v.has(code)).override_failure_message(code).is_true()
 		assert_str(str((v[code] as Dictionary).get("note", ""))).is_not_empty()
 	assert_str(str(v["SOL-A"]["sprite"])).is_equal("solenne_sprite.png")
-	# B, C and D walk on drivers fitted to her painting, with the side still whose sun disc faces the viewer
-	for code in ["SOL-B", "SOL-C", "SOL-D"]:
+	# B to E walk on drivers fitted to her painting, with the side still whose sun disc faces the viewer
+	for code in ["SOL-B", "SOL-C", "SOL-D", "SOL-E"]:
 		var r: Dictionary = v[code].get("recipe", {})
 		var drv: Dictionary = r.get("pose_drivers", {})
 		for view in ["back", "bd", "side", "fd", "front"]:

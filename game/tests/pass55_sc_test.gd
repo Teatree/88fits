@@ -275,8 +275,8 @@ func test_the_family_hangs_no_emblems() -> void:
 	var w := _world()
 	for id in ["sun_scepter", "zenith"]:
 		var b = _scepter(w, id, ["heat_stroke", "flicker", "gold_dust"])
-		assert_bool(b.shows_marks()).override_failure_message(id).is_false()
-		assert_int(b.mark_count()).is_equal(0)
+		# pass 60: no weapon hangs emblems (WeaponBehavior.refresh_marks frees any "MutationMarks" node and builds none)
+		assert_object(b.get_node_or_null("MutationMarks")).override_failure_message(id).is_null()
 		assert_bool(bool(Registry.weapon(id).params.get("marks", true))).is_false()
 
 
@@ -365,7 +365,7 @@ func test_gold_dust_shows_nothing_on_the_sceptre() -> void:
 	var b = _scepter(w, "sun_scepter", ["gold_dust"])
 	assert_bool(b.has_ring()).is_false()
 	assert_bool(b.staff_tinted()).is_false()
-	assert_int(b.mark_count()).is_equal(0)
+	assert_object(b.get_node_or_null("MutationMarks")).is_null()
 	assert_int(b._model.get_child_count()).is_equal(plain._model.get_child_count())
 	assert_int(b._familiar.get_child_count()).is_equal(plain._familiar.get_child_count())
 
@@ -376,6 +376,6 @@ func test_zenith_carries_the_whole_path_on_its_staff() -> void:
 	assert_object(b._staff()).is_not_null()
 	assert_bool(b.staff_tinted()).is_true()
 	assert_bool(b.has_ring()).is_true()
-	assert_int(b.mark_count()).is_equal(0)
+	assert_object(b.get_node_or_null("MutationMarks")).is_null()
 	# and its count ring still lights on the sun head
 	assert_bool(b._charge != null and b._charge.visible).is_true()

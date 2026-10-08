@@ -1,7 +1,9 @@
 // Sprite-strip billboard for MultiMesh enemies. Faces the camera fully (face_camera = 1), pivoting on the feet,
 // so a sprite is never seen edge-on from the high camera. face_camera = 0 gives the old upright Y-billboard.
-// INSTANCE_CUSTOM: x = frame index, y = flip (0/1) + 2 x glow level (0..16, pass 33.10: the harpooner's red outline
-// while it holds the hero on its rope), z = flash (-1..1, negative = poison green), w = squash (1 = normal)
+// INSTANCE_CUSTOM: x = frame index (+ 0.5 in its fraction while the creature rises out of the sand, pass 60: floored
+// here, read by enemy_silhouette, which draws nothing then), y = flip (0/1) + 2 x glow level (0..16, pass 33.10: the
+// harpooner's red outline while it holds the hero on its rope), z = flash (-1..1, negative = poison green), w = squash
+// (1 = normal)
 // INSTANCE COLOR:  rgb = tint (elite colour), a = tint strength
 shader_type spatial;
 render_mode cull_disabled, unshaded, skip_vertex_transform, depth_draw_opaque;

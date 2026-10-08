@@ -35,6 +35,7 @@ var pause_screen: PauseScreen
 var portal_dialog: PortalDialog
 var hints: Hints
 var debug_panel: DebugPanel
+## level-ups not yet offered: the bank (pass 60: it also holds those that came while the hero was down)
 var _pending_levels := 0
 var _spit_kind := -1
 var _harpoon_kind := -1
@@ -44,8 +45,6 @@ var _spike_kind := -1
 var _shard_kind := -1
 var _tumble_kind := -1
 const TUMBLE_R := 0.55   # the King's volley (pass 45): tumbleweeds 1.1 m across
-## chests waiting for the reel while one is open (a boss drops two, and both fly in together)
-var _chest_queue: Array = []
 var _breadcrumb_t := 0.0
 # the harpoon tether (pass 28; a leash since pass 33.10): the creature holding the rope, seconds left, the rope's length
 # (as long as the throw, shortening as the hero walks in), its shortest, and his speed walking straight away from it
@@ -223,13 +222,10 @@ func _ready() -> void:
 	resume_gate = ResumeGate.new()
 	resume_gate.hud = hud
 	ui.add_child(resume_gate)
-	resume_gate.resumed.connect(func():
-		set_paused(false)
-		if _path_pending:
-			call_deferred("present_path_offer")
-		# a second of grace after the screens, blinking, so a pick is never claimed straight into a bite
-		if player and not player.dead:
-			player.invuln = maxf(player.invuln, 1.0))
+	resume_gate.resumed.connect(_after_gate)
+	# the one-modal rule's watch (pass 60): in the player's debug mode an error names two screens up at once; on the
+	# tree's frame signal, since the screens are up only while the run is paused and Game's own _process is not
+	get_tree().process_frame.connect(_check_one_modal)
 	hints = Hints.new()
 	hints.game = self
 	ui.add_child(hints)
@@ -829,6 +825,199 @@ func close_pause() -> void:
 	pause_screen.close()
 	Audio.play("ui_resume")
 	set_paused(false)
+	# a screen asked for while the menu was up (pass 60) comes now
+	if not _modal_queue.is_empty():
+		_open_next_modal_soon(MODAL_BEAT)
+
+
+# ---------------------------------------------------------------- one screen at a time (pass 60)
+
+## THE RULE (pass 60, Garry: "sometimes I can get both a level up and die. This shouldn't happen ... Some way by which
+## we will never run into this situation again"): one screen at a time, and death wins.
+## - Every screen that pauses the run (the level-up cards, a mutation offer, a chest's reel, the stage-clear dialog,
+##   Down!, the shop, the Stranger) is asked for through _request_modal(kind, opener). One is up at a time (_modal); the
+##   rest wait in _modal_queue by priority (Down! > the portal > a boss's chest > a chest > the level cards > a path
+##   offer > the shop and the Stranger), oldest first within a priority. When the one up closes, _modal_done() opens the
+##   next after a beat, or hands the run back once the queue is empty: through the gate (TAP TO GO, the pick flying to
+##   its slot) or straight (_resume_run), with a second of blinking grace either way.
+## - Death wins: while the hero is down (player.dead) only Down! may open. A level-up that comes meanwhile is BANKED
+##   (_pending_levels counts it; one CARDS request waits for the bank), a chest or a path offer waits in the queue, and
+##   they all come one after another once he is up (_revive, REVIVE_BEAT after his blast); staying down (end_run) drops
+##   the queue.
+## - Nothing hurts the hero while a screen is up: every timer that can land a hit on him (a body going off in
+##   elite_explosion, the Down! wait itself) is pause-respecting (create_timer(..., false)), so it waits while the run
+##   is paused behind a screen and looks again when it wakes. The pause menu and the gate count as screens here: a
+##   request made while one is up waits for close_pause / the tap.
+## - A tool or a test that opens a screen by hand (chest_screen.open, cards.show_offer, set_paused) stands outside the
+##   rule, as before; the openers mark _modal themselves, so a direct _show_next_level_cards still holds the turn.
+##   With Settings.debug_mode on, _check_one_modal prints an error the frame two of these screens are visible.
+enum Modal {NONE, CARDS, PATH, CHEST, PORTAL, REVIVE, SHOP, STRANGER}
+const MODAL_PRIORITY := {Modal.REVIVE: 70, Modal.PORTAL: 60, Modal.CHEST: 40, Modal.CARDS: 30, Modal.PATH: 20, Modal.SHOP: 10, Modal.STRANGER: 10}
+## a boss's chest goes before an ordinary one that fell beside it
+const BOSS_CHEST_BUMP := 5
+## the beat between one screen closing and the next opening (the run paused meanwhile), and the longer one after the
+## hero gets up, so his blast reads before the banked screens come
+const MODAL_BEAT := 0.2
+const REVIVE_BEAT := 0.6
+var _modal: Modal = Modal.NONE
+## [{kind, priority, seq, opener}], highest priority first, then oldest first
+var _modal_queue: Array = []
+var _modal_seq := 0
+var _modal_next_pending := false
+var _two_modals_said := ""
+
+
+## Asks for a screen. It opens now (the run pauses) when nothing holds the run and the hero stands; else it waits its
+## turn. `opener` opens the screen; it may return false when it had nothing to show, and the turn passes on. `bump`
+## lifts its priority (a boss's chest); `dedupe` keeps one request of the kind in the queue (the level cards: the bank
+## _pending_levels says how many, one request drains it).
+func _request_modal(kind: Modal, opener: Callable, bump: int = 0, dedupe: bool = false) -> void:
+	if _ended:
+		return
+	if dedupe:
+		for r: Dictionary in _modal_queue:
+			if int(r["kind"]) == kind:
+				return
+	var down: bool = player != null and player.dead
+	# a waiting queue (or a hand-over beat) means the newcomer takes its place in line, never the front (the review:
+	# a chest touched in the revive beat had opened before the banked cards)
+	if _modal_busy() or (down and kind != Modal.REVIVE) or not _modal_queue.is_empty() or _modal_next_pending:
+		_modal_seq += 1
+		_modal_queue.append({"kind": kind, "priority": int(MODAL_PRIORITY.get(kind, 0)) + bump, "seq": _modal_seq, "opener": opener})
+		_modal_queue.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			if int(a["priority"]) != int(b["priority"]):
+				return int(a["priority"]) > int(b["priority"])
+			return int(a["seq"]) < int(b["seq"]))
+		if not _modal_busy() and not _modal_next_pending:
+			_open_next_modal()
+		return
+	_open_modal(kind, opener)
+
+
+func _open_modal(kind: Modal, opener: Callable) -> void:
+	_modal = kind
+	# the opener pauses when it shows something: pausing here first had dropped the thumb (PlayerInput.force_release)
+	# for a slot that had nothing to offer
+	var r = opener.call()
+	if r is bool and not r:
+		if paused:
+			# between screens (the hand-over left the run paused): the next, or the run goes on
+			_modal_done({}, false)
+		else:
+			# nothing to show, from the running game: the turn passes on and the run is not touched
+			_modal = Modal.NONE
+			if not _modal_queue.is_empty():
+				_open_next_modal_soon(MODAL_BEAT)
+
+
+## Whether a screen, the gate or the pause menu holds the run now.
+func _modal_busy() -> bool:
+	if _modal != Modal.NONE:
+		return true
+	if resume_gate != null and resume_gate.visible:
+		return true
+	return pause_screen != null and pause_screen.visible
+
+
+## The screen up has closed: the next in line opens after a beat, or the run goes on, through the gate (`pick` flies to
+## its slot) or straight (`through_gate` false). With the hero down only Down! may come next; anything else waits for
+## him to get up, and the run runs on so his fall plays out and Down! can come (its wait is pause-respecting).
+func _modal_done(pick: Dictionary = {}, through_gate: bool = true) -> void:
+	_modal = Modal.NONE
+	if _ended:
+		return
+	var down: bool = player != null and player.dead
+	if not _modal_queue.is_empty() and (not down or int(_modal_queue[0]["kind"]) == Modal.REVIVE):
+		_open_next_modal_soon(MODAL_BEAT)
+		return
+	if down:
+		set_paused(false)
+		return
+	if through_gate:
+		resume_gate.open(pick)
+	else:
+		_resume_run()
+
+
+## The run goes on without the gate: unpaused, a second of blinking grace (a pick is never claimed straight into a
+## bite), and the next request if one waits.
+func _resume_run() -> void:
+	set_paused(false)
+	if player and not player.dead:
+		player.invuln = maxf(player.invuln, 1.0)
+	if not _modal_queue.is_empty():
+		_open_next_modal_soon(MODAL_BEAT)
+
+
+## The gate's tap (TAP TO GO): the run goes on, and the next screen in line (a path offer that came due behind the
+## cards) follows after a beat.
+func _after_gate() -> void:
+	_resume_run()
+
+
+## The next request opens after `beat` seconds on the real clock (the run may be paused while the screens change hands);
+## one such beat at a time.
+func _open_next_modal_soon(beat: float) -> void:
+	if _modal_next_pending:
+		return
+	_modal_next_pending = true
+	get_tree().create_timer(beat).timeout.connect(func() -> void:
+		_modal_next_pending = false
+		_open_next_modal())
+
+
+func _open_next_modal() -> void:
+	if _ended or _modal_queue.is_empty() or _modal_busy():
+		return
+	var down: bool = player != null and player.dead
+	if down and int(_modal_queue[0]["kind"]) != Modal.REVIVE:
+		return
+	var r: Dictionary = _modal_queue.pop_front()
+	_open_modal(r["kind"], r["opener"])
+
+
+## The screens the rule covers that are visible now, by name (tests, the debug watch). WConfirm's question over one of
+## them is not a second screen.
+func visible_modals() -> Array:
+	var out: Array = []
+	for pair in [["cards", cards], ["chest", chest_screen], ["portal", portal_dialog], ["revive", revive_screen],
+			["shop", structure_shop], ["stranger", stranger_screen], ["pause", pause_screen]]:
+		var n = pair[1]
+		if n != null and is_instance_valid(n) and (n as CanvasItem).visible:
+			out.append(pair[0])
+	return out
+
+
+## The queue as kinds, oldest-first within priorities (tests, tools).
+func modal_queue_kinds() -> Array:
+	var out: Array = []
+	for r: Dictionary in _modal_queue:
+		out.append(int(r["kind"]))
+	return out
+
+
+func current_modal() -> int:
+	return _modal
+
+
+## A tool's or a test's hand on the screens (touch_audit closes a reel by setting it invisible, wanted_shots opens them
+## by hand): the turn and the queue are forgotten, so the next request opens at once; nothing is unpaused here.
+func modal_reset() -> void:
+	_modal = Modal.NONE
+	_modal_queue.clear()
+
+
+func _check_one_modal() -> void:
+	if _ended or not Settings.debug_mode:
+		return
+	var vis := visible_modals()
+	if vis.size() > 1:
+		var key := ",".join(vis)
+		if key != _two_modals_said:
+			_two_modals_said = key
+			push_error("two screens up at once: %s (Game's one-screen rule, pass 60)" % key)
+	else:
+		_two_modals_said = ""
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -1164,7 +1353,8 @@ func _tick_thrusters(delta: float) -> void:
 		if n < best_n:
 			best_n = n
 			best = dir
-	player.blast(best * Run.perk_param("thruster_burst", "push", 28.0), Run.perk_param("thruster_burst", "lift", 5.0))
+	# her own thrusters, not a hostile throw: they fire her clear under the Invincibility bubble too (pass 60, lane WP)
+	player.blast(best * Run.perk_param("thruster_burst", "push", 28.0), Run.perk_param("thruster_burst", "lift", 5.0), false)
 	player.invuln = maxf(player.invuln, Run.perk_param("thruster_burst", "invuln", 0.6))
 	enemies.throw_radius(here, Run.perk_param("thruster_burst", "throw_radius", 3.2), Run.perk_param("thruster_burst", "throw", 18.0))
 	fx.burst(here + Vector3(0, 0.4, 0), Color(0.55, 0.85, 1.0), 1.4)
@@ -1242,34 +1432,36 @@ func _on_level_up(level: int) -> void:
 	hud.flash_level(level)
 	if skip_cards:
 		return
-	if not cards.visible and not portal_dialog.visible and not chest_screen.visible:
-		_show_next_level_cards()
-
-
-var _path_pending := false
+	# the cards open now, or wait their turn behind whatever is up, or for him to get up (pass 60: death wins; the bank
+	# _pending_levels says how many)
+	_request_modal(Modal.CARDS, _show_next_level_cards, 0, true)
 
 
 ## A stage's path slot came due (WaveDirector): the weapon whose path is open goes on the table, all of it. Behind
-## another screen it waits for the resume.
+## another screen it waits its turn (pass 60: in the queue; every slot its own request, since Run.path_due spends the
+## slot as it asks).
 func present_path_offer() -> void:
 	if Run.arena:
 		return
 	if _ended:
 		return
-	if cards.visible or portal_dialog.visible or chest_screen.visible or paused:
-		_path_pending = true
-		return
-	_path_pending = false
+	_request_modal(Modal.PATH, _open_path_offer)
+
+
+## The mutation offer itself (the opener): false when no weapon has a pick open.
+func _open_path_offer() -> bool:
 	var w := Run.next_path_weapon()
 	if w == null:
-		return
+		return false
 	var offer := CardPool.path_offer(w)
 	if offer.is_empty():
-		return
+		return false
+	_modal = Modal.PATH
 	set_paused(true)
 	Audio.play("ui_levelup")
 	cards.show_offer(offer, "MUTATION · %s" % w.def.display_name.to_upper(), not Save.hint_seen("paths"), true)
 	cards.chosen.connect(_on_path_chosen, CONNECT_ONE_SHOT)
+	return true
 
 
 func _on_path_chosen(card: Dictionary) -> void:
@@ -1283,27 +1475,32 @@ func _on_path_chosen(card: Dictionary) -> void:
 		var line := CardPool.apply(card)
 		hud.toast(line, UiKit.TYPE_COLORS["mutation"])
 	Save.mark_hint("paths")
+	# a level banked meanwhile takes its turn (pass 60), then the gate
 	if _pending_levels > 0:
-		await get_tree().create_timer(0.2).timeout
-		_show_next_level_cards()
-	else:
-		resume_gate.open(cards.take_pick())
+		_request_modal(Modal.CARDS, _show_next_level_cards, 0, true)
+	_modal_done(cards.take_pick())
 
 
-func _show_next_level_cards() -> void:
-	if _pending_levels <= 0 or _ended:
-		return
-	_pending_levels -= 1
-	# three cards, always (pass 52, Garry: "I get 4 choices for a Level Up ... I don't remember asking for that"; luck had
-	# added a fourth half its value of the time: it lifts the rarer items' odds and nothing else now)
-	var offer := CardPool.level_up_offer(3)
-	if offer.is_empty():
-		Run.add_gold(10)
-		hud.toast("Nothing left to pick. +10 gold", UiKit.INK2)
-		return
-	set_paused(true)
-	cards.show_offer(offer, "LEVEL %d!" % Run.level, not Save.hint_seen("cards"))
-	cards.chosen.connect(_on_card_chosen, CONNECT_ONE_SHOT)
+## The level-up cards for one banked level (the opener): three cards, always (pass 52, Garry: "I get 4 choices for a
+## Level Up ... I don't remember asking for that"; luck had added a fourth half its value of the time: it lifts the rarer
+## items' odds and nothing else now). A level with nothing left to pick pays 10 gold and the next banked one is tried;
+## false when none opened.
+func _show_next_level_cards() -> bool:
+	if _ended:
+		return false
+	while _pending_levels > 0:
+		_pending_levels -= 1
+		var offer := CardPool.level_up_offer(3)
+		if offer.is_empty():
+			Run.add_gold(10)
+			hud.toast("Nothing left to pick. +10 gold", UiKit.INK2)
+			continue
+		_modal = Modal.CARDS
+		set_paused(true)
+		cards.show_offer(offer, "LEVEL %d!" % Run.level, not Save.hint_seen("cards"))
+		cards.chosen.connect(_on_card_chosen, CONNECT_ONE_SHOT)
+		return true
+	return false
 
 
 func _on_card_chosen(card: Dictionary) -> void:
@@ -1322,12 +1519,11 @@ func _on_card_chosen(card: Dictionary) -> void:
 	var t2 := Time.get_ticks_usec()
 	Save.mark_hint("cards")
 	Perf.add("card.unpause", t2)
+	# another banked level takes its turn after a beat (pass 60: behind anything of a higher priority that waits, a chest);
+	# else, still paused, the run resumes on the next tap, not on the pick (the card flies to its slot meanwhile)
 	if _pending_levels > 0:
-		await get_tree().create_timer(0.2).timeout
-		_show_next_level_cards()
-	else:
-		# still paused: the run resumes on the next tap, not on the pick (the card flies to its slot meanwhile)
-		resume_gate.open(cards.take_pick())
+		_request_modal(Modal.CARDS, _show_next_level_cards, 0, true)
+	_modal_done(cards.take_pick())
 
 
 func _on_enemy_died(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: String) -> void:
@@ -1534,27 +1730,36 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 				hud.toast("The Stranger had nothing for you. +60 gold", UiKit.ACCENT)
 				return
 			var cost := float(offer.get("hp_cost", p.get("hp_cost", 0.15)))
-			set_paused(true)
-			stranger_screen.open(offer, cost)
-			stranger_screen.closed.connect(func(took):
-				set_paused(false)
-				if took:
-					if RunAnalytics.I: RunAnalytics.I.via = "stranger"
-					var line := Run.stranger_take(offer, cost)
-					player.refresh_stats()
-					hud.toast("The deal: %s, for %d%% of your health" % [line, int(round(cost * 100.0))], Color(0.75, 0.6, 1.0))
-				else:
-					hud.toast("The Stranger is gone. Only his cloak stays.", UiKit.INK2), CONNECT_ONE_SHOT)
+			_request_modal(Modal.STRANGER, func() -> bool:
+				_modal = Modal.STRANGER
+				set_paused(true)
+				stranger_screen.open(offer, cost)
+				stranger_screen.closed.connect(func(took):
+					if took:
+						if RunAnalytics.I: RunAnalytics.I.via = "stranger"
+						var line := Run.stranger_take(offer, cost)
+						player.refresh_stats()
+						hud.toast("The deal: %s, for %d%% of your health" % [line, int(round(cost * 100.0))], Color(0.75, 0.6, 1.0))
+					else:
+						hud.toast("The Stranger is gone. Only his cloak stays.", UiKit.INK2)
+					_modal_done({}, false), CONNECT_ONE_SHOT)
+				return true)
 		"shop":
 			var offer := CardPool.level_up_offer(3)
 			if offer.is_empty():
 				Run.add_gold(50)
 				hud.toast("The shop had nothing left. +50 gold", UiKit.ACCENT)
 				return
-			set_paused(true)
-			if RunAnalytics.I: RunAnalytics.I.via = "shop"
-			structure_shop.open(offer)
-			structure_shop.closed.connect(func(bought): set_paused(false); if bought: hud.toast("Bought!", UiKit.ACCENT), CONNECT_ONE_SHOT)
+			_request_modal(Modal.SHOP, func() -> bool:
+				_modal = Modal.SHOP
+				set_paused(true)
+				if RunAnalytics.I: RunAnalytics.I.via = "shop"
+				structure_shop.open(offer)
+				structure_shop.closed.connect(func(bought):
+					if bought:
+						hud.toast("Bought!", UiKit.ACCENT)
+					_modal_done({}, false), CONNECT_ONE_SHOT)
+				return true)
 		"heal":
 			var amount: float = player.max_hp * float(p.get("fraction", 0.5))
 			# named, so the Down! list shows it (pass 46)
@@ -1724,29 +1929,34 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 	telegraphs.flash_ring(at, 2.0, def.color, 0.35)
 
 
-## A chest on the ground was touched: the game pauses and the reel decides in front of the player.
+## A chest on the ground was touched: the game pauses and the reel decides in front of the player. One reel at a time
+## (pass 60: a request each; a boss drops two chests and both fly in together, his first), and none while he is down.
 func open_chest(at: Vector3, boss: bool = false) -> void:
 	Audio.play("pk_chest_open", at)
 	fx.burst(at + Vector3(0, 0.8, 0), Color(1.0, 0.85, 0.4), 1.5)
 	if _ended:
 		return
-	if chest_screen.visible or (cards and cards.visible):
-		# one reel at a time: a boss drops two chests and both fly in together
-		_chest_queue.append({"at": at, "boss": boss})
-		return
+	_request_modal(Modal.CHEST, func() -> bool: return _open_chest_now(boss), BOSS_CHEST_BUMP if boss else 0)
+
+
+## The reel itself (the opener).
+func _open_chest_now(boss: bool) -> bool:
 	if boss:
 		# the boss's chest: opening it is what calls everything on the map in, and the reel only holds mutations
 		pickups.vacuum_all(true, true)
 		hud.toast("THE SPOILS COME TO YOU", Color(1.0, 0.82, 0.35))
 	var r := Run.chest_roll(boss)
+	_modal = Modal.CHEST
 	set_paused(true)
 	if RunAnalytics.I: RunAnalytics.I.via = "boss_chest" if boss else "chest"
 	chest_screen.open(r)
+	return true
 
 
 ## The reel closed (pass 47): taken, or let go for one of the stage's skips (Run.chest_skip: nothing gained; it was sold
 ## for gold before). A banish on the reel never closes it: the screen spins again to Run.chest_banish's new roll, and
-## Run tells the recorder. With no skip left the chest cannot be let go, so what it holds is taken.
+## Run tells the recorder. With no skip left the chest cannot be let go, so what it holds is taken. The next chest or a
+## banked level follows (pass 60: the queue), else the gate.
 func _on_chest_closed(take: bool) -> void:
 	var r := chest_screen.result()
 	var skipped := false
@@ -1760,22 +1970,9 @@ func _on_chest_closed(take: bool) -> void:
 		Audio.play("ui_buy")
 		if str(r.get("type", "")) != "evolution":
 			hud.toast("Chest: " + line, UiKit.ACCENT)
-	if not _chest_queue.is_empty():
-		var next: Dictionary = _chest_queue.pop_front()
-		await get_tree().create_timer(0.25).timeout
-		if not _ended:
-			if bool(next.get("boss", false)):
-				pickups.vacuum_all(true, true)
-				hud.toast("THE SPOILS COME TO YOU", Color(1.0, 0.82, 0.35))
-			var r2 := Run.chest_roll(bool(next.get("boss", false)))
-			if RunAnalytics.I: RunAnalytics.I.via = "boss_chest" if bool(next.get("boss", false)) else "chest"
-			chest_screen.open(r2)
-			return
 	if _pending_levels > 0:
-		await get_tree().create_timer(0.2).timeout
-		_show_next_level_cards()
-	else:
-		resume_gate.open(chest_screen.take_pick() if chest_screen.has_method("take_pick") else {})
+		_request_modal(Modal.CARDS, _show_next_level_cards, 0, true)
+	_modal_done(chest_screen.take_pick() if chest_screen.has_method("take_pick") else {})
 
 
 func _on_portal_ready(at: Vector3) -> void:
@@ -1786,27 +1983,32 @@ func _on_portal_ready(at: Vector3) -> void:
 	hud.toast("PORTAL OPEN: extract or continue", UiKit.GOOD)
 
 
+## The hero walked into the portal: the stage-clear dialog (pass 60: its turn, behind a chest he touched first).
 func _on_portal_entered() -> void:
+	_request_modal(Modal.PORTAL, _open_portal_dialog)
+
+
+func _open_portal_dialog() -> bool:
+	_modal = Modal.PORTAL
 	set_paused(true)
 	var final_stage: bool = Run.stage + 1 >= Run.map.timeline.stages if Run.map and Run.map.timeline else false
 	# pass 43: after the last boss the choice is extract or stay (endless needs no unlock any more)
 	portal_dialog.open(Run.stage + 1, true, final_stage)
+	return true
 
 
 ## "Not yet" (pass 48, PortalDialog.declined: the button, or back): the run goes on with the portal where it is, and it
 ## asks again once the hero has stepped out past Portal.REARM and walks back in (Portal.check_player). A second of grace,
-## as after every screen.
+## as after every screen (_resume_run).
 func _on_portal_declined() -> void:
 	if _ended:
 		return
 	if portal_dialog.visible:
 		portal_dialog.visible = false
-	set_paused(false)
-	if player and not player.dead:
-		player.invuln = maxf(player.invuln, 1.0)
 	hud.toast("The portal waits", UiKit.GOOD)
 	Audio.play("st_portal_wait", portal.global_position if portal and is_instance_valid(portal) else player.global_position)
 	if RunAnalytics.I: RunAnalytics.I.event("portal_wait", "", Run.stage + 1)
+	_modal_done({}, false)
 
 
 func _on_portal_decided(extract: bool) -> void:
@@ -1819,7 +2021,8 @@ func _on_portal_decided(extract: bool) -> void:
 		player.cheer()
 		end_run()
 	else:
-		set_paused(false)
+		# the run goes on first (the next stage's start plays unpaused), then the next screen in line if one waits
+		_modal_done({}, false)
 		if portal:
 			portal.queue_free()
 			portal = null
@@ -1875,17 +2078,27 @@ func _on_player_died() -> void:
 			return
 		_revive("phoenix")
 		return
-	await get_tree().create_timer(1.2).timeout
-	if _ended:
+	# the fall plays out, on a pause-respecting clock (pass 60: behind a screen or the pause menu it waits), then Down!
+	# asks, in its turn (death wins: it goes first, and nothing else opens while he is down)
+	await get_tree().create_timer(1.2, false).timeout
+	if _ended or player == null or not player.dead:
 		return
+	_request_modal(Modal.REVIVE, _open_revive)
+
+
+## Down! (the opener).
+func _open_revive() -> bool:
+	_modal = Modal.REVIVE
 	set_paused(true)
 	var chances: int = 1 + Run.player_sheet.get_int("revives", 0) - Run.revives_used
 	# the last 30 s as rows for the list and as text for its copy button (pass 46)
 	revive_screen.open(Run.run_gold, chances, player.damage_log_text(), player.damage_log.back() if not player.damage_log.is_empty() else {},
 		player.damage_log.duplicate(true))
+	return true
 
 
 func _on_revive_decided(kind: String) -> void:
+	_modal = Modal.NONE
 	set_paused(false)
 	match kind:
 		"give_up", "timeout":
@@ -1929,6 +2142,10 @@ func _revive(kind: String) -> void:
 		hud.show_player_bar()
 		hud.banner("REVIVED" if kind != "debug" else "DEBUG REVIVE", UiKit.GOOD)
 	Perf.context = "revived " + kind
+	# what came while he was down (pass 60): the banked level-ups, a chest, a path offer, one after another, once his
+	# blast has read (he blinks for two seconds, so nothing bites him in the beat)
+	if not _modal_queue.is_empty():
+		_open_next_modal_soon(REVIVE_BEAT)
 
 
 ## The arena's respawn (pass 49, _on_player_died): up at once, whole, on the start spot, ARENA_RESPAWN_INVULN seconds of
@@ -1989,6 +2206,9 @@ func arena_swap_hero(id: String) -> bool:
 
 
 func end_run() -> void:
+	# whatever screens waited their turn are not coming (pass 60)
+	_modal_queue.clear()
+	_modal = Modal.NONE
 	if Run.arena:
 		leave_arena()
 		return
@@ -2061,12 +2281,14 @@ func shockwave(center: Vector3, r: float) -> void:
 
 
 ## A body going off: the hero takes `damage` inside `r`, and so does the crowd, for a fifth of it, thrown outwards
-## (pass 30: a mine crab clears a path through its own pack). `delay` 0 fires at once, anything else draws a red ring.
+## (pass 30: a mine crab clears a path through its own pack). `delay` 0 fires at once, anything else draws a red ring
+## and waits on a pause-respecting clock (pass 60: a blast scheduled before a level-up waits until the cards close, with
+## its ring, instead of going off under them while his invulnerability stood still).
 func elite_explosion(center: Vector3, r: float, damage: float, delay: float, knockback: float = 0.0, friendly_frac: float = 0.2, info: Dictionary = {}) -> void:
 	if delay > 0.0:
 		telegraphs.ring(center, r, delay, UiKit.DANGER, true)
 	var boom := func():
-		if _ended:
+		if _ended or player == null:
 			return
 		var d := player.global_position - center
 		d.y = 0.0
@@ -2086,7 +2308,7 @@ func elite_explosion(center: Vector3, r: float, damage: float, delay: float, kno
 	if delay <= 0.0:
 		boom.call()
 		return
-	var t := get_tree().create_timer(delay)
+	var t := get_tree().create_timer(delay, false)
 	t.timeout.connect(boom)
 
 
@@ -2749,7 +2971,7 @@ func nuke_blast(at: Vector3, radius: float, damage: float, knock: float) -> void
 	telegraphs.flash_ring(at, radius, Color(1.0, 0.6, 0.25), 0.6)
 	camera.shake(3.0)
 	hud.flash(Color(1.0, 0.9, 0.7, 0.85), 0.5)
-	Audio.play("en_boss_die", at)
+	Audio.play("pk_nuke", at)
 
 
 ## Ripples at the hero's feet while he wades (the oasis).

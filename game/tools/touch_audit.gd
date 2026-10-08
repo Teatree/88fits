@@ -447,6 +447,9 @@ func _run() -> void:
 		await _settings_menu_style()
 	if _want("settings") or _want("settings_analytics"):
 		await _settings_analytics()
+	# the play-data card and the survey card on their own names too (pass 60: only=consent_card,survey_card)
+	if _want("settings") or _want("settings_analytics") or _want("consent_card") or _want("survey_card"):
+		await _cards59()
 	if _want("dev"):
 		await _version_hold()
 	await _screen("collection", "res://ui/CollectionScreen.tscn")
@@ -718,11 +721,12 @@ func _settings_analytics() -> void:
 	st.set("analytics", keep)
 	root.get_node("Save").request_save()
 	root.get_node("Save").flush()
-	await _cards59()
 
 
 ## The play-data card and the survey card (pass 59): every button answers a finger (the audit unplugs handlers while it
 ## taps, so nothing is answered or sent). Opened over the title by hand: a tool run never sends, so neither comes by itself.
+## Pass 60 (Garry: "I tap and the ability to type doesn't appear"): the survey carries a text question too, and a finger
+## on its box must focus it (the phone's keyboard follows focus), a finger outside must let the focus go.
 func _cards59() -> void:
 	change_scene_to_file("res://ui/TitleScreen.tscn")
 	await _wait(1.2)
@@ -732,10 +736,31 @@ func _cards59() -> void:
 	consent.queue_free()
 	var sv := {"id": "audit", "name": "Audit", "questions": [
 		{"id": "a1", "type": "rating", "question": "How much fun?", "description": "", "optional": false, "choices": [], "scale": 5, "lower": "Not fun", "upper": "Loved it"},
-		{"id": "a2", "type": "single_choice", "question": "Better?", "description": "", "optional": false, "choices": ["More", "Less"], "scale": 5, "lower": "", "upper": ""}]}
+		{"id": "a2", "type": "single_choice", "question": "Better?", "description": "", "optional": false, "choices": ["More", "Less"], "scale": 5, "lower": "", "upper": ""},
+		{"id": "a3", "type": "open", "question": "Anything else?", "description": "", "optional": true, "choices": [], "scale": 5, "lower": "", "upper": ""}]}
 	var card: Control = load("res://ui/wanted/WSurvey.gd").open(current_scene, sv)
 	await _wait(0.6)
 	await _audit("survey_card", card)
+	# the text question: a finger on the box focuses it, one on the dim outside lets it go
+	card.call("show_page", 2)
+	await _wait(0.3)
+	var answer: Control = card.find_child("Answer", true, false)
+	if answer == null:
+		_count("survey_card", false)
+		_fail("survey_card", "Answer", "the text question has no box")
+	else:
+		await _tap(answer.get_global_rect().get_center())
+		await _wait(0.2)
+		var focused: bool = bool(card.call("answer_focused"))
+		_count("survey_card", focused)
+		if not focused:
+			_fail("survey_card", "Answer", "a finger on the text box did not focus it (no keyboard on the phone)")
+		await _tap(Vector2(root.get_visible_rect().size.x * 0.5, 60.0))
+		await _wait(0.2)
+		var released: bool = not bool(card.call("answer_focused"))
+		_count("survey_card", released)
+		if not released:
+			_fail("survey_card", "Answer", "a finger outside the text box left it focused (the keyboard would stay up)")
 	card.queue_free()
 	await _wait(0.2)
 
@@ -952,6 +977,8 @@ func _in_game() -> void:
 		await _chest_choices(g)
 		if g.chest_screen.visible:
 			g.chest_screen.visible = false
+		# the reel was asked for through Game's one-screen rule (pass 60): a hand-close must give the turn back too
+		g.modal_reset()
 		g.set_paused(false)
 		await _wait(0.3)
 	if _want("portal"):

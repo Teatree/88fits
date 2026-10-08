@@ -50,9 +50,9 @@ params = {
 "every": 4.0
 },
 "pressure": {
-"hit_keeps": 0.5,
-"max": 0.8,
-"seconds": 20.0,
+"hit_vent": 0.5,
+"max": 2.0,
+"seconds": 15.0,
 "start": 0.25
 },
 "size_mult": 1.5
@@ -68,7 +68,7 @@ params = {
 }
 id = "hellfire_battery"
 display_name = "Hellfire Battery"
-flavour = "Every rocket scatters six bomblets and a popped bomblet sets off every one within 1.2 m; the pressure starts at +25% and climbs to +80% attack speed, and a hit only halves it; at full pressure every fourth volley is a double volley."
+flavour = "Every rocket scatters six bomblets and a popped bomblet sets off every one within 1.2 m; standing still builds pressure from +25% to +200% attack speed in 15 s, and a hit only vents half; at full pressure every fourth volley is a double volley."
 rarity = "rare"
 icon = ExtResource("1_jgt7q")
 icon_file = "hellfire_battery_icon.png"

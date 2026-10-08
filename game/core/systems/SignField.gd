@@ -9,6 +9,10 @@
 ## the barrels, the flowers and the teleport keep clear of it.
 ## Drawn as nodes (at most 6 posts and 24 arms, no shadows) from art/props/sign.glb (`Post`, `Arm`; tools/blender_sign.py),
 ## or from meshes built here while the model is missing; the materials are set here by the surfaces' names.
+## Pass 60 (Garry: "Hero should render above the road sign, unless the hero is north of it, in that case it should render
+## below"): every post and arm wears core/shaders/sign_depth.gdshader, which draws it where it is but at the depth of
+## the sign's foot, so a sign sorts against the hero, the creatures and the props the way two paintings do (south over
+## north). One set of materials per sign (`foot` is a uniform), cut from the shared templates (_mats).
 class_name SignField
 extends Node3D
 
@@ -92,6 +96,8 @@ const MODEL := "res://art/props/sign.glb"
 ## editor's next scan)
 const SELF := "res://core/systems/SignField.gd"
 const FONT := "res://ui/fonts/AlfaSlabOne-Regular.ttf"
+## the depth material every post and arm wears (pass 60): drawn in place, sorted at the sign's foot
+const DEPTH_SHADER := "res://core/shaders/sign_depth.gdshader"
 
 var game: Node
 var map: Node
@@ -102,7 +108,9 @@ var spots: PackedVector3Array = PackedVector3Array()
 var arms: Array = []
 var _rng := RandomNumberGenerator.new()
 var _poll_t := 0.0
+## the template materials by surface name, and each sign's own copies by its foot ({Vector3: {name: material}})
 var _mats: Dictionary = {}
+var _sign_mats: Dictionary = {}
 var _font: Font
 
 
@@ -147,14 +155,14 @@ func _warm(meshes: Dictionary) -> void:
 		var mi := MeshInstance3D.new()
 		mi.mesh = meshes[key]
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_paint(mi, false)
+		_paint(mi, false, warm.global_position)
 		warm.add_child(mi)
 		if key == "arm":
 			# the spent wood too, and the names as the arms carry them
 			var spent := MeshInstance3D.new()
 			spent.mesh = meshes[key]
 			spent.position.y = 0.4
-			_paint(spent, true)
+			_paint(spent, true, warm.global_position)
 			warm.add_child(spent)
 			if SHOW_NAMES:
 				mi.add_child(_label(str(arms[0]["text"])))
@@ -272,6 +280,8 @@ func _build_sign(k: int, meshes: Dictionary) -> void:
 	stand.name = "Sign%d" % k
 	stand.position = at
 	add_child(stand)
+	# the sign's foot in the world: the depth every post and arm is drawn at (pass 60)
+	var foot: Vector3 = stand.global_position if stand.is_inside_tree() else at
 	# what is drawn, under one node SCALE sizes (the collider beside it is never scaled)
 	var look := Node3D.new()
 	look.name = "Look"
@@ -282,7 +292,7 @@ func _build_sign(k: int, meshes: Dictionary) -> void:
 	post.mesh = meshes["post"]
 	post.rotation.y = _rng.randf() * TAU
 	post.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_paint(post, false)
+	_paint(post, false, foot)
 	look.add_child(post)
 	# a thin collider the hero bumps, and a circle the crowd steers round (the barrels placed next keep clear of it)
 	var body := StaticBody3D.new()
@@ -310,11 +320,11 @@ func _build_sign(k: int, meshes: Dictionary) -> void:
 		if j > 0 and absf(angle_difference(prev_yaw, yaw)) >= deg_to_rad(SAME_WAY_DEG):
 			lean = -lean
 		prev_yaw = yaw
-		_build_arm(k, look, j, s, yaw, deg_to_rad(TILT_DEG) * lean, meshes)
+		_build_arm(k, look, j, s, yaw, deg_to_rad(TILT_DEG) * lean, meshes, foot)
 	spread_tags(arms.filter(func(r: Dictionary) -> bool: return int(r["sign"]) == k))
 
 
-func _build_arm(k: int, look: Node3D, j: int, s: Node3D, yaw: float, tilt: float, meshes: Dictionary) -> void:
+func _build_arm(k: int, look: Node3D, j: int, s: Node3D, yaw: float, tilt: float, meshes: Dictionary, foot: Vector3 = Vector3.ZERO) -> void:
 	var arm := MeshInstance3D.new()
 	arm.name = "Arm%d" % j
 	arm.mesh = meshes["arm"]
@@ -322,7 +332,7 @@ func _build_arm(k: int, look: Node3D, j: int, s: Node3D, yaw: float, tilt: float
 	# a turn about the post's axis, then the board's own lean about its face's normal (the tip up or down)
 	arm.transform = Transform3D(Basis(Vector3.UP, yaw) * Basis(Vector3.BACK, tilt), Vector3(0, h, 0))
 	arm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_paint(arm, false)
+	_paint(arm, false, foot)
 	look.add_child(arm)
 	var text := short_name(s)
 	var labels: Array = []
@@ -336,7 +346,7 @@ func _build_arm(k: int, look: Node3D, j: int, s: Node3D, yaw: float, tilt: float
 		look.add_child(lb)
 		labels.append(lb)
 	arms.append({"sign": k, "structure": s, "node": arm, "labels": labels, "text": text, "yaw": yaw, "tilt": tilt,
-		"height": h, "blank": false})
+		"height": h, "blank": false, "foot": foot})
 
 
 ## The run's camera looks down the screen at CAMERA_PITCH_DEG, so a tag's height and how far up the screen (north) it
@@ -443,7 +453,7 @@ func check_used(fade: bool = true) -> int:
 
 func _blank(rec: Dictionary, fade: bool) -> void:
 	rec["blank"] = true
-	_paint(rec["node"] as MeshInstance3D, true)
+	_paint(rec["node"] as MeshInstance3D, true, rec.get("foot", Vector3.ZERO))
 	for lb: Label3D in rec["labels"]:
 		if fade and lb.is_inside_tree():
 			var tw := lb.create_tween()
@@ -462,18 +472,49 @@ func _make_materials() -> void:
 		"rim": _mat(RIM, 0.9),
 		"nail": _mat(NAIL, 0.6),
 	}
+	_sign_mats.clear()
 
 
-func _mat(c: Color, rough: float) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = c
-	m.roughness = rough
+## A template material: the depth shader (pass 60) in the colour and roughness a StandardMaterial3D had, or that plain
+## material while the shader is missing.
+func _mat(c: Color, rough: float) -> Material:
+	var sh: Shader = load(DEPTH_SHADER) if ResourceLoader.exists(DEPTH_SHADER) else null
+	if sh == null:
+		var sm := StandardMaterial3D.new()
+		sm.albedo_color = c
+		sm.roughness = rough
+		return sm
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	m.set_shader_parameter("albedo", c)
+	m.set_shader_parameter("roughness", rough)
 	return m
 
 
+## Whether `m` is the sign depth material (tests, tools).
+static func depth_material(m: Material) -> bool:
+	return m is ShaderMaterial and (m as ShaderMaterial).shader != null and (m as ShaderMaterial).shader.resource_path == DEPTH_SHADER
+
+
+## The material named `key` for the sign standing at `foot`: the template, copied once per sign with its foot set
+## (a StandardMaterial3D template, shader missing, is shared as it is).
+func _mat_for(key: String, foot: Vector3) -> Material:
+	var tpl: Material = _mats[key]
+	if not tpl is ShaderMaterial:
+		return tpl
+	if not _sign_mats.has(foot):
+		_sign_mats[foot] = {}
+	var mine: Dictionary = _sign_mats[foot]
+	if not mine.has(key):
+		var m: ShaderMaterial = (tpl as ShaderMaterial).duplicate()
+		m.set_shader_parameter("foot", foot)
+		mine[key] = m
+	return mine[key]
+
+
 ## Sets each surface's material by its name (the model's materials: post, wood, rim, nail); `spent` paints the wood
-## the paler shade.
-func _paint(mi: MeshInstance3D, spent: bool) -> void:
+## the paler shade; `foot` is the sign's foot in the world, the depth it is drawn at (pass 60).
+func _paint(mi: MeshInstance3D, spent: bool, foot: Vector3 = Vector3.ZERO) -> void:
 	if _mats.is_empty():
 		_make_materials()
 	var mesh := mi.mesh
@@ -484,7 +525,7 @@ func _paint(mi: MeshInstance3D, spent: bool) -> void:
 		if key == "wood" and spent:
 			key = "wood_spent"
 		if _mats.has(key):
-			mi.set_surface_override_material(i, _mats[key])
+			mi.set_surface_override_material(i, _mat_for(key, foot))
 
 
 ## A surface's name: its material's (the GLB's), else the surface's own (the meshes built here).

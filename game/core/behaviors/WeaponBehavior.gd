@@ -14,9 +14,6 @@ var projectile_kind := -1
 ## that are flying around the Player hero or something, they are quite dim"): emission at this strength in each dim
 ## material's own colour; `params.glow` sets a weapon's own (0 = none); a material that already emits is left alone.
 const GLOW := 0.45
-# the mutation marks (pass 28): one emblem per pick, hung over the weapon's companion, its held gun, or the hero's shoulder
-var _marks: Node3D
-var _mark_key := ""
 
 
 func setup(p_inst: WeaponInstance, p_game: Node) -> void:
@@ -71,11 +68,20 @@ func _load_visual() -> void:
 	var src := projectile_source(visual)
 	if src:
 		var mat: Material = src.material_override
+		var mesh: Mesh = src.mesh
 		var sc: float = src.scale.x
 		var basis: Basis = (proj as Node3D).transform.basis
 		if src == proj:
-			if mat == null and src.mesh.get_surface_count() > 0:
-				mat = src.mesh.surface_get_material(0)
+			if mat == null and mesh.get_surface_count() == 1:
+				mat = mesh.surface_get_material(0)
+			# a "Halo" under the Projectile node (pass 60: the Tommy Gun's rounds, the Boomstick's pellets): the shot is
+			# drawn as that core inside the halo, one mesh of two surfaces, each with its own material
+			var halo := proj.get_node_or_null("Halo") as MeshInstance3D
+			if halo and halo.mesh:
+				var core_mat: Material = mat if mat else (mesh.surface_get_material(0) if mesh.get_surface_count() > 0 else null)
+				var halo_mat: Material = halo.material_override if halo.material_override else (halo.mesh.surface_get_material(0) if halo.mesh.get_surface_count() > 0 else null)
+				mesh = streak_mesh(mesh, core_mat, halo.mesh, halo_mat, halo.transform)
+				mat = null
 		else:
 			# a model (pass 46, the Spear): every part keeps its own material unless there is only the one, and the shot is
 			# drawn at the Projectile node's scale times the part's
@@ -87,9 +93,9 @@ func _load_visual() -> void:
 		if pm.get_method_argument_count("register_kind") >= 5:
 			# the Projectile node's turn goes with the kind (pass 53, when the ProjectileManager takes one), so a model
 			# built along another axis flies point first
-			projectile_kind = pm.register_kind(src.mesh, mat, sc, false, basis.orthonormalized())
+			projectile_kind = pm.register_kind(mesh, mat, sc, false, basis.orthonormalized())
 		else:
-			projectile_kind = pm.register_kind(src.mesh, mat, sc)
+			projectile_kind = pm.register_kind(mesh, mat, sc)
 		(proj as Node3D).visible = false
 	if projectile_kind < 0 and _uses_projectiles():
 		projectile_kind = game.projectiles.register_kind(_default_mesh(), _default_material(), 1.0)
@@ -165,6 +171,33 @@ static func projectile_source(vis: Node) -> MeshInstance3D:
 	return null
 
 
+## A shot drawn as a hot core inside a soft glow (pass 60, the Tommy Gun's rounds and the Boomstick's pellets, after the
+## tracers of Enter the Gungeon and Nuclear Throne: a bright core with a coloured glow round it): one ArrayMesh of two
+## surfaces, `core` in `core_mat` and `halo` (moved by `halo_xf`, the "Halo" node's transform under the Projectile
+## node) in `halo_mat`, so one MultiMesh draws both and nothing is added per shot.
+static func streak_mesh(core: Mesh, core_mat: Material, halo: Mesh, halo_mat: Material, halo_xf: Transform3D = Transform3D.IDENTITY) -> ArrayMesh:
+	var out := ArrayMesh.new()
+	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, core.surface_get_arrays(0))
+	if core_mat:
+		out.surface_set_material(0, core_mat)
+	var arrays: Array = halo.surface_get_arrays(0)
+	if not halo_xf.is_equal_approx(Transform3D.IDENTITY):
+		var verts: PackedVector3Array = (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).duplicate()
+		for k in range(verts.size()):
+			verts[k] = halo_xf * verts[k]
+		arrays[Mesh.ARRAY_VERTEX] = verts
+		var norms = arrays[Mesh.ARRAY_NORMAL]
+		if norms is PackedVector3Array:
+			var nn: PackedVector3Array = (norms as PackedVector3Array).duplicate()
+			for k in range(nn.size()):
+				nn[k] = (halo_xf.basis * nn[k]).normalized()
+			arrays[Mesh.ARRAY_NORMAL] = nn
+	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	if halo_mat:
+		out.surface_set_material(1, halo_mat)
+	return out
+
+
 ## Whether the behaviour fires shots through the ProjectileManager: one that never does (the Guitarra's cone) does not
 ## take a projectile kind it would never draw.
 func _uses_projectiles() -> bool:
@@ -194,167 +227,17 @@ func _shows_held() -> bool:
 	return false
 
 
-## The emblems for the mutations this weapon carries, rebuilt when the set changes (Game calls this on every build change).
-## A weapon whose params say `"marks": false` hangs none (pass 47, Garry on the Turret Buddy: "no need to display any
-## kind of a 3d visual halo or anything on the Player himself"): its mutations show on its turrets instead.
+## Game calls this on every build change (a mutation taken, a level, an evolution; setup too). The emblems that hung over
+## a weapon per mutation since pass 28 are gone (pass 60, Garry: "the current halos are stupid and turn into a bit of a
+## mess ... remove all the current little halos that appear over weapons after a mutation is applied"): a weapon's path
+## shows on the weapon itself or not at all (the Sun Scepter's ring and tint, the pod's heat, Methanol's bottle). This
+## frees a "MutationMarks" node still hanging and does nothing else, so the overrides keep their hook (MissilePod wires
+## the Pressure Cooker and Pollen's field, Lobber swaps its visual, SunScepter refreshes its looks).
 func refresh_marks() -> void:
-	var key := ""
-	if inst and shows_marks():
-		for m in inst.mutations:
-			key += str(m.id) + ","
-	if key == _mark_key and (_marks != null or key == ""):
-		return
-	_mark_key = key
-	if _marks:
-		_marks.queue_free()
-		_marks = null
-	if key == "":
-		return
-	_marks = Node3D.new()
-	_marks.name = "MutationMarks"
-	_marks.top_level = true
-	add_child(_marks)
-	var k := 0
-	for m in inst.mutations:
-		var e := _mark_for(m)
-		# an emblem's pieces share one material: one mesh, one draw call (pass 33.8)
-		MeshMerge.merge(e)
-		e.position = Vector3(0, 0.26 * k, 0)
-		_marks.add_child(e)
-		k += 1
-
-
-## Whether this weapon hangs mutation emblems at all (params.marks, true unless the weapon says false).
-func shows_marks() -> bool:
-	return inst != null and bool(inst.params.get("marks", true))
-
-
-## The emblems hanging now (tests): 0 without any.
-func mark_count() -> int:
-	return _marks.get_child_count() if _marks else 0
-
-
-## A mutation in the element slot that carries no element (pass 48: Mini Crits, Silver Bullet, Pollen, New Equipment,
-## Repulsor, Tinnitus, Thor's Wrath, Wide Reach) hangs a neutral silver emblem.
-const MARK_SILVER := Color(0.8, 0.84, 0.9)
-
-
-func _mark_colour(m: MutationDef) -> Color:
-	match m.mutation_kind:
-		"element":
-			var el = m.get("element")
-			var els := str(el) if el != null else ""
-			if els == "":
-				for ef in m.effects:
-					if ef is Effect and str(ef.stat).begins_with("fire"):
-						els = "fire"
-					elif ef is Effect and str(ef.stat).begins_with("poison"):
-						els = "poison"
-			match els:
-				"fire":
-					return Color(1.0, 0.5, 0.15)
-				"poison":
-					return Color(0.45, 1.0, 0.35)
-			return MARK_SILVER
-		"volume":
-			return Color(1.0, 0.82, 0.3)
-		"motion":
-			return Color(0.35, 0.9, 1.0)
-		"stance":
-			return Color(0.85, 0.7, 0.45)
-	return Color(1.0, 1.0, 1.0)
-
-
-func _mark_for(m: MutationDef) -> Node3D:
-	var root := Node3D.new()
-	var col := _mark_colour(m)
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.albedo_color = col
-	mat.emission_enabled = true
-	mat.emission = col
-	mat.emission_energy_multiplier = 1.6
-	match m.mutation_kind:
-		"volume":
-			# three orbs in a ring: more of everything
-			for j in range(3):
-				var s := MeshInstance3D.new()
-				var sm := SphereMesh.new()
-				sm.radius = 0.06
-				sm.height = 0.12
-				sm.radial_segments = 8
-				sm.rings = 4
-				s.mesh = sm
-				s.material_override = mat
-				var a := TAU * float(j) / 3.0
-				s.position = Vector3(cos(a) * 0.14, 0, sin(a) * 0.14)
-				root.add_child(s)
-		_:
-			var t := MeshInstance3D.new()
-			var tm := TorusMesh.new()
-			tm.inner_radius = 0.13
-			tm.outer_radius = 0.19
-			tm.rings = 16
-			tm.ring_segments = 6
-			t.mesh = tm
-			t.material_override = mat
-			root.add_child(t)
-			if m.mutation_kind == "motion":
-				# a blade through the ring: it spins
-				var b := MeshInstance3D.new()
-				var bm := BoxMesh.new()
-				bm.size = Vector3(0.34, 0.025, 0.05)
-				b.mesh = bm
-				b.material_override = mat
-				root.add_child(b)
-			elif m.mutation_kind == "element":
-				# a flame or a drop in the ring
-				var c := MeshInstance3D.new()
-				var cm := CylinderMesh.new()
-				cm.top_radius = 0.0
-				cm.bottom_radius = 0.06
-				cm.height = 0.16
-				cm.radial_segments = 6
-				cm.rings = 1
-				c.mesh = cm
-				c.material_override = mat
-				c.rotation.x = PI if col.g > col.r else 0.0
-				root.add_child(c)
-			elif m.mutation_kind == "hero":
-				var t2 := MeshInstance3D.new()
-				t2.mesh = tm
-				t2.material_override = mat
-				t2.rotation.x = PI * 0.5
-				root.add_child(t2)
-	root.set_meta("spin", 2.2 if m.mutation_kind == "motion" else 0.8)
-	return root
-
-
-## The marks ride over the companion, the held gun, or the hero's shoulder (a slot apart for weapons with neither).
-func _tick_marks(delta: float) -> void:
-	if _marks == null:
-		return
-	var anchor: Node3D = visual.get_node_or_null("Familiar") if visual else null
-	var lift := 0.55
-	if anchor == null:
-		var held := visual.get_node_or_null("Held") if visual else null
-		if held is Node3D and (held as Node3D).visible:
-			anchor = held
-			lift = 0.45
-	var at: Vector3
-	if anchor:
-		at = anchor.global_position + Vector3(0, lift, 0)
-	else:
-		var slot := 0
-		for k in range(Run.weapons.size()):
-			if Run.weapons[k] == inst:
-				slot = k
-		at = player.global_position + Vector3((float(slot) - 1.5) * 0.4, 2.15, 0.0)
-	var t := float(Time.get_ticks_msec()) * 0.001
-	_marks.global_position = at + Vector3(0, 0.04 * sin(t * 2.5), 0)
-	for c in _marks.get_children():
-		if c is Node3D:
-			c.rotation.y += delta * float(c.get_meta("spin", 0.8))
+	var old := get_node_or_null("MutationMarks")
+	if old:
+		remove_child(old)
+		old.queue_free()
 
 
 func _on_setup() -> void:
@@ -420,12 +303,22 @@ func sfx(event: String, at: Vector3 = Vector3.INF) -> void:
 		Audio.play(id, at)
 
 
-func muzzle_flash(at: Vector3 = Vector3.INF) -> void:
-	var m := visual.get_node_or_null("Muzzle")
-	if m is CPUParticles3D or m is GPUParticles3D:
-		m.global_position = at if at != Vector3.INF else player.aim_origin(player.forward())
-		m.restart()
-		m.emitting = true
+## The muzzle's sparks at `at`, turned along `dir` (pass 60: the particle node was only moved, so its sparks flew the
+## world's -Z whatever the aim), with a "Flash" sibling (one hot pop at the muzzle, the Tommy Gun's; the Boomstick's
+## cone) and a "Smoke" sibling (a grey puff, the Boomstick's) when the visual has them. No `dir`: left turned as it was.
+func muzzle_flash(at: Vector3 = Vector3.INF, dir: Vector3 = Vector3.ZERO) -> void:
+	if visual == null:
+		return
+	var p: Vector3 = at if at != Vector3.INF else player.aim_origin(player.forward())
+	var d := Vector3(dir.x, 0.0, dir.z)
+	for nm: String in ["Muzzle", "Flash", "Smoke"]:
+		var m := visual.get_node_or_null(nm)
+		if m is CPUParticles3D or m is GPUParticles3D:
+			m.global_position = p
+			if d.length_squared() > 0.0001 and m.is_inside_tree():
+				m.look_at(p + d, Vector3.UP)
+			m.restart()
+			m.emitting = true
 
 
 func _process(delta: float) -> void:
@@ -434,7 +327,6 @@ func _process(delta: float) -> void:
 	var t0 := Time.get_ticks_usec()
 	cooldown_left -= delta
 	_fly_stray(delta)
-	_tick_marks(delta)
 	_tick(delta)
 	if cooldown_left <= 0.0:
 		if _fire():

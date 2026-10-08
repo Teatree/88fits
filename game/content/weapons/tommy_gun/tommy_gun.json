@@ -75,6 +75,9 @@
       "bob": 0.08
     },
     "tracer": true,
+    "tracer_step": 0.016,
+    "tracer_life": 0.2,
+    "tracer_size": 0.4,
     "drum_axis": "forward"
   },
   "sfx": {

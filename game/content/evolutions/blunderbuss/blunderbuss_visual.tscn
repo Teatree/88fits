@@ -1,16 +1,29 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=26 format=3]
 
 [sub_resource type="CapsuleMesh" id="proj"]
-radius = 0.07
-height = 0.5
+radius = 0.055
+height = 0.36
 radial_segments = 6
 rings = 2
 
 [sub_resource type="StandardMaterial3D" id="projmat"]
-albedo_color = Color(1, 0.85, 0.45, 1)
+shading_mode = 0
+albedo_color = Color(1, 0.99, 0.88, 1)
 emission_enabled = true
-emission = Color(1, 0.7, 0.25, 1)
-emission_energy_multiplier = 1.2
+emission = Color(1, 0.85, 0.45, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="CapsuleMesh" id="halo"]
+radius = 0.085
+height = 0.46
+radial_segments = 6
+rings = 2
+
+[sub_resource type="StandardMaterial3D" id="halomat"]
+transparency = 1
+shading_mode = 0
+cull_mode = 1
+albedo_color = Color(1, 0.45, 0.05, 0.72)
 
 [sub_resource type="CylinderMesh" id="barrel"]
 top_radius = 0.045
@@ -44,12 +57,6 @@ inner_radius = 0.04
 outer_radius = 0.06
 rings = 8
 ring_segments = 6
-
-[sub_resource type="SphereMesh" id="spark"]
-radius = 0.07
-height = 0.14
-radial_segments = 4
-rings = 2
 
 [sub_resource type="StandardMaterial3D" id="gold"]
 albedo_color = Color(1, 0.78, 0.3, 1)
@@ -89,11 +96,65 @@ height = 0.14
 radial_segments = 8
 rings = 4
 
+[sub_resource type="StandardMaterial3D" id="sparkmat"]
+shading_mode = 0
+albedo_color = Color(1, 0.82, 0.4, 1)
+emission_enabled = true
+emission = Color(1, 0.6, 0.15, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="SphereMesh" id="spark"]
+material = SubResource("sparkmat")
+radius = 0.045
+height = 0.09
+radial_segments = 6
+rings = 3
+
+[sub_resource type="StandardMaterial3D" id="flashmat"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.86, 0.5, 0.85)
+
+[sub_resource type="CylinderMesh" id="cone"]
+material = SubResource("flashmat")
+top_radius = 0.3
+bottom_radius = 0.0
+height = 0.65
+radial_segments = 10
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="smokemat"]
+transparency = 1
+shading_mode = 0
+vertex_color_use_as_albedo = true
+albedo_color = Color(1, 1, 1, 1)
+
+[sub_resource type="SphereMesh" id="smoke"]
+material = SubResource("smokemat")
+radius = 0.16
+height = 0.32
+radial_segments = 6
+rings = 3
+
+[sub_resource type="Gradient" id="smokegrad"]
+offsets = PackedFloat32Array(0, 0.25, 1)
+colors = PackedColorArray(0.5, 0.48, 0.46, 0.75, 0.6, 0.58, 0.56, 0.55, 0.65, 0.63, 0.6, 0)
+
+[sub_resource type="Curve" id="smokecurve"]
+_data = [Vector2(0, 0.45), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
 [node name="BlunderbussVisual" type="Node3D"]
 
 [node name="Projectile" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
 mesh = SubResource("proj")
 material_override = SubResource("projmat")
+
+[node name="Halo" type="MeshInstance3D" parent="Projectile"]
+visible = false
+mesh = SubResource("halo")
+material_override = SubResource("halomat")
 
 [node name="Held" type="Node3D" parent="."]
 
@@ -155,12 +216,45 @@ material_override = SubResource("gold")
 [node name="Muzzle" type="CPUParticles3D" parent="."]
 emitting = false
 amount = 14
-lifetime = 0.25
+lifetime = 0.22
 one_shot = true
 explosiveness = 1.0
 mesh = SubResource("spark")
 direction = Vector3(0, 0, -1)
-spread = 40.0
-initial_velocity_min = 4.0
-initial_velocity_max = 9.0
+spread = 36.0
+initial_velocity_min = 5.0
+initial_velocity_max = 11.0
 gravity = Vector3(0, -3, 0)
+
+[node name="Flash" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 1
+lifetime = 0.08
+one_shot = true
+explosiveness = 1.0
+mesh = SubResource("cone")
+particle_flag_align_y = true
+direction = Vector3(0, 0, -1)
+spread = 0.0
+initial_velocity_min = 2.0
+initial_velocity_max = 2.0
+gravity = Vector3(0, 0, 0)
+
+[node name="Smoke" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 10
+lifetime = 0.42
+one_shot = true
+explosiveness = 0.85
+mesh = SubResource("smoke")
+direction = Vector3(0, 0, -1)
+spread = 30.0
+initial_velocity_min = 2.5
+initial_velocity_max = 4.5
+gravity = Vector3(0, 0.9, 0)
+damping_min = 3.0
+damping_max = 5.0
+scale_amount_min = 0.8
+scale_amount_max = 1.3
+scale_amount_curve = SubResource("smokecurve")
+color_ramp = SubResource("smokegrad")

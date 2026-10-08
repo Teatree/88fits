@@ -60,6 +60,15 @@ func _shot(name: String) -> void:
 	print("wanted_shots: ", name)
 
 
+## A finger laid down or lifted at `at` (canvas px), as touch_audit pushes them (pass 60: the survey's text box).
+func _touch(at: Vector2, pressed: bool) -> void:
+	var e := InputEventScreenTouch.new()
+	e.index = 0
+	e.position = at
+	e.pressed = pressed
+	root.push_input(e, true)
+
+
 func _main() -> void:
 	if _inset >= 0:
 		root.get_node("Settings").top_inset = _inset
@@ -75,7 +84,7 @@ func _main() -> void:
 			any_run = true
 	if any_run:
 		await _in_run()
-	var menus := ["title", "mirror", "collection", "collection_inset", "settings", "dev"]
+	var menus := ["title", "mirror", "collection", "collection_inset", "settings", "dev", "consent", "survey"]
 	var any_menu := false
 	for n in menus:
 		if _want(n):
@@ -136,6 +145,42 @@ func _backdrop() -> void:
 				c.visible = true
 
 
+## 19, 19b (pass 60): the play-data card over the title with its plainer words, and the survey card on its text question
+## with the box focused by a finger (the brass ring; on the phone the keyboard rises with it and the card lifts clear).
+## Both opened by hand: a tool run never sends, so neither comes by itself.
+func _cards60() -> void:
+	await _scene("res://ui/TitleScreen.tscn")
+	# the title's live stage builds its world over the first second and holds the frames the card's entrance waits for:
+	# settled first, then the card gets its full fade (a shot at 0.7 s had caught it half faded)
+	await _wait(1.2)
+	if _want("consent"):
+		var consent: Control = load("res://ui/wanted/WConsent.gd").open(current_scene)
+		await _wait(1.0)
+		await _shot("19-consent")
+		consent.queue_free()
+		await _wait(0.2)
+	if _want("survey"):
+		var sv := {"id": "shots", "name": "Shots", "questions": [
+			{"id": "s1", "type": "rating", "question": "How much fun was that run?", "description": "", "optional": false, "choices": [], "scale": 5, "lower": "Not fun", "upper": "Loved it"},
+			{"id": "s2", "type": "open", "question": "Anything you would change?", "description": "A line or two is plenty.", "optional": true, "choices": [], "scale": 5, "lower": "", "upper": ""}]}
+		var card: Control = load("res://ui/wanted/WSurvey.gd").open(current_scene, sv)
+		await _wait(0.7)
+		await _shot("19b-survey")
+		card.call("show_page", 1)
+		await _wait(0.4)
+		var answer: Control = card.find_child("Answer", true, false)
+		if answer:
+			var at: Vector2 = answer.get_global_rect().get_center()
+			_touch(at, true)
+			await process_frame
+			_touch(at, false)
+			await _wait(0.3)
+			print("wanted_shots: survey text box focused = ", card.call("answer_focused"))
+		await _shot("19c-survey-text-focused")
+		card.queue_free()
+		await _wait(0.2)
+
+
 ## A menu screen on its own, settled; with white=1 its backdrop is white like the mocks' (the world still did not load
 ## in them).
 func _scene(path: String) -> void:
@@ -188,6 +233,8 @@ func _menus() -> void:
 		await _wait(0.5)
 		await _shot("01c-title-locked-hero")
 		root.get_node("Settings").preview_locked_heroes = false
+	if _want("consent") or _want("survey"):
+		await _cards60()
 	if _want("mirror"):
 		# the mock's board: Grit and Drive at rank 1, the rest untouched; 108,411 in the purse
 		_save.data["gold"] = 108411
@@ -636,6 +683,31 @@ func _shop() -> void:
 	g.structure_shop.open(offer)
 	await _wait(0.9)
 	await _shot("11-shop")
+	g.structure_shop.visible = false
+	# 11b (pass 60): a late build of 22 (five weapons, five lines, twelve passive items) in the YOU HOLD tray, which wraps
+	# at 60 px, over the three cards priced by stage, kind and rarity; 300 gold, so one card is short. Run with inset=130
+	# into another folder for the cutout's version.
+	var build: Array = [["weapon", "hornet_nest", 3], ["weapon", "turret_buddy", 3], ["weapon", "big_mouth", 4],
+		["weapon", "molotov", 3], ["weapon", "boomstick", 2]]
+	var n := 0
+	for p in _reg.sorted_lines():
+		if n >= 5:
+			break
+		build.append(["passive", p.id, 2])
+		n += 1
+	n = 0
+	for p in _reg.sorted_passives_only():
+		if n >= 12:
+			break
+		build.append(["passive", p.id, 1])
+		n += 1
+	_build(build)
+	_run.run_gold = 300
+	var offer2 := [_card("weapon", _reg.weapon("hornet_nest"), 3, 4), _card("passive", _reg.passive("clover"), 0, 1),
+		_card("passive", _reg.passive("desperado"), 0, 1)]
+	g.structure_shop.open(offer2)
+	await _wait(0.9)
+	await _shot("11b-shop-22")
 	g.structure_shop.visible = false
 	g.set_paused(false)
 

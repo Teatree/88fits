@@ -582,11 +582,42 @@ func _end_props(banked: int) -> Dictionary:
 		"strongbox": header.get("strongbox", 0), "revives": header.get("revives", 0)}
 
 
-## PostHog's run_summary (pass 57): the rows folded (fit_summary) and the frame clock's numbers.
+## PostHog's run_summary (pass 57): the rows folded (fit_summary) and the frame clock's numbers; pass 60 adds the final
+## build (as JSON and as one readable line), the kills each weapon made and the build's final estimated DPS.
 func _summary_props() -> Dictionary:
 	var s := RunAnalytics.fit_summary(samples)
 	s.merge(fps_stats(), true)
+	s["kills_by_weapon"] = RunAnalytics._top(Run.kills_by_weapon, 10, 1.0)
+	var b := _build()
+	s["build"] = b
+	s["build_text"] = build_text(b)
+	if not samples.is_empty() and samples[-1] is Dictionary:
+		s["est_end"] = float((samples[-1] as Dictionary).get("est_total", 0.0))
 	return s
+
+
+## One line a person can read in a PostHog table: "Revolver 5 +3 · Peashooter 2 | Clover 2 · Brawn 1 | Afterglow".
+func build_text(b: Dictionary) -> String:
+	var ws: Array = []
+	for w in b.get("weapons", []):
+		if w is Dictionary:
+			var muts: Array = (w as Dictionary).get("mutations", [])
+			var mut_s := ""
+			if not muts.is_empty():
+				mut_s = " +%d" % muts.size()
+			ws.append("%s %d%s" % [_name_of(str(w.get("id", ""))), int(w.get("level", 1)), mut_s])
+	var ps: Array = []
+	var passives: Dictionary = b.get("passives", {})
+	for id in passives.keys():
+		ps.append("%s %d" % [_name_of(str(id)), int(passives[id])])
+	var ks: Array = []
+	for id in b.get("perks", []):
+		ks.append(_name_of(str(id)))
+	var parts: Array = []
+	for group in [ws, ps, ks]:
+		if not group.is_empty():
+			parts.append(" · ".join(PackedStringArray(group)))
+	return " | ".join(PackedStringArray(parts))
 
 
 ## The run as PostHog's run_summary carries it (pass 57: Garry's local dashboard in one event). Per bucket of `bucket_s`
@@ -620,6 +651,26 @@ static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 	var killed := _zeros(n)
 	var hp := _zeros(n)
 	hp.fill(1.0)
+	# pass 60: the rest of the local dashboard's curves (Garry: "Run Curves doesn't seem to contain all of the
+	# dashboard.html stuff"): the hero's max HP and shield, the raw damage thrown at him, what he evaded, spent and
+	# healed, seconds shielded / invulnerable, the crowd's load against the hard cap, XP into the level, the Strongbox,
+	# the kill total, the director's phase, and each weapon's damage minute by minute (the top eight, dmg_by_minute: a map, not an m_ array)
+	var hp_max := _zeros(n)
+	var shield_pts := _zeros(n)
+	var took_raw := _zeros(n)
+	var m_evaded := _zeros(n)
+	var m_shielded := _zeros(n)
+	var m_healed := _zeros(n)
+	var shield_s := _zeros(n)
+	var invuln_s := _zeros(n)
+	var crowd_load := _zeros(n)
+	var hard_cap := _zeros(n)
+	var xp := _zeros(n)
+	var banked := _zeros(n)
+	var kills := _zeros(n)
+	var phase := _zeros(n)
+	var dmg_by_min := {}
+	var took_kind := {}
 	var dmg_by := {}
 	var est_by := {}
 	var took_by := {}
@@ -645,11 +696,37 @@ static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 		hits[i] += float(row.get("hits", 0))
 		# the rows run in time order: the bucket's last row leaves its purse
 		gold[i] = float(row.get("gold", 0))
+		banked[i] = float(row.get("banked", 0))
+		kills[i] = float(row.get("kills", 0))
+		phase[i] = float(row.get("phase", 0))
+		hp_max[i] = float(row.get("hp_max", 0.0))
+		xp[i] = float(row.get("xp", 0.0)) / maxf(float(row.get("xp_next", 1.0)), 1.0)
+		shield_pts[i] += float(row.get("shield", 0.0))
+		if float(row.get("shield", 0.0)) > 0.0:
+			shield_s[i] += 1.0
+		if int(row.get("invuln", 0)) > 0:
+			invuln_s[i] += 1.0
+		crowd_load[i] += float(row.get("load", 0.0))
+		hard_cap[i] = maxf(hard_cap[i], float(row.get("hard_cap", 0)))
+		took_raw[i] += float(row.get("took_raw", 0.0))
+		m_evaded[i] += float(row.get("evaded", 0))
+		m_shielded[i] += float(row.get("shielded", 0.0))
+		m_healed[i] += float(row.get("healed", 0.0))
 		spawned[i] += _add_into(spawned_by, row.get("spawned"))
 		killed[i] += _add_into(killed_by, row.get("killed"))
 		dmg[i] += _add_into(dmg_by, row.get("dmg"))
 		took[i] += _add_into(took_by, row.get("took"))
 		_add_into(est_by, row.get("est"))
+		_add_into(took_kind, row.get("took_kind"))
+		var d: Variant = row.get("dmg")
+		if d is Dictionary:
+			for w in (d as Dictionary).keys():
+				if not dmg_by_min.has(w):
+					var a: Array = []
+					a.resize(n)
+					a.fill(0.0)
+					dmg_by_min[w] = a
+				dmg_by_min[w][i] = float(dmg_by_min[w][i]) + float(d[w])
 		if row.has("hp") and float(row.get("hp_max", 0.0)) > 0.0:
 			var f := float(row["hp"]) / float(row["hp_max"])
 			hp[i] = minf(hp[i], f)
@@ -666,14 +743,30 @@ static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 		press_hp[i] /= k
 		press_dmg[i] /= k
 		est[i] /= k
+		shield_pts[i] /= k
+		crowd_load[i] /= k
+	# each weapon's damage minute by minute, the top eight by their total
+	var by_min := {}
+	var top_w: Array = _top(dmg_by, 8, 1.0).keys()
+	for w in top_w:
+		if dmg_by_min.has(w):
+			var ints: Array = []
+			for v in dmg_by_min[w]:
+				ints.append(int(round(float(v))))
+			by_min[w] = ints
 	return {"bucket_s": int(bucket_s), "minutes": n, "m_secs": _ints(secs), "m_stage": _ints(stage), "m_level": _ints(level),
 		"m_alive": _ints(alive), "m_cap": _ints(cap), "m_spawned": _ints(spawned), "m_killed": _ints(killed),
 		"m_press": _ints(press), "m_press_hp": _ints(press_hp), "m_press_dmg": _ints(press_dmg), "m_est": _snaps(est, 0.1),
 		"m_dmg": _ints(dmg), "m_hp": _snaps(hp, 0.01), "m_took": _snaps(took, 0.1), "m_hits": _ints(hits),
 		"m_low_s": _ints(low), "m_gold": _ints(gold),
+		"m_hp_max": _ints(hp_max), "m_shield": _snaps(shield_pts, 0.1), "m_took_raw": _snaps(took_raw, 0.1),
+		"m_evaded": _ints(m_evaded), "m_shielded": _snaps(m_shielded, 0.1), "m_healed": _snaps(m_healed, 0.1),
+		"m_shield_s": _ints(shield_s), "m_invuln_s": _ints(invuln_s), "m_load": _snaps(crowd_load, 0.1),
+		"m_hard_cap": _ints(hard_cap), "m_xp": _snaps(xp, 0.01), "m_banked": _ints(banked), "m_kills": _ints(kills),
+		"m_phase": _ints(phase), "dmg_by_minute": by_min,
 		"dmg_by_weapon": _top(dmg_by, 10, 1.0), "est_by_weapon": _top(est_by, 10, 1.0),
 		"took_by_creature": _top(took_by, 10, 0.1), "spawned_by_creature": _top(spawned_by, 10, 1.0),
-		"killed_by_creature": _top(killed_by, 10, 1.0),
+		"killed_by_creature": _top(killed_by, 10, 1.0), "took_kind": _top(took_kind, 5, 0.1),
 		"evaded": evaded, "shielded": snappedf(shielded, 0.1), "healed": snappedf(healed, 0.1)}
 
 
