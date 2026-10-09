@@ -50,6 +50,12 @@ var debug_mode: bool = false
 ## Killer Bees, the Tarantula Hawk and the seekers, still hunt anywhere): EnemyManager's target picks skip a creature off
 ## the screen while this is on. Settings shows the switch only in debug mode (the Debug panel); on for everyone.
 var ranged_on_screen: bool = true
+## The pierce drop-off (pass 62, Garry: "add an option to toggle this on and off in the Debug version of the Settings"):
+## on, a weapon with `params.pierce_falloff` (the Boomstick, Tommy Gun, Revolver, Spear, Turret Buddy and their
+## evolutions) hits its first enemy x first_mult and each it pierces after x step of the one before
+## (ProjectileManager.falloff_factor, the Spear's thrust too); off, exactly the old numbers. Settings shows the switch
+## only in debug mode (the Debug panel) and in the developer menu; on for everyone.
+var pierce_falloff: bool = true
 ## The debug arena's training dummies (pass 48, the developer menu and the arena's WORLD tab; lane L5 lays them out):
 ## how many stand in the field (never fewer than 10), and their health: 0 = undying (a hit refills them), else that much
 ## HP, and one that dies comes back.
@@ -106,7 +112,7 @@ func to_dict() -> Dictionary:
 		"float_heal": float_heal, "float_xp": float_xp, "float_coins": float_coins, "float_size": float_size,
 		"debug_modal_buttons": debug_modal_buttons, "free_revive_button": free_revive_button, "hit_log": hit_log,
 		"preview_locked_heroes": preview_locked_heroes, "top_inset": top_inset, "debug_mode": debug_mode,
-		"menu_style": menu_style, "ranged_on_screen": ranged_on_screen,
+		"menu_style": menu_style, "ranged_on_screen": ranged_on_screen, "pierce_falloff": pierce_falloff,
 		"dummy_count": dummy_count, "dummy_hp": dummy_hp,
 		"dummy_patrol": dummy_patrol, "attacker_dummy_hp": attacker_dummy_hp,
 		"elite_dummy_hp": elite_dummy_hp, "elite_dummy_mode": elite_dummy_mode,
@@ -136,6 +142,7 @@ func from_dict(d: Dictionary) -> void:
 	debug_mode = bool(d.get("debug_mode", debug_mode))
 	menu_style = str(d.get("menu_style", menu_style))
 	ranged_on_screen = bool(d.get("ranged_on_screen", ranged_on_screen))
+	pierce_falloff = bool(d.get("pierce_falloff", pierce_falloff))
 	dummy_count = int(d.get("dummy_count", dummy_count))
 	dummy_hp = int(d.get("dummy_hp", dummy_hp))
 	dummy_patrol = bool(d.get("dummy_patrol", dummy_patrol))

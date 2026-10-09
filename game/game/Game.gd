@@ -1903,9 +1903,11 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 			Run.add_gold(int(def.value), def.id)
 			Audio.play("pk_coin", at)
 		"buff":
-			Run.add_timed_effects(def.id, def.display_name, def.effects, def.duration)
+			# pass 62: a power-up off the ground lasts the Pocket Watch's longer (Run.powerup_seconds), then buff_seconds
+			var pu_s: float = Run.powerup_seconds(def.duration)
+			Run.add_timed_effects(def.id, def.display_name, def.effects, pu_s)
 			# the seconds as they run on this hero (pass 54: Solenne's buffs last longer, Run.buff_seconds)
-			hud.toast("%s: %s for %d s" % [def.display_name.to_upper(), TextGen.describe_effects(def.effects), int(round(Run.buff_seconds(def.duration)))], def.color)
+			hud.toast("%s: %s for %d s" % [def.display_name.to_upper(), TextGen.describe_effects(def.effects), int(round(Run.buff_seconds(pu_s)))], def.color)
 			Audio.play("pk_powerup", at)
 			# a power-up that makes him faster (a Sprint, by its effects, pass 48): its blue look runs while it lasts
 			if _speeds_up(def) and player:
@@ -1914,8 +1916,9 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 				fx.speed_burst(player.global_position, Fx.SPRINT_BLUE)
 				telegraphs.flash_ring(player.global_position, 2.8, Fx.SPRINT_BLUE, 0.4)
 		"shield":
-			player.shield(Run.buff_seconds(def.duration))
-			hud.toast("SHIELD for %d s" % int(round(Run.buff_seconds(def.duration))), def.color)
+			var sh_s: float = Run.buff_seconds(Run.powerup_seconds(def.duration))
+			player.shield(sh_s)
+			hud.toast("SHIELD for %d s" % int(round(sh_s)), def.color)
 			Audio.play("pk_powerup", at)
 		"vacuum":
 			# everything on the map, the coins and the chests too, as a boss kill does it

@@ -49,6 +49,11 @@ params = {
 },
 "marks": false,
 "max_turrets": 6.0,
+"pierce_falloff": {
+"first_mult": 1.1,
+"floor": 0.4,
+"step": 0.8
+},
 "tracer": true,
 "turret_fire_rate": 0.3
 }

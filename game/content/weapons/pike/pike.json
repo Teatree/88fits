@@ -67,6 +67,11 @@
   "evolves_with": "",
   "evolves_into": "thunder_lance",
   "params": {
+    "pierce_falloff": {
+      "step": 0.8,
+      "floor": 0.4,
+      "first_mult": 1.15
+    },
     "thrust": {
       "out": 0.16,
       "hold": 0.1,

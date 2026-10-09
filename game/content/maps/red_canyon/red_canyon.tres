@@ -17,7 +17,7 @@ cap_start = 10
 cap_per_minute = 7.81
 cap_max = 150
 hard_cap = 260
-cap_curve = [[0.0, 10.0], [63.0, 27.0], [122.0, 45.0], [123.0, 80.0], [176.0, 80.0], [176.0, 45.0], [213.0, 56.0], [232.0, 84.0], [286.0, 84.0], [363.0, 100.0], [430.0, 100.0], [430.0, 54.0], [526.0, 98.0], [593.0, 102.0], [593.0, 150.0], [690.0, 168.0], [692.0, 104.0], [860.0, 108.0], [1290.0, 150.0]]
+cap_curve = [[0.0, 10.0], [63.0, 27.0], [122.0, 45.0], [123.0, 80.0], [176.0, 80.0], [176.0, 45.0], [213.0, 56.0], [232.0, 84.0], [306.0, 79.0], [306.0, 132.0], [337.0, 132.0], [337.0, 73.0], [368.0, 72.0], [430.0, 100.0], [430.0, 54.0], [490.0, 70.0], [535.0, 84.0], [536.0, 140.0], [585.0, 140.0], [585.0, 74.0], [645.0, 92.0], [719.0, 100.0], [720.0, 150.0], [755.0, 150.0], [755.0, 88.0], [800.0, 96.0], [860.0, 112.0], [860.0, 64.0], [920.0, 86.0], [964.0, 100.0], [965.0, 150.0], [1015.0, 150.0], [1015.0, 92.0], [1075.0, 104.0], [1149.0, 100.0], [1150.0, 150.0], [1185.0, 150.0], [1185.0, 100.0], [1240.0, 112.0], [1289.0, 120.0], [1290.0, 150.0]]
 boss_cap_frac = 0.6
 portal_cap = -1
 portal_spawn_seconds = -1.0
@@ -48,8 +48,8 @@ damage_curve = {
 "a": 0.0,
 "kind": "linear"
 },
-"mode": "formula",
-"points": [[0.0, 1.0], [1290.0, 1.0]]
+"mode": "points",
+"points": [[0.0, 1.0], [430.0, 1.0], [431.0, 0.65], [860.0, 0.65], [861.0, 0.55], [1290.0, 0.6]]
 }
 level_hp_per_level = 0.05
 level_damage_per_level = 0.03
@@ -96,61 +96,6 @@ roster = [{
 "until": 176.0,
 "weights": [[121.0, 8.0], [174.0, 7.6]]
 }, {
-"enemy": "fire_ant",
-"id": "r4",
-"stats": {
-"hp": 55.0
-},
-"t": 430.0,
-"until": 613.0,
-"weights": [[430.0, 3.0], [537.0, 6.2]]
-}, {
-"enemy": "bull_beetle",
-"id": "r5",
-"t": 487.0,
-"until": 549.0,
-"weights": [[487.0, 2.0], [550.0, 3.0]]
-}, {
-"enemy": "buckshot_dwarf",
-"id": "r8",
-"t": 594.0,
-"until": 692.0,
-"weights": [[594.0, 2.0], [657.0, 3.0]]
-}, {
-"enemy": "spit_cactus",
-"id": "r6",
-"pattern": "scatter",
-"t": 526.0,
-"until": 692.0,
-"weights": [[526.0, 2.0], [596.0, 4.4], [600.0, 1.6]]
-}, {
-"enemy": "hammer_giant",
-"id": "r7",
-"pattern": "scatter",
-"t": 549.0,
-"until": 593.0,
-"weights": [[549.0, 1.0], [550.0, 2.0]]
-}, {
-"channel": "regular",
-"enemy": "lesser_scorpion",
-"id": "r9",
-"pattern": "pack",
-"t": 593.0,
-"until": 691.0,
-"weights": [[605.0, 8.0]]
-}, {
-"channel": "hell",
-"enemy": "imp",
-"id": "r10",
-"t": 860.0,
-"weights": [[860.0, 9.0]]
-}, {
-"channel": "hell",
-"enemy": "hellhound",
-"id": "r11",
-"t": 860.0,
-"weights": [[860.0, 8.0]]
-}, {
 "enemy": "skeleton",
 "id": "r12",
 "stats": {
@@ -193,13 +138,461 @@ roster = [{
 }, {
 "enemy": "werewolf",
 "id": "r16",
+"pattern": "ring",
 "stats": {
 "hp": 20.0,
 "size": 1.4
 },
-"t": 300.0,
+"t": 306.0,
 "until": 430.0,
-"weights": [[300.0, 5.4]]
+"weights": [[306.0, 5.4]]
+}, {
+"enemy": "buckshot_dwarf",
+"id": "r19",
+"pack": 2.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 0.38,
+"max_alive": 3.0
+},
+"t": 431.0,
+"until": 575.0,
+"weights": [[431.0, 1.0], [575.0, 1.4]]
+}, {
+"enemy": "fire_ant",
+"id": "r20",
+"pack": 6.0,
+"stats": {
+"hp_mult": 0.38
+},
+"t": 431.0,
+"until": 536.0,
+"weights": [[431.0, 5.0], [536.0, 6.0]]
+}, {
+"enemy": "lesser_scorpion",
+"id": "r21",
+"pack": 5.0,
+"stats": {
+"hp_mult": 0.38,
+"tint": {
+"amount": 0.4,
+"hue": [350.0, 12.0],
+"sat": 0.85,
+"val": 0.8
+}
+},
+"t": 431.0,
+"until": 536.0,
+"weights": [[431.0, 6.0], [536.0, 4.0]]
+}, {
+"enemy": "armadillo",
+"id": "r22",
+"pack": 100.0,
+"pattern": "in_front",
+"stats": {
+"hp_mult": 0.7,
+"size": [1.0, 1.35]
+},
+"t": 536.0,
+"until": 585.0,
+"weights": [[536.0, 8.0], [585.0, 8.0]]
+}, {
+"enemy": "skeleton",
+"id": "r23",
+"pack": 6.0,
+"stats": {
+"hp_mult": 0.94
+},
+"t": 585.0,
+"until": 720.0,
+"variant": "SK-E",
+"weights": [[585.0, 6.0], [720.0, 5.0]]
+}, {
+"enemy": "skeleton_knight",
+"id": "r24",
+"pack": 4.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 0.94
+},
+"t": 585.0,
+"until": 720.0,
+"variant": "KN-E",
+"weights": [[585.0, 2.5], [720.0, 3.0]]
+}, {
+"enemy": "dust_mummy",
+"id": "r25",
+"pack": 2.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 1.02
+},
+"t": 600.0,
+"until": 860.0,
+"weights": [[600.0, 0.8], [700.0, 1.4], [860.0, 1.4]]
+}, {
+"enemy": "spit_cactus",
+"id": "r26",
+"pack": 2.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 1.02,
+"max_alive": 4.0
+},
+"t": 600.0,
+"until": 700.0,
+"weights": [[600.0, 1.2], [700.0, 1.2]]
+}, {
+"enemy": "bull_beetle",
+"id": "r27",
+"pack": 1.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 1.3,
+"max_alive": 2.0
+},
+"t": 640.0,
+"until": 860.0,
+"weights": [[640.0, 0.8], [860.0, 1.0]]
+}, {
+"enemy": "buckshot_dwarf",
+"id": "r28",
+"pack": 2.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 1.33,
+"max_alive": 3.0
+},
+"t": 645.0,
+"until": 860.0,
+"weights": [[645.0, 0.8], [860.0, 1.2]]
+}, {
+"enemy": "werewolf",
+"id": "r29",
+"pack": 36.0,
+"pattern": "ring",
+"stats": {
+"hp_mult": 2.0,
+"size": [1.4, 1.9],
+"tint": {
+"amount": 0.5,
+"hue": [350.0, 12.0],
+"sat": 0.85,
+"val": 0.8
+}
+},
+"t": 720.0,
+"until": 860.0,
+"weights": [[720.0, 8.0], [755.0, 8.0], [756.0, 4.0], [860.0, 4.0]]
+}, {
+"enemy": "red_goblin",
+"id": "r30",
+"pack": 6.0,
+"stats": {
+"hp_mult": 2.03
+},
+"t": 755.0,
+"until": 860.0,
+"variant": "RG-B",
+"weights": [[755.0, 5.0], [860.0, 6.0]]
+}, {
+"enemy": "red_goblin_runt",
+"id": "r31",
+"pack": 5.0,
+"stats": {
+"hp_mult": 2.03
+},
+"t": 755.0,
+"until": 860.0,
+"variant": "RR-B",
+"weights": [[755.0, 3.0], [860.0, 3.0]]
+}, {
+"enemy": "spit_cactus",
+"id": "r51",
+"pack": 2.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 2.03,
+"max_alive": 4.0
+},
+"t": 760.0,
+"until": 860.0,
+"weights": [[760.0, 1.0], [860.0, 1.4]]
+}, {
+"enemy": "hammer_giant",
+"id": "r32",
+"pack": 1.0,
+"pattern": "scatter",
+"stats": {
+"damage_mult": 0.7,
+"hp_mult": 1.0,
+"max_alive": 2.0
+},
+"t": 775.0,
+"until": 860.0,
+"weights": [[775.0, 0.6], [860.0, 0.8]]
+}, {
+"channel": "hell",
+"enemy": "imp",
+"id": "r10",
+"pack": 6.0,
+"stats": {
+"hp_mult": 0.55
+},
+"t": 861.0,
+"until": 1075.0,
+"weights": [[861.0, 9.0], [1075.0, 9.0]]
+}, {
+"channel": "hell",
+"enemy": "hellhound",
+"id": "r11",
+"pack": 4.0,
+"stats": {
+"hp_mult": 0.72
+},
+"t": 920.0,
+"until": 1075.0,
+"weights": [[920.0, 4.0], [1075.0, 6.0]]
+}, {
+"channel": "hell",
+"enemy": "imp",
+"id": "r33",
+"pack": 6.0,
+"stats": {
+"hp_mult": 1.46
+},
+"t": 1075.0,
+"weights": [[1075.0, 9.0]]
+}, {
+"channel": "hell",
+"enemy": "hellhound",
+"id": "r34",
+"pack": 4.0,
+"stats": {
+"hp_mult": 1.46
+},
+"t": 1075.0,
+"weights": [[1075.0, 7.0]]
+}, {
+"enemy": "skeleton",
+"id": "r35",
+"pack": 6.0,
+"stats": {
+"hp_mult": 0.55,
+"tint": {
+"amount": 0.5,
+"hue": [8.0, 32.0],
+"sat": 0.9,
+"val": 1.0
+}
+},
+"t": 861.0,
+"until": 964.0,
+"weights": [[861.0, 6.0], [964.0, 6.0]]
+}, {
+"enemy": "fire_ant",
+"id": "r36",
+"pack": 6.0,
+"stats": {
+"hp_mult": 0.55
+},
+"t": 861.0,
+"until": 964.0,
+"variant": "ANT-B",
+"weights": [[861.0, 4.0], [964.0, 5.0]]
+}, {
+"enemy": "horned_toad",
+"id": "r37",
+"pack": 2.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 0.66
+},
+"t": 900.0,
+"until": 1150.0,
+"weights": [[900.0, 1.0], [1150.0, 1.4]]
+}, {
+"enemy": "buckshot_dwarf",
+"id": "r38",
+"pack": 2.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 0.66,
+"max_alive": 3.0
+},
+"t": 900.0,
+"until": 1075.0,
+"weights": [[900.0, 1.0], [1075.0, 1.0]]
+}, {
+"enemy": "skeleton_knight",
+"id": "r39",
+"pack": 60.0,
+"pattern": "ring",
+"stats": {
+"hp_mult": 0.88,
+"tint": {
+"amount": 0.5,
+"hue": [8.0, 32.0],
+"sat": 0.9,
+"val": 1.0
+}
+},
+"t": 965.0,
+"until": 1075.0,
+"weights": [[965.0, 8.0], [1015.0, 8.0], [1016.0, 3.0], [1075.0, 3.0]]
+}, {
+"enemy": "armadillo",
+"id": "r40",
+"pack": 6.0,
+"stats": {
+"hp_mult": 1.11,
+"tint": {
+"amount": 0.45,
+"hue": [40.0, 58.0],
+"sat": 0.8,
+"val": 1.0
+}
+},
+"t": 1015.0,
+"until": 1150.0,
+"weights": [[1015.0, 5.0], [1150.0, 4.0]]
+}, {
+"enemy": "dust_mummy",
+"id": "r41",
+"pack": 2.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 1.11
+},
+"t": 1015.0,
+"until": 1150.0,
+"variant": "DM-B",
+"weights": [[1015.0, 1.5], [1150.0, 1.5]]
+}, {
+"enemy": "dust_shaman",
+"id": "r42",
+"pack": 1.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 1.11,
+"max_alive": 2.0
+},
+"t": 1015.0,
+"weights": [[1015.0, 0.5], [1150.0, 0.7]]
+}, {
+"enemy": "bull_beetle",
+"id": "r43",
+"pack": 1.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 1.24,
+"max_alive": 2.0
+},
+"t": 1040.0,
+"until": 1185.0,
+"weights": [[1040.0, 0.8], [1185.0, 0.8]]
+}, {
+"enemy": "werewolf",
+"id": "r44",
+"pack": 40.0,
+"pattern": "ring",
+"stats": {
+"hp_mult": 2.0,
+"size": [1.5, 2.0],
+"tint": {
+"amount": 0.45,
+"hue": [40.0, 58.0],
+"sat": 0.8,
+"val": 1.0
+}
+},
+"t": 1150.0,
+"until": 1290.0,
+"weights": [[1150.0, 7.0], [1185.0, 7.0], [1186.0, 3.0], [1290.0, 3.0]]
+}, {
+"enemy": "hellhound",
+"id": "r45",
+"pack": 6.0,
+"pattern": "in_front",
+"stats": {
+"hp_mult": 2.0
+},
+"t": 1150.0,
+"until": 1185.0,
+"weights": [[1150.0, 4.0], [1185.0, 4.0]]
+}, {
+"enemy": "skeleton_knight",
+"id": "r46",
+"pack": 6.0,
+"stats": {
+"hp_mult": 2.03,
+"tint": {
+"amount": 0.5,
+"hue": [8.0, 32.0],
+"sat": 0.9,
+"val": 1.0
+}
+},
+"t": 1185.0,
+"variant": "KN-E",
+"weights": [[1185.0, 5.0]]
+}, {
+"enemy": "fire_ant",
+"id": "r47",
+"pack": 6.0,
+"stats": {
+"hp_mult": 2.03
+},
+"t": 1185.0,
+"variant": "ANT-B",
+"weights": [[1185.0, 4.0]]
+}, {
+"enemy": "werewolf",
+"id": "r48",
+"pack": 3.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 2.03,
+"size": [1.4, 1.8]
+},
+"t": 1185.0,
+"weights": [[1185.0, 3.0]]
+}, {
+"enemy": "spit_cactus",
+"id": "r52",
+"pack": 2.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 2.03,
+"max_alive": 4.0
+},
+"t": 1185.0,
+"until": 1290.0,
+"weights": [[1185.0, 1.2], [1290.0, 1.2]]
+}, {
+"enemy": "hammer_giant",
+"id": "r49",
+"pack": 1.0,
+"pattern": "scatter",
+"stats": {
+"damage_mult": 0.7,
+"hp_mult": 0.8,
+"max_alive": 2.0
+},
+"t": 1185.0,
+"variant": "HG-C",
+"weights": [[1185.0, 0.6]]
+}, {
+"enemy": "buckshot_dwarf",
+"id": "r50",
+"pack": 2.0,
+"pattern": "scatter",
+"stats": {
+"hp_mult": 2.03,
+"max_alive": 3.0
+},
+"t": 1185.0,
+"weights": [[1185.0, 1.0]]
 }]
 weight_late_t = 860.0
 events = [{
@@ -215,18 +608,30 @@ events = [{
 "t": 430.0,
 "type": "boss"
 }, {
-"count": 20.0,
+"count": 24.0,
 "enemy": "fire_ant",
-"t": 559.0,
+"name": "Ant swarm",
+"stats": {
+"hp_mult": 1.09
+},
+"t": 610.0,
 "type": "swarm"
 }, {
 "enemy": ["dune_scorpion", "sun_prophet", "stone_golem"],
+"stats": {
+"hp_mult": 1.3
+},
 "t": 645.0,
 "type": "elite_boss"
 }, {
-"count": 18.0,
+"count": 20.0,
 "enemy": "armadillo",
-"t": 731.0,
+"name": "Armadillo charge",
+"pattern": "in_front",
+"stats": {
+"hp_mult": 2.06
+},
+"t": 800.0,
 "type": "swarm"
 }, {
 "enemy": "gila_grande",
@@ -235,15 +640,14 @@ events = [{
 }, {
 "count": 30.0,
 "enemy": "imp",
-"t": 989.0,
-"type": "swarm"
-}, {
-"count": 24.0,
-"enemy": "skeleton",
-"t": 1032.0,
+"name": "Imp swarm",
+"t": 1040.0,
 "type": "swarm"
 }, {
 "enemy": ["dune_scorpion", "sun_prophet", "stone_golem"],
+"stats": {
+"hp_mult": 1.9
+},
 "t": 1075.0,
 "type": "elite_boss"
 }, {

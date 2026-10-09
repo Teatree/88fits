@@ -69,6 +69,11 @@
   "evolves_with": "",
   "evolves_into": "golden_revolver",
   "params": {
+    "pierce_falloff": {
+      "step": 0.8,
+      "floor": 0.4,
+      "first_mult": 1.15
+    },
     "radius": 0.14,
     "burst": true,
     "burst_gap": 0.14,

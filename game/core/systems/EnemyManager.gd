@@ -27,6 +27,9 @@ const DIE_SINK := 0.3
 ## A hit's flags (pass 48, damage's `flags`): HIT_MINI is a mini crit (the Tommy Gun's Mini Crits, rolled as the round
 ## left the gun): half a crit's extra damage, 1 + (crit_damage - 1) / 2, unless a full crit rolled.
 const HIT_MINI := 1
+## HIT_CRIT (pass 62, Ironwood's Heartseeker: every 4th thrust a guaranteed crit) makes a weapon hit a full crit whatever
+## the hero's crit chance, at his crit_damage as any crit (a poison or fire tick never crits).
+const HIT_CRIT := 2
 ## Whether the last hit damage() landed was a full crit (pass 61, lane WP2: the Sabre's Critical Thinking streak and the
 ## Whirlwind's refund read it right after their own call); false when the hit did not land.
 var last_crit := false
@@ -1493,7 +1496,8 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 	var crit := false
 	if weapon_id != "" and not green and not hot:
 		var cc: float = Run.player_sheet.get_stat("crit_chance", 0.0)
-		if cc > 0.0 and randf() < cc:
+		# HIT_CRIT (pass 62): a forced crit needs no roll
+		if (flags & HIT_CRIT) != 0 or (cc > 0.0 and randf() < cc):
 			dealt *= Run.player_sheet.get_stat("crit_damage", 2.0)
 			crit = true
 			# Vulture (pass 47c): a crit may heal the hero a little

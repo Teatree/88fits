@@ -42,6 +42,10 @@ const PLAYER_DEFAULTS := {
 	# pass 54, Solenne: how long every buff on her lasts (Run.buff_seconds: the power-ups, structures, Pollen, Barrel Rush,
 	# Skedaddle, the shield power-up), and how big every heal on her is (Player.heal and her regen, Afterglow)
 	"buff_duration": 1.0, "heal_mult": 1.0,
+	# pass 62, the Pocket Watch: how long a power-up picked up off the ground lasts (Run.powerup_seconds: Berserk, Sprint,
+	# the Shield; never a structure's buff, Pollen or Barrel Rush), and a factor on the timeline's per-kill drop chance of
+	# a power-up (WaveDirector.drop_pickup_from)
+	"powerup_duration": 1.0, "powerup_chance": 1.0,
 }
 
 ## The least a hero's stat can come to, however many sources pull it down (pass 61: Ironwood's regen delay shrinks every

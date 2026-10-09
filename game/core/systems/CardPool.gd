@@ -51,7 +51,8 @@ static func level_up_offer(count: int = 3, exclude: Array = []) -> Array:
 			if Run.family_instance(w.id) != null:
 				continue
 			if weapon_slot_free:
-				cands.append(_favourite(_card("weapon", w, 0, 1, weight_of(w, 0))))
+				# the hero's favourite arrives at its bonus level and its card says so (pass 62)
+				cands.append(_favourite(_card("weapon", w, 0, first_weapon_level(w), weight_of(w, 0))))
 		elif inst.level < w.max_level and not inst.def.is_evolution:
 			cands.append(_card("weapon", w, inst.level, inst.level + 1, weight_of(w, inst.level)))
 	# base passives only: an evolved one comes as its source's evolution card, never on its own
@@ -111,6 +112,12 @@ static func offer_weapons() -> Array:
 	for inst: WeaponInstance in Run.weapons:
 		if not inst.def.is_evolution and not out.has(inst.def):
 			out.append(inst.def)
+	# the run hero's favourite weapon whatever its unlock quest (pass 62: Solenne's Molotov, like pass 54's favourite
+	# passive rule in offer_passives)
+	if Run.character and Run.character.favourite_weapon != "":
+		var fav: WeaponDef = Registry.weapon(Run.character.favourite_weapon)
+		if fav and not fav.hidden and not fav.is_evolution and Registry.hero_may_use(fav) and not out.has(fav):
+			out.append(fav)
 	return out
 
 
@@ -143,11 +150,37 @@ static func pick_one(cands: Array) -> Dictionary:
 	return one[0] if not one.is_empty() else {}
 
 
-## A new card for the hero's favourite weapon or passive says so (CardScreen adds " · FAVOURITE" to its word).
+## A new card for the hero's favourite weapon or passive says so (pass 62: WCard pins a brass heart on its plate and
+## says FAVOURITE by its tag; WItem.favourite marks his favourite's upgrades too).
 static func _favourite(card: Dictionary) -> Dictionary:
 	if Run.is_favourite(card["def"]):
 		card["favourite"] = true
 	return card
+
+
+## The level the run hero's favourite weapon arrives at when it is new (pass 62, Garry: "in the case of The Drifter
+## seeing Peashooter for the first time it should display at already the higher level"): its favourite_bonus "level"
+## value (TitleScreen.start_level, the hero sheet's "Found at level 2"), else 1; 1 for every other weapon.
+static func first_weapon_level(def: WeaponDef) -> int:
+	if def == null or Run.character == null or Run.character.favourite_weapon != def.id:
+		return 1
+	var b: Dictionary = Run.character.favourite_bonus
+	if str(b.get("type", "")) == "level":
+		return clampi(int(b.get("value", 1)), 1, maxi(def.max_level, 1))
+	return 1
+
+
+## A weapon as a new card hands it over (pass 62): at `level` (a favourite's bonus level, the Stranger's 2), with the
+## favourite's own effects when it is the run hero's favourite (favourite_bonus "effects": Astro's +20% area on the
+## Orbit Saws), folded with the hero's sheet like the copy he will carry. Never added to the run.
+static func preview_weapon(def: WeaponDef, level: int = 1) -> WeaponInstance:
+	var tmp := WeaponInstance.new(def, clampi(level, 1, maxi(def.max_level, 1)))
+	if Run.character and Run.character.favourite_weapon == def.id:
+		var b: Dictionary = Run.character.favourite_bonus
+		if str(b.get("type", "")) == "effects" and b.get("effects") is Array:
+			tmp.bonus_effects = b["effects"]
+	tmp.rebuild(Run.player_sheet, Run.weapons)
+	return tmp
 
 
 ## Whether the run's stage has reached an item's `from_stage` (pass 43: the hell items are stage 3's alone).
@@ -249,7 +282,8 @@ static func apply_favourite(inst: WeaponInstance) -> void:
 	var b: Dictionary = Run.character.favourite_bonus
 	match str(b.get("type", "")):
 		"level":
-			inst.level = clamp(int(b.get("value", 2)), 1, inst.def.max_level)
+			# never below what it was handed over at (pass 62: the Stranger's level 2, a launch file's level)
+			inst.level = maxi(inst.level, first_weapon_level(inst.def))
 		"effects":
 			var eff = b.get("effects", [])
 			if eff is Array:

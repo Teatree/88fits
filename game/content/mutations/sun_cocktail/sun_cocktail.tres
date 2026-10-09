@@ -1,0 +1,43 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/sun_cocktail/sun_cocktail_icon.png" id="1_2g66h"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_btfra"]
+
+[resource]
+script = ExtResource("1_btfra")
+weapon = "molotov"
+mutation_kind = "hero"
+hero = "solenne"
+text = "Bottles shine with sunlight and burst where they land: a small blast for 150% of their damage that pushes a little."
+vfx = "a golden bottle with a sunburst round it in flight, a little sun bursting where it breaks, a gold ring racing out"
+params = {
+"halo": {
+"color": "#FFC83A",
+"motes": 0.04,
+"pulse": 0.25,
+"size": 1.9,
+"strength": 1.4
+},
+"land_blast": {
+"damage_frac": 1.5,
+"knockback": 2.4,
+"look": "sun",
+"radius_frac": 0.9
+},
+"tint": {
+"albedo": "#FFE9A8",
+"emission": "#FFC43A",
+"energy": 2.2
+}
+}
+id = "sun_cocktail"
+display_name = "Sun Cocktail"
+flavour = "Bottled noon. Shake well."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_2g66h")
+icon_file = "sun_cocktail_icon.png"
+placeholder = {
+"color": "#FFD34A",
+"glyph": "bottle"
+}

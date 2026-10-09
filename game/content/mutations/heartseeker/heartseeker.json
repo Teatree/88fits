@@ -1,0 +1,27 @@
+{
+  "id": "heartseeker",
+  "name": "Heartseeker",
+  "flavour": "Three to find the gap. The fourth goes through it.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "pike",
+  "kind": "hero",
+  "element": "",
+  "hero": "ironwood",
+  "text": "Every 4th thrust is a guaranteed crit and reaches 20% further.",
+  "vfx": "the point warms red over three thrusts; the fourth goes out red-hot and leaves a red lance of light, a red ring and sparks at its point",
+  "effects": [],
+  "params": {
+    "crit_stroke": {
+      "every": 4,
+      "reach_mult": 1.2,
+      "color": "#FF2914",
+      "core": "#FFE6C8"
+    }
+  },
+  "art_prompt": "a wooden spear with a leaf-shaped steel head and a red tassel, its point glowing red-hot, a red streak of light behind it",
+  "placeholder": {
+    "color": "#FF4A30",
+    "glyph": "star"
+  }
+}

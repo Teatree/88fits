@@ -729,6 +729,23 @@ func _settings_menu_style() -> void:
 				_fail("settings_debug", "RangedOnScreen", "a tap did not flip Settings.ranged_on_screen")
 			st.set("ranged_on_screen", was_ros)
 			(ros as Control).set("on", was_ros)
+	# the pierce drop-off (pass 62), when the setting exists: a real tap flips it, put back after
+	if "pierce_falloff" in st and st.debug_mode:
+		var pfs: Control = current_scene.find_child("PierceFalloff", true, false)
+		if pfs == null:
+			_count("settings_debug", false)
+			_fail("settings_debug", "PierceFalloff", "the debug mode is on and the switch is not there")
+		else:
+			var was_pf: bool = bool(st.get("pierce_falloff"))
+			var at4: Vector2 = await _spot(pfs)
+			await _tap(at4)
+			await _wait(0.2)
+			var ok4: bool = bool(st.get("pierce_falloff")) != was_pf
+			_count("settings_debug", ok4)
+			if not ok4:
+				_fail("settings_debug", "PierceFalloff", "a tap did not flip Settings.pierce_falloff")
+			st.set("pierce_falloff", was_pf)
+			(pfs as Control).set("on", was_pf)
 	st.debug_mode = keep_debug
 	st.menu_style = keep_style
 	root.get_node("Save").request_save()
@@ -865,6 +882,103 @@ func _version_hold() -> void:
 	await _audit("dev", current_scene)
 	await _dev_dummies()
 	await _dev_analytics()
+	await _dev_surveys()
+
+
+## The developer menu's Surveys block (pass 62) under a real finger: the readout is there; Next run asks arms the next
+## counted run, Counted runs adds one, Reset asks first (Keep leaves the record, Reset clears it), Show a survey now opens
+## the card over the menu (a survey put in for the audit; its NOT NOW closes it) and Fetch now answers in the readout.
+## Nothing stays: the survey record, the surveys and their status go back as they were.
+func _dev_surveys() -> void:
+	var an: Node = root.get_node_or_null("Analytics")
+	var sav: Node = root.get_node("Save")
+	if an == null or not an.has_method("survey_lines"):
+		_count("dev_surveys", false)
+		_fail("dev_surveys", "Analytics", "the autoload has no survey tools")
+		return
+	var keep_state: Dictionary = (sav.call("survey_state") as Dictionary).duplicate(true)
+	var keep_surveys: Array = (an.get("surveys") as Array).duplicate(true)
+	var keep_status := str(an.get("survey_status"))
+	var box: Control = current_scene.find_child("Surveys", true, false)
+	var ok_box: bool = box != null and box.find_children("*", "Control", true, false).size() > 3
+	_count("dev_surveys", ok_box)
+	if not ok_box:
+		_fail("dev_surveys", "Surveys", "the readout is not in the developer menu")
+	# Next run asks: a tap flips it
+	var was_armed: bool = bool(an.call("next_run_armed"))
+	if await _dev_tap("SurveyArm"):
+		_dev_check(bool(an.call("next_run_armed")) != was_armed, "SurveyArm", "a tap did not arm (or disarm) the next run")
+	# Counted runs: a tap adds one
+	var c0 := int((sav.call("survey_state") as Dictionary).get("counted", 0))
+	if await _dev_tap("SurveyCounted"):
+		_dev_check(int((sav.call("survey_state") as Dictionary).get("counted", 0)) == c0 + 1, "SurveyCounted", "a tap did not add a counted run")
+	# Reset: it asks; Keep leaves the record, Reset clears it
+	var c1 := int((sav.call("survey_state") as Dictionary).get("counted", 0))
+	if await _dev_tap("SurveyReset"):
+		var conf: Control = _open_confirm_button("cancel_btn")
+		_dev_check(conf != null, "SurveyReset", "a tap did not ask first")
+		if conf:
+			await _tap(await _spot(conf))
+			await _wait(0.4)
+			_dev_check(int((sav.call("survey_state") as Dictionary).get("counted", 0)) == c1, "SurveyReset", "Keep changed the record")
+	if await _dev_tap("SurveyReset"):
+		var ok_btn: Control = _open_confirm_button("confirm_btn")
+		var asked := ok_btn != null
+		if asked:
+			await _tap(await _spot(ok_btn))
+			await _wait(0.4)
+		var st: Dictionary = sav.call("survey_state")
+		_dev_check(asked and int(st.get("counted", -1)) == 0 and (st.get("answered", []) as Array).is_empty(), "SurveyReset", "Reset did not clear the record")
+	# Show a survey now: the card over the menu; its NOT NOW closes it
+	an.set("surveys", [{"id": "audit62", "name": "Audit [run 5]", "questions": [
+		{"id": "q", "type": "rating", "question": "How much fun?", "description": "", "optional": false, "choices": [], "scale": 5, "lower": "", "upper": ""}]}])
+	if await _dev_tap("SurveyShow"):
+		var card: Control = current_scene.get_node_or_null("Survey")
+		_dev_check(card != null, "SurveyShow", "a tap did not open the survey card")
+		if card:
+			var nn: Control = card.find_child("NotNow", true, false)
+			await _tap(await _spot(nn))
+			await _wait(0.5)
+			# closed: done, or already gone after its fade
+			_dev_check(not is_instance_valid(card) or bool(card.call("is_done")), "SurveyShow", "NOT NOW on the card did not close it")
+	# Fetch now: a tool sends nothing, and the readout says why
+	if await _dev_tap("SurveyFetch"):
+		_dev_check(str(an.get("survey_status")).begins_with("not fetched") or str(an.get("survey_status")) == "fetching...", "SurveyFetch", "a tap left no word in the readout")
+	var st2: Dictionary = sav.call("survey_state")
+	st2.clear()
+	st2.merge(keep_state, true)
+	an.set("surveys", keep_surveys)
+	an.set("survey_status", keep_status)
+	sav.call("request_save")
+
+
+## The open question's button (`which`: "cancel_btn" or "confirm_btn") on the developer menu, by the script's class name
+## (this script compiles before the kit's classes can be named); a question already answered, still fading, is skipped.
+func _open_confirm_button(which: String) -> Control:
+	for n in current_scene.get_children():
+		var sc: Script = n.get_script()
+		if sc and str(sc.get_global_name()) == "WConfirm" and not bool(n.get("_done")):
+			return n.get(which)
+	return null
+
+
+## A real tap on the developer menu's row `row_name` (found again: the menu rebuilds its rows); false when it is gone.
+func _dev_tap(row_name: String) -> bool:
+	await _wait(0.2)
+	var row: Control = current_scene.find_child(row_name, true, false)
+	if row == null:
+		_count("dev_surveys", false)
+		_fail("dev_surveys", row_name, "the row is not in the menu")
+		return false
+	await _tap(await _spot(row))
+	await _wait(0.4)
+	return true
+
+
+func _dev_check(ok: bool, what: String, why: String) -> void:
+	_count("dev_surveys", ok)
+	if not ok:
+		_fail("dev_surveys", what, why)
 
 
 ## The developer menu's dummy rows (pass 48) under a real finger: each tap steps its setting on; all put back after.

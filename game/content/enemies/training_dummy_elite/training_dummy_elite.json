@@ -38,9 +38,24 @@
     "range": 8.0,
     "keep_distance": 5.5,
     "cooldown": 2.6,
-    "projectile_speed": 6.0,
+    "projectile_speed": 5.4,
     "telegraph": 0.7,
     "splash": 1.4,
+    "land_only": true,
+    "trail": {
+      "color": "#3E9E2C",
+      "alpha": 0.4,
+      "size": 0.7,
+      "life": 0.45,
+      "step": 0.02
+    },
+    "pulse": {
+      "hz": 3.0,
+      "size": 0.12,
+      "glow": 0.35,
+      "halo": 1.7,
+      "color": "#8CFF4A"
+    },
     "damage": 14
   },
   "sfx": {

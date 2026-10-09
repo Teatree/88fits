@@ -170,7 +170,8 @@ func _build_trail() -> void:
 	sm.radial_segments = 6
 	sm.rings = 3
 	_trail_mm.mesh = sm
-	_trail_mm.instance_count = TRAIL_MAX
+	# the beads, then room for HALO_MAX halos round breathing spits (pass 62, _draw_pulse_halos)
+	_trail_mm.instance_count = TRAIL_MAX + HALO_MAX
 	_trail_mm.visible_instance_count = 0
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = _trail_mm
@@ -338,7 +339,180 @@ func hostile_shot(p_kind: int, from: Vector3, velocity: Vector3, damage: float, 
 		radius[i] = float(params.get("hit_radius", 0.35))   # a rolling ball (the King's tumbleweeds, pass 45) is wider than a pellet
 		extra[i] = params
 		_trail_t[i] = 0.0
+		# pass 62: the shooter's own spit (EnemyDef.ranged: land_only, trail, pulse; the Spit Cactus)
+		_creature_look(i, arcing)
 	return i
+
+
+# ---------------------------------------------------------------- pass 62 (lane IT): the spit and the pierce drop-off
+
+## Spits that breathe (ranged.pulse) this frame, gathered by _render for their halos (_draw_pulse_halos).
+var _pulse_list: Array = []
+## Rings put down under a land-only spit's landing (tests).
+var land_rings := 0
+
+## A creature's shot takes its shooter's own spit settings (pass 62, Garry: the Spit Cactus "can actually hit the Player
+## (without falling onto the ground) ... only damages Player if it actually falls to the ground", "a smidge slower", "a
+## faint trail ... and a faint visual pulsating effect"), read off the shooter's EnemyDef.ranged by its hit info's `id`:
+## `land_only` (an arcing shot only: no hit in flight, the landing splash as before, and a red ring where it will come down
+## for its flight), `trail` {color, size, life, step} (its own beads in place of the default green), `pulse` {hz, size,
+## glow, halo, color} (its size breathes by `size` either way at `hz`, and a soft halo `halo` times its radius round it
+## fades between nothing and `glow`).
+func _creature_look(i: int, arcing: bool) -> void:
+	var info = extra[i].get("info")
+	if not info is Dictionary:
+		return
+	var id := str((info as Dictionary).get("id", ""))
+	if id == "":
+		return
+	var def: EnemyDef = Registry.enemy(id)
+	if def == null or def.ranged.is_empty():
+		return
+	var rg: Dictionary = def.ranged
+	if rg.get("trail") is Dictionary:
+		extra[i]["trail_look"] = rg["trail"]
+	if rg.get("pulse") is Dictionary:
+		extra[i]["pulse"] = rg["pulse"]
+		extra[i]["pulse_t"] = randf()
+	if arcing and bool(rg.get("land_only", false)):
+		extra[i]["land_only"] = true
+		_land_ring(i)
+
+
+## Where arcing shot `i` comes down and after how long on the creatures' clock: its arc stepped at 60 Hz under the tick's
+## gravity until it meets the tick's landing band (0.15 m over the ground). Vector4(x, ground, z, seconds).
+func landing_of(i: int) -> Vector4:
+	var p: Vector3 = pos[i]
+	var v: Vector3 = vel[i]
+	var map = game.map if game else null
+	var step := 1.0 / 60.0
+	var t := 0.0
+	var g := 0.0
+	while t < maxf(life[i], step):
+		v.y -= 24.0 * step
+		p += v * step
+		t += step
+		g = map.height_at(p.x, p.z) if map else 0.0
+		if p.y <= g + 0.15:
+			break
+	return Vector4(p.x, g, p.z, t)
+
+
+## The red ring a land-only spit comes down in (pass 62): the splash's own radius (what _explode hurts: the hero's body
+## touching it), growing to full over the flight as the wind-up ring does, so it is gone the moment the spit lands.
+func _land_ring(i: int) -> void:
+	if game == null:
+		return
+	var l := landing_of(i)
+	var at := Vector3(l.x, l.y, l.z)
+	extra[i]["land_at"] = at
+	var clock_k: float = game.enemies.hostile_clock() if game.get("enemies") else 1.0
+	var secs: float = l.w / maxf(clock_k, 0.05)
+	var red := Color(0.93, 0.29, 0.36)
+	if game.has_method("telegraph_ring"):
+		game.telegraph_ring(at, area[i], secs, red)
+	elif game.get("telegraphs"):
+		game.telegraphs.ring(at, area[i], secs, red, true)
+	land_rings += 1
+
+
+## A creature's shot's own trail bead (ranged.trail, pass 62): its colour, size and life, its own spacing.
+func _creature_trail(i: int) -> void:
+	var tl: Dictionary = extra[i]["trail_look"]
+	_trail_t[i] = maxf(float(tl.get("step", TRAIL_STEP)), 0.01)
+	var c := Color(str(tl.get("color", "#62F27F")))
+	if tl.has("alpha"):
+		c.a = float(tl["alpha"])
+	_drop_trail(pos[i], c, float(tl.get("size", 1.0)), float(tl.get("life", TRAIL_LIFE)))
+
+
+## How far through its breath a pulsing shot is (0 small and dim .. 1 big and bright), on the shot's own clock.
+func pulse_phase(i: int) -> float:
+	var pl: Dictionary = extra[i].get("pulse", {})
+	return 0.5 + 0.5 * sin(TAU * (float(extra[i].get("pulse_t", 0.0)) * float(pl.get("hz", 3.0))))
+
+
+## A pulsing shot breathes (ranged.pulse, pass 62): its drawn size swings `size` either way of its own.
+func _tick_pulse(i: int, dt: float) -> void:
+	extra[i]["pulse_t"] = float(extra[i].get("pulse_t", 0.0)) + dt
+	var pl: Dictionary = extra[i]["pulse"]
+	psize[i] = 1.0 + float(pl.get("size", 0.12)) * (2.0 * pulse_phase(i) - 1.0)
+
+
+## The halos round the pulsing shots _render gathered, drawn as beads of the trail MultiMesh after its own beads from
+## instance `n` on (pass 62): `halo` times the shot's drawn radius, its colour at `glow` x the breath. Returns the count.
+func _draw_pulse_halos(n: int) -> int:
+	for i: int in _pulse_list:
+		if n >= TRAIL_MAX + HALO_MAX or alive[i] == 0 or not extra[i].has("pulse"):
+			continue
+		var pl: Dictionary = extra[i]["pulse"]
+		var kd: Dictionary = kinds[kind[i]]
+		var mesh: Mesh = (kd["mm"] as MultiMesh).mesh
+		var r0: float = (mesh.get_aabb().size.x * 0.5 if mesh else 0.3) * float(kd["scale"]) * psize[i]
+		var s: float = r0 * float(pl.get("halo", 1.6)) / HALO_BEAD_R
+		var ph := pulse_phase(i)
+		var c := Color(str(pl.get("color", "#9CFF6E")))
+		_trail_mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(s, s, s)), pos[i]))
+		_trail_mm.set_instance_color(n, Color(c.r, c.g, c.b, float(pl.get("glow", 0.3)) * (0.25 + 0.75 * ph)))
+		n += 1
+	_pulse_list.clear()
+	return n
+
+
+## The trail bead sphere's radius (_build_trail), which a halo is scaled from, and the halos the trail's MultiMesh has room
+## for past its TRAIL_MAX beads.
+const HALO_BEAD_R := 0.16
+const HALO_MAX := 48
+
+
+## The pierce drop-off of shot `i` (pass 62, Garry: "a small damage drop off to those enemies that are pieced, so it's a
+## bit more fair ... the initial hit is harder"): its weapon's `params.pierce_falloff` {step, floor, first_mult}, or {}
+## when the drop-off does not apply: Settings.pierce_falloff off (exactly the old numbers), no such params, a shot fired
+## with no pierce (it hits one enemy: no drop-off and no first_mult either, so Turret Buddy and the Boomstick before its
+## level 5 are as they were), or a shot that has bounced (a ricochet is a new shot). The pierce it was fired with is read
+## the first time it meets anything (only a hit spends pierce).
+func _falloff_of(i: int, w: WeaponInstance) -> Dictionary:
+	if w == null or not Settings.pierce_falloff or extra[i].has("bounced"):
+		return {}
+	var pf = w.params.get("pierce_falloff")
+	if not pf is Dictionary:
+		return {}
+	if not extra[i].has("pf0"):
+		extra[i]["pf0"] = pierce[i]
+	return pf if int(extra[i]["pf0"]) > 0 else {}
+
+
+## The share of its damage the `n`-th enemy one shot (or one thrust's blade) strikes takes (pass 62): `first_mult` x
+## max(step^(n-1), floor): the first takes first_mult, each one after `step` of the one before, never under `floor` of
+## the first. 1 for an empty `pf` (the drop-off off).
+static func falloff_factor(pf: Dictionary, n: int) -> float:
+	if pf.is_empty():
+		return 1.0
+	var step := clampf(float(pf.get("step", 0.8)), 0.0, 1.0)
+	var lo := clampf(float(pf.get("floor", 0.4)), 0.0, 1.0)
+	return float(pf.get("first_mult", 1.0)) * maxf(pow(step, float(maxi(n, 1) - 1)), lo)
+
+
+## A weapon's drop-off as its blades or rounds use it: {} when Settings.pierce_falloff is off or it has none (Thruster).
+static func weapon_falloff(w: WeaponInstance) -> Dictionary:
+	if w == null or not Settings.pierce_falloff:
+		return {}
+	var pf = w.params.get("pierce_falloff")
+	return pf if pf is Dictionary else {}
+
+
+## The creatures a shot met this tick, nearest along its flight first (pass 62: with a drop-off, which is struck first
+## decides who takes the most).
+func _along_flight(i: int, hits: PackedInt32Array, enemies: EnemyManager) -> PackedInt32Array:
+	var d := Vector3(vel[i].x, 0.0, vel[i].z)
+	var keyed: Array = []
+	for e: int in hits:
+		keyed.append(Vector2((enemies.pos[e] - pos[i]).dot(d), float(e)))
+	keyed.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
+	var out := PackedInt32Array()
+	for k: Vector2 in keyed:
+		out.append(int(k.y))
+	return out
 
 
 ## A hostile shot with no weight of its own (no `knockback` in its params) shoves the hero by this share of its shooter's
@@ -584,12 +758,18 @@ func _physics_process(delta: float) -> void:
 			# lobbed shots (skulls, grenades, bomblets) sail over and through the crowd; they only ever explode on landing
 			continue
 		if hostile[i] == 1:
+			# pass 62: a spit that breathes (ranged.pulse), on the creatures' clock like its flight
+			if extra[i].has("pulse"):
+				_tick_pulse(i, dt)
 			_trail_t[i] -= delta
 			if _trail_t[i] <= 0.0:
 				_trail_t[i] = TRAIL_STEP
 				# silk is white; spit is green; a sun shard gold, lead smoke grey; a harpoon trails its rope (Game draws it)
 				var shot_kind := str(extra[i].get("shot", ""))
-				if extra[i].has("harpoon"):
+				if extra[i].get("trail_look") is Dictionary:
+					# its shooter's own trail (pass 62, ranged.trail: the Spit Cactus's faint one)
+					_creature_trail(i)
+				elif extra[i].has("harpoon"):
 					pass
 				elif extra[i].has("pull"):
 					_drop_trail(pos[i], Color(0.96, 0.96, 0.9, 0.7), 0.8)
@@ -602,7 +782,8 @@ func _physics_process(delta: float) -> void:
 					_drop_trail(pos[i] - Vector3(0, 0.3, 0), Color(0.82, 0.68, 0.45, 0.4), 1.1)
 				else:
 					_drop_trail(pos[i])
-			if player and not player.dead:
+			# pass 62: a land-only spit (ranged.land_only) hurts nobody in the air; only its landing splash does (_explode)
+			if player and not player.dead and not extra[i].has("land_only"):
 				# a flat distance and a height band as tall as the hero: a shard off a tall creature's staff flies at
 				# head height, and the old sphere under a metre across let it pass straight over him
 				var d := player.global_position - pos[i]
@@ -707,11 +888,19 @@ func _physics_process(delta: float) -> void:
 			continue
 		var hits := enemies.indices_in_radius(pos[i], radius[i] + 0.35)
 		var flags: int = EnemyManager.HIT_MINI if extra[i].has("mini") else 0
+		# pass 62: the pierce drop-off ({} when it does not apply); met this tick, the nearest along the flight first
+		var pf: Dictionary = _falloff_of(i, w) if not hits.is_empty() else {}
+		if not pf.is_empty() and hits.size() > 1:
+			hits = _along_flight(i, hits, enemies)
 		for e in hits:
 			if memo[i].has(e):
 				continue
 			memo[i][e] = true
 			var dir := vel[i]
+			var pmul := 1.0
+			if not pf.is_empty():
+				extra[i]["pn"] = int(extra[i].get("pn", 0)) + 1
+				pmul = falloff_factor(pf, int(extra[i]["pn"]))
 			if w and w.stat("poison_damage", 0.0) > 0.0:
 				weapon_poison(e, w)
 			if w and w.stat("fire_damage", 0.0) > 0.0:
@@ -720,7 +909,7 @@ func _physics_process(delta: float) -> void:
 			if w and w.params.has("plant") and not extra[i].has("hit_sfx"):
 				extra[i]["hit_sfx"] = true
 				Audio.play(str(w.def.sfx.get("hit", "")), pos[i])
-			var killed := enemies.damage(e, dmg[i], wid, dir, kb[i], false, false, flags)
+			var killed := enemies.damage(e, dmg[i] * pmul, wid, dir, kb[i], false, false, flags)
 			# Iron Bastion's focus (pass 53, params.focus {mult, seconds}): a creature a bastion's round strikes takes `mult`
 			# more from the next rounds for `seconds` (EnemyManager's mark, stretched by Ducktape), so the bastions gang up
 			# on it: "more than the sum of its parts"
@@ -1613,6 +1802,7 @@ func _tick_trail(delta: float) -> void:
 		var c: Color = trail_col[k]
 		_trail_mm.set_instance_color(n, Color(c.r, c.g, c.b, c.a * (1.0 - f)))
 		n += 1
+	n = _draw_pulse_halos(n)
 	_trail_mm.visible_instance_count = n
 
 
@@ -1723,6 +1913,9 @@ func _explode(i: int) -> void:
 	if not (extra[i] as Dictionary).has("is_bomblet"):
 		_landed.append({"at": pos[i], "t": LANDED_CLAIM})
 	enemies.damage_radius(pos[i], area[i], dmg[i], wid, kb[i])
+	# a landing blast on top (pass 62, Solenne's Sun Cocktail: params.land_blast, Lobber.land_blast)
+	if w and w.params.has("land_blast"):
+		Lobber.land_blast(game, pos[i], w, area[i], extra[i])
 	var element: String = w.element() if w else ""
 	if w and element != "":
 		# the blast itself carries the element (Thermobaric, Incendiary): everything in it is lit or poisoned at once
@@ -2336,6 +2529,9 @@ func _render() -> void:
 		counters[k] = n + 1
 		if stuck[i] >= 0 and extra[i].has("blink"):
 			_blink_list.append(i)
+		# pass 62: a spit that breathes gets its halo in the trail's MultiMesh (_tick_trail, after this)
+		if hostile[i] == 1 and extra[i].has("pulse"):
+			_pulse_list.append(i)
 	_render_blinks()
 	for k in range(kinds.size()):
 		if _warm_at != Vector3.INF:

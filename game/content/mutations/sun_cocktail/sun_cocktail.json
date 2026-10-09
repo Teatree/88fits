@@ -1,0 +1,39 @@
+{
+  "id": "sun_cocktail",
+  "name": "Sun Cocktail",
+  "flavour": "Bottled noon. Shake well.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "molotov",
+  "kind": "hero",
+  "element": "",
+  "hero": "solenne",
+  "text": "Bottles shine with sunlight and burst where they land: a small blast for 150% of their damage that pushes a little.",
+  "vfx": "a golden bottle with a sunburst round it in flight, a little sun bursting where it breaks, a gold ring racing out",
+  "effects": [],
+  "params": {
+    "land_blast": {
+      "damage_frac": 1.5,
+      "radius_frac": 0.9,
+      "knockback": 2.4,
+      "look": "sun"
+    },
+    "tint": {
+      "albedo": "#FFE9A8",
+      "emission": "#FFC43A",
+      "energy": 2.2
+    },
+    "halo": {
+      "size": 1.9,
+      "color": "#FFC83A",
+      "strength": 1.4,
+      "pulse": 0.25,
+      "motes": 0.04
+    }
+  },
+  "art_prompt": "a glass bottle with a rag in its neck shining golden with sunlight from inside, short sun rays round it",
+  "placeholder": {
+    "color": "#FFD34A",
+    "glyph": "bottle"
+  }
+}

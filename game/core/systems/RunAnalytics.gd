@@ -23,7 +23,8 @@ const SCHEMA := 1
 const STAT_KEYS := ["max_hp", "damage_reduction", "regen", "move_speed", "might", "cooldown", "area", "projectile_speed",
 	"duration", "amount", "magnet", "luck", "greed", "xp_gain", "lifesteal", "evade", "crit_chance", "crit_damage", "thorns",
 	"execute_frac", "overkill", "haste", "shield_max", "ricochet", "cooldown_on_kill", "still_regen", "still_might",
-	"barrel_speed", "barrel_seconds", "xp_drop_chance", "elite_damage", "debuff_duration", "difficulty", "skips", "banishes"]
+	"barrel_speed", "barrel_seconds", "xp_drop_chance", "elite_damage", "debuff_duration", "difficulty", "skips", "banishes",
+	"powerup_duration", "powerup_chance"]
 ## Event kinds that are an item joining or growing in the build: they carry `via` and the estimate before and after.
 ## (Pass 46: the lines are passives, so "line" and "line_evolution" are "passive" and "passive_evolution" from then on.)
 const ITEM_KINDS := ["weapon", "passive", "mutation", "perk", "evolution", "passive_evolution"]

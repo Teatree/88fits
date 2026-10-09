@@ -28,6 +28,8 @@ extends Node
 
 ## A send finished (the developer menu refreshes its readout).
 signal sent(ok: bool)
+## A survey fetch finished or the survey record changed (pass 62: the developer menu's Surveys block refreshes).
+signal surveys_changed
 
 const SCHEMA := 1
 const LIB := "88fits-godot"
@@ -53,6 +55,11 @@ const HTTP_TIMEOUT := 20.0
 const SURVEYS_PATH := "user://surveys_cache.json"
 ## A survey comes at most once every SURVEY_EVERY runs of at least SURVEY_MIN_RUN seconds, never twice in one session,
 ## and each survey only until the player answers it (the first qualifying run of an install can bring one).
+## Pass 62 (Garry: "control over the count of runs at which the first Survey appears ... a new survey that appears only
+## on the 5th run"): a tag in the survey's name in PostHog sets its runs (survey_rule): "[after N]" first at the end of
+## the N-th counted run, then every SURVEY_EVERY counted runs until answered; "[run N]" at the end of the N-th counted
+## run only. A counted run is a run of SURVEY_MIN_RUN seconds or more (Save.survey_state().counted, the player's
+## lifetime count). No tag keeps the pass-59 rule. The guide is analytics/howto/02_surveys.md.
 const SURVEY_EVERY := 3
 const SURVEY_MIN_RUN := 60.0
 ## The question types the game can draw; a survey with none of them is skipped, a question of another type (a link) is
@@ -872,17 +879,42 @@ func fetch_surveys() -> void:
 		survey_status = "request: " + error_string(err)
 
 
+## The developer menu's "Fetch surveys now" (pass 62): asks PostHog at once; "" when the request went out, else why it
+## could not (the readout says it).
+func fetch_surveys_now() -> String:
+	var why := ""
+	if awaiting_consent():
+		why = "the play-data card is not answered"
+	elif not active():
+		why = block_reason()
+	elif _survey_http == null:
+		why = "no connection in this process"
+	elif _survey_fetching:
+		why = "a fetch is already on the wire"
+	if why != "":
+		survey_status = "not fetched: " + why
+		surveys_changed.emit()
+		return why
+	survey_status = "fetching..."
+	fetch_surveys()
+	surveys_changed.emit()
+	return ""
+
+
 func _on_surveys_done(result: int, code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	_survey_fetching = false
 	if result != HTTPRequest.RESULT_SUCCESS:
 		survey_status = "network: %s" % _result_name(result)
+		surveys_changed.emit()
 		return
 	if code != 200:
 		survey_status = "HTTP %d" % code
+		surveys_changed.emit()
 		return
 	var n := set_surveys_from(JSON.parse_string(body.get_string_from_utf8()))
 	survey_status = "HTTP 200 · %d running" % n
 	save_survey_cache()
+	surveys_changed.emit()
 
 
 ## PostHog's answer ({"surveys": [...]}) made into the surveys the game can ask: launched (a start date), not ended,
@@ -931,7 +963,9 @@ static func normalise_survey(sv) -> Dictionary:
 			"upper": str(q.get("upperBoundLabel", "")) if q.get("upperBoundLabel") != null else ""})
 	if qs.is_empty():
 		return {}
-	return {"id": id, "name": str(d.get("name", "")), "questions": qs}
+	# the name as PostHog has it (its events carry it), its run tag read (pass 62) and the name without the tag
+	var nm := str(d.get("name", ""))
+	return {"id": id, "name": nm, "title": survey_title(nm), "rule": survey_rule(nm), "questions": qs}
 
 
 func save_survey_cache() -> void:
@@ -958,32 +992,293 @@ func load_survey_cache() -> void:
 ## Screens"): counts this run when it lasted SURVEY_MIN_RUN seconds and returns the survey to ask now, or {}. At most
 ## one every SURVEY_EVERY counted runs, never twice in a session, each survey until it is answered, none when the
 ## player said "Don't ask me again" or play data is off.
+## Pass 62: the run is counted (Save.survey_state().counted) whether or not questions are on, but never in a tool, the
+## test runner or the arena; which survey comes is pick_survey's (each survey's [after N] / [run N] tag), one card a
+## run at most.
 func survey_after_run(run_seconds: float) -> Dictionary:
-	if not Settings.surveys or not active() or awaiting_consent() or run_seconds < SURVEY_MIN_RUN:
+	if run_seconds < SURVEY_MIN_RUN or runtime_block() != "" or in_arena():
 		return {}
 	var st := Save.survey_state()
+	var c := int(st.get("counted", 0)) + 1
+	st["counted"] = c
+	Save.request_save()
+	if not Settings.surveys or not active() or awaiting_consent():
+		return {}
 	var since := int(st.get("runs_since", SURVEY_EVERY - 1)) + 1
 	st["runs_since"] = since
-	Save.request_save()
-	if since < SURVEY_EVERY or _survey_this_session:
+	var armed := bool(st.get("armed", false))
+	var sv := pick_survey(st, c, since, _survey_this_session, armed)
+	if sv.is_empty():
 		return {}
-	var answered: Array = st.get("answered", []) if st.get("answered") is Array else []
+	st.erase("armed")
+	_note_shown(st, sv, c)
+	return sv
+
+
+## Which survey comes after counted run `c` (pass 62), {} for none. `since` is the counted runs since the last card (the
+## untagged rule's clock), `session_used` whether this session already had one, `armed` the developer menu's "Next run
+## asks". A "[run N]" survey whose run this is comes first, whatever the session (its run comes only once); then, unless
+## the session already had a card, the first due in PostHog's order: "[after N]" from counted run N, then every
+## SURVEY_EVERY counted runs after its last showing; an untagged one when SURVEY_EVERY counted runs have passed since any
+## card (the pass-59 rule: the first counted run of a new install brings it). Armed: a due one, else the first one not
+## answered whatever its tag says. An answered survey never comes back.
+func pick_survey(st: Dictionary, c: int, since: int, session_used: bool, armed: bool = false) -> Dictionary:
 	for sv in surveys:
-		if not answered.has(str(sv.get("id", ""))):
-			st["runs_since"] = 0
-			_survey_this_session = true
+		if str(rule_of(sv).get("kind", "")) == "run" and survey_due(sv, st, c, since):
 			return sv
+	if session_used and not armed:
+		return {}
+	for sv in surveys:
+		if str(rule_of(sv).get("kind", "")) != "run" and survey_due(sv, st, c, since):
+			return sv
+	if armed:
+		var answered := _ids(st, "answered")
+		for sv in surveys:
+			if not answered.has(str(sv.get("id", ""))):
+				return sv
 	return {}
 
 
+## Whether `sv` is due after counted run `c` by its tag alone (the session rule and the order are pick_survey's).
+func survey_due(sv: Dictionary, st: Dictionary, c: int, since: int) -> bool:
+	var id := str(sv.get("id", ""))
+	if id == "" or _ids(st, "answered").has(id):
+		return false
+	var r := rule_of(sv)
+	var n := int(r.get("n", 0))
+	match str(r.get("kind", "none")):
+		"run":
+			return c == n
+		"after":
+			if c < n:
+				return false
+			var shown: Dictionary = st.get("shown", {}) if st.get("shown") is Dictionary else {}
+			return not shown.has(id) or c - int(shown[id]) >= SURVEY_EVERY
+	return since >= SURVEY_EVERY
+
+
+## The counted run that would bring `sv` next by its tag (pass 62, the developer menu), the one-a-session rule aside;
+## -1 when it never comes again (answered, or its [run N] has passed).
+func survey_next_run(sv: Dictionary, st: Dictionary = {}) -> int:
+	if st.is_empty():
+		st = Save.survey_state()
+	var id := str(sv.get("id", ""))
+	if _ids(st, "answered").has(id):
+		return -1
+	var c := int(st.get("counted", 0))
+	var r := rule_of(sv)
+	var n := int(r.get("n", 0))
+	match str(r.get("kind", "none")):
+		"run":
+			return n if n > c else -1
+		"after":
+			var shown: Dictionary = st.get("shown", {}) if st.get("shown") is Dictionary else {}
+			var first := maxi(n, c + 1)
+			if shown.has(id):
+				first = maxi(first, int(shown[id]) + SURVEY_EVERY)
+			return first
+	var since := int(st.get("runs_since", SURVEY_EVERY - 1))
+	return c + maxi(SURVEY_EVERY - since, 1)
+
+
+## A survey came after counted run `c`: its showing is noted for its own spacing, the untagged clock starts again and
+## the session has had its card.
+func _note_shown(st: Dictionary, sv: Dictionary, c: int) -> void:
+	var shown: Dictionary = st.get("shown", {}) if st.get("shown") is Dictionary else {}
+	shown[str(sv.get("id", ""))] = c
+	st["shown"] = shown
+	st["runs_since"] = 0
+	_survey_this_session = true
+	Save.request_save()
+
+
+static func _ids(st: Dictionary, k: String) -> Array:
+	return st.get(k, []) if st.get(k) is Array else []
+
+
+## The tag in a survey's name that sets its runs (pass 62): {"kind": "after" | "run" | "none", "n": N}. "[after 3]" or
+## "[run 5]" anywhere in the name, in any case, spaces inside the brackets allowed; the first tag wins; a tag whose N is
+## under 1 is no tag, and so is anything else in brackets ("[after three]", "[runs 5]").
+static func survey_rule(survey_name: String) -> Dictionary:
+	var m := _tag_re().search(survey_name)
+	if m == null:
+		return {"kind": "none", "n": 0}
+	var digits := m.get_string(2)
+	var n := 100000 if digits.length() > 5 else int(digits)
+	if n < 1:
+		return {"kind": "none", "n": 0}
+	return {"kind": m.get_string(1).to_lower(), "n": n}
+
+
+## A survey's name without its run tag (pass 62): what a player could ever be shown. The card shows no name today.
+static func survey_title(survey_name: String) -> String:
+	var t := _tag_re().sub(survey_name, "", true)
+	while t.contains("  "):
+		t = t.replace("  ", " ")
+	t = t.strip_edges()
+	return t if t != "" else survey_name.strip_edges()
+
+
+static var _tag_regex: RegEx
+
+
+static func _tag_re() -> RegEx:
+	if _tag_regex == null:
+		_tag_regex = RegEx.create_from_string("(?i)\\[\\s*(after|run)\\s*(\\d+)\\s*\\]")
+	return _tag_regex
+
+
+## A survey's rule: normalise_survey's, or read off the name (a cache written before pass 62 has none).
+static func rule_of(sv: Dictionary) -> Dictionary:
+	var r = sv.get("rule")
+	if r is Dictionary and (r as Dictionary).has("kind"):
+		return r
+	return survey_rule(str(sv.get("name", "")))
+
+
+## A rule in words for the developer menu.
+static func rule_words(r: Dictionary) -> String:
+	var n := int(r.get("n", 0))
+	match str(r.get("kind", "none")):
+		"after":
+			return "[after %d]: first after counted run %d, then every %d counted runs until answered" % [n, n, SURVEY_EVERY]
+		"run":
+			return "[run %d]: after counted run %d only, answered or not" % [n, n]
+	return "no tag: when %d counted runs have passed since the last survey (the 1st counted run on a new install), until answered" % SURVEY_EVERY
+
+
+# ---------------------------------------------------------------- the developer menu's survey tools (pass 62)
+
+var _test_pick := 0
+
+
+## Reset surveys (Garry: "I'd like an option to reset the Survey. Basically some way to test it for sure"): the survey
+## record starts again as on a new install (no runs counted, nothing answered, dismissed or shown, the untagged clock
+## at its start) and this session has had no card. The play-data answer and the questions switch are left alone.
+func reset_surveys() -> void:
+	var st := Save.survey_state()
+	st.clear()
+	st["counted"] = 0
+	st["answered"] = []
+	st["dismissed"] = []
+	st["shown"] = {}
+	_survey_this_session = false
+	_test_pick = 0
+	Save.request_save()
+	surveys_changed.emit()
+
+
+## "Next run asks": the next counted run brings a survey whatever the spacing and the session (pick_survey's armed).
+func arm_next_run(on: bool = true) -> void:
+	var st := Save.survey_state()
+	if on:
+		st["armed"] = true
+	else:
+		st.erase("armed")
+	Save.request_save()
+	surveys_changed.emit()
+
+
+func next_run_armed() -> bool:
+	return bool(Save.survey_state().get("armed", false))
+
+
+## Counted runs moved by hand (the developer menu's +1, to reach a [run N] survey's run without playing them all).
+func add_counted(n: int) -> void:
+	var st := Save.survey_state()
+	st["counted"] = maxi(int(st.get("counted", 0)) + n, 0)
+	Save.request_save()
+	surveys_changed.emit()
+
+
+## "Show a survey now": the surveys not answered yet, one after another on each tap; {} when every one is answered or
+## none is fetched. Showing it here changes no timing (the card's own answer or dismissal is recorded as usual).
+func survey_for_test() -> Dictionary:
+	var answered := _ids(Save.survey_state(), "answered")
+	var open: Array = surveys.filter(func(sv) -> bool: return not answered.has(str(sv.get("id", ""))))
+	if open.is_empty():
+		return {}
+	var sv: Dictionary = open[_test_pick % open.size()]
+	_test_pick += 1
+	return sv
+
+
+## Why "Show a survey now" had nothing to show.
+func no_test_survey_reason() -> String:
+	if surveys.is_empty():
+		return "no survey fetched: tap Fetch surveys now"
+	return "every survey is answered: Reset surveys to ask them again"
+
+
+## The Surveys block's readout: what was fetched and each survey's rule and state, the record (counted runs, the
+## untagged clock, this session, armed, answered and dismissed ids) and whether anything can come at all.
+func survey_lines() -> PackedStringArray:
+	var out := PackedStringArray()
+	var st := Save.survey_state()
+	var c := int(st.get("counted", 0))
+	var since := int(st.get("runs_since", SURVEY_EVERY - 1))
+	out.append("fetched: %d running · %s" % [surveys.size(), survey_status if survey_status != "" else "from the cache (no fetch this session)"])
+	if not Settings.surveys:
+		out.append("questions after a run: OFF (Settings, or \"Don't ask me again\"): no survey comes at a run's end")
+	elif awaiting_consent():
+		out.append("questions after a run: on, but the play-data card is not answered: nothing is asked until it is")
+	elif not active():
+		out.append("questions after a run: on, but nothing is asked: " + block_reason())
+	else:
+		out.append("questions after a run: on")
+	out.append("counted runs: %d (runs of %d s or more) · since the last survey: %d" % [c, int(SURVEY_MIN_RUN), since])
+	out.append("this session: %s · next counted run asks: %s" % ["a survey was shown" if _survey_this_session else "no survey yet",
+		"yes (armed)" if bool(st.get("armed", false)) else "by the rules"])
+	var shown: Dictionary = st.get("shown", {}) if st.get("shown") is Dictionary else {}
+	var answered := _ids(st, "answered")
+	var dismissed := _ids(st, "dismissed")
+	for sv in surveys:
+		var id := str(sv.get("id", ""))
+		out.append("• %s" % str(sv.get("name", id)))
+		out.append("   " + rule_words(rule_of(sv)))
+		var state: Array = []
+		if answered.has(id):
+			state.append("answered")
+		elif dismissed.has(id):
+			state.append("dismissed")
+		if shown.has(id):
+			state.append("last shown after run %d" % int(shown[id]))
+		var nx := survey_next_run(sv, st)
+		if nx > 0:
+			state.append("next after counted run %d%s" % [nx, " (the next run)" if nx == c + 1 else ""])
+		elif not answered.has(id):
+			state.append("its run has passed")
+		out.append("   " + (" · ".join(state) if not state.is_empty() else "not shown yet"))
+	if surveys.is_empty():
+		out.append("no survey fetched yet: Fetch surveys now")
+	out.append("answered ids: %s" % (", ".join(answered.map(func(x): return str(x).left(8))) if not answered.is_empty() else "none"))
+	out.append("dismissed ids: %s" % (", ".join(dismissed.map(func(x): return str(x).left(8))) if not dismissed.is_empty() else "none"))
+	return out
+
+
 func survey_shown(sv: Dictionary) -> void:
-	track("survey shown", {"$survey_id": str(sv.get("id", "")), "$survey_name": str(sv.get("name", ""))})
+	track("survey shown", {"$survey_id": str(sv.get("id", "")), "$survey_name": str(sv.get("name", "")), "counted_runs": counted_runs()})
+
+
+## The player's counted runs (pass 62: runs of SURVEY_MIN_RUN seconds or more, for life), sent with every survey event
+## so a board can tell at which run a survey was shown, answered or put off.
+func counted_runs() -> int:
+	return int(Save.survey_state().get("counted", 0))
 
 
 ## Closed without answering ("Not now"): PostHog marks it dismissed for this person; it may come again in a later run.
 func survey_dismissed(sv: Dictionary) -> void:
 	var id := str(sv.get("id", ""))
-	track("survey dismissed", {"$survey_id": id, "$survey_name": str(sv.get("name", "")), "$set": {"$survey_dismissed/" + id: true}})
+	track("survey dismissed", {"$survey_id": id, "$survey_name": str(sv.get("name", "")), "counted_runs": counted_runs(),
+		"$set": {"$survey_dismissed/" + id: true}})
+	# kept for the developer menu's readout (pass 62); it changes nothing about when the survey comes again
+	var st := Save.survey_state()
+	var dismissed := _ids(st, "dismissed")
+	if id != "" and not dismissed.has(id):
+		dismissed.append(id)
+	st["dismissed"] = dismissed
+	Save.request_save()
+	surveys_changed.emit()
 
 
 ## The answers ({question id: value}: a rating an int, a choice a String, several choices an Array, a text a String) in
@@ -993,7 +1288,7 @@ func survey_sent(sv: Dictionary, answers: Dictionary) -> Dictionary:
 	var id := str(sv.get("id", ""))
 	var listed: Array = []
 	var p := {"$survey_id": id, "$survey_name": str(sv.get("name", "")), "$survey_completed": true,
-		"$survey_submission_id": uuid7(), "$set": {"$survey_responded/" + id: true}}
+		"$survey_submission_id": uuid7(), "counted_runs": counted_runs(), "$set": {"$survey_responded/" + id: true}}
 	for q in sv.get("questions", []):
 		var qid := str(q.get("id", ""))
 		var has := answers.has(qid)
@@ -1008,6 +1303,7 @@ func survey_sent(sv: Dictionary, answers: Dictionary) -> Dictionary:
 		answered.append(id)
 	st["answered"] = answered
 	Save.request_save()
+	surveys_changed.emit()
 	return p
 
 

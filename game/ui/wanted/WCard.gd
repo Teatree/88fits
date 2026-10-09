@@ -7,6 +7,9 @@
 ## carries a tag at its right end (UPGRADE in brass, NEW in sage, EVOLUTION in ember: WItem.tag), an upgrade's new stars
 ## pulse (WMarks.pulse), and an upgrade lists what it changes, a row a stat ("Damage . . . 12 → 15", the new number
 ## bold), in place of its "Next:" line.
+## Pass 62 (Garry: "When Player encounters their 'favorite' item during Gameplay it should be marked somehow in a subtle
+## way"): the run hero's favourite (WItem.favourite) wears a small brass heart pinned over its plate's top-right corner
+## (add_heart) and the word FAVOURITE in brass on its word line, just before the tag (favourite_word).
 class_name WCard
 extends WTap
 
@@ -19,6 +22,9 @@ var price_button: WButton
 var effect_text: WText
 ## The tag beside the word (pass 58), null when the card has none (a mutation, a perk).
 var tag_node: PanelContainer
+## The favourite's marks (pass 62), null on any other card: the heart on the plate and the word by the tag.
+var fav_heart: Control
+var fav_word: WText
 ## The stars (null when the card shows none).
 var marks: WMarks
 ## An upgrade's change rows (pass 58), null when the card shows its effect line instead.
@@ -32,6 +38,11 @@ const STAR_PX := 40.0
 ## The tag's type size and a change row's (pass 58).
 const TAG_PX := 26
 const CHANGE_PX := 30
+## The favourite's heart, as a share of the plate's side, and how far it reaches past the plate's corner (pass 62); the
+## word's type size on a card.
+const FAV_FRAC := 0.25
+const FAV_OUT := 12.0
+const FAV_WORD_PX := 22
 
 
 ## o: word, word_color, name, name_size (60), stars [total, held, upto] or [], star_px (40; 28 before pass 48), effect,
@@ -41,7 +52,8 @@ const CHANGE_PX := 30
 ## (room for the seal, 110), seal_px (96), locked (bool), kind_mark (pass 54: the plate's corner glyph, "weapon" or "line";
 ## by default the def's own, W.kind_mark_of; "" for none); pass 58: tag ("UPGRADE", "NEW", "EVOLUTION" or ""), tag_size
 ## (26), changes (WItem.changes rows: shown in place of the effect line when there are any), change_size (30), pulse
-## (true: the "this pick" stars pulse).
+## (true: the "this pick" stars pulse); pass 62: favourite (the heart on the plate and FAVOURITE by the tag),
+## fav_size (22).
 static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 	var c := WCard.new()
 	c.def = p_def
@@ -78,6 +90,8 @@ static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 	# evolution, none on a passive item, a perk or a mutation
 	c.plate.set_kind_mark(str(o.get("kind_mark", W.kind_mark_of(p_def))))
 	row.add_child(c.plate)
+	if bool(o.get("favourite", false)):
+		c.fav_heart = add_heart(c.plate)
 	c._col = VBoxContainer.new()
 	c._col.add_theme_constant_override("separation", int(o.get("col_gap", 8)))
 	c._col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -103,6 +117,9 @@ static func make(p_def: ContentDef, o: Dictionary) -> WCard:
 		wlab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		wlab.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		wl.add_child(wlab)
+		if bool(o.get("favourite", false)):
+			c.fav_word = favourite_word(int(o.get("fav_size", FAV_WORD_PX)))
+			wl.add_child(c.fav_word)
 		if tag != "":
 			c.tag_node = tag_pill(tag, int(o.get("tag_size", TAG_PX)))
 			wl.add_child(c.tag_node)
@@ -200,6 +217,69 @@ static func tag_pill(t: String, px: int = TAG_PX) -> PanelContainer:
 	l.name = "Word"
 	row.add_child(l)
 	return p
+
+
+## The favourite's word (pass 62): FAVOURITE in tracked slab, brass-dark on the paper, no box, so it reads beside the tag
+## without shouting over it.
+static func favourite_word(px: int = FAV_WORD_PX) -> WText:
+	var l := W.text("FAVOURITE", W.slab(W.em(px, 0.06)), px, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, roundf(px * 1.1))
+	l.name = "Favourite"
+	l.size_flags_horizontal = Control.SIZE_SHRINK_END
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	return l
+
+
+## The favourite's heart pinned over `plate`'s top-right corner (pass 62), `frac` of its side across (FAV_FRAC on a card;
+## the chest's big landed plate takes less), reaching FAV_OUT past the corner as the kind's disc does at the
+## bottom-left; a child of the plate, so it rides with it.
+static func add_heart(plate: WPlate, frac: float = FAV_FRAC) -> Control:
+	var d := maxf(roundf(plate.side * frac), 18.0)
+	var h := heart(d)
+	h.position = Vector2(plate.side - plate.border + FAV_OUT - d, plate.border - FAV_OUT)
+	plate.add_child(h)
+	return h
+
+
+## A brass heart `px` across: the kit's hard ink shadow, an ink outline, a brass body and a glint on its left lobe.
+static func heart(px: float) -> Control:
+	var h := Control.new()
+	h.name = "FavouriteHeart"
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.size = Vector2(px, px)
+	var pts := heart_points(px)
+	var edge := maxf(roundf(px * 0.08), 2.0)
+	h.draw.connect(func():
+		var sh := PackedVector2Array()
+		for p in pts:
+			sh.append(p + Vector2(edge, edge) * 0.8)
+		h.draw_colored_polygon(sh, Color(W.INK, 0.85))
+		h.draw_colored_polygon(pts, W.BRASS)
+		var ring := pts.duplicate()
+		ring.append(pts[0])
+		h.draw_polyline(ring, W.INK, edge, true)
+		h.draw_circle(Vector2(px * 0.33, px * 0.36), px * 0.075, Color(1.0, 0.95, 0.78, 0.9), true, -1.0, true))
+	return h
+
+
+## A heart's outline in a `px` square (the classic parametric heart, its point down), a little inside the square so the
+## outline and the shadow fit.
+static func heart_points(px: float) -> PackedVector2Array:
+	var raw := PackedVector2Array()
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for i in 48:
+		var t := TAU * float(i) / 48.0
+		var p := Vector2(16.0 * pow(sin(t), 3.0), -(13.0 * cos(t) - 5.0 * cos(2.0 * t) - 2.0 * cos(3.0 * t) - cos(4.0 * t)))
+		raw.append(p)
+		lo = Vector2(minf(lo.x, p.x), minf(lo.y, p.y))
+		hi = Vector2(maxf(hi.x, p.x), maxf(hi.y, p.y))
+	var span := hi - lo
+	var k := (px * 0.84) / maxf(span.x, span.y)
+	var off := (Vector2(px, px) - span * k) * 0.5 - Vector2(px, px) * 0.03
+	var out := PackedVector2Array()
+	for p in raw:
+		out.append((p - lo) * k + off)
+	return out
 
 
 ## An upgrade's change rows (pass 58), one ChangeRow per {name, before, after, worse} of WItem.changes, `px` type.

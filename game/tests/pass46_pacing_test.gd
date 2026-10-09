@@ -140,9 +140,10 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 				assert_float(float(ev.get("interval", 0.0))).is_equal(129.0)
 	assert_array(boss_ks).contains_exactly([1, 2, 3])
 	assert_array(elite_ks).contains_exactly([0.5, 1.5, 2.5])
-	# each old second is 430/300 of a new one, rounded to the second
-	var old_events := [150, 210, 300, 390, 450, 510, 600, 690, 720, 750, 840, 900]
-	for k in range(tl.events.size()):
+	# each old second is 430/300 of a new one, rounded to the second (pass 62, lane PC, re-pinned: stages 2 and 3 have
+	# their own events now; stage 1's keep the stretched seconds, and the bosses and Elites are checked above)
+	var old_events := [150, 210, 300]
+	for k in range(old_events.size()):
 		assert_float(float(tl.events[k]["t"])).is_equal(roundf(old_events[k] * K))
 	for r in tl.roster:
 		assert_float(fmod(float(r.get("t", 0.0)), 1.0)).is_equal(0.0)

@@ -19,6 +19,11 @@
     "knockback": 7.0
   },
   "params": {
+    "pierce_falloff": {
+      "step": 0.8,
+      "floor": 0.4,
+      "first_mult": 1.1
+    },
     "turret_fire_rate": 0.3,
     "max_turrets": 6,
     "tracer": true,

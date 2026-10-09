@@ -36,10 +36,25 @@ ranged = {
 "cooldown": 2.6,
 "damage": 8.0,
 "keep_distance": 5.5,
-"projectile_speed": 6.0,
+"land_only": true,
+"projectile_speed": 5.4,
+"pulse": {
+"color": "#8CFF4A",
+"glow": 0.35,
+"halo": 1.7,
+"hz": 3.0,
+"size": 0.12
+},
 "range": 8.0,
 "splash": 1.2,
-"telegraph": 0.7
+"telegraph": 0.7,
+"trail": {
+"alpha": 0.4,
+"color": "#3E9E2C",
+"life": 0.45,
+"size": 0.7,
+"step": 0.02
+}
 }
 badge = "none"
 head = 0.981

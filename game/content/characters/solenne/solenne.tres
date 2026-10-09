@@ -23,12 +23,12 @@ order = 5
 trait_name = "Magic Hour"
 trait_text = "Gain 1.5% debuff duration per level (her burns, poison, slows and pins last longer; buffs do not)."
 pronoun = "she"
-start_weapon = "sun_scepter"
-favourite_passive = "haste"
-favourite_passive_bonus = {
+favourite_weapon = "molotov"
+favourite_bonus = {
 "type": "level",
 "value": 2.0
 }
+start_weapon = "sun_scepter"
 sprite = ExtResource("3_06g83")
 sprite_file = "solenne_sprite_b.png"
 anims = {

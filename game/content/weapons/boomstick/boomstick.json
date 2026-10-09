@@ -66,6 +66,11 @@
   "evolves_with": "",
   "evolves_into": "blunderbuss",
   "params": {
+    "pierce_falloff": {
+      "step": 0.8,
+      "floor": 0.4,
+      "first_mult": 1.1
+    },
     "tracer": true,
     "tracer_step": 0.02,
     "tracer_life": 0.16,

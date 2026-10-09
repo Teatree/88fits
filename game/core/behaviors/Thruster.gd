@@ -30,6 +30,16 @@
 ## at the end of every slice, flicks the blade back `flick_deg` against its last swing before it goes (inside the `back`
 ## time, so a stroke is no longer than it was), with a clang: Fx.clang_spark and `sound` (no clang id exists:
 ## w_iron_hit). Both are set on every build change (refresh_marks) and go with the mutation.
+## Pass 62, Ironwood's Heartseeker (Garry: "every 4th thrust from the Spear is a guaranteed Crit and only this hit will
+## have a slightly higher reach ... the tip of the Spear shines red and there is a powerful looking red thrust effect"):
+## `params.crit_stroke {every, reach_mult, color, core}` counts strokes (one a `_fire`, whatever `amount` or the mode;
+## crit_count). Every `every`th stroke is the crit stroke: everything it hits takes a full crit (EnemyManager.HIT_CRIT,
+## at the hero's crit_damage) and it reaches `reach_mult` further, that stroke only (its aim too). In a plain thrust that
+## is the thrust, in the Wide Sweep the sweep, in the Thunder Lance's alternate stroke the thrust half (its sweep half
+## stays plain: the crit is the thrust). The look: the visual's hidden "LookCrit" on the blade (a red-hot overlay on the
+## point and a red glow, both see-through by the count: glow_for, a hint building over the strokes before, full red on
+## the crit stroke), the crit stroke's streak and crescent in `color`, and at full reach a red lance of light along the
+## thrust (white-hot `core`), a red ring on the sand at the point, red sparks flung on (Fx.crit_thrust), a camera kick.
 class_name Thruster
 extends WeaponBehavior
 
@@ -84,6 +94,22 @@ var thrusts := 0
 var stuns := 0
 var refunds := 0
 var crackles := 0
+## Pass 62 (Heartseeker, params.crit_stroke): strokes since the last crit stroke (0..every-1), whether the stroke running
+## is the crit one, the glow the point shows this stroke (glow_for) and the flare it gives at full reach, the look's own
+## copies of its materials, the red lances alive ({a, b, t}) and their mesh; crit strokes begun, hits they landed and
+## lances drawn (tests).
+var crit_count := 0
+var _crit_now := false
+var _tip_glow := 0.0
+var _tip_flare := 0.0
+var _crit_tip_mat: StandardMaterial3D
+var _crit_glow_mat: StandardMaterial3D
+var _lances: Array = []
+var _lance_mi: MeshInstance3D
+var _lance_mesh: ImmediateMesh
+var crit_strokes := 0
+var crit_hits := 0
+var lances := 0
 
 ## Defaults of the pass 53 knobs (every one lives in `params.thrust` when a weapon says otherwise).
 const WINDBACK := 0.05
@@ -104,6 +130,20 @@ const SLASH_TILT := 0.45
 ## FLICK_SHARE of the stroke's `back` time, which the retract keeps the rest of.
 const FLICK_PEAK := 0.35
 const FLICK_SHARE := 0.75
+## Heartseeker (pass 62): the point's glow the stroke before the crit one (the ones before it build up to it in even
+## steps; the crit stroke is full red), its shimmer while full, the flare at the crit's full reach (gone over
+## TIP_FLARE_DOWN); the red lance shoots out in LANCE_DRAW, is gone at LANCE_LIFE, LANCE_HALF wide each side at its
+## widest and LANCE_OVER past the point; the camera's kick; the crit colours when the JSON names none.
+const CRIT_HINT := 0.5
+const CRIT_SHIMMER := 0.12
+const TIP_FLARE_DOWN := 0.25
+const LANCE_DRAW := 0.05
+const LANCE_LIFE := 0.34
+const LANCE_HALF := 0.36
+const LANCE_OVER := 0.9
+const CRIT_SHAKE := 0.28
+const CRIT_RED := Color(1.0, 0.16, 0.08)
+const CRIT_CORE := Color(1.0, 0.9, 0.78)
 
 
 func _on_setup() -> void:
@@ -165,12 +205,18 @@ func _fire() -> bool:
 		_pending = true
 		return false
 	var reach := stat("range", 2.6)
+	# Heartseeker (pass 62): the crit stroke reaches further, so it may go for what only it can reach (the Thunder
+	# Lance's opens with its plain sweep, so it aims as far as that)
+	var crit := next_is_crit()
+	if crit and not _thrust_flag("alternate"):
+		reach *= crit_reach_mult()
 	var t := aim_index(player.global_position, reach + 0.6)
 	if t < 0:
 		return false
 	target = t
 	_aim_at(t)
 	strokes += 1
+	_count_stroke(crit)
 	# an alternate stroke (the Thunder Lance) is a sweep, then a thrust
 	_combo = 1 if _thrust_flag("alternate") else 0
 	_begin_phase(_slices())
@@ -242,7 +288,8 @@ func _end_phase() -> void:
 		var em: EnemyManager = game.enemies
 		var t := target
 		if t < 0 or t >= EnemyManager.MAX or em.alive[t] == 0 or em.state[t] == EnemyManager.STATE_DYING:
-			t = aim_index(player.global_position, stat("range", 2.6) + 0.6)
+			# the thrust half of Heartseeker's crit stroke reaches further (pass 62: _reach)
+			t = aim_index(player.global_position, _reach() + 0.6)
 		if t >= 0:
 			target = t
 			_aim_at(t)
@@ -265,6 +312,9 @@ func _tick(delta: float) -> void:
 	# after the blade has moved, so the newest spokes draw this frame at full strength
 	_tick_trail()
 	_tick_slashes()
+	# Heartseeker's red point and its lances (pass 62)
+	_tick_crit_look(delta)
+	_tick_lances()
 
 
 ## The thrust (pass 53's bite, Garry: "the Spear thrusting should have a bit more bite to it, currently it's quite static
@@ -278,7 +328,7 @@ func _tick_thrust(delta: float) -> void:
 	var back := maxf(_thrust("back", 0.2), 0.01)
 	var flex := _thrust("flex", FLEX)
 	_t += delta
-	var reach := stat("range", 2.6)
+	var reach := _reach()
 	var ext := 0.0
 	var pull := 0.0
 	var streak := false
@@ -320,6 +370,9 @@ func _tick_thrust(delta: float) -> void:
 		_hit_done = true
 		if _strike(reach, width, fan, swing):
 			_hold_extra = maxf(_thrust("hitstop", HITSTOP), 0.0)
+		# Heartseeker's crit thrust (pass 62): its red lance, ring and sparks at full reach, hit or not
+		if _phase_crit():
+			_crit_thrust_fx()
 
 
 ## Where blade `b`'s point is now: its origin less its scaled -Z.
@@ -355,7 +408,7 @@ func _tick_slice(delta: float) -> void:
 	# Riposte's flick (pass 61) takes the first part of the back time, the retract the rest
 	var flick := flick_time(back)
 	_t += delta
-	var reach := stat("range", 2.6)
+	var reach := _reach()
 	var width := _thrust("width", 0.7) * stat("area", 1.0)
 	var swings := _swings()
 	var ext := 1.0
@@ -407,6 +460,9 @@ func _tick_slice(delta: float) -> void:
 		_refund_done = false
 		_edge_prev = _edge(k, 0.0)
 		sfx("fire", player.aim_origin(_dir))
+		# Heartseeker's crit sweep (pass 62): the kick and the sound as it starts (its crescent is red: _trail_colour)
+		if k == 0 and _phase_crit():
+			_crit_kick(player.global_position + Vector3(0, 0.95, 0) + _dir * reach)
 	while _trails.size() < n:
 		_trails.append([])
 	for j in range(n):
@@ -458,9 +514,10 @@ func _cut(yaw0: float, a0: float, a1: float, reach: float, width: float, s: floa
 			em.poison(e, wid, pdmg, maxi(stat_int("poison_stacks", 1), 1), stat("poison_duration", 8.0))
 		if fdmg > 0.0:
 			em.ignite(e, wid, fdmg, stat("fire_duration", 1.8), stat("fire_spread", 0.4))
-		var killed := em.damage(e, dmg * _stunned_mult(em, e), wid, kdir, knock * kdir.length())
+		var killed := em.damage(e, dmg * _stunned_mult(em, e), wid, kdir, knock * kdir.length(), false, false, _hit_flags())
 		if killed:
 			inst.kills += 1
+		_note_crit_hit(em, e)
 		if _hit_was_crit(em, e):
 			_crit_slash(em, e, tangent)
 		_after_hit(em, e, killed)
@@ -541,8 +598,11 @@ func _crackle(em: EnemyManager, i: int) -> void:
 const TRAIL_LIFE := 0.18
 
 
-## The trail's colour: the blade's element, else `params.trail_color` (pass 53, the Whirlwind's pale cyan), else steel.
+## The trail's colour: Heartseeker's red on its crit stroke (pass 62, until the next stroke, so a fading streak keeps
+## it), the blade's element, else `params.trail_color` (pass 53, the Whirlwind's pale cyan), else steel.
 func _trail_colour() -> Color:
+	if _phase_crit():
+		return crit_color()
 	if stat("fire_damage", 0.0) > 0.0:
 		return Color(1.0, 0.55, 0.2)
 	if stat("poison_damage", 0.0) > 0.0:
@@ -567,6 +627,12 @@ func _tick_trail() -> void:
 	if _streak_p.size() >= 2:
 		live = true
 	if not live:
+		if _trail and _trail.visible:
+			_trail.visible = false
+		return
+	# Heartseeker's crit stroke (pass 62) draws its streak and crescent see-through in red (_tick_lances): red light added
+	# to the bright sand read pale yellow
+	if _phase_crit():
 		if _trail and _trail.visible:
 			_trail.visible = false
 		return
@@ -667,6 +733,10 @@ func _strike(reach: float, width: float, fan: float, swing: float) -> bool:
 	var pdmg := stat("poison_damage", 0.0)
 	var fdmg := stat("fire_damage", 0.0)
 	var any := false
+	# pass 62: the pierce drop-off down each blade (params.pierce_falloff, Settings.pierce_falloff): the nearest along it
+	# takes first_mult, each one behind it step of the one before; {} = every hit as it was
+	var pf := ProjectileManager.weapon_falloff(inst)
+	var ranks := _thrust_ranks(hits, reach, width, fan, swing) if not pf.is_empty() else {}
 	for e in hits:
 		var d: Vector3 = em.pos[e] - player.global_position
 		d.y = 0.0
@@ -680,9 +750,10 @@ func _strike(reach: float, width: float, fan: float, swing: float) -> bool:
 					em.poison(e, wid, pdmg, maxi(stat_int("poison_stacks", 1), 1), stat("poison_duration", 8.0))
 				if fdmg > 0.0:
 					em.ignite(e, wid, fdmg, stat("fire_duration", 1.8), stat("fire_spread", 0.4))
-				var killed := em.damage(e, dmg * _stunned_mult(em, e), wid, bdir, knock)
+				var killed := em.damage(e, dmg * _stunned_mult(em, e) * ProjectileManager.falloff_factor(pf, int(ranks.get(e, 1))), wid, bdir, knock, false, false, _hit_flags())
 				if killed:
 					inst.kills += 1
+				_note_crit_hit(em, e)
 				if _hit_was_crit(em, e):
 					_crit_slash(em, e, Vector3(-bdir.z, 0.0, bdir.x))
 				_after_hit(em, e, killed)
@@ -693,6 +764,33 @@ func _strike(reach: float, width: float, fan: float, swing: float) -> bool:
 		sfx("hit", player.global_position)
 		_tip_sparks()
 	return any
+
+
+## Each creature's place along the blade that strikes it (pass 62, the pierce drop-off): 1 for the nearest to the hero
+## on that blade, 2 behind it, and so on; every blade of a fan counts its own line. The same test as _strike's, the
+## first blade that takes a creature keeps it. {creature index: rank}.
+func _thrust_ranks(hits: PackedInt32Array, reach: float, width: float, fan: float, swing: float) -> Dictionary:
+	var em: EnemyManager = game.enemies
+	var lines: Array = []
+	for k in range(_active):
+		lines.append([])
+	for e in hits:
+		var d: Vector3 = em.pos[e] - player.global_position
+		d.y = 0.0
+		for k in range(_active):
+			var off: float = (float(k) - float(_active - 1) * 0.5) * fan + swing
+			var bdir := _dir.rotated(Vector3.UP, off)
+			var along := d.dot(bdir)
+			var side := (d - bdir * along).length()
+			if along > 0.0 and along <= reach + em.radius[e] and side <= width * 0.5 + em.radius[e]:
+				(lines[k] as Array).append(Vector2(along, float(e)))
+				break
+	var out: Dictionary = {}
+	for line: Array in lines:
+		line.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
+		for r in range(line.size()):
+			out[int((line[r] as Vector2).y)] = r + 1
+	return out
 
 
 ## A small puff and a few sparks at every blade's point when the thrust bit (pass 53), through whatever Fx the game has.
@@ -734,18 +832,29 @@ func _riposte() -> Dictionary:
 func _refresh_looks() -> void:
 	if inst == null:
 		return
-	var key := JSON.stringify([_razor(), _riposte()])
+	var key := JSON.stringify([_razor(), _riposte(), _crit_stroke()])
 	if key == _looks_key:
 		return
 	_looks_key = key
 	var razor := not _razor().is_empty()
 	var guard := not _riposte().is_empty()
+	# Heartseeker's red point (pass 62): on with its mutation, its materials this blade's own copies
+	var crit := not _crit_stroke().is_empty()
+	if crit:
+		_own_crit_materials()
+	else:
+		crit_count = 0
+		_crit_now = false
+		_tip_glow = 0.0
 	var all: Array = _blades.duplicate()
 	if _proto:
 		all.push_front(_proto)
 	for b: Node in all:
 		_show(b, "LookRazor", razor)
 		_show(b, "LookGuard", guard)
+		_show(b, "LookCrit", crit)
+		if crit:
+			_dress_crit(b)
 
 
 func _show(blade: Node, look: String, on: bool) -> void:
@@ -899,3 +1008,334 @@ func _diamond(p0: Vector3, p1: Vector3, half: Vector3, c: Color) -> void:
 	for v in [[p0, tip], [m + half, c], [p1, tip], [p0, tip], [p1, tip], [m - half, c]]:
 		_slash_mesh.surface_set_color(v[1])
 		_slash_mesh.surface_add_vertex(v[0])
+
+
+# ---------------------------------------------------------------- Heartseeker (pass 62)
+
+## The most red lances drawn at once (the oldest goes first).
+const LANCE_MAX := 6
+## A lance's shape from the hero (0) to past the point (1): [where along, half-width share, alpha share]; thin at the
+## hero, widest just behind the point, pointed at the end.
+const LANCE_PROFILE := [[0.0, 0.06, 0.0], [0.3, 0.35, 0.55], [0.6, 0.7, 0.9], [0.84, 1.0, 1.0], [1.0, 0.0, 1.0]]
+
+
+## params.crit_stroke (Heartseeker), {} without it.
+func _crit_stroke() -> Dictionary:
+	var c = inst.params.get("crit_stroke") if inst else null
+	return c if c is Dictionary else {}
+
+
+## How often the crit stroke comes (params.crit_stroke.every: the 4th), 0 without Heartseeker.
+func crit_every() -> int:
+	var c := _crit_stroke()
+	return maxi(int(c.get("every", 4)), 1) if not c.is_empty() else 0
+
+
+## How much further the crit stroke reaches (params.crit_stroke.reach_mult), 1 without Heartseeker.
+func crit_reach_mult() -> float:
+	var c := _crit_stroke()
+	return maxf(float(c.get("reach_mult", 1.2)), 0.1) if not c.is_empty() else 1.0
+
+
+## The crit stroke's red (params.crit_stroke.color, CRIT_RED when it names none).
+func crit_color() -> Color:
+	var c = _crit_stroke().get("color")
+	return Color(str(c)) if c != null and str(c) != "" else CRIT_RED
+
+
+## The white-hot core of its lance (params.crit_stroke.core).
+func _crit_core() -> Color:
+	var c = _crit_stroke().get("core")
+	return Color(str(c)) if c != null and str(c) != "" else CRIT_CORE
+
+
+## Whether the next stroke is the crit one.
+func next_is_crit() -> bool:
+	var n := crit_every()
+	return n > 0 and crit_count >= n - 1
+
+
+## Whether the half of the stroke running is the crit: the crit stroke, but never the sweep that opens the Thunder
+## Lance's (its thrust is the crit).
+func _phase_crit() -> bool:
+	return _crit_now and _combo != 1
+
+
+## What this half's hits carry: a forced crit on the crit stroke (EnemyManager.HIT_CRIT).
+func _hit_flags() -> int:
+	return EnemyManager.HIT_CRIT if _phase_crit() else 0
+
+
+## The reach of the half running: the weapon's range, reach_mult of it on the crit.
+func _reach() -> float:
+	return stat("range", 2.6) * (crit_reach_mult() if _phase_crit() else 1.0)
+
+
+## A stroke begins: whether it is the crit one, the glow its point shows (glow_for), and the count after it (back to 0
+## after the crit stroke).
+func _count_stroke(crit: bool) -> void:
+	var n := crit_every()
+	if n <= 0:
+		_crit_now = false
+		_tip_glow = 0.0
+		return
+	_tip_glow = glow_for(crit_count, n)
+	_crit_now = crit
+	if crit:
+		crit_strokes += 1
+		crit_count = 0
+	else:
+		crit_count += 1
+
+
+## The glow on the point of a stroke made `c` strokes after the last crit one, the crit coming every `every`: full on
+## the crit stroke (c = every - 1), building up to CRIT_HINT in even steps over the ones before it.
+static func glow_for(c: int, every: int) -> float:
+	if every <= 1 or c >= every - 1:
+		return 1.0
+	return CRIT_HINT * float(c + 1) / float(every - 1)
+
+
+## The glow on the point this stroke (tests), 0 without Heartseeker.
+func tip_glow() -> float:
+	return _tip_glow if crit_every() > 0 else 0.0
+
+
+## A hit of the crit stroke that landed as a crit: counted, and a red burst on it over the gold one every crit gets.
+func _note_crit_hit(em: EnemyManager, i: int) -> void:
+	if not _phase_crit() or not em.last_crit or i < 0 or i >= EnemyManager.MAX:
+		return
+	crit_hits += 1
+	var fx = game.get("fx") if game else null
+	if fx and fx.has_method("burst"):
+		fx.burst(em.pos[i] + Vector3(0, maxf(em.size[i], 0.8) * 0.6, 0), crit_color(), 0.7)
+
+
+## The look's materials made this blade's own: copies of the scene's (the Warmup's and every other Spear keep theirs).
+func _own_crit_materials() -> void:
+	if (_crit_tip_mat != null and _crit_glow_mat != null) or _proto == null:
+		return
+	var look := _proto.get_node_or_null("LookCrit")
+	if look == null:
+		return
+	for mi: MeshInstance3D in look.find_children("*", "MeshInstance3D", true, false):
+		var m := mi.material_override as StandardMaterial3D
+		if m == null:
+			continue
+		if str(mi.name).begins_with("TipRed") and _crit_tip_mat == null:
+			_crit_tip_mat = m.duplicate() as StandardMaterial3D
+		elif str(mi.name).begins_with("TipGlow") and _crit_glow_mat == null:
+			_crit_glow_mat = m.duplicate() as StandardMaterial3D
+
+
+## Blade `b`'s LookCrit parts wear this blade's own materials.
+func _dress_crit(b: Node) -> void:
+	var look := b.get_node_or_null("LookCrit")
+	if look == null:
+		return
+	for mi: MeshInstance3D in look.find_children("*", "MeshInstance3D", true, false):
+		if str(mi.name).begins_with("TipRed") and _crit_tip_mat:
+			mi.material_override = _crit_tip_mat
+		elif str(mi.name).begins_with("TipGlow") and _crit_glow_mat:
+			mi.material_override = _crit_glow_mat
+
+
+## The point's red (on every blade, one material): this stroke's glow, a shimmer while it is full, whiter and brighter
+## for a moment when the crit lands at full reach.
+func _tick_crit_look(delta: float) -> void:
+	if _crit_tip_mat == null or crit_every() <= 0:
+		return
+	_tip_flare = maxf(_tip_flare - delta / TIP_FLARE_DOWN, 0.0)
+	var g := _tip_glow
+	if g >= 1.0:
+		g = 1.0 - CRIT_SHIMMER * (0.5 + 0.5 * sin(_clock * 26.0))
+	var col := crit_color()
+	var hot := col.lerp(_crit_core(), _tip_flare * 0.6)
+	_crit_tip_mat.albedo_color = Color(hot.r, hot.g, hot.b, clampf(g + _tip_flare * 0.5, 0.0, 1.0))
+	if _crit_glow_mat:
+		_crit_glow_mat.albedo_color = Color(col.r, col.g, col.b, clampf(g * 0.95 + _tip_flare * 0.6, 0.0, 1.0))
+
+
+## How strongly the point shows red now (tests): the tip material's alpha, 0 without the look.
+func tip_red() -> float:
+	return _crit_tip_mat.albedo_color.a if _crit_tip_mat else 0.0
+
+
+## The crit thrust at full reach: down every blade a red lance of light from the hero's chest to past the point, a red
+## ring on the sand at each point, red sparks flung on (Fx.crit_thrust), the point flaring white-hot, a kick.
+func _crit_thrust_fx() -> void:
+	_tip_flare = 1.0
+	var tg = game.get("telegraphs") if game else null
+	var fx = game.get("fx") if game else null
+	var mp = game.get("map") if game else null
+	var col := crit_color()
+	var first := Vector3.INF
+	for k in range(mini(_active, _blades.size())):
+		var b: Node3D = _blades[k]
+		var tip := _tip_of(b)
+		var along := tip - b.global_position
+		along.y = 0.0
+		var d := along.normalized() if along.length_squared() > 0.0001 else _dir
+		if _lances.size() >= LANCE_MAX:
+			_lances.pop_front()
+		_lances.append({"a": player.global_position + Vector3(0, 0.95, 0) + d * 0.35, "b": tip + d * LANCE_OVER, "t": _clock})
+		lances += 1
+		if first == Vector3.INF:
+			first = tip
+		if fx and fx.has_method("crit_thrust"):
+			fx.crit_thrust(tip, d, col)
+		if tg and tg.has_method("flash_ring"):
+			var gy: float = mp.height_at(tip.x, tip.z) if mp and mp.has_method("height_at") else 0.0
+			tg.flash_ring(Vector3(tip.x, gy, tip.z), 1.1, col, 0.3)
+	if first != Vector3.INF:
+		_crit_kick(first)
+
+
+## The crit stroke's kick: the camera shakes a little and the blow sounds (params.crit_stroke.sound, w_spear_hit).
+func _crit_kick(at: Vector3) -> void:
+	var cam = game.get("camera") if game else null
+	if cam and cam.has_method("shake"):
+		cam.shake(CRIT_SHAKE)
+	var snd := str(_crit_stroke().get("sound", "w_spear_hit"))
+	if snd != "":
+		Audio.play(snd, at, float(_crit_stroke().get("volume_db", 0.0)))
+
+
+## How many red lances are showing (tests).
+func lances_live() -> int:
+	return _lances.size()
+
+
+## Every lance a frame on: it shoots out from the hero to past the point in LANCE_DRAW, spreads and fades by
+## LANCE_LIFE; three layers, a dark red sheath, the red and a white-hot core, flat on the sand's plane at the chest.
+## The crit stroke's streak and crescents are drawn here too, see-through red like the lance (slash_material), not as
+## the plain stroke's added light.
+func _tick_lances() -> void:
+	while not _lances.is_empty() and _clock - float((_lances[0] as Dictionary)["t"]) > LANCE_LIFE:
+		_lances.pop_front()
+	# the crit stroke's own streak and crescents (its trail, _tick_trail leaves them here)
+	var trails := _phase_crit() and (_streak_p.size() >= 2 or _trails.any(func(p: Array) -> bool: return p.size() >= 2))
+	if _lances.is_empty() and not trails:
+		if _lance_mi and _lance_mi.visible:
+			_lance_mi.visible = false
+		return
+	if _lance_mi == null:
+		_lance_mesh = ImmediateMesh.new()
+		_lance_mi = MeshInstance3D.new()
+		_lance_mi.mesh = _lance_mesh
+		_lance_mi.top_level = true
+		_lance_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_lance_mi.material_override = slash_material()
+		_lance_mi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
+		add_child(_lance_mi)
+	_lance_mi.global_transform = Transform3D.IDENTITY
+	var col := crit_color()
+	var core := _crit_core()
+	_lance_mesh.clear_surfaces()
+	# a lance laid this very tick has no length yet (it shoots out from the hero): it draws from the next one, and a
+	# frame with nothing to draw opens no surface (an empty one is an engine error)
+	_lance_open = false
+	for ln: Dictionary in _lances:
+		var age := _clock - float(ln["t"])
+		var g := clampf(age / LANCE_DRAW, 0.0, 1.0)
+		var a: Vector3 = ln["a"]
+		var b: Vector3 = a.lerp(ln["b"], g)
+		if Vector2(b.x - a.x, b.z - a.z).length_squared() < 0.0004:
+			continue
+		_open_lance_surface()
+		var fade := 1.0 - smoothstep(LANCE_DRAW * 1.5, LANCE_LIFE, age)
+		var spread := 1.0 + 0.6 * clampf(age / LANCE_LIFE, 0.0, 1.0)
+		_lance(a, b, LANCE_HALF * spread, Color(col.r * 0.7, col.g * 0.35, col.b * 0.35, 0.55 * fade))
+		_lance(a, b, LANCE_HALF * 0.55, Color(col.r, col.g, col.b, 0.92 * fade))
+		_lance(a, b, LANCE_HALF * 0.2 / spread, Color(core.r, core.g, core.b, fade))
+	if trails:
+		var origin := player.global_position + Vector3(0, 0.95, 0)
+		for pts: Array in _trails:
+			if pts.size() >= 2:
+				_crit_crescent(pts, origin, col, core)
+		if _streak_p.size() >= 2:
+			_crit_streak(col, core)
+	if _lance_open:
+		_lance_mesh.surface_end()
+	_lance_mi.visible = _lance_open
+
+
+## Whether the lance mesh has a surface open this frame (_tick_lances).
+var _lance_open := false
+
+
+func _open_lance_surface() -> void:
+	if not _lance_open:
+		_lance_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+		_lance_open = true
+
+
+## The crit sweep's crescent in see-through red (the plain one's recipe, _draw_crescent, in the lance mesh at `origin`):
+## from 45% of the reach, clear, to a red edge just past the tip with a white-hot rim.
+func _crit_crescent(pts: Array, origin: Vector3, col: Color, core: Color) -> void:
+	_open_lance_surface()
+	for k in range(pts.size() - 1):
+		var p0: Vector3 = pts[k]
+		var p1: Vector3 = pts[k + 1]
+		var a0 := 1.0 - (_clock - p0.y) / TRAIL_LIFE
+		var a1 := 1.0 - (_clock - p1.y) / TRAIL_LIFE
+		var d0 := Vector3(-sin(p0.x), 0.0, -cos(p0.x))
+		var d1 := Vector3(-sin(p1.x), 0.0, -cos(p1.x))
+		for band in [[0.45, 1.02, col, 0.85], [0.9, 1.04, core, 0.9]]:
+			var c: Color = band[2]
+			var c0 := Color(c.r, c.g, c.b, float(band[3]) * a0 * a0)
+			var c1 := Color(c.r, c.g, c.b, float(band[3]) * a1 * a1)
+			var ci0 := Color(c.r, c.g, c.b, 0.0 if float(band[0]) < 0.6 else c0.a)
+			var ci1 := Color(c.r, c.g, c.b, 0.0 if float(band[0]) < 0.6 else c1.a)
+			var in0 := origin + d0 * p0.z * float(band[0])
+			var out0 := origin + d0 * p0.z * float(band[1])
+			var in1 := origin + d1 * p1.z * float(band[0])
+			var out1 := origin + d1 * p1.z * float(band[1])
+			for v in [[in0, ci0], [out0, c0], [out1, c1], [in0, ci0], [out1, c1], [in1, ci1]]:
+				_lance_mesh.surface_set_color(v[1])
+				_lance_mesh.surface_add_vertex(v[0])
+
+
+## The crit thrust's streak behind the point in see-through red with a white-hot core (the plain one is a thin additive
+## ribbon, _draw_streak).
+func _crit_streak(col: Color, core: Color) -> void:
+	_open_lance_surface()
+	for k in range(_streak_p.size() - 1):
+		var p0 := _streak_p[k]
+		var p1 := _streak_p[k + 1]
+		var along := p1 - p0
+		along.y = 0.0
+		if along.length_squared() < 0.000001:
+			continue
+		var side := Vector3(-along.z, 0.0, along.x).normalized()
+		var a0 := 1.0 - (_clock - _streak_t[k]) / STREAK_LIFE
+		var a1 := 1.0 - (_clock - _streak_t[k + 1]) / STREAK_LIFE
+		for layer in [[STREAK_HALF * 2.6, col, 0.85], [STREAK_HALF * 0.8, core, 1.0]]:
+			var h: float = float(layer[0])
+			var c: Color = layer[1]
+			var c0 := Color(c.r, c.g, c.b, float(layer[2]) * a0)
+			var c1 := Color(c.r, c.g, c.b, float(layer[2]) * a1)
+			for v in [[p0 - side * h, c0], [p0 + side * h, c0], [p1 + side * h, c1], [p0 - side * h, c0], [p1 + side * h, c1], [p1 - side * h, c1]]:
+				_lance_mesh.surface_set_color(v[1])
+				_lance_mesh.surface_add_vertex(v[0])
+
+
+## One layer of a lance from `a` to `b`, `half` wide each side at its widest, shaped by LANCE_PROFILE, in `c`.
+func _lance(a: Vector3, b: Vector3, half: float, c: Color) -> void:
+	var d := b - a
+	var flat := Vector3(d.x, 0.0, d.z)
+	if flat.length_squared() < 0.0001:
+		return
+	var side := Vector3(-flat.z, 0.0, flat.x).normalized() * half
+	for k in range(LANCE_PROFILE.size() - 1):
+		var p0: Array = LANCE_PROFILE[k]
+		var p1: Array = LANCE_PROFILE[k + 1]
+		var q0 := a + d * float(p0[0])
+		var q1 := a + d * float(p1[0])
+		var s0 := side * float(p0[1])
+		var s1 := side * float(p1[1])
+		var c0 := Color(c.r, c.g, c.b, c.a * float(p0[2]))
+		var c1 := Color(c.r, c.g, c.b, c.a * float(p1[2]))
+		for v in [[q0 - s0, c0], [q0 + s0, c0], [q1 + s1, c1], [q0 - s0, c0], [q1 + s1, c1], [q1 - s1, c1]]:
+			_lance_mesh.surface_set_color(v[1])
+			_lance_mesh.surface_add_vertex(v[0])

@@ -188,6 +188,10 @@ func _warm_mutation_shots(pm: ProjectileManager) -> void:
 		var lk = fp.get("look")
 		if lk is Dictionary and (lk as Dictionary).get("spikes") is Dictionary:
 			pm.spiked_kind(k, lk["spikes"])
+		# pass 62: a hero's own mutation may tint the shot too (Solenne's Sun Cocktail: a gold bottle), on its own
+		for hm: MutationDef in Registry.weapon_hero_mutations(wd.evolved_from if wd.is_evolution and wd.evolved_from != "" else wd.id):
+			if hm.params.get("tint") is Dictionary:
+				pm.tinted_kind(int(_shot_kinds[wid]), hm.params["tint"])
 
 
 func _flat(c: Color, alpha: bool, cull_off: bool) -> StandardMaterial3D:

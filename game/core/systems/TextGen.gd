@@ -46,6 +46,8 @@ const STATS := {
 	"kill_might": ["attack damage per 1,000 kills", "pct"],
 	# pass 54, Solenne's stats and the Sun Scepter's own row (WeaponInstance.stat_rows)
 	"buff_duration": ["buff duration", "pct"], "heal_mult": ["healing", "pct"], "radius": ["pillar radius", "m"],
+	# pass 62, the Pocket Watch
+	"powerup_duration": ["power-up duration", "pct"], "powerup_chance": ["power-up drop chance", "pct"],
 }
 ## Who a weapon with priority targeting goes for (pass 48: peashooter, revolver, tommy gun, tumbleweed, pike, sabre,
 ## turret, the Killer Bees and their evolutions), in its description.
@@ -181,6 +183,37 @@ static func ordinal(n: int) -> String:
 	return str(n) + suffix
 
 
+## Heartseeker's rule in words (pass 62, params.crit_stroke {every, reach_mult}): " Every 4th thrust is a guaranteed crit
+## and reaches 20% further.", "" without it. A weapon that only sweeps (the Wide Sweep) counts sweeps; the Thunder Lance's
+## crit is its thrust.
+static func crit_stroke_words(params: Dictionary) -> String:
+	var cs = params.get("crit_stroke")
+	if not cs is Dictionary:
+		return ""
+	var every := maxi(int((cs as Dictionary).get("every", 4)), 1)
+	var rm := float((cs as Dictionary).get("reach_mult", 1.0))
+	var th = params.get("thrust", {})
+	var td: Dictionary = th if th is Dictionary else {}
+	var word := "sweep" if float(td.get("slice_deg", 0.0)) > 0.0 and not bool(td.get("alternate", false)) else "thrust"
+	var s := " Every %s %s is a guaranteed crit" % [ordinal(every), word]
+	if rm > 1.001:
+		s += " and reaches %d%% further" % int(round((rm - 1.0) * 100.0))
+	return s + "."
+
+
+## A Lobber's landing blast in words (pass 62, Sun Cocktail's params.land_blast {damage_frac, radius_frac, look}): " Each
+## one bursts with sunlight as it lands: 12 damage within 1.8 m and a light shove.", "" without one.
+static func land_blast_words(params: Dictionary, sheet: StatSheet) -> String:
+	var lb = params.get("land_blast")
+	if not lb is Dictionary or sheet == null:
+		return ""
+	var d: Dictionary = lb
+	var r := sheet.get_stat("area", 2.5) * float(d.get("radius_frac", 0.9))
+	var dmg := sheet.get_stat("damage", 0.0) * float(d.get("damage_frac", 1.0))
+	var how := "bursts with sunlight" if str(d.get("look", "")) == "sun" else "bursts"
+	return " Each one %s as it lands: %.0f damage within %.1f m and a light shove." % [how, dmg, r]
+
+
 static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Dictionary = {}) -> String:
 	var amount := sheet.get_int("amount", 1)
 	var range_m := sheet.get_stat("range", 8.0)
@@ -248,6 +281,8 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 				text = "Lobs %d poison bomb%s at the thickest crowd of healthy enemies. Leaves a %.1f m cloud of green smoke." % [amount, "" if amount == 1 else "s", sheet.get_stat("area", 2.5)]
 			else:
 				text = "Lobs %d grenade%s at the densest crowd. Explodes in a %.1f m radius." % [amount, "" if amount == 1 else "s", sheet.get_stat("area", 2.5)]
+			# pass 62, Sun Cocktail (params.land_blast): a small blast where each one lands
+			text += land_blast_words(pr, sheet)
 		"Beam":
 			text = "Zaps a random enemy within %.0f m and chains to %d more." % [range_m, sheet.get_int("chains", 2)]
 		"Thruster":
@@ -274,6 +309,8 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 				text += " A critical hit gives back %d%% of the cooldown." % int(round(float(pr.get("crit_refund", 0.0)) * 100.0))
 			if float(pr.get("stunned_mult", 1.0)) > 1.0:
 				text += " A stunned enemy takes ×%.1f." % float(pr.get("stunned_mult", 1.0))
+			# pass 62, Heartseeker (params.crit_stroke): every Nth stroke a guaranteed crit with a longer reach
+			text += crit_stroke_words(pr)
 		"Smasher":
 			var sm = pr.get("smash", {})
 			var blast: float = (float(sm.get("radius", 1.6)) if sm is Dictionary else 1.6) * sheet.get_stat("area", 1.0)
@@ -389,8 +426,13 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 		var lit := "Sets on fire" if ic >= 1.0 else "Sets %d%% of the enemies it hits on fire" % int(round(ic * 100.0))
 		extras.append("%s: %.0f damage every 0.6 s for %.1f s. Spreads to touching enemies (%d%%)." % [lit, fd, sheet.get_stat("fire_duration", 1.8), int(round(sheet.get_stat("fire_spread", 0.5) * 100.0))])
 	var pierce := sheet.get_int("pierce", 0)
-	if pierce > 0 and behavior == "ProjectileEmitter":
+	# pass 62: the pierce drop-off, while Settings.pierce_falloff is on, says how the pierce hits ("Pierces 2: the first
+	# enemy takes ...")
+	var pfw := pierce_falloff_words(pr, behavior, pierce)
+	if pierce > 0 and behavior == "ProjectileEmitter" and pfw == "":
 		extras.append("Pierces %d." % pierce)
+	if pfw != "":
+		extras.append(pfw)
 	if sheet.get_stat("knockback", 0.0) > 0.0:
 		extras.append("Knocks enemies back.")
 	if def.hero != "":
@@ -402,6 +444,51 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 	if not extras.is_empty():
 		text += " " + " ".join(extras)
 	return text
+
+
+## The pierce drop-off in words (pass 62, params.pierce_falloff {step, floor, first_mult}; ProjectileManager.falloff_factor
+## does the sums): "" when the weapon has none, when it cannot pierce (a shot with pierce 0, a Spear that only sweeps)
+## or while Settings.pierce_falloff is off. `behavior` is the description's (the thrown spear reads "Spear").
+static func pierce_falloff_words(pr: Dictionary, behavior: String, pierce: int) -> String:
+	var pf = pr.get("pierce_falloff")
+	if not pf is Dictionary or not pierce_falloff_on():
+		return ""
+	var less := int(round((1.0 - clampf(float((pf as Dictionary).get("step", 0.8)), 0.0, 1.0)) * 100.0))
+	var more := int(round((float((pf as Dictionary).get("first_mult", 1.0)) - 1.0) * 100.0))
+	# how it opens and where the rest are met, in this weapon's words ("Pierces 2: the first enemy takes 15% more, each
+	# one after it 20% less than the one before.")
+	var lead := ""
+	var first := "the first enemy"
+	var rest := "after it"
+	match behavior:
+		"Thruster":
+			var th = pr.get("thrust", {})
+			var td: Dictionary = th if th is Dictionary else {}
+			if float(td.get("slice_deg", 0.0)) > 0.0 and not bool(td.get("alternate", false)):
+				return ""
+			first = "the first enemy along the thrust"
+			rest = "behind it"
+		"ProjectileEmitter", "Spear":
+			if pierce <= 0:
+				return ""
+			lead = "Pierces %d: " % pierce
+		"Spawner":
+			if pierce <= 0:
+				return ""
+			lead = "Its rounds pierce %d: " % pierce
+		_:
+			return ""
+	var s := ("%s takes %d%% more, each one %s %d%% less than the one before." % [first, more, rest, less]) if more > 0 else \
+		("each enemy %s takes %d%% less than the one before." % [rest, less])
+	return lead + s if lead != "" else _sentence(s)
+
+
+## Whether the pierce drop-off is on (Settings.pierce_falloff, pass 62), read by path like _registry: on when there are no
+## Settings (a tool).
+static func pierce_falloff_on() -> bool:
+	var ml := Engine.get_main_loop()
+	var st: Node = (ml as SceneTree).root.get_node_or_null("Settings") if ml is SceneTree else null
+	return st == null or bool(st.get("pierce_falloff"))
 
 
 ## A passive's lines at `level` for the pause screen's Build tab and the Collection; a sentence of its own, so a ceiling

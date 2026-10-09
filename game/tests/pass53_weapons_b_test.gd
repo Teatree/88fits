@@ -456,7 +456,9 @@ func test_the_thrust_has_bite_wind_back_then_out_then_a_hit_stop() -> void:
 		s += DT
 	assert_bool(t._hit_done).is_true()
 	assert_float(s).is_between(0.2, 0.26)
-	assert_float(hp0 - em.hp[i]).is_equal_approx(_taken(em, i, t.stat("damage", 0.0)), 0.01)
+	# pass 62: a lone creature on the thrust is its first, so it takes the pierce drop-off's first_mult
+	var first := ProjectileManager.falloff_factor(ProjectileManager.weapon_falloff(t.inst), 1)
+	assert_float(hp0 - em.hp[i]).is_equal_approx(_taken(em, i, t.stat("damage", 0.0) * first), 0.01)
 	assert_float(t._hold_extra).is_equal_approx(Thruster.HITSTOP, 0.0001)
 	assert_float(blade.scale.z).is_greater(reach * 1.02)
 	assert_float(blade.global_position.x).is_equal_approx(0.0, 0.01)
@@ -465,7 +467,7 @@ func test_the_thrust_has_bite_wind_back_then_out_then_a_hit_stop() -> void:
 	var rest := _run_stroke(t)
 	assert_float(rest).is_greater(0.0)
 	assert_float(s + rest).is_between(0.6, 0.74)
-	assert_float(hp0 - em.hp[i]).is_equal_approx(_taken(em, i, t.stat("damage", 0.0)), 0.01)
+	assert_float(hp0 - em.hp[i]).is_equal_approx(_taken(em, i, t.stat("damage", 0.0) * first), 0.01)
 	# nobody in reach: no stroke at all
 	em.alive[i] = 0
 	em._rebuild_grid()
@@ -519,7 +521,9 @@ func test_the_thunder_lance_sweeps_then_thrusts_and_punishes_the_stunned() -> vo
 	assert_float(_run_stroke(t)).is_greater(0.0)
 	assert_int(t._combo).is_equal(0)
 	var hp2: float = em.hp[i]
-	assert_float(hp1 - hp2).is_equal_approx(1.5 * (hp0 - hp1), 0.01)
+	# pass 62: the thrust's lone creature is its first (the pierce drop-off's first_mult); the sweep is a slice, untouched
+	var first := ProjectileManager.falloff_factor(ProjectileManager.weapon_falloff(t.inst), 1)
+	assert_float(hp1 - hp2).is_equal_approx(1.5 * first * (hp0 - hp1), 0.01)
 	assert_int(t.strokes).is_equal(1)
 
 

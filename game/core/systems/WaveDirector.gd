@@ -1188,7 +1188,8 @@ func drop_pickup_from(def: EnemyDef, at: Vector3, elite: bool) -> void:
 		roster = []
 		for id in def.pickup_weights.keys():
 			roster.append({"id": str(id), "weight": float(def.pickup_weights[id])})
-	var per_kill := float(pk.get("per_kill", 0.0)) * def.pickup_chance_mult
+	# pass 62: the Pocket Watch's powerup_chance on the hero's sheet (x1.12 at level 5)
+	var per_kill := float(pk.get("per_kill", 0.0)) * def.pickup_chance_mult * powerup_chance_mult()
 	if roster.is_empty() or per_kill <= 0.0:
 		return
 	var hardness: float = def.xp_mult * (2.0 if elite else 1.0)
@@ -1215,11 +1216,20 @@ func drop_pickup_from(def: EnemyDef, at: Vector3, elite: bool) -> void:
 	game.pickups.spawn_special(pdef, p)
 
 
+## The factor the hero's sheet puts on how often power-ups appear (pass 62, the Pocket Watch's `powerup_chance`: 1
+## without it, 1.12 at level 5): the per-kill chance is multiplied by it, a timed roster's interval divided.
+func powerup_chance_mult() -> float:
+	if Run.player_sheet == null:
+		return 1.0
+	return maxf(Run.player_sheet.get_stat("powerup_chance", 1.0), 0.0)
+
+
 ## One pickup from the map's roster, a short run away from the hero, then the next one is scheduled.
 func _spawn_pickup() -> void:
 	var pk: Dictionary = timeline.pickups
 	var roster: Array = pk.get("roster", [])
-	var interval := float(pk.get("interval", 75.0))
+	# pass 62: the Pocket Watch brings a timed roster's power-ups round sooner (a map with an `interval`; none on Red Canyon)
+	var interval := float(pk.get("interval", 75.0)) / maxf(powerup_chance_mult(), 0.01)
 	var jitter := float(pk.get("jitter", 0.0))
 	_pickup_t = maxf(interval + _rng.randf_range(-jitter, jitter), 10.0)
 	if roster.is_empty():

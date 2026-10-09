@@ -66,6 +66,11 @@
   "evolves_with": "",
   "evolves_into": "chicago_typewriter",
   "params": {
+    "pierce_falloff": {
+      "step": 0.8,
+      "floor": 0.4,
+      "first_mult": 1.15
+    },
     "radius": 0.16,
     "burst": true,
     "familiar": {

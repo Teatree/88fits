@@ -23,6 +23,11 @@
     []
   ],
   "params": {
+    "pierce_falloff": {
+      "step": 0.8,
+      "floor": 0.4,
+      "first_mult": 1.2
+    },
     "thrust": {
       "out": 0.14,
       "hold": 0.1,

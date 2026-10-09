@@ -366,8 +366,11 @@ func test_a_mini_crit_round_carries_it_through_every_pierce() -> void:
 	for n in range(30):
 		pm._physics_process(DT)
 	var mult := 1.0 + (Run.player_sheet.get_stat("crit_damage", 2.0) - 1.0) * 0.5
-	for i: int in row:
-		assert_float(float(hp0[i]) - em.hp[i]).is_equal_approx(10.0 * mult, 0.01)
+	# pass 62: the pierce drop-off on top (the n-th in the row takes ProjectileManager.falloff_factor of the round)
+	var pf := ProjectileManager.weapon_falloff(inst)
+	for n0 in range(row.size()):
+		var i: int = row[n0]
+		assert_float(float(hp0[i]) - em.hp[i]).is_equal_approx(10.0 * mult * ProjectileManager.falloff_factor(pf, n0 + 1), 0.01)
 	# a round that did not roll it hits plain
 	inst.params["mini_crit"] = 0.0
 	var hp1 := _hp(em, row)
@@ -375,8 +378,9 @@ func test_a_mini_crit_round_carries_it_through_every_pierce() -> void:
 	assert_bool((pm.extra[j2] as Dictionary).has("mini")).is_false()
 	for n in range(30):
 		pm._physics_process(DT)
-	for i: int in row:
-		assert_float(float(hp1[i]) - em.hp[i]).is_equal_approx(10.0, 0.01)
+	for n1 in range(row.size()):
+		var i: int = row[n1]
+		assert_float(float(hp1[i]) - em.hp[i]).is_equal_approx(10.0 * ProjectileManager.falloff_factor(pf, n1 + 1), 0.01)
 	# the estimate counts a quarter of the rounds at half a crit's extra
 	var plain := _inst("tommy_gun", [], 5)
 	var mc := _inst("tommy_gun", ["mini_crits"], 5)
@@ -410,7 +414,9 @@ func test_the_silver_bullet_is_bigger_bluer_and_quietly_faster() -> void:
 	assert_int(int((w["cam"] as Node).get("shakes"))).is_greater(0)
 	# the speed is never written anywhere
 	var md: MutationDef = Registry.mutation("silver_bullet")
-	for s: String in [md.text, md.flavour, md.vfx, inst.description()]:
+	# pass 62: the pierce drop-off's own sentence ("the first enemy ... takes 15% more") is about damage, not speed
+	var desc := inst.description().replace(TextGen.pierce_falloff_words(inst.params, "ProjectileEmitter", inst.stat_int("pierce")), "")
+	for s: String in [md.text, md.flavour, md.vfx, desc]:
 		for word: String in ["speed", "fast", "1.15", "15%"]:
 			assert_bool(s.to_lower().contains(word)).override_failure_message("'%s' says %s" % [s, word]).is_false()
 	for r: Dictionary in inst.stat_rows():

@@ -211,6 +211,15 @@ func _debug_panel() -> PanelContainer:
 		sw.toggled.connect(func(on: bool): Settings.set_value("ranged_on_screen", on))
 		r.add_child(sw)
 		col.add_child(r)
+	# the pierce drop-off (pass 62, Garry: "I am not super sure about this change so add an option to toggle this on and
+	# off in the Debug version of the Settings"): off, piercing shots and the Spear's thrust hit as they did before
+	if "pierce_falloff" in Settings:
+		var r2 := _row("Pierce damage drop-off")
+		var sw2 := WSwitch.make(bool(Settings.get("pierce_falloff")))
+		sw2.name = "PierceFalloff"
+		sw2.toggled.connect(func(on: bool): Settings.set_value("pierce_falloff", on))
+		r2.add_child(sw2)
+		col.add_child(r2)
 	return p
 
 

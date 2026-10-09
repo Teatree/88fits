@@ -7,6 +7,15 @@
 ## missing); a mutation that brings its own visual (Methanol's blue bottle) swaps it in when it is taken; and
 ## `params.death_pool {radius, seconds, max}` (the Moonshine) splashes a small pool where a creature this weapon set
 ## burning dies, at most `max` of them at once.
+## Pass 62, Solenne's Sun Cocktail (Garry: "add a small explosion to Molotovs. Those have a weak knockback and deal extra
+## damage on the explosion ... the Molotov projectiles as kind of imbued with sun energy, so they shine ... And the little
+## sun puff should accompany the Molotov's when they 'explode'"): `params.land_blast {damage_frac, radius_frac, knockback,
+## look}` bursts where a shot comes down (land_blast, called by ProjectileManager._explode, bomblets and bursts never):
+## damage_frac of the weapon's damage to everything within radius_frac of its area, thrown out `knockback` (weak: a
+## third of a grenade's), the fire pool as before; look "sun" puffs a little sun there (Fx.sun_puff) with a gold ring
+## racing out over the sand. `params.halo {size, color, strength, pulse, motes}` hangs a sunburst (the chest's shine,
+## mode 0) on every shot of the weapon while it flies and drops gold motes behind it every `motes` seconds; the shot
+## itself shines through `params.tint` (shot_kind: a gold emissive bottle).
 class_name Lobber
 extends WeaponBehavior
 
@@ -17,6 +26,21 @@ var _deaths_hooked := false
 var death_pools := 0
 ## The models' meshes by path, so a second weapon (or a swap) does not load one twice.
 static var _model_meshes: Dictionary = {}
+## Pass 62 (params.halo): the sunbursts riding the shots in flight (one each, made as needed, hidden when spare), the
+## shots they ride ([projectile index, stamp]: a freed slot taken by another shot no longer carries the stamp), the
+## stamp the next shot gets, the clock the motes keep; halos hung and land blasts made (tests).
+var _halos: Array = []
+var _flying: Array = []
+static var _stamp := 0
+var _mote_t := 0.0
+var halo_shots := 0
+static var land_blasts := 0
+## A land blast's ring racing out over the sand (look "sun"): RING_MULT x its radius over RING_TIME.
+const RING_MULT := 1.5
+const RING_TIME := 0.32
+const SUN_GOLD := Color(1.0, 0.82, 0.3)
+## The gold motes a haloed shot drops behind it (params.halo.motes seconds apart), this big.
+const MOTE_SIZE := 0.22
 
 
 func _on_setup() -> void:
@@ -181,9 +205,117 @@ func _fire() -> bool:
 	# from the companion when it has one (Needle Rain throws from the dart), else from the hero's hand
 	var from: Vector3 = _stray.global_position if _stray else hero + Vector3(0, 1.2, 0)
 	var k_draw := shot_kind()
+	var haloed := not _halo().is_empty()
 	for target: Vector3 in targets:
 		var lp: Dictionary = inst.params.duplicate()
 		lp["throw_dir"] = (target - from) * Vector3(1, 0, 1)
-		game.projectiles.lob(k_draw, from, target, stat("speed", 9.0), stat("damage", 25.0), stat("area", 2.5), inst, stat("knockback", 3.0), lp)
+		# a shot that wears a halo (pass 62, Sun Cocktail) is stamped, so the halo knows it by its slot
+		if haloed:
+			_stamp += 1
+			lp["halo_id"] = _stamp
+		var j: int = game.projectiles.lob(k_draw, from, target, stat("speed", 9.0), stat("damage", 25.0), stat("area", 2.5), inst, stat("knockback", 3.0), lp)
+		if haloed and j >= 0:
+			_flying.append([j, _stamp])
+			halo_shots += 1
 	sfx("fire", from)
 	return true
+
+
+# ---------------------------------------------------------------- Sun Cocktail (pass 62)
+
+## params.halo, {} without it.
+func _halo() -> Dictionary:
+	var h = inst.params.get("halo") if inst else null
+	return h if h is Dictionary else {}
+
+
+func _tick(delta: float) -> void:
+	_tick_halos(delta)
+
+
+## Every shot in flight that wears a halo carries a sunburst on it, pulsing, and drops gold motes behind it; a shot that
+## came down (its slot freed, or taken by another shot without its stamp) lets its halo go.
+func _tick_halos(delta: float) -> void:
+	if _flying.is_empty():
+		for q: MeshInstance3D in _halos:
+			q.visible = false
+		return
+	var pm = game.get("projectiles") if game else null
+	if pm == null:
+		return
+	for k in range(_flying.size() - 1, -1, -1):
+		var j: int = int(_flying[k][0])
+		if j < 0 or j >= pm.alive.size() or pm.alive[j] == 0:
+			_flying.remove_at(k)
+			continue
+		var ex = pm.extra[j]
+		if not ex is Dictionary or int((ex as Dictionary).get("halo_id", -1)) != int(_flying[k][1]):
+			_flying.remove_at(k)
+	var h := _halo()
+	var col := Color(str(h.get("color", "#FFE08A")))
+	var size := float(h.get("size", 1.3))
+	var strength := float(h.get("strength", 1.1))
+	var pulse := float(h.get("pulse", 0.25))
+	while _halos.size() < _flying.size():
+		var nq := Chest.shine_quad(0, Vector2(size, size), col, strength)
+		nq.top_level = true
+		add_child(nq)
+		_halos.append(nq)
+	var every := float(h.get("motes", 0.05))
+	_mote_t -= delta
+	var drop := every > 0.0 and _mote_t <= 0.0
+	if drop:
+		_mote_t = every
+	var fx = game.get("fx")
+	var t := float(Time.get_ticks_msec()) * 0.001
+	for k in range(_halos.size()):
+		var q: MeshInstance3D = _halos[k]
+		if k >= _flying.size():
+			q.visible = false
+			continue
+		var at: Vector3 = pm.pos[int(_flying[k][0])]
+		q.visible = true
+		q.global_position = at
+		(q.material_override as ShaderMaterial).set_shader_parameter("strength", strength * (1.0 + pulse * sin(t * 18.0 + float(k) * 2.1)))
+		if drop and fx and fx.has_method("mote"):
+			fx.mote(at + Vector3(randf_range(-0.15, 0.15), randf_range(-0.1, 0.1), randf_range(-0.15, 0.15)), Vector3(0, randf_range(0.4, 1.0), 0), randf_range(0.3, 0.45), MOTE_SIZE, Color(col.r, col.g, col.b, 0.9))
+
+
+## How many halos are riding shots now (tests).
+func halos_live() -> int:
+	var n := 0
+	for q: MeshInstance3D in _halos:
+		if q.visible:
+			n += 1
+	return n
+
+
+## A small blast where a shot of `w` came down at `at` (its `area` the pool's radius), from params.land_blast; nothing
+## for a bomblet or a burst, or without one. Returns how many it hit, -1 when there was none. ProjectileManager._explode
+## calls it right after the shot's own blast.
+static func land_blast(game: Node, at: Vector3, w: WeaponInstance, area: float, ex: Dictionary = {}) -> int:
+	if game == null or w == null:
+		return -1
+	var lb = w.params.get("land_blast")
+	if not lb is Dictionary or ex.has("is_bomblet") or ex.has("is_burst"):
+		return -1
+	var d: Dictionary = lb
+	var r := maxf(area * float(d.get("radius_frac", 0.9)), 0.3)
+	var dmg := w.stat("damage", 8.0) * float(d.get("damage_frac", 1.0))
+	var em: EnemyManager = game.get("enemies")
+	var n: int = em.damage_radius(at, r, dmg, w.def.id, float(d.get("knockback", 2.4))) if em else 0
+	land_blasts += 1
+	if str(d.get("look", "")) == "sun":
+		var fx = game.get("fx")
+		if fx and fx.has_method("sun_puff"):
+			fx.sun_puff(at, r, SUN_GOLD)
+		var tg = game.get("telegraphs")
+		if tg and tg.has_method("race_ring"):
+			tg.race_ring(at, r * RING_MULT, RING_TIME, Color(SUN_GOLD.r, SUN_GOLD.g, SUN_GOLD.b, 0.8), 0.25)
+		# the sand glows hot under it a moment, as under the Sun Scepter's pillar
+		if tg and tg.has_method("scorch"):
+			tg.scorch(at, r * SunScepter.IMPACT_GLOW, SunScepter.IMPACT_GLOW_INNER, SunScepter.IMPACT_GLOW_OUTER, SunScepter.IMPACT_GLOW_HOLD, SunScepter.IMPACT_GLOW_FADE)
+		var snd := str(d.get("sound", "w_sun_strike"))
+		if snd != "":
+			Audio.play(snd, at, float(d.get("volume_db", -4.0)))
+	return n

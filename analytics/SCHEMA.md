@@ -161,6 +161,25 @@ The Strongbox is not a spend: it banks the purse (`strongbox` below, and the row
   `app_open.gold` (the balance at every launch) it draws the bank's balance over time.
 - The boards: **88fits · Coins** (`tools/posthog_boards.py`) and a "Gold today" tile on Pulse.
 
+## Surveys (pass 59, pass 62)
+
+End-of-run surveys come from PostHog Surveys (`core/autoload/Analytics.gd`, the card `ui/wanted/WSurvey.gd`); the how-to
+is `analytics/howto/02_surveys.md`. They are not in the run file; in PostHog:
+
+| event | properties |
+|---|---|
+| `survey shown` | `$survey_id`, `$survey_name` (the name as written in PostHog, run tag included), `counted_runs` (pass 62) |
+| `survey sent` | the same, `$survey_response_<question id>` per answer, `$survey_questions`, `$survey_completed`, `$survey_submission_id`, `$set: {$survey_responded/<id>: true}` |
+| `survey dismissed` | `$survey_id`, `$survey_name`, `counted_runs`, `$set: {$survey_dismissed/<id>: true}` (NOT NOW, Don't ask me again, the back gesture) |
+| `survey_opt_out` / `survey_opt_in` | `where` (`card` or `settings`), `$set: {surveys_opt_out}` |
+
+`counted_runs` is the player's lifetime count of runs of 60 s or more at that moment (the run that just ended included).
+When a survey comes is set by a tag in its PostHog name: `[after N]` (first after counted run N, then every 3 counted
+runs until answered), `[run N]` (after counted run N only), no tag (3 counted runs after the last survey, the first
+counted run on a new install). The record on the phone is the save's `survey` key (kept through a wipe): `counted`,
+`runs_since`, `answered` and `dismissed` (survey ids), `shown` (survey id -> the counted run it last came after) and
+`armed` (the developer menu's "Next run asks"); an old save started `counted` at its finished runs (`totals.runs`).
+
 ## Index
 
 `index.json` / `index.js` rows: `{file, stamp, started, hero, hero_name, map, result, length, clock, stage, level,

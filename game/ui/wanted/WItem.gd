@@ -6,6 +6,12 @@
 ## Maybe the new star is pulsating in an animated way. Maybe there's a word "upgrade." ... Maybe we show which stats are
 ## actually changing as well with the upgrade"): a tag beside the kind's word says UPGRADE, NEW or EVOLUTION (tag), an
 ## upgrade lists the stats it changes before and after (changes) in place of its "Next:" line, and its new stars pulse.
+## Pass 62 (Garry: "When Player encounters their 'favorite' item during Gameplay it should be marked somehow in a subtle
+## way. And have more obvious markings, like in the case of The Drifter seeing Peashooter for the first time it should
+## display at already the higher level with description as before but the description includes the correct stats for
+## that level"): a card of the run hero's favourite (favourite) wears a brass heart and the word FAVOURITE (WCard), and a
+## new weapon's card describes the weapon at the level it lands on (a favourite's bonus level, the Stranger's 2) with a
+## favourite's own effects folded in and named (favourite_line).
 class_name WItem
 extends RefCounted
 
@@ -120,37 +126,88 @@ static func _harms(e: Effect) -> bool:
 ## is the generated text the old cards had.
 static func effect(card: Dictionary) -> String:
 	var def: ContentDef = card["def"]
+	# a new weapon (pass 62): described at the level it lands on, with a favourite's own effects in its numbers
+	if def is WeaponDef and not (def as WeaponDef).is_evolution and int(card.get("level_from", 0)) <= 0:
+		var run := W.node("Run")
+		if run and run.call("weapon_instance", def.id) == null:
+			var tmp := CardPool.preview_weapon(def as WeaponDef, maxi(int(card.get("level_to", 1)), 1))
+			return tmp.description() + favourite_line(card)
 	if def is PassiveDef:
-		var pd := def as PassiveDef
-		var lf := int(card.get("level_from", 0))
-		var lt := maxi(int(card.get("level_to", 1)), 1)
-		var whole := bool(card.get("evolve", false)) or pd.is_evolved()
-		var ranked := not whole and not (lf == 0 and lt > 1)
-		if lf == 0 and pd.text != "" and not whole:
-			return pd.text
-		var effs: Array = pd.effects_at_level(lt) if ranked else TextGen._sum_effects(pd.effects_for_level(1 if whole else lt))
-		var good: Array = []
-		var ceiling := false
-		for e in effs:
-			if pd.trade == "" or not _harms(e):
-				good.append(e)
-			# a stat that reads as a ceiling ("up to +12% attack damage as health falls") takes no "a level"
-			if e is Effect and TextGen.PREFIX.has((e as Effect).stat):
-				ceiling = true
-		var s := TextGen.describe_effects(good) + (" a level" if ranked and pd.levels.size() <= 1 and not ceiling else "")
-		if pd.trade != "":
-			s += ". Trade: " + pd.trade.trim_suffix(" a level") + "."
-		else:
-			s += "."
-		if lf > 0 and ranked:
-			return "Next: " + s
-		return s.substr(0, 1).to_upper() + s.substr(1)
+		return _passive_effect(card, def as PassiveDef) + favourite_line(card)
 	var d := UiKit.card_description(card)
 	return d
 
 
+## A passive's effect line (effect, before pass 62's favourite words).
+static func _passive_effect(card: Dictionary, pd: PassiveDef) -> String:
+	var lf := int(card.get("level_from", 0))
+	var lt := maxi(int(card.get("level_to", 1)), 1)
+	var whole := bool(card.get("evolve", false)) or pd.is_evolved()
+	var ranked := not whole and not (lf == 0 and lt > 1)
+	if lf == 0 and pd.text != "" and not whole:
+		return pd.text
+	var effs: Array = pd.effects_at_level(lt) if ranked else TextGen._sum_effects(pd.effects_for_level(1 if whole else lt))
+	var good: Array = []
+	var ceiling := false
+	for e in effs:
+		if pd.trade == "" or not _harms(e):
+			good.append(e)
+		# a stat that reads as a ceiling ("up to +12% attack damage as health falls") takes no "a level"
+		if e is Effect and TextGen.PREFIX.has((e as Effect).stat):
+			ceiling = true
+	var s := TextGen.describe_effects(good) + (" a level" if ranked and pd.levels.size() <= 1 and not ceiling else "")
+	if pd.trade != "":
+		s += ". Trade: " + pd.trade.trim_suffix(" a level") + "."
+	else:
+		s += "."
+	if lf > 0 and ranked:
+		return "Next: " + s
+	return s.substr(0, 1).to_upper() + s.substr(1)
+
+
 static func rarity(def: ContentDef) -> String:
 	return W.rarity_of(def)
+
+
+## Whether a card is the run hero's favourite (pass 62): the weapon, line or passive item his favourite names, new or
+## an upgrade, wherever it is offered (level-ups, chests, the shop, the Stranger); never an evolution, a mutation or a
+## perk.
+static func favourite(card: Dictionary) -> bool:
+	var def: ContentDef = card.get("def")
+	if def == null or bool(card.get("evolve", false)) or W.is_evolved(def):
+		return false
+	if not (def is WeaponDef or def is PassiveDef):
+		return false
+	if bool(card.get("favourite", false)):
+		return true
+	var run := W.node("Run")
+	return run != null and run.has_method("is_favourite") and bool(run.call("is_favourite", def))
+
+
+## What finding his favourite gives, after a new favourite's description (pass 62; the hero sheet's words, WHeroSheet):
+## " His favourite: found at level 2." (a level bonus: the stars and the numbers are that level's), " Her favourite:
+## found full." or " His favourite: +20% area of effect." (effects folded into the weapon or the hero); "" on an upgrade
+## and on any other card.
+static func favourite_line(card: Dictionary) -> String:
+	if int(card.get("level_from", 0)) > 0 or not favourite(card):
+		return ""
+	var run := W.node("Run")
+	var hero = run.get("character") if run else null
+	if hero == null:
+		return ""
+	var def: ContentDef = card["def"]
+	var b: Dictionary = hero.favourite_bonus if def is WeaponDef else hero.favourite_passive_bonus
+	var whose: String = {"he": "His", "she": "Her"}.get(str(hero.get("pronoun")), "Their")
+	match str(b.get("type", "")):
+		"level":
+			var lt := maxi(int(card.get("level_to", 1)), 1)
+			return " %s favourite: found at level %d." % [whose, lt] if lt > 1 else ""
+		"max":
+			return " %s favourite: found full." % whose
+		"effects":
+			if b.get("effects") is Array and not (b["effects"] as Array).is_empty():
+				return " %s favourite: %s." % [whose, TextGen.describe_effects(b["effects"])]
+	return ""
 
 
 ## The level a card's plate shows (pass 48: a weapon or a line takes its level's colour): the level the pick lands on.
@@ -169,7 +226,7 @@ static func options(card: Dictionary, extra: Dictionary = {}) -> Dictionary:
 		"rarity": "", "plate_px": 180.0, "icon_frac": 0.68,
 		"evolution": kind(def) == "evolution" or bool(card.get("evolve", false)),
 		"level": level_of(card), "dots": WPlate.path_of(def), "dots_ready": WPlate.ready_of(def),
-		"tag": tag(card), "changes": changes(card),
+		"tag": tag(card), "changes": changes(card), "favourite": favourite(card),
 	}
 	for k in extra:
 		o[k] = extra[k]
@@ -178,6 +235,9 @@ static func options(card: Dictionary, extra: Dictionary = {}) -> Dictionary:
 	var lf := int(card.get("level_from", 0))
 	if lf > 0 and (o.get("stars", []) as Array).is_empty() and stars(card).size() >= 2:
 		o["word"] = "%s · LV %d → %d" % [str(o["word"]), lf, maxi(int(card.get("level_to", lf + 1)), lf + 1)]
+	# a new one landing past level 1 (a favourite, pass 62) shown without stars says where it lands
+	elif lf <= 0 and int(card.get("level_to", 1)) > 1 and (o.get("stars", []) as Array).is_empty() and stars(card).size() >= 2:
+		o["word"] = "%s · LV %d" % [str(o["word"]), int(card.get("level_to", 1))]
 	return o
 
 

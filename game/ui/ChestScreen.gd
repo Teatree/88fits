@@ -75,6 +75,8 @@ var _effect: WText
 ## The landed item's word and its tag (pass 58: UPGRADE, NEW or EVOLUTION, WItem.tag), side by side and centred.
 var _word_row: HBoxContainer
 var _tag: PanelContainer
+## The landed favourite's word by the tag (pass 62; its heart rides on the landed plate).
+var _fav_word: WText
 ## The stars of the landed item (null for gold, a mutation or an evolution): an upgrade's new ones pulse (pass 58).
 var _marks: WMarks
 ## An upgrade's change rows in place of the effect line (pass 58), centred CHANGES_W wide.
@@ -110,6 +112,8 @@ const BOSS_LIGHT := Color("9262ca")
 ## The landed item's tag and change rows (pass 58): the tag's type, the rows' type and the width they are centred in.
 const TAG_PX := 30
 const CHANGE_PX := 34
+## The favourite's heart on the landed 420 px plate (pass 62): a little under a card's share, so it stays a mark.
+const FAV_HEART_FRAC := 0.17
 const CHANGES_W := 700.0
 
 
@@ -572,6 +576,10 @@ func _show_result(kind: String, def: ContentDef) -> void:
 		_word_row.remove_child(_tag)
 		_tag.queue_free()
 		_tag = null
+	if _fav_word:
+		_word_row.remove_child(_fav_word)
+		_fav_word.queue_free()
+		_fav_word = null
 	if _changes:
 		_changes_host.remove_child(_changes)
 		_changes.queue_free()
@@ -587,6 +595,12 @@ func _show_result(kind: String, def: ContentDef) -> void:
 	_word.text = WItem.word(_result)
 	_word.color = WItem.word_color(_result)
 	_name.text = def.display_name
+	# the hero's favourite (pass 62): FAVOURITE before the tag, a brass heart on the landed plate's corner
+	if WItem.favourite(_result):
+		_fav_word = WCard.favourite_word(26)
+		_word_row.add_child(_fav_word)
+		if _hero and _hero.get_node_or_null("FavouriteHeart") == null:
+			WCard.add_heart(_hero, FAV_HEART_FRAC)
 	var t := WItem.tag(_result)
 	if t != "":
 		_tag = WCard.tag_pill(t, TAG_PX)

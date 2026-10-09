@@ -121,18 +121,20 @@ func test_the_armadillo_arrives_half_way_through_stage_one() -> void:
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
 	var arrives := -1.0
 	for r in tl.roster:
-		if str(r["enemy"]) == "armadillo":
+		if str(r["enemy"]) == "armadillo" and (arrives < 0.0 or float(r["t"]) < arrives):
 			arrives = float(r["t"])
+	# pass 62 (lane PC, re-pinned): the armadillo is stage 2's introduction now (8:56, a wall of them from the top of the
+	# screen in its first rush); no row brings it before half way through stage 1
+	if arrives >= 0.0:
+		assert_float(arrives).is_greater_equal(200.0)
+		return
 	# half way through stage 1: 2:30 before pass 46 stretched the stage from 300 s to 430 s, 3:35 since; pass 54: Garry's
 	# placement in the Level Editor (2026-10-06) brings it in the 12:11 swarm instead of a roster row
-	if arrives >= 0.0:
-		assert_float(arrives).is_between(200.0, 230.0)
-	else:
-		var swarm := false
-		for ev in tl.events:
-			if str(ev.get("type", "")) == "swarm" and str(ev.get("enemy", "")) == "armadillo":
-				swarm = true
-		assert_bool(swarm).is_true()
+	var swarm := false
+	for ev in tl.events:
+		if str(ev.get("type", "")) == "swarm" and str(ev.get("enemy", "")) == "armadillo":
+			swarm = true
+	assert_bool(swarm).is_true()
 
 
 func test_the_rocket_keeps_to_nine_tenths_of_the_hero() -> void:

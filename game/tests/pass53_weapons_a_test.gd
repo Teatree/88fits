@@ -698,8 +698,9 @@ func test_the_iron_bastion_ganging_up_its_model_and_its_boom() -> void:
 	var e := _creature(em, Vector3(0, 0, 0))
 	em._rebuild_grid()
 	var hp0: float = em.hp[e]
-	var dmg := full.stat("damage")
-	var j := pm.fire(sp.projectile_kind, Vector3(-1.5, 0.6, 0), Vector3(18, 0, 0), dmg, 1, 0.2, 1.0, full, 7.0)
+	# pass 62: the round pierces, so its first creature takes the pierce drop-off's first_mult (ProjectileManager)
+	var dmg := full.stat("damage") * ProjectileManager.falloff_factor(ProjectileManager.weapon_falloff(full), 1)
+	var j := pm.fire(sp.projectile_kind, Vector3(-1.5, 0.6, 0), Vector3(18, 0, 0), full.stat("damage"), 1, 0.2, 1.0, full, 7.0)
 	var n := 0
 	while em.hp[e] >= hp0 - 0.0001 and n < 40:
 		pm._physics_process(DT)
@@ -709,7 +710,7 @@ func test_the_iron_bastion_ganging_up_its_model_and_its_boom() -> void:
 	assert_float(em.mark_mult[e]).is_equal_approx(1.2, 0.0001)
 	# the next round lands for 1.2x
 	hp0 = em.hp[e]
-	var j2 := pm.fire(sp.projectile_kind, Vector3(-1.5, 0.6, 0), Vector3(18, 0, 0), dmg, 1, 0.2, 1.0, full, 7.0)
+	var j2 := pm.fire(sp.projectile_kind, Vector3(-1.5, 0.6, 0), Vector3(18, 0, 0), full.stat("damage"), 1, 0.2, 1.0, full, 7.0)
 	n = 0
 	while em.hp[e] >= hp0 - 0.0001 and n < 40:
 		pm._physics_process(DT)

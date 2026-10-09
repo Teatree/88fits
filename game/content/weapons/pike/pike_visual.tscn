@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://vis_pike00000001"]
+[gd_scene load_steps=14 format=3 uid="uid://vis_pike00000001"]
 
 [sub_resource type="StandardMaterial3D" id="iron"]
 albedo_color = Color(0.35, 0.36, 0.4, 1)
@@ -29,6 +29,36 @@ size = Vector3(0.5, 0.06, 0.03)
 [sub_resource type="PrismMesh" id="m_tip"]
 size = Vector3(0.34, 0.22, 0.06)
 
+[sub_resource type="StandardMaterial3D" id="crit_red"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.16, 0.08, 1)
+
+[sub_resource type="Gradient" id="crit_glow_grad"]
+offsets = PackedFloat32Array(0, 0.3, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.45, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="crit_glow_tex"]
+gradient = SubResource("crit_glow_grad")
+width = 64
+height = 64
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="crit_glow"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.16, 0.08, 1)
+albedo_texture = SubResource("crit_glow_tex")
+billboard_mode = 1
+
+[sub_resource type="QuadMesh" id="m_crit_glow"]
+size = Vector2(1.6, 1.6)
+
+[sub_resource type="PrismMesh" id="m_tipred"]
+size = Vector3(0.42, 0.28, 0.09)
+
 [node name="PikeVisual" type="Node3D"]
 
 [node name="Blade" type="Node3D" parent="."]
@@ -52,3 +82,18 @@ material_override = SubResource("iron")
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, -0.89)
 mesh = SubResource("m_tip")
 material_override = SubResource("steel")
+
+[node name="LookCrit" type="Node3D" parent="Blade"]
+visible = false
+
+[node name="TipRed" type="MeshInstance3D" parent="Blade/LookCrit"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, -0.89)
+cast_shadow = 0
+mesh = SubResource("m_tipred")
+material_override = SubResource("crit_red")
+
+[node name="TipGlow" type="MeshInstance3D" parent="Blade/LookCrit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.95)
+cast_shadow = 0
+mesh = SubResource("m_crit_glow")
+material_override = SubResource("crit_glow")

@@ -9,15 +9,26 @@
 ## readout (core/autoload/Analytics.gd: whether the key file has a key, never the key itself, whether anything is sent and
 ## why not, the queue, the events sent this session, the last send) and a Send now row that pushes the queue out with a
 ## dev_ping, so PostHog's live view shows something at once.
+## Pass 62 (Garry: "I'd like an option to reset the Survey. Basically some way to test it for sure. Like in the developer
+## options that Player can access"): a Surveys block, the readout (Analytics.survey_lines: the surveys fetched with their
+## run tags, the counted runs, the session, armed, answered and dismissed ids) and five rows that work in a release
+## build: Reset surveys (asks first, WConfirm), Fetch surveys now, Show a survey now (the real card over this menu, its
+## real events), Next run asks (arms the next counted run) and Counted runs (+1 a tap, to reach a [run N] survey's run).
+## And (Garry: "those developer options get cut off on mobile"): every row's words wrap and its value stays whole at the
+## right edge; nothing in the list may be wider than the screen.
 extends Control
 
 const SETTINGS := "res://ui/SettingsScreen.tscn"
+const WSurveyScript := preload("res://ui/wanted/WSurvey.gd")
 
 var _list: VBoxContainer
 var _scroll: ScrollContainer
 var _touch: TouchScroll
 var _open := ""
 var _refresh_due := false
+## The survey card a "Show a survey now" opened (pass 62), and the block's last word (why nothing showed, what a tap did).
+var _survey: Control
+var _survey_note := ""
 
 
 func _ready() -> void:
@@ -65,6 +76,8 @@ func _ready() -> void:
 	_touch = TouchScroll.new(_scroll)
 	# a send that finishes while the menu is up puts its status in the readout
 	Analytics.sent.connect(_on_analytics_sent)
+	# a survey fetch, an answer or a reset likewise (pass 62)
+	Analytics.surveys_changed.connect(_refresh_soon)
 	_refresh()
 
 
@@ -99,6 +112,10 @@ func _refresh() -> void:
 	_list.add_child(_switch("Free revive button", "free_revive_button"))
 	_list.add_child(_switch("Hit log on Down! · copy", "hit_log"))
 	_list.add_child(_switch("Hidden heroes as locked on the title", "preview_locked_heroes"))
+	# pass 62: the pierce damage drop-off (also in Settings' Debug panel)
+	var pf_row := _switch("Pierce damage drop-off", "pierce_falloff")
+	pf_row.name = "PierceFalloffRow"
+	_list.add_child(pf_row)
 	# the arena's training dummies (pass 48): a tap steps each one on, the arena lays them out from these
 	var hp_row := _row("Arena dummies · health", Settings.dummy_hp_label(Settings.dummy_hp), func():
 		Settings.set_value("dummy_hp", Settings.next_step(Settings.DUMMY_HP_STEPS, Settings.dummy_hp))
@@ -161,6 +178,7 @@ func _refresh() -> void:
 		_refresh_soon())
 	send.name = "AnalyticsSendNow"
 	_list.add_child(send)
+	_surveys_block()
 	var save := _box()
 	var sv: VBoxContainer = save.get_child(0)
 	sv.add_child(W.text("Save file", W.mono(500), 30, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
@@ -173,6 +191,71 @@ func _refresh() -> void:
 			"backup: %s" % ("yes" if FileAccess.file_exists(Save.bak_path()) else "none")]:
 		sv.add_child(W.text(line, W.mono(500), 22, Color(W.AGED, 0.7), HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	_list.add_child(save)
+
+
+## The Surveys block (pass 62): the readout, then Reset (asks first), Fetch now, Show one now, Next run asks and the
+## counted runs. Every row works in a release build; nothing here needs the debug mode.
+func _surveys_block() -> void:
+	var box := _box()
+	box.name = "Surveys"
+	var bv: VBoxContainer = box.get_child(0)
+	bv.add_child(W.text("Surveys · PostHog", W.mono(500), 30, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	for line: String in Analytics.survey_lines():
+		bv.add_child(W.text(line, W.mono(500), 22, Color(W.AGED, 0.7), HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	if _survey_note != "":
+		var note := W.text(_survey_note, W.mono(500), 22, W.BRASS, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+		note.name = "SurveyNote"
+		bv.add_child(note)
+	_list.add_child(box)
+	var reset := _row("Surveys · reset (counted runs, answered, shown)", "›", _ask_reset_surveys)
+	reset.name = "SurveyReset"
+	_list.add_child(reset)
+	var fetch := _row("Surveys · fetch now", "›", func():
+		var why := Analytics.fetch_surveys_now()
+		_survey_note = "fetching..." if why == "" else "not fetched: " + why
+		_refresh_soon())
+	fetch.name = "SurveyFetch"
+	_list.add_child(fetch)
+	var show_row := _row("Surveys · show one now", "›", show_survey_now)
+	show_row.name = "SurveyShow"
+	_list.add_child(show_row)
+	var arm := _row("Surveys · next run asks", "ON" if Analytics.next_run_armed() else "OFF", func():
+		Analytics.arm_next_run(not Analytics.next_run_armed())
+		_survey_note = "the next run of %d s or more ends with a survey" % int(Analytics.SURVEY_MIN_RUN) if Analytics.next_run_armed() else "the next run asks by the rules"
+		_refresh_soon())
+	arm.name = "SurveyArm"
+	_list.add_child(arm)
+	var counted := _row("Surveys · counted runs (a tap: +1)", str(int(Save.survey_state().get("counted", 0))), func():
+		Analytics.add_counted(1)
+		_survey_note = "counted runs set to %d: the next counted run is run %d" % [int(Save.survey_state().get("counted", 0)), int(Save.survey_state().get("counted", 0)) + 1]
+		_refresh_soon())
+	counted.name = "SurveyCounted"
+	_list.add_child(counted)
+
+
+func _ask_reset_surveys() -> void:
+	var off := "" if Settings.surveys else " Questions after a run are OFF in Settings: turn them on there too."
+	WConfirm.open(self, "Reset surveys?", "Counted runs go to 0 and every survey can be asked again, answered or not. The play-data answer stays." + off,
+		"Reset", "Keep", func():
+			Analytics.reset_surveys()
+			_survey_note = "surveys reset" + ("" if Settings.surveys else " · questions after a run are OFF in Settings")
+			_refresh_soon())
+
+
+## "Show a survey now": the next survey not answered yet opens over this menu, as it would after a run (its shown,
+## sent or dismissed events go to PostHog like a real one's); the timing record is left alone.
+func show_survey_now() -> Control:
+	if is_instance_valid(_survey) and not bool(_survey.call("is_done")):
+		return _survey
+	var sv := Analytics.survey_for_test()
+	if sv.is_empty():
+		_survey_note = "nothing to show: " + Analytics.no_test_survey_reason()
+		_refresh_soon()
+		return null
+	_survey_note = "showing: " + str(sv.get("name", ""))
+	_survey = WSurveyScript.open(self, sv)
+	_refresh_soon()
+	return _survey
 
 
 ## A row's frame: a 3 px aged outline round 26 x 30 px of room, a column inside.
@@ -204,7 +287,9 @@ func _row(t: String, value: String, on_tap: Callable, extra: Control = null) -> 
 	r.add_child(v)
 	var h := HBoxContainer.new()
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var l := W.text(t, W.mono(500), 30, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	# the words wrap (pass 62): one long name (the debug mode row's) had made the whole list wider than the screen, so
+	# every row's value was cut at the right edge
+	var l := W.text(t, W.mono(500), 30, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(l)
 	var val := W.text(value, W.mono(500), 30, W.BRASS, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
@@ -241,11 +326,22 @@ func _file_row(t: String, path: String, empty: String) -> WTap:
 
 
 func _back() -> void:
+	# a question or a survey card over the menu goes first (pass 62)
+	if WConfirm.dismiss(self):
+		return
+	if is_instance_valid(_survey) and not bool(_survey.call("is_done")):
+		_survey.call("dismiss")
+		return
 	UiFx.go(get_tree(), SETTINGS)
 
 
+## Whether a card lies over the list (a survey or a question): the list under it keeps still.
+func _covered() -> bool:
+	return WConfirm.is_open(self) or (is_instance_valid(_survey) and not bool(_survey.call("is_done")))
+
+
 func _input(event: InputEvent) -> void:
-	if _touch:
+	if _touch and not _covered():
 		_touch.input(event)
 
 

@@ -1418,3 +1418,70 @@ func sun_impact(at: Vector3, r: float, tint: Color, motes: int = 6, must := true
 	for k in range(mini(motes, 4)):
 		var a2 := randf() * TAU
 		_emit(c, Vector3(cos(a2), 0.0, sin(a2)) * randf_range(3.0, 5.0) + Vector3(0, randf_range(1.5, 3.0), 0), randf_range(0.3, 0.45), 0.4, 0.08, 1.0, 0.8, Color(1.0, 0.9, 0.5), 10.0, true)
+
+
+# ---- pass 62: hero mutation looks (HM): new functions below this line ----
+
+## Heartseeker's crit thrusts and Sun Cocktail's sun puffs made (tests).
+var crit_thrusts := 0
+var sun_puffs := 0
+## A sun puff's sunburst: SUN_PUFF_SIZE x its radius across, swelling from SUN_PUFF_FROM to full over SUN_PUFF_GROW
+## seconds while its strength falls from SUN_PUFF_STRENGTH to nothing over SUN_PUFF_LIFE; SUN_PUFF_UP over the sand.
+const SUN_PUFF_SIZE := 2.4
+const SUN_PUFF_FROM := 0.35
+const SUN_PUFF_GROW := 0.3
+const SUN_PUFF_LIFE := 0.42
+const SUN_PUFF_STRENGTH := 1.8
+const SUN_PUFF_UP := 0.6
+const SUN_PUFF_RAYS := 8
+const SUN_WHITE := Color(1.0, 0.95, 0.72)
+const SUN_GOLD_DEEP := Color(1.0, 0.74, 0.12)
+
+
+## Heartseeker's crit thrust (pass 62) at the spear's point `at`, the thrust going `dir`: a white-hot pop inside a red
+## flash thrown on a little, a fan of red-hot sparks flung on along the thrust, and red embers rising. Never thinned for
+## the budget: it is the stroke that must read.
+func crit_thrust(at: Vector3, dir: Vector3, col: Color = Color(1.0, 0.16, 0.08)) -> void:
+	var d := Vector3(dir.x, 0.0, dir.z)
+	d = d.normalized() if d.length_squared() > 0.0001 else Vector3.FORWARD
+	_emit(at, d * 2.5, 0.22, 0.3, 1.5, 0.85, 0.0, col, 0.0, false, true)
+	_emit(at, d * 1.0, 0.12, 0.15, 0.8, 1.0, 0.0, Color(1.0, 0.95, 0.85), 0.0, false, true)
+	for k in range(12):
+		var v := d.rotated(Vector3.UP, randf_range(-0.6, 0.6)) * randf_range(5.0, 10.0) + Vector3(0, randf_range(1.0, 3.5), 0)
+		_emit(at, v, randf_range(0.25, 0.45), 0.42, 0.08, 1.0, 0.8, col.lerp(Color(1.0, 0.75, 0.4), randf() * 0.5), 10.0, true, true)
+	for k in range(4):
+		var o := Vector3(randf_range(-0.3, 0.3), 0.0, randf_range(-0.3, 0.3))
+		_emit(at + o, Vector3(o.x, randf_range(1.5, 2.6), o.z), randf_range(0.4, 0.6), 0.2, 0.05, 1.0, 0.0, col, -1.0, false, true)
+	crit_thrusts += 1
+
+
+## Sun Cocktail's landing (pass 62, Garry: "the little sun puff should accompany the Molotov's when they 'explode'"): a
+## little sun bursts where the bottle broke, `r` metres: the Sun Scepter's white pop and rising motes (sun_impact), a
+## see-through gold ball with a white-hot heart and SUN_PUFF_RAYS gold rays flung out flat (added light alone read pale
+## on the bright sand), and a sunburst (the chest's shine, mode 0) that blooms and is gone in SUN_PUFF_LIFE. The caller
+## lays the gold ring and the hot glow on the sand (Telegraphs).
+func sun_puff(at: Vector3, r: float, tint: Color = Color(1.0, 0.82, 0.3)) -> void:
+	sun_impact(at, r, tint, 6, true, 1.0)
+	var c := at + Vector3(0, SUN_PUFF_UP, 0)
+	# the little sun itself, see-through gold (added light alone reads pale on the bright sand): a gold ball swelling
+	# and gone, a white-hot heart inside it, and SUN_PUFF_RAYS short gold rays flung out flat all round
+	_emit(c, Vector3(0, 0.8, 0), 0.34, 0.35 * r, 1.15 * r, 0.95, 0.0, SUN_GOLD_DEEP, 0.0, false, true)
+	_emit(c, Vector3(0, 0.6, 0), 0.2, 0.2 * r, 0.6 * r, 1.0, 0.0, SUN_WHITE, 0.0, false, true)
+	for k in range(SUN_PUFF_RAYS):
+		var a := TAU * float(k) / float(SUN_PUFF_RAYS) + randf() * 0.2
+		var d := Vector3(cos(a), 0.0, sin(a))
+		_emit(c + d * 0.3 * r, d * randf_range(7.0, 9.5) * maxf(r, 0.6) * 0.6 + Vector3(0, 0.6, 0), 0.24, 0.55, 0.12, 1.0, 0.7, SUN_GOLD_DEEP.lerp(SUN_WHITE, 0.3), 0.0, true, true)
+	var q := Chest.shine_quad(0, Vector2.ONE * r * SUN_PUFF_SIZE, SUN_WHITE, SUN_PUFF_STRENGTH)
+	add_child(q)
+	q.global_position = at + Vector3(0, SUN_PUFF_UP, 0)
+	q.scale = Vector3.ONE * SUN_PUFF_FROM
+	var m := q.material_override as ShaderMaterial
+	var tw := q.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(q, "scale", Vector3.ONE, SUN_PUFF_GROW).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_method(func(v: float) -> void: m.set_shader_parameter("strength", v), SUN_PUFF_STRENGTH, 0.0, SUN_PUFF_LIFE).set_ease(Tween.EASE_IN)
+	tw.chain().tween_callback(q.queue_free)
+	sun_puffs += 1
+
+
+# ---- pass 62: items and the spit cactus (IT): new functions below this line ----

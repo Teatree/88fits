@@ -146,6 +146,7 @@ func load_save() -> void:
 	if not (data.get("seen") is Dictionary):
 		data["seen"] = {}
 	_migrate_seen()
+	_survey_counted_from_runs()
 	Settings.from_dict(data.get("settings", {}))
 	last_saved_unix = int(data.get("saved_at", 0))
 
@@ -466,7 +467,11 @@ func set_consent(answer: String) -> void:
 		request_save()
 
 
-## The end-of-run survey record (pass 59): {answered: [survey ids], runs_since: runs since the last one shown}.
+## The end-of-run survey record (pass 59, Analytics.survey_after_run): {answered: [survey ids], runs_since: counted runs
+## since the last card}. Pass 62 (Garry: "control over the count of runs at which the first Survey appears"): counted
+## (the player's lifetime count of runs of a minute or more, what a survey's [after N] / [run N] tag counts), shown
+## ({survey id: the counted run it was last shown after}), dismissed ([survey ids] closed with "Not now", for the
+## developer menu) and armed (the developer menu's "Next run asks"). A wipe keeps all of it (KEEP_ON_WIPE).
 func survey_state() -> Dictionary:
 	var st = data.get("survey", {})
 	if not (st is Dictionary):
@@ -474,6 +479,14 @@ func survey_state() -> Dictionary:
 	data["survey"] = st
 	return st
 
+
+## A save from before pass 62 has no counted runs: it starts from the runs it has finished (totals.runs, every run that
+## ended, short ones too, since no older record tells them apart), so a long-time player is not asked a "5th run" survey
+## at his fiftieth. A new save starts at 0. Runs at every load and does nothing once the count is there.
+func _survey_counted_from_runs() -> void:
+	var st := survey_state()
+	if not st.has("counted"):
+		st["counted"] = total("runs")
 
 ## A wipe takes the progress: the backup is removed too, so nothing comes back from it. The player's own keys stay
 ## (KEEP_ON_WIPE, pass 59).

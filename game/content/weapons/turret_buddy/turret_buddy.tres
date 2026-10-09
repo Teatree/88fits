@@ -68,6 +68,11 @@ visual = ExtResource("3_slb8c")
 visual_file = "turret_buddy_visual.tscn"
 params = {
 "marks": false,
+"pierce_falloff": {
+"first_mult": 1.1,
+"floor": 0.4,
+"step": 0.8
+},
 "tracer": true,
 "turret_fire_rate": 0.35
 }

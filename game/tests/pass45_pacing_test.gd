@@ -156,7 +156,10 @@ func test_the_skeletons_are_the_fodder_and_the_knights_come_with_them() -> void:
 	d.timeline = tl
 	var rows := {}
 	for r in tl.roster:
-		rows[str(r.get("enemy", ""))] = r
+		# the first row of each (pass 62, lane PC, re-pinned: stages 2 and 3 bring skeletons and knights again in rows of
+		# their own; Garry's stage-1 pair is the first of each)
+		if not rows.has(str(r.get("enemy", ""))):
+			rows[str(r.get("enemy", ""))] = r
 	assert_bool(rows.has("skeleton") and rows.has("skeleton_knight")).is_true()
 	assert_float(float(rows["skeleton"].get("t", -1.0))).is_equal_approx(float(rows["skeleton_knight"].get("t", -2.0)), 0.001)
 	var from := float(rows["skeleton"].get("t", 0.0))

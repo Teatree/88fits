@@ -415,28 +415,30 @@ func test_solenne_lands_with_her_trait_and_her_sceptre() -> void:
 	assert_float(s.get_stat("debuff_duration", 0.0)).is_equal_approx(1.015, 0.0001)
 	var sc := Run.add_weapon(Registry.weapon("sun_scepter"), 1)
 	assert_float(sc.stat("cooldown", 0.0)).is_equal_approx(1.1, 0.0001)
-	# Haste at level 2 when it comes, and it is offered to her though its quest is not done
+	# re-pinned in pass 62 (Garry: "Change the Solenne favorite item to be a Molotov instead of Haste"): Haste is
+	# nothing special to her now (level 1, behind its quest like everyone's), and her favourite is the Molotov
 	var haste: PassiveDef = Registry.passive("haste")
-	assert_int(Run.first_passive_level(haste)).is_equal(2)
+	assert_int(Run.first_passive_level(haste)).is_equal(1)
 	assert_bool(Save.quest_done("unlock_haste")).is_false()
-	assert_bool(CardPool.offer_passives().has(haste)).is_true()
-	# Astro still waits for the quest
-	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 	assert_bool(CardPool.offer_passives().has(haste)).is_false()
+	assert_str(c.favourite_weapon).is_equal("molotov")
+	assert_bool(CardPool.offer_weapons().has(Registry.weapon("molotov"))).is_true()
 
 
-func test_haste_comes_to_her_on_a_level_up_card_at_level_two() -> void:
+## re-pinned in pass 62: her favourite is the Molotov (it was Haste), found at level 2
+func test_the_molotov_comes_to_her_as_her_favourite_at_level_two() -> void:
 	seed(5405)
 	var found := {}
 	for k in range(300):
 		for card: Dictionary in CardPool.level_up_offer(3):
-			if str(card["id"]) == "haste":
+			if str(card["id"]) == "molotov":
 				found = card
 		if not found.is_empty():
 			break
-	assert_bool(found.is_empty()).override_failure_message("Haste never came").is_false()
-	assert_int(int(found["level_to"])).is_equal(2)
+	assert_bool(found.is_empty()).override_failure_message("the Molotov never came").is_false()
 	assert_bool(bool(found.get("favourite", false))).is_true()
+	CardPool.apply(found)
+	assert_int(Run.weapon_instance("molotov").level).is_equal(2)
 
 
 func test_her_perks_two_on_offer_two_kept_back() -> void:

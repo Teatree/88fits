@@ -22,6 +22,11 @@
     []
   ],
   "params": {
+    "pierce_falloff": {
+      "step": 0.8,
+      "floor": 0.4,
+      "first_mult": 1.2
+    },
     "radius": 0.18,
     "burst": true,
     "familiar": {

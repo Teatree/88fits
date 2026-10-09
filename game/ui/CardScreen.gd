@@ -1,6 +1,7 @@
 ## Level-up and mutation offer, "Wanted" (screens 07 and 08). The run dims to sepia; a star line, a slab title
 ## and one dry line head the screen; the offers are item cards (kind by plate colour and one word, a passive item's
-## rarity by its plate's colour, level by stars, one effect line; the hero's favourite says FAVOURITE after its word);
+## rarity by its plate's colour, level by stars, one effect line; the hero's favourite wears a brass heart on its plate
+## and FAVOURITE by its tag, pass 62, and a new one shows the level it lands on and that level's numbers);
 ## REROLL ×N / SKIP ×N / BANISH ×N sit in the bottom row. Pass 47 (Garry: "only two skips per Stage, and those skips
 ## work for both Level Ups and Chests ... same treatment for Banish, but initially Players only get 1 Banish"): a skip
 ## pays nothing and takes one of the stage's skips (Run.use_skip), a banish one of its banishes (Run.use_banish); at
@@ -306,6 +307,9 @@ func _fill_path_head(def: ContentDef, taken: int, offered: int = 3, level: int =
 	cc.add_child(p)
 	_path_head.add_child(cc)
 	_path_plate = p
+	# the hero's favourite weapon on its way down its path keeps its heart (pass 62)
+	if Run.is_favourite(def):
+		WCard.add_heart(p)
 	var nm := W.slab_text(def.display_name.to_upper(), 96, W.PAPER, HORIZONTAL_ALIGNMENT_CENTER, 96.0)
 	nm.shadow = 8
 	_path_head.add_child(nm)
@@ -680,9 +684,9 @@ func _make_card(card: Dictionary) -> WCard:
 	var extra := {}
 	if path_mode:
 		extra = {"plate_px": 170.0, "name_size": 56, "rarity": "", "pad": [30, 32, 30, 32], "stars": [], "icon_frac": 0.72}
+	# the hero's favourite wears its heart and says FAVOURITE by its tag (pass 62: WItem.options, WCard; it said
+	# " · FAVOURITE" after its word before)
 	var o := WItem.options(card, extra)
-	if bool(card.get("favourite", false)):
-		o["word"] = str(o["word"]) + " · FAVOURITE"
 	var c := WCard.make(def, o)
 	var box: HardBox = c.box
 	# the card's own band (an evolution's ember), put back when banish mode ends

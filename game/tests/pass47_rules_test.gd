@@ -16,10 +16,11 @@ const EVOLVED := {"brawn": "juggernaut", "bristle": "cactus_hide", "energy_shiel
 ## Garry's tiers as the lead revised them (pass 47: the WoW-green uncommon plate swallowed the green Reach and Venom icons)
 const TIERS := {
 	# pass 47b: nothing above rare yet (Garry); pass 48: Sinner's Greed epic, Reach, Venom and Big Game Hunter uncommon, and
-	# the six new items (Phoenix Feather, Powder Keg and Loose Change uncommon, Skedaddle and Hot Streak rare, Gas Mask epic)
+	# the six new items (Phoenix Feather, Powder Keg and Loose Change uncommon, Skedaddle and Hot Streak rare, Gas Mask epic);
+	# pass 62: the Pocket Watch uncommon
 	"common": ["cake", "beer", "barrel_rush", "prospector", "magnet", "pickpocket", "quickdraw", "gold_tooth", "cold_snap"],
 	"uncommon": ["kindling", "siesta", "ricochet", "overkill", "adrenaline", "hush_money", "vulture", "reach", "venom", "big_game_hunter",
-		"phoenix_feather", "powder_keg", "loose_change"],
+		"phoenix_feather", "powder_keg", "loose_change", "pocket_watch"],
 	"rare": ["steady_hand", "guillotine", "desperado", "brimstone_brand", "skedaddle", "hot_streak"],
 	"epic": ["sinners_greed", "gas_mask"],
 }

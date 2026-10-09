@@ -13,9 +13,8 @@
       "target": "player"
     }
   ],
-  "favourite_weapon": "",
-  "favourite_passive": "haste",
-  "favourite_passive_bonus": {
+  "favourite_weapon": "molotov",
+  "favourite_bonus": {
     "type": "level",
     "value": 2
   },

@@ -854,6 +854,13 @@ func buff_seconds(seconds: float) -> float:
 	return seconds * maxf(player_sheet.get_stat("buff_duration", 1.0), 0.0)
 
 
+## How long a power-up picked up off the ground lasts before buff_seconds (pass 62, the Pocket Watch: x the
+## `powerup_duration` player stat, 1 without it, 1.75 at level 5). Game.apply_pickup's timed buffs and the Shield go
+## through it; a structure's buff, Pollen and Barrel Rush do not (they call add_timed_effects with their own seconds).
+func powerup_seconds(seconds: float) -> float:
+	return seconds * maxf(player_sheet.get_stat("powerup_duration", 1.0), 0.0)
+
+
 ## The buffs' clock (pass 47): the stage clock plus the time it stood still (held_time), so timed effects, adrenaline
 ## and crescendo keep counting in a boss fight and a portal wait.
 func buff_clock() -> float:
@@ -1179,7 +1186,8 @@ func stranger_offer() -> Dictionary:
 		if inst == null and family_instance(w.id) != null:
 			continue
 		if inst == null and weapons.size() < weapon_cap():
-			cands.append({"type": "weapon", "id": w.id, "def": w, "level_from": 0, "level_to": mini(2, w.max_level), "is_new": true})
+			# the hero's favourite comes with its bonus (pass 62: at its bonus level when that is higher)
+			cands.append({"type": "weapon", "id": w.id, "def": w, "level_from": 0, "level_to": maxi(mini(2, w.max_level), CardPool.first_weapon_level(w)), "is_new": true})
 		elif inst and inst.level < w.max_level:
 			cands.append({"type": "weapon", "id": w.id, "def": w, "level_from": inst.level, "level_to": mini(inst.level + 1, w.max_level), "is_new": false})
 	# base passives only (never an evolved one, nor one whose evolution is held), a new line only into a free line slot
@@ -1211,7 +1219,10 @@ func stranger_take(offer: Dictionary, hp_cost: float) -> String:
 		return def.display_name
 	if offer["type"] == "weapon":
 		if weapon_instance(def.id) == null:
-			add_weapon(def, 1)
+			var fresh := add_weapon(def, 1)
+			# the hero's favourite brings its bonus whoever hands it over (pass 62, as a level-up's card does)
+			if fresh and character and character.favourite_weapon == def.id:
+				CardPool.apply_favourite(fresh)
 		while weapon_instance(def.id) and weapon_instance(def.id).level < to:
 			level_weapon(def.id)
 	else:

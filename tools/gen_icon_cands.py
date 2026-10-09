@@ -36,6 +36,13 @@ CONTENT = os.path.join(REPO, "game", "content")
 COPY = ("Copy this exact object from the reference image: its silhouette, proportions, parts and colours, seen from the same "
         "angle. ")
 JOBS = {
+    # pass 62 (set 62, lane IT): the Pocket Watch passive item (power-ups last longer, drop a little more often); High
+    # Noon's icon is a gold watch with a sun behind it, so this one is silver with a power-up's lightning bolt on its face
+    "pocket_watch": {"set": "62", "kind": "passives", "id": "pocket_watch",
+                     "subject": "a battered round silver pocket watch with its hinged lid swung open, hanging from a short silver "
+                                "chain with a ring at its top, its white face showing black hour marks and a bright glowing "
+                                "golden lightning bolt across the middle of the face instead of hands, a few small golden "
+                                "sparks round it"},
     # pass 54 (set 54): the Sun Scepter family and Solenne's perks; the sceptre and Zenith are painted from the model's render
     "sun_scepter": {"set": "54", "kind": "weapons", "id": "sun_scepter", "ref": "sun_scepter_ref.png",
                     "subject": COPY + "a golden sceptre: a slim dark lacquered staff with three brass bands and a small brass foot, "
@@ -489,6 +496,45 @@ JOBS = {
                            "subject": "a glowing yellow lightbulb with a grey screw base, a curved steel sabre blade run right through "
                                       "it from the lower left to the upper right, the blade's point sticking out of the top of the "
                                       "bulb with a small bright yellow starburst where it exits"},
+    # pass 62 (lane HM): the two new hero mutations. Heartseeker (Ironwood's Spear: every 4th thrust a crit with a red tip)
+    # from the Spear's own icon (tools/dl/pike_icon_ref.png), and a heart-pun concept; Sun Cocktail (Solenne's Molotov: a
+    # bottle shining with sun energy that bursts in a little sun) from the Molotov's icon (tools/dl/molotov_icon_ref.png),
+    # and a bottle whose flame is a small sun
+    "heartseeker": {"set": "62", "kind": "mutations", "id": "heartseeker", "ref": "pike_icon_ref.png",
+                    "subject": COPY + "the same wooden spear with its leaf-shaped steel spearhead and its red tassel, pointing "
+                               "up to the upper right, but the spearhead glows red-hot: its point blazes bright red and orange "
+                               "with a white-hot tip, a soft red glow round the head, and a short bold red streak of light "
+                               "trailing behind the point like a thrust"},
+    "heartseeker2": {"set": "62", "kind": "mutations", "id": "heartseeker",
+                     "subject": "the leaf-shaped steel head of a spear thrust from the lower left to the upper right, its point "
+                                "glowing red-hot, piercing straight through a small bright red heart, a bold red starburst "
+                                "where the point comes out of the heart, a short red streak of light behind the spear"},
+    "sun_cocktail": {"set": "62", "kind": "mutations", "id": "sun_cocktail", "ref": "molotov_icon_ref.png",
+                     "subject": COPY + "the same glass bottle with the cloth rag in its neck, but the bottle shines with "
+                                "sunlight from inside: the liquid is a glowing golden yellow, white-hot at its middle, short "
+                                "golden sun rays fanning out all round the bottle, and the flame on the rag is a bright yellow"},
+    "sun_cocktail2": {"set": "62", "kind": "mutations", "id": "sun_cocktail",
+                      "subject": "a glass bottle with a cloth rag stuffed in its neck, and instead of a flame a small round "
+                                 "bright yellow cartoon sun with pointed rays sits burning on the rag, the bottle's liquid glowing "
+                                 "golden, soft golden light all round it"},
+    # the soft glows of the first round mixed with the green screen and keyed to green fringes: the same ideas with every
+    # glow drawn inside the outline
+    "heartseeker3": {"set": "62", "kind": "mutations", "id": "heartseeker", "ref": "pike_icon_ref.png",
+                     "subject": COPY + "the same wooden spear with its leaf-shaped steel spearhead and its red tassel, pointing "
+                                "up to the upper right, but the whole spearhead is painted red-hot: bright red and orange "
+                                "inside its bold black outline with a white-hot point, and three short bold red speed lines "
+                                "drawn behind the spearhead like a thrust; no glow, haze or light outside the black outlines, "
+                                "a flat clean background"},
+    "sun_cocktail3": {"set": "62", "kind": "mutations", "id": "sun_cocktail",
+                      "subject": "a glass bottle with a cloth rag stuffed in its neck, and instead of a flame a small round "
+                                 "bright yellow cartoon sun with pointed rays sits on the rag, the bottle's liquid a bright "
+                                 "golden yellow with a white highlight, every part inside its bold black outline; no glow, haze "
+                                 "or light outside the outlines, a flat clean background"},
+    "sun_cocktail4": {"set": "62", "kind": "mutations", "id": "sun_cocktail", "ref": "molotov_icon_ref.png",
+                      "subject": COPY + "the same glass bottle with the cloth rag and the flame in its neck, but the liquid is a "
+                                 "bright shining golden yellow, white at its middle, and eight short pointed golden sun rays "
+                                 "stand out round the bottle, each ray a solid yellow spike with a black outline; no glow, haze "
+                                 "or light outside the outlines, a flat clean background"},
     # pass 61 (Garry: "The choices in the Mirror should be shown as little icons ... Each of those icons should be distinctly
     # different from their counterpart"): one icon per talent form, the two forms of a talent different in silhouette and
     # colour, plain literal subjects that read at 44 px on the Upgrade board's paper; "file" names the icon in the talent's

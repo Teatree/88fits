@@ -447,11 +447,15 @@ func test_the_director_hands_the_crowd_the_damage_multipliers() -> void:
 	else:
 		# lane C's EnemyManager fields are not in yet: the director's set() is a quiet no-op
 		assert_bool(em.get("creature_damage_mult") == null).is_true()
-	# Red Canyon's own: creatures hit 25 % harder, no time growth on damage
+	# Red Canyon's own: creatures hit 25 % harder, no time growth on damage through stage 1 (pass 62, lane PC, re-pinned:
+	# stages 2 and 3 carry their own ATK x below 1 so a hit stays the same share of the Mirror hero's health; the map file
+	# says how much, pass62_pc_test checks the shape)
 	var rc: WaveTimeline = Registry.map("red_canyon").timeline
 	assert_float(rc.creature_damage_mult).is_equal_approx(1.25, 0.0001)
-	for t: float in [0.0, 430.0, 1290.0, 3000.0]:
+	for t: float in [0.0, 300.0, 430.0]:
 		assert_float(rc.damage_mult_at(t)).is_equal_approx(1.0, 0.0001)
+	for t: float in [1290.0, 3000.0]:
+		assert_float(rc.damage_mult_at(t)).is_greater(0.0)
 
 
 # ---------------------------------------------------------------- the knockback numbers

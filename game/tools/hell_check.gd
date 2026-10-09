@@ -212,8 +212,11 @@ func _hell_ids() -> Array:
 	var out: Array = []
 	if _game == null or _game.get("director") == null or _game.director.timeline == null:
 		return ["imp", "hellhound"]
+	# only the rows already open where the check drops in (stage 3 + 3 s): pass 62's stage 3 brings its hellhounds at 15:20,
+	# a minute into the window, and a creature the window may or may not reach made the check flaky
+	var at: float = 2.0 * float(_game.director.timeline.stage_length) + 3.0
 	for r in _game.director.timeline.roster:
-		if str(r.get("channel", "")) == "hell":
+		if str(r.get("channel", "")) == "hell" and float(r.get("t", 0.0)) <= at + 5.0:
 			var id := str(r.get("enemy", ""))
 			if id != "" and not out.has(id):
 				out.append(id)
