@@ -27,7 +27,8 @@ func test_healing_is_a_trickle() -> void:
 	var thirst: PassiveDef = Registry.passive("thirst")
 	assert_float(float(thirst.levels[0][0].value)).is_less_equal(0.015)
 	assert_float(Registry.pickup("heart").value).is_less_equal(0.2)
-	assert_float(Registry.character("astro").level_heal).is_less_equal(0.05)
+	# re-pinned in pass 61: 8% a level-up now her max HP grows with her level (the heal is her signature with it)
+	assert_float(Registry.character("astro").level_heal).is_less_equal(0.08)
 
 
 func test_lifesteal_cannot_outrun_a_crowd() -> void:

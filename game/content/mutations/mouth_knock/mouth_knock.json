@@ -9,7 +9,7 @@
   "element": "",
   "hero": "",
   "text": "The first touch of the beam throws a creature back hard, and the beam is half again as wide.",
-  "vfx": "a shove of light: everything the beam first meets is flung backwards",
+  "vfx": "a green-yellow beam that wobbles like a breath; a gust puffs off everything it first meets and flings it back",
   "effects": [
     {
       "stat": "knockback",
@@ -25,7 +25,34 @@
   "params": {
     "beam": {
       "width_mult": 1.5,
-      "first_knock": true
+      "first_knock": true,
+      "breath": {
+        "color": [
+          0.66,
+          1.0,
+          0.16
+        ],
+        "haze": [
+          0.92,
+          1.0,
+          0.3
+        ],
+        "core": [
+          0.9,
+          1.0,
+          0.55
+        ],
+        "haze_mix": 0.6,
+        "haze_over": 0.35,
+        "glow": 1.4,
+        "wobble": 1.0,
+        "gusts": 2,
+        "gust_color": [
+          0.62,
+          0.92,
+          0.14
+        ]
+      }
     }
   },
   "art_prompt": "a wide open mouth blasting a thick shockwave beam that throws small creatures backwards",

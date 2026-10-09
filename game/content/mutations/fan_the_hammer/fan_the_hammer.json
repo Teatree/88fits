@@ -15,6 +15,13 @@
     "double_tap": {
       "count": 2,
       "damage_mult": 0.75
+    },
+    "look": {
+      "flick": {
+        "node": "Hand",
+        "seconds": 0.28,
+        "swing_deg": 100
+      }
     }
   },
   "art_prompt": "a revolver hammer being fanned by a gloved hand",

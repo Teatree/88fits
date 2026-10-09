@@ -541,8 +541,7 @@ func test_a_flying_gem_is_taken_at_the_new_reach_and_never_sent_back() -> void:
 	assert_int(pm.flying[j]).is_equal(1)
 	assert_int(pm.phase[j]).is_equal(PickupManager.PHASE_ARC_WAIT)
 	assert_float(pm.hop_dir[j].x).is_greater(cos(PickupManager.ARC_DRIFT_FAN) - 0.01)
-	# a merge leaves a gem on its trip alone
-	pm._merge(1)
+	# (a merge left a gem on its trip alone: the merge is gone since pass 61)
 	assert_int(pm.alive[j]).is_equal(1)
 
 

@@ -489,6 +489,59 @@ JOBS = {
                            "subject": "a glowing yellow lightbulb with a grey screw base, a curved steel sabre blade run right through "
                                       "it from the lower left to the upper right, the blade's point sticking out of the top of the "
                                       "bulb with a small bright yellow starburst where it exits"},
+    # pass 61 (Garry: "The choices in the Mirror should be shown as little icons ... Each of those icons should be distinctly
+    # different from their counterpart"): one icon per talent form, the two forms of a talent different in silhouette and
+    # colour, plain literal subjects that read at 44 px on the Upgrade board's paper; "file" names the icon in the talent's
+    # folder (<id>_<form>_icon.png, read by JsonContent._talent)
+    "grit_padding": {"set": "61", "kind": "talents", "id": "grit", "file": "grit_0_icon.png",
+                     "subject": "a plump square cushion of tan brown leather with deep diamond quilting and four round brass "
+                                "buttons, puffy and soft, seen from the front and a little above"},
+    "grit_plate": {"set": "61", "kind": "talents", "id": "grit", "file": "grit_1_icon.png",
+                   "subject": "a heavy steel breastplate, a curved grey iron chest plate of armour with a raised ridge down its "
+                              "middle and a row of round rivets along its edges, seen from the front"},
+    "drive_muscle": {"set": "61", "kind": "talents", "id": "drive", "file": "drive_0_icon.png",
+                     "subject": "a strong muscular arm flexing its big bicep, the fist clenched and raised, tan skin, seen from "
+                                "the side, only the arm"},
+    "drive_tempo": {"set": "61", "kind": "talents", "id": "drive", "file": "drive_1_icon.png",
+                    "subject": "a round silver stopwatch with a light blue face and one bold black hand, a push button and a "
+                               "ring on top"},
+    "stride_boots": {"set": "61", "kind": "talents", "id": "stride", "file": "stride_0_icon.png",
+                     "subject": "a tall brown leather cowboy boot standing upright, seen from the side with its toe pointing to "
+                                "the right, a low heel, no spur"},
+    "stride_lodestone": {"set": "61", "kind": "talents", "id": "stride", "file": "stride_1_icon.png",
+                         "subject": "a classic red U-shaped horseshoe magnet with shiny silver tips, its open end pointing up"},
+    "fortune_omen": {"set": "61", "kind": "talents", "id": "fortune", "file": "fortune_0_icon.png",
+                     "subject": "a purple crystal ball on a small brass stand, a white glint on its glass and a faint swirl of "
+                                "violet mist inside it"},
+    "fortune_greed": {"set": "61", "kind": "talents", "id": "fortune", "file": "fortune_1_icon.png",
+                      "subject": "a fat brown burlap money sack tied with a rope at its neck, bulging, a few gold coins at its "
+                                 "foot"},
+    "choice_reroll": {"set": "61", "screen": "blue", "kind": "talents", "id": "choice", "file": "choice_0_icon.png",
+                      "subject": "one white six-sided die with round black pips, a bold green curved arrow looping round it in "
+                                 "a circle"},
+    "choice_banish": {"set": "61", "kind": "talents", "id": "choice", "file": "choice_1_icon.png",
+                      "subject": "a cream paper playing card standing upright, struck through by a big bold red X painted "
+                                 "across it"},
+    "nerve_skip": {"set": "61", "kind": "talents", "id": "nerve", "file": "nerve_0_icon.png",
+                   "subject": "a bold golden yellow double arrow pointing to the right, two chunky triangles side by side like "
+                              "a fast-forward sign"},
+    "nerve_second_wind": {"set": "61", "kind": "talents", "id": "nerve", "file": "nerve_1_icon.png",
+                          "subject": "a bright red heart with a pair of small white feathered wings spreading from its sides"},
+    "study_field_notes": {"set": "61", "kind": "talents", "id": "study", "file": "study_0_icon.png",
+                          "subject": "a small open notebook with a brown leather cover, its cream pages lined with handwriting, "
+                                     "a yellow pencil lying across it"},
+    "study_poultice": {"set": "61", "screen": "blue", "kind": "talents", "id": "study", "file": "study_1_icon.png",
+                       "subject": "a grey stone mortar bowl filled with crushed green herbs and leaves, a stone pestle leaning "
+                                  "in it"},
+    "spite_thorns": {"set": "61", "screen": "blue", "kind": "talents", "id": "spite", "file": "spite_0_icon.png",
+                     "subject": "a round green barrel cactus covered in long sharp pale yellow spines"},
+    "spite_thirst": {"set": "61", "kind": "talents", "id": "spite", "file": "spite_1_icon.png",
+                     "subject": "a single big glossy dark red drop of blood with a white highlight"},
+    # the first arms were cut off at the frame's edge or grew a second fist
+    "drive_muscle2": {"set": "61", "kind": "talents", "id": "drive", "file": "drive_0_icon.png",
+                      "subject": "one single muscular arm bent at the elbow flexing a big round bicep, exactly one clenched fist "
+                                 "at the top, the whole arm from the rounded shoulder to the fist inside the picture with empty "
+                                 "background all round it, tan skin"},
 }
 
 
@@ -571,11 +624,12 @@ def pick(pairs):
                 print("  no folder yet for", key, "->", folder)
                 continue
             icon, _ = ga.finish(img, 256, 0.92, False, None, 0.006)
-            dst = os.path.join(folder, job["id"] + "_icon.png")
+            # a job may name its file (pass 61: a talent form's <id>_<form>_icon.png beside the talent's own icon)
+            dst = os.path.join(folder, job.get("file", job["id"] + "_icon.png"))
             if os.path.exists(dst):
                 bk = os.path.join(DL, "backup", "icons" + str(job.get("set", "46")))
                 os.makedirs(bk, exist_ok=True)
-                Image.open(dst).save(os.path.join(bk, job["id"] + "_icon.png"))
+                Image.open(dst).save(os.path.join(bk, os.path.basename(dst)))
             icon.save(dst)
         print("installed", key, "candidate", n, "->", dst)
 

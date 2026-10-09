@@ -37,23 +37,22 @@ func _rows() -> Array:
 func test_ironwood_heals_well_with_no_more_health_than_anyone() -> void:
 	var iw: CharacterDef = Registry.character("ironwood")
 	assert_object(iw).is_not_null()
+	# re-pinned in pass 61: his regen and its delay grow with his level (0.1 and 0.05 s a level, level_trait), nothing flat
 	var regen := 0.0
 	var delay := 0.0
-	for e: Effect in iw.trait_effects:
+	assert_array(iw.trait_effects).is_empty()
+	for e: Effect in iw.level_trait:
 		assert_str(e.stat).override_failure_message("Ironwood's trait touches max_hp").is_not_equal("max_hp")
 		if e.stat == "regen" and e.op == "add":
 			regen += e.value
 		if e.stat == "regen_delay" and e.op == "add":
 			delay += e.value
-	assert_float(regen).is_equal_approx(1.2, 0.001)
-	assert_float(delay).is_equal_approx(-1.5, 0.001)
-	# his trait over the defaults: the regen restarts 1.5 s after a hit, and the health is everyone's
-	var sheet := StatSheet.new()
-	sheet.scope = "player"
-	sheet.set_bases(StatSheet.PLAYER_DEFAULTS)
-	sheet.add_effects(iw.trait_effects, "trait")
+	assert_float(regen).is_equal_approx(0.1, 0.001)
+	assert_float(delay).is_equal_approx(-0.05, 0.001)
+	# his trait over the defaults at level 30: 3 HP a second, the regen restarts 1.5 s after a hit, the health is everyone's
+	var sheet := Run.hero_sheet(iw, 30)
 	assert_float(sheet.get_stat("max_hp")).is_equal(float(StatSheet.PLAYER_DEFAULTS["max_hp"]))
-	assert_float(sheet.get_stat("regen")).is_equal_approx(1.2, 0.001)
+	assert_float(sheet.get_stat("regen")).is_equal_approx(3.0, 0.001)
 	assert_float(sheet.get_stat("regen_delay")).is_equal_approx(1.5, 0.001)
 	assert_float(iw.level_heal).is_equal(0.0)
 	assert_str(iw.trait_name).is_equal("Enduring")

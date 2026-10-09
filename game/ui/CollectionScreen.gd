@@ -433,8 +433,8 @@ func _full_text(def: ContentDef) -> String:
 	if def is MutationDef:
 		return (def as MutationDef).text
 	if def is CharacterDef:
-		var c := def as CharacterDef
-		return c.trait_text if c.trait_text != "" else TextGen.describe_effects(c.trait_effects)
+		# the hero's rule (pass 61: one or two stats a level, TextGen's words wherever the trait shows)
+		return TextGen.hero_trait(def as CharacterDef)
 	if def is EnemyDef:
 		return (def as EnemyDef).doc if (def as EnemyDef).doc != "" else def.flavour
 	return def.flavour

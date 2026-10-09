@@ -99,15 +99,15 @@ func test_every_hero_has_one_percent_crit_chance() -> void:
 	assert_float(float(StatSheet.PLAYER_DEFAULTS["crit_chance"])).is_equal_approx(0.01, 0.0001)
 	# the real base (the suites leave it out so exact damage never doubles at random)
 	Run.base_crit = true
-	for hero in ["astro", "drifter", "ironwood"]:
+	for hero in ["astro", "calavera", "ironwood", "solenne"]:
 		_start(hero)
 		assert_float(Run.player_sheet.get_stat("crit_chance", 0.0)).override_failure_message(hero).is_equal_approx(0.01, 0.0001)
-	# Calavera's own 5% on top of it, Deadeye's 8% a level the same
-	_start("calavera")
-	assert_float(Run.player_sheet.get_stat("crit_chance", 0.0)).is_equal_approx(0.06, 0.0001)
+	# re-pinned in pass 61: the Drifter's signature stat, 1% a level on top of it (Calavera's 5% is gone), and
+	# Deadeye's 8% a level the same
 	_start("drifter")
+	assert_float(Run.player_sheet.get_stat("crit_chance", 0.0)).is_equal_approx(0.02, 0.0001)
 	Run.debug_set_item("passive", "deadeye", 1)
-	assert_float(Run.player_sheet.get_stat("crit_chance", 0.0)).is_equal_approx(0.09, 0.0001)
+	assert_float(Run.player_sheet.get_stat("crit_chance", 0.0)).is_equal_approx(0.10, 0.0001)
 
 
 # ---------------------------------------------------------------- the coin

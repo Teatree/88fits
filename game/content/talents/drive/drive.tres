@@ -1,17 +1,19 @@
 [gd_resource type="Resource" script_class="TalentDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_maj8t"]
+[ext_resource type="Texture2D" path="res://content/talents/drive/drive_0_icon.png" id="2_7ekha"]
 [ext_resource type="Texture2D" path="res://content/talents/drive/drive_icon.png" id="2_c7fsi"]
 [ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_oaynd"]
+[ext_resource type="Texture2D" path="res://content/talents/drive/drive_1_icon.png" id="3_wrwip"]
 
-[sub_resource type="Resource" id="Resource_oaynd"]
+[sub_resource type="Resource" id="Resource_7ekha"]
 script = ExtResource("1_maj8t")
 stat = "might"
 op = "mul"
 value = 0.06
 target = "player"
 
-[sub_resource type="Resource" id="Resource_c7fsi"]
+[sub_resource type="Resource" id="Resource_wrwip"]
 script = ExtResource("1_maj8t")
 stat = "cooldown"
 op = "mul"
@@ -24,11 +26,15 @@ order = 2
 ranks = 6
 cost = [160.0, 288.0, 480.0, 720.0, 1040.0, 1440.0]
 forms = [{
-"effects": [SubResource("Resource_oaynd")],
+"effects": [SubResource("Resource_7ekha")],
+"icon": ExtResource("2_7ekha"),
+"icon_file": "drive_0_icon.png",
 "name": "Muscle",
 "text": "+6% attack damage a rank."
 }, {
-"effects": [SubResource("Resource_c7fsi")],
+"effects": [SubResource("Resource_wrwip")],
+"icon": ExtResource("3_wrwip"),
+"icon_file": "drive_1_icon.png",
 "name": "Tempo",
 "text": "-5% cooldown a rank."
 }]

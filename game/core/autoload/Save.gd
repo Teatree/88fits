@@ -10,6 +10,10 @@ const DEBOUNCE_MS := 400   # a change made in a menu is on disk within half a se
 const LAZY_MS := 8000      # in-run tallies (kills, pickups, coins) wait up to 8 s; the background flush catches them
 
 signal gold_changed(gold: int)
+## The saved gold moved (pass 61): `delta` signed, `reason` the source or sink (run_bank, strongbox, talent,
+## talent_refund, wipe, ...), `balance` after it, `extra` what it was for (a talent's id and rank). Analytics sends it
+## as gold_meta.
+signal gold_moved(delta: int, reason: String, balance: int, extra: Dictionary)
 signal quest_completed(quest_id: String)
 signal saved(ok: bool)
 
@@ -474,6 +478,7 @@ func survey_state() -> Dictionary:
 ## A wipe takes the progress: the backup is removed too, so nothing comes back from it. The player's own keys stay
 ## (KEEP_ON_WIPE, pass 59).
 func wipe() -> void:
+	var had := gold()
 	var keep := {}
 	for k in KEEP_ON_WIPE:
 		if data.has(k):
@@ -481,6 +486,9 @@ func wipe() -> void:
 	data = _default()
 	data.merge(keep, true)
 	save_now()
+	# the saved gold went with it (pass 61: the balance chart drops to it)
+	if had > gold():
+		gold_moved.emit(gold() - had, "wipe", gold(), {})
 	if FileAccess.file_exists(bak_path()):
 		DirAccess.remove_absolute(bak_path())
 
@@ -491,17 +499,25 @@ func gold() -> int:
 	return int(data.get("gold", 0))
 
 
-func add_gold(n: int) -> void:
-	data["gold"] = gold() + max(n, 0)
+## Gold into the save; `source` says from where (pass 61: run_bank, strongbox, talent_refund, ...), `extra` rides along
+## on the gold_meta event.
+func add_gold(n: int, source: String = "other", extra: Dictionary = {}) -> void:
+	var add := maxi(n, 0)
+	data["gold"] = gold() + add
 	gold_changed.emit(gold())
+	if add > 0:
+		gold_moved.emit(add, source, gold(), extra)
 	request_save()
 
 
-func spend_gold(n: int) -> bool:
+## Gold out of the save; `sink` says for what (pass 61: talent, ...).
+func spend_gold(n: int, sink: String = "other", extra: Dictionary = {}) -> bool:
 	if gold() < n:
 		return false
 	data["gold"] = gold() - n
 	gold_changed.emit(gold())
+	if n > 0:
+		gold_moved.emit(-n, sink, gold(), extra)
 	request_save()
 	return true
 
@@ -535,7 +551,7 @@ func buy_talent(def: TalentDef) -> bool:
 	if rank >= def.ranks:
 		return false
 	var cost := def.cost_of_rank(rank)
-	if cost < 0 or not spend_gold(cost):
+	if cost < 0 or not spend_gold(cost, "talent", {"talent": def.id, "rank": rank + 1, "form": talent_form(def.id)}):
 		return false
 	var all: Dictionary = data.get("talents", {})
 	var t: Dictionary = all.get(def.id, {"form": 0, "rank": 0})
@@ -562,9 +578,16 @@ func talent_refund() -> int:
 
 func talent_refund_all() -> int:
 	var back := talent_refund()
+	# what went back (pass 61, on the gold_meta event): the ranks the board held and the gold they had cost
+	var ranks := 0
+	var all = data.get("talents", {})
+	if all is Dictionary:
+		for id in (all as Dictionary).keys():
+			ranks += talent_rank(str(id))
+	var info := {"ranks": ranks, "spent": talent_spent()}
 	data["talents"] = {}
 	data["talent_spent"] = 0
-	add_gold(back)
+	add_gold(back, "talent_refund", info)
 	request_save()
 	return back
 

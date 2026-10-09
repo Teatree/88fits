@@ -176,8 +176,28 @@ func _silver() -> bool:
 
 
 ## The kind a shot is drawn with: the visual's, the Silver Bullet's pale blue copy of it, or (pass 54) a copy in a
-## mutation's own colours (`params.tint`, tint_kind: Thorny Weed's darker weed).
+## mutation's own colours (`params.tint`, tint_kind: Thorny Weed's darker weed, pass 61 Dragon's Breath's orange
+## pellets and Toxic Peas' sickly green); pass 61: bristling with `look.spikes` (Thorny Weed's thorns,
+## ProjectileManager.spiked_kind) on top of that.
 func _kind() -> int:
+	# worked out again only when the weapon's params are a new fold (every rebuild makes a new dictionary), so a volley
+	# does not turn its tint and thorns into keys every pull
+	if _kind_cache >= 0 and is_same(inst.params, _kind_params):
+		return _kind_cache
+	var k := _colour_kind()
+	var sp = look().get("spikes")
+	if sp is Dictionary and k >= 0 and game.projectiles.has_method("spiked_kind"):
+		k = game.projectiles.spiked_kind(k, sp)
+	_kind_cache = k
+	_kind_params = inst.params
+	return k
+
+
+var _kind_cache := -1
+var _kind_params = null
+
+
+func _colour_kind() -> int:
 	if not _silver():
 		var tint = inst.params.get("tint")
 		if tint is Dictionary:
@@ -201,36 +221,10 @@ func _kind() -> int:
 ## A copy of the visual's kind in its own colours (pass 54, `params.tint {albedo, emission, energy}`: Thorny Weed's
 ## darker brown with pale warm tips): the shot's material duplicated with that albedo and a glow of `emission` at
 ## `energy`, registered the first time and kept by the tint's words, so a mutation picked later gets its own copy.
-var _tint_kinds := {}
-
-
+## Pass 61: made by ProjectileManager.tinted_kind (the Lobber's resin shares it), which also takes `roughness`,
+## `metallic` and, on a cored streak, `halo` for the glow round the core (Dragon's Breath's orange pellets).
 func tint_kind(tint: Dictionary) -> int:
-	var key := str(tint)
-	if _tint_kinds.has(key):
-		return int(_tint_kinds[key])
-	var pm: ProjectileManager = game.projectiles
-	if projectile_kind < 0 or projectile_kind >= pm.kinds.size():
-		return projectile_kind
-	var kd: Dictionary = pm.kinds[projectile_kind]
-	var mesh: Mesh = (kd["mm"] as MultiMesh).mesh
-	var src: Material = (kd["mmi"] as MultiMeshInstance3D).material_override if kd.has("mmi") else null
-	if src == null and mesh and mesh.get_surface_count() > 0:
-		src = mesh.surface_get_material(0)
-	var mat: StandardMaterial3D = (src.duplicate() as StandardMaterial3D) if src is StandardMaterial3D else StandardMaterial3D.new()
-	if tint.has("albedo"):
-		mat.albedo_color = Color(str(tint["albedo"]))
-	if tint.has("emission"):
-		mat.emission_enabled = true
-		mat.emission = Color(str(tint["emission"]))
-		mat.emission_energy_multiplier = float(tint.get("energy", 0.35))
-	var basis: Basis = kd.get("basis", Basis())
-	var k: int
-	if pm.get_method_argument_count("register_kind") >= 5:
-		k = pm.register_kind(mesh, mat, float(kd["scale"]) / ProjectileManager.CHUNK, false, basis)
-	else:
-		k = pm.register_kind(mesh, mat, float(kd["scale"]) / ProjectileManager.CHUNK)
-	_tint_kinds[key] = k
-	return k
+	return game.projectiles.tinted_kind(projectile_kind, tint)
 
 
 ## A round leaves: the companion kicks back (harder for a silver round, with a small camera kick), and the muzzle flash
@@ -327,6 +321,7 @@ func _turn_drum() -> void:
 
 func _tick(_delta: float) -> void:
 	_tick_rings(_delta)
+	_tick_looks(_delta)
 	if not _burst.is_empty():
 		_burst_t -= _delta
 		if _burst_t <= 0.0:
@@ -429,6 +424,8 @@ func _arm_second_barrel() -> void:
 ## cone blasts again (its own wash and pellets), a volley flies again; a kick of the held gun, a flash, a bang.
 func _second_barrel() -> void:
 	second_barrels += 1
+	# Both Barrels' beads (pass 61): the double has gone, the count starts over
+	_set_beads(0)
 	if _held:
 		_held.scale = Vector3(1.0, 1.0, 0.7)
 	var bl := inst.blast()
@@ -552,6 +549,8 @@ func _fire() -> bool:
 		_familiar.scale = Vector3(1.18, 0.86, 1.18)
 	var life := range_m / maxf(speed, 1.0)
 	_shots += 1
+	# Both Barrels' beads (pass 61): one more lit towards the double
+	_count_bead()
 	# Drum Roll: the burst grows with Buck's momentum
 	var mr := int(inst.params.get("momentum_rounds", 0))
 	if mr > 0:
@@ -591,6 +590,9 @@ func _fire() -> bool:
 		var dt = inst.params.get("double_tap")
 		if dt is Dictionary:
 			_taps = maxi(int(dt.get("count", 2)) - 1, 0)
+			# Fan the Hammer's hand (pass 61) flicks under the pod for the extra volleys
+			if _taps > 0:
+				_start_flick()
 			_tap_t = 0.09
 			_tap_mult = float(dt.get("damage_mult", 0.75))
 	if bool(inst.params.get("shockwave", false)):
@@ -671,6 +673,8 @@ func _blast_show(bl: Dictionary, hero: Vector3, d: Vector3, amount: int, speed: 
 	var spd: float = maxf(speed * 2.2, 30.0)
 	var start: Vector3 = player.aim_origin(d)
 	var side := d.cross(Vector3.UP).normalized()
+	# the ghost pellets in the weapon's own look (pass 61: Dragon's Breath's orange down a Birdshot lane)
+	var k_draw := _kind()
 	for k in range(n):
 		var f: float = (float(k) + randf()) / float(n)
 		var dd := d
@@ -679,6 +683,369 @@ func _blast_show(bl: Dictionary, hero: Vector3, d: Vector3, amount: int, speed: 
 			dd = d.rotated(Vector3.UP, deg_to_rad(lerpf(-0.5, 0.5, f) * float(bl["deg"])))
 		else:
 			from = start + side * lerpf(-0.45, 0.45, f) * float(bl["width"])
-		var j := pm.fire(projectile_kind, from, dd * spd, 0.0, 0, 0.0, r / spd * randf_range(0.85, 1.0), inst, 0.0)
+		var j := pm.fire(k_draw, from, dd * spd, 0.0, 0, 0.0, r / spd * randf_range(0.85, 1.0), inst, 0.0)
 		if j >= 0:
 			pm.extra[j]["ghost"] = true
+
+
+# ---------------------------------------------------------------- pass 61 (lane WP1): the cheap mutation looks
+## Pass 61 (Garry: "Mutation Visual, implement every Cheap version"): a mutation shows on the gun and its shots, switched
+## on by its own params (merged into the weapon's, so an evolution that keeps the mutation keeps the look):
+## - `tint` / `look.spikes` (the shots' kind: _kind), `tracer_color` / `tracer_beads` / `look.specks` / `look.blink`
+##   (the ProjectileManager's side);
+## - `look.parts {show {node: true}, hide {node: true}}`: named parts of the visual shown or hidden (Both Barrels' second
+##   barrel); `look.paint {node: tint}`: every mesh under a named part in a tint's colours (Toxic Peas' peas in the pod);
+## - `look.heat {parts {node: true}, color, energy, cool}`: the meshes under the named parts glow `color` at `energy`
+##   after every shot and cool back in `cool` seconds (Dragon's Breath's red-hot barrel);
+## - `look.tongue {length, size}`: a tongue of flame licks out of the muzzle with every shot (Fx.flame_tongue);
+## - `look.beads {node, on, energy}`: under the named part, `double_every` beads (Bead1..), one lit a pull, all dark again
+##   when the second barrel goes (Both Barrels' count);
+## - `look.flick {node, seconds, swing_deg}`: the named part (hidden) shows and swings under the companion on a volley
+##   that fires again (Fan the Hammer's hand);
+## - `drum_scale`: the companion's Drum that much bigger (Drum Mag; `drum_step` already turns it).
+## Every look is undone before it is put on again (refresh_marks: every build change), so a look taken away goes.
+const HEAT_COLOR := Color(1.0, 0.22, 0.04)
+const HEAT_ENERGY := 2.4
+const HEAT_COOL := 0.6
+const BEAD_ON := Color(1.0, 0.78, 0.25)
+const BEAD_ENERGY := 1.5
+const FLICK_SECONDS := 0.26
+const FLICK_SWING := 75.0
+## what a look changed, to put back: Node3D -> {"visible": bool} / MeshInstance3D -> {"over": Material}
+var _look_undo := {}
+var _heat := 0.0
+var _heat_mats: Array = []
+var _heat_base: Array = []
+var _heat_shown := -1.0
+var _beads: Array = []
+var _bead_on: Array = []
+var _bead_off: Array = []
+var _beads_lit := 0
+var _flick: Node3D
+var _flick_t := -1.0
+var _flick_rest := Transform3D.IDENTITY
+var _drum_rest := Vector3.ZERO
+## Diagnostics and tests: flicks played, tongues licked.
+var flicks := 0
+var tongues := 0
+
+
+## What the looks were last built from (the model, the look words, the drum's scale, the double's count): a rebuild
+## with the same key keeps the looks as they are.
+var _look_key := ""
+
+
+## The look words this weapon carries (params.look, merged from its mutations), or none.
+func look() -> Dictionary:
+	if inst == null:
+		return {}
+	var lk = inst.params.get("look")
+	return lk if lk is Dictionary else {}
+
+
+func refresh_marks() -> void:
+	super.refresh_marks()
+	_apply_looks()
+
+
+## Every shot's muzzle: the flash, and then the shot's look (the flame tongue, the barrel's heat).
+func muzzle_flash(at: Vector3 = Vector3.INF, dir: Vector3 = Vector3.ZERO) -> void:
+	super.muzzle_flash(at, dir)
+	_shot_look(at, dir)
+
+
+func _shot_look(at: Vector3, dir: Vector3) -> void:
+	if inst == null:
+		return
+	if not _heat_mats.is_empty():
+		_heat = 1.0
+	var tg = look().get("tongue")
+	if tg is Dictionary and at != Vector3.INF and game.get("fx") != null and game.fx.has_method("flame_tongue"):
+		game.fx.flame_tongue(at, dir, float((tg as Dictionary).get("length", 1.0)), float((tg as Dictionary).get("size", 0.5)), inst.blue_fire())
+		tongues += 1
+
+
+func _apply_looks() -> void:
+	_kind_cache = -1
+	if visual == null or inst == null:
+		return
+	# the same looks on the same model: nothing to redo (the review: every build change, Adrenaline's or Crescendo's
+	# several a second among them, had put out the beads, the barrel's heat and the hand mid-swing)
+	var lkey := "%d|%s|%s|%s" % [visual.get_instance_id(), str(look()), str(inst.params.get("drum_scale", 1.0)), str(inst.params.get("double_every", 0))]
+	if lkey == _look_key:
+		return
+	_look_key = lkey
+	_undo_looks()
+	var lk := look()
+	var parts = lk.get("parts")
+	if parts is Dictionary:
+		for key in ["show", "hide"]:
+			var names = (parts as Dictionary).get(key, {})
+			if names is Dictionary:
+				for nm in (names as Dictionary).keys():
+					if bool(names[nm]):
+						_show_part(str(nm), key == "show")
+	var paint = lk.get("paint")
+	if paint is Dictionary:
+		for nm in (paint as Dictionary).keys():
+			if paint[nm] is Dictionary:
+				_paint_part(str(nm), paint[nm])
+	_setup_heat(lk.get("heat"))
+	_setup_beads(lk.get("beads"))
+	var fl = lk.get("flick")
+	if fl is Dictionary:
+		_flick = _part(str((fl as Dictionary).get("node", "Hand")))
+		if _flick:
+			_flick_rest = _flick.transform
+			_flick.visible = false
+	if _drum:
+		if _drum_rest == Vector3.ZERO:
+			_drum_rest = _drum.scale
+		_drum.scale = _drum_rest * float(inst.params.get("drum_scale", 1.0))
+
+
+## Puts back everything the looks changed (visibility, materials) and forgets their state.
+func _undo_looks() -> void:
+	for n in _look_undo.keys():
+		if not is_instance_valid(n):
+			continue
+		var rec: Dictionary = _look_undo[n]
+		if rec.has("visible"):
+			(n as Node3D).visible = bool(rec["visible"])
+		if rec.has("over"):
+			(n as MeshInstance3D).material_override = rec["over"]
+	_look_undo.clear()
+	_heat_mats.clear()
+	_heat_base.clear()
+	_heat = 0.0
+	_heat_shown = -1.0
+	_beads.clear()
+	_bead_on.clear()
+	_bead_off.clear()
+	_beads_lit = 0
+	if _flick and is_instance_valid(_flick):
+		_flick.transform = _flick_rest
+		_flick.visible = false
+	_flick = null
+	_flick_t = -1.0
+
+
+## The visual's part named `nm` (searched anywhere under it), or null.
+func _part(nm: String) -> Node3D:
+	if visual == null or nm == "":
+		return null
+	return visual.find_child(nm, true, false) as Node3D
+
+
+func _remember(n: Node, key: String, value) -> void:
+	if not _look_undo.has(n):
+		_look_undo[n] = {}
+	if not (_look_undo[n] as Dictionary).has(key):
+		_look_undo[n][key] = value
+
+
+func _show_part(nm: String, on: bool) -> void:
+	var n := _part(nm)
+	if n == null:
+		return
+	_remember(n, "visible", n.visible)
+	n.visible = on
+
+
+## The meshes under (and at) a part.
+func _meshes_of(n: Node) -> Array:
+	var out: Array = n.find_children("*", "MeshInstance3D", true, false)
+	if n is MeshInstance3D:
+		out.append(n)
+	return out
+
+
+## The material a mesh is drawn with (its override, else its first surface's).
+static func _mat_of(m: MeshInstance3D) -> Material:
+	if m.material_override:
+		return m.material_override
+	if m.mesh and m.mesh.get_surface_count() > 0:
+		var s := m.get_surface_override_material(0)
+		return s if s else m.mesh.surface_get_material(0)
+	return null
+
+
+func _paint_part(nm: String, tint: Dictionary) -> void:
+	var n := _part(nm)
+	if n == null:
+		return
+	var made := {}
+	for m: MeshInstance3D in _meshes_of(n):
+		var src := _mat_of(m)
+		if src == null:
+			continue
+		var key := src.get_instance_id()
+		if not made.has(key):
+			made[key] = ProjectileManager.tint_material(src, tint)
+		_remember(m, "over", m.material_override)
+		m.material_override = made[key]
+
+
+## Dragon's Breath's heat (pass 61): one copy per material of the meshes under the named parts, its own glow kept as the
+## bottom of the ramp (the companion glow of pass 53 lit them all, so the shader never changes under it).
+func _setup_heat(cfg) -> void:
+	if not (cfg is Dictionary):
+		return
+	var names = (cfg as Dictionary).get("parts", {})
+	if not (names is Dictionary):
+		return
+	var made := {}
+	for nm in (names as Dictionary).keys():
+		var n := _part(str(nm))
+		if n == null:
+			continue
+		for m: MeshInstance3D in _meshes_of(n):
+			var src := _mat_of(m)
+			if not (src is StandardMaterial3D):
+				continue
+			var key := src.get_instance_id()
+			if not made.has(key):
+				var dup := (src as StandardMaterial3D).duplicate() as StandardMaterial3D
+				var base_col := Color(dup.emission.r, dup.emission.g, dup.emission.b) if dup.emission_enabled else Color.BLACK
+				var base_e: float = dup.emission_energy_multiplier if dup.emission_enabled else 0.0
+				dup.emission_enabled = true
+				dup.emission = base_col
+				dup.emission_energy_multiplier = base_e
+				made[key] = dup
+				_heat_mats.append(dup)
+				_heat_base.append({"color": base_col, "energy": base_e, "albedo": dup.albedo_color})
+			_remember(m, "over", m.material_override)
+			m.material_override = made[key]
+	_heat_shown = -1.0
+
+
+## The heat after a shot cools over `cool` seconds; the glow is written only when it moved.
+func _tick_heat(delta: float) -> void:
+	if _heat_mats.is_empty():
+		return
+	var cfg: Dictionary = look().get("heat", {}) if look().get("heat") is Dictionary else {}
+	_heat = maxf(_heat - delta / maxf(float(cfg.get("cool", HEAT_COOL)), 0.05), 0.0)
+	var r: float = _heat * _heat * (3.0 - 2.0 * _heat)
+	if absf(r - _heat_shown) < 0.02 and not (r <= 0.0 and _heat_shown > 0.0):
+		return
+	_heat_shown = r
+	var hot := Color(str(cfg.get("color", HEAT_COLOR.to_html(false))))
+	var hot_e := float(cfg.get("energy", HEAT_ENERGY))
+	for k in range(_heat_mats.size()):
+		var m: StandardMaterial3D = _heat_mats[k]
+		var b: Dictionary = _heat_base[k]
+		m.emission = (b["color"] as Color).lerp(hot, r)
+		m.emission_energy_multiplier = lerpf(float(b["energy"]), maxf(hot_e, float(b["energy"])), r)
+		m.albedo_color = (b["albedo"] as Color).lerp(Color(hot.r, hot.g * 0.6, hot.b * 0.6, (b["albedo"] as Color).a), r * 0.5)
+
+
+## How hot the barrel shows now, 0..1 (tests).
+func heat_shown() -> float:
+	return maxf(_heat_shown, 0.0)
+
+
+## Both Barrels' beads (pass 61): `double_every` of Bead1, Bead2... under the named part shown, the rest hidden; each with
+## its dark brass and a lit copy glowing `on` at `energy`.
+func _setup_beads(cfg) -> void:
+	if not (cfg is Dictionary):
+		return
+	var holder := _part(str((cfg as Dictionary).get("node", "Beads")))
+	var de := int(inst.params.get("double_every", 0))
+	if holder == null or de <= 0:
+		return
+	_remember(holder, "visible", holder.visible)
+	holder.visible = true
+	var on_col := Color(str((cfg as Dictionary).get("on", BEAD_ON.to_html(false))))
+	var energy := float((cfg as Dictionary).get("energy", BEAD_ENERGY))
+	var k := 1
+	while true:
+		var b := holder.get_node_or_null("Bead%d" % k) as MeshInstance3D
+		if b == null:
+			break
+		_remember(b, "visible", b.visible)
+		_remember(b, "over", b.material_override)
+		b.visible = k <= de
+		if k <= de:
+			var off := _mat_of(b)
+			var lit: Material = off
+			if off is StandardMaterial3D:
+				var l := (off as StandardMaterial3D).duplicate() as StandardMaterial3D
+				l.emission_enabled = true
+				l.emission = on_col
+				l.emission_energy_multiplier = energy
+				l.albedo_color = on_col
+				lit = l
+			_beads.append(b)
+			_bead_off.append(off)
+			_bead_on.append(lit)
+		k += 1
+	_set_beads(0)
+
+
+## Lights the first `n` beads (the rest dark).
+func _set_beads(n: int) -> void:
+	_beads_lit = clampi(n, 0, _beads.size())
+	for k in range(_beads.size()):
+		(_beads[k] as MeshInstance3D).material_override = _bead_on[k] if k < _beads_lit else _bead_off[k]
+
+
+## A pull counts towards the double: 1, 2 ... `double_every` lit (the last on the pull that fires twice).
+func _count_bead() -> void:
+	if _beads.is_empty():
+		return
+	var de := int(inst.params.get("double_every", 0))
+	if de <= 0:
+		return
+	_set_beads(((_shots - 1) % de) + 1)
+
+
+## How many beads are lit, and how many there are (tests).
+func beads_lit() -> int:
+	return _beads_lit
+
+
+func bead_count() -> int:
+	return _beads.size()
+
+
+func _start_flick() -> void:
+	if _flick == null:
+		return
+	_flick_t = 0.0
+	flicks += 1
+
+
+## The hand's flick (Fan the Hammer): it pops in under the companion, swings across `swing_deg` (a quick snap through
+## the middle, as the second volley goes) and is gone at `seconds`.
+func _tick_flick(delta: float) -> void:
+	if _flick == null or _flick_t < 0.0:
+		return
+	var cfg: Dictionary = look().get("flick", {}) if look().get("flick") is Dictionary else {}
+	var dur := maxf(float(cfg.get("seconds", FLICK_SECONDS)), 0.05)
+	_flick_t += delta
+	if _flick_t >= dur:
+		_flick_t = -1.0
+		_flick.visible = false
+		_flick.transform = _flick_rest
+		return
+	var f := _flick_t / dur
+	var swing := deg_to_rad(float(cfg.get("swing_deg", FLICK_SWING)))
+	# out to one side, a snap across (smoothstep in the middle), a little settle
+	var s: float = clampf((f - 0.15) / 0.5, 0.0, 1.0)
+	s = s * s * (3.0 - 2.0 * s)
+	var yaw: float = lerpf(-swing * 0.5, swing * 0.5, s)
+	var pop: float = clampf(f / 0.15, 0.0, 1.0) * clampf((1.0 - f) / 0.2, 0.0, 1.0)
+	_flick.visible = true
+	_flick.transform = _flick_rest
+	_flick.rotate_object_local(Vector3.UP, yaw)
+	_flick.scale = _flick_rest.basis.get_scale() * maxf(pop, 0.05)
+
+
+## Whether the hand is out now (tests).
+func flicking() -> bool:
+	return _flick != null and _flick_t >= 0.0
+
+
+func _tick_looks(delta: float) -> void:
+	_tick_heat(delta)
+	_tick_flick(delta)

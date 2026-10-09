@@ -182,6 +182,7 @@ func _ready() -> void:
 	Run.level_up.connect(_on_level_up)
 	Run.lifesteal_healed.connect(func(n): if player and not player.dead: player.heal(n))
 	Run.build_changed.connect(_sync_weapons)
+	Run.hero_sheet_changed.connect(_on_hero_sheet_changed)
 	Run.weapon_evolved.connect(_on_evolved)
 	# the run recorder (pass 45): a row a second for analytics/dashboard.html; the arena never records, and a tool's
 	# launch file may say "analytics": false (perf_late's A/B of the recorder's cost)
@@ -1079,6 +1080,12 @@ func _log_pause(reason: String) -> void:
 
 # ---------------------------------------------------------------- weapons
 
+## A level's signature stat rebuilt the hero's sheet alone (pass 61, Run.add_xp): his health and speed follow at once.
+func _on_hero_sheet_changed() -> void:
+	if player:
+		player.refresh_stats()
+
+
 func _sync_weapons() -> void:
 	var t0 := Time.get_ticks_usec()
 	for w in Run.weapons:
@@ -1492,7 +1499,7 @@ func _show_next_level_cards() -> bool:
 		_pending_levels -= 1
 		var offer := CardPool.level_up_offer(3)
 		if offer.is_empty():
-			Run.add_gold(10)
+			Run.add_gold(10, "empty_offer")
 			hud.toast("Nothing left to pick. +10 gold", UiKit.INK2)
 			continue
 		_modal = Modal.CARDS
@@ -1588,7 +1595,7 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 	# its coins `chance` of the time (SunScepter.gold_dust_coins); a training dummy pays nothing
 	if _weapon_id != "" and def.brain != "dummy":
 		for k in range(preload("res://core/behaviors/SunScepter.gd").gold_dust_coins(Run.weapon_instance(_weapon_id))):
-			pickups.spawn(PickupManager.KIND_COIN, at, 1.0 + float(randi() % 2))
+			pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at, 1.0 + float(randi() % 2)), "gold_dust")
 	# Grand Finale (pass 43, Calavera): a boss or an Elite going down takes a share of every creature's health with it
 	if (def.archetype == "boss" or def.archetype == "elite" or elite != null) and Run.has_perk("grand_finale"):
 		var fr := Run.perk_param("grand_finale", "radius", 14.0)
@@ -1609,18 +1616,18 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 	var pays := def.brain != "dummy"
 	if (elite != null or def.archetype == "elite") and pays:
 		var purse := int((90 + 60 * Run.stage) * lode)
-		Run.add_gold(purse)
+		Run.add_gold(purse, "elite_purse")
 		hud.toast("+%d GOLD" % purse, Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
 		var chest_gold := int((260 + 140 * Run.stage) * lode)
-		Run.add_gold(chest_gold)
+		Run.add_gold(chest_gold, "boss_purse")
 		hud.toast("+%d GOLD" % chest_gold, Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
 		_end_ring()
 		_hell_lines.clear()
 		# the reward scales with the boss (drops.coins, drops.chests): the second boss pays for continuing
 		for k in range(int(def.drops.get("coins", 12))):
-			pickups.spawn(PickupManager.KIND_COIN, at + Vector3(randf_range(-2.5, 2.5), 0, randf_range(-2.5, 2.5)), 5.0)
+			pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at + Vector3(randf_range(-2.5, 2.5), 0, randf_range(-2.5, 2.5)), 5.0), "boss_coins")
 		for k in range(int(def.drops.get("chests", 1)) - 1):
 			pickups.spawn_chest(at + Vector3(-2.0 - 1.6 * k, 0, 1.5))
 		hud.toast("A BOSS CHEST: open it to call everything in", Color(1.0, 0.82, 0.35))
@@ -1726,7 +1733,7 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 		"stranger":
 			var offer := Run.stranger_offer()
 			if offer.is_empty():
-				Run.add_gold(60)
+				Run.add_gold(60, "stranger_empty")
 				hud.toast("The Stranger had nothing for you. +60 gold", UiKit.ACCENT)
 				return
 			var cost := float(offer.get("hp_cost", p.get("hp_cost", 0.15)))
@@ -1747,7 +1754,7 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 		"shop":
 			var offer := CardPool.level_up_offer(3)
 			if offer.is_empty():
-				Run.add_gold(50)
+				Run.add_gold(50, "shop_empty")
 				hud.toast("The shop had nothing left. +50 gold", UiKit.ACCENT)
 				return
 			_request_modal(Modal.SHOP, func() -> bool:
@@ -1767,11 +1774,11 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 			hud.toast("+%d HP" % int(round(amount)), UiKit.GOOD)
 		"loot":
 			var gold := int(p.get("gold", 60))
-			Run.add_gold(gold)
+			Run.add_gold(gold, "loot_cache")
 			for k in range(int(p.get("gems", 3))):
 				pickups.spawn(PickupManager.KIND_GEM_L, at + Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5)), 25.0)
 			for k in range(int(p.get("coins", 4))):
-				pickups.spawn(PickupManager.KIND_COIN, at + Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5)), 3.0)
+				pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at + Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5)), 3.0), "loot_cache")
 			hud.toast("+%d gold and gems" % gold, UiKit.ACCENT)
 		"buff":
 			Run.add_timed_effects("structure:" + def.id, def.display_name, def.effects, float(p.get("seconds", 30.0)))
@@ -1790,7 +1797,7 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 func bank_purse() -> int:
 	var carried := Run.run_gold
 	if carried > 0:
-		Save.add_gold(carried)
+		Save.add_gold(carried, "strongbox")
 		Run.run_gold = 0
 		Run.banked_gold += carried
 	return carried
@@ -1862,7 +1869,7 @@ func _roll_dice(def: StructureDef, at: Vector3) -> void:
 			player.heal(player.max_hp, def.display_name)
 			hud.banner("DICE: FULL HEAL", UiKit.GOOD)
 		"gold":
-			Run.add_gold(150)
+			Run.add_gold(150, "dice")
 			hud.banner("DICE: +150 GOLD", UiKit.ACCENT)
 		"level":
 			Run.add_xp(Run.xp_to_next() - Run.xp + 0.01)
@@ -1893,7 +1900,7 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 			Audio.play("pk_heart", at)
 		"gold":
 			# the coin bag: a handful of coins at once
-			Run.add_gold(int(def.value))
+			Run.add_gold(int(def.value), def.id)
 			Audio.play("pk_coin", at)
 		"buff":
 			Run.add_timed_effects(def.id, def.display_name, def.effects, def.duration)
@@ -2114,9 +2121,8 @@ func _on_revive_decided(kind: String) -> void:
 func _revive(kind: String) -> void:
 	if RunAnalytics.I: RunAnalytics.I.event("revive", kind)
 	if kind == "gold":
-		# a flat price: add_gold would scale it by greed
-		Run.run_gold = maxi(Run.run_gold - ReviveScreen.GOLD_COST, 0)
-		Run.gold_changed.emit(Run.run_gold)
+		# a flat price, spent like the shop's (pass 61: the run recorder counts it under "revive"); never below 0
+		Run.spend_gold(mini(ReviveScreen.GOLD_COST, Run.run_gold), "revive")
 	if kind != "debug" and kind != "phoenix":
 		Run.revives_used += 1
 	player.revive()
@@ -2173,7 +2179,7 @@ func arena_respawn() -> void:
 
 ## The arena's hero swap (pass 55, Garry: "an option in the hero tab of the Arena Debug menu which allows switching
 ## between heroes on the fly"; ArenaPanel's HERO tab): hero `id` takes over where he stands. His trait replaces the old
-## one on the sheet (max health follows, kept in proportion), the old hero's perks leave with him and the new one's are
+## one on the sheet (max health follows: a rise brings the same health with it, a fall keeps the share), the old hero's perks leave with him and the new one's are
 ## not handed over (ITEMS hands perks out), nor is his start weapon (ITEMS again); the weapons, passives and mutations
 ## held stay, god mode stays as it was, Buck's momentum and Calavera's Crescendo start from nothing. He wears the look
 ## kept for him (Save.hero_look). Run.character stays the hero's own def: only the Player's strip wears a look. Returns
@@ -2224,7 +2230,7 @@ func end_run() -> void:
 	Run.last_result = {"gold_before": Save.gold(), "banked": gold, "lost": Run.run_gold if Run.died else 0,
 		"strongbox": Run.banked_gold, "prev_best": Save.best_run(map_id).duplicate()}
 	if gold > 0:
-		Save.add_gold(gold)
+		Save.add_gold(gold, "run_bank")
 	Save.record_run(map_id, Run.elapsed, Run.level, Run.stage + 1, Run.kills)
 	# after the run is counted, so "play N runs" sees this one
 	QuestTracker.check_all(true)
@@ -2833,7 +2839,7 @@ func on_creature_died_index(i: int) -> void:
 		enemies.bounty_i = -1
 		var at: Vector3 = enemies.pos[i]
 		var gold := int(Run.perk_param("bounty_hunter", "gold", 40.0))
-		Run.add_gold(gold)
+		Run.add_gold(gold, "bounty")
 		pickups.spawn_chest(at)
 		fx.burst(at + Vector3(0, 0.8, 0), Color(1.0, 0.82, 0.35), 1.3)
 		hud.toast("BOUNTY +%d" % gold, Color(1.0, 0.82, 0.35))

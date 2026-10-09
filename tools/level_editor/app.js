@@ -858,6 +858,9 @@ const App = (() => {
     document.getElementById('zoom-in').addEventListener('click', () => Timeline.zoom(0.7));
     document.getElementById('zoom-out').addEventListener('click', () => Timeline.zoom(1 / 0.7));
     document.getElementById('zoom-fit').addEventListener('click', () => Timeline.fit());
+    // pass 61: the Snap toggle (S too); timeline.js keeps the state and the browser remembers it
+    const snapBtn = document.getElementById('snap-toggle');
+    if (snapBtn) snapBtn.addEventListener('click', () => Timeline.toggleSnap());
     document.getElementById('status').addEventListener('click', () => { const d = document.getElementById('status-detail'); if (d && d.textContent) d.hidden = !d.hidden; });
     // the hero level the hover cards and the readout assume (pass 54): a page setting, never written to the map
     const lv = document.getElementById('assume-level');
@@ -914,6 +917,8 @@ const App = (() => {
         return;
       }
       if (e.key === 'Escape') { select(null); return; }
+      // pass 61: S switches snapping (Ctrl+S saves, above); not when a focused picture list took the letter as its filter
+      if (!ctrl && !e.altKey && !e.defaultPrevented && e.key.toLowerCase() === 's') { e.preventDefault(); toast(Timeline.toggleSnap() ? 'Snap on: dragged times drop onto the cap\'s points, the rows, waves and events (hold Alt to drag freely)' : 'Snap off: dragged times move freely', { ms: 2500 }); return; }
       if (e.key === '+' || e.key === '=') Timeline.zoom(0.7);
       if (e.key === '-') Timeline.zoom(1 / 0.7);
     });

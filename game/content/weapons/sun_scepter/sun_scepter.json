@@ -83,9 +83,9 @@
     },
     "shine": {
       "idle": 0.0,
-      "flare": 1.1,
-      "sweep": 1.1,
-      "pop": 0.0
+      "flare": 1.7,
+      "sweep": 1.7,
+      "pop": 0.35
     },
     "familiar": {
       "radius": 1.25,

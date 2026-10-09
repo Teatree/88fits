@@ -11,6 +11,11 @@
 ## a flash, sparks, a ring on the sand and a camera kick as it starts, the ring again every PULSE seconds while it pours.
 ## The beam fires straight, through hills: wherever its line runs under a dune the sand over it boils, hot cracks and
 ## scorches on the surface and embers and grit puffing up (boil_points, _boil). The damage line is what it was.
+## Pass 61, Bad Breath (Garry chose the cheap look: "Green-yellow wobbling beam, gust puffs on hit"): `params.beam.breath`
+## {color, core, haze, haze_mix, haze_over, glow, wobble, gusts, gust_color} turns the beam green-yellow (when no other path gives it a colour:
+## with Slow Roast the line stays orange and the breath is its haze), sets the ribbon snaking and breathing (the shader's
+## `wobble`) with its glow in `haze`, and throws gust puffs where it hits (Fx.breath_gust): a big gust on the first touch
+## that knocks a creature back, up to `gusts` small ones a tick on the rest. The cavity glows the beam's colour.
 class_name LaserBeam
 extends WeaponBehavior
 
@@ -52,6 +57,8 @@ var _beam_mat: ShaderMaterial
 var _hit_once: Dictionary = {}
 ## beams poured so far (tests)
 var beams := 0
+## Bad Breath's gusts thrown so far (tests, pass 61)
+var gust_hits := 0
 const MOUTH_STRIP := "res://content/weapons/big_mouth/big_mouth_sprite.png"
 
 
@@ -70,7 +77,60 @@ func _beam_colour() -> Color:
 	var c = b.get("color") if b is Dictionary else null
 	if c is Array and (c as Array).size() >= 3:
 		return Color(float(c[0]), float(c[1]), float(c[2]))
+	var br := breath()
+	if not br.is_empty():
+		return _rgb(br.get("color"), BREATH_GREEN)
 	return Color(1.0, 0.25, 0.7)
+
+
+## Bad Breath's green-yellow (pass 61) when its params name none, and the most big gusts one tick throws (a crowd
+## walking into the line all at once).
+const BREATH_GREEN := Color(0.66, 1.0, 0.16)
+const BIG_GUSTS := 4
+
+
+## params.beam.breath (pass 61, Bad Breath), {} without it.
+func breath() -> Dictionary:
+	var b = inst.params.get("beam", {}) if inst else {}
+	var br = (b as Dictionary).get("breath") if b is Dictionary else null
+	return br if br is Dictionary else {}
+
+
+## A colour from params: [r, g, b] or "#rrggbb", else `fallback`.
+static func _rgb(v, fallback: Color) -> Color:
+	if v is Array and (v as Array).size() >= 3:
+		return Color(float(v[0]), float(v[1]), float(v[2]))
+	if v is String and str(v) != "":
+		return Color(str(v))
+	return fallback
+
+
+## The beam's haze (the glow round its core) and how much of it shows: Bad Breath's, else none (pass 61).
+func _beam_haze() -> Color:
+	var br := breath()
+	if br.is_empty():
+		return Color(1, 1, 1, 0)
+	var h := _rgb(br.get("haze"), Color(0.86, 1.0, 0.3))
+	# over another path's colour (Slow Roast's orange) the breath is only a fringe, so the orange still reads
+	var b = inst.params.get("beam", {})
+	var over: bool = b is Dictionary and (b as Dictionary).get("color") is Array
+	var mix := float(br.get("haze_over", 0.35)) if over else float(br.get("haze_mix", 0.6))
+	return Color(h.r, h.g, h.b, clampf(mix, 0.0, 1.0))
+
+
+## The colour the beam's core runs to: white, or Bad Breath's own `core` while the breath is the beam's colour (with
+## Slow Roast's orange the core stays white-hot).
+func _beam_core() -> Color:
+	var br := breath()
+	var b = inst.params.get("beam", {})
+	if br.is_empty() or (b is Dictionary and (b as Dictionary).get("color") is Array):
+		return Color(1, 1, 1)
+	return _rgb(br.get("core"), Color(0.93, 1.0, 0.62))
+
+
+## How hard the line snakes and breathes (pass 61: Bad Breath's `wobble`, else 0).
+func wobble() -> float:
+	return maxf(float(breath().get("wobble", 0.0)), 0.0)
 
 
 func _on_setup() -> void:
@@ -121,6 +181,14 @@ func _on_setup() -> void:
 	# the ribbon is placed by its transform each frame and can run twenty metres: never cull it by the unit quad
 	_beam.extra_cull_margin = 24.0
 	add_child(_beam)
+
+
+## On every build change (pass 61): the cavity glows the beam's colour as it is now (Bad Breath's green, Slow Roast's
+## orange), not the colour it had when the mouth was made.
+func refresh_marks() -> void:
+	super.refresh_marks()
+	if _cavity_mat:
+		_cavity_mat.emission = _beam_colour().lightened(0.35)
 
 
 func _familiar_param(key: String, default: float) -> float:
@@ -284,6 +352,12 @@ func _burn() -> void:
 	var dmg := stat("damage", 9.0)
 	var wid := inst.def.id
 	var seen: Dictionary = {}
+	# Bad Breath (pass 61): a big gust on every first touch, up to `gusts` small ones a tick on the rest
+	var br := breath()
+	var gusts: int = int(br.get("gusts", 2)) if not br.is_empty() else 0
+	var bigs := BIG_GUSTS
+	var fx = game.get("fx") if not br.is_empty() else null
+	var gust_col := _rgb(br.get("gust_color"), _beam_colour()) if not br.is_empty() else Color.WHITE
 	var steps := int(ceil(reach / maxf(width, 0.3)))
 	for k in range(steps + 1):
 		var p: Vector3 = from + dir * (float(k) * reach / float(maxi(steps, 1)))
@@ -296,9 +370,20 @@ func _burn() -> void:
 			if stat("poison_damage", 0.0) > 0.0:
 				enemies.poison(e, wid, stat("poison_damage", 3.0), maxi(stat_int("poison_stacks", 1), 1), stat("poison_duration", 8.0))
 			var knock := 0.0
-			if _beam_flag("first_knock") and not _hit_once.has(e):
+			var first := not _hit_once.has(e)
+			if _beam_flag("first_knock") and first:
 				knock = stat("knockback", 0.0)
 			_hit_once[e] = true
+			if fx and fx.has_method("breath_gust"):
+				var gp: Vector3 = enemies.pos[e] + Vector3(0, enemies.size[e] * 0.45, 0)
+				if first and bigs > 0:
+					bigs -= 1
+					fx.breath_gust(gp, dir, gust_col, true)
+					gust_hits += 1
+				elif gusts > 0 and randf() < 0.5:
+					gusts -= 1
+					fx.breath_gust(gp, dir, gust_col, false)
+					gust_hits += 1
 			if enemies.damage(e, dmg, wid, dir, knock):
 				inst.kills += 1
 			if randf() < 0.5:
@@ -333,6 +418,10 @@ func _draw_beam() -> void:
 	_beam.visible = true
 	_beam.global_transform = Transform3D(Basis(side * width * 3.4, axis, normal), mid)
 	_beam_mat.set_shader_parameter("color", col)
+	_beam_mat.set_shader_parameter("haze", _beam_haze())
+	_beam_mat.set_shader_parameter("wobble", wobble())
+	_beam_mat.set_shader_parameter("core_color", _beam_core())
+	_beam_mat.set_shader_parameter("glow_gain", maxf(float(breath().get("glow", 1.0)), 0.0))
 	# a small spark now and then just past the lips (a burst on the mouth itself hid the painting)
 	if randf() < 0.15:
 		game.fx_burst(from + _dir() * 0.8, col, 0.2)

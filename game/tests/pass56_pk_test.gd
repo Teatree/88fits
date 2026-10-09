@@ -92,12 +92,13 @@ func _tick(pm: PickupManager, seconds: float) -> void:
 		t += DT
 
 
-## How pickup `i` is drawn now: what _render hands its kind's MultiMesh (kept in drawn_xf while record_draws is on; a
-## MultiMesh gives nothing back headless).
+## How pickup `i` is drawn now. Re-pinned in pass 61: the float and the idle spin moved into the shaders (a gem lying
+## still never has its instance written again), so this is the draw (_render) and then what the screen shows
+## (PickupManager.shown_xf: the instance with the shader's sums worked out at the run's clock).
 func _drawn(pm: PickupManager, i: int) -> Transform3D:
 	pm.record_draws = true
 	pm._render()
-	return pm.drawn_xf[i]
+	return pm.shown_xf(i)
 
 
 ## A mesh's corners, each once (a mesh repeats a corner for every face that meets there).
@@ -317,7 +318,11 @@ func test_the_float_is_as_it_was() -> void:
 	assert_float(PickupManager.REST).is_equal_approx(0.22, 0.0001)
 	for i in [0, 1, 7, 333]:
 		for t in [0.0, 0.4, 3.3, 61.0]:
-			assert_float(PickupManager.float_y(i, t)).is_equal_approx(0.06 + sin(t * 2.4 + float(i) * 0.9) * 0.09, 0.000001)
+			# (re-pinned in pass 61: the phase is the slot's seed x TAU, PickupManager.phase_of, not the raw slot, which
+			# the Compatibility renderer's half-float custom data could not carry past 2048)
+			var ph := fmod(float(i) * 0.6180339887, 1.0) * TAU
+			assert_float(PickupManager.phase_of(i)).is_equal_approx(ph, 0.000001)
+			assert_float(PickupManager.float_y(i, t)).is_equal_approx(0.06 + sin(t * 2.4 + ph * 0.9) * 0.09, 0.000001)
 	# drawn: a resting gem that is not hopping sits at its spot plus the float, upright, its own size
 	var pm: PickupManager = _pickups()["pm"]
 	var i := _resting(pm, PickupManager.KIND_GEM_M, 20.0)
@@ -421,7 +426,8 @@ func test_hops_on_the_screen_come_no_closer_than_the_gap() -> void:
 	var turn := {}
 	for i: int in gems:
 		pm.hop_next[i] = t0 + rng.randf_range(0.0, 4.0)
-		pm.idle_due[i] = minf(pm.hop_next[i], pm.glint_next[i]) if pm.kind[i] != PickupManager.KIND_GEM_S else pm.hop_next[i]
+		# (pass 61: a forced turn goes through the schedule; a gem lying still is never swept)
+		pm.set_idle_due(i, minf(pm.hop_next[i], pm.glint_next[i]) if pm.kind[i] != PickupManager.KIND_GEM_S else pm.hop_next[i])
 		turn[i] = pm.hop_next[i]
 	var starts: Array = []
 	var hopped := {}
@@ -469,7 +475,9 @@ func test_a_field_at_its_own_pace_hops_about_once_a_second() -> void:
 	assert_int(starts).is_between(14, int(20.0 / PickupManager.HOP_EXTRA_GAP) + 1)
 
 
-func test_off_the_screen_a_gem_hops_on_its_own_clock() -> void:
+## Re-pinned in pass 61: a hop whose turn comes off the screen lets it pass like one inside the gap (nobody sees it, and a
+## gem lying still costs nothing), and never touches the gap.
+func test_off_the_screen_a_gem_lets_its_hop_pass() -> void:
 	var w := _pickups()
 	var pm: PickupManager = w["pm"]
 	var rig := _camera(w)
@@ -485,19 +493,21 @@ func test_off_the_screen_a_gem_hops_on_its_own_clock() -> void:
 	pm._hop_last = hop0
 	for i in [on_i, off_i]:
 		pm.hop_next[i] = pm._time
-		pm.idle_due[i] = pm._time
+		pm.set_idle_due(i, pm._time)
 	pm._physics_process(DT)
-	# the one on the screen lets its turn pass and waits a new 40-60 s; the one nobody sees hops, and the gap is not its
-	assert_float(pm.hop_t[on_i]).is_less(0.0)
-	assert_float(pm.hop_next[on_i] - pm._time).is_between(PickupManager.HOP_EXTRA_MIN, PickupManager.HOP_EXTRA_MAX)
-	assert_float(pm.hop_t[off_i]).is_greater_equal(0.0)
+	# both let their turns pass and wait a new 40-60 s; the gap is untouched
+	for i in [on_i, off_i]:
+		assert_float(pm.hop_t[i]).is_less(0.0)
+		assert_float(pm.hop_next[i] - pm._time).is_between(PickupManager.HOP_EXTRA_MIN, PickupManager.HOP_EXTRA_MAX)
 	assert_float(pm._hop_last).is_equal(hop0)
-	# past the gap, the one on the screen hops at its next turn and starts the gap again
+	# past the gap, the one on the screen hops at its next turn and starts the gap again; the one off it still does not
 	_tick(pm, PickupManager.HOP_EXTRA_GAP)
-	pm.hop_next[on_i] = pm._time
-	pm.idle_due[on_i] = pm._time
+	for i in [on_i, off_i]:
+		pm.hop_next[i] = pm._time
+		pm.set_idle_due(i, pm._time)
 	pm._physics_process(DT)
 	assert_float(pm.hop_t[on_i]).is_greater_equal(0.0)
+	assert_float(pm.hop_t[off_i]).is_less(0.0)
 	assert_float(pm._hop_last).is_equal(pm._time)
 
 
@@ -552,18 +562,7 @@ func test_a_falling_flying_or_called_gem_never_hops_and_never_pops() -> void:
 		assert_float(pm.hop_t[i]).is_less(0.0)
 	assert_bool(landed).is_true()
 	assert_float(pm.hop_next[i]).is_greater(pm._time + 39.0)
-	# a merged gem pops up out of its cluster and only counts once it is down again
-	for g in range(4):
-		_resting(pm, PickupManager.KIND_GEM_S, 40.0, 0.0)
-	pm._merge(10)
-	var merged := -1
-	for j in range(PickupManager.MAX):
-		if pm.alive[j] == 1 and pm.kind[j] == PickupManager.KIND_GEM_L:
-			merged = j
-	assert_int(merged).is_greater_equal(0)
-	assert_float(pm.hop_next[merged]).is_less(0.0)
-	pm._physics_process(DT)
-	assert_float(pm.hop_next[merged]).is_less(0.0)
+	# (the merged gem's pop that was checked here went with the merge in pass 61)
 	# on its trip to the hero: no hop, no clock, however long it is out
 	var f := _resting(pm, PickupManager.KIND_GEM_M, 30.0, 5.0)
 	pm._physics_process(DT)
@@ -642,7 +641,7 @@ func test_a_sea_of_gems_never_floods_the_screen_with_glints() -> void:
 	# every one's turn comes at once
 	for i: int in gems:
 		pm.glint_next[i] = pm._time
-		pm.idle_due[i] = pm._time
+		pm.set_idle_due(i, pm._time)
 	pm._physics_process(DT)
 	assert_int(pm.glint_count()).is_equal(1)
 	var started := 0
@@ -652,7 +651,7 @@ func test_a_sea_of_gems_never_floods_the_screen_with_glints() -> void:
 		for i: int in gems:
 			if pm.glint_next[i] > pm._time:
 				pm.glint_next[i] = pm._time
-				pm.idle_due[i] = pm._time
+				pm.set_idle_due(i, pm._time)
 		pm._physics_process(DT)
 		for i: int in gems:
 			if pm.glint_t[i] >= 0.0 and pm.glint_t[i] < DT * 0.5:
@@ -710,7 +709,7 @@ func test_a_glint_waits_for_its_gem_to_be_seen_below_the_hud_strip() -> void:
 	var last: float = pm._glint_last
 	for i in [top, off]:
 		pm.glint_next[i] = pm._time
-		pm.idle_due[i] = pm._time
+		pm.set_idle_due(i, pm._time)
 	pm._physics_process(DT)
 	assert_float(pm.glint_t[top]).is_less(0.0)
 	assert_float(pm.glint_t[off]).is_less(0.0)
@@ -718,7 +717,7 @@ func test_a_glint_waits_for_its_gem_to_be_seen_below_the_hud_strip() -> void:
 	assert_int(pm.glint_count()).is_equal(0)
 	# the one below the strip glints when its turn comes
 	pm.glint_next[mid] = pm._time
-	pm.idle_due[mid] = pm._time
+	pm.set_idle_due(mid, pm._time)
 	pm._physics_process(DT)
 	assert_float(pm.glint_t[mid]).is_greater_equal(0.0)
 	assert_int(pm.glint_count()).is_equal(1)

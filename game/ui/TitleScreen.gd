@@ -56,6 +56,9 @@ var _play: WButton
 var _map_tap: WTap
 var _map_line: WText
 var _lower: Array = []
+## The hero's sheet (pass 61): the CV a tap on the plaque opens (ui/wanted/WHeroSheet.gd, no class_name).
+const WHeroSheetScript := preload("res://ui/wanted/WHeroSheet.gd")
+var _sheet: Control
 var _swipe_id := -2   # -2 none, -1 the mouse, else a finger index
 var _swipe_from := Vector2.ZERO
 var _upgrade_btn: WButton
@@ -82,6 +85,10 @@ var _wash_grad: Gradient
 ## Back on the title leaves the game, as it always did (quit_on_go_back is off so a run can ignore the gesture).
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		# the hero's sheet up (pass 61): back closes it, the game stays
+		if sheet_open():
+			_sheet.call("close")
+			return
 		Save.flush()
 		get_tree().quit()
 
@@ -222,11 +229,14 @@ func _build_hero_row() -> void:
 	add_child(_dots)
 
 
-## The plaque, PLAY, the map line and the three menu buttons.
+## The plaque, PLAY, the map line and the three menu buttons. The plaque is a tap (pass 61, Garry: "make the character
+## name plaque clickable"): it opens the hero's sheet; a sideways swipe across it still changes the hero (_input).
 func _build_lower() -> void:
-	_plaque = PanelContainer.new()
-	_plaque.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_plaque.add_theme_stylebox_override("panel", W.box(W.PAPER, 5, 8).pad(35, 27, 35, 27))
+	var tap := WTap.new()
+	tap.name = "Plaque"
+	tap.box = W.box(W.PAPER, 5, 8).pad(35, 27, 35, 27)
+	tap.pressed.connect(open_sheet)
+	_plaque = tap
 	add_child(_plaque)
 	var pv := VBoxContainer.new()
 	pv.add_theme_constant_override("separation", 14)
@@ -246,6 +256,10 @@ func _build_lower() -> void:
 	left.add_child(_name)
 	_line = W.serif_text("", 24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 	left.add_child(_line)
+	# what a tap on the plaque does (pass 61)
+	var more := W.label("Details ›", 16, W.BRASS_DARK, 0.15)
+	more.name = "Details"
+	left.add_child(more)
 	_stats = HBoxContainer.new()
 	_stats.add_theme_constant_override("separation", 14)
 	_stats.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -494,8 +508,18 @@ func _own_weapons(c: CharacterDef) -> Array:
 
 ## Up to three of the trait's numbers: its effects on the player, then the heal on every level. Each is [value, label,
 ## good]: a debuff (a negative, or a positive on a lower-is-better stat) is not good and reads in dark red (pass 45).
+## Pass 61: a hero whose trait grows with his level shows what one level gives ("+1%" over "CRIT / LV").
 func _stats_of(c: CharacterDef) -> Array:
 	var out: Array = []
+	if not c.level_trait.is_empty():
+		for e in c.level_trait:
+			if e is Effect:
+				var x: Effect = e
+				var up: bool = (x.value >= 0.0) != (x.stat in LOWER_BETTER)
+				out.append([TextGen.hero_step(x) + str(UNIT.get(x.stat, "")), str(SHORT.get(x.stat, TextGen.stat_name(x.stat).to_upper())) + " / LV", up])
+		if c.level_heal > 0.0:
+			out.append(["%d%%" % int(round(c.level_heal * 100.0)), "HEAL / LV", true])
+		return out.slice(0, 3)
 	for e in c.trait_effects:
 		if e is Effect and (e.target == "player" or e.target == ""):
 			var good: bool = e.op == "set" or ((e.value >= 0.0) != (e.stat in LOWER_BETTER))
@@ -704,8 +728,25 @@ func _leave_for_a_run() -> void:
 	TitleStageScript.forget()
 
 
-## A sideways swipe over the hero changes it; the finger is read here so it works wherever it lands in the row.
+## The hero's sheet over the title (pass 61): open while it is up and not on its way out.
+func sheet_open() -> bool:
+	return _sheet != null and is_instance_valid(_sheet) and not bool(_sheet.call("is_done"))
+
+
+## A tap on the plaque (pass 61): the shown hero's sheet, a locked one's with its quest.
+func open_sheet() -> void:
+	if _heroes.is_empty() or sheet_open():
+		return
+	var c: CharacterDef = _heroes[_index]
+	_swipe_id = -2
+	_sheet = WHeroSheetScript.open(self, c, _is_locked(c))
+
+
+## A sideways swipe over the hero changes it; the finger is read here so it works wherever it lands in the row, and
+## (pass 61) across the plaque, whose tap opens the hero's sheet: a swipe travels past the tap's slop, so it never opens it.
 func _input(event: InputEvent) -> void:
+	if sheet_open():
+		return
 	var pos := Vector2.ZERO
 	var id := -2
 	var down := false
@@ -727,7 +768,7 @@ func _input(event: InputEvent) -> void:
 	pos = get_viewport().get_canvas_transform().affine_inverse() * pos
 	if down and _swipe_id == -2:
 		var band := Rect2(Vector2(0, _hero_row.position.y), Vector2(get_viewport_rect().size.x, _hero_row.size.y))
-		if band.has_point(pos):
+		if band.has_point(pos) or _plaque.get_global_rect().has_point(pos):
 			_swipe_id = id
 			_swipe_from = pos
 	elif up and id == _swipe_id:

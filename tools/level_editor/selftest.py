@@ -21,6 +21,11 @@
    EnemyDef.gd), the variance special a row reads, the Actual lane's own top, an "Elites every" event's firings, and a
    one-number size list read as the game reads it (a range of one size).
 
+4. Pass 61: snapping (model.js snapTargets / snapDrag / snapGridStep): the cap's points winning over nearer rows, the
+   8-pixel range at several zooms, the dragged item never its own target, Alt and the toggle, an edge's lowest time, a bar
+   moved by either end, the minutes grid only when nothing else is near, and 500 random drags (a hand-made timeline and
+   Red Canyon read from disk) against a Python copy.
+
 Without node the first part is skipped (said so) and the second still runs. Exit code 0 = every check passed.
 """
 import json
@@ -2038,11 +2043,323 @@ def server_checks():
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+# ---------------------------------------------------------------- pass 61: snapping
+
+
+SNAP_RUNNER = r"""
+const M = require(process.argv[2]);
+let src = '';
+process.stdin.on('data', (d) => { src += d; });
+process.stdin.on('end', () => {
+  const q = JSON.parse(src);
+  const out = {};
+  out.consts = { px: M.SNAP_PX, grid_px: M.SNAP_GRID_PX, grid_min_px: M.SNAP_GRID_MIN_PX, tier: M.SNAP_TIER };
+  out.targets = q.targets.map(([tl, self]) => M.snapTargets(tl, self));
+  out.drag = q.drag.map(([tl, edges, opts]) => M.snapDrag(tl, edges, opts));
+  out.grid = q.grid.map((spp) => M.snapGridStep(spp));
+  out.clock = q.clock.map((s) => M.clockText(s));
+  process.stdout.write(JSON.stringify(out));
+});
+"""
+
+SNAP_TIER_PY = {"cap": 0, "row": 1, "wave": 1, "event": 2, "stage": 3, "grid": 4}
+SNAP_EVENT_WORD_PY = {"boss": "boss", "elite_boss": "Elite", "elite": "coloured elite", "elite_every": "Elites every", "swarm": "swarm"}
+
+
+def js_round_half_up(v):
+    """Math.round: halves go up (Python's round() goes to even)."""
+    return int(math.floor(v + 0.5))
+
+
+def clock_py(s):
+    v = abs(js_round_half_up(float(s or 0)))
+    h, m, sec = v // 3600, (v % 3600) // 60, v % 60
+    return "%d:%02d:%02d" % (h, m, sec) if h > 0 else "%d:%02d" % (m, sec)
+
+
+def snap_targets_py(tl, self_ref=None):
+    """model.js snapTargets in Python: the cap's points, the rows' and waves' starts and ends, the events, the stage
+    marks, each a whole second; the dragged item's own left out."""
+    me = self_ref if isinstance(self_ref, dict) else {}
+    out = []
+
+    def add(t, kind, label):
+        if t is None or t == "":
+            return
+        try:
+            v = float(t)
+        except (TypeError, ValueError):
+            return
+        if not math.isfinite(v) or v < 0:
+            return
+        out.append({"t": js_round_half_up(v), "kind": kind, "tier": SNAP_TIER_PY[kind], "label": label})
+
+    for k, p in enumerate(tl.get("cap_curve") or []):
+        if not isinstance(p, list) or len(p) < 2 or (me.get("kind") == "cap" and me.get("k") == k):
+            continue
+        add(p[0], "cap", "cap " + clock_py(p[0]))
+    for i, r in enumerate(tl.get("roster") or []):
+        if not isinstance(r, dict) or (me.get("kind") == "roster" and me.get("i") == i):
+            continue
+        name = str(r["id"]) if r.get("id") else "row %d" % (i + 1)
+        add(numv(r.get("t"), 0), "row", name + " start")
+        add(r.get("until"), "row", name + " end")
+    for i, w in enumerate(tl.get("waves") or []):
+        if not isinstance(w, dict) or (me.get("kind") == "wave" and me.get("i") == i):
+            continue
+        name = str(w["id"]) if w.get("id") else str(w["name"]) if w.get("name") else "wave %d" % (i + 1)
+        add(numv(w.get("t"), 0), "wave", name + " start")
+        e = wave_end_of(w)
+        if e != math.inf:
+            add(e, "wave", name + " end")
+    for i, ev in enumerate(tl.get("events") or []):
+        if not isinstance(ev, dict) or (me.get("kind") == "event" and me.get("i") == i):
+            continue
+        word = str(ev["name"]) if ev.get("name") else SNAP_EVENT_WORD_PY.get(ev.get("type"), str(ev.get("type") or "event"))
+        add(numv(ev.get("t"), 0), "event", "%s %s" % (word, clock_py(numv(ev.get("t"), 0))))
+    sl, n = stage_length(tl), max(1, int(numv(tl.get("stages"), 3)))
+    for k in range(n + 1):
+        add(k * sl, "stage", "stage %d start" % (k + 1) if k < n else "the run's end")
+    return out
+
+
+def snap_grid_py(spp):
+    s = spp if spp and spp > 0 else 1
+    if 30 / s >= 36:
+        return 30
+    if 60 / s >= 36:
+        return 60
+    return 0
+
+
+def snap_drag_py(tl, edges, opts):
+    """model.js snapDrag in Python: the lowest tier in range (8 px), then the nearest, then the first edge; the grid at
+    4 px only when nothing else is in range."""
+    if not opts.get("on") or opts.get("alt"):
+        return None
+    spp = opts.get("spp") if opts.get("spp", 0) > 0 else 1
+    targets = opts["targets"] if isinstance(opts.get("targets"), list) else snap_targets_py(tl, opts.get("self"))
+    best = None
+    for e in edges:
+        et, lo = float(e["t"]), float(e.get("min", 0) if e.get("min") is not None else 0)
+        for tg in targets:
+            dist = abs(tg["t"] - et)
+            if dist > 8 * spp + 1e-9 or tg["t"] < lo - 1e-9:
+                continue
+            if best is None or tg["tier"] < best["target"]["tier"] or (tg["tier"] == best["target"]["tier"] and dist < best["dist"] - 1e-9):
+                best = {"delta": tg["t"] - et, "t": tg["t"], "edge": e["edge"], "target": tg, "dist": dist}
+    if best:
+        return best
+    g = snap_grid_py(spp)
+    if not g:
+        return None
+    for e in edges:
+        et, lo = float(e["t"]), float(e.get("min", 0) if e.get("min") is not None else 0)
+        gt = js_round_half_up(et / g) * g
+        dist = abs(gt - et)
+        if dist > 4 * spp + 1e-9 or gt < lo - 1e-9:
+            continue
+        if best is None or dist < best["dist"] - 1e-9:
+            best = {"delta": gt - et, "t": gt, "edge": e["edge"], "dist": dist,
+                    "target": {"t": gt, "kind": "grid", "tier": 4, "label": "%s %s" % ("minute" if gt % 60 == 0 else "half minute", clock_py(gt))}}
+    return best
+
+
+def snap_checks():
+    """Pass 61: the Snap toggle's maths (model.js snapTargets / snapDrag / snapGridStep): the target choice with the
+    cap's points first, the range of 8 screen pixels at several zooms, the dragged item never its own target, Alt and
+    the toggle turning it off, the edges' lowest times, a bar moved by either end, the minutes grid only when nothing
+    else is near; then the JS against a Python copy on random drags over a hand-made timeline and over Red Canyon (read
+    only: nothing is written)."""
+    tl = {"stage_length": 430, "stages": 3,
+          "cap_curve": [[0, 10], [150, 30], [150, 60], [363, 100], [430.4, 54]],
+          "roster": [{"id": "r1", "t": 0, "until": 122}, {"id": "r2", "t": 146, "until": 300}, {"t": 250, "until": 368},
+                     {"id": "r4", "t": 368}, {"id": "r5", "t": 600, "until": ""}],
+          "waves": [{"id": "w1", "t": 200, "count": 20, "burst": 5, "every": 2.5}, {"name": "rush", "t": 500, "until": 520},
+                    {"t": 700}],
+          "events": [{"type": "elite_boss", "t": 215}, {"type": "elite_every", "t": 301, "interval": 129},
+                     {"type": "boss", "t": 430}, {"type": "swarm", "t": 559, "name": "Ant swarm"}, {"type": "elite", "t": 864}]}
+    # a handle's lowest time: row a's end handle (its start at 100, so its end at 101 or later) with row b starting at 99
+    tlm = {"stage_length": 430, "roster": [{"id": "a", "t": 100, "until": 200}, {"id": "b", "t": 99}]}
+    tlm2 = dict(tlm, cap_curve=[[104, 5]])
+    E = lambda t, edge="point", lo=0: {"t": t, "edge": edge, "min": lo}  # noqa: E731
+    on = lambda spp, **kw: dict({"spp": spp, "on": True}, **kw)  # noqa: E731
+    drags = [
+        # 0-5: the cap's points first: a cap point 3 s off beats a row's start 1 s off; at 7.9 px it still wins; at
+        # 8.5 px it is out of range and the row wins; a row beats a nearer event; a cap point beats the boss and the
+        # stage mark at its second; in one tier the nearest (at 2 s/px: a wave's end 8 s off over its start 12 s off)
+        [tl, [E(147, "end", 1)], on(1)],
+        [tl, [E(142.1, "end", 1)], on(1)],
+        [tl, [E(141.5, "end", 1)], on(1)],
+        [tl, [E(302, "end", 1)], on(1)],
+        [tl, [E(433)], on(1)],
+        [tl, [E(512)], on(2)],
+        # 6-11: the range is 8 screen pixels at any zoom: 1 s/px 8 s in, 8.5 s out; 0.25 s/px 2 s in, 2.5 s and 7 s out;
+        # 4 s/px 32 s in
+        [tl, [E(608)], on(1)],
+        [tl, [E(608.5)], on(1)],
+        [tl, [E(602)], on(0.25)],
+        [tl, [E(602.5)], on(0.25)],
+        [tl, [E(607)], on(0.25)],
+        [tl, [E(632)], on(4)],
+        # 12-15: Alt held, the toggle off, Alt with the toggle off, and a target right under the edge with Alt: no snap
+        [tl, [E(150)], on(1, alt=True)],
+        [tl, [E(150)], {"spp": 1, "on": False}],
+        [tl, [E(150)], {"spp": 1, "on": False, "alt": True}],
+        [tl, [E(149)], on(1, alt=True)],
+        # 16-18: never itself: row r2's end handle at its own end (300) finds the Elites every at 301 instead; the row
+        # moved whole by its start at its own 146 finds the cap at 150; cap point 3 dragged at its own 363 finds the
+        # third row's end (368)
+        [tl, [E(300, "end", 147)], on(1, self={"kind": "roster", "i": 1})],
+        [tl, [E(146, "start", 0), E(300, "end", 154)], on(1, self={"kind": "roster", "i": 1})],
+        [tl, [E(363)], on(1, self={"kind": "cap", "k": 3})],
+        # 19-20: an edge's lowest time: row a's end handle (min 101) at 102 passes over row b's start at 99 (nothing
+        # else near: no snap); with a cap point at 104 it takes that
+        [tlm, [E(102, "end", 101)], on(1, self={"kind": "roster", "i": 0})],
+        [tlm2, [E(102, "end", 101)], on(1, self={"kind": "roster", "i": 0})],
+        # 21-22: a bar moved whole: its start is far from everything, its end 2 s from the cap (delta -2); both ends in
+        # range: the start 1 s from a row's end (tier 1) and the end 4 s from a cap point (tier 0): the cap wins (+4)
+        [tl, [E(254, "start", 0), E(365, "end", 111)], on(1, self={"kind": "roster", "i": 2})],
+        [tl, [E(121, "start", 0), E(359, "end", 238)], on(1)],
+        # 23-26: the grid: half minutes at 0.5 s/px (2 s pull), nothing at 3 s; a target in range beats an exact grid
+        # line; whole minutes at 1 s/px; none at 2 s/px
+        [{"stage_length": 430}, [E(92)], on(0.5)],
+        [{"stage_length": 430}, [E(93)], on(0.5)],
+        [{"stage_length": 430, "events": [{"type": "boss", "t": 92}]}, [E(90)], on(0.5)],
+        [{"stage_length": 430}, [E(118)], on(1)],
+        [{"stage_length": 430}, [E(118)], on(2)],
+        # 28: an event beats a stage mark (the stage 3 start 1 s off, a coloured elite 3 s off)
+        [tl, [E(861)], on(1)],
+    ]
+    q = {
+        "targets": [[tl, None], [tl, {"kind": "roster", "i": 1}], [tl, {"kind": "wave", "i": 0}], [tl, {"kind": "event", "i": 2}],
+                    [tl, {"kind": "cap", "k": 1}], [tl, {"kind": "weight", "i": 1}], [{}, None], [{"stage_length": 300, "stages": 2, "cap_curve": [[-5, 1], ["x", 2], [7]]}, None]],
+        "drag": drags,
+        "grid": [0.25, 0.5, 0.8333, 0.84, 1, 1.6666, 1.7, 5, 0, -1],
+        "clock": [0, 59.5, 150, 3599, 3600, 4000.2],
+    }
+    # JS against the Python copy: random drags on the hand-made timeline and on Red Canyon as it is on disk
+    rc_tl = server.load_json(server.map_path("red_canyon")).get("timeline_data", {})
+    rnd = random.Random(61)
+    rand_q = []
+    for base in (tl, rc_tl):
+        rows, waves, evs, caps = base.get("roster") or [], base.get("waves") or [], base.get("events") or [], base.get("cap_curve") or []
+        for _ in range(250):
+            spp = rnd.choice([0.05, 0.25, 0.47, 1, 1.37, 2.5, 6])
+            kind = rnd.choice(["roster", "wave", "event", "cap", "weight", None])
+            n = {"roster": len(rows), "wave": len(waves), "event": len(evs), "cap": len(caps)}.get(kind, 0)
+            self_ref = None
+            if kind in ("roster", "wave", "event") and n:
+                self_ref = {"kind": kind, "i": rnd.randrange(n)}
+            elif kind == "cap" and n:
+                self_ref = {"kind": "cap", "k": rnd.randrange(n)}
+            t0 = rnd.choice([rnd.uniform(0, 1400), rnd.choice([0, 150, 300, 430, 860]) + rnd.uniform(-12, 12)])
+            t0 = max(0, round(t0))
+            edges = [E(t0, "start", 0)]
+            if rnd.random() < 0.5:
+                ln = rnd.randint(1, 200)
+                edges.append(E(t0 + ln, "end", ln))
+            opts = {"spp": spp, "on": rnd.random() > 0.08, "alt": rnd.random() < 0.08, "self": self_ref}
+            rand_q.append([base, edges, opts])
+    q["drag"] = drags + rand_q
+    res = run_node(q, SNAP_RUNNER)
+    if res is None:
+        print("node not found: the snapping checks are skipped")
+        return
+    if not res:
+        return
+    c = res["consts"]
+    check(c["px"] == 8 and c["grid_px"] == 4 and c["grid_min_px"] == 36, "snap: 8 px for targets, 4 px for the grid, half minutes from 36 px apart: %s" % c)
+    tr = c["tier"]
+    check(tr["cap"] < tr["row"] == tr["wave"] < tr["event"] < tr["stage"] < tr["grid"], "snap: the tiers put the cap first, then rows and waves, events, stages, the grid: %s" % tr)
+    # the targets
+    allt = res["targets"][0]
+    key = lambda lst: sorted((x["kind"], x["t"], x["label"]) for x in lst)  # noqa: E731
+    check(key(allt) == key(snap_targets_py(tl)), "snap: the targets match the Python copy")
+    labels = {x["label"]: x for x in allt}
+    for lab, t, kind in [("cap 0:00", 0, "cap"), ("cap 2:30", 150, "cap"), ("cap 6:03", 363, "cap"), ("cap 7:10", 430, "cap"),
+                         ("r1 start", 0, "row"), ("r1 end", 122, "row"), ("row 3 start", 250, "row"), ("row 3 end", 368, "row"),
+                         ("r4 start", 368, "row"), ("r5 start", 600, "row"), ("w1 start", 200, "wave"), ("w1 end", 210, "wave"),
+                         ("rush start", 500, "wave"), ("rush end", 520, "wave"), ("wave 3 start", 700, "wave"),
+                         ("Elite 3:35", 215, "event"), ("Elites every 5:01", 301, "event"), ("boss 7:10", 430, "event"),
+                         ("Ant swarm 9:19", 559, "event"), ("stage 1 start", 0, "stage"), ("stage 2 start", 430, "stage"),
+                         ("stage 3 start", 860, "stage"), ("the run's end", 1290, "stage")]:
+        x = labels.get(lab)
+        check(x is not None and x["t"] == t and x["kind"] == kind and x["tier"] == SNAP_TIER_PY[kind], "snap: the target %r at %s (%s): %s" % (lab, t, kind, x))
+    check(len([x for x in allt if x["kind"] == "cap"]) == 5, "snap: every cap point is a target (two at 2:30 too)")
+    check(not any(x["label"] in ("r4 end", "r5 end", "wave 3 end") for x in allt), "snap: an open row, a blank until and a wave with no count and no until have no end")
+    check(labels["w1 end"]["t"] == 210 and all(isinstance(x["t"], int) for x in allt), "snap: every target a whole second (the wave's end at 200 + 2.5 × 4 = 210)")
+    check(labels["cap 7:10"]["t"] == 430, "snap: a cap point at 430.4 s is the target 430")
+    no_r2 = res["targets"][1]
+    check(not any(x["label"].startswith("r2 ") for x in no_r2) and len(no_r2) == len(allt) - 2, "snap: a dragged row is not its own target (start and end)")
+    no_w1 = res["targets"][2]
+    check(not any(x["label"].startswith("w1 ") for x in no_w1) and len(no_w1) == len(allt) - 2, "snap: a dragged wave is not its own target")
+    no_boss = res["targets"][3]
+    check(not any(x["kind"] == "event" and x["t"] == 430 for x in no_boss) and any(x["kind"] == "cap" and x["t"] == 430 for x in no_boss) and len(no_boss) == len(allt) - 1,
+          "snap: a dragged event is not its own target (the cap point and the stage mark at the same second stay)")
+    no_cap1 = res["targets"][4]
+    caps1 = [x for x in no_cap1 if x["kind"] == "cap"]
+    check(len(caps1) == 4 and sum(1 for x in caps1 if x["t"] == 150) == 1, "snap: a dragged cap point is not its own target (its twin at 2:30 stays)")
+    check(len(res["targets"][5]) == len(allt), "snap: a presence keyframe leaves every target in (its own row's start and end too)")
+    check(key(res["targets"][6]) == key([{"kind": "stage", "t": t, "label": l} for t, l in [(0, "stage 1 start"), (300, "stage 2 start"), (600, "stage 3 start"), (900, "the run's end")]]),
+          "snap: an empty timeline has the default stage marks: %s" % res["targets"][6])
+    bad = res["targets"][7]
+    check([x["kind"] for x in bad].count("cap") == 0 and len(bad) == 3, "snap: a negative, a non-number and a one-number cap point are no targets: %s" % bad)
+    # the drags by hand
+    d = res["drag"]
+    want = [
+        (150, "cap", "cap 2:30"), (150, "cap", "cap 2:30"), (146, "row", "r2 start"), (300, "row", "r2 end"), (430, "cap", "cap 7:10"),
+        (520, "wave", "rush end"),
+        (600, "row", "r5 start"), None, (600, "row", "r5 start"), None, None, (600, "row", "r5 start"),
+        None, None, None, None,
+        (301, "event", "Elites every 5:01"), (150, "cap", "cap 2:30"), (368, "row", "row 3 end"),
+        None, (104, "cap", "cap 1:44"),
+        (363, "cap", "cap 6:03"), (363, "cap", "cap 6:03"),
+        (90, "grid", "half minute 1:30"), None, (92, "event", "boss 1:32"), (120, "grid", "minute 2:00"), None,
+        (864, "event", "coloured elite 14:24"),
+    ]
+    for k, w in enumerate(want):
+        got = d[k]
+        if w is None:
+            check(got is None, "snap drag %d: no snap, got %s" % (k, got and got["target"]["label"]))
+        else:
+            ok = got is not None and got["t"] == w[0] and got["target"]["kind"] == w[1] and got["target"]["label"] == w[2]
+            check(ok, "snap drag %d: %s, got %s" % (k, w, got and (got["t"], got["target"]["kind"], got["target"]["label"])))
+    check(d[21] is not None and d[21]["edge"] == "end" and d[21]["delta"] == -2, "snap: a bar moved whole snaps by its end, the start moving the same 2 s: %s" % d[21])
+    check(d[22] is not None and d[22]["edge"] == "end" and d[22]["delta"] == 4, "snap: both ends in range, the end's cap point beats the start's nearer row: %s" % d[22])
+    check(d[0] is not None and d[0]["dist"] == 3 and d[0]["delta"] == 3, "snap: the cap point won from 3 s while a row start sat 1 s away")
+    # the grid's spacing at each zoom
+    check(res["grid"] == [30, 30, 30, 60, 60, 60, 0, 0, 60, 60], "snap: the grid's spacing per zoom (a zoom of 0 or below read as 1 s/px): %s" % res["grid"])
+    check(res["clock"] == ["0:00", "1:00", "2:30", "59:59", "1:00:00", "1:06:40"], "snap: labels' clock: %s" % res["clock"])
+    # JS against Python on the random drags
+    agree = 0
+    for (base, edges, opts), got in zip(rand_q, d[len(drags):]):
+        py = snap_drag_py(base, edges, opts)
+        same = (got is None and py is None) or (got is not None and py is not None and got["t"] == py["t"] and got["edge"] == py["edge"]
+                                                 and got["target"]["kind"] == py["target"]["kind"] and got["target"]["label"] == py["target"]["label"]
+                                                 and abs(got["delta"] - py["delta"]) < 1e-9)
+        check(same, "snap: JS and Python agree on %s %s: js %s py %s" % (edges, opts, got and got["target"]["label"], py and py["target"]["label"]))
+        if same:
+            agree += 1
+        # never itself, and never closer than the rules allow
+        if got:
+            spp = opts["spp"]
+            check(got["dist"] <= (8 if got["target"]["kind"] != "grid" else 4) * spp + 1e-9, "snap: within 8 px (4 for the grid): %s at %s s/px" % (got, spp))
+            me = opts.get("self") or {}
+            if me and got["target"]["kind"] != "grid":
+                others = {(x["label"], x["t"]) for x in snap_targets_py(base, me)}
+                mine = {(x["label"], x["t"]) for x in snap_targets_py(base)} - others
+                check((got["target"]["label"], got["t"]) not in mine, "snap: never its own start or end: %s" % got)
+    snapped = sum(1 for g in d[len(drags):] if g)
+    print("snapping: %d random drags, %d snapped, JS and Python agree on %d" % (len(rand_q), snapped, agree))
+
+
 def main():
     model_checks()
     estimate_checks()
     server_checks()
     fit_checks()
+    snap_checks()
     print("%d checks passed, %d failed" % (PASSES[0], len(FAILS)))
     return 1 if FAILS else 0
 

@@ -26,6 +26,27 @@ mutation_kind = "element"
 text = "Every pea poisons."
 vfx = "green drip on every pea, the poison tick's green flash"
 effects = [SubResource("Resource_dygvk"), SubResource("Resource_mxm5u"), SubResource("Resource_6eow5")]
+params = {
+"look": {
+"paint": {
+"Peas": {
+"albedo": "#6AB81E",
+"emission": "#3E7A0A",
+"energy": 0.4
+}
+}
+},
+"tint": {
+"albedo": "#6AB81E",
+"emission": "#3E7A0A",
+"energy": 0.5
+},
+"tracer": true,
+"tracer_color": "#6ED834",
+"tracer_life": 0.45,
+"tracer_size": 0.8,
+"tracer_step": 0.03
+}
 id = "toxic_peas"
 display_name = "Toxic Peas"
 flavour = "Green, and not in a good way."

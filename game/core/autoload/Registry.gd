@@ -431,10 +431,12 @@ func building(id: String) -> BuildingDef:
 	return buildings.get(id)
 
 
-## The playable heroes, by id (a hidden one is kept in the content but never offered).
+## The playable heroes in their order (a hidden one is kept in the content but never offered).
 func sorted_characters() -> Array:
 	var out: Array = characters.values().filter(func(c: CharacterDef) -> bool: return not c.hidden)
-	out.sort_custom(func(a, b): return a.id < b.id)
+	# by the hero's `order` (pass 61, Garry: "The Drifter, Astro, Calavera, Ironwood, Solenne"), then by id
+	out.sort_custom(func(a: CharacterDef, b: CharacterDef) -> bool:
+		return a.id < b.id if a.order == b.order else a.order < b.order)
 	return out
 
 

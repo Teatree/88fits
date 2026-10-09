@@ -2,18 +2,20 @@
   "id": "ironwood",
   "name": "Ironwood",
   "flavour": "He has outlasted worse than you.",
+  "order": 4,
   "pronoun": "he",
-  "trait": [
+  "trait": [],
+  "trait_per_level": [
     {
       "stat": "regen",
       "op": "add",
-      "value": 1.2,
+      "value": 0.1,
       "target": "player"
     },
     {
       "stat": "regen_delay",
       "op": "add",
-      "value": -1.5,
+      "value": -0.05,
       "target": "player"
     }
   ],
@@ -68,7 +70,7 @@
   "pose_hint": "Both arms hang straight down at his sides, hands open and empty, not raised, not bent. The same tall lean proportions in every view.",
   "level_heal": 0.0,
   "trait_name": "Enduring",
-  "trait_text": "+1.2 health a second, and his regen starts again 1.5 s after a hit instead of 3. No more health than anyone else. He finds Brawn at level 2.",
+  "trait_text": "Gain 0.1 HP regen and 0.05 s less regen delay per level (regen delay never under 0.5 s).",
   "pose_drivers": {
     "back": "run_spread",
     "bd": "run_spread"

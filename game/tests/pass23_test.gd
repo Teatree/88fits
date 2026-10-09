@@ -119,10 +119,11 @@ func test_heroes_have_named_traits_and_roughly_equal_budgets() -> void:
 		assert_str(c.trait_text).override_failure_message(id + " has no trait text").is_not_empty()
 	assert_float(Registry.character("astro").level_heal).is_greater(0.0)
 	assert_float(Registry.character("buck").trait_effects[0].value).is_equal_approx(-0.15, 0.001)
-	# every hero's trait gives something and costs something or gives a mechanic: no hero is all downside
+	# every hero's trait gives something and costs something or gives a mechanic: no hero is all downside (re-pinned in
+	# pass 61: the heroes in play carry it as a stat a level, level_trait)
 	for id in ["astro", "drifter", "dad"]:
 		var plus := 0
-		for e in Registry.character(id).trait_effects:
+		for e in Registry.character(id).trait_effects + Registry.character(id).level_trait:
 			if e.value > 0.0:
 				plus += 1
 		assert_int(plus).override_failure_message(id + " trait gives nothing").is_greater_equal(1)

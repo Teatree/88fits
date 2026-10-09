@@ -13,9 +13,10 @@ uniform float tint_strength = 0.6;
 // how far the painted texture is flattened towards a plain colour: busy dunes fight the sprites, so 0.4 by default
 uniform float calm : hint_range(0.0, 1.0) = 0.4;
 // pass 54: a little lighter and less orange (were 0.86, 0.68, 0.42 and 0.62, 0.44, 0.30); Red Canyon sets both from its
-// sand_color / river_color exports, so the ground has a tuning knob
-uniform vec3 sand_flat : source_color = vec3(0.88, 0.72, 0.48);
-uniform vec3 cracked_flat : source_color = vec3(0.66, 0.50, 0.36);
+// sand_color / river_color exports, so the ground has a tuning knob. Pass 61: the sand lighter again (was 0.88, 0.72,
+// 0.48) and the river bed the sand a little browner (was 0.66, 0.50, 0.36)
+uniform vec3 sand_flat : source_color = vec3(0.90, 0.78, 0.58);
+uniform vec3 cracked_flat : source_color = vec3(0.80, 0.67, 0.50);
 // hell (pass 43): stage 3 turns the ground a shade redder and darker; the map tweens it in over a few seconds
 uniform float hell : hint_range(0.0, 1.0) = 0.0;
 

@@ -3,14 +3,16 @@
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_nmbfl"]
 [ext_resource type="Texture2D" path="res://content/talents/spite/spite_icon.png" id="2_6ram5"]
 [ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_s2miy"]
+[ext_resource type="Texture2D" path="res://content/talents/spite/spite_0_icon.png" id="2_txfy4"]
+[ext_resource type="Texture2D" path="res://content/talents/spite/spite_1_icon.png" id="3_s1lxg"]
 
-[sub_resource type="Resource" id="Resource_s2miy"]
+[sub_resource type="Resource" id="Resource_txfy4"]
 script = ExtResource("1_nmbfl")
 stat = "thorns"
 value = 5.0
 target = "player"
 
-[sub_resource type="Resource" id="Resource_6ram5"]
+[sub_resource type="Resource" id="Resource_s1lxg"]
 script = ExtResource("1_nmbfl")
 stat = "lifesteal"
 value = 0.01
@@ -22,11 +24,15 @@ order = 8
 ranks = 6
 cost = [200.0, 360.0, 600.0, 900.0, 1300.0, 1800.0]
 forms = [{
-"effects": [SubResource("Resource_s2miy")],
+"effects": [SubResource("Resource_txfy4")],
+"icon": ExtResource("2_txfy4"),
+"icon_file": "spite_0_icon.png",
 "name": "Thorns",
 "text": "+5 thorns a rank."
 }, {
-"effects": [SubResource("Resource_6ram5")],
+"effects": [SubResource("Resource_s1lxg")],
+"icon": ExtResource("3_s1lxg"),
+"icon_file": "spite_1_icon.png",
 "name": "Thirst",
 "text": "+1% lifesteal a rank (capped as ever)."
 }]

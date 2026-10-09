@@ -12,8 +12,11 @@ extends MapBase
 @export var flats_radius := 16.0
 ## The ground's flat tones (pass 54): the painted terrain shader mixes its textures towards these (`calm`), so they are
 ## the knob for the sand's and the river bed's colour; a little lighter and less orange than before (Garry).
-@export var sand_color := Color(0.88, 0.72, 0.48)
-@export var river_color := Color(0.66, 0.50, 0.36)
+## Pass 61 (Garry): the sand even lighter (was 0.88, 0.72, 0.48), and the dry river no longer the old brown (was 0.66, 0.50,
+## 0.36) but "a slightly browner shade of the generic desert colour": the sand's hue a touch redder, a step darker and
+## a little more saturated, so it reads as the same sand gone damp and packed (its course, banks and depth unchanged)
+@export var sand_color := Color(0.90, 0.78, 0.58)
+@export var river_color := Color(0.80, 0.67, 0.50)
 @export var wall_color := Color(0.56, 0.31, 0.17)
 ## Tumbleweeds are hidden since pass 44 (Garry: no more of them, the gusts carry the desert now); the feature stays.
 @export var tumbleweeds := 0
@@ -21,6 +24,17 @@ extends MapBase
 ## The Oasis disc (pass 56: _build_lake draws it, water_disc tells it): its radius over the lake's, and its thickness
 const LAKE_DISC := 1.06
 const LAKE_THICK := 0.08
+## Bush patches (pass 61, Garry: "Add another type of a patch of greenery. This one containing only bushes, make the bush
+## distribution quite sparse, but the patch itself should be more frequent then the trees one. None of the bushes have
+## collision."): this many patches a run (the green stands are three, cactus or trees), each a few bushes spread thin over
+## BUSH_PATCH_R metres with open sand between (no two closer than BUSH_SPACING + 0.6 m), its centre BUSH_PATCH_APART from
+## any other region's. Every id here has radius 0 in props.json: walked through, no collider, no obstacle circle.
+const BUSH_PATCHES := Vector2i(5, 7)
+const BUSH_PER_PATCH := Vector2i(4, 6)
+const BUSH_PATCH_R := 7.0
+const BUSH_SPACING := 1.9
+const BUSH_PATCH_APART := 18.0
+const BUSH_IDS := [["desert_bush", 3.0], ["creosote_bush", 3.0], ["dead_shrub", 2.0]]
 
 ## the run's roll: the river's waypoints, the lake's centre, radius, water level and floor
 var _river: Array = []
@@ -37,6 +51,10 @@ var run_seed := 0
 var _static: StaticBody3D
 var _noise := FastNoiseLite.new()
 var props: PropField
+## the scatter's regions as placed (pass 61, for tests and captures): the green stands ({center, kind "cactus"|"trees"})
+## and the bush patches ({center, radius, bushes [{id, pos}]})
+var _stands: Array = []
+var _bush_patches: Array = []
 
 
 func _ready() -> void:
@@ -109,6 +127,16 @@ func lake_center() -> Vector2:
 
 func lake_radius() -> float:
 	return _lake_r
+
+
+## The green stands as placed: [{center: Vector2, kind: "cactus" | "trees"}] (pass 61).
+func green_stands() -> Array:
+	return _stands
+
+
+## The bush patches as placed: [{center: Vector2, radius: float, bushes: [{id, pos: Vector2}]}] (pass 61).
+func bush_patches() -> Array:
+	return _bush_patches
 
 
 # ---------------------------------------------------------------- terrain
@@ -641,9 +669,12 @@ func bind_game(game: Node) -> void:
 
 ## A PropField of painted sprites laid down by region, so like stands with like: the oasis (palms and green around
 ## the water), three green stands (a cactus stand or a tree stand with the low greenery around it), dead trees and
-## shrubs on the dry river's banks with bones in its bed, rock fields near the rim with skulls among them, and a few
-## lone things. Anything with a collider radius gets a cylinder body and an obstacle circle; bushes have none.
+## shrubs on the dry river's banks with bones in its bed, rock fields near the rim with skulls among them, a few
+## lone things, and (pass 61) five to seven sparse bush patches. Anything with a collider radius gets a cylinder body and
+## an obstacle circle; bushes have none.
 func _scatter_sprites() -> void:
+	_stands.clear()
+	_bush_patches.clear()
 	props = PropField.new()
 	props.name = "Props"
 	add_child(props)
@@ -669,16 +700,17 @@ func _scatter_sprites() -> void:
 				return false
 		return true
 
-	var place := func(id: String, pt: Vector2, scale: float, sway: float) -> void:
+	var place := func(id: String, pt: Vector2, scale: float, sway: float) -> bool:
 		# a hidden painting (props.json "hidden": the signpost and the yucca since pass 49) is never placed
 		if not props.has(id) or props.is_hidden(id):
-			return
+			return false
 		var g := _ground(pt.x, pt.y)
-		props.add(id, g, scale, rng.randf() < 0.5, sway)
+		var added := props.add(id, g, scale, rng.randf() < 0.5, sway)
 		var r := props.radius_of(id) * scale
 		if r > 0.0:
 			_sprite_collider(g, r, props.height_of(id) * scale)
 		taken.append(Vector3(pt.x, pt.y, maxf(r, 0.6)))
+		return added
 
 	var around := func(centre: Vector2, rmin: float, rmax: float, keep: float) -> Vector2:
 		for k in range(30):
@@ -737,7 +769,9 @@ func _scatter_sprites() -> void:
 		if centre == Vector2.INF:
 			continue
 		greens.append(centre)
-		if rng.randf() < 0.5:
+		var cactus := rng.randf() < 0.5
+		_stands.append({"center": centre, "kind": "cactus" if cactus else "trees"})
+		if cactus:
 			for k in range(rng.randi_range(2, 3)):
 				var pt: Vector2 = around.call(centre, 0.0, 5.0, 1.5)
 				if pt != Vector2.INF:
@@ -817,6 +851,49 @@ func _scatter_sprites() -> void:
 		var pt: Vector2 = spot.call(3.0, 18.0, 34.0, [], 0.0)
 		if pt != Vector2.INF:
 			place.call("signpost", pt, 1.0, 0.0)
+	# --- bush patches (pass 61): last, so every other region keeps the very spots it had for a seed and the patches find
+	# the open ground between them. Each centre on the sand inside the red-rock rim, clear of the flats (the patch's half
+	# width past them), the lake's greenery, the river bed (the patch's 0.6 off it, so its bushes stand on the open sand,
+	# not on the banks' dead trees) and every other region's centre; a few bushes round it, nearer the middle than the
+	# edge, BUSH_SPACING apart
+	var away: Array = greens.slice(1) + rocks
+	for c in range(rng.randi_range(BUSH_PATCHES.x, BUSH_PATCHES.y)):
+		var centre := Vector2.INF
+		for k in range(300):
+			# on the open sand between the flats and the red-rock rim; past half the tries the regions may close in a little
+			var a := rng.randf() * TAU
+			var r := rng.randf_range(flats_radius + 6.0, rim_start - 1.0)
+			var pt := Vector2(cos(a) * r, sin(a) * r)
+			var apart := BUSH_PATCH_APART if k < 150 else BUSH_PATCH_APART * 0.75
+			if (pt - fc).length() < flats_radius + 3.0 + BUSH_PATCH_R * 0.5:
+				continue
+			if _lake_dist(pt) < _lake_r + 11.0 + BUSH_PATCH_R * 0.6:
+				continue
+			if _river_dist(pt) < river_width * 0.5 + BUSH_PATCH_R * 0.6:
+				continue
+			if not free.call(pt, 1.0):
+				continue
+			var ok := true
+			for q: Vector2 in away:
+				if pt.distance_to(q) < apart:
+					ok = false
+					break
+			if ok:
+				centre = pt
+				break
+		if centre == Vector2.INF:
+			continue
+		away.append(centre)
+		var bushes: Array = []
+		for k in range(rng.randi_range(BUSH_PER_PATCH.x, BUSH_PER_PATCH.y)):
+			var pt: Vector2 = around.call(centre, 0.0, BUSH_PATCH_R, BUSH_SPACING)
+			if pt == Vector2.INF:
+				continue
+			var id: String = pick.call(BUSH_IDS)
+			if place.call(id, pt, rng.randf_range(0.8, 1.15), 0.07):
+				bushes.append({"id": id, "pos": pt})
+		if not bushes.is_empty():
+			_bush_patches.append({"center": centre, "radius": BUSH_PATCH_R, "bushes": bushes})
 
 
 func _sprite_collider(g: Vector3, r: float, h: float) -> void:

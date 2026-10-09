@@ -21,8 +21,10 @@ signal pause_requested
 ## top and bottom (3 before), so the fill keeps two thirds of it. The level-up screen's rainbow rail (CardScreen) reads
 ## both, so the two rails can never differ again. The top row, the slots and the strip are laid out from the rail's
 ## bottom, each from the one above it, so a thicker rail moves them all down by what it gained and every gap stays.
-const RAIL_H := 36.0
-const RAIL_INSET := 6.0
+## Pass 61 (Garry: "Make the EXP bar 1.8 times bigger. Make sure the rainbow animation isn't broken"): 65 px (36 x 1.8,
+## rounded), the fill 11 px in (6 x 1.8, rounded), so the fill keeps its two thirds; everything under it 29 px lower.
+const RAIL_H := 65.0
+const RAIL_INSET := 11.0
 ## The compact top (pass 41: the mock's row, 44 px plates from y 44 and 104 px weapon slots from y 170, took a fifth
 ## of the phone's height): the row's line and type 12 px under the rail (the pause disc 2 px higher), the pause disc, and
 ## the slots' line 96 px under the row's (pass 56: 48 and 144, each 18 px lower than the 30 and 126 of passes 41-55).

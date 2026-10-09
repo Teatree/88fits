@@ -27,7 +27,31 @@ text = "Pellets set 60% of the enemies they hit on fire."
 vfx = "an orange muzzle bloom and burning creatures"
 effects = [SubResource("Resource_4k11m"), SubResource("Resource_3ebtw"), SubResource("Resource_4huya")]
 params = {
-"ignite_chance": 0.6
+"ignite_chance": 0.6,
+"look": {
+"heat": {
+"color": "#FF4A12",
+"cool": 0.6,
+"energy": 2.6,
+"parts": {
+"Barrels": true,
+"Bell": true
+}
+},
+"tongue": {
+"length": 1.6,
+"size": 0.8
+}
+},
+"tint": {
+"albedo": "#FFA236",
+"emission": "#FF6A12",
+"energy": 3.0,
+"halo": "#E8300A",
+"halo_alpha": 0.85
+},
+"tracer_life": 0.28,
+"tracer_size": 0.55
 }
 id = "dragons_breath"
 display_name = "Dragon's Breath"

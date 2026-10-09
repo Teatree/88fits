@@ -20,10 +20,21 @@ script = ExtResource("2_labp7")
 weapon = "big_mouth"
 mutation_kind = "volume"
 text = "The first touch of the beam throws a creature back hard, and the beam is half again as wide."
-vfx = "a shove of light: everything the beam first meets is flung backwards"
+vfx = "a green-yellow beam that wobbles like a breath; a gust puffs off everything it first meets and flings it back"
 effects = [SubResource("Resource_labp7"), SubResource("Resource_ugl13")]
 params = {
 "beam": {
+"breath": {
+"color": [0.66, 1.0, 0.16],
+"core": [0.9, 1.0, 0.55],
+"glow": 1.4,
+"gust_color": [0.62, 0.92, 0.14],
+"gusts": 2.0,
+"haze": [0.92, 1.0, 0.3],
+"haze_mix": 0.6,
+"haze_over": 0.35,
+"wobble": 1.0
+},
 "first_knock": true,
 "width_mult": 1.5
 }

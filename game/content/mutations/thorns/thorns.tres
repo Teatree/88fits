@@ -19,6 +19,24 @@ vfx = "a heavier weed, slower out and quick home"
 effects = [SubResource("Resource_h2t8o")]
 params = {
 "back_speed_mult": 1.4,
+"look": {
+"specks": {
+"color": "#24140A",
+"every": 0.6,
+"life": 3.5,
+"size": 0.3,
+"spread": 0.45
+},
+"spikes": {
+"base": 0.09,
+"color": "#3A1A0C",
+"count": 18.0,
+"emission": "#6A2E12",
+"energy": 0.5,
+"inset": 0.75,
+"length": 0.55
+}
+},
 "out_speed_mult": 0.7,
 "tint": {
 "albedo": "#3A2412",

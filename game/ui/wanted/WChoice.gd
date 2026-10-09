@@ -11,7 +11,8 @@ var _halves: Array = []
 var _texts: Array = []
 
 
-## options: [[title, sub], [title, sub]]
+## options: [[title, sub], [title, sub]]; a third entry, a Control (pass 61: the Upgrade sheet's form icon on its plate),
+## sits at the half's left beside the words
 static func make(options: Array, p_index: int = 0, title_px: int = 36, sub_px: int = 24, pad: float = 20.0,
 		align: int = HORIZONTAL_ALIGNMENT_CENTER, gap: int = 2) -> WChoice:
 	var c := WChoice.new()
@@ -30,7 +31,19 @@ static func make(options: Array, p_index: int = 0, title_px: int = 36, sub_px: i
 		if o.size() > 1 and str(o[1]) != "":
 			s = W.serif_text(str(o[1]), sub_px, W.INK, 400, false, align, 0.0, true)
 			v.add_child(s)
-		half.add_child(v)
+		if o.size() > 2 and o[2] is Control:
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", int(pad))
+			row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var pic: Control = o[2]
+			pic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(pic)
+			v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(v)
+			half.add_child(row)
+		else:
+			half.add_child(v)
 		half.set_meta("pad", pad)
 		var idx := i
 		half.pressed.connect(func(): c.choose(idx, true))

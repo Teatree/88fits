@@ -3,14 +3,16 @@
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_c31ff"]
 [ext_resource type="Texture2D" path="res://content/talents/fortune/fortune_icon.png" id="2_3n4ce"]
 [ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_gd47i"]
+[ext_resource type="Texture2D" path="res://content/talents/fortune/fortune_0_icon.png" id="2_ovsa1"]
+[ext_resource type="Texture2D" path="res://content/talents/fortune/fortune_1_icon.png" id="3_2wb1h"]
 
-[sub_resource type="Resource" id="Resource_gd47i"]
+[sub_resource type="Resource" id="Resource_ovsa1"]
 script = ExtResource("1_c31ff")
 stat = "luck"
 value = 0.12
 target = "player"
 
-[sub_resource type="Resource" id="Resource_3n4ce"]
+[sub_resource type="Resource" id="Resource_2wb1h"]
 script = ExtResource("1_c31ff")
 stat = "greed"
 op = "mul"
@@ -23,11 +25,15 @@ order = 4
 ranks = 6
 cost = [150.0, 270.0, 450.0, 675.0, 975.0, 1350.0]
 forms = [{
-"effects": [SubResource("Resource_gd47i")],
+"effects": [SubResource("Resource_ovsa1")],
+"icon": ExtResource("2_ovsa1"),
+"icon_file": "fortune_0_icon.png",
 "name": "Omen",
 "text": "+0.12 luck a rank: rarer items turn up more often."
 }, {
-"effects": [SubResource("Resource_3n4ce")],
+"effects": [SubResource("Resource_2wb1h")],
+"icon": ExtResource("3_2wb1h"),
+"icon_file": "fortune_1_icon.png",
 "name": "Greed",
 "text": "+12% gold a rank."
 }]

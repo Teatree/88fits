@@ -15,8 +15,18 @@ script = ExtResource("2_o7njk")
 weapon = "sabre"
 mutation_kind = "element"
 text = "+10% critical hit chance for every weapon."
-vfx = "gold crit numbers more often, from every weapon"
+vfx = "a bright razor edge on the blade; a white hairline streak across whatever it crits"
 effects = [SubResource("Resource_o7njk")]
+params = {
+"razor": {
+"color": "#FFFFFF",
+"crit_streak": true,
+"glow": "#FFE7A0",
+"streak_length": 1.6,
+"streak_life": 0.26,
+"streak_width": 0.05
+}
+}
 id = "critical_thinking"
 display_name = "Critical Thinking"
 flavour = "Aim for the soft parts. All of them."

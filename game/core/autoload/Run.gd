@@ -6,6 +6,9 @@ signal level_up(level: int)
 signal xp_changed(xp: float, needed: float)
 signal xp_gained(amount: float)
 signal build_changed
+## the hero's own sheet was rebuilt without the weapons (pass 61: a level's signature stat); Game refreshes the hero's
+## health and speed from it at once
+signal hero_sheet_changed
 signal gold_changed(run_gold: int)
 signal kills_changed(kills: int)
 signal stage_changed(stage: int)
@@ -242,19 +245,7 @@ var base_crit := not Array(OS.get_cmdline_args()).any(func(a) -> bool: return st
 
 
 func _build_player_sheet() -> void:
-	player_sheet = StatSheet.new()
-	player_sheet.scope = "player"
-	player_sheet.set_bases(StatSheet.PLAYER_DEFAULTS)
-	if not base_crit:
-		player_sheet.set_bases({"crit_chance": 0.0})
-	if character:
-		player_sheet.add_effects(character.trait_effects, character.display_name)
-	# the Mirror: the form picked for each talent, as many times as it has ranks
-	for tdef: TalentDef in Registry.talents.values():
-		var rank := Save.talent_rank(tdef.id)
-		if rank > 0:
-			var form := Save.talent_form(tdef.id)
-			player_sheet.add_effects(tdef.effects_for(form, rank), "%s: %s %d" % [tdef.display_name, tdef.form_name(form), rank])
+	player_sheet = hero_sheet(character, level)
 	for tb in timed:
 		player_sheet.add_effects(tb["effects"], tb["source"])
 	if momentum > 0.0 and not momentum_def.is_empty():
@@ -283,6 +274,44 @@ func _build_player_sheet() -> void:
 		c1.stat = "might"; c1.op = "mul"; c1.value = crescendo_might(); c1.target = "player"
 		player_sheet.add_effects([c1], "Crescendo +%d%%" % int(round(crescendo_might() * 100.0)))
 	haste = player_sheet.get_stat("haste", 1.0)
+
+
+## A hero's own sheet at a level (pass 61): the defaults, his flat trait (the hidden heroes'), his signature stat at that
+## level and the Mirror's ranks; what every run starts from, and what the title's hero sheet (the CV) shows. Nothing in
+## the run's state is read or changed.
+func hero_sheet(c: CharacterDef, at_level: int = 1) -> StatSheet:
+	var sheet := StatSheet.new()
+	sheet.scope = "player"
+	sheet.set_bases(StatSheet.PLAYER_DEFAULTS)
+	if not base_crit:
+		sheet.set_bases({"crit_chance": 0.0})
+	if c:
+		sheet.add_effects(c.trait_effects, c.display_name)
+		# the signature stat (pass 61): one effect per stat worth the level's whole bonus, named with the level; under
+		# the test runner the Drifter's crit chance stays out with the base 1% (base_crit), for the same reason
+		var lv := c.level_effects(at_level)
+		if not base_crit:
+			lv = lv.filter(func(e: Effect) -> bool: return e.stat != "crit_chance")
+		if not lv.is_empty():
+			sheet.add_effects(lv, trait_source(c, at_level))
+	# the Mirror: the form picked for each talent, as many times as it has ranks
+	for tdef: TalentDef in Registry.talents.values():
+		var rank := Save.talent_rank(tdef.id)
+		if rank > 0:
+			var form := Save.talent_form(tdef.id)
+			sheet.add_effects(tdef.effects_for(form, rank), "%s: %s %d" % [tdef.display_name, tdef.form_name(form), rank])
+	return sheet
+
+
+## The name the signature stat goes by on the sheet (the pause screen's breakdown): "Last Dance (Lv 12)".
+static func trait_source(c: CharacterDef, at_level: int) -> String:
+	var n := c.trait_name if c.trait_name != "" else c.display_name
+	return "%s (Lv %d)" % [n, at_level]
+
+
+## Whether the hero's numbers move with his level (pass 61: every hero in play), so a level-up rebuilds the sheets.
+func levels_trait() -> bool:
+	return character != null and not character.level_trait.is_empty()
 
 
 ## What Crescendo adds to might right now (its stacks × the perk's per_kill, capped by its max).
@@ -1000,28 +1029,44 @@ func add_xp(n: float) -> void:
 	xp += n
 	xp_gained.emit(n)
 	xp_changed.emit(xp, xp_to_next())
+	var grew := false
 	while xp >= xp_to_next():
 		xp -= xp_to_next()
 		level += 1
 		max_level_reached = max(max_level_reached, level)
+		# the signature stat grows with the level (pass 61): the hero's own sheet follows before anyone hears of it, so his
+		# max HP has risen by the time a level-up heals a share of it; the weapons and the HUD rebuild once after the loop
+		# (the review: a credit of many levels at once rebuilt every weapon and plate per level)
+		if levels_trait():
+			_build_player_sheet()
+			hero_sheet_changed.emit()
+			grew = true
 		level_up.emit(level)
 		xp_changed.emit(xp, xp_to_next())
+	if grew:
+		rebuild_sheets()
 
 
-func spend_gold(n: int) -> bool:
+## Gold out of the purse. `sink` names where it went (pass 61, Garry: "Coin Gains / Spend ... have all the sources"):
+## shop, revive (RunAnalytics.GOLD_SINKS); the run recorder tallies it.
+func spend_gold(n: int, sink: String = "other") -> bool:
 	if run_gold < n:
 		return false
 	run_gold -= n
+	if n > 0 and RunAnalytics.I: RunAnalytics.I.gold_out(sink, n)
 	gold_changed.emit(run_gold)
 	return true
 
 
-func add_gold(n: int) -> void:
+## Gold into the purse, scaled by greed. `source` names where it came from (pass 61: coins, elite_purse, chest, ...;
+## RunAnalytics.GOLD_SOURCES); the run recorder tallies what was gained, and what greed added to it.
+func add_gold(n: int, source: String = "other") -> void:
 	var gained := int(round(n * player_sheet.get_stat("greed", 1.0)))
 	run_gold += gained
 	# all-time gold earned (pass 44: an unlock counts it), whatever becomes of the purse
 	if gained > 0 and not arena:
 		Save.add_total("gold_earned", gained)
+	if gained > 0 and RunAnalytics.I: RunAnalytics.I.gold_in(source, gained, gained - n)
 	gold_changed.emit(run_gold)
 	if gained > 0:
 		gold_gained.emit(gained)
@@ -1411,7 +1456,7 @@ func chest_take(r: Dictionary) -> String:
 			var md: MutationDef = r.get("def")
 			if md and add_mutation(md.id, true):
 				return md.display_name
-			add_gold(60)
+			add_gold(60, "chest")
 			return "+60 gold"
 		"evolution":
 			var src := weapon_instance(str(r.get("src_id", "")))
@@ -1422,7 +1467,7 @@ func chest_take(r: Dictionary) -> String:
 		"weapon":
 			# the build can have changed under the reel (an evolution replaced the weapon): then gold instead
 			if weapon_instance(r["id"]) == null:
-				add_gold(int(r.get("gold", 50)))
+				add_gold(int(r.get("gold", 50)), "chest")
 				return "+%d gold" % int(r.get("gold", 50))
 			level_weapon(r["id"])
 			return Registry.weapon(r["id"]).display_name + " Lv " + str(weapon_instance(r["id"]).level)
@@ -1431,11 +1476,11 @@ func chest_take(r: Dictionary) -> String:
 			# is taken; one that cannot be is gold)
 			var pid := str(r["id"])
 			if (not bool(r.get("is_new", false)) and not passives.has(pid)) or not add_or_level_passive(pid):
-				add_gold(int(r.get("gold", 50)))
+				add_gold(int(r.get("gold", 50)), "chest")
 				return "+%d gold" % int(r.get("gold", 50))
 			return Registry.passive(pid).display_name + " Lv " + str(passives[pid])
 		_:
-			add_gold(int(r.get("gold", 50)))
+			add_gold(int(r.get("gold", 50)), "chest")
 			return "+%d gold" % int(r.get("gold", 50))
 
 

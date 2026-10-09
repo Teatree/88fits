@@ -38,6 +38,22 @@ const FRAME_GAP_MS := 250.0
 ## The run summary stays well under PostHog's ~32 KB an event (Analytics.EVENT_MAX): past this it is folded into
 ## two-minute buckets, then four, ...
 const SUMMARY_MAX := 24000
+## Where a run's gold comes from (pass 61, Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)"):
+## the `source` every Run.add_gold call names. coins = a creature's dropped coin; loose_change, gold_dust, boss_coins,
+## loot_cache, blasting_cap = coins of those origins (PickupManager.mark_coin); elite_purse, boss_purse = a kill's
+## purse; chest = a chest's gold (its gold roll, or gold when the build changed under the reel); coin_bag = Pickpocket's
+## bag; hush_money = a hit's pay; bounty = Bounty Hunter; dice = the dice shrine; empty_offer, stranger_empty,
+## shop_empty = something with nothing left to give; debug = the developer buttons (boards leave it out); other = a call
+## that named nothing (none should: pass61_an_test).
+const GOLD_SOURCES := ["coins", "loose_change", "gold_dust", "boss_coins", "loot_cache", "blasting_cap", "elite_purse",
+	"boss_purse", "chest", "coin_bag", "hush_money", "bounty", "dice", "empty_offer", "stranger_empty", "shop_empty",
+	"debug", "other"]
+## Where a run's gold goes (Run.spend_gold's `sink`): the shop structure, the Down! revive. The Strongbox is not a
+## spend: it banks the purse (run_end's gold_banked, the save's gold_meta "strongbox").
+const GOLD_SINKS := ["shop", "revive", "other"]
+## The saved gold's reasons (Save.add_gold / spend_gold, sent as gold_meta): in from run_bank (the purse an extraction
+## brings home), strongbox (banked mid-run), talent_refund (Take it all back); out to talent (an Upgrade rank) and wipe.
+const META_REASONS := ["run_bank", "strongbox", "talent_refund", "talent", "wipe", "debug", "other"]
 
 var game: Node
 var play_t := 0.0            # unpaused play seconds: the x axis (Run.elapsed is the stage clock and freezes in boss and portal phases)
@@ -71,6 +87,13 @@ var _healed := 0.0
 var _kills: Dictionary = {}
 var _elite_kills := 0
 var _spawns: Dictionary = {}
+# the gold of the second (pass 61): {source: gold in}, {sink: gold out}; and the run's totals, which run_end reads
+var _gold_in: Dictionary = {}
+var _gold_out: Dictionary = {}
+var gold_in_total: Dictionary = {}
+var gold_out_total: Dictionary = {}
+## what greed added on top of the sources' own amounts (part of gold_in_total)
+var gold_greed := 0
 # the offer on the table (pass 57): when it showed, its rerolls and banishes so far
 var _offer_t0 := 0
 var _offer_rerolls := 0
@@ -112,6 +135,8 @@ func begin(p_game: Node) -> void:
 	# rows in PostHog find each other; map_rev is the Level Editor version of the map the run played
 	header["run_id"] = Analytics.uuid7()
 	header["map_rev"] = Analytics.map_rev(mapdef)
+	# the saved gold as the run began (pass 61: run_end's gold_before; gold_after - gold_before = what the run banked)
+	header["gold_before"] = Save.gold()
 	Analytics.run_begin(str(header["run_id"]))
 	var em = game.get("enemies")
 	var dir = game.get("director")
@@ -147,6 +172,7 @@ func _exit_tree() -> void:
 	# hears the run ended (the queue is on disk before the app is gone; it goes at the next launch)
 	if not _finished and not samples.is_empty():
 		_finished = true
+		_flush_gold()
 		header["result"] = "quit"
 		_fill_end(false)
 		_write(true)
@@ -188,6 +214,36 @@ func spawned(def: EnemyDef) -> void:
 ## Player.heal: the health actually restored.
 func healed(n: float) -> void:
 	_healed += n
+
+
+## Run.add_gold (pass 61): `n` gold came into the purse from `source` (after greed; `greed` of it is greed's share).
+func gold_in(source: String, n: int, greed: int = 0) -> void:
+	_gold_in[source] = int(_gold_in.get(source, 0)) + n
+	gold_in_total[source] = int(gold_in_total.get(source, 0)) + n
+	if greed > 0:
+		gold_greed += greed
+
+
+## Run.spend_gold (pass 61): `n` gold went out of the purse to `sink`.
+func gold_out(sink: String, n: int) -> void:
+	_gold_out[sink] = int(_gold_out.get(sink, 0)) + n
+	gold_out_total[sink] = int(gold_out_total.get(sink, 0)) + n
+
+
+## The run's gold so far (pass 61): earned and spent, every source and sink summed.
+func gold_earned() -> int:
+	return _sum_ints(gold_in_total)
+
+
+func gold_spent() -> int:
+	return _sum_ints(gold_out_total)
+
+
+static func _sum_ints(d: Dictionary) -> int:
+	var t := 0
+	for k in d:
+		t += int(d[k])
+	return t
 
 
 func _on_enemy_died(def: EnemyDef, _pos: Vector3, elite: EliteModDef, _weapon_id: String) -> void:
@@ -403,6 +459,9 @@ func _sample() -> void:
 			row["invuln"] = 1
 	_put(row, "gold", Run.run_gold)
 	_put(row, "banked", Run.banked_gold)
+	# the second's gold by source and by sink (pass 61)
+	_put_map(row, "gold_in", _gold_in, false)
+	_put_map(row, "gold_out", _gold_out, false)
 	_put(row, "kills", Run.kills)
 	_put(row, "adren", Run.adrenaline)
 	_put(row, "cresc", Run.crescendo)
@@ -495,6 +554,10 @@ func _sample() -> void:
 		_kills[k] = 0
 	for k in _spawns:
 		_spawns[k] = 0
+	for k in _gold_in:
+		_gold_in[k] = 0
+	for k in _gold_out:
+		_gold_out[k] = 0
 	_took_raw = 0.0
 	_hits = 0
 	_evaded = 0
@@ -531,6 +594,7 @@ func finish() -> void:
 	_finished = true
 	if _acc_t > 0.25:
 		_sample()
+	_flush_gold()
 	if Run.extracted:
 		header["result"] = "extract"
 	elif abandoned:
@@ -543,6 +607,27 @@ func finish() -> void:
 	_write(true)
 	_send_held()
 	Analytics.run_finish(_end_props(int(Run.last_result.get("banked", 0))), _summary_props())
+
+
+## Gold of a second the rows have not taken yet (pass 61: a chest or the shop pays while the game is paused, and the
+## last part-second of a run makes no row) goes into the last row, so the rows' gold sums to the run's totals.
+func _flush_gold() -> void:
+	if _sum_ints(_gold_in) == 0 and _sum_ints(_gold_out) == 0:
+		return
+	if samples.is_empty():
+		_sample()
+		return
+	var row: Dictionary = samples[-1]
+	for pair in [["gold_in", _gold_in], ["gold_out", _gold_out]]:
+		var acc: Dictionary = pair[1]
+		for k in acc:
+			var n: int = acc[k]
+			if n == 0:
+				continue
+			if not (row.get(pair[0]) is Dictionary):
+				row[pair[0]] = {}
+			row[pair[0]][k] = int(row[pair[0]].get(k, 0)) + n
+			acc[k] = 0
 
 
 ## Game._notification on APPLICATION_PAUSED: the record so far, before Android may drop the process.
@@ -576,10 +661,28 @@ func _fill_end(with_log: bool) -> void:
 ## What PostHog's run_end carries (pass 57), from the completed header; `banked` is the gold that came home (0 for a
 ## quit: the run never reached end_run).
 func _end_props(banked: int) -> Dictionary:
-	return {"result": str(header.get("result", "")), "t": header.get("length", 0.0), "clock": header.get("clock", 0.0),
+	var p := {"result": str(header.get("result", "")), "t": header.get("length", 0.0), "clock": header.get("clock", 0.0),
 		"stage": header.get("stage", 1), "wave": header.get("endless_wave", 0), "level": header.get("level", 1),
 		"kills": header.get("kills", 0), "gold": header.get("gold", 0), "banked": banked,
 		"strongbox": header.get("strongbox", 0), "revives": header.get("revives", 0)}
+	p.merge(gold_end(banked), true)
+	return p
+
+
+## The run's gold as it ended (pass 61, on run_end): gold_earned (every source, greed in; gold_greed is greed's share,
+## gold_debug the developer buttons'), gold_spent (shop, revive), gold_strongbox (banked mid-run), gold_purse (what he
+## held at the end), gold_banked (the Strongbox's and the extraction's: all that reached the save), gold_lost (the purse
+## of a death, an abandon or a quit, left in the sand), gold_before / gold_after (the saved gold as the run began and
+## now). earned - spent = strongbox + purse = banked + lost.
+func gold_end(banked: int) -> Dictionary:
+	var purse := int(header.get("gold", Run.run_gold))
+	var strongbox := int(header.get("strongbox", Run.banked_gold))
+	var result := str(header.get("result", ""))
+	var lost := purse if (Run.died or result == "quit" or result == "abandon" or result == "death") else 0
+	return {"gold_earned": gold_earned(), "gold_spent": gold_spent(), "gold_greed": gold_greed,
+		"gold_debug": int(gold_in_total.get("debug", 0)), "gold_strongbox": strongbox, "gold_purse": purse,
+		"gold_banked": strongbox + banked, "gold_lost": lost,
+		"gold_before": int(header.get("gold_before", Save.gold())), "gold_after": Save.gold()}
 
 
 ## PostHog's run_summary (pass 57): the rows folded (fit_summary) and the frame clock's numbers; pass 60 adds the final
@@ -593,6 +696,8 @@ func _summary_props() -> Dictionary:
 	s["build_text"] = build_text(b)
 	if not samples.is_empty() and samples[-1] is Dictionary:
 		s["est_end"] = float((samples[-1] as Dictionary).get("est_total", 0.0))
+	# pass 61: what greed added to the run's gold (gold_by_source holds it inside each source's total)
+	s["gold_greed"] = gold_greed
 	return s
 
 
@@ -627,7 +732,9 @@ func build_text(b: Dictionary) -> String:
 ## (m_est: mean estimated DPS, m_dmg: damage dealt in the bucket), the hero (m_hp: lowest health fraction, m_took: HP
 ## lost, m_hits: hits taken, m_low_s: seconds under 30 %, m_gold: the purse at its end); then the run's totals by id,
 ## the top ten each (dmg_by_weapon, est_by_weapon = the estimate summed over the seconds held, took_by_creature,
-## spawned_by_creature, killed_by_creature) and the survivability sums (evaded, shielded, healed).
+## spawned_by_creature, killed_by_creature) and the survivability sums (evaded, shielded, healed). Pass 61: the gold
+## that came in and went out in each bucket (m_gold_in, m_gold_out: sums) and the run's gold by source and by sink
+## (gold_by_source, gold_spent_by: every one, up to 30).
 static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 	var n := 0
 	for r in rows:
@@ -669,6 +776,11 @@ static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 	var banked := _zeros(n)
 	var kills := _zeros(n)
 	var phase := _zeros(n)
+	# pass 61: gold in and out a bucket, and the run's gold by source and by sink
+	var gold_in := _zeros(n)
+	var gold_out := _zeros(n)
+	var gold_by := {}
+	var spent_by := {}
 	var dmg_by_min := {}
 	var took_kind := {}
 	var dmg_by := {}
@@ -718,6 +830,8 @@ static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 		took[i] += _add_into(took_by, row.get("took"))
 		_add_into(est_by, row.get("est"))
 		_add_into(took_kind, row.get("took_kind"))
+		gold_in[i] += _add_into(gold_by, row.get("gold_in"))
+		gold_out[i] += _add_into(spent_by, row.get("gold_out"))
 		var d: Variant = row.get("dmg")
 		if d is Dictionary:
 			for w in (d as Dictionary).keys():
@@ -764,6 +878,8 @@ static func summary(rows: Array, bucket_s: float = 60.0) -> Dictionary:
 		"m_shield_s": _ints(shield_s), "m_invuln_s": _ints(invuln_s), "m_load": _snaps(crowd_load, 0.1),
 		"m_hard_cap": _ints(hard_cap), "m_xp": _snaps(xp, 0.01), "m_banked": _ints(banked), "m_kills": _ints(kills),
 		"m_phase": _ints(phase), "dmg_by_minute": by_min,
+		"m_gold_in": _ints(gold_in), "m_gold_out": _ints(gold_out),
+		"gold_by_source": _top(gold_by, 30, 1.0), "gold_spent_by": _top(spent_by, 30, 1.0),
 		"dmg_by_weapon": _top(dmg_by, 10, 1.0), "est_by_weapon": _top(est_by, 10, 1.0),
 		"took_by_creature": _top(took_by, 10, 0.1), "spawned_by_creature": _top(spawned_by, 10, 1.0),
 		"killed_by_creature": _top(killed_by, 10, 1.0), "took_kind": _top(took_kind, 5, 0.1),

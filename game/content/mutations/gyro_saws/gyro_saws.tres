@@ -8,7 +8,7 @@ script = ExtResource("1_obr16")
 weapon = "orbit_saws"
 mutation_kind = "hero"
 hero = "astro"
-text = "The ring widens 30% while he moves and tightens when he stops."
+text = "The ring widens 30% while she moves and tightens when she stops."
 vfx = "the ring breathes with the hero's steps"
 params = {
 "gyro": {

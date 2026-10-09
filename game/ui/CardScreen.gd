@@ -78,10 +78,11 @@ var _struck_n := 0
 
 ## The rail's thickness and its fill's inset are the HUD's (pass 56, Garry: "Make the EXP bar twice as thick": one pair of
 ## constants for both rails, 36 px and 6, so the level-up screen's can never differ from the run's), and the paper glint
-## along the fill's top edge grew with them (2 px on the 12 px fill before).
+## along the fill's top edge grew with them (2 px on the 12 px fill before). Pass 61 (Garry: "Make the EXP bar 1.8 times
+## bigger"): 65 px and 11, the glint 7 px on the 43 px fill (4 on 24 before).
 const RAIL_H := HUD.RAIL_H
 const RAIL_INSET := HUD.RAIL_INSET
-const RAIL_GLINT := 4.0
+const RAIL_GLINT := 7.0
 const RAIL_SLICES := 24
 ## How fast the rail's hues race: whole turns of the rainbow a second.
 const RAIL_SPEED := 1.2

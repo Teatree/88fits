@@ -290,9 +290,10 @@ func test_heat_stroke_sets_its_share_alight_and_flicker_strikes_sooner_and_thinn
 	assert_bool(b._fire()).is_true()
 	_settle(b)
 	assert_bool(em.is_burning(a)).is_true()
-	# Flicker: 30% sooner, 25% less, the pillars thinner and yellower (her own Magic Hour 0.87 on the cooldown too)
+	# Flicker: 30% sooner, 25% less, the pillars thinner and yellower (re-pinned in pass 61: her Magic Hour no longer
+	# touches the cooldown)
 	var fl := _inst("sun_scepter", ["flicker"])
-	assert_float(fl.stat("cooldown", 0.0)).is_equal_approx(1.1 * 0.7 * 0.87, 0.0001)
+	assert_float(fl.stat("cooldown", 0.0)).is_equal_approx(1.1 * 0.7, 0.0001)
 	assert_float(fl.stat("damage", 0.0)).is_equal_approx(14.0 * 0.75, 0.0001)
 	var sun: Dictionary = fl.params["sun"]
 	assert_float(float(sun["thin"])).is_equal_approx(0.7, 0.0001)
@@ -319,9 +320,11 @@ func test_zeniths_tenth_strike_hits_every_creature_on_the_screen() -> void:
 	var before := {}
 	for i: int in ids + [hidden_one]:
 		before[i] = em.hp[i]
-	# the tenth: one pillar on each creature on the screen, each hit once at 80%, the count starting over
+	# the tenth: one pillar on each creature on the screen, each hit once at 80%, the count starting over (pass 61: the
+	# landing fades over 0.34 s, so the ninth strike's pillars may still be lit after _settle; count the new ones)
+	var lit0: int = b._beams.live()
 	assert_bool(b._fire()).is_true()
-	assert_int(b._beams.live()).is_equal(ids.size())
+	assert_int(b._beams.live() - lit0).is_equal(ids.size())
 	_settle(b)
 	assert_int(b.sweeps).is_equal(1)
 	assert_int(b.count).is_equal(0)
@@ -387,8 +390,8 @@ func test_the_cards_say_what_the_sceptre_does() -> void:
 		names.append(str(r["stat"]))
 	for k in ["damage", "cooldown", "amount", "radius", "dps"]:
 		assert_bool(names.has(k)).override_failure_message("no row " + k).is_true()
-	# a pillar counts for 1.6 creatures; her Magic Hour runs the cooldown at 0.87
-	assert_float(base.dps_estimate()).is_equal_approx(14.0 * 1.6 / (1.1 * 0.87), 0.01)
+	# a pillar counts for 1.6 creatures (re-pinned in pass 61: her Magic Hour no longer runs the cooldown at 0.87)
+	assert_float(base.dps_estimate()).is_equal_approx(14.0 * 1.6 / 1.1, 0.01)
 	assert_str(TextGen.stat_name("buff_duration")).is_equal("buff duration")
 	assert_str(TextGen.stat_name("heal_mult")).is_equal("healing")
 	assert_str(Registry.mutation("heat_stroke").text).contains("35%")
@@ -403,14 +406,15 @@ func test_solenne_lands_with_her_trait_and_her_sceptre() -> void:
 	assert_str(c.pronoun).is_equal("she")
 	assert_str(c.trait_name).is_equal("Magic Hour")
 	assert_str(Registry.start_weapon_for(c).id).is_equal("sun_scepter")
+	# re-pinned in pass 61 (Garry: "it's a debuff duration not a buff duration ... Remove the rest of the stat stuff"):
+	# 1.5% debuff duration a level and nothing else, so at level 1 her health, cooldowns and buffs are everyone's
 	var s := Run.player_sheet
-	assert_float(s.get_stat("max_hp", 0.0)).is_equal_approx(80.0, 0.001)
-	assert_float(s.get_stat("cooldown", 0.0)).is_equal_approx(0.87, 0.0001)
-	assert_float(s.get_stat("buff_duration", 0.0)).is_equal_approx(1.25, 0.0001)
-	assert_float(s.get_stat("debuff_duration", 0.0)).is_equal_approx(1.25, 0.0001)
-	# +15% attack speed: her cooldowns run at 0.87
+	assert_float(s.get_stat("max_hp", 0.0)).is_equal_approx(100.0, 0.001)
+	assert_float(s.get_stat("cooldown", 0.0)).is_equal_approx(1.0, 0.0001)
+	assert_float(s.get_stat("buff_duration", 0.0)).is_equal_approx(1.0, 0.0001)
+	assert_float(s.get_stat("debuff_duration", 0.0)).is_equal_approx(1.015, 0.0001)
 	var sc := Run.add_weapon(Registry.weapon("sun_scepter"), 1)
-	assert_float(sc.stat("cooldown", 0.0)).is_equal_approx(1.1 * 0.87, 0.0001)
+	assert_float(sc.stat("cooldown", 0.0)).is_equal_approx(1.1, 0.0001)
 	# Haste at level 2 when it comes, and it is offered to her though its quest is not done
 	var haste: PassiveDef = Registry.passive("haste")
 	assert_int(Run.first_passive_level(haste)).is_equal(2)
@@ -457,19 +461,20 @@ func test_her_perks_two_on_offer_two_kept_back() -> void:
 func test_buff_duration_stretches_every_timed_buff() -> void:
 	assert_float(float(StatSheet.PLAYER_DEFAULTS["buff_duration"])).is_equal(1.0)
 	assert_float(float(StatSheet.PLAYER_DEFAULTS["heal_mult"])).is_equal(1.0)
-	# Solenne's Magic Hour: 25% longer
-	assert_float(Run.buff_seconds(10.0)).is_equal_approx(12.5, 0.0001)
+	# re-pinned in pass 61: Solenne's Magic Hour no longer stretches her buffs (only her debuffs), so they last as long
+	# as they say
+	assert_float(Run.buff_seconds(10.0)).is_equal_approx(10.0, 0.0001)
 	var e := Effect.make("might", "mul", 0.5, "player")
 	Run.add_timed_effects("test_buff", "Test", [e], 10.0)
-	assert_float(Run.boost_left("test_buff")).is_equal_approx(12.5, 0.001)
-	# Long Day (hidden) doubles it again
+	assert_float(Run.boost_left("test_buff")).is_equal_approx(10.0, 0.001)
+	# Long Day (hidden) doubles them
 	assert_bool(Run.add_perk("long_day")).is_true()
-	assert_float(Run.buff_seconds(10.0)).is_equal_approx(25.0, 0.0001)
+	assert_float(Run.buff_seconds(10.0)).is_equal_approx(20.0, 0.0001)
 	# Barrel Rush runs through the same door
 	Run.player_sheet.add_effect(Effect.make("barrel_speed", "add", 0.3, "player"), "test")
 	Run.player_sheet.add_effect(Effect.make("barrel_seconds", "add", 2.0, "player"), "test")
 	assert_bool(Run.barrel_rush()).is_true()
-	assert_float(Run.boost_left(Run.BARREL_RUSH)).is_equal_approx(5.0, 0.001)
+	assert_float(Run.boost_left(Run.BARREL_RUSH)).is_equal_approx(4.0, 0.001)
 	# anyone else: as long as it says
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 	Run.add_timed_effects("test_buff", "Test", [e], 10.0)
@@ -557,9 +562,13 @@ func test_the_weed_is_dark_brown_and_thorny_weed_darker_with_warm_tips() -> void
 	var b := ProjectileEmitter.new()
 	(w["g"] as Node).add_child(b)
 	b.setup(_inst("tumbleweed", ["thorns"]), w["g"])
-	var k := b._kind()
+	# pass 61 (re-pinned): the shot is drawn bristling with thorns (ProjectileManager.spiked_kind) over this tinted kind;
+	# the tint itself is still made once, in these colours
+	var k := b.tint_kind(b.inst.params["tint"])
 	assert_int(k).is_not_equal(b.projectile_kind)
-	assert_int(b._kind()).is_equal(k)
+	assert_int(b.tint_kind(b.inst.params["tint"])).is_equal(k)
+	assert_int(b._kind()).is_not_equal(k)
+	assert_int(b._kind()).is_equal(b._kind())
 	var tm := (pm.kinds[k]["mmi"] as MultiMeshInstance3D).material_override as StandardMaterial3D
 	assert_bool(_near(tm.albedo_color, Color("#3A2412"))).is_true()
 	assert_bool(_near(tm.emission, Color("#8A5A2A"))).is_true()

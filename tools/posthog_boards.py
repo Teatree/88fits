@@ -3,8 +3,11 @@
     python tools/posthog_boards.py            # (re)build every board
     python tools/posthog_boards.py --check    # run every board's queries, build nothing
 
-Eight dashboards, each one column so they read on a phone: Pulse, Players, Level Editor versions, Run curves, Run health
-& weapons (pass 60: the rest of analytics/dashboard.html's charts), Deaths, Builds & items, Surveys. Re-running keeps
+Nine dashboards, each one column so they read on a phone: Pulse, Players, Level Editor versions, Run curves, Run health
+& weapons (pass 60: the rest of analytics/dashboard.html's charts), Deaths, Builds & items, Surveys, Coins (pass 61,
+Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)": run_summary's gold_by_source / gold_spent_by /
+m_gold_in / m_gold_out, run_end's gold_earned ... gold_after, and the gold_meta event for every move of the saved gold;
+runs from before pass 61 have none of it and are left out). Re-running keeps
 the boards this script made before (their description carries MARKER, their ids and links stay) and replaces their tiles, so
 the script is the source of truth: change a tile here, not in PostHog. Every query is tried against the project first; a tile
 whose query fails is skipped and named.
@@ -55,15 +58,16 @@ def curve_sql(props, picks, need=None):
             "ORDER BY minute") % (", ".join(picks), zipped(props, need))
 
 
-def curve(cols, rates=(), need=None, step=1):
-    """The median of each per-minute array, minute by minute. cols: [(column name, property)]; names in `rates` are
-    per-bucket sums turned into a per-minute rate."""
+def curve(cols, rates=(), need=None, step=1, agg="median"):
+    """The median (or `agg`: avg for sparse series such as the gold spent, whose median is 0 in nearly every minute) of
+    each per-minute array, minute by minute. cols: [(column name, property)]; names in `rates` are per-bucket sums turned
+    into a per-minute rate."""
     picks = []
     for k, (name, _) in enumerate(cols):
         expr = "z.%d" % (k + 3)
         if name in rates:
             expr = "%s * 60 / z.2" % expr
-        picks.append("round(median(%s), %d) AS %s" % (expr, step, name))
+        picks.append("round(%s(%s), %d) AS %s" % (agg, expr, step, name))
     return curve_sql([p for _, p in cols], picks, need)
 
 
@@ -94,8 +98,42 @@ def line(sql, x, ys, display="ActionsLineGraph"):
             "chartSettings": {"xAxis": {"column": x}, "yAxis": [{"column": y} for y in ys]}}
 
 
-def curve_tile(title, cols, rates=(), need=None, step=1):
-    return (title, line(curve(cols, rates, need, step), "minute", [name for name, _ in cols]))
+def curve_tile(title, cols, rates=(), need=None, step=1, agg="median"):
+    return (title, line(curve(cols, rates, need, step, agg), "minute", [name for name, _ in cols]))
+
+
+# ---------------------------------------------------------------- the gold (pass 61)
+
+def num(prop):
+    """A numeric event property (null when the event has none)."""
+    return "toFloat(properties.%s)" % prop
+
+
+# run_end with the pass-61 gold numbers (older runs have none and are left out)
+# runs that took the developer's +gold buttons are left out of the gold boards (their banked and lost would not add up
+# against an earned without the debug gold)
+NO_DEBUG_GOLD = "coalesce(toFloat(properties.gold_debug), 0) = 0"
+GOLD_ENDS = "event = 'run_end' AND " + RECENT + " AND isNotNull(properties.gold_earned) AND " + NO_DEBUG_GOLD
+# the saved gold after an event: app_open's balance, run_end's gold_after, gold_meta's balance_after
+BALANCE = ("multiIf(event = 'app_open', toFloat(properties.gold), event = 'run_end', toFloat(properties.gold_after), "
+           "toFloat(properties.balance_after))")
+BALANCE_EVENTS = "event IN ('gold_meta', 'app_open', 'run_end') AND " + RECENT
+
+
+def by_key(prop, name, drop=("debug",)):
+    """A run_summary {id: gold} map summed over the runs as bars, the developer's buttons left out."""
+    skip = " AND ".join("id != '%s'" % d for d in drop) or "1"
+    return line("SELECT id AS %s, round(total) AS gold FROM (%s) WHERE %s ORDER BY gold DESC" % (name, totals(prop, "total"), skip),
+                name, ["gold"], display="ActionsBar")
+
+
+def by_key_table(prop, name, drop=("debug",)):
+    """The same map as a table: the gold, the share, how many runs had any, the average in those runs."""
+    skip = " AND ".join("kv.1 != '%s'" % d for d in drop) or "1"
+    return table(
+        "SELECT %s, round(g) AS gold, round(100 * g / greatest(sum(g) OVER (), 1), 1) AS share_pct, runs, round(g / runs) AS per_run FROM ("
+        "SELECT kv.1 AS %s, sum(kv.2) AS g, count() AS runs FROM (SELECT arrayJoin(JSONExtractKeysAndValues(ifNull(properties.%s, '{}'), 'Float64')) AS kv "
+        "FROM events WHERE %s) WHERE %s GROUP BY %s) ORDER BY gold DESC" % (name, name, prop, SUMMARIES, skip, name))
 
 
 BOARDS = [
@@ -109,6 +147,13 @@ BOARDS = [
         ("Runs a day, by how they ended", trend("run_end", "ActionsBar", breakdown="result")),
         ("Where heroes fall (stage)", trend("player_died", "ActionsBarValue", breakdown="stage")),
         ("Survey answers this week", trend("survey sent", "BoldNumber", date_from="-7d")),
+        ("Gold today: earned, spent, banked, lost, on talents", table(
+            "SELECT round(coalesce(sumIf(" + num("gold_earned") + ", event = 'run_end' AND " + NO_DEBUG_GOLD + "), 0)) AS earned, "
+            "round(coalesce(sumIf(" + num("gold_spent") + ", event = 'run_end' AND " + NO_DEBUG_GOLD + "), 0)) AS spent_in_runs, "
+            "round(coalesce(sumIf(" + num("gold_banked") + ", event = 'run_end' AND " + NO_DEBUG_GOLD + "), 0)) AS banked, "
+            "round(coalesce(sumIf(" + num("gold_lost") + ", event = 'run_end' AND " + NO_DEBUG_GOLD + "), 0)) AS lost, "
+            "round(coalesce(-sumIf(" + num("delta") + ", event = 'gold_meta' AND properties.reason = 'talent'), 0)) AS on_talents "
+            "FROM events WHERE event IN ('run_end', 'gold_meta') AND timestamp >= toStartOfDay(now())")),
     ]),
     ("88fits · Players", "Each player by the name the game gave them (Settings shows it by the version). Filter any board by a cohort of your friends.", [
         ("Players", table(
@@ -236,6 +281,62 @@ BOARDS = [
         ("Who stopped the questions", table(
             "SELECT timestamp, " + PLAYER + " AS player, event, properties.where AS where FROM events "
             "WHERE event IN ('survey_opt_out', 'survey_opt_in') ORDER BY timestamp DESC LIMIT 50")),
+    ]),
+    ("88fits · Coins", "Where the gold comes from and where it goes (pass 61): in a run by source and by sink, minute by minute, "
+     "what each run banked or left in the sand, and outside the runs the bank: Upgrade ranks bought and refunded, the balance "
+     "over time. The developer's +gold buttons are left out of the by-source tiles, and runs that used them are left out of the "
+     "run totals.", [
+        ("Gold earned in runs, by source", by_key("gold_by_source", "source")),
+        ("Gold earned in runs, by source: shares", by_key_table("gold_by_source", "source")),
+        ("Gold spent in runs, by sink", by_key("gold_spent_by", "sink", drop=())),
+        ("Gold spent in runs, by sink: shares", by_key_table("gold_spent_by", "sink", drop=())),
+        curve_tile("Gold a minute, average over runs: earned, spent, the purse, the Strongbox", [("earned", "m_gold_in"), ("spent", "m_gold_out"),
+                   ("purse", "m_gold"), ("strongbox", "m_banked")], rates=("earned", "spent"), need="m_gold_in", agg="avg"),
+        ("Where the coins went (all runs)", table(
+            "SELECT went, round(g) AS gold, round(100 * g / greatest(sum(g) OVER (), 1), 1) AS share_pct FROM ("
+            "SELECT 'banked: extraction and Strongbox' AS went, sum(" + num("gold_banked") + ") AS g FROM events WHERE " + GOLD_ENDS + " UNION ALL "
+            "SELECT 'spent in runs: shop and revive' AS went, sum(" + num("gold_spent") + ") AS g FROM events WHERE " + GOLD_ENDS + " UNION ALL "
+            "SELECT 'left in the sand: deaths and quits' AS went, sum(" + num("gold_lost") + ") AS g FROM events WHERE " + GOLD_ENDS + ") "
+            "ORDER BY gold DESC")),
+        ("A run's gold on average, by how it ended", table(
+            "SELECT properties.result AS result, count() AS runs, round(avg(" + num("gold_earned") + ")) AS earned, "
+            "round(avg(" + num("gold_greed") + ")) AS of_it_greed, "
+            "round(avg(" + num("gold_spent") + ")) AS spent, round(avg(" + num("gold_strongbox") + ")) AS strongbox, "
+            "round(avg(" + num("gold_banked") + ")) AS banked, round(avg(" + num("gold_lost") + ")) AS lost, "
+            "round(avg(" + num("gold_earned") + " * 60 / greatest(" + num("t") + ", 1))) AS earned_a_minute "
+            "FROM events WHERE " + GOLD_ENDS + " GROUP BY result ORDER BY runs DESC")),
+        ("Latest runs: earned, spent, banked, lost", table(
+            "SELECT timestamp, " + PLAYER + " AS player, properties.hero AS hero, properties.result AS result, "
+            "round(" + num("t") + " / 60, 1) AS minutes, round(" + num("gold_earned") + ") AS earned, "
+            "round(" + num("gold_spent") + ") AS spent, round(" + num("gold_strongbox") + ") AS strongbox, round(" + num("gold_banked") + ") AS banked, "
+            "round(" + num("gold_lost") + ") AS lost, round(" + num("gold_before") + ") AS bank_before, round(" + num("gold_after") + ") AS bank_after "
+            "FROM events WHERE " + GOLD_ENDS + " ORDER BY timestamp DESC LIMIT 30")),
+        ("The bank a day: in from runs, out to Upgrade, refunds", line(
+            "SELECT toDate(timestamp) AS day, round(sumIf(" + num("delta") + ", properties.reason = 'run_bank')) AS from_extractions, "
+            "round(sumIf(" + num("delta") + ", properties.reason = 'strongbox')) AS from_strongboxes, "
+            "round(-sumIf(" + num("delta") + ", properties.reason = 'talent')) AS on_upgrades, "
+            "round(sumIf(" + num("delta") + ", properties.reason = 'talent_refund')) AS refunded "
+            "FROM events WHERE event = 'gold_meta' AND " + RECENT + " GROUP BY day ORDER BY day",
+            "day", ["from_extractions", "from_strongboxes", "on_upgrades", "refunded"], display="ActionsBar")),
+        ("Upgrade: gold by talent", table(
+            "SELECT properties.talent AS talent, count() AS ranks_bought, round(-sum(" + num("delta") + ")) AS gold, "
+            "max(toInt(properties.rank)) AS highest_rank, max(timestamp) AS last_bought FROM events "
+            "WHERE event = 'gold_meta' AND properties.reason = 'talent' AND " + RECENT + " GROUP BY talent ORDER BY gold DESC")),
+        ("Upgrade: Take it all back", table(
+            "SELECT timestamp, " + PLAYER + " AS player, round(" + num("delta") + ") AS gold_back, toInt(properties.ranks) AS ranks, "
+            "round(" + num("spent") + ") AS had_cost, round(" + num("balance_after") + ") AS bank_after FROM events "
+            "WHERE event = 'gold_meta' AND properties.reason = 'talent_refund' AND " + RECENT + " ORDER BY timestamp DESC LIMIT 30")),
+        ("The bank's every move, by reason", table(
+            "SELECT properties.reason AS reason, count() AS moves, round(sumIf(" + num("delta") + ", " + num("delta") + " > 0)) AS gold_in, "
+            "round(-sumIf(" + num("delta") + ", " + num("delta") + " < 0)) AS gold_out FROM events WHERE event = 'gold_meta' AND " + RECENT +
+            " GROUP BY reason ORDER BY moves DESC")),
+        ("Gold in the bank over time (the players seen that day, each one's last balance)", line(
+            "SELECT day, round(sum(bal)) AS gold_in_banks, count() AS players FROM (SELECT toDate(timestamp) AS day, distinct_id, "
+            "argMax(v, timestamp) AS bal FROM (SELECT timestamp, distinct_id, " + BALANCE + " AS v FROM events WHERE " + BALANCE_EVENTS + ") "
+            "WHERE isNotNull(v) GROUP BY day, distinct_id) GROUP BY day ORDER BY day", "day", ["gold_in_banks"])),
+        ("Each player's bank now", table(
+            "SELECT player, round(argMax(v, ts)) AS gold_now, max(ts) AS as_of FROM (SELECT timestamp AS ts, " + PLAYER + " AS player, "
+            + BALANCE + " AS v FROM events WHERE " + BALANCE_EVENTS + ") WHERE isNotNull(v) GROUP BY player ORDER BY as_of DESC")),
     ]),
 ]
 

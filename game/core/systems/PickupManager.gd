@@ -24,28 +24,71 @@
 ## flight's own code (PHASE_FLY), charged the whole way (charge_of -> INSTANCE_CUSTOM.x on core/shaders/gem.gdshader,
 ## which now draws every gem kind: brighter, shimmering, a pale rim); the walk-up pull keeps the hop. The gems are
 ## GEM_SHADE darker with a low glow (GEM_EMISSION) and the motes and glints keep the bright colours (GLINT_COLOURS).
+## Pass 61 (Garry: "The EXP gems still disappear. Now they combine into a big gem. I'd prefer that they don't disappear
+## ever, but don't affect the performance negatively at all"): nothing merges and nothing is lost. The pool starts at MAX
+## slots and doubles when it is full (_grow), each kind's MultiMesh with it (_grow_instances); every pickup keeps one
+## instance of its kind's MultiMesh for its whole life (inst, dense: a freed one's place is taken by the kind's last).
+## A pickup lying on the sand costs nothing: its instance is written once when it lands and never again, because the
+## float and the idle spin are the vertex shaders' (gem.gdshader, coin.gdshader: `t_now` is the run's clock, set once a
+## drawn frame, so they stop when the run pauses; a gem's phase is its slot in INSTANCE_CUSTOM.y, a coin's is turned
+## into its basis), and it is not looked at by the tick: it lies in a coarse grid (GRID_*) that only the cells round the
+## hero's magnet and round each turret's pull are read from, and its hop and glint turns wait on a timing wheel
+## (IDLE_BUCKET) that hands it to the tick only when one is due. Only the moving ones (falling, on their way, tossed,
+## held, hopping, glinting) are in the active list (_act), ticked and drawn every frame. A hop whose turn comes off the
+## screen lets it pass, as a glint always did: nobody sees it. A big pull (vacuum_all) walks the grid from the hero
+## outwards (_vacuum_step): the ones on the screen go up the pass-60 arc, at most FLIGHT_MAX on their way at once; one off
+## the screen is not thrown up where nobody sees it but starts its dive just past the screen's edge when it would have
+## come over it (FAR_LEAD, _tick_vq), at most EDGE_MAX of those in the air, and one whose turn finds that stream full is
+## taken unseen when it would have reached the hero, so a sea of gems costs a pull no more than today's 600 did.
 class_name PickupManager
 extends Node3D
 
-const MAX := 600
+## The pool's starting size (600 and full until pass 61, when a crowded pool fused far gems and a full one lost drops):
+## it doubles whenever it fills (_grow), so no drop is ever lost. 2048, so a real run never grows (the most a stage-1 run
+## left lying in pass 61's count was 876 at 7:00): the doubling is the rare fallback.
+const MAX := 2048
 const KIND_GEM_S := 0
 const KIND_GEM_M := 1
 const KIND_GEM_L := 2
 const KIND_COIN := 3
 const KIND_VACUUM := 4
-const MERGE_AT := 300
-## The merge (pass 54): only resting gems more than the magnet's reach + MERGE_CLEAR m from the hero (flat) fuse, the oldest
-## first, each with every other within MERGE_REACH of it (MERGE_CLUSTER at most) into one large gem at their centroid worth
-## their sum, which pops up at MERGE_POP m/s with a glint. A merge on the crowded path waits MERGE_GAP s after the last
-## one (a pool too full to merge would scan every spawn).
-const MERGE_CLEAR := 4.0
-const MERGE_REACH := 6.0
-const MERGE_CLUSTER := 40
-const MERGE_POP := 2.0
-const MERGE_GAP := 0.25
-## Coins have their own cap (pass 54): past it, far coins fuse the same way into one coin worth their sum, so a sea of
-## coins never takes the gems' slots.
-const COIN_CAP := 150
+const KINDS := 5
+## Each kind's MultiMesh starts with this many instances and doubles with its pool (pass 61, _grow_instances; started
+## big enough that a real run never needs it).
+const INST_START := 1024
+## The resting pickups' grid (pass 61): GRID_N x GRID_N cells of GRID_CELL m over the square GRID_HALF m round the
+## arena's middle (a pickup outside it counts in the edge cell). The magnet and a turret's pull read only the cells their
+## reach touches.
+const GRID_CELL := 4.0
+const GRID_HALF := 96.0
+const GRID_N := 48
+## The idle turns' timing wheel (pass 61): one bucket a IDLE_BUCKET s of the run's clock.
+const IDLE_BUCKET := 0.05
+## A big pull (pass 61): no more than FLIGHT_MAX pickups on their way at once (the old pool's whole 600, so a pull costs
+## a frame no more than pulling a full old pool did), and the walk over the grid looks at WALK_MAX lying pickups and
+## WALK_CELLS of its cells a tick at most (the whole grid in well under FAR_LEAD).
+## One on the screen goes up the pass-60 arc. One off it is never thrown up where nobody sees it: it waits, lying where it
+## is, until it would have come over the screen's edge (FAR_LEAD s, the arc's wait, rise and hang, plus the flight from
+## its arc's top to the edge at the top speed), then starts its dive EDGE_MARGIN m past the edge on that line, at most
+## EDGE_MAX of them in the air at once; one whose turn finds that stream full is taken where it lies, unseen, when it
+## would have reached the hero (its XP or gold his, quietly, as if it had flown in). The screen's edge on the sand round
+## the hero is EDGE_BINS directions' distances to the camera's footprint (_edge_table).
+const FLIGHT_MAX := 600
+const WALK_MAX := 80
+const WALK_CELLS := 400
+const FAR_LEAD := 1.25
+const EDGE_MARGIN := 2.5
+const EDGE_MAX := 80
+const EDGE_BINS := 32
+## The off-screen turns a tick takes at most (pass 61): a burst of them (every pickup just past the edge comes due in
+## the same moment) waits a tick or two instead of making one frame dear; nobody sees the difference.
+const VQ_TURNS := 40
+## The float's middle over the rest (float_y), and the shaders' clocks: `t_now` wraps where every turn the float and the
+## spin make is whole, so the wrap never shows (gems 2 t and 2.4 t: 5 pi; the coin 3 t and 2.4 t: 10 pi / 3), and a long
+## run's clock never reaches the size where a GPU's sine loses its way.
+const FLOAT_BASE := 0.06
+const GEM_WRAP := 5.0 * PI
+const COIN_WRAP := 10.0 * PI / 3.0
 ## The meshes (pass 54: gems half their old size, coins three quarters): a gem's radius by kind (small, medium, large),
 ## the vacuum's, the coin's radius and thickness. Pass 56 (Garry: "make them just 5% bigger than they are now"): the
 ## three gems GEM_GROW times pass 54's 0.11, 0.16 and 0.225 m; the vacuum and the coin as they were.
@@ -233,10 +276,10 @@ var _attractors: Array = []   # {pos, r} set each frame by turrets
 var chests: Array = []
 var specials: Array = []       # Powerup nodes waiting on the ground
 var _spark_last := -1.0
-var coins := 0                 # coins on the ground (pass 54: they have their own cap)
-var _merging := false          # inside a merge: its own spawns never start another
-var _merge_last := -INF        # when the crowded path last tried a merge
-var _full_warned := false      # the pool ran out once this run (a warning, once)
+var coins := 0                 # coins on the ground (pass 54)
+## Pass 61 (the gold board): where a coin came from when it is not a creature's drop, {slot: source} (mark_coin;
+## RunAnalytics.GOLD_SOURCES), read when it is taken (a big pull's unseen take too) and dropped when its slot frees.
+var coin_from: Dictionary = {}
 ## Pass 56: the idle hops' and glints' own dice, so these looks never move the run's shared random sequence.
 var _rng := RandomNumberGenerator.new()
 var _glint_mm: MultiMesh        # the glints' four-point stars (GLINT_*)
@@ -244,28 +287,81 @@ var _glints := 0                # glints showing now
 var _glint_last := -INF         # when the last one started
 var _rest_k := PackedFloat32Array()   # rest_of by kind, read every tick
 var _hop_last := -INF           # when the last idle hop on the screen started (HOP_EXTRA_GAP)
-## Pass 60: each slot's seed for the gem shader's shimmer (custom y), the MultiMesh slots whose custom data is not zero
-## (_cd_hot, by kind x MAX + slot: a slot is written again only while a charge is on or once to clear an old one), and
-## how many custom-data writes the draws made (tests: a field of resting gems makes none).
+## Pass 60: each slot's seed for the gem shader's shimmer (the shader works it out of the slot in custom y the same way),
+## and how many custom-data writes were made (tests: a field of resting gems makes none once it is down).
 var _seed := PackedFloat32Array()
-var _cd_hot := PackedByteArray()
+## (custom y since the review of pass 61: the seed, 0..1; the shaders' phase is seed x TAU, phase_of)
 var custom_writes := 0
+var instance_writes := 0        # pass 61: transforms written (tests: a field lying still makes none)
+## Pass 61: how many slots the pool has now (MAX, doubling), and how many pickups are on their way (flying).
+var _cap := 0
+var _flying_n := 0
+## Pass 61, the instances: each pickup's place in its kind's MultiMesh (inst, -1 for none) and, by kind x _icap +
+## place, which pickup holds it (_islot) and the charge its custom data says (_ich; -1 unknown); _inst_n by kind; _icap
+## instances a kind, the same for every kind.
+var inst := PackedInt32Array()
+var _islot := PackedInt32Array()
+var _ich := PackedFloat32Array()
+var _inst_n := PackedInt32Array()
+var _icap := 0
+var _gem_mats: Array = []      # the four gem materials (t_now is set on them each drawn frame)
+## Pass 61, the active list: every pickup the tick and the draw look at (falling, on its way, tossed, held, hopping,
+## glinting), with each one's place in it (act_at, -1 when it lies still); and the pickups whose instance the next draw
+## writes once (_dirty: it has just landed or stopped hopping).
+var _act := PackedInt32Array()
+var act_at := PackedInt32Array()
+var _dirty := PackedInt32Array()
+var _dirty_f := PackedByteArray()
+## Pass 61, the grid of pickups lying on the sand: the first in each cell (_g_head) and each one's cell and neighbours
+## (g_cell, -1 when it is not lying in the grid).
+var _g_head := PackedInt32Array()
+var g_cell := PackedInt32Array()
+var _g_next := PackedInt32Array()
+var _g_prev := PackedInt32Array()
+## Pass 61, the idle turns' timing wheel: bucket -> the slots due in it (stale entries are skipped: idle_due says when a
+## gem is really due), and the next bucket to read.
+var _wheel := {}
+var _wheel_next := 0
+var _glinting := PackedInt32Array()   # the gems glinting now (GLINT_MAX at most)
+## Pass 61, a big pull under way (vacuum_all, _vacuum_step): the grid's cells in rings from the cell it was called from
+## (_ring_off: dx, dz pairs nearest first; _ring_d: their distance in cells), how far it has got, the coins too or not,
+## when it was called, from where, and the distance beyond which nothing is on the screen (INF without a camera).
+static var _ring_off := PackedInt32Array()
+static var _ring_d := PackedFloat32Array()
+var _vac_on := false
+var _vac_k := 0
+var _vac_cx := 0
+var _vac_cz := 0
+var _vac_coins := false
+var _vac_t0 := 0.0
+var _top := 17.0                # the flight's top speed as the last tick had it
+## Pass 61, the off-screen ones of a big pull: each one's wait (vac_q: 1 to come over the edge, 2 to be taken unseen; 0
+## none) and when it is due (_vq_due), the waits by bucket of the run's clock (_vq, read from _vq_next), the dives
+## started past the edge in the air (edge_f, _edge_n), the screen's edge on the sand by direction from the hero (_edge_r,
+## empty without a camera: then everything is on the screen) and when it was last measured, and the XP taken unseen
+## this tick (handed to the run in one go).
+var vac_q := PackedByteArray()
+var _vq_due := PackedFloat32Array()
+var _vq_b := PackedInt32Array()   # the bucket a slot's one live wait sits in (an entry in any other is stale)
+var _vq := {}
+var _vq_next := 0
+var edge_f := PackedByteArray()
+var _edge_n := 0
+var _edge_r := PackedFloat32Array()
+var _edge_t := -INF
+var _credit_xp := 0.0
 
 
 func _ready() -> void:
-	pos.resize(MAX); kind.resize(MAX); value.resize(MAX); vel.resize(MAX); flying.resize(MAX); alive.resize(MAX); born.resize(MAX)
-	phase.resize(MAX); phase_t.resize(MAX); hop_dir.resize(MAX); hold.resize(MAX)
-	# (packed arrays are values: each is sized where it lives)
-	hop_next.resize(MAX); hop_t.resize(MAX); glint_next.resize(MAX); glint_t.resize(MAX); idle_due.resize(MAX)
-	hop_next.fill(-1.0); hop_t.fill(-1.0); glint_next.fill(-1.0); glint_t.fill(-1.0); idle_due.fill(-1.0)
-	# the magnet arc (pass 60)
-	arced.resize(MAX); arc_delay.resize(MAX); arc_v0.resize(MAX); arc_drift.resize(MAX); arc_hang.resize(MAX); arc_apex.resize(MAX); arc_spin.resize(MAX)
-	_seed.resize(MAX)
-	for i in range(MAX):
-		_seed[i] = fmod(float(i) * 0.6180339887, 1.0)
-	_cd_hot.resize((KIND_VACUUM + 1) * MAX)
+	_alloc(MAX)
 	for i in range(MAX - 1, -1, -1):
 		free_list.append(i)
+	_inst_n.resize(KINDS)
+	_icap = INST_START
+	_islot.resize(KINDS * _icap)
+	_islot.fill(-1)
+	_ich.resize(KINDS * _icap)
+	_ich.fill(-1.0)
 	_mms.append(_make_mm(_gem_mesh(gem_radius(KIND_GEM_S)), COLOURS[KIND_GEM_S]))
 	_mms.append(_make_mm(_gem_mesh(gem_radius(KIND_GEM_M)), COLOURS[KIND_GEM_M]))
 	_mms.append(_make_mm(_gem_mesh(gem_radius(KIND_GEM_L)), COLOURS[KIND_GEM_L]))
@@ -274,7 +370,488 @@ func _ready() -> void:
 	_glint_mm = _make_glint_mm()
 	for k in range(_mms.size()):
 		_rest_k.append(rest_of(k))
+	_g_head.resize(GRID_N * GRID_N)
+	_g_head.fill(-1)
+	_build_rings()
+	_wheel_next = floori(_time / IDLE_BUCKET)
 	_rng.randomize()
+
+
+## Sizes every per-slot array to `n` slots (pass 61: at the start and whenever the pool doubles), the new ones empty.
+func _alloc(n: int) -> void:
+	var from := _cap
+	# (packed arrays are values: each is sized where it lives)
+	pos.resize(n); kind.resize(n); value.resize(n); vel.resize(n); flying.resize(n); alive.resize(n); born.resize(n)
+	phase.resize(n); phase_t.resize(n); hop_dir.resize(n); hold.resize(n)
+	hop_next.resize(n); hop_t.resize(n); glint_next.resize(n); glint_t.resize(n); idle_due.resize(n)
+	# the magnet arc (pass 60)
+	arced.resize(n); arc_delay.resize(n); arc_v0.resize(n); arc_drift.resize(n); arc_hang.resize(n); arc_apex.resize(n); arc_spin.resize(n)
+	_seed.resize(n)
+	inst.resize(n); act_at.resize(n); _dirty_f.resize(n); g_cell.resize(n); _g_next.resize(n); _g_prev.resize(n)
+	vac_q.resize(n); _vq_due.resize(n); edge_f.resize(n); _vq_b.resize(n)
+	for i in range(from, n):
+		alive[i] = 0
+		flying[i] = 0
+		hop_next[i] = -1.0
+		hop_t[i] = -1.0
+		glint_next[i] = -1.0
+		glint_t[i] = -1.0
+		idle_due[i] = -1.0
+		_seed[i] = fmod(float(i) * 0.6180339887, 1.0)
+		inst[i] = -1
+		act_at[i] = -1
+		g_cell[i] = -1
+		_g_next[i] = -1
+		_g_prev[i] = -1
+		_vq_b[i] = -1
+	if record_draws:
+		drawn_xf.resize(n)
+		drawn_charge.resize(n)
+	_cap = n
+
+
+## The pool is full (pass 61): it doubles, the new slots joining the free list (the lowest first).
+func _grow() -> void:
+	var from := _cap
+	_alloc(_cap * 2)
+	for i in range(_cap - 1, from - 1, -1):
+		free_list.append(i)
+
+
+## A kind's MultiMesh is full (pass 61): every kind's doubles, keeping what its instances hold (the buffer copied over in
+## one go) and showing as many as before.
+func _grow_instances() -> void:
+	var old := _icap
+	_icap *= 2
+	var slot := PackedInt32Array()
+	slot.resize(KINDS * _icap)
+	slot.fill(-1)
+	var ch := PackedFloat32Array()
+	ch.resize(KINDS * _icap)
+	ch.fill(-1.0)
+	for k in range(KINDS):
+		for n in range(old):
+			slot[k * _icap + n] = _islot[k * old + n]
+			ch[k * _icap + n] = _ich[k * old + n]
+		var mm: MultiMesh = _mms[k]
+		var stride := 12 + (4 if mm.use_custom_data else 0)
+		var buf: PackedFloat32Array = mm.buffer
+		var shown := mm.visible_instance_count
+		mm.instance_count = _icap
+		buf.resize(_icap * stride)
+		mm.buffer = buf
+		mm.visible_instance_count = shown
+	_islot = slot
+	_ich = ch
+
+
+## The grid's cells in the order a big pull walks them (pass 61, once a run of the game): every (dx, dz) from -GRID_N
+## to GRID_N, nearest first (sorted by half cells of distance), with its distance in cells.
+func _build_rings() -> void:
+	if not _ring_d.is_empty():
+		return
+	var n := GRID_N
+	var nb := int(ceil(float(n) * 1.4143 * 2.0)) + 2
+	var buckets: Array = []
+	buckets.resize(nb)
+	for b in range(nb):
+		buckets[b] = []
+	for dz in range(-n, n + 1):
+		for dx in range(-n, n + 1):
+			var d := sqrt(float(dx * dx + dz * dz))
+			(buckets[int(d * 2.0)] as Array).append(Vector3i(dx, dz, 0))
+	var off := PackedInt32Array()
+	var dist := PackedFloat32Array()
+	for b in range(nb):
+		for v: Vector3i in buckets[b]:
+			off.append(v.x)
+			off.append(v.y)
+			dist.append(sqrt(float(v.x * v.x + v.y * v.y)))
+	_ring_off = off
+	_ring_d = dist
+
+
+## The grid's column (or row) at x (or z) metres (pass 61), the edge one for anything beyond it.
+static func _cell_x(x: float) -> int:
+	return clampi(floori((x + GRID_HALF) / GRID_CELL), 0, GRID_N - 1)
+
+
+## Pickup `i` lies down in the grid where it is (pass 61).
+func _g_add(i: int) -> void:
+	if g_cell[i] >= 0:
+		return
+	var c := _cell_x(pos[i].z) * GRID_N + _cell_x(pos[i].x)
+	var h := _g_head[c]
+	_g_prev[i] = -1
+	_g_next[i] = h
+	if h >= 0:
+		_g_prev[h] = i
+	_g_head[c] = i
+	g_cell[i] = c
+
+
+## Pickup `i` leaves the grid (pass 61): it is on its way, or gone.
+func _g_del(i: int) -> void:
+	var c := g_cell[i]
+	if c < 0:
+		return
+	var p := _g_prev[i]
+	var nx := _g_next[i]
+	if p >= 0:
+		_g_next[p] = nx
+	else:
+		_g_head[c] = nx
+	if nx >= 0:
+		_g_prev[nx] = p
+	g_cell[i] = -1
+	_g_next[i] = -1
+	_g_prev[i] = -1
+
+
+## Pickup `i` joins the active list: the tick and the draw look at it every frame (pass 61).
+func _act_add(i: int) -> void:
+	if act_at[i] >= 0:
+		return
+	act_at[i] = _act.size()
+	_act.append(i)
+
+
+## Pickup `i` leaves the active list (pass 61); still on the sand, its instance is written once more as it lies.
+func _act_del(i: int) -> void:
+	var a := act_at[i]
+	if a < 0:
+		return
+	var last := _act.size() - 1
+	var j := _act[last]
+	_act[a] = j
+	act_at[j] = a
+	_act.resize(last)
+	act_at[i] = -1
+	if alive[i] == 1:
+		_mark_dirty(i)
+
+
+## The next draw writes pickup `i`'s instance once (pass 61).
+func _mark_dirty(i: int) -> void:
+	if _dirty_f[i] == 1:
+		return
+	_dirty_f[i] = 1
+	_dirty.append(i)
+
+
+## Gem `i`'s idle turn at `t` goes on the wheel (pass 61); a time already passed is read with the next bucket.
+func _wheel_add(i: int, t: float) -> void:
+	var b := maxi(floori(t / IDLE_BUCKET), _wheel_next)
+	var arr = _wheel.get(b)
+	if arr == null:
+		arr = []
+		_wheel[b] = arr
+	(arr as Array).append(i)
+
+
+## Gem `i`'s idle next has something to do at `t` (pass 61: idle_due, and a turn on the wheel when it lies still). Tests
+## force a turn with it; a gem lying still is never looked at otherwise.
+func set_idle_due(i: int, t: float) -> void:
+	idle_due[i] = t
+	if alive[i] == 1 and g_cell[i] >= 0 and act_at[i] < 0:
+		# (read back: the wheel's buckets are worked out from the stored time, as _wheel_run reads it)
+		_wheel_add(i, idle_due[i])
+
+
+## The wheel's turns that are due (pass 61): every bucket the clock has passed, then the ones due in the bucket it is in.
+## An entry is stale when its gem has gone, left the sand, is being looked at every tick anyway (hopping, glinting) or
+## was put off to a later time (idle_due is the truth); a gem due now has its turn (_idle).
+func _tick_wheel(delta: float) -> void:
+	var now_b := floori(_time / IDLE_BUCKET)
+	if now_b - _wheel_next > 2048:
+		# the clock jumped far (tests): only the buckets that hold something
+		var keys: Array = []
+		for b in _wheel.keys():
+			if int(b) < now_b:
+				keys.append(int(b))
+		keys.sort()
+		_wheel_next = now_b
+		for b: int in keys:
+			var arr = _wheel.get(b)
+			_wheel.erase(b)
+			if arr != null:
+				_wheel_run(arr as Array, delta, -1)
+	while _wheel_next < now_b:
+		var b := _wheel_next
+		_wheel_next += 1
+		var arr = _wheel.get(b)
+		if arr != null:
+			_wheel.erase(b)
+			_wheel_run(arr as Array, delta, -1)
+	var cur = _wheel.get(now_b)
+	if cur != null:
+		_wheel.erase(now_b)
+		var keep := _wheel_run(cur as Array, delta, now_b)
+		if not keep.is_empty():
+			var more = _wheel.get(now_b)
+			if more != null:
+				keep.append_array(more as Array)
+			_wheel[now_b] = keep
+
+
+## One bucket's entries (pass 61): each gem due has its turn; with `bucket` >= 0 the ones not due yet that belong to it
+## are handed back to wait.
+func _wheel_run(arr: Array, delta: float, bucket: int) -> Array:
+	var keep: Array = []
+	for i: int in arr:
+		if i >= _cap or alive[i] == 0 or g_cell[i] < 0 or act_at[i] >= 0:
+			continue
+		var due := idle_due[i]
+		if due < 0.0:
+			continue
+		if due > _time:
+			if bucket >= 0 and floori(due / IDLE_BUCKET) == bucket:
+				keep.append(i)
+			continue
+		_idle(i, delta)
+	return keep
+
+
+## Pickup `i` comes to rest on the sand (pass 61): into the grid, out of the active list (its instance written once more
+## where it lies) and, a gem, its idle clocks start (_idle's first call puts its first turn on the wheel).
+func _rest(i: int) -> void:
+	vel[i] = Vector3.ZERO
+	_g_add(i)
+	_act_del(i)
+	_mark_dirty(i)
+	if kind[i] <= KIND_GEM_L:
+		_idle(i, 0.0)
+
+
+## Every pickup lying within `r` m (flat) of `c` sets off for the hero at `hero` (pass 61: the magnet round the hero, a
+## turret's pull round the turret, `arc` for the big pull's arc), read from the grid's cells that reach touches.
+func _pull_round(c: Vector3, r: float, hero: Vector3, arc: bool) -> void:
+	var x0 := _cell_x(c.x - r)
+	var x1 := _cell_x(c.x + r)
+	var z0 := _cell_x(c.z - r)
+	var z1 := _cell_x(c.z + r)
+	var r2 := r * r
+	for cz in range(z0, z1 + 1):
+		for cx in range(x0, x1 + 1):
+			var i := _g_head[cz * GRID_N + cx]
+			while i >= 0:
+				var nx := _g_next[i]
+				var dx := pos[i].x - c.x
+				var dz := pos[i].z - c.z
+				if dx * dx + dz * dz < r2:
+					_start_trip(i, hero, arc)
+				i = nx
+
+
+## The screen's edge on the sand round the hero at `hero` (pass 61): the camera's four corner rays meet the sand at his
+## height in a four-sided footprint around him, and _edge_r[b] is how far its edge lies (+ EDGE_MARGIN) in direction
+## bin b (atan2(dz, dx) from -PI, EDGE_BINS of them), the farthest of the bin's two sides and its middle, so a point past
+## it is surely off the screen. Empty without a camera (tests, tools) or when a corner looks over the horizon: then
+## everything counts as on the screen.
+func _edge_table(hero: Vector3) -> void:
+	_edge_r = PackedFloat32Array()
+	_edge_t = _time
+	var rig := _rig()
+	if rig == null or rig.camera == null or hero == Vector3.INF:
+		return
+	var cam: Camera3D = rig.camera
+	var vp := rig.get_viewport().get_visible_rect().size
+	var poly := PackedVector2Array()
+	for corner in [Vector2.ZERO, Vector2(vp.x, 0.0), vp, Vector2(0.0, vp.y)]:
+		var o := cam.project_ray_origin(corner)
+		var d := cam.project_ray_normal(corner)
+		if d.y > -0.05:
+			return
+		var p := o + d * ((hero.y - o.y) / d.y)
+		poly.append(Vector2(p.x - hero.x, p.z - hero.z))
+	var out := PackedFloat32Array()
+	out.resize(EDGE_BINS)
+	for b in range(EDGE_BINS):
+		var a0 := -PI + TAU * float(b) / float(EDGE_BINS)
+		var a1 := a0 + TAU / float(EDGE_BINS)
+		out[b] = maxf(maxf(_exit(poly, a0), _exit(poly, a1)), _exit(poly, (a0 + a1) * 0.5)) + EDGE_MARGIN
+	_edge_r = out
+
+
+## How far the ray from the middle of the footprint `poly` (the hero, at the origin) in direction `a` runs before it
+## leaves it (pass 61); INF when it never does (the hero outside it: everything then counts as on the screen).
+static func _exit(poly: PackedVector2Array, a: float) -> float:
+	var u := Vector2(cos(a), sin(a))
+	var best := INF
+	for k in range(poly.size()):
+		var p := poly[k]
+		var e := poly[(k + 1) % poly.size()] - p
+		var den := u.x * e.y - u.y * e.x
+		if absf(den) < 0.000001:
+			continue
+		var t := (p.x * e.y - p.y * e.x) / den
+		var s := (p.x * u.y - p.y * u.x) / den
+		if t > 0.0 and s >= -0.0001 and s <= 1.0001:
+			best = minf(best, t)
+	return best
+
+
+## How far the screen's edge lies from the hero at `hero` towards `at` on the sand (pass 61, _edge_table); INF without a
+## measure (everything on the screen).
+func edge_at(at: Vector3, hero: Vector3) -> float:
+	if _edge_r.is_empty():
+		return INF
+	var b := int((atan2(at.z - hero.z, at.x - hero.x) + PI) / TAU * float(EDGE_BINS))
+	return _edge_r[clampi(b, 0, EDGE_BINS - 1)]
+
+
+## One step of a big pull under way (pass 61, vacuum_all): the grid's cells nearest the cell it was called from first,
+## WALK_MAX lying pickups and WALK_CELLS cells at most a tick (coins with `_vac_coins`): one on the screen sets off on the arc while fewer than
+## FLIGHT_MAX are on their way (else the walk waits for room), its wait in the ripple shortened by the ticks the walk
+## took to reach it; one off it waits where it lies for its turn to come over the edge (vac_q 1, _tick_vq). Goes on next
+## tick from where it stopped.
+func _vacuum_step(hero: Vector3) -> void:
+	if _time - _edge_t > 0.5:
+		_edge_table(hero)
+	var budget := FLIGHT_MAX - _flying_n
+	var looked := 0
+	var cells := 0
+	var late := _time - _vac_t0
+	var n := _ring_d.size()
+	while _vac_k < n:
+		cells += 1
+		if cells > WALK_CELLS:
+			return
+		var cx := _vac_cx + _ring_off[_vac_k * 2]
+		var cz := _vac_cz + _ring_off[_vac_k * 2 + 1]
+		if cx < 0 or cz < 0 or cx >= GRID_N or cz >= GRID_N:
+			_vac_k += 1
+			continue
+		var i := _g_head[cz * GRID_N + cx]
+		while i >= 0:
+			var nx := _g_next[i]
+			if vac_q[i] == 0 and (_vac_coins or kind[i] != KIND_COIN):
+				looked += 1
+				var d := Vector2(pos[i].x - hero.x, pos[i].z - hero.z).length()
+				var r := edge_at(pos[i], hero)
+				if d <= r:
+					if budget <= 0:
+						return
+					_start_trip(i, hero, true, late)
+					budget -= 1
+				else:
+					vac_q[i] = 1
+					_vq_add(i, _vac_t0 + FAR_LEAD + (d - r) / _top)
+			i = nx
+			if looked >= WALK_MAX and i >= 0:
+				# the rest of this cell next tick
+				return
+		_vac_k += 1
+	_vac_on = false
+
+
+## Off-screen pickup `i`'s wait (pass 61) goes on the pull's own wheel, due at `t`, never before the bucket the reading
+## is at; its one live entry (_vq_b), so an older one is stale.
+func _vq_add(i: int, t: float) -> void:
+	_vq_due[i] = t
+	var b := maxi(floori(float(_vq_due[i]) / IDLE_BUCKET), _vq_next)
+	_vq_b[i] = b
+	var arr = _vq.get(b)
+	if arr == null:
+		arr = []
+		_vq[b] = arr
+	(arr as Array).append(i)
+
+
+## The off-screen waits that are due (pass 61): every bucket the clock has passed, then the due ones of the bucket it is
+## in. A stale entry (gone, taken by the magnet, called by a later pull) is skipped.
+func _tick_vq(hero: Vector3) -> void:
+	if _time - _edge_t > 0.5:
+		_edge_table(hero)
+	var now_b := floori(_time / IDLE_BUCKET)
+	if now_b - _vq_next > 2048:
+		# the clock jumped far (tests): straight to the first bucket that holds something
+		var first := now_b
+		for k in _vq.keys():
+			first = mini(first, int(k))
+		_vq_next = first
+	var turns := 0
+	while _vq_next <= now_b:
+		var b := _vq_next
+		var arr = _vq.get(b)
+		var full := false
+		if arr != null:
+			_vq.erase(b)
+			var keep: Array = []
+			for i: int in arr:
+				if full:
+					# past this tick's VQ_TURNS: the rest wait for the next tick (they are off the screen)
+					keep.append(i)
+					continue
+				if i >= _cap or alive[i] == 0 or g_cell[i] < 0 or vac_q[i] == 0 or _vq_b[i] != b:
+					continue
+				if _vq_due[i] > _time:
+					keep.append(i)
+					continue
+				_vq_turn(i, hero)
+				turns += 1
+				full = turns >= VQ_TURNS
+			if not keep.is_empty():
+				# back where the reading is (it has not moved: b), with anything added there meanwhile
+				var kb := maxi(b, _vq_next)
+				for i: int in keep:
+					if _vq_b[i] == b:
+						_vq_b[i] = kb
+				var more = _vq.get(kb)
+				if more != null:
+					keep.append_array(more as Array)
+				_vq[kb] = keep
+		if b == now_b or full:
+			break
+		_vq_next += 1
+
+
+## Off-screen pickup `i`'s turn has come (pass 61). If he has walked so near that it shows, it goes up the arc as the ones
+## on the screen did (or waits a beat for room). Its turn to come over the edge: its dive starts just past the edge
+## (_launch_far) while the stream has room, else it waits until it would have reached him. That turn: taken where it
+## lies, quietly (_collect's quiet way), never where it can be seen.
+func _vq_turn(i: int, hero: Vector3) -> void:
+	var d := Vector2(pos[i].x - hero.x, pos[i].z - hero.z).length()
+	var r := edge_at(pos[i], hero)
+	if d <= r:
+		if _flying_n < FLIGHT_MAX:
+			_start_trip(i, hero, true)
+		else:
+			_vq_add(i, _time + 0.1)
+		return
+	if vac_q[i] == 1:
+		if _edge_n < EDGE_MAX and _flying_n < FLIGHT_MAX:
+			_launch_far(i, hero, d, r)
+		else:
+			vac_q[i] = 2
+			_vq_add(i, _time + r / _top)
+		return
+	_collect(i, true)
+
+
+## A pickup the big pull calls from beyond the screen when its turn to come over the edge has come (pass 61): nobody saw
+## its wait, its throw or the first part of its dive, so it starts the dive `r` m from the hero (the edge and a margin)
+## on the line from his chest to where its arc's top would have been over the spot it lay `d` m away, already at the top
+## speed and charged.
+func _launch_far(i: int, hero: Vector3, d: float, r: float) -> void:
+	_end_idle(i)
+	_g_del(i)
+	vac_q[i] = 0
+	var h: float = ARC_HEIGHT_MIN + _rng.randf() * ARC_HEIGHT_RANGE + ARC_HEIGHT_PER_M * d
+	var chest := hero + Vector3(0.0, CHEST, 0.0)
+	var apex := Vector3(pos[i].x, pos[i].y + h, pos[i].z)
+	pos[i] = chest + (apex - chest) * clampf(r / maxf(d, 0.001), 0.0, 1.0)
+	vel[i] = Vector3.ZERO
+	hop_dir[i] = Vector3(apex.x - hero.x, 0.0, apex.z - hero.z).normalized()
+	flying[i] = 1
+	_flying_n += 1
+	edge_f[i] = 1
+	_edge_n += 1
+	arced[i] = 1
+	arc_spin[i] = _rng.randf() * TAU
+	phase[i] = PHASE_FLY
+	phase_t[i] = maxf(_top / FLY_ACCEL, FLY_CURVE_TIME)
+	_act_add(i)
 
 
 func _gem_mesh(r: float) -> Mesh:
@@ -373,6 +950,9 @@ static func coin_material() -> ShaderMaterial:
 		_coin_mat = ShaderMaterial.new()
 		_coin_mat.shader = load("res://core/shaders/coin.gdshader")
 		_coin_mat.set_shader_parameter("radius", COIN_R)
+		# the float the shader does (pass 61): its height and middle; `t_now` is the run's clock (_render)
+		_coin_mat.set_shader_parameter("bob", BOB)
+		_coin_mat.set_shader_parameter("float_base", FLOAT_BASE)
 		_coin_mat.render_priority = PICKUP_PRIORITY
 	return _coin_mat
 
@@ -389,6 +969,9 @@ static func gem_material(color: Color) -> ShaderMaterial:
 	m.set_shader_parameter("albedo", Color(color.r, color.g, color.b, 1.0))
 	m.set_shader_parameter("rest_emission", GEM_EMISSION)
 	m.set_shader_parameter("charged_emission", CHARGED_EMISSION)
+	# the float and the spin the shader does (pass 61); `t_now` is the run's clock (_render)
+	m.set_shader_parameter("bob", BOB)
+	m.set_shader_parameter("float_base", FLOAT_BASE)
 	m.render_priority = PICKUP_PRIORITY
 	return m
 
@@ -401,13 +984,17 @@ func _make_mm(mesh: Mesh, color: Color, mat: Material = null) -> MultiMesh:
 		# see-through and depth-less (pass 54): drawn after every opaque thing, and only where no painting is (the
 		# stencil, PAINTING_STENCIL), so a creature's, the hero's or a prop's painting covers a gem at its feet
 		mat = gem_material(color)
+		_gem_mats.append(mat)
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
-	# the charge (pass 60), set before the count: a MultiMesh lays its buffer out when it is sized
-	mm.use_custom_data = gem
+	# the charge (pass 60) and the float's seed (pass 61; the coin's too), set before the count: a MultiMesh lays its
+	# buffer out when it is sized
+	mm.use_custom_data = true
 	mm.mesh = mesh
-	mm.instance_count = MAX
+	mm.instance_count = _icap
 	mm.visible_instance_count = 0
+	# pass 61: the box it may fill, so the server never measures its instances again when one moves or the count changes
+	mm.set("custom_aabb", AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400)))
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm
 	mmi.material_override = mat
@@ -443,16 +1030,13 @@ func _make_glint_mm() -> MultiMesh:
 	return mm
 
 
+## A drop of `p_kind` worth `v` let go at `at`; its slot. Pass 61: never lost and never merged (the pool doubles when it
+## is full); it takes the next place in its kind's MultiMesh, whose custom data (the gem shader's charge 0 and the seed
+## its float and spin are timed by, phase_of; the coin's too) is written now, once, and falls in the active list until
+## it lands.
 func spawn(p_kind: int, at: Vector3, v: float) -> int:
-	if free_list.is_empty() and not _merging:
-		_merge(120)
-		_merge(60, KIND_COIN)
 	if free_list.is_empty():
-		# nothing far enough to fuse: the drop is lost, as before; said once a run (pass 54)
-		if not _full_warned:
-			_full_warned = true
-			push_warning("PickupManager: the pool of %d is full and nothing far from the hero can merge; a drop was lost" % MAX)
-		return -1
+		_grow()
 	var i: int = free_list.pop_back()
 	pos[i] = at + Vector3(randf_range(-0.4, 0.4), 0.0, randf_range(-0.4, 0.4))
 	# DROP_FROM over where it was let go, and as much higher again as its kind rests (the fix round of pass 56)
@@ -476,13 +1060,25 @@ func spawn(p_kind: int, at: Vector3, v: float) -> int:
 	count += 1
 	if p_kind == KIND_COIN:
 		coins += 1
-	if not _merging and _time - _merge_last >= MERGE_GAP:
-		if count > MERGE_AT:
-			_merge_last = _time
-			_merge(100)
-		elif coins > COIN_CAP:
-			_merge_last = _time
-			_merge(coins - COIN_CAP + 20, KIND_COIN)
+	# its instance (pass 61): the kind's next place, the MultiMeshes doubling when one is full
+	if _inst_n[p_kind] >= _icap:
+		_grow_instances()
+	var n := _inst_n[p_kind]
+	_inst_n[p_kind] = n + 1
+	inst[i] = n
+	_islot[p_kind * _icap + n] = i
+	(_mms[p_kind] as MultiMesh).set_instance_custom_data(n, Color(0.0, _seed[i], 0.0, 0.0))
+	_ich[p_kind * _icap + n] = 0.0
+	custom_writes += 1
+	_act_add(i)
+	return i
+
+
+## The coin in slot `i` (a spawn's answer; -1 does nothing) came from `source` (pass 61: gold_dust, boss_coins, ...); the
+## gold it pays when taken is counted under it. Returns `i`.
+func mark_coin(i: int, source: String) -> int:
+	if i >= 0:
+		coin_from[i] = source
 	return i
 
 
@@ -495,6 +1091,7 @@ func toss_coin(at: Vector3, v: float = 10.0) -> int:
 	var i := spawn(KIND_COIN, at, v)
 	if i < 0:
 		return i
+	mark_coin(i, "loose_change")
 	var map = game.get("map") if game != null else null
 	var to := toss_spot(at, map)
 	var land := Vector3(to.x, (map.height_at(to.x, to.z) if map else 0.0) + REST, to.z)
@@ -609,17 +1206,32 @@ func prospector(def: EnemyDef, at: Vector3, xp_scale: float, chance: float) -> b
 ## The big pull (the Magnet Pulse, the Uber Magnet, the boss chest's opening, the Elite's vacuum gem, the arena's button):
 ## every pickup on the field (coins only with `coins_too`) goes up on the magnet arc and dives into the hero (pass 60,
 ## _start_trip with `arc`; the hop and the flight before), and with `chests_too` the chests slide to him.
+## Pass 61: the moving ones (falling, tossed, held) set off at once; the ones lying on the sand are called from the grid,
+## nearest first, by _vacuum_step (now and on the ticks after): the ones on the screen up the arc, at most FLIGHT_MAX on
+## their way at once, the ones off it in their turn from just past the screen's edge or, past EDGE_MAX of those, taken
+## unseen (_tick_vq).
 func vacuum_all(coins_too: bool = false, chests_too: bool = false) -> void:
-	# the pools are only read for a pickup that is there (a manager that never entered the tree has `alive` and nothing
-	# else)
-	var hero := Vector3.INF
-	var asked := false
-	for i in range(MAX):
-		if alive[i] == 1 and (coins_too or kind[i] != KIND_COIN):
-			if not asked:
-				asked = true
-				hero = _hero_at()
-			_start_trip(i, hero, true)
+	# a manager that never entered the tree has no pools (tests): only the chests
+	if _cap > 0:
+		var hero := _hero_at()
+		var moving := _act.duplicate()
+		for i in moving:
+			if alive[i] == 1 and flying[i] == 0 and (coins_too or kind[i] != KIND_COIN):
+				_start_trip(i, hero, true)
+		_vac_coins = coins_too or (_vac_on and _vac_coins)
+		_vac_on = true
+		_vac_k = 0
+		_vac_t0 = _time
+		var c := hero if hero != Vector3.INF else Vector3.ZERO
+		_vac_cx = _cell_x(c.x)
+		_vac_cz = _cell_x(c.z)
+		_top = clampf(8.0 + _magnet() * 6.0, 12.0, 40.0)
+		# nothing waits from an earlier pull: the reading starts at the clock's bucket (it is not read between pulls; it
+		# is never moved while it reads, the review of pass 61)
+		if _vq.is_empty():
+			_vq_next = maxi(_vq_next, floori(_time / IDLE_BUCKET))
+		_edge_table(hero)
+		_vacuum_step(hero)
 	if chests_too:
 		# a boss kill: the chests come to the hero too, instead of the hero crossing the arena for them
 		for c in chests:
@@ -647,14 +1259,20 @@ func _hero_at() -> Vector3:
 ## away, a hang at the apex and the dive. One already on its way is left alone, so a magnet, a turret or a vacuum never
 ## restarts a trip (a gem waiting its turn counts as on its way). The arc's dice are the manager's own (_rng), like the
 ## idle looks', so a pull never moves the run's shared random sequence.
-func _start_trip(i: int, hero: Vector3, arc: bool = false) -> void:
+func _start_trip(i: int, hero: Vector3, arc: bool = false, late: float = 0.0) -> void:
 	if flying[i] == 1:
 		return
+	# no longer waiting for a big pull's turn off the screen (pass 61)
+	vac_q[i] = 0
 	# called mid idle hop (pass 56): it sets off from the height it was drawn at, never dropping back to the sand first
-	if hop_t.size() == MAX and hop_t[i] >= 0.0:
+	if hop_t[i] >= 0.0:
 		pos[i].y += hop_extra_y(hop_t[i])
 	_end_idle(i)
+	# off the sand and into the active list (pass 61)
+	_g_del(i)
+	_act_add(i)
 	flying[i] = 1
+	_flying_n += 1
 	phase_t[i] = 0.0
 	var away := Vector3.ZERO
 	if hero != Vector3.INF:
@@ -667,7 +1285,8 @@ func _start_trip(i: int, hero: Vector3, arc: bool = false) -> void:
 	arc_spin[i] = 0.0
 	if arc:
 		phase[i] = PHASE_ARC_WAIT
-		arc_delay[i] = minf(ARC_WAIT_PER_M * d, ARC_WAIT_MAX) + _rng.randf() * ARC_WAIT_JITTER
+		# (pass 61: less the ticks a big pull's walk took to reach it, so the ripple keeps its timing)
+		arc_delay[i] = maxf(minf(ARC_WAIT_PER_M * d, ARC_WAIT_MAX) + _rng.randf() * ARC_WAIT_JITTER - late, 0.0)
 		arc_hang[i] = _rng.randf_range(ARC_HANG_MIN, ARC_HANG_MAX)
 		arc_apex[i] = -1.0
 		# thrown up to its apex (v0 = sqrt(2 g h)) and a little outward along a line turned off straight away, so the
@@ -754,9 +1373,9 @@ func _travel(i: int, chest: Vector3, top: float, delta: float, map) -> void:
 		return
 	var dir := to / l
 	# every other one bends the other way; the bend fades as it gets going and as it closes in, so it always arrives
-	var side := Vector3(-hop_dir[i].z, 0.0, hop_dir[i].x) * (1.0 if (i & 1) == 0 else -1.0)
 	var bend: float = FLY_CURVE * clampf(1.0 - phase_t[i] / FLY_CURVE_TIME, 0.0, 1.0) * clampf(l / 2.0, 0.0, 1.0)
 	if bend > 0.0:
+		var side := Vector3(-hop_dir[i].z, 0.0, hop_dir[i].x) * (1.0 if (i & 1) == 0 else -1.0)
 		dir = (dir + side * bend).normalized()
 	var sp: float = minf(FLY_ACCEL * phase_t[i], top)
 	pos[i] += dir * minf(sp * delta, l)
@@ -765,90 +1384,6 @@ func _travel(i: int, chest: Vector3, top: float, delta: float, map) -> void:
 			_drop_here(i, map)
 		else:
 			_collect(i)
-
-
-## Frees about `n` slots by fusing pickups (pass 54, Garry: a gem by the hero vanished and its XP turned up far away;
-## the old merge took the hundred oldest gems anywhere). Only resting ones of `which` (the gems, any size; or the coins)
-## more than the magnet's reach + MERGE_CLEAR m from the hero (flat), never one on its way to him or a tossed coin still
-## lying out of reach, cluster by cluster: the oldest left and every other within MERGE_REACH of it (MERGE_CLUSTER at
-## most) become one at their centroid worth their sum (a large gem, or a coin), popping up with a glint; again until `n`
-## slots are free or no cluster of two is left. Returns the slots freed.
-func _merge(n: int, which: int = KIND_GEM_L) -> int:
-	var coin := which == KIND_COIN
-	var hero := _hero_at()
-	var clear := _magnet() + MERGE_CLEAR
-	var idx: Array = []
-	for i in range(MAX):
-		if alive[i] == 0 or flying[i] == 1 or phase[i] != PHASE_GROUND or hold[i] > 0.0:
-			continue
-		if (kind[i] == KIND_COIN) != coin or kind[i] == KIND_VACUUM:
-			continue
-		if hero != Vector3.INF:
-			var dx := pos[i].x - hero.x
-			var dz := pos[i].z - hero.z
-			if dx * dx + dz * dz <= clear * clear:
-				continue
-		idx.append(i)
-	if idx.size() < 2:
-		return 0
-	idx.sort_custom(func(a, b): return born[a] < born[b])
-	# the candidates by MERGE_REACH cells, oldest first in each, so a cluster looks at its own neighbourhood only
-	var cells := {}
-	for i: int in idx:
-		var key := Vector2i(floori(pos[i].x / MERGE_REACH), floori(pos[i].z / MERGE_REACH))
-		if not cells.has(key):
-			cells[key] = []
-		(cells[key] as Array).append(i)
-	var used := PackedByteArray()
-	used.resize(MAX)
-	var r2 := MERGE_REACH * MERGE_REACH
-	var freed := 0
-	_merging = true
-	for a: int in idx:
-		if freed >= n:
-			break
-		if used[a] == 1:
-			continue
-		var group: Array = [a]
-		var ca := Vector2i(floori(pos[a].x / MERGE_REACH), floori(pos[a].z / MERGE_REACH))
-		for cx in range(ca.x - 1, ca.x + 2):
-			for cz in range(ca.y - 1, ca.y + 2):
-				for b: int in cells.get(Vector2i(cx, cz), []):
-					if group.size() >= MERGE_CLUSTER:
-						break
-					if b == a or used[b] == 1:
-						continue
-					var dx := pos[b].x - pos[a].x
-					var dz := pos[b].z - pos[a].z
-					if dx * dx + dz * dz <= r2:
-						group.append(b)
-		if group.size() < 2:
-			continue
-		var total := 0.0
-		var centroid := Vector3.ZERO
-		for g: int in group:
-			used[g] = 1
-			total += value[g]
-			centroid += pos[g]
-			_free(g)
-		centroid /= float(group.size())
-		var j := spawn(KIND_COIN if coin else KIND_GEM_L, centroid, total)
-		if j >= 0:
-			# where they lay, no scatter (no lower than its own rest: pass 56), a little pop and a glint
-			pos[j] = centroid
-			_lift_to_rest(j)
-			vel[j] = Vector3(0.0, MERGE_POP, 0.0)
-			_merge_glint(j)
-		freed += group.size() - 1
-	_merging = false
-	return freed
-
-
-## A merged pickup's glint (pass 54): one mote in its colour, whatever the glint gap says.
-func _merge_glint(i: int) -> void:
-	var fx = game.get("fx") if game != null else null
-	if fx != null and fx.has_method("mote"):
-		fx.mote(pos[i] + Vector3(0, 0.15, 0), Vector3(0, 2.2, 0), 0.45, 0.32, GLINT_COLOURS[clampi(kind[i], 0, GLINT_COLOURS.size() - 1)])
 
 
 ## The hero's magnet reach as the pull reads it (the stat, 1.6 times for an auto-magnet hero); 1.5 without a run sheet.
@@ -867,22 +1402,82 @@ func count_coins() -> int:
 	return coins
 
 
+## Pickup `i` is gone (taken). Pass 61: out of the grid and the active list, and its kind's last instance moves into
+## the place it leaves (written there at once: its transform and custom data), so the MultiMesh stays packed.
 func _free(i: int) -> void:
 	if alive[i] == 0:
 		return
 	alive[i] = 0
+	if flying[i] == 1:
+		_flying_n -= 1
+	if edge_f[i] == 1:
+		edge_f[i] = 0
+		_edge_n -= 1
+	vac_q[i] = 0
 	flying[i] = 0
 	phase[i] = PHASE_GROUND
 	_end_idle(i)
+	_g_del(i)
+	_act_del(i)
+	var k := kind[i]
+	var n := inst[i]
+	if n >= 0:
+		var last := _inst_n[k] - 1
+		if n != last:
+			var j := _islot[k * _icap + last]
+			_islot[k * _icap + n] = j
+			inst[j] = n
+			_ich[k * _icap + n] = -1.0
+			_write(j, record_draws, true)
+		_islot[k * _icap + last] = -1
+		_inst_n[k] = last
+		inst[i] = -1
 	free_list.append(i)
 	count -= 1
 	if kind[i] == KIND_COIN:
 		coins -= 1
+		coin_from.erase(i)
 
 
+## Everything on the field goes at once (pass 61: in one sweep of the pools, no instance written; the next draw shows
+## none).
 func clear_all() -> void:
-	for i in range(MAX):
-		_free(i)
+	if _cap == 0:
+		return
+	for i in range(_cap):
+		if alive[i] == 1:
+			_end_idle(i)
+		alive[i] = 0
+		flying[i] = 0
+		phase[i] = PHASE_GROUND
+		inst[i] = -1
+		act_at[i] = -1
+		g_cell[i] = -1
+		_g_next[i] = -1
+		_g_prev[i] = -1
+		_dirty_f[i] = 0
+		vac_q[i] = 0
+		edge_f[i] = 0
+		_vq_b[i] = -1
+	free_list.clear()
+	for i in range(_cap - 1, -1, -1):
+		free_list.append(i)
+	_inst_n.fill(0)
+	_islot.fill(-1)
+	_ich.fill(-1.0)
+	_g_head.fill(-1)
+	_act.clear()
+	_dirty.clear()
+	_wheel.clear()
+	_glinting.clear()
+	_glints = 0
+	_flying_n = 0
+	_edge_n = 0
+	_vq.clear()
+	_vac_on = false
+	count = 0
+	coins = 0
+	coin_from.clear()
 
 
 ## true while the hero is down (pass 60): see _physics_process
@@ -906,9 +1501,13 @@ func _physics_process(delta: float) -> void:
 	var m2 := magnet * magnet
 	# the flight's top speed: the magnet's, never under 12 m/s so a slow magnet still lands them in a beat
 	var top: float = clampf(8.0 + magnet * 6.0, 12.0, 40.0)
+	_top = top
 	var map = game.map
-	for i in range(MAX):
-		if alive[i] == 0:
+	# pass 61: only the active ones (falling, on their way, tossed, held, hopping, glinting); a pickup lying still is
+	# reached through the grid below. A copy of the list: a pickup may leave it, or a pull add others, as it goes
+	var moving := _act.duplicate()
+	for i in moving:
+		if alive[i] == 0 or act_at[i] < 0:
 			continue
 		if flying[i] == 1:
 			_travel(i, chest, top, delta, map)
@@ -917,38 +1516,65 @@ func _physics_process(delta: float) -> void:
 		if phase[i] == PHASE_TOSS:
 			_toss_tick(i, delta, map)
 			continue
+		# lying on the sand, looked at only while its idle hop or glint runs (pass 56, pass 61)
+		if g_cell[i] >= 0:
+			_idle(i, delta)
+			continue
 		# settle (pass 56: a big gem a little higher, rest_of)
 		vel[i].y -= HOP_GRAV * delta
 		pos[i] += vel[i] * delta
 		var ground: float = (map.height_at(pos[i].x, pos[i].z) if map else 0.0) + _rest_k[kind[i]]
+		var landed := false
 		if pos[i].y < ground:
 			pos[i].y = ground
 			# down: it lies there (pass 56: one still on its way up, below a big gem's higher rest, keeps its pop)
 			if vel[i].y <= 0.0:
 				vel[i] = Vector3.ZERO
-				# lying on the sand (pass 56): a gem's idle hop and glint, when either has something to do
-				if kind[i] <= KIND_GEM_L and _time >= idle_due[i]:
-					_idle(i, delta)
-		var dd := hero - pos[i]
-		dd.y = 0.0
+				landed = true
+		var dx := hero.x - pos[i].x
+		var dz := hero.z - pos[i].z
+		var d2 := dx * dx + dz * dz
 		# ... and a moment after it lands: no magnet, no pull, only his own feet (pass 48)
 		if hold[i] > 0.0:
 			hold[i] -= delta
-			if dd.length_squared() < TOSS_TOUCH * TOSS_TOUCH:
+			if d2 < TOSS_TOUCH * TOSS_TOUCH:
 				hold[i] = 0.0
 				_start_trip(i, hero)
 			continue
-		if dd.length_squared() < m2:
+		if d2 < m2:
 			if not _down:
 				_start_trip(i, hero)
-		else:
+				continue
+		elif not _down:
+			var pulled := false
 			for a in _attractors:
 				var da: Vector3 = a["pos"] - pos[i]
 				da.y = 0.0
-				if da.length() < a["r"] and not _down:
+				if da.length() < a["r"]:
 					# a turret's pull is a big one (pass 60): the magnet arc
 					_start_trip(i, hero, true)
+					pulled = true
 					break
+			if pulled:
+				continue
+		if landed:
+			# down for good (pass 61): into the grid, out of the tick
+			_rest(i)
+	if not _down:
+		# the ones lying on the sand within his magnet's reach, and within a turret's pull (pass 61: the grid's cells)
+		_pull_round(hero, magnet, hero, false)
+		for a in _attractors:
+			_pull_round(a["pos"], float(a["r"]), hero, true)
+		# a big pull under way calls the next ones, and the ones off the screen whose turn has come
+		if _vac_on:
+			_vacuum_step(hero)
+		if not _vq.is_empty():
+			_tick_vq(hero)
+		if _credit_xp > 0.0:
+			Run.add_xp(_credit_xp)
+			_credit_xp = 0.0
+	# the idle turns that are due
+	_tick_wheel(delta)
 	_attractors.clear()
 	_check_chests(player, delta)
 	_check_specials(player, delta)
@@ -960,6 +1586,8 @@ func _physics_process(delta: float) -> void:
 ## after it lands, then as long again after each; a turn on the screen inside HOP_EXTRA_GAP of the last hop there passes
 ## and waits a full wait again), and a medium or large gem's glint (its own GLINT_EVERY wait, then a glint if the field's
 ## GLINT_GAP and GLINT_MAX allow and it can be seen, _on_screen; a turn passed up waits a full wait again).
+## Pass 61: a hop whose turn comes off the screen passes too (nobody sees it, and a gem lying still costs nothing), and
+## the gem is ticked only while its hop or glint runs (the active list); otherwise its next turn waits on the wheel.
 func _idle(i: int, delta: float) -> void:
 	if hop_t[i] >= 0.0:
 		hop_t[i] += delta
@@ -969,14 +1597,13 @@ func _idle(i: int, delta: float) -> void:
 	elif hop_next[i] < 0.0:
 		hop_next[i] = _time + _rng.randf_range(HOP_EXTRA_MIN, HOP_EXTRA_MAX)
 	elif _time >= hop_next[i]:
-		# on the screen, one hop every HOP_EXTRA_GAP s at most across the field (the fix round of pass 56)
-		var seen := _in_view(pos[i])
-		if seen and _time - _hop_last < HOP_EXTRA_GAP:
+		# on the screen, one hop every HOP_EXTRA_GAP s at most across the field (the fix round of pass 56); off it, none
+		# (pass 61)
+		if not _in_view(pos[i]) or _time - _hop_last < HOP_EXTRA_GAP:
 			hop_next[i] = _time + _rng.randf_range(HOP_EXTRA_MIN, HOP_EXTRA_MAX)
 		else:
 			hop_t[i] = 0.0
-			if seen:
-				_hop_last = _time
+			_hop_last = _time
 	var k := kind[i]
 	var glints := k == KIND_GEM_M or k == KIND_GEM_L
 	if glints:
@@ -990,11 +1617,14 @@ func _idle(i: int, delta: float) -> void:
 			glint_next[i] = _time + glint_wait(k)
 			if _time - _glint_last >= GLINT_GAP and _glints < GLINT_MAX and _on_screen(pos[i]):
 				start_glint(i)
-	# its next call: every tick while a hop or a glint runs, else at the sooner of the two
+	# its next call: every tick while a hop or a glint runs (the active list), else at the sooner of the two (the wheel)
 	if hop_t[i] >= 0.0 or glint_t[i] >= 0.0:
 		idle_due[i] = 0.0
+		_act_add(i)
 	else:
 		idle_due[i] = minf(hop_next[i], glint_next[i]) if glints else hop_next[i]
+		_act_del(i)
+		_wheel_add(i, idle_due[i])
 
 
 ## Seconds a gem of kind `k` waits for its next glint (GLINT_EVERY); 0 for a kind that never glints.
@@ -1014,6 +1644,10 @@ func start_glint(i: int) -> void:
 	_glints += 1
 	_glint_last = _time
 	idle_due[i] = 0.0
+	# drawn every frame it lasts, and ticked (pass 61)
+	_glinting.append(i)
+	if alive[i] == 1 and g_cell[i] >= 0:
+		_act_add(i)
 
 
 ## Glints showing now (tests).
@@ -1026,12 +1660,15 @@ func _end_glint(i: int) -> void:
 		return
 	glint_t[i] = -1.0
 	_glints -= 1
+	var at := _glinting.find(i)
+	if at >= 0:
+		_glinting.remove_at(at)
 
 
-## A pickup leaves the sand (taken, merged, called by the magnet): its idle hop and glint stop and their clocks wait for
-## it to land again (pass 56).
+## A pickup leaves the sand (taken, called by the magnet): its idle hop and glint stop and their clocks wait for it to
+## land again (pass 56).
 func _end_idle(i: int) -> void:
-	if hop_t.size() != MAX:
+	if i >= hop_t.size():
 		return
 	hop_t[i] = -1.0
 	hop_next[i] = -1.0
@@ -1073,7 +1710,14 @@ func _on_screen(p: Vector3) -> bool:
 
 ## The float every resting pickup does (pass 54, unchanged in pass 56): `i`'s height over where it lies at `t` s.
 static func float_y(i: int, t: float) -> float:
-	return 0.06 + sin(t * 2.4 + float(i) * 0.9) * BOB
+	return FLOAT_BASE + sin(t * 2.4 + phase_of(i) * 0.9) * BOB
+
+
+## Slot `i`'s phase for the float and the idle spin (the review of pass 61): its seed (0..1, the shimmer's too) times
+## TAU, the value the shaders get in INSTANCE_CUSTOM.y (a half float on the Compatibility renderer: exact enough for
+## 0..1, where a raw slot past 2048 was not).
+static func phase_of(i: int) -> float:
+	return fmod(float(i) * 0.6180339887, 1.0) * TAU
 
 
 ## The idle hop's height over the float `t` s into it (pass 56): a parabola, 0 as it leaves and lands, HOP_EXTRA_HEIGHT
@@ -1131,19 +1775,38 @@ func _process(_delta: float) -> void:
 
 ## A pickup that reached a hero who is down lies down where it is (pass 60: death wins; no XP on the corpse).
 func _drop_here(i: int, map) -> void:
+	if flying[i] == 1:
+		_flying_n -= 1
+	if edge_f[i] == 1:
+		edge_f[i] = 0
+		_edge_n -= 1
 	flying[i] = 0
-	if arced.size() == MAX:
-		arced[i] = 0
+	arced[i] = 0
 	phase[i] = PHASE_GROUND
 	phase_t[i] = 0.0
 	vel[i] = Vector3.ZERO
 	pos[i].y = (map.height_at(pos[i].x, pos[i].z) if map else 0.0) + _rest_k[kind[i]]
+	# it lies in the grid (pass 61) until the pull takes it again
+	_rest(i)
 
 
-func _collect(i: int) -> void:
+## Pickup `i` is the hero's. `quiet` (pass 61: one a big pull takes unseen, off the screen): no sound and no mote, a
+## gem's XP is gathered and handed to the run once at the end of the tick (_credit_xp), and a vacuum gem starts nothing.
+func _collect(i: int, quiet: bool = false) -> void:
+	if quiet:
+		match kind[i]:
+			KIND_COIN:
+				Run.add_gold(int(value[i]) * max(int(round(Run.stage_mult())), 1), str(coin_from.get(i, "coins")))
+			KIND_VACUUM:
+				# taken unseen while a pull runs: no second pull, no sound (only one the hero reaches starts a pull)
+				pass
+			_:
+				_credit_xp += value[i]
+		_free(i)
+		return
 	match kind[i]:
 		KIND_COIN:
-			Run.add_gold(int(value[i]) * max(int(round(Run.stage_mult())), 1))
+			Run.add_gold(int(value[i]) * max(int(round(Run.stage_mult())), 1), str(coin_from.get(i, "coins")))
 			Audio.play("pk_coin")
 		KIND_VACUUM:
 			vacuum_all()
@@ -1245,92 +1908,139 @@ func warm_draw(at: Vector3) -> void:
 	_drawn = -1
 
 
+## Pass 61: the shaders' clocks first (the float and the spin of everything lying still), then only the active pickups'
+## instances and the ones that have just come to rest (_dirty); a pickup lying still is not written at all.
 func _render() -> void:
-	var counters := PackedInt32Array()
-	counters.resize(_mms.size())
-	var ng := 0
+	for m in _gem_mats:
+		(m as ShaderMaterial).set_shader_parameter("t_now", fmod(_time, GEM_WRAP))
+	coin_material().set_shader_parameter("t_now", fmod(_time, COIN_WRAP))
 	var rec := record_draws
-	if rec and drawn_xf.size() != MAX:
-		drawn_xf.resize(MAX)
-		drawn_charge.resize(MAX)
-	for i in range(MAX):
-		if alive[i] == 0:
-			continue
-		var k := kind[i]
-		var mm: MultiMesh = _mms[k]
-		var n := counters[k]
-		var b := Basis().rotated(Vector3.UP, _time * 2.0 + float(i))
-		# the float (float_y, written out here: this runs for every pickup every frame)
-		var lift := 0.06 + sin(_time * 2.4 + float(i) * 0.9) * BOB
-		if k == KIND_COIN:
-			if phase[i] == PHASE_TOSS:
-				# knocked loose (pass 48): end over end along its throw
-				b = Basis().rotated(Vector3.RIGHT, PI * 0.5 + phase_t[i] * TOSS_FLIP).rotated(Vector3.UP, atan2(hop_dir[i].x, hop_dir[i].z))
-			else:
-				b = Basis().rotated(Vector3.RIGHT, PI * 0.5).rotated(Vector3.UP, _time * 3.0 + float(i))
-		elif hop_t[i] >= 0.0:
-			# the idle hop (pass 56): up and down over the float with a flick of spin, stretched as it leaves the sand
-			# and squashed as it lands
-			var ht: float = hop_t[i]
-			b = Basis().rotated(Vector3.UP, _time * 2.0 + float(i) + hop_extra_spin(ht))
-			var hs := hop_extra_scale(ht)
-			b = b.scaled(Vector3(hs.x, hs.y, hs.x))
-			lift += hop_extra_y(ht)
-		var ch := 0.0
-		if flying[i] == 1:
-			var ph := phase[i]
-			if ph == PHASE_HOP:
-				# the pop: big as it leaves the sand, its own size again at the top of the hop
-				var sc: float = lerpf(HOP_POP, 1.0, clampf(phase_t[i] / HOP_TIME, 0.0, 1.0))
-				b = b.scaled(Vector3(sc, sc, sc))
-			elif arced[i] == 1:
-				# the magnet arc (pass 60): charged, spinning faster from the launch, with the hop's pop as it leaves
-				ch = charge_of(i)
-				if ph != PHASE_ARC_WAIT:
-					b = b.rotated(Vector3.UP, arc_spin[i])
-					if ph == PHASE_ARC_RISE:
-						var sc: float = lerpf(HOP_POP, 1.0, clampf(phase_t[i] / ARC_POP_TIME, 0.0, 1.0))
-						b = b.scaled(Vector3(sc, sc, sc))
-		var xf := Transform3D(b, pos[i] + Vector3(0, lift, 0))
-		mm.set_instance_transform(n, xf)
-		# the charge reaches the gem shader as custom data (pass 60), written only while one is on or while the slot still
-		# holds an old one (_cd_hot), so a field of resting gems costs the draw nothing more; the coin's shader has none
-		if k != KIND_COIN:
-			var slot := k * MAX + n
-			if ch > 0.0:
-				mm.set_instance_custom_data(n, Color(ch, _seed[i], 0.0, 0.0))
-				_cd_hot[slot] = 1
-				custom_writes += 1
-			elif _cd_hot[slot] == 1:
-				mm.set_instance_custom_data(n, Color(0.0, 0.0, 0.0, 0.0))
-				_cd_hot[slot] = 0
-				custom_writes += 1
-		counters[k] = n + 1
-		if rec:
-			drawn_xf[i] = xf
-			drawn_charge[i] = ch
-		if glint_t[i] >= 0.0 and ng < GLINT_MAX:
-			_glint_mm.set_instance_transform(ng, glint_xform(i, xf.origin))
-			_glint_mm.set_instance_color(ng, glint_color(i))
-			_glint_mm.set_instance_custom_data(ng, Color(0.3 + glint_t[i] * 1.8, 0.0, 0.0, 0.0))
-			ng += 1
+	if rec and drawn_xf.size() != _cap:
+		drawn_xf.resize(_cap)
+		drawn_charge.resize(_cap)
+	for i in _act:
+		if alive[i] == 1:
+			_write(i, rec)
+	for i in _dirty:
+		_dirty_f[i] = 0
+		if alive[i] == 1 and act_at[i] < 0 and inst[i] >= 0:
+			_write(i, rec)
+	_dirty.clear()
+	var ng := 0
+	for i in _glinting:
+		if ng >= GLINT_MAX:
+			break
+		_glint_mm.set_instance_transform(ng, glint_xform(i, _shown_origin(i)))
+		_glint_mm.set_instance_color(ng, glint_color(i))
+		_glint_mm.set_instance_custom_data(ng, Color(0.3 + glint_t[i] * 1.8, 0.0, 0.0, 0.0))
+		ng += 1
+	var extra := 0
 	if _warm_at != Vector3.INF:
-		for k in range(_mms.size()):
-			if counters[k] < MAX:
-				(_mms[k] as MultiMesh).set_instance_transform(counters[k], Transform3D(Basis(), _warm_at))
-				# charged (pass 60), so the gem shader runs its charged sums under the beam too
-				if k != KIND_COIN:
-					(_mms[k] as MultiMesh).set_instance_custom_data(counters[k], Color(1.0, 0.5, 0.0, 0.0))
-					_cd_hot[k * MAX + counters[k]] = 1
-				counters[k] += 1
+		extra = 1
+		for k in range(KINDS):
+			if _inst_n[k] >= _icap:
+				_grow_instances()
+		for k in range(KINDS):
+			var mm: MultiMesh = _mms[k]
+			var n := _inst_n[k]
+			mm.set_instance_transform(n, Transform3D(Basis(), _warm_at))
+			# charged (pass 60), so the gem shader runs its charged sums under the beam too (the coin: no charge)
+			mm.set_instance_custom_data(n, Color(1.0 if k != KIND_COIN else 0.0, 0.0, 0.0, 0.0))
+			_ich[k * _icap + n] = 1.0
 		# and one all but invisible glint, so its shader compiles under the spawn beam too (pass 56)
 		_glint_mm.set_instance_transform(ng, Transform3D(Basis().scaled(Vector3.ONE * 0.2), _warm_at))
 		_glint_mm.set_instance_color(ng, Color(1, 1, 1, 0.02))
 		_glint_mm.set_instance_custom_data(ng, Color(0, 0, 0, 0))
 		ng += 1
-	for k in range(_mms.size()):
-		_mms[k].visible_instance_count = counters[k]
+	for k in range(KINDS):
+		var mm: MultiMesh = _mms[k]
+		var want := _inst_n[k] + extra
+		if mm.visible_instance_count != want:
+			mm.visible_instance_count = want
 	_glint_mm.visible_instance_count = ng
+
+
+## Pickup `i`'s instance written from where it is (pass 61): its transform (_instance_xf: no float, no idle spin, the
+## shaders add those) and, a gem, the charge in its custom data when it has changed (with `full`, the custom data
+## whatever it held: a pickup moved into another's place).
+func _write(i: int, rec: bool, full: bool = false) -> void:
+	var k := kind[i]
+	var n := inst[i]
+	var mm: MultiMesh = _mms[k]
+	var xf := _instance_xf(i)
+	mm.set_instance_transform(n, xf)
+	instance_writes += 1
+	if rec and i < drawn_xf.size():
+		drawn_xf[i] = xf
+	if k == KIND_COIN:
+		# the coin's custom data is its seed only (no charge): written when it is made, and again when it moves place
+		if full:
+			mm.set_instance_custom_data(n, Color(0.0, _seed[i], 0.0, 0.0))
+			custom_writes += 1
+		return
+	var ch := charge_of(i)
+	var c := k * _icap + n
+	if full or ch != _ich[c]:
+		mm.set_instance_custom_data(n, Color(ch, _seed[i], 0.0, 0.0))
+		_ich[c] = ch
+		custom_writes += 1
+	if rec and i < drawn_charge.size():
+		drawn_charge[i] = ch
+
+
+## Pickup `i`'s instance transform (pass 61): where it is and what it does beyond the float and the idle spin, which the
+## shaders add (gem.gdshader: B * spin(2 t + phase) and the float over it; coin.gdshader: B * spin(3 t + phase) * on edge
+## and the float straight up in the world; phase_of). A gem: its idle hop's lift, extra spin and stretch (pass 56), the
+## walk-up hop's pop (pass 46), the arc's extra spin and pop (pass 60). A coin: nothing lying still; knocked loose (pass
+## 48), end over end along its throw with the shader's spin taken back out.
+func _instance_xf(i: int) -> Transform3D:
+	var k := kind[i]
+	var b := Basis()
+	var up := 0.0
+	if k == KIND_COIN:
+		if phase[i] == PHASE_TOSS:
+			b = Basis(Vector3.UP, atan2(hop_dir[i].x, hop_dir[i].z)) * Basis(Vector3.RIGHT, phase_t[i] * TOSS_FLIP) * Basis(Vector3.UP, -(3.0 * _time + phase_of(i)))
+	elif hop_t[i] >= 0.0:
+		# the idle hop (pass 56): up and down over the float with a flick of spin, stretched as it leaves the sand and
+		# squashed as it lands
+		var ht: float = hop_t[i]
+		var hs := hop_extra_scale(ht)
+		b = Basis(Vector3.UP, hop_extra_spin(ht)).scaled(Vector3(hs.x, hs.y, hs.x))
+		up = hop_extra_y(ht)
+	if flying[i] == 1:
+		var ph := phase[i]
+		if ph == PHASE_HOP:
+			# the pop: big as it leaves the sand, its own size again at the top of the hop
+			var sc: float = lerpf(HOP_POP, 1.0, clampf(phase_t[i] / HOP_TIME, 0.0, 1.0))
+			b = b.scaled(Vector3(sc, sc, sc))
+		elif arced[i] == 1 and ph != PHASE_ARC_WAIT:
+			# the magnet arc (pass 60): spinning faster from the launch, with the hop's pop as it leaves
+			b = b.rotated(Vector3.UP, arc_spin[i])
+			if ph == PHASE_ARC_RISE:
+				var sc: float = lerpf(HOP_POP, 1.0, clampf(phase_t[i] / ARC_POP_TIME, 0.0, 1.0))
+				b = b.scaled(Vector3(sc, sc, sc))
+	return Transform3D(b, pos[i] + Vector3(0.0, up, 0.0))
+
+
+## How pickup `i` shows on the screen now (pass 61; tests, and the glints' spot): its instance transform with what the
+## shader adds at the run's clock, worked out here the way the shader does it.
+func shown_xf(i: int) -> Transform3D:
+	var xf := _instance_xf(i)
+	var sy := maxf(xf.basis.y.length(), 0.0001)
+	if kind[i] == KIND_COIN:
+		# its spin on edge, and its float straight up in the world whatever its basis (the review of pass 61)
+		var cb := xf.basis * Basis(Vector3.UP, 3.0 * _time + phase_of(i)) * Basis(Vector3.RIGHT, PI * 0.5)
+		return Transform3D(cb, xf.origin + Vector3(0.0, float_y(i, _time), 0.0))
+	var gb := xf.basis * Basis(Vector3.UP, 2.0 * _time + phase_of(i))
+	return Transform3D(gb, xf.origin + xf.basis * Vector3(0.0, float_y(i, _time) / sy, 0.0))
+
+
+## Where gem `i` shows (pass 61: the float and its idle hop over where it lies), for its glint.
+func _shown_origin(i: int) -> Vector3:
+	var y := pos[i].y + float_y(i, _time)
+	if hop_t[i] >= 0.0:
+		y += hop_extra_y(hop_t[i])
+	return Vector3(pos[i].x, y, pos[i].z)
 
 
 ## Gem `i`'s glint on the gem drawn at `at` (pass 56): a star GLINT_SIZE times the gem's radius across at its brightest

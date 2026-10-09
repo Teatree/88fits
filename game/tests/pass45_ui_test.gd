@@ -132,7 +132,12 @@ func test_grit_at_full_reads_as_one_line() -> void:
 func test_a_debuff_on_the_plaque_is_not_good() -> void:
 	assert_bool(W.BAD_DARK != W.SAGE).is_true()
 	var t = load("res://ui/TitleScreen.gd").new()
-	var rows: Array = t._stats_of(Registry.character("calavera"))
+	# re-pinned in pass 61: the heroes in play have no flat trait any more (a stat a level, pass61_hr_test); a flat one
+	# like Calavera's old Last Dance (the hidden heroes keep theirs) still reads its debuff in dark red
+	var cal := CharacterDef.new()
+	cal.trait_effects = [Effect.make("might", "mul", 0.25, "player"), Effect.make("crit_chance", "add", 0.05, "player"),
+		Effect.make("max_hp", "mul", -0.15, "player")]
+	var rows: Array = t._stats_of(cal)
 	assert_int(rows.size()).is_equal(3)
 	assert_bool(bool(rows[0][2])).override_failure_message("+25% might is good").is_true()
 	assert_bool(bool(rows[1][2])).override_failure_message("+5% crit is good").is_true()

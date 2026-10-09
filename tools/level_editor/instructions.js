@@ -4,6 +4,7 @@
 // /api/schema) at the end. Garry asked for "an Instructions tab describing each tool with a simple example with graphics".
 // Pass 57: the Ring and In front spawn patterns, with a picture of each. Pass 58: rows fixed from their start, the Actual
 // lanes, the size and colour ranges, the default look strip and the blood colour, with a picture of "fixed from its start".
+// Pass 61: snapping (the toggle, S, Alt, what snaps to what, the guide line).
 'use strict';
 
 const Instructions = (() => {
@@ -23,6 +24,7 @@ const Instructions = (() => {
     clear(container);
     const root = el('div', { class: 'instr' });
     intro(root);
+    pass61(root);
     pass58(root);
     pass54(root);
     pass57(root);
@@ -70,6 +72,18 @@ const Instructions = (() => {
       li('<b>Elite overrides</b> are the variance block (size and speed spread, tints, the coloured special and its numbers) plus <code>elite_weight</code> (how often a random coloured elite is drawn from the row; 0 = never) and <code>elite_formats</code> (alone / as its pack / as a ring). The old <code>elite.hp_mult_per_stage</code> lives under <b>Mini-boss</b>: only Elite-archetype creatures read it.'),
       li('<b>Knockback</b> per creature (Body → Knockback; the grey number is its own, or <code>clamp(3.4 × √(damage / 4), 2.5, 7)</code>), <b>creature_damage_mult</b> (Settings → Scaling: every hostile damage) and the <b>spawn sides</b> (Settings → Spawning: top / bottom / left / right weights, or the old facing rule).'),
       li('<b>Default look</b>: on the Creatures tab (since pass 58 an always-visible strip of pictures on every card): click a look; after you confirm, the server writes that creature JSON\'s <code>variant</code> (after a backup) and imports it.')));
+  }
+
+  // ------------------------------------------------------------------ what pass 61 added
+
+  function pass61(root) {
+    root.appendChild(el('h2', { text: 'Pass 61: snapping' }));
+    root.appendChild(p('Garry: <i>"Add togglable snapping for Roster, Cap and anywhere else it makes sense for start and end, so when I am placing an enemy wave or changing it\'s start or end time it snaps to Cap and other Enemy Waves (Cap prio)."</i>'));
+    root.appendChild(el('ul', {},
+      li(`<b>Snap on / Snap off</b>: the toggle at the left of the zoom buttons, or ${kbd('S')}. On by default; the browser remembers it (the map never sees it). Hold ${kbd('Alt')} while dragging to place that drag freely.`),
+      li('<b>What snaps</b>, the time only: a roster bar or a wave block moved whole (its start or its end, whichever finds the better target), their end handles, an event flag, a presence point, a cap point, an HP × / ATK × point. Typed numbers, the arrow nudges and double-click-added points never snap.'),
+      li('<b>What it snaps to</b>, within 8 pixels on screen at any zoom, the first of these in range: <b>1.</b> the cap curve\'s points (a cap point beats even a nearer row); <b>2.</b> the other rows\' and waves\' starts and ends; <b>3.</b> the events; <b>4.</b> the stage marks; <b>5.</b> only when none of those is near, whole and half minutes (from 4 px). Within one of these, the nearest. Nothing snaps to itself.'),
+      li('<b>What you see</b>: a thin line across the lanes at the snapped second in the target\'s colour (cap points blue, rows pink, waves green, events their flag\'s colour), a tag "snapped to cap 6:03" / "snapped to r16 start" above the mouse, the target ringed, and the clock line at the right of the toolbar ending in the same words. The time saved is exactly the whole second shown.')));
   }
 
   // ------------------------------------------------------------------ what pass 58 added
@@ -459,6 +473,7 @@ const Instructions = (() => {
       ['Click a bar, block, marker, the cap line, the specials band or the paths lane', 'select it: the inspector shows its form'],
       ['Drag a bar, block or marker', 'move it in time (both ends of a row or a wave move together)'],
       ['Drag the right edge of a bar or block', 'set its `until` (an open row gets an end)'],
+      ['Snap on / off (the toggle by the zoom) · ' + kbd('S') + ' · hold ' + kbd('Alt') + ' while dragging', 'dragged times drop onto the cap\'s points first, then the other rows\' and waves\' starts and ends, the events, the stage marks, whole and half minutes (within 8 px) · switch it · place this drag freely'],
       ['Drag a cap point · double-click the cap line · double-click a point', 'move it · add a point there · remove it (the HP × and ATK × lanes work the same in manual-points mode)'],
       ['Drag a presence point on a roster bar · double-click the bar · double-click a point', 'change the row\'s weight at that time (up / down) or its time (along) · add a point · remove it (two stay)'],
       ['The grip ⠿ or ▲ / ▼ at the left of a roster row · ' + kbd('Alt') + ' + ' + kbd('↑') + ' / ' + kbd('↓'), 'reorder the rows (display only: the game draws by weight)'],

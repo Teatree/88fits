@@ -46,6 +46,13 @@ params = {
 "priority": true,
 "reach": 2.4,
 "seconds": 1.3
+},
+"tint": {
+"albedo": "#FFF2D0",
+"emission": "#6A4408",
+"energy": 0.35,
+"metallic": 0.45,
+"roughness": 0.3
 }
 },
 "model": "res://art/props/golden_grenade.glb",

@@ -2,8 +2,16 @@
 class_name CharacterDef
 extends ContentDef
 
-## Effects applied to the player StatSheet at run start.
+## Effects applied to the player StatSheet at run start (pass 61: empty on the five heroes in play, whose trait is their
+## level_trait; the hidden ones keep theirs).
 @export var trait_effects: Array = []
+## The hero's signature stat (pass 61, Garry: "Heroes have 1-2 unique stats, and they scale as they level up"): Effects
+## whose value is what one level gives (JSON "trait_per_level", the "trait" schema). Run._build_player_sheet folds them as
+## ONE effect per entry worth value x the hero's level (level_effects), so 40 levels of +1% are +40%, never 1.01^40.
+@export var level_trait: Array = []
+## Where the hero stands in the title's carousel and every hero list (pass 61: the Drifter 1, Astro 2, Calavera 3,
+## Ironwood 4, Solenne 5); Registry.sorted_characters sorts by it, then by id.
+@export var order: int = 100
 ## the trait as the player reads it: a name and one line (traits with a mechanic behind them cannot be generated from effects)
 @export var trait_name: String = ""
 @export var trait_text: String = ""
@@ -52,6 +60,18 @@ var variant_code := ""
 
 func kind() -> String:
 	return "character"
+
+
+## The signature stat at `level` (pass 61): one Effect per level_trait entry, its value times the level (level 1 already
+## carries one step, so the trait shows from the first second). Fresh Effects: the def's own are never changed.
+func level_effects(level: int) -> Array:
+	var out: Array = []
+	var n := maxi(level, 0)
+	for e in level_trait:
+		if e is Effect:
+			var x: Effect = e
+			out.append(Effect.make(x.stat, x.op, x.value * float(n), x.target))
+	return out
 
 
 ## Takes one variant's art (a `variants` entry) as its own.

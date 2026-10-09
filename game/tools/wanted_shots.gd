@@ -204,7 +204,8 @@ func _menus() -> void:
 		_save.data["last_character"] = "drifter"
 		await _scene("res://ui/TitleScreen.tscn")
 		await _shot("01-title")
-		current_scene._step(-1)
+		# Astro comes after the Drifter since pass 61 (Garry's order: Drifter, Astro, Calavera, Ironwood, Solenne)
+		current_scene._step(1)
 		await _wait(0.5)
 		await _shot("02-title-astro")
 		# pass 43: Calavera, the third hero, with his favourite and his own weapon on the plaque

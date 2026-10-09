@@ -23,6 +23,13 @@
     "model_metallic": 0.45,
     "model_roughness": 0.3,
     "final": {
+      "tint": {
+        "albedo": "#FFF2D0",
+        "emission": "#6A4408",
+        "energy": 0.35,
+        "roughness": 0.3,
+        "metallic": 0.45
+      },
       "sticky": {
         "seconds": 1.3,
         "reach": 2.4,

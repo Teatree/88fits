@@ -2,18 +2,14 @@
   "id": "drifter",
   "name": "Drifter",
   "flavour": "Wide hat. Long coat. Longer road.",
+  "order": 1,
   "pronoun": "he",
-  "trait": [
+  "trait": [],
+  "trait_per_level": [
     {
-      "stat": "move_speed",
-      "op": "mul",
-      "value": 0.1,
-      "target": "player"
-    },
-    {
-      "stat": "magnet",
-      "op": "mul",
-      "value": 0.25,
+      "stat": "crit_chance",
+      "op": "add",
+      "value": 0.01,
       "target": "player"
     }
   ],
@@ -61,5 +57,5 @@
   },
   "portrait_prompt": "tipping the brim of his wide hat with two fingers, a confident half-smile, the collar of his brown duster turned up, the red scarf catching the wind",
   "trait_name": "Long Road",
-  "trait_text": "+10% move speed and +25% pickup radius. His Peashooter starts at level 2."
+  "trait_text": "Gain 1% crit chance per level."
 }

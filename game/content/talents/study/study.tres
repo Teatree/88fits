@@ -3,15 +3,17 @@
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_tvfai"]
 [ext_resource type="Texture2D" path="res://content/talents/study/study_icon.png" id="2_8e0p8"]
 [ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_befde"]
+[ext_resource type="Texture2D" path="res://content/talents/study/study_0_icon.png" id="2_lpptv"]
+[ext_resource type="Texture2D" path="res://content/talents/study/study_1_icon.png" id="3_2x1rr"]
 
-[sub_resource type="Resource" id="Resource_befde"]
+[sub_resource type="Resource" id="Resource_lpptv"]
 script = ExtResource("1_tvfai")
 stat = "xp_gain"
 op = "mul"
 value = 0.1
 target = "player"
 
-[sub_resource type="Resource" id="Resource_8e0p8"]
+[sub_resource type="Resource" id="Resource_2x1rr"]
 script = ExtResource("1_tvfai")
 stat = "regen"
 value = 0.3
@@ -23,11 +25,15 @@ order = 7
 ranks = 6
 cost = [170.0, 306.0, 510.0, 765.0, 1105.0, 1530.0]
 forms = [{
-"effects": [SubResource("Resource_befde")],
+"effects": [SubResource("Resource_lpptv")],
+"icon": ExtResource("2_lpptv"),
+"icon_file": "study_0_icon.png",
 "name": "Field Notes",
 "text": "+10% XP a rank."
 }, {
-"effects": [SubResource("Resource_8e0p8")],
+"effects": [SubResource("Resource_2x1rr")],
+"icon": ExtResource("3_2x1rr"),
+"icon_file": "study_1_icon.png",
 "name": "Poultice",
 "text": "+0.3 regen a rank (it still waits after a hit)."
 }]

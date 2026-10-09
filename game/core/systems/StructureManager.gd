@@ -27,6 +27,10 @@ const LAST_KICK := 1.8
 const LAST_SHINE := 0.5
 ## The beat between the last coin in and the balloon lifting the box off (the lift's own wait before, pass 33)
 const LIFT_BEAT := 0.35
+## A structure stands at least this far from any bush of the map's bush patches (pass 61, RedCanyon.bush_patches): a
+## bush has no collider and so no obstacle circle to keep a ring off it, and a patch is a stretch of open ground the
+## structures would otherwise favour
+const BUSH_CLEAR := 3.0
 
 var game: Node
 var map: MapBase
@@ -108,6 +112,8 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 				if Vector2(p.x - o.x, p.z - o.y).length() < o.z + 3.5:
 					ok = false
 					break
+		if ok and map.has_method("bush_patches"):
+			ok = clear_of_bushes(Vector2(p.x, p.z), map.call("bush_patches"))
 		if not ok:
 			continue
 		p.y = map.height_at(p.x, p.z)
@@ -117,6 +123,15 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 		_spawn(def, placed[k])
 	if placed.size() < defs.size():
 		push_warning("StructureManager: placed %d of %d kinds" % [placed.size(), defs.size()])
+
+
+## Whether a structure at `p` (x, z) keeps BUSH_CLEAR from every bush of `patches` (RedCanyon.bush_patches, pass 61).
+static func clear_of_bushes(p: Vector2, patches: Array) -> bool:
+	for bp: Dictionary in patches:
+		for b: Dictionary in bp["bushes"]:
+			if p.distance_to(b["pos"]) < BUSH_CLEAR:
+				return false
+	return true
 
 
 func _pick(defs: Array) -> StructureDef:

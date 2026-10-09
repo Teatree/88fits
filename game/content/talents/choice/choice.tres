@@ -3,14 +3,16 @@
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_2qpam"]
 [ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_70wpa"]
 [ext_resource type="Texture2D" path="res://content/talents/choice/choice_icon.png" id="2_qnekd"]
+[ext_resource type="Texture2D" path="res://content/talents/choice/choice_0_icon.png" id="2_xi683"]
+[ext_resource type="Texture2D" path="res://content/talents/choice/choice_1_icon.png" id="3_mxoig"]
 
-[sub_resource type="Resource" id="Resource_70wpa"]
+[sub_resource type="Resource" id="Resource_xi683"]
 script = ExtResource("1_2qpam")
 stat = "rerolls"
 value = 1.0
 target = "player"
 
-[sub_resource type="Resource" id="Resource_qnekd"]
+[sub_resource type="Resource" id="Resource_mxoig"]
 script = ExtResource("1_2qpam")
 stat = "banishes"
 value = 1.0
@@ -22,11 +24,15 @@ order = 5
 ranks = 6
 cost = [180.0, 324.0, 540.0, 810.0, 1170.0, 1620.0]
 forms = [{
-"effects": [SubResource("Resource_70wpa")],
+"effects": [SubResource("Resource_xi683")],
+"icon": ExtResource("2_xi683"),
+"icon_file": "choice_0_icon.png",
 "name": "Reroll",
 "text": "+1 reroll a run, a rank."
 }, {
-"effects": [SubResource("Resource_qnekd")],
+"effects": [SubResource("Resource_mxoig")],
+"icon": ExtResource("3_mxoig"),
+"icon_file": "choice_1_icon.png",
 "name": "Banish",
 "text": "+1 banish a stage, a rank."
 }]

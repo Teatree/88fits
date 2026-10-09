@@ -39,9 +39,9 @@
     },
     "shine": {
       "idle": 0.4,
-      "flare": 1.7,
-      "sweep": 2.6,
-      "pop": 0.25,
+      "flare": 2.3,
+      "sweep": 3.3,
+      "pop": 0.45,
       "charge": 0.45
     },
     "familiar": {

@@ -11,7 +11,8 @@ extends ContentDef
 ## gold for each rank, one entry a rank (as many as `ranks`)
 @export var cost: Array = []
 ## two entries: {"name", "text", "effects": [Effect]}, and optionally "rank_effects": [[Effect], ...] (pass 46): one list
-## a rank, for a form whose ranks are not all the same step (rank 2 is lists 0 and 1); without it every rank is `effects`
+## a rank, for a form whose ranks are not all the same step (rank 2 is lists 0 and 1); without it every rank is `effects`;
+## "icon" (Texture2D) and "icon_file" (pass 61, form_icon)
 @export var forms: Array = []
 
 
@@ -25,6 +26,16 @@ func form_text(form: int) -> String:
 	if form < 0 or form >= forms.size():
 		return ""
 	return str((forms[form] as Dictionary).get("text", ""))
+
+
+## The form's icon (pass 61, Garry: "The choices in the Mirror should be shown as little icons"): the picture a bought
+## rank shows in the Upgrade board's rank bar, the summary's chip and the sheet's choice, from the form's `icon` in the
+## JSON or content/talents/<id>/<id>_<form>_icon.png; null when neither exists (the board draws the name's initial).
+func form_icon(form: int) -> Texture2D:
+	if form < 0 or form >= forms.size():
+		return null
+	var t = (forms[form] as Dictionary).get("icon")
+	return t if t is Texture2D else null
 
 
 ## How many ranks a form may take.

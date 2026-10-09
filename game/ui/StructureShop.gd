@@ -318,7 +318,7 @@ func _buy(card: Dictionary, price: int, node: WCard) -> void:
 		Audio.play("ui_locked")
 		return
 	_done = true
-	Run.spend_gold(price)
+	Run.spend_gold(price, "shop")
 	var line := CardPool.apply(card)
 	Audio.play("ui_buy")
 	node.show_held(true)

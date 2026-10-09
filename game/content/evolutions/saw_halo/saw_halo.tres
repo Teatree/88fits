@@ -27,6 +27,11 @@ sfx = {
 visual = ExtResource("2_utuoa")
 visual_file = "saw_halo_visual.tscn"
 params = {
+"rust_patina": {
+"amount": 0.4,
+"pits": 0.35,
+"rim": 0.12
+},
 "solid_ring": true,
 "spin_speed": 3.2
 }

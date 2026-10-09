@@ -7,23 +7,16 @@
 
 [sub_resource type="Resource" id="Resource_ru77d"]
 script = ExtResource("4_ru77d")
-stat = "move_speed"
-op = "mul"
-value = 0.1
-target = "player"
-
-[sub_resource type="Resource" id="Resource_u8oit"]
-script = ExtResource("4_ru77d")
-stat = "magnet"
-op = "mul"
-value = 0.25
+stat = "crit_chance"
+value = 0.01
 target = "player"
 
 [resource]
 script = ExtResource("1_tp357")
-trait_effects = [SubResource("Resource_ru77d"), SubResource("Resource_u8oit")]
+level_trait = [SubResource("Resource_ru77d")]
+order = 1
 trait_name = "Long Road"
-trait_text = "+10% move speed and +25% pickup radius. His Peashooter starts at level 2."
+trait_text = "Gain 1% crit chance per level."
 pronoun = "he"
 favourite_weapon = "peashooter"
 favourite_bonus = {

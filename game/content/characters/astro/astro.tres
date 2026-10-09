@@ -14,23 +14,17 @@ value = 0.2
 [sub_resource type="Resource" id="Resource_nv1wx"]
 script = ExtResource("1_bgsxw")
 stat = "max_hp"
-op = "mul"
-value = 0.1
-target = "player"
-
-[sub_resource type="Resource" id="Resource_2ke28"]
-script = ExtResource("1_bgsxw")
-stat = "damage_reduction"
-value = 0.05
+value = 2.0
 target = "player"
 
 [resource]
 script = ExtResource("2_dewj2")
-trait_effects = [SubResource("Resource_nv1wx"), SubResource("Resource_2ke28")]
+level_trait = [SubResource("Resource_nv1wx")]
+order = 2
 trait_name = "Space Suit"
-trait_text = "+5% damage reduction and +10% max HP. Every level-up patches the suit for 5% of her HP."
+trait_text = "Gain 2 max HP per level, and heal 8% of max HP on every level-up."
 pronoun = "she"
-level_heal = 0.05
+level_heal = 0.08
 favourite_weapon = "orbit_saws"
 favourite_bonus = {
 "effects": [SubResource("Resource_bgsxw")],

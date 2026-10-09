@@ -9,7 +9,7 @@
   "element": "",
   "hero": "",
   "text": "+10% critical hit chance for every weapon.",
-  "vfx": "gold crit numbers more often, from every weapon",
+  "vfx": "a bright razor edge on the blade; a white hairline streak across whatever it crits",
   "effects": [
     {
       "stat": "crit_chance",
@@ -18,7 +18,16 @@
       "target": "player"
     }
   ],
-  "params": {},
+  "params": {
+    "razor": {
+      "crit_streak": true,
+      "streak_length": 1.6,
+      "streak_width": 0.05,
+      "streak_life": 0.26,
+      "color": "#FFFFFF",
+      "glow": "#FFE7A0"
+    }
+  },
   "art_prompt": "a curved sabre with a glowing gold star at the point of the blade and a target ring behind it",
   "placeholder": {
     "color": "#FFD860",

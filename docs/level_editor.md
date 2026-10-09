@@ -24,8 +24,8 @@ The top bar: the map selector, the map's name and file, the **Hero level** box (
 cards, the readout and the curve tables assume; creatures gain `level_hp_per_level` of HP and `level_damage_per_level`
 of damage for every level above 1; the browser remembers it, the map never sees it), **Undo / Redo**, **Revert** (back
 to the saved file), **Export JSON** (download a copy), **Save** (Ctrl+S; disabled while nothing changed; red when an
-error blocks it), the issue count, the zoom and the run clock under the mouse. Below it the status line: what Save did,
-with the import's output a click away.
+error blocks it), the issue count, the **Snap** toggle (pass 61, below), the zoom and the run clock under the mouse. Below
+it the status line: what Save did, with the import's output a click away.
 
 1. **Timeline**: the calendar. One time axis for the whole run (the stages as bands, mm:ss ticks, a skull per boss and
    a crown per Elite), lanes under it that scroll and zoom together:
@@ -142,7 +142,8 @@ with the import's output a click away.
 
 Keyboard: Ctrl+S save, Ctrl+Z / Ctrl+Y undo / redo, Delete removes the selection (a toast offers Undo), Ctrl+D
 duplicates, ← / → nudge by 1 s (Shift: 10 s; a roster row's keyframes move with it), Alt+↑ / Alt+↓ move the selected
-roster row, Esc deselects, + / − and Ctrl + wheel zoom, Fit shows the whole run.
+roster row, Esc deselects, + / − and Ctrl + wheel zoom, Fit shows the whole run, S switches snapping on and off, and Alt
+held while dragging places that drag freely (pass 61).
 
 ## Old files (pass 54)
 
@@ -420,3 +421,58 @@ Garry's list for the editor (2026-10-07), and where each piece is. The game side
 - **Creature speed ×** (Settings → Scaling, `creature_speed_mult`): one multiplier for every creature's movement, wind-ups and
   hostile shots (Garry: "reduce the movement speed of all enemies by 10%" as a multiplier for all). The hero's own pace
   (`move_pace`) is separate. Red Canyon ships at 0.9.
+
+## Pass 61: snapping
+
+Garry (2026-10-08): "Add togglable snapping for Roster, Cap and anywhere else it makes sense for start and end, so when I
+am placing an enemy wave or changing it's start or end time it snaps to Cap and other Enemy Waves (Cap prio)."
+
+- **Snap on / Snap off**: a toggle at the left of the zoom buttons (the timeline's toolbar), or **S** on the keyboard (a
+  toast says which). On by default; the browser remembers the choice (localStorage `88fits-editor-snap`), the map never
+  sees it. Hold **Alt** while dragging to place that one drag freely; pressing or letting go of Alt in the middle of a
+  drag switches at once, where the mouse stands.
+- **What snaps** (the time only; a point's height never does): a roster row's bar moved whole (its start or its end,
+  whichever finds the better target; its presence keyframes travel with it) and its end handle; a wave block moved whole
+  (its start, or its end: `until`, or the last burst its count gives) and its end handle; an event flag; a presence
+  keyframe; a cap point; an HP × / ATK × point (in manual-points mode). The specials band and the path ticks are not
+  dragged on the timeline (Settings sets them), so they have nothing to snap. Typed numbers (the inspector, Settings), the
+  ← / → nudges and points added by a double-click never snap: typing is exact.
+- **What it snaps to**, within **8 screen pixels**: the range in seconds is 8 × the zoom's seconds per pixel, so it stays
+  8 px at any zoom (about 11 s at Fit in a 1700 px window, 3.8 s at 0.47 s/px, 2 s at 0.25 s/px). When several targets
+  are in range the first tier below wins, and within a tier the nearest:
+  1. the **cap curve's control points** (Cap prio: a cap point in range beats everything below, even a nearer one);
+  2. the other **roster rows'** starts and ends and the **waves'** starts and ends (an open row, or a wave with no `until`
+     and no count, has no end to snap to);
+  3. the **events** (bosses, Elites, coloured elites, Elites every, swarms) at their `t`;
+  4. the **stage marks**: each stage's start and the run's end (the bosses usually sit there too, as events);
+  5. last, only when nothing above is in range, **whole and half minutes**, from 4 px (half as far): half minutes while
+     they are at least 36 px apart on screen (0.83 s/px or closer), whole minutes while those are (to 1.67 s/px), none
+     farther out.
+
+  The dragged item never snaps to itself: a row or a wave to neither of its own ends, an event to its own flag, a cap
+  point to itself (another cap point at the same second is a target: it makes a step). A presence keyframe can snap to
+  its own row's start and end. A handle's end stays at least a second past the start, and a bar moved whole never starts
+  before 0:00: a target that would break either is passed over.
+- **What you see** while the drag is held on a target: a thin line across every lane at the snapped second in the
+  target's colour (cap points the cap curve's blue, rows pink, waves green, an event its flag's colour, the stage marks
+  pale, the minutes grey); a tag above the mouse, "snapped to cap 6:03", "snapped to r16 start", "snapped to boss 7:10",
+  "snapped to half minute 2:30"; the target ringed (a cap point white, a bar, block or flag outlined); and the clock line
+  at the right of the toolbar ends "· snapped to cap 6:03" ("· its end snapped to ..." when a bar moved whole snapped by
+  its end, since the clock shows its start). Let go and the line goes; Undo takes the drag back in one step, as before.
+- **Saved as shown**: every target is a whole second (a wave whose count ends it between two seconds rounds to the nearer
+  one; a cap point typed at 430.4 s is the target 430), so a snapped time is the whole number its box shows, written like
+  any other time: one line in the diff.
+- Code: `model.js` `SNAP_PX` 8, `SNAP_GRID_PX` 4, `SNAP_GRID_MIN_PX` 36, `SNAP_TIER` {cap 0, row 1, wave 1, event 2,
+  stage 3, grid 4}, `snapTargets(tl, self)`, `snapGridStep(spp)`, `snapDrag(tl, edges, opts)` (no page code, checked under
+  node). `timeline.js` builds the targets once when a drag starts (the dragged item's own left out), asks `snapDrag` on
+  every move and draws the guide (`showSnap`, `.tl-snap`); the toggle is `#snap-toggle` (`Timeline.toggleSnap`,
+  `Timeline.snapOn`).
+- `selftest.py` `snap_checks`: the cap first (a cap point 3 s off over a row start 1 s off, still at 7.9 px, out at
+  8.5 px), a row over a nearer event, an event over a stage mark, the nearest within a tier, the range at 0.25, 1, 2 and
+  4 s per pixel, self left out (rows, waves, events, cap points), Alt and the toggle, an edge's lowest time, a bar moved by
+  either end, the grid's spacing and its "only when nothing else" rule, and 500 random drags on a hand-made timeline and
+  on Red Canyon (read from disk, never written) against a Python copy. 14994 checks pass.
+- Checked in Chrome (Playwright) on Red Canyon without saving (a copy of the server with every write refused): the Bull
+  Beetle row r15's end dragged to 6:06 at 0.47 s/px stops on the cap point at 6:03 although the Spit Cactus row r17
+  starts nearer, at 6:08; dragged to 5:02 it stops on the Werewolf row r16's start at 5:00 rather than on the nearer
+  Elites every at 5:01; with Snap off, or with Alt held, it stays at 6:06.

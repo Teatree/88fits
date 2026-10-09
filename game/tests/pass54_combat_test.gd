@@ -1,7 +1,7 @@
 extends GdUnitTestSuite
 
 ## Pass 54, lane C (combat and pickups): the gem merge that fuses only far gems, cluster by cluster, and gives coins their
-## own cap; the half-size gems and three-quarter coins drawn under every painting (the stencil); the hero's shove on a
+## own cap (both gone in pass 61: nothing fuses, the pool grows); the half-size gems and three-quarter coins drawn under every painting (the stencil); the hero's shove on a
 ## landed hit (Player.hit_knock, a bite's own knockback, 1.6 times for big game, a shield's catch too, never an immune
 ## hit) and a hostile shot's share of its shooter's; the hostile damage multipliers; the ranged picks that keep to the
 ## screen (and the homing ones that do not); the waders' missing shadows and the ripples floated onto the water; and the
@@ -156,119 +156,71 @@ func _hero() -> Player:
 
 func _alive_of(pm: PickupManager, coin: bool) -> Array:
 	var out: Array = []
-	for i in range(PickupManager.MAX):
+	for i in range(pm.alive.size()):
 		if pm.alive[i] == 1 and (pm.kind[i] == PickupManager.KIND_COIN) == coin:
 			out.append(i)
 	return out
 
 
 # ---------------------------------------------------------------- 1. the vanishing gems
+# Re-pinned in pass 61 (Garry: "The EXP gems still disappear. Now they combine into a big gem. I'd prefer that they don't
+# disappear ever"): the merge, the coins' cap and the lost drop of a full pool are gone; nothing fuses and the pool
+# doubles when it fills (pass61_pk_test has the rest).
 
-func test_the_merge_keeps_the_gems_by_the_hero_and_fuses_the_far_ones() -> void:
+func test_nothing_merges_the_gems_by_the_hero_and_the_far_ones_keep_their_place() -> void:
 	var w := _world()
 	var pm := _pickups(w)
-	# three gems 2.5 m from the hero, the oldest on the field (the old merge took the oldest anywhere)
 	var near: Array = []
 	for k in range(3):
 		var a := TAU * float(k) / 3.0
-		var j := pm.spawn(PickupManager.KIND_GEM_S, Vector3(cos(a) * 2.5, 0, sin(a) * 2.5), 1.0)
-		near.append(j)
+		near.append(pm.spawn(PickupManager.KIND_GEM_S, Vector3(cos(a) * 2.5, 0, sin(a) * 2.5), 1.0))
 	var near_at: Array = []
 	for j: int in near:
 		near_at.append(pm.pos[j])
-	# 320 far gems: the crowded pool merges on its own as it passes MERGE_AT
+	# 320 far gems: past the old MERGE_AT (300) nothing fuses
 	for k in range(320):
 		pm.spawn(PickupManager.KIND_GEM_S, Vector3(30.0, 0, 0), 1.0)
-	# and everything far fuses when asked for more
-	pm._merge(1000)
 	for k in range(3):
 		var j: int = near[k]
-		assert_int(pm.alive[j]).override_failure_message("a gem by the hero was merged away").is_equal(1)
+		assert_int(pm.alive[j]).is_equal(1)
 		assert_float(pm.value[j]).is_equal(1.0)
 		assert_vector(pm.pos[j]).is_equal(near_at[k])
-	var far: Array = []
-	var total := 0.0
-	for i: int in _alive_of(pm, false):
-		if near.has(i):
-			continue
-		far.append(i)
-		total += pm.value[i]
-		assert_float(Vector2(pm.pos[i].x, pm.pos[i].z).distance_to(Vector2(30, 0))).is_less(1.0)
-	assert_int(far.size()).override_failure_message("%d far gems left" % far.size()).is_less_equal(10)
-	assert_float(total).override_failure_message("the merge lost or made XP").is_equal_approx(320.0, 0.001)
+	var far := _alive_of(pm, false)
+	assert_int(far.size()).is_equal(323)
 	for i: int in far:
-		assert_int(pm.kind[i]).is_equal(PickupManager.KIND_GEM_L)
+		assert_int(pm.kind[i]).is_equal(PickupManager.KIND_GEM_S)
+		assert_float(pm.value[i]).is_equal(1.0)
 
 
-func test_the_merge_never_takes_a_flying_gem_a_held_coin_or_a_coin_for_a_gem() -> void:
-	var w := _world()
-	var pm := _pickups(w)
-	var flyer := pm.spawn(PickupManager.KIND_GEM_M, Vector3(30, 0, 0), 5.0)
-	pm._start_trip(flyer, Vector3.ZERO)
-	var coin := pm.spawn(PickupManager.KIND_COIN, Vector3(30, 0, 1), 3.0)
-	var held := pm.spawn(PickupManager.KIND_COIN, Vector3(30, 0, 2), 3.0)
-	pm.hold[held] = 1.0
-	for k in range(6):
-		pm.spawn(PickupManager.KIND_GEM_S, Vector3(31, 0, 0), 1.0)
-	assert_int(pm._merge(100)).is_equal(5)
-	assert_int(pm.alive[flyer]).is_equal(1)
-	assert_int(pm.alive[coin]).is_equal(1)
-	assert_int(pm.alive[held]).is_equal(1)
-	# the coins merge on their own call; the held one sits out
-	assert_int(pm._merge(100, PickupManager.KIND_COIN)).is_equal(0)
-	pm.spawn(PickupManager.KIND_COIN, Vector3(30, 0, 0.5), 4.0)
-	assert_int(pm._merge(100, PickupManager.KIND_COIN)).is_equal(1)
-	assert_int(pm.alive[held]).is_equal(1)
-	# nothing within the magnet's reach + MERGE_CLEAR of the hero ever merges
-	var pm2 := _pickups(_world())
-	for k in range(8):
-		pm2.spawn(PickupManager.KIND_GEM_S, Vector3(3.0, 0, 0), 1.0)
-	assert_int(pm2._merge(100)).is_equal(0)
-
-
-func test_coins_have_their_own_cap_and_keep_their_gold() -> void:
+func test_coins_never_fuse_and_keep_their_gold() -> void:
 	var w := _world()
 	var pm := _pickups(w)
 	for k in range(5):
 		pm.spawn(PickupManager.KIND_GEM_S, Vector3(-30, 0, 0), 1.0)
+	# past the old COIN_CAP (150): every coin keeps its own slot and its own gold
 	for k in range(170):
 		pm.spawn(PickupManager.KIND_COIN, Vector3(30, 0, 0), 2.0)
-	assert_int(pm.count_coins()).is_less_equal(PickupManager.COIN_CAP)
+	assert_int(pm.count_coins()).is_equal(170)
 	assert_int(pm.count_coins()).is_equal(_alive_of(pm, true).size())
 	var gold := 0.0
 	for i: int in _alive_of(pm, true):
 		gold += pm.value[i]
+		assert_float(pm.value[i]).is_equal(2.0)
 	assert_float(gold).is_equal_approx(340.0, 0.001)
-	# the gems were left alone
 	var gems := _alive_of(pm, false)
 	assert_int(gems.size()).is_equal(5)
-	for i: int in gems:
-		assert_float(pm.value[i]).is_equal(1.0)
 
 
-func test_a_full_pool_with_nothing_far_drops_and_says_so_once() -> void:
+func test_a_full_pool_grows_and_loses_nothing() -> void:
 	var w := _world()
 	var pm := _pickups(w)
-	assert_bool(pm._full_warned).is_false()
 	for k in range(PickupManager.MAX):
 		pm.spawn(PickupManager.KIND_GEM_S, Vector3(1.0, 0, 0), 1.0)
 	assert_int(pm.count).is_equal(PickupManager.MAX)
-	assert_int(pm.spawn(PickupManager.KIND_GEM_S, Vector3(1.0, 0, 0), 1.0)).is_equal(-1)
-	assert_bool(pm._full_warned).is_true()
-
-
-func test_a_merged_gem_pops_up_where_its_cluster_lay() -> void:
-	var w := _world()
-	var pm := _pickups(w)
-	for k in range(4):
-		pm.spawn(PickupManager.KIND_GEM_S, Vector3(40, 0, 0), 1.0)
-	pm._merge(10)
-	var left := _alive_of(pm, false)
-	assert_int(left.size()).is_equal(1)
-	var j: int = left[0]
-	assert_float(pm.vel[j].y).is_equal_approx(PickupManager.MERGE_POP, 0.0001)
-	assert_float(pm.value[j]).is_equal(4.0)
-	assert_float(Vector2(pm.pos[j].x, pm.pos[j].z).distance_to(Vector2(40, 0))).is_less(0.5)
+	var j := pm.spawn(PickupManager.KIND_GEM_S, Vector3(1.0, 0, 0), 1.0)
+	assert_int(j).is_greater_equal(0)
+	assert_int(pm.count).is_equal(PickupManager.MAX + 1)
+	assert_int(pm.alive.size()).is_greater(PickupManager.MAX)
 
 
 # ---------------------------------------------------------------- 2. size and draw order

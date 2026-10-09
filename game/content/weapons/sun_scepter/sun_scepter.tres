@@ -78,10 +78,10 @@ params = {
 },
 "marks": false,
 "shine": {
-"flare": 1.1,
+"flare": 1.7,
 "idle": 0.0,
-"pop": 0.0,
-"sweep": 1.1
+"pop": 0.35,
+"sweep": 1.7
 },
 "sun": {
 "beam_alpha": 0.55,

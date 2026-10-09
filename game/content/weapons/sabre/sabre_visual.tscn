@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://vis_sabre0000001"]
+[gd_scene load_steps=20 format=3 uid="uid://vis_sabre0000001"]
 
 [sub_resource type="StandardMaterial3D" id="brass"]
 albedo_color = Color(0.85, 0.65, 0.25, 1)
@@ -33,6 +33,49 @@ size = Vector3(0.85, 0.09, 0.05)
 [sub_resource type="BoxMesh" id="m_pommel"]
 size = Vector3(0.16, 0.12, 0.05)
 
+[sub_resource type="StandardMaterial3D" id="razor_mat"]
+shading_mode = 0
+albedo_color = Color(1, 0.98, 0.86, 1)
+
+[sub_resource type="StandardMaterial3D" id="razor_halo"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.82, 0.32, 0.6)
+
+[sub_resource type="StandardMaterial3D" id="guard_brass"]
+albedo_color = Color(0.95, 0.72, 0.28, 1)
+metallic = 0.5
+roughness = 0.35
+emission_enabled = true
+emission = Color(1, 0.7, 0.25, 1)
+emission_energy_multiplier = 0.55
+
+[sub_resource type="StandardMaterial3D" id="guard_dark"]
+albedo_color = Color(0.42, 0.26, 0.08, 1)
+metallic = 0.4
+roughness = 0.5
+
+[sub_resource type="BoxMesh" id="m_r_Edge"]
+size = Vector3(0.07, 0.075, 0.74)
+
+[sub_resource type="BoxMesh" id="m_h_Edge"]
+size = Vector3(0.2, 0.03, 0.74)
+
+[sub_resource type="BoxMesh" id="m_gbar"]
+size = Vector3(1.25, 0.13, 0.045)
+
+[sub_resource type="BoxMesh" id="m_gknob"]
+size = Vector3(0.16, 0.19, 0.065)
+
+[sub_resource type="BoxMesh" id="m_gcore"]
+size = Vector3(0.2, 0.1625, 0.07)
+
+[sub_resource type="BoxMesh" id="m_r_tip"]
+size = Vector3(0.07, 0.075, 0.28302)
+
+[sub_resource type="BoxMesh" id="m_h_tip"]
+size = Vector3(0.2, 0.03, 0.28302)
+
 [node name="SabreVisual" type="Node3D"]
 
 [node name="Blade" type="Node3D" parent="."]
@@ -61,3 +104,69 @@ material_override = SubResource("brass")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.09)
 mesh = SubResource("m_pommel")
 material_override = SubResource("brass")
+
+[node name="LookRazor" type="Node3D" parent="Blade"]
+visible = false
+
+[node name="RazorEdgeL" type="MeshInstance3D" parent="Blade/LookRazor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0, -0.38)
+mesh = SubResource("m_r_Edge")
+material_override = SubResource("razor_mat")
+
+[node name="HaloEdgeL" type="MeshInstance3D" parent="Blade/LookRazor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0, -0.38)
+mesh = SubResource("m_h_Edge")
+material_override = SubResource("razor_halo")
+
+[node name="RazorEdgeR" type="MeshInstance3D" parent="Blade/LookRazor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0, -0.38)
+mesh = SubResource("m_r_Edge")
+material_override = SubResource("razor_mat")
+
+[node name="HaloEdgeR" type="MeshInstance3D" parent="Blade/LookRazor"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0, -0.38)
+mesh = SubResource("m_h_Edge")
+material_override = SubResource("razor_halo")
+
+[node name="LookGuard" type="Node3D" parent="Blade"]
+visible = false
+
+[node name="GuardBar" type="MeshInstance3D" parent="Blade/LookGuard"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.05)
+mesh = SubResource("m_gbar")
+material_override = SubResource("guard_brass")
+
+[node name="GuardKnobL" type="MeshInstance3D" parent="Blade/LookGuard"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.673, 0, -0.05)
+mesh = SubResource("m_gknob")
+material_override = SubResource("guard_brass")
+
+[node name="GuardKnobR" type="MeshInstance3D" parent="Blade/LookGuard"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.673, 0, -0.05)
+mesh = SubResource("m_gknob")
+material_override = SubResource("guard_brass")
+
+[node name="GuardCore" type="MeshInstance3D" parent="Blade/LookGuard"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.05)
+mesh = SubResource("m_gcore")
+material_override = SubResource("guard_dark")
+
+[node name="RazorTipL" type="MeshInstance3D" parent="Blade/LookRazor"]
+transform = Transform3D(0.848, 0, 0.53, 0, 1, 0, -0.53, 0, 0.848, -0.075, 0, -0.88)
+mesh = SubResource("m_r_tip")
+material_override = SubResource("razor_mat")
+
+[node name="HaloTipL" type="MeshInstance3D" parent="Blade/LookRazor"]
+transform = Transform3D(0.848, 0, 0.53, 0, 1, 0, -0.53, 0, 0.848, -0.075, 0, -0.88)
+mesh = SubResource("m_h_tip")
+material_override = SubResource("razor_halo")
+
+[node name="RazorTipR" type="MeshInstance3D" parent="Blade/LookRazor"]
+transform = Transform3D(0.848, 0, -0.53, 0, 1, 0, 0.53, 0, 0.848, 0.075, 0, -0.88)
+mesh = SubResource("m_r_tip")
+material_override = SubResource("razor_mat")
+
+[node name="HaloTipR" type="MeshInstance3D" parent="Blade/LookRazor"]
+transform = Transform3D(0.848, 0, -0.53, 0, 1, 0, 0.53, 0, 0.848, 0.075, 0, -0.88)
+mesh = SubResource("m_h_tip")
+material_override = SubResource("razor_halo")

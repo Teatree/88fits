@@ -1308,6 +1308,120 @@ const Model = (() => {
     return pts[i];
   }
 
+  // ------------------------------------------------------------------ snapping (pass 61)
+
+  // Garry: "Add togglable snapping for Roster, Cap and anywhere else it makes sense for start and end, so when I am
+  // placing an enemy wave or changing it's start or end time it snaps to Cap and other Enemy Waves (Cap prio)."
+  // A dragged time drops onto a target within SNAP_PX screen pixels: the range in seconds is SNAP_PX × the zoom's
+  // seconds per pixel, so it stays SNAP_PX on screen at any zoom. When several targets are in range the lowest tier
+  // wins, then the nearest: the cap curve's control points first (Cap prio), then the roster rows' and the waves' starts
+  // and ends, then the events, then the stage marks. Whole and half minutes (the grid) pull only when nothing else is in
+  // range, and from half as far. timeline.js asks snapDrag on every move of a drag; the page's typed numbers and the
+  // arrow-key nudges never snap.
+  const SNAP_PX = 8;              // a target pulls a dragged time from this many screen pixels
+  const SNAP_GRID_PX = 4;         // whole and half minutes pull from half as far, and only when nothing else is in range
+  const SNAP_GRID_MIN_PX = 36;    // half minutes once they are this far apart on screen, else whole ones, else no grid
+  const SNAP_TIER = { cap: 0, row: 1, wave: 1, event: 2, stage: 3, grid: 4 };
+  const SNAP_EVENT_WORD = { boss: 'boss', elite_boss: 'Elite', elite: 'coloured elite', elite_every: 'Elites every', swarm: 'swarm' };
+
+  /** "m:ss" (U.fmtT's rule) for the snap labels, so this file stays free of the page. */
+  function clockText(s) {
+    const v = Math.abs(Math.round(Number(s) || 0));
+    const h = Math.floor(v / 3600), m = Math.floor((v % 3600) / 60), sec = v % 60;
+    return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+  }
+
+  /** Every time a drag can snap to but the dragged item's own: [{t, kind, tier, label, ref}], each t a whole second (the
+   *  editor writes whole seconds; a wave whose count ends it between two seconds rounds to the nearer). `self` names the
+   *  dragged item: {kind: 'roster' | 'wave' | 'event', i} leaves out its start and its end, {kind: 'cap', k} that cap
+   *  point; a presence keyframe or an HP × / ATK × point is no target, so `self` null leaves nothing out. Labels name the
+   *  target as the drag's clock line shows it: "cap 2:30", "r4 start", "w2 end", "boss 7:10", "stage 2 start". A roster
+   *  row is named by its id, a wave by its id or its name, else by its place in the list ("row 3", "wave 2"). */
+  function snapTargets(tl, self) {
+    const d = isObj(tl) ? tl : {};
+    const me = isObj(self) ? self : {};
+    const out = [];
+    const add = (t, kind, label, ref) => {
+      const v = Number(t);
+      if (t == null || t === '' || !isFinite(v) || v < 0) return;
+      out.push({ t: Math.round(v), kind, tier: SNAP_TIER[kind], label, ref });
+    };
+    (Array.isArray(d.cap_curve) ? d.cap_curve : []).forEach((p, k) => {
+      if (!Array.isArray(p) || p.length < 2 || (me.kind === 'cap' && me.k === k)) return;
+      add(p[0], 'cap', `cap ${clockText(p[0])}`, { kind: 'cap', k });
+    });
+    (Array.isArray(d.roster) ? d.roster : []).forEach((r, i) => {
+      if (!isObj(r) || (me.kind === 'roster' && me.i === i)) return;
+      const name = r.id ? String(r.id) : `row ${i + 1}`;
+      add(num(r.t, 0), 'row', `${name} start`, { kind: 'roster', i, edge: 'start' });
+      add(r.until, 'row', `${name} end`, { kind: 'roster', i, edge: 'end' });
+    });
+    (Array.isArray(d.waves) ? d.waves : []).forEach((w, i) => {
+      if (!isObj(w) || (me.kind === 'wave' && me.i === i)) return;
+      const name = w.id ? String(w.id) : w.name ? String(w.name) : `wave ${i + 1}`;
+      add(num(w.t, 0), 'wave', `${name} start`, { kind: 'wave', i, edge: 'start' });
+      const e = waveEndOf(w);
+      if (e !== Infinity) add(e, 'wave', `${name} end`, { kind: 'wave', i, edge: 'end' });
+    });
+    (Array.isArray(d.events) ? d.events : []).forEach((ev, i) => {
+      if (!isObj(ev) || (me.kind === 'event' && me.i === i)) return;
+      const word = ev.name ? String(ev.name) : (SNAP_EVENT_WORD[ev.type] || String(ev.type || 'event'));
+      add(num(ev.t, 0), 'event', `${word} ${clockText(num(ev.t, 0))}`, { kind: 'event', i });
+    });
+    const SL = stageLength(d), n = stages(d);
+    for (let k = 0; k <= n; k++) add(k * SL, 'stage', k < n ? `stage ${k + 1} start` : 'the run\'s end', { kind: 'stage', k });
+    return out;
+  }
+
+  /** The grid's spacing at a zoom of `spp` seconds per screen pixel: half minutes once they are SNAP_GRID_MIN_PX apart,
+   *  else whole minutes when those are, else 0 (no grid: the view is too far out for it to help). */
+  function snapGridStep(spp) {
+    const s = Number(spp) > 0 ? Number(spp) : 1;
+    if (30 / s >= SNAP_GRID_MIN_PX) return 30;
+    if (60 / s >= SNAP_GRID_MIN_PX) return 60;
+    return 0;
+  }
+
+  /** Where a drag lands with snapping. `edges` are the dragged item's times as the mouse puts them, each {t, edge, min}:
+   *  a bar or block moved whole gives its start and its end (when it has one), a handle its end, a point its time; `min`
+   *  is the lowest time that edge may take (a start 0; a handle's end one second past the start; a moved bar's end its
+   *  length, so its start stays at 0 or later), and a target under it is passed over. opts: {spp (seconds per screen
+   *  pixel), on (the Snap toggle), alt (Alt held: this drag goes free), targets (snapTargets' list; else built from `tl`
+   *  and `self`), self}. Null when snapping is off, Alt is held or nothing is in range; else {delta (add it to every
+   *  edge: a bar moves whole), t (the snapped edge's new time), edge, target ({t, kind, tier, label, ref}), dist (how far
+   *  the edge jumped, seconds)}. The lowest tier in range wins (SNAP_TIER: a cap point over everything), then the
+   *  nearest, then the edge listed first; the grid (whole / half minutes) only when no target is in range. */
+  function snapDrag(tl, edges, opts) {
+    const o = opts || {};
+    if (!o.on || o.alt) return null;
+    const spp = Number(o.spp) > 0 ? Number(o.spp) : 1;
+    const range = SNAP_PX * spp;
+    const list = Array.isArray(o.targets) ? o.targets : snapTargets(tl, o.self);
+    const es = (Array.isArray(edges) ? edges : []).filter((e) => e && isFinite(Number(e.t)));
+    let best = null;
+    for (const e of es) {
+      const et = Number(e.t), lo = e.min == null ? 0 : Number(e.min);
+      for (const tg of list) {
+        const dist = Math.abs(tg.t - et);
+        if (dist > range + 1e-9 || tg.t < lo - 1e-9) continue;
+        if (!best || tg.tier < best.target.tier || (tg.tier === best.target.tier && dist < best.dist - 1e-9)) best = { delta: tg.t - et, t: tg.t, edge: e.edge, target: tg, dist };
+      }
+    }
+    if (best) return best;
+    const g = snapGridStep(spp);
+    if (!g) return null;
+    const pull = SNAP_GRID_PX * spp;
+    for (const e of es) {
+      const et = Number(e.t), lo = e.min == null ? 0 : Number(e.min);
+      const gt = Math.round(et / g) * g;
+      const dist = Math.abs(gt - et);
+      if (dist > pull + 1e-9 || gt < lo - 1e-9) continue;
+      const whole = gt % 60 === 0;
+      if (!best || dist < best.dist - 1e-9) best = { delta: gt - et, t: gt, edge: e.edge, dist, target: { t: gt, kind: 'grid', tier: SNAP_TIER.grid, label: `${whole ? 'minute' : 'half minute'} ${clockText(gt)}`, ref: { kind: 'grid', step: g } } };
+    }
+    return best;
+  }
+
   const api = {
     DEF, FORMULA_DEF, isObj, num, clamp, round, samplePoints, formulaAt, curveMode, curveMult, hasCurve, hpTimeMult, dmgTimeMult,
     stageLength, stages, runEnd, stageAt, stageMult, rowWeight, keyframesOf, convertRow, normaliseRoster, newRowId,
@@ -1317,6 +1431,7 @@ const Model = (() => {
     fixedFrom, lookOf, waveEndOf, openSourceOf, eventNumbers,
     sizeRange, sizeIssues, TINT_DEF, tintRange, tintIssues, hueSpan, hueAt, hsvToRgb, toLinear, toSrgb, tintPixel,
     SPECIAL_TINT, tintSpecial, varianceSpecial,
+    SNAP_PX, SNAP_GRID_PX, SNAP_GRID_MIN_PX, SNAP_TIER, snapTargets, snapGridStep, snapDrag, clockText,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

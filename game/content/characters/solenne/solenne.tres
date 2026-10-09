@@ -11,37 +11,17 @@
 
 [sub_resource type="Resource" id="Resource_5woph"]
 script = ExtResource("3_jilq0")
-stat = "buff_duration"
-op = "mul"
-value = 0.25
-target = "player"
-
-[sub_resource type="Resource" id="Resource_v4tah"]
-script = ExtResource("3_jilq0")
-stat = "cooldown"
-op = "mul"
-value = -0.13
-target = "player"
-
-[sub_resource type="Resource" id="Resource_oqq31"]
-script = ExtResource("3_jilq0")
-stat = "max_hp"
-op = "mul"
-value = -0.2
-target = "player"
-
-[sub_resource type="Resource" id="Resource_gk8vw"]
-script = ExtResource("3_jilq0")
 stat = "debuff_duration"
 op = "mul"
-value = 0.25
+value = 0.015
 target = "player"
 
 [resource]
 script = ExtResource("2_1go7i")
-trait_effects = [SubResource("Resource_5woph"), SubResource("Resource_v4tah"), SubResource("Resource_oqq31"), SubResource("Resource_gk8vw")]
+level_trait = [SubResource("Resource_5woph")]
+order = 5
 trait_name = "Magic Hour"
-trait_text = "Her buffs last 25% longer and so do her burns, poison and slows. +15% attack speed, −20% max HP. She finds Haste at level 2."
+trait_text = "Gain 1.5% debuff duration per level (her burns, poison, slows and pins last longer; buffs do not)."
 pronoun = "she"
 start_weapon = "sun_scepter"
 favourite_passive = "haste"

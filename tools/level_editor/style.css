@@ -51,6 +51,11 @@ nav.tabs > button.active { color: var(--ink); border-bottom-color: var(--s1); fo
 .zoom-box { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.8rem; }
 .zoom-box[hidden] { display: none; }
 .zoom-label { min-width: 94px; text-align: center; font-variant-numeric: tabular-nums; }
+/* pass 61: the Snap toggle, a lit dot when on */
+.btn.toggle { display: inline-flex; align-items: center; gap: 6px; margin-right: 10px; color: var(--muted); }
+.btn.toggle::before { content: ''; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--muted); box-sizing: border-box; }
+.btn.toggle.on { color: var(--ink); border-color: rgba(57,135,229,0.75); }
+.btn.toggle.on::before { background: var(--s1); border-color: var(--s1); box-shadow: 0 0 5px rgba(57,135,229,0.8); }
 .clock { min-width: 280px; text-align: right; color: var(--ink-2); font-size: 0.85rem; font-variant-numeric: tabular-nums; padding-left: 14px; }
 .status-bar { display: flex; flex-direction: column; padding: 3px 14px; border-bottom: 1px solid var(--border); background: var(--page); flex: 0 0 auto; min-height: 25px; }
 .status { font-size: 0.82rem; color: var(--muted); }
@@ -86,6 +91,14 @@ main { flex: 1 1 auto; min-height: 0; display: flex; }
 .lane-svg { display: block; flex: 0 0 auto; }
 .tl-cursor { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed rgba(255,255,255,0.5); pointer-events: none; z-index: 4; }
 .tl-cursor[hidden] { display: none; }
+/* pass 61: the snap guide while a drag is held on a target (its colour set per target kind by timeline.js) */
+.tl-snap { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid var(--s1); margin-left: -1px; pointer-events: none; z-index: 4; box-shadow: 0 0 6px rgba(255,255,255,0.25); }
+.tl-snap[hidden] { display: none; }
+.tl-snap-tag { position: absolute; left: 6px; padding: 1px 7px; border-radius: 999px; color: #0d0d0d; font-size: 0.75rem; font-weight: 650; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+.cap-point.snap-target circle { fill: #fff; stroke: var(--s1); stroke-width: 3; }
+.bar.snap-target .bar-body { stroke: #e0609a; stroke-width: 2.4; }
+.block.snap-target .block-body { stroke: #2fbf8a; stroke-width: 2.4; }
+.marker.snap-target .marker-bg { stroke: var(--ink); stroke-width: 2.2; }
 body.dragging, body.dragging * { cursor: grabbing !important; user-select: none; }
 
 svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; user-select: none; }

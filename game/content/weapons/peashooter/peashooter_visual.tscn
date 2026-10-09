@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://vis_peashooter01"]
+[gd_scene load_steps=20 format=3 uid="uid://vis_peashooter01"]
 
 [sub_resource type="SphereMesh" id="proj"]
 radius = 0.16
@@ -68,6 +68,38 @@ albedo_color = Color(1, 1, 1, 1)
 shading_mode = 0
 albedo_color = Color(0.08, 0.08, 0.1, 1)
 
+[sub_resource type="StandardMaterial3D" id="glove"]
+albedo_color = Color(0.96, 0.94, 0.9, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="cuff"]
+albedo_color = Color(0.4, 0.22, 0.1, 1)
+roughness = 0.8
+
+[sub_resource type="CapsuleMesh" id="finger"]
+radius = 0.038
+height = 0.17
+radial_segments = 8
+rings = 2
+
+[sub_resource type="SphereMesh" id="palm"]
+radius = 0.11
+height = 0.22
+radial_segments = 10
+rings = 5
+
+[sub_resource type="CapsuleMesh" id="thumb"]
+radius = 0.04
+height = 0.17
+radial_segments = 8
+rings = 2
+
+[sub_resource type="CylinderMesh" id="cuffmesh"]
+top_radius = 0.075
+bottom_radius = 0.085
+height = 0.08
+radial_segments = 10
+
 [node name="PeashooterVisual" type="Node3D"]
 
 [node name="Projectile" type="MeshInstance3D" parent="."]
@@ -82,17 +114,19 @@ transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
 mesh = SubResource("pod")
 material_override = SubResource("podmat")
 
-[node name="Pea1" type="MeshInstance3D" parent="Familiar"]
+[node name="Peas" type="Node3D" parent="Familiar"]
+
+[node name="Pea1" type="MeshInstance3D" parent="Familiar/Peas"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, -0.16)
 mesh = SubResource("pea")
 material_override = SubResource("peamat")
 
-[node name="Pea2" type="MeshInstance3D" parent="Familiar"]
+[node name="Pea2" type="MeshInstance3D" parent="Familiar/Peas"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0.02)
 mesh = SubResource("pea")
 material_override = SubResource("peamat")
 
-[node name="Pea3" type="MeshInstance3D" parent="Familiar"]
+[node name="Pea3" type="MeshInstance3D" parent="Familiar/Peas"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.09, 0.2)
 mesh = SubResource("pea")
 material_override = SubResource("peamat")
@@ -132,6 +166,40 @@ material_override = SubResource("eyemat")
 transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0.08, 0.065, -0.335)
 mesh = SubResource("eye")
 material_override = SubResource("pupilmat")
+
+[node name="Hand" type="Node3D" parent="Familiar"]
+transform = Transform3D(1.35, 0, 0, 0, 1.35, 0, 0, 0, 1.35, 0, -0.12, 0.12)
+visible = false
+
+[node name="Cuff" type="MeshInstance3D" parent="Familiar/Hand"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0.14)
+mesh = SubResource("cuffmesh")
+material_override = SubResource("cuff")
+
+[node name="Palm" type="MeshInstance3D" parent="Familiar/Hand"]
+transform = Transform3D(1.05, 0, 0, 0, 0.5, 0, 0, 0, 1.3, 0, 0, 0.3)
+mesh = SubResource("palm")
+material_override = SubResource("glove")
+
+[node name="Thumb" type="MeshInstance3D" parent="Familiar/Hand"]
+transform = Transform3D(0.766, 0.643, 0, 0, 0, -1, -0.643, 0.766, 0, 0.12, 0.01, 0.24)
+mesh = SubResource("thumb")
+material_override = SubResource("glove")
+
+[node name="Finger1" type="MeshInstance3D" parent="Familiar/Hand"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -0.065, 0, 0.44)
+mesh = SubResource("finger")
+material_override = SubResource("glove")
+
+[node name="Finger2" type="MeshInstance3D" parent="Familiar/Hand"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0.46)
+mesh = SubResource("finger")
+material_override = SubResource("glove")
+
+[node name="Finger3" type="MeshInstance3D" parent="Familiar/Hand"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.065, 0, 0.44)
+mesh = SubResource("finger")
+material_override = SubResource("glove")
 
 [node name="Muzzle" type="CPUParticles3D" parent="."]
 emitting = false

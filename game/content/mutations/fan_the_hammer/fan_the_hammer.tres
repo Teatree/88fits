@@ -14,6 +14,13 @@ params = {
 "double_tap": {
 "count": 2.0,
 "damage_mult": 0.75
+},
+"look": {
+"flick": {
+"node": "Hand",
+"seconds": 0.28,
+"swing_deg": 100.0
+}
 }
 }
 id = "fan_the_hammer"

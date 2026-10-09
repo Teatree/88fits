@@ -2,16 +2,18 @@
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_clb8a"]
 [ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_lsivf"]
+[ext_resource type="Texture2D" path="res://content/talents/stride/stride_0_icon.png" id="2_qdg8m"]
 [ext_resource type="Texture2D" path="res://content/talents/stride/stride_icon.png" id="2_wteqb"]
+[ext_resource type="Texture2D" path="res://content/talents/stride/stride_1_icon.png" id="3_5qlh6"]
 
-[sub_resource type="Resource" id="Resource_lsivf"]
+[sub_resource type="Resource" id="Resource_qdg8m"]
 script = ExtResource("1_clb8a")
 stat = "move_speed"
 op = "mul"
 value = 0.05
 target = "player"
 
-[sub_resource type="Resource" id="Resource_wteqb"]
+[sub_resource type="Resource" id="Resource_5qlh6"]
 script = ExtResource("1_clb8a")
 stat = "magnet"
 op = "mul"
@@ -24,11 +26,15 @@ order = 3
 ranks = 6
 cost = [120.0, 216.0, 360.0, 540.0, 780.0, 1080.0]
 forms = [{
-"effects": [SubResource("Resource_lsivf")],
+"effects": [SubResource("Resource_qdg8m")],
+"icon": ExtResource("2_qdg8m"),
+"icon_file": "stride_0_icon.png",
 "name": "Boots",
 "text": "+5% move speed a rank."
 }, {
-"effects": [SubResource("Resource_wteqb")],
+"effects": [SubResource("Resource_5qlh6")],
+"icon": ExtResource("3_5qlh6"),
+"icon_file": "stride_1_icon.png",
 "name": "Lodestone",
 "text": "+18% pickup reach a rank."
 }]

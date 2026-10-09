@@ -22,6 +22,14 @@
 ## throws one bolt from the tip to the first creature a sweep hits. `params.crit_refund` (the Whirlwind) gives that
 ## share of the cooldown back on a swing that crits. `params.trail_color` colours the trail when the blade has no element.
 ## A stroke in progress is never cut short by the next: it finishes, and the next starts the moment it ends.
+## Pass 61, the Sabre's cheap mutation looks (Garry chose them): Critical Thinking (`params.razor` {crit_streak,
+## streak_length, streak_width, streak_life, color, glow}) shows the visual's hidden "LookRazor" node on the blade (a
+## bright razor edge with a soft halo) and draws a white hairline streak across every creature a stroke crits
+## (EnemyManager.last_crit, read right after the hit; SLASH_MAX at most, one ImmediateMesh over everything). Riposte
+## (`params.riposte` {flick_deg, flick, sound, volume_db}) shows the hidden "LookGuard" (a heavy brass guard bar) and,
+## at the end of every slice, flicks the blade back `flick_deg` against its last swing before it goes (inside the `back`
+## time, so a stroke is no longer than it was), with a clang: Fx.clang_spark and `sound` (no clang id exists:
+## w_iron_hit). Both are set on every build change (refresh_marks) and go with the mutation.
 class_name Thruster
 extends WeaponBehavior
 
@@ -60,6 +68,15 @@ var _streak_t := PackedFloat32Array()
 ## creatures this blade stunned, by index, until when on `_clock` (the fallback for stunned_mult while EnemyManager has no
 ## `is_stunned`)
 var _stunned_until: Dictionary = {}
+## Pass 61: the looks the build shows (to skip a rebuild that changes nothing), the crit streaks alive
+## ({c, d, t, len, w}) and their mesh, whether this stroke's flick has clanged; streaks drawn and clangs (tests).
+var _looks_key := "-"
+var _slashes: Array = []
+var _slash_mi: MeshInstance3D
+var _slash_mesh: ImmediateMesh
+var _clanged := false
+var slashes := 0
+var clangs := 0
 ## Diagnostics and tests (pass 53): strokes begun, sweeps and thrusts begun, stuns landed, cooldown refunds, crackles.
 var strokes := 0
 var sweeps := 0
@@ -76,6 +93,17 @@ const FLEX := 1.06
 const ALTERNATE_KNOCK := 1.5
 const STREAK_LIFE := 0.14
 const STREAK_HALF := 0.06
+## Critical Thinking's crit streak (pass 61): it draws itself across the creature in SLASH_DRAW, is gone at its life
+## (params.razor.streak_life, SLASH_LIFE without), SLASH_MAX at most at once (the oldest goes first), tilted SLASH_TILT up
+## along its line so it reads as a slash across the figure, not a line on the sand.
+const SLASH_LIFE := 0.26
+const SLASH_DRAW := 0.05
+const SLASH_MAX := 10
+const SLASH_TILT := 0.45
+## Riposte's flick (pass 61): it peaks FLICK_PEAK of the way through (the clang) and settles back by its end; at most
+## FLICK_SHARE of the stroke's `back` time, which the retract keeps the rest of.
+const FLICK_PEAK := 0.35
+const FLICK_SHARE := 0.75
 
 
 func _on_setup() -> void:
@@ -172,6 +200,7 @@ func _begin_phase(slicing: bool) -> void:
 	_swing_hits.clear()
 	_refund_done = false
 	_crackled = false
+	_clanged = false
 	_streak_p.clear()
 	_streak_t.clear()
 	if slicing:
@@ -235,6 +264,7 @@ func _tick(delta: float) -> void:
 			_tick_thrust(delta)
 	# after the blade has moved, so the newest spokes draw this frame at full strength
 	_tick_trail()
+	_tick_slashes()
 
 
 ## The thrust (pass 53's bite, Garry: "the Spear thrusting should have a bit more bite to it, currently it's quite static
@@ -322,6 +352,8 @@ func _tick_slice(delta: float) -> void:
 	var out := _thrust("out", 0.06)
 	var sl := maxf(_thrust("slice", 0.16), 0.02)
 	var back := _thrust("back", 0.12)
+	# Riposte's flick (pass 61) takes the first part of the back time, the retract the rest
+	var flick := flick_time(back)
 	_t += delta
 	var reach := stat("range", 2.6)
 	var width := _thrust("width", 0.7) * stat("area", 1.0)
@@ -329,16 +361,21 @@ func _tick_slice(delta: float) -> void:
 	var ext := 1.0
 	var k := 0
 	var u := 0.0
+	var fu := -1.0
 	var total := out + sl * float(swings)
 	if _t < out:
 		ext = _t / out
 	elif _t < total:
 		k = mini(int((_t - out) / sl), swings - 1)
 		u = (_t - out - sl * float(k)) / sl
+	elif _t < total + flick:
+		k = swings - 1
+		u = 1.0
+		fu = (_t - total) / flick
 	elif _t < total + back:
 		k = swings - 1
 		u = 1.0
-		ext = 1.0 - (_t - total) / back
+		ext = 1.0 - (_t - total - flick) / maxf(back - flick, 0.001)
 	else:
 		_end_phase()
 		return
@@ -346,12 +383,20 @@ func _tick_slice(delta: float) -> void:
 	var a := _edge(k, u)
 	# a little roll into the cut, so the flat of the blade shows while it swings
 	var s := 1.0 if k % 2 == 0 else -1.0
+	var roll := s * 0.35 * sin(PI * clampf(u, 0.0, 1.0))
+	if fu >= 0.0:
+		# the flick: back against the last swing and settling, the flat turned the other way as it snaps
+		var f := flick_at(fu)
+		a -= s * deg_to_rad(float(_riposte().get("flick_deg", 38.0))) * f
+		roll = -s * 0.5 * f
 	var n: int = _active if _blades_mode else 1
 	for j in range(mini(n, _blades.size())):
 		var b: Node3D = _blades[j]
 		b.global_position = player.global_position + Vector3(0, 0.95, 0)
-		b.rotation = Vector3(0, yaw0 + a + _blade_off(j), s * 0.35 * sin(PI * clampf(u, 0.0, 1.0)))
+		b.rotation = Vector3(0, yaw0 + a + _blade_off(j), roll)
 		b.scale = Vector3(width, 1.0, maxf(reach * ext, 0.05))
+	if fu >= 0.0:
+		_tick_flick(fu, yaw0, a, reach, s, n)
 	if _t < out or _t >= total:
 		_edge_prev = a
 		return
@@ -416,6 +461,8 @@ func _cut(yaw0: float, a0: float, a1: float, reach: float, width: float, s: floa
 		var killed := em.damage(e, dmg * _stunned_mult(em, e), wid, kdir, knock * kdir.length())
 		if killed:
 			inst.kills += 1
+		if _hit_was_crit(em, e):
+			_crit_slash(em, e, tangent)
 		_after_hit(em, e, killed)
 		if not _crackled and _thrust_flag("crackle"):
 			_crackle(em, e)
@@ -636,6 +683,8 @@ func _strike(reach: float, width: float, fan: float, swing: float) -> bool:
 				var killed := em.damage(e, dmg * _stunned_mult(em, e), wid, bdir, knock)
 				if killed:
 					inst.kills += 1
+				if _hit_was_crit(em, e):
+					_crit_slash(em, e, Vector3(-bdir.z, 0.0, bdir.x))
 				_after_hit(em, e, killed)
 				game.fx_hit(em.pos[e] + Vector3(0, 0.5, 0), inst.def)
 				any = true
@@ -660,3 +709,193 @@ func _tip_sparks() -> void:
 			for q in range(3):
 				var a := randf() * TAU
 				fx.mote(at, Vector3(cos(a) * 1.6, 1.2 + randf(), sin(a) * 1.6), 0.25, 0.09, Color(col.r, col.g, col.b, 0.9))
+
+
+# ---------------------------------------------------------------- the Sabre's looks (pass 61)
+
+func refresh_marks() -> void:
+	super.refresh_marks()
+	_refresh_looks()
+
+
+## params.razor (Critical Thinking), {} without it.
+func _razor() -> Dictionary:
+	var r = inst.params.get("razor") if inst else null
+	return r if r is Dictionary else {}
+
+
+## params.riposte (Riposte), {} without it.
+func _riposte() -> Dictionary:
+	var r = inst.params.get("riposte") if inst else null
+	return r if r is Dictionary else {}
+
+
+## The razor edge and the guard bar on or off with their mutations, on the blade every stroke copies and on every copy.
+func _refresh_looks() -> void:
+	if inst == null:
+		return
+	var key := JSON.stringify([_razor(), _riposte()])
+	if key == _looks_key:
+		return
+	_looks_key = key
+	var razor := not _razor().is_empty()
+	var guard := not _riposte().is_empty()
+	var all: Array = _blades.duplicate()
+	if _proto:
+		all.push_front(_proto)
+	for b: Node in all:
+		_show(b, "LookRazor", razor)
+		_show(b, "LookGuard", guard)
+
+
+func _show(blade: Node, look: String, on: bool) -> void:
+	var n := blade.get_node_or_null(look) as Node3D
+	if n:
+		n.visible = on
+
+
+## Whether the blade wears `look` ("LookRazor", "LookGuard") now (tests): on the blade every stroke copies.
+func shows_look(look: String) -> bool:
+	if _proto == null:
+		return false
+	var n := _proto.get_node_or_null(look) as Node3D
+	return n != null and n.visible
+
+
+## How long Riposte's flick lasts in a stroke whose retract takes `back` seconds: params.riposte.flick, at most
+## FLICK_SHARE of `back`; 0 without Riposte.
+func flick_time(back: float) -> float:
+	var rp := _riposte()
+	if rp.is_empty():
+		return 0.0
+	return clampf(float(rp.get("flick", 0.09)), 0.0, maxf(back, 0.0) * FLICK_SHARE)
+
+
+## The flick `u` of the way through (0..1): out to 1 by FLICK_PEAK with an ease-out, back to 0 by its end, eased.
+static func flick_at(u: float) -> float:
+	if u <= 0.0 or u >= 1.0:
+		return 0.0
+	if u < FLICK_PEAK:
+		var q := u / FLICK_PEAK
+		return 1.0 - (1.0 - q) * (1.0 - q)
+	var d := (u - FLICK_PEAK) / (1.0 - FLICK_PEAK)
+	return 1.0 - d * d * (3.0 - 2.0 * d)
+
+
+## While the blade flicks: its crescent runs backwards behind it (spokes, no cut) and, once, at the peak, the clang: a
+## spark two thirds of the way up the blade and the sound.
+func _tick_flick(fu: float, yaw0: float, a: float, reach: float, s: float, n: int) -> void:
+	while _trails.size() < n:
+		_trails.append([])
+	for j in range(n):
+		var off := _blade_off(j)
+		var steps := maxi(ceili(absf(a - _edge_prev) / 0.12), 1)
+		for q in range(1, steps + 1):
+			(_trails[j] as Array).append(Vector3(yaw0 + off + lerpf(_edge_prev, a, float(q) / float(steps)), _clock, reach))
+	if _clanged or fu < FLICK_PEAK or _blades.is_empty():
+		return
+	_clanged = true
+	clangs += 1
+	var b: Node3D = _blades[0]
+	var at: Vector3 = b.global_position - b.global_transform.basis.z * 0.65
+	var cy := yaw0 + a
+	var back_dir := Vector3(cos(cy), 0.0, -sin(cy)) * s
+	var fx = game.get("fx") if game else null
+	if fx and fx.has_method("clang_spark"):
+		fx.clang_spark(at, back_dir)
+	var rp := _riposte()
+	var snd := str(rp.get("sound", "w_iron_hit"))
+	if snd != "":
+		Audio.play(snd, at, float(rp.get("volume_db", 0.0)))
+
+
+## Critical Thinking's streak on a crit (pass 61): a white hairline across creature `i` along `along` (the way the edge
+## went), tilted up along its line; the oldest goes when SLASH_MAX are up.
+func _crit_slash(em: EnemyManager, i: int, along: Vector3) -> void:
+	var rz := _razor()
+	if rz.is_empty() or not bool(rz.get("crit_streak", true)):
+		return
+	var d := Vector3(along.x, 0.0, along.z)
+	d = d.normalized() if d.length_squared() > 0.0001 else Vector3(-_dir.z, 0.0, _dir.x)
+	if _slashes.size() >= SLASH_MAX:
+		_slashes.pop_front()
+	var size := maxf(em.size[i], 0.8)
+	_slashes.append({"c": em.pos[i] + Vector3(0, size * 0.55, 0), "d": (d + Vector3.UP * SLASH_TILT).normalized(), "t": _clock,
+		"len": float(rz.get("streak_length", 1.6)) * size, "w": float(rz.get("streak_width", 0.05))})
+	slashes += 1
+
+
+## How many crit streaks are showing (tests).
+func slashes_live() -> int:
+	return _slashes.size()
+
+
+## The streak's see-through white, drawn over everything (the lightning bolts' recipe, so nothing new compiles).
+static var _slash_mat: StandardMaterial3D
+
+
+static func slash_material() -> StandardMaterial3D:
+	if _slash_mat == null:
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.vertex_color_use_as_albedo = true
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m.no_depth_test = true
+		m.render_priority = 2
+		_slash_mat = m
+	return _slash_mat
+
+
+## Every crit streak a frame on: it draws itself across in SLASH_DRAW and fades by its life; a soft gold-white halo
+## round a white hairline, both thin diamonds facing the camera.
+func _tick_slashes() -> void:
+	var life := float(_razor().get("streak_life", SLASH_LIFE)) if not _slashes.is_empty() else SLASH_LIFE
+	while not _slashes.is_empty() and _clock - float((_slashes[0] as Dictionary)["t"]) > life:
+		_slashes.pop_front()
+	if _slashes.is_empty():
+		if _slash_mi and _slash_mi.visible:
+			_slash_mi.visible = false
+		return
+	if _slash_mi == null:
+		_slash_mesh = ImmediateMesh.new()
+		_slash_mi = MeshInstance3D.new()
+		_slash_mi.mesh = _slash_mesh
+		_slash_mi.top_level = true
+		_slash_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_slash_mi.material_override = slash_material()
+		_slash_mi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
+		add_child(_slash_mi)
+	_slash_mi.visible = true
+	_slash_mi.global_transform = Transform3D.IDENTITY
+	var rz := _razor()
+	var col := Color(str(rz.get("color", "#FFFFFF")))
+	var glow := Color(str(rz.get("glow", "#FFE7A0")))
+	var cam: Camera3D = get_viewport().get_camera_3d() if is_inside_tree() else null
+	_slash_mesh.clear_surfaces()
+	_slash_mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	for sl: Dictionary in _slashes:
+		var age := _clock - float(sl["t"])
+		var g := clampf(age / SLASH_DRAW, 0.0, 1.0)
+		var fade := 1.0 - smoothstep(SLASH_DRAW, life, age)
+		var c: Vector3 = sl["c"]
+		var d: Vector3 = sl["d"]
+		var ln := float(sl["len"])
+		var p0 := c - d * ln * 0.5
+		var p1 := p0 + d * ln * g
+		var to_cam: Vector3 = (cam.global_position - c).normalized() if cam else Vector3.UP
+		var side := d.cross(to_cam)
+		side = side.normalized() if side.length_squared() > 0.0001 else Vector3.RIGHT
+		var w := float(sl["w"])
+		_diamond(p0, p1, side * w * 3.2, Color(glow.r, glow.g, glow.b, 0.45 * fade))
+		_diamond(p0, p1, side * w, Color(col.r, col.g, col.b, fade))
+	_slash_mesh.surface_end()
+
+
+## A thin diamond from `p0` to `p1`, `half` wide at its middle, in `c`.
+func _diamond(p0: Vector3, p1: Vector3, half: Vector3, c: Color) -> void:
+	var m := (p0 + p1) * 0.5
+	var tip := Color(c.r, c.g, c.b, c.a * 0.6)
+	for v in [[p0, tip], [m + half, c], [p1, tip], [p0, tip], [p1, tip], [m - half, c]]:
+		_slash_mesh.surface_set_color(v[1])
+		_slash_mesh.surface_add_vertex(v[0])

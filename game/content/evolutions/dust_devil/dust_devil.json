@@ -25,6 +25,11 @@
     "fan_step_deg": 14,
     "return": true,
     "final": {
+      "tint": {
+        "albedo": "#090808",
+        "emission": "#140F0D",
+        "energy": 0.8
+      },
       "out_speed_mult": 0.8,
       "back_speed_mult": 1.5,
       "aura": {

@@ -1321,3 +1321,100 @@ func _process(delta: float) -> void:
 	_note_mm.visible_instance_count = nn
 	_dust_mm.visible_instance_count = nd
 	Perf.add("fx", t0)
+
+
+# ---- pass 61: projectile mutation looks (WP1): new functions below this line ----
+
+
+## A tongue of flame licking out of a muzzle (pass 61, Dragon's Breath's look): flames in a row from `at` along `dir`
+## over `length` metres, the first `size` metres tall and each further one smaller, thrown forward and gone in about a
+## fifth of a second; `blue` (Methanol's palette) burns it blue. The first flame is never thinned by the effect budget.
+func flame_tongue(at: Vector3, dir: Vector3, length: float = 1.0, size: float = 0.5, blue: bool = false) -> void:
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if d.length_squared() < 0.0001:
+		return
+	d = d.normalized()
+	var n := 5
+	for k in range(n):
+		var f := float(k) / float(n - 1)
+		var p := at + d * (length * 0.6 * f) + Vector3(0, -0.1, 0)
+		var h: float = size * lerpf(1.0, 0.45, f)
+		var v := d * lerpf(4.5, 8.0, f) + Vector3(randf_range(-0.3, 0.3), 0.6, randf_range(-0.3, 0.3))
+		_emit_flame(p, v, lerpf(0.24, 0.15, f), h * 0.7, h, FLAME_ORANGE, k < 2, blue)
+
+
+# ---- pass 61: melee, beam and sceptre looks (WP2): new functions below this line ----
+
+## Rust's colours (pass 61, the Orbit Saws' Rust): a flake is one of these, darker and brighter oxide.
+const RUST_FLAKES := [Color(0.62, 0.27, 0.09), Color(0.78, 0.38, 0.12), Color(0.45, 0.2, 0.08), Color(0.9, 0.52, 0.2)]
+
+
+## One rust flake shed by a spinning saw (pass 61, Rust): a small spinning chip of oxide flung along `vel`, falling under
+## gravity; `col` (alpha 0 = one of RUST_FLAKES) its colour; `dust` adds a faint puff of orange oxide where it leaves.
+## Thinned by the budget like a hit's shards: it is decoration.
+func rust_flake(at: Vector3, vel: Vector3, col: Color = Color(0, 0, 0, 0), size: float = 1.0, dust := false) -> void:
+	var c: Color = col if col.a > 0.0 else RUST_FLAKES[randi() % RUST_FLAKES.size()]
+	_emit(at, vel, randf_range(0.5, 0.8), 0.5 * size, 0.3 * size, 1.0, 1.0, Color(c.r, c.g, c.b), 9.0, true)
+	if dust:
+		_emit_dust(at, vel * 0.25 + Vector3(0, 0.3, 0), randf_range(0.45, 0.6), 0.15 * size, 0.55 * size, 0.45, Color(0.78, 0.42, 0.18))
+
+
+## A gust of Bad Breath where its beam hits (pass 61): soft puffs of `col` thrown along `dir` (the beam's way) and up;
+## `big` (the first touch, the knock) throws three wider puffs and a few streaks of wind ahead of them, else one small
+## puff. The big gust is never thinned: it is the hit.
+func breath_gust(at: Vector3, dir: Vector3, col: Color, big := false) -> void:
+	var d := Vector3(dir.x, 0.0, dir.z)
+	d = d.normalized() if d.length_squared() > 0.0001 else Vector3.FORWARD
+	var side := Vector3(-d.z, 0.0, d.x)
+	var n := 3 if big else 1
+	var k_big := 1.4 if big else 1.0
+	for k in range(n):
+		var o := at + side * randf_range(-0.35, 0.35) + Vector3(0, randf_range(-0.1, 0.3), 0)
+		var v := d * randf_range(2.0, 3.6) * k_big + side * randf_range(-0.8, 0.8) + Vector3(0, randf_range(0.3, 0.9), 0)
+		_emit_dust(o, v, randf_range(0.45, 0.65), 0.3, randf_range(0.95, 1.3) * k_big, 0.8 if big else 0.65, col, big)
+	if big:
+		var pale := col.lerp(Color(1, 1, 1), 0.45)
+		for k in range(4):
+			var o2 := at + side * randf_range(-0.5, 0.5) + Vector3(0, randf_range(0.0, 0.5), 0)
+			_emit(o2, d * randf_range(7.0, 10.0) + side * randf_range(-1.0, 1.0), 0.22, 0.14, 0.05, 0.9, 0.0, pale, 0.0, false, true)
+
+
+## The clang of Riposte's flick (pass 61): a white pop and a brass glow at `at`, and bright sparks flung out and up, the
+## way the blade snapped back (`dir`) a little; never thinned, one a stroke.
+func clang_spark(at: Vector3, dir: Vector3 = Vector3.ZERO) -> void:
+	_emit(at, Vector3.ZERO, 0.12, 0.2, 1.25, 1.0, 0.0, Color(1.0, 1.0, 0.94), 0.0, false, true)
+	_emit(at, Vector3.ZERO, 0.24, 0.25, 0.95, 0.95, 0.0, Color(1.0, 0.8, 0.3), 0.0, false, true)
+	var d := Vector3(dir.x, 0.0, dir.z)
+	d = d.normalized() if d.length_squared() > 0.0001 else Vector3.ZERO
+	for k in range(14):
+		var a := randf() * TAU
+		var v := Vector3(cos(a), 0.0, sin(a)) * randf_range(3.5, 7.5) + d * 2.5 + Vector3(0, randf_range(2.0, 5.0), 0)
+		var c := Color(1.0, 1.0, 0.9) if k % 3 == 0 else Color(1.0, 0.86, 0.42)
+		_emit(at, v, randf_range(0.25, 0.45), 0.55, 0.1, 1.0, 1.0, c, 14.0, true, true)
+
+
+## Sparks thrown off the Sun Scepter's sun as it calls a strike (pass 61): a small white pop on the disc and `n` hot
+## sparks flung out and up in its colour.
+func sun_sparks(at: Vector3, tint: Color, n: int = 5) -> void:
+	_emit(at, Vector3.ZERO, 0.12, 0.1, 0.6, 1.0, 0.0, Color(1.0, 0.98, 0.86), 0.0, false, true)
+	var hot := tint.lerp(Color(1.0, 0.97, 0.8), 0.5)
+	for k in range(n):
+		var a := randf() * TAU
+		var v := Vector3(cos(a), 0.0, sin(a)) * randf_range(1.5, 3.2) + Vector3(0, randf_range(1.2, 3.0), 0)
+		_emit(at, v, randf_range(0.3, 0.45), 0.36, 0.06, 1.0, 0.9, hot, 7.0, true, true)
+
+
+## A pillar of sunlight landing (pass 61, the Sun Scepter): a white-hot pop at its foot `r` metres across, `motes`
+## pale-gold motes rising off the spot and a few sparks skittering out low; `must` keeps the pop from the budget's
+## thinning (a single strike's; a Zenith sweep's forty landings may thin), `pop` scales it.
+func sun_impact(at: Vector3, r: float, tint: Color, motes: int = 6, must := true, pop: float = 1.0) -> void:
+	var c := at + Vector3(0, 0.25, 0)
+	_emit(c, Vector3(0, 0.6, 0), 0.13, 0.3 * r * pop, 1.05 * r * pop, 1.0, 0.0, Color(1.0, 0.98, 0.88), 0.0, false, must)
+	var hot := tint.lerp(Color(1.0, 0.96, 0.75), 0.55)
+	for k in range(motes):
+		var a := randf() * TAU
+		var o := Vector3(cos(a), 0.0, sin(a)) * randf_range(0.2, 0.8) * r
+		_emit(at + o + Vector3(0, 0.2, 0), Vector3(o.x * 0.6, randf_range(2.2, 4.2), o.z * 0.6), randf_range(0.55, 0.85), randf_range(0.18, 0.26), 0.05, 1.0, 0.0, hot, -1.5)
+	for k in range(mini(motes, 4)):
+		var a2 := randf() * TAU
+		_emit(c, Vector3(cos(a2), 0.0, sin(a2)) * randf_range(3.0, 5.0) + Vector3(0, randf_range(1.5, 3.0), 0), randf_range(0.3, 0.45), 0.4, 0.08, 1.0, 0.8, Color(1.0, 0.9, 0.5), 10.0, true)

@@ -49,6 +49,7 @@
 ## Pass 58: card_choices (run with cards) lays out one held card between two new ones for banish by real fingers: BANISH
 ## turns banish mode on and every control in it answers (cards_banish), the held card refuses, CANCEL turns it off, a new
 ## card is struck and the table answers again after (cards_after_banish), a table of upgrades only locks BANISH.
+## Pass 61: hero_sheet (run with title): the plaque's swipe and tap, the hero's sheet audited, its dim and CLOSE.
 extends SceneTree
 
 const MAX_PER_KIND := 40     # cards of one screen tapped at most (a long list: a sample, spread over it)
@@ -438,6 +439,8 @@ func _run() -> void:
 	await _screen("title", "res://ui/TitleScreen.tscn")
 	if _want("title"):
 		await _title_swipe()
+	if _want("title") or _want("hero_sheet"):
+		await _hero_sheet()
 	if _want("title") or _want("title_live"):
 		await _title_live()
 	await _screen("settings", "res://ui/SettingsScreen.tscn")
@@ -583,6 +586,60 @@ func _title_swipe() -> void:
 	_count("title", ok)
 	if not ok:
 		_fail("title", "the hero", "a sideways swipe did not change the hero")
+
+
+## The hero's sheet (pass 61, the CV, ui/wanted/WHeroSheet.gd; run with title, or alone with only=hero_sheet): a sideways
+## swipe across the title's plaque changes the hero and opens nothing; a real tap on the plaque opens the sheet of the
+## hero shown; every control on it answers a finger (CLOSE, the list scrolls); a tap on the dim outside the card closes
+## it, and so does a real tap on CLOSE.
+func _hero_sheet() -> void:
+	change_scene_to_file("res://ui/TitleScreen.tscn")
+	await _wait(1.2)
+	var t = current_scene
+	var plaque: Control = t.find_child("Plaque", false, false)
+	_count("hero_sheet", plaque != null)
+	if plaque == null:
+		_fail("hero_sheet", "the plaque", "no Plaque on the title")
+		return
+	if (t._heroes as Array).size() >= 2:
+		var i0: int = t._index
+		var mid := plaque.get_global_rect().get_center()
+		await _swipe(mid + Vector2(240, 0), mid - Vector2(240, 0), 10)
+		await _wait(0.3)
+		var swiped: bool = t._index != i0 and not t.sheet_open()
+		_count("hero_sheet", swiped)
+		if not swiped:
+			_fail("hero_sheet", "the plaque", "a sideways swipe across it did not change the hero (or opened the sheet)")
+	await _tap(plaque.get_global_rect().get_center())
+	await _wait(0.6)
+	var sheet: Control = t.find_child("HeroSheet", false, false)
+	var opened: bool = sheet != null and t.sheet_open() and sheet.get("hero") == t._heroes[t._index]
+	_count("hero_sheet", opened)
+	if not opened:
+		_fail("hero_sheet", "the plaque", "a tap did not open the shown hero's sheet")
+		return
+	await _audit("hero_sheet", sheet)
+	await _tap(Vector2(12, sheet.get_global_rect().get_center().y))
+	await _wait(0.4)
+	var dim_closes: bool = not t.sheet_open()
+	_count("hero_sheet", dim_closes)
+	if not dim_closes:
+		_fail("hero_sheet", "the dim", "a tap outside the card did not close the sheet")
+	await _wait(0.3)
+	t.open_sheet()
+	await _wait(0.6)
+	sheet = t.find_child("HeroSheet", false, false)
+	var close: Control = sheet.find_child("Close", true, false) if sheet else null
+	# (the button is freed with the sheet: read whether there was one before the tap)
+	var had_close := close != null
+	if had_close:
+		var at: Vector2 = await _spot(close)
+		await _tap(at)
+		await _wait(0.4)
+	var closed: bool = had_close and not t.sheet_open()
+	_count("hero_sheet", closed)
+	if not closed:
+		_fail("hero_sheet", "CLOSE", "a real tap did not close the sheet")
 
 
 ## The live title (pass 52, Settings.menu_style "live": the level itself behind the UI, ui/TitleStage.gd): the 3D view

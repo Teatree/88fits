@@ -107,7 +107,8 @@ func test_two_skeletons_walk_like_zombies() -> void:
 
 func test_only_astro_and_the_drifter_are_played() -> void:
 	var ids: Array = Registry.sorted_characters().map(func(c): return c.id)
-	assert_array(ids).contains_exactly(["astro", "calavera", "drifter", "ironwood", "solenne"])   # pass 43: Calavera; pass 46: Ironwood; pass 54: Solenne
+	# pass 43: Calavera; pass 46: Ironwood; pass 54: Solenne; re-pinned in pass 61: in Garry's order (CharacterDef.order)
+	assert_array(ids).contains_exactly(["drifter", "astro", "calavera", "ironwood", "solenne"])
 	# the others are kept, just hidden
 	for id in ["buck", "dad", "mira"]:
 		assert_object(Registry.character(id)).is_not_null()

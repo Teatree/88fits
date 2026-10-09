@@ -2,30 +2,14 @@
   "id": "solenne",
   "name": "Solenne",
   "flavour": "She brings the noon with her.",
+  "order": 5,
   "pronoun": "she",
-  "trait": [
-    {
-      "stat": "buff_duration",
-      "op": "mul",
-      "value": 0.25,
-      "target": "player"
-    },
-    {
-      "stat": "cooldown",
-      "op": "mul",
-      "value": -0.13,
-      "target": "player"
-    },
-    {
-      "stat": "max_hp",
-      "op": "mul",
-      "value": -0.2,
-      "target": "player"
-    },
+  "trait": [],
+  "trait_per_level": [
     {
       "stat": "debuff_duration",
       "op": "mul",
-      "value": 0.25,
+      "value": 0.015,
       "target": "player"
     }
   ],
@@ -81,7 +65,7 @@
   "pose_hint": "Both arms hang straight down at her sides, hands open, not on the hips. The same slim proportions in every view.",
   "level_heal": 0.0,
   "trait_name": "Magic Hour",
-  "trait_text": "Her buffs last 25% longer and so do her burns, poison and slows. +15% attack speed, −20% max HP. She finds Haste at level 2.",
+  "trait_text": "Gain 1.5% debuff duration per level (her burns, poison, slows and pins last longer; buffs do not).",
   "pose_drivers": {
     "back": "walk_sun_spread85",
     "bd": "walk_sun_spread85",

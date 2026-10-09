@@ -126,7 +126,15 @@ func setup(p_char: CharacterDef) -> void:
 func refresh_stats() -> void:
 	sheet = Run.player_sheet
 	var new_max := sheet.get_stat("max_hp", 100.0)
-	if new_max != max_hp:
+	if dead:
+		# a level banked on the fallen hero (pass 61: Astro's max HP climbs with it) leaves him down; the revive sets him up
+		max_hp = new_max
+	elif new_max > max_hp and max_hp > 0.0:
+		# a rise (pass 61: Astro's max HP climbs every level) brings the same health with it, so a level-up never leaves
+		# her looking wounded; a fall keeps the share she had
+		hp = clampf(hp + (new_max - max_hp), 1.0, new_max)
+		max_hp = new_max
+	elif new_max != max_hp:
 		var ratio: float = hp / max_hp if max_hp > 0.0 else 1.0
 		max_hp = new_max
 		hp = clamp(new_max * ratio, 1.0, new_max)
@@ -763,7 +771,8 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 	invuln = sheet.get_stat("hit_invuln", 0.5)
 	# Unbroken (pass 46, Ironwood): a hit never stops his healing (Siesta's either, pass 47)
 	if not Run.has_perk("unbroken"):
-		regen_hold = sheet.get_stat("regen_delay", REGEN_HOLD_AFTER_HIT)
+		# never under the floor (pass 61: Ironwood's delay shrinks every level; the sheet floors it as well)
+		regen_hold = maxf(sheet.get_stat("regen_delay", REGEN_HOLD_AFTER_HIT), float(StatSheet.STAT_FLOORS["regen_delay"]))
 		_siesta_hold = SIESTA_HOLD
 	_shield_wait = sheet.get_stat("shield_delay", 3.0)
 	# the Energy Shield: while any of it holds, the whole hit is the shield's and none of it reaches his health
@@ -782,7 +791,7 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 	# Hush Money (pass 47c): every hit that reaches his health pays
 	var paid := int(round(sheet.get_stat("gold_on_hit", 0.0)))
 	if paid > 0:
-		Run.add_gold(paid)
+		Run.add_gold(paid, "hush_money")
 	if DamageNumbers.I: DamageNumbers.I.hero_hurt(dealt)
 	if momentum and _momentum_t > 0.0:
 		_momentum_t = 0.0

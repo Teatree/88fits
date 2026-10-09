@@ -818,7 +818,7 @@ func _tick() -> void:
 	elif _step == 8 and _t > 83.2:
 		# the Mirror: a full purse and a couple of ranks bought, so the board shows a live build
 		var sv = root.get_node("Save")
-		sv.add_gold(4000)
+		sv.add_gold(4000, "debug")
 		for tid in ["grit", "drive"]:
 			var td = root.get_node("Registry").talent(tid)
 			if td:

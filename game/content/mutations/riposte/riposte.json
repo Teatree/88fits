@@ -9,7 +9,7 @@
   "element": "",
   "hero": "",
   "text": "Strokes come 25% faster and throw what they hit twice as far.",
-  "vfx": "a hard shove of light on every cut",
+  "vfx": "a heavy brass guard bar; every stroke ends in a quick reverse flick with a clang of sparks",
   "effects": [
     {
       "stat": "cooldown",
@@ -22,7 +22,14 @@
       "value": 9
     }
   ],
-  "params": {},
+  "params": {
+    "riposte": {
+      "flick_deg": 38,
+      "flick": 0.09,
+      "sound": "w_iron_hit",
+      "volume_db": -3
+    }
+  },
   "art_prompt": "a curved sabre mid-parry with a burst of white force pushing outward from the blade",
   "placeholder": {
     "color": "#C0D0F0",

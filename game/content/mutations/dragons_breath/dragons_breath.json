@@ -28,7 +28,31 @@
     }
   ],
   "params": {
-    "ignite_chance": 0.6
+    "ignite_chance": 0.6,
+    "tint": {
+      "albedo": "#FFA236",
+      "emission": "#FF6A12",
+      "energy": 3.0,
+      "halo": "#E8300A",
+      "halo_alpha": 0.85
+    },
+    "tracer_size": 0.55,
+    "tracer_life": 0.28,
+    "look": {
+      "tongue": {
+        "length": 1.6,
+        "size": 0.8
+      },
+      "heat": {
+        "parts": {
+          "Barrels": true,
+          "Bell": true
+        },
+        "color": "#FF4A12",
+        "energy": 2.6,
+        "cool": 0.6
+      }
+    }
   },
   "art_prompt": "a sawn-off shotgun shell cracked open with a burst of orange flame coming out of it",
   "placeholder": {

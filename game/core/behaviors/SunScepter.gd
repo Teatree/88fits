@@ -26,6 +26,14 @@
 ## (Zenith's). Its mutations show on the sceptre itself (the floating emblems went in pass 60): Heat Stroke's
 ## `staff_tint` warms the lacquered handle a little, Flicker's `handle_ring` is a ring round the handle that loads round
 ## and round, Gold Dust shows nothing (_refresh_looks, run from refresh_marks on every build change).
+## Pass 61 (Garry: "Make the attack of the scepter visuals a bit stronger. For both the 'projectile' and the scepter
+## itself"): the shake is harder (SHAKE_DEG 5 -> 8, SHAKE_KICK 0.05 -> 0.09, SHAKE_TIME 0.25 -> 0.3), the sunburst flares
+## higher and swells (params.shine flare/sweep/pop raised in both JSONs, Zenith's still over the plain one's), the sun
+## disc itself pulses (its own emissive materials and its scale: PULSE_EMIT, PULSE_SWELL; pulse_at) on every call and,
+## at PULSE_LAND of that, as the strike lands, and the call throws a few CALL_SPARKS off the sun. The pillar lands with a
+## fatter white core (SunBeams' impact), a white pop and rising motes (Fx.sun_impact), a shock ring racing out over the
+## sand (Telegraphs.race_ring, IMPACT_RING x its radius) and a hot glow on the sand that fades (Telegraphs.scorch,
+## IMPACT_GLOW); a Zenith sweep's forty landings take fewer motes each (IMPACT_MOTES_SWEEP). All pooled, no nodes, no lights.
 class_name SunScepter
 extends WeaponBehavior
 
@@ -45,10 +53,40 @@ const SHINE_FLARE := 1.1
 const SHINE_CHARGE := 0.45
 ## The shake on a strike (pass 55): this long at power 1 (a sweep's power 2 runs half as long again), this many degrees
 ## of pitch and roll at its start, jittering at SHAKE_HZ, and a kick of SHAKE_KICK metres up the staff.
-const SHAKE_TIME := 0.25
-const SHAKE_DEG := 5.0
+const SHAKE_TIME := 0.3
+const SHAKE_DEG := 8.0
 const SHAKE_HZ := 19.0
-const SHAKE_KICK := 0.05
+const SHAKE_KICK := 0.09
+## The sun disc's pulse (pass 61): its emissive materials gain PULSE_EMIT of energy at the pulse's peak, whitening by
+## PULSE_WHITE, and it swells by PULSE_SWELL; up in PULSE_UP, down over PULSE_DOWN. A landing pulses it PULSE_LAND as hard.
+const PULSE_EMIT := 2.2
+const PULSE_WHITE := 0.45
+const PULSE_SWELL := 0.22
+const PULSE_UP := 0.05
+const PULSE_DOWN := 0.32
+const PULSE_LAND := 0.6
+## Sparks thrown off the sun on a call (pass 61), twice as many on a sweep.
+const CALL_SPARKS := 5
+## The landing on the sand (pass 61): the shock ring races out to IMPACT_RING x the strike's radius over IMPACT_RING_TIME
+## at IMPACT_RING_ALPHA; the hot glow is IMPACT_GLOW x the radius, held IMPACT_GLOW_HOLD and gone over IMPACT_GLOW_FADE;
+## IMPACT_MOTES rising motes a strike, IMPACT_MOTES_SWEEP each of a sweep's pillars. A sweep's forty landings take no
+## shock ring, a smaller pop (IMPACT_POP_SWEEP) and a fainter glow (IMPACT_GLOW_SWEEP x its alpha): together they would
+## white the screen out.
+const IMPACT_RING := 1.6
+const IMPACT_RING_TIME := 0.38
+const IMPACT_RING_ALPHA := 0.75
+const IMPACT_RING_COLOR := Color(1.0, 0.86, 0.45)
+const IMPACT_GLOW := 0.95
+const IMPACT_GLOW_HOLD := 0.12
+const IMPACT_GLOW_FADE := 0.6
+const IMPACT_GLOW_INNER := Color(1.0, 0.9, 0.55, 0.8)
+const IMPACT_GLOW_OUTER := Color(1.0, 0.62, 0.16, 0.0)
+const IMPACT_MOTES := 6
+const IMPACT_MOTES_SWEEP := 2
+const IMPACT_POP_SWEEP := 0.5
+## A sweep's pillars land at this share of a strike's pop and impact (SunBeams.begin's `land`).
+const SWEEP_LAND := 0.4
+const IMPACT_GLOW_SWEEP := 0.5
 ## A Zenith sweep's shake and flare against a strike's.
 const SWEEP_POWER := 2.0
 const TILT_DEG := 28.0
@@ -83,6 +121,15 @@ var _flare_peak := SHINE_FLARE
 ## The shake's clock since the last strike was called (-1 = at rest) and how hard.
 var _shake_t := -1.0
 var _shake_power := 1.0
+## The sun disc's pulse (pass 61): its clock since the last pulse (-1 = at rest), how hard, its emissive materials as
+## {mat, energy, color} (copies on the disc's surfaces) and its rest scale.
+var _pulse_t := -1.0
+var _pulse_peak := 1.0
+var _disc: Array = []
+var _sun_rest := Vector3.ONE
+## Pulses so far and landings marked on the sand (tests).
+var pulses := 0
+var impacts := 0
 ## Where the sceptre flies, eased after her; the shake's kick is added on top of it.
 var _fly_at := Vector3.INF
 var _orbit := 0.0
@@ -129,6 +176,7 @@ func _on_setup() -> void:
 		_model = _fallback_model()
 		_familiar.add_child(_model)
 	_sun = _model.find_child("Sun", true, false) as Node3D
+	_setup_disc()
 	_charge = _model.find_child("Charge", true, false) as Node3D
 	_setup_charge()
 	# the crossed bars only where the weapon asks for them (pass 55: Zenith's; the plain sceptre's glint is its flare)
@@ -304,7 +352,7 @@ func _fire() -> bool:
 		if k < pillars:
 			if tg != null:
 				s["ring"] = tg.hold_ring(at, r, Color(ring_c.r, ring_c.g, ring_c.b, ring_a))
-			_beams.begin(at, r, warn, tint, alpha, flash, thin)
+			_beams.begin(at, r, warn, tint, alpha, flash, thin, SWEEP_LAND if sweep else 1.0)
 		if first == Vector3.INF:
 			first = at
 		_strikes.append(s)
@@ -323,6 +371,10 @@ func _called(sweep: bool) -> void:
 	var sh := _shine()
 	var flare := float(sh.get("flare", SHINE_FLARE))
 	_flare_peak = float(sh.get("sweep", flare)) if sweep else flare
+	_pulse(1.0)
+	var fx = game.get("fx") if game else null
+	if fx and _familiar and fx.has_method("sun_sparks"):
+		fx.sun_sparks(_sun_at(), _tint(), CALL_SPARKS * (2 if sweep else 1))
 
 
 func _tick(delta: float) -> void:
@@ -331,6 +383,7 @@ func _tick(delta: float) -> void:
 	if _beams:
 		_beams.tick(delta)
 	_tick_glow(delta)
+	_tick_pulse(delta)
 	_tick_ring(delta)
 
 
@@ -359,6 +412,8 @@ func _tick_strikes(delta: float) -> void:
 			game.fx.burst(_sun_at(), _tint(), 1.6)
 	elif landed:
 		sfx("hit")
+	if landed:
+		_pulse(PULSE_LAND)
 
 
 ## A pillar comes down: what stands in it is hit (a sweep's pillar hits only the creature it was called on, once), and a
@@ -396,10 +451,25 @@ func _land(s: Dictionary) -> void:
 			inst.kills += 1
 	if bool(s["pillar"]):
 		var tint := _tint()
-		if game.get("fx"):
-			game.fx.burst(at + Vector3(0.0, 0.4, 0.0), tint, 0.8 * r)
+		var sweep := bool(s.get("sweep", false))
+		var fx = game.get("fx")
+		if fx:
+			fx.burst(at + Vector3(0.0, 0.4, 0.0), tint, 0.8 * r)
+			# pass 61: a white pop and motes rising off the spot
+			if fx.has_method("sun_impact"):
+				fx.sun_impact(at, r, tint, IMPACT_MOTES_SWEEP if sweep else IMPACT_MOTES, not sweep, IMPACT_POP_SWEEP if sweep else 1.0)
 		if tg != null:
 			tg.flash_ring(at, r, tint, 0.25)
+			# pass 61: a shock ring racing out over the sand and the sand glowing hot under the pillar
+			if tg.has_method("race_ring") and not sweep:
+				var rc := IMPACT_RING_COLOR
+				tg.race_ring(at, r * IMPACT_RING, IMPACT_RING_TIME, Color(rc.r, rc.g, rc.b, IMPACT_RING_ALPHA), 0.3)
+			if tg.has_method("scorch"):
+				var gi := IMPACT_GLOW_INNER
+				if sweep:
+					gi = Color(gi.r, gi.g, gi.b, gi.a * IMPACT_GLOW_SWEEP)
+				tg.scorch(at, r * IMPACT_GLOW, gi, IMPACT_GLOW_OUTER, IMPACT_GLOW_HOLD, IMPACT_GLOW_FADE)
+		impacts += 1
 
 
 ## How many coins a kill by `inst` drops (pass 54, Gold Dust: `params.gold_dust {chance, coins}`): its `coins` a `chance`
@@ -542,6 +612,97 @@ func glow_now() -> float:
 	if _glow == null or not _glow.visible or _glow_mat == null:
 		return 0.0
 	return float(_glow_mat.get_shader_parameter("strength"))
+
+
+# ---------------------------------------------------------------- the sun disc's pulse (pass 61)
+
+## The disc's emissive surfaces, each on its own copy of its material (the companion glow already made every one under
+## the Familiar emit, so the pulse only moves numbers and compiles nothing new); a surface that does not emit is left
+## alone.
+func _setup_disc() -> void:
+	_disc.clear()
+	if _sun == null:
+		return
+	_sun_rest = _sun.scale
+	var meshes: Array = _sun.find_children("*", "MeshInstance3D", true, false)
+	if _sun is MeshInstance3D:
+		meshes.push_front(_sun)
+	var done := {}
+	for mi: MeshInstance3D in meshes:
+		if mi.mesh == null:
+			continue
+		if mi.material_override is BaseMaterial3D:
+			var mo := _disc_copy(mi.material_override as BaseMaterial3D, done)
+			if mo:
+				mi.material_override = mo
+			continue
+		for k in range(mi.mesh.get_surface_count()):
+			var src := mi.get_active_material(k)
+			if src is BaseMaterial3D:
+				var m := _disc_copy(src as BaseMaterial3D, done)
+				if m:
+					mi.set_surface_override_material(k, m)
+
+
+func _disc_copy(src: BaseMaterial3D, done: Dictionary) -> BaseMaterial3D:
+	if not src.emission_enabled:
+		return null
+	if done.has(src.get_instance_id()):
+		return done[src.get_instance_id()]
+	var m := src.duplicate() as BaseMaterial3D
+	done[src.get_instance_id()] = m
+	_disc.append({"mat": m, "energy": m.emission_energy_multiplier, "color": m.emission})
+	return m
+
+
+## The disc's pulse `t` seconds after it was set off: 0 to 1 over PULSE_UP, back to 0 over PULSE_DOWN, eased.
+static func pulse_at(t: float) -> float:
+	if t < 0.0:
+		return 0.0
+	if t < PULSE_UP:
+		return t / PULSE_UP
+	var d := (t - PULSE_UP) / PULSE_DOWN
+	return 0.0 if d >= 1.0 else (1.0 - d) * (1.0 - d)
+
+
+## Sets the disc pulsing at `peak` (1 a call, PULSE_LAND a landing); a stronger pulse already running is kept.
+func _pulse(peak: float) -> void:
+	var now := pulse_at(_pulse_t) * _pulse_peak if _pulse_t >= 0.0 else 0.0
+	if now > peak:
+		return
+	_pulse_t = 0.0
+	_pulse_peak = peak
+	pulses += 1
+
+
+func _tick_pulse(delta: float) -> void:
+	if _pulse_t < 0.0:
+		return
+	_pulse_t += delta
+	var p := pulse_at(_pulse_t) * _pulse_peak
+	if _pulse_t >= PULSE_UP + PULSE_DOWN:
+		_pulse_t = -1.0
+		p = 0.0
+	_show_pulse(p)
+
+
+func _show_pulse(p: float) -> void:
+	for d: Dictionary in _disc:
+		var m: BaseMaterial3D = d["mat"]
+		m.emission_energy_multiplier = float(d["energy"]) + PULSE_EMIT * p
+		m.emission = (d["color"] as Color).lerp(Color(1.0, 0.97, 0.82), PULSE_WHITE * p)
+	if _sun:
+		_sun.scale = _sun_rest * (1.0 + PULSE_SWELL * p)
+
+
+## The disc's pulse now, 0..1 (tests).
+func pulse_now() -> float:
+	return pulse_at(_pulse_t) * _pulse_peak if _pulse_t >= 0.0 else 0.0
+
+
+## How bright the disc's first emissive material is now (tests): its energy.
+func disc_energy() -> float:
+	return float((_disc[0]["mat"] as BaseMaterial3D).emission_energy_multiplier) if not _disc.is_empty() else 0.0
 
 
 # ---------------------------------------------------------------- its path, on the sceptre itself (pass 55)

@@ -28,6 +28,7 @@ Paths: `user://analytics/runs/<stamp>.json` always; on the PC, when the game run
 | `length` | play seconds (unpaused; the x axis of every chart) |
 | `clock` | `Run.elapsed`, the stage clock, which freezes during a boss fight and at a portal |
 | `stage`, `endless_wave`, `level`, `kills`, `gold`, `strongbox`, `revives` | the end state (`strongbox` = gold a Strongbox banked) |
+| `gold_before` | pass 61: the saved gold (`Save.gold()`) as the run began |
 | `build` | `{weapons: [{id, level, mutations: [ids]}], passives: {id: level}, perks: [ids]}` (a record from before pass 46 also has `lines: {id: rank}`) |
 | `totals` | `Run`'s `damage_by_weapon`, `kills_by_weapon`, `kills_by_enemy` |
 | `names` | `{id: display name}` for every id the file mentions (weapons, passives, perks, mutations, creatures, pickups, structures) |
@@ -54,6 +55,7 @@ Pass 46 folded the lines into the passives: a record written since has no `lines
 | `level`, `xp`, `xp_next` | the hero's level, XP into it, XP the level needs |
 | `hp`, `hp_max`, `shield`, `invuln` | health, max, Energy Shield points, 1 while invulnerable |
 | `gold`, `banked` | the purse and what a Strongbox banked |
+| `gold_in`, `gold_out` | pass 61: `{source: gold that came in this second}` and `{sink: gold spent this second}` (see *Gold*); gold that came while the game was paused lands on the next row, and what no row took by the end goes into the last one, so the rows sum to the run's totals |
 | `kills` | the run total |
 | `adren`, `cresc` | adrenaline and crescendo stacks |
 | `steady` | pass 47: Steady Hand's attack-damage bonus right now (0 to 1.0 = +100%), from `Run.steady_might()` |
@@ -108,6 +110,56 @@ DPS before it) and `est_after` (after the sheets rebuilt).
 | `death` | `id` (the last creature whose hit the hero took), `kind` (melee/ranged/boss) |
 | `revive` | `id` = `gold`, `ad` or `debug` |
 | `unlock` | `id` (the quest completed) |
+
+## Gold (pass 61)
+
+Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)". Every `Run.add_gold(n, source)` and
+`Run.spend_gold(n, sink)` names where the gold came from or went, and every `Save.add_gold(n, reason)` /
+`Save.spend_gold(n, reason)` why the saved gold moved (`RunAnalytics.GOLD_SOURCES`, `GOLD_SINKS`, `META_REASONS`;
+`pass61_an_test` fails on a call that names none). The amounts are what reached the purse, greed included.
+
+| in a run: source | where the gold came from |
+|---|---|
+| `coins` | a coin a creature dropped (the stage multiplies every coin) |
+| `loose_change`, `gold_dust`, `boss_coins`, `loot_cache`, `blasting_cap` | coins of those origins (`PickupManager.mark_coin`): Loose Change's tossed coin, the Sun Scepter's Gold Dust, the boss's shower, the Loot Cache's coins (and its purse), Mira's Blasting Cap mine; a merged coin counts as `coins` |
+| `coin_bag` | Pickpocket's bag (a pickup with `effect: gold`, named by its id) |
+| `elite_purse`, `boss_purse` | the purse an Elite's or a boss's death pays |
+| `chest` | a chest's gold (its gold roll, or gold when the build changed under the reel) |
+| `hush_money`, `bounty`, `dice` | Hush Money's pay for a hit, Bounty Hunter's bounty, the dice shrine |
+| `empty_offer`, `stranger_empty`, `shop_empty` | gold instead of a level-up, a Stranger or a shop with nothing left to offer |
+| `debug` | the developer's +gold buttons (the boards leave it out) |
+
+| in a run: sink | where it went |
+|---|---|
+| `shop` | a card bought at the shop structure |
+| `revive` | GET UP for gold on Down! (150) |
+
+The Strongbox is not a spend: it banks the purse (`strongbox` below, and the row's `banked`).
+
+| saved gold: reason | |
+|---|---|
+| `run_bank` | the purse an extraction (or a run's plain end) brings home |
+| `strongbox` | a Strongbox banking the purse mid-run |
+| `talent_refund` | Take it all back (half of what the ranks cost) |
+| `talent` | an Upgrade rank bought (a spend) |
+| `wipe` | the progress wiped (the balance to 0) |
+| `debug` | a tool's gold (never sent) |
+
+### In PostHog
+
+- `run_summary` (one a run): `m_gold_in`, `m_gold_out` (gold in and out in each bucket, sums), `gold_by_source`
+  (`{source: gold}`), `gold_spent_by` (`{sink: gold}`), `gold_greed` (what greed added; inside the sources' totals), next
+  to the older `m_gold` (the purse at the bucket's end) and `m_banked` (what a Strongbox banked so far).
+- `run_end`: `gold_earned` (every source), `gold_spent`, `gold_greed`, `gold_debug`, `gold_strongbox`, `gold_purse`
+  (held at the end), `gold_banked` (Strongbox + extraction: all that reached the save), `gold_lost` (the purse of a
+  death, an abandon or a quit, left in the sand), `gold_before` / `gold_after` (the saved gold as the run began and at
+  its end). `gold_earned - gold_spent = gold_banked + gold_lost`, and `gold_after - gold_before = gold_banked`.
+- `gold_meta` (one for every move of the saved gold, `Save.gold_moved` -> `Analytics.meta_gold`): `delta` (signed),
+  `reason` (the table above), `balance_after`, `in_run` (true for the Strongbox and the banking at a run's end, which
+  also carry the run's ids); a talent buy adds `talent`, `rank` (the rank reached) and `form`; a refund `ranks` (how many
+  went back) and `spent` (what they had cost). None from the arena's sandbox, a tool or the test runner. With
+  `app_open.gold` (the balance at every launch) it draws the bank's balance over time.
+- The boards: **88fits · Coins** (`tools/posthog_boards.py`) and a "Gold today" tile on Pulse.
 
 ## Index
 

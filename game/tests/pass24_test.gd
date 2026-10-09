@@ -10,13 +10,15 @@ func _start(hero: String = "astro") -> void:
 
 func test_space_suit_is_softer_early() -> void:
 	var c: CharacterDef = Registry.character("astro")
-	var dr := 0.0
-	for e in c.trait_effects:
-		if e.stat == "damage_reduction":
-			dr = e.value
-	# pass 43: a flat armour became a share of every hit
-	assert_float(dr).is_greater(0.0)
-	assert_float(dr).is_less_equal(0.1)
+	# re-pinned in pass 61: the Space Suit is 2 max HP a level and the heal on every level-up (the damage reduction is
+	# gone, Garry: "Remove the rest of the stat stuff"), soft early by design: 102 HP at level 1
+	var hp := 0.0
+	for e in c.level_trait:
+		if e.stat == "max_hp" and e.op == "add":
+			hp = e.value
+	assert_float(hp).is_greater(0.0)
+	assert_float(hp).is_less_equal(5.0)
+	assert_array(c.trait_effects).is_empty()
 	assert_float(c.level_heal).is_less_equal(0.08)
 
 

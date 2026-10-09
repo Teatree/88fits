@@ -13,7 +13,21 @@
   "effects": [],
   "params": {
     "double_every": 3,
-    "double_gap": 0.15
+    "double_gap": 0.15,
+    "look": {
+      "parts": {
+        "show": {
+          "BarrelL": true,
+          "BarrelR": true
+        },
+        "hide": {
+          "Barrel": true
+        }
+      },
+      "beads": {
+        "node": "Beads"
+      }
+    }
   },
   "art_prompt": "a double-barrelled shotgun with both barrels flashing",
   "placeholder": {

@@ -2,7 +2,10 @@
 // a tall soft beam standing on its spot and turning about Y only to face the camera, as shine_aura's mode 1 draws the
 // chest's beam, with a white-hot thread down its middle. Drawn additively.
 // INSTANCE COLOR:  rgb = the pillar's tint, a = its alpha (params.sun.beam_alpha)
-// INSTANCE_CUSTOM: x = strength 0.. (it brightens over the warning and flashes as it lands), y = a phase for the shimmer
+// INSTANCE_CUSTOM: x = strength 0.. (it brightens over the warning and flashes as it lands), y = a phase for the shimmer,
+//                  z = the landing's impact 0..1 (pass 61: 1 the instant it lands, gone over the fade): a fatter, whiter
+//                  white thread, a slightly wider core and a taller reach
+
 // The instance basis is scaled to (width, height, 1); the quad is built standing on its origin (QuadMesh 1 x 1 with its
 // centre half a unit up).
 shader_type spatial;
@@ -11,6 +14,7 @@ render_mode unshaded, cull_disabled, depth_draw_never, blend_add, shadows_disabl
 varying vec4 v_tint;
 varying float v_strength;
 varying float v_phase;
+varying float v_impact;
 
 void vertex() {
 	vec3 origin = MODEL_MATRIX[3].xyz;
@@ -26,17 +30,21 @@ void vertex() {
 	v_tint = COLOR;
 	v_strength = INSTANCE_CUSTOM.x;
 	v_phase = INSTANCE_CUSTOM.y;
+	v_impact = INSTANCE_CUSTOM.z;
 }
 
 void fragment() {
 	float x = abs(UV.x * 2.0 - 1.0);
 	float y = 1.0 - UV.y;
 	float t = TIME + v_phase;
-	float core = exp(-x * x * 10.0);
-	float hot = exp(-x * x * 70.0);
+	float imp = clamp(v_impact, 0.0, 1.0);
+	// the landing (pass 61): the white thread fattens and burns brighter and whiter, the soft core a little wider, and
+	// the light reaches a little further up the pillar, for the instant the impact lasts
+	float core = exp(-x * x * mix(10.0, 8.0, imp));
+	float hot = exp(-x * x * mix(70.0, 36.0, imp));
 	float shimmer = 0.8 + 0.2 * sin(t * 3.0 - y * 9.0);
-	float fall = pow(1.0 - y, 1.3);
-	float a = (core * 0.8 + hot * 0.45) * fall * shimmer;
-	ALBEDO = mix(v_tint.rgb, vec3(1.0, 1.0, 0.92), hot * 0.65);
+	float fall = pow(1.0 - y, mix(1.3, 1.1, imp));
+	float a = (core * 0.8 + hot * (0.45 + 0.4 * imp)) * fall * shimmer;
+	ALBEDO = mix(v_tint.rgb, vec3(1.0, 1.0, 0.92), clamp(hot * (0.65 + 0.3 * imp), 0.0, 1.0));
 	ALPHA = clamp(a * v_strength * v_tint.a, 0.0, 1.0);
 }

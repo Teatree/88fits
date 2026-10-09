@@ -139,6 +139,10 @@ func _ready() -> void:
 	# behind the pause menu, the cards and the reel the tree is paused; the clock and the wire keep going
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	load_config()
+	# the saved gold's every move (pass 61): joined before the gate, so a test that opens this autoload hears it too;
+	# track() still refuses a tool, the test runner and the arena's sandbox
+	if not Save.gold_moved.is_connected(meta_gold):
+		Save.gold_moved.connect(meta_gold)
 	if runtime_block() != "":
 		# a tool, a headless run or the test runner: nothing is sent, and the player's queue file is not touched
 		set_process(false)
@@ -540,6 +544,21 @@ func run_finish(end: Dictionary, summary: Dictionary) -> void:
 		flush()
 	run_props = {}
 	_run_small = {}
+
+
+## One move of the saved gold (pass 61, Garry: "Coin Gains / Spend (During gameplay and not, have all the sources)";
+## Save.gold_moved): gold_meta {delta (signed), reason (run_bank, strongbox, talent, talent_refund, wipe, ...),
+## balance_after, in_run} plus what it was for (a talent's `talent`, `rank`, `form`; a refund's `ranks`, `spent`). In a
+## run (the Strongbox, the banking at the end) it carries the run's ids like every event. Nothing from the arena's
+## sandbox, a tool or the test runner (track refuses). Returns whether it was queued.
+func meta_gold(delta: int, reason: String, balance: int, extra: Dictionary = {}) -> bool:
+	if delta == 0:
+		return false
+	var p := {"delta": delta, "reason": reason, "balance_after": balance, "in_run": in_run()}
+	for k in extra.keys():
+		if not p.has(k):
+			p[str(k)] = extra[k]
+	return track("gold_meta", p)
 
 
 ## The look the hero is played with: the one the player kept (Save.hero_look), else his JSON's `variant`.

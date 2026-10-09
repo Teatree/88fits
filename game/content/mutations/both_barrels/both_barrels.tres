@@ -10,7 +10,21 @@ text = "Every third shot fires twice: a second blast right after the first."
 vfx = "a double muzzle bloom every third shot"
 params = {
 "double_every": 3.0,
-"double_gap": 0.15
+"double_gap": 0.15,
+"look": {
+"beads": {
+"node": "Beads"
+},
+"parts": {
+"hide": {
+"Barrel": true
+},
+"show": {
+"BarrelL": true,
+"BarrelR": true
+}
+}
+}
 }
 id = "both_barrels"
 display_name = "Both Barrels"

@@ -10,6 +10,9 @@
 // row's numbers are fixed from its start (the cards say so), the Actual HP x / ATK x lanes above the curves (model.js
 // actualAt, on the curve's scale while the rows fit under it), a size range and a colour swatch on the bars, and a pressed
 // bar is selected at once so its inspector follows the drag (Inspector.live; a box still being typed in commits first).
+// Pass 61: snapping (the Snap toggle by the zoom, S, Alt for a free drag): a dragged start, end or point drops onto the
+// cap's control points first, then the other rows' and waves' starts and ends, the events, the stage marks, whole and
+// half minutes last (model.js snapDrag), with a guide line and the target named in the clock line while it is held.
 'use strict';
 
 const Timeline = (() => {
@@ -33,6 +36,14 @@ const Timeline = (() => {
   let drag = null;
   let raf = 0;
   let frozenMax = null;                // the roster's weight scale, held while a presence point is dragged
+  // pass 61: snapping. On by default; the browser remembers the choice (a page setting, never written to the map).
+  const SNAP_KEY = '88fits-editor-snap';
+  // the guide line's colour per target kind: the cap curve's own blue, the roster's pink, the waves' green, an event its
+  // flag's colour (FIELDS.EVENT_TYPES), the stage marks pale, the minutes grey
+  const SNAP_COLORS = { cap: '#3987e5', row: '#e0609a', wave: '#2fbf8a', event: '#e6a04a', stage: '#c3c2b7', grid: '#a3a19a' };
+  let snapOn = true;
+  try { if (localStorage.getItem(SNAP_KEY) === '0') snapOn = false; } catch (_) { /* no storage: on */ }
+  let snapEl = null;                   // the guide line (a div over the lanes) with its tag
   let hovers = {};                     // data-hover key -> (t) => card content (rebuilt every render)
 
   // ------------------------------------------------------------------ DOM
@@ -78,6 +89,9 @@ const Timeline = (() => {
     }
     cursorEl = el('div', { class: 'tl-cursor', hidden: true });
     content.appendChild(cursorEl);
+    snapEl = el('div', { class: 'tl-snap', hidden: true }, el('span', { class: 'tl-snap-tag' }));
+    content.appendChild(snapEl);
+    syncSnapButton();
     readout = el('div', { class: 'readout', hidden: true });
     document.body.appendChild(readout);
     card = el('div', { class: 'hovercard', hidden: true });
@@ -335,8 +349,9 @@ const Timeline = (() => {
     });
     s.appendChild(hit);
     (d.cap_curve || []).forEach((p, k) => {
-      // pass 54: every point carries its cap as a faint label (the time and the value in full on hover)
-      const c = svg('g', { class: 'cap-point', transform: `translate(${x(Number(p[0]) || 0)}, ${y(Number(p[1]) || 0)})` },
+      // pass 54: every point carries its cap as a faint label (the time and the value in full on hover); pass 61: the
+      // point a drag has snapped to is ringed
+      const c = svg('g', { class: 'cap-point' + (snapIs('cap', k) ? ' snap-target' : ''), transform: `translate(${x(Number(p[0]) || 0)}, ${y(Number(p[1]) || 0)})` },
         svg('title', {}, `${fmtT(p[0])} → cap ${p[1]}: a control point of the cap curve, not a spawn event (drag; double-click to remove)`),
         svg('circle', { r: 6 }), svg('text', { x: 8, y: -7, class: 'pt-text', text: String(p[1]) }), svg('text', { x: 8, y: 13, class: 'pt-time', text: fmtT(p[0]) }));
       c.addEventListener('pointerdown', (e) => {
@@ -821,7 +836,7 @@ const Timeline = (() => {
       const col = App.creatureColor(r.enemy);
       const yb = y0 + bh - 3;
       const yW = (v) => yb - (Math.max(0, v) / maxW) * span;
-      const g = svg('g', { class: 'bar' + (r.channel === 'hell' ? ' hell' : '') + (App.selKey() === key ? ' selected' : '') + issueClass(key), 'data-key': key, 'data-hover': key });
+      const g = svg('g', { class: 'bar' + (r.channel === 'hell' ? ' hell' : '') + (App.selKey() === key ? ' selected' : '') + (snapIs('roster', i) ? ' snap-target' : '') + issueClass(key), 'data-key': key, 'data-hover': key });
       g.appendChild(svg('rect', { x: x0, y: y0, width: x1 - x0, height: bh, rx: 4, class: 'bar-body' }));
       const clipId = `clip-r${i}`;
       g.appendChild(svg('clipPath', { id: clipId }, svg('rect', { x: x0, y: y0, width: Math.max(0, x1 - x0), height: bh })));
@@ -1079,7 +1094,7 @@ const Timeline = (() => {
       const key = `wave:${b.i}`;
       const wv = b.wv;
       const y0 = tracks[b.track].y;
-      const g = svg('g', { class: 'block' + (App.selKey() === key ? ' selected' : '') + (wv.respect_cap === false ? ' nocap' : '') + (wv.channel === 'hell' ? ' hell' : '') + issueClass(key), 'data-key': key, 'data-hover': key });
+      const g = svg('g', { class: 'block' + (App.selKey() === key ? ' selected' : '') + (wv.respect_cap === false ? ' nocap' : '') + (wv.channel === 'hell' ? ' hell' : '') + (snapIs('wave', b.i) ? ' snap-target' : '') + issueClass(key), 'data-key': key, 'data-hover': key });
       const head = waveHead(wv);
       g.appendChild(svg('rect', { x: b.x0, y: y0, width: b.x1 - b.x0, height: b.h, rx: 5, class: 'block-body' + (b.forever ? ' forever' : '') }));
       const clipId = `clip-w${b.i}`;
@@ -1163,7 +1178,7 @@ const Timeline = (() => {
       levelRight[lvl] = px + lw;
       const cy = 16 + lvl * 26;
       const faded = e.ev.chance != null && Number(e.ev.chance) < 1;
-      const g = svg('g', { class: 'marker' + (App.selKey() === key ? ' selected' : '') + (faded ? ' faded' : '') + issueClass(key), 'data-key': key, 'data-hover': key });
+      const g = svg('g', { class: 'marker' + (App.selKey() === key ? ' selected' : '') + (faded ? ' faded' : '') + (snapIs('event', e.i) ? ' snap-target' : '') + issueClass(key), 'data-key': key, 'data-hover': key });
       if (e.ev.type === 'elite_every') {
         const iv = e.ev.interval;
         const lo = Array.isArray(iv) ? Number(iv[0]) : Number(iv == null ? 90 : iv);
@@ -1280,6 +1295,9 @@ const Timeline = (() => {
     const tl = App.tl();
     const item = spec.kind === 'roster' || spec.kind === 'weight' ? tl.roster[spec.i] : spec.kind === 'wave' ? tl.waves[spec.i] : spec.kind === 'event' ? tl.events[spec.i] : null;
     const pair = (p) => [Number(p[0]) || 0, Number(p[1]) || 0];
+    // pass 61: what this drag can snap to, from the timeline as it is before the drag (the dragged item's own start and
+    // end, or the dragged cap point, left out: it never snaps to itself)
+    const self = spec.kind === 'cap' ? { kind: 'cap', k: spec.k } : spec.kind === 'roster' || spec.kind === 'wave' || spec.kind === 'event' ? { kind: spec.kind, i: spec.i } : null;
     drag = {
       spec, x0: e.clientX, y0: e.clientY, moved: false, before: App.snapshot(),
       t0: item ? Number(item.t) || 0 : 0,
@@ -1287,6 +1305,7 @@ const Timeline = (() => {
       end0: item && spec.kind === 'wave' ? App.waveEnd(item) : null,
       p0: spec.kind === 'cap' ? pair(tl.cap_curve[spec.k]) : spec.kind === 'curve' ? pair(tl[spec.key].points[spec.k]) : spec.kind === 'weight' ? pair(item.weights[spec.k]) : null,
       w0: spec.kind === 'roster' && item && Array.isArray(item.weights) ? item.weights.map(pair) : null,
+      targets: Model.snapTargets(tl, self), snap: null, last: null,
     };
     if (spec.kind === 'weight') frozenMax = spec.maxW;
     // the drag's own listeners first, so nothing below can leave `drag` set with no pointerup to end it (the hover cards
@@ -1294,6 +1313,8 @@ const Timeline = (() => {
     document.body.classList.add('dragging');
     window.addEventListener('pointermove', onDragMove);
     window.addEventListener('pointerup', onDragUp, { once: true });
+    window.addEventListener('keydown', onDragKey);
+    window.addEventListener('keyup', onDragKey);
     // pass 58: a bar, block or flag pressed is selected at once, so its inspector shows the row's fixed HP and ATK
     // changing while it is dragged (Garry: "as I move the enemy bar left and right the actual HP value in the stats
     // changes")
@@ -1305,55 +1326,92 @@ const Timeline = (() => {
 
   function onDragMove(e) {
     if (!drag) return;
+    drag.last = { clientX: e.clientX, clientY: e.clientY, altKey: !!e.altKey };
     const dx = e.clientX - drag.x0;
     if (!drag.moved && Math.abs(dx) < 3 && Math.abs(e.clientY - drag.y0) < 3) return;
     drag.moved = true;
     const dt = Math.round(dx * spp);
     const tl = App.tl();
     const sp = drag.spec;
+    // pass 61: the snap for this move (null with Snap off, Alt held or nothing within SNAP_PX); set before the render so
+    // the lanes can ring the target
+    const snapOpts = { spp, on: snapOn, alt: !!e.altKey, targets: drag.targets };
+    const snapTo = (edges) => { drag.snap = Model.snapDrag(tl, edges, snapOpts); return drag.snap; };
     if (sp.kind === 'cap' || sp.kind === 'curve') {
       const p = sp.kind === 'cap' ? tl.cap_curve[sp.k] : tl[sp.key].points[sp.k];
-      p[0] = Math.max(0, drag.p0[0] + dt);
+      const raw = Math.max(0, drag.p0[0] + dt);
+      const sn = snapTo([{ t: raw, edge: 'point', min: 0 }]);
+      p[0] = sn ? sn.t : raw;
       const dv = -((e.clientY - drag.y0) / (sp.bottom - sp.top)) * sp.maxV;
       p[1] = sp.kind === 'cap' ? Math.max(0, Math.round(drag.p0[1] + dv)) : Math.max(0, Model.round(drag.p0[1] + dv, 2));
       render();
-      App.setClock(p[0], sp.kind === 'cap' ? `cap ${p[1]}` : `×${p[1]}`);
+      showSnap(sn, e);
+      App.setClock(p[0], (sp.kind === 'cap' ? `cap ${p[1]}` : `×${p[1]}`) + snapText(sn));
       return;
     }
     if (sp.kind === 'weight') {
       const p = tl.roster[sp.i].weights[sp.k];
-      p[0] = Math.max(0, drag.p0[0] + dt);
+      const raw = Math.max(0, drag.p0[0] + dt);
+      const sn = snapTo([{ t: raw, edge: 'point', min: 0 }]);
+      p[0] = sn ? sn.t : raw;
       const dw = -((e.clientY - drag.y0) / sp.span) * sp.maxW;
       p[1] = Math.max(0, Model.round(drag.p0[1] + dw, 1));
       render();
+      showSnap(sn, e);
       // the row's Presence boxes follow the point (when the inspector shows that row)
       Inspector.live();
-      App.setClock(p[0], `weight ${p[1]}`);
+      App.setClock(p[0], `weight ${p[1]}` + snapText(sn));
       return;
     }
     const item = sp.kind === 'roster' ? tl.roster[sp.i] : sp.kind === 'wave' ? tl.waves[sp.i] : tl.events[sp.i];
     if (!item) return;
+    let sn = null;
     if (sp.mode === 'move') {
-      const nt = Math.max(0, drag.t0 + dt);
+      // the whole bar moves: its start and its end (a row's until, a wave's until or the end its count gives) both look
+      // for a target, and the better one moves the bar
+      const raw = Math.max(0, drag.t0 + dt);
+      const len = drag.until0 != null ? drag.until0 - drag.t0 : drag.end0 != null && drag.end0 !== Infinity ? Math.round(drag.end0 - drag.t0) : null;
+      const edges = [{ t: raw, edge: 'start', min: 0 }];
+      if (len != null && len > 0) edges.push({ t: raw + len, edge: 'end', min: len });
+      sn = snapTo(edges);
+      const nt = sn ? Math.max(0, raw + sn.delta) : raw;
       item.t = nt;
       if (drag.until0 != null) item.until = Math.max(nt + 1, drag.until0 + (nt - drag.t0));
       // a roster row's presence keyframes are run-clock times: they travel with the bar
       if (sp.kind === 'roster' && drag.w0) item.weights = drag.w0.map(([pt, pv]) => [Math.max(0, pt + (nt - drag.t0)), pv]);
     } else {
       const base = drag.until0 != null ? drag.until0 : (drag.end0 != null && drag.end0 !== Infinity ? Math.round(drag.end0) : Math.round(tAt(drag.x0)));
-      item.until = Math.max((Number(item.t) || 0) + 1, Math.round(base + dt));
+      const lo = (Number(item.t) || 0) + 1;
+      const raw = Math.max(lo, Math.round(base + dt));
+      sn = snapTo([{ t: raw, edge: 'end', min: lo }]);
+      item.until = sn ? sn.t : raw;
     }
     render();
+    showSnap(sn, e);
     Inspector.live();
-    App.setClock(sp.mode === 'until' ? Number(item.until) : Number(item.t), sp.mode === 'until' ? 'until' : 'from');
+    // a bar moved by its end says so: the clock shows its start
+    App.setClock(sp.mode === 'until' ? Number(item.until) : Number(item.t), (sp.mode === 'until' ? 'until' : 'from') + (sn && sp.mode === 'move' && sn.edge === 'end' ? ` · its end snapped to ${sn.target.label}` : snapText(sn)));
+  }
+
+  /** Alt pressed or let go mid-drag frees or snaps the drag where the mouse stands (pass 61); the key's own default
+   *  (the browser's menu on Windows) is held back while a drag runs. */
+  function onDragKey(e) {
+    if (!drag || e.key !== 'Alt') return;
+    e.preventDefault();
+    if (drag.moved && drag.last) onDragMove({ clientX: drag.last.clientX, clientY: drag.last.clientY, altKey: e.type === 'keydown' });
   }
 
   function onDragUp() {
     window.removeEventListener('pointermove', onDragMove);
+    window.removeEventListener('keydown', onDragKey);
+    window.removeEventListener('keyup', onDragKey);
     document.body.classList.remove('dragging');
+    showSnap(null);
     if (!drag) return;
     const d = drag; drag = null;
     frozenMax = null;
+    // an Alt still held as the button comes up: its keyup must not open the browser's menu either
+    if (d.last && d.last.altKey) window.addEventListener('keyup', (ev) => { if (ev.key === 'Alt') ev.preventDefault(); }, { once: true });
     const sp = d.spec;
     const sel = sp.kind === 'cap' ? { kind: 'cap' } : sp.kind === 'curve' ? { kind: sp.lane } : sp.kind === 'weight' ? { kind: 'roster', i: sp.i } : { kind: sp.kind, i: sp.i };
     if (d.moved) {
@@ -1368,6 +1426,59 @@ const Timeline = (() => {
       App.select(sel);
     }
   }
+
+  // ------------------------------------------------------------------ snapping (pass 61)
+
+  /** True when the drag's snap target is that item: a cap point k, or a roster row / wave / event i (it is ringed). */
+  function snapIs(kind, n) {
+    const r = drag && drag.snap ? drag.snap.target.ref : null;
+    return !!r && r.kind === kind && (kind === 'cap' ? r.k === n : r.i === n);
+  }
+
+  /** The target kind's colour (an event its flag's). */
+  function snapColor(target) {
+    if (target.kind === 'event') {
+      const ev = (App.tl().events || [])[target.ref.i];
+      const info = ev ? FIELDS.EVENT_TYPES[ev.type] : null;
+      return info ? info.color : SNAP_COLORS.event;
+    }
+    return SNAP_COLORS[target.kind] || SNAP_COLORS.grid;
+  }
+
+  const snapText = (sn) => (sn ? ` · snapped to ${sn.target.label}` : '');
+
+  /** The guide line across the lanes at the snapped time, in the target's colour, its tag just above the mouse; hidden
+   *  with no snap. */
+  function showSnap(sn, e) {
+    if (!snapEl) return;
+    if (!sn) { snapEl.hidden = true; return; }
+    const col = snapColor(sn.target);
+    snapEl.hidden = false;
+    snapEl.style.left = `${LABEL_W + x(sn.t)}px`;
+    snapEl.style.borderLeftColor = col;
+    const tag = snapEl.firstChild;
+    tag.textContent = `snapped to ${sn.target.label}`;
+    tag.style.background = col;
+    const yIn = e ? e.clientY - content.getBoundingClientRect().top - 34 : RULER_H + 6;
+    tag.style.top = `${Math.max(scrollBox.scrollTop + RULER_H + 4, yIn)}px`;
+  }
+
+  function syncSnapButton() {
+    const b = document.getElementById('snap-toggle');
+    if (!b) return;
+    b.classList.toggle('on', snapOn);
+    b.setAttribute('aria-pressed', String(snapOn));
+    b.textContent = snapOn ? 'Snap on' : 'Snap off';
+  }
+
+  /** The Snap toggle (the button by the zoom, or S): remembered by the browser; a drag under way follows it at once. */
+  function setSnap(on) {
+    snapOn = !!on;
+    try { localStorage.setItem(SNAP_KEY, snapOn ? '1' : '0'); } catch (_) { /* fine */ }
+    syncSnapButton();
+    if (drag && drag.moved && drag.last) onDragMove(drag.last);
+  }
+  function toggleSnap() { setSnap(!snapOn); return snapOn; }
 
   // ------------------------------------------------------------------ hover cards (pass 54)
 
@@ -1618,5 +1729,5 @@ const Timeline = (() => {
     place(readout, cx, cy);
   }
 
-  return { mount, render, fit, zoom, viewCenter, scrollToSelection, hideCard, LABEL_W, ALT_COLORS, get spp() { return spp; } };
+  return { mount, render, fit, zoom, viewCenter, scrollToSelection, hideCard, LABEL_W, ALT_COLORS, get spp() { return spp; }, setSnap, toggleSnap, get snapOn() { return snapOn; } };
 })();

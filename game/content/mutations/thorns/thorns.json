@@ -24,6 +24,24 @@
       "albedo": "#3A2412",
       "emission": "#8A5A2A",
       "energy": 0.35
+    },
+    "look": {
+      "spikes": {
+        "count": 18,
+        "length": 0.55,
+        "base": 0.09,
+        "inset": 0.75,
+        "color": "#3A1A0C",
+        "emission": "#6A2E12",
+        "energy": 0.5
+      },
+      "specks": {
+        "every": 0.6,
+        "life": 3.5,
+        "size": 0.3,
+        "spread": 0.45,
+        "color": "#24140A"
+      }
     }
   },
   "art_prompt": "a dry tumbleweed covered in sharp green poison thorns",

@@ -1,31 +1,21 @@
 [gd_resource type="Resource" script_class="TalentDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_o5dor"]
+[ext_resource type="Texture2D" path="res://content/talents/nerve/nerve_0_icon.png" id="2_0i6lo"]
 [ext_resource type="Texture2D" path="res://content/talents/nerve/nerve_icon.png" id="2_6pkpp"]
 [ext_resource type="Script" path="res://core/data/TalentDef.gd" id="2_es87a"]
+[ext_resource type="Texture2D" path="res://content/talents/nerve/nerve_1_icon.png" id="3_jphhs"]
 
-[sub_resource type="Resource" id="Resource_es87a"]
+[sub_resource type="Resource" id="Resource_0i6lo"]
 script = ExtResource("1_o5dor")
 stat = "skips"
 value = 1.0
 target = "player"
 
-[sub_resource type="Resource" id="Resource_6pkpp"]
-script = ExtResource("1_o5dor")
-stat = "revives"
-value = 1.0
-target = "player"
-
-[sub_resource type="Resource" id="Resource_0i6lo"]
-script = ExtResource("1_o5dor")
-stat = "revives"
-value = 1.0
-target = "player"
-
 [sub_resource type="Resource" id="Resource_jphhs"]
 script = ExtResource("1_o5dor")
-stat = "revive_hp"
-value = 0.15
+stat = "revives"
+value = 1.0
 target = "player"
 
 [sub_resource type="Resource" id="Resource_fhb1o"]
@@ -52,19 +42,35 @@ stat = "revive_hp"
 value = 0.15
 target = "player"
 
+[sub_resource type="Resource" id="Resource_x8u4r"]
+script = ExtResource("1_o5dor")
+stat = "revives"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_gjfnw"]
+script = ExtResource("1_o5dor")
+stat = "revive_hp"
+value = 0.15
+target = "player"
+
 [resource]
 script = ExtResource("2_es87a")
 order = 6
 ranks = 6
 cost = [220.0, 396.0, 660.0, 990.0, 1430.0, 1980.0]
 forms = [{
-"effects": [SubResource("Resource_es87a")],
+"effects": [SubResource("Resource_0i6lo")],
+"icon": ExtResource("2_0i6lo"),
+"icon_file": "nerve_0_icon.png",
 "name": "Skip",
 "text": "+1 skip a stage, a rank."
 }, {
-"effects": [SubResource("Resource_6pkpp")],
+"effects": [SubResource("Resource_jphhs")],
+"icon": ExtResource("3_jphhs"),
+"icon_file": "nerve_1_icon.png",
 "name": "Second Wind",
-"rank_effects": [[SubResource("Resource_0i6lo")], [SubResource("Resource_jphhs")], [SubResource("Resource_fhb1o")], [SubResource("Resource_05wi3")], [SubResource("Resource_5hqst")], [SubResource("Resource_bfk6d")]],
+"rank_effects": [[SubResource("Resource_fhb1o")], [SubResource("Resource_05wi3")], [SubResource("Resource_5hqst")], [SubResource("Resource_bfk6d")], [SubResource("Resource_x8u4r")], [SubResource("Resource_gjfnw")]],
 "text": "+1 revive at ranks 1, 3, 5; +15% revive health at 2, 4, 6."
 }]
 id = "nerve"

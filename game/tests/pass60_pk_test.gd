@@ -293,12 +293,7 @@ func test_a_second_call_never_restarts_an_arc_and_the_magnet_never_grabs_a_waiti
 	pm._physics_process(DT)
 	assert_int(pm.phase[i]).is_equal(PickupManager.PHASE_ARC_WAIT)
 	assert_float(pm.phase_t[i]).is_equal_approx(pt + DT, 0.0001)
-	# a merge leaves it alone too
-	for k in range(4):
-		_resting(pm, PickupManager.KIND_GEM_S, 12.0, 0.5)
-	pm._merge(10)
-	assert_int(pm.alive[i]).is_equal(1)
-	assert_int(pm.flying[i]).is_equal(1)
+	# (a merge left it alone too: the merge is gone since pass 61)
 	# and it still ends in him
 	hero.global_position = Vector3.ZERO
 	_tick(pm, 4.0)
@@ -314,8 +309,9 @@ func test_coins_arc_with_the_vacuum_and_pay_on_arrival() -> void:
 	assert_int(pm.flying[coin]).is_equal(1)
 	assert_int(pm.phase[coin]).is_equal(PickupManager.PHASE_ARC_WAIT)
 	assert_int(pm.arced[coin]).is_equal(1)
-	# the coin's MultiMesh carries no custom data (its own shader shows no charge) and the draw writes it none
-	assert_bool((pm._mms[PickupManager.KIND_COIN] as MultiMesh).use_custom_data).is_false()
+	# the coin's own shader shows no charge and the draw writes it none (re-pinned in pass 61: its MultiMesh carries custom
+	# data now, the seed its float and spin are timed by, written once when it is made)
+	assert_bool((pm._mms[PickupManager.KIND_COIN] as MultiMesh).use_custom_data).is_true()
 	pm._physics_process(DT)
 	pm.custom_writes = 0
 	pm._render()
@@ -399,10 +395,11 @@ func test_the_charge_reaches_the_gem_multimesh_as_custom_data_only_while_it_is_o
 	_tick(pm, 5.0)
 	for i: int in gems:
 		assert_int(pm.alive[i]).is_equal(0)
-	# a resting gem drawn into a slot a charged one left: one write to clear it, then none
+	# a resting gem drawn into a slot a charged one left: one write to clear it, then none (re-pinned in pass 61: the
+	# write is the spawn's, which also gives the shader the gem's slot for its float and spin)
+	pm.custom_writes = 0
 	var j := _resting(pm, PickupManager.KIND_GEM_S, 20.0)
 	pm._physics_process(DT)
-	pm.custom_writes = 0
 	pm._render()
 	assert_int(pm.custom_writes).is_equal(1)
 	assert_float(pm.drawn_charge[j]).is_equal(0.0)
@@ -497,12 +494,7 @@ func test_the_colours_are_a_shade_darker_with_the_same_hue_and_the_glints_as_bri
 	var motes: Array = fx.get("motes")
 	assert_int(motes.size()).is_equal(1)
 	assert_bool((motes[0] as Color).is_equal_approx(OLD[PickupManager.KIND_GEM_M])).is_true()
-	for k in range(4):
-		_resting(pm, PickupManager.KIND_GEM_S, 40.0, 0.0)
-	pm._merge(10)
-	motes = fx.get("motes")
-	assert_int(motes.size()).is_equal(2)
-	assert_bool((motes[1] as Color).is_equal_approx(OLD[PickupManager.KIND_GEM_L])).is_true()
+	# (the mote where a merge popped went with the merge in pass 61)
 
 
 func test_the_gem_material_is_the_charged_shader_drawn_under_the_paintings() -> void:

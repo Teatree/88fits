@@ -86,6 +86,15 @@ func _use_model() -> void:
 	projectile_kind = game.projectiles.register_kind(mesh, mat, float(inst.params.get("model_scale", 1.0)))
 
 
+## The kind a bomb is drawn with (pass 61): the visual's (or the model's), in a mutation's `params.tint` when it brings one
+## (Sticky's glossy amber resin, ProjectileManager.tinted_kind; the Golden Pineapple's own `final.tint` keeps its gold).
+func shot_kind() -> int:
+	var tint = inst.params.get("tint") if inst else null
+	if tint is Dictionary and projectile_kind >= 0 and game.projectiles.has_method("tinted_kind"):
+		return game.projectiles.tinted_kind(projectile_kind, tint)
+	return projectile_kind
+
+
 ## The Moonshine listens for its burning creatures' deaths (EnemyManager.creature_dying).
 func _hook_deaths() -> void:
 	if _deaths_hooked or inst == null or game == null or game.enemies == null:
@@ -171,9 +180,10 @@ func _fire() -> bool:
 				targets[k] = enemies.pos[s]
 	# from the companion when it has one (Needle Rain throws from the dart), else from the hero's hand
 	var from: Vector3 = _stray.global_position if _stray else hero + Vector3(0, 1.2, 0)
+	var k_draw := shot_kind()
 	for target: Vector3 in targets:
 		var lp: Dictionary = inst.params.duplicate()
 		lp["throw_dir"] = (target - from) * Vector3(1, 0, 1)
-		game.projectiles.lob(projectile_kind, from, target, stat("speed", 9.0), stat("damage", 25.0), stat("area", 2.5), inst, stat("knockback", 3.0), lp)
+		game.projectiles.lob(k_draw, from, target, stat("speed", 9.0), stat("damage", 25.0), stat("area", 2.5), inst, stat("knockback", 3.0), lp)
 	sfx("fire", from)
 	return true

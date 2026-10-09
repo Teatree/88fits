@@ -6,6 +6,13 @@
 // Pass 54 (Garry: pickups drawn under every sprite): see-through (ALPHA 1) and writing no depth, at PickupManager's
 // PICKUP_PRIORITY, and drawn only where no painting wrote stencil 1 (enemy_billboard, sprite_billboard, prop_billboard),
 // so a coin at a creature's or the hero's feet lies under the painting; PickupManager sets `radius` to its mesh's.
+// Pass 61 (Garry: the pickups must never disappear, at no cost): the coin is stood on its edge, spun and floated here, so
+// a coin lying on the sand never has its instance written again. INSTANCE_CUSTOM.y is the coin's seed, 0..1, its phase
+// seed x TAU (PickupManager.phase_of, as the gems'); the spin is 3 t + phase about the upright, inside the instance's
+// basis (an arc's extra spin and pop, a tossed coin's tumble), and the float lifts it float_base + bob sin(2.4 t + 0.9
+// phase) metres straight up in the world whatever that basis is (the review of pass 61: read off the basis, the phase had
+// jumped as an arc spun it); `t_now` is the run's clock (PickupManager._render, wrapped at PickupManager.COIN_WRAP), so it
+// stops when the run pauses. The face pattern still reads the mesh's own corners.
 shader_type spatial;
 render_mode unshaded, cull_back, shadows_disabled, depth_draw_never, blend_mix;
 stencil_mode read, compare_not_equal, 1;
@@ -18,6 +25,10 @@ uniform float radius = 0.28;
 // seconds between two glints, and how bright one is
 uniform float glint_every = 1.6;
 uniform float glint = 0.55;
+// the float and the spin (pass 61): the run's clock, the float's height either way and its middle over the rest
+uniform float t_now = 0.0;
+uniform float bob = 0.09;
+uniform float float_base = 0.06;
 
 varying vec3 v_n;
 varying vec3 v_p;
@@ -25,6 +36,18 @@ varying vec3 v_p;
 void vertex() {
 	v_n = NORMAL;
 	v_p = VERTEX;
+	// on its edge (the cylinder's axis laid flat), then spun about the upright
+	vec3 e = vec3(VERTEX.x, -VERTEX.z, VERTEX.y);
+	float phase = INSTANCE_CUSTOM.y * 6.2831853;
+	float a = t_now * 3.0 + phase;
+	float c = cos(a);
+	float s = sin(a);
+	VERTEX = vec3(e.x * c + e.z * s, e.y, e.z * c - e.x * s);
+	// the float, straight up in the world: the basis is a turn times an even scale, so its inverse is its transpose over
+	// the scale squared
+	mat3 m = mat3(MODEL_MATRIX);
+	float lift = float_base + sin(t_now * 2.4 + phase * 0.9) * bob;
+	VERTEX += transpose(m) * vec3(0.0, lift, 0.0) / max(dot(m[0], m[0]), 0.000001);
 }
 
 void fragment() {

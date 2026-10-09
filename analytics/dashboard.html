@@ -354,7 +354,7 @@
     renderSummary($main, S);
     const grid = el('div', 'grid'); $main.appendChild(grid);
     if (chartReady()) {
-      renderPower(grid, S); renderPressure(grid, S); renderHealth(grid, S); renderCrowd(grid, S); renderRates(grid, S); renderProgress(grid, S);
+      renderPower(grid, S); renderPressure(grid, S); renderHealth(grid, S); renderCrowd(grid, S); renderRates(grid, S); renderProgress(grid, S); renderGold(grid, S);
       renderShare(grid, S); renderEstVsReal(grid, S); renderEnemies(grid, S); renderItems(grid, S); renderSurvival(grid, S); renderRatio(grid, S);
     }
     renderHistory($main);
@@ -444,6 +444,29 @@
     one('level', S.level, ROLE.level, { stepped: true }); one('gold', S.gold, ROLE.gold); one('kills', S.kills, ROLE.kills);
     c.appendChild(m);
     timeTable(c, S, [{ label: 'level', data: S.level, d: 0 }, { label: 'xp to next', data: S.xpFrac, d: 2 }, { label: 'gold', data: S.gold, d: 0 }, { label: 'banked', data: S.banked, d: 0 }, { label: 'kills', data: S.kills, d: 0 }]);
+    grid.appendChild(c);
+  }
+  // 5b gold (pass 61): what came in and went out over play time, the purse and the Strongbox; each source and sink
+  function renderGold(grid, S) {
+    const rows = S.run.samples || [];
+    if (!rows.some((r) => r.gold_in || r.gold_out)) return;
+    const earned = new Float64Array(S.n), spent = new Float64Array(S.n), gin = {}, gout = {};
+    for (const r of rows) {
+      const i = Math.min(S.n - 1, Math.max(0, Math.round(r.t)));
+      for (const k in (r.gold_in || {})) { earned[i] += r.gold_in[k]; gin[k] = (gin[k] || 0) + r.gold_in[k]; }
+      for (const k in (r.gold_out || {})) { spent[i] += r.gold_out[k]; gout[k] = (gout[k] || 0) + r.gold_out[k]; }
+    }
+    for (let i = 1; i < S.n; i++) { earned[i] += earned[i - 1]; spent[i] += spent[i - 1]; }
+    const c = card('Gold in and out', 'Gold earned and spent so far (every source and sink, greed included), the purse and what a Strongbox banked; below, each source and sink for the run.', { wide: true });
+    timeChart(plot(c), S, [line('earned', earned, COL.s[2], { d: 0 }), line('spent', spent, COL.s[7], { d: 0 }), line('purse', S.gold, ROLE.gold, { d: 0 }), line('banked', S.banked, COL.s[0], { d: 0 })], { markers: { stages: markerOpts(S, {}).stages } });
+    const tin = Object.values(gin).reduce((a, b) => a + b, 0), tout = Object.values(gout).reduce((a, b) => a + b, 0);
+    const ins = Object.entries(gin).sort((a, b) => b[1] - a[1]), outs = Object.entries(gout).sort((a, b) => b[1] - a[1]);
+    const labels = ins.map((e) => 'in: ' + e[0].replace(/_/g, ' ')).concat(outs.map((e) => 'out: ' + e[0].replace(/_/g, ' ')));
+    const cv = plot(c, 'auto'); cv.parentNode.style.height = Math.max(120, 26 * labels.length + 40) + 'px';
+    barChart(cv, labels, [bar('gold', ins.map((e) => e[1]).concat(outs.map((e) => e[1])), labels.map((l) => l.startsWith('in') ? COL.s[2] : COL.s[7]), { d: 0 })], { horizontal: true });
+    tableView(c, [{ label: 'way' }, { label: 'source or sink' }, { label: 'gold', num: true }, { label: 'share' }],
+      ins.map((e) => ['in', e[0].replace(/_/g, ' '), Math.round(e[1]), tin ? (100 * e[1] / tin).toFixed(1) + ' %' : ''])
+        .concat(outs.map((e) => ['out', e[0].replace(/_/g, ' '), Math.round(e[1]), tout ? (100 * e[1] / tout).toFixed(1) + ' %' : ''])));
     grid.appendChild(c);
   }
   // 6 weapon share

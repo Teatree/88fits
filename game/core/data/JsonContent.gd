@@ -321,6 +321,9 @@ static func _elite(d: Dictionary, dir: String) -> EliteModDef:
 static func _character(d: Dictionary, dir: String) -> CharacterDef:
 	var c := CharacterDef.new()
 	c.trait_effects = effects_list(d.get("trait", []), "player")
+	# the signature stat a level (pass 61): what one level gives, folded as value x level by Run._build_player_sheet
+	c.level_trait = effects_list(d.get("trait_per_level", []), "player")
+	c.order = int(d.get("order", 100))
 	c.trait_name = str(d.get("trait_name", ""))
 	c.trait_text = str(d.get("trait_text", ""))
 	c.pronoun = str(d.get("pronoun", "they"))
@@ -446,11 +449,19 @@ static func _talent(d: Dictionary, dir: String) -> TalentDef:
 	var c = d.get("cost", [])
 	t.cost = c if c is Array else []
 	var forms: Array = []
+	var tid := str(d.get("id", ""))
 	for f in (d.get("forms", []) as Array):
 		if not (f is Dictionary):
 			continue
 		var form := {"name": str(f.get("name", "")), "text": str(f.get("text", "")),
 			"effects": effects_list(f.get("effects", []), "player")}
+		# the form's own icon (pass 61, the Upgrade board's rank bars): `icon` in the form, else <id>_<form>_icon.png in the
+		# talent's folder; absent, the board draws the form's initial
+		var ifile := str(f.get("icon", "%s_%d_icon.png" % [tid, forms.size()]))
+		form["icon_file"] = ifile
+		var itex := resolve_texture(dir, ifile)
+		if itex:
+			form["icon"] = itex
 		# one effect list a rank (pass 46), when the ranks are not all the same step
 		var re = f.get("rank_effects", [])
 		if re is Array and not (re as Array).is_empty():

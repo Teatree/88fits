@@ -8,20 +8,21 @@
 [sub_resource type="Resource" id="Resource_gdcmj"]
 script = ExtResource("2_w74pe")
 stat = "regen"
-value = 1.2
+value = 0.1
 target = "player"
 
 [sub_resource type="Resource" id="Resource_ccyo4"]
 script = ExtResource("2_w74pe")
 stat = "regen_delay"
-value = -1.5
+value = -0.05
 target = "player"
 
 [resource]
 script = ExtResource("1_6xkvr")
-trait_effects = [SubResource("Resource_gdcmj"), SubResource("Resource_ccyo4")]
+level_trait = [SubResource("Resource_gdcmj"), SubResource("Resource_ccyo4")]
+order = 4
 trait_name = "Enduring"
-trait_text = "+1.2 health a second, and his regen starts again 1.5 s after a hit instead of 3. No more health than anyone else. He finds Brawn at level 2."
+trait_text = "Gain 0.1 HP regen and 0.05 s less regen delay per level (regen delay never under 0.5 s)."
 pronoun = "he"
 start_weapon = "pike"
 favourite_passive = "brawn"

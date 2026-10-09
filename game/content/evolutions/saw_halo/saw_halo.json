@@ -18,7 +18,12 @@
   },
   "params": {
     "spin_speed": 3.2,
-    "solid_ring": true
+    "solid_ring": true,
+    "rust_patina": {
+      "amount": 0.4,
+      "pits": 0.35,
+      "rim": 0.12
+    }
   },
   "levels": [
     []

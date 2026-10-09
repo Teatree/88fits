@@ -27,7 +27,27 @@
       "value": 8
     }
   ],
-  "params": {},
+  "params": {
+    "tint": {
+      "albedo": "#6AB81E",
+      "emission": "#3E7A0A",
+      "energy": 0.5
+    },
+    "tracer": true,
+    "tracer_color": "#6ED834",
+    "tracer_size": 0.8,
+    "tracer_life": 0.45,
+    "tracer_step": 0.03,
+    "look": {
+      "paint": {
+        "Peas": {
+          "albedo": "#6AB81E",
+          "emission": "#3E7A0A",
+          "energy": 0.4
+        }
+      }
+    }
+  },
   "art_prompt": "a fat green pea pod split open with dripping purple-green venom peas",
   "placeholder": {
     "color": "#7DD35A",

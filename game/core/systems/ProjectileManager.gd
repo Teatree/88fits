@@ -46,6 +46,8 @@ var lobs_fired := 0
 var lobs_exploded := 0
 ## Hostile shots leave a faint trail of fading dots, so a spit can be followed back to whoever threw it.
 const TRAIL_MAX := 800
+## a shot's extra tracer beads (params.tracer_beads, pass 61's Drum Mag) drop only while no more shots than this fly
+const TRACER_EXTRA_BUSY := 40
 const TRAIL_LIFE := 1.4
 const TRAIL_STEP := 0.055
 var trail_pos := PackedVector3Array()
@@ -155,6 +157,7 @@ func _ready() -> void:
 	pmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	pmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
 	add_child(pmi)
+	_build_looks()
 
 
 func _build_trail() -> void:
@@ -283,6 +286,10 @@ func fire(p_kind: int, from: Vector3, velocity: Vector3, damage: float, p_pierce
 		if w.params.has("tail_fade"):
 			# pass 60: the flight this shot fades over the end of (its life as it leaves, after any out_speed stretch)
 			extra[i]["fade0"] = life[i]
+		# pass 61 (Thorny Weed's look): the ground it has rolled since its last thorn specks
+		var lk = w.params.get("look")
+		if lk is Dictionary and (lk as Dictionary).get("specks") is Dictionary:
+			extra[i]["speck"] = 0.0
 	if w and bool(w.params.get("no_spin", false)):
 		spin[i] = 0.0
 		extra[i]["no_spin"] = true
@@ -391,6 +398,7 @@ func clear_all() -> void:
 	if bomblets:
 		bomblets.clear()
 	_landed.clear()
+	clear_specks()
 
 
 ## The spots bombs are headed for or came down on in the last LANDED_CLAIM seconds (pass 36): a bomb thrower picks a
@@ -441,6 +449,8 @@ func _physics_process(delta: float) -> void:
 			# the sticky grenade rides its creature, then blows where it got to
 			var e := stuck[i]
 			stuck_t[i] -= delta
+			if extra[i].has("blink"):
+				extra[i]["blink"] = float(extra[i]["blink"]) + delta * blink_hz(i)
 			if enemies.alive[e] == 1 and enemies.state[e] != enemies.STATE_DYING:
 				pos[i] = enemies.pos[e] + Vector3(0, enemies.size[e] * 0.7, 0)
 			if stuck_t[i] <= 0.0 or enemies.alive[e] == 0 or enemies.state[e] == enemies.STATE_DYING:
@@ -549,6 +559,11 @@ func _physics_process(delta: float) -> void:
 					stuck_t[i] = float(st.get("bomblet_seconds", st.get("seconds", 1.3))) if bomblet else float(st.get("seconds", 1.3))
 					arc[i] = 0
 					vel[i] = Vector3.ZERO
+					# pass 61 (Sticky's look): a light on whatever it rides, blinking faster towards the blast (_render_blinks)
+					var lk0 = w0.params.get("look")
+					if lk0 is Dictionary and (lk0 as Dictionary).get("blink") is Dictionary:
+						extra[i]["blink"] = 0.0
+						extra[i]["blink_t0"] = maxf(stuck_t[i], 0.05)
 					continue
 			_explode(i)
 			_free(i)
@@ -664,7 +679,20 @@ func _physics_process(delta: float) -> void:
 				_trail_t[i] = maxf(float(w.params.get("tracer_step", 0.022)), 0.005)
 				if not extra[i].has("tc"):
 					extra[i]["tc"] = _tracer_colour(w)
-				_drop_trail(pos[i], extra[i]["tc"], float(w.params.get("tracer_size", 0.9)), float(w.params.get("tracer_life", TRAIL_LIFE)))
+				var t_size := float(w.params.get("tracer_size", 0.9))
+				var t_life := float(w.params.get("tracer_life", TRAIL_LIFE))
+				_drop_trail(pos[i], extra[i]["tc"], t_size, t_life)
+				# pass 61 (Drum Mag's denser trails): `tracer_beads` beads a drop, the others spread back along the ground
+				# this tick moved over (one bead a physics tick is the most a step can give)
+				# (the review: on a Chicago Typewriter's long bursts the extra beads lapped the shared ring of TRAIL_MAX in
+				# under half a second and cut every other trail short, the hostile rocket's warning among them): the extra
+				# beads only while the screen is not busy with shots, and at half the life
+				var nb := int(w.params.get("tracer_beads", 1)) if count <= TRACER_EXTRA_BUSY else 1
+				for b in range(1, nb):
+					_drop_trail(pos[i] - vel[i] * delta * float(b) / float(nb), extra[i]["tc"], t_size, t_life * 0.5)
+		# pass 61 (Thorny Weed): a rolling shot with `look.specks` sheds thorn specks on the sand every `every` metres
+		if extra[i].has("speck"):
+			_shed_specks(i, w, delta, ground)
 		# a shot that fades at the end of its range (pass 60, params.tail_fade = the last share of its flight; the
 		# Boomstick's pellets lose their energy instead of popping out at the range's end): drawn shrunk over that
 		# last part, never under a quarter; the hit radius is untouched. The size it had as it left is read once, so a
@@ -755,6 +783,7 @@ func _process(_delta: float) -> void:
 	var t0 := Time.get_ticks_usec()
 	_render()
 	_tick_trail(_draw_dt)
+	_tick_specks(_draw_dt)
 	_draw_dt = 0.0
 	_draw_paths()
 	Perf.add("projectiles.draw", t0)
@@ -884,8 +913,12 @@ func _dust_trail(i: int, w: WeaponInstance, ground: float) -> void:
 		game.fx_sand(at, 0.4)
 
 
-## A tracer bead's colour: gold, orange for a burning weapon, green for a poison one, the Silver Bullet's pale blue.
+## A tracer bead's colour: gold, orange for a burning weapon, green for a poison one, the Silver Bullet's pale blue;
+## a weapon's own `tracer_color` (pass 61, a mutation's look: Toxic Peas' sickly green, Drum Mag's hot orange) first.
 func _tracer_colour(w: WeaponInstance) -> Color:
+	if w.params.has("tracer_color"):
+		var tc := Color(str(w.params["tracer_color"]))
+		return Color(tc.r, tc.g, tc.b, float(w.params.get("tracer_alpha", 0.9)))
 	if bool(w.params.get("silver", false)):
 		return Color(SILVER.r, SILVER.g, SILVER.b, 0.9)
 	match w.element():
@@ -1821,6 +1854,419 @@ func _ahead(enemies: EnemyManager, from: Vector3, dir: Vector3, r: float) -> int
 	return best
 
 
+# ---------------------------------------------------------------- pass 61 (lane WP1): the cheap mutation looks
+## Pass 61 (Garry: "Mutation Visual, implement every Cheap version"): the shots' side of the looks a mutation brings in
+## its params (the behaviours do the guns' side). Kinds in a tint's colours (tinted_kind) or bristling with spikes
+## (spiked_kind), thorn specks a rolling shot sheds on the sand (`look.specks`, one pooled MultiMesh), and a light
+## blinking on a stuck grenade (`look.blink`, faster towards the blast).
+
+## The kinds made from others, by the words that made them (tinted_kind, spiked_kind).
+var _derived := {}
+## Thorn specks on the sand: a ring of SPECK_MAX, each a flat three-pointed thorn fading out over its life.
+const SPECK_MAX := 192
+var _speck_mm: MultiMesh
+var _speck_xf: Array = []
+var _speck_age := PackedFloat32Array()
+var _speck_life := PackedFloat32Array()
+var _speck_col := PackedColorArray()
+var _speck_next := 0
+## specks were drawn on the last tick, or one fell since (the tick has nothing to do otherwise)
+var _specks_drawn := 0
+var _speck_fell := false
+## The stuck grenade's light: one MultiMesh of glow and bulb pairs drawn over everything, at most BLINK_MAX grenades.
+const BLINK_MAX := 32
+const BLINK_UP := 0.42
+const BLINK_HZ0 := 2.5
+const BLINK_HZ1 := 13.0
+## the glow round a lit bulb: this many times the bulb's size, at this alpha
+const BLINK_GLOW := 2.4
+const BLINK_GLOW_ALPHA := 0.5
+var _blink_mm: MultiMesh
+var _blink_list: Array = []
+## Diagnostics and tests: blinkers drawn on the last frame, and how many of them were lit.
+var blinks_drawn := 0
+var blinks_lit := 0
+
+
+func _build_looks() -> void:
+	_speck_xf.resize(SPECK_MAX)
+	_speck_age.resize(SPECK_MAX)
+	_speck_life.resize(SPECK_MAX)
+	_speck_col.resize(SPECK_MAX)
+	for k in range(SPECK_MAX):
+		_speck_age[k] = 1.0
+		_speck_life[k] = 1.0
+		_speck_xf[k] = Transform3D()
+	_speck_mm = MultiMesh.new()
+	_speck_mm.transform_format = MultiMesh.TRANSFORM_3D
+	_speck_mm.use_colors = true
+	_speck_mm.mesh = _speck_mesh()
+	_speck_mm.instance_count = SPECK_MAX
+	_speck_mm.visible_instance_count = 0
+	var smi := MultiMeshInstance3D.new()
+	smi.multimesh = _speck_mm
+	# the trail beads' very recipe (unshaded, see-through, vertex colours, back faces culled), so no new shader
+	var sm := StandardMaterial3D.new()
+	sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sm.vertex_color_use_as_albedo = true
+	smi.material_override = sm
+	smi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	smi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
+	add_child(smi)
+	_blink_mm = MultiMesh.new()
+	_blink_mm.transform_format = MultiMesh.TRANSFORM_3D
+	_blink_mm.use_colors = true
+	var sp := SphereMesh.new()
+	sp.radius = 0.5
+	sp.height = 1.0
+	sp.radial_segments = 10
+	sp.rings = 5
+	_blink_mm.mesh = sp
+	_blink_mm.instance_count = BLINK_MAX * 2
+	_blink_mm.visible_instance_count = 0
+	var bmi := MultiMeshInstance3D.new()
+	bmi.multimesh = _blink_mm
+	var bm := StandardMaterial3D.new()
+	bm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	bm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	bm.vertex_color_use_as_albedo = true
+	# a warning light on the creature's back reads over its painting, whatever stands in front
+	bm.no_depth_test = true
+	bm.render_priority = 4
+	bmi.material_override = bm
+	bmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	bmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
+	add_child(bmi)
+
+
+## A flat thorn speck lying on the sand, a metre across before its size: three thin points from the middle, facing up
+## (clockwise seen from above, Godot's front).
+static func _speck_mesh() -> ArrayMesh:
+	var verts := PackedVector3Array()
+	var norms := PackedVector3Array()
+	for k in range(3):
+		var a := TAU * float(k) / 3.0 + 0.35 * float(k)
+		var tip := Vector3(cos(a), 0.0, sin(a)) * (0.5 if k == 0 else 0.36)
+		var side := Vector3(-sin(a), 0.0, cos(a)) * 0.07
+		var tri := [side, -side, tip]
+		# front faces are clockwise seen from where the normal points: the cross of a front face points down
+		var cr: Vector3 = (tri[1] - tri[0]).cross(tri[2] - tri[0])
+		if cr.y > 0.0:
+			tri = [side, tip, -side]
+		for v: Vector3 in tri:
+			verts.append(v)
+			norms.append(Vector3.UP)
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = norms
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return m
+
+
+## A copy of kind `k` in a tint's colours (pass 61, out of pass 54's ProjectileEmitter.tint_kind so the Lobber shares it:
+## Thorny Weed's weed, Dragon's Breath's orange pellets, Toxic Peas, Sticky's resin). The kind's material is duplicated
+## with the tint's `albedo` (multiplying a vertex-coloured model's own colours), a glow of `emission` at `energy` (0.35),
+## and `roughness` / `metallic` when given; a kind drawn as two surfaces (a cored streak, pass 60) has its core tinted
+## and its second surface, the halo, recoloured by `halo` (alpha `halo_alpha`). Made once per kind and tint; the copies
+## switch no shader feature on (no clearcoat, no rim), so nothing compiles mid-run. A bad kind or no tint: `k` itself.
+func tinted_kind(k: int, tint: Dictionary) -> int:
+	if k < 0 or k >= kinds.size() or tint.is_empty():
+		return k
+	var key := "t%d|%s" % [k, str(tint)]
+	if _derived.has(key):
+		return int(_derived[key])
+	var kd: Dictionary = kinds[k]
+	var mesh: Mesh = (kd["mm"] as MultiMesh).mesh
+	var over: Material = (kd["mmi"] as MultiMeshInstance3D).material_override
+	var out: int
+	if over != null or mesh == null or mesh.get_surface_count() <= 1:
+		var src: Material = over
+		if src == null and mesh and mesh.get_surface_count() > 0:
+			src = mesh.surface_get_material(0)
+		out = _register_like(kd, mesh, tint_material(src, tint))
+	else:
+		var copy := ArrayMesh.new()
+		for s in range(mesh.get_surface_count()):
+			copy.add_surface_from_arrays(_prim(mesh, s), mesh.surface_get_arrays(s))
+			var m: Material = mesh.surface_get_material(s)
+			if s == 0:
+				m = tint_material(m, tint)
+			elif tint.has("halo"):
+				m = halo_material(m, tint)
+			if m:
+				copy.surface_set_material(s, m)
+		out = _register_like(kd, copy, null)
+	_derived[key] = out
+	return out
+
+
+## A kind with kind `kd`'s scale, turn and custom-data flag, drawn with `mesh` and `mat`.
+func _register_like(kd: Dictionary, mesh: Mesh, mat: Material) -> int:
+	var basis: Basis = kd.get("basis", Basis())
+	return register_kind(mesh, mat, float(kd["scale"]) / CHUNK, bool(kd.get("custom", false)), basis)
+
+
+static func _prim(mesh: Mesh, s: int) -> int:
+	return (mesh as ArrayMesh).surface_get_primitive_type(s) if mesh is ArrayMesh else Mesh.PRIMITIVE_TRIANGLES
+
+
+## `src` (a StandardMaterial3D, else a new one) in a tint's colours (tinted_kind).
+static func tint_material(src: Material, tint: Dictionary) -> StandardMaterial3D:
+	var mat: StandardMaterial3D = (src.duplicate() as StandardMaterial3D) if src is StandardMaterial3D else StandardMaterial3D.new()
+	if tint.has("albedo"):
+		var a := Color(str(tint["albedo"]))
+		mat.albedo_color = Color(a.r, a.g, a.b, mat.albedo_color.a)
+	if tint.has("emission"):
+		mat.emission_enabled = true
+		mat.emission = Color(str(tint["emission"]))
+		mat.emission_energy_multiplier = float(tint.get("energy", 0.35))
+	if tint.has("roughness"):
+		mat.roughness = float(tint["roughness"])
+	if tint.has("metallic"):
+		mat.metallic = float(tint["metallic"])
+	return mat
+
+
+## A streak's halo (its second surface) recoloured: `halo` at `halo_alpha` (else the halo's own alpha).
+static func halo_material(src: Material, tint: Dictionary) -> Material:
+	if not (src is StandardMaterial3D):
+		return src
+	var mat := (src as StandardMaterial3D).duplicate() as StandardMaterial3D
+	var c := Color(str(tint["halo"]))
+	mat.albedo_color = Color(c.r, c.g, c.b, float(tint.get("halo_alpha", mat.albedo_color.a)))
+	return mat
+
+
+## Kind `k` bristling with spikes (pass 61, Thorny Weed: "thorn spikes on the tumbleweed"): its mesh, each surface in
+## the material it is drawn with, and one more surface of `count` four-sided cones standing out of it round the whole
+## ball (a Fibonacci sphere), their feet at `inset` of the mesh's radius, `length` and `base` as shares of that radius,
+## in `color` with a glow of `emission` at `energy` (lit and glowing like the shots, so no new shader). Made once per
+## kind and words. A bad kind or no words: `k` itself.
+func spiked_kind(k: int, spikes: Dictionary) -> int:
+	if k < 0 or k >= kinds.size() or spikes.is_empty():
+		return k
+	var key := "s%d|%s" % [k, str(spikes)]
+	if _derived.has(key):
+		return int(_derived[key])
+	var kd: Dictionary = kinds[k]
+	var mesh: Mesh = (kd["mm"] as MultiMesh).mesh
+	if mesh == null:
+		return k
+	var over: Material = (kd["mmi"] as MultiMeshInstance3D).material_override
+	var copy := ArrayMesh.new()
+	for s in range(mesh.get_surface_count()):
+		copy.add_surface_from_arrays(_prim(mesh, s), mesh.surface_get_arrays(s))
+		var m: Material = over if over else mesh.surface_get_material(s)
+		if m:
+			copy.surface_set_material(s, m)
+	var n := copy.get_surface_count()
+	copy.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, spike_arrays(mesh.get_aabb(), spikes))
+	var sm := StandardMaterial3D.new()
+	sm.albedo_color = Color(str(spikes.get("color", "#2A140A")))
+	sm.emission_enabled = true
+	sm.emission = Color(str(spikes.get("emission", spikes.get("color", "#2A140A"))))
+	sm.emission_energy_multiplier = float(spikes.get("energy", 0.4))
+	sm.roughness = 0.6
+	copy.surface_set_material(n, sm)
+	var out := _register_like(kd, copy, null)
+	_derived[key] = out
+	return out
+
+
+## The cones of spiked_kind round a mesh with bounds `aabb` (its middle, the largest half-size as the radius).
+static func spike_arrays(aabb: AABB, spikes: Dictionary) -> Array:
+	var c := aabb.get_center()
+	var r: float = maxf(maxf(aabb.size.x, aabb.size.y), aabb.size.z) * 0.5
+	var count: int = maxi(int(spikes.get("count", 14)), 1)
+	var inset: float = float(spikes.get("inset", 0.8))
+	var length: float = float(spikes.get("length", 0.5)) * r
+	var base: float = float(spikes.get("base", 0.1)) * r
+	var verts := PackedVector3Array()
+	var norms := PackedVector3Array()
+	var golden := PI * (3.0 - sqrt(5.0))
+	for k in range(count):
+		var y := 1.0 - 2.0 * (float(k) + 0.5) / float(count)
+		var ring := sqrt(maxf(1.0 - y * y, 0.0))
+		var a := golden * float(k)
+		var out := Vector3(cos(a) * ring, y, sin(a) * ring).normalized()
+		var foot := c + out * r * inset
+		var tip := foot + out * length
+		var u := out.cross(Vector3.UP if absf(out.y) < 0.9 else Vector3.RIGHT).normalized()
+		var v := out.cross(u).normalized()
+		var rim: Array = [foot + u * base, foot + v * base, foot - u * base, foot - v * base]
+		for s in range(4):
+			var p0: Vector3 = rim[s]
+			var p1: Vector3 = rim[(s + 1) % 4]
+			var tri := [p0, p1, tip]
+			var cr: Vector3 = (p1 - p0).cross(tip - p0)
+			var mid: Vector3 = (p0 + p1 + tip) / 3.0 - foot
+			# clockwise seen from outside (Godot's front): the cross of a front face points in
+			if cr.dot(mid) > 0.0:
+				tri = [p0, tip, p1]
+				cr = -cr
+			var nrm := (-cr).normalized()
+			for q: Vector3 in tri:
+				verts.append(q)
+				norms.append(nrm)
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_NORMAL] = norms
+	return arrays
+
+
+## Thorny Weed's specks (pass 61, `look.specks {every, life, size, color, spread}`): every `every` metres a rolling shot
+## covers, one or two thorn specks fall on the sand round its foot (within `spread` of its middle).
+func _shed_specks(i: int, w: WeaponInstance, dt: float, ground: float) -> void:
+	if w == null:
+		return
+	var lk = w.params.get("look")
+	if not (lk is Dictionary and (lk as Dictionary).get("specks") is Dictionary):
+		return
+	var sp: Dictionary = lk["specks"]
+	var acc: float = float(extra[i]["speck"]) + vel[i].length() * dt
+	var every: float = maxf(float(sp.get("every", 0.5)), 0.1)
+	if acc < every:
+		extra[i]["speck"] = acc
+		return
+	extra[i]["speck"] = fmod(acc, every)
+	var spread := float(sp.get("spread", 0.5))
+	var col := Color(str(sp.get("color", "#2A160A")))
+	col.a = float(sp.get("alpha", 0.9))
+	for k in range(1 + int(randf() < 0.3)):
+		var at := Vector3(pos[i].x + randf_range(-spread, spread), ground, pos[i].z + randf_range(-spread, spread))
+		drop_speck(at, randf() * TAU, float(sp.get("size", 0.25)) * randf_range(0.8, 1.2), col, float(sp.get("life", 3.5)))
+
+
+## One speck on the sand at `at` (its foot), turned `yaw`, `size` metres across, laid on the slope, fading over `life`.
+func drop_speck(at: Vector3, yaw: float, size: float, col: Color, life: float) -> void:
+	if _speck_mm == null:
+		return
+	var b := Basis(Vector3.UP, yaw).scaled(Vector3(size, size, size))
+	var map = game.map if game else null
+	var g := at.y
+	if map != null:
+		g = map.height_at(at.x, at.z)
+		if map.has_method("normal_at"):
+			b = MapBase.ground_basis(map.normal_at(at.x, at.z)) * b
+	_speck_xf[_speck_next] = Transform3D(b, Vector3(at.x, g + 0.04, at.z))
+	_speck_age[_speck_next] = 0.0
+	_speck_life[_speck_next] = maxf(life, 0.1)
+	_speck_col[_speck_next] = col
+	_speck_next = (_speck_next + 1) % SPECK_MAX
+	_speck_fell = true
+
+
+## The specks age; the live ones are drawn, each fading over the last third of its life.
+func _tick_specks(delta: float) -> void:
+	if _speck_mm == null:
+		return
+	if _specks_drawn == 0 and not _speck_fell and _warm_at == Vector3.INF:
+		return
+	_speck_fell = false
+	var n := 0
+	for k in range(SPECK_MAX):
+		if _speck_age[k] >= _speck_life[k]:
+			continue
+		_speck_age[k] += delta
+		var f: float = _speck_age[k] / _speck_life[k]
+		if f >= 1.0:
+			continue
+		var c: Color = _speck_col[k]
+		_speck_mm.set_instance_transform(n, _speck_xf[k])
+		_speck_mm.set_instance_color(n, Color(c.r, c.g, c.b, c.a * clampf((1.0 - f) * 3.0, 0.0, 1.0)))
+		n += 1
+	if _warm_at != Vector3.INF and n < SPECK_MAX:
+		_speck_mm.set_instance_transform(n, Transform3D(Basis(), _warm_at))
+		_speck_mm.set_instance_color(n, Color(0, 0, 0, 0.5))
+		n += 1
+	_speck_mm.visible_instance_count = n
+	_specks_drawn = n
+
+
+## How many specks lie on the sand now (tests; never more than SPECK_MAX).
+func speck_count() -> int:
+	var n := 0
+	for k in range(SPECK_MAX):
+		if _speck_age[k] < _speck_life[k]:
+			n += 1
+	return n
+
+
+func clear_specks() -> void:
+	for k in range(SPECK_MAX):
+		_speck_age[k] = _speck_life[k]
+	if _speck_mm:
+		_speck_mm.visible_instance_count = 0
+
+
+## How fast stuck shot `i`'s light blinks: BLINK_HZ0 as it sticks rising to BLINK_HZ1 as it blows (or `look.blink`'s own
+## `hz0`/`hz1`), so the last beats come quick.
+func blink_hz(i: int) -> float:
+	var w: WeaponInstance = weapon[i]
+	var bl: Dictionary = {}
+	if w and w.params.get("look") is Dictionary and (w.params["look"] as Dictionary).get("blink") is Dictionary:
+		bl = w.params["look"]["blink"]
+	var t0: float = float(extra[i].get("blink_t0", 1.0))
+	var f: float = clampf(1.0 - stuck_t[i] / t0, 0.0, 1.0)
+	return lerpf(float(bl.get("hz0", BLINK_HZ0)), float(bl.get("hz1", BLINK_HZ1)), f * f)
+
+
+## Whether stuck shot `i`'s light is on (the first half of every beat).
+func blink_on(i: int) -> bool:
+	return fmod(float(extra[i].get("blink", 0.0)), 1.0) < 0.5
+
+
+## The lights on the stuck grenades listed by _render: a soft red glow (only while lit, swelling) under a bulb (bright
+## red lit, dark red between beats), a little over where the grenade rides, drawn over the creature's painting.
+func _render_blinks() -> void:
+	if _blink_mm == null:
+		return
+	var n := 0
+	var lit := 0
+	var shown := 0
+	for i: int in _blink_list:
+		if shown >= BLINK_MAX:
+			break
+		var w: WeaponInstance = weapon[i]
+		var bl: Dictionary = {}
+		if w and w.params.get("look") is Dictionary and (w.params["look"] as Dictionary).get("blink") is Dictionary:
+			bl = w.params["look"]["blink"]
+		var col := Color(str(bl.get("color", "#FF2A14")))
+		var size := float(bl.get("size", 0.2)) * (0.6 if (extra[i] as Dictionary).has("is_bomblet") else 1.0)
+		var at: Vector3 = pos[i] + Vector3(0, BLINK_UP * (0.6 if (extra[i] as Dictionary).has("is_bomblet") else 1.0), 0)
+		var on := blink_on(i)
+		if on:
+			var g: float = size * BLINK_GLOW
+			_blink_mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(g, g, g)), at))
+			_blink_mm.set_instance_color(n, Color(col.r, col.g, col.b, BLINK_GLOW_ALPHA))
+			n += 1
+			lit += 1
+		var bc := col if on else Color(col.r * 0.35, col.g * 0.25, col.b * 0.25)
+		bc = bc.lightened(0.35) if on else bc
+		_blink_mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(size, size, size)), at))
+		_blink_mm.set_instance_color(n, Color(bc.r, bc.g, bc.b, 1.0))
+		n += 1
+		shown += 1
+	_blink_list.clear()
+	if _warm_at != Vector3.INF and n < BLINK_MAX * 2:
+		_blink_mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(0.1, 0.1, 0.1)), _warm_at))
+		_blink_mm.set_instance_color(n, Color(1, 0, 0, 0.5))
+		n += 1
+	_blink_mm.visible_instance_count = n
+	blinks_drawn = shown
+	blinks_lit = lit
+
+
+## The warm-up's speck and blinker (warm_draw): drawn by their ticks while `_warm_at` is set, gone when it is not.
+func _warm_looks(_at: Vector3) -> void:
+	_tick_specks(0.0)
+	_render_blinks()
+
+
 ## Warm-up: one instance of every kind at `at` (Vector3.INF stops it), so the instanced shader variants compile early.
 var _warm_at := Vector3.INF
 
@@ -1841,6 +2287,9 @@ func warm_draw(at: Vector3) -> void:
 			mm.visible_instance_count = 1
 	if at != Vector3.INF:
 		_drop_trail(at)
+	# pass 61: the thorn specks' and the stuck grenade's blinker's MultiMeshes, one instance each (the blinker's no-depth
+	# material is a variant of its own)
+	_warm_looks(at)
 
 
 ## The basis shot `i` is drawn with (pass 53, out of _render so a test can read it: the headless renderer keeps no
@@ -1885,6 +2334,9 @@ func _render() -> void:
 		if bool(kd.get("custom", false)):
 			mm.set_instance_custom_data(n, Color(glow[i], 0.0, 0.0, 0.0))
 		counters[k] = n + 1
+		if stuck[i] >= 0 and extra[i].has("blink"):
+			_blink_list.append(i)
+	_render_blinks()
 	for k in range(kinds.size()):
 		if _warm_at != Vector3.INF:
 			kinds[k]["mm"].set_instance_transform(counters[k], Transform3D(Basis(), _warm_at))

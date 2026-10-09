@@ -809,3 +809,111 @@ static func map_name(id: String) -> String:
 static func time_mmss(t: float) -> String:
 	var s := int(t)
 	return "%02d:%02d" % [s / 60, s % 60]
+
+
+# ---------------------------------------------------------------- heroes (pass 61)
+
+## A signature stat's name in a hero's trait (TextGen's stat names otherwise): "HP regen" reads better than "regen per
+## second" after a number.
+const HERO_WORDS := {"regen": "HP regen", "regen_delay": "regen delay", "max_hp": "max HP"}
+## What a signature stat means, in brackets after the rule; {his} is the hero's own word (his, her, their).
+const HERO_NOTES := {"debuff_duration": "{his} burns, poison, slows and pins last longer; buffs do not"}
+## Stats a hero is better off with less of: a step down reads "0.05 s less regen delay".
+const HERO_LOWER := ["cooldown", "regen_delay", "shield_delay"]
+
+
+static func hero_word(stat: String) -> String:
+	return str(HERO_WORDS.get(stat, stat_name(stat)))
+
+
+## The hero's own possessive (his, her, their) from CharacterDef.pronoun.
+static func possessive(c: CharacterDef) -> String:
+	var p := c.pronoun if c else "they"
+	match p:
+		"he":
+			return "his"
+		"she":
+			return "her"
+	return "their"
+
+
+## One signature stat's amount, unsigned ("1%", "2", "0.1", "0.05 s"): `value` is what the levels give (or one step).
+static func hero_amount(stat: String, op: String, value: float) -> String:
+	var a := absf(value)
+	if op == "mul" or stat_kind(stat) == "pct":
+		return _plain(a * 100.0) + "%"
+	if stat_kind(stat) == "sec":
+		return _plain(a) + " s"
+	return _plain(a)
+
+
+## A signature stat's value as it counts (a level's or the levels' sum): a step down stops at the stat's floor, measured
+## from its default (Ironwood's delay: 3 s less 2.5 s at the most, so 0.5 s).
+static func hero_capped(e: Effect) -> float:
+	var v := e.value
+	if StatSheet.STAT_FLOORS.has(e.stat) and e.op == "add" and v < 0.0:
+		var room := float(StatSheet.PLAYER_DEFAULTS.get(e.stat, 0.0)) - float(StatSheet.STAT_FLOORS[e.stat])
+		v = -minf(-v, maxf(room, 0.0))
+	return v
+
+
+## A signature stat's value signed and short, as the plaque and the hero sheet show it: "+1%", "+2", "+0.1", "−0.05 s"
+## (one level's step, or `e` from CharacterDef.level_effects for what the levels come to).
+static func hero_step(e: Effect) -> String:
+	var v := hero_capped(e)
+	return ("−" if v < 0.0 else "+") + hero_amount(e.stat, e.op, v)
+
+
+## A hero's rule in words (pass 61, Garry: "Heroes have 1-2 unique stats, and they scale as they level up"): "Gain 1% crit
+## chance per level." from the level_trait, Astro's heal on every level-up after it, a floor or what the stat means in
+## brackets. A hero without one (the hidden heroes) reads its own trait_text. The title plaque, the hero sheet, the arena
+## and the Collection all read it here.
+static func hero_trait(c: CharacterDef) -> String:
+	if c == null:
+		return ""
+	if c.level_trait.is_empty():
+		return c.trait_text if c.trait_text != "" else describe_effects(c.trait_effects)
+	var parts: Array = []
+	var notes: Array = []
+	for e in c.level_trait:
+		if not (e is Effect):
+			continue
+		var x: Effect = e
+		var word := hero_word(x.stat)
+		if x.value < 0.0 and x.stat in HERO_LOWER:
+			parts.append("%s less %s" % [hero_amount(x.stat, x.op, x.value), word])
+		else:
+			parts.append("%s %s" % [hero_amount(x.stat, x.op, x.value), word])
+		if StatSheet.STAT_FLOORS.has(x.stat):
+			notes.append("%s never under %s" % [word, hero_amount(x.stat, "add", float(StatSheet.STAT_FLOORS[x.stat]))])
+		if HERO_NOTES.has(x.stat):
+			notes.append(str(HERO_NOTES[x.stat]).replace("{his}", possessive(c)))
+	var s := "Gain " + " and ".join(parts) + " per level"
+	if c.level_heal > 0.0:
+		s += ", and heal %s of max HP on every level-up" % (_plain(c.level_heal * 100.0) + "%")
+	if not notes.is_empty():
+		s += " (" + "; ".join(notes) + ")"
+	return s + "."
+
+
+## What the signature stat comes to at a level, signed: "+12% crit chance", "+1.2 HP regen and 0.6 s less regen delay"
+## (a step down stops at the stat's floor: Ironwood's delay at 0.5 s); "" for a hero without one.
+static func hero_trait_at(c: CharacterDef, level: int) -> String:
+	if c == null or c.level_trait.is_empty():
+		return ""
+	var parts: Array = []
+	for e in c.level_effects(level):
+		var x: Effect = e
+		var v := hero_capped(x)
+		var word := hero_word(x.stat)
+		if v < 0.0 and x.stat in HERO_LOWER:
+			parts.append("%s less %s" % [hero_amount(x.stat, x.op, v), word])
+		else:
+			parts.append("%s%s %s" % ["−" if v < 0.0 else "+", hero_amount(x.stat, x.op, v), word])
+	return " and ".join(parts)
+
+
+## The rule's "now" line: "+12% crit chance at level 12".
+static func hero_trait_now(c: CharacterDef, level: int) -> String:
+	var at := hero_trait_at(c, level)
+	return "" if at == "" else "%s at level %d" % [at, level]

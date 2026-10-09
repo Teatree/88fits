@@ -7,14 +7,32 @@
 ## board and returns half the coins (Save.REFUND_FRAC). The talents hold for every hero, so the mirror shows none of
 ## them: something looks back out of the dark glass, two brass eyes (art/ui/wanted/mirror.png replaces the drawn mirror
 ## when it exists).
+## Pass 61 (Garry: "The choices in the Mirror should be shown as little icons. Maybe as a summary also. Each of those
+## icons should be distinctly different from their counterpart. So say Grit will have a progress bar filled up with 2
+## types of distinct icons representing choices that Player made. Make the UI elements taller to make enough space for
+## those icons to make sense as well as the empty bars"): every form has its own painted icon (TalentDef.form_icon); a
+## tile's notches became a rank bar of six slots (a bought rank the live form's icon on a raised paper plate, an unbought
+## one the HUD's dashed empty slot), a talent with no rank shows both forms' icons small beside its name, the tiles grew
+## to hold the bar, the sheet shows the same bar large and the two forms with their icons, and a summary strip over the
+## mirror lists every talent with ranks as its live form's icon and "x<rank>".
 extends ScreenBase
 
 const MIRROR_ART := "res://art/ui/wanted/mirror.png"
-## A rank notch on a board tile and on the sheet, sized so six sit beside the name (42 and 68 px fitted three).
-const TILE_NOTCH := Vector2(28, 20)
-const TILE_NOTCH_GAP := 5.0
-const SHEET_NOTCH := Vector2(52, 30)
-const SHEET_NOTCH_GAP := 7.0
+## The rank bar's slots (pass 61; the 28 x 20 notches beside the name before): on a tile six 60 px slots 8 apart (400
+## px of the tile's 422), the icon 49 px inside (WPlate.icon_frac), so it reads at the 44 px it was painted for; on the
+## sheet six 100 px slots 12 apart. A bought rank's plate is raised (a hard ink shadow) and paper; an unbought one aged
+## with the dashed line inside.
+const TILE_SLOT := 60.0
+const TILE_SLOT_GAP := 8.0
+const SHEET_SLOT := 100.0
+const SHEET_SLOT_GAP := 12.0
+const SLOT_SHADOW := 3
+## The two forms' icons beside a talent's name while it has no rank (the choice shows before the first buy), "or" between.
+const NAME_ICON := 46.0
+## The forms' icons in the sheet's choice, on a paper plate so they read on the chosen (ink) half too.
+const CHOICE_ICON := 76.0
+## The summary over the mirror: one chip per talent with ranks, its live form's icon on a plate and "x<rank>".
+const CHIP_PX := 60.0
 
 var _gold: PanelContainer
 var _grid: GridContainer
@@ -22,6 +40,9 @@ var _refund: WTap
 var _refund_text: WText
 var _sheet_root: Control
 var _sheet_def: TalentDef
+## The summary strip (pass 61) and the flow its chips (or the empty hint) sit in.
+var _summary: PanelContainer
+var _summary_flow: HFlowContainer
 
 
 func header_right() -> Control:
@@ -41,6 +62,11 @@ func board_bottom() -> float:
 func build() -> void:
 	set_title("Upgrade")
 	content.add_theme_constant_override("separation", 0)
+	content.add_child(_make_summary())
+	var over := Control.new()
+	over.custom_minimum_size.y = 24
+	over.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(over)
 	var stack := VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 10)
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -143,10 +169,13 @@ func _draw_glass(ci: Control) -> void:
 
 
 func _refresh() -> void:
+	# out of the grid at once (a queued tile still counts and still lays out until the frame ends)
 	for c in _grid.get_children():
+		_grid.remove_child(c)
 		c.queue_free()
 	for def: TalentDef in Registry.talents_list():
 		_grid.add_child(_card(def))
+	_fill_summary()
 	var amount := _amount_of(_gold)
 	if amount:
 		amount.text = W.num(Save.gold())
@@ -162,12 +191,14 @@ func _amount_of(p: Control) -> WText:
 	return null
 
 
-## One talent on the board: its name and notches, the live form and what it does, the next rank's price.
+## One talent on the board: its name (both forms' icons beside it while it has no rank), its rank bar, the live form
+## and what it does, the next rank's price.
 func _card(def: TalentDef) -> WTap:
 	var locked := not Registry.is_unlocked("talent", def.id)
 	var form := Save.talent_form(def.id)
 	var rank := Save.talent_rank(def.id)
 	var c := WTap.new()
+	c.name = "Talent_" + def.id
 	var b := W.box(W.PAPER, 5, 6).pad(29, 27, 29, 27)
 	c.box = b
 	c.box_down = b.pressed()
@@ -175,21 +206,20 @@ func _card(def: TalentDef) -> WTap:
 	c.locked = locked
 	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
+	v.add_theme_constant_override("separation", 14)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	c.add_child(v)
 	var head := HBoxContainer.new()
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.custom_minimum_size.y = NAME_ICON
 	var n := W.slab_text(def.display_name, 44, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 44.0)
 	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(n)
-	var marks := WMarks.new()
-	marks.notch = TILE_NOTCH
-	marks.gap = TILE_NOTCH_GAP
-	marks.setup("notches", def.max_rank(), rank)
-	marks.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(marks)
+	if rank <= 0:
+		head.add_child(_form_pair(def))
 	v.add_child(head)
+	v.add_child(rank_bar(def, form, rank, TILE_SLOT, TILE_SLOT_GAP))
 	v.add_child(W.serif_text("%s · %s" % [def.form_name(form), _short(def.form_text(form))], 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	var tag: Control
 	if locked:
@@ -214,6 +244,117 @@ func _card(def: TalentDef) -> WTap:
 ## "+10% max HP a rank." -> "+10% max HP a rank" (the board's line has no full stop).
 func _short(t: String) -> String:
 	return t.strip_edges().trim_suffix(".")
+
+
+## The rank bar (pass 61): `def.max_rank()` slots `px` square, `gap` apart; the first `rank` are bought, each the form's
+## icon on a raised paper plate (its initial in slab when the icon is missing), the rest dashed empties. The slots are
+## named Rank1.. and carry their state in the meta "bought".
+static func rank_bar(def: TalentDef, form: int, rank: int, px: float, gap: float) -> HBoxContainer:
+	var bar := HBoxContainer.new()
+	bar.name = "RankBar"
+	bar.add_theme_constant_override("separation", int(gap))
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for k in def.max_rank():
+		var slot: WPlate
+		if k < rank:
+			slot = form_plate(def, form, px)
+			slot.shadow = SLOT_SHADOW
+		else:
+			slot = WPlate.slot(px)
+		slot.name = "Rank%d" % (k + 1)
+		slot.set_meta("bought", k < rank)
+		bar.add_child(slot)
+	return bar
+
+
+## A form's icon on a paper plate `px` square (the bar's bought slot, the choice's, the summary's chip, the pair beside a
+## name), or the form's initial when its icon is missing.
+static func form_plate(def: TalentDef, form: int, px: float) -> WPlate:
+	var p := WPlate.new()
+	p.side = px
+	p.fill = W.PAPER
+	p.radius = 10 if px < 140 else 12
+	p.border = 3 if px < 56 else 4
+	p.tex = def.form_icon(form)
+	if p.tex == null:
+		p.glyph = def.form_name(form).left(1)
+	p.set_meta("form", form)
+	return p
+
+
+## Both forms' icons small beside a name with no rank yet: "[icon] or [icon]".
+func _form_pair(def: TalentDef) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.name = "FormIcons"
+	h.add_theme_constant_override("separation", 8)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(form_plate(def, 0, NAME_ICON))
+	var o := W.serif_text("or", 24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
+	o.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(o)
+	h.add_child(form_plate(def, 1, NAME_ICON))
+	return h
+
+
+# --- the summary -------------------------------------------------------------------------------------------------------
+
+## The summary strip over the mirror (pass 61, Garry: "Maybe as a summary also"): a paper strip, the build at a glance.
+func _make_summary() -> PanelContainer:
+	_summary = PanelContainer.new()
+	_summary.name = "Summary"
+	_summary.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_summary.add_theme_stylebox_override("panel", W.box(W.PAPER, 5, 6).pad(29, 20, 29, 22))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 14)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(W.slab_text("YOUR UPGRADES", 28, W.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER, 28.0))
+	_summary_flow = HFlowContainer.new()
+	_summary_flow.name = "Chips"
+	_summary_flow.alignment = FlowContainer.ALIGNMENT_CENTER
+	_summary_flow.add_theme_constant_override("h_separation", 26)
+	_summary_flow.add_theme_constant_override("v_separation", 14)
+	_summary_flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(_summary_flow)
+	_summary.add_child(v)
+	return _summary
+
+
+## The chips again: one per talent with ranks in board order, its live form's icon and "x<rank>"; nothing bought, a line
+## that says where the icons will come from.
+func _fill_summary() -> void:
+	if _summary_flow == null:
+		return
+	for c in _summary_flow.get_children():
+		_summary_flow.remove_child(c)
+		c.queue_free()
+	for def: TalentDef in summary_talents():
+		var chip := HBoxContainer.new()
+		chip.name = "Chip_" + def.id
+		chip.add_theme_constant_override("separation", 8)
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var form := Save.talent_form(def.id)
+		var plate := form_plate(def, form, CHIP_PX)
+		plate.shadow = SLOT_SHADOW
+		chip.add_child(plate)
+		var t := W.slab_text("x%d" % Save.talent_rank(def.id), 32, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 32.0)
+		t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		chip.add_child(t)
+		_summary_flow.add_child(chip)
+	if _summary_flow.get_child_count() == 0:
+		var hint := W.serif_text("Nothing bought yet: every rank you buy shows here.", 26, W.INK_SOFT, 400, true,
+			HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
+		hint.name = "Hint"
+		_summary_flow.add_child(hint)
+
+
+## The talents the summary lists: those with at least one rank, in board order.
+static func summary_talents() -> Array:
+	var out: Array = []
+	for def: TalentDef in Registry.talents_list():
+		if Save.talent_rank(def.id) > 0:
+			out.append(def)
+	return out
 
 
 ## The next rank's price: the coin and the number in ink on a paper tag; aged, coin and all, when the purse is short
@@ -292,22 +433,15 @@ func _fill_sheet(sheet: PanelContainer) -> void:
 	v.add_theme_constant_override("separation", 26)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sheet.add_child(v)
-	var head := HBoxContainer.new()
-	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var n := W.slab_text(def.display_name, 84, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 84.0)
-	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(n)
-	var marks := WMarks.new()
-	marks.notch = SHEET_NOTCH
-	marks.gap = SHEET_NOTCH_GAP
-	marks.notch_border = 4
-	marks.setup("notches", def.max_rank(), rank)
-	marks.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(marks)
-	v.add_child(head)
+	v.add_child(n)
+	v.add_child(rank_bar(def, form, rank, SHEET_SLOT, SHEET_SLOT_GAP))
 	v.add_child(W.serif_text(def.flavour, 30, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
-	var choice := WChoice.make([[def.form_name(0), _short(def.form_text(0))], [def.form_name(1), _short(def.form_text(1))]],
+	# each form with its icon (pass 61): the same picture its ranks show in the bar
+	var choice := WChoice.make([[def.form_name(0), _short(def.form_text(0)), form_plate(def, 0, CHOICE_ICON)],
+		[def.form_name(1), _short(def.form_text(1)), form_plate(def, 1, CHOICE_ICON)]],
 		form, 40, 26, 22.0, HORIZONTAL_ALIGNMENT_LEFT, 6)
+	choice.name = "Forms"
 	choice.chosen.connect(func(i: int):
 		if i != Save.talent_form(def.id):
 			Save.set_talent_form(def.id, i)

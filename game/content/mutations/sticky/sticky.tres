@@ -9,9 +9,22 @@ weapon = "lob_grenade"
 text = "Sticks to the first creature it lands by and rides it into its pack before it blows."
 vfx = "the grenade rides on a creature's back, blinking, then blows"
 params = {
+"look": {
+"blink": {
+"color": "#FF2A14",
+"size": 0.2
+}
+},
 "sticky": {
 "reach": 1.4,
 "seconds": 1.3
+},
+"tint": {
+"albedo": "#D98A12",
+"emission": "#5A3006",
+"energy": 0.4,
+"metallic": 0.1,
+"roughness": 0.08
 }
 }
 id = "sticky"

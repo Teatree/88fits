@@ -64,7 +64,9 @@ def sand(size=1024):
     ripples = ripples ** 2
     blotch = tileable_noise(size, octaves=3, base_freq=2, seed=6)
     # pass 54 (Garry: the sand a little lighter and less orange): value +6 %, saturation -10 %, a touch toward beige
-    base = lerp_color((206, 160, 104), (246, 214, 156), n * 0.5 + blotch * 0.5)
+    # (206, 160, 104) -> (246, 214, 156), mean (210, 175, 121). Pass 61 (Garry: "Make the generic desert floor sand
+    # material even lighter"): another step, mean (215, 189, 146), value 0.84, saturation 0.32 (was 0.42), hue unchanged
+    base = lerp_color((214, 176, 130), (250, 228, 182), n * 0.5 + blotch * 0.5)
     base = base * (0.80 + 0.36 * ripples[..., None]) * (0.92 + 0.16 * grain[..., None])
     img = to_rgb(base)
     return img
@@ -72,8 +74,11 @@ def sand(size=1024):
 
 def cracked(size=1024):
     n = tileable_noise(size, octaves=5, base_freq=4, seed=3)
-    # pass 54: the river bed follows the sand, lighter and less orange
-    base = lerp_color((142, 96, 58), (206, 152, 98), n)
+    # pass 54: the river bed follows the sand, lighter and less orange ((142, 96, 58) -> (206, 152, 98), cracks (104, 68,
+    # 40), mean (169, 120, 75)). Pass 61 (Garry: "from brown colouring of the desert to a slightly browner shade of the
+    # generic desert colour"): the sand's own family a step darker and warmer, mean (200, 166, 126) against the sand's
+    # (215, 189, 146), the cracks a sand-brown that still reads
+    base = lerp_color((176, 142, 104), (230, 198, 154), n)
     img = to_rgb(base)
     draw = ImageDraw.Draw(img)
     # cracks: a jittered Voronoi-ish polygon web drawn as dark lines, wrapped
@@ -85,7 +90,7 @@ def cracked(size=1024):
             x2, y2 = px + math.cos(ang) * length, py + math.sin(ang) * length
             for ox in (-size, 0, size):
                 for oy in (-size, 0, size):
-                    draw.line((px + ox, py + oy, x2 + ox, y2 + oy), fill=(104, 68, 40), width=int(2 + rng.random() * 3))
+                    draw.line((px + ox, py + oy, x2 + ox, y2 + oy), fill=(158, 122, 86), width=int(2 + rng.random() * 3))
     img = img.filter(ImageFilter.GaussianBlur(0.8))
     arr = np.asarray(img).astype(np.float32) / 255.0
     plates = tileable_noise(size, octaves=2, base_freq=12, seed=4)

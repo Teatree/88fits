@@ -44,6 +44,13 @@ const SAME_WAY_DEG := 30.0
 ## model's 2.6 m post. Pass 54 (the lead, by eye on the phone's canvas): at 1.0 the sign was a twig among the props and its
 ## burnt names about 5 px tall; 1.45 makes it a landmark (a 3.8 m post) and the names are drawn as tags (LABEL_* below)
 const SCALE := 1.45
+## Pass 61 (Garry: "Sign boards should be more tall. As in stretch them on the z axis"): the drawn sign is stretched up by
+## this much on top of SCALE, the post and its boards both (Blender's z is Godot's y), their widths and the post's
+## thickness unchanged: a 3.8 m post becomes a tall roadside one and every board a deeper board. Only the Look node is
+## stretched: the collider, the steering circle, the arms' pointing and heights up the post (in the model's units) and
+## the depth trick (sign_depth.gdshader, any vertex at its foot's depth) are as before; a board's lean is set so it still
+## reads TILT_DEG after the stretch (tilt_for), and a name tag is unstretched (it is type, not wood).
+const STRETCH := 1.4
 const POST_H := 2.6
 const POST_W := 0.14
 const POST_R := 0.12          # the collider
@@ -285,7 +292,7 @@ func _build_sign(k: int, meshes: Dictionary) -> void:
 	# what is drawn, under one node SCALE sizes (the collider beside it is never scaled)
 	var look := Node3D.new()
 	look.name = "Look"
-	look.scale = Vector3.ONE * SCALE
+	look.scale = Vector3(SCALE, SCALE * STRETCH, SCALE)
 	stand.add_child(look)
 	var post := MeshInstance3D.new()
 	post.name = "Post"
@@ -329,8 +336,9 @@ func _build_arm(k: int, look: Node3D, j: int, s: Node3D, yaw: float, tilt: float
 	arm.name = "Arm%d" % j
 	arm.mesh = meshes["arm"]
 	var h: float = ARM_HEIGHTS[mini(j, ARM_HEIGHTS.size() - 1)]
-	# a turn about the post's axis, then the board's own lean about its face's normal (the tip up or down)
-	arm.transform = Transform3D(Basis(Vector3.UP, yaw) * Basis(Vector3.BACK, tilt), Vector3(0, h, 0))
+	# a turn about the post's axis, then the board's own lean about its face's normal (the tip up or down), set so the
+	# stretched sign shows `tilt`
+	arm.transform = Transform3D(Basis(Vector3.UP, yaw) * Basis(Vector3.BACK, tilt_for(tilt)), Vector3(0, h, 0))
 	arm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_paint(arm, false, foot)
 	look.add_child(arm)
@@ -342,11 +350,21 @@ func _build_arm(k: int, look: Node3D, j: int, s: Node3D, yaw: float, tilt: float
 		var lb := _label(text)
 		lb.name = "Tag%d" % j
 		var along := Basis(Vector3.UP, yaw) * Vector3(LABEL_X, 0, 0)
-		lb.position = Vector3(along.x, h, along.z) + Vector3(0, 0.06, 1.0).normalized() * LABEL_PULL / SCALE
+		var pull := Vector3(0, 0.06, 1.0).normalized() * LABEL_PULL / SCALE
+		pull.y /= STRETCH
+		lb.position = Vector3(along.x, h, along.z) + pull
+		# the type keeps its shape: the Look node's stretch undone on the tag (pass 61)
+		lb.scale = Vector3(1.0, 1.0 / STRETCH, 1.0)
 		look.add_child(lb)
 		labels.append(lb)
 	arms.append({"sign": k, "structure": s, "node": arm, "labels": labels, "text": text, "yaw": yaw, "tilt": tilt,
 		"height": h, "blank": false, "foot": foot})
+
+
+## The lean an arm is given in the model's units so that, under the Look node's STRETCH, its board shows `tilt` (pass 61:
+## a slope stretched up by STRETCH steepens, tan(shown) = STRETCH x tan(given)).
+static func tilt_for(tilt: float) -> float:
+	return atan(tan(tilt) / STRETCH)
 
 
 ## The run's camera looks down the screen at CAMERA_PITCH_DEG, so a tag's height and how far up the screen (north) it
@@ -364,7 +382,8 @@ static func spread_tags(recs: Array) -> int:
 		return 0
 	var c := cos(deg_to_rad(CAMERA_PITCH_DEG))
 	var sn := sin(deg_to_rad(CAMERA_PITCH_DEG))
-	var up_of := func(lb: Label3D) -> float: return lb.position.y * c - lb.position.z * sn
+	# a height up the post counts STRETCH times in the world (pass 61); the tags themselves are unstretched
+	var up_of := func(lb: Label3D) -> float: return lb.position.y * STRETCH * c - lb.position.z * sn
 	tags.sort_custom(func(a: Label3D, b: Label3D) -> bool: return up_of.call(a) < up_of.call(b))
 	var lifted := 0
 	for i in range(1, tags.size()):
@@ -377,7 +396,7 @@ static func spread_tags(recs: Array) -> int:
 			var need: float = up_of.call(below) + tag_height(below) + TAG_GAP - up_of.call(me)
 			if need > 0.0:
 				# lift it straight up the post: only its height changes, so it stays over its own arm's side
-				me.position.y += need / c
+				me.position.y += need / (c * STRETCH)
 				lifted += 1
 	return lifted
 

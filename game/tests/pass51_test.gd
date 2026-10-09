@@ -249,12 +249,16 @@ func test_evo_counts_the_three_path_mutations_and_a_heros_own_is_optional() -> v
 
 # ---------------------------------------------------------------- Calavera, Wide Reach
 
+## Re-pinned in pass 61: Calavera's trait is 1% attack damage a level and no crit chance at all (the crit is the
+## Drifter's signature now, pass61_hr_test; the suites leave every crit out, Run.base_crit).
 func test_calaveras_crit_is_five_percent() -> void:
 	var c: CharacterDef = Registry.character("calavera")
-	assert_str(c.trait_text).contains("+5% crit chance")
+	assert_str(c.trait_text).contains("attack damage")
+	assert_str(c.trait_text).not_contains("crit")
 	Run.start(c, Registry.map("red_canyon"))
-	assert_float(Run.player_sheet.get_stat("crit_chance", 0.0)).is_equal_approx(0.05, 0.0001)
-	# nobody else starts with any
+	assert_float(Run.player_sheet.get_stat("crit_chance", 0.0)).is_equal(0.0)
+	assert_float(Run.player_sheet.get_stat("might", 1.0)).is_equal_approx(1.01, 0.0001)
+	# nobody starts with any under the runner
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
 	assert_float(Run.player_sheet.get_stat("crit_chance", 0.0)).is_equal(0.0)
 

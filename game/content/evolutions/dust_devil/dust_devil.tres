@@ -40,7 +40,12 @@ params = {
 "back_speed_mult": 1.5,
 "out_speed_mult": 0.8,
 "return_damage_mult": 2.0,
-"second_pass": true
+"second_pass": true,
+"tint": {
+"albedo": "#090808",
+"emission": "#140F0D",
+"energy": 0.8
+}
 },
 "radius": 0.9,
 "return": true,

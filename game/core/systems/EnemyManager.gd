@@ -27,6 +27,9 @@ const DIE_SINK := 0.3
 ## A hit's flags (pass 48, damage's `flags`): HIT_MINI is a mini crit (the Tommy Gun's Mini Crits, rolled as the round
 ## left the gun): half a crit's extra damage, 1 + (crit_damage - 1) / 2, unless a full crit rolled.
 const HIT_MINI := 1
+## Whether the last hit damage() landed was a full crit (pass 61, lane WP2: the Sabre's Critical Thinking streak and the
+## Whirlwind's refund read it right after their own call); false when the hit did not land.
+var last_crit := false
 ## Priority targeting (pass 48, priority_index): a creature weighs its max HP over the crowd's mean, from 1 up to this,
 ## and big game (a boss, an Elite, an elite-modded creature) weighs this; the smallest distance over weight is taken.
 const PRIORITY_CAP := 3.0
@@ -1452,6 +1455,7 @@ func set_dummy_mode(i: int, mode: int, roam: bool = false, dir: float = 0.0) -> 
 ## Results screen, the run recorder, life steal) is the damage the creature still had in it, never the overkill; the
 ## floating number shows the whole hit.
 func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vector3.ZERO, kb_force: float = 0.0, green: bool = false, hot: bool = false, flags: int = 0) -> bool:
+	last_crit = false
 	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
 		return false
 	var dealt: float = amount * (1.0 - dr[i])
@@ -1498,6 +1502,7 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 		# Cold Snap (pass 47c): a weapon hit may freeze the creature for a second, never a boss
 		if _freeze_chance > 0.0 and i != boss_index and randf() < _freeze_chance:
 			freeze(i, FREEZE_SECONDS)
+	last_crit = crit
 	# a mini crit (pass 48, HIT_MINI): half a crit's extra damage, when no full crit rolled
 	var mini := false
 	if not crit and (flags & HIT_MINI) != 0:
@@ -1552,6 +1557,8 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 			_splashing = false
 			if game:
 				game.fx.burst(pos[i] + Vector3(0, 0.5, 0), Color(1.0, 0.6, 0.25), 1.6)
+		# the death and the overkill splash may have landed hits of their own since
+		last_crit = crit
 		return true
 	Audio.play(str(def.sfx.get("hit", "")), pos[i])
 	return false

@@ -492,8 +492,10 @@ func test_ironwood_lands_with_the_pike_called_the_spear() -> void:
 	assert_str(str(iw.favourite_passive_bonus.get("type", ""))).is_equal("level")
 	assert_int(int(iw.favourite_passive_bonus.get("value", 0))).is_equal(2)
 	assert_bool(Registry.passive(iw.favourite_passive).is_line()).is_true()
-	assert_str(iw.trait_text).contains("Brawn")
+	# re-pinned in pass 61: the trait's words are his regen rule alone; Brawn is named on the title plaque and in the
+	# hero's sheet (the favourite's plate), never in the trait
 	assert_str(iw.trait_text).not_contains("Cake")
+	assert_str(iw.trait_text).contains("regen")
 	assert_array(Registry.problems).is_empty()
 	_start("ironwood")
 	var brawn: PassiveDef = Registry.passive("brawn")

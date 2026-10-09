@@ -24,8 +24,21 @@ script = ExtResource("2_weage")
 weapon = "orbit_saws"
 mutation_kind = "element"
 text = "Cuts poison."
-vfx = "green flecks fly off every cut"
+vfx = "oxidised blades, rust flakes shed while they spin"
 effects = [SubResource("Resource_weage"), SubResource("Resource_05rp4"), SubResource("Resource_4kqfm")]
+params = {
+"rust": {
+"amount": 0.75,
+"flake_size": 1.0,
+"flakes": 12.0,
+"hit_flakes": 0.5,
+"pit_color": "#5C2410",
+"pits": 0.7,
+"rim": 0.22,
+"rust_color": "#B8551A",
+"scale": 2.2
+}
+}
 id = "rust"
 display_name = "Rust"
 flavour = "Tetanus, weaponised."

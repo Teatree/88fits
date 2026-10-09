@@ -331,7 +331,7 @@ func _blast(r: float, dmg: float, kb: float) -> void:
 					em.poison(e, w.def.id, w.stat("poison_damage", 3.0), maxi(w.stat_int("poison_stacks", 1), 1), w.stat("poison_duration", 8.0))
 			game.spawn_cloud(global_position, w, r * 0.8, el)
 		if Run.kills > before and int(w.params.get("gold_on_kill", 0)) > 0:
-			game.pickups.spawn(PickupManager.KIND_COIN, global_position, 3.0)
+			game.pickups.mark_coin(game.pickups.spawn(PickupManager.KIND_COIN, global_position, 3.0), "blasting_cap")
 	game.fx_burst(global_position + Vector3(0, 0.3, 0), Color(1.0, 0.72, 0.3), r)
 	game.camera.shake(0.5)
 	owner_behavior.sfx("hit", global_position)

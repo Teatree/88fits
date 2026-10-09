@@ -12,6 +12,15 @@
 // Pass 54's rules kept: see-through (ALPHA 1) and writing no depth at PickupManager.PICKUP_PRIORITY (set on the
 // material), drawn only where no painting wrote stencil 1 (PAINTING_STENCIL: enemy_billboard, sprite_billboard,
 // prop_billboard), so a gem at a creature's or the hero's feet lies under the painting.
+// Pass 61 (Garry: the gems must never disappear, at no cost): the float and the idle spin are done here, so a gem lying on
+// the sand never has its instance written again. INSTANCE_CUSTOM.y is the gem's seed, 0..1 (PickupManager.phase_of: the
+// spin's and the float's phase is seed x TAU, and the shimmer's seed is the seed itself; a seed, not the raw slot,
+// because the Compatibility renderer sends custom data as half floats); `t_now` is the run's clock (PickupManager._render,
+// wrapped at PickupManager.GEM_WRAP), so they stop when the run pauses. The spin turns the gem about its upright
+// 2 t + phase; the float lifts it float_base + bob sin(2.4 t + 0.9 phase) metres in the world (divided by the instance's
+// own upright scale, which the model matrix puts back). The instance's own basis (a hop's stretch, the arc's extra spin and pop)
+// only turns about the upright and scales the same across, so it and the spin commute (PickupManager.shown_xf works
+// the same sums out on the CPU).
 shader_type spatial;
 render_mode blend_mix, cull_back, depth_draw_never, shadows_disabled;
 stencil_mode read, compare_not_equal, 1;
@@ -24,6 +33,10 @@ uniform float shimmer_hz = 7.0;
 // how thin the charged rim is (a higher power = a thinner rim) and how bright
 uniform float rim_power = 3.0;
 uniform float rim_strength = 0.6;
+// the float and the spin (pass 61): the run's clock, the float's height either way and its middle over the rest
+uniform float t_now = 0.0;
+uniform float bob = 0.09;
+uniform float float_base = 0.06;
 
 varying float v_charge;
 varying float v_seed;
@@ -31,6 +44,13 @@ varying float v_seed;
 void vertex() {
 	v_charge = clamp(INSTANCE_CUSTOM.x, 0.0, 1.0);
 	v_seed = INSTANCE_CUSTOM.y;
+	float phase = INSTANCE_CUSTOM.y * 6.2831853;
+	float a = t_now * 2.0 + phase;
+	float c = cos(a);
+	float s = sin(a);
+	VERTEX = vec3(VERTEX.x * c + VERTEX.z * s, VERTEX.y, VERTEX.z * c - VERTEX.x * s);
+	NORMAL = vec3(NORMAL.x * c + NORMAL.z * s, NORMAL.y, NORMAL.z * c - NORMAL.x * s);
+	VERTEX.y += (float_base + sin(t_now * 2.4 + phase * 0.9) * bob) / max(length(MODEL_MATRIX[1].xyz), 0.0001);
 }
 
 void fragment() {

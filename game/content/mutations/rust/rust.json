@@ -9,7 +9,7 @@
   "element": "poison",
   "hero": "",
   "text": "Cuts poison.",
-  "vfx": "green flecks fly off every cut",
+  "vfx": "oxidised blades, rust flakes shed while they spin",
   "effects": [
     {
       "stat": "poison_damage",
@@ -27,7 +27,19 @@
       "value": 8
     }
   ],
-  "params": {},
+  "params": {
+    "rust": {
+      "rust_color": "#B8551A",
+      "pit_color": "#5C2410",
+      "amount": 0.75,
+      "pits": 0.7,
+      "scale": 2.2,
+      "rim": 0.22,
+      "flakes": 12,
+      "hit_flakes": 0.5,
+      "flake_size": 1.0
+    }
+  },
   "art_prompt": "a rusty orange saw blade with green corroded teeth",
   "placeholder": {
     "color": "#B87040",

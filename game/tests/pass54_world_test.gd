@@ -108,10 +108,11 @@ func test_the_sand_and_the_river_bed_are_lighter_and_less_orange() -> void:
 	assert_float(bed.v).is_greater(0.65)
 	assert_float(bed.s).is_less(0.6)
 	assert_float(bed.v).is_less(sand.v)
-	# the tool says so too (it rewrites both PNGs the same way every run)
+	# the tool says so too (it rewrites both PNGs the same way every run); pass 61 moved both again (the sand lighter, the
+	# river bed the sand a little browner: pass61_map_test pins the new palettes)
 	var py := _repo_file("tools/gen_textures.py")
-	assert_bool(py.contains("lerp_color((206, 160, 104), (246, 214, 156)")).is_true()
-	assert_bool(py.contains("lerp_color((142, 96, 58), (206, 152, 98), n)")).is_true()
+	assert_bool(py.contains("(206, 160, 104) -> (246, 214, 156)")).is_true()
+	assert_bool(py.contains("(142, 96, 58) -> (206, 152, 98)")).is_true()
 
 
 func test_red_canyon_sets_the_ground_tones_and_knows_its_water_level() -> void:
@@ -122,12 +123,13 @@ func test_red_canyon_sets_the_ground_tones_and_knows_its_water_level() -> void:
 	add_child(m)
 	# the flat tones the textures are calmed towards: the shader's defaults, and the map's exports set on the material
 	var shader: Shader = load("res://core/shaders/terrain_painted.gdshader")
-	assert_bool(shader.code.contains("sand_flat : source_color = vec3(0.88, 0.72, 0.48)")).is_true()
-	assert_bool(shader.code.contains("cracked_flat : source_color = vec3(0.66, 0.50, 0.36)")).is_true()
+	# (pass 61 moved both again: pass61_map_test pins the new tones)
+	assert_bool(shader.code.contains("sand_flat : source_color = vec3(0.90, 0.78, 0.58)")).is_true()
+	assert_bool(shader.code.contains("cracked_flat : source_color = vec3(0.80, 0.67, 0.50)")).is_true()
 	var sand_c: Color = m.get("sand_color")
 	var river_c: Color = m.get("river_color")
-	assert_bool(sand_c.is_equal_approx(Color(0.88, 0.72, 0.48))).is_true()
-	assert_bool(river_c.is_equal_approx(Color(0.66, 0.50, 0.36))).is_true()
+	assert_bool(sand_c.is_equal_approx(Color(0.90, 0.78, 0.58))).is_true()
+	assert_bool(river_c.is_equal_approx(Color(0.80, 0.67, 0.50))).is_true()
 	# lighter and less orange than pass 53's (0.86, 0.68, 0.42) and (0.62, 0.44, 0.30)
 	assert_float(sand_c.v).is_greater(Color(0.86, 0.68, 0.42).v)
 	assert_float(sand_c.s).is_less(Color(0.86, 0.68, 0.42).s)
@@ -348,7 +350,8 @@ func test_tags_made_by_hand_still_spread_clear_of_each_other() -> void:
 	var lifted: int = SIGNS.spread_tags([{"labels": [a]}, {"labels": [b]}])
 	assert_int(lifted).is_equal(1)
 	var c := cos(deg_to_rad(SIGNS.CAMERA_PITCH_DEG))
-	assert_float(absf(a.position.y - b.position.y) * c).is_greater_equal(SIGNS.tag_height(a))
+	# pass 61: a height up the post counts STRETCH times in the world
+	assert_float(absf(a.position.y - b.position.y) * c * SIGNS.STRETCH).is_greater_equal(SIGNS.tag_height(a))
 	a.free()
 	b.free()
 

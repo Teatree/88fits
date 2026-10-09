@@ -990,6 +990,10 @@ func _hero_tab() -> void:
 	_hero_looks()
 	_section("Level %d · %d / %d XP" % [Run.level, int(Run.xp), int(Run.xp_to_next())])
 	_buttons([["+1", func(): _levels(1); _refresh()], ["+5", func(): _levels(5); _refresh()], ["+10", func(): _levels(10); _refresh()], ["To 30", func(): _levels(maxi(30 - Run.level, 0)); _refresh()]])
+	# the hero's rule and what it comes to at this level (pass 61: the signature stat grows with every level)
+	if Run.character:
+		var now := TextGen.hero_trait_now(Run.character, Run.level)
+		_note("%s: %s%s" % [Run.character.trait_name, TextGen.hero_trait(Run.character), (" Now " + now + ".") if now != "" else ""])
 	_choice("Level-up cards", [[false, "Off"], [true, "On"]], bool(game.arena_cards), func(v): game.arena_cards = bool(v))
 	_section("Life")
 	_choice("God mode", [[false, "Off"], [true, "On"]], bool(game.player.god), func(v): game.player.god = bool(v))
@@ -998,7 +1002,7 @@ func _hero_tab() -> void:
 	var respawns = game.get("arena_respawns")
 	_note("A death in the arena stands you up again at once on the start spot, whole, with nothing spent (%d so far). Go down is the real fall: Down! and Phoenix Feather." % int(respawns if respawns != null else 0))
 	_section("Purse")
-	_buttons([["+100 gold", func(): Run.add_gold(100)], ["+1000 gold", func(): Run.add_gold(1000)],
+	_buttons([["+100 gold", func(): Run.add_gold(100, "debug")], ["+1000 gold", func(): Run.add_gold(1000, "debug")],
 		["+5 rerolls, skips, banishes", func(): Run.rerolls_left += 5; Run.skips_left += 5; Run.banishes_left += 5]])
 
 

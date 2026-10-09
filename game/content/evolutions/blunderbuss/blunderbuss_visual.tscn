@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3]
+[gd_scene load_steps=29 format=3]
 
 [sub_resource type="CapsuleMesh" id="proj"]
 radius = 0.055
@@ -65,6 +65,25 @@ roughness = 0.3
 emission_enabled = true
 emission = Color(0.55, 0.38, 0.1, 1)
 emission_energy_multiplier = 0.25
+
+[sub_resource type="StandardMaterial3D" id="bellgold"]
+albedo_color = Color(1, 0.78, 0.3, 1)
+metallic = 0.5
+roughness = 0.3
+emission_enabled = true
+emission = Color(0.55, 0.38, 0.1, 1)
+emission_energy_multiplier = 0.25
+
+[sub_resource type="SphereMesh" id="bead"]
+radius = 0.055
+height = 0.11
+radial_segments = 8
+rings = 4
+
+[sub_resource type="StandardMaterial3D" id="brass"]
+albedo_color = Color(0.42, 0.3, 0.12, 1)
+metallic = 0.5
+roughness = 0.4
 
 [sub_resource type="CylinderMesh" id="bell"]
 top_radius = 0.19
@@ -158,15 +177,44 @@ material_override = SubResource("halomat")
 
 [node name="Held" type="Node3D" parent="."]
 
-[node name="BarrelL" type="MeshInstance3D" parent="Held"]
+[node name="Barrels" type="Node3D" parent="Held"]
+
+[node name="BarrelL" type="MeshInstance3D" parent="Held/Barrels"]
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, -0.04, 0.09, -0.5)
 mesh = SubResource("barrel")
 material_override = SubResource("steel")
 
-[node name="BarrelR" type="MeshInstance3D" parent="Held"]
+[node name="BarrelR" type="MeshInstance3D" parent="Held/Barrels"]
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0.04, 0.09, -0.5)
 mesh = SubResource("barrel")
 material_override = SubResource("steel")
+
+[node name="Beads" type="Node3D" parent="Held"]
+visible = false
+
+[node name="Bead1" type="MeshInstance3D" parent="Held/Beads"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.175, -0.3)
+visible = false
+mesh = SubResource("bead")
+material_override = SubResource("brass")
+
+[node name="Bead2" type="MeshInstance3D" parent="Held/Beads"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.175, -0.42)
+visible = false
+mesh = SubResource("bead")
+material_override = SubResource("brass")
+
+[node name="Bead3" type="MeshInstance3D" parent="Held/Beads"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.175, -0.54)
+visible = false
+mesh = SubResource("bead")
+material_override = SubResource("brass")
+
+[node name="Bead4" type="MeshInstance3D" parent="Held/Beads"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.175, -0.66)
+visible = false
+mesh = SubResource("bead")
+material_override = SubResource("brass")
 
 [node name="Receiver" type="MeshInstance3D" parent="Held"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.06, -0.08)
@@ -191,7 +239,7 @@ material_override = SubResource("gold")
 [node name="Bell" type="MeshInstance3D" parent="Held"]
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.09, -1.02)
 mesh = SubResource("bell")
-material_override = SubResource("gold")
+material_override = SubResource("bellgold")
 
 [node name="BellMouth" type="MeshInstance3D" parent="Held"]
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0.09, -1.153)

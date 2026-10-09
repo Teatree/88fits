@@ -44,6 +44,11 @@ const PLAYER_DEFAULTS := {
 	"buff_duration": 1.0, "heal_mult": 1.0,
 }
 
+## The least a hero's stat can come to, however many sources pull it down (pass 61: Ironwood's regen delay shrinks every
+## level, never under half a second). The player scope's get_stat applies it, so the pause screen, the CV and the hero
+## all read the same number; TextGen.hero_trait names it.
+const STAT_FLOORS := {"regen_delay": 0.5}
+
 ## "player" for the hero's own sheet: effects aimed at weapons ("all_weapons", "weapon:<id>", "tag:<tag>") are carried
 ## for the weapons to pick up but never folded into the hero's numbers; "" folds everything (a weapon's sheet)
 var scope := ""
@@ -111,6 +116,8 @@ func get_stat(stat: String, default: float = 0.0) -> float:
 				mul *= (1.0 + e.value)
 			"set":
 				b = e.value
+	if scope == "player" and STAT_FLOORS.has(stat):
+		return maxf((b + adds) * mul, float(STAT_FLOORS[stat]))
 	return (b + adds) * mul
 
 

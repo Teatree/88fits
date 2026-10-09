@@ -37,6 +37,10 @@ func _build(game: Node) -> void:
 		if wdef.visual:
 			var vis: Node3D = wdef.visual.instantiate()
 			add_child(vis)
+			# pass 61 (lane WP2): the looks a mutation switches on (the Sabre's razor edge and guard bar) are hidden in the
+			# scene; shown here so their materials compile with the rest
+			for look in vis.find_children("Look*", "Node3D", true, false):
+				(look as Node3D).visible = true
 			# the shot's mesh as WeaponBehavior._load_visual registers it: the Projectile node, or (pass 46, the Spear) the first
 			# mesh of the model under it, each part keeping its own material
 			var proj := vis.get_node_or_null("Projectile")
@@ -51,7 +55,7 @@ func _build(game: Node) -> void:
 					if mat == null and src.mesh.get_surface_count() == 1:
 						mat = src.mesh.surface_get_material(0)
 					sc *= (proj as Node3D).scale.x
-				pm.register_kind(src.mesh, mat, sc)
+				_shot_kinds[wdef.id] = pm.register_kind(src.mesh, mat, sc)
 		# pass 48: a shot drawn from a model in the weapon's params (the Golden Pineapple's grenade), with the material
 		# Lobber._use_model gives it
 		var mp := str(wdef.params.get("model", ""))
@@ -65,9 +69,10 @@ func _build(game: Node) -> void:
 						gm.vertex_color_use_as_albedo = true
 						gm.metallic = float(wdef.params.get("model_metallic", 0.45))
 						gm.roughness = float(wdef.params.get("model_roughness", 0.35))
-						pm.register_kind((c as MeshInstance3D).mesh, gm, float(wdef.params.get("model_scale", 1.0)))
+						_shot_kinds[wdef.id] = pm.register_kind((c as MeshInstance3D).mesh, gm, float(wdef.params.get("model_scale", 1.0)))
 						break
 				root.free()
+	_warm_mutation_shots(pm)
 	pm.warm_draw(global_position)
 	# pass 54: the gems and coins draw see-through and read the stencil now: one of each under the beam, so their
 	# materials compile here rather than at the first kill (PickupManager.warm_draw). Pass 60: that one gem of each kind
@@ -81,6 +86,20 @@ func _build(game: Node) -> void:
 	var sb: Node3D = preload("res://core/systems/SunBeams.gd").new()
 	add_child(sb)
 	sb.warm(global_position)
+	# pass 61 (lane WP2): Rust's blades on a MultiMesh as the saws draw them (the instanced variant), and the Sabre's
+	# crit streak
+	var rmm := MultiMesh.new()
+	rmm.transform_format = MultiMesh.TRANSFORM_3D
+	rmm.mesh = CylinderMesh.new()
+	rmm.instance_count = 1
+	rmm.set_instance_transform(0, Transform3D.IDENTITY)
+	var rmi := MultiMeshInstance3D.new()
+	rmi.multimesh = rmm
+	rmi.material_override = Orbiter.rust_material(null, {})
+	add_child(rmi)
+	_quad(Thruster.slash_material())
+	# the Saw Halo's solid ring wears the rust as a plain mesh, the other variant of the shader (the review)
+	_quad(Orbiter.rust_material(null, {}))
 	# the effect pools: one of each particle kind
 	game.fx.burst(global_position, Color(1, 1, 1), 0.5)
 	game.fx.hit(global_position, Color(1, 1, 1))
@@ -144,6 +163,31 @@ func _build(game: Node) -> void:
 		_labels.add_child(l)
 		y += size * 1.3
 	Perf.context = "warmup"
+
+
+## Pass 61 (lane WP1): the shot kinds a mutation's look makes mid-run (ProjectileManager.tinted_kind / spiked_kind:
+## Sticky's resin on the Golden Pineapple's model, Thorny Weed's thorns, Dragon's Breath's pellets), made here for every
+## weapon as if its whole path were held, so a material that switches a shader feature on (a glow on a vertex-coloured
+## model) compiles under the beam.
+var _shot_kinds := {}
+
+
+func _warm_mutation_shots(pm: ProjectileManager) -> void:
+	if not pm.has_method("tinted_kind"):
+		return
+	for wid: String in _shot_kinds.keys():
+		var wd: WeaponDef = Registry.weapon(wid)
+		if wd == null:
+			continue
+		var wi := WeaponInstance.new(wd)
+		wi.mutations = Registry.mutations_of(wd.evolved_from if wd.is_evolution and wd.evolved_from != "" else wd.id)
+		var fp := wi.fold_params()
+		var k: int = int(_shot_kinds[wid])
+		if fp.get("tint") is Dictionary:
+			k = pm.tinted_kind(k, fp["tint"])
+		var lk = fp.get("look")
+		if lk is Dictionary and (lk as Dictionary).get("spikes") is Dictionary:
+			pm.spiked_kind(k, lk["spikes"])
 
 
 func _flat(c: Color, alpha: bool, cull_off: bool) -> StandardMaterial3D:

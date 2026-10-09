@@ -11,6 +11,9 @@ extends GdUnitTestSuite
 
 ## The rail before pass 56, and the top row, the slots and the strip it set.
 const OLD_RAIL := 18.0
+## Pass 61 (Garry: "Make the EXP bar 1.8 times bigger"): the rail is 1.8 times pass 56's 36 px, rounded (65), its fill
+## 11 px in (6 x 1.8); re-pinned here, the gaps under it unchanged.
+const P61_GROW := 1.8
 const OLD_TOP_Y := 30.0
 const OLD_SLOT_Y := 126.0
 const OLD_BAND_H := 220.0
@@ -54,10 +57,10 @@ func _rail_of(n: Node) -> Control:
 # ---------------------------------------------------------------- 1. the rail, twice as thick, one constant
 
 func test_the_rail_is_twice_as_thick_in_the_hud_and_on_the_level_up_screen() -> void:
-	assert_float(HUD.RAIL_H).is_equal(2.0 * OLD_RAIL)
-	# the fill keeps two thirds of it: 6 px in from the top and the bottom (3 of 18 before)
-	assert_float(HUD.RAIL_INSET).is_equal(6.0)
-	assert_float(HUD.RAIL_H - 2.0 * HUD.RAIL_INSET).is_equal(24.0)
+	assert_float(HUD.RAIL_H).is_equal(roundf(2.0 * OLD_RAIL * P61_GROW))
+	# the fill keeps two thirds of it: 6 px in from the top and the bottom (3 of 18 before), 11 since pass 61
+	assert_float(HUD.RAIL_INSET).is_equal(roundf(6.0 * P61_GROW))
+	assert_float(HUD.RAIL_H - 2.0 * HUD.RAIL_INSET).is_equal(43.0)
 	# the level-up screen's rainbow rail reads the HUD's constants: the two can never differ
 	assert_float(CardScreen.RAIL_H).is_equal(HUD.RAIL_H)
 	assert_float(CardScreen.RAIL_INSET).is_equal(HUD.RAIL_INSET)
@@ -86,7 +89,8 @@ func test_the_rail_is_twice_as_thick_in_the_hud_and_on_the_level_up_screen() -> 
 
 func test_the_top_row_the_slots_and_the_strip_move_down_by_what_the_rail_gained() -> void:
 	var gain := HUD.RAIL_H - OLD_RAIL
-	assert_float(gain).is_equal(18.0)
+	# 18 in pass 56, 47 since pass 61
+	assert_float(gain).is_equal(47.0)
 	assert_float(HUD.TOP_Y).is_equal(OLD_TOP_Y + gain)
 	assert_float(HUD.SLOT_Y).is_equal(OLD_SLOT_Y + gain)
 	assert_float(float(HUD.BAND_H)).is_equal(OLD_BAND_H + gain)
@@ -114,7 +118,7 @@ func test_nothing_in_the_top_row_starts_above_the_rail_s_bottom() -> void:
 		row_foot = maxf(row_foot, p.get_global_rect().end.y)
 	assert_float(hud._slots.position.y).is_greater(row_foot)
 	# one row of 72 px slots: the strip's foot, the boss plate, the power-ups and the toasts under it, all 18 px lower
-	assert_float(hud._slots_bottom).is_equal(OLD_SLOT_Y + 18.0 + 72.0 + 6.0)
+	assert_float(hud._slots_bottom).is_equal(OLD_SLOT_Y + (HUD.RAIL_H - OLD_RAIL) + 72.0 + 6.0)
 	assert_float(HUD.band_h).is_equal(float(HUD.BAND_H))
 	assert_float(hud._band.offset_bottom).is_equal(HUD.band_h)
 	assert_float(hud._buffs.position.y).is_equal(hud._slots_bottom + 14.0)

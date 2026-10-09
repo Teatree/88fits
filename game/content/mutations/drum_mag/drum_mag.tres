@@ -23,7 +23,11 @@ text = "Twice the burst, −35% a round."
 vfx = "a burst twice as long, twice the casings"
 effects = [SubResource("Resource_f5m2l"), SubResource("Resource_8c6b7")]
 params = {
-"size_mult": 0.85
+"drum_scale": 1.5,
+"drum_step": 1.0,
+"size_mult": 0.85,
+"tracer_beads": 3.0,
+"tracer_size": 0.6
 }
 id = "drum_mag"
 display_name = "Drum Mag"

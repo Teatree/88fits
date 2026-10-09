@@ -2,24 +2,14 @@
   "id": "calavera",
   "name": "Calavera",
   "flavour": "He plays. They dance. Briefly.",
+  "order": 3,
   "pronoun": "he",
-  "trait": [
+  "trait": [],
+  "trait_per_level": [
     {
       "stat": "might",
       "op": "mul",
-      "value": 0.25,
-      "target": "player"
-    },
-    {
-      "stat": "crit_chance",
-      "op": "add",
-      "value": 0.05,
-      "target": "player"
-    },
-    {
-      "stat": "max_hp",
-      "op": "mul",
-      "value": -0.15,
+      "value": 0.01,
       "target": "player"
     }
   ],
@@ -72,7 +62,7 @@
   "hurt_hint": "his painted skull face grimacing, teeth clenched",
   "level_heal": 0.0,
   "trait_name": "Last Dance",
-  "trait_text": "+25% attack damage and +5% crit chance, but −15% max HP. His Skull Rain starts at level 2.",
+  "trait_text": "Gain 1% attack damage per level.",
   "pose_drivers": {
     "back": "run_spread",
     "bd": "run_spread"
