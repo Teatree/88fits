@@ -21,6 +21,7 @@ four-minute buckets, so a bucket lands on its END minute (index x bucket_s / 60)
 per-minute rate by the bucket's own seconds (m_secs); buckets under 20 s (the short last one) are left out. Runs from
 before pass 60 lack the new arrays and are skipped by the tiles that need them (`need`).
 """
+import re
 import json
 import os
 import sys
@@ -89,12 +90,21 @@ def trend(event, display, math="total", breakdown=None, date_from="-30d", interv
     return {"kind": "InsightVizNode", "source": src}
 
 
+def scoped(sql):
+    """Every `FROM events ... WHERE` gets PostHog's {filters} placeholder, so a dashboard's filters (a player_name, a
+    hero, a date range) reach the SQL tiles too; without it a HogQL tile ignores them and shows everyone's data (Garry,
+    pass 62: filtering Builds & items by player_name changed nothing). With no filter set it is simply true."""
+    out = re.sub(r"(FROM events\b(?:(?!FROM ).)*?\bWHERE )", r"\1{filters} AND ", sql, flags=re.S)
+    assert out.count("{filters}") == sql.count("FROM events"), sql
+    return out
+
+
 def table(sql):
-    return {"kind": "DataTableNode", "source": {"kind": "HogQLQuery", "query": sql}}
+    return {"kind": "DataTableNode", "source": {"kind": "HogQLQuery", "query": scoped(sql)}}
 
 
 def line(sql, x, ys, display="ActionsLineGraph"):
-    return {"kind": "DataVisualizationNode", "source": {"kind": "HogQLQuery", "query": sql}, "display": display,
+    return {"kind": "DataVisualizationNode", "source": {"kind": "HogQLQuery", "query": scoped(sql)}, "display": display,
             "chartSettings": {"xAxis": {"column": x}, "yAxis": [{"column": y} for y in ys]}}
 
 
