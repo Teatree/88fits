@@ -195,8 +195,8 @@ func _amount_of(p: Control) -> WText:
 ## and what it does, the next rank's price.
 func _card(def: TalentDef) -> WTap:
 	var locked := not Registry.is_unlocked("talent", def.id)
-	var form := Save.talent_form(def.id)
-	var rank := Save.talent_rank(def.id)
+	var picks := Save.talent_picks(def.id)
+	var rank := picks.size()
 	var c := WTap.new()
 	c.name = "Talent_" + def.id
 	var b := W.box(W.PAPER, 5, 6).pad(29, 27, 29, 27)
@@ -216,11 +216,15 @@ func _card(def: TalentDef) -> WTap:
 	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(n)
-	if rank <= 0:
+	# both forms beside the name while a rank is left to buy (pass 63: every rank is its own choice)
+	if rank < def.max_rank():
 		head.add_child(_form_pair(def))
 	v.add_child(head)
-	v.add_child(rank_bar(def, form, rank, TILE_SLOT, TILE_SLOT_GAP))
-	v.add_child(W.serif_text("%s · %s" % [def.form_name(form), _short(def.form_text(form))], 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	v.add_child(rank_bar(def, picks, TILE_SLOT, TILE_SLOT_GAP))
+	var line := "Each rank: %s or %s" % [def.form_name(0), def.form_name(1)]
+	if rank > 0:
+		line = TextGen.describe_effects(held_effects(def))
+	v.add_child(W.serif_text(line, 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	var tag: Control
 	if locked:
 		var q := Registry.quest_for("talent", def.id)
@@ -246,10 +250,12 @@ func _short(t: String) -> String:
 	return t.strip_edges().trim_suffix(".")
 
 
-## The rank bar (pass 61): `def.max_rank()` slots `px` square, `gap` apart; the first `rank` are bought, each the form's
-## icon on a raised paper plate (its initial in slab when the icon is missing), the rest dashed empties. The slots are
-## named Rank1.. and carry their state in the meta "bought".
-static func rank_bar(def: TalentDef, form: int, rank: int, px: float, gap: float) -> HBoxContainer:
+## The rank bar (pass 61): `def.max_rank()` slots `px` square, `gap` apart; the bought ones first, each the icon of the
+## form that rank was bought in (pass 63: `picks`, Save.talent_picks, so one bar can hold both icons) on a raised paper
+## plate (its initial in slab when the icon is missing), the rest dashed empties. The slots are named Rank1.. and carry
+## their state in the meta "bought" (and the plate its "form").
+static func rank_bar(def: TalentDef, picks: Array, px: float, gap: float) -> HBoxContainer:
+	var rank := picks.size()
 	var bar := HBoxContainer.new()
 	bar.name = "RankBar"
 	bar.add_theme_constant_override("separation", int(gap))
@@ -257,7 +263,7 @@ static func rank_bar(def: TalentDef, form: int, rank: int, px: float, gap: float
 	for k in def.max_rank():
 		var slot: WPlate
 		if k < rank:
-			slot = form_plate(def, form, px)
+			slot = form_plate(def, int(picks[k]), px)
 			slot.shadow = SLOT_SHADOW
 		else:
 			slot = WPlate.slot(px)
@@ -320,8 +326,9 @@ func _make_summary() -> PanelContainer:
 	return _summary
 
 
-## The chips again: one per talent with ranks in board order, its live form's icon and "x<rank>"; nothing bought, a line
-## that says where the icons will come from.
+## The chips again: per talent with ranks, in board order, one chip a form it holds: the form's icon and "x<ranks of it>"
+## (pass 63: Grit with two Padding ranks and one Plate rank is two chips); nothing bought, a line that says where the
+## icons will come from.
 func _fill_summary() -> void:
 	if _summary_flow == null:
 		return
@@ -329,23 +336,36 @@ func _fill_summary() -> void:
 		_summary_flow.remove_child(c)
 		c.queue_free()
 	for def: TalentDef in summary_talents():
-		var chip := HBoxContainer.new()
-		chip.name = "Chip_" + def.id
-		chip.add_theme_constant_override("separation", 8)
-		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var form := Save.talent_form(def.id)
-		var plate := form_plate(def, form, CHIP_PX)
-		plate.shadow = SLOT_SHADOW
-		chip.add_child(plate)
-		var t := W.slab_text("x%d" % Save.talent_rank(def.id), 32, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 32.0)
-		t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		chip.add_child(t)
-		_summary_flow.add_child(chip)
+		for form in range(2):
+			var n := Save.talent_count(def.id, form)
+			if n <= 0:
+				continue
+			var chip := HBoxContainer.new()
+			chip.name = "Chip_%s_%d" % [def.id, form]
+			chip.add_theme_constant_override("separation", 8)
+			chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var plate := form_plate(def, form, CHIP_PX)
+			plate.shadow = SLOT_SHADOW
+			chip.add_child(plate)
+			var t := W.slab_text("x%d" % n, 32, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 32.0)
+			t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			chip.add_child(t)
+			_summary_flow.add_child(chip)
 	if _summary_flow.get_child_count() == 0:
 		var hint := W.serif_text("Nothing bought yet: every rank you buy shows here.", 26, W.INK_SOFT, 400, true,
 			HORIZONTAL_ALIGNMENT_CENTER, 0.0, false, false)
 		hint.name = "Hint"
 		_summary_flow.add_child(hint)
+
+
+## What a talent's ranks give together (pass 63): each form's ranks summed, the first form's effects first.
+static func held_effects(def: TalentDef) -> Array:
+	var out: Array = []
+	for form in range(2):
+		var n := Save.talent_count(def.id, form)
+		if n > 0:
+			out.append_array(def.summed_effects(form, n))
+	return out
 
 
 ## The talents the summary lists: those with at least one rank, in board order.
@@ -427,61 +447,40 @@ func _fill_sheet(sheet: PanelContainer) -> void:
 	for c in sheet.get_children():
 		c.queue_free()
 	var def := _sheet_def
-	var form := Save.talent_form(def.id)
-	var rank := Save.talent_rank(def.id)
+	var picks := Save.talent_picks(def.id)
+	var rank := picks.size()
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 26)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sheet.add_child(v)
 	var n := W.slab_text(def.display_name, 84, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 84.0)
 	v.add_child(n)
-	v.add_child(rank_bar(def, form, rank, SHEET_SLOT, SHEET_SLOT_GAP))
+	v.add_child(rank_bar(def, picks, SHEET_SLOT, SHEET_SLOT_GAP))
 	v.add_child(W.serif_text(def.flavour, 30, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
-	# each form with its icon (pass 61): the same picture its ranks show in the bar
-	var choice := WChoice.make([[def.form_name(0), _short(def.form_text(0)), form_plate(def, 0, CHOICE_ICON)],
-		[def.form_name(1), _short(def.form_text(1)), form_plate(def, 1, CHOICE_ICON)]],
-		form, 40, 26, 22.0, HORIZONTAL_ALIGNMENT_LEFT, 6)
-	choice.name = "Forms"
-	choice.chosen.connect(func(i: int):
-		if i != Save.talent_form(def.id):
-			Save.set_talent_form(def.id, i)
-			_refresh()
-			_fill_sheet.call_deferred(sheet))
-	v.add_child(choice)
-	var status := HBoxContainer.new()
-	status.add_theme_constant_override("separation", 20)
-	status.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var now := "No ranks yet"
 	if rank > 0:
-		# the ranks summed (pass 45): effects_for repeats the form's effect a rank, and three "+10% max HP" pushed the
-		# sheet off the right edge at FULL; out of how many (pass 46: six now)
-		now = "Rank %d of %d owned · %s" % [rank, def.max_rank(), TextGen.describe_effects(def.summed_effects(form, rank))]
+		# the ranks summed by form (pass 45, pass 63), out of how many
+		now = "Rank %d of %d owned · %s" % [rank, def.max_rank(), TextGen.describe_effects(held_effects(def))]
 	# wrapping: a wrapped line's minimum width is nothing, so a long one breaks instead of widening the sheet
-	var left := W.serif_text(now, 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	status.add_child(left)
-	var free := W.serif_text("Switching form is free", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
-	free.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	status.add_child(free)
+	var status := W.serif_text(now, 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	status.name = "Status"
 	v.add_child(status)
 	var cost := def.cost_of_rank(rank)
-	var buy: WButton
 	if rank >= def.max_rank() or cost < 0:
-		buy = WButton.make(["FULL"], 48, WButton.PRIMARY, 5, 8, 24.0, 24.0)
-		buy.locked = true
+		var full := WButton.make(["FULL"], 48, WButton.PRIMARY, 5, 8, 24.0, 24.0)
+		full.name = "Buy"
+		full.locked = true
+		full.pressed.connect(func(): Audio.play("ui_locked"))
+		v.add_child(full)
 	else:
-		buy = WButton.make(["RANK %d" % (rank + 1), {"coin": 40, "fill": W.PAPER}, [W.num(cost), null, 40]], 48, WButton.PRIMARY, 5, 8, 24.0, 24.0)
-		buy.locked = Save.gold() < cost
-	buy.name = "Buy"
-	buy.pressed.connect(func():
-		if buy.locked:
-			Audio.play("ui_locked")
-			return
-		if Save.buy_talent(def):
-			Audio.play("ui_buy")
-			_refresh()
-			_fill_sheet.call_deferred(sheet))
-	v.add_child(buy)
+		# pass 63 (Garry: "Player makes a choice, Padding or Plate and that is added to the upgrades list with the icon
+		# that stands for it"): the next rank is bought in one form or the other, and it keeps that form
+		var note := W.serif_text("Rank %d: choose one. It stays; Take it all back is the only way to choose again." % (rank + 1),
+			26, W.INK, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+		note.name = "ChoiceNote"
+		v.add_child(note)
+		for form in range(2):
+			v.add_child(_form_offer(def, form, cost, sheet))
 	var close := WTap.new()
 	var clear := W.box(Color(0, 0, 0, 0), 0, 0).pad(0, 4, 0, 4)
 	close.box = clear
@@ -490,6 +489,45 @@ func _fill_sheet(sheet: PanelContainer) -> void:
 	close.add_child(W.slab_text("Close", 30, W.INK_SOFT, HORIZONTAL_ALIGNMENT_CENTER, 0.0))
 	close.pressed.connect(func(): _close(true))
 	v.add_child(close)
+
+
+## One form's offer on the sheet (pass 63): its icon, name and what a rank gives, and its own buy button for the next
+## rank ("Buy0" / "Buy1"); locked when the purse is short.
+func _form_offer(def: TalentDef, form: int, cost: int, sheet: PanelContainer) -> VBoxContainer:
+	var box := VBoxContainer.new()
+	box.name = "Offer%d" % form
+	box.add_theme_constant_override("separation", 12)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 20)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var plate := form_plate(def, form, CHOICE_ICON)
+	plate.shadow = SLOT_SHADOW
+	plate.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(plate)
+	var words := VBoxContainer.new()
+	words.add_theme_constant_override("separation", 4)
+	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.add_child(W.slab_text(def.form_name(form), 40, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 40.0))
+	var held := Save.talent_count(def.id, form)
+	var t := _short(def.form_text(form)) + (" · %d owned" % held if held > 0 else "")
+	words.add_child(W.serif_text(t, 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	row.add_child(words)
+	box.add_child(row)
+	var buy := WButton.make([def.form_name(form).to_upper(), {"coin": 40, "fill": W.PAPER}, [W.num(cost), null, 40]], 44, WButton.PRIMARY, 5, 8, 24.0, 24.0)
+	buy.name = "Buy%d" % form
+	buy.locked = Save.gold() < cost
+	buy.pressed.connect(func():
+		if buy.locked:
+			Audio.play("ui_locked")
+			return
+		if Save.buy_talent(def, form):
+			Audio.play("ui_buy")
+			_refresh()
+			_fill_sheet.call_deferred(sheet))
+	box.add_child(buy)
+	return box
 
 
 func _close(animate: bool) -> void:

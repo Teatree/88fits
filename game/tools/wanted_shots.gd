@@ -248,7 +248,8 @@ func _menus() -> void:
 		await _wait(0.5)
 		await _shot("03b-mirror-talent-open")
 		# 03c (pass 45): a talent at FULL, its status line the ranks summed on one line, the sheet still 960 wide
-		_save.data["talents"]["grit"] = {"form": 1, "rank": 3}
+		# (pass 63: a rank keeps its form, so a bar can hold both icons)
+		_save.data["talents"]["grit"] = {"picks": [1, 0, 1]}
 		_save.data["talent_spent"] = 900
 		current_scene._refresh()
 		current_scene._open(_reg.talent("grit"))

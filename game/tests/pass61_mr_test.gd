@@ -188,10 +188,10 @@ func test_a_tile_shows_its_bought_ranks_as_the_live_form_s_icons_and_the_rest_em
 			assert_bool(p.get_meta("bought")).is_false()
 			assert_bool(p.empty).is_true()
 			assert_object(p.tex).is_null()
-	# with ranks the pair beside the name is gone: the bar says which form
-	assert_object(tile.find_child("FormIcons", true, false)).is_null()
-	# switching form switches every bought rank's icon (the ranks move with the form, the rule is unchanged)
-	Save.set_talent_form("grit", 0)
+	# pass 63: while a rank is left the pair beside the name stays (every rank is its own choice)
+	assert_object(tile.find_child("FormIcons", true, false)).is_not_null()
+	# a bar holds both icons, rank by rank in the order they were bought (pass 63: a rank keeps its form)
+	Save.data["talents"] = {"grit": {"picks": [0, 0, 0]}}
 	h._refresh()
 	tile = _tile(h, "grit")
 	slots = _slots(tile.find_child("RankBar", true, false))
@@ -259,13 +259,14 @@ func test_the_summary_lists_only_talents_with_ranks_in_board_order() -> void:
 	assert_object(flow.find_child("Hint", false, false)).is_not_null()
 	Save.data["talents"] = {"stride": {"form": 1, "rank": 1}, "grit": {"form": 0, "rank": 3}, "spite": {"form": 0, "rank": 0}}
 	h._refresh()
+	# (pass 63: a chip a form held, named Chip_<talent>_<form>)
 	var chips: Array = []
 	for c in flow.get_children():
 		if str(c.name).begins_with("Chip_"):
 			chips.append(c)
 	assert_int(chips.size()).is_equal(2)
-	assert_str(str(chips[0].name)).is_equal("Chip_grit")
-	assert_str(str(chips[1].name)).is_equal("Chip_stride")
+	assert_str(str(chips[0].name)).is_equal("Chip_grit_0")
+	assert_str(str(chips[1].name)).is_equal("Chip_stride_1")
 	assert_object(flow.find_child("Hint", false, false)).is_null()
 	assert_str(_texts(chips[0])).contains("x3")
 	assert_str(_texts(chips[1])).contains("x1")
@@ -299,27 +300,35 @@ func test_the_sheet_shows_the_bar_and_both_forms_with_their_icons() -> void:
 			bought += 1
 			assert_object(p.tex).is_same(grit.form_icon(1))
 	assert_int(bought).is_equal(2)
-	var forms: WChoice = sheet.find_child("Forms", true, false)
-	var pics: Array = []
-	for n in forms.find_children("*", "", true, false):
-		if n is WPlate:
-			pics.append((n as WPlate).tex)
-	assert_int(pics.size()).is_equal(2)
-	assert_object(pics[0]).is_same(grit.form_icon(0))
-	assert_object(pics[1]).is_same(grit.form_icon(1))
+	# pass 63: one offer a form, each with its icon and its own buy button; no form switch any more
+	assert_object(sheet.find_child("Forms", true, false)).is_null()
+	for f in range(2):
+		var offer: Node = sheet.find_child("Offer%d" % f, true, false)
+		assert_object(offer).is_not_null()
+		var pic: WPlate = null
+		for n in offer.find_children("*", "", true, false):
+			if n is WPlate:
+				pic = n
+				break
+		assert_object(pic.tex).is_same(grit.form_icon(f))
+		assert_object(offer.find_child("Buy%d" % f, true, false)).is_not_null()
 	# the sheet still fits its width
 	assert_float(sheet.get_combined_minimum_size().x).is_less_equal(sheet.size.x + 0.5)
-	# choosing the other form moves the ranks to it and the bar's icons follow
-	forms.choose(0, true)
+	# buying the next rank as Padding adds a Padding rank after the two Plate ones; nothing moves
+	Save.add_gold(100000)
+	assert_bool(Save.buy_talent(grit, 0)).is_true()
+	assert_array(Save.talent_picks("grit")).is_equal([1, 1, 0])
+	h._fill_sheet(sheet)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	assert_int(Save.talent_form("grit")).is_equal(0)
 	var bar2 := sheet.find_child("RankBar", true, false)
-	bought = 0
+	var icons: Array = []
 	for p: WPlate in _slots(bar2):
 		if p.get_meta("bought"):
-			bought += 1
-			assert_object(p.tex).is_same(grit.form_icon(0))
-	assert_int(bought).is_equal(2)
+			icons.append(p.tex)
+	assert_int(icons.size()).is_equal(3)
+	assert_object(icons[0]).is_same(grit.form_icon(1))
+	assert_object(icons[1]).is_same(grit.form_icon(1))
+	assert_object(icons[2]).is_same(grit.form_icon(0))
 	h._close(false)
 	h.visible = false

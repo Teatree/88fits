@@ -822,8 +822,7 @@ func _tick() -> void:
 		for tid in ["grit", "drive"]:
 			var td = root.get_node("Registry").talent(tid)
 			if td:
-				sv.buy_talent(td)
-		sv.set_talent_form("drive", 1)
+				sv.buy_talent(td, 1 if tid == "drive" else 0)
 		if current_scene and current_scene.has_method("_refresh"):
 			current_scene._refresh()
 		# the board rebuilds its rows next frame: the shot waits for them

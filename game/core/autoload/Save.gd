@@ -537,39 +537,57 @@ func spend_gold(n: int, sink: String = "other", extra: Dictionary = {}) -> bool:
 
 # ---------------------------------------------------------------- the Mirror
 
-## What form of a talent is picked (0 or 1) and how many ranks of it are owned.
-func talent_form(id: String) -> int:
+## The forms bought for a talent, rank by rank (pass 63, Garry: "each Upgrade is a choice ... that choice stays"): [0, 1, 0]
+## = rank 1 the first form (Padding), rank 2 the second (Plate), rank 3 the first again. A rank's form never changes;
+## Take it all back is the only way to choose again. A save from before reads {form, rank} as that form `rank` times.
+func talent_picks(id: String) -> Array:
 	var t = data.get("talents", {}).get(id, {})
-	return int(t.get("form", 0)) if t is Dictionary else 0
+	var out: Array = []
+	if not (t is Dictionary):
+		return out
+	var p = (t as Dictionary).get("picks")
+	if p is Array:
+		for f in p:
+			out.append(clampi(int(f), 0, 1))
+		return out
+	for k in range(int((t as Dictionary).get("rank", 0))):
+		out.append(clampi(int((t as Dictionary).get("form", 0)), 0, 1))
+	return out
 
 
+## How many ranks a talent has, both forms together.
 func talent_rank(id: String) -> int:
-	var t = data.get("talents", {}).get(id, {})
-	return int(t.get("rank", 0)) if t is Dictionary else 0
+	return talent_picks(id).size()
 
 
-## Switching form is free and keeps the ranks: the Mirror is a choice, not a purchase you regret.
-func set_talent_form(id: String, form: int) -> void:
-	var all: Dictionary = data.get("talents", {})
-	var t: Dictionary = all.get(id, {"form": 0, "rank": 0})
-	t["form"] = clampi(form, 0, 1)
-	all[id] = t
-	data["talents"] = all
-	request_save()
+## How many of a talent's ranks are of `form`.
+func talent_count(id: String, form: int) -> int:
+	var n := 0
+	for f in talent_picks(id):
+		if int(f) == form:
+			n += 1
+	return n
 
 
-## Buy the next rank of a talent with gold.
-func buy_talent(def: TalentDef) -> bool:
-	var rank := talent_rank(def.id)
+## The form of the last rank bought (0 with none): what the analytics and old callers read.
+func talent_form(id: String) -> int:
+	var p := talent_picks(id)
+	return int(p[p.size() - 1]) if not p.is_empty() else 0
+
+
+## Buy the talent's next rank in `form` with gold: the rank keeps that form for good.
+func buy_talent(def: TalentDef, form: int = 0) -> bool:
+	var picks := talent_picks(def.id)
+	var rank := picks.size()
 	if rank >= def.ranks:
 		return false
+	form = clampi(form, 0, 1)
 	var cost := def.cost_of_rank(rank)
-	if cost < 0 or not spend_gold(cost, "talent", {"talent": def.id, "rank": rank + 1, "form": talent_form(def.id)}):
+	if cost < 0 or not spend_gold(cost, "talent", {"talent": def.id, "rank": rank + 1, "form": form}):
 		return false
+	picks.append(form)
 	var all: Dictionary = data.get("talents", {})
-	var t: Dictionary = all.get(def.id, {"form": 0, "rank": 0})
-	t["rank"] = rank + 1
-	all[def.id] = t
+	all[def.id] = {"picks": picks, "rank": picks.size(), "form": form}
 	data["talents"] = all
 	data["talent_spent"] = talent_spent() + cost
 	request_save()

@@ -294,12 +294,13 @@ func hero_sheet(c: CharacterDef, at_level: int = 1) -> StatSheet:
 			lv = lv.filter(func(e: Effect) -> bool: return e.stat != "crit_chance")
 		if not lv.is_empty():
 			sheet.add_effects(lv, trait_source(c, at_level))
-	# the Mirror: the form picked for each talent, as many times as it has ranks
+	# the Mirror: each talent's ranks by the form chosen for each (pass 63: a rank keeps its form; Padding x2 and Plate x1
+	# are two Padding ranks and one Plate rank, each form's ranks counted on their own)
 	for tdef: TalentDef in Registry.talents.values():
-		var rank := Save.talent_rank(tdef.id)
-		if rank > 0:
-			var form := Save.talent_form(tdef.id)
-			sheet.add_effects(tdef.effects_for(form, rank), "%s: %s %d" % [tdef.display_name, tdef.form_name(form), rank])
+		for form in range(2):
+			var n := Save.talent_count(tdef.id, form)
+			if n > 0:
+				sheet.add_effects(tdef.effects_for(form, n), "%s: %s %d" % [tdef.display_name, tdef.form_name(form), n])
 	return sheet
 
 

@@ -440,9 +440,11 @@ func run_begin(rid: String = "") -> bool:
 	if all is Dictionary:
 		for id in (all as Dictionary).keys():
 			var t = all[id]
-			if t is Dictionary and int(t.get("rank", 0)) > 0:
-				talents[str(id)] = int(t.get("rank", 0))
-				forms[str(id)] = int(t.get("form", 0))
+			var picks := Save.talent_picks(str(id))
+			if t is Dictionary and not picks.is_empty():
+				talents[str(id)] = picks.size()
+				# each rank's form in order since pass 63 (a rank keeps the form it was bought in)
+				forms[str(id)] = picks
 	var sw: WeaponDef = Registry.start_weapon_for(hero) if hero else null
 	track("run_start", {"start_weapon": sw.id if sw else "", "talents": talents, "talent_forms": forms,
 		"gold_before": Save.gold(), "runs_before": maxi(int(Save.data.get("runs_started", 1)) - 1, 0), "seed": Run.map_seed})

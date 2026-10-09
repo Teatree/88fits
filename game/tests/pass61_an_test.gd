@@ -384,9 +384,17 @@ func test_a_real_run_counts_every_coin_in_and_out() -> void:
 	var offer := CardPool.level_up_offer(3)
 	assert_bool(offer.is_empty()).is_false()
 	shop.open(offer)
-	var price := StructureShop.price_of(offer[0])
+	# a card that changes nothing below (pass 63: a Phoenix Feather bought here revived the hero on its own, so Down!
+	# never opened and the test failed now and then)
+	var pick := 0
+	for k in offer.size():
+		var d = offer[k].get("def")
+		if d == null or str(d.id) != "phoenix_feather":
+			pick = k
+			break
+	var price := StructureShop.price_of(offer[pick])
 	var before_shop := Run.run_gold
-	(shop._cards[0] as WCard).pressed.emit()
+	(shop._cards[pick] as WCard).pressed.emit()
 	assert_int(Run.run_gold).is_equal(before_shop - price)
 	_same(ra.gold_out_total, {"shop": price})
 	await get_tree().create_timer(0.3).timeout

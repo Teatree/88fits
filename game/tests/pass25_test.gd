@@ -73,10 +73,12 @@ func test_the_mirror_buys_forms_and_gives_it_all_back() -> void:
 	assert_bool(Save.buy_talent(grit)).is_true()
 	assert_int(Save.talent_rank("grit")).is_equal(1)
 	assert_int(Save.gold()).is_equal(before - grit.cost_of_rank(0))
-	# the form is a free choice and the ranks stay
-	Save.set_talent_form("grit", 1)
-	assert_int(Save.talent_form("grit")).is_equal(1)
-	assert_int(Save.talent_rank("grit")).is_equal(1)
+	# pass 63: every rank is a choice that stays; the second rank bought as Plate, the first stays Padding
+	assert_bool(Save.buy_talent(grit, 1)).is_true()
+	assert_int(Save.talent_rank("grit")).is_equal(2)
+	assert_array(Save.talent_picks("grit")).is_equal([0, 1])
+	assert_int(Save.talent_count("grit", 0)).is_equal(1)
+	assert_int(Save.talent_count("grit", 1)).is_equal(1)
 	# and it folds into the hero's sheet
 	Run.start(Registry.character("astro"), Registry.map("red_canyon"))
 	assert_float(Run.player_sheet.get_stat("damage_reduction", 0.0)).is_greater_equal(0.05)

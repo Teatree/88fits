@@ -332,3 +332,11 @@ god mode off; dying in the arena puts you back on your feet at once (HERO's "Go 
   outrun stage 3's crowd with a full build). `stage_mults` are untouched (they also set coin value and boss HP).
 - **The Mirror's sustain is front-loaded**: Thirst rank 1 already reaches the lifesteal cap (4 % of max HP a second), so
   ranks 2-6 of Thirst add almost nothing; worth a look.
+
+## 10. Pass 63: the Upgrade board's ranks are choices
+
+- Every rank of a talent is bought in one of its two forms and keeps it (`Save.talent_picks(id)`: the forms rank by rank;
+  `Save.buy_talent(def, form)`); there is no form switch any more. The price follows the talent's rank (`cost_of_rank`),
+  whatever the form; each form's ranks fold on their own (two Padding ranks and one Plate rank = +21 % max HP (x1.1 x1.1)
+  and +6 % damage reduction). Take it all back returns half the gold and is the only way to choose again. An old save's
+  {form, rank} reads as that form `rank` times.

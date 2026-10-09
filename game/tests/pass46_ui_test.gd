@@ -187,7 +187,8 @@ func test_the_upgrade_tiles_price_on_paper_and_six_notches_fit() -> void:
 	await get_tree().process_frame
 	var sheet: Control = h._sheet_root.find_child("Sheet", true, false)
 	assert_float(sheet.get_combined_minimum_size().x).is_less_equal(sheet.size.x + 0.5)
-	assert_str(_texts(sheet)).contains("RANK 1")
+	# pass 63: the next rank is a choice, one button a form (its name and price), under "Rank 1: choose one."
+	assert_str(_texts(sheet)).contains("Rank 1: choose one")
 	h._close(false)
 	# short of gold: aged tags, aged coins
 	Save.data["gold"] = 0
