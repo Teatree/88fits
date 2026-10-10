@@ -6,52 +6,52 @@
   "pronoun": "he",
   "trait": [],
   "trait_per_level": [
-    {
-      "stat": "might",
-      "op": "mul",
-      "value": 0.01,
-      "target": "player"
-    }
+	{
+	  "stat": "might",
+	  "op": "mul",
+	  "value": 0.01,
+	  "target": "player"
+	}
   ],
   "favourite_weapon": "skull_rain",
   "start_weapon": "guitarra",
   "favourite_bonus": {
-    "type": "level",
-    "value": 2
+	"type": "level",
+	"value": 2
   },
   "specials": [],
   "unlock_quest": "",
   "frame_px": 256,
   "anims": {
-    "idle": 4,
-    "run": 24,
-    "hit": 4,
-    "die": 5,
-    "cheer": 1,
-    "idle_f": 4,
-    "run_f": 24,
-    "idle_s": 4,
-    "run_s": 24,
-    "idle_bd": 4,
-    "run_bd": 24,
-    "idle_fd": 4,
-    "run_fd": 24,
-    "hit_f": 4,
-    "hit_s": 4,
-    "hit_bd": 4,
-    "hit_fd": 4
+	"idle": 4,
+	"run": 24,
+	"hit": 4,
+	"die": 5,
+	"cheer": 1,
+	"idle_f": 4,
+	"run_f": 24,
+	"idle_s": 4,
+	"run_s": 24,
+	"idle_bd": 4,
+	"run_bd": 24,
+	"idle_fd": 4,
+	"run_fd": 24,
+	"hit_f": 4,
+	"hit_s": 4,
+	"hit_bd": 4,
+	"hit_fd": 4
   },
   "fps": {
-    "run": 36,
-    "hit": 12,
-    "die": 8
+	"run": 36,
+	"hit": 12,
+	"die": 8
   },
   "strip_cols": 62,
   "placeholder": {
-    "color": "#1A1A22",
-    "hat": "#101014",
-    "eyes": 2,
-    "shape": "blob"
+	"color": "#1A1A22",
+	"hat": "#101014",
+	"eyes": 2,
+	"shape": "blob"
   },
   "art_prompt": "a lean young mariachi man with his face painted as a white sugar-skull calavera: white face paint with black hollow eye sockets ringed with small red petals and stitched black teeth painted over his lips, wearing a wide black sombrero with silver embroidery, a fitted black charro jacket with silver buttons and silver embroidery down the sleeves, tight black trousers with a row of silver studs down each side, a red bow tie and a red sash, black boots, standing straight with his hands relaxed at his sides",
   "motion": "running in place at a light quick jog, arms and legs swinging naturally, the sombrero staying on his head",
@@ -64,7 +64,7 @@
   "trait_name": "Last Dance",
   "trait_text": "Gain 1% attack damage per level.",
   "pose_drivers": {
-    "back": "run_spread",
-    "bd": "run_spread"
+	"back": "run_spread",
+	"bd": "run_spread"
   }
 }
