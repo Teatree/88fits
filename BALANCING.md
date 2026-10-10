@@ -340,3 +340,16 @@ god mode off; dying in the arena puts you back on your feet at once (HERO's "Go 
   whatever the form; each form's ranks fold on their own (two Padding ranks and one Plate rank = +21 % max HP (x1.1 x1.1)
   and +6 % damage reduction). Take it all back returns half the gold and is the only way to choose again. An old save's
   {form, rank} reads as that form `rank` times.
+
+## 11. Pass 64: the Strongbox returns, easier stages 2 and 3
+
+- **Strongbox**: after one is used and flies away, another drifts down 30-60 s of run later (`gold_bank.json`
+  `params.respawn`), at a random valid spot at least 20 m from the hero; one at a time. Every structure keeps 3 m from
+  the lake (new).
+- **Stages 2 and 3** (targets: stage 2 with a quarter of the Upgrade board, about 1.5 of 6 ranks a talent; stage 3 with
+  half): creature damage x0.5 in stage 2 and x0.39 -> 0.43 in stage 3 (`damage_curve`); row HP ramps 0.27 -> 1.46
+  (stage 2) and 0.39 -> 1.42 (stage 3); the Elites at 10:45 / 17:55 x0.94 / x1.33 HP; hammer giants x0.72 / x0.56 HP and
+  x0.7 / x0.55 damage. A stage-2 rocket is about 0.4 of a quarter-board hero's health, a stage-3 one about 0.5 of a
+  half-board hero's. Stage 1 is unchanged. First knobs to nudge: the 9:45-11:45 skeleton/knight rows, the ATK x points
+  (keep stage 2 above about 0.46, or its bites fall under stage 1's), the Elite HP.
+

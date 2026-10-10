@@ -162,6 +162,7 @@ func _fact(n: String, col: Color, text: String) -> HBoxContainer:
 
 func open(stage_cleared: int, can_continue: bool, final_stage: bool) -> void:
 	var gold := Run.run_gold
+	W.sfx_first(["ui_stage_clear"])   # pass 64: the stage-clear jingle
 	header.set_title("STAGE %d CLEAR" % stage_cleared)
 	header.set_line("%s · %s kills · %s. Bank it, or push your luck." % [W.mmss(Run.elapsed), W.num(Run.kills), W.lv(Run.level)])
 	_gold_to.text = W.num(gold)

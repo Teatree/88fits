@@ -396,47 +396,74 @@
       "volume_db": -18,
       "file": "real/wd_tumbleweed.wav"
     },
+    "ui_stamp": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.03,
+      "volume_db": -2,
+      "file": "real/ui_stamp.wav"
+    },
+    "ui_stage_clear": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": 0,
+      "file": "real/ui_stage_clear.wav"
+    },
+    "st_deposit": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.02,
+      "volume_db": -2,
+      "file": "real/st_deposit.wav"
+    },
     "mu_title": {
       "category": "music",
       "voices": 1,
       "pitch_spread": 0.0,
       "volume_db": -10,
-      "loop": true
+      "loop": true,
+      "file": "music/mu_title.wav"
     },
     "mu_run_1": {
       "category": "music",
       "voices": 1,
       "pitch_spread": 0.0,
       "volume_db": -10,
-      "loop": true
+      "loop": true,
+      "file": "music/mu_run_1.wav"
     },
     "mu_run_2": {
       "category": "music",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -12,
-      "loop": true
+      "volume_db": -10,
+      "loop": true,
+      "file": "music/mu_run_2.wav"
     },
     "mu_run_3": {
       "category": "music",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -12,
-      "loop": true
+      "volume_db": -10,
+      "loop": true,
+      "file": "music/mu_run_3.wav"
     },
     "mu_boss": {
       "category": "music",
       "voices": 1,
       "pitch_spread": 0.0,
       "volume_db": -10,
-      "loop": true
+      "loop": true,
+      "file": "music/mu_boss.wav"
     },
     "mu_results": {
       "category": "music",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -10,
-      "loop": true
+      "volume_db": -7,
+      "loop": true,
+      "file": "music/mu_results.wav"
     },
     "w_tumble_roll": {
       "category": "weapon",

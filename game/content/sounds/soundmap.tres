@@ -51,20 +51,23 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_boss_attack.wav" id="48_w1ihe"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_boss_die.wav" id="49_fibt7"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_king_volley.wav" id="50_eugay"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/mu_title.wav" id="51_5is2x"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/wd_ambient.wav" id="51_ftp8c"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/mu_run_1.wav" id="52_e8ub3"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/wd_portal_open.wav" id="52_gxk3b"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/mu_run_2.wav" id="53_1rsc2"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/wd_extract.wav" id="53_gvf8j"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/mu_run_3.wav" id="54_5tucu"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/wd_dust_devil.wav" id="54_77khn"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/mu_boss.wav" id="55_d0h0o"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/wd_tumbleweed.wav" id="55_nnu2g"]
-[ext_resource type="AudioStream" path="res://content/sounds/placeholder/mu_results.wav" id="56_kgcti"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_stamp.wav" id="56_hak36"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/ui_stage_clear.wav" id="57_2ptiy"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/st_deposit.wav" id="58_v2i6p"]
+[ext_resource type="AudioStream" path="res://content/sounds/music/mu_title.wav" id="59_ytoq0"]
+[ext_resource type="AudioStream" path="res://content/sounds/music/mu_run_1.wav" id="60_ibn11"]
+[ext_resource type="AudioStream" path="res://content/sounds/music/mu_run_2.wav" id="61_8jmeg"]
+[ext_resource type="AudioStream" path="res://content/sounds/music/mu_run_3.wav" id="62_5cb8c"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_tumble_roll.wav" id="62_paaeo"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_tumble_hit.wav" id="63_huw6y"]
+[ext_resource type="AudioStream" path="res://content/sounds/music/mu_boss.wav" id="63_jajjq"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_snake_rattle.wav" id="64_aepul"]
+[ext_resource type="AudioStream" path="res://content/sounds/music/mu_results.wav" id="64_lmdu7"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_snake_bite.wav" id="65_3st1m"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_skull_throw.wav" id="66_iroj4"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_skull_boom.wav" id="67_6xhrr"]
@@ -428,55 +431,55 @@ entries = {
 },
 "mu_boss": {
 "category": "music",
-"file": "placeholder/mu_boss.wav",
+"file": "music/mu_boss.wav",
 "loop": true,
 "pitch_spread": 0.0,
-"stream": ExtResource("55_d0h0o"),
+"stream": ExtResource("63_jajjq"),
 "voices": 1,
 "volume_db": -10.0
 },
 "mu_results": {
 "category": "music",
-"file": "placeholder/mu_results.wav",
+"file": "music/mu_results.wav",
 "loop": true,
 "pitch_spread": 0.0,
-"stream": ExtResource("56_kgcti"),
+"stream": ExtResource("64_lmdu7"),
 "voices": 1,
-"volume_db": -10.0
+"volume_db": -7.0
 },
 "mu_run_1": {
 "category": "music",
-"file": "placeholder/mu_run_1.wav",
+"file": "music/mu_run_1.wav",
 "loop": true,
 "pitch_spread": 0.0,
-"stream": ExtResource("52_e8ub3"),
+"stream": ExtResource("60_ibn11"),
 "voices": 1,
 "volume_db": -10.0
 },
 "mu_run_2": {
 "category": "music",
-"file": "placeholder/mu_run_2.wav",
+"file": "music/mu_run_2.wav",
 "loop": true,
 "pitch_spread": 0.0,
-"stream": ExtResource("53_1rsc2"),
+"stream": ExtResource("61_8jmeg"),
 "voices": 1,
-"volume_db": -12.0
+"volume_db": -10.0
 },
 "mu_run_3": {
 "category": "music",
-"file": "placeholder/mu_run_3.wav",
+"file": "music/mu_run_3.wav",
 "loop": true,
 "pitch_spread": 0.0,
-"stream": ExtResource("54_5tucu"),
+"stream": ExtResource("62_5cb8c"),
 "voices": 1,
-"volume_db": -12.0
+"volume_db": -10.0
 },
 "mu_title": {
 "category": "music",
-"file": "placeholder/mu_title.wav",
+"file": "music/mu_title.wav",
 "loop": true,
 "pitch_spread": 0.0,
-"stream": ExtResource("51_5is2x"),
+"stream": ExtResource("59_ytoq0"),
 "voices": 1,
 "volume_db": -10.0
 },
@@ -651,6 +654,15 @@ entries = {
 "voices": 2,
 "volume_db": -4.0
 },
+"st_deposit": {
+"category": "ui",
+"file": "real/st_deposit.wav",
+"loop": false,
+"pitch_spread": 0.02,
+"stream": ExtResource("58_v2i6p"),
+"voices": 1,
+"volume_db": -2.0
+},
 "st_portal_wait": {
 "category": "pickup",
 "file": "real/st_portal_wait.wav",
@@ -767,6 +779,24 @@ entries = {
 "stream": ExtResource("5_hak36"),
 "voices": 1,
 "volume_db": -6.0
+},
+"ui_stage_clear": {
+"category": "ui",
+"file": "real/ui_stage_clear.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("57_2ptiy"),
+"voices": 1,
+"volume_db": 0.0
+},
+"ui_stamp": {
+"category": "ui",
+"file": "real/ui_stamp.wav",
+"loop": false,
+"pitch_spread": 0.03,
+"stream": ExtResource("56_hak36"),
+"voices": 1,
+"volume_db": -2.0
 },
 "ui_tap": {
 "category": "ui",

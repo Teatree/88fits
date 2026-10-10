@@ -35,6 +35,27 @@ Processing per candidate (`process`): fold to mono, resample to 22.05 kHz, DC re
 
 Prompt rules that worked: sound-design language in the register Garry wants ("a dull wooden knock, short, dry, close-miked, low-pitched"); name the texture ("airy hush", "grainy buzz", "hollow clack"); never "deep hum" or "drone" alone, which both models render as a sub-bass drone that a phone cannot play (say "low-mid hum with ..."); for creatures prefer physical sounds and add "an animal, not a person"; for AudioGen positive words only (no negative prompting: "no voice" steers it towards a voice). pl_hurt and pl_jump point at `real/silence.wav` (50 ms) on purpose.
 
+## Pass 64: the hype family and the music on Stable Audio 3 (the AI server's ComfyUI)
+
+Garry (2026-10-10) missed the hype: "I just didn't like it on in the 3d world things, but having that for jingles of Level Up, Chest opens, etc, I like all of that ... sound like a casino a lot of the time ... button taps soft and simple ... Music as close to MegaBonk as possible, but slightly more Western." So the ids split in two families:
+
+- **The hype family** (`HYPE` in `tools/ai_sfx.py`, 32 ids: every `ui_*`, the level-up/fanfare/jackpot/unlock/stage-clear jingles, chest knock/open, reel ticks, gems, coins, power-ups, heart, flower, magnet pulse, revive, phoenix, extract, portal open and wait, the Strongbox's till): engine **`sa3`**, bright, punchy, casino and western prompts written as sound design ("a slot machine jackpot payout: ringing casino bells, a cascade of gold coins ... a quick bright twangy western guitar flourish"), every exclusion in the text (cfg 1 ignores negatives). Taps are soft mobile pops. Casino spots: reel tick = slot reel, chest knock = coins rattling in the chest, landing = jackpot, evolution = mega jackpot, purchase + Strongbox's last coin (`st_deposit`, CoinStream.DEPOSIT_ID) = saloon till, coins = casino coin clinks, magnet = payout hopper, revive = arcade coin-in "continue", banish = rubber stamp (`ui_stamp`), stage clear (`ui_stage_clear`, PortalDialog.open) = a win jingle, extraction = cash-out. Scored by a brightness **band** per kind (`pop`, `click`, `casino`, `jingle`, `bling`, `coin` in `KINDS`) and tonality (`score_hype`), not "lower wins".
+- **The 3D world** (weapons, hits, creatures, explosions, steps, ambience) keeps its pass-60 sounds.
+
+```
+python tools/ai_sfx.py --engine sa3 --gen-only --cands 6     # 6 candidates per hype id: models alternate (HYPE[id]["models"])
+python tools/ai_sfx.py --engine sa3 --analyse && python tools/ai_sfx.py --engine sa3 --auto   # score, pick (sa3 first for HYPE ids), bind
+python tools/ai_sfx.py --pick ui_levelup=sa3:2                # by ear; =stable:k goes back to the pass-60 sound
+python tools/ai_music.py [--only mu_boss] [--cands 8]         # music: generate, loop, level, pick, bind (music/<id>.wav)
+python tools/ai_music.py --pick mu_title=3 | --report
+python tools/comfy_audio.py --test "prompt" --model medium --seconds 2 --out x.wav    # one clip; --export writes the UI workflow
+python tools/make_sfx_review.py                                # docs/sfx_review.html + tools/dl/sfx60/sfx_review.zip (music as mp3)
+```
+
+Server facts (`tools/comfy_audio.py`): the graph is the Comfy-Org template (CheckpointLoaderSimple -> CLIPLoader `t5gemma_b_b_ul2` type `stable_audio` -> CLIPTextEncode -> ConditioningStableAudio(seconds_total) -> EmptyLatentAudio(seconds + 0.2, min 1 s) -> KSampler 8 steps, cfg 1, lcm, simple -> VAEDecodeAudio -> TrimAudioDuration -> GameAudioSaveWAV, 44.1 kHz stereo). The **medium** model (max 380 s) does everything: a 150 s track in about 9 s, a jingle or a 0.6 s pop in 1-4 s, and it keeps the asked BPM (128 asked, 128.3 measured). The **small sfx model is unusable** there for now: fp16 overflows to NaN about half the time (the saver refuses: "Audio contains NaN"), and through ModelComputeDtype bf16/fp32 it returns flat noise. Model `"app"` in a HYPE row = Garry's Stable Audio app on this PC (the pass-60 route) with the hype prompt, as a second opinion.
+
+Music (`tools/ai_music.py`, `TRACKS`): six candidates per track, resampled to 32 kHz stereo before any cut, tempo from the onset envelope's autocorrelation (librosa's beat tracker needs numba loops this PC lacks), a loop of whole bars where the music around the end best matches the music around the start, the end nudged to the sample, the tail crossfaded (0.35 s, equal power) into the music just before the start, so the sample after the last is the first; levelled to -17 dBFS loud-part RMS with peaks at -1 dBFS (at most 3.5 dB of limiting, else turned down). The run plays one track per stage (Audio.music_stage from WaveDirector.stage_started; endless stays on the last) with mu_boss over it while a boss lives (Audio.music_boss), crossfaded 1.5 s. Old files: `tools/dl/backup/sfx_pass63/`.
+
 ## Placeholders (a brand-new id only)
 
 ```

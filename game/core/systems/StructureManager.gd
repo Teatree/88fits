@@ -31,6 +31,26 @@ const LIFT_BEAT := 0.35
 ## bush has no collider and so no obstacle circle to keep a ring off it, and a patch is a stretch of open ground the
 ## structures would otherwise favour
 const BUSH_CLEAR := 3.0
+## The returning Strongbox (pass 64, Garry: "the balloon structure ... actually returns every 30-60 seconds after it's
+## used. It spawns in a random place ... fly down from the sky (basically a reverse of the fly away animation) ...
+## Signs don't suddenly start showing direction towards the newly spawned Balloon"): a structure whose JSON has
+## `params.respawn {min, max}` comes back that many seconds (a random draw, counted only while the run runs) after it has
+## flown away, as a new box at a fresh spot (find_spot: the start's rules, plus the hero's surroundings, the water, the
+## signposts, the live barrels and the paintings' cover bands), floating down under its balloon (DESCEND_TIME from
+## DESCEND_HEIGHT up, swaying, slowing, then SETTLE_TIME onto the sand with a bump) and usable once it stands. One at a
+## time: no second return is counted while one is due or the box that came back still stands unused. The signs chose
+## their structures at the start and never look again, so no arm turns to it (the arm that pointed at the first box went
+## blank when it was used, as before).
+const DESCEND_HEIGHT := 18.0
+const DESCEND_TIME := 4.5
+const SETTLE_LIFT := 0.7       # the last stretch: from this high to the sand (the lift's first hop, the other way)
+const SETTLE_TIME := 0.6
+const SWAY := 0.14             # radians of roll at the top of the descent, dying away as it lands
+const SWAY_RATE := 2.4
+const RETURN_HERO_CLEAR := 20.0  # never lands within this of the hero
+const RETURN_SIGN_CLEAR := 4.0
+const RETURN_BARREL_CLEAR := 2.5
+const RETURN_RETRY := 5.0      # no spot found (a crowded map): try again this much later
 
 var game: Node
 var map: MapBase
@@ -38,6 +58,14 @@ var items: Array = []   # Structure nodes
 ## the coins flying into a Strongbox (pass 58): one CoinStream for every deposit
 var coins: Node3D
 var _rng := RandomNumberGenerator.new()
+## the map's structure plan's spacing, kept for the returns
+var _spacing := 16.0
+## the Strongbox's return (pass 64): seconds until it comes (-1 = none due), what comes, and the box that came (landing
+## or standing unused); `returns` counts the boxes that came back this run
+var return_t := -1.0
+var _return_def: StructureDef
+var returner: Structure
+var returns := 0
 
 
 class Structure:
@@ -64,6 +92,13 @@ class Structure:
 	var bounce_v := 0.0
 	var shine := 0.0
 	var reacting := false
+	## pass 64: floating down under its balloon (not usable until it stands), how long it has been, where its visual
+	## rests and the drift it comes in on; `flown` once it has left on its balloon
+	var arriving := false
+	var arrive_t := 0.0
+	var rest := Vector3.ZERO
+	var drift := Vector3.ZERO
+	var flown := false
 
 
 func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
@@ -73,6 +108,7 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 	_make_coin_stream()
 	var count := int(plan.get("count", 8))
 	var spacing := float(plan.get("min_spacing", 16.0))
+	_spacing = spacing
 	var roster: Array = plan.get("roster", [])
 	var defs: Array = []
 	if roster.is_empty():
@@ -99,30 +135,93 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 		var a := _rng.randf() * TAU
 		var r := _rng.randf_range(map.arena_radius * 0.3, map.arena_radius * 0.86)
 		var p := Vector3(cos(a) * r, 0, sin(a) * r)
-		var fc := map.flats_center
-		if Vector2(p.x - fc.x, p.z - fc.z).length() < 18.0 * relax:
-			continue
-		var ok := true
-		for q: Vector3 in placed:
-			if Vector2(p.x - q.x, p.z - q.z).length() < spacing * relax:
-				ok = false
-				break
-		if ok:
-			for o: Vector3 in map.obstacles:
-				if Vector2(p.x - o.x, p.z - o.y).length() < o.z + 3.5:
-					ok = false
-					break
-		if ok and map.has_method("bush_patches"):
-			ok = clear_of_bushes(Vector2(p.x, p.z), map.call("bush_patches"))
-		if not ok:
+		if not start_spot_ok(p, placed, spacing, relax):
 			continue
 		p.y = map.height_at(p.x, p.z)
 		placed.append(p)
 	for k in range(placed.size()):
 		var def: StructureDef = picks[k]
-		_spawn(def, placed[k])
+		var _st := _spawn(def, placed[k])
 	if placed.size() < defs.size():
 		push_warning("StructureManager: placed %d of %d kinds" % [placed.size(), defs.size()])
+
+
+## The start's rules for a structure at `p` (shared with the returns, pass 64): clear of the flats (18 m), of every spot
+## in `placed` by `spacing`, of the obstacle circles by 3.5 m, of the bushes and (pass 64) of the water by 3 m; `relax`
+## shrinks the distances as the tries run out.
+func start_spot_ok(p: Vector3, placed: Array, spacing: float, relax: float = 1.0) -> bool:
+	var fc := map.flats_center
+	if Vector2(p.x - fc.x, p.z - fc.z).length() < 18.0 * relax:
+		return false
+	for q: Vector3 in placed:
+		if Vector2(p.x - q.x, p.z - q.z).length() < spacing * relax:
+			return false
+	for o: Vector3 in map.obstacles:
+		if Vector2(p.x - o.x, p.z - o.y).length() < o.z + 3.5:
+			return false
+	if map.has_method("bush_patches") and not clear_of_bushes(Vector2(p.x, p.z), map.call("bush_patches")):
+		return false
+	if _wet(p, 3.0):
+		return false
+	return true
+
+
+## In the water, or within `r` of it (its middle and four points round `p`)?
+func _wet(p: Vector3, r: float) -> bool:
+	if not map.has_method("in_water"):
+		return false
+	for o: Vector3 in [Vector3.ZERO, Vector3(r, 0, 0), Vector3(-r, 0, 0), Vector3(0, 0, r), Vector3(0, 0, -r)]:
+		if map.in_water(p + o):
+			return true
+	return false
+
+
+## A fresh spot for a returning structure (pass 64): random over the start's band (0.3 to 0.86 of the arena's radius),
+## the start's rules against every structure still standing, and clear of the hero (RETURN_HERO_CLEAR), the signposts,
+## the live barrels and every painting's cover band (so the box is never hidden behind a cactus). The spacing relaxes to
+## half as the tries run out, like the start's. Vector3.INF when the map has no room.
+func find_spot() -> Vector3:
+	var standing: Array = []
+	for st: Structure in items:
+		if is_instance_valid(st) and not st.flown and not st.leaving:
+			standing.append(st.global_position)
+	var hero := Vector3.INF
+	if game and game.get("player") and is_instance_valid(game.player):
+		hero = game.player.global_position
+	var signs: Array = []
+	var sf = game.get_node_or_null("Signs") if game else null
+	if sf and sf.get("spots") is Array:
+		signs = sf.spots
+	var barrels = game.get("barrels") if game else null
+	var covers: Array = BarrelField.covers_of(game, map) if game else []
+	var tries := 600
+	for k in range(tries):
+		var relax: float = 1.0 - 0.5 * clampf(float(k) / (float(tries) * 0.5), 0.0, 1.0)
+		var a := _rng.randf() * TAU
+		var r := _rng.randf_range(map.arena_radius * 0.3, map.arena_radius * 0.86)
+		var p := Vector3(cos(a) * r, 0, sin(a) * r)
+		if not start_spot_ok(p, standing, _spacing, relax):
+			continue
+		if hero != Vector3.INF and Vector2(p.x - hero.x, p.z - hero.z).length() < RETURN_HERO_CLEAR:
+			continue
+		var ok := true
+		for q: Vector3 in signs:
+			if Vector2(p.x - q.x, p.z - q.z).length() < RETURN_SIGN_CLEAR:
+				ok = false
+				break
+		if ok and barrels is BarrelField:
+			var bf := barrels as BarrelField
+			for i in bf.pos.size():
+				if bf.alive[i] != 0 and Vector2(p.x - bf.pos[i].x, p.z - bf.pos[i].z).length() < RETURN_BARREL_CLEAR:
+					ok = false
+					break
+		if ok and BarrelField.in_cover(covers, Vector2(p.x, p.z), 1.5):
+			ok = false
+		if not ok:
+			continue
+		p.y = map.height_at(p.x, p.z)
+		return p
+	return Vector3.INF
 
 
 ## Whether a structure at `p` (x, z) keeps BUSH_CLEAR from every bush of `patches` (RedCanyon.bush_patches, pass 61).
@@ -146,7 +245,7 @@ func _pick(defs: Array) -> StructureDef:
 	return defs[0]
 
 
-func _spawn(def: StructureDef, at: Vector3) -> void:
+func _spawn(def: StructureDef, at: Vector3) -> Structure:
 	var s := Structure.new()
 	s.def = def
 	add_child(s)
@@ -196,6 +295,7 @@ func _spawn(def: StructureDef, at: Vector3) -> void:
 		s.glow.position.y = def.height * 0.7
 		s.add_child(s.glow)
 	items.append(s)
+	return s
 
 
 ## The Teleport's portal (pass 35): a spiral turning in the ring's hole, standing up to the camera like the painting and a
@@ -278,6 +378,9 @@ func _process(delta: float) -> void:
 	var pp: Vector3 = game.player.global_position
 	var tg: Telegraphs = game.telegraphs
 	for s: Structure in items:
+		if s.arriving:
+			_tick_descend(s, delta)
+			continue
 		if s.used:
 			continue
 		s._t += delta
@@ -308,6 +411,8 @@ func _process(delta: float) -> void:
 			_tick_portal(s, delta, inside, d)
 		if s.progress >= 1.0:
 			_use(s)
+	# after the loop: a box brought back now starts its descent on the next frame
+	_tick_return(delta)
 	Perf.add("structures", _t0)
 
 
@@ -378,6 +483,128 @@ func _lift(s: Structure) -> void:
 	tw.tween_property(v, "position", start + drift, 4.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.parallel().tween_property(v, "rotation:y", v.rotation.y + 1.4, 4.5)
 	tw.tween_callback(v.hide)
+	tw.tween_callback(func() -> void: _on_flown(s))
+
+
+# ---------------------------------------------------------------- the Strongbox comes back (pass 64)
+
+## The box is gone over the canyon: a structure with `params.respawn` sets its return going, unless one is already due
+## or the box that came back still stands unused.
+func _on_flown(s: Structure) -> void:
+	s.flown = true
+	var rp = s.def.params.get("respawn")
+	if not rp is Dictionary:
+		return
+	if return_t >= 0.0:
+		return
+	if returner != null and is_instance_valid(returner) and returner != s and not returner.used:
+		return
+	var lo := maxf(float((rp as Dictionary).get("min", 30.0)), 0.0)
+	var hi := maxf(float((rp as Dictionary).get("max", 60.0)), lo)
+	return_t = _rng.randf_range(lo, hi)
+	_return_def = s.def
+
+
+## The return's clock: counted only while the run runs (called from _process past its pause check).
+func _tick_return(delta: float) -> void:
+	if return_t < 0.0:
+		return
+	return_t -= delta
+	if return_t <= 0.0:
+		return_t = -1.0
+		bring_back()
+
+
+## A new box of the kind that flew off at a fresh spot, floating down from the sky. Returns it (null with no spot: tried
+## again RETURN_RETRY seconds later).
+func bring_back() -> Structure:
+	var def: StructureDef = _return_def
+	if def == null:
+		return null
+	var at := find_spot()
+	if at == Vector3.INF:
+		return_t = RETURN_RETRY
+		return null
+	var s := _spawn(def, at)
+	returner = s
+	returns += 1
+	_descend(s)
+	# a quiet word when it comes down out of sight (on the screen the box says it itself)
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	var hud = game.get("hud") if game else null
+	if hud and hud.has_method("toast") and (cam == null or not _on_screen(cam, at)):
+		hud.toast("A STRONGBOX DRIFTS DOWN", Color(1.0, 0.85, 0.35))
+	return s
+
+
+func _on_screen(cam: Camera3D, at: Vector3) -> bool:
+	if cam.is_position_behind(at):
+		return false
+	return get_viewport().get_visible_rect().has_point(cam.unproject_position(at))
+
+
+## The fly-away in reverse: the box starts DESCEND_HEIGHT up on the drift it would have left on, its ring, pie and glow
+## hidden until it stands.
+func _descend(s: Structure) -> void:
+	s.arriving = true
+	s.arrive_t = 0.0
+	s.ring.visible = false
+	if s.glow:
+		s.glow.light_energy = 0.0
+	if s.visual:
+		s.rest = s.visual.position
+		s.drift = Vector3(_rng.randf_range(-2.5, 2.5), DESCEND_HEIGHT, _rng.randf_range(-6.0, -3.0))
+		s.visual.position = descend_offset(s, 0.0)
+
+
+## Where the box's visual hangs `t` seconds into its arrival (its resting position at the end): DESCEND_TIME coming down
+## the drift, slowing all the way (the lift's ease-in, reversed), to SETTLE_LIFT over its spot, then SETTLE_TIME easing
+## onto the sand.
+static func descend_offset(s: Structure, t: float) -> Vector3:
+	var hop := Vector3(0, SETTLE_LIFT, 0)
+	if t < DESCEND_TIME:
+		var u := 1.0 - t / DESCEND_TIME
+		return s.rest + hop + s.drift * (u * u)
+	var q := clampf((t - DESCEND_TIME) / SETTLE_TIME, 0.0, 1.0)
+	var e := 0.5 - 0.5 * cos(q * PI)
+	return s.rest + hop * (1.0 - e)
+
+
+## The sway as it comes down: a slow roll under the balloon, dying away by the time it lands.
+static func descend_roll(t: float) -> float:
+	if t >= DESCEND_TIME:
+		return 0.0
+	return SWAY * sin(t * SWAY_RATE) * (1.0 - t / DESCEND_TIME)
+
+
+func _tick_descend(s: Structure, delta: float) -> void:
+	s.arrive_t += delta
+	var v := s.visual
+	if v:
+		v.position = descend_offset(s, s.arrive_t)
+		if v is BillboardSprite:
+			(v as BillboardSprite).set_roll(descend_roll(s.arrive_t))
+	if s.arrive_t >= DESCEND_TIME + SETTLE_TIME:
+		_land(s)
+
+
+## It stands: a bump, a puff of sand and a flash of its ring, and it is a Strongbox like any other.
+func _land(s: Structure) -> void:
+	s.arriving = false
+	if s.visual:
+		s.visual.position = s.rest
+		if s.visual is BillboardSprite:
+			(s.visual as BillboardSprite).set_roll(0.0)
+	s.ring.visible = true
+	s.bounce_v -= BOUNCE_KICK * 1.4
+	s.reacting = true
+	if game:
+		if game.get("telegraphs"):
+			game.telegraphs.flash_ring(s.global_position, s.def.radius + 0.4, s.def.color, 0.4)
+		if game.get("fx"):
+			for k in 4:
+				var a := TAU * float(k) / 4.0
+				game.fx.sand(s.global_position + Vector3(cos(a) * 0.8, 0.1, sin(a) * 0.8), 1.0)
 
 
 ## The coin stream (pass 58), made once at setup and warmed (its coin drawn under the map while the run starts).

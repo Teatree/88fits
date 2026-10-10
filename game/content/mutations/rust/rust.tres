@@ -28,15 +28,17 @@ vfx = "oxidised blades, rust flakes shed while they spin"
 effects = [SubResource("Resource_weage"), SubResource("Resource_05rp4"), SubResource("Resource_4kqfm")]
 params = {
 "rust": {
-"amount": 0.75,
-"flake_size": 1.0,
-"flakes": 12.0,
-"hit_flakes": 0.5,
-"pit_color": "#5C2410",
-"pits": 0.7,
-"rim": 0.22,
-"rust_color": "#B8551A",
-"scale": 2.2
+"amount": 0.7,
+"flake_colors": ["#B8743E", "#C98A4E", "#A86A3C", "#D49A5E"],
+"flake_size": 0.7,
+"flakes": 6.0,
+"hit_flakes": 0.25,
+"pit_color": "#6B4A30",
+"pits": 0.35,
+"rim": 0.1,
+"rust_color": "#AC6230",
+"scale": 1.7,
+"steel": 0.7
 }
 }
 id = "rust"

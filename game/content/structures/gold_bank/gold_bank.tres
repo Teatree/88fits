@@ -7,6 +7,10 @@
 script = ExtResource("1_0n668")
 effect_kind = "bank"
 params = {
+"respawn": {
+"max": 60.0,
+"min": 30.0
+},
 "spent": "fly_away"
 }
 height = 2.8

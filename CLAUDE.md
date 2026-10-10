@@ -230,9 +230,9 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-10, pass 63, version 0.49)
+## Status (2026-10-11, pass 64, version 0.50)
 
-What is true now, in short. The why and the detail of every pass (1 to 63) is in **`docs/HISTORY.md`**: search it for a
+What is true now, in short. The why and the detail of every pass (1 to 64) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
 After each pass: append the pass's paragraph to `docs/HISTORY.md`, and update this section only where what is true
 changed.
@@ -240,7 +240,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk` (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,240 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.49).
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.50).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
 rolled per run from `Run.map_seed`, a stone boundary wall; everything but the ground, the wall, barrels, signs and a few
@@ -249,7 +249,7 @@ Tumbleweed King 7:10, Gila Grande 14:20, the Brander 21:30; Elites at 3:35 / 10:
 ground and a hell channel of creatures on its own cap), then endless. The timeline (`content/maps/red_canyon/red_canyon.json`
 `timeline_data`: cap curve, roster rows, waves, events, specials, HP/ATK curves, scaling) is **Garry's to edit in the
 Level Editor** (`tools\level_editor.cmd`, `docs/level_editor.md`, schema `docs/waves_schema.md`); stage 1 is his own
-work (pinned by `pass62_pc_test`), stages 2-3 were written in his style in pass 62. Enemy strength = base x
+work (pinned by `pass62_pc_test`), stages 2-3 were written in his style in pass 62 and tuned in pass 64 so stage 2 is clearable with a quarter of the Upgrade board and stage 3 with half (`tools/difficulty_probe.gd`). Enemy strength = base x
 `stage_mults` [1, 2.2, 3.34] x the HP/ATK curve at the row's start x (1 + level_*_per_level x (hero level - 1)) x
 `creature_*_mult`, fixed per row from its start.
 
@@ -267,7 +267,7 @@ are gone. Pierce drop-off is on by default (`Settings.pierce_falloff`, Debug pan
 
 **Meta.** The **Upgrade board** (`ui/HomesteadScreen.gd`, still "the Mirror" in code; `content/talents`): eight talents,
 two forms, six ranks; every rank is bought in one form and keeps it (`Save.talent_picks`); Take it all back refunds half.
-Gold: extraction banks the purse, a death leaves it in the sand, the Strongbox banks mid-run. Unlock quests gate half the
+Gold: extraction banks the purse, a death leaves it in the sand, the Strongbox banks mid-run (a new one drifts down 30-60 s after one is used). Unlock quests gate half the
 items; the Collection shows only what was met.
 
 **UI.** The Wanted kit (`ui/wanted/`, see Architecture); one paused screen at a time with death winning
@@ -286,7 +286,7 @@ Plan: `docs/analytics_plan.html` (artifact AK53A8KLchrSUFXxZo4kSu). Local runs: 
 **Art and sound pipelines.** Flux.2 Klein / dev stills + Wan 2.2 clips on ComfyUI 192.168.137.54:8188 (skills
 sprite-pipeline, sprite-animation; heroes walk on Mixamo pose drivers fitted to the painting; creatures on Blender
 control videos via `gen_ctl.py`); paint several seeds and pick by eye, the vision QA misses defects. Icons:
-`tools/gen_icon_cands.py` sets. Sound: Stable Audio at http://127.0.0.1:7861/ (`tools/ai_sfx.py`, skill sound-pipeline).
+`tools/gen_icon_cands.py` sets. Sound: Stable Audio 3 medium on the server's ComfyUI (`tools/comfy_audio.py`; UI and reward jingles in a casino-western `HYPE` table in `tools/ai_sfx.py`, music by `tools/ai_music.py` into `content/sounds/music/`; world sounds from pass 60; Garry's own Stable Audio app at http://127.0.0.1:7861/ is the second engine; skill sound-pipeline). `Audio.gd` plays one music track at a time (`music_stage`, `music_boss`).
 Blender models from Garry's references in `_REFERENCES/` (git-ignored).
 
 **Docs.** The design bible is built from `docs/design/src/` by `python tools/make_bible.py` (edit the parts, not the

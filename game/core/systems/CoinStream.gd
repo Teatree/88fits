@@ -65,6 +65,8 @@ const PING_GAP := 0.05
 const PING_LOW := 0.95
 const PING_HIGH := 1.75
 const PING_ID := "pk_coin"
+## the saloon till's ka-ching when the stream's last coin lands (pass 64)
+const DEPOSIT_ID := "st_deposit"
 const PING_PLAYERS := 4
 ## and each a little softer the denser the stream (dB at intensity 1), so a big deposit is a quick run, not a din
 const PING_SOFTER := 4.0
@@ -446,6 +448,8 @@ func _arrive(st: Stream, j: int) -> void:
 		st.ping_t = st.t
 		_ping(lerpf(PING_LOW, PING_HIGH, float(st.landed - 1) / maxf(float(n - 1), 1.0)) + (0.1 if last and n > 1 else 0.0),
 			0.0 if last else -PING_SOFTER * st.k)
+	if last:
+		Audio.play(DEPOSIT_ID)   # pass 64: the last coin rings the till
 	if game and game.get("fx") and game.fx:
 		var at: Vector3 = st.to_j[j]
 		for k in range(2 if last else 1):

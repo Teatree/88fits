@@ -1,5 +1,7 @@
 ## Blades orbiting the player on a tilted ring. Hits anything they touch, with a per-enemy hit cooldown. The blades
 ## are one MultiMesh (pass 33.8: a node and a draw call each, twenty of them for an evolved Saw Halo).
+## Pass 64 (Garry: "Rust Mutation 3d object effect looks a bit too gruesome"): lighter, warmer orange-brown, steel
+## showing, fewer and smaller pits, a thin rim and fewer, smaller flakes in `flake_colors` (rust.json, saw_halo.json).
 ## Pass 61, Rust (Garry chose the cheap look: "Oxidised blade tint, rust flakes shed while spinning"): `params.rust`
 ## {rust_color, pit_color, amount, pits, scale, rim, flakes, hit_flakes, flake_size} (the mutation's JSON) draws the blades and
 ## the solid ring with core/shaders/rust_blade.gdshader over the blade's own colour, and sheds `flakes` chips of rust a
@@ -289,6 +291,7 @@ static func rust_material(base: Material, rp: Dictionary, radius: float = 0.38) 
 	m.set_shader_parameter("pits", clampf(float(rp.get("pits", 0.7)), 0.0, 1.0))
 	m.set_shader_parameter("scale", float(rp.get("scale", 2.2)))
 	m.set_shader_parameter("rim", float(rp.get("rim", 0.22)))
+	m.set_shader_parameter("steel", float(rp.get("steel", 1.0)))
 	m.set_shader_parameter("radius", radius)
 	if ResourceLoader.exists(RUST_NOISE):
 		m.set_shader_parameter("noise_tex", load(RUST_NOISE))
@@ -313,8 +316,17 @@ func _shed(delta: float, center: Vector3, r: float, spin: float, blade_r: float)
 		var tangent := Vector3(-sin(a), 0.0, cos(a)) * signf(spin)
 		var at := center + Vector3(cos(a) * r, sin(a * 2.0) * 0.12, sin(a) * r) + radial * blade_r * 0.8
 		var v := tangent * randf_range(2.0, 4.0) + radial * randf_range(0.6, 1.8) + Vector3(0, randf_range(1.0, 2.6), 0)
-		fx.rust_flake(at, v, Color(0, 0, 0, 0), size, flakes % 4 == 0)
+		fx.rust_flake(at, v, flake_color(rp), size, flakes % 4 == 0)
 		flakes += 1
+
+
+## A flake's colour (pass 64): one of Rust's `flake_colors` (light, warm oxide, so the chips read as old rust and not
+## as blood), or Fx's own when the params name none (alpha 0).
+static func flake_color(rp: Dictionary) -> Color:
+	var cols = rp.get("flake_colors")
+	if cols is Array and not (cols as Array).is_empty():
+		return Color(str((cols as Array)[randi() % (cols as Array).size()]))
+	return Color(0, 0, 0, 0)
 
 
 ## A hit knocks a little more rust off: `hit_flakes` flakes from the blade at `p` (angle `a` on the ring), its fraction
@@ -331,5 +343,5 @@ func _hit_flakes(p: Vector3, a: float, spin: float) -> void:
 	for q in range(nf):
 		var tangent := Vector3(-sin(a), 0.0, cos(a)) * signf(spin)
 		var v := tangent * randf_range(1.5, 3.5) + Vector3(randf_range(-1.2, 1.2), randf_range(1.5, 3.2), randf_range(-1.2, 1.2))
-		fx.rust_flake(p, v, Color(0, 0, 0, 0), size)
+		fx.rust_flake(p, v, flake_color(rp), size)
 		flakes += 1

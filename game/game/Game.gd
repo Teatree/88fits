@@ -179,6 +179,10 @@ func _ready() -> void:
 	director.boss_started.connect(_on_boss_started)
 	enemies.boss_hp_changed.connect(func(hp, mx): if hud: hud.set_boss_hp(hp, mx))
 	enemies.boss_died.connect(func(_d, _p): if hud: hud.hide_boss())
+	# the run's music (pass 64): each stage its own track, the boss's over it while a boss lives
+	director.stage_started.connect(func(s): Audio.music_stage(s))
+	director.boss_started.connect(func(_def): Audio.music_boss(true, str(mapdef.music.get("boss", "mu_boss")) if mapdef else "mu_boss"))
+	enemies.boss_died.connect(func(_d, _p): Audio.music_boss(false))
 	Run.level_up.connect(_on_level_up)
 	Run.lifesteal_healed.connect(func(n): if player and not player.dead: player.heal(n))
 	Run.build_changed.connect(_sync_weapons)
@@ -660,14 +664,26 @@ func leave_arena() -> void:
 ## The landing: a beam of light stands on the spot alone for half a second, the hero comes down it white-hot over a
 ## second and a half, lands in a ring of dust, the HUD fades in and the clock starts. The tree is not paused (the
 ## tweens and the warm-up run under it); the stick is locked through `player.input.ui_blocking` and `Player.cinematic`,
-## and the camera sits on an anchor at the landing spot, not on the hero 12 m up. A tap after SPAWN_SKIP_AFTER lands him
-## at once (that touch is swallowed: the next one walks). Tools get the instant start unless their launch file says
-## "spawn": true.
+## and the camera sits on an anchor at the landing spot, not on the hero 12 m up. Tools get the instant start unless their
+## launch file says "spawn": true.
+## Pass 64 (Garry: "the hero descending from the sky look janky ... facing us when coming down, but then immediately
+## switches back when they land ... a jerky effect ... if the player tries to move or press anything while the sequence
+## is happening, it will jerk to the end ... let's try to speed up the sequence"): he faces the camera all the way down
+## and after landing until he first moves (Player.face_camera); he comes down on the sand itself (the start spot sat half
+## a metre up and he dropped it under gravity, stretched, after the beam let go) on a smootherstep, so he arrives with no
+## speed and no acceleration; he touches down with a soft squash (Player.land_settle), a small shake and no blinking; a
+## press, a drag or a key after SPAWN_HURRY_AFTER no longer lands him at once but runs the rest of the sequence
+## SPAWN_HURRY times as fast (the same easing; the settle after it too), and a finger still down when he lands becomes
+## the stick, so the player who tried to move walks off at once.
 const SPAWN_HEIGHT := 12.0
 const SPAWN_HOLD := 0.5         # the beam alone
 const SPAWN_FALL := 1.5         # the descent
 const SPAWN_SETTLE := 1.0       # dust settling, the HUD fading in, then the zoom handed back to the camera
-const SPAWN_SKIP_AFTER := 1.0
+const SPAWN_HURRY_AFTER := 0.2  # input before this is the tap that started the run, not a hurry
+const SPAWN_HURRY := 3.0        # how much faster the rest of the sequence runs once the player presses or moves
+const SPAWN_HURRY_RAMP := 14.0  # the speed-up eases in (rate per second), so the fall quickens rather than jumps
+const SPAWN_SQUASH := 0.45      # the landing's squash and spring back, seconds
+const SPAWN_LAND_SHAKE := 0.3   # the touchdown's camera shake (1.2 before pass 64 read as a jolt)
 const SPAWN_FLASH := 0.35       # how lit the hero is at the top of the beam (1 = white: he vanished in the beam)
 const SPAWN_BEAM_BACK := 2.2    # metres the beam stands behind him as the camera sees it (his sprite leans back towards the camera: its top passes 1.7 m back)
 var spawning := false
@@ -677,10 +693,23 @@ var _spawn_anchor: Node3D
 var _spawn_beam: Node3D
 var _spawn_quads: Array = []    # the shine quads (MeshInstance3D): two beams and the pool
 var _spawn_spark_t := 0.0
+## how fast the sequence runs (1, or SPAWN_HURRY once the player pressed or moved) and the finger held down meanwhile
+## (its index, where it went down, where it is now; -1 when none), handed to the stick at the landing
+var spawn_rate := 1.0
+var _spawn_speed := 1.0         # the rate the clock runs at now, easing towards spawn_rate
+var _spawn_touch := -1
+var _spawn_touch_from := Vector2.ZERO
+var _spawn_touch_at := Vector2.ZERO
 
 
 func _spawn_begin() -> void:
 	_spawn_land = player.global_position
+	# on the sand itself: the start spot stands above it, and a hero let go there fell the rest under gravity
+	if map and map.has_method("height_at"):
+		_spawn_land.y = map.height_at(_spawn_land.x, _spawn_land.z)
+	spawn_rate = 1.0
+	_spawn_speed = 1.0
+	_spawn_touch = -1
 	# the warm-up first: its pit is eight metres under wherever the hero stands now
 	Warmup.run(self)
 	Audio.set_listener(_spawn_land)
@@ -698,8 +727,7 @@ func _spawn_begin() -> void:
 	player.shadow.visible = false
 	# lit but in colour: a white-hot hero inside the white beam read as nothing at all (pass 45 capture)
 	player.sprite.set_flash(SPAWN_FLASH)
-	if player.sprite.has_animation("idle_f"):
-		player.sprite.play("idle_f")
+	player.face_camera()
 	# the behaviours tick on game.paused alone: held off, or the saws would orbit 12 m up
 	weapon_host.visible = false
 	weapon_host.process_mode = Node.PROCESS_MODE_DISABLED
@@ -739,7 +767,8 @@ func _spawn_strength(q: MeshInstance3D, v: float) -> void:
 
 
 func _tick_spawn(delta: float) -> void:
-	_spawn_t += delta
+	_spawn_speed = move_toward(_spawn_speed, spawn_rate, delta * SPAWN_HURRY_RAMP)
+	_spawn_t += delta * _spawn_speed
 	_spawn_spark_t -= delta
 	if _spawn_spark_t <= 0.0:
 		_spawn_spark_t = 0.04
@@ -747,7 +776,7 @@ func _tick_spawn(delta: float) -> void:
 	if _spawn_t < SPAWN_HOLD:
 		return
 	var f := clampf((_spawn_t - SPAWN_HOLD) / SPAWN_FALL, 0.0, 1.0)
-	var e := f * f * (3.0 - 2.0 * f)
+	var e := spawn_ease(f)
 	player.visible = true
 	player.global_position = _spawn_land + Vector3(0, SPAWN_HEIGHT * (1.0 - e), 0)
 	player.sprite.set_flash(SPAWN_FLASH * (1.0 - e))
@@ -760,6 +789,18 @@ func _tick_spawn(delta: float) -> void:
 		_spawn_land_now()
 
 
+## The fall's curve (pass 64): smootherstep, so he leaves the top and reaches the sand with no speed and no acceleration.
+static func spawn_ease(f: float) -> float:
+	var x := clampf(f, 0.0, 1.0)
+	return x * x * x * (x * (x * 6.0 - 15.0) + 10.0)
+
+
+## The player pressed, dragged or hit a key during the sequence (pass 64): the rest runs SPAWN_HURRY times as fast.
+func spawn_hurry() -> void:
+	if spawning and _spawn_t >= SPAWN_HURRY_AFTER:
+		spawn_rate = SPAWN_HURRY
+
+
 func _spawn_land_now() -> void:
 	spawning = false
 	player.global_position = _spawn_land
@@ -770,14 +811,17 @@ func _spawn_land_now() -> void:
 	player.shadow.visible = true
 	player.cinematic = false
 	player.input.ui_blocking = false
+	player.face_camera()
+	player.land_settle(SPAWN_SQUASH / spawn_rate)
 	player.invuln = 1.0
+	player.quiet_invuln = true
 	telegraphs.flash_ring(_spawn_land, 2.8, Color(1.0, 0.9, 0.6), 0.5)
 	fx.burst(_spawn_land + Vector3(0, 0.9, 0), Color(1.0, 0.95, 0.75), 1.4)
 	for k in 5:
 		var a := TAU * float(k) / 5.0
 		fx.sand(_spawn_land + Vector3(cos(a) * 0.9, 0.1, sin(a) * 0.9), 1.4)
-	camera.shake(1.2)
-	hud.flash(Color(1.0, 0.95, 0.8, 0.3), 0.35)
+	camera.shake(SPAWN_LAND_SHAKE)
+	hud.flash(Color(1.0, 0.95, 0.8, 0.2), 0.35)
 	Audio.play("pl_spawn_land", _spawn_land)
 	# the beam goes out, the pool last
 	var beam: Node3D = _spawn_beam
@@ -797,9 +841,24 @@ func _spawn_land_now() -> void:
 	camera.target = player
 	_spawn_anchor.queue_free()
 	_spawn_anchor = null
-	create_tween().tween_property(hud, "modulate:a", 1.0, 0.6)
-	create_tween().tween_callback(func(): camera.zoom_override = 0.0).set_delay(SPAWN_SETTLE)
+	create_tween().tween_property(hud, "modulate:a", 1.0, 0.6 / spawn_rate)
+	create_tween().tween_callback(func(): camera.zoom_override = 0.0).set_delay(SPAWN_SETTLE / spawn_rate)
+	_spawn_hand_over_finger()
 	_start_run()
+
+
+## A finger that went down during the sequence and is still down becomes the stick (pass 64): he walks off at once.
+func _spawn_hand_over_finger() -> void:
+	var inp = player.input
+	if _spawn_touch < 0 or inp == null or int(inp.active_index) != -1 or not inp._in_thumb_zone(_spawn_touch_from):
+		_spawn_touch = -1
+		return
+	inp.active_index = _spawn_touch
+	inp.origin = _spawn_touch_from
+	inp.touch_pos = _spawn_touch_at
+	inp.wants_move = true
+	inp.touch_started.emit(_spawn_touch_from)
+	_spawn_touch = -1
 
 
 # ---------------------------------------------------------------- pause
@@ -1023,9 +1082,22 @@ func _check_one_modal() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if spawning:
-		# a tap after the first second lands him at once; the touch is swallowed (it does not start the stick)
-		if _spawn_t >= SPAWN_SKIP_AFTER and event.is_pressed() and (event is InputEventScreenTouch or event is InputEventMouseButton or event is InputEventKey):
-			_spawn_t = SPAWN_HOLD + SPAWN_FALL
+		# a press, a drag or a key speeds the rest of the sequence up (pass 64; it used to land him at once); a finger
+		# still down at the landing becomes the stick (_spawn_hand_over_finger)
+		if event is InputEventScreenTouch:
+			if event.pressed:
+				_spawn_touch = event.index
+				_spawn_touch_from = event.position
+				_spawn_touch_at = event.position
+				spawn_hurry()
+			elif event.index == _spawn_touch:
+				_spawn_touch = -1
+		elif event is InputEventScreenDrag:
+			if event.index == _spawn_touch:
+				_spawn_touch_at = event.position
+			spawn_hurry()
+		elif event.is_pressed() and (event is InputEventMouseButton or event is InputEventKey):
+			spawn_hurry()
 		return
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_ESCAPE:

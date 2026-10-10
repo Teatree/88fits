@@ -497,8 +497,8 @@ func _run() -> void:
 	_report()
 
 
-## The landing (pass 45): the run opens with the hero in the beam, a tap after the first second lands him at once, and
-## that tap does not start the stick.
+## The landing (pass 45): the run opens with the hero in the beam; pass 64: a tap during it speeds the rest of the
+## sequence up (SPAWN_HURRY) instead of landing him at once, he still lands, and that tap does not start the stick.
 func _spawn_skip() -> void:
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify({"weapon": "boomstick", "level": 2, "character": "astro", "map": "red_canyon", "map_seed": 5, "spawn": true}))
@@ -510,7 +510,6 @@ func _spawn_skip() -> void:
 		_count("spawn", false)
 		_fail("spawn", "the beam", "the run did not open with the spawn beam")
 		return
-	# the tap counts only after the first second of the beam
 	while g.spawning and g._spawn_t < 1.05:
 		await _wait(0.05)
 	if not g.spawning:
@@ -518,13 +517,16 @@ func _spawn_skip() -> void:
 		_fail("spawn", "the beam", "the cinematic ended before the tap")
 		return
 	await _tap(root.get_visible_rect().get_center())
-	await _wait(0.3)
-	var ok: bool = not g.spawning and not g.player.input.wants_move
+	var hurried: bool = g.spawning and float(g.spawn_rate) > 1.5
+	await _wait(0.6)
+	var ok: bool = hurried and not g.spawning and not g.player.input.wants_move
 	_count("spawn", ok)
-	if g.spawning:
-		_fail("spawn", "the skip tap", "the tap after 1 s did not skip the beam")
+	if not hurried:
+		_fail("spawn", "the hurry tap", "the tap did not speed the sequence up (or landed him at once)")
+	elif g.spawning:
+		_fail("spawn", "the hurry tap", "the sped-up sequence did not land within 0.6 s")
 	elif g.player.input.wants_move:
-		_fail("spawn", "the skip tap", "the tap started the stick")
+		_fail("spawn", "the hurry tap", "the tap started the stick")
 
 
 ## Every page of every Collection tab opens whole (pass 40: the creature page read a field the data class lacked, and

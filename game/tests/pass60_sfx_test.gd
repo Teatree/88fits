@@ -126,9 +126,11 @@ func test_the_replaced_voice_ids_have_their_own_sounds() -> void:
 
 # ---------------------------------------------------------------- the music is untouched
 
+## Re-pinned in pass 64: the music rows now play the Stable Audio 3 loops in music/ (pass64_sn_test checks them); the
+## procedural placeholders stay on disk, untouched, as the fallback files.
 func test_the_six_music_rows_and_files_are_untouched() -> void:
 	for id in MUSIC.keys():
-		assert_str(_file_of(id)).is_equal("placeholder/%s.wav" % id)
+		assert_str(_file_of(id)).is_equal("music/%s.wav" % id)
 		var info := wav_info(SOUNDS + "placeholder/%s.wav" % id)
 		assert_int(int(info.get("rate", 0))).is_equal(44100)
 		assert_int(int(info.get("bytes", 0))).override_failure_message("%s changed size" % id).is_equal(int(MUSIC[id]))
@@ -208,7 +210,8 @@ func test_the_picked_set_reads_lower_than_the_placeholders_and_comes_from_stable
 	var stable := 0
 	for id in picks.keys():
 		var engine := str(picks[id].get("engine", "audiogen"))
-		if engine == "stable":
+		# pass 64: the UI, reward and pickup ids moved to Stable Audio 3 (engine sa3) in a brighter register on purpose
+		if engine == "stable" or engine == "sa3":
 			stable += 1
 		var s = scores.get(engine, {}).get(id)
 		if not (s is Dictionary) or not (s.get("old") is Dictionary):
@@ -219,6 +222,6 @@ func test_the_picked_set_reads_lower_than_the_placeholders_and_comes_from_stable
 				n += 1
 				if float(c.get("centroid", 0.0)) < float(s["old"].get("centroid", 0.0)):
 					lower += 1
-	assert_int(n).is_greater_equal(100)
+	assert_int(n).is_greater_equal(80)   # pass 64: 119 less the 32 hype ids now on sa3
 	assert_float(float(lower) / float(maxi(n, 1))).is_greater(0.5)
 	assert_float(float(stable) / float(maxi(picks.size(), 1))).is_greater(0.8)

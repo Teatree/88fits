@@ -1,4 +1,10 @@
-"""The listening page for pass 60's sounds: docs/sfx_review.html and tools/dl/sfx60/sfx_review.zip.
+"""The listening page for the sounds: docs/sfx_review.html and tools/dl/sfx60/sfx_review.zip (pass 60, extended in pass 64).
+
+Pass 64 puts first what changed: the six music tracks (Stable Audio 3 medium, cut into loops by tools/ai_music.py:
+the picked loop, a "seam" clip = its last 3 s followed by its first 3 s, so the loop point can be heard, the other
+candidates and the old procedural placeholder) and the hype family (the UI, reward and pickup ids made on Stable
+Audio 3 by `ai_sfx.py --engine sa3`: the new pick, its other candidates, the pass-60 sound it replaced
+(tools/dl/backup/sfx_pass63/real/) and the placeholder). The 3D-world sounds follow, unchanged, folded away.
 
 Every non-music sound id with its trigger, prompt, kind and length; the sound the game plays (game/content/sounds/real/
 <id>.wav, picked from the Stable Audio candidates) beside the other candidates of its engine, the best candidate of the
@@ -28,7 +34,12 @@ PAGE = os.path.join(DOCS, "sfx_review.html")
 ZIP = os.path.join(A.DL, "sfx_review.zip")
 OLD_VOICE = os.path.join(A.DL, "old_voice")
 PLACEHOLDER = os.path.join(A.SOUNDS, "placeholder")
-ENGINE_NAME = {"stable": "Stable Audio", "audiogen": "AudioGen"}
+ENGINE_NAME = {"stable": "Stable Audio", "audiogen": "AudioGen", "sa3": "Stable Audio 3"}
+BEFORE = os.path.join(A.ROOT, "tools", "dl", "backup", "sfx_pass63", "real")
+OLD_MUSIC = os.path.join(A.ROOT, "tools", "dl", "backup", "sfx_pass63", "music")
+SEAM_S = 3.0
+LISTEN_FIRST = ["mu_run_1", "mu_title", "mu_boss", "ui_levelup", "ui_jackpot", "w_evo_reveal", "pk_chest_open", "ui_tap",
+                "pk_gem_s", "pk_coin", "ui_buy", "ui_reel_tick"]
 
 # the ten Kokoro lines of pass 24-59 (tools/dl/backup/gen_voice_pass59.py), for the record
 VOICE_LINES = {
@@ -85,9 +96,13 @@ document.addEventListener('play', function (e) {
 def rel_paths(mode):
     """Where the page finds the wavs: next to the repo's docs/ (mode repo) or in the zip's folders (mode zip)."""
     if mode == "zip":
-        return {"real": "real/", "cands": "cands/%s/", "old": "old/", "old_voice": "old_voice/"}
+        return {"real": "real/", "cands": "cands/%s/", "old": "old/", "old_voice": "old_voice/", "before": "before/",
+                "music": "music/", "music_cands": "music_cands/", "seam": "music_seam/", "old_music": "old_music/", "ext": ".mp3"}
     return {"real": "../game/content/sounds/real/", "cands": "../tools/dl/sfx60/%s/proc/",
-            "old": "../game/content/sounds/placeholder/", "old_voice": "../tools/dl/sfx60/old_voice/"}
+            "old": "../game/content/sounds/placeholder/", "old_voice": "../tools/dl/sfx60/old_voice/",
+            "before": "../tools/dl/backup/sfx_pass63/real/", "music": "../game/content/sounds/music/",
+            "music_cands": "../tools/dl/music64/loop/", "seam": "../tools/dl/music64/seam/",
+            "old_music": "../tools/dl/backup/sfx_pass63/music/", "ext": ".wav"}
 
 
 def fmt_hz(v):
@@ -135,7 +150,11 @@ def row_html(sid, row, scores, picks, volume, paths):
     if row["prompt"] is None:
         left.append('<div class="note">Silenced: points at real/silence.wav (was the voice line "%s").</div>' % html.escape(VOICE_LINES.get(sid, "")))
     else:
-        left.append('<div class="prompt">%s</div>' % html.escape(A.engine_prompt(engine or A.DEFAULT_ENGINE, row)))
+        e0 = engine or A.DEFAULT_ENGINE
+        left.append('<div class="prompt">%s</div>' % html.escape(A.engine_prompt(e0, A.row_for(e0, sid))))
+        if engine == "sa3":
+            left.append('<div class="note">Pass 64, hype family: %s on Stable Audio 3 (%s).</div>' % (
+                html.escape(A.HYPE[sid]["kind"]), ", ".join(A.HYPE[sid]["models"])))
         if sid in VOICE_LINES:
             left.append('<div class="note">Replaces the voice line "%s".</div>' % html.escape(VOICE_LINES[sid]))
     left.append("</div>")
@@ -156,7 +175,9 @@ def row_html(sid, row, scores, picks, volume, paths):
                 right.append(player("%s c%d" % (ENGINE_NAME[engine], c["k"]), paths["cands"] % engine + "%s_c%d.wav" % (sid, c["k"]), cand_nums(c)))
             for e, c in alternates(sid, engine, scores):
                 note = ""
-                if c.get("prompt") and c["prompt"] != A.engine_prompt(e, row):
+                if e == "stable" and engine == "sa3":
+                    continue    # the pass-60 pick is the "Before" player
+                if c.get("prompt") and c["prompt"] != A.engine_prompt(e, A.row_for(e, sid)):
                     note = " (its own prompt)"
                 right.append(player("%s alternate · c%d%s" % (ENGINE_NAME[e], c["k"], note), paths["cands"] % e + "%s_c%d.wav" % (sid, c["k"]),
                                     cand_nums(c), "pl alt"))
@@ -164,6 +185,8 @@ def row_html(sid, row, scores, picks, volume, paths):
             right.append('<div class="pl"><div class="lab"><b>New</b></div><div class="num">not picked yet</div></div>')
     else:
         right.append(player("<b>New</b> · silence", paths["real"] + A.SILENCE, "50 ms of nothing", "pl picked"))
+    if engine == "sa3" and os.path.exists(os.path.join(BEFORE, sid + ".wav")):
+        right.append(player("Before (pass 60)", paths["before"] + sid + ".wav", "the dull one Garry heard", "pl alt"))
     if os.path.exists(os.path.join(PLACEHOLDER, sid + ".wav")):
         right.append(player("Old placeholder", paths["old"] + sid + ".wav", fmt_hz(oc) if oc else ""))
     if sid in VOICE_LINES and os.path.exists(os.path.join(OLD_VOICE, sid + ".wav")):
@@ -192,38 +215,132 @@ def summary(scores, picks):
             "mb": size / 1e6, "manual": sum(1 for p in picks.values() if p.get("manual")), "engines": engines}
 
 
-def build(mode, scores, picks, volumes):
-    paths = rel_paths(mode)
-    st = summary(scores, picks)
-    eng = ", ".join("%d %s" % (n, ENGINE_NAME[e]) for e, n in st["engines"].items() if n)
-    out = ['<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">',
-           "<title>88fits sounds, pass 60</title><style>%s</style></head><body>" % CSS,
-           '<header><h1>88fits sounds, pass 60 <small>Stable Audio first, AudioGen as the alternate: every effect in a lower register, the voices gone</small></h1>',
-           '<div class="stats"><div><b>%d</b>sounds regenerated</div><div><b>%d of %d</b>read lower than the placeholder</div>'
-           '<div><b>%.0f Hz &rarr; %.0f Hz</b>median spectral centroid, old &rarr; new</div><div><b>%.1f MB</b>the real/ set</div>'
-           '<div><b>%s</b>engines picked</div><div><b>%d</b>picks by ear</div></div>' % (
-               len(A.gen_ids()), st["lower"], st["n"], st["old_med"], st["new_med"], st["mb"], eng or "-", st["manual"]),
-           '<div class="how">Each row: the sound the game plays (<b>New</b>, green), the other candidates of its engine, the best candidate '
-           'of the other engine as an alternate (violet), and the old placeholder (and the old voice line where there was one). The centroid '
-           'is the spectral centre of gravity: lower reads duller and deeper (AudioGen is a 16 kHz model, so its clips have nothing above '
-           '8 kHz and read lower by nature). To swap a pick after listening: <code>python tools/ai_sfx.py --pick %s=1</code> (a Stable '
-           'candidate) or <code>--pick %s=audiogen:2</code> (the alternate), then <code>python tools/make_sfx_review.py</code>. '
-           'pl_hurt and pl_jump are silent on purpose (Garry: no voice stuff).</div></header>' % ("pk_gem_s", "pk_gem_s")]
-    groups = [g for g in A.GROUP_ORDER if g != "Music"]
-    out.append("<nav>%s</nav>" % "".join('<a href="#g-%s">%s</a>' % (g, g) for g in groups))
-    for g in groups:
-        ids = [sid for sid, r in A.PROMPTS.items() if r["group"] == g]
-        out.append('<section id="g-%s"><h2>%s <small style="color:#9b93ad;font-size:13px">%d</small></h2>' % (g, g, len(ids)))
-        for sid in ids:
-            out.append(row_html(sid, A.PROMPTS[sid], scores, picks, volumes.get(sid, 0), paths))
-        out.append("</section>")
-    out.append('<footer>Made by tools/make_sfx_review.py from tools/dl/sfx60/&lt;engine&gt;/scores.json and picks.json. Prompts live in '
-               'tools/ai_sfx.py (and docs/design/src/sounds.json for the bible).</footer><script>%s</script></body></html>' % JS)
+def music_data():
+    """(tracks, scores, picks) from tools/ai_music.py's run, or empty when it has not run here."""
+    import ai_music as M
+    sc = A.read_json(os.path.join(M.DL, "scores.json"), {})
+    pk = A.read_json(os.path.join(M.DL, "picks.json"), {})
+    return M, sc, pk
+
+
+def seam_path(M, sid, k):
+    return os.path.join(M.DL, "seam", "%s_c%d.wav" % (sid, k))
+
+
+def make_seams(M, sc):
+    """A seam clip per loop candidate: its last SEAM_S seconds then its first SEAM_S seconds (the loop point in the
+    middle), so the wrap can be heard without waiting a whole loop."""
+    import numpy as np
+    import soundfile as sf
+    for sid, s in sc.items():
+        for c in s.get("cands", []):
+            src = M.loop_path(sid, c["k"])
+            dst = seam_path(M, sid, c["k"])
+            if not os.path.exists(src) or (os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src)):
+                continue
+            y, sr = sf.read(src, dtype="float32", always_2d=True)
+            n = int(SEAM_S * sr)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            sf.write(dst, np.concatenate([y[-n:], y[:n]], axis=0), sr, subtype="PCM_16")
+
+
+def music_nums(c):
+    return "%.0f s · %d bars · %.0f BPM · seam %.3f · click %.1f · %.1f dB" % (
+        c["seconds"], c["bars"], c["bpm"], c["dist"], c["seam_click"], c["rms_db"])
+
+
+def music_html(M, sc, pk, paths):
+    if not sc:
+        return '<section id="g-music"><h2>Music</h2><div class="meta">tools/ai_music.py has not run here.</div></section>'
+    ext = paths["ext"]
+    out = ['<section id="g-music"><h2>Music <small style="color:#9b93ad;font-size:13px">Stable Audio 3 medium, seamless loops</small></h2>']
+    for sid in M.ORDER:
+        s = sc.get(sid)
+        if not s:
+            continue
+        p = pk.get(sid, {})
+        chosen = next((c for c in s["cands"] if c["k"] == p.get("k")), None)
+        t = M.TRACKS[sid]
+        left = ('<div><div class="id">%s</div><div class="meta">%s · loop %d-%d s · asked %d s</div>'
+                '<div class="prompt">%s</div></div>' % (sid, html.escape(s.get("role", t["role"])), t["loop"][0], t["loop"][1],
+                                                         t["gen"], html.escape(t["prompt"])))
+        right = ['<div class="players">']
+        if chosen:
+            right.append(player("<b>New</b> · c%d %s" % (chosen["k"], "by ear" if p.get("manual") else "auto"),
+                                paths["music"] + sid + ext, music_nums(chosen), "pl picked"))
+            right.append(player("Loop seam · c%d (end &rarr; start)" % chosen["k"], paths["seam"] + "%s_c%d%s" % (sid, chosen["k"], ext),
+                                "the loop point is in the middle", "pl alt"))
+        for c in sorted(s["cands"], key=lambda c: c["score"]):
+            if chosen and c["k"] == chosen["k"]:
+                continue
+            right.append(player("c%d · score %.2f" % (c["k"], c["score"]), paths["music_cands"] + "%s_c%d%s" % (sid, c["k"], ext),
+                                music_nums(c)))
+        if os.path.exists(os.path.join(OLD_MUSIC, sid + ".wav")):
+            right.append(player("Old (procedural)", paths["old_music"] + sid + ext, "pass 1-63"))
+        right.append("</div>")
+        out.append('<div class="row" id="%s">%s%s</div>' % (sid, left, "".join(right)))
+    out.append("</section>")
     return "\n".join(out)
 
 
+def build(mode, scores, picks, volumes):
+    paths = rel_paths(mode)
+    st = summary(scores, picks)
+    M, msc, mpk = music_data()
+    hype = [sid for sid in A.sfx_ids() if sid in A.HYPE]
+    n_sa3 = sum(1 for sid in hype if picks.get(sid, {}).get("engine") == "sa3")
+    out = ['<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">',
+           "<title>88fits sounds, pass 64</title><style>%s</style></head><body>" % CSS,
+           '<header><h1>88fits sounds, pass 64 <small>the hype is back: casino and western jingles, bright pickups, soft taps, and new music</small></h1>',
+           '<div class="stats"><div><b>%d</b>music tracks (Stable Audio 3 medium)</div><div><b>%d of %d</b>UI and reward sounds on Stable Audio 3</div>'
+           '<div><b>%d</b>3D-world sounds kept from pass 60</div><div><b>%d</b>picks by ear</div></div>' % (
+               len(mpk), n_sa3, len(hype), len(A.gen_ids()) - len(hype), st["manual"]),
+           '<div class="how">Garry: "having that for jingles of Level Up, Chest opens, etc, I like all of that ... sound like a casino a lot of '
+           'the time ... button taps soft and simple". Each row: the sound the game plays (<b>New</b>, green), its other candidates, the sound it '
+           'replaced (violet, <b>Before (pass 60)</b>) and the old placeholder. Music rows add a <b>loop seam</b> clip (the last 3 s then the '
+           'first 3 s) so the loop point can be heard. To swap a pick after listening: <code>python tools/ai_sfx.py --pick ui_levelup=sa3:2</code> '
+           '(a sound; <code>=stable:k</code> goes back to pass 60) or <code>python tools/ai_music.py --pick mu_run_1=3</code> (a track), then '
+           '<code>python tools/make_sfx_review.py</code>.</div></header>']
+    groups = [g for g in A.GROUP_ORDER if g != "Music"]
+    nav = ['<a href="#g-first">Listen first</a>', '<a href="#g-music">Music</a>', '<a href="#g-hype">UI &amp; rewards</a>']
+    nav += ['<a href="#g-%s">%s</a>' % (g, g) for g in groups]
+    out.append("<nav>%s</nav>" % "".join(nav))
+    first = [x for x in LISTEN_FIRST if x in A.PROMPTS or x in (M.TRACKS if M else {})]
+    out.append('<section id="g-first"><h2>Listen first</h2><div class="how">%s</div></section>' % " · ".join(
+        '<a style="color:#d9a441" href="#%s">%s</a>' % (x, x) for x in first))
+    out.append(music_html(M, msc, mpk, paths))
+    out.append('<section id="g-hype"><h2>UI &amp; rewards <small style="color:#9b93ad;font-size:13px">%d · the hype family</small></h2>' % len(hype))
+    for sid in hype:
+        out.append(row_html(sid, A.PROMPTS[sid], scores, picks, volumes.get(sid, 0), paths))
+    out.append("</section>")
+    out.append('<section><h2>The 3D world <small style="color:#9b93ad;font-size:13px">unchanged since pass 60 (Garry: no hype there)</small></h2>')
+    for g in groups:
+        ids = [sid for sid, r in A.PROMPTS.items() if r["group"] == g and sid not in A.HYPE]
+        if not ids:
+            continue
+        out.append('<details id="g-%s"><summary style="cursor:pointer;color:#d9a441;font-size:17px;margin:10px 0">%s (%d)</summary>' % (g, g, len(ids)))
+        for sid in ids:
+            out.append(row_html(sid, A.PROMPTS[sid], scores, picks, volumes.get(sid, 0), paths))
+        out.append("</details>")
+    out.append("</section>")
+    out.append('<footer>Made by tools/make_sfx_review.py from tools/dl/sfx60/&lt;engine&gt;/scores.json, picks.json and tools/dl/music64/. '
+               'Prompts live in tools/ai_sfx.py (HYPE, PROMPTS) and tools/ai_music.py (TRACKS).</footer><script>%s</script></body></html>' % JS)
+    return "\n".join(out)
+
+
+def to_mp3(src, dst, kbps=112):
+    """A wav as mp3 for the zip (the music would be hundreds of MB as wav)."""
+    import subprocess
+    if os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src):
+        return dst
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", src, "-codec:a", "libmp3lame", "-b:a",
+                    "%dk" % kbps, dst], check=True)
+    return dst
+
+
 def zip_files(scores, picks):
-    """(zip path, disk path) for every wav the zip page references."""
+    """(zip path, disk path) for every file the zip page references."""
     out = []
     for fn in sorted(os.listdir(A.REAL)):
         if fn.endswith(".wav"):
@@ -236,7 +353,11 @@ def zip_files(scores, picks):
             if c["k"] != chosen["k"]:
                 out.append(("cands/%s/%s_c%d.wav" % (engine, sid, c["k"]), A.proc_path(engine, sid, c["k"])))
         for e, c in alternates(sid, engine, scores):
+            if e == "stable" and engine == "sa3":
+                continue
             out.append(("cands/%s/%s_c%d.wav" % (e, sid, c["k"]), A.proc_path(e, sid, c["k"])))
+        if engine == "sa3":
+            out.append(("before/%s.wav" % sid, os.path.join(BEFORE, sid + ".wav")))
     for fn in sorted(os.listdir(PLACEHOLDER)):
         if fn.endswith(".wav") and not fn.startswith(A.MUSIC_PREFIX):
             out.append(("old/" + fn, os.path.join(PLACEHOLDER, fn)))
@@ -244,6 +365,23 @@ def zip_files(scores, picks):
         for fn in sorted(os.listdir(OLD_VOICE)):
             if fn.endswith(".wav"):
                 out.append(("old_voice/" + fn, os.path.join(OLD_VOICE, fn)))
+    M, msc, mpk = music_data()
+    mp3 = os.path.join(M.DL, "mp3")
+    for sid, s in msc.items():
+        p = mpk.get(sid)
+        for c in s.get("cands", []):
+            k = c["k"]
+            src = M.loop_path(sid, k)
+            if not os.path.exists(src):
+                continue
+            if p and p["k"] == k:
+                out.append(("music/%s.mp3" % sid, to_mp3(os.path.join(M.OUT, sid + ".wav"), os.path.join(mp3, "pick", sid + ".mp3"))))
+                out.append(("music_seam/%s_c%d.mp3" % (sid, k), to_mp3(seam_path(M, sid, k), os.path.join(mp3, "seam", "%s_c%d.mp3" % (sid, k)), 160)))
+            else:
+                out.append(("music_cands/%s_c%d.mp3" % (sid, k), to_mp3(src, os.path.join(mp3, "cands", "%s_c%d.mp3" % (sid, k)), 96)))
+        old = os.path.join(OLD_MUSIC, sid + ".wav")
+        if os.path.exists(old):
+            out.append(("old_music/%s.mp3" % sid, to_mp3(old, os.path.join(mp3, "old", sid + ".mp3"), 96)))
     return [(z, d) for z, d in out if os.path.exists(d)]
 
 
@@ -251,6 +389,8 @@ def main(argv):
     scores = A.all_scores()
     picks = A.read_json(A.picks_path(), {})
     volumes = {sid: r.get("volume_db", 0) for sid, r in A.soundmap_rows().items()}
+    M, msc, mpk = music_data()
+    make_seams(M, msc)
     os.makedirs(DOCS, exist_ok=True)
     with open(PAGE, "w", encoding="utf-8", newline="\n") as f:
         f.write(build("repo", scores, picks, volumes))

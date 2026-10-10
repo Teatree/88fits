@@ -69,7 +69,7 @@ AUDIOGEN_WS = "ws://127.0.0.1:7860/queue/join"
 AUDIOGEN_FN = 14
 AUDIOGEN_RATE = 16000       # AudioGen's own rate
 AUDIOGEN_SERVER_RATE = "16000"  # what we ask the app to write (its own rate: nothing resampled twice)
-ENGINES = ("stable", "audiogen")
+ENGINES = ("stable", "audiogen", "sa3")   # sa3: Stable Audio 3 on the AI server's ComfyUI (pass 64, the hype family)
 DEFAULT_ENGINE = "stable"
 OUT_RATE = 22050
 # Level: the content RMS (the frames that carry the sound) is brought to TARGET_RMS_DB, and a look-ahead limiter holds
@@ -89,7 +89,7 @@ SILENCE = "silence.wav"
 SILENCE_SECONDS = 0.05
 LOOP_XFADE = 0.25
 MUSIC_PREFIX = "mu_"
-LOGS = {"stable": "generate_stable.log", "audiogen": "generate.log"}
+LOGS = {"stable": "generate_stable.log", "audiogen": "generate.log", "sa3": "generate_sa3.log"}
 
 # Component ids of the audiocraft_plus inputs we set (the rest keep their /config defaults).
 AUDIOGEN_INPUT_IDS = {"mode": 301, "prompt": 165, "duration": 221, "seed": 227, "channels": 256, "rate": 257,
@@ -116,6 +116,14 @@ KINDS = {
     "zap": {"ceiling": 3500, "hp": 60, "sub_max": 0.6},
     "texture": {"ceiling": 2600, "hp": 80, "sub_max": 0.6},
     "loop": {"ceiling": 2400, "hp": 80, "sub_max": 0.6},
+    # pass 64, the hype family (engine sa3): scored by a brightness band [lo, hi] (Hz) instead of "lower wins", by
+    # tonality (spectral flatness, weighted by `tonal`) and, for the jingles, by not dying before their length
+    "pop": {"ceiling": 4000, "band": [700, 3200], "tonal": 1.5, "hp": 120, "sub_max": 0.3},
+    "click": {"ceiling": 6000, "band": [1500, 5500], "tonal": 0.3, "hp": 150, "sub_max": 0.2},
+    "casino": {"ceiling": 6500, "band": [1200, 5000], "tonal": 0.5, "hp": 70, "sub_max": 0.4},
+    "jingle": {"ceiling": 6500, "band": [1400, 4800], "tonal": 1.5, "hp": 60, "sub_max": 0.4},
+    "bling": {"ceiling": 7000, "band": [2000, 6000], "tonal": 2.0, "hp": 150, "sub_max": 0.2},
+    "coin": {"ceiling": 7000, "band": [2200, 6500], "tonal": 0.5, "hp": 150, "sub_max": 0.2},
 }
 SUB_HZ = 120.0
 # A candidate whose centroid sits under FLOOR_HZ is a rumble a phone speaker barely plays (the first Nuke blast and
@@ -384,7 +392,138 @@ _row("Weapons", "it_keg_boom", "Powder Keg", "boom", 1.2, -3,
 _row("Player", "it_phoenix", "Phoenix Feather", "whoosh", 1.5, 0,
      "A roar of flames swelling up with a deep whoosh and the heavy beat of huge wings rising.")
 
+# ---------------------------------------------------------------- pass 64: three new ids (casino spots)
+_row("UI", "ui_stamp", "the BANISHED stamp on a card", "impact", 0.35, 0,
+     "A rubber stamp slammed hard onto paper on a wooden desk, a punchy thump with a papery slap.")
+_row("UI", "ui_stage_clear", "the stage-clear dialog opens", "sting", 2.0, 0,
+     "A short western casino win jingle: ringing bells, coins and a twangy guitar flourish.")
+_row("Pickups", "st_deposit", "the Strongbox's last coin lands (the till)", "sting", 0.9, 0,
+     "An old saloon cash register ka-ching: a drawer clunk and a bright bell ding.")
+
+# ---------------------------------------------------------------- pass 64: the hype family (engine "sa3")
+# Garry (2026-10-10): "I miss all that hype stuff. I just didn't like it on in the 3d world things, but having that for
+# jingles of Level Up, Chest opens, etc, I like all of that ... I want things to sound like a casino a lot of the time
+# ... For button taps in particular let's make something soft and simple, just something that you expect to see in a
+# mobile game." So the UI, reward and pickup ids get new prompts in the opposite register to pass 60's (bright, punchy,
+# casino, Megabonk-like, with western touches), made on Stable Audio 3 on the AI server's ComfyUI (tools/comfy_audio.py:
+# the medium model; "app" = Garry's Stable Audio app on this PC, the pass-60 engine, as a second opinion: candidate k
+# uses models[k % len]; the server's small sfx model is not used: in fp16 about half its runs overflow to NaN, and
+# computed in bf16 or fp32 through ModelComputeDtype it returns flat noise). The 3D
+# world (weapons, hits, creatures, explosions, steps, ambience) keeps its pass-60 sounds. The casino spots: the chest
+# reel's ticks are a slot reel, the chest's knock a coin-heavy chest rattle, its landing a slot jackpot, an evolution a
+# mega jackpot, a purchase and the Strongbox's last coin a saloon till, coins casino coin clinks, the magnet pulse a
+# payout hopper, a revive an arcade coin-in "continue", the banish a rubber stamp, extraction a cash-out.
+# id: kind (KINDS' hype kinds score by a brightness band), seconds, models, prompt (sent as it is: Stable Audio 3 at
+# cfg 1 ignores the negative prompt, so every exclusion is in the text).
+HYPE = {}
+
+
+def _hype(sid, kind, seconds, models, prompt):
+    HYPE[sid] = {"kind": kind, "seconds": seconds, "pitch": 0, "models": models, "prompt": prompt}
+
+
+_END = " Isolated mobile game sound effect, clean, no speech, no background music."
+_JEND = " Short game jingle, polished, no vocals, no speech."
+_hype("ui_tap", "pop", 0.12, ["medium", "app"],
+      "A single soft mobile game button tap: a gentle rounded bubble pop with a tiny soft click, mid-pitched, pleasant,"
+      " very short with a quick decay." + _END)
+_hype("ui_card", "pop", 0.18, ["medium", "app"],
+      "A playing card dealt onto a green felt casino table: one soft snappy flick and swish, short." + _END)
+_hype("ui_pause", "pop", 0.3, ["medium", "app"],
+      "A soft mobile game menu opening: a gentle bubbly pop sliding a little downward, rounded and quiet, short." + _END)
+_hype("ui_resume", "pop", 0.3, ["medium", "app"],
+      "A soft mobile game menu closing: a gentle bubbly pop sliding a little upward, rounded and quiet, short." + _END)
+_hype("ui_locked", "pop", 0.3, ["medium", "app"],
+      "A soft muted mobile game 'not allowed' sound: two gentle rounded wooden bonks stepping down, short, not harsh."
+      + _END)
+_hype("ui_card_pick", "casino", 0.4, ["medium", "app"],
+      "A satisfying card selection in a casino game: a crisp poker chip clack on felt and a bright little two-note"
+      " chime, punchy and short." + _END)
+_hype("ui_reel_tick", "click", 0.07, ["medium", "app"],
+      "A single crisp mechanical slot machine reel tick, one tiny bright plastic click, very short." + _END)
+_hype("ui_chest_knock", "casino", 0.3, ["medium", "app"],
+      "A heavy wooden treasure chest jolting once: a short wooden knock with gold coins jingling inside, punchy and"
+      " close." + _END)
+_hype("ui_stamp", "casino", 0.35, ["medium", "app"],
+      "A rubber stamp slammed hard onto paper on a wooden desk: a punchy thump with a crisp papery slap, satisfying,"
+      " short." + _END)
+_hype("ui_buy", "casino", 0.8, ["medium", "app"],
+      "An old western saloon cash register ka-ching: a mechanical drawer clunk, a bright bell ding and a short jingle"
+      " of coins, punchy and satisfying." + _END)
+_hype("st_deposit", "casino", 0.9, ["medium", "app"],
+      "An antique brass cash register in a saloon: keys pressed, the drawer springs open with a loud bright bell ding"
+      " and coins rattle, a rewarding ka-ching." + _END)
+_hype("pk_chest_open", "jingle", 1.2, ["medium", "app"],
+      "A treasure chest bursting open in a casino game: a wooden lid pop, a bright shimmering sparkle and a shower of"
+      " gold coins, rewarding and punchy." + _END)
+_hype("ui_jackpot", "jingle", 1.8, ["medium", "app"],
+      "A slot machine jackpot payout: ringing casino bells, a cascade of gold coins pouring into a metal tray and a"
+      " quick bright twangy western guitar flourish, celebratory." + _JEND)
+_hype("w_evo_reveal", "jingle", 2.4, ["medium", "app"],
+      "A huge casino mega-win jingle for a legendary reward: a rising whoosh, a burst of bright slot machine bells, a"
+      " shower of coins and a triumphant spaghetti western trumpet and twangy guitar chord, epic and celebratory."
+      + _JEND)
+_hype("ui_levelup", "jingle", 1.4, ["medium", "app"],
+      "A short upbeat level-up win jingle for an arcade casino game: a fast rising arpeggio of bright slot machine"
+      " bells and a twangy western electric guitar lick ending on a triumphant major chord, punchy." + _JEND)
+_hype("ui_fanfare", "jingle", 1.8, ["medium"],
+      "A short triumphant western fanfare for a reward reveal: bright mariachi trumpets, a twangy guitar strum, a"
+      " cymbal crash and sparkling casino bells, ending on a big major chord." + _JEND)
+_hype("ui_unlock", "jingle", 1.8, ["medium", "app"],
+      "A short big-win unlock jingle: a lock clicking open, then a bright rising casino chime arpeggio with a twangy"
+      " guitar and a jingle of coins, triumphant." + _JEND)
+_hype("ui_stage_clear", "jingle", 2.0, ["medium"],
+      "A short stage-clear victory jingle for a western arcade game: a snare roll, bright trumpets and a twangy guitar"
+      " riff over ringing casino bells, ending on a triumphant chord." + _JEND)
+_hype("wd_extract", "jingle", 2.0, ["medium", "app"],
+      "A cash-out victory jingle for a western casino game: a ringing bell, a cascade of coins and a quick triumphant"
+      " twangy guitar and trumpet flourish ending on a bright chord." + _JEND)
+_hype("pl_revive", "jingle", 1.8, ["medium", "app"],
+      "An arcade continue sound: a coin dropping into a slot machine, then a bright magical rising shimmer of chimes"
+      " and a warm triumphant guitar chord, a second chance." + _JEND)
+_hype("it_phoenix", "jingle", 1.5, ["medium", "app"],
+      "A phoenix rebirth in a game: a whoosh of fire rising into a bright magical shimmer and a ringing bell,"
+      " triumphant." + _END)
+_hype("pk_gem_s", "bling", 0.14, ["medium", "app"],
+      "A tiny crystal gem pickup: one clean bright glassy ping, very short, satisfying arcade pickup." + _END)
+_hype("pk_gem_m", "bling", 0.18, ["medium", "app"],
+      "A crystal gem pickup: two quick rising bright glassy pings, very short, satisfying arcade pickup." + _END)
+_hype("pk_gem_l", "bling", 0.35, ["medium", "app"],
+      "A big sparkling gem pickup: a rich bright crystal chime with a short glittering sparkle tail, a satisfying"
+      " arcade reward." + _END)
+_hype("pk_coin", "coin", 0.22, ["medium", "app"],
+      "A single gold coin picked up: a bright metallic coin clink with a short shiny ring, like a casino coin dropping"
+      " onto a stack." + _END)
+_hype("it_coin_drop", "coin", 0.7, ["medium", "app"],
+      "A handful of gold coins spilling and bouncing across a wooden saloon table, bright metallic clinks and"
+      " jingles." + _END)
+_hype("pk_vacuum", "jingle", 1.5, ["medium", "app"],
+      "A magnet pulling in loot in an arcade game: a rising bright whoosh with a growing rattle of coins and"
+      " glittering chimes, like a slot machine payout starting, punchy." + _END)
+_hype("pk_powerup", "jingle", 0.9, ["medium", "app"],
+      "An arcade power-up pickup with a western twist: a fast bright rising synth arpeggio and a twangy guitar sting,"
+      " energetic and punchy, short." + _END)
+_hype("pk_heart", "bling", 0.7, ["medium", "app"],
+      "A warm healing pickup chime: a soft bright bell with a gentle rising sparkle, pleasant and satisfying, short."
+      + _END)
+_hype("pk_flower", "bling", 0.5, ["medium", "app"],
+      "A cute magical flower pickup: a soft bright twinkle and a light chime, short and pleasant." + _END)
+_hype("st_portal_wait", "jingle", 0.9, ["medium", "app"],
+      "A soft 'not yet' game sound: two gentle descending bell notes, calm and mellow, short." + _END)
+_hype("wd_portal_open", "jingle", 2.5, ["medium", "app"],
+      "A magical portal opening in a western arcade game: a swelling airy whoosh into a bright shimmering chord of"
+      " bells and twinkling sparkles, inviting." + _END)
+
 PROMPTS = P
+
+
+def row_for(engine, sid):
+    """The table row an engine works from: the sa3 engine reads the hype prompt, kind, length and models (HYPE)."""
+    if engine == "sa3" and sid in HYPE:
+        return dict(PROMPTS[sid], **HYPE[sid])
+    return PROMPTS[sid]
+
+
 LOOP_IDS = [k for k, v in PROMPTS.items() if v["kind"] == "loop"]
 GROUP_ORDER = ["UI", "Player", "Weapons", "Pickups", "Enemies", "World", "Music"]
 # Generation order: what a player hears first and most often first, so a cut-off run leaves the important ones.
@@ -394,6 +533,19 @@ ORDER_PREFIX = ["ui_levelup", "ui_unlock", "wd_extract", "en_elite_spawn", "en_b
 
 
 # ---------------------------------------------------------------- small helpers
+
+_COMFY_AUDIO = None
+
+
+def comfy_audio():
+    """tools/comfy_audio.py, imported on first use (the stable and audiogen engines never need it)."""
+    global _COMFY_AUDIO
+    if _COMFY_AUDIO is None:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import comfy_audio as ca
+        _COMFY_AUDIO = ca
+    return _COMFY_AUDIO
+
 
 def eng_dir(engine):
     return os.path.join(DL, engine)
@@ -411,7 +563,10 @@ def seed_for(sid, k):
     return zlib.crc32(("%s:%d" % (sid, k)).encode("utf-8")) & 0x7FFFFFFF
 
 
-def ask_duration(row):
+def ask_duration(row, engine=DEFAULT_ENGINE):
+    if engine == "sa3":
+        # Stable Audio 3 shapes the sound to the length it is told (a 0.12 s tap asked as 2 s comes back as several)
+        return round(max(row["seconds"] + 0.4, 0.6), 2)
     s = int(math.ceil(row["seconds"]))
     return s + (2 if row["kind"] == "loop" else 1)
 
@@ -479,7 +634,9 @@ def sfx_ids():
     return [k for k in ORDER_PREFIX if k in PROMPTS] + rest
 
 
-def gen_ids():
+def gen_ids(engine=None):
+    if engine == "sa3":
+        return [k for k in sfx_ids() if k in HYPE]
     return [k for k in sfx_ids() if PROMPTS[k]["prompt"] is not None]
 
 
@@ -602,13 +759,20 @@ def generate_clip_audiogen(cfg, prompt, duration, seed, timeout=900):
 # ---------------------------------------------------------------- generation (both engines)
 
 def cand_meta(engine, row, k, steps, cfg):
-    m = {"engine": engine, "prompt": engine_prompt(engine, row), "seed": seed_for(row["_id"], k), "duration": ask_duration(row)}
-    if engine == "stable":
+    m = {"engine": engine, "prompt": engine_prompt(engine, row), "seed": seed_for(row["_id"], k),
+         "duration": ask_duration(row, engine)}
+    if engine == "sa3":
+        models = row.get("models") or ["medium", "app"]
+        m.update({"model": models[k % len(models)], "steps": comfy_audio().STEPS, "cfg": comfy_audio().CFG})
+    elif engine == "stable":
         m.update({"steps": int(steps), "cfg": float(cfg), "negative": engine_negative(row)})
     return m
 
 
 def is_stale(engine, meta, want):
+    if engine == "sa3":
+        return (meta.get("prompt") != want["prompt"] or float(meta.get("duration", -1)) != float(want["duration"])
+                or meta.get("model") != want["model"])
     if engine == "stable":
         return (meta.get("prompt") != want["prompt"] or int(meta.get("duration", -1)) != want["duration"]
                 or int(meta.get("steps", -1)) != want["steps"] or float(meta.get("cfg", -1)) != want["cfg"])
@@ -617,10 +781,10 @@ def is_stale(engine, meta, want):
 
 def generate_all(engine=DEFAULT_ENGINE, only=None, force=False, dry=False, steps=STABLE_STEPS, cfg=STABLE_CFG,
                  cands=CANDS):
-    ids = gen_ids() if not only else [i for i in gen_ids() if i in only]
+    ids = gen_ids(engine) if not only else [i for i in gen_ids(engine) if i in only]
     todo = []
     for sid in ids:
-        row = dict(PROMPTS[sid], _id=sid)
+        row = dict(row_for(engine, sid), _id=sid)
         for k in range(cands):
             wav, meta = cand_path(engine, sid, k), cand_path(engine, sid, k, "json")
             have = os.path.exists(wav) and os.path.exists(meta)
@@ -631,8 +795,8 @@ def generate_all(engine=DEFAULT_ENGINE, only=None, force=False, dry=False, steps
                 todo.append((sid, k, "stale" if stale else ("force" if (have and force) else "missing")))
     if dry:
         for sid in ids:
-            r = PROMPTS[sid]
-            print("%-18s %-8s %4.2fs ask %ds pitch %+d  %s" % (sid, r["kind"], r["seconds"], ask_duration(r), r["pitch"],
+            r = row_for(engine, sid)
+            print("%-18s %-8s %4.2fs ask %ss pitch %+d  %s" % (sid, r["kind"], r["seconds"], ask_duration(r, engine), r["pitch"],
                                                               engine_prompt(engine, r)))
         print("\n[%s] %d ids, %d clips to generate (%d candidates each)" % (engine, len(ids), len(todo), cands))
         for sid, k, why in todo[:40]:
@@ -645,7 +809,10 @@ def generate_all(engine=DEFAULT_ENGINE, only=None, force=False, dry=False, steps
         return 0
     os.makedirs(eng_dir(engine), exist_ok=True)
     client = cfg_ag = None
-    if engine == "stable":
+    if engine == "sa3":
+        log("generate[sa3]: %d clips for %d ids on %s (Stable Audio 3, %d steps, cfg %.1f, lcm/simple)"
+            % (len(todo), len(ids), comfy_audio().comfy.SERVER, comfy_audio().STEPS, comfy_audio().CFG), engine)
+    elif engine == "stable":
         client = stable_client()
         log("generate[stable]: %d clips for %d ids on %s (steps %d, cfg %.1f, 44.1 kHz stereo folded to mono)"
             % (len(todo), len(ids), STABLE_URL, steps, cfg), engine)
@@ -656,12 +823,22 @@ def generate_all(engine=DEFAULT_ENGINE, only=None, force=False, dry=False, steps
     failed = []
     t_all = time.time()
     for n, (sid, k, why) in enumerate(todo):
-        row = dict(PROMPTS[sid], _id=sid)
+        row = dict(row_for(engine, sid), _id=sid)
         want = cand_meta(engine, row, k, steps, cfg)
         ok = False
         for attempt in range(1, 5):
             try:
-                if engine == "stable":
+                if engine == "sa3" and want["model"] == "app":
+                    # Garry's Stable Audio app on this PC (the pass-60 engine) with the hype prompt: whole seconds only
+                    if client is None:
+                        client = stable_client()
+                    wav, info = generate_clip_stable(client, want["prompt"], max(1, int(math.ceil(want["duration"]))),
+                                                     want["seed"], STABLE_STEPS, STABLE_CFG, STABLE_NEGATIVE_STING)
+                elif engine == "sa3":
+                    wavs, secs = comfy_audio().generate(want["prompt"], want["duration"], want["seed"], want["model"], 1,
+                                                        "88fits/sfx64/%s_c%d" % (sid, k))
+                    wav, info = wavs[0], {"elapsed": round(secs, 1)}
+                elif engine == "stable":
                     wav, info = generate_clip_stable(client, want["prompt"], want["duration"], want["seed"], want["steps"],
                                                      want["cfg"], want["negative"])
                 else:
@@ -670,7 +847,7 @@ def generate_all(engine=DEFAULT_ENGINE, only=None, force=False, dry=False, steps
                     f.write(wav)
                 write_json(cand_path(engine, sid, k, "json"), {"id": sid, "k": k, **want, "kind": row["kind"],
                                                                "seconds": row["seconds"], **info})
-                log("[%d/%d] %s_c%d %s seed %d %ds in %.1fs" % (n + 1, len(todo), sid, k, why, want["seed"], want["duration"],
+                log("[%d/%d] %s_c%d %s seed %d %ss in %.1fs" % (n + 1, len(todo), sid, k, why, want["seed"], want["duration"],
                                                                info["elapsed"]), engine)
                 ok = True
                 break
@@ -679,7 +856,9 @@ def generate_all(engine=DEFAULT_ENGINE, only=None, force=False, dry=False, steps
                                                                  str(e)[:200]), engine)
                 time.sleep(15 * attempt)
                 try:
-                    if engine == "stable":
+                    if engine == "sa3":
+                        client = None
+                    elif engine == "stable":
                         client = stable_client()
                     else:
                         cfg_ag = audiogen_config()
@@ -928,6 +1107,8 @@ def score_candidate(m, raw, row):
     sub-bass or whose centroid is under FLOOR_HZ (inaudible on a phone), a sound that died long before its length (not
     for hits) and a loop that swells add penalties."""
     kind = KINDS[row["kind"]]
+    if "band" in kind:
+        return score_hype(m, raw, row, kind)
     ceiling = kind["ceiling"]
     s = m["centroid"] / ceiling
     if m["centroid"] > ceiling:
@@ -950,6 +1131,34 @@ def score_candidate(m, raw, row):
     return round(s, 4)
 
 
+def score_hype(m, raw, row, kind):
+    """Lower is better (pass 64, the hype family): the centroid's distance outside the kind's brightness band (inside
+    it, its distance from the band's middle, lightly), noisiness (spectral flatness x `tonal`: a chime or a jingle
+    should ring, not hiss), a jingle that died before 60 % of its length, clipping, emptiness, sub-bass."""
+    lo, hi = kind["band"]
+    c = m["centroid"]
+    mid = math.sqrt(lo * hi)
+    s = 0.3 * abs(math.log(max(c, 1.0) / mid)) / math.log(hi / mid)
+    if c < lo:
+        s += 1.0 + math.log(lo / max(c, 1.0))
+    elif c > hi:
+        s += 1.0 + math.log(c / hi)
+    s += kind.get("tonal", 1.0) * m.get("flatness", 0.0) * 4.0
+    if m.get("sub_share", 0.0) > kind.get("sub_max", 0.4):
+        s += 1.0
+    if raw.get("clip_frac", 0.0) > 0.01:
+        s += 1.0 + raw["clip_frac"] * 10
+    if m["content_s"] < 0.03 or m["rms_db"] < -40:
+        s += 5.0
+    if row["kind"] == "jingle" and m["content_s"] < 0.6 * row["seconds"]:
+        s += 1.0
+    if row["kind"] in ("pop", "click") and m["content_s"] > 1.5 * row["seconds"] + 0.05:
+        s += 0.5
+    if raw.get("onset_s", 0.0) > 0.4:
+        s += 0.5
+    return round(s, 4)
+
+
 def write_wav(path, y, sr=OUT_RATE):
     import soundfile as sf
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -968,9 +1177,9 @@ def analyse_all(engine=DEFAULT_ENGINE, only=None, fresh=False):
     """Process every candidate of an engine on disk into its proc/, measure it and write its scores.json. A candidate
     whose processed file is newer than its raw file is kept unless `fresh`. Returns the scores."""
     scores = read_json(scores_path(engine), {})
-    ids = gen_ids() if not only else [i for i in gen_ids() if i in only]
+    ids = gen_ids(engine) if not only else [i for i in gen_ids(engine) if i in only]
     for sid in ids:
-        row = PROMPTS[sid]
+        row = row_for(engine, sid)
         old_cands = {c["k"]: c for c in scores.get(sid, {}).get("cands", [])}
         cands = []
         for k in cand_ks(engine, sid):
@@ -985,7 +1194,7 @@ def analyse_all(engine=DEFAULT_ENGINE, only=None, fresh=False):
                 cands.append(old_cands[k])
                 continue
             try:
-                y, rawm = process(raw, row, int(meta.get("duration", ask_duration(row))), engine)
+                y, rawm = process(raw, row, float(meta.get("duration", ask_duration(row, engine))), engine)
             except Exception as e:
                 log("analyse[%s]: %s_c%d failed: %s %s" % (engine, sid, k, type(e).__name__, e), engine)
                 continue
@@ -1027,13 +1236,14 @@ def pick_auto(picks, only=None, force=False, partial=False, prefer=DEFAULT_ENGIN
             continue
         if sid in picks and picks[sid].get("manual") and not force:
             continue
-        row = PROMPTS[sid]
-        mine = scores[prefer].get(sid, {}).get("cands", [])
+        pref = "sa3" if sid in HYPE and scores["sa3"].get(sid, {}).get("cands") else prefer
+        row = row_for(pref, sid)
+        mine = scores[pref].get(sid, {}).get("cands", [])
         if not mine or (len(mine) < CANDS and not partial):
             continue
-        engine, best = prefer, best_of(mine)
+        engine, best = pref, best_of(mine)
         if all(hard_fail(c, row) for c in mine):
-            for e in others:
+            for e in [x for x in others if x != pref]:
                 ok = [c for c in scores[e].get(sid, {}).get("cands", []) if not hard_fail(c, row)]
                 if ok:
                     engine, best = e, best_of(ok)
@@ -1154,7 +1364,8 @@ def write_sounds_json():
             if r["prompt"] is None:
                 prompt = "Silent (a 50 ms file): the voice bark is gone, nothing replaces it"
             else:
-                prompt = engine_prompt(picks.get(sid, {}).get("engine", DEFAULT_ENGINE), r)
+                e = picks.get(sid, {}).get("engine", DEFAULT_ENGINE)
+                prompt = engine_prompt(e, row_for(e, sid))
             rows.append({"group": g, "id": sid, "trigger": r["trigger"], "prompt": prompt})
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(rows, f, indent=1, ensure_ascii=False)
@@ -1281,9 +1492,9 @@ def main(argv=None):
             scores = read_json(scores_path(e), {})
             n = 0
             for sid, s in scores.items():
-                row = PROMPTS.get(sid)
-                if row is None:
+                if sid not in PROMPTS:
                     continue
+                row = row_for(e, sid)
                 for c in s["cands"]:
                     c["score"] = score_candidate(c, c, row)
                     c["fail"] = hard_fail(c, row)

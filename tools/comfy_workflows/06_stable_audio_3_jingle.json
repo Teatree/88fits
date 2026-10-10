@@ -1,0 +1,530 @@
+{
+ "last_node_id": 10,
+ "last_link_id": 12,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "CheckpointLoaderSimple",
+   "pos": [
+    60,
+    60
+   ],
+   "size": [
+    360,
+    116
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      5
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      10
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CheckpointLoaderSimple"
+   },
+   "widgets_values": [
+    "stable_audio_3_medium.safetensors"
+   ],
+   "title": "Model + autoencoder"
+  },
+  {
+   "id": 2,
+   "type": "CLIPLoader",
+   "pos": [
+    60,
+    290
+   ],
+   "size": [
+    360,
+    168
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      1,
+      2
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader"
+   },
+   "widgets_values": [
+    "t5gemma_b_b_ul2.safetensors",
+    "stable_audio",
+    "default"
+   ],
+   "title": "Text encoder"
+  },
+  {
+   "id": 3,
+   "type": "CLIPTextEncode",
+   "pos": [
+    460,
+    60
+   ],
+   "size": [
+    360,
+    136
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "A bright casino slot machine win jingle with a twangy western guitar lick, punchy, clean, isolated game sound effect, no speech."
+   ],
+   "title": "Describe the sound"
+  },
+  {
+   "id": 4,
+   "type": "CLIPTextEncode",
+   "pos": [
+    460,
+    290
+   ],
+   "size": [
+    360,
+    136
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    ""
+   ],
+   "title": "Negative (inert at cfg 1)"
+  },
+  {
+   "id": 5,
+   "type": "ConditioningStableAudio",
+   "pos": [
+    860,
+    60
+   ],
+   "size": [
+    360,
+    182
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 3
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "links": [
+      7
+     ],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ConditioningStableAudio"
+   },
+   "widgets_values": [
+    0.0,
+    2.0
+   ],
+   "title": "Duration conditioning"
+  },
+  {
+   "id": 6,
+   "type": "EmptyLatentAudio",
+   "pos": [
+    60,
+    520
+   ],
+   "size": [
+    360,
+    142
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "EmptyLatentAudio"
+   },
+   "widgets_values": [
+    2.2,
+    1
+   ],
+   "title": "Padded latent"
+  },
+  {
+   "id": 7,
+   "type": "KSampler",
+   "pos": [
+    1260,
+    60
+   ],
+   "size": [
+    360,
+    352
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 5
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 6
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 7
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 8
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      9
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSampler"
+   },
+   "widgets_values": [
+    88,
+    "fixed",
+    8,
+    1.0,
+    "lcm",
+    "simple",
+    1.0
+   ],
+   "title": "8 distilled steps"
+  },
+  {
+   "id": 8,
+   "type": "VAEDecodeAudio",
+   "pos": [
+    1660,
+    60
+   ],
+   "size": [
+    360,
+    130
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 9
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "name": "AUDIO",
+     "type": "AUDIO",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecodeAudio"
+   },
+   "widgets_values": [],
+   "title": "Decode stereo audio"
+  },
+  {
+   "id": 9,
+   "type": "TrimAudioDuration",
+   "pos": [
+    2060,
+    60
+   ],
+   "size": [
+    360,
+    162
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 11
+    }
+   ],
+   "outputs": [
+    {
+     "name": "AUDIO",
+     "type": "AUDIO",
+     "links": [
+      12
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "TrimAudioDuration"
+   },
+   "widgets_values": [
+    0.0,
+    2.0
+   ],
+   "title": "Trim to the duration"
+  },
+  {
+   "id": 10,
+   "type": "GameAudioSaveWAV",
+   "pos": [
+    2460,
+    60
+   ],
+   "size": [
+    360,
+    136
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": 12
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "GameAudioSaveWAV"
+   },
+   "widgets_values": [
+    "88fits/sa3_medium"
+   ],
+   "title": "WAV export"
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   3,
+   0,
+   "CLIP"
+  ],
+  [
+   2,
+   2,
+   0,
+   4,
+   0,
+   "CLIP"
+  ],
+  [
+   3,
+   3,
+   0,
+   5,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   4,
+   4,
+   0,
+   5,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   5,
+   1,
+   0,
+   7,
+   0,
+   "MODEL"
+  ],
+  [
+   6,
+   5,
+   0,
+   7,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   7,
+   5,
+   1,
+   7,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   8,
+   6,
+   0,
+   7,
+   3,
+   "LATENT"
+  ],
+  [
+   9,
+   7,
+   0,
+   8,
+   0,
+   "LATENT"
+  ],
+  [
+   10,
+   1,
+   2,
+   8,
+   1,
+   "VAE"
+  ],
+  [
+   11,
+   8,
+   0,
+   9,
+   0,
+   "AUDIO"
+  ],
+  [
+   12,
+   9,
+   0,
+   10,
+   0,
+   "AUDIO"
+  ]
+ ],
+ "groups": [],
+ "config": {},
+ "extra": {
+  "88fits": "generated by tools/comfy.py"
+ },
+ "version": 0.4
+}

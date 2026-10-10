@@ -6,6 +6,12 @@
 ## analytics record.
 ##   "$GODOT" --headless --fixed-fps 60 --path game --script res://tools/difficulty_probe.gd -- t0=300 secs=130 stage=0 \
 ##       level=22 build=b1 mirror=0 hero=calavera seed=11
+## `mirror` may be fractional (pass 64): 1.5 = a quarter of the board, the talents in FORMS order taking 2 and 1 ranks
+## by turns (grit 2, drive 1, stride 2, fortune 1, choice 2, nerve 1, study 2, spite 1 = 12 of 48 ranks); a whole
+## number gives every talent that many. `grit=` and `spite=` pick those talents' forms (spite 1 = Thirst, the default;
+## spite=0 = Thorns, a Mirror without lifesteal: Thirst's first rank already reaches the 4 % lifesteal cap). Ranks are
+## written as pass 63's picks (every rank in the talent's FORMS form). The probe is not deterministic (two runs of one
+## seed can differ by 0.4 maxHP a minute): pool several seeds and both heroes before reading a cell.
 ## Autoloads are reached through the tree (SceneTree scripts compile before they exist).
 extends SceneTree
 
@@ -40,10 +46,11 @@ var _secs := 130.0
 var _stage := 0
 var _level := 22
 var _build := "b1"
-var _mirror := 0
+var _mirror := 0.0
 var _hero := "calavera"
 var _seed := 11
 var _grit := 0
+var _spite := 1
 var _hpx := 1.0
 var _dmgx := 1.0
 var _game: Node
@@ -82,10 +89,11 @@ func _init() -> void:
 			"stage": _stage = int(kv[1])
 			"level": _level = int(kv[1])
 			"build": _build = kv[1]
-			"mirror": _mirror = int(kv[1])
+			"mirror": _mirror = float(kv[1])
 			"hero": _hero = kv[1]
 			"seed": _seed = int(kv[1])
 			"grit": _grit = int(kv[1])
+			"spite": _spite = int(kv[1])
 			"hpx": _hpx = float(kv[1])
 			"dmgx": _dmgx = float(kv[1])
 	process_frame.connect(_start, CONNECT_ONE_SHOT)
@@ -102,12 +110,22 @@ func _start() -> void:
 	save.begin_sandbox()
 	save.data["runs_started"] = 1
 	var talents := {}
-	if _mirror > 0:
+	if _mirror > 0.0:
+		var k := 0
 		for id: String in FORMS.keys():
 			var form: int = FORMS[id]
 			if id == "grit":
 				form = _grit
-			talents[id] = {"form": form, "rank": _mirror}
+			elif id == "spite":
+				form = _spite
+			var rank := rank_for(_mirror, k)
+			k += 1
+			if rank <= 0:
+				continue
+			var picks: Array = []
+			for _r in range(rank):
+				picks.append(form)
+			talents[id] = {"picks": picks, "rank": rank, "form": form}
 	save.data["talents"] = talents
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify({"weapon": START.get(_hero, "revolver"), "level": 1, "character": _hero, "map": "red_canyon", "map_seed": _seed, "analytics": false}))
@@ -115,6 +133,16 @@ func _start() -> void:
 	_run = root.get_node("Run")
 	change_scene_to_file("res://game/Game.tscn")
 	process_frame.connect(_tick)
+
+
+## The ranks the k-th talent (FORMS order) takes at a Mirror of `m` ranks a talent on average: whole numbers for every
+## talent, a half by turns (the ceiling first).
+static func rank_for(m: float, k: int) -> int:
+	var lo := floori(m)
+	var frac := m - float(lo)
+	if frac <= 0.001:
+		return clampi(lo, 0, 6)
+	return clampi(lo + (1 if k % 2 == 0 else 0), 0, 6)
 
 
 func _tick() -> void:
@@ -200,7 +228,7 @@ func _setup() -> void:
 		ws.append("%s L%d %s est %.0f" % [w.def.id, w.level, str(w.mutations.map(func(m): return m.id)), w.dps_estimate()])
 		est += w.dps_estimate()
 	var sh = _run.player_sheet
-	print("probe: hero %s build %s mirror %d (grit form %d) level %d stage %d t0 %.0f seed %d hpx %.2f dmgx %.2f" % [_hero, _build, _mirror, _grit, _level, _stage, _t0, _seed, _hpx, _dmgx])
+	print("probe: hero %s build %s mirror %.1f (grit form %d, spite form %d) level %d stage %d t0 %.0f seed %d hpx %.2f dmgx %.2f" % [_hero, _build, _mirror, _grit, _spite, _level, _stage, _t0, _seed, _hpx, _dmgx])
 	print("probe: weapons %s" % str(ws))
 	print("probe: passives %s" % str(_run.passives))
 	print("probe: est_total %.0f | max_hp %.0f dr %.2f regen %.2f lifesteal %.3f move %.2f might %.2f cooldown %.2f area %.2f amount %.1f crit %.2f" % [est,
@@ -389,8 +417,8 @@ func _report(ran: float) -> void:
 		cap += float(s["cap"])
 	var n := maxf(_samples.size(), 1)
 	var dealt := _total_dmg() - _dmg0
-	print("probe: RESULT hero=%s build=%s mirror=%d grit=%d hpx=%.2f dmgx=%.2f t0=%.0f secs=%.0f seed=%d | lost/min %.2f maxHP (gross %.0f HP, healed %.0f) net/min %.2f | refills %d downs %d | kills/min %.0f dealt/s %.0f | alive %.0f load %.1f cap %.1f | cards %d chests %d | max_hp %.0f" % [
-		_hero, _build, _mirror, _grit, _hpx, _dmgx, _t0, ran, _seed, _lost / mh / mins, _lost, _healed, (_lost - _healed) / mh / mins, _refills, _downs,
+	print("probe: RESULT hero=%s build=%s mirror=%.1f grit=%d spite=%d hpx=%.2f dmgx=%.2f t0=%.0f secs=%.0f seed=%d | lost/min %.2f maxHP (gross %.0f HP, healed %.0f) net/min %.2f | refills %d downs %d | kills/min %.0f dealt/s %.0f | alive %.0f load %.1f cap %.1f | cards %d chests %d | max_hp %.0f" % [
+		_hero, _build, _mirror, _grit, _spite, _hpx, _dmgx, _t0, ran, _seed, _lost / mh / mins, _lost, _healed, (_lost - _healed) / mh / mins, _refills, _downs,
 		float(int(_run.kills) - _kills0) / mins, dealt / maxf(ran, 1.0), alive / n, load / n, cap / n, _cards, _chests, mh])
 	var keys: Array = _by.keys()
 	keys.sort_custom(func(a, b): return float(_by[a]) > float(_by[b]))

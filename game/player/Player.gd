@@ -93,6 +93,14 @@ var _shield_mat: ShaderMaterial
 var _shield_hit := 0.0
 var _view := ""          # "" back, "_f" front, "_s" side
 var _flip := false
+## The landing at the run's start (pass 64, Garry: "make it so the hero is facing us when we land"): the spawn beam
+## turns him to the camera (face_camera) and he keeps that view until he first moves, since _animate only picks a view
+## while moving. `land_settle` gives him a soft squash and spring back as he touches down (LAND_SQUASH of his height at
+## the deepest, over `_land_len` seconds), and `quiet_invuln` keeps the landing's second of safety from blinking him.
+const LAND_SQUASH := 0.09
+var _land_t := 0.0
+var _land_len := 0.0
+var quiet_invuln := false
 var character: CharacterDef
 ## The art he is drawn with (pass 55): `character` wearing the look kept for him (Save.hero_look, else his JSON's
 ## `variant`), or the arena's look for this session (`look_override`, the HERO tab's chips). Only the strip reads it;
@@ -450,10 +458,14 @@ func _animate(delta: float, moving: bool, on_floor: bool) -> void:
 	_bob = _bob + delta * (10.0 if moving else 3.0)
 	var bob := sin(_bob) * (0.03 if moving else 0.015)
 	var jump_stretch := 0.0 if on_floor else 0.12
-	sprite.set_squash(1.0 - jump_stretch * 0.5, 1.0 + bob * 0.5 + jump_stretch)
+	var land := land_squash()
+	_land_t = maxf(_land_t - delta, 0.0)
+	sprite.set_squash(1.0 - jump_stretch * 0.5 + land * 0.6, 1.0 + bob * 0.5 + jump_stretch - land)
 	sprite.set_roll(-_tilt * 0.14)
 	sprite.set_flash(_flash)
-	if invuln > 0.0 and not god:
+	if quiet_invuln and invuln <= 0.0:
+		quiet_invuln = false
+	if invuln > 0.0 and not god and not quiet_invuln:
 		sprite.visible = int(invuln * 20.0) % 2 == 0
 	else:
 		sprite.visible = true
@@ -918,6 +930,31 @@ static func leash_of(dir: Vector3, away: Vector3, away_speed: float) -> float:
 		return 1.0
 	var pull := clampf(flat.normalized().dot(a.normalized()), 0.0, 1.0)
 	return 1.0 - (1.0 - away_speed) * pull
+
+
+## The spawn beam's view (pass 64): the front, idle, not mirrored; kept until he first moves.
+func face_camera() -> void:
+	_view = "_f"
+	_flip = false
+	var anim := _anim_for("idle")
+	if sprite and sprite.has_animation(anim):
+		sprite.play(anim)
+		sprite.set_flip(false)
+
+
+## Touching down (pass 64): a soft squash that springs back over `seconds`.
+func land_settle(seconds: float) -> void:
+	_land_len = maxf(seconds, 0.01)
+	_land_t = _land_len
+
+
+## The landing squash now (0 at rest): it starts from nothing (no one-frame snap after the fall), squashes to about
+## LAND_SQUASH, springs a little past and dies away.
+func land_squash() -> float:
+	if _land_t <= 0.0 or _land_len <= 0.0:
+		return 0.0
+	var p := 1.0 - _land_t / _land_len
+	return LAND_SQUASH * sin(p * TAU) * (1.0 - p) * 1.4
 
 
 ## The strip may lack some views (older art): fall back along the nearest available direction.

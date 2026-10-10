@@ -175,7 +175,9 @@ func test_rust_oxidises_the_saws_and_goes_with_the_mutation() -> void:
 	assert_bool(mmi.material_override is ShaderMaterial).is_true()
 	var m := mmi.material_override as ShaderMaterial
 	assert_str(m.shader.resource_path).is_equal("res://core/shaders/rust_blade.gdshader")
-	assert_float(float(m.get_shader_parameter("amount"))).is_equal_approx(0.75, 0.001)
+	# pass 64: a gentler rust (0.75 before), its steel duller
+	assert_float(float(m.get_shader_parameter("amount"))).is_equal_approx(0.7, 0.001)
+	assert_float(float(m.get_shader_parameter("steel"))).is_equal_approx(0.7, 0.001)
 	assert_bool(_near(m.get_shader_parameter("base_color"), Color(0.86, 0.88, 0.92))).is_true()
 	assert_object(m.get_shader_parameter("noise_tex")).is_not_null()
 	# gone again without it
@@ -194,8 +196,8 @@ func test_rusted_saws_shed_flakes_while_they_spin_and_plain_ones_none() -> void:
 	var b := _behaviour(w, Orbiter.new(), "orbit_saws", ["rust"], 3) as Orbiter
 	var before := fx._n
 	_ticks(b, 1.0)
-	# about `flakes` (12) a second, nothing with nothing to hit
-	assert_int(b.flakes).is_between(9, 14)
+	# about `flakes` (6 since pass 64, 12 before) a second, nothing with nothing to hit
+	assert_int(b.flakes).is_between(4, 8)
 	assert_int(fx._n).is_greater(before)
 	# capped a frame: a long frame sheds no more than FLAKES_PER_FRAME
 	var n0 := b.flakes
@@ -210,13 +212,14 @@ func test_the_saw_halo_keeps_its_gold_under_a_patina_of_rust() -> void:
 	assert_bool(halo.rusted()).is_true()
 	var m := (halo.get_node("Blades") as MultiMeshInstance3D).material_override as ShaderMaterial
 	# its own patina over Rust's: less rust, a thinner rim, over its gold
-	assert_float(float(m.get_shader_parameter("amount"))).is_equal_approx(0.4, 0.001)
-	assert_float(float(m.get_shader_parameter("rim"))).is_equal_approx(0.12, 0.001)
+	# (pass 64: 0.3 / 0.06 / 0.15, a lighter patina; 0.4 / 0.12 / 0.35 before)
+	assert_float(float(m.get_shader_parameter("amount"))).is_equal_approx(0.3, 0.001)
+	assert_float(float(m.get_shader_parameter("rim"))).is_equal_approx(0.06, 0.001)
 	# its gold as it shows (the albedo and its glow), never the silver
 	var gold: Color = m.get_shader_parameter("base_color")
 	assert_float(gold.r).is_greater(0.95)
 	assert_float(gold.b).is_less(0.7)
-	assert_float(float(m.get_shader_parameter("pits"))).is_equal_approx(0.35, 0.001)
+	assert_float(float(m.get_shader_parameter("pits"))).is_equal_approx(0.15, 0.001)
 	# the solid ring wears it too
 	assert_object(halo._ring).is_not_null()
 	assert_object(halo._ring.material_override).is_same(m)
