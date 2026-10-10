@@ -94,6 +94,8 @@ var _defs: Array = []
 ## Seconds from a spin's start to its landing (the first spin waits on the chest; a banish's starts at once): a tap
 ## hurries what is left of it.
 var _spin_total := 0.0
+## The slot machine's sound (pass 65): lever, spinning loop, the stop's clunk, then the landing's jackpot.
+var slot := WSlotSound.new()
 ## How far the chest's light has risen (0 to 1) and where it rises from (the open chest's mouth).
 var _beam_rise := 0.0
 var _mouth := Vector2(540, 1400)
@@ -491,6 +493,9 @@ func _set_reel(x: float) -> void:
 		p.modulate.a = 0.45 if absf(px - w * 0.5) > STEP * 0.5 else 1.0
 		p.pivot_offset = Vector2(SMALL, SMALL) * 0.5
 		p.scale = Vector2.ONE * 0.85
+	if _spinning and x > 0.0:
+		slot.begin()
+	slot.feed(x)
 	var cell := int((x + STEP * 0.5) / STEP)
 	if cell != _last_cell:
 		_last_cell = cell
@@ -558,6 +563,7 @@ func _land() -> void:
 	_panel.modulate.a = 0.0
 	var tp := create_tween()
 	tp.tween_property(_panel, "modulate:a", 1.0, 0.2)
+	slot.land()
 	Audio.play("w_evo_reveal" if kind == "evolution" else "ui_jackpot")
 	_refresh_buttons()
 	buttons.visible = true
@@ -742,6 +748,13 @@ func respin(result: Dictionary) -> void:
 	_spin_total = RESPIN + 0.22
 
 
+## The spinning loop never outlives the reel (pass 65): hidden or gone, it stops.
+func _notification(what: int) -> void:
+	if (what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree()) or what == NOTIFICATION_EXIT_TREE or what == NOTIFICATION_PREDELETE:
+		if slot:
+			slot.cancel()
+
+
 func result() -> Dictionary:
 	return _result
 
@@ -760,6 +773,7 @@ func _finish(take: bool) -> void:
 	if _spinning:
 		return
 	_spinning = true
+	slot.cancel()
 	var def: ContentDef = _result.get("def")
 	# the level it lands on goes with it: the gate's flying plate is in that level's colour (pass 48)
 	_pick = {"def": def, "rect": _hero.get_global_rect(), "level": int(_result.get("level_to", 0))} if (take and def and _hero) else {}

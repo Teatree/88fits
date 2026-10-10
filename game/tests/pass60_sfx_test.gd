@@ -13,7 +13,7 @@ extends GdUnitTestSuite
 const SOUNDS := "res://content/sounds/"
 const MUSIC := {"mu_title": 2016044, "mu_run_1": 1282952, "mu_run_2": 1282952, "mu_run_3": 1282952, "mu_boss": 1085582,
 	"mu_results": 1814444}
-const SILENCED := ["pl_hurt", "pl_jump"]
+const SILENCED := ["pl_jump"]   # pl_hurt has its chiptune hit since pass 65
 const REPLACED := ["ui_levelup", "ui_unlock", "wd_extract", "en_elite_spawn", "en_boss_roar", "en_boss_die", "pl_revive",
 	"pl_death"]
 const LOOPS := ["w_saw_loop", "w_snake_rattle", "wd_ambient", "wd_portal_open", "wd_dust_devil"]

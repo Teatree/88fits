@@ -353,3 +353,9 @@ god mode off; dying in the arena puts you back on your feet at once (HERO's "Go 
   half-board hero's. Stage 1 is unchanged. First knobs to nudge: the 9:45-11:45 skeleton/knight rows, the ATK x points
   (keep stage 2 above about 0.46, or its bites fall under stage 1's), the Elite HP.
 
+## 12. Pass 65 (not balance, named so they are not surprises)
+
+- Blob shadows lie on the slope under each figure; the hero's stays on the sand when he jumps.
+- Gem pickups ring higher on quick repeats (0.5 semitone a step for small and medium gems, 1.0 for large, within 0.3 s,
+  at most 10 steps); the hero's hurt sound plays at most every 0.25 s.
+

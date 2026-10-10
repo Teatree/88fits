@@ -37,6 +37,18 @@ PLACEHOLDER = os.path.join(A.SOUNDS, "placeholder")
 ENGINE_NAME = {"stable": "Stable Audio", "audiogen": "AudioGen", "sa3": "Stable Audio 3"}
 BEFORE = os.path.join(A.ROOT, "tools", "dl", "backup", "sfx_pass63", "real")
 OLD_MUSIC = os.path.join(A.ROOT, "tools", "dl", "backup", "sfx_pass63", "music")
+# pass 65: sounds synthesised in numpy by tools/synth_sfx.py (they win over any ai_sfx pick of the same id); the pass-64
+# files they replaced are in tools/dl/backup/sfx_pass64/
+BEFORE65 = os.path.join(A.ROOT, "tools", "dl", "backup", "sfx_pass64")
+SYNTH65 = [
+    ("pk_gem_s", "Small XP gem: a short soft G6 ding (rises half a semitone per quick repeat, chain_step)"),
+    ("pk_gem_m", "Medium XP gem: a fuller E6 + B6 ding"),
+    ("pk_gem_l", "Large XP gem: a C6 ding-ding with a second strike and a long ring"),
+    ("pl_hurt", "The hero is hit: a chiptune 'negative' blip, a stepped square falling 620 to 150 Hz with a crunch (at most one per 0.25 s)"),
+    ("ui_slot_start", "Slot machine: the lever's ratchet and clunk as the reel starts, a western twang"),
+    ("ui_slot_spin", "Slot machine: the spinning loop while the strip runs, its pitch following the strip's speed"),
+    ("ui_slot_stop", "Slot machine: the clunk of the reel stopping on the landing cell, before the jackpot"),
+]
 SEAM_S = 3.0
 LISTEN_FIRST = ["mu_run_1", "mu_title", "mu_boss", "ui_levelup", "ui_jackpot", "w_evo_reveal", "pk_chest_open", "ui_tap",
                 "pk_gem_s", "pk_coin", "ui_buy", "ui_reel_tick"]
@@ -97,12 +109,13 @@ def rel_paths(mode):
     """Where the page finds the wavs: next to the repo's docs/ (mode repo) or in the zip's folders (mode zip)."""
     if mode == "zip":
         return {"real": "real/", "cands": "cands/%s/", "old": "old/", "old_voice": "old_voice/", "before": "before/",
-                "music": "music/", "music_cands": "music_cands/", "seam": "music_seam/", "old_music": "old_music/", "ext": ".mp3"}
+                "music": "music/", "music_cands": "music_cands/", "seam": "music_seam/", "old_music": "old_music/", "before65": "before65/", "ext": ".mp3"}
     return {"real": "../game/content/sounds/real/", "cands": "../tools/dl/sfx60/%s/proc/",
             "old": "../game/content/sounds/placeholder/", "old_voice": "../tools/dl/sfx60/old_voice/",
             "before": "../tools/dl/backup/sfx_pass63/real/", "music": "../game/content/sounds/music/",
             "music_cands": "../tools/dl/music64/loop/", "seam": "../tools/dl/music64/seam/",
-            "old_music": "../tools/dl/backup/sfx_pass63/music/", "ext": ".wav"}
+            "old_music": "../tools/dl/backup/sfx_pass63/music/",
+            "before65": "../tools/dl/backup/sfx_pass64/", "ext": ".wav"}
 
 
 def fmt_hz(v):
@@ -283,6 +296,35 @@ def music_html(M, sc, pk, paths):
     return "\n".join(out)
 
 
+def synth65_html(paths):
+    """Pass 65's synthesised sounds: new against the pass-64 file (or the silence / nothing it replaced)."""
+    import numpy as np
+    import soundfile as sf
+    out = ['<section id="g-p65"><h2>Pass 65: gem dings, the hero&rsquo;s hurt, the slot machine <small style="color:#9b93ad;font-size:13px">'
+           'synthesised in numpy (tools/synth_sfx.py) after Garry&rsquo;s Vampire Survivors references, which are analysed only, never shipped; '
+           'these files win over the rows further down</small></h2>']
+    for sid, what in SYNTH65:
+        src = os.path.join(A.REAL, sid + ".wav")
+        nums = ""
+        if os.path.exists(src):
+            y, sr = sf.read(src)
+            S = np.abs(np.fft.rfft(y))
+            f = np.fft.rfftfreq(len(y), 1 / sr)
+            nums = "%s · %.1f dB · %.2f s" % (fmt_hz((S * f).sum() / max(S.sum(), 1e-9)), 20 * np.log10(np.sqrt(np.mean(y ** 2)) + 1e-12), len(y) / sr)
+        right = ['<div class="players">', player("<b>New</b>", paths["real"] + sid + ".wav", nums, "pl picked")]
+        if os.path.exists(os.path.join(BEFORE65, sid + ".wav")):
+            right.append(player("Before (pass 64)", paths["before65"] + sid + ".wav", "the glassy ping", "pl alt"))
+        elif sid == "pl_hurt":
+            right.append('<div class="pl alt"><div class="lab">Before</div><div class="num">silent since pass 60</div></div>')
+        else:
+            right.append('<div class="pl alt"><div class="lab">Before</div><div class="num">a new id</div></div>')
+        right.append("</div>")
+        out.append('<div class="row" id="p65-%s"><div><div class="id">%s</div><div class="meta trig">%s</div></div>%s</div>' % (
+            sid, sid, html.escape(what), "".join(right)))
+    out.append("</section>")
+    return "\n".join(out)
+
+
 def build(mode, scores, picks, volumes):
     paths = rel_paths(mode)
     st = summary(scores, picks)
@@ -302,12 +344,13 @@ def build(mode, scores, picks, volumes):
            '(a sound; <code>=stable:k</code> goes back to pass 60) or <code>python tools/ai_music.py --pick mu_run_1=3</code> (a track), then '
            '<code>python tools/make_sfx_review.py</code>.</div></header>']
     groups = [g for g in A.GROUP_ORDER if g != "Music"]
-    nav = ['<a href="#g-first">Listen first</a>', '<a href="#g-music">Music</a>', '<a href="#g-hype">UI &amp; rewards</a>']
+    nav = ['<a href="#g-first">Listen first</a>', '<a href="#g-p65">Pass 65</a>', '<a href="#g-music">Music</a>', '<a href="#g-hype">UI &amp; rewards</a>']
     nav += ['<a href="#g-%s">%s</a>' % (g, g) for g in groups]
     out.append("<nav>%s</nav>" % "".join(nav))
     first = [x for x in LISTEN_FIRST if x in A.PROMPTS or x in (M.TRACKS if M else {})]
     out.append('<section id="g-first"><h2>Listen first</h2><div class="how">%s</div></section>' % " · ".join(
         '<a style="color:#d9a441" href="#%s">%s</a>' % (x, x) for x in first))
+    out.append(synth65_html(paths))
     out.append(music_html(M, msc, mpk, paths))
     out.append('<section id="g-hype"><h2>UI &amp; rewards <small style="color:#9b93ad;font-size:13px">%d · the hype family</small></h2>' % len(hype))
     for sid in hype:
@@ -358,6 +401,8 @@ def zip_files(scores, picks):
             out.append(("cands/%s/%s_c%d.wav" % (e, sid, c["k"]), A.proc_path(e, sid, c["k"])))
         if engine == "sa3":
             out.append(("before/%s.wav" % sid, os.path.join(BEFORE, sid + ".wav")))
+    for sid, _ in SYNTH65:
+        out.append(("before65/%s.wav" % sid, os.path.join(BEFORE65, sid + ".wav")))
     for fn in sorted(os.listdir(PLACEHOLDER)):
         if fn.endswith(".wav") and not fn.startswith(A.MUSIC_PREFIX):
             out.append(("old/" + fn, os.path.join(PLACEHOLDER, fn)))

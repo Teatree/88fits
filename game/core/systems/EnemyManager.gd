@@ -4077,7 +4077,42 @@ func shadow_xform(i: int, scf: Vector3, scr: Vector3) -> Transform3D:
 	if up != 0.0:
 		at += scf * up
 		at.y = _height(at.x, at.z)
-	return Transform3D(Basis(scr * (shs * 0.55 * _t_sh[sb]), Vector3.UP, -scf * (shs * 0.34 * _t_sh[sb + 1])), at + Vector3(0, 0.03, 0))
+	return drape(Transform3D(Basis(scr * (shs * 0.55 * _t_sh[sb]), Vector3.UP, -scf * (shs * 0.34 * _t_sh[sb + 1])), at), height_fn)
+
+
+## A flat blob quad (`extent` metres square, scaled by `xf.basis`, lying at `xf.origin` on the ground) laid on the ground under it
+## (pass 65: on any slope the flat quad cut into the sand and lost half its disc): tilted to the plane through the
+## ground under its four edge midpoints (`h`, the map's height_at; the normal over the blob's own extent, not a point),
+## then lifted by SHADOW_LIFT plus how far the ground bends above that plane (a dish or a river bank's foot, from the
+## second differences), so no part sinks under the terrain. Five height samples; the creatures' are at most
+## SHADOW_BUDGET a frame once the crowd is big.
+const SHADOW_LIFT := 0.03
+static func drape(xf: Transform3D, h: Callable, extent := 1.0) -> Transform3D:
+	if not h.is_valid():
+		return Transform3D(xf.basis, xf.origin + Vector3(0, SHADOW_LIFT, 0))
+	var o := xf.origin
+	var ax := Vector3(xf.basis.x.x, 0.0, xf.basis.x.z) * (0.5 * extent)
+	var az := Vector3(xf.basis.z.x, 0.0, xf.basis.z.z) * (0.5 * extent)
+	if ax.length_squared() < 0.0001 or az.length_squared() < 0.0001:
+		return Transform3D(xf.basis, Vector3(o.x, float(h.call(o.x, o.z)) + SHADOW_LIFT, o.z))
+	var hxp: float = h.call(o.x + ax.x, o.z + ax.z)
+	var hxm: float = h.call(o.x - ax.x, o.z - ax.z)
+	var hzp: float = h.call(o.x + az.x, o.z + az.z)
+	var hzm: float = h.call(o.x - az.x, o.z - az.z)
+	var hc: float = h.call(o.x, o.z)
+	var tx := Vector3(ax.x * 2.0, hxp - hxm, ax.z * 2.0)
+	var tz := Vector3(az.x * 2.0, hzp - hzm, az.z * 2.0)
+	var n := tz.cross(tx).normalized()
+	if n.y < 0.0:
+		n = -n
+	var base := 0.25 * (hxp + hxm + hzp + hzm)
+	var c := Vector3(o.x, base, o.z)
+	# how far the ground bends above that plane: the second differences along the two axes (a dish's corners and
+	# middle, a ridge's middle), taken generously so no corner sinks without four more height samples a blob
+	var dx2 := hxp + hxm - 2.0 * hc
+	var dz2 := hzp + hzm - 2.0 * hc
+	var over := (absf(dx2) + absf(dz2)) * 0.5
+	return Transform3D(MapBase.ground_basis(n) * xf.basis, c + Vector3(0, over / maxf(n.y, 0.3) + SHADOW_LIFT, 0))
 
 
 ## How far creature `i`'s painting sinks (pass 47, EnemyDef.shadow "drop"): down the billboard's own plane (`cam_up`) by

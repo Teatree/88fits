@@ -1256,6 +1256,7 @@ func _process(delta: float) -> void:
 	_tick_perks(delta)
 	_tick_tether(delta)
 	_tick_breadcrumb(delta)
+	_drape_hero_shadow()
 	_tick_water(delta)
 	_tick_berserk(delta)
 	_tick_hero_fx(delta)
@@ -3204,6 +3205,19 @@ func _end_steady_mark() -> void:
 ## water_level, 0.3 m without one) round the hero and round up to 12 creatures that move in it, and a little splash.
 ## Every frame he also sinks into it like the creatures, and his shadow goes wherever the drawn water covers any of it
 ## (pass 56, _sink_hero).
+## The hero's blob on the ground under him (pass 65): the flat quad cut into any slope, so every frame it is laid on the
+## ground at his feet (EnemyManager.drape, the creatures' rule), turned with him at Player.shadow_scale; it stays on the
+## sand while he jumps (it grows there, as before).
+func _drape_hero_shadow() -> void:
+	if player == null or map == null or player.shadow == null or player.cinematic:
+		return
+	var at: Vector3 = player.global_position
+	var flat := Basis(Vector3.UP, player.rotation.y) * Basis.from_scale(player.shadow_scale)
+	var quad := player.shadow.mesh as QuadMesh
+	var ext: float = quad.size.x if quad else 1.4
+	player.shadow.global_transform = EnemyManager.drape(Transform3D(flat, Vector3(at.x, 0.0, at.z)), map.height_at, ext)
+
+
 func _tick_water(delta: float) -> void:
 	if map == null or not map.has_method("in_water") or player == null or player.dead:
 		return

@@ -610,6 +610,10 @@ static func soundmap_from_dict(d: Dictionary, dir: String) -> SoundMap:
 				"loop": bool(e.get("loop", false)),
 				"stream": null,
 			}
+			# pass 65: a rising pitch over quick repeats (the gems' dings) and a least gap between plays (the hero's hurt)
+			for k in ["chain_step", "chain_window", "chain_max", "min_gap"]:
+				if e.has(k):
+					row[k] = float(e[k])
 			var path: String = row["file"] if row["file"].begins_with("res://") else dir + row["file"]
 			if ResourceLoader.exists(path):
 				var s = load(path)

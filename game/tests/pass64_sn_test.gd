@@ -11,7 +11,7 @@ extends GdUnitTestSuite
 
 const SOUNDS := "res://content/sounds/"
 const MUSIC_IDS := ["mu_title", "mu_run_1", "mu_run_2", "mu_run_3", "mu_boss", "mu_results"]
-const SILENT_ON_PURPOSE := ["pl_hurt", "pl_jump"]
+const SILENT_ON_PURPOSE := ["pl_jump"]   # pl_hurt has its chiptune hit since pass 65
 const NEW_IDS := ["ui_stamp", "ui_stage_clear", "st_deposit"]
 const HYPE_IDS := ["ui_tap", "ui_card", "ui_pause", "ui_resume", "ui_locked", "ui_card_pick", "ui_reel_tick",
 	"ui_chest_knock", "ui_stamp", "ui_buy", "st_deposit", "pk_chest_open", "ui_jackpot", "w_evo_reveal", "ui_levelup",

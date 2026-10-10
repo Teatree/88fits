@@ -74,3 +74,6 @@ The ten Kokoro lines (`tools/gen_voice.py`, now `tools/dl/backup/gen_voice_pass5
 2. Add the id to `PROMPTS` in `tools/ai_sfx.py` (group, trigger, kind, seconds, pitch, prompt) and run `python tools/ai_sfx.py --only <id>` with the app running; without it, `gen_sfx.py` for a placeholder.
 3. Reference it from content (`"sfx": {"fire": "w_new_fire"}`) or code (`Audio.play("id", pos)`), then `--import` and `import_json.gd -- only=sounds`.
 4. `python tools/ai_sfx.py --docs` so the bible's table lists it; `python tools/make_sfx_review.py` for the listening page.
+
+## Pass 65
+`tools/synth_sfx.py` synthesises the gem dings (`pk_gem_s/m/l`), the hero's hurt (`pl_hurt`, no longer silent; only `pl_jump` is) and the slot machine (`ui_slot_start/spin/stop`); `ai_sfx.py`'s `SYNTH` set keeps them out of its `bind()`.

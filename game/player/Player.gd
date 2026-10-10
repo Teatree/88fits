@@ -19,6 +19,8 @@ const RADIUS := 0.45
 @onready var input: PlayerInput = $Input
 @onready var sprite: BillboardSprite = $Sprite
 @onready var shadow: MeshInstance3D = $Shadow
+## The blob's size as Player wants it (pass 65: Game._drape_hero_shadow lays it on the slope from this every frame)
+var shadow_scale := Vector3(0.9, 1, 0.63)
 @onready var muzzle: Marker3D = $Muzzle
 @onready var hip: Marker3D = $Hip
 @onready var ring: MeshInstance3D = $MagnetRing
@@ -470,7 +472,8 @@ func _animate(delta: float, moving: bool, on_floor: bool) -> void:
 	else:
 		sprite.visible = true
 	var s := 0.9 + (0.0 if on_floor else 0.2)
-	shadow.scale = Vector3(s, 1, s * 0.7)
+	shadow_scale = Vector3(s, 1, s * 0.7)
+	shadow.scale = shadow_scale
 
 
 func launch(v: Vector3) -> void:

@@ -18,6 +18,9 @@ var _music_layers: Array = []        # the ids play_music was given (the run's s
 var _music_now := ""                 # the id playing
 var _music_stage := 0
 var _music_boss := false
+var _chain: Dictionary = {}          # id -> [msec of the last play, steps climbed] (pass 65: chain_step)
+var _last_any: Dictionary = {}       # id -> msec of the last play (pass 65: min_gap)
+var _loops: Dictionary = {}          # id -> AudioStreamPlayer of a running loop (pass 65: play_loop)
 
 
 func _ready() -> void:
@@ -56,6 +59,8 @@ func play(id: String, pos: Vector3 = Vector3.INF, volume_db: float = 0.0) -> voi
 	if stream == null:
 		return
 	var now := Time.get_ticks_msec()
+	if row.has("min_gap") and _last_any.has(id) and now - int(_last_any[id]) < int(float(row["min_gap"]) * 1000.0):
+		return
 	var voices: int = max(int(row.get("voices", 4)), 1)
 	var stamps: Array = _last_played.get(id, [])
 	stamps = stamps.filter(func(t): return now - t < 400)
@@ -63,6 +68,7 @@ func play(id: String, pos: Vector3 = Vector3.INF, volume_db: float = 0.0) -> voi
 		return
 	stamps.append(now)
 	_last_played[id] = stamps
+	_last_any[id] = now
 	var att := 0.0
 	if pos != Vector3.INF:
 		var d := _listener_pos.distance_to(pos)
@@ -75,8 +81,70 @@ func play(id: String, pos: Vector3 = Vector3.INF, volume_db: float = 0.0) -> voi
 	p.stream = stream
 	p.volume_db = float(row.get("volume_db", 0.0)) + volume_db + att
 	var spread := float(row.get("pitch_spread", 0.05))
-	p.pitch_scale = 1.0 + randf_range(-spread, spread)
+	p.pitch_scale = (1.0 + randf_range(-spread, spread)) * chain_pitch(id, row, now)
 	p.play()
+
+
+## The pitch factor of a quick repeat (pass 65, the VS gem "ding" climbing while gems pour in): a row with `chain_step`
+## (semitones) rises that much per play that comes within `chain_window` s (default 0.35) of the one before, at most
+## `chain_max` steps (default 8), and starts again from 1.0 after a pause. 1.0 for every other row.
+func chain_pitch(id: String, row: Dictionary, now: int) -> float:
+	var step := float(row.get("chain_step", 0.0))
+	if step <= 0.0:
+		return 1.0
+	var win := int(float(row.get("chain_window", 0.35)) * 1000.0)
+	var c: Array = _chain.get(id, [-100000, 0])
+	var n: int = int(c[1]) + 1 if now - int(c[0]) <= win else 0
+	n = mini(n, int(row.get("chain_max", 8.0)))
+	_chain[id] = [now, n]
+	return pow(2.0, step * float(n) / 12.0)
+
+
+## A looping sound by id (pass 65: the slot reel's spin) on its own player, until stop_loop; a second call while it runs
+## only sets the pitch. Returns the player (null when the id has no stream).
+func play_loop(id: String, pitch := 1.0) -> AudioStreamPlayer:
+	if _loops.has(id) and is_instance_valid(_loops[id]):
+		var q: AudioStreamPlayer = _loops[id]
+		q.pitch_scale = maxf(pitch, 0.05)
+		return q
+	var row := Registry.soundmap.entry(id)
+	var stream: AudioStream = row.get("stream") if not row.is_empty() else null
+	if stream == null:
+		return null
+	if stream is AudioStreamWAV:
+		stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		stream.loop_begin = 0
+		stream.loop_end = int(round(stream.mix_rate * stream.get_length()))
+	var p := AudioStreamPlayer.new()
+	p.bus = SFX_BUS
+	p.stream = stream
+	p.volume_db = float(row.get("volume_db", 0.0))
+	p.pitch_scale = maxf(pitch, 0.05)
+	add_child(p)
+	p.play()
+	_loops[id] = p
+	return p
+
+
+## The pitch of a running loop (no-op when it is not running).
+func set_loop_pitch(id: String, pitch: float) -> void:
+	if _loops.has(id) and is_instance_valid(_loops[id]):
+		(_loops[id] as AudioStreamPlayer).pitch_scale = maxf(pitch, 0.05)
+
+
+## Whether loop `id` runs.
+func loop_playing(id: String) -> bool:
+	return _loops.has(id) and is_instance_valid(_loops[id])
+
+
+## Stops loop `id` (safe to call when it is not running).
+func stop_loop(id: String) -> void:
+	if _loops.has(id):
+		var p = _loops[id]
+		_loops.erase(id)
+		if is_instance_valid(p):
+			(p as AudioStreamPlayer).stop()
+			(p as AudioStreamPlayer).queue_free()
 
 
 func _free_player() -> AudioStreamPlayer:

@@ -86,6 +86,8 @@ REAL = os.path.join(SOUNDS, "real")
 DL = os.path.join(ROOT, "tools", "dl", "sfx60")
 SOUNDMAP = os.path.join(SOUNDS, "soundmap.json")
 SILENCE = "silence.wav"
+# pass 65: ids synthesised by tools/synth_sfx.py (the gem dings, the hero's hurt, the slot machine); bind() leaves them be
+SYNTH = {"pk_gem_s", "pk_gem_m", "pk_gem_l", "pl_hurt", "ui_slot_start", "ui_slot_spin", "ui_slot_stop"}
 SILENCE_SECONDS = 0.05
 LOOP_XFADE = 0.25
 MUSIC_PREFIX = "mu_"
@@ -1266,6 +1268,8 @@ def bind(picks, only=None):
     files = {}
     for sid, row in PROMPTS.items():
         if only and sid not in only:
+            continue
+        if sid in SYNTH:
             continue
         if row["prompt"] is None:
             files[sid] = "real/" + SILENCE

@@ -41,6 +41,8 @@ var _hold_tw: Tween
 var _window: Control
 ## How many ticks the strip made and how many plates it ran past (the tests read them).
 var ticks := 0
+## The slot machine's sound (pass 65): lever, spinning loop, the stop's clunk, then the jackpot.
+var slot := WSlotSound.new()
 
 
 func _init() -> void:
@@ -145,6 +147,10 @@ func _set_x(x: float) -> void:
 		p.modulate.a = lerpf(1.0, SIDE_ALPHA, k)
 		if not (_landed and i == landing_cell()):
 			p.scale = Vector2.ONE * lerpf(1.0, SIDE_SCALE, k)
+	if not _single and not _landed:
+		if x > 0.0:
+			slot.begin()
+		slot.feed(x)
 	var cell := int((x + STEP * 0.5) / STEP)
 	if cell != _last_cell:
 		_last_cell = cell
@@ -196,6 +202,13 @@ func _land() -> void:
 		if _window:
 			_window.queue_redraw(), 1.0, 0.0, 0.45)
 	WCelebrate.burst(self, center, 0, 1.0)
+	if _single:
+		slot.events.append(WSlotSound.STOP)
+		W.sfx_first([WSlotSound.STOP])
+	else:
+		if not slot.active:
+			slot.begin()
+		slot.land()
 	W.sfx_first(["ui_jackpot"])
 	_hold_tw = create_tween()
 	_hold_tw.tween_interval(HOLD)
@@ -206,9 +219,17 @@ func _finish() -> void:
 	if _finished:
 		return
 	_finished = true
+	slot.cancel()
 	if _hold_tw and _hold_tw.is_valid():
 		_hold_tw.kill()
 	done.emit()
+
+
+## The spinning loop never outlives the reel (pass 65): hidden or gone, it stops.
+func _notification(what: int) -> void:
+	if (what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree()) or what == NOTIFICATION_EXIT_TREE or what == NOTIFICATION_PREDELETE:
+		if slot:
+			slot.cancel()
 
 
 func is_landed() -> bool:

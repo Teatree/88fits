@@ -96,7 +96,8 @@
       "voices": 1,
       "pitch_spread": 0.12,
       "volume_db": -3,
-      "file": "real/silence.wav"
+      "min_gap": 0.25,
+      "file": "real/pl_hurt.wav"
     },
     "pl_death": {
       "category": "player",
@@ -207,22 +208,31 @@
     "pk_gem_s": {
       "category": "pickup",
       "voices": 6,
-      "pitch_spread": 0.1,
+      "pitch_spread": 0.03,
       "volume_db": -16,
+      "chain_step": 0.5,
+      "chain_window": 0.3,
+      "chain_max": 10,
       "file": "real/pk_gem_s.wav"
     },
     "pk_gem_m": {
       "category": "pickup",
       "voices": 4,
-      "pitch_spread": 0.08,
+      "pitch_spread": 0.03,
       "volume_db": -14,
+      "chain_step": 0.5,
+      "chain_window": 0.3,
+      "chain_max": 10,
       "file": "real/pk_gem_m.wav"
     },
     "pk_gem_l": {
       "category": "pickup",
       "voices": 2,
-      "pitch_spread": 0.05,
+      "pitch_spread": 0.02,
       "volume_db": -10,
+      "chain_step": 1.0,
+      "chain_window": 0.3,
+      "chain_max": 10,
       "file": "real/pk_gem_l.wav"
     },
     "pk_coin": {
@@ -899,6 +909,28 @@
       "pitch_spread": 0.04,
       "volume_db": -8,
       "file": "real/ui_reel_tick.wav"
+    },
+    "ui_slot_start": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.02,
+      "volume_db": -8,
+      "file": "real/ui_slot_start.wav"
+    },
+    "ui_slot_spin": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -12,
+      "loop": true,
+      "file": "real/ui_slot_spin.wav"
+    },
+    "ui_slot_stop": {
+      "category": "ui",
+      "voices": 2,
+      "pitch_spread": 0.02,
+      "volume_db": -6,
+      "file": "real/ui_slot_stop.wav"
     },
     "ui_card": {
       "category": "ui",
