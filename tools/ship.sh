@@ -5,6 +5,7 @@
 #   bash tools/ship.sh            # full: parse check, tests, smoke run, export, verify, install if a phone is connected
 #   bash tools/ship.sh --quick    # skip tests and the smoke run (export + verify + install only)
 #   bash tools/ship.sh --no-install
+#   bash tools/ship.sh --no-pc      # skip the PC build (88fits.exe), which otherwise follows the APK into the Drive folder
 #   bash tools/ship.sh --debug-key  # allow a debug-keystore build when tools/keys/keystore.env is missing (on purpose only)
 #
 # Never uninstall the app on the phone to fix an install: it deletes the save. A build signed with the same keystore
@@ -20,11 +21,12 @@ ADB="${LOCALAPPDATA:-}/Android/Sdk/platform-tools/adb.exe"
 APKSIGNER="${LOCALAPPDATA:-}/Android/Sdk/build-tools/34.0.0/apksigner.bat"
 APK="$ROOT/game/export/88fits-debug.apk"
 PKG="$(grep -m1 'package/unique_name' "$ROOT/game/export_presets.cfg" | sed 's/.*="\(.*\)"/\1/')"
-QUICK=0; INSTALL=1; DEBUG_KEY=0
+QUICK=0; INSTALL=1; DEBUG_KEY=0; NO_PC=0
 for a in "$@"; do
   [ "$a" = "--quick" ] && QUICK=1
   [ "$a" = "--no-install" ] && INSTALL=0
   [ "$a" = "--debug-key" ] && DEBUG_KEY=1
+  [ "$a" = "--no-pc" ] && NO_PC=1
 done
 
 step() { printf '\n== %s\n' "$1"; }
@@ -80,4 +82,22 @@ for D in /e/"My Drive" /g/"My Drive" /h/"My Drive" /i/"My Drive" "$USERPROFILE/M
     break
   fi
 done
-step "done"; echo "APK: $APK"
+# the PC build (2026-10-10, Garry: "create an Android build and then a PC build"): one 88fits.exe with the game packed
+# inside (the "Windows Desktop" preset, embed_pck), next to the APK in the same Drive folder; --no-pc skips it
+EXE="$ROOT/game/export/88fits.exe"
+if [ "$NO_PC" = "0" ]; then
+  step "pc build"
+  ( cd "$ROOT/game" && "$GODOT" --headless --path "$ROOT/game" --export-release "Windows Desktop" export/88fits.exe > /dev/null 2>&1 )
+  if [ -s "$EXE" ]; then
+    echo "$(du -m "$EXE" | cut -f1) MiB"
+    for D in /e/"My Drive" /g/"My Drive" /h/"My Drive" /i/"My Drive" "$USERPROFILE/My Drive" "$USERPROFILE/Google Drive"; do
+      if [ -d "$D" ]; then
+        cp -f "$EXE" "$D/88fits builds/88fits.exe" && echo "copied to Google Drive: $D/88fits builds/88fits.exe (download on the PC and run it)"
+        break
+      fi
+    done
+  else
+    echo "PC export failed: no $EXE"
+  fi
+fi
+step "done"; echo "APK: $APK"; [ "$NO_PC" = "0" ] && echo "EXE: $EXE"

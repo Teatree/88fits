@@ -237,7 +237,7 @@ symbol, file or pass number when you need background (`grep -n "PickupManager" d
 After each pass: append the pass's paragraph to `docs/HISTORY.md`, and update this section only where what is true
 changed.
 
-**Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk` (Garry plays on the
+**Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,240 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
 `hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.50).
