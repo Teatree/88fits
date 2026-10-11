@@ -74,6 +74,7 @@ const Enemies = (() => {
     row('speed m/s', t.speed, mine.speed);
     row('XP ×', t.xp_mult, mine.xp_mult);
     row('knockback', tmpl ? Model.knockbackOf(t, null).value : null, Model.knockbackOf(mine, null).value, (x) => fmtN(x, 2), 'the bite\'s shove (the game\'s default when the file has none)');
+    row('KB resist', t.knockback_resist, mine.knockback_resist, (x) => `${Math.round(x * 100)} %`, 'the share of every shove from the hero\'s side it shrugs off (pass 67; the other way round from knockback)');
     row('size m', t.size, mine.size);
     row('radius m', t.radius, mine.radius);
     row('pack', t.pack_size, mine.pack_size, (x) => String(x));

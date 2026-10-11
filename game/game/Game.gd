@@ -2071,7 +2071,7 @@ func _on_chest_closed(take: bool) -> void:
 		hud.toast("Chest skipped", UiKit.INK2)
 	else:
 		var line := Run.chest_take(r)
-		Audio.play("ui_buy")
+		Audio.play("ui_chest_take")   # pass 67: the poker chip's clack; purchases keep their ka-ching (ui_buy)
 		if str(r.get("type", "")) != "evolution":
 			hud.toast("Chest: " + line, UiKit.ACCENT)
 	if _pending_levels > 0:

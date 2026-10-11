@@ -564,7 +564,9 @@ func _land() -> void:
 	var tp := create_tween()
 	tp.tween_property(_panel, "modulate:a", 1.0, 0.2)
 	slot.land()
-	Audio.play("w_evo_reveal" if kind == "evolution" else "ui_jackpot")
+	# pass 67 ("chill with the chest ending sound"): every kind lands on the jackpot; an evolution's mega-win plays once,
+	# with its banner and shake, when it is taken (Game._on_evolved)
+	Audio.play("ui_jackpot")
 	_refresh_buttons()
 	buttons.visible = true
 

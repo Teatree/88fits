@@ -729,6 +729,11 @@ skins = {
 "tank": "dust_mummy",
 "walker": "skeleton"
 }
+weapon_grade = {
+"glow": 0.3,
+"saturation": 1.3,
+"value": 0.78
+}
 boss = "tumbleweed_king"
 music = {
 "ambient": "wd_ambient",

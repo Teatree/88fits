@@ -351,10 +351,12 @@ func test_toxic_peas_are_sickly_green_with_a_green_trail_in_the_pod_too() -> voi
 	assert_int(meshes.size()).is_greater(0)
 	for m: MeshInstance3D in meshes:
 		assert_bool(_near((m.material_override as StandardMaterial3D).albedo_color, Color("#6AB81E"))).is_true()
-	# taken away: pastel peas, no trail
+	# taken away: pastel peas (the scene's (0.58, 0.9, 0.5) under the map's grade since pass 67), no trail
 	_rebuild_with(pe, [])
+	var g: Dictionary = pe._grade()
+	var pastel := WeaponBehavior.grade_color(Color(0.58, 0.9, 0.5), float(g.get("value", 1.0)), float(g.get("saturation", 1.0)))
 	for m: MeshInstance3D in peas.find_children("*", "MeshInstance3D", true, false):
-		assert_bool(_near((m.material_override as StandardMaterial3D).albedo_color, Color(0.58, 0.9, 0.5))).is_true()
+		assert_bool(_near((m.material_override as StandardMaterial3D).albedo_color, pastel)).is_true()
 	assert_int(pe._kind()).is_equal(pe.projectile_kind)
 	assert_bool(bool(pe.inst.params.get("tracer", false))).is_false()
 

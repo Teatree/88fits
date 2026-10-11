@@ -692,11 +692,14 @@ func test_dim_companion_materials_glow_and_emitting_ones_are_left_alone() -> voi
 	var boom := _emitter(w, "boomstick")
 	var meshes: Array = boom.visual.get_node("Held").find_children("*", "MeshInstance3D", true, false)
 	assert_int(meshes.size()).is_greater(0)
+	# pass 67 (re-pinned): a weapon that names no `glow` takes the map's `weapon_grade.glow` (Red Canyon 0.3), GLOW when
+	# the map has none
+	var map_glow := float(Run.map.weapon_grade.get("glow", WeaponBehavior.GLOW))
 	for m: MeshInstance3D in meshes:
 		var sm := m.material_override as StandardMaterial3D
 		assert_object(sm).override_failure_message(str(m.name)).is_not_null()
 		assert_bool(sm.emission_enabled).override_failure_message(str(m.name) + " is dim").is_true()
-		assert_float(sm.emission_energy_multiplier).is_equal_approx(0.45, 0.0001)
+		assert_float(sm.emission_energy_multiplier).is_equal_approx(map_glow, 0.0001)
 	var off_inst := _inst("boomstick")
 	off_inst.params["glow"] = 0.0
 	var off := ProjectileEmitter.new()

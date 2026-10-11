@@ -103,7 +103,9 @@ it the status line: what Save did, with the import's output a click away.
    - The **Share** band: the table of shares.
    - The **Overrides** groups: Body (HP, damage, speed, size, radius, damage reduction, **Knockback (m/s)** and
      Knockback ×: pass 54, the grey number is the creature's `knockback`, or the game's default
-     `clamp(3.4 × √(damage / 4), 2.5, 7)` from its damage when its JSON has none), Attacks, Ranged, Charge, Spawning
+     `clamp(3.4 × √(damage / 4), 2.5, 7)` from its damage when its JSON has none; **Knockback resist**: pass 67, the
+     other direction, the share of every shove from the hero's side the row's creatures shrug off, 0..1, the grey
+     number the creature's own), Attacks, Ranged, Charge, Spawning
      (pack, max alive, cap share, XP ×, can be elite), Drops, Power-ups, **Elite** (pass 54: the variance block, that is
      the size and speed spread, the tints as colour swatches, the tint strength, and the coloured special's chance,
      size, HP, damage, XP, tint and tint strength; then **Elite weight**, how often a random coloured elite is drawn from
@@ -126,7 +128,8 @@ it the status line: what Save did, with the import's output a click away.
    Keys the editor does not know are shown as they are and written back unchanged.
 3. **Creatures**: the palette. A card per creature of `content/enemies` and `content/bosses`: the in-play look's icon,
    name, archetype / brain and the code it plays, HP / bite / speed / size, pack, cap share, XP, **knock** (its
-   knockback in m/s, "(default)" when the game computes it), damage reduction, max alive, ranged, charge, attacks,
+   knockback in m/s, "(default)" when the game computes it), damage reduction, **KB resist** (pass 67: the share of the
+   hero's shoves it shrugs off, shown when it has one), max alive, ranged, charge, attacks,
    drops, its tints and the special's colour as chips, the art variants as figures with the one in play ringed and
    dotted, badges for boss, elite, special, retired, hidden, never coloured and on the roster, the `doc` line, and
    "+ wave" / "+ roster row" buttons that start one with that creature. A filter box and "show retired and hidden" sit
@@ -200,7 +203,8 @@ next launch. To undo it, set the old look the same way, or copy the backup back 
   error}` when the body is not that map.
 - `GET /api/enemies`: a record per creature of `content/enemies` and `content/bosses` (the training dummies left out):
   `id, name, kind (enemy|boss), archetype, brain, hp, damage, speed, size, radius, pack_size, cap_share, max_alive,
-  xp_mult, damage_reduction, contact_cd, drops, ranged, charge, kamikaze, artillery, boss {attacks, cooldown_between,
+  xp_mult, damage_reduction, knockback_resist (pass 67; 0 when the JSON has none), contact_cd, drops, ranged, charge,
+  kamikaze, artillery, boss {attacks, cooldown_between,
   hp_mult_per_stage}, elite, variance, knockback (null = the game's default), can_be_elite, hidden, retired, doc,
   flavour, variant (the JSON's), variant_base, play (the code the game really plays), variants [{code, note, icon,
   ready, base}], icon, icon_play`. Pass 54 added `variance`, `knockback`, `play`, `ready`, `base` and `icon_play`.
@@ -588,7 +592,7 @@ creature_speed_mult), ×1.23 on Red Canyon). Every select of the game's constant
 Claude": the lists are listable, not extendable.
 
 **Compare with** (enemies): the template or any creature against this one, with Δ%: HP, bite, speed, XP, knockback,
-size, radius, pack; HP at 0:00, 5:00 and 12:00 after the chosen map's stage and curve multipliers; seconds to kill with
+KB resist (pass 67), size, radius, pack; HP at 0:00, 5:00 and 12:00 after the chosen map's stage and curve multipliers; seconds to kill with
 a level-1 Revolver; bites to kill the hero; the ring hint.
 
 **Looks and previews.** Every creature and hero form has a **Looks** grid (24 a page, filters all / playable / new /

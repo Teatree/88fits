@@ -41,9 +41,9 @@ OLD_MUSIC = os.path.join(A.ROOT, "tools", "dl", "backup", "sfx_pass63", "music")
 # files they replaced are in tools/dl/backup/sfx_pass64/
 BEFORE65 = os.path.join(A.ROOT, "tools", "dl", "backup", "sfx_pass64")
 SYNTH65 = [
-    ("pk_gem_s", "Small XP gem: a short soft G6 ding (rises half a semitone per quick repeat, chain_step)"),
-    ("pk_gem_m", "Medium XP gem: a fuller E6 + B6 ding"),
-    ("pk_gem_l", "Large XP gem: a C6 ding-ding with a second strike and a long ring"),
+    ("pk_gem_s", "Small XP gem: a short soft G6 ding (pass 67: quick repeats climb a pentatonic ladder, the three sizes one tune in C major)"),
+    ("pk_gem_m", "Medium XP gem: a fuller E6 + B6 ding (its ladder is E minor pentatonic)"),
+    ("pk_gem_l", "Large XP gem: a C6 ding-ding with a second strike and a long ring (its ladder is C major pentatonic)"),
     ("pl_hurt", "The hero is hit: a chiptune 'negative' blip, a stepped square falling 620 to 150 Hz with a crunch (at most one per 0.25 s)"),
     ("ui_slot_start", "Slot machine: the lever's ratchet and clunk as the reel starts, a western twang"),
     ("ui_slot_spin", "Slot machine: the spinning loop while the strip runs, its pitch following the strip's speed"),

@@ -156,6 +156,9 @@ def recipe(sid, cat, loop):
             return [v * 0.7 for v in mix(noise(0.035, 0.85, 55), sine(lambda t: 1040, 0.06))]
         if "card" in sid:
             return mix(noise(0.05, 0.9, 40), sine(lambda t: 880, 0.12))
+        if "buzzer" in sid:
+            # pass 67: a shot-clock buzzer, a harsh low blare (ui_buzzer's placeholder)
+            return mix(sine(lambda t: 220, 0.7, "square"), [v * 0.5 for v in sine(lambda t: 223, 0.7, "saw")])
         return sine(lambda t: 900, 0.05)
     if cat == "player":
         if "phoenix" in sid:
@@ -181,6 +184,14 @@ def recipe(sid, cat, loop):
         if "revive" in sid:
             return sine(lambda t: 300 + 900 * t / 0.7, 0.7)
     if cat == "weapon":
+        # pass 67, the basketball's placeholders: a short whoosh as it leaves the hand, a low thump with a slap of noise as it
+        # bounces, a slap as it is caught
+        if "ball_throw" in sid:
+            return [v * min(1.0, i / 1500.0) for i, v in enumerate(noise(0.22, 0.14, 8))]
+        if "ball_bounce" in sid:
+            return mix(sine(lambda t: 180 - 90 * t / 0.12, 0.12), [v * 0.5 for v in noise(0.05, 0.3, 40)])
+        if "ball_catch" in sid:
+            return mix(noise(0.06, 0.5, 35), [v * 0.6 for v in sine(lambda t: 140, 0.08)])
         # pass 54, the Sun Scepter: a shimmer rising as the pillar warms, a bright chime with a soft thump as it lands, and
         # Zenith's sweep, a swelling major chord with a ring on top
         if "sun_warn" in sid:
@@ -279,6 +290,9 @@ def recipe(sid, cat, loop):
         if "coin_drop" in sid:
             # Loose Change: coins knocked out of a pocket, jingling down
             return clatter(r, 7, 0.38, (2200, 3400))
+        if "timeout" in sid:
+            # pass 67: a referee's whistle (the jump-away item's placeholder): a shrill tone with the pea's flutter
+            return [v * (0.7 + 0.3 * math.sin(i / RATE * 2 * math.pi * 38)) for i, v in enumerate(sine(lambda t: 2850 + 40 * math.sin(t * 50), 0.5))]
         if "portal_wait" in sid:
             # the portal waits ("Not yet"): a soft hum settling down, a low chime on top
             return mix(sine(lambda t: 330 - 80 * t / 0.7, 0.7), [v * 0.35 for v in sine(lambda t: 660, 0.5)], [v * 0.25 for v in noise(0.7, 0.05, 3)])

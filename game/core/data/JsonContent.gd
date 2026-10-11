@@ -222,6 +222,9 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 	e.damage_reduction = clampf(float(d.get("damage_reduction", 0.0)), 0.0, 0.9)
 	# pass 54: the shove the hero takes from its bite, m/s (0 = EnemyDef.default_knockback from its damage)
 	e.knockback = maxf(float(d.get("knockback", 0.0)), 0.0)
+	# pass 67: the share of the hero's knockback it shrugs off, 0..1 (the Hammer Giant 0.67); the other way round from the
+	# bite's shove above
+	e.knockback_resist = clampf(float(d.get("knockback_resist", 0.0)), 0.0, 1.0)
 	e.max_alive = int(d.get("max_alive", 0))
 	e.cap_share = float(d.get("cap_share", 1.0))
 	# pass 53 (the wave schema): the bite's cadence and the creature's own power-up roll
@@ -449,6 +452,9 @@ static func _map(d: Dictionary, dir: String) -> MapDef:
 		m.timeline = timeline_from_dict(tl)
 	var sk = d.get("skins", {})
 	m.skins = sk if sk is Dictionary else {}
+	# pass 67: the grade the weapon models get under this map's light (WeaponBehavior.grade_materials)
+	var wg = d.get("weapon_grade", {})
+	m.weapon_grade = wg if wg is Dictionary else {}
 	m.boss = str(d.get("boss", ""))
 	m.unlock_quest = str(d.get("unlock_quest", ""))
 	var mu = d.get("music", {})
@@ -625,10 +631,21 @@ static func soundmap_from_dict(d: Dictionary, dir: String) -> SoundMap:
 				"loop": bool(e.get("loop", false)),
 				"stream": null,
 			}
-			# pass 65: a rising pitch over quick repeats (the gems' dings) and a least gap between plays (the hero's hurt)
-			for k in ["chain_step", "chain_window", "chain_max", "min_gap"]:
+			# pass 65: a rising pitch over quick repeats (the gems' dings) and a least gap between plays (the hero's hurt);
+			# pass 67: the least ms a step of the ladder lasts
+			for k in ["chain_step", "chain_window", "chain_max", "min_gap", "chain_min_ms"]:
 				if e.has(k):
 					row[k] = float(e[k])
+			# pass 67, the gem tune (Audio.chain_pitch): the ladder of semitone offsets, the counter a family shares, the
+			# top's rule (hold | wrap)
+			if e.get("ladder") is Array:
+				var ladder: Array = []
+				for v in e["ladder"]:
+					ladder.append(float(v))
+				row["ladder"] = ladder
+			for k in ["chain_group", "chain_end"]:
+				if e.has(k):
+					row[k] = str(e[k])
 			var path: String = row["file"] if row["file"].begins_with("res://") else dir + row["file"]
 			if ResourceLoader.exists(path):
 				var s = load(path)

@@ -31,15 +31,19 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_turret_fire.wav" id="27_dlbqk"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_evo_reveal.wav" id="28_3iyoe"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_gem_s.wav" id="29_es18q"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_ball_throw.wav" id="30_4dcas"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_gem_m.wav" id="30_6a21h"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_gem_l.wav" id="31_8nlyu"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_ball_bounce.wav" id="31_dq7kx"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_coin.wav" id="32_i00ay"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_ball_catch.wav" id="32_ryw4h"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_chest_open.wav" id="33_584dl"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_vacuum.wav" id="34_0rvqa"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_goblin_hit.wav" id="35_csrvp"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_goblin_die.wav" id="36_0vh7m"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_ant_hit.wav" id="37_4y466"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_ant_die.wav" id="38_5kk5y"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_timeout.wav" id="39_37qjc"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_cactus_spit.wav" id="39_c0ydf"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_cactus_die.wav" id="40_f0f0k"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_beetle_charge.wav" id="41_50wug"]
@@ -132,6 +136,7 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_slot_start.wav" id="128_8jmeg"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_slot_spin.wav" id="129_5cb8c"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_slot_stop.wav" id="130_jajjq"]
+[ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_buzzer.wav" id="135_7prrv"]
 
 [resource]
 script = ExtResource("1_eeclh")
@@ -516,36 +521,48 @@ entries = {
 },
 "pk_gem_l": {
 "category": "pickup",
+"chain_end": "hold",
+"chain_group": "gems",
 "chain_max": 10.0,
+"chain_min_ms": 70.0,
 "chain_step": 1.0,
-"chain_window": 0.3,
+"chain_window": 0.6,
 "file": "real/pk_gem_l.wav",
+"ladder": [0.0, 2.0, 4.0, 7.0, 9.0, 12.0, 14.0, 16.0, 19.0],
 "loop": false,
-"pitch_spread": 0.02,
+"pitch_spread": 0.0,
 "stream": ExtResource("31_8nlyu"),
 "voices": 2,
 "volume_db": -10.0
 },
 "pk_gem_m": {
 "category": "pickup",
+"chain_end": "hold",
+"chain_group": "gems",
 "chain_max": 10.0,
+"chain_min_ms": 70.0,
 "chain_step": 0.5,
-"chain_window": 0.3,
+"chain_window": 0.6,
 "file": "real/pk_gem_m.wav",
+"ladder": [0.0, 3.0, 5.0, 7.0, 10.0, 12.0, 15.0, 17.0, 19.0],
 "loop": false,
-"pitch_spread": 0.03,
+"pitch_spread": 0.0,
 "stream": ExtResource("30_6a21h"),
 "voices": 4,
 "volume_db": -14.0
 },
 "pk_gem_s": {
 "category": "pickup",
+"chain_end": "hold",
+"chain_group": "gems",
 "chain_max": 10.0,
+"chain_min_ms": 70.0,
 "chain_step": 0.5,
-"chain_window": 0.3,
+"chain_window": 0.6,
 "file": "real/pk_gem_s.wav",
+"ladder": [0.0, 2.0, 4.0, 7.0, 9.0, 12.0, 14.0, 16.0, 19.0],
 "loop": false,
-"pitch_spread": 0.03,
+"pitch_spread": 0.0,
 "stream": ExtResource("29_es18q"),
 "voices": 6,
 "volume_db": -16.0
@@ -576,6 +593,15 @@ entries = {
 "stream": ExtResource("76_l5q0b"),
 "voices": 2,
 "volume_db": -10.0
+},
+"pk_timeout": {
+"category": "pickup",
+"file": "placeholder/pk_timeout.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("39_37qjc"),
+"voices": 1,
+"volume_db": -4.0
 },
 "pk_vacuum": {
 "category": "pickup",
@@ -704,6 +730,15 @@ entries = {
 "voices": 1,
 "volume_db": -3.0
 },
+"ui_buzzer": {
+"category": "ui",
+"file": "placeholder/ui_buzzer.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("135_7prrv"),
+"voices": 1,
+"volume_db": -6.0
+},
 "ui_card": {
 "category": "ui",
 "file": "real/ui_card.wav",
@@ -731,6 +766,15 @@ entries = {
 "voices": 2,
 "volume_db": -4.0
 },
+"ui_chest_take": {
+"category": "ui",
+"file": "real/ui_card_pick.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("2_dwv2n"),
+"voices": 1,
+"volume_db": -6.0
+},
 "ui_fanfare": {
 "category": "ui",
 "file": "real/ui_fanfare.wav",
@@ -747,7 +791,7 @@ entries = {
 "pitch_spread": 0.0,
 "stream": ExtResource("108_p6aee"),
 "voices": 1,
-"volume_db": -3.0
+"volume_db": -9.0
 },
 "ui_levelup": {
 "category": "ui",
@@ -819,7 +863,7 @@ entries = {
 "pitch_spread": 0.02,
 "stream": ExtResource("130_jajjq"),
 "voices": 2,
-"volume_db": -6.0
+"volume_db": -10.0
 },
 "ui_stage_clear": {
 "category": "ui",
@@ -856,6 +900,33 @@ entries = {
 "stream": ExtResource("8_ytoq0"),
 "voices": 1,
 "volume_db": 0.0
+},
+"w_ball_bounce": {
+"category": "weapon",
+"file": "placeholder/w_ball_bounce.wav",
+"loop": false,
+"pitch_spread": 0.08,
+"stream": ExtResource("31_dq7kx"),
+"voices": 4,
+"volume_db": -8.0
+},
+"w_ball_catch": {
+"category": "weapon",
+"file": "placeholder/w_ball_catch.wav",
+"loop": false,
+"pitch_spread": 0.05,
+"stream": ExtResource("32_ryw4h"),
+"voices": 2,
+"volume_db": -6.0
+},
+"w_ball_throw": {
+"category": "weapon",
+"file": "placeholder/w_ball_throw.wav",
+"loop": false,
+"pitch_spread": 0.06,
+"stream": ExtResource("30_4dcas"),
+"voices": 3,
+"volume_db": -8.0
 },
 "w_blackhole": {
 "category": "weapon",

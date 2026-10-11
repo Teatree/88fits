@@ -88,8 +88,8 @@ func painted() -> bool:
 
 
 ## The chest `p_t` seconds into its intro: where it is, how it leans and squashes, which frame shows, how much light
-## pours out and how faded it is. A beat passed since the last call plays its sound, only the latest one (a skip that
-## jumps over the knocks sounds the lid alone).
+## pours out and how faded it is. A knock passed since the last call plays its sound, only the latest one (a skip that
+## jumps over the knocks sounds one knock).
 func at(p_t: float) -> void:
 	t = p_t
 	var y := 0.0
@@ -146,16 +146,17 @@ static func _bump(dt: float, length: float, to: Vector2) -> Vector2:
 	return Vector2.ONE + (to - Vector2.ONE) * w
 
 
+## The knocks sound; the lid's crack is silent since pass 67 (the chest's burst, pk_chest_open, played in the world when
+## it was touched: Game.open_chest, and played again here before).
 func _sound() -> void:
-	var beats: Array = [KNOCKS[0], KNOCKS[1], KNOCKS[2], CRACK]
 	var last := -1
-	for k: int in range(beats.size()):
-		if t >= float(beats[k]):
+	for k: int in range(KNOCKS.size()):
+		if t >= float(KNOCKS[k]):
 			last = k
 	if last <= _beat:
 		return
 	_beat = last
-	W.sfx("pk_chest_open" if last == beats.size() - 1 else knock_sound())
+	W.sfx(knock_sound())
 
 
 static var _knock_id := ""

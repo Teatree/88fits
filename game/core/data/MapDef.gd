@@ -8,6 +8,10 @@ extends ContentDef
 @export var timeline_file: String = ""
 ## archetype -> enemy id, e.g. {"walker": "goblin", "swarmer": "fire_ant", ...}
 @export var skins: Dictionary = {}
+## Pass 67: how this map's light wants the 3D weapon models drawn: {value, saturation, glow}. Every lit material of a
+## weapon's visual is graded value x `value`, saturation x `saturation` (WeaponBehavior.grade_materials) and the companion
+## glow emits at `glow`; a missing key takes WeaponBehavior.GRADE / GLOW, a weapon's `params.grade` wins over the block.
+@export var weapon_grade: Dictionary = {}
 @export var boss: String = ""
 @export var unlock_quest: String = ""
 ## Sound ids for music layers and ambient

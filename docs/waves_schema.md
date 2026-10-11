@@ -82,7 +82,7 @@ Every key optional; a missing key keeps the creature's own number. Multipliers (
 curve on it (see "Pass 58" below).
 ```json
 {"hp": 10, "hp_mult": 1.5, "damage": 3, "damage_mult": 1.2, "speed": 1.6, "speed_mult": 1.1,
- "size": 1.2, "radius": 0.5, "damage_reduction": 0.1, "knockback_mult": 1.5,
+ "size": 1.2, "radius": 0.5, "damage_reduction": 0.1, "knockback_mult": 1.5, "knockback_resist": 0,
  "contact_cd": 0.6, "attack_rate_mult": 1.0, "projectile_speed_mult": 1.0,
  "ranged": {"cooldown": 2.5, "projectile_speed": 6.0, "range": 7.0}, "charge": {"cooldown": 4.0, "speed": 9.0},
  "pack": 5, "max_alive": 0, "cap_share": 1.0, "xp_mult": 1.5, "can_be_elite": true,
@@ -98,6 +98,8 @@ curve on it (see "Pass 58" below).
   `speed` of every boss attack that has one.
 - `knockback_mult`: multiplies `charge.knockback`, `ranged.knockback`, `kamikaze.knockback` and each boss attack's, and
   (pass 54) the creature's contact `knockback` (its own, else the rule from its damage).
+- `knockback_resist` (pass 67): sets the creature's `knockback_resist` for this row's creatures, 0..1 (clamped): the
+  share of every shove from the hero's side they shrug off (see Creature JSON); the other way round from `knockback`.
 - `ranged` / `charge` / `drops` / `elite` / `boss`: deep-merged over the creature's block. `boss.attacks` is a map
   name → on/off: `false` removes that attack from the list; `true` keeps it (an unknown name adds nothing).
 - `pickup_chance_mult` scales the timeline's `pickups.per_kill` for this creature's kills; `pickup_weights` replaces
@@ -125,6 +127,7 @@ creature met (1:00); `fire_ant` from 5:00 as 0.6 of a mummy (36 HP, bite 8, size
   them). Red Canyon's rows were converted that way in pass 54; its shaman row, dated on `weight_late_t` itself, reads
   `[[860, 1], [861, 2]]`, the old one-second slide.
 - `stats.knockback`: the creature's contact knockback on the hero (see Creature JSON).
+- `stats.knockback_resist` (pass 67): the share of the hero's shoves the row's creatures shrug off, 0..1 (see Creature JSON).
 - `stats.variance`: deep-merged over the creature's `variance` block (`size`, `speed`, `tints`, `tint_strength`,
   `special_chance`, `special {size, hp, damage, xp, tint, tint_strength}`; a `tints` list given here replaces the
   creature's whole): the coloured variance specials per row.
@@ -171,6 +174,15 @@ creature met (1:00); `fire_ant` from 5:00 as 0.6 of a mummy (36 HP, bite 8, size
   hostile shot shoves by `ranged.knockback` when it has one, else `knockback * 0.7`; `charge.knockback`,
   `kamikaze.knockback`, `artillery.missile.knockback` and boss attacks keep their own numbers. Overridable per row
   (`stats.knockback`), and `stats.knockback_mult` multiplies it too (a multiplier of 0 leaves no shove).
+- `knockback_resist` (top level, pass 67, 0..1, default 0): the other way round: the share of every shove from the hero's
+  side this creature shrugs off, applied as x (1 - resist) on the push: a weapon hit's `kb_force / max(size, 0.8)`, a
+  blast's `throw_radius` (the hero's nuke ring, Thruster Burst and Grand Finale, and hostile throws alike: a rocket, a
+  boulder, the stalactites), the Lasso's pull and Buck's Ram. 1 = never moved; the boss's own 0.15 stays on top of it
+  (every boss keeps 0). Not a damage reduction. Lifts, bounces, the twister's fling, the Singularity's drag and a
+  charger's side-shove are not knockbacks and ignore it. The Hammer Giant carries 0.67 (a third of its old push; Garry,
+  pass 67). Clamped on read (`JsonContent._enemy`) and in `with_overrides`; overridable per row
+  (`stats.knockback_resist`). Written right after `knockback` in the JSON, never between `damage` and `knockback`
+  (pass54_waves_test pins that order). `EnemyManager` keeps the share taken per type (`_t_kbt`).
 
 ## Pass 57: the Ring and In front patterns
 - `"ring"` (roster rows and waves; Garry: "spawn in a Ring around the Player (kind of like what we have in the debug
@@ -322,3 +334,18 @@ doesn't kill it even though it was killing them just a 20 seconds ago."
   10%" as "a multiplier for all"). WaveDirector hands it to `EnemyManager.creature_speed_mult` at a run's start and every
   tick of the normal phase, the debug arena included, and EnemyManager folds it into its `pace` (so `hostile_clock()`
   carries it). Level Editor: Settings, Scaling, "Creature speed x".
+
+## Pass 67: `weapon_grade` (a top-level map key beside `skins`, not part of `timeline_data`)
+
+How this map's light wants the 3D weapon models drawn: `"weapon_grade": {"value": 0.78, "saturation": 1.3, "glow": 0.3}`
+on Red Canyon (the numbers are the file's; BALANCING.md section 2 has the row and section 14 the rule). Red Canyon's warm
+sun, ambient and fog pull every lit mesh toward the sand, so `WeaponBehavior.grade_materials` grades every lit, opaque,
+untextured StandardMaterial3D of a weapon's visual in HSV: saturation x `saturation` (clamped to 1), value x `value`; a
+material that already emits has its emission graded the same way (a gold that glows stays the same gold). One copy per
+material, so parts sharing one still merge (MeshMerge) and the draw calls do not grow; the unshaded and see-through FX
+(shot cores, halos, sparks, smoke, flashes) and anything built in code are left alone. `glow` is the companion glow's
+energy (pass 53's `WeaponBehavior.GLOW` 0.45 when the key is absent). A missing `value` / `saturation` takes
+`WeaponBehavior.GRADE`; `{"value": 1, "saturation": 1}` turns the grade off. A weapon's own `params.grade` (the Items
+tab's params; a mutation's or an evolution's `final` too) wins over the map's, key by key. The title screen's companion
+and the spawn beam's warm-up read the same block. The editor's Save keeps the key (every top-level key of the file rides
+along, one added while the page was open too); the page does not edit it.

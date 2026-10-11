@@ -42,6 +42,13 @@
       "volume_db": -3,
       "file": "real/ui_buy.wav"
     },
+    "ui_chest_take": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -6,
+      "file": "real/ui_card_pick.wav"
+    },
     "ui_locked": {
       "category": "ui",
       "voices": 1,
@@ -205,34 +212,67 @@
       "volume_db": 0,
       "file": "real/w_evo_reveal.wav"
     },
+    "w_ball_throw": {
+      "category": "weapon",
+      "voices": 3,
+      "pitch_spread": 0.06,
+      "volume_db": -8,
+      "file": "placeholder/w_ball_throw.wav"
+    },
+    "w_ball_bounce": {
+      "category": "weapon",
+      "voices": 4,
+      "pitch_spread": 0.08,
+      "volume_db": -8,
+      "file": "placeholder/w_ball_bounce.wav"
+    },
+    "w_ball_catch": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.05,
+      "volume_db": -6,
+      "file": "placeholder/w_ball_catch.wav"
+    },
     "pk_gem_s": {
       "category": "pickup",
       "voices": 6,
-      "pitch_spread": 0.03,
+      "pitch_spread": 0.0,
       "volume_db": -16,
       "chain_step": 0.5,
-      "chain_window": 0.3,
+      "chain_window": 0.6,
       "chain_max": 10,
+      "ladder": [0, 2, 4, 7, 9, 12, 14, 16, 19],
+      "chain_group": "gems",
+      "chain_min_ms": 70,
+      "chain_end": "hold",
       "file": "real/pk_gem_s.wav"
     },
     "pk_gem_m": {
       "category": "pickup",
       "voices": 4,
-      "pitch_spread": 0.03,
+      "pitch_spread": 0.0,
       "volume_db": -14,
       "chain_step": 0.5,
-      "chain_window": 0.3,
+      "chain_window": 0.6,
       "chain_max": 10,
+      "ladder": [0, 3, 5, 7, 10, 12, 15, 17, 19],
+      "chain_group": "gems",
+      "chain_min_ms": 70,
+      "chain_end": "hold",
       "file": "real/pk_gem_m.wav"
     },
     "pk_gem_l": {
       "category": "pickup",
       "voices": 2,
-      "pitch_spread": 0.02,
+      "pitch_spread": 0.0,
       "volume_db": -10,
       "chain_step": 1.0,
-      "chain_window": 0.3,
+      "chain_window": 0.6,
       "chain_max": 10,
+      "ladder": [0, 2, 4, 7, 9, 12, 14, 16, 19],
+      "chain_group": "gems",
+      "chain_min_ms": 70,
+      "chain_end": "hold",
       "file": "real/pk_gem_l.wav"
     },
     "pk_coin": {
@@ -255,6 +295,13 @@
       "pitch_spread": 0.0,
       "volume_db": -3,
       "file": "real/pk_vacuum.wav"
+    },
+    "pk_timeout": {
+      "category": "pickup",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -4,
+      "file": "placeholder/pk_timeout.wav"
     },
     "en_goblin_hit": {
       "category": "enemy",
@@ -802,7 +849,7 @@
       "category": "ui",
       "voices": 1,
       "pitch_spread": 0.0,
-      "volume_db": -3,
+      "volume_db": -9,
       "file": "real/ui_jackpot.wav"
     },
     "wd_gust": {
@@ -929,8 +976,15 @@
       "category": "ui",
       "voices": 2,
       "pitch_spread": 0.02,
-      "volume_db": -6,
+      "volume_db": -10,
       "file": "real/ui_slot_stop.wav"
+    },
+    "ui_buzzer": {
+      "category": "ui",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -6,
+      "file": "placeholder/ui_buzzer.wav"
     },
     "ui_card": {
       "category": "ui",

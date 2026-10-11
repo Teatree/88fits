@@ -14,6 +14,12 @@ var projectile_kind := -1
 ## that are flying around the Player hero or something, they are quite dim"): emission at this strength in each dim
 ## material's own colour; `params.glow` sets a weapon's own (0 = none); a material that already emits is left alone.
 const GLOW := 0.45
+## Pass 67 (Garry: the 3D weapons "get lost in the background"): every lit material of a weapon's model is drawn darker
+## and richer than its file says, since Red Canyon's warm sun, ambient and fog pull the models toward the sand (and the
+## Blender scripts typed sRGB numbers into linear colour, so the imports came out lighter still). The map's
+## `weapon_grade {value, saturation, glow}` block sets the numbers (a missing key takes these), a weapon's `params.grade`
+## wins over it; {value 1, saturation 1} leaves the model as it is. See grade_materials.
+const GRADE := {"value": 0.78, "saturation": 1.3}
 
 
 func setup(p_inst: WeaponInstance, p_game: Node) -> void:
@@ -55,8 +61,13 @@ func _load_visual() -> void:
 	var scene := inst.visual_scene()
 	if scene:
 		visual = scene.instantiate()
-		# the companion and the held gun glow a little (pass 53), before the merge so parts that share a material still do
-		var glow := float(inst.params.get("glow", GLOW))
+		# pass 67: the model's lit materials graded darker and richer first, so the glow below emits the graded colour and
+		# the merge still finds one material on the parts that shared one
+		var grade := _grade()
+		grade_materials(visual, grade)
+		# the companion and the held gun glow a little (pass 53), before the merge so parts that share a material still do;
+		# the energy is the weapon's `glow`, else the map block's, else GLOW
+		var glow := float(inst.params.get("glow", grade.get("glow", GLOW)))
 		if glow > 0.0:
 			glow_companions(visual, glow)
 		# plain parts that share a material draw as one (pass 33.8); the named ones the behaviours move stay apart
@@ -73,7 +84,8 @@ func _load_visual() -> void:
 		var basis: Basis = (proj as Node3D).transform.basis
 		if src == proj:
 			if mat == null and mesh.get_surface_count() == 1:
-				mat = mesh.surface_get_material(0)
+				# the surface's override when one is set (pass 67: the graded copy), else the mesh's own
+				mat = src.get_active_material(0)
 			# a "Halo" under the Projectile node (pass 60: the Tommy Gun's rounds, the Boomstick's pellets): the shot is
 			# drawn as that core inside the halo, one mesh of two surfaces, each with its own material
 			var halo := proj.get_node_or_null("Halo") as MeshInstance3D
@@ -86,7 +98,11 @@ func _load_visual() -> void:
 			# a model (pass 46, the Spear): every part keeps its own material unless there is only the one, and the shot is
 			# drawn at the Projectile node's scale times the part's
 			if mat == null and src.mesh.get_surface_count() == 1:
-				mat = src.mesh.surface_get_material(0)
+				mat = src.get_active_material(0)
+			elif mat == null:
+				# pass 67: the parts' graded copies sit on the mesh instance as surface overrides, which a MultiMesh never
+				# reads; the kind takes a copy of the mesh wearing them (the mesh itself when there are none)
+				mesh = kind_mesh(src)
 			sc *= (proj as Node3D).scale.x
 			basis = basis * src.transform.basis
 		var pm: Node = game.projectiles
@@ -102,6 +118,11 @@ func _load_visual() -> void:
 	var held := visual.get_node_or_null("Held")
 	if held:
 		held.visible = _shows_held()
+
+
+## This weapon's grade (pass 67): the run's map block under its own params.grade; GRADE when there is no run.
+func _grade() -> Dictionary:
+	return grade_for(Run.map, inst.params)
 
 
 ## Pass 53: every dim StandardMaterial3D on the meshes under `root`'s "Familiar" and "Held" nodes is swapped for a copy
@@ -156,6 +177,103 @@ static func _glowing(mat: Material, energy: float, lit: Dictionary) -> StandardM
 	g.emission_energy_multiplier = energy
 	lit[key] = g
 	return g
+
+
+## Pass 67: every lit StandardMaterial3D on the meshes under `root` (and on `root` itself) is swapped for a copy graded in
+## HSV: saturation x `grade.saturation` (clamped to 1), value x `grade.value`; a material that already emits (the gold
+## guns, the Gravity Gun's core, the sceptre's sun) has its emission graded the same way, so a gold that glows stays the
+## same gold. The unshaded, the see-through and the textured (shot cores, halos, sparks, smoke, flashes, the aura rings)
+## are left alone, as is anything that is not a StandardMaterial3D. The copy is made once per material and shared by the
+## parts that shared it (MeshMerge still joins them, the draw calls do not grow); the source resource is never written. A
+## grade of {value 1, saturation 1} does nothing. Returns how many materials were swapped.
+static func grade_materials(root: Node, grade: Dictionary) -> int:
+	if root == null:
+		return 0
+	var value := float(grade.get("value", 1.0))
+	var sat := float(grade.get("saturation", 1.0))
+	if is_equal_approx(value, 1.0) and is_equal_approx(sat, 1.0):
+		return 0
+	var seen := {}
+	var n := 0
+	var meshes: Array = root.find_children("*", "MeshInstance3D", true, false)
+	if root is MeshInstance3D:
+		meshes.append(root)
+	for m: MeshInstance3D in meshes:
+		if m.material_override != null:
+			var g := _graded(m.material_override, value, sat, seen)
+			if g != null:
+				m.material_override = g
+				n += 1
+			continue
+		if m.mesh == null:
+			continue
+		for s in range(m.mesh.get_surface_count()):
+			var cur: Material = m.get_surface_override_material(s)
+			if cur == null:
+				cur = m.mesh.surface_get_material(s)
+			var g := _graded(cur, value, sat, seen)
+			if g != null:
+				m.set_surface_override_material(s, g)
+				n += 1
+	return n
+
+
+## The graded copy of `mat` (made once per material), or null when it is not a plain lit StandardMaterial3D.
+static func _graded(mat: Material, value: float, sat: float, seen: Dictionary) -> StandardMaterial3D:
+	if not (mat is StandardMaterial3D):
+		return null
+	var sm := mat as StandardMaterial3D
+	var key := sm.get_instance_id()
+	if seen.has(key):
+		return seen[key]
+	if sm.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED or sm.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED or sm.albedo_texture != null:
+		return null
+	var g := sm.duplicate() as StandardMaterial3D
+	g.albedo_color = grade_color(sm.albedo_color, value, sat)
+	if sm.emission_enabled:
+		g.emission = grade_color(sm.emission, value, sat)
+	seen[key] = g
+	return g
+
+
+## `c` with its saturation and value scaled (each clamped to 1), the hue and the alpha kept.
+static func grade_color(c: Color, value: float, sat: float) -> Color:
+	return Color.from_hsv(c.h, clampf(c.s * sat, 0.0, 1.0), clampf(c.v * value, 0.0, 1.0), c.a)
+
+
+## The grade a weapon's model is drawn with (pass 67): GRADE under `mapdef`'s `weapon_grade` block under the weapon's
+## `params.grade` (fold_params lets a mutation or an evolution's `final` set it). The map may be null: the title before a
+## run, a tool, a test.
+static func grade_for(mapdef: MapDef, params: Dictionary) -> Dictionary:
+	var g: Dictionary = GRADE.duplicate()
+	if mapdef != null and not mapdef.weapon_grade.is_empty():
+		g = WeaponInstance.merge_params(g, mapdef.weapon_grade)
+	var own = params.get("grade", {})
+	if own is Dictionary and not (own as Dictionary).is_empty():
+		g = WeaponInstance.merge_params(g, own)
+	return g
+
+
+## The mesh a kind is registered with for a model of several surfaces (pass 67): a MultiMesh draws the mesh's own
+## materials and never a MeshInstance3D's overrides, so when the grade (or anything else) has put surface overrides on
+## `src` the kind takes a copy of its mesh wearing them; else the mesh itself.
+static func kind_mesh(src: MeshInstance3D) -> Mesh:
+	var mesh: Mesh = src.mesh
+	if mesh == null:
+		return null
+	var any := false
+	for s in range(mesh.get_surface_count()):
+		if src.get_surface_override_material(s) != null:
+			any = true
+			break
+	if not any or not (mesh is ArrayMesh):
+		return mesh
+	var out := (mesh as ArrayMesh).duplicate() as ArrayMesh
+	for s in range(mesh.get_surface_count()):
+		var o := src.get_surface_override_material(s)
+		if o != null:
+			out.surface_set_material(s, o)
+	return out
 
 
 ## The mesh a weapon's shots are drawn with: the visual scene's "Projectile" node when it is a mesh, else the first mesh

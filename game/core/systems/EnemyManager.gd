@@ -399,6 +399,10 @@ var _t_sh := PackedFloat32Array()
 var _t_dummy := PackedByteArray()
 ## seconds between two bites, per type (pass 53: EnemyDef.contact_cd, the wave schema's `contact_cd`; it was a literal 0.6)
 var _t_ccd := PackedFloat32Array()
+## per type (pass 67): the share of a hero-side shove the creature takes, 1 - EnemyDef.knockback_resist (the Hammer Giant
+## 0.33): a hit's kb_force push, a blast's throw_radius, the pull and the Ram are multiplied by it; the boss's 0.15 is on
+## top of it, never replaced by it
+var _t_kbt := PackedFloat32Array()
 ## per type (pass 50, Garry: the Bull Beetle's charge "feels too static"): how a charger carries its charge, CV_N numbers
 ## each read off its `charge` block by charge_numbers(): the shake at the end of the wind-up (metres side to side), the
 ## crouch (a share of its height), the legs' speed (times its walk: the wind-up scrabbles up to it in place, the charge
@@ -820,6 +824,7 @@ func register_type(def: EnemyDef) -> int:
 		_types_of_id[def.id] = []
 	(_types_of_id[def.id] as Array).append(types.size() - 1)
 	_t_ccd.append(maxf(def.contact_cd, 0.05))
+	_t_kbt.append(1.0 - clampf(def.knockback_resist, 0.0, 1.0))
 	_t_eight.append(1 if bool(t["eight"]) else 0)
 	_t_run_fps.append(float(t["run_fps"]))
 	_t_die_fps.append(float(t["die_fps"]))
@@ -1491,7 +1496,8 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 				var tow := player.global_position - pos[i]
 				tow.y = 0.0
 				if tow.length_squared() > 0.01:
-					kb[i] += tow.normalized() * pl
+					# a resisting creature is towed by its share (pass 67, knockback_resist)
+					kb[i] += tow.normalized() * pl * _t_kbt[type_idx[i]]
 	# Deadeye: a weapon hit (never a poison or fire tick) can crit for crit_damage times the damage
 	var crit := false
 	if weapon_id != "" and not green and not hot:
@@ -1535,9 +1541,10 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 			if game:
 				game.fx.burst(pos[i] + Vector3(0, size[i] * 0.5, 0), Color(0.9, 0.15, 0.2), 0.9)
 	if kb_force > 0.0:
-		# push away along the hit direction; heavy creatures (size in metres) budge less, the boss barely
+		# push away along the hit direction; heavy creatures (size in metres) budge less, a resisting one by its share
+		# (pass 67: EnemyDef.knockback_resist, the Hammer Giant a third), the boss barely (its 0.15 on top of both)
 		var mass: float = maxf(size[i], 0.8)
-		var push: float = kb_force / mass * (0.15 if i == boss_index else 1.0)
+		var push: float = kb_force / mass * _t_kbt[type_idx[i]] * (0.15 if i == boss_index else 1.0)
 		var d := Vector3(kb_dir.x, 0, kb_dir.z)
 		if d.length_squared() < 0.0001:
 			d = pos[i] - player.global_position if player else Vector3.FORWARD
@@ -1933,7 +1940,8 @@ func _tick_poison(i: int, delta: float) -> void:
 ## boss takes a tenth of its health instead. "loose_rocket" is a rocket whose thrower died: it throws the crowd and
 ## barely scratches it.
 ## A blast throws everything within `r` away from `center` without hurting it (pass 33.3, the rocketeer's rocket): the
-## push falls off to half at the rim, heavy creatures budge less and the boss barely, and each lands squashed.
+## push falls off to half at the rim, heavy creatures budge less, a resisting one by its share (pass 67,
+## EnemyDef.knockback_resist: hero-side and hostile throws alike) and the boss barely, and each lands squashed.
 ## `except_i` is spared (pass 45: the golem stands at its own stalactites' apex and inside its own boulder's blast).
 func throw_radius(center: Vector3, r: float, force: float, except_i: int = -1) -> int:
 	var n := 0
@@ -1948,7 +1956,7 @@ func throw_radius(center: Vector3, r: float, force: float, except_i: int = -1) -
 			d = Vector3(_rng.randf_range(-1.0, 1.0), 0, _rng.randf_range(-1.0, 1.0))
 		var fall_off: float = 1.0 - 0.5 * clampf(d.length() / maxf(r, 0.1), 0.0, 1.0)
 		var mass: float = maxf(size[i], 0.8)
-		kb[i] += d.normalized() * force * fall_off / mass * (0.15 if i == boss_index else 1.0)
+		kb[i] += d.normalized() * force * fall_off / mass * _t_kbt[type_idx[i]] * (0.15 if i == boss_index else 1.0)
 		squash[i] = 0.6
 		flash[i] = maxf(flash[i], 0.5)
 		n += 1
@@ -2757,11 +2765,12 @@ func _physics_process(delta: float) -> void:
 					away2.y = 0.0
 					if away2.length_squared() > 0.01:
 						player.shove(away2.normalized() * kn)
-			# Ram: at full momentum Buck is the wall; the creature is shoved and spiked, he is not touched
+			# Ram: at full momentum Buck is the wall; the creature is shoved (a resisting one by its share, pass 67) and
+			# spiked, he is not touched
 			if Run.has_perk("ram") and Run.momentum >= 0.99 and state[i] != STATE_CHARGE and i != boss_index:
 				var away := pos[i] - ppos
 				away.y = 0.0
-				kb[i] += (away.normalized() if away.length_squared() > 0.01 else Vector3.FORWARD) * Run.perk_param("ram", "shove", 9.0)
+				kb[i] += (away.normalized() if away.length_squared() > 0.01 else Vector3.FORWARD) * Run.perk_param("ram", "shove", 9.0) * _t_kbt[ti]
 				var th: float = Run.player_sheet.get_stat("thorns", 0.0) * Run.perk_param("ram", "thorns_mult", 3.0) + Run.perk_param("ram", "flat", 12.0)
 				damage(i, th, "", away, 0.0)
 				if game:

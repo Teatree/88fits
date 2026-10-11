@@ -501,6 +501,9 @@ class Actor extends Node3D:
 			# the Spear: a blade that shows only when it strikes, nothing that floats
 			v.free()
 			return
+		# pass 67: the run's grade on the companion's lit materials (WeaponBehavior.grade_materials), so the title's gun is
+		# the gun a run draws
+		WeaponBehavior.grade_materials(v, WeaponBehavior.grade_for(Registry.map(stage.map_id) if stage else null, weapon.params))
 		MeshMerge.merge(v)
 		for ch in v.get_children():
 			if ch is Node3D:

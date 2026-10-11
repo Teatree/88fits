@@ -141,6 +141,7 @@ const Creatures = (() => {
     const kb = Model.knockbackOf(c, null);
     stat('knock', `${fmtN(kb.value, 2)} m/s${kb.from === 'default' ? ' (default)' : ''}`, kb.from === 'default' ? 'no knockback in its JSON: the game\'s default from its damage, clamp(3.4 × √(damage / 4), 2.5, 7)' : 'the bite\'s shove on the hero (its JSON\'s knockback)');
     if (c.damage_reduction) stat('DR', `${Math.round(c.damage_reduction * 100)}%`);
+    if (c.knockback_resist) stat('KB resist', `${Math.round(c.knockback_resist * 100)}%`, 'the share of every shove from the hero\'s side (hits, blasts, the pull, the Ram) it shrugs off (pass 67): the other way round from knock, which is its bite\'s shove on the hero');
     if (c.max_alive) stat('max alive', String(c.max_alive));
     if (c.ranged) stat('ranged', `every ${fmtN(c.ranged.cooldown)} s, ${fmtN(c.ranged.range)} m`);
     if (c.charge) stat('charge', `${fmtN(c.charge.speed)} m/s every ${fmtN(c.charge.cooldown)} s`);

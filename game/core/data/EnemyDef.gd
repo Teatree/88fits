@@ -51,6 +51,12 @@ extends ContentDef
 ## `ranged.knockback` when the block has one, else 0.7 of this; `charge.knockback`, `kamikaze.knockback`,
 ## `artillery.missile.knockback` and the boss attacks keep their own numbers (the dwarf's shotgun, the rocketeer's rocket).
 @export var knockback: float = 0.0
+## The share of every shove from the hero's side this creature shrugs off, 0..1 (pass 67, Garry: the Hammer Giant
+## "should take 1/3 of the knockback it currently does"; 0.67 on it). A hit's kb_force, a blast's throw_radius (hostile
+## throws too), the pull (Lasso, Wide Orbit) and Buck's Ram are multiplied by (1 - knockback_resist) on top of the mass
+## rule (kb_force / max(size, 0.8)) and the boss's own 0.15 (a boss keeps 0 here). 1 = never moved. NOT the shove it
+## deals the hero: that is `knockback` above. A roster row may set `stats.knockback_resist`; EnemyManager reads it per type.
+@export var knockback_resist: float = 0.0
 ## never more than this many alive at once (0 = no limit): the director skips the row while the count holds
 @export var max_alive: int = 0
 ## The icon that floats over it (pass 33.3): "crown", "skull", "gear" (art/ui/badges/<badge>.png) or "none"; empty takes
@@ -194,7 +200,7 @@ func variant_def(code: String) -> EnemyDef:
 const OVERRIDE_FIELDS := {"hp": "hp", "damage": "damage", "speed": "speed", "size": "size", "radius": "radius",
 	"damage_reduction": "damage_reduction", "contact_cd": "contact_cd", "pack": "pack_size", "max_alive": "max_alive",
 	"cap_share": "cap_share", "xp_mult": "xp_mult", "can_be_elite": "can_be_elite", "pickup_chance_mult": "pickup_chance_mult",
-	"knockback": "knockback"}
+	"knockback": "knockback", "knockback_resist": "knockback_resist"}
 ## The `*_mult` overrides and the base field each multiplies (after a direct value for that field).
 const OVERRIDE_MULTS := {"hp_mult": "hp", "damage_mult": "damage", "speed_mult": "speed", "size_mult": "size", "radius_mult": "radius"}
 
@@ -263,6 +269,8 @@ func with_overrides(stats: Dictionary) -> EnemyDef:
 			var field: String = str(OVERRIDE_MULTS[key])
 			v.set(field, float(v.get(field)) * float(stats[key]))
 	v.damage_reduction = clampf(v.damage_reduction, 0.0, 0.9)
+	# pass 67: a share above 1 would flip the push towards the hero
+	v.knockback_resist = clampf(v.knockback_resist, 0.0, 1.0)
 	v.pack_size = maxi(v.pack_size, 1)
 	if stats.get("pickup_weights") is Dictionary:
 		v.pickup_weights = (stats["pickup_weights"] as Dictionary).duplicate(true)

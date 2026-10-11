@@ -36,6 +36,9 @@ func _build(game: Node) -> void:
 	for wdef in Registry.weapons.values():
 		if wdef.visual:
 			var vis: Node3D = wdef.visual.instantiate()
+			# pass 67: the run's grade on the model's lit materials, as WeaponBehavior._load_visual applies it, so the
+			# kinds registered here wear what a run draws (the title does the same for its companion)
+			WeaponBehavior.grade_materials(vis, WeaponBehavior.grade_for(Run.map, wdef.params))
 			add_child(vis)
 			# pass 61 (lane WP2): the looks a mutation switches on (the Sabre's razor edge and guard bar) are hidden in the
 			# scene; shown here so their materials compile with the rest
@@ -48,14 +51,18 @@ func _build(game: Node) -> void:
 			if src:
 				var mat: Material = src.material_override
 				var sc: float = src.scale.x
+				var mesh: Mesh = src.mesh
 				if src == proj:
 					if mat == null and src.mesh.get_surface_count() > 0:
-						mat = src.mesh.surface_get_material(0)
+						mat = src.get_active_material(0)
 				else:
 					if mat == null and src.mesh.get_surface_count() == 1:
-						mat = src.mesh.surface_get_material(0)
+						mat = src.get_active_material(0)
+					elif mat == null:
+						# pass 67: the model's surfaces in their graded copies (WeaponBehavior.kind_mesh)
+						mesh = WeaponBehavior.kind_mesh(src)
 					sc *= (proj as Node3D).scale.x
-				_shot_kinds[wdef.id] = pm.register_kind(src.mesh, mat, sc)
+				_shot_kinds[wdef.id] = pm.register_kind(mesh, mat, sc)
 		# pass 48: a shot drawn from a model in the weapon's params (the Golden Pineapple's grenade), with the material
 		# Lobber._use_model gives it
 		var mp := str(wdef.params.get("model", ""))

@@ -18,7 +18,7 @@ var _music_layers: Array = []        # the ids play_music was given (the run's s
 var _music_now := ""                 # the id playing
 var _music_stage := 0
 var _music_boss := false
-var _chain: Dictionary = {}          # id -> [msec of the last play, steps climbed] (pass 65: chain_step)
+var _chain: Dictionary = {}          # id or chain_group -> [msec the step was first played, step] (pass 65: chain_step; pass 67: ladder)
 var _last_any: Dictionary = {}       # id -> msec of the last play (pass 65: min_gap)
 var _loops: Dictionary = {}          # id -> AudioStreamPlayer of a running loop (pass 65: play_loop)
 
@@ -88,16 +88,36 @@ func play(id: String, pos: Vector3 = Vector3.INF, volume_db: float = 0.0) -> voi
 ## The pitch factor of a quick repeat (pass 65, the VS gem "ding" climbing while gems pour in): a row with `chain_step`
 ## (semitones) rises that much per play that comes within `chain_window` s (default 0.35) of the one before, at most
 ## `chain_max` steps (default 8), and starts again from 1.0 after a pause. 1.0 for every other row.
+## Pass 67, the gem tune: a row with a `ladder` (an Array of semitone offsets, a scale) plays ladder[n] at step n in
+## place of step x n (the ladder's last step is the top, or `chain_max` when that is lower); `chain_group` names a
+## counter the rows of one family share (the three gem sizes climb one tune); a play less than `chain_min_ms` after the
+## step's first play repeats the step instead of taking the next (several gems landing in one tick play one note);
+## `chain_end` says what the top does: "hold" (default, stays on the top note) or "wrap" (back to the first, climbing
+## again). The counter runs on Time.get_ticks_msec, so it keeps going through a pause and starts again after a long one.
 func chain_pitch(id: String, row: Dictionary, now: int) -> float:
+	var ladder: Array = row["ladder"] if row.get("ladder") is Array else []
 	var step := float(row.get("chain_step", 0.0))
-	if step <= 0.0:
+	if ladder.is_empty() and step <= 0.0:
 		return 1.0
 	var win := int(float(row.get("chain_window", 0.35)) * 1000.0)
-	var c: Array = _chain.get(id, [-100000, 0])
-	var n: int = int(c[1]) + 1 if now - int(c[0]) <= win else 0
-	n = mini(n, int(row.get("chain_max", 8.0)))
-	_chain[id] = [now, n]
-	return pow(2.0, step * float(n) / 12.0)
+	var key := str(row.get("chain_group", id))
+	var c: Array = _chain.get(key, [-100000, 0])
+	var since := now - int(c[0])
+	var min_ms := int(float(row.get("chain_min_ms", 0.0)))
+	var reuse := min_ms > 0 and since < min_ms
+	var n: int = int(c[1]) if reuse else (int(c[1]) + 1 if since <= win else 0)
+	var top := int(row.get("chain_max", 8.0))
+	if not ladder.is_empty():
+		top = ladder.size() - 1
+		if row.has("chain_max"):
+			top = mini(top, int(row["chain_max"]))
+	if n > top:
+		n = 0 if str(row.get("chain_end", "hold")) == "wrap" else top
+	if not reuse:
+		_chain[key] = [now, n]
+	if ladder.is_empty():
+		return pow(2.0, step * float(n) / 12.0)
+	return pow(2.0, float(ladder[clampi(n, 0, ladder.size() - 1)]) / 12.0)
 
 
 ## A looping sound by id (pass 65: the slot reel's spin) on its own player, until stop_loop; a second call while it runs

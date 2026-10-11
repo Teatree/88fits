@@ -1463,6 +1463,8 @@ def main(argv=None):
             vols[sid.strip()] = float(val)
         n = edit_soundmap({}, vols)
         print("volume_db rows changed:", n)
+        if not (a.pick or a.bind or a.report or a.docs or a.analyse or a.rescore or a.auto or a.gen_only or a.dry_run or only):
+            return 0   # pass 67: a re-level alone edits the rows and stops (it used to fall through to generate + bind)
     if a.pick:
         wanted = [parse_pick(p) for p in a.pick]
         for e in set(w[1] for w in wanted):

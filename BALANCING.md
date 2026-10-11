@@ -18,6 +18,7 @@ item at any level, call any wave. `analytics/dashboard.html` charts a played run
 | `size`, `radius` | how tall it stands in metres (the hero is 1.9; the skeletons 1.75 and the knight 1.85 since pass 49) and how wide its body is (hits, crowding) |
 | `damage_reduction` | share taken off every hit (0.25 = 25%) |
 | `knockback` (pass 54) | metres a second the hero is shoved when this creature bites him (a row may set `stats.knockback` or `knockback_mult`). Without one: `clamp(3.4 x sqrt(damage / 4), 2.5, 7)`, about 35 % over the old flat 2.5 for a 4-damage creature (`EnemyDef.default_knockback`); every creature and boss JSON carries its number now (`tools/set_knockback.py`): skeleton 2.94, knight 3.4, fire ant 4.81, mummy 6.36, beetle 6.8, bosses 7. Bosses and Elites shove x1.6. A shot without its own `ranged.knockback` shoves 0.7 of its shooter's number; the dwarf's shotgun and the rocketeer's rocket keep theirs |
+| `knockback_resist` (pass 67) | the other way round: the share of every shove from the hero's side this creature shrugs off, 0..1 (default 0; 1 = never moved). A weapon hit's push is `kb_force / max(size, 0.8) x (1 - resist)` (x 0.15 more for the boss, which keeps resist 0); a blast's `throw_radius` (the hero's nuke ring, Thruster Burst, Grand Finale, and hostile throws alike: a rocket, a boulder, the stalactites), the Lasso's pull and Buck's Ram take the same share off. Not a damage reduction. Lifts, bounces, the twister's fling, the Singularity's drag and a charger's side-shove are not knockbacks and ignore it. The Hammer Giant 0.67: a third of its old push (Garry, pass 67). A row may set `stats.knockback_resist`; the Level Editor's Body row ("Knockback resist") and the card's "KB resist" show it. Rule 14.1 |
 | `xp_mult`, `drops` | XP worth; gem sizes, `gold`, `chest` chance, a `pickup` |
 | `pack_size`, `max_alive`, `cap_share` | how many come together, the most alive at once, how much of the live cap one takes |
 | `variance` | size/speed jitter, tints, `special_chance` and `special` (the dark "coloured" ones) |
@@ -56,7 +57,8 @@ as the Dune Scorpion does):
 | `params.crit_refund` (pass 53) | the Whirlwind: a swing that crits gives back this share of the cooldown (0.2) once a swing; `thrust.slice_deg` 360 = a full circle a swing; `params.trail_color` the crescent's colour when the weapon has no element |
 | `params.out_speed_mult`, `back_speed_mult`, `return_damage_mult`, `second_pass` (pass 53) | Thorny Weed rolls out at 0.7 of its speed over the same ground (its life stretched) and comes back at 1.4; the Dust Devil 0.8 / 1.5, x2 damage on the way back and one more out-and-back before it is freed (25 degrees to one side) |
 | `params.aura {radius, slow, seconds, every, tint, pull}` (pass 53) | Dust Wake: every `every` s the weed slows what stands within `radius` by `slow` for `seconds` and tints it (dark green, Curare's colour for slowed); the Dust Devil's `pull` drags them toward the weed at that speed. The weed draws a spinning dust ring of that radius |
-| `WeaponBehavior.GLOW` 0.45, `params.glow` (pass 53) | every dim material of a companion or held model (no emission of its own) emits its albedo at this energy so the 3D things round the hero read on the sand (Garry: "they are quite dim"); `glow: 0` on a weapon turns it off, a number sets its own |
+| `WeaponBehavior.GLOW` 0.45, `params.glow` (pass 53) | every dim material of a companion or held model (no emission of its own) emits its albedo at this energy so the 3D things round the hero read on the sand (Garry: "they are quite dim"); `glow: 0` on a weapon turns it off, a number sets its own; since pass 67 the map's `weapon_grade.glow` (Red Canyon 0.3) is the energy when the weapon names none |
+| the map's `weapon_grade {value, saturation, glow}`, `params.grade` (pass 67, rule 14.1) | every lit material of a weapon's 3D model (a shaded, opaque, untextured StandardMaterial3D: held guns, companions, blades, hammers, turrets, the Spear's model) is drawn in a copy graded in HSV: value x `value` (Red Canyon 0.78), saturation x `saturation` (1.3, clamped at 1); a material that already emits (the gold guns, the sceptre's sun) has its emission graded alike, so its gold stays gold; the glow above then emits the graded colour. Garry: the 3D weapons "get lost in the background". One copy per material (MeshMerge still joins the parts), the source never written; the unshaded and see-through FX, the textured and everything built in code (the Golden Pineapple's grenade, the turret fallback, the silver rounds, the rust blades, the default shot) are left alone. `params.grade` on a weapon (a mutation's or an evolution's `final` too) wins key by key; `{"value": 1, "saturation": 1}` = as the file has it |
 | mutation effects with `"target": "player"` | land on the hero's sheet for every weapon (Critical Thinking: `crit_chance add 0.10`) |
 | `params.echo_zap {chance, count, damage_frac, gap}` (pass 53) | Echo Zap (the Zap Beam's; "Aftershock" is the Hammer's name already): every arc hit has `chance` to be followed by `count` zaps `gap` s apart on the same creature for `damage_frac` of the hit, with a visible discharge; the Storm Cloud's `final` lifts the chance to 0.35 |
 | `params.sun {warn, radius, flash, beam_alpha, ring_alpha, glint, hold_when_empty, weight_power, tint, thin}` (pass 54) | the Sun Scepter (`core/behaviors/SunScepter.gd`, Solenne's own): every `cooldown` it calls `amount` pillars of sunlight on creatures on the screen, picked at random with weight 1 / max(distance, 1.5)^`weight_power` (closer = likelier, never the same one twice a strike); with nothing on the screen it holds (no strike, no cooldown). Each pillar warns `warn` s (the loose rocket's red ring, much fainter: `ring_color`, `ring_alpha` 0.35 against the rocket's 0.9; and a soft beam, `beam_alpha` 0.55, aimed where the creature will be, led at most 2.5 m), then hits everything within `radius` x area; no camera shake. Base 14 damage, 1.1 s, 1.3 m; level 3 two pillars, level 5 three |
@@ -353,11 +355,37 @@ god mode off; dying in the arena puts you back on your feet at once (HERO's "Go 
   half-board hero's. Stage 1 is unchanged. First knobs to nudge: the 9:45-11:45 skeleton/knight rows, the ATK x points
   (keep stage 2 above about 0.46, or its bites fall under stage 1's), the Elite HP.
 
-## 12. Pass 65 (not balance, named so they are not surprises)
+## 12. Sounds: pass 65 and pass 67 (not balance, named so they are not surprises)
 
-- Blob shadows lie on the slope under each figure; the hero's stays on the sand when he jumps.
-- Gem pickups ring higher on quick repeats (0.5 semitone a step for small and medium gems, 1.0 for large, within 0.3 s,
-  at most 10 steps); the hero's hurt sound plays at most every 0.25 s.
+- Blob shadows lie on the slope under each figure; the hero's stays on the sand when he jumps (pass 65).
+- The hero's hurt sound plays at most every 0.25 s (pass 65).
+- **The gem tune** (pass 67, Garry: "make the EXP gem pickups work into a kind of a tune when the player picks up several
+  one after the other"; it replaces pass 65's quarter-tone slide, which the ±0.5 semitone jitter and three separate
+  counters had hidden). The three gem rows of `content/sounds/soundmap.json` share one counter (`chain_group: "gems"`):
+  a gem picked within `chain_window` 0.6 s of the one before takes the next step of the tune; a longer pause starts it
+  again from the first note. A step is a note of the row's `ladder` (semitone offsets from the ding's own note): small
+  gems (G6) and large gems (C6) climb a major pentatonic `[0, 2, 4, 7, 9, 12, 14, 16, 19]`, medium gems (E6) a minor one
+  `[0, 3, 5, 7, 10, 12, 15, 17, 19]`, so whatever sizes land in a row, every note is in C major. Gems that land within
+  `chain_min_ms` 70 ms of a step's first play repeat its note (a vacuum's flood plays about 14 notes a second instead of
+  jumping to the top); the top note holds (`chain_end: "hold"`; `"wrap"` would start the ladder again). The ladder's
+  last step is the top unless `chain_max` is lower (the rows' 10 is not: set 5 to stop at the octave). The rows'
+  `pitch_spread` is 0 so the notes are exact; `chain_step` stays in the rows but only rules a row that has no `ladder`
+  (the pass 65 rule, unchanged for such rows). The `voices` caps (6/4/2 plays per 400 ms) still drop the plays over
+  them, and a dropped play does not advance the tune. Code: `Audio.chain_pitch`; the keys are listed in
+  `JsonContent.soundmap_from_dict`.
+- **The chest's sounds** (pass 67, Garry: "chill with the chest ending sound"). At a chest now: the touch plays
+  `pk_chest_open` (-3 dB) in the world, once (the lid's crack no longer plays it a second time); the knocks play
+  `ui_chest_knock` (-4 dB; its `voices` 2 lets two of the three through); the reel runs `ui_slot_start` (-8) /
+  `ui_slot_spin` (-12) and lands with `ui_slot_stop` (-10 dB, was -6) and `ui_jackpot` (-9 dB, was -3) for every kind,
+  an evolution included; TAKE IT plays the tap and `ui_chest_take` (the poker chip's clack, `real/ui_card_pick.wav` at
+  -6 dB) instead of the purchases' ka-ching (`ui_buy` stays at -3 dB on the Upgrade board and in the shops); an
+  evolution's mega-win `w_evo_reveal` (0 dB) plays once, with the EVOLVED banner and the shake, when the evolution is
+  taken (`Game._on_evolved`), no longer at the landing as well. The level-up's mutation reel lands on the same, quieter
+  `ui_jackpot`. The files are unchanged; only rows and call sites moved.
+- **Placeholder ids** (pass 67, for the basketball and the jump-away item): `w_ball_throw`, `w_ball_bounce`,
+  `w_ball_catch` (weapon), `pk_timeout` (pickup: a referee's whistle), `ui_buzzer` (ui: a shot-clock buzzer) play
+  `placeholder/<id>.wav` from `tools/gen_sfx.py` until they are made real with `tools/ai_sfx.py` (a `PROMPTS` row, then
+  `--only <id>` and `--pick`).
 
 ## 13. Pass 66: the Level Editor's assets (not balance: named so they are not surprises)
 
@@ -421,3 +449,39 @@ the arena and by a wave row meanwhile. Approve only clears the review mark.
 "every creature has a knockback, a blood and a doc" holds for it. A removed look's PNGs and `.import` files move to
 `tools/level_editor/backups/deleted/<id>/<stamp>/`, never deleted outright; Delete of a created id is allowed only for
 ids in the local ledger `tools/dl/jobs/created.json`.
+
+## 14. Pass 67 (Polish 2): the balance rules
+
+14.1 **A creature may shrug off knockback.** `knockback_resist` (creature JSON, top level, 0..1, default 0; §1) is
+the share of every shove from the hero's side the creature does not take, applied as `x (1 - resist)` on the push: a
+weapon hit's `kb_force / max(size, 0.8)` (every behaviour's hit and blast goes through `EnemyManager.damage`), a
+blast's `throw_radius` (the hero's nuke ring, Thruster Burst and Grand Finale, and hostile throws alike: the
+rocketeer's rocket, a loose rocket, the golem's boulder and stalactites), the Lasso's pull and Buck's Ram. 1 = never
+moved. The boss's own 0.15 stays a separate factor on top (compose, never replace), and every boss keeps resist 0. It
+is not a damage reduction: the hit lands whole. Lifts, bounces, the twister's landing fling, the Singularity's drag and
+a charger's side-shove are not knockbacks and ignore it (they keep their own rules). The Hammer Giant carries 0.67, a
+third of its old push (Garry: "the Hammer Giant should take 1/3 of the knockback it currently does"); its size (3.4 m)
+was its only weight before. A roster row overrides it as `stats.knockback_resist` (clamped), the Level Editor edits it
+in the Body group of the Enemies tab and of a row's overrides, and `EnemyManager` keeps the share taken per type
+(`_t_kbt`). In a JSON it sits right after `knockback` (never between `damage` and `knockback`: pass54_waves_test pins
+that order); `pass67_kb_test.gd` pins the maths.
+
+## 14. Pass 67: Polish 2 (not balance: named so they are not surprises)
+
+14.1 **The 3D weapons are graded darker and richer under the map's light.** Garry: the 3D weapons "get lost in the
+background". Every lit material of a weapon's visual (a shaded, opaque, untextured StandardMaterial3D: held guns,
+companions, blades, hammers, turrets, the Spear's model) is drawn in a copy graded in HSV by the map's top-level
+`weapon_grade` block (`WeaponBehavior.grade_materials`, run before the pass-53 glow and the merge): value x `value` (Red
+Canyon 0.78), saturation x `saturation` (1.3, clamped at 1); a material that already emits has its emission graded the
+same way, so the gold guns stay gold; the companion glow then emits the graded colour at the block's `glow` (0.3;
+`WeaponBehavior.GLOW` 0.45 when the key is absent). Why: the Blender scripts typed sRGB numbers into linear colour (the
+imports came out lighter: the Tommy's wood landed on the sand's own tone) and Red Canyon's warm sun, ambient and fog pull
+every lit mesh toward the sand, while every painted sprite is unshaded and keeps its colour. One copy per material
+(MeshMerge still joins the parts, the draw calls do not grow), the source resources never written; a model of several
+surfaces shot through the ProjectileManager (the Spear) draws a copy of its mesh wearing the copies. Left alone: the
+unshaded and see-through FX (shot cores, halos, sparks, smoke, flashes, aura rings), textured materials, ShaderMaterials
+and everything built in code (the Golden Pineapple's grenade in `Lobber._use_model`, the turret's primitive fallback, the
+silver rounds, the rust blades, the default shot material). A weapon's `params.grade` (a mutation's or an evolution's
+`final` too) wins over the map's key by key; `{"value": 1, "saturation": 1}` leaves a weapon as its file has it; a
+missing key takes `WeaponBehavior.GRADE` {0.78, 1.3}. The title's companion and the spawn beam's warm-up read the same
+block. Not a Settings switch: the numbers are content (the map JSON, kept by the Level Editor's Save).

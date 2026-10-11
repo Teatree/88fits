@@ -369,7 +369,7 @@ const AssetsModel = (() => {
       archetype: String(d.archetype || 'walker'), brain: String(d.brain || 'chase'),
       hp: num(d.hp, 10), damage: num(d.damage, 5), speed: num(d.speed, 2.5), size: isNum(d.size) ? d.size : 1, radius: num(d.radius, 0.5),
       pack_size: num(d.pack_size, 1), cap_share: num(d.cap_share, 1), max_alive: num(d.max_alive, 0), xp_mult: num(d.xp_mult, 1),
-      damage_reduction: num(d.damage_reduction, 0), contact_cd: num(d.contact_cd, 0.6), drops: isObj(d.drops) ? d.drops : {},
+      damage_reduction: num(d.damage_reduction, 0), knockback_resist: num(d.knockback_resist, 0), contact_cd: num(d.contact_cd, 0.6), drops: isObj(d.drops) ? d.drops : {},
       ranged: isObj(d.ranged) ? d.ranged : null, charge: isObj(d.charge) ? d.charge : null, kamikaze: isObj(d.kamikaze) ? d.kamikaze : null,
       artillery: isObj(d.artillery) ? d.artillery : null, boss: bossOut, elite: isObj(d.elite) ? d.elite : null, variance: isObj(d.variance) ? d.variance : {},
       knockback: isNum(kb) ? kb : null, can_be_elite: d.can_be_elite == null ? true : !!d.can_be_elite, hidden: !!d.hidden, retired: !!d.retired,

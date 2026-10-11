@@ -271,6 +271,7 @@ const Forms = (() => {
     if (Number(c.cap_share) !== 1) parts.push(`${fmtN(c.cap_share)} slot`);
     if (c.max_alive) parts.push(`max ${c.max_alive} alive`);
     if (c.damage_reduction) parts.push(`DR ${Math.round(c.damage_reduction * 100)}%`);
+    if (c.knockback_resist) parts.push(`KB resist ${Math.round(c.knockback_resist * 100)}%`);
     if (c.ranged) parts.push('ranged');
     if (c.charge) parts.push('charger');
     if (c.boss) parts.push(`attacks: ${[...new Set(c.boss.attacks)].join(', ')}`);

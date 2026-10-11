@@ -120,7 +120,7 @@ _jobs_error = [""]
 _COMMON_OWNED = {"id", "name", "flavour", "rarity", "element", "weight", "hidden", "from_stage", "icon", "placeholder",
                  "art_prompt", "note", "doc"}
 _CREATURE_OWNED = _COMMON_OWNED | {
-    "archetype", "brain", "hp", "damage", "speed", "size", "radius", "knockback", "damage_reduction", "contact_cd", "blood",
+    "archetype", "brain", "hp", "damage", "speed", "size", "radius", "knockback", "knockback_resist", "damage_reduction", "contact_cd", "blood",
     "shadow", "head", "front_faces", "back_faces", "badge", "pack_size", "cap_share", "max_alive", "xp_mult", "can_be_elite",
     "can_be_grabbed", "pickup_chance_mult", "pickup_weights", "drops", "variance", "sfx", "ranged", "charge", "kamikaze",
     "artillery", "caster", "support", "ambush", "death_burst", "boss", "elite", "retired", "sprite", "anims", "fps",
@@ -372,6 +372,9 @@ def creature_record(kind, cid, folder, d, json_path=None):
         "max_alive": d.get("max_alive", 0),
         "xp_mult": d.get("xp_mult", 1.0),
         "damage_reduction": d.get("damage_reduction", 0.0),
+        # pass 67: the share of the hero's shoves it shrugs off (EnemyDef.knockback_resist, 0..1; 0 when the JSON has
+        # none; the Hammer Giant 0.67)
+        "knockback_resist": d.get("knockback_resist", 0.0),
         # pass 53: EnemyDef.contact_cd (seconds between bites), 0.6 when the JSON has none
         "contact_cd": d.get("contact_cd", 0.6),
         "drops": d.get("drops", {}),
@@ -836,6 +839,11 @@ def write_map(map_id, data):
     with _write_lock:
         with open(path, "r", encoding="utf-8") as f:
             old = json.load(f)
+        # pass 67: a top-level key the page never saw (`weapon_grade`, added to the file while the page was open) rides
+        # along: the page edits timeline_data, every other key of the file is kept as it was
+        for k in old:
+            if k not in data:
+                data[k] = old[k]
         merged = ordered_like(old, restore_numbers(old, data))
         text = json.dumps(merged, indent=2, ensure_ascii=False) + "\n"
         backup_rel = backup(map_id, path)
