@@ -68,4 +68,17 @@ code, the stills slug cleared (new paintings, so the Model settings apply) with 
 shown on the card, the stage and the recipe editor; Re-roll and Duplicate start the form from it; `gen_art.apply_painter`
 reads it on a hand run that names no painter). An explicit `"stills": ""` now means the creature's own paintings
 (only an absent key is seeded). Lesson: a sparse override record needs its effective values shown with their source,
-or every empty box reads as lost data.
+or every empty box reads as lost data. Later the same day: the tab panels (the `:has` rule for the pinned header
+outranked `[hidden]`, so the Enemies panel stayed open beside the next tab: `:not([hidden])` and a `!important` on
+`[hidden]`); and "running a Mummy job I don't see a link to the ComfyUI on the job itself ... I want to click a link
+and open the ComfyUI page with the workflow": the stock frontend (1.48) has no such link (only `?template=` and
+`?share=`, found by reading its chunks), so every workflow a job runs is now also saved into the page's own Workflows
+sidebar (`workflows/88fits/<id>_<CODE>/`, the user-data API) and a tiny web extension on the server, `88fits_open`
+(`tools/comfy_ext`, `python tools/comfy.py --install-ext`), opens one from `?open=<path>`; the card harvests its
+outputs every five seconds while it runs (the links and the cached stills and clips appear as they land), "Send to
+ComfyUI" pushes the workflows of older jobs, the form's template workflows go to `88fits/templates/`, and the status
+record says whether the extension is there. Found on the way: two `level_editor.cmd` windows were running (ports 8787
+and 8788), each with its own picture of `queue.json` and each writing the whole file, and a second server's `recover()`
+would kill the first one's running job; so the first editor now claims the queue (`locks` gained a third name, `jobs`;
+`jobs.claim_queue` in `init`), a later one runs read-only (follows the file, refuses every change, a banner on the
+Jobs tab, `status.readonly`).

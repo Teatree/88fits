@@ -621,9 +621,19 @@ pose drivers for a Mixamo-style humanoid, depth drivers for a model with its own
 prompt, references, driver and seed and the codes it will get (`LS-D`, `LS-E`: the next free letters of the
 creature's prefix; a creature's first look makes `<PREFIX>-0` the strip as it was, a hero's `-A`); icon and cut-out
 candidate counts; seeds and re-roll choices; "Show the words that will be sent". Queue posts one job per look.
+Every workflow a job runs is kept beside it (`<job>/workflows/NN_<render>_workflow.json` + `_api.json`) and saved into
+the ComfyUI page's own Workflows sidebar (`workflows/88fits/<id>_<CODE>/`, the server's user data, through
+`POST /api/userdata`); the card lists them as they land, each with "↗" (opens the ComfyUI page on that workflow: the
+`88fits_open` web extension, `tools/comfy_ext/88fits_open`, installed on the server by `python tools/comfy.py
+--install-ext`, reads `?open=<user-data path>`; the stock page knows only `?template=` and `?share=` links) and "file"
+(the JSON to drag in); "Send to ComfyUI" pushes the ones a run did not (older jobs, a server that was down:
+`POST /api/jobs/<id>/push_workflows`). The form's template workflows go the same way (`88fits/templates/`,
+`POST /api/workflows/push`); `/api/status` says whether the extension is installed (`comfy_open_ext`).
 
 **The Jobs tab.** The queue lives in `tools/dl/jobs/queue.json` with a folder per job (`job.json`, `log.txt`,
-`result.json`); three lanes run one job each (comfy for the art, godot for register / import / Test in game, local for
+`result.json`); one Level Editor runs it (the `jobs` lock, `tools/dl/locks/jobs.lock`, claimed at start: a second
+editor started while the first runs shows the queue read-only, refuses changes and says so in a banner, since two
+writers of one queue file wiped each other's records); three lanes run one job each (comfy for the art, godot for register / import / Test in game, local for
 Blender and installs), under the two repo-wide locks (one ComfyUI job at a time across the queue, Claude and every
 script: `tools/dl/locks/comfy.lock`; one Godot process: `godot.lock`); the header says who holds what, and a lock left
 by a process that died is reclaimed, one with no owner only by Force release. A card per job: queued (Edit, up / down,

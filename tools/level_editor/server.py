@@ -2041,7 +2041,7 @@ def jobs_call(name, *args, **kw):
         return 404, {"ok": False, "error": "no such job: %s" % e}
     except Exception as e:
         return 409, {"ok": False, "error": "%s: %s" % (type(e).__name__, e)}
-    if name in ("enqueue", "edit", "cancel", "requeue", "pick", "install", "move", "get", "merge"):
+    if name in ("enqueue", "edit", "cancel", "requeue", "pick", "install", "move", "get", "merge", "push_workflows"):
         if result is None:
             return 404, {"ok": False, "error": "no such job"}
         return 200, {"ok": True, "job": result}
@@ -2099,7 +2099,9 @@ def status_record():
     return {"ok": True, "root": ROOT, "godot": os.path.isfile(GODOT), "backups": BACKUPS, "content": CONTENT,
             "blender": blender_path(), "qa_online": qa, "locks": lk, "comfy": lk.get("comfy"), "godot_lock": lk.get("godot"),
             "jobs": jobs, "jobs_available": m is not None, "jobs_error": _jobs_error[0] if m is None else "",
-            "methods": os.path.isfile(METHODS), "new_weapon_starts_hidden": NEW_WEAPON_STARTS_HIDDEN}
+            "methods": os.path.isfile(METHODS), "new_weapon_starts_hidden": NEW_WEAPON_STARTS_HIDDEN,
+            # whether the ComfyUI page has the 88fits_open extension (the "open in ComfyUI" links need it)
+            "comfy_open_ext": (m.comfy_extension_state() if m is not None and hasattr(m, "comfy_extension_state") else None)}
 
 
 # ---------------------------------------------------------------- drivers, refs, methods
@@ -2749,6 +2751,12 @@ class Handler(BaseHTTPRequestHandler):
             # ---- pass 66: the content model
             if parts[:2] == ["api", "content"] and len(parts) >= 3:
                 return self._post_content(parts[2:])
+            if parts == ["api", "workflows", "push"]:
+                # the job form's template workflows into the ComfyUI page's Workflows sidebar (88fits/templates/)
+                m = jobs_module()
+                if m is None or not hasattr(m, "push_templates"):
+                    return self._send(503, {"ok": False, "error": _jobs_error[0] or "the jobs module is not here"})
+                return self._send(200, {"ok": True, "files": m.push_templates(), "extension": m.comfy_extension_state()})
             if parts == ["api", "test_launch"]:
                 data, err = self._body()
                 if err:
@@ -2867,6 +2875,9 @@ class Handler(BaseHTTPRequestHandler):
         elif op == "merge":
             # the Jobs tab's "Merge again" / "Re-dump this file (changes its layout)" on an unmerged landing (lead, pass 66)
             st, body = jobs_call("merge", jid, bool(data.get("redump")))
+        elif op == "push_workflows":
+            # the card's "Send to ComfyUI": the job's workflows into the page's Workflows sidebar (open links follow)
+            st, body = jobs_call("push_workflows", jid)
         else:
             return self._error(404, "unknown jobs op %s" % op)
         return self._send(st, body)
@@ -2908,8 +2919,13 @@ def main():
     if jobs is not None:
         try:
             jobs.init(HOOKS, ROOT)
-            jobs.start_workers()
-            print("jobs: the queue is up (tools/dl/jobs/queue.json)")
+            if jobs.is_readonly():
+                ro = jobs.status().get("readonly") or {}
+                print("jobs: ANOTHER Level Editor runs the job queue (%s, pid %s): this one shows it read-only and refuses changes; "
+                      "queue from that page, or close it and restart this one" % (ro.get("who") or "?", ro.get("pid") or "?"))
+            else:
+                jobs.start_workers()
+                print("jobs: the queue is up (tools/dl/jobs/queue.json)")
         except Exception as e:
             print("jobs: could not start the workers: %s: %s" % (type(e).__name__, e))
             jobs = None

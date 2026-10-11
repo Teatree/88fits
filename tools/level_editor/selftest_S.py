@@ -838,7 +838,7 @@ def routes_checks(check, server):
         st, body, h = get("/api/schema/assets")
         check(st == 200 and isinstance(body, str), "/api/schema/assets is text (the doc or a note that it is missing)")
         st, body, h = get("/api/status")
-        check(st == 200 and body["ok"] and "blender" in body and "qa_online" in body and set(body["locks"]) == {"comfy", "godot"} and "jobs_available" in body
+        check(st == 200 and body["ok"] and "blender" in body and "qa_online" in body and set(body["locks"]) == {"comfy", "godot", "jobs"} and "jobs_available" in body
               and body["godot"] is True, "/api/status: blender, qa_online, locks, jobs")
         # the pass 53/54 routes still answer
         st, body, h = get("/api/enemies")

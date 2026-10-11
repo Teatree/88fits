@@ -222,6 +222,10 @@
 .jflows { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; margin: 8px 0; font-size: 0.82rem; }
 .jflows .jflow { font-family: ui-monospace, Consolas, monospace; font-size: 0.78rem; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--s1); text-decoration: none; }
 .jflows .jflow:hover { border-color: var(--s1); }
+.jflow-set { display: inline-flex; gap: 2px; align-items: baseline; }
+.jflows .jflow.file { font-size: 0.7rem; color: var(--muted); padding: 2px 6px; }
+.jflows .jflow.pending { color: var(--muted); border-style: dashed; }
+.jflows .jflow.open { color: var(--s1); }
 
 /* the job form: a duplicate's note and reuse box, an inherited recipe field's mark */
 .jdup { background: var(--surface-2); border-left: 3px solid var(--s1); border-radius: 6px; padding: 6px 10px; margin: 0 0 8px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; }

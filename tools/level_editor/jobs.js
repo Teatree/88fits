@@ -331,6 +331,12 @@ const Jobs = (() => {
       box.appendChild(el('span', { class: 'warn-text', text: `the jobs API is not here yet${S.apiError ? ' (' + S.apiError + ')' : ''}: the server (tools/level_editor/server.py) needs lane S's routes and lane J's jobs.py; this page asks again every 15 s` }));
     }
     const st = S.status || {};
+    const ro = st.jobs && st.jobs.readonly;
+    if (ro) {
+      // a second Level Editor: the first one holds the queue (jobs.claim_queue); this page shows it and refuses changes
+      const since = ro.since ? new Date(Number(ro.since) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '?';
+      box.appendChild(el('div', { class: 'jwarn', text: `Another Level Editor runs the job queue (${ro.who || 'level_editor'}, pid ${ro.pid || '?'}, since ${since}; the other editor window, on another port). This page shows the queue read-only and refuses changes: queue from that page, or close it and restart this one.` }));
+    }
     const locks = st.locks || {};
     const lock = (name, label) => {
       const o = locks[name];
@@ -373,7 +379,7 @@ const Jobs = (() => {
 
   function sig(j) {
     const p = j.progress || {};
-    return JSON.stringify([j.state, j.waiting_for, p.stage, p.done, p.total, p.stalled, (j.log_tail || []).slice(-1)[0], (j.outputs || []).length, (j.choices || []).length, j.ended, j.error, j.written && j.written.layout, j.merged_into, j.eta_s, j.state === 'running' ? Math.floor(Date.now() / 2000) : 0, S.hidden.has(j.id)]);
+    return JSON.stringify([j.state, j.waiting_for, p.stage, p.done, p.total, p.stalled, (j.log_tail || []).slice(-1)[0], (j.outputs || []).length, (j.outputs || []).filter((o) => o.open_url).length, (j.choices || []).length, j.ended, j.error, j.written && j.written.layout, j.merged_into, j.eta_s, j.state === 'running' ? Math.floor(Date.now() / 2000) : 0, S.hidden.has(j.id)]);
   }
 
   function draw() {
@@ -609,11 +615,22 @@ const Jobs = (() => {
     const box = el('div', { class: 'joutputs' });
     const flows = (j.outputs || []).filter((o) => o.type === 'workflow');
     if (flows.length) {
-      // the ComfyUI workflows this job ran, one file per render: drag the file into the ComfyUI page to see every node
+      // the ComfyUI workflows this job ran, one per render. Each run also saves its graph into the ComfyUI page's own
+      // Workflows sidebar (workflows/88fits/<job folder>/); "↗" opens the page on that copy through the 88fits_open
+      // extension (Garry: "click a link and open the ComfyUI page with the workflow and everything"); "file" is the JSON.
+      const ext = S.status && S.status.comfy_open_ext ? S.status.comfy_open_ext.installed : null;
+      const unsent = flows.filter((o) => !o.open_url).length;
       const row = el('div', { class: 'jflows' }, el('b', { text: 'ComfyUI workflows' }),
-        el('span', { class: 'muted small', text: ' (one per render; save it, then drag it into ' }),
-        el('a', { href: COMFY_URL, target: '_blank', rel: 'noopener', text: 'the ComfyUI page' }), el('span', { class: 'muted small', text: ')' }));
-      for (const o of flows) row.appendChild(el('a', { class: 'jflow', href: o.url, target: '_blank', rel: 'noopener', text: o.label, title: 'the workflow as the ComfyUI page loads it' }));
+        el('span', { class: 'muted small', text: unsent ? ' (one per render)' : ' (one per render; each sits in the ComfyUI page\'s Workflows sidebar under 88fits)' }));
+      for (const o of flows) {
+        const set = el('span', { class: 'jflow-set' });
+        if (o.open_url) set.appendChild(el('a', { class: 'jflow open', href: o.open_url, target: '_blank', rel: 'noopener', text: o.label + ' ↗', title: ext === false ? `opens the ComfyUI page; its 88fits_open extension is not installed yet, so pick the workflow in the Workflows sidebar: ${o.userdata}` : `open the ComfyUI page on this workflow (${o.userdata})` }));
+        else set.appendChild(el('span', { class: 'jflow pending', text: o.label, title: 'not in the ComfyUI sidebar yet: Send to ComfyUI' }));
+        set.appendChild(el('a', { class: 'jflow file', href: o.url, target: '_blank', rel: 'noopener', text: 'file', title: 'the workflow file (drag it into the ComfyUI page)' }));
+        row.appendChild(set);
+      }
+      if (unsent) row.appendChild(el('button', { type: 'button', class: 'btn small', text: `Send to ComfyUI (${unsent})`, title: 'save these workflows into the ComfyUI page\'s Workflows sidebar (88fits folder); the links then open them', onclick: () => act(j, 'push_workflows', {}, 'sending the workflows to ComfyUI') }));
+      if (ext === false) row.appendChild(el('span', { class: 'warn-text small', text: 'the ComfyUI page has no 88fits_open extension yet: a link opens the page and the workflow waits in its Workflows sidebar (ask Claude: python tools/comfy.py --install-ext)' }));
       box.appendChild(row);
     }
     for (const o of j.outputs || []) {
@@ -940,9 +957,19 @@ const Jobs = (() => {
       // the ComfyUI workflows behind these methods, as files the ComfyUI page loads (tools/comfy_workflows, from `python tools/comfy.py --export`);
       // a finished job also keeps every graph it ran under its own card
       const wf = el('div', { class: 'jflows' }, el('b', { text: 'The ComfyUI workflows behind the methods' }),
-        el('span', { class: 'muted small', text: ' (save a file, drag it into ' }), el('a', { href: COMFY_URL, target: '_blank', rel: 'noopener', text: 'the ComfyUI page' }),
-        el('span', { class: 'muted small', text: '; every finished job keeps the exact graphs it ran on its card)' }));
-      fetchJson('/api/workflows', null).then((r) => { for (const f of (r && r.files) || []) wf.appendChild(el('a', { class: 'jflow', href: '/workflows/' + encodeURIComponent(f), target: '_blank', rel: 'noopener', text: f.replace(/\.json$/, '') })); });
+        el('span', { class: 'muted small', text: ' (each opens in ' }), el('a', { href: COMFY_URL, target: '_blank', rel: 'noopener', text: 'the ComfyUI page' }),
+        el('span', { class: 'muted small', text: ' from its Workflows sidebar, 88fits/templates; every job keeps the exact graphs it ran on its card)' }));
+      // the templates are saved into the ComfyUI page's sidebar first (once per file), so each link opens the page on it
+      post('/api/workflows/push', {}).then((r) => {
+        const ext = r && r.extension ? r.extension.installed : null;
+        if (r && r.ok && Array.isArray(r.files) && r.files.length) {
+          for (const f of r.files) wf.appendChild(el('a', { class: 'jflow' + (f.error ? ' pending' : ' open'), href: f.error ? '/workflows/' + encodeURIComponent(f.name) : f.open_url, target: '_blank', rel: 'noopener', text: f.name.replace(/\.json$/, '') + (f.error ? '' : ' ↗'),
+            title: f.error ? `not in the ComfyUI sidebar (${f.error}): the file itself` : (ext === false ? `opens the ComfyUI page; without its 88fits_open extension pick the workflow in the Workflows sidebar: ${f.path}` : `open the ComfyUI page on ${f.path}`) }));
+          if (ext === false) wf.appendChild(el('span', { class: 'warn-text small', text: 'the ComfyUI page has no 88fits_open extension yet: a link opens the page and the workflow waits in its Workflows sidebar' }));
+          return;
+        }
+        fetchJson('/api/workflows', null).then((r2) => { for (const f of (r2 && r2.files) || []) wf.appendChild(el('a', { class: 'jflow', href: '/workflows/' + encodeURIComponent(f), target: '_blank', rel: 'noopener', text: f.replace(/\.json$/, '') })); });
+      });
       body.appendChild(wf);
       body.appendChild(grid);
     }

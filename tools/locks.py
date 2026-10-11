@@ -41,7 +41,7 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCK_DIR = os.path.join(ROOT, "tools", "dl", "locks")
 GODOT = os.path.join(ROOT, "Godot_v4.7.2-stable_win64", "Godot_v4.7.2-stable_win64.exe")
-NAMES = ("comfy", "godot")
+NAMES = ("comfy", "godot", "jobs")   # jobs: the one Level Editor that runs the job queue (jobs.claim_queue)
 POLL_SECONDS = 2.0
 # the PC's save (smoke_run and a windowed test play on the real one): kept aside round every Godot run
 SAVE_DIR = os.path.join(os.environ.get("APPDATA", ""), "Godot", "app_userdata", "88fits")

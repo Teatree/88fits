@@ -13,7 +13,7 @@ ComfyUI browser UI (tools/comfy_workflows/*.json, written by `python tools/comfy
 
 Graph nodes are added with Graph.add(class_type, **inputs); an input value that is a (node_id, slot) tuple is a link.
 """
-import atexit, io, json, os, sys, threading, time, urllib.parse, urllib.request, uuid
+import atexit, io, json, os, re, sys, threading, time, urllib.parse, urllib.request, uuid
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SERVER = os.environ.get("COMFY_SERVER", "http://192.168.137.54:8188")
@@ -103,6 +103,70 @@ def post(path, obj, timeout=120):
         ensure_lock()
     req = urllib.request.Request(SERVER + path, data=json.dumps(obj).encode(), headers={"Content-Type": "application/json"})
     return json.load(urllib.request.urlopen(req, timeout=timeout))
+
+
+# ---------------------------------------------------------------- the page's own Workflows sidebar (user data)
+# pass 66 follow-up (Garry: "I want to be able to click a link and open the ComfyUI page with the workflow and
+# everything"): every workflow a job runs is also saved into the server's user data, workflows/88fits/<job folder>/,
+# where the ComfyUI page lists it in its Workflows sidebar; the 88fits_open web extension (tools/comfy_ext/88fits_open,
+# installed by `python tools/comfy.py --install-ext`) opens one straight from a link: <server>/?open=<that path>.
+
+USER_FOLDER = "workflows/88fits"
+EXT_NAME = "88fits_open"
+
+
+def safe_name(name, default="job"):
+    """A user-data file or folder name from any text: letters, digits, - _ . and spaces as _, at most 80 characters."""
+    out = "".join(c if (c.isalnum() or c in "-_.") else "_" for c in str(name or "").strip())
+    out = re.sub(r"_+", "_", out).strip("._")
+    return out[:80] or default
+
+
+def user_workflow_path(folder, stem):
+    """workflows/88fits/<folder>/<stem>.json: where a job's workflow sits in the page's sidebar."""
+    return "%s/%s/%s.json" % (USER_FOLDER, safe_name(folder), safe_name(stem))
+
+
+def put_user_workflow(path, workflow, timeout=30):
+    """Save a UI-format workflow into the page's user data (POST /api/userdata/<path>, the folders made on the way);
+    returns the server's record {path, size, modified, created}. No lock: the user-data route never touches the queue."""
+    url = SERVER + "/api/userdata/" + urllib.parse.quote(path, safe="") + "?overwrite=true&full_info=true"
+    req = urllib.request.Request(url, data=json.dumps(workflow).encode("utf-8"), headers={"Content-Type": "application/json"})
+    return json.load(urllib.request.urlopen(req, timeout=timeout))
+
+
+def open_url(path, server=None):
+    """The link that opens the ComfyUI page on that saved workflow (read by the 88fits_open extension)."""
+    return (server or SERVER).rstrip("/") + "/?open=" + urllib.parse.quote(path, safe="")
+
+
+def extension_installed(timeout=5):
+    """True when the page lists the 88fits_open extension (GET /api/extensions), False when it does not, None when the
+    server did not answer."""
+    try:
+        files = json.load(urllib.request.urlopen(SERVER + "/api/extensions", timeout=timeout))
+    except Exception:
+        return None
+    return any(("/" + EXT_NAME + "/") in str(f) for f in files)
+
+
+def install_extension(restart=True):
+    """Copy tools/comfy_ext/88fits_open to the server's custom_nodes (scp over the ssh key) and restart ComfyUI under
+    the lock so the page loads it (a web extension is read at start-up). Returns what happened, as text."""
+    import subprocess
+    src = os.path.join(REPO, "tools", "comfy_ext", EXT_NAME)
+    if not os.path.isdir(src):
+        raise RuntimeError("no %s" % src)
+    key = SERVER_SSH[SERVER_SSH.index("-i") + 1]
+    host = SERVER_SSH[-1]
+    cmd = ["scp", "-i", key, "-o", "ConnectTimeout=10", "-o", "BatchMode=yes", "-r", src, host + ":~/ai/ComfyUI/custom_nodes/"]
+    r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    if r.returncode != 0:
+        raise RuntimeError("scp failed: %s" % (r.stderr or r.stdout).strip())
+    if not restart:
+        return "copied (the page loads it after the next restart)"
+    state = restart_server()
+    return "copied, %s, extension %s" % (state, "listed" if extension_installed() else "NOT listed yet")
 
 
 def object_info():
@@ -219,10 +283,22 @@ def save_job_workflow(graph):
             if node.get("class_type") in ("SaveImage", "SaveAudio"):
                 prefix = str(node.get("inputs", {}).get("filename_prefix", "graph")).split("/")[-1]
         stem = "%02d_%s" % (n, "".join(c if c.isalnum() or c in "-_" else "_" for c in prefix)[:60])
+        ui = graph.ui_workflow()
         with open(os.path.join(d, stem + "_workflow.json"), "w", encoding="utf-8", newline="\n") as f:
-            json.dump(graph.ui_workflow(), f, indent=1)
+            json.dump(ui, f, indent=1)
         with open(os.path.join(d, stem + "_api.json"), "w", encoding="utf-8", newline="\n") as f:
             json.dump(graph.api(), f, indent=1)
+        # the same workflow into the page's Workflows sidebar (workflows/88fits/<job folder>/<stem>.json), the marker
+        # the job card reads (jobs._harvest: "open in ComfyUI"); a server that does not answer leaves no marker and the
+        # card offers "Send to ComfyUI" later
+        folder = os.environ.get("ASSET_JOB_NAME") or os.environ.get("ASSET_JOB_ID") or "job"
+        upath = user_workflow_path(folder, stem)
+        try:
+            rec = put_user_workflow(upath, ui)
+            with open(os.path.join(d, stem + "_userdata.json"), "w", encoding="utf-8", newline="\n") as f:
+                json.dump({"path": upath, "open": open_url(upath), "server": rec}, f, indent=1)
+        except Exception as e:
+            print("comfy: the workflow was not saved into the page's sidebar (%s)" % e)
         return stem
     except Exception:
         return None
@@ -465,6 +541,12 @@ if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     if "--export" in sys.argv:
         export_workflows(os.path.join(REPO, "tools", "comfy_workflows"))
+    elif "--install-ext" in sys.argv:
+        # the 88fits_open web extension onto the server, then a restart under the lock (waits for a running job)
+        print(install_extension(restart="--no-restart" not in sys.argv))
+    elif "--check-ext" in sys.argv:
+        st = extension_installed()
+        print("88fits_open:", "installed" if st else ("not installed" if st is False else "the server did not answer"))
     else:
         s = get("/system_stats")
         print("ComfyUI", s["system"].get("comfyui_version"), "on", s["devices"][0].get("name"), "at", SERVER)

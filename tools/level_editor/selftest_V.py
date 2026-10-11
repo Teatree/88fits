@@ -165,6 +165,8 @@ def checks(check, run_node, server):
         jb_src = f.read()
     check("const Jobs = (() =>" in jb_src and "FAST = 2000" in jb_src and "jobs-badge" in jb_src, "V: jobs.js defines Jobs, polls every 2 s, drives #jobs-badge")
     check("opts.duplicateOf" in jb_src and "opts.painter" in jb_src and "srcStills" in jb_src and "class: 'jinh'" in jb_src, "V: the job form takes a duplicate (recipe and painter copied, the stills slug cleared, reuse offered) and greys inherited words")
+    check("'push_workflows'" in jb_src and "o.open_url" in jb_src and "/api/workflows/push" in jb_src and "comfy_open_ext" in jb_src and "filter((o) => o.open_url).length" in jb_src,
+          "V: the job card opens each workflow in ComfyUI (open_url), offers Send to ComfyUI, the form pushes the templates, and the card redraws when a link lands")
     for route in ("/api/jobs?since=", "/api/status", "/api/methods", "/api/drivers", "/api/refs", "/api/upload", "/api/content/", "/look/"):
         check(route in jb_src or route in lg_src, "V: the page calls %s" % route)
 

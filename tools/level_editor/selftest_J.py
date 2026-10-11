@@ -148,6 +148,90 @@ def checks(check, run_node, server):
         sp = {"method": "hero_fit", "recipe": {"still_keys": {"side": "x"}}, "model": "klein", "steps": 6}
         jobs._seed_recipe({"kind": "hero", "id": "solenne", "code": "SOL-X"}, sp)
         check(sp["recipe"].get("painter") == {"model": "klein", "steps": 6} and "stills" not in sp["recipe"], "a hero look records its painter and gets no stills slug: %s" % sp["recipe"])
+        # pass 66 follow-up: every workflow a job runs also lands in the ComfyUI page's Workflows sidebar; the card's
+        # "open in ComfyUI" link; Send to ComfyUI for the ones a run did not push
+        check(jobs._user_folder({"kind": "look", "target": {"kind": "enemy", "id": "dust_mummy", "code": "DM-E"}}) == "dust_mummy_DM-E"
+              and jobs._user_folder({"kind": "hero_badge", "target": {"kind": "hero", "id": "drifter"}}) == "drifter_hero_badge", "the sidebar folder names the look (id_CODE) or the job's kind")
+        check(jobs._comfy_open_url("workflows/88fits/a b/x.json") == jobs.COMFY_SERVER.rstrip("/") + "/?open=workflows%2F88fits%2Fa%20b%2Fx.json", "the open link carries the user-data path, url-encoded: %s" % jobs._comfy_open_url("workflows/88fits/a b/x.json"))
+        wd = os.path.join(jobs.JOBS_DIR, j["id"], "workflows")
+        os.makedirs(wd, exist_ok=True)
+        with open(os.path.join(wd, "01_test_workflow.json"), "w", encoding="utf-8") as fh:
+            json.dump({"nodes": [], "links": []}, fh)
+        with open(os.path.join(wd, "01_test_api.json"), "w", encoding="utf-8") as fh:
+            json.dump({"1": {"class_type": "SaveImage", "inputs": {}}}, fh)
+        jb = jobs._find(j["id"])
+        h = [o for o in jobs._harvest(jb) if o["type"] == "workflow"]
+        check(len(h) == 1 and h[0]["label"] == "01_test" and "open_url" not in h[0] and h[0]["url"].endswith("/workflows/01_test_workflow.json"), "a workflow without a sidebar marker has the file link and no open link: %s" % h)
+        check(jobs._workflows_sig(jb) == ("01_test_workflow.json",), "the workflows signature lists the graph files: %s" % (jobs._workflows_sig(jb),))
+        put = []
+        real_put = jobs._comfy_put_userdata
+        jobs._comfy_put_userdata = lambda p, o, timeout=30: (put.append(p), {"path": p, "size": 1})[1]
+        try:
+            res = jobs.push_workflows(j["id"])
+        finally:
+            jobs._comfy_put_userdata = real_put
+        check(res["pushed"] == ["workflows/88fits/testbeast_TB-A/01_test.json"] and not res["push_errors"] and put == res["pushed"], "push_workflows saves each unsent workflow under workflows/88fits/<id_CODE>/: %s %s" % (res["pushed"], res["push_errors"]))
+        h = [o for o in res["outputs"] if o["type"] == "workflow"]
+        check(len(h) == 1 and h[0].get("userdata") == "workflows/88fits/testbeast_TB-A/01_test.json" and h[0].get("open_url", "").endswith("?open=workflows%2F88fits%2Ftestbeast_TB-A%2F01_test.json"), "after the push the output carries the sidebar path and the open link: %s" % h)
+        res2 = jobs.push_workflows(j["id"])
+        check(res2["pushed"] == [] and not res2["push_errors"] and os.path.isfile(os.path.join(wd, "01_test_userdata.json")), "a pushed workflow is not pushed again (its marker file stays)")
+        check(jobs._workflows_sig(jb) == ("01_test_userdata.json", "01_test_workflow.json"), "the signature sees the marker too: %s" % (jobs._workflows_sig(jb),))
+        check(jobs._asset_env(jb).get("ASSET_JOB_NAME") == "testbeast_TB-A", "the tools get the sidebar folder as ASSET_JOB_NAME: %s" % jobs._asset_env(jb).get("ASSET_JOB_NAME"))
+        # one Level Editor runs the queue (the `jobs` lock, claimed by init): a second one is read-only
+        check(jobs._queue_lock is not None and not jobs.is_readonly() and locks.status("jobs") and locks.status("jobs")["pid"] == os.getpid(), "init claims the jobs lock for this process: %s" % (locks.status("jobs"),))
+        check(jobs.claim_queue() is None and jobs.status().get("readonly") is None, "a second claim by the holder is a no-op; status says not read-only")
+        saved_ro, saved_sig = jobs._readonly, jobs._disk_sig
+        jobs._readonly = {"who": "level_editor", "pid": 4242, "since": time.time() - 60}
+        try:
+            try:
+                jobs.enqueue("look", {"kind": "enemy", "id": "testbeast", "code": "TB-Z"}, {"method": "creature_free2"})
+                check(False, "a read-only editor refuses enqueue")
+            except ValueError as e:
+                check("another Level Editor runs the job queue" in str(e) and "4242" in str(e), "a read-only editor refuses enqueue and names the holder: %s" % e)
+            for fn, args in ((jobs.cancel, (j["id"],)), (jobs.move, (j["id"], 1)), (jobs.push_workflows, (j["id"],)), (jobs.delete, (j["id"],))):
+                try:
+                    fn(*args)
+                    check(False, "read-only refuses %s" % fn.__name__)
+                except ValueError:
+                    check(True, "read-only refuses %s" % fn.__name__)
+            rev_before = jobs._state["rev"]
+            mt_before = os.path.getmtime(jobs.QUEUE_FILE)
+            check(jobs._save() == rev_before and os.path.getmtime(jobs.QUEUE_FILE) == mt_before, "a read-only editor never writes queue.json")
+            check(jobs.status().get("readonly", {}).get("pid") == 4242 and jobs.start_workers() == [], "status names the holder; start_workers starts nothing")
+            # the read-only editor follows the file: another writer's queue appears on the next list()
+            with open(jobs.QUEUE_FILE, "r", encoding="utf-8") as fh:
+                orig_text = fh.read()
+            q = json.loads(orig_text)
+            q["rev"] = 777
+            q["jobs"].append({"id": "jOTHER", "kind": "import", "state": "queued", "title": "from the other editor", "target": {}, "spec": {}, "progress": {}, "outputs": []})
+            time.sleep(0.05)
+            with open(jobs.QUEUE_FILE, "w", encoding="utf-8") as fh:
+                json.dump(q, fh)
+            jobs._disk_sig = None
+            lst = jobs.list()
+            check(lst["rev"] == 777 and any(x["id"] == "jOTHER" for x in lst["jobs"]), "a read-only editor shows the queue as the other one writes it: rev %s" % lst["rev"])
+        finally:
+            jobs._readonly, jobs._disk_sig = saved_ro, saved_sig
+            with open(jobs.QUEUE_FILE, "w", encoding="utf-8") as fh:   # the queue as it was before the fake writer
+                fh.write(orig_text)
+            jobs._load()
+        st = jobs.comfy_extension_state(max_age=10 ** 9) if jobs._ext_state["at"] else None
+        check(st is None or set(st) >= {"installed", "checked", "server"}, "the extension state record has installed / checked / server")
+        ext_dir = os.path.join(ROOT, "tools", "comfy_ext", "88fits_open")
+        check(os.path.isfile(os.path.join(ext_dir, "__init__.py")) and os.path.isfile(os.path.join(ext_dir, "js", "open_workflow.js")), "the 88fits_open extension is in the repo (tools/comfy_ext)")
+        ns = {}
+        with open(os.path.join(ext_dir, "__init__.py"), "r", encoding="utf-8") as fh:
+            exec(fh.read(), ns)
+        check(ns.get("WEB_DIRECTORY") == "./js" and ns.get("NODE_CLASS_MAPPINGS") == {}, "the extension pack declares WEB_DIRECTORY ./js and no nodes")
+        node = shutil.which("node")
+        if node:
+            tmpm = os.path.join(tempfile.gettempdir(), "open_workflow_check.mjs")
+            shutil.copyfile(os.path.join(ext_dir, "js", "open_workflow.js"), tmpm)
+            p = subprocess.run([node, "--check", tmpm], capture_output=True, text=True, timeout=60)
+            check(p.returncode == 0, "the extension's JS parses as a module: %s" % p.stderr.strip()[:200])
+            with open(os.path.join(ext_dir, "js", "open_workflow.js"), "r", encoding="utf-8") as fh:
+                ext_src = fh.read()
+            check('get(PARAM)' in ext_src and 'PARAM = "open"' in ext_src and "app.loadGraphData(" in ext_src and "/userdata/" in ext_src, "the extension reads ?open=, fetches the user-data file and loads it")
         jj = json.load(open(os.path.join(jobs.JOBS_DIR, j["id"], "job.json"), encoding="utf-8"))
         check(jj["tool"] == "gen_art" and jj["call"] == "process" and "--variant=TB-A" in jj["argv"] and jj["type"] == "enemies" and jj["id"] == "testbeast",
               "job.json carries tool/call/argv/type/id: %s" % {k: jj[k] for k in ("tool", "call", "argv", "type", "id")})

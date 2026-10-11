@@ -83,6 +83,7 @@ python tools/icon_sand.py [--gamma 0.8] [--splash] [--compare out.png]   # pass 
 "$GODOT" --audio-driver Dummy --resolution 1080x1920 --path D:/_projects/88fits/game --script res://tools/_p60_wp_shot.gd -- out=<dir> [only=tommy,boomstick,chicago,blunderbuss,pod,scepter,pea]   # pass 60: every gun's rounds frame by frame, the pod at pressure 0/1, the sceptre with Flicker; _p60_pk_shot.gd -- out=<dir>: a field of gems and the magnet arc
 python tools/gen_art.py [--anchor|--pick=N] [--only id] [--force] [--seed=N]   # Clash-style sprites/icons via Flux.2 Klein on ComfyUI (192.168.137.54:8188), vision QA, review sheets, imports at the end
 python tools/comfy.py --export                                  # ComfyUI workflows as UI-loadable JSON in tools/comfy_workflows/
+python tools/comfy.py --install-ext [--no-restart] | --check-ext   # pass 66 follow-up: the 88fits_open web extension (tools/comfy_ext) onto the AI server's custom_nodes + a restart under the ComfyUI lock; it opens a saved workflow from a link (<server>/?open=workflows%2F88fits%2F...), which the Level Editor's job cards use (every job's workflows are saved into the page's Workflows sidebar, 88fits/)
 python tools/animate.py <still.png> "<motion in place>" [seed]   # one Wan 2.2 image-to-video run cycle -> tools/dl/ai_anim/<key>/ (see .claude/skills/sprite-animation)
 "$BLENDER" -b --python tools/blender_props.py -- out=D:/_projects/88fits/game/art/props     # 16 GLB props; BLENDER=%LOCALAPPDATA%/Programs/blender-5.2.0-windows-x64/blender.exe
 "$BLENDER" -b --python tools/blender_hammer.py      # also blender_revolver.py, blender_gravity_gun.py, blender_tommy.py, blender_mouth.py: weapon GLBs + side renders on green (tools/dl/*_ref.png) the icons are painted from
@@ -332,3 +333,6 @@ show in the game; pictures in `docs/guide_img/`; published at https://claude.ai/
   around tool runs; use `Save.begin_sandbox()` in probes).
 - Rules Garry never asked for read as bugs: name every new rule in BALANCING.md.
 - Commit every finished pass (never push); the build goes to Drive at the end of every user-facing change.
+- One Level Editor server at a time runs the job queue (`tools/dl/locks/jobs.lock`, claimed at start); a second one is
+  read-only. Never start a server from a newer checkout while an older one runs a job: a claimant's `recover()`
+  interrupts (kills) any job marked running.

@@ -33,6 +33,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.parse
 import urllib.request
 import uuid
 
@@ -263,6 +264,8 @@ def _load():
 
 def _save():
     with _lock:
+        if _readonly is not None:   # a read-only editor never writes the queue
+            return _state["rev"]
         _state["rev"] += 1
         os.makedirs(JOBS_DIR, exist_ok=True)
         tmp = QUEUE_FILE + ".tmp"
@@ -634,6 +637,7 @@ def _check_target(kind, target):
 
 def _asset_env(job):
     env = {"ASSET_JOB_SIDECAR": os.path.join(_job_dir(job["id"]), "result.json"), "ASSET_JOB_ID": job["id"],
+           "ASSET_JOB_NAME": _user_folder(job),   # the folder its workflows take in the ComfyUI page's Workflows sidebar
            "LOCK_HELD_COMFY": "1", "COMFY_LOCK_HELD": "1", "PYTHONIOENCODING": "utf-8"}
     spec = job.get("spec") or {}
     model = "dev" if (spec.get("dev") or spec.get("model") == "dev") else "klein"
@@ -1007,21 +1011,78 @@ def _write_job_json(job):
 
 # ---------------------------------------------------------------- public API
 
-def init(hooks, root=None):
-    """server.main(): the hooks dict, the queue loaded, recover() run. Starts no thread."""
+_queue_lock = None    # the `jobs` lock this process holds while it runs the queue (claim_queue)
+_readonly = None      # the holder's record when another editor runs it: this process shows the queue, changes nothing
+_disk_sig = None      # (mtime, size) of queue.json at the last read-only load
+
+
+def claim_queue(who="level_editor"):
+    """Become the one process that runs the job queue: the `jobs` lock (tools/dl/locks/jobs.lock), held while the
+    server lives. A second Level Editor started while the first runs finds it held by a live process and runs
+    READ-ONLY: it shows the queue as the file changes and refuses every change, and it neither recovers nor runs jobs.
+    (2026-10-11: two level_editor.cmd windows shared one queue.json, each with its own picture of it, each writing the
+    whole file; and recover() in a second server kills the first one's running job.) None when claimed, else the record."""
+    global _queue_lock, _readonly
+    if _queue_lock is not None:
+        return None
+    lk = locks.acquire("jobs", who=who, note="the Level Editor that runs the job queue", wait=False, log=lambda m: None)
+    if lk is None:
+        _readonly = locks.status("jobs") or {"who": "another Level Editor"}
+        return _readonly
+    _queue_lock, _readonly = lk, None
+    return None
+
+
+def is_readonly():
+    return _readonly is not None
+
+
+def _writable():
+    """Every change to the queue starts here: a read-only editor refuses with the holder named."""
+    if _readonly is None:
+        return
+    o = _readonly
+    since = time.strftime("%H:%M", time.localtime(float(o.get("since") or 0))) if o.get("since") else "?"
+    raise ValueError("another Level Editor runs the job queue (%s, pid %s, since %s): queue it from that page, or close it and "
+                     "restart this one; this page only shows the queue" % (o.get("who") or "another Level Editor", o.get("pid") or "?", since))
+
+
+def _sync_from_disk():
+    """Read-only: the queue as the other editor last wrote it, loaded again whenever queue.json changed."""
+    global _disk_sig
+    if _readonly is None:
+        return
+    try:
+        st = os.stat(QUEUE_FILE)
+        sig = (st.st_mtime, st.st_size)
+    except OSError:
+        return
+    if sig != _disk_sig:
+        _disk_sig = sig
+        _load()
+
+
+def init(hooks, root=None, claim=True):
+    """server.main(): the hooks dict, the queue loaded, the queue claimed (or this process read-only), recover() run by
+    the claimant. Starts no thread. `claim=False` (a tool, a test) neither claims nor recovers."""
     global _hooks, _root
     _hooks = hooks
     if root:
         _root = root
     _load()
-    recover()
+    if claim:
+        if claim_queue() is None:
+            recover()
     return _state["rev"]
 
 
 def start_workers():
-    """The three lane threads (daemon). Only server.main() calls this; a second call is a no-op."""
+    """The three lane threads (daemon). Only server.main() calls this; a second call is a no-op; a read-only editor
+    (another one holds the queue) starts none."""
     if _workers:
         return _workers
+    if _readonly is not None:
+        return []
     _stop.clear()
     for lane in LANES:
         th = threading.Thread(target=_worker, args=(lane,), name="jobs-" + lane, daemon=True)
@@ -1031,14 +1092,22 @@ def start_workers():
 
 
 def stop(timeout=3.0):
+    global _queue_lock
     _stop.set()
     for th in _LIST(_workers):
         th.join(timeout)
     _workers.clear()
+    if _queue_lock is not None:
+        try:
+            _queue_lock.release()
+        except Exception:
+            pass
+        _queue_lock = None
 
 
 def list(since_rev=None):   # noqa: A001 (the contract's name)
     with _lock:
+        _sync_from_disk()
         if since_rev is not None and int(since_rev) == _state["rev"]:
             return {"rev": _state["rev"], "unchanged": True}
         return {"rev": _state["rev"], "jobs": [_public(j, LOG_TAIL_SHORT) for j in _state["jobs"]]}
@@ -1046,6 +1115,7 @@ def list(since_rev=None):   # noqa: A001 (the contract's name)
 
 def get(job_id):
     with _lock:
+        _sync_from_disk()
         j = _find(job_id)
         return _public(j, LOG_TAIL_FULL, full=True) if j else None
 
@@ -1116,6 +1186,7 @@ def _seed_recipe(target, spec):
 
 
 def enqueue(kind, target, spec, title=None):
+    _writable()
     spec = validate_spec(kind, spec)
     target = _check_target(kind, target)
     if kind == "look":
@@ -1139,6 +1210,7 @@ def enqueue(kind, target, spec, title=None):
 
 
 def edit(job_id, spec=None, title=None):
+    _writable()
     with _lock:
         job = _find(job_id)
         if job is None:
@@ -1174,6 +1246,7 @@ def edit(job_id, spec=None, title=None):
 
 
 def cancel(job_id):
+    _writable()
     with _lock:
         job = _find(job_id)
         if job is None:
@@ -1203,6 +1276,7 @@ def cancel(job_id):
 
 
 def requeue(job_id, reroll=None):
+    _writable()
     with _lock:
         job = _find(job_id)
         if job is None:
@@ -1271,6 +1345,7 @@ def requeue(job_id, reroll=None):
 
 
 def pick(job_id, choice):
+    _writable()
     with _lock:
         job = _find(job_id)
         if job is None:
@@ -1301,6 +1376,7 @@ def pick(job_id, choice):
 
 
 def install(job_id, choice, options=None):
+    _writable()
     with _lock:
         src = _find(job_id)
         if src is None:
@@ -1317,6 +1393,7 @@ def install(job_id, choice, options=None):
 
 
 def move(job_id, delta):
+    _writable()
     with _lock:
         job = _find(job_id)
         if job is None:
@@ -1335,6 +1412,7 @@ def move(job_id, delta):
 
 
 def delete(job_id):
+    _writable()
     with _lock:
         job = _find(job_id)
         if job is None:
@@ -1352,6 +1430,7 @@ def merge(job_id, redump=False):
     written line by line (`written.layout` "unmerged"; lane V's card): the post phase's merge run again through the
     hooks, or, with `redump`, through hooks.redump_merge, the explicit whole-file re-dump (never silent). Returns the
     public record; None when there is no such job."""
+    _writable()
     with _lock:
         job = _find(job_id)
         if job is None:
@@ -1388,11 +1467,15 @@ def merge(job_id, redump=False):
 
 def status():
     with _lock:
+        _sync_from_disk()
         counts = {s: sum(1 for j in _state["jobs"] if j["state"] == s) for s in ("queued", "running", "waiting")}
         lanes = dict(_lane_current)
+    ro = None
+    if _readonly is not None:
+        ro = {k: _readonly.get(k) for k in ("who", "pid", "since", "host") if k in _readonly}
     return {"queued": counts["queued"], "running": counts["running"], "waiting": counts["waiting"], "lanes": lanes,
             "locks": locks.status_all(), "blender": blender_path(), "qa_online": _qa_cache["v"], "rev": _state["rev"],
-            "workers": len(_workers)}
+            "workers": len(_workers), "readonly": ro}
 
 
 def reclaim_stale_locks():
@@ -1500,6 +1583,12 @@ def _finish(job, state, error="", save=True):
                 s["state"] = "done"
         job["progress"]["done"] = len(job["progress"].get("stages", []))
         job["progress"]["stage"] = "done"
+    elif state in ("failed", "cancelled", "interrupted") and job.get("kind") != "launch":
+        # what a stopped job made before it stopped (its workflows above all: the graph that failed is the one to open)
+        try:
+            job["outputs"] = _harvest(job)
+        except Exception:
+            pass
     if save:
         _save()
 
@@ -1619,11 +1708,20 @@ def _spawn(job, live, cmd, env_extra=None, cwd=None):
     reader.start()
     last_cache = 0.0
     last_beat = time.time()
+    flows_seen = None
     while proc.poll() is None:
         now = time.time()
         if now - last_cache >= CACHE_CHECK_SECONDS:
             last_cache = now
             _check_caches(job, live)
+            # the card shows every workflow (and every still and clip) as it lands, not only at the end: a harvest
+            # whenever the job's workflows folder changes (pass 66 follow-up: "running a Mummy job I don't see a link")
+            sig = _workflows_sig(job)
+            if sig != flows_seen:
+                flows_seen = sig
+                with _lock:
+                    job["outputs"] = _harvest(job)
+                    live.last_save = live.last_save or time.time()
         if live.lock is not None and now - last_beat >= 30.0:
             last_beat = now
             live.lock.beat()
@@ -2142,13 +2240,26 @@ def _harvest(job):
                     outs.append({"label": "%s %s" % (v, n), "type": "still", "url": _url_dl(os.path.join(d, v, n))})
     if kind == "install" and res:
         outs.append({"label": "installed", "type": "json", "detail": {k: res.get(k) for k in ("tool", "call", "top") if res.get(k) is not None}})
-    # the ComfyUI workflows the job ran (comfy.save_job_workflow): one file per graph, drag into the ComfyUI page
+    # the ComfyUI workflows the job ran (comfy.save_job_workflow): one file per graph; the copy in the page's Workflows
+    # sidebar (`<stem>_userdata.json` marker, written by the run or by push_workflows) gives the "open in ComfyUI" link
     wd = os.path.join(_job_dir(job["id"]), "workflows")
     if os.path.isdir(wd):
         for f in sorted(os.listdir(wd)):
             if f.endswith("_workflow.json"):
-                outs.append({"label": f[:-len("_workflow.json")], "type": "workflow", "url": _url_dl(os.path.join(wd, f)),
-                             "api_url": _url_dl(os.path.join(wd, f[:-len("_workflow.json")] + "_api.json"))})
+                stem = f[:-len("_workflow.json")]
+                o = {"label": stem, "type": "workflow", "url": _url_dl(os.path.join(wd, f)),
+                     "api_url": _url_dl(os.path.join(wd, stem + "_api.json"))}
+                mk = os.path.join(wd, stem + "_userdata.json")
+                if os.path.isfile(mk):
+                    try:
+                        with open(mk, "r", encoding="utf-8") as fh:
+                            upath = str(json.load(fh).get("path") or "")
+                        if upath:
+                            o["userdata"] = upath
+                            o["open_url"] = _comfy_open_url(upath)
+                    except Exception:
+                        pass
+                outs.append(o)
     return outs
 
 
@@ -2268,6 +2379,122 @@ def _kill_tree(pid):
         return True
     except Exception:
         return False
+
+
+def _user_folder(job):
+    """The folder a job's workflows take in the ComfyUI page's Workflows sidebar (workflows/88fits/<folder>/): a look's
+    `<id>_<CODE>`, else `<id>_<kind>` (goblin_GOB-E, drifter_hero_badge, spear_item_icon)."""
+    t = job.get("target") or {}
+    base = str(t.get("id") or job.get("kind") or "job")
+    tail = str(t.get("code") or "") if job.get("kind") == "look" else str(job.get("kind") or "")
+    name = "%s_%s" % (base, tail) if tail else base
+    out = "".join(c if (c.isalnum() or c in "-_.") else "_" for c in name).strip("._")
+    return out[:80] or "job"
+
+
+def _workflows_sig(job):
+    """What the job's workflows folder holds (the names), to notice a new graph or a new sidebar marker cheaply."""
+    wd = os.path.join(_job_dir(job["id"]), "workflows")
+    try:
+        return tuple(sorted(f for f in os.listdir(wd) if f.endswith(("_workflow.json", "_userdata.json"))))
+    except OSError:
+        return ()
+
+
+def _comfy_open_url(path):
+    """The link that opens the ComfyUI page on a saved workflow (the 88fits_open extension reads ?open=)."""
+    return COMFY_SERVER.rstrip("/") + "/?open=" + urllib.parse.quote(path, safe="")
+
+
+def _comfy_put_userdata(path, obj, timeout=30):
+    """Save a workflow into the ComfyUI page's user data (its Workflows sidebar): POST /api/userdata/<path>."""
+    url = COMFY_SERVER.rstrip("/") + "/api/userdata/" + urllib.parse.quote(path, safe="") + "?overwrite=true&full_info=true"
+    req = urllib.request.Request(url, data=json.dumps(obj).encode("utf-8"), headers={"Content-Type": "application/json"})
+    return json.load(urllib.request.urlopen(req, timeout=timeout))
+
+
+_ext_state = {"at": 0.0, "installed": None}
+
+
+def comfy_extension_state(max_age=60.0):
+    """Whether the ComfyUI page lists the 88fits_open extension (the one that makes the "open in ComfyUI" links work):
+    {installed: True | False | None (no answer), checked: iso}. Asked at most once a minute (the page polls status)."""
+    now = time.time()
+    if now - _ext_state["at"] >= max_age:
+        st = None
+        try:
+            files = json.load(urllib.request.urlopen(COMFY_SERVER.rstrip("/") + "/api/extensions", timeout=3))
+            st = any("/88fits_open/" in str(f) for f in files)
+        except Exception:
+            st = None
+        _ext_state.update({"at": now, "installed": st, "checked": _now()})
+    return {"installed": _ext_state["installed"], "checked": _ext_state.get("checked"), "server": COMFY_SERVER}
+
+
+def push_workflows(job_id):
+    """Save a job's workflow files into the ComfyUI page's Workflows sidebar: the ones its run did not push itself (jobs
+    from before the push existed, or a server that was down at the time). Network outside the lock; then the job's
+    outputs carry the open links. Returns the public job with `pushed` and `push_errors`."""
+    _writable()
+    with _lock:
+        job = _find(job_id)
+        if job is None:
+            raise KeyError(job_id)
+        folder = _user_folder(job)
+    wd = os.path.join(_job_dir(job_id), "workflows")
+    pushed, errors = [], []
+    if os.path.isdir(wd):
+        for f in sorted(os.listdir(wd)):
+            if not f.endswith("_workflow.json"):
+                continue
+            stem = f[:-len("_workflow.json")]
+            mk = os.path.join(wd, stem + "_userdata.json")
+            if os.path.isfile(mk):
+                continue
+            upath = "workflows/88fits/%s/%s.json" % (folder, stem)
+            try:
+                with open(os.path.join(wd, f), "r", encoding="utf-8") as fh:
+                    wf = json.load(fh)
+                rec = _comfy_put_userdata(upath, wf)
+                with open(mk, "w", encoding="utf-8", newline="\n") as fh:
+                    json.dump({"path": upath, "open": _comfy_open_url(upath), "server": rec}, fh, indent=1)
+                pushed.append(upath)
+            except Exception as e:
+                errors.append("%s: %s" % (stem, e))
+    with _lock:
+        job["outputs"] = _harvest(job)
+        _save()
+        out = _public(job, LOG_TAIL_SHORT)
+    out["pushed"], out["push_errors"] = pushed, errors
+    return out
+
+
+_templates_pushed = {}
+
+
+def push_templates(folder=None):
+    """The method templates (tools/comfy_workflows/*.json, `python tools/comfy.py --export`) saved into the sidebar under
+    workflows/88fits/templates/ (each once per server start and file change); returns [{name, path, open_url, error?}]."""
+    folder = folder or os.path.join(TOOLS, "comfy_workflows")
+    out = []
+    if not os.path.isdir(folder):
+        return out
+    for f in sorted(os.listdir(folder)):
+        if not f.endswith(".json"):
+            continue
+        full = os.path.join(folder, f)
+        upath = "workflows/88fits/templates/%s" % f
+        rec = {"name": f, "path": upath, "open_url": _comfy_open_url(upath)}
+        try:
+            mtime = os.path.getmtime(full)
+            if _templates_pushed.get(f) != mtime:
+                with open(full, "r", encoding="utf-8") as fh:
+                    _comfy_put_userdata(upath, json.load(fh))
+                _templates_pushed[f] = mtime
+        except Exception as e:
+            rec["error"] = str(e)
+        out.append(rec)
+    return out
 
 
 def _comfy_interrupt():

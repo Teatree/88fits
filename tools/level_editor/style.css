@@ -700,8 +700,11 @@ input.num.bad { border-color: var(--crit); box-shadow: 0 0 0 1px var(--crit) ins
 .apanes.with-editor { height: calc(100vh - 128px); }
 /* with an editor open, the tab panel itself never scrolls (its 48 px bottom padding used to leave it 47 px of travel that
    carried the pinned header off the top): the panes take exactly the room under the tab bar and the pane scrolls inside */
-.tab-panel.page:has(.apanes.with-editor) { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 10px; }
-.tab-panel.page:has(.apanes.with-editor) .apanes.with-editor { height: auto; flex: 1 1 auto; min-height: 0; }
+.tab-panel.page:not([hidden]):has(.apanes.with-editor) { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 10px; }
+.tab-panel.page:not([hidden]):has(.apanes.with-editor) .apanes.with-editor { height: auto; flex: 1 1 auto; min-height: 0; }
+/* a hidden panel stays hidden whatever a later rule says about its display (the :has rule above once outranked [hidden]
+   and the Enemies panel stayed open beside the next tab) */
+.tab-panel[hidden] { display: none !important; }
 .apanes.with-editor .alist { flex: 0 0 440px; max-width: 440px; overflow: auto; height: 100%; min-height: 0; padding-right: 4px; }
 .apanes.with-editor .palette { grid-template-columns: 1fr; }
 .apanes.with-editor .palette-bar { flex-wrap: wrap; gap: 8px; }
