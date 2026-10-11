@@ -266,11 +266,16 @@ func test_the_trait_words() -> void:
 	assert_str(TextGen.hero_trait_now(_hero("ironwood"), 12)).is_equal("+1.2 HP regen and 0.6 s less regen delay at level 12")
 	# the delay stops at its floor: 3 s less 2.5 s at the most
 	assert_str(TextGen.hero_trait_at(_hero("ironwood"), 60)).is_equal("+6 HP regen and 2.5 s less regen delay")
-	# a hidden hero keeps his own words
+	# pass 67: Buck is back with a level rule (Full Tilt) and his charge (a special) says itself after it, in his own words
 	var buck: CharacterDef = Registry.character("buck")
 	if buck:
-		assert_str(TextGen.hero_trait(buck)).is_equal(buck.trait_text)
-		assert_str(TextGen.hero_trait_now(buck, 10)).is_equal("")
+		assert_str(TextGen.hero_trait(buck)).is_equal("Gain 1% move speed per level. " + buck.trait_text)
+		assert_str(TextGen.hero_trait_now(buck, 10)).is_equal("+10% move speed at level 10")
+	# a hidden hero without a rule keeps his own words
+	var dad: CharacterDef = Registry.character("dad")
+	if dad:
+		assert_str(TextGen.hero_trait(dad)).is_equal(dad.trait_text)
+		assert_str(TextGen.hero_trait_now(dad, 10)).is_equal("")
 
 
 func test_the_plaque_shows_what_a_level_gives() -> void:

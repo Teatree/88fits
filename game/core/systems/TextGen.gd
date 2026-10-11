@@ -214,6 +214,43 @@ static func land_blast_words(params: Dictionary, sheet: StatSheet) -> String:
 	return " Each one %s as it lands: %.0f damage within %.1f m and a light shove." % [how, dmg, r]
 
 
+## The basketball in words (pass 67, params.return_on_hit; its amount counts bounces with amount_mode "bounces"): "Throws
+## a ball at the strongest enemy within 9 m: it bounces to 1 more enemy within 7 m, then flies back to his hand, hitting
+## up to 2 on the way." (return_pierce 80 or more: "hitting everything on the way"), then its Heat (params.catch): "Every
+## caught ball that scored adds Heat: +5% damage, up to +50%. A hit on him cools it." and Slam Dunk's dunk (catch.slam).
+## A hop looks 7 m for its next creature unless ricochet_any.reach says otherwise (ProjectileManager.RICOCHET_REACH, not
+## named here: TextGen compiles for tools before the autoloads exist).
+static func ball_words(def: WeaponDef, sheet: StatSheet, pr: Dictionary) -> String:
+	var who := "the strongest enemy" if def.targeting == "priority" else "the nearest enemy"
+	var ra = pr.get("ricochet_any", {})
+	var rd: Dictionary = ra if ra is Dictionary else {}
+	var hops := maxi(int(rd.get("count", 0)), 0)
+	if str(pr.get("amount_mode", "")) == "bounces":
+		hops += maxi(sheet.get_int("amount", 1), 1) - 1
+	var rp := int(pr.get("return_pierce", 80))
+	var way := ", hitting everything on the way" if rp >= 80 else ((", hitting up to %d on the way" % rp) if rp > 0 else "")
+	var text := "Throws a ball at %s within %.0f m: " % [who, sheet.get_stat("range", 8.0)]
+	if hops > 0:
+		text += "it bounces to %d more enem%s within %.0f m, then flies back to his hand%s." % [hops, "y" if hops == 1 else "ies", float(rd.get("reach", 7.0)), way]
+	else:
+		text += "it flies back to his hand%s." % way
+	var ct = pr.get("catch")
+	if not ct is Dictionary:
+		return text
+	var c: Dictionary = ct
+	var per := float(c.get("heat_per", 0.0))
+	var top := int(c.get("heat_max", 10))
+	if per > 0.0 and top > 0:
+		text += " Every caught ball that scored adds Heat: +%d%% damage, up to +%d%%." % [int(round(per * 100.0)), int(round(per * float(top) * 100.0))]
+		text += " Its Heat never cools." if bool(c.get("heat_keep", false)) else " A hit on him cools it."
+	var sl = c.get("slam")
+	if sl is Dictionary:
+		var at := int((sl as Dictionary).get("at_heat", top))
+		text += " At %s every catch is a dunk: %d%% of its damage to everything within %.1f m, thrown back." % ["full Heat" if at >= top else "%d Heat" % at,
+			int(round(float((sl as Dictionary).get("damage_frac", 1.0)) * 100.0)), float((sl as Dictionary).get("radius", 3.5))]
+	return text
+
+
 static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Dictionary = {}) -> String:
 	var amount := sheet.get_int("amount", 1)
 	var range_m := sheet.get_stat("range", 8.0)
@@ -258,6 +295,10 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 					text = "Blasts a %.1f m wide lane %.0f m long where you face: everything in it is hit at once and shoved along it." % [float(blast.get("width", 2.6)), range_m * float(blast.get("length_mult", 1.25))]
 				elif str(blast.get("shape", "")) == "cone":
 					text = "Blasts a %d° cone %.0f m deep where you face: everything in it is hit at once." % [int(round(float(blast.get("deg", 75.0)))), float(blast.get("range", range_m))]
+			# pass 67 (the basketball, params.return_on_hit): one ball that bounces on and flies back to his hand
+			var ball := bool(pr.get("return_on_hit", false))
+			if ball:
+				text = ball_words(def, sheet, pr)
 			var de := int(pr.get("double_every", 0))
 			if de >= 2:
 				text += " Every %s shot fires twice in quick succession." % ({2: "second", 3: "third", 4: "fourth"}.get(de, "%dth" % de))
@@ -265,7 +306,7 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 			if hs is Dictionary:
 				text += " Every %dth pull fires %d volleys in a row." % [int((hs as Dictionary).get("every", 5)), int((hs as Dictionary).get("volleys", 3))]
 			var rav = pr.get("ricochet_any")
-			if rav is Dictionary:
+			if rav is Dictionary and not ball:
 				var ra := int((rav as Dictionary).get("count", 0))
 				if ra > 0:
 					text += " Every round ricochets %d time%s at %d%%." % [ra, "" if ra == 1 else "s", int(round(float((rav as Dictionary).get("frac", 1.0)) * 100.0))]
@@ -667,6 +708,9 @@ static func amount_noun(def: WeaponDef, sheet: StatSheet = null, params: Diction
 			# the Spear is thrown like any shot and reads as what it is (weapon_description)
 			if pr.has("plant"):
 				return "spears"
+			# pass 67 (the basketball): its amount counts bounces (params.amount_mode "bounces")
+			if str(pr.get("amount_mode", "")) == "bounces":
+				return "bounces"
 			match def.targeting:
 				"forward":
 					return "pellets"
@@ -953,8 +997,9 @@ static func hero_step(e: Effect) -> String:
 
 ## A hero's rule in words (pass 61, Garry: "Heroes have 1-2 unique stats, and they scale as they level up"): "Gain 1% crit
 ## chance per level." from the level_trait, Astro's heal on every level-up after it, a floor or what the stat means in
-## brackets. A hero without one (the hidden heroes) reads its own trait_text. The title plaque, the hero sheet, the arena
-## and the Collection all read it here.
+## brackets. A hero without one (the hidden heroes) reads its own trait_text; a hero with both a level trait and a
+## special (pass 67: Buck) reads the rule, then his trait_text. The title plaque, the hero sheet, the arena and the
+## Collection all read it here.
 static func hero_trait(c: CharacterDef) -> String:
 	if c == null:
 		return ""
@@ -980,7 +1025,12 @@ static func hero_trait(c: CharacterDef) -> String:
 		s += ", and heal %s of max HP on every level-up" % (_plain(c.level_heal * 100.0) + "%")
 	if not notes.is_empty():
 		s += " (" + "; ".join(notes) + ")"
-	return s + "."
+	s += "."
+	# a hero with a mechanism of his own (pass 67: Buck's charge, CharacterDef.specials) says it after the rule, in his
+	# trait_text, so the plaque, the hero sheet and the Collection carry the whole of it
+	if c.trait_text != "" and not c.specials.is_empty():
+		s += " " + c.trait_text
+	return s
 
 
 ## What the signature stat comes to at a level, signed: "+12% crit chance", "+1.2 HP regen and 0.6 s less regen delay"

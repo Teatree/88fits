@@ -6,10 +6,12 @@
 [resource]
 script = ExtResource("1_epmdh")
 hero = "buck"
-text = "At full momentum, creatures he touches are shoved back and take his thorns ×3 (plus 12) instead of hurting him."
+text = "At full charge he is the wall: creatures he touches are shoved back and take 12 (+2 a level) plus three times his thorns instead of hurting him. Bosses and charging creatures still hit him."
 special = "ram"
 params = {
 "flat": 12.0,
+"from": 0.99,
+"per_level": 2.0,
 "shove": 9.0,
 "thorns_mult": 3.0
 }

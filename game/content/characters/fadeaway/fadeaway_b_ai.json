@@ -1,0 +1,289 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a tall athletic young Black man with a short rounded afro, a thin goatee and sharp angular features, heavy-lidded confident eyes and a sly half-smile, a sleeveless purple basketball jersey with gold trim and a big gold number 88, loose knee-length purple shorts with a gold stripe, white high-top sneakers, a white sweatband on his forehead and white wristbands, standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
+ "renders": {
+  "front": {
+   "seed": 8950,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a tall athletic young Black man with a short rounded afro, a thin goatee and sharp angular features, heavy-lidded confident eyes and a sly half-smile, a sleeveless purple basketball jersey with gold trim and a big gold number 88, loose knee-length purple shorts with a gold stripe, white high-top sneakers, a white sweatband on his forehead and white wristbands, standing straight and facing the viewer with his arms relaxed at his sides, empty hands. Full body, front view, standing straight and facing the viewer, arms relaxed, feet fully visible. standing straight, weight on both feet, arms relaxed at the sides, empty hands, no ball in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 358,
+     "right": 361,
+     "top": 40,
+     "bottom": 35,
+     "height": 948,
+     "width": 304
+    }
+   },
+   "attempt": 0
+  },
+  "back": {
+   "seed": 8951,
+   "prompt": "Turn this exact character around and show a full-body back view seen directly from behind: the back of the head or helmet, the back of the outfit and the heels, no face visible. Keep the same outfit, colors, proportions and art style, standing straight with arms relaxed. standing straight, weight on both feet, arms relaxed at the sides, empty hands, no ball He faces away from the viewer: only the back of the afro and the sweatband, the back of the purple jersey with the gold number 88, the shorts and the heels of the sneakers are visible; no eyes, no face at all. Both arms hang straight down along his sides, relaxed, empty hands. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 359,
+     "right": 360,
+     "top": 42,
+     "bottom": 44,
+     "height": 937,
+     "width": 304
+    }
+   },
+   "attempt": 0
+  },
+  "side": {
+   "seed": 8956,
+   "prompt": "Turn this exact character to show a full-body side view in strict profile, facing to the right of the frame, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. standing straight, weight on both feet, arms relaxed at the sides, empty hands, no ball a clean side profile facing right: the afro, the goatee, the jersey's side, one arm hanging relaxed in front of the torso, empty hands isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 430,
+     "right": 416,
+     "top": 44,
+     "bottom": 41,
+     "height": 938,
+     "width": 177
+    }
+   },
+   "attempt": 0
+  },
+  "fd": {
+   "seed": 8957,
+   "prompt": "Turn this exact character to a three-quarter front view: turned 45 degrees so the character faces towards the lower right of the frame, face visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. standing straight, weight on both feet, arms relaxed at the sides, empty hands, no ball isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 364,
+     "right": 362,
+     "top": 40,
+     "bottom": 30,
+     "height": 953,
+     "width": 297
+    }
+   },
+   "attempt": 0
+  },
+  "bd": {
+   "seed": 8958,
+   "prompt": "Turn this exact character to a three-quarter back view: turned 45 degrees away from the viewer so the character faces the upper right of the frame, the back and right shoulder visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. standing straight, weight on both feet, arms relaxed at the sides, empty hands, no ball isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 368,
+     "right": 368,
+     "top": 41,
+     "bottom": 39,
+     "height": 943,
+     "width": 287
+    }
+   },
+   "attempt": 0
+  },
+  "cheer": {
+   "seed": 8960,
+   "prompt": "The exact same character seen directly from behind (no face visible), jumping for joy with both arms raised high above the head, feet together. Keep the same outfit, colors, proportions and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_back.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 271,
+     "right": 268,
+     "top": 46,
+     "bottom": 43,
+     "height": 934,
+     "width": 484
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_back": {
+   "seed": 32737,
+   "prompt": "One single figure alone in the frame: the exact same character seen directly from behind, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_back_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "back",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 346,
+     "right": 338,
+     "top": 45,
+     "bottom": 44,
+     "height": 934,
+     "width": 339
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_front": {
+   "seed": 8981,
+   "prompt": "One single figure alone in the frame: the exact same character facing the viewer, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_front_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 357,
+     "right": 376,
+     "top": 41,
+     "bottom": 36,
+     "height": 946,
+     "width": 290
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_side": {
+   "seed": 8982,
+   "prompt": "One single figure alone in the frame: the exact same character in strict side profile facing right, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_side_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 430,
+     "right": 393,
+     "top": 45,
+     "bottom": 41,
+     "height": 937,
+     "width": 200
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_bd": {
+   "seed": 8983,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter back view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_bd_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 390,
+     "right": 375,
+     "top": 42,
+     "bottom": 40,
+     "height": 941,
+     "width": 258
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_fd": {
+   "seed": 8984,
+   "prompt": "One single figure alone in the frame: the exact same character in three-quarter front view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, flinching back with a grimace, one arm raised across the chest, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_fd_ref.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 357,
+     "right": 341,
+     "top": 40,
+     "bottom": 31,
+     "height": 952,
+     "width": 325
+    }
+   },
+   "attempt": 0
+  },
+  "dead": {
+   "seed": 8962,
+   "prompt": "This exact character lying flat on the ground on their back, knocked out: limbs sprawled, head to one side, seen from the front and a little above so the whole body is visible. Keep the same outfit, colors, proportions and art style. flinching back with a grimace, one arm raised across the chest. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/fadeaway_front.png"
+   ],
+   "qa": {
+    "skipped": true,
+    "problems": [],
+    "geometry": {
+     "left": 152,
+     "right": 75,
+     "top": 289,
+     "bottom": 205,
+     "height": 529,
+     "width": 796
+    }
+   },
+   "attempt": 0
+  }
+ },
+ "recipe_ran": {
+  "pose_drivers": {
+   "back": "run_spread",
+   "bd": "run_spread"
+  },
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  }
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": true
+}

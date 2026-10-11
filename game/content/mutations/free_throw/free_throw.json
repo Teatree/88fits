@@ -1,0 +1,25 @@
+{
+  "id": "free_throw",
+  "name": "Free Throw",
+  "flavour": "And one.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "basketball",
+  "kind": "hero",
+  "element": "",
+  "hero": "fadeaway",
+  "text": "Every hit he evades throws a free ball at once, no cooldown. At most one every 0.8 s.",
+  "vfx": "a white-glowing ball leaves his hand the instant the hit misses, beside the dodge's pale flash",
+  "effects": [],
+  "params": {
+    "free_throw": {
+      "every": 0.8,
+      "damage_mult": 1.0
+    }
+  },
+  "art_prompt": "a basketball glowing white at the top of a free-throw arc, a faded afterimage of a hand below it",
+  "placeholder": {
+    "color": "#F4F0FF",
+    "glyph": "star"
+  }
+}

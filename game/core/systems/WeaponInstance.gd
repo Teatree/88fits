@@ -261,9 +261,13 @@ func dps_estimate() -> float:
 
 ## A gun's estimate (pass 48): every round lands, a lane or a cone (`blast`) hits all it covers at its `frac` of the
 ## volley, Both Barrels' `double_every` fires that many pulls' worth once more, a hip shot's extra volleys, every
-## ricochet of `ricochet_any` at its share, and the mini crits at MINI_EXTRA on average.
+## ricochet of `ricochet_any` at its share, and the mini crits at MINI_EXTRA on average. Pass 67: a ball whose amount
+## counts bounces (`amount_mode` "bounces", the basketball) is one throw of _ball_hits.
 func _shot_dps(hits: float, cd: float) -> float:
 	var per := stat("damage") * hits
+	var ball := str(params.get("amount_mode", "")) == "bounces"
+	if ball:
+		per = stat("damage") * _ball_hits(hits)
 	var bl := blast()
 	if not bl.is_empty():
 		per *= float(bl["frac"]) * blast_catch(bl)
@@ -275,10 +279,47 @@ func _shot_dps(hits: float, cd: float) -> float:
 		var ev := int(hs["every"])
 		per *= (float(ev - 1) + float(maxi(int((hs as Dictionary).get("volleys", 3)), 1))) / float(ev)
 	var ra = params.get("ricochet_any")
-	if ra is Dictionary:
+	if ra is Dictionary and not ball:
 		per *= 1.0 + float(maxi(int((ra as Dictionary).get("count", 0)), 0)) * float((ra as Dictionary).get("frac", 0.8))
 	per *= 1.0 + float(params.get("mini_crit", 0.0)) * MINI_EXTRA
 	return per / cd
+
+
+## One throw of the basketball in throws' worth (pass 67, amount_mode "bounces"): the throw, every hop (ricochet_any.count
+## + amount - 1) at its `frac`, the way home's touches at return_damage_mult (return_pierce of them, two at most: a crowd
+## seldom lines up behind a ball; the rebound is one), all times Heat (1 + Run.heat x catch.heat_per). The catch's
+## refund is left out (the cooldown as the sheet says it).
+func _ball_hits(amount: float) -> float:
+	var ra = params.get("ricochet_any", {})
+	var rd: Dictionary = ra if ra is Dictionary else {}
+	var hops: float = float(maxi(int(rd.get("count", 0)), 0)) + maxf(amount - 1.0, 0.0)
+	var n: float = 1.0 + hops * float(rd.get("frac", 0.8))
+	if bool(params.get("return", false)):
+		n += float(clampi(int(params.get("return_pierce", 80)), 0, 2)) * float(params.get("return_damage_mult", 1.0))
+	var ct = params.get("catch")
+	if ct is Dictionary:
+		n *= 1.0 + float(run_heat()) * float((ct as Dictionary).get("heat_per", 0.0))
+	return n
+
+
+## The bounces one throw of the ball makes (pass 67, amount_mode "bounces"): ricochet_any.count + every amount past the
+## first, as ProjectileEmitter._throw_ball seeds them; 0 without a ricochet_any block.
+func ball_bounces() -> int:
+	var ra = params.get("ricochet_any")
+	if not ra is Dictionary:
+		return 0
+	return maxi(int((ra as Dictionary).get("count", 0)), 0) + maxi(stat_int("amount", 1), 1) - 1
+
+
+## Fadeaway's Heat now (pass 67, Run.heat; 0 without a run), read by path: TextGen compiles this class for every tool
+## before the autoloads exist, and naming Run here would break their compile (TextGen._registry's lesson, pass 46).
+static func run_heat() -> int:
+	var ml := Engine.get_main_loop()
+	var run: Node = (ml as SceneTree).root.get_node_or_null("Run") if ml is SceneTree else null
+	if run == null:
+		return 0
+	var h = run.get("heat")
+	return int(h) if h != null else 0
 
 
 ## The weapon's blast (pass 48, `params.blast`), read: {shape "lane", width, range (its length), frac} or {shape "cone",
@@ -365,6 +406,12 @@ func stat_rows() -> Array:
 	var rows: Array = []
 	for k in keys:
 		rows.append({"stat": k, "name": TextGen.stat_name(k), "value": TextGen.format_value(k, sheet.get_stat(k))})
+	# pass 67 (the basketball, amount_mode "bounces"): the amount row counts the bounces a throw makes
+	if str(params.get("amount_mode", "")) == "bounces":
+		for r: Dictionary in rows:
+			if str(r["stat"]) == "amount":
+				r["name"] = "bounces"
+				r["value"] = str(ball_bounces())
 	# the Spear (pass 46): how long the first creature it strikes is pinned, and how long it stands in the sand after
 	var pin = params.get("pin")
 	if pin is Dictionary:
@@ -396,7 +443,10 @@ func _gun_rows(rows: Array) -> void:
 	if hs is Dictionary and int((hs as Dictionary).get("every", 0)) > 0:
 		rows.append({"stat": "hip_shot", "name": "hip shot", "value": "%d volleys, every %d" % [int((hs as Dictionary).get("volleys", 3)), int(hs["every"])]})
 	var ra = params.get("ricochet_any")
-	if ra is Dictionary and int((ra as Dictionary).get("count", 0)) > 0:
+	if ra is Dictionary and str(params.get("amount_mode", "")) == "bounces":
+		# pass 67: the ball's bounces are its amount row; here what each one strikes for
+		rows.append({"stat": "ricochet_any", "name": "each bounce", "value": "%d%%" % int(round(float((ra as Dictionary).get("frac", 0.8)) * 100.0))})
+	elif ra is Dictionary and int((ra as Dictionary).get("count", 0)) > 0:
 		rows.append({"stat": "ricochet_any", "name": "ricochets", "value": "%d at %d%%" % [int(ra["count"]), int(round(float((ra as Dictionary).get("frac", 0.8)) * 100.0))]})
 	var mc := float(params.get("mini_crit", 0.0))
 	if mc > 0.0:

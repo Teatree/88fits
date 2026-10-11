@@ -42,6 +42,7 @@ python tools/gen_ctl.py --id=dune_scorpion --variant=SC-A [--dev] [--use-side=kN
 "$BLENDER" -b --python tools/blender_beetle.py -- out=tools/dl/drivers/beetle_walk_amp frames=12 cycles=2 depth=tight amp=1.7   # the Bull Beetle's drivers from Garry's rigged rhino beetle (_REFERENCES/3d/a-rhino-beetle.zip), its own walk clip in five views (+ look.png in its own colours); mode=death out=tools/dl/drivers/beetle_death plays its death clip (pass 48); pass 49: depth=tight (each view's own depth range, written Raw: AgX had flattened every depth video) and amp (the legs swing that much wider round their average)
 "$BLENDER" -b --python tools/blender_dice.py   # two true-cube dice -> tools/dl/dice_ref.png, the reference Hot Streak's icon is painted from (pass 49: Flux bends dice)
 "$BLENDER" -b --python tools/blender_rocket.py   # also blender_grenade.py: the Vulture Raider's black rocket (art/props/enemy_rocket.glb) and the Golden Pineapple's grenade (golden_grenade.glb), one vertex-coloured mesh each (pass 48)
+"$BLENDER" -b --python tools/blender_basketball.py   # pass 67: Fadeaway's basketball (art/props/basketball.glb, vertex colours: its visual gives the mesh a material that reads them) + the icon reference tools/dl/basketball_ref.png
 "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/walking.fbx out=tools/dl/drivers/walk_hold frames=12 arms=hold_r   # a walk whose right hand holds something up at the shoulder (the Vulture Raider's launcher, pass 48)
 python tools/compress_levels.py [--check]   # pass 48: weapons from 8 levels to 5 (level 5 = the old level 8); --check re-verifies against tools/dl/levels_v47.json
 python tools/gen_icon_cands.py [--only spear,cake] [--seeds 4] && python tools/gen_icon_cands.py --pick spear=0   # icon candidates (renders as references), picked by eye
@@ -237,7 +238,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-11, pass 66, version 0.52)
+## Status (2026-10-12, pass 67, version 0.53)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -246,8 +247,8 @@ changed.
 
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
-parse check, all gdUnit tests (~1,310 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.52).
+parse check, all gdUnit tests (~1,370 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.53).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
 rolled per run from `Run.map_seed`, a stone boundary wall; everything but the ground, the wall, barrels, signs and a few
@@ -263,10 +264,10 @@ work (pinned by `pass62_pc_test`), stages 2-3 were written in his style in pass 
 `creature_*_mult`, fixed per row from its start.
 
 **Heroes** (playable, title order): Drifter (Revolver), Astro (Gravity Gun), Calavera (Guitarra), Ironwood (the Spear =
-`pike`), Solenne (Sun Scepter); Buck, Dad and Mira are `hidden`. Each hero's trait is 1-2 stats that grow per level
+`pike`), Solenne (Sun Scepter), Fadeaway (the Basketball; pass 67: evade per level, Heat on caught balls, the Timeout leap pickup, Buzzer Beater), Buck (Tommy Gun; pass 67 un-hid him: momentum with speed, damage and evade, Overdrive; the HUD's hero gauge shows his MOMENTUM and Fadeaway's HEAT); Dad and Mira are `hidden`. Each hero's trait is 1-2 stats that grow per level
 (`trait_per_level`, `Run.hero_sheet`), a favourite weapon or passive (arrives at a bonus level, marked on cards), perks,
 and a hero mutation. The title plaque opens the hero's Wanted-poster sheet (`ui/wanted/WHeroSheet.gd`). Art variants
-(`variants` / `variant` in the JSON; Garry picks them in the arena or in the Level Editor's look grid; a look may be
+(`variants` / `variant` in the JSON; Buck plays BUC-B, Fadeaway FAD-B; Garry picks them in the arena or in the Level Editor's look grid; a look may be
 `shelved` out of the chips, a landed one is `fresh` until approved): see the art-variants memory. A hero JSON carries
 `availability` (hidden | available | purchase: anything but available hides him), `price` and `currency_type` (gold),
 written and shown by the editor, not wired (the purchase loop is parked: memory `88fits-hero-purchase-parked`).
@@ -275,7 +276,7 @@ written and shown by the editor, not wired (the purchase loop is parked: memory 
 = evolution at a chest; hero mutations optional), lines (5 slots, 4 levels, evolve when maxed; `PassiveDef.line`) and
 passive items (no cap). Everything is content: `content/weapons|evolutions|mutations|passives|perks|pickups|structures|
 enemies|bosses|characters|talents|maps|sounds`. Mutation looks come from their `params` (`look`, `tint`, ...); emblems
-are gone. Pierce drop-off is on by default (`Settings.pierce_falloff`, Debug panel). Numbers and rules: `BALANCING.md`.
+are gone. Pierce drop-off is on by default (`Settings.pierce_falloff`, Debug panel). Pass 67 primitives: a weapon's `amount_mode: "bounces"`, `return_on_hit`/`return_pierce`, `catch` (the ball's refund and Heat), a creature's `knockback_resist`, the map's `weapon_grade` (every 3D weapon's lit materials darker and richer), perk specials `periodic_buff`/`timeout`/`overdrive`, the pickup effect `leap`. Numbers and rules: `BALANCING.md`.
 A weapon the editor creates starts hidden with three template path mutations and a template evolution, all hidden,
 until they are filled; a new line or passive item starts available; "locked" is a quest whose `unlocks.id` names it
 (the Items tab's availability op writes the quest). The count pins in the tests are shape rules now

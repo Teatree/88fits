@@ -1852,6 +1852,15 @@ func spawn_special(def: PickupDef, at: Vector3, quiet: bool = false) -> void:
 		Audio.play("pk_chest_open", at)
 
 
+## Whether a special pickup of id `id` lies on the ground now, waiting to be taken (pass 67: Fadeaway's Timeout comes one
+## at a time, Game._tick_timeout): one not taken and not fading out of the world.
+func special_lying(id: String) -> bool:
+	for p in specials:
+		if is_instance_valid(p) and not p.taken and not p.is_queued_for_deletion() and p.def and p.def.id == id:
+			return true
+	return false
+
+
 func _check_specials(player: Node3D, delta: float = 0.0) -> void:
 	var keep: Array = []
 	var magnet: float = Run.player_sheet.get_stat("magnet", 1.5)

@@ -22,6 +22,9 @@
 ## copy of the visual's kind in those colours (tint_kind); `silver` turns the rounds, their tracer and the muzzle flash pale blue with a
 ## harder kick and a small camera kick a shot. `hip_shot {every, volleys, gap}`: every `every`th pull fires `volleys`
 ## volleys `gap` seconds apart, each the whole amount at once, and then the companion twirls a full turn.
+## Pass 67 (the basketball): `amount_mode` "bounces" throws one ball whose amount past the first is that many more hops
+## (_throw_ball); with `catch` Game hands the ball back here when it reaches his hand (on_caught: the refund, Heat, Slam
+## Dunk's dunk), a hit on his health cools Heat (on_hero_hit) and `free_throw` throws on an evade (on_hero_evaded).
 class_name ProjectileEmitter
 extends WeaponBehavior
 
@@ -65,6 +68,15 @@ var _muzzle_silver := false
 ## Diagnostics and tests (pass 48): blasts fired, hip-shot volleys fired.
 var blasts := 0
 var hip_volleys := 0
+## Pass 67 (the basketball), for tests and the arena: balls thrown, caught (on_caught), dunks (catch.slam), free throws
+## (Free Throw); the free throw's gap (seconds until the next may go), and while one is thrown its damage share and look.
+var throws := 0
+var catches := 0
+var dunks := 0
+var free_throws := 0
+var _free_t := 0.0
+var _free_mult := 1.0
+var _free_throw := false
 ## The dust ring under every live shot of a weapon with an aura (pass 53, Garry on the Tumbleweed's Dust Wake: "each
 ## Tumbleweed has a small aura around it ... the area of effect is not huge"): the visual's "Ring" node (its merged dashes)
 ## drawn once per shot by one MultiMesh, flat on the sand at `params.aura.radius`, turning RING_SPIN radians a second.
@@ -322,6 +334,8 @@ func _turn_drum() -> void:
 func _tick(_delta: float) -> void:
 	_tick_rings(_delta)
 	_tick_looks(_delta)
+	if _free_t > 0.0:
+		_free_t -= _delta
 	if not _burst.is_empty():
 		_burst_t -= _delta
 		if _burst_t <= 0.0:
@@ -489,7 +503,8 @@ func _fire() -> bool:
 	var amount: int = max(stat_int("amount", 1), 1)
 	var speed := _speed()
 	var range_m := stat("range", 9.0)
-	var damage := stat("damage", 5.0)
+	# pass 67: the ball's Heat (1 for every other weapon) and a free throw's share (1 but on Free Throw's own throw)
+	var damage := stat("damage", 5.0) * heat_mult() * _free_mult
 	var pierce := stat_int("pierce", 0)
 	var knock := stat("knockback", 0.0)
 	var prad := _prad()
@@ -582,6 +597,9 @@ func _fire() -> bool:
 			_burst.append(shot)
 		_burst_t = 0.0
 		_fire_burst_shot()
+	elif _bounces():
+		# pass 67 (the basketball): one ball, its amount past the first more hops
+		_throw_ball(dir, from, amount, damage, speed, pierce, prad, life, knock)
 	else:
 		_volley_at(dir, from, amount, damage, speed, pierce, prad, life, knock, half_spread)
 		# Both Barrels: every Nth pull fires the volley again a beat later; Fan the Hammer: extra volleys a beat apart, a
@@ -1049,3 +1067,108 @@ func flicking() -> bool:
 func _tick_looks(delta: float) -> void:
 	_tick_heat(delta)
 	_tick_flick(delta)
+
+
+# ---------------------------------------------------------------- pass 67 (lane P): the basketball
+## A free throw's ball glows white (Free Throw): a copy of the ball's kind in these colours (tint_kind).
+const FREE_TINT := {"albedo": "#FFFFFF", "emission": "#FFFFFF", "energy": 1.4}
+## Slam Dunk's dunk: its ring on the sand and its burst.
+const DUNK_COLOR := Color(1.0, 0.55, 0.12)
+
+
+## Whether `amount` counts bounces (pass 67, `params.amount_mode` "bounces": the basketball, Slam Dunk).
+func _bounces() -> bool:
+	return str(inst.params.get("amount_mode", "")) == "bounces"
+
+
+## One ball (pass 67, amount_mode "bounces"), fired through the manager along the aim with its hops seeded: the block's
+## ricochet_any.count plus every amount past the first (ProjectileManager._ricochet_on reads extra["rc_left"] before the
+## count), so a level, Multishot or a +amount buff sends it on to one more creature instead of throwing a second ball. A
+## free throw's ball is drawn white (FREE_TINT). The shot's index, -1 when the pool is full.
+func _throw_ball(dir: Vector3, from: Vector3, amount: int, damage: float, speed: float, pierce: int, prad: float, life: float, knock: float) -> int:
+	var pm: ProjectileManager = game.projectiles
+	var k: int = tint_kind(FREE_TINT) if _free_throw else _kind()
+	var j := pm.fire(k, from, dir * speed, damage, pierce, prad, life, inst, knock)
+	if j < 0:
+		return -1
+	var ra = inst.params.get("ricochet_any")
+	var count: int = int((ra as Dictionary).get("count", 0)) if ra is Dictionary else 0
+	pm.extra[j]["rc_left"] = maxi(count + amount - 1, 0)
+	throws += 1
+	return j
+
+
+## The ball's Heat on its damage (pass 67, `params.catch.heat_per`): 1 + Run.heat x heat_per; 1 for any other weapon.
+func heat_mult() -> float:
+	var ct = inst.params.get("catch") if inst else null
+	if not ct is Dictionary:
+		return 1.0
+	return 1.0 + float(Run.heat) * float((ct as Dictionary).get("heat_per", 0.0))
+
+
+## The ball is back in his hand (pass 67, `params.catch {refund, heat_per, heat_max, heat_keep, slam}`: the manager calls
+## Game.ball_caught, which hands it here with the shot's extra, `ex["hits"]` the creatures it struck on the trip). The
+## catch gives back `refund` of the weapon's cooldown (never below none left), a trip that scored adds one Heat up to
+## `heat_max`, and with `slam {at_heat, radius, damage_frac, knockback}` (Slam Dunk) a catch at that much Heat is a dunk
+## (_dunk). Heard (the weapon's "catch" sound) and seen (a small burst at his hands).
+func on_caught(ex: Dictionary) -> void:
+	var ct = inst.params.get("catch") if inst else null
+	if not ct is Dictionary:
+		return
+	var c: Dictionary = ct
+	catches += 1
+	cooldown_left = maxf(cooldown_left - float(c.get("refund", 0.0)) * stat("cooldown", 1.0), 0.0)
+	if int(ex.get("hits", 0)) >= 1:
+		Run.heat = mini(Run.heat + 1, maxi(int(c.get("heat_max", 10)), 0))
+	var at: Vector3 = (player.global_position + Vector3(0, 0.9, 0)) if player else Vector3.INF
+	sfx("catch", at)
+	if player and game.has_method("fx_burst"):
+		game.fx_burst(at, Color(1.0, 0.6, 0.2), 0.45)
+	var sl = c.get("slam")
+	if sl is Dictionary and Run.heat >= int((sl as Dictionary).get("at_heat", c.get("heat_max", 10))):
+		_dunk(sl)
+
+
+## Slam Dunk's dunk (pass 67, catch.slam): the weapon's damage x `damage_frac` (Heat does not multiply it) to everything
+## within `radius` of him, thrown out by `knockback`; a ring on the sand, a burst and a shake where the game has them.
+func _dunk(sl: Dictionary) -> void:
+	if player == null or game.get("enemies") == null:
+		return
+	var at: Vector3 = player.global_position
+	var r := float(sl.get("radius", 3.5))
+	game.enemies.damage_radius(at, r, stat("damage", 5.0) * float(sl.get("damage_frac", 1.0)), inst.def.id, float(sl.get("knockback", 0.0)))
+	dunks += 1
+	var tg = game.get("telegraphs")
+	if tg != null and tg.has_method("flash_ring"):
+		tg.flash_ring(at, r, DUNK_COLOR, 0.4)
+	var cam = game.get("camera")
+	if cam != null and cam.has_method("shake"):
+		cam.shake(0.4)
+	if game.has_method("fx_burst"):
+		game.fx_burst(at + Vector3(0, 0.4, 0), DUNK_COLOR, 1.2)
+
+
+## A hit reached his health (pass 67; Game calls this on every behaviour that has it): the ball's Heat drops to nothing
+## unless its catch.heat_keep (Slam Dunk). An evade or a hit the shield took never comes here.
+func on_hero_hit() -> void:
+	var ct = inst.params.get("catch") if inst else null
+	if ct is Dictionary and not bool((ct as Dictionary).get("heat_keep", false)):
+		Run.heat = 0
+
+
+## Free Throw (pass 67, the hero mutation, `params.free_throw {every, damage_mult}`; Game calls this on every behaviour
+## that has it when he evades a hit): a ball at once, outside the cooldown (which runs on untouched), at `damage_mult` of
+## the throw and drawn white; at most one every `every` seconds, the gap counted from a throw that went (nobody within
+## range: no throw and no gap).
+func on_hero_evaded() -> void:
+	var ft = inst.params.get("free_throw") if inst else null
+	if not ft is Dictionary or _free_t > 0.0 or player == null or player.dead:
+		return
+	_free_mult = float((ft as Dictionary).get("damage_mult", 1.0))
+	_free_throw = true
+	var went := _fire()
+	_free_throw = false
+	_free_mult = 1.0
+	if went:
+		free_throws += 1
+		_free_t = maxf(float((ft as Dictionary).get("every", 0.8)), 0.0)

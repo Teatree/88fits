@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/overdrive/overdrive_icon.png" id="1_h4gu2"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_vay46"]
+
+[resource]
+script = ExtResource("2_vay46")
+hero = "buck"
+text = "Every 5 s spent at full charge is a gear: +5% attack damage each, five gears at most. A hit that lands drops every gear."
+special = "overdrive"
+params = {
+"every": 5.0,
+"max": 0.25,
+"step": 0.05
+}
+id = "overdrive"
+display_name = "Overdrive"
+flavour = "Past full. Then past that."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_h4gu2")
+icon_file = "overdrive_icon.png"
+placeholder = {
+"color": "#FFC640",
+"glyph": "bolt"
+}

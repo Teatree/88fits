@@ -386,6 +386,7 @@ god mode off; dying in the arena puts you back on your feet at once (HERO's "Go 
   `w_ball_catch` (weapon), `pk_timeout` (pickup: a referee's whistle), `ui_buzzer` (ui: a shot-clock buzzer) play
   `placeholder/<id>.wav` from `tools/gen_sfx.py` until they are made real with `tools/ai_sfx.py` (a `PROMPTS` row, then
   `--only <id>` and `--pick`).
+- **every touch of the ball is heard.** A weapon with `catch` plays its "hit" sound (w_ball_bounce) on every creature it touches (the throw, each hop, each touch home), held to the sound map's voices; the catch plays its "catch" sound (w_ball_catch) at his hands. (The ProjectileManager plays no other weapon's hit sound but the Spear's first strike.) (pass 67)
 
 ## 13. Pass 66: the Level Editor's assets (not balance: named so they are not surprises)
 
@@ -450,7 +451,11 @@ the arena and by a wave row meanwhile. Approve only clears the review mark.
 `tools/level_editor/backups/deleted/<id>/<stamp>/`, never deleted outright; Delete of a created id is allowed only for
 ids in the local ledger `tools/dl/jobs/created.json`.
 
-## 14. Pass 67 (Polish 2): the balance rules
+## 14. Pass 67 (Polish 2)
+
+Garry's Polish 2 list (2026-10-11): darker weapon materials, the Hammer Giant at a third of its knockback, a quieter chest, a gem tune, Buck back in play and more powerful, and a new escape hero, Fadeaway, with a basketball. Every number below is in a JSON file and is his to tune; the designs are tools/dl/p67/design_spec.json.
+
+### Balance
 
 14.1 **A creature may shrug off knockback.** `knockback_resist` (creature JSON, top level, 0..1, default 0; §1) is
 the share of every shove from the hero's side the creature does not take, applied as `x (1 - resist)` on the push: a
@@ -466,9 +471,194 @@ in the Body group of the Enemies tab and of a row's overrides, and `EnemyManager
 (`_t_kbt`). In a JSON it sits right after `knockback` (never between `damage` and `knockback`: pass54_waves_test pins
 that order); `pass67_kb_test.gd` pins the maths.
 
-## 14. Pass 67: Polish 2 (not balance: named so they are not surprises)
+14.2 **Buck is back in play, the seventh hero.** Garry: "Movement Speed Hero: bring back the gazelle guy, do the speed
+thing but make it more powerful; look through the items and see if they still make sense." `buck.json`: `hidden` false,
+`availability` "available", `order` 7 (Fadeaway holds 6). No `start_weapon`: he lands with his favourite, the Tommy Gun
+(Registry.start_weapon_for's favourite fallback, pass45_runflow pins it), with its +2 amount; his perks are Ram and
+Overdrive, his hero mutation Drum Roll on the Tommy Gun. No unlock quest and price 0 (the purchase loop is parked). The
+look in play is BUC-B (run_spread back views); BUC-C stays shelved.
 
-14.1 **The 3D weapons are graded darker and richer under the map's light.** Garry: the 3D weapons "get lost in the
+14.3 **Buck's charge (`momentum`), three stats.** `momentum` {`ramp_seconds` 10, `speed_bonus` 0.8, `might_bonus` 0.6,
+`evade_bonus` 0.2, `hit_loss` 0.5}: while he is not hit the charge climbs from 0 to full over `ramp_seconds` (+10% a
+second) and adds, at full, +80% move speed, +60% attack damage and +20% evade chance (evade is an add, the other two
+muls; all three under one "Momentum NN%" source on the pause sheet, `Run._build_player_sheet`). At level 1: 3.6 x 0.85 x
+1.01 = 3.09 m/s uncharged, 5.56 m/s at full (a plain hero runs 3.6; Sprint + Roadrunner 6.1); at level 40 4.28 and 7.71
+m/s. No move-speed cap exists (StatSheet.STAT_FLOORS holds regen_delay only). The evade guards the charge itself: an
+evaded hit never touches it. A block without `evade_bonus` adds no evade (the Level Editor's default is 0).
+
+14.4 **A hit that lands knocks off `hit_loss` of the charge** (0.5: full -> half, full again 5 s later; two in a row
+leave a quarter). Only a hit that reaches his health counts (`Player.take_damage`, after the evade, the shield power-up,
+the Energy Shield and the invulnerability returns): evaded, shielded and immune hits keep the charge whole, and Ram's
+contact is no hit at all. `hit_loss` 1.0 is the old full reset and the default when the key is absent (a hero made in
+the Level Editor with the momentum special keeps the old rule unless it is set).
+
+14.5 **The charge climbs while he stands still**, as it always has (`Player._tick_momentum` does not look at movement):
+a Buck parked behind a turret still reaches full speed, damage, evade and Ram. Kept on purpose and named here so no
+later pass "fixes" it; if Garry wants it to climb only on the move, it is a one-line `moving` check in
+`Player._tick_momentum` (a new rule, to be named here then).
+
+14.6 **The charge always lands on exactly full.** The sheet follows the charge in quarter-second steps, and skipped a
+step smaller than 0.02; after a half-loss the steps could end at 0.98x and the charge then stayed there for good, under
+Ram's 0.99 and the words' FULL. The last step now always lands on 1.0 (`Player._tick_momentum`). A bug fix, not a new
+number.
+
+14.7 **Full Tilt: +1% move speed a level, beside the flat -15%.** `trait_per_level` [move_speed mul 0.01] (Run.hero_sheet
+folds 0.01 x level as "Full Tilt (Lv N)"), and the flat `trait` -15% move speed stays (pinned by pass23 and pass21): a
+first for a played hero, two speed sources on one sheet, on purpose ("Slow to start"). Uncharged he reaches a plain
+hero's pace at about level 18 (0.85 x 1.18 = 1.00; 0.98 at level 15) and runs +19% at level 40 (0.85 x 1.40). Nobody
+else grows speed a level (the Drifter lost his in pass 61). His trait in words is the rule, then his `trait_text`
+(TextGen.hero_trait appends a hero's trait_text when he has a level rule and a special: "Gain 1% move speed per level.
+Starts 15% slower. While he is not hit his charge climbs over 10 s to +80% speed, +60% attack damage and +20% evade
+chance; a hit that lands knocks off half of it.").
+
+14.8 **Overdrive (Buck's second perk): a gear of attack damage every 5 s at full charge.** `content/perks/overdrive`
+{`every` 5.0, `step` 0.05, `max` 0.25}, special "overdrive": every `every` seconds spent at full charge (>= 0.99) is a
+gear, `step` more attack damage each (a mul, its own source "Overdrive +N%"), `max / step` gears at most (5, +25%). A
+hit that lands drops every gear and the clock (and half the charge, so counting waits for full again: 5 s to refill,
+5 s more for the first gear); evaded and shielded hits keep them; a new run and a hero swap start with none. Five gears
+on full charge: x1.6 x 1.25 = x2.0 attack damage, after 35 s untouched at full speed (Calavera at level 40 with
+Crescendo full is x1.96), gone on one landed hit. Attack damage, never cooldown: see the next rule.
+
+14.9 **A cooldown shorter than the Tommy Gun's burst cuts the burst's tail.** A new pull clears the rounds still queued
+(`ProjectileEmitter._fire`, `_burst.clear()`): at level 5 with Drum Mag, his +2 and Drum Roll at full the burst is 24
+rounds 50 ms apart (1.2 s) on a 1.23 s cooldown, so any cooldown cut (the Haste line, the Mirror's Tempo form, a
+Berserk...) drops rounds from its end. Not new, named now; the reason Overdrive gives attack damage.
+
+14.10 **Ram: the spikes grow 2 a level, from the perk's `from` charge.** `content/perks/ram` {`thorns_mult` 3.0, `flat`
+12.0, `per_level` 2.0, `shove` 9.0, `from` 0.99}: at a charge of `from` or more, a creature that touches him is shoved
+(`shove`, by its knockback share, pass 67 lane K) and takes `flat` + `per_level` x his level + `thorns_mult` x his thorns
+instead of biting him (14 at level 1, 32 at level 10, 52 at level 20, 92 at level 40, plus three times any Thorns);
+`thorns_mult` alone had left it the flat 12 for a hero with no thorns (nothing against stage 3). Never a boss and never
+a charging creature (the counterplay, said on the card); the touch is no hit, so the charge stays. `per_level` and
+`from` are read from the perk (absent: 0 and 0.99), Garry's to tune.
+
+14.11 **Drum Roll is unchanged**: +1 round in the Tommy Gun's burst for every quarter of the charge (`momentum_rounds` 4,
++4 at full: the gauge's four notches); its card now says "every notch of his charge".
+
+14.12 **Fadeaway, the sixth hero in play (Footwork).** `content/characters/fadeaway`: a basketball player in a purple and gold
+88 jersey (Garry: "African American, somewhat reminiscent of Boondocks"), title order 6, he. His trait is one stat,
+Footwork: +0.5% evade chance a level (`trait_per_level` evade add 0.005; +10% at level 20, +20% at 40), under the 90%
+cap every evade roll has (Player.take_damage). His favourite is a passive, Evade, offered from level 2 when it first
+comes (`favourite_passive_bonus {type level, value 2}`, Ironwood's Brawn idiom; a hero's favourite passive is offered
+whatever its quest), so his hero mutation, Free Throw, sits on his start weapon (§13.8). His start weapon is his own
+Basketball (`start_weapon`, `hero: fadeaway`: no other hero is offered it). He came from the Level Editor's "New from
+template" (the Drifter's), so he starts with no unlock quest, `price` 0 (the purchase loop is parked: §13.1).
+
+14.13 **The Basketball's numbers.** Damage 20, cooldown 1.4 s, one ball (amount 1, pierce 0), speed 16 m/s, range 9 m,
+knockback 4, priority targeting (the strongest creature within range). Level 2: +25% damage, −10% cooldown; level 3: +1
+amount (one more bounce), +20% speed; level 4: +30% damage; level 5: +1 amount, −12% cooldown (32.5 damage, 1.11 s, 3
+hops). One hop at 85% within 7 m (`ricochet_any {count 1, frac 0.85, reach 7}`); the way home strikes 2 at 75%, x1.25
+speed; the catch gives back 35% of the cooldown and a trip that scored adds one Heat, +5% a stack, 10 at most. Drawn as
+the game's own 3D ball (`art/props/basketball.glb`, 0.22 m, its vertex colours: `basketball_visual.tscn` gives the GLB
+a material that reads them, since the import leaves them off), rolling as it flies (`roll_radius` 0.22); no ball in his
+hand between throws (his art: empty hands).
+
+14.14 **Its path and evolution.** On Fire (element, fire): +4 burn a tick, +2 s of burning (over the 1.8 s default: 3.8
+s), +30% spread (80%), the ball glowing red-orange with a short flame tracer. Full Court Press (volume): +2 amount (two
+more bounces) and the hop looks 10 m. Rebound (motion): the way home strikes every creature on its line at full damage,
+x1.6 speed. Free Throw (his hero mutation, optional, outside the path): every evaded hit throws a free ball at once, at
+most one every 0.8 s. Slam Dunk, at level 5 with all three at a chest: damage 36, cooldown 1.2 s, speed 18, range 10,
+knockback 6, 3 hops at 90% within 10 m, the way home strikes everything at full damage x1.6, the catch gives back 40%,
+his Heat is kept for the run (`heat_keep`), and at Heat 10 every catch dunks: 150% of the damage to everything within
+3.5 m, thrown out by 12. The path it keeps folds under it (Full Court Press's +2: 5 hops) and its own gold tint has the
+last word over On Fire's red (`final`).
+
+14.15 **The basketball's amount counts bounces.** A weapon with `params.amount_mode` "bounces" (the basketball, Slam
+Dunk) throws one ball a throw whatever its amount; `ricochet_any.count` plus every amount past the first are the hops
+it makes (ProjectileEmitter._throw_ball seeds them into the shot), so levels 3 and 5, Multishot, Full Court Press and
+Buzzer Beater (any +amount) each send the ball on to one more creature, never a second ball. The card says "it bounces
+to N more enemies within R m", a level's change row "Bounces 1 → 2", the Build tab's amount row "bounces N" and its
+ricochet row "each bounce 85%".
+
+14.16 **A hop takes the nearest creature the ball has not touched within `ricochet_any.reach`** (absent: 7 m, the Pea
+Cannon's and the Golden Revolver's RICOCHET_REACH; the basketball 7, Full Court Press and Slam Dunk 10), for `frac` of
+the throw's damage (85%; Slam Dunk 90%), every hop from the throw's own damage, never compounding. A ball never hops on
+its way home.
+
+14.17 **The ball always comes back (`return_on_hit`).** When its pierce is spent on a creature and it has no hop left,
+or nobody stands within reach, it turns for home there instead of ending; a hop whose creature died in the air flies
+out its short life (the hop's distance over its speed + 0.3 s, 0.4 s at least) and turns where it got to; a throw that
+meets nobody flies its range and turns (the boomerang's turn). It comes home at `back_speed_mult` of its launch speed
+(1.25; Rebound and Slam Dunk 1.6) steered at him, and is caught within 0.9 m of him. A way home has 6 s (it always
+reaches him first): no ball is lost.
+
+14.18 **The way home strikes `return_pierce` creatures at `return_damage_mult` of the throw** (the basketball 2 at 75%;
+Rebound and Slam Dunk 80 at 100%, i.e. everything on its line), then flies on through the rest to his hand touching
+nothing. A returning weapon without `return_on_hit` keeps the old rule: 80 touches home when it has no `return_pierce`
+(the Tumbleweed's Boomerang, the Dust Devil), and it ends when they are spent.
+
+14.19 **The rebound.** When the ball turns at the creature it just struck (no hop left, or nobody within reach), that
+creature is struck once more as the ball leaves (the next physics tick, wherever the step home took the ball), at the
+way home's damage, if it still stands; it is one of the way home's touches. A lone target takes the throw and the
+rebound, 20 + 15 at level 1 (with Rebound two full touches). A turn at the range's end or after a lost hop has no
+rebound. Why a rule and not chance: the touch test is centre to centre, so the ball usually stepped clear of the
+creature it turned at and the double touch the design counts on came only sometimes (ProjectileManager marks the
+creature, index and spawn serial, at the turn).
+
+14.20 **The catch gives back `catch.refund` of the cooldown** (35%; Slam Dunk 40%): that share of the weapon's cooldown
+as the sheet has it comes off what is left of the cooldown running, never below none left. Every caught ball counts (a
+free throw, a ball that hit nothing). A ball with a second pass is caught at the end of its second trip, never at the
+relaunch.
+
+14.21 **Heat.** Fadeaway's Heat (Run.heat) rises by 1 for every caught ball whose trip struck at least one creature (the
+throw, its hops, the way home and the rebound all count), up to `catch.heat_max` (10). Each Heat is `catch.heat_per`
+more damage on the throw (5%, +50% at 10; the hops and the way home are shares of the throw, so they warm with it), and
+the ball leaves glowing Heat / heat_max. A hit that reaches his health drops Heat to 0; an evade, a hit his shield
+takes or immunity keep it; Slam Dunk's `heat_keep` keeps it through anything. Heat is 0 at the start of every run (and
+after the arena's hero swap); only a weapon with `catch` raises or cools it. The Build tab's estimate uses the Heat he
+has at that moment.
+
+14.22 **Free Throw: a hit he evades throws a ball at once** (`free_throw {every, damage_mult}`, the hero mutation),
+outside the cooldown, which runs on untouched; the ball is the throw's damage x `damage_mult` (1) with his Heat on it,
+drawn white. Then no other for `every` seconds (0.8), counted from a ball that went: with nobody within range no ball
+goes and no gap starts.
+
+14.23 **Slam Dunk's dunk** (`catch.slam {at_heat, radius, damage_frac, knockback}`): at Heat `at_heat` (10, full) or
+more every catch, scored or not, is a dunk: the weapon's damage x `damage_frac` (36 x 1.5 = 54; Heat does not multiply
+it) to everything within `radius` (3.5 m) of him, thrown out by `knockback` (12), with a ring on the sand and a shake.
+With heat_keep his Heat never falls, so once it is full every catch dunks.
+
+14.24 **The estimate of a bounce weapon** (WeaponInstance._ball_hits, the Build tab's dps and the recorder's): a throw is
+1 + (count + amount − 1) x frac + min(return_pierce, 2) x return_damage_mult throws' worth (two touches home at most: a
+crowd seldom lines up behind a ball; the rebound is one of them), times 1 + Heat x heat_per, over the cooldown as the
+sheet says it (the catch's refund is left out). The basketball at level 1: 67 a throw, 48 dps at no Heat; level 5 148.
+
+14.25 **Timeout: a pickup beside him on a clock, one at a time.** The perk (`special` "timeout", `params {every 20,
+first 10, side 3, pickup "timeout"}`) puts the Timeout pickup down `side` metres to his left or right, square to the way
+he faces (ahead he would take it by accident while running, behind lies the crowd chasing him), on the side with fewer
+creatures within 2.5 m of the spot (a toss when even), kept inside the wall, on the ground. The first lands `first`
+seconds after the perk is held, then `every` seconds after the last one was taken or faded: one lies at a time and the
+clock waits while it does, so it can be kept for the Elite or the boss. It lies 30 s (`lifetime`; the last 4 s blink).
+The drop is quiet (the pickup's `quiet`: no chest fanfare), a faint purple ring where it lands. The clock runs on game
+time: not while paused, not while he is down (Game._tick_perks).
+
+14.26 **The leap (pickup effect "leap").** Stepping on a Timeout throws him clear: towards the emptiest of 12 ways
+(`directions`; Thruster Burst's scan: the way whose point 5 m out has the fewest creatures within 2.5 m), and of
+equally empty ways the one most away from the creatures within `slow_radius` of him, with none there the way he faces
+(Thruster Burst keeps the first of equal ways); Thruster Burst's push 28 and lift 5 (his own move: the Invincibility
+bubble does not stop it, a knock-immune Shield neither); untouchable 0.8 s (`invuln`, the longer of it and what he
+had); the creatures within 3.5 m of where he stood move 50% slower for 2 s (`slow`, `slow_seconds`, `slow_radius`; a
+hero's perk, so Ducktape does not stretch it), tinted Curare's dark green meanwhile. A whistle (`pk_timeout`) and the
+toast TIMEOUT. It counts as a power-up taken (not `small`: the pickups quest counter).
+
+14.27 **No map rolls the Timeout.** A pickup drops from kills only when the map's `pickups.roster` names it; the Timeout
+is in none (its `weight` 0 is the cake slice's and the coin bag's convention): only the perk, or the arena's DROPS tab,
+puts one down.
+
+14.28 **Periodic buffs: Buzzer Beater.** A perk whose `special` is "periodic_buff" runs its own clock: `first` seconds
+after it is held, then every `every`, its `buff` effects (target player) for `seconds` x buff_duration, as a timed buff
+under the perk's name (the pause sheet's "Buzzer Beater"); it ends without a "wore off" toast (its own toast says how
+long: "BUZZER BEATER: 5 s"), with the buzzer (`ui_buzzer`) and a gold flash. Buzzer Beater: 12 s, then every 24 s (the
+shot clock), 5 s of cooldown −35% and +2 amount on every weapon (the ball: two more bounces). Several such perks each
+keep their own clock; any later "every N s, this buff" perk is content only.
+
+14.29 **The arena's hero swap starts his clocks over.** Swapping heroes in the arena zeroes Heat and the Timeout's and
+the periodic buffs' clocks (Game.arena_swap_hero), as it does Buck's momentum and Calavera's Crescendo; a perk handed
+back through ITEMS starts at its `first` again.
+
+### Not balance (named so they are not surprises)
+
+14.30 **The 3D weapons are graded darker and richer under the map's light.** Garry: the 3D weapons "get lost in the
 background". Every lit material of a weapon's visual (a shaded, opaque, untextured StandardMaterial3D: held guns,
 companions, blades, hammers, turrets, the Spear's model) is drawn in a copy graded in HSV by the map's top-level
 `weapon_grade` block (`WeaponBehavior.grade_materials`, run before the pass-53 glow and the merge): value x `value` (Red
@@ -485,3 +675,28 @@ silver rounds, the rust blades, the default shot material). A weapon's `params.g
 `final` too) wins over the map's key by key; `{"value": 1, "saturation": 1}` leaves a weapon as its file has it; a
 missing key takes `WeaponBehavior.GRADE` {0.78, 1.3}. The title's companion and the spawn beam's warm-up read the same
 block. Not a Settings switch: the numbers are content (the map JSON, kept by the Level Editor's Save).
+
+14.31 **The hero's gauge under the slots** (ui/HUD.gd, `Run.hero_gauge()` -> {label, value 0..1, notches, color} or {}):
+Buck's MOMENTUM (four notches) and Fadeaway's HEAT (Run.heat over the held ball's `catch.heat_max`, a notch a point)
+show as a label and a thin WBar 14 px under the slots across the slots' row; every other hero has none and the column
+under the slots (power-ups, the boss's bar, the words, the toasts) sits where it did; with a gauge it hangs under it.
+The fill is paper (Heat: ember) and turns gold over the last quarter; a drop (a hit that landed) shows at once with a
+rock-red flash and a 0.2 s shake; a climb eases in at 0.8 a second (the charge reaches the sheet in quarter-second steps);
+a gold outline rings it while Overdrive holds a gear. The words under the slots begin with the hero's: "MOMENTUM 72%",
+"MOMENTUM FULL", "RAM" (while Ram is live), "OVERDRIVE +15%", "HEAT +20%" (Run.heat x the ball's `catch.heat_per`).
+The dust and streak trail behind him stays the in-world sign.
+
+14.32 **The title plaque shows Buck's level step** ("+1%" over "SPEED / LV") and his flavour line ("Slow to start.
+Impossible to stop."), as for every hero with a level rule; the -15% start and the charge are in the hero sheet's rule
+(the CV), the Collection and the arena's HERO note. The Level Editor's trait preview mirrors TextGen (the rule, then his
+words) and neither offers "Set trait_text from the rule" nor warns about the difference for a hero with a special.
+
+14.33 **Fadeaway's art.** FAD-B (the Level Editor's hero_pose5: five views on the Mixamo run, the back views on run_spread) is
+the look in play and approved. Its back-view flinch was painted again on its own (the first faced the viewer: the
+flinch prompt's "grimace" fought "seen from behind"); the new one is seen from behind with his hands on his back
+(gen_art's flinch wording asks for "one hand raised towards the chest" in every view). The badge is the sly
+closed-mouth half-smile (`badge.still` fadeaway_portrait_c1), the title cut-out holds the ball at his hip
+(`title_pose`, `title_holds`, `title_extra_ref` tools/dl/basketball_ref.png), the item icons were painted and picked by
+eye (the ball's from the 3D render). The perk Timeout and the pickup Timeout share an id across two content types (the
+design's names; `stride` is the passive-and-talent precedent): the game keys each by its type, the Level Editor's create
+flow would refuse the second, and both wear the same whistle icon.

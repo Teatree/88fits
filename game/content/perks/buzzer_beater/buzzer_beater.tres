@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/buzzer_beater/buzzer_beater_icon.png" id="1_oto25"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_h2414"]
+
+[resource]
+script = ExtResource("2_h2414")
+hero = "fadeaway"
+text = "Every 24 s the buzzer sounds: for 5 s every weapon's cooldown is 35% shorter and it fires 2 more (the ball bounces 2 more times)."
+special = "periodic_buff"
+params = {
+"buff": [{
+"op": "mul",
+"stat": "cooldown",
+"target": "player",
+"value": -0.35
+}, {
+"op": "add",
+"stat": "amount",
+"target": "player",
+"value": 2.0
+}],
+"every": 24.0,
+"first": 12.0,
+"seconds": 5.0
+}
+id = "buzzer_beater"
+display_name = "Buzzer Beater"
+flavour = "Three. Two. One."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_oto25")
+icon_file = "buzzer_beater_icon.png"
+placeholder = {
+"color": "#E83A2A",
+"glyph": "clock"
+}

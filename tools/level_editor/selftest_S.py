@@ -805,14 +805,21 @@ def routes_checks(check, server):
         check(st == 200 and [m["id"] for m in rv["mutations"] if not m["hidden"]] == ["silver_bullet", "hip_shot", "trick_shot"] and rv["evolution"]["id"] == "golden_revolver"
               and rv["path"] == ["element", "volume", "motion"] and rv["availability"] == "available" and rv["hero"] == "drifter",
               "/api/items groups the Revolver with its mutations (kind order) and the Golden Revolver")
-        check(body["band"]["locked"] == 23 and body["band"]["base"] == 67 and 0.33 <= body["band"]["share"] <= 0.56, "the band is 23 of 67 as pass44_test counts it: %s" % body["band"])
+        # pass 67: Fadeaway's basketball (a hero's own weapon, no quest) joins the base: 23 of 68
+        check(body["band"]["locked"] == 23 and body["band"]["base"] == 68 and 0.33 <= body["band"]["share"] <= 0.56, "the band is 23 of 68 as pass44_test counts it: %s" % body["band"])
         check(len(body["lines"]) == 15 and all(l["evolved"] for l in body["lines"]) and len(body["passives"]) == 31 and len(body["quests"]) == 24, "15 lines with evolved forms, 31 passive items, 24 quests")
         check(all(m["availability"] in ("hidden", "available") for w in body["weapons"] for m in w["mutations"]), "mutations are hidden or available, never locked")
         st, body, h = get("/api/heroes")
         sol = [x for x in body if x["id"] == "solenne"][0]
-        check(st == 200 and len(body) == 8 and [x["id"] for x in body[:5]] == ["drifter", "astro", "calavera", "ironwood", "solenne"] and [l["code"] for l in sol["looks"]] == ["SOL-A", "SOL-B", "SOL-C", "SOL-D", "SOL-E"]
-              and sol["title"] == "/art/wanted/hero_solenne.png" and sol["hero_mutations"] == ["sun_cocktail"] and sol["weapons"] == ["sun_scepter"] and body[5]["availability"] == "hidden",
-              "/api/heroes: the five in play first by order, Solenne's five looks, title, her mutation and weapon, the hidden three after")
+        # pass 67: nine heroes (Fadeaway created in the editor); the ones in play first by order (the five, then Fadeaway and
+        # Buck once each is whole and flipped), every hidden one after them, Dad and Mira among those
+        in_play = [x["availability"] == "available" for x in body]
+        # a shape rule, not a count: Garry creates heroes in the editor while passes run (Mamy appeared mid-pass 67)
+        check(st == 200 and len(body) >= 9 and {"fadeaway", "buck"} <= {x["id"] for x in body if x["availability"] == "available"}
+              and [x["id"] for x in body[:5]] == ["drifter", "astro", "calavera", "ironwood", "solenne"] and [l["code"] for l in sol["looks"]] == ["SOL-A", "SOL-B", "SOL-C", "SOL-D", "SOL-E"]
+              and sol["title"] == "/art/wanted/hero_solenne.png" and sol["hero_mutations"] == ["sun_cocktail"] and sol["weapons"] == ["sun_scepter"]
+              and in_play == sorted(in_play, reverse=True) and {"dad", "mira"} <= {x["id"] for x in body if x["availability"] == "hidden"},
+              "/api/heroes: the heroes in play first by order, Solenne's five looks, title, her mutation and weapon, the hidden ones after")
         check(sol["looks"][1]["frame_px"] == 256 and sol["looks"][1]["imported"] in (True, False) and sol["looks"][1]["sprite_mtime"], "a hero look record carries frame_px, imported and sprite_mtime")
         st, body, h = get("/api/vocab")
         check(st == 200 and body["ok"] and "brains" in body and body["note"] == vocab.NOTE and len(body["combos_seen"]) >= 5, "/api/vocab")

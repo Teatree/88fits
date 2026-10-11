@@ -1,0 +1,47 @@
+{
+  "id": "on_fire",
+  "name": "On Fire",
+  "flavour": "He's heating up. He's on fire.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "basketball",
+  "kind": "element",
+  "element": "fire",
+  "hero": "",
+  "text": "He's on fire: everything the ball touches catches fire.",
+  "vfx": "the ball glows red-orange with a short flame tracer; burning creatures as every fire weapon's",
+  "effects": [
+    {
+      "stat": "fire_damage",
+      "op": "add",
+      "value": 4
+    },
+    {
+      "stat": "fire_duration",
+      "op": "add",
+      "value": 2.0
+    },
+    {
+      "stat": "fire_spread",
+      "op": "add",
+      "value": 0.3
+    }
+  ],
+  "params": {
+    "tint": {
+      "albedo": "#FF6A1A",
+      "emission": "#FF3A00",
+      "energy": 1.6
+    },
+    "tracer": true,
+    "tracer_color": "#FF8A2A",
+    "tracer_size": 0.7,
+    "tracer_life": 0.3,
+    "tracer_step": 0.03
+  },
+  "art_prompt": "a basketball wreathed in orange flames, its seams glowing",
+  "placeholder": {
+    "color": "#FF6A1A",
+    "glyph": "star"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "id": "timeout",
+  "name": "Timeout",
+  "flavour": "Stop the clock.",
+  "effect": "leap",
+  "value": 0,
+  "duration": 0,
+  "lifetime": 30,
+  "color": "#B57BFF",
+  "weight": 0,
+  "params": {
+    "push": 28.0,
+    "lift": 5.0,
+    "invuln": 0.8,
+    "slow": 0.5,
+    "slow_seconds": 2.0,
+    "slow_radius": 3.5,
+    "directions": 12,
+    "quiet": true
+  },
+  "placeholder": {
+    "color": "#B57BFF",
+    "glyph": "bolt"
+  },
+  "art_prompt": "a chrome referee's whistle on a purple lanyard lying on the sand, a small white burst behind it"
+}

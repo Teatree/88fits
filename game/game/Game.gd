@@ -120,7 +120,9 @@ func _ready() -> void:
 	# Evade and the Energy Shield say so where the hero stands
 	player.evaded.connect(func():
 		fx.burst(player.global_position + Vector3(0, 0.9, 0), Color(0.8, 0.9, 1.0), 0.8)
-		telegraphs.flash_ring(player.global_position, 0.9, Color(0.85, 0.95, 1.0), 0.25))
+		telegraphs.flash_ring(player.global_position, 0.9, Color(0.85, 0.95, 1.0), 0.25)
+		# pass 67: the weapons that answer an evade (Fadeaway's Free Throw, ProjectileEmitter.on_hero_evaded) are told
+		_tell_behaviors("on_hero_evaded"))
 	player.shield_hit.connect(func(broke: bool):
 		# Skedaddle runs on a hit that lands on the Energy Shield too (pass 48); Hot Streak and Loose Change are his health's
 		_skedaddle()
@@ -1250,6 +1252,26 @@ func _make_behavior(name: String) -> WeaponBehavior:
 	return null
 
 
+## The basketball is back in his hand (pass 67): ProjectileManager calls this when a shot of a weapon with
+## `params.catch` reaches him on its way home, with the shot's extra (its "hits" this trip). The weapon's behaviour
+## takes the catch (ProjectileEmitter.on_caught: the cooldown refund, Heat, Slam Dunk's dunk); a ball thrown before its
+## weapon evolved finds no behaviour and simply ends.
+func ball_caught(w: WeaponInstance, ex: Dictionary) -> void:
+	if w == null or w.def == null:
+		return
+	var b = _behaviors.get(w.def.id)
+	if b != null and is_instance_valid(b) and b.has_method("on_caught"):
+		b.on_caught(ex)
+
+
+## Tells every held weapon's behaviour that has `method` (pass 67: on_hero_hit when a hit reaches his health,
+## on_hero_evaded when he evades one: the basketball's Heat and Free Throw); the others never need to know.
+func _tell_behaviors(method: String) -> void:
+	for b in _behaviors.values():
+		if is_instance_valid(b) and b.has_method(method):
+			b.call(method)
+
+
 func _on_evolved(id: String) -> void:
 	var def := Registry.weapon(id)
 	Audio.play("w_evo_reveal")
@@ -1321,7 +1343,7 @@ var _bounty_kills := 0
 
 
 ## The perks that run every frame: the Drifter's Trail Dust and High Noon, Astro's Supply Drop and Thruster Burst
-## (pass 34), each on its own clock.
+## (pass 34), Fadeaway's Timeout and Buzzer Beater (pass 67), each on its own clock.
 func _tick_perks(delta: float) -> void:
 	if player == null or player.dead:
 		return
@@ -1333,6 +1355,10 @@ func _tick_perks(delta: float) -> void:
 		_tick_high_noon(delta)
 	if Run.has_perk("serenade"):
 		_tick_serenade(delta)
+	# pass 67, Fadeaway: the Timeout that lands beside him on its clock, and every "periodic_buff" perk (Buzzer Beater)
+	if Run.has_perk("timeout"):
+		_tick_timeout(delta)
+	_tick_periodic_buffs(delta)
 	if not Run.has_perk("trail_dust"):
 		return
 	if player.velocity.length() < 0.8:
@@ -1445,15 +1471,7 @@ func _tick_thrusters(delta: float) -> void:
 	var here: Vector3 = player.global_position
 	if enemies.indices_in_radius(here, Run.perk_param("thruster_burst", "reach", 2.6)).size() < int(Run.perk_param("thruster_burst", "crowd", 6.0)):
 		return
-	var best := Vector3.FORWARD
-	var best_n := 1 << 30
-	for k in range(12):
-		var ang := TAU * float(k) / 12.0
-		var dir := Vector3(cos(ang), 0.0, sin(ang))
-		var n: int = enemies.indices_in_radius(here + dir * 5.0, 2.5).size()
-		if n < best_n:
-			best_n = n
-			best = dir
+	var best := _emptiest_dir(here, 12)
 	# her own thrusters, not a hostile throw: they fire her clear under the Invincibility bubble too (pass 60, lane WP)
 	player.blast(best * Run.perk_param("thruster_burst", "push", 28.0), Run.perk_param("thruster_burst", "lift", 5.0), false)
 	player.invuln = maxf(player.invuln, Run.perk_param("thruster_burst", "invuln", 0.6))
@@ -1485,6 +1503,112 @@ func _tick_high_noon(delta: float) -> void:
 	hud.flash(Color(1.0, 0.78, 0.3, 0.32), _noon_left)
 	hud.toast("HIGH NOON", Color(1.0, 0.82, 0.35))
 	Audio.play("w_evo_reveal", player.global_position)
+
+
+## The emptiest of `n` directions round `here` (Thruster Burst's scan, pass 67 factored out for the Timeout's leap): the
+## one whose point 5 m out has the fewest creatures within 2.5 m. On a tie the one nearest `prefer` wins (the leap passes
+## away from the creatures it leaves, or with none near the way he faces), else the first of them (Thruster Burst).
+func _emptiest_dir(here: Vector3, n: int = 12, prefer: Vector3 = Vector3.ZERO) -> Vector3:
+	var best := Vector3.FORWARD
+	var best_n := 1 << 30
+	var best_along := -INF
+	var count := maxi(n, 1)
+	for k in range(count):
+		var ang := TAU * float(k) / float(count)
+		var dir := Vector3(cos(ang), 0.0, sin(ang))
+		var c: int = enemies.indices_in_radius(here + dir * 5.0, 2.5).size()
+		var along := dir.dot(prefer)
+		if c < best_n or (c == best_n and along > best_along):
+			best_n = c
+			best = dir
+			best_along = along
+	return best
+
+
+## Timeout (pass 67, Fadeaway's perk): a Timeout pickup (the perk's `pickup`) lands `side` metres beside him, first after
+## `first` seconds, then `every` seconds after the last one was taken or faded: one lies at a time and the clock waits
+## while it does, so it can be kept for the Elite or the boss. Stepping on it is the leap (apply_pickup's "leap"). The
+## drop is quiet (the pickup's `quiet`: no fanfare, a faint ring in its colour where it lands).
+var _timeout_t := -1.0
+
+
+func _tick_timeout(delta: float) -> void:
+	var perk: PerkDef = Registry.perk("timeout")
+	var pid: String = str(perk.params.get("pickup", "timeout")) if perk else "timeout"
+	if pickups.special_lying(pid):
+		_timeout_t = Run.perk_param("timeout", "every", 20.0)
+		return
+	if _timeout_t < 0.0:
+		_timeout_t = Run.perk_param("timeout", "first", 10.0)
+	_timeout_t -= delta
+	if _timeout_t > 0.0:
+		return
+	_timeout_t = Run.perk_param("timeout", "every", 20.0)
+	var pd: PickupDef = Registry.pickup(pid)
+	if pd == null or player == null:
+		return
+	var at := timeout_spot(player.global_position, player.forward(), Run.perk_param("timeout", "side", 3.0))
+	pickups.spawn_special(pd, at, bool(pd.params.get("quiet", true)))
+	telegraphs.ring(at, 0.9, 0.6, pd.color)
+
+
+## Where a Timeout lands (pass 67): `side` metres to his left or right, square to the way he faces (ahead he would take
+## it by accident while running, behind lies the crowd chasing him), on the side with fewer creatures within 2.5 m of
+## the spot (a toss when even), inside the wall, on the ground.
+func timeout_spot(here: Vector3, facing_dir: Vector3, side: float) -> Vector3:
+	var f := Vector3(facing_dir.x, 0.0, facing_dir.z)
+	if f.length_squared() < 0.0001:
+		f = Vector3.FORWARD
+	var s := Vector3(-f.z, 0.0, f.x).normalized() * side
+	var a := here + s
+	var b := here - s
+	var na: int = enemies.indices_in_radius(a, 2.5).size()
+	var nb: int = enemies.indices_in_radius(b, 2.5).size()
+	var at: Vector3 = a if (na < nb or (na == nb and randf() < 0.5)) else b
+	if map:
+		at = map.clamp_to_arena(at)
+		at.y = map.height_at(at.x, at.z)
+	return at
+
+
+## Periodic buffs (pass 67): every held perk whose special is "periodic_buff" (Fadeaway's Buzzer Beater) runs its own
+## clock, `first` seconds, then every `every`: its `buff` effects for `seconds` (Run.add_timed_effects under the perk's
+## id and name, so the pause sheet lists them by it; quiet: its toast says how long, no "wore off" after), a toast, the
+## `ui_buzzer` sound and a gold flash. Any later "every N s, this buff" perk is content only.
+var _periodic_t: Dictionary = {}
+
+
+func _tick_periodic_buffs(delta: float) -> void:
+	for pk in Run.perks:
+		var def: PerkDef = Registry.perk(str(pk))
+		if def == null or def.special != "periodic_buff":
+			continue
+		var t: float = float(_periodic_t.get(def.id, float(def.params.get("first", def.params.get("every", 30.0))))) - delta
+		if t > 0.0:
+			_periodic_t[def.id] = t
+			continue
+		_periodic_t[def.id] = float(def.params.get("every", 30.0))
+		_periodic_buff(def)
+
+
+func _periodic_buff(def: PerkDef) -> void:
+	var effects: Array = []
+	var raw = def.params.get("buff", [])
+	if raw is Array:
+		for d in raw:
+			if d is Dictionary:
+				effects.append(Effect.from_dict(d, "player"))
+	if effects.is_empty():
+		return
+	var secs := float(def.params.get("seconds", 5.0))
+	Run.add_timed_effects(def.id, def.display_name, effects, secs, true)
+	var gold := Color(1.0, 0.82, 0.35)
+	if hud:
+		hud.toast("%s: %d s" % [def.display_name.to_upper(), int(round(Run.buff_seconds(secs)))], gold)
+		hud.flash(Color(1.0, 0.78, 0.3, 0.25), 0.3)
+	if player and telegraphs:
+		telegraphs.flash_ring(player.global_position, 2.4, gold, 0.4)
+	Audio.play("ui_buzzer")
 
 
 ## Bounty Hunter: a kill counter posts a bounty on a creature near him; killing it pays (on_creature_died_index).
@@ -1764,6 +1888,9 @@ func _skedaddle() -> void:
 func _on_player_hit() -> void:
 	# Crescendo (pass 43): a hit ends the song (pass 49: Hot Streak's kills are kept whatever hits him)
 	Run.reset_crescendo()
+	# pass 67: the weapons that answer a hit on his health (the basketball's Heat cools, ProjectileEmitter.on_hero_hit);
+	# player.hit is only a hit that reached it, so an evade or a shield keeps the Heat
+	_tell_behaviors("on_hero_hit")
 	# Skedaddle (pass 48, a passive item): a hit sends him running
 	_skedaddle()
 	# Loose Change (pass 48, a passive item): a hit may knock a coin out of him (PickupManager.toss_coin)
@@ -1978,7 +2105,8 @@ func _roll_dice(def: StructureDef, at: Vector3) -> void:
 			hud.toast(pick, def.color)
 
 
-## The hero walked into a pickup (content/pickups): heal, timed buff, shield or gem vacuum.
+## The hero walked into a pickup (content/pickups): heal, timed buff, shield or gem vacuum (pass 67: or the Timeout's
+## leap).
 func apply_pickup(def: PickupDef, at: Vector3) -> void:
 	if RunAnalytics.I: RunAnalytics.I.event("pickup", def.id, 0, {"small": bool(def.params.get("small", false)), "effect": def.effect_kind})
 	# a power-up taken (pass 44: an unlock counts them); the small things underfoot (cake slices, coin bags) are not power-ups
@@ -2022,6 +2150,32 @@ func apply_pickup(def: PickupDef, at: Vector3) -> void:
 			var np: Dictionary = def.params
 			nuke_blast(player.global_position, float(np.get("radius", 16.0)), def.value, float(np.get("knockback", 14.0)))
 			hud.toast("NUKE", def.color)
+		"leap":
+			# pass 67, Fadeaway's Timeout: he leaps clear towards the emptiest ground (Thruster Burst's scan, `directions`
+			# of them, and its push and lift; his own move, so it carries him under the Invincibility bubble too; of
+			# equally empty ways the one most away from the creatures within `slow_radius`, with none there the way he
+			# faces), untouchable `invuln` seconds, and those creatures are slowed by `slow` for `slow_seconds`, tinted
+			# Curare's dark green meanwhile (a hero's perk: Ducktape does not stretch it)
+			var lp: Dictionary = def.params
+			var here: Vector3 = player.global_position
+			var sr := float(lp.get("slow_radius", 3.5))
+			var ss := float(lp.get("slow_seconds", 2.0))
+			var ring := enemies.indices_in_radius(here, sr)
+			var away := Vector3.ZERO
+			for e in ring:
+				away += Vector3(here.x - enemies.pos[e].x, 0.0, here.z - enemies.pos[e].z)
+			var prefer: Vector3 = away.normalized() if away.length_squared() > 0.0001 else player.forward()
+			var dir := _emptiest_dir(here, int(lp.get("directions", 12)), prefer)
+			player.blast(dir * float(lp.get("push", 28.0)), float(lp.get("lift", 5.0)), false)
+			player.invuln = maxf(player.invuln, float(lp.get("invuln", 0.8)))
+			enemies.slow_radius(here, sr, float(lp.get("slow", 0.5)), ss, false)
+			for e in ring:
+				enemies.set_status_tint(e, ProjectileManager.CURARE_TINT, ss)
+			fx.speed_burst(here, Fx.SPRINT_BLUE)
+			telegraphs.flash_ring(here, sr, def.color, 0.4)
+			camera.shake(0.5)
+			Audio.play("pk_timeout", here)
+			hud.toast(def.display_name.to_upper(), def.color)
 		"pollen":
 			# a Pollen flower (pass 48, FlowerField): one dropped as a pickup (the arena's DROPS tab) gives every held Pollen
 			# weapon its buff, as the field's own flowers do (FlowerField._pick)
@@ -2278,7 +2432,7 @@ func arena_respawn() -> void:
 ## between heroes on the fly"; ArenaPanel's HERO tab): hero `id` takes over where he stands. His trait replaces the old
 ## one on the sheet (max health follows: a rise brings the same health with it, a fall keeps the share), the old hero's perks leave with him and the new one's are
 ## not handed over (ITEMS hands perks out), nor is his start weapon (ITEMS again); the weapons, passives and mutations
-## held stay, god mode stays as it was, Buck's momentum and Calavera's Crescendo start from nothing. He wears the look
+## held stay, god mode stays as it was, Buck's momentum, Calavera's Crescendo and Fadeaway's Heat start from nothing. He wears the look
 ## kept for him (Save.hero_look). Run.character stays the hero's own def: only the Player's strip wears a look. Returns
 ## whether the hero changed (false for the one playing, an unknown id, or outside the arena).
 func arena_swap_hero(id: String) -> bool:
@@ -2299,6 +2453,10 @@ func arena_swap_hero(id: String) -> bool:
 	Run.momentum = 0.0
 	Run.momentum_def = def.momentum
 	Run.crescendo = 0
+	# pass 67: Fadeaway's Heat and his perks' clocks start from nothing too (the perks come back through ITEMS)
+	Run.heat = 0
+	_timeout_t = -1.0
+	_periodic_t.clear()
 	player.setup(def)
 	Run.rebuild_sheets()
 	# build_changed brings refresh_stats in a live game (_sync_weapons); once more here does no harm, and a bare one needs it

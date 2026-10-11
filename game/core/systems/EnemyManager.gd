@@ -2766,12 +2766,12 @@ func _physics_process(delta: float) -> void:
 					if away2.length_squared() > 0.01:
 						player.shove(away2.normalized() * kn)
 			# Ram: at full momentum Buck is the wall; the creature is shoved (a resisting one by its share, pass 67) and
-			# spiked, he is not touched
-			if Run.has_perk("ram") and Run.momentum >= 0.99 and state[i] != STATE_CHARGE and i != boss_index:
+			# spiked, he is not touched. Pass 67: from the perk's `from` charge (0.99), the spikes `per_level` more a level
+			if Run.has_perk("ram") and Run.momentum >= Run.perk_param("ram", "from", 0.99) and state[i] != STATE_CHARGE and i != boss_index:
 				var away := pos[i] - ppos
 				away.y = 0.0
 				kb[i] += (away.normalized() if away.length_squared() > 0.01 else Vector3.FORWARD) * Run.perk_param("ram", "shove", 9.0) * _t_kbt[ti]
-				var th: float = Run.player_sheet.get_stat("thorns", 0.0) * Run.perk_param("ram", "thorns_mult", 3.0) + Run.perk_param("ram", "flat", 12.0)
+				var th: float = Run.player_sheet.get_stat("thorns", 0.0) * Run.perk_param("ram", "thorns_mult", 3.0) + Run.perk_param("ram", "flat", 12.0) + Run.perk_param("ram", "per_level", 0.0) * float(Run.level)
 				damage(i, th, "", away, 0.0)
 				if game:
 					game.fx_burst(pos[i] + Vector3(0, size[i] * 0.5, 0), Color(0.95, 0.75, 0.4), 1.0)

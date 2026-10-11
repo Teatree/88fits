@@ -921,7 +921,7 @@ const Assets = (() => {
     const wrap = el('div', { class: 'tpreview' },
       el('div', { class: 'tsentence', text: sentence || '(no rule: the hidden heroes read their own trait_text)' }),
       at20 ? el('div', { class: 'muted small', text: at20 }) : null,
-      Array.isArray(doc.data.trait_per_level) && doc.data.trait_per_level.length ? el('button', { class: 'btn small' + (same ? ' ghost' : ' primary'), type: 'button', text: same ? 'trait_text matches the rule' : 'Set trait_text from the rule', disabled: same, onclick: () => apply(doc, () => { doc.data.trait_text = sentence; }, 'editor') }) : null);
+      Array.isArray(doc.data.trait_per_level) && doc.data.trait_per_level.length && !M.heroOwnWords(doc.data) ? el('button', { class: 'btn small' + (same ? ' ghost' : ' primary'), type: 'button', text: same ? 'trait_text matches the rule' : 'Set trait_text from the rule', disabled: same, onclick: () => apply(doc, () => { doc.data.trait_text = sentence; }, 'editor') }) : null);
     return wrap;
   }
 

@@ -2,12 +2,21 @@
   "id": "buck",
   "name": "Buck",
   "flavour": "Slow to start. Impossible to stop.",
+  "order": 7,
   "pronoun": "he",
   "trait": [
     {
       "stat": "move_speed",
       "op": "mul",
       "value": -0.15,
+      "target": "player"
+    }
+  ],
+  "trait_per_level": [
+    {
+      "stat": "move_speed",
+      "op": "mul",
+      "value": 0.01,
       "target": "player"
     }
   ],
@@ -26,9 +35,11 @@
     "momentum"
   ],
   "momentum": {
-    "ramp_seconds": 12.0,
-    "speed_bonus": 0.6,
-    "might_bonus": 0.5
+    "ramp_seconds": 10.0,
+    "speed_bonus": 0.8,
+    "might_bonus": 0.6,
+    "evade_bonus": 0.2,
+    "hit_loss": 0.5
   },
   "unlock_quest": "",
   "frame_px": 256,
@@ -70,8 +81,95 @@
     "hit": 12,
     "die": 8
   },
-  "trait_name": "Momentum",
-  "trait_text": "Starts 15% slower. While he is not hit, his speed climbs to +60% and his attack damage to +50% over 12 s; one hit resets it. Dust and streaks behind him show the charge.",
+  "trait_name": "Full Tilt",
+  "trait_text": "Starts 15% slower. While he is not hit his charge climbs over 10 s to +80% speed, +60% attack damage and +20% evade chance; a hit that lands knocks off half of it.",
   "back_hint": "He faces away from the viewer: only the back of his head, the back of his antlers and ears, the back of the t-shirt and the heels are visible, no eyes, no muzzle, no face at all. Both arms hang straight down along his sides, relaxed.",
-  "hidden": true
+  "hidden": false,
+  "availability": "available",
+  "variant_base": "BUC-A",
+  "variant": "BUC-B",
+  "variants": {
+    "BUC-A": {
+      "note": "the top-level strip, before the Level Editor's looks"
+    },
+    "BUC-B": {
+      "recipe": {
+        "pose_drivers": {
+          "back": "run_spread",
+          "bd": "run_spread"
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        }
+      },
+      "note": "the back and back-diagonal runs on run_spread (the wrists pushed out past the torso, as Calavera and Ironwood)",
+      "sprite": "buck_sprite_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
+    },
+    "BUC-C": {
+      "recipe": {
+        "pose_drivers": {
+          "back": "run_occ",
+          "bd": "run_occ"
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        }
+      },
+      "note": "the back and back-diagonal runs on run_occ: the hands bunch at the chest again (kept for comparison, shelved)",
+      "sprite": "buck_sprite_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "shelved": true
+    }
+  }
 }

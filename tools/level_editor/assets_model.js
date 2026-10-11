@@ -313,7 +313,17 @@ const AssetsModel = (() => {
     let s = 'Gain ' + parts.join(' and ') + ' per level';
     if (num(d.level_heal, 0) > 0) s += `, and heal ${plain(num(d.level_heal, 0) * 100)}% of max HP on every level-up`;
     if (notes.length) s += ' (' + notes.join('; ') + ')';
-    return s + '.';
+    s += '.';
+    // pass 67 (TextGen.hero_trait): a hero with a special of his own (Buck's charge) says it after the rule, in his trait_text
+    if (heroOwnWords(d)) s += ' ' + String(d.trait_text);
+    return s;
+  }
+
+  /** Whether the hero's trait_text is his own words, said after the rule (pass 67): he has a special and the words; the
+   *  "Set from the rule" button and the trait_text warning leave him alone. */
+  function heroOwnWords(doc) {
+    const d = doc || {};
+    return !!d.trait_text && Array.isArray(d.specials) && d.specials.length > 0;
   }
 
   /** TextGen.hero_trait_at: what the stat comes to at `level`, signed ("+12% crit chance", "+1.2 HP regen and 0.6 s less regen delay"). */
@@ -551,7 +561,7 @@ const AssetsModel = (() => {
     PLAYER_DEFAULTS, PLAYER_EXTRA, STAT_FLOORS, STATS, WEAPON_DEFAULTS, WEAPON_EXTRA, PREFIX, HERO_WORDS, HERO_NOTES, HERO_LOWER,
     isObj, num, isNum, order, frameOffset, offsets, totalFrames, cell, rows, directions, animKey, mirror, previewFps,
     prefixOf, suffixAt, usedSuffixes, nextCodes, codeFiles, slugOk, slugify,
-    plain, signed, statName, statKind, formatValue, describeEffect, describeEffects, heroWord, possessive, heroAmount, heroCapped, heroStep, heroTrait, heroTraitAt, heroTraitNow,
+    plain, signed, statName, statKind, formatValue, describeEffect, describeEffects, heroWord, possessive, heroAmount, heroCapped, heroStep, heroTrait, heroOwnWords, heroTraitAt, heroTraitNow,
     defaultKnockback, BLOCK_NAMES, NATURAL, naturalBlocks, blocksOf, combo, comboWords, enemyRecord, VOLLEY_START, VOLLEY_HIT, volleyReach, telegraphGeometry, attackActive, paceOf, attackSequence, revolverTTK, hitsToKill,
     availabilityOf, questFor, bandOf, pathOf, levelsSummary, issues,
   };

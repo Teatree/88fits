@@ -178,7 +178,7 @@ func test_a_hidden_hero_has_no_mutation_in_play_and_his_perks_count_as_hidden() 
 		for m: MutationDef in Registry.mutations.values():
 			if m.hero == c.id:
 				assert_bool(Registry.is_hidden(m)).override_failure_message(m.id).is_true()
-	# the hidden heroes of the content are still there (Buck, Dad, Mira), kept for later
+	# the hidden heroes of the content are still there (Dad, Mira; pass 67 brought Buck back), kept for later
 	assert_int(hidden).is_greater_equal(1)
 
 

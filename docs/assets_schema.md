@@ -73,8 +73,9 @@ Derived names: strip `<id>_sprite_<suffix lower>.png`, clip cache key part `code
 | `pose_drivers` | `{view: driver}` | `run` for every view | *tool-only*: the OpenPose driver per view (`front back side bd fd`) |
 | `still_keys` | `{view: key}` | absent | *tool-only*: cached stills to reuse per view |
 | `run_fps` | int | 36 | *tool-only*: the run cycle's rate written into `fps.run` |
+| `momentum` | `{ramp_seconds, speed_bonus, might_bonus, evade_bonus, hit_loss}` | absent | Buck's charge (`specials: ["momentum"]`): full after `ramp_seconds` without a hit; at full, `speed_bonus` more move speed, `might_bonus` more damage and (pass 67) `evade_bonus` evade chance; a hit that reaches his health takes `hit_loss` of the charge (pass 67; 1 = all of it, the old reset) |
 
-A hero created from a template starts `hidden: true` / `availability: "hidden"`. The five playable heroes are pinned by
+A hero created from a template starts `hidden: true` / `availability: "hidden"`. The playable heroes are pinned by
 tests: the Heroes tab says so beside the availability switch.
 
 ## Items (weapons, evolutions, mutations, lines and passive items)
@@ -89,6 +90,44 @@ A **new weapon** is created `hidden: true` with its three template mutations `<w
 or param and the evolution has a `name`; the availability check lists what is missing. Lines and passive items are
 created available. The quest-locked band test (pass 44: 0.33..0.56 of the items locked) stays; the Items tab shows the
 band and warns when a change would leave it.
+
+### Weapon params (pass 67: the basketball)
+
+A weapon's `params` are free keys its behaviour reads, deep-merged under its mutations' `params` and the evolution's
+`final` block (WeaponInstance.fold_params). Pass 67 adds, for a `ProjectileEmitter`:
+
+| Key | Type | Default | What it does |
+|---|---|---|---|
+| `amount_mode` | `"bounces"` | absent | one ball a throw; every point of `amount` past 1 (levels, Multishot, a timed buff) is one more hop of `ricochet_any` |
+| `return` | bool | `false` | the shot flies out and comes home (the boomerang: it turns at the end of its range) |
+| `return_on_hit` | bool | `false` | it also turns home when its pierce and hops are spent, or nobody is within reach: every throw comes back |
+| `return_pierce` | int | `80` | how many creatures the way home may hit (80 = all of them, the Tumbleweed's Boomerang; the basketball's 2) |
+| `return_damage_mult`, `back_speed_mult` | number | `1` | the way home's damage and speed, times the throw's |
+| `ricochet_any` | `{count, frac, reach}` | absent | the shot hops to the nearest creature it has not struck: `count` hops at `frac` of its first damage, looking `reach` m (pass 67; default 7) |
+| `catch` | `{refund, heat_per, heat_max, heat_keep, slam}` | absent | the ball is caught in his hand: `refund` of the cooldown back; a trip that hit a creature adds one Heat, each `heat_per` more damage up to `heat_max` stacks, all of it lost on a hit that reaches his health unless `heat_keep`; `slam {at_heat, radius, damage_frac, knockback}`: at that Heat every catch hits everything within `radius` m for `damage_frac` of the damage |
+| `free_throw` | `{every, damage_mult}` | absent | (Free Throw, a hero mutation) every evaded hit throws a free ball at once, at most one every `every` s |
+
+The sound ids under `sfx` gain `catch` (played on the catch) beside `fire` and `hit`.
+
+### Perk specials and pickup effects (pass 67)
+
+A perk's `special` names the mechanism the game runs and its `params` tune it (Run.perk_param). Free strings, no
+vocabulary:
+
+| `special` | Params | What it does |
+|---|---|---|
+| `timeout` | `every`, `first`, `side`, `pickup` | Fadeaway's Timeout: drops the pickup `pickup` `side` m to his left or right (the side with fewer creatures), first after `first` s, then `every` s after the last one was taken or faded; one lies at a time |
+| `periodic_buff` | `every`, `first`, `seconds`, `buff` (effects) | after `first` s, then every `every` s: the `buff` effects (target `player`) for `seconds`, a timed buff under the perk's name (Fadeaway's Buzzer Beater) |
+| `overdrive` | `every`, `step`, `max` | Buck's Overdrive: every `every` s spent at full momentum is one more gear of `step` attack damage, up to `max`; a hit that lands drops every gear |
+| `ram` | `thorns_mult`, `flat`, `per_level`, `shove`, `from` | Buck's Ram: at a charge of `from` (0.99) or more, a creature that touches him is shoved by `shove` (times its knockback share) and takes `flat` + `per_level` x his level + `thorns_mult` x his thorns instead of biting him; never a boss or a charging creature (pass 67 added `per_level` and `from`; absent: 0 and 0.99) |
+
+A pickup's `effect` is a free string too, matched by Game.apply_pickup: `heal`, `gold`, `buff`, `shield`, `vacuum`, `nuke`,
+`pollen` and (pass 67) `leap`: he leaps clear towards the emptiest of `directions` ways (`push` m/s along the sand,
+`lift` m/s up), untouchable for `invuln` s, and the creatures within `slow_radius` m of where he stood move `slow` slower
+for `slow_seconds` s. `quiet` keeps a pickup's fanfare down (a heal: no "+N HP" toast; the Timeout: dropped without the
+chest's sound). A pickup drops from kills only when the map's `pickups.roster` names it; the Timeout is in no roster
+(its `weight: 0` is the cake slice's and the coin bag's convention), so only the perk or the arena's DROPS tab puts one
+down.
 
 ## A creature created from a template
 

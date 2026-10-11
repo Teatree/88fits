@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/rebound/rebound_icon.png" id="1_ikft5"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_k2ha4"]
+
+[resource]
+script = ExtResource("2_k2ha4")
+weapon = "basketball"
+text = "The ball hits everything on its way back to his hand, at full damage and faster."
+vfx = "the way home leaves a bright streak; a thud on each creature it crosses"
+params = {
+"back_speed_mult": 1.6,
+"return_damage_mult": 1.0,
+"return_pierce": 80.0
+}
+id = "rebound"
+display_name = "Rebound"
+flavour = "Second chance points."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_ikft5")
+icon_file = "rebound_icon.png"
+placeholder = {
+"color": "#E8A060",
+"glyph": "star"
+}

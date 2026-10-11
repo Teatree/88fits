@@ -1,0 +1,119 @@
+[gd_resource type="Resource" script_class="CharacterDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_icon.png" id="1_34e7o"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_kekjt"]
+[ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_3n5jm"]
+[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_sprite.png" id="4_cxldy"]
+[ext_resource type="Texture2D" path="res://content/characters/fadeaway/fadeaway_sprite_b.png" id="5_kekjt"]
+
+[sub_resource type="Resource" id="Resource_kekjt"]
+script = ExtResource("2_kekjt")
+stat = "evade"
+value = 0.005
+target = "player"
+
+[resource]
+script = ExtResource("3_3n5jm")
+level_trait = [SubResource("Resource_kekjt")]
+order = 6
+trait_name = "Footwork"
+trait_text = "Gain 0.5% evade chance per level."
+pronoun = "he"
+start_weapon = "basketball"
+favourite_passive = "evade"
+favourite_passive_bonus = {
+"type": "level",
+"value": 2.0
+}
+sprite = ExtResource("5_kekjt")
+sprite_file = "fadeaway_sprite_b.png"
+anims = {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+}
+strip_cols = 62
+fps = {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+}
+variants = {
+"FAD-A": {
+"anims": {
+"cheer": 1,
+"die": 1,
+"hit": 1,
+"idle": 2,
+"run": 4,
+"turn": 1
+},
+"fps": {},
+"frame_px": 256,
+"icon": ExtResource("1_34e7o"),
+"note": "the placeholder blob strip the editor drew at creation (not art)",
+"shelved": true,
+"sprite": ExtResource("4_cxldy"),
+"sprite_file": "fadeaway_sprite.png",
+"strip_cols": 0
+},
+"FAD-B": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": ExtResource("1_34e7o"),
+"note": "the first painting: five views on the Mixamo run, the back views on run_spread",
+"shelved": false,
+"sprite": ExtResource("5_kekjt"),
+"sprite_file": "fadeaway_sprite_b.png",
+"strip_cols": 62
+}
+}
+variant = "FAD-B"
+id = "fadeaway"
+display_name = "Fadeaway"
+flavour = "You cannot guard what you cannot catch."
+icon = ExtResource("1_34e7o")
+icon_file = "fadeaway_icon.png"
+placeholder = {
+"color": "#6B4AAE",
+"eyes": 2.0,
+"hat": "#E8B840",
+"shape": "blob"
+}

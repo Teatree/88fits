@@ -284,6 +284,11 @@ func fire(p_kind: int, from: Vector3, velocity: Vector3, damage: float, p_pierce
 				extra[i]["passes"] = 0
 		if w.params.get("aura") is Dictionary:
 			extra[i]["aura_t"] = 0.0
+		# pass 67 (the basketball, params.catch): the ball leaves as warm as his Heat, 0..1 of catch.heat_max, for a
+		# `custom` kind's shader to read
+		var ct = w.params.get("catch")
+		if ct is Dictionary:
+			glow[i] = clampf(float(Run.heat) / maxf(float((ct as Dictionary).get("heat_max", 10)), 1.0), 0.0, 1.0)
 		if w.params.has("tail_fade"):
 			# pass 60: the flight this shot fades over the end of (its life as it leaves, after any out_speed stretch)
 			extra[i]["fade0"] = life[i]
@@ -665,6 +670,11 @@ func _physics_process(delta: float) -> void:
 					life[i] = float(extra[i].get("life0", 2.0)) / om2
 					pos[i] = player.global_position + Vector3(0, hover[i], 0) + d0 * 0.6
 					continue
+				# pass 67 (the basketball, params.catch): the ball is back in his hand. Game hands it to the weapon's behaviour
+				# (ProjectileEmitter.on_caught: the refund, Heat, Slam Dunk's dunk) with the trip's extra (its "hits")
+				var wc: WeaponInstance = weapon[i]
+				if wc and wc.params.get("catch") is Dictionary and game.has_method("ball_caught"):
+					game.ball_caught(wc, extra[i])
 				_free(i)
 				continue
 			vel[i] = home.normalized() * maxf(vel[i].length(), 6.0)
@@ -696,17 +706,9 @@ func _physics_process(delta: float) -> void:
 				enemies.drag_radius(pos[i], ar, pull, dt)
 		if life[i] <= 0.0:
 			if ret[i] == 1:
-				# the boomerang turns at the end of its run: fresh pierce, fresh memory; pass 53: the way home at
-				# back_speed_mult of the launch speed and the damage x return_damage_mult (the Dust Devil's x2)
-				ret[i] = 2
-				life[i] = 6.0
-				pierce[i] = 80
-				memo[i] = {}
-				var wr: WeaponInstance = weapon[i]
-				if wr:
-					var s0: float = float(extra[i].get("spd0", vel[i].length()))
-					vel[i] = vel[i].normalized() * maxf(s0 * float(wr.params.get("back_speed_mult", 1.0)), 6.0)
-					dmg[i] = float(extra[i].get("dmg0", dmg[i])) * float(wr.params.get("return_damage_mult", 1.0))
+				# the boomerang turns at the end of its run (_turn_home); pass 67: the basketball turns here too when it hit
+				# nothing, or when the hop it was on lost its target, so no ball is ever lost
+				_turn_home(i, weapon[i])
 				continue
 			if _plant(i, map):
 				continue
@@ -886,7 +888,17 @@ func _physics_process(delta: float) -> void:
 		# a pellet streaking down a Birdshot lane or a Blunderbuss cone (pass 48) is only seen: the blast has hit already
 		if extra[i].has("ghost"):
 			continue
+		# pass 67: a ball whose way-home touches are spent flies on to his hand and hits nothing more
+		if extra[i].has("spent"):
+			continue
 		var hits := enemies.indices_in_radius(pos[i], radius[i] + 0.35)
+		if extra[i].has("rebound"):
+			# pass 67: the rebound, the creature the ball turned at (if it still stands, the same one: its spawn serial)
+			var rb: Array = extra[i]["rebound"]
+			extra[i].erase("rebound")
+			var re: int = int(rb[0])
+			if enemies.is_alive(re) and enemies.serial[re] == int(rb[1]) and not hits.has(re):
+				hits.append(re)
 		var flags: int = EnemyManager.HIT_MINI if extra[i].has("mini") else 0
 		# pass 62: the pierce drop-off ({} when it does not apply); met this tick, the nearest along the flight first
 		var pf: Dictionary = _falloff_of(i, w) if not hits.is_empty() else {}
@@ -948,9 +960,26 @@ func _physics_process(delta: float) -> void:
 							game.fx_burst(pos[i], Color(1.0, 0.9, 0.5), 0.45)
 			if w:
 				game.fx_hit(pos[i], w.def)
+			# pass 67 (the basketball, params.catch): the trip's hits, read at the catch (a trip that scored warms Heat), and
+			# every touch heard (the weapon's "hit" sound: the bounce)
+			if w and w.params.get("catch") is Dictionary:
+				extra[i]["hits"] = int(extra[i].get("hits", 0)) + 1
+				Audio.play(str(w.def.sfx.get("hit", "")), pos[i])
 			pierce[i] -= 1
+			if ret[i] == 2 and pierce[i] <= 0 and _returns_on_hit(w):
+				# pass 67: the way home's touches are spent (return_pierce of them): the ball flies on to his hand hitting
+				# nothing more, so every throw is caught
+				extra[i]["spent"] = true
+				break
 			if pierce[i] < 0:
 				if _ricochet_on(i, enemies, w):
+					break
+				if ret[i] == 1 and _returns_on_hit(w):
+					# pass 67 (the basketball, params.return_on_hit): its hops spent, or nobody within reach, the ball turns
+					# for home instead of ending; the creature it turned at is struck once more as it leaves (the rebound,
+					# the next tick's first touch wherever the step home took the ball: one of the way home's touches)
+					_turn_home(i, w)
+					extra[i]["rebound"] = [e, enemies.serial[e]]
 					break
 				if _plant(i, map):
 					break
@@ -1118,12 +1147,36 @@ func _tracer_colour(w: WeaponInstance) -> Color:
 	return Color(1.0, 0.85, 0.35, 0.9)
 
 
+## The boomerang turns for home (pass 53; pass 67: factored out so the basketball's return_on_hit turns the same way):
+## ret 2, a fresh life and memory, the pierce of `params.return_pierce` (80 = everything on the way, the Tumbleweed's
+## Boomerang and the Dust Devil as before; the basketball's 2), the way home at `back_speed_mult` of the launch speed
+## and the damage x `return_damage_mult`. A return_on_hit ball with no touches left flies home hitting nothing.
+func _turn_home(i: int, w: WeaponInstance) -> void:
+	ret[i] = 2
+	life[i] = 6.0
+	memo[i] = {}
+	pierce[i] = int(w.params.get("return_pierce", 80)) if w else 80
+	if w:
+		var s0: float = float(extra[i].get("spd0", vel[i].length()))
+		vel[i] = vel[i].normalized() * maxf(s0 * float(w.params.get("back_speed_mult", 1.0)), 6.0)
+		dmg[i] = float(extra[i].get("dmg0", dmg[i])) * float(w.params.get("return_damage_mult", 1.0))
+		if pierce[i] <= 0 and _returns_on_hit(w):
+			extra[i]["spent"] = true
+
+
+## Whether this weapon's shot comes home when its pierce is spent (pass 67, `params.return_on_hit`: the basketball).
+func _returns_on_hit(w: WeaponInstance) -> bool:
+	return w != null and bool(w.params.get("return_on_hit", false))
+
+
 ## Pass 48, `params.ricochet_any {count, frac, puff, puff_seconds}` (the Pea Cannon, the Golden Revolver): a shot whose
 ## last pierce is spent on a creature, killed or not, hops on to the nearest creature it has not struck within
-## RICOCHET_REACH, `count` times, every hop at `frac` of the shot's first damage; with `puff` (metres) a small poison
-## cloud is left where it bounced, `puff_seconds` long. False when it does not bounce (the shot ends as before).
+## RICOCHET_REACH (or the block's own `reach`, pass 67: Full Court Press's 10 m), `count` times, every hop at `frac` of
+## the shot's first damage; with `puff` (metres) a small poison cloud is left where it bounced, `puff_seconds` long.
+## False when it does not bounce (the shot ends as before). Never off the way home (a hop there would end short of
+## the hero and lose a returning shot); a caller may seed extra["rc_left"] after fire() (the basketball's bounces).
 func _ricochet_on(i: int, enemies: EnemyManager, w: WeaponInstance) -> bool:
-	if w == null or hostile[i] == 1 or arc[i] == 1 or homing[i] == 1 or stuck[i] >= 0:
+	if w == null or hostile[i] == 1 or arc[i] == 1 or homing[i] == 1 or stuck[i] >= 0 or ret[i] == 2:
 		return false
 	var ra = w.params.get("ricochet_any")
 	if not ra is Dictionary:
@@ -1133,7 +1186,7 @@ func _ricochet_on(i: int, enemies: EnemyManager, w: WeaponInstance) -> bool:
 	var left: int = int(ex.get("rc_left", int(rd.get("count", 0))))
 	if left <= 0:
 		return false
-	var nxt := _nearest_other(enemies, pos[i], RICOCHET_REACH, memo[i])
+	var nxt := _nearest_other(enemies, pos[i], float(rd.get("reach", RICOCHET_REACH)), memo[i])
 	if nxt < 0:
 		return false
 	if not ex.has("rc_dmg"):

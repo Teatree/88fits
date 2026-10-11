@@ -1,0 +1,108 @@
+{
+  "id": "fadeaway",
+  "name": "Fadeaway",
+  "flavour": "You cannot guard what you cannot catch.",
+  "order": 6,
+  "pronoun": "he",
+  "hidden": false,
+  "availability": "available",
+  "price": 0,
+  "currency_type": "gold",
+  "trait": [],
+  "trait_per_level": [
+    {
+      "stat": "evade",
+      "op": "add",
+      "value": 0.005,
+      "target": "player"
+    }
+  ],
+  "favourite_weapon": "",
+  "favourite_passive": "evade",
+  "favourite_passive_bonus": {
+    "type": "level",
+    "value": 2
+  },
+  "start_weapon": "basketball",
+  "specials": [],
+  "unlock_quest": "",
+  "frame_px": 256,
+  "placeholder": {
+    "color": "#6B4AAE",
+    "hat": "#E8B840",
+    "eyes": 2,
+    "shape": "blob"
+  },
+  "art_prompt": "a tall athletic young Black man with a short rounded afro, a thin goatee and sharp angular features, heavy-lidded confident eyes and a sly half-smile, a sleeveless purple basketball jersey with gold trim and a big gold number 88, loose knee-length purple shorts with a gold stripe, white high-top sneakers, a white sweatband on his forehead and white wristbands, standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
+  "motion": "running in place at a steady athletic jog like a basketball player on a fast break, arms pumping at his sides, the loose jersey and shorts swaying, empty hands, no ball",
+  "portrait_prompt": "head and shoulders portrait of a young Black man with a short rounded afro, a white sweatband, a thin goatee and a sly confident grin, a sleeveless purple basketball jersey with gold trim, facing the viewer",
+  "badge": {
+    "still": "fadeaway_portrait_c1",
+    "head_width": 0.0,
+    "top_pad": 0.03
+  },
+  "title_pose": "standing relaxed and confident with his weight on one leg, holding the basketball from the second reference image against his hip with one hand, the other hand loose at his side, a sly half-smile under his heavy-lidded eyes, his purple jersey with the gold number 88 facing the viewer",
+  "title_holds": "the basketball is the only thing he holds",
+  "title_extra_ref": {
+    "file": "tools/dl/basketball_ref.png",
+    "words": "The second reference image shows the basketball: copy its colours exactly: a burnt-orange ball crossed by thin black seams."
+  },
+  "trait_name": "Footwork",
+  "trait_text": "Gain 0.5% evade chance per level.",
+  "pose_hint": "standing straight, weight on both feet, arms relaxed at the sides, empty hands, no ball",
+  "back_hint": "He faces away from the viewer: only the back of the afro and the sweatband, the back of the purple jersey with the gold number 88, the shorts and the heels of the sneakers are visible; no eyes, no face at all. Both arms hang straight down along his sides, relaxed, empty hands.",
+  "side_hint": "a clean side profile facing right: the afro, the goatee, the jersey's side, one arm hanging relaxed in front of the torso, empty hands",
+  "hurt_hint": "flinching back with a grimace, one arm raised across the chest",
+  "pose_drivers": {
+    "back": "run_spread",
+    "bd": "run_spread"
+  },
+  "variant_base": "FAD-A",
+  "variant": "FAD-B",
+  "variants": {
+    "FAD-A": {
+      "note": "the placeholder blob strip the editor drew at creation (not art)",
+      "shelved": true
+    },
+    "FAD-B": {
+      "recipe": {
+        "pose_drivers": {
+          "back": "run_spread",
+          "bd": "run_spread"
+        },
+        "painter": {
+          "model": "klein",
+          "steps": 0
+        }
+      },
+      "note": "the first painting: five views on the Mixamo run, the back views on run_spread",
+      "sprite": "fadeaway_sprite_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      }
+    }
+  },
+  "anim_negative": "no basketball, no extra arms or legs, no face on the back view, no text"
+}

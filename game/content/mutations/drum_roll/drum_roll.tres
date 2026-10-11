@@ -8,7 +8,7 @@ script = ExtResource("1_cwssh")
 weapon = "tommy_gun"
 mutation_kind = "hero"
 hero = "buck"
-text = "+1 round in the burst for every 25% of momentum."
+text = "+1 round in the burst for every notch of his charge (+4 at full)."
 vfx = "the burst grows as the momentum trail grows"
 params = {
 "momentum_rounds": 4.0

@@ -1,0 +1,21 @@
+{
+  "id": "overdrive",
+  "name": "Overdrive",
+  "flavour": "Past full. Then past that.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "buck",
+  "text": "Every 5 s spent at full charge is a gear: +5% attack damage each, five gears at most. A hit that lands drops every gear.",
+  "effects": [],
+  "special": "overdrive",
+  "params": {
+    "every": 5.0,
+    "step": 0.05,
+    "max": 0.25
+  },
+  "art_prompt": "a round brass speedometer gauge with a cream face, bold black tick marks and a red zone at its top end, the black needle pinned hard past the red zone, a small golden lightning bolt on the face and a burst of golden sparks at the needle's tip",
+  "placeholder": {
+    "color": "#FFC640",
+    "glyph": "bolt"
+  }
+}

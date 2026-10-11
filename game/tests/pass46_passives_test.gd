@@ -337,9 +337,13 @@ func test_the_collection_has_its_tabs_and_marks_the_heroes_mutations() -> void:
 	var pea: Array = CollectionScreen.page_mutations(Registry.weapon("peashooter")).map(func(m: MutationDef) -> String: return m.id)
 	assert_bool(pea.has("fan_the_hammer")).is_true()
 	assert_str(CollectionScreen.hero_only_text(Registry.mutation("fan_the_hammer"))).is_equal("DRIFTER ONLY")
-	# a hidden hero's own stays off his weapon's page (Buck's Drum Roll on the Tommy Gun)
+	# pass 67: Buck is back in play, so his Drum Roll is on the Tommy Gun's page, marked as his
 	var tommy: Array = CollectionScreen.page_mutations(Registry.weapon("tommy_gun")).map(func(m: MutationDef) -> String: return m.id)
-	assert_bool(tommy.has("drum_roll")).is_false()
+	assert_bool(tommy.has("drum_roll")).is_true()
+	assert_str(CollectionScreen.hero_only_text(Registry.mutation("drum_roll"))).is_equal("BUCK ONLY")
+	# a hidden hero's own stays off his weapon's page (Mira's Blasting Cap on the Land Mine)
+	var mine: Array = CollectionScreen.page_mutations(Registry.weapon("land_mine")).map(func(m: MutationDef) -> String: return m.id)
+	assert_bool(mine.has("blasting_cap")).is_false()
 	# the cells: three to a row, a short last row centred under them
 	var cs: CollectionScreen = auto_free(load("res://ui/CollectionScreen.tscn").instantiate())
 	add_child(cs)

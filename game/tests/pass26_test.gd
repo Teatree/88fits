@@ -172,18 +172,26 @@ func test_perks_are_the_heros_own() -> void:
 	for k in range(40):
 		for c in CardPool.level_up_offer(3):
 			if c["type"] == "perk":
-				if str(c["id"]) == "ram":
+				# pass 67: Ram and Overdrive are both his
+				if str(c["id"]) in ["ram", "overdrive"]:
 					seen_own = true
 				else:
 					seen_other = true
 	assert_bool(seen_other).is_false()
 	assert_bool(seen_own).is_true()
-	# Buck is hidden (pass 33.4): his own mutation is out of play with him (pass 46)
+	# Buck is back in play (pass 67): his own mutation is offered on his favourite (pass 46 had it out of play with him)
 	_give("tommy_gun", 3)
 	var ids: Array = []
 	for m in Run.open_mutations(Run.weapon_instance("tommy_gun")):
 		ids.append(m.id)
-	assert_bool(ids.has("drum_roll")).is_false()
+	assert_bool(ids.has("drum_roll")).is_true()
+	# a hidden hero's own stays out of play with him: Mira's Blasting Cap on her Land Mine
+	_start("mira")
+	_give("land_mine", 3)
+	ids.clear()
+	for m in Run.open_mutations(Run.weapon_instance("land_mine")):
+		ids.append(m.id)
+	assert_bool(ids.has("blasting_cap")).is_false()
 	# the hero mutation shows for the favourite weapon only: the Drifter's Fan the Hammer on the Peashooter
 	_start("drifter")
 	_give("peashooter", 3)

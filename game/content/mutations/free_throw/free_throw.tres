@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/free_throw/free_throw_icon.png" id="1_2apwr"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_f6jx7"]
+
+[resource]
+script = ExtResource("2_f6jx7")
+weapon = "basketball"
+mutation_kind = "hero"
+hero = "fadeaway"
+text = "Every hit he evades throws a free ball at once, no cooldown. At most one every 0.8 s."
+vfx = "a white-glowing ball leaves his hand the instant the hit misses, beside the dodge's pale flash"
+params = {
+"free_throw": {
+"damage_mult": 1.0,
+"every": 0.8
+}
+}
+id = "free_throw"
+display_name = "Free Throw"
+flavour = "And one."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_2apwr")
+icon_file = "free_throw_icon.png"
+placeholder = {
+"color": "#F4F0FF",
+"glyph": "star"
+}

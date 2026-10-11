@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_hl0n2"]
+[ext_resource type="Texture2D" path="res://content/mutations/full_court_press/full_court_press_icon.png" id="2_dqnw7"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_b7gd8"]
+
+[sub_resource type="Resource" id="Resource_hl0n2"]
+script = ExtResource("1_hl0n2")
+stat = "amount"
+value = 2.0
+
+[resource]
+script = ExtResource("3_b7gd8")
+weapon = "basketball"
+mutation_kind = "volume"
+text = "Two more bounces, and the ball looks 10 m for its next target."
+vfx = "a longer orange streak between bounces"
+effects = [SubResource("Resource_hl0n2")]
+params = {
+"ricochet_any": {
+"reach": 10.0
+}
+}
+id = "full_court_press"
+display_name = "Full Court Press"
+flavour = "Nobody gets past half court."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_dqnw7")
+icon_file = "full_court_press_icon.png"
+placeholder = {
+"color": "#C8743A",
+"glyph": "star"
+}

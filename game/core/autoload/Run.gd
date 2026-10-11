@@ -71,6 +71,14 @@ var momentum := 0.0
 ## Berserk: the hero's weapon speed (1 = normal, 2 = twice as fast), cached off the sheet for the behaviours' own clocks
 var haste := 1.0
 var momentum_def: Dictionary = {}
+## Fadeaway's Heat (pass 67, the basketball's `catch` params): +1 for every caught ball that scored, up to catch.heat_max;
+## the ball's damage x (1 + heat x catch.heat_per); 0 again on a hit that reaches his health unless catch.heat_keep.
+## Declared and reset here; ProjectileEmitter raises and zeroes it, the HUD's gauge and WeaponInstance._shot_dps read it.
+var heat: int = 0
+## Buck's Overdrive (pass 67, a perk): the gears counted while his charge is full (Player._tick_momentum: one every
+## `every` seconds at full, max / step at most), each `step` more attack damage (overdrive_might); a hit that lands drops
+## them all (Player.take_damage).
+var overdrive: int = 0
 ## Array of WeaponInstance (see core/systems/WeaponInstance.gd)
 var weapons: Array = []
 ## passive id -> level, in the order they were taken; lines and passive items alike (pass 47: held_lines() are the
@@ -228,6 +236,8 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	_lifesteal_healed_this_second = 0.0
 	momentum = 0.0
 	momentum_def = p_character.momentum if p_character else {}
+	heat = 0
+	overdrive = 0
 	_build_player_sheet()
 	rerolls_left = player_sheet.get_int("rerolls")
 	refill_choices()
@@ -253,7 +263,14 @@ func _build_player_sheet() -> void:
 		e1.stat = "move_speed"; e1.op = "mul"; e1.value = float(momentum_def.get("speed_bonus", 0.6)) * momentum; e1.target = "player"
 		var e2 := Effect.new()
 		e2.stat = "might"; e2.op = "mul"; e2.value = float(momentum_def.get("might_bonus", 0.5)) * momentum; e2.target = "player"
-		player_sheet.add_effects([e1, e2], "Momentum %d%%" % int(round(momentum * 100.0)))
+		var mfx: Array = [e1, e2]
+		# the charge's third stat (pass 67): evade chance, so the charge guards itself (an evaded hit never touches it)
+		var eb := float(momentum_def.get("evade_bonus", 0.0))
+		if eb > 0.0:
+			var e3 := Effect.new()
+			e3.stat = "evade"; e3.op = "add"; e3.value = eb * momentum; e3.target = "player"
+			mfx.append(e3)
+		player_sheet.add_effects(mfx, "Momentum %d%%" % int(round(momentum * 100.0)))
 	if stranger_cost > 0.0:
 		var sc := Effect.new()
 		sc.stat = "max_hp"; sc.op = "mul"; sc.value = -stranger_cost; sc.target = "player"
@@ -273,6 +290,12 @@ func _build_player_sheet() -> void:
 		var c1 := Effect.new()
 		c1.stat = "might"; c1.op = "mul"; c1.value = crescendo_might(); c1.target = "player"
 		player_sheet.add_effects([c1], "Crescendo +%d%%" % int(round(crescendo_might() * 100.0)))
+	# Overdrive (pass 67, Buck's perk): the gears his full charge has counted, each the perk's `step` of attack damage
+	var od := overdrive_might()
+	if od > 0.0:
+		var o1 := Effect.new()
+		o1.stat = "might"; o1.op = "mul"; o1.value = od; o1.target = "player"
+		player_sheet.add_effects([o1], "Overdrive +%d%%" % int(round(od * 100.0)))
 	haste = player_sheet.get_stat("haste", 1.0)
 
 
@@ -325,6 +348,46 @@ func reset_crescendo() -> void:
 	if crescendo > 0:
 		crescendo = 0
 		rebuild_sheets()
+
+
+## What Overdrive adds to attack damage right now (pass 67): its gears x the perk's `step`; 0 without the perk.
+func overdrive_might() -> float:
+	if overdrive <= 0 or not has_perk("overdrive"):
+		return 0.0
+	return float(overdrive) * perk_param("overdrive", "step", 0.05)
+
+
+## The most gears Overdrive counts: the perk's `max` over its `step` (5 for +25% in 5% gears).
+func overdrive_gears() -> int:
+	return int(round(perk_param("overdrive", "max", 0.25) / maxf(perk_param("overdrive", "step", 0.05), 0.001)))
+
+
+## The hero's own gauge under the HUD's slots (pass 67, ui/HUD.gd draws it): {"label", "value" 0..1, "notches", "color"}
+## or {} for a hero without one. MOMENTUM for a hero with the `momentum` special and its block (Buck: four notches, Drum
+## Roll's four rounds); HEAT for a hero holding a weapon whose folded params (WeaponInstance.params, fold_params() as of
+## its last rebuild) carry `catch` (Fadeaway's basketball: Run.heat over its heat_max, a notch a point). The colours are
+## W.PAPER and W.EMBER (the HUD turns the fill gold over the last quarter).
+func hero_gauge() -> Dictionary:
+	if character != null and character.specials.has("momentum") and not momentum_def.is_empty():
+		return {"label": "MOMENTUM", "value": clampf(momentum, 0.0, 1.0), "notches": 4, "color": Color("f3e6c8")}
+	var c := catch_params()
+	if c.is_empty():
+		return {}
+	var mx: int = maxi(int(c.get("heat_max", 10)), 1)
+	# Run.heat is lane P's (pass 67); read through get() so this parses and runs without it
+	var h = get("heat")
+	var hv: int = int(h) if h != null else 0
+	return {"label": "HEAT", "value": clampf(float(hv) / float(mx), 0.0, 1.0), "notches": mx, "color": Color("d9662a")}
+
+
+## The `catch` block of the first held weapon whose folded params carry one (the basketball's), or {}.
+func catch_params() -> Dictionary:
+	for w in weapons:
+		var inst: WeaponInstance = w
+		var c = inst.params.get("catch") if inst != null else null
+		if c is Dictionary:
+			return c
+	return {}
 
 
 ## What Hot Streak adds to attack damage right now (the step on the sheet): the passive's `kill_might` per STREAK_PER kills

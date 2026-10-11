@@ -115,7 +115,8 @@ AVAILABILITY = ["hidden", "available", "purchase"]
 CURRENCIES = ["gold"]
 FAVOURITE_BONUS_TYPES = ["level", "effects"]
 FAVOURITE_PASSIVE_BONUS_TYPES = ["max", "level", "effects"]
-MOMENTUM_KEYS = {"ramp_seconds": None, "speed_bonus": 0.6, "might_bonus": 0.5}
+# pass 67: evade_bonus (evade chance at full charge) and hit_loss (the share a hit that lands takes; 1 = the old reset)
+MOMENTUM_KEYS = {"ramp_seconds": None, "speed_bonus": 0.6, "might_bonus": 0.5, "evade_bonus": 0.0, "hit_loss": 1.0}
 CHAR_ORDER = ["idle", "run", "turn", "hit", "die", "cheer", "idle_f", "run_f", "idle_s", "run_s", "idle_bd", "run_bd",
               "idle_fd", "run_fd", "hit_f", "hit_s", "hit_bd", "hit_fd"]
 CHAR_ANIMS_DEFAULT = {"idle": 2, "run": 4, "turn": 1, "hit": 1, "die": 1, "cheer": 1}

@@ -1,0 +1,24 @@
+{
+  "id": "rebound",
+  "name": "Rebound",
+  "flavour": "Second chance points.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "basketball",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "The ball hits everything on its way back to his hand, at full damage and faster.",
+  "vfx": "the way home leaves a bright streak; a thud on each creature it crosses",
+  "effects": [],
+  "params": {
+    "return_pierce": 80,
+    "return_damage_mult": 1.0,
+    "back_speed_mult": 1.6
+  },
+  "art_prompt": "an orange basketball with black seams and one thick curved white arrow that leaves it, loops round in a wide oval and comes back to it, like a boomerang's path",
+  "placeholder": {
+    "color": "#E8A060",
+    "glyph": "star"
+  }
+}

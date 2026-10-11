@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_pvifn"]
+[ext_resource type="Texture2D" path="res://content/mutations/on_fire/on_fire_icon.png" id="2_o1782"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_ljsbc"]
+
+[sub_resource type="Resource" id="Resource_pvifn"]
+script = ExtResource("1_pvifn")
+stat = "fire_damage"
+value = 4.0
+
+[sub_resource type="Resource" id="Resource_o1782"]
+script = ExtResource("1_pvifn")
+stat = "fire_duration"
+value = 2.0
+
+[sub_resource type="Resource" id="Resource_ljsbc"]
+script = ExtResource("1_pvifn")
+stat = "fire_spread"
+value = 0.3
+
+[resource]
+script = ExtResource("3_ljsbc")
+weapon = "basketball"
+mutation_kind = "element"
+text = "He's on fire: everything the ball touches catches fire."
+vfx = "the ball glows red-orange with a short flame tracer; burning creatures as every fire weapon's"
+effects = [SubResource("Resource_pvifn"), SubResource("Resource_o1782"), SubResource("Resource_ljsbc")]
+params = {
+"tint": {
+"albedo": "#FF6A1A",
+"emission": "#FF3A00",
+"energy": 1.6
+},
+"tracer": true,
+"tracer_color": "#FF8A2A",
+"tracer_life": 0.3,
+"tracer_size": 0.7,
+"tracer_step": 0.03
+}
+id = "on_fire"
+display_name = "On Fire"
+flavour = "He's heating up. He's on fire."
+rarity = "rare"
+element = "fire"
+weight = 8.0
+icon = ExtResource("2_o1782")
+icon_file = "on_fire_icon.png"
+placeholder = {
+"color": "#FF6A1A",
+"glyph": "star"
+}

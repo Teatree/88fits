@@ -1,0 +1,380 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "anchor": "72ae817babd1",
+ "subject": "a lanky anthropomorphic deer man with tan fur, a long muzzle, big calm eyes, tall branching antlers on his head, wearing a plain teal t-shirt and khaki shorts with sneakers, standing straight with hands relaxed at the sides",
+ "renders": {
+  "front": {
+   "seed": 3683,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a lanky anthropomorphic deer man with tan fur, a long muzzle, big calm eyes, tall branching antlers on his head, wearing a plain teal t-shirt and khaki shorts with sneakers, standing straight with hands relaxed at the sides. Full body, front view, standing straight and facing the viewer, arms relaxed, feet fully visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 379,
+     "right": 381,
+     "top": 32,
+     "bottom": 43,
+     "height": 948,
+     "width": 263
+    }
+   },
+   "attempt": 0
+  },
+  "back": {
+   "seed": 90793,
+   "prompt": "Turn this exact character around and show a full-body back view seen directly from behind: the back of the head or helmet, the back of the outfit and the heels, no face visible. Keep the same outfit, colors, proportions and art style, standing straight with arms relaxed. He faces away from the viewer: only the back of his head, the back of his antlers and ears, the back of the t-shirt and the heels are visible, no eyes, no muzzle, no face at all. Both arms hang straight down along his sides, relaxed. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "back",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 379,
+     "right": 380,
+     "top": 31,
+     "bottom": 49,
+     "height": 943,
+     "width": 264
+    }
+   },
+   "attempt": 0
+  },
+  "side": {
+   "seed": 3689,
+   "prompt": "Turn this exact character to show a full-body side view in strict profile, facing to the right of the frame, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 445,
+     "right": 417,
+     "top": 39,
+     "bottom": 47,
+     "height": 937,
+     "width": 161
+    }
+   },
+   "attempt": 0
+  },
+  "fd": {
+   "seed": 3690,
+   "prompt": "Turn this exact character to a three-quarter front view: turned 45 degrees so the character faces towards the lower right of the frame, face visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 377,
+     "right": 386,
+     "top": 30,
+     "bottom": 38,
+     "height": 955,
+     "width": 260
+    }
+   },
+   "attempt": 0
+  },
+  "bd": {
+   "seed": 3691,
+   "prompt": "Turn this exact character to a three-quarter back view: turned 45 degrees away from the viewer so the character faces the upper right of the frame, the back and right shoulder visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 373,
+     "right": 393,
+     "top": 25,
+     "bottom": 41,
+     "height": 957,
+     "width": 257
+    }
+   },
+   "attempt": 0
+  },
+  "cheer": {
+   "seed": 3693,
+   "prompt": "The exact same character seen directly from behind (no face visible), jumping for joy with both arms raised high above the head, feet together. Keep the same outfit, colors, proportions and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_back.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "back",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 300,
+     "right": 310,
+     "top": 36,
+     "bottom": 103,
+     "height": 884,
+     "width": 413
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_back": {
+   "seed": 98788,
+   "prompt": "The exact same character seen directly from behind, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, antlers intact, ears pinned back, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_back_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "back",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 345,
+     "right": 382,
+     "top": 38,
+     "bottom": 53,
+     "height": 932,
+     "width": 296
+    }
+   },
+   "attempt": 1
+  },
+  "hurt_front": {
+   "seed": 3719,
+   "prompt": "The exact same character facing the viewer, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, antlers intact, ears pinned back, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_front_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 370,
+     "right": 382,
+     "top": 32,
+     "bottom": 43,
+     "height": 948,
+     "width": 271
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_side": {
+   "seed": 3720,
+   "prompt": "The exact same character in strict side profile facing right, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, antlers intact, ears pinned back, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_side_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 445,
+     "right": 416,
+     "top": 38,
+     "bottom": 47,
+     "height": 938,
+     "width": 162
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_bd": {
+   "seed": 3721,
+   "prompt": "The exact same character in three-quarter back view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, antlers intact, ears pinned back, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_bd_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 373,
+     "right": 393,
+     "top": 25,
+     "bottom": 41,
+     "height": 957,
+     "width": 257
+    }
+   },
+   "attempt": 0
+  },
+  "hurt_fd": {
+   "seed": 3722,
+   "prompt": "The exact same character in three-quarter front view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, antlers intact, ears pinned back, teeth gritted, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_fd_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 365,
+     "right": 386,
+     "top": 30,
+     "bottom": 38,
+     "height": 955,
+     "width": 272
+    }
+   },
+   "attempt": 0
+  },
+  "dead": {
+   "seed": 613463,
+   "prompt": "This exact character lying flat on the ground on their back, knocked out: limbs sprawled, head to one side, seen from the front and a little above so the whole body is visible. Keep the same outfit, colors, proportions and art style. antlers intact, ears pinned back, teeth gritted. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/buck_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 106,
+     "right": 90,
+     "top": 54,
+     "bottom": 142,
+     "height": 827,
+     "width": 827
+    }
+   },
+   "attempt": 0
+  }
+ },
+ "recipe_ran": {
+  "pose_drivers": {
+   "back": "run_occ",
+   "bd": "run_occ"
+  },
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  }
+ },
+ "clip_kind": {
+  "back": "pose",
+  "front": "pose",
+  "side": "pose",
+  "bd": "pose",
+  "fd": "pose"
+ },
+ "clips": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "hits": {
+  "_b": true,
+  "_f": true,
+  "_s": true,
+  "_bd": true,
+  "_fd": true
+ },
+ "qa_online": null
+}

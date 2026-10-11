@@ -33,6 +33,7 @@ var invuln := 0.0
 var momentum := false     # Buck: speed and might climb while unhurt (CharacterDef.momentum)
 var _momentum_t := 0.0
 var _momentum_sync := 0.0
+var _over_t := 0.0        # Buck's Overdrive (pass 67): seconds at full charge since the last hit that landed
 var _trail_t := 0.0
 var dead := false
 var god := false
@@ -126,6 +127,9 @@ func setup(p_char: CharacterDef) -> void:
 	if p_char != character:
 		look_override = ""
 		_momentum_t = 0.0
+		# and so do Overdrive's gears (pass 67)
+		_over_t = 0.0
+		Run.overdrive = 0
 	character = p_char
 	cannot_stop = p_char != null and p_char.specials.has("cannot_stop")
 	momentum = p_char != null and p_char.specials.has("momentum")
@@ -691,17 +695,27 @@ func blast(v: Vector3, up: float = 0.0, hostile: bool = true) -> void:
 		velocity.y = maxf(velocity.y, up)
 
 
-## Buck's momentum: climbs to full over ramp_seconds while he is not hit, resets to nothing on a hit. Applied to the
-## sheet a few times a second so the stats screen and the speed follow it.
+## Buck's momentum: climbs to full over ramp_seconds while he is not hit (standing still too), and a hit that lands knocks
+## off `hit_loss` of it (take_damage). Applied to the sheet a few times a second so the stats screen and the speed follow
+## it; the last step always lands on exactly full (pass 67: a sheet that had last followed at 0.985 stayed there, under
+## Ram's 0.99, once a half-loss shifted the steps).
 func _tick_momentum(delta: float) -> void:
 	var ramp: float = float(Run.momentum_def.get("ramp_seconds", 12.0))
 	_momentum_t = minf(_momentum_t + delta, ramp)
 	var f := _momentum_t / maxf(ramp, 0.1)
 	_momentum_sync -= delta
-	if _momentum_sync <= 0.0 and absf(f - Run.momentum) > 0.02:
+	if _momentum_sync <= 0.0 and (absf(f - Run.momentum) > 0.02 or (f >= 1.0 and Run.momentum < 1.0)):
 		_momentum_sync = 0.25
 		Run.momentum = f
 		Run.rebuild_sheets()
+	# Overdrive (pass 67, Buck's perk): every `every` seconds at full charge is a gear, Run.overdrive_gears() at most; the
+	# sheet follows when the count changes (Run._build_player_sheet folds them into attack damage)
+	if f >= 0.99 and Run.has_perk("overdrive"):
+		_over_t += delta
+		var n := mini(int(_over_t / maxf(Run.perk_param("overdrive", "every", 5.0), 0.1)), Run.overdrive_gears())
+		if n != Run.overdrive:
+			Run.overdrive = n
+			Run.rebuild_sheets()
 
 
 ## Health back. `source` names a pickup heal for the Down! list (the Heart, a Cake Slice, the Healing Well); regen,
@@ -808,9 +822,14 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 	if paid > 0:
 		Run.add_gold(paid, "hush_money")
 	if DamageNumbers.I: DamageNumbers.I.hero_hurt(dealt)
-	if momentum and _momentum_t > 0.0:
-		_momentum_t = 0.0
-		Run.momentum = 0.0
+	# Buck's charge (pass 67): a hit that lands knocks off `hit_loss` of it (half; 1.0, the default, is the old full
+	# reset) and drops every Overdrive gear; an evaded, shielded or immune hit returned above and keeps both
+	if momentum and (_momentum_t > 0.0 or _over_t > 0.0 or Run.overdrive > 0):
+		var ramp: float = float(Run.momentum_def.get("ramp_seconds", 12.0))
+		_momentum_t *= 1.0 - clampf(float(Run.momentum_def.get("hit_loss", 1.0)), 0.0, 1.0)
+		Run.momentum = _momentum_t / maxf(ramp, 0.1)
+		_over_t = 0.0
+		Run.overdrive = 0
 		Run.rebuild_sheets()
 	_flash = 1.0
 	# a strip with a real flinch plays it through; the single squashed frame shows for a blink

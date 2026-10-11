@@ -1,0 +1,35 @@
+{
+  "id": "buzzer_beater",
+  "name": "Buzzer Beater",
+  "flavour": "Three. Two. One.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "fadeaway",
+  "text": "Every 24 s the buzzer sounds: for 5 s every weapon's cooldown is 35% shorter and it fires 2 more (the ball bounces 2 more times).",
+  "effects": [],
+  "special": "periodic_buff",
+  "params": {
+    "every": 24.0,
+    "first": 12.0,
+    "seconds": 5.0,
+    "buff": [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.35,
+        "target": "player"
+      },
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 2,
+        "target": "player"
+      }
+    ]
+  },
+  "art_prompt": "a red LED basketball shot clock reading 24 with a lightning crack across its glass",
+  "placeholder": {
+    "color": "#E83A2A",
+    "glyph": "clock"
+  }
+}

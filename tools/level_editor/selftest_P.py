@@ -291,7 +291,8 @@ def checks(check, run_node, server):
         if x["warnings"]:
             print("  warn %s %s: %d" % (x["kind"], x["id"], x["warnings"]))
     band = res["band"]
-    check(band["base"] == 67 and band["locked"] == 23, "P the quest-locked band counts 23 of 67 base items (pass44_test): %s" % band)
+    # pass 67: Fadeaway's basketball (a hero's own weapon, no quest) joins the base: 23 of 68
+    check(band["base"] == 68 and band["locked"] == 23, "P the quest-locked band counts 23 of 68 base items (pass44_test): %s" % band)
     check(0.33 <= band["share"] <= 0.56, "P the band is inside 0.33-0.56 today: %.3f" % band["share"])
     av = res["availability"]
     check(av == {"revolver": "available", "spear": "hidden", "hammer": "locked", "adrenaline": "locked"}, "P derived availability: %s" % av)

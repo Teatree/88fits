@@ -299,13 +299,13 @@ func test_the_hero_tab_has_a_tile_per_hero_and_a_tap_swaps() -> void:
 	var panel := _panel(game)
 	for c: CharacterDef in Registry.sorted_characters():
 		assert_object(panel._content.find_child("Hero_" + c.id, true, false)).override_failure_message(c.id).is_not_null()
-	# the ones out of play only with the debug mode on
-	assert_object(panel._content.find_child("Hero_buck", true, false)).is_null()
+	# the ones out of play only with the debug mode on (pass 67: Dad; Buck is back in play)
+	assert_object(panel._content.find_child("Hero_dad", true, false)).is_null()
 	Settings.debug_mode = true
 	panel._refresh()
-	var buck_tile: Control = panel._content.find_child("Hero_buck", true, false)
-	assert_object(buck_tile).is_not_null()
-	assert_float(buck_tile.modulate.a).is_less(1.0)
+	var dad_tile: Control = panel._content.find_child("Hero_dad", true, false)
+	assert_object(dad_tile).is_not_null()
+	assert_float(dad_tile.modulate.a).is_less(1.0)
 	# a tap on the Drifter's tile swaps him in and closes the sheet
 	panel._sheet.visible = true
 	var tile: Control = panel._content.find_child("Hero_drifter", true, false)

@@ -1,0 +1,102 @@
+{
+  "id": "basketball",
+  "name": "Basketball",
+  "flavour": "It always comes back. Usually through somebody.",
+  "rarity": "rare",
+  "weight": 8,
+  "hero": "fadeaway",
+  "behavior": "ProjectileEmitter",
+  "targeting": "priority",
+  "tags": [
+    "ball"
+  ],
+  "base": {
+    "damage": 20,
+    "cooldown": 1.4,
+    "amount": 1,
+    "pierce": 0,
+    "speed": 16,
+    "range": 9,
+    "knockback": 4.0
+  },
+  "max_level": 5,
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.1
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      },
+      {
+        "stat": "speed",
+        "op": "mul",
+        "value": 0.2
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "slam_dunk",
+  "params": {
+    "radius": 0.3,
+    "roll_radius": 0.22,
+    "no_shells": true,
+    "amount_mode": "bounces",
+    "ricochet_any": {
+      "count": 1,
+      "frac": 0.85,
+      "reach": 7.0
+    },
+    "return": true,
+    "return_on_hit": true,
+    "return_pierce": 2,
+    "return_damage_mult": 0.75,
+    "back_speed_mult": 1.25,
+    "catch": {
+      "refund": 0.35,
+      "heat_per": 0.05,
+      "heat_max": 10
+    }
+  },
+  "sfx": {
+    "fire": "w_ball_throw",
+    "hit": "w_ball_bounce",
+    "catch": "w_ball_catch"
+  },
+  "placeholder": {
+    "color": "#E85D0F",
+    "glyph": "ball"
+  },
+  "art_prompt": "an orange basketball with black seams seen three-quarter, a faint curved motion arc behind it"
+}

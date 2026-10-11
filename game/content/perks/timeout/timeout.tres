@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/timeout/timeout_icon.png" id="1_otdkn"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_e2fl1"]
+
+[resource]
+script = ExtResource("2_e2fl1")
+hero = "fadeaway"
+text = "Every 20 s a Timeout lands 3 m beside him and waits 30 s; one at a time. Step on it: he leaps clear of the crowd, untouchable for 0.8 s, and the crowd he left stands slowed 50% for 2 s."
+special = "timeout"
+params = {
+"every": 20.0,
+"first": 10.0,
+"pickup": "timeout",
+"side": 3.0
+}
+id = "timeout"
+display_name = "Timeout"
+flavour = "Stop the clock. Leave the floor."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_otdkn")
+icon_file = "timeout_icon.png"
+placeholder = {
+"color": "#B57BFF",
+"glyph": "clock"
+}

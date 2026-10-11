@@ -91,3 +91,51 @@ empty picture); every job's sidebar copies sit in their own sub-folder (a re-rol
 and cancelled cards show their workflows; "Send to ComfyUI" reports what failed; the extension no longer loads inside
 the awaited `setup` hook (the page's own init loaded another graph on top) but waits for the page's active workflow
 and opens the saved file through the workflow store; `--install-ext` waits for the server's own queue to empty. Garry then saw the link "just open ComfyUI": the saved graphs carry no view (no `extra.ds`), so a canvas panned far away in a long-lived browser showed an empty page although the tab had changed; the extension now fits the view to the graph after loading (the `Comfy.Canvas.FitView` command), brings its tab back if a late restore took it, and says what it did in a toast; the Art Guide got a What-changed callout, a Looks section (recipe sources, Duplicate, the painter) and a Jobs section (the ComfyUI links, one editor at a time).
+
+**Pass 67 (2026-10-11/12, v0.53): Polish 2.** Garry's list with design freedom "inspired by MegaBonk": darker, richer
+weapon materials; the Hammer Giant at a third of its knockback with a stat for it; a quieter chest; the gem pickups as a
+tune; Buck ("the gazelle guy") back and more powerful with his back run repainted; a new escape hero, a basketball
+player. Run as a multi-agent pass: six readers mapped the subsystems (tools/dl/p67/map_*.json), three designers and a
+judge wrote the hero kits (tools/dl/p67/design_spec.json, scored on fun, phone legibility, codebase fit, shape rules,
+balance and buildability), then six implementation lanes in two waves under RULES.md / INTERFACES.md (file ownership,
+shared names, a landing order; the second wave stopped on the old model's spend limit and resumed on Opus from status
+files). **Weapons** (BALANCING 14.30): the Blender scripts had typed sRGB numbers into linear colour and Red Canyon's warm
+light pulls every lit mesh toward the sand while the painted sprites are unshaded, so `WeaponBehavior.grade_materials`
+grades every lit, opaque, untextured StandardMaterial3D of a weapon's visual in HSV (one copy per material, value x 0.78,
+saturation x 1.3, emission alike) from the map's new `weapon_grade` block (glow 0.3), `params.grade` per weapon, the title
+stage and the warm-up mirrored; the Level Editor's map Save now keeps top-level keys the page does not know.
+**Knockback** (14.1): `knockback_resist` (creature JSON, 0..1) is the share of every hero-side shove a creature shrugs off
+(hits, throws, the Lasso pull, Ram; the boss factor composes); the Hammer Giant 0.67; editor rows, card stat, compare row.
+**Sounds** (§12): the chest's landing jingle -9 dB and slot stop -10 dB, the evolution's mega-win once (on TAKE), the lid's
+crack no longer repeats the open sound, TAKE clacks a poker chip instead of the purchase ka-ching; the gem tune:
+`Audio.chain_pitch` reads `ladder` (semitone offsets), `chain_group`, `chain_min_ms`, `chain_end`, and the three gem rows
+share one counter and climb a pentatonic rooted in each ding's note (all in C major, window 0.6 s, no jitter: the pass-65
+quarter-tone slide was inaudible under ±0.5 semitone jitter and three counters); five placeholder rows for the ball;
+`ai_sfx.py --volume` alone no longer falls through into a full generate run. **Buck** (14.2-14.11), un-hidden as the
+seventh hero (order 7): momentum {10 s, +80% speed, +60% damage, +20% evade (new `evade_bonus`), `hit_loss` 0.5: a landed
+hit takes half the charge, not all}, Full Tilt +1% speed a level beside the flat -15% start, Ram's dead number fixed (12 +
+2 a level + 3 x thorns, from `from` 0.99), the new perk Overdrive (a +5% damage gear every 5 s at full charge, five at
+most, gone on a landed hit; damage, never cooldown, because a cooldown under the Tommy Gun's burst cuts its tail), a bug
+fixed on the way (the sheet's quarter-second sync could stall the charge at 0.98, under Ram's 0.99), and a hero gauge on
+the HUD (`Run.hero_gauge()`: MOMENTUM with four notches for him, HEAT for Fadeaway). His back run is look BUC-B
+(hero_fit on `run_spread`: the arms swing beside the hips; BUC-C on `run_occ` bunched the hands again and is shelved).
+**Fadeaway** (14.12-14.29), order 6, made in the Level Editor from the Drifter's template: Footwork +0.5% evade a level,
+favourite Evade (at level 2), the Basketball (`tools/blender_basketball.py`, a vertex-coloured GLB: the visual gives it a
+material that reads the colours, the glTF import leaves them off) with code added to ProjectileManager/ProjectileEmitter:
+`amount_mode` "bounces" (amount and Multishot add hops, never balls), `return_on_hit` (a spent ball turns home; none is
+ever lost), `return_pierce`, `ricochet_any.reach`, the rebound made a rule (the centre-to-centre touch test had made it
+chance), the catch (`Game.ball_caught` -> `on_caught`: 35% of the cooldown back, +1 Heat for a scoring trip, +5% damage a
+stack to 10, cooled by a landed hit), Free Throw (an evaded hit throws a ball), Slam Dunk (Heat kept, a dunk at full Heat);
+his path On Fire / Full Court Press / Rebound; the perks Timeout (a whistle pickup 3 m to the emptier side every 20 s, one
+at a time: stepping on it leaps him clear, 0.8 s untouchable, the crowd left slowed) and Buzzer Beater (every 24 s, 5 s
+of -35% cooldown and +2 amount: a reusable `periodic_buff` special); look FAD-B (hero_pose5, back views on run_spread; its
+back flinch repainted, it had faced the viewer), FAD-A (the placeholder strip) shelved, the badge, the title cut-out with
+the ball and every icon painted by the AI and picked by eye. Probe at an empty Mirror (seed 11, net max HP lost a minute):
+late stage 1 Fadeaway 0.79, Calavera 0.53, Buck 0.36; late stage 3 Fadeaway 0.15, Calavera 0.33, Buck 0.50 (Fadeaway
+deals the most there, 10.7k a second): fragile early, tanky late, as an evade hero should be; no retune. Tests: pass67_grade
+(6), pass67_kb (11), pass67_sounds (11), pass67_ball (12), pass67_buck (14), pass67_fadeaway (9); re-pins in pass334,
+pass26, pass46_passives, pass55_hv, pass61_hr, pass66_shape, pass53_weapons_b, pass61_wp1, the editor's selftest_S/P.
+BALANCING §14 holds 33 named rules. **Lessons**: a global like Run.heat leaks across the rounds of a looped test (reset
+it per round); a sync that skips small steps needs its end state forced or a threshold just under the top becomes a coin
+toss; a GLB's vertex colours need a material that reads them; agents stopped by a spend limit resume cleanly when each
+keeps a status file of what is in the tree.

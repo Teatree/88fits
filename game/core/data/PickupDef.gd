@@ -1,9 +1,10 @@
 ## A pickup that appears on the ground now and then (content/pickups/<id>/): a heal, a timed buff, a shield,
-## or a gem vacuum. Which ones appear, how often and how rare is the map's timeline ("pickups" block).
+## or a gem vacuum. Which ones appear, how often and how rare is the map's timeline ("pickups" block); a hero's perk
+## may drop one on its own clock (pass 67: Fadeaway's Timeout, whose "leap" throws him clear and slows the crowd).
 class_name PickupDef
 extends ContentDef
 
-## heal | buff | shield | vacuum
+## heal | gold | buff | shield | vacuum | nuke | pollen | leap (Game.apply_pickup)
 @export var effect_kind: String = "heal"
 ## heal: fraction of max HP restored.
 @export var value: float = 0.3

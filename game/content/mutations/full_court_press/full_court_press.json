@@ -1,0 +1,30 @@
+{
+  "id": "full_court_press",
+  "name": "Full Court Press",
+  "flavour": "Nobody gets past half court.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "basketball",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Two more bounces, and the ball looks 10 m for its next target.",
+  "vfx": "a longer orange streak between bounces",
+  "effects": [
+    {
+      "stat": "amount",
+      "op": "add",
+      "value": 2
+    }
+  ],
+  "params": {
+    "ricochet_any": {
+      "reach": 10.0
+    }
+  },
+  "art_prompt": "an orange basketball with black seams at the end of a long dashed white arc that dips down three times from the left, three small white star bursts where it touched down",
+  "placeholder": {
+    "color": "#C8743A",
+    "glyph": "star"
+  }
+}

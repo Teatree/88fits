@@ -35,8 +35,26 @@ const BUILDS := {
 		"b3": {"weapons": [["golden_revolver", 0, []], ["moonshine", 0, []], ["saw_halo", 0, []], ["whirlwind", 0, []], ["peashooter", 5, ["big_peas", "bouncing_peas"]]],
 			"passives": [["juggernaut", 1], ["mend", 2], ["vigour", 4], ["deadeye", 4], ["multishot", 3], ["reach", 3], ["powder_keg", 3], ["quickdraw", 3], ["cold_snap", 3]]},
 	},
+	# pass 67 (lane M): Calavera's budget with Buck's Tommy Gun (Drum Roll its stage-1 pick, the Chicago Typewriter from
+	# b2) in place of the Guitarra, and the Drifter's Orbit Saws in the Tommy Gun's old slot
+	"buck": {
+		"b1": {"weapons": [["tommy_gun", 3, ["drum_roll"]], ["molotov", 2, ["accelerant"]], ["boomstick", 2, ["both_barrels"]], ["orbit_saws", 2, ["saw_swarm"]], ["zap_beam", 1, ["fork"]]],
+			"passives": [["brawn", 2], ["mend", 2], ["vigour", 1], ["reach", 1], ["cold_snap", 2], ["desperado", 2], ["powder_keg", 2], ["skedaddle", 1]]},
+		"b2": {"weapons": [["chicago_typewriter", 0, ["drum_roll"]], ["molotov", 4, ["accelerant", "methanol"]], ["boomstick", 4, ["both_barrels", "birdshot_lane"]], ["orbit_saws", 4, ["saw_swarm", "rust"]], ["zap_beam", 3, ["fork", "echo_zap"]]],
+			"passives": [["brawn", 3], ["mend", 3], ["vigour", 2], ["haste", 2], ["multishot", 1], ["reach", 2], ["cold_snap", 2], ["desperado", 2], ["powder_keg", 2], ["skedaddle", 1]]},
+		"b3": {"weapons": [["chicago_typewriter", 0, ["drum_roll"]], ["moonshine", 0, []], ["blunderbuss", 0, []], ["saw_halo", 0, []], ["zap_beam", 5, ["fork", "echo_zap"]]],
+			"passives": [["juggernaut", 1], ["mend", 3], ["vigour", 2], ["haste", 4], ["multishot", 3], ["reach", 3], ["cold_snap", 3], ["desperado", 3], ["powder_keg", 3], ["skedaddle", 2]]},
+	},
+	# pass 67 (the lead): Calavera's budget with Fadeaway's Basketball (On Fire its stage-1 pick, Slam Dunk from b3) in
+	# place of the Guitarra, and his favourite line Evade (Ghost Step evolved in b3) in Brawn's slot
+	"fadeaway": {
+		"b1": {"weapons": [["basketball", 3, ["on_fire"]], ["molotov", 2, ["accelerant"]], ["boomstick", 2, ["both_barrels"]], ["tommy_gun", 2, ["drum_mag"]], ["zap_beam", 1, ["fork"]]],
+			"passives": [["evade", 2], ["mend", 2], ["vigour", 1], ["reach", 1], ["cold_snap", 2], ["desperado", 2], ["powder_keg", 2], ["skedaddle", 1]]},
+		"b3": {"weapons": [["slam_dunk", 0, []], ["moonshine", 0, []], ["blunderbuss", 0, []], ["chicago_typewriter", 0, []], ["zap_beam", 5, ["fork", "echo_zap"]]],
+			"passives": [["ghost_step", 1], ["mend", 3], ["vigour", 2], ["haste", 4], ["multishot", 3], ["reach", 3], ["cold_snap", 3], ["desperado", 3], ["powder_keg", 3], ["skedaddle", 2]]},
+	},
 }
-const START := {"calavera": "guitarra", "drifter": "revolver", "astro": "gravity_gun", "solenne": "sun_scepter", "ironwood": "pike"}
+const START := {"calavera": "guitarra", "drifter": "revolver", "astro": "gravity_gun", "solenne": "sun_scepter", "ironwood": "pike", "buck": "tommy_gun", "fadeaway": "basketball"}
 ## The Mirror's forms the probe plays (lane PC: the defensive and damage forms; Omen, Reroll and Field Notes change
 ## nothing a fixed build shows, so Fortune and Choice ride along and Study is Poultice): talent id -> form index.
 const FORMS := {"grit": 0, "drive": 0, "stride": 0, "fortune": 0, "choice": 0, "nerve": 1, "study": 1, "spite": 1}

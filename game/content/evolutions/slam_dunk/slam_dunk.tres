@@ -1,0 +1,77 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/slam_dunk/slam_dunk_icon.png" id="1_3lqih"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_0q43i"]
+[ext_resource type="PackedScene" path="res://content/weapons/basketball/basketball_visual.tscn" id="3_0x3qh"]
+
+[resource]
+script = ExtResource("2_0q43i")
+tags = ["ball"]
+targeting = "priority"
+base = {
+"amount": 1.0,
+"cooldown": 1.2,
+"damage": 36.0,
+"knockback": 6.0,
+"pierce": 0.0,
+"range": 10.0,
+"speed": 18.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "basketball"
+sfx = {
+"catch": "w_ball_catch",
+"fire": "w_ball_throw",
+"hit": "w_ball_bounce"
+}
+visual = ExtResource("3_0x3qh")
+visual_file = "res://content/weapons/basketball/basketball_visual.tscn"
+params = {
+"amount_mode": "bounces",
+"back_speed_mult": 1.6,
+"catch": {
+"heat_keep": true,
+"heat_max": 10.0,
+"heat_per": 0.05,
+"refund": 0.4,
+"slam": {
+"at_heat": 10.0,
+"damage_frac": 1.5,
+"knockback": 12.0,
+"radius": 3.5
+}
+},
+"final": {
+"tint": {
+"albedo": "#FFB347",
+"emission": "#FF7A00",
+"energy": 1.2
+}
+},
+"no_shells": true,
+"radius": 0.34,
+"return": true,
+"return_damage_mult": 1.0,
+"return_on_hit": true,
+"return_pierce": 80.0,
+"ricochet_any": {
+"count": 3.0,
+"frac": 0.9,
+"reach": 10.0
+},
+"roll_radius": 0.22
+}
+hero = "fadeaway"
+id = "slam_dunk"
+display_name = "Slam Dunk"
+flavour = "He catches. He dunks. The floor remembers."
+rarity = "rare"
+icon = ExtResource("1_3lqih")
+icon_file = "slam_dunk_icon.png"
+placeholder = {
+"color": "#FFB347",
+"glyph": "ball",
+"gold": true
+}

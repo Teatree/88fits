@@ -588,6 +588,30 @@ JOBS = {
                       "subject": "one single muscular arm bent at the elbow flexing a big round bicep, exactly one clenched fist "
                                  "at the top, the whole arm from the rounded shoulder to the fist inside the picture with empty "
                                  "background all round it, tan skin"},
+    # pass 67 (set 67, lane M): Buck's Overdrive perk ("Past full. Then past that.": gears of attack damage at full
+    # charge); gen_art's "hoof print with five speed lines" painted a five-fingered glove, so the print is two toe marks
+    # and the second subject is the literal "past full", a gauge pinned past its red zone
+    "overdrive": {"set": "67", "kind": "perks", "id": "overdrive",
+                  "subject": "a single deer hoof print glowing bright gold: two curved teardrop-shaped toe marks side by side "
+                             "with a narrow gap between them, a warm orange rim of light round them, and three short straight "
+                             "orange speed streaks trailing behind the print"},
+    "overdrive2": {"set": "67", "kind": "perks", "id": "overdrive",
+                   "subject": "a round brass speedometer gauge with a cream face, bold black tick marks and a red zone at its "
+                              "top end, the black needle pinned hard past the red zone, a small golden lightning bolt on the "
+                              "face and a burst of golden sparks at the needle's tip"},
+    # pass 67 (set 67, lane C): Fadeaway's basketball, painted from the game's own ball (tools/blender_basketball.py's
+    # three-quarter render, already on green)
+    "basketball": {"set": "67", "kind": "weapons", "id": "basketball", "ref": "basketball_ref.png",
+                   "subject": COPY + "an orange basketball with black seams seen three-quarter, a faint curved motion arc behind "
+                              "it"},
+    # gen_art's court seen from above came out a half-keyed green diagram, and the Rebound's black silhouettes vanish on
+    # the dark cards: one plain ball and one plain white path each
+    "full_court_press": {"set": "67", "kind": "mutations", "id": "full_court_press", "ref": "basketball_ref.png",
+                         "subject": COPY + "an orange basketball with black seams at the end of a long dashed white arc that "
+                                    "dips down three times from the left, three small white star bursts where it touched down"},
+    "rebound": {"set": "67", "kind": "mutations", "id": "rebound", "ref": "basketball_ref.png",
+                "subject": COPY + "an orange basketball with black seams and one thick curved white arrow that leaves it, loops "
+                           "round in a wide oval and comes back to it, like a boomerang's path"},
 }
 
 

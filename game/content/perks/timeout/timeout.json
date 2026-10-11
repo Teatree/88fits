@@ -1,0 +1,22 @@
+{
+  "id": "timeout",
+  "name": "Timeout",
+  "flavour": "Stop the clock. Leave the floor.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "fadeaway",
+  "text": "Every 20 s a Timeout lands 3 m beside him and waits 30 s; one at a time. Step on it: he leaps clear of the crowd, untouchable for 0.8 s, and the crowd he left stands slowed 50% for 2 s.",
+  "effects": [],
+  "special": "timeout",
+  "params": {
+    "every": 20.0,
+    "first": 10.0,
+    "side": 3.0,
+    "pickup": "timeout"
+  },
+  "art_prompt": "a chrome referee's whistle on a purple lanyard with a white 'T' timeout hand-sign burst behind it",
+  "placeholder": {
+    "color": "#B57BFF",
+    "glyph": "clock"
+  }
+}

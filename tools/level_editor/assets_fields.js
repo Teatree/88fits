@@ -101,7 +101,8 @@ const AFIELDS = (() => {
     MineLayer: ['extra_supply', 'jackrabbit', 'lay_ahead', 'max_mines', 'trigger_radius', 'spring'],
     MissilePod: ['cluster_spin', 'familiar', 'hawk', 'missile', 'overpressure', 'pollen', 'pressure', 'cluster', 'blast_fx'],
     Orbiter: ['breathe', 'gyro', 'lasso', 'rust', 'rust_patina', 'side_knock', 'solid_ring', 'spin_speed', 'strike'],
-    ProjectileEmitter: ['aura', 'burst', 'burst_gap', 'double_every', 'double_gap', 'double_tap', 'drum_axis', 'drum_scale', 'drum_step', 'familiar', 'fan_step_deg', 'fire_blind', 'hip_shot', 'look', 'momentum_rounds', 'no_shells', 'radius', 'radius_mult', 'shockwave', 'silver', 'speed_mult', 'sweep_deg', 'scatter_deg', 'tint', 'blast'],
+    ProjectileEmitter: ['aura', 'burst', 'burst_gap', 'double_every', 'double_gap', 'double_tap', 'drum_axis', 'drum_scale', 'drum_step', 'familiar', 'fan_step_deg', 'fire_blind', 'hip_shot', 'look', 'momentum_rounds', 'no_shells', 'radius', 'radius_mult', 'shockwave', 'silver', 'speed_mult', 'sweep_deg', 'scatter_deg', 'tint', 'blast',
+      'amount_mode', 'free_throw', 'tracer_color'],
     Smasher: ['giant_slayer', 'smash', 'thor'],
     Spawner: ['max_turrets', 'max_turrets_mult', 'turret', 'turret_fire_rate', 'magnet', 'tracer', 'focus'],
     SunScepter: ['familiar', 'gold_dust', 'handle_ring', 'shine', 'staff_tint', 'sun', 'zenith'],
@@ -111,7 +112,9 @@ const AFIELDS = (() => {
   const PARAMS_SHARED = ['final', 'glow', 'familiar', 'look', 'ricochet_any', 'mini_crit', 'fire_blue', 'ignite_chance', 'zenith', 'sticky', 'size_mult', 'silver', 'pollen', 'plant', 'pin', 'pierce_falloff', 'out_speed_mult', 'back_speed_mult',
     'return_damage_mult', 'return', 'second_pass', 'hip_shot', 'double_every', 'cone', 'burst_spawn', 'bounce', 'bomblets', 'bomblet_damage_mult', 'aura', 'wander', 'turn', 'trail', 'tracer', 'tracer_step', 'tracer_size',
     'tracer_life', 'tracer_beads', 'tracer_alpha', 'trace', 'tint', 'thrust', 'telegraph', 'tail_fade', 'sun', 'split_scale', 'split_count', 'spiral', 'spent', 'cloud_mult', 'cloud_seconds', 'curare', 'hit_radius',
-    'roll_radius', 'no_spin', 'trail_zone', 'life', 'gold_on_kill', 'speed_mult', 'radius_mult'];
+    'roll_radius', 'no_spin', 'trail_zone', 'life', 'gold_on_kill', 'speed_mult', 'radius_mult',
+    // pass 67 (the basketball): ProjectileManager turns the ball home when its hits are spent and hands the catch over
+    'return_on_hit', 'return_pierce', 'catch'];
   function paramsKnown(key, behavior) {
     return PARAMS_SHARED.includes(key) || (PARAMS_KEYS[behavior] || []).includes(key);
   }
@@ -368,7 +371,7 @@ const AFIELDS = (() => {
       { key: 'trait_name', label: 'Trait name', type: 'text', help: 'the plaque and sheet title ("Long Road")' },
       { key: 'trait_per_level', label: 'Per level', type: 'stat_effects', stats: 'player', target: 'player', help: 'the signature stat(s): one Effect per entry worth value x level' },
       { key: 'trait_preview', label: 'Reads as', type: 'trait_preview', help: 'TextGen.hero_trait from the rule above, and what it comes to at level 20' },
-      { key: 'trait_text', label: 'Trait text', type: 'textarea', help: 'read only when there is no per-level rule (the hidden heroes); a test wants it equal to the rule\'s sentence for played heroes' },
+      { key: 'trait_text', label: 'Trait text', type: 'textarea', help: 'read when there is no per-level rule (the hidden heroes), and said after the rule for a hero with a special (pass 67: Buck\'s charge); a test wants it equal to the rule\'s sentence for the other played heroes' },
       { key: 'trait', label: 'Flat trait (legacy)', type: 'stat_effects', stats: 'player', target: 'player', help: 'added to the sheet once; empty on every played hero (a test wants it empty)' },
       { key: 'level_heal', label: 'Heal per level', type: 'percent', def: 0, help: 'share of max HP healed on every level-up (Astro 8%)' },
     ]),
@@ -388,6 +391,8 @@ const AFIELDS = (() => {
       { key: 'momentum.ramp_seconds', label: 'Momentum ramp (s)', type: 'number', min: 0, def: 12, only: (d) => Array.isArray(d.specials) && d.specials.includes('momentum') },
       { key: 'momentum.speed_bonus', label: 'Momentum speed', type: 'number', min: 0, step: 0.05, def: 0.6, only: (d) => Array.isArray(d.specials) && d.specials.includes('momentum') },
       { key: 'momentum.might_bonus', label: 'Momentum damage', type: 'number', min: 0, step: 0.05, def: 0.5, only: (d) => Array.isArray(d.specials) && d.specials.includes('momentum') },
+      { key: 'momentum.evade_bonus', label: 'Momentum evade', type: 'number', min: 0, max: 0.9, step: 0.05, def: 0, help: 'evade chance added at full charge (Run._build_player_sheet; an evaded hit never touches the charge). Pass 67', only: (d) => Array.isArray(d.specials) && d.specials.includes('momentum') },
+      { key: 'momentum.hit_loss', label: 'A hit knocks off (share)', type: 'number', min: 0, max: 1, step: 0.05, def: 1, help: 'the share of the charge a hit that lands takes (Player.take_damage): 0.5 = half, 1 = all of it (the old reset). Pass 67', only: (d) => Array.isArray(d.specials) && d.specials.includes('momentum') },
       { key: 'unlock_quest', label: 'Unlock quest', type: 'readonly', help: 'a dead key: never read. A hero is gated by a quest whose unlocks names him' },
     ]),
     T('Availability', [
@@ -740,7 +745,7 @@ const AFIELDS = (() => {
       E('favourite_passive', (d, c) => !d.hidden && str(d.favourite_passive) && flat(c, 'passives') && !findIn(flat(c, 'passives'), d.favourite_passive), (d) => `favourite_passive "${d.favourite_passive}" is not a passive (Registry.problems)`),
       E('specials', (d, c) => Array.isArray(d.specials) && d.specials.some((s) => !vals(vocabOf(c).specials).includes(str(s))), (d, c) => `unknown special: ${d.specials.filter((s) => !vals(vocabOf(c).specials).includes(str(s))).join(', ')} (a new mechanism needs code: ask Claude)`),
       E('badJson', (d, c) => c && c.badJson && Object.keys(c.badJson).length > 0, (d, c) => `a JSON box does not parse: ${Object.keys(c.badJson).join(', ')}`),
-      W('trait_text', (d) => Array.isArray(d.trait_per_level) && d.trait_per_level.length > 0 && str(d.trait_text) !== M.heroTrait(d), (d) => `trait_text differs from the rule's sentence "${M.heroTrait(d)}" (pass61_hr pins them equal for played heroes: Set from the rule)`),
+      W('trait_text', (d) => Array.isArray(d.trait_per_level) && d.trait_per_level.length > 0 && !M.heroOwnWords(d) && str(d.trait_text) !== M.heroTrait(d), (d) => `trait_text differs from the rule's sentence "${M.heroTrait(d)}" (pass61_hr pins them equal for played heroes: Set from the rule)`),
       W('favourite_weapon', (d, c) => !!d.hidden && str(d.favourite_weapon) && flat(c, 'weapons') && !findIn(flat(c, 'weapons'), d.favourite_weapon), (d) => `favourite_weapon "${d.favourite_weapon}" is not a weapon (fine while hidden)`),
       W('availability', (d, c) => c && c.saved && (!!c.saved.hidden || (c.saved.availability != null && c.saved.availability !== 'available')) && !d.hidden && (d.availability == null || d.availability === 'available'), 'this hero turns playable: the tests pin the five heroes (pass334_test:111, pass61_hr_test:10); re-pin them first or keep him hidden'),
       W('hidden', (d) => !!d.hidden !== (d.availability != null && d.availability !== 'available') && d.availability != null, (d) => `hidden (${!!d.hidden}) and availability (${d.availability}) disagree: the game hides a hero when either says so`),
