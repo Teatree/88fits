@@ -598,7 +598,13 @@ zoom 1×, 2×, 4× and a full-size modal, on the sand at about 94 px/m with a 1 
 players animate at once (the rest hold frame 0 and say so), only visible ones tick, hover-to-play in grids, decoded
 strips kept in a cache of 16. Per look: Make default, Approve (clears `fresh`), Shelve (`shelved: true` hides it from
 the arena's chips and the lists, a row naming it still plays it), Remove (the PNGs to `backups/deleted/`), Edit note /
-recipe, Re-roll, Icon candidates. Icons preview at 128 / 64 / 36 on the rarity plate; a hero's title cut-out at a
+recipe (raw JSON), Recipe (typed) (every field of the method with its source: own, inherited from the creature's own
+art words, or the method's default; a look with no recipe recorded says so; keys the form has no row for are listed),
+Re-roll, Duplicate (a new look from this one's recipe, words and painter under the next free code; "reuse the
+paintings" redoes only the clips), Icon candidates. Each card names its method, how many keys its recipe holds of its
+own and the painter it ran with (`variants[CODE].recipe.painter`, written by every look job; Re-roll and Duplicate
+start from it; gen_art reads it on a hand run that names none). The editor pane's sticky header carries the look's
+icon and the name, so the asset being edited stays in view while the pane scrolls. Icons preview at 128 / 64 / 36 on the rarity plate; a hero's title cut-out at a
 quarter with a 1:1 view.
 
 **Art jobs.** "+ Generate art" opens the job form: a card per method from `tools/level_editor/methods.json` (17: the

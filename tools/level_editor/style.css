@@ -698,6 +698,10 @@ input.num.bad { border-color: var(--crit); box-shadow: 0 0 0 1px var(--crit) ins
    script, looks, recipes, modals, the hero and item cards, the band gauge. Appended as one block; nothing above changes. */
 .apanes { display: flex; gap: 14px; align-items: flex-start; min-width: 0; }
 .apanes.with-editor { height: calc(100vh - 128px); }
+/* with an editor open, the tab panel itself never scrolls (its 48 px bottom padding used to leave it 47 px of travel that
+   carried the pinned header off the top): the panes take exactly the room under the tab bar and the pane scrolls inside */
+.tab-panel.page:has(.apanes.with-editor) { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 10px; }
+.tab-panel.page:has(.apanes.with-editor) .apanes.with-editor { height: auto; flex: 1 1 auto; min-height: 0; }
 .apanes.with-editor .alist { flex: 0 0 440px; max-width: 440px; overflow: auto; height: 100%; min-height: 0; padding-right: 4px; }
 .apanes.with-editor .palette { grid-template-columns: 1fr; }
 .apanes.with-editor .palette-bar { flex-wrap: wrap; gap: 8px; }
@@ -711,8 +715,21 @@ input.num.bad { border-color: var(--crit); box-shadow: 0 0 0 1px var(--crit) ins
 /* the sticky header */
 .ahead { position: sticky; top: 0; z-index: 6; background: var(--page); border-bottom: 1px solid var(--border); padding: 6px 0; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
 .ahead.dirty { border-bottom-color: rgba(250,178,25,0.5); }
-.ahead-title { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; min-width: 0; }
+.ahead-title { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; min-width: 0; }
 .ahead-title b { font-size: 1.05rem; }
+.ahead-title b.ahead-name { font-size: 1.3rem; line-height: 1.1; }
+/* the look's icon beside the name, so the asset being edited stays in view while the pane scrolls */
+.ahead-icon { width: 44px; height: 44px; border-radius: 9px; background: var(--surface-3); object-fit: contain; flex: 0 0 auto; }
+.ahead-icon.none { visibility: hidden; }
+/* the recipe editor: the state note, each field's source, keys the form has no row for */
+.rnote { font-size: 0.82rem; color: var(--ink-2); background: var(--surface-2); border-left: 3px solid var(--border-2); border-radius: 6px; padding: 6px 10px; margin: 4px 0 8px; }
+.rnote.warn { border-left-color: var(--warn); color: var(--ink); }
+.rsrc { display: inline-block; font-size: 0.68rem; line-height: 1.5; padding: 0 6px; border-radius: 4px; border: 1px solid var(--border-2); color: var(--muted); margin: 6px 0 0 6px; vertical-align: top; white-space: nowrap; max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+.rsrc.own { color: var(--s3); border-color: rgba(25,158,112,0.55); }
+.rsrc.inh { color: var(--s4); border-color: rgba(120,150,230,0.5); }
+.rextra { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; font-size: 0.8rem; }
+.rextra dt { color: var(--muted); font-family: ui-monospace, Consolas, monospace; }
+.rextra dd { margin: 0; overflow-wrap: anywhere; }
 .akind { font-size: 0.68rem; letter-spacing: 0.08em; padding: 1px 6px; border-radius: 4px; background: var(--surface-3); color: var(--ink-2); }
 .akind.boss { color: var(--s8); } .akind.hero { color: var(--s4); } .akind.weapon, .akind.evolution { color: var(--s1); } .akind.passive { color: var(--s3); } .akind.mutation { color: var(--s7); }
 .ahead-actions { display: flex; gap: 6px; align-items: center; margin-left: auto; flex-wrap: wrap; }

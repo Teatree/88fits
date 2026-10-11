@@ -81,12 +81,28 @@ def _model_settings():
             turbo = "0"
     if "--dev" in sys.argv and not m:
         m = "dev"
-    return {"model": m or "klein", "steps": steps, "guidance": guidance, "turbo": None if turbo == "" else turbo == "1"}
+    return {"model": m or "klein", "steps": steps, "guidance": guidance, "turbo": None if turbo == "" else turbo == "1",
+            "explicit": bool(m or steps or guidance or turbo != "")}
 
 
 MODEL = _model_settings()
 if MODEL["model"] == "dev":
     DEV = True
+
+
+def apply_painter(p):
+    """A look's recorded painter (variants[CODE].recipe.painter: {model, steps, guidance, turbo}, written by the Level
+    Editor's job) drives a hand run that named no painter itself (no ART_* env, no --model/--steps/--guidance/--turbo
+    flags); a job's own settings win. So `gen_art.py --only goblin --variant=GOB-E` paints GOB-E as its look says."""
+    global DEV
+    if MODEL.get("explicit") or not isinstance(p, dict):
+        return
+    MODEL["model"] = "dev" if p.get("model") == "dev" else "klein"
+    MODEL["steps"] = int(p.get("steps") or 0)
+    MODEL["guidance"] = float(p.get("guidance") or 0)
+    MODEL["turbo"] = p.get("turbo") if isinstance(p.get("turbo"), bool) else None
+    DEV = MODEL["model"] == "dev"
+    print("gen_art: the look's recorded painter: %s%s" % (MODEL["model"], (" %d steps" % MODEL["steps"]) if MODEL["steps"] else ""))
 
 
 def paint(prompt, seed, width, height, refs, prefix, full=False):
@@ -806,6 +822,7 @@ def process(type_, folder, id_):
         # the recipe overrides the creature's own art settings for this run only
         d = dict(base_d)
         d.update(ventry.get("recipe", {}))
+        apply_painter(d.get("painter"))
     # an optional "grade" block colours the keyed figure of every still and frame (artkit.grade): Mira's blue-grey denim
     # shares the blue screen's hue, so it can only be keyed while grey and is turned blue afterwards
     artkit.GRADE = d.get("grade") if isinstance(d.get("grade"), dict) else None

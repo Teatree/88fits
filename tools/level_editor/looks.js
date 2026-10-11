@@ -30,6 +30,32 @@ const LookGrid = (() => {
   function playCode(record) { return record.play || record.variant || record.variant_base || ''; }
   function isDefault(look, record) { return look.default === true || look.code === playCode(record); }
   function isStub(look) { return look.ready === false && !look.base; }
+  /** "Flux.2 dev · 28 passes · guidance 4 · no Turbo": a look's recorded painter (variants[CODE].recipe.painter, written
+   *  by its job; absent on looks painted before it was kept). */
+  function painterText(p) {
+    if (!p || typeof p !== 'object') return '';
+    const dev = p.model === 'dev';
+    const bits = [dev ? 'Flux.2 dev' : 'Flux.2 Klein', p.steps ? `${p.steps} passes` : (dev ? (p.turbo === false ? '28 passes (default)' : '8 passes (default)') : '4 passes (default)')];
+    if (dev) { if (p.guidance) bits.push(`guidance ${p.guidance}`); bits.push(p.turbo === false ? 'no Turbo' : 'Turbo'); }
+    return bits.join(' · ');
+  }
+  /** The method a look was painted with: its recipe's `method`, else what the open document's words imply (Assets.methodOf). */
+  function methodOf(look) {
+    if (look.recipe && look.recipe.method) return String(look.recipe.method);
+    if (current && current.doc && typeof Assets !== 'undefined' && typeof Assets.methodOf === 'function') { try { return Assets.methodOf(current.doc, look.code); } catch (_) { /* fall through */ } }
+    return '';
+  }
+  /** The recipe's own keys apart from the bookkeeping ones (painter, method). */
+  function ownKeys(look) { return Object.keys(look.recipe && typeof look.recipe === 'object' ? look.recipe : {}).filter((k) => !['painter', 'method'].includes(k)); }
+  /** The words the painting followed: the recipe's, else the creature's own (the open document's data). */
+  function wordsOf(look) {
+    const rec = look.recipe || {};
+    const base = current && current.doc && current.doc.data ? current.doc.data : {};
+    const own = rec.art_prompt || rec.prompt;
+    if (own) return { text: String(own), src: 'own' };
+    const inh = base.art_prompt || base.prompt;
+    return inh ? { text: String(inh), src: 'inherited' } : { text: '', src: '' };
+  }
   function st(kind, id) {
     const k = `${kind}|${id}`;
     if (!states.has(k)) states.set(k, { filter: '', status: 'all', page: 0, selected: null, selectMode: false, checked: new Set(), confirm: null, edit: null, busy: false, players: new Map(), stage: null });
@@ -176,7 +202,16 @@ const LookGrid = (() => {
     row('fps', JSON.stringify(look.fps || record.fps || {}) + ' (run and die from the JSON; the rest preview rates)');
     if (look.head != null) row('head', String(look.head), 'where the head sits in the cell (0..1 from the top), for the hit flash and the elite crown');
     if (look.imported === false) row('import', 'not imported: the game still plays the old .tres (Save or a finished job imports)');
-    if (look.has_recipe || look.recipe) row('recipe', look.recipe && look.recipe.method ? `${look.recipe.method} (Edit note / recipe shows it)` : 'yes (Edit note / recipe shows it)');
+    // the recipe: what differs from the creature's own words, the painter it ran with, the words it followed
+    const own = ownKeys(look);
+    const method = methodOf(look);
+    if (look.base && !own.length) row('recipe', 'the base strip: the creature\'s own art words (the Art section) are its recipe' + (method ? ` · ${method}` : ''), 'the top-level strip has no recipe of its own');
+    else if (!own.length) row('recipe', 'no recipe recorded' + (method ? ` · ${method} (implied)` : ''), 'painted before the Level Editor kept recipes, by hand, or by a job with an empty recipe: the creature\'s own words are what a job for this code would read now; Duplicate… starts a new look from them');
+    else row('recipe', `${method || 'method implied'} · ${own.length} own key${own.length === 1 ? '' : 's'} (${own.slice(0, 6).join(', ')}${own.length > 6 ? ', …' : ''}); the rest inherited from the creature`, 'Recipe (typed)… shows every field with its source: own, inherited or the method\'s default');
+    const w = wordsOf(look);
+    if (w.text) row('words', (w.text.length > 150 ? w.text.slice(0, 150) + '…' : w.text) + (w.src === 'inherited' ? ' (the creature\'s own)' : ''), w.text);
+    const painter = look.recipe && look.recipe.painter;
+    row('painter', painter ? painterText(painter) : 'not recorded (painted before the painter was kept: Flux.2 Klein with its defaults unless the job said dev)', 'the model and the passes the stills were painted with (the job form\'s Model settings, kept in variants[CODE].recipe.painter)');
     info.appendChild(dl);
     const acts = el('div', { class: 'lg-actions' });
     actions(acts, kind, id, record, look, s);
@@ -218,6 +253,12 @@ const LookGrid = (() => {
     }
     c.appendChild(pic);
     c.appendChild(el('div', { class: 'lg-note', text: look.note || '', title: look.note || '' }));
+    const painter = look.recipe && look.recipe.painter;
+    const own = ownKeys(look);
+    const method = methodOf(look);
+    const meta = look.base && !own.length ? 'the creature\'s own words' : (!own.length ? 'no recipe recorded' : `${own.length} own key${own.length === 1 ? '' : 's'}`);
+    c.appendChild(el('div', { class: 'lg-meta', text: `${method || '?'} · ${meta}${painter ? ' · ' + (painter.model === 'dev' ? 'dev' : 'Klein') + (painter.steps ? ' ' + painter.steps : '') : ''}`,
+      title: `${method ? 'method ' + method : 'the method is not recorded'} · ${meta}${painter ? ' · painted with ' + painterText(painter) : ' · the painter was not recorded'}` }));
     const acts = el('div', { class: 'lg-actions' });
     actions(acts, kind, id, record, look, s);
     c.appendChild(acts);
@@ -249,7 +290,8 @@ const LookGrid = (() => {
     else b('Remove', 'delete the entry; its PNGs and .import files move to tools/level_editor/backups/deleted/<id>/<stamp>/ (refused while a map row names it)', () => { s.confirm = { codes: [look.code] }; redraw(); }, 'danger');
     b('Edit note / recipe', 'the note shown on the cards and the recipe the art job reads (raw JSON)', () => { s.edit = { code: look.code, note: look.note || '', recipe: look.recipe || null }; redraw(); });
     if (current && current.doc && typeof Assets !== 'undefined' && typeof Assets.recipeEditor === 'function') b('Recipe (typed)…', 'the recipe as typed fields per method (the editor pane\'s own editor)', () => Assets.recipeEditor(current.doc, look.code));
-    b('Re-roll…', 'queue the look again: the job form opens with its recipe (new seeds, redo the clips, one view, or repaint the stills)', () => openForm(kind, id, { mode: 'look', code: look.code, method: look.recipe && look.recipe.method, recipe: look.recipe || null, reroll: true }));
+    b('Re-roll…', 'queue the look again: the job form opens with its recipe and painter (new seeds, redo the clips, one view, or repaint the stills)', () => openForm(kind, id, { mode: 'look', code: look.code, method: methodOf(look) || undefined, recipe: look.recipe || null, painter: (look.recipe && look.recipe.painter) || null, reroll: true }));
+    b('Duplicate…', 'a new look from this one: the job form opens with its recipe, its words and its painter copied and a new code; change the model, the passes or any field, then Queue (the stills are painted again unless you tick "reuse the paintings")', () => openForm(kind, id, { mode: 'look', method: methodOf(look) || undefined, recipe: look.recipe || null, painter: (look.recipe && look.recipe.painter) || null, duplicateOf: look.code, note: look.note || '' }));
     b('Icon candidates…', 'paint icon candidates for this look to pick from (the default icon is a crop of the front still)', () => openForm(kind, id, { mode: 'icon', code: look.code }));
   }
 
@@ -422,5 +464,5 @@ const LookGrid = (() => {
     if (current && current.kind === kind && current.id === id) current = null;
   }
 
-  return { render, select, dispose, playerOpts, looksOf, PAGE, STATUS };
+  return { painterText, render, select, dispose, playerOpts, looksOf, PAGE, STATUS };
 })();

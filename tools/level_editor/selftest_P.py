@@ -178,6 +178,12 @@ def _load(path):
 
 
 def checks(check, run_node, server):
+    # the editor pane's header and the recipe editor (pass 66 follow-up: the asset pinned at the top; every recipe field with its source)
+    with open(os.path.join(HERE, "assets.js"), "r", encoding="utf-8") as f:
+        a_src = f.read()
+    check("class: 'ahead-icon'" in a_src and "class: 'ahead-name'" in a_src, "P: the sticky header carries the look's icon and the name")
+    check("class: 'rsrc own'" in a_src and "class: 'rsrc inh'" in a_src and "No recipe was recorded" in a_src and "Also in the recipe" in a_src and "rec.painter" in a_src,
+          "P: the recipe editor marks each field's source, a look with no recipe, the painter, and keys the form has no row for")
     # ---- the three real strips: anims x frame_px against the PNG's size
     strips = [
         ("enemy", os.path.join(CONTENT, "enemies", "lesser_scorpion", "lesser_scorpion.json"), "LS-B", "lesser_scorpion_sprite_b.png", (14560, 160), 91),

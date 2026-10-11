@@ -783,6 +783,22 @@ const Jobs = (() => {
     if (!spec.counts) spec.counts = { seeds: 3, looks: 1 };
     if (spec.counts.looks == null) spec.counts.looks = 1;
     if (!spec.reroll) spec.reroll = { mode: '' };
+    // a look's recorded painter (Re-roll…, Duplicate…): the Model settings start from it; the recipe's own copy is
+    // dropped here, since enqueue writes `painter` again from the settings chosen in the form
+    if (!spec.job) spec.job = {};
+    if (opts.painter && typeof opts.painter === 'object') {
+      spec.job.model = opts.painter.model === 'dev' ? 'dev' : 'klein';
+      if (opts.painter.steps) spec.job.steps = Number(opts.painter.steps);
+      if (opts.painter.guidance) spec.job.guidance = Number(opts.painter.guidance);
+      if (opts.painter.turbo === false) spec.job.turbo = false;
+      spec.flags.dev = spec.job.model === 'dev';
+    }
+    if (spec.recipe && spec.recipe.painter) delete spec.recipe.painter;
+    // Duplicate…: a new code from this recipe; the stills slug is cleared so the paintings are made again under the new
+    // code (the form offers to reuse the source's instead); the source's note starts the new one
+    const duplicateOf = !job && opts.duplicateOf ? String(opts.duplicateOf) : null;
+    const srcStills = duplicateOf ? (spec.recipe.stills === undefined ? null : spec.recipe.stills) : null;
+    if (duplicateOf) { delete spec.recipe.stills; if (!spec.note) spec.note = (opts.note ? opts.note + ' · ' : '') + 'from ' + duplicateOf; }
     const fixedCode = job ? (job.target && job.target.code) : opts.code || null;
     const looksOf = record ? (record.looks || record.variants || []) : [];
     const existingCodes = looksOf.map((l) => l.code);
@@ -792,7 +808,7 @@ const Jobs = (() => {
     const dlg = document.createElement('dialog');
     dlg.className = 'sp-modal jform';
     const name = record ? (record.name || id) : id;
-    const headText = job ? `Edit job #${shortId(job.id)} · ${title(job)}` : `Art job · ${kind} ${name}${fixedCode ? ' · ' + fixedCode : ''} · ${mode === 'look' ? 'looks' : mode === 'icon' ? 'icon candidates' : mode === 'badge' ? 'the round badge' : mode === 'title' ? 'the title cut-out' : 'a 3D driver or reference'}`;
+    const headText = job ? `Edit job #${shortId(job.id)} · ${title(job)}` : `Art job · ${kind} ${name}${fixedCode ? ' · ' + fixedCode : ''} · ${mode === 'look' ? 'looks' : mode === 'icon' ? 'icon candidates' : mode === 'badge' ? 'the round badge' : mode === 'title' ? 'the title cut-out' : 'a 3D driver or reference'}${duplicateOf ? ' · duplicate of ' + duplicateOf : ''}`;
     dlg.appendChild(el('div', { class: 'sp-modal-head' }, el('b', { text: headText }), el('span', { class: 'spacer' }), el('button', { type: 'button', class: 'btn small', text: '✕ close', onclick: () => dlg.close() })));
     const body = el('div');
     dlg.appendChild(body);
@@ -806,7 +822,7 @@ const Jobs = (() => {
     dlg.__players = [];
     dlg.showModal();
 
-    const draw = () => { clear(body); buildForm(body, dlg, { kind, id, mode, job, m, all, list, drivers, refs, record, state, existingCodes, fixedCode, draw, queueBtn, err, specs, contentJson }); };
+    const draw = () => { clear(body); buildForm(body, dlg, { kind, id, mode, job, m, all, list, drivers, refs, record, state, existingCodes, fixedCode, draw, queueBtn, err, specs, contentJson, duplicateOf, srcStills }); };
     draw();
     queueBtn.addEventListener('click', () => submit({ kind, id, mode, job, m, all, state, fixedCode, dlg, err, queueBtn, record, existingCodes, specs }));
     return dlg;
@@ -903,8 +919,10 @@ const Jobs = (() => {
 
   function setKey(obj, key, value) { if (value == null || value === '') delete obj[key]; else obj[key] = value; }
 
+  const STILL_METHODS = ['creature_free2', 'creature_pose2', 'creature_free8', 'creature_proc'];   // jobs.py's CREATURE_STILL_METHODS: the stills slug applies
+
   function buildForm(body, dlg, c) {
-    const { kind, id, mode, job, m, all, list, drivers, refs, record, state, existingCodes, fixedCode, draw, specs } = c;
+    const { kind, id, mode, job, m, all, list, drivers, refs, record, state, existingCodes, fixedCode, draw, specs, contentJson, duplicateOf, srcStills } = c;
     const spec = state.spec;
     const method = all.find((x) => x.id === spec.method) || list[0] || null;
     if (method && spec.method !== method.id) spec.method = method.id;
@@ -934,9 +952,32 @@ const Jobs = (() => {
     if (fields.length || mode === 'look') {
       body.appendChild(el('h2', {}, 'What to paint', el('small', { text: 'the recipe the tool reads (written into variants[CODE].recipe for a look job)' })));
       if (!fields.length) body.appendChild(el('p', { class: 'help', text: 'no typed fields for this method in methods.json: the raw recipe below is what the tool gets' }));
+      if (duplicateOf) {
+        // Duplicate…: the source's recipe, words and painter are in the form; its stills slug was cleared (new paintings
+        // under the new code, so the Model settings apply), unless the box puts it back
+        const still = STILL_METHODS.includes(spec.method);
+        const dup = el('div', { class: 'jdup' }, el('div', {}, el('b', { text: `Duplicate of ${duplicateOf}` }), el('span', { text: `: its recipe, words and painter are filled in below and the new look gets the next free code. ${still ? 'Its stills are painted again under the new code, so the Model settings below apply to them.' : 'Change what you like, then Queue.'}` })));
+        if (still) {
+          const want = srcStills == null ? '' : String(srcStills);
+          const cb = el('input', { type: 'checkbox' }); cb.checked = spec.recipe.stills !== undefined && String(spec.recipe.stills) === want;
+          cb.addEventListener('change', () => { if (cb.checked) spec.recipe.stills = want; else delete spec.recipe.stills; draw(); });
+          dup.appendChild(el('label', { class: 'cb', title: want ? `recipe.stills = "${want}": the paintings cached under that slug are reused` : 'recipe.stills = "": the creature\'s own paintings are reused (only an absent key makes a job paint new stills)' },
+            cb, el('span', { text: `reuse ${duplicateOf}'s paintings: only the clips are made again (the Model settings then change nothing)` })));
+        }
+        body.appendChild(dup);
+      }
       for (const f of fields) {
         if (f.key === 'death' && Array.isArray(m.deaths) && m.deaths.length) { body.appendChild(deathControl(f, m, spec, drivers, draw)); continue; }
-        body.appendChild(fieldLine(f.label || f.key, recipeControl(f, U.getPath(spec.recipe, f.key), (v) => U.setPath(spec.recipe, f.key, v), { drivers, refs }), f.help));
+        // a recipe keeps only what differs from the creature's own words: an empty field inherits the creature's (shown
+        // greyed as the placeholder and marked); `stills` never inherits (an absent key is seeded with the look's letter)
+        const own = U.getPath(spec.recipe, f.key);
+        const inh = f.key === 'stills' || !contentJson ? undefined : U.getPath(contentJson, f.key);
+        const inherited = (own == null || own === '') && inh != null && inh !== '' && typeof inh !== 'object';
+        const f2 = inherited ? Object.assign({}, f, { default: inh }) : f;
+        const line = fieldLine(f.label || f.key, recipeControl(f2, own, (v) => U.setPath(spec.recipe, f.key, v), { drivers, refs }), f.help);
+        if (inherited) line.appendChild(el('span', { class: 'jinh', text: `inherited: the creature's own ${f.key} applies while this is empty`, title: String(inh) }));
+        else if (f.key === 'stills' && mode === 'look') line.appendChild(el('span', { class: 'jinh', text: own === '' ? 'empty: the creature\'s own paintings are reused' : (own == null ? 'left out: new stills are painted under this look\'s own letter' : `the paintings cached under "${own}" are reused`) }));
+        body.appendChild(line);
       }
       const raw = el('details', { class: 'jfold' }, el('summary', { text: 'advanced: the raw recipe (JSON)' }));
       const ta = el('textarea', { class: 'mono', spellcheck: false });
@@ -960,7 +1001,7 @@ const Jobs = (() => {
     const assetFields = jfields.filter((f) => f.group !== 'model' && f.key !== 'dev');   // `dev` is the old switch: the model select covers it
     if (modelFields.length) {
       // the painter and its quality, apart from what the asset is (Garry: separate the model settings from the asset settings)
-      body.appendChild(el('h2', {}, 'Model settings', el('small', { text: 'which painter and how many passes: Flux.2 Klein is quick, Flux.2 dev slower and finer; 0 passes = the default of that painter' })));
+      body.appendChild(el('h2', {}, 'Model settings', el('small', { text: 'which painter and how many passes: Flux.2 Klein is quick, Flux.2 dev slower and finer; 0 passes = the default of that painter. The look records them (variants[CODE].recipe.painter): Re-roll… and Duplicate… start from them' })));
       if (!spec.job) spec.job = {};
       for (const f of modelFields) {
         const cur = spec.job[f.key] != null ? spec.job[f.key] : (f.key === 'model' && spec.flags.dev ? 'dev' : undefined);

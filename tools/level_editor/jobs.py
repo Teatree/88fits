@@ -1079,16 +1079,35 @@ CREATURE_STILL_METHODS = ("creature_free2", "creature_pose2", "creature_free8", 
 INHERITED_WORDS = ("art_prompt", "motion", "dead_hint", "back_hint", "anim_negative", "view_hints", "screen")
 
 
+def _painter_of(spec):
+    """The painter a look job runs with (MODEL_FIELDS -> the ART_* env), as its recipe records it under `painter`: the
+    model, the passes (0 = that model's own default) and, for Flux.2 dev, the guidance and whether Turbo is on. The
+    look grid and the recipe editor show it ("painted with ..."); Duplicate and Re-roll prefill the job form from it;
+    gen_art reads it on a hand run that names no painter (Garry: "'Looks' should contain a lot of these settings")."""
+    model = "dev" if (spec.get("dev") or spec.get("model") == "dev") else "klein"
+    out = {"model": model, "steps": int(spec.get("steps") or 0)}
+    if model == "dev":
+        out["guidance"] = float(spec.get("guidance") or 0)
+        out["turbo"] = True if spec.get("turbo") is None else bool(spec.get("turbo"))
+    return out
+
+
 def _seed_recipe(target, spec):
-    """A creature look painted by gen_art: give it its own `stills` slug (else the stills are CACHED under the creature's
-    own keys and every look comes out as the base) and copy the base's art words into the recipe when it names none."""
-    if spec.get("method") not in CREATURE_STILL_METHODS or not target.get("code"):
+    """What every look job writes into its recipe before it runs. Every painting method records its `painter`
+    (_painter_of; a recolour paints nothing). A creature look painted by gen_art also gets its own `stills` slug when
+    the key is absent (else the stills are CACHED under the creature's own keys and every look comes out as the base;
+    an explicit "" keeps the creature's own paintings: Duplicate's "reuse the paintings") and a copy of the base's art
+    words when it names none."""
+    if not target.get("code") or spec.get("method") == "recolour":
         return
     recipe = spec.get("recipe")
     if not isinstance(recipe, dict):
         recipe = {}
         spec["recipe"] = recipe
-    if not recipe.get("stills"):
+    recipe["painter"] = _painter_of(spec)
+    if spec.get("method") not in CREATURE_STILL_METHODS:
+        return
+    if "stills" not in recipe or recipe.get("stills") is None:
         recipe["stills"] = _letter(target["code"])
     base = content_doc(target.get("kind"), target.get("id")) or {}
     for k in INHERITED_WORDS:

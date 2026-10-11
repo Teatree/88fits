@@ -484,9 +484,13 @@ const Assets = (() => {
     const d = docDirty(doc);
     const others = docsOf(tabOf(doc.kind)).filter((x) => x.key !== doc.key);
     const h = el('div', { class: 'ahead' + (d ? ' dirty' : '') });
+    // the icon of the look being edited (else the one in play), so the asset stays in view while the pane scrolls
+    const lookCode = doc.ui && doc.ui.look && Array.isArray(doc.looks) && doc.looks.some((l) => l.code === doc.ui.look) ? doc.ui.look : String(doc.data.variant || doc.data.variant_base || '');
+    const iconUrl = `/icon/${KIND_ICON[doc.kind] || doc.kind}/${encodeURIComponent(doc.id)}${lookCode ? '/' + encodeURIComponent(lookCode) : ''}?v=${doc.baseMtime || 0}`;
     const title = el('div', { class: 'ahead-title' },
+      el('img', { class: 'ahead-icon', src: iconUrl, alt: '', width: 44, height: 44, title: `${doc.data.name || doc.id}${lookCode ? ' · look ' + lookCode : ''}`, onerror: (e) => { e.target.classList.add('none'); } }),
       el('span', { class: 'akind ' + doc.kind, text: KIND_LABEL[doc.kind] || doc.kind.toUpperCase() }),
-      el('b', { text: String(doc.data.name || doc.id) }),
+      el('b', { class: 'ahead-name', text: String(doc.data.name || doc.id), title: `${doc.kind} ${doc.id}` }),
       el('span', { class: 'muted small', text: doc.file ? doc.file.split(/[\\/]/).slice(-2).join('/') : `${doc.id}.json` }),
       el('span', { class: 'muted small achanges', text: d ? `${changes} change${changes === 1 ? '' : 's'} · unsaved` : (changes ? `${changes} change${changes === 1 ? '' : 's'} · saved` : 'as on disk') }));
     const acts = el('div', { class: 'ahead-actions' });
@@ -1035,6 +1039,16 @@ const Assets = (() => {
     const wrap = el('div', { class: 'recipe' });
     wrap.appendChild(el('h4', { text: `Recipe of ${code}` }, el('span', { class: 'muted small', text: entry ? '' : ' (the base strip: its recipe is the creature\'s own art words above)' })));
     if (!entry) return wrap;
+    // a recipe keeps only what differs from the creature's own art words (gen_art: d.update(recipe)); the rest is
+    // inherited. Garry read the empty boxes as lost prompts ("quite a few Looks ... are missing the art prompt"): every
+    // field now shows the value that applies and where it comes from, and a look with no recipe at all says so.
+    const rec = M.isObj(entry.recipe) ? entry.recipe : {};
+    const ownKeys = Object.keys(rec).filter((k) => !['painter', 'method'].includes(k));
+    const isBase = code === String(doc.data.variant_base || '');
+    const pt = typeof LookGrid !== 'undefined' && typeof LookGrid.painterText === 'function' ? LookGrid.painterText : (p) => JSON.stringify(p);
+    if (!ownKeys.length && isBase) wrap.appendChild(el('div', { class: 'rnote', text: 'The base strip: the creature\'s own art words (the Art section above) painted it; the fields below show them greyed, marked inherited. Type into one only to give this code a recipe of its own.' }));
+    else if (!ownKeys.length) wrap.appendChild(el('div', { class: 'rnote warn', text: `No recipe was recorded for ${code}: it was painted before the Level Editor kept recipes, by hand, or by a job that ran with an empty recipe. The fields below show the creature's own words (what a job for this code would read now), which may not be what painted it. To change its art, use Duplicate… on its card (a new look from these words, under a new code) or Re-roll….` }));
+    else wrap.appendChild(el('div', { class: 'rnote', text: `${ownKeys.length} own key${ownKeys.length === 1 ? '' : 's'} (${ownKeys.join(', ')}); every other field inherits the creature's own word, shown greyed and marked inherited. A field left empty keeps inheriting.` }));
     const method = methodOf(doc, code);
     const methods = lookMethods().filter((m) => m.kind === (doc.kind === 'hero' ? 'hero' : 'enemy'));
     const methodOpts = (methods.length ? methods.map((m) => ({ v: m.id, label: m.name || m.id, help: m.summary || '' })) : Object.keys(F.RECIPES).filter((k2) => (doc.kind === 'hero') === k2.startsWith('hero')).map((k2) => ({ v: k2, label: k2 })));
@@ -1044,11 +1058,35 @@ const Assets = (() => {
     const methodSel = Forms.select(methodOpts, method, (nv) => apply2(() => { if (!M.isObj(doc.data.variants[code].recipe)) doc.data.variants[code].recipe = {}; doc.data.variants[code].recipe.method = nv; }, 'editor'), { path: `${base}.method` });
     const mnote = mrec ? `${mrec.summary || ''}${mrec.time && mrec.time.median_s ? ` · about ${Math.round(mrec.time.median_s / 60)} min (worst ${Math.round((mrec.time.worst_s || mrec.time.median_s) / 60)})` : ''}${Array.isArray(mrec.weaknesses) && mrec.weaknesses.length ? ` · weak spots: ${mrec.weaknesses.join('; ')}` : ''}` : null;
     wrap.appendChild(Forms.row({ key: `${base}.method`, label: 'Method', help: 'how this look is painted (methods.json: lane B\'s catalogue; the fields below follow it)' }, methodSel, { note: mnote }));
+    // the painter it ran with (written by the job from the form's Model settings)
+    const painter = M.isObj(rec.painter) ? rec.painter : null;
+    wrap.appendChild(Forms.row({ key: `${base}.painter`, label: 'Painter', help: 'the model and the passes the stills were painted with: the job writes it from the form\'s Model settings (variants[CODE].recipe.painter); Re-roll… and Duplicate… start from it; gen_art reads it on a hand run that names no painter' },
+      el('span', { class: 'aread' + (painter ? '' : ' muted'), text: painter ? pt(painter) : 'not recorded (painted before the painter was kept: Flux.2 Klein with its defaults unless the job said dev)' }), {}));
     const iss = { marks: {} };
+    const shown = new Set(['method', 'painter']);
     for (const def of recipeRows(method)) {
+      shown.add(String(def.key).split('.')[0]);
+      const own = U.getPath(rec, def.key);
+      const inh = def.key === 'stills' ? undefined : U.getPath(doc.data, def.key);   // stills never inherits: an absent key is seeded with the look's letter
+      const hasOwn = own != null && own !== '';
+      const inherited = !hasOwn && inh != null && inh !== '' && typeof inh !== 'object';
       const def2 = Object.assign({}, def, { key: `${base}.${def.key}` });
+      if (inherited) def2.ph = typeof inh === 'boolean' ? (inh ? 'yes' : 'no') : String(inh);
       const r = fieldRow(doc, def2, iss, {});
-      if (r) wrap.appendChild(r);
+      if (!r) continue;
+      const host = r.querySelector('.fctl') || r;
+      if (hasOwn) host.appendChild(el('span', { class: 'rsrc own', text: 'own', title: 'this look\'s own value (variants[CODE].recipe)' }));
+      else if (inherited) host.appendChild(el('span', { class: 'rsrc inh', text: ['text', 'textarea', 'int', 'number'].includes(def.type) ? 'inherited' : `inherited: ${def2.ph}`, title: `the creature's own ${def.key} applies while this is empty: ${def2.ph}` }));
+      else if (def.key === 'stills') host.appendChild(el('span', { class: 'rsrc def', text: own === '' ? 'empty: the creature\'s own paintings' : 'left out: this look\'s own letter', title: 'the slug the stills are cached under (<id>_<slug>_front); a job seeds the look\'s letter when the key is absent; an explicit "" reuses the creature\'s own paintings' }));
+      else if (def.def != null && def.def !== '') host.appendChild(el('span', { class: 'rsrc def', text: `default: ${def.def}`, title: 'the method\'s default (methods.json) applies while this is empty' }));
+      wrap.appendChild(r);
+    }
+    // keys in the recipe this method's form has no row for (another tool's words: gen_ant's body, a recolour's tint_of)
+    const extra = ownKeys.filter((k) => !shown.has(k));
+    if (extra.length) {
+      const dl = el('dl', { class: 'rextra' });
+      for (const k of extra) { dl.appendChild(el('dt', { text: k })); dl.appendChild(el('dd', { text: typeof rec[k] === 'object' ? JSON.stringify(rec[k]) : String(rec[k]) })); }
+      wrap.appendChild(Forms.row({ key: `${base}.extra`, label: 'Also in the recipe', help: 'keys this method\'s form has no field for: another tool\'s words (gen_ant\'s body, a recolour\'s tint_of, …); edit them in the JSON below' }, dl, { cls: 'wide-ctl' }));
     }
     const note = Forms.row({ key: `variants.${code}.note`, label: 'Note', help: 'shown on the look\'s card and the arena chip' }, Forms.textareaInput({ key: `variants.${code}.note` }, entry.note, (nv) => apply2(() => { if (nv == null) delete doc.data.variants[code].note; else doc.data.variants[code].note = nv; }, 'editor'), { path: `variants.${code}.note` }), {});
     wrap.appendChild(note);

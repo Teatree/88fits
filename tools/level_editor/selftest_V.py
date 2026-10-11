@@ -160,9 +160,11 @@ def checks(check, run_node, server):
     with open(os.path.join(HERE, "looks.js"), "r", encoding="utf-8") as f:
         lg_src = f.read()
     check("const LookGrid = (() =>" in lg_src and "PAGE = 24" in lg_src, "V: looks.js defines LookGrid with pages of 24")
+    check("'Duplicate…'" in lg_src and "function painterText" in lg_src and "duplicateOf: look.code" in lg_src and "painterText, render" in lg_src, "V: a look card offers Duplicate… and shows its painter (LookGrid.painterText)")
     with open(os.path.join(HERE, "jobs.js"), "r", encoding="utf-8") as f:
         jb_src = f.read()
     check("const Jobs = (() =>" in jb_src and "FAST = 2000" in jb_src and "jobs-badge" in jb_src, "V: jobs.js defines Jobs, polls every 2 s, drives #jobs-badge")
+    check("opts.duplicateOf" in jb_src and "opts.painter" in jb_src and "srcStills" in jb_src and "class: 'jinh'" in jb_src, "V: the job form takes a duplicate (recipe and painter copied, the stills slug cleared, reuse offered) and greys inherited words")
     for route in ("/api/jobs?since=", "/api/status", "/api/methods", "/api/drivers", "/api/refs", "/api/upload", "/api/content/", "/look/"):
         check(route in jb_src or route in lg_src, "V: the page calls %s" % route)
 

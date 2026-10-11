@@ -135,6 +135,19 @@ def checks(check, run_node, server):
         check(j["title"] == "Test Beast TB-A · creature_free2", "the title names the creature, the code and the method: %s" % j["title"])
         rc = [c for c in calls if c[:4] == ("set_recipe", "enemy", "testbeast", "TB-A")]
         check(rc and rc[0][4].get("stills") == "tba" and rc[0][4].get("motion") == "waddling" and "art_prompt" in rc[0][4], "enqueue writes the recipe through hooks.set_recipe (the base's art words seeded in): %s" % (rc and rc[0][4]))
+        # the painter every look job records (pass 66 follow-up: "Looks should contain these settings for all")
+        check(rc and rc[0][4].get("painter") == {"model": "klein", "steps": 0}, "a look job records its painter in the recipe (Klein, the default passes): %s" % (rc and rc[0][4].get("painter")))
+        sp = jobs.validate_spec("look", {"method": "creature_pose2", "recipe": {"stills": ""}, "model": "dev", "steps": 12, "turbo": False})
+        jobs._seed_recipe({"kind": "enemy", "id": "testbeast", "code": "TB-B"}, sp)
+        check(sp["recipe"].get("painter") == {"model": "dev", "steps": 12, "guidance": 0.0, "turbo": False}, "a dev job records model, steps, guidance and turbo: %s" % sp["recipe"].get("painter"))
+        check(sp["recipe"].get("stills") == "", "an explicit empty stills slug is kept (the creature's own paintings); only an absent key is seeded: %r" % sp["recipe"].get("stills"))
+        check(jobs._model_argv(sp) == ["--dev", "--steps=12", "--no-turbo"], "the painter reaches the command: %s" % jobs._model_argv(sp))
+        sp = {"method": "recolour", "recipe": {}}
+        jobs._seed_recipe({"kind": "enemy", "id": "testbeast", "code": "TB-C"}, sp)
+        check("painter" not in sp["recipe"], "a recolour records no painter (it paints nothing): %s" % sp["recipe"])
+        sp = {"method": "hero_fit", "recipe": {"still_keys": {"side": "x"}}, "model": "klein", "steps": 6}
+        jobs._seed_recipe({"kind": "hero", "id": "solenne", "code": "SOL-X"}, sp)
+        check(sp["recipe"].get("painter") == {"model": "klein", "steps": 6} and "stills" not in sp["recipe"], "a hero look records its painter and gets no stills slug: %s" % sp["recipe"])
         jj = json.load(open(os.path.join(jobs.JOBS_DIR, j["id"], "job.json"), encoding="utf-8"))
         check(jj["tool"] == "gen_art" and jj["call"] == "process" and "--variant=TB-A" in jj["argv"] and jj["type"] == "enemies" and jj["id"] == "testbeast",
               "job.json carries tool/call/argv/type/id: %s" % {k: jj[k] for k in ("tool", "call", "argv", "type", "id")})

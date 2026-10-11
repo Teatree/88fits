@@ -81,6 +81,7 @@
 .lg-pic { display: flex; align-items: center; justify-content: center; min-height: 72px; }
 .lg-pic .placeholder { color: var(--muted); font-size: 0.75rem; text-align: center; padding: 10px; }
 .lg-note { font-size: 0.78rem; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; line-height: 1.35; }
+.lg-meta { font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lg-actions { display: flex; flex-wrap: wrap; gap: 3px 6px; font-size: 0.76rem; }
 .lg-actions .btn { padding: 0 6px; font-size: 0.74rem; line-height: 1.6; }
 .lg-actions .btn.ghost { color: var(--s1); }
@@ -221,3 +222,7 @@
 .jflows { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; margin: 8px 0; font-size: 0.82rem; }
 .jflows .jflow { font-family: ui-monospace, Consolas, monospace; font-size: 0.78rem; padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--s1); text-decoration: none; }
 .jflows .jflow:hover { border-color: var(--s1); }
+
+/* the job form: a duplicate's note and reuse box, an inherited recipe field's mark */
+.jdup { background: var(--surface-2); border-left: 3px solid var(--s1); border-radius: 6px; padding: 6px 10px; margin: 0 0 8px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; }
+.jinh { font-size: 0.72rem; color: var(--s4); grid-column: 2; display: block; }
