@@ -27,6 +27,7 @@ const Jobs = (() => {
   const { el, clear, fmtT } = U;
   const FAST = 2000, SLOW = 6000, MISSING = 15000;
   const LOG_LINES = 12;
+  const COMFY_URL = 'http://192.168.137.54:8188/';   // the AI server's ComfyUI page (the workflow files are dragged into it)
   const STATES = ['running', 'waiting', 'queued', 'done', 'failed', 'interrupted', 'cancelled'];
   const FINISHED = ['done', 'failed', 'interrupted', 'cancelled'];
   const STATE_LABEL = { queued: 'QUEUED', running: 'RUNNING', waiting: 'WAITING FOR PICK', done: 'DONE', failed: 'FAILED', interrupted: 'INTERRUPTED', cancelled: 'CANCELLED' };
@@ -606,7 +607,17 @@ const Jobs = (() => {
   /** The job's outputs: stills with their QA verdict, clips played from their out_NN frames, sheets, icons, the strip. */
   function outputs(j, holder) {
     const box = el('div', { class: 'joutputs' });
+    const flows = (j.outputs || []).filter((o) => o.type === 'workflow');
+    if (flows.length) {
+      // the ComfyUI workflows this job ran, one file per render: drag the file into the ComfyUI page to see every node
+      const row = el('div', { class: 'jflows' }, el('b', { text: 'ComfyUI workflows' }),
+        el('span', { class: 'muted small', text: ' (one per render; save it, then drag it into ' }),
+        el('a', { href: COMFY_URL, target: '_blank', rel: 'noopener', text: 'the ComfyUI page' }), el('span', { class: 'muted small', text: ')' }));
+      for (const o of flows) row.appendChild(el('a', { class: 'jflow', href: o.url, target: '_blank', rel: 'noopener', text: o.label, title: 'the workflow as the ComfyUI page loads it' }));
+      box.appendChild(row);
+    }
     for (const o of j.outputs || []) {
+      if (o.type === 'workflow') continue;
       const cellEl = el('div', { class: 'joutput' });
       if (o.type === 'clip' && o.url) {
         const n = Number(o.frames) || 12;
@@ -908,6 +919,13 @@ const Jobs = (() => {
     } else {
       const grid = el('div', { class: 'methods' });
       for (const x of list) grid.appendChild(methodCard(x, x.id === (method && method.id), () => { spec.method = x.id; draw(); }, record, dlg));
+      // the ComfyUI workflows behind these methods, as files the ComfyUI page loads (tools/comfy_workflows, from `python tools/comfy.py --export`);
+      // a finished job also keeps every graph it ran under its own card
+      const wf = el('div', { class: 'jflows' }, el('b', { text: 'The ComfyUI workflows behind the methods' }),
+        el('span', { class: 'muted small', text: ' (save a file, drag it into ' }), el('a', { href: COMFY_URL, target: '_blank', rel: 'noopener', text: 'the ComfyUI page' }),
+        el('span', { class: 'muted small', text: '; every finished job keeps the exact graphs it ran on its card)' }));
+      fetchJson('/api/workflows', null).then((r) => { for (const f of (r && r.files) || []) wf.appendChild(el('a', { class: 'jflow', href: '/workflows/' + encodeURIComponent(f), target: '_blank', rel: 'noopener', text: f.replace(/\.json$/, '') })); });
+      body.appendChild(wf);
       body.appendChild(grid);
     }
 

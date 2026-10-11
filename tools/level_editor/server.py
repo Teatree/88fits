@@ -2446,6 +2446,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._dl(parts[1:])
             if parts[:1] == ["examples"] and len(parts) == 2:
                 return self._example(parts[1])
+            if parts[:1] == ["workflows"] and len(parts) == 2:
+                return self._workflow(parts[1])
             if parts[:1] == ["sound"] and len(parts) == 2:
                 return self._sound(parts[1])
             return self._static(parts)
@@ -2478,6 +2480,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, "(docs/assets_schema.md is missing)", "text/plain; charset=utf-8")
             with open(ASSETS_SCHEMA, "r", encoding="utf-8") as f:
                 return self._send(200, f.read(), "text/markdown; charset=utf-8")
+        if parts == ["workflows"]:
+            d = os.path.join(ROOT, "tools", "comfy_workflows")
+            return self._send(200, {"ok": True, "files": sorted(f for f in os.listdir(d) if f.endswith(".json")) if os.path.isdir(d) else []})
         if parts == ["status"]:
             return self._send(200, status_record())
         if len(parts) in (2, 3) and parts[0] == "turnover" and (len(parts) == 2 or parts[2] == "all"):
@@ -2590,6 +2595,15 @@ class Handler(BaseHTTPRequestHandler):
         if not os.path.isfile(full):
             return self._error(404, "no example %s" % name)
         self._file(full, "image/png")
+
+    def _workflow(self, name):
+        """A ComfyUI workflow template (tools/comfy_workflows/*.json, written by `python tools/comfy.py --export`)."""
+        if not FILENAME_RE.match(name) or not name.lower().endswith(".json"):
+            return self._error(404, "not found")
+        full = os.path.join(ROOT, "tools", "comfy_workflows", name)
+        if not os.path.isfile(full):
+            return self._error(404, "no workflow %s" % name)
+        self._file(full, "application/json; charset=utf-8")
 
     def _sound(self, sid):
         full = sound_path(sid)

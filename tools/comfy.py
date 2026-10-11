@@ -203,8 +203,34 @@ def run_dev(graph, timeout=1500, tries=2):
                 pass
 
 
+def save_job_workflow(graph):
+    """Under a Level Editor job (ASSET_JOB_SIDECAR set), every graph that runs is kept beside the job as a ComfyUI
+    workflow file (`<job>/workflows/NN_<prefix>_workflow.json`, drag it into the ComfyUI page) and its API form, so
+    Garry can open exactly what ran (pass 66 follow-up)."""
+    side = os.environ.get("ASSET_JOB_SIDECAR", "")
+    if not side:
+        return None
+    try:
+        d = os.path.join(os.path.dirname(side), "workflows")
+        os.makedirs(d, exist_ok=True)
+        n = len([f for f in os.listdir(d) if f.endswith("_workflow.json")]) + 1
+        prefix = "graph"
+        for node in graph.api().values():
+            if node.get("class_type") in ("SaveImage", "SaveAudio"):
+                prefix = str(node.get("inputs", {}).get("filename_prefix", "graph")).split("/")[-1]
+        stem = "%02d_%s" % (n, "".join(c if c.isalnum() or c in "-_" else "_" for c in prefix)[:60])
+        with open(os.path.join(d, stem + "_workflow.json"), "w", encoding="utf-8", newline="\n") as f:
+            json.dump(graph.ui_workflow(), f, indent=1)
+        with open(os.path.join(d, stem + "_api.json"), "w", encoding="utf-8", newline="\n") as f:
+            json.dump(graph.api(), f, indent=1)
+        return stem
+    except Exception:
+        return None
+
+
 def run(graph, timeout=1200):
     """Queue a graph and wait for its SaveImage outputs. Returns (list of png bytes, seconds)."""
+    save_job_workflow(graph)
     r = post("/prompt", {"prompt": graph.api(), "client_id": "88fits-" + uuid.uuid4().hex[:8]})
     if r.get("error") or r.get("node_errors"):
         raise RuntimeError("ComfyUI rejected the graph: " + json.dumps({"error": r.get("error"), "node_errors": r.get("node_errors")})[:1500])

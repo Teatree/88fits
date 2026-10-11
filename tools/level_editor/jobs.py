@@ -2084,6 +2084,13 @@ def _harvest(job):
                     outs.append({"label": "%s %s" % (v, n), "type": "still", "url": _url_dl(os.path.join(d, v, n))})
     if kind == "install" and res:
         outs.append({"label": "installed", "type": "json", "detail": {k: res.get(k) for k in ("tool", "call", "top") if res.get(k) is not None}})
+    # the ComfyUI workflows the job ran (comfy.save_job_workflow): one file per graph, drag into the ComfyUI page
+    wd = os.path.join(_job_dir(job["id"]), "workflows")
+    if os.path.isdir(wd):
+        for f in sorted(os.listdir(wd)):
+            if f.endswith("_workflow.json"):
+                outs.append({"label": f[:-len("_workflow.json")], "type": "workflow", "url": _url_dl(os.path.join(wd, f)),
+                             "api_url": _url_dl(os.path.join(wd, f[:-len("_workflow.json")] + "_api.json"))})
     return outs
 
 
