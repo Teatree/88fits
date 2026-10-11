@@ -616,12 +616,8 @@ def paint(only, seeds, dev):
             if not os.path.exists(p):
                 s = base + k * 7919
                 if dev:
-                    g = comfy.flux2_dev(prompt, s, 1024, 1024, refs=refs, steps=28, turbo=False, prefix="88fits/icons46_" + key)
-                else:
-                    g = comfy.klein(prompt, s, 1024, 1024, refs=refs, prefix="88fits/icons46_" + key)
-                imgs, secs = comfy.run(g)
-                if dev:
-                    comfy.release_models()
+                    ga.MODEL["model"] = "dev"
+                imgs, secs = ga.paint(prompt, s, 1024, 1024, refs, "88fits/icons46_" + key, full=True)
                 Image.open(io.BytesIO(imgs[0])).convert("RGB").save(p)
                 json.dump({"seed": s, "prompt": prompt, "refs": refs}, open(p[:-4] + ".json", "w", encoding="utf-8"), indent=1)
                 print("  %s c%d seed %d %.0fs" % (key, k, s, secs), flush=True)

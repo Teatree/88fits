@@ -56,6 +56,56 @@ NO_IMPORT = "--no-import" in sys.argv
 NO_VIDEO = "--no-video" in sys.argv      # skip the Wan clips (procedural cycles instead)
 DEV = "--dev" in sys.argv               # Flux.2 dev for the stills (one render at a time, models released after each)
 USE_ANCHOR = "--no-anchor-ref" not in sys.argv
+
+
+def _model_settings():
+    """The painter and its quality (pass 66 follow-up, Garry: "choose which Model ... the number of passes"): from the
+    environment (the Level Editor's jobs: ART_MODEL klein|dev, ART_STEPS, ART_GUIDANCE, ART_TURBO 0|1) or the flags
+    --model=klein|dev (--dev is --model=dev), --steps=N, --guidance=F, --turbo / --no-turbo. 0 means the model's own
+    default: Klein 4 steps; dev 8 steps with the Turbo LoRA (the quick form) or 28 without (the full quality the
+    candidates use)."""
+    m = os.environ.get("ART_MODEL", "")
+    steps = int(os.environ.get("ART_STEPS", "0") or 0)
+    guidance = float(os.environ.get("ART_GUIDANCE", "0") or 0)
+    turbo = os.environ.get("ART_TURBO", "")
+    for a in sys.argv:
+        if a.startswith("--model="):
+            m = a.split("=", 1)[1]
+        elif a.startswith("--steps="):
+            steps = int(a.split("=", 1)[1] or 0)
+        elif a.startswith("--guidance="):
+            guidance = float(a.split("=", 1)[1] or 0)
+        elif a == "--turbo":
+            turbo = "1"
+        elif a == "--no-turbo":
+            turbo = "0"
+    if "--dev" in sys.argv and not m:
+        m = "dev"
+    return {"model": m or "klein", "steps": steps, "guidance": guidance, "turbo": None if turbo == "" else turbo == "1"}
+
+
+MODEL = _model_settings()
+if MODEL["model"] == "dev":
+    DEV = True
+
+
+def paint(prompt, seed, width, height, refs, prefix, full=False):
+    """One still on the chosen painter with the chosen quality: Klein (MODEL steps or 4), or Flux.2 dev (steps,
+    guidance, turbo from MODEL; `full` = the 28-step no-Turbo quality on a freshly restarted server, what the
+    candidates use by default). Returns (png bytes, seconds). Every caller that painted a still itself goes through
+    here, so the Level Editor's model settings reach them all."""
+    if MODEL["model"] == "dev":
+        turbo = MODEL["turbo"] if MODEL["turbo"] is not None else (not full)
+        steps = MODEL["steps"] or (8 if turbo else 28)
+        guidance = MODEL["guidance"] or 4.0
+        g = comfy.flux2_dev(prompt, seed, width, height, refs=refs, steps=steps, guidance=guidance, turbo=turbo, prefix=prefix)
+        if full or not turbo:
+            imgs, secs = comfy.run_dev(g)
+        else:
+            imgs, secs = comfy.run(g)
+        log("  " + comfy.release_models())
+        return imgs, secs
+    return comfy.run(comfy.klein(prompt, seed, width, height, refs=refs, steps=MODEL["steps"] or 4, prefix=prefix))
 ONLY, SEED_OFFSET, PICK = None, 0, None
 for a in sys.argv:
     if a.startswith("--only="):
@@ -585,11 +635,7 @@ def render(key, prompt, refs, expect, seed, width=1024, height=1024, tries=3):
     for attempt in range(tries):
         s = seed + attempt * 7919
         t0 = time.time()
-        if DEV:
-            imgs, secs = comfy.run(comfy.flux2_dev(prompt, s, width, height, refs=refs, steps=8, guidance=4.0, turbo=True, prefix="88fits/" + key))
-            log("  " + comfy.release_models())
-        else:
-            imgs, secs = comfy.run(comfy.klein(prompt, s, width, height, refs=refs, prefix="88fits/" + key))
+        imgs, secs = paint(prompt, s, width, height, refs, "88fits/" + key)
         img = Image.open(io.BytesIO(imgs[0])).convert("RGB")
         ok, report = qa(img, expect)
         geo = geometry(img)

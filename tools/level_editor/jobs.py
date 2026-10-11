@@ -84,8 +84,10 @@ BUILTIN_MEDIAN = {"hero_pose5": 570, "hero_fit": 276, "creature_free2": 450, "cr
 
 # ---------------------------------------------------------------- the kinds and their fields
 
-def _f(type_, default=None, required=False, help_="", options=None):
+def _f(type_, default=None, required=False, help_="", options=None, group=None):
     d = {"type": type_, "default": default, "required": required, "help": help_}
+    if group:
+        d["group"] = group
     if options:
         d["options"] = _LIST(options)
     return d
@@ -117,28 +119,44 @@ _LOOK_FIELDS = {
     "note": _f("str", "", False, "the look's note (shown on its card)"),
 }
 
+# the painter and its quality (Garry: "choose which Model ... the number of passes"): one group on every job that paints
+# stills; jobs.py hands them to the tools as ART_* environment variables (gen_art.MODEL / gen_art.paint)
+MODEL_FIELDS = {
+    "model": _f("enum", "klein", False, "the painter: Flux.2 Klein (4 steps, ~20 s a still) or Flux.2 dev (the better painter, 4-5 min a still with a server restart each)", ("klein", "dev"), group="model"),
+    "steps": _f("int", 0, False, "the passes (sampling steps): 0 = the model's own default (Klein 4; dev 8 with Turbo, 28 without); more = slower and usually cleaner", group="model"),
+    "guidance": _f("float", 0.0, False, "dev only: how hard the words are followed (0 = the default 4.0)", group="model"),
+    "turbo": _f("bool", True, False, "dev only: the Turbo LoRA (8 quick steps); off = the full 28-step quality, what the candidate methods use", group="model"),
+}
+
+
+def _with_model(fields):
+    out = dict(fields)
+    out.update(MODEL_FIELDS)
+    return out
+
+
 SPECS = {
-    "look": {"lane": "comfy", "fields": _LOOK_FIELDS,
+    "look": {"lane": "comfy", "fields": _with_model(_LOOK_FIELDS),
              "help": "one art look of an enemy, boss or hero (target.code); `recolour` runs on the local lane"},
-    "item_icon": {"lane": "comfy", "fields": {
+    "item_icon": {"lane": "comfy", "fields": _with_model({
         "skip_qa": _f("bool", False, False, "--skip-qa"), "dev": _f("bool", False, False, "--dev"),
-        "seed": _f("int", 0, False, "--seed=N")}, "help": "one Klein roll of the item's art_prompt into <id>_icon.png (the old icon is kept aside)"},
-    "icon_cands": {"lane": "comfy", "fields": {
+        "seed": _f("int", 0, False, "--seed=N")}), "help": "one Klein roll of the item's art_prompt into <id>_icon.png (the old icon is kept aside)"},
+    "icon_cands": {"lane": "comfy", "fields": _with_model({
         "subject": _f("str", "", True, "what to paint (gen_icon_cands JOBS[key].subject)"),
         "ref": _f("str", "", False, "a reference render laid on the screen colour (tools/dl/<x>_ref.png or an upload)"),
         "screen": _f("enum", "green", False, "the screen colour", ("green", "blue")),
         "style": _f("str", "", False, "words in place of gen_art's ICON_STYLE"),
         "file": _f("str", "", False, "the icon file the pick installs (<id>_icon.png, or a look's <id>_icon_<x>.png)"),
         "key": _f("str", "", False, "the candidates' key (default: the target id)"),
-        "seeds": _f("int", 4, False, "how many candidates"), "dev": _f("bool", False, False, "--dev: Flux.2 dev at 28 steps, a restart each")},
+        "seeds": _f("int", 4, False, "how many candidates"), "dev": _f("bool", False, False, "--dev: Flux.2 dev at 28 steps, a restart each")}),
         "help": "icon candidates for an item, or for an enemy/boss look (file = its <id>_icon_<x>.png); Install picks one"},
-    "hero_badge": {"lane": "comfy", "fields": {
+    "hero_badge": {"lane": "comfy", "fields": _with_model({
         "seeds": _f("int", 4, False, "how many portraits"), "prompt": _f("str", "", False, "the portrait words (default: the hero's portrait_prompt)"),
         "first_seed": _f("int", 0, False, "added to every seed"), "head_width": _f("float", 0.0, False, "badge: the head's span as a share of the badge (0 = the default zoom)"),
-        "top_pad": _f("float", 0.03, False, "badge: the gap above the head"), "skip_qa": _f("bool", False, False, "--skip-qa")},
+        "top_pad": _f("float", 0.03, False, "badge: the gap above the head"), "skip_qa": _f("bool", False, False, "--skip-qa")}),
         "help": "round badge candidates from the hero's front still; Install writes <id>_icon.png and the JSON's badge"},
-    "hero_title": {"lane": "comfy", "fields": {
-        "seeds": _f("int", 4, False, "how many cut-outs"), "first_seed": _f("int", 11, False, "the first seed (+101 each)")},
+    "hero_title": {"lane": "comfy", "fields": _with_model({
+        "seeds": _f("int", 4, False, "how many cut-outs"), "first_seed": _f("int", 11, False, "the first seed (+101 each)")}),
         "help": "title cut-out candidates (title_pose / title_holds / title_camera / title_extra_ref from the hero JSON); Install writes art/ui/wanted/hero_<id>.png"},
     "driver_pose": {"lane": "local", "fields": {
         "src": _f("str", "", True, "the FBX or GLB (tools/dl/uploads/3d/<slug>/<file> or tools/dl/mixamo/<file>)"),
@@ -615,13 +633,37 @@ def _check_target(kind, target):
 # ---------------------------------------------------------------- the plan: what runs
 
 def _asset_env(job):
-    return {"ASSET_JOB_SIDECAR": os.path.join(_job_dir(job["id"]), "result.json"), "ASSET_JOB_ID": job["id"],
-            "LOCK_HELD_COMFY": "1", "COMFY_LOCK_HELD": "1", "PYTHONIOENCODING": "utf-8"}
+    env = {"ASSET_JOB_SIDECAR": os.path.join(_job_dir(job["id"]), "result.json"), "ASSET_JOB_ID": job["id"],
+           "LOCK_HELD_COMFY": "1", "COMFY_LOCK_HELD": "1", "PYTHONIOENCODING": "utf-8"}
+    spec = job.get("spec") or {}
+    model = "dev" if (spec.get("dev") or spec.get("model") == "dev") else "klein"
+    env["ART_MODEL"] = model
+    if int(spec.get("steps") or 0):
+        env["ART_STEPS"] = str(int(spec["steps"]))
+    if float(spec.get("guidance") or 0):
+        env["ART_GUIDANCE"] = str(float(spec["guidance"]))
+    if "turbo" in spec and spec.get("turbo") is not None:
+        env["ART_TURBO"] = "1" if spec.get("turbo") else "0"
+    return env
 
 
 def _q(a):
     a = str(a)
     return '"%s"' % a.replace('"', '\\"') if (" " in a or a == "") else a
+
+
+def _model_argv(spec):
+    """The painter flags gen_art reads (also in the ART_* env): --dev, --steps=, --guidance=, --no-turbo."""
+    out = []
+    if spec.get("dev") or spec.get("model") == "dev":
+        out.append("--dev")
+    if int(spec.get("steps") or 0):
+        out.append("--steps=%d" % int(spec["steps"]))
+    if float(spec.get("guidance") or 0):
+        out.append("--guidance=%s" % spec["guidance"])
+    if spec.get("turbo") is False:
+        out.append("--no-turbo")
+    return out
 
 
 def _equiv_py(script, argv):
@@ -686,8 +728,7 @@ def _plan(job):
             argv = ["--no-import", "--only", cid, "--variant=" + code]
             if spec.get("skip_qa"):
                 argv.append("--skip-qa")
-            if spec.get("dev"):
-                argv.append("--dev")
+            argv += _model_argv(spec)
             if spec.get("no_video") or method == "creature_proc" and spec.get("no_video") is None:
                 if spec.get("no_video"):
                     argv.append("--no-video")
@@ -709,8 +750,7 @@ def _plan(job):
                 argv.append("--view-cands=" + str(spec["view_cands"]))
             if spec.get("use_view"):
                 argv.append("--use-view=" + str(spec["use_view"]))
-            if spec.get("dev"):
-                argv.append("--dev")
+            argv += _model_argv(spec)
             if spec.get("seeds") and int(spec["seeds"]) != 3:
                 argv.append("--seeds=%d" % int(spec["seeds"]))
             if spec.get("skip_qa"):
@@ -760,8 +800,7 @@ def _plan(job):
         argv = ["--no-import", "--only", cid]
         if spec.get("skip_qa"):
             argv.append("--skip-qa")
-        if spec.get("dev"):
-            argv.append("--dev")
+        argv += _model_argv(spec)
         if int(spec.get("seed") or 0):
             argv.append("--seed=%d" % int(spec["seed"]))
         r = _runner_from_methods("item_icon", {"id": cid, "code": "", "folder": p["folder"], "type": tf or "", "seed": int(spec.get("seed") or 0)}, spec)

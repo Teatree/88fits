@@ -956,14 +956,25 @@ const Jobs = (() => {
       : null;
     const mfields = method && Array.isArray(method.job_fields) ? method.job_fields : [];
     const jfields = specFields && specFields.length ? specFields.map((f) => Object.assign({}, mfields.find((x) => x.key === f.key) || {}, f, { help: f.help || (mfields.find((x) => x.key === f.key) || {}).help || '' })) : mfields;
-    if (jfields.length) {
-      body.appendChild(el('h2', {}, 'Job settings', el('small', { text: specFields && specFields.length ? `what this run does, apart from the recipe (the ${jk} job's fields as jobs.py validates them)` : 'what this run does, apart from the recipe' })));
+    const modelFields = jfields.filter((f) => f.group === 'model');
+    const assetFields = jfields.filter((f) => f.group !== 'model' && f.key !== 'dev');   // `dev` is the old switch: the model select covers it
+    if (modelFields.length) {
+      // the painter and its quality, apart from what the asset is (Garry: separate the model settings from the asset settings)
+      body.appendChild(el('h2', {}, 'Model settings', el('small', { text: 'which painter and how many passes: Flux.2 Klein is quick, Flux.2 dev slower and finer; 0 passes = the default of that painter' })));
+      if (!spec.job) spec.job = {};
+      for (const f of modelFields) {
+        const cur = spec.job[f.key] != null ? spec.job[f.key] : (f.key === 'model' && spec.flags.dev ? 'dev' : undefined);
+        body.appendChild(fieldLine(f.label || f.key, recipeControl(f, cur, (v) => { setKey(spec.job, f.key, v); if (f.key === 'model') spec.flags.dev = v === 'dev'; }, { drivers, refs }), f.help));
+      }
+    }
+    if (assetFields.length) {
+      body.appendChild(el('h2', {}, 'Asset settings', el('small', { text: specFields && specFields.length ? `what this run makes, apart from the recipe (the ${jk} job's fields as jobs.py validates them)` : 'what this run makes, apart from the recipe' })));
       if (!spec.job) spec.job = {};
       // the continuation fields a pick sets (gen_ctl's --use-side / --view-cands / --use-view, --stage, the pick) live in a fold
       const CONT = ['stage', 'use_side', 'view_cands', 'use_view', 'pick', 'file', 'key'];
       const fold = el('details', { class: 'jfold' }, el('summary', { text: 'continuation fields (the picks set them; leave them for a new job)' }));
       let folded = 0;
-      for (const f of jfields) {
+      for (const f of assetFields) {
         const cur = spec.job[f.key] != null ? spec.job[f.key] : (f.key === 'seeds' ? spec.counts.seeds : (f.key in spec.flags ? spec.flags[f.key] : undefined));
         const line = fieldLine(f.label || f.key, recipeControl(f, cur, (v) => {
           setKey(spec.job, f.key, v);

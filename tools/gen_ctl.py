@@ -162,11 +162,8 @@ def paint(cid, code, recipe, drv, seed, bg):
             raw = os.path.join(g.RAW, ck + ".png")
             if not os.path.exists(raw):
                 s = seed + 1000 * k
-                if "--dev" in ARGS:
-                    imgs, secs = comfy.run_dev(comfy.flux2_dev(p, s, 1024, 1024, refs=list(refs) + [clay] + look, steps=28, turbo=False, prefix="88fits/" + ck))
-                    log("  " + comfy.release_models())
-                else:
-                    imgs, secs = comfy.run(comfy.klein(p, s, 1024, 1024, refs=list(refs) + [clay] + look, prefix="88fits/" + ck))
+                # the painter and its quality come from gen_art.MODEL (--dev, --model=, --steps=, or the editor's ART_* env)
+                imgs, secs = g.paint(p, s, 1024, 1024, list(refs) + [clay] + look, "88fits/" + ck, full=True)
                 import io
                 Image.open(io.BytesIO(imgs[0])).convert("RGB").save(raw)
                 json.dump({"seed": s, "prompt": p, "refs": list(refs) + [clay] + look, "qa": {"problems": []}, "attempt": 0},

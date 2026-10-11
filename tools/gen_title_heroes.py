@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import artkit  # noqa: E402
 import comfy  # noqa: E402
 from gen_art import STYLE, BG_BLUE, BG_GREEN  # noqa: E402
+import gen_art as ga  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW = os.path.join(REPO, "tools", "dl", "ai_raw_anime")
@@ -137,7 +138,7 @@ def paint(hid, seeds, first):
     made = []
     for n in range(seeds):
         seed = first + n * 101
-        imgs, secs = comfy.run(comfy.klein(prompt, seed, RENDER[0], RENDER[1], refs=refs, prefix="88fits/title_" + hid))
+        imgs, secs = ga.paint(prompt, seed, RENDER[0], RENDER[1], refs, "88fits/title_" + hid)   # the painter from gen_art.MODEL
         raw = Image.open(io.BytesIO(imgs[0])).convert("RGB")
         raw.save(os.path.join(OUT, "%s_%d_raw.png" % (hid, n)))
         cut = fit(artkit.key_background(raw))
