@@ -33,6 +33,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
@@ -248,16 +249,26 @@ class Live:
 
 # ---------------------------------------------------------------- persistence
 
+def _read_queue(path):
+    """The queue file parsed, or None (missing, not JSON, or held mid-replace by its writer: a few quick tries)."""
+    for i in range(6):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            if isinstance(d, dict) and isinstance(d.get("jobs"), _LIST):
+                return {"rev": int(d.get("rev", 0)), "jobs": [j for j in d["jobs"] if isinstance(j, dict) and j.get("id")]}
+            return None
+        except (OSError, ValueError):
+            time.sleep(0.02)
+    return None
+
+
 def _load():
     global _state
-    try:
-        with open(QUEUE_FILE, "r", encoding="utf-8") as f:
-            d = json.load(f)
-        if isinstance(d, dict) and isinstance(d.get("jobs"), _LIST):
-            _state = {"rev": int(d.get("rev", 0)), "jobs": [j for j in d["jobs"] if isinstance(j, dict) and j.get("id")]}
-            return True
-    except (OSError, ValueError):
-        pass
+    d = _read_queue(QUEUE_FILE)
+    if d is not None:
+        _state = d
+        return True
     _state = {"rev": 0, "jobs": []}
     return False
 
@@ -266,12 +277,24 @@ def _save():
     with _lock:
         if _readonly is not None:   # a read-only editor never writes the queue
             return _state["rev"]
+        if not _inited:
+            raise RuntimeError("jobs.init() has not run in this process: the queue is not written (a script importing jobs.py)")
         _state["rev"] += 1
         os.makedirs(JOBS_DIR, exist_ok=True)
         tmp = QUEUE_FILE + ".tmp"
         with open(tmp, "w", encoding="utf-8", newline="\n") as f:
             json.dump(_state, f, indent=1, ensure_ascii=False)
-        os.replace(tmp, QUEUE_FILE)
+        # Windows refuses the replace while another process (a read-only editor's poll) holds the file open for a
+        # millisecond: try again a few times; after that the queue stays in memory until the next save
+        for i in range(40):
+            try:
+                os.replace(tmp, QUEUE_FILE)
+                break
+            except PermissionError:
+                if i == 39:
+                    _log("jobs: queue.json is held open by another process; the queue stays in memory until the next save")
+                    break
+                time.sleep(0.05)
         return _state["rev"]
 
 
@@ -1014,22 +1037,98 @@ def _write_job_json(job):
 _queue_lock = None    # the `jobs` lock this process holds while it runs the queue (claim_queue)
 _readonly = None      # the holder's record when another editor runs it: this process shows the queue, changes nothing
 _disk_sig = None      # (mtime, size) of queue.json at the last read-only load
+_inited = False       # init() ran: before that nothing writes queue.json (a script that imports jobs.py)
 
 
-def claim_queue(who="level_editor"):
+def _epoch(x):
+    """A time as seconds: a float, or an ISO text as _now() writes it; None when neither."""
+    if x in (None, ""):
+        return None
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        pass
+    try:
+        return time.mktime(time.strptime(str(x)[:19], "%Y-%m-%dT%H:%M:%S"))
+    except ValueError:
+        return None
+
+
+def _holder_is_editor(holder):
+    """Whether the `jobs` lock's holder is a Level Editor that answers: the port in its note asked for /api/status
+    (1.5 s). No owner record, a dead pid, or a port that does not answer as a Level Editor = a phantom (an editor
+    closed by its window never ran stop(); Windows reuses pids), and the lock is ours to take."""
+    if not holder or not holder.get("owner_file") or holder.get("alive") is False:
+        return False
+    m = re.search(r"port (\d+)", str(holder.get("note") or ""))
+    if not m:
+        return bool(holder.get("alive"))   # an older record without a port: a live pid is trusted
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:%s/api/status" % m.group(1), timeout=1.5) as r:
+            d = json.load(r)
+        return bool(isinstance(d, dict) and d.get("ok") and "jobs_available" in d)
+    except Exception:
+        return False
+
+
+def claim_queue(who="level_editor", port=None):
     """Become the one process that runs the job queue: the `jobs` lock (tools/dl/locks/jobs.lock), held while the
-    server lives. A second Level Editor started while the first runs finds it held by a live process and runs
-    READ-ONLY: it shows the queue as the file changes and refuses every change, and it neither recovers nor runs jobs.
-    (2026-10-11: two level_editor.cmd windows shared one queue.json, each with its own picture of it, each writing the
-    whole file; and recover() in a second server kills the first one's running job.) None when claimed, else the record."""
+    server lives, its note naming the port. A second Level Editor started while the first runs finds it held by a
+    live editor and runs READ-ONLY: it shows the queue as the file changes and refuses every change, and it neither
+    recovers nor runs jobs. (2026-10-11: two level_editor.cmd windows shared one queue.json, each with its own
+    picture of it, each writing the whole file; and recover() in a second server kills the first one's running job.)
+    A lock left by an editor that is gone (no owner record, a dead or reused pid, a port that does not answer) is
+    released and taken. None when claimed, else the holder's record."""
     global _queue_lock, _readonly
     if _queue_lock is not None:
         return None
-    lk = locks.acquire("jobs", who=who, note="the Level Editor that runs the job queue", wait=False, log=lambda m: None)
-    if lk is None:
-        _readonly = locks.status("jobs") or {"who": "another Level Editor"}
+    note = "the Level Editor that runs the job queue" + (" (port %d)" % int(port) if port else "")
+    for attempt in range(2):
+        lk = locks.acquire("jobs", who=who, note=note, wait=False, log=lambda m: None)
+        if lk is not None:
+            _queue_lock, _readonly = lk, None
+            return None
+        holder = locks.status("jobs") or {}
+        if attempt == 0 and not _holder_is_editor(holder):
+            locks.force_release("jobs")
+            continue
+        _readonly = holder or {"who": "another Level Editor"}
         return _readonly
-    _queue_lock, _readonly = lk, None
+    return _readonly
+
+
+def _release_claim():
+    global _queue_lock
+    if _queue_lock is not None:
+        try:
+            _queue_lock.release()
+        except Exception:
+            pass
+        _queue_lock = None
+
+
+def _foreign_runner():
+    """A running job that belongs to a live editor other than this process (one from before the queue lock, or one
+    whose claim this process just took over): its record, else None. A job's `server_pid` says which server took it;
+    an older record has none, so the lane lock's owner says, else the job's own live process. Such a job is never
+    killed: this process goes read-only instead of running recover()."""
+    for job in _state["jobs"]:
+        if job.get("state") != "running":
+            continue
+        sp = job.get("server_pid")
+        if sp:
+            if int(sp) != os.getpid() and locks.pid_alive(int(sp)):
+                return {"who": "another Level Editor (it runs %s)" % job["id"], "pid": int(sp), "since": _epoch(job.get("started")), "job": job["id"]}
+            continue   # its editor is gone: recover() deals with the orphan
+        plan = job.get("plan") or {}
+        name = plan.get("lock") or (job.get("lane") if job.get("lane") in ("comfy", "godot") else None)
+        if name:
+            st = locks.status(name) or {}
+            if st.get("owner_file") and st.get("alive") and st.get("job") == job["id"] and int(st.get("pid") or 0) != os.getpid():
+                return {"who": "an older Level Editor (no queue lock yet; it runs %s)" % job["id"], "pid": int(st.get("pid") or 0), "since": st.get("since"), "job": job["id"]}
+        pid = job.get("pid")
+        if pid and locks.pid_alive(int(pid)):
+            return {"who": "an older Level Editor (its job %s still runs)" % job["id"], "pid": int(pid), "since": _epoch(job.get("started")), "job": job["id"]}
     return None
 
 
@@ -1042,14 +1141,18 @@ def _writable():
     if _readonly is None:
         return
     o = _readonly
-    since = time.strftime("%H:%M", time.localtime(float(o.get("since") or 0))) if o.get("since") else "?"
+    t = _epoch(o.get("since"))
+    since = time.strftime("%H:%M", time.localtime(t)) if t else "?"
+    if o.get("view_only"):
+        raise ValueError("this editor was started with --no-jobs: it shows the queue and changes nothing; use the editor that runs it")
     raise ValueError("another Level Editor runs the job queue (%s, pid %s, since %s): queue it from that page, or close it and "
                      "restart this one; this page only shows the queue" % (o.get("who") or "another Level Editor", o.get("pid") or "?", since))
 
 
 def _sync_from_disk():
-    """Read-only: the queue as the other editor last wrote it, loaded again whenever queue.json changed."""
-    global _disk_sig
+    """Read-only: the queue as the other editor last wrote it, loaded again whenever queue.json changed (the old
+    picture stays when a read fails: the writer's replace may be in flight)."""
+    global _disk_sig, _state
     if _readonly is None:
         return
     try:
@@ -1058,20 +1161,32 @@ def _sync_from_disk():
     except OSError:
         return
     if sig != _disk_sig:
-        _disk_sig = sig
-        _load()
+        d = _read_queue(QUEUE_FILE)
+        if d is not None:
+            _state, _disk_sig = d, sig
 
 
-def init(hooks, root=None, claim=True):
+def init(hooks, root=None, claim=True, port=None, view_only=False):
     """server.main(): the hooks dict, the queue loaded, the queue claimed (or this process read-only), recover() run by
-    the claimant. Starts no thread. `claim=False` (a tool, a test) neither claims nor recovers."""
-    global _hooks, _root
+    the claimant when no other editor's job is running. Starts no thread. `claim=False` (a tool, a test) neither claims
+    nor recovers; `view_only` (--no-jobs) shows the queue and refuses every change."""
+    global _hooks, _root, _inited, _readonly
     _hooks = hooks
     if root:
         _root = root
     _load()
-    if claim:
-        if claim_queue() is None:
+    _inited = True
+    if view_only:
+        _readonly = {"who": "this editor, started with --no-jobs", "pid": os.getpid(), "since": time.time(), "view_only": True}
+        return _state["rev"]
+    if claim and claim_queue(port=port) is None:
+        foreign = _foreign_runner()
+        if foreign:
+            # an editor from before the queue lock (or one whose phantom lock was just released) still runs a job:
+            # do not take the queue from under it, and never kill its job
+            _release_claim()
+            _readonly = foreign
+        else:
             recover()
     return _state["rev"]
 
@@ -1472,7 +1587,8 @@ def status():
         lanes = dict(_lane_current)
     ro = None
     if _readonly is not None:
-        ro = {k: _readonly.get(k) for k in ("who", "pid", "since", "host") if k in _readonly}
+        ro = {k: _readonly.get(k) for k in ("who", "pid", "host", "job", "view_only") if k in _readonly}
+        ro["since"] = _epoch(_readonly.get("since"))
     return {"queued": counts["queued"], "running": counts["running"], "waiting": counts["waiting"], "lanes": lanes,
             "locks": locks.status_all(), "blender": blender_path(), "qa_online": _qa_cache["v"], "rev": _state["rev"],
             "workers": len(_workers), "readonly": ro}
@@ -1526,21 +1642,26 @@ def recover():
 
 def _worker(lane):
     while not _stop.is_set():
-        job = _take_next(lane)
-        if job is None:
-            _stop.wait(1.0)
-            continue
+        job = None
         try:
+            job = _take_next(lane)   # inside the try: a failing save must never end the lane
+            if job is None:
+                _stop.wait(1.0)
+                continue
             _run(job)
         except Exception as e:  # never let a lane die
             import traceback
             traceback.print_exc()
-            with _lock:
-                if job["state"] == "running":
-                    _finish(job, "failed", error="%s: %s" % (type(e).__name__, e))
+            if job is None:
+                _stop.wait(1.0)
+            else:
+                with _lock:
+                    if job["state"] == "running":
+                        _finish(job, "failed", error="%s: %s" % (type(e).__name__, e))
         finally:
-            with _lock:
-                _lane_current[lane] = None
+            if job is not None:
+                with _lock:
+                    _lane_current[lane] = None
 
 
 def _take_next(lane):
@@ -1566,6 +1687,7 @@ def _take_next(lane):
         job["state"], job["started"], job["front"] = "running", _now(), False
         job["ended"], job["error"] = None, "" if "could not be written" not in job.get("error", "") else job["error"]
         job["progress"]["stalled"] = False
+        job["server_pid"] = os.getpid()   # which editor runs it (a later editor's start must not kill it)
         _lane_current[lane] = job["id"]
         _save()
         return job
@@ -2383,13 +2505,14 @@ def _kill_tree(pid):
 
 def _user_folder(job):
     """The folder a job's workflows take in the ComfyUI page's Workflows sidebar (workflows/88fits/<folder>/): a look's
-    `<id>_<CODE>`, else `<id>_<kind>` (goblin_GOB-E, drifter_hero_badge, spear_item_icon)."""
+    `<id>_<CODE>/<job id>`, else `<id>_<kind>/<job id>` (goblin_GOB-E/j2026…, drifter_hero_badge/j2026…)."""
     t = job.get("target") or {}
     base = str(t.get("id") or job.get("kind") or "job")
     tail = str(t.get("code") or "") if job.get("kind") == "look" else str(job.get("kind") or "")
     name = "%s_%s" % (base, tail) if tail else base
     out = "".join(c if (c.isalnum() or c in "-_.") else "_" for c in name).strip("._")
-    return out[:80] or "job"
+    # a sub-folder per job: a re-roll of the same code is another job and must not overwrite the earlier copies
+    return "%s/%s" % (out[:80] or "job", str(job.get("id") or "job"))
 
 
 def _workflows_sig(job):
@@ -2406,7 +2529,7 @@ def _comfy_open_url(path):
     return COMFY_SERVER.rstrip("/") + "/?open=" + urllib.parse.quote(path, safe="")
 
 
-def _comfy_put_userdata(path, obj, timeout=30):
+def _comfy_put_userdata(path, obj, timeout=10):
     """Save a workflow into the ComfyUI page's user data (its Workflows sidebar): POST /api/userdata/<path>."""
     url = COMFY_SERVER.rstrip("/") + "/api/userdata/" + urllib.parse.quote(path, safe="") + "?overwrite=true&full_info=true"
     req = urllib.request.Request(url, data=json.dumps(obj).encode("utf-8"), headers={"Content-Type": "application/json"})
@@ -2459,12 +2582,19 @@ def push_workflows(job_id):
                 with open(mk, "w", encoding="utf-8", newline="\n") as fh:
                     json.dump({"path": upath, "open": _comfy_open_url(upath), "server": rec}, fh, indent=1)
                 pushed.append(upath)
+            except urllib.error.HTTPError as e:   # the server answered: this file was refused, the next may not be
+                errors.append("%s: the ComfyUI server answered HTTP %s" % (stem, e.code))
+            except OSError as e:   # the server did not answer (URLError is an OSError): the rest would wait as long
+                errors.append("%s: the ComfyUI server did not answer (%s); the rest not tried" % (stem, e))
+                break
             except Exception as e:
                 errors.append("%s: %s" % (stem, e))
     with _lock:
         job["outputs"] = _harvest(job)
         _save()
         out = _public(job, LOG_TAIL_SHORT)
+    if errors and not pushed:
+        raise RuntimeError("nothing was sent to ComfyUI: " + "; ".join(errors))
     out["pushed"], out["push_errors"] = pushed, errors
     return out
 
@@ -2477,6 +2607,7 @@ def push_templates(folder=None):
     workflows/88fits/templates/ (each once per server start and file change); returns [{name, path, open_url, error?}]."""
     folder = folder or os.path.join(TOOLS, "comfy_workflows")
     out = []
+    down = ""
     if not os.path.isdir(folder):
         return out
     for f in sorted(os.listdir(folder)):
@@ -2485,14 +2616,21 @@ def push_templates(folder=None):
         full = os.path.join(folder, f)
         upath = "workflows/88fits/templates/%s" % f
         rec = {"name": f, "path": upath, "open_url": _comfy_open_url(upath)}
-        try:
-            mtime = os.path.getmtime(full)
-            if _templates_pushed.get(f) != mtime:
-                with open(full, "r", encoding="utf-8") as fh:
-                    _comfy_put_userdata(upath, json.load(fh))
-                _templates_pushed[f] = mtime
-        except Exception as e:
-            rec["error"] = str(e)
+        if down:
+            rec["error"] = down
+        else:
+            try:
+                mtime = os.path.getmtime(full)
+                if _templates_pushed.get(f) != mtime:
+                    with open(full, "r", encoding="utf-8") as fh:
+                        _comfy_put_userdata(upath, json.load(fh))
+                    _templates_pushed[f] = mtime
+            except urllib.error.HTTPError as e:
+                rec["error"] = "the ComfyUI server answered HTTP %s" % e.code
+            except OSError as e:   # the server did not answer: the rest would each wait the timeout
+                down = rec["error"] = "the ComfyUI server did not answer (%s)" % e
+            except Exception as e:
+                rec["error"] = str(e)
         out.append(rec)
     return out
 

@@ -334,8 +334,9 @@ const Jobs = (() => {
     const ro = st.jobs && st.jobs.readonly;
     if (ro) {
       // a second Level Editor: the first one holds the queue (jobs.claim_queue); this page shows it and refuses changes
-      const since = ro.since ? new Date(Number(ro.since) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '?';
-      box.appendChild(el('div', { class: 'jwarn', text: `Another Level Editor runs the job queue (${ro.who || 'level_editor'}, pid ${ro.pid || '?'}, since ${since}; the other editor window, on another port). This page shows the queue read-only and refuses changes: queue from that page, or close it and restart this one.` }));
+      const since = ro.since && isFinite(Number(ro.since)) ? new Date(Number(ro.since) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (ro.since || '?');
+      box.appendChild(el('div', { class: 'jwarn', text: ro.view_only ? 'This editor was started with --no-jobs: it shows the queue and changes nothing. Queue from the editor that runs it.'
+        : `Another Level Editor runs the job queue (${ro.who || 'level_editor'}, pid ${ro.pid || '?'}, since ${since}; the other editor window, on another port). This page shows the queue read-only and refuses changes: queue from that page, or close it and restart this one. A lock left by an editor that is gone: Force release on "Job queue" below, then restart this one.` }));
     }
     const locks = st.locks || {};
     const lock = (name, label) => {
@@ -360,6 +361,7 @@ const Jobs = (() => {
     };
     box.appendChild(lock('comfy', 'ComfyUI'));
     box.appendChild(lock('godot', 'Godot'));
+    box.appendChild(lock('jobs', 'Job queue'));
     box.appendChild(el('span', { class: 'lock' }, el('i', { class: 'dot ' + (st.blender ? '' : 'off') }), el('span', { text: `Blender: ${st.blender ? 'found' : 'not found'}`, title: st.blender || 'driver and reference jobs need Blender: env BLENDER, %LOCALAPPDATA%/Programs/blender-*/blender.exe or C:/Program Files/Blender Foundation/Blender */blender.exe' })));
     box.appendChild(el('span', { class: 'lock' }, el('i', { class: 'dot ' + (st.qa_online ? '' : st.qa_online === false ? 'off' : 'off') }), el('span', { text: `QA ${st.qa_online ? 'online' : st.qa_online === false ? 'offline' : 'unknown'}`, title: 'the vision check (LM Studio) that counts subjects, legs and views on every still; offline, the tools keep every first roll' })));
     const jst = st.jobs || {};
@@ -379,7 +381,7 @@ const Jobs = (() => {
 
   function sig(j) {
     const p = j.progress || {};
-    return JSON.stringify([j.state, j.waiting_for, p.stage, p.done, p.total, p.stalled, (j.log_tail || []).slice(-1)[0], (j.outputs || []).length, (j.outputs || []).filter((o) => o.open_url).length, (j.choices || []).length, j.ended, j.error, j.written && j.written.layout, j.merged_into, j.eta_s, j.state === 'running' ? Math.floor(Date.now() / 2000) : 0, S.hidden.has(j.id)]);
+    return JSON.stringify([j.state, j.waiting_for, p.stage, p.done, p.total, p.stalled, (j.log_tail || []).slice(-1)[0], (j.outputs || []).length, (j.outputs || []).filter((o) => o.open_url).length, S.status && S.status.comfy_open_ext ? S.status.comfy_open_ext.installed : null, (j.choices || []).length, j.ended, j.error, j.written && j.written.layout, j.merged_into, j.eta_s, j.state === 'running' ? Math.floor(Date.now() / 2000) : 0, S.hidden.has(j.id)]);
   }
 
   function draw() {
@@ -570,6 +572,7 @@ const Jobs = (() => {
     else if (j.state === 'interrupted') c.appendChild(el('div', { class: 'jwarn', text: 'The server restarted while this job ran: its process was stopped. Re-queue continues from the tools\' caches (finished stills and clips are reused).' }));
     else if (j.state === 'cancelled') c.appendChild(el('div', { class: 'muted small', text: 'cancelled' }));
     if (j.log_tail && j.log_tail.length) c.appendChild(logTail(j, 6));
+    if (j.outputs && j.outputs.length) c.appendChild(outputs(j, c.__players));   // what it made before it stopped: its workflows above all
     const t = j.target || {};
     c.appendChild(el('div', { class: 'jcard-actions' },
       el('button', { type: 'button', class: 'btn small primary', text: 'Re-queue', onclick: () => act(j, 'requeue', {}, 're-queueing') }),
@@ -629,7 +632,11 @@ const Jobs = (() => {
         set.appendChild(el('a', { class: 'jflow file', href: o.url, target: '_blank', rel: 'noopener', text: 'file', title: 'the workflow file (drag it into the ComfyUI page)' }));
         row.appendChild(set);
       }
-      if (unsent) row.appendChild(el('button', { type: 'button', class: 'btn small', text: `Send to ComfyUI (${unsent})`, title: 'save these workflows into the ComfyUI page\'s Workflows sidebar (88fits folder); the links then open them', onclick: () => act(j, 'push_workflows', {}, 'sending the workflows to ComfyUI') }));
+      if (unsent) row.appendChild(el('button', { type: 'button', class: 'btn small', text: `Send to ComfyUI (${unsent})`, title: 'save these workflows into the ComfyUI page\'s Workflows sidebar (88fits folder); the links then open them', onclick: async () => {
+        const res = await act(j, 'push_workflows', {}, 'sending the workflows to ComfyUI');
+        const errs = res && res.ok && res.job && Array.isArray(res.job.push_errors) ? res.job.push_errors : [];
+        if (errs.length) App.status(`${title(j)}: ${(res.job.pushed || []).length} sent, ${errs.length} failed: ${errs[0]}`, 'bad', errs.join('\n'));
+      } }));
       if (ext === false) row.appendChild(el('span', { class: 'warn-text small', text: 'the ComfyUI page has no 88fits_open extension yet: a link opens the page and the workflow waits in its Workflows sidebar (ask Claude: python tools/comfy.py --install-ext)' }));
       box.appendChild(row);
     }
@@ -960,7 +967,8 @@ const Jobs = (() => {
         el('span', { class: 'muted small', text: ' (each opens in ' }), el('a', { href: COMFY_URL, target: '_blank', rel: 'noopener', text: 'the ComfyUI page' }),
         el('span', { class: 'muted small', text: ' from its Workflows sidebar, 88fits/templates; every job keeps the exact graphs it ran on its card)' }));
       // the templates are saved into the ComfyUI page's sidebar first (once per file), so each link opens the page on it
-      post('/api/workflows/push', {}).then((r) => {
+      if (!S.tplPush || Date.now() - S.tplPushAt > 60000) { S.tplPush = post('/api/workflows/push', {}).catch(() => null); S.tplPushAt = Date.now(); }
+      S.tplPush.then((r) => {
         const ext = r && r.extension ? r.extension.installed : null;
         if (r && r.ok && Array.isArray(r.files) && r.files.length) {
           for (const f of r.files) wf.appendChild(el('a', { class: 'jflow' + (f.error ? ' pending' : ' open'), href: f.error ? '/workflows/' + encodeURIComponent(f.name) : f.open_url, target: '_blank', rel: 'noopener', text: f.name.replace(/\.json$/, '') + (f.error ? '' : ' ↗'),

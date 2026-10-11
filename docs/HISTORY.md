@@ -81,4 +81,13 @@ record says whether the extension is there. Found on the way: two `level_editor.
 and 8788), each with its own picture of `queue.json` and each writing the whole file, and a second server's `recover()`
 would kill the first one's running job; so the first editor now claims the queue (`locks` gained a third name, `jobs`;
 `jobs.claim_queue` in `init`), a later one runs read-only (follows the file, refuses every change, a banner on the
-Jobs tab, `status.readonly`).
+Jobs tab, `status.readonly`). An adversarial review (33 agents, 13 confirmed findings) then hardened it: on Windows a
+read-only editor's poll holding queue.json open for a millisecond made the claimant's `os.replace` fail, which could end
+a lane thread or orphan a render (the save retries, `_take_next` sits inside the worker's try, a failed read keeps the
+old picture); a phantom `jobs` lock (an editor closed by its window, its pid reused) is told from a live editor by the
+port in the lock's note and released; a new editor never kills a job an older editor still runs (`server_pid` on every
+taken job, `_foreign_runner`: it goes read-only instead); `--no-jobs` is view-only (it used to write the queue from an
+empty picture); every job's sidebar copies sit in their own sub-folder (a re-roll overwrote the earlier job's); failed
+and cancelled cards show their workflows; "Send to ComfyUI" reports what failed; the extension no longer loads inside
+the awaited `setup` hook (the page's own init loaded another graph on top) but waits for the page's active workflow
+and opens the saved file through the workflow store; `--install-ext` waits for the server's own queue to empty.

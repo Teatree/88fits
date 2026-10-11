@@ -2915,11 +2915,14 @@ def main():
     print("88fits Level Editor: %s   (repo %s)" % (url, ROOT))
     if not os.path.isfile(GODOT):
         print("note: the Godot binary is not at %s; Save will write the JSON but cannot import it" % GODOT)
-    jobs = None if args.no_jobs else jobs_module()
+    jobs = jobs_module()
     if jobs is not None:
         try:
-            jobs.init(HOOKS, ROOT)
-            if jobs.is_readonly():
+            # the claim names this port, so a later editor can tell a live holder from a phantom; --no-jobs = view only
+            jobs.init(HOOKS, ROOT, port=port, view_only=bool(args.no_jobs))
+            if args.no_jobs:
+                print("jobs: --no-jobs: this editor shows the queue and changes nothing (no workers; the routes refuse changes)")
+            elif jobs.is_readonly():
                 ro = jobs.status().get("readonly") or {}
                 print("jobs: ANOTHER Level Editor runs the job queue (%s, pid %s): this one shows it read-only and refuses changes; "
                       "queue from that page, or close it and restart this one" % (ro.get("who") or "?", ro.get("pid") or "?"))
@@ -2929,7 +2932,7 @@ def main():
         except Exception as e:
             print("jobs: could not start the workers: %s: %s" % (type(e).__name__, e))
             jobs = None
-    elif not args.no_jobs:
+    else:
         print("jobs: %s (the Jobs tab will say so)" % (_jobs_error[0] or "the jobs module is not here yet"))
     print("Ctrl+C stops it.")
     if not args.no_browser:

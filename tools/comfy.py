@@ -123,8 +123,25 @@ def safe_name(name, default="job"):
 
 
 def user_workflow_path(folder, stem):
-    """workflows/88fits/<folder>/<stem>.json: where a job's workflow sits in the page's sidebar."""
-    return "%s/%s/%s.json" % (USER_FOLDER, safe_name(folder), safe_name(stem))
+    """workflows/88fits/<folder>/<stem>.json: where a job's workflow sits in the page's sidebar (`folder` may nest:
+    goblin_GOB-E/j20261011-..., one sub-folder per job)."""
+    parts = [safe_name(x) for x in str(folder or "").split("/") if x.strip()] or ["job"]
+    return "%s/%s/%s.json" % (USER_FOLDER, "/".join(parts), safe_name(stem))
+
+
+def wait_idle(timeout=1800, poll=5):
+    """Wait until the server's own queue is empty (something Garry queued by hand on the page is never cut by a
+    restart); True when idle, False after `timeout` seconds."""
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        try:
+            q = get("/queue", timeout=10)
+            if not q.get("queue_running") and not q.get("queue_pending"):
+                return True
+        except Exception:
+            return True   # no answer: nothing to wait for
+        time.sleep(poll)
+    return False
 
 
 def put_user_workflow(path, workflow, timeout=30):
@@ -165,6 +182,9 @@ def install_extension(restart=True):
         raise RuntimeError("scp failed: %s" % (r.stderr or r.stdout).strip())
     if not restart:
         return "copied (the page loads it after the next restart)"
+    ensure_lock()
+    if not wait_idle():
+        return "copied, but the server's queue stayed busy for 30 min: not restarted (the page loads it after the next restart)"
     state = restart_server()
     return "copied, %s, extension %s" % (state, "listed" if extension_installed() else "NOT listed yet")
 

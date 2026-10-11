@@ -12,6 +12,8 @@ import sys
 import tempfile
 import threading
 import time
+import urllib.error
+import urllib.parse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -150,8 +152,8 @@ def checks(check, run_node, server):
         check(sp["recipe"].get("painter") == {"model": "klein", "steps": 6} and "stills" not in sp["recipe"], "a hero look records its painter and gets no stills slug: %s" % sp["recipe"])
         # pass 66 follow-up: every workflow a job runs also lands in the ComfyUI page's Workflows sidebar; the card's
         # "open in ComfyUI" link; Send to ComfyUI for the ones a run did not push
-        check(jobs._user_folder({"kind": "look", "target": {"kind": "enemy", "id": "dust_mummy", "code": "DM-E"}}) == "dust_mummy_DM-E"
-              and jobs._user_folder({"kind": "hero_badge", "target": {"kind": "hero", "id": "drifter"}}) == "drifter_hero_badge", "the sidebar folder names the look (id_CODE) or the job's kind")
+        check(jobs._user_folder({"id": "jX", "kind": "look", "target": {"kind": "enemy", "id": "dust_mummy", "code": "DM-E"}}) == "dust_mummy_DM-E/jX"
+              and jobs._user_folder({"id": "jY", "kind": "hero_badge", "target": {"kind": "hero", "id": "drifter"}}) == "drifter_hero_badge/jY", "the sidebar folder names the look (id_CODE) or the job's kind, then the job (a re-roll never overwrites the earlier copies)")
         check(jobs._comfy_open_url("workflows/88fits/a b/x.json") == jobs.COMFY_SERVER.rstrip("/") + "/?open=workflows%2F88fits%2Fa%20b%2Fx.json", "the open link carries the user-data path, url-encoded: %s" % jobs._comfy_open_url("workflows/88fits/a b/x.json"))
         wd = os.path.join(jobs.JOBS_DIR, j["id"], "workflows")
         os.makedirs(wd, exist_ok=True)
@@ -170,13 +172,66 @@ def checks(check, run_node, server):
             res = jobs.push_workflows(j["id"])
         finally:
             jobs._comfy_put_userdata = real_put
-        check(res["pushed"] == ["workflows/88fits/testbeast_TB-A/01_test.json"] and not res["push_errors"] and put == res["pushed"], "push_workflows saves each unsent workflow under workflows/88fits/<id_CODE>/: %s %s" % (res["pushed"], res["push_errors"]))
+        upath = "workflows/88fits/testbeast_TB-A/%s/01_test.json" % j["id"]
+        check(res["pushed"] == [upath] and not res["push_errors"] and put == res["pushed"], "push_workflows saves each unsent workflow under workflows/88fits/<id_CODE>/<job>/: %s %s" % (res["pushed"], res["push_errors"]))
         h = [o for o in res["outputs"] if o["type"] == "workflow"]
-        check(len(h) == 1 and h[0].get("userdata") == "workflows/88fits/testbeast_TB-A/01_test.json" and h[0].get("open_url", "").endswith("?open=workflows%2F88fits%2Ftestbeast_TB-A%2F01_test.json"), "after the push the output carries the sidebar path and the open link: %s" % h)
+        check(len(h) == 1 and h[0].get("userdata") == upath and h[0].get("open_url", "").endswith("?open=" + urllib.parse.quote(upath, safe="")), "after the push the output carries the sidebar path and the open link: %s" % h)
         res2 = jobs.push_workflows(j["id"])
         check(res2["pushed"] == [] and not res2["push_errors"] and os.path.isfile(os.path.join(wd, "01_test_userdata.json")), "a pushed workflow is not pushed again (its marker file stays)")
         check(jobs._workflows_sig(jb) == ("01_test_userdata.json", "01_test_workflow.json"), "the signature sees the marker too: %s" % (jobs._workflows_sig(jb),))
-        check(jobs._asset_env(jb).get("ASSET_JOB_NAME") == "testbeast_TB-A", "the tools get the sidebar folder as ASSET_JOB_NAME: %s" % jobs._asset_env(jb).get("ASSET_JOB_NAME"))
+        check(jobs._asset_env(jb).get("ASSET_JOB_NAME") == "testbeast_TB-A/" + j["id"], "the tools get the sidebar folder as ASSET_JOB_NAME: %s" % jobs._asset_env(jb).get("ASSET_JOB_NAME"))
+        # a push that fails: an HTTP refusal of one file lets the next through; nothing sent at all is an error the page sees
+        with open(os.path.join(wd, "02_two_workflow.json"), "w", encoding="utf-8") as fh:
+            json.dump({"nodes": [], "links": []}, fh)
+        with open(os.path.join(wd, "03_three_workflow.json"), "w", encoding="utf-8") as fh:
+            json.dump({"nodes": [], "links": []}, fh)
+        calls_put = []
+        def flaky_put(p, o, timeout=10):
+            calls_put.append(p)
+            if p.endswith("02_two.json"):
+                raise urllib.error.HTTPError(p, 500, "boom", {}, None)
+            return {"path": p}
+        jobs._comfy_put_userdata = flaky_put
+        try:
+            res = jobs.push_workflows(j["id"])
+        finally:
+            jobs._comfy_put_userdata = real_put
+        check(len(calls_put) == 2 and res["pushed"] == ["workflows/88fits/testbeast_TB-A/%s/03_three.json" % j["id"]] and len(res["push_errors"]) == 1 and "HTTP 500" in res["push_errors"][0],
+              "an HTTP refusal is recorded and the next file still goes: %s %s" % (res["pushed"], res["push_errors"]))
+        os.remove(os.path.join(wd, "03_three_userdata.json"))
+        jobs._comfy_put_userdata = lambda p, o, timeout=10: (_ for _ in ()).throw(urllib.error.URLError("down"))
+        try:
+            try:
+                jobs.push_workflows(j["id"])
+                check(False, "nothing sent raises")
+            except RuntimeError as e:
+                check("nothing was sent" in str(e) and "did not answer" in str(e), "nothing sent is an error the page sees (jobs_call 409): %s" % e)
+        finally:
+            jobs._comfy_put_userdata = real_put
+        for f in ("02_two_workflow.json", "03_three_workflow.json"):
+            os.remove(os.path.join(wd, f))
+        # a phantom holder of the jobs lock is told from a live editor by its port
+        check(jobs._holder_is_editor({"owner_file": False}) is False and jobs._holder_is_editor({"owner_file": True, "alive": False, "pid": 1}) is False, "no owner record or a dead pid = a phantom")
+        check(jobs._holder_is_editor({"owner_file": True, "alive": True, "pid": os.getpid(), "note": "the Level Editor that runs the job queue (port 1)"}) is False, "a live pid whose port does not answer as a Level Editor = a phantom")
+        check(jobs._holder_is_editor({"owner_file": True, "alive": True, "pid": os.getpid(), "note": ""}) is True, "an older record without a port: a live pid is trusted")
+        # a running job of another live editor is never killed: the claimant goes read-only instead
+        other = os.getppid()
+        saved_jobs = jobs._state["jobs"]
+        try:
+            jobs._state["jobs"] = saved_jobs + [{"id": "jF", "kind": "look", "lane": "comfy", "state": "running", "server_pid": other, "started": jobs._now(), "pid": 0, "progress": {}, "spec": {}, "target": {}}]
+            fr = jobs._foreign_runner()
+            check(bool(fr) and fr.get("pid") == other and fr.get("job") == "jF" and isinstance(fr.get("since"), float), "a running job whose server_pid is another live process is a foreign runner: %s" % fr)
+            jobs._state["jobs"][-1]["server_pid"] = os.getpid()
+            check(jobs._foreign_runner() is None, "a running job taken by this process is not foreign")
+            jobs._state["jobs"][-1]["server_pid"] = 999999
+            check(jobs._foreign_runner() is None, "a running job whose server is dead is an orphan for recover(), not a foreign runner")
+            del jobs._state["jobs"][-1]["server_pid"]
+            jobs._state["jobs"][-1]["pid"] = other
+            fr = jobs._foreign_runner()
+            check(bool(fr) and fr.get("pid") == other, "an older record (no server_pid) whose own process is alive counts as foreign: %s" % fr)
+        finally:
+            jobs._state["jobs"] = saved_jobs
+        check(jobs._epoch("2026-10-11T15:56:22") is not None and jobs._epoch(12.5) == 12.5 and jobs._epoch("") is None, "_epoch reads floats and ISO texts")
         # one Level Editor runs the queue (the `jobs` lock, claimed by init): a second one is read-only
         check(jobs._queue_lock is not None and not jobs.is_readonly() and locks.status("jobs") and locks.status("jobs")["pid"] == os.getpid(), "init claims the jobs lock for this process: %s" % (locks.status("jobs"),))
         check(jobs.claim_queue() is None and jobs.status().get("readonly") is None, "a second claim by the holder is a no-op; status says not read-only")

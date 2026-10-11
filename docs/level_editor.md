@@ -633,7 +633,9 @@ the ComfyUI page's own Workflows sidebar (`workflows/88fits/<id>_<CODE>/`, the s
 **The Jobs tab.** The queue lives in `tools/dl/jobs/queue.json` with a folder per job (`job.json`, `log.txt`,
 `result.json`); one Level Editor runs it (the `jobs` lock, `tools/dl/locks/jobs.lock`, claimed at start: a second
 editor started while the first runs shows the queue read-only, refuses changes and says so in a banner, since two
-writers of one queue file wiped each other's records); three lanes run one job each (comfy for the art, godot for register / import / Test in game, local for
+writers of one queue file wiped each other's records; the lock's note names the port, so a lock left by an editor that
+is gone is released on the next start; a new editor never kills a job an older editor still runs: it goes read-only
+instead; `--no-jobs` is view-only); three lanes run one job each (comfy for the art, godot for register / import / Test in game, local for
 Blender and installs), under the two repo-wide locks (one ComfyUI job at a time across the queue, Claude and every
 script: `tools/dl/locks/comfy.lock`; one Godot process: `godot.lock`); the header says who holds what, and a lock left
 by a process that died is reclaimed, one with no owner only by Force release. A card per job: queued (Edit, up / down,

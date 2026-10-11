@@ -333,6 +333,6 @@ show in the game; pictures in `docs/guide_img/`; published at https://claude.ai/
   around tool runs; use `Save.begin_sandbox()` in probes).
 - Rules Garry never asked for read as bugs: name every new rule in BALANCING.md.
 - Commit every finished pass (never push); the build goes to Drive at the end of every user-facing change.
-- One Level Editor server at a time runs the job queue (`tools/dl/locks/jobs.lock`, claimed at start); a second one is
-  read-only. Never start a server from a newer checkout while an older one runs a job: a claimant's `recover()`
-  interrupts (kills) any job marked running.
+- One Level Editor server at a time runs the job queue (`tools/dl/locks/jobs.lock`, claimed at start, the port in its
+  note); a second one is read-only, `--no-jobs` is view-only. A new editor never kills a job an older editor still
+  runs (`server_pid` on every taken job): it starts read-only; close the old one and restart.
