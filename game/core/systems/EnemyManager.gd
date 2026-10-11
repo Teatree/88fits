@@ -1260,8 +1260,13 @@ static func ring_spots(center: Vector3, ring_r: float, n: int, lim: float, rng: 
 					return _spots_on(dry, center, ring_r, n, lim, rng, slide, jitter, ctx)
 	var step := TAU / float(n) if whole else 2.0 * arc.y / float(n)
 	var start := turn if whole else arc.x - arc.y + step * 0.5
+	var hw := maxf(arc.y - 0.02, 0.0)
 	for k in range(n):
 		var a := start + step * (float(k) + rng.randf_range(-slide, slide))
+		if not whole:
+			# the slide stays inside the arc (pass 67: pass 60's fix of _spots_on, here too: an end spot slid past a
+			# wall-clipped arc was pulled in radially by _inside and landed a few mm under the ring's distance)
+			a = clampf(a, arc.x - hw, arc.x + hw)
 		var r := ring_r + rng.randf_range(-jitter, jitter)
 		var p := center + Vector3(cos(a), 0, sin(a)) * r
 		if not ctx.is_empty() and not _clear_in(ctx, p):

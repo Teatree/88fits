@@ -138,4 +138,4 @@ pass26, pass46_passives, pass55_hv, pass61_hr, pass66_shape, pass53_weapons_b, p
 BALANCING §14 holds 33 named rules. **Lessons**: a global like Run.heat leaks across the rounds of a looped test (reset
 it per round); a sync that skips small steps needs its end state forced or a threshold just under the top becomes a coin
 toss; a GLB's vertex colours need a material that reads them; agents stopped by a spend limit resume cleanly when each
-keeps a status file of what is in the tree.
+keeps a status file of what is in the tree. The ship run then caught a pass-58 flake: EnemyManager.ring_spots let the end spots of a wall-clipped ring slide past the arc (its random generator is seeded fresh every run), and `_inside` pulled one in a few millimetres under the 16 m ring (pass58_wv_test, 15.987 m); pass 60 had clamped the slide inside the arc in `_spots_on` only, and the same clamp now sits on the main path.
