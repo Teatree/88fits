@@ -46,7 +46,8 @@ async function pageReady(maxMs) {
   const t0 = Date.now();
   while (Date.now() - t0 < maxMs) {
     const ws = workflowStore();
-    if (app.canvas && app.graph && ws && ws.activeWorkflow) return true;
+    // app.graph is not read here: before the canvas exists its getter logs "graph accessed before initialization"
+    if (app.canvas && ws && ws.activeWorkflow) return true;
     await sleep(250);
   }
   return false;
