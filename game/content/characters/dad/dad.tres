@@ -43,6 +43,7 @@ favourite_bonus = {
 "type": "effects"
 }
 unlock_quest = "unlock_dad"
+availability = "hidden"
 sprite = ExtResource("4_1x8k2")
 sprite_file = "dad_sprite.png"
 anims = {

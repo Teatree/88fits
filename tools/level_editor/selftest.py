@@ -2354,12 +2354,29 @@ def snap_checks():
     print("snapping: %d random drags, %d snapped, JS and Python agree on %d" % (len(rand_q), snapped, agree))
 
 
+def extra_checks():
+    """Pass 66: every `selftest_<name>.py` beside this file is a check group of its own (one per lane, so lanes never edit
+    this file at once). Each exports `checks(check, run_node, server)` and uses the `check` counter it is handed."""
+    import glob
+    import importlib
+    for path in sorted(glob.glob(os.path.join(HERE, "selftest_*.py"))):
+        name = os.path.splitext(os.path.basename(path))[0]
+        try:
+            mod = importlib.import_module(name)
+            mod.checks(check, run_node, server)
+        except Exception as e:  # a broken group is one failure, not a crash of the whole run
+            import traceback
+            traceback.print_exc()
+            check(False, "%s: %s: %s" % (name, type(e).__name__, e))
+
+
 def main():
     model_checks()
     estimate_checks()
     server_checks()
     fit_checks()
     snap_checks()
+    extra_checks()
     print("%d checks passed, %d failed" % (PASSES[0], len(FAILS)))
     return 1 if FAILS else 0
 

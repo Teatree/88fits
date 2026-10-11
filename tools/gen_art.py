@@ -80,12 +80,53 @@ for a in sys.argv:
     if a.startswith("--keys="):
         FORCE_KEYS = a.split("=", 1)[1].split(",")
 
+# pass 66: a Level Editor job (tools/asset_job.py) sets ASSET_JOB_SIDECAR=<job>/result.json. Then this module never
+# opens a content JSON for writing: what the run would have written (the variant entry, or the top-level keys of a base
+# run) goes into that sidecar for the editor's server to merge in place, line by line, so Garry's layout and his hand
+# edits made while the job ran survive. The <id>[_<letter>]_ai.json markers are still written. Without the variable
+# (every command line Claude types) the write-back is the same as before.
+SIDECAR = os.environ.get("ASSET_JOB_SIDECAR", "")
+WRITE_JSON = SIDECAR == ""
+QA_ONLINE = None   # whether LM Studio answered this run's vision checks (None: never asked, --skip-qa or no render)
+ICON_BACKUPS = os.path.join(REPO, "tools", "dl", "backup", "icons_le")
+
 ANCHOR_REF = "88fits/style_anchor.png"
 _anchor_uploaded = False
 
 
 def log(*a):
     print(*a, flush=True)
+
+
+def emit_sidecar(folder, id_, vcode, patch, info, top=None):
+    """What this run would have written into the content JSON, for the Level Editor's server to merge in place:
+    {"id", "folder", "variant", "entry": {sprite, icon, anims, strip_cols, fps, head}, "top": {...}, "info": {...}}."""
+    out = {"id": id_, "folder": folder, "variant": vcode or "", "entry": patch or {}, "top": top or {}, "info": info}
+    path = SIDECAR or os.path.join(folder, id_ + "_result.json")
+    if os.path.dirname(path):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(out, f, indent=1, ensure_ascii=False)
+    log("  sidecar written: %s" % path)
+    return out
+
+
+def backup_icon(dst, new_png_bytes=None):
+    """The icon about to be overwritten kept under tools/dl/backup/icons_le/<name>_<stamp>.png (pass 66, critique 22);
+    nothing is kept when the new bytes equal the old (a cached re-run writes the same picture). Returns the copy's path."""
+    if not os.path.isfile(dst):
+        return ""
+    try:
+        old = open(dst, "rb").read()
+    except OSError:
+        return ""
+    if new_png_bytes is not None and old == new_png_bytes:
+        return ""
+    os.makedirs(ICON_BACKUPS, exist_ok=True)
+    stem = os.path.splitext(os.path.basename(dst))[0]
+    out = os.path.join(ICON_BACKUPS, "%s_%s.png" % (stem, time.strftime("%Y%m%d-%H%M%S")))
+    shutil.copy2(dst, out)
+    return out
 
 
 # ---------------------------------------------------------------- prompts
@@ -176,9 +217,12 @@ def qa(img, expect):
          "view (\"front\" if the main subject's face or front is towards the viewer, \"back\" if it is seen from behind with no face visible, "
          "\"side\" for a profile, else \"other\"), "
          "matches (true if the image clearly shows: %s)." % expect.get("subject", "the requested subject"))
+    global QA_ONLINE
     try:
         r = vision_json(img, q)
+        QA_ONLINE = True
     except Exception as e:
+        QA_ONLINE = False
         log("  (vision QA failed: %s)" % e)
         return True, {"error": str(e)}
     problems = []
@@ -708,6 +752,7 @@ def process(type_, folder, id_):
         return
     base_d = d
     vcode = VARIANT if (VARIANT and type_ in ("enemies", "bosses", "characters")) else ""
+    ventry = None
     if vcode:
         ventry = (d.get("variants") or {}).get(vcode)
         if not isinstance(ventry, dict):
@@ -731,7 +776,11 @@ def process(type_, folder, id_):
     # cached paintings keep their keys, so only the clips roll again
     if type_ in ("enemies", "bosses"):
         seed += int(d.get("anim_seed", 0))
-    info = {"pipeline": "gen_art v2", "model": comfy.KLEIN_UNET, "anchor": anchor_hash() if USE_ANCHOR else "", "subject": subject, "renders": {}}
+    # pass 66: "recipe_ran" is the recipe this run read (the entry may be edited while a job runs), "clip_kind" says per
+    # view how its cycle was made (pose | free | procedural; gen_ctl writes control), so a silent fallback is seen
+    info = {"pipeline": "gen_art v2", "model": comfy.KLEIN_UNET, "anchor": anchor_hash() if USE_ANCHOR else "", "subject": subject, "renders": {},
+            "recipe_ran": (ventry.get("recipe") if isinstance(ventry, dict) else None), "clip_kind": {}}
+    kinds = info["clip_kind"]
     many = any(w in subject.lower() for w in ("three ", "pile", "family", "six ", "splitting", "pair of"))
     if type_ in ("enemies", "bosses"):
         cell = int(d.get("frame_px", 128))
@@ -774,6 +823,7 @@ def process(type_, folder, id_):
             run_f = artkit.hop_cycle(base, cell, CREATURE_RUN_FRAMES, hh)
             run_b = artkit.hop_cycle(back_cell, cell, CREATURE_RUN_FRAMES, hh)
             clip = ""
+            kinds["front"] = kinds["back"] = "procedural"
         elif clip:
             # a humanoid creature walks on a Mixamo stride (pass 33.4, the skeletons: "pose": "walk_zombie", rendered by
             # tools/pose_driver.py): Wan Animate paints the still onto the driver's skeleton, one sprite frame per driver
@@ -784,13 +834,17 @@ def process(type_, folder, id_):
             gait = str(d.get("gait", "walking in place on the spot like on a treadmill"))
             run_f = pose_cycle(img, ak + "_pose_f", str(d.get("pose_front", clip)), "front", seed, cell, base, motion, CF, CO, negative_extra=anim_neg, motion=gait)
             run_b = pose_cycle(back_img, ak + "_pose_b", clip, "back", seed + 1, cell, base, motion, CF, CO, negative_extra=anim_neg, motion=gait)
+            kinds["front"] = "pose" if run_f is not None else "free"
+            kinds["back"] = "pose" if run_b is not None else "free"
         # "clip_fill": the still's share of the free clip's canvas (0.72); a creature that bounces high takes less so its
         # frames never touch the edge (the Blue Slime's 0.56, pass 45)
         cfill = float(d.get("clip_fill", 0.72))
         if run_f is None:
             run_f = video_cycle(img, ak + "_walk_f", motion + ", facing the viewer, seen from the front", seed, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49, cfill)
+            kinds["front"] = "free" if run_f is not None else "procedural"
         if run_b is None:
             run_b = video_cycle(back_img, ak + "_walk_b", motion + ", seen directly from behind, walking away from the viewer", seed + 1, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49, cfill)
+            kinds["back"] = "free" if run_b is not None else "procedural"
         info["clips"] = {"walk_f": run_f is not None, "walk_b": run_b is not None, "pose": clip}
         views = {}
         if int(d.get("directions", 2)) == 8:
@@ -802,14 +856,17 @@ def process(type_, folder, id_):
                 "_fd": ("fd", "Turn this exact creature to a three-quarter front view: turned 45 degrees so it faces the lower right of the frame, face visible, standing", "three-quarter front view, walking towards the lower right", 5),
             }
             hints = d.get("view_hints", {})   # per-view wording for creatures whose side view is easy to get wrong
+            # pass 66: the side views' paintings and clips are keyed like the front's (sk) and the walks' (ak): before,
+            # they were keyed by the id alone, so a variant with eight directions overwrote the base creature's
             for suffix, (vname, turn_prompt, walk_prompt, k) in turns.items():
                 hint = (", " + str(hints[vname])) if vname in hints else ""
-                v_img, inf = render(id_ + "_" + vname, turn_prompt + hint + ". Keep the same colors, proportions and art style. " + bg + ".", [front_ref],
+                v_img, inf = render(sk + "_" + vname, turn_prompt + hint + ". Keep the same colors, proportions and art style. " + bg + ".", [front_ref],
                                     {"subject": "the same creature, " + vname + " view", "view": None, "subjects_max": 1, "ref_h": figure_height(img)}, seed + k)
                 info["renders"][vname] = inf
                 v_cell = finish(v_img, cell, 0.86, True, None, CF, stand_h, CO)[0]
-                v_run = video_cycle(v_img, id_ + "_walk_" + vname, motion + ", " + walk_prompt, seed + k, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49)
+                v_run = video_cycle(v_img, ak + "_walk_" + vname, motion + ", " + walk_prompt, seed + k, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49)
                 info["clips"]["walk_" + vname] = v_run is not None
+                kinds[vname] = "free" if v_run is not None else "procedural"
                 views[suffix] = (v_cell, v_run)
         if clip and run_f and run_b and str(d.get("stand", "walk")) != "still":
             # a pose-driven walk stands, winds up, flinches and falls apart in the walk's own pose (the still may not
@@ -838,6 +895,7 @@ def process(type_, folder, id_):
             fall = death_cycle(img, dead_img, ak + "_fall", seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")))
         elif death.startswith("pose:"):
             fall = pose_death(img, ak + "_death", death[5:], seed + 9, cell, base, int(d.get("death_frames", 8)), CF, CO, subject.split(",")[0][:120], str(d.get("anim_negative", "")))
+        kinds["die"] = ("flf" if death == "clip" else "pose") if fall else "procedural"
         if fall:
             frames["die"] = fall
         elif death == "squash":
@@ -952,8 +1010,10 @@ def process(type_, folder, id_):
             drv = str((d.get("pose_drivers") or {}).get(view, "run"))
             c = pose_cycle(still_img, ck + "_pose_run_" + view, drv, view, seed + k, cell, cell_img, hint, negative_extra=anim_neg, view_hint=vh,
                            motion=str(d.get("pose_motion", "running in place on the spot like on a treadmill"))) if pose_ok else None
+            kinds[view] = "pose" if c is not None else "free"
             if c is None:
                 c = video_cycle(still_img, ck + "_run" + (suffix or "_b"), prompt, seed + k, cell, cell_img, N)
+                kinds[view] = "free" if c is not None else "procedural"
             clips[suffix] = c
         # "remap_hues" (pass 46): hues the video model smeared into the clips that the hero's palette lacks go back to his
         # own (Ironwood's fringed legs streaked green and magenta: keying residue of the motion blur)
@@ -1023,29 +1083,47 @@ def process(type_, folder, id_):
                           {"subject": subject, "view": None, "subjects_max": 6 if many else 1}, seed)
         info["renders"]["icon"] = inf
         icon, _ = finish(img, 256, 0.92, False, None, 0.006)
-        icon.save(os.path.join(folder, d.get("icon", id_ + "_icon.png")))
+        dst = os.path.join(folder, d.get("icon", id_ + "_icon.png"))
+        # pass 66: the icon the game shows today is kept aside before it is overwritten (unless the bytes are the same)
+        buf = io.BytesIO()
+        icon.save(buf, "PNG")
+        kept = backup_icon(dst, buf.getvalue())
+        if kept:
+            info["icon_backup"] = kept
+            log("  old icon kept: %s" % kept)
+        icon.save(dst)
     d.setdefault("art_prompt", subject)
+    info["qa_online"] = QA_ONLINE
     # merge into the file as it is now: a field edited by hand while this item rendered (a hint for the next roll) must
-    # survive the write-back, and only the keys this run sets are written
+    # survive the write-back, and only the keys this run sets are written. Under a Level Editor job (ASSET_JOB_SIDECAR)
+    # nothing is written here: the patch goes into the sidecar and the server merges it in place (pass 66).
     jpath = os.path.join(folder, id_ + ".json")
-    try:
-        cur = json.load(open(jpath, encoding="utf-8"))
-    except Exception:
-        cur = dict(d)
     if vcode:
-        entry = cur.setdefault("variants", {}).setdefault(vcode, {})
-        for k in ("sprite", "icon", "anims", "strip_cols", "fps", "head"):
-            if k in d:
-                entry[k] = d[k]
-        json.dump(cur, open(jpath, "w", encoding="utf-8", newline="\n"), indent=2, ensure_ascii=False)
+        patch = {k: d[k] for k in ("sprite", "icon", "anims", "strip_cols", "fps", "head") if k in d}
         json.dump(info, open(os.path.join(folder, id_ + "_" + vcode.split("-")[-1].lower() + "_ai.json"), "w", encoding="utf-8", newline="\n"), indent=1)
+        if not WRITE_JSON:
+            emit_sidecar(folder, id_, vcode, patch, info)
+            return
+        try:
+            cur = json.load(open(jpath, encoding="utf-8"))
+        except Exception:
+            cur = dict(d)
+        entry = cur.setdefault("variants", {}).setdefault(vcode, {})
+        entry.update(patch)
+        json.dump(cur, open(jpath, "w", encoding="utf-8", newline="\n"), indent=2, ensure_ascii=False)
         return
-    for k in ("anims", "strip_cols", "fps", "head"):
-        if k in d:
-            cur[k] = d[k]
-    cur.setdefault("art_prompt", d.get("art_prompt", subject))
-    json.dump(cur, open(jpath, "w", encoding="utf-8", newline="\n"), indent=2, ensure_ascii=False)
+    patch = {k: d[k] for k in ("anims", "strip_cols", "fps", "head") if k in d}
     write_marker(folder, id_, info)
+    if not WRITE_JSON:
+        emit_sidecar(folder, id_, "", patch, info, top={"art_prompt": d.get("art_prompt", subject)})
+    else:
+        try:
+            cur = json.load(open(jpath, encoding="utf-8"))
+        except Exception:
+            cur = dict(d)
+        cur.update(patch)
+        cur.setdefault("art_prompt", d.get("art_prompt", subject))
+        json.dump(cur, open(jpath, "w", encoding="utf-8", newline="\n"), indent=2, ensure_ascii=False)
     for suffix in ("_sprite_flat.png", "_icon_flat.png"):
         p = os.path.join(folder, id_ + suffix)
         if os.path.exists(p):

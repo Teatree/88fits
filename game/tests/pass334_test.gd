@@ -107,8 +107,13 @@ func test_two_skeletons_walk_like_zombies() -> void:
 
 func test_only_astro_and_the_drifter_are_played() -> void:
 	var ids: Array = Registry.sorted_characters().map(func(c): return c.id)
-	# pass 43: Calavera; pass 46: Ironwood; pass 54: Solenne; re-pinned in pass 61: in Garry's order (CharacterDef.order)
-	assert_array(ids).contains_exactly(["drifter", "astro", "calavera", "ironwood", "solenne"])
+	# pass 43: Calavera; pass 46: Ironwood; pass 54: Solenne; re-pinned in pass 61: in Garry's order (CharacterDef.order);
+	# pass 66: the five are present, not "exactly these" (a hero made in the Level Editor joins them when Garry sets him
+	# available); the list is the non-hidden heroes sorted by order (pass66_shape_test holds the distinct-orders rule)
+	assert_array(ids).contains(["drifter", "astro", "calavera", "ironwood", "solenne"])
+	var want: Array = Registry.characters.values().filter(func(c: CharacterDef) -> bool: return not c.hidden)
+	want.sort_custom(func(a: CharacterDef, b: CharacterDef) -> bool: return a.id < b.id if a.order == b.order else a.order < b.order)
+	assert_array(ids).is_equal(want.map(func(c: CharacterDef) -> String: return c.id))
 	# the others are kept, just hidden
 	for id in ["buck", "dad", "mira"]:
 		assert_object(Registry.character(id)).is_not_null()

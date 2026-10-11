@@ -116,8 +116,11 @@ func test_badges_follow_the_role_and_the_data() -> void:
 	for d: EnemyDef in Registry.enemies.values():
 		if d.badge_for() == "crown":
 			crowned.append(d.id)
+		# pass 66: the rule, not the list (a creature made in the Level Editor with the elite archetype wears one too): a
+		# crown is an Elite's alone, and an Elite wears one unless its JSON names another badge (the Boss dummy's skull)
+		assert_bool(d.badge_for() == "crown").override_failure_message(d.id).is_equal(d.archetype == "elite" and (d.badge == "" or d.badge == "crown"))
 	# pass 49: and the debug arena's Elite dummy, an Elite by its archetype so the items that care see one
-	assert_array(crowned).contains_exactly_in_any_order(["dune_scorpion", "sun_prophet", "stone_golem", "training_dummy_elite"])
+	assert_array(crowned).contains(["dune_scorpion", "sun_prophet", "stone_golem", "training_dummy_elite"])
 	var sk: EnemyDef = Registry.enemy("goblin").duplicate()
 	assert_str(sk.badge_for()).is_equal("")
 	sk.badge = "crown"

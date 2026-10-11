@@ -68,6 +68,7 @@ variants = {
 "icon": ExtResource("5_xb2ja"),
 "note": "arms down at its sides on Mixamo's plain walk; it falls over sideways and lies whole (pass 45); a thin dark-brown outline",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("4_fx1c4"),
 "sprite_file": "skeleton_knight_sprite_a.png",
 "strip_cols": 43
@@ -92,6 +93,7 @@ variants = {
 "icon": ExtResource("7_43lh7"),
 "note": "a bandit skeleton (the poncho / cape covers the ribcage) on a light scurrying run, a small knife held low; it dies on the Falling Back Death clip",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("6_b0avi"),
 "sprite_file": "skeleton_knight_sprite_b.png",
 "strip_cols": 40
@@ -116,6 +118,7 @@ variants = {
 "icon": ExtResource("9_ndeoj"),
 "note": "a chunky cartoon skeleton with thick rounded bones and no gaps on a free Wan clip (the recipe clears the base's pose driver); a lighter warm-grey outline",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("8_2o3j3"),
 "sprite_file": "skeleton_knight_sprite_c.png",
 "strip_cols": 43
@@ -140,6 +143,7 @@ variants = {
 "icon": ExtResource("11_t3jxi"),
 "note": "a swaggering big-guy walk with a short rusty hatchet (the knight: a round shield on one arm); it dies on the Falling Back Death clip; the standard dark outline",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("10_iwjqq"),
 "sprite_file": "skeleton_knight_sprite_d.png",
 "strip_cols": 40
@@ -164,6 +168,7 @@ variants = {
 "icon": ExtResource("11_xb2ja"),
 "note": "the KN-A knight with dark blue bones and its steel and leather left alone (pass 54; a two-pass tint of the KN-A strip, tools/recolour_strip.py --mode tint)",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("10_fx1c4"),
 "sprite_file": "skeleton_knight_sprite_e.png",
 "strip_cols": 43

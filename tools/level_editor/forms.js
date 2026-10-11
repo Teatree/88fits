@@ -3,7 +3,9 @@
 // JSON only ever holds what Garry set. Pass 54: the creature, art variant, elite modifier and power-up picks are one
 // combobox with pictures (iconSelect); colours have swatches; a roster row's presence points, the HP x / ATK x curves and
 // the spawn sides have blocks of their own. Pass 58: the art variant's empty choice reads "Default (CODE)", the
-// creature's default look from the Creatures tab, which a row that names none follows.
+// creature's default look from the Creatures tab, which a row that names none follows. Pass 66: `opts.apply` lets the
+// asset editors' documents use the same controls (Assets.apply instead of App.apply), a textarea type, and shelved looks
+// in a dim group at the end of the art variant list.
 'use strict';
 
 const Forms = (() => {
@@ -53,6 +55,19 @@ const Forms = (() => {
     inp.addEventListener('change', () => onChange(inp.value.trim() === '' ? null : inp.value.trim()));
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
     return inp;
+  }
+
+  /** A multi-line text (pass 66: an asset's doc, prompts and hints): commits on change; Ctrl+Enter blurs; grows with its text. */
+  function textareaInput(def, value, onChange, opts) {
+    const o = opts || {};
+    const ta = el('textarea', { class: 'txt area' + (o.cls ? ' ' + o.cls : ''), rows: o.rows || 2, placeholder: o.placeholder || '', 'data-path': o.path || def.key, spellcheck: false });
+    ta.value = value == null ? '' : String(value);
+    const grow = () => { ta.style.height = 'auto'; ta.style.height = Math.min(360, Math.max(34, ta.scrollHeight + 2)) + 'px'; };
+    ta.addEventListener('input', grow);
+    ta.addEventListener('change', () => onChange(ta.value.trim() === '' ? null : ta.value));
+    ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) ta.blur(); });
+    requestAnimationFrame(grow);
+    return ta;
   }
 
   function select(options, value, onChange, opts) {
@@ -282,11 +297,14 @@ const Forms = (() => {
     const o = opts || {};
     const c = App.creature(enemyId);
     const vs = c ? c.variants : [];
-    const codes = vs.map((v) => ({
+    const codeOpt = (v) => ({
       v: v.code,
-      label: v.code + (v.code === c.play ? ' · the default' : '') + (v.base ? ' · base strip' : '') + (v.ready ? '' : ' · not painted yet'),
-      icon: v.icon, help: `${v.note || ''}${v.note ? ' · ' : ''}this row plays ${v.code} whatever the default`, sub: v.note || '', dim: !v.ready,
-    }));
+      label: v.code + (v.code === c.play ? ' · the default' : '') + (v.base ? ' · base strip' : '') + (v.ready ? '' : ' · not painted yet') + (v.shelved ? ' · shelved' : ''),
+      icon: v.icon, help: `${v.note || ''}${v.note ? ' · ' : ''}this row plays ${v.code} whatever the default${v.shelved ? ' (shelved: out of the arena and the default lists, a row naming it still plays it)' : ''}`, sub: v.note || '', dim: !v.ready || !!v.shelved,
+    });
+    // pass 66: shelved looks sit in a dim group at the end
+    const live = vs.filter((v) => !v.shelved).map(codeOpt), shelved = vs.filter((v) => !!v.shelved).map(codeOpt);
+    const codes = shelved.length ? [{ group: 'Looks', options: live }, { group: 'Shelved', options: shelved }] : live;
     const inPlay = c ? (c.play || c.variant || '') : '';
     const sel = iconSelect(codes, value || '', onChange, {
       emptyLabel: c ? (inPlay ? `Default (${inPlay})` : 'Default (its one painting)') : '—', emptyIcon: c ? c.icon_play || c.icon : '',
@@ -409,7 +427,9 @@ const Forms = (() => {
   function control(def, obj, opts) {
     const o = opts || {};
     const value = U.getPath(obj, def.key);
-    const write = (v) => App.apply(() => {
+    // pass 66: an asset document hands its own apply (Assets.apply bound to the document); the map's is App.apply
+    const applyFn = typeof o.apply === 'function' ? o.apply : App.apply;
+    const write = (v) => applyFn(() => {
       if (def.key.includes('.')) U.setPath(obj, def.key, v);
       else U.setKey(obj, def.key, v, def.def);
       if (o.after) o.after(v);
@@ -419,6 +439,7 @@ const Forms = (() => {
       case 'int': case 'number': return numberInput(def, value, write, ctl);
       case 'seconds': return secondsInput(def, value, write, ctl);
       case 'text': return textInput(def, value, write, ctl);
+      case 'textarea': return textareaInput(def, value, write, Object.assign({ rows: o.rows }, ctl));
       case 'select': return select(def.options, value == null ? (def.def == null ? '' : def.def) : value, (v) => write(v == null ? def.def : v), { path: ctl.path });
       case 'bool': return boolInput(def, value, write, ctl);
       case 'bool3': return bool3Input(def, value, write, ctl);
@@ -685,7 +706,7 @@ const Forms = (() => {
   }
 
   return {
-    row, numberInput, secondsInput, textInput, select, boolInput, bool3Input, percentInput, iconSelect, closePop, creatureGroups,
+    row, numberInput, secondsInput, textInput, textareaInput, select, boolInput, bool3Input, percentInput, iconSelect, closePop, creatureGroups,
     creatureSummary, enemyPick, variantSelect, eliteSelect, pickupSelect, intervalInput, numberList, numbersLine, normHex,
     swatchInput, swatchesInput, control, fieldRow, pointsTable, pointsBlock, weightsBlock, curveBlock, spawnSidesBlock,
     specialsBlock, pathTimesBlock, pickupsBlock,

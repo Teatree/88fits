@@ -34,6 +34,15 @@ clip holds more than one (they slice loops too since pass 53).
     "$BLENDER" -b --python tools/pose_driver.py -- glb="_REFERENCES/3d/Zombie monster walk.glb" rig=sm out=tools/dl/drivers/zombie_walk frames=12
 fwd=body (pass 55, Solenne's walks): the character's forward is taken square to the hip and shoulder lines instead of
 along the feet; a walk with the toes turned out had turned every view up to 20 degrees.
+Pass 66 (the Level Editor's asset system, all additive):
+  src=<file>        any of fbx, glb/gltf, dae, blend by its extension (fbx= and glb= still work)
+  action=<name>     the clip to read when the file holds several (exact name, the part after the last "|", or a unique
+                    piece of it); a clip the armature does not play yet is assigned to it
+  rigmap=<json>     a bone-name map for a humanoid rig with its own names, merged over rig='s table: either
+                    {"model_bone": "MixamoName"} or, as blender_ref.py's probe guesses it, {"MixamoName": "model_bone"}
+  probe=1           print the armature's bone names, the clips and which of the 21 Mixamo names are still missing, then
+                    stop (nothing written; out= not needed)
+  meta.json gains kind: "pose" (plus src, action, rig, rigmap, arms) for the editor's driver library.
 Output: <out>/<view>/poses.json, <out>/<view>/driver_NN.png, <out>/<view>_sheet.png, <out>/meta.json.
 """
 import json
@@ -63,6 +72,12 @@ RIGS = {"sm": {"Bone_SM_Pelvis": "Hips", "Bone_SM_Spine1": "Spine", "Bone_SM_Spi
                "Bone_SM_Thigh_R": "RightUpLeg", "Bone_SM_Calf_R": "RightLeg", "Bone_SM_Ankle_R": "RightFoot", "Bone_SM_Toes_R": "RightToeBase"}}
 BONES = {"neck": "Neck", "rsho": "RightArm", "relb": "RightForeArm", "rwri": "RightHand", "lsho": "LeftArm", "lelb": "LeftForeArm",
          "lwri": "LeftHand", "rhip": "RightUpLeg", "rknee": "RightLeg", "rank": "RightFoot", "lhip": "LeftUpLeg", "lknee": "LeftLeg", "lank": "LeftFoot"}
+# the Mixamo names the drivers read (the hands' 21 points are optional): what probe=1 reports as found or missing
+MIXAMO_NAMES = ["Hips", "Spine", "Neck", "Head", "HeadTop_End",
+                "LeftShoulder", "LeftArm", "LeftForeArm", "LeftHand", "LeftUpLeg", "LeftLeg", "LeftFoot", "LeftToeBase",
+                "RightShoulder", "RightArm", "RightForeArm", "RightHand", "RightUpLeg", "RightLeg", "RightFoot", "RightToeBase"]
+MIXAMO_NEEDED = ["Hips", "Neck", "Head", "LeftArm", "LeftForeArm", "LeftHand", "LeftUpLeg", "LeftLeg", "LeftFoot",
+                 "RightArm", "RightForeArm", "RightHand", "RightUpLeg", "RightLeg", "RightFoot"]
 
 
 def _args():
@@ -81,32 +96,51 @@ def extract():
     import bpy
     from mathutils import Vector, Matrix
     a = _args()
-    fbx = a.get("fbx") or a["glb"]
-    out = a["out"]
+    fbx = a.get("fbx") or a.get("glb") or a.get("src")
+    if not fbx:
+        raise SystemExit("pose_driver: fbx=, glb= or src=<file> is needed\n" + __doc__)
+    out = a.get("out", "")
     n = int(a.get("frames", 24))
     loop = a.get("loop", "1") not in ("0", "false", "no")
     pitch = math.radians(float(a.get("pitch", 25.0)))
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    if a.get("glb"):
-        bpy.ops.import_scene.gltf(filepath=a["glb"])
+    ext = os.path.splitext(fbx)[1].lower()
+    if a.get("glb") or ext in (".glb", ".gltf"):
+        bpy.ops.import_scene.gltf(filepath=fbx)
+    elif ext == ".dae":
+        bpy.ops.wm.collada_import(filepath=fbx)
+    elif ext == ".blend":
+        bpy.ops.wm.open_mainfile(filepath=fbx)
     else:
         bpy.ops.import_scene.fbx(filepath=fbx)
     sc = bpy.context.scene
-    arm = next(o for o in bpy.data.objects if o.type == "ARMATURE")
+    arms = [o for o in bpy.data.objects if o.type == "ARMATURE"]
+    if not arms:
+        raise SystemExit("pose_driver: no armature in " + fbx)
+    arm = next((o for o in arms if o.animation_data and o.animation_data.action), arms[0])
     if arm.dimensions.z > 20.0:
         # a centimetre rig (the zombie GLB stands 180 units tall): every offset below is in metres
         arm.scale = (0.01, 0.01, 0.01)
         bpy.context.view_layer.update()
         print("pose_driver: a centimetre rig, scaled to metres")
-    act = arm.animation_data.action
+    act = _pick_action(arm, a.get("action"))
+    if act is None:
+        raise SystemExit("pose_driver: no animation clip in %s; export it from Mixamo as FBX Binary, 30 fps, In Place, keyframe reduction none, or a GLB that carries its animation" % fbx)
     f0, f1 = act.frame_range
     fps = sc.render.fps
     if not loop or a.get("start") or a.get("end"):
         # a one-shot, or one stride out of a longer loop: the slice of the action between start and end seconds
         f0 = act.frame_range[0] + float(a.get("start", 0.0)) * fps
         f1 = min(act.frame_range[1], act.frame_range[0] + float(a.get("end", (act.frame_range[1] - act.frame_range[0]) / fps)) * fps)
-    alias = RIGS.get(a.get("rig", "mixamo"), {})
+    alias = dict(RIGS.get(a.get("rig", "mixamo"), {}))
+    if a.get("rigmap"):
+        alias.update(_load_rigmap(a["rigmap"]))
     pb = {alias.get(b.name, b.name.split(":")[-1]): b for b in arm.pose.bones}
+    if a.get("probe") in ("1", "true", "yes"):
+        _probe(arm, pb, fbx, fps)
+        return
+    if not out:
+        raise SystemExit("pose_driver: out=<folder> is needed")
 
     def joint(name, f):
         sc.frame_set(int(math.floor(f)), subframe=f - math.floor(f))
@@ -299,9 +333,73 @@ def extract():
         json.dump({"view": view, "frames": frames, "size": SIZE, "fbx": os.path.basename(fbx), "n": n, "pitch": math.degrees(pitch)},
                   open(os.path.join(d, "poses.json"), "w"), indent=0)
         print("pose_driver: wrote", d, len(frames), "frames")
-    json.dump({"fbx": os.path.basename(fbx), "frames": n, "loop": loop, "pitch": math.degrees(pitch), "start": a.get("start"), "end": a.get("end"),
-               "body": a.get("body"), "fwd": a.get("fwd", "feet"), "retarget": {k: round(v, 3) for k, v in R.items()}},
+    json.dump({"kind": "pose", "fbx": os.path.basename(fbx), "src": os.path.basename(fbx), "action": act.name, "frames": n, "loop": loop,
+               "pitch": math.degrees(pitch), "start": a.get("start"), "end": a.get("end"), "views": list(VIEWS),
+               "body": a.get("body"), "fwd": a.get("fwd", "feet"), "arms": a.get("arms"), "rig": a.get("rig", "mixamo"), "rigmap": a.get("rigmap"),
+               "retarget": {k: round(v, 3) for k, v in R.items()}, "notes": ""},
               open(os.path.join(out, "meta.json"), "w"), indent=1)
+
+
+def _pick_action(arm, name=None):
+    """The armature's own clip, or action=<name> (exact, the part after the last '|', or a unique case-insensitive piece);
+    a clip the armature does not play yet (a GLB's unassigned action) is assigned, with Blender 4.4+'s action slot."""
+    import bpy
+    acts = list(bpy.data.actions)
+    if not acts:
+        return None
+    act = None
+    if name:
+        act = next((x for x in acts if x.name == name), None) or next((x for x in acts if x.name.split("|")[-1] == name), None)
+        if act is None:
+            low = [x for x in acts if name.lower() in x.name.lower()]
+            if len(low) != 1:
+                raise SystemExit("pose_driver: no action %r in %s" % (name, [x.name for x in acts]))
+            act = low[0]
+    elif arm.animation_data and arm.animation_data.action:
+        return arm.animation_data.action
+    else:
+        act = acts[0]
+    if arm.animation_data is None:
+        arm.animation_data_create()
+    arm.animation_data.action = act
+    ad = arm.animation_data
+    if hasattr(ad, "action_slot") and getattr(act, "slots", None) and len(act.slots) > 0:
+        try:
+            ad.action_slot = act.slots[0]
+        except Exception as e:
+            print("pose_driver: action_slot not set (%s)" % e)
+    return act
+
+
+def _load_rigmap(path):
+    """{model_bone: MixamoName}; a file written the other way round ({MixamoName: model_bone}, blender_ref's guess) is
+    turned round, and empty rows are dropped."""
+    m = json.load(open(path, encoding="utf-8"))
+    rows = {str(k): str(v) for k, v in m.items() if k and v}
+    known = set(MIXAMO_NAMES) | {"Spine1", "Spine2", "LeftToe_End", "RightToe_End"}
+    if rows and sum(1 for k in rows if k in known) > sum(1 for v in rows.values() if v in known):
+        rows = {v: k for k, v in rows.items()}
+    print("pose_driver: rigmap %s: %d bones" % (os.path.basename(path), len(rows)))
+    return rows
+
+
+def _probe(arm, pb, fbx, fps):
+    """probe=1: what the file holds, for the editor's bone-map form and clip pick (printed, nothing written)."""
+    import bpy
+    print("pose_driver: armature %s: %d bones" % (arm.name, len(arm.data.bones)))
+    print("pose_driver: bones: " + ", ".join(b.name for b in arm.data.bones))
+    for act in bpy.data.actions:
+        f0, f1 = act.frame_range
+        print("pose_driver: action %s: frames %.0f..%.0f (%.2f s at %d fps)" % (act.name, f0, f1, (f1 - f0) / float(fps), fps))
+    found = [k for k in MIXAMO_NAMES if k in pb]
+    missing = [k for k in MIXAMO_NEEDED if k not in pb]
+    print("pose_driver: mixamo names found %d/%d: %s" % (len(found), len(MIXAMO_NAMES), ", ".join(found)))
+    if missing:
+        print("pose_driver: missing for a driver: " + ", ".join(missing) + " (map them with rigmap=<json>)")
+    else:
+        print("pose_driver: every bone a driver needs is there" + ("" if "HeadTop_End" in pb else " (no HeadTop_End: the head's top is guessed 20 cm up)"))
+    hands = all(("Left" + h) in pb for h in HAND_BONES) and all(("Right" + h) in pb for h in HAND_BONES)
+    print("pose_driver: hands: " + ("21-point hands will be drawn" if hands else "no full finger chains, so no hands are drawn"))
 
 
 # ---------------------------------------------------------------- stage 2: draw

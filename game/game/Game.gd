@@ -73,14 +73,16 @@ var arena_cards := false
 
 
 func _ready() -> void:
-	var arena: bool = Run.arena_next
+	# a tool's launch file first (pass 66): its `arena` opens the debug arena as the title's ARENA does (the Level
+	# Editor's "Test in game" launches the editor binary straight into it, _launch_in_arena)
+	var debug_launch := _read_debug_launch()
+	var arena: bool = Run.arena_next or bool(debug_launch.get("arena", false))
 	Run.arena_next = false
 	# the arena keeps nothing: the save as it is now (before Run.start counts a run) goes back when it closes
 	if arena:
 		Save.begin_sandbox()
 	var character_id: String = str(Save.data.get("last_character", Save.DEFAULT_HERO))
 	var map_id: String = str(Save.data.get("last_map", "red_canyon"))
-	var debug_launch := _read_debug_launch()
 	if debug_launch.has("character"):
 		character_id = str(debug_launch["character"])
 	if debug_launch.has("map"):
@@ -245,6 +247,7 @@ func _ready() -> void:
 			Audio.play_music(run_music, 1)
 	if Run.arena:
 		_start_arena()
+		_launch_in_arena(debug_launch)
 		return
 	# the hero's own gun from the first second (pass 45): no starter pick; a launch file may name another weapon and level
 	var start: WeaponDef = null
@@ -276,6 +279,24 @@ func _read_debug_launch() -> Dictionary:
 	f.close()
 	DirAccess.remove_absolute("user://debug_launch.json")
 	return d if d is Dictionary else {}
+
+
+## The launch file's arena keys (pass 66, the Level Editor's "Test in game"): `look` draws the hero in that art for this
+## visit (Player.show_look; the Save is not touched, as the arena's chips), `spawn_enemy` with `variant` and `count` (3
+## when absent) puts that creature near him wearing that look (Registry.enemy_with, ArenaPanel.spawn_enemy_n). A
+## hidden hero by `character` works already (above). Every other key keeps its meaning.
+func _launch_in_arena(launch: Dictionary) -> void:
+	if launch.is_empty():
+		return
+	if launch.has("look") and player:
+		player.show_look(str(launch["look"]))
+	if launch.has("spawn_enemy") and arena_panel:
+		var id := str(launch["spawn_enemy"])
+		var d: EnemyDef = Registry.enemy_with(id, str(launch.get("variant", "")))
+		if d:
+			arena_panel.spawn_enemy_n(d, int(launch.get("count", 3)))
+		else:
+			push_warning("debug_launch: no creature '%s' to spawn" % id)
 
 
 func _start_run() -> void:

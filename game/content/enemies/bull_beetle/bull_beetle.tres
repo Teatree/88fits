@@ -102,6 +102,7 @@ variants = {
 "scale": [1.45, 1.7],
 "up": 0.35
 },
+"shelved": false,
 "sprite": ExtResource("4_kpcix"),
 "sprite_file": "bull_beetle_sprite_a.png",
 "strip_cols": 83
@@ -136,6 +137,7 @@ variants = {
 "scale": [1.45, 1.7],
 "up": 0.35
 },
+"shelved": false,
 "sprite": ExtResource("6_1wjvm"),
 "sprite_file": "bull_beetle_sprite_b.png",
 "strip_cols": 83
@@ -170,6 +172,7 @@ variants = {
 "scale": [1.45, 1.7],
 "up": 0.35
 },
+"shelved": false,
 "sprite": ExtResource("3_mcc66"),
 "sprite_file": "bull_beetle_sprite.png",
 "strip_cols": 83
@@ -204,6 +207,7 @@ variants = {
 "scale": [1.45, 1.7],
 "up": 0.35
 },
+"shelved": false,
 "sprite": ExtResource("8_1wjvm"),
 "sprite_file": "bull_beetle_sprite_d.png",
 "strip_cols": 83

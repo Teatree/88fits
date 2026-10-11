@@ -13,6 +13,12 @@ The Godot project root is `game/` (`res://` = `game/`). The editor binary sits i
 ```
 GODOT="D:/_projects/88fits/Godot_v4.7.2-stable_win64/Godot_v4.7.2-stable_win64.exe"
 P="--headless --path D:/_projects/88fits/game"
+bash tools/godot.sh $P --import       # pass 66: run EVERY Godot command through this wrapper instead of "$GODOT": it takes the repo-wide Godot lock (tools/dl/locks/godot.lock, one Godot process at a time across lanes and the Level Editor's server), keeps the PC save aside and restores it; `python tools/locks.py status` shows who holds the Godot or ComfyUI lock
+python tools/level_editor/selftest.py                           # pass 66: the Level Editor's own checks (17,023; Node needed): model.js, the server on temp copies, and every selftest_<lane>.py group (S content writer/routes/vocab, J jobs, P page maths/rules, V previews, B methods.json)
+python tools/asset_job.py <job_dir> [--dry-run]                 # pass 66: how the Level Editor runs an art job (job.json -> argv -> gen_art.process / gen_ctl.main / the candidate scripts; --dry-run records the prompts into dry_run.json); ASSET_JOB_SIDECAR=<path> makes gen_art/gen_ctl write result.json instead of the content JSON
+python tools/gen_badge_cands.py --id <hero> --seeds 4 [--prompt ..] && python tools/gen_badge_cands.py --id <hero> --pick k [--head-width f --top-pad f]   # pass 66: hero badge candidates (RAW/<id>_portrait_c<k>.png, review/<id>_badge_cands.png), the pick written to <id>_icon.png + badge{}
+"$BLENDER" -b --python tools/blender_ref.py -- src=<fbx|glb|obj> out=<dir> mode=probe|icon|views|all   # pass 66: what a 3D file can do (probe.json: rig, actions, rigmap guess), the icon reference render (3/4 view), the five sprite views as clay.png + look.png
+"$BLENDER" -b --python tools/blender_depth_drivers.py -- src=<file> out=tools/dl/drivers/<name> action=<clip> mode=cycle|oneshot [frames=12 cycles=2 depth=tight amp=1.7 amp_bones=<regex>]   # pass 66: depth drivers from a rigged model's own clip (the beetle method for any model); pose_driver.py gained src= rigmap=<json> probe=1
 
 "$GODOT" $P --import                                            # (re)import assets after adding png/wav/tscn
 "$GODOT" $P --script res://tools/check_scripts.gd               # parse-check every .gd and instantiate every .tscn
@@ -230,7 +236,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-11, pass 65, version 0.51)
+## Status (2026-10-11, pass 66, version 0.52)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -239,8 +245,8 @@ changed.
 
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
-parse check, all gdUnit tests (~1,240 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.51).
+parse check, all gdUnit tests (~1,310 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.52).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
 rolled per run from `Run.map_seed`, a stone boundary wall; everything but the ground, the wall, barrels, signs and a few
@@ -248,7 +254,9 @@ movers is a painted 2.5D billboard (props `art/sprites/props/`, structures `st_<
 Tumbleweed King 7:10, Gila Grande 14:20, the Brander 21:30; Elites at 3:35 / 10:45 / 17:55; stage 3 is "hell": a red
 ground and a hell channel of creatures on its own cap), then endless. The timeline (`content/maps/red_canyon/red_canyon.json`
 `timeline_data`: cap curve, roster rows, waves, events, specials, HP/ATK curves, scaling) is **Garry's to edit in the
-Level Editor** (`tools\level_editor.cmd`, `docs/level_editor.md`, schema `docs/waves_schema.md`); stage 1 is his own
+Level Editor** (`tools\level_editor.cmd`, `docs/level_editor.md`, schema `docs/waves_schema.md`; since pass 66 the same
+page also creates and edits enemies, heroes and items and queues their art for the local AI: the Enemies / Heroes / Items
+/ Jobs tabs, `docs/level_editor.md` "Pass 66", keys in `docs/assets_schema.md`, rules in BALANCING.md §13); stage 1 is his own
 work (pinned by `pass62_pc_test`), stages 2-3 were written in his style in pass 62 and tuned in pass 64 so stage 2 is clearable with a quarter of the Upgrade board and stage 3 with half (`tools/difficulty_probe.gd`). Enemy strength = base x
 `stage_mults` [1, 2.2, 3.34] x the HP/ATK curve at the row's start x (1 + level_*_per_level x (hero level - 1)) x
 `creature_*_mult`, fixed per row from its start.
@@ -257,13 +265,21 @@ work (pinned by `pass62_pc_test`), stages 2-3 were written in his style in pass 
 `pike`), Solenne (Sun Scepter); Buck, Dad and Mira are `hidden`. Each hero's trait is 1-2 stats that grow per level
 (`trait_per_level`, `Run.hero_sheet`), a favourite weapon or passive (arrives at a bonus level, marked on cards), perks,
 and a hero mutation. The title plaque opens the hero's Wanted-poster sheet (`ui/wanted/WHeroSheet.gd`). Art variants
-(`variants` / `variant` in the JSON; Garry picks them in the arena): see the art-variants memory.
+(`variants` / `variant` in the JSON; Garry picks them in the arena or in the Level Editor's look grid; a look may be
+`shelved` out of the chips, a landed one is `fresh` until approved): see the art-variants memory. A hero JSON carries
+`availability` (hidden | available | purchase: anything but available hides him), `price` and `currency_type` (gold),
+written and shown by the editor, not wired (the purchase loop is parked: memory `88fits-hero-purchase-parked`).
 
 **Items.** Weapons (5 slots, 5 levels; three path mutations each, offered at set slots `path_times`; all three + level 5
 = evolution at a chest; hero mutations optional), lines (5 slots, 4 levels, evolve when maxed; `PassiveDef.line`) and
 passive items (no cap). Everything is content: `content/weapons|evolutions|mutations|passives|perks|pickups|structures|
 enemies|bosses|characters|talents|maps|sounds`. Mutation looks come from their `params` (`look`, `tint`, ...); emblems
 are gone. Pierce drop-off is on by default (`Settings.pierce_falloff`, Debug panel). Numbers and rules: `BALANCING.md`.
+A weapon the editor creates starts hidden with three template path mutations and a template evolution, all hidden,
+until they are filled; a new line or passive item starts available; "locked" is a quest whose `unlocks.id` names it
+(the Items tab's availability op writes the quest). The count pins in the tests are shape rules now
+(`pass66_shape_test.gd`: every weapon in play has its three path kinds and its evolution, every creature a doc, a blood
+and a knockback, every playable hero a perk and one hero mutation).
 
 **Meta.** The **Upgrade board** (`ui/HomesteadScreen.gd`, still "the Mirror" in code; `content/talents`): eight talents,
 two forms, six ranks; every rank is bought in one form and keeps it (`Save.talent_picks`); Take it all back refunds half.
@@ -286,7 +302,14 @@ Plan: `docs/analytics_plan.html` (artifact AK53A8KLchrSUFXxZo4kSu). Local runs: 
 **Art and sound pipelines.** Flux.2 Klein / dev stills + Wan 2.2 clips on ComfyUI 192.168.137.54:8188 (skills
 sprite-pipeline, sprite-animation; heroes walk on Mixamo pose drivers fitted to the painting; creatures on Blender
 control videos via `gen_ctl.py`); paint several seeds and pick by eye, the vision QA misses defects. Icons:
-`tools/gen_icon_cands.py` sets. Sound: Stable Audio 3 medium on the server's ComfyUI (`tools/comfy_audio.py`; UI and reward jingles in a casino-western `HYPE` table in `tools/ai_sfx.py`, music by `tools/ai_music.py` into `content/sounds/music/`; world sounds from pass 60; the gem dings, the hero's hurt and the slot machine are synthesised by `tools/synth_sfx.py`; Garry's own Stable Audio app at http://127.0.0.1:7861/ is the second engine; skill sound-pipeline). `Audio.gd` plays one music track at a time (`music_stage`, `music_boss`).
+`tools/gen_icon_cands.py` sets. Since pass 66 Garry queues all of it himself from the Level Editor's job form
+(`tools/level_editor/methods.json` is the catalogue of 17 methods with their recipe fields, timings and weaknesses;
+`tools/level_editor/jobs.py` runs each job as a subprocess through `tools/asset_job.py`; with `ASSET_JOB_SIDECAR` set,
+gen_art.py / gen_ctl.py write `result.json` instead of the content JSON and the server merges the look's entry in place;
+`tools/blender_ref.py` probes and renders any FBX/GLB/OBJ for the icon and look references, `tools/blender_depth_drivers.py`
+turns a rigged model's own clip into depth drivers, `pose_driver.py src= rigmap= probe=` the Mixamo-style ones; new badge
+candidates by `tools/gen_badge_cands.py`). One ComfyUI job at a time: `tools/locks.py` (comfy.py takes the lock itself).
+Sound: Stable Audio 3 medium on the server's ComfyUI (`tools/comfy_audio.py`; UI and reward jingles in a casino-western `HYPE` table in `tools/ai_sfx.py`, music by `tools/ai_music.py` into `content/sounds/music/`; world sounds from pass 60; the gem dings, the hero's hurt and the slot machine are synthesised by `tools/synth_sfx.py`; Garry's own Stable Audio app at http://127.0.0.1:7861/ is the second engine; skill sound-pipeline). `Audio.gd` plays one music track at a time (`music_stage`, `music_boss`).
 Blender models from Garry's references in `_REFERENCES/` (git-ignored).
 
 **Docs.** The design bible is built from `docs/design/src/` by `python tools/make_bible.py` (edit the parts, not the
@@ -297,8 +320,13 @@ output) and published at https://claude.ai/artifact/2onXrvqpGH3uqwPEstVYhr; `BAL
 - Garry hand-tunes JSON (and the map in the Level Editor) while passes run: keep his numbers, re-pin tests; map tests read
   the map file rather than pinning his numbers.
 - Parallel lanes work from brief files with a status file each, never commit, edit shared files with small edits only,
-  keep LF line endings, and take a Godot lock before any Godot run (wait for it however long; never run without it; two
-  gdUnit runs at once share `user://test_saves`).
+  keep LF line endings, and run every Godot command through `bash tools/godot.sh` (pass 66: the repo-wide lock
+  `tools/dl/locks/godot.lock` that the Level Editor's server shares, the PC save kept aside; wait for it however long;
+  never run the binary directly; two gdUnit runs at once share `user://test_saves`). One ComfyUI job at a time through
+  `tools/dl/locks/comfy.lock` (`tools/locks.py`; comfy.py takes it for the whole process; a child told
+  `LOCK_HELD_COMFY=1` passes through; a shell that holds a lock across several commands names itself:
+  `python tools/locks.py acquire comfy "<who>" --pid $(cat /proc/$$/winpid)` ... `release comfy --pid $(cat /proc/$$/winpid)`,
+  since the parent a Python sees under Git Bash is a transient fork).
 - Tools and captures must not change the PC's `user://save.json` (smoke_run plays Astro on the real save: copy it aside
   around tool runs; use `Save.begin_sandbox()` in probes).
 - Rules Garry never asked for read as bugs: name every new rule in BALANCING.md.

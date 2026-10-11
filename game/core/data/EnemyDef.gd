@@ -488,11 +488,22 @@ func shadow_tuning() -> Dictionary:
 	return shadow
 
 
-## The variant codes in order (empty when it has one art).
-func variant_codes() -> Array:
-	var out: Array = variants.keys()
+## The variant codes in order (empty when it has one art). A shelved look (`variants[CODE].shelved`, pass 66: the Level
+## Editor's shelve, a look kept but out of the way) is left out unless asked for, so the arena chips and the default
+## lists skip it; variant_def(code) and Registry.enemy_with still wear it when named (a wave row).
+func variant_codes(include_shelved := false) -> Array:
+	var out: Array = []
+	for code in variants.keys():
+		if include_shelved or not variant_shelved(str(code)):
+			out.append(code)
 	out.sort()
 	return out if out.size() > 1 else []
+
+
+## Whether a look is shelved (pass 66); false for a code it does not have.
+func variant_shelved(code: String) -> bool:
+	var e = variants.get(code)
+	return e is Dictionary and bool((e as Dictionary).get("shelved", false))
 
 
 func frames_of(anim: String) -> int:

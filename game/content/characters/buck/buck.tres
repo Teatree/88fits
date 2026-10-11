@@ -34,6 +34,7 @@ momentum = {
 "ramp_seconds": 12.0,
 "speed_bonus": 0.6
 }
+availability = "hidden"
 sprite = ExtResource("4_ihfma")
 sprite_file = "buck_sprite.png"
 anims = {

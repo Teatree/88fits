@@ -16,22 +16,14 @@ func _give(id: String, level: int) -> WeaponInstance:
 
 
 func test_content_is_there() -> void:
-	# pass 53 (lane W1): five new (Heavy Warhead, Cluster Munitions, Pressure Cooker, Last Stand, Echo Zap), the five they
-	# replace hidden in place (Thermobaric, Salvo, Bunker Buster, Dart Buddy, Venom Arc): 98 -> 103 and 18 -> 23 for this
-	# lane's ids alone; lane W2: five more new (Critical Thinking, Stunning Thrust, Long Spear, Thorny Weed, Dust Wake) and
-	# five hidden in place (Flame Blade, Venom Tip, Phalanx, the old Thorny Weed, Weed Storm): 103 -> 108 and 23 -> 28
-	# pass 54 (lane W): the Sun Scepter's three (Heat Stroke, Flicker, Gold Dust): 108 -> 111, none hidden; pass 62 (lane
-	# HM): Ironwood's Heartseeker and Solenne's Sun Cocktail, 111 -> 113
-	assert_int(Registry.mutations.size()).is_equal(113)   # pass 29: a fourth turret stance; pass 30: the laser's three; pass 35: nine for three weapons; pass 43: the Guitarra's three and Calavera's own; pass 46: the Guitarra's Power Chord and Tremolo out, Far Reach and Music Slap in, the Spear's three; pass 47: the Watchtower out (the Bunker is the turret's motion pick); pass 48: seventeen new, the eighteen they replace hidden in place
-	assert_int(Registry.mutations.values().filter(func(m: MutationDef) -> bool: return m.hidden).size()).is_equal(28)
-	# pass 33.2: eight lines a level-up can offer, each with an evolution; passives since pass 46; pass 47: fifteen lines
-	# (Multishot, Field Notes, Haste and Deadeye made lines, Ducktape, Clover and Hot Sauce new), each evolving
-	var evolving: Array = Registry.base_passives().filter(func(p: PassiveDef) -> bool: return p.evolves_into != "")
-	assert_int(evolving.size()).is_equal(15)
-	assert_int(Registry.passives.values().filter(func(p: PassiveDef) -> bool: return p.is_evolved()).size()).is_equal(15)
-	# pass 34: two more perks each for the two heroes in play (Supply Drop, Thruster Burst; High Noon, Bounty Hunter)
-	assert_int(Registry.perks.size()).is_equal(18)   # pass 43: Calavera's three; pass 46: Ironwood's two; pass 54: Solenne's four (two hidden)
+	# pass 66: the counts this test pinned (113 mutations with 28 hidden, 15 evolving lines and 15 evolved, 18 perks, 61
+	# passives) and the loop over every hero's perks and mutation are shape rules now (pass66_shape_test.gd: every weapon
+	# in play has its three path mutations and its evolution, every line evolves, every hero in play has a perk and one
+	# hero mutation): the Level Editor adds content, and a hidden hero made from a template has no perks yet
 	for w in Registry.base_weapons():
+		# a hidden weapon's template mutations are hidden with it (pass 66), so the path is the weapons in play's
+		if w.hidden:
+			continue
 		var path: Array = Registry.mutations_of(w.id)
 		assert_int(path.size()).override_failure_message("%s has %d path mutations" % [w.id, path.size()]).is_greater_equal(3)
 		var kinds: Array = []
@@ -40,30 +32,8 @@ func test_content_is_there() -> void:
 		# an element, a volume and a motion pick on every path; a weapon may carry more (the turret's stances)
 		assert_bool(kinds.slice(0, 3) == ["element", "volume", "motion"]).override_failure_message(w.id + " path kinds " + str(kinds)).is_true()
 		assert_str(w.evolves_with).is_equal("")
-	for c in Registry.characters.values():
-		# the hero mutation sits on the favourite weapon: a hero whose favourite is a passive (pass 46: Ironwood's Cake,
-		# hidden while his lanes build him) has neither it nor perks yet
-		if c.favourite_weapon == "":
-			continue
-		# pass 53: Suit Seals, Bounty Hunter and Serenade are hidden (Garry); pass 62: Solenne's favourite is a weapon now
-		# (the Molotov), and she keeps her two perks
-		var want := 2 if ["astro", "drifter", "calavera", "solenne"].has(c.id) else 1
-		assert_int(Registry.perks_of(c.id).size()).override_failure_message("%s has %d perks, not %d" % [c.id, Registry.perks_of(c.id).size(), want]).is_equal(want)
-		# pass 46: a hidden hero is out of play, and so is his mutation; pass 48: the rule is for the heroes in play (Dad, hidden,
-		# lost his: Both Barrels is every hero's motion pick on the Boomstick now)
-		if c.hidden:
-			assert_int(Registry.hero_mutations(c.id).size()).is_equal(0)
-			continue
-		var own: Array = Registry.mutations.values().filter(func(m: MutationDef) -> bool: return m.hero == c.id)
-		assert_int(own.size()).override_failure_message(c.id + " has no hero mutation").is_equal(1)
-		assert_str((own[0] as MutationDef).weapon).is_equal(c.favourite_weapon)
-		assert_int(Registry.hero_mutations(c.id).size()).is_equal(1)
 	for pid in ["might", "spurs", "sombrero", "snake_oil", "leech", "cactus_coat", "guidance_fins", "payload", "whetstone", "long_arm", "conductor"]:
 		assert_bool(Registry.passives.has(pid)).override_failure_message(pid + " should be retired").is_false()
-	# pass 33.2: Beef Jerky and Pickpocket; pass 43: the two hell items; pass 46: the sixteen lines and Desperado; pass 47:
-	# seven evolved lines, three new lines and six passive items; pass 47c four more passive items; pass 48 six more (Phoenix
-	# Feather, Skedaddle, Powder Keg, Loose Change, Gas Mask, Hot Streak); pass 62 the Pocket Watch
-	assert_int(Registry.passives.size()).is_equal(61)
 
 
 func test_weapon_cap_grows_with_the_stage() -> void:

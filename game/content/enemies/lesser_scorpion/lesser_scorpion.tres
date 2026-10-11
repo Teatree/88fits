@@ -84,6 +84,7 @@ variants = {
 "scale": [1.3, 1.5],
 "up": 0.3
 },
+"shelved": false,
 "sprite": ExtResource("4_12tp6"),
 "sprite_file": "lesser_scorpion_sprite_a.png",
 "strip_cols": 91
@@ -118,6 +119,7 @@ variants = {
 "scale": [1.3, 1.5],
 "up": 0.3
 },
+"shelved": false,
 "sprite": ExtResource("3_deecl"),
 "sprite_file": "lesser_scorpion_sprite_b.png",
 "strip_cols": 91
@@ -152,6 +154,7 @@ variants = {
 "scale": [1.3, 1.5],
 "up": 0.3
 },
+"shelved": false,
 "sprite": ExtResource("4_fr5iu"),
 "sprite_file": "lesser_scorpion_sprite_c.png",
 "strip_cols": 91

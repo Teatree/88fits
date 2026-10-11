@@ -224,6 +224,67 @@ next launch. To undo it, set the old look the same way, or copy the backup back 
 - `GET /api/enemies` (pass 58) adds `sprite_play` (the default look's strip), `frame_px`, `blood` (the JSON's, null when
   it has none) and a `sprite` URL on every variant.
 
+Pass 66 (the asset editors; `<kind>` is one of `enemy boss hero weapon evolution passive mutation`; every reply is
+`{ok, ...}` or `{ok: false, error}` with 400/404/409 as noted; a content write edits the JSON line by line in place
+(content_io.py), leaves a backup, and runs `import_json -- only=<type>/<id>` under the repo-wide Godot lock, or queues
+an `import` job when the lock has been busy for 120 s):
+
+- `GET /api/enemies` adds per record `looks` (the same records as `variants`), `sprite`, `anims`, `fps`, `strip_cols`,
+  `head`, `badge`, `front_faces`, `back_faces`, `sfx`, `blocks`, `combo` ("brain|block+block"), `directions`, `file`,
+  `mtime`, `deletable`. Every look record: `code, note, icon, sprite, ready, base, default, anims, fps, strip_cols,
+  frame_px, head, front_faces, back_faces, shadow, shelved, fresh, imported (the PNG's .import exists and the .tres is
+  newer than the JSON and the PNG; null = no PNG), sprite_mtime, sprite_file, icon_file, has_recipe, recipe`.
+- `GET /api/heroes`: `[{id, name, flavour, order, pronoun, hidden, availability, price, currency_type, trait,
+  trait_per_level, trait_name, trait_text, level_heal, favourite_*, start_weapon, specials, momentum, frame_px,
+  strip_cols, fps, anims, sprite, icon, title (/art/wanted/hero_<id>.png or null), variant, variant_base, looks, perks,
+  hero_mutations, weapons, file, mtime, deletable}]`, the five in play first by `order`.
+- `GET /api/items`: `{weapons: [{...record, mutations (kind order, hero ones after), evolution, path, path_missing,
+  locked_by}], lines: [{..., evolved}], passives, quests, band {locked, base, share, lo, hi}, orphans}`; every item's
+  `availability` is derived: `hidden` -> hidden, a quest with `unlocks.id` -> locked, else available.
+- `GET /api/content/<kind>/<id>`: `{kind, id, file, mtime, text, json, layout, editable, looks, refs {maps, quests,
+  weapons, evolutions, mutations, characters, perks, passives}, availability, locked_by, quest, files, deletable,
+  ledger, combos_seen, path_missing (weapons)}`; `GET .../next_codes?n=`: `{codes, base_created, prefix}`.
+- `GET /api/templates/<kind>`: `[{id, kind, name, hidden, icon}]`, the retired and the dummies left out.
+- `GET /api/vocab` (vocab.py: brains, blocks, attacks, telegraphs, stats, rarities with plate colours, behaviours,
+  params keys, quest types, sound ids by prefix, elites, pickups, `combos_seen`; every list is listable, not extendable),
+  `GET /api/methods` (`tools/level_editor/methods.json`, `{methods: []}` when missing), `GET /api/drivers`
+  (`tools/dl/drivers/*/meta.json`: `{name, kind pose|depth, views, frames, loop, source, action, frames_url, frame_pattern,
+  sheet, sheets}`), `GET /api/refs` (`tools/dl/uploads`: `{2d: [{name, url, path, size}], 3d: [{slug, file, probe,
+  renders}]}`), `GET /api/status` (+ `blender`, `qa_online`, `locks`, `jobs`, `jobs_available`), `GET /api/schema/assets`
+  (`docs/assets_schema.md`).
+- `GET /icon/<kind>/<id>[/<code>]` for every kind above (+ `elite pickup quest perk`), `GET /sprite/hero/<id>[/<code>]`,
+  `GET /art/wanted/hero_<id>.png`, `GET /dl/<rel>` (tools/dl under `jobs/ drivers/ ai_raw_anime/ ai_anim/ review/ icons*/
+  title_heroes/ uploads/`, extensions png jpg jpeg webp gif json txt, a folder lists itself as JSON, `max-age=60`),
+  `GET /examples/<name>.png`, `GET /sound/<id>` (a soundmap id's wav).
+- `POST /api/content/<kind>`: `{id, template, name, flavour, doc (creatures), copy_art?, fields?}` -> `{id, kind, file,
+  created, copied, job (a register job), job_error}`; 409 when the id exists under any content type. A creature gets its
+  `knockback` written (EnemyDef's default from its damage); a hero starts `hidden` with `availability: "hidden"`, `price
+  0`, `currency_type "gold"`; a weapon starts hidden with its three template mutations and template evolution (all hidden,
+  `evolves_into` set); a passive starts available with its evolution links cleared. The id lands in the ledger
+  `tools/dl/jobs/created.json` (local; only ledger ids can be deleted).
+- `POST /api/content/<kind>/<id>/save`: `{json, base_mtime}` -> `{changed, removed, backup, import_ok, output, mtime}`;
+  409 `{error: "changed on disk", mtime}` on a stale `base_mtime`; a key is removed only when the editor owns it; a file
+  that cannot be edited line by line is refused (`error: "layout: ..."`), never re-dumped.
+- `POST .../variant` `{code}` (creatures and heroes); `POST .../retire` `{retired}` (creatures; 409 `{refs}` when a map
+  names it); `POST .../availability` (hero `{availability, price, currency_type}`, `hidden` kept in step; item
+  `{availability: hidden|available|locked, quest?: {condition, quest_text, name}}` creates, edits or removes
+  `content/quests/unlock_<id>`; a weapon turns available only when its path is complete: 409 `{missing}`);
+  `POST .../delete` `{cascade?}` (ledger ids only, 403 otherwise; 409 `{refs}`; the folder moves to
+  `backups/deleted/<id>/<stamp>/`); `POST /api/content/weapon/<id>/make_path` `{names?}` (the four templates, 409 when
+  an id exists).
+- `POST .../look` `{code?, note, recipe}` adds a stub entry (the first look of a file without variants writes
+  `variant_base` and the base entry: creatures `<PREFIX>-0`, heroes `<PREFIX>-A`); `POST .../look/<code>` `{op:
+  approve|shelve|unshelve|remove|note|recipe|default, ...}` and the bulk `POST .../look` `{op, codes}`; shelve and remove
+  are refused for the look in play (409), remove also for the base code and a code a map pins (`{refs}`); a removed look's
+  own PNGs, `.import` files and `_ai` marker move to `backups/deleted/<id>/<stamp>/`.
+- `POST /api/upload` (the raw file; headers `X-Kind: 2d|3d`, `X-Filename`; streamed, 411 without Content-Length, 413 over
+  200 MB) -> `{name, path, url (2d), slug, size, job (a ref_probe job for 3d)}`; `POST /api/test_launch` `{character?,
+  look?, enemy?, variant?, count?, map?}` -> `{job}` (a launch job).
+- The jobs (jobs.py; 503 `{ok: false}` while the module is not here): `GET /api/jobs[?since=<rev>]`, `GET /api/job/<id>`,
+  `GET /api/jobs/specs`, `POST /api/jobs` `{kind, target, spec, title?}` -> `{job}`, `POST /api/jobs/<id>` (edit),
+  `POST /api/jobs/<id>/cancel|requeue|pick|install|move|delete`; a bad body is a 400, an unknown job a 404, a state the
+  call does not allow a 409.
+
 ## Self-test (pass 54)
 
 `python tools/level_editor/selftest.py` (the standard library, plus Node.js for the first part): the page's maths
@@ -476,3 +537,109 @@ am placing an enemy wave or changing it's start or end time it snaps to Cap and 
   Beetle row r15's end dragged to 6:06 at 0.47 s/px stops on the cap point at 6:03 although the Spit Cactus row r17
   starts nearer, at 6:08; dragged to 5:02 it stops on the Werewolf row r16's start at 5:00 rather than on the nearer
   Elites every at 5:01; with Snap off, or with Alt held, it stays at 6:06.
+
+## Pass 66: the asset editors and the art jobs
+
+Garry (2026-10-11): "It's time for me to start being able to create art assets for both Heroes, Enemies and Items on my
+own ... I go to our LevelEditor HTML and I choose to either edit or create an Enemy, Hero or Item ... a 'form' or edit a
+template of one ... Set the local AI model to generate some art assets for it ... previews for each of those ... a
+`jobs queue` tab ... Make sure not to break any of the existing functionality of the LevelEditor." The design round
+(three drafts, a synthesis, a critique) and the lanes' contract live in `tools/dl/p66/` (git-ignored); the keys it
+adds to the content are in `docs/assets_schema.md`; the rules it adds to the game are BALANCING.md §13.
+
+**The tabs.** `Timeline · Settings · Enemies · Heroes · Items · Jobs · Instructions`. Enemies is the Creatures tab
+with an **Edit** on every card and a "**+ New from template**" dialog (template, name, id, flavour, a one-line doc, copy
+the template's art); Heroes and Items are new, each a list pane (cards with status chips and a filter) and an editor
+pane with a sticky header (`ENEMY · Test Beast · file · N changes · Save asset · Undo · Redo · Revert · Test in game ·
+✕`), an issues line and collapsible sections. Every open asset is a document of its own: Ctrl+S, Ctrl+Z / Ctrl+Y and the
+unsaved mark act on the document while one is open on the tab, and on the map otherwise; dirty documents stay open
+while you switch ("Open documents (2) ▾"). The Timeline, Settings and Instructions tabs behave exactly as before.
+
+**Creating.** The dialog writes the folder under `content/<type>/<id>/` at once (the template's numbers and art
+words, its id, name, flavour and doc reset, the art keys dropped unless "copy the art", a creature's `knockback`
+written out, a hero `hidden` with `availability: "hidden"`, a line or passive item available, a weapon hidden with its
+three template path mutations and its template evolution, all hidden) and queues a **register** job: the placeholder
+icon and strip (`gen_placeholders.gd -- only=`), `--import`, `lossy_imports.py`, `--import` again, `import_json`. The
+id goes into a local ledger (`tools/dl/jobs/created.json`), the only ids **Delete** accepts (the folder moves to
+`tools/level_editor/backups/deleted/`).
+
+**Saving an asset.** Save asset posts the whole document with the file's modification time; a file changed on disk
+meanwhile answers 409 ("Reload", "Keep mine", "Show the other"). The server writes only the keys that changed, each
+on its own line in place (`content_io.set_top_block`, the pass-58 one-line writer grown to any value: a multi-line
+block is rewritten with the file's own indent unit and parsed back), never removes a key it does not own, keeps `1.0`
+as `1.0`, backs the file up, and refuses with "layout" when a file cannot be edited line by line (it never re-dumps on
+its own); then `import_json` runs for that one folder under the repo-wide Godot lock (`tools/locks.py`,
+`tools/dl/locks/godot.lock`), or an **import** job is queued when the lock is busy.
+
+**The forms** (`assets_fields.js`, in fields.js's row vocabulary): an enemy / elite / boss form of 93 rows in 8
+sections (identity, body, brain and its blocks, the attack script, spawning, drops, variance, sounds, looks, art
+words), a hero form of 69 (identity, the trait with the sentence the game will show and "Set trait_text from the
+rule", favourites, specials, availability / price / currency_type written but not wired, art words with driver
+pickers, "His own": his weapon, hero mutation and perks), a weapon form of 51 (behaviour, targeting, base stats with
+the game's defaults as placeholders, exactly five level steps, evolution and the path strip with "Create templates",
+params as JSON with the behaviour's known keys as chips, sounds, availability with the unlock quest drawer, the
+quest-locked band gauge), lines and passive items, mutations and evolutions. 124 rules (76 errors that block Save, 48
+warnings) are the shape rules the tests hold (a doc line, a valid blood, knockback above zero, five levels, the three
+path kinds, a hero's perks and mutation). Any brain and attack-block combination is allowed; one no creature in play
+uses reads "untested in play". A boss's or Elite's script is a list of attack cards: the name picks that attack's keys,
+a telegraph picture to scale (line, ring, ring at the hero, sector, fan, spokes with the game's own numbers), a
+sequence line (wind-up, active, the gap between) and the pacing note (wind-ups last 1 / (move_pace ×
+creature_speed_mult), ×1.23 on Red Canyon). Every select of the game's constants says "a new kind needs code: ask
+Claude": the lists are listable, not extendable.
+
+**Compare with** (enemies): the template or any creature against this one, with Δ%: HP, bite, speed, XP, knockback,
+size, radius, pack; HP at 0:00, 5:00 and 12:00 after the chosen map's stage and curve multipliers; seconds to kill with
+a level-1 Revolver; bites to kill the hero; the ring hint.
+
+**Looks and previews.** Every creature and hero form has a **Looks** grid (24 a page, filters all / playable / new /
+shelved / not painted / not imported, bulk Shelve / Remove) with a **strip player** per look: the animation (idle, run,
+attack, hit, die, cheer) and the facing (2 or 8 directions, mirrored as the game mirrors), play / pause / step, speed,
+zoom 1×, 2×, 4× and a full-size modal, on the sand at about 94 px/m with a 1 m bar ("approximate scale"). At most 12
+players animate at once (the rest hold frame 0 and say so), only visible ones tick, hover-to-play in grids, decoded
+strips kept in a cache of 16. Per look: Make default, Approve (clears `fresh`), Shelve (`shelved: true` hides it from
+the arena's chips and the lists, a row naming it still plays it), Remove (the PNGs to `backups/deleted/`), Edit note /
+recipe, Re-roll, Icon candidates. Icons preview at 128 / 64 / 36 on the rarity plate; a hero's title cut-out at a
+quarter with a 1:1 view.
+
+**Art jobs.** "+ Generate art" opens the job form: a card per method from `tools/level_editor/methods.json` (17: the
+hero's five views on a Mixamo stride, a hero walk fitted to this painting, a creature front and back on free Wan clips
+or on a Mixamo stride, eight directions on free clips, a creature walked on a 3D model's own motion, no video at all, a
+front from a picture, a recolour, item icons, icon candidates, the hero badge, the hero title cut-out, pose and depth
+drivers, the 3D probe and renders) with what it needs, makes, takes (median and worst), its weak spots and an example
+from the game; the method's recipe fields typed; 2D reference rows (role identity / style / pose-and-anatomy, follow
+loosely / closely / copy exactly, which map to the wordings that worked: there is no strength number, references
+steer by which pictures go in, in what order, and the words); 3D reference rows (the driver library with each driver's
+frames playing, or an upload: "Preferred: Mixamo-style FBX Binary, 30 fps, 'In Place' ticked, keyframe reduction
+none"; a dropped model is probed by Blender and the form says what it can do: the icon render, the look reference,
+pose drivers for a Mixamo-style humanoid, depth drivers for a model with its own clip); one row per look with its own
+prompt, references, driver and seed and the codes it will get (`LS-D`, `LS-E`: the next free letters of the
+creature's prefix; a creature's first look makes `<PREFIX>-0` the strip as it was, a hero's `-A`); icon and cut-out
+candidate counts; seeds and re-roll choices; "Show the words that will be sent". Queue posts one job per look.
+
+**The Jobs tab.** The queue lives in `tools/dl/jobs/queue.json` with a folder per job (`job.json`, `log.txt`,
+`result.json`); three lanes run one job each (comfy for the art, godot for register / import / Test in game, local for
+Blender and installs), under the two repo-wide locks (one ComfyUI job at a time across the queue, Claude and every
+script: `tools/dl/locks/comfy.lock`; one Godot process: `godot.lock`); the header says who holds what, and a lock left
+by a process that died is reclaimed, one with no owner only by Force release. A card per job: queued (Edit, up / down,
+Cancel), running (the stage of N with the stages ticked as they land, elapsed and an estimate, the log tail, the
+stills with their QA verdict and the clips playing, Cancel), waiting for a pick (the candidates, Pick, Re-roll N more:
+gen_ctl's side and view picks, the front-from-a-picture pick), done ("wrote <file> (variants) · one entry written in
+place · backup", Open look, Re-queue, Re-roll with the cached stills and clips to redo, Install for candidates),
+failed / interrupted (Re-queue, the error line). A job runs the tools exactly as Claude would (`equiv:` shows the
+command) as a subprocess (`tools/asset_job.py`): under `ASSET_JOB_SIDECAR` gen_art and gen_ctl never open the
+content JSON; they write `result.json` and the server merges the look's entry in place (`fresh: true`), then queues an
+import. A landing that cannot be merged line by line ends "unmerged" with "Merge again" and "Re-dump this file
+(changes its layout)" as explicit clicks. Edit works in every state but running (a look's recipe is written through to
+the JSON); Cancel kills the process tree and, for a ComfyUI job, interrupts the server. **Test in game** queues a launch
+job: the editor binary opens the debug arena with that hero in that look or that creature in that look
+(`user://debug_launch.json`: `arena`, `look`, `spawn_enemy`, `variant`, `count`), the PC save kept aside and put back.
+
+**Instructions**: "Pass 66: the asset editors", "Looks and previews" (two live players), "Art jobs" (the methods
+table and the wordings from methods.json), "The Jobs tab", "Every field" for the asset kinds, and
+`docs/assets_schema.md` at the end.
+
+**Self-test**: `selftest.py` discovers `selftest_<lane>.py` groups (S 259 checks: the writer on every layout found on
+disk, create / make_path / retire / delete, the vocabularies against the game source, the routes; J 222: the queue, every
+transition, the progress parser on real logs, the sidecar dry run; P 106: the strip maths on the real strips, the codes,
+the hero trait words, the rules on every document on disk; V 366: the player's maths and tables, methods.json, the
+schema; B: methods.json, the examples, every driver's meta.json). 17,023 checks pass (14,994 at pass 61).

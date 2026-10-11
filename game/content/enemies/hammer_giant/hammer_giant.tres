@@ -73,6 +73,7 @@ variants = {
 "icon": ExtResource("1_23x0u"),
 "note": "Pass 45: grey-brown, the hammer on the shoulder (its handle showed across the back)",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("3_xj6re"),
 "sprite_file": "hammer_giant_sprite.png",
 "strip_cols": 43
@@ -97,6 +98,7 @@ variants = {
 "icon": ExtResource("7_m20vh"),
 "note": "Ochre-sand skin, the hammer hanging at his side",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("6_8cuq1"),
 "sprite_file": "hammer_giant_sprite_a.png",
 "strip_cols": 43
@@ -121,6 +123,7 @@ variants = {
 "icon": ExtResource("9_crvr6"),
 "note": "Slate blue-grey skin, the hammer held across the chest",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("8_2763a"),
 "sprite_file": "hammer_giant_sprite_b.png",
 "strip_cols": 43
@@ -145,6 +148,7 @@ variants = {
 "icon": ExtResource("1_yex8y"),
 "note": "Oxblood-red skin, the hammer on the shoulder, out to the side",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("3_8hfvu"),
 "sprite_file": "hammer_giant_sprite_c.png",
 "strip_cols": 43
@@ -169,6 +173,7 @@ variants = {
 "icon": ExtResource("11_xhk8k"),
 "note": "Mossy grey-green skin, the hammer held low in front",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("10_cq03h"),
 "sprite_file": "hammer_giant_sprite_d.png",
 "strip_cols": 43

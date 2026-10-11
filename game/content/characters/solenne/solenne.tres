@@ -85,6 +85,7 @@ variants = {
 "frame_px": 256,
 "icon": ExtResource("1_6nfm6"),
 "note": "Pass 54's walk on Garry's Walking_sun as first rendered: its side view turned a quarter away, her head grew walking down and shrank walking up.",
+"shelved": false,
 "sprite": ExtResource("3_1go7i"),
 "sprite_file": "solenne_sprite.png",
 "strip_cols": 62
@@ -117,6 +118,7 @@ variants = {
 "frame_px": 256,
 "icon": ExtResource("1_6nfm6"),
 "note": "Walking_sun again, fitted to her (tools/pose_fit.py): squared to her hips, her body, hands and sun disc at her painted size, the disc facing the viewer in every view, a side still with the disc turned to the viewer.",
+"shelved": false,
 "sprite": ExtResource("3_06g83"),
 "sprite_file": "solenne_sprite_b.png",
 "strip_cols": 62
@@ -149,6 +151,7 @@ variants = {
 "frame_px": 256,
 "icon": ExtResource("1_6nfm6"),
 "note": "Mixamo's Catwalk Walking (Garry's _REFERENCES/3d/Catwalk Walking.fbx), fitted to her the same way.",
+"shelved": false,
 "sprite": ExtResource("6_5woph"),
 "sprite_file": "solenne_sprite_c.png",
 "strip_cols": 62
@@ -181,6 +184,7 @@ variants = {
 "frame_px": 256,
 "icon": ExtResource("1_6nfm6"),
 "note": "The run every other hero uses (Mixamo Running), fitted to her the same way.",
+"shelved": false,
 "sprite": ExtResource("7_v4tah"),
 "sprite_file": "solenne_sprite_d.png",
 "strip_cols": 62
@@ -213,6 +217,7 @@ variants = {
 "frame_px": 256,
 "icon": ExtResource("1_6nfm6"),
 "note": "the catwalk again, with a tighter prompt (pass 60): SOL-C's words ('a catwalk stride with the hips swaying') let the model add runway poses: a hand on the hip and a body turning through the three-quarter front cycle, a lean-back crouch in the side cycle. These say what each part of the body does and what stays put, and roll new seeds (anim_seed 4). The three-quarter back view walks on catwalk_fit_wide_spread (pose_spread at 0.10): on the 0.06 spread the driver's wrists passed the hips at hip height and Wan planted both hands on them, elbows out.",
+"shelved": false,
 "sprite": ExtResource("8_5woph"),
 "sprite_file": "solenne_sprite_e.png",
 "strip_cols": 62

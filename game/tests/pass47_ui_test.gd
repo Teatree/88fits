@@ -90,8 +90,10 @@ func test_the_plate_colours_by_kind_and_rarity() -> void:
 			assert_bool(p.fill.is_equal_approx(W.RARITY_PLATE[W.rarity_of(pd)])).override_failure_message(pd.id).is_true()
 			assert_int(p.ring).is_equal(0)
 			rarities[W.rarity_of(pd)] = true
-	# the passive items span the tiers there are (pass 47b: common, uncommon, rare; pass 48: Sinner's Greed is epic)
-	assert_int(rarities.size()).is_equal(4)
+	# the passive items span the tiers there are (pass 47b: common, uncommon, rare; pass 48: Sinner's Greed is epic); pass
+	# 66: at most the four, never legendary (an item made in the Level Editor takes one of them)
+	assert_int(rarities.size()).is_between(1, 4)
+	assert_bool(rarities.has("legendary")).is_false()
 	# the rest keep their kind's colour
 	assert_bool(_plate(Registry.mutation("dragons_breath")).fill.is_equal_approx(W.PLUM)).is_true()
 	assert_bool(_plate(Registry.perk("supply_drop")).fill.is_equal_approx(W.TURQUOISE)).is_true()

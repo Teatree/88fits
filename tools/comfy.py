@@ -13,13 +13,74 @@ ComfyUI browser UI (tools/comfy_workflows/*.json, written by `python tools/comfy
 
 Graph nodes are added with Graph.add(class_type, **inputs); an input value that is a (node_id, slot) tuple is a link.
 """
-import io, json, os, sys, time, urllib.parse, urllib.request, uuid
+import atexit, io, json, os, sys, threading, time, urllib.parse, urllib.request, uuid
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SERVER = os.environ.get("COMFY_SERVER", "http://192.168.137.54:8188")
 for _a in sys.argv:
     if _a.startswith("--server="):
         SERVER = _a.split("=", 1)[1]
+
+# ---------------------------------------------------------------- the one-job-at-a-time lock (pass 66)
+# One ComfyUI job at a time across Claude's scripts and the Level Editor's jobs queue: tools/dl/locks/comfy.lock
+# (tools/locks.py). The lock is taken for the WHOLE PROCESS, lazily, on the first call that touches /prompt, /free,
+# /interrupt, /queue, /upload/image or the ssh restart (so release_models() and run_dev()'s restart can never hit another
+# script's render), and released at exit. It is reentrant, and a child told LOCK_HELD_COMFY=1 (or the older
+# COMFY_LOCK_HELD=1) by the holder passes straight through. No command line changes: every script that imports this
+# module takes it on its own. Scripts from older checkouts do not know the lock.
+LOCKED_PATHS = ("/prompt", "/free", "/interrupt", "/queue", "/upload/image")
+_LOCK = None
+_LOCK_GUARD = threading.Lock()
+_LAST_BEAT = 0.0
+BEAT_SECONDS = 30.0
+
+
+def _lock_who():
+    base = os.path.basename(sys.argv[0]) if sys.argv and sys.argv[0] else "comfy.py"
+    return (base + " " + " ".join(sys.argv[1:])[:60]).strip()
+
+
+def ensure_lock():
+    """Take the comfy lock for this process (waits as long as it takes, saying who holds it); a no-op once held."""
+    global _LOCK
+    if _LOCK is not None:
+        return _LOCK
+    with _LOCK_GUARD:
+        if _LOCK is not None:
+            return _LOCK
+        try:
+            import locks
+        except ImportError:
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            import locks
+        _LOCK = locks.acquire("comfy", who=_lock_who(), job=os.environ.get("ASSET_JOB_ID", ""))
+        atexit.register(release_lock)
+        return _LOCK
+
+
+def release_lock():
+    """Let the comfy lock go (atexit does this; a script that wants to free the server early may call it)."""
+    global _LOCK
+    lk, _LOCK = _LOCK, None
+    if lk is not None:
+        try:
+            lk.release()
+        except Exception:
+            pass
+
+
+def _beat():
+    """Refresh the lock's heartbeat now and then while a long render runs."""
+    global _LAST_BEAT
+    if _LOCK is None:
+        return
+    now = time.time()
+    if now - _LAST_BEAT >= BEAT_SECONDS:
+        _LAST_BEAT = now
+        try:
+            _LOCK.beat()
+        except Exception:
+            pass
 
 KLEIN_UNET = "flux-2-klein-9b-fp8.safetensors"
 KLEIN_CLIP = "qwen_3_8b_fp8mixed.safetensors"
@@ -38,6 +99,8 @@ def get(path, timeout=120):
 
 
 def post(path, obj, timeout=120):
+    if path.split("?", 1)[0] in LOCKED_PATHS:
+        ensure_lock()
     req = urllib.request.Request(SERVER + path, data=json.dumps(obj).encode(), headers={"Content-Type": "application/json"})
     return json.load(urllib.request.urlopen(req, timeout=timeout))
 
@@ -58,6 +121,7 @@ def object_info():
 
 def upload(png_bytes, name, subfolder="88fits"):
     """Upload an image into ComfyUI's input folder; returns the value LoadImage expects."""
+    ensure_lock()
     boundary = "----88fits" + uuid.uuid4().hex
     parts = []
     parts.append(b"--" + boundary.encode() + b"\r\nContent-Disposition: form-data; name=\"image\"; filename=\"" + name.encode() +
@@ -109,6 +173,7 @@ def restart_server():
     """Restart the ComfyUI service and wait until it answers (about 20 s). Uploaded references live in its input folder
     and survive the restart."""
     import subprocess
+    ensure_lock()
     subprocess.run(SERVER_SSH + ["systemctl --user restart ai-comfyui.service"], capture_output=True, timeout=60)
     for _ in range(40):
         time.sleep(3)
@@ -147,6 +212,7 @@ def run(graph, timeout=1200):
     t0 = time.time()
     while True:
         time.sleep(1.0)
+        _beat()
         h = get("/history/" + pid)
         if pid in h:
             st = h[pid].get("status", {})

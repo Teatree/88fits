@@ -65,6 +65,8 @@ static func build(type: String, d: Dictionary, dir: String) -> ContentDef:
 		var cd := res as CharacterDef
 		if cd.variant != "" and cd.variants.has(cd.variant) and cd.variants[cd.variant].get("icon") != null:
 			cd.icon = cd.variants[cd.variant]["icon"]
+		# pass 66: an availability other than "available" ("hidden", "purchase") keeps him hidden, whatever `hidden` says
+		cd.hidden = cd.hidden or cd.availability != "available"
 	return res
 
 
@@ -253,7 +255,7 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 			all[base_code] = {"sprite": e.sprite, "sprite_file": e.sprite_file, "anims": e.anims, "fps": e.fps, "strip_cols": e.strip_cols,
 				"head": e.head, "icon": base_icon, "note": str(bn.get("note", "")),
 				"front_faces": str(bn.get("front_faces", e.front_faces)), "back_faces": str(bn.get("back_faces", e.back_faces)),
-				"shadow": bn["shadow"] if bn.get("shadow") is Dictionary else e.shadow}
+				"shadow": bn["shadow"] if bn.get("shadow") is Dictionary else e.shadow, "shelved": bool(bn.get("shelved", false))}
 		for code in vs.keys():
 			var v = vs[code]
 			if code == base_code or not v is Dictionary or not v.has("sprite"):
@@ -266,12 +268,13 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 			# a variant's own icon (its own painting), else the creature's
 			var vicon: Texture2D = resolve_texture(dir, str(v["icon"])) if v.has("icon") else null
 			# its facing (pass 46): a painting that turns the other way says so in its own entry (`front_faces` /
-			# `back_faces`, EnemyDef), else it faces like the top-level strip
+			# `back_faces`, EnemyDef), else it faces like the top-level strip. `shelved` (pass 66, the Level Editor's
+			# looks): out of variant_codes() and so of the arena chips and the default lists; variant_def still wears it.
 			all[str(code)] = {"sprite": tex, "sprite_file": str(v["sprite"]), "anims": van if van is Dictionary else e.anims,
 				"fps": vfp if vfp is Dictionary else e.fps, "strip_cols": int(v.get("strip_cols", 0)), "head": float(v.get("head", e.head)),
 				"icon": vicon if vicon else base_icon, "note": str(v.get("note", "")),
 				"front_faces": str(v.get("front_faces", e.front_faces)), "back_faces": str(v.get("back_faces", e.back_faces)),
-				"shadow": v["shadow"] if v.get("shadow") is Dictionary else e.shadow}
+				"shadow": v["shadow"] if v.get("shadow") is Dictionary else e.shadow, "shelved": bool(v.get("shelved", false))}
 		e.variants = all
 		var use := str(d.get("variant", base_code))
 		e.variant = use if all.has(use) else base_code
@@ -345,7 +348,16 @@ static func _character(d: Dictionary, dir: String) -> CharacterDef:
 	var mo = d.get("momentum", {})
 	c.momentum = mo if mo is Dictionary else {}
 	c.unlock_quest = str(d.get("unlock_quest", ""))
-	c.hidden = bool(d.get("hidden", false))
+	# pass 66 (the Level Editor's Heroes tab): `availability` "hidden" | "available" | "purchase", derived from `hidden`
+	# when absent; anything but "available" keeps him out of play (a "purchase" hero stays hidden until the loop is
+	# wired, BALANCING §13): build() folds it into `hidden` after _common has read the flag. `price` in `currency_type`
+	# is written and shown nowhere yet.
+	var avail := str(d.get("availability", ""))
+	if avail == "":
+		avail = "hidden" if bool(d.get("hidden", false)) else "available"
+	c.availability = avail
+	c.price = maxi(int(d.get("price", 0)), 0)
+	c.currency_type = str(d.get("currency_type", "gold"))
 	c.frame_px = int(d.get("frame_px", 256))
 	c.strip_cols = int(d.get("strip_cols", 0))
 	var fp = d.get("fps", {})
@@ -370,7 +382,7 @@ static func _character_variants(c: CharacterDef, d: Dictionary, dir: String) -> 
 	var base_code := str(d.get("variant_base", ""))
 	var base_icon: Texture2D = resolve_texture(dir, str(d.get("icon", str(d.get("id", "")) + "_icon.png")))
 	var top := {"sprite": c.sprite, "sprite_file": c.sprite_file, "anims": c.anims, "fps": c.fps, "strip_cols": c.strip_cols,
-		"frame_px": c.frame_px, "icon": base_icon, "note": ""}
+		"frame_px": c.frame_px, "icon": base_icon, "note": "", "shelved": false}
 	var all: Dictionary = {}
 	for code in vs.keys():
 		var v = vs[code]
@@ -383,14 +395,17 @@ static func _character_variants(c: CharacterDef, d: Dictionary, dir: String) -> 
 			if str(code) == base_code:
 				var b := top.duplicate()
 				b["note"] = str(e.get("note", ""))
+				b["shelved"] = bool(e.get("shelved", false))
 				all[str(code)] = b
 			continue
 		var van = e.get("anims", c.anims)
 		var vfp = e.get("fps", c.fps)
 		var vicon: Texture2D = resolve_texture(dir, str(e["icon"])) if e.has("icon") else null
+		# `shelved` (pass 66, the Level Editor's looks): out of variant_codes() and the arena chips, worn when named
 		all[str(code)] = {"sprite": tex, "sprite_file": str(e["sprite"]), "anims": van if van is Dictionary else c.anims,
 			"fps": vfp if vfp is Dictionary else c.fps, "strip_cols": int(e.get("strip_cols", 0)),
-			"frame_px": int(e.get("frame_px", c.frame_px)), "icon": vicon if vicon else base_icon, "note": str(e.get("note", ""))}
+			"frame_px": int(e.get("frame_px", c.frame_px)), "icon": vicon if vicon else base_icon, "note": str(e.get("note", "")),
+			"shelved": bool(e.get("shelved", false))}
 	if base_code != "" and not all.has(base_code):
 		all[base_code] = top
 	if all.is_empty():

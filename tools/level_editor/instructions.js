@@ -24,6 +24,7 @@ const Instructions = (() => {
     clear(container);
     const root = el('div', { class: 'instr' });
     intro(root);
+    pass66(root);
     pass61(root);
     pass58(root);
     pass54(root);
@@ -36,6 +37,7 @@ const Instructions = (() => {
     cmds(root);
     keys(root);
     schema(root);
+    schemaAssets(root);
     container.appendChild(root);
   }
 
@@ -491,6 +493,10 @@ const Instructions = (() => {
       [kbd('Esc'), 'deselect; in a box, leave it'],
       [kbd('Enter') + ' in a box', 'apply the value (so does leaving the box)'],
       ['"?" beside a label', 'unfold what the field does (the same text sits in the tooltip)'],
+      // pass 66: the asset tabs route the keys to their own document; the strip player has keys of its own
+      [kbd('Ctrl+S') + ' on the Heroes or Items tab, or with an enemy open', 'saves THAT asset (its JSON written in place, then imported); the map\'s Save needs the Timeline or Settings tab'],
+      [kbd('Ctrl+Z') + ' / ' + kbd('Ctrl+Y') + ' on an asset tab', 'undo / redo the open asset\'s document; the map\'s history stays its own'],
+      ['A strip player: ' + kbd('Space') + ' · ' + kbd('←') + ' / ' + kbd('→') + ' · ⤢ · ' + kbd('Esc'), 'play / pause · one frame back / on · the close look (4× in a dialog) · close it. A look card plays while the mouse is over it; double-click it for the close look'],
     ];
     t.appendChild(el('tbody', {}, rows.map(([a, b]) => el('tr', {}, el('td', { class: 'name', html: a }), el('td', { class: 'help', text: b })))));
     root.appendChild(t);
@@ -502,5 +508,203 @@ const Instructions = (() => {
     root.appendChild(el('div', { class: 'schema-doc', html: App.S.schema ? markdown(App.S.schema) : '<p class="muted">loading…</p>' }));
   }
 
-  return { render, EXAMPLE };
+  // ------------------------------------------------------------------ pass 66: the asset editors, the looks, the art jobs, the Jobs tab (lane V)
+
+  let demo = [];          // the strip players of this tab's demo, destroyed on the next render
+  let assetsSchema = null; // docs/assets_schema.md as served, once fetched (null = not yet, '' = not served)
+
+  function pass66(root) {
+    for (const p of demo) p.destroy();
+    demo = [];
+    root.appendChild(el('h2', { text: 'Pass 66: the asset editors' }));
+    root.appendChild(p('The editor now edits the <b>assets</b> themselves, not only when they come: <b>Enemies</b> (the palette, and an editor for every creature, elite and boss), <b>Heroes</b> and <b>Items</b> (weapons with their mutations and evolutions, lines with their evolved forms, passive items), each a form over the asset\'s own JSON under <code>game/content/</code>; plus <b>Jobs</b>: the local AI\'s queue that paints new looks, icons, badges and title cut-outs. Garry: "I go to our LevelEditor HTML and I choose to either edit or create an Enemy, Hero or Item ... Heroes and Items should get their own tabs with inclusion of everything we already have in the game at the proper status, stats, and everything that\'s true to what\'s in the game right now."'));
+    root.appendChild(el('ul', {},
+      li('<b>Two panes</b>: the list on the left (cards with the numbers, the status chips and an Edit button; "+ New from template" creates a real folder under <code>game/content/</code> at once, placeholders and all), the editor on the right with a sticky header (<i>KIND · Name · file · N changes</i>, <b>Save asset</b>, <b>Test in game</b>, ✕), the issues line and collapsible sections.'),
+      li('<b>One document per asset</b>. A field edit is one undo step of that document; dirty documents stay open while you switch tabs. ' + kbd('Ctrl+S') + ', ' + kbd('Ctrl+Z') + ' and ' + kbd('Ctrl+Y') + ' go to the open asset on an asset tab and to the map on the Timeline and Settings tabs; leaving the page asks about both.'),
+      li('<b>Save asset</b> writes the JSON <i>in place</i> (only the keys you changed, the file\'s own layout, a backup first) and imports it, like the map\'s Save. A file changed on disk since you opened it is refused with Reload / Keep mine / Show the other. A hand-edited, compact file the writer cannot edit line by line is refused rather than re-dumped.'),
+      li('<b>Chips</b>: <i>available · hidden · locked by a quest · hero-only · stage N+</i> on items; <i>available · hidden · purchase</i> on heroes (availability, price and currency are written and shown, not wired: a purchase hero stays hidden in play until the loop is built); <i>retired · hidden · elite · boss · special</i> on creatures.'),
+      li('<b>What blocks Save</b>: the shape rules the ship tests used to pin (a creature needs a <code>doc</code> line; a weapon exactly five level steps; a playable hero at least one perk; ...), listed per kind below once the tables load. Warnings (an untested brain / attack combination, a hidden hero with a favourite weapon and no perk, a change that leaves the quest-locked band) never block.'),
+      li('<b>Vocabularies are listable, not extendable</b>: brains, attack names, behaviours, stat ids and telegraphs are code constants read from the game\'s source; every such select ends with "a new kind needs code: ask Claude".'),
+      li('<b>Test in game</b> launches the editor binary into the debug arena with that hero (and its look) or that creature (and its look, three of them), the PC save kept aside and put back after; it holds the Godot lock while the window lives.')));
+    rulesTable(root);
+
+    root.appendChild(el('h2', { text: 'Looks and previews' }));
+    root.appendChild(p('A <b>look</b> is one painted strip of a creature or a hero (its icon too, for a creature): the JSON\'s <code>variants[CODE]</code>. The <b>Looks</b> section of an enemy or a hero shows every look as a card with a live preview (hover it to play, click it for the player above, double-click for the close look), the chips <i>● default · NEW · shelved · not imported · stub</i>, its note, and the actions <b>Make default</b> (the look the game plays for every row that names none), <b>Approve</b> (you looked at it: clears NEW), <b>Shelve / Unshelve</b> (kept in the JSON, hidden from the arena chips and the default lists), <b>Remove</b> (the entry goes; its PNGs move to <code>tools/level_editor/backups/deleted/</code>), <b>Edit note / recipe</b>, <b>Re-roll…</b> and <b>Icon candidates…</b> (both open the job form). Built for fifty looks of one creature: a filter box, a status filter, pages of 24, ☐ select with bulk Shelve / Unshelve / Remove.'));
+    root.appendChild(el('ul', {},
+      li('<b>The player</b> plays the strip as the game does: the animation (<i>idle · run · attack · hit · die</i>, heroes <i>idle · run · hit · die · cheer</i>), the direction (<b>2</b> for a strip with front and back sets only, <b>8</b> when it has side and three-quarter views: the left ones are the right ones mirrored, as the game mirrors them), ◀ ▶ one frame, play / pause, a scrub bar, the speed ×0.25 … ×2, the zoom 1× / 2× / 4× (nearest-neighbour pixels from 1× up), the sand backdrop with the foot line, the blob and a 1 m bar, and ⤢ the close look in a dialog (4×, or as big as fits; ' + kbd('Esc') + ' closes).'),
+      li('<b>Which frames play</b>: the strip order is the game\'s (<code>EnemyDef.frame_offset</code>, <code>Player.gd</code>); a view the strip lacks falls back along the game\'s own chain (<code>Player._anim_for</code>: bd → s → base; s → bd → fd → base; fd → s → f; f → fd → base) and the line under the player says "(plays back view)". A creature\'s attack, hit and die are painted once (the front set).'),
+      li('<b>Mirroring</b> follows <code>EnemyManager._face_bit</code>: side and three-quarter sets mirror when heading left; a creature\'s front and back sets too, the other way round when its <code>front_faces</code> / <code>back_faces</code> says <code>left</code>, never for <code>straight</code>; a hero\'s base and front views never (the ⇋ left box shows the heading-left case for creatures).'),
+      li('<b>Rates are preview rates</b>: creatures run at <code>fps.run</code> (10 when unset) and die at <code>fps.die</code> (6), idle 6, attack and hit 8; heroes run at <code>fps.run</code> (14), hit <code>fps.hit</code> (12), die <code>fps.die</code> (8), idle and cheer 6. In the game a walk runs at <code>fps.run</code> × the map\'s pace and a standing creature plays at 3 fps; hit, die and cheer play once and hold (looped here).'),
+      li('<b>Scale</b>: the cell is the creature\'s <code>size</code> metres tall (a hero 1.9 m) at ~94 px/m, the rate gen_art\'s review sheets use; the camera\'s pixels_per_metre is 90 without a target, so the bar says "approximate".'),
+      li('<b>Garry: "I don\'t really want to see 100 animations happening at once."</b> One clock drives every player; a player ticks only while it is on screen, playing, and within the cap of <b>' + StripPlayer.MAX_ANIMATING + '</b> animating at once (the rest sit at frame 0 with "paused: 12 already playing" and resume as others leave the screen); a grid card plays only while hovered. Decoded strips live in a cache of at most ' + StripPlayer.LRU_MAX + ' (a hero strip is 47 MB decoded): one is dropped when its player leaves the screen and decoded again on re-entry.'),
+      li('<b>The JSON</b>: <code>variants[CODE].shelved: true</code> hides a look from the arena and the lists (the game reads it: <code>variant_codes()</code> skips it; a map row naming the code still plays it); <code>variants[CODE].fresh: true</code> is page-only (the NEW chip; Approve deletes it; the game ignores it); an entry without a <code>sprite</code> is a <b>stub</b> (a job\'s placeholder: queued, running, failed or cancelled; the game skips it). The look in play can be neither shelved nor removed; a look a map row names cannot be removed.')));
+    demoPlayers(root);
+
+    root.appendChild(el('h2', { text: 'Art jobs' }));
+    root.appendChild(p('An <b>art job</b> paints something with the local AI: one or more <b>looks</b> of a creature or a hero (<b>+ New look…</b> in the Looks section, <b>Re-roll…</b> on a card), <b>icon candidates</b> of an item, a creature look or a hero, a hero\'s <b>round badge</b> or <b>title cut-out</b> candidates, or a new <b>3D driver</b> from an uploaded model. The job form asks for the <b>method</b> first (Garry: "they should be explained well enough, with some level of small visuals, maybe an example, so that I can choose them in an informed manner"): every method card below says what it needs, what it makes, how long it takes, what to watch for, and shows an example. Then the method\'s recipe fields, the job\'s own settings, the 2D references (a <i>role</i>: identity, style, or pose and anatomy; a <i>follow level</i>: loosely, closely, copy exactly), the 3D references (the driver library with its sheets played, or an upload), one row per look to paint with the code it will get, the counts, the seeds and re-roll options, and <b>Show the words that will be sent</b>. <b>Queue</b> posts one job per look. Every job card shows "the command Claude would type", so a job can always be run by hand.'));
+    const methodsBox = el('div', { class: 'muted', text: 'loading methods.json…' });
+    root.appendChild(methodsBox);
+    const reflBox = el('div');
+    root.appendChild(reflBox);
+    if (typeof Jobs !== 'undefined' && Jobs.methods) {
+      Jobs.methods().then((m) => { if (methodsBox.isConnected) { methodsTable(methodsBox, m); wordingsTable(reflBox, m); } });
+    } else methodsBox.textContent = 'the Jobs module is not loaded';
+    root.appendChild(el('ul', {},
+      li('<b>Locks</b>: one ComfyUI job and one Godot process at a time across the queue, Claude\'s scripts and the lanes (<code>tools/dl/locks/comfy.lock</code>, <code>godot.lock</code>, each with an <code>owner.json</code>). The Jobs tab\'s header shows who holds what; a lock without an owner file is "held by an unknown process" and only your explicit Force release removes it.'),
+      li('<b>Re-roll</b>: <i>new seeds</i> rolls every still and clip again with the next seeds; <i>keep the stills, redo the clips</i> moves the clip folders to <code>&lt;key&gt;_old&lt;stamp&gt;</code> and makes the walks again; <i>redo one view</i> paints candidates of that view to pick from (gen_ctl); <i>repaint the stills</i> paints them again (the clips follow). Without a re-roll, cached work is reused.'),
+      li('<b>Where things live</b>: stills <code>tools/dl/ai_raw_anime/&lt;key&gt;.png</code> (+ <code>.json</code> with the seed, the prompt, the refs, the QA verdict); clips <code>tools/dl/ai_anim/&lt;key&gt;/</code> (<code>out_NN.png</code> the kept frames, <code>cycle_sheet.png</code>); review sheets <code>tools/dl/review/</code>; icon candidates <code>tools/dl/icons_le_&lt;job&gt;/</code>; title candidates <code>tools/dl/title_heroes/</code>; uploads <code>tools/dl/uploads/2d|3d/</code>; the queue and every job\'s log <code>tools/dl/jobs/</code>. A finished look lands in the content folder as <code>&lt;id&gt;_sprite_&lt;letter&gt;.png</code> (+ <code>_icon_</code>) and in the JSON as <code>variants[CODE]</code> marked NEW; a job that could not merge its result into a hand-edited file ends done with <i>unmerged</i> and the card offers "Merge again" and "Re-dump this file (changes its layout)".'),
+      li('<b>What a picture cannot do</b>: a 2D reference reaches the front still of a creature (or the side, for the 3D-control method); the other views are edits of that painting; motion comes from a driver or Wan\'s guess, never from a picture; the vision QA counts subjects, legs and views, never likeness. The authoritative words are what <code>tools/asset_job.py --dry-run</code> records.')));
+
+    root.appendChild(el('h2', { text: 'The Jobs tab' }));
+    root.appendChild(p('Garry: "a list of jobs that are in queue for the local AI, which are being worked on and as much detail about those jobs as possible ... cancel the jobs and edit them (while they are not running, obviously) ... add as many as I like." The tab asks the server every 2 s (6 s from other tabs, nothing while the page is hidden) and draws a card per job, grouped by state:'));
+    root.appendChild(el('ul', {},
+      li('<b>RUNNING</b>: the stage and the stages done, the elapsed time against a "~" estimate (the method\'s measured median × its stages: a Flux.2 dev restart can add minutes), the last 12 log lines, <b>Cancel</b> (kills the tool; a ComfyUI job also interrupts the server\'s queue, which holds only ours under the lock), <b>Open asset</b>, <b>Log</b>. "stalled" after 20 minutes of silence: never killed on its own.'),
+      li('<b>WAITING FOR PICK</b>: the candidates (click a picture to zoom, click a card to choose), <b>Pick</b>, <b>Re-roll N more</b>, <b>Cancel</b>, <b>Edit</b> (back to the queue at phase 1).'),
+      li('<b>QUEUED</b>: its place in its lane, <b>Edit</b> (the form again), ▲ ▼, <b>Cancel</b>.'),
+      li('<b>DONE</b>: what was written and how (one entry in place, the whole variants block, or <i>unmerged</i> with its two buttons), the outputs (stills with their QA verdict, clips played, the strip), candidates to <b>Install</b> for icon, badge and title jobs, <b>Open look</b>, <b>Re-queue</b>, <b>Hide</b>, <b>Delete</b>.'),
+      li('<b>FAILED / INTERRUPTED / CANCELLED</b>: the error, <b>Re-queue</b> (attempt + 1, the caches reused), <b>Edit</b>, <b>Log</b>, <b>Delete</b>, and <b>Remove the stub</b> for a look job that left an entry without a strip. INTERRUPTED is every job that was running when the server restarted.'),
+      li('<b>The badge</b> on the tab button: ▸ running · queued, red with "?" when a pick waits. A job that finishes, fails or asks for a pick raises a toast with an "open" button. <b>Clear finished</b> deletes the finished records (the painted files stay).')));
+    afieldTables(root);
+  }
+
+  /** The shape rules per kind from lane P's AFIELDS.RULES, when its tables are loaded. */
+  function rulesTable(root) {
+    if (typeof AFIELDS === 'undefined' || !AFIELDS.RULES) return;
+    const kinds = Object.keys(AFIELDS.RULES).filter((k) => Array.isArray(AFIELDS.RULES[k]) && AFIELDS.RULES[k].length);
+    if (!kinds.length) return;
+    root.appendChild(el('h3', { text: 'The shape rules (errors block Save, warnings never do)' }));
+    const t = el('table', { class: 'fieldtab' });
+    t.appendChild(el('thead', {}, el('tr', {}, el('th', { text: 'Kind' }), el('th', { text: 'Rule' }), el('th', { text: 'Level' }), el('th', { text: 'What it checks' }))));
+    const tb = el('tbody');
+    for (const k of kinds) for (const r of AFIELDS.RULES[k]) tb.appendChild(el('tr', {}, el('td', { class: 'name', text: k }), el('td', { class: 'key', text: r.key || '' }), el('td', { text: r.level || '' }), el('td', { class: 'help', text: r.help || r.text || (typeof r.msg === 'string' ? r.msg : '') })));
+    t.appendChild(tb);
+    root.appendChild(t);
+  }
+
+  /** Lane P's field tables (enemy, hero, weapon, line / passive, mutation, evolution), tolerant of functional `only` and `options`. */
+  function afieldTables(root) {
+    if (typeof AFIELDS === 'undefined') return;
+    const kinds = [['enemy', 'An enemy, elite or boss'], ['hero', 'A hero'], ['weapon', 'A weapon'], ['evolution', 'An evolution'], ['mutation', 'A mutation'], ['passive', 'A line or a passive item']];
+    const have = kinds.filter(([k]) => Array.isArray(AFIELDS[k]) && AFIELDS[k].length);
+    if (!have.length) return;
+    root.appendChild(el('h2', { text: 'Every field of the asset editors' }));
+    root.appendChild(p('These tables come from the same tables the asset forms are built from (<code>assets_fields.js</code>). A field left empty is not written: the game uses its default. Keys the editor does not know stay as they are.'));
+    for (const [k, title] of have) {
+      root.appendChild(el('h3', { text: title }));
+      const t = el('table', { class: 'fieldtab' });
+      t.appendChild(el('thead', {}, el('tr', {}, el('th', { text: 'Field' }), el('th', { text: 'JSON key' }), el('th', { text: 'Type' }), el('th', { text: 'Default' }), el('th', { text: 'Section' }), el('th', { text: 'What it does' }))));
+      const tb = el('tbody');
+      for (const d of AFIELDS[k]) {
+        let type = d.type || '';
+        if (type === 'select') { const o = typeof d.options === 'function' ? null : d.options; type = Array.isArray(o) ? o.map((x) => (typeof x === 'object' ? x.v : x)).join(' | ') : 'one of the game\'s list'; }
+        const def = d.def === undefined || d.def === null ? '' : (typeof d.def === 'object' ? JSON.stringify(d.def) : String(d.def));
+        tb.appendChild(el('tr', {}, el('td', { class: 'name', text: (d.label || d.key || d.path || '') + (d.required ? ' *' : '') }), el('td', { class: 'key', text: d.key || d.path || '' }), el('td', { text: type }), el('td', { class: 'def', text: def }), el('td', { text: d.section || '' }), el('td', { class: 'help', text: (d.help || '') + (d.art ? ' (art: tool-only)' : '') })));
+      }
+      t.appendChild(tb);
+      root.appendChild(t);
+    }
+  }
+
+  /** The methods table from methods.json with the example picture or a hover player per row. */
+  function methodsTable(box, m) {
+    clear(box);
+    box.classList.remove('muted');
+    const list = m && Array.isArray(m.methods) ? m.methods : [];
+    if (!list.length) { box.appendChild(p('<span class="muted">tools/level_editor/methods.json is not served yet: the method cards appear when it is.</span>')); return; }
+    const t = el('table', { class: 'fieldtab methods-table' });
+    t.appendChild(el('thead', {}, el('tr', {}, el('th', { text: 'Method' }), el('th', { text: 'What it does' }), el('th', { text: 'Needs' }), el('th', { text: 'Produces' }), el('th', { text: 'Time' }), el('th', { text: 'Watch for' }), el('th', { text: 'Example' }))));
+    const tb = el('tbody');
+    const fmtMin = (s) => (s == null ? '?' : s >= 90 ? `${Math.round(s / 60)} min` : `${Math.round(s)} s`);
+    for (const x of list) {
+      const ex = el('td');
+      if (x.example && x.example.image) {
+        const url = '/' + String(x.example.image).replace(/^\.?\//, '');
+        const img = el('img', { src: url, alt: '', loading: 'lazy', title: 'click to zoom' });
+        img.addEventListener('click', () => StripPlayer.openImage(url, x.name));
+        img.addEventListener('error', () => img.replaceWith(el('span', { class: 'muted small', text: '(picture missing)' })));
+        ex.appendChild(img);
+      }
+      if (x.example && x.example.strip && x.example.strip.id) exampleStrip(ex, x.example.strip);
+      tb.appendChild(el('tr', {},
+        el('td', { class: 'name' }, el('div', { text: x.name || x.id }), el('div', { class: 'muted small', text: `${x.id} · ${(Array.isArray(x.kinds) ? x.kinds : [x.kind]).join(', ')}` })),
+        el('td', { class: 'help', text: x.summary || '' }),
+        el('td', { class: 'help', text: (x.needs || []).join(' · ') }),
+        el('td', { class: 'help', text: x.produces || '' }),
+        el('td', { class: 'def', text: x.time ? `~${fmtMin(x.time.median_s)} (worst ${fmtMin(x.time.worst_s)})` : '' }),
+        el('td', { class: 'help' }, el('ul', { style: 'margin:0; padding-left: 14px;' }, (x.weaknesses || []).map((w) => el('li', { text: w })))),
+        ex));
+    }
+    t.appendChild(tb);
+    box.appendChild(t);
+    if (m.timings_note) box.appendChild(p(`<span class="muted small">${m.timings_note}</span>`));
+    if (Array.isArray(m.deaths) && m.deaths.length) {
+      box.appendChild(el('h3', { text: 'The deaths a creature method can make' }));
+      const dt = el('table', { class: 'fieldtab' });
+      dt.appendChild(el('thead', {}, el('tr', {}, el('th', { text: 'death' }), el('th', { text: 'Name' }), el('th', { text: 'What happens' }), el('th', { text: 'Time' }))));
+      dt.appendChild(el('tbody', {}, m.deaths.map((d) => el('tr', {}, el('td', { class: 'key', text: d.value || '""' }), el('td', { class: 'name', text: d.name }), el('td', { class: 'help', text: d.text }), el('td', { class: 'def', text: d.seconds ? `~${d.seconds} s` : 'instant' })))));
+      box.appendChild(dt);
+    }
+    if (m.insert_3d_text) { box.appendChild(el('h3', { text: 'A 3D reference' })); box.appendChild(el('div', { class: 'insert3d', text: m.insert_3d_text })); }
+  }
+
+  /** A hover player of an example look in a table cell, when its record is reachable (App.S.enemies or /api/heroes). */
+  function exampleStrip(cell, st) {
+    const kind = st.kind === 'hero' ? 'hero' : 'enemy';
+    const done = (rec) => {
+      if (!rec || !cell.isConnected || typeof LookGrid === 'undefined') return;
+      const looks = rec.looks || rec.variants || [];
+      const look = (st.code ? looks.find((l) => l.code === st.code) : null) || looks.find((l) => l.base) || looks.find((l) => l.code === (rec.play || rec.variant)) || looks[0];
+      if (!look || !(look.anims || rec.anims)) return;
+      const pl = StripPlayer.create(LookGrid.playerOpts(kind, rec, look, { mode: 'hover', zoom: 0.5, anim: 'run', label: `${st.id} ${look.code}` }));
+      demo.push(pl);
+      cell.appendChild(el('div', { class: 'sp-demo' }, pl.el, el('span', { class: 'muted small', text: `${st.id} ${look.code}: hover` })));
+    };
+    if (kind === 'enemy') done((App.S.enemies || []).find((c) => c.id === st.id));
+    else fetch('/api/heroes', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : [])).then((list) => done(Array.isArray(list) ? list.find((h) => h.id === st.id) : null)).catch(() => {});
+  }
+
+  /** The reference roles and the proven wording each maps to (methods.json ref_wordings). */
+  function wordingsTable(box, m) {
+    clear(box);
+    const rows = m && Array.isArray(m.ref_wordings) ? m.ref_wordings : [];
+    if (!rows.length) return;
+    box.appendChild(el('h3', { text: 'Reference roles and the words they become' }));
+    box.appendChild(p(m.ref_note ? m.ref_note : 'There is no strength number: references steer by which pictures go in, in what order, and these words.'));
+    const t = el('table', { class: 'fieldtab' });
+    t.appendChild(el('thead', {}, el('tr', {}, el('th', { text: 'Role' }), el('th', { text: 'Follow' }), el('th', { text: 'The words sent (the picture\'s place in the list fills <n>)' }), el('th', { text: 'Source' }))));
+    t.appendChild(el('tbody', {}, rows.map((r) => el('tr', {}, el('td', { class: 'name', text: r.role || '' }), el('td', { text: r.level || '' }), el('td', { class: 'help', text: r.text || '' }), el('td', { class: 'def', text: r.source || '' })))));
+    box.appendChild(t);
+  }
+
+  /** Two live players under "Looks and previews": the first creature with painted looks the server describes. */
+  function demoPlayers(root) {
+    if (typeof StripPlayer === 'undefined' || typeof LookGrid === 'undefined') return;
+    const list = App.S.enemies || [];
+    const rec = list.find((c) => c.id === 'lesser_scorpion' && (c.looks || c.variants || []).some((l) => l.anims)) || list.find((c) => (c.looks || c.variants || []).some((l) => l.anims && l.ready !== false));
+    if (!rec) { root.appendChild(p('<span class="muted small">(the live example appears when the server describes the looks\' frames: pass 66\'s /api/enemies)</span>')); return; }
+    const looks = rec.looks || rec.variants || [];
+    const look = looks.find((l) => l.code === (rec.play || rec.variant) && l.ready !== false) || looks.find((l) => l.ready !== false) || looks[0];
+    if (!look) return;
+    const a = StripPlayer.create(LookGrid.playerOpts('enemy', rec, look, { mode: 'controls', zoom: 1, anim: 'run', label: `${rec.name} ${look.code}` }));
+    const b = StripPlayer.create(LookGrid.playerOpts('enemy', rec, look, { mode: 'hover', zoom: 0.5, anim: 'run', label: `${rec.name} ${look.code}` }));
+    demo.push(a, b);
+    root.appendChild(el('div', { class: 'sp-demo' }, a.el, el('div', {}, b.el, el('div', { class: 'muted small', text: 'a grid card: hover to play' }))));
+    root.appendChild(p(`<span class="muted small">${U.theName ? U.theName(rec.name) : rec.name} ${look.code}, as the Looks section shows it: the full player, and a card at half size.</span>`));
+  }
+
+  /** docs/assets_schema.md at the end, like the waves schema (GET /api/schema/assets). */
+  function schemaAssets(root) {
+    root.appendChild(el('h2', { text: 'The asset schema (docs/assets_schema.md)' }));
+    root.appendChild(p('The JSON keys of looks, heroes, items and created creatures, the look record, the jobs queue, the ledger and the locks, as the repository holds them.'));
+    const box = el('div', { class: 'schema-doc', html: assetsSchema ? markdown(assetsSchema) : assetsSchema === '' ? '<p class="muted">the server does not serve it yet (GET /api/schema/assets); the file is docs/assets_schema.md in the repo.</p>' : '<p class="muted">loading…</p>' });
+    root.appendChild(box);
+    if (assetsSchema === null) {
+      fetch('/api/schema/assets', { cache: 'no-store' }).then((r) => (r.ok ? r.text() : '')).catch(() => '').then((text) => {
+        assetsSchema = text || '';
+        if (box.isConnected) box.innerHTML = assetsSchema ? markdown(assetsSchema) : '<p class="muted">the server does not serve it yet (GET /api/schema/assets); the file is docs/assets_schema.md in the repo.</p>';
+      });
+    }
+  }
+
+  return { render, EXAMPLE, fieldTable, methodsTable };
 })();

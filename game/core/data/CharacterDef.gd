@@ -38,6 +38,13 @@ extends ContentDef
 @export var momentum: Dictionary = {}
 ## Quest id that unlocks this character; empty = unlocked from the start.
 @export var unlock_quest: String = ""
+## Pass 66 (the Level Editor's Heroes tab; Garry: "choose if they are hidden or available (or if they can be purchased
+## with currency_type - add this for now, but don't hook up any additional functionality)"): "hidden" | "available" |
+## "purchase". JsonContent folds anything but "available" into `hidden`, so a "purchase" hero stays out of play until the
+## loop is wired; `price` in `currency_type` ("gold") is written and shown nowhere yet (BALANCING §13).
+@export var availability: String = "available"
+@export var price: int = 0
+@export var currency_type: String = "gold"
 ## Kept but not playable (pass 33.4: Buck, Dad and Mira): out of play setup, the collection and the title screen; its
 ## art, perks and logic stay for later.
 @export var sprite: Texture2D
@@ -104,11 +111,22 @@ func look_code() -> String:
 	return variant_code if variant_code != "" else variant
 
 
-## The look codes in order (empty when he has one art).
-func variant_codes() -> Array:
-	var out: Array = variants.keys()
+## The look codes in order (empty when he has one art). A shelved look (`variants[CODE].shelved`, pass 66: the Level
+## Editor's shelve, a look kept but out of the way) is left out unless asked for, so the arena chips and the default
+## lists skip it; variant_def(code) still wears it when named (a kept look, a map row).
+func variant_codes(include_shelved := false) -> Array:
+	var out: Array = []
+	for code in variants.keys():
+		if include_shelved or not variant_shelved(str(code)):
+			out.append(code)
 	out.sort()
 	return out if out.size() > 1 else []
+
+
+## Whether a look is shelved (pass 66); false for a code he does not have.
+func variant_shelved(code: String) -> bool:
+	var e = variants.get(code)
+	return e is Dictionary and bool((e as Dictionary).get("shelved", false))
 
 
 ## A look's note from the JSON ("" when it has none).

@@ -37,6 +37,7 @@ favourite_bonus = {
 "type": "effects"
 }
 specials = ["motherlode"]
+availability = "hidden"
 sprite = ExtResource("4_w8apu")
 sprite_file = "mira_sprite.png"
 anims = {

@@ -1,0 +1,15 @@
+ComfyUI 0.33.0 on cuda:0 AMD Radeon AI PRO R9700 : native at http://192.168.137.54:8188 | model flux-2-klein-9b-fp8.safetensors
+1 items, anchor reference on, QA on
+  render skeleton_raider_front      seed 22338    19.4s  ok
+  render skeleton_raider_back       seed 22339    18.1s  retry: no-match,view=front
+  render skeleton_raider_back       seed 30258    18.7s  ok
+  clip skeleton_raider_walk_f   seed 22338     150s  period 31 start 16 dist -0.008  12 frames
+  clip skeleton_raider_walk_b   seed 22339     101s  period 26 start 21 dist -0.005  12 frames
+  render skeleton_raider_dead       seed 22347    18.2s  retry: no-match
+  render skeleton_raider_dead       seed 30266    17.9s  retry: no-match
+  render skeleton_raider_dead       seed 38185    18.5s  retry: cropped
+  (kept the best of 3 for skeleton_raider_dead: no-match)
+  flf  skeleton_raider_fall         seed 22347     114s  33 frames
+  fall skeleton_raider_fall         frames [0, 3, 6, 9, 12, 15, 18, 32] of 33 (at rest from 21)
+  sidecar written: D:/_projects/88fits/tools/dl/jobs/j20261011-154233-7f3a/result.json
+[ 1/ 1] enemies     skeleton_raider    ok   ( 344s elapsed)

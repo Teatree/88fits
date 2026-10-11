@@ -60,6 +60,7 @@ variants = {
 "icon": ExtResource("1_w8i1a"),
 "note": "blood red (hue 357)",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("3_lffj4"),
 "sprite_file": "red_goblin_sprite.png",
 "strip_cols": 43
@@ -84,6 +85,7 @@ variants = {
 "icon": ExtResource("5_t0gxy"),
 "note": "brick red (hue 14)",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("4_5157x"),
 "sprite_file": "red_goblin_sprite_b.png",
 "strip_cols": 43

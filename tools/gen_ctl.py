@@ -274,7 +274,8 @@ def main():
     front = views["front"]
     ddrv = recipe.get("death_drivers")
     ddir = os.path.join(REPO, "tools", "dl", "drivers", ddrv, "front") if ddrv else ""
-    if ddir and os.path.exists(os.path.join(ddir, "ctl_24.png")):
+    ddriven = bool(ddir and os.path.exists(os.path.join(ddir, "ctl_24.png")))
+    if ddriven:
         dmotion = ("A 2D anime game creature sprite, " + recipe["prompt"].split(",")[0] + ", dying exactly as the control video shows: "
                    + recipe.get("death_motion", "it rears up in a spasm, rolls over onto its back and lies dead with its legs curled up in the "
                                 "air, the pale underside of its body showing") + ". The same creature, colours and markings as the reference in "
@@ -316,11 +317,20 @@ def main():
     icon, _ = g.finish(front, 256, 0.9, False, None, 0.009)
     icon.save(os.path.join(folder, cid + "_icon_" + letter + ".png"))
     head = round(max(g.figure_top(f) for f in frames.get("idle", []) + frames.get("run", [])), 3)
-    cur = json.load(open(os.path.join(folder, cid + ".json"), encoding="utf-8"))
-    ent = cur.setdefault("variants", {}).setdefault(code, {})
-    ent.update({"sprite": fname, "icon": cid + "_icon_" + letter + ".png", "anims": counts, "strip_cols": cols, "head": head,
-                "fps": {"run": int(recipe.get("fps", 20)), "die": 12 if fall else 8}})
-    json.dump(cur, open(os.path.join(folder, cid + ".json"), "w", encoding="utf-8", newline="\n"), indent=2, ensure_ascii=False)
+    patch = {"sprite": fname, "icon": cid + "_icon_" + letter + ".png", "anims": counts, "strip_cols": cols, "head": head,
+             "fps": {"run": int(recipe.get("fps", 20)), "die": 12 if fall else 8}}
+    # pass 66: under a Level Editor job (ASSET_JOB_SIDECAR) the entry goes into the sidecar for the server to merge in
+    # place; a command line writes the JSON as before
+    if g.WRITE_JSON:
+        cur = json.load(open(os.path.join(folder, cid + ".json"), encoding="utf-8"))
+        ent = cur.setdefault("variants", {}).setdefault(code, {})
+        ent.update(patch)
+        json.dump(cur, open(os.path.join(folder, cid + ".json"), "w", encoding="utf-8", newline="\n"), indent=2, ensure_ascii=False)
+    else:
+        clip_kind = {v: "control" for v in walks}
+        clip_kind["die"] = "control" if ddriven else ("flf" if fall else "procedural")
+        g.emit_sidecar(folder, cid, code, patch, {"pipeline": "gen_ctl", "scale": sizes, "fall": bool(fall), "recipe_ran": recipe,
+                                                  "clip_kind": clip_kind, "qa_online": g.QA_ONLINE})
     log("gen_ctl: %s %s packed, %d frames, %s" % (cid, code, sum(counts.values()), fname))
 
 

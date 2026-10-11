@@ -88,6 +88,30 @@ def fit(rgba):
     return out
 
 
+def title_words(hid, d):
+    """The pose, what the hero holds, the camera and the extra reference: the hero JSON's `title_pose`, `title_holds`,
+    `title_camera`, `title_extra_ref {file, words}` first (pass 66: the Level Editor's hero form writes them), then the
+    tables above, then the badge's `portrait_prompt`. Returns (pose, holds, view, extra_ref (file, words) or None)."""
+    pose = str(d.get("title_pose") or POSES.get(hid) or d.get("portrait_prompt", "standing confidently"))
+    holds = str(d.get("title_holds") or HOLDS.get(hid, "no weapon"))
+    view = str(d.get("title_camera") or CAMERA.get(hid) or FACING.get(hid) or "facing the viewer, seen from the front at eye level")
+    extra = None
+    er = d.get("title_extra_ref")
+    if isinstance(er, dict) and er.get("file"):
+        extra = (str(er["file"]), str(er.get("words", "")))
+    elif hid in EXTRA_REFS:
+        extra = EXTRA_REFS[hid]
+    return pose, holds, view, extra
+
+
+def extra_ref_path(name):
+    """A reference picture: a path under the repo (the editor's uploads), else a render in tools/dl/."""
+    for p in (os.path.join(REPO, name), os.path.join(REPO, "tools", "dl", name), name):
+        if os.path.isfile(p):
+            return p
+    return os.path.join(REPO, "tools", "dl", name)
+
+
 def paint(hid, seeds, first):
     d = hero_json(hid)
     still = Image.open(os.path.join(RAW, hid + "_front.png"))
@@ -97,18 +121,17 @@ def paint(hid, seeds, first):
     ref = comfy.upload_pil(still.convert("RGB"), "title_ref_" + hid + ".png")
     refs = [ref]
     extra = ""
-    if hid in EXTRA_REFS:
-        name, words = EXTRA_REFS[hid]
-        im = Image.open(os.path.join(REPO, "tools", "dl", name)).convert("RGBA")
+    pose, holds, view, extra_ref = title_words(hid, d)
+    if extra_ref:
+        name, words = extra_ref
+        im = Image.open(extra_ref_path(name)).convert("RGBA")
         g = Image.new("RGBA", im.size, (0, 255, 0, 255) if bg == BG_GREEN else (0, 0, 255, 255))
         g.alpha_composite(im)
-        refs.append(comfy.upload_pil(g.convert("RGB"), "title_extra_" + name))
-        extra = words
-    pose = POSES.get(hid, str(d.get("portrait_prompt", "standing confidently")))
-    view = CAMERA.get(hid) or FACING.get(hid) or "facing the viewer, seen from the front at eye level"
+        refs.append(comfy.upload_pil(g.convert("RGB"), "title_extra_" + os.path.basename(name)))
+        extra = words + (" " if words and not words.endswith(" ") else "")
     prompt = ("A full-body character illustration of this exact character for a mobile game's hero select screen: " + pose +
               ", " + view + ", the whole figure visible from the top of the head down to the "
-              "feet with empty space around it, " + HOLDS.get(hid, "no weapon") + ". " + extra + "Keep the same face, outfit, colors and proportions as the reference. " +
+              "feet with empty space around it, " + holds + ". " + extra + "Keep the same face, outfit, colors and proportions as the reference. " +
               STYLE + ". " + bg + ".")
     os.makedirs(OUT, exist_ok=True)
     made = []
@@ -123,7 +146,13 @@ def paint(hid, seeds, first):
         log("  %s #%d seed %d  %.1fs" % (hid, n, seed, secs))
     json.dump({"prompt": prompt, "seeds": [first + n * 101 for n in range(seeds)], "ref": hid + "_front.png"},
               open(os.path.join(OUT, hid + ".json"), "w", encoding="utf-8"), indent=1)
-    review(hid, made)
+    sheet = review(hid, made)
+    # pass 66: a Level Editor job reads the candidates and the words that were sent from its sidecar
+    sidecar = os.environ.get("ASSET_JOB_SIDECAR", "")
+    if sidecar:
+        json.dump({"id": hid, "kind": "hero_title", "prompt": prompt, "review": sheet,
+                   "choices": [os.path.join(OUT, "%s_%d.png" % (hid, n)) for n in range(seeds)]},
+                  open(sidecar, "w", encoding="utf-8", newline="\n"), indent=1)
 
 
 def review(hid, cuts):
@@ -140,8 +169,10 @@ def review(hid, cuts):
         dr.rectangle([x - 2, pad - 2, x + BOX[0] + 1, pad + BOX[1] + 1], outline=(36, 27, 20), width=2)
         sheet.paste(c, (x, pad), c)
         dr.text((x + 8, pad + BOX[1] + 4), "#%d" % i, fill=(36, 27, 20), font=font)
-    sheet.save(os.path.join(OUT, "review_%s.png" % hid))
-    log("  review: " + os.path.join(OUT, "review_%s.png" % hid))
+    path = os.path.join(OUT, "review_%s.png" % hid)
+    sheet.save(path)
+    log("  review: " + path)
+    return path
 
 
 def pick(pairs):

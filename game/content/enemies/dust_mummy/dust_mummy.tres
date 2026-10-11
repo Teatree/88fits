@@ -69,6 +69,7 @@ variants = {
 "icon": ExtResource("1_ymoj1"),
 "note": "Pass 22: the first mummy (a Klein still, free Wan clips)",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("3_6byrc"),
 "sprite_file": "dust_mummy_sprite.png",
 "strip_cols": 40
@@ -93,6 +94,7 @@ variants = {
 "icon": ExtResource("5_u6ybv"),
 "note": "Tight old bandages, grey-sandy; walks on the zombie clip",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("4_hu06n"),
 "sprite_file": "dust_mummy_sprite_a.png",
 "strip_cols": 43
@@ -117,6 +119,7 @@ variants = {
 "icon": ExtResource("7_81le7"),
 "note": "Shredded, hanging strips everywhere; walks on the zombie clip",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("6_h761r"),
 "sprite_file": "dust_mummy_sprite_b.png",
 "strip_cols": 43
@@ -141,6 +144,7 @@ variants = {
 "icon": ExtResource("9_t70mo"),
 "note": "Bulky, wide-wrapped; the skeletons' arms-out shamble",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("8_5xacw"),
 "sprite_file": "dust_mummy_sprite_c.png",
 "strip_cols": 43
@@ -165,6 +169,7 @@ variants = {
 "icon": ExtResource("11_ta1fg"),
 "note": "Goofy stocky, loose strips; a free clip",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("10_wsjxp"),
 "sprite_file": "dust_mummy_sprite_d.png",
 "strip_cols": 43

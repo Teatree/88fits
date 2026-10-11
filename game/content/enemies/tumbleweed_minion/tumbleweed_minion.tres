@@ -67,6 +67,7 @@ variants = {
 "icon": ExtResource("1_7bp8e"),
 "note": "Pass 45: the brown cloth cap and the big stern face (kept to come back to)",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("3_1dmgc"),
 "sprite_file": "tumbleweed_minion_sprite.png",
 "strip_cols": 43
@@ -91,6 +92,7 @@ variants = {
 "icon": ExtResource("7_62bp6"),
 "note": "Red fez, a grumpy scowl",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("6_s358u"),
 "sprite_file": "tumbleweed_minion_sprite_a.png",
 "strip_cols": 43
@@ -115,6 +117,7 @@ variants = {
 "icon": ExtResource("9_1ec03"),
 "note": "Red fez, a sly fanged sneer with a face woven from twigs",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("8_2mn34"),
 "sprite_file": "tumbleweed_minion_sprite_b.png",
 "strip_cols": 43
@@ -139,6 +142,7 @@ variants = {
 "icon": ExtResource("1_gnkwv"),
 "note": "Red fez, a mean glare with gritted teeth",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("3_3vomk"),
 "sprite_file": "tumbleweed_minion_sprite_c.png",
 "strip_cols": 43
@@ -163,6 +167,7 @@ variants = {
 "icon": ExtResource("11_rsje4"),
 "note": "Red fez, a bored deadpan",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("10_kcb38"),
 "sprite_file": "tumbleweed_minion_sprite_d.png",
 "strip_cols": 43

@@ -67,6 +67,7 @@ variants = {
 "icon": ExtResource("5_54l0u"),
 "note": "the classic: glossy red-orange worker, curved black mandibles; a steady tripod walk",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("4_jckre"),
 "sprite_file": "fire_ant_sprite_a.png",
 "strip_cols": 43
@@ -97,6 +98,7 @@ variants = {
 "icon": ExtResource("7_42pfp"),
 "note": "a soldier: big square head, huge mandibles, ember cracks on its gaster; a heavier, slower gait",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("6_s1rl7"),
 "sprite_file": "fire_ant_sprite_b.png",
 "strip_cols": 91
@@ -127,6 +129,7 @@ variants = {
 "icon": ExtResource("1_ge3ms"),
 "note": "a slim fast worker: bright scarlet, long legs, a flame on the tip of its gaster; a quick scuttle",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("3_gwvye"),
 "sprite_file": "fire_ant_sprite_c.png",
 "strip_cols": 91
@@ -157,6 +160,7 @@ variants = {
 "icon": ExtResource("9_cnewe"),
 "note": "chunky: a big yellow-banded gaster, angry white eyes; a bouncy walk",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("8_g3pqb"),
 "sprite_file": "fire_ant_sprite_d.png",
 "strip_cols": 91

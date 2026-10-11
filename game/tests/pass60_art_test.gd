@@ -24,7 +24,8 @@ func _cell(path: String, cell: int, col: int) -> PackedByteArray:
 func test_werewolf_ww_d_resolves_with_its_own_strip() -> void:
 	var w: EnemyDef = Registry.enemy("werewolf")
 	assert_object(w).is_not_null()
-	assert_array(w.variant_codes()).contains(["WW-A", "WW-B", "WW-C", "WW-D"])
+	# pass 66: every look, shelved ones too (a shelved look is out of variant_codes() but still there)
+	assert_array(w.variant_codes(true)).contains(["WW-A", "WW-B", "WW-C", "WW-D"])
 	var d: EnemyDef = w.variant_def("WW-D")
 	# the played look is the def itself (variant_def returns self for the code in `variant`); any other code is a copy
 	if w.variant == "WW-D":
@@ -76,7 +77,8 @@ func test_ww_d_recipe_pins_the_front_and_a_driven_back() -> void:
 func test_solenne_sol_e_resolves_as_a_fifth_look() -> void:
 	var c: CharacterDef = Registry.character("solenne")
 	assert_object(c).is_not_null()
-	assert_array(c.variant_codes()).is_equal(["SOL-A", "SOL-B", "SOL-C", "SOL-D", "SOL-E"])
+	# pass 66: these five among her looks, not exactly these (Solenne gains looks in the Level Editor)
+	assert_array(c.variant_codes(true)).contains(["SOL-A", "SOL-B", "SOL-C", "SOL-D", "SOL-E"])
 	assert_str(c.variant).is_equal("SOL-B")   # Garry picks in the arena; B stays in play
 	var e: CharacterDef = c.variant_def("SOL-E")
 	assert_object(e).is_not_same(c)

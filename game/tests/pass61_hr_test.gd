@@ -240,9 +240,12 @@ func test_ironwoods_regen_delay_never_goes_under_half_a_second() -> void:
 
 func test_the_heroes_come_in_garrys_order() -> void:
 	var ids: Array = Registry.sorted_characters().map(func(c: CharacterDef) -> String: return c.id)
-	assert_array(ids).is_equal(HEROES)
+	# pass 66: the five are present with these orders, not "exactly these" (a hero made in the Level Editor may follow
+	# them; pass66_shape_test holds the order rule for whoever is in play)
+	assert_array(ids).contains(HEROES)
 	for i in HEROES.size():
 		assert_int(_hero(HEROES[i]).order).is_equal(i + 1)
+		assert_bool(_hero(HEROES[i]).hidden).is_false()
 
 
 func test_the_trait_words() -> void:

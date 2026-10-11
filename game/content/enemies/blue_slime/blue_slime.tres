@@ -67,6 +67,7 @@ variants = {
 "icon": ExtResource("1_gg7pv"),
 "note": "a round ball of blue jelly with angry eyebrows and a closed smirk (pass 45, option A); it hops (the painting squashes, stretches and leaves the ground), its face never moves",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("3_alkqh"),
 "sprite_file": "blue_slime_sprite_a.png",
 "strip_cols": 41
@@ -91,6 +92,7 @@ variants = {
 "icon": ExtResource("5_yl05r"),
 "note": "a tall drippy blue slime with beady eyes and a flat grumpy mouth (pass 45, option B); it hops (the painting squashes, stretches and leaves the ground), its face never moves",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("4_7bljb"),
 "sprite_file": "blue_slime_sprite_b.png",
 "strip_cols": 41
@@ -115,6 +117,7 @@ variants = {
 "icon": ExtResource("7_3oknf"),
 "note": "a rounded cube of blue gelatin with a skull floating inside and no mouth at all (pass 45, option C; in play since pass 46); it hops (the painting squashes, stretches and leaves the ground), its face never moves; its front painting looks down to the viewer's left, so front_faces is left",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("6_2u3m5"),
 "sprite_file": "blue_slime_sprite_c.png",
 "strip_cols": 41
@@ -139,6 +142,7 @@ variants = {
 "icon": ExtResource("9_gcfmk"),
 "note": "a blue slime in a tiny cowboy hat with fangs over a closed grin (pass 45, option D); it hops (the painting squashes, stretches and leaves the ground), its face never moves",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("8_my5k3"),
 "sprite_file": "blue_slime_sprite_d.png",
 "strip_cols": 41

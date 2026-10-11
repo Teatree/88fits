@@ -65,6 +65,7 @@ variants = {
 "icon": ExtResource("1_ku3jr"),
 "note": "Like the reference: a realistic dark beast",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("3_pw0tq"),
 "sprite_file": "werewolf_sprite_a.png",
 "strip_cols": 43
@@ -89,6 +90,7 @@ variants = {
 "icon": ExtResource("5_ktmbk"),
 "note": "Stylised: bigger head and hands, tufted fur",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("4_nolt5"),
 "sprite_file": "werewolf_sprite_b.png",
 "strip_cols": 43
@@ -113,6 +115,7 @@ variants = {
 "icon": ExtResource("7_3sfmv"),
 "note": "Very cartoony: round head, chunky claws, short legs",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("6_daa4o"),
 "sprite_file": "werewolf_sprite_c.png",
 "strip_cols": 43
@@ -137,6 +140,7 @@ variants = {
 "icon": ExtResource("1_nolt5"),
 "note": "WW-A's front with a back walk that matches it (pass 60): the same front painting, a back painted to the front's hunched wide stance, and the back walk driven on the Orc Walk like the front. WW-A's and WW-B's back walks were free clips: every driven try put the clawed feet on the clip's bottom edge, so the back view's stick figure is shrunk 12% (orc_walk_wolf_b88).",
 "shadow": {},
+"shelved": false,
 "sprite": ExtResource("3_ktmbk"),
 "sprite_file": "werewolf_sprite_d.png",
 "strip_cols": 43

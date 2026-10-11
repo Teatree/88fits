@@ -359,3 +359,65 @@ god mode off; dying in the arena puts you back on your feet at once (HERO's "Go 
 - Gem pickups ring higher on quick repeats (0.5 semitone a step for small and medium gems, 1.0 for large, within 0.3 s,
   at most 10 steps); the hero's hurt sound plays at most every 0.25 s.
 
+## 13. Pass 66: the Level Editor's assets (not balance: named so they are not surprises)
+
+13.1 **A new hero starts hidden.** The Heroes tab creates him with `hidden: true`, `availability: "hidden"`, `price 0`
+and `currency_type "gold"`. `availability` is "hidden", "available" or "purchase"; anything but "available" keeps him
+out of play (JsonContent folds it into `hidden`, so a "purchase" hero is a hidden hero until the loop is wired). `price`
+and `currency_type` are written and shown nowhere: the hero purchase loop is parked at Garry's word ("don't worry about
+it for now, just make a note of this question and next time I ask about this, just remind me").
+
+13.2 **A new line or passive item starts available**, at its template's weight (its rarity's usual) and rarity, and is
+offered as any other: no quest, no stage gate unless the template had one.
+
+13.3 **A new weapon starts hidden with its path templates.** The Items tab creates a weapon with three template path
+mutations (`<w>_element`, `<w>_volume`, `<w>_motion`; kinds element, volume, motion) and a template evolution
+(`<w>_evolved`, `evolves_into` set), all five `hidden: true` (`NEW_WEAPON_STARTS_HIDDEN` in server.py). The weapon may
+turn available only when each template mutation has `text` and at least one effect or param and the evolution has a
+`name`; the availability check lists what is missing. A hidden weapon's hidden templates are never offered and count
+for no test (pass26 and pass66_shape look at the weapons in play).
+
+13.4 **A shelved look stays a look.** `variants[CODE].shelved: true` takes a creature's or a hero's look out of the
+arena's chips and the editor's default lists (`variant_codes()`), but `variant_def(code)`, `Registry.enemy_with` and a
+wave row or a kept hero look naming it still play it. The look the game plays (`variant`) cannot be shelved. The
+arena's "Shelved looks: Show" lists them dimmed.
+
+13.5 **`<PREFIX>-0` is the strip as it was.** A creature that had no `variants` gets `variant_base: "<PREFIX>-0"` with
+the first look the editor adds ("the top-level strip, before the Level Editor's looks"); a hero's first base is
+`<PREFIX>-A`. PREFIX is the most common prefix of the existing codes, else `variant_base`'s, else the initials of the
+id's words (a one-word id its first three letters). The next suffix is the first free letter, then AA onwards.
+
+13.6 **One ComfyUI job and one Godot process at a time**, repo-wide: `tools/dl/locks/comfy.lock` and
+`tools/dl/locks/godot.lock` (mkdir locks with an owner.json; `tools/locks.py`, `tools/godot.sh`). The lanes'
+`tools/dl/p6X/godot.lock` retires. A lock whose owner is dead is reclaimed; one without an owner.json is only ever
+released by hand.
+
+13.7 **A placeholder strip keeps `strip_cols` 0.** The create flow copies no `anims`, `strip_cols`, `fps` or `head`
+from the template (the placeholder is one row); `gen_placeholders.gd -- only=<type>/<id>` fills just the new folder.
+
+13.8 **The count pins are shape rules.** `pass66_shape_test.gd` holds them and the editor checks the same rules on
+Save: every weapon in play has exactly one element, one volume and one motion mutation and an evolution naming it
+back; every line evolves and every evolved passive has a source; every hero in play has at least one perk and exactly
+one hero mutation on his favourite weapon (on his start weapon when his favourite is a passive); the title's heroes are
+the non-hidden ones by `order`, orders distinct; a crown is an Elite's alone and every plain Elite wears one; every
+creature has a `knockback` above 0, a `blood` and a `doc`; passive items take common to epic, never legendary;
+`Registry.problems` is empty; every roster row names a creature in play in a look it has; a hidden hero has no hero
+mutation in play. The old counts (113 mutations, 61 passives, 18 perks, exactly five heroes, exactly four crowns) are
+gone.
+
+13.9 **Any brain and attack-block combination is allowed.** One that no creature in play uses is marked "untested in
+play" on the Enemies tab, not refused.
+
+13.10 **"Locked" is a quest.** An item is locked when a quest's `unlocks.id` names it; the Items tab's availability op
+creates or removes `content/quests/unlock_<id>/` in the shape of `unlock_adrenaline.json`. The quest-locked share of the
+items in play (pass44_test: 0.33-0.56) is shown on the Items tab with a warning when a change would leave the band; the
+test stays as it is, pending Garry.
+
+13.11 **A fresh look plays at once.** A look that has just landed is `fresh: true` until Approve; it is selectable in
+the arena and by a wave row meanwhile. Approve only clears the review mark.
+
+13.12 **A created enemy has its own numbers.** `knockback` is written out as `EnemyDef.default_knockback(damage)`
+(`clamp(3.4 * sqrt(damage / 4), 2.5, 7.0)`), `blood` comes from the template and `doc` is asked for at creation, so
+"every creature has a knockback, a blood and a doc" holds for it. A removed look's PNGs and `.import` files move to
+`tools/level_editor/backups/deleted/<id>/<stamp>/`, never deleted outright; Delete of a created id is allowed only for
+ids in the local ledger `tools/dl/jobs/created.json`.

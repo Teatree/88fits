@@ -1,0 +1,2 @@
+# the recorded logs the Level Editor selftest parses (pass 66, lane J): the global gitignore drops *.log, these are tracked
+!*.log

@@ -2,7 +2,9 @@
 // shares (model.js holds the formulas), selection, Save / Revert / Export and the keyboard. The tabs (timeline.js,
 // inspector.js, settings.js, creatures.js, instructions.js) read App.S and call back into App. Pass 58: a row's numbers
 // from its start (creatureAt's t0, rowNumbers), the Actual lanes' series, the estimate refreshed during a drag, and the
-// size and colour ranges checked before a save.
+// size and colour ranges checked before a save. Pass 66: the asset tabs (Enemies' editor, Heroes, Items, Jobs) keep their
+// own documents in assets.js; Save / Undo / Redo / Revert, the top bar and beforeunload ask Assets.owns(S.tab) and
+// Assets.hasDoc(S.tab) first and act on the open document, else on the map as before.
 'use strict';
 
 const App = (() => {
@@ -408,7 +410,12 @@ const App = (() => {
     render(what || 'all');
   }
 
+  // pass 66: on an asset tab with an open document, Save / Undo / Redo / Revert and the top bar are that document's
+  // (Assets.owns / Assets.hasDoc); with none open they stay the map's, as before
+  function assetDoc() { return assetsTab() && Assets.hasDoc(S.tab); }
+
   function undo() {
+    if (assetDoc()) { Assets.undo(S.tab); return; }
     if (!S.history.length) { status('Nothing to undo'); return; }
     S.future.push(snapshot());
     restore(S.history.pop());
@@ -416,6 +423,7 @@ const App = (() => {
   }
 
   function redo() {
+    if (assetDoc()) { Assets.redo(S.tab); return; }
     if (!S.future.length) { status('Nothing to redo'); return; }
     S.history.push(snapshot());
     restore(S.future.pop());
@@ -737,6 +745,7 @@ const App = (() => {
   }
 
   async function save() {
+    if (assetDoc()) { await Assets.save(S.tab); return; }
     if (!S.map || S.saving) return;
     const issues = validate();
     if (issues.errors.length) {
@@ -765,6 +774,7 @@ const App = (() => {
   }
 
   function revert() {
+    if (assetDoc()) { Assets.revert(S.tab); return; }
     if (!S.map || !dirty()) { status('Nothing to revert'); return; }
     const before = snapshot();
     S.map = JSON.parse(S.saved);
@@ -785,9 +795,14 @@ const App = (() => {
 
   // ------------------------------------------------------------------ rendering
 
+  // pass 66: the asset tabs (Heroes, Items, Jobs; `Assets.owns`) draw without a map and keep their own documents
+  function assetsTab(tab) {
+    return typeof Assets !== 'undefined' && Assets.owns(tab || S.tab);
+  }
+
   function render(what) {
-    if (!S.map) return;
-    validate();
+    if (!S.map && !assetsTab()) return;
+    if (S.map) validate();
     const w = what || 'all';
     if (w === 'none') { updateTopBar(); return; }
     if (S.tab === 'timeline') {
@@ -798,19 +813,44 @@ const App = (() => {
       if (S.tab === 'settings') Settings.render(panel);
       else if (S.tab === 'creatures') Creatures.render(panel);
       else if (S.tab === 'instructions') Instructions.render(panel);
+      else if (assetsTab()) Assets.render(S.tab, panel);
     }
     updateTopBar();
   }
 
   function updateTopBar() {
-    const d = dirty();
+    const mapName = document.getElementById('map-name');
     const saveBtn = document.getElementById('btn-save');
+    if (assetDoc()) {
+      // pass 66: the open asset document's state; the map keeps its own unsaved mark on its name
+      const doc = Assets.active(S.tab);
+      const ad = Assets.docDirty(doc);
+      const aiss = Assets.issuesOf(doc);
+      saveBtn.disabled = !ad || doc.saving;
+      saveBtn.textContent = doc.saving ? 'Saving…' : 'Save asset';
+      saveBtn.title = aiss.errors.length ? `${aiss.errors.length} error(s) block the save of ${doc.id}` : `Write ${doc.id}.json and import it (Ctrl+S)`;
+      saveBtn.classList.toggle('blocked', ad && aiss.errors.length > 0);
+      document.getElementById('btn-revert').disabled = !ad;
+      document.getElementById('dirty-dot').hidden = !ad;
+      document.getElementById('dirty-dot').title = `unsaved changes to ${doc.id}`;
+      document.getElementById('btn-undo').disabled = !doc.history.length;
+      document.getElementById('btn-redo').disabled = !doc.future.length;
+      if (mapName) { mapName.classList.toggle('map-dirty', dirty()); mapName.title = dirty() ? 'the map has unsaved changes (back on the Timeline or Settings tab to save it)' : ''; }
+      const aissEl = document.getElementById('issues');
+      const ane = aiss.errors.length, anw = aiss.warnings.length;
+      aissEl.textContent = ane || anw ? `${doc.id}: ${ane ? ane + ' error' + (ane > 1 ? 's' : '') : ''}${ane && anw ? ' · ' : ''}${anw ? anw + ' warning' + (anw > 1 ? 's' : '') : ''}` : `${doc.id}: no issues`;
+      aissEl.className = 'issues ' + (ane ? 'bad' : anw ? 'warn' : 'good');
+      return;
+    }
+    if (mapName) { mapName.classList.remove('map-dirty'); mapName.title = ''; }
+    const d = dirty();
     saveBtn.disabled = !d || S.saving;
     saveBtn.textContent = S.saving ? 'Saving…' : 'Save';
     saveBtn.title = S.issues.errors.length ? `${S.issues.errors.length} error(s) block the save` : 'Write the JSON and import it (Ctrl+S)';
     saveBtn.classList.toggle('blocked', d && S.issues.errors.length > 0);
     document.getElementById('btn-revert').disabled = !d;
     document.getElementById('dirty-dot').hidden = !d;
+    document.getElementById('dirty-dot').title = 'unsaved changes';
     document.getElementById('btn-undo').disabled = !S.history.length;
     document.getElementById('btn-redo').disabled = !S.future.length;
     const iss = document.getElementById('issues');
@@ -874,7 +914,7 @@ const App = (() => {
       });
       lv.addEventListener('keydown', (e) => { if (e.key === 'Enter') lv.blur(); });
     }
-    window.addEventListener('beforeunload', (e) => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } });
+    window.addEventListener('beforeunload', (e) => { if (dirty() || (typeof Assets !== 'undefined' && Assets.anyDirty())) { e.preventDefault(); e.returnValue = ''; } });
   }
 
   // only the buttons that carry data-tab: the zoom buttons share the nav (a click on "+" once switched to no tab at all)

@@ -98,6 +98,7 @@ variants = {
 "scale": [1.45, 1.7],
 "up": 0.55
 },
+"shelved": false,
 "sprite": ExtResource("3_c1rqv"),
 "sprite_file": "dune_scorpion_sprite.png",
 "strip_cols": 71
@@ -132,6 +133,7 @@ variants = {
 "scale": [1.45, 1.7],
 "up": 0.55
 },
+"shelved": false,
 "sprite": ExtResource("4_yqvg8"),
 "sprite_file": "dune_scorpion_sprite_a.png",
 "strip_cols": 71
@@ -166,6 +168,7 @@ variants = {
 "scale": [1.45, 1.7],
 "up": 0.55
 },
+"shelved": false,
 "sprite": ExtResource("6_karly"),
 "sprite_file": "dune_scorpion_sprite_b.png",
 "strip_cols": 71
@@ -200,6 +203,7 @@ variants = {
 "scale": [1.45, 1.7],
 "up": 0.55
 },
+"shelved": false,
 "sprite": ExtResource("8_yx46t"),
 "sprite_file": "dune_scorpion_sprite_c.png",
 "strip_cols": 71
@@ -234,6 +238,7 @@ variants = {
 "scale": [1.45, 1.7],
 "up": 0.55
 },
+"shelved": false,
 "sprite": ExtResource("10_dv5e0"),
 "sprite_file": "dune_scorpion_sprite_d.png",
 "strip_cols": 71

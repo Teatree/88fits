@@ -1,0 +1,821 @@
+'use strict';
+// Pass 66 (lane P): the field tables and rules of the asset editors (enemy / elite / boss, hero, weapon, evolution,
+// line / passive item, mutation), in fields.js's row vocabulary (key, label, type, help, def, min, max, step, int, options,
+// required) plus `section` (the fold a row sits in), `only(doc, ctx)` (shown when true), functional `options(vocab)`,
+// `ph(doc, ctx)` (a placeholder computed from the document), `group` (the sound ids' prefix), `kind` (an id_select's
+// kind), `target` / `stats` (a stat_effects list's fixed target and stat set). New types: slug, readonly, textarea,
+// stat_effects, level_steps, anims, fps_table, sfx, params_json, json, id_select, driver, checklist, tags,
+// pickup_weights, enemy, attacks, look_grid, icon_preview, path_strip, quest_lock, band, trait_preview, shadow_scale.
+// DOM-free: selftest_P.py loads it under Node (module.exports). The vocabularies carry defaults so the forms render
+// without the server; `GET /api/vocab` (lane S) is merged over them. Every list is listable, not extendable: a new brain,
+// attack, behaviour or stat needs code (the page says "ask Claude").
+const AFIELDS = (() => {
+  const M = (typeof AssetsModel !== 'undefined') ? AssetsModel : require('./assets_model.js');
+  const isObj = M.isObj, num = M.num;
+  const opt = (v, label, help) => ({ v, label: label == null ? v : label, help: help || '' });
+
+  // ------------------------------------------------------------------ vocabularies (defaults; /api/vocab wins where it answers)
+
+  const VOCAB = {
+    brains: [opt('chase', 'chase', 'walks at the hero'), opt('flock', 'flock', 'walks at the hero, keeps with its pack'), opt('kite', 'kite', 'keeps its distance and shoots (the ranged block)'),
+      opt('charge', 'charge', 'winds up and rushes (the charge block)'), opt('kamikaze', 'kamikaze', 'runs in and blows up (the kamikaze block)'), opt('artillery', 'artillery', 'stands off and fires rockets (the artillery block)'),
+      opt('boss', 'boss', 'runs the attack script (the boss block)'), opt('dummy', 'dummy', 'the arena dummies: stands still'), opt('ambush', 'ambush', 'hides in the sand until the hero is near (the ambush block, ranged for its silk)'),
+      opt('caster', 'caster', 'keeps away and casts from the attack script (caster + boss blocks)'), opt('support', 'support', 'heals and frenzies the crowd round it (the support block)')],
+    archetypes: [opt('walker', 'walker', 'a label'), opt('swarmer', 'swarmer', 'a label'), opt('spitter', 'spitter', 'a label'), opt('brute', 'brute', 'a label'), opt('tank', 'tank', 'a label'), opt('runner', 'runner', 'a label'),
+      opt('elite', 'elite (mini-boss)', 'its HP follows elite.hp_mult_per_stage, a crown, a chest every time, never stunned or grabbed'), opt('boss', 'boss', 'the stage boss: boss.hp_mult_per_stage, the bar, the skull, the purse')],
+    telegraphs: [opt('none'), opt('line', 'line', 'a red line ahead'), opt('ring', 'ring', 'a ring round the creature'), opt('ring_at_hero', 'ring at the hero', 'a ring where the hero stands (slam_at, burrow and boulder need it)'),
+      opt('sector', 'sector', 'a wedge ahead'), opt('fan', 'fan', 'several lines over a spread'), opt('spokes', 'spokes', 'lines all round')],
+    shotKinds: [opt('', 'spit (the default)'), opt('pellet'), opt('spike'), opt('shard'), opt('harpoon', 'harpoon', 'set by `harpoon: true` in the game')],
+    badges: [opt('', 'none (the default)'), opt('crown', 'crown', 'shown for the elite archetype only'), opt('skull'), opt('gear'), opt('none', 'none (explicit)')],
+    faces: [opt('right', 'right', 'painted heading screen-right, mirrored heading left (the default)'), opt('left', 'left', 'painted heading left: the mirror is inverted'), opt('straight', 'straight', 'never mirrored')],
+    pronouns: [opt('he'), opt('she'), opt('they')],
+    specials: [opt('cannot_stop', 'cannot stop', 'Player.gd: he never stands still'), opt('momentum', 'momentum', 'speed and attack damage climb while he is not hit (the momentum block)'),
+      opt('auto_magnet', 'auto magnet', 'gems come to him on their own'), opt('motherlode', 'motherlode', 'x1.5 gold from the Strongbox and extraction')],
+    availability: [opt('available', 'available', 'playable from the title'), opt('hidden', 'hidden', 'out of play'), opt('purchase', 'purchase', 'to be bought: written and shown, not wired yet; stays hidden in play')],
+    currencies: [opt('gold')],
+    rarities: [opt('common'), opt('uncommon'), opt('rare'), opt('epic'), opt('legendary', 'legendary', 'no item uses it; the tests pin four rarities among passive items')],
+    rarityPlate: { common: '#d2cfc7', uncommon: '#8cc97a', rare: '#6b9fd8', epic: '#a585c8', legendary: '#e0a060' },
+    behaviors: ['Beam', 'ConeWave', 'GravityGun', 'LaserBeam', 'Lobber', 'MineLayer', 'MissilePod', 'Orbiter', 'ProjectileEmitter', 'Smasher', 'Spawner', 'SunScepter', 'Thruster'].map((b) => opt(b)),
+    targeting: [opt('nearest'), opt('priority', 'priority', 'the strongest enemy nearby'), opt('densest'), opt('densest_healthy', 'densest healthy', 'the Molotov and Skull Rain: the densest crowd of healthy enemies'), opt('orbit'), opt('random'), opt('healthy'), opt('forward'), opt('ground')],
+    mutationKinds: [opt('element'), opt('volume'), opt('motion'), opt('stance', 'stance', 'no mutation uses it yet'), opt('hero', 'hero', 'one hero\'s own: needs `hero`')],
+    elements: [opt('', 'none'), opt('fire'), opt('poison')],
+    ops: [opt('add', 'add', 'base + value'), opt('mul', 'mul', 'x (1 + value): 0.25 is +25%'), opt('set', 'set', 'replaces the base')],
+    targets: [opt('self', 'self', 'the item\'s own sheet'), opt('player', 'player', 'the hero\'s sheet'), opt('all_weapons', 'all weapons'), opt('weapon:', 'weapon:<id>', 'one weapon by id'), opt('tag:', 'tag:<tag>', 'every weapon with the tag')],
+    questTypes: [opt('kills_with_weapon', 'kills with a weapon', '{weapon, count} across runs'), opt('kills_of_enemy', 'kills of a creature', '{enemy, count} across runs'), opt('open_chests', 'chests opened', '{count}'),
+      opt('evolve_any', 'any evolution', '{count}'), opt('reach_level', 'reach a level', '{level} in one run'), opt('survive_minutes', 'survive minutes', '{minutes} in one run'),
+      opt('survive_minutes_no_lift', 'survive minutes without a lift', '{minutes}'), opt('kills_in_run_of_enemy', 'kills of a creature in one run', '{enemy, count}'), opt('extract_after_stage', 'extract after a stage', '{map, stage}'),
+      opt('kill_boss', 'kill a boss', '{map, stage}'), opt('kills_total', 'kills in all', '{count}'), opt('runs_total', 'runs in all', '{count}'), opt('pickups_total', 'power-ups in all', '{count}'), opt('gold_total', 'gold in all', '{count}'), opt('reach_stage', 'reach a stage', '{stage}')],
+    screens: [opt('', 'by the placeholder colour'), opt('green'), opt('blue')],
+    favouriteBonus: [opt('level', 'arrives at a level', '{value}'), opt('effects', 'arrives with effects', '{effects}')],
+    passiveBonus: [opt('max', 'arrives maxed'), opt('level', 'arrives at a level', '{value}'), opt('effects', 'arrives with effects', '{effects}')],
+    deaths: [opt('', 'tilt (free fall clip)'), opt('clip', 'clip', 'a painted dead still and a first-last-frame fall'), opt('squash'), opt('collapse', 'collapse', 'dead_hint must describe a heap'), opt('pose:death_back', 'pose: death_back'), opt('pose:death_back_goblin', 'pose: death_back_goblin')],
+    walks: [opt('', 'a video clip'), opt('hop', 'hop', 'procedural: no video')],
+    stands: [opt('', 'as the driver stands'), opt('still', 'still', 'the painting\'s pose differs from the driver')],
+    placeholderShapes: [opt('', 'round'), opt('wide'), opt('tall'), opt('round')],
+    blinkTo: [opt('', 'a step away'), opt('screen', 'screen', 'the caster\'s keep / side distance')],
+    directions: [opt(2, '2 (front and back)'), opt(8, '8 (side and diagonals too)')],
+    sounds: null,     // ids from /api/vocab (soundmap.json); null = unknown here
+    pickups: null,
+    elites: null,
+    combos_seen: null,
+  };
+
+  // the player stats (StatSheet.PLAYER_DEFAULTS + the four the systems read) and the weapon stats, with TextGen's names
+  const playerStats = () => Object.keys(M.PLAYER_DEFAULTS).concat(M.PLAYER_EXTRA);
+  const weaponStats = () => Object.keys(M.WEAPON_DEFAULTS).concat(M.WEAPON_EXTRA);
+  function statOptions(which, vocab) {
+    const extra = vocab && vocab.stats ? Object.keys(vocab.stats) : [];
+    const ids = which === 'weapon' ? weaponStats() : which === 'player' ? playerStats() : playerStats().concat(weaponStats());
+    const all = Array.from(new Set(ids.concat(which === 'weapon' ? [] : extra)));
+    return all.map((s) => ({ v: s, label: M.statName(s, vocab), sub: `${s} · ${M.statKind(s, vocab)}`, help: `${s}: ${M.statKind(s, vocab)}` }));
+  }
+  const statKnown = (s, which, vocab) => {
+    const vp = vocab && Array.isArray(vocab.player_stats) ? vocab.player_stats.map((x) => (typeof x === 'string' ? x : x.v || x.id)) : null;
+    const vw = vocab && Array.isArray(vocab.weapon_stats) ? vocab.weapon_stats.map((x) => (typeof x === 'string' ? x : x.v || x.id)) : null;
+    const isW = weaponStats().includes(s) || (vw && vw.includes(s));
+    const isP = playerStats().includes(s) || (vp && vp.includes(s)) || (vocab && vocab.stats && !Array.isArray(vocab.stats) && !!vocab.stats[s]);
+    if (which === 'weapon') return isW;
+    if (which === 'player') return isP;
+    return isP || isW;
+  };
+  /** the stat set an effect is checked against: a target that reaches weapons (all_weapons, weapon:<id>, tag:<tag>) takes
+   *  the weapon stats whatever list it sits in (Kindling's fire_damage to all weapons); target player the player's */
+  const statSetFor = (e, which) => {
+    const t = String((e && e.target) || '');
+    if (t === 'all_weapons' || t.startsWith('weapon:') || t.startsWith('tag:')) return 'weapon';
+    if (t === 'player') return which === 'weapon' ? 'any' : 'player';
+    return which;
+  };
+
+  // weapon defaults a base stat box shows as its placeholder (WeaponInstance.gd:106-107)
+  const BASE_DEFAULTS = Object.assign({}, M.WEAPON_DEFAULTS, { fire_damage: 0, fire_duration: 0, fire_spread: 0, poison_damage: 0, poison_stacks: 0, poison_duration: 0 });
+  const BASE_KEYS = ['damage', 'cooldown', 'amount', 'pierce', 'area', 'speed', 'duration', 'knockback', 'chains', 'range', 'spread_deg', 'orbit_radius', 'lifetime', 'fire_damage', 'fire_duration', 'fire_spread', 'poison_damage', 'poison_stacks', 'poison_duration'];
+
+  // the params keys each behaviour reads (verified by grep over game/core/behaviors/*.gd and the systems: the UX draft §2.4)
+  const PARAMS_KEYS = {
+    Beam: ['echo_zap', 'follow', 'zone'],
+    ConeWave: ['cone', 'familiar', 'tinnitus'],
+    GravityGun: ['familiar', 'gravity'],
+    LaserBeam: ['beam', 'familiar'],
+    Lobber: ['death_of', 'death_pool', 'halo', 'land_blast', 'model', 'model_metallic', 'model_roughness', 'model_scale', 'sticky', 'tint', 'bounce', 'bomblets', 'bomblet_damage_mult', 'burst_spawn'],
+    MineLayer: ['extra_supply', 'jackrabbit', 'lay_ahead', 'max_mines', 'trigger_radius', 'spring'],
+    MissilePod: ['cluster_spin', 'familiar', 'hawk', 'missile', 'overpressure', 'pollen', 'pressure', 'cluster', 'blast_fx'],
+    Orbiter: ['breathe', 'gyro', 'lasso', 'rust', 'rust_patina', 'side_knock', 'solid_ring', 'spin_speed', 'strike'],
+    ProjectileEmitter: ['aura', 'burst', 'burst_gap', 'double_every', 'double_gap', 'double_tap', 'drum_axis', 'drum_scale', 'drum_step', 'familiar', 'fan_step_deg', 'fire_blind', 'hip_shot', 'look', 'momentum_rounds', 'no_shells', 'radius', 'radius_mult', 'shockwave', 'silver', 'speed_mult', 'sweep_deg', 'scatter_deg', 'tint', 'blast'],
+    Smasher: ['giant_slayer', 'smash', 'thor'],
+    Spawner: ['max_turrets', 'max_turrets_mult', 'turret', 'turret_fire_rate', 'magnet', 'tracer', 'focus'],
+    SunScepter: ['familiar', 'gold_dust', 'handle_ring', 'shine', 'staff_tint', 'sun', 'zenith'],
+    Thruster: ['crit_refund', 'crit_stroke', 'razor', 'riposte', 'stunned_mult', 'thrust', 'trail_color'],
+  };
+  // keys WeaponInstance and the systems (ProjectileManager, Game, EnergyTraces, Mine) read for any behaviour
+  const PARAMS_SHARED = ['final', 'glow', 'familiar', 'look', 'ricochet_any', 'mini_crit', 'fire_blue', 'ignite_chance', 'zenith', 'sticky', 'size_mult', 'silver', 'pollen', 'plant', 'pin', 'pierce_falloff', 'out_speed_mult', 'back_speed_mult',
+    'return_damage_mult', 'return', 'second_pass', 'hip_shot', 'double_every', 'cone', 'burst_spawn', 'bounce', 'bomblets', 'bomblet_damage_mult', 'aura', 'wander', 'turn', 'trail', 'tracer', 'tracer_step', 'tracer_size',
+    'tracer_life', 'tracer_beads', 'tracer_alpha', 'trace', 'tint', 'thrust', 'telegraph', 'tail_fade', 'sun', 'split_scale', 'split_count', 'spiral', 'spent', 'cloud_mult', 'cloud_seconds', 'curare', 'hit_radius',
+    'roll_radius', 'no_spin', 'trail_zone', 'life', 'gold_on_kill', 'speed_mult', 'radius_mult'];
+  function paramsKnown(key, behavior) {
+    return PARAMS_SHARED.includes(key) || (PARAMS_KEYS[behavior] || []).includes(key);
+  }
+
+  // ------------------------------------------------------------------ the brain blocks (EnemyManager.gd:2858-3365; defaults as placeholders)
+
+  const BLOCKS = {
+    ranged: { label: 'Ranged', help: 'read by kite, by ambush (its silk) and by the ranged arena dummy: keeps its distance and shoots', rows: [
+      { key: 'keep_distance', label: 'Keep distance (m)', type: 'number', min: 0, def: 5, help: 'backs off when the hero is nearer than this − 0.5' },
+      { key: 'range', label: 'Range (m)', type: 'number', min: 0, def: 8, help: 'shoots when the hero is within it (ambush 9, the cone sector 5)' },
+      { key: 'telegraph', label: 'Wind-up (s)', type: 'number', min: 0, step: 0.05, def: 0.6, help: 'seconds the shot is announced (x 1/pace)' },
+      { key: 'cooldown', label: 'Cooldown (s)', type: 'number', min: 0.1, step: 0.1, def: 2.5, help: 'seconds between shots' },
+      { key: 'straight', label: 'Straight shot', type: 'bool', def: false, help: 'a straight shot instead of a lobbed spit' },
+      { key: 'cone_deg', label: 'Cone (°)', type: 'number', min: 0, def: 50, help: 'with count: a pellet cone over this many degrees, a sector telegraph' },
+      { key: 'count', label: 'Pellets', type: 'int', min: 1, def: 5, help: 'pellets in the cone (its presence makes the cone)' },
+      { key: 'projectile_speed', label: 'Shot speed', type: 'number', min: 0, help: 'm/s: cone 16, straight 12, lob 6 when empty' },
+      { key: 'splash', label: 'Splash (m)', type: 'number', min: 0, help: 'hit area: cone 0.45, straight 0.8, lob 1.2 when empty; the lob\'s landing ring is this radius' },
+      { key: 'life', label: 'Shot life (s)', type: 'number', min: 0, help: 'cone 0.45, straight 1.4 when empty' },
+      { key: 'shot', label: 'Shot look', type: 'select', options: (v) => v.shotKinds, def: '', help: 'pellet / spike / shard; anything else is the green spit' },
+      { key: 'knockback', label: 'Shot knockback', type: 'number', min: 0, def: 0, help: '0 = 0.7 x the shooter\'s own bite knockback' },
+      { key: 'pull', label: 'Pulls the hero', type: 'bool', def: false, help: 'the silk line pulls the hero toward the shooter' },
+      { key: 'harpoon', label: 'Harpoon', type: 'bool', def: false, help: 'the harpoon kind: tethers the hero (the tether block)' },
+      { key: 'tether', label: 'Tether', type: 'json', help: '{seconds 5, away_speed 0.7, min_length 1.8}' },
+      { key: 'lead', label: 'Leads the hero', type: 'bool', def: false, help: 'aims where the hero will be' },
+      { key: 'land_only', label: 'Hurts on landing only', type: 'bool', def: false, help: 'an arcing spit hurts where it lands and draws a red landing ring' },
+      { key: 'trail', label: 'Trail', type: 'json', help: '{color "#62F27F", alpha, size 1.0, life 1.4, step 0.055}: read from the base creature, never from a row override' },
+      { key: 'pulse', label: 'Pulse', type: 'json', help: '{hz 3, size 0.12, glow 0.3, halo 1.6, color "#9CFF6E"}' },
+    ] },
+    charge: { label: 'Charge', help: 'the charge brain: winds up, rushes at charge speed, bites x1.5', rows: [
+      { key: 'windup', label: 'Wind-up (s)', type: 'number', min: 0, step: 0.05, def: 0.8, help: 'x 1/pace; a line telegraph of the distance + 4 m' },
+      { key: 'speed', label: 'Speed (m/s)', type: 'number', min: 0, def: 9, help: 'x pace' },
+      { key: 'duration', label: 'Duration (s)', type: 'number', min: 0, step: 0.05, def: 0.7 },
+      { key: 'cooldown', label: 'Cooldown (s)', type: 'number', min: 0, step: 0.1, def: 4 },
+      { key: 'trigger_range', label: 'Trigger range (m)', type: 'number', min: 0, def: 6, help: 'starts the wind-up when the hero is this near' },
+      { key: 'knockback', label: 'Charge knockback', type: 'number', min: 0, def: 0, help: 'the shove of a connecting charge bite' },
+      { key: 'shake', label: 'Shake', type: 'number', min: 0, def: 0, help: 'look: trembles while winding up' },
+      { key: 'crouch', label: 'Crouch', type: 'number', min: 0, max: 0.5, step: 0.05, def: 0, help: 'look: squats this much of its height (0..0.5)' },
+      { key: 'legs', label: 'Leg beats', type: 'number', min: 1, def: 1, help: 'look: how fast the legs beat in the rush' },
+      { key: 'lean', label: 'Lean (°)', type: 'number', min: -30, max: 30, def: 0, help: 'look: leans into the rush' },
+      { key: 'dust', label: 'Dust', type: 'number', min: 0, def: 0, help: 'look: dust behind it' },
+      { key: 'shove', label: 'Shove', type: 'number', min: 0, def: 0, help: 'look: pushes the crowd aside in the rush' },
+      { key: 'shove_walk', label: 'Shove walking', type: 'number', min: 0, def: 0 },
+    ] },
+    kamikaze: { label: 'Kamikaze', help: 'the kamikaze brain: runs in, winds up and blows up (Game.elite_explosion, the crowd takes 20%)', rows: [
+      { key: 'trigger', label: 'Trigger (m)', type: 'number', min: 0, def: 1.1, help: '+ size x 0.4' },
+      { key: 'windup', label: 'Wind-up (s)', type: 'number', min: 0, step: 0.05, def: 0.35 },
+      { key: 'radius', label: 'Blast radius (m)', type: 'number', min: 0, def: 2.6 },
+      { key: 'damage', label: 'Blast damage', type: 'number', min: 0, def: 26, help: 'x stage x level x host' },
+      { key: 'knockback', label: 'Blast knockback', type: 'number', min: 0, def: 9 },
+    ] },
+    artillery: { label: 'Artillery', help: 'the artillery brain: placed stand_off away, one rocket at a time', rows: [
+      { key: 'stand_off', label: 'Stand-off (m)', type: 'number', min: 0, def: 28, help: 'where it is placed at spawn' },
+      { key: 'windup', label: 'Wind-up (s)', type: 'number', min: 0, step: 0.05, def: 1.4, help: 'a 5 m line telegraph' },
+      { key: 'reload', label: 'Reload (s)', type: 'number', min: 0, step: 0.1, def: 2.5 },
+      { key: 'muzzle', label: 'Muzzle', type: 'json', help: '{up, side, forward} in metres at the def\'s size' },
+      { key: 'missile', label: 'Missile', type: 'json', help: '{speed 4, turn 1.3, damage 22, area 1.6, speed_of_hero 0}' },
+    ] },
+    caster: { label: 'Caster', help: 'the caster brain: keeps away, sidesteps, casts its tricks from the attack script', rows: [
+      { key: 'keep_distance', label: 'Keep distance (m)', type: 'number', min: 0, def: 7 },
+      { key: 'side', label: 'Sidestep (m)', type: 'number', min: 0, def: 4.5 },
+      { key: 'attack_range', label: 'Attack range (m)', type: 'number', min: 0, help: 'the script waits while the hero is beyond it' },
+    ] },
+    support: { label: 'Support', help: 'the support brain: heals and frenzies the crowd round it (x1.3 speed)', rows: [
+      { key: 'keep_distance', label: 'Keep distance (m)', type: 'number', min: 0, def: 7 },
+      { key: 'range', label: 'Range (m)', type: 'number', min: 0, def: 10 },
+      { key: 'interval', label: 'Pulse every (s)', type: 'number', min: 0.1, def: 4 },
+      { key: 'radius', label: 'Pulse radius (m)', type: 'number', min: 0, def: 5 },
+      { key: 'heal', label: 'Heal (share of HP)', type: 'number', min: 0, max: 1, step: 0.05, def: 0.25 },
+      { key: 'frenzy_seconds', label: 'Frenzy (s)', type: 'number', min: 0, def: 3 },
+    ] },
+    ambush: { label: 'Ambush', help: 'the ambush brain: spawns hidden, pops up when the hero is near, hides again', rows: [
+      { key: 'trigger', label: 'Trigger (m)', type: 'number', min: 0, def: 5 },
+      { key: 'rehide_distance', label: 'Re-hide beyond (m)', type: 'number', min: 0, def: 12 },
+      { key: 'rehide_after', label: 'Re-hide after (s)', type: 'number', min: 0, def: 6 },
+    ] },
+    death_burst: { label: 'Death burst', help: 'blows up after it dies (skipped when it blew itself up)', rows: [
+      { key: 'delay', label: 'Delay (s)', type: 'number', min: 0, def: 2 },
+      { key: 'radius', label: 'Radius (m)', type: 'number', min: 0, def: 2.4 },
+      { key: 'damage', label: 'Damage', type: 'number', min: 0, def: 12, help: 'x stage x level x host' },
+      { key: 'knockback', label: 'Knockback', type: 'number', min: 0, def: 0 },
+    ] },
+    boss: { label: 'Attack script', help: 'the attack runner: the boss brain, casters, and any creature with attacks in here (the first attack 2 s after spawn)', rows: [
+      { key: 'attacks', label: 'Attacks', type: 'attacks', help: 'in order; the runner cycles them' },
+      { key: 'cooldown_between', label: 'Between attacks (s)', type: 'number', min: 0, step: 0.1, def: 2, help: 'the rest between two attacks (not scaled by pace)' },
+      { key: 'hp_mult_per_stage', label: 'HP x per stage', type: 'number', min: 0, step: 0.1, def: 1.6, help: 'boss archetype: HP = hp x this^stage x max(stage_mult, 1), nothing else', only: (d) => d.archetype === 'boss' },
+      { key: 'ring', label: 'Fire ring', type: 'json', help: 'the Brander\'s ring: {radius 21, min_radius 8, shrink 42, hold 8, burn 0.07, creature_burn 0.12}' },
+    ] },
+    elite: { label: 'Elite (mini-boss)', help: 'read for the elite archetype only', rows: [
+      { key: 'hp_mult_per_stage', label: 'HP x per stage', type: 'number', min: 0, step: 0.1, def: 1.8, help: 'HP = hp x this^stage x max(stage_mult, 1) x creature_hp_mult' },
+    ] },
+  };
+  const BLOCK_ORDER = ['ranged', 'charge', 'kamikaze', 'artillery', 'caster', 'support', 'ambush', 'death_burst', 'boss', 'elite'];
+
+  // ------------------------------------------------------------------ the attack script's names (EnemyManager.gd:3696-3882)
+
+  const k = (key, label, type, def, help, extra) => Object.assign({ key, label, type: type || 'number', def, help: help || '', min: 0 }, extra || {});
+  const ATTACK_COMMON = [
+    { key: 'windup', label: 'Wind-up (s)', type: 'number', min: 0, step: 0.05, def: 1, help: 'seconds announced before it lands, x 1/pace on the map' },
+    { key: 'telegraph', label: 'Telegraph', type: 'select', options: (v) => v.telegraphs, help: 'what the ground shows during the wind-up (empty = the name\'s usual)' },
+    { key: 'reach', label: 'Reach (m)', type: 'number', min: 0, help: 'waits, walking on, until the hero is within reach + radius' },
+    { key: 'min_range', label: 'Skip inside (m)', type: 'number', min: 0, help: 'skipped while the hero is nearer than this' },
+    { key: 'max_range', label: 'Skip beyond (m)', type: 'number', min: 0, help: 'skipped while the hero is farther than this' },
+  ];
+  const ATTACKS = {
+    roll: { label: 'Roll', telegraph: 'line', help: 'rushes along the line at `speed` for `duration` (the boss brain only runs it right)', keys: [k('speed', 'Speed (m/s)', 'number', 12), k('duration', 'Duration (s)', 'number', 1.2), k('damage', 'Damage', 'number', 25, 'x stage x host'), k('length', 'Line length (m)', 'number', null, 'the telegraph\'s line; empty = speed x duration + its radius')] },
+    spawn_ring: { label: 'Spawn ring', telegraph: 'none', help: 'a ring of `count` creatures 5 m out (brood numbers)', keys: [k('enemy', 'Creature', 'enemy', '', 'the creature it brings (the game\'s default "coyote" no longer exists)'), k('count', 'Count', 'int', 10)] },
+    slam_at: { label: 'Slam at the hero', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'a blast where the hero stood at the wind-up', keys: [k('radius', 'Radius (m)', 'number', 2.6), k('damage', 'Damage', 'number', 18), k('knockback', 'Knockback', 'number', 6)] },
+    blink: { label: 'Blink', telegraph: 'none', help: 'teleports: `to` "screen" uses the caster\'s keep / side distance', keys: [k('to', 'To', 'select', '', '', { options: (v) => v.blinkTo, min: undefined }), k('distance', 'Distance (m)', 'number', 8)] },
+    burrow: { label: 'Burrow', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'under the sand for the wind-up (a mound swells at the ring), then up at the hero', keys: [k('radius', 'Radius (m)', 'number', 5), k('damage', 'Damage', 'number', 28), k('knockback', 'Knockback', 'number', 8)] },
+    rain: { label: 'Rain', telegraph: 'none', help: '`count` strikes every `interval` within `spread` of the hero, each warned `warn` s', keys: [k('count', 'Strikes', 'int', 10), k('interval', 'Interval (s)', 'number', 0.3), k('spread', 'Spread (m)', 'number', 5), k('radius', 'Strike radius (m)', 'number', 1.6), k('damage', 'Damage', 'number', 14), k('warn', 'Warning (s)', 'number', 0.55), k('pillar', 'Pillar', 'bool', false, '', { min: undefined }), k('knockback', 'Knockback', 'number', 0)] },
+    erupt: { label: 'Erupt', telegraph: 'none', help: 'the rain, and a creature rises from every strike', keys: [k('count', 'Strikes', 'int', 10), k('interval', 'Interval (s)', 'number', 0.3), k('spread', 'Spread (m)', 'number', 5), k('radius', 'Strike radius (m)', 'number', 1.6), k('damage', 'Damage', 'number', 14), k('warn', 'Warning (s)', 'number', 0.55), k('spawn', 'Rises', 'enemy', '', 'the creature each strike brings'), k('pillar', 'Pillar', 'bool', false, '', { min: undefined }), k('knockback', 'Knockback', 'number', 0)] },
+    spit_volley: { label: 'Spit volley', telegraph: 'fan', help: '`count` shots over `spread_deg`; straight (x level too) or lobbed', keys: [k('count', 'Shots', 'int', 7), k('spread_deg', 'Spread (°)', 'number', 90), k('speed', 'Speed (m/s)', 'number', 14, 'straight 14, lob 7'), k('damage', 'Damage', 'number', 12), k('splash', 'Splash (m)', 'number', 0.5, 'straight 0.5, lob 1.4'), k('life', 'Life (s)', 'number', 1), k('straight', 'Straight', 'bool', false, '', { min: undefined }), k('shot', 'Shot look', 'select', '', '', { options: (v) => v.shotKinds, min: undefined }), k('knockback', 'Knockback', 'number', 0), k('length', 'Fan length (m)', 'number', 14, 'the telegraph\'s lines')] },
+    slam: { label: 'Slam', telegraph: 'ring', help: 'a blast round the creature', keys: [k('radius', 'Radius (m)', 'number', 6), k('damage', 'Damage', 'number', 30), k('knockback', 'Knockback', 'number', 6), k('lift', 'Lift (m)', 'number', null, 'throws the hero up (Player.blast)')] },
+    rumble: { label: 'Rumble', telegraph: 'fan', help: '`count` cracks of `length` racing out over `spread_deg`', keys: [k('count', 'Cracks', 'int', 7), k('spread_deg', 'Spread (°)', 'number', 90), k('length', 'Length (m)', 'number', 14), k('speed', 'Speed (m/s)', 'number', 13), k('width', 'Width (m)', 'number', 1.2), k('damage', 'Damage', 'number', 16), k('knockback', 'Knockback', 'number', 10), k('lift', 'Lift (m)', 'number', 3)] },
+    brand: { label: 'Brand', telegraph: 'line', help: 'a line of hellfire on the ground for `life` seconds (Game.hell_line; the crowd takes half)', keys: [k('length', 'Length (m)', 'number', 16), k('life', 'Burns for (s)', 'number', 9), k('width', 'Width (m)', 'number', 1.1), k('damage', 'Damage a tick', 'number', 12), k('tick', 'Tick (s)', 'number', 0.5)] },
+    tumbleweed_volley: { label: 'Tumbleweed volley', telegraph: 'spokes', help: '`count` tumbleweeds roll out all round for `life` seconds', keys: [k('count', 'Tumbleweeds', 'int', 12), k('speed', 'Speed (m/s)', 'number', 9), k('damage', 'Damage', 'number', 14), k('life', 'Life (s)', 'number', 2.6), k('knockback', 'Knockback', 'number', 14), k('lift', 'Lift (m)', 'number', 2.5), k('spoke_length', 'Spoke length (m)', 'number', null, 'the telegraph\'s lines; empty = how far a tumbleweed rolls')] },
+    swoop: { label: 'Swoop', telegraph: 'sector', help: 'a sweep over a wedge ahead, then a fall', keys: [k('count', 'Count', 'int', 14), k('duration', 'Duration (s)', 'number', 0.8), k('fall', 'Fall (s)', 'number', 0.45), k('radius', 'Radius (m)', 'number', 6.5), k('deg', 'Wedge (°)', 'number', 180), k('damage', 'Damage', 'number', 24), k('knockback', 'Knockback', 'number', 14), k('lift', 'Lift (m)', 'number', 3), k('throw', 'Throw', 'number', 12), k('throw_radius', 'Throw radius (m)', 'number', 1.8)] },
+    boulder: { label: 'Boulder', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'a boulder thrown at the hero\'s spot (Game.throw_boulder reads the whole block)', keys: [k('flight', 'Flight (s)', 'number', 1.6), k('radius', 'Radius (m)', 'number', 4.6), k('damage', 'Damage', 'number', 30), k('knockback', 'Knockback', 'number', 26), k('lift', 'Lift (m)', 'number', 6), k('creature_frac', 'Crowd share', 'number', 0.5), k('throw', 'Throw', 'number', 22), k('throw_radius', 'Throw radius (m)', 'number', 6.5), k('size', 'Boulder size', 'number', 1.7), k('arc', 'Arc', 'number', 9)] },
+  };
+  const ATTACK_NAMES = Object.keys(ATTACKS);
+  const attackOptions = () => ATTACK_NAMES.map((n) => opt(n, ATTACKS[n].label, ATTACKS[n].help));
+  /** the telegraph an attack draws: its own key, else its name's usual */
+  const attackTelegraph = (atk) => (isObj(atk) && atk.telegraph ? String(atk.telegraph) : (ATTACKS[String(atk && atk.name)] ? ATTACKS[String(atk.name)].telegraph : 'none'));
+
+  // ------------------------------------------------------------------ the tables
+
+  const T = (section, rows) => rows.map((r) => Object.assign({ section }, r));
+  const isBoss = (d) => d.archetype === 'boss';
+  const notEvo = (d) => !d.is_evolution;
+
+  const enemy = [].concat(
+    T('Identity', [
+      { key: 'id', label: 'Id', type: 'slug', required: true, help: 'the folder\'s name: [a-z0-9_]; set when the creature is created' },
+      { key: 'name', label: 'Name', type: 'text', required: true, help: 'the display name (toasts, the Collection, "killed by")' },
+      { key: 'flavour', label: 'Flavour', type: 'text', help: 'one line under the name in the Collection when doc is empty' },
+      { key: 'archetype', label: 'Archetype', type: 'select', options: (v) => v.archetypes, def: 'walker', help: 'only elite and boss change behaviour; the rest are labels' },
+      { key: 'brain', label: 'Brain', type: 'select', options: (v) => v.brains, def: 'chase', help: 'how it moves and attacks; an unknown brain chases. A new brain needs code: ask Claude' },
+      { key: 'doc', label: 'Doc', type: 'textarea', required: true, help: 'what it is and how it was made: the Collection page and the bible read it; a test wants it non-empty' },
+      { key: 'note', label: 'Note', type: 'textarea', help: 'a note for the file; nothing reads it' },
+      { key: 'hidden', label: 'Hidden', type: 'bool', def: false, help: 'out of the Collection; still loaded and spawnable by a wave' },
+      { key: 'retired', label: 'Retired', type: 'bool', def: false, help: 'out of the game but kept: no map brings it, the Collection leaves it out' },
+    ]),
+    T('Body', [
+      { key: 'hp', label: 'HP', type: 'number', min: 0.1, def: 10, help: 'at spawn x stage x the HP curve x the hero\'s level x creature_hp_mult' },
+      { key: 'damage', label: 'Bite', type: 'number', min: 0, def: 5, help: 'contact damage (and a ranged creature\'s shot damage) x stage x level x creature_damage_mult x the damage curve' },
+      { key: 'knockback', label: 'Knockback', type: 'number', min: 0.01, step: 0.1, required: true, ph: (d) => M.plain(M.defaultKnockback(num(d.damage, 5))), help: 'the bite\'s shove in m/s; every creature carries one > 0 (the game\'s own would be clamp(3.4 x sqrt(damage / 4), 2.5, 7)); x1.6 for bosses and elites' },
+      { key: 'speed', label: 'Speed (m/s)', type: 'number', min: 0, def: 2.5, help: 'x stage_speed_mult x the variance jitter x pace' },
+      { key: 'size', label: 'Size (m)', type: 'number', min: 0.05, step: 0.05, def: 1, help: 'the sprite\'s height in metres (one number; a range is a roster row\'s)' },
+      { key: 'radius', label: 'Radius (m)', type: 'number', min: 0.05, step: 0.05, def: 0.5, help: 'contact and separation radius; the bite reaches radius + 0.45' },
+      { key: 'damage_reduction', label: 'Damage reduction', type: 'number', min: 0, max: 0.9, step: 0.05, def: 0, help: 'share of every hit removed, 0..0.9' },
+      { key: 'contact_cd', label: 'Bite every (s)', type: 'number', min: 0.05, step: 0.05, def: 0.6, help: 'seconds between bites' },
+      { key: 'blood', label: 'Blood', type: 'swatch', ph: '#C70D0D', help: 'the death splash\'s colour, #RRGGBB (a test wants a valid one in every file)' },
+      { key: 'shadow.scale', label: 'Shadow scale', type: 'shadow_scale', help: 'one number, or [width, depth]' },
+      { key: 'shadow.up', label: 'Shadow up (m)', type: 'number', step: 0.05, help: 'how high the blob sits (divided by size)' },
+      { key: 'shadow.drop', label: 'Shadow drop', type: 'number', min: -0.5, max: 0.5, step: 0.02, help: '−0.5..0.5' },
+      { key: 'head', label: 'Head (share of the cell)', type: 'number', min: 0, max: 1, step: 0.01, def: 0.86, help: 'where the top of the figure is: the badge sits there, the sand sink reads it; measured by the art tools' },
+      { key: 'front_faces', label: 'Front faces', type: 'select', options: (v) => v.faces, def: 'right', help: 'the mirror rule of the front set' },
+      { key: 'back_faces', label: 'Back faces', type: 'select', options: (v) => v.faces, def: 'right', help: 'the mirror rule of the back set' },
+      { key: 'badge', label: 'Badge', type: 'select', options: (v) => v.badges, def: '', help: 'the icon over its head; the crown shows only on the elite archetype' },
+    ]),
+    T('Spawning', [
+      { key: 'pack_size', label: 'Pack', type: 'int', min: 1, def: 1, help: 'how many a burst brings (a roster row\'s pack wins)' },
+      { key: 'cap_share', label: 'Cap share', type: 'number', min: 0.05, step: 0.05, def: 1, help: 'how much of the live cap one takes (0.5: two to a slot)' },
+      { key: 'max_alive', label: 'Max alive', type: 'int', min: 0, def: 0, help: '0 = no limit; counted across all its looks and overrides' },
+      { key: 'xp_mult', label: 'XP x', type: 'number', min: 0, step: 0.1, def: 1, help: 'gem scale' },
+      { key: 'can_be_elite', label: 'Can be coloured', type: 'bool', def: true, help: 'may take an Elite modifier' },
+      { key: 'can_be_grabbed', label: 'Can be grabbed', type: 'bool', def: true, help: 'the Gravity Gun may lift it' },
+      { key: 'pickup_chance_mult', label: 'Power-up chance x', type: 'number', min: 0, step: 0.1, def: 1, help: 'x the timeline\'s per-kill chance' },
+      { key: 'pickup_weights', label: 'Power-up weights', type: 'pickup_weights', help: 'replaces the map\'s power-up roster for this creature\'s kills' },
+    ]),
+    T('Drops', [
+      { key: 'drops.small', label: 'Small gem', type: 'number', min: 0, max: 1, step: 0.01, help: 'chance of a 1-XP gem (the default block when drops is absent: small 1, gold 0.02)' },
+      { key: 'drops.medium', label: 'Medium gem', type: 'number', min: 0, max: 1, step: 0.01, help: 'chance of a 5-XP gem (+ luck x 0.1)' },
+      { key: 'drops.large', label: 'Large gem', type: 'number', min: 0, max: 1, step: 0.01, help: 'chance of a 25-XP gem' },
+      { key: 'drops.gold', label: 'Coins', type: 'number', min: 0, max: 1, step: 0.005, help: 'chance of 1-3 coins, x (1 + luck)' },
+      { key: 'drops.chest', label: 'Chest', type: 'number', min: 0, max: 1, step: 0.001, help: 'chance of a chest (an elite always drops one)' },
+      { key: 'drops.pickup.id', label: 'Own power-up', type: 'pickup', help: 'a power-up of its own' },
+      { key: 'drops.pickup.chance', label: 'Own power-up chance', type: 'number', min: 0, max: 1, step: 0.01 },
+      { key: 'drops.coins', label: 'Boss coins', type: 'int', min: 0, def: 12, only: isBoss, help: 'boss only: coins worth 5 each' },
+      { key: 'drops.chests', label: 'Boss chests', type: 'int', min: 0, def: 1, only: isBoss, help: 'boss only: chests − 1 extra chests on top of the boss chest' },
+    ]),
+    T('Variance', [
+      { key: 'variance.size', label: 'Size jitter', type: 'number', min: 0, step: 0.05, def: 0, help: '± this on the size' },
+      { key: 'variance.speed', label: 'Speed jitter', type: 'number', min: 0, step: 0.05, def: 0, help: '± this on the speed' },
+      { key: 'variance.tints', label: 'Tints', type: 'swatches', help: 'colours rolled once Run.kills >= the map\'s colour_after_kills' },
+      { key: 'variance.tint_strength', label: 'Tint strength', type: 'number', min: 0, max: 0.3, step: 0.01, def: 0.35, help: 'the shader mixes alpha x 0.65; a test wants ≤ 0.3' },
+      { key: 'variance.special_chance', label: 'Special chance', type: 'number', min: 0, max: 1, step: 0.01, def: 0, help: 'x (1 + difficulty): a bigger, tougher, tinted one' },
+      { key: 'variance.special.size', label: 'Special size x', type: 'number', min: 0, step: 0.1, def: 1.3 },
+      { key: 'variance.special.hp', label: 'Special HP x', type: 'number', min: 0, step: 0.1, def: 1.6 },
+      { key: 'variance.special.damage', label: 'Special damage x', type: 'number', min: 0, step: 0.1, def: 1.2 },
+      { key: 'variance.special.xp', label: 'Special XP x', type: 'number', min: 0, step: 0.1, def: 2 },
+      { key: 'variance.special.tint', label: 'Special tint', type: 'swatch', help: 'a test wants its value under 0.6 and its saturation over 0.4 (a dark, coloured one)' },
+      { key: 'variance.special.tint_strength', label: 'Special tint strength', type: 'number', min: 0, max: 1, step: 0.05, def: 0.6 },
+    ]),
+    T('Sounds', [
+      { key: 'sfx.hit', label: 'Hit', type: 'sfx', group: 'en_', help: 'when it is hit; empty = silent' },
+      { key: 'sfx.die', label: 'Die', type: 'sfx', group: 'en_', help: 'when it dies' },
+      { key: 'sfx.attack', label: 'Attack', type: 'sfx', group: 'en_', help: 'a charge, a shot, a wind-up (the script\'s default en_boss_attack)' },
+      { key: 'sfx.spawn', label: 'Spawn (boss)', type: 'sfx', group: 'en_', only: isBoss, help: 'boss archetype only, default en_boss_roar (elites always play en_elite_spawn)' },
+    ]),
+    T('Looks', [
+      { key: 'variant_base', label: 'Base look', type: 'readonly', help: 'the code of the top-level strip' },
+      { key: 'variant', label: 'Look in play', type: 'readonly', help: 'set by "Make default" on a look' },
+      { key: 'directions', label: 'Directions painted', type: 'select', options: (v) => v.directions, def: 2, help: 'art recipe: 2 (front and back) or 8' },
+      { key: 'frame_px', label: 'Cell (px)', type: 'int', min: 16, def: 128, help: 'the strip\'s cell size (the placeholder\'s cell; the shader slices by count)' },
+      { key: 'strip_cols', label: 'Strip columns', type: 'int', min: 0, def: 0, help: '0 = one row; a packed strip\'s column count (written by the art tools)' },
+      { key: 'anims', label: 'Frames per animation', type: 'anims', help: 'in the fixed order idle, run, attack, hit, die, run_b, idle_b, run_s, idle_s, run_bd, idle_bd, run_fd, idle_fd (the art tools write them)' },
+      { key: 'fps', label: 'Frame rates', type: 'fps_table', keys: ['run', 'die'], help: 'run 0 = 10 fps x pace; die 6' },
+    ]),
+    T('Art words', [
+      { key: 'art_prompt', label: 'Subject', type: 'textarea', help: 'what the painter draws (default "a goofy <name> creature, <flavour>")' },
+      { key: 'motion', label: 'Motion', type: 'textarea', help: 'how the free walk clip moves ("walking in place with a steady stomping gait")' },
+      { key: 'anim_negative', label: 'Never in a clip', type: 'textarea', help: 'what the clip must not grow (faces, extra limbs)' },
+      { key: 'dead_hint', label: 'Dead still', type: 'textarea', help: 'how it lies dead' },
+      { key: 'back_hint', label: 'Back view', type: 'textarea', help: 'added to the back-view turn' },
+      { key: 'view_hints.side', label: 'Side view', type: 'textarea', help: '8 directions: the side turn' },
+      { key: 'view_hints.bd', label: 'Back-diagonal view', type: 'textarea' },
+      { key: 'view_hints.fd', label: 'Front-diagonal view', type: 'textarea' },
+      { key: 'view_hints.back', label: 'Back (ctl)', type: 'textarea' },
+      { key: 'death', label: 'Death', type: 'select', options: (v) => v.deaths, def: '', help: 'how the dying frames are made' },
+      { key: 'death_frames', label: 'Death frames', type: 'int', min: 1, def: 8 },
+      { key: 'walk', label: 'Walk', type: 'select', options: (v) => v.walks, def: '', help: '"hop": procedural, no video (blobs)' },
+      { key: 'hop_height', label: 'Hop height', type: 'number', min: 0, step: 0.01, def: 0.13 },
+      { key: 'pose', label: 'Pose driver (back)', type: 'driver', help: 'a Mixamo stride for the back clip (creature_pose2)' },
+      { key: 'pose_front', label: 'Pose driver (front)', type: 'driver' },
+      { key: 'stand', label: 'Stand', type: 'select', options: (v) => v.stands, def: '' },
+      { key: 'gait', label: 'Gait', type: 'text' },
+      { key: 'anim_seed', label: 'Clip seed', type: 'int', min: 0, def: 0 },
+      { key: 'run_fps', label: 'Run fps (recipe)', type: 'int', min: 1, def: 15 },
+      { key: 'cell_fill', label: 'Cell fill', type: 'number', min: 0.1, max: 1, step: 0.01, def: 0.86, help: 'how much of the cell the figure fills' },
+      { key: 'clip_fill', label: 'Clip fill', type: 'number', min: 0.1, max: 1, step: 0.01, def: 0.72 },
+      { key: 'screen', label: 'Screen', type: 'select', options: (v) => v.screens, def: '', help: 'the keying colour behind the paintings' },
+      { key: 'outline_frac', label: 'Outline', type: 'number', min: 0, step: 0.001, def: 0.024 },
+      { key: 'outline_color', label: 'Outline colour', type: 'swatch', ph: '#0E080C' },
+      { key: 'remap_hues', label: 'Remap hues', type: 'json', help: '{ranges: [[lo, hi]...], to, sat, min_sat}' },
+      { key: 'placeholder.color', label: 'Placeholder colour', type: 'swatch', help: 'the procedural stand-in art and the screen colour\'s choice' },
+      { key: 'placeholder.shape', label: 'Placeholder shape', type: 'select', options: (v) => v.placeholderShapes, def: '' },
+      { key: 'placeholder.eyes', label: 'Placeholder eyes', type: 'int', min: 0, max: 8 },
+      { key: 'placeholder.ears', label: 'Placeholder ears', type: 'text', help: 'horn, round, ...' },
+    ]),
+  );
+
+  const hero = [].concat(
+    T('Identity', [
+      { key: 'id', label: 'Id', type: 'slug', required: true, help: 'the folder\'s name' },
+      { key: 'name', label: 'Name', type: 'text', required: true, help: '"The " is added for the drifter only' },
+      { key: 'flavour', label: 'Flavour', type: 'text', help: 'the line under the name on the title' },
+      { key: 'order', label: 'Order', type: 'int', min: 1, def: 100, help: 'the title carousel\'s order among playable heroes (warns on a clash)' },
+      { key: 'pronoun', label: 'Pronoun', type: 'select', options: (v) => v.pronouns, def: 'they', help: 'he / she / they: hints, "his" in the trait note, the sheet' },
+      { key: 'hidden', label: 'Hidden', type: 'bool', def: false, help: 'out of play; kept in step with Availability below' },
+    ]),
+    T('Trait', [
+      { key: 'trait_name', label: 'Trait name', type: 'text', help: 'the plaque and sheet title ("Long Road")' },
+      { key: 'trait_per_level', label: 'Per level', type: 'stat_effects', stats: 'player', target: 'player', help: 'the signature stat(s): one Effect per entry worth value x level' },
+      { key: 'trait_preview', label: 'Reads as', type: 'trait_preview', help: 'TextGen.hero_trait from the rule above, and what it comes to at level 20' },
+      { key: 'trait_text', label: 'Trait text', type: 'textarea', help: 'read only when there is no per-level rule (the hidden heroes); a test wants it equal to the rule\'s sentence for played heroes' },
+      { key: 'trait', label: 'Flat trait (legacy)', type: 'stat_effects', stats: 'player', target: 'player', help: 'added to the sheet once; empty on every played hero (a test wants it empty)' },
+      { key: 'level_heal', label: 'Heal per level', type: 'percent', def: 0, help: 'share of max HP healed on every level-up (Astro 8%)' },
+    ]),
+    T('Favourites', [
+      { key: 'favourite_weapon', label: 'Favourite weapon', type: 'id_select', kind: 'weapon', help: 'FAVOURITE plate; bypasses its unlock quest; his hero mutation sits on it' },
+      { key: 'favourite_bonus.type', label: 'Favourite arrives', type: 'select', options: (v) => v.favouriteBonus, def: 'level', help: 'at a level, or with effects' },
+      { key: 'favourite_bonus.value', label: 'At level', type: 'int', min: 1, def: 2, only: (d) => !d.favourite_bonus || (d.favourite_bonus.type || 'level') === 'level' },
+      { key: 'favourite_bonus.effects', label: 'With effects', type: 'stat_effects', stats: 'weapon', target: 'self', only: (d) => d.favourite_bonus && d.favourite_bonus.type === 'effects' },
+      { key: 'favourite_passive', label: 'Favourite passive', type: 'id_select', kind: 'passive', help: 'Ironwood\'s Brawn: bypasses the quest' },
+      { key: 'favourite_passive_bonus.type', label: 'Passive arrives', type: 'select', options: (v) => v.passiveBonus, def: 'level', only: (d) => !!d.favourite_passive },
+      { key: 'favourite_passive_bonus.value', label: 'At level', type: 'int', min: 1, def: 2, only: (d) => !!d.favourite_passive && (!d.favourite_passive_bonus || (d.favourite_passive_bonus.type || 'level') === 'level') },
+      { key: 'favourite_passive_bonus.effects', label: 'With effects', type: 'stat_effects', stats: 'player', target: 'player', only: (d) => !!d.favourite_passive && d.favourite_passive_bonus && d.favourite_passive_bonus.type === 'effects' },
+      { key: 'start_weapon', label: 'Starts with', type: 'id_select', kind: 'weapon', help: 'empty = his own weapon (WeaponDef.hero), else the favourite, else the peashooter' },
+    ]),
+    T('Specials', [
+      { key: 'specials', label: 'Specials', type: 'checklist', options: (v) => v.specials, help: 'the mechanisms the code knows; a new one needs code: ask Claude' },
+      { key: 'momentum.ramp_seconds', label: 'Momentum ramp (s)', type: 'number', min: 0, def: 12, only: (d) => Array.isArray(d.specials) && d.specials.includes('momentum') },
+      { key: 'momentum.speed_bonus', label: 'Momentum speed', type: 'number', min: 0, step: 0.05, def: 0.6, only: (d) => Array.isArray(d.specials) && d.specials.includes('momentum') },
+      { key: 'momentum.might_bonus', label: 'Momentum damage', type: 'number', min: 0, step: 0.05, def: 0.5, only: (d) => Array.isArray(d.specials) && d.specials.includes('momentum') },
+      { key: 'unlock_quest', label: 'Unlock quest', type: 'readonly', help: 'a dead key: never read. A hero is gated by a quest whose unlocks names him' },
+    ]),
+    T('Availability', [
+      { key: 'availability', label: 'Availability', type: 'select', options: (v) => v.availability, def: 'available', help: 'written and shown, not wired: a purchase hero stays hidden in play (the purchase loop is parked)' },
+      { key: 'price', label: 'Price', type: 'int', min: 0, def: 0, only: (d) => d.availability === 'purchase' },
+      { key: 'currency_type', label: 'Currency', type: 'select', options: (v) => v.currencies, def: 'gold', only: (d) => d.availability === 'purchase' },
+    ]),
+    T('Art words', [
+      { key: 'art_prompt', label: 'Subject', type: 'textarea', help: 'the painter\'s subject (default "a small goofy hero called <name>, <flavour>")' },
+      { key: 'portrait_prompt', label: 'Badge portrait', type: 'textarea', help: 'the round badge: "smiling at the viewer"' },
+      { key: 'motion', label: 'Free clip motion', type: 'textarea', help: '"running in place at a steady jog, arms and legs swinging naturally"' },
+      { key: 'pose_motion', label: 'Pose clip motion', type: 'textarea', help: '"running in place on the spot like on a treadmill"' },
+      { key: 'anim_hint', label: 'Clip subject', type: 'textarea', help: 'what the clip keeps (default: the subject\'s first clause)' },
+      { key: 'anim_negative', label: 'Never in a clip', type: 'textarea' },
+      { key: 'anim_seed', label: 'Clip seed', type: 'int', min: 0, def: 0 },
+      { key: 'hurt_hint', label: 'Hurt', type: 'textarea', help: '"eyes squeezed shut, teeth gritted"' },
+      { key: 'back_hint', label: 'Back view', type: 'textarea' },
+      { key: 'pose_hint', label: 'Pose', type: 'textarea' },
+      { key: 'side_hint', label: 'Side view', type: 'textarea' },
+      { key: 'pose_drivers.front', label: 'Driver: front', type: 'driver', help: 'the OpenPose driver of the front clip (default run)' },
+      { key: 'pose_drivers.back', label: 'Driver: back', type: 'driver' },
+      { key: 'pose_drivers.side', label: 'Driver: side', type: 'driver' },
+      { key: 'pose_drivers.fd', label: 'Driver: front-diagonal', type: 'driver' },
+      { key: 'pose_drivers.bd', label: 'Driver: back-diagonal', type: 'driver' },
+      { key: 'still_keys', label: 'Still keys', type: 'json', help: '{view: cache key} when a view\'s still was painted under another name' },
+      { key: 'run_fps', label: 'Run fps (recipe)', type: 'int', min: 1, def: 36, help: '36; 14 when a clip fell back' },
+      { key: 'screen', label: 'Screen', type: 'select', options: (v) => v.screens, def: '', help: 'heroes are keyed off blue unless named' },
+      { key: 'key_sat', label: 'Key saturation', type: 'number', min: 0, max: 1, step: 0.05, def: 0.35 },
+      { key: 'key_min_value', label: 'Key min value', type: 'number', min: 0, max: 1, step: 0.05, def: 0.2 },
+      { key: 'key_cut_shadow', label: 'Key cuts shadow', type: 'bool', def: true },
+      { key: 'key_clamp_screen', label: 'Key clamps screen', type: 'bool', def: false },
+      { key: 'grade', label: 'Grade', type: 'json', help: '{hue, sat_mul, sat_range, hue_shift, sat_max}' },
+      { key: 'remap_hues', label: 'Remap hues', type: 'json' },
+      { key: 'badge.still', label: 'Badge still', type: 'text', help: 'the cached still the round badge is cut from' },
+      { key: 'badge.head_width', label: 'Badge head width', type: 'number', min: 0, max: 1, step: 0.05, def: 0 },
+      { key: 'badge.top_pad', label: 'Badge top pad', type: 'number', min: 0, max: 0.5, step: 0.01, def: 0.03 },
+      { key: 'badge.note', label: 'Badge note', type: 'textarea' },
+      { key: 'title_pose', label: 'Title pose', type: 'textarea', help: 'the title cut-out\'s pose words (gen_title_heroes; falls back to its table, then the badge portrait)' },
+      { key: 'title_holds', label: 'Title holds', type: 'textarea', help: 'what he holds on the title ("the <object> is the only thing he holds")' },
+      { key: 'title_camera', label: 'Title camera', type: 'textarea' },
+      { key: 'title_extra_ref.file', label: 'Title object reference', type: 'text', help: 'a picture of the held object, copied exactly' },
+      { key: 'title_extra_ref.words', label: 'Title object words', type: 'textarea' },
+    ]),
+    T('Looks & previews', [
+      { key: 'variant_base', label: 'Base look', type: 'readonly' },
+      { key: 'variant', label: 'Look in play', type: 'readonly', help: 'the JSON\'s look; Save.hero_look overrides it in runs' },
+      { key: 'frame_px', label: 'Cell (px)', type: 'int', min: 16, def: 256 },
+      { key: 'strip_cols', label: 'Strip columns', type: 'int', min: 0, def: 0 },
+      { key: 'anims', label: 'Frames per animation', type: 'anims', help: 'CHAR_ORDER: idle, run, turn, hit, die, cheer, idle_f, run_f, idle_s, run_s, idle_bd, run_bd, idle_fd, run_fd, hit_f, hit_s, hit_bd, hit_fd' },
+      { key: 'fps', label: 'Frame rates', type: 'fps_table', keys: ['run', 'hit', 'die', 'idle', 'cheer'], help: 'BillboardSprite: run 14, hit 6, die 5, idle 4, cheer 4 when absent (the heroes carry run 36, hit 12, die 8)' },
+    ]),
+  );
+
+  const weapon = [].concat(
+    T('Identity', [
+      { key: 'id', label: 'Id', type: 'slug', required: true },
+      { key: 'name', label: 'Name', type: 'text', required: true },
+      { key: 'flavour', label: 'Flavour', type: 'text', help: 'the card\'s line' },
+      { key: 'rarity', label: 'Rarity', type: 'select', options: (v) => v.rarities, def: 'common', help: 'card weight x RARITY_W (common 1, uncommon 0.75, rare 0.55, epic 0.3, legendary 0.15) and the plate\'s colour' },
+      { key: 'weight', label: 'Weight', type: 'number', min: 0, def: 10, help: 'the card pool\'s weight' },
+      { key: 'hero', label: 'Hero only', type: 'id_select', kind: 'hero', help: 'only this hero is offered it; empty = everyone\'s' },
+      { key: 'tags', label: 'Tags', type: 'tags', help: 'gun, blade, melody, melee, homing, explosive, thrown, magic: effects with target tag:<tag> reach it' },
+      { key: 'is_evolution', label: 'Evolution', type: 'readonly', only: (d) => !!d.is_evolution, help: 'an evolved form: level 1 only, delivered by a chest' },
+      { key: 'evolved_from', label: 'Evolved from', type: 'readonly', only: (d) => !!d.is_evolution },
+    ]),
+    T('Behaviour', [
+      { key: 'behavior', label: 'Behaviour', type: 'select', options: (v) => v.behaviors, def: 'ProjectileEmitter', help: 'the script that fires it (game/core/behaviors); a new one needs code: ask Claude' },
+      { key: 'targeting', label: 'Targeting', type: 'select', options: (v) => v.targeting, def: 'nearest', help: 'priority / forward / random / healthy change the aim; the rest describe' },
+      { key: 'visual', label: 'Visual', type: 'readonly', ph: (d, c) => `${c.id || d.id}_visual.tscn`, help: 'the 3D scene (Claude\'s): nodes Projectile, Held, Muzzle, Familiar' },
+    ]),
+    T('Base stats', BASE_KEYS.map((s) => ({ key: 'base.' + s, label: M.statName(s), type: 'number', min: 0, step: s === 'cooldown' ? 0.05 : 'any', int: ['amount', 'pierce', 'chains', 'poison_stacks'].includes(s), def: BASE_DEFAULTS[s], help: `${s}: the game's own is ${BASE_DEFAULTS[s]}` }))),
+    T('Levels', [
+      { key: 'levels', label: 'Levels', type: 'level_steps', fixed: 5, stats: 'weapon', target: 'self', help: 'levels[i] = the effects gained reaching level i + 1; level 1 is always empty (the tests pin exactly 5 lists)' },
+      { key: 'max_level', label: 'Max level', type: 'int', min: 1, def: 5, help: 'base weapons 5 (a test), evolutions 1' },
+    ]),
+    T('Evolution & path', [
+      { key: 'evolves_into', label: 'Evolves into', type: 'id_select', kind: 'evolution', only: notEvo, help: 'its evolved form (at level 5 with all three path mutations, from a chest)' },
+      { key: 'evolves_with', label: 'Evolves with', type: 'id_select', kind: 'passive', only: notEvo, help: 'must stay empty: evolutions come from the path, not an item (a test)' },
+      { key: 'path', label: 'Path', type: 'path_strip', only: notEvo, help: 'its three path mutations (element, volume, motion) and its hero mutations' },
+    ]),
+    T('Params', [
+      { key: 'params', label: 'Params', type: 'params_json', help: 'the behaviour\'s knobs as JSON; `final` is merged after the mutations (evolutions)' },
+    ]),
+    T('Sounds', [
+      { key: 'sfx.fire', label: 'Fire', type: 'sfx', group: 'w_' },
+      { key: 'sfx.hit', label: 'Hit', type: 'sfx', group: 'w_' },
+      { key: 'sfx.place', label: 'Place', type: 'sfx', group: 'w_', help: 'mines, turrets' },
+      { key: 'sfx.burst', label: 'Burst', type: 'sfx', group: 'w_' },
+      { key: 'sfx.reload', label: 'Reload', type: 'sfx', group: 'w_', help: 'the Missile Pod' },
+      { key: 'sfx.land', label: 'Land', type: 'sfx', group: 'w_', help: 'the Gravity Gun' },
+    ]),
+    T('Availability', [
+      { key: 'hidden', label: 'Hidden', type: 'bool', def: false, help: 'never offered; held copies still level' },
+      { key: 'quest_lock', label: 'Unlock quest', type: 'quest_lock', only: notEvo, help: 'the quest whose unlocks names this item; none = available at once' },
+      { key: 'from_stage', label: 'From stage', type: 'int', min: 0, def: 0, help: 'offered from this stage on (0 = always)' },
+      { key: 'band', label: 'Quest-locked band', type: 'band', only: notEvo, help: 'the share of base items behind a quest the ship test wants between 33% and 56%' },
+    ]),
+    T('Art', [
+      { key: 'art_prompt', label: 'Icon subject', type: 'textarea', help: 'what the icon painter draws' },
+      { key: 'placeholder.color', label: 'Placeholder colour', type: 'swatch' },
+      { key: 'placeholder.glyph', label: 'Placeholder glyph', type: 'text', help: 'gun, star, magnet, ...' },
+      { key: 'icon', label: 'Icon', type: 'icon_preview', help: 'the 256 px icon at the sheet\'s 128, the list\'s 64 and the HUD\'s 36 on its rarity plate' },
+    ]),
+  );
+  // the evolution form is the weapon's with its own emphasis; the renderer reads `only` (is_evolution)
+  const evolution = weapon;
+
+  const passive = [].concat(
+    T('Identity', [
+      { key: 'id', label: 'Id', type: 'slug', required: true },
+      { key: 'name', label: 'Name', type: 'text', required: true },
+      { key: 'flavour', label: 'Flavour', type: 'text' },
+      { key: 'rarity', label: 'Rarity', type: 'select', options: (v) => v.rarities, def: 'common' },
+      { key: 'weight', label: 'Weight', type: 'number', min: 0, def: 10, help: 'evolved lines carry 0: they come from their base line' },
+      { key: 'line', label: 'Line', type: 'bool', def: false, help: 'a line takes one of the 5 line slots and evolves when maxed; else a passive item (no cap)' },
+    ]),
+    T('Levels', [
+      { key: 'levels', label: 'Levels', type: 'level_steps', stats: 'player', target: 'player', help: 'the effects per level (target player; a weapon stat with target all_weapons reaches every weapon, as Kindling does); a line lists one level and repeats it' },
+      { key: 'repeat_last_level', label: 'Repeat the last level', type: 'bool', def: true },
+      { key: 'max_level', label: 'Max level', type: 'int', min: 1, def: 8, help: 'lines 4, evolved lines 1, items 5 / 3 / 1' },
+    ]),
+    T('Links', [
+      { key: 'pairs_with', label: 'Pairs with', type: 'id_select', kind: 'any_item', help: 'informational' },
+      { key: 'trade', label: 'Trade', type: 'text', help: 'what it costs, in words' },
+      { key: 'evolves_into', label: 'Evolves into', type: 'id_select', kind: 'passive', only: (d) => !d.evolves_from, help: 'a line\'s evolved form (both must agree on `line`)' },
+      { key: 'evolves_from', label: 'Evolved from', type: 'id_select', kind: 'passive', only: (d) => !!d.evolves_from || !d.evolves_into, help: 'marks the evolved form: never offered alone' },
+    ]),
+    T('Text', [
+      { key: 'text', label: 'Card text', type: 'textarea', help: 'the new card\'s line (else TextGen writes "X per level...")' },
+      { key: 'element', label: 'Element', type: 'select', options: (v) => v.elements, def: '' },
+    ]),
+    T('Availability', [
+      { key: 'hidden', label: 'Hidden', type: 'bool', def: false },
+      { key: 'quest_lock', label: 'Unlock quest', type: 'quest_lock', only: (d) => !d.evolves_from },
+      { key: 'from_stage', label: 'From stage', type: 'int', min: 0, def: 0 },
+      { key: 'band', label: 'Quest-locked band', type: 'band', only: (d) => !d.evolves_from },
+    ]),
+    T('Art', [
+      { key: 'art_prompt', label: 'Icon subject', type: 'textarea' },
+      { key: 'placeholder.color', label: 'Placeholder colour', type: 'swatch' },
+      { key: 'placeholder.glyph', label: 'Placeholder glyph', type: 'text' },
+      { key: 'icon', label: 'Icon', type: 'icon_preview' },
+    ]),
+  );
+
+  const mutation = [].concat(
+    T('Identity', [
+      { key: 'id', label: 'Id', type: 'slug', required: true },
+      { key: 'name', label: 'Name', type: 'text', required: true },
+      { key: 'flavour', label: 'Flavour', type: 'text' },
+      { key: 'rarity', label: 'Rarity', type: 'select', options: (v) => v.rarities, def: 'rare' },
+      { key: 'weight', label: 'Weight', type: 'number', min: 0, def: 8 },
+      { key: 'weapon', label: 'Weapon', type: 'id_select', kind: 'weapon', required: true, help: 'the family it mutates' },
+      { key: 'kind', label: 'Kind', type: 'select', options: (v) => v.mutationKinds, def: 'motion', help: 'a weapon\'s path is one of each: element, volume, motion' },
+      { key: 'element', label: 'Element', type: 'select', options: (v) => v.elements, def: '' },
+      { key: 'hero', label: 'Hero', type: 'id_select', kind: 'hero', only: (d) => d.kind === 'hero' || !!d.hero, help: 'the hero whose own this is (kind hero)' },
+    ]),
+    T('Effect', [
+      { key: 'text', label: 'Card text', type: 'textarea', required: true, help: 'shown verbatim on the card' },
+      { key: 'vfx', label: 'Look', type: 'text', help: 'descriptive: what it looks like' },
+      { key: 'effects', label: 'Effects', type: 'stat_effects', stats: 'weapon', target: 'self', help: 'on the weapon\'s sheet (target player reaches the hero)' },
+      { key: 'params', label: 'Params', type: 'params_json', help: 'merged deep over the weapon\'s params' },
+    ]),
+    T('Advanced', [
+      { key: 'behavior', label: 'Swaps the behaviour', type: 'select', options: (v) => [opt('', 'no swap')].concat(v.behaviors), def: '', help: 'needle_rain -> Lobber, homing_skulls -> MissilePod' },
+      { key: 'visual', label: 'Swaps the visual', type: 'text', help: 'a .tscn (methanol)' },
+    ]),
+    T('Availability', [
+      { key: 'hidden', label: 'Hidden', type: 'bool', def: false, help: 'never offered on its own; a weapon needs three non-hidden path mutations to be available' },
+    ]),
+    T('Art', [
+      { key: 'art_prompt', label: 'Icon subject', type: 'textarea' },
+      { key: 'placeholder.color', label: 'Placeholder colour', type: 'swatch' },
+      { key: 'placeholder.glyph', label: 'Placeholder glyph', type: 'text' },
+      { key: 'icon', label: 'Icon', type: 'icon_preview' },
+    ]),
+  );
+
+  const QUEST_ROWS = [
+    { key: 'name', label: 'Name', type: 'text', help: 'the quest\'s title' },
+    { key: 'condition.type', label: 'Condition', type: 'select', options: (v) => v.questTypes, def: 'kills_total', help: 'QuestTracker._satisfied; a new type needs code: ask Claude' },
+    { key: 'condition.count', label: 'Count', type: 'int', min: 1, only: (q) => ['kills_with_weapon', 'kills_of_enemy', 'open_chests', 'evolve_any', 'kills_in_run_of_enemy', 'kills_total', 'runs_total', 'pickups_total', 'gold_total'].includes((q.condition || {}).type) },
+    { key: 'condition.enemy', label: 'Creature', type: 'enemy', only: (q) => ['kills_of_enemy', 'kills_in_run_of_enemy'].includes((q.condition || {}).type) },
+    { key: 'condition.weapon', label: 'Weapon', type: 'id_select', kind: 'weapon', only: (q) => (q.condition || {}).type === 'kills_with_weapon' },
+    { key: 'condition.map', label: 'Map', type: 'text', only: (q) => ['extract_after_stage', 'kill_boss'].includes((q.condition || {}).type), help: 'red_canyon' },
+    { key: 'condition.stage', label: 'Stage', type: 'int', min: 1, only: (q) => ['extract_after_stage', 'kill_boss', 'reach_stage'].includes((q.condition || {}).type) },
+    { key: 'condition.level', label: 'Level', type: 'int', min: 1, only: (q) => (q.condition || {}).type === 'reach_level' },
+    { key: 'condition.minutes', label: 'Minutes', type: 'number', min: 0, only: (q) => ['survive_minutes', 'survive_minutes_no_lift'].includes((q.condition || {}).type) },
+    { key: 'quest_text', label: 'Quest text', type: 'textarea', help: 'optional: TextGen writes one when empty' },
+  ];
+
+  const SECTIONS = {
+    enemy: ['Identity', 'Body', 'Brain & attacks', 'Attack script', 'Spawning', 'Drops', 'Variance', 'Sounds', 'Looks', 'Art words'],
+    hero: ['Identity', 'Trait', 'Favourites', 'Specials', 'Availability', 'His own', 'Art words', 'Looks & previews'],
+    weapon: ['Identity', 'Behaviour', 'Base stats', 'Levels', 'Evolution & path', 'Params', 'Sounds', 'Availability', 'Art'],
+    evolution: ['Identity', 'Behaviour', 'Base stats', 'Levels', 'Evolution & path', 'Params', 'Sounds', 'Availability', 'Art'],
+    passive: ['Identity', 'Levels', 'Links', 'Text', 'Availability', 'Art'],
+    mutation: ['Identity', 'Effect', 'Advanced', 'Availability', 'Art'],
+  };
+
+  // ------------------------------------------------------------------ per-look recipe rows (the fallback when methods.json is absent)
+
+  const R = (key, label, type, help, extra) => Object.assign({ key, label, type, help: help || '' }, extra || {});
+  const recipeCommon = [R('screen', 'Screen', 'select', 'the keying colour', { options: (v) => v.screens, def: '' }), R('outline_frac', 'Outline', 'number', '', { min: 0, step: 0.001 }), R('outline_color', 'Outline colour', 'swatch'),
+    R('remap_hues', 'Remap hues', 'json', '{ranges, to, sat, min_sat}'), R('anim_negative', 'Never in a clip', 'textarea'), R('anim_seed', 'Clip seed', 'int', '', { min: 0 })];
+  const freeCommon = [R('art_prompt', 'Subject', 'textarea', 'this look\'s own subject (else the creature\'s)'), R('stills', 'Stills slug', 'text', 'paint from `RAW/<id>_<slug>_front.png` (a picked front from a picture)'),
+    R('motion', 'Motion', 'textarea'), R('back_hint', 'Back view', 'textarea'), R('dead_hint', 'Dead still', 'textarea'), R('death', 'Death', 'select', '', { options: (v) => v.deaths, def: '' }), R('death_frames', 'Death frames', 'int', '', { min: 1, def: 8 }),
+    R('run_fps', 'Run fps', 'int', '', { min: 1, def: 15 }), R('cell_fill', 'Cell fill', 'number', '', { min: 0.1, max: 1, step: 0.01, def: 0.86 }), R('clip_fill', 'Clip fill', 'number', '', { min: 0.1, max: 1, step: 0.01, def: 0.72 }), R('frame_px', 'Cell (px)', 'int', '', { min: 16 })];
+  const RECIPES = {
+    creature_free2: freeCommon.concat(recipeCommon),
+    creature_pose2: freeCommon.concat([R('pose', 'Pose driver (back)', 'driver', 'a Mixamo stride'), R('pose_front', 'Pose driver (front)', 'driver'), R('gait', 'Gait', 'text'), R('stand', 'Stand', 'select', '', { options: (v) => v.stands, def: '' })], recipeCommon),
+    creature_free8: freeCommon.concat([R('directions', 'Directions', 'select', '', { options: (v) => v.directions, def: 8 }), R('view_hints.side', 'Side view', 'textarea'), R('view_hints.bd', 'Back-diagonal view', 'textarea'), R('view_hints.fd', 'Front-diagonal view', 'textarea')], recipeCommon),
+    creature_proc: [R('art_prompt', 'Subject', 'textarea'), R('stills', 'Stills slug', 'text'), R('walk', 'Walk', 'select', '"hop": no video', { options: (v) => v.walks, def: 'hop' }), R('hop_height', 'Hop height', 'number', '', { min: 0, step: 0.01, def: 0.13 }), R('death', 'Death', 'select', 'squash / collapse', { options: (v) => v.deaths, def: 'squash' }), R('dead_hint', 'Dead still', 'textarea'), R('cell_fill', 'Cell fill', 'number', '', { min: 0.1, max: 1, step: 0.01, def: 0.86 })].concat(recipeCommon),
+    creature_ctl: [R('drivers', 'Depth drivers', 'driver', 'tools/dl/drivers/<name>/<view>/ctl_NN.png + clay.png', { driverKind: 'depth' }), R('prompt', 'Painting', 'textarea', 'how this look is painted'), R('noun', 'Noun', 'text', '"a scorpion"'), R('blockout', 'The clay', 'textarea', 'what the 3D model shows'),
+      R('detail', 'Detail', 'textarea'), R('anatomy', 'Anatomy', 'textarea'), R('keep', 'Keep', 'textarea', 'what every view keeps'), R('words.front', 'Front words', 'textarea'), R('words.fd', 'Front-diagonal words', 'textarea'), R('words.bd', 'Back-diagonal words', 'textarea'), R('words.back', 'Back words', 'textarea'),
+      R('look_ref', 'Look reference', 'text', 'a picture of what it looks like (identity, loosely)'), R('motion', 'Motion', 'textarea'), R('death_drivers', 'Death drivers', 'driver', '', { driverKind: 'depth' }), R('death_motion', 'Death motion', 'textarea'), R('death_keep', 'Death frames kept', 'json', '[3, 5, 6, 7, 14, 16, 19, 24]'),
+      R('dead', 'Dead still', 'textarea'), R('fps', 'Run fps', 'int', '', { min: 1, def: 20 }), R('directions', 'Directions', 'select', '', { options: (v) => v.directions, def: 8 }), R('side_seeds', 'Side candidates', 'int', '', { min: 1, def: 3 }), R('walk_seeds', 'Walk seeds', 'json', '{view: n}'),
+      R('model_scale', 'Model scale', 'number', '', { min: 0.1, step: 0.05 }), R('no_green', 'No green', 'bool')].concat(recipeCommon),
+    hero_pose5: [R('pose_drivers.front', 'Driver: front', 'driver'), R('pose_drivers.back', 'Driver: back', 'driver'), R('pose_drivers.side', 'Driver: side', 'driver'), R('pose_drivers.fd', 'Driver: front-diagonal', 'driver'), R('pose_drivers.bd', 'Driver: back-diagonal', 'driver'),
+      R('still_keys', 'Still keys', 'json', '{view: cache key}'), R('anim_hint', 'Clip subject', 'textarea'), R('pose_motion', 'Pose motion', 'textarea'), R('back_hint', 'Back view', 'textarea'), R('run_fps', 'Run fps', 'int', '', { min: 1, def: 36 })].concat(recipeCommon),
+    hero_fit: [R('pose_drivers.front', 'Driver: front', 'driver'), R('pose_drivers.back', 'Driver: back', 'driver'), R('pose_drivers.side', 'Driver: side', 'driver'), R('pose_drivers.fd', 'Driver: front-diagonal', 'driver'), R('pose_drivers.bd', 'Driver: back-diagonal', 'driver'),
+      R('still_keys', 'Still keys', 'json', '{view: cache key}'), R('anim_hint', 'Clip subject', 'textarea'), R('pose_motion', 'Pose motion', 'textarea'), R('anim_negative', 'Never in a clip', 'textarea'), R('anim_seed', 'Clip seed', 'int', '', { min: 0 })],
+    front_from_picture: [R('stills', 'Stills slug', 'text', 'the candidates\' name'), R('ref', 'Picture', 'text', 'the uploaded picture'), R('prompt', 'Words', 'textarea'), R('keep', 'Keep', 'textarea'), R('screen', 'Screen', 'select', '', { options: (v) => v.screens, def: '' }), R('no_style_ref', 'Picture only (no style anchor)', 'bool')],
+    recolour: [R('src', 'From look', 'text', 'the code copied'), R('ranges', 'Hue ranges', 'text', '"55-135"'), R('to', 'To hue', 'number', '', { min: 0, max: 360 }), R('sat', 'Saturation', 'number', '', { min: 0, max: 2, step: 0.05 })],
+  };
+
+  // the proven reference wordings (the synthesis §5.2); `methods.json.ref_wordings` replaces them when lane B's file is there
+  const WORDINGS = [
+    { role: 'style', level: 'fixed', text: 'Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: <subject>. <view>. <STYLE>. <bg>. Do not copy any subject from the reference.', source: 'gen_art.styled() 141-145', refs: 'the anchor first' },
+    { role: 'style', level: 'with other refs', text: 'The first reference image shows the art style only; do not copy its subjects.', source: 'gen_ctl.py:157, gen_edit_stills.py:77' },
+    { role: 'identity', level: 'loosely', text: 'The <n>th reference image shows what this creature looks like: copy its armour, colours and markings, but not its pose or camera angle.', source: 'gen_ctl.py:155-156', refs: '[anchor, clay, look]' },
+    { role: 'identity', level: 'closely', text: 'The <n>th reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of <prompt>. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep <keep>. <STYLE>. <bg>.', source: 'gen_edit_stills.py:78-80', refs: '[anchor, picture]' },
+    { role: 'identity', level: 'copy exactly', text: 'Copy this exact object from the reference image: its silhouette, proportions, parts and colours, seen from the same angle. <subject>', source: 'gen_icon_cands.COPY (36)', refs: '[ref] (icons)' },
+    { role: 'identity', level: 'copy exactly (figure)', text: 'Keep the same face, outfit, colors and proportions as the reference.', source: 'gen_title_heroes.py:111' },
+    { role: 'pose-and-anatomy', level: 'closely (side)', text: 'The second reference image is a smooth plain 3D model of <noun> (<blockout>): use it only for the anatomy, the pose, the camera angle and where every leg and every other part is. Redraw it as a finished, detailed anime game creature illustration of <prompt>, with <detail>, in side profile facing right, <anatomy>. It must not look like a plain 3D model.', source: 'gen_ctl.py:157-161', refs: '[anchor, clay_side, look?]' },
+    { role: 'pose-and-anatomy', level: 'closely (views)', text: 'The first reference image is a finished painting of <noun> character in side view. The second reference image is a smooth plain 3D model of the same creature, <words[view]>. Redraw the 3D model as the same creature as the first image, the same colours, armour, markings and art style, in exactly the pose and camera angle of the 3D model, with <anatomy> and the same number of legs and claws as the 3D model. It keeps <keep>, seen from this angle. It must not look like a plain 3D model.', source: 'gen_ctl.py:192-196', refs: '[side_painting, clay_view]' },
+    { role: 'same figure, another view', level: 'fixed', text: 'Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. <back_hint> <bg>.', source: 'gen_art.py:747-748', refs: '[front_ref] (the painting, never the picture)' },
+    { role: 'held object (title)', level: 'copy exactly', text: 'The second reference image shows the <object>: copy its shape and colours exactly: <description>. ... the <object> is the only thing he holds', source: 'gen_title_heroes.EXTRA_REFS 56-60, HOLDS' },
+  ];
+
+  // ------------------------------------------------------------------ rules (errors block Save; warnings never do)
+
+  const E = (key, when, msg) => ({ key, level: 'error', when, msg });
+  const W = (key, when, msg) => ({ key, level: 'warn', when, msg });
+  const str = (v) => String(v == null ? '' : v).trim();
+  const vocabOf = (ctx) => (ctx && ctx.vocab) || VOCAB;
+  const vals = (list) => (list || []).map((o) => (isObj(o) ? o.v : o));
+  const items = (ctx) => (ctx && ctx.lists && ctx.lists.items) || null;
+  const flat = (ctx, what) => { const it = items(ctx); return it && Array.isArray(it[what]) ? it[what] : null; };
+  const findIn = (list, id) => (list || []).find((x) => x && String(x.id) === String(id)) || null;
+  const heroes = (ctx) => (ctx && ctx.lists && Array.isArray(ctx.lists.heroes) ? ctx.lists.heroes : null);
+  const enemies = (ctx) => (ctx && ctx.lists && Array.isArray(ctx.lists.enemies) ? ctx.lists.enemies : null);
+  const soundsKnown = (ctx) => { const v = vocabOf(ctx); return Array.isArray(v.sounds) ? v.sounds : null; };
+  const isInt = (v) => typeof v === 'number' && isFinite(v) && Math.floor(v) === v;
+  function hexToHsv(hex) {
+    const m = String(hex || '').match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    if (!m) return null;
+    const r = parseInt(m[1], 16) / 255, g = parseInt(m[2], 16) / 255, b = parseInt(m[3], 16) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    return { s: mx > 0 ? (mx - mn) / mx : 0, v: mx };
+  }
+  const badEffects = (list, which, vocab) => {
+    const out = [];
+    for (const e of Array.isArray(list) ? list : []) {
+      if (!isObj(e) || !e.stat) { out.push('an effect without a stat'); continue; }
+      if (!statKnown(String(e.stat), statSetFor(e, which), vocab)) out.push(`unknown stat "${e.stat}"${e.target ? ` for target ${e.target}` : ''}`);
+      if (e.op != null && !['add', 'mul', 'set'].includes(String(e.op))) out.push(`unknown op "${e.op}" on ${e.stat} (add / mul / set)`);
+      if (e.value == null || !isFinite(Number(e.value))) out.push(`${e.stat} has no number`);
+    }
+    return out;
+  };
+  const badLevels = (levels, which, vocab) => {
+    const out = [];
+    (Array.isArray(levels) ? levels : []).forEach((lv, i) => {
+      if (!Array.isArray(lv)) { out.push(`level ${i + 1} is not a list`); return; }
+      for (const m of badEffects(lv, which, vocab)) out.push(`level ${i + 1}: ${m}`);
+    });
+    return out;
+  };
+  const unknownParams = (params, behavior) => Object.keys(isObj(params) ? params : {}).filter((k2) => !paramsKnown(k2, behavior));
+  const attackList = (d) => (isObj(d.boss) && Array.isArray(d.boss.attacks) ? d.boss.attacks : []);
+  const unknownSfx = (d, ctx) => { const known = soundsKnown(ctx); if (!known || !isObj(d.sfx)) return []; return Object.keys(d.sfx).filter((h) => str(d.sfx[h]) && !known.includes(str(d.sfx[h]))).map((h) => `${h}: "${d.sfx[h]}"`); };
+  const bandWarn = (ctx) => {
+    const ws = flat(ctx, 'weapons'), ps = flat(ctx, 'passives'), qs = flat(ctx, 'quests');
+    if (!ws || !ps || !qs) return null;
+    const b = M.bandOf(ws, ps, qs);
+    return b.base && (b.share < b.lo || b.share > b.hi) ? b : null;
+  };
+  const common = (kind) => [
+    E('id', (d, c) => d.id != null && (!M.slugOk(d.id) || (c && c.id && String(d.id) !== String(c.id))), (d, c) => `id "${d.id}" must be the folder's name${c && c.id ? ` (${c.id})` : ''} in [a-z0-9_]`),
+    E('name', (d) => !str(d.name), 'name is empty'),
+  ];
+  const rarityRules = [
+    E('rarity', (d, c) => d.rarity != null && !vals(vocabOf(c).rarities).includes(str(d.rarity)), (d) => `unknown rarity "${d.rarity}"`),
+    E('weight', (d) => d.weight != null && !(isFinite(Number(d.weight)) && Number(d.weight) >= 0), 'weight must be a number of 0 or more'),
+    W('rarity', (d) => str(d.rarity) === 'legendary', 'legendary: no item uses it; the card pool weighs it 0.15 and pass47_ui pins four rarities among passive items'),
+  ];
+
+  const RULES = {
+    enemy: [].concat(common('enemy'), [
+      E('doc', (d) => !str(d.doc), 'doc is empty: the Collection page would be blank (pass25_test wants it non-empty)'),
+      E('blood', (d) => d.blood != null && !M.HEX_RE.test(String(d.blood)), (d) => `blood "${d.blood}" is not #RRGGBB (pass58_fx_test)`),
+      E('knockback', (d, c) => !String((c && c.id) || d.id || '').startsWith('training_dummy') && !(M.isNum(d.knockback) && d.knockback > 0), (d) => `knockback must be a number above 0 (pass54_waves_test; the game's own would be ${M.plain(M.defaultKnockback(num(d.damage, 5)))})`),
+      E('hp', (d) => d.hp != null && !(M.isNum(d.hp) && d.hp > 0), 'hp must be a number above 0'),
+      E('damage', (d) => d.damage != null && !(M.isNum(d.damage) && d.damage >= 0), 'bite must be a number of 0 or more'),
+      E('size', (d) => d.size != null && !(M.isNum(d.size) && d.size > 0), 'size is one number in metres above 0 (a [min, max] range belongs to a roster row: a list here fails to load)'),
+      E('radius', (d) => d.radius != null && !(M.isNum(d.radius) && d.radius > 0), 'radius must be a number above 0'),
+      E('speed', (d) => d.speed != null && !(M.isNum(d.speed) && d.speed >= 0), 'speed must be a number of 0 or more'),
+      E('brain', (d, c) => d.brain != null && !vals(vocabOf(c).brains).includes(str(d.brain)), (d) => `unknown brain "${d.brain}": the game would chase. A new brain needs code: ask Claude`),
+      E('archetype', (d, c) => d.archetype != null && !vals(vocabOf(c).archetypes).includes(str(d.archetype)), (d) => `unknown archetype "${d.archetype}"`),
+      E('variance.tint_strength', (d) => isObj(d.variance) && d.variance.tint_strength != null && Number(d.variance.tint_strength) > 0.3, 'variance.tint_strength above 0.3 (pass27_test pins ≤ 0.3)'),
+      E('variance.special.tint', (d) => { const sp = isObj(d.variance) && isObj(d.variance.special) ? d.variance.special : null; if (!sp || sp.tint == null) return false; const h = hexToHsv(sp.tint); return !h || h.v >= 0.6 || h.s <= 0.4; }, 'the special\'s tint must be a dark, coloured hex: value under 0.6 and saturation over 0.4 (pass27_test)'),
+      E('anims', (d) => isObj(d.anims) && Object.keys(d.anims).some((a) => !isInt(d.anims[a]) || d.anims[a] < 0), 'anims counts must be whole numbers of 0 or more'),
+      E('strip_cols', (d) => d.strip_cols != null && (!isInt(d.strip_cols) || d.strip_cols < 0), 'strip_cols is a whole number (0 = one row)'),
+      E('badge', (d) => str(d.badge) === 'crown' && str(d.archetype) !== 'elite', 'the crown shows only on the elite archetype (pass333_test pins the crown wearers to the elites)'),
+      E('badge', (d, c) => d.badge != null && !vals(vocabOf(c).badges).includes(str(d.badge)), (d) => `unknown badge "${d.badge}"`),
+      E('front_faces', (d, c) => d.front_faces != null && !vals(vocabOf(c).faces).includes(str(d.front_faces)), (d) => `unknown front_faces "${d.front_faces}"`),
+      E('back_faces', (d, c) => d.back_faces != null && !vals(vocabOf(c).faces).includes(str(d.back_faces)), (d) => `unknown back_faces "${d.back_faces}"`),
+      E('boss.attacks', (d) => attackList(d).some((a) => !isObj(a) || !str(a.name)), 'every attack of the script is an object with a name'),
+      E('boss.attacks', (d) => isObj(d.boss) && d.boss.attacks != null && !Array.isArray(d.boss.attacks), 'boss.attacks must be a list'),
+      E('pack_size', (d) => d.pack_size != null && !(isInt(d.pack_size) && d.pack_size >= 1), 'pack_size is a whole number of 1 or more'),
+      E('badJson', (d, c) => c && c.badJson && Object.keys(c.badJson).length > 0, (d, c) => `a JSON box does not parse: ${Object.keys(c.badJson).join(', ')}`),
+      W('damage_reduction', (d) => d.damage_reduction != null && (Number(d.damage_reduction) < 0 || Number(d.damage_reduction) > 0.9), 'damage_reduction is clamped to 0..0.9 in play'),
+      W('contact_cd', (d) => d.contact_cd != null && Number(d.contact_cd) < 0.05, 'contact_cd is at least 0.05 in play'),
+      W('brain', (d, c) => { const seen = c && c.seenCombos; if (!seen) return false; const list = seen instanceof Set ? seen : new Set(seen); return !list.has(M.combo(d)); }, (d) => `No creature in play uses ${M.comboWords(d)}: untested in play`),
+      W('sfx', (d, c) => unknownSfx(d, c).length > 0, (d, c) => `unknown sound id, silent in the game: ${unknownSfx(d, c).join(', ')}`),
+      W('boss.attacks', (d) => attackList(d).some((a) => isObj(a) && str(a.name) && !ATTACKS[str(a.name)]), (d) => `unknown attack name: ${attackList(d).filter((a) => isObj(a) && str(a.name) && !ATTACKS[str(a.name)]).map((a) => `"${a.name}"`).join(', ')} (the game does nothing for it)`),
+      W('boss.attacks', (d) => attackList(d).some((a) => isObj(a) && ATTACKS[str(a.name)] && ATTACKS[str(a.name)].needsRingAtHero && attackTelegraph(a) !== 'ring_at_hero'), (d) => `${attackList(d).filter((a) => isObj(a) && ATTACKS[str(a.name)] && ATTACKS[str(a.name)].needsRingAtHero && attackTelegraph(a) !== 'ring_at_hero').map((a) => a.name).join(', ')}: lands where the "ring at the hero" telegraph was set; with another telegraph it has no target`),
+      W('boss.attacks', (d, c) => { const en = enemies(c); if (!en) return false; return attackList(d).some((a) => isObj(a) && ((str(a.name) === 'spawn_ring' && !findIn(en, str(a.enemy) || 'coyote')) || (str(a.name) === 'erupt' && str(a.spawn) && !findIn(en, a.spawn)))); }, 'spawn_ring / erupt names a creature that does not exist (the game\'s default "coyote" is gone): it spawns nothing'),
+      W('boss.attacks', (d) => attackList(d).some((a) => isObj(a) && a.telegraph != null && !['line', 'ring', 'ring_at_hero', 'sector', 'fan', 'spokes', 'none'].includes(str(a.telegraph))), 'an attack names an unknown telegraph (line, ring, ring_at_hero, sector, fan, spokes, none)'),
+      W('shadow.up', (d) => isObj(d.shadow) && M.isNum(d.shadow.up) && M.isNum(d.size) && d.shadow.up > d.size, 'shadow.up is higher than the creature (size)'),
+      W('looks', (d, c) => Array.isArray(c && c.looks) && c.looks.some((l) => l && l.fresh), (d, c) => `unreviewed look${c.looks.filter((l) => l.fresh).length > 1 ? 's' : ''}: ${c.looks.filter((l) => l.fresh).map((l) => l.code).join(', ')} (Approve in the Looks section)`),
+      W('looks', (d, c) => Array.isArray(c && c.looks) && c.looks.some((l) => l && l.ready && l.imported === false), (d, c) => `not imported yet (the game plays the old .tres): ${c.looks.filter((l) => l.ready && l.imported === false).map((l) => l.code).join(', ')}`),
+      W('hidden', (d) => !!d.retired && !!d.hidden, 'both retired and hidden: retired already counts as hidden'),
+    ]),
+    hero: [].concat(common('hero'), [
+      E('pronoun', (d, c) => d.pronoun != null && !vals(vocabOf(c).pronouns).includes(str(d.pronoun)), (d) => `pronoun "${d.pronoun}" is not he / she / they`),
+      E('order', (d) => d.order != null && !isInt(d.order), 'order is a whole number'),
+      E('availability', (d, c) => d.availability != null && !vals(vocabOf(c).availability).includes(str(d.availability)), (d) => `unknown availability "${d.availability}" (hidden / available / purchase)`),
+      E('price', (d) => d.price != null && !(isInt(d.price) && d.price >= 0), 'price is a whole number of 0 or more'),
+      E('currency_type', (d, c) => d.currency_type != null && !vals(vocabOf(c).currencies).includes(str(d.currency_type)), (d) => `unknown currency "${d.currency_type}" (gold)`),
+      E('trait_per_level', (d, c) => badEffects(d.trait_per_level, 'player', vocabOf(c)).length > 0, (d, c) => `trait_per_level: ${badEffects(d.trait_per_level, 'player', vocabOf(c)).join('; ')}`),
+      E('trait', (d, c) => badEffects(d.trait, 'player', vocabOf(c)).length > 0, (d, c) => `trait: ${badEffects(d.trait, 'player', vocabOf(c)).join('; ')}`),
+      E('favourite_bonus.effects', (d, c) => isObj(d.favourite_bonus) && badEffects(d.favourite_bonus.effects, 'any', vocabOf(c)).length > 0, (d, c) => `favourite_bonus.effects: ${badEffects(d.favourite_bonus.effects, 'any', vocabOf(c)).join('; ')}`),
+      E('favourite_bonus.type', (d) => isObj(d.favourite_bonus) && d.favourite_bonus.type != null && !['level', 'effects'].includes(str(d.favourite_bonus.type)), 'favourite_bonus.type is level or effects (weapons have no "max")'),
+      E('favourite_passive_bonus.type', (d) => isObj(d.favourite_passive_bonus) && d.favourite_passive_bonus.type != null && !['max', 'level', 'effects'].includes(str(d.favourite_passive_bonus.type)), 'favourite_passive_bonus.type is max, level or effects'),
+      E('favourite_weapon', (d, c) => !d.hidden && str(d.favourite_weapon) && flat(c, 'weapons') && !findIn(flat(c, 'weapons'), d.favourite_weapon), (d) => `favourite_weapon "${d.favourite_weapon}" is not a weapon (Registry.problems)`),
+      E('start_weapon', (d, c) => !d.hidden && str(d.start_weapon) && flat(c, 'weapons') && !findIn(flat(c, 'weapons'), d.start_weapon), (d) => `start_weapon "${d.start_weapon}" is not a weapon (Registry.problems)`),
+      E('favourite_passive', (d, c) => !d.hidden && str(d.favourite_passive) && flat(c, 'passives') && !findIn(flat(c, 'passives'), d.favourite_passive), (d) => `favourite_passive "${d.favourite_passive}" is not a passive (Registry.problems)`),
+      E('specials', (d, c) => Array.isArray(d.specials) && d.specials.some((s) => !vals(vocabOf(c).specials).includes(str(s))), (d, c) => `unknown special: ${d.specials.filter((s) => !vals(vocabOf(c).specials).includes(str(s))).join(', ')} (a new mechanism needs code: ask Claude)`),
+      E('badJson', (d, c) => c && c.badJson && Object.keys(c.badJson).length > 0, (d, c) => `a JSON box does not parse: ${Object.keys(c.badJson).join(', ')}`),
+      W('trait_text', (d) => Array.isArray(d.trait_per_level) && d.trait_per_level.length > 0 && str(d.trait_text) !== M.heroTrait(d), (d) => `trait_text differs from the rule's sentence "${M.heroTrait(d)}" (pass61_hr pins them equal for played heroes: Set from the rule)`),
+      W('favourite_weapon', (d, c) => !!d.hidden && str(d.favourite_weapon) && flat(c, 'weapons') && !findIn(flat(c, 'weapons'), d.favourite_weapon), (d) => `favourite_weapon "${d.favourite_weapon}" is not a weapon (fine while hidden)`),
+      W('availability', (d, c) => c && c.saved && (!!c.saved.hidden || (c.saved.availability != null && c.saved.availability !== 'available')) && !d.hidden && (d.availability == null || d.availability === 'available'), 'this hero turns playable: the tests pin the five heroes (pass334_test:111, pass61_hr_test:10); re-pin them first or keep him hidden'),
+      W('hidden', (d) => !!d.hidden !== (d.availability != null && d.availability !== 'available') && d.availability != null, (d) => `hidden (${!!d.hidden}) and availability (${d.availability}) disagree: the game hides a hero when either says so`),
+      W('order', (d, c) => { const hs = heroes(c); if (!hs || d.order == null) return false; return hs.some((h) => String(h.id) !== String((c && c.id) || d.id) && !h.hidden && h.order === d.order); }, (d) => `order ${d.order} is another playable hero's too`),
+      W('perks', (d, c) => !!d.hidden && str(d.favourite_weapon) && c && c.record && Array.isArray(c.record.perks) && c.record.perks.length === 0, 'a hidden hero with a favourite weapon and no perk: pass26_test looped over hidden heroes too (lane G removes that loop); harmless once re-pinned'),
+      W('unlock_quest', (d) => str(d.unlock_quest), 'unlock_quest is a dead key: a hero is gated by a quest whose unlocks names him'),
+    ]),
+    weapon: [].concat(common('weapon'), rarityRules, [
+      E('behavior', (d, c) => d.behavior != null && !vals(vocabOf(c).behaviors).includes(str(d.behavior)), (d) => `unknown behaviour "${d.behavior}" (a new one needs code: ask Claude)`),
+      W('targeting', (d, c) => d.targeting != null && !vals(vocabOf(c).targeting).includes(str(d.targeting)), (d) => `unknown targeting "${d.targeting}": only priority, forward, random and healthy change the aim, the rest describe (TextGen)`),
+      E('levels', (d) => d.levels != null && !Array.isArray(d.levels), 'levels must be a list of lists'),
+      E('levels', (d) => !d.is_evolution && Array.isArray(d.levels) && !(d.levels.length === 5 && Array.isArray(d.levels[0]) && d.levels[0].length === 0), (d) => `a base weapon has exactly 5 level lists with level 1 empty (pass48_p0_test:219); this one has ${Array.isArray(d.levels) ? d.levels.length : 0}${Array.isArray(d.levels) && d.levels[0] && d.levels[0].length ? ' and level 1 is not empty' : ''}`),
+      E('levels', (d, c) => badLevels(d.levels, 'weapon', vocabOf(c)).length > 0, (d, c) => badLevels(d.levels, 'weapon', vocabOf(c)).join('; ')),
+      E('max_level', (d) => !d.is_evolution && d.max_level != null && d.max_level !== 5, 'a base weapon\'s max_level is 5 (pass48_p0_test:216)'),
+      E('evolves_with', (d) => str(d.evolves_with), 'evolves_with must stay empty: weapons evolve through their path (pass26_test)'),
+      E('evolves_into', (d, c) => !d.is_evolution && !d.hidden && flat(c, 'evolutions') && !findIn(flat(c, 'evolutions'), d.evolves_into), (d) => str(d.evolves_into) ? `evolves_into "${d.evolves_into}" is not an evolution (Registry.problems)` : 'no evolution: Create templates in Evolution & path, or keep the weapon hidden'),
+      E('path', (d, c) => { if (d.is_evolution || d.hidden) return false; const ms = flat(c, 'mutations'); if (!ms) return false; const p = M.pathOf((c && c.id) || d.id, ms); return !(p.element && p.volume && p.motion); }, (d, c) => { const p = M.pathOf((c && c.id) || d.id, flat(c, 'mutations')); const miss = ['element', 'volume', 'motion'].filter((kk) => !p[kk]); return `an available weapon needs a non-hidden path mutation of each kind (pass48_p0_test:273-278); missing: ${miss.join(', ')}${p.hidden.length ? ` (hidden: ${p.hidden.map((m) => m.id).join(', ')})` : ''}`; }),
+      E('hero', (d, c) => str(d.hero) && heroes(c) && !findIn(heroes(c), d.hero), (d) => `hero "${d.hero}" is not a hero`),
+      E('badJson', (d, c) => c && c.badJson && Object.keys(c.badJson).length > 0, (d, c) => `a JSON box does not parse: ${Object.keys(c.badJson).join(', ')}`),
+      W('params', (d) => unknownParams(d.params, str(d.behavior) || 'ProjectileEmitter').length > 0, (d) => `params keys no behaviour script reads: ${unknownParams(d.params, str(d.behavior) || 'ProjectileEmitter').join(', ')}`),
+      W('sfx', (d, c) => unknownSfx(d, c).length > 0, (d, c) => `unknown sound id, silent in the game: ${unknownSfx(d, c).join(', ')}`),
+      W('evolves_into', (d, c) => !d.is_evolution && !d.hidden && flat(c, 'evolutions') && findIn(flat(c, 'evolutions'), d.evolves_into) && !!findIn(flat(c, 'evolutions'), d.evolves_into).hidden, (d) => `its evolution "${d.evolves_into}" is hidden while the weapon is available: it can never evolve`),
+      W('band', (d, c) => !d.is_evolution && !!bandWarn(c), (d, c) => { const b = bandWarn(c); return `quest-locked base items ${b.locked} of ${b.base} = ${Math.round(b.share * 100)}%: the ship test wants 33-56% (pass44_test); add a quest lock or ask Claude to widen the band`; }),
+      W('from_stage', (d) => d.from_stage != null && Number(d.from_stage) > 3, 'from_stage beyond stage 3: only offered in endless'),
+    ]),
+    evolution: [].concat(common('evolution'), rarityRules, [
+      E('behavior', (d, c) => d.behavior != null && !vals(vocabOf(c).behaviors).includes(str(d.behavior)), (d) => `unknown behaviour "${d.behavior}"`),
+      W('targeting', (d, c) => d.targeting != null && !vals(vocabOf(c).targeting).includes(str(d.targeting)), (d) => `unknown targeting "${d.targeting}": only priority, forward, random and healthy change the aim, the rest describe (TextGen)`),
+      E('evolved_from', (d, c) => { const ws = flat(c, 'weapons'); if (!ws) return false; return !findIn(ws, d.evolved_from); }, (d) => str(d.evolved_from) ? `evolved_from "${d.evolved_from}" is not a weapon` : 'evolved_from names no weapon'),
+      W('evolved_from', (d, c) => { const ws = flat(c, 'weapons'); if (!ws) return false; const w = findIn(ws, d.evolved_from); return !!w && String(w.evolves_into) !== String((c && c.id) || d.id); }, (d, c) => `${d.evolved_from} evolves into "${findIn(flat(c, 'weapons'), d.evolved_from).evolves_into}", not this: unreachable in play (an alternate kept on disk)`),
+      E('levels', (d, c) => badLevels(d.levels, 'weapon', vocabOf(c)).length > 0, (d, c) => badLevels(d.levels, 'weapon', vocabOf(c)).join('; ')),
+      E('badJson', (d, c) => c && c.badJson && Object.keys(c.badJson).length > 0, (d, c) => `a JSON box does not parse: ${Object.keys(c.badJson).join(', ')}`),
+      W('max_level', (d) => d.max_level != null && d.max_level !== 1, 'an evolution has max_level 1: it cannot level further'),
+      W('levels', (d) => Array.isArray(d.levels) && !(d.levels.length === 1 && Array.isArray(d.levels[0]) && d.levels[0].length === 0), 'an evolution\'s levels are [[]]: its numbers live in base and params.final'),
+      W('params', (d) => unknownParams(d.params, str(d.behavior) || 'ProjectileEmitter').length > 0, (d) => `params keys no behaviour script reads: ${unknownParams(d.params, str(d.behavior) || 'ProjectileEmitter').join(', ')}`),
+      W('sfx', (d, c) => unknownSfx(d, c).length > 0, (d, c) => `unknown sound id, silent in the game: ${unknownSfx(d, c).join(', ')}`),
+    ]),
+    passive: [].concat(common('passive'), rarityRules, [
+      E('max_level', (d) => d.max_level != null && !(isInt(d.max_level) && d.max_level >= 1), 'max_level is a whole number of 1 or more'),
+      E('levels', (d) => !Array.isArray(d.levels) || d.levels.length === 0, 'levels is a non-empty list of lists'),
+      E('levels', (d, c) => badLevels(d.levels, 'player', vocabOf(c)).length > 0, (d, c) => badLevels(d.levels, 'player', vocabOf(c)).join('; ')),
+      E('evolves_into', (d, c) => str(d.evolves_into) && flat(c, 'passives') && !findIn(flat(c, 'passives'), d.evolves_into), (d) => `evolves_into "${d.evolves_into}" is not a passive`),
+      E('evolves_into', (d, c) => { const t = str(d.evolves_into) && findIn(flat(c, 'passives'), d.evolves_into); return !!t && (String(t.evolves_from) !== String((c && c.id) || d.id) || !!t.line !== !!d.line); }, (d) => `"${d.evolves_into}" must name this as its evolves_from and agree on line (Registry.problems)`),
+      E('evolves_from', (d, c) => { const t = str(d.evolves_from) && flat(c, 'passives') && findIn(flat(c, 'passives'), d.evolves_from); return str(d.evolves_from) && flat(c, 'passives') && (!t || String(t.evolves_into) !== String((c && c.id) || d.id)); }, (d) => `evolves_from "${d.evolves_from}" is not a passive whose evolves_into is this`),
+      E('element', (d, c) => d.element != null && !vals(vocabOf(c).elements).includes(str(d.element)), (d) => `unknown element "${d.element}"`),
+      W('weight', (d) => str(d.evolves_from) && Number(d.weight) > 0, 'an evolved line usually weighs 0: it comes from its base line, never on its own'),
+      W('band', (d, c) => !d.evolves_from && !!bandWarn(c), (d, c) => { const b = bandWarn(c); return `quest-locked base items ${b.locked} of ${b.base} = ${Math.round(b.share * 100)}%: the ship test wants 33-56% (pass44_test); add a quest lock or ask Claude to widen the band`; }),
+    ]),
+    mutation: [].concat(common('mutation'), rarityRules, [
+      E('kind', (d, c) => d.kind != null && !vals(vocabOf(c).mutationKinds).includes(str(d.kind)), (d) => `unknown kind "${d.kind}" (element / volume / motion / stance / hero)`),
+      E('weapon', (d, c) => !str(d.weapon) || (flat(c, 'weapons') && !findIn(flat(c, 'weapons'), d.weapon)), (d) => str(d.weapon) ? `weapon "${d.weapon}" is not a weapon` : 'a mutation names the weapon it mutates'),
+      E('hero', (d, c) => str(d.hero) && heroes(c) && !findIn(heroes(c), d.hero), (d) => `hero "${d.hero}" is not a hero`),
+      E('hero', (d) => str(d.kind) === 'hero' && !str(d.hero), 'kind hero needs a hero: without one it would count as a fourth path kind'),
+      E('effects', (d, c) => badEffects(d.effects, 'any', vocabOf(c)).length > 0, (d, c) => `effects: ${badEffects(d.effects, 'any', vocabOf(c)).join('; ')}`),
+      E('behavior', (d, c) => str(d.behavior) && !vals(vocabOf(c).behaviors).includes(str(d.behavior)), (d) => `unknown behaviour "${d.behavior}"`),
+      E('badJson', (d, c) => c && c.badJson && Object.keys(c.badJson).length > 0, (d, c) => `a JSON box does not parse: ${Object.keys(c.badJson).join(', ')}`),
+      W('text', (d) => !str(d.text), 'text is empty: the card shows nothing'),
+      W('params', (d, c) => { const w = flat(c, 'weapons') && findIn(flat(c, 'weapons'), d.weapon); const beh = str(d.behavior) || (w ? str(w.behavior) : '') || 'ProjectileEmitter'; return unknownParams(d.params, beh).length > 0; }, (d, c) => { const w = flat(c, 'weapons') && findIn(flat(c, 'weapons'), d.weapon); const beh = str(d.behavior) || (w ? str(w.behavior) : '') || 'ProjectileEmitter'; return `params keys ${beh} does not read: ${unknownParams(d.params, beh).join(', ')}`; }),
+    ]),
+  };
+  RULES.boss = RULES.enemy;
+
+  /** a row's options resolved against a vocabulary (array or function) */
+  function options(def, vocab) {
+    const o = def && def.options;
+    if (typeof o === 'function') return o(vocab || VOCAB) || [];
+    return Array.isArray(o) ? o : [];
+  }
+  /** the table of a kind (boss shares the enemy's) */
+  function table(kind) { return kind === 'boss' ? enemy : (AFIELDS_TABLES[kind] || []); }
+  const AFIELDS_TABLES = { enemy, hero, weapon, evolution, passive, mutation };
+
+  const api = {
+    VOCAB, statOptions, statKnown, statSetFor, playerStats, weaponStats, BASE_DEFAULTS, BASE_KEYS, PARAMS_KEYS, PARAMS_SHARED, paramsKnown,
+    BLOCKS, BLOCK_ORDER, ATTACK_COMMON, ATTACKS, ATTACK_NAMES, attackOptions, attackTelegraph,
+    enemy, hero, weapon, evolution, passive, mutation, QUEST_ROWS, SECTIONS, RECIPES, WORDINGS, RULES, options, table, hexToHsv,
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  return api;
+})();

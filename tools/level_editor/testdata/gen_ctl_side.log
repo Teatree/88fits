@@ -1,0 +1,19 @@
+  side bull_beetle_bbx_side_k0 seed 18601 20s
+  side bull_beetle_bbx_side_k1 seed 19601 19s
+  side bull_beetle_bbx_side_k2 seed 20601 20s
+  side candidates painted: look at D:\_projects\88fits\tools\dl\review\bull_beetle_bbx_side_cands.png, then rerun with --use-side=kN
+--- after the pick (--use-side=k1), the second run ---
+  render bull_beetle_bbx_front      seed 18612    19.6s  ok
+  render bull_beetle_bbx_fd         seed 18613    20.1s  ok
+  render bull_beetle_bbx_bd         seed 18614    19.8s  ok
+  render bull_beetle_bbx_back       seed 18615    20.3s  ok
+  views sheet: D:\_projects\88fits\tools\dl\review\bull_beetle_bbx_views.png
+  ctl  bull_beetle_bbx_ctl_front seed 18621     118s  12 frames, box (139, 183, 481, 480)
+  ctl  bull_beetle_bbx_ctl_fd   seed 18622      74s  12 frames, box (79, 196, 559, 474)
+  ctl  bull_beetle_bbx_ctl_side seed 18623     108s  12 frames, box (76, 213, 546, 456)
+  ctl  bull_beetle_bbx_ctl_bd   seed 18624      73s  12 frames, box (76, 156, 535, 492)
+  ctl  bull_beetle_bbx_ctl_back seed 18625      90s  12 frames, box (165, 135, 475, 486)
+  model scale per view: front 0.91, fd 0.92, side 1.00, bd 1.00, back 1.00
+  shot bull_beetle_bbx_death    seed 18631      86s  8 frames of 25, box (120, 140, 500, 480)
+  sidecar written: D:/_projects/88fits/tools/dl/jobs/j20261011-160102-a1b2/result.json
+gen_ctl: bull_beetle BB-X packed, 91 frames, bull_beetle_sprite_x.png

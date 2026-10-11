@@ -355,11 +355,13 @@ func test_three_perks_are_hidden_but_kept() -> void:
 		var j = JSON.parse_string(FileAccess.get_file_as_string("res://content/perks/%s/%s.json" % [id, id]))
 		assert_bool(bool(j.get("hidden", false))).is_true()
 		assert_str(str(j.get("note", ""))).contains("remove hidden")
-	# the heroes keep two perks each in play, and the content its fourteen (pass 54: eighteen, Solenne's Afterglow and
-	# Sunburn in play, her Lingering Light and Long Day hidden)
-	for hero in ["astro", "drifter", "calavera", "ironwood", "solenne"]:
-		assert_int(Registry.perks_of(hero).size()).override_failure_message(hero).is_equal(2)
-	assert_int(Registry.perks.size()).is_equal(18)
+	# the heroes keep their perks in play (pass 54: eighteen in the content, Solenne's Afterglow and Sunburn in play, her
+	# Lingering Light and Long Day hidden); pass 66: the rule in place of the counts (the Level Editor adds perks and
+	# heroes): every perk names a hero that is there and every hero in play has at least one
+	for pk: PerkDef in Registry.perks.values():
+		assert_object(Registry.character(pk.hero)).override_failure_message(pk.id + " names no hero").is_not_null()
+	for c: CharacterDef in Registry.sorted_characters():
+		assert_int(Registry.perks_of(c.id).size()).override_failure_message(c.id).is_greater_equal(1)
 	# the Collection's Perks tab leaves them out
 	var cs: Control = auto_free(load("res://ui/CollectionScreen.tscn").instantiate())
 	var tab: Array = cs._items(3)

@@ -55,6 +55,15 @@ var _place := "near"
 var _elite_id := ""
 var _hold := false
 var _last_enemy := "goblin"
+## The looks (pass 66, Garry: the arena must cope with ~50 looks of one creature): the chips wrap (HFlowContainer); with
+## more than LOOKS_NOTED looks the per-code notes show only for the lit chip; with more than LOOKS_FOLD creatures carrying
+## looks the Art variants section folds to one header a creature and a tap opens one (`_looks_open`); a shelved look
+## (`variants[CODE].shelved`) is skipped unless the Shelved looks choice shows them, dimmed.
+const LOOKS_NOTED := 8
+const LOOKS_FOLD := 6
+const SHELVED_ALPHA := 0.55
+var _show_shelved := false
+var _looks_open: Dictionary = {}
 # WAVES
 var _minute := 0.0
 # ITEMS: which sections are open, and which weapons' stacks (STACK_KEY + the weapon's id, pass 49)
@@ -319,31 +328,96 @@ func _enemy_tab() -> void:
 
 ## The art variants (pass 34): every creature that has more than one strip, a chip per code. A chip spawns How many of
 ## it with that art, so two or more can be walked side by side; the one the game plays is marked. The code is what to
-## name when picking one.
+## name when picking one. Pass 66: the chips wrap (`Variants_<id>`, chips `Variant_<id>_<code>`), the section folds to a
+## header a creature (`LooksHead_<id>`) when more than LOOKS_FOLD creatures carry looks, shelved looks hide unless shown.
 func _variants_section() -> void:
-	var defs: Array = Registry.enemies.values().filter(func(d: EnemyDef) -> bool: return not d.variant_codes().is_empty())
-	if defs.is_empty():
+	var shelved_any := _any_shelved()
+	var defs: Array = Registry.enemies.values().filter(func(d: EnemyDef) -> bool: return not d.variant_codes(_show_shelved).is_empty())
+	if defs.is_empty() and not shelved_any:
 		return
 	defs.sort_custom(func(a, b): return a.id < b.id)
 	_section("Art variants")
 	_note("Tap a code to spawn How many with that art. ● is the one in the game. Tell Claude the code you like.")
+	if shelved_any:
+		_shelved_choice("ShelvedLooks")
+	var fold := defs.size() > LOOKS_FOLD
+	if fold:
+		_note("Tap a creature to open its looks.")
 	for d: EnemyDef in defs:
-		var row := UiKit.hbox(8)
-		row.mouse_filter = Control.MOUSE_FILTER_PASS
-		var l := UiKit.label(d.display_name, 22, UiKit.INK2)
-		l.custom_minimum_size = Vector2(150, 0)
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		row.add_child(l)
-		for code in d.variant_codes():
+		var codes: Array = d.variant_codes(_show_shelved)
+		if fold:
+			var opened: bool = bool(_looks_open.get(d.id, false))
+			var head := UiKit.button("%s  %s · %d looks" % ["▾" if opened else "▸", d.display_name, codes.size()], 22, opened, 64)
+			head.name = "LooksHead_" + d.id
+			head.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			head.pressed.connect(func(): _looks_open[d.id] = not opened; _refresh())
+			_content.add_child(head)
+			if not opened:
+				continue
+		var row := _chip_flow("Variants_" + d.id)
+		if not fold:
+			var l := UiKit.label(d.display_name, 22, UiKit.INK2)
+			l.custom_minimum_size = Vector2(150, 0)
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			row.add_child(l)
+		for code in codes:
 			var c := str(code)
 			var b := UiKit.button(c + (" ●" if c == d.variant else ""), 20, c == d.variant, 64)
+			b.name = "Variant_%s_%s" % [d.id, c]
+			if d.variant_shelved(c):
+				b.modulate = Color(1, 1, 1, SHELVED_ALPHA)
 			b.pressed.connect(func(): spawn_enemy(d.variant_def(c)))
 			row.add_child(b)
 		_content.add_child(row)
-		for code in d.variant_codes():
-			var note := str((d.variants[code] as Dictionary).get("note", ""))
-			if note != "":
-				_note("%s  %s" % [str(code), note])
+		_look_notes(codes, func(c: String) -> String: return str((d.variants[c] as Dictionary).get("note", "")), d.variant)
+
+
+## A row of chips that wraps (pass 66: fifty looks of one creature fit the sheet; an HFlowContainer as the Upgrade
+## board's summary chips and the shop's tray).
+func _chip_flow(row_name: String) -> HFlowContainer:
+	var f := HFlowContainer.new()
+	f.name = row_name
+	f.add_theme_constant_override("h_separation", 8)
+	f.add_theme_constant_override("v_separation", 8)
+	f.mouse_filter = Control.MOUSE_FILTER_PASS
+	return f
+
+
+## The per-code notes under a chip row: every code's with up to LOOKS_NOTED looks, only the lit chip's with more (pass
+## 66: fifty notes would bury the sheet). `note_of` gives a code's note, "" for none.
+func _look_notes(codes: Array, note_of: Callable, lit: String) -> void:
+	for code in codes:
+		var c := str(code)
+		if codes.size() > LOOKS_NOTED and c != lit:
+			continue
+		var note: String = str(note_of.call(c))
+		if note != "":
+			_note("%s  %s" % [c, note])
+
+
+## The Shelved looks choice (pass 66): Hide (the default) or Show, dimmed; one switch for the ENEMY and HERO tabs.
+func _shelved_choice(row_name: String) -> void:
+	var row := _choice("Shelved looks", [[false, "Hide"], [true, "Show"]], _show_shelved, func(v): _show_shelved = bool(v))
+	row.name = row_name
+
+
+## Whether any creature carries a shelved look (pass 66): then the section offers to show them.
+func _any_shelved() -> bool:
+	for d: EnemyDef in Registry.enemies.values():
+		for code in d.variants.keys():
+			if d.variant_shelved(str(code)):
+				return true
+	return false
+
+
+## Whether a hero carries a shelved look (pass 66).
+static func hero_has_shelved(c: CharacterDef) -> bool:
+	if c == null:
+		return false
+	for code in c.variants.keys():
+		if c.variant_shelved(str(code)):
+			return true
+	return false
 
 
 func _enemy_sub(def: EnemyDef) -> String:
@@ -412,6 +486,12 @@ func spawn_enemy(def: EnemyDef) -> void:
 	_set_again(label, act)
 	act.call()
 	close()
+
+
+## `n` of `def` near the hero at once, no elite modifier, not held (pass 66: the launch file's `spawn_enemy`, the Level
+## Editor's "Test in game"; Game._launch_in_arena).
+func spawn_enemy_n(def: EnemyDef, n: int) -> void:
+	_spawn_enemy_now(def, maxi(n, 1), "near", "", false)
 
 
 func _spawn_enemy_now(def: EnemyDef, n: int, place: String, mod_id: String, hold: bool) -> void:
@@ -1052,17 +1132,21 @@ func _hero_looks() -> void:
 	var c: CharacterDef = Run.character
 	if c == null:
 		return
-	var codes: Array = c.variant_codes()
+	var shelved_any := hero_has_shelved(c)
+	var codes: Array = c.variant_codes(_show_shelved)
 	if codes.is_empty():
 		_note("%s has one look%s." % [c.display_name, (" (%s)" % c.variant) if c.variant != "" else ""])
+		if shelved_any:
+			_shelved_choice("ShelvedLooksHero")
 		return
 	_section("Looks · %s" % c.display_name)
 	_note("Tap a look to see it on the hero now (this visit only). ● on the hero now, RUNS what every run starts with.")
+	if shelved_any:
+		_shelved_choice("ShelvedLooksHero")
 	var shown := shown_look()
 	var kept := kept_look(c)
-	var row := UiKit.hbox(8)
-	row.name = "HeroLooks"
-	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	# pass 66: the chips wrap, so fifty looks fit the sheet
+	var row := _chip_flow("HeroLooks")
 	for code in codes:
 		var k := str(code)
 		var b := UiKit.button(look_chip_text(k, shown, kept), 20, k == shown, 64)
@@ -1072,13 +1156,12 @@ func _hero_looks() -> void:
 			var bg := UiKit.ACCENT if k == shown else UiKit.BG3
 			b.add_theme_stylebox_override("normal", UiKit.stylebox(bg, 30, UiKit.GOOD, 4, true, true))
 			b.add_theme_stylebox_override("hover", UiKit.stylebox(bg.lightened(0.08), 30, UiKit.GOOD, 4, true, true))
+		if c.variant_shelved(k):
+			b.modulate = Color(1, 1, 1, SHELVED_ALPHA)
 		b.pressed.connect(func(): show_look(k))
 		row.add_child(b)
 	_content.add_child(row)
-	for code in codes:
-		var note := c.variant_note(str(code))
-		if note != "":
-			_note("%s  %s" % [str(code), note])
+	_look_notes(codes, func(k: String) -> String: return c.variant_note(k), shown)
 	var keep_row := UiKit.hbox(8)
 	keep_row.name = "HeroLookKeep"
 	keep_row.mouse_filter = Control.MOUSE_FILTER_PASS
