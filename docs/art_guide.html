@@ -94,6 +94,8 @@ footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line);
 <div class="wrap">
 <nav class="toc" aria-label="Sections">
   <a href="#loop">The loop</a>
+  <a class="sub" href="#looks">looks: the recipe, Duplicate, the painter</a>
+  <a class="sub" href="#jobs">jobs and the ComfyUI workflows</a>
   <a href="#before">Before you pick a method</a>
   <a href="#heroes">Hero art</a>
   <a class="sub" href="#hero_pose5">five views on a stride</a>
@@ -118,9 +120,12 @@ footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line);
 </nav>
 
 <main>
-<p class="eyebrow">88fits · Level Editor · pass 66</p>
+<p class="eyebrow">88fits · Level Editor · pass 66 · version 0.52 · updated 2026-10-11 (evening)</p>
 <h1>The Art Guide</h1>
 <p class="lead">How to make a creature, a hero or an item look the way you want, from the Level Editor and your own AI server: every generation method, what it needs, what it makes, how long it takes, what to check afterwards, where the stats live, and where the result shows up in the game.</p>
+
+<div class="callout good"><b>What changed on 2026-10-11, evening.</b>
+<p><mark>Model settings</mark> on every painting job (<a href="#before">below</a>); a look's recipe shows every field with its source and says when none was recorded; <mark>Duplicate…</mark> on every look card; the painter recorded on every new look; the asset pinned at the top of its form while you scroll; every job's ComfyUI graphs saved into the ComfyUI page's own Workflows sidebar, with <b>↗</b> links that open them (<a href="#jobs">the Jobs tab</a>); one editor at a time runs the job queue. Details in <a href="#looks">Looks</a> and <a href="#jobs">Jobs</a>.</p></div>
 
 <h2 id="loop">The loop</h2>
 <p>Everything below happens in the same page you already use for the waves: <code>tools\level_editor.cmd</code>, then the <b>Enemies</b>, <b>Heroes</b>, <b>Items</b> and <b>Jobs</b> tabs. One asset follows one loop:</p>
@@ -138,6 +143,25 @@ footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line);
   <figure><img src="guide_img/ed_jobs_tab.jpg" alt="The Jobs tab with a running job" loading="lazy"><figcaption>The Jobs tab: the running job's stages, log and the stills as they land.</figcaption></figure>
   <figure><img src="guide_img/ed_looks_new.jpg" alt="The look grid with a NEW look" loading="lazy"><figcaption>The look grid after a landing: the new look plays on hover, the big player above.</figcaption></figure>
 </div>
+
+<h2 id="looks">Looks: the recipe, Duplicate, the painter</h2>
+<p>A <b>look</b> is one painted set of a creature or a hero: the strip, the icon, and a <b>recipe</b>, the words and settings its job read. Three things to know, added after the first day with the system:</p>
+<ul>
+<li><b>A recipe keeps only what differs.</b> The creature's own art words (the Art section of its form: the art prompt, the motion, the back hint, the dead hint, the screen…) apply to every look that does not say otherwise. So an empty box in a look's recipe is not a lost prompt: <mark>Recipe (typed)…</mark> shows the word that applies, greyed, with a mark saying <em>own</em>, <em>inherited</em> or the method's <em>default</em>, and the job form does the same. Looks painted before the editor kept recipes, by hand, or by a job that ran with an empty recipe say <mark>no recipe recorded</mark>: their fields show the creature's words, which may not be what painted them. Keys another tool wrote (the fire ant's <code>body</code>, a recolour's <code>tint_of</code>) are listed under "Also in the recipe".</li>
+<li><b>Duplicate…</b> on a look's card opens the job form with that look's recipe, words and painter filled in and the next free code. Change the model, the passes or any word, then Queue. The stills are painted again under the new code, so the Model settings apply to them; tick <mark>reuse the paintings</mark> to keep the source's stills and redo only the clips.</li>
+<li><b>The painter is recorded.</b> Every look painted from now on carries the painter it ran with (Klein or dev, the passes, and for dev the guidance and Turbo) in its recipe. The card, the facts beside the player and <mark>Recipe (typed)…</mark> show it; <mark>Re-roll…</mark> and <mark>Duplicate…</mark> start the form from it. Older looks say "painter not recorded".</li>
+</ul>
+<p>The asset you are editing stays pinned at the top of its form, icon and name, while you scroll.</p>
+
+<h2 id="jobs">The Jobs tab and the ComfyUI workflows</h2>
+<p>Every job card keeps the exact ComfyUI graphs it ran, one per render (a still, a clip, a death), and saves each into the ComfyUI page's own <b>Workflows</b> sidebar as it runs, under <code>88fits / &lt;creature&gt;_&lt;CODE&gt; / &lt;job&gt;</code>. On the card:</p>
+<ul>
+<li><b>↗</b> opens the ComfyUI page on that very graph: the prompt as it was sent, the seed, the passes, the guidance, the model files, the reference pictures and the output name are all in the nodes, as a tab named after the file. The page needs a few seconds to start; a toast <em>"88fits: opened …"</em> confirms it and the view is fitted to the graph. If the canvas still looks empty, press <span class="key">.</span> (fit the view) or click the tab named after the file.</li>
+<li><b>file</b> is the workflow as JSON, to drag into any ComfyUI page.</li>
+<li><b>Send to ComfyUI (n)</b> appears on jobs that ran before this existed, or while the AI server was down: it saves their graphs into the sidebar, and the ↗ links follow. It says what failed when something did.</li>
+</ul>
+<p>The job form lists the template workflows behind the methods the same way (sidebar folder <code>88fits/templates</code>). Those are the generic graphs with placeholder words, not a finished asset's: for an asset's own prompt and seed open the links on its job card.</p>
+<div class="callout"><b>One editor at a time.</b><p>One Level Editor window runs the job queue. A second one started while the first runs shows the queue read-only, with a banner, and refuses changes, so two windows can never wipe each other's jobs; close the old window and start one when the banner is not what you meant. The ↗ links need the <code>88fits_open</code> extension on the AI server, which Claude installs (<code>python tools/comfy.py --install-ext</code>); the Jobs tab says so when it is missing.</p></div>
 
 <h2 id="before">Before you pick a method</h2>
 <p>There are three families of art and the editor only offers the methods that fit the asset you have open:</p>
@@ -543,6 +567,7 @@ footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line);
 
 <h2 id="wrong">When something looks wrong</h2>
 <ul>
+<li><b>The ↗ link opened ComfyUI but no graph appeared</b>: wait for the "88fits: opened" toast (the page starts first), click the tab named after the file, press <span class="key">.</span> to fit the view. No toast at all means the server has no <code>88fits_open</code> extension: the Jobs tab says so, Claude installs it.</li>
 <li><b>A still is off</b> (a face on a back, four ears): open the job card, <mark>Re-roll…</mark>, tick that still, a new seed. Only that still is painted again; everything cached stays.</li>
 <li><b>A clip is off</b> (a limb grows, the cadence halves): Re-roll with that clip ticked; its folder moves aside and the seed goes up. For a free clip try the stride method or a model if the shape allows.</li>
 <li><b>The job says "fell back"</b> in its clip_kind: the driven walk failed quietly and a free clip took its place. Shrink the driver (pose_scale) or lower <code>clip_fill</code>, then re-roll that clip.</li>
@@ -553,7 +578,7 @@ footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line);
 <li><b>The vision check is off</b> (LM Studio closed): jobs run with "QA online: no" and keep the first render of every try. Nothing fails; you just look harder.</li>
 </ul>
 
-<footer>Written for Garry after pass 66 (2026-10-11). The method texts, timings and weak spots come from <code>tools/level_editor/methods.json</code>, the same file the job form reads; the Instructions tab in the editor carries the same tables and two live players. Keys and rules: <code>docs/assets_schema.md</code>, <code>BALANCING.md</code> section 13.</footer>
+<footer>Written for Garry after pass 66 (2026-10-11), updated the same evening: the Model settings, the recipe sources, Duplicate, the painter record, the ComfyUI links and the one-editor rule. The method texts, timings and weak spots come from <code>tools/level_editor/methods.json</code>, the same file the job form reads; the Instructions tab in the editor carries the same tables and two live players. Keys and rules: <code>docs/assets_schema.md</code>, <code>BALANCING.md</code> section 13.</footer>
 </main>
 </div>
 
