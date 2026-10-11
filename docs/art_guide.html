@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>88fits Art Guide</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* layout: one reading column of 72ch, wide picture rows that break out to 1100px; sticky section nav on the left above 1200px */
+:root {
+  --bg: #f6f1e8; --surface: #fffdf8; --surface-2: #efe7d8; --fg: #211b16; --fg-2: #5a4e42; --muted: #8a7c6c;
+  --line: #d9cdb8; --teal: #0e7a88; --teal-soft: #d7eef0; --amber: #b86b00; --amber-soft: #f7e6c4;
+  --red: #b23a2a; --red-soft: #f6d9d2; --green: #2f7d3a; --green-soft: #d9efd8; --ink-chip: #2b2622;
+  --display: "Bitter", Georgia, "Times New Roman", serif; --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15130f; --surface: #1e1b16; --surface-2: #27231d; --fg: #efe8dc; --fg-2: #c3b7a6; --muted: #8e8273;
+  --line: #3a342b; --teal: #4cc4d3; --teal-soft: #163c42; --amber: #e3a44a; --amber-soft: #3d2f14;
+  --red: #e07a68; --red-soft: #46221c; --green: #7cc784; --green-soft: #1f3a22; --ink-chip: #efe8dc; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #15130f; --surface: #1e1b16; --surface-2: #27231d; --fg: #efe8dc; --fg-2: #c3b7a6; --muted: #8e8273;
+  --line: #3a342b; --teal: #4cc4d3; --teal-soft: #163c42; --amber: #e3a44a; --amber-soft: #3d2f14;
+  --red: #e07a68; --red-soft: #46221c; --green: #7cc784; --green-soft: #1f3a22; --ink-chip: #efe8dc; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 17px; line-height: 1.55; margin: 0; padding-inline: 16px; padding-block: 0 64px; }
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 40px; }
+@media (min-width: 1200px) { .wrap { grid-template-columns: 220px minmax(0, 1fr); } nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); align-self: start; max-height: calc(100vh - 32px); overflow: auto; } }
+nav.toc { font-size: 14px; padding-block: 24px; }
+nav.toc a { display: block; color: var(--fg-2); text-decoration: none; padding: 3px 0 3px 10px; border-left: 2px solid var(--line); }
+nav.toc a:hover, nav.toc a:focus { color: var(--teal); border-left-color: var(--teal); outline: none; }
+nav.toc .sub { padding-left: 22px; font-size: 13px; }
+main { min-width: 0; }
+h1, h2, h3, h4 { font-family: var(--display); text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: 2.6rem; font-weight: 700; margin-top: 28px; }
+h2 { font-size: 1.9rem; font-weight: 700; margin-top: 64px; padding-top: 18px; border-top: 3px solid var(--teal); }
+h3 { font-size: 1.35rem; font-weight: 700; margin-top: 36px; }
+h4 { font-size: 1.05rem; font-weight: 700; margin-top: 18px; color: var(--fg-2); }
+p, ul, ol, table { margin: 12px 0 0; }
+p, li { max-width: 72ch; }
+ul, ol { padding-left: 1.3em; }
+li + li { margin-top: 4px; }
+a { color: var(--teal); }
+code, .k { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+mark { background: var(--amber-soft); color: var(--fg); padding: 0 3px; border-radius: 3px; }
+.lead { font-size: 1.2rem; color: var(--fg-2); max-width: 68ch; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--teal); margin-top: 40px; }
+figure { margin: 18px 0 0; }
+figure img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 6px; max-width: 80ch; }
+.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 18px; }
+.shots figure { margin: 0; }
+.steps { counter-reset: s; display: grid; gap: 14px; margin-top: 18px; padding: 0; list-style: none; }
+.steps li { position: relative; padding: 14px 16px 14px 56px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; max-width: none; }
+.steps li::before { counter-increment: s; content: counter(s); position: absolute; left: 14px; top: 12px; width: 30px; height: 30px; border-radius: 50%; background: var(--teal); color: #fff; font-family: var(--display); font-weight: 700; display: grid; place-items: center; }
+.steps li b { font-family: var(--display); }
+.callout { border-left: 4px solid var(--amber); background: var(--amber-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin-top: 18px; max-width: 80ch; }
+.callout.watch { border-left-color: var(--red); background: var(--red-soft); }
+.callout.good { border-left-color: var(--green); background: var(--green-soft); }
+.callout b:first-child { font-family: var(--display); }
+.callout p { margin-top: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip { font-family: var(--mono); font-size: 12px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg-2); }
+.chip.time { background: var(--teal-soft); color: var(--teal); border-color: transparent; }
+.chip.kind { background: var(--ink-chip); color: var(--bg); border-color: transparent; }
+.chip.ref { background: var(--amber-soft); color: var(--amber); border-color: transparent; }
+.method { margin-top: 44px; padding: 22px 22px 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.method h3 { margin-top: 0; }
+.method .grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; margin-top: 14px; }
+@media (max-width: 760px) { .method .grid { grid-template-columns: minmax(0, 1fr); } }
+.method figure { margin-top: 0; }
+.fields { margin-top: 12px; border-top: 1px solid var(--line); }
+.fields dt { font-family: var(--mono); font-size: 13px; color: var(--teal); margin-top: 10px; }
+.fields dd { margin: 2px 0 0; color: var(--fg-2); font-size: 15px; max-width: 68ch; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+.tablewrap { overflow-x: auto; margin-top: 14px; border: 1px solid var(--line); border-radius: 8px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--display); font-weight: 700; background: var(--surface-2); font-size: 14px; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 18px; }
+.flow div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 15px; }
+.flow div b { display: block; font-family: var(--display); color: var(--teal); margin-bottom: 4px; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; align-items: start; margin-top: 14px; }
+.pair figure { margin: 0; }
+.small { font-size: 14px; color: var(--muted); }
+.key { display: inline-block; min-width: 1.6em; text-align: center; font-family: var(--mono); font-size: 12px; padding: 1px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); }
+footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+<nav class="toc" aria-label="Sections">
+  <a href="#loop">The loop</a>
+  <a href="#before">Before you pick a method</a>
+  <a href="#heroes">Hero art</a>
+  <a class="sub" href="#hero_pose5">five views on a stride</a>
+  <a class="sub" href="#hero_fit">a walk fitted to the painting</a>
+  <a class="sub" href="#hero_badge">the badge</a>
+  <a class="sub" href="#hero_title">the title cut-out</a>
+  <a href="#creatures">Creature art</a>
+  <a class="sub" href="#creature_proc">no video at all</a>
+  <a class="sub" href="#creature_pose2">front and back on a stride</a>
+  <a class="sub" href="#creature_free2">front and back, Wan guesses</a>
+  <a class="sub" href="#creature_free8">eight directions, Wan guesses</a>
+  <a class="sub" href="#creature_ctl">a 3D model's own motion</a>
+  <a class="sub" href="#front_from_picture">a front from a picture</a>
+  <a class="sub" href="#recolour">recolour a look</a>
+  <a href="#deaths">Deaths</a>
+  <a href="#items">Item icons</a>
+  <a href="#threed">Your own 3D files</a>
+  <a href="#refs">References and the words</a>
+  <a href="#stats">The stats</a>
+  <a href="#ingame">How it appears in the game</a>
+  <a href="#wrong">When something looks wrong</a>
+</nav>
+
+<main>
+<p class="eyebrow">88fits · Level Editor · pass 66</p>
+<h1>The Art Guide</h1>
+<p class="lead">How to make a creature, a hero or an item look the way you want, from the Level Editor and your own AI server: every generation method, what it needs, what it makes, how long it takes, what to check afterwards, where the stats live, and where the result shows up in the game.</p>
+
+<h2 id="loop">The loop</h2>
+<p>Everything below happens in the same page you already use for the waves: <code>tools\level_editor.cmd</code>, then the <b>Enemies</b>, <b>Heroes</b>, <b>Items</b> and <b>Jobs</b> tabs. One asset follows one loop:</p>
+<ol class="steps">
+  <li><b>Create or open.</b> On the Enemies, Heroes or Items tab press <mark>Edit</mark> on a card, or <mark>+ New from template</mark> and pick the asset the new one starts as a copy of. A new one gets its folder, a placeholder picture and an import at once, so it exists in the game from the first second.</li>
+  <li><b>Set the stats.</b> The form on the right: identity, body, brain and attacks, spawning, drops, tints, sounds. Everything has the template's number as its default. <mark>Save asset</mark> (or <span class="key">Ctrl</span>+<span class="key">S</span>) writes only the lines you changed and imports the file.</li>
+  <li><b>Queue the art.</b> In the <b>Looks</b> section press <mark>+ Generate art…</mark>, pick a method from the cards, fill its words, add references, set how many looks, and <mark>Queue</mark>. One job per look goes to the <b>Jobs</b> tab and runs on the AI server, one at a time.</li>
+  <li><b>Review.</b> When a job lands, the look appears in the grid with a <mark>NEW</mark> chip. Hover a card to play it; click it for the big player: every animation, every facing, zoom up to 4×, the frame on the sand at the game's scale.</li>
+  <li><b>Decide.</b> <mark>Make default</mark> is the look the game plays. <mark>Approve</mark> clears the NEW mark. <mark>Shelve</mark> hides a look you want to keep but not see. <mark>Remove</mark> moves its files to the backups. <mark>Re-roll…</mark> runs the job again on a new seed, keeping what was good.</li>
+  <li><b>Put it in the game.</b> An enemy appears wherever a wave names it (the Timeline). A hero or an item is <em>available</em>, <em>hidden</em> or <em>locked</em> by a quest, set on its form. <mark>Test in game</mark> opens the arena with that asset at once.</li>
+</ol>
+<div class="shots">
+  <figure><img src="guide_img/ed_compare.jpg" alt="The enemy form with the compare panel" loading="lazy"><figcaption>A new creature made from the Lesser Scorpion: the form opens on the compare panel.</figcaption></figure>
+  <figure><img src="guide_img/ed_jobform_methods.jpg" alt="The job form's method cards" loading="lazy"><figcaption>The job form: a card per method with what it needs, makes, takes and its weak spots.</figcaption></figure>
+  <figure><img src="guide_img/ed_jobs_tab.jpg" alt="The Jobs tab with a running job" loading="lazy"><figcaption>The Jobs tab: the running job's stages, log and the stills as they land.</figcaption></figure>
+  <figure><img src="guide_img/ed_looks_new.jpg" alt="The look grid with a NEW look" loading="lazy"><figcaption>The look grid after a landing: the new look plays on hover, the big player above.</figcaption></figure>
+</div>
+
+<h2 id="before">Before you pick a method</h2>
+<p>There are three families of art and the editor only offers the methods that fit the asset you have open:</p>
+<div class="flow">
+  <div><b>Heroes</b>Five painted views walked on a Mixamo stride (eight directions in play), a round badge, a title cut-out.</div>
+  <div><b>Creatures</b>Two painted views (front and back) or five, walked by a clip, a stride, a 3D model's own motion, or no video at all; the icon is cut from the front.</div>
+  <div><b>Items</b>Only the icon. The 3D model a weapon carries stays Claude's job; you paint the picture on the card.</div>
+  <div><b>3D files</b>Not art by itself: a probe, renders for the icon and the look, and drivers that teach a walk to the methods above.</div>
+</div>
+<div class="callout"><b>What a reference can do.</b>
+<p>There is <mark>no strength number</mark> anywhere in this pipeline. A reference picture steers by which pictures go in, in what order, and the words sent with them. The form offers the roles that work: <em>identity</em> (what it looks like), <em>style</em> (the house anchor, always first), <em>pose and anatomy</em> (a clay render of a model), and a follow level, <em>loosely</em>, <em>closely</em>, <em>copy exactly</em>, which picks the wording that worked in earlier passes. A 2D picture reaches only the <b>front</b> still of a creature (or the <b>side</b> of a model-walked one); every other view is an edit of that painting. Motion is never steered by a picture: the still plus words, or a driver.</p></div>
+<div class="callout good"><b>Pick by eye.</b>
+<p>The vision check only counts subjects, spots a scene background and names the view. It does not count fingers, ears or legs and it cannot judge likeness. Paint several seeds, look at the sheet, pick one. Every method that produces candidates stops and waits for your pick in the Jobs tab.</p></div>
+<div class="callout"><b>How long things take.</b>
+<p>A Klein still takes about 20 seconds. A Flux.2 dev render (the "dev" switch, a better painter) takes 4 to 5 minutes and restarts the server each time. A Wan Animate clip on a driver is about a minute; a free Wan clip two and a half; a fall two. The estimate on each job card is a median: a loaded server can take ten times longer on one clip.</p></div>
+
+<h2 id="heroes">Hero art</h2>
+<p>A hero is the biggest piece: 13 stills and 5 clips. The first run of a hero is <a href="#hero_pose5">five views on a stride</a>; every later look reuses those paintings and only walks again (<a href="#hero_fit">fitted</a>). The badge and the title cut-out belong to the hero, not to a look.</p>
+
+<section class="method" id="hero_pose5">
+<h3>Hero: five views on a Mixamo stride</h3>
+<div class="chips"><span class="chip kind">hero</span><span class="chip time">about 10 min · worst 20</span><span class="chip ref">3D: animation (a driver)</span><span class="chip">13 stills · 5 clips</span></div>
+<div class="grid">
+<div>
+<p><b>When.</b> A brand-new hero, or a hero whose paintings should change (a new outfit, a new face). The default method on the Heroes tab.</p>
+<p><b>What happens.</b> Klein paints the front still from your words with the style anchor as its reference, then edits that one painting into the back, the side, the two diagonals, a cheer, five hurt faces, a dead pose and a portrait. Wan Animate then walks each of the five view stills on an OpenPose driver (the <code>run</code> driver unless the recipe names another per view), one sprite frame per driver frame, 24 a view, so every view shares one cadence. The hit is four frames round the hurt still; the death the front flinch tipping into the dead still. The strip is packed and, for the hero's base look, the round badge painted.</p>
+<p><b>You pick nothing while it runs.</b> Afterwards look at every still and every clip in the look grid. Re-roll one still (its key and a new seed) or one clip (its folder moves aside, <code>anim_seed</code> goes up by one) from the job card's <mark>Re-roll…</mark>.</p>
+<dl class="fields">
+<dt>art_prompt</dt><dd>Who he is: body, clothes, colours, what he holds, "standing straight, arms relaxed". The most important field.</dd>
+<dt>pose_hint · back_hint · side_hint</dt><dd>Extra words for the stills; the back hint says what the back of the head and the outfit show ("no face at all").</dd>
+<dt>hurt_hint · portrait_prompt</dt><dd>The wince, and the badge's close-up.</dd>
+<dt>pose_drivers.back / bd / side / fd / front</dt><dd>The driver per view. Give the back views <code>run_spread</code> when hands get painted through the torso.</dd>
+<dt>pose_motion · anim_hint · anim_seed</dt><dd>The words Wan Animate gets, and the seed that re-rolls every clip.</dd>
+<dt>screen · key_*</dt><dd>Blue screen for heroes; the key settings for shiny or pale materials (Solenne's latex needed <code>key_sat</code> 0.85).</dd>
+</dl>
+</div>
+<figure><img src="guide_img/hero_pose5_astro.png" alt="Astro's run cycle sheet" loading="lazy"><figcaption>Astro's front run: 24 frames on the run driver, one cadence for all five views.</figcaption></figure>
+</div>
+<div class="callout watch"><b>Watch for.</b>
+<p>A face painted on a back cycle (look at the back clip). Hands through the torso on the back views (the <code>run_spread</code> or <code>run_occ</code> driver). A wide figure that touches the clip's edge falls back silently to a free clip and the run drops to 14 fps: the job's <code>clip_kind</code> says which views fell back; shrink the driver or set <code>clip_fill</code> 0.56. A hero whose body is not a man's (a big head on a slim body) gets a different head size per view: that is what <a href="#hero_fit">fitted drivers</a> are for. <code>anim_negative</code> does nothing on Wan Animate; the seed and the driver are the levers.</p></div>
+</section>
+
+<section class="method" id="hero_fit">
+<h3>Hero: another walk, fitted to this painting</h3>
+<div class="chips"><span class="chip kind">hero</span><span class="chip time">about 5 min · worst 20</span><span class="chip ref">3D: animation</span><span class="chip">0 stills · 5 clips</span></div>
+<div class="grid">
+<div>
+<p><b>When.</b> The paintings are right and the walk is not: you want the same hero on another stride (a catwalk, a heavier walk, your own Mixamo clip), or the head and hands come out the wrong size per view.</p>
+<p><b>What happens.</b> Nothing is painted again. The pre-steps make a fitted copy of the driver: <code>pose_fit</code> scales the stick figure to the painted body and pins the face on the painted head, <code>pose_spread</code> pushes the back views' wrists out past the torso, <code>pose_scale</code> shrinks the back views so wide arms stay inside the clip, <code>pose_occlude</code> hides the hand that swings in front of the chest. Then the five clips roll on it. You choose the source driver and the steps, then look at the five clips.</p>
+<dl class="fields">
+<dt>fit_source</dt><dd>The driver to fit: <code>run</code>, <code>catwalk</code>, <code>walk_sun</code>, or one you made with <a href="#driver_pose">driver_pose</a>.</dd>
+<dt>fit_template</dt><dd>The measurements of the painted body (<code>tools/pose_templates/&lt;id&gt;.json</code>). Solenne has one; a new hero needs his own before pose_fit changes anything. Ask Claude for it once per hero.</dd>
+<dt>fit_spread · fit_scale · fit_scale_views · fit_occlude</dt><dd>The three repairs for the back views.</dd>
+<dt>still_keys</dt><dd>Swap a single painting for a composed one (Solenne's side still with the sun disc turned to the viewer).</dd>
+</dl>
+</div>
+<figure><img src="guide_img/hero_fit_solenne.png" alt="Solenne's fitted walk" loading="lazy"><figcaption>Solenne SOL-B: her own walk on a driver fitted to her painting, the disc the same size in every view.</figcaption></figure>
+</div>
+<div class="callout watch"><b>Watch for.</b>
+<p>A walk with the toes turned out reads its forward off the feet up to 20 degrees wrong: the driver wants <code>fwd=body</code>. Klein will not turn some heads (the sun disc came out edge-on six times out of six): compose the still and name it in <code>still_keys</code>.</p></div>
+</section>
+
+<section class="method" id="hero_badge">
+<h3>Hero: the round badge</h3>
+<div class="chips"><span class="chip kind">hero</span><span class="chip time">about 1.5 min for 4 seeds</span><span class="chip">candidates: you pick</span></div>
+<div class="grid">
+<div>
+<p><b>When.</b> The round picture on the hero's plates, the hero sheet and the results screen.</p>
+<p><b>What happens.</b> N close-up portraits edited from the hero's front still with the portrait words, each shown inside the round frame with the head width and top padding of the hero's badge block; a review sheet in the Jobs tab. You pick one: it becomes the hero's icon and is remembered in his JSON so a later base run keeps it.</p>
+<dl class="fields">
+<dt>portrait_prompt</dt><dd>"head and shoulders, looking at the viewer with a small knowing smile".</dd>
+<dt>badge.head_width · badge.top_pad</dt><dd>How much of the circle the head fills, and the gap above it. A bust that runs off the bottom of the frame is what the badge wants.</dd>
+</dl>
+</div>
+<figure><img src="guide_img/hero_badge_heroes.png" alt="The heroes' badges" loading="lazy"><figcaption>The badges as the game shows them.</figcaption></figure>
+</div>
+</section>
+
+<section class="method" id="hero_title">
+<h3>Hero: the title cut-out</h3>
+<div class="chips"><span class="chip kind">hero</span><span class="chip time">about 2 min for 4 seeds</span><span class="chip ref">3D: an object render (optional)</span><span class="chip">candidates: you pick</span></div>
+<div class="grid">
+<div>
+<p><b>When.</b> The big painted figure on the title screen's carousel.</p>
+<p><b>What happens.</b> A full-body splash from the front still and a pose prompt, with an optional object reference copied exactly (a render of the thing he holds and its words), N seeds, keyed and fitted to the title's box; a review sheet. The pick writes the title picture and a Godot import follows, so the title shows it on the next launch.</p>
+<dl class="fields">
+<dt>title_pose</dt><dd>The whole-body gesture: "standing with his feet apart, one hand tipping the brim of his hat".</dd>
+<dt>title_holds · title_camera</dt><dd>The one thing he holds, and the shot ("three-quarter, from a little below").</dd>
+<dt>title_extra_ref.file · .words</dt><dd>A render of the held object (from <a href="#ref_render">ref_render</a>) and what it is.</dd>
+</dl>
+</div>
+<figure><img src="guide_img/hero_title_calavera.png" alt="Calavera's title candidates" loading="lazy"><figcaption>Calavera's title candidates: pick the one with the right hands.</figcaption></figure>
+</div>
+<div class="callout watch"><b>Watch for.</b>
+<p>Extra fingers (the check passes them). A named weapon becomes a real one ("finger-guns" yields pistols): describe the gesture, not the thing. The word "hit" paints impact rings.</p></div>
+</section>
+
+<h2 id="creatures">Creature art</h2>
+<p>Creatures are cheaper than heroes. The game plays two directions for almost every creature (front and back, mirrored for left and right), so the default methods paint two views. Eight-direction creatures exist but are harder to keep consistent; the one that works well walks a real 3D model.</p>
+<div class="tablewrap"><table>
+<tr><th>Method</th><th>Walks by</th><th>Views</th><th>Time</th><th>Best for</th></tr>
+<tr><td><a href="#creature_proc">no video at all</a></td><td>the painting squashes and hops</td><td>2</td><td class="num">1.5 min</td><td>blobs, slimes, tumbleweeds, anything without legs</td></tr>
+<tr><td><a href="#creature_pose2">front and back on a stride</a></td><td>a Mixamo driver</td><td>2</td><td class="num">4 min</td><td>humanoids: goblins, skeletons, mummies, werewolves</td></tr>
+<tr><td><a href="#creature_free2">front and back, Wan guesses</a></td><td>a free video clip</td><td>2</td><td class="num">7 min</td><td>animals and odd shapes where no driver fits</td></tr>
+<tr><td><a href="#creature_free8">eight directions, Wan guesses</a></td><td>five free clips</td><td>5 → 8</td><td class="num">16 min</td><td>a creature that must turn smoothly and has no model</td></tr>
+<tr><td><a href="#creature_ctl">a 3D model's own motion</a></td><td>depth videos of your model</td><td>5 → 8 or 2</td><td class="num">12 min + picks</td><td>many legs, real anatomy: scorpions, beetles, ants</td></tr>
+<tr><td><a href="#front_from_picture">a front from a picture</a></td><td>(a pre-step)</td><td>1</td><td class="num">1.5 min</td><td>starting from a picture you have</td></tr>
+<tr><td><a href="#recolour">recolour a look</a></td><td>(no model)</td><td>same</td><td class="num">seconds</td><td>a red version of a green one</td></tr>
+</table></div>
+
+<section class="method" id="creature_proc">
+<h3>Creature: no video at all</h3>
+<div class="chips"><span class="chip kind">enemy</span><span class="chip time">about 1.5 min · worst 3</span><span class="chip ref">2D: identity</span><span class="chip">3 stills · 0 clips</span></div>
+<div class="grid">
+<div>
+<p><b>When.</b> Anything without legs. The quickest method, and nothing can go wrong with the face or the colours.</p>
+<p><b>What happens.</b> Three Klein stills (front, back, dead) and no clip. The painting itself moves: <code>walk: hop</code> squashes and stretches it along a little parabola, or the "no video" switch leans and bobs it for a six-frame walk. The death is a squash into the puddle, a collapse (slices dropping into a painted heap) or a plain tilt into the dead still.</p>
+<dl class="fields">
+<dt>art_prompt</dt><dd>The creature, front view, standing.</dd>
+<dt>walk · hop_height · cell_fill</dt><dd>Hop or lean; how high; how much headroom the cell leaves for the hop (raise the creature's <code>size</code> stat to keep its on-screen size).</dd>
+<dt>death · dead_hint</dt><dd>squash, collapse or tilt; what the dead picture shows.</dd>
+</dl>
+</div>
+<figure><img src="guide_img/creature_proc_blue_slime.png" alt="The Blue Slime's hop" loading="lazy"><figcaption>The Blue Slime: a hop of 12 frames from one painting.</figcaption></figure>
+</div>
+<div class="callout watch"><b>Watch for.</b>
+<p>It reads as a cut-out on anything with legs. A collapse needs a dead hint that describes a heap: a painted mid-collapse once came out as a two-headed skeleton.</p></div>
+</section>
+
+<section class="method" id="creature_pose2">
+<h3>Creature: front and back on a Mixamo stride</h3>
+<div class="chips"><span class="chip kind">enemy</span><span class="chip time">about 4 min · worst 9</span><span class="chip ref">2D: identity · 3D: animation</span><span class="chip">3 stills · 2 clips</span></div>
+<div class="grid">
+<div>
+<p><b>When.</b> A humanoid: two legs, two arms, a head on top. The cadence is exact and the same on both views.</p>
+<p><b>What happens.</b> Klein paints the front (from your words, or from a <a href="#front_from_picture">front you picked from a picture</a>), then the back and the dead still. Wan Animate walks the front and back stills on a humanoid OpenPose driver (<code>pose</code> for the back, <code>pose_front</code> for the front when it differs), one sprite frame per driver frame: 12 frames. A colour flash or a foreign hue rolls a clip again, up to three seeds. With <code>stand: still</code> the idle, attack and hit frames are the painting itself; otherwise the walk's passing frame. Deaths as the free method, plus a driven fall (<code>pose:&lt;driver&gt;</code>).</p>
+<dl class="fields">
+<dt>pose · pose_front</dt><dd>The driver: <code>walk</code>, <code>orc_walk</code>, <code>bigguy</code>, <code>walk_zombie_low</code> (back) with <code>walk_zombie_high</code> (front) for level arms, or one from your own file.</dd>
+<dt>stand</dt><dd><code>still</code> when the painting's pose differs from the walk (arms out, a club raised).</dd>
+<dt>gait · anim_seed</dt><dd>The words for the walk, and the seed that re-rolls it.</dd>
+<dt>death · dead_hint</dt><dd>see <a href="#deaths">Deaths</a>.</dd>
+</dl>
+</div>
+<figure><img src="guide_img/creature_pose2_dust_mummy.png" alt="The Dust Mummy on a zombie walk" loading="lazy"><figcaption>The Dust Mummy on a zombie driver made from Garry's own GLB.</figcaption></figure>
+</div>
+<div class="callout watch"><b>Watch for.</b>
+<p>A still whose pose differs from the driver's comes out wrong: set <code>stand: still</code>, or fit the driver to the proportions (<code>body=</code>, the goblin on a man's skeleton came out lanky). The driven clip falls back <em>silently</em> to a free clip when the figure leaves the frame or the feet are odd (the werewolf's claws): the job's <code>clip_kind</code> says which, so look at both clips. A back cycle came back with a face: <code>back_hint</code>. A caped or shielded figure fails the falling driver and tips over instead.</p></div>
+</section>
+
+<section class="method" id="creature_free2">
+<h3>Creature: front and back, Wan guesses the walk</h3>
+<div class="chips"><span class="chip kind">enemy</span><span class="chip time">about 7 min · worst 14</span><span class="chip ref">2D: identity</span><span class="chip">3 stills · 2 clips</span></div>
+<div class="grid">
+<div>
+<p><b>When.</b> An animal or an odd shape that no driver fits and no model exists for: a toad, a crab, a lizard, a giant.</p>
+<p><b>What happens.</b> The three stills as above. Wan i2v makes a 49-frame clip of each standing still "walking in place" from your <code>motion</code> words; the loop is found by the silhouette and cut to 12 frames. The death is the <code>death</code> choice.</p>
+<dl class="fields">
+<dt>motion</dt><dd>"scuttling in place on its eight legs, pincers held forward, the tail swaying". The one field the walk comes from.</dd>
+<dt>clip_fill</dt><dd>How much of the video frame the still fills (lower for wide creatures).</dd>
+<dt>anim_negative · anim_seed</dt><dd>What the clip must not grow; the seed.</dd>
+</dl>
+</div>
+<figure><img src="guide_img/creature_free2_hammer_giant.png" alt="The Hammer Giant's free clip" loading="lazy"><figcaption>The Hammer Giant: a free clip, cut to 12 frames by its silhouette.</figcaption></figure>
+</div>
+<div class="callout watch"><b>Watch for.</b>
+<p>The free clip drifts: extra limbs, a face on the back, a mouth that talks; the model picks the stride count, so cycles come out doubled or halved, and the front and back have their own cadence. A blob should not walk on a clip (it greys, grows legs): use <a href="#creature_proc">no video</a>. A dead still "on its back seen from above" reads as a standing T-pose from the game camera: paint it lying sideways, head left. "on the sand" paints a ground patch: say no ground. A green or pale creature on the green screen gets keyed or rimmed: screen blue.</p></div>
+</section>
+
+<section class="method" id="creature_free8">
+<h3>Creature: eight directions, Wan guesses</h3>
+<div class="chips"><span class="chip kind">enemy</span><span class="chip time">about 16 min · worst 30</span><span class="chip ref">2D: identity</span><span class="chip">6 stills · 5 clips</span></div>
+<div class="grid">
+<div>
+<p><b>When.</b> A creature that must turn smoothly (a caster that circles you) and has no 3D model.</p>
+<p><b>What happens.</b> The front-and-back method plus a side, a back-diagonal and a front-diagonal still, each a Klein edit of the front with that view's own words (<code>view_hints</code>), and a free clip for each of the five views; the game mirrors them into eight directions.</p>
+<dl class="fields">
+<dt>directions</dt><dd>8.</dd>
+<dt>view_hints.side / bd / fd</dt><dd>Spell each view out ("low on its eight legs, the tail curled over its back, pincers ahead"): the side edit often comes back as a front without them.</dd>
+</dl>
+</div>
+<figure><img src="guide_img/creature_free8_sun_prophet.png" alt="The Sun Prophet's eight directions" loading="lazy"><figcaption>The Sun Prophet, the one eight-way creature on free clips.</figcaption></figure>
+</div>
+<div class="callout watch"><b>Watch for.</b>
+<p>Five free clips rarely share a cadence, so the views flicker against each other as the creature turns. A scorpion's side came out on two legs; a creature with many legs wants <a href="#creature_ctl">a model's own motion</a>. Everything the free method says, five times over.</p></div>
+</section>
+
+<section class="method" id="creature_ctl">
+<h3>Creature: walked on a 3D model's own motion</h3>
+<div class="chips"><span class="chip kind">enemy</span><span class="chip time">side 1 min · then 11 min · worst 30</span><span class="chip ref">2D: look · 3D: look + animation</span><span class="chip">5 stills · 5 clips · two picks</span></div>
+<div class="grid">
+<div>
+<p><b>When.</b> Real anatomy with many legs: the scorpions, the Bull Beetle, the Fire Ant. You need a rigged model with its own walk (and ideally its death), turned into depth drivers first (<a href="#driver_depth">driver_depth</a>).</p>
+<p><b>What happens.</b> Stage 1 paints the <b>side</b> view from the model's clay render, with the style anchor first and an optional look picture, as three candidates (Klein in 20 s each, or Flux.2 dev with the dev switch: 4 to 5 minutes each) and <mark>stops for your pick</mark> in the Jobs tab. Stage 2 paints the other four views from the side painting and each view's own clay, with how each faces spelled out (<code>words</code>), then walks every view along its depth video. A wrong view is painted again as candidates and picked. The death walks the front painting along the model's death clip (<code>death_keep</code> picks its 8 frames, re-pickable without a render) or, without one, paints a dead still and falls into it. The strip packs the five views into eight directions, or two with <code>directions: 2</code> (the ants).</p>
+<dl class="fields">
+<dt>drivers · death_drivers</dt><dd>The depth driver folders (<code>scorpion_walk</code>, <code>beetle_walk_amp</code>, or yours).</dd>
+<dt>prompt · noun · blockout · detail · anatomy · keep</dt><dd>What to paint, what the clay is, the parts to insist on ("exactly eight legs, one tail"), and the colour to keep ("jet-black, never brown").</dd>
+<dt>words.front / fd / bd / back</dt><dd>How each view faces: "walking straight towards the viewer, the pincers nearest, the tail curling up at the top".</dd>
+<dt>look_ref</dt><dd>A picture of the colours and markings (your 2D reference, or the model's own textured render).</dd>
+<dt>remap_hues · walk_seeds · side_seeds · dev</dt><dd>Colour repair per view, another seed for one view's walk, how many side candidates, the better painter.</dd>
+</dl>
+</div>
+<figure><img src="guide_img/creature_ctl_bull_beetle.png" alt="The Bull Beetle's five views" loading="lazy"><figcaption>The Bull Beetle's five views, each walked along its own depth video.</figcaption></figure>
+</div>
+<div class="callout watch"><b>Watch for.</b>
+<p>Wan keeps the painting's scale, not the video's, so the five paintings should be the same size. A view drifts to another colour (purple, peach): remap_hues keeps the value, so a wrong colour must be repainted; name the colour in <code>keep</code>. A floating sting or horn: another walk seed for that view. A "plain" or "simple" look on Flux.2 dev returns the clay itself: edit a richer look instead. The side is painted first for a reason: a front painted from the blockout came out top-down with the head at the far end.</p></div>
+</section>
+
+<section class="method" id="front_from_picture">
+<h3>A front painting from a picture (a pre-step)</h3>
+<div class="chips"><span class="chip kind">enemy</span><span class="chip time">20 s a seed</span><span class="chip ref">2D: identity, closely</span><span class="chip">candidates: you pick</span></div>
+<div class="grid">
+<div>
+<p><b>When.</b> You have a picture of the creature (a drawing, a photo, a render) and want the front still to be <em>that</em>.</p>
+<p><b>What happens.</b> Klein redraws your picture as the house style's front still: the picture flattened on white goes in as a reference after the style anchor (or alone, with "no style anchor"), with the "redraw this exact creature" wording, N seeds, a review sheet. You pick one; it becomes the <code>stills</code> name any creature method paints the back and the dead from. The picture reaches the front only.</p>
+<dl class="fields">
+<dt>picture · prompt · keep</dt><dd>The file, what it is, what must survive ("two small yellow eyes, the ragged green trousers").</dd>
+<dt>seeds · screen · no_style_ref</dt><dd>How many, blue for green subjects, the picture as the only reference.</dd>
+</dl>
+</div>
+<figure><img src="guide_img/front_from_picture_werewolf.png" alt="Werewolf front candidates from a picture" loading="lazy"><figcaption>The Werewolf's front candidates from one picture: pick the one that keeps the feet.</figcaption></figure>
+</div>
+<div class="callout watch"><b>Watch for.</b>
+<p>Identity holds only as well as Klein edits; the back and the dead are guesses from the front. A character copied on the green screen lost its talons on the back (boots instead): name the feet in words. A green subject on the green screen is keyed away: screen blue.</p></div>
+</section>
+
+<section class="method" id="recolour">
+<h3>Recolour an existing look</h3>
+<div class="chips"><span class="chip kind">enemy</span><span class="chip time">seconds</span><span class="chip">no model</span></div>
+<div class="grid">
+<div>
+<p><b>When.</b> The same animation with a new skin: the Red Goblin from the goblin, a dark-blue skeleton from the white one.</p>
+<p><b>What happens.</b> The hues inside the ranges you give move on every frame of a finished strip and on its icon; "tint" mode makes a pale material dark and saturated instead. The server copies the source look's frame counts into the new entry; a preview sheet shows the result first.</p>
+<dl class="fields">
+<dt>recolour.from</dt><dd>The source look's code.</dd>
+<dt>recolour.ranges · to · sat</dt><dd>Which hues move (degrees on the colour wheel, 55 to 135 is the goblin green) and where to (357 is red).</dd>
+<dt>recolour.mode · set_sat · value</dt><dd>hue or tint; tint's darkness.</dd>
+</dl>
+</div>
+<figure><img src="guide_img/recolour_red_goblin.png" alt="The Red Goblin" loading="lazy"><figcaption>The Red Goblin: the goblin's strip with its greens moved to red.</figcaption></figure>
+</div>
+<div class="callout watch"><b>Watch for.</b>
+<p>Only hue and value move; the lines and the shading stay. A range that touches the eyes or the weapon recolours them too: look at the preview.</p></div>
+</section>
+
+<h2 id="deaths">Deaths</h2>
+<p>Every creature method takes a <code>death</code> choice. The creature has one death set, drawn from the front.</p>
+<div class="tablewrap"><table>
+<tr><th>Choice</th><th>What it does</th><th>Extra time</th><th>Use it when</th></tr>
+<tr><td>Tilt over (free)</td><td>The standing painting leans and tips into the painted dead still: 5 frames, no model.</td><td class="num">0</td><td>anything, as a safe default</td></tr>
+<tr><td>Painted dead still + a Wan fall (<code>clip</code>)</td><td>Wan first-last-frame from the standing painting to the dead still, 33 frames cut to 8.</td><td class="num">2 min</td><td>a real fall for a walking creature</td></tr>
+<tr><td>A driven fall (<code>pose:&lt;driver&gt;</code>)</td><td>Wan Animate on a one-shot driver (Mixamo's Falling Back Death, or a fitted copy).</td><td class="num">1 min</td><td>humanoids; fails on capes and shields and tips over instead</td></tr>
+<tr><td>Squash</td><td>The painting squashes into the puddle in 6 frames.</td><td class="num">0</td><td>blobs</td></tr>
+<tr><td>Collapse</td><td>The painting is cut into slices that drop into a painted heap (the dead hint must describe the heap).</td><td class="num">0</td><td>skeletons, piles</td></tr>
+<tr><td>The model's own death (<code>death_drivers</code>)</td><td>The front painting walked along the model's death clip; <code>death_keep</code> picks 8 of 25 frames.</td><td class="num">1.5 min</td><td>a 3D model with a death clip</td></tr>
+</table></div>
+<div class="callout"><b>Sideways deads.</b><p>From the game's camera a creature "lying on its back seen from above" reads as a standing T-pose. Paint the dead still lying sideways across the frame, head left. The tilt and the fall both end on that picture.</p></div>
+
+<h2 id="items">Item icons</h2>
+<p>An item's visual part is its icon: 256 pixels, in the shop-card style, cut off the screen colour with a thin outline. The 3D model a weapon carries in play stays Claude's job. On the Items tab the <mark>+ Icon candidates…</mark> button sits under the icon preview; the quick one-roll option is in the same form.</p>
+<section class="method" id="item_icon">
+<h3>Item icon (one roll)</h3>
+<div class="chips"><span class="chip kind">item</span><span class="chip time">20 s</span><span class="chip">no reference</span></div>
+<div class="grid">
+<div>
+<p>One Klein render of the item's <code>art_prompt</code>, no reference at all, three tries when the vision check objects. The old icon is backed up first. Good enough for a potion, a boot, a clover. For a shape that matters, paint candidates with a render of the real thing instead.</p>
+<dl class="fields"><dt>art_prompt · screen</dt><dd>"a purple horseshoe magnet with two small purple gems pulled towards it"; blue for anything green.</dd></dl>
+</div>
+<figure><img src="guide_img/item_icon_items.png" alt="Item icons" loading="lazy"><figcaption>Item icons as the cards show them.</figcaption></figure>
+</div>
+</section>
+<section class="method" id="icon_cands">
+<h3>Icon candidates (pick by eye)</h3>
+<div class="chips"><span class="chip kind">item · enemy · hero</span><span class="chip time">20 s a seed · dev 4-5 min a seed</span><span class="chip ref">3D: icon render (optional)</span><span class="chip">candidates: you pick</span></div>
+<div class="grid">
+<div>
+<p>N seeds of the icon prompt, with an optional reference laid on the screen colour and the "copy this exact object" wording (a Blender render of the real weapon from <a href="#ref_render">ref_render</a>, or a picture); the dev switch paints on Flux.2 dev. A review sheet; you pick one and it is installed as the icon. The same job paints a creature's or a hero's icon file when you start it from their form.</p>
+<dl class="fields"><dt>subject · ref · screen · style · seeds · dev</dt><dd>What to paint, the render to copy, blue for green subjects, another style line, how many, the better painter.</dd></dl>
+</div>
+<figure><img src="guide_img/icon_cands_sun_scepter.png" alt="Sun Scepter icon candidates" loading="lazy"><figcaption>The Sun Scepter's candidates from its Blender render.</figcaption></figure>
+</div>
+<div class="callout watch"><b>Watch for.</b><p>It counts parts wrong (an extra barrel, six strings on a four-string): pick by eye. Grey and silver pick up the screen's tint and the keyer cuts them. A glow in the prompt keys into a halo; gold reads tan unless deep and a little self-lit. Flux bends dice and gun barrels: render the true shape and copy it.</p></div>
+</section>
+
+<h2 id="threed">Your own 3D files</h2>
+<p>Drop an FBX or GLB in the job form's 3D row and the editor probes it with Blender in a few seconds, then offers what the file allows. Per reference you tick what it is for: <b>the icon</b> (a render the icon job copies), <b>the look</b> (clay and textured renders the creature is painted from), <b>the animation</b> (drivers that teach the walk).</p>
+<div class="callout"><b>The preferred file.</b><p>A Mixamo-style <mark>FBX Binary, 30 fps, "In Place" ticked, keyframe reduction none</mark>, with skin; or a GLB that carries its animation with Mixamo bone names. A model without an animation clip can still be the icon's reference and the look reference, but cannot drive a walk. Humanoids with other bone names get a bone-map form (the probe guesses 21 rows for you to check). A creature that is not a humanoid (a beetle) can only make depth drivers, from its own clips.</p></div>
+<section class="method" id="ref_probe">
+<h3>What a 3D file can do</h3>
+<div class="chips"><span class="chip kind">3D</span><span class="chip time">2-4 s</span></div>
+<div class="grid"><div>
+<p>Reads the file (FBX, GLB, OBJ, DAE, .blend, or a zip the way Sketchfab packs them) and writes: the armature's bones, the clips with their length, the meshes and whether they carry textures, the size, a rig guess, where the model faces, and which uses it allows, in a sentence. Plus a thumbnail sheet of the five game views and the icon's angle. Runs by itself after an upload.</p>
+<p class="small">Check the thumbnails: a humanoid's forward is read off its feet and a toe-out walk reads up to 20 degrees off.</p>
+</div><figure><img src="guide_img/ref_probe_beetle.png" alt="The beetle's probe thumbnails" loading="lazy"><figcaption>The rhino beetle probed: five views and the icon angle.</figcaption></figure></div>
+</section>
+<section class="method" id="ref_render">
+<h3>Icon and look renders of a 3D model</h3>
+<div class="chips"><span class="chip kind">3D</span><span class="chip time">4-6 s</span></div>
+<div class="grid"><div>
+<p><b>icon</b>: a front-left three-quarter view from a little above, textured, on a transparent film: the reference the icon candidates copy exactly. <b>views</b>: the five game views as warm clay and in the model's own colours, framed exactly like the depth drivers: the look reference the model-walked creature names, or a picture for the front-from-picture step. Posed on the clip and moment you choose.</p>
+<dl class="fields"><dt>mode · forward · action · at · icon_yaw · icon_pitch · albedo</dt><dd>icon or views; which way the model faces; the clip and the second to pose on; the icon's angle; a texture file when the model lost its paths.</dd></dl>
+</div><figure><img src="guide_img/ref_render_beetle.png" alt="The beetle's clay and look renders" loading="lazy"><figcaption>Clay and textured renders of the beetle's side.</figcaption></figure></div>
+</section>
+<section class="method" id="driver_pose">
+<h3>New OpenPose driver from an FBX or GLB</h3>
+<div class="chips"><span class="chip kind">3D · humanoid</span><span class="chip time">about 10 s</span></div>
+<div class="grid"><div>
+<p>Resamples one stride of a humanoid clip to N frames for the five game views, seen from the game's camera, and draws them as stick figures with hands. 24 frames for a hero run, 12 for a creature walk; loop off for a one-shot such as a death; start and end in seconds slice one stride out of a longer clip. The result is a driver folder every hero and humanoid-creature method can name.</p>
+<dl class="fields"><dt>src · name · frames · loop · start · end · pitch · arms · body · fwd · rig · rigmap</dt><dd>The file, the folder name, 24 or 12, the slice, the camera's tilt, <code>zombie</code> or <code>hold_r</code> arms, proportions to fit (<code>body=</code>), <code>fwd=body</code> for toe-out walks, the rig kind or your bone map.</dd></dl>
+</div><figure><img src="guide_img/driver_pose_run.png" alt="The run driver's sheet" loading="lazy"><figcaption>The run driver: five views, 24 frames each.</figcaption></figure></div>
+<div class="callout watch"><b>Watch for.</b><p>A clip with several strides must be sliced to one. A man's skeleton makes a goblin lanky: <code>body=</code> fits the proportions. Wide arms leave the clip frame: scale the back views 0.85.</p></div>
+</section>
+<section class="method" id="driver_depth">
+<h3>Depth drivers from a rigged model's own clip</h3>
+<div class="chips"><span class="chip kind">3D · any rig</span><span class="chip time">about 10 s</span></div>
+<div class="grid"><div>
+<p>Plays the clip you choose on the model (a beetle, a scorpion, a humanoid), takes the travel out, optionally swings the leg bones wider (<code>amp</code>, because a real creature's step is too small to read at sprite size), and writes for each of the five game views a depth video, a clay render and a textured render; one-shot mode for a death or an attack. Clay first, so a bad framing shows before the depth frames. The folder is what <a href="#creature_ctl">a model's own motion</a> names as its drivers and death drivers.</p>
+<dl class="fields"><dt>src · name · action · mode · frames · cycles · amp · amp_bones · depth · forward · inplace</dt><dd>The file, the folder, the clip, cycle or one-shot, 12 frames × 2 cycles, how much wider the legs swing and which bones count as legs, tight depth (the default), which way the model faces, keep a lunge.</dd></dl>
+</div><figure><img src="guide_img/driver_depth_beetle.png" alt="The beetle's depth driver" loading="lazy"><figcaption>The beetle's clay and one depth frame: near bright, far dark.</figcaption></figure></div>
+</section>
+<figure><img src="guide_img/ed_driver_picker.jpg" alt="The driver picker in the job form" loading="lazy"><figcaption>The driver library in the job form: every driver's frames play so you can see the stride before you choose it.</figcaption></figure>
+
+<h2 id="refs">References and the words</h2>
+<p>The form lets you pick a role and a follow level per reference; these are the sentences it sends, the ones that worked in earlier passes. Nothing else changes how strongly a picture is followed.</p>
+<div class="tablewrap"><table>
+<tr><th>Role · level</th><th>Where it is used</th><th>The words</th></tr>
+<tr><td>style · fixed</td><td>the style anchor, first reference of every front still; never for icons</td><td>"Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: … Do not copy any subject from the reference."</td></tr>
+<tr><td>identity · loosely</td><td>the model-walked creature's side candidates</td><td>"The nth reference image shows what this creature looks like: copy its armour, colours and markings, but not its pose or camera angle."</td></tr>
+<tr><td>identity · closely</td><td>a front from a picture</td><td>"The nth reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of … Keep …"</td></tr>
+<tr><td>identity · copy exactly</td><td>icon candidates with a render; the title cut-out's figure</td><td>"Copy this exact object from the reference image: its silhouette, proportions, parts and colours, seen from the same angle." / "Keep the same face, outfit, colors and proportions as the reference."</td></tr>
+<tr><td>pose and anatomy · closely</td><td>the clay render of a model</td><td>"The second reference image is a smooth plain 3D model of …: use it only for the anatomy, the pose, the camera angle and where every leg and every other part is. Redraw it as a finished, detailed anime game creature illustration …"</td></tr>
+<tr><td>view · fixed</td><td>every other view of a creature or hero, from that view's own painting</td><td>"Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing."</td></tr>
+<tr><td>held object · copy exactly</td><td>the title cut-out's second reference</td><td>"The second reference image shows the …: copy its shape and colours exactly … the … is the only thing he holds"</td></tr>
+</table></div>
+<figure><img src="guide_img/ed_jobform_words.jpg" alt="Show the words that will be sent" loading="lazy"><figcaption>"Show the words that will be sent" in the job form: the full sentences, with where each one comes from.</figcaption></figure>
+
+<h2 id="stats">The stats</h2>
+<p>Art is one half of an asset; the form is the other. Every number has the template's value as its grey default, and the rules that would break the game's checks block Save with a red line that names them.</p>
+<h3>Enemies, elites and bosses</h3>
+<div class="pair">
+<div>
+<ul>
+<li><b>Identity</b>: name, flavour, archetype (only <em>elite</em> and <em>boss</em> change behaviour; the rest are labels), brain (chase, flock, kite, charge, kamikaze, artillery, caster, support, boss), the doc line the Collection reads.</li>
+<li><b>Body</b>: HP, bite damage, knockback (above zero), speed, size in metres, radius, damage reduction, bite cooldown, blood colour, shadow, head height, which way the front and back face, the badge.</li>
+<li><b>Brain blocks</b>: the blocks the brain naturally uses appear by themselves (ranged, charge, kamikaze, artillery, caster, support, ambush, death burst, boss, elite); "+ Add block" adds any other. A combination no creature in play uses says <mark>untested in play</mark>: allowed, but look at it in the arena.</li>
+<li><b>Attack script</b> (bosses and elites): a card per attack with that attack's own keys, a telegraph picture drawn to scale, and the sequence line of wind-ups and gaps.</li>
+<li><b>Spawning</b>: pack size, cap share, max alive, XP, can be an elite, can be grabbed, power-up drops. <b>Drops</b>: small, medium and large gems, gold, a chest, a specific power-up. <b>Variance</b>: tints, the special's chance and its colour, with the frame tinted live.</li>
+<li><b>Sounds</b>: hit, die, attack and spawn, from the sound map's ids.</li>
+</ul>
+<p>The <b>Compare with</b> panel at the top shows the template against this one: HP at 0:00, 5:00 and 12:00 after the map's multipliers, seconds to kill with a level-1 Revolver, bites to kill the hero, and the ring hint. These are the numbers that decide where in the run the creature belongs.</p>
+</div>
+<figure><img src="guide_img/ed_boss_script.jpg" alt="A boss's attack script with telegraph pictures" loading="lazy"><figcaption>The Tumbleweed King's script: four attacks, their telegraphs to scale, the cycle's length.</figcaption></figure>
+</div>
+<h3>Heroes</h3>
+<div class="pair">
+<div>
+<ul>
+<li><b>Trait</b>: the stat that grows per level (one or two), with the sentence the game will show previewed under it and a "Set trait_text from the rule" button; the heal on level-up.</li>
+<li><b>Favourites</b>: the favourite weapon or passive and its bonus (found at level N, or found full), the start weapon.</li>
+<li><b>Specials</b>: cannot stop, momentum, auto magnet, motherlode.</li>
+<li><b>Availability</b>: <em>hidden</em>, <em>available</em> or <em>purchase</em> with a price and a currency type. Purchase is written and shown but not wired yet: such a hero stays hidden in play.</li>
+<li><b>His own</b>: his weapon, his hero mutation and his perks, each with an Edit that opens them on the Items tab.</li>
+</ul>
+</div>
+<figure><img src="guide_img/ed_hero_form.jpg" alt="Solenne's hero form" loading="lazy"><figcaption>Solenne's form: the trait sentence, favourites, availability, her own items.</figcaption></figure>
+</div>
+<h3>Items</h3>
+<div class="pair">
+<div>
+<ul>
+<li><b>Weapons</b>: behaviour (the thirteen the game has), targeting, the base stats with the game's defaults as placeholders, exactly five level steps as effect rows with the wording the card will show, the evolution and the path strip (element, volume, motion) with "Create templates" when a weapon has none, params as JSON with the behaviour's known keys as chips, sounds.</li>
+<li><b>Lines and passive items</b>: the levels, the max level, line or item, what it evolves into, the card text.</li>
+<li><b>Mutations and evolutions</b>: opened from their weapon's card, with their kind, text and effects.</li>
+<li><b>Availability</b>: hidden, available, or locked by an unlock quest, written from the quest drawer (survive N minutes, kill N of a creature, open N chests…). The band gauge shows how many items are quest-locked; the ship's test wants a third to a half.</li>
+</ul>
+<p>A new weapon starts hidden with three template mutations and a template evolution and can turn available once they are filled: the game offers mutations at fixed slots and needs a complete path.</p>
+</div>
+<figure><img src="guide_img/ed_items_path.jpg" alt="The Revolver's path strip" loading="lazy"><figcaption>The Revolver: its three path mutations and the Golden Revolver on the path strip.</figcaption></figure>
+</div>
+
+<h2 id="ingame">How it appears in the game</h2>
+<div class="flow">
+  <div><b>Enemies</b>Only where a wave names them: the Timeline's roster rows, waves and events. The default look is the one rows play unless a row pins another. The Collection lists them once met.</div>
+  <div><b>Heroes</b>The title carousel in <code>order</code>, the hero sheet behind the name plaque, the arena's HERO tab. Hidden heroes stay out; a locked one shows its quest.</div>
+  <div><b>Items</b>The level-up cards at their rarity's weight, the chests, the shop, the Collection; a quest-locked item shows its quest until it is done.</div>
+  <div><b>Looks</b>The arena's ENEMY tab has a chip per look of every creature (folded per creature past six), the HERO tab a chip per hero look with "USE FROM NOW ON". Shelved looks are out of the chips until you show them.</div>
+</div>
+<div class="shots">
+  <figure><img src="guide_img/game_launch_arena.jpg" alt="The arena opened by Test in game" loading="lazy"><figcaption>"Test in game": the arena opens with the creature in the chosen look, three of them, in front of the hero.</figcaption></figure>
+  <figure><img src="guide_img/game_arena_fifty.jpg" alt="The arena's look chips for a creature with fifty looks" loading="lazy"><figcaption>The arena's chips cope with fifty looks: one row per creature, folded, the lit chip's note shown.</figcaption></figure>
+  <figure><img src="guide_img/game_hero_fifty.jpg" alt="The arena's hero look chips" loading="lazy"><figcaption>The HERO tab's chips: a tap shows the look on the hero now, "USE … FROM NOW ON" keeps it.</figcaption></figure>
+  <figure><img src="guide_img/ed_player_hero.jpg" alt="Solenne in the big player, back-diagonal facing left" loading="lazy"><figcaption>The big player on Solenne's run, back-diagonal, facing left: mirrored as the game mirrors.</figcaption></figure>
+</div>
+<div class="pair">
+  <figure><img src="guide_img/game_title_solenne.png" alt="Solenne's title cut-out" loading="lazy" style="max-width:260px"><figcaption>The title cut-out: the figure on the title screen's carousel (660 by 888).</figcaption></figure>
+  <figure><img src="guide_img/game_badge_solenne.png" alt="Solenne's round badge" loading="lazy" style="max-width:160px"><figcaption>The round badge: the hero sheet, plates and results.</figcaption></figure>
+  <figure><img src="guide_img/game_icon_scorpion.png" alt="The Lesser Scorpion's icon" loading="lazy" style="max-width:160px"><figcaption>A creature's icon: cut from its front still, shown in the Collection and on the roster.</figcaption></figure>
+  <figure><img src="guide_img/game_icon_revolver.png" alt="The Revolver's icon" loading="lazy" style="max-width:160px"><figcaption>An item's icon: on the cards, the HUD and the Collection.</figcaption></figure>
+</div>
+<figure><img src="guide_img/game_strip_scorpion.png" alt="The first twenty frames of the Lesser Scorpion's strip" loading="lazy"><figcaption>What a strip is: square cells in a fixed order (idle, run, attack, hit, die, then the other views). The game reads the counts from the JSON; the player in the editor reads the same.</figcaption></figure>
+<div class="callout good"><b>Nothing is lost in play while you work.</b><p>A look that just landed plays at once in the arena and can be named by a wave row; "fresh" is only the review mark. Shelving hides, it never deletes. Removing moves the files to the backups folder. Every Save and every landing keeps a backup of the JSON as it was.</p></div>
+
+<h2 id="wrong">When something looks wrong</h2>
+<ul>
+<li><b>A still is off</b> (a face on a back, four ears): open the job card, <mark>Re-roll…</mark>, tick that still, a new seed. Only that still is painted again; everything cached stays.</li>
+<li><b>A clip is off</b> (a limb grows, the cadence halves): Re-roll with that clip ticked; its folder moves aside and the seed goes up. For a free clip try the stride method or a model if the shape allows.</li>
+<li><b>The job says "fell back"</b> in its clip_kind: the driven walk failed quietly and a free clip took its place. Shrink the driver (pose_scale) or lower <code>clip_fill</code>, then re-roll that clip.</li>
+<li><b>The colour drifted</b> on a view: repaint that view (the candidates path) and name the colour in <code>keep</code>; remap only moves a hue, it does not restore a wrong one.</li>
+<li><b>"not imported"</b> on a look: the next finished job or Save imports; the chip turns green by itself.</li>
+<li><b>"unmerged"</b> on a job: the JSON has a layout the one-line writer cannot keep; press <mark>Merge again</mark> after tidying, or <mark>Re-dump this file</mark> knowing every line may change in git.</li>
+<li><b>The server is busy</b>: the Jobs tab's header says who holds the AI server and the Godot lock, and for how long. One ComfyUI job runs at a time, yours and Claude's alike. A lock left by a process that died is reclaimed by itself; one without an owner only by "Force release".</li>
+<li><b>The vision check is off</b> (LM Studio closed): jobs run with "QA online: no" and keep the first render of every try. Nothing fails; you just look harder.</li>
+</ul>
+
+<footer>Written for Garry after pass 66 (2026-10-11). The method texts, timings and weak spots come from <code>tools/level_editor/methods.json</code>, the same file the job form reads; the Instructions tab in the editor carries the same tables and two live players. Keys and rules: <code>docs/assets_schema.md</code>, <code>BALANCING.md</code> section 13.</footer>
+</main>
+</div>
+
+</body>
+</html>

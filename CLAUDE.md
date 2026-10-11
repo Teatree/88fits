@@ -314,7 +314,8 @@ Blender models from Garry's references in `_REFERENCES/` (git-ignored).
 
 **Docs.** The design bible is built from `docs/design/src/` by `python tools/make_bible.py` (edit the parts, not the
 output) and published at https://claude.ai/artifact/2onXrvqpGH3uqwPEstVYhr; `BALANCING.md` (where every number lives);
-`docs/HISTORY.md` (every pass).
+`docs/HISTORY.md` (every pass); `docs/art_guide.html` (Garry's guide to every art method, the stats and where things
+show in the game; pictures in `docs/guide_img/`; published at https://claude.ai/artifact/CcDTWtyzDiEG32i3N2MY4W).
 
 **Working rules learnt the hard way** (details in HISTORY.md's lessons and the memory):
 - Garry hand-tunes JSON (and the map in the Level Editor) while passes run: keep his numbers, re-pin tests; map tests read
