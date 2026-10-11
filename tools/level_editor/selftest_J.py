@@ -133,7 +133,8 @@ def checks(check, run_node, server):
         check(j["cmd"][0] == sys.executable and j["cmd"][1] == "-u" and j["cmd"][2].endswith("asset_job.py"), "a comfy job runs through asset_job.py: %s" % j["cmd"])
         check(j["equiv"] == "python tools/gen_art.py --no-import --only testbeast --variant=TB-A --skip-qa", "equiv is the command Claude would type: %s" % j["equiv"])
         check(j["title"] == "Test Beast TB-A · creature_free2", "the title names the creature, the code and the method: %s" % j["title"])
-        check(("set_recipe", "enemy", "testbeast", "TB-A", {"stills": "tba", "motion": "waddling"}) in calls, "enqueue writes the recipe through hooks.set_recipe")
+        rc = [c for c in calls if c[:4] == ("set_recipe", "enemy", "testbeast", "TB-A")]
+        check(rc and rc[0][4].get("stills") == "tba" and rc[0][4].get("motion") == "waddling" and "art_prompt" in rc[0][4], "enqueue writes the recipe through hooks.set_recipe (the base's art words seeded in): %s" % (rc and rc[0][4]))
         jj = json.load(open(os.path.join(jobs.JOBS_DIR, j["id"], "job.json"), encoding="utf-8"))
         check(jj["tool"] == "gen_art" and jj["call"] == "process" and "--variant=TB-A" in jj["argv"] and jj["type"] == "enemies" and jj["id"] == "testbeast",
               "job.json carries tool/call/argv/type/id: %s" % {k: jj[k] for k in ("tool", "call", "argv", "type", "id")})
@@ -191,7 +192,7 @@ def checks(check, run_node, server):
         fj = jobs._find(fj["id"])
         # the log's keys are the base creature's (no stills slug, clips keyed by the id): point the stages at them
         for s in fj["progress"]["stages"]:
-            s["key"] = s["key"].replace("skeleton_raider_sra_", "skeleton_raider_")
+            s["key"] = s["key"].replace("skeleton_raider_sra_", "skeleton_raider_").replace("skeleton_raider_a_", "skeleton_raider_")  # the seeded stills slug too (lead)
         markers = jobs.parse_log(fj, open(os.path.join(td, "gen_art_free2.log"), encoding="utf-8").read())
         done = [s["name"] for s in fj["progress"]["stages"] if s["state"] == "done"]
         check(done == ["front", "back", "walk_f", "walk_b", "dead", "fall", "pack"], "gen_art_free2.log: every stage done: %s" % done)
@@ -299,7 +300,7 @@ def checks(check, run_node, server):
         check(job["state"] == "done" and job["written"]["layout"] == "entry" and job["written"]["keys"] == ["variants"] and job["written"]["file"].endswith("testbeast.json"),
               "exit 0 -> merged -> done, written says how: %s" % job["written"])
         d1 = json.load(open(os.path.join(content, "enemies", "testbeast", "testbeast.json"), encoding="utf-8"))["variants"]["TB-A"]
-        check(d1["note"] == "my note" and d1["recipe"] == {"stills": "tba", "motion": "waddling"} and d1["shelved"] is True and d1["fresh"] is True and d1["sprite"] == "testbeast_sprite_a.png",
+        check(d1["note"] == "my note" and d1["recipe"].get("stills") == "tba" and d1["recipe"].get("motion") == "waddling" and d1["shelved"] is True and d1["fresh"] is True and d1["sprite"] == "testbeast_sprite_a.png",
               "the merge keeps note/recipe/shelved and marks the look fresh: %s" % d1)
         imports = [x for x in jobs._state["jobs"] if x["kind"] == "import" and x["state"] == "queued"]
         check(len(jobs._state["jobs"]) == n_before + 1 and len(imports) == 1 and imports[0]["spec"]["targets"] == ["enemies/testbeast"] and imports[0]["lane"] == "godot",

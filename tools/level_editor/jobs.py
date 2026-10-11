@@ -1034,9 +1034,34 @@ def _tail_from_file(job, n):
         return []
 
 
+CREATURE_STILL_METHODS = ("creature_free2", "creature_pose2", "creature_free8", "creature_proc")
+# the art words a new look inherits from its creature when its recipe leaves them out, so the prompt is in the look's
+# own recipe where Garry can read and change it (lead, after the Armadillo's ARM-A came out identical to ARM-0)
+INHERITED_WORDS = ("art_prompt", "motion", "dead_hint", "back_hint", "anim_negative", "view_hints", "screen")
+
+
+def _seed_recipe(target, spec):
+    """A creature look painted by gen_art: give it its own `stills` slug (else the stills are CACHED under the creature's
+    own keys and every look comes out as the base) and copy the base's art words into the recipe when it names none."""
+    if spec.get("method") not in CREATURE_STILL_METHODS or not target.get("code"):
+        return
+    recipe = spec.get("recipe")
+    if not isinstance(recipe, dict):
+        recipe = {}
+        spec["recipe"] = recipe
+    if not recipe.get("stills"):
+        recipe["stills"] = _letter(target["code"])
+    base = content_doc(target.get("kind"), target.get("id")) or {}
+    for k in INHERITED_WORDS:
+        if not recipe.get(k) and base.get(k) not in (None, "", {}):
+            recipe[k] = base[k]
+
+
 def enqueue(kind, target, spec, title=None):
     spec = validate_spec(kind, spec)
     target = _check_target(kind, target)
+    if kind == "look":
+        _seed_recipe(target, spec)
     job = {"id": _new_id(), "kind": kind, "method": spec.get("method") if kind == "look" else kind, "lane": SPECS[kind]["lane"],
            "state": "queued", "title": title or "", "target": target, "spec": spec, "phase": 1, "attempt": 1, "created": _now(),
            "started": None, "ended": None, "pid": None, "cmd": [], "equiv": "",
@@ -1066,6 +1091,8 @@ def edit(job_id, spec=None, title=None):
             merged = dict(job.get("spec") or {})
             merged.update(spec)
             job["spec"] = validate_spec(job["kind"], merged)
+            if job["kind"] == "look":
+                _seed_recipe(job.get("target") or {}, job["spec"])
             if job["kind"] == "look":
                 job["method"] = job["spec"].get("method")
         if title is not None:
