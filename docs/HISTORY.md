@@ -174,3 +174,10 @@ the wrong reason). A real badge job for Mamy (Klein, one seed, her description, 
 unmistakably: the beret with the heart tip, the bob, the star, the magenta scarf and gloves, mock surprise. Lessons: a
 cache keyed by name needs every new thing to get a new name (a look, a seed, a code once freed); a form field that the
 server drops is worse than no field.
+While the pass shipped, Garry retuned Red Canyon's ATK x curve in the Level Editor (stage 1 flat at 1.21 instead of
+1; stage 2 from 1.44 to 1.39 and stage 3 from 1.54 to 1.58, where pass 64 had 0.5 and 0.39 to 0.43). Five tests pinned
+the old numbers (pass54_waves, pass62_pc, pass64_df: stage 1 at 1, later stages softer than pass 62); his numbers were
+kept and the tests now read the map file and ask only for shapes any curve of his has: a positive multiplier under 10
+and each boss second on its own stage's side of the step (the King's 430 against 429, the Gila's 860 against 859, to
+0.005 since his stage 2 slopes). Pass 64's promise (stage 2 with a quarter of the board, stage 3 with half) was tuned
+on the old curve and is his to keep or drop.

@@ -5,12 +5,13 @@ extends GdUnitTestSuite
 ## Red Canyon's stage 2 to half the Upgrade board and stage 3 to the full board; this pass turns the same knobs down
 ## (the ATK x curve after 7:10, every stage-2 / stage-3 row's and Elite event's HP x) and leaves stage 1 exactly as Garry
 ## made it (pass62_pc_test pins it). Read from the map file, so Garry can keep tuning in the Level Editor: the checks are
-## the shape (softer than pass 62, still a step up stage by stage), not his numbers.
+## the shape (softer than pass 62, still a step up stage by stage), not his numbers. Pass 68: Garry retuned the ATK x curve
+## himself on 2026-10-12 (stage 1 at 1.21, stages 2 and 3 above it), so the attack checks ask only for a positive
+## multiplier with each boss second on its own stage's side of the step.
 
 const MAP_JSON := "res://content/maps/red_canyon/red_canyon.json"
 const STAGE := 430.0
-## Pass 62's numbers (before this pass): the ATK x points after 7:10 and the average row HP x of each stage.
-const P62_DMG := [[431.0, 0.65], [860.0, 0.65], [861.0, 0.55], [1290.0, 0.6]]
+## Pass 62's numbers (before this pass): the average row HP x of each stage.
 const P62_HP_AVG := [1.1653, 1.2862]
 const P62_HP_MAX := 2.03
 
@@ -38,20 +39,26 @@ func _row_hp(tl: Dictionary, s: int) -> Array:
 
 
 func test_stage_one_attack_is_untouched() -> void:
+	# pass 68 re-pin: stage 1's attack is Garry's to tune in the Level Editor (flat at 1 until 2026-10-12, flat at 1.21
+	# since), so none of his numbers is pinned: a positive multiplier all through the stage, and the King's second (430)
+	# on stage 1's side of the step
 	var tl := _tl()
 	for k in range(0, 431):
-		assert_float(tl.damage_mult_at(float(k))).is_equal_approx(1.0, 0.000001)
+		assert_float(tl.damage_mult_at(float(k))).is_greater(0.0)
+	assert_float(tl.damage_mult_at(STAGE)).is_equal_approx(tl.damage_mult_at(STAGE - 1.0), 0.005)
 
 
-func test_later_stages_hit_softer_than_pass_62() -> void:
+func test_later_stages_attack_is_a_sane_multiplier() -> void:
+	# pass 68 re-pin: pass 64 had stages 2 and 3 hit softer than pass 62 (ATK x under 0.65 / 0.55 / 0.6, a stage-2 or
+	# stage-3 hit at most what a quarter or half board's HP allows); Garry retuned the curve himself on 2026-10-12
+	# (stage 2 from 1.44 to 1.39, stage 3 from 1.54 to 1.58), so that promise is his to keep or drop and the test asks
+	# only for the shape: a positive multiplier at every tenth second of stages 2 and 3 and into endless, under 10 (a
+	# typo guard)
 	var tl := _tl()
-	for p in P62_DMG:
-		var t := float(p[0])
-		assert_float(tl.damage_mult_at(t)).override_failure_message("ATK x at %d s" % int(t)).is_less(float(p[1]))
-	# the big-hit rule: a stage-2 hit at most what a quarter board's HP allows (x 1.15 / 1.3 of pass 62's), a stage-3 hit
-	# at most what half the board allows (x 1.3 / 1.6)
-	assert_float(tl.damage_mult_at(700.0)).is_less_equal(0.65 * 1.15 / 1.3 + 0.001)
-	assert_float(tl.damage_mult_at(1150.0)).is_less_equal(0.5837 * 1.3 / 1.6 + 0.001)
+	for k in range(431, 2001, 10):
+		var v := tl.damage_mult_at(float(k))
+		assert_float(v).override_failure_message("ATK x at %d s" % k).is_greater(0.0)
+		assert_float(v).override_failure_message("ATK x at %d s" % k).is_less(10.0)
 
 
 func test_still_a_step_up_stage_by_stage_in_play() -> void:
@@ -61,8 +68,9 @@ func test_still_a_step_up_stage_by_stage_in_play() -> void:
 	var s3 := tl.stage_mult(2) * tl.damage_mult_at(1150.0)
 	assert_float(s2).is_greater(s1)
 	assert_float(s3).is_greater(s2)
-	# the Gila fights on stage 2's ATK x (the clock stands at 860), the Brander on stage 3's end
-	assert_float(tl.damage_mult_at(STAGE * 2.0)).is_equal_approx(tl.damage_mult_at(STAGE * 2.0 - 1.0), 0.000001)
+	# the Gila fights on stage 2's ATK x (the clock stands at 860), the Brander on stage 3's end (pass 68: Garry's stage 2
+	# slopes, so the second before is a near neighbour, not an equal)
+	assert_float(tl.damage_mult_at(STAGE * 2.0)).is_equal_approx(tl.damage_mult_at(STAGE * 2.0 - 1.0), 0.005)
 
 
 func test_rows_are_softer_than_pass_62_and_still_ramp() -> void:

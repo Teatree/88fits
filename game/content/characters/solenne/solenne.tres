@@ -88,7 +88,8 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("3_1go7i"),
 "sprite_file": "solenne_sprite.png",
-"strip_cols": 62
+"strip_cols": 62,
+"title": ""
 },
 "SOL-B": {
 "anims": {
@@ -121,7 +122,8 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("3_06g83"),
 "sprite_file": "solenne_sprite_b.png",
-"strip_cols": 62
+"strip_cols": 62,
+"title": ""
 },
 "SOL-C": {
 "anims": {
@@ -154,7 +156,8 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("6_5woph"),
 "sprite_file": "solenne_sprite_c.png",
-"strip_cols": 62
+"strip_cols": 62,
+"title": ""
 },
 "SOL-D": {
 "anims": {
@@ -187,7 +190,8 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("7_v4tah"),
 "sprite_file": "solenne_sprite_d.png",
-"strip_cols": 62
+"strip_cols": 62,
+"title": ""
 },
 "SOL-E": {
 "anims": {
@@ -220,7 +224,8 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("8_5woph"),
 "sprite_file": "solenne_sprite_e.png",
-"strip_cols": 62
+"strip_cols": 62,
+"title": ""
 }
 }
 variant = "SOL-B"

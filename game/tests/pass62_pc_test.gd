@@ -71,10 +71,13 @@ func test_the_curves_before_seven_ten_are_untouched() -> void:
 	for k in range(0, 431):
 		var t := float(k)
 		assert_float(tl.hp_mult_at(t)).is_equal_approx(hc.hp_mult_at(t), 0.000001)
-		# the damage curve was flat at 1; it still is up to the King's second (his fight reads the frozen clock, 430)
-		assert_float(tl.damage_mult_at(t)).is_equal_approx(1.0, 0.000001)
-	# a spawn half a second before the boss (a special) still sees stage 1's value
-	assert_float(tl.damage_mult_at(429.5)).is_equal_approx(1.0, 0.000001)
+		# pass 68 re-pin: the damage curve through stage 1 is Garry's (flat at 1 until his 2026-10-12 retune in the Level
+		# Editor, flat at 1.21 since), read from the map file: only a positive multiplier is asked of it
+		assert_float(tl.damage_mult_at(t)).is_greater(0.0)
+	# the King's fight reads the frozen clock (430), and a spawn half a second before him (a special) sees the same: stage
+	# 1's side of any step at 7:10
+	assert_float(tl.damage_mult_at(430.0)).is_equal_approx(tl.damage_mult_at(429.0), 0.005)
+	assert_float(tl.damage_mult_at(429.5)).is_equal_approx(tl.damage_mult_at(429.0), 0.005)
 
 
 func test_the_dwarf_shooter_opens_stage_two() -> void:
@@ -204,9 +207,10 @@ func test_endless_keeps_a_crowd_of_both_channels() -> void:
 
 func test_the_bosses_keep_their_stage_and_later_stages_hit_harder_in_play() -> void:
 	var tl := _tl()
-	# the King fights on stage 1's ATK x (the clock stands at 430), the Gila on stage 2's
-	assert_float(tl.damage_mult_at(STAGE)).is_equal_approx(1.0, 0.000001)
-	assert_float(tl.damage_mult_at(STAGE * 2.0)).is_equal_approx(tl.damage_mult_at(STAGE * 2.0 - 1.0), 0.000001)
+	# the King fights on stage 1's ATK x (the clock stands at 430), the Gila on stage 2's (pass 68 re-pin: the values are
+	# Garry's and his stage 2 slopes, so each boss second is compared with the second before it, not with a number)
+	assert_float(tl.damage_mult_at(STAGE)).is_equal_approx(tl.damage_mult_at(STAGE - 1.0), 0.005)
+	assert_float(tl.damage_mult_at(STAGE * 2.0)).is_equal_approx(tl.damage_mult_at(STAGE * 2.0 - 1.0), 0.005)
 	# every stage-2 / stage-3 row starts after its stage's boss second, so it reads its own stage's step
 	for r in tl.roster:
 		var t := float(r.get("t", 0.0))

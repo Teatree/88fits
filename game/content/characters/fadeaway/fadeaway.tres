@@ -69,7 +69,8 @@ variants = {
 "shelved": true,
 "sprite": ExtResource("4_cxldy"),
 "sprite_file": "fadeaway_sprite.png",
-"strip_cols": 0
+"strip_cols": 0,
+"title": ""
 },
 "FAD-B": {
 "anims": {
@@ -102,7 +103,8 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("5_kekjt"),
 "sprite_file": "fadeaway_sprite_b.png",
-"strip_cols": 62
+"strip_cols": 62,
+"title": ""
 }
 }
 variant = "FAD-B"

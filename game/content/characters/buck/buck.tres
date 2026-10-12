@@ -106,7 +106,8 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("4_ihfma"),
 "sprite_file": "buck_sprite.png",
-"strip_cols": 62
+"strip_cols": 62,
+"title": ""
 },
 "BUC-B": {
 "anims": {
@@ -139,7 +140,8 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("5_ihfma"),
 "sprite_file": "buck_sprite_b.png",
-"strip_cols": 62
+"strip_cols": 62,
+"title": ""
 },
 "BUC-C": {
 "anims": {
@@ -172,7 +174,8 @@ variants = {
 "shelved": true,
 "sprite": ExtResource("6_nb70y"),
 "sprite_file": "buck_sprite_c.png",
-"strip_cols": 62
+"strip_cols": 62,
+"title": ""
 }
 }
 variant = "BUC-B"
