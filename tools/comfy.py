@@ -258,8 +258,12 @@ def restart_server():
     and survive the restart."""
     import subprocess
     ensure_lock()
-    subprocess.run(SERVER_SSH + ["systemctl --user restart ai-comfyui.service"], capture_output=True, timeout=60)
-    for _ in range(40):
+    try:
+        # a server thrashing its swap can take minutes to stop: wait for systemd rather than give up after one
+        subprocess.run(SERVER_SSH + ["systemctl --user restart ai-comfyui.service"], capture_output=True, timeout=300)
+    except subprocess.TimeoutExpired:
+        pass
+    for _ in range(80):
         time.sleep(3)
         try:
             get("/system_stats")

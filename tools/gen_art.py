@@ -124,10 +124,10 @@ def paint(prompt, seed, width, height, refs, prefix, full=False):
     p = painter_info(full)
     if p["model"] == "dev":
         g = comfy.flux2_dev(prompt, seed, width, height, refs=refs, steps=p["steps"], guidance=p["guidance"], turbo=p["turbo"], prefix=prefix)
-        if full or not p["turbo"]:
-            imgs, secs = comfy.run_dev(g)
-        else:
-            imgs, secs = comfy.run(g)
+        # every dev still on a freshly restarted server, Turbo too (2026-10-12: a dev job cancelled mid-render left
+        # ComfyUI holding both models in a full RAM, and the next Turbo still went straight in and thrashed the swap
+        # for twenty minutes; the models are released after each still anyway, so the restart costs seconds)
+        imgs, secs = comfy.run_dev(g)
         log("  " + comfy.release_models())
         return imgs, secs
     return comfy.run(comfy.klein(prompt, seed, width, height, refs=refs, steps=p["steps"], prefix=prefix))
