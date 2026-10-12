@@ -1326,10 +1326,17 @@ func _check_quests() -> void:
 	for id in QuestTracker.check_all(true):
 		var q: QuestDef = Registry.quests[id]
 		if RunAnalytics.I: RunAnalytics.I.event("unlock", str(id))
-		# the banner carries the item's own icon (pass 44), so the unlock is seen, not only read
-		var def: ContentDef = Registry.unlocked_by(q)
+		# the banner carries the item's own icon (pass 44), so the unlock is seen, not only read; a hero's badge is the
+		# one of the look he is played in (pass 68, unlock_banner_def)
+		var def: ContentDef = unlock_banner_def(q)
 		hud.banner("UNLOCKED: " + (def.display_name if def else q.display_name), UiKit.GOOD, def.icon if def else null)
 		Audio.play("ui_unlock")
+
+
+## What the run's UNLOCKED banner for quest `q` draws: the item it opens, with its own icon (pass 44), a hero in the look
+## he is played in (pass 68, Registry.art_of); null when it opens nothing the Registry has (the banner names the quest).
+static func unlock_banner_def(q: QuestDef) -> ContentDef:
+	return Registry.art_of(Registry.unlocked_by(q))
 
 
 var _dust_t := 0.0

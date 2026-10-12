@@ -139,3 +139,38 @@ BALANCING §14 holds 33 named rules. **Lessons**: a global like Run.heat leaks a
 it per round); a sync that skips small steps needs its end state forced or a threshold just under the top becomes a coin
 toss; a GLB's vertex colours need a material that reads them; agents stopped by a spend limit resume cleanly when each
 keeps a status file of what is in the tree. The ship run then caught a pass-58 flake: EnemyManager.ring_spots let the end spots of a wall-clipped ring slide past the arc (its random generator is seeded fresh every run), and `_inside` pulled one in a few millimetres under the 16 m ring (pass58_wv_test, 15.987 m); pass 60 had clamped the slide inside the arc in `_spots_on` only, and the same clamp now sits on the main path.
+
+**Pass 68 (2026-10-12, v0.54): looks, drafts and candidates in the Level Editor.** Garry's list: the hero's title cut-out
+and icon candidates should already know the hero (he typed only the action and got unrelated art) and take a reference
+picture; every new look must come with at least 3 icon and cut-out candidates; Duplicate must not start painting; a
+duplicate on Flux.2 dev at 32 steps (MAM-C) had come out exactly like its Klein source (MAM-B); the upcoming jobs belong at
+the top of the Jobs tab. Two readers (tools/dl/p68/map_*.json) found the causes on disk: a hero look read the hero's
+cached paintings (`<id>_<view>`), so MAM-C painted no still and its strip was byte-identical (md5 167fef65...); painting
+seeds came from the id alone, so two new looks with the same words were clones (DM-E and DM-F); the job form's re-roll
+choices and its 2D/3D reference rows reached no tool (MAM-C's typed reference too); `_seed_recipe` wrote a letter slug into
+EXISTING looks on any re-roll; the recorded painter said dev for Klein's paintings; icon candidates sent only the typed
+words and no picture ("mamy icon" painted four women in aprons) and their pick wrote a square icon over a hero's round
+badge; badge and title words never named the hero and their form fields were dropped. Built in four lanes (contract
+tools/dl/p68/INTERFACES.md): **tools** (gen_art keys a hero look's stills `<id>_<slug>_<view>` and moves every seed by
+104729 x `seed_offset`, names the real painter; gen_badge_cands, gen_title_heroes and gen_icon_cands take the character,
+the action or pose, a reference picture and a look, keep candidates per job and repaint on a re-run, pick into the look's
+own files and entry), **server** (a new look gets its own slug and seed offset, an existing look keeps `stills: ""`; the
+re-roll modes are real and refuse what cannot work; the honest painter at landing; `candidate_defaults` and
+`GET /api/jobs/defaults` fill and show every candidate input, the character cut of its pose clause by `appearance_of`;
+a candidate job waits while its look is still painting its reference; a pick lands in `variants[CODE].icon` (marked
+`icon_picked`, kept by later runs) or `.title`), **page** (Duplicate makes a draft with a Generate… button and starts
+nothing; the candidate forms open filled and editable with a picture field; a new look requires at least 3 candidates of
+each kind; the reference rows show only where a tool reads them; Up next first in the Jobs tab, numbered per lane) and
+**game** (a hero is drawn in the look he is played in: his badge follows it everywhere and the Painted title shows the
+look's own cut-out; the Live title, the default, has no cut-out). The lead then fixed four gaps the lanes flagged
+(re-rolled stills re-walk their clips, candidates wait for their look, a picked icon survives a re-roll, a forced repaint
+is spent once done), and an adversarial review (three lenses, a skeptic each) confirmed 14 more, all fixed: a removed
+look's code was handed out again with its cached pictures (next codes now skip a code whose caches remain), an edited
+re-roll job re-applied its re-roll, creature_ctl and recolour runs painted over a picked icon, a base look's candidates
+took the creature's old front as their reference, a done job's progress was wiped, title candidates were not per job,
+the held jobs' numbering, a base code picked into a look file, a cleared field could not be refilled, a redraw erased
+the note being typed, and two test faults (the new title test assumed Astro has one look; two of its checks passed for
+the wrong reason). A real badge job for Mamy (Klein, one seed, her description, her front still) painted her
+unmistakably: the beret with the heart tip, the bob, the star, the magenta scarf and gloves, mock surprise. Lessons: a
+cache keyed by name needs every new thing to get a new name (a look, a seed, a code once freed); a form field that the
+server drops is worse than no field.

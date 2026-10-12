@@ -327,6 +327,7 @@ const AFIELDS = (() => {
     ]),
     T('Art words', [
       { key: 'art_prompt', label: 'Subject', type: 'textarea', help: 'what the painter draws (default "a goofy <name> creature, <flavour>")' },
+      { key: 'appearance', label: 'Appearance', type: 'textarea', help: 'what it looks like, without a pose: the icon candidates\' subject words (pass 68); empty = the Subject with its pose clause cut' },
       { key: 'motion', label: 'Motion', type: 'textarea', help: 'how the free walk clip moves ("walking in place with a steady stomping gait")' },
       { key: 'anim_negative', label: 'Never in a clip', type: 'textarea', help: 'what the clip must not grow (faces, extra limbs)' },
       { key: 'dead_hint', label: 'Dead still', type: 'textarea', help: 'how it lies dead' },
@@ -402,7 +403,8 @@ const AFIELDS = (() => {
     ]),
     T('Art words', [
       { key: 'art_prompt', label: 'Subject', type: 'textarea', help: 'the painter\'s subject (default "a small goofy hero called <name>, <flavour>")' },
-      { key: 'portrait_prompt', label: 'Badge portrait', type: 'textarea', help: 'the round badge: "smiling at the viewer"' },
+      { key: 'appearance', label: 'Appearance', type: 'textarea', help: 'who he or she is, without a pose: the Character words the badge and title cut-out candidates start from (pass 68; a look\'s recipe may carry its own); empty = the Subject with its pose clause cut ("; standing straight, both arms relaxed at her sides")' },
+      { key: 'portrait_prompt', label: 'Badge portrait', type: 'textarea', help: 'the round badge\'s action: "smiling at the viewer" (the Action of the badge candidates)' },
       { key: 'motion', label: 'Free clip motion', type: 'textarea', help: '"running in place at a steady jog, arms and legs swinging naturally"' },
       { key: 'pose_motion', label: 'Pose clip motion', type: 'textarea', help: '"running in place on the spot like on a treadmill"' },
       { key: 'anim_hint', label: 'Clip subject', type: 'textarea', help: 'what the clip keeps (default: the subject\'s first clause)' },

@@ -665,3 +665,34 @@ disk, create / make_path / retire / delete, the vocabularies against the game so
 transition, the progress parser on real logs, the sidecar dry run; P 106: the strip maths on the real strips, the codes,
 the hero trait words, the rules on every document on disk; V 366: the player's maths and tables, methods.json, the
 schema; B: methods.json, the examples, every driver's meta.json). 17,023 checks pass (14,994 at pass 61).
+
+## Pass 68: drafts, candidates and honest re-rolls
+
+- **Duplicate… makes a draft** and starts nothing: a new code with the source's recipe (its method recorded, its painter
+  kept, its own stills and seed offset dropped, `from` = the source). The draft is selected and its typed recipe opens;
+  edit it, Save asset, then press **Generate…** on its card (a purple *draft* chip). Generate… opens the job form for that
+  code as a new look, with "reuse <source>'s paintings" (only the walks are made again).
+- **A new look paints its own stills on its own seeds** (heroes too): Queue writes `stills: "<letter>"` and `seed_offset`
+  into a new look's recipe; an existing look keeps `stills: ""` (the paintings it was made from). A removed look's code is
+  not handed out again while its pictures are cached.
+- **A new look comes with its candidates**: at least 3 icon candidates (a creature) or 3 badge and 3 title cut-out
+  candidates (a hero), 3 by default; Queue refuses fewer. They are queued after the look, on its Model settings, with its
+  front still as their reference; the Jobs tab shows one held "waiting for <code>'s front" until that still exists.
+- **Badge, title cut-out and icon forms open filled in and editable**: Character (the look's or asset's `appearance`, else
+  its art_prompt with the pose clause cut), Action (badge) or Pose, Holds and Camera (cut-out), and the Reference picture
+  (a thumbnail; Change… picks from the library, Upload… adds one, ↺ goes back to the look's front still). Each field says
+  where its value came from. A hero's icon is its round badge: "Icon candidates" on a hero are badge candidates.
+- **Where the pictures show**: a look's badge on the hero sheet, the results, the Collection and the arena (the look the
+  hero is played in); its cut-out on the Painted title only (Settings, debug mode: Main menu → Painted); the Live title,
+  the default, draws the look's strip.
+- **Re-roll does what it says**: repaint the stills (a look sharing its paintings forks them first; its walks are made
+  again from the new stills), new seeds (stills and clips), keep the stills and redo the clips, redo one view (gen_ctl).
+  A mode that cannot work for a method is refused with the reason. When the Model settings differ from the painter a look
+  was painted with, the form selects "repaint the stills". The painter line says when stills were reused instead of
+  painted ("stills reused", "N of M painted").
+- **The Jobs tab** lists Up next first (per lane, in the order each lane takes them, numbered), then Waiting for a pick,
+  Running and Finished.
+- **The form is honest**: the 2D/3D reference rows show only where a tool reads them; a creature painted from words says
+  to start from a picture with "A front from a picture".
+
+Rules: BALANCING.md section 15. Contract and maps: tools/dl/p68/ (git-ignored).

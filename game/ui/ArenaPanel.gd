@@ -1103,11 +1103,14 @@ func _hero_switch() -> void:
 			_grid(out, 3, func(c: CharacterDef) -> Control: return _hero_tile(c, true))
 
 
-## One hero's tile: his badge and name, "● playing" and a gold rim on the one playing, out-of-play ones dimmer.
+## One hero's tile: his badge and name, "● playing" and a gold rim on the one playing, out-of-play ones dimmer. The badge
+## is the one of his look (pass 68): the look he wears now for the one playing, else the one he is played in
+## (Registry.played_look).
 func _hero_tile(c: CharacterDef, dim: bool) -> Control:
 	var playing := Run.character != null and Run.character.id == c.id
 	var sub := "● playing" if playing else ("out of play" if c.hidden else ("locked" if not Registry.is_unlocked("character", c.id) else ""))
-	var t := _tile(c, "character", sub, func(): swap_hero(c.id))
+	var art: CharacterDef = c.variant_def(shown_look()) if playing else Registry.played_look(c)
+	var t := _tile(art, "character", sub, func(): swap_hero(c.id))
 	t.name = "Hero_" + c.id
 	if playing:
 		t.add_theme_stylebox_override("panel", UiKit.stylebox(UiKit.BG3, 18, UiKit.ACCENT, 4, true, false, false))

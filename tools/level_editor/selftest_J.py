@@ -73,8 +73,18 @@ def _fake_hooks(content_dir, calls):
         return [{"code": c, **{k: v for k, v in (e or {}).items() if k in ("anims", "strip_cols", "fps", "head", "note", "recipe", "shelved", "fresh")}}
                 for c, e in (d.get("variants") or {}).items()]
 
+    def set_look_files(kind, cid, code, files):
+        calls.append(("set_look_files", kind, cid, code, dict(files)))
+        jp, d = _load(kind, cid)
+        e = (d.get("variants") or {}).get(code)
+        if not isinstance(e, dict):
+            return {"ok": False, "layout": "unmerged", "error": "no look %s" % code}
+        e.update(files)
+        _dump(jp, d)
+        return {"ok": True, "layout": "entry", "backup": "fake.bak"}
+
     return {"content_path": content_path, "merge_look": merge_look, "merge_top": merge_top, "set_recipe": set_recipe,
-            "look_records": look_records, "redump_merge": lambda *a: {"ok": False, "error": "not in the fake"}}
+            "look_records": look_records, "set_look_files": set_look_files, "redump_merge": lambda *a: {"ok": False, "error": "not in the fake"}}
 
 
 def checks(check, run_node, server):
@@ -83,7 +93,7 @@ def checks(check, run_node, server):
     import jobs
     check(threading.active_count() == before, "importing jobs starts no thread (%d -> %d)" % (before, threading.active_count()))
     tmp = tempfile.mkdtemp(prefix="le_jobs_")
-    saved = {k: getattr(jobs, k) for k in ("JOBS_DIR", "QUEUE_FILE", "RAW", "ANIM", "REVIEW", "LAUNCH_FILE", "DL", "TITLE_OUT")}
+    saved = {k: getattr(jobs, k) for k in ("JOBS_DIR", "QUEUE_FILE", "RAW", "ANIM", "REVIEW", "LAUNCH_FILE", "DL", "TITLE_OUT", "WANTED")}
     saved_locks = {k: getattr(locks, k) for k in ("LOCK_DIR", "SAVE_DIR", "KEEP_DIR", "RESTORE_PENDING")}
     saved_state = (jobs._state, jobs._hooks, jobs._root, dict(jobs._lane_current))
     try:
@@ -94,6 +104,7 @@ def checks(check, run_node, server):
         jobs.ANIM = os.path.join(tmp, "dl", "ai_anim")
         jobs.REVIEW = os.path.join(tmp, "dl", "review")
         jobs.TITLE_OUT = os.path.join(tmp, "dl", "title_heroes")
+        jobs.WANTED = os.path.join(tmp, "wanted")
         jobs.LAUNCH_FILE = os.path.join(tmp, "user", "debug_launch.json")
         locks.LOCK_DIR = os.path.join(tmp, "locks")
         locks.SAVE_DIR = os.path.join(tmp, "save")
@@ -592,6 +603,13 @@ def checks(check, run_node, server):
         jobs._after_exit(ljob, rc, live)
         check(ljob["state"] == "done" and ljob["progress"]["stage"] == "the window closed", "a closed window ends the launch job done")
 
+        # ---- pass 68: new looks and their seeds, the re-roll modes, the honest painter, the candidates' defaults,
+        # the per-look picks, the job's own choices
+        _p68_checks(check, jobs, tmp, content, calls)
+        # ---- the pass 68 review's fixes: the base look's own front, spent keys, the re-roll stamp on edit, held jobs and
+        # the worker's order, a picked icon kept by a recolour
+        _review_checks(check, jobs, tmp, content, calls)
+
         # ---- asset_job.py --dry-run: a temp copy of the Blue Slime with a stub look, cached stills, nothing to ComfyUI
         _dry_run_check(check, tmp)
     finally:
@@ -611,6 +629,578 @@ def _seed_content(content):
     d = {"id": "testbeast", "name": "Test Beast", "hp": 10.0, "damage": 3, "frame_px": 128, "variant_base": "TB-0",
          "variants": {"TB-0": {"note": "base"}, "TB-A": {"note": "a look"}}, "art_prompt": "a goofy beast"}
     json.dump(d, open(os.path.join(folder, "testbeast.json"), "w", encoding="utf-8", newline="\n"), indent=2)
+
+
+def _jdump(path, d):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(d, f, indent=2)
+
+
+def _jload(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _touch(path, t=None, data=b"png"):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as f:
+        f.write(data)
+    if t is not None:
+        os.utime(path, (t, t))
+
+
+def _seed_p68(content, jobs):
+    """Pass 68's temp content: a creature with old and new looks (an own slug, a shared slug, a stub), a hero with its
+    base, a painted look and a draft, a hero the title tool's tables know (dad), an item with a 3D render."""
+    _jdump(os.path.join(content, "enemies", "p68beast", "p68beast.json"), {
+        "id": "p68beast", "name": "P68 Beast", "art_prompt": "a lumpy p68 beast with a spiky tail, standing on its hind legs",
+        "motion": "waddling", "placeholder": {"color": "#AA4422"}, "variant_base": "PB-0",
+        "variants": {"PB-0": {"note": "base"},
+                     "PB-A": {"note": "a", "sprite": "p68beast_sprite_a.png", "recipe": {"motion": "stomping"}},
+                     "PB-B": {"note": "b", "sprite": "p68beast_sprite_b.png", "recipe": {"stills": "b"}},
+                     "PB-C": {"sprite": "p68beast_sprite_c.png", "recipe": {"stills": "pbshared"}},
+                     "PB-D": {"sprite": "p68beast_sprite_d.png", "recipe": {"stills": "pbshared"}},
+                     "PB-G": {"sprite": "p68beast_sprite_g.png", "recipe": {"stills": "c"}},
+                     "PB-H": {"sprite": "p68beast_sprite_h.png", "recipe": {"motion": "hopping"}},
+                     "PB-E": {"note": "a stub", "recipe": {"art_prompt": "a lumpy p68 beast"}}}})
+    _jdump(os.path.join(content, "characters", "testhero", "testhero.json"), {
+        "id": "testhero", "name": "Test Hero", "art_prompt": "a lanky test hero in a red cape; standing straight, both arms relaxed at his sides",
+        "portrait_prompt": "winking at the viewer", "screen": "blue", "variant_base": "TH-A",
+        "variants": {"TH-A": {"note": "base"},
+                     "TH-B": {"note": "b", "sprite": "testhero_sprite_b.png", "recipe": {"pose_drivers": {"back": "run_occ"}}},
+                     "TH-C": {"note": "a draft", "recipe": {"method": "hero_pose5", "from": "TH-B", "art_prompt": "a lanky test hero in a blue cape"}}}})
+    _jdump(os.path.join(content, "characters", "dad", "dad.json"), {"id": "dad", "name": "Dad", "art_prompt": "a goofy dad, a proud smile"})
+    _jdump(os.path.join(content, "weapons", "p68gun", "p68gun.json"), {"id": "p68gun", "name": "P68 Gun", "art_prompt": "a shiny brass ray gun"})
+    for key in ("testhero_front", "dad_front", "p68beast_front", "p68beast_back", "p68beast_dead"):
+        _touch(os.path.join(jobs.RAW, key + ".png"))
+        _touch(os.path.join(jobs.RAW, key + ".json"), data=b"{}")
+    _touch(os.path.join(jobs.DL, "p68gun_ref.png"))
+
+
+def _p68_checks(check, jobs, tmp, content, calls):
+    import zlib
+    _seed_p68(content, jobs)
+    pb = os.path.join(content, "enemies", "p68beast", "p68beast.json")
+    th = os.path.join(content, "characters", "testhero", "testhero.json")
+    B = {"kind": "enemy", "id": "p68beast"}
+    H = {"kind": "hero", "id": "testhero"}
+
+    # ---- D2: a new look gets its own slug and its own seeds; an existing look keeps the paintings it was made from
+    sp = jobs.validate_spec("look", {"method": "creature_free2", "recipe": {}})
+    jobs._seed_recipe(dict(B, code="PB-N"), sp)
+    r = sp["recipe"]
+    check(r.get("stills") == "n" and r.get("seed_offset") == 1 + zlib.crc32(b"PB-N") % 9973 and r.get("method") == "creature_free2"
+          and r.get("art_prompt", "").startswith("a lumpy") and r.get("motion") == "waddling",
+          "D2: a new creature look: its letter as the slug, seed_offset 1 + crc32(code) %% 9973, the method, the base's words: %s" % r)
+    sp2 = jobs.validate_spec("look", {"method": "creature_free2", "recipe": {}})
+    jobs._seed_recipe(dict(B, code="PB-M"), sp2)
+    check(sp2["recipe"]["seed_offset"] != r["seed_offset"], "D2: two new looks with the same words get different seed offsets (DM-E/DM-F painted the same front)")
+    sp = jobs.validate_spec("look", {"method": "creature_free2", "recipe": {"stills": "", "seed_offset": 7}})
+    jobs._seed_recipe(dict(B, code="PB-N"), sp)
+    check(sp["recipe"]["stills"] == "" and sp["recipe"]["seed_offset"] == 7, "D2: a new look's explicit '' (reuse the paintings) and its own seed_offset are kept: %s" % sp["recipe"])
+    sp = jobs.validate_spec("look", {"method": "creature_free2", "recipe": {"motion": "stomping"}})
+    jobs._seed_recipe(dict(B, code="PB-A"), sp)
+    check(sp["recipe"].get("stills") == "" and "seed_offset" not in sp["recipe"], "D2: an existing look (a sprite) gets stills '' (its own paintings), never a letter, and no seed_offset: %s" % sp["recipe"])
+    sp = jobs.validate_spec("look", {"method": "creature_pose2", "recipe": {}})
+    jobs._seed_recipe(dict(B, code="PB-0"), sp)
+    check(sp["recipe"].get("stills") == "" and "seed_offset" not in sp["recipe"], "D2: the base strip's own code is an existing look: %s" % sp["recipe"])
+    sp = jobs.validate_spec("look", {"method": "creature_free2", "recipe": {"stills": None}})
+    jobs._seed_recipe(dict(B, code="PB-E"), sp)
+    check(sp["recipe"]["stills"] == "e" and sp["recipe"]["seed_offset"] == 1 + zlib.crc32(b"PB-E") % 9973, "D2: a stub (no sprite yet) is a new look; a None slug counts as absent: %s" % sp["recipe"])
+    sp = jobs.validate_spec("look", {"method": "hero_pose5", "recipe": {}})
+    jobs._seed_recipe(dict(H, code="TH-N"), sp)
+    check(sp["recipe"].get("stills") == "n" and sp["recipe"].get("seed_offset") and "art_prompt" not in sp["recipe"] and sp["recipe"]["method"] == "hero_pose5",
+          "D1/D2: a new hero_pose5 look gets its own slug and seeds (a hero's words stay the hero's): %s" % sp["recipe"])
+    sp = jobs.validate_spec("look", {"method": "hero_pose5", "recipe": {"pose_drivers": {"back": "run_occ"}}})
+    jobs._seed_recipe(dict(H, code="TH-B"), sp)
+    check(sp["recipe"].get("stills") == "" and "seed_offset" not in sp["recipe"], "D2: an existing hero look (FAD-B, MAM-B, MAM-C) keeps the hero's own paintings: %s" % sp["recipe"])
+    sp = jobs.validate_spec("look", {"method": "hero_fit", "recipe": {"method": "hero_pose5", "pose_drivers": {"back": "x"}}})
+    jobs._seed_recipe(dict(H, code="TH-N"), sp)
+    check(sp["recipe"]["method"] == "hero_fit" and "stills" not in sp["recipe"] and "seed_offset" not in sp["recipe"],
+          "D2: hero_fit never gets a slug; the method that runs is the one recorded (the form had changed it): %s" % sp["recipe"])
+    sp = jobs.validate_spec("look", {"method": "front_from_picture", "stills": "pbx", "ref": "x.png", "prompt": "a beast", "recipe": {"method": "front_from_picture"}})
+    jobs._seed_recipe(dict(B, code="PB-X"), sp)
+    check("method" not in sp["recipe"] and "stills" not in sp["recipe"], "D2: front_from_picture records no method (it paints a front for the look job after it): %s" % sp["recipe"])
+    sp = jobs.validate_spec("look", {"method": "recolour", "recipe": {"recolour": {"from": "PB-A", "to": 300}}})
+    jobs._seed_recipe(dict(B, code="PB-R"), sp)
+    check(sp["recipe"].get("method") == "recolour" and "painter" not in sp["recipe"] and sp.get("recolour", {}).get("from") == "PB-A",
+          "a recolour records its method, no painter; the form's recipe.recolour reaches the plan's spec.recolour: %s" % sp["recipe"])
+    check(jobs.implied_method("hero", {"pose_drivers": {"back": "x"}, "still_keys": {"side": "y"}}) == "hero_fit" and jobs.implied_method("hero", {}) == "hero_pose5"
+          and jobs.implied_method("enemy", {"drivers": "d"}) == "creature_ctl" and jobs.implied_method("enemy", {}, {"walk": "hop"}) == "creature_proc"
+          and jobs.implied_method("enemy", {"pose": "walk"}) == "creature_pose2" and jobs.implied_method("enemy", {"directions": 8}) == "creature_free8"
+          and jobs.implied_method("enemy", {"method": "recolour"}) == "recolour" and jobs.implied_method("boss", {}) == "creature_free2",
+          "implied_method follows the page's Assets.methodOf")
+    # D1: a hero look's keys follow its slug; still_keys still win; no slug = the hero's own
+    ck = jobs.cache_keys("hero_pose5", {"recipe": {"stills": "n"}}, dict(H, code="TH-N"))
+    check(ck["stills"][:5] == ["testhero_n_front", "testhero_n_back", "testhero_n_side", "testhero_n_fd", "testhero_n_bd"] and "testhero_n_hurt_side" in ck["stills"]
+          and ck["stills"][-1] == "testhero_n_dead" and ck["clips"][0] == "testhero_thn_pose_run_back", "D1: a hero look with a slug keys <id>_<slug>_<view>: %s" % ck["stills"][:3])
+    ck = jobs.cache_keys("hero_pose5", {"recipe": {"stills": "n", "still_keys": {"side": "testhero_s9_side"}}}, dict(H, code="TH-N"))
+    check("testhero_s9_side" in ck["stills"] and "testhero_n_front" in ck["stills"], "D1: still_keys still win per view")
+    ck = jobs.cache_keys("hero_pose5", {"recipe": {"stills": ""}}, dict(H, code="TH-B"))
+    check(ck["stills"][0] == "testhero_front", "D1: stills '' = the hero's own paintings")
+
+    # ---- D3: the re-roll modes, applied once at enqueue
+    stamp_keys = ("p68beast_front", "p68beast_back", "p68beast_dead")
+    before = {k: os.path.getmtime(os.path.join(jobs.RAW, k + ".png")) for k in stamp_keys}
+    _touch(os.path.join(jobs.RAW, "p68beast_a_front.png"))   # a leftover under the slug PB-A is about to get
+    n0 = len(calls)
+    j = jobs.enqueue("look", dict(B, code="PB-A"), {"method": "creature_free2", "recipe": {"motion": "stomping"}, "reroll": {"mode": "stills"}})
+    rec = j["spec"]["recipe"]
+    check(rec["stills"] == "a" and rec["seed_offset"] == 1 + zlib.crc32(b"PB-A") % 9973 and j["spec"]["reroll"].get("applied"),
+          "D3 stills: a look that shared the creature's paintings gets its own slug and seeds: %s" % {k: rec.get(k) for k in ("stills", "seed_offset")})
+    check(all(os.path.getmtime(os.path.join(jobs.RAW, k + ".png")) == before[k] for k in stamp_keys) and not glob.glob(os.path.join(jobs.RAW, "p68beast_front_old*"))
+          and not glob.glob(os.path.join(jobs.RAW, "p68beast_back_old*")), "D3 stills: the shared paintings are never touched")
+    check(j["spec"]["keys"] == ["p68beast_a_front"] and "--keys=p68beast_a_front" in j["plan"]["argv"] and glob.glob(os.path.join(jobs.RAW, "p68beast_a_front_old*.png"))
+          and j.get("reroll", {}).get("moved"), "D3 stills: a leftover painting under the new slug is copied aside and painted again: %s" % j["spec"].get("keys"))
+    w = [c for c in calls[n0:] if c[0] == "set_recipe" and c[3] == "PB-A"]
+    check(w and w[-1][4].get("stills") == "a" and w[-1][4].get("seed_offset") == rec["seed_offset"] and _jload(pb)["variants"]["PB-A"]["recipe"]["stills"] == "a",
+          "D3: the re-roll's recipe goes through set_recipe like any recipe")
+    j = jobs.enqueue("look", dict(B, code="PB-B"), {"method": "creature_free2", "recipe": {"stills": "b"}, "reroll": {"mode": "stills"}})
+    check(j["spec"]["recipe"]["stills"] == "b" and j["spec"]["recipe"]["seed_offset"] == 1 and j["spec"]["keys"] == ["p68beast_b_front", "p68beast_b_back", "p68beast_b_dead"],
+          "D3 stills: a look with its own slug: seed_offset + 1 and its stills forced: %s %s" % (j["spec"]["recipe"].get("seed_offset"), j["spec"]["keys"]))
+    j = jobs.enqueue("look", dict(B, code="PB-C"), {"method": "creature_free2", "recipe": {"stills": "pbshared"}, "reroll": {"mode": "stills"}})
+    check(j["spec"]["recipe"]["stills"] == "c2" and j["spec"]["recipe"]["seed_offset"] == 1 + zlib.crc32(b"PB-C") % 9973 and j["spec"]["keys"] == [],
+          "D3 stills: a slug another look names is shared: a slug of its own (its letter is PB-G's, so c2): %s" % j["spec"]["recipe"]["stills"])
+    for key in ("p68beast_pbb_walk_f", "p68beast_pbb_walk_b"):
+        os.makedirs(os.path.join(jobs.ANIM, key), exist_ok=True)
+        _touch(os.path.join(jobs.ANIM, key, "cycle.json"), data=b"{}")
+    j = jobs.enqueue("look", dict(B, code="PB-B"), {"method": "creature_free2", "recipe": {"stills": "b", "anim_seed": 2}, "reroll": {"mode": "clips"}})
+    check(j["spec"]["recipe"]["anim_seed"] == 3 and not j["spec"].get("keys") and not os.path.isdir(os.path.join(jobs.ANIM, "p68beast_pbb_walk_f"))
+          and len(glob.glob(os.path.join(jobs.ANIM, "p68beast_pbb_walk_*_old*"))) == 2 and "seed_offset" not in j["spec"]["recipe"],
+          "D3 clips: the clip folders moved aside, anim_seed + 1, the stills kept: %s" % j["spec"]["recipe"])
+    os.makedirs(os.path.join(jobs.ANIM, "p68beast_pbb_walk_f"), exist_ok=True)
+    j = jobs.enqueue("look", dict(B, code="PB-B"), {"method": "creature_free2", "recipe": {"stills": "b", "seed_offset": 4}, "reroll": {"mode": "seeds"}})
+    check(j["spec"]["recipe"]["seed_offset"] == 5 and j["spec"]["recipe"]["anim_seed"] == 1 and len(j["spec"]["keys"]) == 3 and not os.path.isdir(os.path.join(jobs.ANIM, "p68beast_pbb_walk_f")),
+          "D3 seeds: the stills and the clips again: %s" % j["spec"]["recipe"])
+    jid = j["id"]
+    e = jobs.edit(jid, spec={"skip_qa": True})
+    check(e["spec"]["recipe"]["seed_offset"] == 5 and e["spec"]["recipe"]["anim_seed"] == 1, "D3: an edit does not apply the same re-roll again")
+    e = jobs.edit(jid, spec={"reroll": {"mode": "clips"}})
+    check(e["spec"]["recipe"]["anim_seed"] == 2 and e["spec"]["reroll"].get("applied"), "D3: an edit with a new re-roll applies it (and the recipe is written)")
+    check(calls[-1][0] == "set_recipe" and calls[-1][4].get("anim_seed") == 2, "D3: the edit's re-roll recipe went through set_recipe")
+    cj = jobs.enqueue("look", {"kind": "enemy", "id": "p68beast", "code": "PB-K"}, {"method": "creature_ctl", "recipe": {"drivers": "d"}, "use_view": "fd:c1", "reroll": {"mode": "view", "view": "fd,back"}})
+    check(cj["spec"]["view_cands"] == "fd,back" and cj["spec"]["use_view"] == "" and "--view-cands=fd,back" in cj["plan"]["argv"], "D3 view: creature_ctl's view candidates: %s" % cj["plan"]["argv"])
+    for method, mode, extra, what in (("creature_free2", "view", {"view": "fd"}, "a view re-roll on a gen_art look"),
+                                      ("hero_fit", "stills", {}, "hero_fit stills (the hero's own paintings)"),
+                                      ("creature_ctl", "seeds", {}, "creature_ctl seeds"),
+                                      ("creature_proc", "clips", {}, "creature_proc clips (procedural)"),
+                                      ("creature_ctl", "view", {"view": "up"}, "a view that is not a view"),
+                                      ("creature_free2", "banana", {}, "an unknown mode")):
+        tgt = dict(H, code="TH-B") if method == "hero_fit" else dict(B, code="PB-B")
+        try:
+            jobs.enqueue("look", tgt, {"method": method, "recipe": {"drivers": "d"} if method == "creature_ctl" else {}, "reroll": dict({"mode": mode}, **extra)})
+            check(False, "D3 refuses %s" % what)
+        except ValueError as ex:
+            check(True, "D3 refuses %s: %s" % (what, ex))
+
+    # a job card's still re-roll (requeue) on a look that shares the creature's paintings forks them: never repaints them
+    hj = jobs.enqueue("look", dict(B, code="PB-H"), {"method": "creature_free2", "recipe": {"motion": "hopping"}})
+    check(hj["spec"]["recipe"]["stills"] == "" and hj["cache_keys"]["stills"] == ["p68beast_front", "p68beast_back", "p68beast_dead"], "PB-H is painted from the creature's own paintings")
+    jobs._find(hj["id"])["state"] = "failed"
+    shared_before = {k: os.path.getmtime(os.path.join(jobs.RAW, k + ".png")) for k in stamp_keys}
+    n0 = len(calls)
+    rq = jobs.requeue(hj["id"], reroll={"stills": ["p68beast_back"]})
+    rr = rq.get("reroll") or {}
+    check(rq["spec"]["recipe"]["stills"] == "h" and rq["spec"]["recipe"]["seed_offset"] == 1 + zlib.crc32(b"PB-H") % 9973 and rq["spec"]["keys"] == ["p68beast_h_back"]
+          and "--keys=p68beast_h_back" in rq["plan"]["argv"] and rq["cache_keys"]["stills"] == ["p68beast_h_front", "p68beast_h_back", "p68beast_h_dead"],
+          "requeue's still re-roll on a shared look: a slug of its own, only the asked still painted (under the new key): %s" % rq["spec"].get("keys"))
+    check(os.path.isfile(os.path.join(jobs.RAW, "p68beast_h_front.png")) and os.path.isfile(os.path.join(jobs.RAW, "p68beast_h_dead.json"))
+          and not os.path.isfile(os.path.join(jobs.RAW, "p68beast_h_back.png")) and rr.get("fork", {}).get("forked") == "h" and sorted(rr["fork"]["copied"]) == ["p68beast_h_dead", "p68beast_h_front"],
+          "the paintings it keeps are copied under its own keys: %s" % rr.get("fork"))
+    check(all(os.path.getmtime(os.path.join(jobs.RAW, k + ".png")) == shared_before[k] for k in stamp_keys) and not glob.glob(os.path.join(jobs.RAW, "p68beast_back_old*")),
+          "the shared paintings are never touched by a look's re-roll")
+    check(any(c[0] == "set_recipe" and c[3] == "PB-H" and c[4].get("stills") == "h" for c in calls[n0:]), "the fork's recipe is written through set_recipe")
+
+    # ---- D4: the honest painter at a look's landing
+    j = jobs.enqueue("look", dict(B, code="PB-B"), {"method": "creature_free2", "recipe": {"stills": "b"}})
+    job = jobs._find(j["id"])
+    t0 = time.time() - 30
+    job["attempt_started"] = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(t0))
+    keys = job["cache_keys"]["stills"]
+    _touch(os.path.join(jobs.RAW, keys[0] + ".png"), t0 - 600)
+    for k in keys[1:]:
+        _touch(os.path.join(jobs.RAW, k + ".png"), t0 + 10)
+    os.makedirs(os.path.join(jobs.JOBS_DIR, job["id"]), exist_ok=True)
+    _jdump(os.path.join(jobs.JOBS_DIR, job["id"], "result.json"), {"entry": {"sprite": "p68beast_sprite_b.png"}, "info": {}})
+    written, err = jobs._post(job)
+    p = _jload(pb)["variants"]["PB-B"]["recipe"]["painter"]
+    check(not err and p.get("stills") == "2 of 3 painted" and p.get("reused") == [keys[0]] and p.get("model") == "klein" and written.get("painter", {}).get("painted") == 2,
+          "D4: some stills older than the attempt: painter.stills 'N of M painted' and painter.reused: %s" % p)
+    for k in keys:
+        os.utime(os.path.join(jobs.RAW, k + ".png"), (t0 - 600, t0 - 600))
+    jobs._post(job)
+    p = _jload(pb)["variants"]["PB-B"]["recipe"]["painter"]
+    check(p.get("stills") == "reused" and p.get("reused") == keys, "D4: every still from the cache: painter.stills 'reused' (MAM-C said dev/32 and painted nothing): %s" % p.get("stills"))
+    d = _jload(pb)
+    d["variants"]["PB-B"]["recipe"]["note_by_garry"] = "kept"
+    _jdump(pb, d)
+    for k in keys:
+        os.utime(os.path.join(jobs.RAW, k + ".png"), (t0 + 20, t0 + 20))
+    n0 = len(calls)
+    jobs._post(job)
+    r = _jload(pb)["variants"]["PB-B"]["recipe"]
+    check("stills" not in r["painter"] and "reused" not in r["painter"] and r.get("note_by_garry") == "kept",
+          "D4: every still painted: no marks; the entry's recipe was read again from the file (a hand edit kept): %s" % r["painter"])
+    jobs._post(job)
+    check(len([c for c in calls[n0:] if c[0] == "set_recipe"]) == 1, "D4: nothing is written when the painter already says it")
+    out = [o for o in jobs._harvest(job) if o.get("type") == "still"]
+    check(out and not any(o.get("reused") for o in out), "the outputs mark no still reused when all were painted")
+    os.utime(os.path.join(jobs.RAW, keys[0] + ".png"), (t0 - 600, t0 - 600))
+    out = {o["cache_key"]: o for o in jobs._harvest(job) if o.get("type") == "still"}
+    check(out[keys[0]].get("reused") is True and not out[keys[1]].get("reused"), "an output older than the attempt says reused")
+
+    # ---- D6: the candidates' defaults
+    ap = jobs.appearance_of
+    check(ap("a mime, a star on her cheek; wearing overalls, white laces; standing straight, both arms relaxed at her sides") == "a mime, a star on her cheek; wearing overalls, white laces"
+          and ap("a tall man, white wristbands, standing straight and facing the viewer with his arms relaxed at his sides, empty hands") == "a tall man, white wristbands"
+          and ap("a lean man in a duster, standing straight with his hands relaxed at his sides") == "a lean man in a duster"
+          and ap("a werewolf, long clawed arms") == "a werewolf, long clawed arms" and ap("a dad, a proud smile") == "a dad, a proud smile"
+          and ap("standing straight") == "standing straight" and ap("") == "",
+          "appearance_of cuts the trailing pose clause only (Mamy's ;-clause, Fadeaway's two, the Drifter's; arms that are part of the body stay)")
+    d = jobs.candidate_defaults("hero_badge", dict(H, code=""))
+    f = d["fields"]
+    check(f["character"] == "a lanky test hero in a red cape" and f["prompt"] == "winking at the viewer" and f["ref"] == "tools/dl/ai_raw_anime/testhero_front.png"
+          and f["variant"] == "" and d["ref_exists"] is True and d["ref_url"] == "/dl/ai_raw_anime/testhero_front.png" and "pose clause cut" in d["sources"]["character"],
+          "D6 hero_badge, the hero's own: character without the pose, the action, the hero's front still: %s" % f)
+    d = jobs.candidate_defaults("hero_badge", dict(H, code="TH-B"))
+    check(d["fields"]["variant"] == "TH-B" and d["fields"]["ref"] == "tools/dl/ai_raw_anime/testhero_front.png" and "look's front still" in d["sources"]["ref"],
+          "D6 hero_badge, an existing look made from the hero's paintings: its variant, the front it shares: %s" % d["fields"]["ref"])
+    d = jobs.candidate_defaults("hero_title", dict(H, code="TH-C"))
+    f = d["fields"]
+    check(f["ref"] == "tools/dl/ai_raw_anime/testhero_c_front.png" and d["ref_exists"] is False and f["character"] == "a lanky test hero in a blue cape"
+          and f["pose"] == "standing confidently in a heroic pose, full body" and f["holds"] == "no weapon" and f["camera"].startswith("facing the viewer") and f["variant"] == "TH-C",
+          "D6 hero_title, a draft (new look): its own front still to come, its own words, the full-body default pose: %s" % f)
+    d = jobs.candidate_defaults("hero_title", {"kind": "hero", "id": "dad", "code": ""})
+    check(d["sources"]["pose"] == "gen_title_heroes POSES" and "mustache" in d["fields"]["pose"] and d["fields"]["character"] == "a goofy dad, a proud smile",
+          "D6 hero_title: the tool's own POSES table when the JSON has no title_pose: %s" % d["fields"]["pose"][:40])
+    d = jobs.candidate_defaults("icon_cands", dict(B, code="PB-B"))
+    f = d["fields"]
+    check(f["subject"].startswith("a lumpy p68 beast with a spiky tail") and "standing" not in f["subject"] and f["ref"] == "tools/dl/ai_raw_anime/p68beast_b_front.png"
+          and f["file"] == "p68beast_icon_b.png" and f["screen"] == "green", "D6 icon_cands, a creature look: its words, its own front still, its own icon file: %s" % f)
+    d = jobs.candidate_defaults("icon_cands", {"kind": "weapon", "id": "p68gun", "code": ""})
+    check(d["fields"]["subject"] == "a shiny brass ray gun" and d["fields"]["ref"] == "tools/dl/p68gun_ref.png" and d["ref_exists"] and d["ref_url"] == "/dl/p68gun_ref.png"
+          and d["fields"]["file"] == "p68gun_icon.png", "D6 icon_cands, an item: its art_prompt, its 3D render, its icon: %s" % d["fields"])
+    for kind, tgt, what in (("icon_cands", dict(H, code=""), "icon_cands for a hero"), ("hero_badge", dict(B, code=""), "a badge for a creature"),
+                            ("hero_title", {"kind": "hero", "id": "nobody"}, "an unknown hero"), ("item_icon", dict(H), "a kind without defaults")):
+        try:
+            jobs.candidate_defaults(kind, tgt)
+            check(False, "candidate_defaults refuses %s" % what)
+        except ValueError as ex:
+            check(True, "candidate_defaults refuses %s: %s" % (what, ex))
+    try:
+        jobs.enqueue("icon_cands", dict(H, code=""), {"subject": "a hero"})
+        check(False, "icon_cands for a hero is refused")
+    except ValueError as ex:
+        check("hero_badge" in str(ex), "icon_cands for a hero is refused, naming hero_badge: %s" % ex)
+    # at enqueue: every empty field filled, the typed ones kept, a space left out of the command
+    bj = jobs.enqueue("hero_badge", dict(H, code=""), {"seeds": 2, "prompt": "grinning", "character": " "})
+    s = bj["spec"]
+    check(s["prompt"] == "grinning" and s["character"] == " " and s["ref"] == "tools/dl/ai_raw_anime/testhero_front.png" and s["defaults_from"].get("ref")
+          and "--character" not in bj["plan"]["argv"] and bj["plan"]["argv"][bj["plan"]["argv"].index("--ref") + 1] == "tools/dl/ai_raw_anime/testhero_front.png"
+          and "--prompt" in bj["plan"]["argv"], "D6 at enqueue: empty fields filled from the defaults, typed ones kept, a lone space sends no words: %s" % bj["plan"]["argv"])
+    try:
+        jobs.enqueue("hero_badge", dict(H, code="TH-C"), {"seeds": 2})
+        check(False, "a badge whose look has no front still and no look job queued is refused")
+    except ValueError as ex:
+        check("not on disk" in str(ex), "a candidate job whose reference is not on disk (and no queued look paints it) is refused: %s" % ex)
+    lj = jobs.enqueue("look", dict(H, code="TH-C"), {"method": "hero_pose5", "recipe": _jload(th)["variants"]["TH-C"]["recipe"]})
+    check(lj["spec"]["recipe"].get("stills") == "c" and lj["spec"]["recipe"].get("from") == "TH-B" and "testhero_c_front" in lj["cache_keys"]["stills"],
+          "D5/D2: Generate on a draft: a new look, its own slug; its `from` stays a bookkeeping key: %s" % lj["spec"]["recipe"])
+    bj2 = jobs.enqueue("hero_badge", dict(H, code="TH-C"), {"seeds": 3})
+    tag = bj2["id"][-4:]
+    check(bj2["spec"]["ref"] == "tools/dl/ai_raw_anime/testhero_c_front.png" and bj2["spec"]["variant"] == "TH-C" and bj2["spec"]["character"] == "a lanky test hero in a blue cape"
+          and bj2["plan"]["argv"][:4] == ["--id", "testhero", "--seeds", "3"] and bj2["plan"]["argv"][bj2["plan"]["argv"].index("--variant") + 1] == "TH-C",
+          "D10: a new look's badge job with empty words takes the look's front still (painted first by the queued look job): %s" % bj2["equiv"])
+    check(bj2["cache_keys"]["stills"] == ["testhero_portrait_%s_c%d" % (tag, k) for k in range(3)] and bj2["progress"]["stages"][0]["key"] == "testhero_portrait_%s_c0" % tag
+          and bj2["plan"]["tag"] == tag and bj2["plan"]["argv"][-2:] == ["--tag", bj2["id"]] and "--attempt" not in bj2["plan"]["argv"],
+          "D7: badge candidates keyed by the job (<id>_portrait_<tag>_c<k>; --tag names it in the command): %s" % bj2["cache_keys"]["stills"])
+    tj = jobs.enqueue("hero_title", {"kind": "hero", "id": "dad", "code": ""}, {"seeds": 2})
+    jj = _jload(os.path.join(jobs.JOBS_DIR, tj["id"], "job.json"))
+    check(jj["hid"] == "dad" and jj["seeds"] == 2 and jj["first"] == 11 and jj["kwargs"]["pose"] == jj["pose"] and "mustache" in jj["pose"] and jj["holds"] == "no weapon"
+          and jj["ref"] == "tools/dl/ai_raw_anime/dad_front.png" and "variant" not in jj["kwargs"] and "--pose" in tj["plan"]["argv"] and "--character" in tj["equiv"],
+          "D7: a title job hands paint() its words and reference by name (job.json kwargs and fields; the equiv shows the flags): %s" % sorted(jj["kwargs"]))
+    ic = jobs.enqueue("icon_cands", dict(B, code="PB-B"), {"seeds": 2})
+    check(ic["plan"]["icon_job"] == {"kind": "enemies", "id": "p68beast", "subject": ic["spec"]["subject"], "set": "_le_" + ic["id"], "ref": "tools/dl/ai_raw_anime/p68beast_b_front.png",
+                                    "file": "p68beast_icon_b.png"} and ic["spec"]["subject"].startswith("a lumpy"),
+          "D6/D7: an icon job with no words for a creature look: its words, its front still, its own icon file: %s" % ic["plan"]["icon_job"])
+    try:
+        jobs.enqueue("icon_cands", dict(B, code="PB-B"), {"seeds": 2, "ref": "tools/dl/uploads/2d/AnimeMimeCharacterTurnaroundSheet.png"})
+        check(False, "a typed reference that is not on disk is refused")
+    except ValueError as ex:
+        check("AnimeMime" in str(ex), "a typed reference that is not on disk is refused at Queue: %s" % ex)
+    e = jobs.edit(ic["id"], spec={"subject": "", "screen": "blue"})
+    check(e["spec"]["subject"].startswith("a lumpy") and e["plan"]["icon_job"].get("screen") == "blue", "D6 at edit: an emptied field is filled again, a typed one kept")
+    icj = jobs._find(ic["id"])
+    icj["state"] = "failed"
+    rq = jobs.requeue(ic["id"])
+    jj = _jload(os.path.join(jobs.JOBS_DIR, ic["id"], "job.json"))
+    check(rq["plan"]["icon_job"]["set"] == "_le_" + ic["id"] and rq["plan"]["argv"][-2:] == ["--attempt", "2"] and jj["attempt"] == 2 and "--attempt 2" in rq["equiv"],
+          "D7: a re-run of an icon job is attempt 2 (the tool moves the old candidates into attempt1/ and paints new seeds): %s" % rq["plan"]["argv"])
+
+    # ---- _choices: only this job's candidates
+    bjob = jobs._find(bj2["id"])
+    for k in (0, 1, 2, 3):
+        _touch(os.path.join(jobs.RAW, "testhero_portrait_%s_c%d.png" % (tag, k)))
+    _touch(os.path.join(jobs.RAW, "testhero_portrait_c0.png"))
+    _touch(os.path.join(jobs.RAW, "testhero_portrait_%s_c1_old20261012-000000.png" % tag))
+    ch = jobs._choices(bjob, "badge")
+    check([c["id"] for c in ch] == ["0", "1", "2"] and all(tag in c["url"] for c in ch), "badge choices: this job's own portraits, k < seeds: %s" % [c["url"] for c in ch])
+    tjob = jobs._find(tj["id"])
+    tjob["spec"]["variant"] = "DAD-B"
+    tt = jobs._badge_tag(tjob)
+    check(tj["plan"]["argv"][-2:] == ["--tag", tj["id"]] and tj["plan"]["tag"] == tt and tj["equiv"].endswith("--tag " + tj["id"]),
+          "the review: a title job's cut-outs are keyed by the job too (--tag names it in the command): %s" % tj["equiv"][-40:])
+    for name in ("dad_b_%s_0.png" % tt, "dad_b_%s_1.png" % tt, "dad_b_%s_0_raw.png" % tt, "dad_b_view.png", "dad_%s_0.png" % tt, "dad_b_%s_5.png" % tt,
+                 "dad_b_%s_1_old2.png" % tt, "dad_b_0.png", "dad_b_1.png", "dad_b_zzzz_0.png"):
+        _touch(os.path.join(jobs.TITLE_OUT, name))
+    ch = jobs._choices(tjob, "title")
+    check([c["url"].rsplit("/", 1)[-1] for c in ch] == ["dad_b_%s_0.png" % tt, "dad_b_%s_1.png" % tt],
+          "title choices: <id>_<x>_<tag>_<n> for n < seeds only (another job's, an untagged run's never): %s" % [c["url"] for c in ch])
+    tjob["spec"]["variant"] = ""
+    ch = jobs._choices(tjob, "title")
+    check([c["url"].rsplit("/", 1)[-1] for c in ch] == ["dad_%s_0.png" % tt], "title choices of the hero's own job: <id>_<tag>_<n>: %s" % [c["url"] for c in ch])
+    icjob = jobs._find(ic["id"])
+    fold = os.path.join(jobs.DL, "icons_le_" + ic["id"])
+    for name in ("p68beast_c0.png", "p68beast_c1.png", "p68beast_c7.png", "attempt1/p68beast_c0.png"):
+        _touch(os.path.join(fold, *name.split("/")))
+    ch = jobs._choices(icjob, "review")
+    check([c["id"] for c in ch] == ["0", "1"] and all(c["url"] == "/dl/icons_le_%s/p68beast_c%s.png" % (ic["id"], c["id"]) for c in ch),
+          "icon choices: the folder's own candidates, k < seeds (an earlier attempt's sit in attempt1/): %s" % [c["url"] for c in ch])
+
+    # ---- D8: a pick for a look lands in its entry (no fresh, the strip untouched)
+    bjob["state"] = "done"
+    inst = jobs.install(bjob["id"], "2")
+    ijob = jobs._find(inst["id"])
+    env = jobs._asset_env(ijob)
+    check(inst["plan"]["argv"] == ["--id", "testhero", "--pick", "2", "--variant", "TH-C", "--tag", bjob["id"]] and env["ASSET_JOB_ID"] == bjob["id"] and inst["plan"]["variant"] == "TH-C",
+          "D7/D8: the badge pick names the look and the job that painted the candidates (--tag; its id as ASSET_JOB_ID): %s" % inst["plan"]["argv"])
+    _jdump(os.path.join(jobs.JOBS_DIR, ijob["id"], "result.json"), {"variant": "TH-C", "entry": {"icon": "testhero_icon_c.png"}, "top": {}})
+    n0 = len(calls)
+    written, err = jobs._post(ijob)
+    ent = _jload(th)["variants"]["TH-C"]
+    check(not err and calls[n0:] and calls[n0][0] == "set_look_files" and calls[n0][4] == {"icon": "testhero_icon_c.png"} and ent["icon"] == "testhero_icon_c.png"
+          and "fresh" not in ent and written["keys"] == ["variants"], "D8: a badge picked for a look lands in variants[CODE].icon without the fresh mark: %s" % ent)
+    tjob["spec"]["variant"] = ""
+    tj2 = jobs.enqueue("hero_title", dict(H, code="TH-B"), {"seeds": 2})
+    t2 = jobs._find(tj2["id"])
+    t2["state"] = "done"
+    inst = jobs.install(t2["id"], "1")
+    i2 = jobs._find(inst["id"])
+    check(inst["plan"]["argv"] == ["--pick", "testhero=1", "--variant", "TH-B", "--tag", t2["id"]] and inst["plan"]["variant"] == "TH-B"
+          and jobs._asset_env(i2)["ASSET_JOB_ID"] == t2["id"] and inst["plan"]["source_job"] == t2["id"],
+          "D7: the title pick names the look and (the review) the job that painted the cut-outs (--tag; its id as ASSET_JOB_ID): %s" % inst["plan"]["argv"])
+    written, err = jobs._post(i2)
+    check(err and "named no file" in err, "D8: a pick that wrote nothing for the look says so: %s" % err)
+    _touch(os.path.join(jobs.WANTED, "hero_testhero_b.png"))
+    written, err = jobs._post(i2)
+    check(not err and _jload(th)["variants"]["TH-B"].get("title") == "hero_testhero_b.png" and _jload(th)["variants"]["TH-B"].get("sprite") == "testhero_sprite_b.png",
+          "D8: without a sidecar entry the cut-out the tool wrote (hero_<id>_<x>.png) lands in variants[CODE].title; the strip untouched")
+    icjob["state"] = "done"
+    inst = jobs.install(icjob["id"], "1")
+    i3 = jobs._find(inst["id"])
+    _touch(os.path.join(os.path.dirname(pb), "p68beast_icon_b.png"))
+    n0 = len(calls)
+    written, err = jobs._post(i3)
+    check(not err and _jload(pb)["variants"]["PB-B"].get("icon") == "p68beast_icon_b.png" and calls[n0][0] == "set_look_files"
+          and calls[n0][4] == {"icon": "p68beast_icon_b.png"}, "D8: an icon picked for a creature look lands in its entry's icon (the icon job's file; no fresh)")
+    bb = jobs.enqueue("hero_badge", dict(H, code=""), {"seeds": 2})
+    bbj = jobs._find(bb["id"])
+    bbj["state"] = "done"
+    inst = jobs.install(bbj["id"], "0")
+    i4 = jobs._find(inst["id"])
+    check(inst["plan"]["argv"] == ["--id", "testhero", "--pick", "0", "--tag", bbj["id"]], "the hero's own badge pick names no look: %s" % inst["plan"]["argv"])
+    _jdump(os.path.join(jobs.JOBS_DIR, i4["id"], "result.json"), {"top": {"badge": {"still": "testhero_portrait_%s_c0" % bb["id"][-4:], "head_width": 0.0, "top_pad": 0.03}}})
+    n0 = len(calls)
+    written, err = jobs._post(i4)
+    check(not err and calls[n0][0] == "merge_top" and _jload(th).get("badge", {}).get("still", "").startswith("testhero_portrait_"), "the hero's own badge pick writes top.badge as before")
+    _jdump(os.path.join(jobs.JOBS_DIR, i4["id"], "result.json"), {"variant": "TH-A", "entry": {"icon": "testhero_icon_a.png"}, "top": {}})
+    n0 = len(calls)
+    written, err = jobs._post(i4)
+    check(not err and calls[n0][0] == "set_look_files" and calls[n0][3] == "TH-A" and _jload(th)["variants"]["TH-A"].get("icon") == "testhero_icon_a.png",
+          "D8: a sidecar that names a look and its file lands in that entry (the server follows the tool; since the review the hero tools "
+          "name no base code)")
+    # a badge job's re-run paints new candidates: its own are moved aside (the cache would hand them back), new seeds
+    bt = bb["id"][-4:]
+    for k in range(2):
+        _touch(os.path.join(jobs.RAW, "testhero_portrait_%s_c%d.png" % (bt, k)))
+        _touch(os.path.join(jobs.RAW, "testhero_portrait_%s_c%d.json" % (bt, k)), data=b"{}")
+    bbj["state"] = "failed"
+    rq = jobs.requeue(bbj["id"])
+    check(not glob.glob(os.path.join(jobs.RAW, "testhero_portrait_%s_c[01].png" % bt)) and len(glob.glob(os.path.join(jobs.RAW, "testhero_portrait_%s_c*_old*.png" % bt))) == 2
+          and rq["plan"]["argv"][-2:] == ["--attempt", "2"] and len(rq["reroll"]["moved"]) == 4,
+          "a badge job's requeue moves its own candidates aside and runs attempt 2 (new seeds): %s" % rq["plan"]["argv"][-4:])
+
+
+def _review_checks(check, jobs, tmp, content, calls):
+    """The pass 68 review's server fixes: a base look's own front still and words as the candidates' defaults, forced keys
+    spent at done (the card kept) and on a Re-queue after a stop, the re-roll stamp kept by the page's Save changes, held
+    jobs marked and the up/down moves in the worker's order, a picked icon kept by a recolour."""
+    B = {"kind": "enemy", "id": "p68beast"}
+    raw = lambda k: os.path.join(jobs.RAW, k + ".png")   # noqa: E731
+
+    # ---- a base look whose entry has a recipe (BB-C, LS-B, WW-A): its own front still and words, not <id>_front
+    _jdump(os.path.join(content, "enemies", "p68ctl", "p68ctl.json"), {
+        "id": "p68ctl", "name": "P68 Ctl", "art_prompt": "a chestnut beetle with dark horns, standing still", "variant_base": "PC-C",
+        "variants": {"PC-C": {"note": "the base, a gen_ctl look", "sprite": "p68ctl_sprite.png",
+                              "recipe": {"drivers": "beetle_walk", "screen": "blue", "prompt": "a red beetle",
+                                         "art_prompt": "a red-shelled beetle with white eyes, standing still"}}}})
+    C = {"kind": "enemy", "id": "p68ctl"}
+    d = jobs.candidate_defaults("icon_cands", dict(C, code=""))
+    check(d["fields"]["ref"] == "tools/dl/ai_raw_anime/p68ctl_front.png" and not d["ref_exists"] and "creature's front still" in d["sources"]["ref"],
+          "review: a base look whose own front still is not on disk falls back to <id>_front as before: %s" % d["fields"]["ref"])
+    _touch(raw("p68ctl_pcc_front"))
+    for code in ("", "PC-C"):
+        d = jobs.candidate_defaults("icon_cands", dict(C, code=code))
+        f = d["fields"]
+        check(f["ref"] == "tools/dl/ai_raw_anime/p68ctl_pcc_front.png" and d["ref_exists"] and "base look's front still" in d["sources"]["ref"]
+              and f["subject"] == "a red-shelled beetle with white eyes" and "look's art_prompt" in d["sources"]["subject"]
+              and f["screen"] == "blue" and d["sources"]["screen"] == "the look's screen",
+              "review: the base look (code %r) of a gen_ctl creature: its own front (<id>_<codepart>_front), its recipe's words and screen: %s"
+              % (code, {k: f.get(k) for k in ("ref", "subject", "screen")}))
+    _jdump(os.path.join(content, "enemies", "p68wolf", "p68wolf.json"), {
+        "id": "p68wolf", "name": "P68 Wolf", "art_prompt": "a grey wolf", "pose": "orc_walk_wolf", "variant_base": "PW-A",
+        "variants": {"PW-A": {"sprite": "p68wolf_sprite_a.png", "recipe": {"stills": "pwa", "art_prompt": "a grey wolf"}}}})
+    _touch(raw("p68wolf_pwa_front"))
+    wj = jobs.enqueue("icon_cands", {"kind": "enemy", "id": "p68wolf", "code": ""}, {"seeds": 2})
+    check(wj["spec"]["ref"] == "tools/dl/ai_raw_anime/p68wolf_pwa_front.png" and wj["plan"]["icon_job"].get("ref") == wj["spec"]["ref"],
+          "review: a base look with a stills slug (WW-A): its own <id>_<slug>_front; Queue is no longer refused for a missing <id>_front: %s" % wj["spec"]["ref"])
+    _jdump(os.path.join(content, "characters", "p68hero", "p68hero.json"), {
+        "id": "p68hero", "name": "P68 Hero", "art_prompt": "a short hero in green", "variant_base": "PH-A",
+        "variants": {"PH-A": {"note": "base", "recipe": {"stills": "a"}}}})
+    _touch(raw("p68hero_front"))
+    _touch(raw("p68hero_a_front"))
+    d = jobs.candidate_defaults("hero_badge", {"kind": "hero", "id": "p68hero", "code": ""})
+    check(d["fields"]["ref"] == "tools/dl/ai_raw_anime/p68hero_a_front.png" and d["fields"]["variant"] == "",
+          "review: a hero's base look with a recipe: its own front still, still the hero's own badge (variant ''): %s" % d["fields"]["ref"])
+
+    # ---- forced keys: done spends them without wiping the card; a plain Re-queue after a stop forces only what is left
+    keys3 = ["p68beast_b_front", "p68beast_b_back", "p68beast_b_dead"]
+    j = jobs.enqueue("look", dict(B, code="PB-B"), {"method": "creature_free2", "recipe": {"stills": "b"}, "keys": list(keys3)})
+    job = jobs._find(j["id"])
+    for s in job["progress"]["stages"]:
+        s["state"] = "done"
+    job["progress"]["stages"][0]["note"] = "cached"
+    job["state"] = "running"
+    jobs._finish(job, "done", save=False)
+    check(job["spec"]["keys"] == [] and job["progress"]["total"] > 0 and job["progress"]["done"] == job["progress"]["total"]
+          and all(s["state"] == "done" for s in job["progress"]["stages"]) and job["progress"]["stages"][0].get("note") == "cached"
+          and "--keys=" + ",".join(keys3) in job["plan"]["argv"] and "--keys=" in job["equiv"],
+          "review: done spends the forced keys and keeps the card (every stage done, the cached note, the command that ran): %s"
+          % [s["state"] for s in job["progress"]["stages"]][:4])
+    rq = jobs.requeue(j["id"])
+    check(rq["spec"]["keys"] == [] and not any(a.startswith("--keys") for a in rq["plan"]["argv"]), "review: a Re-queue of a finished re-roll forces nothing")
+    j = jobs.enqueue("look", dict(B, code="PB-B"), {"method": "creature_free2", "recipe": {"stills": "b"}, "keys": list(keys3)})
+    job = jobs._find(j["id"])
+    t0 = time.time() - 120
+    job["attempt_started"] = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(t0))
+    job["state"] = "interrupted"
+    _touch(raw("p68beast_b_front"), t0 + 30)    # painted again by the stopped attempt
+    _touch(raw("p68beast_b_back"), t0 - 600)    # not reached: the old painting
+    if os.path.isfile(raw("p68beast_b_dead")):
+        os.remove(raw("p68beast_b_dead"))       # not reached, not on disk
+    rq = jobs.requeue(j["id"])
+    check(rq["spec"]["keys"] == ["p68beast_b_back", "p68beast_b_dead"] and "--keys=p68beast_b_back,p68beast_b_dead" in rq["plan"]["argv"],
+          "review: a Re-queue after an interruption forces only the stills the stopped attempt did not repaint: %s" % rq["spec"]["keys"])
+    jobs._find(j["id"])["state"] = "failed"
+    rq = jobs.requeue(j["id"], reroll={"stills": ["p68beast_b_front"]})
+    check(rq["spec"]["keys"] == ["p68beast_b_back", "p68beast_b_dead", "p68beast_b_front"],
+          "review: an explicit still re-roll keeps the keys and adds its own: %s" % rq["spec"]["keys"])
+    check(jobs._unspent_keys(keys3, None) == keys3 and jobs._unspent_keys(["", "x"], "") == ["x"], "review: an attempt that never started spent nothing")
+
+    # ---- the page's Save changes sends its re-roll without the stamp: the same mode is not applied again
+    j = jobs.enqueue("look", dict(B, code="PB-B"), {"method": "creature_free2", "recipe": {"stills": "b", "seed_offset": 8}, "reroll": {"mode": "seeds"}})
+    r0 = dict(j["spec"]["recipe"])
+    stamp = j["spec"]["reroll"].get("applied")
+    full = json.loads(json.dumps(j["spec"]))
+    full["reroll"] = {"mode": "seeds"}           # jobs.js flatten: {mode} (a view re-roll: {mode, view}), never the stamp
+    full["note"] = "typed in the form"
+    e = jobs.edit(j["id"], spec=full)
+    check(r0["seed_offset"] == 9 and e["spec"]["recipe"]["seed_offset"] == 9 and e["spec"]["recipe"]["anim_seed"] == r0["anim_seed"]
+          and e["spec"]["reroll"].get("applied") == stamp and e["spec"]["note"] == "typed in the form" and e.get("reroll") == j.get("reroll"),
+          "review: Save changes with the page's whole form keeps the applied re-roll (seed_offset %s -> %s, anim_seed %s -> %s)"
+          % (r0["seed_offset"], e["spec"]["recipe"]["seed_offset"], r0["anim_seed"], e["spec"]["recipe"]["anim_seed"]))
+    full = json.loads(json.dumps(e["spec"]))
+    full["reroll"] = {"mode": "clips"}
+    e = jobs.edit(j["id"], spec=full)
+    a1 = e["spec"]["recipe"]["anim_seed"]
+    full = json.loads(json.dumps(e["spec"]))
+    full["reroll"] = {"mode": "clips"}
+    e = jobs.edit(j["id"], spec=full)
+    check(a1 == r0["anim_seed"] + 1 and e["spec"]["recipe"]["anim_seed"] == a1 and e["spec"]["recipe"]["seed_offset"] == 9,
+          "review: a changed mode applies once; the next Save with the same mode does not apply it again (anim_seed %s, %s)" % (a1, e["spec"]["recipe"]["anim_seed"]))
+    cj = jobs.enqueue("look", dict(B, code="PB-K"), {"method": "creature_ctl", "recipe": {"drivers": "d"}, "reroll": {"mode": "view", "view": "fd,back"}})
+    full = json.loads(json.dumps(cj["spec"]))
+    full["reroll"] = {"mode": "view", "view": "fd,back"}
+    full["use_view"] = "fd:c1"
+    e = jobs.edit(cj["id"], spec=full)
+    check(e["spec"]["view_cands"] == "fd,back" and e["spec"]["use_view"] == "fd:c1", "review: the same view re-roll is not applied again (the form's other fields kept)")
+    full = json.loads(json.dumps(e["spec"]))
+    full["reroll"] = {"mode": "view", "view": "side"}
+    e = jobs.edit(cj["id"], spec=full)
+    check(e["spec"]["view_cands"] == "side" and e["spec"]["use_view"] == "" and "--view-cands=side" in e["plan"]["argv"],
+          "review: another view is a new re-roll, applied once: %s" % e["plan"]["argv"])
+
+    # ---- a recolour keeps a picked icon (icon_picked and the file on disk): only the strip is recoloured
+    pb = os.path.join(content, "enemies", "p68beast", "p68beast.json")
+    dd = _jload(pb)
+    dd["variants"]["PB-P"] = {"note": "a recolour", "sprite": "p68beast_sprite_p.png", "icon": "p68beast_icon_p.png", "icon_picked": True}
+    _jdump(pb, dd)
+    rp = jobs.enqueue("look", dict(B, code="PB-P"), {"method": "recolour", "recolour": {"from": "PB-A", "to": 300}})
+    check(len(rp["plan"]["steps"]) == 2, "review: a picked icon whose file is not on disk is painted (nothing to keep)")
+    _touch(os.path.join(os.path.dirname(pb), "p68beast_icon_p.png"))
+    rp = jobs.enqueue("look", dict(B, code="PB-P"), {"method": "recolour", "recolour": {"from": "PB-A", "to": 300}})
+    check(len(rp["plan"]["steps"]) == 1 and "p68beast_sprite_p.png" in " ".join(rp["plan"]["steps"][0]) and "p68beast_icon_p.png" not in rp["equiv"]
+          and len(rp["progress"]["stages"]) == 1, "review: a recolour keeps the look's picked icon (only the strip step): %s" % rp["equiv"])
+    dd = _jload(pb)
+    dd["variants"]["PB-P"].pop("icon_picked", None)
+    _jdump(pb, dd)
+    rp = jobs.enqueue("look", dict(B, code="PB-P"), {"method": "recolour", "recolour": {"from": "PB-A", "to": 300}})
+    check(len(rp["plan"]["steps"]) == 2 and "p68beast_icon_p.png" in rp["equiv"], "review: an icon not picked is recoloured as before")
+
+    # ---- held jobs and the up/down moves follow the worker's order (front first, then the list; a held job skipped)
+    saved_state, saved_lane = jobs._state, jobs._lane_current.get("comfy")
+    jobs._state = {"rev": saved_state["rev"], "jobs": []}
+    try:
+        _jdump(os.path.join(content, "enemies", "p68order", "p68order.json"), {
+            "id": "p68order", "name": "P68 Order", "art_prompt": "a round beast", "variant_base": "PO-0", "variants": {"PO-0": {"note": "base"}}})
+        a = jobs.enqueue("item_icon", {"kind": "weapon", "id": "p68gun"}, {})
+        lk = jobs.enqueue("look", {"kind": "enemy", "id": "p68order", "code": "PO-A"}, {"method": "creature_free2", "recipe": {}})
+        h = jobs.enqueue("icon_cands", {"kind": "enemy", "id": "p68order", "code": "PO-A"}, {"seeds": 3})
+        b = jobs.enqueue("item_icon", {"kind": "weapon", "id": "p68gun"}, {})
+        f = jobs.enqueue("item_icon", {"kind": "weapon", "id": "p68gun"}, {})
+        jobs._find(f["id"])["front"] = True          # a picked continuation resuming: the worker takes it first
+        pub = {x["id"]: x for x in jobs.list()["jobs"]}
+        check(h["spec"]["ref"] == "tools/dl/ai_raw_anime/p68order_a_front.png" and pub[h["id"]]["held"] is True
+              and not any(pub[x["id"]]["held"] for x in (a, lk, b, f)) and jobs.get(h["id"])["held"] is True,
+              "review: a candidate job waiting for its look's front is marked held in the list: %s" % {k[-4:]: v["held"] for k, v in pub.items()})
+        ids = lambda: [x["id"] for x in jobs._state["jobs"]]   # noqa: E731
+        o0 = ids()
+        jobs.move(b["id"], -1)
+        check(ids() == [a["id"], b["id"], h["id"], lk["id"], f["id"]], "review: up on a runnable job passes the held one and swaps with the runnable before it")
+        o1 = ids()
+        jobs.move(h["id"], -1)
+        jobs.move(h["id"], 1)
+        jobs.move(f["id"], -1)
+        jobs.move(f["id"], 1)
+        check(ids() == o1 and o0 != o1, "review: a held job and the only front job have no one to swap with (never across the groups)")
+        jobs.move(a["id"], 1)
+        check(ids() == [b["id"], a["id"], h["id"], lk["id"], f["id"]], "review: down swaps with the next runnable job")
+        jobs._lane_current["comfy"] = None
+        order = []
+        for _ in range(4):
+            nx = jobs._take_next("comfy")
+            if nx is None:
+                break
+            order.append(nx["id"])
+            jobs._lane_current["comfy"] = None
+        check(order == [f["id"], b["id"], a["id"], lk["id"]], "review: the worker takes them in that order, the held job last (still waiting): %s"
+              % [x[-4:] for x in order])
+        _touch(raw("p68order_a_front"))
+        check(jobs.get(h["id"])["held"] is False and jobs._take_next("comfy")["id"] == h["id"], "review: once the front is painted the held job runs")
+    finally:
+        jobs._state = saved_state
+        jobs._lane_current["comfy"] = saved_lane
 
 
 def _dry_run_check(check, tmp):

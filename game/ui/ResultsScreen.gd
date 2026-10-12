@@ -81,7 +81,8 @@ func build() -> void:
 	hr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hero.add_child(hr)
 	if Run.character:
-		var p := WPlate.new().for_def(Run.character, 212.0)
+		# his badge in the look he was played in (pass 68, Registry.played_look)
+		var p := WPlate.new().for_def(Registry.played_look(Run.character), 212.0)
 		p.border = 6
 		p.fill = W.AGED
 		p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -376,7 +377,8 @@ func _reward(q: QuestDef) -> ContentDef:
 		"passive":
 			return Registry.passive(id)
 		"character":
-			return Registry.character(id)
+			# drawn in the look he is played in (pass 68, Registry.played_look)
+			return Registry.played_look(Registry.character(id))
 		"map":
 			return Registry.map(id)
 	return null

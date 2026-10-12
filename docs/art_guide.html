@@ -120,10 +120,12 @@ footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line);
 </nav>
 
 <main>
-<p class="eyebrow">88fits · Level Editor · pass 66 · version 0.52 · updated 2026-10-11 (evening)</p>
+<p class="eyebrow">88fits · Level Editor · pass 68 · version 0.54 · updated 2026-10-12</p>
 <h1>The Art Guide</h1>
 <p class="lead">How to make a creature, a hero or an item look the way you want, from the Level Editor and your own AI server: every generation method, what it needs, what it makes, how long it takes, what to check afterwards, where the stats live, and where the result shows up in the game.</p>
 
+<div class="callout good"><b>What changed on 2026-10-12.</b>
+<p><mark>Duplicate…</mark> now makes a <b>draft</b> and paints nothing until you press <mark>Generate…</mark>; a new look paints <b>its own stills on its own seeds</b> (a hero's duplicate on another model used to come out identical); every new look asks for <b>at least 3 icon candidates</b>, and a hero's for <b>3 badge and 3 title cut-out candidates</b>; the badge, cut-out and icon forms open <b>filled in with the hero's description</b> and a <b>reference picture</b> you can change; <mark>Re-roll…</mark>'s choices now really do what they say; the Jobs tab lists <b>Up next</b> first. Details in <a href="#looks">Looks</a>, <a href="#hero_badge">the badge</a>, <a href="#hero_title">the cut-out</a> and <a href="#jobs">Jobs</a>.</p></div>
 <div class="callout good"><b>What changed on 2026-10-11, evening.</b>
 <p><mark>Model settings</mark> on every painting job (<a href="#before">below</a>); a look's recipe shows every field with its source and says when none was recorded; <mark>Duplicate…</mark> on every look card; the painter recorded on every new look; the asset pinned at the top of its form while you scroll; every job's ComfyUI graphs saved into the ComfyUI page's own Workflows sidebar, with <b>↗</b> links that open them (<a href="#jobs">the Jobs tab</a>); one editor at a time runs the job queue. Details in <a href="#looks">Looks</a> and <a href="#jobs">Jobs</a>.</p></div>
 
@@ -148,12 +150,15 @@ footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line);
 <p>A <b>look</b> is one painted set of a creature or a hero: the strip, the icon, and a <b>recipe</b>, the words and settings its job read. Three things to know, added after the first day with the system:</p>
 <ul>
 <li><b>A recipe keeps only what differs.</b> The creature's own art words (the Art section of its form: the art prompt, the motion, the back hint, the dead hint, the screen…) apply to every look that does not say otherwise. So an empty box in a look's recipe is not a lost prompt: <mark>Recipe (typed)…</mark> shows the word that applies, greyed, with a mark saying <em>own</em>, <em>inherited</em> or the method's <em>default</em>, and the job form does the same. Looks painted before the editor kept recipes, by hand, or by a job that ran with an empty recipe say <mark>no recipe recorded</mark>: their fields show the creature's words, which may not be what painted them. Keys another tool wrote (the fire ant's <code>body</code>, a recolour's <code>tint_of</code>) are listed under "Also in the recipe".</li>
-<li><b>Duplicate…</b> on a look's card opens the job form with that look's recipe, words and painter filled in and the next free code. Change the model, the passes or any word, then Queue. The stills are painted again under the new code, so the Model settings apply to them; tick <mark>reuse the paintings</mark> to keep the source's stills and redo only the clips.</li>
-<li><b>The painter is recorded.</b> Every look painted from now on carries the painter it ran with (Klein or dev, the passes, and for dev the guidance and Turbo) in its recipe. The card, the facts beside the player and <mark>Recipe (typed)…</mark> show it; <mark>Re-roll…</mark> and <mark>Duplicate…</mark> start the form from it. Older looks say "painter not recorded".</li>
+<li><b>Duplicate…</b> on a look's card makes a <b>draft</b>: a new code with that look's recipe, words and painter copied, and <em>nothing painted</em>. The draft is selected and its recipe opens under the grid (a purple <mark>draft</mark> chip on its card). Change any word, <mark>Save asset</mark>, then press <mark>Generate…</mark> on the card: the job form opens for that code, with the Model settings from the source's painter (change the model or the passes there) and <mark>reuse the paintings</mark> to keep the source's stills and make only new walks.</li>
+<li><b>A new look paints its own stills, on its own seeds.</b> Its recipe gets <code>stills</code> (its letter) and <code>seed_offset</code> when it is queued, heroes too, so a duplicate on Flux.2 dev really is painted by dev, and two new looks with the same words still differ. A look that already has a strip keeps the paintings it was made from. (Before this, a hero look re-used the hero's cached paintings: MAM-C on dev at 32 passes came out byte-identical to MAM-B on Klein.)</li>
+<li><b>A new look comes with its candidates.</b> The form of a new look asks for at least 3 <em>icon candidates</em> (a creature) or 3 <em>badge</em> and 3 <em>title cut-out</em> candidates (a hero), 3 by default; Queue refuses fewer. They run after the look, on its Model settings, with its front still as their reference, and wait in the queue ("waiting for MAM-D's front") until that still exists. On Flux.2 dev the six candidates add about half an hour; on Klein about two minutes.</li>
+<li><b>The painter is recorded.</b> Every look painted from now on carries the painter it ran with (Klein or dev, the passes, and for dev the guidance and Turbo) in its recipe. The card, the facts beside the player and <mark>Recipe (typed)…</mark> show it; <mark>Re-roll…</mark> and <mark>Duplicate…</mark> start the form from it. Older looks say "painter not recorded". When a job reused stills from the cache instead of painting them, the line says so ("stills reused", "3 of 12 painted"): the painter then changed nothing.</li>
 </ul>
 <p>The asset you are editing stays pinned at the top of its form, icon and name, while you scroll.</p>
 
 <h2 id="jobs">The Jobs tab and the ComfyUI workflows</h2>
+<p>The tab lists <b>Up next</b> first (per lane, in the order each lane will run them, numbered; ▲ ▼ move a job one place), then <b>Waiting for a pick</b>, <b>Running</b> and <b>Finished</b>. A candidate job waiting for its look's front still sits at the end of its lane until that still exists.</p>
 <p>Every job card keeps the exact ComfyUI graphs it ran, one per render (a still, a clip, a death), and saves each into the ComfyUI page's own <b>Workflows</b> sidebar as it runs, under <code>88fits / &lt;creature&gt;_&lt;CODE&gt; / &lt;job&gt;</code>. On the card:</p>
 <ul>
 <li><b>↗</b> opens the ComfyUI page on that very graph: the prompt as it was sent, the seed, the passes, the guidance, the model files, the reference pictures and the output name are all in the nodes, as a tab named after the file. The page needs a few seconds to start; a toast <em>"88fits: opened …"</em> confirms it and the view is fitted to the graph. If the canvas still looks empty, press <span class="key">.</span> (fit the view) or click the tab named after the file.</li>
@@ -231,11 +236,13 @@ footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line);
 <div class="chips"><span class="chip kind">hero</span><span class="chip time">about 1.5 min for 4 seeds</span><span class="chip">candidates: you pick</span></div>
 <div class="grid">
 <div>
-<p><b>When.</b> The round picture on the hero's plates, the hero sheet and the results screen.</p>
+<p><b>When.</b> The round picture on the hero's plates, the hero sheet, the results, the Collection and the arena: the badge of the look the hero is played in. A hero's "Icon candidates" are these.</p>
 <p><b>What happens.</b> N close-up portraits edited from the hero's front still with the portrait words, each shown inside the round frame with the head width and top padding of the hero's badge block; a review sheet in the Jobs tab. You pick one: it becomes the hero's icon and is remembered in his JSON so a later base run keeps it.</p>
 <dl class="fields">
-<dt>portrait_prompt</dt><dd>"head and shoulders, looking at the viewer with a small knowing smile".</dd>
-<dt>badge.head_width · badge.top_pad</dt><dd>How much of the circle the head fills, and the gap above it. A bust that runs off the bottom of the frame is what the badge wants.</dd>
+<dt>Character</dt><dd>Filled in: the hero's (or the look's) description, its pose clause cut ("standing straight, arms relaxed" would fight the action). Edit it or leave it.</dd>
+<dt>Action</dt><dd>Filled in from portrait_prompt: "head and shoulders, looking at the viewer with a small knowing smile".</dd>
+<dt>Reference picture</dt><dd>The look's own front still by default (a thumbnail); <mark>Change…</mark> picks another from the library, <mark>Upload…</mark> adds yours. The painter copies this exact character from it.</dd>
+<dt>head width · top pad</dt><dd>How much of the circle the head fills, and the gap above it. A bust that runs off the bottom of the frame is what the badge wants.</dd>
 </dl>
 </div>
 <figure><img src="guide_img/hero_badge_heroes.png" alt="The heroes' badges" loading="lazy"><figcaption>The badges as the game shows them.</figcaption></figure>
@@ -247,10 +254,12 @@ footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line);
 <div class="chips"><span class="chip kind">hero</span><span class="chip time">about 2 min for 4 seeds</span><span class="chip ref">3D: an object render (optional)</span><span class="chip">candidates: you pick</span></div>
 <div class="grid">
 <div>
-<p><b>When.</b> The big painted figure on the title screen's carousel.</p>
+<p><b>When.</b> The big painted figure on the <em>Painted</em> title (Settings, debug mode: Main menu → Painted). The Live title, the default, draws the look's walking strip instead and has no cut-out. A cut-out picked for a hero look becomes that look's own.</p>
 <p><b>What happens.</b> A full-body splash from the front still and a pose prompt, with an optional object reference copied exactly (a render of the thing he holds and its words), N seeds, keyed and fitted to the title's box; a review sheet. The pick writes the title picture and a Godot import follows, so the title shows it on the next launch.</p>
 <dl class="fields">
-<dt>title_pose</dt><dd>The whole-body gesture: "standing with his feet apart, one hand tipping the brim of his hat".</dd>
+<dt>Character</dt><dd>Filled in with the hero's description, its pose clause cut, as for the badge.</dd>
+<dt>Reference picture</dt><dd>The look's own front still by default; Change… or Upload… for another.</dd>
+<dt>Pose</dt><dd>The whole-body gesture: "standing with his feet apart, one hand tipping the brim of his hat" (default: "standing confidently in a heroic pose, full body").</dd>
 <dt>title_holds · title_camera</dt><dd>The one thing he holds, and the shot ("three-quarter, from a little below").</dd>
 <dt>title_extra_ref.file · .words</dt><dd>A render of the held object (from <a href="#ref_render">ref_render</a>) and what it is.</dd>
 </dl>
@@ -568,6 +577,7 @@ footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line);
 <h2 id="wrong">When something looks wrong</h2>
 <ul>
 <li><b>The ↗ link opened ComfyUI but no graph appeared</b>: wait for the "88fits: opened" toast (the page starts first), click the tab named after the file, press <span class="key">.</span> to fit the view. No toast at all means the server has no <code>88fits_open</code> extension: the Jobs tab says so, Claude installs it.</li>
+<li><b>Re-roll… choices</b>: <em>repaint the stills</em> paints the look's stills again on new seeds (a look sharing its paintings gets its own first) and makes its walks again from them; <em>new seeds</em> also rolls new walk seeds; <em>keep the stills, redo the clips</em> makes only new walks; <em>redo one view</em> is for a look walked on a 3D model. If you change the Model settings on a re-roll, the form picks <em>repaint the stills</em> for you: a painter only paints stills.</li>
 <li><b>A still is off</b> (a face on a back, four ears): open the job card, <mark>Re-roll…</mark>, tick that still, a new seed. Only that still is painted again; everything cached stays.</li>
 <li><b>A clip is off</b> (a limb grows, the cadence halves): Re-roll with that clip ticked; its folder moves aside and the seed goes up. For a free clip try the stride method or a model if the shape allows.</li>
 <li><b>The job says "fell back"</b> in its clip_kind: the driven walk failed quietly and a free clip took its place. Shrink the driver (pose_scale) or lower <code>clip_fill</code>, then re-roll that clip.</li>
@@ -578,7 +588,7 @@ footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line);
 <li><b>The vision check is off</b> (LM Studio closed): jobs run with "QA online: no" and keep the first render of every try. Nothing fails; you just look harder.</li>
 </ul>
 
-<footer>Written for Garry after pass 66 (2026-10-11), updated the same evening: the Model settings, the recipe sources, Duplicate, the painter record, the ComfyUI links and the one-editor rule. The method texts, timings and weak spots come from <code>tools/level_editor/methods.json</code>, the same file the job form reads; the Instructions tab in the editor carries the same tables and two live players. Keys and rules: <code>docs/assets_schema.md</code>, <code>BALANCING.md</code> section 13.</footer>
+<footer>Written for Garry after pass 66 (2026-10-11), updated after pass 68 (2026-10-12: drafts, a look's own stills and seeds, required candidates, the badge and cut-out forms with a reference picture, honest re-rolls, the Jobs order), and the evening before: the Model settings, the recipe sources, Duplicate, the painter record, the ComfyUI links and the one-editor rule. The method texts, timings and weak spots come from <code>tools/level_editor/methods.json</code>, the same file the job form reads; the Instructions tab in the editor carries the same tables and two live players. Keys and rules: <code>docs/assets_schema.md</code>, <code>BALANCING.md</code> section 13.</footer>
 </main>
 </div>
 

@@ -196,7 +196,8 @@ func _tile(def: ContentDef) -> WTap:
 	v.add_theme_constant_override("separation", 8)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	t.add_child(v)
-	var plate := WPlate.new().for_def(def, 210.0, not found, 1)
+	# a hero (the developer's Hidden list) in the look he is played in (pass 68)
+	var plate := WPlate.new().for_def(Registry.art_of(def), 210.0, not found, 1)
 	plate.icon_frac = 160.0 / 210.0
 	plate.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	if def is EnemyDef:
@@ -333,7 +334,7 @@ func _hero_card(def: ContentDef) -> PanelContainer:
 	h.add_theme_constant_override("separation", 30)
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(h)
-	var plate := WPlate.new().for_def(def, 272.0, false, 1)
+	var plate := WPlate.new().for_def(Registry.art_of(def), 272.0, false, 1)
 	plate.border = 6
 	plate.radius = 16
 	plate.icon_frac = 220.0 / 272.0

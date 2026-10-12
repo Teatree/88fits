@@ -21,6 +21,19 @@
 // number"), the 3D reference rows (the driver library with its sheets played, or an upload with the preferred format
 // stated and what the probe says the model can do), one row per look to paint with the codes it will get, the counts,
 // seeds and re-roll options, "Show the words that will be sent", and Queue: one POST /api/jobs per look.
+//
+// Pass 68 (lane W): the tab draws UP NEXT first (the queued jobs in the order the workers take them: by lane, the
+// server's list order with a resuming pick first, numbered per lane), then waiting, running, finished. In the form a NEW
+// look (a new code, or a draft's Generate…) comes with at least 3 icon candidates (a creature) or 3 badge and 3 title
+// cut-out candidates (a hero): jobs of their own, queued after the look with its Model settings and empty words that
+// the server fills. The re-roll radios send spec.reroll {mode, view}. Badge, title and icon jobs show their words and
+// their reference picture filled from GET /api/jobs/defaults, editable, each tagged with where it came from. The 2D / 3D
+// reference rows (no tool read them) are gone: each method says where its picture goes instead. The review fixes: a job
+// the server holds (`held`: a look's candidates waiting for its front still) shows after the runnable ones of its lane,
+// unnumbered and unmovable, and ▲ / ▼ swap a card with its neighbour on screen (resuming picks among themselves, as the
+// server's jobs.move does); an edit
+// that clears a candidate field sends '' so the server fills it again; the badge and cut-out texts say where the game
+// shows the pick (the cut-out only on the Painted title).
 'use strict';
 
 const Jobs = (() => {
@@ -31,17 +44,70 @@ const Jobs = (() => {
   const STATES = ['running', 'waiting', 'queued', 'done', 'failed', 'interrupted', 'cancelled'];
   const FINISHED = ['done', 'failed', 'interrupted', 'cancelled'];
   const STATE_LABEL = { queued: 'QUEUED', running: 'RUNNING', waiting: 'WAITING FOR PICK', done: 'DONE', failed: 'FAILED', interrupted: 'INTERRUPTED', cancelled: 'CANCELLED' };
-  const GROUPS = [['running', 'Running'], ['waiting', 'Waiting for a pick'], ['queued', 'Queued'], ['finished', 'Finished']];
+  // pass 68 (D12): the upcoming jobs at the top, in the order the workers take them (Garry: "the upcoming jobs show under
+  // the running job"); one worker per lane, so the numbering is per lane
+  const GROUPS = [['queued', 'Up next'], ['waiting', 'Waiting for a pick'], ['running', 'Running'], ['finished', 'Finished']];
+  const LANE_ORDER = ['comfy', 'godot', 'local'];
   const TAB_OF_KIND = { enemy: 'creatures', boss: 'creatures', hero: 'heroes', weapon: 'items', evolution: 'items', passive: 'items', mutation: 'items' };
   const ROLES = [{ v: 'identity', label: 'identity (what it looks like)' }, { v: 'style', label: 'style (how it is drawn)' }, { v: 'pose', label: 'pose and anatomy' }];
   const FOLLOW = [{ v: 'loosely', label: 'follow loosely' }, { v: 'closely', label: 'follow closely' }, { v: 'copy', label: 'copy exactly' }];
   const USES = [{ v: 'animation', label: 'animation (how it moves)' }, { v: 'look', label: 'look (the painting reference)' }, { v: 'icon', label: 'icon (the icon render)' }];
+  // the re-roll modes a look job carries as spec.reroll {mode, view} (pass 68, D3: the server applies them when it queues
+  // the job); `only` = the methods a mode exists for
   const REROLL = [
-    { v: 'seeds', label: 'new seeds', help: 'every still and clip rolled again with the next seeds' },
-    { v: 'clips', label: 'keep the stills, redo the clips', help: 'the painted stills stay; the clip folders move to <key>_old<stamp> and the walks are made again' },
-    { v: 'view', label: 'redo one view', help: 'one view painted again as candidates to pick from (gen_ctl --view-cands)' },
-    { v: 'stills', label: 'repaint the stills', help: 'the stills painted again (--force --keys), the clips follow' },
+    { v: 'seeds', label: 'new seeds', help: 'the stills painted again under new seeds and the clips made again from them (their folders move to <key>_old<stamp>, anim_seed + 1); a look that shares the creature\'s or the hero\'s paintings gets its own first, so those are never touched' },
+    { v: 'clips', label: 'keep the stills, redo the clips', help: 'the stills stay; the clip folders move to <key>_old<stamp> and the walks are made again (anim_seed + 1)' },
+    { v: 'view', label: 'redo one view', help: 'one view painted again as candidates to pick from (gen_ctl --view-cands)', only: ['creature_ctl'] },
+    { v: 'stills', label: 'repaint the stills', help: 'the stills painted again under new seeds (a look sharing the paintings gets its own first); the clips are walked again from the new stills (same clip seeds); "new seeds" also rolls new clip seeds' },
   ];
+  // the modes jobs.py's _apply_reroll accepts per method (it refuses the others with a reason): hero_fit paints no stills
+  // of its own, gen_ctl paints its stills from the picked side, creature_proc has no clips; a recolour and a front from a
+  // picture have nothing to re-roll
+  const REROLL_FOR = { hero_fit: ['clips'], creature_ctl: ['clips', 'view'], creature_proc: ['seeds', 'stills'], recolour: [], front_from_picture: [] };
+  function rerollModes(method) { return REROLL.map((r) => r.v).filter((v) => (REROLL_FOR[method] || ['seeds', 'clips', 'stills']).includes(v)); }
+  // the look methods whose stills are cached under a slug of the look's own (jobs.py STILL_METHODS, pass 68 D1: hero_pose5
+  // joined); a Duplicate… draft of one of them can reuse its source's paintings
+  const STILL_METHODS = ['creature_free2', 'creature_pose2', 'creature_free8', 'creature_proc', 'hero_pose5'];
+  // pass 68 (D10): a new look comes with at least this many candidates of each kind it has
+  const MIN_CANDIDATES = 3;
+  // the candidate jobs and the fields their tools read (D6/D7); "What to paint" shows them filled from the server's
+  // defaults (GET /api/jobs/defaults), editable; they are job fields (SPECS), so flatten keeps them
+  const CAND_KINDS = ['icon_cands', 'hero_badge', 'hero_title'];
+  const CHARACTER_HELP = 'who is painted, in words: the look\'s `appearance` when it has one, else its art_prompt with the pose clause cut (a portrait must not inherit "standing straight, arms at her sides"); the words go right after "this exact character"';
+  const CAND_FIELDS = {
+    hero_badge: [
+      { key: 'character', label: 'Character', type: 'textarea', help: CHARACTER_HELP },
+      { key: 'prompt', label: 'Action', type: 'textarea', help: 'what the portrait does: the expression and the gesture (the hero\'s portrait_prompt by default)' },
+      { key: 'ref', label: 'Reference picture', type: 'picture', help: 'the picture the portraits are edited from (the identity): the look\'s own front still by default; any picture can take its place (an upload, a turnaround)' },
+    ],
+    hero_title: [
+      { key: 'character', label: 'Character', type: 'textarea', help: CHARACTER_HELP },
+      { key: 'pose', label: 'Pose', type: 'textarea', help: 'the pose of the full-body splash: the hero\'s title_pose, else the tool\'s own table, else "standing confidently in a heroic pose, full body"' },
+      { key: 'holds', label: 'Holds', type: 'text', help: 'the one thing held (title_holds): "the guitar is the only thing he holds"' },
+      { key: 'camera', label: 'Camera', type: 'text', help: 'the shot (title_camera): "facing the viewer, seen from the front at eye level"' },
+      { key: 'ref', label: 'Reference picture', type: 'picture', help: 'the identity picture: the look\'s own front still by default' },
+      { key: 'extra_ref', label: 'Extra reference', type: 'picture', help: 'optional: a picture of the held object, copied exactly (title_extra_ref.file)' },
+      { key: 'extra_words', label: 'Extra reference words', type: 'text', help: 'what the extra picture is (title_extra_ref.words): "copy its shape and colours exactly: <words>"' },
+    ],
+    icon_cands: [
+      { key: 'subject', label: 'Subject', type: 'textarea', help: 'what to paint: a creature\'s character words, an item\'s art_prompt' },
+      { key: 'ref', label: 'Reference picture', type: 'picture', help: 'a creature look\'s front still by default (an item: none unless it has a 3D render); with a picture the words begin "The reference image shows this exact creature: keep its shape, colors and proportions."' },
+      { key: 'screen', label: 'Screen', type: 'select', options: ['green', 'blue'], help: 'the screen colour the icon is painted on (blue for anything with green in it)' },
+      { key: 'file', label: 'Icon file', type: 'text', help: 'the file the pick installs: <id>_icon_<letter>.png for a look (its own icon, variants[CODE].icon), <id>_icon.png for the base' },
+    ],
+  };
+  // the look job's fields only one method's tool reads (D11): hidden from the others' form
+  const METHOD_ONLY = {
+    ref: ['front_from_picture'], prompt: ['front_from_picture'], keep: ['front_from_picture'], stills: ['front_from_picture'], picture: ['front_from_picture'], pick: ['front_from_picture'],
+    no_style_ref: ['front_from_picture'], stage: ['creature_ctl'], use_side: ['creature_ctl'], view_cands: ['creature_ctl'], use_view: ['creature_ctl'], recolour: ['recolour'],
+  };
+  // the words the tools put round the fields (gen_art.STYLE, BG_GREEN / BG_BLUE, ICON_STYLE), for "Show the words"
+  const STYLE_WORDS = 'in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset';
+  const BG_WORDS = {
+    green: 'isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark',
+    blue: 'isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark',
+  };
+  const ICON_STYLE_WORDS = 'Mobile game item icon in the style of Shop Titans: one single bold object, thick clean black outline, simple chunky shapes, flat cel shading with one soft highlight, saturated high-contrast colors, centered and filling the frame with a small margin, readable at thumbnail size, no text, no background, no scene';
   const S = {
     rev: 0, jobs: [], status: null, statusAt: 0, timer: 0, last: null, hidden: new Set(), apiMissing: false, panel: null,
     groups: null, cards: new Map(), sigs: new Map(), methods: null, methodsP: null, drivers: null, refs: null, lists: {}, confirm: null, started: false,
@@ -50,7 +116,7 @@ const Jobs = (() => {
   // a job's spec as jobs.py validates it is FLAT (method, recipe, refs, drivers, skip_qa, dev, seed, seeds, keys, ...);
   // the form edits a nested state (flags, counts, job) and flattens it on Queue / Save (flatten), unflattens on Edit
   const FLAG_KEYS = ['skip_qa', 'dev', 'no_video', 'no_style_ref'];
-  const OWN_KEYS = ['method', 'recipe', 'refs', 'drivers', 'note', 'seed', 'seeds'].concat(FLAG_KEYS);
+  const OWN_KEYS = ['method', 'recipe', 'refs', 'drivers', 'note', 'seed', 'seeds', 'reroll'].concat(FLAG_KEYS);
 
   function unflatten(flat) {
     const f = flat && typeof flat === 'object' ? flat : {};
@@ -74,13 +140,23 @@ const Jobs = (() => {
     if (spec.flags && spec.flags.seed) out.seed = spec.flags.seed;
     if (spec.counts && spec.counts.seeds) out.seeds = spec.counts.seeds;
     for (const [k, v] of Object.entries(spec.job || {})) if (v !== null && v !== undefined && v !== '') out[k] = v;
-    if (spec.reroll && spec.reroll.mode) out.reroll = spec.reroll;
+    if (spec.reroll && spec.reroll.mode) out.reroll = spec.reroll.mode === 'view' ? { mode: 'view', view: spec.reroll.view || 'front' } : { mode: spec.reroll.mode };
+    // front_from_picture's slug is a recipe field in the form and a job field in jobs.py (its argv reads spec.stills)
+    if (spec.method === 'front_from_picture' && (out.stills == null || out.stills === '') && spec.recipe && spec.recipe.stills) out.stills = spec.recipe.stills;
     const fields = specs && specs[jk] && specs[jk].fields && typeof specs[jk].fields === 'object' ? specs[jk].fields : null;
     if (fields) {
       for (const k of Object.keys(out)) if (!(k in fields)) delete out[k];
       for (const [k, f] of Object.entries(fields)) if (out[k] === undefined && f && f.required && f.default !== undefined && f.default !== null && f.default !== '') out[k] = f.default;
     }
     return out;
+  }
+  /** An edited candidate job's flat spec: every candidate field missing or empty goes out as ''. flatten leaves empty
+   *  values out and the server's edit merges the posted spec over the stored one, so a field cleared in the form would
+   *  keep its old value; '' makes the server fill it again from the defaults (D6: also in edit), as the field's tag says,
+   *  or leave it empty when there is no default. Other kinds as they are. */
+  function withClearedFields(jk, flat) {
+    if (CAND_KINDS.includes(jk)) for (const f of CAND_FIELDS[jk] || []) if (flat[f.key] == null || flat[f.key] === '') flat[f.key] = '';
+    return flat;
   }
   function seedOf(j) { const s = j && j.spec ? j.spec : {}; return Number(s.seed != null ? s.seed : (s.flags && s.flags.seed)) || 0; }
   function specType(t) { return { str: 'text', string: 'text', float: 'number', list: 'json', dict: 'json', path: 'file', enum: 'select', choice: 'select', integer: 'int', boolean: 'bool' }[t] || t || 'text'; }
@@ -92,6 +168,139 @@ const Jobs = (() => {
     if (specs) { specs = Object.assign({}, specs); delete specs.ok; }
     S.specs = specs && Object.keys(specs).length ? specs : null;
     return S.specs;
+  }
+
+  // ------------------------------------------------------------------ pass 68: pure helpers (selftest_V runs them under Node)
+
+  /** The queued jobs in the order the workers take them (D12, jobs.py _take_next): by lane (comfy, godot, local, then any
+   *  other); within a lane a `front` job (a picked job resuming) first, then the server's list order; a `held` job (the
+   *  server's mark: a candidate job whose reference is its look's front still, not painted yet, while that look's job is
+   *  live; _take_next skips it) after the runnable ones of its lane, unnumbered. Returns [{job, pos, n, held, up, down}]:
+   *  pos = the place among the lane's runnable jobs (n of them; -1 for a held job); up / down = the `delta` a ▲ / ▼ move
+   *  sends (0 = the button is off). jobs.move swaps a job with its neighbour in its own group (the same lane, front flag
+   *  and hold, in list order: the order shown here), so ▲ / ▼ send -1 / +1 and are off at a group's ends: a resuming pick
+   *  never trades places with the others (the worker takes it first whatever the list says), and a held job does not move. */
+  function queueOrder(queued) {
+    const li = (l) => { const i = LANE_ORDER.indexOf(l || ''); return i < 0 ? LANE_ORDER.length : i; };
+    const lanes = new Map();
+    for (const j of queued || []) { const l = j.lane || ''; if (!lanes.has(l)) lanes.set(l, []); lanes.get(l).push(j); }
+    const out = [];
+    for (const l of [...lanes.keys()].sort((a, b) => (li(a) - li(b)) || a.localeCompare(b))) {
+      const peers = lanes.get(l);
+      const groups = [peers.filter((j) => j.front && !j.held), peers.filter((j) => !j.front && !j.held)];
+      const n = groups[0].length + groups[1].length;
+      let pos = 0;
+      for (const g of groups) g.forEach((j, k) => out.push({ job: j, pos: pos++, n, held: false, up: k > 0 ? -1 : 0, down: k < g.length - 1 ? 1 : 0 }));
+      for (const j of peers.filter((x) => x.held)) out.push({ job: j, pos: -1, n, held: true, up: 0, down: 0 });
+    }
+    return out;
+  }
+  function queueLabel(pos, n, lane) { return `#${pos + 1} of ${n} in the ${lane || '?'} lane${pos === 0 ? ' · next' : ''}`; }
+  /** A held job's place: it waits for its look's front still (the picture its candidates are painted from). */
+  function heldLabel(j) { const t = (j && j.target) || {}; return `waiting for ${t.code || t.id || 'its look'}'s front`; }
+
+  /** The painter the form's Model settings make, in jobs.py _painter_of's shape {model, steps[, guidance, turbo]}. */
+  function painterOfSpec(spec) {
+    const j = (spec && spec.job) || {};
+    const dev = j.model === 'dev' || (j.model == null && !!(spec && spec.flags && spec.flags.dev));
+    const out = { model: dev ? 'dev' : 'klein', steps: Number(j.steps) || 0 };
+    if (dev) { out.guidance = Number(j.guidance) || 0; out.turbo = j.turbo !== false; }
+    return out;
+  }
+  /** Whether two painters would paint a still differently: the model, the passes, and for dev the guidance and Turbo
+   *  (recipe.painter's bookkeeping keys, stills and reused, do not count). */
+  function painterDiffers(a, b) {
+    const n = (p) => { const x = p && typeof p === 'object' ? p : {}; const dev = x.model === 'dev'; return [dev ? 'dev' : 'klein', Number(x.steps) || 0, dev ? Number(x.guidance) || 0 : 0, dev ? x.turbo !== false : true].join('|'); };
+    return n(a) !== n(b);
+  }
+
+  /** The candidate jobs a NEW look comes with (D10): a creature's icon candidates; a hero's round badge and title
+   *  cut-out candidates. None for a recolour (it recolours its source's icon) or a front from a picture (it paints no
+   *  look: the candidates come with the look painted from it). */
+  function candidatePlan(kind, method) {
+    if (method === 'recolour' || method === 'front_from_picture') return [];
+    if (kind === 'hero') return [{ jk: 'hero_badge', count: 'icon_candidates', label: 'badge candidates' }, { jk: 'hero_title', count: 'cutout_candidates', label: 'title cut-out candidates' }];
+    if (kind === 'enemy' || kind === 'boss') return [{ jk: 'icon_cands', count: 'icon_candidates', label: 'icon candidates' }];
+    return [];
+  }
+  /** Queue's refusal for a new look whose counts are under the minimum, or '' (Garry: "at least 3 each, required"). */
+  function candidateRefusal(plan, counts) {
+    const c = counts || {};
+    const short = (plan || []).filter((p) => !(Number(c[p.count]) >= MIN_CANDIDATES));
+    if (!short.length) return '';
+    return `a new look comes with at least ${MIN_CANDIDATES} ${short.map((p) => p.label).join(' and ')}: raise ${short.length > 1 ? 'the counts' : 'the count'} under Looks`;
+  }
+
+  /** A picture path as the page can show it: tools/dl/<x>, a tools/dl-relative path or an absolute path inside tools/dl
+   *  through /dl/ (where the server serves the uploads, the stills, the clips, the review sheets and the title
+   *  candidates); a /dl/ or /art/ URL as it is; anything else has no preview here (''). */
+  function refUrl(p) {
+    let s = String(p || '').trim().replace(/\\/g, '/');
+    if (!s) return '';
+    if (/^\/(dl|art|icon|sprite)\//.test(s)) return s;
+    const i = s.toLowerCase().lastIndexOf('/tools/dl/');
+    if (i >= 0) s = s.slice(i + '/tools/dl/'.length);
+    else if (s.startsWith('tools/dl/')) s = s.slice('tools/dl/'.length);
+    else if (/^[a-zA-Z]:\//.test(s) || s.startsWith('/') || /^(_REFERENCES|game|tools|docs)\//.test(s)) return '';
+    return '/dl/' + s.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+  }
+
+  /** The prompt a candidate tool builds from its fields (D7: gen_badge_cands, gen_title_heroes, gen_icon_cands), for
+   *  "Show the words"; o = {screen: green | blue, creature: bool}. The authoritative text is asset_job.py --dry-run's. */
+  function candidateWords(jk, f, o) {
+    const x = f || {}, opt = o || {};
+    const bg = BG_WORDS[opt.screen === 'green' ? 'green' : 'blue'];
+    // the tools' clean_words: the words as typed, without a trailing comma, semicolon or full stop
+    const who = String(x.character || '').trim().replace(/[\s,;.]+$/, '');
+    if (jk === 'hero_badge') {
+      return 'A close-up portrait of this exact character for a mobile game avatar icon: ' + (who ? who + ', ' : '') +
+        'only the head and shoulders, the head filling half of the frame, ' + (x.prompt || 'smiling at the viewer') + ', facing the viewer, the shoulders and chest running off the bottom edge of the frame, expressive and lively, no legs, no full body. Keep the same face, outfit, colors and art style as the reference. ' + bg + '.';
+    }
+    if (jk === 'hero_title') {
+      const extra = String(x.extra_words || '');
+      return 'A full-body character illustration of this exact character' + (who ? ', ' + who + ',' : '') + ' for a mobile game\'s hero select screen: ' +
+        (x.pose || 'standing confidently in a heroic pose, full body') + ', ' + (x.camera || 'facing the viewer, seen from the front at eye level') +
+        ', the whole figure visible from the top of the head down to the feet with empty space around it, ' + (x.holds || 'no weapon') + '. ' +
+        (extra ? extra + (extra.endsWith(' ') ? '' : ' ') : '') + 'Keep the same face, outfit, colors and proportions as the reference. ' + STYLE_WORDS + '. ' + bg + '.';
+    }
+    if (jk === 'icon_cands') {
+      // gen_icon_cands.icon_words: with a picture the words lead with what it shows (a creature, a character, else an
+      // object to copy) unless the subject already speaks of "the reference image"
+      const ibg = BG_WORDS[x.screen === 'blue' ? 'blue' : 'green'];
+      let subj = String(x.subject || '').trim();
+      if (subj.endsWith('.')) subj = subj.slice(0, -1).trimEnd();
+      const lead = !x.ref || /reference image/i.test(subj) ? '' : opt.creature ? 'The reference image shows this exact creature: keep its shape, colors and proportions. '
+        : opt.character ? 'The reference image shows this exact character: keep the same face, outfit, colors and proportions. '
+          : 'Copy this exact object from the reference image: its silhouette, proportions, parts and colours, seen from the same angle. ';
+      return lead + (subj ? subj + '. ' : '') + (x.style || ICON_STYLE_WORDS) + '. ' + ibg + '.';
+    }
+    return '';
+  }
+
+  /** Where a candidate field's value came from: the server's source while it equals the default, else the editor's. */
+  function sourceTag(key, value, d) {
+    const dv = d && d.fields ? d.fields[key] : undefined;
+    const src = d && d.sources ? d.sources[key] : '';
+    const has = (v) => v != null && v !== '';
+    if (!has(value)) return has(dv) ? `empty: the server fills it from ${src || 'its default'} when the job is queued` : 'empty: the tool\'s own fallback';
+    if (has(dv) && String(value) === String(dv)) return src ? `from ${src}` : 'the default';
+    return 'yours: typed or picked here';
+  }
+
+  /** GET /api/jobs/defaults (D6): {fields, sources, ref_url, ref_exists} for a candidate job's target; {error} when the
+   *  server has none yet (the fields then stay empty and the tools fall back to the hero's own words). */
+  async function fetchDefaults(jk, kind, id, code) {
+    const target = `${kind}/${id}${code ? '/' + code : ''}`;
+    try {
+      const r = await fetch(`/api/jobs/defaults?kind=${encodeURIComponent(jk)}&target=${encodeURIComponent(target)}`, { cache: 'no-store' });
+      if (r.status === 404) return { jk, target, fields: {}, sources: {}, error: 'the server has no /api/jobs/defaults route yet' };
+      let d = null;
+      try { d = await r.json(); } catch (_) { d = null; }
+      if (!r.ok || !d || d.ok === false) return { jk, target, fields: {}, sources: {}, error: (d && d.error) || `HTTP ${r.status}` };
+      const x = d.defaults && typeof d.defaults === 'object' ? d.defaults : d;
+      return { jk, target, fields: x.fields && typeof x.fields === 'object' ? x.fields : {}, sources: x.sources && typeof x.sources === 'object' ? x.sources : {},
+        ref_url: x.ref_url || null, ref_exists: typeof x.ref_exists === 'boolean' ? x.ref_exists : null };
+    } catch (e) { return { jk, target, fields: {}, sources: {}, error: e.message }; }
   }
 
   // ------------------------------------------------------------------ polling, the badge, the toasts
@@ -147,8 +356,14 @@ const Jobs = (() => {
     S.jobs = jobs;
     updateBadge();
     if (App.S.tab === 'jobs' && S.panel && S.panel.isConnected) draw();
-    // a look card of the open document shows the job's state: let the grid redraw its chips
-    if (typeof LookGrid !== 'undefined' && document.querySelector('.lookgrid') && d.jobs) { /* chips read Jobs.jobsFor on the next render */ }
+    // a look card shows its jobs' states, and a stub without a live look job is a draft with Generate… (pass 68): the open
+    // grid is told when the set of live jobs per look changes; it draws itself again only when its own asset's changed and
+    // no edit or confirm box is open on it (LookGrid.jobsChanged)
+    const live = JSON.stringify(jobs.filter((j) => ['queued', 'running', 'waiting'].includes(j.state) && j.target && j.target.code).map((j) => [j.target.kind, j.target.id, j.target.code, j.kind, j.state]));
+    if (live !== S.liveSig) {
+      S.liveSig = live;
+      if (typeof LookGrid !== 'undefined' && typeof LookGrid.jobsChanged === 'function') { try { LookGrid.jobsChanged(); } catch (_) { /* drawn on the next render */ } }
+    }
   }
 
   // the content kinds the server names in an import job's targets ("enemies/test_beast") -> the page's kinds
@@ -381,7 +596,7 @@ const Jobs = (() => {
 
   function sig(j) {
     const p = j.progress || {};
-    return JSON.stringify([j.state, j.waiting_for, p.stage, p.done, p.total, p.stalled, (j.log_tail || []).slice(-1)[0], (j.outputs || []).length, (j.outputs || []).filter((o) => o.open_url).length, S.status && S.status.comfy_open_ext ? S.status.comfy_open_ext.installed : null, (j.choices || []).length, j.ended, j.error, j.written && j.written.layout, j.merged_into, j.eta_s, j.state === 'running' ? Math.floor(Date.now() / 2000) : 0, S.hidden.has(j.id)]);
+    return JSON.stringify([j.state, j.waiting_for, p.stage, p.done, p.total, p.stalled, (j.log_tail || []).slice(-1)[0], (j.outputs || []).length, (j.outputs || []).filter((o) => o.open_url).length, S.status && S.status.comfy_open_ext ? S.status.comfy_open_ext.installed : null, (j.choices || []).length, j.ended, j.error, j.written && j.written.layout, j.merged_into, j.eta_s, j.state === 'running' ? Math.floor(Date.now() / 2000) : 0, S.hidden.has(j.id), !!j.front, !!j.held, j.lane]);
   }
 
   function draw() {
@@ -394,18 +609,29 @@ const Jobs = (() => {
     }
     const by = { running: [], waiting: [], queued: [], finished: [] };
     for (const j of jobs) (by[j.state] || by.finished).push(j);
-    by.queued.sort((a, b) => (a.lane || '').localeCompare(b.lane || '') || String(a.created || '').localeCompare(String(b.created || '')));
     by.finished.sort((a, b) => String(b.ended || b.created || '').localeCompare(String(a.ended || a.created || '')));
+    // Up next in the order the workers take the jobs, numbered per lane, held jobs after (D12); the other groups as the
+    // server lists them
+    const ordered = { queued: queueOrder(by.queued) };
+    for (const key of ['running', 'waiting', 'finished']) ordered[key] = by[key].map((j, i) => ({ job: j, pos: i, n: by[key].length }));
     for (const [key, label] of GROUPS) {
-      const list = by[key];
+      const list = ordered[key];
       if (!list.length) continue;
-      const g = el('div', { class: 'jobs-group' }, el('h2', { text: `${label} · ${list.length}` }));
-      list.forEach((j, i) => {
+      let head = `${label} · ${list.length}`;
+      if (key === 'queued') {
+        const per = {}, held = {};
+        for (const x of list) { const l = x.job.lane || '?'; per[l] = (per[l] || 0) + 1; if (x.held) held[l] = (held[l] || 0) + 1; }
+        if (Object.keys(per).length > 1 || Object.keys(held).length) head += ` (${Object.entries(per).map(([l, n]) => `${l} ${n}${held[l] ? `, ${held[l]} waiting for a front` : ''}`).join(' · ')})`;
+      }
+      const g = el('div', { class: 'jobs-group' + (key === 'queued' ? ' upnext' : '') }, el('h2', { text: head, title: key === 'queued' ? 'in the order they will run: one job at a time per lane (comfy: the art; godot: imports and launches; local: Blender, pose tools, recolours, installs), the lanes side by side; a job waiting for a look\'s front still runs once that picture is painted' : '' }));
+      list.forEach((x) => {
+        const j = x.job;
         const s = sig(j);
+        const where = [x.pos, x.n, x.held ? 1 : 0, x.up || 0, x.down || 0].join('/');
         let c = S.cards.get(j.id);
-        if (!c || S.sigs.get(j.id) !== s || c.dataset.pos !== String(i)) {
+        if (!c || S.sigs.get(j.id) !== s || c.dataset.pos !== where) {
           if (c) disposeCard(c);        // the old card's clip players go with it (a running card is rebuilt every poll)
-          c = card(j, i, list.length); c.dataset.pos = String(i); S.cards.set(j.id, c); S.sigs.set(j.id, s);
+          c = card(j, x); c.dataset.pos = where; S.cards.set(j.id, c); S.sigs.set(j.id, s);
         }
         g.appendChild(c);
       });
@@ -418,7 +644,8 @@ const Jobs = (() => {
 
   // ------------------------------------------------------------------ the cards
 
-  function card(j, pos, n) {
+  /** A job's card; x = its place ({pos, n} in its group; queued jobs: queueOrder's entry with held, up, down). */
+  function card(j, x) {
     const t = j.target || {};
     const c = el('article', { class: `jcard state-${j.state}`, 'data-id': j.id });
     c.__players = [];
@@ -438,11 +665,15 @@ const Jobs = (() => {
     if (j.lane) sub.appendChild(el('span', { class: 'muted', text: `lane ${j.lane}` }));
     if (j.phase > 1 || j.attempt > 1) sub.appendChild(el('span', { class: 'muted', text: `phase ${j.phase || 1} · attempt ${j.attempt || 1}` }));
     if (j.spec && j.spec.note) sub.appendChild(el('span', { class: 'muted', text: '“' + j.spec.note + '”' }));
+    // pass 68 (D6): the fields the server filled from the defaults when the job was queued, and where each came from
+    const df = j.spec && j.spec.defaults_from && typeof j.spec.defaults_from === 'object' ? Object.entries(j.spec.defaults_from) : [];
+    if (df.length) sub.appendChild(el('span', { class: 'muted', text: 'filled in: ' + df.map(([k, v]) => `${k} from ${v || 'the defaults'}`).join(' · '), title: df.map(([k]) => `${k}: ${String(j.spec[k] == null ? '' : j.spec[k]).slice(0, 200)}`).join('\n') }));
+    if (j.spec && j.spec.reroll && j.spec.reroll.mode) sub.appendChild(el('span', { class: 'muted', text: `re-roll: ${j.spec.reroll.mode}${j.spec.reroll.view ? ' (' + j.spec.reroll.view + ')' : ''}` }));
     if (j.qa_online === false) sub.appendChild(el('span', { class: 'warn-text', text: 'QA offline: every first roll kept', title: 'the vision check did not answer; the tools keep what the model painted first' }));
     c.appendChild(sub);
     if (j.state === 'running') runningBody(c, j);
     else if (j.state === 'waiting') waitingBody(c, j);
-    else if (j.state === 'queued') queuedBody(c, j, pos, n);
+    else if (j.state === 'queued') queuedBody(c, j, x || { pos: 0, n: 1 });
     else if (j.state === 'done') doneBody(c, j);
     else failedBody(c, j);
     if (j.equiv) c.appendChild(el('details', { class: 'jfold' }, el('summary', { text: 'the command Claude would type' }), el('div', { class: 'jequiv', text: j.equiv })));
@@ -453,7 +684,8 @@ const Jobs = (() => {
   function stagesRow(j) {
     const p = j.progress || {};
     const row = el('div', { class: 'jstages' });
-    for (const s of p.stages || []) row.appendChild(el('span', { class: 'jstage ' + (s.state || ''), text: s.name + (s.secs ? ` ${Math.round(s.secs)}s` : ''), title: `${s.name}: ${s.state || 'pending'}` }));
+    // a stage's note says when it was not made by this job ("cached": the still or clip was on disk already)
+    for (const s of p.stages || []) row.appendChild(el('span', { class: 'jstage ' + (s.state || '') + (s.note === 'cached' ? ' cached' : ''), text: s.name + (s.secs ? ` ${Math.round(s.secs)}s` : '') + (s.note ? ` · ${s.note}` : ''), title: `${s.name}: ${s.state || 'pending'}${s.note === 'cached' ? ' (reused from disk: this job did not paint it)' : s.note ? ' · ' + s.note : ''}` }));
     return row;
   }
 
@@ -513,14 +745,22 @@ const Jobs = (() => {
       el('button', { type: 'button', class: 'btn small ghost', text: 'Edit', title: 'change the spec: the job goes back to the queue at phase 1 (its candidates are stale)', onclick: () => openForm(j.target.kind, j.target.id, { job: j }) })));
   }
 
-  function queuedBody(c, j, pos, n) {
+  /** A queued card: its place in its lane (x = queueOrder's entry: one worker per lane takes them in this order), or, for
+   *  a held job, what it waits for; ▲ / ▼ swap it with the card above or below in its group (off where none is). */
+  function queuedBody(c, j, x) {
+    const { pos, n, held } = x;
+    const up = held ? 0 : (x.up != null ? x.up : (pos > 0 ? -1 : 0)), down = held ? 0 : (x.down != null ? x.down : (pos < n - 1 ? 1 : 0));
+    const t = j.target || {};
     c.appendChild(el('div', { class: 'jcard-sub' },
-      el('span', { class: 'muted', text: `#${pos + 1} of ${n} queued${j.lane ? ' · the ' + j.lane + ' lane' : ''}` }),
+      held ? el('span', { class: 'warn-text', text: heldLabel(j), title: `held: its reference picture (${(j.spec && j.spec.ref) || 'the look\'s front still'}) is not on disk yet, and ${t.code || 'its look'}'s look job (queued, running or waiting for a pick) paints it first; the ${j.lane || '?'} lane runs the jobs above, and this one once that picture is there` })
+        : el('span', { class: pos === 0 ? 'jnext' : 'muted', text: queueLabel(pos, n, j.lane), title: `the ${j.lane || '?'} lane runs one job at a time, in this order; the other lanes run beside it` }),
+      j.front && !held ? el('span', { class: 'muted', text: 'a picked job resuming: it goes first in its lane' }) : null,
       j.eta_s != null ? el('span', { class: 'muted', text: `~${fmtT(j.eta_s)} once it runs`, title: 'the method\'s measured median × its stages' }) : null));
+    const why = held ? 'a held job waits for its look\'s front: it does not move' : j.front ? 'a picked job resuming goes first in its lane: it moves only among the other resuming ones' : 'a resuming pick stays first in the lane';
     c.appendChild(el('div', { class: 'jcard-actions' },
       el('button', { type: 'button', class: 'btn small', text: 'Edit', title: 'change the spec in the form', onclick: () => openForm(j.target.kind, j.target.id, { job: j }) }),
-      el('button', { type: 'button', class: 'btn small', text: '▲', title: 'earlier in its lane', disabled: pos === 0, onclick: () => act(j, 'move', { delta: -1 }, 'moving') }),
-      el('button', { type: 'button', class: 'btn small', text: '▼', title: 'later in its lane', disabled: pos >= n - 1, onclick: () => act(j, 'move', { delta: 1 }, 'moving') }),
+      el('button', { type: 'button', class: 'btn small', text: '▲', title: up ? 'earlier in its lane' : `earlier in its lane (${held ? why : pos === 0 ? 'it is first' : why})`, disabled: !up, onclick: () => act(j, 'move', { delta: up }, 'moving') }),
+      el('button', { type: 'button', class: 'btn small', text: '▼', title: down ? 'later in its lane' : `later in its lane (${held ? why : pos >= n - 1 ? 'it is last' : why})`, disabled: !down, onclick: () => act(j, 'move', { delta: down }, 'moving') }),
       el('button', { type: 'button', class: 'btn small danger', text: 'Cancel', onclick: () => act(j, 'cancel', {}, 'cancelling') })));
   }
 
@@ -727,11 +967,12 @@ const Jobs = (() => {
     return out;
   }
 
-  /** The words the pipeline will send, composed from methods.json's wordings and the fields (the authoritative check is
-   *  asset_job.py --dry-run on the job card). */
+  /** The words the pipeline will send for a look, composed from methods.json's wordings and the fields (the
+   *  authoritative check is asset_job.py --dry-run on the job card). The candidate kinds use candidateWords. */
   function composeWords(m, method, spec, target) {
     const w = (m && Array.isArray(m.ref_wordings)) ? m.ref_wordings : [];
     const r = spec.recipe || {};
+    const mid = method ? method.id : spec.method;
     const find = (role, level) => w.find((x) => x.role === role && (!level || x.level === level)) || w.find((x) => x.role === role);
     const sub = (text, n) => String(text || '')
       .replace(/<n>th/g, ordinal(n)).replace(/<n>/g, String(n))
@@ -750,27 +991,25 @@ const Jobs = (() => {
     lines.push('');
     lines.push('References, in the order they are passed (Klein takes them as a chain of ReferenceLatent nodes; no strength number exists):');
     let n = 0;
-    const others = (spec.refs || []).length > 0;
-    if (!(spec.flags && spec.flags.no_style_ref)) {
+    // the one picture each method really reads (pass 68, D11): front_from_picture's `ref`, gen_ctl's look_ref
+    const picture = mid === 'front_from_picture' ? (spec.job && (spec.job.ref || spec.job.picture)) : mid === 'creature_ctl' ? r.look_ref : null;
+    if (!(spec.flags && spec.flags.no_style_ref && mid === 'front_from_picture')) {
       n++;
-      const anchor = lookup('style', others ? 'fixed (with other references)' : 'fixed') || find('style anchor');
-      lines.push(`  ${n}. the style anchor (tools/dl/anchor.png) — ${anchor ? sub(anchor.text, n) : 'Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: <subject>. Do not copy any subject from the reference.'}`);
+      const anchor = lookup('style', picture ? 'fixed (with other references)' : 'fixed') || find('style anchor');
+      lines.push(`  ${n}. the style anchor (game/art/style/style_anchor.png) — ${anchor ? sub(anchor.text, n) : 'Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: <subject>. Do not copy any subject from the reference.'}`);
       if (anchor && anchor.source) lines.push(`     (${anchor.source})`);
     }
-    for (const ref of spec.refs || []) {
+    if (picture) {
       n++;
-      const level = ref.follow === 'copy' ? 'copy exactly' : ref.follow || 'closely';
-      const role = ref.role === 'pose' ? 'pose' : ref.role;
-      let row = lookup(role, level) || lookup(role === 'pose' ? 'pose-and-anatomy' : role, level);
-      if (role === 'pose' && level === 'loosely') row = lookup('pose', 'loosely') || row;
-      if (role === 'identity' && level === 'copy exactly' && (ref.use || []).includes('look')) row = lookup('identity', 'copy exactly (a figure)') || row;
-      lines.push(`  ${n}. ${ref.path || '(a picture)'} as ${ref.role} · ${level}${ref.use && ref.use.length ? ' · for the ' + ref.use.join(', ') : ''} —`);
-      lines.push(`     ${row ? sub(row.text, n) : role === 'style' ? 'the picture goes in after the anchor as a second style reference (no proven wording: the runner adds no words for it)' : '(no proven wording for this role and level in methods.json: the runner passes the picture after the anchor with no extra words)'}`);
-      if (row && row.source) lines.push(`     (${row.source})`);
-    }
+      const row = mid === 'creature_ctl' ? lookup('identity', 'loosely') : lookup('identity', 'closely');
+      lines.push(`  ${n}. ${picture} — ${mid === 'creature_ctl' ? 'the look picture (look_ref), followed loosely' : 'your picture, redrawn closely'}`);
+      if (row) lines.push(`     ${sub(row.text, n)}${row.source ? ' (' + row.source + ')' : ''}`);
+    } else if (mid === 'front_from_picture') lines.push('  (no picture chosen yet: the Reference picture field)');
+    if ((spec.refs || []).length) lines.push(`  (${spec.refs.length} reference row${spec.refs.length > 1 ? 's' : ''} from the old form: no tool reads them)`);
     const turn = lookup('view', 'fixed');
-    if (turn) { lines.push(`  the other views are turned from the painting — ${sub(turn.text, n + 1)}`); if (turn.source) lines.push(`     (${turn.source})`); }
-    if (spec.drivers && Object.keys(spec.drivers).length) lines.push(`  drivers: ${Object.entries(spec.drivers).map(([k, v]) => `${k} = ${v}`).join(', ')} (OpenPose frames or depth videos steer the clips; a picture never steers motion)`);
+    if (turn && mid !== 'front_from_picture' && mid !== 'recolour') { lines.push(`  the other views are turned from the painting — ${sub(turn.text, n + 1)}`); if (turn.source) lines.push(`     (${turn.source})`); }
+    const drv = mid === 'creature_pose2' ? r.pose : mid === 'creature_ctl' ? r.drivers : (mid === 'hero_pose5' || mid === 'hero_fit') && r.pose_drivers ? JSON.stringify(r.pose_drivers) : null;
+    if (drv) lines.push(`  the clips walk on: ${drv} (OpenPose frames or depth videos steer the clips; a picture never steers motion)`);
     lines.push('');
     lines.push('The subject words:');
     for (const k of ['prompt', 'art_prompt', 'noun', 'keep', 'detail', 'anatomy', 'motion', 'anim_negative', 'back_hint', 'back_prompt', 'dead_hint', 'death', 'stand', 'pose', 'gait', 'directions', 'screen']) if (r[k] != null && r[k] !== '') lines.push(`  ${k}: ${typeof r[k] === 'object' ? JSON.stringify(r[k]) : r[k]}`);
@@ -779,10 +1018,27 @@ const Jobs = (() => {
     lines.push('');
     if (spec.flags) lines.push(`Flags: ${Object.entries(spec.flags).filter(([, v]) => v).map(([k, v]) => (v === true ? k : `${k}=${v}`)).join(', ') || 'none'}`);
     if (spec.counts) lines.push(`Counts: ${JSON.stringify(spec.counts)}`);
-    if (spec.reroll && spec.reroll.mode) lines.push(`Re-roll: ${spec.reroll.mode}${spec.reroll.view ? ' (' + spec.reroll.view + ')' : ''}`);
+    if (spec.reroll && spec.reroll.mode) lines.push(`Re-roll: ${spec.reroll.mode}${spec.reroll.mode === 'view' && spec.reroll.view ? ' (' + spec.reroll.view + ')' : ''}`);
     lines.push('');
     lines.push(m && m.timings_note ? m.timings_note : '');
-    lines.push('What cannot be steered: a picture reaches only the front still (creatures) or the side (gen_ctl); the other views are edits of that painting; motion comes from the driver or Wan\'s guess; the QA counts subjects, legs and views, never likeness. The authoritative words are what tools/asset_job.py --dry-run records on the job card.');
+    lines.push('What cannot be steered: a picture reaches only the front still (front_from_picture) or the side (gen_ctl\'s look_ref); the other views are edits of that painting; motion comes from the driver or Wan\'s guess; the QA counts subjects, legs and views, never likeness. The authoritative words are what tools/asset_job.py --dry-run records on the job card.');
+    return lines.join('\n');
+  }
+
+  /** "Show the words" for a badge, title or icon job: the references and the prompt its tool builds from the fields
+   *  (empty fields as the server fills them from the defaults). */
+  function candidateWordsText(c, jk) {
+    const { kind, id, state, contentJson, fixedCode } = c;
+    const d = state.defaults && state.defaults.jk === jk ? state.defaults : { fields: {} };
+    const eff = Object.assign({}, d.fields || {});
+    for (const [k, v] of Object.entries(state.spec.job || {})) if (v != null && v !== '') eff[k] = v;
+    const screen = jk === 'icon_cands' ? (eff.screen === 'blue' ? 'blue' : 'green') : (contentJson && String(contentJson.screen || '').toLowerCase() === 'green' ? 'green' : 'blue');
+    const lines = [`Method ${jk} · target ${kind} ${id}${fixedCode ? ' ' + fixedCode : ''}`, '', 'References, in the order they are passed (no style anchor for candidates):'];
+    lines.push(`  1. ${eff.ref || (jk === 'icon_cands' ? '(none: the words alone)' : '(none: the tool takes the front still)')} — the identity${eff.ref && jk !== 'icon_cands' ? ' ("this exact character")' : ''}${eff.ref && jk === 'icon_cands' ? ', laid on the screen colour' : ''}`);
+    if (jk === 'hero_title' && eff.extra_ref) lines.push(`  2. ${eff.extra_ref} — the held object, copied exactly (laid on the screen colour)`);
+    lines.push('', 'The prompt:', candidateWords(jk, eff, { screen, creature: kind === 'enemy' || kind === 'boss' }), '');
+    lines.push(`${state.spec.counts && state.spec.counts.seeds ? state.spec.counts.seeds : 4} candidates, ${jk === 'hero_title' ? 'seed = first_seed + n × 101' : 'a seed each'}; ${jk === 'hero_badge' ? 'the job stops for your pick' : 'Install the one you like from the job card'}.`);
+    lines.push('The authoritative words are what tools/asset_job.py --dry-run records on the job card.');
     return lines.join('\n');
   }
 
@@ -798,7 +1054,16 @@ const Jobs = (() => {
     App.status('', '');
     const all = m.methods || [];
     const list = methodsFor(all, kind, mode);
-    const spec = job && job.spec ? unflatten(job.spec) : { method: opts.method || (list[0] && list[0].id) || '', recipe: opts.recipe ? JSON.parse(JSON.stringify(opts.recipe)) : {}, refs: [], drivers: {}, flags: { skip_qa: false, dev: false, seed: 0 }, counts: { seeds: 3, looks: 1, icon_candidates: 0, cutout_candidates: 0 }, reroll: { mode: opts.reroll ? 'seeds' : '' }, note: '', job: {}, refs3d: [] };
+    const fixedCode = job ? ((job.target && job.target.code) || null) : (opts.code || null);
+    // what the form makes (pass 68): a NEW look (+ New look…, or a draft's Generate…: it comes with its candidates, D10),
+    // a re-roll of a painted look (the modes of D3), or an edit of a queued job
+    const isNewLook = mode === 'look' && !job && !opts.reroll;
+    const rerollForm = mode === 'look' && (job ? !!(job.spec && job.spec.reroll && job.spec.reroll.mode) : !!opts.reroll);
+    const spec = job && job.spec ? unflatten(job.spec) : {
+      method: opts.method || (list[0] && list[0].id) || '', recipe: opts.recipe ? JSON.parse(JSON.stringify(opts.recipe)) : {}, refs: [], drivers: {}, flags: { skip_qa: false, dev: false, seed: 0 },
+      counts: { seeds: 3, looks: 1, icon_candidates: isNewLook ? MIN_CANDIDATES : 0, cutout_candidates: isNewLook && kind === 'hero' ? MIN_CANDIDATES : 0 },
+      reroll: { mode: opts.reroll ? 'seeds' : '' }, note: opts.note || '', job: {}, refs3d: [],
+    };
     if (opts.method) spec.method = opts.method;
     if (!spec.recipe) spec.recipe = {};
     if (!spec.refs) spec.refs = [];
@@ -807,8 +1072,8 @@ const Jobs = (() => {
     if (!spec.counts) spec.counts = { seeds: 3, looks: 1 };
     if (spec.counts.looks == null) spec.counts.looks = 1;
     if (!spec.reroll) spec.reroll = { mode: '' };
-    // a look's recorded painter (Re-roll…, Duplicate…): the Model settings start from it; the recipe's own copy is
-    // dropped here, since enqueue writes `painter` again from the settings chosen in the form
+    // a look's recorded painter (Re-roll…, a draft's Generate…): the Model settings start from it; the recipe's own copy
+    // is dropped here, since enqueue writes `painter` again from the settings chosen in the form
     if (!spec.job) spec.job = {};
     if (opts.painter && typeof opts.painter === 'object') {
       spec.job.model = opts.painter.model === 'dev' ? 'dev' : 'klein';
@@ -818,21 +1083,30 @@ const Jobs = (() => {
       spec.flags.dev = spec.job.model === 'dev';
     }
     if (spec.recipe && spec.recipe.painter) delete spec.recipe.painter;
-    // Duplicate…: a new code from this recipe; the stills slug is cleared so the paintings are made again under the new
-    // code (the form offers to reuse the source's instead); the source's note starts the new one
+    // where the look came from: a draft's `from` (Duplicate… makes drafts since pass 68), or the old route (a code from
+    // next_codes with the source's recipe: its stills slug and seeds cleared, the source's note starting the new one)
     const duplicateOf = !job && opts.duplicateOf ? String(opts.duplicateOf) : null;
-    const srcStills = duplicateOf ? (spec.recipe.stills === undefined ? null : spec.recipe.stills) : null;
-    if (duplicateOf) { delete spec.recipe.stills; if (!spec.note) spec.note = (opts.note ? opts.note + ' · ' : '') + 'from ' + duplicateOf; }
-    const fixedCode = job ? (job.target && job.target.code) : opts.code || null;
+    if (duplicateOf) { delete spec.recipe.stills; delete spec.recipe.seed_offset; if (!spec.note) spec.note = (opts.note ? opts.note + ' · ' : '') + 'from ' + duplicateOf; }
+    const fromCode = job ? null : (duplicateOf || (opts.from ? String(opts.from) : null) || (opts.draft && spec.recipe.from ? String(spec.recipe.from) : null));
     const looksOf = record ? (record.looks || record.variants || []) : [];
+    // the source's paintings (D5's reuse box): its recipe's stills slug; '' (or absent) = the creature's or the hero's own
+    const srcLook = fromCode ? looksOf.find((l) => l.code === fromCode) : null;
+    const srcStills = srcLook ? (srcLook.recipe && srcLook.recipe.stills != null ? String(srcLook.recipe.stills) : '') : null;
     const existingCodes = looksOf.map((l) => l.code);
-    const state = { spec, codes: fixedCode ? [fixedCode] : [], overrides: spec.looks && Array.isArray(spec.looks) ? spec.looks : [], err: '' };
+    const state = {
+      spec, codes: fixedCode ? [fixedCode] : [], overrides: spec.looks && Array.isArray(spec.looks) ? spec.looks : [], err: '',
+      isNew: isNewLook, draft: !!opts.draft && !job, rerollForm, rerollAuto: false, rerollPrev: '',
+      recordedPainter: opts.painter && typeof opts.painter === 'object' ? Object.assign({}, opts.painter) : null,
+      defaults: null, posted: new Set(),
+    };
     if (!list.length && !all.length) spec.method = spec.method || '';
 
     const dlg = document.createElement('dialog');
     dlg.className = 'sp-modal jform';
     const name = record ? (record.name || id) : id;
-    const headText = job ? `Edit job #${shortId(job.id)} · ${title(job)}` : `Art job · ${kind} ${name}${fixedCode ? ' · ' + fixedCode : ''} · ${mode === 'look' ? 'looks' : mode === 'icon' ? 'icon candidates' : mode === 'badge' ? 'the round badge' : mode === 'title' ? 'the title cut-out' : 'a 3D driver or reference'}${duplicateOf ? ' · duplicate of ' + duplicateOf : ''}`;
+    const what = mode === 'look' ? (state.draft ? `generate the draft${fromCode ? ' (made from ' + fromCode + ')' : ''}` : rerollForm ? 're-roll' : duplicateOf ? 'duplicate of ' + duplicateOf : (fixedCode ? 'paint this look' : 'new looks'))
+      : mode === 'icon' ? 'icon candidates' : mode === 'badge' ? 'round badge candidates' : mode === 'title' ? 'title cut-out candidates' : 'a 3D driver or reference';
+    const headText = job ? `Edit job #${shortId(job.id)} · ${title(job)}` : `Art job · ${kind} ${name}${fixedCode ? ' · ' + fixedCode : ''} · ${what}`;
     dlg.appendChild(el('div', { class: 'sp-modal-head' }, el('b', { text: headText }), el('span', { class: 'spacer' }), el('button', { type: 'button', class: 'btn small', text: '✕ close', onclick: () => dlg.close() })));
     const body = el('div');
     dlg.appendChild(body);
@@ -846,9 +1120,10 @@ const Jobs = (() => {
     dlg.__players = [];
     dlg.showModal();
 
-    const draw = () => { clear(body); buildForm(body, dlg, { kind, id, mode, job, m, all, list, drivers, refs, record, state, existingCodes, fixedCode, draw, queueBtn, err, specs, contentJson, duplicateOf, srcStills }); };
-    draw();
-    queueBtn.addEventListener('click', () => submit({ kind, id, mode, job, m, all, state, fixedCode, dlg, err, queueBtn, record, existingCodes, specs }));
+    const c = { kind, id, mode, job, m, all, list, drivers, refs, record, state, existingCodes, fixedCode, queueBtn, err, specs, contentJson, duplicateOf, fromCode, srcStills, dlg };
+    c.draw = () => { clear(body); buildForm(body, dlg, c); };
+    c.draw();
+    queueBtn.addEventListener('click', () => submit(c));
     return dlg;
   }
 
@@ -943,14 +1218,22 @@ const Jobs = (() => {
 
   function setKey(obj, key, value) { if (value == null || value === '') delete obj[key]; else obj[key] = value; }
 
-  const STILL_METHODS = ['creature_free2', 'creature_pose2', 'creature_free8', 'creature_proc'];   // jobs.py's CREATURE_STILL_METHODS: the stills slug applies
+  // the fields that hold one picture: shown with a thumbnail, Change… (the library) and Upload… (pass 68)
+  const PICTURE_KEYS = ['ref', 'picture', 'look_ref', 'extra_ref', 'title_extra_ref.file'];
+  function ptext(p) { return typeof LookGrid !== 'undefined' && typeof LookGrid.painterText === 'function' ? LookGrid.painterText(p) : JSON.stringify(p); }
 
   function buildForm(body, dlg, c) {
-    const { kind, id, mode, job, m, all, list, drivers, refs, record, state, existingCodes, fixedCode, draw, specs, contentJson, duplicateOf, srcStills } = c;
+    const { kind, id, mode, job, m, all, list, drivers, refs, record, state, existingCodes, fixedCode, draw, specs, contentJson, fromCode } = c;
     const spec = state.spec;
     const method = all.find((x) => x.id === spec.method) || list[0] || null;
     if (method && spec.method !== method.id) spec.method = method.id;
     const jk = job ? job.kind : jobKind(mode, method, kind);
+    const candKind = CAND_KINDS.includes(jk);
+    const kindFields = specs && specs[jk] && specs[jk].fields && typeof specs[jk].fields === 'object' ? specs[jk].fields : null;
+    const hasField = (k) => (kindFields ? k in kindFields : true);
+    // a recipe reaches the tool only through a look job (the other kinds' SPECS have no `recipe`: flatten drops it)
+    const takesRecipe = jk === 'look' || !!(kindFields && kindFields.recipe);
+    if (candKind && (!state.defaults || state.defaults.jk !== jk)) loadDefaults(c, jk);
 
     // 1. the method
     body.appendChild(el('h2', {}, 'Method', el('small', { text: m.methods && m.methods.length ? `${list.length} fit a ${kindClass(kind)}'s ${mode}` : 'methods.json is not here yet (lane B): the job runs with the method id typed below' })));
@@ -982,25 +1265,14 @@ const Jobs = (() => {
       body.appendChild(grid);
     }
 
-    // 2. the recipe fields of the method (a dotted key is a path into a nested object: pose_drivers.back, badge.head_width)
-    const fields = method && Array.isArray(method.recipe_fields) ? method.recipe_fields : [];
-    if (fields.length || mode === 'look') {
+    // 2. what to paint: a look's recipe fields (a dotted key is a path into a nested object: pose_drivers.back); a
+    // candidate job's own fields filled from the server's defaults (D6); for a kind that reads its words from the JSON, a line
+    const fields = takesRecipe && method && Array.isArray(method.recipe_fields) ? method.recipe_fields : [];
+    if (candKind) candidateFields(body, c, jk);
+    else if (fields.length || mode === 'look') {
       body.appendChild(el('h2', {}, 'What to paint', el('small', { text: 'the recipe the tool reads (written into variants[CODE].recipe for a look job)' })));
       if (!fields.length) body.appendChild(el('p', { class: 'help', text: 'no typed fields for this method in methods.json: the raw recipe below is what the tool gets' }));
-      if (duplicateOf) {
-        // Duplicate…: the source's recipe, words and painter are in the form; its stills slug was cleared (new paintings
-        // under the new code, so the Model settings apply), unless the box puts it back
-        const still = STILL_METHODS.includes(spec.method);
-        const dup = el('div', { class: 'jdup' }, el('div', {}, el('b', { text: `Duplicate of ${duplicateOf}` }), el('span', { text: `: its recipe, words and painter are filled in below and the new look gets the next free code. ${still ? 'Its stills are painted again under the new code, so the Model settings below apply to them.' : 'Change what you like, then Queue.'}` })));
-        if (still) {
-          const want = srcStills == null ? '' : String(srcStills);
-          const cb = el('input', { type: 'checkbox' }); cb.checked = spec.recipe.stills !== undefined && String(spec.recipe.stills) === want;
-          cb.addEventListener('change', () => { if (cb.checked) spec.recipe.stills = want; else delete spec.recipe.stills; draw(); });
-          dup.appendChild(el('label', { class: 'cb', title: want ? `recipe.stills = "${want}": the paintings cached under that slug are reused` : 'recipe.stills = "": the creature\'s own paintings are reused (only an absent key makes a job paint new stills)' },
-            cb, el('span', { text: `reuse ${duplicateOf}'s paintings: only the clips are made again (the Model settings then change nothing)` })));
-        }
-        body.appendChild(dup);
-      }
+      if (fromCode) body.appendChild(sourceBox(c, spec));
       for (const f of fields) {
         if (f.key === 'death' && Array.isArray(m.deaths) && m.deaths.length) { body.appendChild(deathControl(f, m, spec, drivers, draw)); continue; }
         // a recipe keeps only what differs from the creature's own words: an empty field inherits the creature's (shown
@@ -1009,9 +1281,12 @@ const Jobs = (() => {
         const inh = f.key === 'stills' || !contentJson ? undefined : U.getPath(contentJson, f.key);
         const inherited = (own == null || own === '') && inh != null && inh !== '' && typeof inh !== 'object';
         const f2 = inherited ? Object.assign({}, f, { default: inh }) : f;
-        const line = fieldLine(f.label || f.key, recipeControl(f2, own, (v) => U.setPath(spec.recipe, f.key, v), { drivers, refs }), f.help);
-        if (inherited) line.appendChild(el('span', { class: 'jinh', text: `inherited: the creature's own ${f.key} applies while this is empty`, title: String(inh) }));
-        else if (f.key === 'stills' && mode === 'look') line.appendChild(el('span', { class: 'jinh', text: own === '' ? 'empty: the creature\'s own paintings are reused' : (own == null ? 'left out: new stills are painted under this look\'s own letter' : `the paintings cached under "${own}" are reused`) }));
+        const ctl = PICTURE_KEYS.includes(f.key) ? pictureControl(own, (v) => U.setPath(spec.recipe, f.key, v), { refs, dflt: inherited ? String(inh) : '' })
+          : recipeControl(f2, own, (v) => U.setPath(spec.recipe, f.key, v), { drivers, refs });
+        const line = fieldLine(f.label || f.key, ctl, f.help);
+        if (inherited) line.appendChild(el('span', { class: 'jinh', text: `inherited: the ${kind === 'hero' ? 'hero' : 'creature'}'s own ${f.key} applies while this is empty`, title: String(inh) }));
+        else if (f.key === 'stills' && mode === 'look') line.appendChild(el('span', { class: 'jinh', text: own === '' ? `empty: the ${kind === 'hero' ? 'hero' : 'creature'}'s own paintings are reused` : (own == null ? (state.isNew ? 'left out: new stills are painted under this look\'s own letter' : 'left out: the look keeps the paintings it was made from (the re-roll above decides)') : `the paintings cached under "${own}" are reused`) }));
+        else if (f.key === 'seed_offset' && mode === 'look' && (own == null || own === '')) line.appendChild(el('span', { class: 'jinh', text: state.isNew ? 'left out: the server gives a new look seeds of its own from its code' : 'left out: the look keeps its seeds (a re-roll of its stills moves them on)' }));
         body.appendChild(line);
       }
       const raw = el('details', { class: 'jfold' }, el('summary', { text: 'advanced: the raw recipe (JSON)' }));
@@ -1020,28 +1295,36 @@ const Jobs = (() => {
       ta.addEventListener('change', () => { try { spec.recipe = JSON.parse(ta.value || '{}'); ta.style.borderColor = ''; draw(); } catch (_) { ta.style.borderColor = 'var(--s8)'; } });
       raw.appendChild(ta);
       body.appendChild(raw);
+    } else if (method && Array.isArray(method.recipe_fields) && method.recipe_fields.length) {
+      // pass 68: a kind without a recipe reads these words from the asset's own JSON (item_icon's art_prompt)
+      body.appendChild(el('h2', {}, 'What to paint'));
+      body.appendChild(el('p', { class: 'help', text: `${method.name || method.id} paints from the ${kindClass(kind)}'s own words in its JSON (${method.recipe_fields.map((f) => f.key).join(', ')}): change them in its editor (the Art words), save, then queue this job.` }));
     }
 
     // 2b. the job's own settings: jobs.py's SPECS for this kind when the server serves them (type, default, required,
     // help, options per field), else methods.json's job_fields; they land in spec.job, and the ones the runner reads as
     // flags / counts are mirrored there too. The keys with controls of their own (method, recipe, refs, drivers, the flags,
-    // seed, seeds, note) are left out.
+    // seed, seeds, note, reroll) are left out, so are a candidate job's fields (in What to paint) and, for a look, the
+    // fields only another method's tool reads (D11: front_from_picture's ref / prompt / keep, gen_ctl's picks, recolour)
     const recipeKeys = new Set(fields.map((f) => f.key));
-    const specFields = specs && specs[jk] && specs[jk].fields && typeof specs[jk].fields === 'object'
-      ? Object.entries(specs[jk].fields).filter(([k]) => !OWN_KEYS.includes(k) && !recipeKeys.has(k)).map(([k, f]) => Object.assign({ key: k }, f || {}, { type: specType(f && f.type) }))
+    const candKeys = new Set(candKind ? (CAND_FIELDS[jk] || []).map((f) => f.key) : []);
+    const hidden = (k) => (jk === 'look' && METHOD_ONLY[k] && !METHOD_ONLY[k].includes(spec.method)) || candKeys.has(k) || k === 'variant' || k === 'reroll';
+    const specFields = kindFields
+      ? Object.entries(kindFields).filter(([k]) => !OWN_KEYS.includes(k) && !recipeKeys.has(k) && !hidden(k)).map(([k, f]) => Object.assign({ key: k }, f || {}, { type: specType(f && f.type) }))
       : null;
-    const mfields = method && Array.isArray(method.job_fields) ? method.job_fields : [];
-    const jfields = specFields && specFields.length ? specFields.map((f) => Object.assign({}, mfields.find((x) => x.key === f.key) || {}, f, { help: f.help || (mfields.find((x) => x.key === f.key) || {}).help || '' })) : mfields;
+    const mfields = (method && Array.isArray(method.job_fields) ? method.job_fields : []).filter((f) => !hidden(f.key));
+    const jfields = specFields && specFields.length ? specFields.map((f) => Object.assign({}, mfields.find((x) => x.key === f.key) || {}, f, { help: f.help || (mfields.find((x) => x.key === f.key) || {}).help || '' })) : (kindFields ? [] : mfields);
     const modelFields = jfields.filter((f) => f.group === 'model');
     const assetFields = jfields.filter((f) => f.group !== 'model' && f.key !== 'dev');   // `dev` is the old switch: the model select covers it
     if (modelFields.length) {
       // the painter and its quality, apart from what the asset is (Garry: separate the model settings from the asset settings)
-      body.appendChild(el('h2', {}, 'Model settings', el('small', { text: 'which painter and how many passes: Flux.2 Klein is quick, Flux.2 dev slower and finer; 0 passes = the default of that painter. The look records them (variants[CODE].recipe.painter): Re-roll… and Duplicate… start from them' })));
+      body.appendChild(el('h2', {}, 'Model settings', el('small', { text: 'which painter and how many passes: Flux.2 Klein is quick, Flux.2 dev slower and finer; 0 passes = the default of that painter. The look records them (variants[CODE].recipe.painter): Re-roll… and Generate… start from them' })));
       if (!spec.job) spec.job = {};
       for (const f of modelFields) {
         const cur = spec.job[f.key] != null ? spec.job[f.key] : (f.key === 'model' && spec.flags.dev ? 'dev' : undefined);
-        body.appendChild(fieldLine(f.label || f.key, recipeControl(f, cur, (v) => { setKey(spec.job, f.key, v); if (f.key === 'model') spec.flags.dev = v === 'dev'; }, { drivers, refs }), f.help));
+        body.appendChild(fieldLine(f.label || f.key, recipeControl(f, cur, (v) => { setKey(spec.job, f.key, v); if (f.key === 'model') spec.flags.dev = v === 'dev'; painterChanged(c); }, { drivers, refs }), f.help));
       }
+      if (state.recordedPainter && fixedCode) body.appendChild(el('div', { class: 'jinh', text: `${fixedCode} was painted with ${ptext(state.recordedPainter)}` }));
     }
     if (assetFields.length) {
       body.appendChild(el('h2', {}, 'Asset settings', el('small', { text: specFields && specFields.length ? `what this run makes, apart from the recipe (the ${jk} job's fields as jobs.py validates them)` : 'what this run makes, apart from the recipe' })));
@@ -1052,47 +1335,23 @@ const Jobs = (() => {
       let folded = 0;
       for (const f of assetFields) {
         const cur = spec.job[f.key] != null ? spec.job[f.key] : (f.key === 'seeds' ? spec.counts.seeds : (f.key in spec.flags ? spec.flags[f.key] : undefined));
-        const line = fieldLine(f.label || f.key, recipeControl(f, cur, (v) => {
+        const onChange = (v) => {
           setKey(spec.job, f.key, v);
           if (f.key === 'seeds') spec.counts.seeds = v == null ? undefined : Number(v);
           if (['dev', 'skip_qa', 'no_video', 'no_style_ref'].includes(f.key)) spec.flags[f.key] = !!v;
           if (f.key === 'seed') spec.flags.seed = Number(v) || 0;
-        }, { drivers, refs }), f.help + (f.required ? ' (required)' : ''));
+        };
+        const ctl = PICTURE_KEYS.includes(f.key) ? pictureControl(cur, onChange, { refs }) : recipeControl(f, cur, onChange, { drivers, refs });
+        const line = fieldLine(f.label || (f.key === 'ref' ? 'Reference picture' : f.key), ctl, f.help + (f.required ? ' (required)' : ''));
         if (CONT.includes(f.key) && !(spec.job[f.key])) { fold.appendChild(line); folded++; } else body.appendChild(line);
       }
       if (folded) body.appendChild(fold);
     }
 
-    // 3. 2D references
-    const takes2d = !method || !method.refs || method.refs['2d'] !== false;
-    body.appendChild(el('h2', {}, '2D references', el('small', { text: takes2d ? 'pictures the painting follows' : 'this method takes no picture' })));
-    if (takes2d) {
-      body.appendChild(el('p', { class: 'help', text: m.ref_note || 'References steer by which pictures are passed, in what order, and the words; there is no strength number. The role says what the picture is for, the follow level picks the proven wording (identity · copy exactly = "Copy this exact object…"; identity · closely = "redraw this exact creature…"; style = "the same art style, do not copy its subjects"; pose and anatomy = the clay\'s anatomy, pose and camera). A picture reaches the front still (creatures) or the side (gen_ctl); the other views are edits of that painting.' }));
-      const rows = el('div', { class: 'refrows' });
-      spec.refs.forEach((ref, i) => rows.appendChild(refRow(ref, i, spec, refs, draw)));
-      body.appendChild(rows);
-      body.appendChild(el('div', { class: 'row' },
-        el('button', { type: 'button', class: 'btn small', text: '+ Add a reference', onclick: () => { spec.refs.push({ path: '', role: 'identity', follow: 'closely', use: ['look'] }); draw(); } }),
-        el('span', { class: 'cap-note', text: `(Klein has taken up to 4 references in practice: the style anchor counts as one, so up to ${3 - Math.max(0, spec.refs.length - 0) >= 0 ? 3 : 0} pictures; this is a practice rule, not a code limit)` }),
-        el('label', { class: 'cb', title: 'drop the style anchor: the picture is the only reference (gen_edit_stills --no-style-ref)' }, (() => { const cb = el('input', { type: 'checkbox' }); cb.checked = !!spec.flags.no_style_ref; cb.addEventListener('change', () => { spec.flags.no_style_ref = cb.checked; }); return cb; })(), el('span', { text: 'no style anchor' }))));
-    }
+    // 3. references: where this method's picture goes (pass 68, D11: the old 2D / 3D rows reached no tool)
+    referencesNote(body, c, method, jk);
 
-    // 4. 3D references
-    const uses3d = method && method.refs && Array.isArray(method.refs['3d']) ? method.refs['3d'] : (mode === 'look' || mode === 'driver' ? ['animation', 'look', 'icon'] : ['icon', 'look']);
-    body.appendChild(el('h2', {}, '3D references', el('small', { text: uses3d.length ? `for the ${uses3d.join(', ')}` : 'this method takes no 3D reference' })));
-    if (uses3d.length) {
-      body.appendChild(el('div', { class: 'insert3d', text: m.insert_3d_text || 'Preferred: Mixamo-style FBX Binary, 30 fps, "In Place" ticked, keyframe reduction none, with skin; or a GLB with a known rig (Mixamo bone names, or rig=sm). A model without an animation can still be the icon and look reference; a non-humanoid rigged model needs a depth driver (blender_depth_drivers.py).' }));
-      const rows3 = el('div', { class: 'refrows' });
-      if (!spec.refs3d) spec.refs3d = [];
-      spec.refs3d.forEach((r3, i) => rows3.appendChild(ref3dRow(r3, i, spec, drivers, refs, uses3d, draw, dlg)));
-      body.appendChild(rows3);
-      body.appendChild(el('div', { class: 'row' },
-        el('button', { type: 'button', class: 'btn small', text: '+ From the driver library', onclick: () => { spec.refs3d.push({ source: 'library', driver: '', uses: ['animation'] }); draw(); } }),
-        el('button', { type: 'button', class: 'btn small', text: '+ Upload a model (FBX / GLB)', onclick: () => { spec.refs3d.push({ source: 'upload', slug: '', uses: uses3d.slice() }); draw(); } }),
-        el('span', { class: 'cap-note', text: `${drivers.length} drivers in tools/dl/drivers/ · ${((refs && refs['3d']) || []).length} uploaded models` })));
-    }
-
-    // 5. what to make: looks, counts
+    // 4. what to make: looks, counts
     if (mode === 'look') {
       body.appendChild(el('h2', {}, 'Looks', el('small', { text: fixedCode ? `this job paints ${fixedCode}` : 'how many looks, and what each one changes' })));
       if (!fixedCode) {
@@ -1107,7 +1366,7 @@ const Jobs = (() => {
         clear(rows);
         for (let i = 0; i < nLooks; i++) {
           if (!state.overrides[i]) state.overrides[i] = {};
-          rows.appendChild(lookRow(i, codes[i] || '?', state.overrides[i], method, spec, drivers, refs, fixedCode));
+          rows.appendChild(lookRow(i, codes[i] || '?', state.overrides[i], method, spec, drivers, refs, fixedCode, state.isNew));
         }
       };
       if (fixedCode) fill([fixedCode]);
@@ -1119,14 +1378,7 @@ const Jobs = (() => {
           if (dlg.isConnected) fill(state.codes);
         });
       }
-      const ic = el('input', { type: 'number', class: 'num', min: 0, max: 12, step: 1, value: spec.counts.icon_candidates || 0 });
-      ic.addEventListener('change', () => { spec.counts.icon_candidates = Number(ic.value) || 0; });
-      body.appendChild(fieldLine('icon candidates', ic, '0 = the icon is a crop of the front still (the pipeline\'s default); N = N icon candidates to pick from, as a job of their own after the look'));
-      if (kind === 'hero') {
-        const cc = el('input', { type: 'number', class: 'num', min: 0, max: 8, step: 1, value: spec.counts.cutout_candidates || 0 });
-        cc.addEventListener('change', () => { spec.counts.cutout_candidates = Number(cc.value) || 0; });
-        body.appendChild(fieldLine('cut-out candidates', cc, 'the title screen\'s cut-out candidates (660 × 888), a job of its own; 0 = none'));
-      }
+      if (!job) candidateCounts(body, c);
     } else {
       body.appendChild(el('h2', {}, 'Counts'));
       const seeds = el('input', { type: 'number', class: 'num', min: 1, max: 12, step: 1, value: spec.counts.seeds || 4 });
@@ -1134,44 +1386,287 @@ const Jobs = (() => {
       body.appendChild(fieldLine(mode === 'driver' ? 'frames / seeds' : 'candidates', seeds, mode === 'icon' ? 'how many icons to paint and pick from (20 s each; the Flux.2 dev model 4-5 min each)' : mode === 'driver' ? 'for a driver: unused (frames are a recipe field)' : 'how many candidates to pick from'));
     }
 
-    // 6. seeds and re-roll
-    body.appendChild(el('h2', {}, 'Seeds and re-rolls'));
-    const seed = el('input', { type: 'number', class: 'num', step: 1, value: spec.flags.seed || 0 });
-    seed.addEventListener('change', () => { spec.flags.seed = Number(seed.value) || 0; });
-    body.appendChild(fieldLine('seed offset', seed, '0 = the tool\'s own seed for this id (seed_for(id)); N shifts every seed by N × 7919, so the same N gives the same pictures again'));
+    // 5. seeds and re-rolls
+    if (hasField('seed') || mode === 'look') {
+      body.appendChild(el('h2', {}, mode === 'look' ? 'Seeds and re-rolls' : 'Seeds'));
+      const seed = el('input', { type: 'number', class: 'num', step: 1, value: spec.flags.seed || 0 });
+      seed.addEventListener('change', () => { spec.flags.seed = Number(seed.value) || 0; });
+      body.appendChild(fieldLine('seed shift', seed, '--seed=N: every still this job paints moves by N × 7919 (0 = none; the same N gives the same pictures again). A new look has seeds of its own anyway (recipe.seed_offset, from its code)'));
+      if (mode === 'look') rerollSection(body, c);
+    }
+
+    // 6. flags
+    const flagRows = [['skip_qa', 'skip the vision QA', 'no LM Studio check of the stills: the first roll is kept (faster; check by eye)']];
+    if (!modelFields.length) flagRows.push(['dev', 'Flux.2 dev model', 'the slower, finer model for the stills (205-286 s a still; the server restarts to load it)']);
+    const shownFlags = flagRows.filter(([k]) => hasField(k));
+    if (shownFlags.length || mode === 'look') {
+      body.appendChild(el('h2', {}, 'Flags'));
+      const flags = el('div', { class: 'row' });
+      for (const [k, label, help] of shownFlags) {
+        const cb = el('input', { type: 'checkbox' }); cb.checked = !!spec.flags[k];
+        cb.addEventListener('change', () => { spec.flags[k] = cb.checked; });
+        flags.appendChild(el('label', { class: 'cb', title: help }, cb, el('span', { text: label })));
+      }
+      if (shownFlags.length) body.appendChild(fieldLine('options', flags));
+    }
+    if (hasField('note') || mode === 'look') {
+      const note = el('input', { type: 'text', class: 'txt', value: spec.note || '', placeholder: 'why this job (shown on its card)' });
+      note.addEventListener('change', () => { spec.note = note.value.trim(); });
+      body.appendChild(fieldLine('note', note));
+    }
+
+    // 7. the words
+    const det = el('details', { class: 'jfold' }, el('summary', { text: 'Show the words that will be sent' }));
+    const words = el('pre', { class: 'words' });
+    det.addEventListener('toggle', () => {
+      if (!det.open) return;
+      words.textContent = candKind ? candidateWordsText(c, jk) : composeWords(m, method, Object.assign({}, spec, { recipe: Object.assign({}, spec.recipe, state.overrides[0] || {}) }), { kind, id, code: fixedCode || (state.codes[0] || ''), art_prompt: contentJson && contentJson.art_prompt });
+    });
+    det.appendChild(words);
+    body.appendChild(det);
+  }
+
+  /** The defaults of a candidate job (GET /api/jobs/defaults), once per kind; a new job's empty fields take them (an
+   *  edited job keeps its own: the defaults then only tag where a value came from). */
+  function loadDefaults(c, jk) {
+    const { state, kind, id, fixedCode, job, dlg } = c;
+    state.defaults = { jk, loading: true, fields: {}, sources: {} };
+    fetchDefaults(jk, kind, id, fixedCode).then((d) => {
+      if (!dlg.isConnected || !state.defaults || state.defaults.jk !== jk) return;
+      state.defaults = d;
+      const sj = state.spec.job || (state.spec.job = {});
+      if (!job) for (const f of CAND_FIELDS[jk] || []) { const v = d.fields[f.key]; if (v != null && v !== '' && (sj[f.key] == null || sj[f.key] === '')) sj[f.key] = v; }
+      c.draw();
+    });
+  }
+
+  /** "What to paint" of a badge, title or icon job (D6): Character, Action or Pose, Holds, Camera, the reference picture
+   *  and the title's extra reference, filled from the server's defaults, editable, each tagged with where it came from. */
+  function candidateFields(body, c, jk) {
+    const { state, refs, kind, fixedCode } = c;
+    const spec = state.spec;
+    if (!spec.job) spec.job = {};
+    const d = state.defaults && state.defaults.jk === jk ? state.defaults : null;
+    const who = kind === 'hero' ? 'the hero' : (kind === 'enemy' || kind === 'boss') ? 'the creature' : 'the item';
+    body.appendChild(el('h2', {}, 'What to paint', el('small', { text: `filled in from ${who}${fixedCode ? ' and its look ' + fixedCode : ''}; change anything: a field left empty is filled the same way when the job is queued` })));
+    // where the pick will show in the game (pass 68 review: the default Live title shows no cut-out)
+    const shown = jk === 'hero_badge' ? whereShown('badge') : jk === 'hero_title' ? whereShown('cutout') : '';
+    if (shown) body.appendChild(el('p', { class: 'help jwhere', text: `Where the pick shows: ${shown}.` }));
+    if (!d || d.loading) body.appendChild(el('p', { class: 'help', text: 'reading the defaults…' }));
+    else if (d.error) body.appendChild(el('p', { class: 'help warn-text', text: `no defaults from the server (${d.error}): empty fields fall back to the tool's own (the hero's portrait_prompt and title words, the base front still)` }));
+    for (const f of CAND_FIELDS[jk] || []) {
+      const dv = d && d.fields ? d.fields[f.key] : undefined;
+      const tag = el('span', { class: 'jsrc' });
+      const retag = () => { tag.textContent = sourceTag(f.key, spec.job[f.key], d); tag.classList.toggle('mine', tag.textContent.startsWith('yours')); };
+      const onChange = (v) => { setKey(spec.job, f.key, v); retag(); };
+      const ctl = f.type === 'picture'
+        ? pictureControl(spec.job[f.key], onChange, { refs, dflt: dv != null ? String(dv) : '', dfltUrl: f.key === 'ref' && d ? d.ref_url : null, dfltExists: f.key === 'ref' && d ? d.ref_exists : null })
+        : recipeControl(Object.assign({}, f, { default: dv != null && dv !== '' ? String(dv) : undefined }), spec.job[f.key], onChange, { refs });
+      const line = fieldLine(f.label, ctl, f.help);
+      line.appendChild(tag);
+      retag();
+      body.appendChild(line);
+    }
+  }
+
+  /** A picture field (pass 68, D6/D11): the thumbnail (click to zoom), the path (editable: repo-relative, tools/dl-relative
+   *  or absolute), Change… (the picture library), Upload… (a new picture under tools/dl/uploads/2d/) and back to the
+   *  default. o = {refs, dflt, dfltUrl, dfltExists}. */
+  function pictureControl(value, onChange, o) {
+    const ctx = o || {};
+    let cur = value == null ? '' : String(value);
+    const thumb = el('div', { class: 'jpic-thumb' });
+    const inp = el('input', { type: 'text', class: 'txt', value: cur, spellcheck: false, placeholder: ctx.dflt ? `empty: ${ctx.dflt}` : '(no picture)' });
+    const note = el('div', { class: 'jpic-note small' });
+    const back = el('button', { type: 'button', class: 'btn small ghost', text: '↺ default', title: ctx.dflt ? `back to ${ctx.dflt}` : '' });
+    const paint = () => {
+      clear(thumb);
+      note.textContent = '';
+      note.classList.remove('warn-text');
+      const isDefault = !!ctx.dflt && cur === String(ctx.dflt);
+      const url = isDefault && ctx.dfltUrl ? ctx.dfltUrl : refUrl(cur);
+      if (!cur) thumb.appendChild(el('span', { class: 'muted small', text: 'no picture' }));
+      else if (url) {
+        const img = el('img', { src: url, alt: '', title: `${cur} (click to zoom)` });
+        img.addEventListener('click', () => { if (typeof StripPlayer !== 'undefined') StripPlayer.openImage(url, cur); });
+        img.addEventListener('error', () => { img.replaceWith(el('span', { class: 'muted small', text: 'no preview (not on disk?)' })); });
+        thumb.appendChild(img);
+      } else thumb.appendChild(el('span', { class: 'muted small', text: 'no preview: the page shows pictures under tools/dl' }));
+      if (isDefault && ctx.dfltExists === false) { note.textContent = 'not painted yet: no such file on disk. A job queued behind the look\'s own job finds it; else pick another picture.'; note.classList.add('warn-text'); }
+      back.hidden = !ctx.dflt || isDefault;
+    };
+    const set = (v) => { cur = v == null ? '' : String(v).trim(); inp.value = cur; onChange(cur || null); paint(); };
+    inp.addEventListener('change', () => set(inp.value));
+    back.addEventListener('click', () => set(ctx.dflt));
+    const up = el('input', { type: 'file', accept: '.png,.jpg,.jpeg,.webp', style: 'display:none' });
+    up.addEventListener('change', async () => {
+      const f = up.files && up.files[0];
+      if (!f) return;
+      App.status(`uploading ${f.name}…`, 'busy');
+      const res = await upload(f, '2d');
+      if (!res.ok) { App.status(`upload failed: ${res.error}`, 'bad'); return; }
+      App.status(`uploaded ${f.name} as ${res.path}`, 'good');
+      set(res.path || res.url);
+      fetchRefs();
+    });
+    const change = el('button', { type: 'button', class: 'btn small', text: 'Change…', title: 'pick a picture from the library: the uploads (tools/dl/uploads/2d) and the 3D models\' renders', onclick: () => pickPicture(S.refs || ctx.refs, cur, (p) => set(p)) });
+    const wrap = el('div', { class: 'jpic' }, thumb, el('div', { class: 'jpic-side' }, inp, el('div', { class: 'row' }, change, el('button', { type: 'button', class: 'btn small', text: 'Upload…', title: 'a picture from this computer: saved under tools/dl/uploads/2d/', onclick: () => up.click() }), back, up), note));
+    paint();
+    return wrap;
+  }
+
+  /** The picture library: the 2D uploads and the 3D models' renders as thumbnails; a click picks one. */
+  function pickPicture(refs, current, pick) {
+    const items = [];
+    for (const r of (refs && refs['2d']) || []) items.push({ path: r.path || `tools/dl/uploads/2d/${r.name}`, url: r.url || refUrl(r.path), label: r.name, group: 'Pictures (tools/dl/uploads/2d)' });
+    for (const u of (refs && refs['3d']) || []) for (const url of u.renders || []) items.push({ path: 'tools/dl/' + String(url).replace(/^\/dl\//, ''), url, label: `${u.slug} · ${String(url).split('/').pop()}`, group: '3D models\' renders (tools/dl/uploads/3d)' });
+    const dlg = document.createElement('dialog');
+    dlg.className = 'sp-modal';
+    const grid = el('div', { class: 'jpicgrid' });
+    let group = '';
+    for (const it of items) {
+      if (it.group !== group) { group = it.group; grid.appendChild(el('div', { class: 'jpicgroup', text: group })); }
+      grid.appendChild(el('div', { class: 'jpiccard' + (it.path === current ? ' on' : ''), title: it.path, onclick: () => { pick(it.path); dlg.close(); } },
+        el('img', { src: it.url, alt: '', loading: 'lazy' }), el('span', { text: it.label })));
+    }
+    if (!items.length) grid.appendChild(el('div', { class: 'muted', text: 'no pictures yet: Upload… beside the field adds one (tools/dl/uploads/2d/)' }));
+    const filter = el('input', { type: 'search', class: 'txt', placeholder: 'filter…' });
+    filter.addEventListener('input', () => { const f = filter.value.toLowerCase(); for (const x of grid.querySelectorAll('.jpiccard')) x.hidden = !!f && !x.title.toLowerCase().includes(f) && !x.textContent.toLowerCase().includes(f); });
+    dlg.append(el('div', { class: 'sp-modal-head' }, el('b', { text: `the picture library · ${items.length}` }), el('span', { class: 'muted small', text: 'click a picture to use it' }), filter, el('span', { class: 'spacer' }), el('button', { type: 'button', class: 'btn small', text: '✕', onclick: () => dlg.close() })), grid);
+    document.body.appendChild(dlg);
+    dlg.addEventListener('close', () => dlg.remove());
+    dlg.showModal();
+  }
+
+  /** A draft's (or a duplicate's) source: what is copied, and for a still method the box that reuses its paintings. */
+  function sourceBox(c, spec) {
+    const { fromCode, srcStills, state, draw, kind } = c;
+    const still = STILL_METHODS.includes(spec.method);
+    const own = kind === 'hero' ? 'hero' : 'creature';
+    const what = spec.method === 'hero_fit' ? 'hero_fit walks the hero\'s own paintings (its still_keys): nothing new is painted, only the walks are made again.'
+      : still ? 'Its stills are painted fresh under its own letter and its own seeds, so the Model settings below apply to them.' : '';
+    const box = el('div', { class: 'jdup' }, el('div', {}, el('b', { text: state.draft ? `A draft made from ${fromCode}` : `Duplicate of ${fromCode}` }),
+      el('span', { text: `: ${state.draft ? 'its recipe (copied from ' + fromCode + ', then yours to change) is below' : 'its recipe, words and painter are filled in below and the new look gets the next free code'}. ${what}` })));
+    if (still && srcStills != null) {
+      const want = String(srcStills);
+      const cb = el('input', { type: 'checkbox' }); cb.checked = spec.recipe.stills != null && String(spec.recipe.stills) === want;
+      cb.addEventListener('change', () => { if (cb.checked) spec.recipe.stills = want; else delete spec.recipe.stills; draw(); });
+      box.appendChild(el('label', { class: 'cb', title: want ? `recipe.stills = "${want}": the paintings cached under that slug are reused` : `recipe.stills = "": the ${own}'s own paintings are reused (an absent key makes the job paint new stills)` },
+        cb, el('span', { text: `reuse ${fromCode}'s paintings: only the clips are made again, with this look's own seeds (the Model settings then change nothing)` })));
+    }
+    const sk = spec.recipe && spec.recipe.still_keys && typeof spec.recipe.still_keys === 'object' ? Object.keys(spec.recipe.still_keys) : [];
+    if (sk.length) box.appendChild(el('div', { class: 'muted small', text: `its still_keys name ${sk.join(', ')}: those views come from the stills named there, whatever the box says` }));
+    return box;
+  }
+
+  /** Where the method's picture goes (pass 68, D11): the 2D / 3D reference rows of the old form reached no tool, so each
+   *  method says what it reads instead; an old job's rows are named, kept, and said to be unread. */
+  function referencesNote(body, c, method, jk) {
+    const { state, all, mode } = c;
+    const spec = state.spec;
+    const mid = method ? method.id : spec.method;
+    const ffp = all.find((x) => x.id === 'front_from_picture');
+    let text;
+    if (CAND_KINDS.includes(jk)) text = 'The reference picture is the field above: one picture, the identity the candidates keep (no style anchor). The title\'s extra reference, when set, is the held object.';
+    else if (mid === 'front_from_picture') text = 'The picture is the Reference picture field above, the only picture this method reads (after the style anchor, unless "no style anchor" is ticked).';
+    else if (mid === 'creature_ctl') text = 'gen_ctl reads its picture from look_ref and its motion from drivers, both in What to paint above: nothing else reaches it.';
+    else if (mid === 'hero_pose5' || mid === 'hero_fit') text = 'Hero looks paint from words (art_prompt and the hints) with the style anchor, and walk on the pose drivers (pose_drivers above): no picture is passed to them. A badge or a title cut-out takes a picture (their own forms).';
+    else if (mid === 'recolour') text = 'A recolour reads its source look\'s strip and icon: no picture.';
+    else if (jk === 'look') text = `This method paints from words: to start from a picture, use "${ffp ? ffp.name || ffp.id : 'front_from_picture'}" first, then paint the look with its stills slug.`;
+    else if (mode === 'driver') text = 'The model is the src field above: an upload (tools/dl/uploads/3d/) or a Mixamo FBX.';
+    else text = 'This job takes no picture.';
+    body.appendChild(el('h2', {}, 'References', el('small', { text: 'what the painter is shown besides the words' })));
+    body.appendChild(el('p', { class: 'help', text }));
+    if (mid === 'front_from_picture' && jk === 'look') {
+      const cb = el('input', { type: 'checkbox' }); cb.checked = !!spec.flags.no_style_ref;
+      cb.addEventListener('change', () => { spec.flags.no_style_ref = cb.checked; });
+      body.appendChild(el('label', { class: 'cb', title: 'drop the style anchor: the picture is the only reference (gen_edit_stills --no-style-ref)' }, cb, el('span', { text: 'no style anchor' })));
+    }
+    const rows = (spec.refs || []).length, d3 = Object.keys(spec.drivers || {}).length;
+    if (rows || d3) body.appendChild(el('p', { class: 'help warn-text', text: `this job carries ${rows ? rows + ' reference row' + (rows > 1 ? 's' : '') : ''}${rows && d3 ? ' and ' : ''}${d3 ? 'drivers ' + JSON.stringify(spec.drivers) : ''} from the old form: no tool reads them (kept as they are)` }));
+  }
+
+  /** The candidates a NEW look comes with (D10): counts of at least MIN_CANDIDATES, required (Queue refuses fewer); on a
+   *  re-roll the same counts are optional extras (0 = none). */
+  function candidateCounts(body, c) {
+    const { kind, state } = c;
+    const spec = state.spec;
+    const plan = candidatePlan(kind, spec.method);
+    if (!plan.length) {
+      if (kind === 'hero' || kind === 'enemy' || kind === 'boss') body.appendChild(el('p', { class: 'help', text: spec.method === 'recolour' ? 'A recolour recolours its source\'s icon too: no candidates come with it.' : 'A front from a picture paints no look yet: the candidates come with the look painted from it.' }));
+      return;
+    }
+    body.appendChild(el('h3', { class: 'jsub', text: state.isNew ? `Candidates: required, at least ${MIN_CANDIDATES} of each` : 'Candidates: optional on a re-roll (0 = none)' }));
+    for (const p of plan) {
+      if (spec.counts[p.count] == null) spec.counts[p.count] = state.isNew ? MIN_CANDIDATES : 0;
+      const inp = el('input', { type: 'number', class: 'num', min: state.isNew ? MIN_CANDIDATES : 0, max: 12, step: 1, value: spec.counts[p.count] });
+      inp.addEventListener('change', () => { const v = Math.max(0, Math.min(12, Math.round(Number(inp.value) || 0))); spec.counts[p.count] = v; inp.value = String(v); });
+      body.appendChild(fieldLine(p.label, inp, candidateHelp(p, state.isNew)));
+    }
+    if (spec.method === 'creature_ctl' && state.isNew) body.appendChild(el('p', { class: 'help warn-text', text: 'gen_ctl stops for your pick of the side, and the comfy lane runs the next job while it waits: the icon candidates may paint before this look\'s front still exists (then from the words alone). Re-queue them from the Jobs tab once the look is done if they miss it.' }));
+  }
+  function candidateHelp(p, isNew) {
+    const req = isNew ? `required on a new look: at least ${MIN_CANDIDATES}. ` : 'optional: 0 = none. ';
+    if (p.jk === 'icon_cands') return req + 'A job of its own, queued after the look on the comfy lane with the same Model settings: the creature\'s words and the new look\'s front still as the reference (the server fills them in). Install the one you like from its card: it becomes <id>_icon_<letter>.png, the look\'s own icon.';
+    if (p.jk === 'hero_badge') return req + `Round badge candidates, a job of its own after the look with the same Model settings: the hero's words and the new look's front still as the reference. The pick becomes the look's own round icon (variants[CODE].icon)${whereShown('badge') ? ': ' + whereShown('badge') : ''}.`;
+    return req + `Title cut-out candidates (660 × 888), a job of its own after the look with the same Model settings: the hero's words, the title pose and the new look's front still as the reference. The pick becomes the look's own cut-out (art/ui/wanted/hero_<id>_<letter>.png, variants[CODE].title)${whereShown('cutout') ? ': ' + whereShown('cutout') : ''}.`;
+  }
+  /** Where the game shows a hero look's badge or cut-out (LookGrid.WHERE_SHOWN, looks.js): the cut-out only on the
+   *  Painted title, a debug choice; the default Live title draws the strip. */
+  function whereShown(k) { return typeof LookGrid !== 'undefined' && LookGrid.WHERE_SHOWN && LookGrid.WHERE_SHOWN[k] ? LookGrid.WHERE_SHOWN[k] : ''; }
+
+  /** The re-roll modes (D3) of a re-roll form; a new look has nothing of its own to throw away. When the Model settings
+   *  stop matching the look's recorded painter, "repaint the stills" is selected (a painter paints only stills). */
+  function rerollSection(body, c) {
+    const { state, draw, fixedCode } = c;
+    const spec = state.spec;
+    if (!state.rerollForm) {
+      body.appendChild(fieldLine('re-roll', el('span', { class: 'muted small', text: state.isNew ? 'a new look: nothing of its own is cached yet, so there is nothing to re-roll' : 'none: the cached stills and clips are reused' })));
+      return;
+    }
+    const allowed = rerollModes(spec.method);
+    if (!allowed.length) {
+      spec.reroll.mode = '';
+      body.appendChild(fieldLine('re-roll', el('span', { class: 'muted small', text: spec.method === 'recolour' ? 'a recolour keeps nothing cached: it simply runs again' : spec.method === 'front_from_picture' ? 'a front from a picture paints its candidates again with the seed shift above' : 'nothing to re-roll for this method' })));
+      return;
+    }
+    const modes = [{ v: '', label: 'none (cached work reused)', help: 'the stills and clips already on disk are reused: only what is missing is made' }].concat(REROLL.filter((r) => allowed.includes(r.v)));
+    if (spec.reroll.mode && !allowed.includes(spec.reroll.mode)) spec.reroll.mode = allowed[0];
+    if (REROLL_FOR[spec.method]) body.appendChild(el('div', { class: 'muted small', text: spec.method === 'hero_fit' ? 'hero_fit walks the hero\'s own paintings, which every look shares: only its clips can be made again (paint stills of its own with hero_pose5)' : spec.method === 'creature_ctl' ? 'gen_ctl paints its stills from the picked side with its code\'s own seeds: re-roll a view or the clips (new side candidates: a new look)' : 'creature_proc has no clips: its frames are procedural' }));
     const rr = el('div', { class: 'row' });
-    for (const r of [{ v: '', label: 'none (first roll; cached work reused)', help: 'stills and clips already in tools/dl/ai_raw_anime and ai_anim are reused' }].concat(REROLL)) {
+    for (const r of modes) {
       const rb = el('input', { type: 'radio', name: 'reroll' }); rb.checked = (spec.reroll.mode || '') === r.v;
-      rb.addEventListener('change', () => { spec.reroll.mode = r.v; draw(); });
+      rb.addEventListener('change', () => { spec.reroll.mode = r.v; state.rerollAuto = false; draw(); });
       rr.appendChild(el('label', { class: 'cb', title: r.help }, rb, el('span', { text: r.label })));
     }
-    body.appendChild(fieldLine('re-roll', rr, 'what the job throws away before it paints'));
+    const cur = modes.find((r) => r.v === (spec.reroll.mode || '')) || modes[0];
+    body.appendChild(fieldLine('re-roll', rr, `what the job throws away before it paints (the server does it when the job is queued): ${cur.help}`));
     if (spec.reroll.mode === 'view') {
       const vs = el('select');
+      if (!spec.reroll.view) spec.reroll.view = 'front';
       for (const v of ['front', 'fd', 'side', 'bd', 'back']) vs.appendChild(el('option', { value: v, text: v, selected: spec.reroll.view === v }));
       vs.addEventListener('change', () => { spec.reroll.view = vs.value; });
       body.appendChild(fieldLine('the view', vs, 'gen_ctl --view-cands=<view>: candidates of that one view to pick from'));
     }
-
-    // 7. flags
-    body.appendChild(el('h2', {}, 'Flags'));
-    const flags = el('div', { class: 'row' });
-    for (const [k, label, help] of [['skip_qa', 'skip the vision QA', 'no LM Studio check of the stills: the first roll is kept (faster; check by eye)'], ['dev', 'Flux.2 dev model', 'the slower, finer model for the stills (205-286 s a still; the server restarts to load it)']]) {
-      const cb = el('input', { type: 'checkbox' }); cb.checked = !!spec.flags[k];
-      cb.addEventListener('change', () => { spec.flags[k] = cb.checked; });
-      flags.appendChild(el('label', { class: 'cb', title: help }, cb, el('span', { text: label })));
+    const rp = state.recordedPainter;
+    if (rp && painterDiffers(painterOfSpec(spec), rp)) {
+      body.appendChild(el('div', { class: 'jnote', text: allowed.includes('stills')
+        ? `The Model settings differ from the painter ${fixedCode || 'this look'} was painted with (${ptext(rp)}). A painter only paints stills, so "repaint the stills" ${spec.reroll.mode === 'stills' ? 'is selected' : 'is what lets the new settings show'}; the walks are then made again from the new stills.`
+        : `The Model settings differ from the painter ${fixedCode || 'this look'} was painted with (${ptext(rp)}), but this method's re-roll paints no stills: the new settings change nothing here. To paint with them, Duplicate… the look and Generate… the draft.` }));
     }
-    body.appendChild(fieldLine('options', flags));
-    const note = el('input', { type: 'text', class: 'txt', value: spec.note || '', placeholder: 'why this job (shown on its card)' });
-    note.addEventListener('change', () => { spec.note = note.value.trim(); });
-    body.appendChild(fieldLine('note', note));
-
-    // 8. the words
-    const det = el('details', { class: 'jfold' }, el('summary', { text: 'Show the words that will be sent' }));
-    const words = el('pre', { class: 'words' });
-    det.addEventListener('toggle', () => { if (det.open) words.textContent = composeWords(m, method, Object.assign({}, spec, { recipe: Object.assign({}, spec.recipe, state.overrides[0] || {}) }), { kind, id, code: fixedCode || (state.codes[0] || ''), art_prompt: c.contentJson && c.contentJson.art_prompt }); });
-    det.appendChild(words);
-    body.appendChild(det);
+    if (rp && rp.stills === 'reused') body.appendChild(el('div', { class: 'jnote', text: `${fixedCode || 'This look'}'s recorded painter painted none of its stills: they were reused from earlier paintings.` }));
+  }
+  /** D3: a re-roll whose Model settings stop matching the recorded painter selects "repaint the stills" (once; the
+   *  mode chosen before comes back when the settings match again and nobody touched the radios). */
+  function painterChanged(c) {
+    const { state } = c;
+    const spec = state.spec;
+    if (!state.rerollForm || !state.recordedPainter) return;
+    if (!rerollModes(spec.method).includes('stills')) { c.draw(); return; }
+    const differs = painterDiffers(painterOfSpec(spec), state.recordedPainter);
+    if (differs && !state.rerollAuto && spec.reroll.mode !== 'stills') { state.rerollPrev = spec.reroll.mode || ''; spec.reroll.mode = 'stills'; state.rerollAuto = true; c.draw(); }
+    else if (!differs && state.rerollAuto) { if (spec.reroll.mode === 'stills') spec.reroll.mode = state.rerollPrev; state.rerollAuto = false; c.draw(); }
+    else c.draw();
   }
 
   /** The example of a method: its picture (tools/level_editor/examples/) and, when the strip it names is reachable, a
@@ -1368,26 +1863,39 @@ const Jobs = (() => {
     dlg.showModal();
   }
 
-  function lookRow(i, code, ov, method, spec, drivers, refs, fixed) {
+  /** The per-look overrides a method's tool reads (pass 68: the old rows wrote `prompt` for every method, which gen_art
+   *  never reads, `seed`, which nothing read, and a driver no look tool took). */
+  function lookRowKeys(mid, isNew) {
+    const ctl = mid === 'creature_ctl';
+    const paints = !['recolour', 'front_from_picture', 'hero_fit'].includes(mid);
+    const moves = !['recolour', 'front_from_picture'].includes(mid);
+    const out = [];
+    if (paints) out.push(ctl ? { key: 'prompt', type: 'textarea', help: 'this look\'s subject words for gen_ctl (else the shared recipe\'s)' } : { key: 'art_prompt', type: 'textarea', help: 'this look\'s subject words (else the shared recipe\'s, else the JSON\'s art_prompt)' });
+    if (ctl) out.push({ key: 'keep', type: 'text', help: 'what every view keeps (gen_ctl keep)' }, { key: 'detail', type: 'text', help: 'the finish words (gen_ctl detail)' });
+    if (moves) out.push({ key: 'motion', type: 'textarea', help: 'how it moves, for the clips' }, { key: 'anim_negative', type: 'text', help: 'what the clips must not do' });
+    if (isNew && mid !== 'recolour') out.push({ key: 'seed_offset', type: 'int', help: 'this look\'s own seeds: every seed it paints moves by N × 104729 (empty = one the server derives from its code, so looks queued together never come out as clones)' });
+    if (paints) out.push({ key: 'screen', type: 'select', options: ['green', 'blue'], help: 'the keying screen (blue for a green creature)' });
+    if (['creature_free2', 'creature_free8', 'creature_pose2', 'creature_proc', 'creature_ctl'].includes(mid)) out.push({ key: 'directions', type: 'select', options: ['2', '8'], help: '2 = front and back; 8 = side and three-quarter views too' });
+    return out;
+  }
+
+  function lookRow(i, code, ov, method, spec, drivers, refs, fixed, isNew) {
+    const mid = method ? method.id : spec.method;
     const det = el('details', { class: 'lookrow', open: i === 0 && fixed });
-    const sum = el('summary', {}, el('b', { text: `Look ${i + 1}` }), el('span', { class: 'muted', text: fixed ? '' : 'will become' }), el('code', { text: code }), el('span', { class: 'muted small', text: Object.keys(ov).length ? `${Object.keys(ov).length} override${Object.keys(ov).length > 1 ? 's' : ''}` : 'no overrides: the shared recipe' }));
+    const n = Object.keys(ov).length;
+    const sum = el('summary', {}, el('b', { text: `Look ${i + 1}` }), el('span', { class: 'muted', text: fixed ? '' : 'will become' }), el('code', { text: code }), el('span', { class: 'muted small', text: n ? `${n} override${n > 1 ? 's' : ''}` : 'no overrides: the shared recipe' }));
     det.appendChild(sum);
-    const keys = [
-      { key: 'prompt', type: 'textarea', help: 'this look\'s subject words (else the shared recipe\'s / the JSON\'s art_prompt)' },
-      { key: 'keep', type: 'text', help: 'what every view keeps (gen_ctl keep / edit stills keep)' },
-      { key: 'detail', type: 'text', help: 'the finish words (gen_ctl detail)' },
-      { key: 'motion', type: 'textarea', help: 'how it moves, for the clips' },
-      { key: 'anim_negative', type: 'text', help: 'what the clips must not do' },
-      { key: 'seed', type: 'int', help: 'a seed offset for this look only' },
-      { key: 'screen', type: 'select', options: ['green', 'blue'], help: 'the keying screen (blue for a green creature)' },
-      { key: 'directions', type: 'select', options: ['2', '8'], help: '2 = front and back; 8 = side and three-quarter views too' },
-    ];
-    for (const f of keys) det.appendChild(fieldLine(f.key, recipeControl(f, ov[f.key], (v) => { setKey(ov, f.key, v); }, { drivers, refs }), f.help));
-    const drv = el('select');
-    drv.appendChild(el('option', { value: '', text: '(the shared drivers)' }));
-    for (const d of drivers) drv.appendChild(el('option', { value: d.name, text: `${d.name} (${d.kind || '?'})`, selected: d.name === ov.driver }));
-    drv.addEventListener('change', () => setKey(ov, 'driver', drv.value));
-    det.appendChild(fieldLine('driver', drv, 'this look walks on another driver'));
+    for (const f of lookRowKeys(mid, isNew)) det.appendChild(fieldLine(f.key, recipeControl(f, ov[f.key], (v) => { setKey(ov, f.key, v); }, { drivers, refs }), f.help));
+    // the walk of this look alone: the recipe key its tool reads (a creature's pose driver, gen_ctl's depth driver)
+    const drvKey = mid === 'creature_pose2' ? 'pose' : mid === 'creature_ctl' ? 'drivers' : null;
+    if (drvKey) {
+      const depth = drvKey === 'drivers';
+      const drv = el('select');
+      drv.appendChild(el('option', { value: '', text: '(the shared recipe\'s)' }));
+      for (const d of drivers.filter((x) => depth === (x.kind === 'depth'))) drv.appendChild(el('option', { value: d.name, text: `${d.name} (${d.kind || 'pose'})`, selected: d.name === (ov[drvKey] || ov.driver) }));
+      drv.addEventListener('change', () => { delete ov.driver; setKey(ov, drvKey, drv.value); });
+      det.appendChild(fieldLine(depth ? 'depth driver' : 'pose driver', drv, depth ? 'this look walks on another depth driver (recipe.drivers)' : 'this look walks on another OpenPose driver (recipe.pose)'));
+    }
     return det;
   }
 
@@ -1401,76 +1909,95 @@ const Jobs = (() => {
     } catch (e) { return { ok: false, error: e.message }; }
   }
 
+  /** A candidate job's spec as a new look queues it (D10): the count, the look's Model settings, and no words (the server
+   *  fills them from the defaults: the character, the action or pose, the new look's front still as the reference). */
+  function candidateSpec(p, n, spec, specs) {
+    const pj = painterOfSpec(spec);
+    const job = { model: pj.model };
+    if (pj.steps) job.steps = pj.steps;
+    if (pj.model === 'dev') { if (pj.guidance) job.guidance = pj.guidance; job.turbo = pj.turbo; }
+    return flatten({ method: p.jk, recipe: {}, refs: [], drivers: {}, flags: { dev: pj.model === 'dev', skip_qa: !!(spec.flags && spec.flags.skip_qa) }, counts: { seeds: n }, job, note: '' }, p.jk, specs);
+  }
+
   async function submit(c) {
-    const { kind, id, mode, job, m, all, state, fixedCode, dlg, err, queueBtn, record, existingCodes, specs } = c;
+    const { kind, id, mode, job, all, state, fixedCode, dlg, err, queueBtn, record, existingCodes, specs } = c;
     const spec = state.spec;
     const method = all.find((x) => x.id === spec.method) || null;
     if (!spec.method) { err.textContent = 'pick a method'; return; }
-    for (const ref of spec.refs || []) if (!ref.path) { err.textContent = 'a 2D reference row has no picture: pick one or drop the row'; return; }
-    for (const r3 of spec.refs3d || []) if ((r3.source === 'library' && !r3.driver) || (r3.source === 'upload' && !r3.slug)) { err.textContent = 'a 3D reference row has no driver or model: pick one or drop the row'; return; }
-    // the 3D rows become drivers + refs for the runner
-    const drivers = {};
-    const extraRefs = [];
-    for (const r3 of spec.refs3d || []) {
-      const d = r3.source === 'library' ? (S.drivers || []).find((x) => x.name === r3.driver) : null;
-      if (r3.uses.includes('animation')) { if (r3.source === 'library' && d) drivers[d.kind === 'depth' ? 'depth' : 'pose'] = d.name; else if (r3.source === 'upload') drivers.upload = r3.slug; }
-      if (r3.uses.includes('look')) extraRefs.push({ path: r3.source === 'library' ? `tools/dl/drivers/${r3.driver}/side/clay.png` : `tools/dl/uploads/3d/${r3.slug}/side/clay.png`, role: 'pose', follow: 'closely', use: ['look'] });
-      if (r3.uses.includes('icon')) extraRefs.push({ path: r3.source === 'library' ? `tools/dl/drivers/${r3.driver}/side/look.png` : `tools/dl/uploads/3d/${r3.slug}/icon_ref.png`, role: 'identity', follow: 'copy', use: ['icon'] });
-    }
-    const base = Object.assign({}, spec, { drivers: Object.assign({}, spec.drivers, drivers), refs: (spec.refs || []).concat(extraRefs) });
+    const jk = job ? job.kind : jobKind(mode, method, kind);
+    const base = Object.assign({}, spec);
     delete base.looks;
-    const jk = jobKind(mode, method, kind);
+    delete base.refs3d;
+    const name = record ? (record.name || id) : id;
+    // a new look comes with its candidates (D10): Queue refuses fewer than the minimum
+    const plan = mode === 'look' && !job ? candidatePlan(kind, spec.method) : [];
+    if (state.isNew) { const why = candidateRefusal(plan, spec.counts); if (why) { err.textContent = why; return; } }
     queueBtn.disabled = true;
     err.textContent = '';
     try {
       if (job) {
         const one = Object.assign({}, base, { recipe: Object.assign({}, base.recipe, state.overrides[0] || {}) });
-        const res = await post(`/api/jobs/${encodeURIComponent(job.id)}`, { spec: flatten(one, job.kind, specs), title: job.title });
-        if (!res.ok) { err.textContent = res.error; queueBtn.disabled = false; return; }
+        // a candidate field cleared here goes out as '' so the server fills it again from the defaults (withClearedFields)
+        const res = await post(`/api/jobs/${encodeURIComponent(job.id)}`, { spec: withClearedFields(job.kind, flatten(one, job.kind, specs)), title: job.title });
+        if (!res.ok) { err.textContent = res.error; return; }
         toast(`job #${shortId(job.id)} changed`);
         dlg.close(); await poll(); return;
       }
-      const n = mode === 'look' ? (fixedCode ? 1 : (spec.counts.looks || 1)) : 1;
+      if (mode !== 'look') {
+        // one job: icon / badge / title candidates, an item's icon, a driver or a 3D reference
+        const target = { kind, id };
+        if (fixedCode) target.code = fixedCode;
+        const res = await post('/api/jobs', { kind: jk, target, spec: flatten(base, jk, specs), title: `${name}${target.code ? ' ' + target.code : ''} · ${method ? method.name : spec.method}` });
+        if (!res.ok) { err.textContent = `${target.code || id}: ${res.error}`; return; }
+        toast(`queued ${res.job ? '#' + shortId(res.job.id) : 'the job'}`, { label: 'Open Jobs', onClick: () => App.switchTab('jobs') });
+        dlg.close(); await poll(); return;
+      }
+      // the looks: one job each, then each look's candidates; what went out is remembered (state.posted), so pressing
+      // Queue again after a refusal sends only what is missing
+      const n = fixedCode ? 1 : (spec.counts.looks || 1);
       let codes = fixedCode ? [fixedCode] : state.codes;
-      if (mode === 'look' && codes.length < n) {
+      if (codes.length < n) {
         const r = await fetchJson(`/api/content/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/next_codes?n=${n}`, null);
         codes = r && r.ok && Array.isArray(r.codes) ? r.codes : nextCodes(record, n, existingCodes);
+        state.codes = codes;
       }
-      const made = [];
+      const made = [], errs = [];
       for (let i = 0; i < n; i++) {
-        const ov = state.overrides[i] || {};
-        const one = Object.assign({}, base, { recipe: Object.assign({}, base.recipe, ov) });
-        if (ov.driver) one.drivers = Object.assign({}, one.drivers, { pose: ov.driver });
-        delete one.recipe.driver;
-        const target = { kind, id };
-        if (mode === 'look') target.code = codes[i];
-        else if (fixedCode) target.code = fixedCode;
-        const title = `${record ? (record.name || id) : id}${target.code ? ' ' + target.code : ''} · ${method ? method.name : spec.method}`;
-        const res = await post('/api/jobs', { kind: jk, target, spec: flatten(one, jk, specs), title });
-        if (!res.ok) { err.textContent = `${target.code || id}: ${res.error}`; break; }
-        made.push(res.job ? res.job.id : target.code || id);
-        // the counts beside a look: icon candidates and, for a hero, title cut-out candidates are jobs of their own
-        if (mode === 'look' && spec.counts.icon_candidates > 0) {
-          const ic = flatten({ method: 'icon_cands', recipe: {}, refs: [], drivers: {}, flags: { dev: !!spec.flags.dev }, counts: { seeds: spec.counts.icon_candidates }, job: { subject: one.recipe.art_prompt || one.recipe.prompt || '', screen: one.recipe.screen || 'green', ref: '' }, note: `icon candidates for ${target.code}` }, 'icon_cands', specs);
-          const r2 = await post('/api/jobs', { kind: 'icon_cands', target, spec: ic, title: `${target.id} ${target.code} · icon candidates ×${spec.counts.icon_candidates}` });
-          if (r2.ok && r2.job) made.push(r2.job.id); else err.textContent = `icon candidates: ${r2.error}`;
+        const code = codes[i];
+        if (!state.posted.has(code)) {
+          const ov = state.overrides[i] || {};
+          const one = Object.assign({}, base, { recipe: Object.assign({}, base.recipe, ov) });
+          if (ov.driver) one.recipe[spec.method === 'creature_ctl' ? 'drivers' : 'pose'] = ov.driver;   // an override from before pass 68
+          delete one.recipe.driver;
+          const res = await post('/api/jobs', { kind: 'look', target: { kind, id, code }, spec: flatten(one, 'look', specs), title: `${name} ${code} · ${method ? method.name : spec.method}` });
+          if (!res.ok) { errs.push(`${code}: ${res.error}`); continue; }
+          state.posted.add(code);
+          made.push(res.job ? res.job.id : code);
         }
-        if (mode === 'look' && kind === 'hero' && spec.counts.cutout_candidates > 0) {
-          const tc = flatten({ method: 'hero_title', recipe: {}, refs: [], drivers: {}, flags: {}, counts: { seeds: spec.counts.cutout_candidates }, job: {}, note: '' }, 'hero_title', specs);
-          const r3 = await post('/api/jobs', { kind: 'hero_title', target: { kind, id }, spec: tc, title: `${target.id} · title cut-out candidates ×${spec.counts.cutout_candidates}` });
-          if (r3.ok && r3.job) made.push(r3.job.id); else err.textContent = `cut-out candidates: ${r3.error}`;
+        for (const p of plan) {
+          const cnt = Number(spec.counts[p.count]) || 0;
+          const key = `${code}:${p.jk}`;
+          if (cnt <= 0 || state.posted.has(key)) continue;
+          const r2 = await post('/api/jobs', { kind: p.jk, target: { kind, id, code }, spec: candidateSpec(p, cnt, spec, specs), title: `${name} ${code} · ${p.label} ×${cnt}` });
+          if (!r2.ok) { errs.push(`${code} ${p.label}: ${r2.error}`); continue; }
+          state.posted.add(key);
+          made.push(r2.job ? r2.job.id : key);
         }
       }
+      const looksQueued = codes.slice(0, n).every((code) => state.posted.has(code));
       if (made.length) toast(`queued ${made.length} job${made.length > 1 ? 's' : ''}: ${made.map(shortId).join(', ')}`, { label: 'Open Jobs', onClick: () => App.switchTab('jobs') });
-      if (made.length === n) dlg.close();
-      await poll();
-      if (mode === 'look' && made.length && typeof LookGrid !== 'undefined') {
-        // the stubs landed in the JSON: the open grid shows them
-        const kindList = kind === 'hero' ? 'heroes' : 'enemies';
-        if (typeof Assets !== 'undefined' && typeof Assets.refreshRecord === 'function') { try { await Assets.refreshRecord(kind, id); } catch (_) { /* shown on the next render */ } }
-        else if (kind !== 'hero' && typeof App.refreshCreatures === 'function') { try { await App.refreshCreatures(); } catch (_) { /* shown on the next render */ } }
-        void kindList;
+      if (errs.length) {
+        err.textContent = errs.join(' · ');
+        App.status(`${name}: ${errs.length} job${errs.length > 1 ? 's' : ''} refused: ${errs.join(' · ')}`, 'bad', errs.join('\n'));
       }
+      if (looksQueued) {
+        // every look is queued: the dialog closes; a refused candidate job stays visible in a long toast and the status line
+        if (errs.length) toast(`${name}: the look${n > 1 ? 's are' : ' is'} queued, but ${errs.length} candidate job${errs.length > 1 ? 's were' : ' was'} refused: ${errs.join(' · ')}`, { label: 'Open Jobs', onClick: () => App.switchTab('jobs'), ms: 30000 });
+        dlg.close();
+      } else if (state.posted.size) queueBtn.textContent = 'Queue the rest';
+      await poll();
+      if (made.length && typeof Assets !== 'undefined' && typeof Assets.refreshRecord === 'function') { try { await Assets.refreshRecord(kind, id); } catch (_) { /* shown on the next render */ } }
+      else if (made.length && kind !== 'hero' && typeof App.refreshCreatures === 'function') { try { await App.refreshCreatures(); } catch (_) { /* shown on the next render */ } }
     } finally { queueBtn.disabled = false; }
   }
 
@@ -1479,6 +2006,11 @@ const Jobs = (() => {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
   }
 
-  return { render, poll, start, openForm, jobsFor, toast, openAsset, nextCodes, composeWords, methods, S, STATES, STATE_LABEL, REROLL, ROLES, FOLLOW, USES };
+  return {
+    render, poll, start, openForm, jobsFor, toast, openAsset, nextCodes, composeWords, methods, S, STATES, STATE_LABEL, REROLL, ROLES, FOLLOW, USES,
+    // pass 68: the pure helpers (selftest_V checks them under Node) and the tables they read
+    flatten, unflatten, queueOrder, queueLabel, heldLabel, withClearedFields, painterOfSpec, painterDiffers, candidatePlan, candidateRefusal, refUrl, candidateWords, sourceTag, lookRowKeys, rerollModes,
+    GROUPS, LANE_ORDER, STILL_METHODS, MIN_CANDIDATES, CAND_KINDS, CAND_FIELDS, METHOD_ONLY, REROLL_FOR,
+  };
 })();
 if (typeof module !== 'undefined') module.exports = Jobs;

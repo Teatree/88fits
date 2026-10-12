@@ -377,7 +377,9 @@ static func _character(d: Dictionary, dir: String) -> CharacterDef:
 ## unless its entry names a strip of its own; every other entry names its strip, and one whose strip is not there yet is
 ## left out. `variant` is the look the game plays (the player's kept look, Save.hero_look, wins over it), so switching
 ## is one word in the JSON. The base entry carries the hero's own icon, the others their own or his (_common loads the
-## icon after this, so it is resolved here, and build() puts the playing look's back).
+## icon after this, so it is resolved here, and build() puts the playing look's back). Every entry carries its `title`
+## (pass 68: the look's own title cut-out, a file name under res://art/ui/wanted/; "" = the hero's hero_<id>.png), which
+## CharacterDef.title_path reads for the look worn.
 static func _character_variants(c: CharacterDef, d: Dictionary, dir: String) -> void:
 	var vs = d.get("variants", {})
 	if not (vs is Dictionary) or (vs as Dictionary).is_empty():
@@ -385,7 +387,7 @@ static func _character_variants(c: CharacterDef, d: Dictionary, dir: String) -> 
 	var base_code := str(d.get("variant_base", ""))
 	var base_icon: Texture2D = resolve_texture(dir, str(d.get("icon", str(d.get("id", "")) + "_icon.png")))
 	var top := {"sprite": c.sprite, "sprite_file": c.sprite_file, "anims": c.anims, "fps": c.fps, "strip_cols": c.strip_cols,
-		"frame_px": c.frame_px, "icon": base_icon, "note": "", "shelved": false}
+		"frame_px": c.frame_px, "icon": base_icon, "title": "", "note": "", "shelved": false}
 	var all: Dictionary = {}
 	for code in vs.keys():
 		var v = vs[code]
@@ -399,6 +401,7 @@ static func _character_variants(c: CharacterDef, d: Dictionary, dir: String) -> 
 				var b := top.duplicate()
 				b["note"] = str(e.get("note", ""))
 				b["shelved"] = bool(e.get("shelved", false))
+				b["title"] = str(e.get("title", ""))
 				all[str(code)] = b
 			continue
 		var van = e.get("anims", c.anims)
@@ -407,8 +410,8 @@ static func _character_variants(c: CharacterDef, d: Dictionary, dir: String) -> 
 		# `shelved` (pass 66, the Level Editor's looks): out of variant_codes() and the arena chips, worn when named
 		all[str(code)] = {"sprite": tex, "sprite_file": str(e["sprite"]), "anims": van if van is Dictionary else c.anims,
 			"fps": vfp if vfp is Dictionary else c.fps, "strip_cols": int(e.get("strip_cols", 0)),
-			"frame_px": int(e.get("frame_px", c.frame_px)), "icon": vicon if vicon else base_icon, "note": str(e.get("note", "")),
-			"shelved": bool(e.get("shelved", false))}
+			"frame_px": int(e.get("frame_px", c.frame_px)), "icon": vicon if vicon else base_icon,
+			"title": str(e.get("title", "")), "note": str(e.get("note", "")), "shelved": bool(e.get("shelved", false))}
 	if base_code != "" and not all.has(base_code):
 		all[base_code] = top
 	if all.is_empty():

@@ -1,6 +1,7 @@
 ## A stand-in for art still to be painted (hero cut-outs, the Stranger, the strongbox, the portal): diagonal stripes, a
 ## dashed border and a mono label saying what goes here. When `res://art/ui/wanted/<slot>.png` exists it is drawn
-## instead, fitted to the same box, so the artists fill the slot by dropping the file in.
+## instead, fitted to the same box, so the artists fill the slot by dropping the file in. A slot that is a res:// path
+## names its file outright (pass 68: a hero look's own title cut-out).
 class_name WPlaceholder
 extends Control
 
@@ -50,7 +51,8 @@ static func make(p_slot: String, p_label: String, px: Vector2, dark: bool = fals
 		p.period = 24.0
 		p.dash = Color(W.INK, 0.5)
 		p.ink = W.INK_SOFT
-	var path := ART_DIR + p_slot + ".png"
+	# a slot may name its file outright (pass 68: a hero look's own cut-out, CharacterDef.title_path)
+	var path := p_slot if p_slot.begins_with("res://") else ART_DIR + p_slot + ".png"
 	if ResourceLoader.exists(path):
 		p.tex = load(path)
 	return p

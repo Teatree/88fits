@@ -16,7 +16,7 @@ P="--headless --path D:/_projects/88fits/game"
 bash tools/godot.sh $P --import       # pass 66: run EVERY Godot command through this wrapper instead of "$GODOT": it takes the repo-wide Godot lock (tools/dl/locks/godot.lock, one Godot process at a time across lanes and the Level Editor's server), keeps the PC save aside and restores it; `python tools/locks.py status` shows who holds the Godot or ComfyUI lock
 python tools/level_editor/selftest.py                           # pass 66: the Level Editor's own checks (17,023; Node needed): model.js, the server on temp copies, and every selftest_<lane>.py group (S content writer/routes/vocab, J jobs, P page maths/rules, V previews, B methods.json)
 python tools/asset_job.py <job_dir> [--dry-run]                 # pass 66: how the Level Editor runs an art job (job.json -> argv -> gen_art.process / gen_ctl.main / the candidate scripts; --dry-run records the prompts into dry_run.json); ASSET_JOB_SIDECAR=<path> makes gen_art/gen_ctl write result.json instead of the content JSON
-python tools/gen_badge_cands.py --id <hero> --seeds 4 [--prompt ..] && python tools/gen_badge_cands.py --id <hero> --pick k [--head-width f --top-pad f]   # pass 66: hero badge candidates (RAW/<id>_portrait_c<k>.png, review/<id>_badge_cands.png), the pick written to <id>_icon.png + badge{}
+python tools/gen_badge_cands.py --id <hero> --seeds 4 [--character "<who>"] [--prompt "<action>"] [--ref <picture>] [--variant CODE] [--tag T] && python tools/gen_badge_cands.py --id <hero> --pick k [--tag T] [--variant CODE] [--head-width f --top-pad f]   # pass 66/68: hero badge candidates (RAW/<id>_portrait_<tag>_c<k>.png, review/<id>_badge_cands.png; the reference is --ref, else the look's own front still), the pick written to <id>_icon.png + badge{}, or for a look <id>_icon_<letter>.png + variants[CODE].icon; gen_title_heroes.py takes the same --character/--ref/--variant/--tag plus --pose/--holds/--camera/--extra-ref/--extra-words
 "$BLENDER" -b --python tools/blender_ref.py -- src=<fbx|glb|obj> out=<dir> mode=probe|icon|views|all   # pass 66: what a 3D file can do (probe.json: rig, actions, rigmap guess), the icon reference render (3/4 view), the five sprite views as clay.png + look.png
 "$BLENDER" -b --python tools/blender_depth_drivers.py -- src=<file> out=tools/dl/drivers/<name> action=<clip> mode=cycle|oneshot [frames=12 cycles=2 depth=tight amp=1.7 amp_bones=<regex>]   # pass 66: depth drivers from a rigged model's own clip (the beetle method for any model); pose_driver.py gained src= rigmap=<json> probe=1
 
@@ -238,7 +238,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-12, pass 67, version 0.53)
+## Status (2026-10-12, pass 68, version 0.54)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -248,7 +248,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,370 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.53).
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.54).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
 rolled per run from `Run.map_seed`, a stone boundary wall; everything but the ground, the wall, barrels, signs and a few
@@ -276,7 +276,7 @@ written and shown by the editor, not wired (the purchase loop is parked: memory 
 = evolution at a chest; hero mutations optional), lines (5 slots, 4 levels, evolve when maxed; `PassiveDef.line`) and
 passive items (no cap). Everything is content: `content/weapons|evolutions|mutations|passives|perks|pickups|structures|
 enemies|bosses|characters|talents|maps|sounds`. Mutation looks come from their `params` (`look`, `tint`, ...); emblems
-are gone. Pierce drop-off is on by default (`Settings.pierce_falloff`, Debug panel). Pass 67 primitives: a weapon's `amount_mode: "bounces"`, `return_on_hit`/`return_pierce`, `catch` (the ball's refund and Heat), a creature's `knockback_resist`, the map's `weapon_grade` (every 3D weapon's lit materials darker and richer), perk specials `periodic_buff`/`timeout`/`overdrive`, the pickup effect `leap`. Numbers and rules: `BALANCING.md`.
+are gone. Pierce drop-off is on by default (`Settings.pierce_falloff`, Debug panel). Pass 68: a look's recipe carries `stills` (heroes too), `seed_offset`, `method`, `from` (a draft), `painter.stills`; a look entry `icon_picked` and `title` (a hero look's own cut-out); a hero is drawn in the look he is played in (`Registry.played_look`: the badge everywhere, the cut-out on the Painted title). Pass 67 primitives: a weapon's `amount_mode: "bounces"`, `return_on_hit`/`return_pierce`, `catch` (the ball's refund and Heat), a creature's `knockback_resist`, the map's `weapon_grade` (every 3D weapon's lit materials darker and richer), perk specials `periodic_buff`/`timeout`/`overdrive`, the pickup effect `leap`. Numbers and rules: `BALANCING.md`.
 A weapon the editor creates starts hidden with three template path mutations and a template evolution, all hidden,
 until they are filled; a new line or passive item starts available; "locked" is a quest whose `unlocks.id` names it
 (the Items tab's availability op writes the quest). The count pins in the tests are shape rules now

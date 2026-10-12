@@ -268,6 +268,14 @@ class FakeJobs:
     def status(self):
         return {"queued": len(self.calls), "running": 0, "waiting": 0, "lanes": {}, "qa_online": None}
 
+    def candidate_defaults(self, kind, target):
+        """pass 68: the defaults route's stand-in (records what the route parsed)."""
+        self.defaults_asked = (kind, dict(target))
+        if kind not in ("icon_cands", "hero_badge", "hero_title"):
+            raise ValueError("defaults are for icon_cands, hero_badge, hero_title")
+        return {"kind": kind, "target": target, "fields": {"ref": "tools/dl/ai_raw_anime/x_front.png"}, "sources": {"ref": "the hero's front still"},
+                "ref_url": "/dl/ai_raw_anime/x_front.png", "ref_exists": False}
+
 
 class Pointed:
     """Re-points the server's folders at a temp tree for the length of a `with`."""
@@ -446,6 +454,35 @@ def create_checks(check, server):
             real_ant = json.load(open(os.path.join(ROOT, "game", "content", "enemies", "fire_ant", "fire_ant.json"), encoding="utf-8"))
             check(server.code_prefix("enemy", "fire_ant", real_ant) == "ANT", "fire_ant's prefix is ANT (the codes win over variant_base '' and the initials)")
             check(server.code_prefix("enemy", "dune_scorpion", {}) == "DS" and server.code_prefix("hero", "x", {"variant_base": "SOL-A"}) == "SOL", "prefix: initials, else variant_base's")
+            # pass 68 review: a removed look's cached paintings and clips keep its code taken. Remove moves only its strip,
+            # icon, marker and cut-out, and gen_art / the clip cycles reuse a cached key whatever the seed, so + New look…
+            # or a Duplicate's draft on that code landed the removed look again (DM-F's leftovers: DM-E's clone)
+            saved_dl = server.DL
+            server.DL = os.path.join(tmp, "dl")
+            try:
+                for name in ("ai_raw_anime/testbeast_front.png", "ai_raw_anime/testbeast_fd.png", "ai_raw_anime/testbeast_portrait_x_c0.png",
+                             "ai_anim/testbeast_walk_f/cycle.json"):
+                    _write(os.path.join(server.DL, *name.split("/")), "x")
+                check(server.next_codes("enemy", "testbeast", 3)["codes"] == ["TB-E", "TB-F", "TB-G"],
+                      "next_codes: the creature's own paintings and clips (<id>_front, <id>_fd, <id>_walk_f) and a badge candidate take no code")
+                r = server.add_look("enemy", "testbeast", None, "a look Garry rejects", {"art_prompt": "a test beast in red"})
+                for name in ("ai_raw_anime/testbeast_e_front.png", "ai_raw_anime/testbeast_e_front.json", "ai_raw_anime/testbeast_e_dead.png",
+                             "ai_anim/testbeast_tbe_walk_f/cycle.json"):
+                    _write(os.path.join(server.DL, *name.split("/")), "x")
+                rm = server.look_op("enemy", "testbeast", ["TB-E"], "remove")
+                nc = server.next_codes("enemy", "testbeast", 3)
+                check(r.get("code") == "TB-E" and rm["ok"] and "TB-E" not in json.load(open(cpath, encoding="utf-8"))["variants"]
+                      and os.path.isfile(os.path.join(server.DL, "ai_raw_anime", "testbeast_e_front.png")) and nc["codes"] == ["TB-F", "TB-G", "TB-H"],
+                      "a removed look whose stills (<id>_<letter>_*) and clips (<id>_<codepart>_*) are still cached keeps its code taken: %s" % nc["codes"])
+                _write(os.path.join(server.DL, "ai_anim", "testbeast_tbf_walk_b", "cycle.json"), "{}")
+                _write(os.path.join(server.DL, "ai_raw_anime", "TESTBEAST_TBG_SIDE.png"), "x")
+                nc = server.next_codes("enemy", "testbeast", 2)
+                check(nc["codes"] == ["TB-H", "TB-I"], "a clip folder alone, or gen_ctl's <id>_<codepart>_ stills (any case), take the code too: %s" % nc["codes"])
+                r = server.add_look("enemy", "testbeast", None, "testbeast look · from TB-A", {"from": "TB-A", "art_prompt": "a test beast in red"})
+                check(r["ok"] and r["code"] == "TB-H", "a Duplicate's draft (add_look with no code) skips the cached codes: %s" % r.get("code"))
+                server.look_op("enemy", "testbeast", ["TB-H"], "remove")
+            finally:
+                server.DL = saved_dl
 
             # add_look: a stub entry; the first look of a file without variants makes the base
             r = server.add_look("enemy", "stubby", None, "first try", {"motion": "m"})
@@ -460,6 +497,23 @@ def create_checks(check, server):
             check(r["ok"] and ha["variant_base"] == "HA-A" and list(ha["variants"].keys()) == ["HA-A", "HA-B"], "add_look on a hero: the base is -A")
             check(server.add_look("enemy", "testbeast", "TB-A")["status"] == 409 and server.add_look("enemy", "testbeast", "../x")["status"] == 400, "add_look refuses an existing or a bad code")
             check(server.next_codes("enemy", "stubby", 1)["base_created"] is False, "after the first look the base exists")
+            # pass 68 (D5): Duplicate makes a DRAFT: the source's recipe with `from`, the next code, no job, never the
+            # source's stills slug or seed offset
+            n_jobs = len(fake.calls)
+            draft = {"method": "hero_pose5", "painter": {"model": "dev", "steps": 32}, "from": "HA-B", "stills": "b", "seed_offset": 12, "art_prompt": "a hero in blue"}
+            r = server.add_look("hero", "hero_a", None, "hero look · from HA-B", draft)
+            ha = json.load(open(os.path.join(content, "characters", "hero_a", "hero_a.json"), encoding="utf-8"))
+            e = ha["variants"].get(r.get("code"), {})
+            check(r["ok"] and r["code"] == "HA-C" and e.get("recipe") == {"method": "hero_pose5", "painter": {"model": "dev", "steps": 32}, "from": "HA-B", "art_prompt": "a hero in blue"}
+                  and e.get("note") == "hero look · from HA-B" and "sprite" not in e and "fresh" not in e and len(fake.calls) == n_jobs and draft.get("stills") == "b",
+                  "D5: a draft takes the next code, the source's recipe without its slug and seed offset, and starts no job: %s" % e)
+            lk = [l for l in r["looks"] if l["code"] == "HA-C"]
+            check(lk and lk[0]["ready"] is False and lk[0]["recipe"].get("from") == "HA-B" and lk[0]["recipe"].get("painter") == {"model": "dev", "steps": 32}
+                  and lk[0].get("title_file") == "", "D5: the look records carry the draft's recipe (the page shows a draft)")
+            r = server.add_look("hero", "hero_a", None, "not a draft", {"stills": "x"})
+            check(r["ok"] and json.load(open(os.path.join(content, "characters", "hero_a", "hero_a.json"), encoding="utf-8"))["variants"][r["code"]]["recipe"] == {"stills": "x"},
+                  "add_look without `from` writes the recipe as given")
+            server.look_op("hero", "hero_a", [r["code"]], "remove")
 
             # look ops
             r = server.look_op("enemy", "testbeast", ["TB-B"], "approve")
@@ -643,6 +697,39 @@ def create_checks(check, server):
             r = hooks.merge_look("hero", "hero_b", "HB-C", {"sprite": "hero_b_sprite_c.png"}, None)
             hb = json.loads(_read(os.path.join(content, "characters", "hero_b", "hero_b.json")))
             check(r["ok"] and hb["variants"]["HB-C"]["frame_px"] == 320, "merge_look on a hero copies the recipe's frame_px into the entry")
+            # pass 68 (D8): a candidate picked for a look lands in its entry, line by line, without fresh
+            src = _read(cpath)
+            before = json.loads(src)["variants"]["TB-C"]
+            r = hooks.set_look_files("enemy", "testbeast", "TB-C", {"icon": "testbeast_icon_c2.png"})
+            after = json.loads(_read(cpath))["variants"]["TB-C"]
+            # the lead: a picked icon also marks the entry (icon_picked) so the look's later runs keep it
+            check(r["ok"] and r["layout"] == "entry" and r["backup"] and after == dict(before, icon="testbeast_icon_c2.png", icon_picked=True) and cio.diff_within_entry(src, _read(cpath), "TB-C"),
+                  "D8 set_look_files: the icon written into the look's entry only (marked icon_picked), the rest of it (fresh, sprite) as it was: %s" % r.get("error"))
+            r = hooks.set_look_files("enemy", "testbeast", "TB-C", {"icon": "testbeast_icon_c2.png"})
+            check(r["ok"] and r.get("unchanged") and not r["backup"], "set_look_files of the same file again writes nothing")
+            for files, code, what in (({"title": "hero_x.png"}, "TB-C", "a title for a creature"), ({"sprite": "x.png"}, "TB-C", "a key other than icon/title"),
+                                      ({"icon": "../evil.png"}, "TB-C", "a path"), ({"icon": "x.png"}, "TB-Z", "a look that is not there"), ({}, "TB-C", "nothing")):
+                r = hooks.set_look_files("enemy", "testbeast", code, files)
+                check(not r["ok"] and r["layout"] == "unmerged", "set_look_files refuses %s: %s" % (what, r.get("error")))
+            saved_wanted = server.WANTED_ART
+            server.WANTED_ART = os.path.join(tmp, "wanted")
+            try:
+                os.makedirs(server.WANTED_ART)
+                for f in ("hero_hero_b_c.png", "hero_hero_b_c.png.import", "hero_hero_b.png"):
+                    open(os.path.join(server.WANTED_ART, f), "wb").close()
+                r = hooks.set_look_files("hero", "hero_b", "HB-C", {"title": "hero_hero_b_c.png", "icon": "hero_b_icon_c.png"})
+                hb = json.loads(_read(os.path.join(content, "characters", "hero_b", "hero_b.json")))
+                lr = [l for l in hooks.look_records("hero", "hero_b") if l["code"] == "HB-C"]
+                check(r["ok"] and hb["variants"]["HB-C"]["title"] == "hero_hero_b_c.png" and hb["variants"]["HB-C"]["icon"] == "hero_b_icon_c.png"
+                      and lr and lr[0]["title_file"] == "hero_hero_b_c.png" and lr[0]["icon_file"] == "hero_b_icon_c.png",
+                      "D8: a hero look's title cut-out and badge land in its entry; the look record names them")
+                r = server.look_op("hero", "hero_b", ["HB-C"], "remove")
+                check(r["ok"] and not os.path.exists(os.path.join(server.WANTED_ART, "hero_hero_b_c.png")) and os.path.isfile(os.path.join(server.WANTED_ART, "hero_hero_b.png"))
+                      and any(m.endswith("hero_hero_b_c.png") for m in r["moved"]) and any(m.endswith("hero_hero_b_c.png.import") for m in r["moved"]),
+                      "removing a hero look moves its own title cut-out to the backup (the hero's own stays): %s" % r.get("moved"))
+            finally:
+                server.WANTED_ART = saved_wanted
+            check("appearance" in server.EDITOR_OWNED["hero"] and "appearance" in server.EDITOR_OWNED["enemy"], "appearance is a key the hero and creature forms own")
 
             # the jobs stand-in and the enqueue wrapper
             check(server.jobs_module() is fake and server._enqueue("register", {"kind": "enemy", "id": "x"}, {"targets": ["enemies/x"]})["job"]["kind"] == "register", "_enqueue goes through the jobs module")
@@ -774,6 +861,12 @@ def routes_checks(check, server):
         check(st == 200 and body.get("ok") and any(f["name"].startswith("driver_") for f in body["files"]), "/dl/<dir>/ lists the folder as JSON")
         st, body, h = get("/dl/drivers/run/meta.exe")
         check(st == 404, "/dl with an extension outside the list is a 404")
+        # pass 68: a top-level 3D render is a candidate job's default reference, shown as the form's thumbnail
+        if os.path.isfile(os.path.join(server.DL, "basketball_ref.png")):
+            st, body, h = get("/dl/basketball_ref.png", raw=True)
+            check(st == 200 and body[:4] == b"\x89PNG", "/dl/<x>_ref.png (a top-level render) is served")
+        st, body, h = get("/dl/notes.txt")
+        check(st == 404, "/dl/<a top-level file that is not a _ref.png> is still a 404")
         st, body, h = get("/icon/hero/astro", raw=True)
         check(st == 200 and body[:8] == b"\x89PNG\r\n\x1a\n", "/icon/hero/astro is a PNG")
         st, body, h = get("/icon/weapon/revolver", raw=True)
@@ -861,6 +954,17 @@ def routes_checks(check, server):
             check(st == 200 and body["rev"] == 7 and body["jobs"] == [] and body["ok"] is True, "/api/jobs: {rev, jobs}")
             st, body, h = get("/api/jobs?since=7")
             check(st == 200 and body["unchanged"] is True and body["rev"] == 7, "/api/jobs?since=<rev>: {rev, unchanged}")
+            # pass 68 (D6): the candidates' defaults for the form
+            st, body, h = get("/api/jobs/defaults?kind=hero_badge&target=hero/hero_a/HA-B")
+            check(st == 200 and body["ok"] and body["fields"]["ref"].endswith("x_front.png") and fake.defaults_asked == ("hero_badge", {"kind": "hero", "id": "hero_a", "code": "HA-B"}),
+                  "GET /api/jobs/defaults hands jobs.candidate_defaults the kind and the parsed target: %s" % (getattr(fake, "defaults_asked", None),))
+            st, body, h = get("/api/jobs/defaults?kind=icon_cands&target=enemy%2Ftestbeast")
+            check(st == 200 and fake.defaults_asked == ("icon_cands", {"kind": "enemy", "id": "testbeast", "code": ""}), "the target may be url-encoded and name no code")
+            st, body, h = get("/api/jobs/defaults?kind=look&target=hero/hero_a")
+            check(st == 400 and not body["ok"], "a kind without defaults is a 400: %s" % body.get("error"))
+            for bad in ("hero", "hero/Bad-Id", "planet/x", "hero/hero_a/bad%20code", ""):
+                st, body, h = get("/api/jobs/defaults?kind=hero_badge&target=" + bad)
+                check(st == 400, "a bad target %r is a 400" % bad)
             st, body = post("/api/jobs", {"kind": "look", "target": {"kind": "enemy", "id": "testbeast", "code": "TB-E"}, "spec": {"method": "creature_proc"}})
             check(st == 200 and body["ok"] and body["job"]["id"] == "j1" and body["job"]["kind"] == "look", "POST /api/jobs enqueues: %s" % body)
             st, body, h = get("/api/job/j1")

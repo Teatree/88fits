@@ -681,7 +681,7 @@ const StripPlayer = (() => {
   /** The hero's title cut-out (game/art/ui/wanted/hero_<id>.png, 660x888) at a quarter; stripes when it is not there;
    *  ⤢ opens it at 1:1. */
   function CutoutPreview(url) {
-    const box = el('div', { class: 'cutout', title: 'the title screen\'s cut-out, 660 × 888, shown at a quarter' });
+    const box = el('div', { class: 'cutout', title: 'the title cut-out, 660 × 888, shown at a quarter' + (typeof LookGrid !== 'undefined' && LookGrid.WHERE_SHOWN ? ' · ' + LookGrid.WHERE_SHOWN.cutout : '') });
     const img = el('img', { src: url, alt: '' });
     img.addEventListener('error', () => { box.classList.add('missing'); img.remove(); box.appendChild(el('span', { class: 'cutout-note', text: 'no title cut-out yet' })); });
     box.appendChild(img);

@@ -311,6 +311,20 @@ func character(id: String) -> CharacterDef:
 	return characters.get(id)
 
 
+## A hero as the player plays him (pass 68): `c` wearing the look kept for him (Save.hero_look), else his JSON's
+## `variant`, else the base (CharacterDef.variant_def falls back for "" and for a code he no longer has). Only the art
+## differs from `c`. What the screens draw of him outside the Player reads it: the painted title's cut-out (title_path),
+## the badge on his hero sheet, the results' plate, an unlock's plate and banner, the arena's hero tiles, the Hidden list.
+func played_look(c: CharacterDef) -> CharacterDef:
+	return c.variant_def(Save.hero_look(c.id)) if c else null
+
+
+## The def whose art a screen draws for `def` (pass 68): a hero in the look he is played in (played_look), anything else
+## itself (null for null). For the plates and banners that take any item: an unlock's, the Hidden list's.
+func art_of(def: ContentDef) -> ContentDef:
+	return played_look(def as CharacterDef) if def is CharacterDef else def
+
+
 func map(id: String) -> MapDef:
 	return maps.get(id)
 

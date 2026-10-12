@@ -5,7 +5,7 @@
    "id": "hero_pose5",
    "name": "Hero: five views on a Mixamo stride",
    "kind": "hero",
-   "summary": "Klein paints the front still from your words with the style anchor as its reference, then edits that painting into the back, the side, the two diagonals, a cheer, five hurt faces, a dead pose and a portrait (13 stills, about 20 s each). Wan Animate then walks each of the five view stills on an OpenPose driver (the run driver, or the one the recipe names per view), one sprite frame per driver frame, 24 a view, so every view shares one cadence. The hit is four frames round the hurt still, the death the front flinch tipping into the dead still; the strip is packed and, for the hero's base look, the round badge painted. You pick nothing while it runs; afterwards you look at every still and clip and re-roll one still (its key and a seed) or one clip (its folder moves aside and anim_seed goes up by one).",
+   "summary": "Klein paints the front still from your words with the style anchor as its reference, then edits that painting into the back, the side, the two diagonals, a cheer, five hurt faces, a dead pose and a portrait (13 stills, about 20 s each). Wan Animate then walks each of the five view stills on an OpenPose driver (the run driver, or the one the recipe names per view), one sprite frame per driver frame, 24 a view, so every view shares one cadence. The hit is four frames round the hurt still, the death the front flinch tipping into the dead still; the strip is packed and, for the hero's base look, the round badge painted. A new look paints stills of its own (cached as <id>_<letter>_<view>, with seeds of its own), so a Duplicate never comes out as its source; a look made from the hero's own paintings keeps them (stills ''). You pick nothing while it runs; afterwards you look at every still and clip and re-roll one still (its key and a seed) or one clip (its folder moves aside and anim_seed goes up by one).",
    "needs": ["the style anchor (game/art/style/style_anchor.png)", "OpenPose driver folders under tools/dl/drivers (run by default, 24 frames; others per view through pose_drivers)"],
    "produces": "13 stills, 5 clips of 24 frames, a strip of 166 frames (62 columns), the round badge (base look only)",
    "counts": {"stills": 13, "clips": 5},
@@ -22,6 +22,7 @@
    "example": {"image": "examples/hero_pose5_astro.png", "strip": {"kind": "hero", "id": "astro", "code": ""}},
    "recipe_fields": [
     {"key": "art_prompt", "type": "textarea", "default": "", "help": "Who the hero is: the words the front still is painted from, with the style anchor. A look's recipe may override the hero's own."},
+    {"key": "stills", "type": "text", "default": "", "help": "The slug this look's paintings are cached under (<id>_<stills>_front, _back, ...). A new look gets its own (its letter) when its job is queued; '' = the hero's own paintings (<id>_<view>), which a look made before pass 68 was painted from."},
     {"key": "pose_hint", "type": "text", "default": "", "help": "The standing pose of the front still (relaxed, weapon lowered, ...)."},
     {"key": "back_hint", "type": "text", "default": "", "help": "Extra words for the back and back-diagonal edits (what the back shows: a pack, a cape; no face). Also the view hint of the back clips."},
     {"key": "side_hint", "type": "text", "default": "", "help": "Extra words for the side edit."},
@@ -39,7 +40,7 @@
     {"key": "pose_drivers.front", "type": "driver", "default": "run", "help": "The driver of the front view."},
     {"key": "pose_driven", "type": "bool", "default": true, "help": "Off: every view is a free Wan clip (81 frames cut to 24) instead of a driven one."},
     {"key": "run_fps", "type": "int", "default": 36, "help": "Playback rate of the run cycle in the game (drops to 14 by itself when any clip fell back)."},
-    {"key": "still_keys", "type": "json", "default": {}, "help": "View -> raw cache key, to swap a painting for a composed or picked one (front, back, side, fd, bd, cheer, dead, hurt_<view>). Unlisted views use <id>_<view>."},
+    {"key": "still_keys", "type": "json", "default": {}, "help": "View -> raw cache key, to swap a painting for a composed or picked one (front, back, side, fd, bd, cheer, dead, hurt_<view>). Unlisted views use <id>_<stills>_<view> (<id>_<view> when stills is '')."},
     {"key": "screen", "type": "select", "default": "blue", "options": ["blue", "green"], "help": "The screen the stills are painted on and keyed off. Heroes wear olive and khaki, so they get blue unless you say green."},
     {"key": "frame_px", "type": "int", "default": 256, "help": "The sprite cell in pixels."},
     {"key": "key_sat", "type": "number", "default": 0.35, "help": "Keyer: a pixel must be this saturated to count as screen (0.85 for glossy black that reflects the screen)."},
@@ -122,7 +123,7 @@
    "example": {"image": "examples/creature_free2_hammer_giant.png", "strip": {"kind": "enemy", "id": "hammer_giant", "code": "HG-A"}},
    "recipe_fields": [
     {"key": "art_prompt", "type": "textarea", "default": "", "help": "What the creature is: the words the front still is painted from, with the style anchor. A look's recipe overrides the creature's own for its run."},
-    {"key": "stills", "type": "text", "default": "", "help": "Paint from a picked front instead: the slug a front_from_picture pick wrote (the stills are cached as <id>_<stills>_front/_back/_dead)."},
+    {"key": "stills", "type": "text", "default": "", "help": "The slug the look's paintings are cached under (<id>_<stills>_front/_back/_dead): a new look gets its own (its letter) when its job is queued; '' = the creature's own paintings; a front_from_picture pick's slug paints from that picked front."},
     {"key": "screen", "type": "select", "default": "green", "options": ["green", "blue"], "help": "The screen the stills are painted on and keyed off: any green in the creature, a pale sandstone one or a red glow means blue."},
     {"key": "motion", "type": "text", "default": "walking in place with a steady stomping gait", "help": "The free clip's words: the body's motion only; never name effects or hits ('hit' paints impact rings)."},
     {"key": "clip_fill", "type": "number", "default": 0.72, "help": "How much of the clip frame the figure fills (0.56 for a wide figure that touches the edge)."},
@@ -145,7 +146,7 @@
     {"key": "grade", "type": "json", "default": null, "help": "A colour grade applied to every keyed figure (artkit.grade)."},
     {"key": "pose", "type": "driver", "default": "", "help": "Keep empty here: a look inherits every key of its creature, and an inherited pose driver would walk it on Wan Animate instead (SK-C clears it with '')."}
    ],
-   "refs": {"2d": true, "3d": []},
+   "refs": {"2d": false, "3d": []},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
   },
   {
@@ -169,7 +170,7 @@
    "example": {"image": "examples/creature_pose2_dust_mummy.png", "strip": {"kind": "enemy", "id": "dust_mummy", "code": "DM-A"}},
    "recipe_fields": [
     {"key": "art_prompt", "type": "textarea", "default": "", "help": "What the creature is: the words the front still is painted from."},
-    {"key": "stills", "type": "text", "default": "", "help": "Paint from a picked front instead (a front_from_picture slug)."},
+    {"key": "stills", "type": "text", "default": "", "help": "The slug the look's paintings are cached under: a new look gets its own (its letter); '' = the creature's own; a front_from_picture slug paints from that picked front."},
     {"key": "pose", "type": "driver", "default": "walk", "help": "The OpenPose driver of the back view (and the front, unless pose_front): a 12-frame humanoid walk."},
     {"key": "pose_front", "type": "driver", "default": "", "help": "A different driver for the front view (walk_zombie_high raises the arms 12 degrees so they read from above)."},
     {"key": "gait", "type": "text", "default": "walking in place on the spot like on a treadmill", "help": "The driven clips' words."},
@@ -193,7 +194,7 @@
     {"key": "key_clamp_screen", "type": "bool", "default": false, "help": "Keyer: clamp the screen hue at the edges."},
     {"key": "grade", "type": "json", "default": null, "help": "A colour grade for every keyed figure."}
    ],
-   "refs": {"2d": true, "3d": ["animation"]},
+   "refs": {"2d": false, "3d": ["animation"]},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
   },
   {
@@ -216,7 +217,7 @@
     {"key": "directions", "type": "int", "default": 8, "help": "8: side, bd and fd stills and clips are made and the strip holds five views; 2: front and back only."},
     {"key": "view_hints", "type": "view_words", "default": {"side": "", "bd": "", "fd": ""}, "views": ["side", "bd", "fd"], "help": "Per-view words for the side, back-diagonal and front-diagonal edits of the front (what shows from that side; facing screen-right)."},
     {"key": "art_prompt", "type": "textarea", "default": "", "help": "What the creature is."},
-    {"key": "stills", "type": "text", "default": "", "help": "A picked front's slug (front_from_picture)."},
+    {"key": "stills", "type": "text", "default": "", "help": "The slug the look's paintings are cached under: a new look gets its own (its letter); '' = the creature's own; a front_from_picture slug paints from that picked front."},
     {"key": "screen", "type": "select", "default": "green", "options": ["green", "blue"], "help": "The screen the stills are painted on."},
     {"key": "motion", "type": "text", "default": "walking in place with a steady stomping gait", "help": "The free clips' words."},
     {"key": "clip_fill", "type": "number", "default": 0.72, "help": "How much of the clip frame the figure fills."},
@@ -238,7 +239,7 @@
     {"key": "key_clamp_screen", "type": "bool", "default": false, "help": "Keyer: clamp the screen hue at the edges."},
     {"key": "pose", "type": "driver", "default": "", "help": "Keep empty: an inherited pose driver would take the front and back clips to Wan Animate."}
    ],
-   "refs": {"2d": true, "3d": []},
+   "refs": {"2d": false, "3d": []},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
   },
   {
@@ -320,7 +321,7 @@
    "example": {"image": "examples/creature_proc_blue_slime.png", "strip": {"kind": "enemy", "id": "blue_slime", "code": "SL-A"}},
    "recipe_fields": [
     {"key": "art_prompt", "type": "textarea", "default": "", "help": "What the creature is."},
-    {"key": "stills", "type": "text", "default": "", "help": "A picked front's slug (front_from_picture)."},
+    {"key": "stills", "type": "text", "default": "", "help": "The slug the look's paintings are cached under: a new look gets its own (its letter); '' = the creature's own; a front_from_picture slug paints from that picked front."},
     {"key": "walk", "type": "select", "default": "hop", "options": ["hop", ""], "help": "hop: a 12-frame squash-and-stretch hop from the painting; '': with the job's no_video a 6-frame lean-and-bob walk."},
     {"key": "hop_height", "type": "number", "default": 0.13, "help": "How high the hop goes, as a fraction of the cell."},
     {"key": "cell_fill", "type": "number", "default": 0.72, "help": "How much of the cell the painting fills (headroom for the hop; raise the creature's size to keep it the same on screen)."},
@@ -340,7 +341,7 @@
    "job_fields": [
     {"key": "no_video", "type": "bool", "default": false, "help": "The 6-frame lean-and-bob walk instead of a hop (--no-video)."}
    ],
-   "refs": {"2d": true, "3d": []},
+   "refs": {"2d": false, "3d": []},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--no-video?", "--skip-qa?"]}
   },
   {
@@ -433,10 +434,10 @@
    "id": "icon_cands",
    "name": "Icon candidates (pick by eye)",
    "kind": "item",
-   "kinds": ["item", "enemy", "hero"],
-   "summary": "N seeds of the icon prompt, with an optional reference render laid on the screen colour and the 'copy this exact object' wording (a Blender render from ref_render, or a picture); --dev paints on Flux.2 dev at 28 steps (4-5 min a seed, a service restart each). A review sheet; you pick one and it is installed as the icon (the old one backed up under tools/dl/backup). Also paints a creature's or a hero's icon file.",
+   "kinds": ["item", "enemy"],
+   "summary": "N seeds of the icon prompt (the subject, the Shop Titans icon words, the screen), with one reference picture laid on the screen colour. The server fills what you leave empty (pass 68): a creature's subject is its description (its appearance, else its art_prompt without the still's pose) and its reference the look's own front still, so the icon is this creature; an item's subject is its art_prompt and its reference its 3D render when there is one (tools/dl/<id>_ref.png). With a reference on a creature the words begin 'The reference image shows this exact creature: keep its shape, colors and proportions.'; for an item write the copy wording yourself ('Copy this exact object from the reference image: ...'). --dev paints on Flux.2 dev (8 Turbo steps, 28 with Turbo off; 4-5 min a seed, a service restart each). Every attempt paints its own candidates (a re-run never hands back the old ones). A review sheet; you pick one and it is installed (the old one backed up under tools/dl/backup): an item's icon, a creature's, or a creature look's <id>_icon_<x>.png and its entry's icon. A hero's icon is the round badge: hero_badge.",
    "needs": ["optional: a reference render (ref_render's icon_ref.png) or a picture under tools/dl"],
-   "produces": "tools/dl/icons_le_<job>/<key>_c<k>.png and review_<key>.png; the pick installs the icon",
+   "produces": "tools/dl/icons_le_<job>[_a<attempt>]/<key>_c<k>.png and review_<key>.png; the pick installs the icon",
    "counts": {"stills": 4, "clips": 0},
    "time": {"median_s": 80, "worst_s": 1200},
    "per_seed_s": 20,
@@ -451,12 +452,13 @@
    "example": {"image": "examples/icon_cands_sun_scepter.png", "strip": null},
    "recipe_fields": [],
    "job_fields": [
-    {"key": "subject", "type": "textarea", "default": "", "help": "What to paint (with a reference the COPY wording is put in front: 'Copy this exact object from the reference image: its silhouette, proportions, parts and colours, seen from the same angle.')."},
-    {"key": "ref", "type": "file", "default": "", "help": "A render or picture under tools/dl, laid on the screen colour and passed as the only reference (no style anchor for icons)."},
-    {"key": "screen", "type": "select", "default": "green", "options": ["green", "blue"], "help": "The screen colour (blue for anything with green in it)."},
+    {"key": "subject", "type": "textarea", "default": "", "help": "What to paint. Empty = filled by the server: a creature's description (appearance, else art_prompt without the pose), an item's art_prompt. Nothing is put in front of it for an item: to have a render copied exactly, begin with 'Copy this exact object from the reference image: its silhouette, proportions, parts and colours, seen from the same angle.'"},
+    {"key": "ref", "type": "file", "default": "", "help": "The one reference picture, laid on the screen colour (no style anchor for icons): a repo path (tools/dl/uploads/2d/<file>), a tools/dl path or an absolute one. Empty = the creature look's own front still, an item's 3D render."},
+    {"key": "screen", "type": "select", "default": "", "options": ["", "green", "blue"], "help": "The screen colour (blue for anything with green in it). Empty = the creature's or item's own screen, else the one gen_art paints it on."},
     {"key": "style", "type": "textarea", "default": "", "help": "Replaces the Shop Titans style words (UI art, badges)."},
+    {"key": "file", "type": "text", "default": "", "help": "The icon file the pick writes. Empty = a look's <id>_icon_<x>.png, else the icon the game reads (<id>_icon.png)."},
     {"key": "seeds", "type": "int", "default": 4, "help": "How many candidates."},
-    {"key": "dev", "type": "bool", "default": false, "help": "Flux.2 dev at 28 steps instead of Klein (better, 4-5 min a seed, one service restart each)."}
+    {"key": "dev", "type": "bool", "default": false, "help": "Flux.2 dev instead of Klein: 8 Turbo steps, 28 with Turbo off (better, 4-5 min a seed, one service restart each)."}
    ],
    "refs": {"2d": true, "3d": ["icon"]},
    "runner": {"tool": "gen_icon_cands", "call": "paint", "argv": [], "job": {"kind": "{type}", "id": "{id}", "subject": "{subject}", "ref": "{ref}", "screen": "{screen}", "set": "_le_{job}", "style": "{style}", "file": "{file}"},
@@ -466,9 +468,9 @@
    "id": "hero_badge",
    "name": "Hero badge (round icon) candidates",
    "kind": "hero",
-   "summary": "N close-up portraits edited from the hero's front still with portrait_prompt (a bust, one subject), each shown inside the round badge with the head width and top padding of the hero's badge block; a review sheet. You pick one: it becomes <id>_icon.png and badge.still in the hero's JSON (so a later base run keeps it).",
-   "needs": ["the hero's front still (hero_pose5 ran once)"],
-   "produces": "tools/dl/ai_raw_anime/<id>_portrait_c<k>.png and tools/dl/review/<id>_badge_cands.png; the pick writes <id>_icon.png and badge.still",
+   "summary": "N close-up portraits edited from a reference picture of this exact hero (by default the look's own front still, else the hero's), with the hero's description (character: appearance, else art_prompt without the still's pose) and the portrait's action (prompt: portrait_prompt), a bust with one subject, each shown inside the round badge; a review sheet. The server fills every field you leave empty, so the badge is this hero. Every job paints its own candidates (<id>_portrait_<tag>_c<k>: a new job never hands back old pictures). You pick one: for the hero it becomes <id>_icon.png and badge.still in the hero's JSON (so a later base run keeps it); for a look (variant) it becomes <id>_icon_<x>.png and that look's icon.",
+   "needs": ["the hero's front still (hero_pose5 ran once), or the look's"],
+   "produces": "tools/dl/ai_raw_anime/<id>_portrait_<tag>_c<k>.png and tools/dl/review/<id>_badge_cands.png; the pick writes <id>_icon.png and badge.still, or a look's <id>_icon_<x>.png and variants[CODE].icon",
    "counts": {"stills": 4, "clips": 0},
    "time": {"median_s": 80, "worst_s": 240},
    "per_seed_s": 20,
@@ -477,26 +479,28 @@
     "Extra fingers and ears pass the QA: look at the sheet."
    ],
    "example": {"image": "examples/hero_badge_heroes.png", "strip": {"kind": "hero", "id": "solenne", "code": ""}},
-   "recipe_fields": [
-    {"key": "portrait_prompt", "type": "text", "default": "smiling at the viewer", "help": "The portrait's words (hero-level)."},
-    {"key": "badge.head_width", "type": "number", "default": 0.62, "help": "How wide the head sits in the badge circle (a fraction of it)."},
-    {"key": "badge.top_pad", "type": "number", "default": 0.08, "help": "Room above the head inside the circle."}
-   ],
+   "recipe_fields": [],
    "job_fields": [
+    {"key": "character", "type": "textarea", "default": "", "help": "Who: the hero's description. Empty = filled: the appearance, else the art_prompt without the still's pose clause (', standing straight ...'). A single space sends none."},
+    {"key": "prompt", "type": "textarea", "default": "", "help": "The portrait's action. Empty = the hero's portrait_prompt (else 'smiling at the viewer')."},
+    {"key": "ref", "type": "file", "default": "", "help": "The identity picture the portrait is edited from. Empty = the look's own front still, else the hero's (tools/dl/ai_raw_anime/<key>.png); any picture path, or an upload."},
+    {"key": "variant", "type": "text", "default": "", "help": "The look the badge is for (filled from the target's code): its pick writes <id>_icon_<x>.png and that look's icon; empty = the hero's own badge."},
     {"key": "seeds", "type": "int", "default": 4, "help": "How many portraits."},
-    {"key": "prompt", "type": "text", "default": "", "help": "Other portrait words for this run only."}
+    {"key": "first_seed", "type": "int", "default": 0, "help": "Added to every seed."},
+    {"key": "head_width", "type": "number", "default": 0.0, "help": "How wide the head sits in the badge circle (0 = the default zoom)."},
+    {"key": "top_pad", "type": "number", "default": 0.03, "help": "Room above the head inside the circle."}
    ],
-   "refs": {"2d": false, "3d": []},
-   "runner": {"tool": "gen_badge_cands", "call": "main", "argv": ["--id", "{id}", "--seeds", "{seeds}", "--prompt", "{prompt}?"], "then": "waiting",
-              "pick_argv": ["--id", "{id}", "--pick", "{n}", "--head-width", "{head_width}?", "--top-pad", "{top_pad}?"]}
+   "refs": {"2d": true, "3d": []},
+   "runner": {"tool": "gen_badge_cands", "call": "main", "argv": ["--id", "{id}", "--seeds", "{seeds}", "--first-seed", "{first_seed}?", "--character", "{character}?", "--prompt", "{prompt}?", "--ref", "{ref}?", "--variant", "{variant}?"], "then": "waiting",
+              "pick_argv": ["--id", "{id}", "--pick", "{n}", "--variant", "{variant}?", "--head-width", "{head_width}?", "--top-pad", "{top_pad}?"]}
   },
   {
    "id": "hero_title",
    "name": "Hero title cut-out candidates",
    "kind": "hero",
-   "summary": "A full-body splash of the hero from the front still and a pose prompt (title_pose; title_holds names the one thing held, title_camera the shot), with an optional object reference copied exactly (title_extra_ref: a render of the thing and its words), N seeds at 832 by 1120, keyed and fitted to 660 by 888; a review sheet. The pick writes game/art/ui/wanted/hero_<id>.png and a Godot import follows, so the title shows it.",
-   "needs": ["the hero's front still", "optional: an object render (ref_render's icon_ref.png) for the thing he holds"],
-   "produces": "tools/dl/title_heroes/<id>_<n>.png, <id>_<n>_raw.png, review_<id>.png; the pick: game/art/ui/wanted/hero_<id>.png",
+   "summary": "A full-body splash of this exact hero, edited from a reference picture (by default the look's own front still, else the hero's) with the hero's description (character) and the job's pose, held thing and shot (pose: title_pose, else the tool's table, else a confident full-body stance; holds: title_holds; camera: title_camera), with an optional second picture copied exactly (extra_ref and extra_words, from title_extra_ref: a render of the held thing). The server fills every field you leave empty. N seeds at 832 by 1120, keyed and fitted to 660 by 888; a review sheet. The pick writes game/art/ui/wanted/hero_<id>.png (a look's: hero_<id>_<x>.png and its entry's title; the old file backed up) and a Godot import follows, so the title shows it.",
+   "needs": ["the hero's front still, or the look's", "optional: an object render (ref_render's icon_ref.png) for the thing he holds"],
+   "produces": "tools/dl/title_heroes/<id>[_<x>]_<n>.png, <id>[_<x>]_<n>_raw.png, review sheet; the pick: game/art/ui/wanted/hero_<id>.png, or a look's hero_<id>_<x>.png and variants[CODE].title",
    "counts": {"stills": 4, "clips": 0},
    "time": {"median_s": 100, "worst_s": 300},
    "per_seed_s": 25,
@@ -506,19 +510,23 @@
     "'hit' in a prompt paints impact rings."
    ],
    "example": {"image": "examples/hero_title_calavera.png", "strip": {"kind": "hero", "id": "calavera", "code": ""}},
-   "recipe_fields": [
-    {"key": "title_pose", "type": "textarea", "default": "", "help": "The pose of the splash (hero-level; falls back to the tool's own table, then portrait_prompt)."},
-    {"key": "title_holds", "type": "text", "default": "", "help": "The one thing held ('the guitar is the only thing he holds')."},
-    {"key": "title_camera", "type": "text", "default": "", "help": "The shot (full body from the front, a low angle, ...)."},
-    {"key": "title_extra_ref.file", "type": "file", "default": "", "help": "A render of the held object under tools/dl (the second reference, copied exactly)."},
-    {"key": "title_extra_ref.words", "type": "text", "default": "", "help": "Its description: 'copy its shape and colours exactly: <words>'."}
-   ],
+   "recipe_fields": [],
    "job_fields": [
+    {"key": "character", "type": "textarea", "default": "", "help": "Who: the hero's description. Empty = filled: the appearance, else the art_prompt without the still's pose clause. A single space sends none."},
+    {"key": "pose", "type": "textarea", "default": "", "help": "The pose of the splash. Empty = title_pose, else the tool's own table, else 'standing confidently in a heroic pose, full body'."},
+    {"key": "holds", "type": "text", "default": "", "help": "The one thing held ('the guitar is the only thing he holds'). Empty = title_holds, else the tool's table, else 'no weapon'."},
+    {"key": "camera", "type": "text", "default": "", "help": "The shot. Empty = title_camera, else 'facing the viewer, seen from the front at eye level'."},
+    {"key": "ref", "type": "file", "default": "", "help": "The identity picture. Empty = the look's own front still, else the hero's; any picture path, or an upload."},
+    {"key": "extra_ref", "type": "file", "default": "", "help": "A second picture copied exactly, e.g. a render of the held object (title_extra_ref.file)."},
+    {"key": "extra_words", "type": "textarea", "default": "", "help": "The words about the second picture: 'copy its shape and colours exactly: <words>' (title_extra_ref.words)."},
+    {"key": "variant", "type": "text", "default": "", "help": "The look the cut-out is for (filled from the target's code): its pick writes art/ui/wanted/hero_<id>_<x>.png and that look's title; empty = the hero's own."},
     {"key": "seeds", "type": "int", "default": 4, "help": "How many candidates (seed = first_seed + n * 101)."},
     {"key": "first_seed", "type": "int", "default": 11, "help": "The first seed."}
    ],
-   "refs": {"2d": false, "3d": ["icon"]},
-   "runner": {"tool": "gen_title_heroes", "call": "paint", "argv": [], "args": ["{id}", "{seeds}", "{first_seed}"], "then": "done", "pick_call": "pick", "pick_args": ["{id}={n}"], "after_pick": "import"}
+   "refs": {"2d": true, "3d": ["icon"]},
+   "runner": {"tool": "gen_title_heroes", "call": "paint", "argv": ["--only", "{id}", "--seeds={seeds}", "--first-seed={first_seed}", "--character", "{character}?", "--pose", "{pose}?", "--holds", "{holds}?", "--camera", "{camera}?", "--ref", "{ref}?", "--extra-ref", "{extra_ref}?", "--extra-words", "{extra_words}?", "--variant", "{variant}?"],
+              "args": ["{id}", "{seeds}", "{first_seed}"], "kwargs": ["character", "pose", "holds", "camera", "ref", "extra_ref", "extra_words", "variant"],
+              "then": "done", "pick_call": "pick", "pick_args": ["{id}={n}"], "pick_argv": ["--pick", "{id}={n}", "--variant", "{variant}?"], "after_pick": "import"}
   },
   {
    "id": "driver_pose",

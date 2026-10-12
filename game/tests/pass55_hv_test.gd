@@ -54,6 +54,18 @@ func _two_looks() -> CharacterDef:
 	return c
 
 
+## A hero with one look (pass 68 review): Astro built from his JSON with any looks it lists taken off, so these tests
+## pin the rule for a hero without looks, not Astro's content (Garry may give him looks in the Level Editor).
+func _one_look() -> CharacterDef:
+	var d: Dictionary = JsonContent.load_json("res://content/characters/astro/astro.json")
+	d.erase("variants")
+	d.erase("variant")
+	d.erase("variant_base")
+	var one := JsonContent.build("characters", d, "res://content/characters/astro/") as CharacterDef
+	assert_object(one).is_not_null()
+	return one
+
+
 func _hero(def: CharacterDef) -> Player:
 	var p: Player = auto_free(load("res://player/Player.tscn").instantiate())
 	p.setup(def)
@@ -101,20 +113,19 @@ func test_variant_def_swaps_the_art_and_keeps_the_identity() -> void:
 
 
 func test_a_hero_without_variants_is_unchanged() -> void:
-	var astro: CharacterDef = Registry.character("astro")
-	assert_array(astro.variant_codes()).is_empty()
-	assert_object(astro.variant_def("SOL-B")).is_same(astro)
-	assert_object(astro.variant_def("")).is_same(astro)
-	# and a hero drawn without a kept look is drawn from his own strip, as before
-	var p := _hero(astro)
-	assert_object(_drawn(p)).is_same(astro.sprite)
-	assert_str(p.look_code()).is_equal("")
-	# a JSON with no looks builds as it always did
+	# a JSON with no looks builds as it always did: no looks, his top-level strip
+	var one := _one_look()
 	var d: Dictionary = JsonContent.load_json("res://content/characters/astro/astro.json")
-	var built := JsonContent.build("characters", d, "res://content/characters/astro/") as CharacterDef
-	assert_dict(built.variants).is_empty()
-	assert_str(built.variant).is_equal("")
-	assert_str(built.sprite_file).is_equal(astro.sprite_file)
+	assert_dict(one.variants).is_empty()
+	assert_str(one.variant).is_equal("")
+	assert_str(one.sprite_file).is_equal(str(d.get("sprite", "astro_sprite.png")))
+	assert_array(one.variant_codes()).is_empty()
+	assert_object(one.variant_def("SOL-B")).is_same(one)
+	assert_object(one.variant_def("")).is_same(one)
+	# and a hero drawn without a kept look is drawn from his own strip, as before
+	var p := _hero(one)
+	assert_object(_drawn(p)).is_same(one.sprite)
+	assert_str(p.look_code()).is_equal("")
 
 
 func test_the_json_loads_the_looks_and_drops_one_without_a_strip() -> void:
@@ -351,10 +362,17 @@ func test_the_looks_show_for_the_visit_and_use_from_now_on_keeps_one() -> void:
 
 
 func test_a_hero_with_one_look_says_so_and_has_no_chips() -> void:
-	var game := _arena(Registry.character("astro"))
+	var one := _one_look()
+	var game := _arena(one)
+	Run.character = one
 	var panel := _panel(game)
 	assert_object(panel._content.find_child("HeroLooks", true, false)).is_null()
 	assert_object(panel._content.find_child("KeepLook", true, false)).is_null()
+	var said := false
+	for l in panel._content.find_children("*", "Label", true, false):
+		if (l as Label).text == one.display_name + " has one look.":
+			said = true
+	assert_bool(said).is_true()
 	await get_tree().process_frame
 
 

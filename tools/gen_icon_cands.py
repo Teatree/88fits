@@ -12,11 +12,21 @@ render, "halo": badge glow colour, "set": the pass whose folder it paints into, 
 ICON_STYLE}. Content icons are finished like gen_art's icons (256 px), badges like gen_badges' (128 px, heavy outline,
 halo), UI art at 256 px with a slight outline, damage sources ("source", the Results screen's rows that are not a
 weapon: fire, revive, a blast, an unknown hit) like content icons into art/ui/sources/<id>.png.
+
+Pass 68: "ref" may be a path under the repo (the Level Editor's uploads, tools/dl/uploads/2d/x.png), under tools/dl/ or
+absolute; with a picture the words lead with what it shows (icon_words: "The reference image shows this exact creature:
+..." for a creature, the COPY sentence for an object) unless the subject already says. A job may name a look
+("variant": "GOB-E"): its pick goes to <id>_icon_<letter>.png and the look's entry. `paint(..., attempt=N)` (a Level
+Editor job's re-run) moves the earlier candidates into <folder>/attempt<N-1>/ and paints new ones on new seeds. A
+hero's icon is its round badge (tools/gen_badge_cands.py): a pick for kind "characters" needs a named "file".
 """
 import io
 import json
 import os
+import re
+import shutil
 import sys
+import time
 
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -615,35 +625,93 @@ JOBS = {
 }
 
 
+REF_CREATURE = "The reference image shows this exact creature: keep its shape, colors and proportions. "
+REF_CHARACTER = "The reference image shows this exact character: keep the same face, outfit, colors and proportions. "
+CREATURE_KINDS = ("enemies", "bosses")
+CHARACTER_KINDS = ("characters",)
+
+
+def ref_lead(kind, subject, has_ref):
+    """What the reference picture is, said before the subject (pass 68: an editor job sent the picture with no word about
+    it): a creature's look, a hero's, else an object to copy (COPY). Nothing without a picture, or when the subject
+    already speaks of "the reference image" (every hand-written JOBS entry with a ref does)."""
+    if not has_ref or "reference image" in str(subject or "").lower():
+        return ""
+    if kind in CREATURE_KINDS:
+        return REF_CREATURE
+    if kind in CHARACTER_KINDS:
+        return REF_CHARACTER
+    return COPY
+
+
+def icon_words(subject, kind, has_ref, style=None, bg=None):
+    """The words of one icon candidate: the reference's sentence, the subject, the icon style (gen_art.ICON_STYLE unless
+    the job names its own) and the screen. No subject (a picture alone): the sentence and the style only."""
+    subj = str(subject or "").strip()
+    if subj.endswith("."):
+        subj = subj[:-1].rstrip()
+    return ref_lead(kind, subj, has_ref) + (subj + ". " if subj else "") + (style or ga.ICON_STYLE) + ". " + (bg or ga.BG_GREEN) + "."
+
+
+def candidate_seeds(key, seeds, attempt=1):
+    """seed_for("icon46_" + key) + 7919 * k, moved by gen_art.LOOK_SEED_STEP for each re-run (attempt 2, 3, ...)."""
+    base = ga.seed_for("icon46_" + key) + ga.LOOK_SEED_STEP * max(0, int(attempt or 1) - 1)
+    return [base + 7919 * k for k in range(int(seeds))]
+
+
+def retire(out, key, attempt):
+    """A re-run's (attempt N > 1) earlier candidates and review sheet moved into <out>/attempt<N-1>/, so they are painted
+    again and the folder holds this attempt's only (pass 68: a requeued job showed the old pictures). Returns the moved paths."""
+    attempt = int(attempt or 1)
+    if attempt <= 1 or not os.path.isdir(out):
+        return []
+    pat = re.compile(re.escape(key) + r"_c\d+\.(png|json)$")
+    names = [n for n in sorted(os.listdir(out)) if pat.match(n) or n == "review_%s.png" % key]
+    if not names:
+        return []
+    dst = os.path.join(out, "attempt%d" % (attempt - 1))
+    if os.path.exists(dst):
+        dst += "_" + time.strftime("%Y%m%d-%H%M%S")
+    os.makedirs(dst)
+    for n in names:
+        shutil.move(os.path.join(out, n), os.path.join(dst, n))
+    return [os.path.join(dst, n) for n in names]
+
+
 def _ref(name, blue=False):
-    """The render laid on the screen colour (Blender renders with a transparent film)."""
-    im = Image.open(os.path.join(DL, name)).convert("RGBA")
-    g = Image.new("RGBA", im.size, (0, 0, 255, 255) if blue else (0, 255, 0, 255))
-    g.alpha_composite(im)
-    return comfy.upload_pil(g.convert("RGB"), name)
+    """The reference laid on the screen colour (Blender renders with a transparent film), uploaded under its file name.
+    pass 68: a path under the repo (the Level Editor's uploads), under tools/dl/ (the renders) or absolute."""
+    p = ga.ref_path(name)
+    if p is None:
+        raise SystemExit("gen_icon_cands: no reference picture %r (looked under the repo, under tools/dl/ and as given)" % str(name))
+    return comfy.upload_pil(ga.on_screen(Image.open(p), blue), comfy.safe_name(os.path.basename(p)))
 
 
-def paint(only, seeds, dev):
+def paint(only, seeds, dev, attempt=None):
     for key, job in JOBS.items():
         if job is None or (only and key not in only):
             continue
+        if not str(job.get("subject") or "").strip() and not job.get("ref"):
+            raise SystemExit("gen_icon_cands: %s has no subject and no reference picture: nothing to paint from" % key)
         OUT = _out(job)
         os.makedirs(OUT, exist_ok=True)
+        moved = retire(OUT, key, attempt)
+        if moved:
+            print("  attempt %d: the earlier candidates moved to %s" % (int(attempt), os.path.dirname(moved[0])), flush=True)
         # a subject with green in it (the guitar's sides, poison, a green heart) goes on the blue screen, or the keyer eats it
         blue = job.get("screen") == "blue"
         refs = [_ref(job["ref"], blue)] if job.get("ref") else []
-        prompt = job["subject"] + ". " + job.get("style", ga.ICON_STYLE) + ". " + (ga.BG_BLUE if blue else ga.BG_GREEN) + "."
-        base = ga.seed_for("icon46_" + key)
+        prompt = icon_words(job.get("subject", ""), job.get("kind", ""), bool(refs), job.get("style"), ga.BG_BLUE if blue else ga.BG_GREEN)
         tiles = []
-        for k in range(seeds):
+        for k, s in enumerate(candidate_seeds(key, seeds, attempt or 1)):
             p = os.path.join(OUT, "%s_c%d.png" % (key, k))
             if not os.path.exists(p):
-                s = base + k * 7919
                 if dev:
                     ga.MODEL["model"] = "dev"
                 imgs, secs = ga.paint(prompt, s, 1024, 1024, refs, "88fits/icons46_" + key, full=True)
                 Image.open(io.BytesIO(imgs[0])).convert("RGB").save(p)
-                json.dump({"seed": s, "prompt": prompt, "refs": refs}, open(p[:-4] + ".json", "w", encoding="utf-8"), indent=1)
+                json.dump({"seed": s, "prompt": prompt, "refs": refs, "painter": ga.painter_info(full=True)},
+                          open(p[:-4] + ".json", "w", encoding="utf-8"), indent=1)
                 print("  %s c%d seed %d %.0fs" % (key, k, s, secs), flush=True)
             tiles.append(Image.open(p).convert("RGB"))
         sheet = Image.new("RGB", (384 * len(tiles), 412), (30, 30, 36))
@@ -689,22 +757,53 @@ def pick(pairs):
             if not os.path.isdir(folder):
                 print("  no folder yet for", key, "->", folder)
                 continue
+            if job["kind"] in CHARACTER_KINDS and not job.get("file"):
+                # pass 68: a square icon over the hero's round badge showed its corners on every plate
+                raise SystemExit("gen_icon_cands: a hero's icon is the round badge: queue hero_badge (tools/gen_badge_cands.py)")
+            # any look code names a look, the base look's (variant_base) too, as gen_art paints it (<id>_icon_a.png)
+            code = str(job.get("variant") or "").strip()
+            if code:
+                try:
+                    d = json.load(open(os.path.join(folder, job["id"] + ".json"), encoding="utf-8"))
+                except (OSError, ValueError):
+                    d = {}
+                if not ga.has_look(d, code):
+                    raise SystemExit("gen_icon_cands: %s has no look %s" % (job["id"], code))
             icon, _ = ga.finish(img, 256, 0.92, False, None, 0.006)
-            # a job may name its file (pass 61: a talent form's <id>_<form>_icon.png beside the talent's own icon)
-            dst = os.path.join(folder, job.get("file", job["id"] + "_icon.png"))
+            # a job may name its file (pass 61: a talent form's <id>_<form>_icon.png beside the talent's own icon); a look
+            # has its own (pass 68: the pick had overwritten the base creature's icon)
+            name = job.get("file") or (("%s_icon_%s.png" % (job["id"], ga.look_letter(code))) if code else job["id"] + "_icon.png")
+            dst = os.path.join(folder, name)
             if os.path.exists(dst):
                 bk = os.path.join(DL, "backup", "icons" + str(job.get("set", "46")))
                 os.makedirs(bk, exist_ok=True)
                 Image.open(dst).save(os.path.join(bk, os.path.basename(dst)))
             icon.save(dst)
+            sidecar = os.environ.get("ASSET_JOB_SIDECAR", "")
+            info = {"pipeline": "gen_icon_cands", "pick": "%s_c%s" % (key, n)}
+            if code and sidecar:
+                ga.emit_sidecar(folder, job["id"], code, {"icon": name}, info)
+            elif code:
+                ga.write_look_entry(os.path.join(folder, job["id"] + ".json"), code, {"icon": name})
+            elif sidecar:
+                ga.emit_sidecar(folder, job["id"], "", {}, info)
         print("installed", key, "candidate", n, "->", dst)
+
+
+def _arg(a, name, default=None):
+    """--name value or --name=value."""
+    for i, x in enumerate(a):
+        if x == "--" + name and i + 1 < len(a):
+            return a[i + 1]
+        if x.startswith("--" + name + "="):
+            return x.split("=", 1)[1]
+    return default
 
 
 if __name__ == "__main__":
     a = sys.argv[1:]
     if "--pick" in a:
-        pick(a[a.index("--pick") + 1:])
+        pick([x for x in a[a.index("--pick") + 1:] if "=" in x and not x.startswith("--")])
     else:
-        only = a[a.index("--only") + 1].split(",") if "--only" in a else None
-        seeds = int(a[a.index("--seeds") + 1]) if "--seeds" in a else 4
-        paint(only, seeds, "--dev" in a)
+        only = _arg(a, "only")
+        paint(only.split(",") if only else None, int(_arg(a, "seeds", "4")), "--dev" in a, int(_arg(a, "attempt", "1") or 1))

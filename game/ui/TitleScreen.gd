@@ -1,5 +1,6 @@
 ## Title (Wanted 01/02), with play setup merged in: the gold plate, "★ WANTED ★ / 88fits / DRAG · DODGE · SURVIVE", the
-## hero full-body (art/ui/wanted/hero_<id>.png, a striped slot until painted) between two arrow squares, swipe or tap
+## hero full-body (art/ui/wanted/hero_<id>.png, since pass 68 the played look's own `title` when it has one; a striped
+## slot until painted) between two arrow squares, swipe or tap
 ## to change, a dot per hero under it, the hero plaque (name, italic line, the trait's numbers and the favourite's plate:
 ## his weapon, or the line or passive he favours, Ironwood's Brawn since pass 47, each plate in its colour), PLAY, the
 ## map and its best run in one line (a tap changes the map when there are several). Heroes still to unlock ride the
@@ -396,7 +397,9 @@ func _show_hero(from_side: int) -> void:
 		if _art:
 			_art.queue_free()
 		var who := ("the " + c.display_name) if c.id == "drifter" else c.display_name
-		_art = WPlaceholder.make("hero_" + c.id, "%s, full-body cut-out\nfacing camera · 520 × 700" % who, HERO_SIZE)
+		# the cut-out of the look he is played in (pass 68, Registry.played_look): the look's own `title` when that file
+		# is there, else hero_<id>.png, else the striped slot
+		_art = WPlaceholder.make(Registry.played_look(c).title_path(), "%s, full-body cut-out\nfacing camera · 520 × 700" % who, HERO_SIZE)
 		if locked:
 			# painted: a dark silhouette; not yet painted: the striped slot, faded
 			_art.silhouette = true

@@ -22,6 +22,16 @@ import.
 comfy.upload and the Wan cycles are replaced by stand-ins that record every prompt into <job_dir>/dry_run.json and hand
 back the cached painting (tools/dl/ai_raw_anime/<key>.png) or a flat screen-coloured square; clips come back None, so
 the strip is packed with procedural frames. The content JSON is never written (the sidecar is on).
+Pass 68: a graph's record also names its reference pictures (LoadImage), seed, model file and steps; a candidate tool's
+own outputs (the title cut-outs, the badge review sheet, the icon candidates) go under <job_dir>/ instead of tools/dl/,
+and a pick is not run at all (it only writes files): the dry run records what it would have installed.
+
+The candidate tools (pass 68, D7) take their inputs explicitly: gen_badge_cands --character/--ref/--prompt/--variant,
+gen_title_heroes.paint(character=, pose=, holds=, camera=, ref=, extra_ref=, extra_words=, variant=, tag=), gen_icon_cands
+JOBS[key] ref/subject/screen/style/file/variant. This runner reads each from the job's argv first, then the job.json keys,
+then the job's spec, then the target's look code (badge_argv, title_call, icon_spec), so the queue may write them either
+way. A re-run (job.json "attempt" > 1) paints new candidates: --attempt / attempt= move their seeds, and gen_icon_cands
+moves the earlier ones aside. The tools' content folder follows job.json "folder", as gen_art's does.
 """
 import io
 import json
@@ -49,6 +59,122 @@ def _folder_for(job):
     if job.get("folder"):
         return _abs(job["folder"])
     return os.path.join(ROOT, "game", "content", job.get("type", "enemies"), job["id"])
+
+
+# ---------------------------------------------------------------- a candidate job's inputs (pass 68, D7)
+
+def _spec(job):
+    return job.get("spec") if isinstance(job.get("spec"), dict) else {}
+
+
+def _given(job, key):
+    """An input from the job.json keys, else from the job's spec ("" and None count as not given)."""
+    v = job.get(key)
+    if v in (None, ""):
+        v = _spec(job).get(key)
+    return None if v in (None, "") else v
+
+
+def _has_flag(argv, flag):
+    return any(a == flag or a.startswith(flag + "=") for a in argv)
+
+
+def _look(job):
+    """The look a candidate job is for: the job's own "variant" when job.json or the spec names one (an empty one is the
+    hero's own), else its target's code ("" for none)."""
+    for src in (job, _spec(job)):
+        if "variant" in src:
+            return str(src.get("variant") or "").strip()
+    return str((job.get("target") or {}).get("code") or "").strip()
+
+
+def badge_argv(job):
+    """gen_badge_cands's command line: the job's argv plus what it lacks: --character, --ref and --prompt from the
+    job.json keys or the spec, --variant (the target's look), --attempt N for a re-run; a pick gets --tag <the painting
+    job's id> (an install job's own id is not the one its candidates were keyed with)."""
+    argv = [str(a) for a in (job.get("argv") or [])]
+    if _has_flag(argv, "--pick"):
+        src = _given(job, "source_job")
+        if src and not _has_flag(argv, "--tag"):
+            argv += ["--tag", str(src)]
+    else:
+        for key in ("character", "ref", "prompt"):
+            v = _given(job, key)
+            if v is not None and not _has_flag(argv, "--" + key):
+                argv += ["--" + key, str(v)]
+        attempt = int(job.get("attempt") or 1)
+        if attempt > 1 and not _has_flag(argv, "--attempt"):
+            argv += ["--attempt", str(attempt)]
+    look = _look(job)
+    if look and not _has_flag(argv, "--variant"):
+        argv += ["--variant", look]
+    return argv
+
+
+TITLE_WORDS = ("character", "pose", "holds", "camera", "ref", "extra_ref", "extra_words")
+
+
+def title_call(job, parse):
+    """gen_title_heroes's call: ("pick", [pairs], variant, tag) or ("paint", hid, seeds, first, kwargs). `parse` is its
+    parse_args; the argv wins, then the job.json keys (hid, seeds, first, the words), then the spec, then the target.
+    The cut-outs are keyed per job (pass 68 review): a pick's tag is the argv's --tag, else the painting job's id
+    (source_job; an install job's own id is not the one its candidates were keyed with), else None (a hand run's
+    untagged ones); a paint's is the argv's --tag when given (else the tool takes ASSET_JOB_ID)."""
+    o = parse([str(a) for a in (job.get("argv") or [])])
+    spec = _spec(job)
+    look = str(o.get("variant") or "") or _look(job)
+    if job.get("call") == "pick" or o.get("pick") is not None:
+        pairs = o.get("pick") or []
+        if not pairs:
+            hid = job.get("hid") or job.get("id")
+            pairs = ["%s=%s" % (hid, job.get("choice", job.get("n", spec.get("choice", 0))))]
+        tag = o.get("tag") or _given(job, "source_job")
+        return "pick", pairs, look, (str(tag) if tag else None)
+    hid = str(o.get("only") or "").split(",")[0] or job.get("hid") or job.get("id")
+    seeds = int(o.get("seeds") or job.get("seeds") or spec.get("seeds") or 4)
+    first = o.get("first_seed")
+    if first in (None, ""):
+        first = job.get("first", spec.get("first_seed"))
+    first = int(first) if first not in (None, "") else 11
+    kw = {}
+    for k in TITLE_WORDS:
+        v = o.get(k) or _given(job, k)
+        if v not in (None, ""):
+            kw[k] = str(v)
+    kw["variant"] = look or None
+    kw["attempt"] = int(o.get("attempt") or job.get("attempt") or 1)
+    if o.get("tag"):
+        kw["tag"] = str(o["tag"])
+    return "paint", hid, seeds, first, kw
+
+
+def icon_spec(job, job_dir=""):
+    """gen_icon_cands's JOBS entry: the plan's icon_job, with what it lacks from the spec (subject, ref, style, file,
+    screen) and the target's look as "variant" (its pick goes to the look's own icon and entry)."""
+    out = dict(job.get("icon_job") or {})
+    s = _spec(job)
+    for k in ("subject", "ref", "style", "file"):
+        if not out.get(k) and s.get(k):
+            out[k] = s[k]
+    if not out.get("screen") and s.get("screen") and s.get("screen") != "green":
+        out["screen"] = s["screen"]
+    out.setdefault("kind", job.get("type", ""))
+    out.setdefault("id", job.get("id", ""))
+    look = str(out.get("variant") or "") or _look(job)
+    if look:
+        out["variant"] = look
+    out.setdefault("set", "_le_" + os.path.basename(job_dir or ""))
+    return out
+
+
+def _content_dir(job, up):
+    """The content folder `up` levels above the job's own (job.json "folder"), or None when the job names none."""
+    if not job.get("folder"):
+        return None
+    p = _abs(job["folder"])
+    for _ in range(up):
+        p = os.path.dirname(p)
+    return p
 
 
 # ---------------------------------------------------------------- dry run stand-ins
@@ -83,6 +209,26 @@ class DryRun:
                 out.append(n["inputs"]["text"])
         return out
 
+    @staticmethod
+    def _graph_facts(graph):
+        """What else a graph sends (pass 68): its reference pictures (LoadImage), seed, model file and steps."""
+        out = {"refs": []}
+        try:
+            nodes = graph.api()
+        except Exception:
+            return out
+        for n in nodes.values():
+            ct, inp = n.get("class_type"), n.get("inputs", {})
+            if ct == "LoadImage" and isinstance(inp.get("image"), str):
+                out["refs"].append(inp["image"])
+            elif ct == "RandomNoise" and "noise_seed" in inp:
+                out["seed"] = inp["noise_seed"]
+            elif ct == "UNETLoader":
+                out["unet"] = inp.get("unet_name")
+            elif ct == "Flux2Scheduler":
+                out["steps"] = inp.get("steps")
+        return out
+
     def install(self, comfy, gen_art=None, animate=None, artkit=None):
         from PIL import Image
         rec = self
@@ -94,7 +240,7 @@ class DryRun:
 
         def fake_run(graph, timeout=1200):
             texts = rec._graph_prompts(graph)
-            rec.note("comfy.run", prompts=texts)
+            rec.note("comfy.run", prompts=texts, **rec._graph_facts(graph))
             # the graph's canvas size when it says one
             w = h = 1024
             try:
@@ -110,7 +256,12 @@ class DryRun:
             return (subfolder + "/" if subfolder else "") + name
 
         def fake_upload_pil(img, name, subfolder="88fits"):
-            rec.note("comfy.upload", name=name, size=list(img.size))
+            # pass 68: the top-left pixel too, so a check sees a transparent picture laid on the screen colour
+            try:
+                corner = list(img.convert("RGB").getpixel((0, 0)))
+            except Exception:
+                corner = None
+            rec.note("comfy.upload", name=name, size=list(img.size), corner=corner)
             return (subfolder + "/" if subfolder else "") + name
 
         comfy.run = fake_run
@@ -129,7 +280,9 @@ class DryRun:
                 rec.note("render", key=key, prompt=prompt, refs=list(refs), expect=expect, seed=seed, size=[width, height])
                 raw, meta = os.path.join(gen_art.RAW, key + ".png"), os.path.join(gen_art.RAW, key + ".json")
                 if os.path.exists(raw) and os.path.exists(meta):
-                    return Image.open(raw).convert("RGB"), json.load(open(meta, encoding="utf-8"))
+                    cached = json.load(open(meta, encoding="utf-8"))
+                    cached["cached"] = True   # as gen_art.render says it (pass 68)
+                    return Image.open(raw).convert("RGB"), cached
                 # no cache for this key: the item's own front still stands in (a badge or title dry run keeps a figure to
                 # key and fit), else a flat square of the screen colour
                 parts = key.split("_")
@@ -220,28 +373,51 @@ def run(job_dir, dry=False):
         import gen_icon_cands as gic  # noqa: E402
         if dry:
             rec.install(comfy, gen_art=gic.ga)
-        key = job["key"]
-        spec = dict(job.get("icon_job") or {})
-        spec.setdefault("set", "_le_" + os.path.basename(job_dir))
+            gic.DL = job_dir     # the candidates under the job's folder, not tools/dl/
+        if _content_dir(job, 2):
+            gic.CONTENT = _content_dir(job, 2)
+        key = job.get("key") or job["id"]
+        spec = icon_spec(job, job_dir)
         gic.JOBS[key] = spec
         if call == "pick":
-            gic.pick([key + "=" + str(job.get("choice", 0))])
+            if dry:
+                rec.note("pick", tool=tool, would_install=key + "=" + str(job.get("choice", 0)), job=spec)
+            else:
+                gic.pick([key + "=" + str(job.get("choice", 0))])
         else:
-            gic.paint([key], int(job.get("seeds", 4)), bool(job.get("dev", False)))
+            gic.paint([key], int(job.get("seeds", 4)), bool(job.get("dev", False)), int(job.get("attempt") or 1))
     elif tool == "gen_title_heroes":
         import gen_title_heroes as gth  # noqa: E402
         if dry:
             rec.install(comfy)
-        hid = job.get("hid") or job["id"]
-        if call == "pick":
-            gth.pick([hid + "=" + str(job.get("choice", job.get("n", 0)))])
+            gth.OUT = os.path.join(job_dir, "title_heroes")
+        if _content_dir(job, 1):
+            gth.CHARS = _content_dir(job, 1)
+        how = title_call(job, gth.parse_args)
+        if how[0] == "pick":
+            if dry:
+                rec.note("pick", tool=tool, would_install=how[1], variant=how[2], tag=how[3])
+            else:
+                gth.pick(how[1], how[2] or None, how[3])
         else:
-            gth.paint(hid, int(job.get("seeds", 4)), int(job.get("first", 11)))
+            _, hid, seeds, first, kw = how
+            log("paint: %s seeds %d first %d %s" % (hid, seeds, first, json.dumps({k: v for k, v in kw.items() if v not in (None, "")}, ensure_ascii=False)))
+            gth.paint(hid, seeds, first, **kw)
     elif tool == "gen_badge_cands":
+        argv = badge_argv(job)
+        if argv != [str(a) for a in (job.get("argv") or [])]:
+            log("argv: " + " ".join(argv))
+        sys.argv = [tool + ".py"] + argv
         import gen_badge_cands  # noqa: E402
         if dry:
             rec.install(comfy, gen_art=gen_badge_cands.g)
-        gen_badge_cands.main()
+            gen_badge_cands.REVIEW = job_dir
+        if _content_dir(job, 1):
+            gen_badge_cands.CHARS = _content_dir(job, 1)
+        if dry and _has_flag(argv, "--pick"):
+            rec.note("pick", tool=tool, would_install=argv)
+        else:
+            gen_badge_cands.main()
     sidecar = os.environ.get("ASSET_JOB_SIDECAR", "")
     if sidecar and not os.path.isfile(sidecar):
         # a tool without a sidecar of its own (an icon pick, a title pick): a small one so the queue sees it finished

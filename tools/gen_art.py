@@ -105,23 +105,32 @@ def apply_painter(p):
     print("gen_art: the look's recorded painter: %s%s" % (MODEL["model"], (" %d steps" % MODEL["steps"]) if MODEL["steps"] else ""))
 
 
+def painter_info(full=False):
+    """The painter a still goes to, as paint() runs it (pass 68, D4: the run's marker names the real one, not always
+    Klein): {"model": "klein", "unet", "steps"} or {"model": "dev", "unet", "steps", "guidance", "turbo"}. `full`: the
+    candidates' default (dev without Turbo, 28 steps)."""
+    if MODEL["model"] == "dev":
+        turbo = MODEL["turbo"] if MODEL["turbo"] is not None else (not full)
+        return {"model": "dev", "unet": comfy.FLUX2_UNET, "steps": int(MODEL["steps"] or (8 if turbo else 28)),
+                "guidance": float(MODEL["guidance"] or 4.0), "turbo": bool(turbo)}
+    return {"model": "klein", "unet": comfy.KLEIN_UNET, "steps": int(MODEL["steps"] or 4)}
+
+
 def paint(prompt, seed, width, height, refs, prefix, full=False):
     """One still on the chosen painter with the chosen quality: Klein (MODEL steps or 4), or Flux.2 dev (steps,
     guidance, turbo from MODEL; `full` = the 28-step no-Turbo quality on a freshly restarted server, what the
     candidates use by default). Returns (png bytes, seconds). Every caller that painted a still itself goes through
     here, so the Level Editor's model settings reach them all."""
-    if MODEL["model"] == "dev":
-        turbo = MODEL["turbo"] if MODEL["turbo"] is not None else (not full)
-        steps = MODEL["steps"] or (8 if turbo else 28)
-        guidance = MODEL["guidance"] or 4.0
-        g = comfy.flux2_dev(prompt, seed, width, height, refs=refs, steps=steps, guidance=guidance, turbo=turbo, prefix=prefix)
-        if full or not turbo:
+    p = painter_info(full)
+    if p["model"] == "dev":
+        g = comfy.flux2_dev(prompt, seed, width, height, refs=refs, steps=p["steps"], guidance=p["guidance"], turbo=p["turbo"], prefix=prefix)
+        if full or not p["turbo"]:
             imgs, secs = comfy.run_dev(g)
         else:
             imgs, secs = comfy.run(g)
         log("  " + comfy.release_models())
         return imgs, secs
-    return comfy.run(comfy.klein(prompt, seed, width, height, refs=refs, steps=MODEL["steps"] or 4, prefix=prefix))
+    return comfy.run(comfy.klein(prompt, seed, width, height, refs=refs, steps=p["steps"], prefix=prefix))
 ONLY, SEED_OFFSET, PICK = None, 0, None
 for a in sys.argv:
     if a.startswith("--only="):
@@ -177,9 +186,10 @@ def emit_sidecar(folder, id_, vcode, patch, info, top=None):
     return out
 
 
-def backup_icon(dst, new_png_bytes=None):
+def backup_icon(dst, new_png_bytes=None, folder=None):
     """The icon about to be overwritten kept under tools/dl/backup/icons_le/<name>_<stamp>.png (pass 66, critique 22);
-    nothing is kept when the new bytes equal the old (a cached re-run writes the same picture). Returns the copy's path."""
+    nothing is kept when the new bytes equal the old (a cached re-run writes the same picture). Returns the copy's path.
+    `folder` puts the copy elsewhere (pass 68: a title cut-out's go to tools/dl/backup/title/)."""
     if not os.path.isfile(dst):
         return ""
     try:
@@ -188,9 +198,10 @@ def backup_icon(dst, new_png_bytes=None):
         return ""
     if new_png_bytes is not None and old == new_png_bytes:
         return ""
-    os.makedirs(ICON_BACKUPS, exist_ok=True)
+    folder = folder or ICON_BACKUPS
+    os.makedirs(folder, exist_ok=True)
     stem = os.path.splitext(os.path.basename(dst))[0]
-    out = os.path.join(ICON_BACKUPS, "%s_%s.png" % (stem, time.strftime("%Y%m%d-%H%M%S")))
+    out = os.path.join(folder, "%s_%s.png" % (stem, time.strftime("%Y%m%d-%H%M%S")))
     shutil.copy2(dst, out)
     return out
 
@@ -243,6 +254,149 @@ def subject_for(d, type_):
 
 def seed_for(key):
     return sum(ord(c) * (i + 7) for i, c in enumerate(key)) % 999983 + 100 + SEED_OFFSET * 7919
+
+
+# pass 68 (D2): a look's own seeds. A prime apart from the 7919 steps of --seed and of render()'s retries, so a look's
+# seeds never land on another look's retry.
+LOOK_SEED_STEP = 104729
+
+
+def seed_offset_of(d):
+    """A look's `seed_offset` (the Level Editor writes one into every NEW look's recipe); 0 when it has none."""
+    try:
+        return int(float((d or {}).get("seed_offset") or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def look_seed(id_, d):
+    """The first seed of an item's paintings and clips (pass 68, D2): seed_for(id) moved by the look's seed_offset, so
+    two new looks with the same words are no longer painted as clones (DM-E and DM-F, MAM-B and MAM-C). A look without
+    one (every look made before pass 68, every base) keeps the seeds it was painted with."""
+    return seed_for(id_) + LOOK_SEED_STEP * seed_offset_of(d)
+
+
+def still_slug(d):
+    """The look's own paintings ("stills": "c4" -> goblin_c4_front); "" = the item's own paintings."""
+    return str(d["stills"]) if (d or {}).get("stills") else ""
+
+
+def hero_still_key(id_, view, d):
+    """A hero still's cache key (pass 68, D1): the look's `still_keys[view]` wins (Solenne's s55 side), else
+    `<id>_<slug>_<view>` when the look has its own paintings (`stills`, as a creature look), else the hero's own
+    `<id>_<view>`. Views: front, back, side, fd, bd, cheer, hurt_<view>, dead."""
+    skeys = d.get("still_keys") if isinstance(d.get("still_keys"), dict) else {}
+    if skeys.get(view):
+        return str(skeys[view])
+    slug = still_slug(d)
+    return id_ + ("_" + slug if slug else "") + "_" + view
+
+
+def look_letter(code):
+    """A look code's file letter: MAM-C -> c (<id>_sprite_c.png, <id>_icon_c.png)."""
+    return str(code or "").split("-")[-1].lower()
+
+
+def is_base_code(d, code):
+    """No look named, or the look that is the item's top-level art (the JSON's variant_base): its files are the item's own."""
+    return not code or str(code) == str((d or {}).get("variant_base") or "")
+
+
+def has_look(d, code):
+    """Whether the item JSON has the look (an entry under variants, or its variant_base): a pick for a code it lacks is
+    refused rather than writing a stray entry."""
+    return is_base_code(d, code) or isinstance((d.get("variants") or {}).get(code), dict)
+
+
+def look_merged(d, code):
+    """The item JSON with a look's recipe laid over it, as process() paints the look (the JSON itself for no code)."""
+    out = dict(d)
+    if not code:
+        return out
+    entry = (d.get("variants") or {}).get(code)
+    if not isinstance(entry, dict):
+        if is_base_code(d, code):
+            return out
+        raise SystemExit("gen_art: %s has no look %s" % (d.get("id", "?"), code))
+    out.update(entry.get("recipe") or {})
+    return out
+
+
+def ref_path(name):
+    """The file a reference picture names, or None (pass 68, shared by the candidate tools): an absolute path, a path
+    under the repo (the Level Editor's uploads, tools/dl/uploads/2d/x.png), a path under tools/dl/ (a render:
+    spear_ref.png) or the page's /dl/... URL."""
+    name = str(name or "").strip()
+    if not name:
+        return None
+    dl = os.path.join(REPO, "tools", "dl")
+    cands = []
+    if name.replace("\\", "/").startswith("/dl/"):
+        cands.append(os.path.join(dl, name.replace("\\", "/")[4:]))
+    if os.path.isabs(name):
+        cands.append(name)
+    cands += [os.path.join(REPO, name), os.path.join(dl, name)]
+    for p in cands:
+        if os.path.isfile(p):
+            return os.path.normpath(p)
+    return None
+
+
+def on_screen(img, blue=False):
+    """A reference picture laid on the screen colour, as RGB: a Blender render or a cut-out has a transparent film; an
+    opaque picture comes back as it is."""
+    im = img.convert("RGBA")
+    out = Image.new("RGBA", im.size, (0, 0, 255, 255) if blue else (0, 255, 0, 255))
+    out.alpha_composite(im)
+    return out.convert("RGB")
+
+
+def _content_io():
+    """The Level Editor's line-by-line JSON writer (tools/level_editor/content_io.py), or None."""
+    p = os.path.join(REPO, "tools", "level_editor")
+    if p not in sys.path:
+        sys.path.insert(0, p)
+    try:
+        import content_io
+        return content_io
+    except Exception:
+        return None
+
+
+def write_look_entry(jpath, code, update):
+    """A hand run's change to one look's entry (variants[CODE]) of a content JSON (pass 68: a badge or title cut-out
+    picked for a look): line by line through the Level Editor's writer when it is at hand, so the file's layout and line
+    endings stay, else the whole file dumped again. Under a job the sidecar carries it and the server writes it."""
+    cio = _content_io()
+    if cio is not None:
+        try:
+            new = cio.set_variant_entry(cio.read_text(jpath), code, update)
+            if new:
+                cio.write_atomic(jpath, new)
+                return jpath
+        except Exception:
+            pass
+    cur = json.load(open(jpath, encoding="utf-8"))
+    cur.setdefault("variants", {}).setdefault(code, {}).update(update)
+    json.dump(cur, open(jpath, "w", encoding="utf-8", newline="\n"), indent=2, ensure_ascii=False)
+    return jpath
+
+
+def write_top_block(jpath, key, value, places=()):
+    """A hand run's top-level key (the badge block) written into a content JSON the same way."""
+    cio = _content_io()
+    if cio is not None:
+        try:
+            new = cio.set_top_block(cio.read_text(jpath), key, value, places)
+            if new:
+                cio.write_atomic(jpath, new)
+                return jpath
+        except Exception:
+            pass
+    cur = json.load(open(jpath, encoding="utf-8"))
+    cur[key] = value
+    json.dump(cur, open(jpath, "w", encoding="utf-8", newline="\n"), indent=2, ensure_ascii=False)
+    return jpath
 
 
 def styled(subject, view_hint, bg, with_anchor=True):
@@ -646,7 +800,10 @@ def render(key, prompt, refs, expect, seed, width=1024, height=1024, tries=3):
     raw, meta = os.path.join(RAW, key + ".png"), os.path.join(RAW, key + ".json")
     forced = (FORCE and (ONLY is None or any(key.startswith(o) for o in ONLY))) or key in FORCE_KEYS
     if not forced and os.path.exists(raw) and os.path.exists(meta):
-        return Image.open(raw).convert("RGB"), json.load(open(meta, encoding="utf-8"))
+        cached = json.load(open(meta, encoding="utf-8"))
+        # pass 68 (D4): the run's marker says which stills came from the cache (painted by whoever painted them first)
+        cached["cached"] = True
+        return Image.open(raw).convert("RGB"), cached
     best, best_score, best_info = None, -1, None
     for attempt in range(tries):
         s = seed + attempt * 7919
@@ -676,7 +833,8 @@ def render(key, prompt, refs, expect, seed, width=1024, height=1024, tries=3):
         if not ok and attempt == tries - 1:
             log("  (kept the best of %d for %s: %s)" % (tries, key, ",".join(best_info.get("qa", {}).get("problems", [])) if best_info else "?"))
         if score > best_score:
-            best, best_score, best_info = img, score, {"seed": s, "prompt": prompt, "refs": list(refs), "qa": report, "attempt": attempt}
+            best, best_score, best_info = img, score, {"seed": s, "prompt": prompt, "refs": list(refs), "qa": report, "attempt": attempt,
+                                                       "painter": painter_info()}
         if ok:
             break
     best.save(raw)
@@ -834,14 +992,18 @@ def process(type_, folder, id_):
     subject = subject_for(d, type_)
     bg = bg_for(d, type_)
     refs = ensure_anchor_uploaded()
-    seed = seed_for(id_)
+    # pass 68 (D2): a new look's recipe carries its own seed_offset, so its paintings and clips are its own
+    seed = look_seed(id_, d)
     # a creature may ask for other clip seeds ("anim_seed", pass 44: a free clip that drifted from its painting); the
     # cached paintings keep their keys, so only the clips roll again
     if type_ in ("enemies", "bosses"):
         seed += int(d.get("anim_seed", 0))
     # pass 66: "recipe_ran" is the recipe this run read (the entry may be edited while a job runs), "clip_kind" says per
     # view how its cycle was made (pose | free | procedural; gen_ctl writes control), so a silent fallback is seen
-    info = {"pipeline": "gen_art v2", "model": comfy.KLEIN_UNET, "anchor": anchor_hash() if USE_ANCHOR else "", "subject": subject, "renders": {},
+    # pass 68 (D4): "model" is the painter the stills went to (it was always Klein's file), "painter" its settings; a
+    # still taken from the cache says "cached" in "renders"
+    painter = painter_info()
+    info = {"pipeline": "gen_art v2", "model": painter["unet"], "painter": painter, "anchor": anchor_hash() if USE_ANCHOR else "", "subject": subject, "renders": {},
             "recipe_ran": (ventry.get("recipe") if isinstance(ventry, dict) else None), "clip_kind": {}}
     kinds = info["clip_kind"]
     many = any(w in subject.lower() for w in ("three ", "pile", "family", "six ", "splitting", "pair of"))
@@ -849,7 +1011,7 @@ def process(type_, folder, id_):
         cell = int(d.get("frame_px", 128))
         # the paintings' cache key (a variant may use other paintings: "stills": "c4" -> goblin_c4_front) and the clips'
         # (a variant's own: goblin_gobb_pose_f)
-        sk = id_ + ("_" + str(d["stills"]) if d.get("stills") else "")
+        sk = id_ + ("_" + still_slug(d) if still_slug(d) else "")
         ak = id_ + ("_" + vcode.lower().replace("-", "") if vcode else "")
         img, inf = render(sk + "_front", styled(subject, "Full body, front view, standing and facing the viewer.", bg), refs,
                           {"subject": subject, "view": "front", "subjects_max": 1}, seed)
@@ -981,8 +1143,12 @@ def process(type_, folder, id_):
             d["sprite"] = id_ + "_sprite_" + vcode.split("-")[-1].lower() + ".png"
             strip.save(os.path.join(folder, d["sprite"]))
             d["icon"] = id_ + "_icon_" + vcode.split("-")[-1].lower() + ".png"
-            vicon, _ = finish(img, 256, 0.9, False, None, 0.009)
-            vicon.save(os.path.join(folder, d["icon"]))
+            if isinstance(ventry, dict) and ventry.get("icon_picked") and os.path.isfile(os.path.join(folder, d["icon"])):
+                # pass 68: the look's icon was picked from candidates (the Level Editor marks the entry): kept
+                log("  the look's icon was picked from candidates: kept (%s)" % d["icon"])
+            else:
+                vicon, _ = finish(img, 256, 0.9, False, None, 0.009)
+                vicon.save(os.path.join(folder, d["icon"]))
         else:
             strip.save(os.path.join(folder, d.get("sprite", id_ + "_sprite.png")))
             icon, _ = finish(img, 256, 0.9, False, None, 0.009)
@@ -999,10 +1165,10 @@ def process(type_, folder, id_):
         # a hero's art variant (pass 55, Solenne's walks): "still_keys" in its recipe names other paintings for some views
         # ({"side": "solenne_s55_side"}; the rest stay the hero's own, so the variants differ only where they should), and
         # its clips are cached under their own keys (solenne_solb_pose_run_front)
-        skeys = d.get("still_keys") if isinstance(d.get("still_keys"), dict) else {}
-
+        # pass 68 (D1): a look with its own paintings ("stills": "c") keys them <id>_c_<view>, as a creature look does;
+        # before, every hero look read the hero's <id>_<view> (MAM-C came out byte-identical to MAM-B)
         def sk_(view):
-            return str(skeys.get(view, id_ + "_" + view))
+            return hero_still_key(id_, view, d)
 
         ck = id_ + ("_" + vcode.lower().replace("-", "") if vcode else "")
         front, inf = render(sk_("front"), styled(subject, "Full body, front view, standing straight and facing the viewer, arms relaxed, feet fully visible. " + pose_hint, bg), refs,
@@ -1309,7 +1475,7 @@ def app_icon():
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     st = comfy.get("/system_stats")
-    log("ComfyUI", st["system"].get("comfyui_version"), "on", st["devices"][0].get("name"), "at", comfy.SERVER, "| model", comfy.KLEIN_UNET)
+    log("ComfyUI", st["system"].get("comfyui_version"), "on", st["devices"][0].get("name"), "at", comfy.SERVER, "| model", painter_info()["unet"])
     if "--anchor" in sys.argv:
         anchor_candidates()
         return

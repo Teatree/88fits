@@ -15,8 +15,8 @@ routes are listed in docs/level_editor.md ("The API (for scripts)"); in short:
                             POST /api/content/<kind> (create from a template), /api/content/<kind>/<id>/save|variant|
                             retire|availability|delete|make_path|look, /api/content/<kind>/<id>/look/<code>,
                             /api/upload, /api/test_launch
-    the jobs (66, jobs.py): GET /api/jobs[?since=rev], /api/job/<id>; POST /api/jobs, /api/jobs/<id>[/cancel|requeue|
-                            pick|install|move|delete]
+    the jobs (66, jobs.py): GET /api/jobs[?since=rev], /api/job/<id>, /api/jobs/specs, /api/jobs/defaults?kind=&target=
+                            (68); POST /api/jobs, /api/jobs/<id>[/cancel|requeue|pick|install|move|delete]
 
 Garry (the user) is not a programmer, so the server stays plain: the standard library only, nothing installed, nothing
 fetched from the internet. What it writes: the map JSON it was asked to save; one content JSON at a time, edited line
@@ -127,7 +127,8 @@ _CREATURE_OWNED = _COMMON_OWNED | {
     "frame_px", "strip_cols", "variant", "variant_base", "variants", "directions", "view_hints", "motion", "anim_negative",
     "dead_hint", "outline_frac", "outline_color", "remap_hues", "screen", "back_hint", "back_prompt", "pose", "pose_front",
     "gait", "stand", "walk", "hop_height", "death", "death_frames", "anim_seed", "run_fps", "cell_fill", "clip_fill", "grade",
-    "key_sat", "key_min_value", "key_cut_shadow", "key_clamp_screen"}
+    "key_sat", "key_min_value", "key_cut_shadow", "key_clamp_screen",
+    "appearance"}   # pass 68 (D6): the character's words without a pose (a candidate job's `character` / icon subject)
 _WEAPON_OWNED = _COMMON_OWNED | {"behavior", "targeting", "base", "levels", "max_level", "tags", "evolves_with", "evolves_into",
                                  "is_evolution", "evolved_from", "sfx", "params", "visual", "hero"}
 EDITOR_OWNED = {
@@ -139,7 +140,7 @@ EDITOR_OWNED = {
                              "anim_negative", "anim_seed", "pose_drivers", "pose_motion", "pose_driven", "pose_hint", "back_hint",
                              "side_hint", "hurt_hint", "portrait_prompt", "still_keys", "run_fps", "screen", "key_sat",
                              "key_min_value", "key_cut_shadow", "key_clamp_screen", "grade", "remap_hues", "badge", "title_pose",
-                             "title_holds", "title_camera", "title_extra_ref"},
+                             "title_holds", "title_camera", "title_extra_ref", "appearance"},
     "weapon": _WEAPON_OWNED, "evolution": _WEAPON_OWNED,
     "passive": _COMMON_OWNED | {"line", "levels", "repeat_last_level", "max_level", "pairs_with", "trade", "evolves_into",
                                 "evolves_from", "text"},
@@ -311,6 +312,9 @@ def look_records(kind, cid, folder, d, json_path=None):
                "imported": imported, "sprite_mtime": sprite_mtime,
                "sprite_file": sprite_name, "icon_file": str(entry.get("icon", "")) if entry.get("icon") else "",
                "has_recipe": recipe is not None, "recipe": recipe}
+        if kind == "hero":
+            # pass 68 (D8): a look's own title cut-out (art/ui/wanted/<file>), picked from its hero_title candidates
+            rec["title_file"] = str(entry.get("title", "")) if entry.get("title") else ""
         return rec
 
     if base_code and base_code not in vs:
@@ -1108,10 +1112,26 @@ def _suffixes():
             yield a + b
 
 
+def _cached_names(cid):
+    """The lower-cased names under tools/dl/ai_raw_anime and tools/dl/ai_anim that start with `<id>_` (next_codes)."""
+    out = []
+    for sub in ("ai_raw_anime", "ai_anim"):
+        try:
+            names = os.listdir(os.path.join(DL, sub))
+        except OSError:
+            names = []
+        out.append([x.lower() for x in names if x.lower().startswith(cid.lower() + "_")])
+    return out
+
+
 def next_codes(kind, cid, n=1):
     """{ok, codes, base_created, prefix}: the next free codes (a suffix whose strip or icon PNG exists, or a stub entry,
     counts as used; a hero without variants keeps A for its base strip); base_created says the first look op will create
-    `variant_base` and the base entry because the file has no variants yet."""
+    `variant_base` and the base entry because the file has no variants yet.
+    Pass 68 (review): a suffix whose paintings or clips are still cached counts as used too (tools/dl/ai_raw_anime
+    `<id>_<letter>_*` or `<id>_<codepart>_*`, tools/dl/ai_anim `<id>_<codepart>_*`). Remove moves only a look's strip,
+    icon, marker and cut-out; gen_art and the clip cycles reuse a cached key whatever the seed, so a new look (+ New look…
+    or a Duplicate's draft) handed the removed look's code would land its pictures again (DM-F brought back DM-E's clone)."""
     tfolder, path = content_path(kind, cid)
     if path is None or kind not in LOOK_KINDS:
         return {"ok": False, "error": "no %s %s" % (kind, cid)}
@@ -1128,6 +1148,7 @@ def next_codes(kind, cid, n=1):
     no_variants = not vs
     if no_variants and kind == "hero":
         used.add("A")
+    raw_names, anim_names = _cached_names(cid)
     out = []
     for s in _suffixes():
         if len(out) >= max(1, min(int(n), 50)):
@@ -1136,6 +1157,9 @@ def next_codes(kind, cid, n=1):
             continue
         low = s.lower()
         if os.path.isfile(os.path.join(folder, "%s_sprite_%s.png" % (cid, low))) or os.path.isfile(os.path.join(folder, "%s_icon_%s.png" % (cid, low))):
+            continue
+        slug, cp = ("%s_%s_" % (cid, low)).lower(), ("%s_%s_" % (cid, (prefix + s).replace("-", ""))).lower()
+        if any(x.startswith((slug, cp)) for x in raw_names) or any(x.startswith(cp) for x in anim_names):
             continue
         out.append("%s-%s" % (prefix, s))
     return {"ok": True, "codes": out, "base_created": no_variants, "prefix": prefix}
@@ -1697,7 +1721,8 @@ def delete_content(kind, cid, cascade=False):
 def add_look(kind, cid, code=None, note="", recipe=None):
     """POST /api/content/<kind>/<id>/look {code?, note, recipe}: a stub entry (no sprite: Godot skips it until a painting
     lands) so a job has somewhere to land; the first look of a file without variants creates `variant_base` and the base
-    entry first. No import (nothing changes in play)."""
+    entry first. No import (nothing changes in play) and no job: pass 68's Duplicate makes a DRAFT this way (the source's
+    recipe with `from`, its method and painter; Generate… queues the job later)."""
     if kind not in LOOK_KINDS:
         return {"ok": False, "error": "only enemies, bosses and heroes have looks", "status": 400}
     tfolder, path = content_path(kind, cid)
@@ -1719,6 +1744,13 @@ def add_look(kind, cid, code=None, note="", recipe=None):
             return {"ok": False, "error": _layout_error(path, base), "status": 400}
         entry = {"note": str(note or "")}
         if isinstance(recipe, dict) and recipe:
+            recipe = dict(recipe)
+            if recipe.get("from"):
+                # pass 68 (D5): a Duplicate is a draft of its source (`from`): it copies the words and the painter, never
+                # the source's stills slug or seed offset, or its first paint would be the source's pictures again (the
+                # job form's "reuse <from>'s paintings" sets the slug when Generate is pressed)
+                recipe.pop("stills", None)
+                recipe.pop("seed_offset", None)
             entry["recipe"] = recipe
         text = cio.set_variant_entry(text, code, entry)
         if text is None:
@@ -1756,6 +1788,14 @@ def _entry_files(folder, cid, d, code):
     marker = os.path.join(folder, "%s_%s_ai.json" % (cid, suffix))
     if os.path.isfile(marker):
         out.append(marker)
+    # pass 68 (D8): a hero look's own title cut-out (art/ui/wanted/), unless another entry names it or it is the hero's own
+    title = os.path.basename(str(entry.get("title", "")))
+    others_t = {os.path.basename(str(e.get("title"))) for c, e in vs.items() if c != code and isinstance(e, dict) and e.get("title")}
+    if title and FILENAME_RE.match(title) and title != "hero_%s.png" % cid and title not in others_t:
+        full = os.path.join(WANTED_ART, title)
+        for f in (full, full + ".import"):
+            if os.path.isfile(f):
+                out.append(f)
     return out
 
 
@@ -1977,6 +2017,50 @@ class Hooks:
             backup_rel = backup(cid, path)
             cio.write_atomic(path, text)
         return {"ok": True, "file": rel(path), "keys": ["variants"], "backup": backup_rel, "code": code}
+
+    def set_look_files(self, kind, cid, code, files):
+        """pass 68 (D8): a candidate picked for a look lands in its entry: {"icon": "<id>_icon_<x>.png"} (a badge or an
+        icon beside the JSON) and/or {"title": "hero_<id>_<x>.png"} (a hero's title cut-out under art/ui/wanted/). The
+        entry is edited in place (content_io's entry writer), with a backup; no `fresh` (the strip is not touched) and no
+        import here (the job queues one). The look must exist: a pick never creates an entry."""
+        if kind not in LOOK_KINDS:
+            return {"ok": False, "layout": "unmerged", "error": "only enemies, bosses and heroes have looks"}
+        tfolder, path = content_path(kind, cid)
+        if path is None:
+            return {"ok": False, "layout": "unmerged", "error": "no %s %s" % (kind, cid)}
+        if not isinstance(code, str) or not CODE_RE.match(code):
+            return {"ok": False, "layout": "unmerged", "error": "bad code %r" % (code,)}
+        if not isinstance(files, dict) or not files or any(k not in ("icon", "title") for k in files):
+            return {"ok": False, "layout": "unmerged", "error": "set_look_files takes {icon?, title?}: %r" % (files,)}
+        update = {}
+        for k, v in files.items():
+            name = str(v or "")
+            if not FILENAME_RE.match(name) or name.startswith("."):
+                return {"ok": False, "layout": "unmerged", "error": "%s must be a plain file name (got %r)" % (k, name)}
+            if k == "title" and kind != "hero":
+                return {"ok": False, "layout": "unmerged", "error": "a title cut-out is a hero's"}
+            update[k] = name
+        if "icon" in update:
+            # the lead, pass 68: a picked icon is kept by the look's later runs (gen_art paints a creature look's icon
+            # from its front still on every run and would paint over the pick)
+            update["icon_picked"] = True
+        with _write_lock:
+            src = cio.read_text(path)
+            d = json.loads(src)
+            vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+            if code not in vs:
+                return {"ok": False, "layout": "unmerged", "error": "%s has no look %s (removed while the job ran?)" % (cid, code)}
+            if all(isinstance(vs[code], dict) and vs[code].get(k) == v for k, v in update.items()):
+                return {"ok": True, "layout": "entry", "file": rel(path), "keys": ["variants"], "backup": "", "code": code,
+                        "unchanged": True, "entry": vs[code]}
+            text = cio.set_variant_entry(src, code, update)
+            if text is None:
+                return {"ok": False, "layout": "unmerged", "file": rel(path), "keys": ["variants"], "error": _layout_error(path, "variants")}
+            backup_rel = backup(cid, path)
+            cio.write_atomic(path, text)
+            d2 = json.loads(text)
+        return {"ok": True, "layout": "entry", "file": rel(path), "keys": ["variants"], "backup": backup_rel, "code": code,
+                "entry": d2["variants"][code]}
 
     def redump_merge(self, kind, cid, code, entry):
         """Garry's explicit "Re-dump this file (changes its layout)": the entry merged, the whole file dumped again with
@@ -2217,7 +2301,10 @@ def dl_path(relpath):
     if not parts:
         return None
     root = parts[0]
-    if root not in DL_ROOTS and not root.startswith("icons"):
+    # pass 68: a top-level 3D render (tools/dl/<x>_ref.png, the Blender scripts' icon references) is a candidate job's
+    # reference picture, shown as the form's thumbnail
+    ref_render = len(parts) == 1 and root.lower().endswith("_ref.png")
+    if root not in DL_ROOTS and not root.startswith("icons") and not ref_render:
         return None
     if root == "uploads":
         # the uploads folder is its own global (the selftest points it elsewhere)
@@ -2539,6 +2626,15 @@ class Handler(BaseHTTPRequestHandler):
             if m is None:
                 return self._send(503, {"ok": False, "error": _jobs_error[0] or "the jobs module is not here yet", "specs": {}})
             return self._send(200, {"ok": True, "specs": getattr(m, "SPECS", {})})
+        if parts == ["jobs", "defaults"]:
+            # pass 68 (D6): what the server fills into a candidate job's empty fields, and where each came from, so the
+            # form shows them as values: ?kind=icon_cands|hero_badge|hero_title&target=<kind>/<id>[/<code>]
+            kind = (query.get("kind") or [""])[0]
+            bits = [b for b in (query.get("target") or [""])[0].split("/") if b]
+            if len(bits) not in (2, 3) or bits[0] not in KIND_FOLDERS or not ID_RE.match(bits[1]) or (len(bits) == 3 and not CODE_RE.match(bits[2])):
+                return self._error(400, "target is <kind>/<id>[/<code>] (got %s)" % "/".join(bits))
+            st, body = jobs_call("candidate_defaults", kind, {"kind": bits[0], "id": bits[1], "code": bits[2] if len(bits) == 3 else ""})
+            return self._send(st, body)
         if parts == ["jobs"]:
             since = query.get("since", [None])[0]
             try:

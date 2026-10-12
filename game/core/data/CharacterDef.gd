@@ -56,13 +56,16 @@ extends ContentDef
 ## Frames per second per animation prefix, e.g. {"run": 28}; unlisted ones use the sprite player's defaults.
 @export var fps: Dictionary = {}
 ## Art variants (pass 55, the creatures' scheme of pass 34): code -> {sprite, sprite_file, anims, fps, strip_cols, frame_px,
-## icon, note}, every strip the hero can be drawn with ("SOL-A".."SOL-D", Solenne's walks). `variant` is the look the game
-## plays unless the player kept another (Save.hero_look, the arena's HERO tab); its art is the def's own. Only the art
-## differs between them: the id, the trait, the perks and the weapons are the hero's whatever look he wears.
+## icon, title, note}, every strip the hero can be drawn with ("SOL-A".."SOL-D", Solenne's walks). `variant` is the look the
+## game plays unless the player kept another (Save.hero_look, the arena's HERO tab); its art is the def's own. Only the art
+## differs between them: the id, the trait, the perks and the weapons are the hero's whatever look he wears. `title` (pass
+## 68) is the look's own title cut-out, a file name under TITLE_DIR ("" = the hero's hero_<id>.png; title_path()).
 @export var variants: Dictionary = {}
 @export var variant: String = ""
 ## The look a copy made by variant_def() wears ("" on the def itself, which wears `variant`).
 var variant_code := ""
+## Where the title cut-outs lie (pass 68): the hero's own hero_<id>.png and the files his looks name (`title`).
+const TITLE_DIR := "res://art/ui/wanted/"
 
 
 func kind() -> String:
@@ -109,6 +112,25 @@ func variant_def(code: String) -> CharacterDef:
 ## The look this def wears: the copy's code, else the JSON's `variant` ("" for a hero with one art).
 func look_code() -> String:
 	return variant_code if variant_code != "" else variant
+
+
+## The title cut-out the look it wears names (pass 68: `variants[CODE].title`, a file name under TITLE_DIR such as
+## "hero_mamy_b.png", the Level Editor's title pick for that look), "" when it names none.
+func look_title() -> String:
+	var e = variants.get(look_code())
+	return str((e as Dictionary).get("title", "")) if e is Dictionary else ""
+
+
+## The full-body cut-out shown for the look it wears (pass 68): the look's own (look_title) when that file is there, else
+## the hero's own TITLE_DIR/hero_<id>.png (not painted yet = the title's striped slot). Asked of the look the player plays
+## (Registry.played_look: the kept look, else the JSON's `variant`, else the base), it is the one the title draws.
+func title_path() -> String:
+	var f := look_title()
+	if f != "":
+		var p := f if f.begins_with("res://") else TITLE_DIR + f
+		if ResourceLoader.exists(p):
+			return p
+	return TITLE_DIR + "hero_" + id + ".png"
 
 
 ## The look codes in order (empty when he has one art). A shelved look (`variants[CODE].shelved`, pass 66: the Level

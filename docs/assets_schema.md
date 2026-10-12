@@ -34,7 +34,9 @@ A **look** is one painted strip (and, for a creature, its icon) of an asset. The
 | `variant` | top | code | `variant_base` | the look the game plays for every row, wave and event that names none (the Level Editor's "Make default") |
 | `variant_base` | top | code | absent | the code of the top-level strip; a creature without `variants` gets `"<PREFIX>-0"` (a hero `"<PREFIX>-A"`) and a matching entry `{"note": "the top-level strip, before the Level Editor's looks"}` when its first look is added |
 | `variants[CODE].sprite` | entry | file | — | the strip beside the JSON (`<id>_sprite_<suffix>.png`; `res://` paths allowed). An entry **without** a sprite is a *stub*: a job's placeholder (queued, running, failed or cancelled); the game skips it |
-| `.icon` | entry | file | the base icon | creatures: the look's icon (a crop of its front still unless icon candidates were installed). A hero's badge and title cut-out belong to the hero, never to a look |
+| `.icon` | entry | file | the base icon | the look's icon: a creature's is a crop of its front still unless an icon candidate was picked; **pass 68**: a hero look's own round badge when a badge candidate was picked for it (`<id>_icon_<letter>.png`); the game draws the badge of the look a hero is played in |
+| `.icon_picked` | entry | bool | absent | **pass 68**: the icon was picked from candidates; gen_art, gen_ctl and a recolour leave it in place on the look's later runs |
+| `.title` | entry (heroes) | file | absent | **pass 68**: the look's own title cut-out, a file name under `res://art/ui/wanted/` (`hero_<id>_<letter>.png`, written by a cut-out pick for the look); the Painted title shows the played look's, else `hero_<id>.png`; the Live title (the default) has no cut-out |
 | `.note` | entry | text | `""` | shown on the look cards and the arena chips |
 | `.anims` | entry | `{name: frames}` | the base's | the frame counts in the strip's fixed order: creatures `idle run attack hit die run_b idle_b run_s idle_s run_bd idle_bd run_fd idle_fd`; heroes `idle run turn hit die cheer idle_f run_f idle_s run_s idle_bd run_bd idle_fd run_fd hit_f hit_s hit_bd hit_fd`. A strip has 8 directions when `run_s > 0`, else 2 |
 | `.strip_cols` | entry | int | the base's / one row | columns of the strip grid (`min(frames, 16000 / frame_px)`); frame k sits at `((k % cols) * frame_px, floor(k / cols) * frame_px)` |
@@ -46,7 +48,11 @@ A **look** is one painted strip (and, for a creature, its icon) of an asset. The
 | `.fresh` | entry | bool | absent | **pass 66**, page-only: painted by a job and not yet looked at (the NEW chip). Approve deletes the key; the game ignores it |
 | `.recipe` | entry | object | absent | *tool-only*: what the art job reads for this code (`method` plus the method's recipe fields: `pose`, `motion`, `death`, `drivers`, `words`, ...; see `tools/level_editor/methods.json`). It keeps only what differs from the creature's own art words: gen_art does `d.update(recipe)`, so an absent word inherits the top-level one (the editor shows the value that applies with its source: own, inherited, default) |
 | `.recipe.painter` | entry | `{model, steps, guidance?, turbo?}` | absent | **pass 66 follow-up**: the painter the look's job ran with (Flux.2 `klein` or `dev`; the passes, 0 = that model's own default; for dev the guidance and whether Turbo was on), written by `jobs.py` from the form's Model settings. Shown on the card, the stage facts and the recipe editor; Re-roll… and Duplicate… start from it; `gen_art.py` reads it on a hand run that names no painter (`ART_*` env and `--model/--steps` flags win). Absent on looks painted before it was kept |
-| `.recipe.stills` | entry | slug | the look's own letter | the key a creature's stills are cached under (`<id>_<slug>_front/_back/_dead`): a job seeds the look's letter when the key is absent (so a new look never reuses the base's paintings); an explicit `""` means the creature's own paintings (Duplicate…'s "reuse the paintings"), another look's slug reuses that look's |
+| `.recipe.stills` | entry | slug | see the rule | the key a look's stills are cached under (`<id>_<slug>_<view>`; **pass 68**: heroes too, `hero_pose5` looks): a NEW look's job writes its letter when the key is absent (its own paintings), an EXISTING look's (it has a strip, or it is the base) writes `""` (the paintings it was made from); an explicit `""` = the creature's or hero's own paintings, another look's slug = that look's. `hero_fit` never takes one |
+| `.recipe.seed_offset` | entry | int | absent (0) | **pass 68**: a NEW look's own seeds (`1 + crc32(code) % 9973`; every seed moves by 104729 a step), so two new looks with the same words differ; looks painted before pass 68 have none and keep their seeds. A re-roll of the stills moves it by one |
+| `.recipe.method` | entry | method id | absent | the method that ran (written by the job; pass 68 records it on every look job) |
+| `.recipe.from` | entry | code | absent | **pass 68**: a draft made by Duplicate… names its source (the Generate form offers "reuse <from>'s paintings"); bookkeeping, no tool reads it |
+| `.recipe.painter.stills`, `.recipe.painter.reused` | entry | text, [keys] | absent | **pass 68**: when the look's job reused cached stills: `"reused"` (all) or `"N of M painted"`, and the reused keys; the card says the painter changed nothing |
 
 **Codes.** `PREFIX-SUFFIX`. PREFIX = the most common prefix of the existing `variants` keys, else `variant_base`'s, else
 the initials of the id's words (`dune_scorpion` → `DS`; a one-word id takes its first three letters, `goblin` → `GOB`).
@@ -59,6 +65,10 @@ Derived names: strip `<id>_sprite_<suffix lower>.png`, clip cache key part `code
 `tools/level_editor/backups/deleted/<id>/<stamp>/`. Refused for the look in play and for a code a map row names.
 
 ## Heroes (`content/characters/<id>/<id>.json`)
+
+**`appearance`** (heroes and creatures, top level, optional, pass 68): the character in words without a pose, used as the
+*Character* of badge, title cut-out and icon candidates; when absent the `art_prompt` is used with its trailing pose clause
+cut (`jobs.appearance_of`).
 
 | Key | Type | Default | What it does |
 |---|---|---|---|
@@ -147,6 +157,17 @@ shelved, fresh, imported, sprite_mtime, has_recipe, recipe}`
   Otherwise the card says "not imported": the game plays the old data until an import runs (Save, or a finished job's
   `import` step).
 - `sprite_mtime`: the strip's mtime; the page appends `?v=<sprite_mtime>` to bust the strip route's 60 s cache.
+
+## Candidate jobs (pass 68)
+
+`hero_badge` {character, prompt (the action), ref, variant, seeds, first_seed, head_width, top_pad}, `hero_title`
+{character, pose, holds, camera, ref, extra_ref, extra_words, variant, seeds, first_seed} and `icon_cands` {subject, ref,
+screen, file, style} take the Model settings too. Every empty field is filled at Queue from the target
+(`jobs.candidate_defaults`, shown before Queue by `GET /api/jobs/defaults?kind=<job kind>&target=<kind>/<id>[/<code>]` ->
+{fields, sources, ref_url, ref_exists}; `spec.defaults_from` says where each came from). `ref` is the identity picture (the
+look's own front still by default; any picture path); `variant` names the look the pick lands in ("" = the hero's or
+creature's own, the base code too). icon_cands is refused for a hero (its icon is the round badge). A candidate job waits
+in the queue while a look job of the same target is still painting its reference (`held` in the job record).
 
 ## The jobs queue (`tools/dl/jobs/`, git-ignored)
 

@@ -9,7 +9,8 @@ Three lanes, one job each at a time, as daemon threads inside the editor server:
 The queue lives in tools/dl/jobs/queue.json (atomic writes, a monotonic `rev` the page polls with); each job has its
 folder tools/dl/jobs/<id>/ with job.json (what asset_job.py runs), log.txt, result.json (the tool's sidecar, see
 gen_art.emit_sidecar) and candidate pictures. Nothing here imports server.py: the server hands `init()` a hooks dict
-(content_path, merge_look, merge_top, set_recipe, redump_merge, look_records) and every content write goes through it.
+(content_path, merge_look, merge_top, set_recipe, set_look_files, redump_merge, look_records) and every content write
+goes through it.
 
     queued ──worker (oldest of its lane; a picked continuation goes first)──► running
     running ──exit 0, no stop marker──► post phase (merge through the hooks, an import job) ──► done
@@ -23,6 +24,7 @@ gen_art.emit_sidecar) and candidate pictures. Nothing here imports server.py: th
 Nothing starts at import: `init(hooks, root)` loads the queue and recovers, `start_workers()` starts the three threads
 (only server.main() calls it; the selftest pins threading.active_count()).
 """
+import ast
 import collections
 import glob
 import json
@@ -37,6 +39,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -58,6 +61,7 @@ REVIEW = os.path.join(DL, "review")
 DRIVERS = os.path.join(DL, "drivers")
 UPLOADS = os.path.join(DL, "uploads")
 TITLE_OUT = os.path.join(DL, "title_heroes")
+WANTED = os.path.join(GAME, "art", "ui", "wanted")   # the title cut-outs (hero_<id>.png, a look's hero_<id>_<x>.png)
 METHODS_FILE = os.path.join(HERE, "methods.json")
 PY = sys.executable
 GODOT = locks.GODOT
@@ -119,6 +123,10 @@ _LOOK_FIELDS = {
     "pick": _f("str", "", False, "front_from_picture: the candidate picked (0..); set by Pick"),
     "recolour": _f("json", {}, False, "recolour: {from: CODE, ranges: [[60,130]], to: 355, sat: 1.0, mode: hue|tint, set_sat, value, min_sat, max_sat, min_val}"),
     "note": _f("str", "", False, "the look's note (shown on its card)"),
+    # pass 68 (D3): the job form's re-roll radios, applied once at enqueue (the cache moved aside, the recipe's seeds moved)
+    "reroll": _f("json", {}, False, "{mode: stills | seeds | clips | view, view}: stills = the look's stills painted again (a look that "
+                                    "shared the creature's or hero's paintings gets its own); seeds = stills and clips; clips = the "
+                                    "clips again from the same stills; view = creature_ctl's view candidates (view: fd,back)"),
 }
 
 # the painter and its quality (Garry: "choose which Model ... the number of passes"): one group on every job that paints
@@ -143,23 +151,42 @@ SPECS = {
     "item_icon": {"lane": "comfy", "fields": _with_model({
         "skip_qa": _f("bool", False, False, "--skip-qa"), "dev": _f("bool", False, False, "--dev"),
         "seed": _f("int", 0, False, "--seed=N")}), "help": "one Klein roll of the item's art_prompt into <id>_icon.png (the old icon is kept aside)"},
+    # pass 68 (D6): every word and the reference picture of the three candidate kinds is a job field the server fills
+    # from the target when it is left empty (candidate_defaults; GET /api/jobs/defaults shows them before Queue)
     "icon_cands": {"lane": "comfy", "fields": _with_model({
-        "subject": _f("str", "", True, "what to paint (gen_icon_cands JOBS[key].subject)"),
-        "ref": _f("str", "", False, "a reference render laid on the screen colour (tools/dl/<x>_ref.png or an upload)"),
-        "screen": _f("enum", "green", False, "the screen colour", ("green", "blue")),
+        "subject": _f("str", "", False, "what to paint; empty = the creature's description (appearance, else its art_prompt without "
+                                         "the pose) or the item's art_prompt"),
+        "ref": _f("str", "", False, "the reference picture laid on the screen colour (a repo path such as tools/dl/uploads/2d/x.png, a "
+                                     "tools/dl path or an absolute one); empty = the creature look's own front still, an item's 3D render"),
+        "screen": _f("enum", "", False, "the screen colour; empty = the target's own (its `screen`, else as gen_art picks it)", ("", "green", "blue")),
         "style": _f("str", "", False, "words in place of gen_art's ICON_STYLE"),
-        "file": _f("str", "", False, "the icon file the pick installs (<id>_icon.png, or a look's <id>_icon_<x>.png)"),
+        "file": _f("str", "", False, "the icon file the pick installs (<id>_icon.png, or a look's <id>_icon_<x>.png; empty = from the target)"),
         "key": _f("str", "", False, "the candidates' key (default: the target id)"),
-        "seeds": _f("int", 4, False, "how many candidates"), "dev": _f("bool", False, False, "--dev: Flux.2 dev at 28 steps, a restart each")}),
-        "help": "icon candidates for an item, or for an enemy/boss look (file = its <id>_icon_<x>.png); Install picks one"},
+        "seeds": _f("int", 4, False, "how many candidates"),
+        "dev": _f("bool", False, False, "--dev: Flux.2 dev (8 Turbo steps unless turbo is off, then 28), a restart each")}),
+        "help": "icon candidates for an item, or for an enemy/boss look (file = its <id>_icon_<x>.png); Install picks one. A hero's "
+                "icon is the round badge: hero_badge"},
     "hero_badge": {"lane": "comfy", "fields": _with_model({
-        "seeds": _f("int", 4, False, "how many portraits"), "prompt": _f("str", "", False, "the portrait words (default: the hero's portrait_prompt)"),
+        "seeds": _f("int", 4, False, "how many portraits"),
+        "character": _f("str", "", False, "who: the hero's description (appearance, else art_prompt without the pose); empty = filled"),
+        "prompt": _f("str", "", False, "the action of the portrait (default: the hero's portrait_prompt)"),
+        "ref": _f("str", "", False, "the identity picture (default: the look's own front still, else the hero's)"),
+        "variant": _f("str", "", False, "the look code the badge is for (its pick writes <id>_icon_<x>.png into that look); empty = the hero's own"),
         "first_seed": _f("int", 0, False, "added to every seed"), "head_width": _f("float", 0.0, False, "badge: the head's span as a share of the badge (0 = the default zoom)"),
         "top_pad": _f("float", 0.03, False, "badge: the gap above the head"), "skip_qa": _f("bool", False, False, "--skip-qa")}),
-        "help": "round badge candidates from the hero's front still; Install writes <id>_icon.png and the JSON's badge"},
+        "help": "round badge candidates from the hero's (or the look's) front still; Install writes <id>_icon.png and the JSON's badge, "
+                "or a look's <id>_icon_<x>.png and variants[CODE].icon"},
     "hero_title": {"lane": "comfy", "fields": _with_model({
-        "seeds": _f("int", 4, False, "how many cut-outs"), "first_seed": _f("int", 11, False, "the first seed (+101 each)")}),
-        "help": "title cut-out candidates (title_pose / title_holds / title_camera / title_extra_ref from the hero JSON); Install writes art/ui/wanted/hero_<id>.png"},
+        "seeds": _f("int", 4, False, "how many cut-outs"), "first_seed": _f("int", 11, False, "the first seed (+101 each)"),
+        "character": _f("str", "", False, "who: the hero's description (appearance, else art_prompt without the pose)"),
+        "pose": _f("str", "", False, "the pose of the splash (title_pose, else the tool's table, else a confident full-body stance)"),
+        "holds": _f("str", "", False, "the one thing held (title_holds)"),
+        "camera": _f("str", "", False, "the shot (title_camera)"),
+        "ref": _f("str", "", False, "the identity picture (default: the look's own front still, else the hero's)"),
+        "extra_ref": _f("str", "", False, "a second picture copied exactly, e.g. a render of the held object (title_extra_ref.file)"),
+        "extra_words": _f("str", "", False, "the words about the second picture (title_extra_ref.words)"),
+        "variant": _f("str", "", False, "the look code the cut-out is for (its pick writes art/ui/wanted/hero_<id>_<x>.png); empty = the hero's own")}),
+        "help": "title cut-out candidates; Install writes art/ui/wanted/hero_<id>.png, or a look's hero_<id>_<x>.png and variants[CODE].title"},
     "driver_pose": {"lane": "local", "fields": {
         "src": _f("str", "", True, "the FBX or GLB (tools/dl/uploads/3d/<slug>/<file> or tools/dl/mixamo/<file>)"),
         "name": _f("str", "", True, "the driver folder name under tools/dl/drivers/"),
@@ -396,6 +423,44 @@ def _letter(code):
     return code.split("-")[-1].lower() if code else ""
 
 
+def _badge_tag(job):
+    """pass 68 (D7): the tag a badge job's candidates are keyed by (<id>_portrait_<tag>_c<k>): the last four letters and
+    digits of its id (gen_badge_cands.cand_tag of --tag / ASSET_JOB_ID), so a new job never gets an old job's pictures
+    back from the cache (a requeue moves its own aside: requeue)."""
+    s = re.sub(r"[^A-Za-z0-9]", "", str((job or {}).get("id") or ""))
+    return s[-4:] if s else "x"
+
+
+def _badge_keys(job, n=None):
+    t = job.get("target") or {}
+    n = int((job.get("spec") or {}).get("seeds") or 4) if n is None else n
+    return ["%s_portrait_%s_c%d" % (t.get("id", ""), _badge_tag(job), k) for k in range(n)]
+
+
+def _icon_set(job):
+    """The folder an icon_cands job paints into (tools/dl/icons<set>/): the job's own. A later attempt (--attempt N, from
+    job.json) has gen_icon_cands move the earlier candidates into <folder>/attempt<N-1>/ and paint new ones on new seeds
+    (pass 68, lane G), so the folder's root holds this attempt's only."""
+    return "_le_" + job["id"]
+
+
+def _icon_folder(job):
+    sset = str(((job.get("plan") or {}).get("icon_job") or {}).get("set") or ("_le_" + job["id"]))
+    return os.path.join(DL, "icons" + sset)
+
+
+def _title_stem(job):
+    """pass 68 (D7): the stem of a title job's candidates under tools/dl/title_heroes/ (gen_title_heroes.cand_stem):
+    <id> for the hero's own cut-out (the base strip's code is the hero's own, as the tool treats it), <id>_<x> for a
+    look's (its `variant`), then the job's tag (_badge_tag; pass 68 review: a second title job for the same hero or look
+    paints files of its own instead of overwriting the first's, and each job's Install picks its own)."""
+    t = job.get("target") or {}
+    v = str((job.get("spec") or {}).get("variant") or "").strip()
+    if v and _look_state(dict(t, kind=t.get("kind") or "hero", code=v))["is_base"]:
+        v = ""
+    return t.get("id", "") + ("_" + _letter(v) if v else "") + "_" + _badge_tag(job)
+
+
 def cache_keys(method, spec, target, doc=None):
     """The still and clip cache keys a look job reads or makes (gen_art.py's sk/ak/ck, gen_ctl's key), for re-roll offers."""
     cid, code = target.get("id", ""), target.get("code", "")
@@ -422,12 +487,16 @@ def cache_keys(method, spec, target, doc=None):
     elif method in ("hero_pose5", "hero_fit"):
         skeys = recipe.get("still_keys") if isinstance(recipe.get("still_keys"), dict) else (doc.get("still_keys") if isinstance(doc.get("still_keys"), dict) else {})
         ck = cid + ("_" + _code_part(code) if code else "")
+        # pass 68 (D1): a look with its own `stills` slug paints <id>_<slug>_<view> (gen_art's hero branch); still_keys
+        # still wins per view; no slug = the hero's own paintings
+        st = recipe.get("stills", doc.get("stills"))
+        hk = cid + ("_" + str(st) if st else "")
         for v in HERO_VIEWS:
-            stills.append(str(skeys.get(v, cid + "_" + v)))
-        stills.append(str(skeys.get("cheer", cid + "_cheer")))
+            stills.append(str(skeys.get(v, hk + "_" + v)))
+        stills.append(str(skeys.get("cheer", hk + "_cheer")))
         for v in HERO_VIEWS:
-            stills.append(str(skeys.get("hurt_" + v, cid + "_hurt_" + v)))
-        stills.append(str(skeys.get("dead", cid + "_dead")))
+            stills.append(str(skeys.get("hurt_" + v, hk + "_hurt_" + v)))
+        stills.append(str(skeys.get("dead", hk + "_dead")))
         if not code:
             stills.append(cid + "_portrait")
         clips = [ck + "_pose_run_" + v for v in ("back", "front", "side", "bd", "fd")]
@@ -635,6 +704,10 @@ def validate_spec(kind, spec):
     if kind == "look":
         if out["method"] in ("front_from_picture",) and not out.get("pick") and not (out.get("ref") and out.get("prompt") and out.get("stills")):
             raise ValueError("front_from_picture needs ref, prompt and stills (the slug the pick is cached under)")
+        rrc = (out.get("recipe") or {}).get("recolour") if isinstance(out.get("recipe"), dict) else None
+        if out["method"] == "recolour" and not (out.get("recolour") or {}).get("from") and isinstance(rrc, dict) and rrc.get("from"):
+            # the job form writes the recolour block as recipe fields (methods.json recolour.*): the plan reads spec.recolour
+            out["recolour"] = dict(rrc)
         if out["method"] == "recolour" and not (out.get("recolour") or {}).get("from"):
             raise ValueError("recolour needs recolour.from: the look to recolour")
     return out
@@ -653,6 +726,9 @@ def _check_target(kind, target):
             raise ValueError("a look job needs a target code (the look's CODE, e.g. GOB-E)")
         if kind in ("hero_badge", "hero_title") and target.get("kind", "hero") != "hero":
             raise ValueError("%s is for a hero" % kind)
+        if kind == "icon_cands" and target.get("kind") == "hero":
+            # pass 68: icon_cands' pick wrote a square icon over the hero's round badge
+            raise ValueError("a hero's icon is the round badge: queue hero_badge")
     return target
 
 
@@ -671,6 +747,13 @@ def _asset_env(job):
         env["ART_GUIDANCE"] = str(float(spec["guidance"]))
     if "turbo" in spec and spec.get("turbo") is not None:
         env["ART_TURBO"] = "1" if spec.get("turbo") else "0"
+    if job.get("kind") == "install":
+        src = _find(str(spec.get("source_job", "")))
+        if src is not None and src.get("kind") in ("hero_badge", "hero_title"):
+            # pass 68 (D7): the badge candidates (and, since the review, the title cut-outs) are keyed by the job that
+            # painted them (tag = ASSET_JOB_ID's last 4): the pick runs under that job's id so the tool finds them by the
+            # same rule
+            env["ASSET_JOB_ID"] = src["id"]
     return env
 
 
@@ -805,9 +888,14 @@ def _plan(job):
             rc = spec.get("recolour") or {}
             src_code = str(rc.get("from", ""))
             steps = []
+            picked = bool(_look_state(t)["entry"].get("icon_picked"))
             for suffix in ("sprite", "icon"):
                 src = os.path.join(folder, "%s_%s_%s.png" % (cid, suffix, _letter(src_code)))
                 dst = os.path.join(folder, "%s_%s_%s.png" % (cid, suffix, _letter(code)))
+                if suffix == "icon" and picked and os.path.isfile(dst):
+                    # pass 68 (review): the look's icon was picked from candidates (icon_picked): kept, as gen_art and
+                    # gen_ctl keep it
+                    continue
                 a = [PY, os.path.join(TOOLS, "recolour_strip.py"), "--src", _rel(src), "--dst", _rel(dst)]
                 if rc.get("ranges"):
                     a += ["--ranges"] + ["%s-%s" % (r[0], r[1]) for r in rc["ranges"] if isinstance(r, (_LIST, tuple)) and len(r) == 2]
@@ -836,33 +924,60 @@ def _plan(job):
         p.update(tool="gen_art", call="process", argv=argv, equiv=_equiv_py("gen_art", argv))
     elif kind == "icon_cands":
         key = str(spec.get("key") or cid)
-        icon_job = {"kind": tf or "", "id": cid, "subject": str(spec.get("subject", "")), "set": "_le_" + job["id"]}
+        icon_job = {"kind": tf or "", "id": cid, "subject": str(spec.get("subject", "")).strip(), "set": _icon_set(job)}
         for k in ("ref", "screen", "style", "file"):
-            if spec.get(k):
-                icon_job[k] = spec[k]
+            v = str(spec.get(k) or "").strip()
+            if v:
+                icon_job[k] = v
         if icon_job.get("screen") == "green":
             icon_job.pop("screen", None)
-        p.update(tool="gen_icon_cands", call="paint", argv=["--only", key, "--seeds", str(int(spec.get("seeds") or 4))] + (["--dev"] if spec.get("dev") else []),
+        attempt = int(job.get("attempt", 1) or 1)
+        more = (["--dev"] if spec.get("dev") else []) + (["--attempt", str(attempt)] if attempt > 1 else [])
+        p.update(tool="gen_icon_cands", call="paint", argv=["--only", key, "--seeds", str(int(spec.get("seeds") or 4))] + more,
                  key=key, icon_job=icon_job, seeds=int(spec.get("seeds") or 4), dev=bool(spec.get("dev")))
         p["equiv"] = "python tools/gen_icon_cands.py --only %s --seeds %d%s   (JOBS[%r] = %s)" % (
-            key, p["seeds"], " --dev" if p["dev"] else "", key, json.dumps(icon_job, ensure_ascii=False))
+            key, p["seeds"], "".join(" " + a for a in more), key, json.dumps(icon_job, ensure_ascii=False))
     elif kind == "hero_badge":
+        # pass 68 (D7): every word and the reference go to the tool explicitly (the server filled the empty ones); a field
+        # holding only a space is left out
         argv = ["--id", cid, "--seeds", str(int(spec.get("seeds") or 4))]
-        if spec.get("prompt"):
-            argv += ["--prompt", str(spec["prompt"])]
         if int(spec.get("first_seed") or 0):
             argv += ["--first-seed", str(int(spec["first_seed"]))]
+        for k, flag in (("character", "--character"), ("prompt", "--prompt"), ("ref", "--ref"), ("variant", "--variant")):
+            v = str(spec.get(k) or "").strip()
+            if v:
+                argv += [flag, v]
         if float(spec.get("head_width") or 0) > 0:
             argv += ["--head-width", str(spec["head_width"])]
         if spec.get("top_pad") not in (None, "", 0.03):
             argv += ["--top-pad", str(spec["top_pad"])]
         if spec.get("skip_qa"):
             argv.append("--skip-qa")
-        p.update(tool="gen_badge_cands", call="main", argv=argv, equiv=_equiv_py("gen_badge_cands", argv))
+        # the candidates' tag (the tool takes the last four letters and digits) and a re-run's attempt (new seeds), named
+        # so the equiv line is the command that was run
+        argv += ["--tag", str(job["id"])]
+        if int(job.get("attempt", 1) or 1) > 1:
+            argv += ["--attempt", str(int(job["attempt"]))]
+        p.update(tool="gen_badge_cands", call="main", argv=argv, equiv=_equiv_py("gen_badge_cands", argv),
+                 tag=_badge_tag(job), variant=str(spec.get("variant") or "").strip())
     elif kind == "hero_title":
         seeds, first = int(spec.get("seeds") or 4), int(spec.get("first_seed") if spec.get("first_seed") is not None else 11)
-        p.update(tool="gen_title_heroes", call="paint", argv=["--only", cid, "--seeds=%d" % seeds, "--first-seed=%d" % first],
-                 hid=cid, seeds=seeds, first=first)
+        argv = ["--only", cid, "--seeds=%d" % seeds, "--first-seed=%d" % first]
+        # pass 68 (D7): asset_job calls paint(hid, seeds, first, **kwargs) with the same names as the flags
+        kw = {}
+        for k, flag in (("character", "--character"), ("pose", "--pose"), ("holds", "--holds"), ("camera", "--camera"), ("ref", "--ref"),
+                        ("extra_ref", "--extra-ref"), ("extra_words", "--extra-words"), ("variant", "--variant")):
+            v = str(spec.get(k) or "").strip()
+            if v:
+                argv += [flag, v]
+                kw[k] = v
+        # pass 68 review: the cut-outs are keyed by the job (<stem>_<tag>_<n>.png, the tag as the badges'), named so the
+        # equiv line is the command that was run
+        argv += ["--tag", str(job["id"])]
+        if int(job.get("attempt", 1) or 1) > 1:
+            argv += ["--attempt", str(int(job["attempt"]))]   # a re-run's new seeds (asset_job passes attempt= from job.json)
+        p.update(tool="gen_title_heroes", call="paint", argv=argv, hid=cid, seeds=seeds, first=first, kwargs=kw, tag=_badge_tag(job))
+        p.update(kw)
         p["equiv"] = _equiv_py("gen_title_heroes", p["argv"])
     elif kind in ("driver_pose", "driver_depth", "ref_probe", "ref_render"):
         p.update(mode="steps", lock=None)
@@ -943,16 +1058,28 @@ def _plan(job):
             p["equiv"] = "python tools/gen_icon_cands.py --pick %s=%s   (JOBS[%r] = %s)" % (p["key"], choice, p["key"], json.dumps(p["icon_job"], ensure_ascii=False))
         elif src["kind"] == "hero_badge":
             hid = src["target"].get("id", "")
+            variant = str((src.get("spec") or {}).get("variant") or "").strip()
             argv = ["--id", hid, "--pick", choice]
+            if variant:
+                argv += ["--variant", variant]   # pass 68 (D7, D8): <id>_icon_<x>.png and the sidecar's entry {icon}
             if float(spec.get("head_width") or 0) > 0:
                 argv += ["--head-width", str(spec["head_width"])]
             if spec.get("top_pad") not in (None, "", 0.03):
                 argv += ["--top-pad", str(spec["top_pad"])]
-            p.update(tool="gen_badge_cands", call="main", lock=None, argv=argv, equiv=_equiv_py("gen_badge_cands", argv), id=hid, type="characters")
+            # the candidates are keyed by the job that painted them (<id>_portrait_<tag>_c<k>): the pick names that job
+            # (--tag; its ASSET_JOB_ID is that job's too, _asset_env)
+            argv += ["--tag", str(src["id"])]
+            p.update(tool="gen_badge_cands", call="main", lock=None, argv=argv, equiv=_equiv_py("gen_badge_cands", argv), id=hid, type="characters",
+                     variant=variant, source_job=src["id"], tag=_badge_tag(src))
         elif src["kind"] == "hero_title":
             hid = src["target"].get("id", "")
-            p.update(tool="gen_title_heroes", call="pick", lock=None, argv=["--pick", "%s=%s" % (hid, choice)], hid=hid, choice=choice, id=hid, type="characters",
-                     equiv="python tools/gen_title_heroes.py --pick %s=%s" % (hid, choice))
+            variant = str((src.get("spec") or {}).get("variant") or "").strip()
+            argv = ["--pick", "%s=%s" % (hid, choice)] + (["--variant", variant] if variant else [])
+            # pass 68 review: the cut-outs are keyed by the job that painted them (<stem>_<tag>_<n>.png): the pick names
+            # that job (--tag; its ASSET_JOB_ID is that job's too, _asset_env), so it installs that job's own picture
+            argv += ["--tag", str(src["id"])]
+            p.update(tool="gen_title_heroes", call="pick", lock=None, argv=argv, hid=hid, choice=choice, id=hid, type="characters",
+                     variant=variant, equiv=_equiv_py("gen_title_heroes", argv), source_job=src["id"], tag=_badge_tag(src))
         else:
             p.update(mode="steps", lock=None, steps=[], error="nothing to install from a %s job" % src["kind"])
     return p
@@ -974,7 +1101,7 @@ def _derive(job):
     job["equiv"] = plan.get("equiv", "")
     job["cache_keys"] = cache_keys(method, spec, t, doc) if kind == "look" else (
         {"stills": [t.get("id", "") + "_icon2"], "clips": []} if kind == "item_icon" else
-        {"stills": ["%s_portrait_c%d" % (t.get("id", ""), k) for k in range(int(spec.get("seeds") or 4))], "clips": []} if kind == "hero_badge" else
+        {"stills": _badge_keys(job), "clips": []} if kind == "hero_badge" else
         {"stills": [], "clips": []})
     stages = expected_stages(method, spec, t, doc, job.get("phase", 1)) if kind == "look" else []
     if kind == "item_icon":
@@ -983,8 +1110,8 @@ def _derive(job):
         n = int(spec.get("seeds") or 4)
         stages = [{"name": "c%d" % k, "key": "", "type": "still"} for k in range(n)] + [{"name": "review", "key": "", "type": "pack"}]
         if kind == "hero_badge":
-            for k, s in enumerate(stages[:n]):
-                s["key"] = "%s_portrait_c%d" % (t.get("id", ""), k)
+            for s, key in zip(stages[:n], _badge_keys(job, n)):
+                s["key"] = key
     elif plan["mode"] == "steps":
         stages = [{"name": _step_name(s), "key": "", "type": "step"} for s in plan["steps"]]
     elif plan["mode"] == "launch":
@@ -1238,6 +1365,9 @@ def get(job_id):
 def _public(job, tail_n, full=False):
     out = {k: v for k, v in job.items() if k not in ("plan",)}
     out["plan"] = {k: v for k, v in (job.get("plan") or {}).items() if k != "env"}
+    # pass 68 review: a queued candidate job the worker skips while its look paints the reference first (_waits_for_look);
+    # the Jobs tab numbers these after the runnable ones of their lane
+    out["held"] = bool(job.get("state") == "queued" and _waits_for_look(job))
     live = _live.get(job["id"])
     if live is not None:
         out["log_tail"] = [x for x in live.tail][-tail_n:]
@@ -1259,9 +1389,62 @@ def _tail_from_file(job, n):
 
 
 CREATURE_STILL_METHODS = ("creature_free2", "creature_pose2", "creature_free8", "creature_proc")
+# pass 68 (D1, D2): the look methods whose stills gen_art keys by the recipe's `stills` slug (<id>_<slug>_<view>); hero_fit
+# never gets one (it re-walks the hero's own paintings by design)
+STILL_METHODS = CREATURE_STILL_METHODS + ("hero_pose5",)
 # the art words a new look inherits from its creature when its recipe leaves them out, so the prompt is in the look's
 # own recipe where Garry can read and change it (lead, after the Armadillo's ARM-A came out identical to ARM-0)
 INHERITED_WORDS = ("art_prompt", "motion", "dead_hint", "back_hint", "anim_negative", "view_hints", "screen")
+# pass 68 (D3): the job form's re-roll radios ("none" or "" = nothing)
+REROLL_MODES = ("stills", "seeds", "clips", "view")
+# pass 68 (D6): the jobs whose words and reference the server fills from the target (candidate_defaults)
+CANDIDATE_KINDS = ("icon_cands", "hero_badge", "hero_title")
+
+
+def _seed_offset(code):
+    """A new look's own seed offset (pass 68, D2): 1 + crc32(code) % 9973; gen_art adds 104729 x it to seed_for(id), so two
+    new looks with the same words never paint the same pictures (DM-E and DM-F did, at seed 12902)."""
+    return 1 + zlib.crc32(str(code).encode("utf-8")) % 9973
+
+
+def implied_method(kind, recipe, doc=None):
+    """The method a look was made with: its recipe's `method`, else what its keys imply (the page's Assets.methodOf, the
+    same rules): a hero is hero_fit with still_keys and pose_drivers, else hero_pose5; a creature with drivers is
+    creature_ctl, a hop walk creature_proc, a pose creature_pose2, eight directions creature_free8, else creature_free2."""
+    rec = recipe if isinstance(recipe, dict) else {}
+    doc = doc if isinstance(doc, dict) else {}
+    if rec.get("method"):
+        return str(rec["method"])
+    if kind == "hero":
+        return ("hero_fit" if rec.get("still_keys") else "hero_pose5") if (rec.get("pose_drivers") or doc.get("pose_drivers")) else "hero_pose5"
+    if rec.get("drivers"):
+        return "creature_ctl"
+    if (rec.get("walk") or doc.get("walk")) == "hop":
+        return "creature_proc"
+    if rec.get("pose") or doc.get("pose"):
+        return "creature_pose2"
+    try:
+        if int(rec.get("directions") or doc.get("directions") or 0) == 8:
+            return "creature_free8"
+    except (TypeError, ValueError):
+        pass
+    return "creature_free2"
+
+
+def _look_state(target, doc=None):
+    """What the content JSON says of a look target: {doc, entry, recipe, base_code, is_base, is_new}. A NEW look is a code
+    that is not the base strip's (`variant_base`) and whose entry has no `sprite` yet (a stub, a draft, or no entry)."""
+    if doc is None:
+        doc = content_doc(target.get("kind", ""), target.get("id", "")) if target.get("id") else None
+    doc = doc if isinstance(doc, dict) else {}
+    code = str(target.get("code") or "")
+    base_code = str(doc.get("variant_base") or "")
+    vs = doc.get("variants") if isinstance(doc.get("variants"), dict) else {}
+    entry = vs.get(code) if isinstance(vs.get(code), dict) else {}
+    recipe = entry.get("recipe") if isinstance(entry.get("recipe"), dict) else {}
+    is_base = bool(code) and code == base_code
+    return {"doc": doc, "entry": entry, "recipe": recipe, "base_code": base_code, "is_base": is_base,
+            "is_new": bool(code) and not is_base and not entry.get("sprite")}
 
 
 def _painter_of(spec):
@@ -1278,40 +1461,625 @@ def _painter_of(spec):
 
 
 def _seed_recipe(target, spec):
-    """What every look job writes into its recipe before it runs. Every painting method records its `painter`
-    (_painter_of; a recolour paints nothing). A creature look painted by gen_art also gets its own `stills` slug when
-    the key is absent (else the stills are CACHED under the creature's own keys and every look comes out as the base;
-    an explicit "" keeps the creature's own paintings: Duplicate's "reuse the paintings") and a copy of the base's art
-    words when it names none."""
-    if not target.get("code") or spec.get("method") == "recolour":
+    """What every look job writes into its recipe before it runs (pass 68, D2).
+    - The job's `method` (front_from_picture records none: it paints a front for the look job that follows it).
+    - The `painter` of every painting method (_painter_of; a recolour paints nothing).
+    - A look whose stills gen_art paints (STILL_METHODS, heroes' hero_pose5 too):
+      a NEW look (not the base strip's code, no `sprite` in its entry yet) gets its own `stills` slug (its letter) when the
+      key is absent or None, and its own `seed_offset` when absent, so its paintings are its own and two new looks with
+      the same words differ;
+      an EXISTING look (a sprite, or the base) gets `stills: ""` when the key is absent: the paintings it was made from,
+      never a letter (a re-roll from its card must not repaint them by accident), and no seed_offset (0).
+      An explicit "" is kept: the creature's or hero's own paintings (Duplicate's "reuse the paintings").
+    - A creature look copies the base's art words it names none of, so its prompt is in its own recipe."""
+    if not target.get("code"):
         return
+    method = spec.get("method")
     recipe = spec.get("recipe")
     if not isinstance(recipe, dict):
         recipe = {}
         spec["recipe"] = recipe
-    recipe["painter"] = _painter_of(spec)
-    if spec.get("method") not in CREATURE_STILL_METHODS:
+    if method == "front_from_picture":
+        if recipe.get("method") == "front_from_picture":
+            recipe.pop("method")
+    elif method:
+        # the method that runs is the one recorded (the recipe's own named another when the form changed it)
+        recipe["method"] = method
+    if method == "recolour":
         return
-    if "stills" not in recipe or recipe.get("stills") is None:
-        recipe["stills"] = _letter(target["code"])
-    base = content_doc(target.get("kind"), target.get("id")) or {}
-    for k in INHERITED_WORDS:
-        if not recipe.get(k) and base.get(k) not in (None, "", {}):
-            recipe[k] = base[k]
+    recipe["painter"] = _painter_of(spec)
+    if method not in STILL_METHODS:
+        return
+    st = _look_state(target)
+    if st["is_new"]:
+        if recipe.get("stills") is None:
+            recipe["stills"] = _letter(target["code"])
+        if recipe.get("seed_offset") is None:
+            recipe["seed_offset"] = _seed_offset(target["code"])
+    elif recipe.get("stills") is None:
+        recipe["stills"] = ""
+    if method in CREATURE_STILL_METHODS:
+        base = st["doc"]
+        for k in INHERITED_WORDS:
+            if not recipe.get(k) and base.get(k) not in (None, "", {}):
+                recipe[k] = base[k]
+
+
+# ---------------------------------------------------------------- re-rolls (pass 68, D3)
+
+def _move_stills_aside(keys, stamp, remove=False):
+    """Each still's PNG and JSON copied to <key>_old<stamp> (the paintings stay recoverable); `remove` deletes the
+    original too (a tool that cannot be told --keys paints it again only when it is gone). Returns the copies' paths."""
+    moved = []
+    for key in keys:
+        for ext in (".png", ".json"):
+            src = os.path.join(RAW, key + ext)
+            if os.path.isfile(src):
+                dst = os.path.join(RAW, "%s_old%s%s" % (key, stamp, ext))
+                shutil.copy2(src, dst)
+                if remove:
+                    os.remove(src)
+                moved.append(_rel(dst))
+    return moved
+
+
+def _move_clips_aside(keys, stamp):
+    """Each clip's cache folder moved to <key>_old<stamp> (the clip cache is by key only). Returns the new paths."""
+    moved = []
+    for key in keys:
+        src = os.path.join(ANIM, key)
+        if os.path.isdir(src):
+            dst = "%s_old%s" % (src, stamp)
+            shutil.move(src, dst)
+            moved.append(_rel(dst))
+    return moved
+
+
+def _unspent_keys(keys, started):
+    """The forced still keys (spec.keys) an attempt that started at `started` has not painted yet: a key whose PNG is not
+    older than the start was painted by that attempt. Every key when the attempt never started (pass 68 review)."""
+    t0 = _epoch(started)
+    keys = [str(k) for k in (keys or []) if k]
+    if t0 is None:
+        return keys
+    out = []
+    for k in keys:
+        p = os.path.join(RAW, k + ".png")
+        if not (os.path.isfile(p) and os.path.getmtime(p) >= t0):
+            out.append(k)
+    return out
+
+
+def _slug_users(doc, code, slug):
+    """The other looks of the file whose recipe names the same `stills` slug ("top" for the creature's own `stills`)."""
+    out = []
+    vs = doc.get("variants") if isinstance(doc.get("variants"), dict) else {}
+    for c, e in vs.items():
+        if c == code or not isinstance(e, dict):
+            continue
+        r = e.get("recipe") if isinstance(e.get("recipe"), dict) else {}
+        if r.get("stills") is not None and str(r.get("stills")) == slug:
+            out.append(c)
+    if doc.get("stills") is not None and str(doc.get("stills")) == slug:
+        out.append("top")
+    return out
+
+
+def _own_slug(doc, code):
+    """A slug of the look's own: its letter, or the letter and a number when another look's recipe names the letter."""
+    base = _letter(code)
+    slug, n = base, 1
+    while _slug_users(doc, code, slug):
+        n += 1
+        slug = "%s%d" % (base, n)
+    return slug
+
+
+def _fork_shared_stills(job, r_stills):
+    """pass 68: a job card's still re-roll (requeue) on a look whose paintings are shared (stills "" = the creature's or
+    hero's own, or a slug another look names) must not repaint the shared files (every other look, the badge and title
+    tools read them): the look gets a slug of its own and its own seed_offset, the shared paintings it keeps are copied
+    under its new keys (their dates kept: the honest painter calls them reused), and only the asked ones are painted,
+    under the new keys. Returns (the keys to paint again, {forked, from, copied} or None when nothing was shared)."""
+    t = job.get("target") or {}
+    spec = job.get("spec") or {}
+    method = job.get("method")
+    if job.get("kind") != "look" or method not in STILL_METHODS or not r_stills or not t.get("code"):
+        return r_stills, None
+    st = _look_state(t)
+    if st["is_base"]:
+        return r_stills, None   # the base strip's paintings are its own
+    recipe = spec.get("recipe") if isinstance(spec.get("recipe"), dict) else {}
+    slug = str(recipe.get("stills") or "")
+    if slug and not _slug_users(st["doc"], t["code"], slug):
+        return r_stills, None
+    old_keys = cache_keys(method, spec, t, st["doc"])["stills"]
+    if not any(k in old_keys for k in r_stills):
+        return r_stills, None
+    recipe = dict(recipe)
+    recipe["stills"] = _own_slug(st["doc"], t["code"])
+    if recipe.get("seed_offset") is None:
+        recipe["seed_offset"] = _seed_offset(t["code"])
+    spec["recipe"] = recipe
+    new_keys = cache_keys(method, spec, t, st["doc"])["stills"]
+    forced, copied = [], []
+    for old, new in zip(old_keys, new_keys):
+        if old in r_stills:
+            forced.append(new)   # a still_keys view keeps its named painting's key (old == new)
+            continue
+        if old == new:
+            continue
+        for ext in (".png", ".json"):
+            src, dst = os.path.join(RAW, old + ext), os.path.join(RAW, new + ext)
+            if os.path.isfile(src) and not os.path.isfile(dst):
+                shutil.copy2(src, dst)
+                if ext == ".png":
+                    copied.append(new)
+    forced += [k for k in r_stills if k not in old_keys]
+    # a key an older re-roll forced under the shared names is not this look's any more
+    spec["keys"] = [k for k in (spec.get("keys") or []) if k and (k not in old_keys or k in new_keys)]
+    return forced, {"forked": recipe["stills"], "from": slug, "copied": copied}
+
+
+def _apply_reroll(target, spec):
+    """The job form's re-roll (spec.reroll = {mode, view}), applied once at enqueue (pass 68, D3); `applied` marks it so an
+    edit does not apply it again. The recipe changes are written with the recipe (set_recipe at enqueue); the cache is
+    moved aside with requeue's helpers (a still copied to <key>_old<stamp>, a clip folder moved).
+      stills  a look that shares its paintings (stills "" or a slug another look names) gets a slug of its own and its own
+              seed_offset: its stills are painted fresh under new keys and the shared ones are never touched; a look with
+              its own slug: seed_offset + 1 and its stills painted again (--keys); its clips are moved aside too and
+              walked again from the new stills (the lead, pass 68: kept clips would be the old walks of the old stills)
+      seeds   stills, and the clips moved aside with anim_seed + 1
+      clips   the clips moved aside, anim_seed + 1 (creature_ctl: walk_seeds + 1 per view), the stills kept
+      view    creature_ctl's view candidates (--view-cands)
+    Returns {mode, moved, stamp, keys} or None; ValueError when the mode does not fit the method."""
+    rr = spec.get("reroll")
+    if not isinstance(rr, dict):
+        return None
+    mode = str(rr.get("mode") or "")
+    if mode in ("", "none") or rr.get("applied"):
+        return None
+    if mode not in REROLL_MODES:
+        raise ValueError("reroll.mode %r is not one of %s" % (mode, ", ".join(REROLL_MODES)))
+    method = spec.get("method")
+    code = str(target.get("code") or "")
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    if method in ("front_from_picture", "recolour"):
+        raise ValueError("%s paints no stills or clips of its own: there is nothing to re-roll (queue it again)" % method)
+    if mode == "view":
+        if method != "creature_ctl":
+            raise ValueError("the view re-roll is creature_ctl's view candidates (gen_ctl --view-cands)")
+        views = [v.strip() for v in str(rr.get("view") or "").split(",") if v.strip()]
+        if not views or any(v not in CTL_VIEWS for v in views):
+            raise ValueError("the view re-roll needs reroll.view: one or more of %s" % ", ".join(CTL_VIEWS))
+        spec["view_cands"] = ",".join(views)
+        spec["use_view"] = ""
+        rr["applied"] = stamp
+        return {"mode": mode, "moved": [], "stamp": stamp, "keys": [], "view": spec["view_cands"]}
+    if method == "hero_fit" and mode in ("stills", "seeds"):
+        raise ValueError("hero_fit walks the hero's own paintings (every look's): re-roll its clips, or paint the look's own stills with hero_pose5")
+    if method == "creature_ctl" and mode in ("stills", "seeds"):
+        raise ValueError("creature_ctl paints its stills from the picked side with its code's own seeds: re-roll a view or the clips "
+                         "(new side candidates: queue a new look)")
+    if method == "creature_proc" and mode == "clips":
+        raise ValueError("creature_proc has no clips (its frames are procedural): re-roll the stills")
+    recipe = spec.get("recipe")
+    if not isinstance(recipe, dict):
+        recipe = {}
+        spec["recipe"] = recipe
+    st = _look_state(target)
+    doc, cid = st["doc"], str(target.get("id") or "")
+    moved, forced = [], []
+    if mode in ("stills", "seeds") and method in STILL_METHODS:
+        slug = str(recipe.get("stills") or "")
+        shared = not slug or bool(_slug_users(doc, code, slug))
+        if shared:
+            recipe["stills"] = _own_slug(doc, code)
+            if recipe.get("seed_offset") is None:
+                recipe["seed_offset"] = _seed_offset(code)
+        else:
+            recipe["seed_offset"] = int(recipe.get("seed_offset") or 0) + 1
+        prefix = cid + "_" + str(recipe["stills"]) + "_"
+        # only the slug's own keys: a hero recipe's still_keys name paintings other looks share, never repainted here
+        keys = [k for k in cache_keys(method, spec, target, doc)["stills"] if k.startswith(prefix)]
+        if shared:
+            keys = [k for k in keys if os.path.isfile(os.path.join(RAW, k + ".png"))]   # leftovers under the new slug
+        moved += _move_stills_aside(keys, stamp)
+        sk = [k for k in (spec.get("keys") or []) if k]
+        for k in keys:
+            if k not in sk:
+                sk.append(k)
+        spec["keys"] = sk
+        forced = keys
+    if mode == "stills":
+        # the walks follow the stills they are walked from (new stills, the same clip seed: new clips)
+        moved += _move_clips_aside(cache_keys(method, spec, target, doc)["clips"], stamp)
+    if mode in ("seeds", "clips"):
+        clips = cache_keys(method, spec, target, doc)["clips"]
+        if method == "creature_ctl":
+            clips = [k for k in clips if "_ctl_" in k]   # its death has a seed of its own: moving it would paint the same
+            ws = dict(recipe.get("walk_seeds") or {})
+            for key in clips:
+                v = key.rsplit("_", 1)[-1]
+                ws[v] = int(ws.get(v, 0)) + 1
+            recipe["walk_seeds"] = ws
+        else:
+            recipe["anim_seed"] = int(recipe.get("anim_seed", 0) or 0) + 1
+        moved += _move_clips_aside(clips, stamp)
+    rr["applied"] = stamp
+    return {"mode": mode, "moved": moved, "stamp": stamp, "keys": forced}
+
+
+# ---------------------------------------------------------------- candidate defaults (pass 68, D6)
+
+# a clause of an art_prompt that describes the still's pose rather than the character (appearance_of)
+_POSE_STRONG = re.compile(r"\b(standing|facing|relaxed|pose[sd]?|posing)\b", re.I)
+_POSE_LIMBS = re.compile(r"\b(arms?|hands?)\b", re.I)
+_POSE_LIMB_WAYS = re.compile(r"\b(sides?|empty|raised|crossed|hips?|hanging|nothing|down|folded|outstretched|spread)\b", re.I)
+
+
+def _is_pose_clause(text):
+    t = str(text or "")
+    return bool(_POSE_STRONG.search(t) or (_POSE_LIMBS.search(t) and _POSE_LIMB_WAYS.search(t)))
+
+
+def appearance_of(text):
+    """The character in an art_prompt without the trailing clause about the still's pose ("; standing straight, both arms
+    relaxed at her sides", ", standing straight with his hands relaxed at his sides", ", empty hands"): a last ;-clause,
+    then each last ,-clause, that names standing, facing, relaxed or a pose (or arms/hands with how they hang), is cut.
+    A badge, a title or an icon has its own action, which the still's pose contradicts."""
+    s = str(text or "").strip()
+    if not s:
+        return ""
+    if ";" in s:
+        head, tail = s.rsplit(";", 1)
+        if head.strip() and _is_pose_clause(tail):
+            s = head.strip()
+    while "," in s:
+        head, tail = s.rsplit(",", 1)
+        if head.strip() and _is_pose_clause(tail):
+            s = head.strip()
+        else:
+            break
+    return s.rstrip(" ,;.")
+
+
+_title_cache = {"mtime": None, "tables": {}}
+
+
+def _title_tables():
+    """gen_title_heroes.py's own tables (POSES, HOLDS, CAMERA, FACING, EXTRA_REFS), read as literals from its source (the
+    tool imports gen_art and comfy, which must not load in the editor); {} when they cannot be read."""
+    path = os.path.join(TOOLS, "gen_title_heroes.py")
+    try:
+        mt = os.path.getmtime(path)
+    except OSError:
+        return {}
+    if _title_cache["mtime"] == mt:
+        return _title_cache["tables"]
+    out = {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            tree = ast.parse(f.read())
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) \
+                    and node.targets[0].id in ("POSES", "HOLDS", "CAMERA", "FACING", "EXTRA_REFS"):
+                try:
+                    v = ast.literal_eval(node.value)
+                except ValueError:
+                    continue
+                if isinstance(v, dict):
+                    out[node.targets[0].id] = v
+    except (OSError, SyntaxError, ValueError):
+        out = {}
+    _title_cache.update(mtime=mt, tables=out)
+    return out
+
+
+def _resolve_pic(path):
+    """A picture path as a job field names it (repo-relative such as tools/dl/uploads/2d/x.png, tools/dl-relative such as
+    basketball_ref.png, or absolute) -> the file on disk, or None."""
+    p = str(path or "").strip()
+    if not p:
+        return None
+    norm = p.replace("\\", "/")
+    for prefix, base in (("tools/dl/ai_raw_anime/", RAW), ("tools/dl/", DL)):
+        if norm.startswith(prefix):
+            cand = os.path.join(base, *norm[len(prefix):].split("/"))
+            if os.path.isfile(cand):
+                return cand
+    cands = [p] if os.path.isabs(p) else [os.path.join(_root, *norm.split("/")), os.path.join(DL, *norm.split("/"))]
+    for c in cands:
+        if os.path.isfile(c):
+            return c
+    return None
+
+
+def _pic_url(path):
+    """The page's /dl/ link of a picture under tools/dl, else None."""
+    norm = str(path or "").strip().replace("\\", "/")
+    if norm.startswith("tools/dl/"):
+        return "/dl/" + norm[len("tools/dl/"):]
+    full = _resolve_pic(norm)
+    if full:
+        r = _rel(full)
+        if r.startswith("tools/dl/"):
+            return "/dl/" + r[len("tools/dl/"):]
+    return None
+
+
+def _base_recipe(doc):
+    """(code, recipe) of the base strip's own entry (`variant_base`): a base look the editor made carries the recipe its
+    stills were painted from (bull_beetle's BB-C, lesser_scorpion's LS-B, werewolf's WW-A); recipe {} when it has none."""
+    doc = doc if isinstance(doc, dict) else {}
+    bc = str(doc.get("variant_base") or "")
+    vs = doc.get("variants") if isinstance(doc.get("variants"), dict) else {}
+    e = vs.get(bc) if bc else None
+    r = e.get("recipe") if isinstance(e, dict) else None
+    return bc, (r if isinstance(r, dict) else {})
+
+
+def _front_key(tkind, cid, code, doc):
+    """(key, source) of a target's identity picture: a look's own front still (cache_keys of its method and recipe; a new
+    look's slug as _seed_recipe will give it), else the base's: the base look's own front when its entry has a recipe and
+    that still is on disk (pass 68 review: BB-C's bull_beetle_bbc_front, not the old bull_beetle_front), else a hero's
+    still_keys.front or <id>_front, a creature's <id>[_<stills>]_front. (None, "") for an item."""
+    st = _look_state({"kind": tkind, "id": cid, "code": code}, doc)
+    if code and not st["is_base"]:
+        recipe = dict(st["recipe"])
+        method = implied_method(tkind, recipe, doc)
+        if st["is_new"] and method in STILL_METHODS and recipe.get("stills") is None:
+            recipe["stills"] = _letter(code)
+        keys = cache_keys(method, {"recipe": recipe}, {"kind": tkind, "id": cid, "code": code}, doc).get("stills") or []
+        front = next((k for k in keys if k.endswith("_front")), None)
+        if front:
+            return front, "the look's front still (%s)" % front
+    bc, brec = _base_recipe(doc)
+    if brec and tkind in ("hero", "enemy", "boss"):
+        keys = cache_keys(implied_method(tkind, brec, doc), {"recipe": brec}, {"kind": tkind, "id": cid, "code": bc}, doc).get("stills") or []
+        front = next((k for k in keys if k.endswith("_front")), None)
+        if front and os.path.isfile(os.path.join(RAW, front + ".png")):
+            return front, "the base look's front still (%s)" % front
+    if tkind == "hero":
+        sk = doc.get("still_keys") if isinstance(doc.get("still_keys"), dict) else {}
+        key = str(sk.get("front", cid + "_front"))
+        return key, "the hero's front still (%s)" % key
+    if tkind in ("enemy", "boss"):
+        stl = doc.get("stills")
+        key = cid + ("_" + str(stl) if stl else "") + "_front"
+        return key, "the creature's front still (%s)" % key
+    return None, ""
+
+
+def _item_render(cid):
+    """An item's 3D render, the reference its icon may copy: tools/dl/<id>_ref.png (the Blender scripts' icon renders), else
+    ref_render's tools/dl/uploads/3d/<id>/icon_ref.png; None when neither is there."""
+    for rel in ("%s_ref.png" % cid, "uploads/3d/%s/icon_ref.png" % cid):
+        if os.path.isfile(os.path.join(DL, *rel.split("/"))):
+            return "tools/dl/" + rel
+    return None
+
+
+def _character_of(doc, recipe):
+    """(words, source): the look's own appearance, else its own art_prompt when it differs from the base's (a look copies
+    the base's), else the base's appearance, else the base's art_prompt; an art_prompt goes through appearance_of."""
+    rec = recipe if isinstance(recipe, dict) else {}
+    base_ap = str(doc.get("art_prompt") or "").strip()
+    if str(rec.get("appearance") or "").strip():
+        return str(rec["appearance"]).strip(), "the look's appearance"
+    own = str(rec.get("art_prompt") or "").strip()
+    if own and own != base_ap:
+        a = appearance_of(own)
+        return a, "the look's art_prompt" + (" (its pose clause cut)" if a != own.rstrip(" ,;.") else "")
+    if str(doc.get("appearance") or "").strip():
+        return str(doc["appearance"]).strip(), "appearance"
+    if base_ap:
+        a = appearance_of(base_ap)
+        return a, "art_prompt" + (" (its pose clause cut)" if a != base_ap.rstrip(" ,;.") else "")
+    return "", ""
+
+
+def _screen_of(doc, recipe):
+    """(screen, source) for an icon: the look's or the item's `screen`, else gen_art.bg_for's rule (a green-ish
+    placeholder colour paints on blue), else green."""
+    for d, where in ((recipe if isinstance(recipe, dict) else {}, "the look's screen"), (doc, "screen")):
+        named = str(d.get("screen") or "").lower()
+        if named in ("green", "blue"):
+            return named, where
+    ph = doc.get("placeholder") if isinstance(doc.get("placeholder"), dict) else {}
+    import colorsys
+    for key in ("color", "hat", "outline"):
+        col = str(ph.get(key, "")).lstrip("#")
+        if len(col) != 6:
+            continue
+        try:
+            r, g, b = int(col[0:2], 16) / 255, int(col[2:4], 16) / 255, int(col[4:6], 16) / 255
+        except ValueError:
+            continue
+        h, s, v = colorsys.rgb_to_hsv(r, g, b)
+        if s > 0.25 and 0.2 < h < 0.48:
+            return "blue", "the placeholder colour is green-ish (gen_art paints it on blue)"
+    return "green", "the default screen"
+
+
+def candidate_defaults(kind, target):
+    """What the server fills into an icon_cands, hero_badge or hero_title job's empty fields (pass 68, D6), and where each
+    came from: {"kind", "target", "fields": {...}, "sources": {field: "where it came from"}, "ref_url": "/dl/..." or None,
+    "ref_exists": bool}. Served by GET /api/jobs/defaults so the form shows them as values Garry edits; applied at enqueue
+    and edit to every empty field (_seed_candidates).
+      character  (badge, title; a creature's icon subject) the appearance, else the art_prompt with its pose clause cut
+      ref        the target look's own front still (tools/dl/ai_raw_anime/<front key>.png), else the base's; an item's
+                 3D render when it has one
+      hero_badge prompt (portrait_prompt), variant (the look code; "" for the hero's own)
+      hero_title pose (title_pose, else the tool's table, else a confident full-body stance), holds, camera, extra_ref,
+                 extra_words (title_*, else the tool's tables), variant
+      icon_cands subject (a creature's character words; an item's art_prompt), screen, file (<id>_icon_<x>.png for a
+                 look, else the base icon)"""
+    if kind not in CANDIDATE_KINDS:
+        raise ValueError("defaults are for %s (got %r)" % (", ".join(CANDIDATE_KINDS), kind))
+    t = dict(target or {})
+    tkind, cid, code = str(t.get("kind") or ""), str(t.get("id") or ""), str(t.get("code") or "")
+    if not cid:
+        raise ValueError("%s defaults need a target id" % kind)
+    if kind in ("hero_badge", "hero_title") and tkind not in ("", "hero"):
+        raise ValueError("%s is for a hero" % kind)
+    if kind == "icon_cands" and tkind == "hero":
+        raise ValueError("a hero's icon is the round badge: queue hero_badge")
+    if not tkind and kind in ("hero_badge", "hero_title"):
+        tkind = "hero"
+    doc = content_doc(tkind, cid)
+    if doc is None:
+        raise ValueError("no %s %s" % (tkind or "item", cid))
+    st = _look_state({"kind": tkind, "id": cid, "code": code}, doc)
+    is_look = bool(code) and not st["is_base"]
+    # the base look's own recipe when its entry has one (pass 68 review): its words and screen, as its front still
+    recipe = st["recipe"] if is_look else _base_recipe(doc)[1]
+    creature = tkind in ("enemy", "boss")
+    fields, sources = {}, {}
+
+    def put(name, value, source):
+        fields[name] = "" if value is None else value
+        sources[name] = source
+
+    def word(key):
+        """A hero key from the look's recipe, else the hero JSON's: (value, source)."""
+        if is_look and str(recipe.get(key) or "").strip():
+            return str(recipe[key]).strip(), "the look's " + key
+        if str(doc.get(key) or "").strip():
+            return str(doc[key]).strip(), key
+        return "", ""
+
+    ref_key, ref_src = (None, "")
+    if kind in ("hero_badge", "hero_title") or creature:
+        ref_key, ref_src = _front_key(tkind, cid, code if is_look else "", doc)
+    ref = "tools/dl/ai_raw_anime/%s.png" % ref_key if ref_key else None
+    if kind == "icon_cands" and not creature:
+        ref = _item_render(cid)
+        ref_src = "the item's 3D render" if ref else ""
+    if kind in ("hero_badge", "hero_title") or creature:
+        who, src = _character_of(doc, recipe)
+        if kind == "icon_cands":
+            put("subject", who, src)
+        else:
+            put("character", who, src)
+    else:
+        put("subject", str(doc.get("art_prompt") or "").strip(), "art_prompt" if doc.get("art_prompt") else "")
+    put("ref", ref or "", ref_src)
+    variant = code if is_look else ""
+    if kind == "hero_badge":
+        pp, src = word("portrait_prompt")
+        put("prompt", pp or "smiling at the viewer", src or "the tool's default")
+        put("variant", variant, "the look" if variant else "the hero's own badge")
+    elif kind == "hero_title":
+        tabs = _title_tables()
+        pose, src = word("title_pose")
+        if not pose and cid in (tabs.get("POSES") or {}):
+            pose, src = str(tabs["POSES"][cid]), "gen_title_heroes POSES"
+        put("pose", pose or "standing confidently in a heroic pose, full body", src or "the default pose")
+        holds, src = word("title_holds")
+        if not holds and cid in (tabs.get("HOLDS") or {}):
+            holds, src = str(tabs["HOLDS"][cid]), "gen_title_heroes HOLDS"
+        put("holds", holds or "no weapon", src or "the tool's default")
+        cam, src = word("title_camera")
+        for tab in ("CAMERA", "FACING"):
+            if not cam and cid in (tabs.get(tab) or {}):
+                cam, src = str(tabs[tab][cid]), "gen_title_heroes " + tab
+        put("camera", cam or "facing the viewer, seen from the front at eye level", src or "the tool's default")
+        xr = recipe.get("title_extra_ref") if is_look and isinstance(recipe.get("title_extra_ref"), dict) else doc.get("title_extra_ref")
+        xfile, xwords, xsrc = "", "", ""
+        if isinstance(xr, dict) and xr.get("file"):
+            xfile, xwords, xsrc = str(xr["file"]), str(xr.get("words") or ""), "title_extra_ref"
+        elif cid in (tabs.get("EXTRA_REFS") or {}):
+            pair = tabs["EXTRA_REFS"][cid]
+            if isinstance(pair, (tuple, _LIST)) and len(pair) == 2:
+                xfile, xwords, xsrc = str(pair[0]), str(pair[1]), "gen_title_heroes EXTRA_REFS"
+        put("extra_ref", xfile, xsrc)
+        put("extra_words", xwords, xsrc)
+        put("variant", variant, "the look" if variant else "the hero's own cut-out")
+    else:
+        scr, src = _screen_of(doc, recipe)
+        put("screen", scr, src)
+        if is_look:
+            put("file", "%s_icon_%s.png" % (cid, _letter(code)), "the look's own icon file")
+        else:
+            put("file", os.path.basename(str(doc.get("icon") or (cid + "_icon.png"))), "the icon the game reads")
+    full = _resolve_pic(fields.get("ref"))
+    return {"kind": kind, "target": {"kind": tkind, "id": cid, "code": code}, "fields": fields, "sources": sources,
+            "ref_url": _pic_url(fields.get("ref")) if fields.get("ref") else None, "ref_exists": bool(full)}
+
+
+def _seed_candidates(kind, target, spec):
+    """D6 at enqueue and edit: every empty field of an icon_cands / hero_badge / hero_title spec gets candidate_defaults'
+    value; spec.defaults_from says where each filled one came from (the job card shows it). A field holding only a space
+    is not empty: the plan leaves it out (the way to send no words)."""
+    if kind not in CANDIDATE_KINDS:
+        return {}
+    try:
+        d = candidate_defaults(kind, target)
+    except ValueError:
+        return {}
+    filled = {}
+    for k, v in d["fields"].items():
+        if spec.get(k) in (None, "") and v not in (None, ""):
+            spec[k] = v
+            filled[k] = d["sources"].get(k, "")
+    prev = spec.get("defaults_from") if isinstance(spec.get("defaults_from"), dict) else {}
+    # a field whose value is no longer the default (Garry typed or picked his own on an edit) is no longer "filled in"
+    kept = {k: s for k, s in prev.items() if spec.get(k) in (None, "") or spec.get(k) == d["fields"].get(k)}
+    if filled or kept != prev:
+        spec["defaults_from"] = dict(kept, **filled)
+    return filled
+
+
+def _planned_stills(cid):
+    """The still keys the queued, running and waiting look jobs of an id will paint (a candidate job's reference may be
+    a new look's front, painted first: the comfy lane runs in order)."""
+    out = set()
+    for j in _state["jobs"]:
+        if j.get("kind") == "look" and j.get("state") in ("queued", "running", "waiting") and (j.get("target") or {}).get("id") == cid:
+            out.update((j.get("cache_keys") or {}).get("stills") or [])
+    return out
+
+
+def _check_candidate_spec(kind, target, spec):
+    """After the defaults: an icon job needs words, and every picture it names must be on disk or a still a queued look
+    job of the same id paints first (MAM-C's typed reference had lost its space and was never there)."""
+    if kind == "icon_cands" and not str(spec.get("subject") or "").strip():
+        raise ValueError("icon_cands needs subject: what to paint (the target has no art_prompt or appearance to fill it from)")
+    planned = None
+    for k in ("ref", "extra_ref"):
+        p = str(spec.get(k) or "").strip()
+        if not p or _resolve_pic(p):
+            continue
+        norm = p.replace("\\", "/")
+        key = norm[len("tools/dl/ai_raw_anime/"):-4] if norm.startswith("tools/dl/ai_raw_anime/") and norm.endswith(".png") else None
+        if planned is None:
+            planned = _planned_stills(str(target.get("id") or ""))
+        if key and key in planned:
+            continue
+        raise ValueError("%s: the picture %s is not on disk (repo paths such as tools/dl/uploads/2d/<file>, tools/dl paths and "
+                         "absolute ones are read; check the name)" % (k, p))
 
 
 def enqueue(kind, target, spec, title=None):
     _writable()
     spec = validate_spec(kind, spec)
     target = _check_target(kind, target)
+    rr = None
     if kind == "look":
         _seed_recipe(target, spec)
+        rr = _apply_reroll(target, spec)
+    elif kind in CANDIDATE_KINDS:
+        _seed_candidates(kind, target, spec)
+        _check_candidate_spec(kind, target, spec)
     job = {"id": _new_id(), "kind": kind, "method": spec.get("method") if kind == "look" else kind, "lane": SPECS[kind]["lane"],
            "state": "queued", "title": title or "", "target": target, "spec": spec, "phase": 1, "attempt": 1, "created": _now(),
            "started": None, "ended": None, "pid": None, "cmd": [], "equiv": "",
            "progress": {"done": 0, "total": 0, "stage": "", "stages": [], "last_output": None, "stalled": False},
            "eta_s": 0, "log_file": "", "outputs": [], "choices": [], "cache_keys": {}, "error": "", "qa_online": None,
            "written": None, "lock_waits": {}, "front": False}
+    if rr:
+        job["reroll"] = rr
     with _lock:
         _derive(job)
         if kind == "look" and spec.get("recipe") is not None and _hook("set_recipe"):
@@ -1332,12 +2100,31 @@ def edit(job_id, spec=None, title=None):
             raise ValueError("no job %s" % job_id)
         if job["state"] == "running":
             raise ValueError("job %s is running: cancel it first" % job_id)
+        rr = None
+        recipe_before = json.dumps((job.get("spec") or {}).get("recipe"), sort_keys=True)
         if spec is not None:
-            merged = dict(job.get("spec") or {})
+            # a deep copy: a refused edit leaves the job as it was (the checks below may raise)
+            merged = json.loads(json.dumps(job.get("spec") or {}))
+            stored, inc = merged.get("reroll"), spec.get("reroll")
+            if (isinstance(stored, dict) and stored.get("applied") and isinstance(inc, dict) and not inc.get("applied")
+                    and str(inc.get("mode") or "") == str(stored.get("mode") or "")
+                    and (str(inc.get("mode") or "") != "view" or str(inc.get("view") or "") == str(stored.get("view") or ""))):
+                # pass 68 review: the page's Save changes sends the whole form, its re-roll without the stamp: the same
+                # mode (and view) is the re-roll already applied at Queue, never applied again (seed_offset + 1 again,
+                # the stills it painted moved aside); a different mode or view is a new re-roll, applied once
+                spec = dict(spec, reroll=dict(inc, applied=stored["applied"]))
             merged.update(spec)
-            job["spec"] = validate_spec(job["kind"], merged)
+            new = validate_spec(job["kind"], merged)
+            t = job.get("target") or {}
             if job["kind"] == "look":
-                _seed_recipe(job.get("target") or {}, job["spec"])
+                _seed_recipe(t, new)
+                rr = _apply_reroll(t, new)   # raises before it moves anything
+            elif job["kind"] in CANDIDATE_KINDS:
+                _seed_candidates(job["kind"], t, new)
+                _check_candidate_spec(job["kind"], t, new)
+            job["spec"] = new
+            if rr:
+                job["reroll"] = rr
             if job["kind"] == "look":
                 job["method"] = job["spec"].get("method")
         if title is not None:
@@ -1350,7 +2137,8 @@ def edit(job_id, spec=None, title=None):
                     job["spec"][k] = ""
         job["front"] = False
         _derive(job)
-        if job["kind"] == "look" and spec is not None and "recipe" in spec and _hook("set_recipe"):
+        recipe_changed = json.dumps((job.get("spec") or {}).get("recipe"), sort_keys=True) != recipe_before
+        if job["kind"] == "look" and spec is not None and ("recipe" in spec or recipe_changed) and _hook("set_recipe"):
             t = job["target"]
             try:
                 _hook("set_recipe")(t["kind"], t["id"], t["code"], job["spec"].get("recipe") or {}, job["spec"].get("note") or None)
@@ -1403,30 +2191,34 @@ def requeue(job_id, reroll=None):
         stamp = time.strftime("%Y%m%d-%H%M%S")
         moved = []
         gen_art_tool = (job.get("plan") or {}).get("tool") in ("gen_art", "") and job.get("method") != "creature_ctl"
-        for key in rr.get("stills") or []:
-            for ext in (".png", ".json"):
-                src = os.path.join(RAW, key + ext)
-                if os.path.isfile(src):
-                    shutil.copy2(src, os.path.join(RAW, "%s_old%s%s" % (key, stamp, ext)))
-                    if not gen_art_tool:
-                        os.remove(src)   # gen_ctl cannot be told --keys: the painting is moved away so it paints again
-                    moved.append(_rel(os.path.join(RAW, "%s_old%s%s" % (key, stamp, ext))))
-            if gen_art_tool:
-                keys = [k for k in (spec.get("keys") or []) if k]
+        r_stills = [k for k in (rr.get("stills") or []) if k]
+        if job["kind"] == "look" and not r_stills and spec.get("keys"):
+            # pass 68 review: a stopped job (failed, cancelled, interrupted) keeps its forced keys; the ones its attempt
+            # already repainted (a PNG not older than the attempt's start) are spent, so a plain Re-queue continues from
+            # the cache as the card says instead of painting them all again
+            spec["keys"] = _unspent_keys(spec["keys"], job.get("attempt_started"))
+        # pass 68: a look that shares its paintings forks them first (the shared files are never repainted from a look)
+        r_stills, fork = _fork_shared_stills(job, r_stills)
+        # gen_ctl and the candidate tools cannot be told --keys: their paintings are moved away so they paint again
+        moved += _move_stills_aside(r_stills, stamp, remove=not gen_art_tool)
+        if gen_art_tool and r_stills:
+            keys = [k for k in (spec.get("keys") or []) if k]
+            for key in r_stills:
                 if key not in keys:
                     keys.append(key)
-                spec["keys"] = keys
-        for key in rr.get("clips") or []:
-            src = os.path.join(ANIM, key)
-            if os.path.isdir(src):
-                dst = "%s_old%s" % (src, stamp)
-                shutil.move(src, dst)
-                moved.append(_rel(dst))
+            spec["keys"] = keys
+        moved += _move_clips_aside([k for k in (rr.get("clips") or []) if k], stamp)
+        if job["kind"] == "hero_badge":
+            # pass 68: a badge job's candidates are cached by their keys (<id>_portrait_<tag>_c<k>): a re-run would hand
+            # the same pictures back whatever its seeds, so its own are moved aside and the next attempt paints new ones
+            moved += _move_stills_aside([k for k in _badge_keys(job) if k not in r_stills], stamp, remove=True)
         if rr.get("seed") is not None:
             spec["seed"] = int(rr["seed"])
-        if rr.get("clips") and job["kind"] == "look":
+        if (rr.get("clips") or fork) and job["kind"] == "look":
             recipe = dict(spec.get("recipe") or {})
-            if job.get("method") == "creature_ctl":
+            if not rr.get("clips"):
+                pass
+            elif job.get("method") == "creature_ctl":
                 ws = dict(recipe.get("walk_seeds") or {})
                 for key in rr["clips"]:
                     if "_ctl_" in key:
@@ -1449,8 +2241,10 @@ def requeue(job_id, reroll=None):
         job["error"] = job.get("error", "") if "could not be written" in job.get("error", "") else ""
         job["outputs"], job["choices"], job["written"], job["lock_waits"] = [], [], None, {}
         job["front"] = False
-        if moved:
+        if moved or fork:
             job["reroll"] = {"moved": moved, "stamp": stamp}
+            if fork:
+                job["reroll"]["fork"] = fork
         if job["method"] == "creature_ctl":
             # a side already picked stays picked (the cache holds <key>_side.png); the views start again from there
             pass
@@ -1516,7 +2310,12 @@ def move(job_id, delta):
         if job["state"] != "queued":
             raise ValueError("only a queued job moves")
         jobs = _state["jobs"]
-        peers = [j for j in jobs if j["state"] == "queued" and j.get("lane") == job.get("lane")]
+        # pass 68 review: the order the worker takes them (_take_next): a picked continuation (front) first, then the list
+        # order, a held job (_waits_for_look) skipped until its reference is painted; a job moves among its own group only
+        # (front / runnable / held), so a swap always changes what the worker does next
+        held = _waits_for_look(job)
+        peers = [j for j in jobs if j["state"] == "queued" and j.get("lane") == job.get("lane")
+                 and bool(j.get("front")) == bool(job.get("front")) and _waits_for_look(j) == held]
         i = peers.index(job)
         k = max(0, min(len(peers) - 1, i + int(delta)))
         if k != i:
@@ -1664,9 +2463,32 @@ def _worker(lane):
                     _lane_current[lane] = None
 
 
+CANDIDATE_KINDS = ("icon_cands", "hero_badge", "hero_title")
+
+
+def _waits_for_look(job):
+    """A candidate job whose reference picture is not on disk yet while a look job of the same target (same id and code)
+    is queued, running or waiting for a pick: the look paints that picture first (pass 68, the lead: creature_ctl waits
+    for a pick while the comfy lane moves on, and a new look's candidates would otherwise paint before its front exists)."""
+    if job.get("kind") not in CANDIDATE_KINDS:
+        return False
+    ref = str((job.get("spec") or {}).get("ref") or "")
+    if not ref:
+        return False
+    if os.path.isfile(ref) or _resolve_pic(ref):   # the resolver the candidate checks use (tools/dl/ai_raw_anime/ -> RAW)
+        return False
+    t = job.get("target") or {}
+    for o in _state["jobs"]:
+        ot = o.get("target") or {}
+        if (o is not job and o.get("kind") == "look" and o.get("state") in ("queued", "running", "waiting")
+                and ot.get("id") == t.get("id") and str(ot.get("code") or "") == str(t.get("code") or "")):
+            return True
+    return False
+
+
 def _take_next(lane):
     with _lock:
-        cands = [j for j in _state["jobs"] if j["state"] == "queued" and j.get("lane") == lane]
+        cands = [j for j in _state["jobs"] if j["state"] == "queued" and j.get("lane") == lane and not _waits_for_look(j)]
         if not cands:
             return None
         front = [j for j in cands if j.get("front")]
@@ -1685,6 +2507,9 @@ def _take_next(lane):
                 job["spec"]["targets"] = targets
                 _derive(job)
         job["state"], job["started"], job["front"] = "running", _now(), False
+        if int(job.get("phase", 1) or 1) <= 1 or not job.get("attempt_started"):
+            # the attempt's first start (a picked continuation's phase 2 keeps it): the stills older than this were reused (D4)
+            job["attempt_started"] = job["started"]
         job["ended"], job["error"] = None, "" if "could not be written" not in job.get("error", "") else job["error"]
         job["progress"]["stalled"] = False
         job["server_pid"] = os.getpid()   # which editor runs it (a later editor's start must not kill it)
@@ -1705,6 +2530,11 @@ def _finish(job, state, error="", save=True):
                 s["state"] = "done"
         job["progress"]["done"] = len(job["progress"].get("stages", []))
         job["progress"]["stage"] = "done"
+        if job.get("kind") == "look" and (job.get("spec") or {}).get("keys"):
+            # a forced repaint (a re-roll's --keys) is spent once it painted: a later plain Re-queue reuses the new stills.
+            # No _derive here (pass 68 review): it set every stage back to pending; the card keeps its progress and the
+            # command it ran, and requeue / edit derive the plan again before the next run
+            job["spec"]["keys"] = []
     elif state in ("failed", "cancelled", "interrupted") and job.get("kind") != "launch":
         # what a stopped job made before it stopped (its workflows above all: the graph that failed is the one to open)
         try:
@@ -2153,7 +2983,15 @@ def _post(job):
             e = dict(entry)
             e["fresh"] = True
             r = h(t["kind"], t["id"], t["code"], e, info) or {}
-            return _written(t, r, ["variants"]), ("" if r.get("ok") else str(r.get("error") or "the entry could not be merged"))
+            written = _written(t, r, ["variants"])
+            if r.get("ok"):
+                try:
+                    honest = _note_reused_stills(job)
+                    if honest:
+                        written["painter"] = honest
+                except Exception as ex:   # the strip landed: a painter note that fails must not fail the job
+                    written["painter"] = {"error": "%s: %s" % (type(ex).__name__, ex)}
+            return written, ("" if r.get("ok") else str(r.get("error") or "the entry could not be merged"))
         if kind == "look" and method == "front_from_picture" and job.get("phase", 1) >= 2:
             h = _hook("set_recipe")
             recipe = dict((job.get("spec") or {}).get("recipe") or {})
@@ -2176,6 +3014,8 @@ def _post(job):
                 return {"file": "", "keys": ["variants"], "backup": "", "layout": "unmerged"}, "no merge hook"
             r = h(t["kind"], t["id"], t["code"], entry, {"pipeline": "recolour_strip", "from": src_code}) or {}
             return _written(t, r, ["variants"]), ("" if r.get("ok") else str(r.get("error") or ""))
+        if kind == "install" and _install_code(job, res):
+            return _post_install_look(job, res, _install_code(job, res))
         if kind == "item_icon" or (kind == "install" and (res.get("top") or {}).get("badge")):
             top = res.get("top") or {}
             if not top:
@@ -2194,6 +3034,96 @@ def _post(job):
 def _written(t, r, keys):
     tf, jp = content_path(t.get("kind", ""), t.get("id", ""))
     return {"file": _rel(jp) if jp else "", "keys": keys, "backup": r.get("backup", ""), "layout": r.get("layout", "unmerged" if not r.get("ok") else "block")}
+
+
+def _note_reused_stills(job):
+    """pass 68 (D4), the honest painter: at a look's landing, its stills whose PNG is older than the attempt's start were
+    reused from the cache, not painted by this job's painter (MAM-C said Flux.2 dev at 32 steps; every still was MAM-B's
+    Klein painting). The entry's recipe is read again from the file (Garry may have edited it while the job ran) and its
+    `painter` written as the painter that ran (_painter_of the job's spec) plus, when stills were reused, `stills`:
+    "reused" (all) or "N of M painted" and `reused`: [keys]; nothing more when every still was painted. Returns
+    {painted, total, reused} or None (nothing to say: no stills, no start time, no hook)."""
+    t = job.get("target") or {}
+    started = _epoch(job.get("attempt_started") or job.get("started"))
+    h = _hook("set_recipe")
+    if started is None or not h or not t.get("code"):
+        return None
+    keys = [k for k in (job.get("cache_keys") or {}).get("stills", []) if "_side_k" not in k and os.path.isfile(os.path.join(RAW, k + ".png"))]
+    if not keys:
+        return None
+    reused = [k for k in keys if os.path.getmtime(os.path.join(RAW, k + ".png")) < started]
+    st = _look_state(t)
+    if not st["entry"]:
+        return None
+    recipe = json.loads(json.dumps(st["recipe"]))
+    old = recipe.get("painter") if isinstance(recipe.get("painter"), dict) else None
+    want = _painter_of(job.get("spec") or {})
+    if reused:
+        want["stills"] = "reused" if len(reused) == len(keys) else "%d of %d painted" % (len(keys) - len(reused), len(keys))
+        want["reused"] = reused
+    out = {"painted": len(keys) - len(reused), "total": len(keys), "reused": reused}
+    if old == want:
+        return out
+    recipe["painter"] = want
+    h(t.get("kind", ""), t["id"], t["code"], recipe, None)
+    return out
+
+
+def _install_look_code(job):
+    """The look code a candidate pick installs into (pass 68, D8): the target's code when it is a look of the file (not
+    the base strip's own code), else ""."""
+    t = job.get("target") or {}
+    code = str(t.get("code") or "")
+    if not code or not t.get("id"):
+        return ""
+    st = _look_state(t)
+    return "" if st["is_base"] else code
+
+
+def _install_code(job, res):
+    """The look a pick lands in: the sidecar's `variant` when its entry names the file the tool wrote for it, else
+    _install_look_code. (Since the pass 68 review the hero tools never name the base strip's code: a base pick is the
+    hero's own <id>_icon.png + badge or hero_<id>.png, as candidate_defaults and the page assume.)"""
+    ent = res.get("entry") if isinstance(res.get("entry"), dict) else {}
+    if str(res.get("variant") or "").strip() and (ent.get("icon") or ent.get("title")):
+        return str(res["variant"]).strip()
+    return _install_look_code(job)
+
+
+def _post_install_look(job, res, code=None):
+    """pass 68 (D8): a candidate picked for a look lands in that look's entry: variants[CODE].icon (a badge or an icon)
+    or variants[CODE].title (a title cut-out, a file under art/ui/wanted/), through the server's line-preserving writer
+    with a backup, without the `fresh` mark (the strip is not touched). The file comes from the tool's sidecar entry,
+    else from the names the tools write (an icon job's `file`, <id>_icon_<x>.png, hero_<id>_<x>.png) when on disk."""
+    t = job.get("target") or {}
+    code = str(code or t.get("code") or "")
+    src = _find(str((job.get("spec") or {}).get("source_job", ""))) or {}
+    entry = res.get("entry") if isinstance(res.get("entry"), dict) else {}
+    files = {k: os.path.basename(str(entry[k])) for k in ("icon", "title") if entry.get(k)}
+    if not files:
+        folder = _content_folder(t.get("kind", ""), t.get("id", "")) or ""
+        letter = _letter(code)
+        if src.get("kind") == "icon_cands":
+            name = os.path.basename(str(((src.get("plan") or {}).get("icon_job") or {}).get("file") or ""))
+            if name and os.path.isfile(os.path.join(folder, name)):
+                files = {"icon": name}
+        elif src.get("kind") == "hero_badge":
+            name = "%s_icon_%s.png" % (t.get("id", ""), letter)
+            if os.path.isfile(os.path.join(folder, name)):
+                files = {"icon": name}
+        elif src.get("kind") == "hero_title":
+            name = "hero_%s_%s.png" % (t.get("id", ""), letter)
+            if os.path.isfile(os.path.join(WANTED, name)):
+                files = {"title": name}
+    if not files:
+        return None, "the pick named no file for %s (nothing merged into its entry)" % code
+    h = _hook("set_look_files")
+    if not h:
+        return {"file": "", "keys": ["variants"], "backup": "", "layout": "unmerged"}, "no set_look_files hook: %s sits on disk, not in the entry" % files
+    r = h(t.get("kind", ""), t["id"], code, files) or {}
+    w = _written(t, r, ["variants"])
+    w["entry_keys"] = sorted(files)
+    return w, ("" if r.get("ok") else str(r.get("error") or "the look's entry could not be written"))
 
 
 def _after_done(job):
@@ -2217,11 +3147,13 @@ def _url_dl(path):
     return "/dl/" + _rel(path).split("tools/dl/", 1)[-1] if "tools/dl/" in _rel(path) else "/dl/" + _rel(path)
 
 
-def _still_output(key, label=None):
+def _still_output(key, label=None, since=None):
     png, meta = os.path.join(RAW, key + ".png"), os.path.join(RAW, key + ".json")
     if not os.path.isfile(png):
         return None
     out = {"label": label or key, "type": "still", "url": "/dl/ai_raw_anime/%s.png" % key, "cache_key": key}
+    if since is not None and os.path.getmtime(png) < since:
+        out["reused"] = True   # pass 68 (D4): older than the attempt: the cache's painting, not this job's
     try:
         with open(meta, "r", encoding="utf-8") as f:
             m = json.load(f)
@@ -2264,9 +3196,10 @@ def _harvest(job):
     res = _result(job) or {}
     info = res.get("info") or {}
     kinds = info.get("clip_kind") or {}
+    since = _epoch(job.get("attempt_started") or job.get("started")) if kind == "look" else None
     if kind in ("look", "item_icon", "hero_badge"):
         for k in ck.get("stills", []):
-            o = _still_output(k)
+            o = _still_output(k, since=since)
             if o:
                 outs.append(o)
         fps = ((res.get("entry") or {}).get("fps") or {})
@@ -2318,25 +3251,23 @@ def _harvest(job):
             outs.append({"label": "the old icon", "type": "backup", "file": _rel(info["icon_backup"])})
     if kind == "icon_cands":
         key = (job.get("plan") or {}).get("key", t.get("id", ""))
-        folder = os.path.join(DL, "icons_le_" + job["id"])
-        for p in sorted(glob.glob(os.path.join(folder, "%s_c*.png" % key))):
-            outs.append({"label": os.path.basename(p)[:-4], "type": "candidate", "url": "/dl/icons_le_%s/%s" % (job["id"], os.path.basename(p))})
+        folder = _icon_folder(job)
+        for c in _icon_choices(job):
+            outs.append({"label": "%s_c%s" % (key, c["id"]), "type": "candidate", "url": c["url"]})
         rv = os.path.join(folder, "review_%s.png" % key)
         if os.path.isfile(rv):
-            outs.append({"label": "review sheet", "type": "sheet", "url": "/dl/icons_le_%s/review_%s.png" % (job["id"], key)})
+            outs.append({"label": "review sheet", "type": "sheet", "url": "/dl/%s/review_%s.png" % (os.path.basename(folder), key)})
     if kind == "hero_badge":
-        rv = os.path.join(REVIEW, "%s_badge_cands.png" % t.get("id", ""))
-        if os.path.isfile(rv):
-            outs.append({"label": "badge candidates", "type": "sheet", "url": "/dl/review/" + os.path.basename(rv)})
+        for name in ("%s_%s_badge_cands.png" % (t.get("id", ""), _badge_tag(job)), "%s_badge_cands.png" % t.get("id", "")):
+            if os.path.isfile(os.path.join(REVIEW, name)):
+                outs.append({"label": "badge candidates", "type": "sheet", "url": "/dl/review/" + name})
+                break
     if kind == "hero_title":
-        hid = t.get("id", "")
-        for p in sorted(glob.glob(os.path.join(TITLE_OUT, "%s_[0-9]*.png" % hid))):
-            if p.endswith("_raw.png"):
-                continue
-            outs.append({"label": os.path.basename(p)[:-4], "type": "candidate", "url": "/dl/title_heroes/" + os.path.basename(p)})
-        rv = os.path.join(TITLE_OUT, "review_%s.png" % hid)
-        if os.path.isfile(rv):
-            outs.append({"label": "review sheet", "type": "sheet", "url": "/dl/title_heroes/review_%s.png" % hid})
+        stem = _title_stem(job)
+        for c in _title_choices(job):
+            outs.append({"label": "%s_%s" % (stem, c["id"]), "type": "candidate", "url": c["url"]})
+        if os.path.isfile(os.path.join(TITLE_OUT, "review_%s.png" % stem)):
+            outs.append({"label": "review sheet", "type": "sheet", "url": "/dl/title_heroes/review_%s.png" % stem})
     if kind in ("driver_pose", "driver_depth"):
         name = str(spec.get("name", ""))
         d = os.path.join(DRIVERS, name)
@@ -2409,21 +3340,52 @@ def _choices(job, marker):
             c = os.path.basename(p)[:-4].rsplit("_c", 1)[-1]
             out.append({"id": c, "label": "c" + c, "url": "/dl/ai_raw_anime/" + os.path.basename(p)})
     elif marker == "review":
-        key = (job.get("plan") or {}).get("key", t.get("id", ""))
-        for p in sorted(glob.glob(os.path.join(DL, "icons_le_" + job["id"], "%s_c*.png" % key))):
-            c = os.path.basename(p)[:-4].rsplit("_c", 1)[-1]
-            out.append({"id": c, "label": "c" + c, "url": "/dl/icons_le_%s/%s" % (job["id"], os.path.basename(p))})
+        out = _icon_choices(job)
     elif marker == "badge":
-        for p in sorted(glob.glob(os.path.join(RAW, "%s_portrait_c*.png" % t.get("id", "")))):
-            c = os.path.basename(p)[:-4].rsplit("_c", 1)[-1]
-            out.append({"id": c, "label": "c" + c, "url": "/dl/ai_raw_anime/" + os.path.basename(p)})
+        out = _badge_choices(job)
     elif marker == "title":
-        hid = t.get("id", "")
-        for p in sorted(glob.glob(os.path.join(TITLE_OUT, "%s_[0-9]*.png" % hid))):
-            if p.endswith("_raw.png"):
-                continue
-            n = os.path.basename(p)[:-4].rsplit("_", 1)[-1]
-            out.append({"id": n, "label": "#" + n, "url": "/dl/title_heroes/" + os.path.basename(p)})
+        out = _title_choices(job)
+    return out
+
+
+# pass 68: a candidate job's choices are its own files only: k (or n) in range(seeds) under its own keys, never a stale
+# _old<stamp> copy, a _view or a _raw file, or a picture an earlier job of the same hero left
+
+def _seeds_of(job):
+    return max(0, int((job.get("spec") or {}).get("seeds") or 4))
+
+
+def _icon_choices(job):
+    key = (job.get("plan") or {}).get("key", (job.get("target") or {}).get("id", ""))
+    folder = _icon_folder(job)
+    out = []
+    for k in range(_seeds_of(job)):
+        name = "%s_c%d.png" % (key, k)
+        if os.path.isfile(os.path.join(folder, name)):
+            out.append({"id": str(k), "label": "c%d" % k, "url": "/dl/%s/%s" % (os.path.basename(folder), name)})
+    return out
+
+
+def _badge_choices(job):
+    """The job's own portraits (<id>_portrait_<tag>_c<k>); a tool that keys them the pre-68 way (<id>_portrait_c<k>) is
+    read when none of the tagged ones is there."""
+    hid = (job.get("target") or {}).get("id", "")
+    n = _seeds_of(job)
+    for keys in (_badge_keys(job, n), ["%s_portrait_c%d" % (hid, k) for k in range(n)]):
+        out = [{"id": str(k), "label": "c%d" % k, "url": "/dl/ai_raw_anime/%s.png" % key}
+               for k, key in enumerate(keys) if os.path.isfile(os.path.join(RAW, key + ".png"))]
+        if out:
+            return out
+    return []
+
+
+def _title_choices(job):
+    stem = _title_stem(job)
+    out = []
+    for n in range(_seeds_of(job)):
+        name = "%s_%d.png" % (stem, n)
+        if os.path.isfile(os.path.join(TITLE_OUT, name)):
+            out.append({"id": str(n), "label": "#%d" % n, "url": "/dl/title_heroes/" + name})
     return out
 
 

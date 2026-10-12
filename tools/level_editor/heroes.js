@@ -155,7 +155,7 @@ const Heroes = (() => {
     if (typeof CutoutPreview === 'function') { try { cut = CutoutPreview(url); } catch (_) { cut = null; } }
     if (!cut) {
       const img = el('img', { src: url, alt: '', onerror: (e) => { e.target.remove(); } });
-      cut = el('div', { class: 'cutout', title: 'the title cut-out (game/art/ui/wanted/hero_<id>.png, 660x888) at a quarter; stripes = the title\'s placeholder' }, img,
+      cut = el('div', { class: 'cutout', title: 'the title cut-out (game/art/ui/wanted/hero_<id>.png, 660x888) at a quarter; stripes = the title\'s placeholder' + (typeof LookGrid !== 'undefined' && LookGrid.WHERE_SHOWN ? ' · ' + LookGrid.WHERE_SHOWN.cutout : '') }, img,
         el('button', { class: 'btn small zoom', type: 'button', text: '⤢', title: 'at 1:1', onclick: () => {
           const box = el('div', { class: 'amodal-back' });
           box.appendChild(el('div', { class: 'amodal wide' }, el('h3', { text: `hero_${doc.id}.png at 1:1 (660 × 888)` }), el('img', { src: url, alt: '', style: 'max-width:100%;display:block;background:repeating-linear-gradient(45deg,#3a3429 0 8px,#2a2520 8px 16px)' }), el('div', { class: 'amodal-actions' }, el('button', { class: 'btn', type: 'button', text: 'Close', onclick: () => box.remove() }))));

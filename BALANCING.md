@@ -700,3 +700,103 @@ closed-mouth half-smile (`badge.still` fadeaway_portrait_c1), the title cut-out 
 eye (the ball's from the 3D render). The perk Timeout and the pickup Timeout share an id across two content types (the
 design's names; `stride` is the passive-and-talent precedent): the game keys each by its type, the Level Editor's create
 flow would refuse the second, and both wear the same whistle icon.
+
+## 15. Pass 68: looks, drafts and candidates (not balance: named so they are not surprises)
+
+Garry (2026-10-12): the title cut-out and icon candidates should already know the hero, with a reference picture; a new
+look must come with its icon and cut-out candidates; Duplicate must not start painting; a duplicate on another model had
+come out byte-identical (MAM-C = MAM-B); the upcoming jobs belong at the top of the Jobs tab.
+
+15.1 **A new look paints its own stills, on its own seeds.** A look job for a NEW look (a code that is not the base strip's
+`variant_base` and has no strip yet: a new code, a draft, a failed job's stub) writes `stills: "<letter>"` into its recipe
+(MAM-D paints `mamy_d_front`, `_back`, `_side`, `_fd`, `_bd`, `_cheer`, `_hurt_<view>`, `_dead`) and `seed_offset`
+(`1 + crc32(code) % 9973`; every seed of the look moves by 104729 a step). Heroes too (`hero_pose5`); `hero_fit` never: it
+walks the hero's own paintings by design. Before pass 68 a hero look read the hero's cached paintings (`<id>_<view>`), so
+MAM-C repainted nothing and its Flux.2 dev setting changed nothing, and two new looks with the same words (DM-E and
+DM-F) painted the same picture on the same seed.
+
+15.2 **An existing look keeps the paintings it was made from.** A job for a look that has a strip, or for the base, writes
+`stills: ""` when its recipe names none (never a letter) and no `seed_offset`, so re-running it reuses its pictures and
+looks painted before pass 68 keep their seeds. The recipe records the `method` that ran.
+
+15.3 **Re-roll does what it says** (the job form's choices, applied once at Queue):
+- *repaint the stills*: a look that shares its paintings (`stills: ""`, or a slug another look names) first gets a slug
+  and seed offset of its own, so the shared pictures are never touched; a look with its own slug moves its seed offset
+  by one and paints its stills again (the old ones kept as `<key>_old<stamp>`). Its walks are made again from the new
+  stills (a painter only paints stills: kept clips would be the old walks).
+- *new seeds*: as above, and new clip seeds too.
+- *keep the stills, redo the clips*: the clips walked again on the next clip seed.
+- *redo one view*: creature_ctl's view candidates.
+Refused with a reason: stills or seeds on hero_fit (its stills are every look's) and creature_ctl (from the picked side),
+clips on creature_proc (no clips), any re-roll of a front from a picture or a recolour. When the Model settings differ from
+the painter the look was painted with, the form selects "repaint the stills" and says why. A job card's Re-roll… on a look
+that shares its paintings forks them the same way. A forced repaint is spent once the job is done: a later plain
+Re-queue reuses the new stills.
+
+15.4 **The painter is honest.** When a look lands, its stills older than the attempt's start were reused from the cache:
+the recipe's `painter` then says `stills: "reused"` (or `"N of M painted"`) with the keys, and the card says the painter
+changed nothing. The run's marker names the model that really painted.
+
+15.5 **Duplicate makes a draft.** Duplicate… writes a new look entry with the source's recipe (the method recorded, the
+painter kept, its own stills and seed offset dropped, `from` = the source's code) and starts nothing. The draft shows a
+purple *draft* chip and **Generate…**; its recipe is edited in the typed recipe editor first. Generate… saves an unsaved
+document first and opens the job form for that code as a new look, with "reuse <source>'s paintings" (only the walks are
+made again).
+
+15.6 **A new look comes with at least 3 icon candidates, and a hero's with at least 3 title cut-out candidates.** The job
+form of a new look (+ New look…, + Generate art…, a draft's Generate…) asks for both, 3 by default and at least 3 (Queue
+refuses fewer); a creature's icon candidates are icon_cands, a hero's are round badge candidates (hero_badge), the cut-out
+is hero_title. They are queued after the look's own job, on its Model settings, with its front still as their reference
+(a candidate job waits in the queue while the look that paints its picture has not finished). On Flux.2 dev the six
+candidates add about half an hour after a hero look; on Klein about two minutes. A recolour and a front from a picture
+need none; on a re-roll the counts are optional.
+
+15.7 **Candidate jobs know the hero and see a picture.** A badge, title cut-out or icon job's empty words are filled from
+the asset at Queue, and the form shows them before Queue, each tagged with where it came from: the *character* (the
+look's or the asset's `appearance` when set, else its `art_prompt` with the trailing pose clause cut: "standing straight,
+arms relaxed at her sides" contradicts a badge's action), the *action* (a badge: `portrait_prompt`), the *pose*, *holds*
+and *camera* (a cut-out: `title_*`, the tool's tables, else "standing confidently in a heroic pose, full body"), and the
+*reference picture* (the look's own front still; any picture may replace it: Change… or Upload…). The words put the
+character right after "this exact character". A hero's icon is its round badge: icon candidates are refused for a hero
+(their pick had written a square icon over the badge). Before pass 68 an icon job sent only the typed words and no
+picture, so "mamy icon, she is miming…" painted four women in aprons.
+
+15.8 **Candidates are the job's own.** Badge candidates are kept per job (`<id>_portrait_<tag>_c<k>`), title cut-outs too
+(`title_heroes/<id>[_<letter>]_<tag>_<n>.png`), icon candidates in the job's folder; a re-run of a candidate job paints
+new ones on new seeds (it used to hand back the old pictures), and a job's Install installs its own pick.
+
+15.9 **A pick for a look lands in that look.** A badge or icon picked for a look writes `<id>_icon_<letter>.png` and
+`variants[CODE].icon`, marked `icon_picked: true` so the look's later runs keep it (gen_art paints a creature look's
+icon from its front still on every run); a cut-out picked for a look writes `art/ui/wanted/hero_<id>_<letter>.png` and
+`variants[CODE].title`; the hero's own badge and cut-out are left alone. The base strip's code counts as the hero's (or
+creature's) own: its pick writes `<id>_icon.png` and the top-level badge, or `hero_<id>.png`. A pick never marks the look
+NEW and never touches its strip; the replaced cut-out is kept in tools/dl/backup/title/. gen_art, gen_ctl and a recolour
+all leave a picked look icon in place.
+
+15.10 **A hero is drawn in the look he is played in.** The played look is the one kept for him (the arena's USE FROM NOW
+ON), else the JSON's `variant`, else the base. His round badge follows it on the hero sheet, the results, the unlock
+banner, the arena's tiles and the Hidden list (it showed the JSON's look before); the painted title shows the played
+look's own cut-out (`variants[CODE].title`), else `hero_<id>.png`, never another look's. The live title (the default
+menu) draws the played look's strip and has no cut-out at all, so a look's cut-out shows only with the painted title
+style.
+
+15.11 **The Jobs tab lists what comes next first**: Up next, Waiting for a pick, Running, Finished. Up next is grouped by
+lane (comfy, godot, local) in the order each lane will take them, numbered per lane; ▲ ▼ move a job one place within its
+group. A candidate job waiting for its look's front still is shown after the others of its lane, "waiting for <code>'s
+front", and does not move.
+
+15.12 **The job form is honest about pictures.** The 2D and 3D reference rows show only for the methods that read them;
+a creature look painted from words says to start from a picture with "A front from a picture" first. (A reference typed
+into a look job before pass 68 was silently ignored.)
+
+15.13 **A removed look's code is not handed out again while its pictures are cached.** The next free code skips a code
+whose stills (`ai_raw_anime/<id>_<letter>_*`, `<id>_<codepart>_*`) or clips (`ai_anim/<id>_<codepart>_*`) are still on
+disk: the cache is keyed by name, so a new look on DM-F's code would have painted nothing and come back as the removed
+DM-F.
+
+15.14 **A candidate job's base look uses its own front.** For the base strip, the default reference is the base look's
+own front still (its recipe's keys: BB-C's `bull_beetle_bbc_front`, WW-A's `werewolf_wwa_front`), else `<id>_front`.
+
+15.15 **An edited job keeps what was applied.** Saving an edited job does not apply its re-roll a second time; a cleared
+candidate field is filled again from the defaults; a re-queue after a stopped attempt repaints only the stills that
+attempt did not reach.

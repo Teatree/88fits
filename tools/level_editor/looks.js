@@ -12,6 +12,15 @@
 //   LookGrid.render(container, record, doc, {kind, id, onSelect, newButton})   record = /api/enemies' creature record
 //   (variants[] / looks[]) or /api/heroes' hero record (looks[]); doc = the open document (unused here, kept for P)
 //   LookGrid.select(code)   land on a look (a toast's "open look" button, the Jobs tab's "Open look")
+//
+// Pass 68 (lane W): Duplicate… makes a DRAFT and starts nothing (POST /api/content/<kind>/<id>/look {note, recipe}: the
+// server's add_look, the next free code, an entry without a sprite); a stub with no queued, running or waiting look job
+// is a draft, with a primary Generate… that opens the job form for that code as a new look (the document saved first).
+// A hero look offers badge and title cut-out candidates (a hero's icon is the round badge), a creature look icon
+// candidates; the painter line says when the stills were reused rather than painted (recipe.painter.stills). The review
+// fixes: the page says where the game shows a look's badge and cut-out (WHERE_SHOWN: the cut-out only on the Painted
+// title); a change in the job list redraws the grid only for the asset on screen and never under the open edit or
+// confirm box, and the edit box keeps what was typed through any redraw.
 'use strict';
 
 const LookGrid = (() => {
@@ -26,18 +35,36 @@ const LookGrid = (() => {
   let current = null;           // {kind, id, container, record, opts}: the grid on screen
 
   function playerKind(kind) { return kind === 'hero' ? 'hero' : 'enemy'; }
+  function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
   function looksOf(record) { return Array.isArray(record.looks) ? record.looks : (Array.isArray(record.variants) ? record.variants : []); }
   function playCode(record) { return record.play || record.variant || record.variant_base || ''; }
   function isDefault(look, record) { return look.default === true || look.code === playCode(record); }
   function isStub(look) { return look.ready === false && !look.base; }
+  /** The queued, running and waiting jobs of one look (all kinds: the chips show them); `lookOnly` = its look jobs. */
+  function liveJobs(kind, id, code, lookOnly) {
+    const list = typeof Jobs !== 'undefined' && typeof Jobs.jobsFor === 'function' ? Jobs.jobsFor(kind, id, code) : [];
+    return list.filter((j) => ['queued', 'running', 'waiting'].includes(j.state) && (!lookOnly || j.kind === 'look'));
+  }
+  /** A draft (pass 68, D5): an entry without a sprite and without a live look job; Generate… paints it. */
+  function isDraft(look, kind, id) { return isStub(look) && !liveJobs(kind, id, look.code, true).length; }
   /** "Flux.2 dev · 28 passes · guidance 4 · no Turbo": a look's recorded painter (variants[CODE].recipe.painter, written
-   *  by its job; absent on looks painted before it was kept). */
+   *  by its job; absent on looks painted before it was kept). Pass 68 (D4): the job's landing adds `stills` ("reused",
+   *  or "N of M painted") when some stills were on disk already: the painter painted only the rest. */
   function painterText(p) {
     if (!p || typeof p !== 'object') return '';
     const dev = p.model === 'dev';
     const bits = [dev ? 'Flux.2 dev' : 'Flux.2 Klein', p.steps ? `${p.steps} passes` : (dev ? (p.turbo === false ? '28 passes (default)' : '8 passes (default)') : '4 passes (default)')];
     if (dev) { if (p.guidance) bits.push(`guidance ${p.guidance}`); bits.push(p.turbo === false ? 'no Turbo' : 'Turbo'); }
+    if (p.stills === 'reused') bits.push('stills reused from earlier paintings: this painter painted none of them');
+    else if (typeof p.stills === 'string' && p.stills) bits.push(`stills: ${p.stills}${Array.isArray(p.reused) && p.reused.length ? ' (the other ' + p.reused.length + ' reused)' : ''}`);
     return bits.join(' · ');
+  }
+  /** The painter in a few letters for a card: "dev 32", "Klein", "dev 32 (reused)", "Klein (3 of 12 painted)". */
+  function painterShort(p) {
+    if (!p || typeof p !== 'object') return '';
+    const s = (p.model === 'dev' ? 'dev' : 'Klein') + (p.steps ? ' ' + p.steps : '');
+    if (p.stills === 'reused') return s + ' (stills reused)';
+    return typeof p.stills === 'string' && p.stills ? `${s} (${p.stills})` : s;
   }
   /** The method a look was painted with: its recipe's `method`, else what the open document's words imply (Assets.methodOf). */
   function methodOf(look) {
@@ -45,8 +72,19 @@ const LookGrid = (() => {
     if (current && current.doc && typeof Assets !== 'undefined' && typeof Assets.methodOf === 'function') { try { return Assets.methodOf(current.doc, look.code); } catch (_) { /* fall through */ } }
     return '';
   }
-  /** The recipe's own keys apart from the bookkeeping ones (painter, method). */
-  function ownKeys(look) { return Object.keys(look.recipe && typeof look.recipe === 'object' ? look.recipe : {}).filter((k) => !['painter', 'method'].includes(k)); }
+  /** The recipe's bookkeeping keys, written by the jobs and Duplicate… rather than typed: the painter it ran with, the
+   *  method, the look a draft was made from, the look's own seed offset (pass 68). */
+  const BOOK_KEYS = ['painter', 'method', 'from', 'seed_offset'];
+  /** Where the game shows a hero look's own pictures (pass 68 review: the default Live title never shows a cut-out), said
+   *  wherever the page offers or explains badge and cut-out candidates (here, jobs.js, assets.js). The badge:
+   *  Registry.played_look / art_of (WHeroSheet, ResultsScreen, CollectionScreen, ArenaPanel); the cut-out: TitleScreen's
+   *  painted branch only (Settings.menu_style, "live" by default; the switch is in Settings' debug panel). */
+  const WHERE_SHOWN = {
+    badge: 'the badge is what the hero sheet, the results, the Collection and the arena show for the look',
+    cutout: 'the cut-out shows on the Painted title only (Settings, debug mode: Main menu → Painted); the Live title, the default, draws the look\'s strip instead',
+  };
+  /** The recipe's own keys apart from the bookkeeping ones. */
+  function ownKeys(look) { return Object.keys(look.recipe && typeof look.recipe === 'object' ? look.recipe : {}).filter((k) => !BOOK_KEYS.includes(k)); }
   /** The words the painting followed: the recipe's, else the creature's own (the open document's data). */
   function wordsOf(look) {
     const rec = look.recipe || {};
@@ -58,8 +96,14 @@ const LookGrid = (() => {
   }
   function st(kind, id) {
     const k = `${kind}|${id}`;
-    if (!states.has(k)) states.set(k, { filter: '', status: 'all', page: 0, selected: null, selectMode: false, checked: new Set(), confirm: null, edit: null, busy: false, players: new Map(), stage: null });
+    if (!states.has(k)) states.set(k, { filter: '', status: 'all', page: 0, selected: null, selectMode: false, checked: new Set(), confirm: null, edit: null, busy: false, players: new Map(), stage: null, jobSig: '' });
     return states.get(k);
+  }
+  /** What the cards and the stage show of one asset's jobs: its live (queued, running, waiting) jobs with a look code
+   *  (the state chips, and which stubs are drafts). jobsChanged redraws only when this changed since the last render. */
+  function jobsSig(kind, id) {
+    const list = typeof Jobs !== 'undefined' && typeof Jobs.jobsFor === 'function' ? Jobs.jobsFor(kind, id) : [];
+    return JSON.stringify(list.filter((j) => ['queued', 'running', 'waiting'].includes(j.state) && j.target && j.target.code).map((j) => [String(j.target.code), j.kind, j.state, j.id]).sort());
   }
 
   /** The StripPlayer options for one look of a record (the look's own anims / fps / strip_cols / frame_px, else the
@@ -104,6 +148,7 @@ const LookGrid = (() => {
     const id = o.id || record.id;
     const s = st(kind, id);
     current = { kind, id, container, record, opts: o, doc };
+    s.jobSig = jobsSig(kind, id);   // the jobs this drawing shows (jobsChanged compares against it)
     clear(container);
     container.classList.add('lookgrid');
     const looks = sorted(looksOf(record), record);
@@ -119,7 +164,7 @@ const LookGrid = (() => {
     const head = el('div', { class: 'lg-head' });
     head.appendChild(el('h3', { text: `Looks · ${looks.length}` }));
     head.appendChild(el('span', { class: 'count', text: looks.length ? `(${nShelved} shelved, ${nNew} new)` : '(none yet)' }));
-    const box = el('input', { type: 'search', class: 'txt', placeholder: 'filter by code or note…', value: s.filter, title: 'show the looks whose code or note contains this' });
+    const box = el('input', { type: 'search', class: 'txt lg-filter', placeholder: 'filter by code or note…', value: s.filter, title: 'show the looks whose code or note contains this' });
     box.addEventListener('input', () => { s.filter = box.value.trim(); s.page = 0; drawGrid(); });
     head.appendChild(box);
     const sel = el('select', { title: 'which looks to show' });
@@ -184,12 +229,19 @@ const LookGrid = (() => {
     const wrap = el('div', { class: 'lg-stage' });
     const look = looks.find((l) => l.code === s.selected) || looks[0];
     if (!look) { wrap.appendChild(el('span', { class: 'muted', text: 'no looks: the game plays the top-level strip' })); return wrap; }
-    const opts = playerOpts(kind, record, look, { mode: 'controls', zoom: 1 });
-    if (s.stage && !s.stage.destroyed) { s.stage.setStrip(opts); }
-    else s.stage = StripPlayer.create(opts);
-    wrap.appendChild(s.stage.el);
+    const draft = isDraft(look, kind, id);
+    if (isStub(look)) {
+      // nothing painted: the server would serve the top-level strip in its place (sprite_path's fallback), so say so instead
+      wrap.appendChild(el('div', { class: 'lg-stage-empty' }, el('b', { text: draft ? 'a draft: not painted yet' : 'not painted yet' }),
+        el('span', { class: 'muted small', text: draft ? 'nothing runs until you press Generate…; change its recipe first in Recipe of ' + look.code + ' below (then Save asset)' : 'its look job is in the queue: see the Jobs tab' })));
+    } else {
+      const opts = playerOpts(kind, record, look, { mode: 'controls', zoom: 1 });
+      if (s.stage && !s.stage.destroyed) { s.stage.setStrip(opts); }
+      else s.stage = StripPlayer.create(opts);
+      wrap.appendChild(s.stage.el);
+    }
     const info = el('div', { class: 'lg-stage-info' });
-    const chips = chipsFor(look, record);
+    const chips = chipsFor(look, record, kind, id);
     info.appendChild(el('h3', {}, el('span', { text: look.code }), ...chips));
     if (look.note) info.appendChild(el('div', { class: 'note', text: look.note }));
     const anims = look.anims || record.anims || {};
@@ -205,13 +257,28 @@ const LookGrid = (() => {
     // the recipe: what differs from the creature's own words, the painter it ran with, the words it followed
     const own = ownKeys(look);
     const method = methodOf(look);
+    const rec0 = look.recipe && typeof look.recipe === 'object' ? look.recipe : {};
+    if (rec0.from) row('made from', `${rec0.from}${draft ? ' (Duplicate… copied its recipe; Generate… paints it)' : ''}`, 'the look this one was duplicated from (recipe.from)');
     if (look.base && !own.length) row('recipe', 'the base strip: the creature\'s own art words (the Art section) are its recipe' + (method ? ` · ${method}` : ''), 'the top-level strip has no recipe of its own');
     else if (!own.length) row('recipe', 'no recipe recorded' + (method ? ` · ${method} (implied)` : ''), 'painted before the Level Editor kept recipes, by hand, or by a job with an empty recipe: the creature\'s own words are what a job for this code would read now; Duplicate… starts a new look from them');
     else row('recipe', `${method || 'method implied'} · ${own.length} own key${own.length === 1 ? '' : 's'} (${own.slice(0, 6).join(', ')}${own.length > 6 ? ', …' : ''}); the rest inherited from the creature`, 'Recipe (typed)… shows every field with its source: own, inherited or the method\'s default');
     const w = wordsOf(look);
     if (w.text) row('words', (w.text.length > 150 ? w.text.slice(0, 150) + '…' : w.text) + (w.src === 'inherited' ? ' (the creature\'s own)' : ''), w.text);
     const painter = look.recipe && look.recipe.painter;
-    row('painter', painter ? painterText(painter) : 'not recorded (painted before the painter was kept: Flux.2 Klein with its defaults unless the job said dev)', 'the model and the passes the stills were painted with (the job form\'s Model settings, kept in variants[CODE].recipe.painter)');
+    row('painter', painter ? painterText(painter) + (isStub(look) ? ' (what Generate… starts from)' : '') : 'not recorded (painted before the painter was kept: Flux.2 Klein with its defaults unless the job said dev)', 'the model and the passes the stills were painted with (the job form\'s Model settings, kept in variants[CODE].recipe.painter); "stills reused" = they were on disk already, so this painter painted none of them');
+    if (kind === 'hero' && !isStub(look)) {
+      // pass 68 (D8, D9): a hero look's own round badge (variants[CODE].icon) and title cut-out (variants[CODE].title), else the hero's
+      const ownCut = !look.base && look.title_file;
+      const cut = `/art/wanted/${encodeURIComponent(ownCut ? look.title_file : 'hero_' + id + '.png')}`;
+      const thumbs = el('span', { class: 'lg-thumbs' },
+        el('img', { src: `${look.icon || ''}${look.sprite_mtime ? '?v=' + encodeURIComponent(look.sprite_mtime) : ''}`, alt: '', title: (look.icon_file ? `its own badge: ${look.icon_file}` : 'the hero\'s badge (no badge of its own yet: Badge candidates…)') + ` · ${WHERE_SHOWN.badge}`, onerror: (e) => { e.target.remove(); } }),
+        el('img', { src: cut, alt: '', title: (ownCut ? `its own title cut-out: ${look.title_file}` : `the hero's title cut-out (hero_${id}.png): Cut-out candidates… paints ${look.base ? 'it' : 'one of this look\'s own'}`) + ` · ${WHERE_SHOWN.cutout}`, onerror: (e) => { e.target.remove(); } }),
+        el('span', { class: 'muted small', text: `${look.icon_file && !look.base ? 'its own badge' : 'the hero\'s badge'} · ${ownCut ? 'its own cut-out' : 'the hero\'s cut-out'}` }));
+      // where the game shows each one (pass 68 review: the cut-out never shows on the default Live title)
+      const where = el('div', { class: 'muted small lg-where', text: `${WHERE_SHOWN.badge}; ${WHERE_SHOWN.cutout}.` });
+      dl.appendChild(el('dt', { text: 'badge · cut-out', title: `the pictures the game shows for this look (a look without its own uses the hero's): ${WHERE_SHOWN.badge}; ${WHERE_SHOWN.cutout}` }));
+      dl.appendChild(el('dd', {}, thumbs, where));
+    }
     info.appendChild(dl);
     const acts = el('div', { class: 'lg-actions' });
     actions(acts, kind, id, record, look, s);
@@ -220,22 +287,24 @@ const LookGrid = (() => {
     return wrap;
   }
 
-  function chipsFor(look, record) {
+  function chipsFor(look, record, kind, id) {
+    const k = kind || (current && current.kind) || record.kind || 'enemy', cid = id || record.id;
     const out = [];
     if (isDefault(look, record)) out.push(el('span', { class: 'chip default', text: '● default', title: 'the look the game plays for every row that names none (the JSON\'s `variant`)' }));
     if (look.base) out.push(el('span', { class: 'chip base', text: 'base', title: 'the top-level strip of the JSON (variant_base)' }));
     if (look.fresh) out.push(el('span', { class: 'chip new', text: 'NEW', title: 'painted by a job and not yet approved: Approve clears the mark (the game ignores it)' }));
     if (look.shelved) out.push(el('span', { class: 'chip shelved', text: 'shelved', title: 'kept in the JSON but hidden from the arena chips and the default lists (variants[CODE].shelved); a row naming it still plays it' }));
     if (look.imported === false) out.push(el('span', { class: 'chip notimported', text: 'not imported', title: 'the strip\'s .import or the .tres is older than the files: the game plays the old data until an import runs' }));
-    if (isStub(look)) out.push(el('span', { class: 'chip stub', text: 'stub', title: 'no sprite yet: a job\'s placeholder entry (queued, running, failed or cancelled); the game skips it' }));
-    const jobs = typeof Jobs !== 'undefined' && Jobs.jobsFor ? Jobs.jobsFor(record.kind || 'enemy', record.id, look.code) : [];
-    for (const j of jobs) if (['queued', 'running', 'waiting'].includes(j.state)) out.push(el('button', { type: 'button', class: 'chip state-' + j.state, text: j.state === 'waiting' ? 'needs a pick' : j.state, title: `${j.title || j.id}: open the Jobs tab`, onclick: (e) => { e.stopPropagation(); App.switchTab('jobs'); } }));
+    if (isDraft(look, k, cid)) out.push(el('span', { class: 'chip draft', text: 'draft', title: 'a look with a recipe and no painting: nothing runs until you press Generate… (a failed or cancelled job leaves one too); the game skips it' }));
+    else if (isStub(look)) out.push(el('span', { class: 'chip stub', text: 'stub', title: 'no sprite yet: its look job is queued, running or waiting for a pick; the game skips it' }));
+    for (const j of liveJobs(k, cid, look.code)) out.push(el('button', { type: 'button', class: 'chip state-' + j.state, text: (j.state === 'waiting' ? 'needs a pick' : j.state) + (j.kind !== 'look' ? ' · ' + ({ icon_cands: 'icons', hero_badge: 'badges', hero_title: 'cut-outs' }[j.kind] || j.kind) : ''), title: `${j.title || j.id}: open the Jobs tab`, onclick: (e) => { e.stopPropagation(); App.switchTab('jobs'); } }));
     return out;
   }
 
   function card(kind, id, record, look, s) {
-    const c = el('article', { class: 'lg-card' + (look.code === s.selected ? ' selected' : '') + (look.shelved ? ' shelved' : '') + (isStub(look) ? ' stub' : ''), 'data-code': look.code });
-    const top = el('div', { class: 'lg-card-top' }, el('b', { text: look.code }), ...chipsFor(look, record));
+    const draft = isDraft(look, kind, id);
+    const c = el('article', { class: 'lg-card' + (look.code === s.selected ? ' selected' : '') + (look.shelved ? ' shelved' : '') + (isStub(look) ? ' stub' : '') + (draft ? ' draft' : ''), 'data-code': look.code });
+    const top = el('div', { class: 'lg-card-top' }, el('b', { text: look.code }), ...chipsFor(look, record, kind, id));
     if (s.selectMode) {
       const cb = el('input', { type: 'checkbox', checked: s.checked.has(look.code), onclick: (e) => e.stopPropagation() });
       cb.addEventListener('change', () => { if (cb.checked) s.checked.add(look.code); else s.checked.delete(look.code); const n = s.checked.size; const bar = c.closest('.lookgrid').querySelector('.lg-bulk span'); if (bar) bar.textContent = `Selected ${n}:`; for (const b of c.closest('.lookgrid').querySelectorAll('.lg-bulk .btn:not(.ghost)')) b.disabled = !n; });
@@ -243,7 +312,7 @@ const LookGrid = (() => {
     }
     c.appendChild(top);
     const pic = el('div', { class: 'lg-pic' });
-    if (isStub(look)) pic.appendChild(el('div', { class: 'placeholder', text: 'no sprite yet' }));
+    if (isStub(look)) pic.appendChild(el('div', { class: 'placeholder', text: draft ? `draft${look.recipe && look.recipe.from ? ' from ' + look.recipe.from : ''}: not painted yet` : 'no sprite yet' }));
     else {
       let p = s.players.get(look.code);
       const opts = playerOpts(kind, record, look, { mode: 'hover', zoom: 0.5 });
@@ -257,8 +326,8 @@ const LookGrid = (() => {
     const own = ownKeys(look);
     const method = methodOf(look);
     const meta = look.base && !own.length ? 'the creature\'s own words' : (!own.length ? 'no recipe recorded' : `${own.length} own key${own.length === 1 ? '' : 's'}`);
-    c.appendChild(el('div', { class: 'lg-meta', text: `${method || '?'} · ${meta}${painter ? ' · ' + (painter.model === 'dev' ? 'dev' : 'Klein') + (painter.steps ? ' ' + painter.steps : '') : ''}`,
-      title: `${method ? 'method ' + method : 'the method is not recorded'} · ${meta}${painter ? ' · painted with ' + painterText(painter) : ' · the painter was not recorded'}` }));
+    c.appendChild(el('div', { class: 'lg-meta', text: `${method || '?'} · ${meta}${painter ? ' · ' + painterShort(painter) : ''}`,
+      title: `${method ? 'method ' + method : 'the method is not recorded'} · ${meta}${painter ? (draft ? ' · Generate… starts from ' : ' · painted with ') + painterText(painter) : ' · the painter was not recorded'}` }));
     const acts = el('div', { class: 'lg-actions' });
     actions(acts, kind, id, record, look, s);
     c.appendChild(acts);
@@ -277,22 +346,111 @@ const LookGrid = (() => {
 
   function actions(host, kind, id, record, look, s) {
     const def = isDefault(look, record);
-    const b = (text, title, fn, cls) => host.appendChild(el('button', { type: 'button', class: 'btn small ghost' + (cls ? ' ' + cls : ''), text, title, disabled: s.busy, onclick: (e) => { e.stopPropagation(); fn(); } }));
+    const stub = isStub(look), draft = isDraft(look, kind, id);
+    const b = (text, title, fn, cls) => host.appendChild(el('button', { type: 'button', class: 'btn small' + (cls === 'primary' ? '' : ' ghost') + (cls ? ' ' + cls : ''), text, title, disabled: s.busy, onclick: (e) => { e.stopPropagation(); fn(); } }));
+    // a draft is painted only when you say so (pass 68, D5)
+    if (draft) b('Generate…', `paint ${look.code}: the job form opens for this code as a new look, with its recipe, its method and its painter (the document is saved first: the job reads the recipe from the file); the look's candidates come with it`, () => generate(kind, id, look.code), 'primary');
     if (!def) {
       if (look.ready !== false && !look.shelved) b('Make default', `write "variant": "${look.code}" in ${id}.json (after a backup) and import it: every row that names no look plays it`, () => op(kind, id, record, s, look.code, { op: 'default' }));
     }
     if (look.fresh) b('Approve', 'you looked at it and it stays: clears the NEW mark (deletes variants[CODE].fresh; the game never read it)', () => op(kind, id, record, s, look.code, { op: 'approve' }));
     if (!look.shelved) {
       if (def) host.appendChild(el('span', { class: 'muted', text: 'Shelve', title: 'the look in play cannot be shelved: make another the default first' }));
-      else b('Shelve', 'keep it, but hide it from the arena chips and the default lists (variants[CODE].shelved = true)', () => op(kind, id, record, s, look.code, { op: 'shelve' }));
+      else if (!stub) b('Shelve', 'keep it, but hide it from the arena chips and the default lists (variants[CODE].shelved = true)', () => op(kind, id, record, s, look.code, { op: 'shelve' }));
     } else b('Unshelve', 'show it in the arena and the lists again', () => op(kind, id, record, s, look.code, { op: 'unshelve' }));
     if (def || look.base) host.appendChild(el('span', { class: 'muted', text: 'Remove', title: def ? 'the look in play cannot be removed' : 'the base strip cannot be removed' }));
     else b('Remove', 'delete the entry; its PNGs and .import files move to tools/level_editor/backups/deleted/<id>/<stamp>/ (refused while a map row names it)', () => { s.confirm = { codes: [look.code] }; redraw(); }, 'danger');
     b('Edit note / recipe', 'the note shown on the cards and the recipe the art job reads (raw JSON)', () => { s.edit = { code: look.code, note: look.note || '', recipe: look.recipe || null }; redraw(); });
-    if (current && current.doc && typeof Assets !== 'undefined' && typeof Assets.recipeEditor === 'function') b('Recipe (typed)…', 'the recipe as typed fields per method (the editor pane\'s own editor)', () => Assets.recipeEditor(current.doc, look.code));
-    b('Re-roll…', 'queue the look again: the job form opens with its recipe and painter (new seeds, redo the clips, one view, or repaint the stills)', () => openForm(kind, id, { mode: 'look', code: look.code, method: methodOf(look) || undefined, recipe: look.recipe || null, painter: (look.recipe && look.recipe.painter) || null, reroll: true }));
-    b('Duplicate…', 'a new look from this one: the job form opens with its recipe, its words and its painter copied and a new code; change the model, the passes or any field, then Queue (the stills are painted again unless you tick "reuse the paintings")', () => openForm(kind, id, { mode: 'look', method: methodOf(look) || undefined, recipe: look.recipe || null, painter: (look.recipe && look.recipe.painter) || null, duplicateOf: look.code, note: look.note || '' }));
-    b('Icon candidates…', 'paint icon candidates for this look to pick from (the default icon is a crop of the front still)', () => openForm(kind, id, { mode: 'icon', code: look.code }));
+    if (current && current.doc && typeof Assets !== 'undefined' && typeof Assets.recipeEditor === 'function') b('Recipe (typed)…', 'select it and go to its recipe as typed fields per method (under the grid): Save asset keeps the changes', () => showRecipe(look.code, look));
+    if (!stub) b('Re-roll…', 'queue the look again: the job form opens with its recipe and painter; choose what to throw away (new seeds, redo the clips, repaint the stills; one view for gen_ctl)', () => openForm(kind, id, { mode: 'look', code: look.code, method: methodOf(look) || undefined, recipe: look.recipe || null, painter: (look.recipe && look.recipe.painter) || null, reroll: true }));
+    b('Duplicate…', 'a draft copy of this look under the next free code: its recipe, words and painter copied; nothing is painted until you press Generate… on the draft (change its recipe first if you like)', () => duplicateDraft(kind, id, record, s, look));
+    if (!draft) {
+      // a look's own icon (pass 68, D8): a hero's icon is the round badge, so a hero look offers badge and title cut-out
+      // candidates; the base look's go to the hero's (or the creature's) own files
+      const code = look.base ? undefined : look.code;
+      const whose = code ? `${look.code}'s own` : 'the base look\'s (the top-level files)';
+      if (kind === 'hero') {
+        b('Badge candidates…', `paint round badge candidates for ${whose} icon: the hero's words and this look's front still as the reference, all editable in the form. ${cap(WHERE_SHOWN.badge)}`, () => openForm(kind, id, { mode: 'badge', method: 'hero_badge', code }));
+        b('Cut-out candidates…', `paint title cut-out candidates for ${whose} cut-out (660 × 888): the hero's words, the title pose and this look's front still. ${cap(WHERE_SHOWN.cutout)}`, () => openForm(kind, id, { mode: 'title', method: 'hero_title', code }));
+      } else b('Icon candidates…', `paint icon candidates for ${whose} icon to pick from: the creature's words and this look's front still as the reference`, () => openForm(kind, id, { mode: 'icon', method: 'icon_cands', code }));
+    }
+  }
+
+  /** Select a look and bring its typed recipe editor (under the grid, the editor pane's own) into view. */
+  function showRecipe(code, look) {
+    if (!current) return;
+    st(current.kind, current.id).selected = code;
+    if (current.opts && typeof current.opts.onSelect === 'function') current.opts.onSelect(code, look);
+    else redraw();
+    setTimeout(() => { const r = document.querySelector('.aeditor .recipe'); if (r) r.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 80);
+  }
+
+  /** The source recipe of a look: the open document's entry (saved first, so it is what the file holds), else the record's. */
+  function recipeOf(code, look) {
+    const d = current && current.doc && current.doc.data;
+    const e = d && d.variants && typeof d.variants === 'object' && d.variants[code] && typeof d.variants[code] === 'object' ? d.variants[code] : null;
+    if (e) return e.recipe && typeof e.recipe === 'object' ? e.recipe : {};
+    return look && look.recipe && typeof look.recipe === 'object' ? look.recipe : {};
+  }
+
+  /** Duplicate… (pass 68, D5): a DRAFT, nothing painted. POST /api/content/<kind>/<id>/look {note, recipe} (the server's
+   *  add_look: the next free code, an entry without a sprite, no job). The draft's recipe is the source's, `method` set
+   *  (so it never drifts to an implied one), the painter kept (Generate…'s Model settings start from it), `stills` and
+   *  `seed_offset` left out (the draft gets paintings and seeds of its own when it is generated), `from` = the source. */
+  async function duplicateDraft(kind, id, record, s, look) {
+    const doc = current && current.kind === kind && current.id === id ? current.doc : null;
+    if (doc && typeof Assets !== 'undefined' && typeof Assets.ensureSaved === 'function' && !(await Assets.ensureSaved(doc, `Duplicate… copies ${look.code}'s recipe from the file.`))) return;
+    const recipe = JSON.parse(JSON.stringify(recipeOf(look.code, look)));
+    const method = methodOf(look);
+    if (method) recipe.method = method;
+    delete recipe.stills;
+    delete recipe.seed_offset;
+    recipe.from = look.code;
+    const note = (look.note ? look.note + ' · ' : '') + 'from ' + look.code;
+    s.busy = true;
+    redraw();
+    App.status(`${record.name || id}: a draft from ${look.code}…`, 'busy');
+    const res = await post(`/api/content/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/look`, { note, recipe });
+    s.busy = false;
+    if (!res || !res.ok) { App.status(`${id}: no draft from ${look.code}: ${(res && res.error) || 'no answer'}`, 'bad'); redraw(); return; }
+    s.selected = res.code;
+    s.filter = '';
+    s.status = 'all';
+    if (doc && doc.ui) doc.ui.look = res.code;
+    App.status(`${res.code} is a draft of ${look.code}: nothing is painted yet. Change its recipe below (Recipe of ${res.code}), Save asset, then press Generate… on its card`, 'good');
+    await refresh(kind, id, record, s, res.looks);
+    showRecipe(res.code);
+  }
+
+  /** Generate… on a draft (D5): the document saved first (the job reads the recipe from the JSON and writes it again),
+   *  a look job of its own refused, then the job form for this code as a NEW look: its recipe, method and painter, and
+   *  the box that reuses the paintings of the look it was made from. */
+  async function generate(kind, id, code) {
+    const doc = current && current.kind === kind && current.id === id ? current.doc : null;
+    if (doc && typeof Assets !== 'undefined' && typeof Assets.ensureSaved === 'function' && !(await Assets.ensureSaved(doc, `Generate… paints ${code} from its recipe in the file.`))) return;
+    if (typeof Jobs !== 'undefined' && typeof Jobs.poll === 'function') { try { await Jobs.poll(); } catch (_) { /* the list as it was */ } }
+    if (liveJobs(kind, id, code, true).length) { App.status(`${code} has a look job in the queue already: see the Jobs tab`, 'bad'); redraw(); return; }
+    const rec = current && current.kind === kind && current.id === id ? current.record : null;
+    const look = rec ? looksOf(rec).find((l) => l.code === code) : null;
+    const recipe = JSON.parse(JSON.stringify(recipeOf(code, look)));
+    openForm(kind, id, { mode: 'look', code, draft: true, method: recipe.method || (look ? methodOf(look) : '') || undefined, recipe, painter: recipe.painter || null, from: recipe.from || null, note: look ? look.note || '' : '' });
+  }
+
+  /** The job list changed which looks have live jobs (Jobs.applyList, for any asset): the chips and the draft buttons
+   *  follow, but only when the jobs of the asset on screen changed (jobsSig), and never while the edit or the confirm box
+   *  is open over the grid (the note and recipe being typed stay; closing the box draws the grid again with the jobs as
+   *  they are then). The filter box keeps its focus and caret through the redraw. True when the grid was drawn again. */
+  function jobsChanged() {
+    if (!current || !current.container || !current.container.isConnected) return false;
+    const s = st(current.kind, current.id);
+    if (s.edit || s.confirm) return false;
+    if (jobsSig(current.kind, current.id) === s.jobSig) return false;
+    const ae = typeof document !== 'undefined' ? document.activeElement : null;
+    const typing = ae && ae.classList && ae.classList.contains('lg-filter') && current.container.contains(ae) ? [ae.selectionStart, ae.selectionEnd] : null;
+    render(current.container, current.record, current.doc, current.opts);
+    const box = typing ? current.container.querySelector('input.lg-filter') : null;
+    if (box) { box.focus(); try { box.setSelectionRange(typing[0], typing[1]); } catch (_) { /* no caret to put back */ } }
+    return true;
   }
 
   function confirmBox(kind, id, record, s) {
@@ -308,12 +466,17 @@ const LookGrid = (() => {
     const e = s.edit;
     const box = el('div', { class: 'lg-edit' });
     box.appendChild(el('b', { text: `${e.code}: note and recipe` }));
-    const note = el('input', { type: 'text', class: 'txt wide', value: e.note, placeholder: 'what this look is, in a line (shown on the cards and the arena chips)' });
+    // what is typed is kept on s.edit as drafts (noteDraft, recipeText), apart from the note and recipe Save compares
+    // with, so a redraw of the grid while the box is open (this asset's job landing) does not wipe it
+    const note = el('input', { type: 'text', class: 'txt wide', value: e.noteDraft != null ? e.noteDraft : e.note, placeholder: 'what this look is, in a line (shown on the cards and the arena chips)' });
+    note.addEventListener('input', () => { e.noteDraft = note.value; });
     box.appendChild(el('div', { class: 'row' }, el('span', { class: 'muted small', text: 'note' }), note));
     const ta = el('textarea', { class: 'mono', spellcheck: false, placeholder: '{ "method": "creature_pose2", "pose": "walk_zombie", ... }  (the keys the art job reads; empty = none)' });
-    ta.value = e.recipe ? JSON.stringify(e.recipe, null, 2) : '';
+    ta.value = e.recipeText != null ? e.recipeText : (e.recipe ? JSON.stringify(e.recipe, null, 2) : '');
     const err = el('span', { class: 'warn-text small' });
-    ta.addEventListener('input', () => { try { if (ta.value.trim()) JSON.parse(ta.value); err.textContent = ''; } catch (x) { err.textContent = 'not JSON: ' + x.message; } });
+    const validate = () => { try { if (ta.value.trim()) JSON.parse(ta.value); err.textContent = ''; } catch (x) { err.textContent = 'not JSON: ' + x.message; } };
+    ta.addEventListener('input', () => { e.recipeText = ta.value; validate(); });
+    if (e.recipeText != null) validate();
     box.appendChild(el('div', { class: 'row' }, el('span', { class: 'muted small', text: 'recipe (JSON)' }), err));
     box.appendChild(ta);
     box.appendChild(el('div', { class: 'muted small', text: 'The recipe is tool-only: gen_art / gen_ctl read it when a job runs for this code; the game ignores it. The job form writes typed fields into it; this box is the raw view.' }));
@@ -464,5 +627,6 @@ const LookGrid = (() => {
     if (current && current.kind === kind && current.id === id) current = null;
   }
 
-  return { painterText, render, select, dispose, playerOpts, looksOf, PAGE, STATUS };
+  return { painterText, painterShort, ownKeys, isStub, isDraft, BOOK_KEYS, WHERE_SHOWN, render, select, dispose, playerOpts, looksOf, generate, jobsChanged, PAGE, STATUS };
 })();
+if (typeof module !== 'undefined') module.exports = LookGrid;

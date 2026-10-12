@@ -6,13 +6,31 @@ trimmed and fitted to the title's 520 x 700 box at 1.27x (660 x 888, the phone's
 picked by eye from the review sheet (vision QA passes extra fingers and ears), then installed:
 
     python tools/gen_title_heroes.py [--only astro,drifter] [--seeds 4] [--first-seed 11]
-        -> tools/dl/title_heroes/<id>_<n>.png (keyed, fitted) + raw renders + tools/dl/title_heroes/review_<id>.png
-    python tools/gen_title_heroes.py --pick astro=2 drifter=1
-        -> game/art/ui/wanted/hero_<id>.png (the title's WPlaceholder slot `hero_<id>` draws it)
+                                     [--character "<who>"] [--pose ..] [--holds ..] [--camera ..] [--ref <picture>]
+                                     [--extra-ref <picture>] [--extra-words ..] [--variant AST-B] [--tag 8854] [--attempt 2]
+        -> tools/dl/title_heroes/<id>[_<letter>][_<tag>]_<n>.png (keyed, fitted) + raw renders + review_<id>[_<letter>][_<tag>].png
+    python tools/gen_title_heroes.py --pick astro=2 drifter=1 [--variant AST-B] [--tag 8854]
+        -> game/art/ui/wanted/hero_<id>.png (the title's WPlaceholder slot `hero_<id>` draws it); for a look (--variant,
+           a code other than the base strip's: the base's code is the hero's own), hero_<id>_<letter>.png and the look's
+           entry {"title": ...} (variants[CODE].title; the sidecar's `entry` under a Level Editor job). The cut-out it
+           replaces is kept in tools/dl/backup/title/ first.
+
+The candidates are keyed per job (pass 68 review, as the badges): under a Level Editor job the tag is the last four letters
+and digits of its id (ASSET_JOB_ID, or --tag), so a second job paints its own instead of overwriting the first's, and a
+pick names the job that painted them (--tag). By hand (no tag) a run paints and a pick reads the untagged names, as
+before (<id>[_<letter>]_<n>.png).
+
+Pass 68: the words and the picture are inputs. Each of --character, --pose, --holds, --camera, --extra-ref and
+--extra-words (or paint()'s keyword of the same name) wins when it is given and not empty; otherwise the hero JSON's
+title_* keys, then the tables below, then plain defaults (title_words). The character's description goes right after
+"this exact character" (title_prompt). The reference: --ref (a path under the repo, under tools/dl/ or absolute, laid on
+the screen colour when it has a transparent film), else the look's own front still (the base: <id>_front). Seeds:
+first + 101 * n, moved by the look's seed_offset and by --attempt (a re-run paints new ones). Both --x v and --x=v work.
 """
 import io
 import json
 import os
+import re
 import sys
 
 from PIL import Image, ImageDraw, ImageFont
@@ -27,6 +45,9 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW = os.path.join(REPO, "tools", "dl", "ai_raw_anime")
 OUT = os.path.join(REPO, "tools", "dl", "title_heroes")
 SLOT_DIR = os.path.join(REPO, "game", "art", "ui", "wanted")
+BACKUP = os.path.join(REPO, "tools", "dl", "backup", "title")
+# the heroes' folders (tools/asset_job.py points this at a job's own folder, so a check can run on a copy)
+CHARS = os.path.join(REPO, "game", "content", "characters")
 BOX = (660, 888)          # the title's 520 x 700 box at 1.27x
 RENDER = (832, 1120)      # the same shape, multiples of 16
 
@@ -62,20 +83,44 @@ EXTRA_REFS = {"calavera": ("guitarra_ref.png", "The second reference image shows
 # the camera and the way the hero faces, when not the default (eye level, facing the viewer)
 CAMERA = {"ironwood": "his body facing the viewer, seen from the front and a little from below so that he looks down at the viewer"}
 FACING = {"calavera": "his body facing the viewer, seen from the front at eye level"}
+# pass 68 (D6): the pose of a hero with no title_pose and no row above (it was the badge's head-and-shoulders words)
+DEFAULT_POSE = "standing confidently in a heroic pose, full body"
+DEFAULT_HOLDS = "no weapon"
+DEFAULT_VIEW = "facing the viewer, seen from the front at eye level"
+FLAGS = ("only", "seeds", "first-seed", "character", "pose", "holds", "camera", "ref", "extra-ref", "extra-words", "variant", "attempt",
+         "tag")
 
 
 def log(*a):
     print(*a, flush=True)
 
 
+def hero_folder(hid):
+    return os.path.join(CHARS, hid)
+
+
 def hero_json(hid):
-    return json.load(open(os.path.join(REPO, "game", "content", "characters", hid, hid + ".json"), encoding="utf-8"))
+    return json.load(open(os.path.join(hero_folder(hid), hid + ".json"), encoding="utf-8"))
 
 
 def screen_of(still):
     """The screen colour the hero's still was painted on (it was chosen to key well): blue or green."""
     r, g, b = still.convert("RGB").getpixel((8, 8))
     return BG_GREEN if g > b else BG_BLUE
+
+
+def screen_sniff(pic):
+    """A picture's screen colour when its corner clearly is one (a painting on the green or blue screen); None for a
+    transparent corner or any other colour (an upload on white, a turnaround sheet)."""
+    rgba = pic.convert("RGBA")
+    r, g, b, a = rgba.getpixel((8, 8))
+    if a < 250:
+        return None
+    if g > 150 and r < 100 and b < 100:
+        return BG_GREEN
+    if b > 150 and r < 100 and g < 100:
+        return BG_BLUE
+    return None
 
 
 def fit(rgba):
@@ -89,13 +134,16 @@ def fit(rgba):
     return out
 
 
+# ---------------------------------------------------------------- the words (pure)
+
 def title_words(hid, d):
     """The pose, what the hero holds, the camera and the extra reference: the hero JSON's `title_pose`, `title_holds`,
     `title_camera`, `title_extra_ref {file, words}` first (pass 66: the Level Editor's hero form writes them), then the
-    tables above, then the badge's `portrait_prompt`. Returns (pose, holds, view, extra_ref (file, words) or None)."""
-    pose = str(d.get("title_pose") or POSES.get(hid) or d.get("portrait_prompt", "standing confidently"))
-    holds = str(d.get("title_holds") or HOLDS.get(hid, "no weapon"))
-    view = str(d.get("title_camera") or CAMERA.get(hid) or FACING.get(hid) or "facing the viewer, seen from the front at eye level")
+    tables above, then plain defaults (pass 68: DEFAULT_POSE, no longer the badge's portrait_prompt). Returns (pose,
+    holds, view, extra_ref (file, words) or None)."""
+    pose = str(d.get("title_pose") or POSES.get(hid) or DEFAULT_POSE)
+    holds = str(d.get("title_holds") or HOLDS.get(hid, DEFAULT_HOLDS))
+    view = str(d.get("title_camera") or CAMERA.get(hid) or FACING.get(hid) or DEFAULT_VIEW)
     extra = None
     er = d.get("title_extra_ref")
     if isinstance(er, dict) and er.get("file"):
@@ -105,58 +153,160 @@ def title_words(hid, d):
     return pose, holds, view, extra
 
 
-def extra_ref_path(name):
-    """A reference picture: a path under the repo (the editor's uploads), else a render in tools/dl/."""
-    for p in (os.path.join(REPO, name), os.path.join(REPO, "tools", "dl", name), name):
-        if os.path.isfile(p):
-            return p
-    return os.path.join(REPO, "tools", "dl", name)
+def title_inputs(hid, d, pose=None, holds=None, camera=None, extra_ref=None, extra_words=None):
+    """The words one paint uses (pass 68): a given, non-empty value wins; an empty or missing one is the hero's default
+    (title_words). A given extra picture comes with the given extra words only (the default words describe the default
+    picture). Returns (pose, holds, view, extra file or "", extra words)."""
+    dp, dh, dv, de = title_words(hid, d)
+    ef, ew = de if de else ("", "")
+    if extra_ref:
+        ef, ew = str(extra_ref), str(extra_words or "")
+    elif extra_words:
+        ew = str(extra_words)
+    return str(pose or dp), str(holds or dh), str(camera or dv), ef, ew
 
 
-def paint(hid, seeds, first):
-    d = hero_json(hid)
-    still = Image.open(os.path.join(RAW, hid + "_front.png"))
-    bg = screen_of(still)
+def clean_words(s):
+    """Words as typed, without the trailing comma, semicolon or full stop that would break the sentence they go into."""
+    return re.sub(r"[\s,;.]+$", "", str(s or "").strip())
+
+
+def title_prompt(character, pose, camera, holds, extra_words, style, bg):
+    """The cut-out's words: the hero's description right after "this exact character" when one is given (pass 68), the
+    pose, the camera, the whole figure, what the hands hold, the extra reference's words, the style and the screen."""
+    who = clean_words(character)
+    extra = str(extra_words or "")
+    extra = extra + (" " if extra and not extra.endswith(" ") else "")
+    return ("A full-body character illustration of this exact character" + (", " + who + "," if who else "") +
+            " for a mobile game's hero select screen: " + str(pose) + ", " + str(camera) + ", the whole figure visible from the top of the "
+            "head down to the feet with empty space around it, " + str(holds) + ". " + extra + "Keep the same face, outfit, colors and "
+            "proportions as the reference. " + style + ". " + bg + ".")
+
+
+def title_seeds(first, seeds, offset=0, attempt=1):
+    """first + 101 * n, moved by the look's seed_offset and the job's attempt (each a gen_art.LOOK_SEED_STEP)."""
+    move = ga.LOOK_SEED_STEP * (int(offset) + max(0, int(attempt) - 1))
+    return [int(first) + n * 101 + move for n in range(int(seeds))]
+
+
+def out_stem(hid, code=""):
+    """The look's name: <id> for the hero, <id>_<letter> for a look (its cut-out hero_<stem>.png; its candidates
+    title_heroes/<stem>[_<tag>]_<n>.png, cand_stem)."""
+    return hid + ("_" + ga.look_letter(code) if code else "")
+
+
+def cand_tag(tag=""):
+    """The candidates' per-job tag (gen_badge_cands.cand_tag's rule): the last four letters and digits of a Level Editor
+    job id (or of --tag); "" by hand. (Not the badges' "x": a hand run's <id>_x_<n> would be a look X's <id>_x_<n>.)"""
+    s = re.sub(r"[^A-Za-z0-9]", "", str(tag or ""))
+    return s[-4:]
+
+
+def cand_stem(hid, code="", tag=None):
+    """The candidates' name (pass 68 review): <id>[_<letter>]_<tag> under a job, so a second title job for the same hero
+    or look paints files of its own (title_heroes/<cand_stem>_<n>.png, review_<cand_stem>.png, <cand_stem>.json); by
+    hand (no tag) <id>[_<letter>] as before."""
+    t = cand_tag(tag)
+    return out_stem(hid, code) + ("_" + t if t else "")
+
+
+def look_code(d, variant):
+    """The look a run is for ("" = the hero's own cut-out). The base strip's code (variant_base) is the hero's own too
+    (pass 68 review: one rule with the Level Editor, which sends no code for the base look: its cut-out is hero_<id>.png,
+    what the game shows for a base entry that names none); any other code names a look: its cut-out is
+    hero_<id>_<letter>.png and its entry's title."""
+    code = str(variant or "").strip()
+    return "" if ga.is_base_code(d, code) else code
+
+
+def parse_args(argv):
+    """The command line: {"pick": [pairs] or None, "only", "seeds", "first_seed", "character", "pose", "holds",
+    "camera", "ref", "extra_ref", "extra_words", "variant", "attempt"} (the strings as given); --x v and --x=v."""
+    out = {"pick": None}
+    argv = [str(a) for a in argv]
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--pick":
+            pairs = []
+            i += 1
+            while i < len(argv) and not argv[i].startswith("--"):
+                pairs.append(argv[i])
+                i += 1
+            out["pick"] = pairs
+            continue
+        if a.startswith("--"):
+            name, eq, val = a[2:].partition("=")
+            if name in FLAGS:
+                if not eq and i + 1 < len(argv):
+                    i += 1
+                    val = argv[i]
+                out[name.replace("-", "_")] = val
+        i += 1
+    return out
+
+
+# ---------------------------------------------------------------- painting and picking
+
+def paint(hid, seeds, first, character=None, pose=None, holds=None, camera=None, ref=None, extra_ref=None, extra_words=None,
+          variant=None, attempt=1, tag=None):
+    d0 = hero_json(hid)
+    code = look_code(d0, variant)
+    d = ga.look_merged(d0, code) if code else d0
+    stem = out_stem(hid, code)
+    # the candidates are this job's own (--tag, else the Level Editor job's id; untagged by hand)
+    tag = cand_tag(tag if tag else os.environ.get("ASSET_JOB_ID", ""))
+    cstem = cand_stem(hid, code, tag)
+    if ref:
+        src = ga.ref_path(ref)
+        if src is None:
+            raise SystemExit("gen_title_heroes: no reference picture %r (looked under the repo, under tools/dl/ and as given)" % str(ref))
+        pic = Image.open(src)
+        # a painting on a screen says its colour; anything else (an upload on white) goes on the hero's own screen
+        bg = screen_sniff(pic) or ga.bg_for(d, "characters")
+        still = ga.on_screen(pic, bg == BG_BLUE)
+    else:
+        src = os.path.join(RAW, ga.hero_still_key(hid, "front", d) + ".png")
+        if not os.path.isfile(src):
+            raise SystemExit("gen_title_heroes: no front still %s (paint the look first, or name a picture with --ref)" % src)
+        still = Image.open(src)
+        bg = screen_of(still)
+        still = still.convert("RGB")
     artkit.KEY_SAT = float(d.get("key_sat", 0.35))
     artkit.GRADE = d.get("grade")
-    ref = comfy.upload_pil(still.convert("RGB"), "title_ref_" + hid + ".png")
-    refs = [ref]
-    extra = ""
-    pose, holds, view, extra_ref = title_words(hid, d)
-    if extra_ref:
-        name, words = extra_ref
-        im = Image.open(extra_ref_path(name)).convert("RGBA")
-        g = Image.new("RGBA", im.size, (0, 255, 0, 255) if bg == BG_GREEN else (0, 0, 255, 255))
-        g.alpha_composite(im)
-        refs.append(comfy.upload_pil(g.convert("RGB"), "title_extra_" + os.path.basename(name)))
-        extra = words + (" " if words and not words.endswith(" ") else "")
-    prompt = ("A full-body character illustration of this exact character for a mobile game's hero select screen: " + pose +
-              ", " + view + ", the whole figure visible from the top of the head down to the "
-              "feet with empty space around it, " + holds + ". " + extra + "Keep the same face, outfit, colors and proportions as the reference. " +
-              STYLE + ". " + bg + ".")
+    refs = [comfy.upload_pil(still, "title_ref_" + stem + ".png")]
+    pose_w, holds_w, view_w, extra_file, extra_w = title_inputs(hid, d, pose, holds, camera, extra_ref, extra_words)
+    if extra_file:
+        ep = ga.ref_path(extra_file)
+        if ep is None:
+            raise SystemExit("gen_title_heroes: no second reference picture %r (looked under the repo, under tools/dl/ and as given)" % extra_file)
+        refs.append(comfy.upload_pil(ga.on_screen(Image.open(ep), bg == BG_BLUE), comfy.safe_name("title_extra_" + os.path.basename(ep))))
+    prompt = title_prompt(character, pose_w, view_w, holds_w, extra_w, STYLE, bg)
     os.makedirs(OUT, exist_ok=True)
+    seed_list = title_seeds(first, seeds, ga.seed_offset_of(d), attempt)
     made = []
-    for n in range(seeds):
-        seed = first + n * 101
-        imgs, secs = ga.paint(prompt, seed, RENDER[0], RENDER[1], refs, "88fits/title_" + hid)   # the painter from gen_art.MODEL
+    for n, seed in enumerate(seed_list):
+        imgs, secs = ga.paint(prompt, seed, RENDER[0], RENDER[1], refs, "88fits/title_" + stem)   # the painter from gen_art.MODEL
         raw = Image.open(io.BytesIO(imgs[0])).convert("RGB")
-        raw.save(os.path.join(OUT, "%s_%d_raw.png" % (hid, n)))
+        raw.save(os.path.join(OUT, "%s_%d_raw.png" % (cstem, n)))
         cut = fit(artkit.key_background(raw))
-        cut.save(os.path.join(OUT, "%s_%d.png" % (hid, n)))
+        cut.save(os.path.join(OUT, "%s_%d.png" % (cstem, n)))
         made.append(cut)
-        log("  %s #%d seed %d  %.1fs" % (hid, n, seed, secs))
-    json.dump({"prompt": prompt, "seeds": [first + n * 101 for n in range(seeds)], "ref": hid + "_front.png"},
-              open(os.path.join(OUT, hid + ".json"), "w", encoding="utf-8"), indent=1)
-    sheet = review(hid, made)
+        log("  %s #%d seed %d  %.1fs" % (cstem, n, seed, secs))
+    json.dump({"prompt": prompt, "seeds": seed_list, "ref": os.path.basename(src), "variant": code, "tag": tag},
+              open(os.path.join(OUT, cstem + ".json"), "w", encoding="utf-8"), indent=1)
+    sheet = review(cstem, made)
     # pass 66: a Level Editor job reads the candidates and the words that were sent from its sidecar
     sidecar = os.environ.get("ASSET_JOB_SIDECAR", "")
     if sidecar:
         json.dump({"id": hid, "kind": "hero_title", "prompt": prompt, "review": sheet,
-                   "choices": [os.path.join(OUT, "%s_%d.png" % (hid, n)) for n in range(seeds)]},
+                   "choices": [os.path.join(OUT, "%s_%d.png" % (cstem, n)) for n in range(len(seed_list))], "variant": code,
+                   "tag": tag, "ref": src, "extra_ref": extra_file, "seeds": seed_list},
                   open(sidecar, "w", encoding="utf-8", newline="\n"), indent=1)
+    return made
 
 
-def review(hid, cuts):
+def review(stem, cuts):
     """The candidates side by side on the title's paper, numbered, to pick by eye."""
     pad = 20
     sheet = Image.new("RGB", (len(cuts) * (BOX[0] + pad) + pad, BOX[1] + 2 * pad + 40), (243, 230, 200))
@@ -170,39 +320,66 @@ def review(hid, cuts):
         dr.rectangle([x - 2, pad - 2, x + BOX[0] + 1, pad + BOX[1] + 1], outline=(36, 27, 20), width=2)
         sheet.paste(c, (x, pad), c)
         dr.text((x + 8, pad + BOX[1] + 4), "#%d" % i, fill=(36, 27, 20), font=font)
-    path = os.path.join(OUT, "review_%s.png" % hid)
+    path = os.path.join(OUT, "review_%s.png" % stem)
     sheet.save(path)
     log("  review: " + path)
     return path
 
 
-def pick(pairs):
+def pick(pairs, variant=None, tag=None):
+    """Install <id>=N: the hero's cut-out, or with `variant` (a look code; the base strip's is the hero's own) the
+    look's own; N is a candidate of the job `tag` names (title_heroes/<cand_stem>_<N>.png; no tag: a hand run's
+    untagged one); the file it replaces is kept in tools/dl/backup/title/ first (pass 68)."""
     os.makedirs(SLOT_DIR, exist_ok=True)
+    sidecar = os.environ.get("ASSET_JOB_SIDECAR", "")
+    done = []
     for p in pairs:
         hid, n = p.split("=")
-        src = os.path.join(OUT, "%s_%s.png" % (hid, n))
-        dst = os.path.join(SLOT_DIR, "hero_%s.png" % hid)
-        Image.open(src).save(dst)
-        log("installed %s -> %s" % (src, dst))
+        d = hero_json(hid)
+        code = look_code(d, variant)
+        if code and not ga.has_look(d, code):
+            raise SystemExit("gen_title_heroes: %s has no look %s" % (hid, code))
+        stem = out_stem(hid, code)
+        src = os.path.join(OUT, "%s_%s.png" % (cand_stem(hid, code, tag), n))
+        if not os.path.isfile(src):
+            raise SystemExit("gen_title_heroes: no candidate %s" % src)
+        name = "hero_%s.png" % stem
+        dst = os.path.join(SLOT_DIR, name)
+        buf = io.BytesIO()
+        Image.open(src).save(buf, "PNG")
+        kept = ga.backup_icon(dst, buf.getvalue(), BACKUP)
+        with open(dst, "wb") as f:
+            f.write(buf.getvalue())
+        log("installed %s -> %s%s" % (src, dst, (" (old kept: %s)" % kept) if kept else ""))
+        info = {"pipeline": "gen_title_heroes", "pick": os.path.basename(src), "title_backup": kept}
+        if code:
+            # pass 68 (D8): the look's entry names its cut-out (a file under res://art/ui/wanted/)
+            if sidecar:
+                ga.emit_sidecar(hero_folder(hid), hid, code, {"title": name}, info)
+            else:
+                ga.write_look_entry(os.path.join(hero_folder(hid), hid + ".json"), code, {"title": name})
+                log("%s's entry names its cut-out %s" % (code, name))
+        elif sidecar:
+            ga.emit_sidecar(hero_folder(hid), hid, "", {}, info)
+        done.append(dst)
+    return done
 
 
 def main():
-    args = sys.argv[1:]
-    if "--pick" in args:
-        pick(args[args.index("--pick") + 1:])
+    o = parse_args(sys.argv[1:])
+    if o["pick"] is not None:
+        # the candidates' tag: --tag, else the job the queue runs the pick under (an install job carries the painting
+        # job's id as ASSET_JOB_ID); by hand neither: the untagged ones a hand run paints
+        pick(o["pick"], o.get("variant") or None, o.get("tag") or os.environ.get("ASSET_JOB_ID") or None)
         return
-    only = ["astro", "drifter", "dad", "buck", "mira"]
-    seeds, first = 4, 11
-    for a in args:
-        if a.startswith("--only"):
-            only = a.split("=", 1)[1].split(",") if "=" in a else args[args.index(a) + 1].split(",")
-        elif a.startswith("--seeds="):
-            seeds = int(a.split("=")[1])
-        elif a.startswith("--first-seed="):
-            first = int(a.split("=")[1])
+    only = [x for x in str(o.get("only") or "").split(",") if x] or ["astro", "drifter", "dad", "buck", "mira"]
+    seeds = int(o.get("seeds") or 4)
+    first = int(o.get("first_seed") or 11)
     for hid in only:
         log("painting " + hid)
-        paint(hid, seeds, first)
+        paint(hid, seeds, first, character=o.get("character"), pose=o.get("pose"), holds=o.get("holds"), camera=o.get("camera"),
+              ref=o.get("ref"), extra_ref=o.get("extra_ref"), extra_words=o.get("extra_words"), variant=o.get("variant"),
+              attempt=int(o.get("attempt") or 1), tag=o.get("tag"))
 
 
 if __name__ == "__main__":

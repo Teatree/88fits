@@ -1,7 +1,8 @@
 ## The hero's sheet (pass 61, Garry: "make the character name plaque clickable and when I click on it, it opens up a pop-up
 ## that covers most of the screen ... Their portrait at the top with the name, the slogan everything. Supposed to look like
 ## a kind of a CV"): a Wanted poster of the hero over a sepia dim, opened by a tap on the title's plaque. From the top: his
-## badge as the portrait in a frame, beside it the name, the slogan and the trait's name; the SIGNATURE STAT (the rule in
+## badge as the portrait in a frame (pass 68: the badge of the look he is played in, Registry.played_look), beside it the
+## name, the slogan and the trait's name; the SIGNATURE STAT (the rule in
 ## TextGen.hero_trait's words, its step a level in big numbers, and what it comes to at levels 1, 10, 20 and 40); the
 ## STATS a run starts with (Run.hero_sheet at level 1, the Upgrade ranks in, TextGen's names, his signature stats in
 ## sage); the ITEMS (the weapon he lands with, his favourite and what finding it gives, any other weapon only he finds,
@@ -152,7 +153,9 @@ func _header() -> Control:
 	frame.add_theme_stylebox_override("panel", W.box(W.AGED, 5, 8).pad(10, 10, 10, 10))
 	frame.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var tr := TextureRect.new()
-	tr.texture = hero.icon
+	# the badge of the look he is played in (pass 68, Registry.played_look: the kept look, else his JSON's `variant`);
+	# `hero` stays his own def
+	tr.texture = Registry.played_look(hero).icon
 	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	tr.custom_minimum_size = Vector2(PORTRAIT, PORTRAIT)

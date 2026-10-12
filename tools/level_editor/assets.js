@@ -337,6 +337,23 @@ const Assets = (() => {
     App.render('tab');
   }
 
+  /** Pass 68: before something that reads the file and writes it again (Duplicate… copies a look's recipe from it; a
+   *  job's enqueue writes the look's recipe into it), a document with unsaved changes is saved, or the action stops:
+   *  the server's write would otherwise go under the open document and its next refresh would drop the unsaved looks.
+   *  Resolves true when the file holds the document (saved now, or nothing to save). */
+  async function ensureSaved(doc, why) {
+    if (!doc || !docDirty(doc)) return true;
+    if (!confirm(`${doc.id} has unsaved changes. ${why || ''}\n\nSave them now and go on? (Cancel stops here.)`)) {
+      App.status(`Not done: save ${doc.id} first (${why || 'the action reads the file'})`, 'bad');
+      return false;
+    }
+    const tab = tabOf(doc.kind);
+    S.open[tab] = doc.key;
+    await save(tab);
+    if (docDirty(doc)) { App.status(`${doc.id} was not saved, so nothing else happened: ${why || ''}`, 'bad'); return false; }
+    return true;
+  }
+
   /** The file changed on disk since this document was opened (a job landed, a hand edit): Reload / Keep mine / Show the other. */
   function conflict(doc, res) {
     App.status(`${doc.file || doc.id} changed on disk since you opened it`, 'bad');
@@ -937,10 +954,23 @@ const Assets = (() => {
     for (const size of round ? [128, 64] : [128, 64, 36]) {
       wrap.appendChild(el('figure', { class: 'iconfig' }, el('div', { class: 'iconplate' + (round ? ' round' : ''), style: `width:${size}px;height:${size}px;${round ? '' : `background:${plate}`}` }, el('img', { src: url, alt: '', width: size, height: size, onerror: (e) => { e.target.style.visibility = 'hidden'; } })), el('figcaption', { class: 'muted small', text: `${size} px` })));
     }
+    // a hero's icon is the round badge (pass 68): its candidates come from hero_badge, for the look shown (its own icon)
+    // or the base look (the hero's <id>_icon.png); an item's or a creature's from icon_cands
+    const lookCode = candidateCode(doc, doc.ui && doc.ui.look);
     wrap.appendChild(el('div', { class: 'icon-actions' },
-      el('button', { class: 'btn small', type: 'button', text: '+ Icon candidates…', title: 'paint several icons and pick one by eye (a job)', onclick: () => openJobForm(doc, { method: 'icon_cands', mode: 'icon' }) }),
-      el('span', { class: 'muted small', text: round ? 'the round badge: WHeroSheet\'s 128 plate, the results plate' : `on its ${doc.data.rarity || 'common'} plate (W.RARITY_PLATE)` })));
+      round ? el('button', { class: 'btn small', type: 'button', text: lookCode ? `+ Badge candidates for ${lookCode}…` : '+ Badge candidates…', title: `paint round badge candidates and pick one by eye (a job): the hero's words and ${lookCode ? lookCode + '\'s' : 'the base look\'s'} front still as the reference${shownWhere('badge') ? '; ' + shownWhere('badge') : ''}`, onclick: () => openJobForm(doc, { method: 'hero_badge', mode: 'badge', code: lookCode || undefined }) })
+        : el('button', { class: 'btn small', type: 'button', text: '+ Icon candidates…', title: 'paint several icons and pick one by eye (a job)', onclick: () => openJobForm(doc, { method: 'icon_cands', mode: 'icon', code: lookCode || undefined }) }),
+      el('span', { class: 'muted small', text: round ? `the round badge (128: the hero sheet's plate): ${shownWhere('badge') || 'the hero sheet, the results'}` : `on its ${doc.data.rarity || 'common'} plate (W.RARITY_PLATE)` })));
     return wrap;
+  }
+  /** Where the game shows a hero look's badge or cut-out (LookGrid.WHERE_SHOWN): said beside every badge and cut-out
+   *  candidate button (pass 68 review: the default Live title shows no cut-out). */
+  function shownWhere(k) { return typeof LookGrid !== 'undefined' && LookGrid.WHERE_SHOWN && LookGrid.WHERE_SHOWN[k] ? LookGrid.WHERE_SHOWN[k] : ''; }
+  /** The look a candidate job is for: `code` (the look shown) unless it is the base, whose icon and cut-out are the
+   *  asset's own top-level files; '' = the base. Items have no looks. */
+  function candidateCode(doc, code) {
+    const look = code && Array.isArray(doc.looks) ? doc.looks.find((l) => l.code === code) : null;
+    return look && !look.base && code !== String(doc.data.variant_base || '') ? String(code) : '';
   }
 
   /** Lane V's job form, when it is there. */
@@ -963,11 +993,15 @@ const Assets = (() => {
     host.appendChild(grid);
     const codes = doc.looks.map((l) => l.code);
     const look = doc.ui.look && codes.includes(doc.ui.look) ? doc.ui.look : (doc.data.variant || codes[0] || null);
+    // the candidate buttons act on the look shown (pass 68: a look has its own icon and, for a hero, its own title cut-out),
+    // the base look's going to the asset's own files
+    const cand = candidateCode(doc, look);
+    const forWhom = cand ? ` for ${cand}` : '';
     const bar = el('div', { class: 'look-actions' },
-      el('button', { class: 'btn small primary', type: 'button', text: '+ Generate art…', title: 'a new look painted by the local AI (a job)', onclick: () => openJobForm(doc, { method: null, mode: 'look' }) }),
-      doc.kind !== 'hero' ? el('button', { class: 'btn small', type: 'button', text: '+ Icon candidates…', onclick: () => openJobForm(doc, { method: 'icon_cands', code: look, mode: 'icon' }) }) : null,
-      doc.kind === 'hero' ? el('button', { class: 'btn small', type: 'button', text: '+ Badge candidates…', onclick: () => openJobForm(doc, { method: 'hero_badge', mode: 'badge' }) }) : null,
-      doc.kind === 'hero' ? el('button', { class: 'btn small', type: 'button', text: '+ Title cut-out…', onclick: () => openJobForm(doc, { method: 'hero_title', mode: 'title' }) }) : null,
+      el('button', { class: 'btn small primary', type: 'button', text: '+ Generate art…', title: `a new look painted by the local AI (a job); it comes with its icon candidates (a hero: badge and title cut-out candidates${doc.kind === 'hero' && shownWhere('cutout') ? `: ${shownWhere('badge')}; ${shownWhere('cutout')}` : ''})`, onclick: () => openJobForm(doc, { method: null, mode: 'look' }) }),
+      doc.kind !== 'hero' ? el('button', { class: 'btn small', type: 'button', text: `+ Icon candidates${forWhom}…`, title: cand ? `icon candidates for ${cand}: its own icon (<id>_icon_<letter>.png)` : 'icon candidates for the base look (the creature\'s own <id>_icon.png)', onclick: () => openJobForm(doc, { method: 'icon_cands', code: cand || undefined, mode: 'icon' }) }) : null,
+      doc.kind === 'hero' ? el('button', { class: 'btn small', type: 'button', text: `+ Badge candidates${forWhom}…`, title: (cand ? `round badge candidates for ${cand}: its own icon` : 'round badge candidates for the hero (his <id>_icon.png and badge block)') + (shownWhere('badge') ? `; ${shownWhere('badge')}` : ''), onclick: () => openJobForm(doc, { method: 'hero_badge', mode: 'badge', code: cand || undefined }) }) : null,
+      doc.kind === 'hero' ? el('button', { class: 'btn small', type: 'button', text: `+ Title cut-out${forWhom}…`, title: (cand ? `title cut-out candidates for ${cand}: its own cut-out (art/ui/wanted/hero_<id>_<letter>.png)` : 'title cut-out candidates for the hero (art/ui/wanted/hero_<id>.png)') + (shownWhere('cutout') ? `; ${shownWhere('cutout')}` : ''), onclick: () => openJobForm(doc, { method: 'hero_title', mode: 'title', code: cand || undefined }) }) : null,
       el('span', { class: 'muted small', text: `${doc.looks.length} look${doc.looks.length === 1 ? '' : 's'}${doc.looks.filter((l) => l.shelved).length ? ` · ${doc.looks.filter((l) => l.shelved).length} shelved` : ''}${doc.looks.filter((l) => l.fresh).length ? ` · ${doc.looks.filter((l) => l.fresh).length} unreviewed` : ''}` }));
     host.appendChild(bar);
     if (look) host.appendChild(recipeEditor(doc, look));
@@ -1043,9 +1077,16 @@ const Assets = (() => {
     // inherited. Garry read the empty boxes as lost prompts ("quite a few Looks ... are missing the art prompt"): every
     // field now shows the value that applies and where it comes from, and a look with no recipe at all says so.
     const rec = M.isObj(entry.recipe) ? entry.recipe : {};
-    const ownKeys = Object.keys(rec).filter((k) => !['painter', 'method'].includes(k));
+    // the bookkeeping keys (the painter, the method, a draft's source, the look's own seed offset) are shown, not typed
+    const book = typeof LookGrid !== 'undefined' && Array.isArray(LookGrid.BOOK_KEYS) ? LookGrid.BOOK_KEYS : ['painter', 'method', 'from', 'seed_offset'];
+    const ownKeys = Object.keys(rec).filter((k) => !book.includes(k));
     const isBase = code === String(doc.data.variant_base || '');
     const pt = typeof LookGrid !== 'undefined' && typeof LookGrid.painterText === 'function' ? LookGrid.painterText : (p) => JSON.stringify(p);
+    // a draft (pass 68): a recipe and no painting; Generate… paints it once the document is saved
+    const lookRec = Array.isArray(doc.looks) ? doc.looks.find((l) => l.code === code) : null;
+    const draft = !!lookRec && typeof LookGrid !== 'undefined' && typeof LookGrid.isDraft === 'function' && LookGrid.isDraft(lookRec, doc.kind, doc.id);
+    if (draft) wrap.appendChild(el('div', { class: 'rnote draft' }, el('span', { text: `${code} is a draft${rec.from ? ' made from ' + rec.from : ''}: nothing is painted until you press Generate…. Change this recipe as you like and Save asset; Generate… opens the job form with it (it saves first if you forgot).` }),
+      el('button', { class: 'btn small primary', type: 'button', text: 'Generate…', title: 'the job form for this code as a new look, with this recipe, its method and its painter', onclick: () => LookGrid.generate(doc.kind, doc.id, code) })));
     if (!ownKeys.length && isBase) wrap.appendChild(el('div', { class: 'rnote', text: 'The base strip: the creature\'s own art words (the Art section above) painted it; the fields below show them greyed, marked inherited. Type into one only to give this code a recipe of its own.' }));
     else if (!ownKeys.length) wrap.appendChild(el('div', { class: 'rnote warn', text: `No recipe was recorded for ${code}: it was painted before the Level Editor kept recipes, by hand, or by a job that ran with an empty recipe. The fields below show the creature's own words (what a job for this code would read now), which may not be what painted it. To change its art, use Duplicate… on its card (a new look from these words, under a new code) or Re-roll….` }));
     else wrap.appendChild(el('div', { class: 'rnote', text: `${ownKeys.length} own key${ownKeys.length === 1 ? '' : 's'} (${ownKeys.join(', ')}); every other field inherits the creature's own word, shown greyed and marked inherited. A field left empty keeps inheriting.` }));
@@ -1060,10 +1101,19 @@ const Assets = (() => {
     wrap.appendChild(Forms.row({ key: `${base}.method`, label: 'Method', help: 'how this look is painted (methods.json: lane B\'s catalogue; the fields below follow it)' }, methodSel, { note: mnote }));
     // the painter it ran with (written by the job from the form's Model settings)
     const painter = M.isObj(rec.painter) ? rec.painter : null;
-    wrap.appendChild(Forms.row({ key: `${base}.painter`, label: 'Painter', help: 'the model and the passes the stills were painted with: the job writes it from the form\'s Model settings (variants[CODE].recipe.painter); Re-roll… and Duplicate… start from it; gen_art reads it on a hand run that names no painter' },
-      el('span', { class: 'aread' + (painter ? '' : ' muted'), text: painter ? pt(painter) : 'not recorded (painted before the painter was kept: Flux.2 Klein with its defaults unless the job said dev)' }), {}));
+    wrap.appendChild(Forms.row({ key: `${base}.painter`, label: 'Painter', help: 'the model and the passes the stills were painted with: the job writes it from the form\'s Model settings (variants[CODE].recipe.painter) and, when it lands, says if the stills were reused rather than painted; Re-roll… and Generate… start from it; gen_art reads it on a hand run that names no painter' },
+      el('span', { class: 'aread' + (painter ? '' : ' muted'), text: painter ? pt(painter) + (draft ? ' (what Generate… starts from)' : '') : 'not recorded (painted before the painter was kept: Flux.2 Klein with its defaults unless the job said dev)' }), {}));
+    if (rec.from) wrap.appendChild(Forms.row({ key: `${base}.from`, label: 'Made from', help: 'the look Duplicate… copied this recipe from (recipe.from: bookkeeping, no tool reads it)' }, el('span', { class: 'aread', text: String(rec.from) }), {}));
+    if (rec.seed_offset != null && !recipeRows(method).some((d) => d.key === 'seed_offset')) wrap.appendChild(Forms.row({ key: `${base}.seed_offset`, label: 'Seed offset', help: 'this look\'s own seeds: gen_art moves every seed it paints by N × 104729 (written when the look was first queued, from its code, so two new looks never come out as clones; a re-roll moves it on)' }, el('span', { class: 'aread', text: String(rec.seed_offset) }), {}));
     const iss = { marks: {} };
-    const shown = new Set(['method', 'painter']);
+    const shown = new Set(['method', 'painter', 'from', 'seed_offset']);
+    // the stills slug of a method whose form has no row for it (a hero look since pass 68: <id>_<slug>_<view>)
+    if (rec.stills != null && !recipeRows(method).some((d) => String(d.key).split('.')[0] === 'stills')) {
+      const own2 = doc.kind === 'hero' ? 'hero' : 'creature';
+      wrap.appendChild(Forms.row({ key: `${base}.stills`, label: 'Stills slug', help: 'the slug its stills are cached under: <id>_<slug>_<view>; "" = the ' + own2 + '\'s own paintings (<id>_<view>); written by the job (a new look gets its own letter)' },
+        el('span', { class: 'aread', text: rec.stills === '' ? `"" (the ${own2}'s own paintings)` : `"${rec.stills}" (its own paintings: ${doc.id}_${rec.stills}_<view>)` }), {}));
+      shown.add('stills');
+    }
     for (const def of recipeRows(method)) {
       shown.add(String(def.key).split('.')[0]);
       const own = U.getPath(rec, def.key);
@@ -1077,7 +1127,7 @@ const Assets = (() => {
       const host = r.querySelector('.fctl') || r;
       if (hasOwn) host.appendChild(el('span', { class: 'rsrc own', text: 'own', title: 'this look\'s own value (variants[CODE].recipe)' }));
       else if (inherited) host.appendChild(el('span', { class: 'rsrc inh', text: ['text', 'textarea', 'int', 'number'].includes(def.type) ? 'inherited' : `inherited: ${def2.ph}`, title: `the creature's own ${def.key} applies while this is empty: ${def2.ph}` }));
-      else if (def.key === 'stills') host.appendChild(el('span', { class: 'rsrc def', text: own === '' ? 'empty: the creature\'s own paintings' : 'left out: this look\'s own letter', title: 'the slug the stills are cached under (<id>_<slug>_front); a job seeds the look\'s letter when the key is absent; an explicit "" reuses the creature\'s own paintings' }));
+      else if (def.key === 'stills') host.appendChild(el('span', { class: 'rsrc def', text: own === '' ? `empty: the ${doc.kind === 'hero' ? 'hero' : 'creature'}'s own paintings` : (lookRec && lookRec.ready === false ? 'left out: this new look gets its own letter when it is queued' : 'left out: a re-roll keeps the paintings it was made from'), title: 'the slug the stills are cached under (<id>_<slug>_front); a new look\'s job seeds the look\'s letter when the key is absent (an existing look\'s gets "", its old paintings); an explicit "" reuses the creature\'s own paintings' }));
       else if (def.def != null && def.def !== '') host.appendChild(el('span', { class: 'rsrc def', text: `default: ${def.def}`, title: 'the method\'s default (methods.json) applies while this is empty' }));
       wrap.appendChild(r);
     }
@@ -1216,7 +1266,7 @@ const Assets = (() => {
 
   return {
     S, KIND_TAB, KIND_LABEL, HISTORY_MAX,
-    owns, hasDoc, active, docsOf, docDirty, dirty, anyDirty, open, close, switchTo, apply, applyFor, redraw, undo, redo, revert, save, refreshRecord, issuesOf,
+    owns, hasDoc, active, docsOf, docDirty, dirty, anyDirty, open, close, switchTo, apply, applyFor, redraw, undo, redo, revert, save, ensureSaved, refreshRecord, issuesOf, candidateCode,
     getJSON, postJSON, ensureHeroes, ensureItems, ensureVocab, ensureMethods, ensureDrivers, refreshList, mapTl, vocab, flatItems, lists, listRecord, seenCombos,
     create, deleteDoc, makePath, availabilityOp, lookOp, testLaunch, openJobForm,
     statusChip, header, issuesLine, jumpTo, section, sectionMarks, fieldRow, markRow, rows, sectionKeys, placeholderOf, statEffects, levelSteps, animsTable, fpsTable, sfxSelect, jsonBox, idSelect, idOptions, driverPick, checklist, tagsInput, pickupWeights,

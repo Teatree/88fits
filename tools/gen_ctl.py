@@ -14,7 +14,8 @@ For a variant:
      Wan 2.2 Fun Control walks the front painting along it (animate.oneshot_control, 8 frames at the walk's scale); without
      one the front painting is edited dead and Wan 2.2 first-last-frame animates the fall (gen_art.death_cycle)
   6. everything is fitted to one scale and packed as a strip (8 directions unless the recipe says "directions": 2):
-     <id>_sprite_<letter>.png, <id>_icon_<letter>.png, the counts written into variants[code]
+     <id>_sprite_<letter>.png, <id>_icon_<letter>.png (kept when the entry says icon_picked: an icon picked from
+     candidates in the Level Editor), the counts written into variants[code]
 
     python tools/gen_ctl.py --id=dune_scorpion --variant=SC-A [--dev] [--seeds=3]      (side candidates, then stops)
     python tools/gen_ctl.py --id=dune_scorpion --variant=SC-A --use-side=k1 [--stage=paint]
@@ -311,10 +312,14 @@ def main():
     letter = code.split("-")[-1].lower()
     fname = cid + "_sprite_" + letter + ".png"
     strip.save(os.path.join(folder, fname))
-    icon, _ = g.finish(front, 256, 0.9, False, None, 0.009)
-    icon.save(os.path.join(folder, cid + "_icon_" + letter + ".png"))
+    iname = cid + "_icon_" + letter + ".png"
+    if keeps_picked_icon(entry, os.path.join(folder, iname)):
+        log("  the look's icon was picked from candidates: kept (%s)" % iname)
+    else:
+        icon, _ = g.finish(front, 256, 0.9, False, None, 0.009)
+        icon.save(os.path.join(folder, iname))
     head = round(max(g.figure_top(f) for f in frames.get("idle", []) + frames.get("run", [])), 3)
-    patch = {"sprite": fname, "icon": cid + "_icon_" + letter + ".png", "anims": counts, "strip_cols": cols, "head": head,
+    patch = {"sprite": fname, "icon": iname, "anims": counts, "strip_cols": cols, "head": head,
              "fps": {"run": int(recipe.get("fps", 20)), "die": 12 if fall else 8}}
     # pass 66: under a Level Editor job (ASSET_JOB_SIDECAR) the entry goes into the sidecar for the server to merge in
     # place; a command line writes the JSON as before
@@ -333,6 +338,12 @@ def main():
 
 def noun_or(recipe):
     return recipe.get("noun", "a creature")
+
+
+def keeps_picked_icon(entry, icon_path):
+    """pass 68 (review): a look whose icon was picked from candidates (the Level Editor marks its entry `icon_picked`)
+    keeps that file: the run does not paint the front-still crop over it (gen_art's rule); its entry still names it."""
+    return bool(isinstance(entry, dict) and entry.get("icon_picked") and os.path.isfile(icon_path))
 
 
 if __name__ == "__main__":
