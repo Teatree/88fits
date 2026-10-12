@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://art/props/salt_shaker.glb" id="1_shaker"]
+
+[node name="SaltVisual" type="Node3D"]
+
+[node name="Shaker" parent="." instance=ExtResource("1_shaker")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)

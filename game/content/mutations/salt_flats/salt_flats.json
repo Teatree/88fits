@@ -1,0 +1,24 @@
+{
+  "id": "salt_flats",
+  "name": "Salt Flats",
+  "flavour": "Flat, white and fast. Like him.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "salt",
+  "kind": "hero",
+  "element": "",
+  "hero": "buck",
+  "text": "Walking into a salt patch puts his speed-up at full at once.",
+  "vfx": "his speed trail flares as he steps into the salt",
+  "effects": [],
+  "params": {
+    "salt": {
+      "momentum_on_enter": true
+    }
+  },
+  "art_prompt": "a white salt flat with speed lines streaking across it and a pair of white-striped black trainers kicking up salt",
+  "placeholder": {
+    "color": "#9AD8FF",
+    "glyph": "star"
+  }
+}

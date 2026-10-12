@@ -31,11 +31,17 @@ const AFIELDS = (() => {
     pronouns: [opt('he'), opt('she'), opt('they')],
     specials: [opt('cannot_stop', 'cannot stop', 'Player.gd: he never stands still'), opt('momentum', 'momentum', 'speed and attack damage climb while he is not hit (the momentum block)'),
       opt('auto_magnet', 'auto magnet', 'gems come to him on their own'), opt('motherlode', 'motherlode', 'x1.5 gold from the Strongbox and extraction')],
-    availability: [opt('available', 'available', 'playable from the title'), opt('hidden', 'hidden', 'out of play'), opt('purchase', 'purchase', 'to be bought: written and shown, not wired yet; stays hidden in play')],
-    currencies: [opt('gold')],
+    // pass 69 (lane UI wired the purchase loop): Registry.hero_state reads these; an unlock quest (Requirement below) gates either
+    availability: [opt('available', 'free', 'owned from the start, nothing to pay; with a requirement: owned the moment its quest is done'),
+      opt('purchase', 'to buy', 'on the title and in the hero drawer as a black silhouette: locked until his requirement is done (none = on sale at once), then BUY for the price'),
+      opt('hidden', 'hidden', 'out of play: not on the title, not in the drawer; his perks and hero mutation hidden too')],
+    currencies: [opt('gold', 'gold', 'coins: the only currency Save.buy_hero spends')],
     rarities: [opt('common'), opt('uncommon'), opt('rare'), opt('epic'), opt('legendary', 'legendary', 'no item uses it; the tests pin four rarities among passive items')],
     rarityPlate: { common: '#d2cfc7', uncommon: '#8cc97a', rare: '#6b9fd8', epic: '#a585c8', legendary: '#e0a060' },
-    behaviors: ['Beam', 'ConeWave', 'GravityGun', 'LaserBeam', 'Lobber', 'MineLayer', 'MissilePod', 'Orbiter', 'ProjectileEmitter', 'Smasher', 'Spawner', 'SunScepter', 'Thruster'].map((b) => opt(b)),
+    behaviors: ['Beam', 'ConeWave', 'GravityGun', 'LaserBeam', 'Lobber', 'MineLayer', 'MissilePod', 'Orbiter', 'ProjectileEmitter', 'Smasher', 'Spawner', 'SunScepter', 'Thruster'].map((b) => opt(b))
+      // pass 69: the Salt's patches laid behind the hero (lane SALT) and the Frisbee's curving discs (lane FRIS)
+      .concat([opt('SaltShaker', 'SaltShaker', 'pass 69, the Salt: a shaker floats round the hero and pours patches behind him that hurt what stands in them (params: salt, shaker)'),
+        opt('Frisbee', 'Frisbee', 'pass 69: discs thrown at a creature on an arc bending left or right at random, cutting through everything to the end of their range (params: bend, fan, falloff, disc, carry, loop)')]),
     targeting: [opt('nearest'), opt('priority', 'priority', 'the strongest enemy nearby'), opt('densest'), opt('densest_healthy', 'densest healthy', 'the Molotov and Skull Rain: the densest crowd of healthy enemies'), opt('orbit'), opt('random'), opt('healthy'), opt('forward'), opt('ground')],
     mutationKinds: [opt('element'), opt('volume'), opt('motion'), opt('stance', 'stance', 'no mutation uses it yet'), opt('hero', 'hero', 'one hero\'s own: needs `hero`')],
     elements: [opt('', 'none'), opt('fire'), opt('poison')],
@@ -67,7 +73,8 @@ const AFIELDS = (() => {
     const extra = vocab && vocab.stats ? Object.keys(vocab.stats) : [];
     const ids = which === 'weapon' ? weaponStats() : which === 'player' ? playerStats() : playerStats().concat(weaponStats());
     const all = Array.from(new Set(ids.concat(which === 'weapon' ? [] : extra)));
-    return all.map((s) => ({ v: s, label: M.statName(s, vocab), sub: `${s} · ${M.statKind(s, vocab)}`, help: `${s}: ${M.statKind(s, vocab)}` }));
+    // pass 69: a stat with a help line (the new passive items' stats) says what it does
+    return all.map((s) => ({ v: s, label: M.statName(s, vocab), sub: `${s} · ${M.statKind(s, vocab)}`, help: `${s}: ${M.statKind(s, vocab)}${M.statHelp && M.statHelp(s, vocab) ? ' · ' + M.statHelp(s, vocab) : ''}` }));
   }
   const statKnown = (s, which, vocab) => {
     const vp = vocab && Array.isArray(vocab.player_stats) ? vocab.player_stats.map((x) => (typeof x === 'string' ? x : x.v || x.id)) : null;
@@ -102,11 +109,16 @@ const AFIELDS = (() => {
     MissilePod: ['cluster_spin', 'familiar', 'hawk', 'missile', 'overpressure', 'pollen', 'pressure', 'cluster', 'blast_fx'],
     Orbiter: ['breathe', 'gyro', 'lasso', 'rust', 'rust_patina', 'side_knock', 'solid_ring', 'spin_speed', 'strike'],
     ProjectileEmitter: ['aura', 'burst', 'burst_gap', 'double_every', 'double_gap', 'double_tap', 'drum_axis', 'drum_scale', 'drum_step', 'familiar', 'fan_step_deg', 'fire_blind', 'hip_shot', 'look', 'momentum_rounds', 'no_shells', 'radius', 'radius_mult', 'shockwave', 'silver', 'speed_mult', 'sweep_deg', 'scatter_deg', 'tint', 'blast',
-      'amount_mode', 'free_throw', 'tracer_color'],
+      'amount_mode', 'free_throw', 'tracer_color',
+      // pass 69: Alley-Oop's launch and the ball's Heat look (lane BB), May's Trigger Happy (lane HERO)
+      'launch', 'heat_look', 'fire_without_target', 'stream'],
     Smasher: ['giant_slayer', 'smash', 'thor'],
     Spawner: ['max_turrets', 'max_turrets_mult', 'turret', 'turret_fire_rate', 'magnet', 'tracer', 'focus'],
     SunScepter: ['familiar', 'gold_dust', 'handle_ring', 'shine', 'staff_tint', 'sun', 'zenith'],
     Thruster: ['crit_refund', 'crit_stroke', 'razor', 'riposte', 'stunned_mult', 'thrust', 'trail_color'],
+    // pass 69: the Salt (lane SALT) and the Frisbee (lane FRIS)
+    SaltShaker: ['salt', 'shaker'],
+    Frisbee: ['bend_deg', 'bend_per_extra', 'carry', 'disc', 'falloff', 'fan_deg', 'glide_seconds', 'height', 'hit_radius', 'loop', 'proc_mult', 'stun'],
   };
   // keys WeaponInstance and the systems (ProjectileManager, Game, EnergyTraces, Mine) read for any behaviour
   const PARAMS_SHARED = ['final', 'glow', 'familiar', 'look', 'ricochet_any', 'mini_crit', 'fire_blue', 'ignite_chance', 'zenith', 'sticky', 'size_mult', 'silver', 'pollen', 'plant', 'pin', 'pierce_falloff', 'out_speed_mult', 'back_speed_mult',
@@ -117,6 +129,196 @@ const AFIELDS = (() => {
     'return_on_hit', 'return_pierce', 'catch'];
   function paramsKnown(key, behavior) {
     return PARAMS_SHARED.includes(key) || (PARAMS_KEYS[behavior] || []).includes(key);
+  }
+
+  // ------------------------------------------------------------------ pass 69 (lane LE): typed params
+  // Garry (pass 69): "make sure to update the LevelEditor and include instructions on how I would be able to use the newly
+  // created tools". The params the pass's weapons and mutations read, as typed, explained fields above the JSON box (the
+  // box stays for every other key). A group is one mechanism's keys: `behaviors` = the behaviours whose weapons show it
+  // (a mutation shows its weapon's, an evolution its own); `show` 'always' (every weapon of that behaviour: its own knobs)
+  // or 'family' (only when the weapon family is a ball, `ball(params)`) or 'set' (only where a key of it is set on the
+  // document or its weapon; else offered under "+ typed group"); `present` = the keys that count as set (default: every
+  // row's). Row keys are paths under `params`; `def` = the code's own default (the placeholder when nothing sets it; null
+  // = absent means off); `src` = where the game reads them.
+  const P = (key, label, type, def, help, extra) => Object.assign({ key, label, type, def, help }, extra || {});
+  const isBall = (params) => isObj(params) && (isObj(params.catch) || String(params.amount_mode || '') === 'bounces');
+  const PARAM_GROUPS = [
+    { id: 'salt', label: 'Salt patches', behaviors: ['SaltShaker'], show: 'always', src: 'core/behaviors/SaltShaker.gd, core/systems/SaltPatches.gd',
+      help: 'the white patches the Salt lays behind the hero; its base stats above are a tick\'s damage, the cooldown between pours, the amount (patches a pour), the area (× the radius) and the duration (seconds a patch lies)', rows: [
+        P('salt.radius', 'Patch radius (m)', 'number', 1.4, 'a patch\'s radius at area 1 (radius × area × Size ×)', { min: 0.1, step: 0.1 }),
+        P('salt.tick', 'Tick (s)', 'number', 0.5, 'seconds between damage ticks: every creature standing in any patch takes one hit a tick (two patches over it still hit once)', { min: 0.05, step: 0.05 }),
+        P('salt.spacing', 'Spacing (m)', 'number', 1.2, 'metres between the patches of one pour, back along his way (the first 0.4 m behind his heels); standing still they go round his feet', { min: 0, step: 0.1 }),
+        P('salt.max_patches', 'Most patches', 'int', 40, 'most patches lying at once; one more sends the oldest into its fade (it hurts nothing more)', { min: 1 }),
+        P('salt.color', 'Colour', 'swatch', '#FFFFFF', 'the patches\' colour (Sea Salt #F4A3C4, Hiwa Kai #161616)'),
+        P('salt.alpha', 'Opacity', 'number', 0.5, 'how solid the patches are, 0..1 (the bed between the grains is 60% of it): white, half see-through; the Salt sets 0.6 (the code\'s own is 0.5)', { min: 0, max: 1, step: 0.05 }),
+        P('salt.contents', 'Shaker contents', 'swatch', '#F4F4F0', 'the salt inside the floating shaker (its Contents mesh); empty = the patch colour'),
+        P('salt.duration_mult', 'Lasts ×', 'number', 1, '× a patch\'s seconds (Sea Salt 1.75, Hiwa Kai 2)', { min: 0.1, step: 0.05 }),
+        P('salt.damage_mult', 'Damage ×', 'number', 1, '× a tick\'s damage (Sea Salt 0.95)', { min: 0, step: 0.05 }),
+        P('salt.area_mult', 'Size ×', 'number', 1, '× the patch radius (Salt Spill 1.6, Hiwa Kai 1.8)', { min: 0.1, step: 0.05 }),
+        P('salt.luck_mult', 'Power-up luck ×', 'number', 1, 'Thing About Luck: a creature killed while standing in a patch rolls the power-up drop at this factor (3; Hiwa Kai 4); any weapon\'s kill counts', { min: 0, step: 0.5 }),
+        P('salt.momentum_on_enter', 'Full speed on walking in', 'bool3', false, 'Salt Flats (Jeżyk\'s hero mutation): walking INTO a patch from outside it puts his speed-up (momentum) at full at once; a patch laid round his feet counts only once he has walked out and back in'),
+        P('salt.crystals.count', 'Crystals a patch', 'int', null, 'Hiwa Kai: little hard crystals strewn on every patch (7); empty or 0 = none', { min: 0 }),
+        P('salt.crystals.color', 'Crystal colour', 'swatch', '#0B0B0D', 'Hiwa Kai: the crystals\' colour'),
+        P('salt.crunch.mult', 'Crunch ×', 'number', null, 'Hiwa Kai: a creature that walks into the salt (it was not in it at the last tick) takes one extra hit of this × a tick\'s damage (2); empty = none', { min: 0, step: 0.5 }),
+        P('salt.slow', 'Slow', 'number', 0, 'Hiwa Kai: creatures standing in the salt move this much slower (0.3 = 30%), refreshed every tick, at most 0.95', { min: 0, max: 0.95, step: 0.05 }),
+      ] },
+    { id: 'shaker', label: 'The floating shaker', behaviors: ['SaltShaker'], show: 'always', src: 'core/behaviors/SaltShaker.gd (art/props/salt_shaker.glb)',
+      help: 'the 3D salt shaker that floats round the hero and gives a little shake at each pour', rows: [
+        P('shaker.distance', 'Distance (m)', 'number', 1.2, 'how far from the hero it floats', { min: 0, step: 0.1 }),
+        P('shaker.height', 'Height (m)', 'number', 1.25, 'how high over his feet', { min: 0, step: 0.05 }),
+        P('shaker.orbit_speed', 'Orbit speed (rad/s)', 'number', 0.55, 'how fast it circles him (6.28 = one turn a second)', { min: 0, step: 0.05 }),
+        P('shaker.bob', 'Bob (m)', 'number', 0.08, 'how far it bobs up and down', { min: 0, step: 0.01 }),
+      ] },
+    { id: 'frisbee_flight', label: 'Flight', behaviors: ['Frisbee'], show: 'always', src: 'core/behaviors/Frisbee.gd',
+      help: 'how the discs fly: at a creature (the nearest in range, else ahead), bending left or right at random; its base stats above are damage, cooldown, amount (discs a volley), speed, range and knockback', rows: [
+        P('bend_deg', 'Bend (°)', 'number', 25, 'how far off the aim line each disc leaves, to a side picked at random per disc', { min: 0, step: 1 }),
+        P('bend_per_extra', 'More bend per extra disc (°)', 'number', 12, 'added to the bend for every disc past the first in a volley (3 discs = 25 + 2 × 12 = 49°)', { min: 0, step: 1 }),
+        P('fan_deg', 'Fan (°)', 'number', 16, 'the gap between the aim lines of a volley\'s discs', { min: 0, step: 1 }),
+        P('falloff.step', 'Drop-off a creature', 'number', 0.85, 'each creature a disc cuts after the first takes this share of the one before (steeper than the Revolver\'s: the disc never stops)', { min: 0, max: 1, step: 0.05 }),
+        P('falloff.floor', 'Drop-off floor', 'number', 0.25, 'the least share any creature takes', { min: 0, max: 1, step: 0.05 }),
+        P('hit_radius', 'Cut radius (m)', 'number', 0.55, 'how far from the disc\'s centre it cuts (× its size × area), plus the creature\'s own radius', { min: 0.05, step: 0.05 }),
+        P('height', 'Flies at (m)', 'number', 1.0, 'how high above the sand it flies', { min: 0, step: 0.1 }),
+        P('glide_seconds', 'Glide (s)', 'number', 0.45, 'after its range it slows, sinks and fades this long, hitting nothing', { min: 0, step: 0.05 }),
+      ] },
+    { id: 'disc', label: 'The disc (its look)', behaviors: ['Frisbee'], show: 'always', src: 'core/behaviors/Frisbee.gd (Frisbee.disc_mesh: built in code)',
+      help: 'the disc drawn in flight: no held object, only the spinning disc', rows: [
+        P('disc.look', 'Look', 'select', 'plain', 'plain = the neon lime plastic frisbee; razors = Poison Razors\' hot-pink disc with razor blades round the rim; saucer = the Flying Saucer\'s chrome and pink saucer', { options: [opt('plain', 'plain'), opt('razors', 'razors'), opt('saucer', 'saucer')] }),
+        P('disc.size', 'Radius (m)', 'number', 0.36, 'the disc\'s radius (× Size × and the area stat)', { min: 0.05, step: 0.02 }),
+        P('disc.size_mult', 'Size ×', 'number', 1, 'Carry\'s × 1.5 (it also widens the cut)', { min: 0.1, step: 0.1 }),
+        P('disc.albedo', 'Colour', 'swatch', '#B8FF2A', 'the plastic (the saucer\'s chrome tint)'),
+        P('disc.emission', 'Glow colour', 'swatch', '#7CFF00', 'the faint glow and the trail (the saucer\'s pink top and razors)'),
+        P('disc.energy', 'Glow strength', 'number', 0.8, 'how bright the glow is', { min: 0, step: 0.1 }),
+        P('disc.spin', 'Spin (rad/s)', 'number', 16, 'how fast it spins flat', { min: 0, step: 1 }),
+        P('disc.trail', 'Trail', 'bool3', true, 'the faint ribbon behind it'),
+        P('disc.haze', 'Poison haze', 'bool3', false, 'the Flying Saucer\'s faint green poison haze under it'),
+      ] },
+    { id: 'carry', label: 'Carry', behaviors: ['Frisbee'], show: 'always', src: 'core/behaviors/Frisbee.gd',
+      help: 'Carry (the volume mutation): the first creature a disc hits may ride it to the end of the flight and drop off there; never a boss, an Elite, an elite-modded or an ungrabbable creature; one a disc, and it still cuts the others on the way', rows: [
+        P('carry.chance', 'Chance', 'number', null, 'how often the first creature hit is carried (Carry 0.1; the Flying Saucer 0.2); empty = never', { min: 0, max: 1, step: 0.05 }),
+        P('carry.drop_hit', 'Drop hit ×', 'number', 0, 'the ride ends with a hit of this many times the disc\'s damage (the Flying Saucer 1)', { min: 0, step: 0.1 }),
+      ] },
+    { id: 'trick', label: 'Trick Shot and stun', behaviors: ['Frisbee'], show: 'always', src: 'core/behaviors/Frisbee.gd, Run.trick_proc_mult',
+      help: 'Trick Shot (the motion mutation): this weapon\'s own life steal, crit chance, Cold Snap chance, Vulture chance and stun chance work this much better (only this weapon)', rows: [
+        P('proc_mult', 'Procs ×', 'number', 1, 'life steal, crits, Cold Snap, Vulture and its stun × this (Trick Shot 1.25, the Flying Saucer 1.5): keep it modest', { min: 0, step: 0.05 }),
+        P('stun.chance', 'Stun chance', 'number', null, 'a stun roll on every hit that does not kill; empty = none (no frisbee has one today)', { min: 0, max: 1, step: 0.05 }),
+        P('stun.seconds', 'Stun (s)', 'number', null, 'how long the stun lasts', { min: 0, step: 0.1 }),
+      ] },
+    { id: 'loop', label: 'The loop (Flying Saucer)', behaviors: ['Frisbee'], show: 'always', src: 'core/behaviors/Frisbee.gd',
+      help: 'once a flight the disc flies one full circle the way it is already turning, somewhere along its arc; absent = no loop', rows: [
+        P('loop.radius', 'Loop radius (m)', 'number', null, 'the circle\'s radius (the Flying Saucer 1.3); empty = no loop', { min: 0.1, step: 0.1 }),
+        P('loop.from', 'Loop from', 'number', 0.3, 'the earliest share of its range where the loop may start', { min: 0, max: 1, step: 0.05 }),
+        P('loop.to', 'Loop to', 'number', 0.7, 'the latest share (it starts at random between the two)', { min: 0, max: 1, step: 0.05 }),
+      ] },
+    { id: 'launch', label: 'Launch (Alley-Oop)', behaviors: ['ProjectileEmitter'], show: 'family', src: 'EnemyManager.try_launch (ProjectileManager\'s hit loop)',
+      help: 'a ball hit that does not kill may throw the creature straight up: it cannot move, bite or attack up there and takes the hit again when it lands (so it grows with every damage increase); bosses, Elites and elite-modded creatures take that landing damage at once, no flight', rows: [
+        P('launch.chance', 'Chance', 'number', null, 'the chance per hit (Alley-Oop 0.15, Slam Dunk 0.25); empty = never', { min: 0, max: 1, step: 0.05 }),
+        P('launch.height', 'Height (m)', 'number', 3.5, 'how high a plain creature flies (straight up, no drift)', { min: 0, step: 0.5 }),
+        P('launch.air_time', 'Air time (s)', 'number', 0.9, 'up fast (30% of it), a hang (to 50%), then the drop', { min: 0.1, step: 0.1 }),
+        P('launch.fall_damage_frac', 'Landing damage ×', 'number', 1, 'the landing\'s damage = this × the hit\'s (Slam Dunk 1.5)', { min: 0, step: 0.1 }),
+        P('launch.sfx', 'Landing sound', 'sfx', 'w_grav_land', 'the thud on landing', { group: 'w_' }),
+      ] },
+    { id: 'heat_look', label: 'Heat on the ball', behaviors: ['ProjectileEmitter'], show: 'family', src: 'ProjectileManager.heat_glow, _heat_trail, _draw_heat_halos',
+      help: 'pass 69 (Garry: no HUD gauge, only the ball itself): the ball shows its Heat (Run.heat over catch.heat_max) by glowing hotter, an orange trail, flames and at the top a beating halo; needs the catch block (the Heat)', rows: [
+        P('heat_look.color', 'Glow colour', 'swatch', '#FF6A1A', 'the body warms toward it, the seams start from it, the trail and the halo wear it'),
+        P('heat_look.hot', 'Hot colour', 'swatch', '#FFC060', 'what the seams and the trail turn toward near full Heat'),
+        P('heat_look.glow_min', 'Glow at a little Heat', 'number', 0, 'the least emission energy once there is any Heat', { min: 0, step: 0.05 }),
+        P('heat_look.glow_max', 'Body glow at full Heat', 'number', 0.5, 'the body\'s emission energy at full Heat, kept low so the ball still reads as its colour (basketball 0.45, Slam Dunk 0)', { min: 0, step: 0.05 }),
+        P('heat_look.seam_glow_max', 'Seam glow at full Heat', 'number', 1.6, 'the seams\' glow at full Heat: cracks of lava (Slam Dunk 2.2)', { min: 0, step: 0.1 }),
+        P('heat_look.pulse_hz', 'Beat (Hz)', 'number', 3, 'the beat at full Heat', { min: 0, step: 0.5 }),
+        P('heat_look.pulse', 'Beat depth', 'number', 0.35, 'how far the beat swings the glow either way (share)', { min: 0, max: 1, step: 0.05 }),
+        P('heat_look.surfaces', 'What glows', 'select', 'all', 'all, the seams only (Slam Dunk: the black body stays black) or the body only', { options: [opt('all', 'all'), opt('seams', 'seams'), opt('body', 'body')] }),
+        P('heat_look.trail_from', 'Trail from', 'number', 0.1, 'the share of Heat from which the orange trail shows', { min: 0, max: 1, step: 0.05 }),
+        P('heat_look.trail_size', 'Trail size', 'number', 1, 'the trail bead size at full Heat', { min: 0, step: 0.1 }),
+        P('heat_look.trail_life', 'Trail life (s)', 'number', 0.35, 'the trail bead life at full Heat', { min: 0, step: 0.05 }),
+        P('heat_look.flame_from', 'Flames from', 'number', 0.4, 'the share of Heat from which flames lick behind it', { min: 0, max: 1, step: 0.05 }),
+        P('heat_look.flame_size', 'Flame size', 'number', 1, 'the flames\' size factor', { min: 0, step: 0.1 }),
+        P('heat_look.halo', 'Halo radius ×', 'number', 1.8, 'the halo radius, times the ball\'s (0 = none)', { min: 0, step: 0.1 }),
+        P('heat_look.halo_from', 'Halo from', 'number', 0.9, 'the share of Heat from which the halo shows (so it marks the top)', { min: 0, max: 1, step: 0.05 }),
+        P('heat_look.halo_alpha', 'Halo opacity', 'number', 0.22, 'the halo\'s opacity at full Heat (beating with the glow)', { min: 0, max: 1, step: 0.01 }),
+      ] },
+    { id: 'ball_tint', label: 'Ball colour (body and seams)', behaviors: ['ProjectileEmitter'], show: 'family', present: ['tint.body', 'tint.seams', 'tint.vertex_colors', 'tint.ambient'], src: 'ProjectileEmitter.tint_kind, ProjectileManager.tint_material / seam_kind',
+      help: 'a mutation\'s or an evolution\'s ball in its own colour (Alley-Oop\'s dark blue, Slam Dunk\'s black with ember seams); any shot drawn from a vertex-coloured model', rows: [
+        P('tint.body', 'Body colour', 'swatch', null, 'paints the model flat in this colour (its own colours off) and keeps its seams (Alley-Oop #0A4FA8, Slam Dunk #141414); empty = the ball\'s own orange'),
+        P('tint.emission', 'Glow colour', 'swatch', null, 'a faint glow over the body (Alley-Oop #1A5CFF)'),
+        P('tint.energy', 'Glow strength', 'number', null, 'the glow\'s energy (Alley-Oop 0.15)', { min: 0, step: 0.05 }),
+        P('tint.roughness', 'Roughness', 'number', null, 'how matte the body is, 0 shiny .. 1 matte (Slam Dunk 0.45)', { min: 0, max: 1, step: 0.05 }),
+        P('tint.vertex_colors', 'Keep the model\'s colours', 'bool3', null, 'no = the colour above alone paints the model (Body colour sets it)'),
+        P('tint.ambient', 'Lit by the sky', 'bool3', null, 'no = the sky\'s warm ambient light is left out, so a dark ball keeps its colour on the sand (Alley-Oop and Slam Dunk: no; with it, black reads brown and navy violet)'),
+        P('tint.seams.color', 'Seam colour', 'swatch', '#0A0A0A', 'the seams\' colour (the model\'s darkest lines)'),
+        P('tint.seams.emission', 'Seam glow', 'swatch', null, 'the seams glow in this colour (Slam Dunk\'s embers #FF5A14)'),
+        P('tint.seams.energy', 'Seam glow strength', 'number', 1, 'the seams\' glow energy (Slam Dunk 1.3)', { min: 0, step: 0.1 }),
+        P('tint.seams.below', 'Seam threshold', 'number', 0.25, 'the vertex-colour brightness under which a triangle counts as seam', { min: 0, max: 1, step: 0.05 }),
+      ] },
+    { id: 'nonstop', label: 'Fire without a target (Trigger Happy)', behaviors: ['ProjectileEmitter'], show: 'set', src: 'core/behaviors/ProjectileEmitter.gd (stream_gap, _stream_dir)',
+      help: 'May\'s Trigger Happy: the gun fires on its clock even with nobody in range, along her facing, and a burst spreads its rounds over the whole cooldown so it never pauses; pay for it with a damage cut in the effects', rows: [
+        P('fire_without_target', 'Fire with no target', 'bool3', false, 'a gun with the usual targeting (nearest / priority) fires on its clock even with no creature in range, along the hero\'s facing (the Blunderbuss\'s fire_blind is the same for "forward" targeting)'),
+        P('stream', 'Stream the burst', 'bool3', false, 'a burst weapon spreads its rounds evenly over the whole cooldown (gap = cooldown × 0.97 / amount) instead of 50 ms apart: the gun never pauses; each round aims at the creature it would aim at now, else along her facing'),
+      ] },
+  ];
+  /** The typed groups a document shows: [{group, on}] where `on` = shown open (its knobs) and the rest are offered.
+   *  `behavior` the behaviour that reads the document's params; `own` the document's params (the block being edited);
+   *  `family` the weapon family's params (a mutation's weapon, else the document's own). */
+  function paramGroupsFor(behavior, own, family, opened) {
+    const has = (obj, key) => { let cur = obj; for (const p of String(key).split('.')) { if (!isObj(cur) || !(p in cur)) return false; cur = cur[p]; } return true; };
+    const out = [];
+    for (const g of PARAM_GROUPS) {
+      if (!g.behaviors.includes(String(behavior || 'ProjectileEmitter'))) continue;
+      const keys = g.present || g.rows.map((r) => r.key);
+      const set = keys.some((k2) => has(own, k2) || has(family, k2));
+      const on = g.show === 'always' || set || (g.show === 'family' && (isBall(own) || isBall(family))) || !!(opened && opened[g.id]);
+      out.push({ group: g, on, set });
+    }
+    return out;
+  }
+  /** A typed row's value where it is not set in the box: [value, source] from the weapon family's params (a mutation's
+   *  weapon; an evolution's final block reads its own params), else the code's default. */
+  function paramInherited(row, inheritFrom) {
+    for (const [obj, src] of inheritFrom || []) {
+      let cur = obj, ok = true;
+      for (const p of String(row.key).split('.')) { if (!isObj(cur) || !(p in cur)) { ok = false; break; } cur = cur[p]; }
+      if (ok) return [cur, src];
+    }
+    return [row.def, row.def == null ? 'none: off' : 'the game\'s default'];
+  }
+
+  // ------------------------------------------------------------------ pass 69 (lane LE): perk specials (vocab.py PERK_SPECIALS)
+  // A perk's `special` names the mechanism the game runs, `params` tune it (Run.perk_param). by 'special': any perk id
+  // carrying it works; by 'id': the code also checks the perk's own id, so only that perk triggers it. The server's
+  // /api/vocab `perk_specials` wins over this copy.
+  const PS = (by, help, params) => ({ by, help, params: params || {} });
+  const PERK_SPECIALS = {
+    '': PS('special', 'none: the perk\'s effects only (Afterglow, Long Day)'),
+    decoy: PS('special', 'Inflatable May: every `every` s (the first after `first` s) she throws an inflatable double of herself `throw_min`..`throw_max` m away in a random direction; it flies `flight` s and lands; a faint circle of `radius` m marks it and for `duration` s every creature inside (Elites too, never a boss) goes for the doll instead of her, a pink ? bobbing over it; then it pops', { every: 30, first: 6, throw_min: 4, throw_max: 7, flight: 0.6, radius: 6.5, duration: 2 }),
+    periodic_buff: PS('special', 'Buzzer Beater: after `first` s (else `every`), then every `every` s, the `buff` effects (target player) for `seconds` s, a timed buff under the perk\'s name', { every: 30, first: null, seconds: 5, buff: null }),
+    timeout: PS('id', 'Fadeaway\'s Timeout: drops the pickup `pickup` `side` m to his left or right, first after `first` s, then `every` s after the last one went', { every: 20, first: 10, side: 3, pickup: null }),
+    overdrive: PS('id', 'Jeżyk\'s Overdrive: every `every` s at full momentum is one gear of `step` attack damage, up to `max`; a hit that lands drops every gear', { every: 5, step: 0.05, max: 0.25 }),
+    ram: PS('id', 'Jeżyk\'s Ram: at a charge of `from` or more a creature that touches him is shoved `shove` and takes `flat` + `per_level` × level + `thorns_mult` × thorns instead of biting', { thorns_mult: 3, flat: 12, per_level: 0, shove: 9, from: 0.99 }),
+    high_noon: PS('id', 'the Drifter\'s High Noon: every `every` s (the first after `first`) every creature moves at `slow` speed for `seconds` s', { every: 30, first: 20, seconds: 3, slow: 0.3 }),
+    trail_dust: PS('id', 'the Drifter\'s Trail Dust: the dust behind him slows creatures', { every: 0.22, radius: 1.1, seconds: 1, slow: 0.25 }),
+    bounty_hunter: PS('id', 'the Drifter\'s Bounty Hunter: every `every` kills a creature within `reach` m is WANTED', { every: 60, reach: 16, hp_mult: 4, gold: 40 }),
+    serenade: PS('id', 'Calavera\'s Serenade: creatures near him move slower', { radius: 4, every: 0.3, slow: 0.25 }),
+    crescendo: PS('id', 'Calavera\'s Crescendo: every kill adds attack damage up to `max`; a hit drops it', { per_kill: 0.01, max: 0.4 }),
+    grand_finale: PS('id', 'Calavera\'s Grand Finale: a dying boss or Elite hurts and throws the crowd round it', { radius: 14, frac: 0.35, throw: 16 }),
+    supply_drop: PS('id', 'Astro\'s Supply Drop: a pod crashes near her every `every` s and leaves `drops`', { every: 40, first: 15, warn: 1.5, radius: 2.6, damage: 30, damage_per_level: 4, knockback: 14, heart_below: 0.6, drops: null }),
+    thruster_burst: PS('id', 'Astro\'s Thruster Burst: `crowd` creatures within `reach` m and she flies clear', { crowd: 6, reach: 2.6, every: 8, push: 28, lift: 5, throw: 18, throw_radius: 3.2, invuln: 0.6 }),
+    suit_seals: PS('id', 'Astro\'s Suit Seals: the level-up patch gives `invuln` s of invulnerability', { invuln: 1.5 }),
+    deep_breath: PS('id', 'Ironwood\'s Deep Breath: below `below` health his regen runs `mult` times over', { below: 0.35, mult: 4, seconds: 6, cooldown: 40 }),
+    unbroken: PS('id', 'Ironwood\'s Unbroken: hits no longer pause his regen'),
+    sunburn: PS('id', 'Solenne\'s Sunburn: a burning or poisoned creature takes `bonus` more from her', { bonus: 0.2 }),
+    lingering_light: PS('id', 'Solenne\'s Lingering Light: her burns and poison tick harder and last longer', { harder: 0.3, longer: 0.3 }),
+    tough_love: PS('id', 'Dad\'s Tough Love: a hit gives attack damage and area for a while', { might: 0.15, area: 0.15, seconds: 4 }),
+  };
+  // the decoy's params in words (the perk form's typed rows); the other specials show their keys with the code's defaults
+  const PERK_PARAM_HELP = {
+    decoy: { every: 'seconds between throws (counted from the throw)', first: 'seconds from taking the perk to the first throw', throw_min: 'the nearest the doll lands from her (m)', throw_max: 'the farthest (m); a random direction, inside the arena, off the rocks when it can',
+      flight: 'the throw\'s flight time (s; an arc 2.2 m high)', radius: 'the circle (m): every creature inside is fooled (Elites too, never a boss), and one walking in while the doll stands; keep it under half a screen', duration: 'how long the doll stands (s); then it pops and they hunt her again' },
+    periodic_buff: { every: 'seconds between buffs', first: 'seconds to the first (empty = every)', seconds: 'how long each buff lasts', buff: 'the effects, a list of {stat, op, value, target player}' },
+    timeout: { pickup: 'the pickup id dropped beside him (content/pickups)' },
+    supply_drop: { drops: 'the pickup ids the pod leaves, a list' },
+  };
+  function perkSpecialOptions(vocab) {
+    const table = vocab && isObj(vocab.perk_specials) ? vocab.perk_specials : PERK_SPECIALS;
+    return Object.keys(table).map((k2) => opt(k2, k2 === '' ? 'none (effects only)' : k2, `${table[k2].by === 'id' ? 'works for that perk only (the game checks its id): ' : 'any perk can carry it: '}${String(table[k2].help || '').replace(/`/g, '')}`));
   }
 
   // ------------------------------------------------------------------ the brain blocks (EnemyManager.gd:2858-3365; defaults as placeholders)
@@ -302,13 +504,20 @@ const AFIELDS = (() => {
       { key: 'variance.speed', label: 'Speed jitter', type: 'number', min: 0, step: 0.05, def: 0, help: '± this on the speed' },
       { key: 'variance.tints', label: 'Tints', type: 'swatches', help: 'colours rolled once Run.kills >= the map\'s colour_after_kills' },
       { key: 'variance.tint_strength', label: 'Tint strength', type: 'number', min: 0, max: 0.3, step: 0.01, def: 0.35, help: 'the shader mixes alpha x 0.65; a test wants ≤ 0.3' },
-      { key: 'variance.special_chance', label: 'Special chance', type: 'number', min: 0, max: 1, step: 0.01, def: 0, help: 'x (1 + difficulty): a bigger, tougher, tinted one' },
-      { key: 'variance.special.size', label: 'Special size x', type: 'number', min: 0, step: 0.1, def: 1.3 },
-      { key: 'variance.special.hp', label: 'Special HP x', type: 'number', min: 0, step: 0.1, def: 1.6 },
-      { key: 'variance.special.damage', label: 'Special damage x', type: 'number', min: 0, step: 0.1, def: 1.2 },
-      { key: 'variance.special.xp', label: 'Special XP x', type: 'number', min: 0, step: 0.1, def: 2 },
-      { key: 'variance.special.tint', label: 'Special tint', type: 'swatch', help: 'a test wants its value under 0.6 and its saturation over 0.4 (a dark, coloured one)' },
-      { key: 'variance.special.tint_strength', label: 'Special tint strength', type: 'number', min: 0, max: 1, step: 0.05, def: 0.6 },
+    ]),
+    // pass 69 (lane EN; Garry: the specials' colouring "should be possible in the Level Editor, right now it's just a set
+    // of colour choices that I can't control"): the coloured variance special on its own, with its glow; an empty box
+    // takes the map's special_defaults (Settings → Coloured specials), else the game's (EnemyDef.SPECIAL_DEFAULTS); the
+    // section's table says which applies
+    T('Special', [
+      { key: 'variance.special_chance', label: 'Chance', type: 'number', min: 0, max: 1, step: 0.005, def: 0, help: 'the chance one comes as its coloured special, × (1 + the hero\'s difficulty) with Hot Sauce, once the map\'s colour_after_kills is reached (a swarm event set to Special brings it for sure). Pass 69: a third of what it was (the goblin 0.04 = one in 25)' },
+      { key: 'variance.special.size', label: 'Size ×', type: 'number', min: 0.1, step: 0.05, def: 1.25, help: 'a special is exactly this much taller than the creature\'s own size (its body too; the plain ones\' size spread does not apply to it, pass 69); in a row with a size range it grows towards the range\'s top, never past it' },
+      { key: 'variance.special.hp', label: 'HP ×', type: 'number', min: 0.1, step: 0.5, def: 10, help: 'its health × this (pass 69: ×10)' },
+      { key: 'variance.special.damage', label: 'ATK ×', type: 'number', min: 0.1, step: 0.1, def: 2, help: 'its bites and shots × this (pass 69: ×2)' },
+      { key: 'variance.special.xp', label: 'XP ×', type: 'number', min: 0, step: 0.5, def: 2, help: 'its gems × this (and how hard its kill counts for power-ups)' },
+      { key: 'variance.special.tint', label: 'Colour', type: 'swatch', help: 'the colour it is washed with and its glow\'s hue (the glow draws the colour at full brightness); empty = it keeps a plain one\'s tint. In a row with a colour range it takes a darker shade of the hue it rolled instead. A dark, saturated colour reads best (a light one washes it pale): a warning, not a rule' },
+      { key: 'variance.special.tint_strength', label: 'Colour strength', type: 'number', min: 0, max: 1, step: 0.05, def: 0.6, help: 'how strongly the colour shows on its body (the shader mixes strength × 0.65)' },
+      { key: 'variance.special.glow', label: 'Glow', type: 'number', min: 0, max: 1, step: 0.05, def: 0.6, help: 'pass 69: an emissive rim round it in its colour, so it reads at a glance in a crowd: 0 = none, 1 = the widest and brightest; it breathes slowly. Burn, poison and freeze tint the rim while they last' },
     ]),
     T('Sounds', [
       { key: 'sfx.hit', label: 'Hit', type: 'sfx', group: 'en_', help: 'when it is hit; empty = silent' },
@@ -366,7 +575,7 @@ const AFIELDS = (() => {
       { key: 'flavour', label: 'Flavour', type: 'text', help: 'the line under the name on the title' },
       { key: 'order', label: 'Order', type: 'int', min: 1, def: 100, help: 'the title carousel\'s order among playable heroes (warns on a clash)' },
       { key: 'pronoun', label: 'Pronoun', type: 'select', options: (v) => v.pronouns, def: 'they', help: 'he / she / they: hints, "his" in the trait note, the sheet' },
-      { key: 'hidden', label: 'Hidden', type: 'bool', def: false, help: 'out of play; kept in step with Availability below' },
+      { key: 'hidden', label: 'Hidden', type: 'bool', def: false, help: 'out of play; kept in step with Availability below (pass 69: ticking it sets Availability hidden, unticking a hidden hero sets it free)', after: (d, v) => { if (v) d.availability = 'hidden'; else if (d.availability == null || d.availability === 'hidden') d.availability = 'available'; } },
     ]),
     T('Trait', [
       { key: 'trait_name', label: 'Trait name', type: 'text', help: 'the plaque and sheet title ("Long Road")' },
@@ -397,9 +606,10 @@ const AFIELDS = (() => {
       { key: 'unlock_quest', label: 'Unlock quest', type: 'readonly', help: 'a dead key: never read. A hero is gated by a quest whose unlocks names him' },
     ]),
     T('Availability', [
-      { key: 'availability', label: 'Availability', type: 'select', options: (v) => v.availability, def: 'available', help: 'written and shown, not wired: a purchase hero stays hidden in play (the purchase loop is parked)' },
-      { key: 'price', label: 'Price', type: 'int', min: 0, def: 0, only: (d) => d.availability === 'purchase' },
-      { key: 'currency_type', label: 'Currency', type: 'select', options: (v) => v.currencies, def: 'gold', only: (d) => d.availability === 'purchase' },
+      // pass 69 (lane UI wired it: Registry.hero_state owned | buyable | locked | hidden): changing it keeps `hidden` in step
+      { key: 'availability', label: 'Availability', type: 'select', options: (v) => v.availability, def: 'available', help: 'free = owned from the start (with a Requirement: owned once its quest is done); to buy = on the title and in the hero drawer as a black silhouette, locked until the Requirement is done, then BUY for the price; hidden = out of play. A bought hero is kept in the save (heroes_owned)', after: (d, v) => { const hide = v === 'hidden'; if ('hidden' in d || hide) d.hidden = hide; } },
+      { key: 'price', label: 'Price', type: 'int', min: 0, def: 0, only: (d) => d.availability === 'purchase', help: 'what BUY costs, spent from the gold he banked (Save.buy_hero; the Coins board\'s sink "hero"). 0 = free once the requirement is done' },
+      { key: 'currency_type', label: 'Currency', type: 'select', options: (v) => v.currencies, def: 'gold', only: (d) => d.availability === 'purchase', help: 'only gold can be spent today' },
     ]),
     T('Art words', [
       { key: 'art_prompt', label: 'Subject', type: 'textarea', help: 'the painter\'s subject (default "a small goofy hero called <name>, <flavour>")' },
@@ -476,6 +686,8 @@ const AFIELDS = (() => {
       { key: 'path', label: 'Path', type: 'path_strip', only: notEvo, help: 'its three path mutations (element, volume, motion) and its hero mutations' },
     ]),
     T('Params', [
+      // pass 69 (lane LE): the knobs the pass's behaviours and mechanisms read, typed (PARAM_GROUPS), above the JSON
+      { key: 'params_typed', label: 'Typed params', type: 'params_fields', help: 'the params this weapon\'s behaviour reads, one field each with what it does; an empty box shows what applies without it and where that comes from. They write into the JSON below' },
       { key: 'params', label: 'Params', type: 'params_json', help: 'the behaviour\'s knobs as JSON; `final` is merged after the mutations (evolutions)' },
     ]),
     T('Sounds', [
@@ -556,6 +768,7 @@ const AFIELDS = (() => {
       { key: 'text', label: 'Card text', type: 'textarea', required: true, help: 'shown verbatim on the card' },
       { key: 'vfx', label: 'Look', type: 'text', help: 'descriptive: what it looks like' },
       { key: 'effects', label: 'Effects', type: 'stat_effects', stats: 'weapon', target: 'self', help: 'on the weapon\'s sheet (target player reaches the hero)' },
+      { key: 'params_typed', label: 'Typed params', type: 'params_fields', help: 'pass 69: the params its weapon\'s behaviour reads, typed; an empty box keeps the weapon\'s value (shown with where it comes from); a value here is merged deep over the weapon\'s' },
       { key: 'params', label: 'Params', type: 'params_json', help: 'merged deep over the weapon\'s params' },
     ]),
     T('Advanced', [
@@ -567,6 +780,35 @@ const AFIELDS = (() => {
     ]),
     T('Art', [
       { key: 'art_prompt', label: 'Icon subject', type: 'textarea' },
+      { key: 'placeholder.color', label: 'Placeholder colour', type: 'swatch' },
+      { key: 'placeholder.glyph', label: 'Placeholder glyph', type: 'text' },
+      { key: 'icon', label: 'Icon', type: 'icon_preview' },
+    ]),
+  );
+
+  // pass 69 (lane LE): a hero's perk (PerkDef: a card only its hero is offered, taken once; effects on his sheet, a
+  // special the code runs, tuned by params). Edited from the Heroes tab ("His own" → Edit, + New perk).
+  const perk = [].concat(
+    T('Identity', [
+      { key: 'id', label: 'Id', type: 'slug', required: true, help: 'the folder\'s name' },
+      { key: 'name', label: 'Name', type: 'text', required: true, help: 'the card\'s title' },
+      { key: 'flavour', label: 'Flavour', type: 'text', help: 'the card\'s line' },
+      { key: 'hero', label: 'Hero', type: 'id_select', kind: 'hero', required: true, help: 'the only hero offered it (pass66_shape_test: every perk names a hero who is there)' },
+      { key: 'rarity', label: 'Rarity', type: 'select', options: (v) => v.rarities, def: 'rare', help: 'the plate\'s colour and the card weight factor' },
+      { key: 'weight', label: 'Weight', type: 'number', min: 0, def: 6, help: 'the card pool\'s weight among his cards' },
+      { key: 'hidden', label: 'Hidden', type: 'bool', def: false, help: 'never offered (a hidden hero\'s perks count as hidden anyway)' },
+    ]),
+    T('Card', [
+      { key: 'text', label: 'Card text', type: 'textarea', required: true, help: 'shown verbatim on the card: say what it does in a sentence or two (the numbers you set below)' },
+      { key: 'effects', label: 'Effects', type: 'stat_effects', stats: 'player', target: 'player', help: 'stat changes on his sheet the moment he takes it (Afterglow: healing +40%); most perks have none and a special instead' },
+    ]),
+    T('Special', [
+      { key: 'special', label: 'Special', type: 'select', options: (v) => perkSpecialOptions(v), def: '', help: 'the mechanism the game runs for it (a new one needs code: ask Claude). "any perk can carry it": a new perk works with it at once (decoy, periodic_buff); "that perk only": the game also checks the perk\'s id, so a copy under a new id keeps the numbers but needs code to fire' },
+      { key: 'params_typed', label: 'Its numbers', type: 'perk_params', help: 'the special\'s numbers, one field each; an empty box takes the game\'s default shown in grey' },
+      { key: 'params', label: 'Params (JSON)', type: 'json', help: 'the same numbers as JSON, and any key the fields above do not have (a buff list, a pickup id)' },
+    ]),
+    T('Art', [
+      { key: 'art_prompt', label: 'Icon subject', type: 'textarea', help: 'what the icon painter draws (+ Icon candidates under the icon)' },
       { key: 'placeholder.color', label: 'Placeholder colour', type: 'swatch' },
       { key: 'placeholder.glyph', label: 'Placeholder glyph', type: 'text' },
       { key: 'icon', label: 'Icon', type: 'icon_preview' },
@@ -587,12 +829,13 @@ const AFIELDS = (() => {
   ];
 
   const SECTIONS = {
-    enemy: ['Identity', 'Body', 'Brain & attacks', 'Attack script', 'Spawning', 'Drops', 'Variance', 'Sounds', 'Looks', 'Art words'],
+    enemy: ['Identity', 'Body', 'Brain & attacks', 'Attack script', 'Spawning', 'Drops', 'Variance', 'Special', 'Sounds', 'Looks', 'Art words'],
     hero: ['Identity', 'Trait', 'Favourites', 'Specials', 'Availability', 'His own', 'Art words', 'Looks & previews'],
     weapon: ['Identity', 'Behaviour', 'Base stats', 'Levels', 'Evolution & path', 'Params', 'Sounds', 'Availability', 'Art'],
     evolution: ['Identity', 'Behaviour', 'Base stats', 'Levels', 'Evolution & path', 'Params', 'Sounds', 'Availability', 'Art'],
     passive: ['Identity', 'Levels', 'Links', 'Text', 'Availability', 'Art'],
     mutation: ['Identity', 'Effect', 'Advanced', 'Availability', 'Art'],
+    perk: ['Identity', 'Card', 'Special', 'Art'],   // pass 69
   };
 
   // ------------------------------------------------------------------ per-look recipe rows (the fallback when methods.json is absent)
@@ -707,7 +950,12 @@ const AFIELDS = (() => {
       E('brain', (d, c) => d.brain != null && !vals(vocabOf(c).brains).includes(str(d.brain)), (d) => `unknown brain "${d.brain}": the game would chase. A new brain needs code: ask Claude`),
       E('archetype', (d, c) => d.archetype != null && !vals(vocabOf(c).archetypes).includes(str(d.archetype)), (d) => `unknown archetype "${d.archetype}"`),
       E('variance.tint_strength', (d) => isObj(d.variance) && d.variance.tint_strength != null && Number(d.variance.tint_strength) > 0.3, 'variance.tint_strength above 0.3 (pass27_test pins ≤ 0.3)'),
-      E('variance.special.tint', (d) => { const sp = isObj(d.variance) && isObj(d.variance.special) ? d.variance.special : null; if (!sp || sp.tint == null) return false; const h = hexToHsv(sp.tint); return !h || h.v >= 0.6 || h.s <= 0.4; }, 'the special\'s tint must be a dark, coloured hex: value under 0.6 and saturation over 0.4 (pass27_test)'),
+      // pass 69 (lane EN): any colour may be picked (Garry wants control of it); only a non-colour is an error, a light or
+      // grey one a warning (pass27_test now wants a valid colour only)
+      E('variance.special.tint', (d) => { const sp = isObj(d.variance) && isObj(d.variance.special) ? d.variance.special : null; if (!sp || sp.tint == null || sp.tint === '') return false; return !hexToHsv(sp.tint); }, 'the special\'s colour must be #RRGGBB'),
+      W('variance.special.tint', (d) => { const sp = isObj(d.variance) && isObj(d.variance.special) ? d.variance.special : null; if (!sp || sp.tint == null || sp.tint === '') return false; const h = hexToHsv(sp.tint); return !!h && (h.v >= 0.6 || h.s <= 0.4); }, 'a light or grey colour washes the special pale: a dark, saturated one (brightness under 60 %, saturation over 40 %) reads best; the glow shows its hue either way'),
+      E('variance.special.glow', (d) => { const sp = isObj(d.variance) && isObj(d.variance.special) ? d.variance.special : null; return !!sp && sp.glow != null && !(M.isNum(sp.glow) && sp.glow >= 0 && sp.glow <= 1); }, 'the glow is 0..1 (0 = none)'),
+      E('variance.special_chance', (d) => isObj(d.variance) && d.variance.special_chance != null && !(M.isNum(d.variance.special_chance) && d.variance.special_chance >= 0 && d.variance.special_chance <= 1), 'the special chance is 0..1'),
       E('anims', (d) => isObj(d.anims) && Object.keys(d.anims).some((a) => !isInt(d.anims[a]) || d.anims[a] < 0), 'anims counts must be whole numbers of 0 or more'),
       E('strip_cols', (d) => d.strip_cols != null && (!isInt(d.strip_cols) || d.strip_cols < 0), 'strip_cols is a whole number (0 = one row)'),
       E('badge', (d) => str(d.badge) === 'crown' && str(d.archetype) !== 'elite', 'the crown shows only on the elite archetype (pass333_test pins the crown wearers to the elites)'),
@@ -749,8 +997,13 @@ const AFIELDS = (() => {
       E('badJson', (d, c) => c && c.badJson && Object.keys(c.badJson).length > 0, (d, c) => `a JSON box does not parse: ${Object.keys(c.badJson).join(', ')}`),
       W('trait_text', (d) => Array.isArray(d.trait_per_level) && d.trait_per_level.length > 0 && !M.heroOwnWords(d) && str(d.trait_text) !== M.heroTrait(d), (d) => `trait_text differs from the rule's sentence "${M.heroTrait(d)}" (pass61_hr pins them equal for played heroes: Set from the rule)`),
       W('favourite_weapon', (d, c) => !!d.hidden && str(d.favourite_weapon) && flat(c, 'weapons') && !findIn(flat(c, 'weapons'), d.favourite_weapon), (d) => `favourite_weapon "${d.favourite_weapon}" is not a weapon (fine while hidden)`),
-      W('availability', (d, c) => c && c.saved && (!!c.saved.hidden || (c.saved.availability != null && c.saved.availability !== 'available')) && !d.hidden && (d.availability == null || d.availability === 'available'), 'this hero turns playable: the tests pin the five heroes (pass334_test:111, pass61_hr_test:10); re-pin them first or keep him hidden'),
-      W('hidden', (d) => !!d.hidden !== (d.availability != null && d.availability !== 'available') && d.availability != null, (d) => `hidden (${!!d.hidden}) and availability (${d.availability}) disagree: the game hides a hero when either says so`),
+      // pass 69 (lane UI's rule, JsonContent.build): only availability "hidden" hides; a purchase hero is on the title
+      // whatever `hidden` says; an available one with hidden: true stays hidden. The page keeps them in step.
+      W('hidden', (d) => d.availability != null && !!d.hidden !== (d.availability === 'hidden'), (d) => `hidden (${!!d.hidden}) and availability (${d.availability}) disagree: ${d.availability === 'purchase' ? 'a hero to buy is on the title whatever hidden says' : d.availability === 'available' ? 'the game hides an available hero whose hidden is true' : 'availability hidden hides him'}; set Availability again to put them in step`),
+      // pass 69: pass66_shape_test wants every hero on the title (free or to buy) whole: a perk and exactly one hero mutation
+      W('availability', (d, c) => d.availability != null && d.availability !== 'hidden' && c && c.record && Array.isArray(c.record.perks) && c.record.perks.length === 0, 'a hero on the title needs at least one perk (pass66_shape_test): add one under His own'),
+      W('availability', (d, c) => d.availability != null && d.availability !== 'hidden' && liveHeroMutations(d, c) != null && liveHeroMutations(d, c).length !== 1, (d, c) => `a hero on the title needs exactly one hero mutation in play, on his favourite weapon (pass66_shape_test); he has ${liveHeroMutations(d, c).length}${liveHeroMutations(d, c).length ? ': ' + liveHeroMutations(d, c).join(', ') : ''}`),
+      W('price', (d) => d.availability === 'purchase' && !(Number(d.price) > 0), 'a hero to buy at price 0 is free once his requirement is done (the BUY button still shows)'),
       W('order', (d, c) => { const hs = heroes(c); if (!hs || d.order == null) return false; return hs.some((h) => String(h.id) !== String((c && c.id) || d.id) && !h.hidden && h.order === d.order); }, (d) => `order ${d.order} is another playable hero's too`),
       W('perks', (d, c) => !!d.hidden && str(d.favourite_weapon) && c && c.record && Array.isArray(c.record.perks) && c.record.perks.length === 0, 'a hidden hero with a favourite weapon and no perk: pass26_test looped over hidden heroes too (lane G removes that loop); harmless once re-pinned'),
       W('unlock_quest', (d) => str(d.unlock_quest), 'unlock_quest is a dead key: a hero is gated by a quest whose unlocks names him'),
@@ -770,7 +1023,7 @@ const AFIELDS = (() => {
       W('params', (d) => unknownParams(d.params, str(d.behavior) || 'ProjectileEmitter').length > 0, (d) => `params keys no behaviour script reads: ${unknownParams(d.params, str(d.behavior) || 'ProjectileEmitter').join(', ')}`),
       W('sfx', (d, c) => unknownSfx(d, c).length > 0, (d, c) => `unknown sound id, silent in the game: ${unknownSfx(d, c).join(', ')}`),
       W('evolves_into', (d, c) => !d.is_evolution && !d.hidden && flat(c, 'evolutions') && findIn(flat(c, 'evolutions'), d.evolves_into) && !!findIn(flat(c, 'evolutions'), d.evolves_into).hidden, (d) => `its evolution "${d.evolves_into}" is hidden while the weapon is available: it can never evolve`),
-      W('band', (d, c) => !d.is_evolution && !!bandWarn(c), (d, c) => { const b = bandWarn(c); return `quest-locked base items ${b.locked} of ${b.base} = ${Math.round(b.share * 100)}%: the ship test wants 33-56% (pass44_test); add a quest lock or ask Claude to widen the band`; }),
+      W('band', (d, c) => !d.is_evolution && !!bandWarn(c), (d, c) => { const b = bandWarn(c); return `quest-locked base items ${b.locked} of ${b.base} = ${Math.round(b.share * 100)}%: the ship test wants ${Math.round(b.lo * 100)}-${Math.round(b.hi * 100)}% (pass44_test); add a quest lock or ask Claude to widen the band`; }),
       W('from_stage', (d) => d.from_stage != null && Number(d.from_stage) > 3, 'from_stage beyond stage 3: only offered in endless'),
     ]),
     evolution: [].concat(common('evolution'), rarityRules, [
@@ -781,7 +1034,9 @@ const AFIELDS = (() => {
       E('levels', (d, c) => badLevels(d.levels, 'weapon', vocabOf(c)).length > 0, (d, c) => badLevels(d.levels, 'weapon', vocabOf(c)).join('; ')),
       E('badJson', (d, c) => c && c.badJson && Object.keys(c.badJson).length > 0, (d, c) => `a JSON box does not parse: ${Object.keys(c.badJson).join(', ')}`),
       W('max_level', (d) => d.max_level != null && d.max_level !== 1, 'an evolution has max_level 1: it cannot level further'),
-      W('levels', (d) => Array.isArray(d.levels) && !(d.levels.length === 1 && Array.isArray(d.levels[0]) && d.levels[0].length === 0), 'an evolution\'s levels are [[]]: its numbers live in base and params.final'),
+      // pass 69 (lane LE): an evolution's one level may carry effects (WeaponDef.effects_up_to applies levels[0] at level 1:
+      // Slam Dunk's burn × 1.5 for On Fire lives there); only more than one level is a mistake
+      W('levels', (d) => Array.isArray(d.levels) && !(d.levels.length === 1 && Array.isArray(d.levels[0])), 'an evolution has exactly one level, levels[0] (applied at once: Slam Dunk\'s burn × 1.5 lives there); its other numbers live in base and params.final'),
       W('params', (d) => unknownParams(d.params, str(d.behavior) || 'ProjectileEmitter').length > 0, (d) => `params keys no behaviour script reads: ${unknownParams(d.params, str(d.behavior) || 'ProjectileEmitter').join(', ')}`),
       W('sfx', (d, c) => unknownSfx(d, c).length > 0, (d, c) => `unknown sound id, silent in the game: ${unknownSfx(d, c).join(', ')}`),
     ]),
@@ -794,7 +1049,7 @@ const AFIELDS = (() => {
       E('evolves_from', (d, c) => { const t = str(d.evolves_from) && flat(c, 'passives') && findIn(flat(c, 'passives'), d.evolves_from); return str(d.evolves_from) && flat(c, 'passives') && (!t || String(t.evolves_into) !== String((c && c.id) || d.id)); }, (d) => `evolves_from "${d.evolves_from}" is not a passive whose evolves_into is this`),
       E('element', (d, c) => d.element != null && !vals(vocabOf(c).elements).includes(str(d.element)), (d) => `unknown element "${d.element}"`),
       W('weight', (d) => str(d.evolves_from) && Number(d.weight) > 0, 'an evolved line usually weighs 0: it comes from its base line, never on its own'),
-      W('band', (d, c) => !d.evolves_from && !!bandWarn(c), (d, c) => { const b = bandWarn(c); return `quest-locked base items ${b.locked} of ${b.base} = ${Math.round(b.share * 100)}%: the ship test wants 33-56% (pass44_test); add a quest lock or ask Claude to widen the band`; }),
+      W('band', (d, c) => !d.evolves_from && !!bandWarn(c), (d, c) => { const b = bandWarn(c); return `quest-locked base items ${b.locked} of ${b.base} = ${Math.round(b.share * 100)}%: the ship test wants ${Math.round(b.lo * 100)}-${Math.round(b.hi * 100)}% (pass44_test); add a quest lock or ask Claude to widen the band`; }),
     ]),
     mutation: [].concat(common('mutation'), rarityRules, [
       E('kind', (d, c) => d.kind != null && !vals(vocabOf(c).mutationKinds).includes(str(d.kind)), (d) => `unknown kind "${d.kind}" (element / volume / motion / stance / hero)`),
@@ -807,7 +1062,29 @@ const AFIELDS = (() => {
       W('text', (d) => !str(d.text), 'text is empty: the card shows nothing'),
       W('params', (d, c) => { const w = flat(c, 'weapons') && findIn(flat(c, 'weapons'), d.weapon); const beh = str(d.behavior) || (w ? str(w.behavior) : '') || 'ProjectileEmitter'; return unknownParams(d.params, beh).length > 0; }, (d, c) => { const w = flat(c, 'weapons') && findIn(flat(c, 'weapons'), d.weapon); const beh = str(d.behavior) || (w ? str(w.behavior) : '') || 'ProjectileEmitter'; return `params keys ${beh} does not read: ${unknownParams(d.params, beh).join(', ')}`; }),
     ]),
+    // pass 69 (lane LE): a hero's perk
+    perk: [].concat(common('perk'), rarityRules, [
+      E('hero', (d) => !str(d.hero), 'a perk names its hero (pass66_shape_test: every perk names a hero who is there)'),
+      E('hero', (d, c) => str(d.hero) && heroes(c) && !findIn(heroes(c), d.hero), (d) => `hero "${d.hero}" is not a hero`),
+      E('effects', (d, c) => badEffects(d.effects, 'player', vocabOf(c)).length > 0, (d, c) => `effects: ${badEffects(d.effects, 'player', vocabOf(c)).join('; ')}`),
+      E('params', (d) => d.params != null && !isObj(d.params), 'params is an object of numbers (or {} for none)'),
+      E('badJson', (d, c) => c && c.badJson && Object.keys(c.badJson).length > 0, (d, c) => `a JSON box does not parse: ${Object.keys(c.badJson).join(', ')}`),
+      W('text', (d) => !str(d.text), 'text is empty: the card shows nothing'),
+      W('special', (d, c) => { const t = perkSpecialTable(c); return str(d.special) !== '' && !(str(d.special) in t); }, (d) => `the game runs nothing for the special "${d.special}": only the effects count (a new mechanism needs code: ask Claude)`),
+      W('special', (d, c) => { const t = perkSpecialTable(c); const s = str(d.special); return s !== '' && t[s] && t[s].by === 'id' && s !== String((c && c.id) || d.id); }, (d, c) => `"${d.special}" is checked by the perk's id in the game (Run.has_perk("${d.special}")): this perk (${(c && c.id) || d.id}) gets its numbers but the mechanism never fires; only "any perk can carry it" specials (decoy, periodic_buff) work under a new id`),
+      W('special', (d, c) => !str(d.special) && !(Array.isArray(d.effects) && d.effects.length), 'no special and no effects: the perk does nothing'),
+      W('params', (d, c) => { const t = perkSpecialTable(c); const sp = t[str(d.special)]; return !!sp && isObj(d.params) && Object.keys(d.params).some((k2) => !(k2 in (sp.params || {}))); }, (d, c) => { const sp = perkSpecialTable(c)[str(d.special)]; return `params ${str(d.special) || 'none'} does not read: ${Object.keys(d.params).filter((k2) => !(k2 in (sp.params || {}))).join(', ')}`; }),
+    ]),
   };
+  /** a hero's hero mutations in play (not hidden), by the item lists when they are there, else his record; null = unknown */
+  function liveHeroMutations(d, c) {
+    const id = String((c && c.id) || d.id || '');
+    const ms = flat(c, 'mutations');
+    if (ms) return ms.filter((m) => String(m.hero || '') === id && !m.hidden).map((m) => m.id);
+    return c && c.record && Array.isArray(c.record.hero_mutations) ? c.record.hero_mutations : null;
+  }
+  /** the perk specials as the server tells them (vocab.perk_specials), else this file's copy */
+  function perkSpecialTable(c) { const v = vocabOf(c); return v && isObj(v.perk_specials) ? v.perk_specials : PERK_SPECIALS; }
   RULES.boss = RULES.enemy;
 
   /** a row's options resolved against a vocabulary (array or function) */
@@ -818,12 +1095,14 @@ const AFIELDS = (() => {
   }
   /** the table of a kind (boss shares the enemy's) */
   function table(kind) { return kind === 'boss' ? enemy : (AFIELDS_TABLES[kind] || []); }
-  const AFIELDS_TABLES = { enemy, hero, weapon, evolution, passive, mutation };
+  const AFIELDS_TABLES = { enemy, hero, weapon, evolution, passive, mutation, perk };
 
   const api = {
     VOCAB, statOptions, statKnown, statSetFor, playerStats, weaponStats, BASE_DEFAULTS, BASE_KEYS, PARAMS_KEYS, PARAMS_SHARED, paramsKnown,
     BLOCKS, BLOCK_ORDER, ATTACK_COMMON, ATTACKS, ATTACK_NAMES, attackOptions, attackTelegraph,
     enemy, hero, weapon, evolution, passive, mutation, QUEST_ROWS, SECTIONS, RECIPES, WORDINGS, RULES, options, table, hexToHsv,
+    // pass 69 (lane LE)
+    perk, PARAM_GROUPS, paramGroupsFor, paramInherited, isBall, PERK_SPECIALS, PERK_PARAM_HELP, perkSpecialOptions, perkSpecialTable,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

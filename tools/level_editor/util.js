@@ -110,27 +110,38 @@ const U = (() => {
     if (key in obj || def === undefined || !same(value, def)) obj[key] = value;
   }
 
+  // pass 69 (lane LE): a numeric part steps into a list ("levels.2": the third level's effects). Before, getPath stopped at
+  // a list (the level steps of every weapon and passive form showed no effects) and setPath replaced the list with an
+  // object ({"2": [...]}) on the first edit.
+  const isIndex = (container, p) => Array.isArray(container) && /^\d+$/.test(p);
+
   /** The value at a dotted path, or undefined. */
   function getPath(obj, path) {
     let cur = obj;
-    for (const p of path.split('.')) { if (!isObj(cur) || !(p in cur)) return undefined; cur = cur[p]; }
+    for (const p of path.split('.')) {
+      if (isIndex(cur, p)) { cur = cur[Number(p)]; if (cur === undefined) return undefined; continue; }
+      if (!isObj(cur) || !(p in cur)) return undefined;
+      cur = cur[p];
+    }
     return cur;
   }
 
-  /** Set a dotted path, creating objects on the way; an empty value deletes the key and any object left empty. */
+  /** Set a dotted path, creating objects on the way; an empty value deletes the key and any object left empty. A list on
+   *  the way is kept (its element by index); deleting a list's element is refused (it would shift the others): write []. */
   function setPath(obj, path, value) {
     const parts = path.split('.');
     const empty = value == null || value === '' || (typeof value === 'number' && isNaN(value));
     if (empty) {
       const stack = [obj];
       let cur = obj;
-      for (let i = 0; i < parts.length - 1; i++) { if (!isObj(cur[parts[i]])) return; cur = cur[parts[i]]; stack.push(cur); }
+      for (let i = 0; i < parts.length - 1; i++) { const nx = cur[parts[i]]; if (!isObj(nx) && !isIndex(nx, parts[i + 1])) return; cur = nx; stack.push(cur); }
+      if (Array.isArray(cur)) return;
       delete cur[parts[parts.length - 1]];
-      for (let i = stack.length - 1; i > 0; i--) { if (Object.keys(stack[i]).length === 0) delete stack[i - 1][parts[i - 1]]; }
+      for (let i = stack.length - 1; i > 0; i--) { if (!Array.isArray(stack[i]) && !Array.isArray(stack[i - 1]) && Object.keys(stack[i]).length === 0) delete stack[i - 1][parts[i - 1]]; }
       return;
     }
     let cur = obj;
-    for (let i = 0; i < parts.length - 1; i++) { if (!isObj(cur[parts[i]])) cur[parts[i]] = {}; cur = cur[parts[i]]; }
+    for (let i = 0; i < parts.length - 1; i++) { const nx = cur[parts[i]]; if (!isObj(nx) && !isIndex(nx, parts[i + 1])) cur[parts[i]] = {}; cur = cur[parts[i]]; }
     cur[parts[parts.length - 1]] = value;
   }
 

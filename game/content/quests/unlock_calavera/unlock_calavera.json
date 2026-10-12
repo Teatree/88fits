@@ -1,0 +1,18 @@
+{
+  "id": "unlock_calavera",
+  "name": "Calavera",
+  "condition": {
+    "type": "kill_boss",
+    "map": "red_canyon",
+    "stage": 1
+  },
+  "unlocks": {
+    "type": "character",
+    "id": "calavera"
+  },
+  "art_prompt": "a glass jar with a black sombrero inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

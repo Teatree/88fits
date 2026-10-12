@@ -48,6 +48,13 @@ const STATS := {
 	"buff_duration": ["buff duration", "pct"], "heal_mult": ["healing", "pct"], "radius": ["pillar radius", "m"],
 	# pass 62, the Pocket Watch
 	"powerup_duration": ["power-up duration", "pct"], "powerup_chance": ["power-up drop chance", "pct"],
+	# pass 69, the new passive items; "word": a stat said in words, never with its number (the Magnet's pulls come more
+	# often a level, and Garry never wants their interval named), and left out of an item's totals (_sum_effects)
+	"counter_damage": ["damage of the next attack after an evade", "pct"], "counter_haste": ["attack speed after an evade", "pct"],
+	"counter_speed": ["move speed after an evade", "pct"], "counter_seconds": ["boost after an evade", "sec"],
+	"heavyweight": ["attack damage per 10 max HP", "pct"], "overheal": ["overheal past full health", "pct"],
+	"heal_pulse": ["damage a heal sends out", "num"], "last_stand": ["attack damage in Last Stand", "pct"],
+	"xp_pull_radius": ["EXP pull radius", "m"], "xp_pull_rate": ["pulls more often", "word"],
 }
 ## Who a weapon with priority targeting goes for (pass 48: peashooter, revolver, tommy gun, tumbleweed, pike, sabre,
 ## turret, the Killer Bees and their evolutions), in its description.
@@ -106,6 +113,9 @@ static func _plain(a: float) -> String:
 static func describe_effect(e: Effect, with_name: bool = true) -> String:
 	var name := stat_name(e.stat)
 	var kind := stat_kind(e.stat)
+	# a stat said in words (pass 69, "word": the Magnet's "pulls more often"): its name when it grows, nothing else
+	if kind == "word":
+		return name if e.value > 0.0 and with_name else ""
 	var out := ""
 	match e.op:
 		"mul":
@@ -159,7 +169,10 @@ static func describe_effects(list: Array, with_name: bool = true) -> String:
 	var parts: Array = []
 	for e in list:
 		if e is Effect:
-			parts.append(describe_effect(e, with_name))
+			var s := describe_effect(e, with_name)
+			# a "word" stat with nothing to say (pass 69) leaves no empty part
+			if s != "":
+				parts.append(s)
 	return ", ".join(parts)
 
 
@@ -220,6 +233,18 @@ static func land_blast_words(params: Dictionary, sheet: StatSheet) -> String:
 ## caught ball that scored adds Heat: +5% damage, up to +50%. A hit on him cools it." and Slam Dunk's dunk (catch.slam).
 ## A hop looks 7 m for its next creature unless ricochet_any.reach says otherwise (ProjectileManager.RICOCHET_REACH, not
 ## named here: TextGen compiles for tools before the autoloads exist).
+## Alley-Oop's launch in words (pass 69, `params.launch {chance, fall_damage_frac}`): "" without one. The fall at 100%
+## reads "the hit again", any other share as its percent of the hit.
+static func launch_words(pr: Dictionary) -> String:
+	var lc = pr.get("launch")
+	if not lc is Dictionary:
+		return ""
+	var ch := int(round(float((lc as Dictionary).get("chance", 0.15)) * 100.0))
+	var fr := float((lc as Dictionary).get("fall_damage_frac", 1.0))
+	var again := "the hit again" if absf(fr - 1.0) < 0.01 else "%d%% of the hit" % int(round(fr * 100.0))
+	return " Each hit has a %d%% chance to throw the enemy into the air: it can't attack up there and takes %s when it lands." % [ch, again]
+
+
 static func ball_words(def: WeaponDef, sheet: StatSheet, pr: Dictionary) -> String:
 	var who := "the strongest enemy" if def.targeting == "priority" else "the nearest enemy"
 	var ra = pr.get("ricochet_any", {})
@@ -234,6 +259,8 @@ static func ball_words(def: WeaponDef, sheet: StatSheet, pr: Dictionary) -> Stri
 		text += "it bounces to %d more enem%s within %.0f m, then flies back to his hand%s." % [hops, "y" if hops == 1 else "ies", float(rd.get("reach", 7.0)), way]
 	else:
 		text += "it flies back to his hand%s." % way
+	# pass 69: Alley-Oop's launch (Slam Dunk's, amplified)
+	text += launch_words(pr)
 	var ct = pr.get("catch")
 	if not ct is Dictionary:
 		return text
@@ -248,6 +275,33 @@ static func ball_words(def: WeaponDef, sheet: StatSheet, pr: Dictionary) -> Stri
 		var at := int((sl as Dictionary).get("at_heat", top))
 		text += " At %s every catch is a dunk: %d%% of its damage to everything within %.1f m, thrown back." % ["full Heat" if at >= top else "%d Heat" % at,
 			int(round(float((sl as Dictionary).get("damage_frac", 1.0)) * 100.0)), float((sl as Dictionary).get("radius", 3.5))]
+	return text
+
+
+## The Frisbee in words (pass 69, lane FRIS; core/behaviors/Frisbee.gd): its throw, its curve, its drop-off and floor,
+## then what its path adds (Carry's ride, Trick Shot's share, a stun, the Flying Saucer's loop).
+static func frisbee_words(sheet: StatSheet, pr: Dictionary) -> String:
+	var amount := maxi(sheet.get_int("amount", 1), 1)
+	var range_m := sheet.get_stat("range", 12.0)
+	var fo = pr.get("falloff", {})
+	var fd: Dictionary = fo if fo is Dictionary else {}
+	var less := int(round((1.0 - clampf(float(fd.get("step", 0.85)), 0.0, 1.0)) * 100.0))
+	var flo := int(round(clampf(float(fd.get("floor", 0.25)), 0.0, 1.0) * 100.0))
+	var text := ("Throws a frisbee" if amount == 1 else "Throws %d frisbees, fanned out," % amount)
+	text += " at the nearest enemy within %.0f m, curving left or right: %s through everything in a %.0f m flight, each enemy after the first taking %d%% less (never under %d%%)." % [
+		range_m, "it cuts" if amount == 1 else "they cut", range_m, less, flo]
+	var cr = pr.get("carry")
+	if cr is Dictionary and float((cr as Dictionary).get("chance", 0.0)) > 0.0:
+		text += " It has a %d%% chance to carry the first enemy it hits away%s." % [int(round(float((cr as Dictionary).get("chance", 0.0)) * 100.0)),
+			" and drop it with a hit" if float((cr as Dictionary).get("drop_hit", 0.0)) > 0.0 else ""]
+	var pm := float(pr.get("proc_mult", 1.0))
+	if pm > 1.001:
+		text += " Life steal, stun, crits, Cold Snap and Vulture work %d%% better with it." % int(round((pm - 1.0) * 100.0))
+	var st = pr.get("stun")
+	if st is Dictionary and float((st as Dictionary).get("chance", 0.0)) > 0.0:
+		text += " Every hit has a %d%% chance to stun for %.1f s." % [int(round(float((st as Dictionary).get("chance", 0.0)) * maxf(pm, 1.0) * 100.0)), float((st as Dictionary).get("seconds", 1.0))]
+	if pr.get("loop") is Dictionary:
+		text += " It loops once along the way."
 	return text
 
 
@@ -453,6 +507,12 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 			var gd = pr.get("gold_dust")
 			if gd is Dictionary:
 				text += " Its kills drop a coin %d%% of the time." % int(round(float((gd as Dictionary).get("chance", 0.3)) * 100.0))
+		"Frisbee":
+			# pass 69 (lane FRIS): the Frisbee, frisbee_words
+			text = frisbee_words(sheet, pr)
+		"SaltShaker":
+			# pass 69 (lane SALT): patches of salt in the hero's wake
+			text = salt_words(sheet, pr)
 		_:
 			text = def.display_name + "."
 	var extras: Array = []
@@ -581,6 +641,9 @@ static func _sum_effects(list: Array) -> Array:
 	for item in list:
 		var e := item as Effect
 		if e == null:
+			continue
+		# a stat said in words has no total (pass 69: the Magnet's "pulls more often" is a step, never a sum)
+		if stat_kind(e.stat) == "word":
 			continue
 		var key := e.stat + "|" + e.op + "|" + e.target
 		if not acc.has(key):
@@ -747,6 +810,10 @@ static func amount_noun(def: WeaponDef, sheet: StatSheet = null, params: Diction
 			return "pillars"
 		"Beam", "LaserBeam":
 			return "beams"
+		"Frisbee":
+			return "frisbees"
+		"SaltShaker":
+			return "patches"
 	return stat_name("amount")
 
 
@@ -781,7 +848,49 @@ static func area_radius(def: WeaponDef, sheet: StatSheet, params: Dictionary = {
 			if gd.get("black_hole") is Dictionary:
 				return []
 			return ["blast radius", float(gd.get("blast", 1.9)) * sheet.get_stat("area", 1.0) * maxf(float(gd.get("throw_mult", 1.0)), 0.1)]
+		"SaltShaker":
+			# pass 69: a patch's radius, salt.radius x area x salt.area_mult (Salt Spill's 1.6)
+			return ["patch radius", salt_radius(sheet, pr)]
 	return []
+
+
+# ---- pass 69, lane SALT: the Salt's words ----
+
+## The Salt's patch radius (pass 69): params.salt.radius x area x salt.area_mult.
+static func salt_radius(sheet: StatSheet, pr: Dictionary) -> float:
+	var s = pr.get("salt", {})
+	var sd: Dictionary = s if s is Dictionary else {}
+	return float(sd.get("radius", 1.4)) * sheet.get_stat("area", 1.0) * float(sd.get("area_mult", 1.0))
+
+
+## The Salt in words (pass 69, SaltShaker): how many patches a pour, how often, how big, how long, what a tick does, and
+## what the path adds (Hiwa Kai's crystals, Thing About Luck's power-ups, Salt Flats' charge).
+static func salt_words(sheet: StatSheet, pr: Dictionary) -> String:
+	var s = pr.get("salt", {})
+	var sd: Dictionary = s if s is Dictionary else {}
+	var n := maxi(sheet.get_int("amount", 1), 1)
+	var secs := sheet.get_stat("duration", 4.0) * float(sd.get("duration_mult", 1.0))
+	var dmg := sheet.get_stat("damage", 6.0) * float(sd.get("damage_mult", 1.0))
+	var r := salt_radius(sheet, pr)
+	var lasts := _plain(snappedf(secs, 0.1))
+	var cd := sheet.get_stat("cooldown", 1.6)
+	var head := "Pours a %.1f m patch of salt in your wake every %.1f s. It lasts %s s; enemies in it" % [r, cd, lasts]
+	if n > 1:
+		head = "Pours %d patches of salt (%.1f m) in your wake every %.1f s. They last %s s; enemies in them" % [n, r, cd, lasts]
+	var text := head + " take %d damage every %s s." % [int(round(dmg)), _plain(float(sd.get("tick", 0.5)))]
+	var cr = sd.get("crunch")
+	if cr is Dictionary:
+		text += " Hard black crystals: an enemy stepping in takes ×%s at once" % _plain(float((cr as Dictionary).get("mult", 2.0)))
+		var sl := float(sd.get("slow", 0.0))
+		text += (" and walks %d%% slower in the salt." % int(round(sl * 100.0))) if sl > 0.0 else "."
+	elif float(sd.get("slow", 0.0)) > 0.0:
+		text += " Enemies in the salt walk %d%% slower." % int(round(float(sd.get("slow", 0.0)) * 100.0))
+	var luck := float(sd.get("luck_mult", 1.0))
+	if luck > 1.0:
+		text += " Enemies killed in the salt drop power-ups ×%s as often." % _plain(luck)
+	if bool(sd.get("momentum_on_enter", false)):
+		text += " Walking into the salt puts the speed-up at full."
+	return text
 
 
 static var _whole_re: RegEx
@@ -909,7 +1018,7 @@ static func quest_text(q: QuestDef) -> String:
 			return "Kill %s in one run." % creature_count(str(c.get("enemy", "")), int(c.get("count", 0)))
 		# pass 44: totals across runs, and a stage reached in one
 		"kills_total":
-			return "Kill %d creatures, all time." % int(c.get("count", 0))
+			return "Kill %s creatures, all time." % grouped(int(c.get("count", 0)))
 		"runs_total":
 			return "Play %d runs." % int(c.get("count", 0))
 		"pickups_total":
@@ -935,6 +1044,16 @@ static func map_name(id: String) -> String:
 	var reg := _registry()
 	var m: MapDef = reg.map(id) if reg else null
 	return m.display_name if m else id.capitalize()
+
+
+## A count with its thousands grouped (pass 69: "Kill 2,500 creatures, all time.", Mira's 99,999,999).
+static func grouped(n: int) -> String:
+	var s := str(absi(n))
+	var out := ""
+	while s.length() > 3:
+		out = "," + s.substr(s.length() - 3) + out
+		s = s.substr(0, s.length() - 3)
+	return ("-" if n < 0 else "") + s + out
 
 
 static func time_mmss(t: float) -> String:

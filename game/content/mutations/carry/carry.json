@@ -1,0 +1,28 @@
+{
+  "id": "carry",
+  "name": "Carry",
+  "flavour": "Free ride. One way.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "frisbee",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "It has a 10% chance to carry the enemy away.",
+  "vfx": "a bigger frisbee; the first creature it hits may ride it to the end of the flight and drop off there",
+  "effects": [],
+  "params": {
+    "carry": {
+      "chance": 0.1,
+      "drop_hit": 0.0
+    },
+    "disc": {
+      "size_mult": 1.5
+    }
+  },
+  "art_prompt": "a big neon lime frisbee flying off with a startled little desert critter clinging to its top, a long curved motion arc behind it",
+  "placeholder": {
+    "color": "#9AE02A",
+    "glyph": "ring"
+  }
+}

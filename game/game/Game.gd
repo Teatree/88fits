@@ -137,6 +137,10 @@ func _ready() -> void:
 		fx.burst(player.global_position + Vector3(0, 0.9, 0), UiKit.GOOD, 1.0)
 		if hud: hud.toast("DEEP BREATH", UiKit.GOOD)
 		Audio.play("pk_heart", player.global_position))
+	# pass 69, the new passive items: Hot Springs' heal pulse, Last Stand's slowed time, Counterpunch's armed fist
+	player.heal_pulsed.connect(_heal_pulse)
+	player.last_stand.connect(_last_stand)
+	player.evaded.connect(_counterpunch_fx)
 	# systems
 	enemies.game = self
 	enemies.player = player
@@ -776,6 +780,7 @@ func _spawn_begin() -> void:
 		(q.material_override as ShaderMaterial).render_priority = -10
 		if k < 2:
 			q.position = away * SPAWN_BEAM_BACK
+			_spawn_beam_fade(q, away)
 		create_tween().tween_method(func(v: float): _spawn_strength(q, v), 0.0, float(strengths[k]), 0.25)
 	camera.shake(0.35)
 	Audio.play("pl_spawn_beam", _spawn_land)
@@ -787,6 +792,33 @@ func _spawn_begin() -> void:
 func _spawn_strength(q: MeshInstance3D, v: float) -> void:
 	if is_instance_valid(q):
 		(q.material_override as ShaderMaterial).set_shader_parameter("strength", v)
+
+
+## Pass 69 (lane EN; Garry: "The beam of light that accompanies Player hero when they descend down gets cut off at the
+## bottom ... just fade out the effect before it reaches the ground"): a beam quad's light fades in from nothing
+## SPAWN_BEAM_FADE_GAP above the highest sand under its width to whole SPAWN_BEAM_FADE higher (shine_aura.gdshader's
+## fade_y), so its bright foot never meets the sand (or floats over a dip) in a hard line. `away` is the camera's flat
+## forward, the beam's width runs across it.
+const SPAWN_BEAM_FADE_GAP := 0.15
+const SPAWN_BEAM_FADE := 2.6
+func _spawn_beam_fade(q: MeshInstance3D, away: Vector3) -> void:
+	var base := q.global_position
+	var top := base.y
+	if map and map.has_method("height_at"):
+		var across := Vector3(-away.z, 0.0, away.x)
+		var half: float = (q.mesh as QuadMesh).size.x * 0.5 if q.mesh is QuadMesh else 1.3
+		top = -INF
+		for s: float in [-1.0, -0.5, 0.0, 0.5, 1.0]:
+			var p := base + across * (half * s)
+			top = maxf(top, float(map.height_at(p.x, p.z)))
+		# the quad's own foot when the sand lies under it (a dip behind the hero)
+		top = maxf(top, base.y)
+	(q.material_override as ShaderMaterial).set_shader_parameter("fade_y", spawn_beam_fade_y(top))
+
+
+## The world heights the spawn beam fades over above sand whose highest point under it is `ground_top` (pass 69).
+static func spawn_beam_fade_y(ground_top: float) -> Vector2:
+	return Vector2(ground_top + SPAWN_BEAM_FADE_GAP, ground_top + SPAWN_BEAM_FADE_GAP + SPAWN_BEAM_FADE)
 
 
 func _tick_spawn(delta: float) -> void:
@@ -1248,6 +1280,12 @@ func _make_behavior(name: String) -> WeaponBehavior:
 		"SunScepter":
 			# pass 54: Solenne's Sun Scepter and Zenith, pillars of sunlight on what she can see
 			return preload("res://core/behaviors/SunScepter.gd").new()
+		"Frisbee":
+			# pass 69: the Frisbee, a disc in a curving arc through everything (lane FRIS)
+			return preload("res://core/behaviors/Frisbee.gd").new()
+		"SaltShaker":
+			# pass 69: the Salt, patches of salt laid in the hero's wake (lane SALT)
+			return preload("res://core/behaviors/SaltShaker.gd").new()
 	push_warning("Unknown weapon behaviour: " + name)
 	return null
 
@@ -1329,7 +1367,11 @@ func _check_quests() -> void:
 		# the banner carries the item's own icon (pass 44), so the unlock is seen, not only read; a hero's badge is the
 		# one of the look he is played in (pass 68, unlock_banner_def)
 		var def: ContentDef = unlock_banner_def(q)
-		hud.banner("UNLOCKED: " + (def.display_name if def else q.display_name), UiKit.GOOD, def.icon if def else null)
+		# pass 69: a hero on sale is not his yet: the banner says so and keeps him unknown
+		if def is CharacterDef and (def as CharacterDef).availability == "purchase":
+			hud.banner("A NEW HERO IS FOR SALE", UiKit.GOOD, null)
+		else:
+			hud.banner("UNLOCKED: " + (def.display_name if def else q.display_name), UiKit.GOOD, def.icon if def else null)
 		Audio.play("ui_unlock")
 
 
@@ -1366,6 +1408,8 @@ func _tick_perks(delta: float) -> void:
 	if Run.has_perk("timeout"):
 		_tick_timeout(delta)
 	_tick_periodic_buffs(delta)
+	# pass 69 (lane HERO): May's Inflatable May (a perk whose special is "decoy")
+	_tick_decoy(delta)
 	if not Run.has_perk("trail_dust"):
 		return
 	if player.velocity.length() < 0.8:
@@ -1375,6 +1419,22 @@ func _tick_perks(delta: float) -> void:
 		_dust_t = Run.perk_param("trail_dust", "every", 0.22)
 		spawn_zone(player.global_position - player.forward() * 0.6, Run.perk_param("trail_dust", "radius", 1.1), Run.perk_param("trail_dust", "seconds", 1.0),
 			0.0, 0.3, null, Run.perk_param("trail_dust", "slow", 0.25), Color(0.85, 0.72, 0.5, 0.3))
+
+
+## Pass 69 (lane HERO): May's Inflatable May, its own node (core/systems/Decoy.gd) made the first time a decoy perk is
+## held: the throw, the circle, the fooled creatures and their "?" marks, the pop.
+var decoy: Decoy = null
+
+
+func _tick_decoy(delta: float) -> void:
+	if decoy == null:
+		if not Decoy.active():
+			return
+		decoy = Decoy.new()
+		decoy.name = "Decoy"
+		add_child(decoy)
+		decoy.setup(self)
+	decoy.tick(delta)
 
 
 ## Serenade (pass 43, Calavera): whatever comes within the song's reach moves slower; a faint gold disc under him says
@@ -1782,7 +1842,7 @@ func _drop_from_kill(def: EnemyDef, at: Vector3, elite: EliteModDef) -> void:
 	var xp_chance: float = Run.player_sheet.get_stat("xp_drop_chance", 0.0)
 	if xp_chance > 0.0:
 		pickups.prospector(def, at, xp_scale, xp_chance)
-	director.drop_pickup_from(def, at, elite != null)
+	director.drop_pickup_from(def, at, elite != null, _salt_luck_at(at))
 	# the drop passives (pass 33.2): Cake (Cheese until pass 46, Beef Jerky until pass 44) and Pickpocket roll on every
 	# kill for their own small pickups
 	for pair in [["heal_drop", "cake_slice"], ["coin_drop", "coin_bag"]]:
@@ -1800,6 +1860,16 @@ func _drop_from_kill(def: EnemyDef, at: Vector3, elite: EliteModDef) -> void:
 		var od: PickupDef = Registry.pickup(str(own.get("id", "")))
 		if od:
 			pickups.spawn_special(od, at + Vector3(randf_range(-0.6, 0.6), 0, randf_range(-0.6, 0.6)))
+
+
+## Thing About Luck (pass 69, lane SALT): the factor on the power-up roll for a creature killed at `at`, the highest any
+## held weapon's behaviour gives (SaltShaker.powerup_luck_at: salt.luck_mult while it stood in a patch); 1 for none.
+func _salt_luck_at(at: Vector3) -> float:
+	var m := 1.0
+	for b in _behaviors.values():
+		if is_instance_valid(b) and b.has_method("powerup_luck_at"):
+			m = maxf(m, float(b.powerup_luck_at(at)))
+	return m
 
 
 ## What a kill sets off and pays (out of _on_enemy_died, pass 48): Powder Keg, Brimstone Brand, Grand Finale, an Elite's
@@ -1889,6 +1959,51 @@ func _powder_keg(at: Vector3, dead_max_hp: float) -> void:
 func _skedaddle() -> void:
 	if Run.skedaddle() and player and not player.dead:
 		fx.speed_burst(player.global_position, Fx.SKEDADDLE_RED, true)
+
+
+# ---------------------------------------------------------------- pass 69, the new passive items
+
+const HEAL_PULSE_COLOUR := Color(0.78, 0.92, 0.42, 0.5)
+const COUNTERPUNCH_COLOUR := Color(1.0, 0.45, 0.18)
+var last_stand_fx: LastStandFx
+
+
+## Hot Springs (pass 69, a passive item): a heal's pulse (Player.heal_pulsed) hurts every creature within
+## Player.HEAL_PULSE_RADIUS for `damage`, recorded as the passive's own source; a soft green-gold ring races out, brighter
+## for a bigger heal, and a real heal (3 HP or more, never regen's trickle alone) chimes.
+func _heal_pulse(damage: float, healed: float) -> void:
+	if player == null or player.dead or enemies == null:
+		return
+	var at: Vector3 = player.global_position
+	enemies.damage_radius(at, Player.HEAL_PULSE_RADIUS, damage, "hot_springs")
+	if telegraphs:
+		var col := HEAL_PULSE_COLOUR
+		col.a = clampf(0.22 + healed * 0.03, 0.22, 0.6)
+		telegraphs.race_ring(at, Player.HEAL_PULSE_RADIUS, 0.45, col, 0.22)
+	if healed >= 3.0:
+		Audio.play("it_heal_pulse", at)
+
+
+## Last Stand (pass 69, a passive item): the hero's last_stand signal (Run.last_stand_check put its damage on the sheet):
+## the slowed time and its look (ui/LastStandFx.gd, made once), a toast and the thump.
+func _last_stand() -> void:
+	if last_stand_fx == null or not is_instance_valid(last_stand_fx):
+		last_stand_fx = LastStandFx.new()
+		last_stand_fx.name = "LastStandFx"
+		last_stand_fx.game = self
+		add_child(last_stand_fx)
+	last_stand_fx.start()
+	if hud:
+		hud.toast("LAST STAND", Color(1.0, 0.32, 0.3))
+	Audio.play("it_last_stand")
+
+
+## Counterpunch (pass 69, a passive item): an evade that armed the next attack throws an ember-orange burst and a snap.
+func _counterpunch_fx() -> void:
+	if player == null or player.dead or not Run.counter_armed:
+		return
+	fx.speed_burst(player.global_position, COUNTERPUNCH_COLOUR, true)
+	Audio.play("it_counterpunch", player.global_position)
 
 
 ## Cactus Coat: whatever hits the hero gets a face full of spines, along with anything else standing close.

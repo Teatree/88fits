@@ -65,8 +65,10 @@ static func build(type: String, d: Dictionary, dir: String) -> ContentDef:
 		var cd := res as CharacterDef
 		if cd.variant != "" and cd.variants.has(cd.variant) and cd.variants[cd.variant].get("icon") != null:
 			cd.icon = cd.variants[cd.variant]["icon"]
-		# pass 66: an availability other than "available" ("hidden", "purchase") keeps him hidden, whatever `hidden` says
-		cd.hidden = cd.hidden or cd.availability != "available"
+		# pass 66: an availability other than "available" ("hidden", "purchase") keeps him hidden, whatever `hidden` says.
+		# Pass 69 (the purchase loop is wired): "hidden" hides him; "purchase" shows him on the title, locked or on sale
+		# (Registry.hero_state), whatever `hidden` says; "available" with `hidden: true` stays hidden (hidden wins there)
+		cd.hidden = cd.availability == "hidden" or (cd.hidden and cd.availability != "purchase")
 	return res
 
 
@@ -600,6 +602,9 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	w.creature_damage_mult = float(t.get("creature_damage_mult", 1.0))
 	# pass 60: every creature's, Elite's, boss's and hostile shot's pace times this (never the hero's)
 	w.creature_speed_mult = float(t.get("creature_speed_mult", 1.0))
+	# pass 69 (lane EN): the map's fallbacks for a variance special's numbers (read as they are)
+	var spd = t.get("special_defaults", {})
+	w.special_defaults = spd if spd is Dictionary else {}
 	var ss = t.get("spawn_sides", {})
 	w.spawn_sides = ss if ss is Dictionary else {}
 	var hcv = t.get("hp_curve", {})

@@ -925,3 +925,20 @@ textarea.txt.area.bad { border-color: var(--crit); box-shadow: 0 0 0 1px var(--c
 .basegrid .frow { grid-template-columns: 150px minmax(0, 1fr); }
 .qdrawer { border: 1px dashed var(--border-2); border-radius: 8px; padding: 6px 8px; margin-top: 6px; width: 100%; }
 .qdrawer .frow { grid-template-columns: 150px minmax(0, 1fr); }
+/* pass 69 (lane LE): typed params, perk numbers, a hero's requirement, an item's icon candidates, the how-to lists */
+.ptyped { display: flex; flex-direction: column; gap: 6px; width: 100%; min-width: 0; }
+.ptyped .frow { grid-template-columns: 180px minmax(0, 1fr); }
+.pgroup { border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px 6px; background: var(--surface-2); }
+.pgroup > summary { cursor: pointer; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 2px 0; }
+.pghelp { margin: 2px 0 4px; }
+.pghint { margin-left: 8px; }
+.pghint.set { color: var(--ink-2); }
+.pgoffers, .pgtarget { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.icands { display: flex; flex-direction: column; gap: 4px; width: 100%; margin-top: 6px; }
+.icand-job { border-top: 1px dashed var(--grid); padding-top: 6px; margin-top: 4px; }
+.icand-grid { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
+.icand { width: 92px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; border: 2px solid transparent; border-radius: 8px; padding: 3px; background: var(--surface-3); }
+.icand img { width: 84px; height: 84px; object-fit: contain; }
+.icand.picked { border-color: var(--sel); }
+ol.howto { margin: 4px 0 14px 22px; padding: 0; }
+ol.howto li { margin: 4px 0; }

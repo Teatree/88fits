@@ -1,0 +1,34 @@
+{
+  "id": "trigger_happy",
+  "name": "Trigger Happy",
+  "flavour": "May never takes her finger off it.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "tommy_gun",
+  "kind": "hero",
+  "element": "",
+  "hero": "may",
+  "text": "The Tommy Gun never stops firing, even with nobody in range: a steady stream of two thirds more rounds, each 35% weaker.",
+  "vfx": "an unbroken stream of rounds from the companion gun, straight ahead of her when nothing is in range",
+  "effects": [
+    {
+      "stat": "damage",
+      "op": "mul",
+      "value": -0.35
+    },
+    {
+      "stat": "cooldown",
+      "op": "mul",
+      "value": -0.4
+    }
+  ],
+  "params": {
+    "fire_without_target": true,
+    "stream": true
+  },
+  "art_prompt": "a black tommy gun with a round drum magazine spraying a long unbroken stream of golden bullets, a magenta-gloved finger holding its trigger down",
+  "placeholder": {
+    "color": "#E040A0",
+    "glyph": "star"
+  }
+}

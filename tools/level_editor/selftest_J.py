@@ -508,6 +508,9 @@ def checks(check, run_node, server):
                  ("hero_title", {"kind": "hero", "id": "astro"}, {"seeds": 2}, "asset", "python tools/gen_title_heroes.py --only astro --seeds=2 --first-seed=11"),
                  ("register", {}, {"targets": ["enemies/testbeast"]}, "steps", "bash tools/godot.sh --headless --path"),
                  ("driver_pose", {}, {"src": "tools/dl/mixamo/walking.fbx", "name": "walk_test", "frames": 12}, "steps", "--python tools/pose_driver.py -- fbx=tools/dl/mixamo/walking.fbx out=tools/dl/drivers/walk_test frames=12"),
+                 # pass 69 (lane LE): lane ART's sprint options and the levelled copy
+                 ("driver_pose", {}, {"src": "tools/dl/mixamo/running.fbx", "name": "run_x", "amp": 1.35, "lean": 12, "arms": "back", "shoulders": "0.3", "shoulder_views": "side,fd", "tuck": "25"}, "steps",
+                  "out=tools/dl/drivers/run_x frames=24 arms=back amp=1.35 lean=12 && python tools/pose_driver.py draw tools/dl/drivers/run_x && python tools/pose_shoulders.py tools/dl/drivers/run_x tools/dl/drivers/run_x_lvl level=0.3 views=side,fd tuck=25"),
                  ("driver_depth", {}, {"src": "tools/dl/uploads/3d/beetle/beetle.fbx", "name": "beetle_test", "action": "walk"}, "steps", "blender_depth_drivers.py -- src="),
                  ("ref_probe", {}, {"src": "tools/dl/uploads/3d/beetle/beetle.fbx"}, "steps", "blender_ref.py -- src=tools/dl/uploads/3d/beetle/beetle.fbx out=tools/dl/uploads/3d/beetle mode=probe"),
                  ("ref_render", {}, {"src": "tools/dl/uploads/3d/beetle/beetle.fbx", "mode": "icon"}, "steps", "mode=icon"),

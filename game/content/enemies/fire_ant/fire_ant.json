@@ -50,11 +50,11 @@
       "#C87AFF"
     ],
     "tint_strength": 0.22,
-    "special_chance": 0.1,
+    "special_chance": 0.0333,
     "special": {
-      "size": 1.6,
-      "hp": 2.5,
-      "damage": 1.4,
+      "size": 1.25,
+      "hp": 10.0,
+      "damage": 2.0,
       "xp": 3.0,
       "tint": "#202868",
       "tint_strength": 0.6

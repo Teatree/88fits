@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/thing_about_luck/thing_about_luck_icon.png" id="1_k65ye"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_ej4n1"]
+
+[resource]
+script = ExtResource("2_ej4n1")
+weapon = "salt"
+text = "An enemy killed in the salt is 3 times as likely to drop a power-up."
+vfx = "none: the power-ups say it"
+params = {
+"salt": {
+"luck_mult": 3.0
+}
+}
+id = "thing_about_luck"
+display_name = "Thing About Luck"
+flavour = "Over the left shoulder. Always the left."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_k65ye")
+icon_file = "thing_about_luck_icon.png"
+placeholder = {
+"color": "#7FD07A",
+"glyph": "star"
+}

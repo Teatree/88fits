@@ -4,6 +4,7 @@
   "flavour": "Nobody gets past half court.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "basketball",
   "kind": "volume",
   "element": "",

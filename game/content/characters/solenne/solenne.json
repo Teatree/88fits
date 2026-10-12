@@ -4,6 +4,10 @@
   "flavour": "She brings the noon with her.",
   "order": 5,
   "pronoun": "she",
+  "hidden": false,
+  "availability": "purchase",
+  "price": 600,
+  "currency_type": "gold",
   "trait": [],
   "trait_per_level": [
     {

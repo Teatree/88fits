@@ -449,6 +449,8 @@ func _process(delta: float) -> void:
 	if cooldown_left <= 0.0:
 		if _fire():
 			cooldown_left = max(stat("cooldown", 1.0), 0.05)
+			# Counterpunch (pass 69): an armed counter-attack is this fire's (Run.counterpunch_fired)
+			Run.counterpunch_fired(inst.def.id)
 		else:
 			cooldown_left = 0.15
 	Perf.add("weapons", t0)

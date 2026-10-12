@@ -622,6 +622,122 @@ JOBS = {
     "rebound": {"set": "67", "kind": "mutations", "id": "rebound", "ref": "basketball_ref.png",
                 "subject": COPY + "an orange basketball with black seams and one thick curved white arrow that leaves it, loops "
                            "round in a wide oval and comes back to it, like a boomerang's path"},
+    # pass 69 (set 69, lane ART). The ball's render (basketball_ref.png) has beach-ball meridians, so the ball icons are
+    # painted from words: the classic seams (one belt seam, one crossing seam, two bowed side seams). A dark-blue or lime
+    # subject cannot go on the screen of its own hue (the keyer eats it): navy on green, lime on blue.
+    "basketball69": {"set": "69", "kind": "weapons", "id": "basketball",
+                     "subject": "a classic orange basketball seen straight on, its thin black seams in the classic pattern: one "
+                                "straight seam running across its middle from left to right, one straight seam running from top "
+                                "to bottom, and two curved seams bowing out on the left and right sides like a pair of brackets, "
+                                "a fine pebbled orange surface, one soft white highlight at the upper left"},
+    "basketball69b": {"set": "69", "kind": "weapons", "id": "basketball",
+                      "subject": "a classic orange basketball tilted slightly, seen three-quarter, with the classic thin black seams "
+                                 "of a real basketball: a belt seam round its middle, a crossing seam over the top and two curved "
+                                 "side seams, a fine pebbled orange surface, one soft white highlight, a faint curved motion arc "
+                                 "behind it"},
+    "alley_oop": {"set": "69", "kind": "mutations", "id": "alley_oop",
+                  "subject": "a deep royal-blue basketball with thin black seams and a bright white highlight, a faint electric-"
+                             "blue glow round it, flying straight up and knocking a small red-skinned goblin high into the air "
+                             "above it, the goblin tumbling upside down with its arms and legs flailing, three short white "
+                             "upward speed lines under the ball"},
+    "slam_dunk69": {"set": "69", "kind": "evolutions", "id": "slam_dunk",
+                    "subject": "a black basketball whose seams glow with thin lines of orange ember light, slamming down through "
+                               "an orange basketball hoop with a white net, the net whipping down, a burst of small orange sparks "
+                               "and embers flying off the rim"},
+    "counterpunch": {"set": "69", "kind": "passives", "id": "counterpunch",
+                     "subject": "a red boxing glove punching forward to the right with a bold yellow impact starburst at its "
+                                "knuckles, two short white speed lines behind the glove, the white cuff and lace at its wrist"},
+    "heavyweight": {"set": "69", "kind": "passives", "id": "heavyweight",
+                    "subject": "a heavy round black iron kettlebell with a thick handle, a big glossy red heart painted on its "
+                               "side, a few small grey dust puffs at its base as if it just landed"},
+    "heavyweight_b": {"set": "69", "kind": "passives", "id": "heavyweight",
+                      "subject": "a big glossy red heart held up by a heavy black iron barbell with round plates on each end "
+                                 "resting across it, the bar bending slightly under the weight"},
+    "snake_oil": {"set": "69", "kind": "passives", "id": "snake_oil",
+                  "subject": "an old-fashioned corked glass medicine bottle full of glowing bright pink tonic, a brown coiled "
+                             "rattlesnake wrapped round the bottle, a plain cream paper label with a red cross, a few small pink "
+                             "sparkles rising from the cork"},
+    "hot_springs": {"set": "69", "kind": "passives", "id": "hot_springs",
+                    "subject": "a small round pool of steaming turquoise hot-spring water ringed with smooth grey stones, thick "
+                               "white steam rising from it in curls, a glowing red heart floating in the steam above the pool"},
+    "last_stand69": {"set": "69", "kind": "passives", "id": "last_stand",
+                     "subject": "a cracked glowing red heart in front of a cold pale blue-grey stopwatch whose hands have nearly "
+                                "stopped, two bright red heartbeat pulse rings spreading from the heart"},
+    "magnet69": {"set": "69", "kind": "passives", "id": "magnet",
+                 "subject": "a classic red horseshoe magnet with shiny silver tips, its open end pointing up and to the right, "
+                            "pulling a stream of small glowing octahedron crystal gems in purple, cyan and pink toward its tips, "
+                            "three curved white pull lines"},
+    "salt_spill": {"set": "69", "kind": "mutations", "id": "salt_spill",
+                   "subject": "a small glass salt shaker with a chrome cap lying on its side, a big wide flat puddle of white salt "
+                              "grains spilled out of it and spreading far across the bottom of the picture"},
+    "thing_about_luck": {"set": "69", "kind": "mutations", "id": "thing_about_luck",
+                         "subject": "a small heap of white salt crystals with a shiny golden lucky horseshoe standing upright in "
+                                    "it, a pinch of salt grains tossed in the air above it, little golden sparkles"},
+    "salt_flats": {"set": "69", "kind": "mutations", "id": "salt_flats",
+                   "subject": "a blue running sneaker with white stripes and a white sole sprinting to the right across a flat "
+                              "white patch of salt, a spray of white salt dust kicking up behind the heel, three bold yellow "
+                              "speed lines"},
+    "carry": {"set": "69", "screen": "blue", "kind": "mutations", "id": "carry",
+              "subject": "a big neon lime-green frisbee flying to the right, tilted, with a small red-skinned goblin clinging on "
+                         "top of it with both hands, its legs dangling off the back edge, two curved white motion lines behind it"},
+    "trick_shot": {"set": "69", "screen": "blue", "kind": "mutations", "id": "frisbee_trick_shot",
+                   "subject": "a neon lime-green frisbee curving round a big looping dashed white arc into a red and white "
+                              "bullseye target, a small yellow star burst where it hits the centre"},
+    "poison_razors_photo": {"set": "69", "screen": "blue", "kind": "mutations", "id": "poison_razors",
+                            "ref": "_REFERENCES/2d/frisbee_razors.jpg",
+                            "subject": "Copy the object from the reference image: a hot pink plastic frisbee disc seen at a "
+                                       "slight tilt, with steel double-edged razor blades sticking straight out all round its "
+                                       "rim. Its top is plain hot pink with a few thin darker pink rings, no picture, no "
+                                       "writing, no letters on it. A few small bright green poison drops flying off the blades"},
+    "trigger_happy": {"set": "69", "kind": "mutations", "id": "trigger_happy", "ref": "tommy_ref.png",
+                      "subject": COPY + "the drum-fed Tommy gun, firing to the right with a long bright yellow-white muzzle "
+                                 "flash, a stream of golden bullets streaking out of it and a fountain of brass shell casings "
+                                 "flying from its side, a small hot pink heart floating among the casings"},
+    # batch B: the lanes' 3D renders as references (SALT's salt_ref/sea_salt_ref, FRIS's frisbee_ref/frisbee_razors_ref/
+    # flying_saucer_ref), and re-rolls of the first batch's weak ones (a goblin too small, a gun too thin at HUD size)
+    "frisbee": {"set": "69", "screen": "blue", "kind": "weapons", "id": "frisbee", "ref": "frisbee_ref.png",
+                "subject": COPY + "a neon lime-green frisbee flying disc seen at a tilt from above, its rounded rim and two thin "
+                           "raised rings on its top, spinning, two short curved white motion lines behind it"},
+    "frisbee_trick_shot2": {"set": "69", "screen": "blue", "kind": "mutations", "id": "frisbee_trick_shot", "ref": "frisbee_ref.png",
+                            "subject": COPY + "the round neon lime-green frisbee disc, seen at a tilt, flying along a big curving "
+                                       "dashed white arc that loops round once and ends at a small red and white bullseye "
+                                       "target, a small yellow star burst on the bullseye"},
+    "poison_razors_3d": {"set": "69", "screen": "blue", "kind": "mutations", "id": "poison_razors", "ref": "frisbee_razors_ref.png",
+                         "subject": COPY + "a hot pink frisbee disc seen at a tilt with steel razor blades sticking straight out "
+                                    "all round its rim, a dark ring and a white ring on its top, a few small bright green "
+                                    "poison drops flying off the blades"},
+    "flying_saucer": {"set": "69", "screen": "blue", "kind": "evolutions", "id": "flying_saucer", "ref": "flying_saucer_ref.png",
+                      "subject": COPY + "a flying-saucer frisbee: a polished chrome silver disc with a hot pink top, a small "
+                                 "glowing cyan glass dome in its middle, glowing razor blades sticking out all round its rim, a "
+                                 "faint green poison haze curling round it, seen at a tilt"},
+    "salt": {"set": "69", "kind": "weapons", "id": "salt", "ref": "salt_ref.png",
+             "subject": COPY + "a small glass salt shaker with a shiny chrome cap full of holes, its glass body filled with "
+                        "white salt, tilted to the right and pouring a thin stream of white salt grains onto a small white heap"},
+    "sea_salt": {"set": "69", "kind": "mutations", "id": "sea_salt", "ref": "sea_salt_ref.png",
+                 "subject": COPY + "a small glass salt shaker with a shiny chrome cap, its glass body filled with soft pink salt, "
+                            "tilted to the right and pouring a thin stream of pink salt grains onto a small heap of pink salt "
+                            "crystals"},
+    "hiwa_kai": {"set": "69", "kind": "evolutions", "id": "hiwa_kai", "ref": "salt_ref.png",
+                 "subject": COPY + "a small glass salt shaker with a dark gunmetal cap, its glass body filled with jet-black salt, "
+                            "tilted to the right and pouring black grains onto a heap of black salt studded with sharp glossy "
+                            "black crystals, each crystal with a thin white highlight and a faint violet glint"},
+    "alley_oop2": {"set": "69", "kind": "mutations", "id": "alley_oop",
+                   "subject": "a deep royal-blue basketball with the classic thin black seams and a white highlight at the "
+                              "bottom of the picture, shooting straight up, and a big red-skinned goblin above it flung high "
+                              "into the air upside down, arms and legs flailing, its face surprised, two bold white upward "
+                              "speed lines between them; the goblin as big as the ball"},
+    "trigger_happy2": {"set": "69", "kind": "mutations", "id": "trigger_happy", "ref": "tommy_ref.png",
+                       "subject": COPY + "the drum-fed Tommy gun, big and filling the picture from side to side, seen from "
+                                  "the side, firing to the right with a long bright yellow-white muzzle flash, a stream of "
+                                  "golden bullets and brass shell casings flying from it, one small hot pink heart just "
+                                  "above the round drum"},
+    # May's perk: the decoy doll itself (the picked painting tools/dl/p69/art/decoy/decoy_b_c0.png) with a pink "?"
+    "inflatable_may": {"set": "69", "screen": "blue", "kind": "perks", "id": "inflatable_may",
+                       "ref": "tools/dl/p69/art/decoy/decoy_b_c0.png",
+                       "subject": "Copy the toy from the reference image: the chubby inflatable pool-toy doll of the mime woman in "
+                                  "a black beret, striped shirt and black overalls, her round magenta mitten hands sticking out "
+                                  "to the sides, glossy vinyl with welded seams and a small white air valve, and a big bold hot "
+                                  "pink question mark floating beside her head"},
 }
 
 

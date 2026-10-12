@@ -316,7 +316,14 @@ func character(id: String) -> CharacterDef:
 ## differs from `c`. What the screens draw of him outside the Player reads it: the painted title's cut-out (title_path),
 ## the badge on his hero sheet, the results' plate, an unlock's plate and banner, the arena's hero tiles, the Hidden list.
 func played_look(c: CharacterDef) -> CharacterDef:
-	return c.variant_def(Save.hero_look(c.id)) if c else null
+	if c == null:
+		return null
+	# pass 69: a look kept on the phone that has since been shelved (Buck's gazelle BUC-B once Jeżyk got his tracksuit)
+	# gives way to the hero's JSON look, as it left the arena's chips
+	var code := Save.hero_look(c.id)
+	if code != "" and c.variant_shelved(code):
+		code = ""
+	return c.variant_def(code)
 
 
 ## The def whose art a screen draws for `def` (pass 68): a hero in the look he is played in (played_look), anything else
@@ -464,6 +471,51 @@ func playable_character(id: String) -> CharacterDef:
 		return a
 	var all := sorted_characters()
 	return all[0] if not all.is_empty() else null
+
+
+# ---------------------------------------------------------------- heroes to buy (pass 69)
+
+## Where the player stands with hero `c` (pass 69, Garry: "There are now unavailable heroes, ones that can be unlocked,
+## but Player hasn't yet ... After the requirements are met the heroes will become available to unlock by buying them
+## with coins"): "hidden" (out of play: availability "hidden", or no such hero), "owned" (free, or bought: Save.heroes_owned),
+## "buyable" (on sale, his unlock quest done or none, not bought yet) or "locked" (his quest `unlock_<id>` not done). A free
+## hero (availability "available") with an unlock quest is locked until it is done and then owned, with nothing to pay.
+func hero_state(c: CharacterDef) -> String:
+	if c == null or c.hidden:
+		return "hidden"
+	var q := quest_for("character", c.id)
+	var met := q == null or Save.quest_done(q.id)
+	if c.availability != "purchase":
+		return "owned" if met else "locked"
+	if Save.owns_hero(c.id):
+		return "owned"
+	return "buyable" if met else "locked"
+
+
+## Whether a run may start with hero `c` (pass 69): owned, and not hidden.
+func hero_owned(c: CharacterDef) -> bool:
+	return hero_state(c) == "owned"
+
+
+## What it takes to unlock hero `c` in the words the items' unlock quests use (TextGen.quest_text); "" with no quest.
+func hero_requirement_text(c: CharacterDef) -> String:
+	var q := quest_for("character", c.id) if c else null
+	return TextGen.quest_text(q) if q else ""
+
+
+## Every hero the title's drawer shows (pass 69): the ones not hidden, owned first, then those on sale, then the locked
+## ones, each group in the heroes' `order`.
+func heroes_for_drawer() -> Array:
+	var rank := {"owned": 0, "buyable": 1, "locked": 2}
+	var out: Array = sorted_characters()
+	var pos := {}
+	for i in out.size():
+		pos[(out[i] as CharacterDef).id] = i
+	out.sort_custom(func(a: CharacterDef, b: CharacterDef) -> bool:
+		var ra: int = rank.get(hero_state(a), 3)
+		var rb: int = rank.get(hero_state(b), 3)
+		return int(pos[a.id]) < int(pos[b.id]) if ra == rb else ra < rb)
+	return out
 
 
 ## Whether a quest is shown and tracked: not when what it unlocks is hidden (a hero, a weapon, a passive).

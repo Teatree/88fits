@@ -165,7 +165,112 @@ def slot_stop():
     return fade_out(y, 25)
 
 
+# ------------------------------------------------------------------ May's inflatable double (pass 69, lane HERO)
+def decoy_land():
+    # a vinyl doll hitting the sand: a soft low thud and a rubbery "boing" whose pitch wobbles and settles
+    t = t_of(0.42)
+    wob = 1.0 + 0.18 * np.sin(2 * np.pi * 9.0 * t) * np.exp(-t / 0.12)
+    f = (230.0 + 120.0 * np.exp(-t / 0.05)) * wob
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    y = 0.8 * np.sin(ph) * env_ad(t, 0.004, 0.13) + 0.25 * np.sin(2 * ph) * env_ad(t, 0.004, 0.06)
+    y += partial(t, 85.0, 1.0, 0.05, 0.002) + partial(t, 140.0, 0.4, 0.03, 0.002)
+    n = int(SR * 0.012)
+    y[:n] += rng.normal(0, 0.25, n) * np.linspace(1, 0, n)
+    return fade_out(y, 30)
+
+
+def decoy_pop():
+    # the balloon bursting: a sharp crack of bright noise, then the rubber's squeal falling away as the air goes
+    t = t_of(0.45)
+    y = np.zeros_like(t)
+    n = int(SR * 0.018)
+    crack = rng.normal(0, 1.0, n)
+    crack = np.diff(np.concatenate([[0.0], crack]))   # brighter: a first difference
+    y[:n] += 1.4 * crack * np.linspace(1, 0, n) ** 2
+    y += partial(t, 180.0, 0.6, 0.025, 0.001)
+    f = 1500.0 * (620.0 / 1500.0) ** np.clip((t - 0.03) / 0.3, 0, 1) * (1.0 + 0.05 * np.sin(2 * np.pi * 38.0 * t))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    e = np.where(t >= 0.03, env_ad(np.maximum(t - 0.03, 0), 0.02, 0.12), 0.0)
+    y += 0.35 * (np.sin(ph) + 0.3 * np.sin(2 * ph)) * e
+    return fade_out(y, 30)
+
+
+# ------------------------------------------------------------------ the pass-69 passive items (lane PAS)
+def thump(t, at, f=58.0, amp=1.0):
+    # one heartbeat: a low sine whose pitch drops a little as it lands, with a soft knock on top
+    tt = t - at
+    on = tt >= 0
+    y = np.zeros_like(t)
+    fr = f * (1.0 + 0.6 * np.exp(-np.maximum(tt, 0) / 0.02))
+    ph = 2 * np.pi * np.cumsum(np.where(on, fr, 0.0)) / SR
+    y[on] = amp * np.sin(ph[on]) * env_ad(tt[on], 0.004, 0.09)
+    y += partial(t, f * 2.1, amp * 0.25, 0.03, 0.002, at)
+    return y
+
+
+def last_stand():
+    # Last Stand: time sinks (a low whoom falling an octave and a half) under two heartbeats, lub-dub, lub-dub
+    t = t_of(1.5)
+    f = 210.0 * (70.0 / 210.0) ** np.clip(t / 0.9, 0, 1)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    y = 0.22 * (np.sin(ph) + 0.35 * np.sin(2 * ph)) * env_ad(t, 0.06, 0.55)
+    for at in (0.0, 0.62):
+        y += thump(t, at, 56.0, 1.0) + thump(t, at + 0.17, 52.0, 0.65)
+    return fade_out(y, 60)
+
+
+def heal_pulse():
+    # Hot Springs: a soft warm chime with a breath of steam as the ring goes out
+    t = t_of(0.55)
+    y = partial(t, 784.0, 0.7, 0.16, 0.02) + partial(t, 1175.0, 0.4, 0.12, 0.02) + partial(t, 1568.0, 0.18, 0.08, 0.02)
+    hiss = rng.normal(0, 1.0, len(t))
+    hiss = np.convolve(hiss, np.ones(6) / 6, mode="same")
+    y += 0.12 * hiss * env_ad(t, 0.05, 0.12)
+    return fade_out(y, 40)
+
+
+def xp_pull():
+    # the Magnet's pull: a quick rising magnetic "zwoop" with a shimmer
+    t = t_of(0.42)
+    f = 260.0 * (980.0 / 260.0) ** np.clip(t / 0.3, 0, 1) * (1.0 + 0.04 * np.sin(2 * np.pi * 28.0 * t))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    e = env_ad(t, 0.03, 0.14)
+    y = 0.6 * np.sin(ph) * e + 0.18 * square(ph * 0.5) * e + 0.12 * np.sin(3 * ph) * e
+    return fade_out(y, 30)
+
+
+def counterpunch():
+    # Counterpunch armed: a short whoosh of air and a leather snap
+    t = t_of(0.26)
+    n = rng.normal(0, 1.0, len(t))
+    n = np.convolve(n, np.ones(3) / 3, mode="same")
+    sweep = env_ad(t, 0.05, 0.05)
+    y = 0.5 * n * sweep
+    y += click(t, 0.075, 1.0, 1900.0, 0.01) + partial(t, 120.0, 0.8, 0.04, 0.002, 0.075)
+    return fade_out(y, 25)
+
+
+# ------------------------------------------------------------------ the Salt's shaker (pass 69, lane SALT)
+def salt_shake():
+    # a glass shaker shaken three times over the sand: each shake a glassy tap and a rattle of grains on the chrome cap
+    # (a spray of tiny high clicks), then a soft hiss of salt falling
+    t = t_of(0.5)
+    y = np.zeros_like(t)
+    for k, at in enumerate((0.0, 0.11, 0.22)):
+        y += partial(t, 2350.0 + 120 * k, 0.35, 0.012, 0.0008, at) + partial(t, 3900.0, 0.15, 0.008, 0.0008, at)
+        for g in range(26):
+            ga = at + rng.uniform(0.0, 0.05)
+            y += click(t, ga, rng.uniform(0.08, 0.22), rng.uniform(3800.0, 7200.0), 0.0015)
+    n = rng.normal(0, 1.0, len(t))
+    n = n - np.convolve(n, np.ones(6) / 6, mode="same")
+    y += 0.12 * n * env_ad(np.maximum(t - 0.25, 0), 0.03, 0.08) * (t >= 0.25)
+    return fade_out(y, 25)
+
+
 SOUNDS = {
+    "w_salt_shake": salt_shake,
+    "pk_decoy_land": decoy_land,
+    "pk_decoy_pop": decoy_pop,
     "pk_gem_s": lambda: gem("s"),
     "pk_gem_m": lambda: gem("m"),
     "pk_gem_l": lambda: gem("l"),
@@ -173,6 +278,10 @@ SOUNDS = {
     "ui_slot_start": slot_start,
     "ui_slot_spin": slot_spin,
     "ui_slot_stop": slot_stop,
+    "it_last_stand": last_stand,
+    "it_heal_pulse": heal_pulse,
+    "it_xp_pull": xp_pull,
+    "it_counterpunch": counterpunch,
 }
 
 

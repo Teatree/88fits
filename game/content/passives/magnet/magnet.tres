@@ -6,19 +6,70 @@
 
 [sub_resource type="Resource" id="Resource_6d6vi"]
 script = ExtResource("2_t41ta")
-stat = "magnet"
-op = "mul"
+stat = "xp_pull_radius"
+value = 5.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_t41ta"]
+script = ExtResource("2_t41ta")
+stat = "xp_pull_radius"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_ggvfj"]
+script = ExtResource("2_t41ta")
+stat = "xp_pull_rate"
+value = 0.25
+target = "player"
+
+[sub_resource type="Resource" id="Resource_u66uy"]
+script = ExtResource("2_t41ta")
+stat = "xp_pull_radius"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_fnyua"]
+script = ExtResource("2_t41ta")
+stat = "xp_pull_rate"
+value = 0.25
+target = "player"
+
+[sub_resource type="Resource" id="Resource_53v8r"]
+script = ExtResource("2_t41ta")
+stat = "xp_pull_radius"
+value = 0.75
+target = "player"
+
+[sub_resource type="Resource" id="Resource_pbum2"]
+script = ExtResource("2_t41ta")
+stat = "xp_pull_rate"
+value = 0.25
+target = "player"
+
+[sub_resource type="Resource" id="Resource_qm33r"]
+script = ExtResource("2_t41ta")
+stat = "xp_pull_radius"
+value = 0.75
+target = "player"
+
+[sub_resource type="Resource" id="Resource_51he0"]
+script = ExtResource("2_t41ta")
+stat = "xp_pull_rate"
 value = 0.25
 target = "player"
 
 [resource]
 script = ExtResource("2_6d6vi")
-levels = [[SubResource("Resource_6d6vi")]]
+levels = [[SubResource("Resource_6d6vi")], [SubResource("Resource_t41ta"), SubResource("Resource_ggvfj")], [SubResource("Resource_u66uy"), SubResource("Resource_fnyua")], [SubResource("Resource_53v8r"), SubResource("Resource_pbum2")], [SubResource("Resource_qm33r"), SubResource("Resource_51he0")]]
+repeat_last_level = false
 max_level = 5
 pairs_with = "turret_buddy"
+text = "Every few seconds, at random, pulls every EXP gem within 5 m to you. Levels reach farther and pull more often."
 id = "magnet"
 display_name = "Magnet"
 flavour = "Gems come to you."
+rarity = "epic"
+weight = 6.0
 icon = ExtResource("1_6d6vi")
 icon_file = "magnet_icon.png"
 placeholder = {

@@ -172,7 +172,8 @@ func test_a_locked_hero_is_a_dark_figure_with_no_weapon_and_the_padlock() -> voi
 	var t := await _title("live")
 	var i := -1
 	for k in (t._heroes as Array).size():
-		if t._is_locked(t._heroes[k]):
+		# pass 69 (lane UI): a locked one (his requirement not met) wears the padlock; one on sale wears the BUY instead
+		if t._is_locked(t._heroes[k]) and t._state(t._heroes[k]) == "locked":
 			i = k
 			break
 	assert_int(i).is_greater_equal(0)

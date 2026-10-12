@@ -1,0 +1,42 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/alley_oop/alley_oop_icon.png" id="1_4e3tv"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_tojdp"]
+
+[resource]
+script = ExtResource("2_tojdp")
+weapon = "basketball"
+mutation_kind = "volume"
+text = "Each hit has a 15% chance to throw the creature into the air. It can't attack up there and takes the hit again when it lands."
+vfx = "the ball turns dark blue with a faint blue glow; a creature it throws shoots straight up, hangs, drops and lands with a thud and a puff of dust"
+params = {
+"heat_look": {
+"surfaces": "seams"
+},
+"launch": {
+"air_time": 0.9,
+"chance": 0.15,
+"fall_damage_frac": 1.0,
+"height": 3.5
+},
+"tint": {
+"ambient": false,
+"body": "#0A4FA8",
+"emission": "#1A5CFF",
+"energy": 0.28,
+"seams": {
+"color": "#05081A"
+}
+}
+}
+id = "alley_oop"
+display_name = "Alley-Oop"
+flavour = "Up you go. Down you come."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_4e3tv")
+icon_file = "alley_oop_icon.png"
+placeholder = {
+"color": "#1B2E7A",
+"glyph": "star"
+}

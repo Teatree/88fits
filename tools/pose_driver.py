@@ -43,6 +43,14 @@ Pass 66 (the Level Editor's asset system, all additive):
   probe=1           print the armature's bone names, the clips and which of the 21 Mixamo names are still missing, then
                     stop (nothing written; out= not needed)
   meta.json gains kind: "pose" (plus src, action, rig, rigmap, arms) for the editor's driver library.
+Pass 69 (Jezyk's three runs, all additive):
+  amp=<f> [amp_bones=<regex>]  the limbs (Arm, ForeArm, UpLeg, Leg by default) swing f times as far round their average
+                    rotation (written into the clip's keyframes): a sprint from the Running clip with amp=1.3
+  lean=<deg>        the spine bent forward that many degrees in all (Spine, Spine1, Spine2 a third each)
+  arms=back         both arms swept straight back behind the body, `arm_drop` (40) degrees below the horizontal: the dash
+    "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/running.fbx out=tools/dl/drivers/run_sprint frames=24 amp=1.3 lean=12
+    "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/running.fbx out=tools/dl/drivers/run_dash frames=24 arms=back lean=14
+  then tools/pose_shoulders.py levels the shoulders (every Mixamo driver's neck sits above the shoulder line).
 Output: <out>/<view>/poses.json, <out>/<view>/driver_NN.png, <out>/<view>_sheet.png, <out>/meta.json.
 """
 import json
@@ -139,6 +147,8 @@ def extract():
     if a.get("probe") in ("1", "true", "yes"):
         _probe(arm, pb, fbx, fps)
         return
+    if a.get("amp") and abs(float(a["amp"]) - 1.0) > 0.001:
+        _bake_amp(arm, act, pb, float(a["amp"]), a.get("amp_bones", AMP_BONES))
     if not out:
         raise SystemExit("pose_driver: out=<folder> is needed")
 
@@ -174,6 +184,24 @@ def extract():
         print("pose_driver: forward from the body %.1f deg (the feet said %.1f)" % (math.degrees(math.atan2(cand.y, cand.x)), math.degrees(math.atan2(fwd.y, fwd.x))))
         fwd = cand
     yaw0 = math.atan2(fwd.y, fwd.x)   # world yaw of "forward"
+    if a.get("lean") and abs(float(a["lean"])) > 0.01:
+        _bake_lean(arm, act, pb, float(a["lean"]), fwd, joint, f0)
+    if a.get("arms") == "back":
+        # pass 69 (Jezyk's dash): both arms swept straight back behind the body, angled `arm_drop` degrees (40 by default)
+        # below the horizontal and a touch wide, the hands trailing at the hips (the "ninja run"); the legs and torso keep
+        # the clip's stride
+        side_v = fwd.cross(up)
+        slope = math.tan(math.radians(float(a.get("arm_drop", 40.0))))
+        for side, sgn in (("Right", 1.0), ("Left", -1.0)):
+            sh = joint(side + "Arm", f0)
+            for bone, reach, wide in ((side + "Arm", 0.6, 0.1), (side + "ForeArm", 1.3, 0.16)):
+                e = bpy.data.objects.new("back_" + bone, None)
+                sc.collection.objects.link(e)
+                e.location = sh - fwd * reach - up * reach * slope + side_v * sgn * wide
+                c = pb[bone].constraints.new("DAMPED_TRACK")
+                c.target = e
+                c.track_axis = "TRACK_Y"
+        print("pose_driver: arms swept back")
     if a.get("arms") == "zombie":
         # the arms reach forward like a sleepwalker's: each upper arm and forearm tracks a point ahead of its shoulder
         # (a touch low and a touch wide), so the clip's arm swing is replaced and everything else is left alone
@@ -336,8 +364,108 @@ def extract():
     json.dump({"kind": "pose", "fbx": os.path.basename(fbx), "src": os.path.basename(fbx), "action": act.name, "frames": n, "loop": loop,
                "pitch": math.degrees(pitch), "start": a.get("start"), "end": a.get("end"), "views": list(VIEWS),
                "body": a.get("body"), "fwd": a.get("fwd", "feet"), "arms": a.get("arms"), "rig": a.get("rig", "mixamo"), "rigmap": a.get("rigmap"),
+               "amp": float(a["amp"]) if a.get("amp") else None, "lean": float(a["lean"]) if a.get("lean") else None,
                "retarget": {k: round(v, 3) for k, v in R.items()}, "notes": ""},
               open(os.path.join(out, "meta.json"), "w"), indent=1)
+
+
+AMP_BONES = r"(Arm|ForeArm|UpLeg|Leg)$"
+
+
+def _quat_curves(arm, act, bone_name):
+    """The four rotation_quaternion F-curves of a pose bone in the action (Blender 4.4+ slotted actions included), or None."""
+    path = 'pose.bones["%s"].rotation_quaternion' % bone_name
+    curves = {}
+    fcs = list(getattr(act, "fcurves", []) or [])
+    if not fcs and hasattr(act, "layers"):
+        for layer in act.layers:
+            for strip in layer.strips:
+                for bag in getattr(strip, "channelbags", []):
+                    fcs.extend(bag.fcurves)
+    for fc in fcs:
+        if fc.data_path == path:
+            curves[fc.array_index] = fc
+    return curves if len(curves) == 4 else None
+
+
+def _rewrite_quats(curves, fn):
+    """Every keyframe of the four curves read as one quaternion, passed through fn(frame, q) and written back."""
+    from mathutils import Quaternion
+    frames = sorted({round(kp.co[0], 3) for kp in curves[0].keyframe_points})
+    qs = [Quaternion([curves[i].evaluate(f) for i in range(4)]) for f in frames]
+    out = fn(frames, qs)
+    for i in range(4):
+        by_frame = {round(kp.co[0], 3): kp for kp in curves[i].keyframe_points}
+        for f, q in zip(frames, out):
+            kp = by_frame.get(f)
+            if kp is not None:
+                kp.co[1] = (q.w, q.x, q.y, q.z)[i]
+                kp.handle_left[1] = kp.co[1]
+                kp.handle_right[1] = kp.co[1]
+        curves[i].update()
+
+
+def _bake_amp(arm, act, pb, factor, pattern):
+    """amp=<f> (pass 69, a sprint): each limb bone matching amp_bones swings `factor` times as far round its own average
+    rotation over the clip (the axis kept), written into the action's keyframes, so the stance stays and only the swing
+    grows (blender_depth_drivers.py's amp for the OpenPose drivers)."""
+    import re
+    from mathutils import Quaternion
+
+    def amplify(frames, qs):
+        acc = [0.0, 0.0, 0.0, 0.0]
+        for q in qs:
+            sgn = 1.0 if q.dot(qs[0]) >= 0.0 else -1.0
+            for j, v in enumerate((q.w, q.x, q.y, q.z)):
+                acc[j] += v * sgn
+        mean = Quaternion(acc)
+        mean.normalize()
+        inv = mean.inverted()
+        res = []
+        for q in qs:
+            axis, ang = (inv @ q).to_axis_angle()
+            if ang > math.pi:
+                ang -= 2.0 * math.pi
+            res.append(mean @ Quaternion(axis, ang * factor))
+        return res
+
+    done = []
+    for short, bone in pb.items():
+        if re.search(pattern, short) and not short.endswith("Shoulder"):
+            curves = _quat_curves(arm, act, bone.name)
+            if curves:
+                _rewrite_quats(curves, amplify)
+                done.append(short)
+    print("pose_driver: amp x%.2f on %s" % (factor, ", ".join(done) if done else "no bone (quaternion curves not found)"))
+
+
+def _bake_lean(arm, act, pb, deg, fwd, joint, f0):
+    """lean=<deg> (pass 69, a sprint): the spine bent forward `deg` degrees in all, a third at each of Spine, Spine1 and
+    Spine2, written into the keyframes; the direction is checked against the character's forward (the head must move
+    ahead) so a rig with the other axis convention leans the right way."""
+    from mathutils import Quaternion
+    names = [n for n in ("Spine", "Spine1", "Spine2") if n in pb] or ["Spine"]
+    step = math.radians(deg) / len(names)
+    head0 = joint("Head", f0)
+
+    def tilt(sign):
+        def fn(frames, qs):
+            return [q @ Quaternion((1.0, 0.0, 0.0), sign * step) for q in qs]
+        return fn
+
+    for n in names:
+        curves = _quat_curves(arm, act, pb[n].name)
+        if curves:
+            _rewrite_quats(curves, tilt(1.0))
+    moved = (joint("Head", f0) - head0).dot(fwd)
+    if moved < 0.0:
+        # the other way round: undo twice over
+        for n in names:
+            curves = _quat_curves(arm, act, pb[n].name)
+            if curves:
+                _rewrite_quats(curves, tilt(-2.0))
+        moved = (joint("Head", f0) - head0).dot(fwd)
+    print("pose_driver: lean %.0f deg over %s (the head %.2f m ahead)" % (deg, ", ".join(names), moved))
 
 
 def _pick_action(arm, name=None):

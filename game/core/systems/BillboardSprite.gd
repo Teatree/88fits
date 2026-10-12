@@ -168,6 +168,32 @@ static func water_covers_blob(at: Vector3, half_a: Vector3, half_b: Vector3, cam
 	return water_covers(at, eye, Vector4(disc.x, disc.y, disc.z, disc.w + sqrt(ra * ra + rb * rb)), thick)
 
 
+## Pass 69 (the title's locked hero, Garry: "a full black mask"): the scene's fog tinted the black-tinted painting a warm
+## brown. `on` draws both passes with copies of their shaders that add `fog_disabled`; off goes back to the originals.
+## The copies are built once per shader and shared.
+static var _fogless_cache: Dictionary = {}
+
+
+func set_fogless(on: bool) -> void:
+	_ensure()
+	for m: ShaderMaterial in [_mat, _over]:
+		if m == null:
+			continue
+		var base: Shader = m.get_meta("fog_base") if m.has_meta("fog_base") else m.shader
+		m.set_meta("fog_base", base)
+		m.shader = _fogless_shader(base) if on else base
+
+
+static func _fogless_shader(base: Shader) -> Shader:
+	var key := base.resource_path if base.resource_path != "" else str(base.get_instance_id())
+	if _fogless_cache.has(key):
+		return _fogless_cache[key]
+	var s := Shader.new()
+	s.code = base.code.replace("render_mode ", "render_mode fog_disabled, ")
+	_fogless_cache[key] = s
+	return s
+
+
 func _param(key: String, value: Variant) -> void:
 	_mat.set_shader_parameter(key, value)
 	if _sil:

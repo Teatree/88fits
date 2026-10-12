@@ -1,0 +1,98 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/weapons/salt/salt_icon.png" id="1_ey85m"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_vi8j1"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="3_vh0ws"]
+[ext_resource type="PackedScene" path="res://content/weapons/salt/salt_visual.tscn" id="4_vi8j1"]
+
+[sub_resource type="Resource" id="Resource_vi8j1"]
+script = ExtResource("2_vi8j1")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_vh0ws"]
+script = ExtResource("2_vi8j1")
+stat = "area"
+op = "mul"
+value = 0.1
+
+[sub_resource type="Resource" id="Resource_ci38h"]
+script = ExtResource("2_vi8j1")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_7bp80"]
+script = ExtResource("2_vi8j1")
+stat = "cooldown"
+op = "mul"
+value = -0.15
+
+[sub_resource type="Resource" id="Resource_73b60"]
+script = ExtResource("2_vi8j1")
+stat = "damage"
+op = "mul"
+value = 0.25
+
+[sub_resource type="Resource" id="Resource_xlc6w"]
+script = ExtResource("2_vi8j1")
+stat = "amount"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_5bvn5"]
+script = ExtResource("2_vi8j1")
+stat = "area"
+op = "mul"
+value = 0.15
+
+[resource]
+script = ExtResource("3_vh0ws")
+behavior = "SaltShaker"
+tags = ["salt", "ground"]
+targeting = "ground"
+base = {
+"amount": 1.0,
+"area": 1.0,
+"cooldown": 1.6,
+"damage": 6.0,
+"duration": 4.0
+}
+levels = [[], [SubResource("Resource_vi8j1"), SubResource("Resource_vh0ws")], [SubResource("Resource_ci38h")], [SubResource("Resource_7bp80"), SubResource("Resource_73b60")], [SubResource("Resource_xlc6w"), SubResource("Resource_5bvn5")]]
+max_level = 5
+evolves_into = "hiwa_kai"
+sfx = {
+"fire": "w_salt_shake"
+}
+visual = ExtResource("4_vi8j1")
+visual_file = "salt_visual.tscn"
+params = {
+"salt": {
+"alpha": 0.6,
+"area_mult": 1.0,
+"color": "#FFFFFF",
+"contents": "#F4F4F0",
+"damage_mult": 1.0,
+"duration_mult": 1.0,
+"max_patches": 40.0,
+"radius": 1.4,
+"spacing": 1.2,
+"tick": 0.5
+},
+"shaker": {
+"bob": 0.08,
+"distance": 1.2,
+"height": 1.25,
+"orbit_speed": 0.55
+}
+}
+id = "salt"
+display_name = "Salt"
+flavour = "A pinch for luck. A trail for the rest."
+rarity = "uncommon"
+weight = 8.0
+icon = ExtResource("1_ey85m")
+icon_file = "salt_icon.png"
+placeholder = {
+"color": "#F4F4F0",
+"glyph": "mine"
+}

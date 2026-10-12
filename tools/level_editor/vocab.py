@@ -85,7 +85,8 @@ DROP_KEYS = {"small": 0.0, "medium": 0.0, "large": 0.0, "gold": 0.0, "chest": 0.
              "coins": 12, "chests": 1}
 DROPS_DEFAULT = {"small": 1.0, "gold": 0.02}
 VARIANCE_KEYS = {"size": 0.0, "speed": 0.0, "tints": [], "tint_strength": 0.35, "special_chance": 0.0,
-                 "special": {"size": 1.3, "hp": 1.6, "damage": 1.2, "xp": 2.0, "tint": "", "tint_strength": 0.6}}
+                 "special": {"size": 1.25, "hp": 10.0, "damage": 2.0, "xp": 2.0, "tint": "", "tint_strength": 0.6,
+                             "glow": 0.6}}  # pass 69 (lane EN): EnemyDef.SPECIAL_DEFAULTS
 SHADOW_KEYS = {"scale": 1.0, "up": 0.0, "drop": 0.0}
 SFX_HOOKS = {"enemy": ["hit", "die", "attack", "spawn"], "weapon": ["fire", "hit", "place", "burst", "reload", "land"]}
 # body keys with the game's defaults (JsonContent._enemy)
@@ -145,6 +146,9 @@ PLAYER_DEFAULTS = {
     "barrel_seconds": 0.0, "xp_drop_chance": 0.0, "elite_damage": 0.0, "phoenix_revive": 0.0, "hurt_speed": 0.0,
     "hurt_speed_seconds": 0.0, "powder_keg_chance": 0.0, "coin_on_hit": 0.0, "gas_mask_cap": 0.0, "kill_might": 0.0,
     "buff_duration": 1.0, "heal_mult": 1.0, "powerup_duration": 1.0, "powerup_chance": 1.0,
+    # pass 69 (lane PAS's passive items): Counterpunch, Heavyweight, Snake Oil, Hot Springs, Last Stand, the Magnet's pulls
+    "counter_damage": 0.0, "counter_haste": 0.0, "counter_speed": 0.0, "counter_seconds": 0.0, "heavyweight": 0.0,
+    "overheal": 0.0, "heal_pulse": 0.0, "last_stand": 0.0, "xp_pull_radius": 0.0, "xp_pull_rate": 0.0,
 }
 # player stats the code reads that are not in PLAYER_DEFAULTS (default 0 from get_stat); content uses them all
 PLAYER_STATS_EXTRA = {"brand_chance": 0.0, "fire_vuln": 0.0, "poison_slow": 0.0, "poison_pass": 0.0}
@@ -191,6 +195,25 @@ STAT_NAMES = {
     "kill_might": ["attack damage per 1,000 kills", "pct"], "buff_duration": ["buff duration", "pct"],
     "heal_mult": ["healing", "pct"], "radius": ["pillar radius", "m"],
     "powerup_duration": ["power-up duration", "pct"], "powerup_chance": ["power-up drop chance", "pct"],
+    # pass 69: the new passive items' stats; kind "word" = said in words, never with a number (the Magnet's pulls)
+    "counter_damage": ["damage of the next attack after an evade", "pct"], "counter_haste": ["attack speed after an evade", "pct"],
+    "counter_speed": ["move speed after an evade", "pct"], "counter_seconds": ["boost after an evade", "sec"],
+    "heavyweight": ["attack damage per 10 max HP", "pct"], "overheal": ["overheal past full health", "pct"],
+    "heal_pulse": ["damage a heal sends out", "num"], "last_stand": ["attack damage in Last Stand", "pct"],
+    "xp_pull_radius": ["EXP pull radius", "m"], "xp_pull_rate": ["pulls more often", "word"],
+}
+# pass 69: what each new stat does, in a line (the effect pickers show it); lane PAS's help texts
+STAT_HELP = {
+    "counter_damage": "Counterpunch: after an evade the next weapon to fire hits for 1 + this (1.0 = double) with every hit, until it fires again or 1 s passes",
+    "counter_haste": "Counterpunch: weapon speed (haste) during the boost after an evade",
+    "counter_speed": "Counterpunch: move speed during the boost after an evade",
+    "counter_seconds": "Counterpunch: how long the boost after an evade lasts (Buff duration stretches it); 0 = no boost",
+    "heavyweight": "Heavyweight: attack damage grows with max HP: this much per whole 10 max HP (its own source on the pause screen)",
+    "overheal": "Snake Oil: heals that are not regen can go past full health up to this share of max HP; hits take it first, it never fades, pink on the HP bar",
+    "heal_pulse": "Hot Springs: every heal (regen too, one pulse per 0.5 s at most) hurts creatures within 3 m for this + 2 per HP healed, 40 at most",
+    "last_stand": "Last Stand: a hit that leaves him under 30% health slows time to half for 2 s and adds this much attack damage; a hidden 20 s cooldown",
+    "xp_pull_radius": "Magnet: every few seconds at random every EXP gem within this many metres flies to the hero (never chests, gold or power-ups); 8.5 m at most",
+    "xp_pull_rate": "Magnet: the pulls' random 3-8 s wait is divided by 1 + this (1.0 = 1.5-4 s); the cards say \"pulls more often\", never a number",
 }
 # the weapon stats WeaponInstance.rebuild seeds before `def.base` (defaults), then the ones systems read with no seed
 WEAPON_STATS = {"damage": 5.0, "cooldown": 1.0, "amount": 1.0, "pierce": 0.0, "area": 1.0, "speed": 10.0, "duration": 2.0,
@@ -212,7 +235,8 @@ RARITY_PLATE = {"common": "d2cfc7", "uncommon": "8cc97a", "rare": "6b9fd8", "epi
 RARITY_UNUSED = ["legendary"]
 # game/core/behaviors/*.gd minus the base class and the Turret (the Spawner's child)
 BEHAVIOURS = ["ProjectileEmitter", "Orbiter", "Lobber", "LaserBeam", "Beam", "Spawner", "MineLayer", "MissilePod", "Thruster",
-              "Smasher", "GravityGun", "ConeWave", "SunScepter"]
+              "Smasher", "GravityGun", "ConeWave", "SunScepter",
+              "SaltShaker", "Frisbee"]   # pass 69: the Salt (lane SALT) and the Frisbee (lane FRIS)
 TARGETING = ["nearest", "priority", "densest", "orbit", "random", "healthy", "forward", "ground"]
 TARGETING_MEANINGFUL = ["priority", "forward", "random", "healthy"]
 MUTATION_KINDS = ["element", "volume", "motion", "stance", "hero"]
@@ -233,7 +257,9 @@ PARAMS_KEYS = {
                           "size_mult", "pin", "plant", "trail_zone", "no_spin", "roll_radius", "return", "out_speed_mult",
                           "back_speed_mult", "return_damage_mult", "second_pass", "sticky", "hit_radius", "bounce", "bomblets",
                           "curare", "trace", "cloud_mult", "spiral", "turn", "wander", "trail", "tail_fade", "life",
-                          "ignite_chance", "fire_blue"],
+                          "ignite_chance", "fire_blue",
+                          # pass 69: Alley-Oop's launch, the ball's Heat look (lane BB), May's Trigger Happy (lane HERO)
+                          "launch", "heat_look", "fire_without_target", "stream"],
     "Orbiter": ["spin_speed", "breathe", "gyro", "lasso", "side_knock", "solid_ring", "strike", "rust", "rust_patina"],
     "Lobber": ["model", "model_scale", "model_metallic", "model_roughness", "tint", "sticky", "death_pool", "death_of",
                "land_blast", "halo", "bounce", "bomblets", "bomblet_damage_mult", "burst_spawn", "cloud_seconds"],
@@ -247,6 +273,53 @@ PARAMS_KEYS = {
     "Spawner": ["max_turrets", "max_turrets_mult", "turret", "turret_fire_rate", "magnet", "tracer", "focus"],
     "Thruster": ["thrust", "crit_refund", "stunned_mult", "trail_color", "razor", "riposte", "crit_stroke"],
     "SunScepter": ["sun", "zenith", "gold_dust", "shine", "staff_tint", "handle_ring"],
+    # pass 69: the Salt's patches and its floating shaker; the Frisbee's flight, disc, carry, Trick Shot and loop
+    "SaltShaker": ["salt", "shaker"],
+    "Frisbee": ["bend_deg", "bend_per_extra", "fan_deg", "falloff", "hit_radius", "height", "glide_seconds", "disc", "carry",
+                "proc_mult", "stun", "loop"],
+}
+
+# ---------------------------------------------------------------- perk specials (pass 69: Run.perk_param, Decoy.param)
+
+# A perk's `special` names the mechanism the game runs; `params` tune it (Run.perk_param(special, key, default) reads
+# the first held perk whose special matches). `by`: "special" = any perk id carrying it works (periodic_buff, decoy);
+# "id" = the code also checks the perk's own id (Run.has_perk("<id>")), so only the perk with that id triggers it: a
+# copy under a new id keeps the numbers but needs code to fire. Params: key -> the code's default (None = a list or a
+# word, no number). The check below reads every default from the sources.
+PERK_SPECIALS = {
+    "": {"by": "special", "params": {}, "help": "none: the perk's effects only (Afterglow, Long Day)"},
+    "decoy": {"by": "special", "params": {"every": 30.0, "first": 6.0, "throw_min": 4.0, "throw_max": 7.0, "flight": 0.6,
+                                          "radius": 6.5, "duration": 2.0},
+              "help": "Inflatable May: every `every` s (first after `first` s) she throws an inflatable double `throw_min`..`throw_max` m away; it flies `flight` s; where it lands every creature within `radius` m (Elites too, never a boss) goes for the doll for `duration` s, a pink ? over it, then it pops"},
+    "periodic_buff": {"by": "special", "params": {"every": 30.0, "first": None, "seconds": 5.0, "buff": None},
+                      "help": "Buzzer Beater: after `first` s (else `every`), then every `every` s, the `buff` effects (target player) for `seconds` s, a timed buff under the perk's name"},
+    "timeout": {"by": "id", "params": {"every": 20.0, "first": 10.0, "side": 3.0, "pickup": None},
+                "help": "Fadeaway's Timeout: drops the pickup `pickup` `side` m to his left or right, first after `first` s, then `every` s after the last one went"},
+    "overdrive": {"by": "id", "params": {"every": 5.0, "step": 0.05, "max": 0.25},
+                  "help": "Jeżyk's Overdrive: every `every` s at full momentum is one gear of `step` attack damage, up to `max`; a hit that lands drops every gear"},
+    "ram": {"by": "id", "params": {"thorns_mult": 3.0, "flat": 12.0, "per_level": 0.0, "shove": 9.0, "from": 0.99},
+            "help": "Jeżyk's Ram: at a charge of `from` or more a creature that touches him is shoved `shove` and takes `flat` + `per_level` x level + `thorns_mult` x thorns instead of biting"},
+    "high_noon": {"by": "id", "params": {"every": 30.0, "first": 20.0, "seconds": 3.0, "slow": 0.3},
+                  "help": "the Drifter's High Noon: every `every` s (first after `first`) every creature moves at `slow` speed for `seconds` s"},
+    "trail_dust": {"by": "id", "params": {"every": 0.22, "radius": 1.1, "seconds": 1.0, "slow": 0.25},
+                   "help": "the Drifter's Trail Dust: the dust behind him slows creatures"},
+    "bounty_hunter": {"by": "id", "params": {"every": 60.0, "reach": 16.0, "hp_mult": 4.0, "gold": 40.0},
+                      "help": "the Drifter's Bounty Hunter: every `every` kills a creature within `reach` m is WANTED"},
+    "serenade": {"by": "id", "params": {"radius": 4.0, "every": 0.3, "slow": 0.25}, "help": "Calavera's Serenade: creatures near him move slower"},
+    "crescendo": {"by": "id", "params": {"per_kill": 0.01, "max": 0.4}, "help": "Calavera's Crescendo: every kill adds attack damage up to `max`; a hit drops it"},
+    "grand_finale": {"by": "id", "params": {"radius": 14.0, "frac": 0.35, "throw": 16.0}, "help": "Calavera's Grand Finale: a dying boss or Elite hurts and throws the crowd round it"},
+    "supply_drop": {"by": "id", "params": {"every": 40.0, "first": 15.0, "warn": 1.5, "radius": 2.6, "damage": 30.0,
+                                           "damage_per_level": 4.0, "knockback": 14.0, "heart_below": 0.6, "drops": None},
+                    "help": "Astro's Supply Drop: a pod crashes near her every `every` s and leaves `drops`"},
+    "thruster_burst": {"by": "id", "params": {"crowd": 6.0, "reach": 2.6, "every": 8.0, "push": 28.0, "lift": 5.0, "throw": 18.0,
+                                              "throw_radius": 3.2, "invuln": 0.6},
+                       "help": "Astro's Thruster Burst: `crowd` creatures within `reach` m and she flies clear"},
+    "suit_seals": {"by": "id", "params": {"invuln": 1.5}, "help": "Astro's Suit Seals: the level-up patch gives `invuln` s of invulnerability"},
+    "deep_breath": {"by": "id", "params": {"below": 0.35, "mult": 4.0, "seconds": 6.0, "cooldown": 40.0}, "help": "Ironwood's Deep Breath: below `below` health his regen runs `mult` times over"},
+    "unbroken": {"by": "id", "params": {}, "help": "Ironwood's Unbroken: hits no longer pause his regen"},
+    "sunburn": {"by": "id", "params": {"bonus": 0.2}, "help": "Solenne's Sunburn: a burning or poisoned creature takes `bonus` more from her"},
+    "lingering_light": {"by": "id", "params": {"harder": 0.3, "longer": 0.3}, "help": "Solenne's Lingering Light: her burns and poison tick harder and last longer"},
+    "tough_love": {"by": "id", "params": {"might": 0.15, "area": 0.15, "seconds": 4.0}, "help": "Dad's Tough Love: a hit gives attack damage and area for a while"},
 }
 # where a params key may be read besides its behaviour's file (ProjectileManager reads a projectile's params, ...)
 _PARAMS_SHARED = ["core/systems/ProjectileManager.gd", "core/systems/WeaponInstance.gd", "game/Game.gd", "core/systems/Mine.gd",
@@ -323,6 +396,8 @@ def table(content_dir, game_dir=None, combos_seen=()):
         "placeholder_shapes": PLACEHOLDER_SHAPES, "placeholder_ears": PLACEHOLDER_EARS, "placeholder_glyphs": PLACEHOLDER_GLYPHS,
         "sounds": sound_ids(content_dir), "elites": folder_ids(content_dir, "elites"), "pickups": folder_ids(content_dir, "pickups"),
         "combos_seen": sorted(combos_seen),
+        # pass 69: a line per new stat, and the perk specials with their params' defaults
+        "stat_help": STAT_HELP, "perk_specials": PERK_SPECIALS,
     }
 
 
@@ -457,10 +532,48 @@ def check_against_source(game_dir):
     for name in ENEMY_ORDER:
         if '"%s"' % name not in ed:
             problems.append("EnemyDef.gd does not name the animation %s" % name)
+    # pass 69 (lane EN): the special's defaults the page shows are the game's (EnemyDef.SPECIAL_DEFAULTS)
+    m = re.search(r"const SPECIAL_DEFAULTS\s*:?=\s*\{(.*?)\}", ed)
+    if not m:
+        problems.append("EnemyDef.SPECIAL_DEFAULTS not found")
+    else:
+        got = {k: float(v) for k, v in re.findall(r'"([a-z_]+)":\s*([0-9.]+)', m.group(1))}
+        want = {k: float(v) for k, v in VARIANCE_KEYS["special"].items() if k != "tint"}
+        if got != want:
+            problems.append("EnemyDef.SPECIAL_DEFAULTS %s / VARIANCE_KEYS.special %s" % (got, want))
     plg = _read(game_dir, "player/Player.gd")
     for name in CHAR_ORDER:
         if '"%s"' % name not in plg:
             problems.append("Player.gd does not name the animation %s" % name)
+    # pass 69: every stat with a help line is a stat the game names; the perk specials and their defaults are the code's
+    for s in STAT_HELP:
+        if s not in STAT_NAMES:
+            problems.append("STAT_HELP names %s, which TextGen.STATS does not" % s)
+    perk_src = "\n".join(_read(game_dir, p) for p in ("game/Game.gd", "core/autoload/Run.gd", "player/Player.gd",
+                                                       "core/systems/EnemyManager.gd", "core/systems/Decoy.gd"))
+    decoy = _read(game_dir, "core/systems/Decoy.gd")
+    for sp, spec in PERK_SPECIALS.items():
+        if not sp:
+            continue
+        if spec["by"] == "id" and 'has_perk("%s")' % sp not in perk_src:
+            problems.append("perk special %s: no Run.has_perk(\"%s\") in the game (by id)" % (sp, sp))
+        if spec["by"] == "special" and not re.search(r'special [!=]= "%s"' % sp, perk_src):
+            problems.append("perk special %s: no `special == \"%s\"` in the game" % (sp, sp))
+        for key, dflt in spec["params"].items():
+            if dflt is None:
+                if '"%s"' % key not in perk_src:
+                    problems.append("perk special %s: the key %s is not read" % (sp, key))
+                continue
+            pats = [r'perk_param\("%s", "%s", ([-0-9.]+)\)' % (sp, key)]
+            if sp == "decoy":
+                pats.append(r'\bparam\("%s", ([-0-9.]+)\)' % key)
+            if sp == "periodic_buff":
+                pats.append(r'params\.get\("%s", ([-0-9.]+)\)' % key)
+            found = [float(v) for pat in pats for v in re.findall(pat, decoy if sp == "decoy" and "param(" in pat and "perk_" not in pat else perk_src)]
+            if not found:
+                problems.append("perk special %s: %s is not read with a default" % (sp, key))
+            elif float(dflt) not in found:
+                problems.append("perk special %s: %s defaults to %s in the code, %s here" % (sp, key, found, dflt))
     jc = _read(game_dir, "core/data/JsonContent.gd")
     for k, v in ENEMY_DEFAULTS.items():
         if k in ("frame_px", "strip_cols"):

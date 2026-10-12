@@ -1,0 +1,97 @@
+{
+  "id": "salt",
+  "name": "Salt",
+  "flavour": "A pinch for luck. A trail for the rest.",
+  "rarity": "uncommon",
+  "weight": 8,
+  "behavior": "SaltShaker",
+  "targeting": "ground",
+  "tags": [
+    "salt",
+    "ground"
+  ],
+  "base": {
+    "damage": 6,
+    "cooldown": 1.6,
+    "amount": 1,
+    "area": 1.0,
+    "duration": 4.0
+  },
+  "max_level": 5,
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      },
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.1
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.15
+      },
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      },
+      {
+        "stat": "area",
+        "op": "mul",
+        "value": 0.15
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "hiwa_kai",
+  "params": {
+    "salt": {
+      "radius": 1.4,
+      "tick": 0.5,
+      "spacing": 1.2,
+      "max_patches": 40,
+      "color": "#FFFFFF",
+      "alpha": 0.6,
+      "contents": "#F4F4F0",
+      "duration_mult": 1.0,
+      "damage_mult": 1.0,
+      "area_mult": 1.0
+    },
+    "shaker": {
+      "distance": 1.2,
+      "height": 1.25,
+      "orbit_speed": 0.55,
+      "bob": 0.08
+    }
+  },
+  "sfx": {
+    "fire": "w_salt_shake"
+  },
+  "placeholder": {
+    "color": "#F4F4F0",
+    "glyph": "mine"
+  },
+  "art_prompt": "a small glass salt shaker with a shiny chrome cap full of holes, tilted and pouring a stream of white salt grains onto a little white pile"
+}

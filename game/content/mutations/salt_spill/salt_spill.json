@@ -1,0 +1,24 @@
+{
+  "id": "salt_spill",
+  "name": "Salt Spill",
+  "flavour": "Seven years of bad luck. For them.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "salt",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Every patch spreads 60% wider.",
+  "vfx": "wide white patches",
+  "effects": [],
+  "params": {
+    "salt": {
+      "area_mult": 1.6
+    }
+  },
+  "art_prompt": "a glass salt shaker with a chrome cap knocked over on its side, a wide fan of spilled white salt spreading out from it",
+  "placeholder": {
+    "color": "#E8E8E0",
+    "glyph": "star"
+  }
+}

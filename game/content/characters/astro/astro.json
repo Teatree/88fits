@@ -4,6 +4,10 @@
   "flavour": "Wrong planet. Right attitude.",
   "order": 2,
   "pronoun": "she",
+  "hidden": false,
+  "availability": "available",
+  "price": 0,
+  "currency_type": "gold",
   "trait": [],
   "trait_per_level": [
     {

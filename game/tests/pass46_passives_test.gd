@@ -337,13 +337,18 @@ func test_the_collection_has_its_tabs_and_marks_the_heroes_mutations() -> void:
 	var pea: Array = CollectionScreen.page_mutations(Registry.weapon("peashooter")).map(func(m: MutationDef) -> String: return m.id)
 	assert_bool(pea.has("fan_the_hammer")).is_true()
 	assert_str(CollectionScreen.hero_only_text(Registry.mutation("fan_the_hammer"))).is_equal("DRIFTER ONLY")
-	# pass 67: Buck is back in play, so his Drum Roll is on the Tommy Gun's page, marked as his
+	# pass 67: Buck is back in play, so his own is on his weapon's page, marked as his; pass 69: he is Jeżyk, his own is
+	# Salt Flats on the Salt's page and the Tommy Gun's Drum Roll is hidden (off the page)
 	var tommy: Array = CollectionScreen.page_mutations(Registry.weapon("tommy_gun")).map(func(m: MutationDef) -> String: return m.id)
-	assert_bool(tommy.has("drum_roll")).is_true()
-	assert_str(CollectionScreen.hero_only_text(Registry.mutation("drum_roll"))).is_equal("BUCK ONLY")
-	# a hidden hero's own stays off his weapon's page (Mira's Blasting Cap on the Land Mine)
+	assert_bool(tommy.has("drum_roll")).is_false()
+	var salt: Array = CollectionScreen.page_mutations(Registry.weapon("salt")).map(func(m: MutationDef) -> String: return m.id)
+	assert_bool(salt.has("salt_flats")).is_true()
+	assert_str(CollectionScreen.hero_only_text(Registry.mutation("salt_flats"))).is_equal("JEŻYK ONLY")
+	# pass 69 (lane UI): Mira is back (a hero to buy), so her Blasting Cap is on the Land Mine's page, marked as hers (a
+	# hidden hero's own staying off: pass66_shape_test's rule, Dad has none)
 	var mine: Array = CollectionScreen.page_mutations(Registry.weapon("land_mine")).map(func(m: MutationDef) -> String: return m.id)
-	assert_bool(mine.has("blasting_cap")).is_false()
+	assert_bool(mine.has("blasting_cap")).is_true()
+	assert_str(CollectionScreen.hero_only_text(Registry.mutation("blasting_cap"))).is_equal("MIRA ONLY")
 	# the cells: three to a row, a short last row centred under them
 	var cs: CollectionScreen = auto_free(load("res://ui/CollectionScreen.tscn").instantiate())
 	add_child(cs)

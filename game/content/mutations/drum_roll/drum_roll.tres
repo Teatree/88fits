@@ -15,9 +15,10 @@ params = {
 }
 id = "drum_roll"
 display_name = "Drum Roll"
-flavour = "Buck fires faster the faster he runs."
+flavour = "Jeżyk fires faster the faster he runs."
 rarity = "rare"
 weight = 8.0
+hidden = true
 icon = ExtResource("1_nlulx")
 icon_file = "drum_roll_icon.png"
 placeholder = {

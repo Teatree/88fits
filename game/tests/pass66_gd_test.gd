@@ -50,12 +50,13 @@ func _hero_from(d: Dictionary) -> CharacterDef:
 
 func test_availability_folds_into_hidden() -> void:
 	var base: Dictionary = JsonContent.load_json(ASTRO + "astro.json")
-	# "purchase": out of play, the price and the currency carried
+	# "purchase": pass 69 (lane UI) wired the loop: shown on the title, locked or on sale (Registry.hero_state), never
+	# hidden; the price and the currency carried
 	var buy := base.duplicate(true)
 	buy["availability"] = "purchase"
 	buy["price"] = 500
 	var c := _hero_from(buy)
-	assert_bool(c.hidden).is_true()
+	assert_bool(c.hidden).is_false()
 	assert_str(c.availability).is_equal("purchase")
 	assert_int(c.price).is_equal(500)
 	assert_str(c.currency_type).is_equal("gold")
@@ -71,6 +72,8 @@ func test_availability_folds_into_hidden() -> void:
 	assert_str(plain.currency_type).is_equal("gold")
 	var h := base.duplicate(true)
 	h["hidden"] = true
+	# (pass 69: astro.json writes "availability" now; without it, `hidden` says)
+	h.erase("availability")
 	var hc := _hero_from(h)
 	assert_bool(hc.hidden).is_true()
 	assert_str(hc.availability).is_equal("hidden")
@@ -107,7 +110,8 @@ func test_every_hero_json_keeps_hidden_and_availability_in_step() -> void:
 		if d.is_empty():
 			continue
 		var c := JsonContent.build("characters", d, dir) as CharacterDef
-		assert_bool(c.hidden).override_failure_message(id).is_equal(c.availability != "available")
+		# pass 69 (lane UI): only "hidden" hides; a "purchase" hero is shown (to be unlocked and bought)
+		assert_bool(c.hidden).override_failure_message(id).is_equal(c.availability == "hidden")
 		assert_bool(["hidden", "available", "purchase"].has(c.availability)).override_failure_message("%s: %s" % [id, c.availability]).is_true()
 		assert_int(c.price).is_greater_equal(0)
 

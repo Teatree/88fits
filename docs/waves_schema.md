@@ -349,3 +349,39 @@ energy (pass 53's `WeaponBehavior.GLOW` 0.45 when the key is absent). A missing 
 tab's params; a mutation's or an evolution's `final` too) wins over the map's, key by key. The title screen's companion
 and the spawn beam's warm-up read the same block. The editor's Save keeps the key (every top-level key of the file rides
 along, one added while the page was open too); the page does not edit it.
+
+## Pass 69: the coloured specials (`special_defaults`, a swarm's `special`)
+
+### Events
+- `swarm.special` (bool, default false): every creature the swarm brings comes as its **variance special** for sure
+  (`EnemyManager.force_special`, held by `WaveDirector._run_event` around the spawn): whatever its `special_chance`,
+  before `colour_after_kills`, with no SWARM! banner. Its numbers are the creature's Special block (below). A creature
+  with no `variance` block has no special and comes plain. Red Canyon's special Goblin (Garry: "a single 'Special'
+  regular Goblin appears at the end of the first wave"):
+  `{"t": 120, "type": "swarm", "enemy": "red_goblin", "variant": "RG-B", "count": 1, "pattern": "in_front",
+  "special": true, "name": "Special Goblin"}`: the first roster row (r1, the red goblins, RG-B) runs 0:00-2:02, so the
+  special one walks in from the top of the screen at 2:00 and plays that row's numbers (an event joins the row that
+  brings the same creature, pass 58), x10 HP, x2 ATK, x1.25 size. The editor: the event's "Special" box (swarm only), a
+  star after its label and its glyph in the creature's special colour on the Events lane.
+
+### Scalars
+- `special_defaults` (optional block, default `{}`): `{"size", "hp", "damage", "xp", "tint_strength", "glow"}`, the
+  map's numbers for a variance special that the creature's own `variance.special` does not name. Each number is the
+  creature's own, else this block's, else the game's `EnemyDef.SPECIAL_DEFAULTS` (size 1.25, hp 10, damage 2, xp 2,
+  tint_strength 0.6, glow 0.6; `EnemyDef.special_value`). `WaveTimeline.special_defaults`, handed to
+  `EnemyManager.special_defaults` by `WaveDirector._apply_mults`. Red Canyon has none (every creature names its own
+  size, hp and damage; none names a glow, so the game's 0.6 or this block's `glow` is every special's glow). The editor:
+  Settings, "Coloured specials".
+
+### Creature JSON (`variance.special`)
+- New key `glow` (0..1): the emissive rim `enemy_billboard.gdshader` draws round a special in its colour (the tint's hue
+  at full brightness, breathing 0.8-1 at about half a hertz), 1 + 4.2 x glow screen pixels wide with a lighter core 0.6 + glow px wide, and the painted outline
+  lit by 0.85 x glow; burn, poison and freeze tint it while they last; the harpooner's red tether rim wins. It rides on
+  INSTANCE_CUSTOM.y as 64 x level (0..16) above the flip bit and the tether's level (`EnemyManager.special_glow_code`).
+- A special's size is exactly `size` x the creature's (the plain ones' `variance.size` spread no longer applies to it), so
+  it is never smaller than a big plain one; a size-range row still stops it at the range's top.
+- Pass 69's numbers on every creature with a chance: `special_chance` a third of what it was (4 decimals), `size` 1.25,
+  `hp` 10.0, `damage` 2.0 (XP and colours as they were). The editor: Enemies tab, "Special" (Chance, Size x, HP x, ATK x,
+  XP x, Colour, Colour strength, Glow), with what applies and from where, and the plain one beside its special.
+- `tint` may be any colour (pass27_test wanted a dark one before; the editor now only warns on a light or grey one).
+- A row's `stats.variance.special.glow` overrides it like the other special numbers ("Special glow" in the Elite group).

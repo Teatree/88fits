@@ -181,3 +181,263 @@ kept and the tests now read the map file and ask only for shapes any curve of hi
 and each boss second on its own stage's side of the step (the King's 430 against 429, the Gila's 860 against 859, to
 0.005 since his stage 2 slopes). Pass 64's promise (stage 2 with a quarter of the board, stage 3 with half) was tuned
 on the old curve and is his to keep or drop.
+
+**Pass 69 (2026-10-12, v0.55): Garry's big list, inspired by Megabonk.** Nine lanes from one contract (tools/dl/p69/INTERFACES.md: every id, number and file owner) and the lead's integration: the basketball's Heat moved from the HUD onto the ball, Full Court Press hidden and Alley-Oop in its slot, a black Slam Dunk; two new weapons (the Salt, the Frisbee) with three path mutations, a hero mutation and an evolution each; five new passive items and the Magnet reworked into random EXP pulls; special enemies three times rarer and far stronger with a glow Garry colours per creature, and one special Red Goblin at 2:00; the spawn beam fading out; Buck became Jeżyk (a bald blue Slav in a tracksuit, Salt and Frisbee), Mamy became May (Trigger Happy, the inflatable decoy); heroes are bought with gold after an unlock quest, shown as black silhouettes in a new hero drawer on the title; new looks for Fadeaway, Jeżyk (three runs) and May through the Level Editor's queue; the Level Editor edits all of it, with a Pass 69 how-to section.
+
+Lane ART (pass 69). **Icons**, painted as candidate sets with Flux.2 Klein (`tools/gen_icon_cands.py`, set 69 in
+`tools/dl/icons69/`, 4 seeds each, finished and checked at card and HUD size on the sand before installing; the review
+sheet `tools/dl/p69/art/icons_review.png`): the Basketball again from words with the classic seams (one belt seam, one
+crossing seam, two bowed side seams; the model render `basketball_ref.png` has beach-ball meridians, which is why the
+pass-67 icon did not read as a basketball), Alley-Oop (a royal-blue ball throwing a red goblin skyward, the goblin as
+big as the ball after the first set's was a speck at HUD size), Slam Dunk (a black ball with ember seams through the
+hoop), Salt / Sea Salt / Hiwa Kai from lane SALT's shaker renders (white, pink, black salt with black crystals), Salt
+Spill, Thing About Luck, Salt Flats, the Frisbee / Trick Shot (`frisbee_trick_shot`) / Poison Razors / Flying Saucer
+from lane FRIS's disc renders (Poison Razors copies the joke of Garry's `frisbee_razors.jpg` without its text), Carry,
+Counterpunch, Heavyweight, Snake Oil, Hot Springs, Last Stand (passives/last_stand: a cracked heart before a cold
+stopwatch), the Magnet as an epic (a red magnet pulling purple, cyan and pink gems: the old purple one vanished on the
+epic plate), Trigger Happy (the Tommy from `tommy_ref.png` firing with a pink heart) and Inflatable May. **Rebound**:
+three designs as three Level Editor `icon_cands` jobs on `mutation/rebound` (a backboard bounce, a U-turn arrow round
+the ball, a hand catching the returning ball); the arrow (B c3) installed through the editor's Install, the other two
+installable from their job cards (`tools/dl/p69/keys_ART.md`). The hero unlock quests have icon slots the game never
+shows; not painted. **The shoulder fault** Garry saw in the side runs and Fadeaway's sagging back run came from the
+drivers, not the paintings: `pose_driver.py` takes the Mixamo Neck bone as OpenPose's neck, which sits above the
+shoulder line, so seen from 25 degrees above both shoulders hang under the neck (an inverted V from behind: sagging
+shoulders) and, from the side, the far elbow rides up behind the back at neck height in the passing frames (painted as a
+raised, hunched shoulder). New `tools/pose_shoulders.py` levels the shoulders toward the neck (`level`, `keep_tilt`) and
+tucks the far arm in the side view's passing frames (`tuck`); `pose_driver.py` gained `amp=` (limbs swing wider),
+`lean=` (spine forward) and `arms=back` (the dash). Drivers: run_side / run_side_t, run_spread_lvl, run_sprint(_lvl,
+_f), run_dash(_lvl, _f). **Looks**, all through the Level Editor's queue (port 8787) with badge and title cut-out
+candidate jobs each, every strip checked frame by frame in contact sheets: Fadeaway FAD-C (white shorts with purple and
+gold stripes; side on run_side_t, back on run_spread_lvl; square shoulders from behind, no lump from the side) is his
+played look now; Jeżyk BUC-D (jog), BUC-E (sprint: legs 1.35x wider, a 12-degree lean; the front views on a no-lean copy
+because the lean hid his face) and BUC-F (the dash with the arms swept back) from a front painted off Garry's tracksuit
+sheet (`front_from_picture`, 6 candidates, c0); May MAY-G on Flux.2 dev at 30 steps without Turbo (about 6.5 min a still,
+2 h for the look; dev painted the three-quarter front facing left twice, so it was mirrored; Wan turned her white sleeve
+stripes yellow in some frames, sent back by the recipe's `remap_hues`) is her played look now; May's inflatable
+decoy (`content/characters/may/may_decoy.png`: a blown-up pool toy of her with mitten hands, seams and a valve; the first
+set came out as May in latex in a T-pose). **Lessons**: every hero is painted on the blue screen unless the JSON names
+`screen`, so a blue-skinned hero lost his head and hands to the keyer (BUC-D's first stills; fixed with the recipe's
+`"screen": "green"`); a still re-roll on a look whose paintings another look shares forks them to a new slug (BUC-D went
+to "d2" and BUC-E/F had to follow); a forward lean hides the face in the front run (front views on a no-lean copy); the
+comfy lock has no fairness, so a hand-run test starves while the editor's queue runs (queue it as a re-roll instead);
+Klein turned the black tracksuit olive on the green screen in the cheer twice (neutralised by `fix_cheer.py`).
+
+**Lane BB (the basketball, Heat on the ball, no hero gauge).** The HUD's hero gauge (pass 67's MOMENTUM / HEAT bar under
+the slots, `HUD._build_gauge` / `_tick_gauge` / `gauge_state`, `GAUGE_*`) and its words under the slots (MOMENTUM, RAM,
+OVERDRIVE, HEAT; `HUD.heat_bonus`) are gone, and `Run.hero_gauge()` with them (Garry: "No UI indicators of any kind").
+Heat shows on the ball instead (`params.heat_look {color, hot, glow_min, glow_max, seam_glow_max, pulse_hz, pulse,
+surfaces, trail_from, trail_size, trail_life, flame_from, flame_size, halo, halo_from, halo_alpha}` on the basketball
+and Slam Dunk; Alley-Oop sets `surfaces` "seams"): each ball is drawn in a heat copy of its kind with its seams split
+off (`ProjectileManager.seam_kind`, `heat_kind`: materials duplicated, emission on) whose glow
+`ProjectileEmitter._tick_heat_look` writes every frame from Run.heat / catch.heat_max (`heat_glow`): the seams glow like
+cracks of lava up to `seam_glow_max`, the body only warms (`glow_max` 0.45), all of it beating at 3 Hz at the top on
+the manager's clock (`heat_pulse`); `_heat_trail` drops orange beads and, past `flame_from`, flame tongues behind it;
+past `halo_from` `_draw_heat_halos` draws a soft two-shell halo in a smooth MultiMesh of its own, only its far half
+(cull front, so it never tints the ball); a drop in Heat puts the balls in flight out at once with a puff of steam
+(`_fizzle`). The first cut (the whole ball glowing at 2.2 with a pale halo) washed the ball into a pale disc on the
+captures: the glow moved into the seams. New look keys for vertex-coloured shots: `tint.body` (flat colour, vertex
+colours off: `tint_material`'s new `vertex_colors`) and `tint.seams {color, emission, energy, below}`
+(`ProjectileManager.seam_kind` splits the model's dark triangles into a surface of their own), so Alley-Oop's ball is
+dark blue with black seams and Slam Dunk's black with ember seams. Full Court Press is hidden; **Alley-Oop**
+(`content/mutations/alley_oop`, volume, rare) takes its slot: `params.launch {chance 0.15, height 3.5, air_time 0.9,
+fall_damage_frac 1.0, sfx}` rolled by every ball hit a creature lives through (the hook in ProjectileManager's hit loop
+calls `EnemyManager.try_launch`); a plain creature flies straight up on its own curve (`launch_curve`: up fast, a hang,
+the drop), skips its brain, bite and attacks (`_tick_launch`, riding lift_mode 1 with an entry in `_launched` keyed by
+its spawn serial), lands with a spray of sand and `w_grav_land` taking the fall through `damage()`; big game takes it at
+once; a body killed up there falls (`_drop_launched_body`). **Slam Dunk** keeps the path and amplifies it in its
+`final` (return x1.2 over Rebound's x1.0, launch 0.25 and x1.5, On Fire's burn x1.5 by a level-1 `fire_damage mul`),
+black with glowing seams, its Heat in the seams only (`heat_look.surfaces` "seams"); it lost Full Court Press's +2
+bounces. `TextGen.launch_words` puts the launch in the ball's words; `WeaponInstance._ball_hits` counts the falls. Tests `pass69_bb_test.gd`; re-pinned on purpose:
+pass67_buck (the gauge tests became one no-gauge test), pass67_fadeaway (the path, Slam Dunk's tint).
+
+**Pass 69, lane SALT: the Salt.** Garry: "New Weapon - Salt - Leaves a white half transparent patch in hero's wake,
+which damages enemies as long as they are walking or standing in it ... a little salt shaker floats around the hero,
+shaking occasionally to pour some more salt down on the floor". A new uncommon weapon in everyone's pool,
+`content/weapons/salt` on a new behaviour primitive, `core/behaviors/SaltShaker.gd`: every cooldown it pours `amount`
+patches back along the hero's way (the first 0.4 m behind his heels, then every `salt.spacing` 1.2 m along the path he
+walked, round his feet when he stood still), each `salt.radius` 1.4 m x area for `duration` 4 s; every `salt.tick` 0.5 s
+each creature standing in the salt takes one hit through the weapon's own path (overlapping patches never hit twice), at
+most 40 patches lie (the oldest fades and stops working). `core/systems/SaltPatches.gd` keeps and draws them: one
+MultiMesh of discs draped over the dunes by `core/shaders/salt_patch.gdshader` (the telegraphs' height grid, a lobed rim,
+grains of salt in world space on a see-through bed, loose grains at the edge) and one of little hard crystals: two draw
+calls whatever lies. The shaker is a real model, `tools/blender_salt.py` -> `art/props/salt_shaker.glb` (ribbed glass
+Body, a Contents mesh the path tints, a chrome Cap and its Holes, a Spout empty; the chrome is half metal with a faint cool
+glow, since a full metal mirrored the orange sand and read as copper), floating 1.2 m out, circling and bobbing, tipping
+over and shaking at every pour while grains fall (`Fx.salt_grains`) and each patch lands in a low puff (`Fx.salt_land`);
+the same script renders `tools/dl/salt_ref.png`, `sea_salt_ref.png`, `hiwa_kai_ref.png` for the icons. The path, all
+`params.salt` keys merged by the mutations and an evolution's `final`: Sea Salt (pink #F4A3C4 patches and contents, x1.75
+duration, x0.95 damage), Salt Spill (x1.6 radius), Thing About Luck (a creature killed standing in a patch rolls the
+power-up drop at x3: `Game._salt_luck_at` -> `WaveDirector.drop_pickup_from(..., luck)`, any weapon's kill), Jeżyk's Salt
+Flats (walking INTO a patch from outside it puts his momentum at full: `Player.max_momentum()`; a patch laid round his
+feet counts only once he has walked out and back in), and the evolution Hiwa Kai (black salt with seven hard black
+crystals on every patch, the path amplified to x2 duration, x1.8 radius, x4 luck, and its own bite: a creature walking
+into the salt takes a crunch of x2 a tick and moves 30% slower while it stands in it). Each pour plays `w_salt_shake`, synthesised in `tools/synth_sfx.py` (three glassy taps, a rattle of grains on the cap, a
+hiss of falling salt). TextGen words it (`salt_words`,
+"patches", "patch radius"), WeaponInstance gives its rows and estimate (`salt_rows`, `salt_dps`: one creature a patch
+lying). Captured by `game/tools/_p69_salt_shot.gd` (white, pink, wide, black, at the game's camera, mid-pour and close);
+tests `game/tests/pass69_salt_test.gd`.
+
+**Pass 69, lane FRIS: the Frisbee.** A new common weapon `frisbee` (behaviour `Frisbee`, core/behaviors/Frisbee.gd, in
+the pool for everyone; Jeżyk starts with it) after Garry's "throws a frisbee in curving arcs, can't predict which
+direction they will go ... hits through enemies, but has a damage drop off like the Revolver, but frisbee never stops".
+A self-contained flight with no ProjectileManager shot and no held model: it aims at the nearest creature in range (else
+where he faces), each disc of a volley leaves its fanned aim line (16 degrees apart) at a bend of 25 degrees + 12 per
+extra frisbee to a random side and turns back on the circle that crosses the line at the target's distance (clamped to
+3 m..range, the whole turn capped at the bend + 60 degrees), flies its whole range (12 m), then glides 0.45 s down to the
+sand and fades, hitting nothing on the way down. Every creature within 0.55 m x size of the disc is cut once a flight
+at 0.85^n of the damage, never under 0.25. The discs are built in code (Frisbee.disc_mesh: a lathe-turned disc with
+flight rings in vertex colours, a box per razor blade; the plain lime one, the hot-pink "Shredder" with eight blades
+after `_REFERENCES/2d/frisbee_razors.jpg`, the chrome-and-pink saucer with glowing razors and a glass bubble), spin flat,
+bank into the turn and leave a faint ribbon (one ImmediateMesh for every disc). The path: **Poison Razors** (element:
+the game's poison, the razor disc), **Carry** (volume: 10% that the first creature hit rides the disc to where it comes
+down, held by the Gravity Gun's grip so never a boss, an Elite or an ungrabbable creature, one a disc; the disc x1.5;
+card text exactly Garry's "It has a 10% chance to carry the enemy away.") and **Trick Shot** (motion, id
+`frisbee_trick_shot` since `trick_shot` is the Revolver's: `params.proc_mult` 1.25, read by the new
+Run.trick_proc_mult in Run.add_damage for life steal and in EnemyManager.damage for crit, Cold Snap and Vulture, and by
+the frisbee for a `stun` roll it may carry; no frisbee content stuns today, so its stun share waits for one). The
+**Flying Saucer** evolution keeps the path amplified (carry 0.2 with a drop hit of the disc's damage, poison x1.5 via
+its own base poison_damage/duration 2 on the razors' 4, proc_mult 1.5, the saucer disc x1.5 with a green poison haze)
+and loops once a flight: one full 1.3 m circle the way it is turning, somewhere between 30% and 70% of its range.
+TextGen.frisbee_words, amount noun "frisbees", stat rows without pierce, a dps estimate of three creatures at the
+drop-off. References for the icons rendered by tools/_p69_fris_ref.gd (tools/dl/frisbee_ref.png,
+frisbee_razors_ref.png, flying_saucer_ref.png); captures by tools/_p69_fris_shot.gd; tests pass69_fris_test.gd.
+
+**Lane PAS (pass 69): five new passive items and the Magnet reworked** (Garry's items 4-9). Counterpunch (uncommon):
+an evade arms the next attack (the first weapon to fire after it hits for x2 until it fires again or 1 s passes:
+Run.counterpunch_evaded / counterpunch_fired, called from WeaponBehavior._process, / counterpunch_mult in
+EnemyManager.damage) and starts a quiet timed boost of weapon speed and move speed (2 s, +20% / +15%; levels add).
+Heavyweight (rare): +1% attack damage per whole 10 max HP (+0.25% a level), its own sheet source redone with the
+passives (Run._apply_heavyweight). Snake Oil (epic): Player.overheal, filled by any heal past full (not regen) up to
+20/30/40% of max HP, taken first by hits, never fading; the HUD's HP bar runs on past full in pink. Hot Springs (epic):
++max HP and regen, and every heal (regen too) is summed into a pulse at most every 0.5 s, 4 + 2 per HP healed (40 at
+most) to creatures within 3 m (Player._tick_heal_pulse -> heal_pulsed -> Game._heal_pulse, source `hot_springs`), a
+green-gold ring racing out. Last Stand (epic): a hit leaving him under 30% (Run.last_stand_check, from take_damage before
+`hit`, so the hit-stop stays out) puts x2/x2.5/x3 attack damage on the sheet and ui/LastStandFx.gd runs the engine at 0.5x
+for 2 s of real time, owning Engine.time_scale (1x whenever the run is paused, ended at once on death or when the node
+leaves), with its own look (core/shaders/last_stand.gdshader: a cold blue-grey drain and a red heartbeat rim on a canvas
+layer under the HUD), a toast and a thump; a hidden 20 s cooldown. The Magnet became epic and lost its pickup radius:
+PickupManager._tick_xp_pulls pulls every EXP gem within 5-8.5 m (pull_xp, the magnet arc) at random waits of 3-8 s
+divided by 1 + xp_pull_rate (1.5-4 s at level 5). TextGen gained the "word" stat kind (said by its name, never a number,
+left out of totals) so the Magnet's "pulls more often" never names its interval. Ten new player stats (counter_*,
+heavyweight, overheal, heal_pulse, last_stand, xp_pull_radius, xp_pull_rate), four synthesised sounds (tools/synth_sfx.py:
+it_last_stand, it_heal_pulse, it_xp_pull, it_counterpunch). Tests: pass69_pas_test.gd; pass47_rules_test's tiers
+re-pinned. A headless probe (game/tools/_p69_PAS_probe.gd: the arena, the Drifter with all six and Evade + Thirst,
+a crowd that hits, god mode off) saw each work in the live game: Last Stand twice in 60 s (120 slowed frames each, the
+clock back at 1x), ~90 heal pulses, every evade arming Counterpunch, ~20 Magnet pulls; captures in tools/dl/p69/PAS/shots
+(game/tools/_p69_PAS_shots.gd). LastStandFx counts real time as the frame's delta without the engine's scale (a wall
+clock clamped per frame had stretched the window on a slow frame).
+
+**Lane EN (special enemies, the special Goblin, the spawn beam).** Garry: "increase the power of 'Special' enemies a bit
+... 3 times more rare ... 1.25 times bigger ... HP x10 ... ATK x2 ... the colouring of special enemies should be
+possible in the Level Editor ... a single 'Special' regular Goblin appears at the end of the first wave"; "the beam of
+light ... gets cut off at the bottom". Every creature with a `variance.special_chance` has a third of it (4 decimals) and
+`special` size 1.25, hp 10, damage 2 (a special's size is now exactly its factor x the creature's, the plain ones'
+spread dropped, so it is never smaller than a big plain one; XP kept; `tools/dl/p69/EN/specials_edit.py`, line edits, CRLF kept, Garry's
+armadillo/dust_mummy looks kept). `EnemyDef.SPECIAL_DEFAULTS` {size 1.25, hp 10, damage 2, xp 2, tint_strength 0.6,
+glow 0.6} and `special_value(sp, defaults, key)`: a special's number is the creature's own, else the map's new
+`timeline_data.special_defaults` (`WaveTimeline.special_defaults`, JsonContent, `WaveDirector._apply_mults` ->
+`EnemyManager.special_defaults`), else the game's. New `special.glow` 0..1: `EnemyManager.vglow` rides on
+INSTANCE_CUSTOM.y as 64 x level (`special_glow_code`, above the flip bit and the tether's 2 x 16, so
+enemy_silhouette's `mod(y, 2)` is untouched) and `enemy_billboard.gdshader` draws an emissive rim 1 + 4.2 x glow px (a lighter core ring 0.6 + glow px)
+wide in the tint's hue at full brightness (linear), breathing 0.8-1, and lights the painted outline (0.85 x glow); off
+while dying; the tether's red wins. A swarm event's new `"special": true` holds `EnemyManager.force_special` around its
+spawn: every one comes as its special, whatever its chance, before `colour_after_kills`, with no SWARM! banner. Red
+Canyon's special Goblin: `{"t": 120, "type": "swarm", "enemy": "red_goblin", "variant": "RG-B", "count": 1, "pattern":
+"in_front", "special": true, "name": "Special Goblin"}` (the green goblin is retired; the first row r1, the red goblins,
+runs 0:00-2:02, the scorpion charge comes at 2:03; the event joins r1's fixed numbers). The spawn beam: shine_aura's
+mode 1 gains `fade_y` (a smoothstep in world height, off by default so the chest's beam is unchanged) and
+`Game._spawn_beam_fade` sets it on both beam quads from the highest sand under each (5 samples across its width):
+nothing 0.15 m above it, whole 2.6 m higher (`SPAWN_BEAM_FADE_GAP`, `SPAWN_BEAM_FADE`, `spawn_beam_fade_y`). Level
+Editor: the Enemies tab's new "Special" section (Chance, Size x, HP x, ATK x, XP x, Colour picker, Colour strength,
+Glow; a table of what applies and from where: this creature / the map's Coloured specials / the game's; a plain one
+beside its special drawn with its tint and rim, `Enemies.paintSpecial`), Settings' "Coloured specials" card
+(`special_defaults.*`), the swarm's "Special" box with a note of what it brings, a star and the creature's special
+colour on its Events-lane flag and a line in its card, "Special glow" among a row's Elite overrides; `Model.SPECIAL_DEFAULTS`
+/ `specialValue` / `specialSource`, `varianceSpecial(c, stats, defaults)` (+ `glow`), `creatureAt` reading the map's
+defaults, the spawn estimate counting a special swarm as coloured (and selftest.py's Python twin); a light special
+colour is now a warning, not an error (pass27_test re-pinned to "a valid colour"); vocab.py's VARIANCE_KEYS and a drift
+check against `EnemyDef.SPECIAL_DEFAULTS`; `selftest_EN.py` (28 checks). docs/waves_schema.md "Pass 69". Re-pinned:
+pass27_test (special tint), pass46_pacing_test (the stretched events skip the special one), pass62_pc_test (stage 1's
+events gain the special Goblin), selftest.py's varianceSpecial default size 1.25. Tests `pass69_en_test.gd` (8).
+
+**Lane HERO (pass 69): Mamy is May, Buck is Jeżyk.** Garry's Mamy (built in the Level Editor during pass 68) became
+**May** everywhere: her folder `content/characters/may` (may.json, the strips, the `_ai.json` markers, new .import files),
+id `may`, codes MAY-A/B/C/F (her draft MAY-F still says it came from MAY-E); the art caches were COPIED under the new
+keys (ai_raw_anime may_*, ai_anim may_mayb_/may_mayc_pose_run_*, review/may_badge_cands.png) so a re-roll finds them,
+the old ones and the Level Editor's backups and finished jobs left as history. Her kit: favourite the Tommy Gun (cooldown
+-15%), her hero mutation **Trigger Happy** (the Tommy never stops: ProjectileEmitter's new `fire_without_target` fires
+along her facing with nobody in range, `stream` spreads each burst over the whole cooldown; damage x0.65, cooldown
+x0.6) and her perk **Inflatable May** (the new perk special `decoy`, `core/systems/Decoy.gd`): every 30 s she throws an
+inflatable double 4-7 m away; where it lands a faint pink circle of 6.5 m marks it and for 2 s every creature inside
+(Elites too, never a boss) walks to it and bites it (EnemyManager `fool` / `decoy_target`, one hook where the brain
+steers and one before the bite) with a pink "?" bobbing and pulsing over its head (one MultiMesh,
+`core/shaders/decoy_mark.gdshader`, `art/ui/decoy_question.png` from `tools/make_decoy_art.py`), then it pops with a
+pink puff and a squeak (`pk_decoy_land`, `pk_decoy_pop`, synthesised in `tools/synth_sfx.py`). The doll is
+`may_decoy.png` (a placeholder cut from her cheer frame until lane ART paints the vinyl doll). **Buck** keeps his id and
+charge and becomes **Jeżyk** (Polish "little hedgehog", the Sonic nod Garry asked for, no "-ov"): a bald blue-skinned
+man in a black tracksuit with white stripes from Garry's reference; he lands with the Frisbee, loves the Salt (area
++25%), owns Salt Flats; Drum Roll is hidden. His top-level art words (art_prompt, appearance, hints, side_hint asking
+for level shoulders, title_pose with his hands in his jacket pockets) are the tracksuit's, which every new look
+inherits; the deer's words moved into the deer looks' recipes so a re-roll of them still paints the deer; BUC-A and
+BUC-C shelved, BUC-B played until lane ART lands the tracksuit look. UiKit's Lilita One head font got the bold body font
+as a fallback (it has no ż).
+
+**Lane UI (heroes to unlock and buy, the hero drawer).** Garry: "There are now unavailable heroes, ones that can be
+unlocked ... After the requirements are met the heroes will become available to unlock by buying them with coins", a Hero
+Collections button "to the left of the selected hero plaque ... like a box of boxes" that opens "a kind of a Drawer UI
+element with the list of all heroes 2 rows tall ... over the hero preview". The purchase loop parked in pass 66 is wired:
+`availability` "purchase" no longer hides a hero (JsonContent: only "hidden" does; a purchase hero is shown whatever
+`hidden` says); `Registry.hero_state(c)` reads owned | buyable | locked | hidden from his availability, his unlock quest
+`unlock_<id>` (Registry.quest_for) and `Save.heroes_owned` (new key; a save from before owns only the free heroes, as
+Garry asked); `Save.buy_hero` spends his price once with the sink "hero"; `Registry.heroes_for_drawer` orders owned, on
+sale, locked. Six quests (Calavera: the Tumbleweed King; Ironwood: 2,500 kills; Solenne: extract after stage 2; Jeżyk:
+15 minutes in a run; May: level 30 in a run; Mira: 99,999,999 kills, out of reach on purpose) and prices 300/400/600/
+500/700/9,999, Fadeaway 50 with no requirement (Garry's test), Drifter and Astro free, Mira back (order 9), Dad hidden.
+The title (ui/TitleScreen.gd): a hero not owned runs in under a black mask (TitleStage.LOCKED_TINT near black; the
+desert haze still warms it a little), his plaque reads Unknown with "?" for his numbers and his start weapon and
+favourite as mystery plates (WPlate.mystery: the icon's black shape and a "?"); locked, the Requirement card (what
+unlocks him and the progress bar) sits over the plaque, between his feet and the dots, with the padlock on his chest;
+on sale, BUY with his price sits over him (aged with "N more gold" under it when the purse is short); BUY asks
+(WConfirm), buys, lifts the mask (TitleStage.reveal) under a WCelebrate burst and opens PLAY; PLAY refuses a hero not
+owned. The Hero Collections button (drawn: two boxes and a third in an open crate; a close X while open) opens
+ui/wanted/WHeroDrawer.gd over the preview, between the tagline and the hero's head: every hero as a badge tile in two
+rows (sideways scroll when they do not fit: TouchScroll.horizontal), the shown one brass, a not-owned badge as a mystery
+plate with his price or LOCKED under it; a tile selects him (he runs in under the drawer, which stays open), a tap
+outside closes it. The hero sheet has the same unknown state (and his price when on sale); the developer menu has "own
+every hero" and "forget the bought ones"; the run's banner and the results say a hero is for sale without naming him;
+`hero_bought` goes to PostHog. touch_audit's hero_drawer / hero_buy, pass69_ui_test. tools/arena_check.gd runs the title's quiet quest check before it snapshots the save (a new hero quest the save already
+met completed on the title after the arena and read as the arena changing the save); RunAnalytics.META_REASONS has
+"hero".
+
+Garry: "When making changes to Items along the way, make sure to update the LevelEditor and include instructions on how I
+would be able to use the newly created tools in the future" (and the same for heroes). The editor now edits everything the
+pass added, and its Instructions tab opens with "Pass 69: how to use the new tools" (twelve how-tos).
+
+- **Typed params** (`AFIELDS.PARAM_GROUPS`, new `tools/level_editor/typed_forms.js`): a weapon's Params and a mutation's
+  Effect show the knobs of the Salt (Salt patches, the floating shaker), the Frisbee (flight, disc, Carry, Trick Shot and
+  stun, the loop), the ball (Alley-Oop's launch, the Heat look, the ball's body and seam colours) and Trigger Happy's
+  nonstop fire as typed, explained fields above the JSON box. An empty box says what applies and where from (a mutation:
+  its weapon's params, which /api/items now carries; an evolution's `final`: its own params; else the code's default). An
+  evolution edits `params.final` or its own params. The selftest reads every typed key and default against the game's
+  sources (it caught two: `salt.alpha` 0.5 and `disc.size` 0.36 in code, the weapons set their own) and checks every key
+  the pass's content sets under a typed group has a row.
+- **Perks have a form** (kind `perk`: server EDIT_KINDS / EDITOR_OWNED, KIND tables, the Heroes tab): His own → Edit or
+  + New perk… (a copy of any perk for this hero). The special comes from `vocab.PERK_SPECIALS` (every default checked
+  against Run.perk_param / Decoy.param); `decoy` and `periodic_buff` work on any perk, the others are checked by their
+  perk's id in the game and the form warns on a copy.
+- **Heroes to buy**: Availability free / to buy / hidden with `hidden` kept in step (lane UI's rule: only hidden hides);
+  the hero's **Requirement** writes, edits or removes `content/quests/unlock_<hero>` (unlocks {type character}) through
+  the availability op, in TextGen.quest_text's words (`AssetsModel.questText`); the list cards show the price and a
+  requirement chip; new warnings for a hero on the title without a perk or with other than one hero mutation in play.
+- **Icon candidates install from the item**: an item's (or perk's) Art section lists its finished icon candidate jobs, each
+  picture with Install (Rebound's three designs A backboard, B return arrow, C catching hand).
+- **Vocabulary**: the behaviours SaltShaker and Frisbee and their params keys; the ten new player stats with a help line
+  each; TextGen's new stat kind "word" mirrored (the Magnet's "pulls more often": no number, no total).
+- **Drivers** (lane ART's tools): the driver_pose job gained amp, amp_bones, lean, arms back and shoulders / shoulder_views
+  / tuck (tools/pose_shoulders.py writes `<name>_lvl`); "+ New pose driver…" on a hero's Art words.
+- **A pass 66 bug fixed**: `U.getPath` stopped at a list, so every weapon's and passive's Levels showed no effects, and
+  `U.setPath` turned `levels` into an object on the first edit; both step into lists by index now.
+- The quest-locked band follows pass44_test's re-pin (28-56%); the selftest's count pins became shape rules read from the
+  content and the test file. Self-test 17,675 checks (new group selftest_L69.py).
+
+**The lead.** Reviewed every lane's captures and fixed what read wrong: the Alley-Oop ball rendered violet and Slam Dunk's black brown under the sky's warm ambient light (a ball tint's `ambient` false: `disable_ambient_light`; Alley-Oop #0A4FA8), the live title's black mask came out brown in the scene's fog (`BillboardSprite.set_fogless`: copies of the billboard shaders with `fog_disabled` while a hero is locked), Last Stand's red rim was a solid band a quarter of the screen wide (now 0.085 of the width, at most 62% red), and a look kept on a phone that has since been shelved now gives way to the hero's own (Registry.played_look, which the player, the title stage, analytics and the arena now all read). Tests: pass69_lead_test.gd. Lessons: a windowed capture with an unbounded wait held the repo-wide Godot lock for half an hour and stalled every lane (captures need frame caps and a watchdog); the ComfyUI lock has no fairness, so a hand-run job starves behind the editor's queue (put the work in the queue); the blue screen keys a blue-skinned hero away (Jeżyk paints on green); Mixamo's Neck bone sits above the shoulder line, which painted sagging backs and raised side shoulders until tools/pose_shoulders.py levelled the drivers.

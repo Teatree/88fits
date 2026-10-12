@@ -8,6 +8,11 @@
 ## sage); the ITEMS (the weapon he lands with, his favourite and what finding it gives, any other weapon only he finds,
 ## his hero mutation and his perks), each on its plate with its name and the words the level-up card shows for it. A
 ## hero still locked shows the same under the quest that unlocks him and how far along it is.
+## Pass 69 (Garry: an unavailable hero is unknown, "stats are unknown, weapon is a black silhouette of the one with a
+## question mark and so is the fav item. All of it."): a hero not owned (`locked`: on sale or locked) reads UNKNOWN under
+## his black badge, no slogan or trait, his signature a "?", every stat a "?", each item a mystery plate (WPlate.mystery)
+## with its role and a "?" for its name; the box under the header says what unlocks him (and how far along it is) or, on
+## sale, his price and where to buy him (the title's BUY).
 ## The card scrolls by hand (TouchScroll) when it is taller than the screen; CLOSE, a tap on the dim outside the card, the
 ## back gesture (TitleScreen asks close()) and Esc close it. It keeps clear of a camera cutout (W.safe_top()).
 ## No class_name (a new one is unknown to a headless run until the editor rescans): open it with
@@ -39,6 +44,7 @@ const SLOP := 40.0
 const FADE_H := 56.0
 
 var hero: CharacterDef
+## Not owned (pass 69): on sale or locked (TitleScreen._is_locked); the sheet reads Registry.hero_state for which.
 var locked := false
 var dim: ColorRect
 var card: PanelContainer
@@ -175,15 +181,17 @@ func _header() -> Control:
 	var star := WStarLine.make("Locked" if locked else "Wanted", 22, W.ROCK if locked else W.INK_SOFT, 0.35)
 	star.alignment = BoxContainer.ALIGNMENT_BEGIN
 	col.add_child(star)
-	var nm := W.text(hero_name(hero).to_upper(), W.slab(), name_px(hero_name(hero)), W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	# pass 69: a hero not owned is Unknown, his slogan and his trait's name a secret too
+	var shown := "Unknown" if locked else hero_name(hero)
+	var nm := W.text(shown.to_upper(), W.slab(), name_px(shown), W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 	nm.name = "Name"
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(nm)
-	var sl := W.serif_text(hero.flavour, 28, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
+	var sl := W.serif_text("?" if locked else hero.flavour, 28, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true, false)
 	sl.name = "Slogan"
 	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(sl)
-	if hero.trait_name != "":
+	if hero.trait_name != "" and not locked:
 		col.add_child(_spacer(2.0))
 		col.add_child(W.label("Trait · " + hero.trait_name, 20, W.BRASS_DARK, 0.15))
 	return h
@@ -209,8 +217,22 @@ func _locked_box() -> Control:
 	v.add_theme_constant_override("separation", 12)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(v)
-	v.add_child(W.label("To unlock", 20, W.ROCK, 0.15))
 	var q := Registry.quest_for("character", hero.id)
+	# pass 69: a hero on sale (his requirement met): his price and where to buy him
+	if Registry.hero_state(hero) == "buyable":
+		v.add_child(W.label("On sale", 20, W.SAGE, 0.15))
+		var row := HBoxContainer.new()
+		row.name = "Price"
+		row.add_theme_constant_override("separation", 12)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(WCoin.make(40.0))
+		var pr := W.slab_text(W.num(maxi(hero.price, 0)), 40, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+		pr.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(pr)
+		v.add_child(row)
+		v.add_child(W.serif_text(("Requirement met: %s " % TextGen.quest_text(q) if q else "") + "Buy on the title with BUY.", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+		return p
+	v.add_child(W.label("To unlock", 20, W.ROCK, 0.15))
 	var words := TextGen.quest_text(q) if q else "Not in the game yet."
 	v.add_child(W.serif_text(words, 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	if q:
@@ -226,8 +248,13 @@ func _locked_box() -> Control:
 ## SIGNATURE STAT: the step a level in big numbers (and Astro's heal), the rule in words, then what it comes to at
 ## levels 1, 10, 20 and 40. A hero with no level trait (the hidden ones, previewed) reads his own trait's words.
 func _signature() -> void:
-	var title := ("Signature stat · " + hero.trait_name) if hero.trait_name != "" else "Signature stat"
+	var title := ("Signature stat · " + hero.trait_name) if hero.trait_name != "" and not locked else "Signature stat"
 	var v := _section(title, "Signature")
+	if locked:
+		var u := _big("?", "unknown", true)
+		(u.get_child(0) as WText).color = W.INK_SOFT
+		v.add_child(u)
+		return
 	if hero.level_trait.is_empty():
 		v.add_child(W.serif_text(TextGen.hero_trait(hero), 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 		return
@@ -301,7 +328,7 @@ func _stats() -> void:
 	grid.add_theme_constant_override("v_separation", 0)
 	grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for st: String in STATS:
-		grid.add_child(_stat_cell(st, stat_value(st, sheet.get_stat(st)), st in mine))
+		grid.add_child(_stat_cell(st, "?" if locked else stat_value(st, sheet.get_stat(st)), st in mine and not locked))
 	v.add_child(grid)
 
 
@@ -417,6 +444,12 @@ func _item(def: ContentDef, role: String, word: String, level: int, bonus: Strin
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var plate := WPlate.new().for_def(def, PLATE, false, level)
 	plate.icon_frac = 0.74
+	# pass 69: a hero not owned: the item's black shape and a "?", its role only
+	plate.mystery = locked
+	if locked:
+		word = word.get_slice(" · ", 0)
+		level = 1
+		bonus = ""
 	plate.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	h.add_child(plate)
 	var col := VBoxContainer.new()
@@ -426,8 +459,8 @@ func _item(def: ContentDef, role: String, word: String, level: int, bonus: Strin
 	h.add_child(col)
 	var k := W.kind_of(def)
 	col.add_child(W.label(word + ((" · " + W.lv(level)) if level > 1 else ""), 18, W.KIND_WORD.get(k, W.INK_SOFT), 0.12))
-	col.add_child(W.text(def.display_name, W.slab(), 38, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
-	var d := W.serif_text(describe(def, level, sheet), 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	col.add_child(W.text("?" if locked else def.display_name, W.slab(), 38, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	var d := W.serif_text("Unknown until this hero is yours." if locked else describe(def, level, sheet), 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
 	d.name = "Text"
 	d.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_child(d)

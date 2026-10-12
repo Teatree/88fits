@@ -48,6 +48,7 @@ var _flap := 0.0
 # params.burst: the shots of one trigger pull leave one after another (a submachine gun) instead of all at once
 var _burst: Array = []   # pending shots: {from, dir, speed, damage, pierce, prad, life, knock, spread}
 var _burst_t := 0.0
+var _stream_gap := 0.0   # pass 69 (lane HERO, May's Trigger Happy): params.stream spreads a burst over the whole cooldown
 var _shots := 0          # trigger pulls, for Both Barrels (every Nth fires twice) and Hip Shot (every Nth)
 ## Both Barrels (pass 51, Garry: "it's actual 2 shots in quick succession"): seconds until the second barrel of a pull
 ## that fires twice (-1: none waiting), DOUBLE_GAP unless params.double_gap says otherwise; and how many have gone (tests)
@@ -105,6 +106,9 @@ func _on_setup() -> void:
 		_orbit = randf() * TAU
 		_place_familiar(0.0)
 	_setup_ring()
+	# pass 69: a ball that shows its Heat has its heat copy made now, so the warm-up behind the spawn beam compiles it
+	if not heat_look().is_empty():
+		_ball_kind(_kind())
 
 
 ## The ring under the shots (pass 53): one MultiMesh of the visual's "Ring" mesh, for a weapon whose params carry an `aura`;
@@ -236,7 +240,20 @@ func _colour_kind() -> int:
 ## Pass 61: made by ProjectileManager.tinted_kind (the Lobber's resin shares it), which also takes `roughness`,
 ## `metallic` and, on a cored streak, `halo` for the glow round the core (Dragon's Breath's orange pellets).
 func tint_kind(tint: Dictionary) -> int:
-	return game.projectiles.tinted_kind(projectile_kind, tint)
+	# pass 69 (the ball): `body` paints a vertex-coloured model flat in that colour, and the seams (`seams`, else plain dark
+	# ones) are drawn again in their own (ProjectileManager.seam_kind): Alley-Oop's dark blue ball, Slam Dunk's black one
+	var t := tint
+	if tint.has("body"):
+		t = tint.duplicate(true)
+		t["albedo"] = tint["body"]
+		t["vertex_colors"] = false
+	var k: int = game.projectiles.tinted_kind(projectile_kind, t)
+	var sm = tint.get("seams")
+	if sm == null and tint.has("body"):
+		sm = {}
+	if sm is Dictionary and game.projectiles.has_method("seam_kind"):
+		k = game.projectiles.seam_kind(k, sm)
+	return k
 
 
 ## A round leaves: the companion kicks back (harder for a silver round, with a small camera kick), and the muzzle flash
@@ -306,6 +323,8 @@ func _fire_burst_shot() -> void:
 		return
 	var b: Dictionary = _burst.pop_front()
 	var dir: Vector3 = _aim_dir if _aim_dir.length_squared() > 0.0001 else player.forward()
+	if _stream_gap > 0.0:
+		dir = _stream_dir()
 	if _familiar:
 		# every round aims from where the companion is now (pass 35: it circles a metre off the hero, and the hero's line
 		# to the target sent a tight round, the Revolver's, a metre wide of it)
@@ -331,15 +350,33 @@ func _turn_drum() -> void:
 		_drum.rotate_object_local(axis, float(inst.params.get("drum_step", 0.5)))
 
 
+## Pass 69 (lane HERO, May's Trigger Happy, `params.stream`): a burst's rounds spread evenly over the whole cooldown, so
+## the gun never pauses (the last round leaves just before the next pull).
+static func stream_gap(cooldown: float, amount: int) -> float:
+	return maxf(cooldown, 0.05) * 0.97 / float(maxi(amount, 1))
+
+
+## Where a streamed round goes (pass 69): at the creature the gun would aim at now, else along the hero's facing (a
+## stream with nobody in range follows where she runs; `fire_without_target`).
+func _stream_dir() -> Vector3:
+	var t := aim_index(player.global_position, stat("range", 9.0))
+	if t < 0:
+		return player.forward()
+	var d: Vector3 = game.enemies.pos[t] - player.global_position
+	d.y = 0.0
+	return d.normalized() if d.length_squared() > 0.0001 else player.forward()
+
+
 func _tick(_delta: float) -> void:
 	_tick_rings(_delta)
 	_tick_looks(_delta)
+	_tick_heat_look(_delta)
 	if _free_t > 0.0:
 		_free_t -= _delta
 	if not _burst.is_empty():
 		_burst_t -= _delta
 		if _burst_t <= 0.0:
-			_burst_t = float(inst.params.get("burst_gap", 0.05))
+			_burst_t = (_burst_t + _stream_gap) if _stream_gap > 0.0 else float(inst.params.get("burst_gap", 0.05))
 			_fire_burst_shot()
 	if _barrel_t >= 0.0:
 		_barrel_t -= _delta
@@ -544,9 +581,10 @@ func _fire() -> bool:
 		_:
 			# the nearest, or (pass 48, "priority") the strong and the close
 			target = aim_index(hero, range_m)
-			if target < 0:
+			if target < 0 and not bool(inst.params.get("fire_without_target", false)):
 				return false
-			dir = (enemies.pos[target] - hero)
+			# pass 69 (lane HERO, May's Trigger Happy): `fire_without_target` fires along her facing when nobody is in range
+			dir = (enemies.pos[target] - hero) if target >= 0 else player.forward()
 			half_spread = _fan_half(amount)
 	dir.y = 0.0
 	if dir.length_squared() < 0.0001:
@@ -596,6 +634,9 @@ func _fire() -> bool:
 				shot["angle"] = lerpf(-sweep * 0.5, sweep * 0.5, float(k) / float(amount - 1))
 			_burst.append(shot)
 		_burst_t = 0.0
+		_stream_gap = stream_gap(stat("cooldown", 1.0), amount) if bool(inst.params.get("stream", false)) else 0.0
+		if _stream_gap > 0.0:
+			_burst_t = _stream_gap
 		_fire_burst_shot()
 	elif _bounces():
 		# pass 67 (the basketball): one ball, its amount past the first more hops
@@ -1087,7 +1128,7 @@ func _bounces() -> bool:
 ## free throw's ball is drawn white (FREE_TINT). The shot's index, -1 when the pool is full.
 func _throw_ball(dir: Vector3, from: Vector3, amount: int, damage: float, speed: float, pierce: int, prad: float, life: float, knock: float) -> int:
 	var pm: ProjectileManager = game.projectiles
-	var k: int = tint_kind(FREE_TINT) if _free_throw else _kind()
+	var k: int = _ball_kind(tint_kind(FREE_TINT) if _free_throw else _kind())
 	var j := pm.fire(k, from, dir * speed, damage, pierce, prad, life, inst, knock)
 	if j < 0:
 		return -1
@@ -1172,3 +1213,64 @@ func on_hero_evaded() -> void:
 	if went:
 		free_throws += 1
 		_free_t = maxf(float((ft as Dictionary).get("every", 0.8)), 0.0)
+
+
+# ---------------------------------------------------------------- pass 69 (lane BB): Heat on the ball
+## Garry: "This indicator should only be present on the 3d object of the ball itself, so a trail, pulsating energy, etc.
+## No UI Indicators". A weapon with `params.heat_look` (the basketball, Slam Dunk; keys in ProjectileManager.heat_glow,
+## _heat_trail and _draw_heat_halos) draws its balls in heat copies of their kinds (ProjectileManager.heat_kind), whose
+## glow follows Run.heat every frame: the emission and an orange trail grow with Heat, flames lick behind it past
+## `flame_from`, a halo swells round it, and at the top all of it beats at `pulse_hz`. A drop in Heat (a hit that reached
+## him) puts the balls in flight out at once with a puff of steam off each (_fizzle).
+## The heat copies of the kinds this weapon's balls are drawn in (kind -> true), Run.heat as last seen.
+var _heat_kinds: Dictionary = {}
+var _heat_was := -1
+## Diagnostics and tests: the Heat the ball shows now (0..1) and the steam puffs a cooling put out.
+var heat_level_shown := 0.0
+var fizzles := 0
+
+
+## The heat look this weapon carries (params.heat_look, merged from an evolution's `final` too), or none.
+func heat_look() -> Dictionary:
+	if inst == null:
+		return {}
+	var hl = inst.params.get("heat_look")
+	return hl if hl is Dictionary else {}
+
+
+## The kind a ball is drawn in: `k` itself, or (with a heat look) the heat copy of it with its seams split off (so the
+## Heat can glow in them; a tint with `body` split them already), kept for the glow's writes.
+func _ball_kind(k: int) -> int:
+	if heat_look().is_empty() or k < 0 or game == null or game.get("projectiles") == null:
+		return k
+	if not game.projectiles.has_seams(k):
+		k = game.projectiles.seam_kind(k, {})
+	var kh: int = game.projectiles.heat_kind(k)
+	_heat_kinds[kh] = true
+	return kh
+
+
+## Every frame: the glow of every heat copy written for Heat now (ProjectileManager.heat_glow), and a drop puts the balls
+## out.
+func _tick_heat_look(_delta: float) -> void:
+	var hl := heat_look()
+	if hl.is_empty() or game == null or game.get("projectiles") == null:
+		return
+	var lv: float = ProjectileManager.heat_level(inst)
+	var h: int = Run.heat
+	if _heat_was > 0 and h < _heat_was:
+		_fizzle()
+	_heat_was = h
+	heat_level_shown = lv
+	for kh in _heat_kinds.keys():
+		game.projectiles.heat_glow(int(kh), lv, hl)
+
+
+## Heat lost (pass 69): a puff of steam off every ball of this weapon in flight, so the cooling reads on the ball.
+func _fizzle() -> void:
+	var pm = game.projectiles
+	for i in range(ProjectileManager.MAX):
+		if pm.alive[i] == 1 and pm.weapon[i] == inst:
+			fizzles += 1
+			if game.has_method("fx_burst"):
+				game.fx_burst(pm.pos[i] + Vector3(0, 0.15, 0), Color(0.86, 0.86, 0.84), 0.55)

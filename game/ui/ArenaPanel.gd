@@ -1193,7 +1193,7 @@ func shown_look() -> String:
 
 ## The look every run starts the hero in: the one kept for him (Save.hero_look) when he still has it, else his JSON's.
 static func kept_look(c: CharacterDef) -> String:
-	return c.variant_def(Save.hero_look(c.id)).look_code() if c else ""
+	return Registry.played_look(c).look_code() if c else ""
 
 
 ## A look chip's tap (pass 55): the hero drawn in that look at once, for this visit (Player.show_look), and the sheet

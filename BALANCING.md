@@ -800,3 +800,386 @@ own front still (its recipe's keys: BB-C's `bull_beetle_bbc_front`, WW-A's `were
 15.15 **An edited job keeps what was applied.** Saving an edited job does not apply its re-roll a second time; a cleared
 candidate field is filled again from the defaults; a re-queue after a stopped attempt repaints only the stills that
 attempt did not reach.
+
+## 16. Pass 69 (v0.55): new weapons, passives, heroes to buy, stronger specials
+
+Garry's request (2026-10-12, tools/dl/p69/REQUEST.md, "Megabonk is a big inspiration"). Each lane's rules as it
+wrote them; the numbers are data unless a rule says code.
+
+### 16.BB The basketball: Heat on the ball, Alley-Oop, Slam Dunk, no hero gauge
+
+16.BB1 **No hero gauge.** The HUD draws no gauge for any hero (pass 67's MOMENTUM / HEAT bar under the slots is gone) and
+the words under the slots no longer carry MOMENTUM, RAM, OVERDRIVE or HEAT (Garry: "No UI indicators of any kind
+please"; "This indicator should only be present on the 3d object of the ball itself"). Momentum shows on the hero
+(Player.gd's VFX, unchanged), Heat on the ball (16.BB2). `Run.hero_gauge()` is gone; `Run.catch_params()` stays.
+
+16.BB2 **Heat shows on the ball** (`params.heat_look`, the basketball and Slam Dunk): every ball in flight follows Run.heat
+/ catch.heat_max (10) live, frame by frame. Its seams glow like cracks of lava: their emission moves from their own
+toward `color` (#FF5A10) and on toward `hot` (#FFC060) near the top, the energy up to `seam_glow_max` 1.6 (Slam Dunk
+2.2); the body only warms toward `color` up to `glow_max` 0.45, so it still reads as an orange basketball (Slam Dunk 0
+and Alley-Oop's `heat_look.surfaces` "seams": the black and the dark blue bodies never glow). From `trail_from` (10% =
+1 Heat) an orange bead trail, denser (a bead every 0.05 s down to 0.02 s), bigger (0.45 to 1.0) and longer-lived (0.15
+to 0.35 s) as Heat climbs; from `flame_from` (40% = 4 Heat) flame tongues lick behind it (40% to 90% of the beads); from
+`halo_from` (90% = 9 Heat) a soft orange halo 1.8x the ball's radius in two shells (0.22 opacity at the top; Slam Dunk
+1.9x, 0.25). At full Heat the glow and the halo beat at `pulse_hz` 3 Hz by `pulse` 35% either way (Slam Dunk 40%). A
+drop in Heat (a hit on his health without heat_keep) puts the balls in flight out at once with a puff of steam off each.
+Purely a look: Heat's damage (+5% a point) is unchanged. Tuned by eye on captures (pass 69 lane BB): a first cut with
+the whole ball glowing at 2.2 washed it to a pale disc and a pale halo hid it; the glow moved into the seams.
+
+16.BB3 **Full Court Press is hidden** (`"hidden": true`, kept in its folder): never offered, no longer part of the
+basketball's path; a run's evolution now needs On Fire, Alley-Oop and Rebound. Slam Dunk loses the +2 bounces Full
+Court Press folded in (5 hops became 3: its own ricochet_any count 3 at 90% within 10 m), traded for the launch and the
+amplified combo below. Not retuned (Garry asked for amplification, not for the old hops).
+
+16.BB4 **Alley-Oop** (mutation, volume, rare, `params.launch {chance 0.15, height 3.5, air_time 0.9,
+fall_damage_frac 1.0}`): every hit of the ball a creature lives through (the throw, each hop, the way home's touches,
+the rebound, a free throw) rolls 15%. A plain creature flies straight up 3.5 m (up in the first 30% of 0.9 s, easing
+out; a hang to 50% with a 4% float; the drop easing in), cannot move, bite or attack while up (its wind-up, charge or
+scripted attack is dropped as a stun drops it; its burns and poisons keep ticking), and lands with a spray of sand and a thud (`w_grav_land`)
+taking 1.0 x that hit's damage through the normal damage path (so it scales with every damage increase, Heat included,
+may crit, counts for kills and XP). The boss, an Elite or an elite-modded creature that rolls it takes the fall's
+damage at once with a sand puff, no flight. A creature already in the air (a launch, a bounce, a tornado), held by the
+Gravity Gun, buried, rising out of the sand, roping the hero or still in the spawn beam is not thrown: its roll does
+nothing. A creature killed up there falls to the sand (22 m/s²) while its death plays. The ball turns dark blue
+(`tint.body` #0A4FA8 out of the sky's ambient light (`tint.ambient` false; the first #1B2E7A rendered violet on the sand, Slam Dunk's black brown), a faint #1A5CFF glow at 0.28, near-black seams #05081A; its Heat only in the seams). With On
+Fire too, the later-taken mutation's glow colour wins (the body stays blue). Its landing is a spray of sand (Fx.sand,
+0.55-1.0 by size), not the burrow's pop_dust: a quarter of the hits throwing creatures up buried the crowd in dust.
+
+16.BB5 **Slam Dunk** keeps the path and amplifies it (`params.final`, the evolution's last word, as the Blunderbuss and
+the Golden Revolver do): Rebound's way home strikes everything on it (return_pierce 80) at x1.2 the throw (Rebound
+x1.0), x1.6 speed; On Fire's burn x1.5 (a level-1 effect `fire_damage mul +0.5`: 4 -> 6 a tick, its duration and
+spread as On Fire has them); Alley-Oop's launch at 25% with the fall at x1.5 the hit (height 3.5 m, 0.9 s kept); its own
+dunk at full Heat and Heat kept for the run as before. The ball is black (`tint.body` #141414, a faint #1A0700 glow at
+0.2, roughness 0.45) with ember seams (#2A0A02 glowing #FF5A14 at 1.3); its Heat glows in the seams only.
+
+16.BB6 **The estimate counts the falls.** WeaponInstance._ball_hits multiplies a throw's touches by 1 + launch.chance x
+fall_damage_frac (Alley-Oop x1.15, Slam Dunk x1.375), big game's instant falls and the plain creatures' landings alike.
+The words (TextGen.launch_words, in the ball's description): "Each hit has a N% chance to throw the enemy into the air:
+it can't attack up there and takes the hit again (or M% of the hit) when it lands."
+
+### 16.SALT The Salt
+
+## The Salt (`content/weapons/salt`, behaviour SaltShaker)
+
+- Uncommon, weight 8, in the pool for every hero (not hero-only), tags `salt`, `ground`.
+- Base: damage 6 a tick, cooldown 1.6 s, amount 1 patch a pour, area 1.0, duration 4 s. Levels: 2 = damage +25%, area
+  +10%; 3 = +1 patch; 4 = cooldown −15%, damage +25%; 5 = +1 patch, area +15%. At level 5: 9.4 a tick, 1.36 s, 3 patches,
+  radius 1.77 m, 4 s.
+- A patch: radius `salt.radius` 1.4 m x area x `salt.area_mult`; lies duration x `salt.duration_mult` seconds; fades in
+  over 0.25 s and out over its last 0.6 s (it works the whole time).
+- **The pour**: every cooldown, `amount` patches back along the hero's way: the first 0.4 m behind his heels, each next
+  one `salt.spacing` 1.2 m further back along the path he walked; the ones his way is too short for (he stood still or
+  just turned up) go round his feet on a sunflower spiral (0.96 m x sqrt(k) out), the first on his feet.
+- **The bite** (new rule): every `salt.tick` 0.5 s, every creature standing in any working patch takes ONE hit of damage
+  x `salt.damage_mult` through the weapon's own path (crits, Cold Snap, Vulture, kill credit to the Salt). Overlapping
+  patches never hit a creature twice in a tick, so a thicker trail is a longer and wider trail, not a stronger one.
+- **The cap** (new rule): at most `salt.max_patches` 40 lie at once; one more sends the oldest still whole into its 0.6 s
+  fade, and a fading-for-the-cap patch hurts nothing and lucks nothing.
+- The estimate (pause screen dps): one creature in every patch lying (amount x lasts / cooldown of them, 40 at most),
+  hit every tick; Hiwa Kai's crunch adds one hit of mult x a tick per patch life.
+
+## The path
+
+- **Sea Salt** (element): pink (#F4A3C4) patches and shaker contents, patches last x1.75, a tick x0.95.
+- **Salt Spill** (volume): patches x1.6 wider (radius).
+- **Thing About Luck** (motion, new rule): a creature killed while it stands in a working Salt patch (where it fell is
+  inside one) rolls the timeline's power-up drop with the per-kill chance x3 (`salt.luck_mult`). Any weapon's kill counts,
+  not only the Salt's. Bosses and Elites roll as their roster says (no other change); the creature's own `drops.pickup`
+  and the chests are untouched. Code: `Game._salt_luck_at` -> `WaveDirector.drop_pickup_from(..., luck)`.
+- **Salt Flats** (Jeżyk's hero mutation, new rule): when the hero walks INTO a patch he was outside of on the last frame
+  (and moved that frame), his momentum (the speed-up) goes to full at once (`Player.max_momentum`: the sheet follows at
+  once; it gives no Overdrive gears, those still come from time at full). A patch laid round his feet counts only once he
+  has walked out of it and back in; staying inside never charges again; a hit still knocks the charge down as before.
+- **Hiwa Kai** (evolution, needs all three + level 5): base damage 13, cooldown 1.2 s, amount 3, area 1.0, duration 4 s;
+  its `final` amplifies the path: patches last x2 (Sea Salt's x1.75), x1.8 wider (Salt Spill's x1.6: radius 2.52 m), the
+  luck x4 (Thing About Luck's x3); damage_mult 1 (Sea Salt's x0.95 penalty dropped). Black salt (#161616) with 7 hard black
+  crystals on every patch. Its own feature (new rule): **the crystals bite**: a creature found in the salt at a tick that
+  was not in it at the tick before takes one extra hit of x2 a tick's damage (the crunch), and every creature standing in
+  the salt moves 30% slower (refreshed each tick for tick + 0.15 s, not stretched by Ducktape; a boss is slowed like any
+  creature here).
+
+## The shaker
+
+- Floats 1.2 m from the hero at 1.25 m, circles him at 0.55 rad/s, bobs 0.08 m; tips over away from him and shakes for
+  0.45 s at every pour, grains falling from its cap. Model `art/props/salt_shaker.glb` at scale 2 (about 0.6 m tall).
+
+### 16.FRIS The Frisbee
+
+## The Frisbee (`content/weapons/frisbee`, behaviour `Frisbee`)
+
+- Common, weight 9, in the pool for every hero (no `hero`); Jeżyk starts with it (lane HERO).
+- Base: damage 14, cooldown 1.2 s, amount 1, speed 13 m/s, range 12 m, knockback 1.5; `pierce 999` is only a marker
+  (the behaviour cuts through everything and ignores pierce). Levels: 2 = +25% damage, -10% cooldown; 3 = +1 frisbee;
+  4 = +30% damage, +2 m range; 5 = +1 frisbee, -12% cooldown.
+- Aim: the nearest creature within range (on the screen), else where he faces; it throws even with nobody there.
+- The arc: each disc leaves its aim line at `bend_deg` 25 + `bend_per_extra` 12 per extra frisbee (amount 3 = 49) to a
+  side picked at random per disc, then turns back at a steady rate so it crosses the line at the target's distance
+  (clamped to 3 m..range; the whole turn capped at the bend + 60 degrees, so a close target gets a gentler hook that
+  passes near it). A volley's aim lines fan 16 degrees apart.
+- It flies its whole range (12 m: about 0.9 s), then glides 0.45 s (slowing, sinking to the sand, fading) and hits
+  nothing while it glides.
+- Hits: every creature within 0.55 m x size_mult x area of the disc (plus the creature's radius), once a flight;
+  the n-th creature after the first takes 0.85^n of the damage, never under 0.25 (the floor from the 10th creature
+  on). Knockback along its flight. Poison and fire as the sheet says.
+- The disc: radius 0.36 m x size_mult x area (0.72 m across; Carry and the saucer 1.08 m). The weapon's `area` (Reach and the like) makes it bigger and cut wider.
+- Estimate (pause screen dps): a disc counted as cutting 3 creatures at the drop-off (1 + 0.85 + 0.72 = 2.57).
+
+## Carry (`carry`, volume)
+
+- The first creature a disc hits (never later ones) rides it 10% of the time, to the end of the flight, and is set down
+  where the disc comes down (end of the glide). One a disc. It is held by the Gravity Gun's grip, so never a boss, an
+  Elite archetype, an elite-modded creature or one whose `can_be_grabbed` is false (the rocketeer, the harpooner), and
+  nothing hits it while it rides (it takes the first hit, then no hits from anything until set down). It still cuts
+  everything else on the way. The disc is x1.5 larger (and cuts x1.5 wider).
+- Card text exactly: "It has a 10% chance to carry the enemy away."
+
+## Poison Razors (`poison_razors`, element poison)
+
+- poison_damage +4, poison_stacks +1, poison_duration +4 s (the game's poison: a tick every 2 s). Hot-pink disc with
+  eight steel razor blades round the rim.
+
+## Trick Shot (`frisbee_trick_shot`, motion; id note: `trick_shot` is the Revolver's)
+
+- `proc_mult` 1.25 for this weapon only: life steal (x1.25 of what its damage steals; the per-second cap unchanged),
+  crit chance x1.25, Cold Snap's freeze chance x1.25, Vulture's heal-on-crit chance x1.25, and a `stun` the weapon may
+  carry x1.25 (Run.trick_proc_mult, read in Run.add_damage and EnemyManager.damage). No look change.
+- **Not satisfiable as asked**: nothing in the game gives the Frisbee a stun today (the only stun is the Spear's
+  Stunning Thrust), so Trick Shot's stun share does nothing until a stun reaches the frisbee (`params.stun {chance,
+  seconds}` on the weapon, a mutation or the Level Editor). The card still names stun, as Garry asked.
+
+## The Flying Saucer (`flying_saucer`, evolution)
+
+- Base: damage 30, cooldown 1.0, amount 3, speed 15, range 15, knockback 2; poison_damage 2 and poison_duration 2 on
+  top of the razors' 4 and 4 = x1.5.
+- Amplified path: carry chance 0.2 and the ride ends with a drop hit of 1.0 x the disc's damage; proc_mult 1.5;
+  poison x1.5; the saucer disc (chrome and pink, glowing razors, a glass bubble, a faint green haze) x1.5 larger.
+- Its own feature: once a flight, at a random point between 30% and 70% of its range, the disc flies one full circle
+  of 1.3 m (the way it is already turning), then goes on along its arc. The loop does not count against the range.
+
+### 16.PAS Five new passive items and the Magnet
+
+Every number below is data (the item's JSON `levels`) unless marked **code** (a named constant).
+
+## Counterpunch (uncommon, weight 8, 5 levels, `content/passives/counterpunch`)
+- An **evade** (Player.take_damage's evade branch) arms the next attack and starts a quiet timed boost (no "wore off"
+  toast). Nothing happens on a shielded, immune or landed hit.
+- **The next attack** = the first weapon to *fire* after the evade (WeaponBehavior._process: a `_fire()` that returned
+  true). Every hit that weapon lands deals x(1 + `counter_damage`) = **x2** until that weapon fires again or
+  **1.0 s** of the buffs' clock passes (**code** `Run.COUNTER_HIT_WINDOW`), whichever is first. Applied in
+  EnemyManager.damage to weapon hits only (never a poison or burn tick), before the crit roll (so a crit on it is x2
+  x crit damage). Another evade while armed only refreshes; the arm is spent by the next fire.
+- **The boost**: `counter_haste` weapon speed (the `haste` stat, mul: cooldowns divided) and `counter_speed` move speed
+  (mul) for `counter_seconds`. Level 1: +20% / +15% / 2.0 s; each level +5% / +3% / +0.25 s; level 5: +40% / +27% /
+  3.0 s. Another evade starts the clock again (at the new numbers after a level). Solenne's `buff_duration` stretches
+  it (it goes through Run.add_timed_effects like every buff).
+- An orange burst and a short "snap" (`it_counterpunch`) on the evade that armed it.
+
+## Heavyweight (rare, weight 7, 5 levels)
+- Attack damage (might, mul, its own source "Heavyweight +N%") = `heavyweight` x **whole** tens of max HP
+  (floor(max HP / 10)). Level 1: +1% per 10; +0.25% a level; level 5: +2% per 10. At 100 max HP: +10%..+20%; at 250:
+  +25%..+50%.
+- Recomputed whenever the passives are folded (a level, an item, any sheet rebuild), so it follows max HP from Vigour,
+  Hot Springs, Astro's levels, the Stranger's cut. Timed buffs that would change max HP mid-buff do not exist today.
+
+## Snake Oil (epic, weight 5, 3 levels)
+- Cap = `overheal` x max HP: **20% / 30% / 40%**.
+- Any heal through Player.heal (pickups, Cake, Heart, the level-up heal, life steal, Vulture, the Healing Well) first
+  fills the bar; what is left goes into the overheal up to the cap. **Regen** (and Siesta, Deep Breath) stops at full
+  and never fills it.
+- A hit (after damage reduction) takes the overheal first, then health; the Energy Shield still takes whole hits before
+  either. The overheal never decays. It is clamped to the cap whenever the sheet changes (losing a level of max HP,
+  the item gone).
+- The HUD's HP bar runs on to the right past full by overheal / max HP of its width, drawn pink (#E86AA8) after a 1 px
+  ink divider.
+- Hot Springs counts overheal healed as healed.
+
+## Hot Springs (epic, weight 5, 3 levels)
+- +20 / +30 / +40 max HP and +0.5 / +0.8 / +1.2 regen a second (totals).
+- Every heal (regen ticks included; overheal counts) is summed; a pulse goes out when the sum is above 0 and the last
+  pulse was at least **0.5 s** ago (**code** `Player.HEAL_PULSE_GAP`): damage = `heal_pulse` (4) + **2** x HP healed
+  since the last pulse (**code** `HEAL_PULSE_PER_HP`), at most **40** (**code** `HEAL_PULSE_CAP`), to every creature
+  within **3 m** (**code** `HEAL_PULSE_RADIUS`). Not scaled by attack damage (a flat number, like Thorns). Damage source
+  `hot_springs` (Results lists it with the item's icon). It is a non-weapon source but goes through EnemyManager.damage
+  with an id, so it can crit, freeze (Cold Snap) and execute like Powder Keg's blast.
+- Look: a green-gold ring racing out over the 3 m (brighter for a bigger heal); a soft chime (`it_heal_pulse`) only for a
+  heal of 3 HP or more, so regen's steady pulses stay quiet.
+- With regen alone at level 3: a pulse every 0.5 s of 4 + 2 x 0.6 = 5.2 damage (about 10 a second round him).
+- A known synergy (named so it is not a surprise): the pulse's damage feeds life steal like every damage he deals, and
+  life steal's heal sends the next pulse, so with Thirst / Bloodthirst it keeps going while creatures stand in it, bounded
+  by life steal's cap a second (`lifesteal_cap`, 4% of max HP) and the 0.5 s gap: about 4 + 2 x 2.9 = 10 damage every
+  0.5 s at 145 max HP. The probe (arena, a crowd held round him at 40x HP) saw ~90 pulses a minute.
+
+## Last Stand (epic, weight 5, 3 levels)
+- Trigger: a hit that reaches his health (after the shield and the overheal) and leaves him alive under **30%** of max HP
+  (**code** `Run.LAST_STAND_BELOW`), while it is not already running and off cooldown. Already being under 30% counts
+  (the next hit sets it off once the cooldown is over).
+- Effect: the engine clock at **0.5x** (**code** `LAST_STAND_SCALE`: everything, the hero too, bullet time) for **2.0 s
+  of real time** (**code** `LAST_STAND_SECONDS`; 1 s of game time; real time = each frame's delta without the engine's
+  scale, a stall over 0.5 s counted as 0.5 s), and attack damage x(1 + `last_stand`) =
+  **x2 / x2.5 / x3** (might mul, source "Last Stand", kept through rebuilds while it runs).
+- Cooldown **20 s** of the buffs' clock (stage clock + held time) from the trigger (**code** `LAST_STAND_COOLDOWN`),
+  never shown or named anywhere.
+- The clock is always given back: a paused run (card screen, pause board, chest, Down!, any modal) runs at 1x and the
+  window's seconds wait; the hero falling, the run ending or the effect node leaving the tree end it at once (time 1x,
+  the damage off). It restores the clock it found (the arena's game speed), never a hit-stop's 0.08. The hit-stop on the
+  triggering hit and on hits during the window is skipped (its own `time_scale >= 0.999` guard).
+- Look (not High Noon's gold flash): the world drained to a cold blue-grey (88% graded), a red rim round the screen's
+  edges swelling on a heartbeat (1.6 beats a second, lub-dub), on its own canvas layer under the HUD; a toast
+  "LAST STAND"; one low sound (`it_last_stand`: a sinking whoom under two heartbeats). Fades in 0.12 s, out 0.35 s.
+
+## Magnet (reworked: common -> **epic**, weight 10 -> 6, 5 levels)
+- No `magnet` (pickup radius) stat any more: the walk-up pickup radius is the hero's own (1.5 m base, talents, perks).
+- Every few seconds at random, every **EXP gem** (never a coin, chest, vacuum or power-up) lying, landing or hopping
+  within `xp_pull_radius` comes to the hero on the magnet arc (the big pull's look: thrown up charged, diving in).
+  Radius 5 / 6 / 7 / 7.75 / 8.5 m, never over **8.5 m** (**code** `PickupManager.XP_PULL_MAX_R`, "a large explosion").
+- The wait between pulls: random between 3 and 8 s (**code** `XP_PULL_EVERY`), divided by 1 + `xp_pull_rate` (0 at
+  level 1, +0.25 a level, 1.0 at level 5: 1.5-4 s). Rolled on the pickups' own dice (the run's random sequence is
+  untouched). The texts never name the wait: `xp_pull_rate` is a "word" stat ("pulls more often").
+- A faint purple ring at the reach and a short "zwoop" (`it_xp_pull`) when a pull took at least one gem; nothing when
+  none lay in reach. No pulls while the hero is down.
+- Pairs with nothing new (its `pairs_with: turret_buddy` stays informational).
+
+## TextGen
+- New stat kind **"word"**: the stat is said by its name only ("pulls more often"), never with a number, and left out of
+  totals and change rows (_sum_effects). `describe_effects` skips an empty part.
+
+### 16.EN Special enemies, the special Goblin, the spawn beam
+
+## Coloured (variance) specials
+- **Chance**: every creature's `variance.special_chance` is a third of what it was, to 4 decimals (Garry: "about 3 times
+  more rare"): skeleton, goblin, red goblin 0.12 -> 0.04; slime, runts, imp, jackalope, lizard, knight, cactus, hobgoblin,
+  tumbleweed minion, fire ant 0.1 -> 0.0333; beetle, mummy, hellhound, toad, crab 0.08 -> 0.0267; armadillo 0.06 -> 0.02;
+  dwarf 0.05 -> 0.0167. Still x (1 + difficulty) with Hot Sauce, still only after the map's `colour_after_kills`.
+- **Numbers** (Garry: "1.25 times bigger ... HP x10 ... ATK x2"): `special.size` 1.25, `special.hp` 10.0,
+  `special.damage` 2.0 on every creature with a chance (and the shaman's chance-0 block); `xp` kept (3 on all).
+  INTERFACES read "1.25 times bigger" as 1.25 x a plain one, like HP x10 and ATK x2 are x a plain one: before pass 69
+  the specials were 1.25-1.6 x, so most are a little SMALLER than they were (e.g. the goblin 1.5 -> 1.25) though far
+  tougher. If Garry meant 1.25 x the old special, Size x in the editor's Special block is the knob (per creature).
+- **Exactly x1.25** (new rule): a special's size is its size factor x the creature's own size; the plain ones' size
+  spread (`variance.size`, 0.2 on most: 0.8-1.2) no longer applies to it, so a special is never smaller than a big
+  plain one (with the spread a 1.25 special could have come out at 1.0).
+- A size-range row's special still stops at the range's top (the pass-58 rule, unchanged): there it may be barely bigger.
+- **Fallbacks** (new rule): a special number the creature's `variance.special` does not name takes the map's
+  `timeline_data.special_defaults`, else `EnemyDef.SPECIAL_DEFAULTS` = {size 1.25, hp 10, damage 2, xp 2,
+  tint_strength 0.6, glow 0.6} (the code defaults were 1.3 / 1.6 / 1.2 / 2 / 0.6 before; no creature in play relied on
+  them for size/hp/damage).
+- **Glow** (new): `special.glow` 0..1, default 0.6 (no creature names one: the map's default or the game's 0.6 applies):
+  an emissive rim round a special in its tint's hue at full brightness, 1 + 4.2 x glow screen pixels wide (3.5 px at 0.6) with a lighter core 0.6 + glow px wide next to the figure, breathing
+  between 0.8 and 1 of its brightness at ~0.5 Hz, and the painted outline lit by 0.85 x glow. Off while it dies. Burn,
+  poison, freeze and a weapon's held tint colour the rim while they last; the harpooner's red tether rim wins.
+- **Colour**: any colour may be picked now; pass27_test's "dark and saturated" (value < 0.6, saturation > 0.4) is the
+  editor's warning, no longer a test rule.
+
+## The special Goblin moment (Red Canyon)
+- One `swarm` event with `"special": true`: one `red_goblin` (look RG-B, the first row's) at **2:00** (120 s), from the
+  top of the screen (`in_front`). The first roster row r1 (the red goblins) runs 0:00-2:02 and the scorpion charge comes
+  at 2:03, so it closes the goblin wave. The green `goblin` is retired (pass 45), so "the regular Goblin" is the red one.
+- A forced special: x10 HP, x2 ATK, x1.25 size over the row's own red goblin (the event joins row r1's fixed numbers),
+  whatever its chance, before `colour_after_kills` (50 kills on Red Canyon), with no SWARM! banner; XP x3, its glow.
+  Garry can move it (drag the flag), change the creature/count/pattern or untick Special in the editor, or delete it.
+
+## The spawn beam
+- The two beam quads fade in from nothing 0.15 m above the highest sand under their width (5 samples across the beam,
+  2.2 m behind the hero) to whole 2.6 m higher (`Game.SPAWN_BEAM_FADE_GAP` 0.15, `SPAWN_BEAM_FADE` 2.6;
+  shine_aura.gdshader `fade_y`, a smoothstep in world height). The pool of light on the sand is unchanged; the chest's
+  beam has no fade (fade_y off by default).
+
+### 16.HERO Jeżyk and May
+
+## May (hero `may`, was `mamy`; hidden until lane UI makes her purchasable)
+- Trait unchanged (Garry's): No Time, cooldown -1.5% per level.
+- **Favourite: Tommy Gun**, bonus **cooldown -15%** (her thing is attack speed; Buck's old +2 rounds went with him).
+  Start weapon unchanged (Garry's `big_mouth`).
+- **Trigger Happy** (hero mutation on the Tommy Gun, rare, weight 8): the Tommy fires on its clock even with nobody in
+  range (straight along her facing, `fire_without_target`), and its burst is **streamed**: the rounds spread evenly over
+  the whole cooldown (gap = cooldown x 0.97 / rounds; `stream`), so it never stops. Effects: **damage x0.65** (the
+  contract's number) and **cooldown x0.6** (two thirds more rounds a second). Why the cooldown: "shoot all the time
+  without stop" with the old round rate would only add rounds into empty sand, a straight nerf after the x0.65; with
+  x1.67 rounds the fight DPS is x1.08 of the plain Tommy (x0.65 x 1/0.6), a modest gain for her signature mutation,
+  paid for by every round being a third weaker (worse into armoured creatures, pierce falloff the same). StatSheet
+  multiplies every mul effect, so both are true factors on top of the levels and the other mutations: with Drum Mag
+  (amount +6, damage x0.65) the stream is 12+ rounds per 0.84 s, each x0.42 of a plain round.
+- **Inflatable May** (perk, rare, weight 6, special `decoy`): first throw **6 s** after she takes it, then every **30 s**;
+  the doll lands **4-7 m** away in a random direction (inside the arena, off the rocks when it can), flies **0.6 s**;
+  where it lands a faint pink circle of **6.5 m** (under half the portrait screen's width at the base zoom); for
+  **2.0 s** every creature inside (Elites too; never a boss) goes for the doll instead of her, including any that walk
+  into the circle meanwhile (scanned every 0.15 s); their bites on it hurt nobody; then it pops. Rules to name: a fooled
+  creature never bites the hero while fooled even if it touches her on the way; scripted attacks (casters, the Hammer
+  Giant's slam) still read the hero's position; a fooled shooter aims its shots at the doll.
+
+## Jeżyk (hero `buck`)
+- Name Jeżyk; momentum numbers unchanged (ramp 10 s, +80% speed, +60% damage, +20% evade, hit_loss 0.5); trait text
+  unchanged (it never named the deer).
+- **Start weapon: Frisbee. Favourite: Salt**, bonus **area +25%** (wider patches for Salt Flats to cross into; Astro's
+  favourite bonus is +20% area, the Tommy's old +2 rounds would triple the patches per pour of a 1-patch weapon).
+- Hero mutation **Salt Flats** (lane SALT's); **Drum Roll hidden** (kept, out of play).
+- Perks unchanged (Overdrive, Ram).
+
+### 16.UI Heroes to unlock and buy, the hero drawer
+
+## The rule
+- A hero is **owned** when free (`availability` "available") or bought (`Save.heroes_owned`). Only an owned hero can
+  start a run (the title's PLAY reads LOCKED and refuses; a save whose last hero is not owned opens on the Drifter).
+- `availability` "purchase": **locked** until his unlock quest `unlock_<id>` is done (no quest: on sale at once), then
+  **on sale** for `price` gold until bought. Buying spends the price once (sink "hero"); nothing refunds it.
+- `availability` "available" with an unlock quest: locked until the quest is done, then owned, nothing to pay.
+- `availability` "hidden": out of play. A "purchase" hero is never hidden, whatever `hidden` says.
+- A save from before pass 69 owns only the free heroes (Drifter, Astro), whoever it played (Garry asked for locks).
+- The quests are checked as every unlock quest is: totals at the title, single-run conditions during a run.
+  `reach_level` and `survive_minutes` count only in a run played after pass 69 (an older best run does not count).
+- A hero not owned is unknown on the title, in the drawer and on his sheet (name, stats, items hidden); the run's banner
+  for his quest says "A NEW HERO IS FOR SALE" and the results "For sale · A new hero".
+
+## The numbers (Garry's asks in brackets)
+| hero | availability | requirement | price (gold) |
+|---|---|---|---|
+| Drifter | available | none | 0 |
+| Astro | available | none | 0 |
+| Calavera | purchase | kill the Tumbleweed King once (kill_boss, Red Canyon, stage 1) | 300 |
+| Ironwood | purchase | 2,500 kills in total (kills_total) | 400 |
+| Solenne | purchase | extract after stage 2 once (extract_after_stage, Red Canyon, stage 2) | 600 |
+| Jeżyk (buck) | purchase | survive 15 minutes in one run (survive_minutes) | 500 |
+| May | purchase | reach level 30 in one run (reach_level) | 700 |
+| Fadeaway | purchase | none ["make Fadeaway purchasable with just 50 coins so I can test"] | 50 |
+| Mira | purchase | kill 99,999,999 creatures (kills_total) ["bring back Mira with unattainable requirements"] | 9,999 |
+| Dad | hidden | (unlock_dad kept, not shown or tracked) | - |
+
+Why these: the order of the heroes on the title roughly tracks how far a player gets (the first boss at 7:10, 2,500 kills
+over a few runs, stage 2's portal at 14:20, 15 minutes is into stage 3, level 30 is a late stage-2 level); prices sit
+under a talent rank or two each, so a hero costs about one good run's purse (a run banks a few hundred gold).
+
+### 16.LE The Level Editor
+
+Editor rules only (what the page writes, warns or refuses); the game's numbers are the other lanes'.
+
+- **A hero's `hidden` follows Availability**: the page and the availability op write `hidden = (availability == "hidden")`
+  (lane UI's JsonContent rule: a hero to buy is never hidden; a free hero with hidden: true stays hidden). Ticking Hidden
+  sets availability hidden; unticking a hidden hero sets him free. A disagreeing file is a warning with a fix button.
+- **A hero's requirement** is the quest `unlock_<hero>` with `unlocks {type: character, id}`; the op refuses a condition
+  type QuestTracker does not know (400) and an id taken by something else (409). Removing it moves the quest folder to
+  `tools/level_editor/backups/deleted/`.
+- **Warnings on a hero on the title** (free or to buy): no perk; not exactly one hero mutation in play (hidden ones do not
+  count); to buy at price 0.
+- **Perk warnings**: a special the game runs nothing for; a by-id special on a perk of another id (the mechanism never
+  fires); no special and no effects; params keys its special does not read. Errors: no hero, a hero that is not there,
+  bad effects, params not an object.
+- **Evolution levels**: one level, `levels[0]`, may carry effects (applied at level 1: Slam Dunk's burn x1.5); only more
+  than one level warns.
+- **The quest-locked band** the Items tab draws and warns on: 0.28-0.56 (pass44_test's bounds; server.BAND_LO / BAND_HI,
+  AssetsModel.BAND).
+
+### 16.LEAD The lead's review fixes
+
+16.L1 **A dark ball stays dark on the sand.** A ball tint's `ambient` false (`ProjectileManager.tint_material`:
+`disable_ambient_light`) leaves the sky's warm ambient light out of the ball's body. Alley-Oop's body is #0A4FA8 with a
+#1A5CFF glow at 0.28 and Slam Dunk's #141414, both with `ambient` false: with the ambient light the first navy
+(#1B2E7A) rendered violet and the black ball brown. The Level Editor's ball colour group has the switch ("Lit by the
+sky").
+
+16.L2 **The locked hero's mask is black on the live title.** The title stage draws a hero not owned without the scene's
+fog (`BillboardSprite.set_fogless`: copies of the billboard shaders with `fog_disabled`), so his LOCKED_TINT mask reads
+black, not the warm brown the desert haze made of it; the mask's lifting at a purchase puts the fog back.
+
+16.L3 **Last Stand's rim is thin and see-through**: 0.085 of the screen width (+0.045 on the beat), its red at most 62%
+over the cold-graded world and falling off squared towards the middle, so creatures coming in from the edges stay
+visible for the two seconds (the first version painted a solid red band a quarter of the screen wide).

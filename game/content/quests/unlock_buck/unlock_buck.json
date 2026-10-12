@@ -1,0 +1,17 @@
+{
+  "id": "unlock_buck",
+  "name": "Jeżyk",
+  "condition": {
+    "type": "survive_minutes",
+    "minutes": 15
+  },
+  "unlocks": {
+    "type": "character",
+    "id": "buck"
+  },
+  "art_prompt": "a glass jar with a black tracksuit jacket with white stripes inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

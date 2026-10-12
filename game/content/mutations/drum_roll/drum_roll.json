@@ -1,9 +1,10 @@
 {
   "id": "drum_roll",
   "name": "Drum Roll",
-  "flavour": "Buck fires faster the faster he runs.",
+  "flavour": "Jeżyk fires faster the faster he runs.",
   "rarity": "rare",
   "weight": 8,
+  "hidden": true,
   "weapon": "tommy_gun",
   "kind": "hero",
   "element": "",

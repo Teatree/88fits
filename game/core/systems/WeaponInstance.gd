@@ -255,6 +255,12 @@ func dps_estimate() -> float:
 				var every: float = maxf(float((hk as Dictionary).get("every", 4)), 1.0)
 				dps += stat("damage") * float((hk as Dictionary).get("stings", 5)) / (every * cd)
 			return dps
+		"Frisbee":
+			# pass 69 (lane FRIS): every disc cuts about FRISBEE_CATCH creatures a flight, at its drop-off
+			return stat("damage") * hits * frisbee_catch() / cd
+		"SaltShaker":
+			# pass 69 (lane SALT): the patches lying at once, about SALT_CATCH creatures in each, a tick every salt.tick
+			return salt_dps()
 		_:
 			return _shot_dps(hits, cd)
 
@@ -299,6 +305,10 @@ func _ball_hits(amount: float) -> float:
 	var ct = params.get("catch")
 	if ct is Dictionary:
 		n *= 1.0 + float(run_heat()) * float((ct as Dictionary).get("heat_per", 0.0))
+	# pass 69 (Alley-Oop, params.launch): a touch comes back as a fall `chance` of the time, at fall_damage_frac of it
+	var lc = params.get("launch")
+	if lc is Dictionary:
+		n *= 1.0 + clampf(float((lc as Dictionary).get("chance", 0.0)), 0.0, 1.0) * float((lc as Dictionary).get("fall_damage_frac", 1.0))
 	return n
 
 
@@ -351,6 +361,9 @@ func stat_rows() -> Array:
 	## [{"stat": "damage", "name": "damage", "value": "9.4"}] for the pause screen, only stats the behaviour uses.
 	var keys: Array = []
 	match def.behavior:
+		"SaltShaker":
+			# pass 69 (lane SALT): the Salt's own rows (salt_rows)
+			return salt_rows()
 		"SunScepter":
 			# the Sun Scepter (pass 54): its pillars, each one's radius, Zenith's sweep and Gold Dust's coins
 			var srows: Array = []
@@ -401,6 +414,9 @@ func stat_rows() -> Array:
 			keys = ["damage", "cooldown", "amount", "range", "area", "knockback"]
 		"Smasher", "GravityGun":
 			keys = ["damage", "cooldown", "amount", "range", "area", "knockback"]
+		"Frisbee":
+			# pass 69 (lane FRIS): it cuts through everything, so no pierce row
+			keys = ["damage", "cooldown", "amount", "range", "speed", "knockback"]
 		_:
 			keys = ["damage", "cooldown", "amount"]
 	var rows: Array = []
@@ -465,3 +481,60 @@ func _element_rows(rows: Array) -> void:
 	# a fire that takes only some of what it hits (pass 51: Dragon's Breath)
 	if sheet.get_stat("fire_damage", 0.0) > 0.0 and ignite_chance() < 1.0:
 		rows.append({"stat": "ignite_chance", "name": "catches fire", "value": "%d%%" % int(round(ignite_chance() * 100.0))})
+
+
+## The Frisbee's estimate (pass 69, lane FRIS): a disc is counted as cutting FRISBEE_CROWD creatures a flight, each at its
+## drop-off (falloff.step^n, never under falloff.floor: 1 + 0.85 + 0.72 = 2.57 with the defaults).
+const FRISBEE_CROWD := 3
+func frisbee_catch() -> float:
+	var f = params.get("falloff", {})
+	var fd: Dictionary = f if f is Dictionary else {}
+	var step := clampf(float(fd.get("step", 0.85)), 0.0, 1.0)
+	var flo := clampf(float(fd.get("floor", 0.25)), 0.0, 1.0)
+	var n := 0.0
+	for k in range(FRISBEE_CROWD):
+		n += maxf(pow(step, float(k)), flo)
+	return n
+
+
+# ---- pass 69, lane SALT: the Salt's estimate and rows ----
+
+## The Salt's estimate (pass 69): about SALT_CATCH creatures stand in each patch lying (amount x lasts / cooldown of
+## them, salt.max_patches at most), each hit every salt.tick; Hiwa Kai's crunch counted as one more hit per creature a
+## patch's life.
+const SALT_CATCH := 1.0
+
+
+func salt_dps() -> float:
+	var s = params.get("salt", {})
+	var sd: Dictionary = s if s is Dictionary else {}
+	var cd: float = maxf(stat("cooldown", 1.6), 0.05)
+	var secs: float = stat("duration", 4.0) * float(sd.get("duration_mult", 1.0))
+	var lying: float = minf(float(maxi(stat_int("amount", 1), 1)) * secs / cd, float(sd.get("max_patches", 40)))
+	var dmg: float = stat("damage", 6.0) * float(sd.get("damage_mult", 1.0))
+	var tick: float = maxf(float(sd.get("tick", 0.5)), 0.1)
+	var per: float = dmg / tick
+	var cr = sd.get("crunch")
+	if cr is Dictionary and secs > 0.0:
+		per += dmg * float((cr as Dictionary).get("mult", 2.0)) / secs
+	return per * lying * SALT_CATCH
+
+
+## The Salt's rows (pass 69): what a tick does, how often it pours, how many patches, each one's radius and how long it
+## lies (the path's multipliers in), the slow and the luck when the path brings them, the estimate.
+func salt_rows() -> Array:
+	var s = params.get("salt", {})
+	var sd: Dictionary = s if s is Dictionary else {}
+	var rows: Array = []
+	rows.append({"stat": "damage", "name": TextGen.stat_name("damage"), "value": TextGen.format_value("damage", stat("damage", 6.0) * float(sd.get("damage_mult", 1.0)))})
+	rows.append({"stat": "cooldown", "name": TextGen.stat_name("cooldown"), "value": TextGen.format_value("cooldown", stat("cooldown", 1.6))})
+	rows.append({"stat": "amount", "name": "patches", "value": TextGen.format_value("amount", float(maxi(stat_int("amount", 1), 1)))})
+	rows.append({"stat": "radius", "name": "patch radius", "value": "%.1f m" % TextGen.salt_radius(sheet, params)})
+	rows.append({"stat": "duration", "name": "lasts", "value": TextGen.format_value("duration", stat("duration", 4.0) * float(sd.get("duration_mult", 1.0)))})
+	if float(sd.get("slow", 0.0)) > 0.0:
+		rows.append({"stat": "slow", "name": "slow", "value": "%d%%" % int(round(float(sd.get("slow", 0.0)) * 100.0))})
+	if float(sd.get("luck_mult", 1.0)) > 1.0:
+		rows.append({"stat": "luck_mult", "name": "power-up odds", "value": "×%s" % TextGen._plain(float(sd.get("luck_mult", 1.0)))})
+	_element_rows(rows)
+	rows.append({"stat": "dps", "name": "dps", "value": str(int(round(dps_estimate())))})
+	return rows

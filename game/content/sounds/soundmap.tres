@@ -38,7 +38,9 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_coin.wav" id="32_i00ay"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/w_ball_catch.wav" id="32_ryw4h"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_chest_open.wav" id="33_584dl"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_decoy_land.wav" id="33_s7xia"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_vacuum.wav" id="34_0rvqa"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_decoy_pop.wav" id="34_c4ys3"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_goblin_hit.wav" id="35_csrvp"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_goblin_die.wav" id="36_0vh7m"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_ant_hit.wav" id="37_4y466"]
@@ -94,6 +96,7 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_rocket_dive.wav" id="83_i3agp"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_hammer_swing.wav" id="84_sg4vx"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_hammer_hit.wav" id="85_70qyg"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/w_salt_shake.wav" id="86_c4ys3"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_revolver_fire.wav" id="86_twxnu"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_grav_grab.wav" id="87_yuqpm"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_grav_throw.wav" id="88_860vp"]
@@ -135,7 +138,11 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_card.wav" id="123_ob4g5"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_slot_start.wav" id="128_8jmeg"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_slot_spin.wav" id="129_5cb8c"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_last_stand.wav" id="129_22ghm"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/ui_slot_stop.wav" id="130_jajjq"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_heal_pulse.wav" id="130_onxl1"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_xp_pull.wav" id="131_cmm58"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/it_counterpunch.wav" id="132_mlt6y"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/ui_buzzer.wav" id="135_7prrv"]
 
 [resource]
@@ -420,6 +427,26 @@ entries = {
 "voices": 2,
 "volume_db": -8.0
 },
+"it_counterpunch": {
+"category": "player",
+"file": "real/it_counterpunch.wav",
+"loop": false,
+"min_gap": 0.3,
+"pitch_spread": 0.06,
+"stream": ExtResource("132_mlt6y"),
+"voices": 1,
+"volume_db": -6.0
+},
+"it_heal_pulse": {
+"category": "player",
+"file": "real/it_heal_pulse.wav",
+"loop": false,
+"min_gap": 0.45,
+"pitch_spread": 0.06,
+"stream": ExtResource("130_onxl1"),
+"voices": 1,
+"volume_db": -12.0
+},
 "it_keg_boom": {
 "category": "weapon",
 "file": "real/it_keg_boom.wav",
@@ -429,6 +456,15 @@ entries = {
 "voices": 2,
 "volume_db": -4.0
 },
+"it_last_stand": {
+"category": "player",
+"file": "real/it_last_stand.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("129_22ghm"),
+"voices": 1,
+"volume_db": -2.0
+},
 "it_phoenix": {
 "category": "player",
 "file": "real/it_phoenix.wav",
@@ -437,6 +473,15 @@ entries = {
 "stream": ExtResource("118_bo366"),
 "voices": 1,
 "volume_db": -2.0
+},
+"it_xp_pull": {
+"category": "pickup",
+"file": "real/it_xp_pull.wav",
+"loop": false,
+"pitch_spread": 0.05,
+"stream": ExtResource("131_cmm58"),
+"voices": 1,
+"volume_db": -10.0
 },
 "mu_boss": {
 "category": "music",
@@ -509,6 +554,24 @@ entries = {
 "stream": ExtResource("32_i00ay"),
 "voices": 3,
 "volume_db": -10.0
+},
+"pk_decoy_land": {
+"category": "pickup",
+"file": "real/pk_decoy_land.wav",
+"loop": false,
+"pitch_spread": 0.05,
+"stream": ExtResource("33_s7xia"),
+"voices": 2,
+"volume_db": -6.0
+},
+"pk_decoy_pop": {
+"category": "pickup",
+"file": "real/pk_decoy_pop.wav",
+"loop": false,
+"pitch_spread": 0.06,
+"stream": ExtResource("34_c4ys3"),
+"voices": 2,
+"volume_db": -4.0
 },
 "pk_flower": {
 "category": "pickup",
@@ -1152,6 +1215,16 @@ entries = {
 "stream": ExtResource("86_twxnu"),
 "voices": 4,
 "volume_db": -8.0
+},
+"w_salt_shake": {
+"category": "weapon",
+"file": "real/w_salt_shake.wav",
+"loop": false,
+"min_gap": 0.2,
+"pitch_spread": 0.08,
+"stream": ExtResource("86_c4ys3"),
+"voices": 2,
+"volume_db": -12.0
 },
 "w_saw_hit": {
 "category": "weapon",

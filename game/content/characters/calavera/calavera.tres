@@ -25,6 +25,8 @@ favourite_bonus = {
 "value": 2.0
 }
 start_weapon = "guitarra"
+availability = "purchase"
+price = 300
 sprite = ExtResource("3_o2my1")
 sprite_file = "calavera_sprite.png"
 anims = {

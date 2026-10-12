@@ -292,8 +292,13 @@ def checks(check, run_node, server):
             print("  warn %s %s: %d" % (x["kind"], x["id"], x["warnings"]))
     band = res["band"]
     # pass 67: Fadeaway's basketball (a hero's own weapon, no quest) joins the base: 23 of 68
-    check(band["base"] == 68 and band["locked"] == 23, "P the quest-locked band counts 23 of 68 base items (pass44_test): %s" % band)
-    check(0.33 <= band["share"] <= 0.56, "P the band is inside 0.33-0.56 today: %.3f" % band["share"])
+    # pass 69 (lane LE): a shape rule, not a count (the Salt, the Frisbee and five passive items came unlocked: 23 of 75):
+    # the page's count is the server's (pass44_test's way) and both sit inside the bounds pass44_test.gd asserts
+    import selftest_L69
+    lo, hi = selftest_L69.pass44_band()
+    srv = server.list_items()["band"]
+    check(band["base"] == srv["base"] and band["locked"] == srv["locked"] and band["base"] >= 68, "P the page's quest-locked band counts what the server counts (pass44_test): %s / %s" % (band, srv))
+    check(lo <= band["share"] <= hi and abs(band["lo"] - lo) < 1e-9 and abs(band["hi"] - hi) < 1e-9, "P the band is inside pass44_test's %.2f-%.2f today: %.3f (bounds %s-%s)" % (lo, hi, band["share"], band["lo"], band["hi"]))
     av = res["availability"]
     check(av == {"revolver": "available", "spear": "hidden", "hammer": "locked", "adrenaline": "locked"}, "P derived availability: %s" % av)
     p = res["path"]
@@ -310,5 +315,8 @@ def checks(check, run_node, server):
     check(all(a["telegraph"] in ("line", "ring", "ring_at_hero", "sector", "fan", "spokes", "none") for a in res["attacks"].values()), "P every attack has a default telegraph")
     check(len(res["blocks"]) == 10 and res["blocks"]["ranged"] == 19 and res["blocks"]["charge"] == 13, "P 10 brain blocks (ranged 19 rows, charge 13): %s" % res["blocks"])
     check(len(res["recipes"]) == 9 and res["wordings"] == 10, "P 9 method recipe tables and 10 reference wordings: %s" % res["recipes"])
-    check(res["stats"]["player"] == 69 and res["stats"]["weapon"] == 29 and res["stats"]["named"] >= 85, "P stat vocabularies: 65 PLAYER_DEFAULTS + 4 extra, 13 + 16 weapon stats, TextGen names: %s" % res["stats"])
+    # pass 69 (lane LE): the count follows vocab.py's tables (checked against StatSheet.gd and TextGen.gd elsewhere)
+    import vocab as _vocab
+    check(res["stats"]["player"] == len(_vocab.PLAYER_DEFAULTS) + len(_vocab.PLAYER_STATS_EXTRA) and res["stats"]["weapon"] == 29 and res["stats"]["named"] >= len(_vocab.STAT_NAMES) - 2,
+          "P stat vocabularies: %d PLAYER_DEFAULTS + %d extra, 13 + 16 weapon stats, TextGen names: %s" % (len(_vocab.PLAYER_DEFAULTS), len(_vocab.PLAYER_STATS_EXTRA), res["stats"]))
     print("lane P tables: " + ", ".join("%s %d rows / %d sections / %d rules" % (k2, t["rows"], t["sections"], t["rules"]) for k2, t in res["tables"].items()))

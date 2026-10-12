@@ -1,0 +1,24 @@
+{
+  "id": "thing_about_luck",
+  "name": "Thing About Luck",
+  "flavour": "Over the left shoulder. Always the left.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "salt",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "An enemy killed in the salt is 3 times as likely to drop a power-up.",
+  "vfx": "none: the power-ups say it",
+  "effects": [],
+  "params": {
+    "salt": {
+      "luck_mult": 3.0
+    }
+  },
+  "art_prompt": "a pinch of white salt thrown over a shoulder, the grains sparkling, a green four-leaf clover among them",
+  "placeholder": {
+    "color": "#7FD07A",
+    "glyph": "star"
+  }
+}

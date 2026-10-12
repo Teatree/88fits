@@ -1,0 +1,22 @@
+{
+  "id": "frisbee_trick_shot",
+  "name": "Trick Shot",
+  "flavour": "Behind the back, off the wall, into the face.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "frisbee",
+  "kind": "motion",
+  "element": "",
+  "hero": "",
+  "text": "Life steal, stun, crits, Cold Snap and Vulture work 25% better with the Frisbee.",
+  "vfx": "no change to the disc",
+  "effects": [],
+  "params": {
+    "proc_mult": 1.25
+  },
+  "art_prompt": "a neon lime frisbee curving round behind a wooden fence post in a looping trick arc, a small star sparkle where it bends",
+  "placeholder": {
+    "color": "#C8FF6A",
+    "glyph": "star"
+  }
+}

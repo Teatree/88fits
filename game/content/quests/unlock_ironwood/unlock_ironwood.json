@@ -1,0 +1,17 @@
+{
+  "id": "unlock_ironwood",
+  "name": "Ironwood",
+  "condition": {
+    "type": "kills_total",
+    "count": 2500
+  },
+  "unlocks": {
+    "type": "character",
+    "id": "ironwood"
+  },
+  "art_prompt": "a glass jar with a feathered spear inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

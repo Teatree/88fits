@@ -112,6 +112,19 @@ func _refresh() -> void:
 	_list.add_child(_switch("Free revive button", "free_revive_button"))
 	_list.add_child(_switch("Hit log on Down! · copy", "hit_log"))
 	_list.add_child(_switch("Hidden heroes as locked on the title", "preview_locked_heroes"))
+	# pass 69: the heroes to buy, for tests: every one owned at once (no gold, no quest), or back to the free ones
+	var on_sale: Array = Registry.characters.values().filter(func(c: CharacterDef) -> bool: return not c.hidden and c.availability == "purchase")
+	var owned_n := on_sale.filter(func(c: CharacterDef) -> bool: return Save.owns_hero(c.id)).size()
+	var own_row := _row("Heroes · own every one", "%d / %d" % [owned_n, on_sale.size()], func():
+		Save.own_every_hero()
+		_refresh())
+	own_row.name = "OwnEveryHero"
+	_list.add_child(own_row)
+	var forget_row := _row("Heroes · forget the bought ones", "›", func():
+		Save.forget_bought_heroes()
+		_refresh())
+	forget_row.name = "ForgetBoughtHeroes"
+	_list.add_child(forget_row)
 	# pass 62: the pierce damage drop-off (also in Settings' Debug panel)
 	var pf_row := _switch("Pierce damage drop-off", "pierce_falloff")
 	pf_row.name = "PierceFalloffRow"

@@ -99,6 +99,10 @@ func _default() -> Dictionary:
 		"player_name": "",
 		"consent": "",
 		"survey": {},
+		# pass 69 (Garry: heroes to unlock and buy): the ids of the heroes bought with gold (owns_hero, buy_hero). A free
+		# hero (availability "available") is owned without being listed; a save from before has none bought, so it keeps
+		# only the free heroes, whoever it played (Garry asked for the locks)
+		"heroes_owned": [],
 	}
 
 
@@ -141,6 +145,9 @@ func load_save() -> void:
 	var lc: CharacterDef = Registry.playable_character(str(data.get("last_character", DEFAULT_HERO)))
 	if lc:
 		data["last_character"] = lc.id
+	# pass 69: a hero the save does not own (he is to be bought now) is not the one a run starts with
+	if lc and Registry.hero_state(lc) != "owned" and Registry.characters.has(DEFAULT_HERO):
+		data["last_character"] = DEFAULT_HERO
 	if not Registry.maps.has(str(data.get("last_map", ""))):
 		data["last_map"] = "red_canyon"
 	if not (data.get("seen") is Dictionary):
@@ -533,6 +540,57 @@ func spend_gold(n: int, sink: String = "other", extra: Dictionary = {}) -> bool:
 		gold_moved.emit(-n, sink, gold(), extra)
 	request_save()
 	return true
+
+
+# ---------------------------------------------------------------- heroes to buy (pass 69)
+
+## The heroes bought with gold, by id (a free hero is owned without being listed: Registry.hero_state).
+func heroes_owned() -> Array:
+	var h = data.get("heroes_owned")
+	if not (h is Array):
+		h = []
+		data["heroes_owned"] = h
+	return h
+
+
+## Whether hero `id` has been bought (Registry.hero_state says whether he is owned: a free one always is).
+func owns_hero(id: String) -> bool:
+	return heroes_owned().has(id)
+
+
+## Buys hero `c` (pass 69, Garry: "After the requirements are met the heroes will become available to unlock by buying
+## them with coins"): only a hero Registry.hero_state calls "buyable" (his quest done, not owned yet), for his `price` in
+## `currency_type` (gold, the only purse there is), spent with the sink "hero" (the gold_meta event carries his id). True
+## when he is owned after it; false when he cannot be bought (locked, already owned, hidden) or the purse is short.
+func buy_hero(c: CharacterDef) -> bool:
+	if c == null or Registry.hero_state(c) != "buyable":
+		return false
+	if c.currency_type != "gold":
+		return false
+	if not spend_gold(maxi(c.price, 0), "hero", {"hero": c.id, "price": maxi(c.price, 0)}):
+		return false
+	if not owns_hero(c.id):
+		heroes_owned().append(c.id)
+	request_save()
+	return true
+
+
+## The developer menu's "own every hero" (pass 69): every hero on sale marked bought, no gold spent, no quest needed.
+## Returns how many were added.
+func own_every_hero() -> int:
+	var n := 0
+	for c: CharacterDef in Registry.characters.values():
+		if not c.hidden and c.availability == "purchase" and not owns_hero(c.id):
+			heroes_owned().append(c.id)
+			n += 1
+	request_save()
+	return n
+
+
+## The developer menu's "forget the bought heroes" (pass 69): back to the free heroes only (the gold stays spent).
+func forget_bought_heroes() -> void:
+	data["heroes_owned"] = []
+	request_save()
 
 
 # ---------------------------------------------------------------- the Mirror

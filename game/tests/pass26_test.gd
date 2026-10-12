@@ -32,7 +32,8 @@ func test_content_is_there() -> void:
 		# an element, a volume and a motion pick on every path; a weapon may carry more (the turret's stances)
 		assert_bool(kinds.slice(0, 3) == ["element", "volume", "motion"]).override_failure_message(w.id + " path kinds " + str(kinds)).is_true()
 		assert_str(w.evolves_with).is_equal("")
-	for pid in ["might", "spurs", "sombrero", "snake_oil", "leech", "cactus_coat", "guidance_fins", "payload", "whetstone", "long_arm", "conductor"]:
+	# pass 69: "snake_oil" is a new passive item again (Snake Oil's overheal, lane PAS), so it left this list
+	for pid in ["might", "spurs", "sombrero", "leech", "cactus_coat", "guidance_fins", "payload", "whetstone", "long_arm", "conductor"]:
 		assert_bool(Registry.passives.has(pid)).override_failure_message(pid + " should be retired").is_false()
 
 
@@ -179,19 +180,21 @@ func test_perks_are_the_heros_own() -> void:
 					seen_other = true
 	assert_bool(seen_other).is_false()
 	assert_bool(seen_own).is_true()
-	# Buck is back in play (pass 67): his own mutation is offered on his favourite (pass 46 had it out of play with him)
-	_give("tommy_gun", 3)
+	# Buck is back in play (pass 67): his own mutation is offered on his favourite (pass 46 had it out of play with him);
+	# pass 69: he is Jeżyk, his favourite the Salt and his own Salt Flats
+	_give("salt", 3)
 	var ids: Array = []
-	for m in Run.open_mutations(Run.weapon_instance("tommy_gun")):
+	for m in Run.open_mutations(Run.weapon_instance("salt")):
 		ids.append(m.id)
-	assert_bool(ids.has("drum_roll")).is_true()
-	# a hidden hero's own stays out of play with him: Mira's Blasting Cap on her Land Mine
+	assert_bool(ids.has("salt_flats")).is_true()
+	# pass 69 (lane UI): Mira is back, a hero to buy (in play: locked or on sale on the title), so her own is offered
+	# to her: the Blasting Cap on her Land Mine (a hidden hero's own staying out: pass66_shape_test's rule, Dad has none)
 	_start("mira")
 	_give("land_mine", 3)
 	ids.clear()
 	for m in Run.open_mutations(Run.weapon_instance("land_mine")):
 		ids.append(m.id)
-	assert_bool(ids.has("blasting_cap")).is_false()
+	assert_bool(ids.has("blasting_cap")).is_true()
 	# the hero mutation shows for the favourite weapon only: the Drifter's Fan the Hammer on the Peashooter
 	_start("drifter")
 	_give("peashooter", 3)

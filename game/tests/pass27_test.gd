@@ -67,10 +67,10 @@ func test_variant_tints_stay_off_the_sand() -> void:
 		assert_float(float(v.get("tint_strength", 0.0))).override_failure_message(def.id + " tint too strong").is_less_equal(0.3)
 		var sp: Dictionary = v.get("special", {})
 		if sp.has("tint"):
-			var c := Color(str(sp["tint"]))
-			# a special is dark and saturated, never a sand yellow
-			assert_float(c.v).override_failure_message(def.id + " special tint too light").is_less(0.6)
-			assert_float(c.s).override_failure_message(def.id + " special tint too grey").is_greater(0.4)
+			# a special's colour is a real colour (pass 69, lane EN, re-pinned: Garry picks it in the Level Editor now,
+			# "the colouring of special enemies should be possible in the Level Editor"; dark and saturated is the
+			# editor's advice, a warning, no longer a rule)
+			assert_bool(Color.html_is_valid(str(sp["tint"]))).override_failure_message(def.id + " special tint is not a colour").is_true()
 
 
 func test_the_dwarf_is_fatter_and_the_centipede_is_the_elite() -> void:

@@ -58,11 +58,11 @@
       "#FFB0B0"
     ],
     "tint_strength": 0.22,
-    "special_chance": 0.12,
+    "special_chance": 0.04,
     "special": {
-      "size": 1.5,
-      "hp": 2.0,
-      "damage": 1.4,
+      "size": 1.25,
+      "hp": 10.0,
+      "damage": 2.0,
       "xp": 3.0,
       "tint": "#8A1428",
       "tint_strength": 0.6

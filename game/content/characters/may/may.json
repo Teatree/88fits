@@ -1,0 +1,269 @@
+{
+  "id": "may",
+  "name": "May",
+  "flavour": "Now you see her. Now you don't.",
+  "order": 8,
+  "pronoun": "she",
+  "hidden": false,
+  "availability": "purchase",
+  "price": 700,
+  "currency_type": "gold",
+  "trait": [],
+  "trait_per_level": [
+    {
+      "stat": "cooldown",
+      "op": "mul",
+      "value": -0.015,
+      "target": "player"
+    }
+  ],
+  "favourite_weapon": "tommy_gun",
+  "favourite_bonus": {
+    "type": "effects",
+    "effects": [
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.15
+      }
+    ]
+  },
+  "start_weapon": "big_mouth",
+  "specials": [],
+  "unlock_quest": "",
+  "frame_px": 256,
+  "placeholder": {
+    "color": "#141418",
+    "hat": "#F2C037",
+    "eyes": 2,
+    "shape": "tall"
+  },
+  "art_prompt": "a slender adult woman with a feminine figure, pale white skin, short straight black bob haircut with bangs, black beret with a small heart-shaped tip, dark eyes, a playful smile and a black star painted on her cheek; wearing a black-and-white horizontally striped long-sleeve shirt under tight black high-waisted suspender overalls with large white buttons, a bright magenta neck scarf and matching gloves, white calf-length stockings and chunky black lace-up ankle boots with white laces; standing straight, both arms relaxed at her sides",
+  "motion": "walking in place with a slow confident catwalk sway, arms swinging gently",
+  "anim_hint": "a mime woman in a mime outfit",
+  "anim_negative": "a helmet, a face on the body, a second head, a weapon, a cape, second leg",
+  "anim_seed": 3,
+  "portrait_prompt": "head and shoulders, her mime face looking at the viewer with mock surprise, hands pressed against a \"screen\" miming being stuck in a ball",
+  "hurt_hint": "her face wincing, eyes shut",
+  "back_hint": "She faces away: overalls visible, the boots, no face at all. Both arms hang straight down.",
+  "pose_hint": "Both arms hang straight down at her sides, hands open, not on the hips. The same slim proportions in every view.",
+  "level_heal": 0.0,
+  "trait_name": "No Time",
+  "trait_text": "Gain 1.5% less cooldown per level.",
+  "screen": "blue",
+  "key_min_value": 0.8,
+  "key_cut_shadow": false,
+  "key_sat": 0.85,
+  "key_clamp_screen": true,
+  "variant_base": "MAY-A",
+  "variant": "MAY-G",
+  "variants": {
+    "MAY-A": {
+      "note": "the top-level strip, before the Level Editor's looks"
+    },
+    "MAY-B": {
+      "recipe": {
+        "side_hint": "The arms and shoulders should be in the correct position relative to the perspective, it should be avoided that the shoulder closest to the camera is somehow higher than the one on the other side",
+        "painter": {
+          "model": "dev",
+          "steps": 0,
+          "guidance": 0.0,
+          "turbo": true
+        }
+      },
+      "sprite": "may_sprite_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "fresh": true
+    },
+    "MAY-C": {
+      "recipe": {
+        "side_hint": "The arms and shoulders should be in the correct position relative to the perspective, it should be avoided that the shoulder closest to the camera is somehow higher than the one on the other side",
+        "painter": {
+          "model": "dev",
+          "steps": 32,
+          "guidance": 0.0,
+          "turbo": true
+        },
+        "anim_seed": 4
+      },
+      "note": "from MAY-B",
+      "sprite": "may_sprite_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "fresh": true
+    },
+    "MAY-G": {
+      "recipe": {
+        "art_prompt": "a slender adult woman with a feminine figure, pale white skin, short straight black bob haircut with bangs, black beret with a small heart-shaped tip, dark eyes, a playful smile and a black star painted on her cheek; wearing a black-and-white horizontally striped long-sleeve shirt with open cleavage under tight black high-waisted suspender overalls which reach below the knees with large white buttons, a bright magenta neck scarf and matching gloves, white calf-length stockings and chunky black lace-up ankle boots with white laces; standing straight, both arms relaxed at her sides",
+        "side_hint": "a clean side profile facing right, both shoulders level and relaxed at the same height, the near shoulder never raised above the far one, one arm hanging relaxed beside the torso, hands open",
+        "pose_drivers": {
+          "front": "run",
+          "fd": "run_side",
+          "side": "run_side",
+          "bd": "run_spread_lvl",
+          "back": "run_spread_lvl"
+        },
+        "method": "hero_pose5",
+        "painter": {
+          "model": "dev",
+          "steps": 30,
+          "guidance": 0.0,
+          "turbo": false,
+          "stills": "reused",
+          "reused": [
+            "may_g_front",
+            "may_g_back",
+            "may_g_side",
+            "may_g_fd",
+            "may_g_bd",
+            "may_g_cheer",
+            "may_g_hurt_front",
+            "may_g_hurt_back",
+            "may_g_hurt_side",
+            "may_g_hurt_fd",
+            "may_g_hurt_bd",
+            "may_g_dead"
+          ]
+        },
+        "stills": "g",
+        "seed_offset": 6543,
+        "anim_seed": 3,
+        "remap_hues": {
+          "ranges": [
+            [
+              38,
+              75
+            ]
+          ],
+          "to": 220,
+          "sat": 0.08
+        }
+      },
+      "note": "pass 69: Flux.2 dev, 30 steps, no Turbo, Garry's MAY-F words; the side and back runs on the levelled drivers (run_side: the far arm tucked; run_spread_lvl)",
+      "sprite": "may_sprite_g.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "icon": "may_icon_g.png",
+      "icon_picked": true,
+      "title": "hero_may_g.png"
+    },
+    "MAY-E": {
+      "note": "pass 69: Flux.2 dev, 30 steps, no Turbo, Garry's MAY-F words; the side and back runs on the levelled drivers (run_side: the far arm tucked; run_spread_lvl) · from MAY-G",
+      "recipe": {
+        "art_prompt": "a slender adult woman with a feminine figure, pale white skin, short straight black bob haircut with bangs, black beret with a small heart-shaped tip, dark eyes, a playful smile and a black star painted on her cheek; wearing a black-and-white horizontally striped long-sleeve shirt with open cleavage under tight black high-waisted suspender overalls which reach below the knees with large white buttons, a bright magenta neck scarf and matching gloves, white calf-length stockings and chunky black lace-up ankle boots with white laces; standing straight, both arms relaxed at her sides",
+        "side_hint": "a clean side profile facing right, both shoulders level and relaxed at the same height, the near shoulder never raised above the far one, one arm hanging relaxed beside the torso, hands open",
+        "pose_drivers": {
+          "front": "run",
+          "fd": "run_side",
+          "side": "run_side",
+          "bd": "run_spread_lvl",
+          "back": "run_spread_lvl"
+        },
+        "method": "hero_pose5",
+        "painter": {
+          "model": "dev",
+          "steps": 30,
+          "guidance": 0,
+          "turbo": false,
+          "stills": "reused",
+          "reused": [
+            "may_g_front",
+            "may_g_back",
+            "may_g_side",
+            "may_g_fd",
+            "may_g_bd",
+            "may_g_cheer",
+            "may_g_hurt_front",
+            "may_g_hurt_back",
+            "may_g_hurt_side",
+            "may_g_hurt_fd",
+            "may_g_hurt_bd",
+            "may_g_dead"
+          ]
+        },
+        "anim_seed": 3,
+        "remap_hues": {
+          "ranges": [
+            [
+              38,
+              75
+            ]
+          ],
+          "to": 220,
+          "sat": 0.08
+        },
+        "from": "MAY-G"
+      }
+    }
+  }
+}

@@ -3,9 +3,11 @@
 // the round badge, name and order, the availability chip, the trait sentence, the start and favourite plates, how many
 // looks, the title cut-out), with an Edit button each and "+ New from template"; the editor pane (assets.js's header,
 // sections and field rows over AFIELDS.hero) has the Identity, Trait (with TextGen.hero_trait's sentence previewed and
-// "at level 20"), Favourites, Specials, Availability (written and shown, not wired), "His own" (his weapon, hero mutation
-// and perks), Art words (pose drivers from /api/drivers, the title and badge words) and Looks & previews (lane V's
-// LookGrid, the round badge at 128 / 64, the title cut-out in its 660x888 frame at a quarter).
+// "at level 20"), Favourites, Specials, Availability, "His own" (his weapon, hero mutation and perks), Art words (pose
+// drivers from /api/drivers, the title and badge words) and Looks & previews (lane V's LookGrid, the round badge at 128 /
+// 64, the title cut-out in its 660x888 frame at a quarter). Pass 69 (lane LE): Availability is wired (free / to buy /
+// hidden, `hidden` kept in step) with his Requirement (typed_forms.js: his unlock quest), and every perk opens the perk
+// form (Edit, + New perk…); a perk document shows on this tab.
 const Heroes = (() => {
   const { el, clear, fmtN } = U;
   const M = AssetsModel, F = AFIELDS;
@@ -23,7 +25,7 @@ const Heroes = (() => {
     const box = el('input', { type: 'search', class: 'txt wide', placeholder: 'filter by name, id or trait…', value: filt().q });
     box.addEventListener('input', () => { filt().q = box.value.trim().toLowerCase(); draw(); });
     bar.appendChild(box);
-    bar.appendChild(Forms.select([{ v: 'all', label: 'every hero' }, { v: 'available', label: 'playable' }, { v: 'hidden', label: 'hidden' }, { v: 'purchase', label: 'purchase' }], filt().status, (v) => { filt().status = v || 'all'; draw(); }, { path: 'heroes.status' }));
+    bar.appendChild(Forms.select([{ v: 'all', label: 'every hero' }, { v: 'available', label: 'free' }, { v: 'purchase', label: 'to buy' }, { v: 'hidden', label: 'hidden' }], filt().status, (v) => { filt().status = v || 'all'; draw(); }, { path: 'heroes.status' }));
     bar.appendChild(el('button', { class: 'btn small' + (creating ? ' toggle on' : ''), type: 'button', text: '+ New from template ▾', title: 'a new hero folder from another hero\'s JSON (hidden until the tests are re-pinned)', onclick: () => { creating = !creating; drawCreate(); } }));
     list.appendChild(bar);
     createHost = el('div', { class: 'acreate-host' });
@@ -74,7 +76,7 @@ const Heroes = (() => {
     const art = el('article', { class: 'hcard' + (h.hidden ? ' dim' : '') + (editing ? ' editing' : ''), 'data-id': h.id });
     art.appendChild(el('img', { class: 'hcard-badge', src: h.icon || `/icon/hero/${h.id}`, alt: '', width: 64, height: 64, onerror: (e) => { e.target.style.visibility = 'hidden'; } }));
     const mid = el('div', { class: 'hcard-mid' });
-    mid.appendChild(el('h3', {}, el('span', { text: h.name || h.id }), el('span', { class: 'muted small', text: h.order != null ? `#${h.order}` : '' }), Assets.statusChip(avail(h), avail(h) === 'purchase' ? `${h.price || 0} ${h.currency_type || 'gold'}: not wired` : ''), doc && Assets.docDirty(doc) ? el('span', { class: 'ccard-dirty', text: '●', title: 'unsaved changes' }) : null));
+    mid.appendChild(el('h3', {}, el('span', { text: h.name || h.id }), el('span', { class: 'muted small', text: h.order != null ? `#${h.order}` : '' }), Assets.statusChip(avail(h), avail(h) === 'purchase' ? `${h.price || 0} ${h.currency_type || 'gold'}${h.quest ? ' once "' + TypedForms.questWords(h.quest) + '"' : ', on sale at once'}` : (h.quest && avail(h) === 'available' ? `free once "${TypedForms.questWords(h.quest)}"` : '')), avail(h) === 'purchase' ? el('span', { class: 'achip', text: `${h.price || 0} ${h.currency_type || 'gold'}`, title: 'the BUY price (pass 69)' }) : null, h.quest && avail(h) !== 'hidden' ? el('span', { class: 'achip locked', text: 'requirement', title: TypedForms.questWords(h.quest) }) : null, doc && Assets.docDirty(doc) ? el('span', { class: 'ccard-dirty', text: '●', title: 'unsaved changes' }) : null));
     mid.appendChild(el('div', { class: 'muted small', text: `${h.id} · ${h.pronoun || 'they'} · ${h.trait_name || 'no trait name'}` }));
     mid.appendChild(el('div', { class: 'small', text: h.trait_text || M.heroTrait(h) || '' }));
     const plates = el('div', { class: 'plates' });
@@ -99,6 +101,8 @@ const Heroes = (() => {
   // ------------------------------------------------------------------ the editor
 
   function editor(pane, doc) {
+    // pass 69 (lane LE): a perk opened from His own is edited on this tab (typed_forms.js)
+    if (doc.kind === 'perk') { TypedForms.perkEditor(pane, doc); return; }
     const iss = Assets.issuesOf(doc);
     const defs = F.hero;
     pane.appendChild(Assets.header(doc, iss));
@@ -107,22 +111,28 @@ const Heroes = (() => {
     pane.appendChild(sec('Trait', Assets.rows(doc, defs, 'Trait', iss), { open: true, foot: 'The signature stat grows per level (Run.hero_sheet); the plaque, the hero sheet and the arena read TextGen.hero_trait, which the preview above mirrors.' }));
     pane.appendChild(sec('Favourites', Assets.rows(doc, defs, 'Favourites', iss), { open: true }));
     pane.appendChild(sec('Specials', Assets.rows(doc, defs, 'Specials', iss)));
-    pane.appendChild(sec('Availability', Assets.rows(doc, defs, 'Availability', iss).concat([availabilityNote(doc)]), { open: true }));
+    // pass 69: the requirement (his unlock quest) and what the title shows; availabilityNote keeps hidden in step
+    pane.appendChild(sec('Availability', Assets.rows(doc, defs, 'Availability', iss).concat([TypedForms.requirement(doc), availabilityNote(doc)]), { open: true, keys: Assets.sectionKeys(defs, 'Availability').concat(['requirement', 'hidden']) }));
     pane.appendChild(sec('His own', hisOwn(doc), { open: true, keys: ['perks'], chips: [] }));
-    pane.appendChild(sec('Art words', Assets.rows(doc, defs, 'Art words', iss), { foot: 'The words gen_art.py sends for the base look; title_* and badge.* feed gen_title_heroes.py and the badge job. Each look\'s own recipe (in Looks) overrides the clip keys.' }));
+    // pass 69 (lane LE): a new OpenPose driver (driver_pose: lane ART's amp / lean / arms back, and level shoulders into <name>_lvl)
+    const newDriver = el('div', { class: 'alt-actions' }, el('button', { class: 'btn small', type: 'button', text: '+ New pose driver…', title: 'an OpenPose driver from a Mixamo FBX or an uploaded rigged model (driver_pose): frames, slice, arms, a sprint\'s amp and lean, and the shoulders levelled with the neck (a second driver <name>_lvl) for the back and side views', onclick: () => Assets.openJobForm(doc, { mode: 'driver', method: 'driver_pose' }) }),
+      el('span', { class: 'muted small', text: 'the drivers above pick from tools/dl/drivers; run_side (side) and run_spread_lvl (back) keep the shoulders level (pass 69)' }));
+    pane.appendChild(sec('Art words', Assets.rows(doc, defs, 'Art words', iss).concat([newDriver]), { foot: 'The words gen_art.py sends for the base look; title_* and badge.* feed gen_title_heroes.py and the badge job. Each look\'s own recipe (in Looks) overrides the clip keys.' }));
     const lookChips = [el('span', { class: 'achip', text: `${doc.looks.length} look${doc.looks.length === 1 ? '' : 's'}` })];
     pane.appendChild(sec('Looks & previews', [Assets.looksSection(doc, iss), previews(doc)].concat(Assets.rows(doc, defs, 'Looks & previews', iss)), { open: true, chips: lookChips, keys: ['looks', 'variant', 'variant_base', 'anims', 'strip_cols', 'frame_px', 'fps'] }));
   }
 
-  /** hidden and availability kept in step: a change of one writes the other (Godot hides when either says so) */
+  /** hidden and availability kept in step (pass 69, lane UI's rule in JsonContent.build: only availability "hidden"
+   *  hides; a hero to buy is on the title whatever `hidden` says; an available one with hidden: true stays hidden).
+   *  Changing Availability above writes `hidden` too; this offers the fix when a hand edit left them apart. */
   function availabilityNote(doc) {
     const d = doc.data;
     const av = d.availability || (d.hidden ? 'hidden' : 'available');
-    const agree = !!d.hidden === (av !== 'available');
-    const wrap = el('div', { class: 'anote' + (agree ? '' : ' warn') });
-    wrap.appendChild(el('div', { class: 'small', text: `In play: ${av === 'available' ? 'playable from the title' : av === 'purchase' ? 'hidden until the purchase loop is wired (parked: Garry asked to be reminded when he raises heroes\' cost again)' : 'hidden: not on the title, not in the arena\'s tiles'}. The server keeps hidden = (availability != available).` }));
-    if (!agree) wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: `Make hidden agree (${av !== 'available' ? 'hidden: true' : 'hidden off'})`, onclick: () => Assets.apply(doc, (dd) => { if (av !== 'available') dd.hidden = true; else delete dd.hidden; }, 'editor') }));
-    else wrap.appendChild(el('button', { class: 'btn small ghost', type: 'button', text: av === 'available' ? 'Hide him' : 'Make him playable', title: av === 'available' ? 'hidden: true and availability hidden' : 'the tests pin the five heroes: re-pin them first', onclick: () => Assets.apply(doc, (dd) => { if (av === 'available') { dd.hidden = true; dd.availability = 'hidden'; } else { delete dd.hidden; dd.availability = 'available'; } }, 'editor') }));
+    const agree = !!d.hidden === (av === 'hidden');
+    if (agree) return null;
+    const wrap = el('div', { class: 'anote warn', 'data-key': 'hidden' });
+    wrap.appendChild(el('div', { class: 'small', text: `hidden is ${!!d.hidden} while availability is ${av}: ${av === 'purchase' ? 'the game shows a hero to buy anyway' : av === 'available' ? 'the game hides him (hidden wins for a free hero)' : 'availability hidden hides him'}.` }));
+    wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: `Make hidden agree (hidden: ${av === 'hidden'})`, onclick: () => Assets.apply(doc, (dd) => { dd.hidden = av === 'hidden'; }, 'editor') }));
     return wrap;
   }
 
@@ -140,9 +150,19 @@ const Heroes = (() => {
     if (!weapons.length) out.appendChild(el('div', { class: 'muted small', text: `No weapon carries hero: "${doc.id}" (WeaponDef.hero). Start weapon: ${doc.data.start_weapon || 'the favourite, else the peashooter'}.` }));
     for (const id of weapons) { const w = fl ? fl.weapons.find((x) => x.id === id) : null; out.appendChild(line('weapon', id, 'his weapon', w && w.evolves_into ? el('span', { class: 'muted small', text: `→ ${w.evolves_into}` }) : null)); }
     if (!muts.length) out.appendChild(el('div', { class: 'muted small', text: 'No hero mutation (kind hero, hero = this id): a playable hero has exactly one, on his favourite weapon (pass26_test).' }));
-    for (const id of muts) { const m = fl ? fl.mutations.find((x) => x.id === id) : null; out.appendChild(line('mutation', id, 'hero mutation', m ? el('span', { class: 'muted small', text: `on ${m.weapon}${m.weapon !== doc.data.favourite_weapon ? ' (not his favourite!)' : ''}` }) : null)); }
-    if (!perks.length) out.appendChild(el('div', { class: 'muted small', text: 'No perks listed (content/perks with hero = this id; played heroes have 1-2).' }));
-    for (const id of perks) out.appendChild(el('div', { class: 'isub' }, el('img', { src: `/icon/perk/${id}`, alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } }), el('span', { class: 'achip perk', text: 'perk' }), el('b', { text: id }), el('span', { class: 'muted small', text: 'content/perks/' + id + ' (perks have no editor here: a JSON of text, effects and a special the code knows)' })));
+    for (const id of muts) { const m = fl ? fl.mutations.find((x) => x.id === id) : null; out.appendChild(line('mutation', id, 'hero mutation', m ? el('span', { class: 'muted small', text: `on ${m.weapon}${m.hidden ? ' · hidden: out of play (pass 69)' : m.weapon !== doc.data.favourite_weapon ? ' (not his favourite!)' : ''}` }) : null)); }
+    if (!perks.length) out.appendChild(el('div', { class: 'muted small', text: 'No perks listed (content/perks with hero = this id; a hero on the title needs at least one: pass66_shape_test).' }));
+    // pass 69 (lane LE): every perk opens in the perk form (Identity, Card, Special with its numbers, Art); + New perk
+    const precs = Array.isArray(rec.perk_records) ? rec.perk_records : [];
+    for (const id of perks) {
+      const p = precs.find((x) => x.id === id) || { id };
+      out.appendChild(el('div', { class: 'isub' }, el('img', { src: `/icon/perk/${id}`, alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } }), el('span', { class: 'achip perk', text: 'perk' }), el('b', { text: p.name || id }),
+        el('span', { class: 'muted small', text: `${id}${p.special ? ' · special ' + p.special : ' · effects only'}${p.hidden ? ' · hidden' : ''}`, title: p.text || '' }),
+        el('button', { class: 'btn small ghost', type: 'button', text: 'Edit', onclick: () => Assets.open('perk', id) })));
+    }
+    const host = el('div', { class: 'acreate-host' });
+    out.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small', type: 'button', text: '+ New perk…', title: 'a new perk for this hero from any perk as a template (Inflatable May: the decoy)', onclick: () => { clear(host); host.appendChild(TypedForms.newPerkDialog(doc, host, () => {})); } })));
+    out.appendChild(host);
     return out;
   }
 

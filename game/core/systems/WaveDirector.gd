@@ -119,6 +119,8 @@ func _apply_mults() -> void:
 	# pass 60: every creature's pace times the timeline's creature_speed_mult (0.9 on Red Canyon), the arena included (it
 	# is where the walks are looked at, and they should go as they do in a run); the hero keeps his move_pace
 	em.creature_speed_mult = timeline.creature_speed_mult
+	# pass 69 (lane EN): the map's fallbacks for a variance special's numbers (EnemyDef.special_value)
+	em.special_defaults = timeline.special_defaults
 
 
 ## Whether colour may come yet (pass 46): the run has made its first `colour_after_kills` kills (the arena always may).
@@ -300,6 +302,11 @@ func _run_event(ev: Dictionary) -> void:
 			var en := event_numbers(id, variant, stats)
 			var est: Dictionary = en["stats"]
 			var src: Dictionary = en["src"]
+			# pass 69 (lane EN, Garry: "a single 'Special' regular Goblin appears at the end of the first wave"):
+			# "special": true brings every one of it as its variance special (EnemyManager.force_special: whatever its
+			# chance, before colour_after_kills), with no SWARM! banner
+			var forced := bool(ev.get("special", false))
+			em.force_special = forced
 			match str(ev.get("pattern", "ring")):
 				"pack", "scatter", "in_front":
 					# through the spawn points instead of the ring (pass 53), still on top of the cap like the ring;
@@ -309,7 +316,9 @@ func _run_event(ev: Dictionary) -> void:
 					# the swarm's own ring, 16 m round the hero as it always was (the rows' and waves' "ring" is
 					# RING_RADIUS, pass 57)
 					em.spawn_ring(id, count, game.player.global_position, 16.0, variant, est, src)
-			game.toast("SWARM!", SWARM_COLOR)
+			em.force_special = false
+			if not forced:
+				game.toast("SWARM!", SWARM_COLOR)
 		"boss":
 			_start_boss(_pick_id(ev.get("enemy", map.boss), ev.get("weights", [])), Vector3.INF, variant, stats)
 		"elite_boss":
@@ -1179,7 +1188,8 @@ func _roster_weight(r: Dictionary, t: float) -> float:
 
 ## Power-ups drop from kills: a per-kill chance scaled by how hard the creature was (its xp_mult; elite variants count
 ## double), and the rarer power-ups weigh more the harder the creature (hard_bias per roster row).
-func drop_pickup_from(def: EnemyDef, at: Vector3, elite: bool) -> void:
+## Pass 69 (lane SALT): `luck` multiplies the per-kill chance (Thing About Luck's x3 for a creature killed in the salt).
+func drop_pickup_from(def: EnemyDef, at: Vector3, elite: bool, luck: float = 1.0) -> void:
 	var pk: Dictionary = timeline.pickups
 	var roster: Array = pk.get("roster", [])
 	# pass 53 (the wave schema): the creature's own roster of power-ups when it has one ({id: weight}, no hard bias),
@@ -1189,7 +1199,7 @@ func drop_pickup_from(def: EnemyDef, at: Vector3, elite: bool) -> void:
 		for id in def.pickup_weights.keys():
 			roster.append({"id": str(id), "weight": float(def.pickup_weights[id])})
 	# pass 62: the Pocket Watch's powerup_chance on the hero's sheet (x1.12 at level 5)
-	var per_kill := float(pk.get("per_kill", 0.0)) * def.pickup_chance_mult * powerup_chance_mult()
+	var per_kill := float(pk.get("per_kill", 0.0)) * def.pickup_chance_mult * powerup_chance_mult() * maxf(luck, 0.0)
 	if roster.is_empty() or per_kill <= 0.0:
 		return
 	var hardness: float = def.xp_mult * (2.0 if elite else 1.0)

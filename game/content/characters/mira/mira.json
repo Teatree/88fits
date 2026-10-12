@@ -2,7 +2,12 @@
   "id": "mira",
   "name": "Mira",
   "flavour": "Digs for a living. Finds trouble for free.",
+  "order": 9,
   "pronoun": "she",
+  "hidden": false,
+  "availability": "purchase",
+  "price": 9999,
+  "currency_type": "gold",
   "trait": [
     {
       "stat": "greed",
@@ -86,6 +91,5 @@
     ],
     "sat_max": 0.55
   },
-  "key_sat": 0.6,
-  "hidden": true
+  "key_sat": 0.6
 }

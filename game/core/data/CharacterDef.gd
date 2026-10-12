@@ -40,8 +40,9 @@ extends ContentDef
 @export var unlock_quest: String = ""
 ## Pass 66 (the Level Editor's Heroes tab; Garry: "choose if they are hidden or available (or if they can be purchased
 ## with currency_type - add this for now, but don't hook up any additional functionality)"): "hidden" | "available" |
-## "purchase". JsonContent folds anything but "available" into `hidden`, so a "purchase" hero stays out of play until the
-## loop is wired; `price` in `currency_type` ("gold") is written and shown nowhere yet (BALANCING §13).
+## "purchase". Pass 69 wired the loop: "hidden" folds into `hidden`; a "purchase" hero is shown on the title, locked until
+## his quest `unlock_<id>` is done, then on sale for `price` in `currency_type` ("gold") until bought (Registry.hero_state,
+## Save.buy_hero); "available" is free (owned from the start, or once his quest is done when he has one).
 @export var availability: String = "available"
 @export var price: int = 0
 @export var currency_type: String = "gold"
@@ -115,7 +116,7 @@ func look_code() -> String:
 
 
 ## The title cut-out the look it wears names (pass 68: `variants[CODE].title`, a file name under TITLE_DIR such as
-## "hero_mamy_b.png", the Level Editor's title pick for that look), "" when it names none.
+## "hero_may_b.png", the Level Editor's title pick for that look), "" when it names none.
 func look_title() -> String:
 	var e = variants.get(look_code())
 	return str((e as Dictionary).get("title", "")) if e is Dictionary else ""

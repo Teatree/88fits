@@ -85,7 +85,7 @@ const FIELDS = (() => {
     elite_boss: { label: 'Elite', glyph: 'crown', color: '#e6a04a', help: 'a mini-boss creature near the hero (one of the list at random), no clock stop; always drops a chest' },
     elite: { label: 'Coloured elite', glyph: 'star', color: '#c98500', help: 'one roster creature wearing an elite modifier (random creature / modifier when empty; the creature by the rows\' elite_weight); waits for colour_after_kills' },
     elite_every: { label: 'Elites every', glyph: 'repeat', color: '#9085e9', help: 'from t, a coloured elite every `interval` seconds (a fresh random interval each time when [min, max]) for the rest of the run' },
-    swarm: { label: 'Swarm', glyph: 'ring', color: '#46d39a', help: '`count` creatures at once, on top of the cap (a SWARM! banner): a ring 16 m round the hero, packs or singles through the spawn points, or all from the top of the screen (Pattern)' },
+    swarm: { label: 'Swarm', glyph: 'ring', color: '#46d39a', help: '`count` creatures at once, on top of the cap (a SWARM! banner): a ring 16 m round the hero, packs or singles through the spawn points, or all from the top of the screen (Pattern). Pass 69: Special on = every one comes as its coloured special, no banner (Red Canyon\'s special Goblin at 2:00 is one, Count 1)' },
   };
   const event = [
     { key: 'type', label: 'Type', type: 'select', options: Object.keys(EVENT_TYPES).map((k) => ({ v: k, label: EVENT_TYPES[k].label, help: EVENT_TYPES[k].help })), required: true, help: 'what happens' },
@@ -96,6 +96,8 @@ const FIELDS = (() => {
     { key: 'interval', label: 'Interval (s)', type: 'interval', only: ['elite_every'], def: 90, help: 'seconds between coloured elites: one number, or min and max for a fresh random interval each time' },
     { key: 'count', label: 'Count', type: 'int', min: 1, def: 40, only: ['swarm'], help: 'how many come at once' },
     { key: 'pattern', label: 'Pattern', type: 'select', options: SWARM_PATTERNS, def: 'ring', only: ['swarm'], help: 'the swarm\'s own ring 16 m round the hero, packs / singles through the spawn points, or all from the top of the screen (in front)' },
+    // pass 69 (lane EN; Garry: "a moment ... where a single 'Special' regular Goblin appears at the end of the first wave")
+    { key: 'special', label: 'Special', type: 'bool', def: false, only: ['swarm'], help: 'on: every creature this swarm brings comes as its coloured special for sure (its Special block on the Enemies tab: size, HP ×, ATK ×, XP ×, colour, glow), even before Colour after kills, and no SWARM! banner shows. Count 1 = one special creature at that second. A creature with no variance block has no special and comes plain' },
     { key: 'chance', label: 'Chance', type: 'percent', def: 1, help: 'the chance the event happens at all, rolled per run (100 = always)' },
     { key: 't_jitter', label: 'Jitter (± s)', type: 'number', min: 0, step: 1, def: 0, help: 'the time moves by up to this many seconds either way, rolled per run' },
     { key: 'variant', label: 'Art variant', type: 'variant', help: 'the look of what it spawns; Default = each creature\'s default look (the Creatures tab), a code pins it' },
@@ -156,12 +158,14 @@ const FIELDS = (() => {
     { path: 'variance.tints', group: 'Elite', label: 'Tints', type: 'swatches', ph: (c) => (c && c.variance && Array.isArray(c.variance.tints) ? c.variance.tints : ''), help: 'the colours an ordinary one may be washed with (one at random, after colour_after_kills); a list here replaces the creature\'s whole list' },
     { path: 'variance.tint_strength', group: 'Elite', label: 'Tint strength', type: 'number', min: 0, max: 1, step: 0.05, ph: (c) => sub(c, 'variance', 'tint_strength'), help: 'how strongly the tint shows (0 = none, 1 = the colour flat)' },
     { path: 'variance.special_chance', group: 'Elite', label: 'Special chance', type: 'number', min: 0, max: 1, step: 0.01, ph: (c) => sub(c, 'variance', 'special_chance'), help: 'the chance one comes as a coloured special (×(1 + the hero\'s difficulty) with Hot Sauce), after colour_after_kills; 0.12 = about one in eight' },
-    { path: 'variance.special.size', group: 'Elite', label: 'Special size ×', type: 'number', min: 0.1, step: 0.1, ph: (c) => sub2(c, 'variance', 'special', 'size'), help: 'a special is this much taller (the game\'s default 1.3)' },
-    { path: 'variance.special.hp', group: 'Elite', label: 'Special HP ×', type: 'number', min: 0.1, step: 0.1, ph: (c) => sub2(c, 'variance', 'special', 'hp'), help: 'a special has this much more health (default 1.6)' },
-    { path: 'variance.special.damage', group: 'Elite', label: 'Special damage ×', type: 'number', min: 0.1, step: 0.1, ph: (c) => sub2(c, 'variance', 'special', 'damage'), help: 'a special bites this much harder (default 1.2)' },
+    { path: 'variance.special.size', group: 'Elite', label: 'Special size ×', type: 'number', min: 0.1, step: 0.1, ph: (c) => sub2(c, 'variance', 'special', 'size'), help: 'a special is this much taller (pass 69: the game\'s default 1.25)' },
+    { path: 'variance.special.hp', group: 'Elite', label: 'Special HP ×', type: 'number', min: 0.1, step: 0.1, ph: (c) => sub2(c, 'variance', 'special', 'hp'), help: 'a special has this much more health (pass 69: default 10)' },
+    { path: 'variance.special.damage', group: 'Elite', label: 'Special damage ×', type: 'number', min: 0.1, step: 0.1, ph: (c) => sub2(c, 'variance', 'special', 'damage'), help: 'a special bites this much harder (pass 69: default 2)' },
     { path: 'variance.special.xp', group: 'Elite', label: 'Special XP ×', type: 'number', min: 0.1, step: 0.1, ph: (c) => sub2(c, 'variance', 'special', 'xp'), help: 'a special pays this much more XP (default 2)' },
     { path: 'variance.special.tint', group: 'Elite', label: 'Special tint', type: 'swatch', ph: (c) => sub2(c, 'variance', 'special', 'tint'), help: 'the special\'s colour (the dark saturated wash that marks it); in a row with a Colour range the special takes a darker shade of the hue it rolled instead' },
     { path: 'variance.special.tint_strength', group: 'Elite', label: 'Special tint strength', type: 'number', min: 0, max: 1, step: 0.05, ph: (c) => sub2(c, 'variance', 'special', 'tint_strength'), help: 'how strongly the special\'s colour shows (default 0.6); in a row with a Colour range its shade shows at the larger of this and Amount, +0.15' },
+    // pass 69 (lane EN): the special's emissive rim
+    { path: 'variance.special.glow', group: 'Elite', label: 'Special glow', type: 'number', min: 0, max: 1, step: 0.05, ph: (c) => sub2(c, 'variance', 'special', 'glow'), help: 'the emissive rim round a special in its colour, 0 = none, 1 = widest and brightest (pass 69; empty = the creature\'s own, else the map\'s Coloured specials default, else 0.6)' },
     { path: 'elite_weight', group: 'Elite', label: 'Elite weight', type: 'number', min: 0, step: 0.5, ph: () => 1, help: 'this row\'s weight when a coloured-elite event with no creature named draws one from the open rows (0 = never, like Can be elite = no; every row 1 = an even draw)' },
     { path: 'elite_formats.single', group: 'Elite', label: 'Comes alone', type: 'number', min: 0, step: 0.5, ph: () => 1, help: 'chance a coloured elite drawn from this row arrives on its own (the three chances are normalised: 1 / 1 / 0 = half and half)' },
     { path: 'elite_formats.pack', group: 'Elite', label: 'Comes as its pack', type: 'number', min: 0, step: 0.5, ph: () => 0, help: 'chance it arrives as its whole pack, every one wearing the modifier' },
@@ -227,10 +231,18 @@ const FIELDS = (() => {
     { key: 'weapon_cap', group: 'Items', label: 'Weapon slots per stage', type: 'list', int: true, def: [5, 5, 5], help: 'weapon slots per stage (static since pass 47: 5)' },
     { key: 'passive_cap', group: 'Items', label: 'Line slots per stage', type: 'list', int: true, def: [5, 5, 5], help: 'line slots per stage (static since pass 47: 5)' },
     { key: 'path_times', group: 'Items', label: 'Path offers per stage', type: 'path_times', def: [], help: 'seconds into each stage when a weapon\'s whole path goes on the table (one list per stage; the last holds for later stages)' },
+    // pass 69 (lane EN): the map's numbers for a coloured special that the creature's own Special block leaves empty
+    // (EnemyDef.special_value: the creature's own, then these, then the game's)
+    { key: 'special_defaults.size', group: 'Coloured specials', label: 'Size ×', type: 'number', min: 0.1, step: 0.05, def: 1.25, help: 'a coloured special\'s size factor for every creature whose Special block leaves Size empty (empty here = the game\'s 1.25)' },
+    { key: 'special_defaults.hp', group: 'Coloured specials', label: 'HP ×', type: 'number', min: 0.1, step: 0.5, def: 10, help: 'its health factor where the creature leaves it empty (empty = the game\'s 10)' },
+    { key: 'special_defaults.damage', group: 'Coloured specials', label: 'ATK ×', type: 'number', min: 0.1, step: 0.1, def: 2, help: 'its damage factor where the creature leaves it empty (empty = the game\'s 2)' },
+    { key: 'special_defaults.xp', group: 'Coloured specials', label: 'XP ×', type: 'number', min: 0, step: 0.5, def: 2, help: 'its XP factor where the creature leaves it empty (empty = the game\'s 2)' },
+    { key: 'special_defaults.tint_strength', group: 'Coloured specials', label: 'Colour strength', type: 'number', min: 0, max: 1, step: 0.05, def: 0.6, help: 'how strongly its colour shows where the creature leaves it empty (empty = the game\'s 0.6)' },
+    { key: 'special_defaults.glow', group: 'Coloured specials', label: 'Glow', type: 'number', min: 0, max: 1, step: 0.05, def: 0.6, help: 'the emissive rim round every coloured special whose creature leaves Glow empty: 0 = none, 1 = widest (empty = the game\'s 0.6). Every creature in play leaves it empty, so this is the one knob for all of them' },
     { key: 'structures.count', group: 'World', label: 'Structures', type: 'int', min: 0, def: 0, help: 'structures scattered at the run\'s start' },
     { key: 'structures.min_spacing', group: 'World', label: 'Structure spacing (m)', type: 'number', min: 0, step: 1, def: 16, help: 'the least metres between two structures' },
   ];
-  const SCALAR_GROUPS = ['Stages', 'Cap', 'Spawning', 'Portal', 'Scaling', 'Endless', 'Items', 'World'];
+  const SCALAR_GROUPS = ['Stages', 'Cap', 'Spawning', 'Portal', 'Scaling', 'Coloured specials', 'Endless', 'Items', 'World'];
 
   // the two curves' own fields (the HP x / ATK x inspectors and the Settings block)
   const CURVE = [

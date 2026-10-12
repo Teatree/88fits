@@ -554,16 +554,22 @@
     {"key": "start", "type": "number", "default": 0, "help": "Seconds into the clip where the stride (or the one-shot) starts."},
     {"key": "end", "type": "number", "default": 0, "help": "Seconds where it ends (0: the clip's end)."},
     {"key": "pitch", "type": "number", "default": 25, "help": "The camera's tilt down, degrees (the game's 25)."},
-    {"key": "arms", "type": "select", "default": "", "options": ["", "zombie", "hold_r"], "help": "zombie: both arms held out in front (arm_drop degrees down); hold_r: the right hand holds something up at the shoulder."},
+    {"key": "arms", "type": "select", "default": "", "options": ["", "zombie", "hold_r", "back"], "help": "zombie: both arms held out in front (arm_drop degrees down); hold_r: the right hand holds something up at the shoulder; back (pass 69): both arms swept straight back behind the body, arm_drop 40 below the horizontal (the dash, Jezyk's run)."},
     {"key": "arm_drop", "type": "number", "default": 18, "help": "zombie arms: how far they slope down, degrees (level arms seen from above read as hands up)."},
     {"key": "body", "type": "text", "default": "", "help": "Proportions read off the painting as fractions of its height: top_nose:0.21,nose_neck:0.134,torso:0.292,thigh:0.16,shin:0.14,shoulder:0.119,hip:0.068,upper:0.174,fore:0.139,hand:0.078 (the goblin)."},
     {"key": "fwd", "type": "select", "default": "feet", "options": ["feet", "body"], "help": "Where 'forward' is read from: the feet (toe minus ankle) or the hip and shoulder lines (toe-out walks)."},
     {"key": "rig", "type": "select", "default": "mixamo", "options": ["mixamo", "sm"], "help": "The bone-name table: Mixamo's names, or Cinema 4D's Bone_SM_*."},
     {"key": "rigmap", "type": "json", "default": null, "help": "The bone map for another humanoid rig ({model bone: Mixamo name}, or the probe's {Mixamo name: model bone}); saved as rigmap.json beside the upload."},
-    {"key": "action", "type": "text", "default": "", "help": "Which clip when the file holds several (the probe lists them)."}
+    {"key": "action", "type": "text", "default": "", "help": "Which clip when the file holds several (the probe lists them)."},
+    {"key": "amp", "type": "number", "default": 1.0, "help": "Pass 69: the limbs swing this many times as far round their average rotation, baked into the clip (1.35 on the legs + lean 12 = run_sprint)."},
+    {"key": "amp_bones", "type": "text", "default": "", "help": "A regex over the bones amp applies to (empty: (Arm|ForeArm|UpLeg|Leg)$, the limbs)."},
+    {"key": "lean", "type": "number", "default": 0, "help": "Pass 69: the spine bent forward this many degrees in all (a third at each of Spine, Spine1, Spine2): 12 a sprint, 14 the dash."},
+    {"key": "shoulders", "type": "text", "default": "", "help": "Pass 69 (tools/pose_shoulders.py): level the shoulders with the neck: each shoulder's height off the neck times this (0.3), the arms moving with them, written as a second driver <name>_lvl. The Mixamo Neck sits above the shoulder line, so without it Wan paints sagging shoulders from behind and a hunched near shoulder in the side passing frames. Empty: off."},
+    {"key": "shoulder_views", "type": "text", "default": "back,bd", "help": "The views it levels: back,bd for the back driver; side,fd (with tuck) for the side driver."},
+    {"key": "tuck", "type": "text", "default": "", "help": "Side view: the far upper arm turns to at most this many degrees back from straight down in the frames where the near arm is swung back (25); its elbow up behind the back read as a raised shoulder. Empty: off."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
-   "runner": {"tool": "pose_driver", "call": "blender", "argv": ["src={src}", "out=tools/dl/drivers/{name}", "frames={frames}", "loop={loop as 1|0}", "start={start}?", "end={end}?", "pitch={pitch}", "arms={arms}?", "arm_drop={arm_drop}?", "body={body}?", "fwd={fwd}?", "rig={rig}", "rigmap={rigmap path}?", "action={action}?"],
+   "runner": {"tool": "pose_driver", "call": "blender", "argv": ["src={src}", "out=tools/dl/drivers/{name}", "frames={frames}", "loop={loop as 1|0}", "start={start}?", "end={end}?", "pitch={pitch}", "arms={arms}?", "arm_drop={arm_drop}?", "body={body}?", "fwd={fwd}?", "rig={rig}", "rigmap={rigmap path}?", "action={action}?", "amp={amp}?", "amp_bones={amp_bones}?", "lean={lean}?"], "then": "with shoulders: python tools/pose_shoulders.py tools/dl/drivers/{name} tools/dl/drivers/{name}_lvl level={shoulders} views={shoulder_views} tuck={tuck}?",
               "then": {"tool": "pose_driver", "call": "draw", "args": ["tools/dl/drivers/{name}"]}}
   },
   {

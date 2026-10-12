@@ -44,7 +44,13 @@ func test_stranger_offers_only_high_value_and_takes_a_cut() -> void:
 	var offer := Run.stranger_offer()
 	var line := Run.stranger_take(offer, 0.15)
 	assert_str(line).is_not_empty()
-	assert_float(Run.player_sheet.get_stat("max_hp", 100.0)).is_less(hp_before)
+	# pass 69: the offer may be Hot Springs (an epic passive item with flat max HP): the cut is measured against what it adds
+	var gain := 0.0
+	if offer["type"] == "passive":
+		for e: Effect in (offer["def"] as PassiveDef).effects_for_level(int(offer["level_to"])):
+			if e.stat == "max_hp" and e.op == "add":
+				gain += e.value
+	assert_float(Run.player_sheet.get_stat("max_hp", 100.0)).is_less(hp_before + gain)
 	if offer["type"] == "weapon":
 		assert_int(Run.weapon_instance(offer["id"]).level).is_equal(int(offer["level_to"]))
 	else:

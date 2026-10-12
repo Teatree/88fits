@@ -6,20 +6,27 @@
 [ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite.png" id="4_ihfma"]
 [ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite_b.png" id="5_ihfma"]
 [ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite_c.png" id="6_nb70y"]
+[ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite_d.png" id="7_nai31"]
+[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_d.png" id="8_v865h"]
+[ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite_e.png" id="9_b75va"]
+[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_e.png" id="10_v5l1u"]
+[ext_resource type="Texture2D" path="res://content/characters/buck/buck_sprite_f.png" id="11_4l51j"]
+[ext_resource type="Texture2D" path="res://content/characters/buck/buck_icon_f.png" id="12_18qhc"]
 
-[sub_resource type="Resource" id="Resource_nb70y"]
+[sub_resource type="Resource" id="Resource_18qhc"]
 script = ExtResource("1_b1smd")
-stat = "amount"
-value = 2.0
+stat = "area"
+op = "mul"
+value = 0.25
 
-[sub_resource type="Resource" id="Resource_nai31"]
+[sub_resource type="Resource" id="Resource_ysl4k"]
 script = ExtResource("1_b1smd")
 stat = "move_speed"
 op = "mul"
 value = 0.01
 target = "player"
 
-[sub_resource type="Resource" id="Resource_v865h"]
+[sub_resource type="Resource" id="Resource_kamrv"]
 script = ExtResource("1_b1smd")
 stat = "move_speed"
 op = "mul"
@@ -28,17 +35,18 @@ target = "player"
 
 [resource]
 script = ExtResource("2_r747c")
-trait_effects = [SubResource("Resource_v865h")]
-level_trait = [SubResource("Resource_nai31")]
+trait_effects = [SubResource("Resource_kamrv")]
+level_trait = [SubResource("Resource_ysl4k")]
 order = 7
 trait_name = "Full Tilt"
 trait_text = "Starts 15% slower. While he is not hit his charge climbs over 10 s to +80% speed, +60% attack damage and +20% evade chance; a hit that lands knocks off half of it."
 pronoun = "he"
-favourite_weapon = "tommy_gun"
+favourite_weapon = "salt"
 favourite_bonus = {
-"effects": [SubResource("Resource_nb70y")],
+"effects": [SubResource("Resource_18qhc")],
 "type": "effects"
 }
+start_weapon = "frisbee"
 specials = ["momentum"]
 momentum = {
 "evade_bonus": 0.2,
@@ -47,8 +55,10 @@ momentum = {
 "ramp_seconds": 10.0,
 "speed_bonus": 0.8
 }
-sprite = ExtResource("5_ihfma")
-sprite_file = "buck_sprite_b.png"
+availability = "purchase"
+price = 500
+sprite = ExtResource("9_b75va")
+sprite_file = "buck_sprite_e.png"
 anims = {
 "cheer": 1.0,
 "die": 5.0,
@@ -102,8 +112,8 @@ variants = {
 },
 "frame_px": 256,
 "icon": ExtResource("2_4jnfx"),
-"note": "the top-level strip, before the Level Editor's looks",
-"shelved": false,
+"note": "the deer, the top-level strip before the Level Editor's looks (shelved in pass 69: the top-level words are Jeżyk's tracksuit now; BUC-B keeps the deer's words)",
+"shelved": true,
 "sprite": ExtResource("4_ihfma"),
 "sprite_file": "buck_sprite.png",
 "strip_cols": 62,
@@ -137,7 +147,7 @@ variants = {
 "frame_px": 256,
 "icon": ExtResource("2_4jnfx"),
 "note": "the back and back-diagonal runs on run_spread (the wrists pushed out past the torso, as Calavera and Ironwood)",
-"shelved": false,
+"shelved": true,
 "sprite": ExtResource("5_ihfma"),
 "sprite_file": "buck_sprite_b.png",
 "strip_cols": 62,
@@ -176,17 +186,119 @@ variants = {
 "sprite_file": "buck_sprite_c.png",
 "strip_cols": 62,
 "title": ""
+},
+"BUC-D": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": ExtResource("8_v865h"),
+"note": "pass 69: Jezyk in the tracksuit (front from Garry's reference sheet, BUC-D's front_from_picture pick c0); the jog: the Running stride with the shoulders levelled and the side's far arm tucked (run_side), the back views spread and levelled (run_spread_lvl)",
+"shelved": false,
+"sprite": ExtResource("7_nai31"),
+"sprite_file": "buck_sprite_d.png",
+"strip_cols": 62,
+"title": "hero_buck_d.png"
+},
+"BUC-E": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": ExtResource("10_v5l1u"),
+"note": "pass 69: the sprint: BUC-D's paintings on run_sprint_lvl (the Running stride with the legs swung 1.35x wider and the spine leaning 12 degrees forward, back views spread, shoulders levelled, the side's far arm tucked)",
+"shelved": false,
+"sprite": ExtResource("9_b75va"),
+"sprite_file": "buck_sprite_e.png",
+"strip_cols": 62,
+"title": "hero_buck_e.png"
+},
+"BUC-F": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": ExtResource("12_18qhc"),
+"note": "pass 69: the dash (the hedgehog's run): BUC-D's paintings on run_dash_lvl (the Running legs with both arms swept straight back behind the body and the spine leaning 14 degrees forward, shoulders levelled)",
+"shelved": false,
+"sprite": ExtResource("11_4l51j"),
+"sprite_file": "buck_sprite_f.png",
+"strip_cols": 62,
+"title": "hero_buck_f.png"
 }
 }
-variant = "BUC-B"
+variant = "BUC-E"
 id = "buck"
-display_name = "Buck"
-flavour = "Slow to start. Impossible to stop."
-icon = ExtResource("2_4jnfx")
+display_name = "Jeżyk"
+flavour = "The little hedgehog of the block. Slow to start, impossible to stop."
+icon = ExtResource("10_v5l1u")
 icon_file = "buck_icon.png"
 placeholder = {
-"color": "#B88A5A",
+"color": "#141418",
 "eyes": 2.0,
-"hat": "#6A4A2A",
+"hat": "#4D7BFF",
 "shape": "blob"
 }

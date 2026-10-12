@@ -118,7 +118,7 @@ func test_the_reel_strip_lands_on_the_roll_and_never_repeats_it_beside_itself() 
 # ---------------------------------------------------------------- item 26: the hero lands with his own weapon
 
 func test_every_hero_lands_with_his_own_weapon() -> void:
-	var want := {"astro": "gravity_gun", "drifter": "revolver", "calavera": "guitarra", "buck": "tommy_gun", "dad": "boomstick", "mira": "land_mine"}
+	var want := {"astro": "gravity_gun", "drifter": "revolver", "calavera": "guitarra", "buck": "frisbee", "dad": "boomstick", "mira": "land_mine"}
 	for hid in want.keys():
 		var c: CharacterDef = Registry.character(hid)
 		assert_object(c).override_failure_message(str(hid)).is_not_null()
@@ -131,7 +131,9 @@ func test_every_hero_lands_with_his_own_weapon() -> void:
 		Run.end()
 	# the key is data (JsonContent reads start_weapon) and the fallbacks hold without it
 	assert_str(Registry.character("astro").start_weapon).is_equal("gravity_gun")
-	assert_str(Registry.character("buck").start_weapon).is_equal("")
+	# (pass 69: Jeżyk lands with his own Frisbee now; Dad still has no start weapon and lands with his favourite)
+	assert_str(Registry.character("buck").start_weapon).is_equal("frisbee")
+	assert_str(Registry.character("dad").start_weapon).is_equal("")
 	assert_str(Registry.start_weapon_for(null).id).is_equal("peashooter")
 
 

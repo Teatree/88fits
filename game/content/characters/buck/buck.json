@@ -1,7 +1,7 @@
 {
   "id": "buck",
-  "name": "Buck",
-  "flavour": "Slow to start. Impossible to stop.",
+  "name": "Jeżyk",
+  "flavour": "The little hedgehog of the block. Slow to start, impossible to stop.",
   "order": 7,
   "pronoun": "he",
   "trait": [
@@ -20,17 +20,18 @@
       "target": "player"
     }
   ],
-  "favourite_weapon": "tommy_gun",
+  "favourite_weapon": "salt",
   "favourite_bonus": {
     "type": "effects",
     "effects": [
       {
-        "stat": "amount",
-        "op": "add",
-        "value": 2
+        "stat": "area",
+        "op": "mul",
+        "value": 0.25
       }
     ]
   },
+  "start_weapon": "frisbee",
   "specials": [
     "momentum"
   ],
@@ -44,18 +45,18 @@
   "unlock_quest": "",
   "frame_px": 256,
   "placeholder": {
-    "color": "#B88A5A",
-    "hat": "#6A4A2A",
+    "color": "#141418",
+    "hat": "#4D7BFF",
     "eyes": 2,
     "shape": "blob"
   },
-  "art_prompt": "a lanky anthropomorphic deer man with tan fur, a long muzzle, big calm eyes, tall branching antlers on his head, wearing a plain teal t-shirt and khaki shorts with sneakers, standing straight with hands relaxed at the sides",
-  "motion": "running in place at a long-legged bounding jog, arms and legs pumping, antlers steady",
-  "anim_hint": "a lanky deer man with tan fur and tall branching antlers, in a teal t-shirt and khaki shorts, long bounding strides with the knees lifting high and the arms pumping",
-  "anim_negative": "human face, missing antlers, extra limbs",
+  "art_prompt": "a lean young man with a bald head and smooth blue skin, a stern focused face with sharp eyebrows, dark eyes and slightly large ears, wearing a black zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, black track pants with two white stripes running down the outside of each leg, black sneakers with thick white soles; standing straight, both arms relaxed at his sides, empty hands",
+  "motion": "running in place at a fast determined sprint, arms pumping at his sides, empty hands",
+  "anim_hint": "a bald blue-skinned man in a black zip-up tracksuit with two white stripes down the sleeves and down the legs, black sneakers with white soles, a fast determined sprint with the arms pumping",
+  "anim_negative": "hair, antlers, a hat, a hood, a beard, extra limbs, a face on the back of the head, text, logos",
   "anim_seed": 47,
-  "portrait_prompt": "leaning in with a slow easy grin and one eyebrow raised, his antlers filling the top of the frame, a thumb hooked in the collar of his teal t-shirt",
-  "hurt_hint": "antlers intact, ears pinned back, teeth gritted",
+  "portrait_prompt": "head and shoulders of a bald blue-skinned young man with a stern half-smirk and one eyebrow raised, the high collar of his black track jacket zipped up to the chin, the white stripes on his shoulders, facing the viewer",
+  "hurt_hint": "flinching with his teeth gritted and his eyes squeezed shut, one arm raised across the chest",
   "anims": {
     "idle": 4,
     "run": 24,
@@ -83,17 +84,32 @@
   },
   "trait_name": "Full Tilt",
   "trait_text": "Starts 15% slower. While he is not hit his charge climbs over 10 s to +80% speed, +60% attack damage and +20% evade chance; a hit that lands knocks off half of it.",
-  "back_hint": "He faces away from the viewer: only the back of his head, the back of his antlers and ears, the back of the t-shirt and the heels are visible, no eyes, no muzzle, no face at all. Both arms hang straight down along his sides, relaxed.",
+  "back_hint": "He faces away from the viewer: only the back of his bald blue head and ears, the back of the black track jacket with the two white stripes running down both sleeves, the white stripes down the legs and the white soles of the sneakers are visible; no eyes, no face at all. Both arms hang straight down along his sides, relaxed, empty hands.",
+  "appearance": "a lean young man with a bald head and smooth blue skin, a stern focused face with sharp eyebrows, dark eyes and slightly large ears, wearing a black zip-up track jacket with a high collar, a thin silver zip down the front and two white stripes running down each sleeve, black track pants with two white stripes running down the outside of each leg, black sneakers with thick white soles",
+  "side_hint": "a clean side profile facing right: the bald blue head and its ear, the high jacket collar, the two white stripes running down the near sleeve and the near leg; both shoulders level, the near shoulder never raised above the far one, the near arm hanging relaxed beside the torso, empty hands",
+  "pose_hint": "standing straight, weight on both feet, both arms relaxed at the sides, empty hands",
+  "title_pose": "standing with his feet apart and his hands pushed deep into the pockets of his black track jacket, his shoulders a little hunched, a stern unimpressed stare with one eyebrow raised, the jacket zipped up to the collar, the white stripes down his sleeves and legs facing the viewer",
+  "title_holds": "his hands hold nothing; they are in his jacket pockets",
   "hidden": false,
-  "availability": "available",
+  "availability": "purchase",
+  "price": 500,
+  "currency_type": "gold",
   "variant_base": "BUC-A",
-  "variant": "BUC-B",
+  "variant": "BUC-E",
   "variants": {
     "BUC-A": {
-      "note": "the top-level strip, before the Level Editor's looks"
+      "note": "the deer, the top-level strip before the Level Editor's looks (shelved in pass 69: the top-level words are Jeżyk's tracksuit now; BUC-B keeps the deer's words)",
+      "shelved": true
     },
     "BUC-B": {
       "recipe": {
+        "art_prompt": "a lanky anthropomorphic deer man with tan fur, a long muzzle, big calm eyes, tall branching antlers on his head, wearing a plain teal t-shirt and khaki shorts with sneakers, standing straight with hands relaxed at the sides",
+        "motion": "running in place at a long-legged bounding jog, arms and legs pumping, antlers steady",
+        "anim_hint": "a lanky deer man with tan fur and tall branching antlers, in a teal t-shirt and khaki shorts, long bounding strides with the knees lifting high and the arms pumping",
+        "anim_negative": "human face, missing antlers, extra limbs",
+        "portrait_prompt": "leaning in with a slow easy grin and one eyebrow raised, his antlers filling the top of the frame, a thumb hooked in the collar of his teal t-shirt",
+        "hurt_hint": "antlers intact, ears pinned back, teeth gritted",
+        "back_hint": "He faces away from the viewer: only the back of his head, the back of his antlers and ears, the back of the t-shirt and the heels are visible, no eyes, no muzzle, no face at all. Both arms hang straight down along his sides, relaxed.",
         "pose_drivers": {
           "back": "run_spread",
           "bd": "run_spread"
@@ -129,10 +145,18 @@
         "run": 36,
         "hit": 12,
         "die": 8
-      }
+      },
+      "shelved": true
     },
     "BUC-C": {
       "recipe": {
+        "art_prompt": "a lanky anthropomorphic deer man with tan fur, a long muzzle, big calm eyes, tall branching antlers on his head, wearing a plain teal t-shirt and khaki shorts with sneakers, standing straight with hands relaxed at the sides",
+        "motion": "running in place at a long-legged bounding jog, arms and legs pumping, antlers steady",
+        "anim_hint": "a lanky deer man with tan fur and tall branching antlers, in a teal t-shirt and khaki shorts, long bounding strides with the knees lifting high and the arms pumping",
+        "anim_negative": "human face, missing antlers, extra limbs",
+        "portrait_prompt": "leaning in with a slow easy grin and one eyebrow raised, his antlers filling the top of the frame, a thumb hooked in the collar of his teal t-shirt",
+        "hurt_hint": "antlers intact, ears pinned back, teeth gritted",
+        "back_hint": "He faces away from the viewer: only the back of his head, the back of his antlers and ears, the back of the t-shirt and the heels are visible, no eyes, no muzzle, no face at all. Both arms hang straight down along his sides, relaxed.",
         "pose_drivers": {
           "back": "run_occ",
           "bd": "run_occ"
@@ -170,6 +194,203 @@
         "die": 8
       },
       "shelved": true
+    },
+    "BUC-D": {
+      "recipe": {
+        "stills": "d2",
+        "pose_drivers": {
+          "front": "run",
+          "fd": "run_side",
+          "side": "run_side",
+          "bd": "run_spread_lvl",
+          "back": "run_spread_lvl"
+        },
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "1 of 12 painted",
+          "reused": [
+            "buck_d2_front",
+            "buck_d2_back",
+            "buck_d2_side",
+            "buck_d2_fd",
+            "buck_d2_bd",
+            "buck_d2_hurt_front",
+            "buck_d2_hurt_back",
+            "buck_d2_hurt_side",
+            "buck_d2_hurt_fd",
+            "buck_d2_hurt_bd",
+            "buck_d2_dead"
+          ]
+        },
+        "seed_offset": 6899,
+        "screen": "green",
+        "anim_seed": 1
+      },
+      "note": "pass 69: Jezyk in the tracksuit (front from Garry's reference sheet, BUC-D's front_from_picture pick c0); the jog: the Running stride with the shoulders levelled and the side's far arm tucked (run_side), the back views spread and levelled (run_spread_lvl)",
+      "sprite": "buck_sprite_d.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "fresh": true,
+      "icon": "buck_icon_d.png",
+      "icon_picked": true,
+      "title": "hero_buck_d.png"
+    },
+    "BUC-E": {
+      "recipe": {
+        "stills": "d2",
+        "pose_drivers": {
+          "front": "run_sprint_f",
+          "fd": "run_sprint_f",
+          "side": "run_sprint_lvl",
+          "bd": "run_sprint_lvl",
+          "back": "run_sprint_lvl"
+        },
+        "pose_motion": "sprinting in place on the spot like on a treadmill, leaning forward, long powerful strides",
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "reused",
+          "reused": [
+            "buck_d2_front",
+            "buck_d2_back",
+            "buck_d2_side",
+            "buck_d2_fd",
+            "buck_d2_bd",
+            "buck_d2_cheer",
+            "buck_d2_hurt_front",
+            "buck_d2_hurt_back",
+            "buck_d2_hurt_side",
+            "buck_d2_hurt_fd",
+            "buck_d2_hurt_bd",
+            "buck_d2_dead"
+          ]
+        },
+        "seed_offset": 614,
+        "screen": "green",
+        "anim_seed": 1
+      },
+      "note": "pass 69: the sprint: BUC-D's paintings on run_sprint_lvl (the Running stride with the legs swung 1.35x wider and the spine leaning 12 degrees forward, back views spread, shoulders levelled, the side's far arm tucked)",
+      "sprite": "buck_sprite_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "icon": "buck_icon_e.png",
+      "icon_picked": true,
+      "title": "hero_buck_e.png"
+    },
+    "BUC-F": {
+      "recipe": {
+        "stills": "d2",
+        "pose_drivers": {
+          "front": "run_dash_f",
+          "fd": "run_dash_f",
+          "side": "run_dash_lvl",
+          "bd": "run_dash_lvl",
+          "back": "run_dash_lvl"
+        },
+        "pose_motion": "dashing in place on the spot like on a treadmill, leaning forward with both arms swept straight back behind him",
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "reused",
+          "reused": [
+            "buck_d2_front",
+            "buck_d2_back",
+            "buck_d2_side",
+            "buck_d2_fd",
+            "buck_d2_bd",
+            "buck_d2_cheer",
+            "buck_d2_hurt_front",
+            "buck_d2_hurt_back",
+            "buck_d2_hurt_side",
+            "buck_d2_hurt_fd",
+            "buck_d2_hurt_bd",
+            "buck_d2_dead"
+          ]
+        },
+        "seed_offset": 2437,
+        "screen": "green"
+      },
+      "note": "pass 69: the dash (the hedgehog's run): BUC-D's paintings on run_dash_lvl (the Running legs with both arms swept straight back behind the body and the spine leaning 14 degrees forward, shoulders levelled)",
+      "sprite": "buck_sprite_f.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "fresh": true,
+      "icon": "buck_icon_f.png",
+      "icon_picked": true,
+      "title": "hero_buck_f.png"
     }
   }
 }

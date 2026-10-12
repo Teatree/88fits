@@ -14,6 +14,8 @@ var scroll: ScrollContainer
 var only_inside := false
 ## How much of the fling is left each frame.
 var decay := 0.93
+## Pass 69 (the title's hero drawer): the list moves sideways, scroll_horizontal from the drag's x.
+var horizontal := false
 var _id := -1
 var _moved := 0.0
 var _scrolling := false
@@ -53,6 +55,10 @@ func input(event: InputEvent) -> void:
 				return
 			_scrolling = true
 			scroll.propagate_notification(Control.NOTIFICATION_SCROLL_BEGIN)
+		if horizontal:
+			scroll.scroll_horizontal -= int(round(d.relative.x))
+			_fling = d.relative.x
+			return
 		scroll.scroll_vertical -= int(round(d.relative.y))
 		_fling = d.relative.y
 
@@ -61,7 +67,10 @@ func process() -> void:
 	if scroll == null or not is_instance_valid(scroll) or not scroll.is_visible_in_tree():
 		return
 	if _id < 0 and absf(_fling) > 0.4:
-		scroll.scroll_vertical -= int(round(_fling))
+		if horizontal:
+			scroll.scroll_horizontal -= int(round(_fling))
+		else:
+			scroll.scroll_vertical -= int(round(_fling))
 		_fling *= decay
 
 

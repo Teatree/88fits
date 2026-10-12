@@ -289,6 +289,9 @@ func fire(p_kind: int, from: Vector3, velocity: Vector3, damage: float, p_pierce
 		var ct = w.params.get("catch")
 		if ct is Dictionary:
 			glow[i] = clampf(float(Run.heat) / maxf(float((ct as Dictionary).get("heat_max", 10)), 1.0), 0.0, 1.0)
+		# pass 69 (params.heat_look): the ball trails its Heat (_heat_trail) and wears its halo (_draw_heat_halos)
+		if w.params.get("heat_look") is Dictionary:
+			extra[i]["heat_t"] = 0.0
 		if w.params.has("tail_fade"):
 			# pass 60: the flight this shot fades over the end of (its life as it leaves, after any out_speed stretch)
 			extra[i]["fade0"] = life[i]
@@ -873,6 +876,9 @@ func _physics_process(delta: float) -> void:
 				var nb := int(w.params.get("tracer_beads", 1)) if count <= TRACER_EXTRA_BUSY else 1
 				for b in range(1, nb):
 					_drop_trail(pos[i] - vel[i] * delta * float(b) / float(nb), extra[i]["tc"], t_size, t_life * 0.5)
+		# pass 69 (the ball's Heat, params.heat_look): an orange trail and flames behind it, growing with Heat
+		if extra[i].has("heat_t"):
+			_heat_trail(i, w, delta)
 		# pass 61 (Thorny Weed): a rolling shot with `look.specks` sheds thorn specks on the sand every `every` metres
 		if extra[i].has("speck"):
 			_shed_specks(i, w, delta, ground)
@@ -922,6 +928,9 @@ func _physics_process(delta: float) -> void:
 				extra[i]["hit_sfx"] = true
 				Audio.play(str(w.def.sfx.get("hit", "")), pos[i])
 			var killed := enemies.damage(e, dmg[i] * pmul, wid, dir, kb[i], false, false, flags)
+			# pass 69 (Alley-Oop, params.launch): a hit it lives through may throw it up (EnemyManager.try_launch)
+			if not killed and w and w.params.get("launch") is Dictionary:
+				enemies.try_launch(e, dmg[i] * pmul, wid, w.params["launch"])
 			# Iron Bastion's focus (pass 53, params.focus {mult, seconds}): a creature a bastion's round strikes takes `mult`
 			# more from the next rounds for `seconds` (EnemyManager's mark, stretched by Ducktape), so the bastions gang up
 			# on it: "more than the sum of its parts"
@@ -1856,6 +1865,7 @@ func _tick_trail(delta: float) -> void:
 		_trail_mm.set_instance_color(n, Color(c.r, c.g, c.b, c.a * (1.0 - f)))
 		n += 1
 	n = _draw_pulse_halos(n)
+	n = _draw_heat_halos(n)
 	_trail_mm.visible_instance_count = n
 
 
@@ -2273,6 +2283,13 @@ static func tint_material(src: Material, tint: Dictionary) -> StandardMaterial3D
 		mat.roughness = float(tint["roughness"])
 	if tint.has("metallic"):
 		mat.metallic = float(tint["metallic"])
+	# pass 69: `vertex_colors` false paints a vertex-coloured model flat in the albedo (the ball's `tint.body`)
+	if tint.has("vertex_colors"):
+		mat.vertex_color_use_as_albedo = bool(tint["vertex_colors"])
+	# pass 69 (the lead): `ambient` false leaves the sky's warm ambient light out, so a dark-blue or black ball reads
+	# dark blue or black on the sand (with it, black came out brown and navy violet)
+	if tint.has("ambient"):
+		mat.disable_ambient_light = not bool(tint["ambient"])
 	return mat
 
 
@@ -2585,6 +2602,9 @@ func _render() -> void:
 		# pass 62: a spit that breathes gets its halo in the trail's MultiMesh (_tick_trail, after this)
 		if hostile[i] == 1 and extra[i].has("pulse"):
 			_pulse_list.append(i)
+		# pass 69: a hot ball's halo too (_draw_heat_halos)
+		if hostile[i] == 0 and extra[i].has("heat_t"):
+			_heat_list.append(i)
 	_render_blinks()
 	for k in range(kinds.size()):
 		if _warm_at != Vector3.INF:
@@ -2593,3 +2613,327 @@ func _render() -> void:
 				kinds[k]["mm"].set_instance_custom_data(counters[k], Color(0.0, 0.0, 0.0, 0.0))
 			counters[k] += 1
 		kinds[k]["mm"].visible_instance_count = counters[k]
+
+
+# ---------------------------------------------------------------- pass 69 (lane BB): the ball's looks and its Heat
+## The ball's seams (pass 69, `tint.seams {color, emission, energy, below}`, put on by ProjectileEmitter.tint_kind for a
+## tint with `body` or `seams`): kind `k`'s first surface split in two, the triangles whose vertex colours are all darker
+## than `below` (0.25: the basketball's black seams) in a surface of their own drawn `color`, glowing `emission` at
+## `energy` when given, and the rest in the kind's own material (which `tint.body` paints flat). Made once per kind and
+## words; a kind with no vertex colours or no dark triangles is `k` itself. Alley-Oop's dark blue ball keeps its black
+## seams this way, Slam Dunk's black one glows in them.
+const SEAM_BELOW := 0.25
+const SEAM_COLOR := "#0A0A0A"
+## Which surface of a kind holds its seams (seam_kind's): kind -> surface index.
+var _seam_surface: Dictionary = {}
+## The heat copies (heat_kind): kind -> [{"mat", "seam", "emission", "energy"}], and what each was last written with.
+var _heat_mats: Dictionary = {}
+var _heat_written: Dictionary = {}
+## The hot balls _render gathered for their halos.
+var _heat_list: Array = []
+## Diagnostics and tests: heat halos drawn last frame.
+var heat_halos := 0
+
+
+func seam_kind(k: int, seams: Dictionary) -> int:
+	if k < 0 or k >= kinds.size():
+		return k
+	var key := "m%d|%s" % [k, str(seams)]
+	if _derived.has(key):
+		return int(_derived[key])
+	var kd: Dictionary = kinds[k]
+	var mesh: Mesh = (kd["mm"] as MultiMesh).mesh
+	if mesh == null or mesh.get_surface_count() == 0:
+		return k
+	var arrays: Array = mesh.surface_get_arrays(0)
+	var cols = arrays[Mesh.ARRAY_COLOR]
+	var verts = arrays[Mesh.ARRAY_VERTEX]
+	if not (cols is PackedColorArray) or (cols as PackedColorArray).is_empty() or not (verts is PackedVector3Array):
+		return k
+	var idx := PackedInt32Array()
+	if arrays[Mesh.ARRAY_INDEX] is PackedInt32Array and not (arrays[Mesh.ARRAY_INDEX] as PackedInt32Array).is_empty():
+		idx = arrays[Mesh.ARRAY_INDEX]
+	else:
+		for v in range((verts as PackedVector3Array).size()):
+			idx.append(v)
+	var below := float(seams.get("below", SEAM_BELOW))
+	var body_idx := PackedInt32Array()
+	var seam_idx := PackedInt32Array()
+	var c: PackedColorArray = cols
+	for t in range(0, idx.size() - 2, 3):
+		var a := idx[t]
+		var b := idx[t + 1]
+		var d := idx[t + 2]
+		if c[a].v < below and c[b].v < below and c[d].v < below:
+			seam_idx.append(a)
+			seam_idx.append(b)
+			seam_idx.append(d)
+		else:
+			body_idx.append(a)
+			body_idx.append(b)
+			body_idx.append(d)
+	if seam_idx.is_empty() or body_idx.is_empty():
+		return k
+	var over: Material = (kd["mmi"] as MultiMeshInstance3D).material_override
+	var body_mat: Material = over if over else mesh.surface_get_material(0)
+	var copy := ArrayMesh.new()
+	var ba: Array = arrays.duplicate()
+	ba[Mesh.ARRAY_INDEX] = body_idx
+	copy.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ba)
+	if body_mat:
+		copy.surface_set_material(0, body_mat)
+	var sa: Array = arrays.duplicate()
+	sa[Mesh.ARRAY_INDEX] = seam_idx
+	copy.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, sa)
+	var sm: StandardMaterial3D = (body_mat.duplicate() as StandardMaterial3D) if body_mat is StandardMaterial3D else StandardMaterial3D.new()
+	# no colour of their own on a model still drawn in its vertex colours: the seams keep theirs (the plain ball's, split
+	# so its Heat can glow in them); else `color`, or SEAM_COLOR under a flat body
+	if seams.has("color") or not sm.vertex_color_use_as_albedo:
+		sm.vertex_color_use_as_albedo = false
+		var sc := Color(str(seams.get("color", SEAM_COLOR)))
+		sm.albedo_color = Color(sc.r, sc.g, sc.b, 1.0)
+	if seams.has("emission"):
+		sm.emission_enabled = true
+		sm.emission = Color(str(seams["emission"]))
+		sm.emission_energy_multiplier = float(seams.get("energy", 1.0))
+	else:
+		sm.emission_enabled = false
+	copy.surface_set_material(1, sm)
+	# any further surfaces of the source as they were
+	for s in range(1, mesh.get_surface_count()):
+		copy.add_surface_from_arrays(_prim(mesh, s), mesh.surface_get_arrays(s))
+		var m: Material = over if over else mesh.surface_get_material(s)
+		if m:
+			copy.surface_set_material(copy.get_surface_count() - 1, m)
+	var out := _register_like(kd, copy, null)
+	_seam_surface[out] = 1
+	_derived[key] = out
+	return out
+
+
+## A copy of kind `k` whose materials the ball's Heat writes (pass 69, heat_glow): each material duplicated with its
+## emission switched on (its own glow, or black at 0, kept as the cold look), so the heat never touches a material
+## another kind shares and no shader feature switches on mid-flight. Made once per kind.
+func heat_kind(k: int) -> int:
+	if k < 0 or k >= kinds.size():
+		return k
+	var key := "h%d" % k
+	if _derived.has(key):
+		return int(_derived[key])
+	var kd: Dictionary = kinds[k]
+	var mesh: Mesh = (kd["mm"] as MultiMesh).mesh
+	var over: Material = (kd["mmi"] as MultiMeshInstance3D).material_override
+	var list: Array = []
+	var out: int
+	if over != null or mesh == null or mesh.get_surface_count() <= 1:
+		var src: Material = over
+		if src == null and mesh and mesh.get_surface_count() > 0:
+			src = mesh.surface_get_material(0)
+		var m := _heat_mat(src, list, false)
+		out = _register_like(kd, mesh, m)
+	else:
+		var copy := ArrayMesh.new()
+		var seam_s := int(_seam_surface.get(k, -1))
+		for s in range(mesh.get_surface_count()):
+			copy.add_surface_from_arrays(_prim(mesh, s), mesh.surface_get_arrays(s))
+			copy.surface_set_material(s, _heat_mat(mesh.surface_get_material(s), list, s == seam_s))
+		out = _register_like(kd, copy, null)
+		if seam_s >= 0:
+			_seam_surface[out] = seam_s
+	_heat_mats[out] = list
+	_derived[key] = out
+	return out
+
+
+## One heat copy of `src` (a StandardMaterial3D, else a new one), listed with its cold look.
+static func _heat_mat(src: Material, list: Array, seam: bool) -> StandardMaterial3D:
+	var m: StandardMaterial3D = (src.duplicate() as StandardMaterial3D) if src is StandardMaterial3D else StandardMaterial3D.new()
+	var e := Color(m.emission.r, m.emission.g, m.emission.b) if m.emission_enabled else Color.BLACK
+	var en: float = m.emission_energy_multiplier if m.emission_enabled else 0.0
+	m.emission_enabled = true
+	m.emission = e
+	m.emission_energy_multiplier = en
+	list.append({"mat": m, "seam": seam, "emission": e, "energy": en})
+	return m
+
+
+## The ball's Heat now (pass 69): Run.heat over its `catch.heat_max`, 0..1; 0 for a weapon without `catch`.
+static func heat_level(w: WeaponInstance) -> float:
+	if w == null:
+		return 0.0
+	var ct = w.params.get("catch")
+	if not ct is Dictionary:
+		return 0.0
+	return clampf(float(Run.heat) / maxf(float((ct as Dictionary).get("heat_max", 10)), 1.0), 0.0, 1.0)
+
+
+## The glow's beat at full Heat (pass 69, `heat_look.pulse_hz` / `pulse`): 1 + pulse x sin on the manager's clock; 1 below
+## the top. The material, the halo and the trail all read it.
+func heat_pulse(hl: Dictionary, lv: float) -> float:
+	if lv < 0.999:
+		return 1.0
+	return 1.0 + float(hl.get("pulse", 0.35)) * sin(TAU * float(hl.get("pulse_hz", 3.0)) * clock)
+
+
+## Whether kind `k` draws its seams as a surface of their own (seam_kind, or a heat copy of one).
+func has_seams(k: int) -> bool:
+	return _seam_surface.has(k)
+
+
+## Writes heat kind `kh`'s glow for Heat `lv` (pass 69, `params.heat_look {color, hot, glow_min, glow_max, seam_glow_max,
+## pulse_hz, pulse, surfaces}`): the seams glow like cracks of lava, their emission moving from their own toward `color`
+## and on toward `hot` near the top, their energy up to `seam_glow_max`; the body warms toward `color` up to `glow_max`
+## (kept low, so the ball still reads as its own colour); at least `glow_min` once there is any Heat; all of it beats at
+## the top. `surfaces` "all", "seams" (Slam Dunk: its black body stays black) or "body". At 0 Heat every material is back
+## to its cold look at once (a hit that cools him shows on the ball in flight). Written only when the look moved.
+func heat_glow(kh: int, lv: float, hl: Dictionary) -> void:
+	var list = _heat_mats.get(kh)
+	if not list is Array:
+		return
+	var p := heat_pulse(hl, lv)
+	var stamp := Vector2(snappedf(lv, 0.001), snappedf(p, 0.005))
+	if _heat_written.get(kh) == stamp:
+		return
+	_heat_written[kh] = stamp
+	var which := str(hl.get("surfaces", "all"))
+	var col := Color(str(hl.get("color", "#FF6A1A")))
+	var hot := Color(str(hl.get("hot", "#FFC060")))
+	var g0 := float(hl.get("glow_min", 0.0))
+	var g_body := float(hl.get("glow_max", 0.5))
+	var g_seam := float(hl.get("seam_glow_max", 1.6))
+	var mix: float = lv * lv * (3.0 - 2.0 * lv)
+	for r: Dictionary in list:
+		var m: StandardMaterial3D = r["mat"]
+		var seam := bool(r["seam"])
+		var on: bool = lv > 0.0 and (which == "all" or (which == "seams" and seam) or (which == "body" and not seam))
+		var e0: Color = r["emission"]
+		var en0: float = float(r["energy"])
+		if not on:
+			m.emission = e0
+			m.emission_energy_multiplier = en0
+			continue
+		var c := col.lerp(hot, lv * lv) if seam else col
+		var g1 := g_seam if seam else g_body
+		m.emission = e0.lerp(c, mix)
+		m.emission_energy_multiplier = lerpf(maxf(en0, g0), maxf(en0, g1), lv) * p
+
+
+## How hot heat kind `kh` shows now (tests): the brightest emission energy among its materials, -1 for no heat kind.
+func heat_energy(kh: int) -> float:
+	var list = _heat_mats.get(kh)
+	if not list is Array or (list as Array).is_empty():
+		return -1.0
+	var best := 0.0
+	for r: Dictionary in list:
+		best = maxf(best, (r["mat"] as StandardMaterial3D).emission_energy_multiplier)
+	return best
+
+
+## The trail of a hot ball (pass 69, `heat_look {trail_from, flame_from, trail_size, trail_life, flame_size}`): from
+## `trail_from` of the Heat on, beads from `color` to `hot` behind it, denser, bigger and longer-lived as the Heat climbs;
+## from `flame_from` on, flame tongues lick up where it passed. Nothing below `trail_from` (a cold ball is a plain ball).
+func _heat_trail(i: int, w: WeaponInstance, delta: float) -> void:
+	if w == null:
+		return
+	var hl = w.params.get("heat_look")
+	if not hl is Dictionary:
+		return
+	var h: Dictionary = hl
+	var lv := heat_level(w)
+	if lv < float(h.get("trail_from", 0.1)):
+		return
+	var t: float = float(extra[i]["heat_t"]) - delta
+	if t > 0.0:
+		extra[i]["heat_t"] = t
+		return
+	extra[i]["heat_t"] = lerpf(0.05, 0.02, lv)
+	var col := Color(str(h.get("color", "#FF6A1A"))).lerp(Color(str(h.get("hot", "#FFC060"))), lv * lv)
+	col.a = lerpf(0.35, 0.85, lv)
+	var size := lerpf(0.45, float(h.get("trail_size", 1.0)), lv)
+	_drop_trail(pos[i], col, size, lerpf(0.15, float(h.get("trail_life", 0.35)), lv))
+	if lv >= float(h.get("flame_from", 0.4)) and game != null and game.get("fx") != null and randf() < lerpf(0.4, 0.9, lv):
+		var back := Vector3(vel[i].x, 0.0, vel[i].z)
+		var at: Vector3 = pos[i] - (back.normalized() * 0.18 if back.length_squared() > 0.01 else Vector3.ZERO)
+		game.fx.flame(at, lerpf(0.3, 0.75, lv) * float(h.get("flame_size", 1.0)), lerpf(0.16, 0.3, lv))
+
+
+## The halos round the hot balls _render gathered (pass 69, `heat_look {halo, halo_from, halo_alpha}`): from `halo_from`
+## of the Heat on (0.9: the top), a soft sphere `halo` times the ball's drawn radius in the heat's `color`, beating with
+## the glow (heat_pulse); drawn in a smooth MultiMesh of their own (_halo_multimesh). `n` (the trail's count) comes back
+## as it was.
+func _draw_heat_halos(n: int) -> int:
+	var drawn := 0
+	var mm := _halo_multimesh()
+	var m := 0
+	for i: int in _heat_list:
+		if m + 2 > HEAT_HALO_MAX * 2 or alive[i] == 0:
+			continue
+		var w: WeaponInstance = weapon[i]
+		var hl = w.params.get("heat_look") if w else null
+		if not hl is Dictionary:
+			continue
+		var h: Dictionary = hl
+		var lv := heat_level(w)
+		var from := clampf(float(h.get("halo_from", 0.9)), 0.0, 0.999)
+		if lv < from or float(h.get("halo", 0.0)) <= 0.0:
+			continue
+		var k: float = clampf((lv - from) / maxf(1.0 - from, 0.01), 0.0, 1.0)
+		var kd: Dictionary = kinds[kind[i]]
+		var mesh: Mesh = (kd["mm"] as MultiMesh).mesh
+		var r0: float = (mesh.get_aabb().size.x * 0.5 if mesh else 0.3) * float(kd["scale"]) * psize[i]
+		var p := heat_pulse(h, lv)
+		# the halo's radius over the smooth sphere's (0.5): an inner, denser shell and an outer, fainter one, so its edge
+		# fades instead of ending in a hard rim
+		var s: float = r0 * float(h.get("halo", 1.8)) * lerpf(0.8, 1.0, k) * (1.0 + (p - 1.0) * 0.6) / 0.5
+		var c := Color(str(h.get("color", "#FF6A1A")))
+		var a: float = clampf(float(h.get("halo_alpha", 0.22)) * lerpf(0.5, 1.0, k) * p, 0.0, 1.0)
+		mm.set_instance_transform(m, Transform3D(Basis().scaled(Vector3(s, s, s) * 0.7), pos[i]))
+		mm.set_instance_color(m, Color(c.r, c.g, c.b, a))
+		mm.set_instance_transform(m + 1, Transform3D(Basis().scaled(Vector3(s, s, s)), pos[i]))
+		mm.set_instance_color(m + 1, Color(c.r, c.g, c.b, a * 0.45))
+		m += 2
+		drawn += 1
+	if _warm_at != Vector3.INF and m < HEAT_HALO_MAX * 2:
+		mm.set_instance_transform(m, Transform3D(Basis().scaled(Vector3(0.1, 0.1, 0.1)), _warm_at))
+		mm.set_instance_color(m, Color(1, 0.5, 0.1, 0.3))
+		m += 1
+	mm.visible_instance_count = m
+	_heat_list.clear()
+	heat_halos = drawn
+	return n
+
+
+## The hot balls' halos have a smooth sphere of their own (the trail's six-sided bead showed its facets at a halo's size):
+## HEAT_HALO_MAX balls, two shells each, in the trail's own material recipe (unshaded, see-through, vertex colours).
+const HEAT_HALO_MAX := 24
+var _halo_mm: MultiMesh
+
+
+func _halo_multimesh() -> MultiMesh:
+	if _halo_mm != null:
+		return _halo_mm
+	_halo_mm = MultiMesh.new()
+	_halo_mm.transform_format = MultiMesh.TRANSFORM_3D
+	_halo_mm.use_colors = true
+	var sp := SphereMesh.new()
+	sp.radius = 0.5
+	sp.height = 1.0
+	sp.radial_segments = 20
+	sp.rings = 10
+	_halo_mm.mesh = sp
+	_halo_mm.instance_count = HEAT_HALO_MAX * 2
+	_halo_mm.visible_instance_count = 0
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = _halo_mm
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.vertex_color_use_as_albedo = true
+	# only the far half of each shell is drawn: the halo glows round the ball and behind it, never tinting the ball itself
+	# (Alley-Oop's dark blue read mauve under the near half)
+	mat.cull_mode = BaseMaterial3D.CULL_FRONT
+	mmi.material_override = mat
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
+	add_child(mmi)
+	return _halo_mm

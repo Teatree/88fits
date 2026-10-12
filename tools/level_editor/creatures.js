@@ -154,8 +154,9 @@ const Creatures = (() => {
       el2.appendChild(el('div', { class: 'cvariance' },
         el('span', { class: 'muted small', text: 'tints' }),
         (vr.tints || []).map((h) => el('span', { class: 'sw-chip', style: `background:${h}`, title: `${h} at ${fmtN(vr.tint_strength == null ? 0 : vr.tint_strength, 2)}` })),
-        vr.special_chance ? el('span', { class: 'muted small', text: ` · special ${Math.round(Number(vr.special_chance) * 100)}%` }) : null,
-        sp.tint ? el('span', { class: 'sw-chip big', style: `background:${sp.tint}`, title: `the special's colour ${sp.tint}: HP ×${sp.hp || 1.6}, damage ×${sp.damage || 1.2}, size ×${sp.size || 1.3}, XP ×${sp.xp || 2}` }) : null));
+        vr.special_chance ? el('span', { class: 'muted small', text: ` · special ${fmtN(Number(vr.special_chance) * 100, 1)}%` }) : null,
+        // pass 69 (lane EN): the game's defaults where the creature names none (EnemyDef.SPECIAL_DEFAULTS)
+        sp.tint ? el('span', { class: 'sw-chip big', style: `background:${sp.tint}`, title: `the special's colour ${sp.tint}: HP ×${sp.hp || 10}, damage ×${sp.damage || 2}, size ×${sp.size || 1.25}, XP ×${sp.xp || 2}, glow ${sp.glow == null ? 'default' : sp.glow}` }) : null));
     }
     el2.appendChild(bloodRow(c, redrawFn));
     el2.appendChild(lookStrip(c, redrawFn));

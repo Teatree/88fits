@@ -1,0 +1,41 @@
+{
+  "id": "last_stand",
+  "name": "Last Stand",
+  "rarity": "epic",
+  "weight": 5,
+  "max_level": 3,
+  "flavour": "Not today.",
+  "text": "When a hit leaves you under 30% health, time slows for 2 s and you deal double damage.",
+  "levels": [
+    [
+      {
+        "stat": "last_stand",
+        "op": "add",
+        "value": 1.0,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "last_stand",
+        "op": "add",
+        "value": 0.5,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "last_stand",
+        "op": "add",
+        "value": 0.5,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "a cracked grey stone heart with a single bright red glowing crack down its middle, a small brass hourglass leaning against it",
+  "placeholder": {
+    "color": "#B03040",
+    "glyph": "clock"
+  },
+  "repeat_last_level": false
+}

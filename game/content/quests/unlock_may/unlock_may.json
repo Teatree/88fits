@@ -1,0 +1,17 @@
+{
+  "id": "unlock_may",
+  "name": "May",
+  "condition": {
+    "type": "reach_level",
+    "level": 30
+  },
+  "unlocks": {
+    "type": "character",
+    "id": "may"
+  },
+  "art_prompt": "a glass jar with a tommy gun inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

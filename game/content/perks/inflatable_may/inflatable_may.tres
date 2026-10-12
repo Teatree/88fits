@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/inflatable_may/inflatable_may_icon.png" id="1_jptar"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_rlaub"]
+
+[resource]
+script = ExtResource("2_rlaub")
+hero = "may"
+text = "Every 30 s she throws an inflatable May. Where it lands, the creatures around it go for the doll instead of her for 2 s, then it pops. Bosses are not fooled."
+special = "decoy"
+params = {
+"duration": 2.0,
+"every": 30.0,
+"first": 6.0,
+"flight": 0.6,
+"radius": 6.5,
+"throw_max": 7.0,
+"throw_min": 4.0
+}
+id = "inflatable_may"
+display_name = "Inflatable May"
+flavour = "Twice the May. Half of her is vinyl."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_jptar")
+icon_file = "inflatable_may_icon.png"
+placeholder = {
+"color": "#FF6BB5",
+"glyph": "star"
+}

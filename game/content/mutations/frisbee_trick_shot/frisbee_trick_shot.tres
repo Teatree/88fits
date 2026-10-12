@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/frisbee_trick_shot/frisbee_trick_shot_icon.png" id="1_083k0"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_6qr7q"]
+
+[resource]
+script = ExtResource("2_6qr7q")
+weapon = "frisbee"
+text = "Life steal, stun, crits, Cold Snap and Vulture work 25% better with the Frisbee."
+vfx = "no change to the disc"
+params = {
+"proc_mult": 1.25
+}
+id = "frisbee_trick_shot"
+display_name = "Trick Shot"
+flavour = "Behind the back, off the wall, into the face."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_083k0")
+icon_file = "frisbee_trick_shot_icon.png"
+placeholder = {
+"color": "#C8FF6A",
+"glyph": "star"
+}

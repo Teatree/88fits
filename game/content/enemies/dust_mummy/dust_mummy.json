@@ -50,11 +50,11 @@
       "#C8A880"
     ],
     "tint_strength": 0.22,
-    "special_chance": 0.08,
+    "special_chance": 0.0267,
     "special": {
-      "size": 1.4,
-      "hp": 2.0,
-      "damage": 1.4,
+      "size": 1.25,
+      "hp": 10.0,
+      "damage": 2.0,
       "xp": 3.0,
       "tint": "#24485A",
       "tint_strength": 0.6
@@ -209,6 +209,47 @@
         "die": 12
       },
       "head": 1.0
+    },
+    "DM-E": {
+      "recipe": {
+        "art_prompt": "a goofy stocky mummy wrapped head to toe in loose dusty sandy bandages with lots of strips trailing off, no skin showing, the face wrapped over except two big glowing yellow eyes peeking through, thick arms held out in front",
+        "stand": "still",
+        "death": "clip",
+        "death_frames": 8,
+        "motion": "shuffling forward in place with stiff heavy steps, arms held out in front",
+        "gait": "shuffling in place on the spot with stiff heavy steps, the thick arms held out in front, bandages swaying",
+        "anim_negative": "extra arms, a third arm, extra legs, a second mummy, skin showing, a face with a nose or mouth",
+        "back_hint": "Its back is the same wrapped bandages, the head fully wrapped from behind, the arms held out ahead of it so only the shoulders and elbows show, strips trailing.",
+        "dead_hint": "lying flat on its back on the ground, dead: the glowing eyes gone dark, the arms flopped out to the sides, its body stretched out sideways across the picture with its head on the left and its feet on the right",
+        "pose": "",
+        "pose_front": "",
+        "painter": {
+          "model": "dev",
+          "steps": 0,
+          "guidance": 0.0,
+          "turbo": true
+        },
+        "stills": "e"
+      },
+      "note": "Goofy stocky, loose strips; a free clip · from DM-D",
+      "sprite": "dust_mummy_sprite_e.png",
+      "icon": "dust_mummy_icon_e.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 8,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 43,
+      "fps": {
+        "run": 15,
+        "die": 12
+      },
+      "head": 1.0,
+      "fresh": true
     }
   },
   "note": "Pass 53 (Garry): four new looks with more rags and no skin, each on its own walk (DM-A/B on Garry's Zombie monster walk GLB via tools/dl/drivers/zombie_walk, DM-C on the skeletons' arms-out shamble, DM-D a free Wan clip); the old painting kept as DM-0."

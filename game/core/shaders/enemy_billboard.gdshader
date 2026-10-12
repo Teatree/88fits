@@ -2,8 +2,9 @@
 // so a sprite is never seen edge-on from the high camera. face_camera = 0 gives the old upright Y-billboard.
 // INSTANCE_CUSTOM: x = frame index (+ 0.5 in its fraction while the creature rises out of the sand, pass 60: floored
 // here, read by enemy_silhouette, which draws nothing then), y = flip (0/1) + 2 x glow level (0..16, pass 33.10: the
-// harpooner's red outline while it holds the hero on its rope), z = flash (-1..1, negative = poison green), w = squash
-// (1 = normal)
+// harpooner's red outline while it holds the hero on its rope) + 64 x special glow level (0..16, pass 69: a variance
+// special's emissive rim in its own tint's colour, EnemyManager.special_glow_code), z = flash (-1..1, negative = poison
+// green), w = squash (1 = normal)
 // INSTANCE COLOR:  rgb = tint (elite colour), a = tint strength
 shader_type spatial;
 render_mode cull_disabled, unshaded, skip_vertex_transform, depth_draw_opaque;
@@ -27,11 +28,18 @@ varying vec2 v_uv;
 varying vec4 v_tint;
 varying float v_flash;
 varying float v_glow;
+// pass 69: the special's glow 0..1 and its rim colour (the tint's hue at full brightness, in linear light), with a slow
+// breath (0.8..1) so a special reads at a glance in a crowd
+varying float v_sglow;
+varying vec3 v_rim;
 
 void vertex() {
 	float frame = floor(INSTANCE_CUSTOM.x);
-	float flip = mod(INSTANCE_CUSTOM.y, 2.0);
-	v_glow = floor(INSTANCE_CUSTOM.y * 0.5) / 16.0;
+	float sg = floor(INSTANCE_CUSTOM.y / 64.0);
+	float rest = INSTANCE_CUSTOM.y - sg * 64.0;
+	float flip = mod(rest, 2.0);
+	v_glow = floor(rest * 0.5) / 16.0;
+	v_sglow = sg / 16.0;
 	v_flash = INSTANCE_CUSTOM.z;
 	float squash = max(INSTANCE_CUSTOM.w, 0.2);
 	vec2 uv = UV;
@@ -47,6 +55,12 @@ void vertex() {
 	}
 	v_tint = COLOR;
 	vec3 origin = MODEL_MATRIX[3].xyz;
+	if (v_sglow > 0.01) {
+		vec3 hue = COLOR.rgb / max(max(COLOR.r, COLOR.g), max(COLOR.b, 0.001));
+		v_rim = pow(hue, vec3(2.2)) * (0.8 + 0.2 * sin(TIME * 3.2 + origin.x * 0.7 + origin.z * 0.5));
+	} else {
+		v_rim = vec3(0.0);
+	}
 	float sx = length(MODEL_MATRIX[0].xyz);
 	float sy = length(MODEL_MATRIX[1].xyz);
 	vec3 cam_back = normalize(INV_VIEW_MATRIX[2].xyz);
@@ -70,9 +84,29 @@ void fragment() {
 	if (c.a < alpha_cut) {
 		// the rim: a pixel just outside the figure takes a dark red, up to two screen pixels out at full mark; a glowing
 		// creature (the harpooner on its rope) gets a wider rim in bright red that swells and fades with the glow
-		if (mark > 0.01 || v_glow > 0.01) {
-			vec2 px = fwidth(v_uv) * (0.8 + 1.4 * mark + 2.6 * v_glow);
+		if (mark > 0.01 || v_glow > 0.01 || v_sglow > 0.01) {
+			vec2 px = fwidth(v_uv) * (0.8 + 1.4 * mark + 2.6 * v_glow + 4.2 * v_sglow);
 			float a = 0.0;
+			// pass 69: a special's glow has a bright core ring hugging the figure (it also fills the gaps a wide ring's far
+			// samples leave by thin limbs)
+			float ai = 0.0;
+			if (v_sglow > 0.01) {
+				vec2 pin = fwidth(v_uv) * (0.6 + 1.0 * v_sglow);
+				ai = max(ai, texture(sprite, v_uv + vec2(pin.x, 0.0)).a);
+				ai = max(ai, texture(sprite, v_uv - vec2(pin.x, 0.0)).a);
+				ai = max(ai, texture(sprite, v_uv + vec2(0.0, pin.y)).a);
+				ai = max(ai, texture(sprite, v_uv - vec2(0.0, pin.y)).a);
+				ai = max(ai, texture(sprite, v_uv + pin * 0.7).a);
+				ai = max(ai, texture(sprite, v_uv - pin * 0.7).a);
+				ai = max(ai, texture(sprite, v_uv + vec2(pin.x, -pin.y) * 0.7).a);
+				ai = max(ai, texture(sprite, v_uv + vec2(-pin.x, pin.y) * 0.7).a);
+				a = ai;
+				vec2 pm = px * 0.55;
+				a = max(a, texture(sprite, v_uv + vec2(pm.x, 0.0)).a);
+				a = max(a, texture(sprite, v_uv - vec2(pm.x, 0.0)).a);
+				a = max(a, texture(sprite, v_uv + vec2(0.0, pm.y)).a);
+				a = max(a, texture(sprite, v_uv - vec2(0.0, pm.y)).a);
+			}
 			a = max(a, texture(sprite, v_uv + vec2(px.x, 0.0)).a);
 			a = max(a, texture(sprite, v_uv - vec2(px.x, 0.0)).a);
 			a = max(a, texture(sprite, v_uv + vec2(0.0, px.y)).a);
@@ -85,6 +119,11 @@ void fragment() {
 				discard;
 			}
 			ALBEDO = mix(vec3(0.42, 0.04, 0.05), vec3(1.0, 0.1, 0.06), clamp(v_glow * 1.4, 0.0, 1.0));
+			if (v_sglow > 0.01 && v_glow <= 0.01) {
+				// pass 69: a special's rim in its own colour, a lighter core next to the figure (the tether's red wins while
+				// it holds the rope)
+				ALBEDO = ai >= alpha_cut ? mix(v_rim, vec3(1.0), 0.45) : v_rim;
+			}
 		} else {
 			discard;
 		}
@@ -118,6 +157,18 @@ void fragment() {
 		float lum = dot(c.rgb, vec3(0.3, 0.59, 0.11));
 		if (edge < alpha_cut && lum < 0.3) {
 			col = mix(col, vec3(1.0, 0.1, 0.06), v_glow);
+		}
+	} else if (v_sglow > 0.01) {
+		// pass 69: a special's painted outline lights up in its rim's colour too, as far as its glow says
+		vec2 tp = 3.0 / vec2(textureSize(sprite, 0));
+		float edge = 1.0;
+		edge = min(edge, texture(sprite, v_uv + vec2(tp.x, 0.0)).a);
+		edge = min(edge, texture(sprite, v_uv - vec2(tp.x, 0.0)).a);
+		edge = min(edge, texture(sprite, v_uv + vec2(0.0, tp.y)).a);
+		edge = min(edge, texture(sprite, v_uv - vec2(0.0, tp.y)).a);
+		float lum = dot(c.rgb, vec3(0.3, 0.59, 0.11));
+		if (edge < alpha_cut && lum < 0.3) {
+			col = mix(col, v_rim, 0.85 * v_sglow);
 		}
 	}
 	ALBEDO = col;

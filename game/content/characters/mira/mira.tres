@@ -28,6 +28,7 @@ target = "player"
 [resource]
 script = ExtResource("2_jchtx")
 trait_effects = [SubResource("Resource_w8apu"), SubResource("Resource_3p01h")]
+order = 9
 trait_name = "Motherlode"
 trait_text = "+30% coin gain and −10% attack damage. Elites and bosses drop one extra material for the homestead."
 pronoun = "she"
@@ -37,7 +38,8 @@ favourite_bonus = {
 "type": "effects"
 }
 specials = ["motherlode"]
-availability = "hidden"
+availability = "purchase"
+price = 9999
 sprite = ExtResource("4_w8apu")
 sprite_file = "mira_sprite.png"
 anims = {
@@ -68,7 +70,6 @@ fps = {
 id = "mira"
 display_name = "Mira"
 flavour = "Digs for a living. Finds trouble for free."
-hidden = true
 icon = ExtResource("2_ndgrd")
 icon_file = "mira_icon.png"
 placeholder = {

@@ -1485,3 +1485,25 @@ func sun_puff(at: Vector3, r: float, tint: Color = Color(1.0, 0.82, 0.3)) -> voi
 
 
 # ---- pass 62: items and the spit cactus (IT): new functions below this line ----
+
+
+# ---- pass 69, lane SALT: the Salt's pour ----
+
+## Where a salt patch lands (pass 69, SaltShaker): a low puff of the salt's colour spread over the patch and a few grains
+## that bounce up and fall back. `r` is the patch's radius.
+func salt_land(at: Vector3, col: Color, r: float = 1.4) -> void:
+	var w := clampf(r / 1.4, 0.5, 2.5)
+	var c := Color(col.r, col.g, col.b)
+	_emit(at + Vector3(0, 0.08, 0), Vector3(0, 0.25, 0), 0.32, 0.25 * w, 0.8 * w, 0.28, 0.0, c)
+	for k in range(6):
+		var a := randf() * TAU
+		var v := Vector3(cos(a) * randf_range(0.6, 1.6), randf_range(1.6, 3.0), sin(a) * randf_range(0.6, 1.6)) * w
+		_emit(at + Vector3(0, 0.08, 0), v, randf_range(0.3, 0.45), 0.07, 0.04, 1.0, 0.7, c, 12.0, true)
+
+
+## A few grains of salt falling from the shaker's cap while it shakes (pass 69): small shards dropping under gravity.
+func salt_grains(from: Vector3, col: Color) -> void:
+	var c := Color(col.r, col.g, col.b)
+	for k in range(2):
+		var v := Vector3(randf_range(-0.35, 0.35), randf_range(-0.6, 0.1), randf_range(-0.35, 0.35))
+		_emit(from + Vector3(randf_range(-0.03, 0.03), 0.0, randf_range(-0.03, 0.03)), v, randf_range(0.45, 0.65), 0.06, 0.035, 1.0, 0.85, c, 9.0, true)

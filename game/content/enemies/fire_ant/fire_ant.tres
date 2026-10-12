@@ -175,14 +175,14 @@ xp_mult = 2.4
 variance = {
 "size": 0.2,
 "special": {
-"damage": 1.4,
-"hp": 2.5,
-"size": 1.6,
+"damage": 2.0,
+"hp": 10.0,
+"size": 1.25,
 "tint": "#202868",
 "tint_strength": 0.6,
 "xp": 3.0
 },
-"special_chance": 0.1,
+"special_chance": 0.0333,
 "speed": 0.15,
 "tint_strength": 0.22,
 "tints": ["#FFFFFF", "#FFB06A", "#FF6A6A", "#C87AFF"]

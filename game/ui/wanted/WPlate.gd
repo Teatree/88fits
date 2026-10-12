@@ -49,6 +49,13 @@ var lock_stage := 0
 ## A slab character drawn in the middle when there is no icon (the "?" of a damage source without its picture).
 var glyph := ""
 var glyph_color := W.INK
+## Pass 69 (Garry: an unknown hero's "weapon is a black silhouette of the one with a question mark and so is the fav
+## item"): the plate aged, the icon a flat black silhouette (its shape only), a paper "?" in an ink outline over it. On a
+## round plate (a hero's badge) the badge's own figure goes black the same way.
+var mystery := false:
+	set(v):
+		mystery = v
+		queue_redraw()
 ## A badge over the top-left corner (pass 47, the Collection's Enemies: skull boss, crown Elite, gear special), as big
 ## as `badge_px` (0: a third of the plate).
 var badge: Texture2D
@@ -218,7 +225,7 @@ func _draw() -> void:
 	var r := Rect2(Vector2.ZERO, Vector2(side, side))
 	if dots_ready and not locked:
 		_glow(r)
-	var f := W.AGED if locked or empty or padlock else fill
+	var f := W.AGED if locked or empty or padlock or mystery else fill
 	f.a *= plate_alpha
 	var bc := Color(border_color, border_color.a * plate_alpha)
 	if shadow > 0:
@@ -228,7 +235,7 @@ func _draw() -> void:
 		_dashes(r.grow(-(border + side * 0.1)))
 	if padlock:
 		_padlock()
-	if ring > 0:
+	if ring > 0 and not mystery:
 		var rc := Color(ring_color, ring_color.a * plate_alpha)
 		var rr := r.grow(-border)
 		if round_plate:
@@ -251,7 +258,7 @@ func _draw() -> void:
 			# a portrait fills its disc
 			at = Vector2(border, border)
 			sz = Vector2(side - border * 2, side - border * 2)
-		draw_texture_rect(tex, Rect2(at, sz), false, Color(0.14, 0.106, 0.078, 0.3) if locked else Color.WHITE)
+		draw_texture_rect(tex, Rect2(at, sz), false, Color(0, 0, 0, 1) if mystery else (Color(0.14, 0.106, 0.078, 0.3) if locked else Color.WHITE))
 	elif glyph != "" and not empty and not padlock:
 		var gf := W.slab()
 		var gpx := maxi(int(round(side * 0.56)), 8)
@@ -264,7 +271,9 @@ func _draw() -> void:
 		var bs := badge.get_size()
 		var bk := bp / maxf(bs.x, bs.y)
 		draw_texture_rect(badge, Rect2(Vector2(-bp * 0.3, -bp * 0.3), bs * bk), false, Color(1, 1, 1, 0.6) if locked else Color.WHITE)
-	if kind_mark != "" and not empty and not padlock:
+	if mystery:
+		_mystery_mark()
+	if kind_mark != "" and not empty and not padlock and not mystery:
 		_kind_disc()
 	if dots.x > 0 and not locked:
 		_dots()
@@ -280,6 +289,17 @@ func _draw() -> void:
 		draw_rect(tag.grow(-3.0), level_fill)
 		var base := tag.position.y + 3.0 + (h - 6.0 - fnt.get_height(level_size)) * 0.5 + fnt.get_ascent(level_size)
 		draw_string(fnt, Vector2(tag.position.x + 3.0 + padx, base), level_text, HORIZONTAL_ALIGNMENT_LEFT, -1, level_size, W.INK)
+
+
+## The "?" over a mystery plate (pass 69): paper slab in an ink outline, a little over half the plate high.
+func _mystery_mark() -> void:
+	var gf := W.slab()
+	var gpx := maxi(int(round(side * 0.5)), 8)
+	var gw := gf.get_string_size("?", HORIZONTAL_ALIGNMENT_LEFT, -1, gpx).x
+	var gbase := side * 0.5 - gf.get_height(gpx) * 0.5 + gf.get_ascent(gpx)
+	var at := Vector2((side - gw) * 0.5, gbase)
+	draw_string_outline(gf, at, "?", HORIZONTAL_ALIGNMENT_LEFT, -1, gpx, maxi(int(round(side * 0.07)), 3), W.INK)
+	draw_string(gf, at, "?", HORIZONTAL_ALIGNMENT_LEFT, -1, gpx, W.PAPER)
 
 
 ## The mutation dots along the top edge: one per mutation held, brass in an ink ring with a glint, so it reads on every

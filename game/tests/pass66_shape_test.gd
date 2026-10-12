@@ -133,7 +133,8 @@ func test_the_title_shows_the_heroes_in_play_in_order_with_distinct_orders() -> 
 		assert_bool(c.hidden).is_false()
 		assert_bool(orders.has(c.order)).override_failure_message("%s shares order %d with %s" % [c.id, c.order, str(orders.get(c.order, ""))]).is_false()
 		orders[c.order] = c.id
-		assert_str(c.availability).is_equal("available")
+		# pass 69 (lane UI): free or to be bought (Registry.hero_state); never "hidden" on the title
+		assert_bool(["available", "purchase"].has(c.availability)).override_failure_message("%s: %s" % [c.id, c.availability]).is_true()
 	for c: CharacterDef in Registry.characters.values():
 		if c.hidden:
 			assert_bool(played.has(c)).override_failure_message(c.id + " is hidden yet played").is_false()

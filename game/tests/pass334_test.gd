@@ -114,11 +114,14 @@ func test_only_astro_and_the_drifter_are_played() -> void:
 	var want: Array = Registry.characters.values().filter(func(c: CharacterDef) -> bool: return not c.hidden)
 	want.sort_custom(func(a: CharacterDef, b: CharacterDef) -> bool: return a.id < b.id if a.order == b.order else a.order < b.order)
 	assert_array(ids).is_equal(want.map(func(c: CharacterDef) -> String: return c.id))
-	# the others are kept, just hidden (pass 67: Buck is back in play, seventh)
-	for id in ["dad", "mira"]:
+	# the others are kept, just hidden (pass 67: Buck is back in play, seventh; pass 69, lane UI: Mira is back too, a hero
+	# to buy whose requirement is out of reach)
+	for id in ["dad"]:
 		assert_object(Registry.character(id)).is_not_null()
 		assert_bool(Registry.character(id).hidden).is_true()
 		assert_str(Registry.playable_character(id).id).is_equal("astro")
+	assert_bool(Registry.character("mira").hidden).is_false()
+	assert_str(Registry.character("mira").availability).is_equal("purchase")
 	assert_bool(Registry.character("buck").hidden).is_false()
 	assert_str(Registry.playable_character("buck").id).is_equal("buck")
 	assert_str(Registry.playable_character("drifter").id).is_equal("drifter")

@@ -40,8 +40,11 @@ const FIGURE_W := 0.31
 ## saguaro stand, the big saguaro and a bush behind him and nothing between him and the camera (by the oasis the damp
 ## shore's patchwork and the dry river's cracks showed at this distance). A map not listed: where a run starts.
 const SPOTS := {"red_canyon": Vector2(7.5, 47.4)}
-## A hero still to unlock: his figure multiplied down to near-black (the painted title's silhouette brown).
-const LOCKED_TINT := Color(0.141, 0.106, 0.078)
+## A hero still to unlock: his figure multiplied down to near-black (the painted title's silhouette brown). Pass 69
+## (Garry: "they have a full black mask over them"): black.
+const LOCKED_TINT := Color(0.03, 0.024, 0.02)
+## Pass 69: the black mask lifting off a hero just bought (reveal), seconds.
+const REVEAL_TIME := 0.6
 ## The swap: the next hero runs in from SWAP_IN metres to the side (just off the screen) over SWAP_TIME, and the one
 ## standing runs SWAP_OUT the other way on the same easing, so the two never meet; he is gone after LEAVE_TIME, once his
 ## companion has followed him off the screen too.
@@ -332,6 +335,13 @@ func show_hero(c: CharacterDef, locked: bool, from_side: int = 0) -> void:
 		hero.run_in(_feet + Vector3.RIGHT * (float(from_side) * SWAP_IN), _feet, SWAP_TIME)
 
 
+## The hero standing there just bought (pass 69): his black mask lifts over REVEAL_TIME and his weapon's companion comes
+## out, where show_hero would put a new figure in his place.
+func reveal() -> void:
+	if hero and hero.locked:
+		hero.reveal(REVEAL_TIME)
+
+
 ## The hero's sprite (tests): null before show_hero.
 func hero_sprite() -> BillboardSprite:
 	return hero.sprite if hero else null
@@ -439,6 +449,15 @@ class Actor extends Node3D:
 		if not locked:
 			_make_weapon()
 
+	## Pass 69: the black mask lifting (TitleStage.reveal): the tint from LOCKED_TINT to white over `seconds`, then the
+	## weapon's companion.
+	func reveal(seconds: float) -> void:
+		locked = false
+		var tw := create_tween()
+		tw.tween_method(func(k: float): sprite.set_tint(TitleStage.LOCKED_TINT.lerp(Color.WHITE, k)), 0.0, 1.0, seconds)
+		tw.tween_callback(func(): sprite.set_fogless(false))
+		tw.tween_callback(_make_weapon)
+
 	## The sprite as Player._setup_sprite makes it: the strip (a drawn stand-in when there is none), its animations and
 	## their speeds, 1.9 m, and the pass over his speed trails. Not the outline pass, which draws his outline wherever
 	## something stands in front of him: on the title nothing does but his own companion, and close up his outline drawn
@@ -448,7 +467,7 @@ class Actor extends Node3D:
 		sprite = BillboardSprite.new()
 		sprite.name = "Sprite"
 		add_child(sprite)
-		var art: CharacterDef = def.variant_def(Save.hero_look(def.id)) if def else null
+		var art: CharacterDef = Registry.played_look(def) if def else null
 		var tex: Texture2D = art.sprite if art and art.sprite else null
 		var anims: Dictionary = art.anims if art else {"idle": 2, "run": 4, "turn": 1, "hit": 1, "die": 1, "cheer": 1}
 		if tex == null:
@@ -458,6 +477,8 @@ class Actor extends Node3D:
 		sprite.enable_over_trails()
 		sprite.setup(tex, anims, TitleStage.ORDER, TitleStage.HERO_HEIGHT, cols, fps)
 		sprite.set_tint(TitleStage.LOCKED_TINT if locked else Color.WHITE)
+		# the fog would warm the black mask to brown (pass 69): a locked hero is drawn without it
+		sprite.set_fogless(locked)
 		sprite.play(_anim("idle", "_f"))
 
 	## The soft dark disc under him (Player.tscn's Shadow: a 1.4 m quad lying flat, squashed as Player._animate does).

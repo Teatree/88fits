@@ -155,7 +155,8 @@ func test_the_basketballs_path_is_whole() -> void:
 	var ball: WeaponDef = Registry.weapon("basketball")
 	var path: Array = Registry.mutations_of("basketball")
 	assert_array(path.map(func(m: MutationDef) -> String: return m.mutation_kind)).is_equal(["element", "volume", "motion"])
-	assert_array(path.map(func(m: MutationDef) -> String: return m.id)).is_equal(["on_fire", "full_court_press", "rebound"])
+	# pass 69 (lane BB, re-pinned on purpose): Alley-Oop took Full Court Press's volume slot (Full Court Press is hidden)
+	assert_array(path.map(func(m: MutationDef) -> String: return m.id)).is_equal(["on_fire", "alley_oop", "rebound"])
 	for m: MutationDef in path:
 		assert_str(m.weapon).is_equal("basketball")
 		assert_bool(m.is_hero()).is_false()
@@ -180,16 +181,16 @@ func test_the_basketballs_path_is_whole() -> void:
 	assert_str(ft.hero).is_equal("fadeaway")
 	assert_str(ft.weapon).is_equal(Registry.start_weapon_for(c).id)
 	assert_bool(ft.params.get("free_throw") is Dictionary).is_true()
-	# the evolution keeps the path and has the last word: Full Court Press's +2 and its reach, Rebound's way home,
-	# Slam Dunk's own gold over On Fire's red
+	# the evolution keeps the path and has the last word: Rebound's way home, Alley-Oop's launch amplified (pass 69),
+	# Slam Dunk's own black ball over On Fire's red and Alley-Oop's blue
 	var sd := WeaponInstance.new(evo, 1)
 	for m: MutationDef in path:
 		sd.mutations.append(m)
 	sd.rebuild(StatSheet.new(), [sd])
-	assert_int(sd.stat_int("amount", 0)).is_equal(1 + int(Registry.mutation("full_court_press").effects[0].value))
-	assert_float(float(sd.params["ricochet_any"]["reach"])).is_equal(float(Registry.mutation("full_court_press").params["ricochet_any"]["reach"]))
+	assert_int(sd.stat_int("amount", 0)).is_equal(1)
+	assert_float(float(sd.params["ricochet_any"]["reach"])).is_equal(float(evo.params["ricochet_any"]["reach"]))
 	assert_int(int(sd.params["return_pierce"])).is_equal(80)
-	assert_str(str(sd.params["tint"]["albedo"])).is_equal(str(evo.params["final"]["tint"]["albedo"]))
+	assert_str(str(sd.params["tint"]["body"])).is_equal(str(evo.params["final"]["tint"]["body"]))
 	assert_bool(bool(sd.params["catch"].get("heat_keep", false))).is_true()
 	assert_bool(sd.params["catch"].get("slam") is Dictionary).is_true()
 

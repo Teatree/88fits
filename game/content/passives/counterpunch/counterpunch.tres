@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/counterpunch/counterpunch_icon.png" id="1_08xkr"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_iciby"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_skifw"]
+
+[sub_resource type="Resource" id="Resource_08xkr"]
+script = ExtResource("2_iciby")
+stat = "counter_damage"
+value = 1.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_iciby"]
+script = ExtResource("2_iciby")
+stat = "counter_haste"
+value = 0.2
+target = "player"
+
+[sub_resource type="Resource" id="Resource_skifw"]
+script = ExtResource("2_iciby")
+stat = "counter_speed"
+value = 0.15
+target = "player"
+
+[sub_resource type="Resource" id="Resource_7fd1h"]
+script = ExtResource("2_iciby")
+stat = "counter_seconds"
+value = 2.0
+target = "player"
+
+[sub_resource type="Resource" id="Resource_ps1a8"]
+script = ExtResource("2_iciby")
+stat = "counter_haste"
+value = 0.05
+target = "player"
+
+[sub_resource type="Resource" id="Resource_lq4tp"]
+script = ExtResource("2_iciby")
+stat = "counter_speed"
+value = 0.03
+target = "player"
+
+[sub_resource type="Resource" id="Resource_heprc"]
+script = ExtResource("2_iciby")
+stat = "counter_seconds"
+value = 0.25
+target = "player"
+
+[resource]
+script = ExtResource("3_skifw")
+levels = [[SubResource("Resource_08xkr"), SubResource("Resource_iciby"), SubResource("Resource_skifw"), SubResource("Resource_7fd1h")], [SubResource("Resource_ps1a8"), SubResource("Resource_lq4tp"), SubResource("Resource_heprc")]]
+max_level = 5
+text = "After an evade, your next attack deals double damage, and for 2 s you attack 20% faster and move 15% faster."
+id = "counterpunch"
+display_name = "Counterpunch"
+flavour = "Duck. Then swing."
+rarity = "uncommon"
+weight = 8.0
+icon = ExtResource("1_08xkr")
+icon_file = "counterpunch_icon.png"
+placeholder = {
+"color": "#E0503C",
+"glyph": "fist"
+}

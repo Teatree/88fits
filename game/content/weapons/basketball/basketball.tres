@@ -76,6 +76,21 @@ params = {
 "heat_per": 0.05,
 "refund": 0.35
 },
+"heat_look": {
+"color": "#FF5A10",
+"flame_from": 0.4,
+"glow_max": 0.45,
+"glow_min": 0.0,
+"halo": 1.8,
+"halo_alpha": 0.22,
+"halo_from": 0.9,
+"hot": "#FFC060",
+"pulse": 0.35,
+"pulse_hz": 3.0,
+"seam_glow_max": 1.6,
+"surfaces": "all",
+"trail_from": 0.1
+},
 "no_shells": true,
 "radius": 0.3,
 "return": true,

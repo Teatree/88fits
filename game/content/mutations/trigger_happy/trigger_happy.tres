@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_w7rnk"]
+[ext_resource type="Texture2D" path="res://content/mutations/trigger_happy/trigger_happy_icon.png" id="2_t6nnj"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_evmw5"]
+
+[sub_resource type="Resource" id="Resource_w7rnk"]
+script = ExtResource("1_w7rnk")
+stat = "damage"
+op = "mul"
+value = -0.35
+
+[sub_resource type="Resource" id="Resource_t6nnj"]
+script = ExtResource("1_w7rnk")
+stat = "cooldown"
+op = "mul"
+value = -0.4
+
+[resource]
+script = ExtResource("3_evmw5")
+weapon = "tommy_gun"
+mutation_kind = "hero"
+hero = "may"
+text = "The Tommy Gun never stops firing, even with nobody in range: a steady stream of two thirds more rounds, each 35% weaker."
+vfx = "an unbroken stream of rounds from the companion gun, straight ahead of her when nothing is in range"
+effects = [SubResource("Resource_w7rnk"), SubResource("Resource_t6nnj")]
+params = {
+"fire_without_target": true,
+"stream": true
+}
+id = "trigger_happy"
+display_name = "Trigger Happy"
+flavour = "May never takes her finger off it."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("2_t6nnj")
+icon_file = "trigger_happy_icon.png"
+placeholder = {
+"color": "#E040A0",
+"glyph": "star"
+}

@@ -28,6 +28,8 @@ const Enemies = (() => {
     pane.appendChild(sec('Spawning', Assets.rows(doc, defs, 'Spawning', iss)));
     pane.appendChild(sec('Drops', Assets.rows(doc, defs, 'Drops', iss), { foot: 'When the whole drops block is absent the game plays {small 1, gold 0.02}; an Elite or coloured creature always drops a chest; a dummy drops nothing.' }));
     pane.appendChild(sec('Variance', Assets.rows(doc, defs, 'Variance', iss).concat([tintPreview(doc)])));
+    // pass 69 (lane EN): the coloured special on its own: its numbers, what applies and from where, and how it looks
+    pane.appendChild(sec('Special', Assets.rows(doc, defs, 'Special', iss).concat([specialPreview(doc)]), { foot: 'A special rolls once the map\'s Colour after kills is reached (× (1 + difficulty) with Hot Sauce); a swarm event set to Special (the Timeline\'s events) brings one for sure. An empty box takes the map\'s Settings → Coloured specials, else the game\'s default.' }));
     pane.appendChild(sec('Sounds', Assets.rows(doc, defs, 'Sounds', iss), { foot: 'Ids from content/sounds/soundmap.json; an unknown id is silent. A new sound: add a row to the sound map (gen_sfx.py / ai_sfx.py), then it is listable here.' }));
     const lookChips = [el('span', { class: 'achip', text: `${doc.looks.length} look${doc.looks.length === 1 ? '' : 's'}` })];
     if (doc.looks.some((l) => l.fresh)) lookChips.push(el('span', { class: 'achip warn', text: `${doc.looks.filter((l) => l.fresh).length} new` }));
@@ -352,7 +354,8 @@ const Enemies = (() => {
     const cell = (look && look.frame_px) || rec.frame_px || 128;
     const strength = M.num(vr.tint_strength, 0.35);
     const items = [{ hex: null, cap: 'as painted' }].concat(tints.map((h) => ({ hex: h, cap: `${h} · ${fmtN(strength, 2)}` })));
-    if (sp.tint) items.push({ hex: sp.tint, amount: M.num(sp.tint_strength, 0.6), cap: `special ${sp.tint} · ${fmtN(M.num(sp.tint_strength, 0.6), 2)}`, special: true });
+    // (pass 69: the special's picture, with its glow, is in the Special section)
+    void sp;
     const grid = el('div', { class: 'tint-preview tintprev' });
     const canvases = [];
     for (const it of items) {
@@ -366,5 +369,108 @@ const Enemies = (() => {
     return wrap;
   }
 
-  return { render, comparePanel, telegraphPicture, sequenceLine };
+  // ------------------------------------------------------------------ pass 69 (lane EN): the coloured special
+
+  const SP_ROWS = [['size', 'Size ×'], ['hp', 'HP ×'], ['damage', 'ATK ×'], ['xp', 'XP ×'], ['tint_strength', 'Colour strength'], ['glow', 'Glow']];
+  /** "#8A1428" -> [r, g, b] 0..1, or null. */
+  function hexRgb(hex) {
+    const m = String(hex || '').match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    return m ? [parseInt(m[1], 16) / 255, parseInt(m[2], 16) / 255, parseInt(m[3], 16) / 255] : null;
+  }
+  /** The glow's colour as enemy_billboard.gdshader draws it: the colour's hue at full brightness (its largest channel 1). */
+  function rimRgb(rgb) {
+    const mx = Math.max(rgb[0], rgb[1], rgb[2], 0.001);
+    return rgb.map((c) => c / mx);
+  }
+  /** The standing frame on `canvas`: tinted by `hex` at `amount`, ringed by the glow (`glow` 0..1: a rim 1 + 4.2 × glow
+   *  pixels wide in the rim's colour with a lighter core 0.6 + glow pixels wide, the painted outline lit by 0.85 × glow,
+   *  as the shader does), drawn `scale` of the canvas tall, feet on its bottom edge. */
+  function paintSpecial(canvas, frame, hex, amount, glow, scale) {
+    const S = frame.size;
+    const src = frame.data.data;
+    const work = new Uint8ClampedArray(src.length);
+    const rgb = hexRgb(hex);
+    const tint = rgb ? rgb.map(Model.toLinear) : null;
+    const rim = rgb ? rimRgb(rgb) : [1, 1, 1];
+    const g = Math.max(0, Math.min(1, Number(glow) || 0));
+    const r = g > 0.01 ? Math.max(1, Math.round(1.0 + 4.2 * g)) : 0;
+    const ri = g > 0.01 ? Math.max(1, Math.round(0.6 + 1.0 * g)) : 0;
+    const core = rim.map((c) => Model.toSrgb(Model.toLinear(c) * 0.55 + 0.45));
+    const A = (x, y) => (x < 0 || y < 0 || x >= S || y >= S ? 0 : src[(y * S + x) * 4 + 3]);
+    for (let y = 0; y < S; y++) {
+      for (let x = 0; x < S; x++) {
+        const i = (y * S + x) * 4;
+        if (src[i + 3] >= 128) {
+          let px = [src[i] / 255, src[i + 1] / 255, src[i + 2] / 255];
+          if (tint) px = Model.tintPixel(px, tint, amount);
+          // the painted outline lit up: a dark pixel by the figure's edge
+          if (r > 0 && (px[0] * 0.3 + px[1] * 0.59 + px[2] * 0.11) < 0.3 && (A(x + 2, y) < 128 || A(x - 2, y) < 128 || A(x, y + 2) < 128 || A(x, y - 2) < 128)) {
+            px = px.map((c, j) => c + (rim[j] - c) * 0.85 * g);
+          }
+          work[i] = Math.round(px[0] * 255); work[i + 1] = Math.round(px[1] * 255); work[i + 2] = Math.round(px[2] * 255); work[i + 3] = 255;
+        } else if (r > 0) {
+          // the nearest opaque pixel within r: within ri it is the lighter core, beyond it the colour
+          let best = Infinity;
+          for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) { const d2 = dx * dx + dy * dy; if (d2 < best && d2 <= r * r + 0.5 && A(x + dx, y + dy) >= 128) best = d2; }
+          if (best < Infinity) {
+            const cc = best <= ri * ri + 0.5 ? core : rim;
+            work[i] = Math.round(cc[0] * 255); work[i + 1] = Math.round(cc[1] * 255); work[i + 2] = Math.round(cc[2] * 255); work[i + 3] = 255;
+          }
+        }
+      }
+    }
+    const off = document.createElement('canvas'); off.width = S; off.height = S;
+    off.getContext('2d').putImageData(new ImageData(work, S, S), 0, 0);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const h = canvas.height * scale;
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(off, (canvas.width - h) / 2, canvas.height - h, h, h);
+  }
+  /** The Special section's foot: what applies to each number and where it comes from (the creature, the map's
+   *  special_defaults, the game), the chance in words, and the plain one beside its special as the game draws them. */
+  function specialPreview(doc) {
+    const d = doc.data;
+    const vr = M.isObj(d.variance) ? d.variance : {};
+    const sp = M.isObj(vr.special) ? vr.special : {};
+    const mapId = doc.ui.map || 'red_canyon';
+    const tl = Assets.mapTl(mapId);
+    const defaults = tl && M.isObj(tl.special_defaults) ? tl.special_defaults : {};
+    const wrap = el('div', { class: 'tintprev-wrap', 'data-key': 'variance.special' });
+    const chance = M.num(vr.special_chance, 0);
+    if (!Object.keys(vr).length) wrap.appendChild(el('p', { class: 'muted small', text: 'No variance block: this creature never comes as a coloured special (a special swarm brings it plain).' }));
+    else wrap.appendChild(el('p', { class: 'muted small', text: chance > 0 ? `Chance ${fmtN(chance * 100, 2)} % = about one in ${Math.round(1 / chance)} once ${mapId}'s Colour after kills (${tl ? M.num(tl.colour_after_kills, 0) : '…'}) is reached.` : 'Chance 0: it never rolls its special on its own; a swarm event set to Special still brings one.' }));
+    const tbl = el('table', { class: 'kv ctable' });
+    tbl.appendChild(el('tr', {}, el('th'), el('th', { text: 'in play' }), el('th', { text: 'from' })));
+    const where = { own: 'this creature', map: `${mapId}'s Coloured specials (Settings)`, game: 'the game\'s default' };
+    for (const [k, label] of SP_ROWS) {
+      tbl.appendChild(el('tr', {}, el('td', { text: label }), el('td', { class: 'mine', text: fmtN(Model.specialValue(sp, defaults, k), 2) }), el('td', { class: 'muted small', text: where[Model.specialSource(sp, defaults, k)] })));
+    }
+    tbl.appendChild(el('tr', {}, el('td', { text: 'Colour' }), el('td', { class: 'mine' }, sp.tint ? el('span', { class: 'sw-chip', style: `background:${sp.tint}`, title: sp.tint }) : '—'), el('td', { class: 'muted small', text: sp.tint ? 'this creature' : 'none: it keeps a plain one\'s tint (a row\'s colour range gives it a darker shade)' })));
+    wrap.appendChild(tbl);
+    const rec = App.creature(doc.id);
+    if (!rec) return wrap;
+    const look = doc.looks.find((l) => l.code === (doc.ui.look || rec.play)) || null;
+    const url = (look && look.sprite) || rec.sprite_play;
+    const cell = (look && look.frame_px) || rec.frame_px || 128;
+    const size = Model.specialValue(sp, defaults, 'size');
+    const strength = Model.specialValue(sp, defaults, 'tint_strength');
+    const glow = Model.specialValue(sp, defaults, 'glow');
+    const grid = el('div', { class: 'tint-preview tintprev' });
+    const cPlain = el('canvas', { class: 'tint-pic', width: 120, height: 120, title: 'a plain one' });
+    const cSp = el('canvas', { class: 'tint-pic', width: 120, height: 120, title: 'its special' });
+    grid.appendChild(el('figure', { class: 'tint-fig orig' }, cPlain, el('figcaption', { class: 'tint-cap', text: 'plain' })));
+    grid.appendChild(el('figure', { class: 'tint-fig special' }, cSp, el('figcaption', { class: 'tint-cap', text: `special ×${fmtN(size, 2)} · glow ${fmtN(glow, 2)}` })));
+    const big = Math.max(size, 1);
+    standingFrame(url, cell, (frame) => {
+      if (!frame) return;
+      paintSpecial(cPlain, frame, null, 0, 0, 0.8 / big);
+      paintSpecial(cSp, frame, sp.tint || null, strength, glow, 0.8 * size / big);
+    });
+    wrap.appendChild(el('div', { class: 'muted small', text: `The standing frame of ${look ? look.code : rec.play || 'the strip'}: a plain one beside its special at its size, washed in its colour at its strength (× 0.65 in linear light) and ringed by its glow (a rim of the colour at full brightness; in the game it breathes slowly).` }));
+    wrap.appendChild(grid);
+    return wrap;
+  }
+
+  return { render, comparePanel, telegraphPicture, sequenceLine, paintSpecial, rimRgb };
 })();

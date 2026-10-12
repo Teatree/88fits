@@ -50,6 +50,13 @@
 ## turns banish mode on and every control in it answers (cards_banish), the held card refuses, CANCEL turns it off, a new
 ## card is struck and the table answers again after (cards_after_banish), a table of upgrades only locks BANISH.
 ## Pass 61: hero_sheet (run with title): the plaque's swipe and tap, the hero's sheet audited, its dim and CLOSE.
+## Pass 69: hero_drawer (run with title, or alone with only=hero_drawer): the Hero Collections button opens the drawer
+## under a real finger (its glyph turns to the close X), every tile in it answers, a real tap on another hero's tile shows
+## him and keeps the drawer open, the tiles scroll sideways when they do not fit, a tap outside the panel closes it and
+## changes nothing behind it, the button's X closes it; then hero_buy: a hero on sale with the gold for him, his BUY
+## answers, opens the question (audited, cancelled), and a real BUY then the real deed buys him (gold spent once, he is
+## owned, PLAY open); a locked hero shows his requirement and a real tap on LOCKED starts nothing. The save's gold and
+## bought heroes are put back after.
 extends SceneTree
 
 const MAX_PER_KIND := 40     # cards of one screen tapped at most (a long list: a sample, spread over it)
@@ -441,6 +448,8 @@ func _run() -> void:
 		await _title_swipe()
 	if _want("title") or _want("hero_sheet"):
 		await _hero_sheet()
+	if _want("title") or _want("hero_drawer") or _want("hero_buy"):
+		await _hero_drawer()
 	if _want("title") or _want("title_live"):
 		await _title_live()
 	await _screen("settings", "res://ui/SettingsScreen.tscn")
@@ -642,6 +651,153 @@ func _hero_sheet() -> void:
 	_count("hero_sheet", closed)
 	if not closed:
 		_fail("hero_sheet", "CLOSE", "a real tap did not close the sheet")
+
+
+## The hero drawer and buying a hero (pass 69, see the header): real fingers on the Hero Collections button, the
+## drawer's tiles, outside it, its close X, then BUY, the question's buttons and LOCKED.
+func _hero_drawer() -> void:
+	var save = root.get_node("Save")
+	var reg = root.get_node("Registry")
+	var kept_gold: int = int(save.data.get("gold", 0))
+	var kept_owned: Array = (save.data.get("heroes_owned", []) as Array).duplicate()
+	var kept_last = save.data.get("last_character", "")
+	change_scene_to_file("res://ui/TitleScreen.tscn")
+	await _wait(1.4)
+	var t = current_scene
+	var btn: Control = t.find_child("HeroesButton", false, false)
+	_count("hero_drawer", btn != null)
+	if btn == null:
+		_fail("hero_drawer", "HeroesButton", "no Hero Collections button on the title")
+		return
+	# the button opens it
+	await _tap(btn.get_global_rect().get_center())
+	await _wait(0.5)
+	var opened: bool = t.drawer_open()
+	_count("hero_drawer", opened)
+	if not opened:
+		_fail("hero_drawer", "HeroesButton", "a real tap did not open the drawer")
+		return
+	var drawer: Control = t.find_child("HeroDrawer", false, false)
+	await _audit("hero_drawer", drawer)
+	# every hero not hidden has a tile
+	var listed := 0
+	for h in reg.characters.values():
+		if not h.hidden:
+			listed += 1
+			if drawer.call("tile_of", h.id) == null:
+				_fail("hero_drawer", "Tile_" + h.id, "the hero has no tile")
+	_count("hero_drawer", listed == (t._heroes as Array).size())
+	# a real tap on another hero's tile shows him, the drawer stays open
+	var other = null
+	for h in t._heroes:
+		if h != t._heroes[t._index]:
+			other = h
+			break
+	if other:
+		var tile: Control = drawer.call("tile_of", other.id)
+		var at: Vector2 = await _spot(tile)
+		await _tap(at)
+		await _wait(0.5)
+		var shown: bool = t._heroes[t._index] == other and t.drawer_open()
+		_count("hero_drawer", shown)
+		if not shown:
+			_fail("hero_drawer", "Tile_" + str(other.id), "a real tap did not show that hero (or closed the drawer)")
+	# sideways, when the tiles do not fit
+	if bool(drawer.call("scrolls")):
+		var sc: ScrollContainer = drawer.get("scroll")
+		var r := sc.get_global_rect()
+		sc.scroll_horizontal = 0
+		await _swipe(Vector2(r.position.x + r.size.x * 0.8, r.get_center().y), Vector2(r.position.x + r.size.x * 0.2, r.get_center().y), 12)
+		await _wait(0.3)
+		_count("hero_drawer", sc.scroll_horizontal > 20)
+		if sc.scroll_horizontal <= 20:
+			_fail("hero_drawer", "Scroll", "a sideways swipe did not scroll the tiles")
+	# a tap outside the panel closes it and does nothing behind it (the hero stays, no run starts)
+	var i_before: int = t._index
+	var panel: Control = drawer.get("panel")
+	var out := Vector2(panel.get_global_rect().get_center().x, panel.get_global_rect().end.y + 160.0)
+	await _tap(out)
+	await _wait(0.4)
+	var shut: bool = not t.drawer_open() and t._index == i_before and current_scene == t
+	_count("hero_drawer", shut)
+	if not shut:
+		_fail("hero_drawer", "the catcher", "a tap outside the drawer did not close it (or reached what is behind it)")
+	# the X closes it
+	await _tap(btn.get_global_rect().get_center())
+	await _wait(0.4)
+	var again: bool = t.drawer_open()
+	await _tap(btn.get_global_rect().get_center())
+	await _wait(0.4)
+	var x_closes: bool = again and not t.drawer_open()
+	_count("hero_drawer", x_closes)
+	if not x_closes:
+		_fail("hero_drawer", "HeroesButton", "the close X did not close the drawer")
+	# ---- buying: a hero on sale with the gold for him
+	var buyable = null
+	for h in t._heroes:
+		if reg.hero_state(h) == "buyable":
+			buyable = h
+			break
+	if buyable == null:
+		print("touch_audit: hero_buy: no hero on sale on this save, skipped")
+	else:
+		save.data["gold"] = maxi(kept_gold, int(buyable.price) + 100)
+		t._refresh_gold()
+		t._index = (t._heroes as Array).find(buyable)
+		t._show_hero(0)
+		t._place()
+		await _wait(0.6)
+		var buy: Control = t.find_child("Buy", true, false)
+		var seen: bool = buy != null and _visible_in_tree(buy)
+		_count("hero_buy", seen)
+		if not seen:
+			_fail("hero_buy", "Buy", "no BUY over a hero on sale")
+		else:
+			await _audit("hero_buy", t.find_child("BuyColumn", false, false))
+			await _confirm_audit("hero_buy_confirm", t, func(): t.ask_buy())
+			var gold0: int = save.gold()
+			await _tap(buy.get_global_rect().get_center())
+			await _wait(0.5)
+			var ask: Node = null
+			for n in t.get_children():
+				if _is_kit(n, "WConfirm") and not bool(n.get("_done")):
+					ask = n
+			_count("hero_buy", ask != null)
+			if ask == null:
+				_fail("hero_buy", "Buy", "a real tap did not ask")
+			else:
+				var deed: Control = ask.find_child("Confirm", true, false)
+				await _tap(deed.get_global_rect().get_center())
+				await _wait(0.8)
+				var bought: bool = save.owns_hero(buyable.id) and save.gold() == gold0 - int(buyable.price) and not t._play.locked
+				_count("hero_buy", bought)
+				if not bought:
+					_fail("hero_buy", "Confirm", "the deed did not buy the hero (owned %s, gold %d -> %d, PLAY locked %s)" % [str(save.owns_hero(buyable.id)), gold0, save.gold(), str(t._play.locked)])
+	# a locked hero: his requirement over the plaque, LOCKED starts nothing
+	var locked_h = null
+	for h in t._heroes:
+		if reg.hero_state(h) == "locked":
+			locked_h = h
+			break
+	if locked_h:
+		t._index = (t._heroes as Array).find(locked_h)
+		t._show_hero(0)
+		t._place()
+		await _wait(0.5)
+		var req: Control = t.find_child("Requirement", false, false)
+		var shows: bool = req != null and _visible_in_tree(req) and t._play.locked
+		_count("hero_buy", shows)
+		if not shows:
+			_fail("hero_buy", "Requirement", "a locked hero shows no requirement (or PLAY is open)")
+		await _tap(t._play.get_global_rect().get_center())
+		await _wait(0.6)
+		var stayed: bool = current_scene == t
+		_count("hero_buy", stayed)
+		if not stayed:
+			_fail("hero_buy", "LOCKED", "a real tap on LOCKED left the title")
+	save.data["gold"] = kept_gold
+	save.data["heroes_owned"] = kept_owned
+	save.data["last_character"] = kept_last
 
 
 ## The live title (pass 52, Settings.menu_style "live": the level itself behind the UI, ui/TitleStage.gd): the 3D view

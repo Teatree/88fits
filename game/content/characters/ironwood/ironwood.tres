@@ -30,6 +30,8 @@ favourite_passive_bonus = {
 "type": "level",
 "value": 2.0
 }
+availability = "purchase"
+price = 400
 sprite = ExtResource("3_ccyo4")
 sprite_file = "ironwood_sprite.png"
 anims = {

@@ -37,6 +37,11 @@ func _initialize() -> void:
 
 func _boot() -> void:
 	var save = root.get_node("Save")
+	# pass 69 (lane UI): the arena is entered from the title, whose quiet quest check (QuestTracker.check_all(false))
+	# completes the quests the save's totals already meet; leaving the arena opens the title, which runs it again. A quest
+	# new to the content that this save already meets (a hero's unlock_<id>: 2,500 kills, the Tumbleweed King killed)
+	# completes there, not in the arena: the check runs first, as the title would have before the arena
+	load("res://core/systems/QuestTracker.gd").call("check_all", false)
 	# the settings as a write would keep them now (pass 49: a setting added since the file was last written is not a change
 	# made in the arena; leaving it writes Settings.to_dict() whatever happened)
 	var before: Dictionary = (save.data as Dictionary).duplicate(true)

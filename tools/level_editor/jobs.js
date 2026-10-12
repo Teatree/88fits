@@ -48,7 +48,7 @@ const Jobs = (() => {
   // the running job"); one worker per lane, so the numbering is per lane
   const GROUPS = [['queued', 'Up next'], ['waiting', 'Waiting for a pick'], ['running', 'Running'], ['finished', 'Finished']];
   const LANE_ORDER = ['comfy', 'godot', 'local'];
-  const TAB_OF_KIND = { enemy: 'creatures', boss: 'creatures', hero: 'heroes', weapon: 'items', evolution: 'items', passive: 'items', mutation: 'items' };
+  const TAB_OF_KIND = { enemy: 'creatures', boss: 'creatures', hero: 'heroes', weapon: 'items', evolution: 'items', passive: 'items', mutation: 'items', perk: 'heroes' };   // pass 69: perks
   const ROLES = [{ v: 'identity', label: 'identity (what it looks like)' }, { v: 'style', label: 'style (how it is drawn)' }, { v: 'pose', label: 'pose and anatomy' }];
   const FOLLOW = [{ v: 'loosely', label: 'follow loosely' }, { v: 'closely', label: 'follow closely' }, { v: 'copy', label: 'copy exactly' }];
   const USES = [{ v: 'animation', label: 'animation (how it moves)' }, { v: 'look', label: 'look (the painting reference)' }, { v: 'icon', label: 'icon (the icon render)' }];

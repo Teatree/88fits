@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/salt_flats/salt_flats_icon.png" id="1_vv2hc"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_ogrc2"]
+
+[resource]
+script = ExtResource("2_ogrc2")
+weapon = "salt"
+mutation_kind = "hero"
+hero = "buck"
+text = "Walking into a salt patch puts his speed-up at full at once."
+vfx = "his speed trail flares as he steps into the salt"
+params = {
+"salt": {
+"momentum_on_enter": true
+}
+}
+id = "salt_flats"
+display_name = "Salt Flats"
+flavour = "Flat, white and fast. Like him."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_vv2hc")
+icon_file = "salt_flats_icon.png"
+placeholder = {
+"color": "#9AD8FF",
+"glyph": "star"
+}

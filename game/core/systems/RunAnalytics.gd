@@ -53,8 +53,9 @@ const GOLD_SOURCES := ["coins", "loose_change", "gold_dust", "boss_coins", "loot
 ## spend: it banks the purse (run_end's gold_banked, the save's gold_meta "strongbox").
 const GOLD_SINKS := ["shop", "revive", "other"]
 ## The saved gold's reasons (Save.add_gold / spend_gold, sent as gold_meta): in from run_bank (the purse an extraction
-## brings home), strongbox (banked mid-run), talent_refund (Take it all back); out to talent (an Upgrade rank) and wipe.
-const META_REASONS := ["run_bank", "strongbox", "talent_refund", "talent", "wipe", "debug", "other"]
+## brings home), strongbox (banked mid-run), talent_refund (Take it all back); out to talent (an Upgrade rank), hero (pass 69:
+## a hero bought on the title, Save.buy_hero) and wipe.
+const META_REASONS := ["run_bank", "strongbox", "talent_refund", "talent", "hero", "wipe", "debug", "other"]
 
 var game: Node
 var play_t := 0.0            # unpaused play seconds: the x axis (Run.elapsed is the stage clock and freezes in boss and portal phases)

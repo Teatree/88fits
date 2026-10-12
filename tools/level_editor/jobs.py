@@ -193,10 +193,17 @@ SPECS = {
         "frames": _f("int", 24, False, "24 for a run, 12 for a walk; a one-shot wants 4k+1 (9, 25)"),
         "loop": _f("bool", True, False, "a loop (the last frame repeats the first) or a one-shot"),
         "pitch": _f("int", 25, False, "the camera's pitch"), "start": _f("str", "", False, "slice: start seconds"), "end": _f("str", "", False, "slice: end seconds"),
-        "arms": _f("str", "", False, "zombie | hold_r"), "body": _f("str", "", False, "retarget proportions top_nose:..,torso:.."),
+        "arms": _f("str", "", False, "zombie | hold_r | back (pass 69: both arms swept straight back, the dash)"), "body": _f("str", "", False, "retarget proportions top_nose:..,torso:.."),
         "fwd": _f("str", "", False, "body: square the views to the hips and shoulders"), "rig": _f("str", "", False, "mixamo (default) | sm"),
-        "rigmap": _f("str", "", False, "a {model_bone: mixamo_name} JSON for another humanoid rig")},
-        "help": "an OpenPose driver from a rigged clip (Blender), then its sheets (pose_driver.py draw)"},
+        "rigmap": _f("str", "", False, "a {model_bone: mixamo_name} JSON for another humanoid rig"),
+        # pass 69 (lane ART's pose_driver options and tools/pose_shoulders.py; lane LE put them in the form)
+        "amp": _f("float", 1.0, False, "the limbs swing this many times as far round their average (1.35 = a sprint)"),
+        "amp_bones": _f("str", "", False, "regex of the bones amp applies to (default (Arm|ForeArm|UpLeg|Leg)$)"),
+        "lean": _f("float", 0.0, False, "the spine bent forward this many degrees (12 a sprint, 14 the dash)"),
+        "shoulders": _f("str", "", False, "level the shoulders with the neck: each shoulder's height off the neck x this (0.3); written to <name>_lvl; empty = off"),
+        "shoulder_views": _f("str", "back,bd", False, "the views pose_shoulders levels (back,bd; side,fd for the side runs)"),
+        "tuck": _f("str", "", False, "side view: the far upper arm at most this many degrees back from straight down (25); empty = off")},
+        "help": "an OpenPose driver from a rigged clip (Blender), then its sheets (pose_driver.py draw); with shoulders, a levelled copy <name>_lvl (pose_shoulders.py)"},
     "driver_depth": {"lane": "local", "fields": {
         "src": _f("str", "", True, "the rigged model"), "name": _f("str", "", True, "the driver folder name"), "action": _f("str", "", False, "the clip to play"),
         "mode": _f("enum", "cycle", False, "cycle (a walk) | oneshot (a death)", ("cycle", "oneshot")), "frames": _f("int", 12, False, ""),
@@ -994,10 +1001,26 @@ def _plan(job):
                     if k == "pitch" and int(v) == 25:
                         continue
                     kv.append("%s=%s" % (k, v))
+            # pass 69 (lane ART's options): a sprint's wider swing and lean (amp, amp_bones, lean)
+            if spec.get("amp") not in (None, "") and abs(float(spec["amp"]) - 1.0) > 1e-6:
+                kv.append("amp=%g" % float(spec["amp"]))
+                if str(spec.get("amp_bones") or "").strip():
+                    kv.append("amp_bones=%s" % str(spec["amp_bones"]).strip())
+            if spec.get("lean") not in (None, "") and abs(float(spec["lean"])) > 1e-6:
+                kv.append("lean=%g" % float(spec["lean"]))
             steps = [[bl, "-b", "--python", os.path.join(TOOLS, "pose_driver.py"), "--"] + kv,
                      [PY, os.path.join(TOOLS, "pose_driver.py"), "draw", _rel(out)]]
+            equiv = '"$BLENDER" -b --python tools/pose_driver.py -- %s && python tools/pose_driver.py draw %s' % (" ".join(kv), _rel(out))
+            # pass 69: the shoulders levelled with the neck into <name>_lvl (tools/pose_shoulders.py: Fadeaway's sagging
+            # back run, the side runs' raised shoulder)
+            if str(spec.get("shoulders") or "").strip():
+                sk = ["level=%s" % str(spec["shoulders"]).strip(), "views=%s" % (str(spec.get("shoulder_views") or "back,bd").strip() or "back,bd")]
+                if str(spec.get("tuck") or "").strip():
+                    sk.append("tuck=%s" % str(spec["tuck"]).strip())
+                steps.append([PY, os.path.join(TOOLS, "pose_shoulders.py"), _rel(out), _rel(out) + "_lvl"] + sk)
+                equiv += " && python tools/pose_shoulders.py %s %s_lvl %s" % (_rel(out), _rel(out), " ".join(sk))
             p["steps"] = steps
-            p["equiv"] = '"$BLENDER" -b --python tools/pose_driver.py -- %s && python tools/pose_driver.py draw %s' % (" ".join(kv), _rel(out))
+            p["equiv"] = equiv
         elif kind == "driver_depth":
             out = os.path.join(DRIVERS, str(spec.get("name", "")))
             kv = ["src=" + src, "out=" + _rel(out), "mode=" + str(spec.get("mode") or "cycle")]

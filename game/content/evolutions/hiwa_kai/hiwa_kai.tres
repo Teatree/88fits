@@ -1,0 +1,77 @@
+[gd_resource type="Resource" script_class="WeaponDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/evolutions/hiwa_kai/hiwa_kai_icon.png" id="1_pq8fy"]
+[ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_nojm4"]
+[ext_resource type="PackedScene" path="res://content/weapons/salt/salt_visual.tscn" id="3_nojm4"]
+
+[resource]
+script = ExtResource("2_nojm4")
+behavior = "SaltShaker"
+tags = ["salt", "ground"]
+targeting = "ground"
+base = {
+"amount": 3.0,
+"area": 1.0,
+"cooldown": 1.2,
+"damage": 13.0,
+"duration": 4.0
+}
+levels = [[]]
+max_level = 1
+is_evolution = true
+evolved_from = "salt"
+sfx = {
+"fire": "w_salt_shake"
+}
+visual = ExtResource("3_nojm4")
+visual_file = "res://content/weapons/salt/salt_visual.tscn"
+params = {
+"final": {
+"salt": {
+"alpha": 0.58,
+"area_mult": 1.8,
+"color": "#161616",
+"contents": "#1A1A1A",
+"crunch": {
+"mult": 2.0
+},
+"crystals": {
+"color": "#0B0B0D",
+"count": 7.0
+},
+"damage_mult": 1.0,
+"duration_mult": 2.0,
+"luck_mult": 4.0,
+"slow": 0.3
+}
+},
+"salt": {
+"alpha": 0.6,
+"area_mult": 1.0,
+"color": "#FFFFFF",
+"contents": "#F4F4F0",
+"damage_mult": 1.0,
+"duration_mult": 1.0,
+"max_patches": 40.0,
+"radius": 1.4,
+"spacing": 1.2,
+"tick": 0.5
+},
+"shaker": {
+"bob": 0.08,
+"distance": 1.2,
+"height": 1.25,
+"orbit_speed": 0.55
+}
+}
+id = "hiwa_kai"
+display_name = "Hiwa Kai"
+flavour = "Black lava salt. It bites back."
+rarity = "uncommon"
+icon = ExtResource("1_pq8fy")
+icon_file = "hiwa_kai_icon.png"
+placeholder = {
+"color": "#2A2A2E",
+"glyph": "mine",
+"gold": true
+}

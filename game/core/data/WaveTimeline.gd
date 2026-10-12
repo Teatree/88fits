@@ -136,6 +136,10 @@ func passive_cap_at(stage: int) -> int:
 ## this multiple; the hero is not affected (he keeps `move_pace`). EnemyManager folds it into its `pace`
 ## (WaveDirector._apply_mults, the arena too). Red Canyon: 0.9. 1 = as the creatures' data says.
 @export var creature_speed_mult: float = 1.0
+## Pass 69 (lane EN): the map's numbers for a variance special that the creature's own `variance.special` does not name:
+## any of {"size", "hp", "damage", "xp", "tint_strength", "glow"} (EnemyDef.special_value: the creature's own, then this,
+## then EnemyDef.SPECIAL_DEFAULTS). WaveDirector._apply_mults hands it to EnemyManager.special_defaults. {} = none.
+@export var special_defaults: Dictionary = {}
 ## Where the roster's bursts and the waves come from (pass 54, Garry: 55 / 15 / 15 / 15): {"mode": "sides" | "facing",
 ## "top", "bottom", "left", "right" (the weights of the four screen sides in camera space, top = up the screen = north
 ## in the fixed camera), "facing_share" (the old rule's share of spawns ahead of the hero, default 0.7),

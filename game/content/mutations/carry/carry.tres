@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/carry/carry_icon.png" id="1_enf5v"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_xp2tb"]
+
+[resource]
+script = ExtResource("2_xp2tb")
+weapon = "frisbee"
+mutation_kind = "volume"
+text = "It has a 10% chance to carry the enemy away."
+vfx = "a bigger frisbee; the first creature it hits may ride it to the end of the flight and drop off there"
+params = {
+"carry": {
+"chance": 0.1,
+"drop_hit": 0.0
+},
+"disc": {
+"size_mult": 1.5
+}
+}
+id = "carry"
+display_name = "Carry"
+flavour = "Free ride. One way."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_enf5v")
+icon_file = "carry_icon.png"
+placeholder = {
+"color": "#9AE02A",
+"glyph": "ring"
+}

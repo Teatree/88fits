@@ -1,0 +1,39 @@
+{
+  "id": "alley_oop",
+  "name": "Alley-Oop",
+  "flavour": "Up you go. Down you come.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "basketball",
+  "kind": "volume",
+  "element": "",
+  "hero": "",
+  "text": "Each hit has a 15% chance to throw the creature into the air. It can't attack up there and takes the hit again when it lands.",
+  "vfx": "the ball turns dark blue with a faint blue glow; a creature it throws shoots straight up, hangs, drops and lands with a thud and a puff of dust",
+  "effects": [],
+  "params": {
+    "launch": {
+      "chance": 0.15,
+      "height": 3.5,
+      "air_time": 0.9,
+      "fall_damage_frac": 1.0
+    },
+    "tint": {
+      "body": "#0A4FA8",
+      "ambient": false,
+      "emission": "#1A5CFF",
+      "energy": 0.28,
+      "seams": {
+        "color": "#05081A"
+      }
+    },
+    "heat_look": {
+      "surfaces": "seams"
+    }
+  },
+  "art_prompt": "a dark navy-blue basketball with black seams flying straight up, three short white speed lines under it",
+  "placeholder": {
+    "color": "#1B2E7A",
+    "glyph": "star"
+  }
+}

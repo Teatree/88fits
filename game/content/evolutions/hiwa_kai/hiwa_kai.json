@@ -1,0 +1,74 @@
+{
+  "id": "hiwa_kai",
+  "name": "Hiwa Kai",
+  "flavour": "Black lava salt. It bites back.",
+  "rarity": "uncommon",
+  "is_evolution": true,
+  "evolved_from": "salt",
+  "max_level": 1,
+  "behavior": "SaltShaker",
+  "targeting": "ground",
+  "tags": [
+    "salt",
+    "ground"
+  ],
+  "base": {
+    "damage": 13,
+    "cooldown": 1.2,
+    "amount": 3,
+    "area": 1.0,
+    "duration": 4.0
+  },
+  "levels": [
+    []
+  ],
+  "params": {
+    "salt": {
+      "radius": 1.4,
+      "tick": 0.5,
+      "spacing": 1.2,
+      "max_patches": 40,
+      "color": "#FFFFFF",
+      "alpha": 0.6,
+      "contents": "#F4F4F0",
+      "duration_mult": 1.0,
+      "damage_mult": 1.0,
+      "area_mult": 1.0
+    },
+    "shaker": {
+      "distance": 1.2,
+      "height": 1.25,
+      "orbit_speed": 0.55,
+      "bob": 0.08
+    },
+    "final": {
+      "salt": {
+        "color": "#161616",
+        "alpha": 0.58,
+        "contents": "#1A1A1A",
+        "duration_mult": 2.0,
+        "damage_mult": 1.0,
+        "area_mult": 1.8,
+        "luck_mult": 4.0,
+        "crystals": {
+          "count": 7,
+          "color": "#0B0B0D"
+        },
+        "crunch": {
+          "mult": 2.0
+        },
+        "slow": 0.3
+      }
+    }
+  },
+  "sfx": {
+    "fire": "w_salt_shake"
+  },
+  "placeholder": {
+    "color": "#2A2A2E",
+    "glyph": "mine",
+    "gold": true
+  },
+  "art_prompt": "a glass salt shaker with a gold-trimmed chrome cap full of glossy black Hawaiian lava salt, a pile of sharp black salt crystals spilling out beside it",
+  "visual": "res://content/weapons/salt/salt_visual.tscn"
+}

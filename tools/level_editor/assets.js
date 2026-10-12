@@ -12,9 +12,10 @@ const Assets = (() => {
   const { el, clear, fmtN } = U;
   const M = AssetsModel, F = AFIELDS;
   const HISTORY_MAX = 300;
-  const KIND_TAB = { enemy: 'creatures', boss: 'creatures', hero: 'heroes', weapon: 'items', evolution: 'items', passive: 'items', mutation: 'items' };
-  const KIND_LABEL = { enemy: 'ENEMY', boss: 'BOSS', hero: 'HERO', weapon: 'WEAPON', evolution: 'EVOLUTION', passive: 'PASSIVE', mutation: 'MUTATION' };
-  const KIND_ICON = { enemy: 'enemy', boss: 'boss', hero: 'hero', weapon: 'weapon', evolution: 'evolution', passive: 'passive', mutation: 'mutation' };
+  // pass 69 (lane LE): a hero's perk is a document of the Heroes tab
+  const KIND_TAB = { enemy: 'creatures', boss: 'creatures', hero: 'heroes', weapon: 'items', evolution: 'items', passive: 'items', mutation: 'items', perk: 'heroes' };
+  const KIND_LABEL = { enemy: 'ENEMY', boss: 'BOSS', hero: 'HERO', weapon: 'WEAPON', evolution: 'EVOLUTION', passive: 'PASSIVE', mutation: 'MUTATION', perk: 'PERK' };
+  const KIND_ICON = { enemy: 'enemy', boss: 'boss', hero: 'hero', weapon: 'weapon', evolution: 'evolution', passive: 'passive', mutation: 'mutation', perk: 'perk' };
 
   const S = {
     lists: { heroes: null, items: null },      // the server's records (/api/heroes, /api/items); `enemies` mirrors App.S.enemies (a getter below)
@@ -490,7 +491,7 @@ const Assets = (() => {
   // ------------------------------------------------------------------ the shared UI pieces
 
   function statusChip(av, extra) {
-    const words = { available: 'available', hidden: 'hidden', locked: 'locked by quest', purchase: 'purchase (not wired)', retired: 'retired' };
+    const words = { available: 'available', hidden: 'hidden', locked: 'locked by quest', purchase: 'to buy', retired: 'retired' };   // pass 69: the purchase loop is wired
     return el('span', { class: 'achip ' + (av || ''), text: words[av] || av || '' , title: extra || '' });
   }
 
@@ -621,7 +622,10 @@ const Assets = (() => {
     const v = vocab();
     const def2 = Object.assign({}, def);
     if (typeof def.options === 'function') def2.options = F.options(def, v);
-    const ctlOpts = { apply: apply2, placeholder: ph, path: def.key, what: 'editor', rows: o.rows };
+    // pass 69: a row's `after(data, value)` runs inside the same undo step (the hero's availability keeps `hidden` in step);
+    // it wraps the apply (Forms.row reads `opts.after` as a node, so it cannot ride in the options)
+    const applyRow = typeof def.after === 'function' ? (fn, what) => apply2((data, d) => { fn(data, d); def.after(doc.data, U.getPath(doc.data, def.key)); }, what) : apply2;
+    const ctlOpts = { apply: applyRow, placeholder: ph, path: def.key, what: 'editor', rows: o.rows };
     let row;
     switch (def.type) {
       case 'slug': case 'readonly': {
@@ -635,6 +639,13 @@ const Assets = (() => {
       case 'fps_table': row = Forms.row(def2, fpsTable(doc, def), {}); break;
       case 'sfx': row = Forms.row(def2, sfxSelect(doc, def), {}); break;
       case 'params_json': case 'json': row = Forms.row(def2, jsonBox(doc, def, o), { cls: 'wide-ctl' }); break;
+      // pass 69 (lane LE, typed_forms.js): the typed params of the pass's behaviours, and a perk's special's numbers
+      case 'params_fields': case 'perk_params': {
+        const body = typeof TypedForms !== 'undefined' ? (def.type === 'perk_params' ? TypedForms.perkParams(doc, def, o) : TypedForms.params(doc, def, o)) : null;
+        if (!body) return null;
+        row = Forms.row(def2, body, { cls: 'wide-ctl' });
+        break;
+      }
       case 'id_select': row = Forms.row(def2, idSelect(doc, def), {}); break;
       case 'driver': row = Forms.row(def2, driverPick(doc, def), {}); break;
       case 'checklist': row = Forms.row(def2, checklist(doc, def2), {}); break;
@@ -683,7 +694,8 @@ const Assets = (() => {
     const items = Array.isArray(list) ? list : [];
     const v = vocab();
     const apply2 = applyFor(doc);
-    const write = (next) => apply2(() => { if (!next.length) U.setPath(doc.data, def.key, null); else U.setPath(doc.data, def.key, next); }, 'editor');
+    // pass 69: a level step ("levels.2") left empty stays an empty list ([]): the level is still there
+    const write = (next) => apply2(() => { if (!next.length) U.setPath(doc.data, def.key, /\.\d+$/.test(def.key) ? [] : null); else U.setPath(doc.data, def.key, next); }, 'editor');
     const wrap = el('div', { class: 'seffects' });
     const statOpts = F.statOptions(def.stats || 'any', v);
     items.forEach((e, i) => {
@@ -699,7 +711,9 @@ const Assets = (() => {
         const tOpts = F.options({ options: (vv) => vv.targets }, v).filter((t) => !String(t.v).endsWith(':')).concat(tv.includes(':') ? [{ v: tv, label: tv }] : []);
         target = Forms.select(tOpts, tv, (val2) => set('target', val2 === 'self' ? null : val2), { path: `${def.key}.${i}.target` });
       }
-      const words = el('div', { class: 'muted small seffect-words', text: eff.stat ? M.describeEffect(eff, { vocab: v, weaponName: (id) => id }) : '' });
+      // pass 69: a stat with a help line (the new passive items' stats) says what it does under the card's words
+      const help = eff.stat && M.statHelp ? M.statHelp(String(eff.stat), v) : '';
+      const words = el('div', { class: 'muted small seffect-words', title: help, text: (eff.stat ? M.describeEffect(eff, { vocab: v, weaponName: (id) => id }) : '') + (help ? ` · ${help}` : '') });
       wrap.appendChild(el('div', { class: 'seffect' }, stat, op, val, target, el('button', { class: 'x', type: 'button', text: '×', title: 'remove', onclick: () => { const next = items.slice(); next.splice(i, 1); write(next); } }), words));
     });
     wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: '+ effect', onclick: () => { const next = items.slice(); const e = { stat: statOpts[0] ? statOpts[0].v : 'damage', op: 'mul', value: 0.1 }; if (def.target && def.target !== 'self') e.target = def.target; next.push(e); write(next); } }));

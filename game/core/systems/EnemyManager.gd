@@ -161,6 +161,14 @@ var xp_scale := PackedFloat32Array()
 var died_xp_scale := 0.0
 var vtint := PackedColorArray()   # per-spawn tint (rgb) and strength (a) from the def's variance block
 var vspecial := PackedByteArray()  # 1 = rolled its variance special (the dark, big one): the hit log names its colour
+## Pass 69 (lane EN): a variance special's glow, 0..1 (EnemyDef.special_value "glow"): the emissive rim
+## enemy_billboard.gdshader draws round it in its tint's colour; 0 for everyone else. `special_defaults` is the map's
+## timeline_data.special_defaults (the director sets it): a special's numbers the creature's own block does not name.
+## `force_special`, held true by the director around a spawn (a swarm event with "special": true), makes that spawn its
+## variance special whatever its chance and before colour_after_kills.
+var vglow := PackedFloat32Array()
+var special_defaults: Dictionary = {}
+var force_special := false
 ## Pass 58 (R1, Garry: "I don't actually want it to change for the same 'wave' of enemies on the fly, because then it feels
 ## weird for the Player that shooting the same enemy with the same weapon suddenly doesn't kill it"): a creature a spawn
 ## source brought (a roster row, a wave, an event; WaveDirector hands spawn() the source's `src`) carries its numbers
@@ -441,6 +449,7 @@ func _ready() -> void:
 	type_idx.resize(MAX); elite_idx.resize(MAX); state.resize(MAX); timer.resize(MAX); cooldown.resize(MAX)
 	anim_t.resize(MAX); flash.resize(MAX); squash.resize(MAX); flip.resize(MAX); contact_cd.resize(MAX)
 	alive.resize(MAX); charge_dir.resize(MAX); xp_scale.resize(MAX); vtint.resize(MAX); vspecial.resize(MAX)
+	vglow.resize(MAX)
 	fixed.resize(MAX); f_stage.resize(MAX); f_hpt.resize(MAX); f_lvh.resize(MAX); f_dmt.resize(MAX); f_lvd.resize(MAX)
 	f_bsz.resize(MAX); f_tu.resize(MAX)
 	lift_mode.resize(MAX); lift_peak.resize(MAX); lift_knock.resize(MAX)
@@ -977,6 +986,7 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	f_tu[i] = tint_u if row_tint else -1.0
 	var vsize := 1.0
 	vspecial[i] = 0
+	vglow[i] = 0.0
 	if elite == null and not def.variance.is_empty():
 		# every spawn is a little different: size, speed, a tint from the palette, and the odd special one
 		var vr: Dictionary = def.variance
@@ -986,32 +996,38 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 		esp *= 1.0 + _rng.randf_range(-float(vr.get("speed", 0.0)), float(vr.get("speed", 0.0)))
 		# the tint and the special are colour, and colour comes after the run's first kills (pass 46); the size and
 		# speed jitter above is not colour and is always on
-		if Run.kills >= colour_after_kills:
+		# (pass 69: a forced special, force_special, comes whatever the kills)
+		if Run.kills >= colour_after_kills or force_special:
 			var tints: Array = vr.get("tints", [])
 			if not tints.is_empty() and not row_tint:
 				var c := Color(str(tints[_rng.randi() % tints.size()]))
 				vt = Color(c.r, c.g, c.b, float(vr.get("tint_strength", 0.35)))
 			# Hot Sauce (pass 47): the dark special comes (1 + difficulty) times as often
 			_pstats()
-			if _rng.randf() < float(vr.get("special_chance", 0.0)) * (1.0 + _difficulty):
+			if force_special or _rng.randf() < float(vr.get("special_chance", 0.0)) * (1.0 + _difficulty):
 				var sp: Dictionary = vr.get("special", {})
-				vsize *= float(sp.get("size", 1.3))
+				# pass 69: each number the creature's own, else the map's special_defaults, else EnemyDef.SPECIAL_DEFAULTS
+				var spd := special_defaults
+				# (pass 69, Garry: "Make them 1.25 times bigger"): exactly its size factor, the plain one's spread dropped, so
+				# a special is never smaller than a big plain one
+				vsize = EnemyDef.special_value(sp, spd, "size")
 				if ranged_size:
 					# a size-range row's special stays inside the range (the fix round; Garry: "between 3-5 for example"): its
 					# size factor lifts it towards the top, never past it; its HP, damage, XP and colour are the special's
 					vsize = minf(vsize, def.size_range.y / maxf(base_sz, 0.01))
-				ehp *= float(sp.get("hp", 1.6))
-				edm *= float(sp.get("damage", 1.2))
-				xps *= float(sp.get("xp", 2.0))
+				ehp *= EnemyDef.special_value(sp, spd, "hp")
+				edm *= EnemyDef.special_value(sp, spd, "damage")
+				xps *= EnemyDef.special_value(sp, spd, "xp")
 				vspecial[i] = 1
+				vglow[i] = clampf(EnemyDef.special_value(sp, spd, "glow"), 0.0, 1.0)
 				if row_tint:
 					# a colour-range row's special keeps the row's colour (pass 58, the lead): a darker, stronger shade of the
 					# hue this one rolled, so it still reads as the special one of that wave (its own wine tint had read as
 					# "lost the colour"); its size factor above stays
-					vt = EnemyDef.tint_special_color(def.tint_range, tint_u, float(sp.get("tint_strength", 0.6)))
+					vt = EnemyDef.tint_special_color(def.tint_range, tint_u, EnemyDef.special_value(sp, spd, "tint_strength"))
 				elif sp.has("tint"):
 					var sc := Color(str(sp["tint"]))
-					vt = Color(sc.r, sc.g, sc.b, float(sp.get("tint_strength", 0.6)))
+					vt = Color(sc.r, sc.g, sc.b, EnemyDef.special_value(sp, spd, "tint_strength"))
 		esz *= vsize
 	vtint[i] = vt
 	hp[i] = ehp; max_hp[i] = ehp; speed[i] = esp * pace; dmg[i] = edm; dr[i] = ear
@@ -1506,16 +1522,21 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 	# Deadeye: a weapon hit (never a poison or fire tick) can crit for crit_damage times the damage
 	var crit := false
 	if weapon_id != "" and not green and not hot:
+		# Counterpunch (pass 69): the attack after an evade hits double (Run.counterpunch_mult, 1 otherwise)
+		dealt *= Run.counterpunch_mult(weapon_id)
 		var cc: float = Run.player_sheet.get_stat("crit_chance", 0.0)
+		# Trick Shot (pass 69): the weapon's own proc_mult on its crit, Vulture and Cold Snap chances
+		var tpm: float = Run.trick_proc_mult(weapon_id)
+		cc *= tpm
 		# HIT_CRIT (pass 62): a forced crit needs no roll
 		if (flags & HIT_CRIT) != 0 or (cc > 0.0 and randf() < cc):
 			dealt *= Run.player_sheet.get_stat("crit_damage", 2.0)
 			crit = true
 			# Vulture (pass 47c): a crit may heal the hero a little
-			if _crit_heal > 0.0 and randf() < _crit_heal and game and game.player and not game.player.dead:
+			if _crit_heal > 0.0 and randf() < _crit_heal * tpm and game and game.player and not game.player.dead:
 				game.player.heal(game.player.max_hp * CRIT_HEAL_FRAC, "Vulture")
 		# Cold Snap (pass 47c): a weapon hit may freeze the creature for a second, never a boss
-		if _freeze_chance > 0.0 and i != boss_index and randf() < _freeze_chance:
+		if _freeze_chance > 0.0 and i != boss_index and randf() < _freeze_chance * tpm:
 			freeze(i, FREEZE_SECONDS)
 	last_crit = crit
 	# a mini crit (pass 48, HIT_MINI): half a crit's extra damage, when no full crit rolled
@@ -1755,6 +1776,176 @@ func bounce(i: int, height: float, seconds: float, knock: Vector3 = Vector3.ZERO
 	kb[i] = Vector3.ZERO
 	vel[i] = Vector3.ZERO
 	return true
+
+
+# ---------------------------------------------------------------- pass 69 (lane BB): Alley-Oop's launch
+## Alley-Oop (pass 69, a weapon's `params.launch {chance, height, air_time, fall_damage_frac, sfx}`; Slam Dunk's `final`
+## raises it): a weapon hit that does not kill rolls `chance` (ProjectileManager calls try_launch). A plain creature is
+## thrown straight up (no drift, no turn), cannot move, bite or attack while it is up (a stun: the physics tick runs
+## _tick_launch in place of its brain and its touch), and lands after `air_time` taking `fall_damage_frac` x that hit's
+## damage through damage() (so every damage increase scales it, and it counts for kills, XP and the rest like any hit of
+## that weapon). The boss, an Elite or an elite-modded creature (is_big_game) that rolls it takes the fall at once and
+## stays on its feet. One already in the air (a launch, a bounce, a tornado), held, buried, rising out of the sand, roped
+## to the hero or still in the spawn beam is not thrown; its roll does nothing. A launch rides lift_mode 1 (a bounce's:
+## the tornado's swirl and grab, the Gravity Gun and the crowd's shove all leave it alone) with its own entry in
+## _launched.
+const LAUNCH_RISE := 0.3        # the share of the flight going up (fast, easing out)
+const LAUNCH_HANG := 0.5        # the share by which the hang at the top ends and the drop begins (easing in)
+const LAUNCH_FLOAT := 0.04      # the hang's little extra lift, a share of the height
+const LAUNCH_DEAD_FALL := 22.0  # m/s² a body killed up there falls at, to land where it was
+const LAUNCH_SFX := "w_grav_land"
+## The creatures up in the air from a launch: index -> {"serial", "dmg", "wid", "sfx"} (the slot's spawn serial tells a
+## stale entry from the next creature put in the slot).
+var _launched: Dictionary = {}
+## Diagnostics and tests: creatures thrown up, falls taken at once by big game, landings.
+var launches := 0
+var launch_instant := 0
+var landings := 0
+
+
+## The roll (pass 69): 0 nothing, 1 thrown up, 2 big game took the fall at once. `roll` (tests) replaces the random draw.
+func try_launch(i: int, hit_damage: float, weapon_id: String, cfg: Dictionary, roll: float = -1.0) -> int:
+	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
+		return 0
+	var chance := clampf(float(cfg.get("chance", 0.15)), 0.0, 1.0)
+	var r: float = roll if roll >= 0.0 else _rng.randf()
+	if r >= chance:
+		return 0
+	var fall := maxf(hit_damage, 0.0) * maxf(float(cfg.get("fall_damage_frac", 1.0)), 0.0)
+	if is_big_game(i):
+		# the boss and the Elites (Garry: "just get the extra damage as if they had fallen, but no throw up"): at once,
+		# with a thud at its feet
+		launch_instant += 1
+		_launch_thud(i, str(cfg.get("sfx", LAUNCH_SFX)), 0.6, false)
+		if fall > 0.0:
+			damage(i, fall, weapon_id)
+		return 2
+	if not launch(i, float(cfg.get("height", 3.5)), float(cfg.get("air_time", 0.9)), fall, weapon_id, str(cfg.get("sfx", LAUNCH_SFX))):
+		return 0
+	return 1
+
+
+## Throws creature `i` straight up (pass 69): `height` metres at the top, down after `seconds`, `fall` damage from
+## `weapon_id` on landing. False when it cannot go up (can_launch). A wind-up, a charge or a scripted attack it was in is
+## dropped the way a stun drops it.
+func launch(i: int, height: float, seconds: float, fall: float, weapon_id: String, sfx: String = LAUNCH_SFX) -> bool:
+	if not can_launch(i) or seconds <= 0.0:
+		return false
+	var def: EnemyDef = types[type_idx[i]]["def"]
+	match state[i]:
+		STATE_WINDUP:
+			state[i] = STATE_MOVE
+			cooldown[i] = maxf(cooldown[i], 1.0)
+		STATE_CHARGE:
+			state[i] = STATE_MOVE
+			cooldown[i] = float(def.charge.get("cooldown", 4.0))
+		STATE_ATTACK:
+			state[i] = STATE_MOVE
+			atk_t[i] = maxf(atk_t[i], 1.0)
+	lift_mode[i] = 1
+	lift_t[i] = seconds
+	lift_d[i] = seconds
+	lift_peak[i] = maxf(height, 0.0)
+	lift_knock[i] = Vector3.ZERO
+	lift_h[i] = 0.0
+	kb[i] = Vector3.ZERO
+	vel[i] = Vector3.ZERO
+	_launched[i] = {"serial": serial[i], "dmg": fall, "wid": weapon_id, "sfx": sfx}
+	launches += 1
+	squash[i] = 1.25
+	var fx = game.get("fx") if game != null else null
+	if fx != null and fx.has_method("sand"):
+		fx.sand(pos[i], 0.35)
+	return true
+
+
+## Whether creature `i` may be thrown up now (pass 69): alive, not big game, on its feet and free.
+func can_launch(i: int) -> bool:
+	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or state[i] == STATE_SPAWN:
+		return false
+	if hidden[i] == 1 or held[i] == 1 or lift_t[i] > 0.0 or rise_t[i] < 1.0 or i == tethered_i:
+		return false
+	return not is_big_game(i)
+
+
+## Whether creature `i` is up in the air from a launch now (tests, other systems).
+func is_launched(i: int) -> bool:
+	return i >= 0 and i < MAX and alive[i] == 1 and lift_t[i] > 0.0 and _launch_of(i)
+
+
+## Whether slot `i` holds a live launch entry (its creature's own, not a stale one).
+func _launch_of(i: int) -> bool:
+	var e = _launched.get(i)
+	return e is Dictionary and int((e as Dictionary).get("serial", -1)) == serial[i]
+
+
+## A launch's height at `f` (0 thrown .. 1 landing) as a share of its top: up fast (easing out), a hang with a little
+## float, then the drop (easing in, gathering speed).
+static func launch_curve(f: float) -> float:
+	f = clampf(f, 0.0, 1.0)
+	if f < LAUNCH_RISE:
+		var u := 1.0 - f / LAUNCH_RISE
+		return 1.0 - u * u
+	if f < LAUNCH_HANG:
+		return 1.0 + LAUNCH_FLOAT * sin(PI * (f - LAUNCH_RISE) / (LAUNCH_HANG - LAUNCH_RISE))
+	var d := (f - LAUNCH_HANG) / (1.0 - LAUNCH_HANG)
+	return 1.0 - d * d
+
+
+## One tick of a launched creature (the physics tick calls it in place of everything else: no steering, no bite, no
+## attack). Its burns and poisons keep ticking, its legs flail. On landing: squashed, a puff of dust, the thud, and the
+## fall's damage through damage().
+func _tick_launch(i: int, delta: float) -> void:
+	lift_t[i] -= delta
+	var f := 1.0 - clampf(lift_t[i] / maxf(lift_d[i], 0.01), 0.0, 1.0)
+	lift_h[i] = launch_curve(f) * lift_peak[i]
+	vel[i] = Vector3.ZERO
+	kb[i] = Vector3.ZERO
+	anim_t[i] += delta * 14.0
+	flash[i] = maxf(flash[i] - delta * 6.0, 0.0)
+	squash[i] = lerpf(squash[i], 1.0, clampf(delta * 8.0, 0.0, 1.0))
+	_tick_poison(i, delta)
+	if alive[i] == 0 or state[i] == STATE_DYING:
+		return
+	_tick_fire(i, delta)
+	if alive[i] == 0 or state[i] == STATE_DYING or lift_t[i] > 0.0:
+		return
+	var e: Dictionary = _launched.get(i, {})
+	_launched.erase(i)
+	lift_t[i] = 0.0
+	lift_h[i] = 0.0
+	lift_mode[i] = 0
+	lift_cd[i] = 0.3
+	squash[i] = 0.55
+	landings += 1
+	_launch_thud(i, str(e.get("sfx", LAUNCH_SFX)), 1.0, true)
+	var fall := float(e.get("dmg", 0.0))
+	if fall > 0.0:
+		damage(i, fall, str(e.get("wid", "")))
+
+
+## A launched creature killed up there (pass 69; the dying tick calls this while its death plays): the body falls to the
+## sand where it was and lands with the thud.
+func _drop_launched_body(i: int, delta: float) -> void:
+	var e: Dictionary = _launched[i]
+	var v: float = float(e.get("fall_v", 0.0)) + LAUNCH_DEAD_FALL * delta
+	e["fall_v"] = v
+	lift_h[i] = maxf(lift_h[i] - v * delta, 0.0)
+	if lift_h[i] <= 0.0:
+		_launch_thud(i, str(e.get("sfx", LAUNCH_SFX)), 0.8, true)
+		_launched.erase(i)
+		lift_t[i] = 0.0
+		lift_mode[i] = 0
+
+
+## A landing (pass 69): a spray of sand at its feet (`big` for a body coming down, a little more for a bigger creature;
+## pass 69's captures: the burrow's full pop_dust buried a crowd that a quarter of the hits throws up) and the thud.
+func _launch_thud(i: int, sfx: String, k: float, big: bool) -> void:
+	var fx = game.get("fx") if game != null else null
+	if fx != null and fx.has_method("sand"):
+		fx.sand(pos[i], (clampf(size[i] * 0.5, 0.55, 1.0) if big else 0.5) * k)
+	if sfx != "":
+		Audio.play(sfx, pos[i])
 
 
 func is_poisoned(i: int) -> bool:
@@ -2099,6 +2290,7 @@ func _free(i: int) -> void:
 	held[i] = 0
 	lift_mode[i] = 0
 	vspecial[i] = 0
+	vglow[i] = 0.0
 	# one freed under the sand leaves no mound behind (pass 60)
 	_mound_end(i)
 	free_list.append(i)
@@ -2514,6 +2706,14 @@ func tether_glow() -> float:
 	return 0.35 + 0.65 * (0.5 + 0.5 * sin(_glow_clock * 4.5))
 
 
+## Pass 69 (lane EN): a variance special's glow (0..1) as the shader reads it off INSTANCE_CUSTOM.y: 16 levels in steps of
+## SPECIAL_GLOW_STEP above the flip bit and the tether's glow (1 + 2 x 16 < 64), so mod(y, 2) is still the flip
+## (enemy_silhouette) and mod(y, 64) the rest (enemy_billboard). Whole numbers to 1057: exact in a half float too.
+const SPECIAL_GLOW_STEP := 64.0
+static func special_glow_code(glow: float) -> float:
+	return SPECIAL_GLOW_STEP * roundf(clampf(glow, 0.0, 1.0) * 16.0)
+
+
 func boss_alive() -> bool:
 	return boss_index >= 0
 
@@ -2570,6 +2770,9 @@ func _physics_process(delta: float) -> void:
 			flash[i] = max(flash[i] - delta * 6.0, 0.0)
 			if timer[i] < DIE_SINK:
 				squash[i] = maxf(timer[i] / DIE_SINK, 0.02)
+			# pass 69: a body killed up in a launch falls to the sand while its death plays
+			if lift_h[i] > 0.0 and _launch_of(i):
+				_drop_launched_body(i, delta)
 			if timer[i] <= 0.0:
 				_free(i)
 			continue
@@ -2582,6 +2785,10 @@ func _physics_process(delta: float) -> void:
 			anim_t[i] += delta * 20.0
 			flash[i] = max(flash[i] - delta * 3.0, 0.0)
 			squash[i] = lerp(squash[i], 1.0, delta * 6.0)
+			continue
+		if lift_t[i] > 0.0 and _launch_of(i):
+			# pass 69: Alley-Oop's launch, its own flight (no brain, no bite) and its landing's damage
+			_tick_launch(i, delta)
 			continue
 		if lift_t[i] > 0.0 and lift_mode[i] == 1:
 			# a bounce (pass 46): up and down on the spot, no spin, no turn; it lands squashed, with its shove and no harm
@@ -2649,7 +2856,7 @@ func _physics_process(delta: float) -> void:
 		if view_t[i] > 0.0:
 			view_t[i] -= delta
 		if (i & 1) == parity:
-			_steer(i, ppos, sdt)
+			_steer(i, decoy_target(i, ppos), sdt)
 		# integrate
 		var v := vel[i] + kb[i]
 		kb[i] = kb[i].lerp(Vector3.ZERO, delta * 6.0)
@@ -2746,6 +2953,10 @@ func _physics_process(delta: float) -> void:
 			var lf: float = legs if state[i] == STATE_CHARGE else lerpf(1.0, legs, windup_progress(i))
 			steps = (run_fps if run_fps > 0.0 else 10.0) * pace * lf
 		anim_t[i] += delta * steps
+		# pass 69 (lane HERO): a creature fooled by May's inflatable double bites the doll, never her (bites do nothing)
+		if decoy_on and is_fooled(i):
+			_decoy_bite(i)
+			continue
 		# contact damage
 		var d := ppos - pos[i]
 		d.y = 0.0
@@ -3564,6 +3775,72 @@ func _tick_stalactites(delta: float, ppos: Vector3) -> void:
 	_stalactites = keep
 
 
+# ---------------------------------------------------------------- the decoy (pass 69, lane HERO: May's Inflatable May)
+
+## While May's inflatable double stands (core/systems/Decoy.gd), the creatures it fooled walk to `decoy_at` instead of
+## her (their brain steers at it: chasers chase it, shooters aim at it) and bite it instead of her (bites do nothing).
+## A fooled creature is kept by slot and spawn serial, so a slot reused by a new spawn is not fooled.
+var decoy_on := false
+var decoy_at := Vector3.ZERO
+var decoy_bites := 0                 # bites the doll took (it wobbles on each)
+var _fooled: Dictionary = {}         # index -> its spawn serial when it was fooled
+
+
+## Whether creature `i` can be fooled: alive, up, not dying, not buried, never a boss (Elites are fooled too).
+func foolable(i: int) -> bool:
+	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or hidden[i] != 0:
+		return false
+	if i == boss_index:
+		return false
+	return (types[type_idx[i]]["def"] as EnemyDef).archetype != "boss"
+
+
+## Fool creature `i` (if it can be): it goes for the doll until unfool_all. Returns true when it was fooled now.
+func fool(i: int) -> bool:
+	if not foolable(i) or is_fooled(i):
+		return false
+	_fooled[i] = serial[i]
+	return true
+
+
+func is_fooled(i: int) -> bool:
+	return _fooled.has(i) and int(_fooled[i]) == serial[i] and alive[i] == 1 and state[i] != STATE_DYING
+
+
+## The fooled creatures alive right now (the "?" marks).
+func fooled_indices() -> PackedInt32Array:
+	var out := PackedInt32Array()
+	for k in _fooled.keys():
+		var i: int = int(k)
+		if is_fooled(i):
+			out.append(i)
+	return out
+
+
+func unfool_all() -> void:
+	_fooled.clear()
+	decoy_on = false
+
+
+## Where creature `i`'s brain steers: the doll while it is fooled, else the hero.
+func decoy_target(i: int, ppos: Vector3) -> Vector3:
+	if decoy_on and is_fooled(i):
+		return Vector3(decoy_at.x, ppos.y, decoy_at.z)
+	return ppos
+
+
+## A fooled creature next to the doll bites it on its own cadence; nothing is hurt, the doll wobbles (Decoy reads
+## decoy_bites).
+func _decoy_bite(i: int) -> void:
+	var d := decoy_at - pos[i]
+	d.y = 0.0
+	var reach := radius[i] + 0.7
+	if d.length_squared() < reach * reach and contact_cd[i] <= 0.0 and rise_t[i] >= 1.0 and freeze_t[i] <= 0.0 and stun_t[i] <= 0.0:
+		contact_cd[i] = _t_ccd[type_idx[i]]
+		decoy_bites += 1
+		squash[i] = 0.8
+
+
 func _update_boss(delta: float, ppos: Vector3) -> void:
 	_tick_rains(delta, ppos)
 	_tick_rumbles(delta, ppos)
@@ -4357,6 +4634,9 @@ func _render() -> void:
 		if i == tethered_i and st != STATE_DYING:
 			# the red outline of the creature holding the rope (levels 0..16 on top of the flip bit)
 			fy += 2.0 * roundf(tether_glow() * 16.0)
+		if vglow[i] > 0.0 and st != STATE_DYING:
+			# pass 69: a variance special's rim in its tint's colour (special_glow_code: levels 0..16 above the rest)
+			fy += special_glow_code(vglow[i])
 		# (the frame carries RISE_FLAG in its fraction while the figure rises: no silhouette of the part under the sand)
 		mm.set_instance_custom_data(k, Color(frame_code(frame, rise), fy, fl, sq))
 		mm.set_instance_color(k, tint_of(i))

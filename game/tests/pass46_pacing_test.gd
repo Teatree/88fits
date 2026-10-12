@@ -143,8 +143,10 @@ func test_the_whole_clock_is_stretched_and_the_bosses_end_their_stages() -> void
 	# each old second is 430/300 of a new one, rounded to the second (pass 62, lane PC, re-pinned: stages 2 and 3 have
 	# their own events now; stage 1's keep the stretched seconds, and the bosses and Elites are checked above)
 	var old_events := [150, 210, 300]
+	# (pass 69, lane EN, re-pinned: the special Goblin's event at 2:00 is not one of the stretched ones)
+	var stretched: Array = tl.events.filter(func(e: Dictionary) -> bool: return not bool(e.get("special", false)))
 	for k in range(old_events.size()):
-		assert_float(float(tl.events[k]["t"])).is_equal(roundf(old_events[k] * K))
+		assert_float(float(stretched[k]["t"])).is_equal(roundf(old_events[k] * K))
 	for r in tl.roster:
 		assert_float(fmod(float(r.get("t", 0.0)), 1.0)).is_equal(0.0)
 	# the cap follows the curve at the stage ends (pass 56, re-pinned: Garry draws it in the Level Editor, so the

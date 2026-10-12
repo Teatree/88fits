@@ -4,6 +4,10 @@
   "flavour": "Wide hat. Long coat. Longer road.",
   "order": 1,
   "pronoun": "he",
+  "hidden": false,
+  "availability": "available",
+  "price": 0,
+  "currency_type": "gold",
   "trait": [],
   "trait_per_level": [
     {

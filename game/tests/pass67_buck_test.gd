@@ -6,8 +6,8 @@ extends GdUnitTestSuite
 ## one "Momentum NN%" source); a hit that lands knocks off `hit_loss` of it (half; Player.take_damage), an evaded one none;
 ## he grows 1% move speed a level (Full Tilt) beside the flat -15% start; Ram's spikes grow 2 a level from the perk's
 ## `from` charge; Overdrive counts a gear of +5% attack damage every 5 s at full charge, five at most, gone on a landed
-## hit; Run.hero_gauge() feeds the HUD's gauge under the slots (MOMENTUM for him, HEAT for a ball that carries `catch`, {}
-## for the rest) and the words under the slots say the charge, RAM, OVERDRIVE and HEAT.
+## hit. Pass 69 (lane BB, re-pinned on purpose; Garry: "No UI indicators of any kind"): the HUD's hero gauge and its
+## words (MOMENTUM, RAM, OVERDRIVE, HEAT) are gone with Run.hero_gauge(); the charge shows on him, Heat on the ball.
 
 const FAKE_GAME := """extends Node
 var player: Node3D
@@ -229,7 +229,8 @@ func test_the_charge_always_reaches_exactly_full_on_the_sheet() -> void:
 	p._momentum_sync = 0.0
 	_tick(p, 1.0)
 	assert_float(Run.momentum).is_equal(1.0)
-	assert_bool(HUD.buff_parts().has("MOMENTUM FULL")).is_true()
+	# pass 69: no words for it under the slots (the hero's own look says it)
+	assert_bool(HUD.buff_parts().any(func(s) -> bool: return str(s).begins_with("MOMENTUM"))).is_false()
 
 
 # ---------------------------------------------------------------- Overdrive
@@ -378,100 +379,35 @@ func test_ram_starts_at_the_perks_from_charge() -> void:
 	assert_float(em.hp[j]).is_less(1000.0)
 
 
-# ---------------------------------------------------------------- the gauge
+# ---------------------------------------------------------------- the gauge (gone in pass 69)
 
-func test_the_hero_gauge_is_momentum_for_buck_heat_for_a_ball_and_nothing_for_the_rest() -> void:
+func test_the_hud_has_no_hero_gauge_and_no_hero_words_pass69() -> void:
+	# pass 69 (Garry: "No UI indicators of any kind please, the VFX effects on the hero himself are good enough"): no
+	# gauge under the slots for him or for a ball, and none of his words (MOMENTUM, RAM, OVERDRIVE) or the ball's (HEAT)
 	_start("buck")
-	Run.momentum = 0.5
-	var g := Run.hero_gauge()
-	assert_str(str(g["label"])).is_equal("MOMENTUM")
-	assert_float(float(g["value"])).is_equal_approx(0.5, 0.0001)
-	assert_int(int(g["notches"])).is_equal(4)
-	assert_bool(g["color"] is Color).is_true()
-	_start("astro")
-	assert_dict(Run.hero_gauge()).is_empty()
-	# a weapon whose params carry `catch` (Fadeaway's ball): HEAT, Run.heat over its heat_max, a notch a point
+	Run.momentum = 1.0
+	Run.add_perk("ram")
+	Run.add_perk("overdrive")
+	Run.overdrive = 3
+	Run.rebuild_sheets()
 	var wd := WeaponDef.new()
-	wd.id = "t67_ball"
+	wd.id = "t69_ball"
 	wd.max_level = 5
 	wd.params = {"catch": {"heat_max": 8, "heat_per": 0.05}}
 	Run.weapons.append(WeaponInstance.new(wd, 1))
 	Run.set("heat", 4)
-	g = Run.hero_gauge()
-	assert_str(str(g["label"])).is_equal("HEAT")
-	assert_float(float(g["value"])).is_equal_approx(0.5, 0.0001)
-	assert_int(int(g["notches"])).is_equal(8)
-	assert_float(HUD.heat_bonus()).is_equal_approx(0.2, 0.0001)
-	assert_bool(HUD.buff_parts().has("HEAT +20%")).is_true()
-	Run.set("heat", 0)
-	assert_float(HUD.heat_bonus()).is_equal(0.0)
-	Run.weapons.clear()
-
-
-func test_the_hud_gauge_sits_under_the_slots_for_buck_and_is_gone_for_astro() -> void:
-	_start("buck")
-	Run.momentum = 0.5
 	var hud: HUD = auto_free(HUD.new())
 	add_child(hud)
 	hud.tick(0.0)
-	var st := hud.gauge_state()
-	assert_str(str(st["label"])).is_equal("MOMENTUM")
-	assert_float(float(st["value"])).is_equal_approx(0.5, 0.0001)
-	assert_int(int(st["notches"])).is_equal(4)
-	# right under the slots, and the column under the slots hangs under it
-	var r: Rect2 = st["rect"]
-	assert_float(r.position.y).is_equal_approx(hud._slots_bottom + HUD.GAUGE_GAP, 0.5)
-	assert_float(hud._buffs.position.y).is_greater_equal(r.end.y)
-	assert_float(hud._adren.position.y).is_greater_equal(r.end.y)
-	assert_float((st["bar"] as Rect2).end.x).is_less_equal(hud.get_viewport_rect().size.x - 36.0 + 0.5)
-	# paper below the last quarter, gold at full
-	assert_bool((st["fill"] as Color).is_equal_approx(W.PAPER)).is_true()
-	Run.momentum = 1.0
-	hud.tick(0.0)
-	assert_bool((hud.gauge_state()["fill"] as Color).is_equal_approx(HUD.GAUGE_GOLD)).is_true()
-	# a drop shows at once, with the red flash and the shake
-	Run.momentum = 0.5
-	hud.tick(0.016)
-	st = hud.gauge_state()
-	assert_float(float(st["value"])).is_equal_approx(0.5, 0.0001)
-	assert_float(float(st["flash"])).is_greater(0.0)
-	assert_float(float(st["shake"])).is_greater(0.0)
-	# a climb eases in
-	Run.momentum = 1.0
-	hud.tick(0.1)
-	assert_float(float(hud.gauge_state()["value"])).is_equal_approx(0.5 + HUD.GAUGE_EASE * 0.1, 0.0001)
-	# Overdrive's gold ring while a gear is held
-	assert_bool(bool(hud.gauge_state()["over"])).is_false()
-	assert_bool(Run.add_perk("overdrive")).is_true()
-	Run.overdrive = 2
-	hud.tick(0.0)
-	assert_bool(bool(hud.gauge_state()["over"])).is_true()
-	# Astro has none: hidden, and the column is back at the slots' foot
-	_start("astro")
-	hud.tick(0.0)
-	assert_dict(hud.gauge_state()).is_empty()
+	assert_object(hud.find_child("HeroGauge", true, false)).is_null()
+	assert_bool(Run.has_method("hero_gauge")).is_false()
+	for s in HUD.buff_parts():
+		for w in ["MOMENTUM", "RAM", "OVERDRIVE", "HEAT"]:
+			assert_bool(str(s).begins_with(w)).override_failure_message(str(s)).is_false()
+	# the column hangs from the slots' foot
 	assert_float(hud._buffs.position.y).is_equal_approx(hud._slots_bottom + HUD.BUFF_GAP, 0.5)
-
-
-func test_the_words_under_the_slots_say_the_charge_ram_and_overdrive() -> void:
-	_start("buck")
-	assert_bool(HUD.buff_parts().any(func(s) -> bool: return str(s).begins_with("MOMENTUM"))).is_false()
-	Run.momentum = 0.72
-	assert_bool(HUD.buff_parts().has("MOMENTUM 72%")).is_true()
-	assert_bool(Run.add_perk("ram")).is_true()
-	# Ram is not live under its `from`
-	assert_bool(HUD.buff_parts().has("RAM")).is_false()
-	Run.momentum = 1.0
-	var parts := HUD.buff_parts()
-	assert_bool(parts.has("MOMENTUM FULL")).is_true()
-	assert_bool(parts.has("RAM")).is_true()
-	assert_bool(Run.add_perk("overdrive")).is_true()
-	Run.overdrive = 3
-	Run.rebuild_sheets()
-	assert_bool(HUD.buff_parts().has("OVERDRIVE +15%")).is_true()
-	# another hero's words carry none of it
-	_start("astro")
-	assert_bool(HUD.buff_parts().any(func(s) -> bool: return str(s).begins_with("MOMENTUM") or str(s) == "RAM")).is_false()
+	Run.set("heat", 0)
+	Run.weapons.clear()
 
 
 # ---------------------------------------------------------------- the words and the roster
@@ -497,18 +433,19 @@ func test_bucks_trait_says_the_level_rule_then_his_charge() -> void:
 func test_buck_is_back_in_play_seventh_and_his_kit_is_whole() -> void:
 	var buck: CharacterDef = Registry.character("buck")
 	assert_bool(buck.hidden).is_false()
-	assert_str(buck.availability).is_equal("available")
+	# pass 69 (lane UI): a hero to buy (survive 15 minutes, then 500 gold), shown on the title, not hidden
+	assert_str(buck.availability).is_equal("purchase")
 	assert_int(buck.order).is_equal(7)
 	assert_bool(Registry.sorted_characters().has(buck)).is_true()
 	assert_str(Registry.playable_character("buck").id).is_equal("buck")
-	# the flat -15% stays beside the level trait; no start weapon of his own: the Tommy Gun by the favourite fallback
+	# the flat -15% stays beside the level trait; pass 69 (Jeżyk): he lands with the Frisbee, his favourite is Salt
 	assert_float(buck.trait_effects[0].value).is_equal_approx(-0.15, 0.0001)
 	assert_int(buck.level_trait.size()).is_equal(1)
 	assert_str((buck.level_trait[0] as Effect).stat).is_equal("move_speed")
 	assert_float((buck.level_trait[0] as Effect).value).is_equal_approx(0.01, 0.00001)
-	assert_str(buck.start_weapon).is_equal("")
-	assert_str(buck.favourite_weapon).is_equal("tommy_gun")
-	assert_str(Registry.start_weapon_for(buck).id).is_equal("tommy_gun")
+	assert_str(buck.start_weapon).is_equal("frisbee")
+	assert_str(buck.favourite_weapon).is_equal("salt")
+	assert_str(Registry.start_weapon_for(buck).id).is_equal("frisbee")
 	# the charge's numbers
 	assert_float(float(buck.momentum["ramp_seconds"])).is_equal(10.0)
 	assert_float(float(buck.momentum["speed_bonus"])).is_equal_approx(0.8, 0.0001)
@@ -520,13 +457,13 @@ func test_buck_is_back_in_play_seventh_and_his_kit_is_whole() -> void:
 	assert_array(perks).contains_exactly_in_any_order(["overdrive", "ram"])
 	var own: Array = Registry.hero_mutations("buck")
 	assert_int(own.size()).is_equal(1)
-	assert_str((own[0] as MutationDef).id).is_equal("drum_roll")
-	assert_str((own[0] as MutationDef).weapon).is_equal("tommy_gun")
-	assert_int(int((own[0] as MutationDef).params["momentum_rounds"])).is_equal(4)
+	# pass 69: Salt Flats on his Salt; Drum Roll (his Tommy Gun's) is hidden, kept
+	assert_str((own[0] as MutationDef).id).is_equal("salt_flats")
+	assert_str((own[0] as MutationDef).weapon).is_equal("salt")
 	assert_bool(Registry.is_hidden(Registry.perk("ram"))).is_false()
-	assert_bool(Registry.is_hidden(Registry.mutation("drum_roll"))).is_false()
+	assert_bool(Registry.is_hidden(Registry.mutation("drum_roll"))).is_true()
 	_start("buck")
-	var tg := Run.add_weapon(Registry.start_weapon_for(Run.character), 1)
+	var tg := Run.add_weapon(Registry.weapon("salt"), 1)
 	assert_object(tg).is_not_null()
 	var ids: Array = Run.open_mutations(tg).map(func(m: MutationDef) -> String: return m.id)
-	assert_bool(ids.has("drum_roll")).is_true()
+	assert_bool(ids.has("salt_flats")).is_true()

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_solenne/unlock_solenne_icon.png" id="1_3em1a"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_wef20"]
+
+[resource]
+script = ExtResource("2_wef20")
+condition = {
+"map": "red_canyon",
+"stage": 2.0,
+"type": "extract_after_stage"
+}
+unlocks = {
+"id": "solenne",
+"type": "character"
+}
+id = "unlock_solenne"
+display_name = "Solenne"
+icon = ExtResource("1_3em1a")
+icon_file = "unlock_solenne_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

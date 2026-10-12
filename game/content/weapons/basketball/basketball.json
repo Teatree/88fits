@@ -87,6 +87,21 @@
       "refund": 0.35,
       "heat_per": 0.05,
       "heat_max": 10
+    },
+    "heat_look": {
+      "color": "#FF5A10",
+      "hot": "#FFC060",
+      "glow_min": 0.0,
+      "glow_max": 0.45,
+      "seam_glow_max": 1.6,
+      "pulse_hz": 3.0,
+      "pulse": 0.35,
+      "surfaces": "all",
+      "trail_from": 0.1,
+      "flame_from": 0.4,
+      "halo": 1.8,
+      "halo_from": 0.9,
+      "halo_alpha": 0.22
     }
   },
   "sfx": {

@@ -57,7 +57,7 @@ const Items = (() => {
     const taken = new Set([].concat(fl.weapons, fl.evolutions, fl.mutations, fl.passives, fl.quests).map((x) => x.id).concat((App.S.enemies || []).map((c) => c.id), (Assets.S.lists.heroes || []).map((h) => h.id)));
     const notes = {
       weapon: 'INTERFACES §0.1: a new weapon is created hidden with <id>_element, <id>_volume, <id>_motion (kinds element / volume / motion) and <id>_evolved, all five hidden; it may turn available once each template mutation has text and an effect or param and the evolution a name. Its path and evolution land as a register job.',
-      passive: 'Garry\'s answer 13: a new line or passive item is available at once, at its template\'s weight (its rarity\'s usual). The band below moves: the ship test wants 33-56% of base items behind a quest.',
+      passive: 'Garry\'s answer 13: a new line or passive item is available at once, at its template\'s weight (its rarity\'s usual). The band below moves: the ship test wants 28-56% of base items behind a quest (pass 69).',
       mutation: 'A mutation of a weapon: its kind, weapon and text come from the template; the weapon\'s path wants one of each kind (element, volume, motion) among its non-hidden mutations.',
     };
     const dlg = Assets.createDialog(createKind, templates, taken, {
@@ -208,11 +208,13 @@ const Items = (() => {
         if (name === 'Evolution & path' && !doc.data.is_evolution) extra.push(pathStrip(doc, iss));
         if (name === 'Availability' && !doc.data.is_evolution) { extra.push(questLock(doc, iss)); extra.push(bandGauge(doc)); }
         if (name === 'Params' && doc.data.is_evolution) extra.unshift(el('p', { class: 'muted small', text: 'params.final is merged after the mutations and dropped: the evolution\'s own extras live there.' }));
-        if (name === 'Levels' && doc.data.is_evolution) extra.unshift(el('p', { class: 'muted small', text: 'An evolution has one level: [[]]; its numbers are its base and params.final.' }));
+        if (name === 'Levels' && doc.data.is_evolution) extra.unshift(el('p', { class: 'muted small', text: 'An evolution has one level, applied at once: usually [[]], its numbers being its base and params.final; an effect there amplifies a mutation\'s stat (Slam Dunk: On Fire\'s burn × 1.5).' }));
         if (name === 'Base stats') nodes = [el('div', { class: 'basegrid' }, nodes)];
       }
       if (kind === 'passive' && name === 'Availability' && !doc.data.evolves_from) { extra.push(questLock(doc, iss)); extra.push(bandGauge(doc)); }
       if (kind === 'mutation' && name === 'Effect') extra.unshift(el('p', { class: 'muted small', text: `Params merge deep over ${doc.data.weapon || 'the weapon'}'s; the chips are ${behavior || 'the behaviour'}'s keys.` }));
+      // pass 69 (lane LE): the item's finished icon candidate jobs, each picture installable (Rebound's three designs)
+      if (name === 'Art' && typeof TypedForms !== 'undefined') { const ic = TypedForms.iconCandidates(doc); if (ic) extra.push(ic); }
       const all = nodes.concat(extra);
       if (!all.length) continue;
       const keys = Assets.sectionKeys(defs, name).concat(name === 'Evolution & path' ? ['path'] : name === 'Availability' ? ['band', 'quest_lock'] : []);
@@ -307,7 +309,7 @@ const Items = (() => {
     const inside = b.share >= b.lo && b.share <= b.hi;
     const bar = el('div', { class: 'band-bar' }, el('div', { class: 'band-ok', style: `left:${b.lo * 100}%;width:${(b.hi - b.lo) * 100}%` }), el('div', { class: 'band-mark' + (inside ? '' : ' bad'), style: `left:calc(${pct}% - 1px)`, title: `${pct}%` }));
     wrap.appendChild(bar);
-    wrap.appendChild(el('div', { class: 'small ' + (inside ? 'muted' : ''), style: inside ? '' : 'color: var(--warn)', text: `Quest-locked base items ${b.locked} of ${b.base} = ${pct}% (the ship test pass44_test wants 33-56%${srv && srv.share != null && Math.round(srv.share * 100) !== pct ? `; the server counts ${Math.round(srv.share * 100)}%` : ''}).${inside ? '' : ' Outside the band the ship test fails: add a quest lock, or ask Claude to widen the band.'}` }));
+    wrap.appendChild(el('div', { class: 'small ' + (inside ? 'muted' : ''), style: inside ? '' : 'color: var(--warn)', text: `Quest-locked base items ${b.locked} of ${b.base} = ${pct}% (the ship test pass44_test wants ${Math.round(b.lo * 100)}-${Math.round(b.hi * 100)}%${srv && srv.share != null && Math.round(srv.share * 100) !== pct ? `; the server counts ${Math.round(srv.share * 100)}%` : ''}).${inside ? '' : ' Outside the band the ship test fails: add a quest lock, or ask Claude to widen the band.'}` }));
     return wrap;
   }
 

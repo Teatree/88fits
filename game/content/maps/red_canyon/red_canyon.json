@@ -267,27 +267,27 @@
       "points": [
         [
           0,
-          1.0
+          1.21
         ],
         [
           430,
-          1.0
+          1.21
         ],
         [
-          431,
-          0.5
+          430,
+          1.44
         ],
         [
           860,
-          0.5
+          1.39
         ],
         [
-          861,
-          0.39
+          860,
+          1.54
         ],
         [
           1290,
-          0.43
+          1.58
         ]
       ]
     },
@@ -1320,6 +1320,16 @@
       }
     ],
     "events": [
+      {
+        "t": 120,
+        "type": "swarm",
+        "enemy": "red_goblin",
+        "variant": "RG-B",
+        "count": 1,
+        "pattern": "in_front",
+        "special": true,
+        "name": "Special Goblin"
+      },
       {
         "t": 215,
         "type": "elite_boss",

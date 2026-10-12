@@ -142,6 +142,7 @@ The Strongbox is not a spend: it banks the purse (`strongbox` below, and the row
 | `strongbox` | a Strongbox banking the purse mid-run |
 | `talent_refund` | Take it all back (half of what the ranks cost) |
 | `talent` | an Upgrade rank bought (a spend) |
+| `hero` | a hero bought on the title (a spend, pass 69; `hero`, `price` ride along) |
 | `wipe` | the progress wiped (the balance to 0) |
 | `debug` | a tool's gold (never sent) |
 
@@ -159,6 +160,8 @@ The Strongbox is not a spend: it banks the purse (`strongbox` below, and the row
   also carry the run's ids); a talent buy adds `talent`, `rank` (the rank reached) and `form`; a refund `ranks` (how many
   went back) and `spent` (what they had cost). None from the arena's sandbox, a tool or the test runner. With
   `app_open.gold` (the balance at every launch) it draws the bank's balance over time.
+- `hero_bought` (pass 69: a hero bought with BUY on the title): `hero` (his id), `price`, `currency` (gold), `gold_after`;
+  its spend is also a `gold_meta` with reason `hero`.
 - The boards: **88fits · Coins** (`tools/posthog_boards.py`) and a "Gold today" tile on Pulse.
 
 ## Surveys (pass 59, pass 62)

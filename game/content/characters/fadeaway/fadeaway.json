@@ -5,8 +5,8 @@
   "order": 6,
   "pronoun": "he",
   "hidden": false,
-  "availability": "available",
-  "price": 0,
+  "availability": "purchase",
+  "price": 50,
   "currency_type": "gold",
   "trait": [],
   "trait_per_level": [
@@ -58,7 +58,7 @@
     "bd": "run_spread"
   },
   "variant_base": "FAD-A",
-  "variant": "FAD-B",
+  "variant": "FAD-C",
   "variants": {
     "FAD-A": {
       "note": "the placeholder blob strip the editor drew at creation (not art)",
@@ -102,6 +102,73 @@
         "hit": 12,
         "die": 8
       }
+    },
+    "FAD-C": {
+      "recipe": {
+        "art_prompt": "a tall athletic young Black man with a short rounded afro, a thin goatee and sharp angular features, heavy-lidded confident eyes and a sly half-smile, a sleeveless purple basketball jersey with gold trim and a big gold number 88, loose knee-length bright white basketball shorts with a purple and gold stripe down the outside of each leg and a purple waistband, white high-top sneakers, a white sweatband on his forehead and white wristbands, standing straight and facing the viewer with his arms relaxed at his sides, empty hands",
+        "back_hint": "He faces away from the viewer: only the back of the afro and the sweatband, the back of the purple jersey with the gold number 88, the bright white shorts with their purple and gold side stripes and the heels of the sneakers are visible; no eyes, no face at all. Both arms hang straight down along his sides, relaxed, empty hands, both shoulders level and square.",
+        "side_hint": "a clean side profile facing right: the afro, the goatee, the jersey's side, the bright white shorts with the purple and gold stripe down the side, one arm hanging relaxed beside the torso, empty hands, both shoulders level, the near shoulder never raised above the far one",
+        "pose_drivers": {
+          "front": "run",
+          "fd": "run_side",
+          "side": "run_side_t",
+          "bd": "run_spread_lvl",
+          "back": "run_spread_lvl"
+        },
+        "method": "hero_pose5",
+        "painter": {
+          "model": "klein",
+          "steps": 0,
+          "stills": "reused",
+          "reused": [
+            "fadeaway_c_front",
+            "fadeaway_c_back",
+            "fadeaway_c_side",
+            "fadeaway_c_fd",
+            "fadeaway_c_bd",
+            "fadeaway_c_cheer",
+            "fadeaway_c_hurt_front",
+            "fadeaway_c_hurt_back",
+            "fadeaway_c_hurt_side",
+            "fadeaway_c_hurt_fd",
+            "fadeaway_c_hurt_bd",
+            "fadeaway_c_dead"
+          ]
+        },
+        "stills": "c",
+        "seed_offset": 2243,
+        "anim_seed": 1
+      },
+      "note": "pass 69: white shorts with purple and gold trim (they had blended with the jersey); the side and back runs on drivers with the shoulders levelled with the neck and, in the side view, the far arm tucked behind the torso in the passing frames (tools/pose_shoulders.py: run_side, run_spread_lvl): the side frames' raised shoulder and the back run's sagging shoulders came from the driver",
+      "sprite": "fadeaway_sprite_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "icon": "fadeaway_icon_c.png",
+      "icon_picked": true,
+      "title": "hero_fadeaway_c.png"
     }
   },
   "anim_negative": "no basketball, no extra arms or legs, no face on the back view, no text"

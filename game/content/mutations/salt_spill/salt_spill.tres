@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/salt_spill/salt_spill_icon.png" id="1_cbv4v"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_qanya"]
+
+[resource]
+script = ExtResource("2_qanya")
+weapon = "salt"
+mutation_kind = "volume"
+text = "Every patch spreads 60% wider."
+vfx = "wide white patches"
+params = {
+"salt": {
+"area_mult": 1.6
+}
+}
+id = "salt_spill"
+display_name = "Salt Spill"
+flavour = "Seven years of bad luck. For them."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_cbv4v")
+icon_file = "salt_spill_icon.png"
+placeholder = {
+"color": "#E8E8E0",
+"glyph": "star"
+}

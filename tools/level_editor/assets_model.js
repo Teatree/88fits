@@ -26,6 +26,8 @@ const AssetsModel = (() => {
     evade: 0, evade_invuln: 0, shield_max: 0, shield_delay: 3, shield_rate: 0.5, regen_delay: 3, lifesteal_cap: 0.04, heal_drop: 0, coin_drop: 0,
     hit_invuln: 0.5, revive_hp: 0.5, desperado: 0, debuff_duration: 1, difficulty: 0, still_regen: 0, still_might: 0, barrel_speed: 0, barrel_seconds: 0, xp_drop_chance: 0, elite_damage: 0,
     phoenix_revive: 0, hurt_speed: 0, hurt_speed_seconds: 0, powder_keg_chance: 0, coin_on_hit: 0, gas_mask_cap: 0, kill_might: 0, buff_duration: 1, heal_mult: 1, powerup_duration: 1, powerup_chance: 1,
+    // pass 69 (lane PAS): Counterpunch, Heavyweight, Snake Oil, Hot Springs, Last Stand, the Magnet's EXP pulls
+    counter_damage: 0, counter_haste: 0, counter_speed: 0, counter_seconds: 0, heavyweight: 0, overheal: 0, heal_pulse: 0, last_stand: 0, xp_pull_radius: 0, xp_pull_rate: 0,
   };
   // player stats the systems read that are not in PLAYER_DEFAULTS (default 0): Game.gd brand_chance, EnemyManager fire_vuln / poison_slow / poison_pass
   const PLAYER_EXTRA = ['brand_chance', 'fire_vuln', 'poison_slow', 'poison_pass'];
@@ -54,7 +56,29 @@ const AssetsModel = (() => {
     hurt_speed: ['move speed after a hit', 'pct'], hurt_speed_seconds: ['boost after a hit', 'sec'], powder_keg_chance: ['chance a kill blows up', 'pct'],
     coin_on_hit: ['chance a hit knocks a coin out', 'pct'], gas_mask_cap: ['damage reduction from poisoned enemies', 'pct'], kill_might: ['attack damage per 1,000 kills', 'pct'],
     buff_duration: ['buff duration', 'pct'], heal_mult: ['healing', 'pct'], radius: ['pillar radius', 'm'], powerup_duration: ['power-up duration', 'pct'], powerup_chance: ['power-up drop chance', 'pct'],
+    // pass 69: the new passive items' stats; kind "word" = said in words, never with a number (the Magnet's "pulls more often")
+    counter_damage: ['damage of the next attack after an evade', 'pct'], counter_haste: ['attack speed after an evade', 'pct'], counter_speed: ['move speed after an evade', 'pct'],
+    counter_seconds: ['boost after an evade', 'sec'], heavyweight: ['attack damage per 10 max HP', 'pct'], overheal: ['overheal past full health', 'pct'],
+    heal_pulse: ['damage a heal sends out', 'num'], last_stand: ['attack damage in Last Stand', 'pct'], xp_pull_radius: ['EXP pull radius', 'm'], xp_pull_rate: ['pulls more often', 'word'],
   };
+  // pass 69: what a new stat does, in a line (the effect picker's hover and the line under an effect); vocab.py STAT_HELP
+  const STAT_HELP = {
+    counter_damage: 'Counterpunch: after an evade the next weapon to fire hits for 1 + this (1.0 = double) with every hit, until it fires again or 1 s passes',
+    counter_haste: 'Counterpunch: weapon speed (haste) during the boost after an evade',
+    counter_speed: 'Counterpunch: move speed during the boost after an evade',
+    counter_seconds: 'Counterpunch: how long the boost after an evade lasts (Buff duration stretches it); 0 = no boost',
+    heavyweight: 'Heavyweight: attack damage grows with max HP: this much per whole 10 max HP (its own source on the pause screen)',
+    overheal: 'Snake Oil: heals that are not regen can go past full health up to this share of max HP; hits take it first, it never fades, pink on the HP bar',
+    heal_pulse: 'Hot Springs: every heal (regen too, one pulse per 0.5 s at most) hurts creatures within 3 m for this + 2 per HP healed, 40 at most',
+    last_stand: 'Last Stand: a hit that leaves him under 30% health slows time to half for 2 s and adds this much attack damage; a hidden 20 s cooldown',
+    xp_pull_radius: 'Magnet: every few seconds at random every EXP gem within this many metres flies to the hero (never chests, gold or power-ups); 8.5 m at most',
+    xp_pull_rate: 'Magnet: the pulls\' random 3-8 s wait is divided by 1 + this (1.0 = 1.5-4 s); the cards say "pulls more often", never a number',
+  };
+  /** A stat's help line: the server's (vocab.stat_help) else this file's, else '' */
+  function statHelp(stat, vocab) {
+    const t = vocab && vocab.stat_help && vocab.stat_help[stat];
+    return t ? String(t) : (STAT_HELP[stat] || '');
+  }
   // weapon stats the behaviours read (WeaponInstance.gd:106-107 defaults + the systems' extras)
   const WEAPON_DEFAULTS = { damage: 5, cooldown: 1, amount: 1, pierce: 0, area: 1, speed: 10, duration: 2, knockback: 0, chains: 0, range: 8, spread_deg: 30, orbit_radius: 2, lifetime: 12 };
   const WEAPON_EXTRA = ['fire_damage', 'fire_duration', 'fire_spread', 'poison_damage', 'poison_stacks', 'poison_duration', 'ricochet', 'ricochet_damage', 'mark', 'spin', 'pull', 'cone_deg', 'lift', 'pin', 'plant', 'radius'];
@@ -239,6 +263,7 @@ const AssetsModel = (() => {
       case 'm': return `${Number(v).toFixed(1)} m`;
       case 'deg': return `${Math.round(v)}°`;
       case 'count': return String(Math.round(v));
+      case 'word': return Number(v) > 0 ? statName(stat, vocab) : '—';   // pass 69: never a number on a card
       default: return Math.abs(v - Math.round(v)) < 0.001 ? String(Math.round(v)) : Number(v).toFixed(1);
     }
   }
@@ -252,6 +277,9 @@ const AssetsModel = (() => {
     if (!isObj(e) || !e.stat) return '';
     const stat = String(e.stat), op = String(e.op || 'add'), value = num(e.value, 0);
     const name = statName(stat, o.vocab), kind = statKind(stat, o.vocab);
+    // pass 69 (TextGen.describe_effect): a stat said in words ("word": the Magnet's "pulls more often") is its name when
+    // it grows, nothing else, never a number
+    if (kind === 'word') return value > 0 && withName ? name : '';
     let out = '';
     if (op === 'mul') {
       const pct = Math.round(value * 100);
@@ -487,14 +515,46 @@ const AssetsModel = (() => {
     }
     return null;
   }
-  /** The quest-locked share of the base items pass44_test.gd:48-79 pins (0.33-0.56): non-hidden base weapons and base
-   *  passives (no `evolves_from`) over those with an unlock quest. */
+  /** The quest-locked share of the base items pass44_test.gd:48-79 pins (pass 69: 0.28-0.56, re-pinned when the Salt, the
+   *  Frisbee and five passive items came unlocked): non-hidden base weapons and base passives (no `evolves_from`) over
+   *  those with an unlock quest. */
+  const BAND = { lo: 0.28, hi: 0.56 };
   function bandOf(weapons, passives, quests) {
     const base = [];
     for (const w of weapons || []) if (!w.hidden && !w.is_evolution) base.push({ id: w.id, kind: 'weapon' });
     for (const p of passives || []) if (!p.hidden && !p.evolves_from) base.push({ id: p.id, kind: 'passive' });
     const locked = base.filter((b) => !!questFor(b.id, quests, b.kind)).length;
-    return { locked, base: base.length, share: base.length ? locked / base.length : 0, lo: 0.33, hi: 0.56 };
+    return { locked, base: base.length, share: base.length ? locked / base.length : 0, lo: BAND.lo, hi: BAND.hi };
+  }
+  /** TextGen.quest_text (pass 69: a hero's requirement reads like the game's words). `names` {weapon(id), enemy(id),
+   *  map(id)} name things when the lists are there. */
+  function questText(q, names) {
+    if (!isObj(q)) return '';
+    if (q.quest_text) return String(q.quest_text);
+    const c = isObj(q.condition) ? q.condition : {};
+    const nm = names || {};
+    const n = (k, d) => Math.trunc(num(c[k], d));
+    const grouped = (v) => String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const map = (id) => (nm.map ? nm.map(id) : String(id || '').replace(/_/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase()));
+    const creature = (id, k) => { const name = nm.enemy ? nm.enemy(id) : String(id || '').replace(/_/g, ' ').replace(/\b\w/g, (x) => x.toUpperCase()); return k <= 1 ? 'the ' + name : `${k} ${name}${/[sx]$/.test(name) ? 'es' : 's'}`; };
+    switch (String(c.type || '')) {
+      case 'kills_with_weapon': return `Kill ${n('count', 0)} creatures with the ${nm.weapon ? nm.weapon(c.weapon) : String(c.weapon || '')}.`;
+      case 'kills_of_enemy': return `Kill ${creature(c.enemy, n('count', 0))}.`;
+      case 'reach_level': return `Reach level ${n('level', 0)} in one run.`;
+      case 'survive_minutes': return `Survive ${n('minutes', 0)} minutes in one run.`;
+      case 'survive_minutes_no_lift': return `Survive ${n('minutes', 0)} minutes without lifting your thumb.`;
+      case 'open_chests': return `Open ${n('count', 0)} chests.`;
+      case 'evolve_any': return `Evolve any weapon${n('count', 1) <= 1 ? '' : ` ${n('count', 1)} times`}.`;
+      case 'extract_after_stage': return `Extract after stage ${n('stage', 1)} on ${map(c.map)}.`;
+      case 'kill_boss': return `Kill the stage ${n('stage', 1)} boss on ${map(c.map)}.`;
+      case 'kills_in_run_of_enemy': return `Kill ${creature(c.enemy, n('count', 0))} in one run.`;
+      case 'kills_total': return `Kill ${grouped(n('count', 0))} creatures, all time.`;
+      case 'runs_total': return `Play ${n('count', 0)} runs.`;
+      case 'pickups_total': return `Pick up ${n('count', 0)} power-ups.`;
+      case 'gold_total': return `Earn ${n('count', 0)} gold, all time.`;
+      case 'reach_stage': return `Reach stage ${n('stage', 1)}.`;
+      default: return 'Complete a challenge.';
+    }
   }
   /** A weapon's path: its non-hero, non-hidden mutation of each kind, the hero ones, the hidden ones. */
   function pathOf(weaponId, mutations) {
@@ -518,6 +578,8 @@ const AssetsModel = (() => {
     (Array.isArray(levels) ? levels : []).forEach((lv) => {
       for (const e of Array.isArray(lv) ? lv : []) {
         if (!isObj(e) || !e.stat) continue;
+        // pass 69 (TextGen._sum_effects): a stat said in words has no total
+        if (statKind(String(e.stat)) === 'word') continue;
         const a = touch(String(e.stat)), v = num(e.value, 0);
         if (e.op === 'mul') a.mul *= 1 + v; else if (e.op === 'set') a.set = v; else a.add += v;
       }
@@ -561,9 +623,11 @@ const AssetsModel = (() => {
     PLAYER_DEFAULTS, PLAYER_EXTRA, STAT_FLOORS, STATS, WEAPON_DEFAULTS, WEAPON_EXTRA, PREFIX, HERO_WORDS, HERO_NOTES, HERO_LOWER,
     isObj, num, isNum, order, frameOffset, offsets, totalFrames, cell, rows, directions, animKey, mirror, previewFps,
     prefixOf, suffixAt, usedSuffixes, nextCodes, codeFiles, slugOk, slugify,
+    STAT_HELP, statHelp,
     plain, signed, statName, statKind, formatValue, describeEffect, describeEffects, heroWord, possessive, heroAmount, heroCapped, heroStep, heroTrait, heroOwnWords, heroTraitAt, heroTraitNow,
     defaultKnockback, BLOCK_NAMES, NATURAL, naturalBlocks, blocksOf, combo, comboWords, enemyRecord, VOLLEY_START, VOLLEY_HIT, volleyReach, telegraphGeometry, attackActive, paceOf, attackSequence, revolverTTK, hitsToKill,
     availabilityOf, questFor, bandOf, pathOf, levelsSummary, issues,
+    BAND, questText,   // pass 69
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

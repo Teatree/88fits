@@ -133,7 +133,6 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_band()
 	_build_boss()
-	_build_gauge()
 	_toasts = WToasts.new()
 	add_child(_toasts)
 	_banner = WBanner.new()
@@ -354,15 +353,9 @@ var _toast_tw: Tween
 func _layout_toasts() -> void:
 	var w := get_viewport_rect().size.x
 	var has_buffs := _buffs.get_child_count() > 0
-	# the hero's gauge (pass 67) sits right under the slots; the rest of the column hangs under it while it shows, and
-	# from the slots' foot as before while it does not
+	# the column hangs from the slots' foot (pass 69: the hero's gauge that sat between them is gone, Garry: "No UI
+	# indicators"; Heat shows on the ball itself, momentum on the hero)
 	var top := _slots_bottom
-	if _gauge and _gauge.visible:
-		_gauge_base = Vector2(36, _slots_bottom + GAUGE_GAP)
-		_gauge.position = _gauge_base
-		_gauge.size = Vector2(maxf(w - 72.0, 0.0), GAUGE_ROW_H)
-		_fit_gauge()
-		top = _gauge_base.y + GAUGE_ROW_H
 	_buffs.position = Vector2(36, top + BUFF_GAP)
 	var low := _buffs.position.y + BUFF_PX if has_buffs else top
 	_boss_box.position = Vector2(60, low + BOSS_UNDER_BUFFS if has_buffs else top + BOSS_GAP)
@@ -396,142 +389,6 @@ func _layout_toasts() -> void:
 	else:
 		_toasts.position = to
 	_toasts.size = Vector2(w, 200)
-
-
-## The hero's gauge (pass 67, Run.hero_gauge(): Buck's MOMENTUM, Fadeaway's HEAT; hidden for a hero without one): its
-## label and a thin bar GAUGE_GAP under the slots, across the slots' row, the rest of the column hanging under it while it
-## shows (_layout_toasts). The bar is the kit's WBar on an ink-soft track (so the paper fill reads), with the notch
-## marks between its parts (Buck's four: Drum Roll's four rounds) drawn over it by a plain Control (a Container would
-## reset what it holds). Its fill turns gold over the last quarter, flashes rock red and shakes for GAUGE_SHAKE s when
-## the value drops (a hit that landed), and a gold outline rings it while Overdrive holds a gear. A climb eases in at
-## GAUGE_EASE a second (the charge reaches the sheet in steps of a quarter second); a drop shows at once.
-const GAUGE_GAP := 14.0
-const GAUGE_ROW_H := 28.0
-const GAUGE_BAR_H := 14.0
-const GAUGE_LABEL_PX := 22
-const GAUGE_SHAKE := 0.2
-const GAUGE_FLASH := 0.35
-const GAUGE_EASE := 0.8
-const GAUGE_GOLD := COIN_GOLD
-var _gauge: Control
-var _gauge_label: WText
-var _gauge_bar: WBar
-var _gauge_marks: Control
-var _gauge_v := 0.0
-var _gauge_notches := 0
-var _gauge_color := W.PAPER
-var _gauge_flash := 0.0
-var _gauge_shake := 0.0
-var _gauge_base := Vector2.ZERO
-var _gauge_over := false
-
-
-func _build_gauge() -> void:
-	_gauge = Control.new()
-	_gauge.name = "HeroGauge"
-	_gauge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_gauge.visible = false
-	_gauge_label = W.text("", W.slab(W.em(GAUGE_LABEL_PX, 0.08)), GAUGE_LABEL_PX, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, float(GAUGE_LABEL_PX))
-	_gauge_label.name = "Label"
-	_gauge_label.stroke = 2
-	_gauge_label.shadow = 2
-	_gauge_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_gauge.add_child(_gauge_label)
-	_gauge_bar = WBar.make(0.0, W.PAPER, GAUGE_BAR_H, 3, 3)
-	_gauge_bar.name = "Bar"
-	_gauge_bar.track = W.INK_SOFT
-	_gauge.add_child(_gauge_bar)
-	_gauge_marks = Control.new()
-	_gauge_marks.name = "Marks"
-	_gauge_marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_gauge_marks.draw.connect(_draw_gauge_marks)
-	_gauge.add_child(_gauge_marks)
-	add_child(_gauge)
-
-
-## The label on the left, vertically centred in the row, the bar from just after it to the row's end (its shadow inside).
-func _fit_gauge() -> void:
-	var ls := _gauge_label.get_combined_minimum_size()
-	_gauge_label.size = ls
-	_gauge_label.position = Vector2(0.0, roundf((GAUGE_ROW_H - ls.y) * 0.5))
-	var x := ls.x + 14.0 if _gauge_label.text != "" else 0.0
-	_gauge_bar.position = Vector2(x, roundf((GAUGE_ROW_H - GAUGE_BAR_H) * 0.5))
-	_gauge_bar.size = Vector2(maxf(_gauge.size.x - x - float(_gauge_bar.shadow), 40.0), GAUGE_BAR_H)
-	_gauge_marks.position = _gauge_bar.position
-	_gauge_marks.size = _gauge_bar.size
-	_gauge_marks.queue_redraw()
-
-
-## The notch marks between the bar's parts (ink over the fill, faint over the track) and, while Overdrive holds a gear,
-## the gold outline round the bar.
-func _draw_gauge_marks() -> void:
-	var r := Rect2(Vector2.ZERO, _gauge_marks.size)
-	var inner := r.grow(-float(_gauge_bar.border))
-	if _gauge_notches > 1:
-		for k in range(1, _gauge_notches):
-			var at := float(k) / float(_gauge_notches)
-			var x := inner.position.x + inner.size.x * at
-			_gauge_marks.draw_rect(Rect2(x - 1.0, inner.position.y, 2.0, inner.size.y), W.INK if at <= _gauge_v + 0.0001 else Color(W.AGED, 0.55))
-	if _gauge_over:
-		_gauge_marks.draw_rect(r.grow(4.5), GAUGE_GOLD, false, 3.0)
-
-
-## The gauge follows Run.hero_gauge() every frame: shown or hidden with it (the column laid out again), its words, its
-## value (a drop at once with the flash and the shake, a climb eased in), the gold over the last quarter and Overdrive's
-## outline. A tick of 0 s (a capture tool's) shows the value as it is.
-func _tick_gauge(delta: float) -> void:
-	if _gauge == null:
-		return
-	var g: Dictionary = Run.hero_gauge()
-	var on := not g.is_empty()
-	if _gauge.visible != on:
-		_gauge.visible = on
-		_gauge_flash = 0.0
-		_gauge_shake = 0.0
-		_gauge_v = clampf(float(g.get("value", 0.0)), 0.0, 1.0)
-		_layout_toasts()
-	if not on:
-		return
-	var label := str(g.get("label", ""))
-	if _gauge_label.text != label:
-		_gauge_label.text = label
-		_fit_gauge()
-	_gauge_notches = int(g.get("notches", 0))
-	var gc = g.get("color")
-	_gauge_color = gc if gc is Color else W.PAPER
-	var v := clampf(float(g.get("value", 0.0)), 0.0, 1.0)
-	if v < _gauge_v - 0.001:
-		_gauge_v = v
-		_gauge_flash = 1.0
-		_gauge_shake = GAUGE_SHAKE
-	elif delta <= 0.0:
-		_gauge_v = v
-	else:
-		_gauge_v = minf(v, _gauge_v + GAUGE_EASE * delta)
-	_gauge_flash = maxf(_gauge_flash - maxf(delta, 0.0) / GAUGE_FLASH, 0.0)
-	var fill: Color = _gauge_color.lerp(GAUGE_GOLD, clampf((_gauge_v - 0.75) / 0.25, 0.0, 1.0))
-	if _gauge_flash > 0.0:
-		fill = fill.lerp(W.ROCK, _gauge_flash)
-	_gauge_bar.fill = fill
-	_gauge_bar.value = _gauge_v
-	_gauge_bar.queue_redraw()
-	_gauge_over = Run.overdrive_might() > 0.0
-	if _gauge_shake > 0.0:
-		_gauge_shake = maxf(_gauge_shake - maxf(delta, 0.0), 0.0)
-		var k := _gauge_shake / GAUGE_SHAKE
-		_gauge.position = _gauge_base + Vector2(roundf(sin(_gauge_shake * 90.0) * 7.0 * k), 0.0)
-	elif _gauge.position != _gauge_base:
-		_gauge.position = _gauge_base
-	_gauge_marks.queue_redraw()
-
-
-## What the gauge shows now (tests and tools): {} while it is hidden.
-func gauge_state() -> Dictionary:
-	if _gauge == null or not _gauge.visible:
-		return {}
-	return {"label": _gauge_label.text, "value": _gauge_v, "notches": _gauge_notches, "fill": _gauge_bar.fill,
-		"over": _gauge_over, "flash": _gauge_flash, "shake": _gauge_shake, "rect": _gauge.get_global_rect(),
-		"bar": _gauge_bar.get_global_rect()}
 
 
 ## The foot of the boss's plate and bar on screen, or -1 while no boss is up (pass 56: the arena's quick column keeps
@@ -741,6 +598,9 @@ var _bar_c := Vector2.ZERO
 var _bar_w := 0.0
 var _bar_h := 0.0
 var _shield_frac := -1.0
+## Snake Oil's overheal (pass 69) as a share of max HP: the HP bar runs on past full by that much, drawn OVERHEAL_PINK
+var _over_frac := 0.0
+const OVERHEAL_PINK := Color("e86aa8")
 
 
 func _tick_hero_bars() -> void:
@@ -754,6 +614,9 @@ func _tick_hero_bars() -> void:
 	var p = game.player
 	var smax: float = p.sheet.get_stat("shield_max", 0.0) if p.sheet else 0.0
 	_shield_frac = clampf(float(p.shield_pts) / smax, 0.0, 1.0) if smax > 0.0 else -1.0
+	# Snake Oil (pass 69): the overheal as a share of max HP, the bar's pink extension
+	var ov = p.get("overheal")
+	_over_frac = clampf(float(ov) / maxf(float(p.max_hp), 1.0), 0.0, 1.0) if ov != null else 0.0
 
 
 func _draw_hero_bars() -> void:
@@ -761,10 +624,14 @@ func _draw_hero_bars() -> void:
 		return
 	var hh := _bar_h + 4.0
 	var r := Rect2(_bar_c - Vector2(_bar_w * 0.5, hh * 0.5), Vector2(_bar_w, hh))
-	draw_rect(r, W.INK)
+	# Snake Oil's overheal (pass 69): the ink track runs on past full by its share of the bar, the extra drawn pink
+	var ext := _bar_w * _over_frac
+	draw_rect(Rect2(r.position, Vector2(_bar_w + ext, hh)) if ext >= 1.0 else r, W.INK)
 	if _hp > 0.0:
 		var fr := r.grow(-2.0)
 		draw_rect(Rect2(fr.position, Vector2(fr.size.x * _hp, fr.size.y)), W.SAGE if _hp > 0.35 else W.ROCK)
+		if ext >= 1.0:
+			draw_rect(Rect2(Vector2(fr.end.x + 1.0, fr.position.y), Vector2(maxf(ext - 1.0, 1.0), fr.size.y)), OVERHEAL_PINK)
 	if _shield_frac >= 0.0:
 		var sh := maxf(_bar_h * 0.71, 6.0) + 4.0
 		var sr := Rect2(Vector2(r.position.x, r.end.y + 4.0), Vector2(_bar_w, sh))
@@ -1079,21 +946,11 @@ static func plate_def(k: String) -> ContentDef:
 
 ## The words under the slots for what is building up or running (joined with " · "): Adrenaline's stacks, Crescendo,
 ## Steady Hand (pass 47); pass 48: Gas Mask's damage reduction from the poisoned crowd, and SKEDADDLE while its burst of
-## speed runs; pass 49: the attack damage Hot Streak's kills have built. Pass 67, the hero's gauge in words, first:
-## Buck's charge (MOMENTUM NN%, FULL at the top, RAM while his Ram is live) and Overdrive's gears, Fadeaway's Heat as
-## the damage it adds to the ball.
+## speed runs; pass 49: the attack damage Hot Streak's kills have built. Pass 69 (Garry: "No UI indicators of any
+## kind"): the hero's own words of pass 67 are gone with his gauge (MOMENTUM, RAM, OVERDRIVE, HEAT); his momentum shows
+## on him, the ball's Heat on the ball.
 static func buff_parts() -> Array:
 	var parts: Array = []
-	if Run.character != null and Run.character.specials.has("momentum") and Run.momentum > 0.0:
-		parts.append("MOMENTUM FULL" if Run.momentum >= 0.99 else "MOMENTUM %d%%" % int(Run.momentum * 100.0 + 0.0001))
-		if Run.has_perk("ram") and Run.momentum >= Run.perk_param("ram", "from", 0.99):
-			parts.append("RAM")
-	var od := Run.overdrive_might()
-	if od > 0.0:
-		parts.append("OVERDRIVE +%d%%" % int(round(od * 100.0)))
-	var hb := heat_bonus()
-	if hb > 0.0:
-		parts.append("HEAT +%d%%" % int(round(hb * 100.0)))
 	if Run.adrenaline > 0:
 		parts.append("ADRENALINE ×%d" % Run.adrenaline)
 	if Run.crescendo > 0:
@@ -1116,20 +973,10 @@ static func buff_parts() -> Array:
 	return parts
 
 
-## Fadeaway's Heat as the damage it adds to the ball now (pass 67): Run.heat x the held ball's `catch.heat_per` (the
-## ProjectileEmitter multiplies the throw by 1 + that); 0 without Heat or a ball. Run.heat is read through get().
-static func heat_bonus() -> float:
-	var h = Run.get("heat")
-	if h == null or int(h) <= 0:
-		return 0.0
-	return float(int(h)) * float(Run.catch_params().get("heat_per", 0.0))
-
-
 func tick(delta: float) -> void:
 	_timer.text = W.mmss(Run.elapsed)
 	if _timer_plate.size.x > 0.0 and absf(_timer_plate.get_combined_minimum_size().x - _timer_plate.size.x) > 1.0:
 		_fit_top()
-	_tick_gauge(delta)
 	_refresh_buffs()
 	_toasts.tick(delta)
 	# the boss: a banner at 30 s and a toast at 10 s (no countdown label on the HUD any more)

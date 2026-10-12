@@ -87,8 +87,8 @@ FILE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", 
 KIND_FOLDERS = {"enemy": "enemies", "boss": "bosses", "elite": "elites", "pickup": "pickups", "hero": "characters",
                 "weapon": "weapons", "evolution": "evolutions", "passive": "passives", "mutation": "mutations",
                 "quest": "quests", "perk": "perks"}
-# the kinds the asset editors create, save and delete
-EDIT_KINDS = ("enemy", "boss", "hero", "weapon", "evolution", "passive", "mutation")
+# the kinds the asset editors create, save and delete (pass 69: a hero's perks, edited from the Heroes tab)
+EDIT_KINDS = ("enemy", "boss", "hero", "weapon", "evolution", "passive", "mutation", "perk")
 # the kinds that carry art looks (`variants`)
 LOOK_KINDS = ("enemy", "boss", "hero")
 # every content type the game scans (JsonContent.TYPES): a new id must be free under all of them
@@ -98,6 +98,9 @@ ALL_TYPES = ["weapons", "evolutions", "passives", "mutations", "perks", "enemies
 SCRIPT_KEYS = ("name", "windup", "duration", "count", "enemy", "interval", "warn", "spawn")
 # INTERFACES §0.1 (BALANCING §13): a new weapon starts hidden with its three template mutations and its evolution
 NEW_WEAPON_STARTS_HIDDEN = True
+# pass44_test.gd's quest-locked band of the base items (pass 69 re-pinned its floor to 0.28: the Salt, the Frisbee and
+# five passive items came unlocked; selftest_L69 reads the bounds from the test file)
+BAND_LO, BAND_HI = 0.28, 0.56
 # tools/dl roots the page may read through /dl/<rel> (plus any root whose name starts with "icons")
 DL_ROOTS = ("jobs", "drivers", "ai_raw_anime", "ai_anim", "review", "title_heroes", "uploads")
 DL_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".json", ".txt")
@@ -145,6 +148,8 @@ EDITOR_OWNED = {
     "passive": _COMMON_OWNED | {"line", "levels", "repeat_last_level", "max_level", "pairs_with", "trade", "evolves_into",
                                 "evolves_from", "text"},
     "mutation": _COMMON_OWNED | {"weapon", "kind", "hero", "text", "vfx", "effects", "params", "behavior", "visual"},
+    # pass 69: a perk (PerkDef: hero, text, effects, special, params)
+    "perk": _COMMON_OWNED | {"hero", "text", "effects", "special", "params"},
 }
 # art keys a new folder does not take from its template (unless `copy_art`)
 _ART_KEYS_RESET = ("sprite", "icon", "anims", "strip_cols", "fps", "head", "variant", "variant_base", "variants", "retired",
@@ -528,9 +533,11 @@ def item_availability(kind, cid, d, quests):
     return "available", None
 
 
-def hero_record(cid, folder, d, path, perks=None, mutations=None, weapons=None):
+def hero_record(cid, folder, d, path, perks=None, mutations=None, weapons=None, quest=None, perk_records=None):
     hidden = bool(d.get("hidden", False))
     avail = str(d.get("availability", "hidden" if hidden else "available"))
+    # pass 69 (lane UI's JsonContent rule): a purchase hero is never hidden in play; "hidden" alone hides
+    hidden_in_play = avail == "hidden" or (hidden and avail != "purchase")
     title = os.path.join(WANTED_ART, "hero_%s.png" % cid)
     rec = {"id": cid, "kind": "hero", "name": str(d.get("name", cid)), "flavour": str(d.get("flavour", "")),
            "order": d.get("order", 100), "pronoun": str(d.get("pronoun", "they")), "hidden": hidden,
@@ -548,15 +555,27 @@ def hero_record(cid, folder, d, path, perks=None, mutations=None, weapons=None):
            "variant": str(d.get("variant", "")), "variant_base": str(d.get("variant_base", "")),
            "looks": look_records("hero", cid, folder, d, path),
            "perks": [p for p in (perks or [])], "hero_mutations": [m for m in (mutations or [])], "weapons": [w for w in (weapons or [])],
-           "file": rel(path), "mtime": mtime_of(path)}
+           "file": rel(path), "mtime": mtime_of(path),
+           # pass 69: in play as the game reads it, his unlock quest (unlocks {type character, id}) and his perks' records
+           "hidden_in_play": hidden_in_play, "quest": quest, "perk_records": [p for p in (perk_records or [])]}
     return rec
 
 
+def perk_record(cid, d, path):
+    """Pass 69: a perk as the Heroes tab lists it."""
+    return {"id": cid, "kind": "perk", "name": str(d.get("name", cid)), "hero": str(d.get("hero", "")),
+            "special": str(d.get("special", "")), "text": str(d.get("text", "")), "hidden": bool(d.get("hidden", False)),
+            "rarity": str(d.get("rarity", "rare")), "weight": d.get("weight", 6), "icon": "/icon/perk/%s" % cid,
+            "file": rel(path), "mtime": mtime_of(path)}
+
+
 def list_heroes():
-    perks, muts, weps = {}, {}, {}
+    perks, muts, weps, precs = {}, {}, {}, {}
+    quests = quests_by_unlock()
     for cid, folder, path, d in _load_kind("perk"):
         if d.get("hero"):
             perks.setdefault(str(d["hero"]), []).append(cid)
+            precs.setdefault(str(d["hero"]), []).append(perk_record(cid, d, path))
     for cid, folder, path, d in _load_kind("mutation"):
         if d.get("hero"):
             muts.setdefault(str(d["hero"]), []).append(cid)
@@ -566,10 +585,11 @@ def list_heroes():
     out = []
     ledger = ledger_load()["ids"]
     for cid, folder, path, d in _load_kind("hero"):
-        rec = hero_record(cid, folder, d, path, perks.get(cid, []), muts.get(cid, []), weps.get(cid, []))
+        rec = hero_record(cid, folder, d, path, perks.get(cid, []), muts.get(cid, []), weps.get(cid, []),
+                          quests.get(("character", cid)), precs.get(cid, []))
         rec["deletable"] = cid in ledger
         out.append(rec)
-    out.sort(key=lambda r: (r["hidden"], r["order"] if isinstance(r["order"], (int, float)) else 100, r["id"]))
+    out.sort(key=lambda r: (r["hidden_in_play"], r["order"] if isinstance(r["order"], (int, float)) else 100, r["id"]))
     return out
 
 
@@ -587,7 +607,9 @@ def item_record(kind, cid, folder, d, path, quests):
                     "evolves_with": str(d.get("evolves_with", "")), "evolved_from": str(d.get("evolved_from", "")),
                     "is_evolution": bool(d.get("is_evolution", kind == "evolution")), "sfx": d.get("sfx", {}),
                     "visual": str(d.get("visual", "")),
-                    "visual_exists": os.path.isfile(os.path.join(folder, str(d.get("visual", cid + "_visual.tscn"))))})
+                    "visual_exists": os.path.isfile(os.path.join(folder, str(d.get("visual", cid + "_visual.tscn")))),
+                    # pass 69: a mutation's typed params show what its weapon already sets (the effective value and its source)
+                    "params": d.get("params", {}) if isinstance(d.get("params"), dict) else {}})
     elif kind == "passive":
         rec.update({"line": bool(d.get("line", False)), "max_level": d.get("max_level", 8), "levels": d.get("levels", []),
                     "repeat_last_level": bool(d.get("repeat_last_level", True)), "evolves_into": str(d.get("evolves_into", "")),
@@ -602,7 +624,7 @@ def item_record(kind, cid, folder, d, path, quests):
 
 def list_items():
     """GET /api/items: weapons grouped with their evolution and path mutations, lines with their evolved form, passive
-    items, quests; the quest-locked band (pass44_test.gd:48-79: non-hidden base weapons + base passives, 0.33-0.56)."""
+    items, quests; the quest-locked band (pass44_test.gd:48-79: non-hidden base weapons + base passives, BAND_LO-BAND_HI)."""
     quests = quests_by_unlock()
     ledger = ledger_load()["ids"]
     weapons = [item_record("weapon", cid, folder, d, path, quests) for cid, folder, path, d in _load_kind("weapon")]
@@ -650,7 +672,7 @@ def list_items():
     base = [w for w in weapons if not w["hidden"]] + [p for p in passives if not p["evolves_from"] and not p["hidden"]]
     locked = [x for x in base if x["availability"] == "locked"]
     band = {"locked": len(locked), "base": len(base), "share": round(len(locked) / len(base), 4) if base else 0.0,
-            "lo": 0.33, "hi": 0.56}
+            "lo": BAND_LO, "hi": BAND_HI}
     qlist = sorted({q["id"]: q for q in quests.values()}.values(), key=lambda q: q["id"])
     return {"ok": True, "weapons": weapons, "lines": lines, "passives": items, "quests": qlist, "band": band, "orphans": orphans}
 
@@ -1210,7 +1232,8 @@ def read_content(kind, cid):
            "layout": cio.layout(src), "editable": cio.top_spans(src) is not None,
            "looks": look_records(kind, cid, folder, d, path) if kind in LOOK_KINDS else [],
            "refs": references_to(kind, cid), "availability": avail, "locked_by": locked_by,
-           "quest": quests.get(("weapon" if kind in ("weapon", "evolution") else "passive", cid)),
+           # pass 69: a hero's quest is the one that unlocks {type character, id} (his requirement)
+           "quest": quests.get(("character" if kind == "hero" else "weapon" if kind in ("weapon", "evolution") else "passive", cid)),
            "files": sorted(f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))),
            "deletable": cid in ledger, "ledger": ledger.get(cid),
            "combos_seen": sorted(combos_seen()) if kind in ("enemy", "boss") else []}
@@ -1547,8 +1570,9 @@ def _quest_object(kind, cid, d, quest):
     quest = quest if isinstance(quest, dict) else {}
     cond = quest.get("condition") if isinstance(quest.get("condition"), dict) and quest["condition"].get("type") else dict(VOCAB.QUEST_TEMPLATE_CONDITION)
     ph = d.get("placeholder") if isinstance(d.get("placeholder"), dict) else {}
+    utype = "character" if kind == "hero" else "weapon" if kind in ("weapon", "evolution") else "passive"   # pass 69: heroes
     out = {"id": "unlock_%s" % cid, "name": str(quest.get("name") or d.get("name", cid)), "condition": cond,
-           "unlocks": {"type": "weapon" if kind in ("weapon", "evolution") else "passive", "id": cid}}
+           "unlocks": {"type": utype, "id": cid}}
     if quest.get("quest_text"):
         out["quest_text"] = str(quest["quest_text"])
     out["art_prompt"] = str(quest.get("art_prompt") or d.get("art_prompt", ""))
@@ -1556,9 +1580,66 @@ def _quest_object(kind, cid, d, quest):
     return out
 
 
+def _hero_quest_op(cid, d, quest):
+    """Pass 69: a hero's requirement, the quest whose unlocks is {type character, id} (lane UI's unlock_<hero>, Registry
+    .quest_for). `quest` a dict {condition, quest_text?, name?}: the existing quest is edited in place (only the keys that
+    changed), else content/quests/unlock_<id>/ is made in unlock_buck.json's shape (ledger, imported); None: the existing
+    quest moves to backups/deleted (no requirement: a free hero is owned at once, a purchase hero on sale at once).
+    Called under _write_lock. Returns {ok, wrote, imports, quest, moved} or an error record."""
+    have = quests_by_unlock().get(("character", cid))
+    out = {"ok": True, "wrote": [], "imports": [], "quest": have["id"] if have else None, "moved": None}
+    if quest is None:
+        if have:
+            qfolder = os.path.join(CONTENT, "quests", have["id"])
+            dest = deleted_dir(have["id"])
+            shutil.move(qfolder, os.path.join(dest, have["id"]))
+            ledger_remove(have["id"])
+            out.update(moved=rel(dest), quest=None)
+            out["wrote"].append("quest %s removed" % have["id"])
+        return out
+    if have:
+        qpath = os.path.join(CONTENT, "quests", have["id"], have["id"] + ".json")
+        qsrc = cio.read_text(qpath)
+        qold = json.loads(qsrc)
+        qtext = qsrc
+        for key, value, places in (("condition", quest.get("condition"), [("after", "name"), ("end", None)]),
+                                   ("quest_text", quest.get("quest_text"), [("after", "unlocks"), ("end", None)]),
+                                   ("name", quest.get("name"), [("after", "id"), ("end", None)])):
+            if value is None or (value == "" and key != "quest_text") or qold.get(key) == value:
+                continue
+            if key == "quest_text" and value == "":
+                qtext = cio.del_top_block(qtext, key) if key in qold else qtext
+            else:
+                qtext = cio.set_top_block(qtext, key, value, places)
+            if qtext is None:
+                return {"ok": False, "error": _layout_error(qpath, key), "status": 400}
+        if qtext != qsrc:
+            backup(have["id"], qpath)
+            cio.write_atomic(qpath, qtext)
+            out["wrote"].append("quest %s" % have["id"])
+            out["imports"].append("quests/%s" % have["id"])
+        return out
+    qobj = _quest_object("hero", cid, d, quest)
+    # the quest's icon words in the shape of lane UI's (a jar with something of his inside), never his whole art prompt
+    qobj["art_prompt"] = str(quest.get("art_prompt") or "a glass jar with a small figure of %s inside" % str(d.get("name", cid)))
+    qid = qobj["id"]
+    if id_exists_anywhere(qid):
+        return {"ok": False, "error": "the quest id %s exists already but does not unlock the hero %s" % (qid, cid), "status": 409}
+    qfolder = os.path.join(CONTENT, "quests", qid)
+    os.makedirs(qfolder)
+    cio.write_atomic(os.path.join(qfolder, qid + ".json"), cio.dump_new(qobj))
+    ledger_add(qid, "quest", cid)
+    out["wrote"].append("quest %s" % qid)
+    out["imports"].append("quests/%s" % qid)
+    out["quest"] = qid
+    return out
+
+
 def set_availability(kind, cid, body):
-    """POST /api/content/<kind>/<id>/availability. Hero: {availability: hidden|available|purchase, price, currency_type}
-    written, `hidden` kept in step (hidden = availability != available). Item: {availability: hidden|available|locked,
+    """POST /api/content/<kind>/<id>/availability. Hero: {availability: hidden|available|purchase, price, currency_type,
+    quest?} written, `hidden` kept in step (pass 69: hidden = availability == hidden; a purchase hero is on the title);
+    `quest` (pass 69) a {condition, quest_text, name} writes his requirement content/quests/unlock_<id> (unlocks
+    {type character}), null removes it, absent leaves it (_hero_quest_op). Item: {availability: hidden|available|locked,
     quest?: {condition, quest_text, name}}: hidden sets `hidden: true`; available removes `hidden` and the unlock quest
     (moved to backups/deleted); locked makes or edits content/quests/unlock_<id>. A weapon turns available or locked
     only when its path is complete (INTERFACES §0.1; `missing` lists what is not)."""
@@ -1579,11 +1660,15 @@ def set_availability(kind, cid, body):
         cur = body.get("currency_type", None)
         if cur is not None and cur not in VOCAB.CURRENCIES:
             return {"ok": False, "error": "currency_type must be one of %s" % ", ".join(VOCAB.CURRENCIES), "status": 400}
+        if "quest" in body and body["quest"] is not None and not (isinstance(body["quest"], dict) and isinstance(body["quest"].get("condition"), dict)
+                                                                   and str(body["quest"]["condition"].get("type", "")) in VOCAB.QUEST_TYPES):
+            return {"ok": False, "error": "the requirement needs a condition whose type is one of %s" % ", ".join(sorted(VOCAB.QUEST_TYPES)), "status": 400}
         with _write_lock:
             src = cio.read_text(path)
             d = json.loads(src)
             text = src
-            steps = [("hidden", avail != "available", [("after", "pronoun"), ("after", "order"), ("after", "flavour"), ("after", "name"), ("end", None)]),
+            # pass 69 (lane UI's JsonContent rule): only "hidden" hides; a purchase hero is on the title (locked or on sale)
+            steps = [("hidden", avail == "hidden", [("after", "pronoun"), ("after", "order"), ("after", "flavour"), ("after", "name"), ("end", None)]),
                      ("availability", avail, [("after", "hidden"), ("end", None)]),
                      ("price", int(price) if price is not None else int(_num(d.get("price"), 0)), [("after", "availability"), ("end", None)]),
                      ("currency_type", str(cur or d.get("currency_type", "gold")), [("after", "price"), ("end", None)])]
@@ -1594,10 +1679,21 @@ def set_availability(kind, cid, body):
                 if text is None:
                     return {"ok": False, "error": _layout_error(path, key), "status": 400}
                 wrote.append(key)
+            # pass 69: his requirement (body.quest: a dict writes content/quests/unlock_<id>, None removes it, absent keeps it)
+            if "quest" in body:
+                res = _hero_quest_op(cid, d, body["quest"])
+                if not res.get("ok"):
+                    return res
+                wrote += res["wrote"]
+                imports += res["imports"]
+                quest_out, moved = res["quest"], res["moved"]
             if not wrote:
-                return {"ok": True, "unchanged": True, "wrote": [], "import_ok": True, "output": "nothing changed"}
-            backup_rel = backup(cid, path)
-            cio.write_atomic(path, text)
+                return {"ok": True, "unchanged": True, "wrote": [], "import_ok": True, "output": "nothing changed",
+                        "availability": avail, "quest": quest_out}
+            backup_rel = ""
+            if text != src:
+                backup_rel = backup(cid, path)
+                cio.write_atomic(path, text)
     else:
         if avail not in ("hidden", "available", "locked") or (avail == "locked" and kind not in ("weapon", "passive")):
             return {"ok": False, "error": "an item's availability is hidden, available or (weapons and passives) locked", "status": 400}
@@ -1670,7 +1766,7 @@ def set_availability(kind, cid, body):
                 backup_rel = ""
     import_ok, output = run_import(",".join(imports))
     out = {"ok": True, "wrote": wrote, "backup": backup_rel, "import_ok": import_ok, "output": output, "availability": avail}
-    if kind != "hero":
+    if kind != "hero" or "quest" in body:
         out["quest"] = quest_out
         out["moved_to"] = moved
     return out

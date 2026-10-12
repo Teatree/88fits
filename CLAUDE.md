@@ -43,6 +43,8 @@ python tools/gen_ctl.py --id=dune_scorpion --variant=SC-A [--dev] [--use-side=kN
 "$BLENDER" -b --python tools/blender_dice.py   # two true-cube dice -> tools/dl/dice_ref.png, the reference Hot Streak's icon is painted from (pass 49: Flux bends dice)
 "$BLENDER" -b --python tools/blender_rocket.py   # also blender_grenade.py: the Vulture Raider's black rocket (art/props/enemy_rocket.glb) and the Golden Pineapple's grenade (golden_grenade.glb), one vertex-coloured mesh each (pass 48)
 "$BLENDER" -b --python tools/blender_basketball.py   # pass 67: Fadeaway's basketball (art/props/basketball.glb, vertex colours: its visual gives the mesh a material that reads them) + the icon reference tools/dl/basketball_ref.png
+python tools/pose_shoulders.py tools/dl/drivers/run tools/dl/drivers/run_lvl [level=1 keep_tilt=1 tuck=25 views=side,fd]   # pass 69: a pose driver with the shoulders levelled up to the neck (Mixamo's Neck bone sits above the shoulder line: sagging backs, raised side shoulders), keep_tilt keeps the near shoulder lower, tuck lowers the far arm in the side view's passing frames; pose_driver.py gained amp= lean= arms=back (sprint, dash)
+"$BLENDER" -b --python tools/blender_salt.py   # pass 69: art/props/salt_shaker.glb (Body, Contents that a mutation tints, Cap, Holes, Spout) + the icon references tools/dl/salt_ref.png, sea_salt_ref.png, hiwa_kai_ref.png
 "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/walking.fbx out=tools/dl/drivers/walk_hold frames=12 arms=hold_r   # a walk whose right hand holds something up at the shoulder (the Vulture Raider's launcher, pass 48)
 python tools/compress_levels.py [--check]   # pass 48: weapons from 8 levels to 5 (level 5 = the old level 8); --check re-verifies against tools/dl/levels_v47.json
 python tools/gen_icon_cands.py [--only spear,cake] [--seeds 4] && python tools/gen_icon_cands.py --pick spear=0   # icon candidates (renders as references), picked by eye
@@ -238,7 +240,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-12, pass 68, version 0.54)
+## Status (2026-10-12, pass 69, version 0.55)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -247,8 +249,8 @@ changed.
 
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
-parse check, all gdUnit tests (~1,370 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.54).
+parse check, all gdUnit tests (~1,480 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.55).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
 rolled per run from `Run.map_seed`, a stone boundary wall; everything but the ground, the wall, barrels, signs and a few
@@ -261,22 +263,34 @@ page also creates and edits enemies, heroes and items and queues their art for t
 / Jobs tabs, `docs/level_editor.md` "Pass 66", keys in `docs/assets_schema.md`, rules in BALANCING.md §13); stage 1 is his own
 work (pinned by `pass62_pc_test`), stages 2-3 were written in his style in pass 62 and tuned in pass 64 so stage 2 is clearable with a quarter of the Upgrade board and stage 3 with half (`tools/difficulty_probe.gd`). Enemy strength = base x
 `stage_mults` [1, 2.2, 3.34] x the HP/ATK curve at the row's start x (1 + level_*_per_level x (hero level - 1)) x
-`creature_*_mult`, fixed per row from its start.
+`creature_*_mult`, fixed per row from its start. Specials (pass 69): a third as often as before, x10 HP, x2 ATK, x1.25
+size, a glowing rim in a colour Garry sets per creature (`variance.special`, map default `special_defaults`); one forced
+special Red Goblin at 2:00 (a swarm event with `special: true`).
 
-**Heroes** (playable, title order): Drifter (Revolver), Astro (Gravity Gun), Calavera (Guitarra), Ironwood (the Spear =
-`pike`), Solenne (Sun Scepter), Fadeaway (the Basketball; pass 67: evade per level, Heat on caught balls, the Timeout leap pickup, Buzzer Beater), Buck (Tommy Gun; pass 67 un-hid him: momentum with speed, damage and evade, Overdrive; the HUD's hero gauge shows his MOMENTUM and Fadeaway's HEAT); Dad and Mira are `hidden`. Each hero's trait is 1-2 stats that grow per level
+**Heroes** (title order): Drifter (Revolver) and Astro (Gravity Gun) are free; Calavera (Guitarra), Ironwood (the Spear =
+`pike`), Solenne (Sun Scepter), Fadeaway (the Basketball: evade per level, Heat shown on the ball itself, the Timeout
+leap pickup, Buzzer Beater), Jeżyk (id `buck`: a bald blue Slav in a tracksuit, starts with the Frisbee, favourite the
+Salt, momentum, Salt Flats), May (renamed from Mamy in pass 69: attack speed, Trigger Happy on the Tommy Gun, the
+Inflatable May decoy) and Mira (an unattainable requirement) are bought with gold after an unlock quest
+(`content/quests/unlock_<hero>`, `availability: "purchase"`, `price`; Save `heroes_owned`; Registry `hero_state`);
+Dad is `hidden`. No HUD gauge for any hero (pass 69). The title's hero drawer (`ui/wanted/WHeroDrawer.gd`) lists every
+hero; one not owned shows as a black silhouette, "Unknown", with his requirement or a BUY button. Each hero's trait is 1-2 stats that grow per level
 (`trait_per_level`, `Run.hero_sheet`), a favourite weapon or passive (arrives at a bonus level, marked on cards), perks,
 and a hero mutation. The title plaque opens the hero's Wanted-poster sheet (`ui/wanted/WHeroSheet.gd`). Art variants
-(`variants` / `variant` in the JSON; Buck plays BUC-B, Fadeaway FAD-B; Garry picks them in the arena or in the Level Editor's look grid; a look may be
+(`variants` / `variant` in the JSON; Jeżyk plays BUC-E, Fadeaway FAD-C, May MAY-G; Garry picks them in the arena or in the Level Editor's look grid; a look may be
 `shelved` out of the chips, a landed one is `fresh` until approved): see the art-variants memory. A hero JSON carries
-`availability` (hidden | available | purchase: anything but available hides him), `price` and `currency_type` (gold),
-written and shown by the editor, not wired (the purchase loop is parked: memory `88fits-hero-purchase-parked`).
+`availability` (available | purchase | hidden: only hidden hides him), `price` and `currency_type` (gold), the unlock
+quest edited from the Heroes tab (memory `88fits-hero-purchase-parked`: decided in pass 69).
 
 **Items.** Weapons (5 slots, 5 levels; three path mutations each, offered at set slots `path_times`; all three + level 5
 = evolution at a chest; hero mutations optional), lines (5 slots, 4 levels, evolve when maxed; `PassiveDef.line`) and
 passive items (no cap). Everything is content: `content/weapons|evolutions|mutations|passives|perks|pickups|structures|
 enemies|bosses|characters|talents|maps|sounds`. Mutation looks come from their `params` (`look`, `tint`, ...); emblems
-are gone. Pierce drop-off is on by default (`Settings.pierce_falloff`, Debug panel). Pass 68: a look's recipe carries `stills` (heroes too), `seed_offset`, `method`, `from` (a draft), `painter.stills`; a look entry `icon_picked` and `title` (a hero look's own cut-out); a hero is drawn in the look he is played in (`Registry.played_look`: the badge everywhere, the cut-out on the Painted title). Pass 67 primitives: a weapon's `amount_mode: "bounces"`, `return_on_hit`/`return_pierce`, `catch` (the ball's refund and Heat), a creature's `knockback_resist`, the map's `weapon_grade` (every 3D weapon's lit materials darker and richer), perk specials `periodic_buff`/`timeout`/`overdrive`, the pickup effect `leap`. Numbers and rules: `BALANCING.md`.
+are gone. Pierce drop-off is on by default (`Settings.pierce_falloff`, Debug panel). Pass 69 primitives: behaviours
+`SaltShaker` (patches laid along the hero's path, `params.salt`) and `Frisbee` (curving discs through everything,
+`params.frisbee`), the ball's `launch` (Alley-Oop) and `heat_look`, a ball tint's `body`/`seams`/`ambient`, a gun's
+`fire_without_target`/`stream`, perk special `decoy`, player stats counter_*/heavyweight/overheal/heal_pulse/last_stand/
+xp_pull_*, TextGen's stat kind "word" (named, never numbered). Pass 68: a look's recipe carries `stills` (heroes too), `seed_offset`, `method`, `from` (a draft), `painter.stills`; a look entry `icon_picked` and `title` (a hero look's own cut-out); a hero is drawn in the look he is played in (`Registry.played_look`: the badge everywhere, the cut-out on the Painted title). Pass 67 primitives: a weapon's `amount_mode: "bounces"`, `return_on_hit`/`return_pierce`, `catch` (the ball's refund and Heat), a creature's `knockback_resist`, the map's `weapon_grade` (every 3D weapon's lit materials darker and richer), perk specials `periodic_buff`/`timeout`/`overdrive`, the pickup effect `leap`. Numbers and rules: `BALANCING.md`.
 A weapon the editor creates starts hidden with three template path mutations and a template evolution, all hidden,
 until they are filled; a new line or passive item starts available; "locked" is a quest whose `unlocks.id` names it
 (the Items tab's availability op writes the quest). The count pins in the tests are shape rules now
@@ -330,6 +344,9 @@ show in the game; pictures in `docs/guide_img/`; published at https://claude.ai/
   `LOCK_HELD_COMFY=1` passes through; a shell that holds a lock across several commands names itself:
   `python tools/locks.py acquire comfy "<who>" --pid $(cat /proc/$$/winpid)` ... `release comfy --pid $(cat /proc/$$/winpid)`,
   since the parent a Python sees under Git Bash is a transient fork).
+- A windowed capture must bound every wait (frame caps and a watchdog): one that hung held the Godot lock for half an
+  hour and stalled every lane (pass 69). The ComfyUI lock has no fairness: put art work in the Level Editor's queue
+  rather than racing it from a shell.
 - Tools and captures must not change the PC's `user://save.json` (smoke_run plays Astro on the real save: copy it aside
   around tool runs; use `Save.begin_sandbox()` in probes).
 - Rules Garry never asked for read as bugs: name every new rule in BALANCING.md.

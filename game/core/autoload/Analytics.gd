@@ -574,7 +574,7 @@ func meta_gold(delta: int, reason: String, balance: int, extra: Dictionary = {})
 func hero_look_of(hero: CharacterDef) -> String:
 	if hero == null:
 		return ""
-	return hero.variant_def(Save.hero_look(hero.id)).look_code()
+	return Registry.played_look(hero).look_code()
 
 
 ## A short stable hash of the map's timeline as loaded (its JSON's timeline_data, keys sorted, md5, 8 hex), so the

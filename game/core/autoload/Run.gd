@@ -73,7 +73,8 @@ var haste := 1.0
 var momentum_def: Dictionary = {}
 ## Fadeaway's Heat (pass 67, the basketball's `catch` params): +1 for every caught ball that scored, up to catch.heat_max;
 ## the ball's damage x (1 + heat x catch.heat_per); 0 again on a hit that reaches his health unless catch.heat_keep.
-## Declared and reset here; ProjectileEmitter raises and zeroes it, the HUD's gauge and WeaponInstance._shot_dps read it.
+## Declared and reset here; ProjectileEmitter raises and zeroes it and shows it on the ball (pass 69, `heat_look`: no
+## HUD gauge any more), WeaponInstance._shot_dps reads it.
 var heat: int = 0
 ## Buck's Overdrive (pass 67, a perk): the gears counted while his charge is full (Player._tick_momentum: one every
 ## `every` seconds at full, max / step at most), each `step` more attack damage (overdrive_might); a hit that lands drops
@@ -172,6 +173,25 @@ var forced_map_seed := 0
 var poisoned_alive := 0
 ## Phoenix Feather (pass 48): its one free revive this run is spent (phoenix_ready / use_phoenix).
 var phoenix_used := false
+## Counterpunch (pass 69, a passive item): an evade arms the next attack (counter_armed); the first weapon to fire after
+## it (counterpunch_fired) deals 1 + `counter_damage` times its damage with every hit until it fires again or
+## COUNTER_HIT_WINDOW seconds of the buffs' clock pass (counterpunch_mult).
+const COUNTERPUNCH := "counterpunch"
+const COUNTER_HIT_WINDOW := 1.0
+var counter_armed := false
+var counter_weapon := ""
+var counter_until := -1.0
+## Heavyweight (pass 69): its attack damage on the sheet as its own source (_apply_heavyweight).
+var _heavy_source := ""
+## Last Stand (pass 69, a passive item): a hit that leaves the hero under LAST_STAND_BELOW of his max HP slows the game to
+## LAST_STAND_SCALE for LAST_STAND_SECONDS of real time (ui/LastStandFx.gd keeps the clock) and multiplies his attack
+## damage by 1 + `last_stand`; then not again for LAST_STAND_COOLDOWN seconds of the buffs' clock, which nothing shows.
+const LAST_STAND_BELOW := 0.3
+const LAST_STAND_SCALE := 0.5
+const LAST_STAND_SECONDS := 2.0
+const LAST_STAND_COOLDOWN := 20.0
+var last_stand_active := false
+var last_stand_next := 0.0
 
 
 func start(p_character: CharacterDef, p_map: MapDef) -> void:
@@ -194,6 +214,12 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	died = false
 	revives_used = 0
 	phoenix_used = false
+	# pass 69: Counterpunch's armed attack, Last Stand's window and its hidden cooldown start clear
+	counter_armed = false
+	counter_weapon = ""
+	counter_until = -1.0
+	last_stand_active = false
+	last_stand_next = 0.0
 	poisoned_alive = 0
 	thumb_lifted = false
 	no_lift_time = 0.0
@@ -296,6 +322,8 @@ func _build_player_sheet() -> void:
 		var o1 := Effect.new()
 		o1.stat = "might"; o1.op = "mul"; o1.value = od; o1.target = "player"
 		player_sheet.add_effects([o1], "Overdrive +%d%%" % int(round(od * 100.0)))
+	# Last Stand (pass 69): while its slowed time runs, its attack damage stays on through any rebuild
+	_apply_last_stand()
 	haste = player_sheet.get_stat("haste", 1.0)
 
 
@@ -360,24 +388,6 @@ func overdrive_might() -> float:
 ## The most gears Overdrive counts: the perk's `max` over its `step` (5 for +25% in 5% gears).
 func overdrive_gears() -> int:
 	return int(round(perk_param("overdrive", "max", 0.25) / maxf(perk_param("overdrive", "step", 0.05), 0.001)))
-
-
-## The hero's own gauge under the HUD's slots (pass 67, ui/HUD.gd draws it): {"label", "value" 0..1, "notches", "color"}
-## or {} for a hero without one. MOMENTUM for a hero with the `momentum` special and its block (Buck: four notches, Drum
-## Roll's four rounds); HEAT for a hero holding a weapon whose folded params (WeaponInstance.params, fold_params() as of
-## its last rebuild) carry `catch` (Fadeaway's basketball: Run.heat over its heat_max, a notch a point). The colours are
-## W.PAPER and W.EMBER (the HUD turns the fill gold over the last quarter).
-func hero_gauge() -> Dictionary:
-	if character != null and character.specials.has("momentum") and not momentum_def.is_empty():
-		return {"label": "MOMENTUM", "value": clampf(momentum, 0.0, 1.0), "notches": 4, "color": Color("f3e6c8")}
-	var c := catch_params()
-	if c.is_empty():
-		return {}
-	var mx: int = maxi(int(c.get("heat_max", 10)), 1)
-	# Run.heat is lane P's (pass 67); read through get() so this parses and runs without it
-	var h = get("heat")
-	var hv: int = int(h) if h != null else 0
-	return {"label": "HEAT", "value": clampf(float(hv) / float(mx), 0.0, 1.0), "notches": mx, "color": Color("d9662a")}
 
 
 ## The `catch` block of the first held weapon whose folded params carry one (the basketball's), or {}.
@@ -445,6 +455,139 @@ func gas_mask_dr() -> float:
 	if cap <= 0.0 or poisoned_alive <= 0:
 		return 0.0
 	return minf(cap, GAS_MASK_PER * float(poisoned_alive))
+
+
+# ---------------------------------------------------------------- pass 69, the new passive items
+
+## Counterpunch (pass 69, Garry: "After evading, deal 2x Damage next attack, and temporarily increase Attack Speed and
+## Movement Speed"): an evade arms the next attack (when the hero holds `counter_damage`) and starts a quiet timed boost
+## of `counter_haste` weapon speed and `counter_speed` move speed for `counter_seconds` (another evade starts its clock
+## again, at the new numbers when a level was taken since). True when it did anything. Player.take_damage calls it.
+func counterpunch_evaded() -> bool:
+	var dmg := player_sheet.get_stat("counter_damage", 0.0)
+	var secs := player_sheet.get_stat("counter_seconds", 0.0)
+	var did := false
+	if dmg > 0.0:
+		counter_armed = true
+		did = true
+	var hs := player_sheet.get_stat("counter_haste", 0.0)
+	var sp := player_sheet.get_stat("counter_speed", 0.0)
+	if secs > 0.0 and (hs > 0.0 or sp > 0.0):
+		var effs: Array = []
+		if hs > 0.0:
+			effs.append(Effect.make("haste", "mul", hs, "player"))
+		if sp > 0.0:
+			effs.append(Effect.make("move_speed", "mul", sp, "player"))
+		for tb in timed:
+			if tb["id"] == COUNTERPUNCH and not _same_effects(tb["effects"], effs):
+				# the old numbers leave the sheet; the boost goes on again below at the new ones
+				player_sheet.remove_source(str(tb["source"]))
+				timed.erase(tb)
+				break
+		add_timed_effects(COUNTERPUNCH, "Counterpunch", effs, secs, true)
+		did = true
+	return did
+
+
+## Whether two effect lists say the same (stat, op, value) in the same order (Counterpunch's boost after a level).
+static func _same_effects(a: Array, b: Array) -> bool:
+	if a.size() != b.size():
+		return false
+	for k in range(a.size()):
+		var x: Effect = a[k]
+		var y: Effect = b[k]
+		if x.stat != y.stat or x.op != y.op or not is_equal_approx(x.value, y.value):
+			return false
+	return true
+
+
+## A weapon fired (WeaponBehavior._process, every weapon's clock): an armed Counterpunch becomes this weapon's attack,
+## its hits doubled for COUNTER_HIT_WINDOW at most; the same weapon firing again ends it (that is its next attack).
+func counterpunch_fired(weapon_id: String) -> void:
+	if counter_armed:
+		counter_armed = false
+		counter_weapon = weapon_id
+		counter_until = buff_clock() + COUNTER_HIT_WINDOW
+	elif weapon_id == counter_weapon:
+		counter_weapon = ""
+
+
+## What a hit by `weapon_id` is multiplied by for Counterpunch (EnemyManager.damage, weapon hits only): 1 +
+## `counter_damage` while it is the counter-attack, else 1.
+func counterpunch_mult(weapon_id: String) -> float:
+	if counter_weapon == "" or weapon_id != counter_weapon:
+		return 1.0
+	if buff_clock() > counter_until:
+		counter_weapon = ""
+		return 1.0
+	return 1.0 + maxf(player_sheet.get_stat("counter_damage", 0.0), 0.0)
+
+
+## Heavyweight (pass 69, Garry: "Increases damage by +N% per N max HP"): `heavyweight` attack damage for every whole 10
+## max HP the sheet holds, as its own source ("Heavyweight +12%"); redone whenever the passives are (a level, an item, a
+## rebuild), so it follows his max HP.
+func heavyweight_might() -> float:
+	var per := player_sheet.get_stat("heavyweight", 0.0)
+	if per <= 0.0:
+		return 0.0
+	return per * floorf(player_sheet.get_stat("max_hp", 100.0) / 10.0 + 0.0001)
+
+
+func _apply_heavyweight() -> void:
+	if _heavy_source != "":
+		player_sheet.remove_source(_heavy_source)
+		_heavy_source = ""
+	var v := heavyweight_might()
+	if v <= 0.0:
+		return
+	_heavy_source = "Heavyweight +%d%%" % int(round(v * 100.0))
+	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _heavy_source)
+
+
+## Last Stand (pass 69, Garry: "Upon taking damage below N% Max HP, slow down time and deal Nx damage for like 2
+## seconds. Has a cooldown of 20 seconds that's not communicated to the Player anywhere"): a hit that leaves the hero
+## alive under LAST_STAND_BELOW of `max_hp`, with `last_stand` held, not already running and off its hidden cooldown,
+## starts it (its attack damage on the sheet) and the cooldown. True when it started: the caller (Player.take_damage,
+## by its signal Game) slows the clock and shows it; set_last_stand(false) ends it.
+func last_stand_check(hp: float, max_hp: float) -> bool:
+	if hp <= 0.0 or max_hp <= 0.0 or last_stand_active:
+		return false
+	if player_sheet.get_stat("last_stand", 0.0) <= 0.0 or buff_clock() < last_stand_next:
+		return false
+	if hp >= max_hp * LAST_STAND_BELOW:
+		return false
+	last_stand_next = buff_clock() + LAST_STAND_COOLDOWN
+	set_last_stand(true)
+	return true
+
+
+## Last Stand's attack damage on or off the sheet (the weapons rebuilt with it).
+func set_last_stand(on: bool) -> void:
+	if on == last_stand_active:
+		return
+	last_stand_active = on
+	_apply_last_stand()
+	haste = player_sheet.get_stat("haste", 1.0)
+	for w in weapons:
+		w.rebuild(player_sheet, weapons)
+	build_changed.emit()
+
+
+## What Last Stand multiplies attack damage by while it runs: 1 + `last_stand` (x2, x2.5, x3 by its level).
+func last_stand_mult() -> float:
+	return 1.0 + maxf(player_sheet.get_stat("last_stand", 0.0), 0.0)
+
+
+const _LAST_STAND_SOURCE := "Last Stand"
+
+
+func _apply_last_stand() -> void:
+	player_sheet.remove_source(_LAST_STAND_SOURCE)
+	if not last_stand_active:
+		return
+	var v := player_sheet.get_stat("last_stand", 0.0)
+	if v > 0.0:
+		player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _LAST_STAND_SOURCE)
 
 
 ## Phoenix Feather (pass 48): the hero carries a free revive (the player stat `phoenix_revive`) not spent this run.
@@ -541,6 +684,8 @@ func _apply_passives_to_sheet() -> void:
 	_apply_steady()
 	streak_bucket = _streak_percent()
 	_apply_streak()
+	# Heavyweight (pass 69) reads the max HP everything above put on the sheet
+	_apply_heavyweight()
 
 
 ## The hero has stood still this long (pass 47; the Player tells it, 0 when he moves). Cheap: only Steady Hand's bucket
@@ -1174,6 +1319,18 @@ func _note(kind: String, id: String, level: int, extra: Dictionary = {}) -> void
 		RunAnalytics.I.event(kind, id, level, extra)
 
 
+## Trick Shot (pass 69, lane FRIS, the Frisbee's motion mutation): what weapon `weapon_id`'s own `params.proc_mult`
+## multiplies its life steal (add_damage), its crit, Cold Snap and Vulture chances (EnemyManager.damage) by; 1 for a
+## weapon without one, for a weapon he does not hold and for a hit no weapon sent.
+func trick_proc_mult(weapon_id: String) -> float:
+	if weapon_id == "":
+		return 1.0
+	var wi := weapon_instance(weapon_id)
+	if wi == null:
+		return 1.0
+	return maxf(float(wi.params.get("proc_mult", 1.0)), 0.0)
+
+
 func add_damage(weapon_id: String, amount: float) -> void:
 	damage_by_weapon[weapon_id] = float(damage_by_weapon.get(weapon_id, 0.0)) + amount
 	if RunAnalytics.I: RunAnalytics.I.dealt(weapon_id, amount)
@@ -1182,6 +1339,8 @@ func add_damage(weapon_id: String, amount: float) -> void:
 	# out (a beam through forty creatures used to refill the bar in one sweep)
 	var ls: float = player_sheet.get_stat("lifesteal", 0.0)
 	if ls > 0.0:
+		# Trick Shot (pass 69): the weapon's own proc_mult
+		ls *= trick_proc_mult(weapon_id)
 		# the buffs' clock (pass 47): on the stage clock the cap's second never turned over in a boss fight
 		var now: float = buff_clock()
 		if now - _lifesteal_second >= 1.0:

@@ -696,3 +696,80 @@ schema; B: methods.json, the examples, every driver's meta.json). 17,023 checks 
   to start from a picture with "A front from a picture".
 
 Rules: BALANCING.md section 15. Contract and maps: tools/dl/p68/ (git-ignored).
+
+## Pass 69: the new tools and how to use them
+
+Garry: "make sure to update the LevelEditor and include instructions on how I would be able to use the newly created
+tools in the future" (items and heroes). The same how-tos are on the Instructions tab, first after the intro.
+
+What changed in the editor:
+
+- **Typed params** (`AFIELDS.PARAM_GROUPS`, rendered by `typed_forms.js`): a weapon's *Params* section and a mutation's
+  *Effect* section show the knobs the Salt (`SaltShaker`: *Salt patches*, *The floating shaker*), the Frisbee
+  (`Frisbee`: *Flight*, *The disc*, *Carry*, *Trick Shot and stun*, *The loop*) and the basketball's new mechanisms
+  (*Launch (Alley-Oop)*, *Heat on the ball*, *Ball colour (body and seams)*) and May's Trigger Happy (*Fire without a
+  target*) read, one field each with its help. An empty box shows what applies without it and where that comes from (a
+  mutation: its weapon's params; an evolution's `final`: its own params; else the game's default). An evolution edits
+  either `params.final` (over the mutations: the "all three, amplified" numbers) or its own params. The JSON box stays
+  under them for every other key. A group a weapon does not use is offered under "+ <group>" (a gun's Trigger Happy).
+- **Perks have a form** (kind `perk`, the Heroes tab): *His own* lists a hero's perks with **Edit** and **+ New perk…**
+  (a copy of any perk, named his). The form: Identity (name, flavour, hero, rarity, weight, hidden), Card (text,
+  effects), Special (the mechanism from `PERK_SPECIALS` with its numbers as fields, the raw `params` JSON under them), Art.
+  `decoy` and `periodic_buff` work on any perk; every other special is checked by its own perk's id in the game
+  (`Run.has_perk("<id>")`): a copy under a new id keeps the numbers but never fires, and the form warns.
+- **Heroes to buy** (lane UI wired them): Availability is *free* (`available`), *to buy* (`purchase`) or *hidden*;
+  `hidden` follows it (only `hidden` hides; a hero to buy is on the title whatever `hidden` says). **Requirement** under it
+  is his unlock quest: `content/quests/unlock_<hero>` with `unlocks {type: character, id}`, written, edited and removed at
+  once by the availability op (`POST /api/content/hero/<id>/availability {availability, quest}`; `quest: null` removes
+  it). The words are TextGen.quest_text's (mirrored by `AssetsModel.questText`).
+- **Icon candidates install from the item**: an item's *Art* section (and a perk's) lists every finished `icon_cands`
+  job of it, each picture with **Install** (an `install` job: the picture becomes `<id>_icon.png`, the old one backed up,
+  imported). Rebound's three designs are three jobs.
+- **The new stats** in the effect picker with a help line each (`vocab.STAT_HELP`): `counter_damage`, `counter_haste`,
+  `counter_speed`, `counter_seconds`, `heavyweight`, `overheal`, `heal_pulse`, `last_stand`, `xp_pull_radius`,
+  `xp_pull_rate`. `xp_pull_rate` is TextGen's new kind **word**: the card says "pulls more often", never a number, and it
+  is left out of totals (the page mirrors both).
+- **Special enemies** (lane EN): the Enemies tab's *Special* section, Settings → *Coloured specials* (the map's
+  `special_defaults`), the swarm event's *Special* box.
+- **Level steps show their effects** (a pass 66 bug): `U.getPath` stopped at a list, so every weapon's and passive's
+  *Levels* showed no effects, and `U.setPath` turned `levels` into an object on the first edit; both now step into a list
+  by index, and an emptied level stays `[]`.
+- **The quest-locked band** wants 28-56% (pass44_test was re-pinned: the Salt, the Frisbee and five passive items came
+  unlocked, 23 of 75); `server.BAND_LO / BAND_HI`, `AssetsModel.BAND`.
+
+How-tos:
+
+1. **A weapon like the Salt or the Frisbee**: Items → + New from template ▾ → a weapon → template Salt (patches) or
+   Frisbee (discs) → Create (hidden, with three template mutations and a template evolution). Base stats (the Salt:
+   damage a tick, cooldown between pours, amount = patches a pour, area × size, duration a patch lies; the Frisbee:
+   damage, cooldown, amount = discs a volley, speed, range, knockback), Params → the typed groups, Levels (five, level 1
+   empty), fill the path and name the evolution, Availability → available, Save asset.
+2. **Add or hide a mutation** (Full Court Press): hide = its form → Availability → Hidden → Save. Add = + New from
+   template ▾ → a mutation of a weapon → a template of the same weapon → Kind (the slot), text, effects / typed params.
+   One non-hidden mutation per kind; a hero mutation is kind hero + its hero.
+3. **A ball or disc look**: a basketball mutation → Effect → *Ball colour* (Body colour, glow, seam colour and glow) and
+   *Heat on the ball*; a Frisbee mutation → *The disc* (look plain / razors / saucer, colours, size ×, haze); an
+   evolution → Params → Edit: params.final.
+4. **Swap an icon** (Rebound): the item → Art → Icon candidates → click a picture → Install.
+5. **Special enemies**: Enemies → the creature → Special (chance, size ×, HP ×, ATK ×, XP ×, colour, colour strength,
+   glow); all at once: Settings → Coloured specials.
+6. **A special at a set second** (the Goblin moment, Red Canyon 2:00): Timeline → Events lane's + Event → Swarm →
+   creature, Count 1, Pattern, Special ticked. Drag the star to move it; Delete removes it; Save.
+7. **A hero's price and requirement**: Heroes → the hero → Availability → to buy → Price → Save asset; Requirement →
+   + Add a requirement → condition and numbers → Create requirement (written at once).
+8. **Free, to buy or hidden**: Availability (Hidden follows). A hero on the title needs a perk and exactly one hero
+   mutation on his favourite weapon.
+9. **A perk with the decoy** (Inflatable May): His own → + New perk… → template Inflatable May → Create → Special: every,
+   first, throw min / max, flight, radius (keep it under half a screen), duration → Card text → Save asset.
+10. **A run driver with level shoulders** (Fadeaway's sagging back, the raised side shoulder): pick lane ART's levelled
+    drivers per view in Art words (`run_side` side, `run_spread_lvl` back; `run_sprint_lvl`, `run_dash_lvl`), or
+    **+ New pose driver…** under them: the `driver_pose` job gained `amp`, `amp_bones`, `lean`, `arms: back` and
+    `shoulders` / `shoulder_views` / `tuck` (tools/pose_shoulders.py writes `<name>_lvl`).
+11. **A new hero look with candidates**: Looks & previews → + New look… → method and drivers → at least 3 badge and 3
+    title cut-out candidates come with it (Queue refuses fewer) → Jobs tab: pick, Install → Approve the NEW look.
+12. **The look he is played in**: its card → Make default (`variant`); Shelve the ones not to offer (not the one in play).
+
+Server: `EDIT_KINDS` gained `perk` (`EDITOR_OWNED["perk"]`: hero, text, effects, special, params); `/api/heroes` records
+carry `quest`, `perk_records` and `hidden_in_play`; `/api/items` weapon records carry `params`; `/api/vocab` serves
+`perk_specials` and `stat_help`. Self-test: `selftest_L69.py` (the tables against the game's sources and the content, the
+requirement and perk operations on a temp tree, the page's hooks and these docs).

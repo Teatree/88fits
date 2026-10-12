@@ -168,6 +168,29 @@ const Inspector = (() => {
   /** The note under the Pattern field (pass 57): for Ring, how many make "a thick ring with few gaps" (Garry) for the
    *  creature(s), from the body radius (U.ringCount), and how many this row, wave or swarm really sends at once; for In
    *  front, where they come from. Null for the other patterns. */
+  /** Pass 69 (lane EN): a swarm set to Special, in words: what each creature it brings comes as (its Special block's
+   *  numbers, the map's defaults where it leaves one empty), or why one comes plain. */
+  function specialNote(ev) {
+    if (!ev.special) return null;
+    const tl = App.tl();
+    const defaults = U.isObj(tl.special_defaults) ? tl.special_defaults : {};
+    const out = [b('Special: ')];
+    const shares = App.eventShares(ev);
+    if (!shares.length) return [b('Special: '), 'pick a creature: each one this swarm brings comes as its coloured special.'];
+    shares.slice(0, 3).forEach((s, k) => {
+      const c = App.creature(s.id);
+      if (!c) return;
+      if (k) out.push(' · ');
+      const vs = Model.varianceSpecial(c, ev.stats, defaults);
+      const hasVar = U.isObj(c.variance) && Object.keys(c.variance).length > 0;
+      if (!hasVar) { out.push(`${U.theName(c.name)} has no variance block: it comes plain`); return; }
+      const v = (key) => U.fmtN(Model.specialValue(vs.sp, defaults, key), 2);
+      out.push(`${U.theName(c.name)} comes with HP ×${v('hp')}, ATK ×${v('damage')}, size ×${v('size')}, XP ×${v('xp')}, glow ${v('glow')}${vs.sp.tint ? ` in ${vs.sp.tint}` : ''}`);
+    });
+    out.push(`; for sure, even before Colour after kills, and no SWARM! banner. Its numbers are its Special block on the Enemies tab.`);
+    return out;
+  }
+
   function patternNote(kind, obj) {
     const tl = App.tl();
     const pattern = obj.pattern == null || obj.pattern === '' ? (kind === 'event' ? 'ring' : 'pack') : String(obj.pattern);
@@ -458,7 +481,7 @@ const Inspector = (() => {
     else if (sr && sr.range && sr.min === sr.max) ref = `a list of one size: every creature exactly ${fmtN(sr.min, 2)} m (no spread), its radius following, as the game reads it; its own: ${fmtN(own, 2)} m${spread ? `, spread ±${Math.round(spread * 100)}%` : ''}`;
     else if (sr && sr.range) {
       // lane WV's fix round: a coloured special is cut at the range's top; an elite modifier's scale still goes on top
-      const vs = Model.varianceSpecial(c, stats);
+      const vs = Model.varianceSpecial(c, stats, App.tl().special_defaults);
       const sp = vs.chance > 0 ? `; a coloured special ×${fmtN(vs.size, 2)} but never past ${fmtN(sr.max, 2)} m` : '';
       ref = `each creature its own size from ${fmtN(sr.min, 2)} to ${fmtN(sr.max, 2)} m (no spread), its radius following${sp}; an elite-modified one × its modifier's scale on top; its own: ${fmtN(own, 2)} m${spread ? `, spread ±${Math.round(spread * 100)}%` : ''}`;
     }
@@ -616,7 +639,7 @@ const Inspector = (() => {
     // hue it rolled, Model.tintSpecial; the review of pass 58: the help had promised the special's own colour)
     const fracs = () => (Model.hueSpan(st.h0, st.h1) < 1e-9 ? [0] : [0, 0.25, 0.5, 0.75, 1]);
     // an elite-modified creature (a coloured-elite event, a wave wearing a modifier) never rolls the special
-    const vs = c && !(ctx && ctx.modded) ? Model.varianceSpecial(c, stats) : { chance: 0 };
+    const vs = c && !(ctx && ctx.modded) ? Model.varianceSpecial(c, stats, App.tl().special_defaults) : { chance: 0 };
     addPic('as painted', 'orig');
     for (let i = 0; i < 5; i++) addPic('');
     const spPic = vs.chance > 0 ? (addPic('special', 'special', `A coloured special of this row (${Math.round(vs.chance * 100)}% of them once Colour after kills is reached): the hue it rolled in a darker, stronger shade (saturation +0.15, brightness ×0.7, amount +0.15 over the larger of Amount and its own tint strength ${fmtN(vs.strength, 2)}), ×${fmtN(vs.size, 2)} the size`), pics[pics.length - 1]) : null;
@@ -876,7 +899,7 @@ const Inspector = (() => {
         // pass 58: an event's creatures take their numbers from the second it fires (each firing of an "Elites every")
         form.appendChild(overridesBlock(ev, 'stats', ids[0] || '', 'stats', { t0: () => ev.t, from: 'event', event: ev, each: ev.type === 'elite_every', modded: ev.type === 'elite' || ev.type === 'elite_every', look: () => ev.variant }));
       } else {
-        form.appendChild(Forms.fieldRow(def, ev, { allowRandom: false, emptyLabel: def.key === 'mod' ? 'random modifier' : undefined, note: def.key === 'pattern' ? patternNote('event', ev) : null }));
+        form.appendChild(Forms.fieldRow(def, ev, { allowRandom: false, emptyLabel: def.key === 'mod' ? 'random modifier' : undefined, note: def.key === 'pattern' ? patternNote('event', ev) : def.key === 'special' ? specialNote(ev) : null }));
       }
     }
     if (ev.type === 'elite_every') {

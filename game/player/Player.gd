@@ -73,6 +73,20 @@ var shield_pts := 0.0
 var _shield_wait := 0.0
 signal evaded
 signal shield_hit(broke: bool)
+## Snake Oil (pass 69, a passive item): health past full, up to overheal_cap(); a heal that is not regen fills it once the
+## bar is full, a hit takes it before his health, it never fades. The HUD draws it as the bar's pink extension.
+var overheal := 0.0
+## Hot Springs (pass 69, a passive item): what every heal (regen too) gave back since the last pulse, and the wait before
+## the next; heal_pulsed carries the pulse's damage (Game hurts what stands within HEAL_PULSE_RADIUS).
+const HEAL_PULSE_RADIUS := 3.0
+const HEAL_PULSE_PER_HP := 2.0
+const HEAL_PULSE_CAP := 40.0
+const HEAL_PULSE_GAP := 0.5
+var _pulse_healed := 0.0
+var _pulse_cd := 0.0
+signal heal_pulsed(damage: float, healed: float)
+## Last Stand (pass 69, a passive item): a hit left him low and it started (Run.last_stand_check); Game slows the clock.
+signal last_stand
 ## Standing still (pass 47): seconds since he last moved (no stick, next to no speed, on the ground); he counts as still
 ## once it passes STILL_AFTER. Siesta heals while he is (`still_regen` HP a second, held SIESTA_HOLD after a hit, never
 ## with Unbroken) and Steady Hand grows with it (Run.note_still every tick; `noted_still` is the last it heard).
@@ -152,6 +166,8 @@ func refresh_stats() -> void:
 		var ratio: float = hp / max_hp if max_hp > 0.0 else 1.0
 		max_hp = new_max
 		hp = clamp(new_max * ratio, 1.0, new_max)
+	# Snake Oil's overheal never outgrows its cap (a level of max HP lost, the item gone)
+	overheal = minf(overheal, overheal_cap())
 	damaged.emit(hp, max_hp)
 
 
@@ -175,7 +191,7 @@ func _setup_sprite() -> void:
 func _look_def() -> CharacterDef:
 	if character == null:
 		return null
-	return character.variant_def(look_override if look_override != "" else Save.hero_look(character.id))
+	return character.variant_def(look_override) if look_override != "" else Registry.played_look(character)
 
 
 ## The arena's look chips (pass 55): draws him wearing art variant `code` at once, for this session only ("" = the
@@ -313,6 +329,8 @@ func _physics_process(delta: float) -> void:
 	was_on_floor = on_floor
 	_tick_still(delta, planar, stepped, on_floor)
 	_tick_regen(delta)
+	# Hot Springs (pass 69): the heals since the last pulse go out
+	_tick_heal_pulse(delta)
 	# the Energy Shield: back up once he has gone shield_delay without a hit, shield_rate of it a second
 	var smax := sheet.get_stat("shield_max", 0.0)
 	if smax > 0.0:
@@ -350,6 +368,8 @@ func _tick_regen(delta: float) -> void:
 		var before := hp
 		hp = minf(hp + rate * delta, max_hp)
 		_heal_batch += hp - before
+		# Hot Springs (pass 69): regen's ticks count towards the pulse too (Snake Oil's overheal they never fill)
+		_note_heal_pulse(hp - before)
 		damaged.emit(hp, max_hp)
 	_flush_heal_batch(delta)
 
@@ -718,6 +738,21 @@ func _tick_momentum(delta: float) -> void:
 			Run.rebuild_sheets()
 
 
+## Salt Flats (pass 69, lane SALT: the Salt's hero mutation): his charge to full at once, the sheet following now. True
+## when it rose; false for a hero without momentum, a fallen one, or one already at full.
+func max_momentum() -> bool:
+	if not momentum or dead:
+		return false
+	var ramp: float = float(Run.momentum_def.get("ramp_seconds", 12.0))
+	if _momentum_t >= ramp and Run.momentum >= 1.0:
+		return false
+	_momentum_t = ramp
+	_momentum_sync = 0.25
+	Run.momentum = 1.0
+	Run.rebuild_sheets()
+	return true
+
+
 ## Health back. `source` names a pickup heal for the Down! list (the Heart, a Cake Slice, the Healing Well); regen,
 ## lifesteal and the level patch pass none and are not listed. A heal that gave nothing back is not listed either.
 func heal(amount: float, source: String = "") -> void:
@@ -727,12 +762,15 @@ func heal(amount: float, source: String = "") -> void:
 	amount *= heal_mult()
 	var before := hp
 	hp = minf(hp + amount, max_hp)
-	if RunAnalytics.I: RunAnalytics.I.healed(hp - before)
+	# Snake Oil (pass 69): what the full bar could not take fills the overheal, up to its cap; Hot Springs hears it all
+	var got := hp - before + _fill_overheal(amount - (hp - before))
+	_note_heal_pulse(got)
+	if RunAnalytics.I: RunAnalytics.I.healed(got)
 	# a green number on him (pass 47): pickups, lifesteal and the level patch as they come, lifesteal's points merged
-	if hp - before >= 0.5 and DamageNumbers.I: DamageNumbers.I.hero_heal(hp - before)
-	if source != "" and hp - before >= 0.5:
+	if got >= 0.5 and DamageNumbers.I: DamageNumbers.I.hero_heal(got)
+	if source != "" and got >= 0.5:
 		damage_log.append({"t": Run.elapsed, "by": source, "id": "", "kind": "heal", "role": "", "colour": "", "fx": [],
-			"raw": amount, "amount": hp - before, "dealt": 0.0, "shield": 0.0, "note": "", "hp": hp, "fatal": false})
+			"raw": amount, "amount": got, "dealt": 0.0, "shield": 0.0, "note": "", "hp": hp, "fatal": false})
 		_trim_log()
 	damaged.emit(hp, max_hp)
 
@@ -740,6 +778,59 @@ func heal(amount: float, source: String = "") -> void:
 ## How much bigger every heal on him is (pass 54: the `heal_mult` player stat, Solenne's Afterglow; 1 without it).
 func heal_mult() -> float:
 	return maxf(sheet.get_stat("heal_mult", 1.0), 0.0) if sheet else 1.0
+
+
+# ---------------------------------------------------------------- pass 69, the new passive items
+
+## Snake Oil's cap (pass 69): the most health past full he can hold, `overheal` of his max HP (0 without the item).
+func overheal_cap() -> float:
+	return max_hp * maxf(sheet.get_stat("overheal", 0.0), 0.0) if sheet else 0.0
+
+
+## Puts up to `extra` HP into the overheal (what a heal had left once the bar was full), under its cap; what it took.
+func _fill_overheal(extra: float) -> float:
+	if extra <= 0.0:
+		return 0.0
+	var room := maxf(overheal_cap() - overheal, 0.0)
+	var took := minf(extra, room)
+	overheal += took
+	return took
+
+
+## A hit's damage after the overheal has taken what it can of it (Snake Oil: the pink goes first).
+func _soak_overheal(dealt: float) -> float:
+	if overheal <= 0.0 or dealt <= 0.0:
+		return dealt
+	var took := minf(overheal, dealt)
+	overheal -= took
+	return dealt - took
+
+
+## Hot Springs (pass 69): a heal of `got` HP counts towards the next pulse (only with `heal_pulse` held).
+func _note_heal_pulse(got: float) -> void:
+	if got > 0.0 and sheet and sheet.get_stat("heal_pulse", 0.0) > 0.0:
+		_pulse_healed += got
+
+
+## Hot Springs' pulse: what was healed since the last one goes out at once when the wait is over (HEAL_PULSE_GAP between
+## two at most), heal_pulse_damage of it; Game hurts the creatures round him with it.
+func _tick_heal_pulse(delta: float) -> void:
+	_pulse_cd = maxf(_pulse_cd - delta, 0.0)
+	if _pulse_healed <= 0.0 or _pulse_cd > 0.0:
+		return
+	var flat := sheet.get_stat("heal_pulse", 0.0) if sheet else 0.0
+	if flat <= 0.0 or dead:
+		_pulse_healed = 0.0
+		return
+	var healed := _pulse_healed
+	_pulse_healed = 0.0
+	_pulse_cd = HEAL_PULSE_GAP
+	heal_pulsed.emit(heal_pulse_damage(flat, healed), healed)
+
+
+## A heal pulse's damage (pass 69, Hot Springs): `flat` plus HEAL_PULSE_PER_HP for every HP healed, HEAL_PULSE_CAP at most.
+static func heal_pulse_damage(flat: float, healed: float) -> float:
+	return minf(flat + HEAL_PULSE_PER_HP * maxf(healed, 0.0), HEAL_PULSE_CAP)
 
 
 ## A shield: no damage for `seconds`, the sprite tinted blue while it holds.
@@ -789,6 +880,8 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 	if ev > 0.0 and randf() < minf(ev, 0.9):
 		invuln = maxf(invuln, sheet.get_stat("evade_invuln", 0.0))
 		_log_hit(amount, 0.0, 0.0, info, "evaded")
+		# Counterpunch (pass 69): the next attack is armed and the boost starts, before the evade is told (Game's burst)
+		Run.counterpunch_evaded()
 		evaded.emit()
 		last_outcome = "evaded"
 		if DamageNumbers.I: DamageNumbers.I.hero_dodge()
@@ -815,7 +908,11 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 		if DamageNumbers.I: DamageNumbers.I.hero_shield(took)
 		_knock_from(from, info)
 		return
-	hp -= dealt
+	# Snake Oil (pass 69): the overheal takes the hit before his health
+	hp -= _soak_overheal(dealt)
+	# Last Stand (pass 69): a hit that leaves him low slows the clock (told before `hit`, so its hit-stop stays out)
+	if hp > 0.0 and Run.last_stand_check(hp, max_hp):
+		last_stand.emit()
 	_log_hit(amount, dealt, 0.0, info, "")
 	# Hush Money (pass 47c): every hit that reaches his health pays
 	var paid := int(round(sheet.get_stat("gold_on_hit", 0.0)))

@@ -1,0 +1,17 @@
+{
+  "id": "unlock_mira",
+  "name": "Mira",
+  "condition": {
+    "type": "kills_total",
+    "count": 99999999
+  },
+  "unlocks": {
+    "type": "character",
+    "id": "mira"
+  },
+  "art_prompt": "a glass jar with a yellow mining helmet inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

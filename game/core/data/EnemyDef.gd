@@ -422,6 +422,23 @@ static func tint_special_color(range_: Dictionary, u: float, special_strength: f
 	return Color(c.r, c.g, c.b, minf(maxf(float(range_.get("amount", TINT_AMOUNT)), special_strength) + SPECIAL_STRENGTH_ADD, 1.0))
 
 
+## Pass 69 (lane EN; Garry: the specials "3 times more rare ... 1.25 times bigger ... HP x10 ... ATK x2", and their
+## colouring "possible in the Level Editor"): what a variance special's numbers fall back to, key by key, when neither the
+## creature's own `variance.special` nor the map's `timeline_data.special_defaults` names them (they were 1.3 / 1.6 / 1.2
+## / 2 / 0.6 in code before). `glow` 0..1 is the emissive rim enemy_billboard.gdshader draws round a special in its
+## tint's colour (0 = none), the width and the brightness of the rim.
+const SPECIAL_DEFAULTS := {"size": 1.25, "hp": 10.0, "damage": 2.0, "xp": 2.0, "tint_strength": 0.6, "glow": 0.6}
+
+
+## One number of a variance special: the creature's own `sp[key]`, else the map's `defaults[key]`, else SPECIAL_DEFAULTS.
+static func special_value(sp: Dictionary, defaults: Dictionary, key: String) -> float:
+	if sp.has(key):
+		return float(sp[key])
+	if defaults.has(key):
+		return float(defaults[key])
+	return float(SPECIAL_DEFAULTS.get(key, 1.0))
+
+
 ## The shot speed EnemyManager plays when a `ranged` block names none (pass 53, for projectile_speed_mult): 16 for a
 ## cone of pellets, 12 for a straight shot, 6 for a lobbed spit (its _do_attack defaults).
 static func ranged_speed_default(r: Dictionary) -> float:

@@ -72,10 +72,16 @@ cut (`jobs.appearance_of`).
 
 | Key | Type | Default | What it does |
 |---|---|---|---|
-| `hidden` | bool | `false` | out of the title and the Collection; **kept in step** with `availability` (`hidden = availability != "available"`) |
-| `availability` | `hidden` \| `available` \| `purchase` | derived from `hidden` | **pass 66**: shown and written, not wired: a `purchase` hero stays hidden in play until the purchase loop is built (parked) |
-| `price` | int ≥ 0 | `0` | the purchase price (not wired) |
-| `currency_type` | `gold` | `gold` | the currency (the list has one entry; not wired) |
+| `hidden` | bool | `false` | out of the title and the Collection; **kept in step** with `availability` (pass 69: `hidden = availability == "hidden"`; the game reads `hidden = availability == "hidden" or (hidden and availability != "purchase")`, so a hero to buy is never hidden) |
+| `availability` | `available` \| `purchase` \| `hidden` | derived from `hidden` | **pass 69, wired** (Registry.hero_state owned / buyable / locked / hidden): `available` = free, owned from the start (or, with an unlock quest, owned the moment it is done); `purchase` = on the title and in the hero drawer, locked (a black silhouette, "Unknown", the requirement over his plaque) until his unlock quest is done (none = on sale at once), then BUY for `price`; `hidden` = out of play (his perks and hero mutation too) |
+| `price` | int ≥ 0 | `0` | what BUY costs (Save.buy_hero; the gold sink "hero") |
+| `currency_type` | `gold` | `gold` | only gold can be spent |
+| `order` | int | `0` | the title carousel's and the hero drawer's order inside each group (owned, on sale, locked) |
+| `side_hint`, `pose_hint` | text | absent | *tool-only* (gen_art): the side view's words (Jeżyk's ask for level shoulders) and the standing pose words of every still |
+| *unlock quest* | `content/quests/unlock_<hero>/` | none | **pass 69**: his requirement, a quest whose `unlocks` is `{"type": "character", "id": "<hero>"}` (Registry.quest_for), the shape of the items' unlock quests; the Heroes tab's **Requirement** writes, edits and removes it (`POST /api/content/hero/<id>/availability {availability, quest}`, `quest: null` removes) |
+
+The save keeps the heroes bought in `heroes_owned` (a list of ids; a free hero is owned without being listed; a save from
+before pass 69 has none). The developer menu's "Heroes · own every one" / "forget the bought ones" set it for tests.
 | `title_pose`, `title_holds`, `title_camera` | text | absent | *tool-only*: the title cut-out's words (`gen_title_heroes.py` reads them before its own tables, then `portrait_prompt`) |
 | `title_extra_ref` | `{file, words}` | absent | *tool-only*: a second reference for the cut-out (the held object) and what it is |
 | `portrait_prompt` | text | absent | *tool-only*: the round badge's bust words |
@@ -85,8 +91,9 @@ cut (`jobs.appearance_of`).
 | `run_fps` | int | 36 | *tool-only*: the run cycle's rate written into `fps.run` |
 | `momentum` | `{ramp_seconds, speed_bonus, might_bonus, evade_bonus, hit_loss}` | absent | Buck's charge (`specials: ["momentum"]`): full after `ramp_seconds` without a hit; at full, `speed_bonus` more move speed, `might_bonus` more damage and (pass 67) `evade_bonus` evade chance; a hit that reaches his health takes `hit_loss` of the charge (pass 67; 1 = all of it, the old reset) |
 
-A hero created from a template starts `hidden: true` / `availability: "hidden"`. The playable heroes are pinned by
-tests: the Heroes tab says so beside the availability switch.
+A hero created from a template starts `hidden: true` / `availability: "hidden"`. A hero on the title (free or to buy)
+must be whole (pass66_shape_test): at least one perk and exactly one hero mutation on his favourite weapon; the Heroes
+tab warns otherwise.
 
 ## Items (weapons, evolutions, mutations, lines and passive items)
 
@@ -138,6 +145,78 @@ for `slow_seconds` s. `quiet` keeps a pickup's fanfare down (a heal: no "+N HP" 
 chest's sound). A pickup drops from kills only when the map's `pickups.roster` names it; the Timeout is in no roster
 (its `weight: 0` is the cake slice's and the coin bag's convention), so only the perk or the arena's DROPS tab puts one
 down.
+
+### Weapon params (pass 69: the Salt, the Frisbee, the ball, Trigger Happy)
+
+The Items tab shows these as typed fields (`AFIELDS.PARAM_GROUPS`); an empty box shows what applies and where from. Keys
+are under `params` (a mutation's merged over its weapon's, an evolution's `final` last).
+
+| Key | Type | Default (the code's) | What it does |
+|---|---|---|---|
+| `salt.radius` | m | `1.4` | a patch's radius at area 1 (× area × `salt.area_mult`) |
+| `salt.tick` | s | `0.5` | seconds between damage ticks; a creature in any patch takes one hit a tick |
+| `salt.spacing` | m | `1.2` | metres between the patches of one pour, back along the hero's way |
+| `salt.max_patches` | int | `40` | most patches at once; one more sends the oldest into its fade |
+| `salt.color`, `salt.alpha`, `salt.contents` | #RRGGBB, 0..1, #RRGGBB | `#FFFFFF`, `0.5` (the Salt sets 0.6), `#F4F4F0` | the patches' colour and opacity; the salt inside the floating shaker (Sea Salt pink #F4A3C4, Hiwa Kai black) |
+| `salt.duration_mult`, `salt.damage_mult`, `salt.area_mult` | number | `1` | × a patch's seconds (Sea Salt 1.75, Hiwa Kai 2), × a tick's damage (Sea Salt 0.95), × the radius (Salt Spill 1.6, Hiwa Kai 1.8) |
+| `salt.luck_mult` | number | `1` | Thing About Luck: a creature killed in a patch rolls the power-up drop at this factor (3; Hiwa Kai 4) |
+| `salt.momentum_on_enter` | bool | `false` | Salt Flats (Jeżyk): walking INTO a patch from outside puts his momentum at full |
+| `salt.crystals` `{count, color}`, `salt.crunch.mult`, `salt.slow` | int + colour, number, 0..0.95 | none, none, `0` | Hiwa Kai: hard crystals on every patch (7), one extra hit of mult × a tick for a creature walking in (2), 30% slower inside |
+| `shaker.distance`, `shaker.height`, `shaker.orbit_speed`, `shaker.bob` | m, m, rad/s, m | `1.2`, `1.25`, `0.55`, `0.08` | the floating 3D shaker round the hero |
+| `bend_deg`, `bend_per_extra`, `fan_deg` | deg | `25`, `12`, `16` | the Frisbee's arc off the aim line (a random side each disc), more per extra disc, the gap between a volley's aim lines |
+| `falloff.step`, `falloff.floor` | 0..1 | `0.85`, `0.25` | each creature a disc cuts after the first takes this share of the one before, never under the floor |
+| `hit_radius`, `height`, `glide_seconds` | m, m, s | `0.55`, `1.0`, `0.45` | how wide it cuts, how high it flies, how long it glides down after its range |
+| `disc.look` | `plain` \| `razors` \| `saucer` | `plain` | the disc drawn (built in code) |
+| `disc.size`, `disc.size_mult`, `disc.albedo`, `disc.emission`, `disc.energy`, `disc.spin`, `disc.trail`, `disc.haze` | m, number, colours, number, rad/s, bool, bool | `0.36`, `1`, `#B8FF2A`, `#7CFF00`, `0.8`, `16`, `true`, `false` | its size (Carry × 1.5), colours, glow, spin, the trail, the Flying Saucer's poison haze |
+| `carry.chance`, `carry.drop_hit` | 0..1, number | none, `0` | Carry: the first creature hit rides the disc to the end of its flight (never a boss or an Elite); the ride ends with a hit of drop_hit × the damage |
+| `proc_mult` | number | `1` | Trick Shot: this weapon's life steal, crit, Cold Snap, Vulture and stun chances × this (1.25; the saucer 1.5) |
+| `stun.chance`, `stun.seconds` | 0..1, s | none | a stun roll on every hit that does not kill |
+| `loop.radius`, `loop.from`, `loop.to` | m, 0..1, 0..1 | none, `0.3`, `0.7` | the Flying Saucer: once a flight, one full circle somewhere between from and to of its range |
+| `launch.chance`, `launch.height`, `launch.air_time`, `launch.fall_damage_frac`, `launch.sfx` | 0..1, m, s, number, sound id | none, `3.5`, `0.9`, `1`, `w_grav_land` | Alley-Oop: a ball hit may throw the creature straight up (no move or attack up there); it takes the hit × fall_damage_frac on landing; bosses and Elites take it at once (Slam Dunk 0.25 and 1.5) |
+| `heat_look` `{color, hot, glow_min, glow_max, seam_glow_max, pulse_hz, pulse, surfaces, trail_from, trail_size, trail_life, flame_from, flame_size, halo, halo_from, halo_alpha}` | colours, numbers, `all` \| `seams` \| `body` | see keys_BB (`#FF6A1A`, `#FFC060`, 0, 0.5, 1.6, 3, 0.35, all, 0.1, 1, 0.35, 0.4, 1, 1.8, 0.9, 0.22) | the ball's Heat shown on the ball (no HUD gauge): glow, trail, flames, the beating halo at the top |
+| `tint.body`, `tint.vertex_colors`, `tint.seams` `{color, emission, energy, below}` | colour, bool, object | none, the model's, `#0A0A0A` / none / `1` / `0.25` | a ball in its own colour with its seams kept (Alley-Oop dark blue, Slam Dunk black with ember seams) |
+| `fire_without_target` | bool | `false` | May's Trigger Happy: the gun fires on its clock with nobody in range, along her facing |
+| `stream` | bool | `false` | a burst spread evenly over the whole cooldown: the gun never pauses |
+
+`behavior` gained `SaltShaker` (the Salt: damage a tick, cooldown between pours, amount = patches a pour, area, duration
+a patch lies) and `Frisbee` (damage, cooldown, amount = discs a volley, speed, range, knockback; `pierce: 999` is only a
+marker).
+
+### Perks (pass 69: a form of their own)
+
+`content/perks/<id>/<id>.json`, edited from the Heroes tab (His own → Edit, + New perk…): `id`, `name`, `flavour`,
+`rarity`, `weight`, `hidden`, `hero` (the only hero offered it; required), `text` (the card), `effects` (player stats),
+`special` and `params`. `special` names a mechanism (`vocab.PERK_SPECIALS`, checked against the code's defaults):
+`decoy` and `periodic_buff` work on any perk; every other one is also checked by its perk's own id in the game
+(`Run.has_perk("<id>")`), so a copy under a new id keeps its numbers but never fires.
+
+| `special` | Params (the code's defaults) | What it does |
+|---|---|---|
+| `decoy` | `every` 30, `first` 6, `throw_min` 4, `throw_max` 7, `flight` 0.6, `radius` 6.5, `duration` 2 | May's Inflatable May: every `every` s she throws an inflatable double of herself; where it lands, every creature within `radius` m (Elites too, never a boss) goes for the doll for `duration` s with a pink "?" over it, then it pops |
+| `periodic_buff` | `every` 30, `first` (= every), `seconds` 5, `buff` (effects) | Buzzer Beater: the buff effects for `seconds` every `every` s |
+| `timeout`, `overdrive`, `ram`, `high_noon`, ... | see `vocab.PERK_SPECIALS` | each hero's own mechanism (by id) |
+
+### Player stats (pass 69: the new passive items)
+
+| Stat | Kind | What it does |
+|---|---|---|
+| `counter_damage`, `counter_haste`, `counter_speed`, `counter_seconds` | pct, pct, pct, sec | Counterpunch: after an evade the next attack × (1 + counter_damage), weapon and move speed up for counter_seconds |
+| `heavyweight` | pct | attack damage per whole 10 max HP |
+| `overheal` | pct | Snake Oil: heals that are not regen go past full up to this share of max HP (pink on the HP bar) |
+| `heal_pulse` | num | Hot Springs: every heal hurts creatures within 3 m for this + 2 per HP healed (40 at most, one pulse per 0.5 s) |
+| `last_stand` | pct | a hit leaving him under 30% HP slows time to half for 2 s and adds this attack damage (a hidden 20 s cooldown) |
+| `xp_pull_radius` | m | the Magnet: every few seconds at random every EXP gem within this radius flies to him (8.5 m at most) |
+| `xp_pull_rate` | **word** | the Magnet: the pulls' wait divided by 1 + this; cards say "pulls more often", never a number; left out of totals |
+
+The `magnet` stat (pickup radius) stays for the Prospector's Eye and the hero specials; the Magnet item no longer gives it.
+
+### Special enemies (pass 69, lane EN)
+
+A creature's `variance.special` gained `glow` (0..1, the emissive rim in its colour; default 0.6) and every creature's
+numbers moved (size 1.25, hp 10, damage 2, special_chance a third of before); the map's `timeline_data.special_defaults`
+`{size, hp, damage, xp, tint_strength, glow}` fills any box a creature leaves empty (own > map > the game's), and a swarm
+event's `special: true` brings every creature as its special for sure (docs/waves_schema.md). The Enemies tab's *Special*
+section and Settings → *Coloured specials* edit them.
 
 ## A creature created from a template
 

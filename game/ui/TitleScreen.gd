@@ -11,6 +11,15 @@
 ## lives in Settings (hold the version label for 2 s), and the player's own debug mode (ten taps on the hints switch)
 ## puts an ARENA button top right. The top block hangs from the top edge, the plaque and the buttons from the bottom;
 ## the hero keeps the middle.
+## Pass 69 (Garry: heroes to unlock and to buy): the carousel holds every hero not hidden, owned first, then those on
+## sale, then the locked ones (Registry.heroes_for_drawer). A hero not owned runs in under a full black mask; his plaque
+## reads Unknown, "?" for his stats, his start weapon and favourite as black silhouettes with a "?" (WPlate.mystery), and
+## PLAY is LOCKED. Locked (his quest not done): what unlocks him written over the plaque (the Requirement card, with how
+## far along it is) and the padlock on his chest. On sale: a BUY button over him with his price; a tap asks (WConfirm),
+## spends the gold (Save.buy_hero), lifts the mask (TitleStage.reveal) with a burst (WCelebrate) and he is playable. Left
+## of the plaque the Hero Collections button (a box of boxes) opens the hero drawer over the preview (WHeroDrawer: every
+## hero as a badge tile, two rows); a tile selects that hero, a tap outside closes it, and while it is open the button
+## is a close X.
 ## Pass 52, two looks (Settings.menu_style, chosen in Settings under the player's debug mode): "painted" as above, or
 ## "live": the level itself behind the UI instead of the still, and in place of the cut-out the hero as a run draws him,
 ## smaller, standing on the sand with his start weapon circling him (ui/TitleStage.gd); a locked one is a dark figure
@@ -81,6 +90,27 @@ var _stage: TitleStageScript
 var _lock: Control
 var _wash_rect: TextureRect
 var _wash_grad: Gradient
+## Pass 69: the gold plate (a purchase changes it on the title now), the Hero Collections button left of the plaque and
+## its glyph, the drawer it opens, the Requirement card over the plaque of a locked hero, the BUY button over a hero on
+## sale (in a column with the shortfall under it when the purse is short).
+const WHeroDrawerScript := preload("res://ui/wanted/WHeroDrawer.gd")
+const BOX_BTN := 104.0
+const BOX_GAP := 14.0
+const BOX_LEFT := 36.0
+var _gold_plate: PanelContainer
+var _drawer_btn: WTap
+var _drawer_glyph: Control
+var _drawer: Control
+var _req: PanelContainer
+var _req_text: WText
+var _buy_col: VBoxContainer
+var _buy: WButton
+var _buy_note: WText
+var _buy_note_box: PanelContainer
+## The title's top block (the name stack): the drawer stays under it.
+var _top_stack: Control
+## A hero not owned on the painted title: his cut-out's fill, a full black (pass 69).
+const MASK := Color(0.03, 0.024, 0.02, 1.0)
 
 
 ## Back on the title leaves the game, as it always did (quit_on_go_back is off so a run can ignore the gesture).
@@ -89,6 +119,12 @@ func _notification(what: int) -> void:
 		# the hero's sheet up (pass 61): back closes it, the game stays
 		if sheet_open():
 			_sheet.call("close")
+			return
+		# pass 69: the buy question, then the hero drawer, before the game goes
+		if WConfirm.dismiss(self):
+			return
+		if drawer_open():
+			close_drawer()
 			return
 		Save.flush()
 		get_tree().quit()
@@ -112,6 +148,9 @@ func _ready() -> void:
 	_affordable = _rank_affordable()
 	_heroes = _roster()
 	var last := Registry.playable_character(str(Save.data.get("last_character", Save.DEFAULT_HERO)))
+	# pass 69: a hero to be bought is not the one the title opens on (the first owned one is: the carousel lists them first)
+	if last and _is_locked(last):
+		last = null
 	_index = maxi(_heroes.find(last), 0)
 	_maps = Registry.sorted_maps().filter(func(m: MapDef) -> bool: return Registry.is_unlocked("map", m.id))
 	_map_id = str(Save.data.get("last_map", ""))
@@ -128,6 +167,7 @@ func _ready() -> void:
 	var gold := WMenuHeader.gold_plate(Save.gold(), 44, 40.0, 5, 4)
 	gold.position = Vector2(36, 44 + W.safe_top())
 	add_child(gold)
+	_gold_plate = gold
 	# the debug arena (pass 44: the player's debug mode, ten taps on the hints switch), top right
 	_arena_btn = WButton.make(["ARENA"], 24, WButton.SECONDARY, 4, 4, 10.0, 18.0)
 	_arena_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -143,6 +183,7 @@ func _ready() -> void:
 	add_child(_arena_btn)
 	# the name stack
 	var stack := VBoxContainer.new()
+	_top_stack = stack
 	stack.add_theme_constant_override("separation", 0)
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -162,6 +203,7 @@ func _ready() -> void:
 	stack.add_child(tag)
 	_build_hero_row()
 	_build_lower()
+	_build_unknown()
 	_show_hero(0)
 	get_viewport().size_changed.connect(_place)
 	_place()
@@ -239,6 +281,19 @@ func _build_lower() -> void:
 	tap.pressed.connect(open_sheet)
 	_plaque = tap
 	add_child(_plaque)
+	# pass 69: the Hero Collections button left of the plaque (a box of boxes; a close X while the drawer is open)
+	_drawer_btn = WTap.new()
+	_drawer_btn.name = "HeroesButton"
+	_drawer_btn.box = W.box(W.PAPER, 5, 6)
+	_drawer_btn.custom_minimum_size = Vector2(BOX_BTN, BOX_BTN)
+	_drawer_btn.size = Vector2(BOX_BTN, BOX_BTN)
+	_drawer_glyph = Control.new()
+	_drawer_glyph.name = "Glyph"
+	_drawer_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_drawer_glyph.draw.connect(_draw_drawer_glyph)
+	_drawer_btn.add_child(_drawer_glyph)
+	_drawer_btn.pressed.connect(toggle_drawer)
+	add_child(_drawer_btn)
 	var pv := VBoxContainer.new()
 	pv.add_theme_constant_override("separation", 14)
 	pv.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -314,7 +369,7 @@ func _build_lower() -> void:
 		row.add_child(b)
 		if primary:
 			_upgrade_btn = b
-	_lower = [_plaque, _play, _map_tap, row]
+	_lower = [_plaque, _drawer_btn, _play, _map_tap, row]
 	_refresh_map()
 
 
@@ -322,9 +377,13 @@ func _build_lower() -> void:
 ## middle and shrinks when a short screen has no room for it.
 func _place() -> void:
 	var vp := get_viewport_rect().size
-	_plaque.size = Vector2(vp.x - 120, 0)
+	# pass 69: the Hero Collections button takes the plaque's left end; the plaque keeps its right edge (PLAY's)
+	var plaque_x := BOX_LEFT + BOX_BTN + BOX_GAP
+	_plaque.size = Vector2(vp.x - 60.0 - plaque_x, 0)
 	var plaque_top := vp.y - PLAY_UP - PLAQUE_GAP - _plaque.get_combined_minimum_size().y
-	_plaque.position = Vector2(60, plaque_top)
+	_plaque.position = Vector2(plaque_x, plaque_top)
+	_drawer_btn.size = Vector2(BOX_BTN, BOX_BTN)
+	_drawer_btn.position = Vector2(BOX_LEFT, plaque_top + (_plaque.get_combined_minimum_size().y - BOX_BTN) * 0.5)
 	_play.position = Vector2(60, vp.y - PLAY_UP)
 	_play.size = Vector2(vp.x - 120, 0)
 	_map_tap.position = Vector2(0, vp.y - MAP_UP)
@@ -351,6 +410,7 @@ func _place() -> void:
 		_stage.frame(Rect2(_hero_row.position + _art_host.position, HERO_SIZE * k))
 		_live_wash(vp.y, plaque_top)
 		_place_lock()
+	_place_unknown(plaque_top)
 
 
 ## The live look's wash stops (pass 52): clear to just under the hero's shadow, paper by a little past the plaque's top.
@@ -362,25 +422,27 @@ func _live_wash(h: float, plaque_top: float) -> void:
 	_wash_grad.offsets = PackedFloat32Array([0.0, 0.3, 0.5, clear_to, paper_at, 1.0])
 
 
-## Every hero the carousel shows: the open ones first, then those still to unlock. With the developer's preview on,
-## the hidden heroes join the locked ones.
+## Every hero the carousel shows (pass 69: Registry.heroes_for_drawer, the drawer's list too): the owned ones first,
+## then those on sale, then the locked ones. With the developer's preview on, the hidden heroes join the locked ones.
 func _roster() -> Array:
-	var open: Array = []
-	var shut: Array = []
-	for c: CharacterDef in Registry.sorted_characters():
-		if Registry.is_unlocked("character", c.id):
-			open.append(c)
-		else:
-			shut.append(c)
+	var out: Array = Registry.heroes_for_drawer()
 	if bool(Settings.get("preview_locked_heroes")):
 		var hidden: Array = Registry.characters.values().filter(func(c: CharacterDef) -> bool: return c.hidden)
 		hidden.sort_custom(func(a, b): return a.id < b.id)
-		shut.append_array(hidden)
-	return open + shut
+		out.append_array(hidden)
+	return out
 
 
+## Where the player stands with `c` (pass 69, Registry.hero_state): owned, buyable or locked; a hidden hero the
+## developer previews reads as locked.
+func _state(c: CharacterDef) -> String:
+	var st := Registry.hero_state(c)
+	return "locked" if st == "hidden" else st
+
+
+## Not owned (pass 69: locked, on sale, or a previewed hidden one): the black mask, Unknown, PLAY locked.
 func _is_locked(c: CharacterDef) -> bool:
-	return c.hidden or not Registry.is_unlocked("character", c.id)
+	return _state(c) != "owned"
 
 
 ## The hero at `_index`: the cut-out (sliding in from the side the finger went), the dots, the plaque and PLAY.
@@ -390,52 +452,63 @@ func _show_hero(from_side: int) -> void:
 	var c: CharacterDef = _heroes[_index]
 	var locked := _is_locked(c)
 	if _live:
-		# the hero on the sand (pass 52): he runs in from the side the finger came from, the last one runs off
+		# the hero on the sand (pass 52): he runs in from the side the finger came from, the last one runs off; one not
+		# owned under a full black mask (pass 69), the padlock on his chest while his requirement is not met
 		_stage.show_hero(c, locked, from_side)
-		_show_lock(locked, from_side)
+		_show_lock(_state(c) == "locked", from_side)
 	else:
-		if _art:
-			_art.queue_free()
-		var who := ("the " + c.display_name) if c.id == "drifter" else c.display_name
-		# the cut-out of the look he is played in (pass 68, Registry.played_look): the look's own `title` when that file
-		# is there, else hero_<id>.png, else the striped slot
-		_art = WPlaceholder.make(Registry.played_look(c).title_path(), "%s, full-body cut-out\nfacing camera · 520 × 700" % who, HERO_SIZE)
-		if locked:
-			# painted: a dark silhouette; not yet painted: the striped slot, faded
-			_art.silhouette = true
-			_art.modulate.a = 1.0 if _art.tex else 0.45
+		_show_art(c, from_side)
+	_show_plaque(c)
+
+
+## The painted look's cut-out of `c`, sliding in from `from_side`: the look he is played in (pass 68,
+## Registry.played_look): the look's own `title` when that file is there, else hero_<id>.png, else the striped slot. A
+## hero not owned: the cut-out a black silhouette (pass 69: a full black mask), the padlock while he is locked.
+func _show_art(c: CharacterDef, from_side: int) -> void:
+	if _art:
+		_art.queue_free()
+	var who := ("the " + c.display_name) if c.id == "drifter" else c.display_name
+	_art = WPlaceholder.make(Registry.played_look(c).title_path(), "%s, full-body cut-out\nfacing camera · 520 × 700" % who, HERO_SIZE)
+	if _is_locked(c):
+		# painted: a black silhouette; not yet painted: the striped slot, faded
+		_art.silhouette = true
+		(_art.material as ShaderMaterial).set_shader_parameter("fill", MASK)
+		_art.modulate.a = 1.0 if _art.tex else 0.45
+		if _state(c) == "locked":
 			_art.add_child(_padlock())
-		_art_host.add_child(_art)
-		if from_side != 0:
-			_art.position.x = 90.0 * from_side
-			var a := _art.modulate.a
-			_art.modulate.a = 0.0
-			var tw := create_tween().set_parallel(true)
-			tw.tween_property(_art, "position:x", 0.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-			tw.tween_property(_art, "modulate:a", a, 0.16)
+	_art_host.add_child(_art)
+	if from_side != 0:
+		_art.position.x = 90.0 * from_side
+		var a := _art.modulate.a
+		_art.modulate.a = 0.0
+		var tw := create_tween().set_parallel(true)
+		tw.tween_property(_art, "position:x", 0.0, 0.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.tween_property(_art, "modulate:a", a, 0.16)
+
+
+## The dots, the plaque, PLAY, the Requirement card and the BUY for `c`. Pass 69 (Garry: "the name is simply 'unknown',
+## stats are unknown, weapon is a black silhouette of the one with a question mark and so is the fav item"): a hero not
+## owned reads Unknown, a "?" for each of his numbers, his start weapon and favourite as mystery plates.
+func _show_plaque(c: CharacterDef) -> void:
+	var locked := _is_locked(c)
 	_dots.queue_redraw()
 	_name.text = ("The " + c.display_name) if c.id == "drifter" else c.display_name
 	# out of the row at once: a queued plate still counts, and the plaque sized in that moment stayed too wide
 	for s in _stats.get_children():
 		_stats.remove_child(s)
 		s.queue_free()
+	_line.visible = not locked
 	if locked:
-		# what unlocks this hero, and how far along that is
-		var q := Registry.quest_for("character", c.id)
-		_line.text = TextGen.quest_text(q) if q else "Not in the game yet."
-		_line.font = W.serif(400, false)
-		_line.color = W.INK
-		if q:
-			var p := QuestTracker.progress(q)
-			if p.y > 0:
-				var col := _column()
-				var bar := WBar.make(clampf(float(p.x) / float(p.y), 0.0, 1.0), W.BRASS, 34.0, 4, 0)
-				bar.custom_minimum_size.x = 250
-				bar.text = "%s / %s" % [W.num(mini(p.x, p.y)), W.num(p.y)]
-				bar.text_px = 22
-				col.add_child(bar)
-				col.add_child(W.label("To unlock", 14, W.INK_SOFT, 0.1))
-				_stats.add_child(col)
+		_name.text = "Unknown"
+		_line.text = ""
+		for st in _stats_of(c):
+			_stats.add_child(_stat("?", "???", true, true))
+		var start0 := Registry.start_weapon_for(c)
+		if start0:
+			_stats.add_child(_item_plate(start0, "Start", 1, true))
+		var fav0 := _favourite_of(c)
+		if fav0 and fav0 != start0:
+			_stats.add_child(_item_plate(fav0, "Favourite", 1, true))
 	else:
 		_line.font = W.serif(400, true)
 		_line.color = W.INK_SOFT
@@ -457,6 +530,7 @@ func _show_hero(from_side: int) -> void:
 	_play.set_parts(["LOCKED" if locked else "PLAY"])
 	if not locked:
 		Save.data["last_character"] = c.id
+	_show_unknown(c)
 
 
 ## The hero's favourite: his weapon, or when he has none, the line or passive he favours (pass 46: Ironwood's Cake; pass
@@ -489,13 +563,15 @@ static func start_level(c: CharacterDef, def: ContentDef) -> int:
 
 ## An item on the plaque: its 92 px plate in the colour of the level he has it at and a tracked word under it (START,
 ## FAVOURITE, SPECIAL).
-func _item_plate(def: ContentDef, word: String, level: int = 1) -> VBoxContainer:
+func _item_plate(def: ContentDef, word: String, level: int = 1, mystery: bool = false) -> VBoxContainer:
 	var col := _column()
 	col.name = word
 	col.set_meta("def", def)
 	col.set_meta("level", level)
 	var p := WPlate.new().for_def(def, 92.0, false, level)
 	p.icon_frac = 68.0 / 92.0
+	# pass 69: a hero not owned yet shows only the item's black shape and a "?"
+	p.mystery = mystery
 	col.add_child(p)
 	col.add_child(W.label(word, 14, W.INK_SOFT, 0.1))
 	return col
@@ -541,9 +617,9 @@ func _column() -> VBoxContainer:
 
 
 ## One number on the plaque: sage slab (dark red for a debuff) over a tracked label.
-func _stat(value: String, what: String, good: bool = true) -> VBoxContainer:
+func _stat(value: String, what: String, good: bool = true, unknown: bool = false) -> VBoxContainer:
 	var v := _column()
-	var n := W.slab_text(value, 34, W.SAGE if good else W.BAD_DARK, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+	var n := W.slab_text(value, 34, W.INK_SOFT if unknown else (W.SAGE if good else W.BAD_DARK), HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	v.add_child(n)
 	var l := W.label(what, 14, W.INK_SOFT, 0.1)
 	l.align = HORIZONTAL_ALIGNMENT_CENTER
@@ -716,6 +792,10 @@ func _on_play() -> void:
 		Audio.play("ui_locked")
 		return
 	var c: CharacterDef = _heroes[_index] if not _heroes.is_empty() else null
+	# pass 69: a hero not owned never starts a run, whatever the button shows
+	if c and _is_locked(c):
+		Audio.play("ui_locked")
+		return
 	if c:
 		Save.data["last_character"] = c.id
 	Save.data["last_map"] = _map_id
@@ -736,6 +816,250 @@ func sheet_open() -> bool:
 	return _sheet != null and is_instance_valid(_sheet) and not bool(_sheet.call("is_done"))
 
 
+# ---------------------------------------------------------------- heroes to buy (pass 69)
+
+## The Requirement card over the plaque (a hero whose requirement is not met: what unlocks him, how far along it is) and
+## the BUY column over the hero (one on sale: BUY with his price, and under it what the purse is short of). Built once,
+## shown and filled by _show_unknown, placed by _place_unknown. Names for tools: "Requirement", "BuyColumn", "Buy",
+## "BuyNote".
+func _build_unknown() -> void:
+	_req = PanelContainer.new()
+	_req.name = "Requirement"
+	_req.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_req.add_theme_stylebox_override("panel", W.box(W.AGED, 4, 6).pad(26, 14, 26, 18))
+	var v := VBoxContainer.new()
+	v.name = "Rows"
+	v.add_theme_constant_override("separation", 8)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_req.add_child(v)
+	v.add_child(W.label("To unlock", 18, W.ROCK, 0.15))
+	var line := HBoxContainer.new()
+	line.name = "Line"
+	line.add_theme_constant_override("separation", 20)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(line)
+	_req_text = W.serif_text("", 28, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	_req_text.name = "Text"
+	_req_text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_req_text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	line.add_child(_req_text)
+	_req.visible = false
+	add_child(_req)
+	_buy_col = VBoxContainer.new()
+	_buy_col.name = "BuyColumn"
+	_buy_col.alignment = BoxContainer.ALIGNMENT_CENTER
+	_buy_col.add_theme_constant_override("separation", 12)
+	_buy_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_buy = WButton.make(["BUY"], 52, WButton.PRIMARY, 5, 8, 16.0, 30.0)
+	_buy.name = "Buy"
+	_buy.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	# short of gold it stays whole over the black figure (aged, no shadow), the shortfall under it
+	_buy.locked_alpha = 1.0
+	_buy.pressed.connect(ask_buy)
+	_buy_col.add_child(_buy)
+	_buy_note_box = PanelContainer.new()
+	_buy_note_box.name = "BuyNote"
+	_buy_note_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_buy_note_box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_buy_note_box.add_theme_stylebox_override("panel", W.box(W.PAPER, 3, 4).pad(16, 6, 16, 8))
+	_buy_note = W.label("", 18, W.ROCK, 0.12)
+	_buy_note_box.add_child(_buy_note)
+	_buy_col.add_child(_buy_note_box)
+	_buy_col.visible = false
+	add_child(_buy_col)
+
+
+## What the card and the BUY say for `c`, and which of them shows.
+func _show_unknown(c: CharacterDef) -> void:
+	if _req == null or _buy_col == null:
+		return
+	var st := _state(c)
+	_req.visible = st == "locked"
+	_buy_col.visible = st == "buyable"
+	if st == "locked":
+		var q := Registry.quest_for("character", c.id)
+		_req_text.text = Registry.hero_requirement_text(c) if q else "Not in the game yet."
+		var line: Control = _req.get_node("Rows/Line")
+		var old := line.get_node_or_null("Bar")
+		if old:
+			line.remove_child(old)
+			old.queue_free()
+		var p := QuestTracker.progress(q) if q else Vector2i.ZERO
+		if p.y > 0:
+			var bar := WBar.make(clampf(float(p.x) / float(p.y), 0.0, 1.0), W.BRASS, 34.0, 4, 0)
+			bar.name = "Bar"
+			bar.custom_minimum_size.x = 280
+			bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			bar.text = "%s / %s" % [W.num(mini(p.x, p.y)), W.num(p.y)]
+			bar.text_px = 20
+			line.add_child(bar)
+	elif st == "buyable":
+		var short := maxi(c.price, 0) - Save.gold()
+		_buy.set_parts(["BUY", {"coin": 46, "fill": W.PAPER}, [W.num(maxi(c.price, 0)), null, 52]])
+		_buy.locked = short > 0
+		_buy_note_box.visible = short > 0
+		_buy_note.text = "%s more gold" % W.num(short) if short > 0 else ""
+
+
+## The card over the plaque, its width, its foot just over the dots (it covers the black figure's feet); the BUY over the
+## middle of the hero's figure; the drawer in its room over the preview.
+func _place_unknown(_plaque_top: float) -> void:
+	if _req:
+		_req.size = Vector2(_plaque.size.x, 0)
+		_req.reset_size()
+		_req.size = Vector2(_plaque.size.x, 0)
+		var h := _req.get_combined_minimum_size().y
+		_req.position = Vector2(_plaque.position.x, _dots.position.y - 6.0 - h)
+	if _buy_col:
+		var fig := hero_figure_rect()
+		_buy_col.reset_size()
+		var cs := _buy_col.get_combined_minimum_size()
+		_buy_col.size = cs
+		_buy_col.position = Vector2(fig.get_center().x - cs.x * 0.5, fig.position.y + fig.size.y * 0.5 - _buy.get_combined_minimum_size().y * 0.5)
+	if drawer_open():
+		_drawer.call("frame", _drawer_area())
+
+
+## The rect the shown hero's figure takes on the screen: the live hero's (TitleStage.figure_rect), else the cut-out's box.
+func hero_figure_rect() -> Rect2:
+	if _stage:
+		return _stage.figure_rect()
+	return Rect2(_hero_row.position + _art_host.position, HERO_SIZE * _art_host.scale.x)
+
+
+## The drawer's room: under the title's top block, across the screen, its foot just over the hero's head (on a short
+## screen the drawer reaches down over him: WHeroDrawer.frame).
+func _drawer_area() -> Rect2:
+	var vp := get_viewport_rect().size
+	var top := 0.0
+	if _top_stack:
+		# its size can read 0 (anchored by its top edge only): its content's height counts
+		top = _top_stack.position.y + maxf(_top_stack.size.y, _top_stack.get_combined_minimum_size().y) + 14.0
+	var fig := hero_figure_rect()
+	var foot := fig.position.y - 10.0 if _stage else fig.position.y + fig.size.y * 0.42
+	return Rect2(Vector2(BOX_LEFT, top), Vector2(vp.x - BOX_LEFT * 2.0, maxf(foot - top, 0.0)))
+
+
+func drawer_open() -> bool:
+	return _drawer != null and is_instance_valid(_drawer) and not bool(_drawer.call("is_done"))
+
+
+## The Hero Collections button: opens the drawer, or closes it while it is open (its glyph is the close X then).
+func toggle_drawer() -> void:
+	if drawer_open():
+		close_drawer()
+	else:
+		open_drawer()
+
+
+## The drawer over the preview with every hero of the carousel, the shown one marked; the button moves over its catcher
+## so it can close it.
+func open_drawer() -> void:
+	if drawer_open() or _heroes.is_empty() or sheet_open():
+		return
+	_swipe_id = -2
+	var states := {}
+	for h: CharacterDef in _heroes:
+		states[h.id] = _state(h)
+	_drawer = WHeroDrawerScript.open(self, _heroes, _heroes[_index], _drawer_area(), states)
+	_drawer.connect("picked", _on_drawer_pick)
+	_drawer.connect("closed", func(): _drawer_glyph.queue_redraw())
+	move_child(_drawer_btn, -1)
+	_drawer_glyph.queue_redraw()
+
+
+func close_drawer() -> void:
+	if drawer_open():
+		_drawer.call("close")
+	_drawer_glyph.queue_redraw()
+
+
+## A tile tapped in the drawer: that hero is shown (he runs in from the side his tile lies on), the drawer stays open.
+func _on_drawer_pick(h: CharacterDef) -> void:
+	var i := _heroes.find(h)
+	if i < 0 or i == _index:
+		return
+	var dir := 1 if i > _index else -1
+	_index = i
+	_show_hero(dir)
+	_place()
+
+
+## The button's glyph: a box of boxes (Garry: "It's meant to look like a box of boxes"): two small brass boxes standing
+## in an open crate; while the drawer is open, a close X.
+func _draw_drawer_glyph() -> void:
+	var g := _drawer_glyph
+	var c := g.size * 0.5
+	if drawer_open():
+		var r := 22.0
+		g.draw_line(c + Vector2(-r, -r), c + Vector2(r, r), W.INK, 9.0, true)
+		g.draw_line(c + Vector2(r, -r), c + Vector2(-r, r), W.INK, 9.0, true)
+		return
+	var k := 1.25
+	var o := c + Vector2(-30.0, -29.0) * k
+	var small := func(r: Rect2, fill: Color) -> void:
+		g.draw_rect(r, W.INK)
+		g.draw_rect(r.grow(-3.5), fill)
+		g.draw_line(Vector2(r.position.x + 3.5, r.position.y + r.size.y * 0.42), Vector2(r.end.x - 3.5, r.position.y + r.size.y * 0.42), W.INK, 2.5)
+	# the boxes inside, poking out over the crate's rim, then a third one on top of them
+	small.call(Rect2(o + Vector2(6, 14) * k, Vector2(24, 24) * k), W.BRASS)
+	small.call(Rect2(o + Vector2(31, 18) * k, Vector2(23, 20) * k), W.TURQUOISE)
+	small.call(Rect2(o + Vector2(17, 0) * k, Vector2(20, 16) * k), W.ROCK)
+	# the crate's front over their feet: ink frame, aged boards, a rim
+	var crate := Rect2(o + Vector2(0, 30) * k, Vector2(60, 28) * k)
+	g.draw_rect(crate, W.INK)
+	g.draw_rect(crate.grow(-4.5), W.AGED)
+	g.draw_line(Vector2(crate.position.x + 4.5, crate.position.y + 13.0 * k), Vector2(crate.end.x - 4.5, crate.position.y + 13.0 * k), W.INK, 3.5)
+
+
+## The BUY button: a hero on sale and a purse that holds his price asks first (WConfirm); short of it, it only says so.
+func ask_buy() -> void:
+	if _heroes.is_empty():
+		return
+	var c: CharacterDef = _heroes[_index]
+	if _state(c) != "buyable":
+		return
+	if Save.gold() < maxi(c.price, 0):
+		Audio.play("ui_locked")
+		return
+	WConfirm.open(self, "Buy this hero?", "%s gold from your purse. Yours to play from then on." % W.num(maxi(c.price, 0)),
+		"Buy · %s" % W.num(maxi(c.price, 0)), "Not now", func(): _buy_now(c))
+
+
+## The purchase: the gold spent (Save.buy_hero, the sink "hero"), the mask lifted with a burst, the plaque and PLAY his.
+func _buy_now(c: CharacterDef) -> void:
+	if not Save.buy_hero(c):
+		Audio.play("ui_locked")
+		_show_plaque(c)
+		_place()
+		return
+	Audio.play("ui_buy")
+	Analytics.track("hero_bought", {"hero": c.id, "price": maxi(c.price, 0), "currency": c.currency_type, "gold_after": Save.gold()})
+	_refresh_gold()
+	# the carousel's order follows what is owned: he moves up among the owned heroes and stays the one shown
+	_heroes = _roster()
+	_index = maxi(_heroes.find(c), 0)
+	if _live:
+		_stage.reveal()
+		_show_lock(false, 0)
+	else:
+		_show_art(c, 0)
+	_show_plaque(c)
+	_place()
+	var fig := hero_figure_rect()
+	WCelebrate.burst(self, fig.get_center(), get_child_count(), 1.6)
+
+
+## The gold plate's number after a purchase, and the Upgrade mark (a rank may no longer be affordable).
+func _refresh_gold() -> void:
+	if _gold_plate:
+		for n in _gold_plate.find_children("Amount", "", true, false):
+			(n as WText).text = W.num(Save.gold())
+		# fewer digits: the plate shrinks to them
+		_gold_plate.reset_size()
+	_affordable = _rank_affordable()
+
+
 ## A tap on the plaque (pass 61): the shown hero's sheet, a locked one's with its quest.
 func open_sheet() -> void:
 	if _heroes.is_empty() or sheet_open():
@@ -748,7 +1072,8 @@ func open_sheet() -> void:
 ## A sideways swipe over the hero changes it; the finger is read here so it works wherever it lands in the row, and
 ## (pass 61) across the plaque, whose tap opens the hero's sheet: a swipe travels past the tap's slop, so it never opens it.
 func _input(event: InputEvent) -> void:
-	if sheet_open():
+	# pass 69: with the drawer open its own list takes the sideways drags, and a tap outside it only closes it
+	if sheet_open() or drawer_open():
 		return
 	var pos := Vector2.ZERO
 	var id := -2

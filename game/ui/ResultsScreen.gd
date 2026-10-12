@@ -21,6 +21,8 @@ const SOURCES := {
 	"blast": ["blast", "Explosions"], "explosion": ["blast", "Explosions"], "loose_rocket": ["blast", "Explosions"],
 	"thorns": ["passive:bristle", "Thorns"],
 	"powder_keg": ["passive:powder_keg", "Powder Keg"],
+	# pass 69: Hot Springs' heal pulses
+	"hot_springs": ["passive:hot_springs", "Hot Springs"],
 }
 
 var _count: WText
@@ -350,16 +352,19 @@ func _unlocked(q: QuestDef) -> PanelContainer:
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(h)
 	var def := _reward(q)
+	# pass 69: a hero to buy is not his yet: on sale, still unknown (his badge black with a "?")
+	var on_sale := def is CharacterDef and (def as CharacterDef).availability == "purchase"
 	if def:
 		var pl := WPlate.new().for_def(def, 96.0)
 		pl.icon_frac = 0.7
+		pl.mystery = on_sale
 		h.add_child(pl)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 0)
 	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(W.label("Unlocked", 18, W.SAGE))
-	v.add_child(W.slab_text(def.display_name if def else q.display_name, 36, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 36.0))
+	v.add_child(W.label("For sale" if on_sale else "Unlocked", 18, W.SAGE))
+	v.add_child(W.slab_text("A new hero" if on_sale else (def.display_name if def else q.display_name), 36, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 36.0))
 	h.add_child(v)
 	var why := W.serif_text(TextGen.quest_text(q), 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, true)
 	why.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/mutations/sea_salt/sea_salt_icon.png" id="1_e2vfw"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="2_kihcv"]
+
+[resource]
+script = ExtResource("2_kihcv")
+weapon = "salt"
+mutation_kind = "element"
+text = "The salt turns pink and lasts 75% longer, for 5% less damage."
+vfx = "pink patches; the shaker fills with pink salt"
+params = {
+"salt": {
+"color": "#F4A3C4",
+"contents": "#F4A3C4",
+"damage_mult": 0.95,
+"duration_mult": 1.75
+}
+}
+id = "sea_salt"
+display_name = "Sea Salt"
+flavour = "Pink, coarse and in no hurry."
+rarity = "rare"
+weight = 8.0
+icon = ExtResource("1_e2vfw")
+icon_file = "sea_salt_icon.png"
+placeholder = {
+"color": "#F4A3C4",
+"glyph": "star"
+}

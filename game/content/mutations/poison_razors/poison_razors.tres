@@ -1,0 +1,48 @@
+[gd_resource type="Resource" script_class="MutationDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="1_xfdx6"]
+[ext_resource type="Texture2D" path="res://content/mutations/poison_razors/poison_razors_icon.png" id="2_yj7jh"]
+[ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_gccls"]
+
+[sub_resource type="Resource" id="Resource_xfdx6"]
+script = ExtResource("1_xfdx6")
+stat = "poison_damage"
+value = 4.0
+
+[sub_resource type="Resource" id="Resource_yj7jh"]
+script = ExtResource("1_xfdx6")
+stat = "poison_stacks"
+value = 1.0
+
+[sub_resource type="Resource" id="Resource_gccls"]
+script = ExtResource("1_xfdx6")
+stat = "poison_duration"
+value = 4.0
+
+[resource]
+script = ExtResource("3_gccls")
+weapon = "frisbee"
+mutation_kind = "element"
+text = "Razor blades round the rim: everything it cuts is poisoned."
+vfx = "a hot-pink frisbee with steel razor blades stuck round its rim; the poison tick's green flash on what it cuts"
+effects = [SubResource("Resource_xfdx6"), SubResource("Resource_yj7jh"), SubResource("Resource_gccls")]
+params = {
+"disc": {
+"albedo": "#FF3FA4",
+"emission": "#FF1F8A",
+"energy": 0.7,
+"look": "razors"
+}
+}
+id = "poison_razors"
+display_name = "Poison Razors"
+flavour = "Some toys come with a warning label."
+rarity = "rare"
+element = "poison"
+weight = 8.0
+icon = ExtResource("2_yj7jh")
+icon_file = "poison_razors_icon.png"
+placeholder = {
+"color": "#FF3FA4",
+"glyph": "saw"
+}

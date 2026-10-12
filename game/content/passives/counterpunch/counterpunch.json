@@ -1,0 +1,63 @@
+{
+  "id": "counterpunch",
+  "name": "Counterpunch",
+  "rarity": "uncommon",
+  "weight": 8,
+  "max_level": 5,
+  "flavour": "Duck. Then swing.",
+  "text": "After an evade, your next attack deals double damage, and for 2 s you attack 20% faster and move 15% faster.",
+  "levels": [
+    [
+      {
+        "stat": "counter_damage",
+        "op": "add",
+        "value": 1.0,
+        "target": "player"
+      },
+      {
+        "stat": "counter_haste",
+        "op": "add",
+        "value": 0.2,
+        "target": "player"
+      },
+      {
+        "stat": "counter_speed",
+        "op": "add",
+        "value": 0.15,
+        "target": "player"
+      },
+      {
+        "stat": "counter_seconds",
+        "op": "add",
+        "value": 2.0,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "counter_haste",
+        "op": "add",
+        "value": 0.05,
+        "target": "player"
+      },
+      {
+        "stat": "counter_speed",
+        "op": "add",
+        "value": 0.03,
+        "target": "player"
+      },
+      {
+        "stat": "counter_seconds",
+        "op": "add",
+        "value": 0.25,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "a red leather boxing glove punching forward out of a faded white motion-blur afterimage of itself, a small yellow impact star at its knuckles",
+  "placeholder": {
+    "color": "#E0503C",
+    "glyph": "fist"
+  },
+  "repeat_last_level": true
+}

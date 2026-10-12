@@ -1,0 +1,18 @@
+{
+  "id": "unlock_solenne",
+  "name": "Solenne",
+  "condition": {
+    "type": "extract_after_stage",
+    "map": "red_canyon",
+    "stage": 2
+  },
+  "unlocks": {
+    "type": "character",
+    "id": "solenne"
+  },
+  "art_prompt": "a glass jar with a golden sun sceptre inside",
+  "placeholder": {
+    "color": "#C9A227",
+    "glyph": "star"
+  }
+}

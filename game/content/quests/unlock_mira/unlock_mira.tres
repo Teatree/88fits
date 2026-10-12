@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="QuestDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/quests/unlock_mira/unlock_mira_icon.png" id="1_x5qx0"]
+[ext_resource type="Script" path="res://core/data/QuestDef.gd" id="2_fvqhk"]
+
+[resource]
+script = ExtResource("2_fvqhk")
+condition = {
+"count": 99999999.0,
+"type": "kills_total"
+}
+unlocks = {
+"id": "mira",
+"type": "character"
+}
+id = "unlock_mira"
+display_name = "Mira"
+icon = ExtResource("1_x5qx0")
+icon_file = "unlock_mira_icon.png"
+placeholder = {
+"color": "#C9A227",
+"glyph": "star"
+}

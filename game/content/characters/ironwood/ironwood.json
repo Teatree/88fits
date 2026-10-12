@@ -4,6 +4,10 @@
   "flavour": "He has outlasted worse than you.",
   "order": 4,
   "pronoun": "he",
+  "hidden": false,
+  "availability": "purchase",
+  "price": 400,
+  "currency_type": "gold",
   "trait": [],
   "trait_per_level": [
     {

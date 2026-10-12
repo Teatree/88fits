@@ -16,6 +16,12 @@ uniform float push_back = 0.35;
 uniform float phase = 0.0;
 // mode 2: the ground's rise per metre along x and z under the chest (pass 52), so the pool lies on a slope, not through it
 uniform vec2 slope = vec2(0.0);
+// mode 1 (pass 69, lane EN; Garry: the spawn beam "gets cut off at the bottom ... fade out the effect before it reaches
+// the ground"): world heights (x below y) over which the beam fades in, nothing at x, whole at y, so its bright foot never
+// meets the sand in a hard line; y <= x = no fade (the chest's beam, which stands on the chest)
+uniform vec2 fade_y = vec2(0.0, 0.0);
+
+varying float v_wy;
 
 void vertex() {
 	vec3 origin = MODEL_MATRIX[3].xyz;
@@ -38,6 +44,7 @@ void vertex() {
 		float back = mode == 0 ? push_back : -0.15;
 		world = origin - cam_back * back + right * VERTEX.x * sx + up * VERTEX.y * sy;
 	}
+	v_wy = world.y;
 	VERTEX = (VIEW_MATRIX * vec4(world, 1.0)).xyz;
 	NORMAL = normalize((VIEW_MATRIX * vec4(cam_back, 0.0)).xyz);
 }
@@ -64,6 +71,9 @@ void fragment() {
 		float core = exp(-x * x * 10.0);
 		float shimmer = 0.8 + 0.2 * sin(t * 3.0 - y * 9.0);
 		a = core * pow(1.0 - y, 1.3) * shimmer * 0.75;
+		if (fade_y.y > fade_y.x) {
+			a *= smoothstep(fade_y.x, fade_y.y, v_wy);
+		}
 	} else if (mode == 2) {
 		float r = length(p);
 		a = exp(-r * r * 3.2) * (1.0 - smoothstep(0.75, 1.0, r)) * (0.7 + 0.3 * sin(t * 3.0));

@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/heavyweight/heavyweight_icon.png" id="1_gh40n"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_gwbko"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_xhxj1"]
+
+[sub_resource type="Resource" id="Resource_gh40n"]
+script = ExtResource("2_gwbko")
+stat = "heavyweight"
+value = 0.01
+target = "player"
+
+[sub_resource type="Resource" id="Resource_gwbko"]
+script = ExtResource("2_gwbko")
+stat = "heavyweight"
+value = 0.0025
+target = "player"
+
+[resource]
+script = ExtResource("3_xhxj1")
+levels = [[SubResource("Resource_gh40n")], [SubResource("Resource_gwbko")]]
+max_level = 5
+text = "+1% attack damage for every 10 max HP you have (+0.25% a level)."
+id = "heavyweight"
+display_name = "Heavyweight"
+flavour = "The bigger they are, the harder they hit."
+rarity = "rare"
+weight = 7.0
+icon = ExtResource("1_gh40n")
+icon_file = "heavyweight_icon.png"
+placeholder = {
+"color": "#8C3A2E",
+"glyph": "heart"
+}

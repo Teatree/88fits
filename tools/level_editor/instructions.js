@@ -24,6 +24,7 @@ const Instructions = (() => {
     clear(container);
     const root = el('div', { class: 'instr' });
     intro(root);
+    pass69(root);
     pass68(root);
     pass66(root);
     pass61(root);
@@ -507,6 +508,94 @@ const Instructions = (() => {
     root.appendChild(el('h2', { text: 'The schema (docs/waves_schema.md)' }));
     root.appendChild(p('The contract between this editor and the game, as the repository holds it. The editor writes exactly these keys.'));
     root.appendChild(el('div', { class: 'schema-doc', html: App.S.schema ? markdown(App.S.schema) : '<p class="muted">loading…</p>' }));
+  }
+
+  // ------------------------------------------------------------------ pass 69: how to use what pass 69 added (lane LE)
+
+  /** Garry (pass 69): "When making changes to Items along the way, make sure to update the LevelEditor and include
+   *  instructions on how I would be able to use the newly created tools in the future" (and the same for heroes). One
+   *  short how-to per new tool, each a list of steps on the page as it is. */
+  function pass69(root) {
+    const ol = (...steps) => el('ol', { class: 'howto' }, steps.map((s) => li(s)));
+    const how = (title, intro2, steps) => { root.appendChild(el('h3', { text: title })); if (intro2) root.appendChild(p(intro2)); root.appendChild(steps); };
+    root.appendChild(el('h2', { text: 'Pass 69: how to use the new tools' }));
+    root.appendChild(p('Garry: "make sure to update the LevelEditor and include instructions on how I would be able to use the newly created tools in the future." What changed in the editor, then one how-to per tool.'));
+    root.appendChild(el('ul', {},
+      li('<b>Typed params</b>: a weapon\'s <i>Params</i> section and a mutation\'s <i>Effect</i> section now show the knobs the Salt (<code>SaltShaker</code>), the Frisbee (<code>Frisbee</code>) and the basketball\'s new mechanisms read as fields, one per knob, each with a <b>?</b> that says what it does. An empty box shows in grey what applies without it and where that comes from (the weapon\'s own value for a mutation, else the game\'s default). The JSON box stays under them for every other key; both write the same file.'),
+      li('<b>Perks have a form</b>: on the Heroes tab, a hero\'s <i>His own</i> section lists his perks with <b>Edit</b> and <b>+ New perk…</b>. The perk form has Identity (name, hero, rarity, weight), Card (text, effects), Special (the mechanism and its numbers as fields) and Art (the icon, icon candidates).'),
+      li('<b>Heroes to buy</b>: Availability now means what the game does (free · to buy · hidden), with the price, the currency and a <b>Requirement</b> (his unlock quest) right under it.'),
+      li('<b>Icon candidates install from the item</b>: an item\'s <i>Art</i> section lists every finished icon candidate job of it (Rebound has three designs), each picture with <b>Install</b>.'),
+      li('<b>The new passive items\' stats</b> are in the effect picker with a line each on what they do: <code>counter_damage</code>, <code>counter_haste</code>, <code>counter_speed</code>, <code>counter_seconds</code> (Counterpunch), <code>heavyweight</code>, <code>overheal</code> (Snake Oil), <code>heal_pulse</code> (Hot Springs), <code>last_stand</code>, <code>xp_pull_radius</code> and <code>xp_pull_rate</code> (the Magnet: a "word" stat, the card says "pulls more often", never a number).'),
+      li('<b>Special enemies</b> (lane EN): an Enemies-tab section of their own (chance, size, HP ×, ATK ×, XP ×, colour, colour strength, glow), the map\'s <i>Coloured specials</i> in Settings, and a swarm event\'s <i>Special</i> box on the Timeline.'),
+      li('<b>Level steps show their effects</b>: a weapon\'s or a passive item\'s <i>Levels</i> listed no effects before (and the first edit of one turned the list into an object); fixed, each level shows its effects with the card\'s words and what the stat does.'),
+      li('<b>The quest-locked band</b> the Items tab shows now wants 28-56% (pass44_test was re-pinned when the Salt, the Frisbee and five passive items came unlocked: 23 of 75).')));
+
+    how('Make a weapon like the Salt or the Frisbee, and tune its patches or its arcs', 'A new weapon starts as a copy of another: its behaviour (the code that fires it) comes with it, so copy the Salt for patches on the ground and the Frisbee for curving discs.', ol(
+      'Items tab → <b>+ New from template ▾</b> → Kind <i>a weapon</i> → Template <b>Salt</b> (or <b>Frisbee</b>) → a Name (the id follows) → <b>Create</b>. It is created hidden with three template mutations and a template evolution, all hidden.',
+      'Base stats: for the Salt, <i>damage</i> is a tick\'s damage, <i>cooldown</i> the seconds between pours, <i>amount</i> the patches each pour lays, <i>area</i> × the patch size, <i>duration</i> the seconds a patch lies. For the Frisbee: damage, cooldown, amount (discs a volley), speed, range (it always flies its whole range), knockback.',
+      'Params → the typed groups. Salt: <i>Salt patches</i> (radius, tick, spacing, most patches, colour, opacity, the shaker\'s contents, the × knobs the mutations use) and <i>The floating shaker</i> (distance, height, orbit speed, bob). Frisbee: <i>Flight</i> (bend, more bend per extra disc, fan, the drop-off a creature and its floor, cut radius, height, glide), <i>The disc</i> (look plain / razors / saucer, radius, size ×, colours, glow, spin, trail, haze), <i>Carry</i>, <i>Trick Shot and stun</i>, <i>The loop</i>.',
+      'Levels: five steps, level 1 empty; give level 3 and 5 an <i>amount</i> +1 the way the two do (more patches, more discs).',
+      'Evolution &amp; path → fill the three template mutations (each needs card text and an effect or a param) and name the evolution, then Availability → available (the server refuses while the path is not whole).',
+      '<b>Save asset</b> writes the JSON and imports it. A new behaviour (not patches, not discs) needs code: ask Claude.'));
+
+    how('Add a mutation, or hide one (Full Court Press)', 'A weapon\'s path is one mutation of each kind in play: element, volume, motion. Full Court Press was hidden in pass 69 and Alley-Oop took its volume slot.', ol(
+      '<b>Hide</b>: Items tab → the weapon\'s card → the mutation\'s <b>Edit</b> → Availability → tick <b>Hidden</b> → <b>Save asset</b>. A hidden mutation is never offered; its file stays.',
+      '<b>Add</b>: Items tab → <b>+ New from template ▾</b> → Kind <i>a mutation of a weapon</i> → Template: a mutation of the same weapon (its Weapon and Kind come with it) → Create. In its form set Kind to the slot it fills, write the Card text, then its Effects (stat changes) and/or its typed params.',
+      'Only one non-hidden mutation of each kind: hide the one it replaces first (the weapon\'s Evolution &amp; path strip shows the three slots and warns on two of a kind).',
+      'A hero mutation is Kind <i>hero</i> plus the Hero it belongs to; a hero on the title needs exactly one, on his favourite weapon.'));
+
+    how('Give a mutation a ball or disc look', 'The look is params on the mutation, merged over the weapon\'s while it is held; the evolution\'s goes in its <code>final</code>.', ol(
+      'A basketball mutation → Effect → <i>Ball colour (body and seams)</i>: <b>Body colour</b> paints the ball flat (Alley-Oop #0A4FA8 dark blue, Slam Dunk #141414 black), <b>Glow colour</b> and strength a faint glow, <b>Lit by the sky</b> no keeps a dark ball dark on the sand, <b>Seam colour</b> / <b>Seam glow</b> the seams (Slam Dunk\'s ember seams #FF5A14). <i>Heat on the ball</i> is how the Heat shows on the ball itself (glow, trail, flames, the beating halo at the top): no HUD gauge since pass 69.',
+      'A Frisbee mutation → Effect → <i>The disc</i>: <b>Look</b> razors (Poison Razors\' blades round the rim) or saucer (the Flying Saucer), <b>Colour</b>, <b>Glow colour</b>, <b>Size ×</b> (Carry\'s 1.5), <b>Poison haze</b>.',
+      'An evolution: Params → <b>Edit: params.final</b> (over the mutations) so its look wins over theirs; <i>its own params</i> are what plays under them.',
+      'Empty boxes keep the weapon\'s look (the grey text says which); <b>Save asset</b>. The new icon: Art → <b>+ Icon candidates…</b>.'));
+
+    how('Swap an icon for another candidate (Rebound\'s three designs)', null, ol(
+      'Items tab → the item (Rebound: the basketball\'s card → Rebound → Edit) → <b>Art</b>.',
+      'Under the icon, <i>Icon candidates</i> lists every finished candidate job of the item: Design A, B, C, each with its pictures. Click a picture to choose it (double-click to see it big), then <b>Install</b>.',
+      'Install is a job on the local lane: the picture becomes <code>&lt;id&gt;_icon.png</code> (the old one backed up) and is imported. Every design stays listed, so you can swap again later. ↻ asks the queue again; more designs: <b>+ Icon candidates…</b> with other words.'));
+
+    how('Tune special enemies: colour, glow, strength', 'A special is a creature rolled bigger, tougher and coloured (pass 69: three times rarer, size × 1.25, HP × 10, ATK × 2).', ol(
+      '<b>One creature</b>: Enemies tab → the creature → <b>Special</b>: Chance (0.04 = one in 25, after the map\'s Colour after kills), Size ×, HP ×, ATK ×, XP ×, <b>Colour</b> (the picker: the wash and the glow\'s hue; a dark, saturated one reads best), <b>Colour strength</b>, <b>Glow</b> (0 none … 1 the widest rim). The table under it says what applies and whether it is the creature\'s own, the map\'s or the game\'s; the two pictures are a plain one and its special. <b>Save asset</b>.',
+      '<b>Every creature at once</b>: Settings → <b>Coloured specials</b>: the map\'s numbers for any box a creature leaves empty. Every creature leaves Glow empty today, so Glow here is the one knob for all of them. Save (the map).',
+      'A roster row, wave or event can override them for its creatures: the inspector\'s Elite group → Special glow and the rest.'));
+
+    how('Place, move or delete a special at a set second (the Goblin moment)', 'Red Canyon\'s "Special Goblin" is a swarm event of Count 1 with <b>Special</b> ticked at 2:00, where the first roster row ends (its creature is the red goblin, the green goblin being retired).', ol(
+      '<b>Place</b>: Timeline → the Events lane\'s <b>+ Event</b> → <i>Swarm</i> → Creature, <b>Count 1</b>, Pattern (In front: from the top of the screen), tick <b>Special</b>. The note under the box says the numbers it will come with. No SWARM! banner shows for a special swarm.',
+      '<b>Move</b>: drag its star along the lane (it snaps to the ends of rows and waves; hold Alt to drag freely), or type its time in the inspector; the arrow keys nudge it a second (Shift: ten).',
+      '<b>Delete</b>: click it, then the Delete key or the inspector\'s <b>Delete</b>. <b>Save</b> (Ctrl+S) writes the map.'));
+
+    how('Set a hero\'s price and unlock requirement', null, ol(
+      'Heroes tab → the hero → <b>Availability</b> → Availability <b>to buy</b> → <b>Price</b> (whole gold) → Currency gold → <b>Save asset</b>.',
+      '<b>Requirement</b> (under it) → <b>+ Add a requirement</b> (or <b>Edit requirement</b>) → Condition (kill the stage boss, kills in all, survive minutes, reach a level, extract after a stage, ...) and its numbers → <b>Create requirement</b>. It writes <code>content/quests/unlock_&lt;hero&gt;</code> at once (unlocks {type character}) and shows the words the title will show ("Kill 2,500 creatures, all time.").',
+      'Until the requirement is done the hero is a black silhouette called "Unknown" with the requirement over his plaque; then BUY appears over him for the price; bought, he is kept in the save (<code>heroes_owned</code>). <b>Remove requirement</b> puts him on sale at once.',
+      'The numbers in play: Calavera 300 (kill the Tumbleweed King), Ironwood 400 (2,500 kills), Solenne 600 (extract after stage 2), Jeżyk 500 (survive 15 minutes), May 700 (level 30), Fadeaway 50 (no requirement), Mira 9,999 (99,999,999 kills: out of reach on purpose).'));
+
+    how('Make a hero free, to buy, or hidden', null, ol(
+      'Heroes tab → the hero → Availability: <b>free</b> (his from the start; with a requirement, his once it is done, nothing to pay), <b>to buy</b> (on the title, locked until his requirement, then BUY), <b>hidden</b> (out of play: not on the title or in the hero drawer; his perks and hero mutation hidden too). The Hidden box follows it.',
+      'A hero on the title (free or to buy) must be whole: at least one perk and exactly one hero mutation on his favourite weapon (the form warns otherwise).',
+      '<b>Save asset</b>. The developer menu\'s "Heroes · own every one" lets you play any of them while testing.'));
+
+    how('Give a hero a perk with the decoy special (Inflatable May)', 'A perk\'s <i>special</i> is a mechanism the game runs; its numbers are fields. <b>decoy</b> and <b>periodic_buff</b> work on any perk; the others are checked by their own perk\'s id in the game, so a copy under a new id keeps the numbers but never fires (the form warns): ask Claude for those.', ol(
+      'Heroes tab → the hero → <b>His own</b> → <b>+ New perk…</b> → Template <b>Inflatable May</b> → a Name → <b>Create</b>. The perk is his (Hero), with the decoy special and its numbers.',
+      'In the perk form → <b>Special</b>: every (seconds between throws), first (to the first throw), throw min / max (how far the doll lands), flight, radius (the circle: everything inside goes for the doll, Elites too, never a boss; keep it under half a screen, 6.5 m), duration (how long the doll stands before it pops). Empty = the game\'s default in grey.',
+      'Card → the card text with your numbers; Identity → rarity and weight among his cards. <b>Save asset</b>. The doll\'s picture is May\'s (<code>content/characters/may/may_decoy.png</code>) for any hero today.',
+      'An existing perk: His own → its <b>Edit</b>.'));
+
+    how('Make a run driver with level shoulders (or a sprint, or a dash)', 'Garry: "a couple of weird frames where the shoulder of the hero is higher than it\'s supposed to be ... for Fadeaway in particular the shoulders look very sagged". The cause was the driver: its neck sits above the shoulder line. Lane ART\'s levelled drivers are in the library: <code>run_side</code> (the side view), <code>run_spread_lvl</code> (the back views), <code>run_lvl</code>, the sprint <code>run_sprint_lvl</code> and the dash <code>run_dash_lvl</code>.', ol(
+      'Heroes tab → the hero → <b>Art words</b> (or a look\'s typed recipe) → <i>Driver: side</i> / <i>back</i> / ... pick a levelled driver per view, or:',
+      '<b>+ New pose driver…</b> (under the drivers) → src: a Mixamo FBX or an upload → name → frames 24 (a hero run) → <b>amp</b> 1.35 and <b>lean</b> 12 for a sprint, <b>arms</b> back and lean 14 for a dash → <b>shoulders</b> 0.3 with <b>shoulder_views</b> back,bd (the back driver) or side,fd and <b>tuck</b> 25 (the side driver) → Queue. It makes <code>&lt;name&gt;</code> and the levelled <code>&lt;name&gt;_lvl</code>; use the _lvl one.',
+      'Then queue the look (next how-to) with those drivers in its recipe.'));
+
+    how('Queue a new hero look with badge and cut-out candidates', null, ol(
+      'Heroes tab → the hero → <b>Looks &amp; previews</b> → <b>+ New look…</b> → pick the method (a pose-driven run for a hero) → its recipe (the drivers per view: the levelled ones of the how-to above) → the words.',
+      'A new look comes with at least <b>3 badge candidates and 3 title cut-out candidates</b>: jobs of their own queued right after the look with the same settings, their words and reference filled from the look (each tagged with where it came from). Queue refuses fewer than 3; raise the counts for more choice.',
+      'Jobs tab: the look paints, then waits for picks; the badge and cut-out jobs end in <b>Install</b> on the picture you like (it lands in that look: its own badge and cut-out).',
+      'Back on the hero: the new look card has a NEW chip: play it (hover), <b>Approve</b> it.'));
+
+    how('Pick the look a hero is played in', null, ol(
+      'Heroes tab → the hero → Looks &amp; previews → the look\'s card → <b>Make default</b>: written into his JSON as <code>variant</code> and imported; the badge and the title follow the look he is played in.',
+      '<b>Shelve</b> the looks you do not want offered (the deer looks of Jeżyk once his tracksuit look plays); the look in play cannot be shelved. In the game the arena\'s look chips (debug mode) try any look without changing the file.'));
   }
 
   // ------------------------------------------------------------------ pass 68: drafts, candidates with their defaults, the queue order (lane W)

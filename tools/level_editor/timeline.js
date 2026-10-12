@@ -1196,8 +1196,8 @@ const Timeline = (() => {
       }
       g.appendChild(svg('line', { x1: px, x2: px, y1: cy, y2: EV_H, class: 'drop-line' }));
       g.appendChild(svg('rect', { x: px - 10, y: cy - 10, width: 20, height: 20, rx: 5, class: 'marker-bg' }));
-      g.appendChild(svg('use', { href: '#g-' + info.glyph, x: px - 8, y: cy - 8, width: 16, height: 16, fill: info.color }));
-      g.appendChild(svg('text', { x: px + 13, y: cy + 4, class: 'marker-text', text: label + (faded ? `  ${Math.round(Number(e.ev.chance) * 100)}%` : '') }));
+      g.appendChild(svg('use', { href: '#g-' + info.glyph, x: px - 8, y: cy - 8, width: 16, height: 16, fill: e.ev.special ? specialColour(e.ev) : info.color }));
+      g.appendChild(svg('text', { x: px + 13, y: cy + 4, class: 'marker-text', text: label + (e.ev.special ? '  ★' : '') + (faded ? `  ${Math.round(Number(e.ev.chance) * 100)}%` : '') }));
       const ids = U.idList(e.ev.enemy);
       ids.slice(0, 4).forEach((id, k) => {
         const c = App.creature(id);
@@ -1210,6 +1210,18 @@ const Timeline = (() => {
       s.appendChild(g);
     }
     lanes.events.label.querySelector('.lane-sub').textContent = plural(evs.length, 'event');
+  }
+
+  /** Pass 69 (lane EN): a swarm set to Special is drawn in its creature's special colour at full brightness (the glow's
+   *  colour), pink when it has none. */
+  function specialColour(ev) {
+    const c = App.creature(U.idList(ev.enemy)[0]);
+    const hex = c && U.isObj(c.variance) && U.isObj(c.variance.special) ? String(c.variance.special.tint || '') : '';
+    const m = hex.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    if (!m) return '#e0609a';
+    const rgb = [1, 2, 3].map((k) => parseInt(m[k], 16));
+    const mx = Math.max(rgb[0], rgb[1], rgb[2], 1);
+    return '#' + rgb.map((v) => Math.round(v * 255 / mx).toString(16).padStart(2, '0')).join('');
   }
 
   // ------------------------------------------------------------------ specials and paths
@@ -1557,7 +1569,13 @@ const Timeline = (() => {
         box.appendChild(el('div', { class: 'hc-line fixed', text: `Fixed from ${fmtT(at.t0)}, the ${o.from || 'row'}'s start: every creature of it has these numbers wherever it spawns in ${App.stageName(at.stage)}${why ? ` (${why})` : ''}; only the stage steps them up, and the hero level at its first spawn.` }));
       }
       // an elite-modified creature (a coloured-elite event, a wave with a modifier) never rolls the variance special
-      if (at.special && !o.modded) box.appendChild(el('div', { class: 'hc-line muted', text: `a coloured special (${Math.round(at.special.chance * 100)}% after colour_after_kills${Model.tintRange(st.tint) ? ', a darker shade of the hue it rolled' : ''}): HP ${fmtN(at.special.hp, 1)} · ATK ${fmtN(at.special.atk, 1)}` }));
+      // pass 69 (lane EN): a swarm set to Special brings every one as its special, for sure
+      if (o.forced) {
+        const dflt = U.isObj(App.tl().special_defaults) ? App.tl().special_defaults : {};
+        const vs = Model.varianceSpecial(c, st, dflt);
+        const hasVar = U.isObj(c.variance) && Object.keys(c.variance).length > 0;
+        box.appendChild(el('div', { class: 'hc-line fixed', text: hasVar ? `every one comes as its coloured special: HP ${fmtN(at.hp * Model.specialValue(vs.sp, dflt, 'hp'), 1)} · ATK ${fmtN(at.atk * Model.specialValue(vs.sp, dflt, 'damage'), 1)} · size ×${fmtN(vs.size, 2)} · glow ${fmtN(vs.glow, 2)}, even before colour_after_kills` : `${c.name} has no variance block: it comes plain` }));
+      } else if (at.special && !o.modded) box.appendChild(el('div', { class: 'hc-line muted', text: `a coloured special (${Math.round(at.special.chance * 100)}% after colour_after_kills${Model.tintRange(st.tint) ? ', a darker shade of the hue it rolled' : ''}): HP ${fmtN(at.special.hp, 1)} · ATK ${fmtN(at.special.atk, 1)}` }));
     }
     return box;
   }
@@ -1606,10 +1624,10 @@ const Timeline = (() => {
     if (!ev) return null;
     const t = Number(ev.t) || 0;
     const info = FIELDS.EVENT_TYPES[ev.type];
-    const bits = [ev.chance != null && Number(ev.chance) < 1 ? `${Math.round(Number(ev.chance) * 100)}% chance` : '', ev.t_jitter ? `± ${ev.t_jitter} s` : '', ev.type === 'swarm' ? `${ev.count || 40} at once` : '', ev.mod ? `modifier ${ev.mod}` : ''].filter(Boolean).join(' · ');
+    const bits = [ev.chance != null && Number(ev.chance) < 1 ? `${Math.round(Number(ev.chance) * 100)}% chance` : '', ev.t_jitter ? `± ${ev.t_jitter} s` : '', ev.type === 'swarm' ? `${ev.count || 40} at once` : '', ev.type === 'swarm' && ev.special ? 'every one its coloured special, no banner' : '', ev.mod ? `modifier ${ev.mod}` : ''].filter(Boolean).join(' · ');
     const box = el('div', {}, cardHead(App.eventLabel(ev), t, (info ? info.label : ev.type) + (bits ? ' · ' + bits : '')));
     const shares = App.eventShares(ev);
-    if (shares.length) for (const s of shares.slice(0, 4)) box.appendChild(creatureBlock(s.id, ev.variant, ev.stats, t, { small: shares.length > 1, share: shares.length > 1 ? `${Math.round(s.share * 100)}%` : '', t0: t, from: 'event', event: true, eachFiring: ev.type === 'elite_every' ? ev : null, modded: ev.type === 'elite' || ev.type === 'elite_every' }));
+    if (shares.length) for (const s of shares.slice(0, 4)) box.appendChild(creatureBlock(s.id, ev.variant, ev.stats, t, { small: shares.length > 1, share: shares.length > 1 ? `${Math.round(s.share * 100)}%` : '', t0: t, from: 'event', event: true, eachFiring: ev.type === 'elite_every' ? ev : null, modded: ev.type === 'elite' || ev.type === 'elite_every', forced: ev.type === 'swarm' && !!ev.special }));
     else if (ev.type === 'elite' || ev.type === 'elite_every') box.appendChild(el('div', { class: 'hc-line muted', text: 'a creature drawn from the roster rows open then, by their Elite weight, wearing a modifier, with that row\'s HP and ATK' }));
     if (shares.length > 1 && ev.type === 'elite_every') box.appendChild(el('div', { class: 'hc-line fixed', text: 'Each firing takes the curves at its own second, or the numbers of a row bringing the same creature then.' }));
     return box;

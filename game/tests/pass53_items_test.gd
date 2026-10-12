@@ -192,8 +192,9 @@ func test_the_live_menu_is_the_default_and_a_pass_52_save_steps_to_it_once() -> 
 	assert_str(s.menu_style).is_equal("live")
 	# a save written under pass 52 (version 4) carries "painted": version 5 sets it to live, once
 	assert_int(Save.VERSION).is_equal(5)
+	# (pass 69, lane UI: Calavera is a hero to buy; this save bought him, so he stays its last hero)
 	_write(Save.path(), JSON.stringify({"version": 4, "gold": 12, "once": ["seen_migrated", "hero_astro"], "last_character": "calavera",
-		"settings": {"menu_style": "painted", "damage_numbers": true, "music_volume": 0.4}}))
+		"heroes_owned": ["calavera"], "settings": {"menu_style": "painted", "damage_numbers": true, "music_volume": 0.4}}))
 	Save.load_save()
 	assert_str(Save.loaded_from).is_equal("save")
 	assert_int(int(Save.data["version"])).is_equal(5)
@@ -236,9 +237,13 @@ func test_a_clean_save_opens_on_the_drifter_and_nothing_moves_him() -> void:
 	_write(Save.path(), JSON.stringify({"version": 5, "once": ["hero_astro"], "last_character": "astro"}))
 	Save.load_save()
 	assert_str(str(Save.data["last_character"])).is_equal("astro")
-	_write(Save.path(), JSON.stringify({"version": 5, "once": [], "last_character": "calavera"}))
+	_write(Save.path(), JSON.stringify({"version": 5, "once": [], "last_character": "calavera", "heroes_owned": ["calavera"]}))
 	Save.load_save()
 	assert_str(str(Save.data["last_character"])).is_equal("calavera")
+	# pass 69 (lane UI): a last hero the save does not own (to be bought now) falls to the Drifter
+	_write(Save.path(), JSON.stringify({"version": 5, "once": [], "last_character": "calavera"}))
+	Save.load_save()
+	assert_str(str(Save.data["last_character"])).is_equal("drifter")
 	# a save without the key, or naming a hero that is gone, falls to the Drifter
 	_write(Save.path(), JSON.stringify({"version": 5, "once": []}))
 	Save.load_save()

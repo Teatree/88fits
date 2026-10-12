@@ -46,6 +46,13 @@ const PLAYER_DEFAULTS := {
 	# the Shield; never a structure's buff, Pollen or Barrel Rush), and a factor on the timeline's per-kill drop chance of
 	# a power-up (WaveDirector.drop_pickup_from)
 	"powerup_duration": 1.0, "powerup_chance": 1.0,
+	# pass 69, the new passive items (each read by the system it names): Counterpunch's next attack after an evade and
+	# its timed attack speed and move speed (Run.counterpunch_*); Heavyweight's attack damage per 10 max HP
+	# (Run._apply_heavyweight); Snake Oil's overheal as a share of max HP (Player.overheal_cap); Hot Springs' heal pulse
+	# (Player._tick_heal_pulse); Last Stand's attack damage in its slowed time (Run.last_stand_check); the Magnet's EXP
+	# pulls, their radius and how much more often they come (PickupManager._tick_xp_pulls)
+	"counter_damage": 0.0, "counter_haste": 0.0, "counter_speed": 0.0, "counter_seconds": 0.0, "heavyweight": 0.0,
+	"overheal": 0.0, "heal_pulse": 0.0, "last_stand": 0.0, "xp_pull_radius": 0.0, "xp_pull_rate": 0.0,
 }
 
 ## The least a hero's stat can come to, however many sources pull it down (pass 61: Ironwood's regen delay shrinks every

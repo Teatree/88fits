@@ -338,7 +338,7 @@ def create_checks(check, server):
             line = [p for p in items["lines"] if p["id"] == "brawny"][0]
             check(lucky["availability"] == "locked" and lucky["locked_by"] == "unlock_lucky" and line["evolved"]["id"] == "brawny_evo" and line["availability"] == "available",
                   "items: a quest-locked passive item, a line with its evolved form")
-            check(items["band"] == {"locked": 1, "base": 4, "share": 0.25, "lo": 0.33, "hi": 0.56}, "items: the band counts non-hidden base weapons + base passives: %s" % items["band"])
+            check(items["band"] == {"locked": 1, "base": 4, "share": 0.25, "lo": server.BAND_LO, "hi": server.BAND_HI}, "items: the band counts non-hidden base weapons + base passives: %s" % items["band"])
             check([q["id"] for q in items["quests"]] == ["unlock_lucky"], "items: the quests")
             rc = server.read_content("enemy", "testbeast")
             check(rc["ok"] and rc["refs"]["maps"] == ["testmap: skin walker", "testmap: roster r1"] and rc["deletable"] is False and "testbeast_sprite_a.png" in rc["files"]
@@ -563,9 +563,10 @@ def create_checks(check, server):
             r = server.set_availability("hero", "hero_a", {"availability": "purchase", "price": 900, "currency_type": "gold"})
             h = json.load(open(hpath, encoding="utf-8"))
             keys = list(h.keys())
-            check(r["ok"] and h["hidden"] is True and h["availability"] == "purchase" and h["price"] == 900 and h["currency_type"] == "gold"
+            # pass 69 (lane UI's rule): a hero to buy is on the title, never hidden (hidden = availability == "hidden")
+            check(r["ok"] and h["hidden"] is False and h["availability"] == "purchase" and h["price"] == 900 and h["currency_type"] == "gold"
                   and keys[keys.index("hidden"):keys.index("hidden") + 4] == ["hidden", "availability", "price", "currency_type"] and keys.index("hidden") == keys.index("pronoun") + 1,
-                  "hero availability purchase: hidden true + the three keys after pronoun: %s" % r.get("wrote"))
+                  "hero availability purchase: hidden false (pass 69) + the three keys after pronoun: %s" % r.get("wrote"))
             r = server.set_availability("hero", "hero_a", {"availability": "available"})
             h = json.load(open(hpath, encoding="utf-8"))
             check(r["ok"] and h["hidden"] is False and h["availability"] == "available" and h["price"] == 900, "hero availability available: hidden false, price kept")
@@ -899,19 +900,31 @@ def routes_checks(check, server):
               and rv["path"] == ["element", "volume", "motion"] and rv["availability"] == "available" and rv["hero"] == "drifter",
               "/api/items groups the Revolver with its mutations (kind order) and the Golden Revolver")
         # pass 67: Fadeaway's basketball (a hero's own weapon, no quest) joins the base: 23 of 68
-        check(body["band"]["locked"] == 23 and body["band"]["base"] == 68 and 0.33 <= body["band"]["share"] <= 0.56, "the band is 23 of 68 as pass44_test counts it: %s" % body["band"])
-        check(len(body["lines"]) == 15 and all(l["evolved"] for l in body["lines"]) and len(body["passives"]) == 31 and len(body["quests"]) == 24, "15 lines with evolved forms, 31 passive items, 24 quests")
+        # pass 69 (lane LE): shape rules, not counts (the Salt, the Frisbee and five passive items came unlocked: 23 of 75):
+        # the band as pass44_test counts it from the content folder, inside the bounds pass44_test.gd asserts
+        import selftest_L69
+        want = selftest_L69.content_band()
+        lo, hi = selftest_L69.pass44_band()
+        check(body["band"]["locked"] == want["locked"] and body["band"]["base"] == want["base"] and lo <= body["band"]["share"] <= hi,
+              "the band is %d of %d as pass44_test counts it, inside %.2f-%.2f: %s" % (want["locked"], want["base"], lo, hi, body["band"]))
+        shape = selftest_L69.content_passives()
+        check(len(body["lines"]) == shape["lines"] and all(l["evolved"] for l in body["lines"]) and len(body["passives"]) == shape["items"] and len(body["quests"]) == shape["quests"]
+              and shape["lines"] >= 15 and shape["items"] >= 36,
+              "%d lines with evolved forms, %d passive items, %d quests (the content folder's; pass 69: the six heroes' unlock quests): %d / %d / %d"
+              % (shape["lines"], shape["items"], shape["quests"], len(body["lines"]), len(body["passives"]), len(body["quests"])))
         check(all(m["availability"] in ("hidden", "available") for w in body["weapons"] for m in w["mutations"]), "mutations are hidden or available, never locked")
         st, body, h = get("/api/heroes")
         sol = [x for x in body if x["id"] == "solenne"][0]
         # pass 67: nine heroes (Fadeaway created in the editor); the ones in play first by order (the five, then Fadeaway and
         # Buck once each is whole and flipped), every hidden one after them, Dad and Mira among those
-        in_play = [x["availability"] == "available" for x in body]
+        # pass 69 (lane UI): a "purchase" hero is in play too (locked or on sale on the title); Mira is back as one
+        in_play = [x["availability"] in ("available", "purchase") for x in body]
         # a shape rule, not a count: Garry creates heroes in the editor while passes run (Mamy appeared mid-pass 67)
-        check(st == 200 and len(body) >= 9 and {"fadeaway", "buck"} <= {x["id"] for x in body if x["availability"] == "available"}
+        check(st == 200 and len(body) >= 9 and {"fadeaway", "buck"} <= {x["id"] for x in body if x["availability"] in ("available", "purchase")}
               and [x["id"] for x in body[:5]] == ["drifter", "astro", "calavera", "ironwood", "solenne"] and [l["code"] for l in sol["looks"]] == ["SOL-A", "SOL-B", "SOL-C", "SOL-D", "SOL-E"]
               and sol["title"] == "/art/wanted/hero_solenne.png" and sol["hero_mutations"] == ["sun_cocktail"] and sol["weapons"] == ["sun_scepter"]
-              and in_play == sorted(in_play, reverse=True) and {"dad", "mira"} <= {x["id"] for x in body if x["availability"] == "hidden"},
+              and in_play == sorted(in_play, reverse=True) and {"dad"} <= {x["id"] for x in body if x["availability"] == "hidden"}
+              and {"mira"} <= {x["id"] for x in body if x["availability"] == "purchase"},
               "/api/heroes: the heroes in play first by order, Solenne's five looks, title, her mutation and weapon, the hidden ones after")
         check(sol["looks"][1]["frame_px"] == 256 and sol["looks"][1]["imported"] in (True, False) and sol["looks"][1]["sprite_mtime"], "a hero look record carries frame_px, imported and sprite_mtime")
         st, body, h = get("/api/vocab")

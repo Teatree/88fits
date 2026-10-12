@@ -39,6 +39,9 @@ static func font_head() -> Font:
 	if _font_head == null:
 		if ResourceLoader.exists(HEAD_FONT_PATH):
 			_font_head = load(HEAD_FONT_PATH)
+			# pass 69: Lilita One has no Polish letters (Jeżyk's ż): the bold body font draws what it lacks
+			if _font_head.fallbacks.is_empty() and font(true) != _font_head:
+				_font_head.fallbacks = [font(true)]
 		else:
 			_font_head = font(true)
 	return _font_head

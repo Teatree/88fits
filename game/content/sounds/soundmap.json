@@ -233,6 +233,20 @@
       "volume_db": -6,
       "file": "placeholder/w_ball_catch.wav"
     },
+    "pk_decoy_land": {
+      "category": "pickup",
+      "voices": 2,
+      "pitch_spread": 0.05,
+      "volume_db": -6,
+      "file": "real/pk_decoy_land.wav"
+    },
+    "pk_decoy_pop": {
+      "category": "pickup",
+      "voices": 2,
+      "pitch_spread": 0.06,
+      "volume_db": -4,
+      "file": "real/pk_decoy_pop.wav"
+    },
     "pk_gem_s": {
       "category": "pickup",
       "voices": 6,
@@ -621,6 +635,14 @@
       "volume_db": -12,
       "file": "real/w_mine_arm.wav"
     },
+    "w_salt_shake": {
+      "category": "weapon",
+      "voices": 2,
+      "pitch_spread": 0.08,
+      "volume_db": -12,
+      "min_gap": 0.2,
+      "file": "real/w_salt_shake.wav"
+    },
     "pk_powerup": {
       "category": "pickup",
       "voices": 2,
@@ -921,6 +943,36 @@
       "pitch_spread": 0.0,
       "volume_db": -2,
       "file": "real/it_phoenix.wav"
+    },
+    "it_last_stand": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -2,
+      "file": "real/it_last_stand.wav"
+    },
+    "it_heal_pulse": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.06,
+      "volume_db": -12,
+      "min_gap": 0.45,
+      "file": "real/it_heal_pulse.wav"
+    },
+    "it_xp_pull": {
+      "category": "pickup",
+      "voices": 1,
+      "pitch_spread": 0.05,
+      "volume_db": -10,
+      "file": "real/it_xp_pull.wav"
+    },
+    "it_counterpunch": {
+      "category": "player",
+      "voices": 1,
+      "pitch_spread": 0.06,
+      "volume_db": -6,
+      "min_gap": 0.3,
+      "file": "real/it_counterpunch.wav"
     },
     "it_coin_drop": {
       "category": "pickup",

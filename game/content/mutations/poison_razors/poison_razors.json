@@ -1,0 +1,43 @@
+{
+  "id": "poison_razors",
+  "name": "Poison Razors",
+  "flavour": "Some toys come with a warning label.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "frisbee",
+  "kind": "element",
+  "element": "poison",
+  "hero": "",
+  "text": "Razor blades round the rim: everything it cuts is poisoned.",
+  "vfx": "a hot-pink frisbee with steel razor blades stuck round its rim; the poison tick's green flash on what it cuts",
+  "effects": [
+    {
+      "stat": "poison_damage",
+      "op": "add",
+      "value": 4
+    },
+    {
+      "stat": "poison_stacks",
+      "op": "add",
+      "value": 1
+    },
+    {
+      "stat": "poison_duration",
+      "op": "add",
+      "value": 4
+    }
+  ],
+  "params": {
+    "disc": {
+      "look": "razors",
+      "albedo": "#FF3FA4",
+      "emission": "#FF1F8A",
+      "energy": 0.7
+    }
+  },
+  "art_prompt": "a hot-pink plastic frisbee with eight steel razor blades stuck into its rim all round, a drop of green poison on the blades, no text",
+  "placeholder": {
+    "color": "#FF3FA4",
+    "glyph": "saw"
+  }
+}

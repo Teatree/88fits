@@ -1,0 +1,27 @@
+{
+  "id": "sea_salt",
+  "name": "Sea Salt",
+  "flavour": "Pink, coarse and in no hurry.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "salt",
+  "kind": "element",
+  "element": "",
+  "hero": "",
+  "text": "The salt turns pink and lasts 75% longer, for 5% less damage.",
+  "vfx": "pink patches; the shaker fills with pink salt",
+  "effects": [],
+  "params": {
+    "salt": {
+      "color": "#F4A3C4",
+      "contents": "#F4A3C4",
+      "duration_mult": 1.75,
+      "damage_mult": 0.95
+    }
+  },
+  "art_prompt": "a glass salt shaker with a chrome cap full of coarse pink Himalayan salt crystals, a little pink salt pile beside it",
+  "placeholder": {
+    "color": "#F4A3C4",
+    "glyph": "star"
+  }
+}

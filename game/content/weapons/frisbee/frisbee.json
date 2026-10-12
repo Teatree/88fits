@@ -1,0 +1,100 @@
+{
+  "id": "frisbee",
+  "name": "Frisbee",
+  "flavour": "Nobody ever catches it. Nobody tries twice.",
+  "rarity": "common",
+  "weight": 9,
+  "behavior": "Frisbee",
+  "targeting": "nearest",
+  "tags": [
+    "disc"
+  ],
+  "base": {
+    "damage": 14,
+    "cooldown": 1.2,
+    "amount": 1,
+    "pierce": 999,
+    "speed": 13,
+    "range": 12,
+    "knockback": 1.5
+  },
+  "max_level": 5,
+  "levels": [
+    [],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.25
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.1
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      }
+    ],
+    [
+      {
+        "stat": "damage",
+        "op": "mul",
+        "value": 0.3
+      },
+      {
+        "stat": "range",
+        "op": "add",
+        "value": 2
+      }
+    ],
+    [
+      {
+        "stat": "amount",
+        "op": "add",
+        "value": 1
+      },
+      {
+        "stat": "cooldown",
+        "op": "mul",
+        "value": -0.12
+      }
+    ]
+  ],
+  "evolves_with": "",
+  "evolves_into": "flying_saucer",
+  "params": {
+    "bend_deg": 25,
+    "bend_per_extra": 12,
+    "fan_deg": 16,
+    "falloff": {
+      "step": 0.85,
+      "floor": 0.25
+    },
+    "hit_radius": 0.55,
+    "height": 1.0,
+    "glide_seconds": 0.45,
+    "disc": {
+      "look": "plain",
+      "size": 0.36,
+      "albedo": "#B8FF2A",
+      "emission": "#7CFF00",
+      "energy": 0.8,
+      "spin": 16.0,
+      "trail": true
+    }
+  },
+  "sfx": {
+    "fire": "w_spear_throw",
+    "hit": "w_saw_hit"
+  },
+  "placeholder": {
+    "color": "#B8FF2A",
+    "glyph": "ring"
+  },
+  "art_prompt": "a neon lime-green plastic frisbee seen three-quarter from above, its rim ridges catching the light, a faint curved motion arc behind it"
+}

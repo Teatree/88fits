@@ -636,6 +636,12 @@ def spawn_estimate(tl, creatures, opts=None):
             cat["mod"] += n
             bump(mod, d["id"], n)
             return
+        if kind == "forced":
+            # pass 69 (lane EN): a swarm set to special: every one coloured, colour or not
+            if d["arch"] == "regular":
+                cat["col"] += n
+                bump(col, d["id"], n)
+            return
         if d["arch"] == "regular" and d["chance"] > 0 and colour_open():
             c = n * d["chance"]
             cat["col"] += c
@@ -851,7 +857,7 @@ def spawn_estimate(tl, creatures, opts=None):
             for pk in picks:
                 d = def_of(pk["id"], stats)
                 if d:
-                    add(d, n * pk["share"], "reg")
+                    add(d, n * pk["share"], "forced" if ev.get("special") else "reg")
                     if not cid:
                         cid = d["id"]
             if n > 0 and cid:
@@ -1409,7 +1415,8 @@ def model_checks():
     check(close(sp[1]["h"], 0) and close(sp[1]["amount"], 1.0), "special by hand: 330-30 through red, middle hue 0, strength capped at 1: %s" % sp[1])
     check(close(sp[2]["amount"], 0.75), "special by hand: no tint_strength = the game's 0.6, + 0.15: %s" % sp[2])
     vs = res["vspecial"]
-    want_vs = [(0.12, 0.45, 1.5), (0.12, 0.8, 1.5), (0, 0.45, 1.5), (0, 0.6, 1.3), (0.1, 0.6, 1.3), (0.2, 0.6, 1.3)]
+    # (pass 69, lane EN, re-pinned: the game's default size is 1.25 now, EnemyDef.SPECIAL_DEFAULTS)
+    want_vs = [(0.12, 0.45, 1.5), (0.12, 0.8, 1.5), (0, 0.45, 1.5), (0, 0.6, 1.25), (0.1, 0.6, 1.25), (0.2, 0.6, 1.25)]
     for (c, st), got, (ch, stg, sz_) in zip(q["vspecial"], vs, want_vs):
         check(close(got["chance"], ch) and close(got["strength"], stg) and close(got["size"], sz_),
               "varianceSpecial(%s, %s): %s, want chance %s strength %s size %s (the row's variance deep-merged over the creature's)" % (c, st, got, ch, stg, sz_))

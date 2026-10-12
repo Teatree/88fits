@@ -1,0 +1,41 @@
+{
+  "id": "snake_oil",
+  "name": "Snake Oil",
+  "rarity": "epic",
+  "weight": 5,
+  "max_level": 3,
+  "flavour": "Cures what ails you. And then some.",
+  "text": "Heals can fill your health past full, up to 20% of max HP more, shown pink on your health bar. Regen stops at full.",
+  "levels": [
+    [
+      {
+        "stat": "overheal",
+        "op": "add",
+        "value": 0.2,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "overheal",
+        "op": "add",
+        "value": 0.1,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "overheal",
+        "op": "add",
+        "value": 0.1,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "a small old brown glass medicine bottle with a cork, a cream paper label with a coiled green snake on it, glowing pink liquid inside",
+  "placeholder": {
+    "color": "#E86AA8",
+    "glyph": "heart"
+  },
+  "repeat_last_level": false
+}

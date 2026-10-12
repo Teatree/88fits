@@ -1,0 +1,25 @@
+{
+  "id": "inflatable_may",
+  "name": "Inflatable May",
+  "flavour": "Twice the May. Half of her is vinyl.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "may",
+  "text": "Every 30 s she throws an inflatable May. Where it lands, the creatures around it go for the doll instead of her for 2 s, then it pops. Bosses are not fooled.",
+  "effects": [],
+  "special": "decoy",
+  "params": {
+    "every": 30.0,
+    "first": 6.0,
+    "throw_min": 4.0,
+    "throw_max": 7.0,
+    "flight": 0.6,
+    "radius": 6.5,
+    "duration": 2.0
+  },
+  "art_prompt": "an inflatable pink vinyl balloon doll of a mime woman in a beret, arms stiffly out like a scarecrow, a little squashed, shiny seams and a valve nozzle",
+  "placeholder": {
+    "color": "#FF6BB5",
+    "glyph": "star"
+  }
+}

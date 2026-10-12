@@ -1,0 +1,33 @@
+{
+  "id": "heavyweight",
+  "name": "Heavyweight",
+  "rarity": "rare",
+  "weight": 7,
+  "max_level": 5,
+  "flavour": "The bigger they are, the harder they hit.",
+  "text": "+1% attack damage for every 10 max HP you have (+0.25% a level).",
+  "levels": [
+    [
+      {
+        "stat": "heavyweight",
+        "op": "add",
+        "value": 0.01,
+        "target": "player"
+      }
+    ],
+    [
+      {
+        "stat": "heavyweight",
+        "op": "add",
+        "value": 0.0025,
+        "target": "player"
+      }
+    ]
+  ],
+  "art_prompt": "a heavy black iron kettlebell with a small red heart painted on its side, a brass championship belt buckle leaning against it",
+  "placeholder": {
+    "color": "#8C3A2E",
+    "glyph": "heart"
+  },
+  "repeat_last_level": true
+}

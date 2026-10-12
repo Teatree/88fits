@@ -368,9 +368,10 @@ const Model = (() => {
     const dmgT = arch === 'regular' ? row.dmgTime : dmgTimeMult(tl, t);
     const atk = arch === 'regular' ? row.atk * sm * lvDmg * cdm : base.dmg * sm * lvDmg * cdm * dmgT;
     const atkParts = [['base', arch === 'regular' && row.dmgTime > 0 ? row.atk / row.dmgTime : base.dmg], ['time', dmgT], ['stage', sm], ['level', lvDmg], ['creature', cdm]];
-    // the coloured variance special (EnemyManager: × special.hp / special.damage, defaults 1.6 / 1.2)
-    const vs = varianceSpecial(c, st);
-    const special = arch === 'regular' && vs.chance > 0 ? { chance: vs.chance, hp: hp * num(vs.sp.hp, 1.6), atk: atk * num(vs.sp.damage, 1.2) } : null;
+    // the coloured variance special (EnemyManager: × special.hp / special.damage; pass 69: the creature's own, else the
+    // map's special_defaults, else the game's 10 / 2, specialValue)
+    const vs = varianceSpecial(c, st, tl && tl.special_defaults);
+    const special = arch === 'regular' && vs.chance > 0 ? { chance: vs.chance, hp: hp * specialValue(vs.sp, tl && tl.special_defaults, 'hp'), atk: atk * specialValue(vs.sp, tl && tl.special_defaults, 'damage') } : null;
     return { arch, stage: s, stageMult: sm, hp, atk, hpParts, atkParts, special, base, row, t0: given ? Math.min(given.hpFrom, given.dmgFrom) : from, lvHp, lvDmg, chm, cdm };
   }
 
@@ -562,17 +563,30 @@ const Model = (() => {
     };
   }
 
+  /** Pass 69 (lane EN): EnemyDef.SPECIAL_DEFAULTS and EnemyDef.special_value. A variance special's number is the
+   *  creature's own (`sp`, its variance.special with a row's overrides merged), else the map's
+   *  timeline_data.special_defaults (`defaults`), else the game's. specialSource says which: 'own' | 'map' | 'game'. */
+  const SPECIAL_DEFAULTS = { size: 1.25, hp: 10, damage: 2, xp: 2, tint_strength: 0.6, glow: 0.6 };
+  const hasNum = (o, k) => isObj(o) && o[k] != null && o[k] !== '' && isFinite(Number(o[k]));
+  function specialSource(sp, defaults, key) {
+    return hasNum(sp, key) ? 'own' : hasNum(defaults, key) ? 'map' : 'game';
+  }
+  function specialValue(sp, defaults, key) {
+    const src = specialSource(sp, defaults, key);
+    return src === 'own' ? Number(sp[key]) : src === 'map' ? Number(defaults[key]) : num(SPECIAL_DEFAULTS[key], 1);
+  }
+
   /** The coloured variance special a row's creatures may roll (EnemyManager.spawn): the creature's variance block with
    *  the row's `variance` overrides merged over it (EnemyDef.with_overrides' deep merge). chance 0 = none (no variance
-   *  block, or no special_chance); strength = the special's tint_strength (the game's default 0.6), size its size factor
-   *  (default 1.3). */
-  function varianceSpecial(c, stats) {
+   *  block, or no special_chance); strength = the special's tint_strength, size its size factor, glow its rim (pass 69:
+   *  each the creature's own, else the map's `defaults` (special_defaults), else the game's 0.6 / 1.25 / 0.6). */
+  function varianceSpecial(c, stats, defaults) {
     const st = isObj(stats) ? stats : {};
     const vr = c && isObj(c.variance) ? c.variance : {};
     const vo = isObj(st.variance) ? st.variance : {};
     const sp = Object.assign({}, isObj(vr.special) ? vr.special : {}, isObj(vo.special) ? vo.special : {});
     const any = Object.keys(vr).length > 0 || Object.keys(vo).length > 0;
-    return { chance: any ? num(vo.special_chance, num(vr.special_chance, 0)) : 0, sp, strength: num(sp.tint_strength, SPECIAL_TINT.strength), size: num(sp.size, 1.3) };
+    return { chance: any ? num(vo.special_chance, num(vr.special_chance, 0)) : 0, sp, strength: specialValue(sp, defaults, 'tint_strength'), size: specialValue(sp, defaults, 'size'), glow: specialValue(sp, defaults, 'glow') };
   }
 
   /** The top of the Actual lane (the review of pass 58: one row with hp 200 over 10 had lifted both lanes to ×23, so the
@@ -884,8 +898,8 @@ const Model = (() => {
     const bump = (m, id, n) => { m[id] = (m[id] || 0) + n; };
 
     /** `n` (expected) bodies of `d` join the crowd as `kind`: 'reg' (a roster, wave, swarm or portal creature, coloured by
-     *  its variance special's chance once colour is open), 'mod' (wearing an elite modifier: never coloured) or 'elite'
-     *  (an Elite mini-boss). */
+     *  its variance special's chance once colour is open), 'forced' (pass 69: a special swarm's, every one coloured),
+     *  'mod' (wearing an elite modifier: never coloured) or 'elite' (an Elite mini-boss). */
     function add(d, n, kind) {
       if (!(n > 0) || !d) return;
       const key = d.id + '|' + d.share;
@@ -895,6 +909,8 @@ const Model = (() => {
       if (kind === 'elite') { cat.elite += n; return; }
       cat.reg += n;
       if (kind === 'mod') { cat.mod += n; bump(mod, d.id, n); return; }
+      // pass 69 (lane EN): a swarm event set to special brings every one as its coloured special, colour or not
+      if (kind === 'forced') { if (d.arch === 'regular') { cat.col += n; bump(col, d.id, n); } return; }
       if (d.arch === 'regular' && d.chance > 0 && colourOpen()) { const c = n * d.chance; cat.col += c; bump(col, d.id, c); }
     }
 
@@ -1095,7 +1111,7 @@ const Model = (() => {
           if (!picks.length && o.skin) picks = [{ id: String(o.skin), share: 1 }];
           const n = Math.min(p * Math.max(trunc(num(ev.count, 40)), 0), Math.max(MAX_BODIES - bodies(), 0));
           let id = '';
-          for (const pk of picks) { const d = defOf(pk.id, stats); if (d) { add(d, n * pk.share, 'reg'); if (!id) id = d.id; } }
+          for (const pk of picks) { const d = defOf(pk.id, stats); if (d) { add(d, n * pk.share, ev.special ? 'forced' : 'reg'); if (!id) id = d.id; } }
           if (n > 0 && id) marks.push({ t: clock(), kind: 'swarm', id, n });
           break;
         }
@@ -1430,7 +1446,7 @@ const Model = (() => {
     archOf, rowNumbers, actualSources, actualAt, actualSeries, ACTUAL_CLAMP, actualScale, eliteEveryTimes,
     fixedFrom, lookOf, waveEndOf, openSourceOf, eventNumbers,
     sizeRange, sizeIssues, TINT_DEF, tintRange, tintIssues, hueSpan, hueAt, hsvToRgb, toLinear, toSrgb, tintPixel,
-    SPECIAL_TINT, tintSpecial, varianceSpecial,
+    SPECIAL_TINT, tintSpecial, varianceSpecial, SPECIAL_DEFAULTS, specialValue, specialSource,
     SNAP_PX, SNAP_GRID_PX, SNAP_GRID_MIN_PX, SNAP_TIER, snapTargets, snapGridStep, snapDrag, clockText,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

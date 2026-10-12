@@ -1240,6 +1240,95 @@ func vacuum_all(coins_too: bool = false, chests_too: bool = false) -> void:
 	Audio.play("pk_vacuum")
 
 
+## The Magnet (pass 69, Garry: "Instead of a static increase in pull it will ... occasionally pull a bunch of EXP around the
+## Player ... only EXP, not Chest or Power-up ... frequency of pulls ... decently frequent, but quite random, area should
+## never be beyond what a large explosion produces"): with `xp_pull_radius` held, every XP_PULL_EVERY seconds (a random
+## wait between the two, divided by 1 + `xp_pull_rate`) every EXP gem within that radius, XP_PULL_MAX_R at most, comes to
+## the hero on the magnet arc (pull_xp); a faint purple ring at the reach shows it when any came. The waits are the
+## manager's own dice (_rng), so the pulls never move the run's random sequence.
+const XP_PULL_EVERY := Vector2(3.0, 8.0)
+const XP_PULL_MAX_R := 8.5
+const XP_PULL_COLOUR := Color(0.62, 0.48, 1.0, 0.55)
+var _xp_pull_t := -1.0
+## How many pulls went off this run and how many gems the last one took (tests, the capture).
+var xp_pulls := 0
+var xp_pull_last := 0
+
+
+func _tick_xp_pulls(delta: float, hero: Vector3) -> void:
+	var r := xp_pull_radius()
+	if r <= 0.0:
+		_xp_pull_t = -1.0
+		return
+	if _xp_pull_t < 0.0:
+		_xp_pull_t = xp_pull_wait()
+	_xp_pull_t -= delta
+	if _xp_pull_t > 0.0:
+		return
+	_xp_pull_t = xp_pull_wait()
+	xp_pulls += 1
+	xp_pull_last = pull_xp(hero, r)
+	if xp_pull_last > 0:
+		var tg = game.get("telegraphs") if game != null else null
+		if tg != null:
+			tg.flash_ring(hero, r, XP_PULL_COLOUR, 0.45)
+		Audio.play("it_xp_pull", hero)
+
+
+## The Magnet's reach now: the `xp_pull_radius` the hero's sheet holds, never past XP_PULL_MAX_R (0 without the item).
+func xp_pull_radius() -> float:
+	if Run.player_sheet == null:
+		return 0.0
+	return clampf(Run.player_sheet.get_stat("xp_pull_radius", 0.0), 0.0, XP_PULL_MAX_R)
+
+
+## The shortest and longest wait between two pulls at `rate` (`xp_pull_rate`: 0 at level 1, 1 at level 5, halving them).
+static func xp_pull_span(rate: float) -> Vector2:
+	return XP_PULL_EVERY / (1.0 + maxf(rate, 0.0))
+
+
+## A wait before the next pull, at random within xp_pull_span for the sheet's rate.
+func xp_pull_wait() -> float:
+	var span := xp_pull_span(Run.player_sheet.get_stat("xp_pull_rate", 0.0) if Run.player_sheet else 0.0)
+	return _rng.randf_range(span.x, span.y)
+
+
+## Every EXP gem (never a coin or a vacuum) lying, landing or hopping within `r` m (flat) of `center` sets off for the hero
+## on the magnet arc, the big pull's look (pass 60); one already on its way is left alone. How many set off.
+func pull_xp(center: Vector3, r: float) -> int:
+	if _cap <= 0 or r <= 0.0:
+		return 0
+	var hero := _hero_at()
+	if hero == Vector3.INF:
+		hero = center
+	var r2 := r * r
+	var n := 0
+	for i in _act.duplicate():
+		if alive[i] == 1 and flying[i] == 0 and kind[i] <= KIND_GEM_L and phase[i] != PHASE_TOSS:
+			var dx := pos[i].x - center.x
+			var dz := pos[i].z - center.z
+			if dx * dx + dz * dz < r2:
+				_start_trip(i, hero, true)
+				n += 1
+	var x0 := _cell_x(center.x - r)
+	var x1 := _cell_x(center.x + r)
+	var z0 := _cell_x(center.z - r)
+	var z1 := _cell_x(center.z + r)
+	for cz in range(z0, z1 + 1):
+		for cx in range(x0, x1 + 1):
+			var i := _g_head[cz * GRID_N + cx]
+			while i >= 0:
+				var nx := _g_next[i]
+				if flying[i] == 0 and kind[i] <= KIND_GEM_L:
+					var dx := pos[i].x - center.x
+					var dz := pos[i].z - center.z
+					if dx * dx + dz * dz < r2:
+						_start_trip(i, hero, true)
+						n += 1
+				i = nx
+	return n
+
+
 func add_attractor(p: Vector3, r: float) -> void:
 	_attractors.append({"pos": p, "r": r})
 
@@ -1561,6 +1650,8 @@ func _physics_process(delta: float) -> void:
 			# down for good (pass 61): into the grid, out of the tick
 			_rest(i)
 	if not _down:
+		# the Magnet's pulls (pass 69): now and then every EXP gem round him comes on the magnet arc
+		_tick_xp_pulls(delta, hero)
 		# the ones lying on the sand within his magnet's reach, and within a turret's pull (pass 61: the grid's cells)
 		_pull_round(hero, magnet, hero, false)
 		for a in _attractors:
