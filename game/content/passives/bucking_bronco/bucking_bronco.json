@@ -1,0 +1,33 @@
+{
+  "id": "bucking_bronco",
+  "name": "Bucking Bronco",
+  "flavour": "Eight seconds is a long time up there.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "knockback",
+        "op": "mul",
+        "value": 2.0,
+        "target": "all_weapons"
+      },
+      {
+        "stat": "bronco_chance",
+        "op": "add",
+        "value": 0.35,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "mule_kick",
+  "art_prompt": "a wild brown bronco horse rearing and bucking with its hind legs high, an empty saddle flying off its back, a puff of dust",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

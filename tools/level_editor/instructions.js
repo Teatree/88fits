@@ -24,6 +24,7 @@ const Instructions = (() => {
     clear(container);
     const root = el('div', { class: 'instr' });
     intro(root);
+    pass70(root);
     pass69(root);
     pass68(root);
     pass66(root);
@@ -511,6 +512,56 @@ const Instructions = (() => {
   }
 
   // ------------------------------------------------------------------ pass 69: how to use what pass 69 added (lane LE)
+
+  /** Garry (pass 70, "LevelEditor"): distinct seeds per candidate; choose a look's icon and title cut-out from everything
+   *  painted (and May's missing badge in the Heroes list); the Bandit error (what went wrong, a check); removing MAY-A;
+   *  the inherited values already in their boxes; and how to make May's and Jeżyk's fixes in the editor alone. */
+  function pass70(root) {
+    const ol = (...steps) => el('ol', { class: 'howto' }, steps.map((s) => li(s)));
+    const how = (title, intro2, steps) => { root.appendChild(el('h3', { text: title })); if (intro2) root.appendChild(p(intro2)); root.appendChild(steps); };
+    root.appendChild(el('h2', { text: 'Pass 70: candidates, pictures, the base look, inherited words' }));
+    root.appendChild(p('What changed in the editor (and why), then one how-to each.'));
+    root.appendChild(el('ul', {},
+      li('<b>Every candidate on a seed of its own.</b> Within one job the seeds already differed, but every <i>new</i> job of the same look painted the same seeds again (May\'s two MAY-E badge jobs both painted seeds 2768, 3768, 4768; every title job of a hero 11, 112, 213, 314; a front from a picture always the same, and a re-run handed the very same files back from the cache). Now candidate k is a million seeds from k-1, every job moves its seeds by its own id, every re-run by its attempt, and a front from a picture moves its earlier candidates aside before it paints. Candidates still look alike when the words ask for the reference\'s own pose: they are edits of that picture. Ask for a different pose, action or camera to get variety.'),
+      li('<b>Choose a look\'s badge, icon or title cut-out from everything painted.</b> Click a look: beside the big player, <i>Choose &lt;CODE&gt;\'s badge from everything painted</i> and <i>…title cut-out…</i> (a creature: <i>…icon…</i>) list every finished candidate job of that hero or creature; pick one, <b>Install</b>. The Heroes list now shows the badge of the look each hero is played in: May showed none because the list read her base look\'s icon, a dark placeholder, while her badge is MAY-G\'s own.'),
+      li('<b>The Bandit error.</b> The job failed because <b>Stills</b> held the picture\'s path (<code>tools/dl/uploads/2d/bandit.png</code>). Stills is only a <i>short name</i> for the look\'s paintings (<code>bdb</code> → <code>buckshot_dwarf_bdb_front.png</code>); the picture belongs in <b>Reference</b>. The job built ComfyUI\'s upload name from Stills and the path in it made ComfyUI answer "500". Now the job form, the server and the recipe editor refuse such a Stills with "Stills is a short name for this look\'s paintings, like bdb; the picture goes in Reference", and an odd upload name is made safe before it reaches ComfyUI.'),
+      li('<b>The base look can be removed.</b> Its card has <b>Remove…</b>: it asks which look becomes the base (the one in play first). MAY-A is gone this way: MAY-G is May\'s base.'),
+      li('<b>Inherited words are in their boxes.</b> A look\'s recipe, the job form and a mutation\'s typed params show what a field inherits <i>in</i> the box (italic, dashed, marked <i>inherited from …</i>), so changing three words of a long prompt is typing three words. Edit it: it becomes the look\'s own. Empty it (or <b>↺ inherit</b>): it inherits again. A box you do not change writes nothing.'),
+      li('<b>Fix one view</b>: <b>Run size</b> (the recipe\'s <code>run_scale</code>, one number per view) makes one view\'s walk bigger or smaller without painting anything; <b>+ Tweak a driver…</b> (a hero\'s Art words) makes a copy of a driver with one change (hands out, hands hidden, shoulders level; scale only keeps a wide figure inside the clip), and <b>Re-roll… → redo one view\'s walk</b> walks only that view again. A re-queue on the Jobs tab now reads the look\'s recipe as you saved it.'),
+      li('<b>Two traps closed</b>: the pick of a front from a picture now writes only its Stills into the look\'s recipe (a look job queued before the pick kept losing its words: BD-A\'s first walk ran on the base dwarf\'s); and a Godot step of an import that hangs is stopped after 10 minutes (the job fails with the reason, <b>Re-queue</b> runs it again), so it never holds the Godot lock for everyone.')));
+
+    how('Make a look from a picture (the Bandit), the right way', 'A front from a picture paints candidate fronts from your picture and your words; you pick one; then the look\'s walk is painted from that front.', ol(
+      'Enemies tab → the creature (Buckshot Dwarf) → <b>Looks</b> → <b>+ New look…</b> → method <b>A front from a picture</b>.',
+      '<b>Reference picture</b> → <b>Upload…</b> your picture (or <b>Change…</b> to one already uploaded): this is where <code>bandit.png</code> goes.',
+      '<b>Stills</b> → a short name of letters, digits and _ for this look\'s paintings: <code>bdb</code> (any free one; the form says at once when it is not one).',
+      '<b>prompt</b> → the creature in words, as <i>one</i> figure seen from the front (a turnaround prompt asks for two figures in one picture: keep every detail, drop the "front and back on one sheet" words); <b>keep</b> → what must survive ("the colours of the clothes, the barrel up and to the right"). Candidates 3 or more → <b>Queue</b>.',
+      'Jobs tab → the job stops with the fronts: pick the best. Its look (BD-x) then shows <b>Generate…</b>: choose the walk method the creature\'s other looks use (A creature walked front and back), leave Stills as it is (it names the picked front) → Queue. Approve the look when it walks right; it stays NEW (not played) until you <b>Make default</b>.'));
+
+    how('Choose a look\'s badge, icon or title cut-out from everything painted', null, ol(
+      'Heroes (or Enemies) tab → the hero → <b>Looks &amp; previews</b> → click the look\'s card: its facts show beside the big player.',
+      'Open <b>Choose &lt;CODE&gt;\'s badge from everything painted</b> (or <b>…title cut-out…</b>; a creature: <b>…icon…</b>): every finished candidate job of this hero, newest first, each saying which look it was painted for. The same two pickers sit under the badge and cut-out previews.',
+      'Click the picture you want (any job\'s, any look\'s), then <b>Install … as &lt;CODE&gt;\'s badge</b>. An install job runs on the local lane: the round badge is made from the portrait (the old file backed up), the look\'s entry names it, then an import. The base look\'s choice goes to the hero\'s own files.',
+      'More to choose from: <b>Badge candidates…</b> / <b>Cut-out candidates…</b> on the look\'s card (with other words: a different action or pose gives different pictures).'));
+
+    how('Remove a base look (MAY-A)', 'The base look is the JSON\'s top-level strip (<code>variant_base</code>). Removing it makes another look the base.', ol(
+      'The hero → Looks &amp; previews → the card with the <b>base</b> chip → <b>Remove…</b> (the look in play cannot be removed: make another the default first).',
+      'Choose <b>which look becomes the base</b> (the one in play is first) → <b>Yes, remove …</b>.',
+      'What happens: the new base\'s strip, icon, anims and fps become the JSON\'s top-level art (no file is renamed; its entry and recipe stay, so a re-roll of it still uses its own recipe), the old base\'s entry goes, its own files (the old top-level strip and icon) move to <code>tools/level_editor/backups/deleted/&lt;id&gt;/&lt;stamp&gt;/</code> with <code>base_&lt;CODE&gt;.json</code> saying what it was, and the JSON is imported. Looks that used the old top-level anims or fps get them written into their own entries.'));
+
+    how('Change a few words of an inherited prompt or hint', null, ol(
+      'The look → <b>Recipe (typed)…</b> (or the job form\'s <i>What to paint</i>): an inherited field already holds the words (italic, dashed, <i>inherited from the hero\'s art_prompt</i>).',
+      'Click in it and change the words you want; when you leave the box it is this look\'s own (the mark turns <i>own</i>). <b>Save asset</b>.',
+      'To go back: empty the box (it fills with the inherited words again) or press <b>↺ inherit</b>. A box you never changed writes nothing.'));
+
+    how('Fix one view of a look (May\'s side runs, Jeżyk\'s back run, hands that show)', 'Every view of a hero look is walked on a pose driver (a stick-figure video); a view that comes out wrong usually needs another driver for that view, or other words for its painting.', ol(
+      '<b>Look</b>: the look\'s card → the big player → animation <i>run</i>, the facing (front, fd, side, bd, back), step a frame at a time; compare each view\'s run with its own <i>idle</i> (the standing painting) and with the other views on the 1 m bar.',
+      '<b>A view too tall or too small</b> (May\'s side run, Jeżyk\'s back run): not the driver. gen_art fits every walk back to the standing height by its tallest frame, so a run that crouches in every frame (a side run) comes out bigger and one whose foot reaches toward the camera (a back run) smaller, whatever the driver\'s size. <b>Recipe (typed)…</b> → <b>Run size: side</b> (and the others; the recipe key <code>run_scale</code>) → 0.88 makes that view\'s walk 12 % smaller (1 = as fitted; 0.5..1.5) → <b>Save asset</b> → <b>Re-roll…</b> with re-roll <i>none</i> → Queue: the cached walks are only placed again, nothing is painted (a minute). A view can grow only while its tallest frame fits the cell: shrink the others instead.',
+      '<b>Which driver</b>: <b>Recipe (typed)…</b> → <i>Driver: side</i> (and the others): the view\'s driver (empty = the hero\'s own, named beside it).',
+      '<b>Another driver</b>: pick one from the library in that row (the levelled <code>run_side</code>, <code>run_spread_lvl</code>, …), or make one: Art words → <b>+ Tweak a driver…</b> → <i>src</i> the view\'s driver → <i>op</i>: <b>scale</b> (only a wide figure that leaves the clip: 0.85 keeps arms or a hat inside; it does not change the sprite\'s size, Run size does), <b>spread</b> (hands painted on a back: the back wrists pushed out past the body), <b>occlude</b> (those wrists dropped), <b>shoulders</b> (a raised or sagging shoulder; tuck 25 for the side\'s far arm) → a new <i>name</i> → Queue (seconds) → look at its sheets on the job card. Name it in the look\'s recipe row → <b>Save asset</b>.',
+      '<b>Walk that view again</b>: the look\'s card → <b>Re-roll…</b> → re-roll <b>redo one view\'s walk</b> → the view → Queue. Only that clip is made again; the other views and the paintings stay.',
+      '<b>A painting problem</b> (straps missing on the back-diagonal, hands through the clothes on the front still): the view is painted from words: change the look\'s hint in place (<i>back_hint</i> for the back views, <i>side_hint</i>, <i>anim_hint</i> for the clips) → Save asset → Jobs tab → the look\'s job → <b>Re-roll…</b> → tick that view\'s still and its clip → Re-queue.',
+      'Approve the look when every view plays right; <b>Make default</b> to play it.'));
+  }
 
   /** Garry (pass 69): "When making changes to Items along the way, make sure to update the LevelEditor and include
    *  instructions on how I would be able to use the newly created tools in the future" (and the same for heroes). One

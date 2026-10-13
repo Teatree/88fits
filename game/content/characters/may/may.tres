@@ -1,21 +1,19 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_huik1"]
-[ext_resource type="Texture2D" path="res://content/characters/may/may_icon.png" id="2_1mxrr"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_tlaal"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_b.png" id="4_ui1jp"]
-[ext_resource type="Texture2D" path="res://content/characters/may/may_sprite.png" id="5_yg02d"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_c.png" id="6_uc7w2"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_g.png" id="7_1mxrr"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_icon_g.png" id="8_tlaal"]
 
-[sub_resource type="Resource" id="Resource_tlaal"]
+[sub_resource type="Resource" id="Resource_huik1"]
 script = ExtResource("1_huik1")
 stat = "cooldown"
 op = "mul"
 value = -0.15
 
-[sub_resource type="Resource" id="Resource_ui1jp"]
+[sub_resource type="Resource" id="Resource_1mxrr"]
 script = ExtResource("1_huik1")
 stat = "cooldown"
 op = "mul"
@@ -24,19 +22,19 @@ target = "player"
 
 [resource]
 script = ExtResource("3_tlaal")
-level_trait = [SubResource("Resource_ui1jp")]
+level_trait = [SubResource("Resource_1mxrr")]
 order = 8
 trait_name = "No Time"
 trait_text = "Gain 1.5% less cooldown per level."
 pronoun = "she"
 favourite_weapon = "tommy_gun"
 favourite_bonus = {
-"effects": [SubResource("Resource_tlaal")],
+"effects": [SubResource("Resource_huik1")],
 "type": "effects"
 }
 start_weapon = "big_mouth"
 availability = "purchase"
-price = 700
+price = 1750
 sprite = ExtResource("7_1mxrr")
 sprite_file = "may_sprite_g.png"
 anims = {
@@ -65,25 +63,6 @@ fps = {
 "run": 36.0
 }
 variants = {
-"MAY-A": {
-"anims": {
-"cheer": 1,
-"die": 1,
-"hit": 1,
-"idle": 2,
-"run": 4,
-"turn": 1
-},
-"fps": {},
-"frame_px": 256,
-"icon": ExtResource("2_1mxrr"),
-"note": "the top-level strip, before the Level Editor's looks",
-"shelved": false,
-"sprite": ExtResource("5_yg02d"),
-"sprite_file": "may_sprite.png",
-"strip_cols": 0,
-"title": ""
-},
 "MAY-B": {
 "anims": {
 "cheer": 1.0,
@@ -110,7 +89,7 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("2_1mxrr"),
+"icon": ExtResource("8_tlaal"),
 "note": "",
 "shelved": false,
 "sprite": ExtResource("4_ui1jp"),
@@ -144,7 +123,7 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("2_1mxrr"),
+"icon": ExtResource("8_tlaal"),
 "note": "from MAY-B",
 "shelved": false,
 "sprite": ExtResource("6_uc7w2"),
@@ -179,7 +158,7 @@ variants = {
 },
 "frame_px": 256,
 "icon": ExtResource("8_tlaal"),
-"note": "pass 69: Flux.2 dev, 30 steps, no Turbo, Garry's MAY-F words; the side and back runs on the levelled drivers (run_side: the far arm tucked; run_spread_lvl)",
+"note": "pass 70 (lane ART): the bd still repainted with the overalls' back straps (pose_hint words), the back walk on run_hidefwd_lvl (one hand at a time, the forward one hidden), run_scale side 0.88 (the side ran half a head taller); before: pass 69's Flux.2 dev look",
 "shelved": false,
 "sprite": ExtResource("7_1mxrr"),
 "sprite_file": "may_sprite_g.png",
@@ -192,7 +171,7 @@ id = "may"
 display_name = "May"
 flavour = "Now you see her. Now you don't."
 icon = ExtResource("8_tlaal")
-icon_file = "may_icon.png"
+icon_file = "may_icon_g.png"
 placeholder = {
 "color": "#141418",
 "eyes": 2.0,

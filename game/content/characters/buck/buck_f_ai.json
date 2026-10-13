@@ -419,7 +419,7 @@
  "recipe_ran": {
   "stills": "d2",
   "pose_drivers": {
-   "front": "run_dash_f",
+   "front": "run_dash_f_low",
    "fd": "run_dash_f",
    "side": "run_dash_lvl",
    "bd": "run_dash_lvl",
@@ -432,7 +432,15 @@
    "steps": 0
   },
   "seed_offset": 2437,
-  "screen": "green"
+  "screen": "green",
+  "anim_seed": 1,
+  "run_scale": {
+   "back": 1.07,
+   "bd": 1.06,
+   "side": 0.9,
+   "fd": 0.91,
+   "front": 0.9
+  }
  },
  "clip_kind": {
   "back": "pose",

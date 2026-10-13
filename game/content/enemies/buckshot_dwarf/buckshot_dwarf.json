@@ -79,5 +79,53 @@
     "color": "#C08050",
     "glyph": "helmet"
   },
-  "head": 0.983
+  "head": 0.983,
+  "variant_base": "BD-0",
+  "variants": {
+    "BD-0": {
+      "note": "the top-level strip, before the Level Editor's looks"
+    },
+    "BD-A": {
+      "recipe": {
+        "stills": "bda",
+        "art_prompt": "an extremely wide, squat Wild West desert bandit, almost as wide as he is tall: enormous shoulders, a round belly, thick short arms, extremely short legs and small feet in compact brown leather boots; a thick bushy black beard, a dark burgundy bandana over his nose and mouth, narrow angry eyes under thick eyebrows; an enormous dark espresso-brown sombrero with a cream triangle pattern round its wide flat brim; a heavy dark-magenta poncho with bold cream zigzags and beige fringe, cream shirt sleeves, thick dark-brown gloves, a brown belt with a brass buckle, baggy charcoal-brown trousers; an absurdly oversized simple gunmetal shotgun with a wide round muzzle, brass bands and a dark wooden stock held diagonally across his body in a marching carry, stock down-left at the hip, barrel up-right above his shoulder",
+        "motion": "stomping in place with heavy short steps, the huge shotgun held diagonally across his body bouncing with each step, the poncho fringe and beard swaying, glaring",
+        "back_hint": "Exactly the same physical pose rotated 180 degrees: the shotgun's barrel now sticks up past his LEFT shoulder (up-left) and its wooden stock out at the lower RIGHT behind his hip (down-right); the gun stays in front of him, partly hidden by his torso and poncho, only the protruding barrel and stock visible from behind. The back of the dark-magenta poncho shows one big cream zigzag stripe in a wide V above the beige fringe; the knot of the burgundy bandana and the black hair at the back of his head under the sombrero; no face. Consistent anatomy and weapon alignment.",
+        "dead_hint": "lying flat on his back sideways across the frame with his head to the left, knocked out: eyes shut, his huge sombrero tipped off his head beside him, the big shotgun lying across his round belly, his short legs limp; no ground, no sand",
+        "screen": "green",
+        "painter": {
+          "model": "dev",
+          "steps": 0,
+          "guidance": 0.0,
+          "turbo": true,
+          "stills": "2 of 3 painted",
+          "reused": [
+            "buckshot_dwarf_bda_front"
+          ]
+        },
+        "method": "creature_free2",
+        "seed_offset": 8449,
+        "anim_seed": 1
+      },
+      "note": "pass 70: the Bandit from Garry's turnaround (tools/dl/uploads/2d/bandit.png): the front painted from its front half with his words (front_from_picture, stills bda); the back and the dead edited from it, his back-view words as back_hint; free Wan clips front and back like BD-0",
+      "sprite": "buckshot_dwarf_sprite_a.png",
+      "icon": "buckshot_dwarf_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.943,
+      "fresh": true
+    }
+  }
 }

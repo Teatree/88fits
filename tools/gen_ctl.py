@@ -29,6 +29,8 @@ motion (the walk's words), death_drivers (a folder under tools/dl/drivers), deat
 frame, a colour one view drifted into), dead (the dead
 painting's words when there is no death driver), fps, directions, screen ("green"/"blue"), outline_frac, outline_color,
 side_seeds.
+Pass 70 (lane LE): the side and view candidates' seeds are the job's own (tools/cand_seeds.py: the Level Editor job id and
+its attempt move them, candidate k a prime past a million from k-1); the plain views keep their seeds.
 """
 import json
 import os
@@ -42,6 +44,7 @@ sys.argv = ["gen_art.py", "--no-import"] + (["--skip-qa"] if "--skip-qa" in ARGS
 sys.path.insert(0, HERE)
 import gen_art as g  # noqa: E402
 import animate  # noqa: E402
+import cand_seeds  # noqa: E402
 import artkit  # noqa: E402
 import comfy  # noqa: E402
 import numpy as np  # noqa: E402
@@ -150,6 +153,8 @@ def paint(cid, code, recipe, drv, seed, bg):
         refs = g.ensure_anchor_uploaded()
         clay = comfy.upload_pil(Image.open(os.path.join(drv, "side", "clay.png")).convert("RGB"), key + "_clay_side.png")
         n = int(opt("seeds", str(recipe.get("side_seeds", 3))))
+        # pass 70: the job's own seeds (a re-run's attempt and the job id move them)
+        side_seeds = cand_seeds.seeds(seed + g.LOOK_SEED_STEP * (cand_seeds.job_attempt() - 1), n, cand_seeds.job_tag())
         keys = []
         for k in range(n):
             ck = "%s_k%d" % (side_key, k)
@@ -162,7 +167,7 @@ def paint(cid, code, recipe, drv, seed, bg):
                  + anatomy + ". It must not look like a plain 3D model. " + g.STYLE + ". " + bg + ".")
             raw = os.path.join(g.RAW, ck + ".png")
             if not os.path.exists(raw):
-                s = seed + 1000 * k
+                s = side_seeds[k]
                 # the painter and its quality come from gen_art.MODEL (--dev, --model=, --steps=, or the editor's ART_* env)
                 imgs, secs = g.paint(p, s, 1024, 1024, list(refs) + [clay] + look, "88fits/" + ck, full=True)
                 import io
@@ -194,8 +199,10 @@ def paint(cid, code, recipe, drv, seed, bg):
              " It must not look like a plain 3D model. " + g.STYLE + ". " + bg + ".")
         if view in cands:
             ks = ["%s_%s_c%d" % (key, view, c) for c in range(int(opt("seeds", "3")))]
+            # pass 70: the job's own seeds, CAND_STEP past the plain view's own
+            vseeds = cand_seeds.seeds(seed + 11 + k + cand_seeds.CAND_STEP + g.LOOK_SEED_STEP * (cand_seeds.job_attempt() - 1), len(ks), cand_seeds.job_tag())
             for c, ck in enumerate(ks):
-                g.render(ck, p, [side_ref, clay], {"subject": noun, "view": None, "subjects_max": 1}, seed + 11 + k + 1000 * (c + 1), tries=1)
+                g.render(ck, p, [side_ref, clay], {"subject": noun, "view": None, "subjects_max": 1}, vseeds[c], tries=1)
             log("  %s candidates: %s" % (view, sheet(ks, "%s_%s_cands.png" % (key, view))))
             continue
         img, _ = g.render("%s_%s" % (key, view), p, [side_ref, clay], {"subject": noun, "view": None, "subjects_max": 1}, seed + 11 + k, tries=1)

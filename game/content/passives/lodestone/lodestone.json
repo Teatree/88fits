@@ -1,0 +1,27 @@
+{
+  "id": "lodestone",
+  "name": "Lodestone",
+  "flavour": "A rock that won't let go of anything shiny.",
+  "rarity": "common",
+  "weight": 10,
+  "line": true,
+  "max_level": 4,
+  "levels": [
+    [
+      {
+        "stat": "magnet",
+        "op": "mul",
+        "value": 0.4,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "trade": "",
+  "evolves_into": "mother_lode",
+  "art_prompt": "a chunky dark grey lodestone rock with bristling iron filings and three small purple gems stuck to it, a faint purple glow",
+  "placeholder": {
+    "color": "#8A69F2",
+    "glyph": "magnet"
+  }
+}

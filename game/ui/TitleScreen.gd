@@ -17,7 +17,8 @@
 ## PLAY is LOCKED. Locked (his quest not done): what unlocks him written over the plaque (the Requirement card, with how
 ## far along it is) and the padlock on his chest. On sale: a BUY button over him with his price; a tap asks (WConfirm),
 ## spends the gold (Save.buy_hero), lifts the mask (TitleStage.reveal) with a burst (WCelebrate) and he is playable. Left
-## of the plaque the Hero Collections button (a box of boxes) opens the hero drawer over the preview (WHeroDrawer: every
+## of the plaque the Hero Collections button (pass 70: a square as tall as the plaque, eight squares of a 3 x 3 grid)
+## opens the hero drawer over the preview (WHeroDrawer: every
 ## hero as a badge tile, two rows); a tile selects that hero, a tap outside closes it, and while it is open the button
 ## is a close X.
 ## Pass 52, two looks (Settings.menu_style, chosen in Settings under the player's debug mode): "painted" as above, or
@@ -281,10 +282,12 @@ func _build_lower() -> void:
 	tap.pressed.connect(open_sheet)
 	_plaque = tap
 	add_child(_plaque)
-	# pass 69: the Hero Collections button left of the plaque (a box of boxes; a close X while the drawer is open)
+	# pass 69: the Hero Collections button left of the plaque (a close X while the drawer is open); pass 70: a square as
+	# tall as the plaque, with the plaque's shadow, its glyph a grid of squares (_draw_drawer_glyph)
 	_drawer_btn = WTap.new()
 	_drawer_btn.name = "HeroesButton"
-	_drawer_btn.box = W.box(W.PAPER, 5, 6)
+	_drawer_btn.box = W.box(W.PAPER, 5, 8)
+	_plaque.resized.connect(_on_plaque_resized)
 	_drawer_btn.custom_minimum_size = Vector2(BOX_BTN, BOX_BTN)
 	_drawer_btn.size = Vector2(BOX_BTN, BOX_BTN)
 	_drawer_glyph = Control.new()
@@ -378,12 +381,17 @@ func _build_lower() -> void:
 func _place() -> void:
 	var vp := get_viewport_rect().size
 	# pass 69: the Hero Collections button takes the plaque's left end; the plaque keeps its right edge (PLAY's)
-	var plaque_x := BOX_LEFT + BOX_BTN + BOX_GAP
+	# pass 70: the button is a square as tall as the plaque (drawer_side settles the two together)
+	var btn_side := drawer_side(vp)
+	var plaque_x := BOX_LEFT + btn_side + BOX_GAP
 	_plaque.size = Vector2(vp.x - 60.0 - plaque_x, 0)
-	var plaque_top := vp.y - PLAY_UP - PLAQUE_GAP - _plaque.get_combined_minimum_size().y
+	var plaque_h := _plaque.get_combined_minimum_size().y
+	var plaque_top := vp.y - PLAY_UP - PLAQUE_GAP - plaque_h
 	_plaque.position = Vector2(plaque_x, plaque_top)
-	_drawer_btn.size = Vector2(BOX_BTN, BOX_BTN)
-	_drawer_btn.position = Vector2(BOX_LEFT, plaque_top + (_plaque.get_combined_minimum_size().y - BOX_BTN) * 0.5)
+	_drawer_btn.custom_minimum_size = Vector2(btn_side, btn_side)
+	_drawer_btn.size = Vector2(btn_side, btn_side)
+	_drawer_btn.position = Vector2(BOX_LEFT, plaque_top + (plaque_h - btn_side) * 0.5)
+	_drawer_glyph.queue_redraw()
 	_play.position = Vector2(60, vp.y - PLAY_UP)
 	_play.size = Vector2(vp.x - 120, 0)
 	_map_tap.position = Vector2(0, vp.y - MAP_UP)
@@ -985,31 +993,75 @@ func _on_drawer_pick(h: CharacterDef) -> void:
 	_place()
 
 
-## The button's glyph: a box of boxes (Garry: "It's meant to look like a box of boxes"): two small brass boxes standing
-## in an open crate; while the drawer is open, a close X.
+## Pass 70 (Garry: "make it the same height as the Hero plaque while maintaining square aspect ratio"): the Hero
+## Collections button's side, the plaque's height at the width that side leaves it. The plaque's line can wrap, so its
+## height may follow its width: a few rounds settle the pair (one on every hero today). Leaves the plaque at that width.
+func drawer_side(vp: Vector2) -> float:
+	var side := maxf(_drawer_btn.size.x, BOX_BTN) if _drawer_btn else BOX_BTN
+	for k in 4:
+		_plaque.size = Vector2(vp.x - 60.0 - (BOX_LEFT + side + BOX_GAP), 0)
+		var h := _plaque.get_combined_minimum_size().y
+		if absf(h - side) < 0.5:
+			return h
+		side = h
+	return side
+
+
+## The plaque laid out again (its line wrapped at the width it was given, later than _place asked): when its height is
+## no longer the button's side, the lower block is placed again so the two stay one height (pass 70). A few times a
+## frame at most, so a line that wraps back and forth cannot loop.
+var _fit_frame := -1
+var _fit_runs := 0
+func _on_plaque_resized() -> void:
+	# not before the lower block is whole (_build_lower fills the plaque after connecting this)
+	if not is_inside_tree() or _lower.is_empty() or absf(_plaque.size.y - _drawer_btn.size.y) <= 0.5:
+		return
+	var f := Engine.get_process_frames()
+	if f != _fit_frame:
+		_fit_frame = f
+		_fit_runs = 0
+	if _fit_runs >= 2:
+		return
+	_fit_runs += 1
+	_place()
+
+
+## The glyph's grid (pass 70): its squares span GLYPH_SPAN of the button's side, GLYPH_GAP of a square apart.
+const GLYPH_SPAN := 0.5
+const GLYPH_GAP := 0.28
+
+
+## The glyph's squares in a box of `box` (pass 70, Garry: "It should just be a matrix of squares. The 3x3 was the last
+## one at the bottom, missing."): a 3 x 3 grid, row by row from the top-left, the bottom-right one left out (eight
+## rects), whole pixels so every edge is crisp.
+static func glyph_cells(box: Vector2) -> Array:
+	var span := minf(box.x, box.y) * GLYPH_SPAN
+	var sq := floorf(span / (3.0 + 2.0 * GLYPH_GAP))
+	var gap := maxf(roundf(sq * GLYPH_GAP), 1.0)
+	var full := sq * 3.0 + gap * 2.0
+	var o := ((box - Vector2(full, full)) * 0.5).floor()
+	var out: Array = []
+	for row in 3:
+		for col in 3:
+			if row == 2 and col == 2:
+				continue
+			out.append(Rect2(o + Vector2(col, row) * (sq + gap), Vector2(sq, sq)))
+	return out
+
+
+## The button's glyph: eight plain ink squares (glyph_cells); while the drawer is open, pass 69's close X, grown with
+## the button so it reads as it did.
 func _draw_drawer_glyph() -> void:
 	var g := _drawer_glyph
 	var c := g.size * 0.5
 	if drawer_open():
-		var r := 22.0
-		g.draw_line(c + Vector2(-r, -r), c + Vector2(r, r), W.INK, 9.0, true)
-		g.draw_line(c + Vector2(r, -r), c + Vector2(-r, r), W.INK, 9.0, true)
+		var k := minf(g.size.x, g.size.y) / BOX_BTN
+		var r := 22.0 * k
+		g.draw_line(c + Vector2(-r, -r), c + Vector2(r, r), W.INK, 9.0 * k, true)
+		g.draw_line(c + Vector2(r, -r), c + Vector2(-r, r), W.INK, 9.0 * k, true)
 		return
-	var k := 1.25
-	var o := c + Vector2(-30.0, -29.0) * k
-	var small := func(r: Rect2, fill: Color) -> void:
-		g.draw_rect(r, W.INK)
-		g.draw_rect(r.grow(-3.5), fill)
-		g.draw_line(Vector2(r.position.x + 3.5, r.position.y + r.size.y * 0.42), Vector2(r.end.x - 3.5, r.position.y + r.size.y * 0.42), W.INK, 2.5)
-	# the boxes inside, poking out over the crate's rim, then a third one on top of them
-	small.call(Rect2(o + Vector2(6, 14) * k, Vector2(24, 24) * k), W.BRASS)
-	small.call(Rect2(o + Vector2(31, 18) * k, Vector2(23, 20) * k), W.TURQUOISE)
-	small.call(Rect2(o + Vector2(17, 0) * k, Vector2(20, 16) * k), W.ROCK)
-	# the crate's front over their feet: ink frame, aged boards, a rim
-	var crate := Rect2(o + Vector2(0, 30) * k, Vector2(60, 28) * k)
-	g.draw_rect(crate, W.INK)
-	g.draw_rect(crate.grow(-4.5), W.AGED)
-	g.draw_line(Vector2(crate.position.x + 4.5, crate.position.y + 13.0 * k), Vector2(crate.end.x - 4.5, crate.position.y + 13.0 * k), W.INK, 3.5)
+	for cell: Rect2 in glyph_cells(g.size):
+		g.draw_rect(cell, W.INK)
 
 
 ## The BUY button: a hero on sale and a purse that holds his price asks first (WConfirm); short of it, it only says so.

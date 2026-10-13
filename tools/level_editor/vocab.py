@@ -130,6 +130,40 @@ HERO_ART_KEYS = ["art_prompt", "motion", "anim_hint", "anim_negative", "anim_see
                  "remap_hues", "badge", "title_pose", "title_holds", "title_camera", "title_extra_ref"]
 HERO_VIEWS = ["front", "back", "side", "fd", "bd"]
 
+# pass 70 (the Bandit check): a look's `stills` is the short name its paintings are cached under (<id>_<slug>_<view>),
+# never a picture's path. Garry typed tools/dl/uploads/2d/bandit.png into it (the picture belongs in Reference), the
+# upload name became a path and ComfyUI answered 500. The job form, the server (a job's spec, a look's recipe, Save) and
+# the recipe editor refuse anything else with STILLS_HELP; gen_edit_stills.SLUG_RE is the same rule; "" (the asset's own
+# paintings) is allowed.
+STILLS_RE = re.compile(r"^[A-Za-z0-9_]{0,40}$")
+STILLS_HELP = "Stills is a short name for this look's paintings, like bdb; the picture goes in Reference"
+
+
+def stills_problem(value):
+    """None when `value` is a stills slug (letters, digits, _; at most 40) or empty, else the plain message to show."""
+    if value is None:
+        return None
+    if not isinstance(value, str) or not STILLS_RE.match(value):
+        return "%s (letters, digits and _ only; got %s)" % (STILLS_HELP, json.dumps(value))
+    return None
+
+
+def bad_stills(doc):
+    """[(where, message)] for every `stills` of a creature or hero JSON that is not a slug: the top level's and each look's
+    recipe's (variants[CODE].recipe.stills)."""
+    out = []
+    if isinstance(doc, dict):
+        p = stills_problem(doc.get("stills"))
+        if p:
+            out.append(("stills", p))
+        vs = doc.get("variants") if isinstance(doc.get("variants"), dict) else {}
+        for code, e in vs.items():
+            r = e.get("recipe") if isinstance(e, dict) and isinstance(e.get("recipe"), dict) else {}
+            p = stills_problem(r.get("stills"))
+            if p:
+                out.append(("variants.%s.recipe.stills" % code, p))
+    return out
+
 # ---------------------------------------------------------------- stats (StatSheet.gd, TextGen.gd, WeaponInstance.gd)
 
 # StatSheet.PLAYER_DEFAULTS, read with a regex in check_against_source
@@ -149,6 +183,10 @@ PLAYER_DEFAULTS = {
     # pass 69 (lane PAS's passive items): Counterpunch, Heavyweight, Snake Oil, Hot Springs, Last Stand, the Magnet's pulls
     "counter_damage": 0.0, "counter_haste": 0.0, "counter_speed": 0.0, "counter_seconds": 0.0, "heavyweight": 0.0,
     "overheal": 0.0, "heal_pulse": 0.0, "last_stand": 0.0, "xp_pull_radius": 0.0, "xp_pull_rate": 0.0,
+    # pass 70 (lane LINES): the evolved lines' twists (Bucking Bronco, Prairie Fire, Marshal's Star, Mother Lode, Eureka,
+    # Gold Rush)
+    "bronco_chance": 0.0, "debuff_jump": 0.0, "star_block_every": 0.0, "gem_sweep_every": 0.0, "vein_chance": 0.0,
+    "gold_might": 0.0,
 }
 # player stats the code reads that are not in PLAYER_DEFAULTS (default 0 from get_stat); content uses them all
 PLAYER_STATS_EXTRA = {"brand_chance": 0.0, "fire_vuln": 0.0, "poison_slow": 0.0, "poison_pass": 0.0}
@@ -201,6 +239,10 @@ STAT_NAMES = {
     "heavyweight": ["attack damage per 10 max HP", "pct"], "overheal": ["overheal past full health", "pct"],
     "heal_pulse": ["damage a heal sends out", "num"], "last_stand": ["attack damage in Last Stand", "pct"],
     "xp_pull_radius": ["EXP pull radius", "m"], "xp_pull_rate": ["pulls more often", "word"],
+    # pass 70 (lane LINES); kind "rule" = said in TextGen.RULE_TEXT's words with the number inside
+    "bronco_chance": ["chance a knocked-back enemy is launched", "pct"], "debuff_jump": ["debuff jumps", "rule"],
+    "star_block_every": ["seconds between star blocks", "rule"], "gem_sweep_every": ["seconds between gem sweeps", "rule"],
+    "vein_chance": ["chance a kill bursts into 5 XP gems", "pct"], "gold_might": ["attack damage per 100 gold gained", "pct"],
 }
 # pass 69: what each new stat does, in a line (the effect pickers show it); lane PAS's help texts
 STAT_HELP = {
@@ -214,6 +256,13 @@ STAT_HELP = {
     "last_stand": "Last Stand: a hit that leaves him under 30% health slows time to half for 2 s and adds this much attack damage; a hidden 20 s cooldown",
     "xp_pull_radius": "Magnet: every few seconds at random every EXP gem within this many metres flies to the hero (never chests, gold or power-ups); 8.5 m at most",
     "xp_pull_rate": "Magnet: the pulls' random 3-8 s wait is divided by 1 + this (1.0 = 1.5-4 s); the cards say \"pulls more often\", never a number",
+    # pass 70 (lane LINES)
+    "bronco_chance": "Bucking Bronco: the chance a hero's hit that knocks a plain creature back throws it up and away instead (2.8 m up, 2.5-6 m away, 0.8 s, no fall damage); bosses and Elites only take the knock",
+    "debuff_jump": "Prairie Fire: how many times a burn or poison that runs out, or whose creature dies, jumps to the nearest creature within 4 m that lacks it, at its full seconds (a fire never onto the boss)",
+    "star_block_every": "Marshal's Star: a gold star over the hero blocks one whole hit, then comes back after this many seconds; 0 = none",
+    "gem_sweep_every": "Mother Lode: every this many seconds every XP gem on the screen flies to the hero (the first 1 s after it is taken); 0 = none",
+    "vein_chance": "Eureka: the chance a kill bursts into 5 more XP gems of its size (rolled with Prospector's extra gem, so it needs xp_drop_chance above 0)",
+    "gold_might": "Gold Rush: attack damage for every 100 gold gained while held (after coin gain), up to +50% in all; spending takes nothing back",
 }
 # the weapon stats WeaponInstance.rebuild seeds before `def.base` (defaults), then the ones systems read with no seed
 WEAPON_STATS = {"damage": 5.0, "cooldown": 1.0, "amount": 1.0, "pierce": 0.0, "area": 1.0, "speed": 10.0, "duration": 2.0,
@@ -295,6 +344,10 @@ PERK_SPECIALS = {
                       "help": "Buzzer Beater: after `first` s (else `every`), then every `every` s, the `buff` effects (target player) for `seconds` s, a timed buff under the perk's name"},
     "timeout": {"by": "id", "params": {"every": 20.0, "first": 10.0, "side": 3.0, "pickup": None},
                 "help": "Fadeaway's Timeout: drops the pickup `pickup` `side` m to his left or right, first after `first` s, then `every` s after the last one went"},
+    # pass 70 (lane TRAMP): Hang Time's trampoline (core/systems/Trampoline.gd + Player.trampoline_launch)
+    "trampoline": {"by": "special", "params": {"every": 20.0, "first": 10.0, "side": 3.5, "lifetime": 30.0, "radius": 1.1, "uses": 1.0,
+                                               "launch_height": 4.0, "launch_distance": 8.0, "air_time": 1.1, "air_control": 0.35},
+                   "help": "Hang Time: after `first` s, then `every` s after the last one folded, a 3D trampoline drops `side` m beside the hero and stands `lifetime` s; walking onto it (within `radius` m of its middle) throws him `launch_height` m up and `launch_distance` m along the way he walked, `air_time` s in the air, the stick steering at `air_control` of his walking speed, untouchable up there; it folds after `uses` jumps"},
     "overdrive": {"by": "id", "params": {"every": 5.0, "step": 0.05, "max": 0.25},
                   "help": "Jeżyk's Overdrive: every `every` s at full momentum is one gear of `step` attack damage, up to `max`; a hit that lands drops every gear"},
     "ram": {"by": "id", "params": {"thorns_mult": 3.0, "flat": 12.0, "per_level": 0.0, "shove": 9.0, "from": 0.99},
@@ -550,7 +603,8 @@ def check_against_source(game_dir):
         if s not in STAT_NAMES:
             problems.append("STAT_HELP names %s, which TextGen.STATS does not" % s)
     perk_src = "\n".join(_read(game_dir, p) for p in ("game/Game.gd", "core/autoload/Run.gd", "player/Player.gd",
-                                                       "core/systems/EnemyManager.gd", "core/systems/Decoy.gd"))
+                                                       "core/systems/EnemyManager.gd", "core/systems/Decoy.gd",
+                                                       "core/systems/Trampoline.gd"))
     decoy = _read(game_dir, "core/systems/Decoy.gd")
     for sp, spec in PERK_SPECIALS.items():
         if not sp:

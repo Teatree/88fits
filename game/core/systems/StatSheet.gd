@@ -53,6 +53,13 @@ const PLAYER_DEFAULTS := {
 	# pulls, their radius and how much more often they come (PickupManager._tick_xp_pulls)
 	"counter_damage": 0.0, "counter_haste": 0.0, "counter_speed": 0.0, "counter_seconds": 0.0, "heavyweight": 0.0,
 	"overheal": 0.0, "heal_pulse": 0.0, "last_stand": 0.0, "xp_pull_radius": 0.0, "xp_pull_rate": 0.0,
+	# pass 70 (lane LINES), the new lines' evolutions (each read by the system it names): Bucking Bronco's chance a
+	# knocked-back creature is launched up and away (EnemyManager._bronco_kick); Prairie Fire's jumps of an ending burn or
+	# poison (EnemyManager._prairie_jump); Marshal's Star's seconds between its blocks (StarGuard); Mother Lode's seconds
+	# between its sweeps of the screen's gems (PickupManager._tick_gem_sweep); Eureka's chance a kill strikes a vein
+	# (PickupManager.vein); Gold Rush's attack damage per Run.GOLD_RUSH_PER gold gained while held (Run.gold_rush_bonus)
+	"bronco_chance": 0.0, "debuff_jump": 0.0, "star_block_every": 0.0, "gem_sweep_every": 0.0, "vein_chance": 0.0,
+	"gold_might": 0.0,
 }
 
 ## The least a hero's stat can come to, however many sources pull it down (pass 61: Ironwood's regen delay shrinks every

@@ -27,13 +27,46 @@ const Forms = (() => {
     return r;
   }
 
+  /** pass 70 (Garry: "Every 'inherited' text or value should just already be there while still being marked as
+   *  inherited, so it can be edited more easily"): a box whose own value is empty shows the inherited one IN the box,
+   *  greyed and italic (class `inherited`), editable in place. An edit that leaves it different makes it the box's own;
+   *  emptying it, or typing the inherited text back, goes back to inheriting (null: the key is left out, sparse records
+   *  stay sparse); a box nobody typed in writes nothing (no change event). `o.inherit` = {value, from}; the caller marks
+   *  the row ("inherited from <from>") and listens to the box's `inheritchange` event ({detail: {own}}) to flip its mark.
+   *  Returns the commit function the box's change handler calls with its text. */
+  function inheritable(inp, value, o, onChange, parse, same) {
+    const inh = o && o.inherit && o.inherit.value != null && o.inherit.value !== '' && typeof o.inherit.value !== 'object' ? String(o.inherit.value) : null;
+    if (inh == null) return null;
+    const own0 = !(value == null || value === '');
+    if (!own0) { inp.value = inh; inp.classList.add('inherited'); }
+    inp.dataset.inherited = inh;
+    inp.title = (inp.title ? inp.title + ' · ' : '') + `inherited from ${o.inherit.from || 'its parent'}: ${inh.length > 200 ? inh.slice(0, 200) + '…' : inh} (edit it here to make it its own; empty it to inherit again)`;
+    const isInh = (t) => t === '' || (same ? same(t, inh) : t.trim() === inh.trim());
+    const flip = () => {
+      const now = isInh(inp.value);
+      inp.classList.toggle('inherited', now && inp.value !== '');
+      inp.dispatchEvent(new CustomEvent('inheritchange', { detail: { own: !now }, bubbles: true }));
+    };
+    inp.addEventListener('input', flip);
+    return (raw) => {
+      if (isInh(String(raw))) {
+        if (String(raw).trim() === '') inp.value = inh;
+        flip();
+        onChange(null);
+        return;
+      }
+      onChange(parse ? parse(raw) : raw);
+    };
+  }
+
   function numberInput(def, value, onChange, opts) {
     const o = opts || {};
     const inp = el('input', { type: 'number', class: 'num' + (o.cls ? ' ' + o.cls : ''), value: value == null ? '' : value, placeholder: o.placeholder != null ? String(o.placeholder) : (def.def != null ? String(def.def) : ''), 'data-path': o.path || def.key });
     if (def.min != null) inp.min = def.min;
     if (def.max != null) inp.max = def.max;
     inp.step = def.int ? 1 : (def.step != null ? def.step : 'any');
-    inp.addEventListener('change', () => onChange(parseNum(inp.value, def.int || def.type === 'int')));
+    const commit = inheritable(inp, value, o, onChange, (t) => parseNum(t, def.int || def.type === 'int'), (t, inh) => t.trim() !== '' && Number(t) === Number(inh));
+    inp.addEventListener('change', () => (commit ? commit(inp.value) : onChange(parseNum(inp.value, def.int || def.type === 'int'))));
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
     return inp;
   }
@@ -52,7 +85,8 @@ const Forms = (() => {
   function textInput(def, value, onChange, opts) {
     const o = opts || {};
     const inp = el('input', { type: 'text', class: 'txt', value: value == null ? '' : value, placeholder: o.placeholder || '', 'data-path': o.path || def.key });
-    inp.addEventListener('change', () => onChange(inp.value.trim() === '' ? null : inp.value.trim()));
+    const commit = inheritable(inp, value, o, onChange, (t) => t.trim());
+    inp.addEventListener('change', () => (commit ? commit(inp.value) : onChange(inp.value.trim() === '' ? null : inp.value.trim())));
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
     return inp;
   }
@@ -64,7 +98,8 @@ const Forms = (() => {
     ta.value = value == null ? '' : String(value);
     const grow = () => { ta.style.height = 'auto'; ta.style.height = Math.min(360, Math.max(34, ta.scrollHeight + 2)) + 'px'; };
     ta.addEventListener('input', grow);
-    ta.addEventListener('change', () => onChange(ta.value.trim() === '' ? null : ta.value));
+    const commit = inheritable(ta, value, o, onChange, null);
+    ta.addEventListener('change', () => (commit ? commit(ta.value) : onChange(ta.value.trim() === '' ? null : ta.value)));
     ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) ta.blur(); });
     requestAnimationFrame(grow);
     return ta;
@@ -435,7 +470,7 @@ const Forms = (() => {
       else U.setKey(obj, def.key, v, def.def);
       if (o.after) o.after(v);
     }, o.what || 'all');
-    const ctl = { path: o.pathPrefix ? `${o.pathPrefix}.${def.key}` : def.key, placeholder: o.placeholder, cls: o.cls };
+    const ctl = { path: o.pathPrefix ? `${o.pathPrefix}.${def.key}` : def.key, placeholder: o.placeholder, cls: o.cls, inherit: o.inherit };
     switch (def.type) {
       case 'int': case 'number': return numberInput(def, value, write, ctl);
       case 'seconds': return secondsInput(def, value, write, ctl);
@@ -707,7 +742,7 @@ const Forms = (() => {
   }
 
   return {
-    row, numberInput, secondsInput, textInput, textareaInput, select, boolInput, bool3Input, percentInput, iconSelect, closePop, creatureGroups,
+    row, numberInput, secondsInput, textInput, textareaInput, select, boolInput, bool3Input, percentInput, iconSelect, closePop, creatureGroups, inheritable,
     creatureSummary, enemyPick, variantSelect, eliteSelect, pickupSelect, intervalInput, numberList, numbersLine, normHex,
     swatchInput, swatchesInput, control, fieldRow, pointsTable, pointsBlock, weightsBlock, curveBlock, spawnSidesBlock,
     specialsBlock, pathTimesBlock, pickupsBlock,

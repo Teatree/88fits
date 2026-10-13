@@ -12,7 +12,7 @@ config_version=5
 
 config/name="88fits"
 config/description="Hold to run. Slide to steer. The guns fire themselves."
-config/version="0.55"
+config/version="0.56"
 run/main_scene="res://ui/Boot.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")

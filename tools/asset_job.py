@@ -334,6 +334,9 @@ def run(job_dir, dry=False):
         os.environ[str(k)] = str(v)
     os.environ.setdefault("ASSET_JOB_SIDECAR", os.path.join(job_dir, "result.json"))
     os.environ.setdefault("ASSET_JOB_ID", os.path.basename(job_dir))
+    # pass 70 (lane LE): a re-run's number for the candidate tools that take no --attempt (gen_edit_stills, gen_ctl's
+    # candidates; tools/cand_seeds.job_attempt), so a re-queued job paints on new seeds
+    os.environ.setdefault("ASSET_JOB_ATTEMPT", str(int(job.get("attempt") or 1)))
     os.environ.setdefault("PYTHONIOENCODING", "utf-8")
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")

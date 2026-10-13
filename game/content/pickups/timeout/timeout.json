@@ -1,6 +1,7 @@
 {
   "id": "timeout",
   "name": "Timeout",
+  "hidden": true,
   "flavour": "Stop the clock.",
   "effect": "leap",
   "value": 0,

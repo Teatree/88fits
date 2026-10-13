@@ -1,6 +1,7 @@
 {
   "id": "gold_bank",
   "name": "Strongbox",
+  "hidden": true,
   "flavour": "Send it up. Spend it later.",
   "effect": "bank",
   "params": {

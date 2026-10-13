@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://blecdubnqfm3j"
-path="res://.godot/imported/may_sprite.png-5daafb937178cbcf5a49bbedf662c166.ctex"
+uid="uid://b8yvc1mds5oto"
+path="res://.godot/imported/prairie_fire_icon.png-62e0cf2b830c51ea01f6401253a135b6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/characters/may/may_sprite.png"
-dest_files=["res://.godot/imported/may_sprite.png-5daafb937178cbcf5a49bbedf662c166.ctex"]
+source_file="res://content/passives/prairie_fire/prairie_fire_icon.png"
+dest_files=["res://.godot/imported/prairie_fire_icon.png-62e0cf2b830c51ea01f6401253a135b6.ctex"]
 
 [params]
 

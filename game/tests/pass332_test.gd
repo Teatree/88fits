@@ -210,9 +210,10 @@ func test_the_energy_shield_takes_whole_hits_then_breaks() -> void:
 
 func test_every_former_line_evolves() -> void:
 	# the eight lines a level-up offered (pass 33.2), passives since pass 46, each with its single-level evolution; pass
-	# 47: fifteen lines (the line flag on the passives), every one evolving into a line
+	# 47: fifteen lines (the line flag on the passives), every one evolving into a line; pass 70: twenty-one (Lodestone,
+	# Mule Kick, Slow Burn, Tin Star new, Prospector and Gold Tooth made lines)
 	var evolving: Array = Registry.base_passives().filter(func(p: PassiveDef) -> bool: return p.evolves_into != "")
-	assert_int(evolving.size()).is_equal(15)
+	assert_int(evolving.size()).is_equal(21)
 	for p: PassiveDef in evolving:
 		var evo: PassiveDef = Registry.passive(p.evolves_into)
 		assert_object(evo).override_failure_message(p.id + " evolves into nothing").is_not_null()

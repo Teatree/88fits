@@ -118,6 +118,7 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 			var d: StructureDef = Registry.structure(str(id))
 			if d:
 				defs.append(d)
+	defs = in_play(defs)
 	if defs.is_empty() or count <= 0:
 		return
 	# every kind appears at least once per run; the rest of the count is drawn by weight
@@ -144,6 +145,17 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 		var _st := _spawn(def, placed[k])
 	if placed.size() < defs.size():
 		push_warning("StructureManager: placed %d of %d kinds" % [placed.size(), defs.size()])
+
+
+## The structures that may stand on a map (pass 70, Garry: "Remove the Balloon Chest thing now"): every one but a
+## `hidden` one (the retired Strongbox, gold_bank), whether the map names a roster or takes them all. A hidden structure
+## keeps its content folder and its effect's code; it never spawns, so it never returns either.
+static func in_play(defs: Array) -> Array:
+	var out: Array = []
+	for d: StructureDef in defs:
+		if d != null and not d.hidden:
+			out.append(d)
+	return out
 
 
 ## The start's rules for a structure at `p` (shared with the returns, pass 64): clear of the flats (18 m), of every spot

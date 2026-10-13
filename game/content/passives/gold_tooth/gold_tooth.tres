@@ -13,8 +13,10 @@ target = "player"
 
 [resource]
 script = ExtResource("3_mvea4")
+line = true
 levels = [[SubResource("Resource_dbkqi")]]
-max_level = 5
+max_level = 4
+evolves_into = "gold_rush"
 id = "gold_tooth"
 display_name = "Gold Tooth"
 flavour = "Smile. It pays."

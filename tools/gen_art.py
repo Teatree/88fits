@@ -512,9 +512,25 @@ def figure_height_cell(cell_img):
     return float(ys.max() - ys.min()) if len(ys) else 0.0
 
 
-def video_cycle(still_rgb, key, motion, seed, cell, stand_cell, n_out=12, outline_frac=0.012, outline_color=(38, 24, 30, 255), length=81, fill=0.72):
+def run_scale_of(d, view):
+    """Pass 70 (lane ART): a look's per-view size of its run/walk clip, "run_scale": {"side": 0.88, "back": 1.06} in
+    the recipe (or the JSON), multiplied into the clip's fitted scale (1 = as fitted). A driven clip is fitted by its
+    tallest frame, so a view whose every frame crouches (a side run) comes out bigger than the others and one whose
+    foot reaches down toward the camera (a back or front run) smaller: May's side run stood half a head taller than her
+    other views, Jezyk's dash ran smaller from behind. Cached clips are only re-placed, nothing is painted again."""
+    rs = d.get("run_scale") if isinstance(d, dict) else None
+    if not isinstance(rs, dict):
+        return 1.0
+    try:
+        return min(1.5, max(0.5, float(rs.get(view, 1.0))))
+    except (TypeError, ValueError):
+        return 1.0
+
+
+def video_cycle(still_rgb, key, motion, seed, cell, stand_cell, n_out=12, outline_frac=0.012, outline_color=(38, 24, 30, 255), length=81, fill=0.72, scale_mul=1.0):
     """A run/walk cycle from a Wan clip of the still, scaled so the figure matches its standing cell; None on failure.
-    `fill` (JSON "clip_fill") is the still's share of the clip canvas: less for a creature that bounces high (pass 45)."""
+    `fill` (JSON "clip_fill") is the still's share of the clip canvas: less for a creature that bounces high (pass 45).
+    `scale_mul`: the look's run_scale for this view (run_scale_of)."""
     if NO_VIDEO:
         return None
     try:
@@ -523,7 +539,7 @@ def video_cycle(still_rgb, key, motion, seed, cell, stand_cell, n_out=12, outlin
         log("  (video cycle failed for %s: %s)" % (key, e))
         return None
     # the still was scaled to `fill` of the 640 px clip; match the standing figure's cell height
-    scale = figure_height_cell(stand_cell) / max(1.0, animate_still_height(still_rgb, fill))
+    scale = figure_height_cell(stand_cell) / max(1.0, animate_still_height(still_rgb, fill)) * float(scale_mul)
     px = max(1, int(round(cell * outline_frac)))
     return artkit.place_clip_frames(frames, cell, scale, px, outline_color)
 
@@ -531,7 +547,7 @@ def video_cycle(still_rgb, key, motion, seed, cell, stand_cell, n_out=12, outlin
 DRIVERS = os.path.join(REPO, "tools", "dl", "drivers")
 
 
-def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline_frac=0.012, outline_color=(38, 24, 30, 255), negative_extra="", loop=True, motion="running in place on the spot like on a treadmill", view_hint=""):
+def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline_frac=0.012, outline_color=(38, 24, 30, 255), negative_extra="", loop=True, motion="running in place on the spot like on a treadmill", view_hint="", scale_mul=1.0):
     """A run/walk cycle from Wan Animate driven by the Mixamo stride in tools/dl/drivers/<clip>/<view> (see
     tools/pose_driver.py): every driver frame is a sprite frame, so the count and cadence are exact in every view.
     Falls back to the free video cycle when the drivers are missing; None on failure."""
@@ -594,7 +610,9 @@ def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline
     # Wan Animate draws the figure on the driver skeleton, which is nose-to-ankle: the painted body comes out about a
     # head taller than the still placed at the same fill. Measure the tallest frame and fit it to the standing figure.
     tallest = max(1.0, max(_alpha_height(f) for f in frames))
-    scale = figure_height_cell(stand_cell) * 0.99 / tallest
+    # pass 70: times the look's run_scale for this view (run_scale_of): the tallest frame is not the same body size in
+    # every view
+    scale = figure_height_cell(stand_cell) * 0.99 / tallest * float(scale_mul)
     px = max(1, int(round(cell * outline_frac)))
     return artkit.place_clip_frames(frames, cell, scale, px, outline_color)
 
@@ -1057,18 +1075,18 @@ def process(type_, folder, id_):
             # the skeletons' front walk raises them a little where the back walk slopes them down
             anim_neg = str(d.get("anim_negative", ""))
             gait = str(d.get("gait", "walking in place on the spot like on a treadmill"))
-            run_f = pose_cycle(img, ak + "_pose_f", str(d.get("pose_front", clip)), "front", seed, cell, base, motion, CF, CO, negative_extra=anim_neg, motion=gait)
-            run_b = pose_cycle(back_img, ak + "_pose_b", clip, "back", seed + 1, cell, base, motion, CF, CO, negative_extra=anim_neg, motion=gait)
+            run_f = pose_cycle(img, ak + "_pose_f", str(d.get("pose_front", clip)), "front", seed, cell, base, motion, CF, CO, negative_extra=anim_neg, motion=gait, scale_mul=run_scale_of(d, "front"))
+            run_b = pose_cycle(back_img, ak + "_pose_b", clip, "back", seed + 1, cell, base, motion, CF, CO, negative_extra=anim_neg, motion=gait, scale_mul=run_scale_of(d, "back"))
             kinds["front"] = "pose" if run_f is not None else "free"
             kinds["back"] = "pose" if run_b is not None else "free"
         # "clip_fill": the still's share of the free clip's canvas (0.72); a creature that bounces high takes less so its
         # frames never touch the edge (the Blue Slime's 0.56, pass 45)
         cfill = float(d.get("clip_fill", 0.72))
         if run_f is None:
-            run_f = video_cycle(img, ak + "_walk_f", motion + ", facing the viewer, seen from the front", seed, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49, cfill)
+            run_f = video_cycle(img, ak + "_walk_f", motion + ", facing the viewer, seen from the front", seed, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49, cfill, scale_mul=run_scale_of(d, "front"))
             kinds["front"] = "free" if run_f is not None else "procedural"
         if run_b is None:
-            run_b = video_cycle(back_img, ak + "_walk_b", motion + ", seen directly from behind, walking away from the viewer", seed + 1, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49, cfill)
+            run_b = video_cycle(back_img, ak + "_walk_b", motion + ", seen directly from behind, walking away from the viewer", seed + 1, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49, cfill, scale_mul=run_scale_of(d, "back"))
             kinds["back"] = "free" if run_b is not None else "procedural"
         info["clips"] = {"walk_f": run_f is not None, "walk_b": run_b is not None, "pose": clip}
         views = {}
@@ -1089,7 +1107,7 @@ def process(type_, folder, id_):
                                     {"subject": "the same creature, " + vname + " view", "view": None, "subjects_max": 1, "ref_h": figure_height(img)}, seed + k)
                 info["renders"][vname] = inf
                 v_cell = finish(v_img, cell, 0.86, True, None, CF, stand_h, CO)[0]
-                v_run = video_cycle(v_img, ak + "_walk_" + vname, motion + ", " + walk_prompt, seed + k, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49)
+                v_run = video_cycle(v_img, ak + "_walk_" + vname, motion + ", " + walk_prompt, seed + k, cell, base, CREATURE_RUN_FRAMES, CF, CO, 49, scale_mul=run_scale_of(d, vname))
                 info["clips"]["walk_" + vname] = v_run is not None
                 kinds[vname] = "free" if v_run is not None else "procedural"
                 views[suffix] = (v_cell, v_run)
@@ -1238,10 +1256,10 @@ def process(type_, folder, id_):
             # hand that swings in front of the chest, which Wan Animate had painted on the back of Calavera's jacket)
             drv = str((d.get("pose_drivers") or {}).get(view, "run"))
             c = pose_cycle(still_img, ck + "_pose_run_" + view, drv, view, seed + k, cell, cell_img, hint, negative_extra=anim_neg, view_hint=vh,
-                           motion=str(d.get("pose_motion", "running in place on the spot like on a treadmill"))) if pose_ok else None
+                           motion=str(d.get("pose_motion", "running in place on the spot like on a treadmill")), scale_mul=run_scale_of(d, view)) if pose_ok else None
             kinds[view] = "pose" if c is not None else "free"
             if c is None:
-                c = video_cycle(still_img, ck + "_run" + (suffix or "_b"), prompt, seed + k, cell, cell_img, N)
+                c = video_cycle(still_img, ck + "_run" + (suffix or "_b"), prompt, seed + k, cell, cell_img, N, scale_mul=run_scale_of(d, view))
                 kinds[view] = "free" if c is not None else "procedural"
             clips[suffix] = c
         # "remap_hues" (pass 46): hues the video model smeared into the clips that the hero's palette lacks go back to his

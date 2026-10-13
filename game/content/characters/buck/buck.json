@@ -92,10 +92,10 @@
   "title_holds": "his hands hold nothing; they are in his jacket pockets",
   "hidden": false,
   "availability": "purchase",
-  "price": 500,
+  "price": 1250,
   "currency_type": "gold",
   "variant_base": "BUC-A",
-  "variant": "BUC-E",
+  "variant": "BUC-F",
   "variants": {
     "BUC-A": {
       "note": "the deer, the top-level strip before the Level Editor's looks (shelved in pass 69: the top-level words are Jeżyk's tracksuit now; BUC-B keeps the deer's words)",
@@ -330,7 +330,7 @@
       "recipe": {
         "stills": "d2",
         "pose_drivers": {
-          "front": "run_dash_f",
+          "front": "run_dash_f_low",
           "fd": "run_dash_f",
           "side": "run_dash_lvl",
           "bd": "run_dash_lvl",
@@ -358,9 +358,17 @@
           ]
         },
         "seed_offset": 2437,
-        "screen": "green"
+        "screen": "green",
+        "anim_seed": 1,
+        "run_scale": {
+          "back": 1.07,
+          "bd": 1.06,
+          "side": 0.9,
+          "fd": 0.91,
+          "front": 0.9
+        }
       },
-      "note": "pass 69: the dash (the hedgehog's run): BUC-D's paintings on run_dash_lvl (the Running legs with both arms swept straight back behind the body and the spine leaning 14 degrees forward, shoulders levelled)",
+      "note": "pass 69: the dash (the hedgehog's run): BUC-D's paintings on run_dash_lvl (the Running legs with both arms swept straight back behind the body and the spine leaning 14 degrees forward, shoulders levelled). Pass 70 (lane ART): the front walk on run_dash_f_low (the hands low beside his hips, no longer over the jacket); run_scale so every view runs at one size (the back ran small: 0.96 of his standing size against 1.17 from the side and front)",
       "sprite": "buck_sprite_f.png",
       "anims": {
         "idle": 4,
@@ -387,7 +395,6 @@
         "hit": 12,
         "die": 8
       },
-      "fresh": true,
       "icon": "buck_icon_f.png",
       "icon_picked": true,
       "title": "hero_buck_f.png"

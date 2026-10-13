@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d4a3hhr5rs3bm"
-path="res://.godot/imported/may_icon.png-f03b4611a8b47bc5023b252b5488d351.ctex"
+uid="uid://f8s6tviqf0e1"
+path="res://.godot/imported/marshals_star_icon.png-7d723deb8cc85653e44c8fc7189149ff.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/characters/may/may_icon.png"
-dest_files=["res://.godot/imported/may_icon.png-f03b4611a8b47bc5023b252b5488d351.ctex"]
+source_file="res://content/passives/marshals_star/marshals_star_icon.png"
+dest_files=["res://.godot/imported/marshals_star_icon.png-7d723deb8cc85653e44c8fc7189149ff.ctex"]
 
 [params]
 

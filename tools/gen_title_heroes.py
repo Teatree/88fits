@@ -25,7 +25,9 @@ Pass 68: the words and the picture are inputs. Each of --character, --pose, --ho
 title_* keys, then the tables below, then plain defaults (title_words). The character's description goes right after
 "this exact character" (title_prompt). The reference: --ref (a path under the repo, under tools/dl/ or absolute, laid on
 the screen colour when it has a transparent film), else the look's own front still (the base: <id>_front). Seeds:
-first + 101 * n, moved by the look's seed_offset and by --attempt (a re-run paints new ones). Both --x v and --x=v work.
+first, moved by the look's seed_offset and by --attempt (a re-run paints new ones), then by the job (pass 70,
+tools/cand_seeds.py: the job id's own move, candidate n a prime past a million from n-1; every title job of a hero had
+painted 11, 112, 213, 314). Both --x v and --x=v work.
 """
 import io
 import json
@@ -37,6 +39,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, os.path.dirname(__file__))
 import artkit  # noqa: E402
+import cand_seeds  # noqa: E402
 import comfy  # noqa: E402
 from gen_art import STYLE, BG_BLUE, BG_GREEN  # noqa: E402
 import gen_art as ga  # noqa: E402
@@ -183,10 +186,11 @@ def title_prompt(character, pose, camera, holds, extra_words, style, bg):
             "proportions as the reference. " + style + ". " + bg + ".")
 
 
-def title_seeds(first, seeds, offset=0, attempt=1):
-    """first + 101 * n, moved by the look's seed_offset and the job's attempt (each a gen_art.LOOK_SEED_STEP)."""
+def title_seeds(first, seeds, offset=0, attempt=1, tag=""):
+    """first, moved by the look's seed_offset and the job's attempt (each a gen_art.LOOK_SEED_STEP), then cand_seeds.seeds:
+    the job's own move (`tag`, the Level Editor job id; none by hand) and candidate n CAND_STEP from n-1 (pass 70)."""
     move = ga.LOOK_SEED_STEP * (int(offset) + max(0, int(attempt) - 1))
-    return [int(first) + n * 101 + move for n in range(int(seeds))]
+    return cand_seeds.seeds(int(first) + move, seeds, tag)
 
 
 def out_stem(hid, code=""):
@@ -255,7 +259,8 @@ def paint(hid, seeds, first, character=None, pose=None, holds=None, camera=None,
     d = ga.look_merged(d0, code) if code else d0
     stem = out_stem(hid, code)
     # the candidates are this job's own (--tag, else the Level Editor job's id; untagged by hand)
-    tag = cand_tag(tag if tag else os.environ.get("ASSET_JOB_ID", ""))
+    raw_tag = cand_seeds.job_tag(tag)
+    tag = cand_tag(raw_tag)
     cstem = cand_stem(hid, code, tag)
     if ref:
         src = ga.ref_path(ref)
@@ -283,7 +288,7 @@ def paint(hid, seeds, first, character=None, pose=None, holds=None, camera=None,
         refs.append(comfy.upload_pil(ga.on_screen(Image.open(ep), bg == BG_BLUE), comfy.safe_name("title_extra_" + os.path.basename(ep))))
     prompt = title_prompt(character, pose_w, view_w, holds_w, extra_w, STYLE, bg)
     os.makedirs(OUT, exist_ok=True)
-    seed_list = title_seeds(first, seeds, ga.seed_offset_of(d), attempt)
+    seed_list = title_seeds(first, seeds, ga.seed_offset_of(d), attempt, raw_tag)
     made = []
     for n, seed in enumerate(seed_list):
         imgs, secs = ga.paint(prompt, seed, RENDER[0], RENDER[1], refs, "88fits/title_" + stem)   # the painter from gen_art.MODEL
@@ -340,10 +345,20 @@ def pick(pairs, variant=None, tag=None):
         if code and not ga.has_look(d, code):
             raise SystemExit("gen_title_heroes: %s has no look %s" % (hid, code))
         stem = out_stem(hid, code)
-        src = os.path.join(OUT, "%s_%s.png" % (cand_stem(hid, code, tag), n))
+        if n.lower().endswith(".png"):
+            # pass 70: a candidate named by its file (the Level Editor's look picker installs any job's cut-out into any look)
+            src = os.path.join(OUT, os.path.basename(n))
+        else:
+            src = os.path.join(OUT, "%s_%s.png" % (cand_stem(hid, code, tag), n))
         if not os.path.isfile(src):
             raise SystemExit("gen_title_heroes: no candidate %s" % src)
         name = "hero_%s.png" % stem
+        if not code:
+            # pass 70: a base look made from a look (its old base removed) keeps the cut-out its entry names, which the
+            # game shows for the base (JsonContent: the base entry's title)
+            bent = (d.get("variants") or {}).get(str(d.get("variant_base") or "")) if isinstance(d.get("variants"), dict) else None
+            if isinstance(bent, dict) and bent.get("title") and re.match(r"^[A-Za-z0-9._-]+\.png$", str(bent["title"])):
+                name = os.path.basename(str(bent["title"]))
         dst = os.path.join(SLOT_DIR, name)
         buf = io.BytesIO()
         Image.open(src).save(buf, "PNG")

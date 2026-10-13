@@ -1410,6 +1410,8 @@ func _tick_perks(delta: float) -> void:
 	_tick_periodic_buffs(delta)
 	# pass 69 (lane HERO): May's Inflatable May (a perk whose special is "decoy")
 	_tick_decoy(delta)
+	# pass 70 (lane TRAMP): Fadeaway's Hang Time (a perk whose special is "trampoline"; it replaced the Timeout)
+	_tick_trampoline(delta)
 	if not Run.has_perk("trail_dust"):
 		return
 	if player.velocity.length() < 0.8:
@@ -1435,6 +1437,24 @@ func _tick_decoy(delta: float) -> void:
 		add_child(decoy)
 		decoy.setup(self)
 	decoy.tick(delta)
+
+
+## Pass 70 (lane TRAMP): Hang Time's trampoline, its own node (core/systems/Trampoline.gd, by path so Game never waits on
+## the class cache) made the first time a trampoline perk is held: the clock, the drop beside him, the walk-in launch
+## (Player.trampoline_launch), the mat's wobble, the fold.
+const TRAMPOLINE_SCRIPT := preload("res://core/systems/Trampoline.gd")
+var trampoline: Node3D = null
+
+
+func _tick_trampoline(delta: float) -> void:
+	if trampoline == null:
+		if not TRAMPOLINE_SCRIPT.active():
+			return
+		trampoline = TRAMPOLINE_SCRIPT.new()
+		trampoline.name = "Trampoline"
+		add_child(trampoline)
+		trampoline.call("setup", self)
+	trampoline.call("tick", delta)
 
 
 ## Serenade (pass 43, Calavera): whatever comes within the song's reach moves slower; a faint gold disc under him says
@@ -1872,6 +1892,25 @@ func _salt_luck_at(at: Vector3) -> float:
 	return m
 
 
+## The Elite's and the boss's gold (pass 70, Garry: "Make Elites and Bosses give much more Coins"): x5 of pass 44's
+## purses (90 + 60 a stage, 260 + 140 a stage), [base, per stage] before Mira's Motherlode; a boss's coins on the sand
+## are its drops.coins (x5 in the bosses' JSON), BOSS_COINS when it names none (was 12); an Elite's or a boss's own coin
+## (drops.gold) is worth PickupManager.BIG_COIN_MULT times a creature's.
+const ELITE_PURSE := [450, 300]
+const BOSS_PURSE := [1300, 700]
+const BOSS_COINS := 60
+
+
+## An Elite's purse on stage index `stage` (0 = stage 1), before Motherlode.
+static func elite_purse(stage: int) -> int:
+	return int(ELITE_PURSE[0]) + int(ELITE_PURSE[1]) * maxi(stage, 0)
+
+
+## A boss's purse on stage index `stage`, before Motherlode (its coins on the sand come on top).
+static func boss_purse(stage: int) -> int:
+	return int(BOSS_PURSE[0]) + int(BOSS_PURSE[1]) * maxi(stage, 0)
+
+
 ## What a kill sets off and pays (out of _on_enemy_died, pass 48): Powder Keg, Brimstone Brand, Grand Finale, an Elite's
 ## purse and a boss's reward, and the burst where it fell. A training dummy sets everything off and pays nothing (pass 49).
 func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: String) -> void:
@@ -1910,18 +1949,18 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 	var lode: float = 1.5 if (Run.character and Run.character.specials.has("motherlode")) else 1.0
 	var pays := def.brain != "dummy"
 	if (elite != null or def.archetype == "elite") and pays:
-		var purse := int((90 + 60 * Run.stage) * lode)
+		var purse := int(elite_purse(Run.stage) * lode)
 		Run.add_gold(purse, "elite_purse")
 		hud.toast("+%d GOLD" % purse, Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
-		var chest_gold := int((260 + 140 * Run.stage) * lode)
+		var chest_gold := int(boss_purse(Run.stage) * lode)
 		Run.add_gold(chest_gold, "boss_purse")
 		hud.toast("+%d GOLD" % chest_gold, Color(1.0, 0.85, 0.35))
 	if def.archetype == "boss" and pays:
 		_end_ring()
 		_hell_lines.clear()
 		# the reward scales with the boss (drops.coins, drops.chests): the second boss pays for continuing
-		for k in range(int(def.drops.get("coins", 12))):
+		for k in range(int(def.drops.get("coins", BOSS_COINS))):
 			pickups.mark_coin(pickups.spawn(PickupManager.KIND_COIN, at + Vector3(randf_range(-2.5, 2.5), 0, randf_range(-2.5, 2.5)), 5.0), "boss_coins")
 		for k in range(int(def.drops.get("chests", 1)) - 1):
 			pickups.spawn_chest(at + Vector3(-2.0 - 1.6 * k, 0, 1.5))
@@ -2588,6 +2627,19 @@ func arena_swap_hero(id: String) -> bool:
 	return true
 
 
+## The run's gold at its end (out of end_run, pass 70): the whole purse goes to the save, as an extraction's always did
+## (pass 44), and since pass 70 (Garry: "Make Coins stay if Player dies") a death's and an abandon's too: reason
+## "run_bank" for every end (run_end's result says which). Writes Run.last_result for the Results screen ("lost" stays
+## in it for older readers and is 0 now); returns what was banked. end_run calls it once (_ended).
+static func bank_run_end(map_id: String) -> int:
+	var gold := Run.run_gold
+	Run.last_result = {"gold_before": Save.gold(), "banked": gold, "lost": 0,
+		"strongbox": Run.banked_gold, "prev_best": Save.best_run(map_id).duplicate()}
+	if gold > 0:
+		Save.add_gold(gold, "run_bank")
+	return gold
+
+
 func end_run() -> void:
 	# whatever screens waited their turn are not coming (pass 60)
 	_modal_queue.clear()
@@ -2600,14 +2652,9 @@ func end_run() -> void:
 	_ended = true
 	tether_end()
 	director.stop()
-	# the run's gold comes home with the hero (pass 44): a death leaves it in the sand, all but what a Strongbox banked
-	# on the way; the results screen says which (the last 30 s of hits are Down!'s since pass 46, not the results')
-	var gold := Run.run_gold if not Run.died else 0
+	# the run's gold comes home with the hero, whatever the end (pass 70: bank_run_end)
 	var map_id := Run.map.id if Run.map else ""
-	Run.last_result = {"gold_before": Save.gold(), "banked": gold, "lost": Run.run_gold if Run.died else 0,
-		"strongbox": Run.banked_gold, "prev_best": Save.best_run(map_id).duplicate()}
-	if gold > 0:
-		Save.add_gold(gold, "run_bank")
+	bank_run_end(map_id)
 	Save.record_run(map_id, Run.elapsed, Run.level, Run.stage + 1, Run.kills)
 	# after the run is counted, so "play N runs" sees this one
 	QuestTracker.check_all(true)

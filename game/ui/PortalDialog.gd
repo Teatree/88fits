@@ -29,7 +29,7 @@ var _not_yet: WButton
 
 func _ready() -> void:
 	build_dim(W.DIM)
-	build_header("", "STAGE 1 CLEAR", "05:00 · 0 kills · Lv 1. Bank it, or push your luck.", 108)
+	build_header("", "STAGE 1 CLEAR", "05:00 · 0 kills · Lv 1. Head home, or push on.", 108)
 	header.offset_top = 100 + W.safe_top()
 	# the BOSS DOWN tag over the title
 	_tag = PanelContainer.new()
@@ -164,7 +164,7 @@ func open(stage_cleared: int, can_continue: bool, final_stage: bool) -> void:
 	var gold := Run.run_gold
 	W.sfx_first(["ui_stage_clear"])   # pass 64: the stage-clear jingle
 	header.set_title("STAGE %d CLEAR" % stage_cleared)
-	header.set_line("%s · %s kills · %s. Bank it, or push your luck." % [W.mmss(Run.elapsed), W.num(Run.kills), W.lv(Run.level)])
+	header.set_line("%s · %s kills · %s. Head home, or push on." % [W.mmss(Run.elapsed), W.num(Run.kills), W.lv(Run.level)])
 	_gold_to.text = W.num(gold)
 	for c in _cont_lines.get_children():
 		c.queue_free()
@@ -190,6 +190,7 @@ func open(stage_cleared: int, can_continue: bool, final_stage: bool) -> void:
 				_cont_lines.add_child(_fact(W.num(at), W.ROCK, ("creatures at once, each ×%s as tough" % tough) if next < tl.stage_mults.size() else "creatures at once"))
 				if tl.hell_cap_at(next) > 0.0:
 					_cont_lines.add_child(_fact("+%d%%" % int(round(tl.hell_cap_at(next) * 100.0)), W.ROCK, "more bodies: the hell crowd"))
-		_cont_lines.add_child(W.serif_text("Die out there and the %s stays in the sand." % W.num(gold), 24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+		# pass 70: a death banks the purse too, so the gold is not the stake any more
+		_cont_lines.add_child(W.serif_text("The %s gold comes home either way." % W.num(gold), 24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	modulate.a = 1.0
 	enter()

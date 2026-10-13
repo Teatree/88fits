@@ -1183,3 +1183,248 @@ black, not the warm brown the desert haze made of it; the mask's lifting at a pu
 16.L3 **Last Stand's rim is thin and see-through**: 0.085 of the screen width (+0.045 on the beat), its red at most 62%
 over the cold-graded world and falling off squared towards the middle, so creatures coming in from the edges stay
 visible for the two seconds (the first version painted a solid red band a quarter of the screen wide).
+
+## 17. Pass 70 (v0.56): lines, the trampoline, coins kept on death, dearer unlocks
+
+Garry's request (2026-10-13, tools/dl/p70/REQUEST.md). Each lane's rules as it wrote them.
+
+### 17.TRAMP Hang Time's trampoline, May's puck
+
+## Hang Time (Fadeaway's perk `hang_time`, special `trampoline`; replaces the Timeout)
+
+- **Kit.** Rare, weight 6, Fadeaway's (with Buzzer Beater). The Timeout perk and the Timeout pickup are retired:
+  `hidden: true`, their folders, the `timeout` special and the `leap` pickup effect kept (the arena can still hand them
+  out; §14.25-14.27 describe a retired item now).
+- **The clock.** The first trampoline `first` **10 s** after the perk is held, then `every` **20 s** after the last one
+  folded away (the clock waits while one falls, stands or folds: one at a time). Game time only: not while paused, not
+  while he is down (Game._tick_perks).
+- **Where.** `side` **3.5 m** to his left or right, square to the way he faces (ahead he would run onto it by accident,
+  behind lies the crowd), on the side with fewer creatures within 2.5 m of the spot; a rock's circle (+100) or the water
+  (+50) counts against a side, so it never lands on a rock or in the lake when the other side is clear; a toss when
+  even; inside the arena, on the ground.
+- **The drop.** It falls from 7 m in 0.45 s (a blue ring marks the spot meanwhile), lands with sand kicked up at its
+  feet, a blue ring, a small shake; it cannot throw him while falling.
+- **Standing.** `lifetime` **30 s**; the last 3 s it blinks; then it folds away (0.55 s). It also folds 0.45 s after its
+  last jump (`uses` **1**: one jump each; a lane addition so Garry can allow more), and at once when the perk goes (the
+  arena's hero swap).
+- **The trigger.** His centre comes within `radius` **1.1 m** of its middle (the mat is 1 m in radius, the pad reaches
+  1.28 m) while he is on the ground, alive and out of the spawn beam, having been outside the frame before. Standing
+  there when it landed does not count (he steps off and back on); being in the air does not count (a landing on it
+  with `uses` > 1 does: a chain bounce).
+- **The way he flies.** The way he was walking (his flat speed, when at least 0.5 m/s); pushed in standing still, the
+  way he faces.
+- **The arc.** Up at 4h/T under his own in-air gravity 8h/T^2 (26.4 m/s^2 against his usual 24), so the top is
+  `launch_height` **4 m** over the take-off and he is `air_time` **1.1 s** in the air on level ground (a little longer
+  landing lower, shorter landing higher); along at `launch_distance` / `air_time` = 8 / 1.1 = **7.27 m/s**, so **8 m**
+  on level ground. He faces the way he flies.
+- **Air control.** The stick adds `air_control` **35%** of his walking speed (move_speed x the map's pace x the stick's
+  throttle) to the arc's speed, in any direction: he bends the arc (at Red Canyon's 4.5 m/s walk, 5 x pace 0.9: 1.6 m/s,
+  about 1.7 m aside over a flight), never stops it (full stick against it still carries him forward at 7.27 - 1.6 =
+  about 5.7 m/s, some 6.3 m).
+- **Untouchable.** While airborne take_damage returns at once (no hit, no evade roll, nothing off the shield, nothing in
+  the Down! list), and no hostile shove, knock, pull or blast moves him (Player.knock_immune); his own moves still
+  push. No second launch while he flies. No grace after the landing: he can be hit the moment he touches down.
+- **The landing.** When the ground meets him (at least 0.08 s in) or, as a safety, after 3 air times: a squash, the
+  thud (pl_land), the trampoline's dust ring and ring on the sand, a shake. A fall (a debug kill) ends a flight.
+- **The camera** rides 30% of his height over the take-off (Player.camera_y, CameraRig's usual 4/s ease), so the jump
+  reads on the screen; its zoom pulls out with his flat speed by the usual rule.
+- **Not balance.** The mat: a spring (stiffness 260, damping 6.5) kicked to the full dip (0.32 m bowl, the GLB's "Dip")
+  on a jump, rebounding past flat and settling; the frame squashes as it lands. The mat and the pad are drawn without
+  the fog (the haze browned the black mat and turned the pad lavender) and without shine on the pad, which glows a
+  little of its own blue (0.45). Sounds pk_trampoline_drop, pk_trampoline_boing (synthesised).
+
+## Inflatable May's puck (perk `inflatable_may`, Decoy.gd)
+
+- What flies is a small black puck (0.25 m across, 7 cm thick) on the old throw (`flight` 0.6 s, the 2.2 m arc). It
+  comes down **0.5 m** short of the doll's spot on the line from her, slides there in **0.25 s** (slowing to a stop)
+  with a hiss (pk_decoy_hiss), and the doll blows up out of it in **0.3 s** (scale 0 -> 1.12 at 70% of it -> 1, a
+  wobble). Only then do the circle and the fooling (`duration` 2 s) start: nobody is fooled while it slides or
+  inflates.
+- So the doll fools from **1.15 s** after the throw (was 0.6 s) and is gone 3.15 s after it; the 30 s clock still
+  counts from the throw. Code constants (Decoy.SLIDE, SLIDE_TIME, INFLATE_TIME, INFLATE_PEAK), not perk params.
+
+### 17.LINES Six line items and their evolutions
+
+Six line items (four levels each, `line: true`, one of the five line slots, evolve when maxed) and their evolutions. A
+line's levels compound when they are `mul` (the sheet multiplies each level's 1 + value: Brawn's rule), so "+40% a
+level" is x3.84 at level 4. An evolution replaces its line's levels, so each evolution carries more than the maxed line
+of its own stat, plus its twist.
+
+| line (rarity, weight) | per level | at level 4 | evolution | its level |
+|---|---|---|---|---|
+| **Lodestone** (common, 10; new) | pickup radius (`magnet`) x1.4 | x3.84 (1.5 m -> 5.8 m) | **Mother Lode** | pickup radius x4.5 (6.75 m) and every 12 s every XP gem on the screen flies to the hero |
+| **Mule Kick** (common, 9; new) | knockback x1.25, all weapons | x2.44 | **Bucking Bronco** | knockback x3.0, all weapons, and a 35% chance a knocked plain creature is thrown up and away |
+| **Slow Burn** (common, 9; new) | debuff duration x1.2 | x2.07 | **Prairie Fire** | debuff duration x2.2, and a burn or poison that ends (or whose creature dies) jumps to the nearest enemy, up to 3 times |
+| **Tin Star** (uncommon, 8; new) | damage reduction +5% | +20% | **Marshal's Star** | damage reduction +25%, and a gold star blocks one whole hit every 10 s |
+| **Prospector** (common, 9; was a passive item of 5 levels) | extra XP gem chance +6% | +24% | **Eureka** | extra XP gem chance +35%, and a 4% chance a kill bursts into 5 more gems |
+| **Gold Tooth** (common, 10; was a passive item of 5 levels) | coin gain x1.1 | x1.46 | **Gold Rush** | coin gain x1.6, and +1% attack damage for every 100 gold gained while held (up to +50%) |
+
+Decisions and why:
+- **Lodestone** follows the contract's +40% (the old common Magnet was +25% over five levels, x3.05; Lodestone's four
+  levels give x3.84: "a bit more powerful"). The pass-69 Magnet (the epic EXP pulls) stays a passive item, unchanged.
+- **Bucking Bronco's knockback x3.0** (mul 2.0): the contract says "knockback x1.5"; read as x1.5 of the maxed line
+  (x2.44 -> about x3.7) it would throw the Spear's targets about 9 m (a knock flies about push / 6 m), so x3.0 keeps it a
+  clear step up (x1.23 of the maxed line) and leaves the launch as the star.
+- **Mule Kick multiplies** each weapon's own `knockback` (target `all_weapons`): a weapon built with none (Big Mouth,
+  Loudmouth, the Guitarra, the Salt, the Singularity) stays at none. The weapon's pause rows show the raised number.
+- **Slow Burn duplicates Ducktape** (pass 47: +15% debuff duration a level -> Shackles). Both read `debuff_duration` and
+  stack. Per the contract; the lead may hide one.
+- Prospector and Gold Tooth keep their ids and their per-level numbers (Garry's); only `max_level` went 5 -> 4.
+
+Rules (each new):
+- **Debuff duration** (`debuff_duration`: Ducktape, Slow Burn, Prairie Fire, Shackles, Solenne's trait) now also stretches
+  a **freeze** (Cold Snap's 1 s) and a **stun** (the Spear's, the Frisbee's Trick Shot): every status the hero puts on a
+  creature. Still never a knockback, a lift, a bounce, a launch (Alley-Oop's, the Bronco's: their air time is their own),
+  a twister, a hero's perk (scaled = false), or the Salt's slow (refreshed each tick while the creature stands in it).
+- **Bucking Bronco** (`bronco_chance` 0.35): rolled on every hit from the hero's side (a weapon id; never the revive or a
+  loose rocket) that knocks a creature back and leaves it alive; one roll per hit. A plain creature (never the boss, an
+  Elite or an elite-modded creature: they take only the knock; never one already in the air, held, buried or rising) is
+  thrown 2.8 m up and 1.5 + 0.3 x the push m/s away along the knock, at least 2.5 m and at most 6 m, over 0.8 s, kept
+  inside the arena; up there it cannot walk, bite or attack; it lands in a puff with the launch's thud; no fall damage.
+- **Prairie Fire** (`debuff_jump` 3): a burn or a poison that runs out on a creature, or whose creature dies with it on,
+  jumps to the nearest other creature within 4 m that does not carry that same source, at the item's full seconds
+  (stretched once more by debuff duration, as a new one would be), keeping its damage, stacks and spread; each source
+  jumps at most 3 times. A fire never jumps onto the boss (as a fire never spreads onto him); a poison may. An ember
+  (orange) or green streak shows the jump. Blight's hand-on (a poison mutation) still works beside it.
+- **Marshal's Star** (`star_block_every` 10): a gold star over the hero's head while ready. The next hit that would reach
+  him, after the Invincibility bubble, the blink after a hit and an evade, and before damage reduction and the Energy
+  Shield, is blocked whole: no damage, no shove of its own (a blast's throw still carries him), BLOCK over him, a gold
+  burst and the iron clang, then the usual blink (`hit_invuln`, 0.5 s). The star comes back 10 s later on the buffs' clock
+  (a pause or a menu stops it). It starts ready.
+- **Mother Lode** (`gem_sweep_every` 12): the first sweep 1 s after it is taken, then every 12 s: every XP gem on the
+  screen (within 32 m and seen by the camera; never a coin, a vacuum or a chest; one already on its way is left) flies
+  to him on the magnet arc; a gold ring at his feet and the pull's sound when any came.
+- **Eureka** (`vein_chance` 0.04): rolled on every kill that rolls Prospector's extra gem (so it needs `xp_drop_chance`,
+  which Eureka carries): 5 more gems of the creature's base size, each worth what that gem is from it, burst out in a
+  fountain (1.6-3.2 m/s out, 6 m/s up) and land round it; a gold flash and the big gem's ding. The manager's own dice.
+- **Gold Rush** (`gold_might` 0.01): every 100 gold gained (after coin gain, any gold that pays the purse: coins, purses,
+  chests) while it is held adds +1% attack damage for the rest of the run, +50% at most (GOLD_RUSH_CAP); spending gold
+  takes nothing back; gold gained before it was held does not count. Its own source on the pause screen ("Gold Rush
+  +N%"); the sheets are rebuilt when the percent moves.
+
+### 17.ECON Coins kept on death, prices x2.5, elite and boss coins x5, no Strongbox, the Collection button
+
+Garry (2026-10-13): "Make Coins stay if Player dies. But make the prices for every unlock that we have right now
+considerably more expensive. Make Elites and Bosses give much more Coins. Remove the Balloon Chest thing now."
+
+## Rules (new or changed)
+
+1. **Every end banks the purse.** Death, abandon and extraction all put the whole run purse (`Run.run_gold`) into the
+   save once, at `Game.end_run` (`Game.bank_run_end`). Analytics reason `run_bank` for every end (PostHog `gold_meta`);
+   `run_end.result` (death / abandon / extract) tells them apart. `gold_lost` is now non-zero only for a **quit** (the
+   app closed mid-run, so `end_run` never ran; that purse is still lost). `Run.last_result.lost` is always 0.
+   Abandoning counts as a death and so banks too (decision: losing it on abandon would only punish the honest quit,
+   since walking into the crowd keeps the gold anyway).
+2. **Prices x2.5** for every gold unlock.
+   - Talents (`content/talents/*/cost`): each rank x2.5. A half rounds to the nearest 5, halves up (pass 46's curve
+     test, rank k = 5 * round(first * mult / 5), still holds). The whole board costs 86,440 (was 34,572). Ranks 1-3 of
+     all eight cost 19,430 (was 7,772). The Take it all back refund is still half of what was really spent
+     (`Save.talent_spent`), so ranks bought at the old prices refund at the old prices. No exploit.
+   - Heroes (`content/characters/*/price`): Calavera 750 (300), Ironwood 1,000 (400), Solenne 1,500 (600), Jeżyk (buck)
+     1,250 (500), May 1,750 (700), Fadeaway 1,000 (50 was a stand-in; INTERFACES set 1,000), Mira 9,999 (unchanged,
+     behind her quest). All six for sale: 7,250 (was 2,550). Owned heroes stay owned.
+3. **Elites and bosses x5 gold**, everywhere they give it:
+   - An Elite's purse (any Elite kind, or a creature with an Elite modifier): `Game.ELITE_PURSE` = [450, 300] →
+     450 + 300 per stage index (stage 1: 450, stage 2: 750, stage 3: 1,050). Was 90 + 60 per stage.
+   - A boss's purse: `Game.BOSS_PURSE` = [1300, 700] → 1,300 / 2,000 / 2,700. Was 260 + 140 per stage.
+   - A boss's coins on the sand (`drops.coins` in the boss JSON, each a 5-gold coin times the stage's rounded multiplier
+     1/2/3): King 60 (was 12 by default), Gila Grande 150 (30), Brander 200 (40). `Game.BOSS_COINS` = 60 is the default
+     for a boss with no `coins` key (was 12). Coin count x5, not coin value, so the payout is visible.
+   - An Elite's or a boss's own `drops.gold` coin (1-3 gold) is worth `PickupManager.BIG_COIN_MULT` = 5 times as much.
+   - Mira's Motherlode (x1.5) and greed still multiply the purses as before.
+   - Not changed: a chest's gold (the 50-gold fallback card is any chest's, not an Elite's); bounties; the shop.
+4. **The Strongbox is retired.** `content/structures/gold_bank` has `hidden: true`; `StructureManager.in_play` keeps
+   every hidden structure off every map (the default roster and a roster that names it). Its content folder, painting
+   and `bank` effect code are kept; since it never spawns it never returns (pass 64's return primitive stays for any
+   structure with `params.respawn`). The map's `structures.count` stays Garry's 9: with 8 kinds now, every kind still
+   appears once and the ninth slot is drawn by weight (healing well 4, beacon 3, loot cache 3, shop 2, teleport 2,
+   war drum 2, hooded figure 1, uber magnet 1: a second healing well 4 times in 18). Lower the count to 8 in the
+   Level Editor for exactly one of each.
+
+## What a run earns now against the prices (estimates from the formulas and pass 49-51's local runs)
+
+| run | before (pass 69) | now (pass 70) |
+|---|---|---|
+| dies at 5:00 on stage 1 (one Elite down) | 0 banked (left in the sand) | ~600 (coins ~150 + Elite 450) |
+| stage 1 cleared, extract (Elite + King) | ~600-900 | ~2,400-2,600 (Elite 450 + King 1,300 + 300 in coins + creature coins) |
+| stage 2 cleared, extract (2 Elites + King + Gila) | ~4,300 (one local Ironwood run, 0.51, greed and Pickpocket in it) | ~8,000-9,000 |
+| one boss alone | King ~322, Gila ~704, Brander ~1,146 | King ~1,610, Gila ~3,520, Brander ~5,730 |
+
+So one King is worth about one hero (750-1,750); a stage-1 clear buys the cheapest two; the whole hero roster is about
+three stage-1 clears; the full Upgrade board (86,440) is about ten stage-2 extractions. Deep runs progress a bit
+faster than before (income x2-3, prices x2.5), early deaths much faster (they used to pay nothing).
+
+## Watch
+
+- The Portal decision lost its gold stake ("Head home, or push on."): continuing now only risks the run, never the
+  purse. If extraction should still reward something, a later pass could give it a bonus (pass 43 removed the old x1.25).
+- An early quit to the title is not possible without abandon; a phone killing the app mid-run still loses the purse
+  (quit).
+
+### 17.LE The Level Editor
+
+17.LE1 **Candidates on seeds of their own.** Every candidate tool (gen_badge_cands, gen_title_heroes, gen_icon_cands,
+gen_edit_stills, gen_ctl's side and view candidates) paints candidate k on `base + job_salt(job id) + k × 1,000,003`
+(tools/cand_seeds.py: `job_salt` = (crc32(job id letters and digits) % 49,999 + 1) × 15,485,863; a hand run has no job
+move). `base` keeps each tool's own moves (the look's seed_offset × 104,729, a re-run's attempt × 104,729). A re-run's
+attempt reaches the tools without `--attempt` as `ASSET_JOB_ATTEMPT` (tools/asset_job.py). gen_edit_stills moves its
+earlier `<key>_c<k>` candidates to `<key>_c<k>_old<stamp>` before every paint. (Before: a new job of a look repainted the
+previous job's seeds; a front from a picture always the same seeds and, re-run, the cached files.)
+
+17.LE2 **Stills is a slug.** A look's `stills` (recipe or job field) is `[A-Za-z0-9_]{0,40}`; the job form, Queue,
+jobs.validate_spec, requeue, the recipe op, add_look, Save (a new bad value) and gen_edit_stills refuse anything else
+with "Stills is a short name for this look's paintings, like bdb; the picture goes in Reference"; the page's error rule
+blocks Save asset while a document holds one. Every ComfyUI upload name goes through `comfy.upload_name` (a path's parts
+joined with _, letters digits - _ . only, at most 120 characters, .png).
+
+17.LE3 **Removing the base look.** Allowed (not the look in play, not with a map row pinning it, never in a bulk remove);
+the new base is named (`new_base`; the page offers the looks with a strip of their own on disk, the one in play first).
+The top-level `sprite`, `icon`, `anims`, `strip_cols` (absent = 0), `fps`, `frame_px` (heroes) and `head` become the new
+base's own values where it has them (kept where it inherited them); no file is renamed; the old entry goes; the other
+looks with a strip that inherited the old top-level anims / fps / head (creatures) / frame_px (heroes) get the old
+values (or the game's default) written into their entries; the old top-level strip and icon (when nothing else names
+them), their .import files and `<id>_ai.json` move to `tools/level_editor/backups/deleted/<id>/<stamp>/` with
+`base_<CODE>.json`. A base whose entry names its own `sprite` mirrors every landing to the top level (merge_look), and a
+picked icon (set_look_files). May: MAY-A removed, MAY-G her base (2026-10-13 01:00).
+
+17.LE4 **A pick goes to the look you choose.** An install from the look picker writes the candidate as that look's own
+(badge: `<id>_icon_<letter>.png`; cut-out: `hero_<id>_<letter>.png`; creature icon: `<id>_icon_<letter>.png`; the base
+look: the asset's own files, a base entry's own `title` when it names one, a creature's JSON `icon`); the picker lists
+finished jobs only, newest first, any look's.
+
+17.LE5 **The lists show the look in play.** `/api/heroes`' `icon_play` and `title_play` are the badge and cut-out of the
+JSON's `variant` when the game can play it, else the base's (the editor does not read the phone's kept look).
+
+17.LE6 **Inherited values in the box.** A text, textarea or number field whose own value is empty shows the inherited
+value inside it, marked; an edit that differs from it is written as the look's own (on leaving the box); an empty box
+or the inherited text typed back is no own value (the key is left out); an untouched box writes nothing. Applies to the
+typed recipe, the job form's recipe fields and the typed params' values inherited from another item; the game's own
+defaults stay placeholders.
+
+17.LE7 **One view's walk.** `reroll {mode: "clip", view}` moves only that view's clip(s) aside and adds 1 to the look's
+`anim_seed` (creature_ctl: `walk_seeds[view]`); refused for creature_proc and a view the look does not walk. A re-queue
+of a look job reads the look's recipe from its JSON first (the job's own copy no longer overwrites a recipe edited
+since).
+
+17.LE8 **driver_tweak** writes a new driver folder only (a name in use or the source's own name is refused): op scale
+(pose_scale.py, default 0.85 on back,bd), spread (0.06), occlude, shoulders (level 0.3, views back,bd, tuck off). Scale
+only keeps a wide figure inside the clip: gen_art fits every walk back to the standing height, so it never changes a
+view's size in the sprite.
+
+17.LE9 **A view's size is `run_scale`** (lane ART's gen_art key, {view: multiplier}, default 1, clamped 0.5..1.5): the
+Level Editor shows it as "Run size: <view>" (a `view_numbers` row per view) in the typed recipe and the job form for
+hero_pose5, hero_fit, creature_free2, creature_pose2, creature_free8 (not creature_ctl, not creature_proc); a re-queue
+with nothing re-rolled only re-places the cached walks.
+
+17.LE10 **The pick writes only `stills`.** The pick of a front from a picture merges `stills` into the look's recipe as
+the JSON holds it at that moment (server `Hooks.merge_recipe`, under the write lock), never the job's copy of the
+recipe, never its painter or note.
+
+17.LE11 **A Godot step has a time limit.** A step that runs the Godot binary in a register or import job is killed after
+600 s (`GODOT_STEP_TIMEOUT`; env `LE_GODOT_STEP_TIMEOUT`; the job's `step_timeout` wins; 0 = never); the job fails with
+"the step ran over its N s limit and was killed (…): Re-queue to run it again", and the Godot lock is freed. Test in
+game (launch) never times out.
+
+### 17.ART The art's rule
+
+17.ART1 **A view's walk can be sized** (`recipe.run_scale` {view: multiplier}, default 1, clamped 0.5..1.5, heroes and creatures walked by gen_art): gen_art fits each view's walk by its tallest frame, so a side run that crouches in every frame came out up to a third taller than the standing figure and a back run with a foot reaching to the camera smaller; the multiplier corrects it (May {side 0.88, fd 0.92}; Jeżyk BUC-F {back 1.07, bd 1.06, side 0.90, fd 0.91, front 0.90}). A scaled driver cannot do this (the walk is fitted back to the standing height).

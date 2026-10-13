@@ -499,7 +499,7 @@ func _options_tab() -> void:
 	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tv.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tv.add_child(W.serif_text("Abandon the run", 30, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
-	# the purse it costs, with its coin (pass 46): what a Strongbox banked is kept
+	# the purse, with its coin (pass 46): since pass 70 abandoning banks it like any end
 	var purse := HBoxContainer.new()
 	purse.add_theme_constant_override("separation", 8)
 	purse.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -509,7 +509,7 @@ func _options_tab() -> void:
 	var amount := W.slab_text(W.num(Run.run_gold), 24, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	amount.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	purse.add_child(amount)
-	var lost := W.serif_text("picked up so far is lost · asks first", 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	var lost := W.serif_text("picked up so far is kept · asks first", 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
 	lost.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	purse.add_child(lost)
 	tv.add_child(purse)
@@ -560,12 +560,10 @@ func _floating_text_block() -> VBoxContainer:
 
 
 ## The question before the run is thrown away (pass 45): a pop-up over the board, not a button that changes its words.
-## Abandoning counts as a death: the run's gold stays in the sand, all but what a Strongbox banked (Game.end_run).
+## Abandoning counts as a death, and since pass 70 a death banks the run's gold like an extraction (Game.end_run).
 func _ask_abandon() -> void:
 	var gold := Run.run_gold
-	var body := "The run ends here" + ((", and the %s gold picked up so far stays in the sand." % W.num(gold)) if gold > 0 else ".")
-	if Run.banked_gold > 0:
-		body += " The Strongbox keeps the %s it banked." % W.num(Run.banked_gold)
+	var body := "The run ends here" + ((", and the %s gold picked up so far comes home with you." % W.num(gold)) if gold > 0 else ".")
 	WConfirm.open(self, "Abandon the run?", body, "Abandon", "Keep playing", func():
 		if game:
 			close()

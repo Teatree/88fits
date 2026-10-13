@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ciuebwblk07wx"
-path="res://.godot/imported/armadillo_sprite_a.png-74e8f7e6e0ce63beb9dc2c54daea1a68.ctex"
+uid="uid://beto8e2h0d3m0"
+path="res://.godot/imported/mother_lode_icon.png-b329971fdd3d97ad0d6bccac95862a2f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/enemies/armadillo/armadillo_sprite_a.png"
-dest_files=["res://.godot/imported/armadillo_sprite_a.png-74e8f7e6e0ce63beb9dc2c54daea1a68.ctex"]
+source_file="res://content/passives/mother_lode/mother_lode_icon.png"
+dest_files=["res://.godot/imported/mother_lode_icon.png-b329971fdd3d97ad0d6bccac95862a2f.ctex"]
 
 [params]
 

@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/mother_lode/mother_lode_icon.png" id="1_exuag"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_xb37h"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_jpw3f"]
+
+[sub_resource type="Resource" id="Resource_exuag"]
+script = ExtResource("2_xb37h")
+stat = "magnet"
+op = "mul"
+value = 3.5
+target = "player"
+
+[sub_resource type="Resource" id="Resource_xb37h"]
+script = ExtResource("2_xb37h")
+stat = "gem_sweep_every"
+value = 12.0
+target = "player"
+
+[resource]
+script = ExtResource("3_jpw3f")
+line = true
+levels = [[SubResource("Resource_exuag"), SubResource("Resource_xb37h")]]
+repeat_last_level = false
+max_level = 1
+evolves_from = "lodestone"
+id = "mother_lode"
+display_name = "Mother Lode"
+flavour = "Every gem in sight comes home."
+rarity = "rare"
+weight = 0.0
+icon = ExtResource("1_exuag")
+icon_file = "mother_lode_icon.png"
+placeholder = {
+"color": "#FFB84A",
+"glyph": "magnet"
+}

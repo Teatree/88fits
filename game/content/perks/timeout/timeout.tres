@@ -19,6 +19,7 @@ display_name = "Timeout"
 flavour = "Stop the clock. Leave the floor."
 rarity = "rare"
 weight = 6.0
+hidden = true
 icon = ExtResource("1_otdkn")
 icon_file = "timeout_icon.png"
 placeholder = {

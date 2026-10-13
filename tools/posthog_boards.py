@@ -293,7 +293,7 @@ BOARDS = [
             "WHERE event IN ('survey_opt_out', 'survey_opt_in') ORDER BY timestamp DESC LIMIT 50")),
     ]),
     ("88fits · Coins", "Where the gold comes from and where it goes (pass 61): in a run by source and by sink, minute by minute, "
-     "what each run banked or left in the sand, and outside the runs the bank: Upgrade ranks bought and refunded, the balance "
+     "what each run banked (every end banks since pass 70; only a quit loses it), and outside the runs the bank: Upgrade ranks bought and refunded, the balance "
      "over time. The developer's +gold buttons are left out of the by-source tiles, and runs that used them are left out of the "
      "run totals.", [
         ("Gold earned in runs, by source", by_key("gold_by_source", "source")),
@@ -306,7 +306,7 @@ BOARDS = [
             "SELECT went, round(g) AS gold, round(100 * g / greatest(sum(g) OVER (), 1), 1) AS share_pct FROM ("
             "SELECT 'banked: extraction and Strongbox' AS went, sum(" + num("gold_banked") + ") AS g FROM events WHERE " + GOLD_ENDS + " UNION ALL "
             "SELECT 'spent in runs: shop and revive' AS went, sum(" + num("gold_spent") + ") AS g FROM events WHERE " + GOLD_ENDS + " UNION ALL "
-            "SELECT 'left in the sand: deaths and quits' AS went, sum(" + num("gold_lost") + ") AS g FROM events WHERE " + GOLD_ENDS + ") "
+            "SELECT 'lost: quits before the run ended (pass 70: a death banks)' AS went, sum(" + num("gold_lost") + ") AS g FROM events WHERE " + GOLD_ENDS + ") "
             "ORDER BY gold DESC")),
         ("A run's gold on average, by how it ended", table(
             "SELECT properties.result AS result, count() AS runs, round(avg(" + num("gold_earned") + ")) AS earned, "

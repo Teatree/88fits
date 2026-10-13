@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/prairie_fire/prairie_fire_icon.png" id="1_8mnti"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_coq2l"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_wemta"]
+
+[sub_resource type="Resource" id="Resource_8mnti"]
+script = ExtResource("2_coq2l")
+stat = "debuff_duration"
+op = "mul"
+value = 1.2
+target = "player"
+
+[sub_resource type="Resource" id="Resource_coq2l"]
+script = ExtResource("2_coq2l")
+stat = "debuff_jump"
+value = 3.0
+target = "player"
+
+[resource]
+script = ExtResource("3_wemta")
+line = true
+levels = [[SubResource("Resource_8mnti"), SubResource("Resource_coq2l")]]
+repeat_last_level = false
+max_level = 1
+evolves_from = "slow_burn"
+id = "prairie_fire"
+display_name = "Prairie Fire"
+flavour = "One spark. A whole county."
+rarity = "rare"
+weight = 0.0
+icon = ExtResource("1_8mnti")
+icon_file = "prairie_fire_icon.png"
+placeholder = {
+"color": "#FFB84A",
+"glyph": "star"
+}

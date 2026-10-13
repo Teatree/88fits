@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/tin_star/tin_star_icon.png" id="1_x70dx"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_1uyr3"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_38nwj"]
+
+[sub_resource type="Resource" id="Resource_x70dx"]
+script = ExtResource("2_1uyr3")
+stat = "damage_reduction"
+value = 0.05
+target = "player"
+
+[resource]
+script = ExtResource("3_38nwj")
+line = true
+levels = [[SubResource("Resource_x70dx")]]
+max_level = 4
+evolves_into = "marshals_star"
+id = "tin_star"
+display_name = "Tin Star"
+flavour = "Only tin. Folks still aim around it."
+rarity = "uncommon"
+weight = 8.0
+icon = ExtResource("1_x70dx")
+icon_file = "tin_star_icon.png"
+placeholder = {
+"color": "#B8C0C8",
+"glyph": "star"
+}

@@ -773,3 +773,101 @@ Server: `EDIT_KINDS` gained `perk` (`EDITOR_OWNED["perk"]`: hero, text, effects,
 carry `quest`, `perk_records` and `hidden_in_play`; `/api/items` weapon records carry `params`; `/api/vocab` serves
 `perk_specials` and `stat_help`. Self-test: `selftest_L69.py` (the tables against the game's sources and the content, the
 requirement and perk operations on a temp tree, the page's hooks and these docs).
+
+## Pass 70: candidates, pictures, the base look, inherited words
+
+Garry (2026-10-13, "LevelEditor"): candidates on different seeds; choose a look's icon and title cut-out from what the
+jobs saved (and May's badge missing in the Heroes list); the 500 on the Bandit look ("tell me what I did wrong, add a
+check"); removing MAY-A; every inherited value already in its box. The same how-tos are on the Instructions tab, first.
+
+What changed:
+
+- **Candidates on seeds of their own** (`tools/cand_seeds.py`). The cause: within a job the seeds always differed (a
+  different seed is an unrelated noise), but a NEW job of the same look painted the same seeds again (MAY-E's badge jobs
+  j..b9ac and j..aca1 both painted 2768, 3768, 4768; every title job of a hero 11, 112, 213, 314; icon jobs of one key
+  the same four), and a front from a picture always painted `seed_for(id + slug) + 1000 k` and gave a re-run the cached
+  files back. Now candidate k sits `CAND_STEP` (1,000,003) from k-1, a job moves its seeds by its id (`job_salt`, crc32 of
+  the job id times 15,485,863), a re-run by its attempt (`ASSET_JOB_ATTEMPT` from `tools/asset_job.py` for the tools that
+  take no `--attempt`), and gen_edit_stills moves its earlier candidates to `<key>_c<k>_old<stamp>` before it paints.
+  gen_badge_cands, gen_title_heroes, gen_icon_cands, gen_edit_stills and gen_ctl's side and view candidates use it. The
+  remaining likeness comes from the method: every candidate is an edit of one reference picture on a few-step model, so
+  words asking for the reference's own pose (the title's default "standing confidently") come back as the reference.
+- **Choose a look's badge, icon or cut-out from everything painted** (`LookGrid.picker` / `pickers`): beside a look's
+  big player, and under a hero's badge and cut-out previews, "Choose <CODE>'s badge / title cut-out / icon from
+  everything painted (N in M jobs)" lists every finished `hero_badge` / `hero_title` / `icon_cands` job of the asset,
+  newest first; Install posts `POST /api/jobs/<job>/install {choice, options: {variant: <CODE>}}` ("" = the asset's own,
+  the base look's top-level files). jobs.install puts the install job on that look: a badge `--pick <key> --variant`, a
+  cut-out named by its file (`--pick <id>=<file>.png`), an icon with `icon_job.variant`. A base look that names its own
+  cut-out keeps it (gen_title_heroes), a creature's own icon is the file its JSON names (gen_icon_cands).
+- **The lists show the look in play**: `/api/heroes` records carry `icon_play` and `title_play` (the played look's badge
+  and cut-out, `?v=<mtime>`); the Heroes cards use them. May showed none: the list read `/icon/hero/may` (her base
+  look MAY-A's `may_icon.png`, a dark placeholder) while her badge is MAY-G's own `may_icon_g.png`.
+- **The Bandit check.** What went wrong: job j20261013-001220-f286 had the picture's path in **Stills** (and in
+  Reference). Stills is the short name the look's paintings are cached under (`bdb` -> `buckshot_dwarf_bdb_front.png`);
+  gen_edit_stills built ComfyUI's upload name from it (`buckshot_dwarf_tools/dl/uploads/2d/bandit.png_ref.png`) and
+  `/upload/image` answered 500. Now `vocab.STILLS_RE` (`[A-Za-z0-9_]{0,40}`) is checked by the job form (a red line under
+  the box, Queue refuses), `jobs.validate_spec` and `requeue`, the server's recipe op, add_look and Save (a new bad value;
+  one already on disk is the page's error rule), the recipe editor (an error that blocks Save asset) and gen_edit_stills
+  (`SLUG_RE`, SystemExit with the words "Stills is a short name for this look's paintings, like bdb; the picture goes in
+  Reference"); `comfy.upload_name` makes every upload name one plain file name (a path's parts joined with _, at most
+  120 characters, .png).
+- **Removing the base look**: a base card (not the default) has **Remove…**, which asks which look becomes the base (the
+  looks with a strip of their own, the one in play first). `server.remove_base`: the top-level art keys
+  (`BASE_ART_KEYS`: sprite, icon, anims, strip_cols, fps, a hero's frame_px, head) become the new base's (no file is
+  renamed), `variant_base` names it, the old base's entry goes, the looks that inherited the old top-level anims / fps /
+  head / frame_px get them written into their own entries, the old base's files that nothing names any more (+ its
+  `<id>_ai.json`) move to `backups/deleted/<id>/<stamp>/` with `base_<CODE>.json`, then the import. The new base keeps its
+  whole entry (recipe, note, cut-out, `icon_picked`): its jobs still run on its own recipe, and `merge_look` mirrors a
+  landing on such a base to the top level (`set_look_files` its icon). `remove` without `new_base` on the base answers
+  409 with `choices`; in a bulk remove the base is refused. The page takes a key the server changed on disk into an open
+  document (`refreshRecord`), so a later Save never writes the old art back. **MAY-A was removed this way** (her base is
+  MAY-G; backups in `tools/level_editor/backups/deleted/may/20261013-010009/`).
+- **Inherited values in their boxes** (`Forms.inheritable`): a text, textarea or number box whose own value is empty
+  shows the inherited one in the box (italic, dashed, "inherited from the creature's art_prompt"); an edit makes it the
+  look's own when you leave the box; emptying it (or typing the inherited text back, or **↺ inherit**) inherits again;
+  a box nobody changed writes nothing. In the typed recipe, the job form's *What to paint* and the typed params of a
+  mutation or an evolution (values from another item; the game's own defaults stay placeholders). Selects, yes/no and
+  drivers still name the inherited value in their empty choice.
+- **Fixing one view**: **Run size** (the recipe key `run_scale`, lane ART's gen_art key: `{view: multiplier}`, 1 = as
+  fitted, clamped 0.5..1.5; a `view_numbers` row per view in the typed recipe and the job form, methods.json's hero_pose5,
+  hero_fit, creature_free2, creature_pose2, creature_free8) sizes one view's walk: gen_art fits every walk back to the
+  standing height by its tallest frame, so a crouching side run comes out taller and a back run whose foot reaches
+  toward the camera smaller, and a scaled driver cannot fix that (it is fitted back); a re-queue with nothing re-rolled
+  only re-places the cached walks. `driver_tweak` (methods.json "A driver tweaked…", "+ Tweak a driver…" in a hero's
+  Art words): a copy of a library driver with one change (op scale: a wide figure kept inside the clip / spread /
+  occlude / shoulders, tools/pose_scale.py, pose_spread.py, pose_occlude.py, pose_shoulders.py); the re-roll **redo one view's walk** (`reroll {mode: "clip",
+  view}`: only that view's clip moved aside and walked again, anim_seed + 1; creature_ctl's walk_seeds[view] + 1); and a
+  re-queue now reads the look's recipe as its JSON holds it (it used to write the job's old copy back over a recipe
+  edited since, so a one-view re-roll walked on the old driver).
+
+- **The pick race** (lane ART): the pick of a front from a picture used to write its job's own copy of the recipe
+  over the look's whole recipe, so a look job queued before the pick landed lost its words (BD-A's first walk ran on
+  the base dwarf's). The pick now merges only `stills` into the look's recipe as the JSON holds it (`Hooks.merge_recipe`,
+  under the write lock; no painter, no note).
+- **A hung Godot step**: a `godot --import` once sat 12 minutes at no CPU holding the Godot lock for every lane
+  (j20261013-031045-ad0e). A Godot step of a register or import job is killed after `GODOT_STEP_TIMEOUT` (600 s;
+  `LE_GODOT_STEP_TIMEOUT` sets it, the job spec's `step_timeout` wins, 0 = never); the lock is freed, the job fails with
+  "the step ran over its N s limit and was killed …: Re-queue to run it again". Test in game never times out.
+
+How-tos:
+
+1. **A look from a picture (the Bandit)**: Enemies → the creature → Looks → + New look… → *A front from a picture* →
+   Reference picture: Upload… (bandit.png) → Stills: a short name (`bdb`) → prompt: ONE figure seen from the front
+   (keep every detail of a turnaround prompt, drop "front and back on one sheet") → keep → 3+ candidates → Queue →
+   Jobs: pick a front → the look's **Generate…** → the walk method → Queue → Approve.
+2. **Choose a badge / icon / cut-out**: click the look → "Choose <CODE>'s badge from everything painted" → a picture →
+   Install (an install job: backup, the look's entry, import).
+3. **Remove a base look**: its card → Remove… → which look becomes the base → Yes.
+4. **Change three words of an inherited prompt**: Recipe (typed)… → edit in the box → leave it → Save asset (↺ to undo).
+5. **Fix one view** (May's side runs, Jeżyk's back run, hands that show): play the look per view against its idle. A
+   view too tall or too small: Recipe (typed)… → **Run size: <view>** (0.88 = 12 % smaller) → Save asset → Re-roll… with
+   re-roll *none* → Queue (the walks are only placed again). Hands or shoulders: the view's driver → another from the
+   library, or + Tweak a driver… (spread / occlude / shoulders; scale only for a figure leaving the clip) → name it in
+   the recipe → Save asset → Re-roll… → *redo one view's walk* → the view → Queue. A painting problem (straps, hands through
+   clothes on a still): the view's hint words in place → Save asset → Jobs → the look's job → Re-roll… → tick that view's
+   still and clip → Re-queue.
+
+Self-test: `selftest_LE70.py` (the seeds of every candidate tool, the Stills rule everywhere and upload_name, the base
+removal on a temp creature and hero and May's real JSON, the install into any look, the one-view re-roll and the
+re-queue's recipe, driver_tweak's plans, Forms.inheritable under Node with a stub DOM, these docs). Garry's running
+editor gets the page and server changes when it is restarted; the tool changes reach his queue at once.

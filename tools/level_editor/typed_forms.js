@@ -38,18 +38,24 @@ const TypedForms = (() => {
     const [inh, src] = F.paramInherited(r, inherit);
     const write = (v) => Assets.apply(doc, () => U.setPath(doc.data, full, v), 'editor');
     const ph = inh == null ? '' : inh;
+    // pass 70: a value inherited from another item (a mutation's weapon, an evolution's own params) is IN the box,
+    // marked, editable in place (Forms.inheritable); the game's own default stays the placeholder (it is a default)
+    const isInherited = inh != null && typeof inh !== 'object' && !/default|none: off/.test(String(src || ''));
+    const inhBox = isInherited ? { value: inh, from: src } : null;
     let ctl;
     switch (r.type) {
-      case 'int': case 'number': ctl = Forms.numberInput({ key: full, min: r.min, max: r.max, step: r.step, int: r.type === 'int' }, val, write, { path: full, placeholder: ph }); break;
+      case 'int': case 'number': ctl = Forms.numberInput({ key: full, min: r.min, max: r.max, step: r.step, int: r.type === 'int' }, val, write, { path: full, placeholder: ph, inherit: inhBox }); break;
       case 'swatch': ctl = Forms.swatchInput(val, write, { path: full, placeholder: typeof ph === 'string' ? ph : '' }); break;
       case 'bool3': ctl = Forms.bool3Input({ key: full }, val, write, { path: full, placeholder: inh == null ? 'off' : (inh ? 'yes' : 'no') }); break;
       case 'select': ctl = Forms.select(r.options || [], val == null ? '' : val, (v) => write(v == null || v === '' ? null : v), { emptyLabel: `— (${fmt(inh)})`, path: full }); break;
       case 'sfx': ctl = Assets.sfxSelect(doc, { key: full, group: r.group || 'w_' }); break;
-      default: ctl = Forms.textInput({ key: full }, val, write, { path: full, placeholder: ph === '' ? '' : String(ph) });
+      default: ctl = Forms.textInput({ key: full }, val, write, { path: full, placeholder: ph === '' ? '' : String(ph), inherit: inhBox });
     }
+    const inBox = !!inhBox && ['int', 'number', 'text', undefined].includes(r.type);
     const hint = val == null
-      ? el('span', { class: 'muted small pghint', text: inh == null ? (r.emptyText || `empty = ${src}`) : `empty = ${fmt(inh)} (${src})` })
+      ? el('span', { class: 'muted small pghint' + (inBox ? ' inh' : ''), text: inh == null ? (r.emptyText || `empty = ${src}`) : (inBox ? `inherited from ${src}: edit it here to make it this one's own` : `empty = ${fmt(inh)} (${src})`) })
       : el('span', { class: 'muted small pghint set', text: inh != null && !same(val, inh) ? `set here (${src}: ${fmt(inh)})` : 'set here' });
+    if (inBox) ctl.addEventListener('inheritchange', (e) => { hint.textContent = e.detail && e.detail.own ? `set here once you leave the box (${src}: ${fmt(inh)})` : `inherited from ${src}: edit it here to make it this one's own`; });
     const row = Forms.row({ key: full, label: r.label, help: r.help }, ctl, { after: hint });
     row.dataset.key = full;
     return row;
@@ -76,7 +82,7 @@ const TypedForms = (() => {
       wrap.appendChild(el('div', { class: 'pgtarget' }, el('span', { class: 'muted small', text: 'Edit:' }), pick('final'), pick('own'),
         el('span', { class: 'muted small', text: 'an evolution plays its own params, then its weapon\'s path mutations\' params merged over them, then params.final last: the "all three, amplified" numbers live in final.' })));
     }
-    if (doc.kind === 'mutation') wrap.appendChild(el('div', { class: 'muted small', text: `${fam.behavior}: a box left empty keeps the ${fam.name}'s value (shown in grey with where it comes from); a value here is merged over it while the mutation is held.` }));
+    if (doc.kind === 'mutation') wrap.appendChild(el('div', { class: 'muted small', text: `${fam.behavior}: the ${fam.name}'s value is in each box (italic, dashed, "inherited from"): edit it in place to give the mutation its own, empty it to inherit again; a value of its own is merged over the ${fam.name}'s while the mutation is held; a box you did not change writes nothing.` }));
     const offers = [];
     for (const { group: g, on, set } of groups) {
       if (!on) {

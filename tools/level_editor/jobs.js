@@ -58,13 +58,15 @@ const Jobs = (() => {
     { v: 'seeds', label: 'new seeds', help: 'the stills painted again under new seeds and the clips made again from them (their folders move to <key>_old<stamp>, anim_seed + 1); a look that shares the creature\'s or the hero\'s paintings gets its own first, so those are never touched' },
     { v: 'clips', label: 'keep the stills, redo the clips', help: 'the stills stay; the clip folders move to <key>_old<stamp> and the walks are made again (anim_seed + 1)' },
     { v: 'view', label: 'redo one view', help: 'one view painted again as candidates to pick from (gen_ctl --view-cands)', only: ['creature_ctl'] },
+    // pass 70 (lane LE): one view's walk again, on the driver the recipe names for that view now (May's side, Jezyk's back)
+    { v: 'clip', label: 'redo one view\u2019s walk', help: 'only that view\u2019s clip moves to <key>_old<stamp> and is walked again, on the driver the recipe names for that view now (anim_seed + 1); the stills and the other views stay' },
     { v: 'stills', label: 'repaint the stills', help: 'the stills painted again under new seeds (a look sharing the paintings gets its own first); the clips are walked again from the new stills (same clip seeds); "new seeds" also rolls new clip seeds' },
   ];
   // the modes jobs.py's _apply_reroll accepts per method (it refuses the others with a reason): hero_fit paints no stills
   // of its own, gen_ctl paints its stills from the picked side, creature_proc has no clips; a recolour and a front from a
   // picture have nothing to re-roll
-  const REROLL_FOR = { hero_fit: ['clips'], creature_ctl: ['clips', 'view'], creature_proc: ['seeds', 'stills'], recolour: [], front_from_picture: [] };
-  function rerollModes(method) { return REROLL.map((r) => r.v).filter((v) => (REROLL_FOR[method] || ['seeds', 'clips', 'stills']).includes(v)); }
+  const REROLL_FOR = { hero_fit: ['clips', 'clip'], creature_ctl: ['clips', 'clip', 'view'], creature_proc: ['seeds', 'stills'], recolour: [], front_from_picture: [] };
+  function rerollModes(method) { return REROLL.map((r) => r.v).filter((v) => (REROLL_FOR[method] || ['seeds', 'clips', 'clip', 'stills']).includes(v)); }
   // the look methods whose stills are cached under a slug of the look's own (jobs.py STILL_METHODS, pass 68 D1: hero_pose5
   // joined); a Duplicate… draft of one of them can reuse its source's paintings
   const STILL_METHODS = ['creature_free2', 'creature_pose2', 'creature_free8', 'creature_proc', 'hero_pose5'];
@@ -1037,7 +1039,7 @@ const Jobs = (() => {
     lines.push(`  1. ${eff.ref || (jk === 'icon_cands' ? '(none: the words alone)' : '(none: the tool takes the front still)')} — the identity${eff.ref && jk !== 'icon_cands' ? ' ("this exact character")' : ''}${eff.ref && jk === 'icon_cands' ? ', laid on the screen colour' : ''}`);
     if (jk === 'hero_title' && eff.extra_ref) lines.push(`  2. ${eff.extra_ref} — the held object, copied exactly (laid on the screen colour)`);
     lines.push('', 'The prompt:', candidateWords(jk, eff, { screen, creature: kind === 'enemy' || kind === 'boss' }), '');
-    lines.push(`${state.spec.counts && state.spec.counts.seeds ? state.spec.counts.seeds : 4} candidates, ${jk === 'hero_title' ? 'seed = first_seed + n × 101' : 'a seed each'}; ${jk === 'hero_badge' ? 'the job stops for your pick' : 'Install the one you like from the job card'}.`);
+    lines.push(`${state.spec.counts && state.spec.counts.seeds ? state.spec.counts.seeds : 4} candidates, a seed each (its own: a million apart, moved by this job's id and by every re-run, pass 70); ${jk === 'hero_badge' ? 'the job stops for your pick' : 'Install the one you like from the job card'}.`);
     lines.push('The authoritative words are what tools/asset_job.py --dry-run records on the job card.');
     return lines.join('\n');
   }
@@ -1132,12 +1134,18 @@ const Jobs = (() => {
   }
 
   /** A control for one recipe field of methods.json ({key, type, default, help, options}). */
+  /** pass 70: the inherited value goes IN the box (Forms.inheritable): `ctx.inherit` = {value, from}. */
+  function inheritIn(inp, value, ctx, onChange, parse, same) {
+    return ctx && ctx.inherit && typeof Forms !== 'undefined' && typeof Forms.inheritable === 'function' ? Forms.inheritable(inp, value, ctx, onChange, parse, same) : null;
+  }
+
   function recipeControl(f, value, onChange, ctx) {
     const v = value == null ? '' : value;
     switch (f.type) {
       case 'int': case 'number': {
         const inp = el('input', { type: 'number', class: 'num', value: v, placeholder: f.default != null ? String(f.default) : '', step: f.type === 'int' ? 1 : 'any' });
-        inp.addEventListener('change', () => onChange(inp.value === '' ? null : Number(inp.value)));
+        const commit = inheritIn(inp, value, ctx, onChange, (t) => Number(t), (t, inh) => t.trim() !== '' && Number(t) === Number(inh));
+        inp.addEventListener('change', () => (commit ? commit(inp.value) : onChange(inp.value === '' ? null : Number(inp.value))));
         return inp;
       }
       case 'bool': {
@@ -1155,8 +1163,23 @@ const Jobs = (() => {
       case 'textarea': {
         const ta = el('textarea', { placeholder: f.default != null ? String(f.default) : '' });
         ta.value = typeof v === 'object' ? JSON.stringify(v, null, 1) : v;
-        ta.addEventListener('change', () => onChange(ta.value.trim() === '' ? null : ta.value));
+        const commit = typeof v === 'object' ? null : inheritIn(ta, value, ctx, onChange, null);
+        ta.addEventListener('change', () => (commit ? commit(ta.value) : onChange(ta.value.trim() === '' ? null : ta.value)));
         return ta;
+      }
+      case 'view_numbers': {
+        // pass 70: one number per view ({view: n}; an empty box = the default, or what the asset's own JSON says)
+        const views = Array.isArray(f.views) && f.views.length ? f.views : ['front', 'fd', 'side', 'bd', 'back'];
+        const obj = v && typeof v === 'object' ? Object.assign({}, v) : {};
+        const inhObj = ctx && ctx.inheritObj && typeof ctx.inheritObj === 'object' ? ctx.inheritObj : {};
+        const box = el('div', { class: 'viewwords viewnums' });
+        for (const view of views) {
+          const ph = inhObj[view] != null ? `${inhObj[view]} (the asset's own)` : (f.default != null ? String(f.default) : '');
+          const inp = el('input', { type: 'number', class: 'num', value: obj[view] != null ? obj[view] : '', placeholder: ph, step: f.step || 'any', min: f.min != null ? f.min : '', max: f.max != null ? f.max : '' });
+          inp.addEventListener('change', () => { if (inp.value.trim() === '') delete obj[view]; else obj[view] = Number(inp.value); onChange(Object.keys(obj).length ? obj : null); });
+          box.appendChild(el('label', { class: 'vw' }, el('span', { class: 'muted small', text: view }), inp));
+        }
+        return box;
       }
       case 'view_words': {
         // one line per view (methods.json names them in `views`): {view: words}
@@ -1210,10 +1233,19 @@ const Jobs = (() => {
       }
       default: {
         const inp = el('input', { type: 'text', class: 'txt', value: typeof v === 'object' ? JSON.stringify(v) : v, placeholder: f.default != null ? String(f.default) : '' });
-        inp.addEventListener('change', () => onChange(inp.value.trim() === '' ? null : inp.value.trim()));
+        const commit = typeof v === 'object' ? null : inheritIn(inp, value, ctx, onChange, (t) => t.trim());
+        inp.addEventListener('change', () => (commit ? commit(inp.value) : onChange(inp.value.trim() === '' ? null : inp.value.trim())));
         return inp;
       }
     }
+  }
+
+  /** pass 70 (the Bandit check): AssetsModel.stillsProblem when it is loaded (the page), else the same rule here (the
+   *  self-test's Node harness loads this file alone). */
+  function stillsProblem(v) {
+    if (typeof AssetsModel !== 'undefined' && typeof AssetsModel.stillsProblem === 'function') return AssetsModel.stillsProblem(v);
+    if (v == null || v === '') return '';
+    return typeof v === 'string' && /^[A-Za-z0-9_]{0,40}$/.test(v) ? '' : `Stills is a short name for this look's paintings, like bdb; the picture goes in Reference (letters, digits and _ only; got ${JSON.stringify(v)})`;
   }
 
   function setKey(obj, key, value) { if (value == null || value === '') delete obj[key]; else obj[key] = value; }
@@ -1280,11 +1312,29 @@ const Jobs = (() => {
         const own = U.getPath(spec.recipe, f.key);
         const inh = f.key === 'stills' || !contentJson ? undefined : U.getPath(contentJson, f.key);
         const inherited = (own == null || own === '') && inh != null && inh !== '' && typeof inh !== 'object';
-        const f2 = inherited ? Object.assign({}, f, { default: inh }) : f;
+        // pass 70: a box type (a text, a hint, a prompt, a number) shows the inherited value IN the box, marked; a choice
+        // still names it as its default
+        const canInherit = inh != null && inh !== '' && typeof inh !== 'object';
+        const inBox = canInherit && !PICTURE_KEYS.includes(f.key) && ['int', 'number', 'textarea', 'text', undefined, '', 'str'].includes(f.type);
+        const whoseJ = kind === 'hero' ? 'the hero\'s' : 'the creature\'s';
+        const f2 = inherited && !inBox ? Object.assign({}, f, { default: inh }) : f;
         const ctl = PICTURE_KEYS.includes(f.key) ? pictureControl(own, (v) => U.setPath(spec.recipe, f.key, v), { refs, dflt: inherited ? String(inh) : '' })
-          : recipeControl(f2, own, (v) => U.setPath(spec.recipe, f.key, v), { drivers, refs });
+          : recipeControl(f2, own, (v) => U.setPath(spec.recipe, f.key, v), { drivers, refs, inherit: inBox ? { value: inh, from: `${whoseJ} own ${f.key}` } : null, inheritObj: inh && typeof inh === 'object' ? inh : null });
         const line = fieldLine(f.label || f.key, ctl, f.help);
-        if (inherited) line.appendChild(el('span', { class: 'jinh', text: `inherited: the ${kind === 'hero' ? 'hero' : 'creature'}'s own ${f.key} applies while this is empty`, title: String(inh) }));
+        if (inBox) {
+          const own0 = !(own == null || own === '');
+          const mk = el('span', { class: 'jinh', text: own0 ? `this look's own (${whoseJ} own ${f.key} differs)` : `inherited from ${whoseJ} own ${f.key}: it is in the box; edit it to make it this look's own, empty it to inherit again`, title: String(inh) });
+          line.addEventListener('inheritchange', (e) => { mk.textContent = e.detail && e.detail.own ? `this look's own once you leave the box (${whoseJ} own ${f.key} differs)` : `inherited from ${whoseJ} own ${f.key}: it is in the box; edit it to make it this look's own, empty it to inherit again`; });
+          line.appendChild(mk);
+        }
+        if (f.key === 'stills') {
+          // pass 70 (the Bandit check): Stills is the look's short name, never the picture (Queue refuses it too)
+          const errS = el('div', { class: 'warn-text small jstills-err', text: stillsProblem(own == null || own === '' ? null : own) });
+          const inpS = line.querySelector('input');
+          if (inpS) inpS.addEventListener('input', () => { errS.textContent = stillsProblem(inpS.value.trim() || null); });
+          line.appendChild(errS);
+        }
+        if (inherited && !inBox) line.appendChild(el('span', { class: 'jinh', text: `inherited: the ${kind === 'hero' ? 'hero' : 'creature'}'s own ${f.key} applies while this is empty`, title: String(inh) }));
         else if (f.key === 'stills' && mode === 'look') line.appendChild(el('span', { class: 'jinh', text: own === '' ? `empty: the ${kind === 'hero' ? 'hero' : 'creature'}'s own paintings are reused` : (own == null ? (state.isNew ? 'left out: new stills are painted under this look\'s own letter' : 'left out: the look keeps the paintings it was made from (the re-roll above decides)') : `the paintings cached under "${own}" are reused`) }));
         else if (f.key === 'seed_offset' && mode === 'look' && (own == null || own === '')) line.appendChild(el('span', { class: 'jinh', text: state.isNew ? 'left out: the server gives a new look seeds of its own from its code' : 'left out: the look keeps its seeds (a re-roll of its stills moves them on)' }));
         body.appendChild(line);
@@ -1313,7 +1363,7 @@ const Jobs = (() => {
       ? Object.entries(kindFields).filter(([k]) => !OWN_KEYS.includes(k) && !recipeKeys.has(k) && !hidden(k)).map(([k, f]) => Object.assign({ key: k }, f || {}, { type: specType(f && f.type) }))
       : null;
     const mfields = (method && Array.isArray(method.job_fields) ? method.job_fields : []).filter((f) => !hidden(f.key));
-    const jfields = specFields && specFields.length ? specFields.map((f) => Object.assign({}, mfields.find((x) => x.key === f.key) || {}, f, { help: f.help || (mfields.find((x) => x.key === f.key) || {}).help || '' })) : (kindFields ? [] : mfields);
+    const jfields = specFields && specFields.length ? specFields.map((f) => { const mf = mfields.find((x) => x.key === f.key) || {}; return Object.assign({}, mf, f, { help: f.help || mf.help || '' }, mf.type === 'driver' ? { type: 'driver' } : {}); }) : (kindFields ? [] : mfields);   // pass 70: a methods.json `driver` field keeps its library select (driver_tweak's src)
     const modelFields = jfields.filter((f) => f.group === 'model');
     const assetFields = jfields.filter((f) => f.group !== 'model' && f.key !== 'dev');   // `dev` is the old switch: the model select covers it
     if (modelFields.length) {
@@ -1366,7 +1416,7 @@ const Jobs = (() => {
         clear(rows);
         for (let i = 0; i < nLooks; i++) {
           if (!state.overrides[i]) state.overrides[i] = {};
-          rows.appendChild(lookRow(i, codes[i] || '?', state.overrides[i], method, spec, drivers, refs, fixedCode, state.isNew));
+          rows.appendChild(lookRow(i, codes[i] || '?', state.overrides[i], method, spec, drivers, refs, fixedCode, state.isNew, contentJson));
         }
       };
       if (fixedCode) fill([fixedCode]);
@@ -1641,12 +1691,14 @@ const Jobs = (() => {
     }
     const cur = modes.find((r) => r.v === (spec.reroll.mode || '')) || modes[0];
     body.appendChild(fieldLine('re-roll', rr, `what the job throws away before it paints (the server does it when the job is queued): ${cur.help}`));
-    if (spec.reroll.mode === 'view') {
+    if (spec.reroll.mode === 'view' || spec.reroll.mode === 'clip') {
       const vs = el('select');
-      if (!spec.reroll.view) spec.reroll.view = 'front';
+      if (!spec.reroll.view) spec.reroll.view = spec.reroll.mode === 'clip' ? 'side' : 'front';
       for (const v of ['front', 'fd', 'side', 'bd', 'back']) vs.appendChild(el('option', { value: v, text: v, selected: spec.reroll.view === v }));
       vs.addEventListener('change', () => { spec.reroll.view = vs.value; });
-      body.appendChild(fieldLine('the view', vs, 'gen_ctl --view-cands=<view>: candidates of that one view to pick from'));
+      body.appendChild(fieldLine('the view', vs, spec.reroll.mode === 'clip'
+        ? 'the view walked again: change its driver first in What to paint (pose_drivers.<view> for a hero, drivers for gen_ctl) when another driver is the fix'
+        : 'gen_ctl --view-cands=<view>: candidates of that one view to pick from'));
     }
     const rp = state.recordedPainter;
     if (rp && painterDiffers(painterOfSpec(spec), rp)) {
@@ -1879,13 +1931,20 @@ const Jobs = (() => {
     return out;
   }
 
-  function lookRow(i, code, ov, method, spec, drivers, refs, fixed, isNew) {
+  function lookRow(i, code, ov, method, spec, drivers, refs, fixed, isNew, contentJson) {
     const mid = method ? method.id : spec.method;
     const det = el('details', { class: 'lookrow', open: i === 0 && fixed });
     const n = Object.keys(ov).length;
     const sum = el('summary', {}, el('b', { text: `Look ${i + 1}` }), el('span', { class: 'muted', text: fixed ? '' : 'will become' }), el('code', { text: code }), el('span', { class: 'muted small', text: n ? `${n} override${n > 1 ? 's' : ''}` : 'no overrides: the shared recipe' }));
     det.appendChild(sum);
-    for (const f of lookRowKeys(mid, isNew)) det.appendChild(fieldLine(f.key, recipeControl(f, ov[f.key], (v) => { setKey(ov, f.key, v); }, { drivers, refs }), f.help));
+    for (const f of lookRowKeys(mid, isNew)) {
+      // pass 70: what this look would get without an override (the shared recipe's, else the asset's own) is in the box
+      const shared = spec.recipe ? U.getPath(spec.recipe, f.key) : undefined;
+      const own = contentJson ? U.getPath(contentJson, f.key) : undefined;
+      const inh = shared != null && shared !== '' ? shared : own;
+      const boxed = ['text', 'textarea', 'int', 'number'].includes(f.type) && inh != null && inh !== '' && typeof inh !== 'object';
+      det.appendChild(fieldLine(f.key, recipeControl(f, ov[f.key], (v) => { setKey(ov, f.key, v); }, { drivers, refs, inherit: boxed ? { value: inh, from: shared != null && shared !== '' ? 'the shared recipe above' : 'the words of the asset itself' } : null }), f.help + (boxed ? ' · inherited in the box: edit it to give this look its own' : '')));
+    }
     // the walk of this look alone: the recipe key its tool reads (a creature's pose driver, gen_ctl's depth driver)
     const drvKey = mid === 'creature_pose2' ? 'pose' : mid === 'creature_ctl' ? 'drivers' : null;
     if (drvKey) {
@@ -1924,6 +1983,10 @@ const Jobs = (() => {
     const spec = state.spec;
     const method = all.find((x) => x.id === spec.method) || null;
     if (!spec.method) { err.textContent = 'pick a method'; return; }
+    // pass 70 (the Bandit check): Stills is the look's short name; the picture goes in Reference
+    const stillsWhy = stillsProblem(spec.recipe && spec.recipe.stills != null && spec.recipe.stills !== '' ? spec.recipe.stills : null)
+      || stillsProblem(spec.stills != null && spec.stills !== '' ? spec.stills : null);
+    if (stillsWhy) { err.textContent = stillsWhy; return; }
     const jk = job ? job.kind : jobKind(mode, method, kind);
     const base = Object.assign({}, spec);
     delete base.looks;

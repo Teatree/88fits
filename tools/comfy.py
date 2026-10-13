@@ -203,8 +203,28 @@ def object_info():
     return _OBJECT_INFO
 
 
+def upload_name(name, default="upload.png"):
+    """The file name an upload goes to ComfyUI under (pass 70): one plain name, never a path. The path's separators and
+    every character but letters, digits, - _ . become "_", repeats fold, at most 120 characters, ".png" kept or added.
+    The Bandit job had built "buckshot_dwarf_tools/dl/uploads/2d/bandit.png_ref.png" (a picture's path typed into a
+    look's Stills field) and /upload/image answered 500; such a name now uploads as
+    "buckshot_dwarf_tools_dl_uploads_2d_bandit.png_ref.png". A plain name (style_anchor.png) is unchanged."""
+    parts = [x for x in str(name or "").strip().replace("\\", "/").split("/") if x.strip(" .")]
+    s = "".join(c if (c.isalnum() and c.isascii()) or c in "-_." else "_" for c in "_".join(parts))
+    s = re.sub(r"_+", "_", s).strip("._")
+    s = re.sub(r"\.{2,}", ".", s)
+    if not s:
+        return default
+    stem, ext = os.path.splitext(s)
+    if ext.lower() != ".png":
+        stem, ext = s, ".png"
+    return stem[:120 - len(ext)].rstrip("._") + ext
+
+
 def upload(png_bytes, name, subfolder="88fits"):
-    """Upload an image into ComfyUI's input folder; returns the value LoadImage expects."""
+    """Upload an image into ComfyUI's input folder; returns the value LoadImage expects. The name is upload_name()'s
+    (pass 70: a path or an odd character can never reach the server as a 500)."""
+    name = upload_name(name)
     ensure_lock()
     boundary = "----88fits" + uuid.uuid4().hex
     parts = []

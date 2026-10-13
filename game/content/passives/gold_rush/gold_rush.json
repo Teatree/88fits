@@ -1,0 +1,33 @@
+{
+  "id": "gold_rush",
+  "name": "Gold Rush",
+  "flavour": "Money talks. Yours shouts.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "greed",
+        "op": "mul",
+        "value": 0.6,
+        "target": "player"
+      },
+      {
+        "stat": "gold_might",
+        "op": "add",
+        "value": 0.01,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "gold_tooth",
+  "art_prompt": "a grinning mouth full of shiny gold teeth, a gold nugget clenched between them, sparkling",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

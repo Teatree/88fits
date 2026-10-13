@@ -247,6 +247,27 @@
       "volume_db": -4,
       "file": "real/pk_decoy_pop.wav"
     },
+    "pk_decoy_hiss": {
+      "category": "pickup",
+      "voices": 2,
+      "pitch_spread": 0.05,
+      "volume_db": -10,
+      "file": "real/pk_decoy_hiss.wav"
+    },
+    "pk_trampoline_boing": {
+      "category": "pickup",
+      "voices": 1,
+      "pitch_spread": 0.06,
+      "volume_db": -4,
+      "file": "real/pk_trampoline_boing.wav"
+    },
+    "pk_trampoline_drop": {
+      "category": "pickup",
+      "voices": 1,
+      "pitch_spread": 0.05,
+      "volume_db": -6,
+      "file": "real/pk_trampoline_drop.wav"
+    },
     "pk_gem_s": {
       "category": "pickup",
       "voices": 6,

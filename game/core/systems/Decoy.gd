@@ -4,6 +4,10 @@
 ## creature inside the circle (Elites too, never a boss) goes for the doll instead of her: it walks to it and bites it
 ## (EnemyManager.fool / decoy_target; the bites do nothing), with a pink "?" bobbing over its head. Then the doll pops (a
 ## pink puff and a squeak) and they hunt her again. Game._tick_decoy makes this node the first time a decoy perk is held.
+## Pass 70 (lane TRAMP, Garry: "the inflatable version of her should inflate from a little hockey puck"): what flies is
+## a small black puck (PUCK_R, built in code); it comes down SLIDE m short of the doll's spot and slides there in
+## SLIDE_TIME s with a hiss, then the doll blows up out of it in INFLATE_TIME s (0 -> INFLATE_PEAK -> 1, a wobble); the
+## circle and the fooling start once it stands full size.
 class_name Decoy
 extends Node3D
 
@@ -16,8 +20,17 @@ const MARK_SIZE := 0.8
 const MARK_POP := 0.18       # seconds a new "?" takes to pop in
 const SCAN_EVERY := 0.15     # how often the circle is searched for creatures walking in
 const PINK := Color(1.0, 0.42, 0.75)
+# pass 70: the puck it comes out of
+const PUCK_R := 0.125        # 0.25 m across
+const PUCK_H := 0.07
+const SLIDE := 0.5           # it lands this far short of the doll's spot and slides the rest
+const SLIDE_TIME := 0.25
+const INFLATE_TIME := 0.3    # the doll's scale: 0, INFLATE_PEAK at INFLATE_PEAK_AT of the time, then 1
+const INFLATE_PEAK := 1.12
+const INFLATE_PEAK_AT := 0.7
 
-enum { IDLE, FLYING, FOOLING }
+# FLYING: the puck in the air; SLIDING: on the sand, sliding to the spot; INFLATING: the doll blowing up out of it
+enum { IDLE, FLYING, FOOLING, SLIDING, INFLATING }
 
 var game: Node = null
 var phase := IDLE
@@ -25,6 +38,9 @@ var clock := -1.0            # seconds until the next throw (-1: not started yet
 var t := 0.0                 # seconds into the flight or the fooling
 var from := Vector3.ZERO
 var to := Vector3.ZERO
+var land_at := Vector3.ZERO  # where the puck comes down (pass 70: SLIDE short of `to`)
+var puck: MeshInstance3D = null
+var inflations := 0
 var doll: BillboardSprite = null
 var _doll_lift := 0.0
 var _doll_h := DOLL_H
@@ -86,6 +102,10 @@ func tick(delta: float) -> void:
 				throw_now()
 		FLYING:
 			_tick_flight(delta)
+		SLIDING:
+			_tick_slide(delta)
+		INFLATING:
+			_tick_inflate(delta)
 		FOOLING:
 			_tick_fooling(delta)
 
@@ -127,13 +147,66 @@ func throw_now() -> void:
 		_pop()
 	from = (pl as Node3D).global_position
 	to = pick_spot(from)
+	land_at = _short_of(from, to)
 	t = 0.0
 	phase = FLYING
 	throws += 1
 	clock = param("every", 30.0)
-	_show_doll()
-	_place_doll(from)
+	# pass 70: what flies is the puck; the doll comes out of it where it stops
+	if doll:
+		doll.visible = false
+	_show_puck()
+	_place_puck(from + Vector3(0.0, 1.0, 0.0))
 	Audio.play("w_lob_throw", from)
+
+
+## Where the puck comes down (pass 70): SLIDE m short of `b` on the line from `a`, on the ground (right at `b` when the
+## throw is shorter than the slide).
+func _short_of(a: Vector3, b: Vector3) -> Vector3:
+	var d := Vector3(b.x - a.x, 0.0, b.z - a.z)
+	if d.length() <= SLIDE + 0.1:
+		return b
+	return _ground(b - d.normalized() * SLIDE)
+
+
+func _show_puck() -> void:
+	if puck == null:
+		puck = MeshInstance3D.new()
+		puck.name = "Puck"
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = PUCK_R
+		cyl.bottom_radius = PUCK_R
+		cyl.height = PUCK_H
+		cyl.radial_segments = 24
+		cyl.rings = 1
+		puck.mesh = cyl
+		var m := StandardMaterial3D.new()
+		m.albedo_color = Color(0.02, 0.02, 0.025)
+		m.roughness = 0.35
+		m.metallic_specular = 0.6
+		# black under the warm haze stays black (pass 70: the fog browned the trampoline's mat)
+		m.set("disable_fog", true)
+		puck.material_override = m
+		puck.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(puck)
+	puck.visible = true
+	puck.rotation = Vector3.ZERO
+
+
+## The puck's middle at `at`'s height plus half its thickness (it lies on the sand).
+func _place_puck(at: Vector3) -> void:
+	if puck:
+		puck.global_position = at + Vector3(0.0, PUCK_H * 0.5, 0.0)
+
+
+## The doll's size as it blows up, `k` from 0 to 1 of INFLATE_TIME: out of nothing, past full size to INFLATE_PEAK at
+## INFLATE_PEAK_AT, settling back to 1.
+static func inflate_scale(k: float) -> float:
+	var x := clampf(k, 0.0, 1.0)
+	if x < INFLATE_PEAK_AT:
+		var u := x / INFLATE_PEAK_AT
+		return INFLATE_PEAK * (1.0 - (1.0 - u) * (1.0 - u))
+	return lerpf(INFLATE_PEAK, 1.0, smoothstep(0.0, 1.0, (x - INFLATE_PEAK_AT) / (1.0 - INFLATE_PEAK_AT)))
 
 
 func _show_doll() -> void:
@@ -171,13 +244,58 @@ func _tick_flight(delta: float) -> void:
 	var fl := maxf(param("flight", 0.6), 0.05)
 	t += delta
 	var k := clampf(t / fl, 0.0, 1.0)
-	var p := from.lerp(to, k)
-	p.y = lerpf(from.y + 1.0, to.y, k) + ARC_H * 4.0 * k * (1.0 - k)
-	_place_doll(p)
+	var p := from.lerp(land_at, k)
+	p.y = lerpf(from.y + 1.0, land_at.y, k) + ARC_H * 4.0 * k * (1.0 - k)
+	_place_puck(p)
+	if puck:
+		# spinning flat as a thrown puck does, wobbling a little
+		puck.rotation = Vector3(sin(t * 9.0) * 0.3, t * 16.0, cos(t * 7.0) * 0.22)
+	if k >= 1.0:
+		_puck_down()
+
+
+## The puck hits the sand (pass 70): a little spray, the hiss starts, it slides to the doll's spot.
+func _puck_down() -> void:
+	phase = SLIDING
+	t = 0.0
+	_place_puck(land_at)
+	if puck:
+		puck.rotation = Vector3(0.0, puck.rotation.y, 0.0)
+	var fx = game.get("fx") if game else null
+	if fx:
+		fx.sand(land_at, 0.35)
+	Audio.play("pk_decoy_hiss", land_at)
+
+
+func _tick_slide(delta: float) -> void:
+	t += delta
+	var k := clampf(t / SLIDE_TIME, 0.0, 1.0)
+	# slowing to a stop
+	var e := 1.0 - (1.0 - k) * (1.0 - k)
+	_place_puck(_ground(land_at.lerp(to, e)))
+	if puck:
+		puck.rotation.y += delta * 16.0 * (1.0 - k)
+	if k >= 1.0:
+		_place_puck(to)
+		phase = INFLATING
+		t = 0.0
+		inflations += 1
+		_show_doll()
+		doll.set_squash(0.0, 0.0)
+		_place_doll(to)
+
+
+## The doll blows up out of the puck (pass 70): from nothing past full size and back (inflate_scale), wobbling as the
+## air goes in; full size, the fooling starts (_land).
+func _tick_inflate(delta: float) -> void:
+	t += delta
+	var k := clampf(t / INFLATE_TIME, 0.0, 1.0)
+	var s := inflate_scale(k)
+	var wob := sin(k * PI * 5.0) * 0.1 * (1.0 - k)
 	if doll:
-		# tumbling end over end through the air, a little stretched
-		doll.set_roll(sin(k * PI) * 0.9 * (1.0 if to.x >= from.x else -1.0))
-		doll.set_squash(0.9, 1.12)
+		doll.set_squash(s * (1.0 + wob), s * (1.0 - wob))
+		# the painting's margin under the feet shrinks with it, so the feet stay on the puck
+		doll.global_position = to + Vector3(0.0, _doll_lift * s, 0.0)
 	if k >= 1.0:
 		_land()
 
@@ -187,8 +305,12 @@ func _land() -> void:
 	t = 0.0
 	_scan = 0.0
 	_wobble = 0.0
-	_land_squash = 1.0
+	# pass 70: the inflation's overshoot was the landing; a small settle after it
+	_land_squash = 0.35
 	_mark_age.clear()
+	if puck:
+		puck.visible = false
+	_show_doll()
 	_place_doll(to)
 	if doll:
 		doll.set_roll(0.0)
@@ -201,7 +323,7 @@ func _land() -> void:
 		tg.flash_ring(to, r, PINK, 0.35)
 	var fx = game.get("fx") if game else null
 	if fx:
-		fx.pop_dust(to, 0.8)
+		fx.pop_dust(to, 0.5)
 	Audio.play("pk_decoy_land", to)
 	var em := _enemies()
 	if em:
@@ -266,6 +388,8 @@ func _pop() -> void:
 	Audio.play("pk_decoy_pop", to)
 	if doll:
 		doll.visible = false
+	if puck:
+		puck.visible = false
 	_mark_age.clear()
 	if _mm:
 		_mm.visible_instance_count = 0

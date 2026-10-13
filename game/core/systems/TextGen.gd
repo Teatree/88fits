@@ -55,6 +55,17 @@ const STATS := {
 	"heavyweight": ["attack damage per 10 max HP", "pct"], "overheal": ["overheal past full health", "pct"],
 	"heal_pulse": ["damage a heal sends out", "num"], "last_stand": ["attack damage in Last Stand", "pct"],
 	"xp_pull_radius": ["EXP pull radius", "m"], "xp_pull_rate": ["pulls more often", "word"],
+	# pass 70 (lane LINES), the new lines' evolutions; "rule": a stat said in its RULE_TEXT words with its number inside
+	"bronco_chance": ["chance a knocked-back enemy is launched", "pct"], "debuff_jump": ["debuff jumps", "rule"],
+	"star_block_every": ["seconds between star blocks", "rule"], "gem_sweep_every": ["seconds between gem sweeps", "rule"],
+	"vein_chance": ["chance a kill bursts into 5 XP gems", "pct"], "gold_might": ["attack damage per 100 gold gained", "pct"],
+}
+## The words of a "rule" stat (pass 70, lane LINES: the evolved lines' twists), {n} its amount, then the unit its number
+## carries on a pause row or a change row.
+const RULE_TEXT := {
+	"debuff_jump": ["a burn or poison that ends jumps to the nearest enemy, up to {n} times", ""],
+	"star_block_every": ["a star blocks a whole hit every {n} s", " s"],
+	"gem_sweep_every": ["every gem on the screen flies to you every {n} s", " s"],
 }
 ## Who a weapon with priority targeting goes for (pass 48: peashooter, revolver, tommy gun, tumbleweed, pike, sabre,
 ## turret, the Killer Bees and their evolutions), in its description.
@@ -90,6 +101,8 @@ static func format_value(stat: String, v: float) -> String:
 			return "%d°" % int(round(v))
 		"count":
 			return str(int(round(v)))
+		"rule":
+			return _plain(v) + str(RULE_TEXT.get(stat, ["", ""])[1])
 		_:
 			if abs(v - round(v)) < 0.001:
 				return str(int(round(v)))
@@ -116,6 +129,9 @@ static func describe_effect(e: Effect, with_name: bool = true) -> String:
 	# a stat said in words (pass 69, "word": the Magnet's "pulls more often"): its name when it grows, nothing else
 	if kind == "word":
 		return name if e.value > 0.0 and with_name else ""
+	# a rule (pass 70): its own words with the amount inside
+	if kind == "rule":
+		return rule_words(e.stat, e.value) if with_name else _plain(e.value) + str(RULE_TEXT.get(e.stat, ["", ""])[1])
 	var out := ""
 	match e.op:
 		"mul":
@@ -147,6 +163,15 @@ static func describe_effect(e: Effect, with_name: bool = true) -> String:
 	elif e.target.begins_with("weapon:"):
 		out += ", " + weapon_name(e.target.trim_prefix("weapon:"))
 	return out
+
+
+## A "rule" stat in words (pass 70, lane LINES): RULE_TEXT's sentence with `value` in it ("a star blocks a whole hit every
+## 10 s"); the stat's name when it has no sentence.
+static func rule_words(stat: String, value: float) -> String:
+	var r = RULE_TEXT.get(stat)
+	if not r is Array:
+		return stat_name(stat)
+	return str((r as Array)[0]).replace("{n}", _plain(value))
 
 
 ## A weapon's name by its id (pass 49: an effect aimed at "weapon:hornet_nest", Pollen's buff, read "Hornet Nest", the
@@ -688,7 +713,8 @@ const CHANGE_ROWS := 4
 ## listed as a change, since the stat that moved them is.
 const CHANGE_SKIP := ["dps", "blast", "blast_hit"]
 ## Stats whose smaller number is the better one (a shorter cooldown or wait): a rise in one of them is a loss.
-const LOWER_BETTER := ["cooldown", "shield_delay", "regen_delay"]
+## Pass 70 (lane LINES): the waits between Marshal's Star's blocks and Mother Lode's sweeps.
+const LOWER_BETTER := ["cooldown", "shield_delay", "regen_delay", "star_block_every", "gem_sweep_every"]
 
 
 ## What a weapon's step from `level_from` to `level_to` changes: its rows (WeaponInstance.stat_rows, the pause screen's
@@ -950,6 +976,9 @@ static func change_value(stat: String, op: String, v: float) -> String:
 	if op == "set":
 		return format_value(stat, v)
 	var kind := stat_kind(stat)
+	# a rule (pass 70) shows its number in its own unit
+	if kind == "rule":
+		return format_value(stat, v)
 	if op == "mul":
 		var pct := int(round(v * 100.0))
 		return "0%" if pct == 0 else ("+" if pct > 0 else "−") + str(absi(pct)) + "%"

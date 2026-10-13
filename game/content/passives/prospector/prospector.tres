@@ -12,8 +12,10 @@ target = "player"
 
 [resource]
 script = ExtResource("2_ra7c3")
+line = true
 levels = [[SubResource("Resource_ra7c3")]]
-max_level = 5
+max_level = 4
+evolves_into = "eureka"
 text = "A kill may drop an extra XP gem: 6% a level."
 id = "prospector"
 display_name = "Prospector"

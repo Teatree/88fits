@@ -1,0 +1,33 @@
+{
+  "id": "marshals_star",
+  "name": "Marshal's Star",
+  "flavour": "The law always gets the first word.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "damage_reduction",
+        "op": "add",
+        "value": 0.25,
+        "target": "player"
+      },
+      {
+        "stat": "star_block_every",
+        "op": "add",
+        "value": 10,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "tin_star",
+  "art_prompt": "a shiny gold five-pointed US marshal's star badge set inside a gold ring, polished and gleaming with a white highlight",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

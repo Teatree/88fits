@@ -4,7 +4,10 @@
   "flavour": "There's always more in the ground.",
   "rarity": "common",
   "weight": 9,
-  "max_level": 5,
+  "line": true,
+  "evolves_into": "eureka",
+  "trade": "",
+  "max_level": 4,
   "levels": [
     [
       {

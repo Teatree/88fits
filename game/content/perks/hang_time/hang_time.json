@@ -1,0 +1,28 @@
+{
+  "id": "hang_time",
+  "name": "Hang Time",
+  "flavour": "Nobody guards the sky.",
+  "rarity": "rare",
+  "weight": 6,
+  "hero": "fadeaway",
+  "text": "Every 20 s a trampoline lands beside him and waits 30 s. Run onto it: he soars 8 m the way he was running, untouchable in the air, and the stick steers him a little.",
+  "effects": [],
+  "special": "trampoline",
+  "params": {
+    "every": 20.0,
+    "first": 10.0,
+    "side": 3.5,
+    "lifetime": 30.0,
+    "radius": 1.1,
+    "uses": 1,
+    "launch_height": 4.0,
+    "launch_distance": 8.0,
+    "air_time": 1.1,
+    "air_control": 0.35
+  },
+  "art_prompt": "a round backyard trampoline with a black mat stretched tight and a thick blue padded rim on short steel legs, seen from a three-quarter view above",
+  "placeholder": {
+    "color": "#3D7BFF",
+    "glyph": "ring"
+  }
+}

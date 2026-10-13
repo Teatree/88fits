@@ -3,7 +3,10 @@
   "name": "Gold Tooth",
   "rarity": "common",
   "weight": 10,
-  "max_level": 5,
+  "line": true,
+  "evolves_into": "gold_rush",
+  "trade": "",
+  "max_level": 4,
   "flavour": "Smile. It pays.",
   "levels": [
     [

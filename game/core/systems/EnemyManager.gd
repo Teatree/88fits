@@ -85,9 +85,9 @@ const BIG_KNOCK := 1.6
 const SHADOW_PRIORITY := -3
 ## Pass 47, the hero's sheet as this manager reads it: refreshed once a tick and whenever the build changes
 ## (Run.build_changed), never per creature. Ducktape's `debuff_duration` stretches every debuff put on a creature here
-## (a burn, poison, a slow or a pin, Cauterize's mark; never a knockback, a lift, a bounce or a twister, nor a hero's
-## perk), Big Game Hunter's `elite_damage` is extra damage on a boss, an Elite or an elite-modded creature, Hot Sauce's
-## `difficulty` brings more coloured creatures and pays for them, White Phosphorus's `fire_vuln` and Rattle's
+## (a burn, poison, a slow or a pin, Cauterize's mark, and since pass 70 a freeze and a stun; never a knockback, a lift,
+## a bounce, a launch or a twister, nor a hero's perk), Big Game Hunter's `elite_damage` is extra damage on a boss, an
+## Elite or an elite-modded creature, Hot Sauce's `difficulty` brings more coloured creatures and pays for them, White Phosphorus's `fire_vuln` and Rattle's
 ## `poison_slow` were read per creature before.
 var _debuff_mult := 1.0
 ## Cold Snap (pass 47c): the chance a weapon hit freezes a creature for FREEZE_SECONDS, and Vulture's chance a crit heals
@@ -490,6 +490,8 @@ func _pstats() -> void:
 	var ll := Run.has_perk("lingering_light")
 	_ll_harder = 1.0 + maxf(Run.perk_param("lingering_light", "harder", 0.3), 0.0) if ll else 1.0
 	_ll_longer = 1.0 + maxf(Run.perk_param("lingering_light", "longer", 0.3), 0.0) if ll else 1.0
+	# pass 70 (lane LINES): Bucking Bronco's chance, Prairie Fire's jumps
+	_pstats_lines(s)
 
 
 ## Reads the hero's numbers again now (a test or a tool that edits Run.player_sheet by hand).
@@ -1575,6 +1577,8 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 		if d.length_squared() < 0.0001:
 			d = pos[i] - player.global_position if player else Vector3.FORWARD
 		kb[i] += Vector3(d.x, 0, d.z).normalized() * push
+		# Bucking Bronco (pass 70): the knock may throw it up and away instead
+		_bronco_kick(i, d, push, weapon_id)
 	if i == boss_index:
 		boss_hp_changed.emit(max(hp[i], 0.0), max_hp[i])
 	var def: EnemyDef = types[type_idx[i]]["def"]
@@ -1607,6 +1611,8 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 func poison(i: int, weapon_id: String, dmg_per_tick: float, stacks: int, duration: float, scaled: bool = true) -> void:
 	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
 		return
+	# the item's own seconds (pass 70: a Prairie Fire jump starts from them)
+	var own := duration
 	if scaled:
 		# Ducktape stretches it, and Lingering Light (pass 54, Solenne's hidden perk)
 		duration *= debuff_mult() * _ll_longer
@@ -1618,7 +1624,7 @@ func poison(i: int, weapon_id: String, dmg_per_tick: float, stacks: int, duratio
 		e["stacks"] = maxi(int(e["stacks"]), stacks)
 		e["dmg"] = maxf(float(e["dmg"]), dmg_per_tick)
 	else:
-		src[weapon_id] = {"stacks": stacks, "dmg": dmg_per_tick, "t": duration}
+		src[weapon_id] = {"stacks": stacks, "dmg": dmg_per_tick, "t": duration, "dur": own}
 	if fresh:
 		poison_tick[i] = POISON_TICK
 
@@ -1674,10 +1680,14 @@ func hostile_clock() -> float:
 
 
 ## Cold Snap (pass 47c, Garry: "N% chance that enemies will freeze on hit ... only 1 second ... coloured blue ... a vfx"):
-## the creature stops dead, bites nobody, shows ice blue, and a puff of frost bursts off it. Not stretched by Ducktape.
-func freeze(i: int, seconds: float) -> void:
+## the creature stops dead, bites nobody, shows ice blue, and a puff of frost bursts off it. Pass 70 (lane LINES, Slow
+## Burn: "every status the game applies"): `scaled` stretches the seconds by debuff_duration (Ducktape, Slow Burn), as
+## slow() does.
+func freeze(i: int, seconds: float, scaled: bool = true) -> void:
 	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
 		return
+	if scaled:
+		seconds *= debuff_mult()
 	var fresh := freeze_t[i] <= 0.0
 	freeze_t[i] = maxf(freeze_t[i], seconds)
 	slow(i, 1.0, seconds, false)
@@ -1692,13 +1702,16 @@ func freeze(i: int, seconds: float) -> void:
 ## A stun (pass 53, for the Spear lane): creature `i` stops walking and attacking for `seconds`, like a freeze without the
 ## ice: no bites, no wind-up, charge or scripted attack goes on (one under way is dropped: its red mark on the sand would
 ## outlive it), a pale yellow tint (set_status_tint) and a few yellow motes. Never a boss, an Elite archetype or a
-## creature wearing an elite modifier (nothing happens), never stretched by Ducktape's debuff multiplier; a longer stun
-## on one already stunned holds the longer time.
-func stun(i: int, seconds: float) -> void:
+## creature wearing an elite modifier (nothing happens); a longer stun on one already stunned holds the longer time.
+## Pass 70 (lane LINES, Slow Burn: "every status the game applies"): `scaled` stretches the seconds by debuff_duration
+## (Ducktape, Slow Burn), as slow() does; it never was before.
+func stun(i: int, seconds: float, scaled: bool = true) -> void:
 	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or seconds <= 0.0:
 		return
 	if i == boss_index or elite_idx[i] >= 0 or _t_big[type_idx[i]] == 1:
 		return
+	if scaled:
+		seconds *= debuff_mult()
 	var def: EnemyDef = types[type_idx[i]]["def"]
 	var fresh := stun_t[i] <= 0.0
 	stun_t[i] = maxf(stun_t[i], seconds)
@@ -1901,6 +1914,8 @@ func _tick_launch(i: int, delta: float) -> void:
 	lift_h[i] = launch_curve(f) * lift_peak[i]
 	vel[i] = Vector3.ZERO
 	kb[i] = Vector3.ZERO
+	# Bucking Bronco's throw (pass 70) flies away as it goes up
+	_bronco_drift(i, delta)
 	anim_t[i] += delta * 14.0
 	flash[i] = maxf(flash[i] - delta * 6.0, 0.0)
 	squash[i] = lerpf(squash[i], 1.0, clampf(delta * 8.0, 0.0, 1.0))
@@ -1946,6 +1961,133 @@ func _launch_thud(i: int, sfx: String, k: float, big: bool) -> void:
 		fx.sand(pos[i], (clampf(size[i] * 0.5, 0.55, 1.0) if big else 0.5) * k)
 	if sfx != "":
 		Audio.play(sfx, pos[i])
+
+
+# ---------------------------------------------------------------- pass 70 (lane LINES): Bucking Bronco, Prairie Fire
+## Bucking Bronco (pass 70, Mule Kick's evolution; Garry: "the knockback gets a chance to launch the enemy up and away
+## instead of just knocking them back. It's mostly a visual effect, so the chance can be high"): a hit from the hero's
+## side (a weapon id, never the revive or a dead rocketeer's loose rocket) that knocks a creature back (damage() with a
+## kb_force) and leaves it alive rolls the hero's `bronco_chance`. A creature that can go up (can_launch: never the boss,
+## an Elite or an elite-modded one, which only take the knock; never one already in the air) is thrown BRONCO_HEIGHT m up
+## and away along the knock instead of the shove: BRONCO_AWAY_BASE + BRONCO_AWAY_PER x the push (m/s), between
+## BRONCO_AWAY_MIN and BRONCO_AWAY_MAX m, over BRONCO_AIR s. It cannot walk, bite or attack up there (the launch's stun)
+## and lands in a puff of sand with the launch's thud; no fall damage. The roll is the manager's own dice.
+const BRONCO_HEIGHT := 2.8
+const BRONCO_AIR := 0.8
+const BRONCO_AWAY_BASE := 1.5
+const BRONCO_AWAY_PER := 0.3
+const BRONCO_AWAY_MIN := 2.5
+const BRONCO_AWAY_MAX := 6.0
+var _bronco := 0.0
+## Creatures Bucking Bronco has thrown (tests, the capture).
+var bronco_launches := 0
+## Prairie Fire (pass 70, Slow Burn's evolution): with the hero's `debuff_jump` above 0, a burn or a poison that runs out
+## on a creature (_tick_fire, _tick_poison), or whose creature dies with it on (_die), jumps to the nearest other creature
+## within PRAIRIE_R m that does not carry that source yet, at the item's full seconds (stretched once more by
+## debuff_duration, as a new one is), while the source has jumped fewer than `debuff_jump` times (its "hops"). A fire
+## never jumps onto the boss (as it never spreads onto him); a poison may. A quick ember (or green) streak shows the jump.
+const PRAIRIE_R := 4.0
+const PRAIRIE_FIRE := Color(1.0, 0.55, 0.15)
+const PRAIRIE_POISON := Color(0.45, 1.0, 0.35)
+var _prairie_hops := 0
+## Jumps Prairie Fire has made (tests).
+var prairie_jumps := 0
+
+
+## The hero's numbers lane LINES reads (pass 70), from _pstats.
+func _pstats_lines(s: StatSheet) -> void:
+	_bronco = clampf(s.get_stat("bronco_chance", 0.0), 0.0, 1.0)
+	_prairie_hops = maxi(int(round(s.get_stat("debuff_jump", 0.0))), 0)
+
+
+## Bucking Bronco's roll on a knocked-back creature (pass 70; damage() calls it after the shove). `dir` is the knock's
+## way, `push` its m/s; `roll` (tests) replaces the dice. True when the creature went up and away.
+func _bronco_kick(i: int, dir: Vector3, push: float, weapon_id: String, roll: float = -1.0) -> bool:
+	if _bronco <= 0.0 or weapon_id == "" or weapon_id == "revive" or weapon_id == "loose_rocket":
+		return false
+	if i < 0 or i >= MAX or hp[i] <= 0.0 or not can_launch(i):
+		return false
+	var r: float = roll if roll >= 0.0 else _rng.randf()
+	if r >= _bronco:
+		return false
+	var fly := Vector3(dir.x, 0.0, dir.z)
+	if fly.length_squared() < 0.0001:
+		fly = pos[i] - player.global_position if player else Vector3.FORWARD
+		fly.y = 0.0
+	fly = fly.normalized() if fly.length_squared() > 0.0001 else Vector3.FORWARD
+	if not launch(i, BRONCO_HEIGHT, BRONCO_AIR, 0.0, weapon_id):
+		return false
+	var dist := clampf(BRONCO_AWAY_BASE + BRONCO_AWAY_PER * maxf(push, 0.0), BRONCO_AWAY_MIN, BRONCO_AWAY_MAX)
+	(_launched[i] as Dictionary)["drift"] = fly * (dist / BRONCO_AIR)
+	bronco_launches += 1
+	return true
+
+
+## A Bucking Bronco throw's flight away (pass 70; _tick_launch calls it): the launch's entry carries its flat `drift`
+## (m/s); the body goes with it over the sand, kept inside the arena.
+func _bronco_drift(i: int, delta: float) -> void:
+	var e = _launched.get(i)
+	if not e is Dictionary or not (e as Dictionary).has("drift"):
+		return
+	var v: Vector3 = (e as Dictionary)["drift"]
+	var p := _clamp_arena(pos[i] + v * delta)
+	p.y = _height(p.x, p.z)
+	pos[i] = p
+
+
+## Prairie Fire's jump (pass 70): source `wid` (`e`, its entry in fire_src or poison_src of creature `i`) goes on to the
+## nearest creature within PRAIRIE_R that lacks it. Returns the creature it reached, -1 for none.
+func _prairie_jump(i: int, fire: bool, wid: String, e: Dictionary) -> int:
+	if _prairie_hops <= 0 or i < 0 or i >= MAX:
+		return -1
+	var hops := int(e.get("hops", 0))
+	if hops >= _prairie_hops:
+		return -1
+	var best := -1
+	var best_d := PRAIRIE_R * PRAIRIE_R
+	for j in indices_in_radius(pos[i], PRAIRIE_R):
+		if j == i or alive[j] == 0 or state[j] == STATE_DYING or hidden[j] == 1 or held[j] == 1:
+			continue
+		if fire and j == boss_index:
+			continue
+		var carries: bool = (fire_src[j] as Dictionary).has(wid) if fire else (poison_src[j] as Dictionary).has(wid)
+		if carries:
+			continue
+		var d := pos[j] - pos[i]
+		d.y = 0.0
+		if d.length_squared() < best_d:
+			best_d = d.length_squared()
+			best = j
+	if best < 0:
+		return -1
+	if fire:
+		ignite(best, wid, float(e.get("dmg", 1.0)), float(e.get("dur", 3.0)), float(e.get("spread", 0.0)), i, float(e.get("root", 0.0)))
+		var ne = (fire_src[best] as Dictionary).get(wid)
+		if ne is Dictionary:
+			(ne as Dictionary)["hops"] = hops + 1
+	else:
+		poison(best, wid, float(e.get("dmg", 3.0)), int(e.get("stacks", 1)), float(e.get("dur", 4.0)))
+		var np = (poison_src[best] as Dictionary).get(wid)
+		if np is Dictionary:
+			(np as Dictionary)["hops"] = hops + 1
+	prairie_jumps += 1
+	var fx = game.get("fx") if game != null else null
+	if fx != null and fx.has_method("lightning"):
+		var a := pos[i] + Vector3(0, size[i] * 0.5, 0)
+		var b := pos[best] + Vector3(0, size[best] * 0.5, 0)
+		fx.lightning([a, b], PRAIRIE_FIRE if fire else PRAIRIE_POISON, 0.45)
+	return best
+
+
+## Prairie Fire on a death (pass 70; _die calls it before the creature's burns and poisons are cleared): each source on
+## it jumps on as one that ran out would.
+func _prairie_on_death(i: int) -> void:
+	if _prairie_hops <= 0:
+		return
+	for k in (fire_src[i] as Dictionary).keys():
+		_prairie_jump(i, true, str(k), (fire_src[i] as Dictionary)[k])
+	for k in (poison_src[i] as Dictionary).keys():
+		_prairie_jump(i, false, str(k), (poison_src[i] as Dictionary)[k])
 
 
 func is_poisoned(i: int) -> bool:
@@ -2047,6 +2189,8 @@ func _tick_fire(i: int, delta: float) -> void:
 		var e: Dictionary = src[k]
 		e["t"] = float(e["t"]) - delta
 		if float(e["t"]) <= 0.0:
+			# Prairie Fire (pass 70): a burn that runs out jumps on
+			_prairie_jump(i, true, str(k), e)
 			src.erase(k)
 			gone = true
 			continue
@@ -2111,6 +2255,8 @@ func _tick_poison(i: int, delta: float) -> void:
 		var e: Dictionary = src[k]
 		e["t"] = float(e["t"]) - delta
 		if float(e["t"]) <= 0.0:
+			# Prairie Fire (pass 70): a poison that runs out jumps on
+			_prairie_jump(i, false, str(k), e)
 			src.erase(k)
 			continue
 		var part: float = float(e["dmg"]) * int(e["stacks"])
@@ -2196,6 +2342,8 @@ func _die(i: int, weapon_id: String) -> void:
 				poison(best, str(wid), float(src.get("dmg", 3.0)), int(src.get("stacks", 1)), float(src.get("t", 8.0)), false)
 			if game:
 				game.fx_burst(pos[best] + Vector3(0, size[best] * 0.6, 0), Color(0.5, 1.0, 0.4), 0.9)
+	# Prairie Fire (pass 70): its burns and poisons jump on before they go with it
+	_prairie_on_death(i)
 	state[i] = STATE_DYING
 	timer[i] = DIE_TIME
 	anim_t[i] = 0.0

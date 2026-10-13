@@ -256,6 +256,8 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	streak_bucket = 0
 	_streak_dirty = false
 	_streak_source = ""
+	# pass 70 (lane LINES): Gold Rush counts from nothing
+	_gold_rush_reset()
 	timed.clear()
 	lifesteal_pool = 0.0
 	_lifesteal_second = 0.0
@@ -427,6 +429,65 @@ func _apply_streak() -> void:
 		return
 	_streak_source = "Hot Streak +%d%%" % int(round(v * 100.0))
 	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _streak_source)
+
+
+# ---------------------------------------------------------------- pass 70 (lane LINES): Gold Rush
+## Gold Rush (pass 70, Gold Tooth's evolution): with the hero's `gold_might` above 0, every GOLD_RUSH_PER gold he gains
+## while he holds it (add_gold after greed: coins, purses, chests, everything that pays the purse; its gold_gained signal)
+## adds `gold_might` attack damage for the rest of the run, GOLD_RUSH_CAP at most, in whole percents, folded into attack
+## damage as its own source ("Gold Rush +12%": the pause screen's breakdown names it). The sheet follows when the percent
+## changes. Spending gold takes nothing back.
+const GOLD_RUSH_PER := 100.0
+const GOLD_RUSH_CAP := 0.5
+## Gold gained while Gold Rush was held this run, and the percent the sheet carries.
+var gold_rush_gold := 0
+var gold_rush_bucket := 0
+var _gold_rush_source := ""
+
+
+## What Gold Rush adds to attack damage right now (the step on the sheet); 0 without it.
+func gold_rush_bonus() -> float:
+	return float(_gold_rush_percent()) / 100.0
+
+
+func _gold_rush_percent() -> int:
+	var gm: float = player_sheet.get_stat("gold_might", 0.0) if player_sheet else 0.0
+	if gm <= 0.0 or gold_rush_gold <= 0:
+		return 0
+	return floori(minf(floorf(float(gold_rush_gold) / GOLD_RUSH_PER) * gm, GOLD_RUSH_CAP) * 100.0 + 0.0001)
+
+
+## Gold gained (the gold_gained signal): counted while Gold Rush is held; the sheets are rebuilt when the percent moves.
+func _gold_rush_gain(gained: int) -> void:
+	if player_sheet == null or player_sheet.get_stat("gold_might", 0.0) <= 0.0:
+		return
+	gold_rush_gold += maxi(gained, 0)
+	var b := _gold_rush_percent()
+	if b != gold_rush_bucket:
+		gold_rush_bucket = b
+		rebuild_sheets()
+
+
+## Gold Rush on the sheet as its own source, redone from the gold counted (_apply_passives_to_sheet calls it).
+func _apply_gold_rush() -> void:
+	if _gold_rush_source != "":
+		player_sheet.remove_source(_gold_rush_source)
+		_gold_rush_source = ""
+	gold_rush_bucket = _gold_rush_percent()
+	var v := gold_rush_bonus()
+	if v <= 0.0:
+		return
+	_gold_rush_source = "Gold Rush +%d%%" % int(round(v * 100.0))
+	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _gold_rush_source)
+
+
+## A run starts with none counted (start() calls it), and the purse's gold_gained is heard from then on.
+func _gold_rush_reset() -> void:
+	gold_rush_gold = 0
+	gold_rush_bucket = 0
+	_gold_rush_source = ""
+	if not gold_gained.is_connected(_gold_rush_gain):
+		gold_gained.connect(_gold_rush_gain)
 
 
 ## Skedaddle (pass 48, a passive item: "After a hit, run 20% faster for 1.5 s"): a landed hit gives a hero holding it
@@ -684,6 +745,8 @@ func _apply_passives_to_sheet() -> void:
 	_apply_steady()
 	streak_bucket = _streak_percent()
 	_apply_streak()
+	# Gold Rush (pass 70) reads the `gold_might` the passives just put on the sheet
+	_apply_gold_rush()
 	# Heavyweight (pass 69) reads the max HP everything above put on the sheet
 	_apply_heavyweight()
 

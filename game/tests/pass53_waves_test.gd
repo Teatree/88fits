@@ -963,11 +963,15 @@ func test_a_stun_stops_walking_and_attacking_then_lets_go() -> void:
 	assert_bool(em.is_stunned(i)).is_false()
 	assert_float(em.pos[i].x).override_failure_message("it never walked on after the stun").is_less(5.9)
 	assert_object(em.tint_of(i)).is_not_equal(EnemyManager.STUN_TINT)
-	# never scaled by Ducktape: the seconds are the seconds
+	# pass 70 (lane LINES, Slow Burn: "every status the game applies"): stretched by Ducktape's debuff duration now, as a
+	# slow is; a caller that passes scaled = false keeps its seconds
 	Run.debug_set_item("passive", "ducktape", 4)
 	em.refresh_player_stats()
 	assert_float(em.debuff_mult()).is_greater(1.0)
 	em.stun(i, 1.0)
+	assert_float(em.stun_t[i]).is_equal_approx(em.debuff_mult(), 0.001)
+	em.stun_t[i] = 0.0
+	em.stun(i, 1.0, false)
 	assert_float(em.stun_t[i]).is_equal_approx(1.0, 0.001)
 
 

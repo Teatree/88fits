@@ -271,20 +271,20 @@ func test_the_title_shows_a_hero_not_owned_as_unknown_and_play_refuses_him() -> 
 
 
 func test_buying_on_the_title_reveals_him_and_opens_play() -> void:
-	Save.data["gold"] = 500
+	# pass 70 (re-pinned): his price is 1,000 now (x2.5 of every unlock), so the purse holds it and 500 more
+	Save.data["gold"] = _hero("fadeaway").price + 500
 	var t := await _title("live")
 	_show(t, "fadeaway")
-	var price: int = _hero("fadeaway").price
 	t._buy_now(_hero("fadeaway"))
 	assert_bool(Save.owns_hero("fadeaway")).is_true()
-	assert_int(Save.gold()).is_equal(500 - price)
+	assert_int(Save.gold()).is_equal(500)
 	assert_object(t._heroes[t._index]).is_same(_hero("fadeaway"))
 	assert_bool(t._play.locked).is_false()
 	assert_str(t._name.text).is_equal("Fadeaway")
 	assert_bool(t._buy_col.visible).is_false()
 	# the gold plate says what is left
 	var amount: WText = t._gold_plate.find_children("Amount", "", true, false)[0]
-	assert_str(amount.text).is_equal(W.num(500 - price))
+	assert_str(amount.text).is_equal(W.num(500))
 	# the mask lifts
 	await get_tree().create_timer(Stage.REVEAL_TIME + 0.2).timeout
 	var tint: Color = (t._stage.hero_sprite().material_override as ShaderMaterial).get_shader_parameter("tint")

@@ -4,8 +4,8 @@
 ## source (pass 47, Garry: "Each row must have both the icon and the text, with the absolute value of damage dealt":
 ## the plate, the name and the number over a bar of its share, the percent beside it, for every weapon, perk, power-up,
 ## fire, poison, the revive's blast and explosions, and a "?" plate for anything unknown); what the run unlocked; PLAY
-## AGAIN, then Upgrade (turquoise, pass 46: brass is for buying) and Main Menu. A death (pass 44) shows the gold left in the sand, struck through, and what a Strongbox banked on
-## the way, by its coin. The hero's last hits are on the Down! screen since pass 46, not here.
+## AGAIN, then Upgrade (turquoise, pass 46: brass is for buying) and Main Menu. Since pass 70 a death banks the purse like an
+## extraction (the Strongbox is retired). The hero's last hits are on the Down! screen since pass 46, not here.
 extends ScreenBase
 
 ## The damage sources' own pictures (pass 47, painted by the lead; until one is there its plate shows a "?").
@@ -68,13 +68,10 @@ func build() -> void:
 	head.add_child(line)
 	content.add_child(head)
 	content.add_child(_gap(130))
-	# the hero and the gold: banked on an extraction; on a death the purse stays in the sand (pass 44), all but what
-	# a Strongbox put away
+	# the hero and the gold: banked, whatever the end (pass 70, Garry: "Make Coins stay if Player dies": a death and an
+	# abandon bank the purse as an extraction does, Game.end_run); the Strongbox's line went with the Strongbox
 	var before := int(res.get("gold_before", Save.gold()))
 	_banked = int(res.get("banked", s["gold"]))
-	var lost := int(res.get("lost", 0))
-	var strongbox := int(res.get("strongbox", 0))
-	var dead: bool = s["died"] or lost > 0
 	var hero := PanelContainer.new()
 	hero.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hero.add_theme_stylebox_override("panel", W.box(W.PAPER, 6, 12).pad(42, 36, 42, 36))
@@ -94,39 +91,18 @@ func build() -> void:
 	gv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	gv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	gv.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gv.add_child(W.serif_text("Left in the sand" if dead else "Banked", 26, W.ROCK if dead else W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	gv.add_child(W.serif_text("Banked", 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	var gr := HBoxContainer.new()
 	gr.add_theme_constant_override("separation", 14)
 	gr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gr.add_child(WCoin.make(64.0, W.AGED if dead else W.BRASS, 4.0))
-	_count = W.slab_text("0", 110, W.ROCK if dead else W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 110.0)
-	_count.strike = dead
+	gr.add_child(WCoin.make(64.0, W.BRASS, 4.0))
+	_count = W.slab_text("0", 110, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 110.0)
 	gr.add_child(_count)
 	gv.add_child(gr)
-	if dead:
-		_banked = lost
-		var purse := "The purse stays at %s" % W.num(before)
-		if strongbox > 0:
-			# what the Strongbox kept is gold the run brought home: its coin goes in front (pass 46)
-			var sb := HBoxContainer.new()
-			sb.name = "Strongbox"
-			sb.add_theme_constant_override("separation", 10)
-			sb.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var coin := WCoin.make(30.0, W.BRASS, 3.0)
-			coin.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-			sb.add_child(coin)
-			var said := W.serif_text("%s banked by the Strongbox on the way · the purse stays at %s" % [W.num(strongbox), W.num(before)],
-				26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
-			said.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			sb.add_child(said)
-			gv.add_child(sb)
-		else:
-			gv.add_child(W.serif_text(purse, 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
-	else:
-		gv.add_child(W.serif_text("%s → %s" % [W.num(before), W.num(before + _banked)], 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
+	gv.add_child(W.serif_text("%s → %s" % [W.num(before), W.num(before + _banked)], 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
 	if not Save.hint_seen("results"):
 		Save.mark_hint("results")
-		gv.add_child(W.serif_text("Only an extraction brings the gold home. Spend it on Upgrades." if dead else "Gold is kept. Spend it on Upgrades.",
+		gv.add_child(W.serif_text("Your gold comes home, whatever the end. Spend it on Upgrades.",
 			24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
 	hr.add_child(gv)
 	var prev: Dictionary = res.get("prev_best", {})
@@ -389,7 +365,7 @@ func _reward(q: QuestDef) -> ContentDef:
 	return null
 
 
-## The banked gold counts up over 900 ms with an ease-out (the lost gold too, struck through).
+## The banked gold counts up over 900 ms with an ease-out.
 func _count_up() -> void:
 	var tw := create_tween()
 	var pre := "−" if _count.strike else "+"

@@ -1,0 +1,33 @@
+{
+  "id": "mother_lode",
+  "name": "Mother Lode",
+  "flavour": "Every gem in sight comes home.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "magnet",
+        "op": "mul",
+        "value": 3.5,
+        "target": "player"
+      },
+      {
+        "stat": "gem_sweep_every",
+        "op": "add",
+        "value": 12,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "lodestone",
+  "art_prompt": "a big split-open geode glowing with purple crystals, a dark iron horseshoe magnet on top pulling purple gems into it",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "magnet"
+  }
+}

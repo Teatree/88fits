@@ -441,3 +441,136 @@ pass added, and its Instructions tab opens with "Pass 69: how to use the new too
   content and the test file. Self-test 17,675 checks (new group selftest_L69.py).
 
 **The lead.** Reviewed every lane's captures and fixed what read wrong: the Alley-Oop ball rendered violet and Slam Dunk's black brown under the sky's warm ambient light (a ball tint's `ambient` false: `disable_ambient_light`; Alley-Oop #0A4FA8), the live title's black mask came out brown in the scene's fog (`BillboardSprite.set_fogless`: copies of the billboard shaders with `fog_disabled` while a hero is locked), Last Stand's red rim was a solid band a quarter of the screen wide (now 0.085 of the width, at most 62% red), and a look kept on a phone that has since been shelved now gives way to the hero's own (Registry.played_look, which the player, the title stage, analytics and the arena now all read). Tests: pass69_lead_test.gd. Lessons: a windowed capture with an unbounded wait held the repo-wide Godot lock for half an hour and stalled every lane (captures need frame caps and a watchdog); the ComfyUI lock has no fairness, so a hand-run job starves behind the editor's queue (put the work in the queue); the blue screen keys a blue-skinned hero away (Jeżyk paints on green); Mixamo's Neck bone sits above the shoulder line, which painted sagging backs and raised side shoulders until tools/pose_shoulders.py levelled the drivers.
+
+**Pass 70 (2026-10-13, v0.56): lines, the trampoline, coins kept, and the Level Editor's traps.** Five lanes from one contract (tools/dl/p70/INTERFACES.md). Fadeaway's Timeout became Hang Time (a 3D trampoline that launches him where he runs); Inflatable May now inflates out of a thrown puck; four new lines (Lodestone, Mule Kick, Slow Burn, Tin Star) and Prospector and Gold Tooth turned lines, each with an evolution; gold is banked on every end of a run, unlocks cost 2.5 times more, Elites and bosses pay five times more, the Strongbox is gone; the title's Collection button is a square as tall as the plaque with a 3x3 grid glyph; the Level Editor got distinct candidate seeds, pickers for a look's badge, cut-out and icon from everything painted, inherited text in the boxes, a Stills check (Garry's Bandit job had failed with a picture path in Stills), removing a base look (May's MAY-A), a one-view re-roll, a driver tweak job, per-view run sizes and two closed traps (the pick race, a hung Godot step); the art finished Garry's Bandit look, fixed May's straps, sizes and hands and Jeżyk BUC-F's sizes and hands (now played), and painted eleven icons.
+
+**Lane TRAMP: Hang Time and May's puck.** Garry: "Time Out - name it something else and make it about trampolines ... a
+3d trampoline spawns ... walking up on the trampoline causes the hero jump quite dramatically up in the direction
+they've been walking ... Player can control his flight somewhat ... But not nearly as much as just walking"; "the
+inflatable version of her should inflatable from a little hockey puck". Fadeaway's Timeout perk and pickup are retired
+(`hidden`, kept with their code) and his perk is **Hang Time** (`content/perks/hang_time`, special `trampoline`, a new
+reusable primitive any perk can carry: `core/systems/Trampoline.gd`, made by `Game._tick_trampoline`). After 10 s, then
+20 s after the last folded, a 3D trampoline (`tools/blender_trampoline.py` -> `art/props/trampoline.glb`: Mat with a
+"Dip" shape key, Rim, Legs; graded like the 3D weapons) drops out of the sky 3.5 m beside him, stands 30 s and folds
+after one jump. Walking onto it from outside calls `Player.trampoline_launch`: an arc 4 m up and 8 m along the way he
+walked, 1.1 s in the air on its own gravity (8h/T^2), the stick adding 35% of his walk, untouchable (take_damage and
+every hostile push pass him by: `airborne` in `knock_immune`); the mat dips and wobbles on a spring, his shadow stays
+on the sand and shrinks, the camera rides 30% of the arc (`Player.camera_y` read by CameraRig), the landing is a squash,
+a thud and a dust ring. A pause or the card screen freezes a flight, a fall ends it. The first capture showed the fog
+browning the black mat and turning the blue pad lavender (pass 69's fogless lesson again): the trampoline's mat and pad
+and the puck draw without fog. May's decoy now flies as a black puck, lands 0.5 m short, slides to the spot with a hiss
+and the doll inflates out of it in 0.3 s (0 -> 1.12 -> 1) before the fooling starts (Decoy phases SLIDING, INFLATING).
+Three synthesised sounds (pk_trampoline_drop, pk_trampoline_boing, pk_decoy_hiss). The Level Editor knows the special
+(vocab.py, assets_fields.js). Tests `pass70_tramp_test.gd` (14); `pass69_hero_test` re-pinned for the puck's slide and
+inflation.
+
+**Lane LINES (pass 70): six line items and their evolutions** (Garry's items 3-8). Four new lines and two passive items
+made lines (ids kept, `max_level` 5 -> 4, their per-level numbers unchanged), each with an evolved line: **Lodestone**
+(pickup radius x1.4 a level) -> **Mother Lode** (x4.5 and every 12 s every XP gem on the screen flies in:
+`gem_sweep_every`, `PickupManager._tick_gem_sweep` / `sweep_screen`, the first sweep 1 s after it is taken, a gold ring);
+**Mule Kick** (knockback x1.25 a level on `all_weapons`, folded into every weapon's sheet) -> **Bucking Bronco**
+(knockback x3.0 and `bronco_chance` 0.35: `EnemyManager._bronco_kick`, called from `damage()` after the shove, throws a
+plain creature 2.8 m up and 2.5-6 m away along the knock over 0.8 s on pass 69's `launch()` with a flat `drift` in its
+`_launched` entry that `_tick_launch` carries (`_bronco_drift`); bosses, Elites and elite-modded creatures only take the
+knock; no fall damage); **Slow Burn** (debuff duration x1.2 a level) -> **Prairie Fire** (x2.2 and `debuff_jump` 3: a burn
+or poison that runs out, or whose creature dies with it, jumps to the nearest creature within 4 m that lacks it, at its
+full seconds, 3 hops at most, never a fire onto the boss: `EnemyManager._prairie_jump` / `_prairie_on_death`, hooks in
+`_tick_fire`, `_tick_poison` and `_die`, an ember streak by `Fx.lightning`; `poison()` keeps the item's own seconds as
+`dur`); **Tin Star** (damage reduction +5% a level) -> **Marshal's Star** (+25% and `star_block_every` 10: a gold star over
+the hero, `core/systems/StarGuard.gd`, made by `Player._star_guard_sync` from `refresh_stats`, blocks one whole hit after
+the Invincibility bubble, the blink and an evade (`Player._star_block`: BLOCK, a gold burst, the iron clang, the hit's
+blink, logged "blocked by Marshal's Star"), back 10 s later on the buffs' clock); **Prospector** (+6% extra gem a level) ->
+**Eureka** (+35% and `vein_chance` 0.04: `PickupManager.vein`, rolled in `prospector()`, 5 gems of the kill's size burst
+out in a fountain); **Gold Tooth** (coin gain x1.1 a level) -> **Gold Rush** (x1.6 and `gold_might` 0.01: +1% attack damage
+for every 100 gold gained while held, +50% at most, `Run._gold_rush_gain` on `gold_gained`, its own source "Gold Rush
++N%", `Run.GOLD_RUSH_PER` / `GOLD_RUSH_CAP`). `debuff_duration` now also stretches freezes and stuns
+(`EnemyManager.freeze` / `stun` take `scaled := true`; pass53_waves_test's "never scaled" pin re-pinned). TextGen kind
+**"rule"** (`RULE_TEXT`, `rule_words`): a stat said as a sentence with its number inside ("a star blocks a whole hit every
+10 s"); `LOWER_BETTER` gained the two waits. The six stats are in StatSheet.PLAYER_DEFAULTS, TextGen.STATS, the Level
+Editor's vocab.py and assets_model.js (with help lines). Content: `content/passives/{lodestone, mule_kick, slow_burn,
+tin_star, mother_lode, bucking_bronco, prairie_fire, marshals_star, eureka, gold_rush}` (placeholder icons; lane ART
+paints them). Tests `pass70_lines_test.gd` (16); re-pinned on purpose: pass47_rules (21 lines / 42 with evolutions,
+Prospector and Gold Tooth out of the passive-item tiers, Hush Money in Prospector's place in the no-cap loop), pass53_waves
+(a stun is stretched now), pass44 (comment: 23 of 79, 29%), the Level Editor's selftest_S floor (21 lines, 34 passive
+items). Captures `tools/dl/p70/LINES/shots/` (`game/tools/_p70_LINES_shots.gd`). Note: Ducktape (pass 47) was already a
+debuff-duration line; Slow Burn is a second one, as the contract asked.
+
+**Lane ECON (pass 70): coins kept on death, prices x2.5, Elites and bosses x5, no Strongbox, the Collection button.**
+Every end of a run banks the purse: `Game.bank_run_end` (static, out of `end_run`, which still calls it once behind
+`_ended`) puts the whole `Run.run_gold` into the save with the reason `run_bank` whether the hero extracted, died or
+abandoned; `Run.last_result.lost` is 0; `RunAnalytics.gold_end` counts `gold_lost` only for a quit. The texts follow:
+the Results screen shows "Banked" with the count and before → after for every end (the struck-through "Left in the
+sand" and the Strongbox line are gone; first-time hint "Your gold comes home, whatever the end."), the stage-clear
+dialog reads "Head home, or push on." and "The N gold comes home either way.", Down! says "Stay down and the N gold
+still comes home." and its confirm "… comes home with you.", the pause screen's abandon row "picked up so far is kept"
+and its confirm the same. Prices x2.5 (`tools/dl/p70/ECON/prices.py`, line edits): the eight talents' `cost` arrays
+(halves to the nearest 5; the board 34,572 → 86,440) and the heroes' `price` (Calavera 750, Ironwood 1,000, Solenne
+1,500, Jeżyk 1,250, May 1,750, Fadeaway 1,000). Elites and bosses x5: `Game.ELITE_PURSE` [450, 300] and `BOSS_PURSE`
+[1300, 700] (`elite_purse()` / `boss_purse()`, base + per stage), the bosses' `drops.coins` 60 / 150 / 200 (King, Gila,
+Brander; `Game.BOSS_COINS` 60 the default), and `PickupManager.BIG_COIN_MULT` 5 on an Elite's or a boss's `drops.gold`
+coin (`big_coin_mult`). The Strongbox (`gold_bank`) is `hidden`; `StructureManager.in_play` keeps hidden structures off
+the map (content, painting, the `bank` effect and pass 64's return primitive kept). The title's Hero Collections button
+is a square as tall as the plaque (`TitleScreen.drawer_side` settles the two, `_on_plaque_resized` re-places when the
+plaque's line wraps later; 167-169 px at 1080x1920, was 104) with the plaque's 8 px shadow, and its glyph is eight
+plain ink squares of a 3 x 3 grid with the bottom-right one missing (`glyph_cells`, `GLYPH_SPAN` 0.5, `GLYPH_GAP` 0.28,
+whole pixels); the close X grows with the button. Tests `pass70_econ_test.gd` (14); re-pinned on purpose:
+pass61_an_test (a death banks: `test_a_death_banks_the_purse`; the real run's Elite purse 90 → 450), pass46_ui_test
+(the results after a death show the banked purse, no Strongbox line), pass69_ui_test (the title buy test's purse holds
+Fadeaway's 1,000), pass64_pl_test (`_bank` stands a Strongbox itself, its return primitive still tested).
+
+**Pass 70, lane LE (the Level Editor's seven points, then the lead's three follow-ups).** Garry: candidates kept
+coming out alike, a look's icon and cut-out could not be chosen, May showed no badge in the Heroes list, a Bandit look
+failed with a 500, MAY-A could not be removed, and inherited prompts had to be retyped to change three words. Causes:
+within a job the seeds always differed, but every new job of a look repeated the previous job's seeds (MAY-E's two badge
+jobs both 2768/3768/4768, every title job 11/112/213/314) and a front from a picture always the same seeds and the cached
+files; May's list badge was the base look's placeholder `may_icon.png` (her badge is MAY-G's own); the Bandit job had the
+picture's path in Stills, which became the ComfyUI upload name. Made: `tools/cand_seeds.py` (candidate k a million seeds
+from k-1, a job's own move, a re-run's attempt; `ASSET_JOB_ATTEMPT`), gen_edit_stills's slug check and candidates moved
+aside before a paint, `comfy.upload_name`; the Stills slug rule in the form, the server, the recipe editor and the tool;
+"Choose <CODE>'s badge / title cut-out / icon from everything painted" with Install into any look (`install
+options.variant`), `icon_play` / `title_play` in the hero records; "Remove…" on a base look (`remove_base`: the new base's
+art becomes the top level, inheriting looks pinned, files and `base_<CODE>.json` to backups/deleted, landings on such a
+base mirrored) and MAY-A removed with it (MAY-G her base); inherited values in their boxes (`Forms.inheritable`: the typed
+recipe, the job form, typed params); `driver_tweak` (scale / spread / occlude / shoulders on a copy of a driver), the
+re-roll "redo one view's walk", a re-queue that reads the look's recipe from its JSON. Follow-ups from lane ART: a view's
+size is the recipe's `run_scale` (ART's gen_art key; "Run size: <view>" rows), never a scaled driver (gen_art fits every
+walk back to the standing height), and the docs say so; the front-from-a-picture pick merges only `stills` into the
+look's current recipe (`Hooks.merge_recipe`; it had overwritten BD-A's words); a Godot step of a register or import job is
+killed after 600 s (`GODOT_STEP_TIMEOUT`, the spec's `step_timeout`), freeing the Godot lock (a `godot --import` had hung
+12 minutes). Self-test 17,876 checks (17,676 before), `selftest_LE70.py`. Lesson: a sparse record and a job's snapshot of
+it drift apart; every writer merges the keys it owns into the file as it is now.
+
+Lane ART (pass 70), all art through Garry's running Level Editor's queue (port 8787) except single-clip driver tests and
+two still-candidate sets run beside it under the comfy lock. **The Bandit** (buckshot_dwarf BD-A): Garry's job had
+failed because he put the picture's path in Stills (the slug the look's paintings are cached under), which became a
+ComfyUI upload name with slashes (HTTP 500). The recipe was fixed to `stills: "bda"`, his turnaround cut into its
+halves, the front painted from the front half with his words rephrased for one view (front_from_picture, 4 dev-Turbo
+candidates, c2 picked: the simplest gun and no ground shadow; the vision QA called a good one "side / no-match"), then a
+creature_free2 look like BD-0's walk (free Wan clips front and back, the tilt death). The first back still lost the
+shotgun: the front_from_picture pick phase had written its own stale recipe over BD-A's after the look job was queued,
+so the look ran on the base dwarf's words without Garry's back-view words; with them restored as `back_hint` the back
+matches his picture (barrel up-left, stock down-right, the bandana knot, the V zigzag). Left `fresh`, not played.
+**The size of a view's run** (May's side half a head taller, Jezyk's back run smaller) was not the drivers:
+gen_art.pose_cycle fits each view's clip by its tallest frame, and a side run crouches in every frame (blown up) while a
+back or front run has a foot reaching down toward the camera (shrunk); measured on the head, MAY-G ran at 1.18 / 1.08 /
+1.32 / 1.24 / 1.14 of her standing size (back, bd, side, fd, front) and BUC-F at 0.96 / 0.99 / 1.17 / 1.16 / 1.24. A
+scaled driver cannot change it (the clip is fitted back), so gen_art gained a recipe key `run_scale` ({view: factor},
+default 1, a re-queue re-places the cached clips): MAY-G {side 0.88, fd 0.92}, BUC-F {back 1.07, bd 1.06, side 0.90, fd
+0.91, front 0.90} (a view grows only until its walk fills the cell). **May**: her three-quarter-back still had been
+painted without the overalls' back straps (every view is an edit of the front, whose straps are on the chest); four new
+dev candidates with strap words in pose_hint all had them, a_c0 (front reference only: the editor's own route) kept the
+old turn and was installed, the bd walk and hit still repainted from it. Her back run's gloves showed beside her in
+every frame because run_spread_lvl pushes both wrists out past the torso; a new driver `run_hidefwd_lvl` drops, in the
+back view, the arm that swings forward (judged from the side view's same frame), so one glove shows at a time beside
+the hip (`run_occ_lvl`, the occluded one, still showed both often). **Jezyk**: the dash's front view put his wrists on
+the jacket and Wan painted his hands over it; dropping the wrists (or only the fingers) made it paint his fists at his
+chin; `run_dash_f_low` angles the front view's arms down and back with the hands low beside his hips, outside the
+jacket. BUC-F approved and made his played look; MAY-G approved. **Icons** (Klein, 4 seeds, finished and checked on
+their plates and at HUD size on the sand, `tools/dl/p70/art/icons_review.png`): Hang Time from lane TRAMP's trampoline
+render (the dipped mat, a basketball flying up; the sneaker set read as a brand swoosh), Lodestone, Mule Kick (third
+words: a whole small mule kicking into an impact burst; the hoof alone came out as a porthole, then cropped), Slow Burn
+(a braided fuse and a brass hourglass; the first set were garden hoses), Tin Star (six points asked for twice; five
+points read like Marshal's Star), Mother Lode, Bucking Bronco, Prairie Fire, Marshal's Star, Eureka, Gold Rush.
+Garry's how-to for doing the May and Jezyk fixes in the editor alone: `tools/dl/p70/howto_ART.md`.
+
+**The lead.** Integration: the whole suite green with every lane merged, the PostHog board's "left in the sand" tile relabelled (only a quit loses gold now; the boards were not re-run). Lessons: a value field that becomes a file name must be checked where it is typed and cleaned where it is used; a slug field next to a picture field invites the picture's path; walks are fitted by their tallest frame, so a per-view size is the honest knob, not a scaled driver.

@@ -1164,6 +1164,19 @@ func _toss_tick(i: int, delta: float, map) -> void:
 	_glint(i)
 
 
+## An Elite's or a boss's own coin (drops.gold) is worth this many times a creature's (pass 70, Garry: "Make Elites and
+## Bosses give much more Coins"; their purses are Game.ELITE_PURSE / BOSS_PURSE).
+const BIG_COIN_MULT := 5.0
+
+
+## The factor on the drops.gold coin of `def`: BIG_COIN_MULT for an Elite (its kind, or a creature wearing an Elite
+## modifier: `is_elite`) and a boss, 1 for the rest.
+static func big_coin_mult(def: EnemyDef, is_elite: bool) -> float:
+	if is_elite or (def != null and (def.archetype == "elite" or def.archetype == "boss")):
+		return BIG_COIN_MULT
+	return 1.0
+
+
 func drop_from(def: EnemyDef, at: Vector3, xp_scale: float, is_elite: bool) -> void:
 	var d := def.drops
 	var luck: float = Run.player_sheet.get_stat("luck", 0.0)
@@ -1174,7 +1187,7 @@ func drop_from(def: EnemyDef, at: Vector3, xp_scale: float, is_elite: bool) -> v
 	if randf() < float(d.get("large", 0.0)):
 		spawn(KIND_GEM_L, at, 25.0 * xp_scale)
 	if randf() < float(d.get("gold", 0.0)) * (1.0 + luck):
-		spawn(KIND_COIN, at, float(1 + randi() % 3))
+		spawn(KIND_COIN, at, float(1 + randi() % 3) * big_coin_mult(def, is_elite))
 	if is_elite and randf() < 0.05 + luck * 0.1:
 		spawn(KIND_VACUUM, at, 0.0)
 
@@ -1197,10 +1210,118 @@ static func base_gem_kind(def: EnemyDef) -> int:
 ## the creature's base size where it fell, worth what that gem is worth from it (`xp_scale` as drop_from takes it). True
 ## when it dropped one.
 func prospector(def: EnemyDef, at: Vector3, xp_scale: float, chance: float) -> bool:
+	# Eureka (pass 70): its vein rolls with the extra gem
+	vein(def, at, xp_scale)
 	if chance <= 0.0 or randf() >= chance:
 		return false
 	var k := base_gem_kind(def)
 	return spawn(k, at, float(GEM_VALUE[k]) * xp_scale) >= 0
+
+
+# ---------------------------------------------------------------- pass 70 (lane LINES): Eureka, Mother Lode
+## Eureka (pass 70, Prospector's evolution): with the hero's `vein_chance` (or `chance` when given), a kill strikes a vein:
+## VEIN_GEMS more gems of the creature's base size, each worth what that gem is from it, burst out of where it fell in a
+## fountain (VEIN_OUT m/s outward, VEIN_UP up) and land round it, with a gold glint and the big gem's ding. Rolled on the
+## manager's own dice, with Prospector's extra gem (prospector() calls it). True when it struck.
+const VEIN_GEMS := 5
+const VEIN_OUT := Vector2(1.6, 3.2)
+const VEIN_UP := 6.0
+const VEIN_COLOUR := Color(1.0, 0.85, 0.35)
+## Veins struck this run (tests, the capture).
+var veins := 0
+
+
+func vein(def: EnemyDef, at: Vector3, xp_scale: float, chance: float = -1.0) -> bool:
+	var c := chance
+	if c < 0.0:
+		c = Run.player_sheet.get_stat("vein_chance", 0.0) if Run.player_sheet else 0.0
+	if c <= 0.0 or _rng.randf() >= c:
+		return false
+	var k := base_gem_kind(def)
+	var a0 := _rng.randf() * TAU
+	for n in range(VEIN_GEMS):
+		var i := spawn(k, at, float(GEM_VALUE[k]) * xp_scale)
+		if i < 0:
+			continue
+		var a := a0 + TAU * float(n) / float(VEIN_GEMS) + _rng.randf_range(-0.3, 0.3)
+		var out := _rng.randf_range(VEIN_OUT.x, VEIN_OUT.y)
+		vel[i] = Vector3(cos(a) * out, VEIN_UP + _rng.randf_range(-0.8, 0.8), sin(a) * out)
+	veins += 1
+	var fx = game.get("fx") if game != null else null
+	if fx != null and fx.has_method("burst"):
+		fx.burst(at + Vector3(0, 0.5, 0), VEIN_COLOUR, 1.1)
+	Audio.play("pk_gem_l", at)
+	return true
+
+
+## Mother Lode (pass 70, Lodestone's evolution): with the hero's `gem_sweep_every` above 0, every that many seconds every
+## XP gem on the screen (lying, landing or hopping; never a coin or a vacuum, never one already on its way) sets off for
+## him on the magnet arc (sweep_screen); the first sweep GEM_SWEEP_FIRST s after it is taken, a gold ring at his feet and
+## the pull's sound when any came.
+const GEM_SWEEP_R := 32.0
+const GEM_SWEEP_FIRST := 1.0
+const GEM_SWEEP_RING := 5.0
+const GEM_SWEEP_COLOUR := Color(1.0, 0.78, 0.3, 0.6)
+var _sweep_t := -1.0
+## Sweeps made this run and how many gems the last one took (tests, the capture).
+var gem_sweeps := 0
+var gem_sweep_last := 0
+
+
+func _tick_gem_sweep(delta: float, hero: Vector3) -> void:
+	var every: float = Run.player_sheet.get_stat("gem_sweep_every", 0.0) if Run.player_sheet else 0.0
+	if every <= 0.0:
+		_sweep_t = -1.0
+		return
+	if _sweep_t < 0.0:
+		_sweep_t = minf(GEM_SWEEP_FIRST, every)
+	_sweep_t -= delta
+	if _sweep_t > 0.0:
+		return
+	_sweep_t = every
+	gem_sweeps += 1
+	gem_sweep_last = sweep_screen(hero)
+	if gem_sweep_last > 0:
+		var tg = game.get("telegraphs") if game != null else null
+		if tg != null:
+			tg.flash_ring(hero, GEM_SWEEP_RING, GEM_SWEEP_COLOUR, 0.5)
+		Audio.play("it_xp_pull", hero)
+
+
+## Every XP gem on the screen (_on_screen; within GEM_SWEEP_R m of `center`) sets off for the hero on the magnet arc, as
+## pull_xp does round a spot. How many set off.
+func sweep_screen(center: Vector3) -> int:
+	if _cap <= 0 or center == Vector3.INF:
+		return 0
+	var hero := _hero_at()
+	if hero == Vector3.INF:
+		hero = center
+	var r2 := GEM_SWEEP_R * GEM_SWEEP_R
+	var n := 0
+	for i in _act.duplicate():
+		if alive[i] == 1 and flying[i] == 0 and kind[i] <= KIND_GEM_L and phase[i] != PHASE_TOSS:
+			var dx := pos[i].x - center.x
+			var dz := pos[i].z - center.z
+			if dx * dx + dz * dz < r2 and _on_screen(pos[i]):
+				_start_trip(i, hero, true)
+				n += 1
+	var x0 := _cell_x(center.x - GEM_SWEEP_R)
+	var x1 := _cell_x(center.x + GEM_SWEEP_R)
+	var z0 := _cell_x(center.z - GEM_SWEEP_R)
+	var z1 := _cell_x(center.z + GEM_SWEEP_R)
+	for cz in range(z0, z1 + 1):
+		for cx in range(x0, x1 + 1):
+			var i := _g_head[cz * GRID_N + cx]
+			while i >= 0:
+				var nx := _g_next[i]
+				if flying[i] == 0 and kind[i] <= KIND_GEM_L:
+					var dx := pos[i].x - center.x
+					var dz := pos[i].z - center.z
+					if dx * dx + dz * dz < r2 and _on_screen(pos[i]):
+						_start_trip(i, hero, true)
+						n += 1
+				i = nx
+	return n
 
 
 ## The big pull (the Magnet Pulse, the Uber Magnet, the boss chest's opening, the Elite's vacuum gem, the arena's button):
@@ -1652,6 +1773,8 @@ func _physics_process(delta: float) -> void:
 	if not _down:
 		# the Magnet's pulls (pass 69): now and then every EXP gem round him comes on the magnet arc
 		_tick_xp_pulls(delta, hero)
+		# Mother Lode's sweeps (pass 70): now and then every EXP gem on the screen
+		_tick_gem_sweep(delta, hero)
 		# the ones lying on the sand within his magnet's reach, and within a turret's pull (pass 61: the grid's cells)
 		_pull_round(hero, magnet, hero, false)
 		for a in _attractors:

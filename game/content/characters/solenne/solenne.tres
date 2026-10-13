@@ -30,7 +30,7 @@ favourite_bonus = {
 }
 start_weapon = "sun_scepter"
 availability = "purchase"
-price = 600
+price = 1500
 sprite = ExtResource("3_06g83")
 sprite_file = "solenne_sprite_b.png"
 anims = {

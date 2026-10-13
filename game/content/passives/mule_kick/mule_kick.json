@@ -1,0 +1,27 @@
+{
+  "id": "mule_kick",
+  "name": "Mule Kick",
+  "flavour": "Never stand behind it. Never in front of it either.",
+  "rarity": "common",
+  "weight": 9,
+  "line": true,
+  "max_level": 4,
+  "levels": [
+    [
+      {
+        "stat": "knockback",
+        "op": "mul",
+        "value": 0.25,
+        "target": "all_weapons"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "trade": "",
+  "evolves_into": "bucking_bronco",
+  "art_prompt": "a brown mule's hind hoof kicking out with a big shiny iron horseshoe nailed on it, white motion streaks behind it",
+  "placeholder": {
+    "color": "#B07A48",
+    "glyph": "star"
+  }
+}

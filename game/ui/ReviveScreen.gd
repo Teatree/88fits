@@ -101,7 +101,7 @@ func _ready() -> void:
 	_killer_row.add_child(_killer)
 	_stats = W.serif_text("", 26, W.AGED, 400, false, HORIZONTAL_ALIGNMENT_CENTER, 0.0)
 	who.add_child(_stats)
-	# what staying down costs (pass 44): the run's gold does not come home with a dead hero; the coin beside it (pass 46)
+	# what staying down means for the gold: since pass 70 it comes home with a dead hero too; the coin beside it (pass 46)
 	_gold_row = HBoxContainer.new()
 	_gold_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_gold_row.add_theme_constant_override("separation", 8)
@@ -228,7 +228,7 @@ func open(gold: int, chances: int, log_text: String = "", killer: Dictionary = {
 	_killer_icon.texture = badge_for(killer) if by != "" else null
 	_killer_icon.visible = _killer_icon.texture != null
 	_stats.text = "%s · %s kills · %s" % [W.mmss(Run.elapsed), W.num(Run.kills), W.lv(Run.level)]
-	_gold_line.text = "%s gold stays in the sand." % W.num(gold)
+	_gold_line.text = "%s gold still comes home." % W.num(gold)
 	_gold_row.visible = gold > 0
 	var s := W.node("Settings")
 	_log_panel.visible = s != null and (bool(s.get("hit_log")) or bool(s.get("debug_mode")))
@@ -466,7 +466,7 @@ func _ask_give_up() -> void:
 	_asking = true
 	var gold := Run.run_gold
 	WConfirm.open(self, "Stay down?",
-		("The run ends here, and the %s gold stays in the sand." % W.num(gold)) if gold > 0 else "The run ends here.",
+		("The run ends here, and the %s gold comes home with you." % W.num(gold)) if gold > 0 else "The run ends here.",
 		"Stay down", "Not yet",
 		func():
 			_asking = false

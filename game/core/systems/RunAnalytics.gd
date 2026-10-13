@@ -674,13 +674,13 @@ func _end_props(banked: int) -> Dictionary:
 ## The run's gold as it ended (pass 61, on run_end): gold_earned (every source, greed in; gold_greed is greed's share,
 ## gold_debug the developer buttons'), gold_spent (shop, revive), gold_strongbox (banked mid-run), gold_purse (what he
 ## held at the end), gold_banked (the Strongbox's and the extraction's: all that reached the save), gold_lost (the purse
-## of a death, an abandon or a quit, left in the sand), gold_before / gold_after (the saved gold as the run began and
-## now). earned - spent = strongbox + purse = banked + lost.
+## of a quit, the app gone before the run ended: since pass 70 a death and an abandon bank the purse like an extraction),
+## gold_before / gold_after (the saved gold as the run began and now). earned - spent = strongbox + purse = banked + lost.
 func gold_end(banked: int) -> Dictionary:
 	var purse := int(header.get("gold", Run.run_gold))
 	var strongbox := int(header.get("strongbox", Run.banked_gold))
 	var result := str(header.get("result", ""))
-	var lost := purse if (Run.died or result == "quit" or result == "abandon" or result == "death") else 0
+	var lost := purse if result == "quit" else 0
 	return {"gold_earned": gold_earned(), "gold_spent": gold_spent(), "gold_greed": gold_greed,
 		"gold_debug": int(gold_in_total.get("debug", 0)), "gold_strongbox": strongbox, "gold_purse": purse,
 		"gold_banked": strongbox + banked, "gold_lost": lost,

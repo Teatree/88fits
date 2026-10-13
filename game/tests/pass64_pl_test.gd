@@ -192,7 +192,10 @@ func _bank(g: Game):
 	for s in g.structures.items:
 		if s.def.id == "gold_bank":
 			return s
-	return null
+	# pass 70 (re-pinned): the Strongbox is retired (hidden: it never spawns, pass70_econ_test), its return primitive
+	# (params.respawn) is kept, so the test stands one itself at a fair spot
+	var sm: StructureManager = g.structures
+	return sm._spawn(Registry.structure("gold_bank"), sm.find_spot())
 
 
 func test_the_strongbox_has_a_return_window_of_30_to_60_seconds() -> void:

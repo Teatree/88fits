@@ -193,7 +193,9 @@ func _update(delta: float) -> void:
 			goal = tyaw - signf(diff) * dz
 		yaw = tyaw if delta >= 1.0 else _damp_angle(yaw, goal, yaw_smooth_time, delta)
 		_lead_dir = _forward()
-	_height = lerpf(_height, target.global_position.y, clampf(delta * 4.0, 0.0, 1.0))
+	# pass 70: a hero in the air (Hang Time) names the height to ride at (Player.camera_y), so the jump shows on screen
+	var ty: float = float(target.call("camera_y")) if target.has_method("camera_y") else target.global_position.y
+	_height = lerpf(_height, ty, clampf(delta * 4.0, 0.0, 1.0))
 	var want := Vector3(target.global_position.x, _height, target.global_position.z) + _lead_dir * lead
 	if fixed:
 		want += Vector3(0, 0, -fixed_focus_ahead)

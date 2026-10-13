@@ -28,6 +28,8 @@ const AssetsModel = (() => {
     phoenix_revive: 0, hurt_speed: 0, hurt_speed_seconds: 0, powder_keg_chance: 0, coin_on_hit: 0, gas_mask_cap: 0, kill_might: 0, buff_duration: 1, heal_mult: 1, powerup_duration: 1, powerup_chance: 1,
     // pass 69 (lane PAS): Counterpunch, Heavyweight, Snake Oil, Hot Springs, Last Stand, the Magnet's EXP pulls
     counter_damage: 0, counter_haste: 0, counter_speed: 0, counter_seconds: 0, heavyweight: 0, overheal: 0, heal_pulse: 0, last_stand: 0, xp_pull_radius: 0, xp_pull_rate: 0,
+    // pass 70 (lane LINES): the evolved lines' twists
+    bronco_chance: 0, debuff_jump: 0, star_block_every: 0, gem_sweep_every: 0, vein_chance: 0, gold_might: 0,
   };
   // player stats the systems read that are not in PLAYER_DEFAULTS (default 0): Game.gd brand_chance, EnemyManager fire_vuln / poison_slow / poison_pass
   const PLAYER_EXTRA = ['brand_chance', 'fire_vuln', 'poison_slow', 'poison_pass'];
@@ -60,6 +62,9 @@ const AssetsModel = (() => {
     counter_damage: ['damage of the next attack after an evade', 'pct'], counter_haste: ['attack speed after an evade', 'pct'], counter_speed: ['move speed after an evade', 'pct'],
     counter_seconds: ['boost after an evade', 'sec'], heavyweight: ['attack damage per 10 max HP', 'pct'], overheal: ['overheal past full health', 'pct'],
     heal_pulse: ['damage a heal sends out', 'num'], last_stand: ['attack damage in Last Stand', 'pct'], xp_pull_radius: ['EXP pull radius', 'm'], xp_pull_rate: ['pulls more often', 'word'],
+    // pass 70 (lane LINES); kind "rule" = said in TextGen.RULE_TEXT's words with the number inside
+    bronco_chance: ['chance a knocked-back enemy is launched', 'pct'], debuff_jump: ['debuff jumps', 'rule'], star_block_every: ['seconds between star blocks', 'rule'],
+    gem_sweep_every: ['seconds between gem sweeps', 'rule'], vein_chance: ['chance a kill bursts into 5 XP gems', 'pct'], gold_might: ['attack damage per 100 gold gained', 'pct'],
   };
   // pass 69: what a new stat does, in a line (the effect picker's hover and the line under an effect); vocab.py STAT_HELP
   const STAT_HELP = {
@@ -73,6 +78,13 @@ const AssetsModel = (() => {
     last_stand: 'Last Stand: a hit that leaves him under 30% health slows time to half for 2 s and adds this much attack damage; a hidden 20 s cooldown',
     xp_pull_radius: 'Magnet: every few seconds at random every EXP gem within this many metres flies to the hero (never chests, gold or power-ups); 8.5 m at most',
     xp_pull_rate: 'Magnet: the pulls\' random 3-8 s wait is divided by 1 + this (1.0 = 1.5-4 s); the cards say "pulls more often", never a number',
+    // pass 70 (lane LINES)
+    bronco_chance: 'Bucking Bronco: the chance a hero\'s hit that knocks a plain creature back throws it up and away instead (2.8 m up, 2.5-6 m away, 0.8 s, no fall damage); bosses and Elites only take the knock',
+    debuff_jump: 'Prairie Fire: how many times a burn or poison that runs out, or whose creature dies, jumps to the nearest creature within 4 m that lacks it, at its full seconds (a fire never onto the boss)',
+    star_block_every: 'Marshal\'s Star: a gold star over the hero blocks one whole hit, then comes back after this many seconds; 0 = none',
+    gem_sweep_every: 'Mother Lode: every this many seconds every XP gem on the screen flies to the hero (the first 1 s after it is taken); 0 = none',
+    vein_chance: 'Eureka: the chance a kill bursts into 5 more XP gems of its size (rolled with Prospector\'s extra gem, so it needs xp_drop_chance above 0)',
+    gold_might: 'Gold Rush: attack damage for every 100 gold gained while held (after coin gain), up to +50% in all; spending takes nothing back',
   };
   /** A stat's help line: the server's (vocab.stat_help) else this file's, else '' */
   function statHelp(stat, vocab) {
@@ -618,7 +630,35 @@ const AssetsModel = (() => {
     return { errors, warnings, marks };
   }
 
+  // ------------------------------------------------------------------ pass 70 (lane LE): the Bandit check
+
+  /** A look's `stills` is the short name its paintings are cached under (<id>_<slug>_<view>), never a picture's path
+   *  (vocab.py STILLS_RE / STILLS_HELP / stills_problem, gen_edit_stills.SLUG_RE: the same rule). '' is allowed. */
+  const STILLS_RE = /^[A-Za-z0-9_]{0,40}$/;
+  const STILLS_HELP = "Stills is a short name for this look's paintings, like bdb; the picture goes in Reference";
+  /** '' when `v` is a slug or empty (or absent), else the plain message to show. */
+  function stillsProblem(v) {
+    if (v == null) return '';
+    if (typeof v !== 'string' || !STILLS_RE.test(v)) return `${STILLS_HELP} (letters, digits and _ only; got ${JSON.stringify(v)})`;
+    return '';
+  }
+  /** [[where, message]] for every `stills` of a creature or hero document that is not a slug (vocab.bad_stills). */
+  function badStills(d) {
+    const out = [];
+    if (!isObj(d)) return out;
+    const p = stillsProblem(d.stills);
+    if (p) out.push(['stills', p]);
+    const vs = isObj(d.variants) ? d.variants : {};
+    for (const code of Object.keys(vs)) {
+      const r = isObj(vs[code]) && isObj(vs[code].recipe) ? vs[code].recipe : {};
+      const q = stillsProblem(r.stills);
+      if (q) out.push([`variants.${code}.recipe.stills`, q]);
+    }
+    return out;
+  }
+
   const api = {
+    STILLS_RE, STILLS_HELP, stillsProblem, badStills,   // pass 70
     ENEMY_ORDER, CHAR_ORDER, ENEMY_SUFFIX, HERO_SUFFIX, HERO_FALLBACK, ID_RE, HEX_RE,
     PLAYER_DEFAULTS, PLAYER_EXTRA, STAT_FLOORS, STATS, WEAPON_DEFAULTS, WEAPON_EXTRA, PREFIX, HERO_WORDS, HERO_NOTES, HERO_LOWER,
     isObj, num, isNum, order, frameOffset, offsets, totalFrames, cell, rows, directions, animKey, mirror, previewFps,

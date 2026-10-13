@@ -16,7 +16,7 @@ radius = 2.2
 size = 5.2
 drops = {
 "chests": 3.0,
-"coins": 40.0,
+"coins": 200.0,
 "gold": 1.0,
 "large": 1.0
 }

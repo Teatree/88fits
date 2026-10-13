@@ -17,8 +17,9 @@ Pass 68: "ref" may be a path under the repo (the Level Editor's uploads, tools/d
 absolute; with a picture the words lead with what it shows (icon_words: "The reference image shows this exact creature:
 ..." for a creature, the COPY sentence for an object) unless the subject already says. A job may name a look
 ("variant": "GOB-E"): its pick goes to <id>_icon_<letter>.png and the look's entry. `paint(..., attempt=N)` (a Level
-Editor job's re-run) moves the earlier candidates into <folder>/attempt<N-1>/ and paints new ones on new seeds. A
-hero's icon is its round badge (tools/gen_badge_cands.py): a pick for kind "characters" needs a named "file".
+Editor job's re-run) moves the earlier candidates into <folder>/attempt<N-1>/ and paints new ones on new seeds; pass 70
+(tools/cand_seeds.py): a job's seeds are its own (the job id moves them: two jobs of one key painted the same four before),
+candidate k a prime past a million from k-1. A hero's icon is its round badge (tools/gen_badge_cands.py): a pick for kind "characters" needs a named "file".
 """
 import io
 import json
@@ -31,6 +32,7 @@ import time
 from PIL import Image, ImageDraw, ImageFilter
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import cand_seeds  # noqa: E402
 import comfy  # noqa: E402
 import gen_art as ga  # noqa: E402
 
@@ -769,10 +771,11 @@ def icon_words(subject, kind, has_ref, style=None, bg=None):
     return ref_lead(kind, subj, has_ref) + (subj + ". " if subj else "") + (style or ga.ICON_STYLE) + ". " + (bg or ga.BG_GREEN) + "."
 
 
-def candidate_seeds(key, seeds, attempt=1):
-    """seed_for("icon46_" + key) + 7919 * k, moved by gen_art.LOOK_SEED_STEP for each re-run (attempt 2, 3, ...)."""
+def candidate_seeds(key, seeds, attempt=1, tag=""):
+    """seed_for("icon46_" + key), moved by gen_art.LOOK_SEED_STEP for each re-run (attempt 2, 3, ...), then cand_seeds.seeds:
+    the job's own move (`tag`, the Level Editor job id; none by hand) and candidate k CAND_STEP from k-1 (pass 70)."""
     base = ga.seed_for("icon46_" + key) + ga.LOOK_SEED_STEP * max(0, int(attempt or 1) - 1)
-    return [base + 7919 * k for k in range(int(seeds))]
+    return cand_seeds.seeds(base, seeds, tag)
 
 
 def retire(out, key, attempt):
@@ -819,7 +822,7 @@ def paint(only, seeds, dev, attempt=None):
         refs = [_ref(job["ref"], blue)] if job.get("ref") else []
         prompt = icon_words(job.get("subject", ""), job.get("kind", ""), bool(refs), job.get("style"), ga.BG_BLUE if blue else ga.BG_GREEN)
         tiles = []
-        for k, s in enumerate(candidate_seeds(key, seeds, attempt or 1)):
+        for k, s in enumerate(candidate_seeds(key, seeds, attempt or 1, cand_seeds.job_tag())):
             p = os.path.join(OUT, "%s_c%d.png" % (key, k))
             if not os.path.exists(p):
                 if dev:
@@ -889,6 +892,14 @@ def pick(pairs):
             # a job may name its file (pass 61: a talent form's <id>_<form>_icon.png beside the talent's own icon); a look
             # has its own (pass 68: the pick had overwritten the base creature's icon)
             name = job.get("file") or (("%s_icon_%s.png" % (job["id"], ga.look_letter(code))) if code else job["id"] + "_icon.png")
+            if not job.get("file") and not code:
+                # pass 70: the item's own icon is the file its JSON names (a base made from a look names that look's)
+                try:
+                    own = str(json.load(open(os.path.join(folder, job["id"] + ".json"), encoding="utf-8")).get("icon") or "")
+                except (OSError, ValueError):
+                    own = ""
+                if own and re.match(r"^[A-Za-z0-9._-]+\.png$", own):
+                    name = own
             dst = os.path.join(folder, name)
             if os.path.exists(dst):
                 bk = os.path.join(DL, "backup", "icons" + str(job.get("set", "46")))

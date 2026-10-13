@@ -55,6 +55,8 @@ def _import_tools():
         import asset_job as aj
         import gen_art as ga
         import comfy
+        import cand_seeds   # pass 70: the candidates' seeds (a job's own move)
+        globals()["cand_seeds"] = cand_seeds
     finally:
         sys.argv = saved_argv
         sys.path[:] = saved_path
@@ -256,8 +258,9 @@ def _badge_checks(check, ga, gbc):
           and gbc.cand_tag("ab") == "ab" and gbc.cand_tag("--__") == "x", "badge: the tag is the job id's last four letters and digits, x by hand")
     check(gbc.cand_key("mamy", "8854", 2) == "mamy_portrait_8854_c2", "badge: candidates keyed <id>_portrait_<tag>_c<k>")
     base = ga.seed_for("mamy") + 40
-    check(gbc.badge_seeds("mamy", 3) == [base, base + 1000, base + 2000], "badge: the base's first attempt paints the pass 66 seeds")
-    check(gbc.badge_seeds("mamy", 2, 5, 2, 3) == [base + 5 + 4 * 104729, base + 5 + 4 * 104729 + 1000], "badge: first seed, look offset and attempt move the seeds")
+    # pass 70 (lane LE, tools/cand_seeds.py): candidate k a prime past a million from k-1; a job's id moves them all
+    check(gbc.badge_seeds("mamy", 3) == [base, base + 1000003, base + 2 * 1000003], "badge: by hand (no job) the base's first attempt: k a million apart (pass 70)")
+    check(gbc.badge_seeds("mamy", 2, 5, 2, 3) == [base + 5 + 4 * 104729, base + 5 + 4 * 104729 + 1000003], "badge: first seed, look offset and attempt move the seeds")
     d = {"id": "mamy", "variant_base": "MAM-A", "still_keys": {}, "variants": {"MAM-A": {}, "MAM-C": {"recipe": {"stills": "c"}},
                                                                             "MAM-D": {"recipe": {"still_keys": {"front": "mamy_d55_front"}}}, "MAM-E": {"recipe": {"stills": ""}}}}
     check(gbc.front_still_key(d, "mamy") == "mamy_front" and gbc.front_still_key(d, "mamy", "MAM-C") == "mamy_c_front"
@@ -331,8 +334,8 @@ def _title_checks(check, ga, gth):
     check(ti("calavera", {}, extra_ref="uploads/2d/hat.png", extra_words="The hat.")[3:] == ("uploads/2d/hat.png", "The hat."), "title_inputs: with its own words")
     check(ti("calavera", {}, extra_words="Another guitar.")[3:] == ("guitarra_ref.png", "Another guitar."), "title_inputs: new words for the default picture")
     check(ti("mamy", {})[3:] == ("", ""), "title_inputs: no extra picture")
-    check(gth.title_seeds(11, 4) == [11, 112, 213, 314], "title: the pass 66 seeds")
-    check(gth.title_seeds(11, 2, 5, 2) == [11 + 6 * 104729, 112 + 6 * 104729], "title: a look's offset and the attempt move them")
+    check(gth.title_seeds(11, 4) == [11, 11 + 1000003, 11 + 2 * 1000003, 11 + 3 * 1000003], "title: by hand (no job): k a million apart (pass 70)")
+    check(gth.title_seeds(11, 2, 5, 2) == [11 + 6 * 104729, 11 + 6 * 104729 + 1000003], "title: a look's offset and the attempt move them")
     d = {"variant_base": "AST-A", "variants": {"AST-A": {}, "AST-X": {}}}
     check(gth.out_stem("astro") == "astro" and gth.out_stem("astro", "AST-X") == "astro_x", "title: a look's stem <id>[_<letter>] (its cut-out hero_<stem>.png)")
     check(gth.look_code(d, "AST-A") == "" and gth.look_code(d, "AST-X") == "AST-X" and gth.look_code(d, None) == "" and gth.look_code(None, "") == ""
@@ -424,8 +427,8 @@ def _icon_checks(check, ga, gic):
         gic.DL = saved_dl
         shutil.rmtree(tmp_dl, ignore_errors=True)
     b = ga.seed_for("icon46_tb")
-    check(gic.candidate_seeds("tb", 3) == [b, b + 7919, b + 15838] and gic.candidate_seeds("tb", 2, 3) == [b + 2 * 104729, b + 2 * 104729 + 7919],
-          "icon: the pass 46 seeds, moved for a re-run")
+    check(gic.candidate_seeds("tb", 3) == [b, b + 1000003, b + 2 * 1000003] and gic.candidate_seeds("tb", 2, 3) == [b + 2 * 104729, b + 2 * 104729 + 1000003],
+          "icon: by hand (no job) the base seed, k a million apart (pass 70), moved for a re-run")
     tmp = tempfile.mkdtemp(prefix="le_selftest_G_icon_")
     try:
         for name in ("tb_c0.png", "tb_c0.json", "tb_c1.png", "review_tb.png", "tb_c_c0.png", "other_c0.png"):
@@ -765,7 +768,7 @@ def _dry_run_checks(check, ga, gbc, gth, gic, comfy):
         check([x.get("key") for x in renders] == ["astro_portrait_abcd_c0", "astro_portrait_abcd_c1"], "dry run badge: keyed per job: %s" % [x.get("key") for x in renders])
         check(all(x.get("prompt") == want for x in renders) and want.startswith("A close-up portrait of this exact character for a mobile game avatar icon: a test astronaut, only"),
               "dry run badge: the description and the action in the words")
-        check([x.get("seed") for x in renders] == gbc.badge_seeds("astro", 2, 0, 3, 1), "dry run badge: the look's seeds: %s" % [x.get("seed") for x in renders])
+        check([x.get("seed") for x in renders] == gbc.badge_seeds("astro", 2, 0, 3, 1, "j20261012-000000-abcd"), "dry run badge: the look's seeds, moved by the job (pass 70): %s" % [x.get("seed") for x in renders])
         name = comfy.safe_name("astro_badge_ref_ref pic.png")
         check(all(x.get("refs") == ["88fits/" + name] for x in renders) and any(u.get("name") == name and u.get("corner") == [0, 0, 255] for u in ups),
               "dry run badge: the given picture is the reference, laid on the blue screen: %s" % ups)
@@ -778,8 +781,8 @@ def _dry_run_checks(check, ga, gbc, gth, gic, comfy):
                                           "target": {"kind": "hero", "id": "astro", "code": ""}, "spec": {}})
         renders = [x for x in dr if x.get("kind") == "render"]
         check(p.returncode == 0 and renders and renders[0].get("prompt") == _legacy_badge(d.get("portrait_prompt", "smiling at the viewer"), ga.BG_BLUE)
-              and renders[0].get("refs") == ["88fits/astro_front.png"] and renders[0].get("seed") == ga.seed_for("astro") + 40,
-              "dry run badge by default: the hero's front still, the pass 66 words and seed: %s" % tail(p))
+              and renders[0].get("refs") == ["88fits/astro_front.png"] and renders[0].get("seed") == ga.seed_for("astro") + 40 + cand_seeds.job_salt("jbadge0"),
+              "dry run badge by default: the hero's front still, the pass 66 words, the seed moved by the job (pass 70): %s" % tail(p))
         # 3. a look whose front still is not painted yet, and no picture named: a clear refusal
         p, jd, dr, res = run("jbadgex", {"tool": "gen_badge_cands", "call": "main", "kind": "hero_badge", "argv": ["--id", "astro", "--seeds", "1", "--skip-qa"],
                                           "target": {"kind": "hero", "id": "astro", "code": "AST-X"}, "spec": {}})
@@ -796,7 +799,7 @@ def _dry_run_checks(check, ga, gbc, gth, gic, comfy):
         check(all(x.get("refs") == ["88fits/title_ref_astro_x.png", "88fits/title_extra_ball.png"] for x in runs), "dry run title: both pictures sent: %s" % [x.get("refs") for x in runs])
         check(ups.get("title_ref_astro_x.png", {}).get("corner") == [0, 0, 255] and ups.get("title_extra_ball.png", {}).get("corner") == [0, 0, 255],
               "dry run title: the transparent pictures laid on the hero's blue screen")
-        check([x.get("seed") for x in runs] == gth.title_seeds(11, 2, 5, 1), "dry run title: the look's seeds: %s" % [x.get("seed") for x in runs])
+        check([x.get("seed") for x in runs] == gth.title_seeds(11, 2, 5, 1, "jtitle"), "dry run title: the look's seeds, moved by the job (pass 70): %s" % [x.get("seed") for x in runs])
         outs = sorted(os.listdir(os.path.join(jd, "title_heroes"))) if os.path.isdir(os.path.join(jd, "title_heroes")) else []
         check(outs == ["astro_x_itle.json", "astro_x_itle_0.png", "astro_x_itle_0_raw.png", "astro_x_itle_1.png", "astro_x_itle_1_raw.png", "review_astro_x_itle.png"]
               and res.get("variant") == "AST-X" and res.get("tag") == "itle" and [os.path.basename(c) for c in res.get("choices", [])] == ["astro_x_itle_0.png", "astro_x_itle_1.png"],
@@ -808,7 +811,7 @@ def _dry_run_checks(check, ga, gbc, gth, gic, comfy):
         from PIL import Image
         bg = gth.screen_of(Image.open(os.path.join(RAW, "astro_front.png")))
         check(p.returncode == 0 and runs and runs[0].get("prompts") == [_legacy_title(gth.POSES["astro"], gth.DEFAULT_VIEW, "no weapon", "", ga.STYLE, bg)]
-              and runs[0].get("refs") == ["88fits/title_ref_astro.png"] and runs[0].get("seed") == 11, "dry run title by default: the pass 66 words and seed: %s" % tail(p))
+              and runs[0].get("refs") == ["88fits/title_ref_astro.png"] and runs[0].get("seed") == 11 + cand_seeds.job_salt("jtitle0"), "dry run title by default: the pass 66 words, the seed moved by the job (pass 70): %s" % tail(p))
         # 6. icon candidates for a creature look, a re-run: the creature sentence, the picture, new seeds, the old ones aside
         ic = os.path.join(tmp, "jobs", "jicon", "icons_le_jicon")
         os.makedirs(ic)
@@ -821,7 +824,7 @@ def _dry_run_checks(check, ga, gbc, gth, gic, comfy):
         runs = [x for x in dr if x.get("kind") == "comfy.run"]
         check(p.returncode == 0 and len(runs) == 2 and all(x.get("prompts") == [gic.icon_words("a goofy beast", "enemies", True)] for x in runs),
               "dry run icon: the creature sentence and the subject: %s" % tail(p))
-        check(all(x.get("refs") == ["88fits/ref_pic.png"] for x in runs) and [x.get("seed") for x in runs] == gic.candidate_seeds("tb", 2, 2),
+        check(all(x.get("refs") == ["88fits/ref_pic.png"] for x in runs) and [x.get("seed") for x in runs] == gic.candidate_seeds("tb", 2, 2, "jicon"),
               "dry run icon: the picture sent, a re-run's new seeds: %s" % [(x.get("refs"), x.get("seed")) for x in runs])
         check(sorted(os.listdir(os.path.join(ic, "attempt1"))) == ["review_tb.png", "tb_c0.json", "tb_c0.png"] and open(os.path.join(ic, "tb_c0.png"), "rb").read(3) != b"old",
               "dry run icon: the earlier attempt's candidates moved aside and painted again")

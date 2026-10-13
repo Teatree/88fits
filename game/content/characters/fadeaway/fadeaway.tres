@@ -28,7 +28,7 @@ favourite_passive_bonus = {
 "value": 2.0
 }
 availability = "purchase"
-price = 50
+price = 1000
 sprite = ExtResource("6_cxldy")
 sprite_file = "fadeaway_sprite_c.png"
 anims = {

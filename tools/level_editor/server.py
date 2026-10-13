@@ -533,6 +533,35 @@ def item_availability(kind, cid, d, quests):
     return "available", None
 
 
+def icon_play_url(kind, cid, folder, d):
+    """pass 70: the icon of the look the asset is played in (the JSON's `variant` when the game can play it, else the
+    base), with its file's time so a newly installed badge shows at once. The Heroes list showed the base icon only, so
+    May (played MAY-G, her base icon a placeholder) showed none."""
+    base = str(d.get("variant_base", ""))
+    want = str(d.get("variant", base))
+    play = want if want and want in playable_codes(folder, d) else base
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    code = play if play and play in vs else ""
+    full = icon_path(kind, cid, code)
+    v = int(os.path.getmtime(full)) if full and os.path.isfile(full) else 0
+    return "/icon/%s/%s%s?v=%d" % (kind, cid, ("/" + code) if code else "", v)
+
+
+def title_play_url(cid, folder, d):
+    """pass 70: the title cut-out of the look the hero is played in (its entry's `title`, else hero_<id>.png), None when
+    neither is on disk (the game's CharacterDef.title_path: the look worn's own, else the hero's)."""
+    base = str(d.get("variant_base", ""))
+    want = str(d.get("variant", base))
+    play = want if want and want in playable_codes(folder, d) else base
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    e = vs.get(play) if isinstance(vs.get(play), dict) else {}
+    for name in ([os.path.basename(str(e["title"]))] if e.get("title") else []) + ["hero_%s.png" % cid]:
+        full = os.path.join(WANTED_ART, name)
+        if FILENAME_RE.match(name) and os.path.isfile(full):
+            return "/art/wanted/%s?v=%d" % (name, int(os.path.getmtime(full)))
+    return None
+
+
 def hero_record(cid, folder, d, path, perks=None, mutations=None, weapons=None, quest=None, perk_records=None):
     hidden = bool(d.get("hidden", False))
     avail = str(d.get("availability", "hidden" if hidden else "available"))
@@ -550,7 +579,8 @@ def hero_record(cid, folder, d, path, perks=None, mutations=None, weapons=None, 
            "frame_px": int(_num(d.get("frame_px"), 256)), "strip_cols": int(_num(d.get("strip_cols"), 0)),
            "fps": d.get("fps") if isinstance(d.get("fps"), dict) else {},
            "anims": d.get("anims") if isinstance(d.get("anims"), dict) else VOCAB.CHAR_ANIMS_DEFAULT,
-           "sprite": "/sprite/hero/%s" % cid, "icon": "/icon/hero/%s" % cid,
+           "sprite": "/sprite/hero/%s" % cid, "icon": "/icon/hero/%s" % cid, "icon_play": icon_play_url("hero", cid, folder, d),
+           "title_play": title_play_url(cid, folder, d),
            "title": "/art/wanted/hero_%s.png" % cid if os.path.isfile(title) else None,
            "variant": str(d.get("variant", "")), "variant_base": str(d.get("variant_base", "")),
            "looks": look_records("hero", cid, folder, d, path),
@@ -1260,6 +1290,13 @@ def write_content(kind, cid, new_obj, base_mtime=None):
             return {"ok": False, "error": "changed on disk", "mtime": cur, "status": 409}
         src = cio.read_text(path)
         old = json.loads(src)
+        if kind in LOOK_KINDS:
+            # pass 70 (the Bandit check): a look's Stills that is not a slug is refused when the save brings it (a bad
+            # value already on disk is left for the page's rule to point at)
+            had = set(VOCAB.bad_stills(old))
+            new_bad = [b for b in VOCAB.bad_stills(new_obj) if b not in had]
+            if new_bad:
+                return {"ok": False, "error": "%s: %s" % new_bad[0], "status": 400, "path": new_bad[0][0]}
         owned = EDITOR_OWNED[kind]
         changed = [k for k in new_obj if k not in old or restore_numbers(old[k], new_obj[k]) != old[k]]
         removed = [k for k in old if k not in new_obj and k in owned]
@@ -1841,6 +1878,9 @@ def add_look(kind, cid, code=None, note="", recipe=None):
         entry = {"note": str(note or "")}
         if isinstance(recipe, dict) and recipe:
             recipe = dict(recipe)
+            prob = VOCAB.stills_problem(recipe.get("stills") or None)
+            if prob and not recipe.get("from"):
+                return {"ok": False, "error": "recipe.stills: " + prob, "status": 400}
             if recipe.get("from"):
                 # pass 68 (D5): a Duplicate is a draft of its source (`from`): it copies the words and the painter, never
                 # the source's stills slug or seed offset, or its first paint would be the source's pictures again (the
@@ -1895,6 +1935,164 @@ def _entry_files(folder, cid, d, code):
     return out
 
 
+# ---------------------------------------------------------------- pass 70: removing the base look
+
+# the top-level keys that are a look's art: the base look's are these (JsonContent reads them for the base strip), any
+# other look's sit in its entry; frame_px is a hero's (a creature's cell is the top level's for every look)
+BASE_ART_KEYS = ("sprite", "icon", "anims", "strip_cols", "fps", "frame_px", "head")
+
+
+def base_art_top(kind, d, entry):
+    """{key: value or cio.REMOVE}: the top-level art keys that make `entry`'s look the base strip, as the game reads a look:
+    its own sprite / icon / anims / fps / head / frame_px where it has them, else what it already inherited from the top
+    level (kept); strip_cols its own, else 0 (a look's default, JsonContent: int(v.get("strip_cols", 0)))."""
+    out = {}
+    for k in BASE_ART_KEYS:
+        if k == "frame_px" and kind != "hero":
+            continue
+        if k in entry:
+            if d.get(k) != entry[k]:
+                out[k] = entry[k]
+        elif k == "strip_cols":
+            if int(_num(d.get("strip_cols"), 0)) != 0:
+                out[k] = cio.REMOVE
+    return out
+
+
+def inherited_pins(kind, d, top_change, skip):
+    """{code: {key: value}}: what the other looks inherited from the top level and must keep when the top level's art
+    keys change (`top_change`, base_art_top's): a look with its own strip and no anims / fps / head (a creature's) /
+    frame_px (a hero's) of its own played the top level's, so the old value (the game's default when the top level had
+    none) is written into its entry and it plays exactly as before."""
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    defaults = {"anims": VOCAB.CHAR_ANIMS_DEFAULT if kind == "hero" else VOCAB.ENEMY_ANIMS_DEFAULT, "fps": {},
+                "head": 0.86, "frame_px": 256 if kind == "hero" else 128}
+    keys = [k for k in ("anims", "fps", "head", "frame_px") if k in top_change and not (k == "head" and kind == "hero")
+            and not (k == "frame_px" and kind != "hero")]
+    out = {}
+    for code, e in vs.items():
+        if code in skip or not isinstance(e, dict) or not e.get("sprite"):
+            continue
+        pin = {k: (d[k] if k in d else defaults[k]) for k in keys if k not in e}
+        if pin:
+            out[code] = pin
+    return out
+
+
+def base_choices(kind, cid, d, folder, old_base):
+    """The looks that may become the base when `old_base` goes: an entry with its own strip on disk (not a stub, not the
+    base itself); the played look first."""
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    playable = playable_codes(folder, d)
+    want = str(d.get("variant", old_base))
+    out = [c for c in vs if c != old_base and c in playable and isinstance(vs[c], dict) and vs[c].get("sprite")]
+    out.sort(key=lambda c: (c != want, c))
+    return out
+
+
+def remove_base(kind, cid, old_base, new_base=None):
+    """POST /api/content/<kind>/<id>/look/<base> {op: remove, new_base}: the base look (`variant_base`) removed (Garry,
+    pass 70: "For May, can you remove MAY-A I can't remove it"). `new_base` (default: the look in play) must be a look
+    with its own strip on disk. The top-level art keys become the new base's (BASE_ART_KEYS: its sprite, icon, anims,
+    strip_cols, fps, a hero's frame_px, head; no file is renamed: the top level names its files), `variant_base` names it,
+    the old base's entry goes, and the old base's files nothing names any more (the old top-level strip and icon, their
+    .import files, the <id>_ai.json marker of its base runs) move to backups/deleted/<id>/<stamp>/ with base_<CODE>.json
+    (what the old base was). The new base keeps its entry whole (recipe, note, title, icon_picked): its jobs still run on
+    its own recipe and land in its own files, and merge_look mirrors them to the top level. Refused: the look in play
+    (make another the default first), a map row pinning the old base, a new base that is the old one, unknown, a stub or
+    a draft; no new_base is a 409 with the choices (the page asks, the look in play first). One backup, one write, an
+    import."""
+    tfolder, path = content_path(kind, cid)
+    if path is None:
+        return {"ok": False, "error": "no %s %s" % (kind, cid), "status": 404}
+    folder = os.path.dirname(path)
+    moved = []
+    with _write_lock:
+        src = cio.read_text(path)
+        d = json.loads(src)
+        vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+        base = str(d.get("variant_base", ""))
+        play = str(d.get("variant", base))
+        if old_base != base:
+            return {"ok": False, "error": "%s is not %s's base look (that is %s)" % (old_base, cid, base or "none"), "status": 409}
+        choices = base_choices(kind, cid, d, folder, old_base)
+        if old_base == play:
+            return {"ok": False, "error": "%s is the look in play: make another the default first" % old_base, "status": 409,
+                    "choices": choices}
+        if not choices:
+            return {"ok": False, "error": "%s has no other look with a strip of its own to become the base" % cid, "status": 409,
+                    "choices": choices}
+        if not new_base:
+            # the page asks (default: the look in play); the API wants it said
+            return {"ok": False, "error": "%s is the base look: say which look becomes the base (new_base: %s; the look in play is %s)"
+                    % (old_base, ", ".join(choices), play), "status": 409, "choices": choices, "suggest": choices[0]}
+        new_base = str(new_base)
+        if new_base not in choices:
+            why = "it is the base already" if new_base == old_base else "a look with a strip of its own on disk is needed (not a stub or a draft)"
+            return {"ok": False, "error": "%s cannot become the base: %s" % (new_base, why), "status": 400, "choices": choices}
+        refs = map_references(cid, old_base)
+        if refs:
+            return {"ok": False, "error": "a map pins the look %s" % old_base, "refs": refs, "status": 409}
+        entry = vs[new_base]
+        old_top = {k: d.get(k) for k in BASE_ART_KEYS}
+        old_sprite = os.path.basename(str(d.get("sprite", cid + "_sprite.png")))
+        old_icon = os.path.basename(str(d.get("icon", cid + "_icon.png")))
+        text = src
+        if old_base in vs:
+            text = cio.del_variant_entry(text, old_base)
+            if text is None:
+                return {"ok": False, "error": _layout_error(path, "variants"), "status": 400}
+        places = [("before", "variants"), ("end", None)]
+        change = base_art_top(kind, d, entry)
+        # the other looks keep what they inherited from the old top level (their anims, fps, cell)
+        pins = inherited_pins(kind, d, change, (old_base, new_base))
+        for c, pin in pins.items():
+            text = cio.set_variant_entry(text, c, pin)
+            if text is None:
+                return {"ok": False, "error": _layout_error(path, "variants"), "status": 400}
+        for k, v in change.items():
+            if v is cio.REMOVE:
+                text = cio.del_top_block(text, k)
+            else:
+                text = cio.set_top_block(text, k, v, places)
+            if text is None:
+                return {"ok": False, "error": _layout_error(path, k), "status": 400}
+        text = cio.set_top_block(text, "variant_base", new_base, places)
+        if text is None:
+            return {"ok": False, "error": _layout_error(path, "variant_base"), "status": 400}
+        d2 = json.loads(text)
+        # the old base's files that nothing names any more
+        named = {os.path.basename(str(d2.get("sprite", cid + "_sprite.png"))), os.path.basename(str(d2.get("icon", cid + "_icon.png")))}
+        for c, e in (d2.get("variants") or {}).items():
+            if isinstance(e, dict):
+                for k in ("sprite", "icon"):
+                    if e.get(k):
+                        named.add(os.path.basename(str(e[k])))
+        files = []
+        for name in (old_sprite, old_icon):
+            if name and name not in named and FILENAME_RE.match(name):
+                for f in (os.path.join(folder, name), os.path.join(folder, name) + ".import"):
+                    if os.path.isfile(f) and f not in files:
+                        files.append(f)
+        marker = os.path.join(folder, "%s_ai.json" % cid)
+        if os.path.isfile(marker):
+            files.append(marker)
+        backup_rel = backup(cid, path)
+        cio.write_atomic(path, text)
+        dest = deleted_dir(cid)
+        for f in files:
+            shutil.move(f, os.path.join(dest, os.path.basename(f)))
+            moved.append(rel(os.path.join(dest, os.path.basename(f))))
+        # what the old base was, beside its files, so it can be put back by hand
+        with open(os.path.join(dest, "base_%s.json" % old_base), "w", encoding="utf-8", newline="\n") as fh:
+            json.dump({"code": old_base, "entry": vs.get(old_base), "top": old_top, "new_base": new_base}, fh, indent=1)
+        moved.append(rel(os.path.join(dest, "base_%s.json" % old_base)))
+    import_ok, output = run_import("%s/%s" % (tfolder, cid))
+    return {"ok": True, "op": "remove", "codes": [old_base], "new_base": new_base, "backup": backup_rel,
+            "looks": look_records(kind, cid, folder, d2, path), "import_ok": import_ok, "output": output, "moved": moved,
+            "top": {k: d2.get(k) for k in BASE_ART_KEYS if k in d2}, "pinned": pins}
+
+
 def look_op(kind, cid, codes, op, body=None):
     """POST /api/content/<kind>/<id>/look/<code> {op, ...} and the bulk form {op, codes: [...]}: approve (drops `fresh`),
     shelve (`shelved: true`; refused for the code in play), unshelve, remove (refused for the code in play, the base
@@ -1912,6 +2110,17 @@ def look_op(kind, cid, codes, op, body=None):
     codes = [c for c in (codes if isinstance(codes, list) else [codes]) if isinstance(c, str) and CODE_RE.match(c)]
     if not codes:
         return {"ok": False, "error": "no look code", "status": 400}
+    if op == "remove":
+        # pass 70: the base look goes on its own, with the look that becomes the base (body.new_base; default: in play)
+        try:
+            base_now = str(load_json(path).get("variant_base", ""))
+        except (OSError, ValueError, TypeError):
+            base_now = ""
+        if base_now and base_now in codes:
+            if len(codes) > 1:
+                return {"ok": False, "error": "%s is the base look: remove it on its own (the editor asks which look becomes the base)" % base_now,
+                        "status": 409}
+            return remove_base(kind, cid, base_now, body.get("new_base"))
     if op == "default":
         res = write_variant_kind(kind, cid, codes[0])
         if res.get("ok"):
@@ -1946,12 +2155,14 @@ def look_op(kind, cid, codes, op, body=None):
                 r = body.get("recipe")
                 if r is not None and not isinstance(r, dict):
                     return {"ok": False, "error": "recipe must be an object or null", "status": 400}
+                # pass 70 (the Bandit check): the recipe's Stills is the look's slug, never a picture's path
+                prob = VOCAB.stills_problem((r or {}).get("stills") or None)
+                if prob:
+                    return {"ok": False, "error": "recipe.stills: " + prob, "status": 400}
                 text = cio.set_variant_entry(text, code, {"recipe": r if r else cio.REMOVE})
             elif op == "remove":
                 if code == play:
                     return {"ok": False, "error": "%s is the look in play: make another the default first" % code, "status": 409}
-                if code == base:
-                    return {"ok": False, "error": "%s is the top-level strip's own code; it cannot be removed" % code, "status": 409}
                 refs = map_references(cid, code)
                 if refs:
                     return {"ok": False, "error": "a map pins the look %s" % code, "refs": refs, "status": 409}
@@ -2048,10 +2259,21 @@ class Hooks:
                 return {"ok": False, "layout": "unmerged", "file": rel(path), "keys": ["variants"],
                         "error": "neither the block write nor the entry write keeps %s's layout; Merge again after fixing the "
                                  "layout by hand, or Re-dump this file" % rel(path)}
+            # pass 70: the base look's art is the top level's (JsonContent reads it for the base strip): a job landing on
+            # a base whose entry names its own strip (a base made by removing the old one) mirrors it there
+            keys = ["variants"]
+            if code == str(d.get("variant_base", "")) and merged.get("sprite"):
+                for k, v in base_art_top(kind, json.loads(out), merged).items():
+                    t2 = cio.del_top_block(out, k) if v is cio.REMOVE else cio.set_top_block(out, k, v, [("before", "variants"), ("end", None)])
+                    if t2 is None:
+                        return {"ok": False, "layout": "unmerged", "file": rel(path), "keys": keys,
+                                "error": "the base look %s's %s could not be mirrored to the top level: %s" % (code, k, _layout_error(path, k))}
+                    out = t2
+                    keys.append(k)
             backup_rel = backup(cid, path)
             cio.write_atomic(path, out)
             d2 = json.loads(out)
-        return {"ok": True, "layout": layout, "file": rel(path), "keys": ["variants"], "backup": backup_rel, "code": code,
+        return {"ok": True, "layout": layout, "file": rel(path), "keys": keys, "backup": backup_rel, "code": code,
                 "base": base, "entry": d2["variants"][code]}
 
     def merge_top(self, kind, cid, top):
@@ -2114,6 +2336,43 @@ class Hooks:
             cio.write_atomic(path, text)
         return {"ok": True, "file": rel(path), "keys": ["variants"], "backup": backup_rel, "code": code}
 
+    def merge_recipe(self, kind, cid, code, update):
+        """pass 70 (the pick race): only `update`'s keys merged into the look's recipe as the file holds it now (a key
+        whose value is None is removed), under the write lock, one backup; nothing written when nothing changes. A
+        front-from-a-picture pick names its slug this way, so a recipe written meanwhile (a look job queued before the
+        pick landed) keeps its words. The look's entry must exist."""
+        if kind not in LOOK_KINDS:
+            return {"ok": False, "error": "only enemies, bosses and heroes have looks"}
+        tfolder, path = content_path(kind, cid)
+        if path is None:
+            return {"ok": False, "error": "no %s %s" % (kind, cid)}
+        if not isinstance(code, str) or not CODE_RE.match(code) or not isinstance(update, dict):
+            return {"ok": False, "error": "bad code %r or update" % (code,)}
+        prob = VOCAB.stills_problem(update.get("stills") or None) if "stills" in update else None
+        if prob:
+            return {"ok": False, "error": "recipe.stills: " + prob}
+        with _write_lock:
+            src = cio.read_text(path)
+            d = json.loads(src)
+            vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+            if not isinstance(vs.get(code), dict):
+                return {"ok": False, "error": "%s has no look %s" % (cid, code)}
+            cur = vs[code].get("recipe") if isinstance(vs[code].get("recipe"), dict) else {}
+            merged = dict(cur)
+            for k, v in update.items():
+                if v is None:
+                    merged.pop(k, None)
+                else:
+                    merged[k] = v
+            if merged == cur:
+                return {"ok": True, "unchanged": True, "file": rel(path), "code": code, "keys": []}
+            text = cio.set_variant_entry(src, code, {"recipe": merged if merged else cio.REMOVE})
+            if text is None:
+                return {"ok": False, "error": _layout_error(path, "variants")}
+            backup_rel = backup(cid, path)
+            cio.write_atomic(path, text)
+        return {"ok": True, "file": rel(path), "keys": ["variants"], "backup": backup_rel, "code": code, "recipe": merged}
+
     def set_look_files(self, kind, cid, code, files):
         """pass 68 (D8): a candidate picked for a look lands in its entry: {"icon": "<id>_icon_<x>.png"} (a badge or an
         icon beside the JSON) and/or {"title": "hero_<id>_<x>.png"} (a hero's title cut-out under art/ui/wanted/). The
@@ -2152,6 +2411,12 @@ class Hooks:
             text = cio.set_variant_entry(src, code, update)
             if text is None:
                 return {"ok": False, "layout": "unmerged", "file": rel(path), "keys": ["variants"], "error": _layout_error(path, "variants")}
+            # pass 70: a base whose entry names its own strip shows its icon from the top level (merge_look's mirror)
+            if code == str(d.get("variant_base", "")) and vs[code].get("sprite") and "icon" in update and d.get("icon") != update["icon"]:
+                t2 = cio.set_top_block(text, "icon", update["icon"], [("before", "variants"), ("end", None)])
+                if t2 is None:
+                    return {"ok": False, "layout": "unmerged", "file": rel(path), "keys": ["variants", "icon"], "error": _layout_error(path, "icon")}
+                text = t2
             backup_rel = backup(cid, path)
             cio.write_atomic(path, text)
             d2 = json.loads(text)

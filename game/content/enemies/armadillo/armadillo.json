@@ -75,7 +75,6 @@
   "variants": {
     "ARM-0": {
       "note": "the top-level strip, before the Level Editor's looks"
-    },
-    "ARM-A": {"sprite": "armadillo_sprite_a.png", "icon": "armadillo_icon_a.png", "anims": {"idle": 4, "run": 12, "attack": 2, "hit": 1, "die": 5, "run_b": 12, "idle_b": 4}, "strip_cols": 40, "fps": {"run": 15, "die": 8}, "head": 0.881, "fresh": true}
+    }
   }
 }

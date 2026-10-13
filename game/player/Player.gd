@@ -169,6 +169,8 @@ func refresh_stats() -> void:
 	# Snake Oil's overheal never outgrows its cap (a level of max HP lost, the item gone)
 	overheal = minf(overheal, overheal_cap())
 	damaged.emit(hp, max_hp)
+	# Marshal's Star (pass 70): its star over his head once the item is held
+	_star_guard_sync()
 
 
 func _setup_sprite() -> void:
@@ -303,10 +305,15 @@ func _physics_process(delta: float) -> void:
 	# a hit's shove (pass 54, hit_knock): for a beat the stick does not move him, so the shove is not walked through
 	if _stick_lock > 0.0:
 		planar = Vector3.ZERO
+	# Hang Time (pass 70): in the air the arc carries him and the stick only bends it (_air_planar)
+	if airborne:
+		planar = _air_planar(delta, planar, prev_facing)
 	rotation.y = facing
 	var dyaw := angle_difference(prev_facing, facing) / maxf(delta, 0.001)
 	_tilt = lerpf(_tilt, clampf(dyaw / 9.0, -1.0, 1.0), clampf(delta * 8.0, 0.0, 1.0))
-	if not is_on_floor():
+	if airborne:
+		velocity.y -= _air_g * delta
+	elif not is_on_floor():
 		velocity.y -= 24.0 * delta
 	else:
 		if velocity.y < 0.0:
@@ -323,6 +330,8 @@ func _physics_process(delta: float) -> void:
 		_moved_emitted = true
 		moved_first.emit()
 	var on_floor := is_on_floor()
+	if airborne:
+		_tick_air(delta, on_floor)
 	if on_floor and not was_on_floor:
 		landed.emit()
 		Audio.play("pl_land", global_position)
@@ -341,6 +350,8 @@ func _physics_process(delta: float) -> void:
 	elif shield_pts > 0.0:
 		shield_pts = 0.0
 	_animate(delta, planar.length() > 0.1, on_floor)
+	if airborne:
+		_air_look()
 	if planar.length() > 0.1 and on_floor:
 		_step_timer -= delta
 		if _step_timer <= 0.0:
@@ -573,9 +584,9 @@ func apply_knockback(v: Vector3, hostile: bool = true) -> void:
 ## The Invincibility power-up's rule (pass 60, Garry: "Invincibility (shield) Power Up should null out the knockback
 ## from enemies"): while its bubble is up no hostile shove, hit knock, pull or blast moves him. Only the power-up: the
 ## Energy Shield line's points still take the shove of what they catch, and the blink after a hit or a revive is no
-## bubble.
+## bubble. Pass 70: nor while Hang Time's trampoline has him in the air (airborne).
 func knock_immune() -> bool:
-	return shield_t > 0.0
+	return shield_t > 0.0 or airborne
 
 
 ## A landed hit's shove (pass 54): `v` (m/s, flat) on top of whatever moves him, past the shove's grace, the whole never
@@ -865,6 +876,10 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 	last_outcome = "none"
 	if dead:
 		return
+	# Hang Time (pass 70): nothing reaches him in the air, and nothing shows or is logged
+	if airborne:
+		last_outcome = "immune"
+		return
 	if shield_t > 0.0:
 		# the shield power-up takes it: a flash on the sphere, nothing on the hero, and (pass 60) no shove either
 		_shield_hit = 1.0
@@ -885,6 +900,9 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 		evaded.emit()
 		last_outcome = "evaded"
 		if DamageNumbers.I: DamageNumbers.I.hero_dodge()
+		return
+	# Marshal's Star (pass 70, lane LINES): a ready star takes the whole hit
+	if _star_block(amount, info):
 		return
 	# damage reduction (pass 43): a share of every hit, capped so nothing makes him immune; Gas Mask (pass 48) adds a
 	# point for every poisoned creature alive, up to its cap (Run.gas_mask_dr), under the same cap
@@ -944,6 +962,30 @@ func take_damage(amount: float, from: Vector3, info: Dictionary = {}) -> void:
 			damage_log[damage_log.size() - 1]["fatal"] = true
 			damage_log[damage_log.size() - 1]["hp"] = 0.0
 		_die()
+
+
+# ---------------------------------------------------------------- pass 70 (lane LINES): Marshal's Star
+## The star over his head (core/systems/StarGuard.gd), made the first time his sheet holds `star_block_every`.
+var star_guard: StarGuard = null
+
+
+func _star_guard_sync() -> void:
+	if star_guard == null and is_inside_tree() and sheet != null and sheet.get_stat("star_block_every", 0.0) > 0.0:
+		star_guard = StarGuard.new()
+		star_guard.name = "StarGuard"
+		add_child(star_guard)
+
+
+## A hit the star takes (pass 70): no damage and no shove of its own (a blast's throw still carries him), BLOCK over him,
+## the blink after a hit, logged as the star's. True when it blocked.
+func _star_block(amount: float, info: Dictionary) -> bool:
+	if star_guard == null or not star_guard.try_block():
+		return false
+	invuln = maxf(invuln, sheet.get_stat("hit_invuln", 0.5))
+	_log_hit(amount, 0.0, 0.0, info, "star")
+	last_outcome = "shield"
+	if DamageNumbers.I: DamageNumbers.I.hero_block()
+	return true
 
 
 func _log_hit(raw: float, dealt: float, shield: float, info: Dictionary, note: String) -> void:
@@ -1007,6 +1049,8 @@ static func log_text(rows: Array) -> String:
 				what = "evaded (%d)" % roundi(raw)
 			"power-up":
 				what = "blocked by the Shield power-up (%d)" % roundi(raw)
+			"star":
+				what = "blocked by Marshal's Star (%d)" % roundi(raw)
 			"shield":
 				what = "−%d shield" % roundi(float(e.get("shield", 0.0)))
 			"broke":
@@ -1087,6 +1131,8 @@ func _anim_for(base: String) -> String:
 
 func _die() -> void:
 	dead = true
+	# a flight ends with him (pass 70): he falls as the dead do
+	airborne = false
 	velocity = Vector3.ZERO
 	_kb = Vector3.ZERO
 	sprite.set_squash(1.0, 1.0)
@@ -1112,3 +1158,104 @@ func cheer() -> void:
 	if sprite.has_animation("cheer"):
 		sprite.play("cheer")
 	input.enabled = false
+
+
+# ---------------------------------------------------------------- Hang Time's flight (pass 70, lane TRAMP)
+
+## A trampoline throws him (core/systems/Trampoline.gd, Fadeaway's Hang Time): trampoline_launch sends him up and along
+## an arc whose top is `height` m over the take-off and which lasts `air_time` s on level ground (up at 4 h / T under his
+## own gravity 8 h / T^2), carried `distance` m along `dir` (the way he was walking). In the air the stick adds
+## `air_control` of his walking speed to the arc (he bends it, never stops it) and he faces the way he flies. Nothing
+## reaches him up there: take_damage, shoves, pulls and blasts pass him by (knock_immune). He lands where the sand meets
+## him: a squash, `air_landed` (the trampoline's dust ring), and the usual thud (pl_land). The camera rises AIR_CAMERA of
+## the way with him (camera_y), so the jump reads on the screen.
+signal air_launched
+signal air_landed(at: Vector3)
+const AIR_CAMERA := 0.3
+const AIR_SAFETY := 3.0     # a flight that has not met the ground after this many air times ends anyway
+var airborne := false
+var air_flights := 0
+var _air_t := 0.0
+var _air_time := 1.1
+var _air_h := 4.0
+var _air_g := 24.0
+var _air_v := Vector3.ZERO
+var _air_control := 0.35
+var _air_from_y := 0.0
+
+
+## Throws him (see above). False when he cannot fly now: down, in the spawn beam, or already in the air.
+func trampoline_launch(dir: Vector3, height: float, distance: float, air_time: float, air_control: float) -> bool:
+	if dead or cinematic or airborne:
+		return false
+	var flat := Vector3(dir.x, 0.0, dir.z)
+	if flat.length_squared() < 0.0001:
+		flat = forward()
+	flat = flat.normalized()
+	_air_time = maxf(air_time, 0.2)
+	_air_h = maxf(height, 0.1)
+	_air_g = 8.0 * _air_h / (_air_time * _air_time)
+	_air_v = flat * maxf(distance, 0.0) / _air_time
+	_air_control = clampf(air_control, 0.0, 1.0)
+	_air_t = 0.0
+	_air_from_y = global_position.y
+	airborne = true
+	air_flights += 1
+	velocity = Vector3(_air_v.x, 4.0 * _air_h / _air_time, _air_v.z)
+	_kb = Vector3.ZERO
+	_stick_lock = 0.0
+	facing = atan2(-flat.x, -flat.z)
+	_stop_still()
+	jumped.emit()
+	air_launched.emit()
+	return true
+
+
+## The flat speed in the air: the arc's own, plus the stick's walking speed (`planar`, as the ground would have moved
+## him) at `air_control` of it; he turns to face the way he flies.
+func _air_planar(delta: float, planar: Vector3, prev_facing: float) -> Vector3:
+	var v := _air_v + Vector3(planar.x, 0.0, planar.z) * _air_control
+	if v.length_squared() > 0.01:
+		facing = lerp_angle(prev_facing, atan2(-v.x, -v.z), clampf(delta * 10.0, 0.0, 1.0))
+	return v
+
+
+## The flight's clock after the move: he lands once the ground has him (not in the first frames, while he is still
+## leaving it), or when the flight has run far past its time (a safety).
+func _tick_air(delta: float, on_floor: bool) -> void:
+	_air_t += delta
+	if (on_floor and _air_t > 0.08 and velocity.y <= 0.5) or _air_t > _air_time * AIR_SAFETY:
+		_air_land()
+
+
+func _air_land() -> void:
+	airborne = false
+	land_settle(0.32)
+	air_landed.emit(global_position)
+
+
+## The look in the air: stretched leaving and coming down, round at the top; his shadow on the sand shrinks as he rises.
+func _air_look() -> void:
+	var p := clampf(_air_t / _air_time, 0.0, 1.0)
+	var up := 4.0 * p * (1.0 - p)
+	var s := 0.9 * (1.0 - 0.45 * up)
+	shadow_scale = Vector3(s, 1, s * 0.7)
+	shadow.scale = shadow_scale
+	var st := 0.16 * absf(cos(PI * p))
+	sprite.set_squash(1.0 - st * 0.5, 1.0 + st)
+
+
+## The height the camera rides at (CameraRig): his own on the ground; in the air AIR_CAMERA of the way up from where he
+## left the ground, so the jump shows as a jump.
+func camera_y() -> float:
+	if not airborne:
+		return global_position.y
+	return _air_from_y + (global_position.y - _air_from_y) * AIR_CAMERA
+
+
+## How high over his take-off he is now, from the arc's clock (0 on the ground).
+func air_height() -> float:
+	if not airborne:
+		return 0.0
+	var p := clampf(_air_t / _air_time, 0.0, 1.0)
+	return _air_h * 4.0 * p * (1.0 - p)

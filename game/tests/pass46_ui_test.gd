@@ -65,7 +65,8 @@ func test_the_coin_is_the_painting_when_there_is_one_and_the_disc_until_then() -
 	assert_bool(WCoin.art() != null).is_equal(ResourceLoader.exists(WCoin.ART))
 
 
-## Pass 47: a skip pays nothing any more (two a stage, Garry), so SKIP carries no coin; the Strongbox line still does.
+## Pass 47: a skip pays nothing any more (two a stage, Garry), so SKIP carries no coin. Re-pinned in pass 70: the
+## Strongbox is retired and a death banks the purse, so the results show no Strongbox line, only the banked gold.
 func test_a_skip_carries_no_coin_and_the_strongbox_line_does() -> void:
 	_fresh_save()
 	_start()
@@ -78,16 +79,15 @@ func test_a_skip_carries_no_coin_and_the_strongbox_line_does() -> void:
 	await get_tree().process_frame
 	assert_int(_coins(cs._path_skip).size()).is_equal(0)
 	cs.visible = false
-	# the results after a death with a Strongbox on the way
+	# the results after a death (an old record's Strongbox is not mentioned any more): the purse banked, by its coin
 	Run.died = true
 	(Save.data["hints_seen"] as Array).append("results")
-	Run.last_result = {"gold_before": 100, "banked": 0, "lost": 30, "strongbox": 12, "prev_best": {}}
+	Run.last_result = {"gold_before": 100, "banked": 30, "lost": 0, "strongbox": 12, "prev_best": {}}
 	var r: Control = auto_free(load("res://ui/ResultsScreen.tscn").instantiate())
 	add_child(r)
-	var line: Node = r.find_child("Strongbox", true, false)
-	assert_object(line).is_not_null()
-	assert_int(_coins(line).size()).is_equal(1)
-	assert_str(_texts(line)).contains("banked by the Strongbox")
+	assert_object(r.find_child("Strongbox", true, false)).is_null()
+	assert_str(_texts(r)).contains("Banked")
+	assert_str(_texts(r)).contains("100 → 130")
 	r.visible = false
 	Run.end()
 	await get_tree().process_frame

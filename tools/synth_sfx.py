@@ -267,10 +267,59 @@ def salt_shake():
     return fade_out(y, 25)
 
 
+# ------------------------------------------------------------------ pass 70 (lane TRAMP): Hang Time, the puck
+def decoy_hiss():
+    # air rushing through a valve as the doll blows up out of the puck: bright noise whose band climbs, a thin whistle
+    # riding on it, swelling in and cut off as it fills
+    t = t_of(0.6)
+    n = rng.normal(0, 1.0, len(t))
+    hi = n - np.convolve(n, np.ones(4) / 4, mode="same")          # a hiss, the low end taken out
+    band = np.convolve(hi, np.ones(2) / 2, mode="same")
+    swell = np.clip(t / 0.06, 0, 1) * np.where(t < 0.5, 1.0, np.clip((0.6 - t) / 0.1, 0, 1))
+    y = 0.55 * band * swell * (0.7 + 0.3 * np.clip(t / 0.5, 0, 1))
+    f = 1900.0 * (2900.0 / 1900.0) ** np.clip(t / 0.5, 0, 1) * (1.0 + 0.012 * np.sin(2 * np.pi * 23.0 * t))
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    y += 0.07 * np.sin(ph) * swell
+    return fade_out(y, 30)
+
+
+def trampoline_boing():
+    # the mat throwing him: a deep thump as it takes his weight, then the cartoon "boing", a tone that springs up an
+    # octave and a half and wobbles as the springs ring out
+    t = t_of(0.62)
+    y = partial(t, 70.0, 1.1, 0.06, 0.003) + partial(t, 115.0, 0.5, 0.04, 0.003)
+    tt = np.maximum(t - 0.03, 0)
+    on = t >= 0.03
+    f = (150.0 + 260.0 * (1.0 - np.exp(-tt / 0.07))) * (1.0 + 0.09 * np.sin(2 * np.pi * 14.0 * tt) * np.exp(-tt / 0.25))
+    ph = 2 * np.pi * np.cumsum(np.where(on, f, 0.0)) / SR
+    e = np.where(on, env_ad(tt, 0.006, 0.2), 0.0)
+    y += 0.75 * np.sin(ph) * e + 0.22 * np.sin(2 * ph) * e
+    # the springs: a faint metallic shimmer
+    for fr, a in ((1830.0, 0.08), (2470.0, 0.05)):
+        y += partial(t, fr, a, 0.12, 0.002, 0.03)
+    return fade_out(y, 40)
+
+
+def trampoline_drop():
+    # the trampoline landing on the sand: a soft heavy thud, the steel frame's clank and a short spring rattle
+    t = t_of(0.5)
+    y = partial(t, 62.0, 1.2, 0.07, 0.002) + partial(t, 96.0, 0.6, 0.05, 0.002)
+    n = int(SR * 0.02)
+    y[:n] += rng.normal(0, 0.35, n) * np.linspace(1, 0, n)
+    for fr, a, tau in ((640.0, 0.22, 0.09), (1290.0, 0.16, 0.07), (2210.0, 0.1, 0.05), (3050.0, 0.06, 0.04)):
+        y += partial(t, fr, a, tau, 0.001, 0.012)
+    for k in range(7):
+        y += click(t, 0.05 + 0.035 * k + rng.uniform(0, 0.01), 0.25 * (0.75 ** k), rng.uniform(2600.0, 4200.0), 0.004)
+    return fade_out(y, 40)
+
+
 SOUNDS = {
     "w_salt_shake": salt_shake,
     "pk_decoy_land": decoy_land,
     "pk_decoy_pop": decoy_pop,
+    "pk_decoy_hiss": decoy_hiss,
+    "pk_trampoline_boing": trampoline_boing,
+    "pk_trampoline_drop": trampoline_drop,
     "pk_gem_s": lambda: gem("s"),
     "pk_gem_m": lambda: gem("m"),
     "pk_gem_l": lambda: gem("l"),

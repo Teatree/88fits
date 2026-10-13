@@ -1,6 +1,7 @@
 {
   "id": "timeout",
   "name": "Timeout",
+  "hidden": true,
   "flavour": "Stop the clock. Leave the floor.",
   "rarity": "rare",
   "weight": 6,

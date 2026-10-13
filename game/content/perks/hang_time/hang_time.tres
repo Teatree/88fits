@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="PerkDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/perks/hang_time/hang_time_icon.png" id="1_n7g35"]
+[ext_resource type="Script" path="res://core/data/PerkDef.gd" id="2_6m2v7"]
+
+[resource]
+script = ExtResource("2_6m2v7")
+hero = "fadeaway"
+text = "Every 20 s a trampoline lands beside him and waits 30 s. Run onto it: he soars 8 m the way he was running, untouchable in the air, and the stick steers him a little."
+special = "trampoline"
+params = {
+"air_control": 0.35,
+"air_time": 1.1,
+"every": 20.0,
+"first": 10.0,
+"launch_distance": 8.0,
+"launch_height": 4.0,
+"lifetime": 30.0,
+"radius": 1.1,
+"side": 3.5,
+"uses": 1.0
+}
+id = "hang_time"
+display_name = "Hang Time"
+flavour = "Nobody guards the sky."
+rarity = "rare"
+weight = 6.0
+icon = ExtResource("1_n7g35")
+icon_file = "hang_time_icon.png"
+placeholder = {
+"color": "#3D7BFF",
+"glyph": "ring"
+}

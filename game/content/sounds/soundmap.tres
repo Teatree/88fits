@@ -41,9 +41,12 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_decoy_land.wav" id="33_s7xia"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_vacuum.wav" id="34_0rvqa"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/pk_decoy_pop.wav" id="34_c4ys3"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_decoy_hiss.wav" id="35_cmm58"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_goblin_hit.wav" id="35_csrvp"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_goblin_die.wav" id="36_0vh7m"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_trampoline_boing.wav" id="36_mlt6y"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_ant_hit.wav" id="37_4y466"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/pk_trampoline_drop.wav" id="37_lfe3q"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_ant_die.wav" id="38_5kk5y"]
 [ext_resource type="AudioStream" path="res://content/sounds/placeholder/pk_timeout.wav" id="39_37qjc"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_cactus_spit.wav" id="39_c0ydf"]
@@ -555,6 +558,15 @@ entries = {
 "voices": 3,
 "volume_db": -10.0
 },
+"pk_decoy_hiss": {
+"category": "pickup",
+"file": "real/pk_decoy_hiss.wav",
+"loop": false,
+"pitch_spread": 0.05,
+"stream": ExtResource("35_cmm58"),
+"voices": 2,
+"volume_db": -10.0
+},
 "pk_decoy_land": {
 "category": "pickup",
 "file": "real/pk_decoy_land.wav",
@@ -665,6 +677,24 @@ entries = {
 "stream": ExtResource("39_37qjc"),
 "voices": 1,
 "volume_db": -4.0
+},
+"pk_trampoline_boing": {
+"category": "pickup",
+"file": "real/pk_trampoline_boing.wav",
+"loop": false,
+"pitch_spread": 0.06,
+"stream": ExtResource("36_mlt6y"),
+"voices": 1,
+"volume_db": -4.0
+},
+"pk_trampoline_drop": {
+"category": "pickup",
+"file": "real/pk_trampoline_drop.wav",
+"loop": false,
+"pitch_spread": 0.05,
+"stream": ExtResource("37_lfe3q"),
+"voices": 1,
+"volume_db": -6.0
 },
 "pk_vacuum": {
 "category": "pickup",

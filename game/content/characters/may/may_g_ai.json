@@ -145,8 +145,8 @@
    "cached": true
   },
   "bd": {
-   "seed": 685244583,
-   "prompt": "Turn this exact character to a three-quarter back view: turned 45 degrees away from the viewer so the character faces the upper right of the frame, the back and right shoulder visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. Both arms hang straight down at her sides, hands open, not on the hips. The same slim proportions in every view. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "seed": 685245583,
+   "prompt": "Turn this exact character to a three-quarter back view: turned 45 degrees away from the viewer so the character faces the upper right of the frame, the back and right shoulder visible, standing straight with arms relaxed. Keep the same outfit, colors, proportions and art style. Both arms hang straight down at her sides, hands open, not on the hips. The same slim proportions in every view. Her black overalls are suspender overalls: seen from behind, a pointed black back panel rises from the waistband to the middle of her back, and two black suspender straps run from its point up over her black-and-white striped shirt to the tops of her shoulders, both straps clearly visible on her back. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/may_front.png"
    ],
@@ -154,12 +154,12 @@
     "skipped": true,
     "problems": [],
     "geometry": {
-     "left": 416,
-     "right": 405,
-     "top": 40,
-     "bottom": 35,
-     "height": 948,
-     "width": 202
+     "left": 425,
+     "right": 388,
+     "top": 45,
+     "bottom": 36,
+     "height": 942,
+     "width": 210
     }
    },
    "attempt": 0,
@@ -170,6 +170,7 @@
     "guidance": 4.0,
     "turbo": false
    },
+   "picked": "may_g_bd_p70a_c0 (lane ART p70: the bd still again with the overalls' back straps; refs [front], gen_art's bd words + pose_hint + strap words; dev 30 steps)",
    "cached": true
   },
   "cheer": {
@@ -285,7 +286,7 @@
    "cached": true
   },
   "hurt_bd": {
-   "seed": 685244611,
+   "seed": 685260450,
    "prompt": "One single figure alone in the frame: the exact same character in three-quarter back view, flinching in pain from a hit: leaning back a little, shoulders hunched, one hand raised towards the chest, her face wincing, eyes shut, still standing on both feet, feet fully visible. Keep the same outfit, colors, proportions, pose scale and art style as the reference. isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
    "refs": [
     "88fits/may_g_bd_ref.png"
@@ -294,12 +295,12 @@
     "skipped": true,
     "problems": [],
     "geometry": {
-     "left": 398,
-     "right": 382,
-     "top": 70,
-     "bottom": 48,
-     "height": 905,
-     "width": 243
+     "left": 335,
+     "right": 388,
+     "top": 69,
+     "bottom": 32,
+     "height": 922,
+     "width": 300
     }
    },
    "attempt": 0,
@@ -377,7 +378,7 @@
    "fd": "run_side",
    "side": "run_side",
    "bd": "run_spread_lvl",
-   "back": "run_spread_lvl"
+   "back": "run_hidefwd_lvl"
   },
   "method": "hero_pose5",
   "painter": {
@@ -388,7 +389,7 @@
   },
   "stills": "g",
   "seed_offset": 6543,
-  "anim_seed": 3,
+  "anim_seed": 4,
   "remap_hues": {
    "ranges": [
     [
@@ -398,6 +399,11 @@
    ],
    "to": 220,
    "sat": 0.08
+  },
+  "pose_hint": "Both arms hang straight down at her sides, hands open, not on the hips. The same slim proportions in every view. Her black overalls are suspender overalls: seen from behind, a pointed black back panel rises from the waistband to the middle of her back, and two black suspender straps run from its point up over her black-and-white striped shirt to the tops of her shoulders, both straps clearly visible on her back.",
+  "run_scale": {
+   "side": 0.88,
+   "fd": 0.92
   }
  },
  "clip_kind": {

@@ -17,6 +17,7 @@ height = 2.8
 id = "gold_bank"
 display_name = "Strongbox"
 flavour = "Send it up. Spend it later."
+hidden = true
 icon = ExtResource("1_4qusd")
 icon_file = "gold_bank_icon.png"
 placeholder = {

@@ -6,7 +6,7 @@
   "pronoun": "she",
   "hidden": false,
   "availability": "purchase",
-  "price": 700,
+  "price": 1750,
   "currency_type": "gold",
   "trait": [],
   "trait_per_level": [
@@ -55,12 +55,36 @@
   "key_cut_shadow": false,
   "key_sat": 0.85,
   "key_clamp_screen": true,
-  "variant_base": "MAY-A",
+  "variant_base": "MAY-G",
   "variant": "MAY-G",
+  "sprite": "may_sprite_g.png",
+  "icon": "may_icon_g.png",
+  "anims": {
+    "idle": 4,
+    "run": 24,
+    "hit": 4,
+    "die": 5,
+    "cheer": 1,
+    "idle_f": 4,
+    "run_f": 24,
+    "idle_s": 4,
+    "run_s": 24,
+    "idle_bd": 4,
+    "run_bd": 24,
+    "idle_fd": 4,
+    "run_fd": 24,
+    "hit_f": 4,
+    "hit_s": 4,
+    "hit_bd": 4,
+    "hit_fd": 4
+  },
+  "strip_cols": 62,
+  "fps": {
+    "run": 36,
+    "hit": 12,
+    "die": 8
+  },
   "variants": {
-    "MAY-A": {
-      "note": "the top-level strip, before the Level Editor's looks"
-    },
     "MAY-B": {
       "recipe": {
         "side_hint": "The arms and shoulders should be in the correct position relative to the perspective, it should be avoided that the shoulder closest to the camera is somehow higher than the one on the other side",
@@ -148,7 +172,7 @@
           "fd": "run_side",
           "side": "run_side",
           "bd": "run_spread_lvl",
-          "back": "run_spread_lvl"
+          "back": "run_hidefwd_lvl"
         },
         "method": "hero_pose5",
         "painter": {
@@ -174,7 +198,7 @@
         },
         "stills": "g",
         "seed_offset": 6543,
-        "anim_seed": 3,
+        "anim_seed": 4,
         "remap_hues": {
           "ranges": [
             [
@@ -184,9 +208,14 @@
           ],
           "to": 220,
           "sat": 0.08
+        },
+        "pose_hint": "Both arms hang straight down at her sides, hands open, not on the hips. The same slim proportions in every view. Her black overalls are suspender overalls: seen from behind, a pointed black back panel rises from the waistband to the middle of her back, and two black suspender straps run from its point up over her black-and-white striped shirt to the tops of her shoulders, both straps clearly visible on her back.",
+        "run_scale": {
+          "side": 0.88,
+          "fd": 0.92
         }
       },
-      "note": "pass 69: Flux.2 dev, 30 steps, no Turbo, Garry's MAY-F words; the side and back runs on the levelled drivers (run_side: the far arm tucked; run_spread_lvl)",
+      "note": "pass 70 (lane ART): the bd still repainted with the overalls' back straps (pose_hint words), the back walk on run_hidefwd_lvl (one hand at a time, the forward one hidden), run_scale side 0.88 (the side ran half a head taller); before: pass 69's Flux.2 dev look",
       "sprite": "may_sprite_g.png",
       "anims": {
         "idle": 4,
@@ -216,54 +245,6 @@
       "icon": "may_icon_g.png",
       "icon_picked": true,
       "title": "hero_may_g.png"
-    },
-    "MAY-E": {
-      "note": "pass 69: Flux.2 dev, 30 steps, no Turbo, Garry's MAY-F words; the side and back runs on the levelled drivers (run_side: the far arm tucked; run_spread_lvl) · from MAY-G",
-      "recipe": {
-        "art_prompt": "a slender adult woman with a feminine figure, pale white skin, short straight black bob haircut with bangs, black beret with a small heart-shaped tip, dark eyes, a playful smile and a black star painted on her cheek; wearing a black-and-white horizontally striped long-sleeve shirt with open cleavage under tight black high-waisted suspender overalls which reach below the knees with large white buttons, a bright magenta neck scarf and matching gloves, white calf-length stockings and chunky black lace-up ankle boots with white laces; standing straight, both arms relaxed at her sides",
-        "side_hint": "a clean side profile facing right, both shoulders level and relaxed at the same height, the near shoulder never raised above the far one, one arm hanging relaxed beside the torso, hands open",
-        "pose_drivers": {
-          "front": "run",
-          "fd": "run_side",
-          "side": "run_side",
-          "bd": "run_spread_lvl",
-          "back": "run_spread_lvl"
-        },
-        "method": "hero_pose5",
-        "painter": {
-          "model": "dev",
-          "steps": 30,
-          "guidance": 0,
-          "turbo": false,
-          "stills": "reused",
-          "reused": [
-            "may_g_front",
-            "may_g_back",
-            "may_g_side",
-            "may_g_fd",
-            "may_g_bd",
-            "may_g_cheer",
-            "may_g_hurt_front",
-            "may_g_hurt_back",
-            "may_g_hurt_side",
-            "may_g_hurt_fd",
-            "may_g_hurt_bd",
-            "may_g_dead"
-          ]
-        },
-        "anim_seed": 3,
-        "remap_hues": {
-          "ranges": [
-            [
-              38,
-              75
-            ]
-          ],
-          "to": 220,
-          "sat": 0.08
-        },
-        "from": "MAY-G"
-      }
     }
   }
 }

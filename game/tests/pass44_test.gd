@@ -66,6 +66,7 @@ func test_half_the_items_sit_behind_quests_spread_over_the_stages() -> void:
 	# pass 54: more open items since, and Solenne's Sun Scepter (her own, no quest): 23 of 66 (35%)
 	# pass 69: the Salt, the Frisbee and five passive items (Counterpunch, Heavyweight, Snake Oil, Hot Springs, Last Stand)
 	# came unlocked: 23 of 75 (31%)
+	# pass 70 (lane LINES): four new lines (Lodestone, Mule Kick, Slow Burn, Tin Star) came unlocked: 23 of 79 (29%)
 	assert_float(share).is_between(0.28, 0.56)
 	# 70 / 25 / 5 by the stage that can do them (within a couple of items)
 	# pass 54: 57 / 39 / 4. The map's timeline (the Level Editor's placement) brings the fire ants at 9:19, the mummies

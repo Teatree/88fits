@@ -240,7 +240,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-12, pass 69, version 0.55)
+## Status (2026-10-13, pass 70, version 0.56)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -249,8 +249,8 @@ changed.
 
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
-parse check, all gdUnit tests (~1,480 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.55).
+parse check, all gdUnit tests (~1,525 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.56).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
 rolled per run from `Run.map_seed`, a stone boundary wall; everything but the ground, the wall, barrels, signs and a few
@@ -269,15 +269,15 @@ special Red Goblin at 2:00 (a swarm event with `special: true`).
 
 **Heroes** (title order): Drifter (Revolver) and Astro (Gravity Gun) are free; Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), Fadeaway (the Basketball: evade per level, Heat shown on the ball itself, the Timeout
-leap pickup, Buzzer Beater), Jeżyk (id `buck`: a bald blue Slav in a tracksuit, starts with the Frisbee, favourite the
+trampoline perk Hang Time, Buzzer Beater), Jeżyk (id `buck`: a bald blue Slav in a tracksuit, starts with the Frisbee, favourite the
 Salt, momentum, Salt Flats), May (renamed from Mamy in pass 69: attack speed, Trigger Happy on the Tommy Gun, the
-Inflatable May decoy) and Mira (an unattainable requirement) are bought with gold after an unlock quest
+Inflatable May decoy, thrown as a puck that inflates) and Mira (an unattainable requirement) are bought with gold after an unlock quest
 (`content/quests/unlock_<hero>`, `availability: "purchase"`, `price`; Save `heroes_owned`; Registry `hero_state`);
 Dad is `hidden`. No HUD gauge for any hero (pass 69). The title's hero drawer (`ui/wanted/WHeroDrawer.gd`) lists every
 hero; one not owned shows as a black silhouette, "Unknown", with his requirement or a BUY button. Each hero's trait is 1-2 stats that grow per level
 (`trait_per_level`, `Run.hero_sheet`), a favourite weapon or passive (arrives at a bonus level, marked on cards), perks,
 and a hero mutation. The title plaque opens the hero's Wanted-poster sheet (`ui/wanted/WHeroSheet.gd`). Art variants
-(`variants` / `variant` in the JSON; Jeżyk plays BUC-E, Fadeaway FAD-C, May MAY-G; Garry picks them in the arena or in the Level Editor's look grid; a look may be
+(`variants` / `variant` in the JSON; Jeżyk plays BUC-F, Fadeaway FAD-C, May MAY-G (her base since pass 70); Garry picks them in the arena or in the Level Editor's look grid; a look may be
 `shelved` out of the chips, a landed one is `fresh` until approved): see the art-variants memory. A hero JSON carries
 `availability` (available | purchase | hidden: only hidden hides him), `price` and `currency_type` (gold), the unlock
 quest edited from the Heroes tab (memory `88fits-hero-purchase-parked`: decided in pass 69).
@@ -286,7 +286,9 @@ quest edited from the Heroes tab (memory `88fits-hero-purchase-parked`: decided 
 = evolution at a chest; hero mutations optional), lines (5 slots, 4 levels, evolve when maxed; `PassiveDef.line`) and
 passive items (no cap). Everything is content: `content/weapons|evolutions|mutations|passives|perks|pickups|structures|
 enemies|bosses|characters|talents|maps|sounds`. Mutation looks come from their `params` (`look`, `tint`, ...); emblems
-are gone. Pierce drop-off is on by default (`Settings.pierce_falloff`, Debug panel). Pass 69 primitives: behaviours
+are gone. Pierce drop-off is on by default (`Settings.pierce_falloff`, Debug panel). Pass 70: lines Lodestone, Mule Kick (evolution Bucking Bronco throws creatures up and away), Slow Burn (overlaps
+Ducktape), Tin Star, Prospector and Gold Tooth (lines now), each with an evolution (21 lines); perk special `trampoline`
+(core/systems/Trampoline.gd, Player airborne flight with air control); a look recipe's `run_scale` per view. Pass 69 primitives: behaviours
 `SaltShaker` (patches laid along the hero's path, `params.salt`) and `Frisbee` (curving discs through everything,
 `params.frisbee`), the ball's `launch` (Alley-Oop) and `heat_look`, a ball tint's `body`/`seams`/`ambient`, a gun's
 `fire_without_target`/`stream`, perk special `decoy`, player stats counter_*/heavyweight/overheal/heal_pulse/last_stand/
@@ -299,7 +301,8 @@ and a knockback, every playable hero a perk and one hero mutation).
 
 **Meta.** The **Upgrade board** (`ui/HomesteadScreen.gd`, still "the Mirror" in code; `content/talents`): eight talents,
 two forms, six ranks; every rank is bought in one form and keeps it (`Save.talent_picks`); Take it all back refunds half.
-Gold: extraction banks the purse, a death leaves it in the sand, the Strongbox banks mid-run (a new one drifts down 30-60 s after one is used). Unlock quests gate half the
+Gold: every end of a run banks the purse (pass 70: a death too; only quitting the app mid-run loses it); unlocks cost
+2.5x pass 69's, Elites and bosses pay 5x; the Strongbox (`gold_bank`) is hidden, out of play. Unlock quests gate half the
 items; the Collection shows only what was met.
 
 **UI.** The Wanted kit (`ui/wanted/`, see Architecture); one paused screen at a time with death winning

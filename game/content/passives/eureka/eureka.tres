@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/eureka/eureka_icon.png" id="1_02jab"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_ku7b0"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_2i0ta"]
+
+[sub_resource type="Resource" id="Resource_02jab"]
+script = ExtResource("2_ku7b0")
+stat = "xp_drop_chance"
+value = 0.35
+target = "player"
+
+[sub_resource type="Resource" id="Resource_ku7b0"]
+script = ExtResource("2_ku7b0")
+stat = "vein_chance"
+value = 0.04
+target = "player"
+
+[resource]
+script = ExtResource("3_2i0ta")
+line = true
+levels = [[SubResource("Resource_02jab"), SubResource("Resource_ku7b0")]]
+repeat_last_level = false
+max_level = 1
+evolves_from = "prospector"
+id = "eureka"
+display_name = "Eureka"
+flavour = "Every claim pays. Some pay all at once."
+rarity = "rare"
+weight = 0.0
+icon = ExtResource("1_02jab")
+icon_file = "eureka_icon.png"
+placeholder = {
+"color": "#FFB84A",
+"glyph": "star"
+}

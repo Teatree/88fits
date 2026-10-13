@@ -408,6 +408,13 @@ const Assets = (() => {
         for (const kk of ['variants', 'variant', 'variant_base']) {
           if (kk in fresh) { doc.data[kk] = fresh[kk]; saved[kk] = fresh[kk]; } else { delete doc.data[kk]; delete saved[kk]; }
         }
+        // pass 70: removing the base look (or a landing on a base with its own strip) rewrites the top-level art keys; a
+        // key whose value on disk differs from the one the document was read with is taken from disk too (the
+        // document's own edits of a key the server did not touch stay), so a later Save never writes the old art back
+        for (const kk of ['sprite', 'icon', 'anims', 'strip_cols', 'fps', 'frame_px', 'head', 'badge']) {
+          if (JSON.stringify(fresh[kk]) === JSON.stringify(saved[kk])) continue;
+          if (kk in fresh) { doc.data[kk] = fresh[kk]; saved[kk] = fresh[kk]; } else { delete doc.data[kk]; delete saved[kk]; }
+        }
         doc.saved = JSON.stringify(saved);
       }
       // a look that landed or an import that finished shows at once (lead, pass 66: the grid kept the old record)
@@ -625,7 +632,7 @@ const Assets = (() => {
     // pass 69: a row's `after(data, value)` runs inside the same undo step (the hero's availability keeps `hidden` in step);
     // it wraps the apply (Forms.row reads `opts.after` as a node, so it cannot ride in the options)
     const applyRow = typeof def.after === 'function' ? (fn, what) => apply2((data, d) => { fn(data, d); def.after(doc.data, U.getPath(doc.data, def.key)); }, what) : apply2;
-    const ctlOpts = { apply: applyRow, placeholder: ph, path: def.key, what: 'editor', rows: o.rows };
+    const ctlOpts = { apply: applyRow, placeholder: ph, path: def.key, what: 'editor', rows: o.rows, inherit: def.inherit };   // pass 70: an inherited value in the box
     let row;
     switch (def.type) {
       case 'slug': case 'readonly': {
@@ -1072,6 +1079,11 @@ const Assets = (() => {
         for (const view of Array.isArray(f.views) ? f.views : Object.keys(M.isObj(f.default) ? f.default : {})) out.push(Object.assign({}, base, { key: `${f.key}.${view}`, label: `${base.label}: ${view}`, type: 'textarea', def: undefined }));
         continue;
       }
+      // pass 70: one number per view (run_scale: the size of each view's walk; lane ART's gen_art key)
+      if (t === 'view_numbers') {
+        for (const view of Array.isArray(f.views) ? f.views : []) out.push(Object.assign({}, base, { key: `${f.key}.${view}`, label: `${f.key === 'run_scale' ? 'Run size' : base.label}: ${view}`, type: 'number', def: typeof f.default === 'number' ? f.default : undefined, min: f.min, max: f.max, step: f.step }));
+        continue;
+      }
       if (t === 'driver') out.push(Object.assign(base, { type: 'driver', driverKind: /^(drivers|death_drivers)$/.test(f.key) ? 'depth' : 'pose' }));
       else if (t === 'file') out.push(Object.assign(base, { type: 'text', help: (base.help ? base.help + ' ' : '') + '(a path under tools/dl, as the upload gives it)' }));
       else if (t === 'select') out.push(Object.assign(base, { type: 'select', options: (Array.isArray(f.options) ? f.options : []).map((o) => (typeof o === 'string' ? { v: o, label: o === '' ? '(empty)' : o } : o)) }));
@@ -1101,9 +1113,9 @@ const Assets = (() => {
     const draft = !!lookRec && typeof LookGrid !== 'undefined' && typeof LookGrid.isDraft === 'function' && LookGrid.isDraft(lookRec, doc.kind, doc.id);
     if (draft) wrap.appendChild(el('div', { class: 'rnote draft' }, el('span', { text: `${code} is a draft${rec.from ? ' made from ' + rec.from : ''}: nothing is painted until you press Generate…. Change this recipe as you like and Save asset; Generate… opens the job form with it (it saves first if you forgot).` }),
       el('button', { class: 'btn small primary', type: 'button', text: 'Generate…', title: 'the job form for this code as a new look, with this recipe, its method and its painter', onclick: () => LookGrid.generate(doc.kind, doc.id, code) })));
-    if (!ownKeys.length && isBase) wrap.appendChild(el('div', { class: 'rnote', text: 'The base strip: the creature\'s own art words (the Art section above) painted it; the fields below show them greyed, marked inherited. Type into one only to give this code a recipe of its own.' }));
+    if (!ownKeys.length && isBase) wrap.appendChild(el('div', { class: 'rnote', text: 'The base strip: the creature\'s own art words (the Art section above) painted it; the fields below hold them in their boxes (italic, dashed, marked inherited). Edit one in place only to give this code a recipe of its own.' }));
     else if (!ownKeys.length) wrap.appendChild(el('div', { class: 'rnote warn', text: `No recipe was recorded for ${code}: it was painted before the Level Editor kept recipes, by hand, or by a job that ran with an empty recipe. The fields below show the creature's own words (what a job for this code would read now), which may not be what painted it. To change its art, use Duplicate… on its card (a new look from these words, under a new code) or Re-roll….` }));
-    else wrap.appendChild(el('div', { class: 'rnote', text: `${ownKeys.length} own key${ownKeys.length === 1 ? '' : 's'} (${ownKeys.join(', ')}); every other field inherits the creature's own word, shown greyed and marked inherited. A field left empty keeps inheriting.` }));
+    else wrap.appendChild(el('div', { class: 'rnote', text: `${ownKeys.length} own key${ownKeys.length === 1 ? '' : 's'} (${ownKeys.join(', ')}); every other field inherits the creature's own words, shown in its box (italic, dashed) and marked inherited: edit it in place to make it this look's own, empty it (or ↺) to inherit again; a box you did not change writes nothing.` }));
     const method = methodOf(doc, code);
     const methods = lookMethods().filter((m) => m.kind === (doc.kind === 'hero' ? 'hero' : 'enemy'));
     const methodOpts = (methods.length ? methods.map((m) => ({ v: m.id, label: m.name || m.id, help: m.summary || '' })) : Object.keys(F.RECIPES).filter((k2) => (doc.kind === 'hero') === k2.startsWith('hero')).map((k2) => ({ v: k2, label: k2 })));
@@ -1124,25 +1136,51 @@ const Assets = (() => {
     // the stills slug of a method whose form has no row for it (a hero look since pass 68: <id>_<slug>_<view>)
     if (rec.stills != null && !recipeRows(method).some((d) => String(d.key).split('.')[0] === 'stills')) {
       const own2 = doc.kind === 'hero' ? 'hero' : 'creature';
-      wrap.appendChild(Forms.row({ key: `${base}.stills`, label: 'Stills slug', help: 'the slug its stills are cached under: <id>_<slug>_<view>; "" = the ' + own2 + '\'s own paintings (<id>_<view>); written by the job (a new look gets its own letter)' },
-        el('span', { class: 'aread', text: rec.stills === '' ? `"" (the ${own2}'s own paintings)` : `"${rec.stills}" (its own paintings: ${doc.id}_${rec.stills}_<view>)` }), {}));
+      const sRow = Forms.row({ key: `${base}.stills`, label: 'Stills slug', help: 'the slug its stills are cached under: <id>_<slug>_<view>; "" = the ' + own2 + '\'s own paintings (<id>_<view>); written by the job (a new look gets its own letter)' },
+        el('span', { class: 'aread', text: rec.stills === '' ? `"" (the ${own2}'s own paintings)` : `"${rec.stills}" (its own paintings: ${doc.id}_${rec.stills}_<view>)` }), {});
+      const sp0 = M.stillsProblem(rec.stills);
+      if (sp0) { sRow.classList.add('has-error'); sRow.appendChild(el('div', { class: 'ferr error', text: sp0 + ': fix it in the recipe JSON below (Advanced)' })); }
+      wrap.appendChild(sRow);
       shown.add('stills');
     }
+    const whose = doc.kind === 'hero' ? 'the hero\'s' : 'the creature\'s';
     for (const def of recipeRows(method)) {
       shown.add(String(def.key).split('.')[0]);
       const own = U.getPath(rec, def.key);
       const inh = def.key === 'stills' ? undefined : U.getPath(doc.data, def.key);   // stills never inherits: an absent key is seeded with the look's letter
       const hasOwn = own != null && own !== '';
-      const inherited = !hasOwn && inh != null && inh !== '' && typeof inh !== 'object';
+      const canInherit = inh != null && inh !== '' && typeof inh !== 'object';
+      const inherited = !hasOwn && canInherit;
       const def2 = Object.assign({}, def, { key: `${base}.${def.key}` });
-      if (inherited) def2.ph = typeof inh === 'boolean' ? (inh ? 'yes' : 'no') : String(inh);
+      // pass 70: a text, a hint, a prompt or a number shows the inherited value IN its box (greyed, marked), editable in
+      // place: an edit makes it this look's own, emptying it inherits again, no edit writes nothing; a choice (a select, a
+      // yes/no, a driver) still names it in its empty choice
+      const inBox = ['text', 'textarea', 'int', 'number'].includes(def.type);
+      const from = `${whose} own ${def.key} (${doc.kind === 'hero' ? 'Art words' : 'the Art section'})`;
+      if (canInherit && inBox) def2.inherit = { value: inh, from };
+      else if (inherited) def2.ph = typeof inh === 'boolean' ? (inh ? 'yes' : 'no') : String(inh);
       const r = fieldRow(doc, def2, iss, {});
       if (!r) continue;
       const host = r.querySelector('.fctl') || r;
-      if (hasOwn) host.appendChild(el('span', { class: 'rsrc own', text: 'own', title: 'this look\'s own value (variants[CODE].recipe)' }));
-      else if (inherited) host.appendChild(el('span', { class: 'rsrc inh', text: ['text', 'textarea', 'int', 'number'].includes(def.type) ? 'inherited' : `inherited: ${def2.ph}`, title: `the creature's own ${def.key} applies while this is empty: ${def2.ph}` }));
+      if (canInherit && inBox) {
+        // the mark follows what is in the box as it is typed (Forms.inheritable's inheritchange)
+        const mark = el('span', { class: 'rsrc ' + (hasOwn ? 'own' : 'inh'), text: hasOwn ? 'own' : `inherited from ${whose} ${def.key}`, title: hasOwn ? `this look's own value (variants[CODE].recipe); ${from}: ${String(inh)}` : `${from} applies: it is in the box; edit it to make it this look's own, empty it to inherit again` });
+        const back = el('button', { type: 'button', class: 'btn small ghost inh-back', text: '↺ inherit', hidden: !hasOwn, title: `drop this look's own ${def.key}: ${from} applies again`,
+          onclick: () => apply2(() => { U.setPath(doc.data, def2.key, null); }, 'editor') });
+        host.addEventListener('inheritchange', (e) => {
+          const ownNow = !!(e.detail && e.detail.own);
+          mark.className = 'rsrc ' + (ownNow ? 'own' : 'inh');
+          mark.textContent = ownNow ? 'own (when you leave the box)' : `inherited from ${whose} ${def.key}`;
+        });
+        host.appendChild(mark);
+        host.appendChild(back);
+      } else if (hasOwn) host.appendChild(el('span', { class: 'rsrc own', text: 'own', title: 'this look\'s own value (variants[CODE].recipe)' }));
+      else if (inherited) host.appendChild(el('span', { class: 'rsrc inh', text: `inherited: ${def2.ph}`, title: `${from} applies while this is empty: ${def2.ph}` }));
       else if (def.key === 'stills') host.appendChild(el('span', { class: 'rsrc def', text: own === '' ? `empty: the ${doc.kind === 'hero' ? 'hero' : 'creature'}'s own paintings` : (lookRec && lookRec.ready === false ? 'left out: this new look gets its own letter when it is queued' : 'left out: a re-roll keeps the paintings it was made from'), title: 'the slug the stills are cached under (<id>_<slug>_front); a new look\'s job seeds the look\'s letter when the key is absent (an existing look\'s gets "", its old paintings); an explicit "" reuses the creature\'s own paintings' }));
       else if (def.def != null && def.def !== '') host.appendChild(el('span', { class: 'rsrc def', text: `default: ${def.def}`, title: 'the method\'s default (methods.json) applies while this is empty' }));
+      // pass 70 (the Bandit check): Stills is the look's slug; a picture's path here is an error that blocks Save
+      const sp = def.key === 'stills' ? M.stillsProblem(own) : '';
+      if (sp) { r.classList.add('has-error'); r.appendChild(el('div', { class: 'ferr error', text: sp })); }
       wrap.appendChild(r);
     }
     // keys in the recipe this method's form has no row for (another tool's words: gen_ant's body, a recolour's tint_of)

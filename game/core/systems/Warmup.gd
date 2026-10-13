@@ -9,6 +9,8 @@ class_name Warmup
 extends Node3D
 
 const PIT := Vector3(0, -8.0, 0)
+## pass 70: by path, so Warmup never waits on the class cache
+const TRAMPOLINE := preload("res://core/systems/Trampoline.gd")
 const FRAMES_S := 0.3
 
 var _labels: Control
@@ -151,6 +153,10 @@ func _build(game: Node) -> void:
 	add_child(chest)
 	var portal := Portal.new()
 	add_child(portal)
+	# pass 70 (lane TRAMP): Hang Time's trampoline (its graded, fog-free materials, the mat's blend shape) when this hero
+	# can be offered a trampoline perk
+	if TRAMPOLINE.can_offer():
+		add_child(TRAMPOLINE.model_instance())
 	for pdef in Registry.pickups.values():
 		var pu := Powerup.new()
 		pu.setup(pdef)

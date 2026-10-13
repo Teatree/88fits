@@ -1,0 +1,33 @@
+{
+  "id": "prairie_fire",
+  "name": "Prairie Fire",
+  "flavour": "One spark. A whole county.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "debuff_duration",
+        "op": "mul",
+        "value": 1.2,
+        "target": "player"
+      },
+      {
+        "stat": "debuff_jump",
+        "op": "add",
+        "value": 3,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "slow_burn",
+  "art_prompt": "a tuft of dry yellow prairie grass with bright orange flames leaping up from it and a few glowing embers",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

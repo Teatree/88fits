@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bpbcet8mj7y46"
-path="res://.godot/imported/armadillo_icon_a.png-eccaba77bf79ff2d88fa96170e99f486.ctex"
+uid="uid://c5ukbkooih4tq"
+path="res://.godot/imported/hang_time_icon.png-833d303a7f60484e7553f65d858ca8ab.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/enemies/armadillo/armadillo_icon_a.png"
-dest_files=["res://.godot/imported/armadillo_icon_a.png-eccaba77bf79ff2d88fa96170e99f486.ctex"]
+source_file="res://content/perks/hang_time/hang_time_icon.png"
+dest_files=["res://.godot/imported/hang_time_icon.png-833d303a7f60484e7553f65d858ca8ab.ctex"]
 
 [params]
 

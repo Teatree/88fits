@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="PassiveDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/passives/gold_rush/gold_rush_icon.png" id="1_f2dl5"]
+[ext_resource type="Script" path="res://core/data/Effect.gd" id="2_m8uhn"]
+[ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_afda2"]
+
+[sub_resource type="Resource" id="Resource_f2dl5"]
+script = ExtResource("2_m8uhn")
+stat = "greed"
+op = "mul"
+value = 0.6
+target = "player"
+
+[sub_resource type="Resource" id="Resource_m8uhn"]
+script = ExtResource("2_m8uhn")
+stat = "gold_might"
+value = 0.01
+target = "player"
+
+[resource]
+script = ExtResource("3_afda2")
+line = true
+levels = [[SubResource("Resource_f2dl5"), SubResource("Resource_m8uhn")]]
+repeat_last_level = false
+max_level = 1
+evolves_from = "gold_tooth"
+id = "gold_rush"
+display_name = "Gold Rush"
+flavour = "Money talks. Yours shouts."
+rarity = "rare"
+weight = 0.0
+icon = ExtResource("1_f2dl5")
+icon_file = "gold_rush_icon.png"
+placeholder = {
+"color": "#FFB84A",
+"glyph": "star"
+}

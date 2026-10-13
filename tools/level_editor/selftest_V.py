@@ -297,7 +297,7 @@ def checks(check, run_node, server):
             check({"identity", "pose", "style"} <= roles or {"identity", "pose-and-anatomy"} <= roles, "V: ref_wordings cover identity, style and pose (%s)" % sorted(roles))
             for x in methods:
                 for f in (x.get("recipe_fields") or []) + (x.get("job_fields") or []):
-                    check(f.get("type") in ("number", "int", "text", "textarea", "select", "driver", "file", "bool", "json", "view_words"), "V: %s.%s has a type the form renders (%s)" % (x["id"], f.get("key"), f.get("type")))
+                    check(f.get("type") in ("number", "int", "text", "textarea", "select", "driver", "file", "bool", "json", "view_words", "view_numbers"), "V: %s.%s has a type the form renders (%s)" % (x["id"], f.get("key"), f.get("type")))
                     if f.get("type") == "select":
                         check(isinstance(f.get("options"), list) and f["options"], "V: %s.%s select has options" % (x["id"], f.get("key")))
                     if f.get("type") == "view_words":
@@ -595,7 +595,8 @@ async function main(Q) {
   dlg = lastDialog();
   const radios = () => dlg.querySelectorAll('input').filter((i) => i.type === 'radio' && i.name === 'reroll');
   const radioLabels = () => radios().map((r) => r.parentNode.textContent);
-  check('re-roll: the radios show, "redo one view" only for gen_ctl', radios().length === 4 && !radioLabels().includes('redo one view'), radioLabels());
+  // pass 70: a hero look also offers "redo one view's walk" (one clip again); gen_ctl's "redo one view" stays its own
+  check('re-roll: the radios show, "redo one view" only for gen_ctl', radios().length === 5 && !radioLabels().includes('redo one view') && radioLabels().some((t) => t.startsWith('redo one view') && t.endsWith('walk')), radioLabels());
   check('re-roll: "new seeds" is selected', radios().find((r) => r.checked) && radios().find((r) => r.checked).parentNode.textContent === 'new seeds');
   check('re-roll: candidates are optional (0)', lineOf(dlg, 'badge candidates') && lineOf(dlg, 'badge candidates').querySelector('input').value === 0);
   const modelSel = lineOf(dlg, 'model') && lineOf(dlg, 'model').querySelector('select');
@@ -1016,7 +1017,8 @@ def pass68_checks(check, run_node, node):
         check("reroll" not in fl[2], "V68: a server without spec.reroll gets none (flatten keeps SPECS fields only): %s" % fl[2])
         rk = res["rowKeys"]
         check(rk[0] == ["art_prompt", "motion", "anim_negative", "seed_offset", "screen"] and "seed_offset" not in rk[1] and rk[2][:3] == ["prompt", "keep", "detail"] and rk[3] == [] and "directions" in rk[4], "V68: a look row offers the keys its method's tool reads (art_prompt for gen_art, prompt / keep / detail for gen_ctl, seed_offset on a new look): %s" % rk)
-        check(res["rerollModes"] == [["seeds", "clips", "stills"], ["seeds", "clips", "stills"], ["clips"], ["clips", "view"], ["seeds", "stills"], [], []],
+        # pass 70: "clip" (one view's walk) for every method with clips
+        check(res["rerollModes"] == [["seeds", "clips", "clip", "stills"], ["seeds", "clips", "clip", "stills"], ["clips", "clip"], ["clips", "view", "clip"], ["seeds", "stills"], [], []],
               "V68: the form offers only the re-roll modes jobs.py's _apply_reroll accepts per method: %s" % res["rerollModes"])
         c = res["consts"]
         check(c["groups"] == ["queued", "waiting", "running", "finished"] and c["lanes"] == ["comfy", "godot", "local"], "V68: the Jobs tab draws Up next first: %s" % c["groups"])

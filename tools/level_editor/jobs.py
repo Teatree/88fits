@@ -47,6 +47,9 @@ TOOLS = os.path.join(ROOT, "tools")
 if TOOLS not in sys.path:
     sys.path.insert(0, TOOLS)
 import locks  # noqa: E402
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+import vocab as _VOCAB  # noqa: E402  (pass 70: the stills slug rule, STILLS_RE / stills_problem)
 
 _LIST = list   # the API below is named list(); the builtin stays reachable as _LIST
 
@@ -69,6 +72,12 @@ LAUNCH_FILE = os.path.join(locks.SAVE_DIR, "debug_launch.json")   # a module var
 COMFY_SERVER = os.environ.get("COMFY_SERVER", "http://192.168.137.54:8188")
 LMSTUDIO_MODELS = "http://127.0.0.1:1234/v1/models"
 STALL_SECONDS = 20 * 60          # silence this long marks a job stalled (never killed: a dev restart can take minutes)
+# pass 70 (lane LE): a step that runs Godot (register / import: --import, import_json, gen_placeholders) is killed after
+# this many seconds, the Godot lock freed, the job failed with the reason and offered for Re-queue. A `godot --import`
+# once sat 12 minutes at no CPU after "Editor layout ready" holding the lock for every lane (j20261013-031045-ad0e). The
+# job's spec `step_timeout` (seconds) wins; LE_GODOT_STEP_TIMEOUT sets the default; 0 = never. Test in game never times
+# out (the game window is Garry's).
+GODOT_STEP_TIMEOUT = int(os.environ.get("LE_GODOT_STEP_TIMEOUT", "600") or 0)
 CACHE_CHECK_SECONDS = 5.0
 SAVE_THROTTLE = 2.0
 LOG_TAIL_FULL = 80
@@ -85,7 +94,7 @@ HERO_VIEWS = ("front", "back", "side", "fd", "bd")
 BUILTIN_MEDIAN = {"hero_pose5": 570, "hero_fit": 276, "creature_free2": 450, "creature_pose2": 240, "creature_free8": 960,
                   "creature_ctl": 660, "creature_ctl_side": 60, "creature_ctl_side_dev": 840, "creature_proc": 90,
                   "front_from_picture": 20, "recolour": 5, "item_icon": 20, "icon_cands": 20, "icon_cands_dev": 270,
-                  "hero_badge": 20, "hero_title": 25, "driver_pose": 60, "driver_depth": 300, "ref_probe": 10,
+                  "hero_badge": 20, "hero_title": 25, "driver_pose": 60, "driver_depth": 300, "driver_tweak": 5, "ref_probe": 10,
                   "ref_render": 60, "register": 120, "import": 90, "launch": 0, "install": 5}
 
 # ---------------------------------------------------------------- the kinds and their fields
@@ -177,7 +186,7 @@ SPECS = {
         "help": "round badge candidates from the hero's (or the look's) front still; Install writes <id>_icon.png and the JSON's badge, "
                 "or a look's <id>_icon_<x>.png and variants[CODE].icon"},
     "hero_title": {"lane": "comfy", "fields": _with_model({
-        "seeds": _f("int", 4, False, "how many cut-outs"), "first_seed": _f("int", 11, False, "the first seed (+101 each)"),
+        "seeds": _f("int", 4, False, "how many cut-outs"), "first_seed": _f("int", 11, False, "the first seed (each candidate a million apart, moved by the job id: tools/cand_seeds.py)"),
         "character": _f("str", "", False, "who: the hero's description (appearance, else art_prompt without the pose)"),
         "pose": _f("str", "", False, "the pose of the splash (title_pose, else the tool's table, else a confident full-body stance)"),
         "holds": _f("str", "", False, "the one thing held (title_holds)"),
@@ -204,6 +213,18 @@ SPECS = {
         "shoulder_views": _f("str", "back,bd", False, "the views pose_shoulders levels (back,bd; side,fd for the side runs)"),
         "tuck": _f("str", "", False, "side view: the far upper arm at most this many degrees back from straight down (25); empty = off")},
         "help": "an OpenPose driver from a rigged clip (Blender), then its sheets (pose_driver.py draw); with shoulders, a levelled copy <name>_lvl (pose_shoulders.py)"},
+    # pass 70 (lane LE): a copy of a library driver with one change, so Garry can fix one view of a look himself (May's
+    # and Jezyk's fixes): tools/pose_scale.py, pose_spread.py, pose_occlude.py, pose_shoulders.py
+    "driver_tweak": {"lane": "local", "fields": {
+        "src": _f("str", "", True, "the driver to start from (a folder under tools/dl/drivers)"),
+        "name": _f("str", "", True, "the new driver's folder name under tools/dl/drivers/ (a free one)"),
+        "op": _f("enum", "scale", False, "scale | spread | occlude | shoulders", ("scale", "spread", "occlude", "shoulders")),
+        "scale": _f("float", 0.85, False, "op scale: every keypoint moves toward the clip's middle by this (0.85: a wide figure stays inside the clip; the sprite's size is the look's run_scale, not this)"),
+        "views": _f("str", "back,bd", False, "op scale and shoulders: the views changed"),
+        "spread": _f("float", 0.06, False, "op spread: how far past the torso a back wrist goes"),
+        "level": _f("float", 0.3, False, "op shoulders: each shoulder's height off the neck times this"),
+        "tuck": _f("str", "", False, "op shoulders, side view: the far upper arm at most this many degrees back from down (25)")},
+        "help": "a copy of a pose driver with one change in chosen views (pose_scale / pose_spread / pose_occlude / pose_shoulders), drawn again"},
     "driver_depth": {"lane": "local", "fields": {
         "src": _f("str", "", True, "the rigged model"), "name": _f("str", "", True, "the driver folder name"), "action": _f("str", "", False, "the clip to play"),
         "mode": _f("enum", "cycle", False, "cycle (a walk) | oneshot (a death)", ("cycle", "oneshot")), "frames": _f("int", 12, False, ""),
@@ -218,15 +239,18 @@ SPECS = {
         "action": _f("str", "", False, ""), "at": _f("str", "", False, "seconds"), "frame": _f("str", "", False, ""), "pitch": _f("int", 25, False, ""),
         "icon_yaw": _f("int", 35, False, ""), "icon_pitch": _f("int", 20, False, ""), "size": _f("int", 1024, False, ""), "screen": _f("str", "", False, ""),
         "albedo": _f("str", "", False, ""), "scale": _f("str", "auto", False, "")}, "help": "icon and look renders of a 3D file (tools/blender_ref.py, lane B)"},
-    "register": {"lane": "godot", "fields": {"targets": _f("list", [], True, "content folders type/id (enemies/goblin)")},
+    "register": {"lane": "godot", "fields": {"targets": _f("list", [], True, "content folders type/id (enemies/goblin)"),
+                                             "step_timeout": _f("int", 0, False, "seconds a Godot step may run before it is killed (0 = the default, 600)")},
                  "help": "a new folder: placeholders, --import, lossy, --import, import_json"},
-    "import": {"lane": "godot", "fields": {"targets": _f("list", [], True, "content folders type/id"), "placeholders": _f("bool", False, False, "draw placeholders first")},
+    "import": {"lane": "godot", "fields": {"targets": _f("list", [], True, "content folders type/id"), "placeholders": _f("bool", False, False, "draw placeholders first"),
+                                           "step_timeout": _f("int", 0, False, "seconds a Godot step may run before it is killed (0 = the default, 600)")},
                "help": "--import, lossy_imports, --import, import_json only=...; consecutive queued imports merge"},
     "launch": {"lane": "godot", "fields": {
         "character": _f("str", "", False, "the hero"), "look": _f("str", "", False, "the hero's look code (shown, not kept)"),
         "spawn_enemy": _f("str", "", False, "a creature to spawn"), "variant": _f("str", "", False, "its look code"),
         "count": _f("int", 3, False, "how many"), "map": _f("str", "red_canyon", False, "")},
         "help": "Test in game: the debug arena in a window (user://debug_launch.json; the Godot lock is held while it is open)"},
+    # (pass 70: register and import take `step_timeout`, seconds a Godot step may run; see GODOT_STEP_TIMEOUT)
     "install": {"lane": "local", "fields": {
         "source_job": _f("str", "", True, "the finished icon_cands / hero_badge / hero_title job"), "choice": _f("str", "", True, "which candidate"),
         "head_width": _f("float", 0.0, False, "badge"), "top_pad": _f("float", 0.03, False, "badge")},
@@ -279,6 +303,7 @@ class Live:
         self.key_to_stage = {}
         self.last_save = 0.0
         self.lock = None
+        self.timed_out = ""   # pass 70: the reason a step was killed for running over its time limit
 
 
 # ---------------------------------------------------------------- persistence
@@ -647,7 +672,7 @@ def _title(job):
     if job["kind"] == "launch":
         s = job.get("spec") or {}
         return "Test in game: " + ", ".join(x for x in (s.get("character"), s.get("spawn_enemy"), s.get("variant"), s.get("look")) if x)
-    if job["kind"] in ("driver_pose", "driver_depth"):
+    if job["kind"] in ("driver_pose", "driver_depth", "driver_tweak"):
         return "%s %s" % (job["kind"], (job.get("spec") or {}).get("name", ""))
     if job["kind"] in ("ref_probe", "ref_render"):
         return "%s %s" % (job["kind"], os.path.basename((job.get("spec") or {}).get("src", "")))
@@ -709,6 +734,11 @@ def validate_spec(kind, spec):
         if name not in fields:
             out[name] = v   # a key the page knows and this module does not: kept, never dropped
     if kind == "look":
+        # pass 70 (the Bandit check): Stills is the look's slug, never the picture (that goes in Reference)
+        for where, v in (("stills", out.get("stills")), ("recipe.stills", (out.get("recipe") or {}).get("stills") if isinstance(out.get("recipe"), dict) else None)):
+            prob = _VOCAB.stills_problem(v if v != "" else None)
+            if prob:
+                raise ValueError("%s: %s" % (where, prob))
         if out["method"] in ("front_from_picture",) and not out.get("pick") and not (out.get("ref") and out.get("prompt") and out.get("stills")):
             raise ValueError("front_from_picture needs ref, prompt and stills (the slug the pick is cached under)")
         rrc = (out.get("recipe") or {}).get("recolour") if isinstance(out.get("recipe"), dict) else None
@@ -986,6 +1016,32 @@ def _plan(job):
         p.update(tool="gen_title_heroes", call="paint", argv=argv, hid=cid, seeds=seeds, first=first, kwargs=kw, tag=_badge_tag(job))
         p.update(kw)
         p["equiv"] = _equiv_py("gen_title_heroes", p["argv"])
+    elif kind == "driver_tweak":
+        # pass 70: one change to a copy of a library driver (no Blender, no ComfyUI)
+        p.update(mode="steps", lock=None)
+        src_name = re.sub(r"[^A-Za-z0-9_.-]", "", str(spec.get("src", "")))
+        name = re.sub(r"[^A-Za-z0-9_.-]", "", str(spec.get("name", "")))
+        src_dir, dst_dir = os.path.join(DRIVERS, src_name), os.path.join(DRIVERS, name)
+        op = str(spec.get("op") or "scale")
+        views = ",".join(v for v in re.split(r"[\s,]+", str(spec.get("views") or "back,bd")) if v in ("front", "fd", "side", "bd", "back")) or "back,bd"
+        if not src_name or not name or src_name == name:
+            p.update(steps=[], equiv="", error="driver_tweak needs a source driver and a new, different name")
+        elif os.path.exists(dst_dir):
+            p.update(steps=[], equiv="", error="tools/dl/drivers/%s exists already: give the tweaked driver a free name" % name)
+        else:
+            if op == "scale":
+                args = ["scale=%g" % float(spec.get("scale") or 0.85), "views=" + views]
+                tool = "pose_scale.py"
+            elif op == "spread":
+                args, tool = ["spread=%g" % float(spec.get("spread") or 0.06)], "pose_spread.py"
+            elif op == "occlude":
+                args, tool = [], "pose_occlude.py"
+            else:
+                args, tool = ["level=%g" % float(spec.get("level") if spec.get("level") not in (None, "") else 0.3), "views=" + views], "pose_shoulders.py"
+                if str(spec.get("tuck") or "").strip():
+                    args.append("tuck=%g" % float(str(spec["tuck"]).strip()))
+            p["steps"] = [[PY, os.path.join(TOOLS, tool), _rel(src_dir), _rel(dst_dir)] + args]
+            p["equiv"] = "python tools/%s %s %s %s" % (tool, _rel(src_dir), _rel(dst_dir), " ".join(args))
     elif kind in ("driver_pose", "driver_depth", "ref_probe", "ref_render"):
         p.update(mode="steps", lock=None)
         bl = blender_path() or "$BLENDER"
@@ -1076,12 +1132,21 @@ def _plan(job):
             p.update(mode="steps", lock=None, steps=[], equiv="", error="the source job %r is gone" % spec.get("source_job"))
         elif src["kind"] == "icon_cands":
             sp = src.get("plan") or {}
+            icon_job = dict(sp.get("icon_job") or {})
+            if "variant" in spec:
+                # pass 70: installed into the look the picker names ("" = the creature's own icon)
+                if spec["variant"] and not _look_state(dict(t, code=spec["variant"]))["is_base"]:
+                    icon_job["variant"] = spec["variant"]
+                else:
+                    icon_job.pop("variant", None)
             p.update(tool="gen_icon_cands", call="pick", lock=None, argv=["--pick", "%s=%s" % (sp.get("key", cid), choice)], key=sp.get("key", cid),
-                     icon_job=sp.get("icon_job") or {}, choice=choice, id=src["target"].get("id", ""), type=sp.get("type", ""))
+                     icon_job=icon_job, choice=choice, id=src["target"].get("id", ""), type=sp.get("type", ""))
             p["equiv"] = "python tools/gen_icon_cands.py --pick %s=%s   (JOBS[%r] = %s)" % (p["key"], choice, p["key"], json.dumps(p["icon_job"], ensure_ascii=False))
         elif src["kind"] == "hero_badge":
             hid = src["target"].get("id", "")
             variant = str((src.get("spec") or {}).get("variant") or "").strip()
+            if "variant" in spec:
+                variant = "" if _look_state(dict(t, code=spec["variant"]))["is_base"] else str(spec["variant"] or "")   # pass 70: the picker's look
             argv = ["--id", hid, "--pick", choice]
             if variant:
                 argv += ["--variant", variant]   # pass 68 (D7, D8): <id>_icon_<x>.png and the sidecar's entry {icon}
@@ -1097,7 +1162,14 @@ def _plan(job):
         elif src["kind"] == "hero_title":
             hid = src["target"].get("id", "")
             variant = str((src.get("spec") or {}).get("variant") or "").strip()
-            argv = ["--pick", "%s=%s" % (hid, choice)] + (["--variant", variant] if variant else [])
+            pick_as = choice
+            if "variant" in spec:
+                # pass 70: the picker's look; the candidate is named by its file (its stem is the source job's look's)
+                variant = "" if _look_state(dict(t, code=spec["variant"]))["is_base"] else str(spec["variant"] or "")
+                url = next((str(c.get("url", "")) for c in (src.get("choices") or []) if str(c.get("id")) == choice), "")
+                if url:
+                    pick_as = os.path.basename(url.split("?")[0])
+            argv = ["--pick", "%s=%s" % (hid, pick_as)] + (["--variant", variant] if variant else [])
             # pass 68 review: the cut-outs are keyed by the job that painted them (<stem>_<tag>_<n>.png): the pick names
             # that job (--tag; its ASSET_JOB_ID is that job's too, _asset_env), so it installs that job's own picture
             argv += ["--tag", str(src["id"])]
@@ -1419,7 +1491,22 @@ STILL_METHODS = CREATURE_STILL_METHODS + ("hero_pose5",)
 # own recipe where Garry can read and change it (lead, after the Armadillo's ARM-A came out identical to ARM-0)
 INHERITED_WORDS = ("art_prompt", "motion", "dead_hint", "back_hint", "anim_negative", "view_hints", "screen")
 # pass 68 (D3): the job form's re-roll radios ("none" or "" = nothing)
-REROLL_MODES = ("stills", "seeds", "clips", "view")
+REROLL_MODES = ("stills", "seeds", "clips", "view", "clip")
+
+
+def clip_view(key):
+    """The view a look's clip cache key walks (pass 70, the one-view re-roll): a hero's <ck>_pose_run_<view>, gen_ctl's
+    <key>_ctl_<view>, a creature's _walk_f / _pose_f (front), _walk_b / _pose_b (back), _walk_side / _bd / _fd; None for a
+    death or a fall."""
+    k = str(key)
+    for mark in ("_pose_run_", "_ctl_"):
+        if mark in k:
+            return k.rsplit(mark, 1)[-1]
+    for suffix, view in (("_walk_f", "front"), ("_pose_f", "front"), ("_walk_b", "back"), ("_pose_b", "back"), ("_walk_side", "side"),
+                         ("_walk_bd", "bd"), ("_walk_fd", "fd")):
+        if k.endswith(suffix):
+            return view
+    return None
 # pass 68 (D6): the jobs whose words and reference the server fills from the target (candidate_defaults)
 CANDIDATE_KINDS = ("icon_cands", "hero_badge", "hero_title")
 
@@ -1655,6 +1742,9 @@ def _apply_reroll(target, spec):
       seeds   stills, and the clips moved aside with anim_seed + 1
       clips   the clips moved aside, anim_seed + 1 (creature_ctl: walk_seeds + 1 per view), the stills kept
       view    creature_ctl's view candidates (--view-cands)
+      clip    pass 70: one view's walk (reroll.view: front, fd, side, bd, back): only that clip moved aside and walked again
+              (on the driver the recipe names for that view now; anim_seed + 1, creature_ctl's walk_seeds[view] + 1), the
+              stills and the other views kept
     Returns {mode, moved, stamp, keys} or None; ValueError when the mode does not fit the method."""
     rr = spec.get("reroll")
     if not isinstance(rr, dict):
@@ -1679,6 +1769,29 @@ def _apply_reroll(target, spec):
         spec["use_view"] = ""
         rr["applied"] = stamp
         return {"mode": mode, "moved": [], "stamp": stamp, "keys": [], "view": spec["view_cands"]}
+    if mode == "clip":
+        views = [v.strip() for v in str(rr.get("view") or "").split(",") if v.strip()]
+        if not views or any(v not in CTL_VIEWS for v in views):
+            raise ValueError("the one-view walk needs reroll.view: one or more of %s" % ", ".join(CTL_VIEWS))
+        if method == "creature_proc":
+            raise ValueError("creature_proc has no clips (its frames are procedural): re-roll the stills")
+        clips = [k for k in cache_keys(method, spec, target, _look_state(target)["doc"])["clips"] if clip_view(k) in views]
+        if not clips:
+            raise ValueError("%s walks no %s view (a two-direction look walks front and back only)" % (code or "this look", "/".join(views)))
+        recipe = spec.get("recipe")
+        if not isinstance(recipe, dict):
+            recipe = {}
+            spec["recipe"] = recipe
+        if method == "creature_ctl":
+            ws = dict(recipe.get("walk_seeds") or {})
+            for key in clips:
+                ws[clip_view(key)] = int(ws.get(clip_view(key), 0)) + 1
+            recipe["walk_seeds"] = ws
+        else:
+            recipe["anim_seed"] = int(recipe.get("anim_seed", 0) or 0) + 1
+        moved = _move_clips_aside(clips, stamp)
+        rr["applied"] = stamp
+        return {"mode": mode, "moved": moved, "stamp": stamp, "keys": [], "view": ",".join(views)}
     if method == "hero_fit" and mode in ("stills", "seeds"):
         raise ValueError("hero_fit walks the hero's own paintings (every look's): re-roll its clips, or paint the look's own stills with hero_pose5")
     if method == "creature_ctl" and mode in ("stills", "seeds"):
@@ -2210,6 +2323,20 @@ def requeue(job_id, reroll=None):
         if job["state"] in ("running", "queued"):
             raise ValueError("job %s is %s" % (job_id, job["state"]))
         spec = job.setdefault("spec", {})
+        if job["kind"] == "look":
+            # pass 70 (the Bandit check): a job queued before the check with a picture's path in Stills is refused again
+            # with the words (Edit the job: Stills a short name, the picture in Reference)
+            prob = _VOCAB.stills_problem(spec.get("stills") or None)
+            if prob:
+                raise ValueError("stills: %s: Edit the job first" % prob)
+            # pass 70: the look's recipe as its JSON holds it now: a driver or a hint changed in the recipe editor since
+            # the job ran is what the re-run reads (the job's own copy was written back over it, so a one-view re-roll
+            # walked on the old driver)
+            t0 = job.get("target") or {}
+            if t0.get("code") and job.get("method") != "front_from_picture":
+                cur = _look_state(t0)["recipe"]
+                if cur and cur != spec.get("recipe"):
+                    spec["recipe"] = json.loads(json.dumps(cur))
         rr = reroll or {}
         stamp = time.strftime("%Y%m%d-%H%M%S")
         moved = []
@@ -2321,7 +2448,21 @@ def install(job_id, choice, options=None):
     for k in ("head_width", "top_pad"):
         if options and options.get(k) is not None:
             spec[k] = options[k]
-    return enqueue("install", dict(src.get("target") or {}), spec, title="install %s · %s #%s" % (src.get("title", ""), src["kind"], choice))
+    target = dict(src.get("target") or {})
+    more = ""
+    if options and options.get("variant") is not None:
+        # pass 70: a candidate of any finished job installed into any look of the same asset (the look's picker): the
+        # target look's own icon / cut-out ("" = the asset's own, the base look's top-level files)
+        code = str(options.get("variant") or "").strip()
+        if code and not re.match(r"^[A-Za-z0-9_-]+$", code):
+            raise ValueError("bad look code %r" % code)
+        t2 = dict(target, code=code)
+        st = _look_state(t2)
+        if code and not st["is_base"] and not st["entry"]:
+            raise ValueError("%s has no look %s" % (target.get("id", "?"), code))
+        target, spec["variant"] = t2, code
+        more = " → %s" % (code or "its own")
+    return enqueue("install", target, spec, title="install %s · %s #%s%s" % (src.get("title", ""), src["kind"], choice, more))
 
 
 def move(job_id, delta):
@@ -2657,8 +2798,21 @@ def _blender_ready(kind, plan):
     return ""
 
 
-def _spawn(job, live, cmd, env_extra=None, cwd=None):
-    """Run one command, its output to log.txt and the progress parser; returns the exit code (-1 when it could not start)."""
+def step_timeout(job, cmd):
+    """pass 70: the seconds a step may run before it is killed (0 = no limit): a Godot step of a register or import job
+    gets the job's `step_timeout`, else GODOT_STEP_TIMEOUT; every other step none."""
+    if job.get("kind") not in ("register", "import") or not cmd or str(cmd[0]) != str(GODOT):
+        return 0
+    try:
+        v = int(float((job.get("spec") or {}).get("step_timeout") or 0))
+    except (TypeError, ValueError):
+        v = 0
+    return v if v > 0 else max(0, GODOT_STEP_TIMEOUT)
+
+
+def _spawn(job, live, cmd, env_extra=None, cwd=None, timeout=0):
+    """Run one command, its output to log.txt and the progress parser; returns the exit code (-1 when it could not start).
+    `timeout` (pass 70): seconds after which the process tree is killed and live.timed_out says why (0 = none)."""
     env = dict(os.environ)
     env.update(env_extra or {})
     env.setdefault("PYTHONIOENCODING", "utf-8")
@@ -2684,8 +2838,20 @@ def _spawn(job, live, cmd, env_extra=None, cwd=None):
     last_cache = 0.0
     last_beat = time.time()
     flows_seen = None
+    t_start = time.time()
     while proc.poll() is None:
         now = time.time()
+        if timeout and now - t_start > timeout and not live.timed_out:
+            # pass 70: a hung step (a godot --import at no CPU) is killed so the Godot lock is freed for everyone
+            live.timed_out = ("the step ran over its %d s limit and was killed (%s): Re-queue to run it again; the job's "
+                              "step_timeout sets the limit" % (int(timeout), os.path.basename(str(cmd[0]))))
+            try:
+                live.logf.write(live.timed_out + "\n")
+                live.logf.flush()
+            except Exception:
+                pass
+            live.tail.append(live.timed_out)
+            _kill_tree(proc.pid)
         if now - last_cache >= CACHE_CHECK_SECONDS:
             last_cache = now
             _check_caches(job, live)
@@ -2943,6 +3109,10 @@ def _after_exit(job, rc, live):
         if live.cancelled:
             _finish(job, "cancelled", error="")
             return
+        if live.timed_out:
+            # pass 70: killed for its time limit; the worker's finally frees the lock, the card offers Re-queue
+            _finish(job, "failed", error=live.timed_out)
+            return
         if rc != 0:
             tail = [x for x in live.tail if x.strip()]
             err = ""
@@ -3016,11 +3186,20 @@ def _post(job):
                     written["painter"] = {"error": "%s: %s" % (type(ex).__name__, ex)}
             return written, ("" if r.get("ok") else str(r.get("error") or "the entry could not be merged"))
         if kind == "look" and method == "front_from_picture" and job.get("phase", 1) >= 2:
+            # pass 70 (the pick race, lane ART): the pick writes only the key it owns, `stills` (the slug its picked
+            # front is cached under), into the look's recipe as the JSON holds it NOW. It used to write the job's own
+            # copy of the recipe ({stills, painter}) over the whole recipe, so a look job queued before the pick landed
+            # lost its words (BD-A's first walk ran on the base dwarf's words).
+            update = {"stills": str((job.get("spec") or {}).get("stills") or "")}
+            hm = _hook("merge_recipe")
+            if hm:
+                r = hm(t["kind"], t["id"], t["code"], update) or {}
+                return _written(t, r, ["variants"]), ("" if r.get("ok", True) else str(r.get("error", "")))
             h = _hook("set_recipe")
-            recipe = dict((job.get("spec") or {}).get("recipe") or {})
-            recipe["stills"] = str((job.get("spec") or {}).get("stills") or "")
             if h:
-                r = h(t["kind"], t["id"], t["code"], recipe, (job.get("spec") or {}).get("note") or None) or {}
+                recipe = json.loads(json.dumps(_look_state(t)["recipe"] or {}))
+                recipe.update(update)
+                r = h(t["kind"], t["id"], t["code"], recipe, None) or {}
                 return _written(t, r, ["variants"]), ("" if r.get("ok", True) else str(r.get("error", "")))
             return None, ""
         if kind == "look" and method == "recolour":
@@ -3291,7 +3470,7 @@ def _harvest(job):
             outs.append({"label": "%s_%s" % (stem, c["id"]), "type": "candidate", "url": c["url"]})
         if os.path.isfile(os.path.join(TITLE_OUT, "review_%s.png" % stem)):
             outs.append({"label": "review sheet", "type": "sheet", "url": "/dl/title_heroes/review_%s.png" % stem})
-    if kind in ("driver_pose", "driver_depth"):
+    if kind in ("driver_pose", "driver_depth", "driver_tweak"):
         name = str(spec.get("name", ""))
         d = os.path.join(DRIVERS, name)
         for n in ("all_sheet.png",) + tuple("%s_sheet.png" % v for v in CTL_VIEWS):
@@ -3428,7 +3607,9 @@ def _run_steps(job, plan, live):
                 job["progress"]["stage"] = (st or {}).get("name", "step %d" % (i + 1))
                 _save()
             t0 = time.time()
-            rc = _spawn(job, live, step)
+            rc = _spawn(job, live, step, timeout=step_timeout(job, step))
+            if live.timed_out and rc == 0:
+                rc = -9   # killed for its time limit: never a success
             with _lock:
                 if st:
                     st["state"] = "done" if rc == 0 else "failed"

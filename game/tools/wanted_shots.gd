@@ -849,10 +849,10 @@ func _results() -> void:
 	current_scene.scroll.scroll_vertical = 999999
 	await _wait(0.4)
 	await _shot("16c-results-sources")
-	# 16b (pass 44): the hero stayed down; the gold is left in the sand, all but what a Strongbox banked
+	# 16b (pass 44): the hero stayed down; since pass 70 a death banks the purse like an extraction (Game.bank_run_end)
 	_run.extracted = false
 	_run.died = true
-	_run.last_result = {"gold_before": 104711, "banked": 0, "lost": 992, "strongbox": 300, "prev_best": {"time": 480.0}}
+	_run.last_result = {"gold_before": 104711, "banked": 992, "lost": 0, "strongbox": 0, "prev_best": {"time": 480.0}}
 	change_scene_to_file("res://ui/ResultsScreen.tscn")
 	await _wait(1.6)
 	await _shot("16b-results-down")

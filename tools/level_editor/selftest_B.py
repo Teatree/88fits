@@ -12,10 +12,10 @@ TOOLS = os.path.join(ROOT, "tools")
 
 METHOD_IDS = ["hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_ctl", "creature_proc",
               "front_from_picture", "recolour", "item_icon", "icon_cands", "hero_badge", "hero_title", "driver_pose", "driver_depth",
-              "ref_probe", "ref_render"]
+              "ref_probe", "ref_render", "driver_tweak"]   # pass 70: driver_tweak (lane LE)
 KNOWN_TOOLS = {"gen_art", "gen_ctl", "gen_edit_stills", "gen_icon_cands", "gen_badge_cands", "gen_title_heroes", "recolour_strip",
-               "pose_driver", "blender_depth_drivers", "blender_ref", "pose_fit", "pose_spread", "pose_scale", "pose_occlude"}
-FIELD_TYPES = {"number", "int", "text", "textarea", "select", "driver", "file", "bool", "json", "view_words"}
+               "pose_driver", "blender_depth_drivers", "blender_ref", "pose_fit", "pose_spread", "pose_scale", "pose_occlude", "pose_shoulders"}
+FIELD_TYPES = {"number", "int", "text", "textarea", "select", "driver", "file", "bool", "json", "view_words", "view_numbers"}   # pass 70: view_numbers (run_scale)
 REQUIRED = ["id", "name", "kind", "summary", "needs", "produces", "time", "weaknesses", "example", "recipe_fields", "refs", "runner"]
 KINDS = {"enemy", "hero", "item", "driver", "ref"}
 REF_USES = {"icon", "look", "animation"}

@@ -237,6 +237,22 @@ shelved, fresh, imported, sprite_mtime, has_recipe, recipe}`
   `import` step).
 - `sprite_mtime`: the strip's mtime; the page appends `?v=<sprite_mtime>` to bust the strip route's 60 s cache.
 
+## Pass 70 (lane LE)
+
+| Key / route | Meaning |
+|---|---|
+| `POST /api/content/<kind>/<id>/look/<base> {op: "remove", new_base}` | removes the base look (`variant_base`): `new_base` (a look with its own strip on disk) becomes the base; without it a 409 with `choices` and `suggest` (the look in play first); the base in a bulk remove is refused; the look in play still cannot be removed |
+| top-level `sprite`, `icon`, `anims`, `strip_cols`, `fps`, `frame_px` (hero), `head` after a base removal | the new base's own values (`server.BASE_ART_KEYS`), no file renamed; the new base keeps its entry (`recipe`, `title`, `icon_picked`) and a landing on it is mirrored to the top level (`merge_look`, `set_look_files`' icon) |
+| `variants[CODE].anims` / `fps` / `head` / `frame_px` written by a base removal | what that look inherited from the old top level ("pinned"), so it plays as before |
+| `tools/level_editor/backups/deleted/<id>/<stamp>/base_<CODE>.json` | `{code, entry, top, new_base}`: what the removed base was, beside its files |
+| `POST /api/jobs/<job>/install {choice, options: {variant}}` | installs a finished candidate job's pick into the look `variant` ("" = the asset's own, the base's files); the install job's `target.code` and `spec.variant` name it |
+| `/api/heroes` records: `icon_play`, `title_play` | the badge and title cut-out of the look the hero is played in (`?v=<mtime>`; `title_play` null when none is on disk) |
+| `recipe.stills`, a look job's `stills` | a slug `[A-Za-z0-9_]{0,40}` ("" = the asset's own paintings); anything else is refused by the form, the server, the recipe editor and gen_edit_stills |
+| job spec `reroll {mode: "clip", view}` | one view's walk again (front, fd, side, bd, back): that clip moved to `<key>_old<stamp>`, anim_seed + 1 (creature_ctl: walk_seeds[view] + 1) |
+| job kind `driver_tweak {src, name, op, scale, views, spread, level, tuck}` | a copy of the driver `src` as `name` with one change: op scale (pose_scale.py `scale`, `views`), spread (pose_spread.py `spread`), occlude (pose_occlude.py), shoulders (pose_shoulders.py `level`, `views`, `tuck`) |
+| env `ASSET_JOB_ATTEMPT` | the job's attempt, set by tools/asset_job.py; the candidate tools without `--attempt` read it (tools/cand_seeds.job_attempt) |
+| candidate seeds | `tools/cand_seeds.seeds(base, n, tag)`: base + job_salt(job id) + k × 1,000,003 (a hand run: no job move) |
+
 ## Candidate jobs (pass 68)
 
 `hero_badge` {character, prompt (the action), ref, variant, seeds, first_seed, head_width, top_pad}, `hero_title`

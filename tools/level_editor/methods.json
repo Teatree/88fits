@@ -48,7 +48,8 @@
     {"key": "key_cut_shadow", "type": "bool", "default": true, "help": "Keyer: cut the ground-shadow band at the bottom (off for hollow boots or a plinth)."},
     {"key": "key_clamp_screen", "type": "bool", "default": false, "help": "Keyer: clamp the screen's hue out of the figure's edges (grey and silver pick up its tint)."},
     {"key": "grade", "type": "json", "default": null, "help": "A colour grade applied to every keyed figure and frame (artkit.grade; Mira's blue-grey denim)."},
-    {"key": "remap_hues", "type": "json", "default": null, "help": "{ranges: [[h0, h1], ...], to: 30, sat: 0.55}: hues the video model smeared into the clips go back to the hero's own; it keeps value, so a wrong colour must be repainted."}
+    {"key": "remap_hues", "type": "json", "default": null, "help": "{ranges: [[h0, h1], ...], to: 30, sat: 0.55}: hues the video model smeared into the clips go back to the hero's own; it keeps value, so a wrong colour must be repainted."},
+    {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["back", "bd", "side", "fd", "front"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
    "runner": {"tool": "gen_art", "call": "process", "type": "characters", "argv": ["--no-import", "--only", "{id}", "--variant={code}?", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
@@ -83,7 +84,8 @@
     {"key": "key_sat", "type": "number", "default": 0.35, "help": "Keyer saturation threshold (see hero_pose5)."},
     {"key": "key_min_value", "type": "number", "default": 0.2, "help": "Keyer value threshold."},
     {"key": "key_cut_shadow", "type": "bool", "default": true, "help": "Keyer: cut the bottom shadow band."},
-    {"key": "key_clamp_screen", "type": "bool", "default": false, "help": "Keyer: clamp the screen hue at the edges."}
+    {"key": "key_clamp_screen", "type": "bool", "default": false, "help": "Keyer: clamp the screen hue at the edges."},
+    {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["back", "bd", "side", "fd", "front"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead."}
    ],
    "job_fields": [
     {"key": "fit_source", "type": "driver", "default": "run", "help": "The driver the fitted copy is made from (walk_sun_b, catwalk, run_b)."},
@@ -144,7 +146,8 @@
     {"key": "key_cut_shadow", "type": "bool", "default": true, "help": "Keyer: cut the ground-shadow band at the bottom."},
     {"key": "key_clamp_screen", "type": "bool", "default": false, "help": "Keyer: clamp the screen's hue out of the figure's edges."},
     {"key": "grade", "type": "json", "default": null, "help": "A colour grade applied to every keyed figure (artkit.grade)."},
-    {"key": "pose", "type": "driver", "default": "", "help": "Keep empty here: a look inherits every key of its creature, and an inherited pose driver would walk it on Wan Animate instead (SK-C clears it with '')."}
+    {"key": "pose", "type": "driver", "default": "", "help": "Keep empty here: a look inherits every key of its creature, and an inherited pose driver would walk it on Wan Animate instead (SK-C clears it with '')."},
+    {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["front", "back", "side", "bd", "fd"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead. A creature walks front and back (side, bd, fd only with eight directions)."}
    ],
    "refs": {"2d": false, "3d": []},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
@@ -192,7 +195,8 @@
     {"key": "key_min_value", "type": "number", "default": 0.2, "help": "Keyer value threshold."},
     {"key": "key_cut_shadow", "type": "bool", "default": true, "help": "Keyer: cut the bottom shadow band."},
     {"key": "key_clamp_screen", "type": "bool", "default": false, "help": "Keyer: clamp the screen hue at the edges."},
-    {"key": "grade", "type": "json", "default": null, "help": "A colour grade for every keyed figure."}
+    {"key": "grade", "type": "json", "default": null, "help": "A colour grade for every keyed figure."},
+    {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["front", "back", "side", "bd", "fd"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead. A creature walks front and back (side, bd, fd only with eight directions)."}
    ],
    "refs": {"2d": false, "3d": ["animation"]},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
@@ -237,7 +241,8 @@
     {"key": "key_min_value", "type": "number", "default": 0.2, "help": "Keyer value threshold."},
     {"key": "key_cut_shadow", "type": "bool", "default": true, "help": "Keyer: cut the bottom shadow band."},
     {"key": "key_clamp_screen", "type": "bool", "default": false, "help": "Keyer: clamp the screen hue at the edges."},
-    {"key": "pose", "type": "driver", "default": "", "help": "Keep empty: an inherited pose driver would take the front and back clips to Wan Animate."}
+    {"key": "pose", "type": "driver", "default": "", "help": "Keep empty: an inherited pose driver would take the front and back clips to Wan Animate."},
+    {"key": "run_scale", "type": "view_numbers", "default": 1, "min": 0.5, "max": 1.5, "step": 0.01, "views": ["front", "back", "side", "bd", "fd"], "help": "Per-view size of the run / walk clips (pass 70, lane ART's gen_art key): 1 = as fitted. gen_art fits every view's walk by its tallest frame to the standing height, so a view that crouches in every frame (a side run) comes out taller than the others and one whose foot reaches toward the camera (a back or front run) smaller; a driver scaled with + Tweak a driver… cannot fix that (it is fitted back). 0.88 = 12 % smaller; clamped 0.5..1.5. A re-queue re-places the cached walks: nothing is painted again. A view grows only while its tallest frame fits the cell: shrink the others instead."}
    ],
    "refs": {"2d": false, "3d": []},
    "runner": {"tool": "gen_art", "call": "process", "type": "{enemies|bosses}", "argv": ["--no-import", "--only", "{id}", "--variant={code}", "--skip-qa?", "--keys={keys}?", "--seed={seed}?"]}
@@ -520,7 +525,7 @@
     {"key": "extra_ref", "type": "file", "default": "", "help": "A second picture copied exactly, e.g. a render of the held object (title_extra_ref.file)."},
     {"key": "extra_words", "type": "textarea", "default": "", "help": "The words about the second picture: 'copy its shape and colours exactly: <words>' (title_extra_ref.words)."},
     {"key": "variant", "type": "text", "default": "", "help": "The look the cut-out is for (filled from the target's code): its pick writes art/ui/wanted/hero_<id>_<x>.png and that look's title; empty = the hero's own."},
-    {"key": "seeds", "type": "int", "default": 4, "help": "How many candidates (seed = first_seed + n * 101)."},
+    {"key": "seeds", "type": "int", "default": 4, "help": "How many candidates (each on its own seed: a million apart, moved by the job's id and by every re-run; pass 70)."},
     {"key": "first_seed", "type": "int", "default": 11, "help": "The first seed."}
    ],
    "refs": {"2d": true, "3d": ["icon"]},
@@ -612,6 +617,36 @@
    ],
    "refs": {"2d": false, "3d": ["animation"]},
    "runner": {"tool": "blender_depth_drivers", "call": "blender", "argv": ["src={src}", "out=tools/dl/drivers/{name}", "action={action}", "mode={mode}", "frames={frames}", "cycles={cycles}", "total={total}", "start={start}?", "end={end}?", "depth={depth}", "amp={amp}", "amp_bones={amp_bones}", "pitch={pitch}", "views={views}", "forward={forward}", "screen={screen}", "albedo={albedo}?", "inplace={inplace as 1|0}"]}
+  },
+  {
+   "id": "driver_tweak",
+   "name": "A driver tweaked: one view scaled, hands kept out, hands hidden, shoulders levelled",
+   "kind": "driver",
+   "summary": "A copy of a driver from the library with one change in chosen views, drawn again, so one view of a look can be walked again on it (Re-roll... on the look, its clip ticked, the recipe naming the new driver for that view). scale: every keypoint of the views moves toward the clip's middle by `scale` (0.85 keeps wide arms or a hat inside the clip's frame); it does not change the sprite's size: gen_art fits every walk back to the standing height, so a view too tall or too small against the others is the look's `run_scale` (Run size per view in its recipe), not a driver. spread: in the back views a wrist inside the torso's width is pushed out past it (hands painted on a back or through the clothes). occlude: in the back views a wrist inside the torso is dropped (the model then paints no hand there). shoulders: the shoulders levelled with the neck (`level` 0.3; `tuck` turns the side view's far arm down behind the torso). Seconds, no model, no ComfyUI.",
+   "needs": ["a pose driver in tools/dl/drivers (meta.json kind pose): run, run_side, run_spread_lvl, walk, catwalk_fit, ..."],
+   "produces": "tools/dl/drivers/<name>/<view>/driver_NN.png and poses.json, <view>_sheet.png, all_sheet.png, meta.json (a copy of the source's, kind pose)",
+   "counts": {"stills": 0, "clips": 0},
+   "time": {"median_s": 3, "worst_s": 20},
+   "weaknesses": [
+    "One change a job: chain jobs for two (spread a copy, then level the copy's shoulders); the new name must be free.",
+    "scale moves the skeleton inside the frame; gen_art scales each clip back to the standing still's height, so a whole view that comes out too small or too tall is fixed by the look's run_scale (Run size: <view> in its recipe; nothing painted again), never by a scaled driver.",
+    "spread and occlude look at the back views only (back, bd): hands through the clothes on a front view want a driver whose front arms swing beside the body, or the hint words.",
+    "The tools do not check the result: look at the new driver's sheets (the job card shows all_sheet.png) before you walk a look on it."
+   ],
+   "example": {"image": "examples/driver_tweak_scale.png", "strip": null},
+   "recipe_fields": [],
+   "job_fields": [
+    {"key": "src", "type": "driver", "default": "", "help": "The driver to start from (a folder under tools/dl/drivers)."},
+    {"key": "name", "type": "text", "default": "", "help": "The new driver's folder name (a free one: run_spread_lvl_s90)."},
+    {"key": "op", "type": "select", "default": "scale", "options": ["scale", "spread", "occlude", "shoulders"], "help": "scale (shrink or grow chosen views), spread (back wrists out past the torso), occlude (back wrists inside the torso dropped), shoulders (level them with the neck; tuck for the side's far arm)."},
+    {"key": "scale", "type": "number", "default": 0.85, "help": "op scale: how far every keypoint moves toward the clip's middle (0.85 = 15 % smaller; above 1 grows it)."},
+    {"key": "views", "type": "text", "default": "back,bd", "help": "op scale and shoulders: the views changed (front, fd, side, bd, back; comma-separated)."},
+    {"key": "spread", "type": "number", "default": 0.06, "help": "op spread: how far past the torso's edge a wrist goes (of the frame's width)."},
+    {"key": "level", "type": "number", "default": 0.3, "help": "op shoulders: each shoulder's height off the neck times this (0 = level with the neck, 1 = unchanged)."},
+    {"key": "tuck", "type": "text", "default": "", "help": "op shoulders, side view: the far upper arm at most this many degrees back from straight down (25); empty = off."}
+   ],
+   "refs": {"2d": false, "3d": []},
+   "runner": {"tool": "pose_scale", "call": "main", "argv": ["tools/dl/drivers/{src}", "tools/dl/drivers/{name}", "scale={scale}", "views={views}"], "then": "op spread: python tools/pose_spread.py src dst spread={spread}; op occlude: python tools/pose_occlude.py src dst; op shoulders: python tools/pose_shoulders.py src dst level={level} views={views} tuck={tuck}?"}
   },
   {
    "id": "ref_probe",

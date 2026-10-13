@@ -1,0 +1,33 @@
+{
+  "id": "eureka",
+  "name": "Eureka",
+  "flavour": "Every claim pays. Some pay all at once.",
+  "rarity": "rare",
+  "weight": 0,
+  "line": true,
+  "max_level": 1,
+  "levels": [
+    [
+      {
+        "stat": "xp_drop_chance",
+        "op": "add",
+        "value": 0.35,
+        "target": "player"
+      },
+      {
+        "stat": "vein_chance",
+        "op": "add",
+        "value": 0.04,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": false,
+  "trade": "",
+  "evolves_from": "prospector",
+  "art_prompt": "a battered miner's gold pan heaped with glowing purple crystal gems and a few gold nuggets, sparkling",
+  "placeholder": {
+    "color": "#FFB84A",
+    "glyph": "star"
+  }
+}

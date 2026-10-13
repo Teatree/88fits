@@ -7,19 +7,23 @@
 ## the sheet with their names, Steady Hand's buckets and Barrel Rush's boost.
 extends GdUnitTestSuite
 
-const LINES := ["brawn", "bristle", "clover", "deadeye", "ducktape", "energy_shield", "evade", "field_notes", "haste",
-	"hot_sauce", "mend", "multishot", "stride", "thirst", "vigour"]
+## pass 70 (lane LINES): Lodestone, Mule Kick, Slow Burn and Tin Star new, Prospector and Gold Tooth made lines: 21
+const LINES := ["brawn", "bristle", "clover", "deadeye", "ducktape", "energy_shield", "evade", "field_notes", "gold_tooth",
+	"haste", "hot_sauce", "lodestone", "mend", "mule_kick", "multishot", "prospector", "slow_burn", "stride", "thirst",
+	"tin_star", "vigour"]
 const EVOLVED := {"brawn": "juggernaut", "bristle": "cactus_hide", "energy_shield": "aegis", "evade": "ghost_step",
 	"mend": "second_wind", "stride": "roadrunner", "thirst": "bloodthirst", "vigour": "ironclad", "multishot": "barrage",
 	"field_notes": "almanac", "haste": "quicksilver", "deadeye": "eagle_eye", "ducktape": "shackles",
-	"clover": "golden_horseshoe", "hot_sauce": "ghost_pepper"}
+	"clover": "golden_horseshoe", "hot_sauce": "ghost_pepper", "lodestone": "mother_lode", "mule_kick": "bucking_bronco",
+	"slow_burn": "prairie_fire", "tin_star": "marshals_star", "prospector": "eureka", "gold_tooth": "gold_rush"}
 ## Garry's tiers as the lead revised them (pass 47: the WoW-green uncommon plate swallowed the green Reach and Venom icons)
 const TIERS := {
 	# pass 47b: nothing above rare yet (Garry); pass 48: Sinner's Greed epic, Reach, Venom and Big Game Hunter uncommon, and
 	# the six new items (Phoenix Feather, Powder Keg and Loose Change uncommon, Skedaddle and Hot Streak rare, Gas Mask epic);
 	# pass 62: the Pocket Watch uncommon; pass 69 (lane PAS): the Magnet epic, Counterpunch uncommon, Heavyweight rare, Snake
 	# Oil, Hot Springs and Last Stand epic
-	"common": ["cake", "beer", "barrel_rush", "prospector", "pickpocket", "quickdraw", "gold_tooth", "cold_snap"],
+	# pass 70: Prospector and Gold Tooth are lines now
+	"common": ["cake", "beer", "barrel_rush", "pickpocket", "quickdraw", "cold_snap"],
 	"uncommon": ["kindling", "siesta", "ricochet", "overkill", "adrenaline", "hush_money", "vulture", "reach", "venom", "big_game_hunter",
 		"phoenix_feather", "powder_keg", "loose_change", "pocket_watch", "counterpunch"],
 	"rare": ["steady_hand", "guillotine", "desperado", "brimstone_brand", "skedaddle", "hot_streak", "heavyweight"],
@@ -57,7 +61,8 @@ func test_fifteen_lines_each_with_an_evolved_line() -> void:
 	for p: PassiveDef in Registry.passives.values():
 		if p.is_line():
 			lines += 1
-	assert_int(lines).is_equal(30)
+	# pass 70: 21 lines and their 21 evolutions
+	assert_int(lines).is_equal(42)
 	for id: String in LINES:
 		var p: PassiveDef = Registry.passive(id)
 		assert_bool(p.is_line()).override_failure_message(id + " is no line").is_true()
@@ -85,7 +90,8 @@ func test_fifteen_lines_each_with_an_evolved_line() -> void:
 		assert_str(p.evolves_into).override_failure_message(id + " evolves").is_empty()
 	for id: String in NEW_ITEMS:
 		var p: PassiveDef = Registry.passive(id)
-		assert_int(p.max_level).is_equal(5)
+		# pass 70: Prospector became a line (four levels)
+		assert_int(p.max_level).is_equal(4 if p.is_line() else 5)
 		assert_float(p.weight).is_between(8.0, 10.0)
 		assert_str(str(p.placeholder.get("color", ""))).is_not_empty()
 	for p: PassiveDef in Registry.passives.values():
@@ -178,7 +184,8 @@ func test_six_weapons_and_six_lines_all_run_and_passive_items_without_a_cap() ->
 	assert_array(Run.held_passives()).is_equal(["magnet", "reach", "kindling"])
 	# a sixth line finds no slot; passive items keep coming
 	assert_bool(Run.add_or_level_passive("evade")).is_false()
-	for id in ["venom", "cake", "pickpocket", "beer", "siesta", "prospector", "big_game_hunter", "barrel_rush", "overkill", "ricochet"]:
+	# pass 70: Prospector is a line now; Hush Money in its place
+	for id in ["venom", "cake", "pickpocket", "beer", "siesta", "hush_money", "big_game_hunter", "barrel_rush", "overkill", "ricochet"]:
 		assert_bool(Run.add_or_level_passive(id)).override_failure_message(id + " was capped").is_true()
 	assert_int(Run.held_passives().size()).is_equal(13)
 	# the cards keep it: no new line, new passive items still come

@@ -268,18 +268,20 @@ const LookGrid = (() => {
     row('painter', painter ? painterText(painter) + (isStub(look) ? ' (what Generate… starts from)' : '') : 'not recorded (painted before the painter was kept: Flux.2 Klein with its defaults unless the job said dev)', 'the model and the passes the stills were painted with (the job form\'s Model settings, kept in variants[CODE].recipe.painter); "stills reused" = they were on disk already, so this painter painted none of them');
     if (kind === 'hero' && !isStub(look)) {
       // pass 68 (D8, D9): a hero look's own round badge (variants[CODE].icon) and title cut-out (variants[CODE].title), else the hero's
-      const ownCut = !look.base && look.title_file;
+      const ownCut = look.title_file;   // pass 70: a base made from a look keeps its own cut-out (the game reads the base entry's title)
       const cut = `/art/wanted/${encodeURIComponent(ownCut ? look.title_file : 'hero_' + id + '.png')}`;
       const thumbs = el('span', { class: 'lg-thumbs' },
         el('img', { src: `${look.icon || ''}${look.sprite_mtime ? '?v=' + encodeURIComponent(look.sprite_mtime) : ''}`, alt: '', title: (look.icon_file ? `its own badge: ${look.icon_file}` : 'the hero\'s badge (no badge of its own yet: Badge candidates…)') + ` · ${WHERE_SHOWN.badge}`, onerror: (e) => { e.target.remove(); } }),
         el('img', { src: cut, alt: '', title: (ownCut ? `its own title cut-out: ${look.title_file}` : `the hero's title cut-out (hero_${id}.png): Cut-out candidates… paints ${look.base ? 'it' : 'one of this look\'s own'}`) + ` · ${WHERE_SHOWN.cutout}`, onerror: (e) => { e.target.remove(); } }),
-        el('span', { class: 'muted small', text: `${look.icon_file && !look.base ? 'its own badge' : 'the hero\'s badge'} · ${ownCut ? 'its own cut-out' : 'the hero\'s cut-out'}` }));
+        el('span', { class: 'muted small', text: `${look.icon_file ? 'its own badge' : 'the hero\'s badge'} · ${ownCut ? 'its own cut-out' : 'the hero\'s cut-out'}` }));
       // where the game shows each one (pass 68 review: the cut-out never shows on the default Live title)
       const where = el('div', { class: 'muted small lg-where', text: `${WHERE_SHOWN.badge}; ${WHERE_SHOWN.cutout}.` });
       dl.appendChild(el('dt', { text: 'badge · cut-out', title: `the pictures the game shows for this look (a look without its own uses the hero's): ${WHERE_SHOWN.badge}; ${WHERE_SHOWN.cutout}` }));
       dl.appendChild(el('dd', {}, thumbs, where));
     }
     info.appendChild(dl);
+    // pass 70: choose the look's badge / icon / cut-out from everything the finished jobs painted
+    if (!isStub(look)) info.appendChild(pickers(kind, id, look));
     const acts = el('div', { class: 'lg-actions' });
     actions(acts, kind, id, record, look, s);
     info.appendChild(acts);
@@ -358,7 +360,8 @@ const LookGrid = (() => {
       if (def) host.appendChild(el('span', { class: 'muted', text: 'Shelve', title: 'the look in play cannot be shelved: make another the default first' }));
       else if (!stub) b('Shelve', 'keep it, but hide it from the arena chips and the default lists (variants[CODE].shelved = true)', () => op(kind, id, record, s, look.code, { op: 'shelve' }));
     } else b('Unshelve', 'show it in the arena and the lists again', () => op(kind, id, record, s, look.code, { op: 'unshelve' }));
-    if (def || look.base) host.appendChild(el('span', { class: 'muted', text: 'Remove', title: def ? 'the look in play cannot be removed' : 'the base strip cannot be removed' }));
+    if (def) host.appendChild(el('span', { class: 'muted', text: 'Remove', title: 'the look in play cannot be removed: make another the default first' }));
+    else if (look.base) b('Remove…', 'remove the base look (pass 70): you choose which look becomes the base; its strip, icon, anims and fps become the JSON\'s top-level art, the base\'s own files move to tools/level_editor/backups/deleted/<id>/<stamp>/, then an import runs', () => { s.confirm = { codes: [look.code], base: true, newBase: baseChoices(record, look)[0] || '' }; redraw(); }, 'danger');
     else b('Remove', 'delete the entry; its PNGs and .import files move to tools/level_editor/backups/deleted/<id>/<stamp>/ (refused while a map row names it)', () => { s.confirm = { codes: [look.code] }; redraw(); }, 'danger');
     b('Edit note / recipe', 'the note shown on the cards and the recipe the art job reads (raw JSON)', () => { s.edit = { code: look.code, note: look.note || '', recipe: look.recipe || null }; redraw(); });
     if (current && current.doc && typeof Assets !== 'undefined' && typeof Assets.recipeEditor === 'function') b('Recipe (typed)…', 'select it and go to its recipe as typed fields per method (under the grid): Save asset keeps the changes', () => showRecipe(look.code, look));
@@ -453,7 +456,38 @@ const LookGrid = (() => {
     return true;
   }
 
+  /** The looks that may become the base when `base` goes (pass 70, server.base_choices): a look with a strip of its own
+   *  (not a stub or a draft, not the base), the one in play first. */
+  function baseChoices(record, base) {
+    const play = playCode(record);
+    return looksOf(record).filter((l) => l.code !== base.code && !l.base && !isStub(l) && l.ready !== false && l.sprite_file)
+      .map((l) => l.code).sort((a, b) => ((a !== play) - (b !== play)) || String(a).localeCompare(String(b), undefined, { numeric: true }));
+  }
+
+  /** Removing the base look (pass 70): which look becomes the base, what moves where, Yes / Cancel. */
+  function baseConfirm(kind, id, record, s) {
+    const code = s.confirm.codes[0];
+    const choices = baseChoices(record, { code });
+    const box = el('div', { class: 'lg-confirm lg-rebase' });
+    if (!choices.length) {
+      box.appendChild(el('span', { text: `${code} is ${record.name || id}'s base look. No other look has a strip of its own yet, so none can become the base: paint one first (+ New look…), then remove ${code}.` }));
+      box.appendChild(el('button', { type: 'button', class: 'btn small ghost', text: 'Close', onclick: () => { s.confirm = null; redraw(); } }));
+      return box;
+    }
+    if (!choices.includes(s.confirm.newBase)) s.confirm.newBase = choices[0];
+    const sel = el('select', { class: 'lg-newbase', title: 'the look whose strip, icon, anims and fps become the top-level art (the base)' });
+    for (const c of choices) sel.appendChild(el('option', { value: c, text: c + (c === playCode(record) ? ' (in play)' : ''), selected: c === s.confirm.newBase }));
+    sel.addEventListener('change', () => { s.confirm.newBase = sel.value; });
+    box.appendChild(el('span', { text: `Remove ${code}, ${record.name || id}'s base look? Which look becomes the base:` }));
+    box.appendChild(sel);
+    box.appendChild(el('span', { class: 'muted small', text: `The new base's strip, icon, anims and fps become ${id}.json's top-level art (no file is renamed; its entry, recipe and cut-out stay, so its re-rolls still use its own recipe), variant_base names it, ${code}'s entry goes, and ${code}'s own files (the old top-level strip and icon, nothing else names them) move to tools/level_editor/backups/deleted/${id}/<stamp>/ with base_${code}.json (what it was); a backup of the JSON first, then an import. Looks that inherited the old top-level anims or fps get them written into their own entries, so they play as before.` }));
+    box.appendChild(el('button', { type: 'button', class: 'btn small danger', text: s.busy ? 'Removing…' : `Yes, remove ${code}`, disabled: s.busy, onclick: () => { const nb = sel.value; s.confirm = null; op(kind, id, record, s, code, { op: 'remove', new_base: nb }); } }));
+    box.appendChild(el('button', { type: 'button', class: 'btn small ghost', text: 'Cancel', onclick: () => { s.confirm = null; redraw(); } }));
+    return box;
+  }
+
   function confirmBox(kind, id, record, s) {
+    if (s.confirm.base) return baseConfirm(kind, id, record, s);
     const codes = s.confirm.codes;
     const box = el('div', { class: 'lg-confirm' });
     box.appendChild(el('span', { text: `Remove ${codes.join(', ')} from ${record.name || id}? The entr${codes.length > 1 ? 'ies go' : 'y goes'} out of ${id}.json (after a backup); the PNGs and their .import files move to tools/level_editor/backups/deleted/${id}/<stamp>/; then an import runs. The server refuses the look in play and any look a map row names.` }));
@@ -494,6 +528,95 @@ const LookGrid = (() => {
       } }),
       el('button', { type: 'button', class: 'btn small ghost', text: 'Cancel', onclick: () => { s.edit = null; redraw(); } })));
     return box;
+  }
+
+  // ------------------------------------------------------------------ pass 70: choose a look's badge, icon or cut-out
+
+  /** The job kinds whose candidates a picker lists: a hero's badge (hero_badge, raw portraits the install turns into the
+   *  round badge), a hero's title cut-out (hero_title, finished cut-outs), a creature's icon (icon_cands). */
+  const PICK_KINDS = { badge: ['hero_badge'], title: ['hero_title'], icon: ['icon_cands'] };
+  const PICK_NOUN = { badge: 'badge', title: 'title cut-out', icon: 'icon' };
+  /** Every finished candidate job of an asset for `what`, newest first (the Jobs tab's list: Jobs.jobsFor). Garry, pass 70:
+   *  "I should be able to choose any icon that was saved from the jobs that were done". */
+  function paintedCandidates(kind, id, what) {
+    const list = typeof Jobs !== 'undefined' && typeof Jobs.jobsFor === 'function' ? Jobs.jobsFor(kind, id) : [];
+    return list.filter((j) => (PICK_KINDS[what] || []).includes(j.kind) && j.state === 'done' && Array.isArray(j.choices) && j.choices.length)
+      .sort((a, b) => String(b.ended || b.created || '').localeCompare(String(a.ended || a.created || '')));
+  }
+  const pickOpen = new Set();   // `${kind}|${id}|${code}|${what}`: the pickers left open (they survive the redraws)
+
+  /** A picker: every candidate `what` any finished job painted for this asset, grouped by job (newest first, the look it
+   *  was painted for named), one click to choose, Install to write it as `code`'s own (code '' = the asset's own, the
+   *  base look's top-level files). Install queues an install job (POST /api/jobs/<job>/install {choice, options:
+   *  {variant: code}}): the badge made from the portrait, or the icon finished, or the cut-out copied, the old file backed
+   *  up, the look's entry naming it, then an import. */
+  function picker(kind, id, o) {
+    const what = o.what;
+    const code = o.code || '';
+    const forWhom = o.label || (code ? `${code}'s` : 'the base look\'s');
+    const noun = PICK_NOUN[what] || what;
+    const jobs = paintedCandidates(kind, id, what);
+    const n = jobs.reduce((a, j) => a + j.choices.length, 0);
+    const okey = `${kind}|${id}|${code}|${what}`;
+    const det = el('details', { class: 'lg-picker', 'data-what': what, 'data-code': code });
+    if (pickOpen.has(okey)) det.open = true;
+    det.addEventListener('toggle', () => { if (det.open) pickOpen.add(okey); else pickOpen.delete(okey); });
+    det.addEventListener('click', (e) => e.stopPropagation());
+    det.appendChild(el('summary', { text: `Choose ${forWhom} ${noun} from everything painted (${n} in ${jobs.length} job${jobs.length === 1 ? '' : 's'})`,
+      title: `every ${noun} candidate a finished job made for ${id} (any look); Install writes the one you choose as ${forWhom} ${noun}` }));
+    if (!n) {
+      det.appendChild(el('div', { class: 'muted small', text: `No finished ${noun} candidates for ${id} yet: ${what === 'title' ? 'Cut-out candidates…' : what === 'badge' ? 'Badge candidates…' : 'Icon candidates…'} paints some (the job lists them here when it is done).` }));
+      return det;
+    }
+    let picked = null;
+    const msg = el('span', { class: 'muted small' });
+    const btn = el('button', { type: 'button', class: 'btn small primary', text: `Install as ${forWhom} ${noun}`, disabled: true, title: 'queues an install job: the old file is backed up, the look\'s entry names the new one, then an import' });
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!picked) return;
+      btn.disabled = true;
+      msg.textContent = 'queuing…';
+      const res = await post(`/api/jobs/${encodeURIComponent(picked.job.id)}/install`, { choice: picked.choice, options: { variant: code } });
+      if (!res || !res.ok) { msg.textContent = `refused: ${(res && res.error) || 'no answer'}`; btn.disabled = false; return; }
+      msg.textContent = `queued ${res.job && res.job.id ? '#' + String(res.job.id).slice(-4) : 'an install job'}: ${picked.label} becomes ${forWhom} ${noun}, then an import (see the Jobs tab)`;
+      if (typeof App !== 'undefined') App.status(`${id}: installing ${picked.label} of #${String(picked.job.id).slice(-4)} as ${forWhom} ${noun}`, 'good');
+      if (typeof Jobs !== 'undefined' && typeof Jobs.poll === 'function') { try { await Jobs.poll(); } catch (_) { /* the list as it was */ } }
+    });
+    for (const j of jobs) {
+      const grp = el('div', { class: 'lg-pick-group' });
+      const when = String(j.ended || j.created || '').replace('T', ' ').slice(0, 16);
+      grp.appendChild(el('div', { class: 'muted small', text: `#${String(j.id).slice(-4)} · painted for ${j.target && j.target.code ? j.target.code : 'the base'} · ${when}${j.spec && j.spec.model === 'dev' ? ' · Flux.2 dev' : ''}`, title: j.title || j.id }));
+      const grid = el('div', { class: 'lg-pick-grid' + (what === 'badge' ? ' round' : '') + (what === 'title' ? ' tall' : '') });
+      for (const ch of j.choices) {
+        const tile = el('button', { type: 'button', class: 'lg-pick', title: `${ch.label || ch.id} of ${j.title || j.id}` },
+          el('img', { src: ch.url, alt: '', loading: 'lazy' }), el('span', { class: 'small', text: ch.label || String(ch.id) }));
+        tile.addEventListener('click', (e) => {
+          e.stopPropagation();
+          picked = { job: j, choice: String(ch.id), label: ch.label || String(ch.id) };
+          for (const t of det.querySelectorAll('.lg-pick')) t.classList.toggle('picked', t === tile);
+          btn.disabled = false;
+          btn.textContent = `Install ${picked.label} (#${String(j.id).slice(-4)}) as ${forWhom} ${noun}`;
+          msg.textContent = '';
+        });
+        grid.appendChild(tile);
+      }
+      grp.appendChild(grid);
+      det.appendChild(grp);
+    }
+    det.appendChild(el('div', { class: 'lg-pick-actions' }, btn, msg));
+    return det;
+  }
+
+  /** The pickers a look offers: a hero look its badge and its title cut-out, a creature look its icon. */
+  function pickers(kind, id, look) {
+    const code = look.base ? '' : look.code;
+    const label = look.base ? `${look.code}'s (the base look's)` : `${look.code}'s`;
+    const wrap = el('div', { class: 'lg-pickers' });
+    if (kind === 'hero') {
+      wrap.appendChild(picker(kind, id, { what: 'badge', code, label }));
+      wrap.appendChild(picker(kind, id, { what: 'title', code, label }));
+    } else wrap.appendChild(picker(kind, id, { what: 'icon', code, label }));
+    return wrap;
   }
 
   // ------------------------------------------------------------------ the server
@@ -627,6 +750,7 @@ const LookGrid = (() => {
     if (current && current.kind === kind && current.id === id) current = null;
   }
 
-  return { painterText, painterShort, ownKeys, isStub, isDraft, BOOK_KEYS, WHERE_SHOWN, render, select, dispose, playerOpts, looksOf, generate, jobsChanged, PAGE, STATUS };
+  return { painterText, painterShort, ownKeys, isStub, isDraft, BOOK_KEYS, WHERE_SHOWN, render, select, dispose, playerOpts, looksOf, generate, jobsChanged, PAGE, STATUS,
+    picker, pickers, paintedCandidates, PICK_KINDS, baseChoices };   // pass 70
 })();
 if (typeof module !== 'undefined') module.exports = LookGrid;

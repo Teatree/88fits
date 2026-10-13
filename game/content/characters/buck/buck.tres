@@ -56,9 +56,9 @@ momentum = {
 "speed_bonus": 0.8
 }
 availability = "purchase"
-price = 500
-sprite = ExtResource("9_b75va")
-sprite_file = "buck_sprite_e.png"
+price = 1250
+sprite = ExtResource("11_4l51j")
+sprite_file = "buck_sprite_f.png"
 anims = {
 "cheer": 1.0,
 "die": 5.0,
@@ -282,7 +282,7 @@ variants = {
 },
 "frame_px": 256,
 "icon": ExtResource("12_18qhc"),
-"note": "pass 69: the dash (the hedgehog's run): BUC-D's paintings on run_dash_lvl (the Running legs with both arms swept straight back behind the body and the spine leaning 14 degrees forward, shoulders levelled)",
+"note": "pass 69: the dash (the hedgehog's run): BUC-D's paintings on run_dash_lvl (the Running legs with both arms swept straight back behind the body and the spine leaning 14 degrees forward, shoulders levelled). Pass 70 (lane ART): the front walk on run_dash_f_low (the hands low beside his hips, no longer over the jacket); run_scale so every view runs at one size (the back ran small: 0.96 of his standing size against 1.17 from the side and front)",
 "shelved": false,
 "sprite": ExtResource("11_4l51j"),
 "sprite_file": "buck_sprite_f.png",
@@ -290,11 +290,11 @@ variants = {
 "title": "hero_buck_f.png"
 }
 }
-variant = "BUC-E"
+variant = "BUC-F"
 id = "buck"
 display_name = "Jeżyk"
 flavour = "The little hedgehog of the block. Slow to start, impossible to stop."
-icon = ExtResource("10_v5l1u")
+icon = ExtResource("12_18qhc")
 icon_file = "buck_icon.png"
 placeholder = {
 "color": "#141418",

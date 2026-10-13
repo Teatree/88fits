@@ -532,7 +532,7 @@ def create_checks(check, server):
             r = server.look_op("enemy", "testbeast", ["TB-C"], "recipe", {"recipe": None})
             check(r["ok"] and "recipe" not in json.load(open(cpath, encoding="utf-8"))["variants"]["TB-C"], "recipe null drops it")
             check(server.look_op("enemy", "testbeast", ["TB-A"], "remove")["status"] == 409, "remove refused for the look in play")
-            check(server.look_op("enemy", "testbeast", ["TB-0"], "remove")["status"] == 409, "remove refused for the base strip's code")
+            check(server.look_op("enemy", "testbeast", ["TB-0"], "remove")["status"] == 409, "remove of the base strip's code without new_base: refused, the choices offered (pass 70)")
             r = server.look_op("enemy", "testbeast", ["TB-B"], "default")
             d = json.load(open(cpath, encoding="utf-8"))
             check(r["ok"] and d["variant"] == "TB-B" and [l for l in r["looks"] if l["code"] == "TB-B"][0]["default"], "default op sets `variant` (write_variant generalised)")
@@ -907,9 +907,10 @@ def routes_checks(check, server):
         lo, hi = selftest_L69.pass44_band()
         check(body["band"]["locked"] == want["locked"] and body["band"]["base"] == want["base"] and lo <= body["band"]["share"] <= hi,
               "the band is %d of %d as pass44_test counts it, inside %.2f-%.2f: %s" % (want["locked"], want["base"], lo, hi, body["band"]))
+        # pass 70 (lane LINES): four new lines, and Prospector and Gold Tooth went from passive items to lines: 21 / 34
         shape = selftest_L69.content_passives()
         check(len(body["lines"]) == shape["lines"] and all(l["evolved"] for l in body["lines"]) and len(body["passives"]) == shape["items"] and len(body["quests"]) == shape["quests"]
-              and shape["lines"] >= 15 and shape["items"] >= 36,
+              and shape["lines"] >= 21 and shape["items"] >= 34,
               "%d lines with evolved forms, %d passive items, %d quests (the content folder's; pass 69: the six heroes' unlock quests): %d / %d / %d"
               % (shape["lines"], shape["items"], shape["quests"], len(body["lines"]), len(body["passives"]), len(body["quests"])))
         check(all(m["availability"] in ("hidden", "available") for w in body["weapons"] for m in w["mutations"]), "mutations are hidden or available, never locked")

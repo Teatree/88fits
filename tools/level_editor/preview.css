@@ -260,3 +260,28 @@
 .jpiccard[hidden] { display: none; }
 .lg-thumbs { display: inline-flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
 .lg-thumbs img { height: 64px; width: auto; max-width: 64px; object-fit: contain; border-radius: 6px; background: repeating-conic-gradient(#2a2a28 0% 25%, #222221 0% 50%) 0 0 / 10px 10px; }
+/* pass 70 (lane LE): a look's picker of every badge / icon / cut-out the finished jobs painted, the base-removal box,
+   the inherited values shown in their boxes */
+.lg-pickers { display: flex; flex-direction: column; gap: 4px; }
+.lg-picker { border: 1px solid var(--border-2); border-radius: 6px; padding: 4px 8px; background: var(--surface); }
+.lg-picker summary { cursor: pointer; font-size: 0.82rem; color: var(--ink); }
+.lg-picker[open] summary { margin-bottom: 6px; }
+.lg-pick-group { margin: 4px 0 8px; }
+.lg-pick-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 3px; }
+.lg-pick { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px; background: var(--surface-2); border: 2px solid transparent; border-radius: 6px; color: var(--ink-2); cursor: pointer; font: inherit; }
+.lg-pick:hover { border-color: var(--border-2); }
+.lg-pick.picked { border-color: var(--s1, #4da3ff); background: var(--surface-3); }
+.lg-pick img { width: 72px; height: 72px; object-fit: contain; border-radius: 4px; background: repeating-conic-gradient(#2a2a28 0% 25%, #222221 0% 50%) 0 0 / 10px 10px; }
+.lg-pick-grid.round .lg-pick img { border-radius: 50%; object-fit: cover; object-position: 50% 18%; }
+.lg-pick-grid.tall .lg-pick img { width: 60px; height: 81px; }
+.lg-pick-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+.lg-rebase select { min-width: 110px; }
+.lg-rebase .muted { flex-basis: 100%; }
+.hprev-pickers { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+/* an inherited value in its box: readable, italic, a dashed border (an own value is plain) */
+input.inherited, textarea.inherited, textarea.txt.area.inherited, .jform textarea.inherited, .jform input.inherited { color: var(--ink-2) !important; font-style: italic !important; border-style: dashed !important; }
+.inh-mark { font-size: 0.72rem; padding: 1px 6px; border-radius: 9px; background: var(--surface-3); color: var(--muted); white-space: nowrap; }
+.inh-mark.own { color: var(--ink); background: rgba(12,163,12,0.18); }
+.inh-back { font-size: 0.72rem; padding: 0 6px; }
+.jform .fieldline .jstills-err { grid-column: 2; }
+.jform .fieldline .jstills-err:empty { display: none; }

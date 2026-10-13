@@ -1,0 +1,27 @@
+{
+  "id": "tin_star",
+  "name": "Tin Star",
+  "flavour": "Only tin. Folks still aim around it.",
+  "rarity": "uncommon",
+  "weight": 8,
+  "line": true,
+  "max_level": 4,
+  "levels": [
+    [
+      {
+        "stat": "damage_reduction",
+        "op": "add",
+        "value": 0.05,
+        "target": "player"
+      }
+    ]
+  ],
+  "repeat_last_level": true,
+  "trade": "",
+  "evolves_into": "marshals_star",
+  "art_prompt": "a dented six-pointed tin sheriff's star badge with little round balls on its tips, dull silver metal with one scratch",
+  "placeholder": {
+    "color": "#B8C0C8",
+    "glyph": "star"
+  }
+}

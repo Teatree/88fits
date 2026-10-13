@@ -21,8 +21,9 @@ the pass 66 ones. The reference: --ref (a path under the repo, under tools/dl/ o
 when it has a transparent film), else the look's own front still (the base: <id>_front, as before).
 Candidates are keyed per job (the tag: the last four letters and digits of --tag or of the Level Editor job's id, "x" by
 hand), so a second job paints its own instead of getting the first one's back; a pick names the tag (--tag) or a whole
-key. Seeds: gen_art.seed_for(id) + 40 + first + 1000 * k, moved by the look's seed_offset and by --attempt (a re-run
-paints new ones); one try each. Both --x value and --x=value work; the painter flags (--dev, --model=, --steps=,
+key. Seeds: gen_art.seed_for(id) + 40 + first, moved by the look's seed_offset and by --attempt (a re-run paints new
+ones), then by the job (pass 70, tools/cand_seeds.py: the job id's own move, candidate k a prime past a million from
+k-1; two jobs of one look painted the same seeds before); one try each. Both --x value and --x=value work; the painter flags (--dev, --model=, --steps=,
 --guidance=, --turbo, --no-turbo) reach gen_art.
 """
 import io
@@ -39,6 +40,7 @@ sys.argv = ["gen_art.py", "--no-import"] + [a for a in ARGS if a in _PAINTER_FLA
 sys.path.insert(0, HERE)
 import gen_art as g  # noqa: E402
 import comfy  # noqa: E402
+import cand_seeds  # noqa: E402
 from PIL import Image, ImageDraw  # noqa: E402
 
 REVIEW = os.path.join(REPO, "tools", "dl", "review")
@@ -101,11 +103,12 @@ def cand_key(hid, tag, k):
     return "%s_portrait_%s_c%d" % (hid, tag, int(k))
 
 
-def badge_seeds(hid, seeds, first=0, offset=0, attempt=1):
-    """seed_for(id) + 40 + first + 1000 * k, moved by the look's seed_offset and by the job's attempt (each step
-    gen_art.LOOK_SEED_STEP): the base's first attempt paints the seeds it always did."""
+def badge_seeds(hid, seeds, first=0, offset=0, attempt=1, tag=""):
+    """seed_for(id) + 40 + first, moved by the look's seed_offset and by the job's attempt (each step
+    gen_art.LOOK_SEED_STEP), then cand_seeds.seeds: the job's own move (`tag`, the Level Editor job id; none by hand) and
+    candidate k CAND_STEP from k-1 (pass 70: a second job of one look had painted the first one's seeds again)."""
     base = g.seed_for(hid) + 40 + int(first) + g.LOOK_SEED_STEP * (int(offset) + max(0, int(attempt) - 1))
-    return [base + 1000 * k for k in range(int(seeds))]
+    return cand_seeds.seeds(base, seeds, tag)
 
 
 def front_still_key(d, hid, code=""):
@@ -181,8 +184,9 @@ def paint(hid, seeds, words="", first=0, head_width=0.0, top_pad=0.03, character
     front_ref, ref_file = reference(hid, d0, code, ref, bg == g.BG_BLUE)
     action = action_of(d, words)
     prompt = badge_prompt(character, action, bg)
-    tag = cand_tag(tag if tag else os.environ.get("ASSET_JOB_ID", ""))
-    seed_list = badge_seeds(hid, seeds, first, g.seed_offset_of(d), attempt)
+    raw_tag = cand_seeds.job_tag(tag)
+    tag = cand_tag(raw_tag)
+    seed_list = badge_seeds(hid, seeds, first, g.seed_offset_of(d), attempt, raw_tag)
     keys, cands = [], []
     for k, s in enumerate(seed_list):
         key = cand_key(hid, tag, k)

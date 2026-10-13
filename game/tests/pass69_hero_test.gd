@@ -70,7 +70,8 @@ func test_may_loads_as_may_with_her_looks_and_no_mamy_is_left() -> void:
 	assert_str(may.display_name).is_equal("May")
 	assert_str(may.pronoun).is_equal("she")
 	assert_str(may.variant).is_equal("MAY-G")  # lane ART: the dev look, played from pass 69
-	assert_array(may.variant_codes(true)).contains(["MAY-A", "MAY-B", "MAY-C"])
+	# pass 70 (lane LE): Garry had the base MAY-A removed in the Level Editor; MAY-G is her base and her look
+	assert_array(may.variant_codes(true)).contains(["MAY-G", "MAY-B", "MAY-C"])
 	# Garry's drafts come and go in the Level Editor (MAY-F became MAY-E while pass 69 shipped): only the shape is
 	# pinned, every look under a MAY- code and a draft's `from` naming one of hers
 	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://content/characters/may/may.json"))
@@ -79,11 +80,13 @@ func test_may_loads_as_may_with_her_looks_and_no_mamy_is_left() -> void:
 		var rec = (d["variants"][code] as Dictionary).get("recipe", {})
 		if rec is Dictionary and (rec as Dictionary).has("from"):
 			assert_str(str(rec["from"])).starts_with("MAY-")
-	assert_str(str(d["variant_base"])).is_equal("MAY-A")
+	assert_str(str(d["variant_base"])).starts_with("MAY-")
+	assert_bool((d["variants"] as Dictionary).has(str(d["variant_base"]))).is_true()
 	for code in may.variants.keys():
 		assert_str(str(code)).starts_with("MAY-")
 	assert_bool(ResourceLoader.exists("res://content/characters/may/may_sprite_b.png")).is_true()
-	assert_bool(ResourceLoader.exists("res://content/characters/may/may_icon.png")).is_true()
+	assert_bool(ResourceLoader.exists("res://content/characters/may/" + str(d.get("icon", "may_icon.png")))).is_true()
+	assert_bool(ResourceLoader.exists("res://content/characters/may/" + str(d.get("sprite", "may_sprite.png")))).is_true()
 	assert_bool(DirAccess.dir_exists_absolute("res://content/characters/mamy")).is_false()
 	# her trait stays (attack speed), her favourite is the Tommy Gun with a bonus that fits her
 	assert_str(may.favourite_weapon).is_equal("tommy_gun")
@@ -205,6 +208,14 @@ func test_the_decoy_cycle_throw_land_fool_inside_only_never_a_boss_then_pop() ->
 	g._tick_decoy(fl * 0.5)
 	assert_int(dc.phase).is_equal(Decoy.FLYING)
 	g._tick_decoy(fl * 0.5 + 0.01)
+	# pass 70 (lane TRAMP, re-pinned on purpose): the puck lands short, slides to the spot and the doll inflates out of
+	# it; only then does the fooling start
+	assert_int(dc.phase).is_equal(Decoy.SLIDING)
+	assert_bool(em.decoy_on).is_false()
+	g._tick_decoy(Decoy.SLIDE_TIME + 0.01)
+	assert_int(dc.phase).is_equal(Decoy.INFLATING)
+	assert_bool(em.is_fooled(inside)).is_false()
+	g._tick_decoy(Decoy.INFLATE_TIME + 0.01)
 	assert_int(dc.phase).is_equal(Decoy.FOOLING)
 	assert_bool(em.decoy_on).is_true()
 	assert_bool(em.decoy_at.is_equal_approx(spot)).is_true()
@@ -242,7 +253,7 @@ func test_the_decoy_cycle_throw_land_fool_inside_only_never_a_boss_then_pop() ->
 	assert_int(dc.marks_shown).is_equal(0)
 	# the next throw `every` s after the last
 	assert_float(dc.clock).is_less_equal(Decoy.param("every", 30.0))
-	assert_float(dc.clock).is_greater(Decoy.param("every", 30.0) - fl - dur - 0.5)
+	assert_float(dc.clock).is_greater(Decoy.param("every", 30.0) - fl - Decoy.SLIDE_TIME - Decoy.INFLATE_TIME - dur - 0.5)
 	await _done(g)
 
 
