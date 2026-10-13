@@ -1,0 +1,910 @@
+<title>The Puppet Method</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rye&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;0,800;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a puppet theatre programme. The stage (proscenium, curtains, the whole method hung on strings) opens the page;
+   then one reading column where each real stage of the method is an act, marked by a marionette control bar with its
+   felt number tag. Pictures may run wider than the text column. */
+:root {
+  --bg: #e4eaec;          /* the painted backdrop: pale stage-sky */
+  --paper: #f7f9f8;       /* cards and figures */
+  --ink: #241a18;
+  --ink-2: #5b4f4b;
+  --rule: #c9d1d3;
+  --velvet: #9b1d30;      /* curtain red: the accent */
+  --velvet-2: #6e1121;
+  --wood: #8a5a33;        /* the walnut of the frame and the control bars */
+  --wood-2: #5e3a1f;
+  --wood-3: #b98552;
+  --felt: #e2a83a;        /* mustard felt: number tags */
+  --felt-ink: #3a2608;
+  --teal: #2c6a6e;        /* teal felt: the technical part */
+  --teal-bg: #dcebea;
+  --warn: #9a5a00;
+  --warn-bg: #f8ead2;
+  --string: #7b6e66;
+  --code-bg: #e9eeee;
+  --stage-floor: #2a1c16;
+  --stage-light: #fff6dd;
+  --display: "Rye", "Rockwell", "Georgia", serif;
+  --body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #16121a; --paper: #211b25; --ink: #efe8e2; --ink-2: #b8ada7; --rule: #3a3240;
+  --velvet: #d4485d; --velvet-2: #8e1d30; --wood: #a8723f; --wood-2: #6b4424; --wood-3: #c99560;
+  --felt: #e8b24a; --felt-ink: #2c1c05; --teal: #6cbcbd; --teal-bg: #1b2d2f; --warn: #f0b85a; --warn-bg: #33270f;
+  --string: #a49788; --code-bg: #2b2430; --stage-floor: #0d0a0c; --stage-light: #3a2f22;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #16121a; --paper: #211b25; --ink: #efe8e2; --ink-2: #b8ada7; --rule: #3a3240;
+  --velvet: #d4485d; --velvet-2: #8e1d30; --wood: #a8723f; --wood-2: #6b4424; --wood-3: #c99560;
+  --felt: #e8b24a; --felt-ink: #2c1c05; --teal: #6cbcbd; --teal-bg: #1b2d2f; --warn: #f0b85a; --warn-bg: #33270f;
+  --string: #a49788; --code-bg: #2b2430; --stage-floor: #0d0a0c; --stage-light: #3a2f22;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 18px/1.6 var(--body); margin: 0; }
+.page { padding-inline: 16px; padding-block: 18px 72px; }
+.col { max-width: 760px; margin-inline: auto; }
+.wide { max-width: 1120px; margin-inline: auto; }
+h1, h2, h3 { line-height: 1.15; text-wrap: balance; margin: 0; }
+h3 { font-family: var(--body); font-weight: 800; font-size: 1.18rem; margin-block: 28px 8px; }
+p { margin: 0 0 12px; }
+a { color: var(--velvet); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--felt); outline-offset: 2px; border-radius: 4px; }
+code, .path { font-family: var(--mono); font-size: 0.8em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { font-family: var(--mono); font-size: 0.82rem; background: var(--code-bg); padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 0 0 14px; line-height: 1.5; }
+ul.plain, ol.plain { padding-left: 1.3rem; margin: 0 0 14px; }
+ul.plain li, ol.plain li { margin-bottom: 6px; }
+.small { font-size: 0.9rem; color: var(--ink-2); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- the stage (hero) */
+.stage { position: relative; max-width: 1180px; margin: 0 auto 8px; padding: 14px;
+  background: repeating-linear-gradient(92deg, var(--wood-2) 0 3px, var(--wood) 3px 11px, var(--wood-3) 11px 13px, var(--wood) 13px 26px);
+  border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.stage-inner { position: relative; background: radial-gradient(ellipse at 50% 0%, var(--stage-light), var(--paper) 70%);
+  border-radius: 4px; overflow: hidden; padding: 64px clamp(26px, 9vw, 120px) 26px; }
+.valance { position: absolute; inset: 0 0 auto 0; height: 46px; z-index: 2;
+  background: radial-gradient(circle at 50% 0, var(--velvet) 0 26px, transparent 27px) 0 6px / 52px 52px repeat-x,
+              linear-gradient(var(--velvet-2), var(--velvet)) 0 0 / 100% 22px no-repeat; }
+.curtain { position: absolute; top: 0; bottom: 0; width: clamp(18px, 7vw, 92px); z-index: 1;
+  background: repeating-linear-gradient(90deg, var(--velvet-2) 0 6px, var(--velvet) 6px 18px, var(--velvet-2) 18px 26px); }
+.curtain.l { left: 0; border-bottom-right-radius: 70% 30%; }
+.curtain.r { right: 0; border-bottom-left-radius: 70% 30%; }
+.stage-floor { height: 12px; background: var(--stage-floor); border-radius: 0 0 4px 4px; }
+.eyebrow { font: 500 0.78rem/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 10px; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(2.3rem, 7vw, 4.2rem); color: var(--velvet); letter-spacing: .01em; }
+.lede { font-size: 1.12rem; margin-top: 14px; max-width: 64ch; }
+
+/* the method hung on strings: one control bar per puppet */
+.troupe { list-style: none; padding: 0; margin: 26px 0 6px; display: grid; gap: 14px 10px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.troupe li { display: grid; justify-items: center; min-width: 0; }
+.troupe .bar { width: 86%; height: 9px; border-radius: 5px; background: linear-gradient(var(--wood-3), var(--wood-2)); position: relative; }
+.troupe .bar::after { content: ""; position: absolute; left: 50%; top: -9px; width: 8px; height: 27px; transform: translateX(-50%); border-radius: 4px; background: linear-gradient(90deg, var(--wood-2), var(--wood-3)); }
+.troupe .strings { width: 70%; height: 30px; border-inline: 1.5px solid var(--string); }
+.troupe .card { position: relative; width: 100%; max-width: 150px; background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.troupe img { display: block; width: 100%; height: auto; aspect-ratio: 230 / 300; object-fit: cover; }
+.troupe .tag { position: absolute; top: 6px; left: 6px; font: 400 0.9rem/1 var(--display); color: var(--felt-ink); background: var(--felt); padding: 5px 7px 4px; border-radius: 4px; outline: 1.5px dashed rgba(58,38,8,.55); outline-offset: -4px; }
+.troupe .cap { font-size: 0.86rem; line-height: 1.3; text-align: center; margin-top: 7px; color: var(--ink); }
+.troupe .cap b { display: block; font-weight: 800; }
+.where { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { font: 500 0.78rem/1 var(--mono); padding: 6px 9px; border-radius: 999px; border: 1px solid var(--rule); background: var(--paper); color: var(--ink-2); }
+.chip.comfy { border-color: var(--velvet); color: var(--velvet); }
+.chip.blender { border-color: var(--wood); color: var(--wood); }
+.chip.godot { border-color: var(--teal); color: var(--teal); }
+
+/* ---------------------------------------------------------------- tiles under the stage */
+.facts { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-block: 26px 10px; }
+.fact { background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; min-width: 0; }
+.fact .big { font: 400 1.7rem/1.1 var(--display); color: var(--velvet); }
+.fact p { margin: 6px 0 0; font-size: 0.95rem; color: var(--ink-2); }
+
+/* ---------------------------------------------------------------- acts (the steps) */
+section.act { margin-top: 70px; scroll-margin-top: 16px; }
+.act-head { display: grid; grid-template-columns: 88px 1fr; gap: 14px; align-items: start; padding-bottom: 14px; border-bottom: 3px double var(--rule); }
+.act-head svg { width: 88px; height: 112px; display: block; }
+.act-head .ordinal { font: 400 clamp(2.2rem, 6.5vw, 3.3rem)/1 var(--display); color: var(--velvet); margin: 4px 0 6px; }
+.act-head h2 { font: 800 clamp(1.35rem, 3.6vw, 1.8rem)/1.2 var(--body); }
+.act-head .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.act-head > div { min-width: 0; }
+.interlude-head { padding-bottom: 12px; border-bottom: 3px double var(--rule); }
+.interlude-head .ordinal { font: 400 clamp(1.6rem, 5vw, 2.2rem)/1.1 var(--display); color: var(--wood); margin-bottom: 6px; }
+.interlude-head h2 { font: 800 clamp(1.3rem, 3.4vw, 1.65rem)/1.2 var(--body); }
+
+.io { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-block: 20px; }
+.io > div { background: var(--paper); border-radius: 8px; padding: 14px 16px 12px; outline: 2px dashed var(--rule); outline-offset: -7px; min-width: 0; }
+.io h4 { margin: 0 0 6px; font: 400 0.95rem/1.2 var(--display); color: var(--wood); letter-spacing: .02em; }
+.io p { margin: 0 0 6px; font-size: 0.97rem; }
+
+/* pictures run wider than the text column: --col is the column, --bleed the picture width, --indent how far the
+   parent sits in from the column's left edge (the numbered how-to list) */
+.page { --col: min(760px, 100vw - 48px); --bleed: min(1120px, 100vw - 48px); }
+figure.shot, .pair { margin: 22px 0; }
+figure.shot.bleed, .pair.bleed { width: var(--bleed); max-width: none; margin-left: calc((var(--col) - var(--bleed)) / 2 - var(--indent, 0px)); }
+ol.howto figure.shot.bleed { --indent: 52px; }
+.box figure.shot.bleed { width: auto; margin-left: 0; }
+/* screenshots of programs: on a phone they keep a readable size and scroll sideways inside their own frame */
+@media (max-width: 700px) {
+  figure.shot.ui { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  figure.shot.ui img { width: 820px; max-width: none; }
+  figure.shot.ui figcaption { position: sticky; left: 0; max-width: calc(100vw - 32px); }
+  figure.shot.ui::after { content: "swipe sideways for the rest, or tap to zoom"; display: block; font-size: 0.8rem; color: var(--ink-2); position: sticky; left: 0; margin-top: 4px; }
+}
+@media (hover: none) and (pointer: coarse) { .page { --col: min(760px, 100vw - 32px); --bleed: min(1120px, 100vw - 32px); } }
+figure.shot img { display: block; width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--rule); background: var(--paper); cursor: zoom-in; }
+figure.shot.pix img { image-rendering: auto; max-width: 768px; margin-inline: auto; }
+figure.shot figcaption { font-size: 0.92rem; color: var(--ink-2); margin-top: 8px; max-width: 70ch; }
+.pair { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; }
+.pair > figure { margin: 0; min-width: 0; }
+
+.box { border-radius: 10px; padding: 16px 18px 6px; margin-block: 20px; min-width: 0; }
+.box h3 { margin-top: 0; }
+.box.tech { background: var(--teal-bg); border-left: 6px solid var(--teal); }
+.box.tech h3 { color: var(--teal); }
+.box.warn { background: var(--warn-bg); border-left: 6px solid var(--warn); }
+.box.warn h3 { color: var(--warn); }
+.box.you { background: var(--paper); border: 2px solid var(--velvet); }
+.box.you h3 { color: var(--velvet); }
+
+.tablewrap { overflow-x: auto; margin-block: 14px 18px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font: 500 0.74rem/1.3 var(--mono); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-2); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.n { font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.rec td { background: color-mix(in srgb, var(--felt) 18%, transparent); }
+.pill { display: inline-block; font: 500 0.72rem/1 var(--mono); padding: 4px 7px; border-radius: 999px; background: var(--felt); color: var(--felt-ink); white-space: nowrap; }
+
+.links { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-block: 12px 18px; }
+a.ticket { display: block; text-decoration: none; color: var(--ink); background: var(--paper); border: 1.5px solid var(--velvet); border-radius: 8px; padding: 10px 12px 9px 14px; position: relative; min-width: 0; }
+a.ticket::before { content: ""; position: absolute; left: -1.5px; top: 50%; width: 10px; height: 18px; transform: translateY(-50%); background: var(--bg); border: 1.5px solid var(--velvet); border-left: 0; border-radius: 0 10px 10px 0; }
+a.ticket b { display: block; color: var(--velvet); font-weight: 800; }
+a.ticket span { display: block; font: 400 0.72rem/1.35 var(--mono); color: var(--ink-2); overflow-wrap: anywhere; margin-top: 3px; }
+a.ticket:hover { background: color-mix(in srgb, var(--velvet) 8%, var(--paper)); }
+
+ol.howto { list-style: none; counter-reset: h; padding: 0; margin: 14px 0; display: grid; gap: 16px; }
+ol.howto > li { counter-increment: h; display: grid; grid-template-columns: 40px 1fr; gap: 12px; }
+ol.howto > li::before { content: counter(h); font: 400 1.25rem/38px var(--display); text-align: center; width: 38px; height: 38px; border-radius: 50%; background: var(--wood); color: var(--paper); }
+ol.howto > li > div { min-width: 0; }
+.marks { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; font-size: 0.93rem; }
+.marks li { display: grid; grid-template-columns: 26px 1fr; gap: 6px; }
+.marks li span.m { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #e8402c; color: #fff; font: 700 0.75rem/1 var(--body); margin-top: 2px; }
+kbd { font: 500 0.8em var(--mono); border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--paper); }
+
+/* ---------------------------------------------------------------- the bill */
+.bill { margin-top: 80px; background: var(--paper); border: 3px solid var(--velvet); border-radius: 14px; padding: 22px clamp(16px, 4vw, 34px) 12px; position: relative; }
+.bill::before { content: ""; position: absolute; inset: 7px; border: 1.5px dashed color-mix(in srgb, var(--velvet) 45%, transparent); border-radius: 9px; pointer-events: none; }
+.bill .ordinal { font: 400 clamp(2rem, 6vw, 3rem)/1 var(--display); color: var(--velvet); }
+.bill h2 { font: 800 clamp(1.3rem, 3.4vw, 1.7rem)/1.2 var(--body); margin-top: 6px; }
+.headline { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-block: 22px; }
+.headline > div { min-width: 0; border-top: 4px solid var(--felt); padding-top: 10px; }
+.headline .big { font: 400 clamp(2rem, 5.6vw, 2.9rem)/1.05 var(--display); color: var(--ink); overflow-wrap: anywhere; }
+.headline .big.tok { font-size: clamp(1.7rem, 4.6vw, 2.4rem); }
+.headline .big small { font-size: 0.45em; }
+.headline p { margin: 8px 0 0; color: var(--ink-2); font-size: 0.97rem; }
+
+footer { margin-top: 56px; padding-top: 16px; border-top: 3px double var(--rule); font-size: 0.9rem; color: var(--ink-2); }
+
+/* the zoom viewer: fit first, then wheel / pinch / buttons to zoom, drag to pan */
+.zv { position: fixed; inset: 0; z-index: 50; background: rgba(10,8,10,.92); overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.zv img { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; border-radius: 3px; cursor: grab; will-change: transform; }
+.zv.drag img { cursor: grabbing; }
+.zv .bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 6px; align-items: center; background: rgba(20,16,20,.82); padding: 6px; border-radius: 999px; }
+.zv .bar button, .zv .x { font: 800 1rem/1 var(--body); min-width: 42px; height: 42px; padding: 0 12px; border-radius: 999px; border: 0; background: var(--felt); color: var(--felt-ink); cursor: pointer; }
+.zv .bar .pct { color: #f3ead9; font: 600 0.85rem var(--body); min-width: 52px; text-align: center; font-variant-numeric: tabular-nums; }
+.zv .x { position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); right: 12px; }
+.zv .cap { position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); left: 12px; max-width: calc(100% - 120px); width: fit-content; color: #f3ead9; background: rgba(20,16,20,.82); padding: 7px 11px; border-radius: 10px; font-size: 0.9rem; line-height: 1.35; pointer-events: none; }
+.zv button:focus-visible { outline: 3px solid #f3ead9; outline-offset: 2px; }
+
+@media (max-width: 520px) {
+  body { font-size: 17px; }
+  .act-head { grid-template-columns: 58px 1fr; gap: 10px; }
+  .act-head svg { width: 58px; height: 76px; }
+  .stage { padding: 8px; }
+  .stage-inner { padding-top: 54px; }
+  .troupe { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .troupe li:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .troupe li:last-child:nth-child(odd) .bar, .troupe li:last-child:nth-child(odd) .strings { max-width: 130px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .troupe .card { transform-origin: 50% -30px; animation: sway 5.5s ease-in-out infinite alternate; }
+  .troupe li:nth-child(2n) .card { animation-delay: -2.2s; }
+  .troupe li:nth-child(3n) .card { animation-delay: -3.7s; }
+  @keyframes sway { from { transform: rotate(-1.2deg); } to { transform: rotate(1.2deg); } }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="control" viewBox="0 0 88 112">
+    <rect x="4" y="12" width="80" height="9" rx="4.5" style="fill: var(--wood)"/>
+    <rect x="39.5" y="2" width="9" height="34" rx="4.5" style="fill: var(--wood-2)"/>
+    <circle cx="44" cy="16.5" r="3" style="fill: var(--wood-3)"/>
+    <line x1="10" y1="21" x2="26" y2="70" style="stroke: var(--string); stroke-width: 1.4"/>
+    <line x1="78" y1="21" x2="62" y2="70" style="stroke: var(--string); stroke-width: 1.4"/>
+    <line x1="44" y1="36" x2="44" y2="70" style="stroke: var(--string); stroke-width: 1.4"/>
+    <rect x="18" y="68" width="52" height="40" rx="6" style="fill: var(--felt)"/>
+    <rect x="22" y="72" width="44" height="32" rx="4" style="fill: none; stroke: var(--felt-ink); stroke-width: 1.2; stroke-dasharray: 3 3; opacity: .6"/>
+  </symbol>
+</svg>
+
+<div class="page">
+
+<header class="stage" id="top">
+  <div class="stage-inner">
+    <div class="valance" aria-hidden="true"></div>
+    <div class="curtain l" aria-hidden="true"></div>
+    <div class="curtain r" aria-hidden="true"></div>
+    <div class="eyebrow">88fits · art pipeline · method <code>hero_puppet</code> · tried on May, 13 Oct 2026</div>
+    <h1>The Puppet Method</h1>
+    <p class="lede">One painting of a hero becomes a small 3D puppet: an AI model builds her shape, Blender gives her a skeleton, and the same Mixamo run our heroes use makes her move. Renders of that puppet then guide the video model that paints her walks, so each walk follows her own body instead of a stranger's stick figure. Everything on this page is the real trial on May: her pictures, her files and the times we measured.</p>
+
+    <ol class="troupe" aria-label="The whole method in seven pictures">
+      <li><div class="bar"></div><div class="strings"></div><div class="card"><img src="img/o1_still.jpg" width="230" height="300" alt="May's painted front still, MAY-G"><span class="tag">start</span></div><div class="cap"><b>Her painting</b>MAY-G's stills</div></li>
+      <li><div class="bar"></div><div class="strings"></div><div class="card"><img src="img/o2_apose.jpg" width="230" height="300" alt="May painted with her arms held out"><span class="tag">1st</span></div><div class="cap"><b>Arms out</b>Klein edit</div></li>
+      <li><div class="bar"></div><div class="strings"></div><div class="card"><img src="img/o3_shape.jpg" width="230" height="300" alt="May's grey 3D shape"><span class="tag">2nd</span></div><div class="cap"><b>3D shape</b>Hunyuan3D 2</div></li>
+      <li><div class="bar"></div><div class="strings"></div><div class="card"><img src="img/o4_rig.jpg" width="230" height="300" alt="May's 3D model with the skeleton drawn over it in Blender"><span class="tag">3rd</span></div><div class="cap"><b>Skeleton</b>Blender</div></li>
+      <li><div class="bar"></div><div class="strings"></div><div class="card"><img src="img/o5_anim.jpg" width="230" height="300" alt="The coloured 3D May mid-run, seen from the side"><span class="tag">4th</span></div><div class="cap"><b>Run + colours</b>Blender, the GLB</div></li>
+      <li><div class="bar"></div><div class="strings"></div><div class="card"><img src="img/o6_guides.jpg" width="230" height="300" alt="Half depth image, half stick figure of the same running pose"><span class="tag">5th</span></div><div class="cap"><b>Guides</b>stick figure + depth</div></li>
+      <li><div class="bar"></div><div class="strings"></div><div class="card"><img src="img/o7_walk.jpg" width="230" height="300" alt="The painted May running in side view"><span class="tag">6th</span></div><div class="cap"><b>Painted walk</b>Wan 2.2</div></li>
+    </ol>
+    <p class="small" style="text-align:center;margin-top:10px">The 7th step compares the new walks with MAY-G's. Tap any picture on this page to see it full size.</p>
+    <div class="where" style="justify-content:center">
+      <span class="chip comfy">ComfyUI on the AI server: steps 1, 2, 6</span>
+      <span class="chip blender">Blender on this PC: steps 2 (clean-up), 3, 4, 5</span>
+      <span class="chip godot">Godot import: step 6</span>
+    </div>
+  </div>
+  <div class="stage-floor" aria-hidden="true"></div>
+</header>
+
+<div class="col">
+  <div class="facts">
+    <div class="fact"><div class="big">~30 min</div><p>for a new puppet look of a hero who already has paintings: about 23 minutes of machine time and a few minutes of your picks.</p></div>
+    <div class="fact"><div class="big">3 picks</div><p>by eye: the arms-out front, then the side and back, then the better of two 3D shapes. Nothing else waits for you.</p></div>
+    <div class="fact"><div class="big">0 tokens</div><p>of Claude per new puppet look once it runs from the Level Editor. You queue it; the AI server and this PC do the work.</p></div>
+  </div>
+
+  <div class="box you">
+    <h3>The short version</h3>
+    <ul class="plain">
+      <li><b>Recommended mix</b> (look MAY-Q): Klein paints the arms-out pictures, Hunyuan3D 2 builds the shape, Blender rigs and animates, then <b>Wan 2.2 Fun Control on depth</b> paints the back, back-diagonal, side and front-diagonal walks and <b>Wan 2.2 Animate on the puppet's stick figure</b> paints the front.</li>
+      <li>MAY-G is still May's played look. MAY-P and MAY-Q are new looks marked fresh; try them in the arena.</li>
+      <li>The ComfyUI links on this page open on the PC at home: they point at the AI server, <code>192.168.137.54:8188</code>, which the phone cannot reach from outside the home network.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ LEVEL EDITOR (filled after lane PLE's screens) -->
+<section class="act col" id="start">
+  <div class="interlude-head">
+    <div class="ordinal">Before the show</div>
+    <h2>Start it from the Level Editor</h2>
+  </div>
+  <p>Since pass 71 the Puppet method is a look job like the others: you start it from a hero's page, it runs on the AI server and this PC by itself, and it stops only for your three picks. Shown here on Jeżyk, the second hero to get a puppet (his arms-out paintings, shape, rig, clips and guides took about 9 minutes of machine time).</p>
+  <ol class="howto">
+    <li><div>
+      <p><b>Choose the method.</b> Open the Level Editor (<code>tools\level_editor.cmd</code>), go to the Heroes tab, press Edit on the hero, then <b>+ Generate art…</b> in his Looks. Pick the card <b>Hero: a 3D puppet of the painting walks him (the Puppet method)</b>. Like every card it says what it needs, what it makes, how long it takes (about 21 minutes) and what to watch for.</p>
+      <figure class="shot bleed ui"><img src="img/le_01_method.jpg" width="1700" height="742" alt="The Level Editor's job form with the Puppet method card selected and its list of things to watch for" loading="lazy"><figcaption>The Puppet method's card beside the two older hero methods, and its warnings: the Hunyuan3D licence, the AMD card, no face in a depth video, arms clear of the body, Klein's extra hands, the projected colours, the fringes, the made-up idle, the side face.</figcaption></figure>
+    </div></li>
+    <li><div>
+      <p><b>Say what the puppet starts from.</b> "Start from" offers the puppet he already has (whatever is on disk is kept), a new puppet, his <code>.blend</code> after you fixed the rig by hand, or a Mixamo-rigged FBX. A hero who already has a puppet goes straight to the walks: about 11 minutes.</p>
+    </div></li>
+    <li><div>
+      <p><b>Choose the picture each side of the 3D shape is made from.</b> For the front, the side and the back: <b>paint arms-out locally</b> (an edit of the look's own still, the default), any of the hero's stills from any look as it is, or a picture you uploaded. The words can be changed; empty means the template the trial found. Below them: the painter (Klein, about 20 s a candidate, or Flux.2 dev, 4–5 min a candidate with a restart each), how many fronts to pick from, the screen colour, how many Hunyuan3D tries, the mesh's size.</p>
+      <figure class="shot bleed ui"><img src="img/le_02_reference.jpg" width="1100" height="920" alt="The 3D reference rows for front, side and back with their pictures, then the painter and shape settings" loading="lazy"><figcaption>Jeżyk's front and back painted arms-out, his side taken as it is from BUC-F's still (the form warns that hanging arms fuse with the body).</figcaption></figure>
+    </div></li>
+    <li><div>
+      <p><b>Set the walk.</b> The Mixamo clip and the idle; which views walk on depth and which on the stick figure (ticked = depth; the default is the trial's best: depth for fd, side, bd and back, the stick figure for the front); how the stick figures are framed (by the soles, so the boots stay in the picture); <b>run size from the puppet</b> (each view's walk sized by how tall the 3D puppet's own run stands, instead of a hand-tuned run_scale); the fringe remap; and whether the walks reuse a look's stills or paint new ones.</p>
+      <figure class="shot bleed ui"><img src="img/le_03_options.jpg" width="1100" height="620" alt="The clips, the depth or stick figure choice per view, framing, run size, fringes and the walks' stills, with the trial's measured timings" loading="lazy"><figcaption>The walk's options and, in the yellow note, the timings measured in the trial.</figcaption></figure>
+    </div></li>
+    <li><div>
+      <p><b>Queue it, then pick when it asks.</b> The job card shows every stage as a chip that fills in as it lands: the arms-out front, side and back, the 3D shape, the rig, the clips and colours (the GLB), the guides, then each walk. When it needs you it stops with <b>Waiting for pick</b>: click the candidate you like, then <b>Pick</b>, or <b>Re-roll 4 more</b>. Every ComfyUI render is linked from the card (↗) and sits in ComfyUI's Workflows sidebar. A stage can be run again from the card; its outputs and everything after it are moved aside first.</p>
+      <figure class="shot bleed ui"><img src="img/le_05_jobcard.jpg" width="1282" height="1170" alt="Two job cards: Jeżyk's puppet job with its stages, 3D viewer and pictures, and Astro's job waiting for its arms-out pick with four candidates" loading="lazy"><figcaption>Above, Jeżyk's job resuming from the puppet on disk (green chips: done), with the 3D puppet playing and every picture of the stages. Below, a job on Astro stopped for its first pick, with its four ComfyUI workflows linked.</figcaption></figure>
+    </div></li>
+    <li><div>
+      <p><b>Look at the puppet itself.</b> The hero's Art section shows <b>The 3D puppet</b>: the GLB turning and running in the page (it works offline), with the clip (run or idle), play and pause, the speed, and the camera at front, three-quarter, side or back. Below it: where the <code>.blend</code> is and how to change it, the arms-out picks, the shape in clay, the rig seen through, the turntable, and the guides made from it.</p>
+      <figure class="shot bleed ui"><img src="img/le_04_preview.jpg" width="1100" height="867" alt="Jeżyk's 3D puppet running in the Level Editor's hero page, with the clip picker and the stage pictures" loading="lazy"><figcaption>Jeżyk's puppet in his Art section. Drag to turn, wheel to zoom.</figcaption></figure>
+    </div></li>
+  </ol>
+  <div class="box tech">
+    <h3>What runs where</h3>
+    <ul class="plain">
+      <li>The job runs in two lanes. The <b>comfy</b> lane does the paintings, the 3D shape and the walks on the AI server, one ComfyUI job at a time (<code>tools/dl/locks/comfy.lock</code>). The <b>local</b> lane does the Blender stages on this PC, so a Blender stage never holds up another job's painting.</li>
+      <li>Godot runs one process at a time across everything (<code>tools/dl/locks/godot.lock</code>), and only one Level Editor runs the queue (<code>tools/dl/locks/jobs.lock</code>); a second one opens read-only.</li>
+      <li>Without the Level Editor, the same steps run from the command line: <code>python tools/puppet.py may</code> runs every stage still missing and stops at each pick (<code>--pick front=1</code>, <code>--pick side=1 back=1</code>, <code>--pick shape=1</code>); <code>--stage &lt;name&gt; --force</code> redoes one stage.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ CURTAIN UP: the paintings -->
+<section class="act col" id="paintings">
+  <div class="interlude-head">
+    <div class="ordinal">Curtain up</div>
+    <h2>The paintings it starts from</h2>
+  </div>
+  <p>A puppet look begins with a look that already has its paintings. For May that is <b>MAY-G</b>: 12 stills painted on Flux.2 dev on 12 October (front, two diagonals, side, back, a cheer, five hurt faces and the dead pose). The two puppet looks, MAY-P and MAY-Q, reuse those stills exactly as they are (their recipe says <code>"stills": "g"</code>), so a puppet look never repaints the hero. Only the walks are new.</p>
+  <figure class="shot bleed"><img src="img/s0_stills.jpg" width="1282" height="450" alt="MAY-G's five view stills: front, front-diagonal, side, back-diagonal, back" loading="lazy"><figcaption>MAY-G's five view stills, keyed off their blue screen. Files: <span class="path">tools/dl/ai_raw_anime/may_g_front.png</span>, <span class="path">may_g_fd.png</span>, <span class="path">may_g_side.png</span>, <span class="path">may_g_bd.png</span>, <span class="path">may_g_back.png</span> (1024 × 1024 PNG on blue, a .json beside each with its seed, words and painter).</figcaption></figure>
+  <h3>When a hero has no paintings yet</h3>
+  <p>Then a normal hero job paints them first. The painter is your choice, and it is the biggest time lever in the whole method:</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Painter</th><th>Per still</th><th>13 stills</th><th>Use it</th></tr></thead>
+    <tbody>
+      <tr class="rec"><td><b>Flux.2 Klein 9B</b>, 4 steps</td><td class="n">about 20 s</td><td class="n">about 5 min</td><td><span class="pill">recommended first</span> fast, holds the style anchor well</td></tr>
+      <tr><td><b>Flux.2 dev</b>, 30 steps, no Turbo (MAY-G's painter)</td><td class="n">6.5–7.5 min</td><td class="n">about 1.5 h</td><td>richer detail when Klein's look is not good enough; ComfyUI restarts before every render (measured 383–475 s a still on MAY-G)</td></tr>
+    </tbody>
+  </table></div>
+  <p>MAY-G's own still workflows, saved by its Level Editor job:</p>
+  <div class="links">
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-G%2Fj20261012-173701-2c2c%2F01_may_g_front.json" target="_blank" rel="noopener"><b>Open in ComfyUI: MAY-G front still</b><span>Flux.2 dev · workflows/88fits/may_MAY-G/…/01_may_g_front</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-G%2Fj20261012-173701-2c2c%2F03_may_g_side.json" target="_blank" rel="noopener"><b>Open in ComfyUI: MAY-G side still</b><span>Flux.2 dev · …/03_may_g_side</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-G%2Fj20261012-173701-2c2c%2F02_may_g_back.json" target="_blank" rel="noopener"><b>Open in ComfyUI: MAY-G back still</b><span>Flux.2 dev · …/02_may_g_back</span></a>
+  </div>
+</section>
+
+<!-- ============================================================ 1st -->
+<section class="act col" id="step1">
+  <div class="act-head">
+    <svg aria-hidden="true"><use href="#control"/></svg>
+    <div>
+      <p class="ordinal">1st step</p>
+      <h2>Paint her with her arms held out</h2>
+      <div class="meta"><span class="chip comfy">ComfyUI · Flux.2 Klein 9B</span><span class="chip">4.4 min</span><span class="chip">stage <code>apose</code></span><span class="chip">you pick twice</span></div>
+    </div>
+  </div>
+  <div class="io">
+    <div><h4>Goes in</h4><p>MAY-G's front still, then her side and back stills.</p></div>
+    <div><h4>Happens</h4><p>Klein edits the front into a relaxed A-pose: arms 45 degrees out, legs a little apart. Four seeds; you pick one. Then the side and the back in the same pose, three seeds each; you pick again.</p></div>
+    <div><h4>Comes out</h4><p><span class="path">tools/dl/puppet/may/apose_front.png</span>, <span class="path">apose_side.png</span>, <span class="path">apose_back.png</span>: 1024 × 1024 PNG on a blue screen.</p></div>
+  </div>
+  <p><b>Why the arms must be out:</b> an arm that hangs against the body fuses with it in the 3D model, and a fused arm cannot be given its own bones. The same goes for legs pressed together.</p>
+  <figure class="shot bleed"><img src="img/s1_wide.jpg" width="1200" height="213" alt="Six candidates from the first wording, arms almost horizontal" loading="lazy"><figcaption>The first wording, "arms held straight out, 45 degrees down from the shoulders", came back as a near T-pose (about 25 degrees below horizontal) in all six seeds. Kept in <span class="path">apose/wide/</span>.</figcaption></figure>
+  <figure class="shot bleed"><img src="img/s1_cands.jpg" width="1200" height="320" alt="Four candidates in a true 45-degree A-pose" loading="lazy"><figcaption>The wording that worked: "both arms hang down and out to the sides at 45 degrees from her body, so her hands are at the height of her hips but a forearm's length out to the side of them". Picked: c1 (arms clear from armpit to hand, clean gloves, legs apart below the crotch).</figcaption></figure>
+  <figure class="shot bleed"><img src="img/s1_picks.jpg" width="1156" height="490" alt="The three picks: front, side in profile, back" loading="lazy"><figcaption>The three picks. Side c0 held the arm forward and back c0 and c2 drifted back to a T-pose; c1 won both times.</figcaption></figure>
+
+  <div class="box tech">
+    <h3>The technical part</h3>
+    <ul class="plain">
+      <li><code>tools/puppet.py</code> uploads the stills to the AI server's ComfyUI (input folder, <code>88fits/puppet_may_front_ref.png</code> and so on) and builds Klein's edit graph in code (<code>comfy.klein</code>): the 9B model, the Qwen3 8B text encoder, each reference picture fed in as a ReferenceLatent, 4 steps, cfg 1, 1024 × 1024.</li>
+      <li>One picture at a time, under the ComfyUI lock (<code>tools/dl/locks/comfy.lock</code>), so nothing else on the server runs in between. Each candidate is saved as <code>apose/front_cN.png</code> with a <code>.json</code> beside it (seed, words, references, seconds) and a contact sheet <code>front_sheet.png</code>.</li>
+      <li>A helper score is printed for each front (how many rows between shoulders and hips show arm, torso and arm as three separate pieces). It helps; your eye decides.</li>
+      <li>Your picks: <code>python tools/puppet.py may --pick front=1</code>, then <code>--pick side=1 back=1</code>.</li>
+    </ul>
+  </div>
+
+  <h3>Models and time</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Painter</th><th>Per picture</th><th>This step (10 pictures)</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr class="rec"><td><b>Flux.2 Klein 9B</b> (used)</td><td class="n">18 s front, 25 s side or back</td><td class="n">4.4 min</td><td><span class="pill">recommended</span> keeps the outfit; an edit, not a new painting</td></tr>
+      <tr><td><b>Flux.2 dev</b>, the job form's default (Turbo, 8 steps)</td><td class="n">4–5 min, a restart each (the form's estimate)</td><td class="n">about 40–50 min</td><td>not tried for this step; only if Klein loses the outfit</td></tr>
+      <tr><td><b>Flux.2 dev</b>, 30 steps, no Turbo (MAY-G's painter)</td><td class="n">6.5–7.5 min (measured on MAY-G)</td><td class="n">about 65–75 min</td><td>the slowest; not tried for this step</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>The workflows</h3>
+  <p>Built exactly as <code>puppet.py</code> built them (same seed, words and pictures) and saved in ComfyUI's Workflows sidebar under <code>88fits/puppet_may/</code>. They open ready to run.</p>
+  <div class="links">
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fpuppet_may%2F01_arms_out_front_klein.json" target="_blank" rel="noopener"><b>Open in ComfyUI: arms-out front</b><span>Klein · 88fits/puppet_may/01_arms_out_front_klein</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fpuppet_may%2F02_arms_out_side_klein.json" target="_blank" rel="noopener"><b>Open in ComfyUI: arms-out side</b><span>Klein · 88fits/puppet_may/02_arms_out_side_klein</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fpuppet_may%2F03_arms_out_back_klein.json" target="_blank" rel="noopener"><b>Open in ComfyUI: arms-out back</b><span>Klein · 88fits/puppet_may/03_arms_out_back_klein</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fpuppet_may%2F04_arms_out_front_flux2dev_ALTERNATIVE.json" target="_blank" rel="noopener"><b>Open in ComfyUI: the Flux.2 dev alternative</b><span>not run in the trial · 04_arms_out_front_flux2dev_ALTERNATIVE</span></a>
+  </div>
+  <figure class="shot bleed ui"><img src="img/s1_comfy.jpg" width="1380" height="760" alt="ComfyUI showing the Klein edit graph with May's front still as the reference" loading="lazy"><figcaption>What the first link opens: Klein's model loaders, the words, and May's front still as the reference picture.</figcaption></figure>
+</section>
+
+<!-- ============================================================ 2nd -->
+<section class="act col" id="step2">
+  <div class="act-head">
+    <svg aria-hidden="true"><use href="#control"/></svg>
+    <div>
+      <p class="ordinal">2nd step</p>
+      <h2>Build her 3D shape</h2>
+      <div class="meta"><span class="chip comfy">ComfyUI · Hunyuan3D 2 multi-view</span><span class="chip blender">Blender clean-up</span><span class="chip">3.4 min</span><span class="chip">stage <code>shape</code></span><span class="chip">you pick once</span></div>
+    </div>
+  </div>
+  <div class="io">
+    <div><h4>Goes in</h4><p>The three arms-out paintings, keyed onto white. The side counts twice: as the model's "right" view and, mirrored, as its "left".</p></div>
+    <div><h4>Happens</h4><p>Hunyuan3D 2 multi-view turns four views into a grey 3D mesh. Two tries on two seeds; you pick. Blender then tidies the pick.</p></div>
+    <div><h4>Comes out</h4><p><span class="path">shape/try_0.glb</span>, <span class="path">try_1.glb</span> (about 4.5 MB each), the pick as <span class="path">shape_raw.glb</span>, and the cleaned <span class="path">shape.glb</span>: one piece, 60,000 vertices, 1.61 m tall.</p></div>
+  </div>
+  <figure class="shot bleed"><img src="img/s2_inputs.jpg" width="1200" height="324" alt="The four views given to Hunyuan3D: front, back, right, left" loading="lazy"><figcaption>The four views exactly as the model got them: keyed, on white, filling 85 % of a 1024 square (the model's own border is 15 %).</figcaption></figure>
+  <figure class="shot bleed"><img src="img/s2_tries.jpg" width="1400" height="454" alt="Two 3D tries rendered in grey clay from six angles" loading="lazy"><figcaption>Both tries were good: beret with its heart tip, bob, scarf, overalls with straps and buttons, gloves, boots. Try 1 won on the straps and the back panel.</figcaption></figure>
+  <figure class="shot bleed"><img src="img/s2_clean.jpg" width="1400" height="236" alt="The cleaned 3D shape from six angles" loading="lazy"><figcaption>After Blender's clean-up: <span class="path">shape.glb</span> and <span class="path">shape_preview.png</span>.</figcaption></figure>
+
+  <div class="box tech">
+    <h3>The technical part</h3>
+    <ul class="plain">
+      <li><b>The model file</b>: <code>hunyuan3d-dit-v2-mv.safetensors</code> (4.93 GB, Tencent's <code>Hunyuan3D-2mv</code> on Hugging Face, public) in the server's <code>ComfyUI/models/checkpoints/</code>. Nothing was installed into ComfyUI: it already has the nodes.</li>
+      <li><b>The graph</b>: ImageOnlyCheckpointLoader → one CLIPVisionEncode per view → Hunyuan3Dv2ConditioningMultiView → EmptyLatentHunyuan3Dv2 (resolution 3072) → KSampler (euler, normal, 30 steps, cfg 5) → VAEDecodeHunyuan3D (octree 380, 20,000 chunks) → VoxelToMesh (surface net, threshold 0.6) → SaveGLB.</li>
+      <li><b>Memory</b>: ComfyUI is restarted before and after, because the server's RAM cannot hold Hunyuan3D next to the video models. Your own queued jobs wait their turn.</li>
+      <li><b>The GLB</b> comes back over ComfyUI's API to <code>tools/dl/puppet/may/shape/</code> and Blender renders each try in clay for your pick (<code>python tools/puppet.py may --pick shape=1</code>).</li>
+      <li><b>Clean-up</b> (Blender in the background, <code>tools/puppet_blender.py mode=clean</code>): keeps the largest piece, remeshes it on a 4.5 mm grid, decimates to 60,000 vertices and 80,000 faces, puts the feet at height 0, faces her toward −Y and scales her to her game height. That height is measured from her own sprite: the figure in her back idle cell over the 256 px cell, times the 1.9 m the game draws a cell, = 1.611 m.</li>
+    </ul>
+  </div>
+
+  <h3>Models and time</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Shape model</th><th>Time</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr class="rec"><td><b>Hunyuan3D 2 multi-view</b> (used), 2 tries</td><td class="n">91 s and 95 s a try, 3.3 min with both restarts</td><td><span class="pill">recommended</span> runs on the R9700 through ComfyUI's own nodes</td></tr>
+      <tr><td>Same model, one try only</td><td class="n">about 2 min</td><td>fine when the paintings are clean; you lose the choice</td></tr>
+      <tr><td>Same model from the front only (<code>--front-only</code>)</td><td class="n">about the same per try (not measured)</td><td>only if the side and back paintings fail: the back is then guessed</td></tr>
+      <tr><td>More steps or a finer octree</td><td class="n">slower, not measured</td><td>30 steps and octree 380 gave enough detail for a sprite</td></tr>
+      <tr><td>TripoSG (MIT licence)</td><td class="n">not installed, not tried</td><td>the licence-safe swap before a commercial release</td></tr>
+    </tbody>
+  </table></div>
+  <div class="links">
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fpuppet_may%2F05_shape_hunyuan3d_2mv.json" target="_blank" rel="noopener"><b>Open in ComfyUI: the 3D shape</b><span>Hunyuan3D 2mv, try 1's seed · 88fits/puppet_may/05_shape_hunyuan3d_2mv</span></a>
+  </div>
+  <div class="pair bleed">
+    <figure class="shot ui"><img src="img/s2_comfy.jpg" width="1500" height="742" alt="ComfyUI with the Hunyuan3D graph: four view pictures feeding the 3D model" loading="lazy"><figcaption>The shape workflow in ComfyUI: the four views on the left, the 3D preview top right.</figcaption></figure>
+    <figure class="shot"><img src="img/s2_sidebar.jpg" width="365" height="332" alt="ComfyUI's Workflows sidebar listing the five puppet_may workflows" loading="lazy" style="max-width:365px"><figcaption>Where they sit: ComfyUI's Workflows sidebar, 88fits → puppet_may.</figcaption></figure>
+  </div>
+  <div class="box warn">
+    <h3>Watch out</h3>
+    <ul class="plain">
+      <li><b>The licence does not cover the EU.</b> Tencent's Hunyuan3D licence excludes the EU, the UK and South Korea. Before a commercial release, check it with someone who knows licensing or swap this step to an MIT model such as TripoSG. Nothing after this step depends on which model made the shape.</li>
+      <li>Thin parts (the beret's tip, the fingers) come out lumpy. That matters less than it sounds: the video model repaints over the renders.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ 3rd -->
+<section class="act col" id="step3">
+  <div class="act-head">
+    <svg aria-hidden="true"><use href="#control"/></svg>
+    <div>
+      <p class="ordinal">3rd step</p>
+      <h2>Give her a skeleton</h2>
+      <div class="meta"><span class="chip blender">Blender 5.2, in the background</span><span class="chip">7 s</span><span class="chip">stage <code>rig</code></span><span class="chip">automated; you can do it by hand</span></div>
+    </div>
+  </div>
+  <div class="io">
+    <div><h4>Goes in</h4><p><span class="path">shape.glb</span>.</p></div>
+    <div><h4>Happens</h4><p>A script finds her joints by slicing the mesh, places a skeleton with Mixamo's bone names there, and lets Blender work out how the mesh follows each bone.</p></div>
+    <div><h4>Comes out</h4><p><span class="path">may_puppet.blend</span>: mesh <b>May</b>, skeleton <b>May_Rig</b> (65 bones, <code>mixamorig:Hips</code> …), plus check pictures in <span class="path">rig/</span>.</p></div>
+  </div>
+  <div class="pair bleed">
+    <figure class="shot"><img src="img/s3_rig.jpg" width="1300" height="862" alt="May's mesh seen through, with the joints marked, from the front and the side" loading="lazy"><figcaption>The joints the script found, seen through the mesh (<span class="path">rig/rig_front.png</span>, <span class="path">rig_side.png</span>).</figcaption></figure>
+    <figure class="shot"><img src="img/s3_bend.jpg" width="784" height="264" alt="The 3D May with a raised knee and bent elbows" loading="lazy"><figcaption>The bend test (<span class="path">rig/bendtest.png</span>): a knee up and the elbows bent, to check the mesh follows without tearing.</figcaption></figure>
+  </div>
+  <div class="box tech">
+    <h3>How the joints are found, in plain words</h3>
+    <ul class="plain">
+      <li>The script cuts the mesh into thin horizontal slices and measures each slice. The <b>neck</b> is the narrowest run between 62 % and 90 % of her height; the <b>shoulders</b> start where the body gets 1.6 times the neck's width; the <b>arms</b> are found where they stand apart from the body (that is why she needs her arms out).</li>
+      <li>The <b>hand tip</b> is the arm's farthest point, the <b>wrist</b> 9.5 % of her height back from it, the <b>elbow</b> half way. The <b>crotch</b> is where the two leg runs merge (0.76 m, 47 % of her height), the hips 4.5 % above it, the ankles at 5.5 %, the knees half way (pushed 1.2 cm forward so they bend the right way).</li>
+      <li>Fingers get bones that do not move the mesh: they only feed the hands of the stick figures in step 5.</li>
+      <li>Then Blender's <b>automatic weights</b> (its "bone heat"): 0 vertices were left without a bone. The head region (9,746 vertices: hair, beret, face) is then tied to the head bone alone so the bob does not stretch with the neck, and no vertex follows more than 4 bones.</li>
+    </ul>
+  </div>
+
+  <h3>Doing it by hand in Blender</h3>
+  <p><b>This step is automated:</b> you only need what follows when the automatic rig is wrong, for example an elbow in the wrong place, the torso dragged along by an arm, or the beret not following the head. These are real screenshots of Blender 5.2 with <span class="path">tools/dl/puppet/may/may_puppet.blend</span>.</p>
+  <ol class="howto">
+    <li><div>
+      <p><b>Open the file.</b> Double-click <span class="path">may_puppet.blend</span>, or File &gt; Open in Blender 5.2.</p>
+      <figure class="shot bleed ui"><img src="img/s3_b1_object.jpg" width="1600" height="969" alt="Blender in Object Mode with May and her skeleton" loading="lazy"></figure>
+      <ul class="marks"><li><span class="m">1</span><span>Object Mode: where you select whole objects.</span></li><li><span class="m">2</span><span><b>May_Rig</b>: the skeleton.</span></li><li><span class="m">3</span><span><b>May</b>: the mesh, a child of the skeleton.</span></li><li><span class="m">4</span><span>The bones, drawn over her body. "Left" is HER left: on your right when she faces you.</span></li></ul>
+    </div></li>
+    <li><div>
+      <p><b>Move a joint.</b> Click May_Rig in the list, press <kbd>Tab</kbd> for Edit Mode, click the end of a bone and press <kbd>G</kbd> to move it; <kbd>X</kbd>, <kbd>Y</kbd> or <kbd>Z</kbd> after <kbd>G</kbd> keeps it on one axis. <kbd>Tab</kbd> again when done.</p>
+      <figure class="shot bleed ui"><img src="img/s3_b2_editbone.jpg" width="1600" height="969" alt="Blender in Edit Mode with the left forearm bone selected" loading="lazy"></figure>
+      <ul class="marks"><li><span class="m">1</span><span>Edit Mode.</span></li><li><span class="m">2</span><span>The elbow: where <code>mixamorig:LeftArm</code> meets <code>mixamorig:LeftForeArm</code>.</span></li><li><span class="m">3</span><span>The bone's name. Keep it: the Mixamo run finds every bone by name.</span></li><li><span class="m">4</span><span>Where the bone starts (Head) and ends (Tail), in metres. You can type exact numbers here.</span></li></ul>
+    </div></li>
+    <li><div>
+      <p><b>Let Blender redo how the mesh follows.</b> In Object Mode click <b>May</b>, then <kbd>Shift</kbd>-click <b>May_Rig</b> (the skeleton last), press <kbd>Ctrl</kbd>+<kbd>P</kbd> and choose <b>With Automatic Weights</b>.</p>
+      <figure class="shot bleed ui"><img src="img/s3_b5_ctrlp.jpg" width="1600" height="969" alt="Blender's Set Parent To menu with With Automatic Weights" loading="lazy"></figure>
+      <ul class="marks"><li><span class="m">1</span><span>With Automatic Weights: recomputes every bone's share of the mesh from your joints in one go.</span></li><li><span class="m">2</span><span>May_Rig highlighted: it was clicked last, so it is the parent.</span></li></ul>
+      <p class="small">This undoes the trial's "hair and beret on the head only" fix. Paint that back (next step), or rebuild the whole rig instead with <code>python tools/puppet.py may --stage rig --force</code>, which finds the joints again and discards hand edits.</p>
+    </div></li>
+    <li><div>
+      <p><b>Or paint a fix by hand.</b> Click May, switch to Weight Paint (<kbd>Ctrl</kbd>+<kbd>Tab</kbd>), pick a bone's group in the list and paint over the mesh.</p>
+      <figure class="shot bleed ui"><img src="img/s3_b3_weights.jpg" width="1600" height="969" alt="Blender in Weight Paint mode showing the left upper arm's weights from red to blue" loading="lazy"></figure>
+      <ul class="marks"><li><span class="m">1</span><span>Weight Paint mode.</span></li><li><span class="m">2</span><span>The group you paint: <code>mixamorig:LeftArm</code>, the left upper arm. For the beret it is <code>mixamorig:Head</code>.</span></li><li><span class="m">3</span><span>Red follows that bone fully, blue not at all, the rainbow in between.</span></li><li><span class="m">4</span><span>The brush: Weight 1.0 paints red, 0 paints blue; Strength is how fast.</span></li></ul>
+      <p class="small">Typical fixes: the chest moving with an arm (<code>mixamorig:LeftArm</code> too strong on the chest), the overalls stretching with a leg (<code>mixamorig:LeftUpLeg</code> on the hip), the beret left behind (paint it red on <code>mixamorig:Head</code>).</p>
+    </div></li>
+    <li><div>
+      <p><b>Check that she moves right.</b> Click May_Rig, switch to Pose Mode, set the bottom editor to the Action Editor and pick <b>run</b> (or <b>idle</b>). <kbd>Space</kbd> plays, the arrow keys step.</p>
+      <figure class="shot bleed ui"><img src="img/s3_b4_pose.jpg" width="1600" height="969" alt="Blender in Pose Mode at frame 7 of the run, the Action Editor below" loading="lazy"></figure>
+      <ul class="marks"><li><span class="m">1</span><span>Pose Mode.</span></li><li><span class="m">2</span><span>The Action Editor.</span></li><li><span class="m">3</span><span>The clip: <b>run</b> (22 frames at 30 fps, one stride) or <b>idle</b> (61 frames, 2 s).</span></li><li><span class="m">4</span><span>Frame 7 of the run, shown here from the side.</span></li><li><span class="m">5</span><span>Pose Position plays the run; Rest Position shows her A-pose.</span></li></ul>
+    </div></li>
+    <li><div>
+      <p><b>Save and run the rest from your rig.</b> <kbd>Ctrl</kbd>+<kbd>S</kbd> under the same name, then:</p>
+      <pre>python tools/puppet.py may --from-blend</pre>
+      <p>It skips steps 1 to 3, puts the Mixamo run on your edited skeleton again (moved joints carry the run), recolours, exports the GLB, redraws the guides, re-queues MAY-P and MAY-Q's walks and compares them. Hand changes to the run or idle keys are replaced: change the skeleton and the weights, not the keys.</p>
+    </div></li>
+  </ol>
+  <div class="box tech">
+    <h3>Or let Mixamo's website rig her</h3>
+    <p>Export the mesh alone (select May, File &gt; Export &gt; FBX, Selected Objects only, or use <span class="path">shape.glb</span> as it is), upload it to mixamo.com, let its auto-rigger place the markers, and download "FBX Binary, Original Pose, With Skin" (not T-pose: her colours are projected from the arms-out paintings). Then:</p>
+    <pre>python tools/puppet.py may --from-fbx &lt;the downloaded file&gt;</pre>
+    <p>The armature and mesh are renamed May_Rig and May, the bones get the <code>mixamorig:</code> prefix if they lack it, and the rest runs as with <code>--from-blend</code>. Tested on an FBX export of our own rig; a real mixamo.com download has not been tried yet.</p>
+  </div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Rig route</th><th>Time</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr class="rec"><td><b>The script</b> (used)</td><td class="n">7 s</td><td><span class="pill">recommended</span> 0 failures on May; check rig/bendtest.png</td></tr>
+      <tr><td>Fix by hand in Blender, then <code>--from-blend</code></td><td class="n">a few minutes (half an hour the first time) + about 15 min to redo steps 4–7</td><td>when one joint or one area is wrong</td></tr>
+      <tr><td>mixamo.com, then <code>--from-fbx</code></td><td class="n">a few minutes of upload and download + about 15 min</td><td>clean rigs, needs a sign-in; untested with a real download</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============================================================ 4th -->
+<section class="act col" id="step4">
+  <div class="act-head">
+    <svg aria-hidden="true"><use href="#control"/></svg>
+    <div>
+      <p class="ordinal">4th step</p>
+      <h2>Make her run, colour her, save the GLB</h2>
+      <div class="meta"><span class="chip blender">Blender, in the background</span><span class="chip">7 s</span><span class="chip">stage <code>anim</code></span></div>
+    </div>
+  </div>
+  <div class="io">
+    <div><h4>Goes in</h4><p><span class="path">may_puppet.blend</span>, the Mixamo run <span class="path">tools/dl/mixamo/running.fbx</span> (the clip our heroes' run drivers come from), the arms-out paintings.</p></div>
+    <div><h4>Happens</h4><p>The run is moved onto her skeleton, an idle is added, and her colours are painted onto the mesh from the arms-out pictures.</p></div>
+    <div><h4>Comes out</h4><p><span class="path">may_puppet.glb</span> (4.2 MB, clips <b>run</b> 0.7 s and <b>idle</b> 2 s), <span class="path">may_puppet_preview.png</span>, a copy of both in Drive: <span class="path">My Drive/88fits builds/puppets/</span>.</p></div>
+  </div>
+  <figure class="shot bleed"><img src="img/s4_preview.jpg" width="1400" height="983" alt="The coloured 3D May turning round, then running from the side, the front and the back" loading="lazy"><figcaption><span class="path">may_puppet_preview.png</span>: the turntable in her idle, then six frames of the run from the side, the front and the back.</figcaption></figure>
+  <div class="box tech">
+    <h3>The technical part</h3>
+    <ul class="plain">
+      <li><b>Retarget.</b> Mixamo's run was made for a T-posed body and May rests in an A-pose, so each bone's motion is carried over as a turn of direction rather than copied. Her hips travel 0.838 as far as Mixamo's (her legs are shorter), the stride is lifted 2.3 cm so the lowest sole touches the ground, and she runs in place.</li>
+      <li><b>Idle.</b> There is no Mixamo idle on disk, so it is made in code: arms down at her sides, a breath, a 1 cm sway and a nod over 2 seconds. A downloaded Mixamo idle FBX can replace it.</li>
+      <li><b>Colours.</b> Each arms-out picture is projected onto the mesh; a ray from each vertex decides whether that picture really sees it. The side pictures skip the band of the torso the hanging arm covers, and a vertex no picture sees takes its nearest neighbour's colour. They are stored as vertex colours (the GLB's <code>COLOR_0</code>), not a texture.</li>
+      <li><b>The GLB</b> is glTF's one-file form: the mesh, the 65-bone skin and both clips. It opens in Windows' 3D Viewer on the PC; on the phone, download it from Drive into a browser glTF viewer such as gltf-viewer.donmccurdy.com. <span class="path">GLB_READY.json</span> is written next to it so the lead can tell you it exists.</li>
+    </ul>
+  </div>
+  <p class="small">Choices here: the clip (any Mixamo FBX in <span class="path">tools/dl/mixamo/</span>; running.fbx by default) and the idle (made in code, or an FBX). Neither changes the time noticeably.</p>
+</section>
+
+<!-- ============================================================ 5th -->
+<section class="act col" id="step5">
+  <div class="act-head">
+    <svg aria-hidden="true"><use href="#control"/></svg>
+    <div>
+      <p class="ordinal">5th step</p>
+      <h2>Draw the guides the video model follows</h2>
+      <div class="meta"><span class="chip blender">Blender + Python</span><span class="chip">41 s</span><span class="chip">stage <code>guides</code></span></div>
+    </div>
+  </div>
+  <div class="io">
+    <div><h4>Goes in</h4><p>The rig and the GLB.</p></div>
+    <div><h4>Happens</h4><p>Her run is rendered in our five views (back, back-diagonal, side, front-diagonal, front) through the game camera's 25-degree tilt, 24 poses a stride, as stick figures from her own bones and as depth videos.</p></div>
+    <div><h4>Comes out</h4><p><span class="path">tools/dl/drivers/may_puppet_run/</span> (stick figures), <span class="path">tools/dl/drivers/may_puppet_run_depth/</span> (depth + clay), <span class="path">silhouette.json</span>.</p></div>
+  </div>
+  <figure class="shot bleed"><img src="img/s5_guides.jpg" width="1374" height="1002" alt="Stick figure, depth image and clay render of the same run frame in five views" loading="lazy"><figcaption>One frame of the run in all five views: the stick figure (OpenPose), the depth video (near is white) and the plain clay render.</figcaption></figure>
+  <figure class="shot bleed"><img src="img/s5_side_run.jpg" width="1388" height="410" alt="Eight frames of the side run as stick figures above eight depth frames" loading="lazy"><figcaption>Every third frame of the side stride: stick figures above, depth below.</figcaption></figure>
+  <div class="box tech">
+    <h3>The technical part</h3>
+    <ul class="plain">
+      <li><b>Stick figures from her own bones.</b> Same camera, framing, frame count and folder layout as our Mixamo drivers (<code>tools/pose_driver.py</code>), so a look's recipe can name the folder per view in <code>pose_drivers</code>. Each view is a folder of <code>driver_00.png</code> … <code>driver_24.png</code> plus <code>poses.json</code> (the joint positions); <code>meta.json</code> and contact sheets sit beside them.</li>
+      <li><b>Hidden joints are dropped.</b> A ray from each elbow, wrist, knee and ankle toward the camera checks whether her own body is in the way; if it is, the joint is left out so the video model does not paint a hand through her back. In the back view her right wrist is hidden in 4 of 25 frames and her left in 11.</li>
+      <li><b>Depth videos</b> come from the GLB (<code>tools/blender_depth_drivers.py</code>, the same tool the scorpion and the beetle walk on): <code>ctl_00.png</code> … <code>ctl_48.png</code> per view (two strides and one frame, so the video model can settle on the second) and a <code>clay.png</code>.</li>
+      <li><b>silhouette.json</b>: how tall her run stands against her idle in each view, measured on the 3D puppet itself (side 0.938, back 1.015). It is the ground truth for the size of the painted walks in step 7.</li>
+    </ul>
+  </div>
+  <div class="box warn">
+    <h3>What went wrong in the trial: the side face</h3>
+    <p>The first side walk painted May with her face turned to the camera on a body running sideways. A profile rule for the face points did not fix it, nor did levelling the shoulders. Swapping in Mixamo's head points did, which showed the cause: on her own head bone the ear dot sat straight above the neck (her bob pulls the bone back), while Mixamo's sits well ahead of it. The guide now places the ears from her measured nose, the way <code>pose_driver.py</code> does.</p>
+    <figure class="shot bleed"><img src="img/s5_face_fix.jpg" width="1400" height="372" alt="Old guide and its painted frame with the face turned to us, new guide and its painted frame in profile" loading="lazy"><figcaption>Guide v1 and what Wan painted on it (face to us), then guide v3 and its walk (profile). Old guides kept in <span class="path">tools/dl/puppet/may/may_puppet_run_v1_driver</span> and <span class="path">_v2_driver</span>.</figcaption></figure>
+  </div>
+</section>
+
+<!-- ============================================================ 6th -->
+<section class="act col" id="step6">
+  <div class="act-head">
+    <svg aria-hidden="true"><use href="#control"/></svg>
+    <div>
+      <p class="ordinal">6th step</p>
+      <h2>Paint the walks</h2>
+      <div class="meta"><span class="chip comfy">ComfyUI · Wan 2.2 Animate / Fun Control</span><span class="chip godot">Godot import</span><span class="chip">10–12 min</span><span class="chip">stage <code>looks</code></span></div>
+    </div>
+  </div>
+  <div class="io">
+    <div><h4>Goes in</h4><p>MAY-G's five view stills and the guides from step 5.</p></div>
+    <div><h4>Happens</h4><p>A look job in the Level Editor's queue walks each still along its guide, one view at a time, packs the strip and imports it into the game.</p></div>
+    <div><h4>Comes out</h4><p>Two new looks in <span class="path">may.json</span>, marked fresh: <b>MAY-P</b> (<span class="path">may_sprite_p.png</span>) and <b>MAY-Q</b> (<span class="path">may_sprite_q.png</span>), 62 columns each.</p></div>
+  </div>
+  <p><b>MAY-P</b> walks every view on the puppet's stick figures with Wan 2.2 Animate. <b>MAY-Q</b> walks the back, back-diagonal, side and front-diagonal on the depth videos with Wan 2.2 Fun Control, and the front on the stick figure (the depth video carries no face, see below). Both have <b>no run_scale</b>: whether the puppet keeps her size by itself was part of the test.</p>
+  <figure class="shot bleed"><img src="img/s6_side_cmp.jpg" width="1400" height="307" alt="Side run frames of MAY-G, MAY-P and MAY-Q in three rows" loading="lazy"><figcaption>Side run, every second frame: MAY-G (Mixamo stick figure, hand-tuned size), MAY-P (puppet stick figure) and MAY-Q (puppet depth).</figcaption></figure>
+  <div class="pair bleed">
+    <figure class="shot pix"><img src="img/s6_side_run.gif" width="768" height="256" alt="Animated side run of MAY-G, MAY-P and MAY-Q side by side" loading="lazy"><figcaption>Side run, playing: G, P, Q.</figcaption></figure>
+    <figure class="shot pix"><img src="img/s6_bd_run.gif" width="768" height="256" alt="Animated back-diagonal run of MAY-G, MAY-P and MAY-Q" loading="lazy"><figcaption>Back-diagonal: Q keeps her turned away; G and P turn her face to us late in the stride.</figcaption></figure>
+  </div>
+  <figure class="shot pix bleed"><img src="img/s6_front_run.gif" width="768" height="256" alt="Animated front run of MAY-G, MAY-P and MAY-Q" loading="lazy"><figcaption>Front: G, P, Q. P's head runs big here (1.24 times the idle's).</figcaption></figure>
+
+  <div class="box tech">
+    <h3>The technical part</h3>
+    <ul class="plain">
+      <li><b>The recipe.</b> The new looks copy MAY-G's recipe (its stills <code>"g"</code>, its seeds and words) minus <code>run_scale</code>, and name the guides: <code>pose_drivers</code> = <code>may_puppet_run</code> in every view; for MAY-Q also <code>ctl_drivers</code> = <code>may_puppet_run_depth</code> for fd, side, bd and back, plus words for the face and hair (<code>anim_hint</code>, <code>anim_negative</code>).</li>
+      <li><b>The walks.</b> <code>tools/gen_art.py</code> sends one ComfyUI graph per view. Wan Animate makes 25 frames on 25 stick figures. Fun Control makes 49 frames on the 49 depth frames and keeps the second stride. Each clip is cut out of its blue screen and fitted to the cell (<span class="path">tools/dl/ai_anim/may_mayq_ctl_run_side/full_00.png</span> …, <span class="path">cycle.json</span>, <span class="path">cycle_sheet.png</span>). A clip whose figure leaves the frame is rolled again on another seed automatically.</li>
+      <li><b>Into the game</b>, done by the Level Editor after a landing (1–3 minutes):
+        <ol class="plain">
+          <li>The strip lands in <span class="path">game/content/characters/may/</span> and the look's entry in <span class="path">may.json</span> (fresh, never played until you choose).</li>
+          <li><code>tools/lossy_imports.py</code> sets the new picture's <span class="path">.png.import</span> file to lossy WebP 0.75, so a 62-column strip does not add megabytes to the APK.</li>
+          <li><code>--import</code> (through <code>tools/godot.sh</code>, which lets only one Godot run at a time) turns the PNG into the texture the game loads, under <span class="path">game/.godot/imported/</span>.</li>
+          <li><code>tools/import_json.gd</code> writes <span class="path">may.tres</span> again from <span class="path">may.json</span>: the Inspector-editable resource the game reads first.</li>
+        </ol>
+      </li>
+    </ul>
+  </div>
+
+  <h3>Models and time</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Video model, guide</th><th>Per clip</th><th>Five views</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr><td><b>Wan 2.2 Animate 14B</b> on the stick figure</td><td class="n">55–60 s (25 frames);<br>a job's first clip about 110 s</td><td class="n">9.5 min with retries (MAY-P)</td><td>the front view; elsewhere fine, but the front head runs big</td></tr>
+      <tr><td><b>Wan 2.2 Fun Control 14B</b> on depth</td><td class="n">120–162 s (49 frames)</td><td class="n">about 11.5 min</td><td>fd, side, bd, back; no face from the front</td></tr>
+      <tr class="rec"><td><b>The mix</b> (MAY-Q): depth, stick figure for the front</td><td class="n">—</td><td class="n">about 11 min</td><td><span class="pill">recommended</span> best size and turn-away</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>The workflows that painted the final walks</h3>
+  <p>Saved by the Level Editor's look jobs, so each opens exactly what ran. These graphs name their pictures in the server's <code>88fits</code> input folder, which ComfyUI's picture list does not show: the nodes open marked red. They show every setting, but to run one again from the page, pick the same file name in each red node or run the look from the Level Editor.</p>
+  <div class="links">
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-Q%2Fj20261013-141743-68cb%2F03_ctl_may_mayq_ctl_run_side.json" target="_blank" rel="noopener"><b>MAY-Q side · Fun Control</b><span>may_MAY-Q/j20261013-141743-68cb/03_ctl_…_side</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-Q%2Fj20261013-145434-5cfa%2F02_ctl_may_mayq_ctl_run_bd.json" target="_blank" rel="noopener"><b>MAY-Q back-diagonal · Fun Control</b><span>may_MAY-Q/j20261013-145434-5cfa/02_ctl_…_bd</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-Q%2Fj20261013-141743-68cb%2F01_ctl_may_mayq_ctl_run_back.json" target="_blank" rel="noopener"><b>MAY-Q back · Fun Control</b><span>may_MAY-Q/j20261013-141743-68cb/01_ctl_…_back</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-Q%2Fj20261013-141743-68cb%2F05_ctl_may_mayq_ctl_run_fd.json" target="_blank" rel="noopener"><b>MAY-Q front-diagonal · Fun Control</b><span>may_MAY-Q/j20261013-141743-68cb/05_ctl_…_fd</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-Q%2Fj20261013-152325-8b86%2F01_pose_may_mayq_pose_run_front.json" target="_blank" rel="noopener"><b>MAY-Q front · Wan Animate</b><span>may_MAY-Q/j20261013-152325-8b86/01_pose_…_front</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-P%2Fj20261013-151214-d4de%2F05_pose_may_mayp_pose_run_side.json" target="_blank" rel="noopener"><b>MAY-P side · Wan Animate</b><span>may_MAY-P/j20261013-151214-d4de/05_pose_…_side</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-P%2Fj20261013-151214-d4de%2F06_pose_may_mayp_pose_run_bd.json" target="_blank" rel="noopener"><b>MAY-P back-diagonal · Wan Animate</b><span>may_MAY-P/j20261013-151214-d4de/06_pose_…_bd</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-P%2Fj20261013-151214-d4de%2F01_pose_may_mayp_pose_run_back.json" target="_blank" rel="noopener"><b>MAY-P back · Wan Animate</b><span>may_MAY-P/j20261013-151214-d4de/01_pose_…_back</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-P%2Fj20261013-151214-d4de%2F09_pose_may_mayp_pose_run_fd.json" target="_blank" rel="noopener"><b>MAY-P front-diagonal · Wan Animate</b><span>may_MAY-P/j20261013-151214-d4de/09_pose_…_fd</span></a>
+    <a class="ticket" href="http://192.168.137.54:8188/?open=workflows%2F88fits%2Fmay_MAY-P%2Fj20261013-151214-d4de%2F04_pose_may_mayp_pose_run_front.json" target="_blank" rel="noopener"><b>MAY-P front · Wan Animate</b><span>may_MAY-P/j20261013-151214-d4de/04_pose_…_front</span></a>
+  </div>
+
+  <div class="box warn">
+    <h3>What went wrong in the trial: a depth video has no face</h3>
+    <p>From the front, Fun Control painted the near-white head of the depth video as a crosshatched face; another seed gave a clean face but long straight hair instead of her bob. From the back-diagonal it painted her bob as skin until the words named her hair. The fix that held: the front walks on the stick figure, and the words describe her face and black hair for the depth views.</p>
+    <figure class="shot bleed"><img src="img/s6_q_problems.jpg" width="1400" height="303" alt="Five clip frames: crosshatched face, long hair, clean face on the stick figure, bald back of head, bob with the hair words" loading="lazy"><figcaption>Raw clip frames on their blue screen. The third and the fifth are the ones MAY-Q kept.</figcaption></figure>
+  </div>
+</section>
+
+<!-- ============================================================ 7th -->
+<section class="act col" id="step7">
+  <div class="act-head">
+    <svg aria-hidden="true"><use href="#control"/></svg>
+    <div>
+      <p class="ordinal">7th step</p>
+      <h2>Compare with the look she has</h2>
+      <div class="meta"><span class="chip">Python on this PC</span><span class="chip">seconds</span><span class="chip">stage <code>compare</code></span></div>
+    </div>
+  </div>
+  <div class="io">
+    <div><h4>Goes in</h4><p>The strips of MAY-G, MAY-P and MAY-Q, and the puppet's own <span class="path">silhouette.json</span>.</p></div>
+    <div><h4>Happens</h4><p>Contact sheets and side-by-side GIFs per view, and three measures: how tall the run stands against the idle, how big the head is, and whether a glove crosses her back.</p></div>
+    <div><h4>Comes out</h4><p><span class="path">tools/dl/puppet/may/compare/</span>: <span class="path">*_run.png</span>, <span class="path">*_run.gif</span>, <span class="path">heads.png</span>, <span class="path">measures.json</span>.</p></div>
+  </div>
+  <p>Run height against idle height (median of 24 frames). "Truth" is what the 3D puppet itself does in that view; the closer a look gets, the better its walk keeps her size.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>View</th><th>Truth (3D)</th><th>MAY-G</th><th>MAY-P</th><th>MAY-Q</th></tr></thead>
+    <tbody>
+      <tr><td>front</td><td class="n">0.966</td><td class="n">0.922</td><td class="n">0.947</td><td class="n">0.918</td></tr>
+      <tr><td>front-diagonal</td><td class="n">0.943</td><td class="n">0.911</td><td class="n">0.959</td><td class="n">0.995</td></tr>
+      <tr><td>side</td><td class="n">0.938</td><td class="n">0.881</td><td class="n">0.989</td><td class="n">0.977</td></tr>
+      <tr><td>back-diagonal</td><td class="n">0.981</td><td class="n">0.950</td><td class="n">0.943</td><td class="n">0.941</td></tr>
+      <tr><td>back</td><td class="n">1.015</td><td class="n">0.938</td><td class="n">0.963</td><td class="n">0.933</td></tr>
+      <tr><td><b>mean error</b></td><td class="n">—</td><td class="n">0.048 <span class="small">(with two hand-tuned run_scales)</span></td><td class="n"><b>0.035</b></td><td class="n">0.052</td></tr>
+    </tbody>
+  </table></div>
+  <figure class="shot bleed"><img src="img/s7_heads.jpg" width="1340" height="408" alt="Heads of the three looks at one pixel scale, idle and run, every view" loading="lazy"><figcaption>Heads at the game's own pixel scale, idle and run frame 6 per view. The side head grows 1.16 times in MAY-G even with its 0.88 size fix; 1.13 in MAY-P and 1.05 in MAY-Q with no fix at all.</figcaption></figure>
+  <figure class="shot bleed"><img src="img/s6_back_cmp.jpg" width="1400" height="307" alt="Back run frames of the three looks" loading="lazy"><figcaption>Back run. No look paints a glove over her back, and the 3D puppet agrees: a visible wrist never lies over her torso in the back views.</figcaption></figure>
+  <div class="box you">
+    <h3>The verdict</h3>
+    <p>The method works end to end with no human step but the three picks. As a guide for the video model it ties MAY-G's hand-tuned Mixamo drivers and wins where her own proportions matter: the side run keeps her size without a size fix, and the depth walks keep her turned away in the back-diagonal. It is not a clear win yet: MAY-P's front head runs big, P and Q have more rainbow fringes on the sleeves than G, and the depth video carries no face. Those gaps are now settings of the method, all on by default: <b>size from the 3D model</b>, <b>frame by the soles</b>, <b>clean colour fringes</b> and <b>keep the face angle</b>. <b>MAY-R</b> was made with all of them: every view now runs at the 3D model's own height (an average error of 0.005, against 0.035 to 0.052 for the others) and the fringes are gone. Its front and back heads read a little bigger than the others', because framing by the soles makes the figure smaller in the picture.</p>
+    <p class="small">To see them: install the build from Drive, own every hero from the developer menu, turn on debug mode, open the arena's HERO tab, choose May and tap MAY-G, MAY-P, MAY-Q and MAY-R.</p>
+  </div>
+</section>
+
+<!-- ============================================================ THE BILL -->
+<section class="bill col" id="bill">
+  <div class="ordinal">The bill</div>
+  <h2>What a puppet look costs</h2>
+
+  <div class="headline">
+    <div><div class="big">≈ 30 <small>min</small></div><p><b>A new puppet look</b> for a hero who has paintings, recommended settings: about 23 minutes of machine time (estimate from the trial's measured stages) and a few minutes of your three picks.</p></div>
+    <div><div class="big tok" id="tok-total">≈ 2.39M</div><p><b>Claude tokens</b> spent on the whole thing: the trial on May <b>≈ 0.82M</b>, building it into the Level Editor, this page and the MAY-R look <b>≈ 1.57M</b>. The helpers' share is measured; the lead's own share of about 180k is an estimate.</p></div>
+    <div><div class="big">0</div><p><b>Claude tokens for every further puppet look.</b> Once the method is in the Level Editor you queue it yourself and the AI server and this PC do the work.</p></div>
+  </div>
+
+  <h3>The time, route by route</h3>
+  <p class="small">Machine time, added up from the stages measured in the trial: arms-out 4.4 min, shape 3.4 min, rig + run + guides 1 min, walks 9.5–11.5 min, import 1–3 min. All estimates.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Route</th><th>Machine time</th><th>Your time</th></tr></thead>
+    <tbody>
+      <tr class="rec"><td><b>Recommended</b>: Klein arms-out, Hunyuan3D 2 (two tries), the scripted rig, depth walks + a stick-figure front (MAY-Q)</td><td class="n">about 23 min</td><td class="n">3 picks, a few min</td></tr>
+      <tr><td>Stick figures in every view (MAY-P)</td><td class="n">about 21 min</td><td class="n">the same</td></tr>
+      <tr><td>Arms-out pictures on Flux.2 dev instead of Klein</td><td class="n">+ 35–70 min</td><td class="n">the same</td></tr>
+      <tr><td>A brand-new hero with no paintings yet, stills on Klein</td><td class="n">+ about 5 min</td><td class="n">+ checking 13 stills</td></tr>
+      <tr><td>A brand-new hero, stills on Flux.2 dev (as MAY-G)</td><td class="n">+ about 1.5 h</td><td class="n">+ checking 13 stills</td></tr>
+      <tr><td>Another walk for a hero who already has a puppet (steps 6–7 only)</td><td class="n">about 12–14 min</td><td class="n">none</td></tr>
+      <tr><td>After a hand fix in Blender (<code>--from-blend</code>, steps 4–7)</td><td class="n">about 14–15 min</td><td class="n">your fix</td></tr>
+      <tr><td>The trial itself, wall clock (writing the tools, two looks, every fix, the comparison)</td><td class="n">13:37–15:25, about 1 h 50 min</td><td class="n">—</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>What the local AI saved</h3>
+  <p>Claude never paints: every picture, clip and 3D model here came from your own AI server. So the local models saved no Claude tokens directly. What they saved is paying a cloud service for each one. Here is every generation the trial made, priced at public cloud prices for the same or the nearest hosted model (read on 13 October 2026; an estimate):</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Generation</th><th>Count in the trial</th><th>Cloud price</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td>Klein 9B edits (arms-out)</td><td class="n">10 with 1 reference, 6 with 2</td><td><a href="https://fal.ai/models/fal-ai/flux-2/klein/9b/edit" target="_blank" rel="noopener">fal.ai</a>: $0.011 per megapixel in and out → $0.022 / $0.033</td><td class="n">$0.42</td></tr>
+      <tr><td>Hunyuan3D 2 multi-view shapes</td><td class="n">2</td><td><a href="https://fal.ai/models/fal-ai/hunyuan3d/v2/multi-view" target="_blank" rel="noopener">fal.ai</a>: $0.16 per mesh (no texture)</td><td class="n">$0.32</td></tr>
+      <tr><td>Wan 2.2 Animate clips, 25 frames (1.56 s at 16 fps)</td><td class="n">22 (34 s of video)</td><td><a href="https://fal.ai/models/fal-ai/wan/v2.2-14b/animate/move" target="_blank" rel="noopener">fal.ai</a>: $0.04 (480p) to $0.08 (720p) per second</td><td class="n">$1.38–2.75</td></tr>
+      <tr><td>Wan 2.2 Fun Control clips, 49 frames (3.06 s, billed as 4 s)</td><td class="n">8 (32 s billed)</td><td><a href="https://wavespeed.ai/models/wavespeed-ai/wan-2.2/fun-control" target="_blank" rel="noopener">WaveSpeed</a>: $0.04 (480p) to $0.08 (720p) per second, whole seconds</td><td class="n">$1.28–2.56</td></tr>
+      <tr><td><b>Total</b></td><td class="n">48 generations</td><td>our clips are 640 × 640, between the two price tiers</td><td class="n"><b>$3.39–6.05</b></td></tr>
+    </tbody>
+  </table></div>
+  <div class="headline" id="saving" data-usd-low="3.39" data-usd-high="6.05" data-usd-per-mtok-in="4" data-usd-per-mtok-out="20">
+    <div><div class="big tok">$3.39–6.05</div><p><b>Saved by painting locally</b>, at cloud prices (estimate). Replicate is a little cheaper for Klein ($0.017–0.019) and Hunyuan3D (about $0.10).</p></div>
+    <div><div class="big tok">0.85–1.5 <small>M tokens</small></div><p><b>The same money in Claude tokens</b>: Opus 5.5, the model this work ran on, costs <a href="https://platform.claude.com/docs/en/about-claude/pricing" target="_blank" rel="noopener">$4 per million tokens read and $20 per million written</a>. That is 0.85–1.5 million tokens read, or 170,000–300,000 tokens written.</p></div>
+    <div><div class="big tok" id="saving-pct">—</div><p><b>Share of the whole trial's cost</b> that local art saved: the saving in tokens (at $4 per million) against the Claude tokens above plus that saving. <span id="saving-note">It fills in once the token total is entered.</span></p></div>
+  </div>
+  <p class="small">Not counted: MAY-G's own 12 paintings and walks, made the day before; the AI server's electricity for about 50 minutes of work (roughly 0.4 kWh, a few tens of cents at most, a rough estimate). Prices: fal.ai and WaveSpeed model pages, Replicate's model pages for the comparison, Claude's pricing page; all read 13 October 2026. Fun Control is only hosted on WaveSpeed as far as we found; 640 × 640 may bill at either tier.</p>
+</section>
+
+<footer class="col">
+  <p>Written for Garry, 13 October 2026, from the May trial (lane PUPPET) and the Level Editor work (lane PLE). Files: <span class="path">tools/puppet.py</span>, <span class="path">tools/puppet_blender.py</span>, outputs in <span class="path">tools/dl/puppet/may/</span>, the step-by-step rig notes in <span class="path">tools/dl/puppet/may/RIG_HOWTO.md</span>, the trial's log in <span class="path">tools/dl/puppet/status_PUPPET.md</span>. The plan the trial followed: <a href="https://claude.ai/artifact/5B4qnyf76VsjEPSXnsX4Kf" target="_blank" rel="noopener">May Puppet Trial</a>.</p>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  // the share of the trial's cost that local art saved, once the lead has entered the token total
+  function parseTokens(t) {
+    if (!t || t.indexOf("{{") >= 0) return NaN;
+    var s = String(t).trim().replace(/[, _]/g, "").replace(/^[^0-9.]+/, "").toLowerCase();
+    var m = s.match(/^([0-9]*\.?[0-9]+)(m|k|b)?/);
+    if (!m) return NaN;
+    var n = parseFloat(m[1]);
+    if (m[2] === "m") n *= 1e6; else if (m[2] === "k") n *= 1e3; else if (m[2] === "b") n *= 1e9;
+    return n;
+  }
+  try {
+    var box = document.getElementById("saving");
+    var total = parseTokens(document.getElementById("tok-total").textContent);
+    if (box && isFinite(total) && total > 0) {
+      var per = parseFloat(box.dataset.usdPerMtokIn) / 1e6;
+      var lo = parseFloat(box.dataset.usdLow) / per, hi = parseFloat(box.dataset.usdHigh) / per;
+      var pct = function (x) { return (100 * x / (total + x)); };
+      var a = pct(lo), b = pct(hi);
+      var f = function (v) { return v < 10 ? v.toFixed(1) : Math.round(v).toString(); };
+      document.getElementById("saving-pct").textContent = f(a) + "–" + f(b) + " %";
+      document.getElementById("saving-note").textContent = "With " + Math.round(lo / 1e3).toLocaleString() + "k–" + Math.round(hi / 1e3).toLocaleString() + "k saving tokens against " + Math.round(total).toLocaleString() + " Claude tokens.";
+    }
+  } catch (e) { /* the page reads fine without it */ }
+
+  // tap a picture: a viewer that zooms (wheel, pinch, + and -, double-click or double-tap) and pans (drag); the
+  // arrows step through every picture on the page
+  var zv = null;
+  function shots() { return Array.prototype.slice.call(document.querySelectorAll("figure.shot img")); }
+  function openViewer(img) {
+    if (zv) return;
+    var list = shots(), idx = list.indexOf(img);
+    var root = document.createElement("div");
+    root.className = "zv"; root.setAttribute("role", "dialog"); root.setAttribute("aria-modal", "true");
+    var pic = document.createElement("img"); pic.draggable = false;
+    var cap = document.createElement("div"); cap.className = "cap";
+    var x = document.createElement("button"); x.type = "button"; x.className = "x"; x.textContent = "Close";
+    var bar = document.createElement("div"); bar.className = "bar";
+    function b(label, title, fn) {
+      var e = document.createElement("button"); e.type = "button"; e.textContent = label; e.title = title;
+      e.setAttribute("aria-label", title);
+      e.addEventListener("click", function (ev) { ev.stopPropagation(); fn(); });
+      bar.appendChild(e); return e;
+    }
+    var st = { s: 1, x: 0, y: 0, fit: 1, w: 1, h: 1 };
+    var pct = document.createElement("span"); pct.className = "pct";
+    b("\u2039", "Previous picture", function () { show(idx - 1); });
+    b("\u2212", "Zoom out", function () { zoomAt(innerWidth / 2, innerHeight / 2, 1 / 1.5); });
+    bar.appendChild(pct);
+    b("+", "Zoom in", function () { zoomAt(innerWidth / 2, innerHeight / 2, 1.5); });
+    b("Fit", "Fit to the screen", function () { fit(); });
+    b("1:1", "Real size", function () { zoomAt(innerWidth / 2, innerHeight / 2, 1 / st.s); });
+    b("\u203a", "Next picture", function () { show(idx + 1); });
+    function apply() {
+      pic.style.transform = "translate(" + st.x + "px," + st.y + "px) scale(" + st.s + ")";
+      pct.textContent = Math.round(st.s * 100) + "%";
+    }
+    function clamp() {
+      var W = st.w * st.s, H = st.h * st.s, vw = innerWidth, vh = innerHeight;
+      st.x = W <= vw ? (vw - W) / 2 : Math.min(0, Math.max(vw - W, st.x));
+      st.y = H <= vh ? (vh - H) / 2 : Math.min(0, Math.max(vh - H, st.y));
+    }
+    function fit() {
+      st.fit = Math.min((innerWidth - 24) / st.w, (innerHeight - 140) / st.h, 1);
+      st.s = st.fit; clamp(); apply();
+    }
+    function zoomAt(cx, cy, k) {
+      var ns = Math.max(st.fit * 0.5, Math.min(8, st.s * k));
+      k = ns / st.s;
+      st.x = cx - (cx - st.x) * k; st.y = cy - (cy - st.y) * k; st.s = ns; clamp(); apply();
+    }
+    function show(i) {
+      if (!list.length) return;
+      idx = (i + list.length) % list.length;
+      var src = list[idx];
+      cap.textContent = (src.alt || "") + "  (" + (idx + 1) + " / " + list.length + ")";
+      pic.onload = function () {
+        st.w = pic.naturalWidth || 1; st.h = pic.naturalHeight || 1;
+        pic.style.width = st.w + "px"; pic.style.height = st.h + "px"; fit();
+      };
+      pic.src = src.currentSrc || src.src; pic.alt = src.alt;
+      if (pic.complete && pic.naturalWidth) pic.onload();
+    }
+    // the wheel zooms toward the pointer
+    root.addEventListener("wheel", function (e) {
+      e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.pow(1.0015, -e.deltaY));
+    }, { passive: false });
+    // one finger or the mouse pans, two fingers pinch, a double tap zooms in or goes back to fit
+    var pts = new Map(), last = null, pinch = null, tapT = 0, tapX = 0, tapY = 0, moved = false;
+    root.addEventListener("pointerdown", function (e) {
+      if (e.target.closest("button")) return;
+      root.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = false;
+      if (pts.size === 1) { last = { x: e.clientX, y: e.clientY }; root.classList.add("drag"); }
+      if (pts.size === 2) {
+        var a = Array.from(pts.values());
+        pinch = { d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y), s: st.s };
+      }
+    });
+    root.addEventListener("pointermove", function (e) {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2 && pinch) {
+        var a = Array.from(pts.values()), d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+        var cx = (a[0].x + a[1].x) / 2, cy = (a[0].y + a[1].y) / 2;
+        zoomAt(cx, cy, (pinch.s * d / Math.max(pinch.d, 1)) / st.s); moved = true;
+      } else if (pts.size === 1 && last) {
+        var dx = e.clientX - last.x, dy = e.clientY - last.y;
+        if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+        st.x += dx; st.y += dy; last = { x: e.clientX, y: e.clientY }; clamp(); apply();
+      }
+    });
+    function up(e) {
+      pts.delete(e.pointerId);
+      if (pts.size < 2) pinch = null;
+      if (pts.size === 1) { var a = Array.from(pts.values())[0]; last = { x: a.x, y: a.y }; }
+      if (pts.size === 0) {
+        root.classList.remove("drag"); last = null;
+        if (!moved && !(e.target.closest && e.target.closest("button"))) {
+          var now = Date.now();
+          if (now - tapT < 320 && Math.abs(e.clientX - tapX) < 24 && Math.abs(e.clientY - tapY) < 24) {
+            if (st.s > st.fit * 1.05) fit(); else zoomAt(e.clientX, e.clientY, 2.5 * st.fit / st.s);
+            tapT = 0;
+          } else { tapT = now; tapX = e.clientX; tapY = e.clientY; }
+        }
+      }
+    }
+    root.addEventListener("pointerup", up); root.addEventListener("pointercancel", up);
+    function onKey(e) {
+      if (e.key === "Escape") close();
+      else if (e.key === "ArrowLeft") show(idx - 1);
+      else if (e.key === "ArrowRight") show(idx + 1);
+      else if (e.key === "+" || e.key === "=") zoomAt(innerWidth / 2, innerHeight / 2, 1.5);
+      else if (e.key === "-") zoomAt(innerWidth / 2, innerHeight / 2, 1 / 1.5);
+      else if (e.key === "0") fit();
+    }
+    function onResize() { fit(); }
+    function close() {
+      document.removeEventListener("keydown", onKey); removeEventListener("resize", onResize);
+      root.remove(); zv = null; document.documentElement.style.overflow = "";
+      if (img && img.focus) { try { img.focus({ preventScroll: true }); } catch (err) {} }
+    }
+    x.addEventListener("click", close);
+    document.addEventListener("keydown", onKey); addEventListener("resize", onResize);
+    root.appendChild(pic); root.appendChild(cap); root.appendChild(x); root.appendChild(bar);
+    document.body.appendChild(root); zv = root; document.documentElement.style.overflow = "hidden";
+    show(idx < 0 ? 0 : idx); x.focus();
+  }
+  document.addEventListener("click", function (ev) {
+    var img = ev.target.closest && ev.target.closest("figure.shot img");
+    if (img) openViewer(img);
+  });
+})();
+</script>
