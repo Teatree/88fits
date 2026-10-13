@@ -82,7 +82,7 @@ STATIC_TYPES = {
 }
 FILE_TYPES = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif",
               ".json": "application/json; charset=utf-8", ".txt": "text/plain; charset=utf-8", ".wav": "audio/wav",
-              ".ogg": "audio/ogg", ".mp3": "audio/mpeg"}
+              ".ogg": "audio/ogg", ".mp3": "audio/mpeg", ".glb": "model/gltf-binary"}
 # the folders the API reads, by the kind the page names (pass 66 added the heroes and the items)
 KIND_FOLDERS = {"enemy": "enemies", "boss": "bosses", "elite": "elites", "pickup": "pickups", "hero": "characters",
                 "weapon": "weapons", "evolution": "evolutions", "passive": "passives", "mutation": "mutations",
@@ -102,8 +102,16 @@ NEW_WEAPON_STARTS_HIDDEN = True
 # five passive items came unlocked; selftest_L69 reads the bounds from the test file)
 BAND_LO, BAND_HI = 0.28, 0.56
 # tools/dl roots the page may read through /dl/<rel> (plus any root whose name starts with "icons")
-DL_ROOTS = ("jobs", "drivers", "ai_raw_anime", "ai_anim", "review", "title_heroes", "uploads")
-DL_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".json", ".txt")
+DL_ROOTS = ("jobs", "drivers", "ai_raw_anime", "ai_anim", "review", "title_heroes", "uploads", "puppet")
+DL_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif", ".json", ".txt", ".glb")
+# pass 71 (lane PLE): the Puppet method's files (tools/dl/puppet/<hero>/: the arms-out paintings, the shape, the rig's
+# x-rays, <hero>_puppet.glb with its clips) and the page's 3D viewer, vendored (tools/level_editor/vendor/: Google's
+# <model-viewer>, a pinned release, so the page works offline)
+PUPPET_DIR = os.path.join(DL, "puppet")
+MIXAMO_DIR = os.path.join(DL, "mixamo")
+VENDOR = os.path.join(HERE, "vendor")
+VENDOR_TYPES = {".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".txt": "text/plain; charset=utf-8",
+                ".md": "text/markdown; charset=utf-8", ".json": "application/json; charset=utf-8"}
 UPLOAD_MAX = 200 * 1024 * 1024
 UPLOAD_EXTS = {"2d": (".png", ".jpg", ".jpeg", ".webp", ".gif"), "3d": (".fbx", ".glb", ".gltf", ".obj", ".dae", ".blend", ".zip")}
 QA_URL = "http://127.0.0.1:1234/v1/models"
@@ -2539,6 +2547,108 @@ def blender_path():
     return cands[-1].replace("\\", "/") if cands else None
 
 
+def _still_url(key):
+    p = os.path.join(DL, "ai_raw_anime", key + ".png")
+    return ("/dl/ai_raw_anime/%s.png?v=%d" % (key, int(os.path.getmtime(p)))) if os.path.isfile(p) else None
+
+
+def _played_screen(doc, vs, played):
+    """The screen of the look he is played in (its recipe's), else the hero's own; None when neither names one."""
+    e = vs.get(played) if isinstance(vs.get(played), dict) else {}
+    r = e.get("recipe") if isinstance(e.get("recipe"), dict) else {}
+    return str(r.get("screen") or doc.get("screen") or "") or None
+
+
+def puppet_record(hid):
+    """GET /api/puppet/<hero> (pass 71, lane PLE): the hero's puppet (tools/dl/puppet/<hero>/): the GLB (+ its clips as
+    stages.json recorded them), the preview, the .blend, which stages are on disk, the guides made from it (tools/dl/
+    drivers/<hero>_puppet_*: framing, clip, silhouette); and what the job form offers: every look's stills (the 3D
+    reference picker: any look's front, side and back), the look he is played in, the Mixamo clips on disk, the screen."""
+    tf, path = content_path("hero", hid)
+    if path is None:
+        return {"ok": False, "error": "no hero %s" % hid}
+    try:
+        doc = load_json(path)
+    except (OSError, ValueError) as e:
+        return {"ok": False, "error": "%s.json: %s" % (hid, e)}
+    d = os.path.join(PUPPET_DIR, hid)
+
+    def url(name):
+        f = os.path.join(d, name)
+        return ("/dl/puppet/%s/%s?v=%d" % (hid, name.replace(os.sep, "/"), int(os.path.getmtime(f)))) if os.path.isfile(f) else None
+    state = {}
+    try:
+        state = load_json(os.path.join(d, "stages.json"))
+    except (OSError, ValueError):
+        state = {}
+    glb = os.path.join(d, "%s_puppet.glb" % hid)
+    files = {k: url(n) for k, n in (("apose_front", "apose_front.png"), ("apose_side", "apose_side.png"), ("apose_back", "apose_back.png"),
+                                     ("shape_preview", "shape_preview_front.png" if os.path.isfile(os.path.join(d, "shape_preview_front.png")) else "shape_preview.png"),
+                                     ("rig_front", os.path.join("rig", "rig_front.png")),
+                                     ("bendtest", os.path.join("rig", "bendtest.png")), ("preview", "%s_puppet_preview.png" % hid),
+                                     ("front_sheet", os.path.join("apose", "front_sheet.png")))}
+    stages = {"apose": os.path.isfile(os.path.join(d, "apose_front.png")), "shape": os.path.isfile(os.path.join(d, "shape.glb")),
+              "rig": os.path.isfile(os.path.join(d, "%s_puppet.blend" % hid)), "anim": os.path.isfile(glb)}
+    guides = []
+    if os.path.isdir(DRIVERS):
+        for name in sorted(os.listdir(DRIVERS)):
+            if not name.startswith(hid + "_puppet_") or "_depth" in name or "_old" in name or "_v1_" in name:
+                continue
+            mp = os.path.join(DRIVERS, name, "meta.json")
+            if not os.path.isfile(mp):
+                continue
+            try:
+                m = load_json(mp)
+            except (OSError, ValueError):
+                m = {}
+            sil = os.path.join(DRIVERS, name, "silhouette.json")
+            if not os.path.isfile(sil) and name == hid + "_puppet_run" and os.path.isfile(os.path.join(d, "silhouette.json")):
+                sil = os.path.join(d, "silhouette.json")
+            ratios = {}
+            try:
+                ratios = {v: (r or {}).get("ratio_median") for v, r in load_json(sil).items()} if os.path.isfile(sil) else {}
+            except (OSError, ValueError, AttributeError):
+                ratios = {}
+            guides.append({"name": name, "frame": m.get("frame", "ankles"), "clip": m.get("clip") or "tools/dl/mixamo/running.fbx",
+                           "depth": name + "_depth" if os.path.isdir(os.path.join(DRIVERS, name + "_depth")) else None,
+                           "silhouette": rel(sil) if os.path.isfile(sil) else None, "ratios": ratios,
+                           "sheet": "/dl/drivers/%s/all_sheet.png" % name if os.path.isfile(os.path.join(DRIVERS, name, "all_sheet.png")) else None,
+                           "mtime": mtime_of(mp)})
+    vs = doc.get("variants") if isinstance(doc.get("variants"), dict) else {}
+    played = str(doc.get("variant") or doc.get("variant_base") or "")
+    looks = []
+    for code, e in vs.items():
+        if not isinstance(e, dict):
+            continue
+        r = e.get("recipe") if isinstance(e.get("recipe"), dict) else {}
+        slug = str(r.get("stills") or "")
+        sk = r.get("still_keys") if isinstance(r.get("still_keys"), dict) else {}
+        stills = {}
+        for v in ("front", "side", "back", "fd", "bd"):
+            key = str(sk.get(v) or "%s%s_%s" % (hid, "_" + slug if slug else "", v))
+            u = _still_url(key)
+            if u:
+                stills[v] = {"key": key, "url": u}
+        looks.append({"code": code, "slug": slug, "stills": stills, "played": code == played, "shelved": bool(e.get("shelved")),
+                      "has_strip": bool(e.get("sprite")) or code == doc.get("variant_base"), "method": r.get("method") or ""})
+    if not any(lk["code"] == played for lk in looks):
+        # the hero's own paintings (<id>_<view>): a hero without looks, or a base strip the variants do not list
+        own = {v: {"key": "%s_%s" % (hid, v), "url": _still_url("%s_%s" % (hid, v))} for v in ("front", "side", "back", "fd", "bd")}
+        own = {v: x for v, x in own.items() if x["url"]}
+        if own:
+            looks.insert(0, {"code": played, "slug": "", "stills": own, "played": True, "shelved": False, "has_strip": True, "method": "", "own": True})
+    clips = sorted(f for f in os.listdir(MIXAMO_DIR) if f.lower().endswith(".fbx")) if os.path.isdir(MIXAMO_DIR) else []
+    anim = state.get("anim") if isinstance(state.get("anim"), dict) else {}
+    return {"ok": True, "hero": hid, "name": doc.get("name") or hid, "dir": rel(d), "exists": os.path.isdir(d),
+            "glb": url("%s_puppet.glb" % hid), "glb_file": rel(glb) if os.path.isfile(glb) else None,
+            "glb_mtime": mtime_of(glb), "blend": rel(os.path.join(d, "%s_puppet.blend" % hid)) if stages["rig"] else None,
+            "clip": anim.get("clip") or ("tools/dl/mixamo/running.fbx" if stages["anim"] else None), "idle": anim.get("idle") or ("procedural" if stages["anim"] else None),
+            "files": files, "stages": stages, "guides": guides, "looks": looks, "played": played, "clips": clips,
+            "screen": _played_screen(doc, vs, played),
+            "picks": (state.get("apose") or {}).get("picks"),
+            "rig_howto": rel(os.path.join(DL, "puppet", "may", "RIG_HOWTO.md")) if os.path.isfile(os.path.join(DL, "puppet", "may", "RIG_HOWTO.md")) else None}
+
+
 def status_record():
     m = jobs_module()
     jobs = None
@@ -2908,6 +3018,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._workflow(parts[1])
             if parts[:1] == ["sound"] and len(parts) == 2:
                 return self._sound(parts[1])
+            if parts[:1] == ["vendor"] and len(parts) == 2:
+                return self._vendor(parts[1])
             return self._static(parts)
         except Exception as e:  # a bug should show in the page, not kill the server
             import traceback
@@ -2959,6 +3071,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, list_items())
         if parts == ["drivers"]:
             return self._send(200, list_drivers())
+        if len(parts) == 2 and parts[0] == "puppet":
+            # pass 71 (lane PLE): what the Puppet method has of a hero and what its form offers
+            if not ID_RE.match(parts[1]):
+                return self._error(404, "bad id")
+            res = puppet_record(parts[1])
+            return self._send(200 if res.get("ok") else 404, res)
         if parts == ["refs"]:
             return self._send(200, list_refs())
         if len(parts) == 2 and parts[0] == "templates":
@@ -3071,6 +3189,16 @@ class Handler(BaseHTTPRequestHandler):
         if not os.path.isfile(full):
             return self._error(404, "no workflow %s" % name)
         self._file(full, "application/json; charset=utf-8")
+
+    def _vendor(self, name):
+        """/vendor/<file>: a third-party script the page loads (pass 71: model-viewer), from tools/level_editor/vendor/."""
+        ext = os.path.splitext(name)[1].lower()
+        if not FILENAME_RE.match(name) or ext not in VENDOR_TYPES:
+            return self._error(404, "not found")
+        full = os.path.join(VENDOR, name)
+        if not os.path.isfile(full):
+            return self._error(404, "no vendor file %s" % name)
+        self._file(full, VENDOR_TYPES[ext], cache="max-age=86400")
 
     def _sound(self, sid):
         full = sound_path(sid)

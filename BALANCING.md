@@ -1428,3 +1428,47 @@ game (launch) never times out.
 ### 17.ART The art's rule
 
 17.ART1 **A view's walk can be sized** (`recipe.run_scale` {view: multiplier}, default 1, clamped 0.5..1.5, heroes and creatures walked by gen_art): gen_art fits each view's walk by its tallest frame, so a side run that crouches in every frame came out up to a third taller than the standing figure and a back run with a foot reaching to the camera smaller; the multiplier corrects it (May {side 0.88, fd 0.92}; Jeżyk BUC-F {back 1.07, bd 1.06, side 0.90, fd 0.91, front 0.90}). A scaled driver cannot do this (the walk is fitted back to the standing height).
+
+## 18. Pass 71 (v0.57): the Puppet method (not balance: named so they are not surprises)
+
+No game rule changed (no content, no game code). New tool-side rules and their numbers:
+
+- **The Puppet method (`hero_puppet`)**: a hero look whose walks are guided by the hero's own rigged 3D puppet
+  (`tools/puppet.py`). Defaults: the source look = the one he is played in; the 3D reference = arms-out paintings
+  (Klein, 4 front candidates, the side and the back half of that, at least 3; seeds `2026101377 + k * 1000003`, + 17
+  side, + 31 back, a re-roll shifts by `--seed N * 7919`); Hunyuan3D-2mv 2 tries (seed `12345 + k * 7919`, a re-roll
+  `+ N * 104729`), 30 steps, cfg 5, octree 380, 60,000 triangles after the clean; the clip `running.fbx` as "run", the
+  idle procedural; guides framed by the soles; depth (Wan 2.2 Fun Control) for fd, side, bd, back and the puppet's
+  OpenPose for the front; run_fit on; fringe_remap off; the walks on the source look's stills.
+- **Guides are versioned**: `<hero>_puppet_<clip>` (running.fbx = `run`); a new folder `_2`, `_3`, ... whenever the
+  framing, the clip or the GLB (newer than the guides' meta.json by more than 1 s) differs. Old guides are never moved.
+- **A stage re-run / a fresh puppet moves files aside**, never deletes: `tools/dl/puppet/<hero>/old/<stamp>/`.
+- **`run_fit`** (gen_art, any hero look's recipe): each driven walk scaled so its MEDIAN frame height = the standing
+  figure's height x the ratio (from `silhouette.json` per view, or `{view: ratio}`), clamped **0.6..1.4**; replaces the
+  tallest-frame fit (x0.99) for those views; `run_scale` (0.5..1.5) still multiplies on top.
+- **`fringe_remap`** (gen_art): hue bins of 24; a bin is the painting's own when it holds **0.3 %** of the figure or a
+  neighbour does; a clip pixel saturated over **0.2** (`min_sat`) in a foreign bin takes the mean hue of the painting's
+  nearest own bin and **0.85x** (`sat`) its saturation; value and alpha kept. Off unless named.
+- **Job lanes**: a puppet phase runs on comfy when it paints or makes the shape (holding the ComfyUI lock), on local for
+  Blender (no ComfyUI lock; its env has no LOCK_HELD_COMFY); a phase that finds its work on the other lane re-queues
+  itself at the front of that lane. The walks run on comfy as hero_pose5's.
+- **The method's timings** (methods.json): median 1260 s, worst 2700 s; measured: arms-out front 1.5-2 min, side + back
+  2.5-2.7 min, Hunyuan3D 3.5-4.5 min (two tries and two restarts), Blender about 30 s, guides about 1 min, a depth walk
+  about 2.5 min, a stick-figure walk about 1 min; a hero who has a puppet: the walks only, about 11 min.
+- **Saved workflows**: a job's saved UI workflow names top-level copies of its pictures, `<subfolder>_<sha1 10>_<file>`
+  (at most 120 characters), one upload per picture and process; the graph that runs is unchanged.
+
+## Follow-up (Garry, 2026-10-13): the improvements are settings of hero_puppet
+- **Size from the 3D model** (`puppet.run_fit`, default **on**), **Frame by the soles** (`puppet.frame`, default
+  **soles**), **Clean colour fringes** (`puppet.fringe`, default **on**: changed from off), **Keep the face angle**
+  (`puppet.face`, default **nose**: the stick figures' ears 9 cm x the head's scale behind the measured nose and 1 cm
+  up, as pose_driver places them; `head` = on the head bone's axis), **Depth or stick figure** per view
+  (`puppet.depth_views`, default fd, side, bd, back on depth; the front on the stick figure).
+- Every setting is recorded in the look's `recipe.puppet`; a re-queue runs the recipe's values (the job's copy dropped).
+- The guides' match includes the face angle (a meta without `face` = nose, the trial's v3 guides).
+- **Keep the face angle** also means (gen_art `hint_for_view`): a look whose recipe has `puppet.face: nose` walks its back
+  and bd views on its hint without the `;`-clauses that name the face (face, eyes, smile, cheek, mouth, nose, lips,
+  eyebrows). Other looks and the other views keep the whole hint.
+- **run_fit counts the outline**: the median frame's target height is (standing height x ratio) - 2 x the outline
+  (round(cell x 0.012) a side), since the outline is added after the scale (the first MAY-R walks stood +2 % in
+  every view without it).

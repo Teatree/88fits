@@ -21,10 +21,17 @@ import.
 --dry-run (critique 16, "show the words that will be sent"): nothing reaches ComfyUI. gen_art.render, comfy.run,
 comfy.upload and the Wan cycles are replaced by stand-ins that record every prompt into <job_dir>/dry_run.json and hand
 back the cached painting (tools/dl/ai_raw_anime/<key>.png) or a flat screen-coloured square; clips come back None, so
-the strip is packed with procedural frames. The content JSON is never written (the sidecar is on).
+the strip is packed with procedural frames. The content JSON is never written (the sidecar is on); pass 71: nor is any
+file under game/content (gen_art works on a copy of the JSON under <job_dir>/dry_content/: _dry_folder).
 Pass 68: a graph's record also names its reference pictures (LoadImage), seed, model file and steps; a candidate tool's
 own outputs (the title cut-outs, the badge review sheet, the icon candidates) go under <job_dir>/ instead of tools/dl/,
 and a pick is not run at all (it only writes files): the dry run records what it would have installed.
+
+Pass 71 (lane PLE): tool "puppet" runs one phase of a hero_puppet look job: puppet.main(argv) (tools/puppet.py, its stages
+on the job's lane; it stops at a pick, at a lane change and after the guides). With --dry-run every puppet stage runs
+recorded (puppet.py --dry-run: the paintings, the Hunyuan3D graphs and the Blender commands, the picks c0, stand-ins under
+<job_dir>/puppet_dry/), then the walks that follow (job.json "walks": gen_art's argv) dry like a look job's; both lists
+go into <job_dir>/dry_run.json (the puppet's first, "phase": "puppet").
 
 The candidate tools (pass 68, D7) take their inputs explicitly: gen_badge_cands --character/--ref/--prompt/--variant,
 gen_title_heroes.paint(character=, pose=, holds=, camera=, ref=, extra_ref=, extra_words=, variant=, tag=), gen_icon_cands
@@ -44,7 +51,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 
-TOOLS = ("gen_art", "gen_ctl", "gen_edit_stills", "gen_icon_cands", "gen_title_heroes", "gen_badge_cands")
+TOOLS = ("gen_art", "gen_ctl", "gen_edit_stills", "gen_icon_cands", "gen_title_heroes", "gen_badge_cands", "puppet")
 
 
 def log(*a):
@@ -165,6 +172,27 @@ def icon_spec(job, job_dir=""):
         out["variant"] = look
     out.setdefault("set", "_le_" + os.path.basename(job_dir or ""))
     return out
+
+
+def _dry_folder(job, job_dir, folder):
+    """Pass 71 (lane PLE): a dry run never writes into game/content. gen_art saves the strip, the icon and the _ai.json
+    marker beside the JSON whatever the sidecar says (the content JSON itself it never writes), so a dry run of a real
+    look's job (MAY-Q's, 2026-10-13) overwrote that look's strip with procedural frames. A folder under game/content is
+    swapped for <job_dir>/dry_content/<type>/<id>/ holding a copy of the JSON; a folder elsewhere (the selftests' temp
+    copies) is used as it is."""
+    real = os.path.abspath(os.path.join(ROOT, "game", "content"))
+    f = os.path.abspath(folder)
+    if not (f == real or f.startswith(real + os.sep)):
+        return folder
+    cid = os.path.basename(f)
+    dst = os.path.join(job_dir, "dry_content", os.path.basename(os.path.dirname(f)), cid)
+    os.makedirs(dst, exist_ok=True)
+    src = os.path.join(f, cid + ".json")
+    if os.path.isfile(src):
+        with open(src, "rb") as a, open(os.path.join(dst, cid + ".json"), "wb") as b:
+            b.write(a.read())
+    log("dry run: gen_art works on a copy of %s.json in %s (game/content is never written)" % (cid, dst))
+    return dst
 
 
 def _content_dir(job, up):
@@ -359,7 +387,7 @@ def run(job_dir, dry=False):
         import gen_art  # noqa: E402
         if dry:
             rec.install(comfy, gen_art=gen_art)
-        gen_art.process(job.get("type", "enemies"), _folder_for(job), job["id"])
+        gen_art.process(job.get("type", "enemies"), _dry_folder(job, job_dir, _folder_for(job)) if dry else _folder_for(job), job["id"])
     elif tool == "gen_ctl":
         import gen_ctl  # noqa: E402
         if dry:
@@ -406,6 +434,38 @@ def run(job_dir, dry=False):
             _, hid, seeds, first, kw = how
             log("paint: %s seeds %d first %d %s" % (hid, seeds, first, json.dumps({k: v for k, v in kw.items() if v not in (None, "")}, ensure_ascii=False)))
             gth.paint(hid, seeds, first, **kw)
+    elif tool == "puppet":
+        import puppet  # noqa: E402
+        argv = [str(a) for a in (job.get("argv") or [])]
+        if dry:
+            # the whole chain recorded (every lane, the picks c0), then the walks dry like a look job's
+            root = os.path.join(job_dir, "puppet_dry")
+            rc = puppet.main(argv + ["--dry-run", "--out-root", root])
+            try:
+                with open(os.path.join(root, "dry_run.json"), encoding="utf-8") as f:
+                    for n in json.load(f).get("prompts", []):
+                        rec.prompts.append(dict(n, phase="puppet"))
+                rec.flush()
+            except (OSError, ValueError):
+                pass
+            w = job.get("walks") or {}
+            if not rc and w.get("argv"):
+                log("dry run: the walks that follow: python tools/gen_art.py %s" % " ".join(str(a) for a in w["argv"]))
+                sys.argv = ["gen_art.py"] + [str(a) for a in w["argv"]]
+                import gen_art  # noqa: E402
+                import animate  # noqa: E402
+                import artkit  # noqa: E402
+                rec.install(comfy, gen_art=gen_art, animate=animate, artkit=artkit)
+                try:
+                    wf = _abs(w["folder"]) if w.get("folder") else _folder_for(dict(job, type="characters"))
+                    gen_art.process(w.get("type", "characters"), _dry_folder(job, job_dir, wf), w.get("id") or job["id"])
+                except (Exception, SystemExit) as e:   # the walks' dry run is a bonus: the puppet's record stands
+                    rec.note("walks_error", error="%s: %s" % (type(e).__name__, e))
+                    log("dry run: the walks were not recorded (%s: %s); the look's stub is written when a real job is queued" % (type(e).__name__, e))
+        else:
+            rc = puppet.main(argv)
+        if rc:
+            return int(rc)
     elif tool == "gen_badge_cands":
         argv = badge_argv(job)
         if argv != [str(a) for a in (job.get("argv") or [])]:

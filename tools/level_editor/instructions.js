@@ -24,6 +24,7 @@ const Instructions = (() => {
     clear(container);
     const root = el('div', { class: 'instr' });
     intro(root);
+    pass71(root);   // pass 71 (lane PLE): the Puppet method
     pass70(root);
     pass69(root);
     pass68(root);
@@ -509,6 +510,46 @@ const Instructions = (() => {
     root.appendChild(el('h2', { text: 'The schema (docs/waves_schema.md)' }));
     root.appendChild(p('The contract between this editor and the game, as the repository holds it. The editor writes exactly these keys.'));
     root.appendChild(el('div', { class: 'schema-doc', html: App.S.schema ? markdown(App.S.schema) : '<p class="muted">loading…</p>' }));
+  }
+
+  // ------------------------------------------------------------------ pass 71: the Puppet method (lane PLE)
+
+  /** Garry (2026-10-13): "I quite like this approach, add that in to LevelEditor with the considerations that I asked you
+   *  about earlier": choose which 2D reference feeds the 3D model (or have one painted locally), preview the animated 3D
+   *  model in the editor, the Puppet method in the job form like the others with its warnings and timings. */
+  function pass71(root) {
+    const ol = (...steps) => el('ol', { class: 'howto' }, steps.map((s) => li(s)));
+    const how = (title, intro2, steps) => { root.appendChild(el('h3', { text: title })); if (intro2) root.appendChild(p(intro2)); root.appendChild(steps); };
+    root.appendChild(el('h2', { text: 'Pass 71: the Puppet method' }));
+    root.appendChild(p('A hero\'s painting becomes a rigged 3D figure (a <i>puppet</i>) whose own renders guide the video model, instead of a flat Mixamo stick figure. The trial on May showed it keeps each view at its right size without Run size, keeps the back-diagonal turned away, and needs no hand-tuned driver. Now it is a method in the job form, any hero\'s.'));
+    root.appendChild(el('ul', {},
+      li('<b>What it does</b> (<code>tools/puppet.py</code>, one job on the Jobs tab): (1) the <b>arms-out paintings</b>: Klein (or Flux.2 dev) edits the look\'s front still into an A-pose, then the side and the back, and you pick one of each on the job card; (2) the <b>3D shape</b>: Hunyuan3D-2mv on the AI server (two tries, you pick one); (3) Blender cleans it, finds the joints and <b>rigs</b> it with Mixamo\'s bones; (4) plays the <b>Mixamo clip</b> on it, colours it from the paintings and makes the <b>GLB</b> you can turn in the editor; (5) the <b>guides</b>: stick figures from its own bones (framed by the soles), depth videos and its silhouette; (6) the <b>walks</b> of the look on them (gen_art, as any hero look).'),
+      li('<b>The 3D reference, your choice per view</b>: in the form\'s <i>The 3D puppet</i> section each of front, side and back says what its picture is: <i>paint arms-out locally</i> (the default), a still of <i>any</i> look of the hero (shown as a thumbnail), an uploaded picture, or (side and back) none. A picture is used as it is: if its arms touch the body, the arms fuse into the torso and cannot be rigged.'),
+      li('<b>The 3D preview</b>: the hero\'s <i>Art words</i> section shows his puppet (click <i>▶ 3D puppet</i>): drag to turn, wheel to zoom, the clip picker (<i>run</i>, <i>idle</i>), Play / Pause, the speed, the camera at front, 3/4, side, back. The puppet job\'s card shows the same viewer. It works offline (the viewer is in <code>tools/level_editor/vendor/</code>).'),
+      li('<b>Reuse</b>: a hero who has a puppet starts the next puppet look from it (no paintings, no shape, no rig: the walks only, about 11 minutes); or from his <code>.blend</code> after you moved a joint in Blender; or from a Mixamo-rigged FBX; or a new puppet (the old one is moved to <code>tools/dl/puppet/&lt;hero&gt;/old/</code>, never deleted).'),
+      li('<b>Options</b>: the moving clip and the idle (Mixamo FBX files in <code>tools/dl/mixamo/</code>), which views walk on the depth video and which on the stick figure (depth for fd, side, bd, back and the stick figure for the front: the trial\'s best), the framing (by the soles), <b>run size from the puppet</b> (<code>run_fit</code>: each view\'s walk stands at the height the 3D run has against its idle in that view; no Run size to tune), the <b>fringe remap</b> (<code>fringe_remap</code>: colours the painting does not have moved to its own), and the walks\' stills (the source look\'s, nothing painted again, or the look\'s own).'),
+      li('<b>The settings</b> (the form\'s <i>The 3D puppet</i> → <i>The walks of this look</i>; each on by default and recorded in the look\'s recipe under <code>puppet</code>, so <b>Recipe (typed)…</b> shows what a look ran with and a re-queue runs what it holds): <b>Size from the 3D model</b> (<code>puppet.run_fit</code>: each view\'s walk as tall as the 3D model\'s run stands against its idle, by the middle frame; no Run size to tune), <b>Frame by the soles</b> (<code>puppet.frame</code>: the boots stay inside the picture), <b>Clean colour fringes</b> (<code>puppet.fringe</code>: the rainbow fringes on sleeves and boots turned into the painting\'s own colours), <b>Keep the face angle</b> (<code>puppet.face</code>: the stick figures\' ears placed from the 3D model\'s nose, so a side view stays in profile, and the back views walked on words without the face; May\'s side run turned its face to the camera without it, and MAY-R\'s first back walk faced the camera), and per view <b>Depth or stick figure</b> (<code>puppet.depth_views</code>: the depth video has no face, so the front walks on the stick figure).'),
+      li('<b>Watch for</b>: Hunyuan3D-2mv\'s licence does not cover the European Union, the UK or South Korea (Garry accepted it for this project; read it again before anything made with it ships from there); the AI server is AMD, so only ComfyUI\'s built-in 3D nodes run and ComfyUI restarts before and after the shape; a depth video carries no face (the front walks better on the stick figure); Klein sometimes paints four hands: pick by eye.')));
+
+    how('Make a puppet look (a hero without a puppet: Jeżyk\'s way)', 'About 20 minutes of machine time, three picks. Each pick waits on the Jobs tab; the comfy lane runs other jobs meanwhile.', ol(
+      'Heroes tab → the hero → <b>Art words</b> → <i>The 3D puppet</i> → <b>+ Make a puppet look…</b> (or Looks &amp; previews → <b>+ New look…</b> → the method <b>Hero: a 3D puppet of the painting walks him</b>).',
+      '<b>The 3D puppet</b> section: <i>source look</i> = the look whose stills are edited (the one he is played in); the <b>3D reference</b> rows: leave <i>paint arms-out locally</i>, or choose a look\'s still or an uploaded arms-out picture for a view; the painter (Klein: 20 s a candidate), the front candidates (4), the screen (green for a blue figure).',
+      '<i>The clips</i>: running.fbx and the procedural idle are the trial\'s. <i>The walks</i>: keep depth for fd, side, bd, back, the soles framing and the run size from the puppet. The badge and cut-out candidates (3 each) come with the new look as with any look → <b>Queue</b>.',
+      'Jobs tab → the job stops: <b>pick the arms-out front</b> (arms clear of the body all the way down, five fingers a hand, a gap between the legs) → Pick. It stops again: <b>one side and one back</b> (click one of each) → Pick. Then <b>the 3D shape</b> (each try in grey clay from six sides: pick the cleaner arms and legs) → Pick.',
+      'The rest runs by itself (Blender on the local lane, then the walks on the comfy lane). The card shows every stage, the 3D puppet to turn and play, the guides and the walks. Look at each view of the new look against its idle, Approve it, and <b>Make default</b> to play it.'));
+
+    how('A new look from the puppet he already has', null, ol(
+      'Art words → <i>The 3D puppet</i> → <b>+ New look from the puppet…</b>; <i>start from</i>: <b>the puppet he has</b>.',
+      'Change what the look changes: another clip (a walk: new guides are made from the same rig), the depth / stick-figure views, the fringe remap, or <i>the walks\' stills</i> → paint this look\'s own. → Queue. No paintings, no shape, no rig: a minute of Blender at most, then the walks.'));
+
+    how('Fix the rig in Blender and walk again from it', 'The joints are found from the shape; an elbow or a knee in the wrong place shows as a bent sleeve in the 3D preview.', ol(
+      'Open <code>tools/dl/puppet/&lt;hero&gt;/&lt;hero&gt;_puppet.blend</code> in Blender 5.2 (the mesh is named after the hero, the armature &lt;Name&gt;_Rig; <code>tools/dl/puppet/may/RIG_HOWTO.md</code> has every step): move the joint in Edit Mode, Ctrl+P → With Automatic Weights, check the head, Ctrl+S.',
+      'A new puppet look → <i>start from</i>: <b>his .blend</b> → Queue: the clip is played on your rig again, the GLB, the preview and new guides (a new folder: the looks that walked on the old ones keep them), then the walks.',
+      'Mixamo\'s auto-rigger instead: export the mesh, rig it on mixamo.com, download "FBX Binary, Original Pose, With Skin", upload it (+ New pose driver… → Upload), then <i>start from</i>: <b>a Mixamo-rigged FBX</b>.'));
+
+    how('Run a puppet job again from one stage', null, ol(
+      'Jobs tab → the puppet job → <b>Re-roll…</b> → <i>run the puppet again from a stage</i>: the arms-out paintings, the shape, the rig, the clips and colours, or the guides. That stage\'s files and the later ones move to <code>old/&lt;stamp&gt;/</code> and are made again; then the walks.',
+      'On a pick: <b>Re-roll 4 more</b> paints that pick\'s candidates again on new seeds. In the job form of a look: re-roll <i>run the puppet again from a stage</i>.'));
   }
 
   // ------------------------------------------------------------------ pass 69: how to use what pass 69 added (lane LE)

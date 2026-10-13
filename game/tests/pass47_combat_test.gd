@@ -317,6 +317,8 @@ func _specials(em: EnemyManager, n: int, seed: int) -> int:
 func test_hot_sauce_brings_more_specials() -> void:
 	var w := _world()
 	var em: EnemyManager = w["em"]
+	# colour from the first kill, as a director would set it (pass 71: a crowd without one spawns plain)
+	em.colour_after_kills = 0
 	var plain := _specials(em, 300, 4747)
 	_give(em, "difficulty", "add", 1.0)
 	var hot := _specials(em, 300, 4747)

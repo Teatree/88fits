@@ -20,7 +20,7 @@ Stages (each cached in tools/dl/ai_raw2/, so a re-run only paints what is missin
 Run:  python tools/gen_art.py [--only id,id] [--force] [--keys=k1,k2] [--seed=N] [--anchor] [--pick=N] [--no-anchor-ref] [--skip-qa] [--no-import]
 The JSON `art_prompt` of each content item is the source of truth for what gets painted.
 """
-import base64, glob, hashlib, io, json, os, shutil, subprocess, sys, time, urllib.request
+import base64, glob, hashlib, io, json, os, re, shutil, subprocess, sys, time, urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import comfy, artkit, animate
@@ -527,6 +527,110 @@ def run_scale_of(d, view):
         return 1.0
 
 
+_RUN_FIT_CACHE = {}
+
+
+def run_fit_of(d, view):
+    """Pass 71 (lane PLE, the Puppet method): the height a view's walk stands at against its standing still, from the
+    hero's own 3D puppet: "run_fit" in the recipe is a silhouette.json (tools/puppet.py guides: per view the median screen
+    height of the run's 24 poses over the idle's, through the guides' 25-degree cameras; a guide folder holding one may be
+    named instead) or {view: ratio}. The walk is then scaled so its MEDIAN frame stands at that ratio of the still,
+    instead of its tallest frame at the still's height (the fit run_scale tunes by hand; run_scale still multiplies on
+    top). None = the tallest-frame fit. Clamped 0.6..1.4."""
+    rf = d.get("run_fit") if isinstance(d, dict) else None
+    if not rf:
+        return None
+    try:
+        if isinstance(rf, dict):
+            v = rf.get(view)
+            return None if v in (None, "") else min(1.4, max(0.6, float(v)))
+        path = str(rf)
+        if not os.path.isabs(path):
+            path = os.path.join(REPO, path)
+        if os.path.isdir(path):
+            path = os.path.join(path, "silhouette.json")
+        if path not in _RUN_FIT_CACHE:
+            with open(path, encoding="utf-8") as f:
+                _RUN_FIT_CACHE[path] = json.load(f)
+        r = (_RUN_FIT_CACHE[path].get(view) or {}).get("ratio_median")
+        return None if r is None else min(1.4, max(0.6, float(r)))
+    except (OSError, ValueError, TypeError, AttributeError) as e:
+        log("  (run_fit for %s: %s; the tallest frame is fitted)" % (view, e))
+        return None
+
+
+def clip_scale(frames, stand_cell, scale_mul=1.0, fit_ratio=None, outline_px=0):
+    """The scale a driven clip's frames take: by default the tallest frame fitted to the standing figure (x0.99); with
+    `fit_ratio` (run_fit_of) the median frame at that ratio of the standing figure, the outline the frames get after
+    the scale (`outline_px` a side) counted in (MAY-R's first walks stood 2 % over the puppet's ratio in every view).
+    Times the look's run_scale."""
+    if fit_ratio:
+        med = float(np.median([_alpha_height(f) for f in frames])) if frames else 1.0
+        want = figure_height_cell(stand_cell) * float(fit_ratio) - 2.0 * float(outline_px)
+        return max(1.0, want) / max(1.0, med) * float(scale_mul)
+    tallest = max(1.0, max(_alpha_height(f) for f in frames))
+    return figure_height_cell(stand_cell) * 0.99 / tallest * float(scale_mul)
+
+
+FACE_WORDS = re.compile(r"\b(face|faces|eyes?|smil\w*|cheeks?|mouth|nose|lips|eyebrows?)\b", re.I)
+
+
+def hint_for_view(hint, view, d):
+    """Pass 71 follow-up (lane PLE, "keep the correct face angle"): a puppet look with the face setting on (recipe
+    puppet.face "nose", the default) walks its back and back-diagonal views on words without the face: the clauses of
+    its hint (split at ";") that name the face are left out there. A depth video cannot tell a front from a back, and
+    MAY-R's first back walk, whose hint described her face for the front views, ran with a face toward the camera.
+    Any other look, and the other views, keep the hint whole."""
+    face = ((d.get("puppet") or {}).get("face") if isinstance(d, dict) and isinstance(d.get("puppet"), dict) else None)
+    if view not in ("back", "bd") or face != "nose" or not hint:
+        return hint
+    keep = [c.strip() for c in str(hint).split(";") if c.strip() and not FACE_WORDS.search(c)]
+    return "; ".join(keep) if keep else hint
+
+
+def fringe_remap(frames, still_rgb, opts=None):
+    """Pass 71 (lane PLE, the trial's rainbow fringes on the sleeves): a clip's hues the view's own painting does not have
+    (gen_art's hue bins: a bin is the painting's when it holds 0.3 % of the figure, or a neighbour does) moved to the
+    painting's nearest own hue (the mean hue of its pixels in that bin), saturation x `sat`; value and alpha kept; only a
+    pixel saturated past `min_sat`. Recipe "fringe_remap": true or {"min_sat": 0.2, "sat": 0.85}. Off unless named."""
+    o = opts if isinstance(opts, dict) else {}
+    min_sat, sat_mult, bins = float(o.get("min_sat", 0.2)), float(o.get("sat", 0.85)), 24
+    ref = artkit.crop_alpha(artkit.key_background(still_rgb, 0.05, 0.45))
+    hist = _hue_hist(ref, bins)
+    own = hist > 0.003
+    own = own | np.roll(own, 1) | np.roll(own, -1)
+    if own.all() or not own.any():
+        return frames
+    ra = np.asarray(ref.convert("RGBA")).astype(np.float32) / 255.0
+    rh, rs, rv = artkit._rgb_to_hsv(ra[..., :3])
+    rm = (ra[..., 3] > 0.5) & (rs > 0.3) & (rv > 0.25)
+    rb = (rh * bins).astype(np.int32) % bins
+    own_idx = np.nonzero(own)[0]
+    target = np.zeros(bins, dtype=np.float32)
+    for b in range(bins):
+        dist = np.minimum(np.abs(own_idx - b), bins - np.abs(own_idx - b))
+        nb = int(own_idx[int(np.argmin(dist))])
+        sel = rm & (rb == nb)
+        if sel.any():
+            ang = rh[sel] * 2 * np.pi
+            target[b] = (np.arctan2(np.sin(ang).mean(), np.cos(ang).mean()) / (2 * np.pi)) % 1.0
+        else:
+            target[b] = (nb + 0.5) / bins
+    out = []
+    for f in frames:
+        a = np.asarray(f.convert("RGBA")).astype(np.float32) / 255.0
+        h, sa, v = artkit._rgb_to_hsv(a[..., :3])
+        b = (h * bins).astype(np.int32) % bins
+        sel = (a[..., 3] > 0.02) & (sa > min_sat) & ~own[b]
+        if not sel.any():
+            out.append(f)
+            continue
+        rgb = artkit._hsv_to_rgb(np.where(sel, target[b], h), np.where(sel, sa * sat_mult, sa), v)
+        a[..., :3] = np.where(sel[..., None], rgb, a[..., :3])
+        out.append(Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8), "RGBA"))
+    return out
+
+
 def video_cycle(still_rgb, key, motion, seed, cell, stand_cell, n_out=12, outline_frac=0.012, outline_color=(38, 24, 30, 255), length=81, fill=0.72, scale_mul=1.0):
     """A run/walk cycle from a Wan clip of the still, scaled so the figure matches its standing cell; None on failure.
     `fill` (JSON "clip_fill") is the still's share of the clip canvas: less for a creature that bounces high (pass 45).
@@ -547,7 +651,7 @@ def video_cycle(still_rgb, key, motion, seed, cell, stand_cell, n_out=12, outlin
 DRIVERS = os.path.join(REPO, "tools", "dl", "drivers")
 
 
-def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline_frac=0.012, outline_color=(38, 24, 30, 255), negative_extra="", loop=True, motion="running in place on the spot like on a treadmill", view_hint="", scale_mul=1.0):
+def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline_frac=0.012, outline_color=(38, 24, 30, 255), negative_extra="", loop=True, motion="running in place on the spot like on a treadmill", view_hint="", scale_mul=1.0, fit_ratio=None):
     """A run/walk cycle from Wan Animate driven by the Mixamo stride in tools/dl/drivers/<clip>/<view> (see
     tools/pose_driver.py): every driver frame is a sprite frame, so the count and cadence are exact in every view.
     Falls back to the free video cycle when the drivers are missing; None on failure."""
@@ -609,11 +713,10 @@ def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline
             shutil.rmtree(os.path.join(animate.ANIM, key), ignore_errors=True)
     # Wan Animate draws the figure on the driver skeleton, which is nose-to-ankle: the painted body comes out about a
     # head taller than the still placed at the same fill. Measure the tallest frame and fit it to the standing figure.
-    tallest = max(1.0, max(_alpha_height(f) for f in frames))
     # pass 70: times the look's run_scale for this view (run_scale_of): the tallest frame is not the same body size in
-    # every view
-    scale = figure_height_cell(stand_cell) * 0.99 / tallest * float(scale_mul)
+    # every view; pass 71: a puppet look's run_fit fits the median frame to its 3D puppet's own run/idle ratio instead
     px = max(1, int(round(cell * outline_frac)))
+    scale = clip_scale(frames, stand_cell, scale_mul, fit_ratio, px)
     return artkit.place_clip_frames(frames, cell, scale, px, outline_color)
 
 
@@ -627,7 +730,7 @@ def ctl_driver_of(d, view):
 
 
 def ctl_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline_frac=0.012, outline_color=(38, 24, 30, 255), negative_extra="",
-              view_hint="", motion="running in place on the spot like on a treadmill", scale_mul=1.0, loop_frames=None):
+              view_hint="", motion="running in place on the spot like on a treadmill", scale_mul=1.0, loop_frames=None, fit_ratio=None):
     """A hero's run from Wan 2.2 Fun Control on a depth guide (lane PUPPET: the depth videos of the hero's own rigged
     3D puppet, tools/puppet.py guides -> tools/dl/drivers/<hero>_puppet_run_depth/<view>/ctl_NN.png, two strides of 24
     poses + 1): the still is the reference, the second stride is kept (animate.cycle_control), fitted to the standing
@@ -654,9 +757,8 @@ def ctl_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline_
     except Exception as e:
         log("  (control cycle failed for %s: %s)" % (key, e))
         return None
-    tallest = max(1.0, max(_alpha_height(f) for f in frames))
-    scale = figure_height_cell(stand_cell) * 0.99 / tallest * float(scale_mul)
     px = max(1, int(round(cell * outline_frac)))
+    scale = clip_scale(frames, stand_cell, scale_mul, fit_ratio, px)
     return artkit.place_clip_frames(frames, cell, scale, px, outline_color)
 
 
@@ -1295,17 +1397,22 @@ def process(type_, folder, id_):
             ("_fd", fd, fd_cell, "fd", gait + ", three-quarter front view, running towards the lower right")):
             k = {"": 20, "_f": 21, "_s": 22, "_bd": 23, "_fd": 24}[suffix]
             vh = str(d.get("back_hint", "")) if view in ("back", "bd") else ""
+            vhint = hint_for_view(hint, view, d)   # pass 71: a puppet look's back views on words without the face
             # a view may run on its own driver ("pose_drivers": {"back": "run_occ"}, pass 44: the back view's driver hides the
             # hand that swings in front of the chest, which Wan Animate had painted on the back of Calavera's jacket)
             drv = str((d.get("pose_drivers") or {}).get(view, "run"))
             # lane PUPPET (2026-10-13): "ctl_drivers" walks the view on a depth guide (Wan Fun Control) instead
             ctl = ctl_driver_of(d, view) if pose_ok else ""
+            # pass 71 (lane PLE): a puppet look sizes each view's walk from its 3D puppet's run/idle ratio (run_fit)
+            fr = run_fit_of(d, view)
+            if fr:
+                log("  (run_fit %s: the median frame at %.3f of the standing figure, from the puppet)" % (view, fr))
             if ctl:
-                c = ctl_cycle(still_img, ck + "_ctl_run_" + view, ctl, view, seed + k, cell, cell_img, hint, negative_extra=anim_neg, view_hint=vh,
-                              motion=str(d.get("pose_motion", "running in place on the spot like on a treadmill")), scale_mul=run_scale_of(d, view))
+                c = ctl_cycle(still_img, ck + "_ctl_run_" + view, ctl, view, seed + k, cell, cell_img, vhint, negative_extra=anim_neg, view_hint=vh,
+                              motion=str(d.get("pose_motion", "running in place on the spot like on a treadmill")), scale_mul=run_scale_of(d, view), fit_ratio=fr)
             else:
-                c = pose_cycle(still_img, ck + "_pose_run_" + view, drv, view, seed + k, cell, cell_img, hint, negative_extra=anim_neg, view_hint=vh,
-                               motion=str(d.get("pose_motion", "running in place on the spot like on a treadmill")), scale_mul=run_scale_of(d, view)) if pose_ok else None
+                c = pose_cycle(still_img, ck + "_pose_run_" + view, drv, view, seed + k, cell, cell_img, vhint, negative_extra=anim_neg, view_hint=vh,
+                               motion=str(d.get("pose_motion", "running in place on the spot like on a treadmill")), scale_mul=run_scale_of(d, view), fit_ratio=fr) if pose_ok else None
             kinds[view] = ("control" if ctl else "pose") if c is not None else "free"
             if c is None:
                 c = video_cycle(still_img, ck + "_run" + (suffix or "_b"), prompt, seed + k, cell, cell_img, N, scale_mul=run_scale_of(d, view))
@@ -1318,6 +1425,14 @@ def process(type_, folder, id_):
             for sfx in list(clips.keys()):
                 if clips[sfx]:
                     clips[sfx] = [artkit.remap_hues(f, rh.get("ranges", []), rh.get("to", 30), rh.get("sat", 0.55)) for f in clips[sfx]]
+        # pass 71 (lane PLE): "fringe_remap" moves the hues a view's painting lacks to its nearest own hue (the Puppet trial's
+        # rainbow fringes on the sleeves); off unless the recipe names it
+        fx = d.get("fringe_remap")
+        if fx:
+            for sfx, still_v in (("", back), ("_f", front), ("_s", side), ("_bd", bd), ("_fd", fd)):
+                if clips.get(sfx):
+                    clips[sfx] = fringe_remap(clips[sfx], still_v, fx)
+            info["fringe_remap"] = fx if isinstance(fx, dict) else True
         info["clips"] = {k or "_b": v is not None for k, v in clips.items()}
         # hit reactions: a painted "hurt" still per view, edited from that view's still by the image model so it reads like
         # the rest of the sheet, then a short procedural wince around it (the pose-driven pain clip looked wrong on every hero)

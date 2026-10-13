@@ -604,3 +604,48 @@ to end; as a guide it ties MAY-G's hand-tuned drivers and wins on the side's siz
 front head (1.24) and on colour fringes; next: a run fit from the puppet's own silhouette ratios (drops run_scale),
 a guide framed by the soles, the fringe hues remapped. The running editor predated pass 70 (no one-view re-roll, no
 install into a look): clips were moved aside by hand, the badge/cut-out named in place, one hung import cancelled.
+
+**Pass 71 (2026-10-13, v0.57): the Puppet method in the Level Editor.** **Lane PLE (pass 71, 2026-10-13): the Puppet method in the Level Editor.** Garry liked the trial ("add that in to
+LevelEditor with the considerations that I asked you about earlier"): the method `hero_puppet` in the job form like the
+others (methods.json: its card with the trial's May from the arms-out painting to the painted run, its weaknesses: the
+Hunyuan3D-2mv licence leaving out the EU, the UK and South Korea, the AMD card's built-in nodes only, the depth video's
+missing face, Klein's four hands; its stage times measured on May and Jeżyk). `tools/puppet.py` became any hero's:
+`--ref` per view (arms-out paintings painted locally by default, a still of any look, an uploaded picture, or no side /
+back), the screen (Jeżyk on green), the painter (Klein or Flux.2 dev), generic words per view (the trial's named May's
+beret and straps), the clip and idle (Mixamo FBX), the stick figures framed by the soles (MAY-P's boots had left the
+canvas), versioned guides (`<hero>_puppet_<clip>[_N]`, each with its silhouette, so a look keeps walking on its own),
+`--reroll`, `--reset-from` (moved aside, never deleted), lane gating with PICK / NEXT / DONE lines and a dry run that
+mirrors the hero's folder and records every painting, graph and Blender command. gen_art got the trial's next steps:
+`run_fit` (each view's walk sized by its median frame at the puppet's own run/idle height, no run_scale to tune) and
+`fringe_remap` (the colours a painting lacks moved to its own). jobs.py runs a puppet look as phases through
+asset_job (tool `puppet`) on the lane each needs (comfy for the paintings and the shape, local for Blender without the
+ComfyUI lock), stops for the three picks on the card (the front; one side and one back together; the shape's tries in
+clay), writes the guides into the look's recipe and walks it like hero_pose5; Re-roll… runs the puppet again from a
+stage. puppet.js: the form's "The 3D puppet" section (start from: the puppet he has, a new one, his .blend, a Mixamo
+FBX; the 3D reference per view with thumbnails; the clips; depth or stick figure per view; framing; run size; fringes;
+the walks' stills) and the 3D preview, Google's `<model-viewer>` 4.0.0 vendored for offline use, on the hero's Art words
+and on the job card (orbit, zoom, the run/idle picker, play/pause, speed, four cameras); the server serves
+`/api/puppet/<hero>`, `/vendor/` and `.glb`. Jeżyk got his puppet (hero `buck`, look BUC-F): four fronts in 92 s (one
+with four hands), sides and backs in 161 s, two Hunyuan3D tries of 99 and 87 s, 75 s of Blender for the clean, rig, run,
+colours, GLB and soles-framed guides; his looks untouched. The job machinery ran for real on a queue of its own
+(LE_JOBS_DIR): Jeżyk reusing his puppet (straight to the walks), Astro's first phases on the comfy lane with the picks.
+Found on the way: a spec posted without a recipe shared jobs.py's one default dict (a look's stills and seeds leaked
+into every later such spec; now copied), and, for the lead (from lane PDOC), every job's "open in ComfyUI" link opened
+with red LoadImage nodes: the graphs name `88fits/<file>` and the page's picker lists only the input folder's top
+level; a job's saved workflow (the file and its sidebar copy, never the graph that runs) now names a top-level copy
+named by its contents (`88fits_<sha1>_<file>`), checked open clean in a browser on Astro's new workflows.
+
+Follow-up (Garry via the lead, same day): the trial's improvements are now settings of hero_puppet, not a new method,
+each in the job form's *The 3D puppet* with plain help and on by default: **Size from the 3D model** (run_fit, now
+counting the outline so a view lands within 1 % of the puppet's ratio), **Frame by the soles**, **Clean colour fringes**
+(fringe_remap, default changed to on), **Keep the face angle** (new `--face nose|head` in puppet.py/puppet_blender: the
+stick figures' ears from the measured nose, part of the guides' match; and gen_art.hint_for_view walks a face=nose
+look's back views on words without the face, after MAY-R's first back walk ran facing the camera) and per view **Depth
+or stick figure**. Every setting is recorded in the look's `recipe.puppet` (jobs.PUPPET_SETTINGS), shown by name in
+Recipe (typed) (methods.json labels) and run by a re-queue. Then MAY-R, with every setting on (MAY-G's stills, new
+guides may_puppet_run_2, depth fd/side/bd/back + stick front), landed through the server's own hooks, fresh and not
+played: its run heights sit at the 3D truth (mean error 0.005 against 0.035-0.052 for G/P/Q), no foreign hues in the
+depth views, its back correct after one re-roll, its front and back heads the largest of the four. Imported; pass69_hero_test and
+pass66_shape_test 23/0; selftest 18,097.
+
+**The lead.** The explainer page for Garry (lane PDOC: puppet-themed, the steps with the trial's pictures, ComfyUI workflow links, Blender GUI screenshots with the manual rig, the models and their times, the cost) published at https://claude.ai/artifact/RLK1zdb7p4QhDuFfMhdyRm; its token figures: the trial about 0.82M, building it in, the page and MAY-R about 1.57M (lanes measured, the lead's share estimated). Two ships stopped on tests that failed one run in ten (the Golden Pineapple's ride, Birdshot's lane): a crowd built without a director could roll a random special, and since pass 69 a special has x10 HP and x1.25 size; EnemyManager's `colour_after_kills` now defaults to COLOUR_NEVER until a director sets it (the game always does: the timeline's value, 0 in the arena), the one test that counts specials asks for colour itself, and Birdshot's comparison allows 0.01 HP. Lesson: a random roll that grows stronger turns old exact tests into dice.

@@ -105,6 +105,271 @@
               ]}
   },
   {
+   "id": "hero_puppet",
+   "name": "Hero: a 3D puppet of the painting walks him (the Puppet method)",
+   "kind": "hero",
+   "summary": "The look's painting becomes a rigged 3D figure whose own renders guide the video model instead of a flat Mixamo stick figure. Klein (or Flux.2 dev) edits the source look's front still into an arms-out A-pose (candidates: you pick one on the job card), then the side and the back the same way (or you give a look's still or an uploaded picture per view; side and back may be left out); Hunyuan3D-2mv makes the 3D shape from them on the AI server through ComfyUI's own nodes (two tries: you pick one); Blender cleans it, finds the joints, rigs it with Mixamo's bone names and automatic weights, plays the Mixamo clip on it (running.fbx by default, the idle procedural or a Mixamo idle), colours it from the paintings and exports the GLB you can turn and play in the editor; then the guides: OpenPose stick figures from its own bones (framed by the soles, the joints its body hides dropped), depth videos of its run and its silhouette (how tall its run stands against its idle in each view). The look walks on them: the depth views by Wan 2.2 Fun Control, the others by Wan Animate on the stick figure, each view sized by the puppet's own run/idle height (run_fit, no run_scale to tune), on the source look's stills (nothing painted again) or stills of its own. A hero who has a puppet starts the next look from it (no shape, no rig: the walks only), or from his .blend after you moved a joint, or from a Mixamo-rigged FBX.",
+   "needs": [
+    "a hero look with front, side and back stills (the source look: the one he is played in by default)",
+    "Hunyuan3D-2mv in the AI server's models/checkpoints (hunyuan3d-dit-v2-mv.safetensors, 4.9 GB; there since the trial)",
+    "Blender 5.2 on this PC; a Mixamo clip in tools/dl/mixamo/ (running.fbx by default)"
+   ],
+   "produces": "tools/dl/puppet/<hero>/: the arms-out paintings, shape.glb, <hero>_puppet.blend (mesh <Name>, armature <Name>_Rig, Mixamo bones), <hero>_puppet.glb (clips run and idle) and its preview; tools/dl/drivers/<hero>_puppet_<clip>[_N] (OpenPose, silhouette.json) and _depth; then the look's strip of 166 frames like hero_pose5's",
+   "counts": {
+    "stills": 0,
+    "clips": 5
+   },
+   "time": {
+    "median_s": 1260,
+    "worst_s": 2700
+   },
+   "stage_times": {
+    "arms-out front (4 Klein)": "1.5-2 min",
+    "side + back (3 + 3)": "2.5-2.7 min",
+    "Hunyuan3D (2 tries, a restart before and after)": "3.5-4.5 min",
+    "clean, rig, clips and colours (Blender)": "about 30 s",
+    "guides (OpenPose, depth, silhouette)": "about 1 min",
+    "a depth view's walk (Fun Control, 49 frames)": "about 2.5 min",
+    "a stick-figure view's walk (Wan Animate)": "about 1 min",
+    "a hero who has a puppet": "the walks only, about 11 min"
+   },
+   "weaknesses": [
+    "Hunyuan3D-2mv's licence (the Tencent Hunyuan 3D 2.0 Community License) does not cover the European Union, the United Kingdom or South Korea: Garry accepted it for this project; read it again before anything made with it ships from there. The 3D model only guides the walk (the sprites are still Wan's paintings).",
+    "The AI server's card is an AMD R9700 (ROCm): Hunyuan3D runs through ComfyUI's built-in nodes only (no custom 3D nodes, no Hunyuan3D-Paint textures); ComfyUI is restarted before and after it because the server's RAM is tight, so the comfy lane pauses for about 30 s twice.",
+    "A depth video carries no face: Fun Control painted a crosshatched face, then long hair, on May's front; walk the front on the puppet's stick figure (the default) and name the hair and the face in anim_hint for the views that show them.",
+    "The arms must stand clear of the body in the 3D reference: a still with hanging arms fuses them into the torso and the rig cannot free them. Paint arms-out (the default) or give an arms-out picture.",
+    "Klein's arms-out candidates sometimes have four hands or a near T-pose (Jeżyk's c1 had four hands): pick by eye.",
+    "The colours are the paintings projected onto the mesh: what no painting saw (under the arms, the soles) takes the nearest seen colour. The GLB is a guide for the video model, not a game asset.",
+    "The walks can show rainbow fringes on the sleeves and boots: \"Clean colour fringes\" (on by default) turns them into the painting's own colours.",
+    "The idle is procedural (arms down, a breath, a sway) unless a Mixamo idle is put in tools/dl/mixamo/.",
+    "A side run painted May's face to the camera until the guide's ear sat ahead of the neck (fixed in the guides): look at every view's walk against its idle anyway.",
+    "A depth video cannot tell a front from a back: MAY-R's first back walk, on a hint that described her face for the front, ran facing the camera. \"Keep the face angle\" (on by default) walks the back views on words without the face; look at the back walk anyway and re-roll that one view if it faces you."
+   ],
+   "example": {
+    "image": "examples/hero_puppet_may.png",
+    "strip": {
+     "kind": "hero",
+     "id": "may",
+     "code": "MAY-Q"
+    }
+   },
+   "recipe_fields": [
+    {
+     "key": "puppet.run_fit",
+     "type": "bool",
+     "default": true,
+     "help": "Size from the 3D model: each view's walk stands as tall as the 3D model's run stands against its idle in that view (by the middle frame), not its tallest frame stretched to the standing height. Prevents a crouching side run coming out taller than the others. On by default; the job writes run_fit below from it.",
+     "label": "Size from the 3D model"
+    },
+    {
+     "key": "puppet.frame",
+     "type": "select",
+     "default": "soles",
+     "options": [
+      "soles",
+      "ankles"
+     ],
+     "help": "Frame by the soles: the stick figures sit in the canvas measured from the lowest sole, so chunky boots stay inside the picture (MAY-P's front left the canvas on the ankle framing). soles by default.",
+     "label": "Frame by the soles"
+    },
+    {
+     "key": "puppet.fringe",
+     "type": "bool",
+     "default": true,
+     "help": "Clean colour fringes: colours the view's painting does not have (rainbow fringes on sleeves and boots) turned into its nearest own colour. On by default; the job writes fringe_remap below from it.",
+     "label": "Clean colour fringes"
+    },
+    {
+     "key": "puppet.face",
+     "type": "select",
+     "default": "nose",
+     "options": [
+      "nose",
+      "head"
+     ],
+     "help": "Keep the face angle: the stick figures' ears are placed from the 3D model's measured nose, so a side view stays in profile (head = on the head bone: May's side run turned its face to the camera), and the back and back-diagonal views walk on words without the face (a depth video cannot tell a front from a back: MAY-R's first back walk faced the camera). nose by default.",
+     "label": "Keep the face angle"
+    },
+    {
+     "key": "puppet.depth_views",
+     "type": "text",
+     "default": "fd,side,bd,back",
+     "help": "Depth or stick figure: the views walked on the depth video (Wan Fun Control: the body's own shape, no face); the others on the stick figure (Wan Animate, with the face points). Keep the front on the stick figure: the depth video has no face.",
+     "label": "Depth or stick figure (depth views)"
+    },
+    {
+     "key": "puppet.source",
+     "type": "text",
+     "default": "",
+     "help": "The look whose stills the arms-out paintings were edited from (and the walks' stills when reused); empty = the one he is played in.",
+     "label": "Source look"
+    },
+    {
+     "key": "puppet.stills",
+     "type": "select",
+     "default": "reuse",
+     "options": [
+      "reuse",
+      "repaint"
+     ],
+     "help": "The walks' stills: reuse the source look's (nothing painted again) or paint this look's own.",
+     "label": "The walks' stills"
+    },
+    {
+     "key": "puppet.reuse",
+     "type": "select",
+     "default": "auto",
+     "options": [
+      "auto",
+      "fresh",
+      "blend",
+      "fbx"
+     ],
+     "help": "Start from: auto = the puppet he has (what is on disk is kept); fresh = a new puppet (the old one moved aside); blend = his .blend after you changed the rig; fbx = a Mixamo-rigged FBX.",
+     "label": "Start from"
+    },
+    {
+     "key": "puppet.clip",
+     "type": "text",
+     "default": "running.fbx",
+     "help": "The moving clip (a Mixamo FBX in tools/dl/mixamo/), played on the 3D model as \"run\".",
+     "label": "Moving clip"
+    },
+    {
+     "key": "puppet.idle",
+     "type": "text",
+     "default": "",
+     "help": "The idle clip (a Mixamo FBX in tools/dl/mixamo/); empty = the procedural idle (arms down, a breath, a sway).",
+     "label": "Idle clip"
+    },
+    {
+     "key": "puppet.painter",
+     "type": "select",
+     "default": "klein",
+     "options": [
+      "klein",
+      "dev"
+     ],
+     "help": "The arms-out paintings' painter (Flux.2 Klein or dev).",
+     "label": "Arms-out painter"
+    },
+    {
+     "key": "puppet.refs",
+     "type": "json",
+     "default": {
+      "front": "paint",
+      "side": "paint",
+      "back": "paint"
+     },
+     "help": "The 3D reference per view: paint (arms-out, painted locally), still:<key> (a look's still), a picture's path, or none (side/back).",
+     "label": "3D reference per view"
+    },
+    {
+     "key": "run_fit",
+     "type": "text",
+     "default": "",
+     "help": "Written by the job after the guides from \"Size from the 3D model\": the 3D model's silhouette.json (each view's run against its idle). Empty = the tallest frame fitted (run_scale's way).",
+     "label": "run_fit (written by the job)"
+    },
+    {
+     "key": "fringe_remap",
+     "type": "bool",
+     "default": false,
+     "help": "Written by the job from \"Clean colour fringes\": gen_art turns the clips' colours the painting lacks into its own.",
+     "label": "fringe_remap (written by the job)"
+    },
+    {
+     "key": "anim_hint",
+     "type": "text",
+     "default": "",
+     "help": "A short name of the figure for the clip prompts; with depth views also the hair and the face where a view shows them (a depth video carries neither)."
+    },
+    {
+     "key": "anim_negative",
+     "type": "text",
+     "default": "",
+     "help": "Words to avoid in the clips (Fun Control reads them; Wan Animate at cfg 1.0 does not)."
+    },
+    {
+     "key": "pose_motion",
+     "type": "text",
+     "default": "running in place on the spot like on a treadmill",
+     "help": "The driven clips' words (the body's motion only)."
+    },
+    {
+     "key": "anim_seed",
+     "type": "int",
+     "default": 0,
+     "help": "Added to the seed of every clip: re-rolls the walks while the stills stay."
+    },
+    {
+     "key": "run_fps",
+     "type": "int",
+     "default": 36,
+     "help": "Playback rate of the run cycle in the game."
+    },
+    {
+     "key": "screen",
+     "type": "select",
+     "default": "blue",
+     "options": [
+      "blue",
+      "green"
+     ],
+     "help": "The screen of the look's stills (a blue figure: green)."
+    },
+    {
+     "key": "remap_hues",
+     "type": "json",
+     "default": null,
+     "help": "{ranges: [[h0, h1], ...], to: 30, sat: 0.55}: hues smeared into the clips go back to the hero's own."
+    },
+    {
+     "key": "run_scale",
+     "type": "view_numbers",
+     "default": 1,
+     "min": 0.5,
+     "max": 1.5,
+     "step": 0.01,
+     "views": [
+      "back",
+      "bd",
+      "side",
+      "fd",
+      "front"
+     ],
+     "help": "A hand correction on top of run_fit, per view (1 = as fitted); the puppet's run_fit makes it unneeded in the trial's views."
+    }
+   ],
+   "job_fields": [
+    {
+     "key": "puppet",
+     "type": "json",
+     "default": {},
+     "help": "The puppet's settings (the form's \"The 3D puppet\" section): source, stills reuse|repaint, refs {front, side, back}: paint | still:<key> | <picture> | none, painter klein|dev, steps, seeds, words, screen, tries, faces, reuse auto|fresh|blend|fbx, fbx, clip, idle, frame soles|ankles, depth_views, run_fit, fringe."
+    }
+   ],
+   "refs": {
+    "2d": false,
+    "3d": [
+     "animation"
+    ]
+   },
+   "runner": {
+    "tool": "puppet",
+    "call": "main",
+    "argv": [
+     "{id}",
+     "--lane",
+     "{lane}",
+     "--until",
+     "guides",
+     "--look",
+     "{source}?"
+    ]
+   }
+  },
+  {
    "id": "creature_free2",
    "name": "Creature: front and back, Wan guesses the walk",
    "kind": "enemy",

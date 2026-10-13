@@ -39,11 +39,33 @@ Every stage writes under tools/dl/puppet/<hero>/ and is resumable (a stage whose
   compare  contact sheets base vs P vs Q per view (run, idle), the head's size in the run against the idle per view,
            hands in the back run, the straps in the bd views, the shoulders' tilt -> compare/, a verdict.
 Timings, picks and failures: stages.json beside the outputs; tools/dl/puppet/status_PUPPET.md is the lane's log.
+
+Pass 71 (lane PLE: the Puppet method in the Level Editor, method `hero_puppet`) made it any hero's:
+    --look CODE              the look whose stills are the source (default: the one he is played in)
+    --ref front=paint side=still:<key> back=<picture>|none
+                             the 3D reference per view: "paint" (arms-out candidates, the default), a still of any look
+                             (tools/dl/ai_raw_anime/<key>.png), an uploaded picture (a repo path), or "none" (side/back
+                             left out of the shape)
+    --screen green|blue      the painting screen (default: the look's recipe, else the hero's, else blue; Jezyk is green)
+    --painter klein|dev [--steps N] [--no-turbo] [--seed N] [--seeds N] [--words-front/--words-side/--words-back "..."]
+    --reroll front|views|shape   the candidates of that pick moved aside (old/<stamp>/) and painted again (--seed N)
+    --reset-from STAGE       that stage's outputs and the later ones moved aside (old/<stamp>/): it runs again
+    --clip running.fbx [--idle <fbx>]   the moving clip (tools/dl/mixamo/) and the idle (default: procedural)
+    --frame soles|ankles     the OpenPose guides framed by the soles (default; the boots stay in the canvas) or the ankles
+    --face nose|head         the face angle: the ears from the measured nose (default: a side view stays in profile) or
+                             on the head bone's axis (the trial's first guide, which turned May's side run to the camera)
+    --lane comfy|local       the Level Editor's job lanes: stops with "puppet: NEXT lane X" where the work changes lane;
+                             a pick stops with "puppet: PICK front|views|shape"; the end of --until with "puppet: DONE"
+    --dry-run [--out-root D] nothing reaches ComfyUI or Blender: every prompt, graph and command is recorded in
+                             <D>/dry_run.json, the picks are c0, stand-in files under <D>/<hero>/ and <D>/drivers/
+The guides are versioned: <hero>_puppet_<clip> (running.fbx = run), a new folder _2, _3 ... whenever the framing, the
+clip or the GLB changed (the looks that walked on the old guides keep them); each guide folder holds its silhouette.json.
 """
 import argparse
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -60,22 +82,46 @@ BLENDER = os.path.join(os.environ.get("LOCALAPPDATA", r"C:\Users\Garry\AppData\L
 CONTENT = os.path.join(REPO, "game", "content", "characters")
 RAW = os.path.join(REPO, "tools", "dl", "ai_raw_anime")
 DRIVERS = os.path.join(REPO, "tools", "dl", "drivers")
+# the guides as they are on disk: a dry run reads them here (which exist, which match) and writes its stand-ins to DRIVERS
+DRIVERS_REAL = DRIVERS
+MIXAMO = os.path.join(REPO, "tools", "dl", "mixamo")
+PUPPETS = os.path.join(REPO, "tools", "dl", "puppet")
 DRIVE = r"E:/My Drive/88fits builds/puppets"
 LE = os.environ.get("LEVEL_EDITOR", "")
 HY_CKPT = "hunyuan3d-dit-v2-mv.safetensors"
 STAGES = ["apose", "shape", "rig", "anim", "guides", "looks", "compare"]
+VIEWS3 = ("front", "side", "back")
 # the game draws a hero's 256 px cell 1.9 m tall (Player._setup_sprite: sprite.setup(..., 1.9, ...))
 CELL_M = 1.9
+# pass 71: the mesh's object name in the .blend (the armature is <NAME>_Rig), set from the hero id in main()
+NAME = ["May"]
+# pass 71: the dry run (--dry-run): nothing reaches ComfyUI or Blender, every call is recorded
+DRY = {"on": False, "path": "", "notes": [], "t0": 0.0}
 
 
 def log(*a):
     print("[puppet %s]" % time.strftime("%H:%M:%S"), *a, flush=True)
 
 
+def dry_note(kind, **kw):
+    """One record of what a dry run would have sent (written at once: a dry run that fails keeps what it reached)."""
+    kw["kind"] = kind
+    kw["t"] = round(time.time() - DRY["t0"], 2)
+    DRY["notes"].append(kw)
+    with open(DRY["path"], "w", encoding="utf-8", newline="\n") as f:
+        json.dump({"dry_run": True, "tool": "puppet", "prompts": DRY["notes"]}, f, indent=1, ensure_ascii=False)
+
+
+def name_of(hero):
+    """The mesh's object name in the .blend: the hero id in letters ("may" -> "May", "buck" -> "Buck")."""
+    s = re.sub(r"[^A-Za-z0-9]", "", hero.title())
+    return s or "Hero"
+
+
 class Ctx:
-    def __init__(self, hero, look=None):
+    def __init__(self, hero, look=None, out_root=None):
         self.hero = hero
-        self.out = os.path.join(REPO, "tools", "dl", "puppet", hero)
+        self.out = os.path.join(out_root or PUPPETS, hero)
         os.makedirs(self.out, exist_ok=True)
         self.jpath = os.path.join(CONTENT, hero, hero + ".json")
         self.d = json.load(open(self.jpath, encoding="utf-8"))
@@ -85,10 +131,22 @@ class Ctx:
         self.slug = str(self.recipe.get("stills") or "")
         self.state_p = os.path.join(self.out, "stages.json")
         self.state = json.load(open(self.state_p, encoding="utf-8")) if os.path.exists(self.state_p) else {}
+        self.screen = str(self.recipe.get("screen") or self.d.get("screen") or "blue").lower()
 
     def still(self, view):
-        """The look's painting of a view (tools/dl/ai_raw_anime/<id>_<slug>_<view>.png)."""
+        """The look's painting of a view (tools/dl/ai_raw_anime/<id>_<slug>_<view>; a still_keys view names its own)."""
+        sk = self.recipe.get("still_keys") if isinstance(self.recipe.get("still_keys"), dict) else {}
+        if sk.get(view):
+            return os.path.join(RAW, str(sk[view]) + ".png")
         return os.path.join(RAW, "%s%s_%s.png" % (self.hero, "_" + self.slug if self.slug else "", view))
+
+    def who(self):
+        """The character in words, for the arms-out edits: the look's or the hero's `appearance`, else its art_prompt
+        without the pose clause (the part after the first ';')."""
+        a = str(self.recipe.get("appearance") or self.d.get("appearance") or "").strip()
+        if not a:
+            a = str(self.recipe.get("art_prompt") or self.d.get("art_prompt") or "").split(";")[0].strip()
+        return a.rstrip(". ")
 
     def p(self, *parts):
         return os.path.join(self.out, *parts)
@@ -119,45 +177,101 @@ def keyed(img, ctx):
 
 BLUE = ("isolated on a flat solid bright blue (#0000FF) background that fills the entire frame, floating in empty space with no "
         "ground plane, no cast shadow, no text, no watermark")
+# pass 71: the screen the arms-out paintings are made on (the hero's own: Jezyk's blue skin goes on green)
+SCREENS = {"blue": BLUE, "green": BLUE.replace("bright blue (#0000FF)", "bright green (#00FF00)")}
 # "arms held straight out, 45 degrees down from the shoulders" came back as a near T-pose (25 degrees below the
-# horizontal, tools/dl/puppet/may/apose/wide/); this wording gives the 45-degree A-pose
-APOSE_FRONT = ("Edit the reference image: the exact same woman with the same face, hair, beret, outfit, colours, proportions and art "
+# horizontal, tools/dl/puppet/may/apose/wide/); this wording gives the 45-degree A-pose. Pass 71: the words are any hero's
+# (the trial's named May's beret and straps); {screen} is the screen colour, {who} the character in words (the front
+# only: the side and the back follow the picked front and the look's own still; a back_hint describes the standing pose,
+# arms down, and is left out). Each view's words can be replaced whole (--words-front / --words-side / --words-back).
+APOSE_FRONT = ("Edit the reference image: the exact same character with the same head, face, outfit, colours, proportions and art "
                "style, full body seen straight from the front, standing straight and facing the viewer in a relaxed A-pose for a 3D model "
-               "turnaround sheet: both arms hang down and out to the sides at 45 degrees from her body, so her hands are at the height of "
-               "her hips but a forearm's length out to the side of them, the elbows straight, the hands open with the palms facing her "
-               "legs, clear blue background between each arm and her torso all the way from the armpit to the hand; her legs straight and "
-               "a little apart with a gap between them, the feet fully visible. Nothing in her hands. ")
+               "turnaround sheet: both arms hang down and out to the sides at 45 degrees from the body, so the hands are at the height of "
+               "the hips but a forearm's length out to the side of them, the elbows straight, the hands open with the palms facing the "
+               "legs, clear {screen} background between each arm and the torso all the way from the armpit to the hand; the legs straight "
+               "and a little apart with a gap between them, the feet fully visible. Nothing in the hands. {who}")
 APOSE_SEED = 2026101377
 # the A-pose's arms reach out sideways, toward and away from a side camera, so in profile the near arm hangs straight down
 # over the side of the torso with the hand at hip height (not held forward)
-APOSE_SIDE = ("The first reference image shows a woman standing in an A-pose, her arms held out to the sides. The second reference image "
-              "shows how the same woman looks from the side. Draw the same woman seen from the side in a strict profile, facing to the "
-              "right of the frame, standing straight: her arms reach out sideways toward and away from the viewer, so from the side the "
-              "near arm hangs straight down over the side of her torso with the gloved hand at the height of her hips, nothing held "
+APOSE_SIDE = ("The first reference image shows a character standing in an A-pose, the arms held out to the sides. The second reference "
+              "image shows how the same character looks from the side. Draw the same character seen from the side in a strict profile, "
+              "facing to the right of the frame, standing straight: the arms reach out sideways toward and away from the viewer, so from "
+              "the side the near arm hangs straight down over the side of the torso with the hand at the height of the hips, nothing held "
               "forward, the far arm hidden behind the body, the legs straight. Keep the outfit, colours, proportions and art style of "
               "the references, the same height as the first image. ")
-APOSE_BACK = ("The first reference image shows a woman standing in an A-pose, her arms held out to the sides. The second reference image "
-              "shows how the same woman looks from behind. Draw the same woman in exactly the same A-pose seen directly from behind: "
-              "the back of her head and beret, no face visible, both arms held straight out away from her body and angled 45 degrees "
-              "down from the shoulders, a wide gap between each arm and her torso, the legs straight and a little apart. Keep the "
-              "outfit (the overalls' back panel and the two suspender straps over her shoulders), the colours, the proportions and the "
-              "art style of the references. ")
+APOSE_BACK = ("The first reference image shows a character standing in an A-pose, the arms held out to the sides. The second reference "
+              "image shows how the same character looks from behind. Draw the same character in exactly the same A-pose seen directly "
+              "from behind: the back of the head, no face visible, both arms held straight out away from the body and angled 45 degrees "
+              "down from the shoulders, a wide gap between each arm and the torso, the legs straight and a little apart. Keep the outfit "
+              "(what its back shows), the colours, the proportions and the art style of the references. ")
+APOSE_WORDS = {"front": APOSE_FRONT, "side": APOSE_SIDE, "back": APOSE_BACK}
+SEED_STEP = 7919
 
 
-def _klein_cands(ctx, name, prompt, refs, seeds, base_seed):
-    import comfy
+def apose_words(ctx, view, args):
+    """The edit's words for one view: the view's own words when given (--words-<view>), else the template filled in."""
+    own = str(getattr(args, "words_" + view, "") or "").strip()
+    if own:
+        return own.rstrip(" ") + " "
+    who = ctx.who()
+    return APOSE_WORDS[view].format(screen=screen_of(ctx, args), who=("The character: %s. " % who) if who else "")
+
+
+def screen_of(ctx, args):
+    s = str(getattr(args, "screen", "") or "").lower()
+    return s if s in SCREENS else (ctx.screen if ctx.screen in SCREENS else "blue")
+
+
+def ref_of(args, view):
+    """The 3D reference of a view (--ref view=src): "paint" (arms-out candidates; the default), "none" (side or back left
+    out of the shape), "still:<key>" (a painting of any look, tools/dl/ai_raw_anime/<key>.png) or a picture's path."""
+    for pair in getattr(args, "ref", None) or []:
+        v, _, src = str(pair).partition("=")
+        if v.strip() == view and src.strip():
+            return src.strip()
+    return "paint"
+
+
+def ref_path(src):
+    """The file of a --ref value that is a picture: a still key or a path (repo-relative or absolute)."""
+    if src.startswith("still:"):
+        key = src[6:]
+        return os.path.join(RAW, key if key.endswith(".png") else key + ".png")
+    return src if os.path.isabs(src) else os.path.join(REPO, src)
+
+
+def _paint_cands(ctx, name, prompt, refs, seeds, base_seed, args):
+    """Arms-out candidates of one view (<name>_c<k>.png under apose/), Klein (4 steps) or Flux.2 dev (--painter dev),
+    each with its JSON (seed, prompt, refs, painter, seconds); a candidate on disk is kept (the cache)."""
     from PIL import Image
     d = ctx.p("apose")
     os.makedirs(d, exist_ok=True)
     names = []
+    words = prompt + SCREENS[screen_of(ctx, args)] + "."
+    painter = getattr(args, "painter", "klein") or "klein"
     for k in range(seeds):
         f = os.path.join(d, "%s_c%d.png" % (name, k))
         if not os.path.exists(f):
             s = base_seed + k * 1000003
-            imgs, secs = comfy.run(comfy.klein(prompt + BLUE + ".", s, 1024, 1024, refs=refs, prefix="88fits/puppet_%s_%s" % (ctx.hero, name)))
-            Image.open(io.BytesIO(imgs[0])).convert("RGB").save(f)
-            json.dump({"seed": s, "prompt": prompt + BLUE + ".", "refs": refs, "seconds": round(secs, 1)},
+            if DRY["on"]:
+                dry_note("paint", view=name, candidate=k, painter=painter, steps=int(getattr(args, "steps", 0) or 0), seed=s, prompt=words, refs=refs)
+                src = refs[-1] if refs and os.path.isfile(str(refs[-1])) else None
+                (Image.open(src).convert("RGB") if src else Image.new("RGB", (1024, 1024), (0, 255, 0))).save(f)
+                secs = 0.0
+            else:
+                import comfy
+                if painter == "dev":
+                    steps = int(getattr(args, "steps", 0) or 0) or 8
+                    g = comfy.flux2_dev(words, s, 1024, 1024, refs=refs, steps=steps, turbo=not getattr(args, "no_turbo", False),
+                                        prefix="88fits/puppet_%s_%s" % (ctx.hero, name))
+                    imgs, secs = comfy.run_dev(g)
+                else:
+                    steps = int(getattr(args, "steps", 0) or 0) or 4
+                    imgs, secs = comfy.run(comfy.klein(words, s, 1024, 1024, refs=refs, steps=steps, prefix="88fits/puppet_%s_%s" % (ctx.hero, name)))
+                Image.open(io.BytesIO(imgs[0])).convert("RGB").save(f)
+            json.dump({"seed": s, "prompt": words, "refs": [str(r) for r in refs], "painter": painter, "seconds": round(secs, 1)},
                       open(f[:-4] + ".json", "w", encoding="utf-8"), indent=1)
+            # the jobs parser reads this line (RE_ICON's shape): the candidate's stage ticks on the job card
             log("  %s c%d seed %d %.0fs" % (name, k, s, secs))
         names.append(f)
     _sheet(names, os.path.join(d, name + "_sheet.png"))
@@ -184,6 +298,8 @@ def arms_clearance(path, ctx):
     from PIL import Image
     a = np.asarray(keyed(Image.open(path).convert("RGB"), ctx))[..., 3] > 127
     ys = np.nonzero(a.any(axis=1))[0]
+    if not len(ys):
+        return 0.0, 0.0
     top, bot = ys.min(), ys.max()
     H = bot - top
     band = range(int(top + H * 0.22), int(top + H * 0.48))
@@ -193,39 +309,73 @@ def arms_clearance(path, ctx):
         runs = np.split(xs, np.nonzero(np.diff(xs) > 3)[0] + 1) if len(xs) else []
         if len([r for r in runs if len(r) > 2]) >= 3:
             free += 1
-    width = (np.nonzero(a.any(axis=0))[0].ptp() + 1) / max(1, H)
+    width = (np.ptp(np.nonzero(a.any(axis=0))[0]) + 1) / max(1, H)
     return round(free / max(1, len(band)), 3), round(float(width), 3)
 
 
-def stage_apose(ctx, args):
+def _upload(img, name):
+    if DRY["on"]:
+        dry_note("upload", name=name, size=list(img.size))
+        return name
     import comfy
-    picks = ctx.state.get("apose", {}).get("picks", {})
-    front_ref = comfy.upload_pil(_open_rgb(ctx.still("front")), "puppet_%s_front_ref.png" % ctx.hero)
-    seed0 = APOSE_SEED
+    return comfy.upload_pil(img, name)
+
+
+def _cands_exist(ctx, name, n):
+    return all(os.path.exists(ctx.p("apose", "%s_c%d.png" % (name, k))) for k in range(n))
+
+
+def side_back_seeds(args):
+    return max(3, int(args.seeds) // 2)
+
+
+def stage_apose(ctx, args):
+    """The arms-out paintings the 3D shape is made from. Per view (--ref): a picture given is copied as it is; "paint"
+    paints candidates (the front an edit of the look's front still; the side and the back edits of the picked front and
+    the look's own side / back still) and stops for the pick ("pick:front", then "pick:views"); "none" leaves a side or
+    back out of the shape."""
+    seed0 = APOSE_SEED + int(getattr(args, "seed", 0) or 0) * SEED_STEP
+    for view in VIEWS3:
+        src = ref_of(args, view)
+        dst = ctx.p("apose_%s.png" % view)
+        if src in ("paint", "none") or os.path.exists(dst):
+            continue
+        p = ref_path(src)
+        if not os.path.isfile(p):
+            raise RuntimeError("the %s reference %s is not on disk (%s)" % (view, src, p))
+        _open_rgb(p).save(dst)
+        ctx.state.setdefault("apose", {}).setdefault("sources", {})[view] = src
+        ctx.save()
+        log("%s: the given picture %s -> apose_%s.png (no painting)" % (view, src, view))
     if not os.path.exists(ctx.p("apose_front.png")):
-        t0 = time.time()
-        paths = _klein_cands(ctx, "front", APOSE_FRONT, [front_ref], args.seeds, seed0)
-        scores = {os.path.basename(p): arms_clearance(p, ctx) for p in paths}
-        ctx.mark("apose", front_cands=scores, front_seconds=round(time.time() - t0, 1))
-        log("arms-out fronts painted: %s (arms clear, width/height): %s" % (ctx.p("apose", "front_sheet.png"), scores))
+        if ref_of(args, "front") == "none":
+            raise RuntimeError("the front cannot be left out: the shape is made from it")
+        if not _cands_exist(ctx, "front", args.seeds):
+            t0 = time.time()
+            front_ref = _upload(_open_rgb(ctx.still("front")), "puppet_%s_front_ref.png" % ctx.hero) if not DRY["on"] else ctx.still("front")
+            paths = _paint_cands(ctx, "front", apose_words(ctx, "front", args), [front_ref], args.seeds, seed0, args)
+            scores = {os.path.basename(p): arms_clearance(p, ctx) for p in paths} if not DRY["on"] else {}
+            ctx.mark("apose", front_cands=scores, front_seconds=round(time.time() - t0, 1), painter=args.painter, screen=screen_of(ctx, args))
+            log("arms-out fronts painted: %s (arms clear, width/height): %s" % (ctx.p("apose", "front_sheet.png"), scores))
         log("pick one by eye: python tools/puppet.py %s --pick front=N" % ctx.hero)
-        comfy.release_lock()
-        return False
-    if not (os.path.exists(ctx.p("apose_side.png")) and os.path.exists(ctx.p("apose_back.png"))):
-        t0 = time.time()
-        pick_ref = comfy.upload_pil(_open_rgb(ctx.p("apose_front.png")), "puppet_%s_apose_front.png" % ctx.hero)
-        side_ref = comfy.upload_pil(_open_rgb(ctx.still("side")), "puppet_%s_side_ref.png" % ctx.hero)
-        back_ref = comfy.upload_pil(_open_rgb(ctx.still("back")), "puppet_%s_back_ref.png" % ctx.hero)
-        n = max(3, args.seeds // 2)
-        if not os.path.exists(ctx.p("apose_side.png")):
-            _klein_cands(ctx, "side", APOSE_SIDE, [pick_ref, side_ref], n, seed0 + 17)
-        if not os.path.exists(ctx.p("apose_back.png")):
-            _klein_cands(ctx, "back", APOSE_BACK, [pick_ref, back_ref], n, seed0 + 31)
-        ctx.mark("apose", views_seconds=round(time.time() - t0, 1))
-        log("side and back candidates: %s, %s; pick: --pick side=N back=N" % (ctx.p("apose", "side_sheet.png"), ctx.p("apose", "back_sheet.png")))
-        comfy.release_lock()
-        return False
-    comfy.release_lock()
+        return "pick:front"
+    need = [v for v in ("side", "back") if ref_of(args, v) == "paint" and not os.path.exists(ctx.p("apose_%s.png" % v))]
+    if need:
+        n = side_back_seeds(args)
+        if not all(_cands_exist(ctx, v, n) for v in need):
+            t0 = time.time()
+            pick_ref = _upload(_open_rgb(ctx.p("apose_front.png")), "puppet_%s_apose_front.png" % ctx.hero) if not DRY["on"] else ctx.p("apose_front.png")
+            for v, off in (("side", 17), ("back", 31)):
+                if v not in need:
+                    continue
+                refs = [pick_ref]
+                if os.path.exists(ctx.still(v)):
+                    refs.append(_upload(_open_rgb(ctx.still(v)), "puppet_%s_%s_ref.png" % (ctx.hero, v)) if not DRY["on"] else ctx.still(v))
+                _paint_cands(ctx, v, apose_words(ctx, v, args), refs, n, seed0 + off, args)
+            ctx.mark("apose", views_seconds=round(time.time() - t0, 1))
+        log("%s candidates: %s; pick: --pick %s" % (" and ".join(need), ", ".join(ctx.p("apose", v + "_sheet.png") for v in need),
+                                                    " ".join("%s=N" % v for v in need)))
+        return "pick:views"
     return True
 
 
@@ -235,19 +385,81 @@ def _open_rgb(path):
 
 
 def do_pick(ctx, pairs):
-    for pair in pairs:
-        view, k = pair.split("=", 1)
-        if view in ("front", "side", "back"):
-            src = ctx.p("apose", "%s_c%s.png" % (view, k))
-            shutil.copy(src, ctx.p("apose_%s.png" % view))
-            ctx.state.setdefault("apose", {}).setdefault("picks", {})[view] = int(k)
-            log("picked %s c%s -> apose_%s.png" % (view, k, view))
-        elif view == "shape":
-            src = ctx.p("shape", "try_%s.glb" % k)
-            shutil.copy(src, ctx.p("shape_raw.glb"))
-            ctx.state.setdefault("shape", {})["pick"] = int(k)
-            log("picked shape try %s -> shape_raw.glb" % k)
+    """`front=2`, `side=1`, `back=0`, `shape=1` (also "side=1,back=0" in one item, as the Level Editor sends a pick)."""
+    for item in pairs:
+        for pair in str(item).split(","):
+            if "=" not in pair:
+                continue
+            view, k = [x.strip() for x in pair.split("=", 1)]
+            k = k.lstrip("c")
+            if view in ("front", "side", "back"):
+                src = ctx.p("apose", "%s_c%s.png" % (view, k))
+                shutil.copy(src, ctx.p("apose_%s.png" % view))
+                ctx.state.setdefault("apose", {}).setdefault("picks", {})[view] = int(k)
+                log("picked %s c%s -> apose_%s.png" % (view, k, view))
+            elif view == "shape":
+                src = ctx.p("shape", "try_%s.glb" % k)
+                shutil.copy(src, ctx.p("shape_raw.glb"))
+                ctx.state.setdefault("shape", {})["pick"] = int(k)
+                log("picked shape try %s -> shape_raw.glb" % k)
     ctx.save()
+
+
+def _aside(ctx, paths, stamp, why):
+    """Files or folders under the hero's puppet folder moved into old/<stamp>/ (kept, out of the way)."""
+    moved = []
+    for p in paths:
+        if not os.path.exists(p):
+            continue
+        rel = os.path.relpath(p, ctx.out)
+        dst = os.path.join(ctx.out, "old", stamp, rel)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.move(p, dst)
+        moved.append(rel.replace("\\", "/"))
+    if moved:
+        log("%s: moved aside to old/%s/: %s" % (why, stamp, ", ".join(moved)))
+    return moved
+
+
+def do_reroll(ctx, what, stamp):
+    """--reroll front|views|shape: that pick's candidates moved aside so they are painted again (with --seed's shift)."""
+    import glob
+    if what == "front":
+        paths = glob.glob(ctx.p("apose", "front_c*")) + [ctx.p("apose", "front_sheet.png")]
+    elif what == "views":
+        paths = glob.glob(ctx.p("apose", "side_c*")) + glob.glob(ctx.p("apose", "back_c*")) + [ctx.p("apose", "side_sheet.png"), ctx.p("apose", "back_sheet.png")]
+    else:
+        paths = glob.glob(ctx.p("shape", "try_*"))
+        ctx.state.setdefault("shape", {}).pop("tries", None)
+        ctx.state["shape"].pop("pick", None)
+    _aside(ctx, paths, stamp, "re-roll of the %s candidates" % what)
+    ctx.save()
+
+
+def stage_outputs(ctx, stage):
+    """What a stage leaves under the hero's folder (--reset-from moves these aside). The guide folders under
+    tools/dl/drivers are never moved: looks walk on them; new guides get a new version once the GLB changed."""
+    h = ctx.hero
+    return {"apose": [ctx.p("apose_front.png"), ctx.p("apose_side.png"), ctx.p("apose_back.png"), ctx.p("apose"), ctx.p("paint")],
+            "shape": [ctx.p("shape"), ctx.p("shape_raw.glb"), ctx.p("shape.glb")] + [ctx.p(f) for f in os.listdir(ctx.out) if f.startswith("shape_preview")],
+            "rig": [blend_path(ctx), blend_path(ctx) + "1", ctx.p("rig")],
+            "anim": [ctx.p("%s_puppet.glb" % h), ctx.p("%s_puppet_preview.png" % h), ctx.p("renders"), ctx.p("GLB_READY.json")],
+            "guides": [ctx.p("silhouette.json")]}.get(stage, [])
+
+
+def do_reset(ctx, stage, stamp):
+    """--reset-from STAGE: that stage's outputs and every later stage's moved into old/<stamp>/, their records too."""
+    order = ["apose", "shape", "rig", "anim", "guides"]
+    if stage not in order:
+        return []
+    moved = []
+    for s in order[order.index(stage):]:
+        moved += _aside(ctx, stage_outputs(ctx, s), stamp, "reset from %s" % stage)
+        old = ctx.state.pop(s, None)
+        if old is not None:
+            ctx.state.setdefault("_old", {})["%s_%s" % (s, stamp)] = old
+    ctx.save()
+    return moved
 
 
 # ---------------------------------------------------------------- shape (Hunyuan3D 2mv on the AI server)
@@ -288,6 +500,20 @@ def run_3d(graph, timeout=3600):
     """comfy.run for a SaveGLB graph: returns ([glb bytes], seconds)."""
     import uuid
     import comfy
+    if DRY["on"]:
+        facts = {}
+        for n in graph.api().values():
+            ct, inp = n.get("class_type"), n.get("inputs", {})
+            if ct == "LoadImage":
+                facts.setdefault("views", []).append(inp.get("image"))
+            elif ct == "KSampler":
+                facts.update(seed=inp.get("seed"), steps=inp.get("steps"), cfg=inp.get("cfg"))
+            elif ct == "VAEDecodeHunyuan3D":
+                facts["octree"] = inp.get("octree_resolution")
+            elif ct == "ImageOnlyCheckpointLoader":
+                facts["checkpoint"] = inp.get("ckpt_name")
+        dry_note("comfy.run_3d", **facts)
+        return [b"glTF dry-run stand-in"], 0.0
     comfy.save_job_workflow(graph)
     r = comfy.post("/prompt", {"prompt": graph.api(), "client_id": "88fits-" + uuid.uuid4().hex[:8]})
     if r.get("error") or r.get("node_errors"):
@@ -321,10 +547,12 @@ def run_3d(graph, timeout=3600):
 
 
 def stage_shape(ctx, args):
-    import comfy
+    """Hunyuan3D-2mv tries (ComfyUI's own nodes, the server restarted before and after), each rendered in clay for the
+    pick ("pick:shape"); the pick cleaned in Blender (one piece, game height, feet at 0) -> shape.glb."""
     d = ctx.p("shape")
     os.makedirs(d, exist_ok=True)
     redo = args.force_stage == "shape"
+    shift = int(getattr(args, "seed", 0) or 0) * 104729
     if not os.path.exists(ctx.p("shape_raw.glb")) or redo:
         need = [k for k in range(args.tries) if redo or not os.path.exists(os.path.join(d, "try_%d.glb" % k))]
         tries = list(ctx.state.get("shape", {}).get("tries", []))
@@ -340,14 +568,19 @@ def stage_shape(ctx, args):
             for v, im in views.items():
                 im.save(os.path.join(d, "in_%s.png" % v))
             _sheet([os.path.join(d, "in_%s.png" % v) for v in views], os.path.join(d, "inputs_sheet.png"), 300)
-            names = {v: comfy.upload_pil(im, "puppet_%s_hy_%s.png" % (ctx.hero, v)) for v, im in views.items()}
-            log("restarting ComfyUI before Hunyuan3D (the server's RAM)")
-            comfy.wait_idle()
-            log("  " + comfy.restart_server())
+            if DRY["on"]:
+                names = {v: "puppet_%s_hy_%s.png" % (ctx.hero, v) for v in views}
+                dry_note("restart_server", why="before Hunyuan3D (the server's RAM)")
+            else:
+                import comfy
+                names = {v: comfy.upload_pil(im, "puppet_%s_hy_%s.png" % (ctx.hero, v)) for v, im in views.items()}
+                log("restarting ComfyUI before Hunyuan3D (the server's RAM)")
+                comfy.wait_idle()
+                log("  " + comfy.restart_server())
             t_all = time.time()
             for k in need:
                 f = os.path.join(d, "try_%d.glb" % k)
-                seed = 12345 + k * 7919
+                seed = 12345 + k * 7919 + shift
                 try:
                     glbs, secs = run_3d(hunyuan_graph(names, seed, steps=args.hy_steps, octree=args.octree, prefix="88fits/puppet/%s_shape_%d" % (ctx.hero, k)))
                 except Exception as e:
@@ -355,17 +588,24 @@ def stage_shape(ctx, args):
                     tries.append({"try": k, "seed": seed, "error": str(e)[:2000]})
                     ctx.mark("shape", tries=tries)
                     if k == need[0]:
-                        comfy.restart_server()
-                        comfy.release_lock()
+                        if not DRY["on"]:
+                            import comfy
+                            comfy.restart_server()
+                            comfy.release_lock()
                         raise
                     break
                 open(f, "wb").write(glbs[0])
                 tries = [t for t in tries if t.get("try") != k] + [{"try": k, "seed": seed, "seconds": round(secs, 1), "bytes": len(glbs[0])}]
+                # the jobs parser reads this line: the try's stage ticks on the job card
                 log("  Hunyuan3D try %d seed %d %.0fs %d bytes" % (k, seed, secs, len(glbs[0])))
                 ctx.mark("shape", tries=tries)
-            log("restarting ComfyUI after Hunyuan3D")
-            log("  " + comfy.restart_server())
-            comfy.release_lock()
+            if DRY["on"]:
+                dry_note("restart_server", why="after Hunyuan3D")
+            else:
+                import comfy
+                log("restarting ComfyUI after Hunyuan3D")
+                log("  " + comfy.restart_server())
+                comfy.release_lock()
             ctx.mark("shape", tries=tries, seconds=round(time.time() - t_all, 1), views=list(views))
         # every try rendered in clay for the pick
         for k in range(args.tries):
@@ -374,7 +614,7 @@ def stage_shape(ctx, args):
                 blender("clean", src=f, preview=os.path.join(d, "try_%d.png" % k), height=game_height(ctx), only_preview=1)
         if "pick" not in ctx.state.get("shape", {}):
             log("shape tries rendered: %s/try_N.png; pick: --pick shape=N" % d)
-            return False
+            return "pick:shape"
     if not os.path.exists(ctx.p("shape.glb")) or redo:
         t0 = time.time()
         blender("clean", src=ctx.p("shape_raw.glb"), out=ctx.p("shape.glb"), preview=ctx.p("shape_preview.png"), height=game_height(ctx),
@@ -405,7 +645,8 @@ def stage_rig(ctx, args):
     t0 = time.time()
     os.makedirs(ctx.p("rig"), exist_ok=True)
     blender("rig", src=ctx.p("shape.glb"), out=blend_path(ctx), overlay=ctx.p("rig"))
-    j = json.load(open(ctx.p("rig", "joints.json"), encoding="utf-8"))
+    jp = ctx.p("rig", "joints.json")
+    j = json.load(open(jp, encoding="utf-8")) if os.path.exists(jp) else {}
     ctx.mark("rig", seconds=round(time.time() - t0, 1), notes=j.get("notes"))
     return True
 
@@ -474,18 +715,56 @@ def preview_sheet(ctx, rd, out):
     return out
 
 
+def clip_path(name):
+    """A clip named as the form names it (a file in tools/dl/mixamo/, or a repo path, or an absolute one)."""
+    if not name:
+        return ""
+    if os.path.isabs(name):
+        return name
+    if os.path.exists(os.path.join(MIXAMO, name)):
+        return os.path.join(MIXAMO, name)
+    return os.path.join(REPO, name)
+
+
+def rel(p):
+    try:
+        return os.path.relpath(p, REPO).replace("\\", "/")
+    except ValueError:
+        return str(p).replace("\\", "/")
+
+
 def stage_anim(ctx, args):
+    """The moving clip (--clip, default running.fbx) retargeted onto the rig as "run", the idle (--idle: a Mixamo clip
+    retargeted, else the procedural breathing idle), the colours from the arms-out paintings, the GLB and its preview.
+    Made again when the clip or the idle asked for differs from the one the GLB has (the old GLB moved aside)."""
     glb = ctx.p("%s_puppet.glb" % ctx.hero)
-    if os.path.exists(glb) and args.force_stage != "anim" and not (args.from_blend or args.from_fbx):
+    clip = clip_path(getattr(args, "clip", "") or "running.fbx")
+    idle = clip_path(getattr(args, "idle", "") or "")
+    want = {"clip": rel(clip), "idle": rel(idle) if idle else "procedural"}
+    have = ctx.state.get("anim", {})
+    same = (have.get("clip") or "tools/dl/mixamo/running.fbx") == want["clip"] and (have.get("idle") or "procedural") == want["idle"]
+    if os.path.exists(glb) and same and args.force_stage != "anim" and not (args.from_blend or args.from_fbx):
         return True
+    if not os.path.isfile(clip) and not DRY["on"]:
+        raise RuntimeError("the clip %s is not on disk" % clip)
+    if os.path.exists(glb) and not same:
+        _aside(ctx, [glb, ctx.p("%s_puppet_preview.png" % ctx.hero)], time.strftime("%Y%m%d-%H%M%S"),
+               "a new clip (%s, idle %s; the GLB had %s, idle %s)" % (want["clip"], want["idle"], have.get("clip") or "running.fbx", have.get("idle") or "procedural"))
     t0 = time.time()
     rd = ctx.p("renders")
     src = args.from_fbx or blend_path(ctx)
-    blender("anim", src=src, clip=os.path.join(REPO, "tools", "dl", "mixamo", "running.fbx"), paint=paint_inputs(ctx), out=glb, renders=rd,
+    blender("anim", src=src, clip=clip, idle=idle or None, paint=paint_inputs(ctx) if not DRY["on"] else ctx.p("paint"), out=glb, renders=rd,
             save=blend_path(ctx))
-    prev = preview_sheet(ctx, rd, ctx.p("%s_puppet_preview.png" % ctx.hero))
-    ctx.mark("anim", seconds=round(time.time() - t0, 1), glb=glb, preview=prev, source=src)
-    hand_off(ctx, glb, prev)
+    prev = ctx.p("%s_puppet_preview.png" % ctx.hero)
+    if DRY["on"]:
+        if os.path.exists(prev):
+            os.remove(prev)
+        open(prev, "wb").close()
+    else:
+        preview_sheet(ctx, rd, prev)
+    ctx.mark("anim", seconds=round(time.time() - t0, 1), glb=glb, preview=prev, source=src, clip=want["clip"], idle=want["idle"])
+    if not DRY["on"] and not getattr(args, "no_drive", False):
+        hand_off(ctx, glb, prev)
     return True
 
 
@@ -510,34 +789,111 @@ def hand_off(ctx, glb, prev):
 
 # ---------------------------------------------------------------- guides
 
-def stage_guides(ctx, args):
-    pose_dir = os.path.join(DRIVERS, "%s_puppet_run" % ctx.hero)
-    depth_dir = os.path.join(DRIVERS, "%s_puppet_run_depth" % ctx.hero)
+def clip_slug(args):
+    """The guides' clip part: running.fbx = run (the trial's may_puppet_run), else the clip file's stem."""
+    stem = os.path.splitext(os.path.basename(getattr(args, "clip", "") or "running.fbx"))[0].lower()
+    return "run" if stem == "running" else (re.sub(r"[^a-z0-9]+", "_", stem).strip("_") or "clip")
+
+
+def _guides_match(name, ctx, args):
+    """Whether tools/dl/drivers/<name> holds this puppet's guides as asked: the same framing (a meta without one was
+    framed by the ankles: the trial's), the same clip, made after the GLB, the OpenPose and the depth sets whole."""
+    d = os.path.join(DRIVERS_REAL, name)
+    mp = os.path.join(d, "meta.json")
+    if not os.path.isfile(mp):
+        return False
+    try:
+        m = json.load(open(mp, encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    glb = ctx.p("%s_puppet.glb" % ctx.hero)
+    if m.get("frame", "ankles") != getattr(args, "frame", "soles"):
+        return False
+    if m.get("face", "nose") != getattr(args, "face", "nose"):   # a meta without one: the trial's v3 guides (the nose)
+        return False
+    if (m.get("clip") or "tools/dl/mixamo/running.fbx") != rel(clip_path(getattr(args, "clip", "") or "running.fbx")):
+        return False
+    if os.path.exists(glb) and os.path.getmtime(glb) > os.path.getmtime(mp) + 1:
+        return False
+    sil_ok = os.path.exists(os.path.join(d, "silhouette.json")) or (name == "%s_puppet_run" % ctx.hero and os.path.exists(ctx.p("silhouette.json")))
+    return (os.path.exists(os.path.join(d, "front", "driver_24.png")) and os.path.exists(os.path.join(DRIVERS_REAL, name + "_depth", "back", "ctl_48.png"))
+            and sil_ok)
+
+
+def guides_name(ctx, args):
+    """(name, ready): <hero>_puppet_<clip>, or the first free _2, _3 ... when an older folder holds guides made
+    otherwise (another framing, clip or GLB): a look keeps walking on the guides it was made with."""
+    base = "%s_puppet_%s" % (ctx.hero, clip_slug(args))
     redo = args.force_stage == "guides" or args.from_blend or bool(args.from_fbx)
+    for k in range(1, 100):
+        name = base if k == 1 else "%s_%d" % (base, k)
+        taken = [os.path.exists(os.path.join(root, name)) or os.path.exists(os.path.join(root, name + "_depth")) for root in {DRIVERS, DRIVERS_REAL}]
+        if not any(taken):
+            return name, False
+        if not redo and _guides_match(name, ctx, args):
+            return name, True
+    raise RuntimeError("no free guide folder name under %s" % base)
+
+
+def guides_silhouette(ctx, name):
+    """The silhouette of a guide folder: <folder>/silhouette.json (pass 71), else the trial's tools/dl/puppet/<hero>/."""
+    p = os.path.join(DRIVERS_REAL, name, "silhouette.json")
+    return p if os.path.exists(p) else os.path.join(PUPPETS, ctx.hero, "silhouette.json")
+
+
+def stage_guides(ctx, args):
+    """OpenPose guides from the puppet's own bones (framed by the soles unless --frame ankles), depth videos from its
+    GLB, and its silhouette (each view's run against its idle) -> tools/dl/drivers/<name>/ and <name>_depth/; the names
+    go into stages.json "guides" (the Level Editor's job writes them into the look's recipe)."""
+    name, ready = guides_name(ctx, args)
+    pose_dir = os.path.join(DRIVERS, name)
+    depth_dir = os.path.join(DRIVERS, name + "_depth")
+    sil = os.path.join(pose_dir, "silhouette.json")
     t0 = time.time()
-    if redo or not os.path.exists(os.path.join(pose_dir, "front", "driver_24.png")):
-        blender("guides", src=blend_path(ctx), out=pose_dir, frames=24, pitch=25)
-        r = subprocess.run([sys.executable, os.path.join(HERE, "pose_driver.py"), "draw", pose_dir], capture_output=True, text=True)
-        if r.returncode != 0:
-            raise RuntimeError("pose_driver draw failed: %s" % (r.stderr or r.stdout)[-1500:])
+    clip = rel(clip_path(getattr(args, "clip", "") or "running.fbx"))
+    if ready:
+        log("guides %s are this puppet's as asked (framing %s, clip %s): kept" % (name, args.frame, clip_slug(args)))
+        sil = guides_silhouette(ctx, name)
+    else:
+        blender("guides", src=blend_path(ctx), out=pose_dir, frames=24, pitch=25, frame=args.frame, face=args.face, clip=clip,
+                glb=rel(ctx.p("%s_puppet.glb" % ctx.hero)))
+        if DRY["on"]:
+            dry_note("pose_driver draw", folder=rel(pose_dir))
+        else:
+            r = subprocess.run([sys.executable, os.path.join(HERE, "pose_driver.py"), "draw", pose_dir], capture_output=True, text=True)
+            if r.returncode != 0:
+                raise RuntimeError("pose_driver draw failed: %s" % (r.stderr or r.stdout)[-1500:])
         log("OpenPose guides drawn: %s/all_sheet.png" % pose_dir)
     t1 = time.time()
-    if redo or not os.path.exists(os.path.join(depth_dir, "back", "ctl_48.png")):
+    if not ready:
         argv = [BLENDER, "-b", "--factory-startup", "--python", os.path.join(HERE, "blender_depth_drivers.py"), "--",
                 "src=" + ctx.p("%s_puppet.glb" % ctx.hero), "out=" + depth_dir, "action=run", "mode=cycle", "frames=24", "cycles=2",
                 "depth=tight", "forward=-Y", "inplace=0", "pitch=25"]
         log("blender_depth_drivers " + " ".join(argv[5:]))
-        r = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3600)
-        for ln in (r.stdout or "").splitlines():
-            if ln.startswith("blender_depth_drivers") or "Error" in ln:
-                print("   ", ln, flush=True)
-        if r.returncode != 0 or not os.path.exists(os.path.join(depth_dir, "back", "ctl_48.png")):
-            raise RuntimeError("depth drivers failed: %s" % " | ".join(((r.stdout or "") + (r.stderr or "")).splitlines()[-30:]))
-        depth_sheet(depth_dir)
-    if redo or not os.path.exists(ctx.p("silhouette.json")):
-        blender("silhouette", src=blend_path(ctx), out=ctx.p("silhouette.json"), frames=24, pitch=25)
-    ctx.mark("guides", pose_dir=pose_dir, depth_dir=depth_dir, pose_seconds=round(t1 - t0, 1), depth_seconds=round(time.time() - t1, 1),
-             occlusion=json.load(open(os.path.join(pose_dir, "meta.json"), encoding="utf-8")).get("occlusion"))
+        if DRY["on"]:
+            dry_note("blender", script="blender_depth_drivers.py", argv=argv[5:])
+            os.makedirs(os.path.join(depth_dir, "back"), exist_ok=True)
+        else:
+            r = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=3600)
+            for ln in (r.stdout or "").splitlines():
+                if ln.startswith("blender_depth_drivers") or "Error" in ln:
+                    print("   ", ln, flush=True)
+            if r.returncode != 0 or not os.path.exists(os.path.join(depth_dir, "back", "ctl_48.png")):
+                raise RuntimeError("depth drivers failed: %s" % " | ".join(((r.stdout or "") + (r.stderr or "")).splitlines()[-30:]))
+            depth_sheet(depth_dir)
+        blender("silhouette", src=blend_path(ctx), out=sil, frames=24, pitch=25)
+        if os.path.exists(sil) and not DRY["on"]:
+            shutil.copy2(sil, ctx.p("silhouette.json"))   # the latest puppet's, where the trial kept it (compare reads it)
+    occ = None
+    try:
+        occ = json.load(open(os.path.join(pose_dir, "meta.json"), encoding="utf-8")).get("occlusion")
+    except (OSError, ValueError):
+        pass
+    ctx.mark("guides", pose_dir=pose_dir, depth_dir=depth_dir, pose_name=name, depth_name=name + "_depth", silhouette=rel(sil),
+             frame=args.frame, face=args.face, clip=clip, reused=bool(ready), pose_seconds=round(t1 - t0, 1), depth_seconds=round(time.time() - t1, 1),
+             occlusion=occ)
+    # the jobs parser reads this line: the names the look's recipe takes
+    print("puppet: GUIDES %s %s %s" % (name, name + "_depth", rel(sil)), flush=True)
     return True
 
 
@@ -619,12 +975,13 @@ def look_recipes(ctx):
         base.pop(k, None)
     base["stills"] = ctx.slug
     p = dict(base)
-    p["pose_drivers"] = {v: "%s_puppet_run" % ctx.hero for v in VIEWS5}
+    pg = ctx.state.get("guides", {}).get("pose_name") or "%s_puppet_run" % ctx.hero
+    p["pose_drivers"] = {v: pg for v in VIEWS5}
     q = dict(p)
     # the depth video carries no face: the front walks on the OpenPose guide (Fun Control painted a crosshatched face,
     # then long hair, from the front), the other views on the depth guide; words for the face and the hair (the first
     # bd painted her bob as skin)
-    q["ctl_drivers"] = {v: "%s_puppet_run_depth" % ctx.hero for v in ("fd", "side", "bd", "back")}
+    q["ctl_drivers"] = {v: ctx.state.get("guides", {}).get("depth_name") or pg + "_depth" for v in ("fd", "side", "bd", "back")}
     q["anim_hint"] = (str(ctx.d.get("anim_hint", "")) + ", her short straight black bob haircut and black beret, black hair all round the back "
                       "of her head; where her face shows it is a clean simple anime face: two dark eyes, a small smile, a small black "
                       "star on her cheek, pale skin").lstrip(", ")
@@ -917,7 +1274,8 @@ def measure_view(cells, view):
 def puppet_hands_over_back(ctx, view):
     """Per pose of the puppet's run (24): whether a wrist her body does not hide lies over her torso in this view (inside
     the shoulders-hips quadrilateral of the OpenPose guide): the 3D truth of "a glove over her back"."""
-    m = json.load(open(os.path.join(DRIVERS, "%s_puppet_run" % ctx.hero, view, "poses.json"), encoding="utf-8"))
+    pg = ctx.state.get("guides", {}).get("pose_name") or "%s_puppet_run" % ctx.hero
+    m = json.load(open(os.path.join(DRIVERS, pg, view, "poses.json"), encoding="utf-8"))
 
     def inside(pt, poly):
         x, y = pt
@@ -1021,7 +1379,12 @@ def stage_compare(ctx, args):
     base_code = ctx.look
     code_p, code_q = look_codes(ctx)
     d = json.load(open(ctx.jpath, encoding="utf-8"))
-    looks = [base_code] + [c for c in (code_p, code_q) if ((d.get("variants") or {}).get(c) or {}).get("sprite")]
+    # pass 71: and every look made with the Puppet method (recipe.method hero_puppet), or the codes --compare-looks names
+    extra = list(getattr(args, "compare_looks", None) or [])
+    if not extra:
+        extra = [c for c, e in (d.get("variants") or {}).items() if isinstance(e, dict) and ((e.get("recipe") or {}).get("method") == "hero_puppet")]
+    looks = [base_code] + [c for c in [code_p, code_q] + extra if ((d.get("variants") or {}).get(c) or {}).get("sprite")]
+    looks = [c for i, c in enumerate(looks) if c not in looks[:i]]
     if len(looks) < 2:
         log("no puppet look has a strip yet")
         return False
@@ -1084,10 +1447,15 @@ def stage_compare(ctx, args):
 # ---------------------------------------------------------------- Blender
 
 def blender(mode, timeout=3600, **kw):
+    kw.setdefault("name", NAME[0])
     argv = [BLENDER, "-b", "--factory-startup", "--python", os.path.join(HERE, "puppet_blender.py"), "--", "mode=" + mode]
     argv += ["%s=%s" % (k, v) for k, v in kw.items() if v is not None]
     log("blender " + " ".join(argv[5:]))
     t0 = time.time()
+    if DRY["on"]:
+        dry_note("blender", script="puppet_blender.py", mode=mode, argv=argv[5:])
+        _dry_outputs(mode, kw)
+        return 0.0
     r = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
     lines = [ln for ln in (r.stdout or "").splitlines() if ln.startswith("puppet_blender") or "Error" in ln or "Traceback" in ln]
     for ln in lines[-60:]:
@@ -1098,53 +1466,199 @@ def blender(mode, timeout=3600, **kw):
     return time.time() - t0
 
 
+def _dry_outputs(mode, kw):
+    """The files a Blender mode would write, as empty stand-ins (a dry run's later stages find them)."""
+    for k in ("out", "save", "preview"):
+        p = kw.get(k)
+        if not p:
+            continue
+        if mode == "guides" and k == "out":
+            for v in ("front", "fd", "side", "bd", "back"):
+                os.makedirs(os.path.join(p, v), exist_ok=True)
+            json.dump({"kind": "pose", "frame": kw.get("frame"), "face": kw.get("face"), "clip": kw.get("clip"), "dry_run": True}, open(os.path.join(p, "meta.json"), "w", encoding="utf-8"))
+            continue
+        os.makedirs(os.path.dirname(os.path.abspath(p)), exist_ok=True)
+        if os.path.exists(p):
+            os.remove(p)
+        if mode == "silhouette":
+            json.dump({v: {"ratio_median": 1.0, "dry_run": True} for v in ("front", "fd", "side", "bd", "back")}, open(p, "w", encoding="utf-8"))
+        else:
+            open(p, "wb").close()
+    for k in ("overlay", "renders"):
+        if kw.get(k):
+            os.makedirs(kw[k], exist_ok=True)
+
+
+# ---------------------------------------------------------------- lanes (the Level Editor's job runs the stages lane by lane)
+
+def stage_lane(ctx, s, args):
+    """The lane the work left in a stage needs: "comfy" (a painting or the Hunyuan3D shape), "local" (Blender, files), or
+    None when the stage has nothing left to do. A stage that only waits for a pick runs on either lane."""
+    if s == "apose":
+        if not os.path.exists(ctx.p("apose_front.png")):
+            if ref_of(args, "front") == "paint" and not _cands_exist(ctx, "front", args.seeds):
+                return "comfy"
+            return "local"
+        need = [v for v in ("side", "back") if ref_of(args, v) not in ("none",) and not os.path.exists(ctx.p("apose_%s.png" % v))]
+        if not need:
+            return None
+        paint = [v for v in need if ref_of(args, v) == "paint" and not _cands_exist(ctx, v, side_back_seeds(args))]
+        return "comfy" if paint else "local"
+    if s == "shape":
+        redo = args.force_stage == "shape"
+        if os.path.exists(ctx.p("shape.glb")) and not redo:
+            return None
+        if (not os.path.exists(ctx.p("shape_raw.glb")) or redo) and not all(os.path.exists(ctx.p("shape", "try_%d.glb" % k)) for k in range(args.tries)):
+            return "comfy"
+        return "local"
+    if s == "rig":
+        return None if os.path.exists(blend_path(ctx)) and args.force_stage != "rig" else "local"
+    if s in ("anim", "guides", "compare"):
+        return "local"
+    return None
+
+
 # ---------------------------------------------------------------- main
 
 RUNNERS = {}
 
 
-def main():
-    ap = argparse.ArgumentParser(description="the Puppet trial: a hero's painting -> a rigged 3D figure -> guides for the video model")
+def parse_args(argv=None):
+    ap = argparse.ArgumentParser(description="the Puppet method: a hero's painting -> a rigged 3D figure -> guides for the video model")
     ap.add_argument("hero")
     ap.add_argument("--stage", choices=STAGES, help="run this stage (again) only")
     ap.add_argument("--force", action="store_true", help="with --stage: redo it even when its outputs exist")
-    ap.add_argument("--pick", nargs="*", default=[], help="front=N side=N back=N shape=N")
+    ap.add_argument("--pick", nargs="*", default=[], help="front=N side=N back=N shape=N (or side=1,back=0)")
     ap.add_argument("--look", default="", help="the look whose stills are the source (default: the hero's played look)")
-    ap.add_argument("--seeds", type=int, default=4, help="arms-out front candidates")
+    ap.add_argument("--seeds", type=int, default=4, help="arms-out front candidates (the side and the back: half, at least 3)")
     ap.add_argument("--tries", type=int, default=2, help="Hunyuan3D tries (seeds)")
     ap.add_argument("--hy-steps", type=int, default=30)
     ap.add_argument("--octree", type=int, default=380)
     ap.add_argument("--faces", type=int, default=60000, help="the cleaned mesh's triangle budget")
     ap.add_argument("--front-only", action="store_true", help="Hunyuan3D on the front (and back) only")
-    ap.add_argument("--from-blend", action="store_true", help="start from may_puppet.blend (Garry's rig fix): anim export, guides, looks, compare")
+    ap.add_argument("--from-blend", action="store_true", help="start from <hero>_puppet.blend (a rig fixed by hand): anim export, guides, looks, compare")
     ap.add_argument("--from-fbx", default="", help="a Mixamo-rigged FBX instead of our rig")
     ap.add_argument("--until", choices=STAGES, help="stop after this stage")
     ap.add_argument("--only-look", default="", help="looks: queue this code only (MAY-P or MAY-Q)")
     ap.add_argument("--look-wait", type=int, default=4 * 3600, help="looks: how long to wait for the look jobs (s)")
     ap.add_argument("--install-pickers", action="store_true", help="looks: install the base look's badge and cut-out through the editor's "
                     "install jobs (needs a Level Editor from pass 70 on); default: name them in the new looks' entries")
-    args = ap.parse_args()
-    ctx = Ctx(args.hero, args.look or None)
+    # pass 71 (lane PLE): the Puppet method for any hero, from the Level Editor
+    ap.add_argument("--ref", nargs="*", default=[], help="the 3D reference per view: front=paint|still:<key>|<picture> side=... back=...|none")
+    ap.add_argument("--screen", default="", help="green | blue: the arms-out paintings' screen (default: the look's, else the hero's, else blue)")
+    ap.add_argument("--painter", choices=["klein", "dev"], default="klein", help="the arms-out paintings' painter")
+    ap.add_argument("--steps", type=int, default=0, help="the painter's passes (0 = its default: Klein 4, dev 8 with Turbo)")
+    ap.add_argument("--no-turbo", action="store_true", help="dev: the full-quality steps (20+) without the Turbo LoRA")
+    ap.add_argument("--seed", type=int, default=0, help="shift every arms-out and Hunyuan3D seed (a re-roll)")
+    ap.add_argument("--words-front", default="", help="the front edit's words in place of the template")
+    ap.add_argument("--words-side", default="", help="the side edit's words in place of the template")
+    ap.add_argument("--words-back", default="", help="the back edit's words in place of the template")
+    ap.add_argument("--reroll", choices=["front", "views", "shape"], help="move that pick's candidates aside (painted again)")
+    ap.add_argument("--reset-from", choices=["apose", "shape", "rig", "anim", "guides"], help="move that stage's outputs and the later ones aside")
+    ap.add_argument("--clip", default="running.fbx", help="the moving clip (tools/dl/mixamo/<file>, or a path)")
+    ap.add_argument("--idle", default="", help="an idle clip (tools/dl/mixamo/<file>); empty = the procedural breathing idle")
+    ap.add_argument("--frame", choices=["soles", "ankles"], default="soles", help="the OpenPose guides framed by the soles (default) or the ankles")
+    ap.add_argument("--face", choices=["nose", "head"], default="nose", help="the face angle of the stick figures: the ears from the measured "
+                    "nose (default: a side view stays in profile) or on the head bone's axis (the trial's first guide)")
+    ap.add_argument("--lane", choices=["", "comfy", "local"], default="", help="the Level Editor's lane: stop where the work needs the other one")
+    ap.add_argument("--no-drive", action="store_true", help="no copy of the GLB to Google Drive")
+    ap.add_argument("--compare-looks", nargs="*", default=[], help="compare: these looks beside the base, P and Q (default: every hero_puppet look)")
+    ap.add_argument("--dry-run", action="store_true", help="record every prompt, graph and command; nothing reaches ComfyUI or Blender")
+    ap.add_argument("--out-root", default="", help="the folder holding <hero>/ (default tools/dl/puppet; a dry run: where its stand-ins go)")
+    return ap.parse_args(argv)
+
+
+def _dry_mirror(real_dir, dry_dir):
+    """A dry run's copy of the hero's puppet folder: files under 3 MB copied (stages.json, the paintings), bigger ones (the
+    GLBs, the .blend) as empty files with the real modification time (a stage only asks whether they exist and how old
+    they are); old/ is left out. Nothing is linked: a dry run's writes never reach the real files."""
+    n = 0
+    for base, dirs, files in os.walk(real_dir):
+        dirs[:] = [x for x in dirs if x not in ("old",)]
+        rel_dir = os.path.relpath(base, real_dir)
+        for f in files:
+            src = os.path.join(base, f)
+            dst = os.path.join(dry_dir, rel_dir, f)
+            if os.path.exists(dst):
+                continue
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            st = os.stat(src)
+            if st.st_size < 3 * 1024 * 1024:
+                shutil.copy2(src, dst)
+            else:
+                open(dst, "wb").close()
+                os.utime(dst, (st.st_atime, st.st_mtime))
+            n += 1
+    return n
+
+
+def main(argv=None):
+    global DRIVERS
+    args = parse_args(argv)
+    if args.dry_run:
+        root = os.path.abspath(args.out_root or os.path.join(PUPPETS, "_dry"))
+        os.makedirs(root, exist_ok=True)
+        DRY.update(on=True, path=os.path.join(root, "dry_run.json"), notes=[], t0=time.time())
+        DRIVERS = os.path.join(root, "drivers")    # the guides' stand-ins too: tools/dl/drivers is never written
+        os.makedirs(DRIVERS, exist_ok=True)
+        args.out_root = root
+        args.no_drive = True
+        dry_note("start", argv=list(argv if argv is not None else sys.argv[1:]))
+        real = os.path.join(PUPPETS, args.hero)
+        if os.path.isdir(real) and os.path.abspath(real) != os.path.abspath(os.path.join(root, args.hero)):
+            dry_note("mirror", of=rel(real), files=_dry_mirror(real, os.path.join(root, args.hero)))
+    NAME[0] = name_of(args.hero)
+    ctx = Ctx(args.hero, args.look or None, args.out_root or None)
     args.force_stage = args.stage if args.force else None
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    if args.reset_from:
+        do_reset(ctx, args.reset_from, stamp)
+    if args.reroll:
+        do_reroll(ctx, args.reroll, stamp)
     if args.pick:
         do_pick(ctx, args.pick)
     stages = [args.stage] if args.stage else STAGES
     if args.from_blend or args.from_fbx:
         stages = [s for s in stages if s in ("anim", "guides", "looks", "compare")]
+    if args.until:
+        stages = stages[:stages.index(args.until) + 1] if args.until in stages else stages
+    log("hero %s (look %s, stills %s, screen %s, painter %s), stages %s%s" % (args.hero, ctx.look, ctx.slug or "(the hero's own)", screen_of(ctx, args),
+                                                                           args.painter, ", ".join(stages), " [DRY RUN]" if DRY["on"] else ""))
     for s in stages:
         fn = RUNNERS.get(s) or globals().get("stage_" + s)
         if fn is None:
             log("stage %s is not built yet" % s)
             return 2
+        need = stage_lane(ctx, s, args)
+        if args.lane and need and need != args.lane and not DRY["on"]:
+            # the Level Editor's job: this stage's work needs the other lane (a painting on comfy, Blender on local)
+            print("puppet: NEXT lane %s (stage %s)" % (need, s), flush=True)
+            return 0
         t0 = time.time()
         log("== stage %s" % s)
-        ok = fn(ctx, args)
-        ctx.mark(s, last_run=time.strftime("%Y-%m-%d %H:%M:%S"), last_seconds=round(time.time() - t0, 1), done=bool(ok))
-        if not ok:
-            log("stage %s stopped (waiting for a pick or failed); rerun when ready" % s)
-            return 1
-        if args.until == s:
+        print("puppet: STAGE %s start" % s, flush=True)
+        for attempt in range(8):
+            ok = fn(ctx, args)
+            if DRY["on"] and isinstance(ok, str) and ok.startswith("pick:"):
+                # a dry run picks the first candidate of every pick and goes on
+                what = ok[5:]
+                pairs = {"front": ["front=0"], "views": [v + "=0" for v in ("side", "back") if ref_of(args, v) == "paint"], "shape": ["shape=0"]}[what]
+                dry_note("pick", what=what, pairs=pairs)
+                do_pick(ctx, pairs)
+                continue
             break
+        if isinstance(ok, str) and ok.startswith("pick:"):
+            ctx.mark(s, last_run=time.strftime("%Y-%m-%d %H:%M:%S"), last_seconds=round(time.time() - t0, 1), done=False, waiting=ok[5:])
+            print("puppet: PICK %s" % ok[5:], flush=True)
+            log("stage %s waits for your pick (%s); rerun with --pick when chosen" % (s, ok[5:]))
+            return 0
+        ctx.mark(s, last_run=time.strftime("%Y-%m-%d %H:%M:%S"), last_seconds=round(time.time() - t0, 1), done=bool(ok), waiting=None)
+        if not ok:
+            log("stage %s stopped (failed); rerun when ready" % s)
+            return 1
+        print("puppet: STAGE %s done %.0fs" % (s, time.time() - t0), flush=True)
+    if args.until:
+        print("puppet: DONE %s" % args.until, flush=True)
     return 0
 
 

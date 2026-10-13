@@ -237,7 +237,67 @@ def upload(png_bytes, name, subfolder="88fits"):
     body = b"".join(parts) + b"--" + boundary.encode() + b"--\r\n"
     req = urllib.request.Request(SERVER + "/upload/image", data=body, headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
     r = json.load(urllib.request.urlopen(req, timeout=120))
-    return (r.get("subfolder", "") + "/" if r.get("subfolder") else "") + r["name"]
+    value = (r.get("subfolder", "") + "/" if r.get("subfolder") else "") + r["name"]
+    if subfolder:
+        _UPLOADED[value] = png_bytes   # pass 71: the bytes a saved workflow's top-level copy is made from (portable_ui)
+    return value
+
+
+# ---------------------------------------------------------------- pass 71 (lane PLE): saved workflows that open clean
+# A job uploads its pictures into ComfyUI's input/88fits/ and its graphs name them "88fits/<file>". The API runs them,
+# but the page's LoadImage picker lists only the input folder's top level, so a saved workflow opened from the job card
+# showed every LoadImage red ("4 errors found, resolve them before running"). The workflow a job SAVES (the UI file and
+# its copy in the page's Workflows sidebar; never the graph that runs) names a top-level copy instead: the same bytes
+# uploaded again as "<subfolder>_<sha1 10>_<file>", named by its contents, so the saved workflow keeps the exact picture
+# even after a later job overwrites the subfolder file.
+_UPLOADED = {}        # "88fits/<file>" -> the bytes this process uploaded under it (the last ones)
+_TOP_COPIES = {}      # the top-level copies this process made: name -> True
+
+
+def _input_bytes(value):
+    """The bytes of an input picture on the server (GET /view, type input): "<subfolder>/<file>"."""
+    sub, name = value.rsplit("/", 1)
+    q = urllib.parse.urlencode({"filename": name, "subfolder": sub, "type": "input"})
+    return urllib.request.urlopen(SERVER + "/view?" + q, timeout=60).read()
+
+
+def top_level_input(value):
+    """A LoadImage value with a subfolder as a file the page's picker lists: the top-level copy's name (uploaded once
+    per content in this process); a value without a subfolder is returned as it is."""
+    import hashlib
+    v = str(value or "")
+    if "/" not in v:
+        return v
+    data = _UPLOADED.get(v)
+    if data is None:
+        data = _input_bytes(v)
+    sub, name = v.rsplit("/", 1)
+    top = upload_name("%s_%s_%s" % (sub.replace("/", "_"), hashlib.sha1(data).hexdigest()[:10], name))
+    if top not in _TOP_COPIES:
+        top = upload(data, top, subfolder="")
+        _TOP_COPIES[top] = True
+    return top
+
+
+def portable_ui(ui):
+    """A UI workflow's LoadImage widgets rewritten to top-level copies (top_level_input), in place; a picture that cannot
+    be copied keeps its value (the workflow still runs through the API). Returns [(old, new)] for what changed."""
+    changed = []
+    for node in (ui or {}).get("nodes", []) if isinstance(ui, dict) else []:
+        if node.get("type") != "LoadImage":
+            continue
+        wv = node.get("widgets_values")
+        if not isinstance(wv, list) or not wv or not isinstance(wv[0], str) or "/" not in wv[0]:
+            continue
+        try:
+            new = top_level_input(wv[0])
+        except Exception as e:
+            print("comfy: %s stays as it is in the saved workflow (%s)" % (wv[0], e))
+            continue
+        if new != wv[0]:
+            changed.append((wv[0], new))
+            wv[0] = new
+    return changed
 
 
 def upload_pil(img, name, subfolder="88fits"):
@@ -324,10 +384,11 @@ def save_job_workflow(graph):
         n = len([f for f in os.listdir(d) if f.endswith("_workflow.json")]) + 1
         prefix = "graph"
         for node in graph.api().values():
-            if node.get("class_type") in ("SaveImage", "SaveAudio"):
+            if node.get("class_type") in ("SaveImage", "SaveAudio", "SaveGLB"):
                 prefix = str(node.get("inputs", {}).get("filename_prefix", "graph")).split("/")[-1]
         stem = "%02d_%s" % (n, "".join(c if c.isalnum() or c in "-_" else "_" for c in prefix)[:60])
         ui = graph.ui_workflow()
+        portable_ui(ui)   # pass 71: LoadImage names a top-level copy the page's picker lists (the graph that runs keeps its own)
         with open(os.path.join(d, stem + "_workflow.json"), "w", encoding="utf-8", newline="\n") as f:
             json.dump(ui, f, indent=1)
         with open(os.path.join(d, stem + "_api.json"), "w", encoding="utf-8", newline="\n") as f:

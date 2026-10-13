@@ -10,6 +10,13 @@ bones with the joints her own body hides dropped.
 Conventions: the figure stands on z = 0, faces -Y (Blender's front), metres; her left is +X. The armature "May_Rig"
 (object at the origin, no rotation or scale) carries Mixamo's names with the "mixamorig:" prefix, so a Mixamo FBX
 matches bone for bone and tools/pose_driver.py reads it (it strips the prefix); the mesh is "May".
+
+Pass 71 (lane PLE, any hero): name=<Name> names the mesh and the armature (<Name>, <Name>_Rig; puppet.py passes the hero
+id in letters: "May", "Buck"); mode=anim takes idle=<fbx> (a Mixamo idle retargeted like the run; without it the
+procedural breathing idle); mode=guides takes frame=soles|ankles (the stride's ground at the lowest sole of the posed mesh,
+so the boots stay inside the canvas, or at the ankles as pose_driver does), face=nose|head (the ears' middle from the
+measured nose, keeping a side view in profile; or on the head bone's axis, the trial's first guide) and writes frame,
+face, clip and glb into meta.json.
 """
 import json
 import math
@@ -32,6 +39,14 @@ FINGERS = ("Thumb", "Index", "Middle", "Ring", "Pinky")
 
 def A():
     return R.args()
+
+
+def set_names():
+    """name=<Name> (pass 71): the mesh and the armature named for the hero; May's names are the default."""
+    global MESH_NAME, RIG_NAME
+    nm = str(A().get("name") or "").strip()
+    if nm:
+        MESH_NAME, RIG_NAME = nm, nm + "_Rig"
 
 
 def log(*a):
@@ -705,7 +720,7 @@ def mode_rig():
     bpy.ops.object.parent_set(type="ARMATURE_AUTO")
     weight_fixes(mesh, rig, J, notes)
     log("weights: %d verts left empty by the bone heat (given the nearest bone), %d on the head" % (notes["unweighted_after_heat"], notes["head_verts"]))
-    mat = bpy.data.materials.new("May_clay")
+    mat = bpy.data.materials.new(MESH_NAME + "_clay")
     mat.diffuse_color = (0.8, 0.78, 0.76, 1.0)
     if not mesh.data.materials:
         mesh.data.materials.append(mat)
@@ -861,7 +876,7 @@ def linear(act):
     return fcs
 
 
-def retarget_run(rig, mesh, clip):
+def retarget_run(rig, mesh, clip, name="run", keep=("run", "idle")):
     """The Mixamo clip retargeted onto our rig by bone directions: each of our bones takes the source bone's world
     rotation away from its rest (D = M_pose M_rest^-1) after first being turned onto the source's rest direction (A: her
     A-pose arms onto Mixamo's T-pose), O_pose = D A O_rest, so every bone points where the source's points and twists
@@ -896,7 +911,7 @@ def retarget_run(rig, mesh, clip):
     hips_rest_s = s_rest["Hips"].translation
     hips_rest_o = o_rest["Hips"].translation
     root = rig.data.bones[0].name if rig.data.bones[0].parent is None else next(b.name for b in rig.data.bones if b.parent is None)
-    act = new_action(rig, "run")
+    act = new_action(rig, name)
     frames = list(range(f0, f1 + 1))
     poses = []
     for f in frames:
@@ -930,10 +945,10 @@ def retarget_run(rig, mesh, clip):
         bpy.data.objects.remove(o, do_unlink=True)
     # the clip's own action goes too (it fits our bone names, so the exporter would ship it as a third animation)
     for a_ in list(bpy.data.actions):
-        if a_ is not act and a_.name != "idle":
+        if a_ is not act and a_.name not in keep:
             bpy.data.actions.remove(a_)
-    log("run: %d frames from %s (%d..%d at 30 fps), hips travel x%.3f, lifted %.3f m to the floor, %d bones driven" % (
-        len(frames), os.path.basename(clip), f0, f1, k, lift, len(common)))
+    log("%s: %d frames from %s (%d..%d at 30 fps), hips travel x%.3f, lifted %.3f m to the floor, %d bones driven" % (
+        act.name, len(frames), os.path.basename(clip), f0, f1, k, lift, len(common)))
     return act, len(frames) - 1
 
 
@@ -1132,7 +1147,11 @@ def mode_anim():
     sc = bpy.context.scene
     sc.render.fps = 30
     run, run_n = retarget_run(rig, mesh, a.get("clip", os.path.join(REPO, "tools", "dl", "mixamo", "running.fbx")))
-    idle, idle_n = make_idle(rig, mesh)
+    if a.get("idle"):
+        # pass 71: a Mixamo idle retargeted like the run (the stride's floor rule keeps its feet down)
+        idle, idle_n = retarget_run(rig, mesh, a["idle"], name="idle")
+    else:
+        idle, idle_n = make_idle(rig, mesh)
     if a.get("paint"):
         play(rig, idle, 0)
         # the colours go on in the rest pose (the paintings are the A-pose)
@@ -1203,6 +1222,11 @@ def mode_guides():
     import numpy as np
     from mathutils.bvhtree import BVHTree
     a = A()
+    frame_mode = str(a.get("frame") or "ankles")
+    # pass 71 follow-up: the face angle. "nose" (the trial's guide v3, the default): the ears' middle set from the
+    # measured nose as pose_driver places it, so a side view stays in profile; "head": the ears' middle on the head
+    # bone's axis (the trial's first guide: her bob pulled it back over the neck and Wan turned her face to the camera)
+    face_mode = "head" if str(a.get("face") or "nose") == "head" else "nose"
     rig, mesh = load_puppet(a["src"])
     act = bpy.data.actions.get(a.get("action", "run"))
     if act is None:
@@ -1246,6 +1270,9 @@ def mode_guides():
     # the neck: in the side view one ear dot sat straight above the neck and Wan Animate turned her face to the camera
     # on three seeds, with the shoulders levelled too; with the ear ahead of the neck (Mixamo's place) she ran in profile
     centre_local = head_m0.inverted() @ (nose_w + Vector((0.0, 0.09 * face_scale, 0.01 * face_scale)))
+    if face_mode == "head":
+        hb = rig.matrix_world @ head_rest.head_local
+        centre_local = head_m0.inverted() @ Vector((hb.x, hb.y, nose_w.z + 0.01 * face_scale))
 
     def joint(name):
         return rig.matrix_world @ pb[name].head
@@ -1269,9 +1296,16 @@ def mode_guides():
                     s[tag + ":" + hb] = joint(side + hb)
         dg = bpy.context.evaluated_depsgraph_get()
         s["bvh"] = BVHTree.FromObject(mesh, dg)
+        if frame_mode == "soles":
+            s["sole"] = float(mesh_np(mesh, dg=dg)[:, 2].min())
         skel.append(s)
-    # the stride's ground and height, as pose_driver measures them (ankles, the head's top)
+    # the stride's ground and height, as pose_driver measures them (ankles, the head's top); pass 71: frame=soles puts the
+    # ground at the lowest sole of the posed mesh over the stride, so a figure with chunky boots or long feet keeps them
+    # inside the canvas (MAY-P's front and fd walks left the frame at the bottom on the ankle framing)
     ground = min(min(s["rank"].z, s["lank"].z) for s in skel[:n])
+    ankle_ground = ground
+    if frame_mode == "soles":
+        ground = min(s["sole"] for s in skel[:n])
     height = max(s["top"].z for s in skel[:n]) - ground
     # forward: the feet, averaged over the stride (pose_driver's rule)
     fwd = Vector((0, 0, 0))
@@ -1358,7 +1392,7 @@ def mode_guides():
             frames.append({"body": row, "hands": hands})
         d = os.path.join(out, view)
         os.makedirs(d, exist_ok=True)
-        json.dump({"view": view, "frames": frames, "size": GSIZE, "fbx": "may_puppet.glb", "n": n, "pitch": math.degrees(pitch)},
+        json.dump({"view": view, "frames": frames, "size": GSIZE, "fbx": os.path.basename(str(a.get("glb") or "puppet.glb")), "n": n, "pitch": math.degrees(pitch)},
                   open(os.path.join(d, "poses.json"), "w"), indent=0)
         # her standing height in this view's pixels (the rest pose's head top over the stride's ground), for the size checks
         meta_views[view] = {"dropped": dropped}
@@ -1369,12 +1403,14 @@ def mode_guides():
     stand_top = joint("HeadTop_End").z
     stand_ank = min(joint("RightFoot").z, joint("LeftFoot").z)
     rig.data.pose_position = "POSE"
-    json.dump({"kind": "pose", "fbx": "may_puppet.glb", "src": os.path.relpath(a["src"], REPO).replace("\\", "/"), "action": act.name,
+    json.dump({"kind": "pose", "fbx": os.path.basename(str(a.get("glb") or "puppet.glb")), "src": os.path.relpath(a["src"], REPO).replace("\\", "/"), "action": act.name,
                "frames": n, "loop": True, "pitch": math.degrees(pitch), "start": None, "end": None, "views": list(GVIEWS),
                "body": None, "fwd": "feet", "arms": None, "rig": "puppet", "rigmap": None, "amp": None, "lean": None, "retarget": {},
-               "occlusion": occ_stats, "ground": ground, "height": height, "span_m": span,
+               "occlusion": occ_stats, "ground": ground, "height": height, "span_m": span, "frame": frame_mode, "ankle_ground": ankle_ground,
+               "face": face_mode,
+               "clip": a.get("clip") or None, "glb": a.get("glb") or None,
                "stand": {"top_minus_ankle_m": stand_top - stand_ank, "px": (stand_top - stand_ank) / span * GSIZE},
-               "notes": "the Puppet trial: OpenPose from May's own rig (tools/puppet_blender.py mode=guides); joints hidden by her own body dropped"},
+               "notes": "the Puppet method: OpenPose from the hero's own rig (tools/puppet_blender.py mode=guides); joints hidden by the body dropped; framed by the %s" % frame_mode},
               open(os.path.join(out, "meta.json"), "w", encoding="utf-8", newline="\n"), indent=1)
     log("guides written to %s (ground %.3f, height %.3f m)" % (out, ground, height))
 
@@ -1425,6 +1461,7 @@ def mode_silhouette():
 
 def main():
     mode = A().get("mode", "")
+    set_names()
     fn = {"clean": clean}.get(mode) or globals().get("mode_" + mode)
     if fn is None:
         fail("mode=%s is not one of clean, rig, anim, guides" % mode)

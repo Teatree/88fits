@@ -62,7 +62,11 @@ var hp_time_mult := 1.0
 ## director). A touch from anything but a boss takes at most `contact_cap` of the hero's max HP (0 = no cap), so a
 ## ring of creatures can wear him down but never land a one-shot.
 var creature_hp_mult := 1.0
-var colour_after_kills := 0
+## Pass 71 (the lead): no colour until a director says when (WaveDirector._apply_mults sets it from the timeline, 0 in
+## the arena). A crowd built without one (tests, tools) spawns plain: since pass 69 a random special has x10 HP and
+## x1.25 size, which made exact tests fail now and then (the Golden Pineapple's ride, Birdshot's lane).
+const COLOUR_NEVER := 1 << 30
+var colour_after_kills := COLOUR_NEVER
 var contact_cap := 0.0
 ## Pass 54 (Garry: the creatures hit 25% harder), set by the director from the timeline through set() (lane WD): every
 ## hostile damage, a bite, a shot, a blast, a boss's or a caster's attack, is `creature_damage_mult` times its number

@@ -56,7 +56,8 @@ _LIST = list   # the API below is named list(); the builtin stays reachable as _
 GAME = os.path.join(ROOT, "game")
 CONTENT = os.path.join(GAME, "content")
 DL = os.path.join(ROOT, "tools", "dl")
-JOBS_DIR = os.path.join(DL, "jobs")
+# pass 71 (lane PLE): LE_JOBS_DIR points a test editor (--no-jobs, its own port) at a queue of its own; unset = the real one
+JOBS_DIR = os.environ.get("LE_JOBS_DIR") or os.path.join(DL, "jobs")
 QUEUE_FILE = os.path.join(JOBS_DIR, "queue.json")
 RAW = os.path.join(DL, "ai_raw_anime")
 ANIM = os.path.join(DL, "ai_anim")
@@ -87,7 +88,7 @@ LANES = ("comfy", "godot", "local")
 KIND_FOLDERS = {"enemy": "enemies", "boss": "bosses", "hero": "characters", "weapon": "weapons", "evolution": "evolutions",
                 "passive": "passives", "mutation": "mutations"}
 LOOK_METHODS = ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_ctl", "creature_proc",
-                "front_from_picture", "recolour")
+                "front_from_picture", "recolour", "hero_puppet")
 CTL_VIEWS = ("front", "fd", "side", "bd", "back")
 HERO_VIEWS = ("front", "back", "side", "fd", "bd")
 # median seconds per method when methods.json has no timing (the synthesis §7; "~" always on the page)
@@ -95,7 +96,7 @@ BUILTIN_MEDIAN = {"hero_pose5": 570, "hero_fit": 276, "creature_free2": 450, "cr
                   "creature_ctl": 660, "creature_ctl_side": 60, "creature_ctl_side_dev": 840, "creature_proc": 90,
                   "front_from_picture": 20, "recolour": 5, "item_icon": 20, "icon_cands": 20, "icon_cands_dev": 270,
                   "hero_badge": 20, "hero_title": 25, "driver_pose": 60, "driver_depth": 300, "driver_tweak": 5, "ref_probe": 10,
-                  "ref_render": 60, "register": 120, "import": 90, "launch": 0, "install": 5}
+                  "ref_render": 60, "register": 120, "import": 90, "launch": 0, "install": 5, "hero_puppet": 1200}
 
 # ---------------------------------------------------------------- the kinds and their fields
 
@@ -132,6 +133,12 @@ _LOOK_FIELDS = {
     "pick": _f("str", "", False, "front_from_picture: the candidate picked (0..); set by Pick"),
     "recolour": _f("json", {}, False, "recolour: {from: CODE, ranges: [[60,130]], to: 355, sat: 1.0, mode: hue|tint, set_sat, value, min_sat, max_sat, min_val}"),
     "note": _f("str", "", False, "the look's note (shown on its card)"),
+    # pass 71 (lane PLE): the Puppet method's own settings (puppet_spec: source, stills, refs, painter, steps, turbo, seeds,
+    # seed, words, screen, tries, faces, reuse, fbx, clip, idle, frame, depth_views, run_fit, fringe; picks and the one-shot
+    # reset_from / reroll set by the card)
+    "puppet": _f("json", {}, False, "hero_puppet: {source, stills: reuse|repaint, refs: {front, side, back}: paint|still:<key>|<picture>|none, "
+                                    "painter: klein|dev, steps, seeds, words: {view: text}, tries, reuse: auto|fresh|blend|fbx, fbx, clip, idle, "
+                                    "frame: soles|ankles, depth_views, run_fit, fringe}"),
     # pass 68 (D3): the job form's re-roll radios, applied once at enqueue (the cache moved aside, the recipe's seeds moved)
     "reroll": _f("json", {}, False, "{mode: stills | seeds | clips | view, view}: stills = the look's stills painted again (a look that "
                                     "shared the creature's or hero's paintings gets its own); seeds = stills and clips; clips = the "
@@ -516,7 +523,7 @@ def cache_keys(method, spec, target, doc=None):
             clips.append(ak + "_fall")
         elif death.startswith("pose:"):
             clips.append(ak + "_death")
-    elif method in ("hero_pose5", "hero_fit"):
+    elif method in ("hero_pose5", "hero_fit", "hero_puppet"):
         skeys = recipe.get("still_keys") if isinstance(recipe.get("still_keys"), dict) else (doc.get("still_keys") if isinstance(doc.get("still_keys"), dict) else {})
         ck = cid + ("_" + _code_part(code) if code else "")
         # pass 68 (D1): a look with its own `stills` slug paints <id>_<slug>_<view> (gen_art's hero branch); still_keys
@@ -532,6 +539,11 @@ def cache_keys(method, spec, target, doc=None):
         if not code:
             stills.append(cid + "_portrait")
         clips = [ck + "_pose_run_" + v for v in ("back", "front", "side", "bd", "fd")]
+        if method == "hero_puppet":
+            # pass 71: a view walked on the puppet's depth guide is cached as gen_art's ctl_cycle names it
+            ctl = recipe.get("ctl_drivers") if isinstance(recipe.get("ctl_drivers"), dict) else None
+            dv = [v for v in ctl if ctl.get(v)] if ctl is not None else puppet_spec(spec, target)["depth_views"]
+            clips = [ck + ("_ctl_run_" if v in dv else "_pose_run_") + v for v in ("back", "front", "side", "bd", "fd")]
     elif method == "creature_ctl":
         key = cid + "_" + _code_part(code)
         n = int((spec or {}).get("seeds") or recipe.get("side_seeds", 3) or 3)
@@ -584,13 +596,15 @@ def expected_stages(method, spec, target, doc=None, phase=1):
             elif k.endswith("_death"):
                 add("death", k, "clip")
         add("pack", "", "pack")
-    elif method == "hero_pose5":
+    elif method in ("hero_pose5", "hero_puppet"):
         stills, clips = keys["stills"], keys["clips"]
+        if method == "hero_puppet":
+            st += puppet_stage_defs(spec, target)   # pass 71: the puppet's stages, then the walks as hero_pose5's
         names = _LIST(HERO_VIEWS) + ["cheer"] + ["hurt_" + v for v in HERO_VIEWS] + ["dead"]
         for n, k in zip(names[:6], stills[:6]):
             add(n, k, "still")
         for n, k in zip(("back", "front", "side", "bd", "fd"), clips):
-            add("pose_run_" + n, k, "clip")
+            add(("ctl_run_" if "_ctl_run_" in k else "pose_run_") + n, k, "clip")
         for n, k in zip(names[6:], stills[6:12]):
             add(n, k, "still")
         if not code and len(stills) > 12:
@@ -684,7 +698,10 @@ def _title(job):
 def _coerce(name, f, v):
     t = f["type"]
     if v is None:
-        return f.get("default")
+        # pass 71 (lane PLE): a copy: a spec without a recipe got THE default dict, and _seed_recipe then wrote one look's
+        # stills and seeds into every later spec without one
+        d = f.get("default")
+        return json.loads(json.dumps(d)) if isinstance(d, (dict, _LIST)) else d
     try:
         if t == "int":
             return int(v)
@@ -784,6 +801,10 @@ def _asset_env(job):
         env["ART_GUIDANCE"] = str(float(spec["guidance"]))
     if "turbo" in spec and spec.get("turbo") is not None:
         env["ART_TURBO"] = "1" if spec.get("turbo") else "0"
+    if job.get("method") == "hero_puppet" and job.get("lane") == "local":
+        # pass 71: the local lane holds no ComfyUI lock: puppet.py (and anything it calls) takes it itself if it must
+        env.pop("LOCK_HELD_COMFY", None)
+        env.pop("COMFY_LOCK_HELD", None)
     if job.get("kind") == "install":
         src = _find(str(spec.get("source_job", "")))
         if src is not None and src.get("kind") in ("hero_badge", "hero_title"):
@@ -870,8 +891,21 @@ def _plan(job):
     env = _asset_env(job)
     p = {"mode": "asset", "lock": "comfy", "tool": "", "call": "", "argv": [], "env": env, "equiv": "", "type": tf or "",
          "folder": _rel(folder) if folder else "", "id": cid, "steps": [], "launch": None}
-    if kind == "look":
-        if method in ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_proc"):
+    if kind == "look" and method == "hero_puppet" and job.get("puppet_next") != "walks":
+        # pass 71: one puppet.py phase on the job's lane (tools/asset_job.py imports puppet and calls main with argv)
+        lane = job.get("lane") if job.get("lane") in ("comfy", "local") else puppet_lane(job)
+        argv = puppet_argv(job, lane)
+        # the walks that follow (gen_art on the look), for a dry run of the whole job (asset_job --dry-run)
+        wargv = ["--no-import", "--only", cid, "--variant=" + code] + (["--skip-qa"] if spec.get("skip_qa") else []) + _model_argv(spec)
+        if int(spec.get("seed") or 0):
+            wargv.append("--seed=%d" % int(spec["seed"]))
+        p.update(tool="puppet", call="main", argv=argv, lock="comfy" if lane == "comfy" else None, lane=lane,
+                 equiv=_equiv_py("puppet", argv), walks={"argv": wargv, "type": tf or "characters", "folder": p["folder"], "id": cid})
+        prob = puppet_problem(spec, t)
+        if prob:
+            p["error"] = prob
+    elif kind == "look":
+        if method in ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_proc", "hero_puppet"):
             argv = ["--no-import", "--only", cid, "--variant=" + code]
             if spec.get("skip_qa"):
                 argv.append("--skip-qa")
@@ -883,7 +917,7 @@ def _plan(job):
                 argv.append("--seed=%d" % int(spec["seed"]))
             if spec.get("keys"):
                 argv.append("--keys=" + ",".join(spec["keys"]))
-            r = _runner_from_methods(method, {"id": cid, "code": code, "folder": p["folder"], "type": tf or "", "seed": int(spec.get("seed") or 0),
+            r = _runner_from_methods("hero_pose5" if method == "hero_puppet" else method, {"id": cid, "code": code, "folder": p["folder"], "type": tf or "", "seed": int(spec.get("seed") or 0),
                                               "keys": _LIST(spec.get("keys") or [])}, spec)
             if r and r["tool"] == "gen_art" and r.get("call", "process") == "process":
                 # the catalogue's order, plus any set flag the catalogue's runner does not list (--keys, --seed, --dev...)
@@ -1185,7 +1219,7 @@ def _derive(job):
     kind, spec, t = job["kind"], job.get("spec") or {}, job.get("target") or {}
     method = job.get("method") or (spec.get("method") if kind == "look" else kind)
     job["method"] = method
-    job["lane"] = "local" if (kind == "look" and method == "recolour") else SPECS[kind]["lane"]
+    job["lane"] = "local" if (kind == "look" and method == "recolour") else puppet_lane(job) if (kind == "look" and method == "hero_puppet") else SPECS[kind]["lane"]
     doc = content_doc(t.get("kind", ""), t.get("id", "")) if t.get("id") else None
     plan = _plan(job)
     job["plan"] = plan
@@ -1217,6 +1251,8 @@ def _derive(job):
         s["state"] = "pending"
         s["secs"] = None
     prog.update(done=0, total=len(stages), stage="", stages=stages, stalled=False)
+    if method == "hero_puppet":
+        puppet_mark(job)   # pass 71: a puppet stage whose files are on disk is done (a hero's puppet reused)
     prog.setdefault("last_output", None)
     job["eta_s"] = _eta(job)
     if not job.get("title"):
@@ -1486,12 +1522,12 @@ def _tail_from_file(job, n):
 CREATURE_STILL_METHODS = ("creature_free2", "creature_pose2", "creature_free8", "creature_proc")
 # pass 68 (D1, D2): the look methods whose stills gen_art keys by the recipe's `stills` slug (<id>_<slug>_<view>); hero_fit
 # never gets one (it re-walks the hero's own paintings by design)
-STILL_METHODS = CREATURE_STILL_METHODS + ("hero_pose5",)
+STILL_METHODS = CREATURE_STILL_METHODS + ("hero_pose5", "hero_puppet")
 # the art words a new look inherits from its creature when its recipe leaves them out, so the prompt is in the look's
 # own recipe where Garry can read and change it (lead, after the Armadillo's ARM-A came out identical to ARM-0)
 INHERITED_WORDS = ("art_prompt", "motion", "dead_hint", "back_hint", "anim_negative", "view_hints", "screen")
 # pass 68 (D3): the job form's re-roll radios ("none" or "" = nothing)
-REROLL_MODES = ("stills", "seeds", "clips", "view", "clip")
+REROLL_MODES = ("stills", "seeds", "clips", "view", "clip", "stage")
 
 
 def clip_view(key):
@@ -1499,7 +1535,7 @@ def clip_view(key):
     <key>_ctl_<view>, a creature's _walk_f / _pose_f (front), _walk_b / _pose_b (back), _walk_side / _bd / _fd; None for a
     death or a fall."""
     k = str(key)
-    for mark in ("_pose_run_", "_ctl_"):
+    for mark in ("_pose_run_", "_ctl_run_", "_ctl_"):
         if mark in k:
             return k.rsplit(mark, 1)[-1]
     for suffix, view in (("_walk_f", "front"), ("_pose_f", "front"), ("_walk_b", "back"), ("_pose_b", "back"), ("_walk_side", "side"),
@@ -1598,6 +1634,8 @@ def _seed_recipe(target, spec):
     if method == "recolour":
         return
     recipe["painter"] = _painter_of(spec)
+    if method == "hero_puppet":
+        _seed_puppet_recipe(target, spec, recipe)
     if method not in STILL_METHODS:
         return
     st = _look_state(target)
@@ -1759,6 +1797,19 @@ def _apply_reroll(target, spec):
     stamp = time.strftime("%Y%m%d-%H%M%S")
     if method in ("front_from_picture", "recolour"):
         raise ValueError("%s paints no stills or clips of its own: there is nothing to re-roll (queue it again)" % method)
+    if mode == "stage":
+        # pass 71: a hero_puppet look made again from one puppet stage (puppet.py --reset-from moves that stage's outputs
+        # and the later ones aside when the job runs)
+        if method != "hero_puppet":
+            raise ValueError("the stage re-roll is the Puppet method's (hero_puppet)")
+        stage = str(rr.get("stage") or rr.get("view") or "")
+        if stage not in PUPPET_STAGES:
+            raise ValueError("the stage re-roll needs reroll.stage: one of %s" % ", ".join(PUPPET_STAGES))
+        pp = spec.get("puppet") if isinstance(spec.get("puppet"), dict) else {}
+        pp["reset_from"] = stage
+        spec["puppet"] = pp
+        rr["applied"] = stamp
+        return {"mode": mode, "moved": [], "stamp": stamp, "keys": [], "stage": stage}
     if mode == "view":
         if method != "creature_ctl":
             raise ValueError("the view re-roll is creature_ctl's view candidates (gen_ctl --view-cands)")
@@ -2201,6 +2252,10 @@ def enqueue(kind, target, spec, title=None):
     _writable()
     spec = validate_spec(kind, spec)
     target = _check_target(kind, target)
+    if kind == "look" and spec.get("method") == "hero_puppet":
+        prob = puppet_problem(spec, target)   # pass 71
+        if prob:
+            raise ValueError(prob)
     rr = None
     if kind == "look":
         _seed_recipe(target, spec)
@@ -2265,6 +2320,8 @@ def edit(job_id, spec=None, title=None):
                 job["method"] = job["spec"].get("method")
         if title is not None:
             job["title"] = str(title)
+        if job.get("method") == "hero_puppet":
+            job["puppet_next"], job["puppet_lane"] = None, None   # pass 71: the phases start again from the disk
         if job["state"] == "waiting":
             job["state"], job["phase"] = "queued", 1
             job["choices"] = []
@@ -2338,6 +2395,8 @@ def requeue(job_id, reroll=None):
                 if cur and cur != spec.get("recipe"):
                     spec["recipe"] = json.loads(json.dumps(cur))
         rr = reroll or {}
+        if job.get("method") == "hero_puppet":
+            puppet_requeue(job, rr)   # pass 71
         stamp = time.strftime("%Y%m%d-%H%M%S")
         moved = []
         gen_art_tool = (job.get("plan") or {}).get("tool") in ("gen_art", "") and job.get("method") != "creature_ctl"
@@ -2422,6 +2481,19 @@ def pick(job_id, choice):
                 spec["use_side"] = choice if choice.startswith("k") else "k" + choice
         elif job["method"] == "front_from_picture":
             spec["pick"] = choice.lstrip("c")
+        elif job["method"] == "hero_puppet":
+            # pass 71: "front=2", "side=1,back=0", "shape=1"; applied by the next puppet phase (--pick), kept in spec.puppet.picks
+            if not re.match(r"^(front|side|back|shape)=c?\d+(,(front|side|back|shape)=c?\d+)*$", choice):
+                raise ValueError("a puppet pick is front=N, side=N,back=N or shape=N (got %r)" % choice)
+            pp = spec.get("puppet") if isinstance(spec.get("puppet"), dict) else {}
+            picks = dict(pp.get("picks") or {})
+            for pair in choice.split(","):
+                v, k = pair.split("=", 1)
+                picks[v] = int(k.lstrip("c"))
+            pp["picks"] = picks
+            spec["puppet"] = pp
+            job["puppet_pick"] = choice
+            job["puppet_lane"] = None
         else:
             spec["choice"] = choice
         job["picked"] = choice
@@ -2937,7 +3009,10 @@ RE_VIEWS_SHEET = re.compile(r"views sheet:")
 
 
 def stop_marker(line):
-    """The human stops and the done-with-candidates lines: side | view | pick | review | badge | title; else None."""
+    """The human stops and the done-with-candidates lines: side | view | pick | review | badge | title; pass 71: puppet.py's
+    puppet:pick:<what> | puppet:lane:<lane> | puppet:done; else None."""
+    if line.startswith("puppet: "):
+        return puppet_marker(line)
     if RE_SIDE_DONE.search(line):
         return "side"
     if RE_VIEW_PICK.search(line):
@@ -2989,6 +3064,11 @@ def parse_line(job, line, key_to_stage=None):
     stages = prog.get("stages", [])
     idx = key_to_stage if key_to_stage is not None else _stage_index(job)
     seen = None
+    if job.get("method") == "hero_puppet" and (line.startswith("puppet: ") or line.startswith("[puppet ")):
+        seen = puppet_parse(job, line)   # pass 71: the puppet's stages
+        prog["done"] = sum(1 for s in stages if s.get("state") == "done")
+        prog["total"] = len(stages)
+        return seen
     m = RE_RENDER.match(line)
     if m:
         key, secs, verdict = m.group(1), float(m.group(3)), m.group(4)
@@ -3087,8 +3167,10 @@ def _check_caches(job, live):
     """A stage whose cache files sit on disk is done, whatever the log said (a cached still prints nothing)."""
     changed = False
     with _lock:
+        if job.get("method") == "hero_puppet":
+            changed = puppet_mark(job) or changed   # pass 71
         for s in job["progress"].get("stages", []):
-            if s.get("state") == "done" or not s.get("key"):
+            if s.get("state") == "done" or not s.get("key") or s.get("type") == "puppet":
                 continue
             if s["type"] == "still" and os.path.isfile(os.path.join(RAW, s["key"] + ".json")) and os.path.isfile(os.path.join(RAW, s["key"] + ".png")):
                 s["state"], changed = "done", True
@@ -3128,7 +3210,8 @@ def _after_exit(job, rc, live):
             _finish(job, "failed", error=err or (tail[-1].strip() if tail else "exit code %s" % rc))
             return
         marker = live.marker
-        if marker in ("side", "view", "pick"):
+        puppet_phase = job.get("method") == "hero_puppet" and job.get("puppet_next") != "walks"
+        if marker in ("side", "view", "pick") and not puppet_phase:
             job["waiting_for"] = marker
             job["choices"] = _choices(job, marker)
             job["outputs"] = _harvest(job)
@@ -3136,6 +3219,10 @@ def _after_exit(job, rc, live):
             job["progress"]["stage"] = {"side": "pick a side view", "view": "pick the views", "pick": "pick a front"}[marker]
             _save()
             return
+    if puppet_phase:
+        # pass 71: a puppet phase: a pick, the other lane, or the walks (puppet_after takes the lock itself)
+        puppet_after(job, live)
+        return
     # the post phase: merge through the hooks (outside the lock: the server's merge takes its own)
     written, error = _post(job)
     with _lock:
@@ -3166,7 +3253,7 @@ def _post(job):
     res = _result(job) or {}
     info = res.get("info") or {}
     try:
-        if kind == "look" and method in ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_ctl"):
+        if kind == "look" and method in ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_proc", "creature_ctl", "hero_puppet"):
             entry = res.get("entry") or {}
             if not entry:
                 return None, "the tool wrote no result.json entry (nothing merged)"
@@ -3493,6 +3580,8 @@ def _harvest(job):
             for n in ("clay.png", "look.png"):
                 if os.path.isfile(os.path.join(d, v, n)):
                     outs.append({"label": "%s %s" % (v, n), "type": "still", "url": _url_dl(os.path.join(d, v, n))})
+    if kind == "look" and method == "hero_puppet":
+        outs = puppet_outputs(job) + outs   # pass 71: the arms-out sheets, the shape, the rig, the preview, the GLB, the guides
     if kind == "install" and res:
         outs.append({"label": "installed", "type": "json", "detail": {k: res.get(k) for k in ("tool", "call", "top") if res.get(k) is not None}})
     # the ComfyUI workflows the job ran (comfy.save_job_workflow): one file per graph; the copy in the page's Workflows
@@ -3809,3 +3898,498 @@ def _comfy_interrupt():
             urllib.request.urlopen(req, timeout=5).read()
         except Exception:
             pass
+
+
+# ---------------------------------------------------------------- pass 71 (lane PLE): the Puppet method, hero_puppet
+# Garry (2026-10-13): "add that in to LevelEditor with the considerations that I asked you about earlier": choose which 2D
+# reference feeds the 3D model (or have one painted locally), preview the animated 3D model, the Puppet method in the job
+# form like the others. A hero_puppet look job runs tools/puppet.py's stages (through tools/asset_job.py, tool "puppet")
+# lane by lane: the comfy lane for the arms-out paintings and the Hunyuan3D shape, the local lane for Blender (clean, rig,
+# the clips and colours, the guides); puppet.py stops where the work changes lane ("puppet: NEXT lane X"), at a pick
+# ("puppet: PICK front|views|shape") and after the guides ("puppet: DONE guides"); the job then re-queues itself on the
+# other lane (front of it), waits for the pick, or writes the guides into the look's recipe (pose_drivers, ctl_drivers,
+# run_fit) and walks the look with gen_art on the comfy lane like hero_pose5, merged the same way.
+
+PUPPET_DIR = os.path.join(DL, "puppet")
+PUPPET_MIXAMO = os.path.join(DL, "mixamo")   # the Mixamo clips the form offers (--clip, --idle)
+PUPPET_VIEWS = ("front", "side", "back")
+PUPPET_STAGES = ("apose", "shape", "rig", "anim", "guides")
+PUPPET_DEPTH_VIEWS = ("fd", "side", "bd", "back")   # the trial's best mix: depth for these, the puppet's OpenPose for the front
+PUPPET_REUSE = ("auto", "fresh", "blend", "fbx")
+# pass 71 follow-up: the settings a puppet look's recipe records under `puppet` (the form's choices; the job's own
+# picks, one-shot reset / re-roll and seed shift are not settings)
+PUPPET_SETTINGS = ("source", "stills", "refs", "painter", "steps", "turbo", "seeds", "words", "screen", "tries", "faces", "reuse", "fbx",
+                   "clip", "idle", "frame", "face", "depth_views", "run_fit", "fringe")
+RE_PUPPET_STAGE = re.compile(r"^puppet: STAGE (\w+) (start|done)(?: (\d+)s)?")
+RE_PUPPET_GUIDES = re.compile(r"^puppet: GUIDES (\S+) (\S+) (\S+)")
+RE_PUPPET_CAND = re.compile(r"^\[puppet [\d:]+\]\s+(front|side|back) c(\d+) seed (\d+) ([\d.]+)s")
+RE_PUPPET_TRY = re.compile(r"^\[puppet [\d:]+\]\s+Hunyuan3D try (\d+) seed (\d+) ([\d.]+)s")
+
+
+def puppet_dir(hero):
+    return os.path.join(PUPPET_DIR, str(hero))
+
+
+def puppet_spec(spec, target=None):
+    """A hero_puppet job's own settings (spec.puppet) with their defaults (the form's, docs/assets_schema.md):
+      source     the look whose stills the arms-out paintings are edited from (default: the one he is played in)
+      stills     reuse | repaint: the walks on the source look's stills, or stills of the look's own (its letter)
+      refs       {front, side, back}: paint | still:<key> | <picture path> | none (side/back): the 3D reference per view
+      painter    klein | dev, steps (0 = the painter's default), turbo, seeds (fronts; side/back half, at least 3), seed
+      words      {front, side, back}: the edit's words in place of the template ("" = the template)
+      tries      Hunyuan3D tries; faces: the cleaned mesh's triangle budget
+      reuse      auto (what the hero's puppet already has is kept) | fresh (a new puppet: the old one moved aside) |
+                 blend (from <hero>_puppet.blend, a rig fixed by hand) | fbx (a Mixamo-rigged FBX: `fbx`)
+      clip, idle the moving clip and the idle (tools/dl/mixamo/<file>; idle "" = procedural)
+      frame      soles | ankles: how the OpenPose guides are framed
+      face       nose | head: the stick figures' face angle (the ears from the measured nose: a side view stays in
+                 profile; head: on the head bone's axis, the trial's first guide)
+      depth_views the views walked on the depth guide (Wan Fun Control); the others on the puppet's OpenPose (a list, or
+                 a comma text as the typed recipe writes it)
+      run_fit    true: each view's walk sized by the puppet's own run/idle height (silhouette.json)
+      fringe     true (pass 71 follow-up: the default): gen_art's fringe_remap on the walks
+    Pass 71 follow-up (Garry: every one a setting, seen in the look's recipe afterwards): the look's recipe records them
+    under `puppet` (PUPPET_SETTINGS; written at Queue and Edit); a spec's own value wins over the recipe's, and a
+    re-queue drops the spec's so the recipe as the JSON holds it (edited in Recipe (typed)) is what runs."""
+    rec = ((spec or {}).get("recipe") or {}).get("puppet") if isinstance((spec or {}).get("recipe"), dict) else None
+    pp = dict(rec) if isinstance(rec, dict) else {}
+    if isinstance((spec or {}).get("puppet"), dict):
+        pp.update(spec["puppet"])
+    dvs = pp.get("depth_views")
+    if isinstance(dvs, str):
+        dvs = [x.strip() for x in dvs.replace(";", ",").split(",") if x.strip()]
+    refs = pp.get("refs") if isinstance(pp.get("refs"), dict) else {}
+    words = pp.get("words") if isinstance(pp.get("words"), dict) else {}
+    out = {
+        "source": str(pp.get("source") or ""),
+        "stills": "repaint" if str(pp.get("stills") or "") == "repaint" else "reuse",
+        "refs": {v: (str(refs.get(v) or "paint").strip() or "paint") for v in PUPPET_VIEWS},
+        "painter": "dev" if str(pp.get("painter") or "") == "dev" else "klein",
+        "steps": int(pp.get("steps") or 0),
+        "turbo": pp.get("turbo") is not False,
+        "seeds": max(1, int(pp.get("seeds") or 4)),
+        "seed": int(pp.get("seed") or 0),
+        "words": {v: str(words.get(v) or "").strip() for v in PUPPET_VIEWS},
+        "screen": str(pp.get("screen") or "").lower() if str(pp.get("screen") or "").lower() in ("blue", "green") else "",
+        "tries": max(1, int(pp.get("tries") or 2)),
+        "faces": max(5000, int(pp.get("faces") or 60000)),
+        "reuse": str(pp.get("reuse") or "auto") if str(pp.get("reuse") or "auto") in PUPPET_REUSE else "auto",
+        "fbx": str(pp.get("fbx") or ""),
+        "clip": str(pp.get("clip") or "running.fbx"),
+        "idle": str(pp.get("idle") or ""),
+        "frame": "ankles" if str(pp.get("frame") or "") == "ankles" else "soles",
+        "face": "head" if str(pp.get("face") or "") == "head" else "nose",
+        "depth_views": [v for v in (dvs if isinstance(dvs, _LIST) else PUPPET_DEPTH_VIEWS) if v in CTL_VIEWS],
+        "run_fit": pp.get("run_fit") is not False,
+        "fringe": pp.get("fringe") is not False,
+        "picks": dict(pp.get("picks") or {}) if isinstance(pp.get("picks"), dict) else {},
+        "reset_from": str(pp.get("reset_from") or "") if str(pp.get("reset_from") or "") in PUPPET_STAGES else "",
+        "reroll": str(pp.get("reroll") or "") if str(pp.get("reroll") or "") in ("front", "views", "shape") else "",
+    }
+    if out["refs"]["front"] == "none":
+        out["refs"]["front"] = "paint"   # the shape is made from the front
+    return out
+
+
+def puppet_problem(spec, target):
+    """Why a hero_puppet job cannot run as specified ("" when it can): a hero only, a picture that is not on disk, an
+    FBX for reuse fbx, a clip that is not on disk."""
+    if (target or {}).get("kind", "hero") != "hero":
+        return "the Puppet method is for a hero (a humanoid the Mixamo clips fit)"
+    pp = puppet_spec(spec, target)
+    for v, src in pp["refs"].items():
+        if src in ("paint", "none"):
+            continue
+        p = os.path.join(RAW, src[6:] + ("" if src.endswith(".png") else ".png")) if src.startswith("still:") else (src if os.path.isabs(src) else os.path.join(_root, src))
+        if not os.path.isfile(p):
+            return "the %s reference %s is not on disk" % (v, src)
+    if pp["reuse"] == "fbx" and not (pp["fbx"] and os.path.isfile(pp["fbx"] if os.path.isabs(pp["fbx"]) else os.path.join(_root, pp["fbx"]))):
+        return "reuse fbx needs the Mixamo-rigged FBX (puppet.fbx)"
+    if pp["reuse"] == "blend" and not os.path.isfile(os.path.join(puppet_dir(target.get("id", "")), "%s_puppet.blend" % target.get("id", ""))):
+        return "reuse blend: there is no tools/dl/puppet/%s/%s_puppet.blend yet" % (target.get("id", ""), target.get("id", ""))
+    for k in ("clip", "idle"):
+        n = pp[k]
+        if n and not os.path.isfile(os.path.join(PUPPET_MIXAMO, n)) and not os.path.isfile(n if os.path.isabs(n) else os.path.join(_root, n)):
+            return "the %s %s is not in tools/dl/mixamo" % (k, n)
+    return ""
+
+
+def _puppet_has(hero, name):
+    return os.path.exists(os.path.join(puppet_dir(hero), name))
+
+
+def puppet_lane(job):
+    """The lane a hero_puppet job's next puppet phase starts on: the walks run on comfy; a phase that has a painting or
+    the shape to make starts on comfy, anything else (Blender, a pick to apply before Blender) on local. A wrong guess
+    costs one hop: puppet.py says where the work is ("NEXT lane")."""
+    if job.get("puppet_next") == "walks":
+        return "comfy"
+    if job.get("puppet_lane") in ("comfy", "local"):
+        return job["puppet_lane"]
+    t = job.get("target") or {}
+    hero = t.get("id", "")
+    pp = puppet_spec(job.get("spec") or {}, t)
+    pick = str(job.get("puppet_pick") or "")
+    if pp["reuse"] in ("blend", "fbx"):
+        return "local"
+    if pp["reuse"] == "fresh" and not job.get("puppet_fresh_done"):
+        return "comfy"   # a new puppet: its paintings and its shape are made again
+    if pp["reset_from"] in ("apose", "shape") or pp["reroll"]:
+        return "comfy"
+    if "shape=" in pick:
+        return "local"
+    if "front=" in pick:
+        return "comfy"
+    views_pick = "side=" in pick or "back=" in pick
+    if not views_pick and not _puppet_has(hero, "apose_front.png"):
+        return "comfy" if pp["refs"]["front"] == "paint" else "local"
+    if not views_pick:
+        for v in ("side", "back"):
+            if pp["refs"][v] == "paint" and not _puppet_has(hero, "apose_%s.png" % v):
+                return "comfy"
+    if not _puppet_has(hero, "shape.glb") and not _puppet_has(hero, "shape_raw.glb"):
+        if all(_puppet_has(hero, os.path.join("shape", "try_%d.glb" % k)) for k in range(pp["tries"])):
+            return "local"
+        return "comfy"
+    return "local"
+
+
+def puppet_argv(job, lane):
+    """puppet.py's command line for the job's next phase on `lane` (tools/asset_job.py runs puppet.main with it)."""
+    t = job.get("target") or {}
+    pp = puppet_spec(job.get("spec") or {}, t)
+    argv = [t.get("id", ""), "--lane", lane, "--until", "guides"]
+    if pp["source"]:
+        argv += ["--look", pp["source"]]
+    argv += ["--ref"] + ["%s=%s" % (v, pp["refs"][v]) for v in PUPPET_VIEWS]
+    if pp["screen"]:
+        argv += ["--screen", pp["screen"]]
+    argv += ["--painter", pp["painter"], "--seeds", str(pp["seeds"])]
+    if pp["steps"]:
+        argv += ["--steps", str(pp["steps"])]
+    if pp["painter"] == "dev" and not pp["turbo"]:
+        argv.append("--no-turbo")
+    if pp["seed"]:
+        argv += ["--seed", str(pp["seed"])]
+    for v in PUPPET_VIEWS:
+        if pp["words"][v]:
+            argv += ["--words-" + v, pp["words"][v]]
+    argv += ["--tries", str(pp["tries"]), "--faces", str(pp["faces"]), "--clip", pp["clip"], "--frame", pp["frame"], "--face", pp["face"]]
+    if pp["idle"]:
+        argv += ["--idle", pp["idle"]]
+    if pp["reuse"] == "blend":
+        argv.append("--from-blend")
+    elif pp["reuse"] == "fbx":
+        argv += ["--from-fbx", pp["fbx"]]
+    if pp["reset_from"]:
+        argv += ["--reset-from", pp["reset_from"]]
+    elif pp["reuse"] == "fresh" and not job.get("puppet_fresh_done"):
+        argv += ["--reset-from", "apose"]   # a new puppet: the old one moved aside once, by the first phase
+    if pp["reroll"]:
+        argv += ["--reroll", pp["reroll"]]
+    if job.get("puppet_pick"):
+        argv += ["--pick", str(job["puppet_pick"])]
+    return argv
+
+
+def puppet_stage_defs(spec, target):
+    """The puppet's stages on the job card: {name, key, type: "puppet", files} (a stage is done when its files are on
+    disk; the guides once the look's recipe names them)."""
+    hero = (target or {}).get("id", "")
+    pp = puppet_spec(spec, target)
+    d = puppet_dir(hero)
+    recipe = (spec or {}).get("recipe") if isinstance((spec or {}).get("recipe"), dict) else {}
+    views = [v for v in ("side", "back") if pp["refs"][v] != "none"]
+    pose = str((recipe.get("pose_drivers") or {}).get("front") or "") if isinstance(recipe.get("pose_drivers"), dict) else ""
+    out = [{"name": "arms-out front", "key": "puppet_apose_front", "type": "puppet", "files": [os.path.join(d, "apose_front.png")]}]
+    if views:
+        out.append({"name": "arms-out " + " + ".join(views), "key": "puppet_apose_views", "type": "puppet",
+                    "files": [os.path.join(d, "apose_%s.png" % v) for v in views]})
+    out += [{"name": "3D shape", "key": "puppet_shape", "type": "puppet", "files": [os.path.join(d, "shape.glb")]},
+            {"name": "rig", "key": "puppet_rig", "type": "puppet", "files": [os.path.join(d, "%s_puppet.blend" % hero)]},
+            {"name": "clips + colours (GLB)", "key": "puppet_anim", "type": "puppet", "files": [os.path.join(d, "%s_puppet.glb" % hero)]},
+            {"name": "guides", "key": "puppet_guides", "type": "puppet",
+             "files": [os.path.join(DRIVERS, pose, "meta.json")] if pose and "_puppet_" in pose else []}]
+    return out
+
+
+def puppet_mark(job):
+    """Every puppet stage whose files are on disk marked done (a reused stage says "cached")."""
+    changed = False
+    for s in (job.get("progress") or {}).get("stages", []):
+        if s.get("type") != "puppet" or s.get("state") == "done":
+            continue
+        files = s.get("files") or []
+        if files and all(os.path.exists(f) for f in files):
+            s["state"], changed = "done", True
+            s.setdefault("note", "on disk")
+    if changed:
+        prog = job["progress"]
+        prog["done"] = sum(1 for s in prog["stages"] if s.get("state") == "done")
+    return changed
+
+
+def puppet_parse(job, line):
+    """A puppet.py log line into the job's progress: the stage that started or finished, a candidate or a try painted,
+    the guides' names. Returns what it saw or None."""
+    prog = job["progress"]
+    st = {s.get("key"): s for s in prog.get("stages", [])}
+    m = RE_PUPPET_STAGE.match(line)
+    if m:
+        name, what = m.group(1), m.group(2)
+        keys = ["puppet_apose_front", "puppet_apose_views"] if name == "apose" else ["puppet_" + name]
+        for k in keys:
+            s = st.get(k)
+            if s and s.get("state") != "done":
+                if what == "start":
+                    s["state"] = "running"
+                break   # the first stage of the group not done yet is the one that runs
+        prog["stage"] = {"apose": "the arms-out paintings", "shape": "the 3D shape (Hunyuan3D)", "rig": "the rig (Blender)",
+                         "anim": "the clips and colours (Blender)", "guides": "the guides (OpenPose, depth, silhouette)"}.get(name, name) + ("" if what == "start" else " done")
+        if what == "done" and m.group(3):
+            s = st.get("puppet_" + name) if name != "apose" else None
+            if s:
+                s["secs"] = float(m.group(3))
+        return ("puppet_stage", name, what)
+    m = RE_PUPPET_GUIDES.match(line)
+    if m:
+        job["puppet_guides"] = {"pose": m.group(1), "depth": m.group(2), "silhouette": m.group(3)}
+        s = st.get("puppet_guides")
+        if s:
+            s["state"] = "done"
+        return ("puppet_guides", m.group(1))
+    m = RE_PUPPET_CAND.match(line)
+    if m:
+        view = m.group(1)
+        s = st.get("puppet_apose_front" if view == "front" else "puppet_apose_views")
+        if s:
+            s["state"] = "running"
+            s["note"] = "%s c%s painted" % (view, m.group(2))
+            s["secs"] = (s.get("secs") or 0) + float(m.group(4))
+        prog["stage"] = "arms-out %s c%s" % (view, m.group(2))
+        return ("puppet_cand", view)
+    m = RE_PUPPET_TRY.match(line)
+    if m:
+        s = st.get("puppet_shape")
+        if s:
+            s["state"] = "running"
+            s["note"] = "try %s made" % m.group(1)
+            s["secs"] = (s.get("secs") or 0) + float(m.group(3))
+        prog["stage"] = "Hunyuan3D try %s" % m.group(1)
+        return ("puppet_try", m.group(1))
+    return None
+
+
+def puppet_marker(line):
+    """puppet.py's stop lines as the jobs' markers: puppet:pick:<what>, puppet:lane:<lane>, puppet:done; else None."""
+    if line.startswith("puppet: PICK "):
+        return "puppet:pick:" + line.split()[2]
+    if line.startswith("puppet: NEXT lane "):
+        return "puppet:lane:" + line.split()[3]
+    if line.startswith("puppet: DONE"):
+        return "puppet:done"
+    return None
+
+
+def _puppet_url(hero, rel_name, stamp=True):
+    p = os.path.join(puppet_dir(hero), rel_name)
+    u = "/dl/puppet/%s/%s" % (hero, rel_name.replace("\\", "/"))
+    if stamp and os.path.isfile(p):
+        u += "?v=%d" % int(os.path.getmtime(p))
+    return u
+
+
+def puppet_choices(job, what):
+    """The candidates of a puppet pick: front (apose/front_c<k>), views (side_c<k>, back_c<k>, one pick per group), shape
+    (shape/try_<k>.png, the clay render of each Hunyuan3D try). Each choice's key is what puppet.py's --pick takes."""
+    t = job.get("target") or {}
+    hero = t.get("id", "")
+    pp = puppet_spec(job.get("spec") or {}, t)
+    d = puppet_dir(hero)
+    out = []
+    if what == "front":
+        for k in range(pp["seeds"]):
+            if os.path.isfile(os.path.join(d, "apose", "front_c%d.png" % k)):
+                out.append({"id": "front=%d" % k, "key": "front=%d" % k, "label": "front c%d" % k, "url": _puppet_url(hero, "apose/front_c%d.png" % k)})
+    elif what == "views":
+        n = max(3, pp["seeds"] // 2)
+        for v in ("side", "back"):
+            if pp["refs"][v] != "paint" or os.path.isfile(os.path.join(d, "apose_%s.png" % v)):
+                continue
+            for k in range(n):
+                if os.path.isfile(os.path.join(d, "apose", "%s_c%d.png" % (v, k))):
+                    out.append({"id": "%s=%d" % (v, k), "key": "%s=%d" % (v, k), "label": "%s c%d" % (v, k), "group": v,
+                                "url": _puppet_url(hero, "apose/%s_c%d.png" % (v, k))})
+    elif what == "shape":
+        for k in range(pp["tries"]):
+            if os.path.isfile(os.path.join(d, "shape", "try_%d.png" % k)):
+                out.append({"id": "shape=%d" % k, "key": "shape=%d" % k, "label": "try %d" % k, "url": _puppet_url(hero, "shape/try_%d.png" % k)})
+        if os.path.isfile(os.path.join(d, "shape", "inputs_sheet.png")):
+            out.append({"id": "", "label": "the views it was made from", "url": _puppet_url(hero, "shape/inputs_sheet.png"), "sheet": _puppet_url(hero, "shape/inputs_sheet.png")})
+    return out
+
+
+def puppet_outputs(job):
+    """What the puppet made, for the job card: the arms-out sheets and picks, the shape, the rig, the preview, the GLB
+    (type glb: the page's 3D viewer plays its clips) and the guides' sheets."""
+    t = job.get("target") or {}
+    hero = t.get("id", "")
+    d = puppet_dir(hero)
+    outs = []
+    for name, label, typ in (("apose/front_sheet.png", "arms-out front candidates", "sheet"), ("apose_front.png", "the arms-out front", "still"),
+                             ("apose/side_sheet.png", "side candidates", "sheet"), ("apose_side.png", "the arms-out side", "still"),
+                             ("apose/back_sheet.png", "back candidates", "sheet"), ("apose_back.png", "the arms-out back", "still"),
+                             ("shape/inputs_sheet.png", "Hunyuan3D's views", "sheet"), ("shape_preview.png", "the shape (clay)", "sheet"),
+                             ("rig/rig_front.png", "the rig (x-ray)", "still"), ("rig/bendtest.png", "bend test", "sheet"),
+                             ("%s_puppet_preview.png" % hero, "the puppet: turntable and run", "sheet")):
+        if os.path.isfile(os.path.join(d, name)):
+            outs.append({"label": label, "type": typ, "url": _puppet_url(hero, name)})
+    glb = os.path.join(d, "%s_puppet.glb" % hero)
+    if os.path.isfile(glb):
+        # first on the card: the 3D puppet, turned and played in the page
+        outs.insert(0, {"label": "the 3D puppet (run, idle)", "type": "glb", "url": _puppet_url(hero, "%s_puppet.glb" % hero),
+                        "blend": _rel(os.path.join(d, "%s_puppet.blend" % hero)), "file": _rel(glb)})
+    g = job.get("puppet_guides") or {}
+    for key in ("pose", "depth"):
+        nm = str(g.get(key) or "")
+        if nm and os.path.isfile(os.path.join(DRIVERS, nm, "all_sheet.png")):
+            outs.append({"label": "%s guides %s" % ("OpenPose" if key == "pose" else "depth", nm), "type": "sheet", "url": "/dl/drivers/%s/all_sheet.png" % nm})
+    return outs
+
+
+def puppet_recipe_update(job):
+    """After the guides: the look's recipe walks on them. Every view's pose_drivers names the puppet's OpenPose guides
+    (the fallback of a depth view too), ctl_drivers the depth guides for the depth views, run_fit the silhouette (unless
+    off). Merged into the look's recipe as the JSON holds it (hooks.merge_recipe) and into the job's spec."""
+    t = job.get("target") or {}
+    spec = job.setdefault("spec", {})
+    pp = puppet_spec(spec, t)
+    g = dict(job.get("puppet_guides") or {})
+    if not g.get("pose"):
+        try:
+            with open(os.path.join(puppet_dir(t.get("id", "")), "stages.json"), "r", encoding="utf-8") as f:
+                rec = (json.load(f).get("guides") or {})
+            g = {"pose": rec.get("pose_name"), "depth": rec.get("depth_name"), "silhouette": rec.get("silhouette")}
+        except (OSError, ValueError):
+            g = {}
+    if not g.get("pose"):
+        return None, "the puppet's guides are not named (no GUIDES line, no stages.json record)"
+    update = {"pose_drivers": {v: g["pose"] for v in CTL_VIEWS},
+              "ctl_drivers": ({v: g["depth"] for v in pp["depth_views"]} if pp["depth_views"] and g.get("depth") else None),
+              "run_fit": g.get("silhouette") if pp["run_fit"] and g.get("silhouette") else None}
+    update["fringe_remap"] = True if pp["fringe"] else None
+    recipe = dict(spec.get("recipe") or {})
+    for k, v in update.items():
+        if v is None:
+            recipe.pop(k, None)
+        else:
+            recipe[k] = v
+    spec["recipe"] = recipe
+    h = _hook("merge_recipe")
+    if h and t.get("code"):
+        try:
+            r = h(t.get("kind", "hero"), t["id"], t["code"], update) or {}
+            if not r.get("ok", True):
+                return update, str(r.get("error") or "the recipe could not be written")
+        except Exception as e:
+            return update, "the recipe could not be written: %s" % e
+    return update, ""
+
+
+def puppet_after(job, live):
+    """A puppet phase ended with exit 0: wait for a pick, hop to the other lane, or go on to the walks (the guides
+    written into the look's recipe first, outside the jobs lock: the server's writer takes its own)."""
+    m = live.marker or ""
+    if not (m.startswith("puppet:pick:") or m.startswith("puppet:lane:")):
+        update, err = puppet_recipe_update(job)
+        if err:
+            with _lock:
+                _finish(job, "failed", error=err)
+            return
+    with _lock:
+        pp = job["spec"].setdefault("puppet", {}) if isinstance(job["spec"].get("puppet"), dict) else job["spec"].setdefault("puppet", {})
+        for k in ("reset_from", "reroll"):
+            pp.pop(k, None)   # applied once, by the phase that just ran
+        if puppet_spec(job["spec"], job.get("target"))["reuse"] == "fresh":
+            job["puppet_fresh_done"] = True   # the old puppet was moved aside by that phase: never again for this job
+        job["puppet_pick"] = None
+        if m.startswith("puppet:pick:"):
+            what = m.split(":")[2]
+            job["waiting_for"] = "puppet_" + what
+            job["choices"] = puppet_choices(job, what)
+            job["outputs"] = _harvest(job)
+            job["state"], job["ended"], job["pid"] = "waiting", _now(), None
+            job["progress"]["stage"] = {"front": "pick the arms-out front", "views": "pick the arms-out side and back",
+                                        "shape": "pick the 3D shape"}.get(what, "pick")
+            _save()
+            return
+        if m.startswith("puppet:lane:"):
+            job["puppet_lane"] = m.split(":")[2]
+        else:
+            job["puppet_next"] = "walks"
+            job["puppet_lane"] = None
+        job["phase"] = int(job.get("phase", 1)) + 1
+        job["state"], job["front"] = "queued", True
+        job["ended"], job["pid"] = None, None
+        job["outputs"] = _harvest(job)
+        _derive(job)
+        _save()
+
+
+def puppet_requeue(job, rr):
+    """requeue's part for a hero_puppet job: {stage: X} = run again from that puppet stage (its outputs and the later
+    ones moved aside by puppet.py --reset-from), {candidates: true} (a waiting pick's "Re-roll N more") = that pick's
+    candidates painted again on new seeds; then the job starts at the puppet again (the walks after it)."""
+    spec = job.setdefault("spec", {})
+    pp = spec.setdefault("puppet", {}) if isinstance(spec.get("puppet"), dict) else spec.setdefault("puppet", {})
+    # the settings as the look's recipe holds them now (Recipe (typed) may have changed them since the job ran)
+    if isinstance((spec.get("recipe") or {}).get("puppet"), dict):
+        for k in PUPPET_SETTINGS:
+            pp.pop(k, None)
+    stage = str((rr or {}).get("stage") or "")
+    if stage:
+        if stage not in PUPPET_STAGES:
+            raise ValueError("a puppet re-run starts at one of %s" % ", ".join(PUPPET_STAGES))
+        pp["reset_from"] = stage
+    wf = str(job.get("waiting_for") or "")
+    if (rr or {}).get("candidates") or (job.get("state") == "waiting" and wf.startswith("puppet_") and (rr or {}).get("seed") is not None):
+        what = wf[len("puppet_"):] if wf.startswith("puppet_") else ""
+        if what in ("front", "views", "shape"):
+            pp["reroll"] = what
+            pp["seed"] = int(pp.get("seed") or 0) + 1
+    if stage or pp.get("reroll") or job.get("puppet_next") != "walks" or (rr or {}).get("puppet"):
+        job["puppet_next"] = None
+    job["puppet_lane"] = None
+    job["puppet_pick"] = None
+    job["waiting_for"] = None
+
+
+def _seed_puppet_recipe(target, spec, recipe):
+    """A hero_puppet look's recipe before it runs (pass 71): the source look's recipe (its stills slug, seed_offset,
+    anim_seed, words, keys; never its run_scale, drivers, painter, method or `from`) for every key the recipe names none
+    of, so the walks roll the source's seeds on its stills, as the trial's MAY-P did; "repaint" leaves `stills` out (the
+    look's own letter, painted by gen_art with the Model settings) and drops the source's seed_offset."""
+    pp = puppet_spec(spec, target)
+    st = _look_state(target)
+    doc = st["doc"]
+    src_code = pp["source"] or str(doc.get("variant") or doc.get("variant_base") or "")
+    vs = doc.get("variants") if isinstance(doc.get("variants"), dict) else {}
+    src = vs.get(src_code) if isinstance(vs.get(src_code), dict) else {}
+    srec = src.get("recipe") if isinstance(src.get("recipe"), dict) else {}
+    skip = {"run_scale", "pose_drivers", "ctl_drivers", "painter", "method", "from", "run_fit", "fringe_remap", "puppet"}
+    if pp["stills"] == "repaint":
+        skip |= {"stills", "seed_offset", "still_keys"}
+    for k, v in srec.items():
+        if k in skip or k in recipe:
+            continue
+        recipe[k] = json.loads(json.dumps(v))
+    if pp["stills"] == "reuse" and recipe.get("stills") is None:
+        recipe["stills"] = str(srec.get("stills") or "")
+    if pp["fringe"]:
+        recipe["fringe_remap"] = True
+    else:
+        recipe.pop("fringe_remap", None)
+    spec["puppet"] = dict(spec.get("puppet") or {}, source=src_code)
+    # pass 71 follow-up: every setting recorded in the look's recipe (Recipe (typed) shows them; a re-queue reads them)
+    pp = puppet_spec(spec, target)
+    recipe["puppet"] = {k: pp[k] for k in PUPPET_SETTINGS}

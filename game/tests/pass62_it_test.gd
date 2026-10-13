@@ -526,8 +526,10 @@ func test_a_sweep_and_birdshots_lane_are_untouched() -> void:
 			(w["pm"] as ProjectileManager)._physics_process(DT)
 		lane.append([_lost(em, a), _lost(em, b)])
 	assert_float(float(lane[0][0])).is_greater(0.0)
-	assert_float(float(lane[0][0])).is_equal_approx(float(lane[1][0]), 0.0001)
-	assert_float(float(lane[0][1])).is_equal_approx(float(lane[1][1]), 0.0001)
+	# the lead (pass 71): 0.01 HP, not 0.0001: two runs of the blast differ by ~0.00015 HP of frame timing now and then
+	# (a flaky stop in two ships); a drop-off on the blast would change it by 15% or more, so this still proves the point
+	assert_float(float(lane[0][0])).is_equal_approx(float(lane[1][0]), 0.01)
+	assert_float(float(lane[0][1])).is_equal_approx(float(lane[1][1]), 0.01)
 
 
 func test_the_words_follow_the_switch() -> void:

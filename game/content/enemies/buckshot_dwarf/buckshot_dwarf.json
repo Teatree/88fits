@@ -81,6 +81,7 @@
   },
   "head": 0.983,
   "variant_base": "BD-0",
+  "variant": "BD-A",
   "variants": {
     "BD-0": {
       "note": "the top-level strip, before the Level Editor's looks"

@@ -8,14 +8,15 @@
 [ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_p.png" id="7_tlaal"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_icon_g.png" id="8_tlaal"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_q.png" id="8_ui1jp"]
+[ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_r.png" id="9_ui1jp"]
 
-[sub_resource type="Resource" id="Resource_tlaal"]
+[sub_resource type="Resource" id="Resource_ui1jp"]
 script = ExtResource("1_huik1")
 stat = "cooldown"
 op = "mul"
 value = -0.15
 
-[sub_resource type="Resource" id="Resource_ui1jp"]
+[sub_resource type="Resource" id="Resource_yg02d"]
 script = ExtResource("1_huik1")
 stat = "cooldown"
 op = "mul"
@@ -24,14 +25,14 @@ target = "player"
 
 [resource]
 script = ExtResource("3_tlaal")
-level_trait = [SubResource("Resource_ui1jp")]
+level_trait = [SubResource("Resource_yg02d")]
 order = 8
 trait_name = "No Time"
 trait_text = "Gain 1.5% less cooldown per level."
 pronoun = "she"
 favourite_weapon = "tommy_gun"
 favourite_bonus = {
-"effects": [SubResource("Resource_tlaal")],
+"effects": [SubResource("Resource_ui1jp")],
 "type": "effects"
 }
 start_weapon = "big_mouth"
@@ -199,7 +200,7 @@ variants = {
 "sprite": ExtResource("7_tlaal"),
 "sprite_file": "may_sprite_p.png",
 "strip_cols": 62,
-"title": "hero_may_g.png"
+"title": "hero_may_p.png"
 },
 "MAY-Q": {
 "anims": {
@@ -232,6 +233,40 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("8_ui1jp"),
 "sprite_file": "may_sprite_q.png",
+"strip_cols": 62,
+"title": "hero_may_g.png"
+},
+"MAY-R": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": ExtResource("8_tlaal"),
+"note": "pass 71: the Puppet method with every setting on (lane PLE): MAY-G's stills; new guides from her puppet framed by the soles with the face angle kept (ears from the nose: may_puppet_run_2); fd, side, bd and back walked on the depth video, the front on the stick figure (MAY-Q's mix); size from the 3D model (run_fit); colour fringes cleaned (fringe_remap)",
+"shelved": false,
+"sprite": ExtResource("9_ui1jp"),
+"sprite_file": "may_sprite_r.png",
 "strip_cols": 62,
 "title": "hero_may_g.png"
 }

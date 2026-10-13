@@ -871,3 +871,112 @@ Self-test: `selftest_LE70.py` (the seeds of every candidate tool, the Stills rul
 removal on a temp creature and hero and May's real JSON, the install into any look, the one-view re-roll and the
 re-queue's recipe, driver_tweak's plans, Forms.inheritable under Node with a stub DOM, these docs). Garry's running
 editor gets the page and server changes when it is restarted; the tool changes reach his queue at once.
+
+## Pass 71: the Puppet method
+
+Garry (2026-10-13): "I quite like this approach, add that in to LevelEditor with the considerations that I asked you
+about earlier": choose which 2D reference feeds the 3D model, or have one painted locally; preview the animated 3D model
+in the editor; the Puppet method in the job form like the others, with its warnings and timings. The trial (lane PUPPET,
+`tools/dl/puppet/status_PUPPET.md`) made May a rigged 3D figure whose own renders guided her walks (MAY-P, MAY-Q); this
+pass made it any hero's method. The same how-tos are on the Instructions tab ("Pass 71: the Puppet method").
+
+What changed:
+
+- **`tools/puppet.py` is any hero's.** `--look` (the source look), `--ref front=paint side=still:<key> back=<picture>|none`
+  (the 3D reference per view: arms-out candidates painted locally by default, a still of any look, an uploaded picture,
+  or no side / back), `--screen` (Jeżyk on green), `--painter klein|dev --steps --no-turbo --seeds --seed`, the edit's
+  words per view (`--words-front/side/back`; the templates are any hero's, the front names the character from its
+  `appearance`), `--clip` / `--idle` (Mixamo FBX files in `tools/dl/mixamo/`; the idle procedural by default),
+  `--frame soles|ankles` (the stick figures framed by the soles: MAY-P's chunky boots left the canvas on the ankle
+  framing), `--reroll front|views|shape`, `--reset-from <stage>` (moved to `old/<stamp>/`, never deleted), `--lane`
+  (stops with `puppet: NEXT lane X`, `puppet: PICK front|views|shape`, `puppet: DONE guides`) and `--dry-run`
+  (everything recorded, nothing reaches ComfyUI or Blender; a mirror of the hero's puppet folder so it knows what is on
+  disk; the guides' stand-ins under the dry root). The guides are versioned: `<hero>_puppet_<clip>` (running.fbx =
+  `run`, the trial's `may_puppet_run`), a new `_2`, `_3` when the framing, the clip or the GLB changed, so a look keeps
+  walking on the guides it was made with; each guide folder holds its `silhouette.json`. `tools/puppet_blender.py`:
+  `name=` (the mesh `<Name>`, the armature `<Name>_Rig`), `idle=<fbx>` (retargeted like the run), `frame=soles`, and the
+  guides' `meta.json` says the framing, the clip and the GLB.
+- **gen_art: `run_fit` and `fringe_remap`** (docs/assets_schema.md). `run_fit` sizes each view's walk by its median frame
+  at the puppet's own run/idle height for that view (the trial's "next step": no run_scale to tune; run_scale still
+  multiplies on top); `fringe_remap` moves the hues a view's painting lacks to its nearest own hue (the trial's rainbow
+  fringes). Both off unless a look's recipe names them.
+- **The method `hero_puppet`** (methods.json; the card's picture is the trial's May from the arms-out painting to the
+  painted run, `examples/hero_puppet_may.png`; its weaknesses: Hunyuan3D-2mv's licence leaves out the EU, the UK and
+  South Korea; the AMD card runs only ComfyUI's built-in 3D nodes, restarted before and after; a depth video carries no
+  face; Klein's four hands; the projected colours; the fringes; the procedural idle; the trial's side face; the stage
+  times measured on May and Jeżyk).
+- **The job** (`jobs.py`, a `look` job with method `hero_puppet`): its phases are puppet.py runs through
+  `tools/asset_job.py` (tool `puppet`), each on the lane its work needs: comfy for the arms-out paintings and the
+  Hunyuan3D shape (under the ComfyUI lock), local for Blender (no ComfyUI lock: the child's env has no
+  `LOCK_HELD_COMFY`). puppet.py's stop lines move the job: a pick → *waiting for a pick* with the candidates (the front;
+  one side and one back picked together: `side=1,back=0`; the shape's tries in clay), `--pick` on the next phase; a lane
+  change → queued again at the front of the other lane; DONE → the guides' names written into the look's recipe
+  (`pose_drivers` every view, `ctl_drivers` the depth views, `run_fit` the silhouette; `hooks.merge_recipe`), then the
+  walks on the comfy lane as hero_pose5's gen_art, merged and imported the same way. The look's recipe starts as the
+  source look's (stills, seeds, words; never its run_scale or drivers) unless *paint this look's own stills*. The card:
+  the puppet's stages ticked from the files on disk (a hero with a puppet: done), the candidates and the tries as they
+  land, every ComfyUI workflow (saved in the page's sidebar, ↗), the pictures, the 3D viewer, the guides' sheets.
+  **Re-roll…** offers *run the puppet again from a stage* (`--reset-from`, once); a pick's **Re-roll N more** paints
+  that pick's candidates again (`--reroll`, new seeds); the job form's re-roll radios have the same stage choice.
+  `puppet_problem` refuses at Queue a picture not on disk, a missing FBX or .blend, a clip not in tools/dl/mixamo.
+- **The form** (`puppet.js`, called by jobs.js for hero_puppet): *The 3D puppet*: what is on disk (with the viewer),
+  *start from* (the puppet he has · a new puppet · his .blend · a Mixamo-rigged FBX), the source look, the **3D
+  reference** per view (paint arms-out locally with the words to edit, a look's still or an uploaded picture with its
+  thumbnail and the arms warning, none for side/back), the painter, passes, candidates, screen, tries, triangles; the
+  clips; the walks (depth or stick figure per view, framing, run size from the puppet, fringe remap, the walks' stills);
+  the trial's timings. "Show the words that will be sent" starts with the arms-out words.
+- **The 3D preview**: Google's `<model-viewer>` 4.0.0, vendored (`tools/level_editor/vendor/model-viewer-4.0.0.min.js`,
+  self-contained, its licence note beside it; served by `/vendor/<file>`), loaded on a click (a poster first; a job card
+  is rebuilt while it runs): the GLB's clips in a picker (run, idle), play / pause, speed, front / 3/4 / side / back,
+  drag to turn, wheel to zoom. On the hero's **Art words** ("The 3D puppet": the viewer, the stages, the .blend and the
+  RIG_HOWTO, the arms-out picks, the guides with their framing and run/idle ratios, **+ New look from the puppet…**) and
+  on the job card. The server: `GET /api/puppet/<hero>`, `/dl/puppet/...` with `.glb` as `model/gltf-binary`.
+- **Waiting and resuming cards** show their stages and what the job made so far (its workflows above all): a puppet job
+  stops three times.
+- **The settings** (Garry's follow-up: every improvement a setting of the method, visible with plain help, on by default):
+  in the form's *The 3D puppet* → *The walks of this look* (`Puppet.WALK_SETTINGS`): **Size from the 3D model**
+  (`puppet.run_fit`, the job writes `run_fit`), **Frame by the soles** (`puppet.frame: soles`), **Clean colour fringes**
+  (`puppet.fringe`, the job writes `fringe_remap`), **Keep the face angle** (`puppet.face: nose`: puppet.py `--face`,
+  puppet_blender `face=`; the stick figures' ears placed from the 3D model's measured nose, the trial's guide v3, so a
+  side view stays in profile; `head` = on the head bone, the trial's first guide that turned May's side run to the
+  camera; part of the guides' match, so another face angle makes new guides; and gen_art walks the back and bd views of
+  such a look on its hint without the clauses that name the face, `gen_art.hint_for_view`: a depth video cannot tell a
+  front from a back, and MAY-R's first back walk, on a hint that described her face for the front, ran facing the
+  camera), and per view **Depth or stick figure**
+  (`puppet.depth_views`; the depth video has no face, so the front walks on the stick figure). Every setting is recorded
+  in the look's recipe under `puppet` (`jobs.PUPPET_SETTINGS`: source, stills, refs, painter, steps, turbo, seeds,
+  words, screen, tries, faces, reuse, fbx, clip, idle, frame, face, depth_views, run_fit, fringe; written at Queue and
+  Edit); `recipe.puppet` shows in **Recipe (typed)…** (methods.json's `puppet.*` rows) and a re-queue runs what it holds
+  (the job's own copy is dropped). The job form shows them once, in *The 3D puppet* (not again among the recipe rows).
+- `LE_JOBS_DIR` points a test editor (`--no-jobs`, its own port) at a queue of its own; unset = the real one.
+- **Saved workflows open clean** (the lead, from lane PDOC): every job's "open in ComfyUI" link opened with its LoadImage
+  nodes red ("Media input missing" / "4 errors found, resolve them before running"): the graphs name their pictures
+  `88fits/<file>` (the upload's subfolder) and the page's LoadImage picker lists only the input folder's top level.
+  `comfy.save_job_workflow` now rewrites the workflow it SAVES (the UI file and its sidebar copy; never the graph that
+  runs, nor `_api.json`): each LoadImage names a top-level copy of the same bytes, `88fits_<sha1 10>_<file>`
+  (`comfy.portable_ui`, `top_level_input`; uploaded once per picture and process; a picture that cannot be copied keeps
+  its name). Named by its contents, a saved workflow keeps the exact picture even after a later job overwrites the
+  subfolder file. Workflows saved before this keep their old names.
+- **A dry run never writes into game/content**: `tools/asset_job.py --dry-run` of a real look's job let gen_art save its
+  procedural strip, icon and `_ai.json` beside the real JSON (a dry run of MAY-Q's walks overwrote `may_sprite_q.png`
+  and `may_q_ai.json` on 2026-10-13; both put back from git). gen_art now works on a copy of the JSON under
+  `<job>/dry_content/<type>/<id>/` (`asset_job._dry_folder`); a temp copy elsewhere (the selftests') is used as it is.
+  gen_ctl's dry run still finds its creature folder under game/content by itself: dry-run gen_ctl jobs on copies only.
+- **A shared default** (found by the selftest): a look job posted without a `recipe` got jobs.py's one default dict, and
+  `_seed_recipe` wrote that look's stills and seeds into it, so every later job without a recipe started with them.
+  `validate_spec` now hands each spec its own copy (the page always sends a recipe; the API and scripts did not).
+
+Proved (tools/dl/puppet/PLE/, status_PLE.md): **Jeżyk's puppet** (hero `buck`, look BUC-F, green screen) made by
+puppet.py: 4 arms-out fronts in 92 s (one had four hands), 3 sides + 3 backs in 161 s, two Hunyuan3D tries 99 s + 87 s
+(+ two restarts), clean, rig, the run, colours and the GLB, guides framed by the soles and the silhouette in 75 s of
+Blender: `tools/dl/puppet/buck/buck_puppet.glb` (also in Drive's `puppets/`), guides `buck_puppet_run` (+ `_depth`);
+his looks untouched. The job machinery on a queue of its own: Jeżyk's reuse job (every stage on disk, DONE, the recipe
+update, the walks queued), Astro's first phase on the comfy lane (four fronts, the pick, its workflows in the sidebar),
+`tools/asset_job.py --dry-run` of a new May puppet with the dev painter and a still for the side (every stage recorded)
+and of the walks on MAY-Q.
+
+Self-test: `selftest_PLE.py` (puppet.py's arguments, words, lanes, picks, versioned guides, reset and re-roll, the dry
+mirror and a whole dry chain on a temp copy; puppet.js's copy of the templates; gen_art's run_fit and fringe_remap;
+hero_puppet in jobs.py on a temp queue and tree: the spec, the refusals, the lanes, the argv, the stages, the recipe, the
+markers, the phase ends, pick, requeue, the stage re-roll, the GLB output; the server's routes on Jeżyk's real puppet;
+methods.json's card; the page hooks; these docs).

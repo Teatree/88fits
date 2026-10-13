@@ -1,0 +1,6 @@
+Google <model-viewer> 4.0.0 (npm @google/model-viewer@4.0.0, dist/model-viewer.min.js), self-contained (three.js inside),
+vendored for the Level Editor's 3D puppet preview (pass 71, lane PLE) so the page works offline.
+Source: https://cdn.jsdelivr.net/npm/@google/model-viewer@4.0.0/dist/model-viewer.min.js
+sha256: 774edda21e1be2a0934e460ca5943af1fe3f88da130a9f98bd6a9d611576cacf
+License: Apache License 2.0 (https://github.com/google/model-viewer/blob/master/LICENSE); bundled parts carry their own BSD-3-Clause / MIT headers in the file.
+Loaded by tools/level_editor/puppet.js as <script type=module src=/vendor/model-viewer-4.0.0.min.js>; served by server.py's /vendor/ route.

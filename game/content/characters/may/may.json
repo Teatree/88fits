@@ -297,7 +297,7 @@
       },
       "sprite": "may_sprite_p.png",
       "icon": "may_icon_g.png",
-      "title": "hero_may_g.png",
+      "title": "hero_may_p.png",
       "anims": {
         "idle": 4,
         "run": 24,
@@ -411,6 +411,130 @@
         "die": 8
       },
       "fresh": true
+    },
+    "MAY-R": {
+      "recipe": {
+        "anim_hint": "a mime woman in a mime outfit, her short straight black bob haircut and black beret, black hair all round the back of her head; where her face shows it is a clean simple anime face: two dark eyes, a small smile, a small black star on her cheek, pale skin",
+        "anim_negative": "a helmet, a face on the body, a second head, a weapon, a cape, second leg, crosshatching, hatching lines, a grid or mesh pattern, a veil over the face, a distorted face, skin-coloured hair, a bald head, the back of the head without hair",
+        "method": "hero_puppet",
+        "painter": {
+          "model": "dev",
+          "steps": 30,
+          "guidance": 0.0,
+          "turbo": false,
+          "stills": "reused",
+          "reused": [
+            "may_g_front",
+            "may_g_back",
+            "may_g_side",
+            "may_g_fd",
+            "may_g_bd",
+            "may_g_cheer",
+            "may_g_hurt_front",
+            "may_g_hurt_back",
+            "may_g_hurt_side",
+            "may_g_hurt_fd",
+            "may_g_hurt_bd",
+            "may_g_dead"
+          ]
+        },
+        "art_prompt": "a slender adult woman with a feminine figure, pale white skin, short straight black bob haircut with bangs, black beret with a small heart-shaped tip, dark eyes, a playful smile and a black star painted on her cheek; wearing a black-and-white horizontally striped long-sleeve shirt with open cleavage under tight black high-waisted suspender overalls which reach below the knees with large white buttons, a bright magenta neck scarf and matching gloves, white calf-length stockings and chunky black lace-up ankle boots with white laces; standing straight, both arms relaxed at her sides",
+        "side_hint": "a clean side profile facing right, both shoulders level and relaxed at the same height, the near shoulder never raised above the far one, one arm hanging relaxed beside the torso, hands open",
+        "stills": "g",
+        "seed_offset": 6543,
+        "anim_seed": 5,
+        "remap_hues": {
+          "ranges": [
+            [
+              38,
+              75
+            ]
+          ],
+          "to": 220,
+          "sat": 0.08
+        },
+        "pose_hint": "Both arms hang straight down at her sides, hands open, not on the hips. The same slim proportions in every view. Her black overalls are suspender overalls: seen from behind, a pointed black back panel rises from the waistband to the middle of her back, and two black suspender straps run from its point up over her black-and-white striped shirt to the tops of her shoulders, both straps clearly visible on her back.",
+        "fringe_remap": true,
+        "puppet": {
+          "source": "MAY-G",
+          "stills": "reuse",
+          "refs": {
+            "front": "paint",
+            "side": "paint",
+            "back": "paint"
+          },
+          "painter": "klein",
+          "steps": 0,
+          "turbo": true,
+          "seeds": 4,
+          "words": {
+            "front": "",
+            "side": "",
+            "back": ""
+          },
+          "screen": "",
+          "tries": 2,
+          "faces": 60000,
+          "reuse": "auto",
+          "fbx": "",
+          "clip": "running.fbx",
+          "idle": "",
+          "frame": "soles",
+          "face": "nose",
+          "depth_views": [
+            "fd",
+            "side",
+            "bd",
+            "back"
+          ],
+          "run_fit": true,
+          "fringe": true
+        },
+        "pose_drivers": {
+          "front": "may_puppet_run_2",
+          "fd": "may_puppet_run_2",
+          "side": "may_puppet_run_2",
+          "bd": "may_puppet_run_2",
+          "back": "may_puppet_run_2"
+        },
+        "ctl_drivers": {
+          "fd": "may_puppet_run_2_depth",
+          "side": "may_puppet_run_2_depth",
+          "bd": "may_puppet_run_2_depth",
+          "back": "may_puppet_run_2_depth"
+        },
+        "run_fit": "tools/dl/drivers/may_puppet_run_2/silhouette.json"
+      },
+      "note": "pass 71: the Puppet method with every setting on (lane PLE): MAY-G's stills; new guides from her puppet framed by the soles with the face angle kept (ears from the nose: may_puppet_run_2); fd, side, bd and back walked on the depth video, the front on the stick figure (MAY-Q's mix); size from the 3D model (run_fit); colour fringes cleaned (fringe_remap)",
+      "sprite": "may_sprite_r.png",
+      "icon": "may_icon_g.png",
+      "anims": {
+        "idle": 4,
+        "run": 24,
+        "hit": 4,
+        "die": 5,
+        "cheer": 1,
+        "idle_f": 4,
+        "run_f": 24,
+        "idle_s": 4,
+        "run_s": 24,
+        "idle_bd": 4,
+        "run_bd": 24,
+        "idle_fd": 4,
+        "run_fd": 24,
+        "hit_f": 4,
+        "hit_s": 4,
+        "hit_bd": 4,
+        "hit_fd": 4
+      },
+      "strip_cols": 62,
+      "fps": {
+        "run": 36,
+        "hit": 12,
+        "die": 8
+      },
+      "fresh": true,
+      "title": "hero_may_g.png"
     }
   },
   "badge": {

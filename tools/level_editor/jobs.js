@@ -61,15 +61,18 @@ const Jobs = (() => {
     // pass 70 (lane LE): one view's walk again, on the driver the recipe names for that view now (May's side, Jezyk's back)
     { v: 'clip', label: 'redo one view\u2019s walk', help: 'only that view\u2019s clip moves to <key>_old<stamp> and is walked again, on the driver the recipe names for that view now (anim_seed + 1); the stills and the other views stay' },
     { v: 'stills', label: 'repaint the stills', help: 'the stills painted again under new seeds (a look sharing the paintings gets its own first); the clips are walked again from the new stills (same clip seeds); "new seeds" also rolls new clip seeds' },
+    // pass 71 (lane PLE): a puppet look made again from one puppet stage (puppet.py --reset-from: that stage's outputs and
+    // the later ones move to tools/dl/puppet/<hero>/old/<stamp>/)
+    { v: 'stage', label: 'run the puppet again from a stage', help: 'the puppet is made again from the stage chosen (the arms-out paintings, the shape, the rig, the clips, the guides): its outputs and the later ones move to old/<stamp>/; then the walks', only: ['hero_puppet'] },
   ];
   // the modes jobs.py's _apply_reroll accepts per method (it refuses the others with a reason): hero_fit paints no stills
   // of its own, gen_ctl paints its stills from the picked side, creature_proc has no clips; a recolour and a front from a
   // picture have nothing to re-roll
-  const REROLL_FOR = { hero_fit: ['clips', 'clip'], creature_ctl: ['clips', 'clip', 'view'], creature_proc: ['seeds', 'stills'], recolour: [], front_from_picture: [] };
+  const REROLL_FOR = { hero_fit: ['clips', 'clip'], creature_ctl: ['clips', 'clip', 'view'], creature_proc: ['seeds', 'stills'], recolour: [], front_from_picture: [], hero_puppet: ['seeds', 'clips', 'clip', 'stills', 'stage'] };
   function rerollModes(method) { return REROLL.map((r) => r.v).filter((v) => (REROLL_FOR[method] || ['seeds', 'clips', 'clip', 'stills']).includes(v)); }
   // the look methods whose stills are cached under a slug of the look's own (jobs.py STILL_METHODS, pass 68 D1: hero_pose5
   // joined); a Duplicate… draft of one of them can reuse its source's paintings
-  const STILL_METHODS = ['creature_free2', 'creature_pose2', 'creature_free8', 'creature_proc', 'hero_pose5'];
+  const STILL_METHODS = ['creature_free2', 'creature_pose2', 'creature_free8', 'creature_proc', 'hero_pose5', 'hero_puppet'];
   // pass 68 (D10): a new look comes with at least this many candidates of each kind it has
   const MIN_CANDIDATES = 3;
   // the candidate jobs and the fields their tools read (D6/D7); "What to paint" shows them filled from the server's
@@ -142,7 +145,7 @@ const Jobs = (() => {
     if (spec.flags && spec.flags.seed) out.seed = spec.flags.seed;
     if (spec.counts && spec.counts.seeds) out.seeds = spec.counts.seeds;
     for (const [k, v] of Object.entries(spec.job || {})) if (v !== null && v !== undefined && v !== '') out[k] = v;
-    if (spec.reroll && spec.reroll.mode) out.reroll = spec.reroll.mode === 'view' ? { mode: 'view', view: spec.reroll.view || 'front' } : { mode: spec.reroll.mode };
+    if (spec.reroll && spec.reroll.mode) out.reroll = spec.reroll.mode === 'view' ? { mode: 'view', view: spec.reroll.view || 'front' } : spec.reroll.mode === 'stage' ? { mode: 'stage', stage: spec.reroll.stage || 'guides' } : { mode: spec.reroll.mode };
     // front_from_picture's slug is a recipe field in the form and a job field in jobs.py (its argv reads spec.stills)
     if (spec.method === 'front_from_picture' && (out.stills == null || out.stills === '') && spec.recipe && spec.recipe.stills) out.stills = spec.recipe.stills;
     const fields = specs && specs[jk] && specs[jk].fields && typeof specs[jk].fields === 'object' ? specs[jk].fields : null;
@@ -721,7 +724,10 @@ const Jobs = (() => {
   function waitingBody(c, j) {
     const choices = j.choices || [];
     let picked = c.__picked || null;
-    const what = { side: 'the side painting the other views follow', view: 'one view\'s candidates', pick: 'a candidate' }[j.waiting_for] || 'a candidate';
+    const what = { side: 'the side painting the other views follow', view: 'one view\'s candidates', pick: 'a candidate', puppet_front: 'the arms-out front the 3D shape is made from', puppet_views: 'one arms-out side and one back', puppet_shape: 'the 3D shape (each try in clay from six sides)' }[j.waiting_for] || 'a candidate';
+    // pass 71: choices with a `group` (a puppet's side and back) take one pick per group, sent together ("side=1,back=0")
+    const groups = [...new Set(choices.filter((ch) => ch.group).map((ch) => ch.group))];
+    const gpicked = c.__gpicked || (c.__gpicked = {});
     c.appendChild(el('div', { class: 'jcard-sub' }, el('b', { text: `needs your pick: ${what} (${choices.length} candidate${choices.length === 1 ? '' : 's'})` }), el('span', { class: 'muted', text: j.progress && j.progress.stage ? j.progress.stage : '' }), el('span', { class: 'muted', text: 'click a picture to zoom, click the card to choose' })));
     const grid = el('div', { class: 'jchoices' });
     const pickBtn = el('button', { type: 'button', class: 'btn small primary', text: 'Pick', disabled: true, onclick: () => act(j, 'pick', { choice: picked }, `picking ${picked}`) });
@@ -733,7 +739,22 @@ const Jobs = (() => {
       box.appendChild(img);
       box.appendChild(el('span', { text: ch.label || key }));
       if (ch.qa && ch.qa.problems && ch.qa.problems.length) box.appendChild(el('span', { class: 'qa-bad', text: 'QA: ' + ch.qa.problems.join(', ') }));
-      box.addEventListener('click', () => { picked = key; c.__picked = key; for (const x of grid.children) x.classList.toggle('picked', x === box); pickBtn.disabled = false; pickBtn.textContent = `Pick ${ch.label || key}`; });
+      if (ch.group && groups.length) {
+        box.classList.toggle('picked', gpicked[ch.group] === key);
+        box.addEventListener('click', () => {
+          gpicked[ch.group] = key;
+          for (const x of grid.children) if (x.dataset.group === ch.group) x.classList.toggle('picked', x === box);
+          picked = groups.every((g) => gpicked[g]) ? (typeof Puppet !== 'undefined' ? Puppet.groupPick(gpicked) : Object.values(gpicked).join(',')) : null;
+          c.__picked = picked;
+          pickBtn.disabled = !picked;
+          pickBtn.textContent = picked ? `Pick ${picked}` : `Pick (one per ${groups.join(' and ')})`;
+        });
+        box.dataset.group = ch.group;
+      } else if (ch.sheet && !ch.key) {
+        img.title = 'the review sheet';
+      } else {
+        box.addEventListener('click', () => { picked = key; c.__picked = key; for (const x of grid.children) x.classList.toggle('picked', x === box); pickBtn.disabled = false; pickBtn.textContent = `Pick ${ch.label || key}`; });
+      }
       grid.appendChild(box);
     }
     c.appendChild(grid);
@@ -745,6 +766,9 @@ const Jobs = (() => {
       el('button', { type: 'button', class: 'btn small', text: `Re-roll ${n} more`, title: 'the same stage again with the next seeds: new candidates', onclick: () => act(j, 'requeue', { reroll: { stills: choices.map((ch) => ch.cache_key).filter(Boolean), clips: [], seed: seedOf(j) + 1 } }, 're-rolling') }),
       el('button', { type: 'button', class: 'btn small danger', text: 'Cancel', onclick: () => act(j, 'cancel', {}, 'cancelling') }),
       el('button', { type: 'button', class: 'btn small ghost', text: 'Edit', title: 'change the spec: the job goes back to the queue at phase 1 (its candidates are stale)', onclick: () => openForm(j.target.kind, j.target.id, { job: j }) })));
+    // pass 71: what the job made so far, its ComfyUI workflows above all (a puppet job stops for three picks)
+    if (j.progress && (j.progress.stages || []).length) c.appendChild(stagesRow(j));
+    if ((j.outputs || []).length) c.appendChild(outputs(j, c.__players));
   }
 
   /** A queued card: its place in its lane (x = queueOrder's entry: one worker per lane takes them in this order), or, for
@@ -758,6 +782,9 @@ const Jobs = (() => {
         : el('span', { class: pos === 0 ? 'jnext' : 'muted', text: queueLabel(pos, n, j.lane), title: `the ${j.lane || '?'} lane runs one job at a time, in this order; the other lanes run beside it` }),
       j.front && !held ? el('span', { class: 'muted', text: 'a picked job resuming: it goes first in its lane' }) : null,
       j.eta_s != null ? el('span', { class: 'muted', text: `~${fmtT(j.eta_s)} once it runs`, title: 'the method\'s measured median × its stages' }) : null));
+    // pass 71: a resuming job (a pick made, a puppet phase on the other lane next) shows what it made so far
+    if ((j.phase || 1) > 1 && j.progress && (j.progress.stages || []).length) c.appendChild(stagesRow(j));
+    if ((j.phase || 1) > 1 && (j.outputs || []).length) c.appendChild(outputs(j, c.__players));
     const why = held ? 'a held job waits for its look\'s front: it does not move' : j.front ? 'a picked job resuming goes first in its lane: it moves only among the other resuming ones' : 'a resuming pick stays first in the lane';
     c.appendChild(el('div', { class: 'jcard-actions' },
       el('button', { type: 'button', class: 'btn small', text: 'Edit', title: 'change the spec in the form', onclick: () => openForm(j.target.kind, j.target.id, { job: j }) }),
@@ -847,10 +874,11 @@ const Jobs = (() => {
       box.appendChild(row);
     }
     if (!stills.length && !clips.length) box.appendChild(el('div', { class: 'muted small', text: 'this job lists no cached keys: a re-queue with the next seed rolls everything again' }));
+    if (j.method === 'hero_puppet' && typeof Puppet !== 'undefined') Puppet.rerollStage(box, picks);   // pass 71
     const seedCb = el('input', { type: 'checkbox' }); seedCb.checked = true;
     box.appendChild(el('label', { class: 'cb' }, seedCb, el('span', { text: `the next seed (${seedOf(j)} → ${seedOf(j) + 1})` })));
     box.appendChild(el('div', { class: 'row' },
-      el('button', { type: 'button', class: 'btn small primary', text: 'Re-queue', onclick: () => { const reroll = { stills: [...picks.stills], clips: [...picks.clips] }; if (seedCb.checked) reroll.seed = seedOf(j) + 1; box.remove(); act(j, 'requeue', { reroll }, 're-rolling'); } }),
+      el('button', { type: 'button', class: 'btn small primary', text: 'Re-queue', onclick: () => { const reroll = { stills: [...picks.stills], clips: [...picks.clips] }; if (seedCb.checked) reroll.seed = seedOf(j) + 1; if (picks.stage) reroll.stage = picks.stage; box.remove(); act(j, 'requeue', { reroll }, 're-rolling'); } }),
       el('button', { type: 'button', class: 'btn small ghost', text: 'Cancel', onclick: () => box.remove() })));
     c.appendChild(box);
   }
@@ -893,6 +921,10 @@ const Jobs = (() => {
         cellEl.appendChild(p.el);
       } else if (o.type === 'strip' && o.url) {
         cellEl.appendChild(el('a', { href: '#', text: 'the strip', onclick: (e) => { e.preventDefault(); openAsset(j.target); } }));
+      } else if (o.type === 'glb' && o.url && typeof Puppet !== 'undefined') {
+        // pass 71: the puppet's GLB in the 3D viewer (lazy: a click loads it; destroyed with the card)
+        cellEl.classList.add('joutput-glb');
+        cellEl.appendChild(Puppet.outputCell(o, holder));
       } else if (o.url) {
         const img = el('img', { src: o.url, alt: '', loading: 'lazy', title: o.label || '' });
         img.addEventListener('click', () => StripPlayer.openImage(o.url, `${title(j)} · ${o.label || o.type}`));
@@ -1299,7 +1331,10 @@ const Jobs = (() => {
 
     // 2. what to paint: a look's recipe fields (a dotted key is a path into a nested object: pose_drivers.back); a
     // candidate job's own fields filled from the server's defaults (D6); for a kind that reads its words from the JSON, a line
-    const fields = takesRecipe && method && Array.isArray(method.recipe_fields) ? method.recipe_fields : [];
+    // pass 71 follow-up: a puppet look's settings (puppet.*, run_fit, fringe_remap) are set in "The 3D puppet" below and
+    // recorded in the recipe by the job; Recipe (typed) shows them afterwards
+    const fields = (takesRecipe && method && Array.isArray(method.recipe_fields) ? method.recipe_fields : [])
+      .filter((f) => !(method && method.id === 'hero_puppet' && (String(f.key).startsWith('puppet.') || f.key === 'run_fit' || f.key === 'fringe_remap')));
     if (candKind) candidateFields(body, c, jk);
     else if (fields.length || mode === 'look') {
       body.appendChild(el('h2', {}, 'What to paint', el('small', { text: 'the recipe the tool reads (written into variants[CODE].recipe for a look job)' })));
@@ -1358,7 +1393,7 @@ const Jobs = (() => {
     // fields only another method's tool reads (D11: front_from_picture's ref / prompt / keep, gen_ctl's picks, recolour)
     const recipeKeys = new Set(fields.map((f) => f.key));
     const candKeys = new Set(candKind ? (CAND_FIELDS[jk] || []).map((f) => f.key) : []);
-    const hidden = (k) => (jk === 'look' && METHOD_ONLY[k] && !METHOD_ONLY[k].includes(spec.method)) || candKeys.has(k) || k === 'variant' || k === 'reroll';
+    const hidden = (k) => (jk === 'look' && METHOD_ONLY[k] && !METHOD_ONLY[k].includes(spec.method)) || candKeys.has(k) || k === 'variant' || k === 'reroll' || k === 'puppet';
     const specFields = kindFields
       ? Object.entries(kindFields).filter(([k]) => !OWN_KEYS.includes(k) && !recipeKeys.has(k) && !hidden(k)).map(([k, f]) => Object.assign({ key: k }, f || {}, { type: specType(f && f.type) }))
       : null;
@@ -1397,6 +1432,9 @@ const Jobs = (() => {
       }
       if (folded) body.appendChild(fold);
     }
+
+    // pass 71 (lane PLE): the Puppet method's own part (puppet.js): start from, the 3D reference per view, the clips, the walks
+    if (spec.method === 'hero_puppet' && typeof Puppet !== 'undefined') Puppet.formSection(body, c);
 
     // 3. references: where this method's picture goes (pass 68, D11: the old 2D / 3D rows reached no tool)
     referencesNote(body, c, method, jk);
@@ -1470,7 +1508,7 @@ const Jobs = (() => {
     const words = el('pre', { class: 'words' });
     det.addEventListener('toggle', () => {
       if (!det.open) return;
-      words.textContent = candKind ? candidateWordsText(c, jk) : composeWords(m, method, Object.assign({}, spec, { recipe: Object.assign({}, spec.recipe, state.overrides[0] || {}) }), { kind, id, code: fixedCode || (state.codes[0] || ''), art_prompt: contentJson && contentJson.art_prompt });
+      words.textContent = candKind ? candidateWordsText(c, jk) : (spec.method === 'hero_puppet' && typeof Puppet !== 'undefined' ? Puppet.wordsText(c) + '\n\nThe walks (gen_art, as hero_pose5):\n' : '') + composeWords(m, method, Object.assign({}, spec, { recipe: Object.assign({}, spec.recipe, state.overrides[0] || {}) }), { kind, id, code: fixedCode || (state.codes[0] || ''), art_prompt: contentJson && contentJson.art_prompt });
     });
     det.appendChild(words);
     body.appendChild(det);
@@ -1620,6 +1658,7 @@ const Jobs = (() => {
     if (CAND_KINDS.includes(jk)) text = 'The reference picture is the field above: one picture, the identity the candidates keep (no style anchor). The title\'s extra reference, when set, is the held object.';
     else if (mid === 'front_from_picture') text = 'The picture is the Reference picture field above, the only picture this method reads (after the style anchor, unless "no style anchor" is ticked).';
     else if (mid === 'creature_ctl') text = 'gen_ctl reads its picture from look_ref and its motion from drivers, both in What to paint above: nothing else reaches it.';
+    else if (mid === 'hero_puppet') text = 'The 3D reference rows above are the pictures the shape is made from (painted arms-out, a look\'s still or an uploaded picture). The walks are Wan clips of the look\'s stills on the puppet\'s own guides: no other picture is passed. A badge or a title cut-out takes a picture (their own forms).';
     else if (mid === 'hero_pose5' || mid === 'hero_fit') text = 'Hero looks paint from words (art_prompt and the hints) with the style anchor, and walk on the pose drivers (pose_drivers above): no picture is passed to them. A badge or a title cut-out takes a picture (their own forms).';
     else if (mid === 'recolour') text = 'A recolour reads its source look\'s strip and icon: no picture.';
     else if (jk === 'look') text = `This method paints from words: to start from a picture, use "${ffp ? ffp.name || ffp.id : 'front_from_picture'}" first, then paint the look with its stills slug.`;
@@ -1691,6 +1730,14 @@ const Jobs = (() => {
     }
     const cur = modes.find((r) => r.v === (spec.reroll.mode || '')) || modes[0];
     body.appendChild(fieldLine('re-roll', rr, `what the job throws away before it paints (the server does it when the job is queued): ${cur.help}`));
+    if (spec.reroll.mode === 'stage') {
+      // pass 71: the puppet stage the job starts from again
+      const ss = el('select');
+      if (!spec.reroll.stage) spec.reroll.stage = 'guides';
+      for (const st of ['apose', 'shape', 'rig', 'anim', 'guides']) ss.appendChild(el('option', { value: st, text: st, selected: spec.reroll.stage === st }));
+      ss.addEventListener('change', () => { spec.reroll.stage = ss.value; });
+      body.appendChild(fieldLine('the stage', ss, 'apose = new arms-out paintings (and everything after); shape = a new Hunyuan3D shape from the same paintings; rig = the joints found again; anim = the clips and the colours again; guides = new guides (a new folder) from the same GLB'));
+    }
     if (spec.reroll.mode === 'view' || spec.reroll.mode === 'clip') {
       const vs = el('select');
       if (!spec.reroll.view) spec.reroll.view = spec.reroll.mode === 'clip' ? 'side' : 'front';

@@ -241,7 +241,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-13, pass 70, version 0.56)
+## Status (2026-10-13, pass 71, version 0.57)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -251,7 +251,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,525 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.56).
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.57).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
 rolled per run from `Run.map_seed`, a stone boundary wall; everything but the ground, the wall, barrels, signs and a few
@@ -328,7 +328,7 @@ control videos via `gen_ctl.py`); paint several seeds and pick by eye, the visio
 gen_art.py / gen_ctl.py write `result.json` instead of the content JSON and the server merges the look's entry in place;
 `tools/blender_ref.py` probes and renders any FBX/GLB/OBJ for the icon and look references, `tools/blender_depth_drivers.py`
 turns a rigged model's own clip into depth drivers, `pose_driver.py src= rigmap= probe=` the Mixamo-style ones; new badge
-candidates by `tools/gen_badge_cands.py`). One ComfyUI job at a time: `tools/locks.py` (comfy.py takes the lock itself).
+candidates by `tools/gen_badge_cands.py`). Pass 71: the **Puppet** method (`hero_puppet`): a hero's painting turned into a rigged 3D puppet (Hunyuan3D 2 multi-view on the AI server, Blender rig with Mixamo names, `tools/puppet.py` + `tools/puppet_blender.py`, outputs `tools/dl/puppet/<hero>/`, a GLB previewed in the page with the vendored model-viewer) whose stick figures and depth renders guide the walks; settings size from the 3D model (`run_fit`), frame by the soles, clean colour fringes, keep the face angle, depth or stick per view; explainer https://claude.ai/artifact/RLK1zdb7p4QhDuFfMhdyRm. May's puppet looks MAY-P, MAY-Q, MAY-R (all settings) are fresh; Jeżyk has a puppet too. One ComfyUI job at a time: `tools/locks.py` (comfy.py takes the lock itself).
 Sound: Stable Audio 3 medium on the server's ComfyUI (`tools/comfy_audio.py`; UI and reward jingles in a casino-western `HYPE` table in `tools/ai_sfx.py`, music by `tools/ai_music.py` into `content/sounds/music/`; world sounds from pass 60; the gem dings, the hero's hurt and the slot machine are synthesised by `tools/synth_sfx.py`; Garry's own Stable Audio app at http://127.0.0.1:7861/ is the second engine; skill sound-pipeline). `Audio.gd` plays one music track at a time (`music_stage`, `music_boss`).
 Blender models from Garry's references in `_REFERENCES/` (git-ignored).
 
