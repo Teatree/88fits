@@ -617,6 +617,49 @@ def pose_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline
     return artkit.place_clip_frames(frames, cell, scale, px, outline_color)
 
 
+def ctl_driver_of(d, view):
+    """A hero look's depth guide for a view (lane PUPPET, 2026-10-13: "ctl_drivers" in the recipe, one folder under
+    tools/dl/drivers/ for every view or {view: folder}); "" = the view runs on its pose driver as before."""
+    c = d.get("ctl_drivers") if isinstance(d, dict) else None
+    if isinstance(c, dict):
+        return str(c.get(view) or "")
+    return str(c or "")
+
+
+def ctl_cycle(still_rgb, key, clip, view, seed, cell, stand_cell, hint, outline_frac=0.012, outline_color=(38, 24, 30, 255), negative_extra="",
+              view_hint="", motion="running in place on the spot like on a treadmill", scale_mul=1.0, loop_frames=None):
+    """A hero's run from Wan 2.2 Fun Control on a depth guide (lane PUPPET: the depth videos of the hero's own rigged
+    3D puppet, tools/puppet.py guides -> tools/dl/drivers/<hero>_puppet_run_depth/<view>/ctl_NN.png, two strides of 24
+    poses + 1): the still is the reference, the second stride is kept (animate.cycle_control), fitted to the standing
+    height by the tallest frame like pose_cycle, times the look's run_scale. None on failure."""
+    if NO_VIDEO:
+        return None
+    ctl_dir = os.path.join(DRIVERS, clip, view)
+    if not os.path.isdir(ctl_dir):
+        log("  (no depth guide in %s)" % ctl_dir)
+        return None
+    n_ctl = len([f for f in os.listdir(ctl_dir) if f.startswith("ctl_") and f.endswith(".png")])
+    loop = int(loop_frames or (n_ctl - 1) // 2)
+    view_words = {"back": "seen directly from behind, the back of the head and the heels towards the viewer, no face",
+                  "front": "facing the viewer", "side": "in strict side profile facing right",
+                  "bd": "in three-quarter back view, turned away from the viewer", "fd": "in three-quarter front view"}
+    if view in ("back", "bd"):
+        negative_extra = (negative_extra + ", " if negative_extra else "") + "face, eyes, mouth, nose, looking at the viewer"
+    prompt = ("A 2D anime game character sprite, " + (hint + ", " if hint else "") + view_words.get(view, "") + (", " + view_hint if view_hint else "") +
+              ", " + motion + " exactly as the control video shows, the same character, outfit and colours as the reference in every frame, "
+              "crisp clean line art, cel shading. The camera is completely locked off and static. The background stays a flat solid bright "
+              "blue color with nothing in it, no ground, no shadow.")
+    try:
+        frames, meta = animate.cycle_control(still_rgb, key, ctl_dir, seed, prompt=prompt, negative_extra=negative_extra, loop_frames=loop)
+    except Exception as e:
+        log("  (control cycle failed for %s: %s)" % (key, e))
+        return None
+    tallest = max(1.0, max(_alpha_height(f) for f in frames))
+    scale = figure_height_cell(stand_cell) * 0.99 / tallest * float(scale_mul)
+    px = max(1, int(round(cell * outline_frac)))
+    return artkit.place_clip_frames(frames, cell, scale, px, outline_color)
+
+
 def colour_stats(img):
     """Mean and spread of saturation and value over the figure (alpha over half), as two 2-vectors."""
     rgba = img.convert("RGBA")
@@ -1255,9 +1298,15 @@ def process(type_, folder, id_):
             # a view may run on its own driver ("pose_drivers": {"back": "run_occ"}, pass 44: the back view's driver hides the
             # hand that swings in front of the chest, which Wan Animate had painted on the back of Calavera's jacket)
             drv = str((d.get("pose_drivers") or {}).get(view, "run"))
-            c = pose_cycle(still_img, ck + "_pose_run_" + view, drv, view, seed + k, cell, cell_img, hint, negative_extra=anim_neg, view_hint=vh,
-                           motion=str(d.get("pose_motion", "running in place on the spot like on a treadmill")), scale_mul=run_scale_of(d, view)) if pose_ok else None
-            kinds[view] = "pose" if c is not None else "free"
+            # lane PUPPET (2026-10-13): "ctl_drivers" walks the view on a depth guide (Wan Fun Control) instead
+            ctl = ctl_driver_of(d, view) if pose_ok else ""
+            if ctl:
+                c = ctl_cycle(still_img, ck + "_ctl_run_" + view, ctl, view, seed + k, cell, cell_img, hint, negative_extra=anim_neg, view_hint=vh,
+                              motion=str(d.get("pose_motion", "running in place on the spot like on a treadmill")), scale_mul=run_scale_of(d, view))
+            else:
+                c = pose_cycle(still_img, ck + "_pose_run_" + view, drv, view, seed + k, cell, cell_img, hint, negative_extra=anim_neg, view_hint=vh,
+                               motion=str(d.get("pose_motion", "running in place on the spot like on a treadmill")), scale_mul=run_scale_of(d, view)) if pose_ok else None
+            kinds[view] = ("control" if ctl else "pose") if c is not None else "free"
             if c is None:
                 c = video_cycle(still_img, ck + "_run" + (suffix or "_b"), prompt, seed + k, cell, cell_img, N, scale_mul=run_scale_of(d, view))
                 kinds[view] = "free" if c is not None else "procedural"

@@ -574,3 +574,33 @@ points read like Marshal's Star), Mother Lode, Bucking Bronco, Prairie Fire, Mar
 Garry's how-to for doing the May and Jezyk fixes in the editor alone: `tools/dl/p70/howto_ART.md`.
 
 **The lead.** Integration: the whole suite green with every lane merged, the PostHog board's "left in the sand" tile relabelled (only a quit loses gold now; the boards were not re-run). Lessons: a value field that becomes a file name must be checked where it is typed and cleaned where it is used; a slug field next to a picture field invites the picture's path; walks are fitted by their tallest frame, so a per-view size is the honest knob, not a scaled driver.
+
+**The Puppet trial (2026-10-13, after pass 70): image-to-3D for May.** **Lane PUPPET (2026-10-13): the image-to-3D "Puppet" trial on May.** `tools/puppet.py` (stages apose, shape, rig,
+anim, guides, looks, compare; resumable, `--pick`, `--from-blend`, `--from-fbx`, `--install-pickers`) and
+`tools/puppet_blender.py` (clean, rig, anim, guides, silhouette) turn MAY-G's painting into a rigged, animated 3D May
+and use her renders to guide the video model. Klein painted her in a 45-degree A-pose (the first wording gave a near
+T-pose), side and back in the same pose; Hunyuan3D-2mv (tencent, not gated, 4.9 GB into the server's
+models/checkpoints) ran through ComfyUI's built-in nodes on the R9700 in about 90 s a try, nothing installed; the side
+still is Hunyuan's "right" view and its mirror the "left". Blender cleaned it (one piece, voxel remesh, 60k vertices,
+1.61 m = her game height). The rig is found from exact mesh cross-sections (edge crossings: vertex slabs gave false
+gaps): the neck as the narrowest middle run, the shoulders where the body reaches 1.6x that, the arms where they stand
+apart, the crotch where the legs merge; Mixamo's names, non-deforming fingers for the OpenPose hands, Blender's
+automatic weights (no failures), the head region (hair, beret) on the head alone. The Mixamo run is retargeted by bone
+directions (O_pose = D A O_rest: her A-pose onto Mixamo's T-pose), the idle is procedural (no Mixamo idle on disk),
+her colours are projected from the paintings as vertex colours (side views skip the flank the hanging arm covers; the
+fill comes from inside the keyed figure, not its teal rim); `may_puppet.glb` (run, idle) went to Drive at 14:09 with
+GLB_READY.json. Guides: OpenPose from her own bones with the joints her body hides dropped by ray casts
+(`tools/dl/drivers/may_puppet_run`), depth videos (`may_puppet_run_depth`) and the 3D truth of each view's run/idle
+height (`silhouette.json`). Looks through the running Level Editor's API, both fresh, MAY-G still played: MAY-P
+(puppet OpenPose in every view, no run_scale) and MAY-Q (Wan 2.2 Fun Control on the depth guide for fd/side/bd/back,
+OpenPose for the front, through gen_art's new recipe key `ctl_drivers`). Found on the way: blender_ref.meshes() counted
+the glTF importer's 2 m bone-shape icosphere as model geometry (every depth-driver job on a skinned GLB was framed and
+ranged wrong; fixed); a side run painted her face to the camera until the guide's ear was placed as pose_driver places
+it (on the head bone's axis her bob had pulled it straight over the neck; neither a profile face rule nor levelled
+shoulders helped, Mixamo's head points did); a depth video carries no face (crosshatched face, then long hair, from the
+front); the depth's flat head became skin from behind until the words named her hair. Verdict: the pipeline works end
+to end; as a guide it ties MAY-G's hand-tuned drivers and wins on the side's size without run_scale (head 1.13 P,
+1.05 Q, vs 1.16 for MAY-G with its 0.88 fix) and on the back-diagonal keeping her turned away (Q), loses on MAY-P's
+front head (1.24) and on colour fringes; next: a run fit from the puppet's own silhouette ratios (drops run_scale),
+a guide framed by the soles, the fringe hues remapped. The running editor predated pass 70 (no one-view re-roll, no
+install into a look): clips were moved aside by hand, the badge/cut-out named in place, one hung import cancelled.

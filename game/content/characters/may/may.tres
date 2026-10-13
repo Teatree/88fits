@@ -5,15 +5,17 @@
 [ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_b.png" id="4_ui1jp"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_c.png" id="6_uc7w2"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_g.png" id="7_1mxrr"]
+[ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_p.png" id="7_tlaal"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_icon_g.png" id="8_tlaal"]
+[ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_q.png" id="8_ui1jp"]
 
-[sub_resource type="Resource" id="Resource_huik1"]
+[sub_resource type="Resource" id="Resource_tlaal"]
 script = ExtResource("1_huik1")
 stat = "cooldown"
 op = "mul"
 value = -0.15
 
-[sub_resource type="Resource" id="Resource_1mxrr"]
+[sub_resource type="Resource" id="Resource_ui1jp"]
 script = ExtResource("1_huik1")
 stat = "cooldown"
 op = "mul"
@@ -22,14 +24,14 @@ target = "player"
 
 [resource]
 script = ExtResource("3_tlaal")
-level_trait = [SubResource("Resource_1mxrr")]
+level_trait = [SubResource("Resource_ui1jp")]
 order = 8
 trait_name = "No Time"
 trait_text = "Gain 1.5% less cooldown per level."
 pronoun = "she"
 favourite_weapon = "tommy_gun"
 favourite_bonus = {
-"effects": [SubResource("Resource_huik1")],
+"effects": [SubResource("Resource_tlaal")],
 "type": "effects"
 }
 start_weapon = "big_mouth"
@@ -162,6 +164,74 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("7_1mxrr"),
 "sprite_file": "may_sprite_g.png",
+"strip_cols": 62,
+"title": "hero_may_g.png"
+},
+"MAY-P": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": ExtResource("8_tlaal"),
+"note": "the Puppet trial: MAY-G's stills, every view's walk on OpenPose from her own rigged 3D puppet (may_puppet_run: her bones, joints her body hides dropped, the ears set from her nose), no run_scale",
+"shelved": false,
+"sprite": ExtResource("7_tlaal"),
+"sprite_file": "may_sprite_p.png",
+"strip_cols": 62,
+"title": "hero_may_g.png"
+},
+"MAY-Q": {
+"anims": {
+"cheer": 1.0,
+"die": 5.0,
+"hit": 4.0,
+"hit_bd": 4.0,
+"hit_f": 4.0,
+"hit_fd": 4.0,
+"hit_s": 4.0,
+"idle": 4.0,
+"idle_bd": 4.0,
+"idle_f": 4.0,
+"idle_fd": 4.0,
+"idle_s": 4.0,
+"run": 24.0,
+"run_bd": 24.0,
+"run_f": 24.0,
+"run_fd": 24.0,
+"run_s": 24.0
+},
+"fps": {
+"die": 8.0,
+"hit": 12.0,
+"run": 36.0
+},
+"frame_px": 256,
+"icon": ExtResource("8_tlaal"),
+"note": "the Puppet trial: MAY-G's stills; fd, side, bd and back walked by Wan 2.2 Fun Control on the puppet's depth video (may_puppet_run_depth), the front on the puppet's OpenPose guide (the depth video has no face), no run_scale",
+"shelved": false,
+"sprite": ExtResource("8_ui1jp"),
+"sprite_file": "may_sprite_q.png",
 "strip_cols": 62,
 "title": "hero_may_g.png"
 }

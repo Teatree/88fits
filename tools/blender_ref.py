@@ -165,7 +165,12 @@ def armatures():
 
 
 def meshes():
-    return [o for o in bpy.data.objects if o.type == "MESH"]
+    """The model's meshes. Not the bone display shapes: Blender's glTF importer gives every bone of a skinned GLB a 2 m
+    icosphere as its custom shape (collection "glTF_not_exported"); counted as geometry it set the framing and the depth
+    range of blender_depth_drivers.py (lane PUPPET, 2026-10-13: May's puppet came out a third of the frame, flat white)."""
+    shapes = {pb.custom_shape for a in bpy.data.objects if a.type == "ARMATURE" for pb in a.pose.bones if pb.custom_shape is not None}
+    return [o for o in bpy.data.objects if o.type == "MESH" and o not in shapes
+            and not any(c.name.startswith("glTF_not_exported") for c in o.users_collection)]
 
 
 def roots():
