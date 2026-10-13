@@ -209,8 +209,9 @@ func _shadow_material() -> StandardMaterial3D:
 	mat.render_priority = PickupManager.PICKUP_PRIORITY - 1
 	mat.stencil_mode = BaseMaterial3D.STENCIL_MODE_CUSTOM
 	mat.stencil_flags = BaseMaterial3D.STENCIL_FLAG_READ
-	mat.stencil_compare = BaseMaterial3D.STENCIL_COMPARE_NOT_EQUAL
-	mat.stencil_reference = PickupManager.PAINTING_STENCIL
+	# pass 72 (lane SPEC): where nothing is painted (0), under the paintings (1) and the scenery (SceneryStencil, 2)
+	mat.stencil_compare = BaseMaterial3D.STENCIL_COMPARE_EQUAL
+	mat.stencil_reference = 0
 	return mat
 
 

@@ -238,7 +238,7 @@ select.pp-wide { min-width: 420px; max-width: 100%; }
   // ------------------------------------------------------------------ the job form
 
   function defaults(played) {
-    return { source: played || '', stills: 'reuse', refs: { front: 'paint', side: 'paint', back: 'paint' }, painter: 'klein', steps: 0, seeds: 4, seed: 0,
+    return { source: played || '', stills: 'reuse', refs: { front: 'paint', side: 'paint', back: 'paint' }, painter: 'klein', steps: 0, seeds: 4, first_seed: 0, seed: 0,
       words: { front: '', side: '', back: '' }, screen: '', tries: 2, faces: 60000, reuse: 'auto', fbx: '', clip: 'running.fbx', idle: '', frame: 'soles',
       face: 'nose', depth_views: DEPTH_DEFAULT.slice(), run_fit: true, fringe: true };
   }
@@ -321,7 +321,10 @@ select.pp-wide { min-width: 420px; max-width: 100%; }
       for (const v of ['front', 'side', 'back']) body.appendChild(refRow(v, pp, r, c, src));
       body.appendChild(line('painter', sel([['klein', 'Flux.2 Klein (about 20 s a candidate)'], ['dev', 'Flux.2 dev (4-5 min a candidate, a restart each)']], pp.painter, (v) => { pp.painter = v; c.draw(); }), 'the arms-out paintings\' painter (the Model settings above are the walks\' stills)'));
       body.appendChild(line('passes', num(pp.steps || 0, (v) => { pp.steps = v; }, 0, 60), '0 = the painter\'s own (Klein 4, dev 8 with Turbo)'));
-      body.appendChild(line('front candidates', num(pp.seeds || 4, (v) => { pp.seeds = v; }, 1, 12), 'arms-out fronts to pick from; the side and the back get half, at least 3'));
+      // pass 72: the same two fields as every candidate job (Jobs.CANDIDATES_HELP / FIRST_SEED_HELP)
+      const J = typeof Jobs !== 'undefined' ? Jobs : {};
+      body.appendChild(line('Candidates', num(pp.seeds || 4, (v) => { pp.seeds = v; }, 1, 12), (J.CANDIDATES_HELP || 'how many candidates to paint and pick from, each on a seed of its own') + ': the arms-out fronts; the side and the back get half, at least 3'));
+      body.appendChild(line('First seed', (() => { const n = el('input', { type: 'number', class: 'num', value: Number(pp.first_seed) || 0, step: 1 }); n.addEventListener('change', () => { pp.first_seed = Math.round(Number(n.value) || 0); n.value = String(pp.first_seed); }); return n; })(), J.FIRST_SEED_HELP || 'where this job\'s seeds start: candidate k paints on the first seed + k × 1,000,003; 0 = the tool\'s own start'));
       body.appendChild(line('screen', sel([['', `the look's own (${r.screen || 'blue'})`], ['green', 'green (a blue figure: Jeżyk)'], ['blue', 'blue']], pp.screen || '', (v) => { pp.screen = v; }), 'the screen the arms-out paintings are made on and keyed off'));
       body.appendChild(line('Hunyuan3D tries', num(pp.tries || 2, (v) => { pp.tries = v; }, 1, 6), 'shapes to pick from (about 90 s each on the R9700; ComfyUI restarts before and after)'));
       body.appendChild(line('triangles', num(pp.faces || 60000, (v) => { pp.faces = v; }, 5000, 200000), 'the cleaned mesh\'s budget (60,000: the trial\'s; more = slower Blender)'));

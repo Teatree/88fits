@@ -738,7 +738,8 @@ func test_a_glint_is_a_star_drawn_after_its_gem_and_under_the_paintings() -> voi
 	assert_int(mat.render_priority).is_less_equal(BillboardSprite.OVER_PRIORITY)
 	var code: String = mat.shader.code
 	assert_str(code).contains("blend_add")
-	assert_str(code).contains("stencil_mode read, compare_not_equal, %d;" % PickupManager.PAINTING_STENCIL)
+	# (pass 72, lane SPEC, re-pinned: the scenery writes stencil 2 now, so the pickups read 0, nothing painted)
+	assert_str(code).contains("stencil_mode read, compare_equal, 0;")
 	# one gem glinting: one star over its upper facets, paled from its colour, brightest a third of the way in
 	var i := _resting(pm, PickupManager.KIND_GEM_L, 20.0)
 	pm._physics_process(DT)

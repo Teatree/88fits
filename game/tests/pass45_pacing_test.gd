@@ -161,14 +161,26 @@ func test_the_skeletons_are_the_fodder_and_the_knights_come_with_them() -> void:
 		if not rows.has(str(r.get("enemy", ""))):
 			rows[str(r.get("enemy", ""))] = r
 	assert_bool(rows.has("skeleton") and rows.has("skeleton_knight")).is_true()
-	assert_float(float(rows["skeleton"].get("t", -1.0))).is_equal_approx(float(rows["skeleton_knight"].get("t", -2.0)), 0.001)
-	var from := float(rows["skeleton"].get("t", 0.0))
-	for t: float in [from + 1.0, from + 60.0, float(rows["skeleton"].get("until", from + 100.0)) - 1.0]:
+	# pass 72, lane INTEG (re-pinned): Garry's rebuilt stage 1 (2026-10-13) brings the skeletons at 0:53 and the knights
+	# half a minute later (1:23), both to 2:03: the knights come with or after the skeletons and while they still walk,
+	# and wherever the two rows overlap there are one to three skeletons a knight
+	var sk_t := float(rows["skeleton"].get("t", 0.0))
+	var kn_t := float(rows["skeleton_knight"].get("t", 0.0))
+	var sk_until := float(rows["skeleton"].get("until", sk_t + 100.0))
+	var kn_until := float(rows["skeleton_knight"].get("until", kn_t + 100.0))
+	assert_float(kn_t).is_greater_equal(sk_t)
+	assert_float(kn_t).is_less(sk_until)
+	var from := kn_t
+	var to := minf(sk_until, kn_until)
+	for t: float in [from + 1.0, (from + to) * 0.5, to - 1.0]:
 		var ratio: float = d._roster_weight(rows["skeleton"], t) / d._roster_weight(rows["skeleton_knight"], t)
 		assert_float(ratio).override_failure_message("skeletons per knight at %d s: %.2f" % [int(t), ratio]).is_between(0.95, 3.05)
-	# the goblins stay in the content, out of the roster
+	# the goblin stays in the content, out of the roster; the runt is back on Garry's roster since 2026-10-13 (row r2):
+	# whichever is on it is in play (pass66_shape_test)
 	assert_bool(rows.has("goblin")).is_false()
-	assert_bool(rows.has("goblin_runt")).is_false()
+	assert_object(Registry.enemy("goblin_runt")).is_not_null()
+	if rows.has("goblin_runt"):
+		assert_bool(Registry.enemy("goblin_runt").retired).is_false()
 
 
 func test_the_boundary_rows_wait_for_their_stage() -> void:

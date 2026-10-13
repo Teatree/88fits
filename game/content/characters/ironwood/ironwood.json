@@ -2,7 +2,7 @@
   "id": "ironwood",
   "name": "Ironwood",
   "flavour": "He has outlasted worse than you.",
-  "order": 4,
+  "order": 2,
   "pronoun": "he",
   "hidden": false,
   "availability": "purchase",

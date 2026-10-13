@@ -496,6 +496,13 @@ def spawn_estimate(tl, creatures, opts=None):
     b_hi = max(trunc(g("burst_max")), b_lo)
     hard, cap_max, cap_per_stage = trunc(g("hard_cap")), trunc(g("cap_max")), trunc(g("cap_per_stage"))
     colour_after = trunc(g("colour_after_kills"))
+    # pass 72 (lane SPEC): model.js specialMaxAlive: the map's special_defaults.max_alive, else 3; 0 or below = no limit
+    spd = tl.get("special_defaults") if is_obj(tl.get("special_defaults")) else {}
+    try:
+        sp_n = int(float(spd["max_alive"])) if spd.get("max_alive") not in (None, "") else 3
+    except (TypeError, ValueError):
+        sp_n = 3
+    sp_col_cap = sp_n if sp_n > 0 else float("inf")
     boss_frac = g("boss_cap_frac")
     portal_cap, portal_spawn = trunc(g("portal_cap")), g("portal_spawn_seconds")
     pw_block = tl.get("portal_wave") if is_obj(tl.get("portal_wave")) else {}
@@ -564,6 +571,7 @@ def spawn_estimate(tl, creatures, opts=None):
     cum, col, mod = {}, {}, {}
     src_cum = {}
     cat = {"reg": 0.0, "col": 0.0, "mod": 0.0, "elite": 0.0, "special": 0.0, "boss": 0.0, "minion": 0.0}
+    S["col_alive"] = 0.0
     marks, fights = [], []
 
     def clock():
@@ -641,11 +649,14 @@ def spawn_estimate(tl, creatures, opts=None):
             if d["arch"] == "regular":
                 cat["col"] += n
                 bump(col, d["id"], n)
+                S["col_alive"] += n
             return
         if d["arch"] == "regular" and d["chance"] > 0 and colour_open():
-            c = n * d["chance"]
-            cat["col"] += c
-            bump(col, d["id"], c)
+            c = min(n * d["chance"], max(sp_col_cap - S["col_alive"], 0))
+            if c > 0:
+                cat["col"] += c
+                bump(col, d["id"], c)
+                S["col_alive"] += c
 
     def cap_now():
         t = now()
@@ -1027,6 +1038,7 @@ def spawn_estimate(tl, creatures, opts=None):
                 dn = a["n"] * kd
                 a["n"] -= dn
                 S["kills"] += dn
+            S["col_alive"] -= S["col_alive"] * kd
         for i in range(len(sp_live) - 1, -1, -1):
             if sp_live[i]["die"] <= S["play"]:
                 sp_live.pop(i)
@@ -1416,7 +1428,8 @@ def model_checks():
     check(close(sp[2]["amount"], 0.75), "special by hand: no tint_strength = the game's 0.6, + 0.15: %s" % sp[2])
     vs = res["vspecial"]
     # (pass 69, lane EN, re-pinned: the game's default size is 1.25 now, EnemyDef.SPECIAL_DEFAULTS)
-    want_vs = [(0.12, 0.45, 1.5), (0.12, 0.8, 1.5), (0, 0.45, 1.5), (0, 0.6, 1.25), (0.1, 0.6, 1.25), (0.2, 0.6, 1.25)]
+    # (pass 72, lane SPEC, re-pinned: and 1.5 since pass 72)
+    want_vs = [(0.12, 0.45, 1.5), (0.12, 0.8, 1.5), (0, 0.45, 1.5), (0, 0.6, 1.5), (0.1, 0.6, 1.5), (0.2, 0.6, 1.5)]
     for (c, st), got, (ch, stg, sz_) in zip(q["vspecial"], vs, want_vs):
         check(close(got["chance"], ch) and close(got["strength"], stg) and close(got["size"], sz_),
               "varianceSpecial(%s, %s): %s, want chance %s strength %s size %s (the row's variance deep-merged over the creature's)" % (c, st, got, ch, stg, sz_))

@@ -199,6 +199,8 @@ func _ready() -> void:
 	# the run recorder (pass 45): a row a second for analytics/dashboard.html; the arena never records, and a tool's
 	# launch file may say "analytics": false (perf_late's A/B of the recorder's cost)
 	if not arena and bool(debug_launch.get("analytics", true)): RunAnalytics.create(self)
+	# the run's story for the Results screen (pass 72, RunTimeline): the arena never has one
+	if not arena: Run.timeline.attach(self)
 	# ui
 	ui.process_mode = Node.PROCESS_MODE_ALWAYS
 	# the damage numbers first: the HUD and every screen draw over them
@@ -1332,6 +1334,7 @@ func _process(delta: float) -> void:
 		portal.check_player(player)
 	Run.alive = enemies.alive_count()
 	if RunAnalytics.I: RunAnalytics.I.tick(delta)
+	Run.timeline.tick(delta)
 	for label in Run.tick_timed():
 		hud.toast("%s wore off" % label, UiKit.INK3)
 	_tick_perks(delta)
@@ -1562,7 +1565,7 @@ func _tick_thrusters(delta: float) -> void:
 	# her own thrusters, not a hostile throw: they fire her clear under the Invincibility bubble too (pass 60, lane WP)
 	player.blast(best * Run.perk_param("thruster_burst", "push", 28.0), Run.perk_param("thruster_burst", "lift", 5.0), false)
 	player.invuln = maxf(player.invuln, Run.perk_param("thruster_burst", "invuln", 0.6))
-	enemies.throw_radius(here, Run.perk_param("thruster_burst", "throw_radius", 3.2), Run.perk_param("thruster_burst", "throw", 18.0))
+	enemies.hero_throw_radius(here, Run.perk_param("thruster_burst", "throw_radius", 3.2), Run.perk_param("thruster_burst", "throw", 18.0))
 	fx.burst(here + Vector3(0, 0.4, 0), Color(0.55, 0.85, 1.0), 1.4)
 	for k in range(6):
 		fx.flame(here - best * 0.3 + Vector3(randf_range(-0.3, 0.3), 0.2, randf_range(-0.3, 0.3)), 0.8, 0.45)
@@ -1937,7 +1940,7 @@ func _kill_effects(def: EnemyDef, at: Vector3, elite: EliteModDef, _weapon_id: S
 		for j in enemies.indices_in_radius(at, fr):
 			if j != enemies.boss_index:
 				enemies.damage(j, enemies.max_hp[j] * frac, "grand_finale")
-		enemies.throw_radius(at, fr, Run.perk_param("grand_finale", "throw", 16.0))
+		enemies.hero_throw_radius(at, fr, Run.perk_param("grand_finale", "throw", 16.0))
 		telegraphs.flash_ring(at, fr, Color(1.0, 0.82, 0.35), 0.6)
 		fx.burst(at + Vector3(0, 1.0, 0), Color(1.0, 0.82, 0.35), 4.0)
 		hud.toast("GRAND FINALE", Color(1.0, 0.82, 0.35))
@@ -3366,7 +3369,7 @@ func nuke_blast(at: Vector3, radius: float, damage: float, knock: float) -> void
 	else:
 		# the revive's ring (pass 48): no damage, so no hit at all (a zero hit still flashed, rolled crits and froze), only
 		# the throw
-		enemies.throw_radius(at, radius, knock)
+		enemies.hero_throw_radius(at, radius, knock)
 	# the wave: a fat band racing out to the radius over half a second, laid on the sand (pass 52: it was a flat torus at
 	# the hero's height, and every hill on its way cut through it)
 	telegraphs.race_ring(at, radius, 0.55, Color(1.0, 0.75, 0.35, 0.9), 0.3)

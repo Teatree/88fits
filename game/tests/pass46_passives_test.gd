@@ -346,8 +346,9 @@ func test_the_collection_has_its_tabs_and_marks_the_heroes_mutations() -> void:
 	assert_str(CollectionScreen.hero_only_text(Registry.mutation("salt_flats"))).is_equal("JEŻYK ONLY")
 	# pass 69 (lane UI): Mira is back (a hero to buy), so her Blasting Cap is on the Land Mine's page, marked as hers (a
 	# hidden hero's own staying off: pass66_shape_test's rule, Dad has none)
+	# (Garry hid her again on 2026-10-13: the page shows her own exactly while she is in play)
 	var mine: Array = CollectionScreen.page_mutations(Registry.weapon("land_mine")).map(func(m: MutationDef) -> String: return m.id)
-	assert_bool(mine.has("blasting_cap")).is_true()
+	assert_bool(mine.has("blasting_cap")).is_equal(not Registry.character("mira").hidden)
 	assert_str(CollectionScreen.hero_only_text(Registry.mutation("blasting_cap"))).is_equal("MIRA ONLY")
 	# the cells: three to a row, a short last row centred under them
 	var cs: CollectionScreen = auto_free(load("res://ui/CollectionScreen.tscn").instantiate())

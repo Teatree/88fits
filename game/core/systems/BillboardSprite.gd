@@ -20,6 +20,9 @@ var _sil: ShaderMaterial
 var _over: ShaderMaterial
 ## The hero wants an outline where props hide him; pickups and the like do not.
 var outline_when_hidden := false
+## Pass 72 (lane SPEC): a painted structure or the portal is scenery: its painting writes the scenery's stencil
+## (SceneryStencil.scenery_shader), so a creature it hides is outlined. Set before it enters the tree.
+var scenery := false
 ## The see-through queue's place of the hero's second pass (pass 49, enable_over_trails): after his speed trails
 ## (Fx.SPEED_TRAIL_PRIORITY), before every other effect (0). Above the oasis's surface that puts a trail under him; below
 ## it the pass leaves him out, so there a trail crosses him as it crosses the water (pass 56, set_water).
@@ -45,6 +48,8 @@ func _ensure() -> void:
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_mat = ShaderMaterial.new()
 	_mat.shader = load("res://core/shaders/sprite_billboard.gdshader")
+	if scenery:
+		_mat.shader = SceneryStencil.scenery_shader(_mat.shader)
 	material_override = _mat
 	if outline_when_hidden:
 		enable_outline()

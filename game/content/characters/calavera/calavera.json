@@ -2,11 +2,11 @@
   "id": "calavera",
   "name": "Calavera",
   "flavour": "He plays. They dance. Briefly.",
-  "order": 3,
+  "order": 4,
   "pronoun": "he",
   "hidden": false,
   "availability": "purchase",
-  "price": 750,
+  "price": 300,
   "currency_type": "gold",
   "trait": [],
   "trait_per_level": [

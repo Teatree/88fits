@@ -173,6 +173,9 @@ var vspecial := PackedByteArray()  # 1 = rolled its variance special (the dark, 
 var vglow := PackedFloat32Array()
 var special_defaults: Dictionary = {}
 var force_special := false
+## Pass 72 (lane SPEC): the variance specials alive now (vspecial 1 and not dying), kept by spawn, _die and _free; a roll
+## that would pass EnemyDef.special_max_alive(special_defaults) comes plain (_special_room).
+var specials_alive := 0
 ## Pass 58 (R1, Garry: "I don't actually want it to change for the same 'wave' of enemies on the fly, because then it feels
 ## weird for the Player that shooting the same enemy with the same weapon suddenly doesn't kill it"): a creature a spawn
 ## source brought (a roster row, a wave, an event; WaveDirector hands spawn() the source's `src`) carries its numbers
@@ -1010,7 +1013,11 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 				vt = Color(c.r, c.g, c.b, float(vr.get("tint_strength", 0.35)))
 			# Hot Sauce (pass 47): the dark special comes (1 + difficulty) times as often
 			_pstats()
-			if force_special or _rng.randf() < float(vr.get("special_chance", 0.0)) * (1.0 + _difficulty):
+			var sp_roll: bool = force_special or _rng.randf() < float(vr.get("special_chance", 0.0)) * (1.0 + _difficulty)
+			# pass 72 (lane SPEC): at most special_max_alive at once; a roll past it comes plain, a forced one still comes
+			if sp_roll and not force_special and not _special_room():
+				sp_roll = false
+			if sp_roll:
 				var sp: Dictionary = vr.get("special", {})
 				# pass 69: each number the creature's own, else the map's special_defaults, else EnemyDef.SPECIAL_DEFAULTS
 				var spd := special_defaults
@@ -1088,6 +1095,8 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	xp_scale[i] = xps
 	alive[i] = 1
 	count_alive += 1
+	if vspecial[i] == 1:
+		specials_alive += 1
 	if RunAnalytics.I: RunAnalytics.I.spawned(def)
 	if def.archetype == "boss":
 		boss_index = i
@@ -1095,6 +1104,8 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 		atk_t[i] = 2.0
 		var extra := pow(float(def.boss.get("hp_mult_per_stage", 1.6)), float(Run.stage))
 		hp[i] = def.hp * extra * max(stage_mult, 1.0)
+		# pass 72 (lane BOSS): pegged to the hero's DPS (the director holds boss_hp_scale around the spawn, else 1)
+		hp[i] *= boss_hp_scale
 		max_hp[i] = hp[i]
 		boss_spawned.emit(def)
 		boss_hp_changed.emit(hp[i], max_hp[i])
@@ -1580,7 +1591,7 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 		var d := Vector3(kb_dir.x, 0, kb_dir.z)
 		if d.length_squared() < 0.0001:
 			d = pos[i] - player.global_position if player else Vector3.FORWARD
-		kb[i] += Vector3(d.x, 0, d.z).normalized() * push
+		kb[i] += Vector3(d.x, 0, d.z).normalized() * push * _hero_push(weapon_id)
 		# Bucking Bronco (pass 70): the knock may throw it up and away instead
 		_bronco_kick(i, d, push, weapon_id)
 	if i == boss_index:
@@ -2021,7 +2032,7 @@ func _bronco_kick(i: int, dir: Vector3, push: float, weapon_id: String, roll: fl
 	fly = fly.normalized() if fly.length_squared() > 0.0001 else Vector3.FORWARD
 	if not launch(i, BRONCO_HEIGHT, BRONCO_AIR, 0.0, weapon_id):
 		return false
-	var dist := clampf(BRONCO_AWAY_BASE + BRONCO_AWAY_PER * maxf(push, 0.0), BRONCO_AWAY_MIN, BRONCO_AWAY_MAX)
+	var dist := clampf(BRONCO_AWAY_BASE + BRONCO_AWAY_PER * maxf(push, 0.0), BRONCO_AWAY_MIN, BRONCO_AWAY_MAX) * hero_knock_mult()
 	(_launched[i] as Dictionary)["drift"] = fly * (dist / BRONCO_AIR)
 	bronco_launches += 1
 	return true
@@ -2309,6 +2320,38 @@ func throw_radius(center: Vector3, r: float, force: float, except_i: int = -1) -
 	return n
 
 
+# ---------------------------------------------------------------- pass 72 (lane ITEMS): the hero's knockback halved
+## Garry: "Half all the knockback effect, it's too easy to make enemies basically unable to get to you if you choose to
+## scale that." One map number, WaveTimeline.hero_knockback_mult (Red Canyon 0.5), on every push the hero's side gives a
+## creature: damage()'s kb_force from any hero source (every weapon, mutation, evolution, line, passive, perk, the ball,
+## the frisbee, thorns, the revive), hero_throw_radius (the Nuke, Thruster Burst, Grand Finale), Buck's Ram, the
+## tornado's toss, the Guitarra chord's bounce (ConeWave) and Bucking Bronco's throw distance. Never a hostile push (a dead
+## rocketeer's loose rocket, a hostile blast's friendly fire, the golem's boulder, a charger's shove, an Elite's split),
+## the pull, knockback_resist or a stun. `hero_knockback_override` >= 0 replaces the map's number (tests).
+const HOSTILE_PUSH_IDS := ["loose_rocket", "blast"]
+var hero_knockback_override := -1.0
+
+
+## The map's multiplier on the hero's pushes now (1 without a map).
+func hero_knock_mult() -> float:
+	if hero_knockback_override >= 0.0:
+		return hero_knockback_override
+	var m: MapDef = Run.map
+	if m == null or m.timeline == null:
+		return 1.0
+	return maxf(m.timeline.hero_knockback_mult, 0.0)
+
+
+## A hit's push share by its source: hero_knock_mult() for the hero's, 1 for a hostile one (HOSTILE_PUSH_IDS).
+func _hero_push(weapon_id: String) -> float:
+	return 1.0 if weapon_id in HOSTILE_PUSH_IDS else hero_knock_mult()
+
+
+## A blast from the hero's side throwing the crowd (throw_radius at the map's share of `force`).
+func hero_throw_radius(center: Vector3, r: float, force: float, except_i: int = -1) -> int:
+	return throw_radius(center, r, force * hero_knock_mult(), except_i)
+
+
 func damage_radius(center: Vector3, r: float, amount: float, weapon_id: String = "", kb_force: float = 0.0) -> int:
 	var hit := 0
 	for i in indices_in_radius(center, r):
@@ -2362,6 +2405,8 @@ func _die(i: int, weapon_id: String) -> void:
 	status_t[i] = 0.0
 	vel[i] = Vector3.ZERO
 	count_alive -= 1
+	if vspecial[i] == 1:
+		specials_alive = maxi(specials_alive - 1, 0)
 	Audio.play(str(def.sfx.get("die", "")), pos[i])
 	Run.add_kill(def.id, weapon_id)
 	# a training dummy (pass 48) counts for no quest: the run's own kill above still feeds what the hero carries
@@ -2378,6 +2423,7 @@ func _die(i: int, weapon_id: String) -> void:
 	died_max_hp = 0.0
 	died_size = 0.0
 	_hot_sauce_pay(i, def, elite)
+	_special_chest_drop(i, def, elite)
 	if game and game.has_method("on_creature_died_index"):
 		game.on_creature_died_index(i)
 	if not def.death_burst.is_empty() and blown[i] == 0 and game and game.has_method("elite_explosion"):
@@ -2433,11 +2479,42 @@ func _hot_sauce_pay(i: int, def: EnemyDef, elite: EliteModDef) -> void:
 		pk.spawn_chest(pos[i])
 
 
+## Pass 72 (lane SPEC; Garry: specials "should have way more of a chance of dropping a box"): a variance special the hero
+## kills drops a chest at its `chest_chance` (EnemyDef.special_value: the creature's own `variance.special.chest_chance`,
+## else the map's special_defaults, else 0.35), on top of anything else its death pays (Hot Sauce's chest rolls apart).
+## Never for a training dummy, an elite-modded one or a boss (none of them rolls a special), nor while a capture tool
+## holds the kill chests back (game.no_random_chests). Returns whether it dropped one (tests).
+var special_chests := 0
+func _special_chest_drop(i: int, def: EnemyDef, elite: EliteModDef) -> bool:
+	if vspecial[i] == 0 or elite != null or game == null or def.brain == "dummy" or def.archetype == "boss":
+		return false
+	if game.get("no_random_chests") == true:
+		return false
+	var pk = game.get("pickups")
+	if pk == null:
+		return false
+	var chance := clampf(EnemyDef.special_value(def.variance.get("special", {}), special_defaults, "chest_chance"), 0.0, 1.0)
+	if chance <= 0.0 or _rng.randf() >= chance:
+		return false
+	special_chests += 1
+	pk.spawn_chest(pos[i])
+	return true
+
+
+## Whether one more variance special may come now (pass 72): fewer than EnemyDef.special_max_alive(special_defaults)
+## alive (none when it is -1, no limit).
+func _special_room() -> bool:
+	var cap: int = EnemyDef.special_max_alive(special_defaults)
+	return cap < 0 or specials_alive < cap
+
+
 func _free(i: int) -> void:
 	if alive[i] == 0:
 		return
 	if state[i] != STATE_DYING:
 		count_alive -= 1
+		if vspecial[i] == 1:
+			specials_alive = maxi(specials_alive - 1, 0)
 	alive[i] = 0
 	held[i] = 0
 	lift_mode[i] = 0
@@ -2976,7 +3053,7 @@ func _physics_process(delta: float) -> void:
 				squash[i] = 0.55
 				flash[i] = 0.6
 				lift_cd[i] = 4.0
-				kb[i] = Vector3(cos(lift_a[i]), 0, sin(lift_a[i])) * 12.0
+				kb[i] = Vector3(cos(lift_a[i]), 0, sin(lift_a[i])) * 12.0 * hero_knock_mult()
 				damage(i, max_hp[i] * 0.08, "", Vector3.ZERO, 0.0)
 			continue
 		if lift_cd[i] > 0.0:
@@ -3138,7 +3215,7 @@ func _physics_process(delta: float) -> void:
 			if Run.has_perk("ram") and Run.momentum >= Run.perk_param("ram", "from", 0.99) and state[i] != STATE_CHARGE and i != boss_index:
 				var away := pos[i] - ppos
 				away.y = 0.0
-				kb[i] += (away.normalized() if away.length_squared() > 0.01 else Vector3.FORWARD) * Run.perk_param("ram", "shove", 9.0) * _t_kbt[ti]
+				kb[i] += (away.normalized() if away.length_squared() > 0.01 else Vector3.FORWARD) * Run.perk_param("ram", "shove", 9.0) * _t_kbt[ti] * hero_knock_mult()
 				var th: float = Run.player_sheet.get_stat("thorns", 0.0) * Run.perk_param("ram", "thorns_mult", 3.0) + Run.perk_param("ram", "flat", 12.0) + Run.perk_param("ram", "per_level", 0.0) * float(Run.level)
 				damage(i, th, "", away, 0.0)
 				if game:
@@ -3997,6 +4074,8 @@ func _update_boss(delta: float, ppos: Vector3) -> void:
 	_tick_rains(delta, ppos)
 	_tick_rumbles(delta, ppos)
 	_tick_stalactites(delta, ppos)
+	# pass 72 (lane BOSS): the custom attacks in the air (content/boss_attacks)
+	_tick_custom_attacks(delta, ppos)
 	if boss_index >= 0:
 		_update_attacks(boss_index, delta, ppos)
 	for i in range(MAX):
@@ -4029,6 +4108,8 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 		return
 	var def: EnemyDef = types[type_idx[i]]["def"]
 	var attacks: Array = def.boss.get("attacks", [])
+	# pass 72 (lane BOSS): the entries naming a custom attack (content/boss_attacks) resolved
+	attacks = custom_resolved(def, attacks)
 	if attacks.is_empty():
 		return
 	if state[i] == STATE_MOVE:
@@ -4078,6 +4159,8 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 			dir.y = 0.0
 			dir = dir.normalized()
 			charge_dir[i] = dir
+			# pass 72 (lane BOSS): a custom attack's own wind-up marks (its entry's telegraph is "none")
+			_custom_attack_begin(i, atk, ppos)
 			match str(atk.get("telegraph", "none")):
 				"line":
 					# as long as the attack: a roll's speed x duration plus the body in front of its centre, a brand's `length`;
@@ -4322,8 +4405,12 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 						game.telegraph_ring(atk_target[i], float(atk.get("radius", 4.6)), bflight / pace, Color(0.93, 0.29, 0.36))
 					state[i] = STATE_MOVE
 				_:
+					# pass 72 (lane BOSS): a custom attack (content/boss_attacks) by its id
+					_custom_attack_fire(i, atk, ppos)
 					state[i] = STATE_MOVE
 			atk_t[i] = float(def.boss.get("cooldown_between", 2.0))
+			# pass 72 (lane BOSS): a custom attack's own rest after it, when it names one
+			atk_t[i] = custom_rest(atk, atk_t[i])
 	elif state[i] == STATE_CHARGE and str(def.brain) == "boss":
 		timer[i] -= delta
 		vel[i] = charge_dir[i] * _scripted_speed(i, def)
@@ -4350,6 +4437,8 @@ func _attack_out_of_range(atk: Dictionary, dist: float) -> bool:
 ## The pace knob is in it (pass 48).
 func _scripted_speed(i: int, def: EnemyDef) -> float:
 	var attacks: Array = def.boss.get("attacks", [])
+	# pass 72 (lane BOSS): a custom `script` attack wrapping a roll rolls at its own speed
+	attacks = custom_resolved(def, attacks)
 	if attacks.is_empty():
 		return float(def.charge.get("speed", 9.0)) * pace
 	return float((attacks[(atk_i[i] - 1) % attacks.size()] as Dictionary).get("speed", 12.0)) * pace
@@ -4843,3 +4932,454 @@ func _render() -> void:
 				bmm2.set_instance_custom_data(bn2, Color(1.0, 0.3, 0.0, 0.0))
 				bn2 += 1
 			bmm2.visible_instance_count = bn2
+
+
+# ---------------------------------------------------------------- custom boss attacks (pass 72, lane BOSS)
+
+## Garry: "add the ability to create custom attacks for bosses. Like colouring the projectile, deciding the ranges, etc.
+## Like create custom ones that I can name". A `boss.attacks` entry {"name": "<id>"} naming a content/boss_attacks attack
+## (BossAttackDef) plays it: the runner's list is resolved once per def (custom_resolved, BossAttackDef.runner_entry: its
+## wind-up, no built-in telegraph, or for a `script` attack the built-in it wraps), the wind-up's marks are drawn by
+## _custom_attack_begin, the attack starts in the runner's fire step (its `_:` branch calls _custom_attack_fire), and
+## _tick_custom_attacks plays whatever is in the air on the creatures' shot clock (delta x pace, delta already carrying
+## High Noon's time_scale: the clock every hostile shot flies on, hostile_clock). BossAttackFx draws the shots.
+## Boss HP pegged to the hero's DPS (pass 72): the multiplier the next boss spawn takes, held by the director around it
+## (WaveDirector.boss_dps_scale), 1 otherwise.
+var boss_hp_scale := 1.0
+var _custom_runs: Array = []
+var _custom_cache: Dictionary = {}     # a def's instance id -> [its attacks list, the resolved list]
+var _custom_aim: Dictionary = {}       # creature -> {serial, aim, center}: what the wind-up showed, fixed for the fire
+var _custom_fx: BossAttackFx = null
+## Counts for the tests and the capture: spots landed, shots fired, hits on the hero, the last attack fired.
+var custom_landed := 0
+var custom_fired := 0
+var custom_hits := 0
+var custom_last: Dictionary = {}
+## How long a landed spike stays stuck in the sand, on the shot clock.
+const CUSTOM_STICK := 0.55
+## Seconds of the shot clock between two of a rain's launch sounds.
+const CUSTOM_SFX_GAP := 0.35
+
+
+## The custom attack called `name`, or null (a built-in name never is one: BossAttackDef.SCRIPTS).
+func custom_attack_of(name: String) -> BossAttackDef:
+	if name == "" or BossAttackDef.SCRIPTS.has(name):
+		return null
+	return Registry.boss_attack(name)
+
+
+## The attack list the runner plays for `def`: every entry naming a custom attack resolved (BossAttackDef.runner_entry),
+## the others as they are; the list itself when it names none. Kept per def while the def's list is the same array.
+func custom_resolved(def: EnemyDef, attacks: Array) -> Array:
+	if attacks.is_empty() or def == null:
+		return attacks
+	var key: int = def.get_instance_id()
+	var got = _custom_cache.get(key)
+	if got is Array and is_same((got as Array)[0], attacks):
+		return (got as Array)[1]
+	var out: Array = []
+	var any := false
+	for a in attacks:
+		var cdef: BossAttackDef = custom_attack_of(str((a as Dictionary).get("name", ""))) if a is Dictionary else null
+		if cdef != null:
+			out.append(cdef.runner_entry(a))
+			any = true
+		else:
+			out.append(a)
+	var res: Array = out if any else attacks
+	_custom_cache[key] = [attacks, res]
+	return res
+
+
+## The rest after a custom attack: its own `timing.cooldown` when above 0, else `rest` (the boss's cooldown_between).
+func custom_rest(atk: Dictionary, rest: float) -> float:
+	if not atk.has("custom"):
+		return rest
+	var cdef := custom_attack_of(str(atk["custom"]))
+	if cdef == null or cdef.num("timing", "cooldown") <= 0.0:
+		return rest
+	return cdef.num("timing", "cooldown")
+
+
+func _custom_fx_node() -> BossAttackFx:
+	if _custom_fx == null or not is_instance_valid(_custom_fx):
+		_custom_fx = BossAttackFx.new()
+		_custom_fx.name = "BossAttackFx"
+		add_child(_custom_fx)
+	return _custom_fx
+
+
+## The wind-up of a custom attack (the runner has set its timer: the wind-up x 1/pace): its aim and centre are fixed now,
+## as its marks show them: a slam's disc, a ring's circle, a volley's lines, the outline of a rain's whole area.
+func _custom_attack_begin(i: int, atk: Dictionary, ppos: Vector3) -> void:
+	if not atk.has("custom"):
+		return
+	var cdef := custom_attack_of(str(atk["custom"]))
+	if cdef == null:
+		return
+	var center: Vector3 = ppos if cdef.text("pattern", "center") == "hero" else pos[i]
+	center.y = _height(center.x, center.z)
+	var aim := atan2(charge_dir[i].z, charge_dir[i].x)
+	match cdef.text("pattern", "aim"):
+		"random":
+			aim = _rng.randf() * TAU
+		"fixed":
+			aim = 0.0
+	_custom_aim[i] = {"serial": serial[i], "aim": aim, "center": center}
+	var ws := cdef.text("sounds", "windup")
+	if ws != "":
+		Audio.play(ws, pos[i])
+	if game == null or cdef.text("telegraph", "kind") == "none":
+		return
+	var col := cdef.telegraph_color()
+	var wind: float = maxf(timer[i], 0.05)
+	var rmax := cdef.num("pattern", "radius_max")
+	match cdef.attack_kind:
+		"slam":
+			game.telegraph_ring(center, rmax, wind, col)
+		"ring":
+			game.telegraph_ring(pos[i], rmax, wind, col, false)
+		"rain":
+			# the edge of where it will fall; each landing spot gets its own circle before its spike lands
+			game.telegraph_ring(center, rmax, wind, Color(col.r, col.g, col.b, col.a * 0.6), false)
+		"volley":
+			for a: float in _custom_dirs(cdef, aim):
+				game.telegraph_line(pos[i], Vector3(cos(a), 0, sin(a)), cdef.num("projectile", "range"), wind, col)
+
+
+## The directions of a volley round `aim` (radians): `count` over `spread_deg` (all round at 360).
+func _custom_dirs(cdef: BossAttackDef, aim: float) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	var n := maxi(int(cdef.num("pattern", "count")), 1)
+	var spread := deg_to_rad(clampf(cdef.num("pattern", "spread_deg"), 0.0, 360.0))
+	for k in range(n):
+		if spread >= TAU - 0.001:
+			out.append(aim + TAU * float(k) / float(n))
+		else:
+			out.append(aim - spread * 0.5 + spread * float(k) / float(maxi(n - 1, 1)))
+	return out
+
+
+## The attack lands (the runner's fire step): a run is put in the air for the kinds that last (rain, volley, ring), a slam
+## goes off at once. Its damage is `damage` x the boss's bite x its stage, hero-level and hostile factors (the factors
+## every scripted attack carries); the boss stands for `timing.hold` (-1: while its shots leave).
+func _custom_attack_fire(i: int, atk: Dictionary, ppos: Vector3) -> void:
+	if not atk.has("custom"):
+		return
+	var cdef := custom_attack_of(str(atk["custom"]))
+	if cdef == null:
+		return
+	var aimd: Dictionary = _custom_aim.get(i, {})
+	if int(aimd.get("serial", -1)) != serial[i]:
+		aimd = {"aim": atan2(charge_dir[i].z, charge_dir[i].x), "center": pos[i]}
+	_custom_aim.erase(i)
+	var bite: float = (types[type_idx[i]]["def"] as EnemyDef).damage
+	var words: Array = [cdef.display_name.to_lower()]
+	if cdef.knockback > 0.0:
+		words.append("thrown" if cdef.lift > 0.0 else "knocked back")
+	var look := cdef.text("projectile", "look")
+	var tint := cdef.tint()
+	var glow := cdef.num("projectile", "glow")
+	var run := {"id": cdef.id, "def": cdef, "kind": cdef.attack_kind, "owner": i, "clock": 0.0,
+		"damage": cdef.damage * bite * stage_of(i) * lvd_of(i) * host_of(i), "info": hit_info(i, "ranged", words),
+		"look": look, "tint": tint, "glow": glow, "key": BossAttackFx.pool_key(look, tint, glow),
+		"from": pos[i] + Vector3(0, size[i] * 0.75, 0), "center": aimd["center"]}
+	var leave := 0.0
+	match cdef.attack_kind:
+		"rain":
+			_custom_rain_start(run, cdef)
+			leave = cdef.num("timing", "stagger")
+		"volley":
+			_custom_volley_start(run, cdef, float(aimd["aim"]))
+			leave = maxf(cdef.num("pattern", "waves") - 1.0, 0.0) * cdef.num("pattern", "wave_gap")
+		"ring":
+			run["rings"] = []
+			for w in range(maxi(int(cdef.num("pattern", "count")), 1)):
+				(run["rings"] as Array).append({"t0": float(w) * cdef.num("pattern", "wave_gap"), "drawn": false, "hit": false})
+			leave = maxf(cdef.num("pattern", "count") - 1.0, 0.0) * cdef.num("pattern", "wave_gap")
+		"slam":
+			_custom_slam(run, cdef, ppos)
+		_:
+			return
+	if cdef.attack_kind != "slam":
+		_custom_runs.append(run)
+	var hold := cdef.num("timing", "hold")
+	if hold < 0.0:
+		hold = leave
+	if hold > 0.0:
+		hold_t[i] = maxf(hold_t[i], hold / maxf(pace, 0.05))
+	var fs := cdef.text("sounds", "fire")
+	if fs != "":
+		Audio.play(fs, pos[i])
+	custom_last = {"id": cdef.id, "kind": cdef.attack_kind, "spots": (run.get("spots", []) as Array).size(),
+		"shots": (run.get("shots", []) as Array).size(), "center": run["center"], "damage": run["damage"]}
+	if game and game.get("camera") and cdef.attack_kind != "slam":
+		game.camera.shake(0.5)
+
+
+## A rain's landing spots (BossAttackDef.rain_points round its centre, those past the arena's wall left out) and each
+## one's landing time on the shot clock (BossAttackDef.land_times: the first after its flight, the last `stagger` later).
+func _custom_rain_start(run: Dictionary, cdef: BossAttackDef) -> void:
+	var pts := cdef.rain_points(_rng)
+	var flight := maxf(cdef.num("projectile", "flight"), 0.1)
+	var times := BossAttackDef.land_times(pts.size(), cdef.num("timing", "stagger"), flight)
+	var c: Vector3 = run["center"]
+	var lim := arena_radius - 1.0
+	var spots: Array = []
+	for k in range(pts.size()):
+		var at := Vector3(c.x + pts[k].x, 0.0, c.z + pts[k].y)
+		if Vector2(at.x, at.z).length() > lim:
+			continue
+		at.y = _height(at.x, at.z)
+		spots.append({"at": at, "land": times[k], "tel": false, "done": false})
+	run["spots"] = spots
+	run["flight"] = flight
+	custom_fired += spots.size()
+
+
+## A volley's shots: `waves` of them `wave_gap` apart, each wave one shot down every direction round the aim.
+func _custom_volley_start(run: Dictionary, cdef: BossAttackDef, aim: float) -> void:
+	var shots: Array = []
+	var from: Vector3 = run["from"]
+	from.y = _height(from.x, from.z) + 1.0
+	for w in range(maxi(int(cdef.num("pattern", "waves")), 1)):
+		for a: float in _custom_dirs(cdef, aim):
+			shots.append({"t0": float(w) * cdef.num("pattern", "wave_gap"), "pos": from, "dir": Vector3(cos(a), 0, sin(a)),
+				"gone": 0.0, "dead": false})
+	run["shots"] = shots
+	custom_fired += shots.size()
+
+
+## A slam: the hero inside `radius_max` of its centre is hit, at once.
+func _custom_slam(run: Dictionary, cdef: BossAttackDef, ppos: Vector3) -> void:
+	var c: Vector3 = run["center"]
+	var r := cdef.num("pattern", "radius_max")
+	var d := ppos - c
+	d.y = 0.0
+	if d.length() <= r + 0.4:
+		_custom_hit(run, cdef, c, ppos)
+	if game:
+		var tg = game.get("telegraphs")
+		if tg and tg.has_method("flash_ring"):
+			tg.flash_ring(c, r, cdef.tint(), 0.4)
+		game.fx_burst(c + Vector3(0, 0.5, 0), cdef.tint(), r * 0.5)
+		if game.get("camera"):
+			game.camera.shake(1.0)
+
+
+## The hero takes a custom attack's hit at `at`: its damage, and its knockback away from `at` (Player.take_damage's
+## `knock`: a hit or a shield's catch moves him, an evade or a bubble never), thrown up `lift` metres when it has one.
+func _custom_hit(run: Dictionary, cdef: BossAttackDef, at: Vector3, ppos: Vector3) -> void:
+	if player == null or player.dead:
+		return
+	var info: Dictionary = (run["info"] as Dictionary).duplicate()
+	info["knock"] = cdef.knockback
+	player.take_damage(float(run["damage"]), at, info)
+	custom_hits += 1
+	if cdef.lift > 0.0 and cdef.knockback > 0.0 and player.has_method("blast") and str(player.get("last_outcome")) == "hit":
+		var fling := ppos - at
+		fling.y = 0.0
+		if fling.length_squared() < 0.0001:
+			fling = ppos - (run["from"] as Vector3)
+			fling.y = 0.0
+		if fling.length_squared() > 0.0001:
+			player.blast(fling.normalized() * cdef.knockback, cdef.lift)
+
+
+## Everything of the custom attacks in the air, a tick: the shot clock moves on, rains telegraph, fly and land, volleys fly
+## and hit, rings race out; what is done is dropped. The shots are drawn afresh (BossAttackFx).
+func _tick_custom_attacks(delta: float, ppos: Vector3) -> void:
+	if _custom_runs.is_empty():
+		if _custom_fx != null and is_instance_valid(_custom_fx) and _custom_fx.drawn > 0:
+			_custom_fx.begin()
+			_custom_fx.finish()
+		return
+	var dc := delta * pace
+	# shot-clock seconds a real second (the ground marks run on real time)
+	var k_real := maxf(pace * time_scale, 0.05)
+	var fx: BossAttackFx = _custom_fx_node() if game != null else null
+	if fx:
+		fx.begin()
+	var keep: Array = []
+	for run: Dictionary in _custom_runs:
+		run["clock"] = float(run["clock"]) + dc
+		var going := false
+		match str(run["kind"]):
+			"rain":
+				going = _tick_custom_rain(run, ppos, k_real, fx)
+			"volley":
+				going = _tick_custom_volley(run, dc, ppos, fx)
+			"ring":
+				going = _tick_custom_ring(run, ppos, k_real)
+		if going:
+			keep.append(run)
+	_custom_runs = keep
+	if fx:
+		fx.finish()
+
+
+func _tick_custom_rain(run: Dictionary, ppos: Vector3, k_real: float, fx: BossAttackFx) -> bool:
+	var cdef: BossAttackDef = run["def"]
+	var c := float(run["clock"])
+	var flight := float(run["flight"])
+	var tel := maxf(cdef.num("telegraph", "seconds"), 0.0)
+	var show_tel := cdef.text("telegraph", "kind") != "none" and game != null
+	var lr := maxf(cdef.num("landing", "radius"), 0.05)
+	var col := cdef.telegraph_color()
+	var sz := maxf(cdef.num("projectile", "size"), 0.05)
+	var peak := cdef.num("projectile", "arc")
+	var trail := cdef.flag("projectile", "trail")
+	var from: Vector3 = run["from"]
+	var going := false
+	var launching := false
+	for s: Dictionary in run["spots"]:
+		var land := float(s["land"])
+		var at: Vector3 = s["at"]
+		if bool(s["done"]):
+			if c - land < CUSTOM_STICK:
+				going = true
+				if fx:
+					# stuck in the sand point first, sinking as it goes
+					var sink := clampf((c - land) / CUSTOM_STICK, 0.0, 1.0)
+					var dn := _custom_arc_dir(from, at, peak, 1.0)
+					fx.put(run["key"], run["look"], run["tint"], run["glow"], _custom_xf(at - dn * (0.1 + 0.3 * sink) * sz, dn, sz * (1.0 - 0.4 * sink)))
+			continue
+		going = true
+		if show_tel and not bool(s["tel"]) and c >= land - tel:
+			s["tel"] = true
+			game.telegraph_ring(at, lr, maxf(land - c, 0.05) / k_real, col, true)
+		var launch := land - flight
+		if c < launch:
+			continue
+		launching = launching or c - launch < 0.1
+		if c >= land:
+			s["done"] = true
+			_custom_land(run, cdef, at, lr, ppos)
+			continue
+		if fx:
+			var u := clampf((c - launch) / flight, 0.0, 1.0)
+			fx.put(run["key"], run["look"], run["tint"], run["glow"], _custom_xf(_custom_arc(from, at, peak, u), _custom_arc_dir(from, at, peak, u), sz))
+			if trail:
+				for k in range(1, 4):
+					var ut := u - 0.045 * float(k)
+					if ut <= 0.0:
+						break
+					fx.put(run["key"], run["look"], run["tint"], run["glow"], _custom_xf(_custom_arc(from, at, peak, ut), _custom_arc_dir(from, at, peak, ut), sz * (0.78 - 0.17 * float(k))))
+	# the launch sounds while spikes leave
+	var fs := cdef.text("sounds", "fire")
+	if fs != "" and launching and c - float(run.get("sfx_at", -10.0)) >= CUSTOM_SFX_GAP:
+		run["sfx_at"] = c
+		Audio.play(fs, from)
+	return going
+
+
+## A spot's spike comes down: the hero inside its circle (his body's middle within the radius and a little) is hit, the
+## sand bursts, the sound plays (only near him, at most one every CUSTOM_SFX_GAP / 3 of the clock).
+func _custom_land(run: Dictionary, cdef: BossAttackDef, at: Vector3, lr: float, ppos: Vector3) -> void:
+	custom_landed += 1
+	var d := ppos - at
+	d.y = 0.0
+	if d.length() <= lr + 0.2:
+		_custom_hit(run, cdef, at, ppos)
+	if game:
+		game.fx_sand(at + Vector3(0, 0.15, 0), 0.6)
+		var tg = game.get("telegraphs")
+		if tg and tg.has_method("flash_ring"):
+			tg.flash_ring(at, lr, cdef.tint(), 0.25)
+	var ls := cdef.text("sounds", "land")
+	var c := float(run["clock"])
+	if ls != "" and d.length() < 14.0 and c - float(run.get("land_sfx_at", -10.0)) >= CUSTOM_SFX_GAP / 3.0:
+		run["land_sfx_at"] = c
+		Audio.play(ls, at)
+
+
+## Where a thrown shot is at `u` (0..1) of its flight from `from` to `to`: the straight line lifted by a parabola that
+## peaks `peak` metres up at the middle.
+static func _custom_arc(from: Vector3, to: Vector3, peak: float, u: float) -> Vector3:
+	return from.lerp(to, u) + Vector3(0, 4.0 * peak * u * (1.0 - u), 0)
+
+
+static func _custom_arc_dir(from: Vector3, to: Vector3, peak: float, u: float) -> Vector3:
+	var v := (to - from) + Vector3(0, 4.0 * peak * (1.0 - 2.0 * u), 0)
+	return v.normalized() if v.length_squared() > 0.0001 else Vector3.DOWN
+
+
+## A shot's transform: at `at`, its point (-Z) down `dir`, `s` times its size.
+static func _custom_xf(at: Vector3, dir: Vector3, s: float) -> Transform3D:
+	var up := Vector3.UP if absf(dir.dot(Vector3.UP)) < 0.98 else Vector3.RIGHT
+	return Transform3D(Basis.looking_at(dir, up).scaled(Vector3(s, s, s)), at)
+
+
+func _tick_custom_volley(run: Dictionary, dc: float, ppos: Vector3, fx: BossAttackFx) -> bool:
+	var cdef: BossAttackDef = run["def"]
+	var c := float(run["clock"])
+	var spd := maxf(cdef.num("projectile", "speed"), 0.1)
+	var rng := maxf(cdef.num("projectile", "range"), 0.5)
+	var hr := maxf(cdef.num("projectile", "hit_radius"), 0.05)
+	var sz := maxf(cdef.num("projectile", "size"), 0.05)
+	var going := false
+	for s: Dictionary in run["shots"]:
+		if bool(s["dead"]):
+			continue
+		going = true
+		if c < float(s["t0"]):
+			continue
+		var step := minf(spd * dc, maxf(rng - float(s["gone"]), 0.0))
+		var p: Vector3 = s["pos"] + (s["dir"] as Vector3) * step
+		p.y = _height(p.x, p.z) + 1.0
+		s["pos"] = p
+		s["gone"] = float(s["gone"]) + step
+		var d := ppos - p
+		d.y = 0.0
+		if d.length() <= hr + 0.3 and player and not player.dead:
+			s["dead"] = true
+			_custom_hit(run, cdef, p - (s["dir"] as Vector3), ppos)
+			continue
+		if float(s["gone"]) >= rng - 0.001:
+			s["dead"] = true
+			if game:
+				game.fx_sand(p, 0.5)
+			continue
+		if fx:
+			fx.put(run["key"], run["look"], run["tint"], run["glow"], _custom_xf(p, s["dir"], sz))
+	return going
+
+
+## A ring's front at `f` (0..1) of its race, as Telegraphs.race_ring draws it: out fast, slowing (1 - (1 - f)^3).
+static func custom_ring_front(rmax: float, f: float) -> float:
+	return rmax * (1.0 - pow(1.0 - clampf(f, 0.0, 1.0), 3.0))
+
+
+func _tick_custom_ring(run: Dictionary, ppos: Vector3, k_real: float) -> bool:
+	var cdef: BossAttackDef = run["def"]
+	var c := float(run["clock"])
+	var rmax := maxf(cdef.num("pattern", "radius_max"), 0.5)
+	var width := clampf(cdef.num("pattern", "width"), 0.1, rmax)
+	var dur := rmax / maxf(cdef.num("projectile", "speed"), 0.1)
+	var center: Vector3 = run["center"]
+	var going := false
+	for r: Dictionary in run["rings"]:
+		var t0 := float(r["t0"])
+		if c < t0:
+			going = true
+			continue
+		if not bool(r["drawn"]) and game:
+			r["drawn"] = true
+			var tg = game.get("telegraphs")
+			if tg and tg.has_method("race_ring"):
+				var tc: Color = cdef.tint()
+				tg.race_ring(center, rmax, dur / k_real, Color(tc.r, tc.g, tc.b, 0.85), width / rmax)
+		var f := (c - t0) / dur
+		if f >= 1.0:
+			continue
+		going = true
+		if bool(r["hit"]):
+			continue
+		var front := custom_ring_front(rmax, f)
+		var d := ppos - center
+		d.y = 0.0
+		var dl := d.length()
+		if dl <= front + 0.3 and dl >= front - front * width / rmax - 0.3:
+			r["hit"] = true
+			_custom_hit(run, cdef, center, ppos)
+	return going

@@ -187,10 +187,11 @@ def title_prompt(character, pose, camera, holds, extra_words, style, bg):
 
 
 def title_seeds(first, seeds, offset=0, attempt=1, tag=""):
-    """first, moved by the look's seed_offset and the job's attempt (each a gen_art.LOOK_SEED_STEP), then cand_seeds.seeds:
-    the job's own move (`tag`, the Level Editor job id; none by hand) and candidate n CAND_STEP from n-1 (pass 70)."""
+    """first (pass 72: 0 = the tool's own start, 11: cand_seeds.start), moved by the look's seed_offset and the job's
+    attempt (each a gen_art.LOOK_SEED_STEP), then cand_seeds.seeds: the job's own move (`tag`, the Level Editor job id;
+    none by hand) and candidate n CAND_STEP from n-1 (pass 70)."""
     move = ga.LOOK_SEED_STEP * (int(offset) + max(0, int(attempt) - 1))
-    return cand_seeds.seeds(int(first) + move, seeds, tag)
+    return cand_seeds.seeds(cand_seeds.start(11, first) + move, seeds, tag)
 
 
 def out_stem(hid, code=""):

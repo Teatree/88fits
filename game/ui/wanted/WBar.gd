@@ -13,6 +13,13 @@ var border := 4
 var shadow := 4
 ## The part of the bar that is going away (drawn hatched after the fill).
 var loss := 0.0
+## The last part of the fill that was just gained (pass 72, the Results' unlock progress: this run's share), drawn in
+## `gain_fill` at the fill's end.
+var gain := 0.0:
+	set(v):
+		gain = maxf(v, 0.0)
+		queue_redraw()
+var gain_fill := W.SAGE
 var text := ""
 var text_px := 28
 var text_color := W.INK
@@ -39,6 +46,9 @@ func _draw() -> void:
 	var fw := inner.size.x * value
 	if fw > 0.0:
 		draw_rect(Rect2(inner.position, Vector2(fw, inner.size.y)), fill)
+		if gain > 0.0:
+			var gw := minf(inner.size.x * gain, fw)
+			draw_rect(Rect2(inner.position + Vector2(fw - gw, 0), Vector2(gw, inner.size.y)), gain_fill)
 	if loss > 0.0:
 		var lr := Rect2(inner.position + Vector2(fw, 0), Vector2(inner.size.x * loss, inner.size.y))
 		draw_rect(lr, W.INK)

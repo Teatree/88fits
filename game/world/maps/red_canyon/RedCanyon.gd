@@ -361,7 +361,8 @@ func _build_wall() -> void:
 	# the same ring twice more, bigger and darker, so the horizon has depth without a single box
 	var near := _stone().duplicate()
 	near.albedo_color = Color(0.78, 0.6, 0.5)   # a shade darker than the ground so the cliffs read as cliffs
-	add_child(_ridge(arena_radius + 4.0, 9.0, 6.0, 96, near, 1.0))
+	# pass 72: the near cliffs and the boundary wall are scenery (a creature they hide is outlined, SceneryStencil)
+	add_child(SceneryStencil.mark_tree(_ridge(arena_radius + 4.0, 9.0, 6.0, 96, near, 1.0)))
 	var far := _stone().duplicate()
 	far.albedo_color = Color(0.62, 0.42, 0.36)
 	add_child(_ridge(arena_radius + 26.0, 16.0, 9.0, 72, far, 2.3))
@@ -370,7 +371,7 @@ func _build_wall() -> void:
 	add_child(_ridge(arena_radius + 52.0, 24.0, 12.0, 60, farther, 5.1))
 	# the boundary itself: a low stacked-stone wall right on the arena's edge, with posts and skulls, so the line the
 	# hero cannot cross is a thing in the world and not a place where he stops for no reason
-	add_child(_boundary_wall(arena_radius, 120))
+	add_child(SceneryStencil.mark_tree(_boundary_wall(arena_radius, 120)))
 	# invisible fence a little inside so the player never wedges into the cliffs
 	var n := 40
 	for k2 in range(n):

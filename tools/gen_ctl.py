@@ -153,8 +153,9 @@ def paint(cid, code, recipe, drv, seed, bg):
         refs = g.ensure_anchor_uploaded()
         clay = comfy.upload_pil(Image.open(os.path.join(drv, "side", "clay.png")).convert("RGB"), key + "_clay_side.png")
         n = int(opt("seeds", str(recipe.get("side_seeds", 3))))
-        # pass 70: the job's own seeds (a re-run's attempt and the job id move them)
-        side_seeds = cand_seeds.seeds(seed + g.LOOK_SEED_STEP * (cand_seeds.job_attempt() - 1), n, cand_seeds.job_tag())
+        # pass 70: the job's own seeds (a re-run's attempt and the job id move them); pass 72: from the job's First seed
+        # (--first-seed, 0 = the look's own seed: cand_seeds.start)
+        side_seeds = cand_seeds.seeds(cand_seeds.start(seed, opt("first-seed", "0")) + g.LOOK_SEED_STEP * (cand_seeds.job_attempt() - 1), n, cand_seeds.job_tag())
         keys = []
         for k in range(n):
             ck = "%s_k%d" % (side_key, k)
@@ -200,7 +201,7 @@ def paint(cid, code, recipe, drv, seed, bg):
         if view in cands:
             ks = ["%s_%s_c%d" % (key, view, c) for c in range(int(opt("seeds", "3")))]
             # pass 70: the job's own seeds, CAND_STEP past the plain view's own
-            vseeds = cand_seeds.seeds(seed + 11 + k + cand_seeds.CAND_STEP + g.LOOK_SEED_STEP * (cand_seeds.job_attempt() - 1), len(ks), cand_seeds.job_tag())
+            vseeds = cand_seeds.seeds(cand_seeds.start(seed, opt("first-seed", "0")) + 11 + k + cand_seeds.CAND_STEP + g.LOOK_SEED_STEP * (cand_seeds.job_attempt() - 1), len(ks), cand_seeds.job_tag())
             for c, ck in enumerate(ks):
                 g.render(ck, p, [side_ref, clay], {"subject": noun, "view": None, "subjects_max": 1}, vseeds[c], tries=1)
             log("  %s candidates: %s" % (view, sheet(ks, "%s_%s_cands.png" % (key, view))))

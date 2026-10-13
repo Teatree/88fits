@@ -416,7 +416,8 @@ def run(job_dir, dry=False):
             else:
                 gic.pick([key + "=" + str(job.get("choice", 0))])
         else:
-            gic.paint([key], int(job.get("seeds", 4)), bool(job.get("dev", False)), int(job.get("attempt") or 1))
+            # pass 72: the job's First seed (0 = the tool's own start)
+            gic.paint([key], int(job.get("seeds", 4)), bool(job.get("dev", False)), int(job.get("attempt") or 1), int(job.get("first_seed") or 0))
     elif tool == "gen_title_heroes":
         import gen_title_heroes as gth  # noqa: E402
         if dry:

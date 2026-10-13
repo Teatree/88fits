@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_icon.png" id="1_6nfm6"]
+[ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_icon_b.png" id="1_v4tah"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="2_1go7i"]
 [ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite.png" id="3_1go7i"]
 [ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite_b.png" id="3_06g83"]
@@ -9,7 +10,7 @@
 [ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite_d.png" id="7_v4tah"]
 [ext_resource type="Texture2D" path="res://content/characters/solenne/solenne_sprite_e.png" id="8_5woph"]
 
-[sub_resource type="Resource" id="Resource_5woph"]
+[sub_resource type="Resource" id="Resource_v4tah"]
 script = ExtResource("3_jilq0")
 stat = "debuff_duration"
 op = "mul"
@@ -18,7 +19,7 @@ target = "player"
 
 [resource]
 script = ExtResource("2_1go7i")
-level_trait = [SubResource("Resource_5woph")]
+level_trait = [SubResource("Resource_v4tah")]
 order = 5
 trait_name = "Magic Hour"
 trait_text = "Gain 1.5% debuff duration per level (her burns, poison, slows and pins last longer; buffs do not)."
@@ -119,7 +120,7 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("1_6nfm6"),
+"icon": ExtResource("1_v4tah"),
 "note": "Walking_sun again, fitted to her (tools/pose_fit.py): squared to her hips, her body, hands and sun disc at her painted size, the disc facing the viewer in every view, a side still with the disc turned to the viewer.",
 "shelved": false,
 "sprite": ExtResource("3_06g83"),
@@ -234,7 +235,7 @@ variant = "SOL-B"
 id = "solenne"
 display_name = "Solenne"
 flavour = "She brings the noon with her."
-icon = ExtResource("1_6nfm6")
+icon = ExtResource("1_v4tah")
 icon_file = "solenne_icon.png"
 placeholder = {
 "color": "#141418",

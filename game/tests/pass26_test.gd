@@ -188,13 +188,15 @@ func test_perks_are_the_heros_own() -> void:
 		ids.append(m.id)
 	assert_bool(ids.has("salt_flats")).is_true()
 	# pass 69 (lane UI): Mira is back, a hero to buy (in play: locked or on sale on the title), so her own is offered
-	# to her: the Blasting Cap on her Land Mine (a hidden hero's own staying out: pass66_shape_test's rule, Dad has none)
+	# to her: the Blasting Cap on her Land Mine (a hidden hero's own staying out: pass66_shape_test's rule, Dad has none).
+	# Garry hid her again on 2026-10-13: her own is offered exactly while she is in play
+	var mira_in_play: bool = not Registry.character("mira").hidden
 	_start("mira")
 	_give("land_mine", 3)
 	ids.clear()
 	for m in Run.open_mutations(Run.weapon_instance("land_mine")):
 		ids.append(m.id)
-	assert_bool(ids.has("blasting_cap")).is_true()
+	assert_bool(ids.has("blasting_cap")).is_equal(mira_in_play)
 	# the hero mutation shows for the favourite weapon only: the Drifter's Fan the Hammer on the Peashooter
 	_start("drifter")
 	_give("peashooter", 3)

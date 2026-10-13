@@ -8,6 +8,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%231a1a19'/%3E%3Cpath d='M2 11L6 7l3 2 5-5' fill='none' stroke='%233987e5' stroke-width='2'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="preview.css">
+<link rel="stylesheet" href="boss.css">
 </head>
 <body>
 <!-- the glyphs every lane and chip uses: <use href="#g-name"> (pass 53); they take their fill from the <use> -->
@@ -44,6 +45,7 @@
   <button type="button" data-tab="heroes" title="pass 66: the heroes as the game plays them, and their editor">Heroes</button>
   <button type="button" data-tab="items" title="pass 66: weapons with their mutations and evolutions, lines and passive items">Items</button>
   <button type="button" data-tab="jobs" title="pass 66: the local AI's jobs: queued, running, waiting for a pick, done">Jobs<span id="jobs-badge" class="jobs-badge" hidden></span></button>
+  <button type="button" data-tab="bossattacks" title="pass 72: custom boss attacks: make, name, tune with a preview, give to a boss">Boss attacks</button>
   <button type="button" data-tab="instructions">Instructions</button>
   <span id="issues" class="issues good" title="what the checks say (the inspector lists them when nothing is selected)">no issues</span>
   <span class="spacer"></span>
@@ -72,6 +74,7 @@
   <section id="tab-heroes" class="tab-panel page" hidden></section>
   <section id="tab-items" class="tab-panel page" hidden></section>
   <section id="tab-jobs" class="tab-panel page" hidden></section>
+  <section id="tab-bossattacks" class="tab-panel page" hidden></section>
   <section id="tab-instructions" class="tab-panel page" hidden></section>
 </main>
 
@@ -101,6 +104,10 @@
 <script src="items.js"></script>
 <script src="jobs.js"></script>
 <script src="puppet.js"></script>
+<!-- pass 72 (lane BOSS): the boss HP scaling card (Settings) and the Boss attacks tab, on their page-free maths -->
+<script src="boss_model.js"></script>
+<script src="boss_scaling.js"></script>
+<script src="boss_attacks.js"></script>
 <script src="instructions.js"></script>
 </body>
 </html>

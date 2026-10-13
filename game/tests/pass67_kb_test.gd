@@ -201,8 +201,9 @@ func test_a_hit_pushes_by_the_force_over_the_mass_times_the_share_taken() -> voi
 	em.damage(half, 1.0, "", Vector3(1, 0, 0), 5.0)
 	em.damage(wall, 1.0, "", Vector3(1, 0, 0), 5.0)
 	# the mass rule as it was (pass47_combat_test), then the share
-	assert_float(em.kb[plain].length()).is_equal_approx(5.0 / mass, 0.001)
-	assert_float(em.kb[half].length()).is_equal_approx(5.0 / mass * 0.5, 0.001)
+	# pass 72: times the map's share of the hero's pushes (hero_knockback_mult)
+	assert_float(em.kb[plain].length()).is_equal_approx(5.0 / mass * em.hero_knock_mult(), 0.001)
+	assert_float(em.kb[half].length()).is_equal_approx(5.0 / mass * 0.5 * em.hero_knock_mult(), 0.001)
 	assert_float(em.kb[half].x).is_greater(0.0)
 	assert_bool(em.kb[wall].is_zero_approx()).is_true()
 	# the hit itself is whole: a resist is not a damage reduction
@@ -219,7 +220,7 @@ func test_the_giant_takes_a_third_of_its_old_push() -> void:
 	assert_float(mass).is_equal_approx(3.4, 0.0001)
 	em.damage(g, 1.0, "", Vector3(1, 0, 0), 10.0)
 	# F / 3.4 before (its size was its only weight); 0.67 shrugged off now
-	assert_float(em.kb[g].length()).is_equal_approx(10.0 / mass * 0.33, 0.001)
+	assert_float(em.kb[g].length()).is_equal_approx(10.0 / mass * 0.33 * em.hero_knock_mult(), 0.001)  # pass 72: the map's share of the hero's pushes (hero_knockback_mult)
 
 
 func test_the_boss_factor_is_its_own_and_composes_with_a_resist() -> void:
@@ -232,11 +233,11 @@ func test_the_boss_factor_is_its_own_and_composes_with_a_resist() -> void:
 	# the boss barely budges, as it did (its 0.15; every boss JSON leaves the resist at 0)
 	em.boss_index = plain
 	em.damage(plain, 1.0, "", Vector3(1, 0, 0), 20.0)
-	assert_float(em.kb[plain].length()).is_equal_approx(20.0 / mass * 0.15, 0.001)
+	assert_float(em.kb[plain].length()).is_equal_approx(20.0 / mass * 0.15 * em.hero_knock_mult(), 0.001)  # pass 72: the map's share of the hero's pushes (hero_knockback_mult)
 	# a resist on the boss multiplies the 0.15, it never replaces it
 	em.boss_index = half
 	em.damage(half, 1.0, "", Vector3(1, 0, 0), 20.0)
-	assert_float(em.kb[half].length()).is_equal_approx(20.0 / mass * 0.15 * 0.5, 0.001)
+	assert_float(em.kb[half].length()).is_equal_approx(20.0 / mass * 0.15 * 0.5 * em.hero_knock_mult(), 0.001)
 	em.boss_index = -1
 
 
@@ -300,8 +301,9 @@ func test_the_ram_shoves_a_resisting_creature_by_its_share_and_buck_is_not_touch
 	em._physics_process(DT)
 	# the Ram took both bites' place (he is not touched) and shoved each away from him: the whole shove, and half of it
 	assert_int(hero.hits).is_equal(0)
-	assert_float(em.kb[plain].x).is_equal_approx(shove, 0.001)
-	assert_float(em.kb[half].x).is_equal_approx(-shove * 0.5, 0.001)
+	# pass 72: times the map's share of the hero's pushes (hero_knockback_mult)
+	assert_float(em.kb[plain].x).is_equal_approx(shove * em.hero_knock_mult(), 0.001)
+	assert_float(em.kb[half].x).is_equal_approx(-shove * 0.5 * em.hero_knock_mult(), 0.001)
 	# the spikes are a hit, not a shove: both take the same
 	assert_float(em.hp[plain]).is_less(1000.0)
 	assert_float(em.hp[half]).is_equal_approx(em.hp[plain], 0.001)

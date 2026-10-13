@@ -241,7 +241,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-13, pass 71, version 0.57)
+## Status (2026-10-13, pass 72, version 0.58)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -251,7 +251,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,525 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.57).
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.58).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
 rolled per run from `Run.map_seed`, a stone boundary wall; everything but the ground, the wall, barrels, signs and a few
@@ -266,7 +266,12 @@ work (pinned by `pass62_pc_test`), stages 2-3 were written in his style in pass 
 `stage_mults` [1, 2.2, 3.34] x the HP/ATK curve at the row's start x (1 + level_*_per_level x (hero level - 1)) x
 `creature_*_mult`, fixed per row from its start. Specials (pass 69): a third as often as before, x10 HP, x2 ATK, x1.25
 size, a glowing rim in a colour Garry sets per creature (`variance.special`, map default `special_defaults`); one forced
-special Red Goblin at 2:00 (a swarm event with `special: true`).
+special Red Goblin (a swarm event with `special: true`). Pass 72: specials x1.5 size, x15 HP, a 35% chest, at most 3 alive
+(`special_defaults`); creature outlines only behind scenery (stencil 2 = scenery, core/systems/SceneryStencil.gd); every
+push the hero's side gives x `hero_knockback_mult` (0.5); a boss's HP x clamp((recent DPS / reference)^0.5, 0.75, 3)
+(`boss_hp_scaling`, refs King 600 / Gila 4500 / Brander 20000); custom boss attacks are content
+(`content/boss_attacks/<id>`, kinds rain/volley/ring/slam/script; the Gila's `cactus_rain`), edited in the Level
+Editor's Boss attacks tab. The Results screen is a two-part show fed by `Run.timeline` (core/systems/RunTimeline.gd).
 
 **Heroes** (title order): Drifter (Revolver) and Astro (Gravity Gun) are free; Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), Fadeaway (the Basketball: evade per level, Heat shown on the ball itself, the Timeout

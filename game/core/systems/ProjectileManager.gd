@@ -2816,6 +2816,21 @@ func heat_glow(kh: int, lv: float, hl: Dictionary) -> void:
 		var g1 := g_seam if seam else g_body
 		m.emission = e0.lerp(c, mix)
 		m.emission_energy_multiplier = lerpf(maxf(en0, g0), maxf(en0, g1), lv) * p
+		# pass 72: the body never bleaches past orange (heat_look.body_green_max)
+		if not seam and hl.has("body_green_max"):
+			_cap_body_green(m, e0, en0, float(hl["body_green_max"]))
+
+
+## Pass 72 (Garry: the ball "seems to be white, should be orange"): a body that already glows (On Fire's tint, #FF3A00 at
+## 1.6) pushed toward `color` and beating at the top of the Heat summed past what the screen shows and came out yellow-
+## white. `heat_look.body_green_max` caps the green light the body's glow adds at max(its cold glow's, that), so its hue
+## stays orange at every Heat; the red still saturates, the seams, the trail, the flames and the halo still show the
+## Heat. The plain ball (no glow of its own, glow_max 0.45) never reaches the cap.
+static func _cap_body_green(m: StandardMaterial3D, e0: Color, en0: float, green_max: float) -> void:
+	var cap := maxf(e0.g * en0, green_max)
+	var g := m.emission.g * m.emission_energy_multiplier
+	if g > cap and m.emission.g > 0.0001:
+		m.emission_energy_multiplier = cap / m.emission.g
 
 
 ## How hot heat kind `kh` shows now (tests): the brightest emission energy among its materials, -1 for no heat kind.

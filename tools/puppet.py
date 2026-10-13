@@ -334,7 +334,9 @@ def stage_apose(ctx, args):
     paints candidates (the front an edit of the look's front still; the side and the back edits of the picked front and
     the look's own side / back still) and stops for the pick ("pick:front", then "pick:views"); "none" leaves a side or
     back out of the shape."""
-    seed0 = APOSE_SEED + int(getattr(args, "seed", 0) or 0) * SEED_STEP
+    # pass 72: the job's First seed (--first-seed, 0 = APOSE_SEED: cand_seeds' start), candidate k CAND_STEP from k-1
+    first = int(getattr(args, "first_seed", 0) or 0)
+    seed0 = (first or APOSE_SEED) + int(getattr(args, "seed", 0) or 0) * SEED_STEP
     for view in VIEWS3:
         src = ref_of(args, view)
         dst = ctx.p("apose_%s.png" % view)
@@ -1550,6 +1552,8 @@ def parse_args(argv=None):
     ap.add_argument("--steps", type=int, default=0, help="the painter's passes (0 = its default: Klein 4, dev 8 with Turbo)")
     ap.add_argument("--no-turbo", action="store_true", help="dev: the full-quality steps (20+) without the Turbo LoRA")
     ap.add_argument("--seed", type=int, default=0, help="shift every arms-out and Hunyuan3D seed (a re-roll)")
+    ap.add_argument("--first-seed", type=int, default=0, help="the arms-out candidates' first seed (0 = the tool's own); candidate k "
+                    "paints on it + k x 1,000,003 (pass 72, the Level Editor's First seed)")
     ap.add_argument("--words-front", default="", help="the front edit's words in place of the template")
     ap.add_argument("--words-side", default="", help="the side edit's words in place of the template")
     ap.add_argument("--words-back", default="", help="the back edit's words in place of the template")

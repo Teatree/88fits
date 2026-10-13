@@ -517,6 +517,6 @@ func test_the_tornado_toss_is_what_it_was() -> void:
 		top = maxf(top, em.lift_h[i])
 	# 3.2 m times its size up, flung out at 12, 8% of its health off, four seconds before the next grab
 	assert_float(top).is_greater(3.2 * maxf(em.size[i], 0.6) * 0.95)
-	assert_float(em.kb[i].length()).is_equal_approx(12.0, 0.001)
+	assert_float(em.kb[i].length()).is_equal_approx(12.0 * em.hero_knock_mult(), 0.001)  # pass 72: the map's share of the hero's pushes (hero_knockback_mult)
 	assert_float(em.lift_cd[i]).is_equal_approx(4.0, 0.001)
 	assert_float(em.hp[i]).is_equal_approx(hp0 - em.max_hp[i] * 0.08 * (1.0 - em.dr[i]), 0.001)

@@ -427,7 +427,21 @@ static func tint_special_color(range_: Dictionary, u: float, special_strength: f
 ## creature's own `variance.special` nor the map's `timeline_data.special_defaults` names them (they were 1.3 / 1.6 / 1.2
 ## / 2 / 0.6 in code before). `glow` 0..1 is the emissive rim enemy_billboard.gdshader draws round a special in its
 ## tint's colour (0 = none), the width and the brightness of the rim.
-const SPECIAL_DEFAULTS := {"size": 1.25, "hp": 10.0, "damage": 2.0, "xp": 2.0, "tint_strength": 0.6, "glow": 0.6}
+## Pass 72 (lane SPEC; Garry: "Specials should be more noticeable. They should be bigger ... way more of a chance of
+## dropping a box ... higher HP"): size 1.25 -> 1.5, hp 10 -> 15, and `chest_chance` 0.35, the chance its death drops a
+## chest (EnemyManager._special_chest_drop).
+const SPECIAL_DEFAULTS := {"size": 1.5, "hp": 15.0, "damage": 2.0, "xp": 2.0, "tint_strength": 0.6, "glow": 0.6, "chest_chance": 0.35}
+## Pass 72 (lane SPEC; Garry: "There should be a limit to how many of them are there"): at most this many variance
+## specials alive at once when the map's `timeline_data.special_defaults.max_alive` names none (0 there = no limit, as a
+## creature's own max_alive). A roll past it makes a plain creature; a forced special (a Special swarm) still comes.
+const SPECIAL_MAX_ALIVE := 3
+
+
+## The most variance specials alive at once on a map whose special_defaults are `defaults` (pass 72): the map's
+## `max_alive`, else SPECIAL_MAX_ALIVE; 0 or below = no limit (returned as -1).
+static func special_max_alive(defaults: Dictionary) -> int:
+	var n: int = int(defaults.get("max_alive", SPECIAL_MAX_ALIVE))
+	return n if n > 0 else -1
 
 
 ## One number of a variance special: the creature's own `sp[key]`, else the map's `defaults[key]`, else SPECIAL_DEFAULTS.

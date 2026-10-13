@@ -43,7 +43,6 @@ fps = {
 knockback = 3.4
 head = 1.0
 blood = Color(0.78431374, 0.08627451, 0.11764706, 1)
-retired = true
 variants = {
 "RUN-A": {
 "anims": {
@@ -156,8 +155,8 @@ variance = {
 "size": 0.22,
 "special": {
 "damage": 2.0,
-"hp": 10.0,
-"size": 1.25,
+"hp": 15.0,
+"size": 1.5,
 "tint": "#5A1A80",
 "tint_strength": 0.6,
 "xp": 3.0

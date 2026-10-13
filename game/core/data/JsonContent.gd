@@ -4,7 +4,7 @@
 class_name JsonContent
 extends RefCounted
 
-const TYPES := ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters", "talents", "quests", "maps", "pickups", "structures"]
+const TYPES := ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters", "talents", "quests", "maps", "pickups", "structures", "boss_attacks"]
 
 
 static func load_json(path: String) -> Dictionary:
@@ -51,6 +51,9 @@ static func build(type: String, d: Dictionary, dir: String) -> ContentDef:
 			res = _structure(d, dir)
 		"buildings":
 			res = _building(d, dir)
+		"boss_attacks":
+			# pass 72 (lane BOSS): a custom boss attack
+			res = _boss_attack(d)
 		_:
 			push_error("JsonContent: unknown type %s" % type)
 			return null
@@ -547,6 +550,22 @@ static func _building(d: Dictionary, _dir: String) -> BuildingDef:
 	return b
 
 
+## Pass 72 (lane BOSS): a custom boss attack (content/boss_attacks/<id>/<id>.json, BossAttackDef). Each group is read
+## as the file has it (a key it leaves out plays BossAttackDef.DEFAULTS); a group that is not an object reads as empty.
+static func _boss_attack(d: Dictionary) -> BossAttackDef:
+	var a := BossAttackDef.new()
+	a.attack_kind = str(d.get("kind", "rain"))
+	a.doc = str(d.get("doc", ""))
+	for g: String in ["projectile", "pattern", "landing", "telegraph", "timing", "sounds", "params"]:
+		var v = d.get(g, {})
+		a.set(g, (v as Dictionary).duplicate(true) if v is Dictionary else {})
+	a.damage = float(d.get("damage", 0.75))
+	a.knockback = float(d.get("knockback", 4.0))
+	a.lift = float(d.get("lift", 0.0))
+	a.script_name = str(d.get("script", ""))
+	return a
+
+
 static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	var w := WaveTimeline.new()
 	w.stage_length = float(t.get("stage_length", 300.0))
@@ -602,6 +621,9 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	w.creature_damage_mult = float(t.get("creature_damage_mult", 1.0))
 	# pass 60: every creature's, Elite's, boss's and hostile shot's pace times this (never the hero's)
 	w.creature_speed_mult = float(t.get("creature_speed_mult", 1.0))
+	# pass 72 (lane ITEMS): every push the hero's side gives a creature times this (EnemyManager.hero_knock_mult)
+	# (lane INTEG: a map that names none halves, WaveTimeline.HERO_KNOCKBACK_DEFAULT)
+	w.hero_knockback_mult = float(t.get("hero_knockback_mult", WaveTimeline.HERO_KNOCKBACK_DEFAULT))
 	# pass 69 (lane EN): the map's fallbacks for a variance special's numbers (read as they are)
 	var spd = t.get("special_defaults", {})
 	w.special_defaults = spd if spd is Dictionary else {}
@@ -617,6 +639,9 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	w.move_pace = float(t.get("move_pace", 1.0))
 	var pw = t.get("portal_wave", {})
 	w.portal_wave = pw if pw is Dictionary else {}
+	# pass 72 (lane BOSS): boss HP pegged to the hero's DPS (read as it is; WaveTimeline.boss_hp_mult)
+	var bhs = t.get("boss_hp_scaling", {})
+	w.boss_hp_scaling = bhs if bhs is Dictionary else {}
 	var pt = t.get("path_times", [[55, 115, 175, 230, 270], [35, 90, 145, 200, 245, 280]])
 	w.path_times = pt if pt is Array else []
 	return w

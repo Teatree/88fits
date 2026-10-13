@@ -297,14 +297,19 @@ func test_the_goblins_are_back_and_the_skeletons_kept() -> void:
 	assert_bool(ids.has("skeleton")).is_true()
 	assert_bool(ids.has("skeleton_knight")).is_true()
 	assert_bool(ids.has("goblin")).is_false()
-	assert_bool(ids.has("goblin_runt")).is_false()
+	# (Garry, 2026-10-13: he put the goblin runt back on his stage-1 roster, row r2, so it is in play again: whichever
+	# goblin is on the roster is not retired, pass66_shape_test's rule)
+	if ids.has("goblin_runt"):
+		assert_bool(Registry.enemy("goblin_runt").retired).override_failure_message("goblin_runt is on the roster yet retired").is_false()
 	assert_str(str(m.skins.get("walker", ""))).is_equal("skeleton")
 	# the King rings the hero with its minions (pass 45: tumbleweed_minion; goblins from pass 33.5 to 44)
 	for a in Registry.enemy("tumbleweed_king").boss.get("attacks", []):
 		if str(a.get("name", "")) == "spawn_ring":
 			assert_str(str(a.get("enemy", ""))).is_equal("tumbleweed_minion")
-	for id in ["goblin", "goblin_runt", "sand_crab", "jackalope"]:
+	for id in ["goblin", "sand_crab", "jackalope"]:
 		assert_bool(Registry.enemy(id).retired).override_failure_message(id + " is not retired").is_true()
+	# the runt is kept either way (Garry's roster decides whether it is in play)
+	assert_object(Registry.enemy("goblin_runt")).is_not_null()
 	for id in ["skeleton", "skeleton_knight"]:
 		assert_bool(Registry.enemy(id).retired).override_failure_message(id + " is still retired").is_false()
 	# the goblin as it was before the skeletons: pass 33.2's numbers

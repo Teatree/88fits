@@ -104,10 +104,11 @@ def cand_key(hid, tag, k):
 
 
 def badge_seeds(hid, seeds, first=0, offset=0, attempt=1, tag=""):
-    """seed_for(id) + 40 + first, moved by the look's seed_offset and by the job's attempt (each step
-    gen_art.LOOK_SEED_STEP), then cand_seeds.seeds: the job's own move (`tag`, the Level Editor job id; none by hand) and
-    candidate k CAND_STEP from k-1 (pass 70: a second job of one look had painted the first one's seeds again)."""
-    base = g.seed_for(hid) + 40 + int(first) + g.LOOK_SEED_STEP * (int(offset) + max(0, int(attempt) - 1))
+    """The first seed (pass 72: the job's "First seed" when it names one, else seed_for(id) + 40: cand_seeds.start; it was
+    added to that before), moved by the look's seed_offset and by the job's attempt (each step gen_art.LOOK_SEED_STEP),
+    then cand_seeds.seeds: the job's own move (`tag`, the Level Editor job id; none by hand) and candidate k CAND_STEP
+    from k-1 (pass 70: a second job of one look had painted the first one's seeds again)."""
+    base = cand_seeds.start(g.seed_for(hid) + 40, first) + g.LOOK_SEED_STEP * (int(offset) + max(0, int(attempt) - 1))
     return cand_seeds.seeds(base, seeds, tag)
 
 

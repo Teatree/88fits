@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_h6e4h")
 archetype = "boss"
-doc = "Stage 2's boss: a lunge, a seven-line rumble that runs down every line of its fan, a burrow that surfaces under the hero, a ring of lizards. Pays two chests and thirty coins."
+doc = "Stage 2's boss: a lunge, a rain of red cactus spikes over a huge area round it (the custom attack cactus_rain: stand between the circles), a burrow that surfaces under the hero, a ring of lizards. Pays two chests and thirty coins."
 brain = "boss"
 hp = 2400.0
 speed = 1.4
@@ -49,17 +49,7 @@ boss = {
 "telegraph": "line",
 "windup": 1.0
 }, {
-"count": 7.0,
-"damage": 16.0,
-"knockback": 10.0,
-"length": 14.0,
-"lift": 3.0,
-"name": "rumble",
-"speed": 13.0,
-"spread_deg": 100.0,
-"telegraph": "fan",
-"width": 1.2,
-"windup": 1.0
+"name": "cactus_rain"
 }, {
 "damage": 32.0,
 "knockback": 9.0,

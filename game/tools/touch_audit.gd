@@ -57,6 +57,10 @@
 ## answers, opens the question (audited, cancelled), and a real BUY then the real deed buys him (gold spent once, he is
 ## owned, PLAY open); a locked hero shows his requirement and a real tap on LOCKED starts nothing. The save's gold and
 ## bought heroes are put back after.
+## Pass 72: results_show (run with results): the Results' animated show under real fingers: every button answers while
+## the show plays and a tap on one does not hurry it, a swipe does not move the board (and hurries the show), a tap ends
+## the first sequence, a tap hurries the second and another ends it; then the screen is audited as before (the board
+## scrolls under a finger again).
 extends SceneTree
 
 const MAX_PER_KIND := 40     # cards of one screen tapped at most (a long list: a sample, spread over it)
@@ -1357,9 +1361,19 @@ func _in_game() -> void:
 		for pair in [["boomstick", 640.0], ["supply_drop", 90.0], ["revive", 300.0], ["blast", 45.0], ["burn", 30.0], ["", 4.0]]:
 			run.damage_by_weapon[pair[0]] = float(run.damage_by_weapon.get(pair[0], 0.0)) + float(pair[1])
 		run.died = true
+		# pass 72: an unlock to land, so the show has its second sequence whatever the save has done already
+		var qt = load("res://core/systems/QuestTracker.gd")
+		if not (qt.just_completed as Array).has("unlock_turret_buddy"):
+			qt.just_completed.append("unlock_turret_buddy")
 		g.end_run()
-		await _wait(4.0)
+		# end_run's beat (1.2 s) and the fade to the Results (pass 72: its show starts at once, so no fixed wait)
+		var w := 0.0
+		while w < 6.0 and not (current_scene and current_scene.name.to_lower().contains("result")):
+			await _wait(0.1)
+			w += 0.1
+		await _wait(0.3)
 		if current_scene and current_scene.name.to_lower().contains("result"):
+			await _results_show(current_scene)
 			await _audit("results", current_scene)
 			_results_rows(current_scene)
 	if _want("arena") or _want("arena_hero"):
@@ -2069,6 +2083,76 @@ func _chest_choices(g) -> void:
 	if g.resume_gate and g.resume_gate.visible:
 		await _tap(root.get_visible_rect().get_center())
 		await _wait(0.3)
+
+
+## The Results' show (pass 72) under real fingers: the buttons answer while it plays and a tap on one does not hurry
+## it; a swipe up the board moves nothing (the board is held while the show plays) and counts as a tap (it hurries); a
+## tap then ends the first sequence; in the second a tap hurries and another ends it, and the show is over.
+func _results_show(rs: Node) -> void:
+	if not rs.has_method("sequence"):
+		_fail("results_show", "ResultsScreen", "no show (sequence())")
+		return
+	var waited := 0.0
+	while int(rs.call("sequence")) != 1 and waited < 3.0:
+		await _wait(0.1)
+		waited += 0.1
+	if int(rs.call("sequence")) != 1:
+		_fail("results_show", "ResultsScreen", "the first sequence is not playing (%d)" % int(rs.call("sequence")))
+		return
+	# the buttons, while the show plays
+	for b in rs.find_children("*", "Control", true, false):
+		var wb := b as Control
+		if not _is_kit(wb, "WButton") or not _visible_in_tree(wb):
+			continue
+		var at: Vector2 = wb.get_global_rect().get_center()
+		var hit := [false]
+		var saved := _mute(wb.pressed)
+		var probe := func(): hit[0] = true
+		wb.pressed.connect(probe)
+		await _tap(at)
+		wb.pressed.disconnect(probe)
+		_unmute(wb.pressed, saved)
+		var calm: bool = float(rs.call("speed")) == 1.0 and int(rs.call("sequence")) == 1
+		_count("results_show", hit[0] and calm)
+		if not hit[0]:
+			_fail("results_show", _name_of(wb), "tap did nothing while the show played")
+		elif not calm:
+			_fail("results_show", _name_of(wb), "a tap on a button hurried the show")
+	# a swipe up the board: the board stays, the show hurries
+	var sc: ScrollContainer = rs.get("scroll")
+	var v0 := sc.scroll_vertical
+	var rr := sc.get_global_rect()
+	var x := rr.position.x + rr.size.x * 0.5
+	await _swipe(Vector2(x, rr.position.y + rr.size.y * 0.7), Vector2(x, rr.position.y + rr.size.y * 0.25), 12)
+	await _frames(2)
+	var held: bool = sc.scroll_vertical == v0 or int(rs.call("sequence")) != 1
+	var hurried: bool = float(rs.call("speed")) > 1.0 or int(rs.call("sequence")) != 1
+	_count("results_show", held and hurried)
+	if not held:
+		_fail("results_show", "board", "a swipe moved the board while the show played (%d -> %d)" % [v0, sc.scroll_vertical])
+	elif not hurried:
+		_fail("results_show", "board", "a finger on the board did not hurry the show")
+	# a second tap ends the first sequence
+	var mid := Vector2(x, rr.position.y + rr.size.y * 0.5)
+	await _tap(mid)
+	var ended: bool = int(rs.call("sequence")) >= 2
+	_count("results_show", ended)
+	if not ended:
+		_fail("results_show", "board", "a second tap did not end the first sequence")
+	# the second: a tap hurries it, another ends it (a run with nothing unlocked or closer has none: the show is over)
+	if int(rs.call("sequence")) == 2:
+		await _tap(mid)
+		var fast: bool = float(rs.call("speed")) > 1.0 or int(rs.call("sequence")) == 3
+		await _tap(mid)
+		var over: bool = int(rs.call("sequence")) == 3
+		_count("results_show", fast and over)
+		if not (fast and over):
+			_fail("results_show", "board", "the second sequence did not hurry (%s) or end (%s) under taps" % [str(fast), str(over)])
+	var done: bool = int(rs.call("sequence")) == 3
+	_count("results_show", done)
+	if not done:
+		_fail("results_show", "ResultsScreen", "the show is not over after its taps")
+	await _wait(0.3)
 
 
 ## Every damage row on the Results (pass 47, Garry: "Each row must have both the icon and the text"): a plate with its

@@ -64,7 +64,10 @@ process.stdin.on('end', () => {
 });
 """
 
-GAME_DEFAULTS = {"size": 1.25, "hp": 10.0, "damage": 2.0, "xp": 2.0, "tint_strength": 0.6, "glow": 0.6}
+# (pass 72, lane SPEC, re-pinned: the game's specials are x1.5 size, x15 HP and drop a chest at 0.35 now)
+GAME_DEFAULTS = {"size": 1.5, "hp": 15.0, "damage": 2.0, "xp": 2.0, "tint_strength": 0.6, "glow": 0.6, "chest_chance": 0.35}
+# pass 72: the map-only cap on how many live at once (EnemyDef.SPECIAL_MAX_ALIVE), a Settings row of its own
+GAME_MAX_ALIVE = 3
 
 
 def _creature(cid, extra=None):
@@ -106,19 +109,22 @@ def checks(check, run_node, server):
         check(res["event"] == {"type": "bool", "only": ["swarm"], "def": False, "help": True}, "fields.js: a swarm event's Special flag (bool, swarm only, off by default): %s" % res["event"])
         check(res["override"] == {"group": "Elite", "min": 0, "max": 1}, "fields.js: a row's Special glow override in the Elite group, 0..1: %s" % res["override"])
         got = {k.split(".", 1)[1]: (g, dv) for k, g, dv in res["scalars"]}
+        cap_row = got.pop("max_alive", None)
         check(set(got) == set(GAME_DEFAULTS) and all(g == "Coloured specials" and abs(float(dv) - GAME_DEFAULTS[k]) < 1e-9 for k, (g, dv) in got.items()),
-              "fields.js: Settings → Coloured specials holds the six map defaults, each greyed with the game's number: %s" % res["scalars"])
+              "fields.js: Settings → Coloured specials holds the seven map defaults, each greyed with the game's number: %s" % res["scalars"])
+        check(cap_row == ("Coloured specials", GAME_MAX_ALIVE), "fields.js: Settings → Coloured specials holds Max alive, the game's 3 (pass 72): %s" % (cap_row,))
         check("Coloured specials" in res["groups"], "fields.js: the Coloured specials card is drawn: %s" % res["groups"])
         check("Special" in res["swarmHelp"], "fields.js: the swarm's help names the Special flag")
         check(res["defaults"] == GAME_DEFAULTS, "model.js: SPECIAL_DEFAULTS are the game's: %s" % res["defaults"])
-        want = [[10, "game"], [7, "map"], [4, "own"], [0.6, "game"], [0, "own"], [10, "game"], [1.25, "game"]]
+        # (pass 72, lane SPEC, re-pinned: the game's specials are x1.5 size, x15 HP and drop a chest at 0.35 now)
+        want = [[15, "game"], [7, "map"], [4, "own"], [0.6, "game"], [0, "own"], [15, "game"], [1.5, "game"]]
         check(res["value"] == want, "model.js: specialValue / specialSource: the creature's own, else the map's, else the game's (empty or not a number skipped): %s" % res["value"])
         vs = res["vs"]
-        check(vs[0] == [0.04, 1.25, 0.6, 0.6], "model.js: varianceSpecial with nothing named: the game's size 1.25, strength 0.6, glow 0.6: %s" % vs[0])
+        check(vs[0] == [0.04, 1.5, 0.6, 0.6], "model.js: varianceSpecial with nothing named: the game's size 1.5 (pass 72), strength 0.6, glow 0.6: %s" % vs[0])
         check(vs[1] == [0.04, 1.5, 0.6, 0.3], "model.js: varianceSpecial takes the map's defaults where the creature names none: %s" % vs[1])
         check(vs[2][3] == 0.1, "model.js: a row's override of the glow wins over the creature's and the map's: %s" % vs[2])
         a, b, c = res["at"]
-        check(abs(a[2] / a[0] - 10) < 1e-9 and abs(a[3] / a[1] - 2) < 1e-9, "model.js: creatureAt's special is x10 HP and x2 ATK by the game's defaults: %s" % a)
+        check(abs(a[2] / a[0] - 15) < 1e-9 and abs(a[3] / a[1] - 2) < 1e-9, "model.js: creatureAt's special is x15 HP (pass 72) and x2 ATK by the game's defaults: %s" % a)
         check(abs(b[2] / b[0] - 6) < 1e-9 and abs(b[3] / b[1] - 3) < 1e-9, "model.js: creatureAt's special takes the map's special_defaults: %s" % b)
         check(abs(c[2] / c[0] - 2) < 1e-9 and abs(c[3] / c[1] - 3) < 1e-9, "model.js: the creature's own HP x wins, the map's ATK x fills in: %s" % c)
         (col_sp, reg_sp, sw_sp), (col_pl, reg_pl, sw_pl) = res["est"]
@@ -126,7 +132,7 @@ def checks(check, run_node, server):
         check(abs(col_pl) < 1e-12 and sw_pl == 1, "model.js: the same swarm without the flag brings it plain while colour is shut: %s" % res["est"][1])
         keys = [k for k, _, _ in res["section"]]
         check(keys == ["variance.special_chance", "variance.special.size", "variance.special.hp", "variance.special.damage", "variance.special.xp",
-                       "variance.special.tint", "variance.special.tint_strength", "variance.special.glow"],
+                       "variance.special.tint", "variance.special.tint_strength", "variance.special.glow", "variance.special.chest_chance"],
               "assets_fields.js: the Enemies tab's Special section, in order, with the glow: %s" % keys)
         defs = {k: dv for k, _, dv in res["section"]}
         check(all(abs(float(defs["variance.special." + k]) - GAME_DEFAULTS[k]) < 1e-9 for k in ("size", "hp", "damage", "xp", "tint_strength", "glow")),
@@ -149,9 +155,10 @@ def checks(check, run_node, server):
         with open(os.path.join(CONTENT, "enemies", ev["enemy"], ev["enemy"] + ".json"), encoding="utf-8") as f:
             cdef = json.load(f)
         check(isinstance(cdef.get("variance"), dict) and cdef["variance"].get("special"), "the special event's creature (%s) has a special block" % ev["enemy"])
-        r1 = tl["roster"][0]
-        check(r1.get("enemy") == ev["enemy"] and float(r1["until"]) - 10 <= float(ev["t"]) <= float(r1["until"]),
-              "the special Goblin comes at the end of the first row (%s until %s): %s s" % (r1.get("enemy"), r1.get("until"), ev.get("t")))
+        # (pass 72, lane SPEC, re-pinned: Garry rebuilt stage 1 in the Level Editor (the red goblins' row now 2:03-4:05)
+        # and kept the special Goblin at 2:00; where it stands is his to drag, so only that it comes in stage 1 is pinned)
+        check(0 <= float(ev["t"]) <= float(tl.get("stage_length", 430)),
+              "the special Goblin comes in the first stage: %s s" % ev.get("t"))
     bad_rows = []
     for p in sorted(glob.glob(os.path.join(CONTENT, "enemies", "*", "*.json"))):
         cid = os.path.basename(os.path.dirname(p))
@@ -163,9 +170,10 @@ def checks(check, run_node, server):
         if float(vr.get("special_chance", 0) or 0) <= 0:
             continue
         sp = vr.get("special") or {}
-        if not (float(vr["special_chance"]) <= 0.0401 and sp.get("size") == 1.25 and sp.get("hp") == 10.0 and sp.get("damage") == 2.0):
+        # (pass 72, lane SPEC, re-pinned: the game's specials are x1.5 size, x15 HP and drop a chest at 0.35 now)
+        if not (float(vr["special_chance"]) <= 0.0401 and sp.get("size") == 1.5 and sp.get("hp") == 15.0 and sp.get("damage") == 2.0):
             bad_rows.append(cid)
-    check(not bad_rows, "every creature with a special chance: a third of the old chance at most 0.04, size 1.25, HP x10, ATK x2 (pass 69): %s" % bad_rows)
+    check(not bad_rows, "every creature with a special chance: a third of the old chance at most 0.04 (pass 69), size 1.5, HP x15 (pass 72), ATK x2: %s" % bad_rows)
 
     # ---------------------------------------------------------------- the server's map Save keeps the new keys
     tmp = tempfile.mkdtemp(prefix="le_selftest_EN_")

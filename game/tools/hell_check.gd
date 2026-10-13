@@ -119,7 +119,8 @@ func _tick() -> void:
 				if i >= 0:
 					em.atk_t[i] = 0.0
 					em.atk_i[i] = 1   # the rumble is its second attack
-			if not em._rumbles.is_empty():
+			# (pass 72, lane BOSS: its second attack is the red cactus rain now, a custom attack in the air in _custom_runs)
+			if not em._rumbles.is_empty() or not em.get("_custom_runs").is_empty():
 				_seen["rumble"] = true
 			# a giant right by the hero so its slam runs: one the director brought, walked over, or a new one when there is
 			# none (pass 48: a fourth one spawned by hand next to the director's three tripped the three-at-most check)

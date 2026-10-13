@@ -109,6 +109,14 @@ def _f(type_, default=None, required=False, help_="", options=None, group=None):
     return d
 
 
+# pass 72 (Garry: "first seed" on every asset that has candidates): the two fields every candidate kind carries, with
+# the same words (jobs.js shows them together as Candidates and First seed; tools/cand_seeds.start reads the first)
+CANDIDATES_HELP = "how many candidates to paint and pick from, each on a seed of its own"
+FIRST_SEED_HELP = ("where this job's seeds start: candidate k paints on the first seed + k x 1,000,003, the whole set moved by "
+                   "this job's id and by every re-run, so no two jobs paint the same pictures (tools/cand_seeds.py); 0 = the "
+                   "tool's own start, from the asset's id; another number = a fresh set from the same words")
+
+
 _LOOK_FIELDS = {
     "method": _f("enum", None, True, "how the look is made (tools/level_editor/methods.json describes each)", LOOK_METHODS),
     "recipe": _f("json", {}, False, "variants[CODE].recipe: the art keys this look overrides (gen_art / gen_ctl read it from the JSON)"),
@@ -117,7 +125,8 @@ _LOOK_FIELDS = {
     "skip_qa": _f("bool", False, False, "--skip-qa: no vision check (LM Studio); the geometry checks still run"),
     "dev": _f("bool", False, False, "--dev: Flux.2 dev for the stills (gen_ctl's side candidates): 4-5 min each with a server restart"),
     "seed": _f("int", 0, False, "--seed=N: every seed moves by N x 7919 (a fresh roll of the stills named in `keys`)"),
-    "seeds": _f("int", 3, False, "candidates at a human stop (gen_ctl's side view; front_from_picture's fronts)"),
+    "seeds": _f("int", 3, False, CANDIDATES_HELP + " (gen_ctl's side view and view candidates; front_from_picture's fronts)"),
+    "first_seed": _f("int", 0, False, FIRST_SEED_HELP),
     "keys": _f("list", [], False, "--keys: still cache keys painted again (tools/dl/ai_raw_anime/<key>.png)"),
     "no_video": _f("bool", False, False, "--no-video: no Wan clips at all, procedural frames (creature_proc)"),
     "stills": _f("str", "", False, "front_from_picture: the slug the picked front is cached under (<id>_<slug>_front)"),
@@ -178,22 +187,22 @@ SPECS = {
         "style": _f("str", "", False, "words in place of gen_art's ICON_STYLE"),
         "file": _f("str", "", False, "the icon file the pick installs (<id>_icon.png, or a look's <id>_icon_<x>.png; empty = from the target)"),
         "key": _f("str", "", False, "the candidates' key (default: the target id)"),
-        "seeds": _f("int", 4, False, "how many candidates"),
+        "seeds": _f("int", 4, False, CANDIDATES_HELP), "first_seed": _f("int", 0, False, FIRST_SEED_HELP),
         "dev": _f("bool", False, False, "--dev: Flux.2 dev (8 Turbo steps unless turbo is off, then 28), a restart each")}),
         "help": "icon candidates for an item, or for an enemy/boss look (file = its <id>_icon_<x>.png); Install picks one. A hero's "
                 "icon is the round badge: hero_badge"},
     "hero_badge": {"lane": "comfy", "fields": _with_model({
-        "seeds": _f("int", 4, False, "how many portraits"),
+        "seeds": _f("int", 4, False, CANDIDATES_HELP),
         "character": _f("str", "", False, "who: the hero's description (appearance, else art_prompt without the pose); empty = filled"),
         "prompt": _f("str", "", False, "the action of the portrait (default: the hero's portrait_prompt)"),
         "ref": _f("str", "", False, "the identity picture (default: the look's own front still, else the hero's)"),
         "variant": _f("str", "", False, "the look code the badge is for (its pick writes <id>_icon_<x>.png into that look); empty = the hero's own"),
-        "first_seed": _f("int", 0, False, "added to every seed"), "head_width": _f("float", 0.0, False, "badge: the head's span as a share of the badge (0 = the default zoom)"),
+        "first_seed": _f("int", 0, False, FIRST_SEED_HELP), "head_width": _f("float", 0.0, False, "badge: the head's span as a share of the badge (0 = the default zoom)"),
         "top_pad": _f("float", 0.03, False, "badge: the gap above the head"), "skip_qa": _f("bool", False, False, "--skip-qa")}),
         "help": "round badge candidates from the hero's (or the look's) front still; Install writes <id>_icon.png and the JSON's badge, "
                 "or a look's <id>_icon_<x>.png and variants[CODE].icon"},
     "hero_title": {"lane": "comfy", "fields": _with_model({
-        "seeds": _f("int", 4, False, "how many cut-outs"), "first_seed": _f("int", 11, False, "the first seed (each candidate a million apart, moved by the job id: tools/cand_seeds.py)"),
+        "seeds": _f("int", 4, False, CANDIDATES_HELP), "first_seed": _f("int", 0, False, FIRST_SEED_HELP),
         "character": _f("str", "", False, "who: the hero's description (appearance, else art_prompt without the pose)"),
         "pose": _f("str", "", False, "the pose of the splash (title_pose, else the tool's table, else a confident full-body stance)"),
         "holds": _f("str", "", False, "the one thing held (title_holds)"),
@@ -934,6 +943,8 @@ def _plan(job):
             argv += _model_argv(spec)
             if spec.get("seeds") and int(spec["seeds"]) != 3:
                 argv.append("--seeds=%d" % int(spec["seeds"]))
+            if int(spec.get("first_seed") or 0):
+                argv.append("--first-seed=%d" % int(spec["first_seed"]))   # pass 72: the side / view candidates' first seed
             if spec.get("skip_qa"):
                 argv.append("--skip-qa")
             if spec.get("stage"):
@@ -952,6 +963,8 @@ def _plan(job):
                     argv += ["--keep", str(spec["keep"])]
                 if spec.get("no_style_ref"):
                     argv.append("--no-style-ref")
+                if int(spec.get("first_seed") or 0):
+                    argv += ["--first-seed", str(int(spec["first_seed"]))]   # pass 72
                 if spec.get("skip_qa"):
                     argv.append("--skip-qa")
             p.update(tool="gen_edit_stills", call="main", argv=argv, equiv=_equiv_py("gen_edit_stills", argv))
@@ -1003,9 +1016,10 @@ def _plan(job):
         if icon_job.get("screen") == "green":
             icon_job.pop("screen", None)
         attempt = int(job.get("attempt", 1) or 1)
-        more = (["--dev"] if spec.get("dev") else []) + (["--attempt", str(attempt)] if attempt > 1 else [])
+        first = int(spec.get("first_seed") or 0)
+        more = (["--dev"] if spec.get("dev") else []) + (["--attempt", str(attempt)] if attempt > 1 else []) + (["--first-seed", str(first)] if first else [])
         p.update(tool="gen_icon_cands", call="paint", argv=["--only", key, "--seeds", str(int(spec.get("seeds") or 4))] + more,
-                 key=key, icon_job=icon_job, seeds=int(spec.get("seeds") or 4), dev=bool(spec.get("dev")))
+                 key=key, icon_job=icon_job, seeds=int(spec.get("seeds") or 4), dev=bool(spec.get("dev")), first_seed=first)
         p["equiv"] = "python tools/gen_icon_cands.py --only %s --seeds %d%s   (JOBS[%r] = %s)" % (
             key, p["seeds"], "".join(" " + a for a in more), key, json.dumps(icon_job, ensure_ascii=False))
     elif kind == "hero_badge":
@@ -1032,7 +1046,8 @@ def _plan(job):
         p.update(tool="gen_badge_cands", call="main", argv=argv, equiv=_equiv_py("gen_badge_cands", argv),
                  tag=_badge_tag(job), variant=str(spec.get("variant") or "").strip())
     elif kind == "hero_title":
-        seeds, first = int(spec.get("seeds") or 4), int(spec.get("first_seed") if spec.get("first_seed") is not None else 11)
+        # pass 72: 0 (the form's default) = the tool's own start, 11 (cand_seeds.start)
+        seeds, first = int(spec.get("seeds") or 4), int(spec.get("first_seed") or 0) or 11
         argv = ["--only", cid, "--seeds=%d" % seeds, "--first-seed=%d" % first]
         # pass 68 (D7): asset_job calls paint(hid, seeds, first, **kwargs) with the same names as the flags
         kw = {}
@@ -3918,7 +3933,7 @@ PUPPET_DEPTH_VIEWS = ("fd", "side", "bd", "back")   # the trial's best mix: dept
 PUPPET_REUSE = ("auto", "fresh", "blend", "fbx")
 # pass 71 follow-up: the settings a puppet look's recipe records under `puppet` (the form's choices; the job's own
 # picks, one-shot reset / re-roll and seed shift are not settings)
-PUPPET_SETTINGS = ("source", "stills", "refs", "painter", "steps", "turbo", "seeds", "words", "screen", "tries", "faces", "reuse", "fbx",
+PUPPET_SETTINGS = ("source", "stills", "refs", "painter", "steps", "turbo", "seeds", "first_seed", "words", "screen", "tries", "faces", "reuse", "fbx",
                    "clip", "idle", "frame", "face", "depth_views", "run_fit", "fringe")
 RE_PUPPET_STAGE = re.compile(r"^puppet: STAGE (\w+) (start|done)(?: (\d+)s)?")
 RE_PUPPET_GUIDES = re.compile(r"^puppet: GUIDES (\S+) (\S+) (\S+)")
@@ -3935,7 +3950,8 @@ def puppet_spec(spec, target=None):
       source     the look whose stills the arms-out paintings are edited from (default: the one he is played in)
       stills     reuse | repaint: the walks on the source look's stills, or stills of the look's own (its letter)
       refs       {front, side, back}: paint | still:<key> | <picture path> | none (side/back): the 3D reference per view
-      painter    klein | dev, steps (0 = the painter's default), turbo, seeds (fronts; side/back half, at least 3), seed
+      painter    klein | dev, steps (0 = the painter's default), turbo, seeds (fronts; side/back half, at least 3), seed,
+                 first_seed (pass 72: the arms-out candidates' first seed, 0 = puppet.py's own)
       words      {front, side, back}: the edit's words in place of the template ("" = the template)
       tries      Hunyuan3D tries; faces: the cleaned mesh's triangle budget
       reuse      auto (what the hero's puppet already has is kept) | fresh (a new puppet: the old one moved aside) |
@@ -3969,6 +3985,8 @@ def puppet_spec(spec, target=None):
         "turbo": pp.get("turbo") is not False,
         "seeds": max(1, int(pp.get("seeds") or 4)),
         "seed": int(pp.get("seed") or 0),
+        # pass 72: the arms-out candidates' First seed (0 = puppet.py's own start)
+        "first_seed": int(pp.get("first_seed") or 0),
         "words": {v: str(words.get(v) or "").strip() for v in PUPPET_VIEWS},
         "screen": str(pp.get("screen") or "").lower() if str(pp.get("screen") or "").lower() in ("blue", "green") else "",
         "tries": max(1, int(pp.get("tries") or 2)),
@@ -4071,6 +4089,8 @@ def puppet_argv(job, lane):
         argv.append("--no-turbo")
     if pp["seed"]:
         argv += ["--seed", str(pp["seed"])]
+    if pp["first_seed"]:
+        argv += ["--first-seed", str(pp["first_seed"])]
     for v in PUPPET_VIEWS:
         if pp["words"][v]:
             argv += ["--words-" + v, pp["words"][v]]

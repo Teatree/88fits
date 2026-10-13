@@ -318,9 +318,12 @@ func test_shots_rumbles_stalactites_and_boulders_run_on_the_paced_clock() -> voi
 	var x0: float = pm.pos[s].x
 	pm._physics_process(DT)
 	assert_float(pm.pos[s].x - x0).is_equal_approx(10.0 * DT * 0.8, 0.0001)
-	# the Gila's rumble: its fan lasts 1/pace and the waves run at the pace to the end of the lines
-	var gila := _start_attack(em, "gila_grande", "rumble", Vector3(-30, 0, 0))
-	var rum: Dictionary = (Registry.enemy("gila_grande").boss["attacks"] as Array)[_attack_index(Registry.enemy("gila_grande"), "rumble")]
+	# the rumble (the Gila's until pass 72, when its red cactus rain took the slot; still a built-in any script may name): its
+	# fan lasts 1/pace and the waves run at the pace to the end of the lines
+	var rum := {"name": "rumble", "windup": 1.0, "count": 7, "spread_deg": 100, "speed": 13.0, "length": 14.0, "width": 1.2,
+		"damage": 16, "knockback": 10, "lift": 3.0, "telegraph": "fan"}
+	_test_def("w48_rumbler", "gila_grande", "boss", {"boss": {"attacks": [rum], "cooldown_between": 2.2}})
+	var gila := _start_attack(em, "w48_rumbler", "rumble", Vector3(-30, 0, 0))
 	assert_float(em.timer[gila]).is_equal_approx(float(rum["windup"]) / 0.8, 0.001)
 	assert_float(float((g.lines.back() as Dictionary)["dur"])).is_equal_approx(float(rum["windup"]) / 0.8, 0.001)
 	assert_float(float((g.lines.back() as Dictionary)["length"])).is_equal_approx(float(rum["length"]), 0.001)

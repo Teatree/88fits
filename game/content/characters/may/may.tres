@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="CharacterDef" format=3]
 
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_huik1"]
+[ext_resource type="Texture2D" path="res://content/characters/may/may_icon_p.png" id="2_yg02d"]
 [ext_resource type="Script" path="res://core/data/CharacterDef.gd" id="3_tlaal"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_b.png" id="4_ui1jp"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_c.png" id="6_uc7w2"]
@@ -10,13 +11,13 @@
 [ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_q.png" id="8_ui1jp"]
 [ext_resource type="Texture2D" path="res://content/characters/may/may_sprite_r.png" id="9_ui1jp"]
 
-[sub_resource type="Resource" id="Resource_ui1jp"]
+[sub_resource type="Resource" id="Resource_yg02d"]
 script = ExtResource("1_huik1")
 stat = "cooldown"
 op = "mul"
 value = -0.15
 
-[sub_resource type="Resource" id="Resource_yg02d"]
+[sub_resource type="Resource" id="Resource_uc7w2"]
 script = ExtResource("1_huik1")
 stat = "cooldown"
 op = "mul"
@@ -25,21 +26,21 @@ target = "player"
 
 [resource]
 script = ExtResource("3_tlaal")
-level_trait = [SubResource("Resource_yg02d")]
+level_trait = [SubResource("Resource_uc7w2")]
 order = 8
 trait_name = "No Time"
 trait_text = "Gain 1.5% less cooldown per level."
 pronoun = "she"
 favourite_weapon = "tommy_gun"
 favourite_bonus = {
-"effects": [SubResource("Resource_ui1jp")],
+"effects": [SubResource("Resource_yg02d")],
 "type": "effects"
 }
 start_weapon = "big_mouth"
 availability = "purchase"
 price = 1750
-sprite = ExtResource("7_1mxrr")
-sprite_file = "may_sprite_g.png"
+sprite = ExtResource("7_tlaal")
+sprite_file = "may_sprite_p.png"
 anims = {
 "cheer": 1.0,
 "die": 5.0,
@@ -194,7 +195,7 @@ variants = {
 "run": 36.0
 },
 "frame_px": 256,
-"icon": ExtResource("8_tlaal"),
+"icon": ExtResource("2_yg02d"),
 "note": "the Puppet trial: MAY-G's stills, every view's walk on OpenPose from her own rigged 3D puppet (may_puppet_run: her bones, joints her body hides dropped, the ears set from her nose), no run_scale",
 "shelved": false,
 "sprite": ExtResource("7_tlaal"),
@@ -271,11 +272,11 @@ variants = {
 "title": "hero_may_g.png"
 }
 }
-variant = "MAY-G"
+variant = "MAY-P"
 id = "may"
 display_name = "May"
 flavour = "Now you see her. Now you don't."
-icon = ExtResource("8_tlaal")
+icon = ExtResource("2_yg02d")
 icon_file = "may_icon_g.png"
 placeholder = {
 "color": "#141418",

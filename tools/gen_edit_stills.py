@@ -5,7 +5,7 @@ cache gen_art.py reads for a variant whose recipe says "stills": "<stills>", so 
 --variant=<CODE>` then paints the back and the dead painting from it and walks it.
 
     python tools/gen_edit_stills.py --id werewolf --stills wwa --ref "_REFERENCES/2d/Werewolf.webp" --seeds 4 \
-        --prompt "a hulking werewolf with dark shaggy fur ..." [--screen blue] [--keep "small yellow eyes"]
+        --prompt "a hulking werewolf with dark shaggy fur ..." [--screen blue] [--keep "small yellow eyes"] [--first-seed N]
         -> tools/dl/ai_raw_anime/werewolf_wwa_front_c0..c3.png and tools/dl/review/werewolf_wwa_front_cands.png
     python tools/gen_edit_stills.py --id werewolf --stills wwa --pick 2        (installs c2 as werewolf_wwa_front)
 
@@ -88,10 +88,11 @@ def retire(key, stamp=None):
     return moved
 
 
-def candidate_seeds(cid, stills, n, attempt=1, tag=""):
-    """seed_for(id + slug), moved by a re-run's attempt (gen_art.LOOK_SEED_STEP each), then cand_seeds.seeds: the job's
-    own move and candidate k CAND_STEP from k-1 (pass 70; before, every run of a slug painted seed + 1000 k)."""
-    base = g.seed_for(cid + stills) + g.LOOK_SEED_STEP * max(0, int(attempt or 1) - 1)
+def candidate_seeds(cid, stills, n, attempt=1, tag="", first=0):
+    """The job's first seed (pass 72, "First seed"; 0 = seed_for(id + slug): cand_seeds.start), moved by a re-run's
+    attempt (gen_art.LOOK_SEED_STEP each), then cand_seeds.seeds: the job's own move and candidate k CAND_STEP from k-1
+    (pass 70; before, every run of a slug painted seed + 1000 k)."""
+    base = cand_seeds.start(g.seed_for(cid + stills), first) + g.LOOK_SEED_STEP * max(0, int(attempt or 1) - 1)
     return cand_seeds.seeds(base, n, tag)
 
 
@@ -129,7 +130,7 @@ def main():
     moved = retire(key)
     if moved:
         print("gen_edit_stills: the earlier candidates moved aside (%d files, *_old<stamp>)" % len(moved))
-    seed_list = candidate_seeds(cid, stills, n, cand_seeds.job_attempt(opt("attempt")), cand_seeds.job_tag())
+    seed_list = candidate_seeds(cid, stills, n, cand_seeds.job_attempt(opt("attempt")), cand_seeds.job_tag(), opt("first-seed", "0") or 0)
     keys = []
     for k, s in enumerate(seed_list):
         ck = "%s_c%d" % (key, k)

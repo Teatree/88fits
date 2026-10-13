@@ -60,50 +60,58 @@ roster = [{
 "enemy": "red_goblin",
 "id": "r1",
 "stats": {
+"drops": {
+"medium": 0.0
+},
 "elite": {
 "hp_mult_per_stage": 0.0
-}
 },
-"t": 0.0,
-"until": 122.0,
+"hp_mult": 1.5
+},
+"t": 123.0,
+"until": 245.0,
 "variant": "RG-B",
-"weights": [[0.0, 9.0], [59.0, 5.1], [63.0, 8.8], [118.0, 8.4]]
+"weights": [[123.0, 9.0], [182.0, 5.1], [186.0, 8.8], [241.0, 8.4]]
 }, {
-"enemy": "red_goblin_runt",
+"enemy": "goblin_runt",
 "id": "r2",
-"t": 0.0,
-"until": 59.0,
-"weights": [[0.0, 3.0], [60.0, 3.7]]
+"stats": {
+"can_be_elite": false,
+"speed": 4.0
+},
+"t": 141.0,
+"until": 200.0,
+"weights": [[141.0, 3.0], [201.0, 3.7]]
 }, {
 "enemy": "blue_slime",
 "id": "r18",
 "stats": {
 "hp": 40.0
 },
-"t": 58.0,
-"until": 123.0,
-"weights": [[58.0, 2.5], [121.0, 2.5]]
+"t": 250.0,
+"until": 315.0,
+"weights": [[250.0, 2.5], [313.0, 2.5]]
 }, {
 "enemy": "lesser_scorpion",
 "id": "r3",
-"pack": 100.0,
-"pattern": "in_front",
+"pack": 6.0,
+"pattern": "ring",
 "stats": {
 "hp_mult": 1.2,
 "speed": 1.5
 },
-"t": 123.0,
-"until": 176.0,
-"weights": [[121.0, 8.0], [174.0, 7.6]]
+"t": 0.0,
+"until": 53.0,
+"weights": [[0.0, 8.0], [51.0, 7.6]]
 }, {
 "enemy": "skeleton",
 "id": "r12",
 "stats": {
 "hp": 20.0
 },
-"t": 176.0,
-"until": 285.0,
-"weights": [[177.0, 6.7]]
+"t": 53.0,
+"until": 123.0,
+"weights": [[54.0, 6.7]]
 }, {
 "enemy": "skeleton_knight",
 "id": "r13",
@@ -111,30 +119,23 @@ roster = [{
 "stats": {
 "hp": 35.0
 },
-"t": 176.0,
-"until": 306.0,
-"weights": [[177.0, 2.9]]
+"t": 83.0,
+"until": 123.0,
+"weights": [[84.0, 2.9]]
 }, {
 "enemy": "spit_cactus",
 "id": "r14",
 "pattern": "scatter",
-"t": 176.0,
-"until": 234.0,
-"weights": [[177.0, 1.8]]
-}, {
-"enemy": "spit_cactus",
-"id": "r17",
-"pattern": "scatter",
-"t": 368.0,
-"until": 430.0,
-"weights": [[369.0, 1.2]]
+"t": 257.0,
+"until": 315.0,
+"weights": [[258.0, 1.8]]
 }, {
 "enemy": "bull_beetle",
 "id": "r15",
 "pattern": "scatter",
-"t": 250.0,
-"until": 368.0,
-"weights": [[250.0, 1.0]]
+"t": 306.0,
+"until": 430.0,
+"weights": [[306.0, 1.0]]
 }, {
 "enemy": "werewolf",
 "id": "r16",
@@ -143,9 +144,9 @@ roster = [{
 "hp": 20.0,
 "size": 1.4
 },
-"t": 306.0,
+"t": 347.0,
 "until": 430.0,
-"weights": [[306.0, 5.4]]
+"weights": [[347.0, 5.4]]
 }, {
 "enemy": "buckshot_dwarf",
 "id": "r19",
@@ -708,6 +709,10 @@ colour_after_kills = 50
 creature_hp_mult = 1.3
 creature_damage_mult = 1.25
 creature_speed_mult = 0.9
+special_defaults = {
+"chest_chance": 0.35,
+"max_alive": 3.0
+}
 spawn_sides = {
 "bottom": 15.0,
 "facing_share": 0.7,
@@ -722,6 +727,18 @@ xp_need_mult = 2.1
 move_pace = 0.9
 portal_wave = {
 "count": 12.0
+}
+boss_hp_scaling = {
+"enabled": true,
+"exponent": 0.5,
+"max": 3.0,
+"min": 0.75,
+"ref_dps": {
+"brander": 20000.0,
+"gila_grande": 4500.0,
+"tumbleweed_king": 600.0
+},
+"window": 45.0
 }
 
 [resource]

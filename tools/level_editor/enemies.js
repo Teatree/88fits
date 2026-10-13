@@ -172,13 +172,16 @@ const Enemies = (() => {
       const atk = M.isObj(atk0) ? atk0 : { name: String(atk0) };
       const name = String(atk.name || '');
       const spec = F.ATTACKS[name] || null;
+      // pass 72 (lane BOSS): a custom attack of content/boss_attacks (made on the Boss attacks tab)
+      const custom = !spec && typeof BossAttacks !== 'undefined' && BossAttacks.get ? BossAttacks.get(name) : null;
       const tel = F.attackTelegraph(atk);
-      const card = el('div', { class: 'atk-card' + (spec ? '' : ' unknown'), 'data-key': `boss.attacks.${i}` });
+      const card = el('div', { class: 'atk-card' + (spec || custom ? '' : ' unknown'), 'data-key': `boss.attacks.${i}` });
       const setKey = (k, v) => write((arr) => { const a = M.isObj(arr[i]) ? arr[i] : { name: String(arr[i]) }; if (v == null || v === '') delete a[k]; else a[k] = v; arr[i] = a; });
       const nameSel = Forms.select(F.attackOptions(), name, (v) => setKey('name', v), { path: `boss.attacks.${i}.name`, emptyLabel: 'name…' });
       const head = el('div', { class: 'atk-head' },
         el('span', { class: 'atk-n', text: `#${i + 1}` }), nameSel,
-        el('span', { class: 'muted small', text: spec ? spec.help : (name ? 'an unknown name: the game does nothing for it' : '') }),
+        el('span', { class: 'muted small', text: spec ? spec.help : custom ? `custom attack "${custom.name || name}" (${custom.kind}): its own numbers are on the Boss attacks tab; the keys below override them for this boss` : (name ? 'an unknown name: the game does nothing for it' : '') }),
+        custom ? el('button', { class: 'btn small', type: 'button', text: 'Open in Boss attacks', onclick: () => BossAttacks.open(name) }) : null,
         el('span', { class: 'atk-ops' },
           el('button', { class: 'btn small ghost', type: 'button', text: '▲', title: 'earlier', disabled: i === 0, onclick: () => write((arr) => { const [x] = arr.splice(i, 1); arr.splice(i - 1, 0, x); }) }),
           el('button', { class: 'btn small ghost', type: 'button', text: '▼', title: 'later', disabled: i === attacks.length - 1, onclick: () => write((arr) => { const [x] = arr.splice(i, 1); arr.splice(i + 1, 0, x); }) }),
@@ -205,7 +208,7 @@ const Enemies = (() => {
     });
     out.push(list);
     const addSel = Forms.select(F.attackOptions(), '', (v) => { if (v) write((arr) => { arr.push({ name: v }); }); }, { emptyLabel: '+ attack ▾', path: 'boss.attacks.add' });
-    out.push(el('div', { class: 'alt-actions' }, addSel, el('span', { class: 'muted small', text: 'the 14 names EnemyManager knows; a new attack needs code: ask Claude' })));
+    out.push(el('div', { class: 'alt-actions' }, addSel, el('span', { class: 'muted small', text: 'the 14 names EnemyManager knows, then the custom attacks (★, pass 72: made on the Boss attacks tab without code: a rain, a volley, a ring, a slam or a built-in with your numbers)' })));
     const m = iss.marks['boss.attacks'];
     if (m) out.push(el('div', { class: 'ferr ' + m.level, 'data-key': 'boss.attacks', text: m.msgs.join(' · ') }));
     if (attacks.length) out.push(sequenceLine(d, pf, doc.ui.map || 'red_canyon', tl));
@@ -371,7 +374,7 @@ const Enemies = (() => {
 
   // ------------------------------------------------------------------ pass 69 (lane EN): the coloured special
 
-  const SP_ROWS = [['size', 'Size ×'], ['hp', 'HP ×'], ['damage', 'ATK ×'], ['xp', 'XP ×'], ['tint_strength', 'Colour strength'], ['glow', 'Glow']];
+  const SP_ROWS = [['size', 'Size ×'], ['hp', 'HP ×'], ['damage', 'ATK ×'], ['xp', 'XP ×'], ['tint_strength', 'Colour strength'], ['glow', 'Glow'], ['chest_chance', 'Chest chance']];
   /** "#8A1428" -> [r, g, b] 0..1, or null. */
   function hexRgb(hex) {
     const m = String(hex || '').match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
@@ -446,6 +449,9 @@ const Enemies = (() => {
     for (const [k, label] of SP_ROWS) {
       tbl.appendChild(el('tr', {}, el('td', { text: label }), el('td', { class: 'mine', text: fmtN(Model.specialValue(sp, defaults, k), 2) }), el('td', { class: 'muted small', text: where[Model.specialSource(sp, defaults, k)] })));
     }
+    // pass 72 (lane SPEC): the map's cap on how many live at once (Settings → Coloured specials; the game's 3)
+    const capN = Model.specialMaxAlive(defaults);
+    tbl.appendChild(el('tr', {}, el('td', { text: 'Max alive (map)' }), el('td', { class: 'mine', text: isFinite(capN) ? String(capN) : 'no limit' }), el('td', { class: 'muted small', text: (M.isObj(defaults) && defaults.max_alive != null && defaults.max_alive !== '' ? `${mapId}'s Coloured specials (Settings)` : 'the game\'s default') + ': past it a roll comes plain; a Special swarm still comes' })));
     tbl.appendChild(el('tr', {}, el('td', { text: 'Colour' }), el('td', { class: 'mine' }, sp.tint ? el('span', { class: 'sw-chip', style: `background:${sp.tint}`, title: sp.tint }) : '—'), el('td', { class: 'muted small', text: sp.tint ? 'this creature' : 'none: it keeps a plain one\'s tint (a row\'s colour range gives it a darker shade)' })));
     wrap.appendChild(tbl);
     const rec = App.creature(doc.id);

@@ -1,0 +1,49 @@
+{
+  "id": "cactus_rain",
+  "name": "Red Cactus Rain",
+  "doc": "The Gila Grande rears up and fires red cactus spikes up and out in every direction; they come down over a huge area round it on rings of landing spots with a gap between every two, each spot a red circle 0.9 s before its spike lands. Stand between the circles.",
+  "kind": "rain",
+  "projectile": {
+    "look": "spike",
+    "tint": "#D0242F",
+    "size": 1.7,
+    "glow": 1.2,
+    "flight": 1.1,
+    "arc": 7.0,
+    "trail": true
+  },
+  "pattern": {
+    "shape": "rings",
+    "center": "boss",
+    "radius_min": 3.6,
+    "radius_max": 16.0,
+    "spacing": 3.2,
+    "count": 0,
+    "jitter": 0.25,
+    "gap": 1.0,
+    "turn": true,
+    "order": "out"
+  },
+  "landing": {
+    "radius": 0.9
+  },
+  "telegraph": {
+    "kind": "circles",
+    "color": "#ED4A5C",
+    "seconds": 0.9
+  },
+  "damage": 0.75,
+  "knockback": 4.0,
+  "lift": 0.0,
+  "timing": {
+    "windup": 1.0,
+    "stagger": 1.5,
+    "cooldown": 0.0,
+    "hold": -1.0
+  },
+  "sounds": {
+    "windup": "",
+    "fire": "en_cactus_spit",
+    "land": "en_stalactite_hit"
+  }
+}

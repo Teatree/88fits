@@ -823,39 +823,56 @@ func _stage_clear() -> void:
 	g.set_paused(false)
 
 
-## 16: extracted at 10:00, stage 2, a new best; damage by four weapons; Orbit Saws unlocked.
+## 16: extracted at 10:00, stage 2, a new best; damage by every kind of source; Turret Buddy unlocked. Pass 72: the
+## Results tell the run as a show (tools/results_story.gd's made-up run): 16 is its end at the top, 16c the end scrolled
+## down to the unlocks, 16d the kills chart half drawn, 16e an unlock's stamp landing, 16b the run that ended in a fall
+## (its graves on the chart) at its end.
 func _results() -> void:
 	_clear_ui()
-	_run.extracted = true
-	_run.elapsed = 600.0
-	_run.stage = 1
 	_run.level = 47
-	_run.kills = 1204
-	_run.chests_opened = 3
-	_run.evolutions = 1
-	_run.run_gold = 992
-	# pass 47: every kind of source, each row its plate, name and number (the ids Run.add_damage is handed)
-	_run.damage_by_weapon = {"killer_swarm": 6540.0, "big_mouth": 3410.0, "turret_buddy": 2560.0, "molotov": 1690.0,
-		"revive": 900.0, "blast": 420.0, "loose_rocket": 130.0, "supply_drop": 260.0, "nuke": 210.0, "burn": 160.0,
-		"poison": 95.0, "": 12.0, "mystery_beam": 6.0}
-	_run.last_result = {"gold_before": 104711, "banked": 1240, "prev_best": {"time": 480.0}}
 	var qt = load("res://core/systems/QuestTracker.gd")
-	qt.just_completed = ["unlock_turret_buddy"]
+	var story = load("res://tools/results_story.gd")
+	story.fill(_run, _save, qt, false)
+	# pass 47: every kind of source, each row its plate, name and number (the ids Run.add_damage is handed)
+	for pair in [["supply_drop", 260.0], ["nuke", 210.0], ["poison", 95.0], ["", 12.0], ["mystery_beam", 6.0]]:
+		_run.damage_by_weapon[pair[0]] = float(pair[1])
 	g.set_paused(false)
 	change_scene_to_file("res://ui/ResultsScreen.tscn")
-	await _wait(1.6)
+	await _show_at("chart", 0.5)
+	await _shot("16d-results-chart")
+	await _show_at("unlock", 0.55)
+	await _shot("16e-results-unlock")
+	current_scene.skip_all()
+	# the stamp's burst has gone by (WCelebrate.LIFE)
+	await _wait(2.0)
+	current_scene.scroll.scroll_vertical = 0
+	await _wait(0.3)
 	await _shot("16-results")
-	# 16c (pass 47): the damage rows scrolled to their end: fire, poison, the unknown "?"
 	current_scene.scroll.scroll_vertical = 999999
 	await _wait(0.4)
 	await _shot("16c-results-sources")
 	# 16b (pass 44): the hero stayed down; since pass 70 a death banks the purse like an extraction (Game.bank_run_end)
-	_run.extracted = false
-	_run.died = true
-	_run.last_result = {"gold_before": 104711, "banked": 992, "lost": 0, "strongbox": 0, "prev_best": {"time": 480.0}}
+	story.fill(_run, _save, qt, true)
 	change_scene_to_file("res://ui/ResultsScreen.tscn")
-	await _wait(1.6)
+	await _wait(0.5)
+	current_scene.skip_all()
+	await _wait(0.6)
+	current_scene.scroll.scroll_vertical = 0
+	await _wait(0.3)
 	await _shot("16b-results-down")
+
+
+## Waits (at most 25 s) until the Results' show has come `frac` of the way through its part `part`, or past it.
+func _show_at(part: String, frac: float) -> void:
+	var order := ["gold", "breath", "chart", "sources", "pause", "scroll", "unlock", "progress", ""]
+	var deadline := Time.get_ticks_msec() + 25000
+	while Time.get_ticks_msec() < deadline:
+		var rs = current_scene
+		if rs and rs.has_method("part_name"):
+			var now: String = rs.call("part_name")
+			if (now == part and float(rs.call("part_frac")) >= frac) or now == "" or order.find(now) > order.find(part):
+				return
+		await process_frame
 
 
 ## Hit-log rows as Player.damage_log keeps them (pass 46): a plain hit, an elite-modded creature in its modifier's colour,

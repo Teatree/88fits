@@ -120,6 +120,8 @@ const PICKUP_PRIORITY := -2
 ## The stencil value every painting writes where it draws a pixel (pass 54: enemy_billboard, sprite_billboard and
 ## prop_billboard say `stencil_mode write, compare_always, 1`): the gems and the coin (coin.gdshader) draw only where the
 ## stencil is not this, so they lie under every 2.5D sprite, in front of its plane or behind it.
+## Pass 72 (lane SPEC): the scenery (props, structures, signs, barrels, the wall) writes SceneryStencil.VALUE (2) instead,
+## so a creature's outline shows only behind scenery; the gems, coins and glints now draw where the stencil is 0.
 const PAINTING_STENCIL := 1
 ## each kind's colour (gem small, medium, large, coin, vacuum): the mesh. Pass 60 (Garry: "a shade darker so they are
 ## more easily visible on the sand"): the three gems are GEM_SHADE of their pass-46 colours (the same hues), so they read

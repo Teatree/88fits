@@ -78,6 +78,12 @@ const Jobs = (() => {
   // the candidate jobs and the fields their tools read (D6/D7); "What to paint" shows them filled from the server's
   // defaults (GET /api/jobs/defaults), editable; they are job fields (SPECS), so flatten keeps them
   const CAND_KINDS = ['icon_cands', 'hero_badge', 'hero_title'];
+  // pass 72 (Garry: "first seed" on every asset that has candidates): the two fields every candidate form shows, with
+  // the same words (jobs.py CANDIDATES_HELP / FIRST_SEED_HELP; the served SPECS' help wins when it is there); the look
+  // methods that stop for a pick of candidates; the puppet's arms-out fronts show them too (puppet.js)
+  const CANDIDATES_HELP = 'how many candidates to paint and pick from, each on a seed of its own';
+  const FIRST_SEED_HELP = 'where this job\'s seeds start: candidate k paints on the first seed + k × 1,000,003, the whole set moved by this job\'s id and by every re-run, so no two jobs paint the same pictures (tools/cand_seeds.py); 0 = the tool\'s own start, from the asset\'s id; another number = a fresh set from the same words';
+  const SEEDED_LOOKS = ['creature_ctl', 'front_from_picture'];
   const CHARACTER_HELP = 'who is painted, in words: the look\'s `appearance` when it has one, else its art_prompt with the pose clause cut (a portrait must not inherit "standing straight, arms at her sides"); the words go right after "this exact character"';
   const CAND_FIELDS = {
     hero_badge: [
@@ -1165,6 +1171,23 @@ const Jobs = (() => {
     return el('div', { class: 'fieldline' }, el('label', { text: label, title: help || '' }), control, help ? el('div', { class: 'fh', text: help }) : null);
   }
 
+  /** Pass 72 (Garry: "first seed" on every asset that has candidates): the two fields of every candidate job, the
+   *  same everywhere: Candidates (spec.counts.seeds, the job's `seeds`) and First seed (spec.job.first_seed, the job's
+   *  `first_seed`: tools/cand_seeds.start), under a heading of their own; `what` says what the candidates are. */
+  function candidateSeedFields(body, c, jk, what) {
+    const spec = c.state.spec;
+    if (!spec.job) spec.job = {};
+    const f = (c.specs && c.specs[jk] && c.specs[jk].fields) || {};
+    const help = (k, dflt) => (f[k] && f[k].help) || dflt;
+    body.appendChild(el('h2', {}, 'Candidates', what ? el('small', { text: what }) : null));
+    const n = el('input', { type: 'number', class: 'num', min: 1, max: 12, step: 1, value: spec.counts.seeds || (f.seeds && f.seeds.default) || 4 });
+    n.addEventListener('change', () => { spec.counts.seeds = Math.max(1, Math.min(12, Math.round(Number(n.value) || 4))); n.value = String(spec.counts.seeds); });
+    body.appendChild(fieldLine('Candidates', n, help('seeds', CANDIDATES_HELP)));
+    const fs = el('input', { type: 'number', class: 'num', step: 1, value: Number(spec.job.first_seed) || 0 });
+    fs.addEventListener('change', () => { const v = Math.round(Number(fs.value) || 0); setKey(spec.job, 'first_seed', v || null); fs.value = String(v); });
+    body.appendChild(fieldLine('First seed', fs, help('first_seed', FIRST_SEED_HELP)));
+  }
+
   /** A control for one recipe field of methods.json ({key, type, default, help, options}). */
   /** pass 70: the inherited value goes IN the box (Forms.inheritable): `ctx.inherit` = {value, from}. */
   function inheritIn(inp, value, ctx, onChange, parse, same) {
@@ -1393,7 +1416,7 @@ const Jobs = (() => {
     // fields only another method's tool reads (D11: front_from_picture's ref / prompt / keep, gen_ctl's picks, recolour)
     const recipeKeys = new Set(fields.map((f) => f.key));
     const candKeys = new Set(candKind ? (CAND_FIELDS[jk] || []).map((f) => f.key) : []);
-    const hidden = (k) => (jk === 'look' && METHOD_ONLY[k] && !METHOD_ONLY[k].includes(spec.method)) || candKeys.has(k) || k === 'variant' || k === 'reroll' || k === 'puppet';
+    const hidden = (k) => (jk === 'look' && METHOD_ONLY[k] && !METHOD_ONLY[k].includes(spec.method)) || candKeys.has(k) || k === 'variant' || k === 'reroll' || k === 'puppet' || k === 'first_seed';
     const specFields = kindFields
       ? Object.entries(kindFields).filter(([k]) => !OWN_KEYS.includes(k) && !recipeKeys.has(k) && !hidden(k)).map(([k, f]) => Object.assign({ key: k }, f || {}, { type: specType(f && f.type) }))
       : null;
@@ -1466,7 +1489,13 @@ const Jobs = (() => {
           if (dlg.isConnected) fill(state.codes);
         });
       }
+      if (SEEDED_LOOKS.includes(spec.method)) candidateSeedFields(body, c, jk, spec.method === 'creature_ctl'
+        ? 'gen_ctl\'s side view (and any view painted again as candidates) stops for your pick'
+        : 'the fronts painted from the picture; you pick one on the job card');
       if (!job) candidateCounts(body, c);
+    } else if (mode === 'badge' || mode === 'title' || mode === 'icon') {
+      // pass 72: a candidate job's two fields, the same on every kind
+      candidateSeedFields(body, c, jk, mode === 'icon' ? 'how many icons to paint and pick from (20 s each; the Flux.2 dev model 4-5 min each)' : 'you pick one on the job card');
     } else {
       body.appendChild(el('h2', {}, 'Counts'));
       const seeds = el('input', { type: 'number', class: 'num', min: 1, max: 12, step: 1, value: spec.counts.seeds || 4 });
@@ -1476,10 +1505,13 @@ const Jobs = (() => {
 
     // 5. seeds and re-rolls
     if (hasField('seed') || mode === 'look') {
-      body.appendChild(el('h2', {}, mode === 'look' ? 'Seeds and re-rolls' : 'Seeds'));
+      const seeded = mode === 'look' && SEEDED_LOOKS.includes(spec.method);
+      body.appendChild(el('h2', {}, seeded ? 'Re-rolls' : mode === 'look' ? 'Seeds and re-rolls' : 'Seeds'));
       const seed = el('input', { type: 'number', class: 'num', step: 1, value: spec.flags.seed || 0 });
       seed.addEventListener('change', () => { spec.flags.seed = Number(seed.value) || 0; });
-      body.appendChild(fieldLine('seed shift', seed, '--seed=N: every still this job paints moves by N × 7919 (0 = none; the same N gives the same pictures again). A new look has seeds of its own anyway (recipe.seed_offset, from its code)'));
+      // pass 72: the shift reaches neither gen_ctl nor gen_edit_stills (their candidates start at the First seed above)
+      if (seeded) spec.flags.seed = 0;
+      else body.appendChild(fieldLine('seed shift', seed, '--seed=N: every still this job paints moves by N × 7919 (0 = none; the same N gives the same pictures again). A new look has seeds of its own anyway (recipe.seed_offset, from its code)'));
       if (mode === 'look') rerollSection(body, c);
     }
 
@@ -1692,6 +1724,10 @@ const Jobs = (() => {
       inp.addEventListener('change', () => { const v = Math.max(0, Math.min(12, Math.round(Number(inp.value) || 0))); spec.counts[p.count] = v; inp.value = String(v); });
       body.appendChild(fieldLine(p.label, inp, candidateHelp(p, state.isNew)));
     }
+    // pass 72: their first seed (each candidate job takes it as its own First seed)
+    const fs = el('input', { type: 'number', class: 'num', step: 1, value: Number(spec.counts.first_seed) || 0 });
+    fs.addEventListener('change', () => { spec.counts.first_seed = Math.round(Number(fs.value) || 0); fs.value = String(spec.counts.first_seed); });
+    body.appendChild(fieldLine('First seed', fs, `${FIRST_SEED_HELP} (for the ${plan.map((p) => p.label).join(' and the ')} above)`));
     if (spec.method === 'creature_ctl' && state.isNew) body.appendChild(el('p', { class: 'help warn-text', text: 'gen_ctl stops for your pick of the side, and the comfy lane runs the next job while it waits: the icon candidates may paint before this look\'s front still exists (then from the words alone). Re-queue them from the Jobs tab once the look is done if they miss it.' }));
   }
   function candidateHelp(p, isNew) {
@@ -1716,7 +1752,7 @@ const Jobs = (() => {
     const allowed = rerollModes(spec.method);
     if (!allowed.length) {
       spec.reroll.mode = '';
-      body.appendChild(fieldLine('re-roll', el('span', { class: 'muted small', text: spec.method === 'recolour' ? 'a recolour keeps nothing cached: it simply runs again' : spec.method === 'front_from_picture' ? 'a front from a picture paints its candidates again with the seed shift above' : 'nothing to re-roll for this method' })));
+      body.appendChild(fieldLine('re-roll', el('span', { class: 'muted small', text: spec.method === 'recolour' ? 'a recolour keeps nothing cached: it simply runs again' : spec.method === 'front_from_picture' ? 'a front from a picture paints new candidates on every run (a re-run moves its seeds on; the First seed above starts them)' : 'nothing to re-roll for this method' })));
       return;
     }
     const modes = [{ v: '', label: 'none (cached work reused)', help: 'the stills and clips already on disk are reused: only what is missing is made' }].concat(REROLL.filter((r) => allowed.includes(r.v)));
@@ -2021,6 +2057,7 @@ const Jobs = (() => {
     const pj = painterOfSpec(spec);
     const job = { model: pj.model };
     if (pj.steps) job.steps = pj.steps;
+    if (spec.counts && Number(spec.counts.first_seed)) job.first_seed = Math.round(Number(spec.counts.first_seed));   // pass 72
     if (pj.model === 'dev') { if (pj.guidance) job.guidance = pj.guidance; job.turbo = pj.turbo; }
     return flatten({ method: p.jk, recipe: {}, refs: [], drivers: {}, flags: { dev: pj.model === 'dev', skip_qa: !!(spec.flags && spec.flags.skip_qa) }, counts: { seeds: n }, job, note: '' }, p.jk, specs);
   }
@@ -2120,7 +2157,7 @@ const Jobs = (() => {
     render, poll, start, openForm, jobsFor, toast, openAsset, nextCodes, composeWords, methods, S, STATES, STATE_LABEL, REROLL, ROLES, FOLLOW, USES,
     // pass 68: the pure helpers (selftest_V checks them under Node) and the tables they read
     flatten, unflatten, queueOrder, queueLabel, heldLabel, withClearedFields, painterOfSpec, painterDiffers, candidatePlan, candidateRefusal, refUrl, candidateWords, sourceTag, lookRowKeys, rerollModes,
-    GROUPS, LANE_ORDER, STILL_METHODS, MIN_CANDIDATES, CAND_KINDS, CAND_FIELDS, METHOD_ONLY, REROLL_FOR,
+    GROUPS, LANE_ORDER, STILL_METHODS, MIN_CANDIDATES, CAND_KINDS, CAND_FIELDS, METHOD_ONLY, REROLL_FOR, CANDIDATES_HELP, FIRST_SEED_HELP, SEEDED_LOOKS,
   };
 })();
 if (typeof module !== 'undefined') module.exports = Jobs;

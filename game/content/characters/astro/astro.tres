@@ -20,7 +20,7 @@ target = "player"
 [resource]
 script = ExtResource("2_dewj2")
 level_trait = [SubResource("Resource_nv1wx")]
-order = 2
+order = 3
 trait_name = "Space Suit"
 trait_text = "Gain 2 max HP per level, and heal 8% of max HP on every level-up."
 pronoun = "she"
@@ -31,6 +31,8 @@ favourite_bonus = {
 "type": "effects"
 }
 start_weapon = "gravity_gun"
+availability = "purchase"
+price = 300
 sprite = ExtResource("4_nv1wx")
 sprite_file = "astro_sprite.png"
 anims = {

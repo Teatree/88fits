@@ -376,7 +376,8 @@ func test_bucking_bronco_throws_plain_creatures_up_and_away() -> void:
 		top = maxf(top, em.lift_h[a])
 	assert_bool(em.is_launched(a)).is_false()
 	assert_float(top).is_greater(EnemyManager.BRONCO_HEIGHT * 0.8)
-	assert_float(em.pos[a].x - x0).is_greater(EnemyManager.BRONCO_AWAY_MIN * 0.8)
+	# pass 72: the throw's distance at the map's share of the hero's pushes (hero_knockback_mult)
+	assert_float(em.pos[a].x - x0).is_greater(EnemyManager.BRONCO_AWAY_MIN * 0.8 * em.hero_knock_mult())
 	# no fall damage: it was hit for 1
 	assert_float(em.hp[a]).is_greater(em.max_hp[a] - 1.5)
 	# a boss, an Elite or an elite-modded creature only takes the knock
@@ -416,7 +417,9 @@ func test_bucking_bronco_rolls_its_chance() -> void:
 	# the flight's length follows the push, within its bounds
 	var e: Dictionary = em._launched[a]
 	var dist := (e["drift"] as Vector3).length() * EnemyManager.BRONCO_AIR
-	assert_float(dist).is_between(EnemyManager.BRONCO_AWAY_MIN - 0.001, EnemyManager.BRONCO_AWAY_MAX + 0.001)
+	# pass 72: within its bounds times the map's share of the hero's pushes (hero_knockback_mult)
+	var hk := em.hero_knock_mult()
+	assert_float(dist).is_between(EnemyManager.BRONCO_AWAY_MIN * hk - 0.001, EnemyManager.BRONCO_AWAY_MAX * hk + 0.001)
 
 
 # ---------------------------------------------------------------- Tin Star, Marshal's Star

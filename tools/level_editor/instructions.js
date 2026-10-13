@@ -24,6 +24,8 @@ const Instructions = (() => {
     clear(container);
     const root = el('div', { class: 'instr' });
     intro(root);
+    // pass 72 (lane BOSS): boss HP pegged to DPS, the custom boss attacks (boss_attacks.js writes the section)
+    if (typeof BossAttacks !== 'undefined' && BossAttacks.instructions) BossAttacks.instructions(root);
     pass71(root);   // pass 71 (lane PLE): the Puppet method
     pass70(root);
     pass69(root);
@@ -647,9 +649,9 @@ const Instructions = (() => {
       'Under the icon, <i>Icon candidates</i> lists every finished candidate job of the item: Design A, B, C, each with its pictures. Click a picture to choose it (double-click to see it big), then <b>Install</b>.',
       'Install is a job on the local lane: the picture becomes <code>&lt;id&gt;_icon.png</code> (the old one backed up) and is imported. Every design stays listed, so you can swap again later. ↻ asks the queue again; more designs: <b>+ Icon candidates…</b> with other words.'));
 
-    how('Tune special enemies: colour, glow, strength', 'A special is a creature rolled bigger, tougher and coloured (pass 69: three times rarer, size × 1.25, HP × 10, ATK × 2).', ol(
-      '<b>One creature</b>: Enemies tab → the creature → <b>Special</b>: Chance (0.04 = one in 25, after the map\'s Colour after kills), Size ×, HP ×, ATK ×, XP ×, <b>Colour</b> (the picker: the wash and the glow\'s hue; a dark, saturated one reads best), <b>Colour strength</b>, <b>Glow</b> (0 none … 1 the widest rim). The table under it says what applies and whether it is the creature\'s own, the map\'s or the game\'s; the two pictures are a plain one and its special. <b>Save asset</b>.',
-      '<b>Every creature at once</b>: Settings → <b>Coloured specials</b>: the map\'s numbers for any box a creature leaves empty. Every creature leaves Glow empty today, so Glow here is the one knob for all of them. Save (the map).',
+    how('Tune special enemies: colour, glow, strength', 'A special is a creature rolled bigger, tougher and coloured (pass 69: three times rarer, ATK × 2; pass 72: size × 1.5, HP × 15, a chest on its death at 0.35, at most 3 alive at once).', ol(
+      '<b>One creature</b>: Enemies tab → the creature → <b>Special</b>: Chance (0.04 = one in 25, after the map\'s Colour after kills), Size ×, HP ×, ATK ×, XP ×, <b>Colour</b> (the picker: the wash and the glow\'s hue; a dark, saturated one reads best), <b>Colour strength</b>, <b>Glow</b> (0 none … 1 the widest rim), <b>Chest chance</b> (pass 72: 0.35 = about one in three of their deaths drops a chest). The table under it says what applies and whether it is the creature\'s own, the map\'s or the game\'s; the two pictures are a plain one and its special. <b>Save asset</b>.',
+      '<b>Every creature at once</b>: Settings → <b>Coloured specials</b>: the map\'s numbers for any box a creature leaves empty. Every creature leaves Glow and Chest chance empty today, so those two here are the knobs for all of them. <b>Max alive</b> (pass 72, 3; 0 = no limit): past it a creature that rolled its special comes plain, a swarm set to Special still brings one. Save (the map).',
       'A roster row, wave or event can override them for its creatures: the inspector\'s Elite group → Special glow and the rest.'));
 
     how('Place, move or delete a special at a set second (the Goblin moment)', 'Red Canyon\'s "Special Goblin" is a swarm event of Count 1 with <b>Special</b> ticked at 2:00, where the first roster row ends (its creature is the red goblin, the green goblin being retired).', ol(

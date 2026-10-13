@@ -57,6 +57,15 @@ func _plates(n: Node) -> Array:
 	return out
 
 
+## The first hero in Garry's order (Registry.sorted_characters) whose state on the save now is `state`, null when none
+## (pass 72, lane INTEG: Garry moves heroes between free, on sale and hidden in the Level Editor, 2026-10-13).
+func _first_in(state: String) -> CharacterDef:
+	for c: CharacterDef in Registry.sorted_characters():
+		if Registry.hero_state(c) == state:
+			return c
+	return null
+
+
 func _show(t: Control, id: String) -> void:
 	var i: int = (t._heroes as Array).find(_hero(id))
 	assert_int(i).override_failure_message("%s is not on the carousel" % id).is_greater_equal(0)
@@ -98,17 +107,27 @@ func test_every_purchase_hero_has_a_price_and_a_requirement_the_quests_can_check
 			assert_str(TextGen.quest_text(q)).override_failure_message(c.id).is_not_equal("Complete a challenge.")
 			assert_bool(Registry.quest_visible(q)).override_failure_message(c.id).is_true()
 	assert_int(on_sale).is_greater(0)
-	# Garry's asks: the Drifter and Astro free, Fadeaway on sale with no requirement (his test), Mira back with one she
-	# will never meet, Dad still hidden
+	# Garry's asks: the Drifter free (the default hero), Fadeaway on sale with no requirement (his test), Mira with one she
+	# will never meet, Dad still hidden. Re-pinned (pass 72, lane INTEG) to his 2026-10-13 edits: Astro is on sale too
+	# (300, no quest) and Mira hidden again, so what is pinned is the rule: a hero on sale with no quest is buyable on a
+	# clean save at once, one with a quest is locked until it is done
 	assert_str(_hero("drifter").availability).is_equal("available")
-	assert_str(_hero("astro").availability).is_equal("available")
+	assert_bool(_hero("drifter").hidden).is_false()
+	for c: CharacterDef in Registry.sorted_characters():
+		if c.availability == "purchase":
+			var want := "locked" if Registry.quest_for("character", c.id) else "buyable"
+			assert_str(Registry.hero_state(c)).override_failure_message(c.id).is_equal(want)
 	assert_str(_hero("fadeaway").availability).is_equal("purchase")
 	assert_object(Registry.quest_for("character", "fadeaway")).is_null()
-	assert_str(_hero("mira").availability).is_equal("purchase")
-	assert_bool(_hero("mira").hidden).is_false()
 	var mq := Registry.quest_for("character", "mira")
 	assert_object(mq).is_not_null()
-	assert_int(int(mq.condition.get("count", 0))).is_greater_equal(10000000)
+	if mq:
+		assert_int(int(mq.condition.get("count", 0))).is_greater_equal(10000000)
+	if _hero("mira").hidden:
+		# hidden: her quest is neither shown nor tracked
+		assert_bool(Registry.quest_visible(mq)).is_false()
+	else:
+		assert_str(_hero("mira").availability).is_equal("purchase")
 	assert_bool(_hero("dad").hidden).is_true()
 	assert_str(TextGen.grouped(99999999)).is_equal("99,999,999")
 	assert_str(TextGen.grouped(2500)).is_equal("2,500")
@@ -118,9 +137,11 @@ func test_every_purchase_hero_has_a_price_and_a_requirement_the_quests_can_check
 # ---------------------------------------------------------------- the states
 
 func test_hero_state_for_each_case() -> void:
-	# free: owned from the start
+	# free: owned from the start (Garry put Astro on sale on 2026-10-13: every free hero is owned)
 	assert_str(Registry.hero_state(_hero("drifter"))).is_equal("owned")
-	assert_str(Registry.hero_state(_hero("astro"))).is_equal("owned")
+	for c: CharacterDef in Registry.sorted_characters():
+		if c.availability == "available" and Registry.quest_for("character", c.id) == null:
+			assert_str(Registry.hero_state(c)).override_failure_message(c.id).is_equal("owned")
 	# on sale with no requirement
 	assert_str(Registry.hero_state(_hero("fadeaway"))).is_equal("buyable")
 	# a requirement not met: locked; met: on sale; bought: owned
@@ -134,8 +155,8 @@ func test_hero_state_for_each_case() -> void:
 	# hidden
 	assert_str(Registry.hero_state(_hero("dad"))).is_equal("hidden")
 	assert_str(Registry.hero_state(null)).is_equal("hidden")
-	# Mira's requirement is out of reach
-	assert_str(Registry.hero_state(_hero("mira"))).is_equal("locked")
+	# Mira's requirement is out of reach (hidden since Garry's 2026-10-13 edit: then she is hidden)
+	assert_str(Registry.hero_state(_hero("mira"))).is_equal("hidden" if _hero("mira").hidden else "locked")
 	assert_str(Registry.hero_requirement_text(_hero("mira"))).is_equal("Kill 99,999,999 creatures, all time.")
 	# a free hero gated by a quest: locked, then owned with nothing to pay
 	var free := CharacterDef.new()
@@ -254,16 +275,21 @@ func test_the_title_shows_a_hero_not_owned_as_unknown_and_play_refuses_him() -> 
 	t._on_play()
 	assert_str(str(Save.data["last_map"])).is_equal("p69_sentinel")
 	assert_str(str(Save.data["last_character"])).is_not_equal("fadeaway")
-	# locked: the requirement over the plaque, no BUY, the padlock
-	_show(t, "mira")
+	# locked: the requirement over the plaque, no BUY, the padlock (the first locked hero in Garry's order: Mira until
+	# he hid her again on 2026-10-13)
+	var locked := _first_in("locked")
+	assert_object(locked).is_not_null()
+	_show(t, locked.id)
 	assert_bool(t._req.visible).is_true()
 	assert_bool(t._buy_col.visible).is_false()
-	assert_str(t._req_text.text).is_equal("Kill 99,999,999 creatures, all time.")
+	assert_str(t._req_text.text).is_equal(Registry.hero_requirement_text(locked))
+	assert_str(t._req_text.text).is_not_empty()
 	assert_object(t._lock).is_not_null()
 	assert_bool(t._play.locked).is_true()
-	# owned: his name, neither, PLAY open
-	_show(t, "astro")
-	assert_str(t._name.text).is_equal("Astro")
+	# owned: his name, neither, PLAY open (Astro until Garry put her on sale; the first owned hero now)
+	var owned := _first_in("owned")
+	_show(t, owned.id)
+	assert_str(t._name.text).ends_with(owned.display_name)  # (the title calls him "The Drifter")
 	assert_bool(t._req.visible).is_false()
 	assert_bool(t._buy_col.visible).is_false()
 	assert_bool(t._play.locked).is_false()
@@ -319,9 +345,10 @@ func test_the_drawer_lists_every_hero_not_hidden_and_a_tile_selects_him() -> voi
 	assert_bool((fad_tile.find_child("Badge", true, false) as WPlate).mystery).is_true()
 	var dr_tile: Control = d.call("tile_of", "drifter")
 	assert_bool((dr_tile.find_child("Badge", true, false) as WPlate).mystery).is_false()
-	# a tile selects that hero and the drawer stays open
-	d.call("_pick", _hero("mira"))
-	assert_object(t._heroes[t._index]).is_same(_hero("mira"))
+	# a tile selects that hero and the drawer stays open (a locked one: Mira until Garry hid her again on 2026-10-13)
+	var locked := _first_in("locked")
+	d.call("_pick", locked)
+	assert_object(t._heroes[t._index]).is_same(locked)
 	assert_bool(t.drawer_open()).is_true()
 	# the button closes it
 	t.toggle_drawer()

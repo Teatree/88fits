@@ -1,0 +1,102 @@
+/* Pass 72 (lane BOSS): the Settings tab's Boss HP card (boss_scaling.js) and the Boss attacks tab (boss_attacks.js), in
+   the page's dark tokens (style.css :root): the multiplier in series blue, the fight in series orange, warnings red. */
+
+/* ------------------------------------------------------------ Settings → Boss HP */
+.bscale { margin-top: 6px; }
+.bscale-refs .frow { grid-template-columns: 200px minmax(0, 1fr); }
+.bscale-pick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 10px 0 4px; }
+.bscale-chart { margin: 4px 0 6px; }
+.bscale-svg { display: block; max-width: 100%; height: auto; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; cursor: crosshair; }
+.bs-grid { stroke: var(--grid); stroke-width: 1; }
+.bs-grid.one { stroke: var(--axis); stroke-dasharray: 4 3; }
+.bs-zone { fill: rgba(250, 178, 25, 0.07); }
+.bs-tick { fill: var(--muted); font-size: 10.5px; }
+.bs-tick.mid { text-anchor: middle; }
+.bs-tick.end { text-anchor: end; }
+.bs-tick.f { fill: var(--s2); }
+.bs-axis { fill: var(--ink-2); font-size: 11px; }
+.bs-axis.mid { text-anchor: middle; }
+.bs-axis.end { text-anchor: end; }
+.bs-axis.m { fill: var(--s1); }
+.bs-axis.f { fill: var(--s2); }
+.bs-mult { fill: none; stroke: var(--s1); stroke-width: 2.5; }
+.bs-fight { fill: none; stroke: var(--s2); stroke-width: 2.2; }
+.bs-plain { fill: none; stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.bs-ref { stroke: var(--sel); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.bs-cross { stroke: var(--ink-2); stroke-width: 1; }
+.bs-dot.m { fill: var(--s1); stroke: var(--page); stroke-width: 1.5; }
+.bs-dot.f { fill: var(--s2); stroke: var(--page); stroke-width: 1.5; }
+.bscale-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 2px; color: var(--ink-2); }
+.bscale-legend .lg::before { content: ''; display: inline-block; width: 16px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 3px solid var(--muted); }
+.bscale-legend .lg.m::before { border-top-color: var(--s1); }
+.bscale-legend .lg.f::before { border-top-color: var(--s2); }
+.bscale-legend .lg.p::before { border-top: 2px dashed var(--muted); }
+.bscale-legend .lg.z::before { height: 10px; border: 0; background: rgba(250, 178, 25, 0.25); }
+.bscale-legend .lg.off { color: var(--warn); }
+.bscale-legend .lg.off::before { display: none; }
+.bscale-read { min-height: 2.6em; color: var(--ink); margin: 2px 0 4px; }
+.bscale-words { margin-top: 8px; border-top: 1px solid var(--grid); padding-top: 4px; }
+.bscale-words summary { cursor: pointer; color: var(--ink-2); font-size: 0.86rem; }
+.bscale-words p { margin: 6px 0; color: var(--ink-2); }
+.bscale-words b { color: var(--ink); }
+
+/* ------------------------------------------------------------ the Boss attacks tab */
+.batk .ferr.bad { color: var(--s8); }
+.batk-grid { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 16px; align-items: start; }
+.batk-list { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px; position: sticky; top: 0; }
+.batk-list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.batk-list-head h2 { font-size: 0.95rem; margin: 0; }
+.batk-item { display: flex; gap: 8px; align-items: center; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 8px; padding: 6px 8px; color: var(--ink); font: inherit; cursor: pointer; }
+.batk-item:hover { background: var(--surface-2); }
+.batk-item.on { background: var(--surface-3); border-color: var(--border-2); box-shadow: inset 3px 0 0 var(--sel); }
+.batk-swatch { width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto; border: 1px solid rgba(0, 0, 0, 0.5); }
+.batk-item-main { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.batk-item-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.batk-item-sub { color: var(--muted); font-size: 0.76rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.batk-new { background: var(--surface-2); border-radius: 8px; padding: 6px 8px; margin: 6px 0; }
+.batk-new .frow { grid-template-columns: 76px minmax(0, 1fr); }
+.batk-new input.txt { width: 100%; }
+.batk-builtins { margin-top: 10px; color: var(--ink-2); }
+.batk-builtins summary { cursor: pointer; font-size: 0.84rem; }
+.batk-builtins > div { margin: 3px 0; }
+.batk-empty { padding: 30px; }
+.batk-edit { min-width: 0; }
+.batk-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
+.batk-name { font-size: 1.05rem; font-weight: 600; min-width: 220px; }
+.batk-id { color: var(--muted); font-size: 0.8rem; }
+.batk-confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 10px; margin: 6px 0; border: 1px solid rgba(230, 103, 103, 0.5); border-radius: 8px; background: rgba(230, 103, 103, 0.08); }
+.batk-issues { margin: 4px 0; }
+.batk-used { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 8px 0; }
+.batk-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.batk-chip { background: var(--surface-2); color: var(--ink-2); border: 1px dashed var(--border-2); border-radius: 999px; padding: 3px 11px; font: inherit; font-size: 0.82rem; cursor: pointer; }
+.batk-chip:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-2); }
+.batk-chip.on { color: var(--ink); background: rgba(57, 135, 229, 0.18); border: 1px solid rgba(57, 135, 229, 0.75); }
+.batk-chip:disabled { opacity: 0.5; cursor: default; }
+.batk-more summary { cursor: pointer; color: var(--muted); font-size: 0.8rem; display: inline; }
+.batk-more[open] { display: flex; flex-wrap: wrap; gap: 6px; }
+.batk-sec .frow { grid-template-columns: 190px minmax(0, 1fr); }
+.batk-color { display: inline-flex; gap: 6px; align-items: center; }
+.batk-color input[type=color] { width: 36px; height: 26px; padding: 0; border: 1px solid var(--border-2); border-radius: 4px; background: none; }
+.batk-prev { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; margin: 10px 0; }
+.batk-svg { display: block; max-width: 100%; height: auto; border-radius: 10px; }
+.bp-ground { fill: #2a241c; stroke: var(--border-2); }
+.bp-edge { fill: none; stroke: rgba(255, 255, 255, 0.22); stroke-dasharray: 5 4; }
+.bp-edge.inner { stroke: rgba(255, 255, 255, 0.14); }
+.bp-spot { fill: rgba(255, 255, 255, 0.04); stroke: rgba(255, 255, 255, 0.28); stroke-width: 1; }
+.bp-gap { stroke: var(--sel); stroke-width: 2.5; stroke-linecap: round; }
+.bp-gapkey { color: var(--sel); }
+.bp-boss { fill: rgba(240, 128, 48, 0.35); stroke: #f08030; stroke-width: 1.5; }
+.bp-hero { fill: var(--s1); stroke: #fff; stroke-width: 1.2; }
+.bp-label { fill: var(--ink-2); font-size: 11px; }
+.bp-label.mid { text-anchor: middle; }
+.bp-label.end { text-anchor: end; }
+.bp-bar { stroke: var(--ink-2); stroke-width: 2; }
+.batk-prev-side { flex: 1 1 260px; min-width: 240px; }
+.batk-prev-ctl { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.batk-prev-ctl input[type=range] { flex: 1 1 auto; accent-color: var(--s1); }
+.batk-facts { margin: 4px 0 6px; padding-left: 18px; color: var(--ink-2); }
+.batk-facts li { margin: 3px 0; }
+.batk-facts b { color: var(--ink); }
+@media (max-width: 900px) { .batk-grid { grid-template-columns: 1fr; } .batk-list { position: static; } }
+.bs-tick.dim { fill: #6b6a65; font-size: 9.5px; }
+.bs-tick.ref { fill: var(--sel); }

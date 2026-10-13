@@ -566,7 +566,14 @@ const Model = (() => {
   /** Pass 69 (lane EN): EnemyDef.SPECIAL_DEFAULTS and EnemyDef.special_value. A variance special's number is the
    *  creature's own (`sp`, its variance.special with a row's overrides merged), else the map's
    *  timeline_data.special_defaults (`defaults`), else the game's. specialSource says which: 'own' | 'map' | 'game'. */
-  const SPECIAL_DEFAULTS = { size: 1.25, hp: 10, damage: 2, xp: 2, tint_strength: 0.6, glow: 0.6 };
+  const SPECIAL_DEFAULTS = { size: 1.5, hp: 15, damage: 2, xp: 2, tint_strength: 0.6, glow: 0.6, chest_chance: 0.35 };
+  /** Pass 72 (lane SPEC): EnemyDef.SPECIAL_MAX_ALIVE and EnemyDef.special_max_alive: the most coloured specials alive at
+   *  once, the map's special_defaults.max_alive, else the game's 3; 0 or below = no limit (Infinity here). */
+  const SPECIAL_MAX_ALIVE = 3;
+  function specialMaxAlive(defaults) {
+    const n = hasNum(defaults, 'max_alive') ? Math.trunc(Number(defaults.max_alive)) : SPECIAL_MAX_ALIVE;
+    return n > 0 ? n : Infinity;
+  }
   const hasNum = (o, k) => isObj(o) && o[k] != null && o[k] !== '' && isFinite(Number(o[k]));
   function specialSource(sp, defaults, key) {
     return hasNum(sp, key) ? 'own' : hasNum(defaults, key) ? 'map' : 'game';
@@ -579,7 +586,7 @@ const Model = (() => {
   /** The coloured variance special a row's creatures may roll (EnemyManager.spawn): the creature's variance block with
    *  the row's `variance` overrides merged over it (EnemyDef.with_overrides' deep merge). chance 0 = none (no variance
    *  block, or no special_chance); strength = the special's tint_strength, size its size factor, glow its rim (pass 69:
-   *  each the creature's own, else the map's `defaults` (special_defaults), else the game's 0.6 / 1.25 / 0.6). */
+   *  each the creature's own, else the map's `defaults` (special_defaults), else the game's 0.6 / 1.5 / 0.6; pass 72: 1.5). */
   function varianceSpecial(c, stats, defaults) {
     const st = isObj(stats) ? stats : {};
     const vr = c && isObj(c.variance) ? c.variance : {};
@@ -817,6 +824,8 @@ const Model = (() => {
     const bLo = trunc(g('burst_min')), bHi = Math.max(trunc(g('burst_max')), bLo);
     const hard = trunc(g('hard_cap')), capMax = trunc(g('cap_max')), capPerStage = trunc(g('cap_per_stage'));
     const colourAfter = trunc(g('colour_after_kills'));
+    // pass 72 (lane SPEC): at most this many coloured specials alive at once (EnemyManager._special_room)
+    const spColCap = specialMaxAlive(tl.special_defaults);
     const bossFrac = g('boss_cap_frac');
     const portalCap = trunc(g('portal_cap')), portalSpawn = g('portal_spawn_seconds');
     const pwBlock = isObj(tl.portal_wave) ? tl.portal_wave : {};
@@ -882,6 +891,7 @@ const Model = (() => {
     const cum = {}, col = {}, mod = {};
     const srcCum = {};                 // pass 58: what each roster row ('roster:<i>') and wave alternative ('wave:<i>:<k>') spawned
     const cat = { reg: 0, col: 0, mod: 0, elite: 0, special: 0, boss: 0, minion: 0 };
+    let colAlive = 0;                  // pass 72: the coloured specials alive (expected), kept under spColCap
     let kills = 0, colourAt = null;
     const marks = [], fights = [];
     const aliveOf = (id) => { let n = 0; for (const a of alive.values()) if (a.id === id) n += a.n; return n; };
@@ -910,8 +920,12 @@ const Model = (() => {
       cat.reg += n;
       if (kind === 'mod') { cat.mod += n; bump(mod, d.id, n); return; }
       // pass 69 (lane EN): a swarm event set to special brings every one as its coloured special, colour or not
-      if (kind === 'forced') { if (d.arch === 'regular') { cat.col += n; bump(col, d.id, n); } return; }
-      if (d.arch === 'regular' && d.chance > 0 && colourOpen()) { const c = n * d.chance; cat.col += c; bump(col, d.id, c); }
+      if (kind === 'forced') { if (d.arch === 'regular') { cat.col += n; bump(col, d.id, n); colAlive += n; } return; }
+      // pass 72 (lane SPEC): a roll past the cap comes plain (a forced one above still comes)
+      if (d.arch === 'regular' && d.chance > 0 && colourOpen()) {
+        const c = Math.min(n * d.chance, Math.max(spColCap - colAlive, 0));
+        if (c > 0) { cat.col += c; bump(col, d.id, c); colAlive += c; }
+      }
     }
 
     // ---- the clocks: the run clock is k / EST_HZ and stands still through a boss fight and its portal wait
@@ -1258,6 +1272,7 @@ const Model = (() => {
       // the hero kills `turnover` of the crowd a second; a special goes at the end of its expected life
       const kd = turnoverNow() / EST_HZ;
       if (kd > 0) for (const a of alive.values()) { const dn = a.n * kd; a.n -= dn; kills += dn; }
+      if (kd > 0) colAlive -= colAlive * kd;
       for (let i = spLive.length - 1; i >= 0; i--) if (spLive[i].die <= play) { spLive.splice(i, 1); kills += 1; }
       if (colourAt == null && colourOpen()) colourAt = clock();
       if (phase === 0) {
@@ -1446,7 +1461,7 @@ const Model = (() => {
     archOf, rowNumbers, actualSources, actualAt, actualSeries, ACTUAL_CLAMP, actualScale, eliteEveryTimes,
     fixedFrom, lookOf, waveEndOf, openSourceOf, eventNumbers,
     sizeRange, sizeIssues, TINT_DEF, tintRange, tintIssues, hueSpan, hueAt, hsvToRgb, toLinear, toSrgb, tintPixel,
-    SPECIAL_TINT, tintSpecial, varianceSpecial, SPECIAL_DEFAULTS, specialValue, specialSource,
+    SPECIAL_TINT, tintSpecial, varianceSpecial, SPECIAL_DEFAULTS, specialValue, specialSource, SPECIAL_MAX_ALIVE, specialMaxAlive,
     SNAP_PX, SNAP_GRID_PX, SNAP_GRID_MIN_PX, SNAP_TIER, snapTargets, snapGridStep, snapDrag, clockText,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

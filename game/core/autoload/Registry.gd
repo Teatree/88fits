@@ -17,6 +17,8 @@ var maps: Dictionary = {}
 var pickups: Dictionary = {}
 var structures: Dictionary = {}
 var buildings: Dictionary = {}
+## pass 72 (lane BOSS): the custom boss attacks (content/boss_attacks), by id
+var boss_attacks: Dictionary = {}
 var soundmap: SoundMap = SoundMap.new()
 var missing_icons: Array = []
 var problems: Array = []
@@ -31,6 +33,7 @@ func scan() -> void:
 	weapons.clear(); passives.clear(); mutations.clear(); perks.clear(); enemies.clear(); elites.clear()
 	characters.clear(); talents.clear(); quests.clear(); maps.clear(); pickups.clear(); structures.clear()
 	missing_icons.clear(); problems.clear(); _enemy_cache.clear()
+	boss_attacks.clear()
 	for type: String in JsonContent.TYPES:
 		_scan_type(type)
 	_load_soundmap()
@@ -73,7 +76,8 @@ func _load_item(type: String, folder: String, id: String) -> ContentDef:
 	res.source_dir = folder
 	if res.icon == null and res.icon_file != "":
 		res.icon = JsonContent.resolve_texture(folder, res.icon_file)
-	if res.icon == null:
+	# a custom boss attack has no icon (pass 72)
+	if res.icon == null and type != "boss_attacks":
 		missing_icons.append(id)
 	return res
 
@@ -106,6 +110,8 @@ func _store(type: String, res: ContentDef) -> void:
 			structures[res.id] = res
 		"buildings":
 			buildings[res.id] = res
+		"boss_attacks":
+			boss_attacks[res.id] = res
 
 
 func _load_soundmap() -> void:
@@ -342,6 +348,11 @@ func pickup(id: String) -> PickupDef:
 
 func structure(id: String) -> StructureDef:
 	return structures.get(id)
+
+
+## A custom boss attack by id (pass 72, lane BOSS), or null.
+func boss_attack(id: String) -> BossAttackDef:
+	return boss_attacks.get(id)
 
 
 func quest_for(type: String, id: String) -> QuestDef:

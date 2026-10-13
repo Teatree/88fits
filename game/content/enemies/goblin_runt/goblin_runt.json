@@ -42,8 +42,8 @@
     "tint_strength": 0.22,
     "special_chance": 0.0333,
     "special": {
-      "size": 1.25,
-      "hp": 10.0,
+      "size": 1.5,
+      "hp": 15.0,
       "damage": 2.0,
       "xp": 3.0,
       "tint": "#5A1A80",
@@ -162,5 +162,5 @@
       "icon": "goblin_runt_icon_d.png"
     }
   },
-  "retired": true
+  "retired": false
 }

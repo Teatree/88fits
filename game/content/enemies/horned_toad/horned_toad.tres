@@ -55,8 +55,8 @@ variance = {
 "size": 0.15,
 "special": {
 "damage": 2.0,
-"hp": 10.0,
-"size": 1.25,
+"hp": 15.0,
+"size": 1.5,
 "tint": "#3A2A8A",
 "tint_strength": 0.6,
 "xp": 3.0

@@ -136,6 +136,16 @@ func passive_cap_at(stage: int) -> int:
 ## this multiple; the hero is not affected (he keeps `move_pace`). EnemyManager folds it into its `pace`
 ## (WaveDirector._apply_mults, the arena too). Red Canyon: 0.9. 1 = as the creatures' data says.
 @export var creature_speed_mult: float = 1.0
+## Pass 72 (Garry: "Half all the knockback effect, it's too easy to make enemies basically unable to get to you"): a
+## multiplier on EVERY push the hero's side gives a creature: a hit's knockback (weapons, mutations, evolutions, lines,
+## passives, perks, the ball, the frisbee, thorns, the revive), a blast's throw (the Nuke, Thruster Burst, Grand Finale),
+## Buck's Ram, the tornado's toss, the Guitarra chord's bounce and Bucking Bronco's throw distance (EnemyManager.hero_knock_mult).
+## Never a creature's push on the hero, a hostile blast's throw of the crowd, knockback_resist, the pull or a stun.
+## Red Canyon: 0.5. 1 = as the items' data says. A map that names none plays HERO_KNOCKBACK_DEFAULT (pass 72, lane
+## INTEG: the halving is the game's rule, so a map JSON saved without the key, e.g. by an editor page opened before the
+## key existed, still halves).
+const HERO_KNOCKBACK_DEFAULT := 0.5
+@export var hero_knockback_mult: float = HERO_KNOCKBACK_DEFAULT
 ## Pass 69 (lane EN): the map's numbers for a variance special that the creature's own `variance.special` does not name:
 ## any of {"size", "hp", "damage", "xp", "tint_strength", "glow"} (EnemyDef.special_value: the creature's own, then this,
 ## then EnemyDef.SPECIAL_DEFAULTS). WaveDirector._apply_mults hands it to EnemyManager.special_defaults. {} = none.
@@ -162,6 +172,46 @@ func passive_cap_at(stage: int) -> int:
 ## The portal wait's wave (pass 48, read by the director, lane L5): when the boss dies one small wave comes round the hero,
 ## then nothing spawns until he steps through. Empty = off (portal_cap and portal_spawn_seconds hold, as for other maps).
 @export var portal_wave: Dictionary = {}
+## Boss HP pegged to the hero's DPS (pass 72, lane BOSS; Garry: "Boss Max HP should scale up the bigger the Player's DPS
+## is in that moment. It shouldn't be 1 to 1, so there is still a 'reward' in getting more DPS"): {"enabled", "exponent",
+## "window", "min", "max", "ref_dps": {boss id: DPS}}. When a boss arrives its HP is times
+## boss_hp_mult(this, his damage a second over the last `window` seconds, the boss's ref_dps) (WaveDirector.boss_dps_scale;
+## the debug arena never scales). enabled false = off; a ref_dps of 0 = that boss is never scaled.
+## Pass 72, lane INTEG: a key the block leaves out (the whole block too) plays the game's own value, on with the measured
+## references (BOSS_HP_SCALING_DEFAULTS, BOSS_REF_DPS_DEFAULTS), so a map JSON saved without the block (an editor page
+## opened before it existed) still pegs the bosses; a boss neither the map nor the defaults name is never scaled.
+@export var boss_hp_scaling: Dictionary = {}
+## What boss_hp_scaling plays for a key it leaves out (the Level Editor's grey numbers).
+const BOSS_HP_SCALING_DEFAULTS := {"enabled": true, "exponent": 0.5, "window": 45.0, "min": 0.75, "max": 3.0}
+## The reference DPS of a boss the block's ref_dps does not name (lane BOSS measured them with tools/difficulty_probe.gd:
+## the DPS over the 45 s before each boss, Calavera and the Drifter on stage builds; pass 72).
+const BOSS_REF_DPS_DEFAULTS := {"tumbleweed_king": 600.0, "gila_grande": 4500.0, "brander": 20000.0}
+
+
+## The boss HP multiplier for a hero dealing `dps` against the reference `ref` (pass 72): (dps / ref) ^ exponent, held
+## between min and max. exponent 0.5: twice the reference DPS makes 1.41 times the HP, so the fight is 29% shorter
+## (a stronger hero still wins faster, he does not breeze through); half of it makes 0.71 of the HP (the floor 0.75
+## holds), so a weak build is not walled. 1 with scaling off or without a reference; an empty block plays the defaults.
+static func boss_hp_mult(cfg: Dictionary, dps: float, ref: float) -> float:
+	if not bool(cfg.get("enabled", BOSS_HP_SCALING_DEFAULTS["enabled"])) or ref <= 0.0:
+		return 1.0
+	var k := float(cfg.get("exponent", BOSS_HP_SCALING_DEFAULTS["exponent"]))
+	var lo := float(cfg.get("min", BOSS_HP_SCALING_DEFAULTS["min"]))
+	var hi := maxf(float(cfg.get("max", BOSS_HP_SCALING_DEFAULTS["max"])), lo)
+	return clampf(pow(maxf(dps, 0.0) / ref, k), lo, hi)
+
+
+## The reference DPS the map names for boss `id` (boss_hp_scaling.ref_dps), else BOSS_REF_DPS_DEFAULTS', else 0.
+func boss_ref_dps(id: String) -> float:
+	var r = boss_hp_scaling.get("ref_dps", {})
+	if r is Dictionary and (r as Dictionary).has(id):
+		return float(r[id])
+	return float(BOSS_REF_DPS_DEFAULTS.get(id, 0.0))
+
+
+## The DPS window's length in seconds (boss_hp_scaling.window, 45 by default).
+func boss_dps_window() -> float:
+	return float(boss_hp_scaling.get("window", BOSS_HP_SCALING_DEFAULTS["window"]))
 
 
 func stage_mult(stage_index: int, seconds_into_endless: float = 0.0) -> float:

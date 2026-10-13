@@ -1,11 +1,27 @@
 ## Results (Wanted screen 16): the hero and the gold first, the tables last. "★ EXTRACTED ★" (or RUN OVER) over the
-## time survived and one line of the run; a panel with the hero's portrait and what was banked, counting up, the purse
-## before and after, and a NEW BEST seal hanging off it when the run beat the map's best; the damage dealt, one row a
-## source (pass 47, Garry: "Each row must have both the icon and the text, with the absolute value of damage dealt":
-## the plate, the name and the number over a bar of its share, the percent beside it, for every weapon, perk, power-up,
-## fire, poison, the revive's blast and explosions, and a "?" plate for anything unknown); what the run unlocked; PLAY
-## AGAIN, then Upgrade (turquoise, pass 46: brass is for buying) and Main Menu. Since pass 70 a death banks the purse like an
-## extraction (the Strongbox is retired). The hero's last hits are on the Down! screen since pass 46, not here.
+## time survived and one line of the run; a panel with the hero's portrait and what was banked, the purse before and
+## after, and a NEW BEST seal hanging off it when the run beat the map's best; the kills chart with its Kills and Damage
+## counters; the damage dealt, one row a source (pass 47, Garry: "Each row must have both the icon and the text, with the
+## absolute value of damage dealt": the plate, the name and the number over a bar of its share, the percent beside it,
+## for every weapon, perk, power-up, fire, poison, the revive's blast and explosions, and a "?" plate for anything
+## unknown); what the run unlocked and the unlocks it brought closer; PLAY AGAIN, then Upgrade (turquoise, pass 46: brass
+## is for buying) and Main Menu. Since pass 70 a death banks the purse like an extraction (the Strongbox is retired).
+## The hero's last hits are on the Down! screen since pass 46, not here.
+## Pass 72 (Garry: "The Result Screen sequence in general should be more animated"), told as two sequences out of the
+## run's own story (Run.timeline, RunTimeline):
+## 1. "Run performance", the board held at the top (no finger or wheel moves it; it only eases down by itself when a
+##    source row would land under the buttons): the banked gold counts up along the run's own purse curve in
+##    GOLD_TIME, then the kills chart draws left to right in CHART_TIME along the run's kills, its badges popping in as
+##    the line reaches them (a grave for each time the hero went down, a skull a boss, a crown an Elite, a gear a
+##    special) with its Kills and Damage counters counting up beside it in short numbers (999, 1.2k, 20k, 1.2m), then
+##    the damage sources: the starting weapon's row is there from the start, every other source comes in the order it
+##    joined the run (first owned, else first hit: a revive's blast only when he got up again), each bar filling in
+##    turn.
+## 2. After PAUSE seconds the board scrolls down to the unlocks: each one this run completed lands in turn (its plate
+##    from a silhouette to its art, a flash, an UNLOCKED stamp, a burst), then every unlock the run brought closer fills
+##    its bar from where it stood to where it stands (this run's part in sage).
+## A tap anywhere but on a button hurries the sequence playing (SPEED_UP), a second tap ends it; the buttons work at any
+## time; the board scrolls freely once both are done. A normal run's whole show lasts about 10-14 s.
 extends ScreenBase
 
 ## The damage sources' own pictures (pass 47, painted by the lead; until one is there its plate shows a "?").
@@ -25,12 +41,72 @@ const SOURCES := {
 	"hot_springs": ["passive:hot_springs", "Hot Springs"],
 }
 
+## The show's pace (pass 72), in seconds at normal speed.
+const GOLD_TIME := 2.5
+const CHART_TIME := 2.8
+## A source row starts this long after the one before (at most; a long list goes faster so the part stays inside
+## SOURCES_MAX) and fills over ROW_FILL.
+const ROW_STEP := 0.36
+const ROW_FILL := 0.5
+const SOURCES_MAX := 3.0
+## Before the first part (the board's own slide-in) and between two parts of the first sequence.
+const LEAD_IN := 0.35
+const BREATH := 0.2
+const PAUSE := 2.0
+const SCROLL_TIME := 0.7
+const UNLOCK_TIME := 1.2
+## A run that lands many unlocks gives each less time (all of them in UNLOCKS_MAX at most), never under UNLOCK_MIN.
+const UNLOCKS_MAX := 4.0
+const UNLOCK_MIN := 0.7
+## When in an unlock's time its stamp lands (a share of its time).
+const STAMP_AT := 0.35
+const PROGRESS_STEP := 0.35
+const PROGRESS_FILL := 0.55
+const PROGRESS_MAX := 3.0
+## A tap's hurry: the sequence playing runs this many times faster.
+const SPEED_UP := 4.0
+## The first sequence's lock ends with the second; once the show is over the board scrolls under a finger again.
+const DONE := 3
+
 var _count: WText
 var _banked := 0
-## The end-of-run survey (pass 59): PostHog's questions, when Analytics has one due, SURVEY_DELAY after the screen comes in.
+## The end-of-run survey (pass 59): PostHog's questions, when Analytics has one due, SURVEY_DELAY after the show ends.
 const WSurveyScript := preload("res://ui/wanted/WSurvey.gd")
 const SURVEY_DELAY := 1.4
 var _survey: Control
+
+var _tl: RunTimeline
+var _run_time := 0.0
+var _chart: WKillChart
+var _kills_num: WText
+var _dmg_num: WText
+var _kill_curve := PackedFloat32Array()
+var _kills_total := 0
+var _dmg_total := 0.0
+## The source rows: {"row", "bar", "amount", "share", "frac", "value", "on"}.
+var _rows: Array = []
+## The unlocks completed: {"panel", "plate", "stamp", "landed"}.
+var _unlocks: Array = []
+## The unlocks brought closer: {"row", "bar", "count", "before", "after", "need", "on"}.
+var _progress: Array = []
+var _unlock_box: VBoxContainer
+var _unlock_label: Control
+var _progress_label: Control
+## The show: {"seq": 1|2, "name", "dur", "fn": Callable(f: float, live: bool)}; the part playing, its clock, the speed.
+var _parts: Array = []
+var _part := 0
+var _pt := 0.0
+var _speed := 1.0
+var _taps := 0
+var _seq := 0
+## Where the board is easing to while the show moves it (-1: nowhere).
+var _follow := -1.0
+var _scroll_from := -1.0
+var _touch_id := -1
+var _touch_on_button := false
+var _gold_shown := -1
+var _coin_ms := 0
+var _mark_ms := 0
 
 
 func use_header() -> bool:
@@ -53,6 +129,8 @@ func board_bottom() -> float:
 func build() -> void:
 	var s := Run.summary()
 	var res: Dictionary = Run.last_result
+	_tl = Run.timeline if Run.timeline else RunTimeline.new()
+	_run_time = float(s["time"])
 	Audio.play_music(["mu_results"], 1)
 	content.add_theme_constant_override("separation", 0)
 	# the head: the star line, the time, one line of the run
@@ -67,27 +145,27 @@ func build() -> void:
 	line.custom_minimum_size.y = 42
 	head.add_child(line)
 	content.add_child(head)
-	content.add_child(_gap(130))
+	content.add_child(_gap(64))
 	# the hero and the gold: banked, whatever the end (pass 70, Garry: "Make Coins stay if Player dies": a death and an
 	# abandon bank the purse as an extraction does, Game.end_run); the Strongbox's line went with the Strongbox
 	var before := int(res.get("gold_before", Save.gold()))
 	_banked = int(res.get("banked", s["gold"]))
 	var hero := PanelContainer.new()
 	hero.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hero.add_theme_stylebox_override("panel", W.box(W.PAPER, 6, 12).pad(42, 36, 42, 36))
+	hero.add_theme_stylebox_override("panel", W.box(W.PAPER, 6, 12).pad(38, 28, 38, 28))
 	var hr := HBoxContainer.new()
 	hr.add_theme_constant_override("separation", 30)
 	hr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hero.add_child(hr)
 	if Run.character:
 		# his badge in the look he was played in (pass 68, Registry.played_look)
-		var p := WPlate.new().for_def(Registry.played_look(Run.character), 212.0)
+		var p := WPlate.new().for_def(Registry.played_look(Run.character), 176.0)
 		p.border = 6
 		p.fill = W.AGED
 		p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		hr.add_child(p)
 	var gv := VBoxContainer.new()
-	gv.add_theme_constant_override("separation", 8)
+	gv.add_theme_constant_override("separation", 6)
 	gv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	gv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	gv.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -95,8 +173,9 @@ func build() -> void:
 	var gr := HBoxContainer.new()
 	gr.add_theme_constant_override("separation", 14)
 	gr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	gr.add_child(WCoin.make(64.0, W.BRASS, 4.0))
-	_count = W.slab_text("0", 110, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 110.0)
+	gr.add_child(WCoin.make(60.0, W.BRASS, 4.0))
+	_count = W.slab_text("+0", 100, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 100.0)
+	_count.name = "Banked"
 	gr.add_child(_count)
 	gv.add_child(gr)
 	gv.add_child(W.serif_text("%s → %s" % [W.num(before), W.num(before + _banked)], 26, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0))
@@ -110,40 +189,38 @@ func build() -> void:
 	content.add_child(hero)
 	if new_best:
 		var seal := WSeal.new()
-		seal.side = 162.0
+		seal.side = 150.0
 		seal.fill = W.ROCK
 		seal.border = 6
 		seal.ring = 8
 		seal.word = "NEW\nBEST"
-		seal.text_size = 20
+		seal.text_size = 19
 		seal.rotation = deg_to_rad(12.0)
-		seal.pivot_offset = Vector2(81, 81)
+		seal.pivot_offset = Vector2(75, 75)
 		hero.add_child(seal)
 		# a free child: the panel lays out the rest (and resets its turn), the seal hangs off its top-right corner
 		hero.sort_children.connect(func():
-			seal.size = Vector2(162, 162)
-			seal.pivot_offset = Vector2(81, 81)
+			seal.size = Vector2(150, 150)
+			seal.pivot_offset = Vector2(75, 75)
 			seal.rotation = deg_to_rad(12.0)
-			seal.position = Vector2(hero.size.x - 162.0 + 30.0, -40.0))
-	# the damage dealt, by source (pass 47: every row its plate, its name and its number)
+			seal.position = Vector2(hero.size.x - 150.0 + 30.0, -44.0))
+	# the kills chart and its counters (pass 72)
+	_kills_total = int(s["kills"])
 	var dmg: Dictionary = s["damage_by_weapon"]
+	for id in dmg:
+		_dmg_total += float(dmg[id])
+	content.add_child(_gap(46))
+	content.add_child(W.label("Run performance", 22, W.INK_SOFT))
+	content.add_child(_gap(16))
+	content.add_child(_kills_panel())
+	# the damage dealt, by source, in the order each joined the run (pass 47: every row its plate, its name and its number)
 	if not dmg.is_empty():
-		content.add_child(_gap(76))
+		content.add_child(_gap(46))
 		content.add_child(W.label("Damage dealt", 22, W.INK_SOFT))
 		content.add_child(_gap(16))
-		content.add_child(damage_rows(dmg))
-	# what the run unlocked
-	if not QuestTracker.just_completed.is_empty():
-		content.add_child(_gap(66))
-		for id in QuestTracker.just_completed:
-			var q: QuestDef = Registry.quests.get(id)
-			if q == null:
-				continue
-			content.add_child(_unlocked(q))
-			content.add_child(_gap(16))
-		QuestTracker.just_completed.clear()
-	_count_up.call_deferred()
-	_offer_survey.call_deferred(float(s["time"]))
+		content.add_child(_source_rows(dmg))
+	# what the run unlocked, and what it brought closer
+	_build_unlocks()
 	# the buttons: PLAY AGAIN, then Upgrade and Main Menu
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 22)
@@ -167,6 +244,7 @@ func build() -> void:
 		b.pressed.connect(func(): go(path))
 		row.add_child(b)
 	col.add_child(row)
+	_plan()
 
 
 func _gap(h: float) -> Control:
@@ -174,6 +252,571 @@ func _gap(h: float) -> Control:
 	c.custom_minimum_size.y = h
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return c
+
+
+# ---------------------------------------------------------------- the parts the show fills
+
+## The kills chart on paper, its Kills and Damage counters on the right (pass 72).
+func _kills_panel() -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "KillsPanel"
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_theme_stylebox_override("panel", W.box(W.PAPER, 5, 8).pad(30, 22, 30, 18))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 28)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(h)
+	var side := 236.0
+	var chart_w := 1080.0 - 2.0 * board_side() - 70.0 - 28.0 - side
+	_chart = WKillChart.new().setup(_tl, chart_w)
+	_chart.name = "KillChart"
+	_chart.custom_minimum_size = Vector2(0, 306)
+	_chart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_chart.popped.connect(_on_mark_popped)
+	h.add_child(_chart)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	v.custom_minimum_size.x = side
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(W.label("Kills", 20, W.INK_SOFT))
+	_kills_num = W.slab_text("0", 66, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 70.0)
+	_kills_num.name = "Kills"
+	v.add_child(_kills_num)
+	v.add_child(_gap(26))
+	v.add_child(W.label("Damage", 20, W.INK_SOFT))
+	_dmg_num = W.slab_text("0", 66, W.BRASS_DARK, HORIZONTAL_ALIGNMENT_LEFT, 70.0)
+	_dmg_num.name = "Damage"
+	v.add_child(_dmg_num)
+	h.add_child(v)
+	_kill_curve = _tl.kills_so_far()
+	return p
+
+
+## The damage rows in the order their sources joined the run; only the first (the starting weapon) shows before its part.
+func _source_rows(dmg: Dictionary) -> VBoxContainer:
+	var rows := VBoxContainer.new()
+	rows.name = "DamageRows"
+	rows.add_theme_constant_override("separation", 18)
+	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var total := maxf(_dmg_total, 1.0)
+	for src: Dictionary in ordered_sources(dmg, _tl):
+		var frac := float(src["amount"]) / total
+		var row := damage_row(src, frac)
+		rows.add_child(row)
+		var e := {"row": row, "bar": row.find_child("Bar", true, false), "amount": row.find_child("Amount", true, false),
+			"share": row.find_child("Share", true, false), "frac": frac, "value": float(src["amount"]), "on": false}
+		_rows.append(e)
+		_fill_row(e, 0.0)
+		row.modulate.a = 1.0 if _rows.size() == 1 else 0.0
+	return rows
+
+
+## What the run unlocked (each lands in the second sequence) and every unlock it brought closer.
+func _build_unlocks() -> void:
+	var done: Array = []
+	for id in QuestTracker.just_completed:
+		if not done.has(id):
+			done.append(id)
+	QuestTracker.just_completed.clear()
+	var closer := progress_list(_tl.quests_before)
+	if done.is_empty() and closer.is_empty():
+		return
+	_unlock_box = VBoxContainer.new()
+	_unlock_box.name = "Unlocks"
+	_unlock_box.add_theme_constant_override("separation", 0)
+	_unlock_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(_gap(66))
+	content.add_child(_unlock_box)
+	if not done.is_empty():
+		_unlock_label = W.label("Unlocked this run", 22, W.INK_SOFT)
+		_unlock_label.modulate.a = 0.0
+		_unlock_box.add_child(_unlock_label)
+		_unlock_box.add_child(_gap(40))
+		for id in done:
+			var q: QuestDef = Registry.quests.get(id)
+			if q == null:
+				continue
+			var panel := _unlocked(q)
+			panel.modulate.a = 0.0
+			var plate: WPlate = panel.find_child("Plate", true, false)
+			if plate:
+				plate.locked = true
+				plate.queue_redraw()
+			var stamp: WStamp = WStamp.make("FOR SALE" if bool(panel.get_meta("on_sale", false)) else "UNLOCKED", W.SAGE, 30)
+			stamp.visible = false
+			panel.add_child(stamp)
+			panel.sort_children.connect(func():
+				stamp.size = stamp.stamp_size()
+				stamp.pivot_offset = stamp.size * 0.5
+				stamp.rotation = deg_to_rad(-9.0)
+				stamp.position = Vector2(panel.size.x - stamp.size.x + 30.0, -stamp.size.y * 0.72))
+			_unlock_box.add_child(panel)
+			_unlock_box.add_child(_gap(44))
+			_unlocks.append({"panel": panel, "plate": plate, "stamp": stamp, "landed": false})
+	if not closer.is_empty():
+		if not done.is_empty():
+			_unlock_box.add_child(_gap(30))
+		_progress_label = W.label("Unlock progress", 22, W.INK_SOFT)
+		_progress_label.modulate.a = 0.0
+		_unlock_box.add_child(_progress_label)
+		_unlock_box.add_child(_gap(18))
+		var list := VBoxContainer.new()
+		list.name = "Progress"
+		list.add_theme_constant_override("separation", 22)
+		list.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_unlock_box.add_child(list)
+		for c: Dictionary in closer:
+			var e := _progress_row(c)
+			list.add_child(e["row"])
+			_progress.append(e)
+			_fill_progress(e, 0.0)
+			(e["row"] as Control).modulate.a = 0.0
+
+
+## The unlocks the run brought closer: every counted quest not done whose progress grew since the run began
+## (`before`: RunTimeline.quests_before), nearest to done first: {q, before, after, need}.
+static func progress_list(before: Dictionary) -> Array:
+	var out: Array = []
+	for id in before:
+		var q: QuestDef = Registry.quests.get(id)
+		if q == null or Save.quest_done(q.id):
+			continue
+		var p := QuestTracker.progress(q)
+		if p.y <= 0 or p.x <= int(before[id]):
+			continue
+		out.append({"q": q, "before": int(before[id]), "after": mini(p.x, p.y), "need": p.y})
+	out.sort_custom(func(a, b): return float(a["after"]) / float(a["need"]) > float(b["after"]) / float(b["need"]))
+	return out
+
+
+## One unlock brought closer: its reward's plate (a silhouette: it is not his yet), what it asks, and a bar from where
+## it stood to where it stands, this run's part in sage, the count beside it.
+func _progress_row(c: Dictionary) -> Dictionary:
+	var q: QuestDef = c["q"]
+	var h := HBoxContainer.new()
+	h.name = "Closer"
+	h.add_theme_constant_override("separation", 22)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var def := _reward(q)
+	var plate := WPlate.new()
+	if def:
+		plate.for_def(def, 84.0, true)
+	else:
+		plate.side = 84.0
+		plate.fill = W.AGED
+		plate.glyph = "?"
+	plate.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(plate)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(W.serif_text(TextGen.quest_text(q), 26, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true))
+	var bh := HBoxContainer.new()
+	bh.add_theme_constant_override("separation", 16)
+	bh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bar := WBar.make(0.0, W.BRASS, 26.0, 4, 0)
+	bar.name = "Bar"
+	bar.gain_fill = W.SAGE
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bh.add_child(bar)
+	var count := W.slab_text("", 26, W.INK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	count.name = "Count"
+	count.custom_minimum_size.x = 190
+	bh.add_child(count)
+	v.add_child(bh)
+	h.add_child(v)
+	return {"row": h, "bar": bar, "count": count, "before": int(c["before"]), "after": int(c["after"]),
+		"need": maxi(int(c["need"]), 1), "on": false, "q": q}
+
+
+# ---------------------------------------------------------------- the show
+
+## The parts in their order: the first sequence (gold, chart, sources), then the second (a pause, the scroll, each
+## unlock, the bars) when the run unlocked or brought anything closer.
+func _plan() -> void:
+	_parts.clear()
+	_add(1, "gold", GOLD_TIME, _part_gold)
+	_add(1, "breath", BREATH, _noop)
+	_add(1, "chart", CHART_TIME, _part_chart)
+	if _rows.size() > 0:
+		_add(1, "breath", BREATH, _noop)
+		_add(1, "sources", _sources_time(), _part_sources)
+	if _unlock_box:
+		_add(2, "pause", PAUSE, _noop)
+		_add(2, "scroll", SCROLL_TIME, _part_scroll)
+		for k in _unlocks.size():
+			_add(2, "unlock", unlock_time(_unlocks.size()), _part_unlock.bind(k))
+		if not _progress.is_empty():
+			_add(2, "progress", _progress_time(), _part_progress)
+	_part = 0
+	_pt = -LEAD_IN
+	_speed = 1.0
+	_taps = 0
+	_seq = 1
+
+
+func _add(seq: int, part: String, dur: float, fn: Callable) -> void:
+	_parts.append({"seq": seq, "name": part, "dur": dur, "fn": fn})
+
+
+func _noop(_f: float, _live: bool) -> void:
+	pass
+
+
+## The start-to-start step of `n` rows filling over `fill`, at most `step`, so the lot fits in `most`.
+static func row_step(n: int, step: float, fill: float, most: float) -> float:
+	if n <= 1:
+		return 0.0
+	return minf(step, maxf(most - fill, 0.0) / float(n - 1))
+
+
+## One unlock's time when the run lands `n`.
+static func unlock_time(n: int) -> float:
+	return clampf(UNLOCKS_MAX / float(maxi(n, 1)), UNLOCK_MIN, UNLOCK_TIME)
+
+
+func _sources_time() -> float:
+	return row_step(_rows.size(), ROW_STEP, ROW_FILL, SOURCES_MAX) * float(maxi(_rows.size() - 1, 0)) + ROW_FILL
+
+
+func _progress_time() -> float:
+	return row_step(_progress.size(), PROGRESS_STEP, PROGRESS_FILL, PROGRESS_MAX) * float(maxi(_progress.size() - 1, 0)) + PROGRESS_FILL
+
+
+## The banked gold along the run's purse: what he held at that share of the run (gold in and out), the end exactly
+## what was banked; a coin's chink as it climbs.
+func _part_gold(f: float, live: bool) -> void:
+	var v: float = _tl.value_at(_tl.purse, float(_banked), f) if not _tl.is_empty() else float(_banked) * _ease_out(f)
+	var iv := int(round(v))
+	_count.text = "+" + W.num(iv)
+	if live and iv > _gold_shown and Time.get_ticks_msec() - _coin_ms > 75:
+		_coin_ms = Time.get_ticks_msec()
+		W.sfx("pk_coin")
+	_gold_shown = iv
+
+
+## The chart drawn to `f` of the run, the counters at what the run had reached by then.
+func _part_chart(f: float, live: bool) -> void:
+	if not live and f >= 1.0:
+		_chart.finish()
+	else:
+		_chart.head = f
+	var k: float = _tl.value_at(_kill_curve, float(_kills_total), f) if not _tl.is_empty() else float(_kills_total) * f
+	var d: float = _tl.value_at(_tl.damage, _dmg_total, f) if not _tl.is_empty() else _dmg_total * f
+	_kills_num.text = short_num(k)
+	_dmg_num.text = short_num(d)
+
+
+func _on_mark_popped(kind: int) -> void:
+	if _seq != 1 or Time.get_ticks_msec() - _mark_ms < 60:
+		return
+	_mark_ms = Time.get_ticks_msec()
+	W.sfx("ui_locked" if kind == RunTimeline.KIND_DOWN else ("ui_card_pick" if kind == RunTimeline.KIND_BOSS else "ui_reel_tick"))
+
+
+## Row k comes in at k steps and fills over ROW_FILL: its bar to its share, its number and its percent counting up.
+func _part_sources(f: float, live: bool) -> void:
+	var step := row_step(_rows.size(), ROW_STEP, ROW_FILL, SOURCES_MAX)
+	var at := f * _sources_time()
+	for k in _rows.size():
+		var e: Dictionary = _rows[k]
+		var local := clampf((at - float(k) * step) / ROW_FILL, 0.0, 1.0) if f < 1.0 else 1.0
+		if local <= 0.0 and not bool(e["on"]):
+			continue
+		if not bool(e["on"]):
+			e["on"] = true
+			if live:
+				W.sfx("ui_card")
+				_follow_into(e["row"])
+		(e["row"] as Control).modulate.a = maxf((e["row"] as Control).modulate.a, clampf(local * 4.0, 0.0, 1.0))
+		_fill_row(e, _ease_out(local))
+
+
+func _fill_row(e: Dictionary, k: float) -> void:
+	var bar: WBar = e["bar"]
+	if bar:
+		bar.value = float(e["frac"]) * k
+	var amt: WText = e["amount"]
+	if amt:
+		amt.text = W.num(float(e["value"]) * k)
+	var sh: WText = e["share"]
+	if sh:
+		var frac := float(e["frac"]) * k
+		var pct := roundf(frac * 100.0)
+		sh.text = "<1%" if frac > 0.0 and pct < 1.0 else "%d%%" % int(pct)
+
+
+## The board down to the unlocks (eased); a skip puts it there at once.
+func _part_scroll(f: float, _live: bool) -> void:
+	if _scroll_from < 0.0:
+		_scroll_from = float(scroll.scroll_vertical)
+		_follow = -1.0
+	var to := _unlock_target()
+	scroll.scroll_vertical = int(round(lerpf(_scroll_from, to, smoothstep(0.0, 1.0, f))))
+
+
+## Where the board stands to show the unlocks: their label near the top of the view, as far as the board goes.
+func _unlock_target() -> float:
+	if _unlock_box == null:
+		return 0.0
+	var y := _content_y(_unlock_box) - 40.0
+	return clampf(y, 0.0, _max_scroll())
+
+
+## Unlock k lands: its panel fades in (its plate a silhouette), at STAMP_AT its art shows, the panel flashes, the
+## UNLOCKED stamp slams down and a burst goes off over its plate.
+func _part_unlock(f: float, live: bool, k: int) -> void:
+	var e: Dictionary = _unlocks[k]
+	var panel: Control = e["panel"]
+	if _unlock_label:
+		_unlock_label.modulate.a = 1.0
+	if panel.modulate.a <= 0.0 and live:
+		_follow_into(panel)
+	panel.modulate.a = maxf(panel.modulate.a, clampf(f / 0.2, 0.0, 1.0))
+	if f >= STAMP_AT and not bool(e["landed"]):
+		e["landed"] = true
+		var plate: WPlate = e["plate"]
+		if plate:
+			plate.locked = false
+			plate.queue_redraw()
+		var stamp: WStamp = e["stamp"]
+		stamp.visible = true
+		stamp.slam(0.16 / _speed if live else 0.0)
+		if live:
+			panel.modulate = Color(1.7, 1.7, 1.6, 1.0)
+			create_tween().tween_property(panel, "modulate", Color.WHITE, 0.45 / _speed)
+			if plate and plate.is_inside_tree():
+				WCelebrate.burst(self, plate.get_global_rect().get_center(), get_child_count())
+			W.sfx("ui_stamp")
+			W.sfx("ui_unlock")
+	if f >= 1.0:
+		panel.modulate = Color.WHITE
+
+
+## The bars of the unlocks brought closer, one after another from where each stood to where it stands.
+func _part_progress(f: float, live: bool) -> void:
+	if _progress_label:
+		_progress_label.modulate.a = 1.0
+	var step := row_step(_progress.size(), PROGRESS_STEP, PROGRESS_FILL, PROGRESS_MAX)
+	var at := f * _progress_time()
+	for k in _progress.size():
+		var e: Dictionary = _progress[k]
+		var local := clampf((at - float(k) * step) / PROGRESS_FILL, 0.0, 1.0) if f < 1.0 else 1.0
+		if local <= 0.0 and not bool(e["on"]):
+			continue
+		if not bool(e["on"]):
+			e["on"] = true
+			if live:
+				W.sfx("ui_reel_tick")
+				_follow_into(e["row"])
+		(e["row"] as Control).modulate.a = maxf((e["row"] as Control).modulate.a, clampf(local * 4.0, 0.0, 1.0))
+		_fill_progress(e, _ease_out(local))
+
+
+func _fill_progress(e: Dictionary, k: float) -> void:
+	var need := float(e["need"])
+	var b := float(e["before"]) / need
+	var now := lerpf(float(e["before"]), float(e["after"]), k)
+	var bar: WBar = e["bar"]
+	bar.value = now / need
+	bar.gain = maxf(now / need - b, 0.0)
+	(e["count"] as WText).text = "%s / %s" % [W.num(now), W.num(need)]
+
+
+# ---------------------------------------------------------------- the clock, the taps, the board
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	_tick_follow(delta)
+	if _seq <= 0 or _seq >= DONE:
+		return
+	_pt += delta * _speed
+	while _part < _parts.size():
+		var p: Dictionary = _parts[_part]
+		var dur := float(p["dur"])
+		if _pt < 0.0:
+			return
+		var f := 1.0 if dur <= 0.0 else minf(_pt / dur, 1.0)
+		(p["fn"] as Callable).call(f, true)
+		if f < 1.0:
+			return
+		_pt -= dur
+		_part += 1
+		if _part >= _parts.size():
+			_finish()
+			return
+		if int(_parts[_part]["seq"]) != _seq:
+			# a new sequence starts at its own pace, its taps from nothing
+			_seq = int(_parts[_part]["seq"])
+			_speed = 1.0
+			_taps = 0
+			_pt = 0.0
+			return
+
+
+## A tap: the first hurries the sequence playing, the second ends it.
+func tap() -> void:
+	if _seq <= 0 or _seq >= DONE:
+		return
+	_taps += 1
+	if _taps == 1:
+		_speed = SPEED_UP
+	else:
+		skip_sequence()
+
+
+## The sequence playing jumps to its end (no sounds, no bursts); the next one starts from its beginning.
+func skip_sequence() -> void:
+	var seq := _seq
+	while _part < _parts.size() and int(_parts[_part]["seq"]) == seq:
+		(_parts[_part]["fn"] as Callable).call(1.0, false)
+		_part += 1
+	_pt = 0.0
+	_speed = 1.0
+	_taps = 0
+	if seq == 1:
+		# the first sequence's own easing of the board stops where it stands
+		_follow = -1.0
+	if _part >= _parts.size():
+		_finish()
+	else:
+		_seq = int(_parts[_part]["seq"])
+
+
+## Everything shown as it ends: both sequences skipped (tests, tools).
+func skip_all() -> void:
+	while _seq > 0 and _seq < DONE:
+		skip_sequence()
+
+
+## Which sequence plays (1, 2), 3 when the show is over; 0 before it starts.
+func sequence() -> int:
+	return _seq
+
+
+func speed() -> float:
+	return _speed
+
+
+## The part playing ("gold", "chart", "sources", "pause", "scroll", "unlock", "progress"; "" when none) and how far it
+## has come (0..1): the captures wait on it.
+func part_name() -> String:
+	return str(_parts[_part]["name"]) if _seq > 0 and _seq < DONE and _part < _parts.size() else ""
+
+
+func part_frac() -> float:
+	if _seq <= 0 or _seq >= DONE or _part >= _parts.size():
+		return 1.0
+	var dur := float(_parts[_part]["dur"])
+	return 1.0 if dur <= 0.0 else clampf(_pt / dur, 0.0, 1.0)
+
+
+## How long the whole show lasts at normal speed (both sequences, the lead-in counted).
+func show_time() -> float:
+	var t := LEAD_IN
+	for p: Dictionary in _parts:
+		t += float(p["dur"])
+	return t
+
+
+func _finish() -> void:
+	_seq = DONE
+	_speed = 1.0
+	_follow = -1.0
+	_offer_survey(_run_time)
+
+
+## The finger while the show plays: a lift anywhere but on a button is a tap (a drag too: the board does not move, so a
+## finger that tries to scroll is in a hurry); the board's own scrolling waits for the end. Once the show is over the
+## board scrolls under a finger as every menu does (ScreenBase).
+func _input(event: InputEvent) -> void:
+	if _seq >= DONE or _seq <= 0:
+		super._input(event)
+		return
+	if event is InputEventScreenTouch:
+		var t := event as InputEventScreenTouch
+		if t.pressed and _touch_id < 0:
+			_touch_id = t.index
+			_touch_on_button = _on_button(t.position)
+		elif not t.pressed and t.index == _touch_id:
+			_touch_id = -1
+			if not _touch_on_button:
+				tap()
+	elif event is InputEventScreenDrag:
+		# no list under the finger moves the board either (a ScrollContainer can drag by itself on a touch screen)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_LEFT, MOUSE_BUTTON_WHEEL_RIGHT]:
+			get_viewport().set_input_as_handled()
+
+
+func _on_button(at: Vector2) -> bool:
+	for n in find_children("*", "Control", true, false):
+		if n is WTap and (n as Control).is_visible_in_tree() and (n as Control).get_global_rect().has_point(at):
+			return true
+	return false
+
+
+## The board eases down so `c` stands whole above the buttons (the show's own scrolling; never up).
+func _follow_into(c: Control) -> void:
+	if c == null or not c.is_inside_tree():
+		return
+	var bottom := _content_y(c) + c.size.y + 24.0
+	var need := clampf(bottom - scroll.size.y, 0.0, _max_scroll())
+	if need > maxf(float(scroll.scroll_vertical), _follow):
+		_follow = need
+
+
+func _tick_follow(delta: float) -> void:
+	if _follow < 0.0:
+		return
+	var now := float(scroll.scroll_vertical)
+	var to := minf(_follow, _max_scroll())
+	if absf(to - now) < 1.5:
+		scroll.scroll_vertical = int(round(to))
+		return
+	scroll.scroll_vertical = int(round(lerpf(now, to, clampf(delta * 9.0 * maxf(_speed, 1.0), 0.0, 1.0))))
+
+
+## A control's top in the board's own coordinates (0 = the board's top, whatever the scroll).
+func _content_y(c: Control) -> float:
+	return c.get_global_rect().position.y - margin.get_global_rect().position.y
+
+
+func _max_scroll() -> float:
+	return maxf(margin.size.y - scroll.size.y, 0.0)
+
+
+static func _ease_out(f: float) -> float:
+	var t := clampf(f, 0.0, 1.0)
+	return 1.0 - (1.0 - t) * (1.0 - t)
+
+
+## A count kept short (pass 72, Garry: "We shorten the big numbers here into 1.2m for 1.2 million, and 20k for 20000"):
+## under 1,000 as it is, then thousands (k), millions (m) and billions (b), one decimal under 10 (dropped when it is
+## .0), none from 10 up; always rounded down, so a counter never shows more than it has reached.
+static func short_num(n: float) -> String:
+	var v := absf(n)
+	var neg := "-" if n < 0.0 else ""
+	if v < 1000.0:
+		return neg + str(int(floor(v)))
+	for unit in [[1e9, "b"], [1e6, "m"], [1e3, "k"]]:
+		var u := float(unit[0])
+		if v >= u:
+			var x := v / u
+			var s := ""
+			if x < 10.0:
+				var tenth := floorf(x * 10.0 + 0.0001) / 10.0
+				s = str(int(tenth)) if is_equal_approx(tenth, floorf(tenth)) else "%.1f" % tenth
+			else:
+				s = str(int(floor(x)))
+			return neg + s + str(unit[1])
+	return neg + str(int(floor(v)))
 
 
 ## What dealt damage under the id Run.add_damage was handed (pass 47): {key, name, def, icon}. A weapon, perk,
@@ -213,6 +856,33 @@ static func damage_source(id: String) -> Dictionary:
 	var unknown := SOURCE_ART % "unknown"
 	return {"key": "id:" + id, "name": id.replace("_", " ").capitalize(), "def": null,
 		"icon": load(unknown) as Texture2D if ResourceLoader.exists(unknown) else null}
+
+
+## The damage sources, one a source (the ids that are one source summed), in the order they joined the run (pass 72):
+## the starting weapon first, then each at the moment it was first owned, else first hit (RunTimeline.joined); a run
+## with no story (a tool's, a test's) biggest first. Each source dict gains "amount" and "at".
+static func ordered_sources(dmg: Dictionary, tl: RunTimeline) -> Array:
+	var by_key: Dictionary = {}
+	for id in dmg.keys():
+		var amount := float(dmg[id])
+		var src := damage_source(str(id))
+		var k := str(src["key"])
+		var at := INF
+		if tl:
+			at = -1.0 if tl.start_weapon != "" and str(id) == tl.start_weapon else tl.joined(str(id))
+		if by_key.has(k):
+			by_key[k]["amount"] = float(by_key[k]["amount"]) + amount
+			by_key[k]["at"] = minf(float(by_key[k]["at"]), at)
+		else:
+			src["amount"] = amount
+			src["at"] = at
+			by_key[k] = src
+	var out: Array = by_key.values()
+	out.sort_custom(func(a, b):
+		if float(a["at"]) != float(b["at"]):
+			return float(a["at"]) < float(b["at"])
+		return float(a["amount"]) > float(b["amount"]))
+	return out
 
 
 ## The damage dealt, one row a source, biggest first: the ids that are one source summed into one row.
@@ -266,6 +936,7 @@ static func damage_row(src: Dictionary, frac: float) -> HBoxContainer:
 	top.add_child(num)
 	mid.add_child(top)
 	var bar := WBar.make(frac, W.BRASS, 26.0, 4, 0)
+	bar.name = "Bar"
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mid.add_child(bar)
 	h.add_child(mid)
@@ -318,9 +989,11 @@ static func source_plate(src: Dictionary, px: float) -> WPlate:
 	return p
 
 
-## One unlock: the item's plate, UNLOCKED in sage, its name, and what earned it on the right.
+## One unlock: the item's plate (named "Plate"), its name, and what earned it on the right; the stamp over its corner
+## says UNLOCKED (FOR SALE on a hero to buy).
 func _unlocked(q: QuestDef) -> PanelContainer:
 	var p := PanelContainer.new()
+	p.name = "Unlock"
 	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_theme_stylebox_override("panel", W.box(W.PAPER, 5, 6).pad(31, 25, 31, 25))
 	var h := HBoxContainer.new()
@@ -332,6 +1005,7 @@ func _unlocked(q: QuestDef) -> PanelContainer:
 	var on_sale := def is CharacterDef and (def as CharacterDef).availability == "purchase"
 	if def:
 		var pl := WPlate.new().for_def(def, 96.0)
+		pl.name = "Plate"
 		pl.icon_frac = 0.7
 		pl.mystery = on_sale
 		h.add_child(pl)
@@ -339,7 +1013,8 @@ func _unlocked(q: QuestDef) -> PanelContainer:
 	v.add_theme_constant_override("separation", 0)
 	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(W.label("For sale" if on_sale else "Unlocked", 18, W.SAGE))
+	# pass 72: the word is the stamp's (UNLOCKED, or FOR SALE on a hero to buy: _build_unlocks)
+	p.set_meta("on_sale", on_sale)
 	v.add_child(W.slab_text("A new hero" if on_sale else (def.display_name if def else q.display_name), 36, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 36.0))
 	h.add_child(v)
 	var why := W.serif_text(TextGen.quest_text(q), 24, W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, true)
@@ -365,13 +1040,6 @@ func _reward(q: QuestDef) -> ContentDef:
 	return null
 
 
-## The banked gold counts up over 900 ms with an ease-out.
-func _count_up() -> void:
-	var tw := create_tween()
-	var pre := "−" if _count.strike else "+"
-	tw.tween_method(func(v: float): _count.text = pre + W.num(int(round(v))), 0.0, float(_banked), 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-
-
 func on_back() -> void:
 	# the back gesture closes the survey card first ("Not now")
 	if is_instance_valid(_survey) and not bool(_survey.call("is_done")):
@@ -381,7 +1049,8 @@ func on_back() -> void:
 
 
 ## Asks Analytics whether this run brings a survey (pass 59: at most one every few runs of a minute or more, never in a
-## run's first minute, never twice a session, never after "Don't ask me again") and opens it after a beat.
+## run's first minute, never twice a session, never after "Don't ask me again") and opens it after a beat (pass 72: once
+## the show is over).
 func _offer_survey(run_seconds: float) -> void:
 	var sv: Dictionary = Analytics.survey_after_run(run_seconds)
 	if sv.is_empty():

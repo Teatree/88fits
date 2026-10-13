@@ -7,7 +7,9 @@ render_mode cull_disabled, unshaded, skip_vertex_transform, depth_draw_opaque;
 // Every painting (the props here too) writes stencil 1 where it draws a pixel (pass 54, Garry: gems and coins drawn under every 2.5D sprite):
 // the gems and coins (PickupManager, see-through, drawn after every opaque thing) skip those pixels, so they lie under
 // the creatures, the hero, the props and the structures wherever they overlap, in front of a painting's plane or not.
-stencil_mode write, compare_always, 1;
+// Pass 72 (lane SPEC): a prop is scenery and writes 2 (SceneryStencil.VALUE), so a creature it hides is outlined
+// (enemy_silhouette reads 2) while one hidden by another creature (1) is not; the gems read 0 (nothing painted).
+stencil_mode write, compare_always, 2;
 
 uniform sampler2D sprite : source_color, filter_linear_mipmap, repeat_disable;
 uniform float alpha_cut = 0.5;

@@ -1472,3 +1472,247 @@ No game rule changed (no content, no game code). New tool-side rules and their n
 - **run_fit counts the outline**: the median frame's target height is (standing height x ratio) - 2 x the outline
   (round(cell x 0.012) a side), since the outline is added after the scale (the first MAY-R walks stood +2 % in
   every view without it).
+
+## 19. Pass 72 (v0.58): knockback, specials, bosses, the Results show
+
+Garry's request (2026-10-13, tools/dl/p72/REQUEST.md). Each lane's rules as it wrote them.
+
+### 19.ITEMS The basketball's colour, Rebound's icon, knockback halved, first seed everywhere
+
+## Hero knockback halved (Garry: "Half all the knockback effect, it's too easy to make enemies basically unable to get to you")
+- New map number `timeline_data.hero_knockback_mult` (WaveTimeline.hero_knockback_mult, default 1.0). **Red Canyon: 0.5.**
+  Editable in the Level Editor's Settings, group Scaling, "Hero knockback ×".
+- Applied (EnemyManager.hero_knock_mult) to EVERY push the hero's side gives a creature:
+  - a hit's kb_force from any hero source through EnemyManager.damage() (every weapon, mutation, evolution, line, passive, perk,
+    the ball, the frisbee, thorns, the revive's ring, Overkill's splash, Slam Dunk's dunk, the Nuke's hit, the Supply Drop, the Powder Keg);
+  - `hero_throw_radius` (new): the Nuke's no-damage throw (the revive ring), Thruster Burst, Grand Finale;
+  - Buck's Ram shove; the tornado's toss (12 m/s, now 6 on Red Canyon); the Guitarra chord's landing shove (ConeWave bounce);
+  - Bucking Bronco's throw distance: clamp(1.5 + 0.3 x push, 2.5, 6.0) m x the multiplier (2.5..6 m becomes 1.25..3 m).
+- Untouched: a creature's push on the hero, hostile pushes on the crowd (`EnemyManager.HOSTILE_PUSH_IDS` = "loose_rocket" (a dead
+  rocketeer's rocket), "blast" (a hostile blast's friendly fire); rocket_blast / loose_rocket_blast / boulder_land keep the plain
+  throw_radius), a charger's side-shove, an Elite split's spread, the pull (Lasso, Wide Orbit: a tow toward the hero, not a push),
+  knockback_resist (still multiplies on top), the boss's 0.15 (on top), Alley-Oop's straight-up launch, stuns.
+- The arena uses the map's number too (it is where weapons are looked at).
+
+## The basketball's colour
+- Free Throw's ball is drawn as the ball (its own look: orange plain, dark blue with Alley-Oop, black on Slam Dunk). Pass 67's
+  white Free Throw tint (ProjectileEmitter.FREE_TINT: white albedo + white glow x1.4) is gone; it was the white ball Garry saw
+  (with Free Throw a share of his balls flew pure white).
+- New `heat_look.body_green_max` (basketball: 0.3): the body's heat glow never adds more green light than
+  max(its cold glow's green, 0.3), so a body that already glows (On Fire's tint #FF3A00 x1.6) stays orange at every Heat
+  instead of bleaching to yellow-white at the top (emission pushed to #FF5A10 x1.6 x the 1.35 beat). The plain ball
+  (no glow of its own, glow_max 0.45: green 0.21 at the beat's peak) never reaches the cap. Slam Dunk and Alley-Oop glow only
+  in their seams (surfaces "seams"), so the cap never applies to them.
+
+### 19.SPEC Specials bigger, tougher, capped, dropping chests; outlines only behind scenery
+
+## Coloured (variance) specials: bigger, tougher, a chest, at most three
+- **Numbers** (Garry: "Specials should be more noticeable. They should be bigger ... higher HP"): `special.size` 1.25 -> **1.5**,
+  `special.hp` 10 -> **15** on every creature with a special block (22: the 21 with a chance and the shaman's chance-0
+  block); `damage` x2 and `xp` (3 on all) unchanged; the colour and the glow unchanged. `EnemyDef.SPECIAL_DEFAULTS` (the
+  game's fallback) is now {size 1.5, hp 15, damage 2, xp 2, tint_strength 0.6, glow 0.6, chest_chance 0.35}. A special is
+  still exactly its size factor x the creature's own size (the plain spread does not apply; in a size-range row it stops
+  at the range's top).
+- **The chest** (new rule; Garry: "way more of a chance of dropping a box"): a variance special the hero kills drops a
+  chest with chance **0.35** (`variance.special.chest_chance`, the creature's own, else the map's
+  `timeline_data.special_defaults.chest_chance`, else the game's 0.35; clamped 0..1). It rolls on the death (`_die`), so a
+  nuke's or Brimstone's kill rolls too; a special freed without a death (a stage cleared, a despawn) drops none, nor does
+  a training dummy, nor while a capture tool holds the kill chests back (`no_random_chests`). It is on top of anything
+  else the kill pays: the creature's own `drops.chest` (Game) and Hot Sauce's chest (0.05 x difficulty, one per 40 s)
+  roll apart, so one special can, rarely, drop two. Before: a special dropped only its creature's `drops.chest` (0-1 %)
+  and Hot Sauce's.
+- **At most three alive** (new rule; Garry: "There should be a limit to how many of them are there"): at most
+  `special_defaults.max_alive` coloured specials live at once, **3** on Red Canyon (the game's default
+  `EnemyDef.SPECIAL_MAX_ALIVE` 3 when the map names none; **0 = no limit**, as a creature's own max_alive). A roll that
+  would make a 4th makes a plain creature (its palette tint, its plain size spread, plain HP, no glow); the dice are rolled
+  first and only then refused, so below the cap the run's random sequence is what it was. A **forced special** (a swarm
+  event with Special ticked, e.g. the Special Goblin at 2:00) **always comes**, past the cap too, and counts as alive. A
+  dying special stops counting at its death (`_die`), a freed one at its freeing (`_free`). Why 3: at x15 HP a late
+  crowd of 250 at a 0.04 chance would carry about ten of them at once.
+- The editor's spawn estimate ("Spawned so far") keeps the expected coloured specials alive under the same cap (they die
+  at the crowd's turnover; a forced swarm comes past it), so its coloured counts match the game's rule.
+
+## Outlines only behind scenery
+- **Rule** (new; Garry: "Make the outline of the enemies not appear when they're behind other enemies, only when they're
+  behind environmental things"): a creature's see-through outline (enemy_silhouette, its second pass) shows only where
+  the nearest thing in front of it is **scenery**: a painted prop (cacti, trees, rocks, bones, bushes), a painted structure
+  or the portal, a sign, a barrel, the boundary wall with its posts and skulls, the near cliffs. Behind another creature
+  (a boss and an Elite included) or the hero it shows nothing. The hero's own outline is unchanged (it shows wherever
+  anything stands in front of him). The sand and the dunes are not scenery here (a creature low behind a dune is not
+  outlined: none was asked for, and it keeps the feet of creatures on slopes from ghosting).
+- **How**: the stencil buffer (Godot 4.7, the Compatibility renderer). Every opaque thing writes a value where it draws
+  (the last one drawn at a pixel is the nearest): creatures, the hero, power-ups, flowers 1 (PickupManager.PAINTING_STENCIL,
+  as since pass 54); scenery **2** (SceneryStencil.VALUE: prop_billboard, sign_depth, the structures' and the portal's
+  copy of sprite_billboard (SceneryStencil.scenery_shader), the barrels', the wall's and the cliffs' materials
+  (SceneryStencil.mark / mark_tree)). The outline pass reads `== 2`. The gems, coins and their glints (and the
+  Strongbox coin stream's shadows) now read `== 0` (they read `!= 1` before): still under every painting, and now also
+  under the barrels, signs and wall where they overlap (they had drawn over them).
+- **Cost** (measured, PC RTX 4070, 504x1122, 250 creatures among 14 props, GPU time a frame): outline pass with the
+  stencil 0.587 ms, the old outline 0.595 ms, no outline 0.579 ms; draw calls 80 either way (the pass adds one per
+  creature type, as before). perf_late (build six, late stage 3, ~220 creatures): 184-202 draw calls and 1.07-1.24 ms
+  render CPU before, 186-204 and 1.14-1.25 after (noise). No extra draw call, no extra pass.
+
+### 19.BOSS Boss HP pegged to DPS, the Gila's cactus rain, custom boss attacks
+
+## Boss HP pegged to the hero's DPS (Garry: "Boss Max HP should scale up the bigger the Player's DPS is in that moment. It shouldn't be 1 to 1")
+
+- **Where**: map JSON `timeline_data.boss_hp_scaling {enabled, exponent, window, min, max, ref_dps: {boss id: DPS}}`
+  (WaveTimeline.boss_hp_scaling, `BOSS_HP_SCALING_DEFAULTS` {enabled false, exponent 0.5, window 45, min 0.75, max 3.0}).
+  Level Editor: Settings → **Boss HP** (the five numbers, a reference DPS per boss, the chart, the thinking).
+- **Rule**: when a boss (archetype `boss`) arrives through the director (`WaveDirector._start_boss`), its HP (hp ×
+  hp_mult_per_stage^stage × max(stage mult, 1), unchanged) is multiplied by
+  `clamp((dps / ref_dps[boss]) ^ exponent, min, max)` (`WaveTimeline.boss_hp_mult`, `WaveDirector.boss_dps_scale`,
+  `EnemyManager.boss_hp_scale` held around the spawn).
+- **dps** = `Run.recent_dps(window)`: the damage `Run.add_damage` recorded over the last `window` seconds of
+  `buff_clock()` (the clock that also runs through boss fights and portal waits), divided by the window, or by the run's
+  seconds so far when the run is younger than the window. It counts what a hit took off (never past what the creature had
+  left: a 500 hit on a 20 HP goblin is 20), every weapon and damage source. 240 one-second buckets (`Run.DPS_BUCKETS`).
+- **Off / untouched**: scaling off (`enabled` false or no block): ×1. A boss without a `ref_dps`: ×1. The debug arena:
+  ×1 always (bosses keep their data HP). Elites and Elite bosses (archetype `elite`), a creature spawned by hand: never
+  scaled. The HP bar shows the scaled HP.
+- **Endless**: a returning boss's reference grows with its own HP growth since its stage: ref × (hpm^stage_now ×
+  max(stage mult now, 1)) / (hpm^own_stage × max(stage mult of its stage, 1)), its own stage being the stage its first
+  timeline boss event closes (`ceil(t / stage_length) - 1`: 430 s = stage 1's end = index 0). Why: endless already grows
+  the boss's HP with the stage multiplier; a build that kept up with that is not tripled on top.
+- **Why the exponent 0.5** (Garry asked for "not 1 to 1, still a reward"): twice the reference DPS = 1.41× the HP, the fight
+  29% shorter; four times = 2× the HP, the fight half as long; half the reference = 0.71× → the floor 0.75. Exponent 1 =
+  every fight as long as at the reference (no reward), 0 = no scaling. Floor 0.75 = a weak build gets a softer boss, never
+  a pushover; ceiling 3 = reached at 9× the reference DPS, a monster build never meets a sponge.
+- **Red Canyon** (the map JSON, end of timeline_data): enabled, exponent 0.5, window 45, min 0.75, max 3.0, ref_dps
+  Tumbleweed King **600**, Gila Grande **4500**, the Brander **20000**.
+- **How the references were measured** (`tools/difficulty_probe.gd`, new `DPS45` line = Run.recent_dps(45) at the end of
+  the window; the window ends at the boss's second, `t0 = boss - 75, secs = 75`; pass 64's typical builds and Upgrade
+  boards: the King b1 level 22 Mirror 0, the Gila b2 level 33 Mirror 1.5, the Brander b3 level 43 Mirror 3; Calavera and
+  Drifter, seeds 11 and 23; log tools/dl/p72/BOSS/ref1.log):
+  - King (7:10): 658, 676, 583, 405 → mean 580 → **600**
+  - Gila (14:20): 3796, 4160, 4522, 6077 → mean 4639 → **4500**
+  - Brander (21:30): 20260, 15661, 24803, 21185 → mean 20477 → **20000**
+  A hero at the reference meets each boss exactly as before pass 72 (×1).
+- **Caution for tuning**: the DPS is what the crowd let him deal; when the crowd dies faster than it comes the DPS shows
+  the crowd's HP supply more than the build. With `boss=1` (fight1.log) the reference builds met their bosses at ×0.96 to
+  ×1.15 (as intended: they are the references); the bot's fight lengths swing from 10 s to over 450 s between runs of the
+  same cell (it kites away from bosses and its weapons pick the crowd), so they say nothing about a player's fight.
+
+## Custom boss attacks (content/boss_attacks)
+
+- A content type: `content/boss_attacks/<id>/<id>.json` (BossAttackDef), named in a creature's `boss.attacks` as
+  `{"name": "<id>"}` next to the built-ins; the entry's own keys override (min_range, max_range, reach, windup, telegraph).
+  An id may never be a built-in attack's name (BossAttackDef.SCRIPTS). Any scripted creature can run one (bosses, Elites,
+  casters), on the same runner.
+- **Damage** of every custom hit: `damage` × the creature's bite (its JSON `damage`) × stage_of × lvd_of × host_of (the
+  factors every scripted attack carries). Knockback: Player.take_damage's `knock` (a hit or a shield's catch moves him; an
+  evade, the Invincibility bubble or an airborne hero never); `lift` > 0 adds Player.blast after a landed hit.
+- **Clock**: everything a custom attack puts in the air runs on the creatures' shot clock (delta × pace, delta carrying
+  High Noon's time_scale: `EnemyManager.hostile_clock`); the wind-up and every telegraph last 1/pace as long as their data
+  seconds (Red Canyon pace 0.9 × 0.9 = 0.81: a 1.0 s wind-up = 1.23 s).
+- **rain**: the landing points (BossAttackDef.points) round the boss (or the hero's spot at the wind-up's start): laid out
+  by `shape` (rings: rings max(0.87 × spacing, 2 × radius + gap + 2 × jitter) apart from radius_min, each with
+  floor(2πr / spacing) points, every other ring turned half a step; grid: a hex grid; spiral: a sunflower spiral at the
+  hex density; random: a Poisson disc at 0.9 × spacing), spacing raised to at least 2 × landing radius + gap, each point
+  jittered by up to min(jitter × spacing / 2, (spacing − (2r + gap)) / 2), the whole turned at random (`turn`), ordered
+  (`order`: out / in / random / sweep), then **the gap rule**: a point closer than 2 × landing radius + gap to a kept one
+  is dropped (so between any two circles there is always `gap` metres of sand), then `count` (0 = all). Spots past the
+  arena's wall (arena radius − 1) are left out. Landing times: the k-th spot lands at flight + stagger × k / (n − 1). Each
+  spot's red circle (Telegraphs.ring, filled, growing) shows `telegraph.seconds` before its landing; the spike is thrown
+  from the boss's back (0.75 × its size up) at land − flight on a parabola `arc` metres over the straight line. On
+  landing: the hero is hit when his middle is within landing radius + 0.2 m; a sand puff and a flash ring; the land sound
+  only within 14 m of him and at most one every 0.12 s of the clock; the spike stays stuck 0.55 s. The fire sound plays
+  every 0.35 s while spikes leave. The boss stands while its spikes leave (`timing.hold` −1 = the stagger).
+- **volley**: `count` shots a wave over `spread_deg` round its aim (at the hero / random / fixed east), `waves` waves
+  `wave_gap` apart, straight at `speed` for `range` m, 1 m over the ground; a shot hits once when it passes within
+  hit_radius + 0.3 m of the hero. **ring**: `count` rings `wave_gap` apart racing to `radius_max` over radius_max / speed
+  seconds with Telegraphs.race_ring's ease-out (front = R × (1 − (1 − f)³)), `width` thick; each hits the hero once as it
+  passes. **slam**: a blast of `radius_max` (+0.4) round the boss or the hero's spot at the wind-up. **script**: a
+  built-in under its own name with its own keys (`script`, `params`).
+- **Rest**: `timing.cooldown` > 0 replaces the creature's `cooldown_between` after this attack; 0 keeps the creature's.
+
+## The Gila Grande's red cactus rain (replaces its rumble)
+
+- `content/boss_attacks/cactus_rain`: kind rain; projectile spike, tint #D0242F, size 1.7, glow 1.2, flight 1.1 s, arc
+  7 m, trail; pattern rings, centre the boss, radius 3.6-16 m (past the Gila's 2.4 m body), spacing 3.2, jitter 0.25, gap
+  1.0 (the hero is 0.9 m wide), turned at random, nearest first; landing radius 0.9; telegraph circles #ED4A5C 0.9 s;
+  damage 0.75 × bite (24 → 18 before the factors; the rumble was 16 flat × the same factors); knockback 4, no lift;
+  wind-up 1.0 s, stagger 1.5 s, the boss's own rest (2.2 s), stands while its spikes leave; sounds fire en_cactus_spit,
+  land en_stalactite_hit.
+- Typical layout: 64 spots (89 with no jitter), the narrowest gap ≥ 1.0 m (1.09-1.12 m seen), the circles covering about
+  20% of the ring; the rain lands from 1.1 s to 2.6 s after it fires (×1/pace on the map: 1.36-3.2 s).
+- The Gila's script: roll, cactus_rain, burrow, spawn_ring (the rumble stays a built-in any script may name).
+
+### 19.RESULTS The animated Results screen
+
+All numbers are constants in `ui/ResultsScreen.gd` (the show), `ui/wanted/WKillChart.gd` (the chart) and
+`core/systems/RunTimeline.gd` (the record). None is content data; none changes play.
+
+## The run's record (RunTimeline, `Run.timeline`)
+- A new record at every `Run.start`; Game attaches it in `_ready` for a real run (never the arena) and ticks its clock
+  from `Game._process` (unpaused play only, like the run recorder's `play_t`), so a boss fight or a portal wait, where
+  the stage clock stands still, keeps its seconds on the chart. Its length is the play time, so the chart's right end
+  can be later than the stage clock shown above it (10:00 survived, 11:30 played).
+- Sampled every whole second: the purse (gold in AND out: a shop or a revive shows as a dip), the kills in that second,
+  all damage dealt so far. Every 5 s (`SRC_STEP`): each damage id's damage so far.
+- Kill kinds: **boss** = the creature that is the boss (`boss_index`) or a boss archetype; **Elite** = the Elite
+  archetype or any creature wearing an elite modifier; **special** = a variance special (the big dark one, `vspecial`)
+  OR a creature with the gear badge (the rocketeer, the harpooner: the game's own "special" badge); else plain. A
+  training dummy is not counted. Each boss, Elite and special kill and every time the hero goes down (`Player.died`:
+  the falls he got up from and the last one) is a marker with its moment.
+- A damage source "joins" the run when it is first owned (a weapon, an evolution, a passive, a perk or a mutation: the
+  build is scanned on every `build_changed`), else when it first hit (fire, poison, explosions, a power-up, the revive's
+  blast: within a second). The starting weapon is the first weapon owned and always comes first.
+- The counted unlocks' progress (`QuestTracker.progress`, the quests counted across runs) is kept as the run begins.
+
+## Sequence 1, "Run performance" (the board held at the top)
+- Lead-in 0.35 s (the board's slide), then: gold 2.5 s, a 0.2 s breath, the chart 2.8 s, a 0.2 s breath, the sources.
+- **Gold**: the "+N" shows the purse at the same share of the run's play time (linear between seconds), ending exactly
+  on what was banked. So a run that earned early counts up early; a shop's spend shows as a dip.
+- **Chart**: the play time cut into 48 slices, kills per slice smoothed [1,2,1]/4, the busiest slice at 86 % of the
+  plot. The line is drawn left to right at a constant pace (the run's own pace). Marks pop as the line reaches them
+  (0.3 s, a little overshoot); several marks of one kind within 0.9 badge widths (twice that for specials) are one badge
+  with "×N"; a special that would cover another special joins it; other kinds that meet stack upwards (boss, Elite,
+  grave, special placed in that order). Badge sizes: boss 1.3×, Elite 1.1×, special 0.8×, grave 1× of 46 px. Graves stand
+  on the ground line; a stage's start is a dashed line with its name under the plot.
+- **Counters** beside the chart, Kills and Damage, follow the run's own curves with the line; short numbers: under
+  1,000 as is; then k / m / b with one decimal under 10 (".0" dropped) and none from 10 up; always rounded DOWN
+  (1,999 is 1.9k, 999,999 is 999k).
+- **Sources**: the starting weapon's row shows from the start (empty bar); each other row comes in the order its source
+  joined, 0.36 s after the one before (less for a long list: the whole part fits in 3.0 s), each filling its bar to its
+  share, its number and percent counting up over 0.5 s. A source with no damage has no row (as before). A run with no
+  story (a tool's or a test's) orders them biggest first, as before.
+- The board does not move under a finger or the wheel; it eases down by itself only so the newest row is not hidden
+  under the buttons (never up).
+
+## Sequence 2 (only when the run unlocked something or brought an unlock closer)
+- 2.0 s pause, then 0.7 s scroll to the unlocks (their label 40 px under the top of the view, as far as the board goes).
+- Each unlock completed this run: 1.2 s (a run landing several: 4.0 s for all of them, never under 0.7 s each); the
+  panel fades in with its plate a silhouette, at 35 % of its time the plate shows its art, the panel flashes, an
+  UNLOCKED stamp (FOR SALE on a hero to buy) slams down over its corner, a celebration burst over the plate.
+- Then every unlock whose kept progress grew (counted quests not done; nearest to done first): each bar fills from where
+  it stood to where it stands (this run's part in sage), 0.35 s apart, 0.55 s each, the lot in 3.0 s at most.
+- A normal run's whole show: about 13 s; with one unlock about 14.5 s.
+
+## Taps
+- A tap anywhere but on a button (any finger lift, a drag included, while the show plays) hurries the sequence playing
+  ×4 from then on (the current part and the rest of that sequence); a second tap in the same sequence ends it at once
+  (no sounds, no bursts). The second sequence starts at normal speed with its own 2 s pause. The buttons work at any
+  time and a tap on one never hurries the show.
+- The end-of-run survey (pass 59) now waits for the show to end (then its 1.4 s).
+
+### 19.INTEG Garry's edits during the pass
+
+- **A map that names no `hero_knockback_mult` halves** (WaveTimeline.HERO_KNOCKBACK_DEFAULT 0.5; the WaveTimeline
+  class default and JsonContent's fallback; was 1.0). The halving is the game's rule, not only Red Canyon's, so a map
+  JSON saved without the key (a Level Editor page opened before pass 72 saves timeline_data from its own copy and drops
+  keys it never saw) keeps Garry's halving. Without any map at all (a bare EnemyManager in a test) the push stays x1.
+  Level Editor: Settings > Scaling "Hero knockback ×" shows 0.5 as its grey default.
+- **Boss HP pegged to DPS is on by default**: a `boss_hp_scaling` key the map leaves out, the whole block too, plays the
+  game's value: enabled true (was false), exponent 0.5, window 45 s, floor 0.75, ceiling 3
+  (WaveTimeline.BOSS_HP_SCALING_DEFAULTS), and a boss its `ref_dps` leaves out takes WaveTimeline.BOSS_REF_DPS_DEFAULTS
+  (Tumbleweed King 600, Gila Grande 4500, the Brander 20000: lane BOSS's measurements). `"enabled": false` turns it off;
+  a boss's ref 0 = that boss is never scaled; a boss neither the map nor the defaults name is never scaled; the debug
+  arena never scales. Level Editor: Settings > Boss HP shows "on" and each boss's measured reference as grey defaults.
+- **Specials on a map without `special_defaults`** already played pass 72's numbers (EnemyDef.SPECIAL_DEFAULTS: x1.5
+  size, x15 HP, x2 damage, 35% chest; SPECIAL_MAX_ALIVE 3): unchanged, now pinned by pass72_integ_test.
+- **The goblin runt is in play again** (`retired` false): Garry put it back on his stage-1 roster (row r2, 2:21-3:20,
+  speed 4, never an Elite) on 2026-10-13. The goblin stays retired.
+- **A hero on sale with no unlock quest is buyable at once** (Registry.hero_state "buyable" on a clean save): Astro since
+  Garry's 2026-10-13 edit (300 gold), Fadeaway (1,000) before. A save that played Astro while she was free does not own
+  her now (Save.load_save opens it on the Drifter until she is bought; the developer menu's own_every_hero still owns all).

@@ -158,6 +158,8 @@ func _multimesh(mesh: Mesh, n: int, mat: Material) -> MultiMesh:
 		mmi.material_override = mat
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
+	# pass 72: scenery (a creature a barrel hides is outlined, SceneryStencil)
+	SceneryStencil.mark_tree(mmi)
 	add_child(mmi)
 	return mm
 

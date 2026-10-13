@@ -9,8 +9,10 @@
 // south of it draws over it, north of it under it (and his outline pass draws him through it, as through any prop).
 // One material per sign: `foot` is its world position (SignField paints every post and arm with its own). The sign
 // casts no shadow (SignField) and takes none (shadows_disabled): a shadow looked up at the moved depth would be wrong.
+// Pass 72 (lane SPEC): a sign is scenery and writes stencil 2 (SceneryStencil.VALUE): a creature it hides is outlined.
 shader_type spatial;
 render_mode skip_vertex_transform, cull_back, shadows_disabled;
+stencil_mode write, compare_always, 2;
 
 uniform vec4 albedo : source_color = vec4(1.0);
 uniform float roughness : hint_range(0.0, 1.0) = 0.9;

@@ -237,7 +237,8 @@ func test_evo_counts_the_three_path_mutations_and_a_heros_own_is_optional() -> v
 	for entry in ap.weapon_stack(Registry.weapon("land_mine")):
 		tags[(entry[1] as ContentDef).id] = str(entry[2])
 	# pass 69 (lane UI): Mira is back in play (a hero to buy), and so is her Blasting Cap, optional like Calavera's
-	assert_str(str(tags["blasting_cap"])).is_equal("Mira · optional")
+	# (Garry hid her again on 2026-10-13: a hidden hero's own is listed among the hidden, under her name)
+	assert_str(str(tags["blasting_cap"])).is_equal("hidden · Mira" if Registry.character("mira").hidden else "Mira · optional")
 	# and the evolution asks for the three: Skull Rain at the top with its path, no Danza Macabra, is ready
 	Run.start(Registry.character("calavera"), Registry.map("red_canyon"))
 	Run.debug_set_item("weapon", "skull_rain", Registry.weapon("skull_rain").max_level)

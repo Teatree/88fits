@@ -562,7 +562,8 @@
    ],
    "job_fields": [
     {"key": "dev", "type": "bool", "default": false, "help": "Paint the side candidates on Flux.2 dev at 28 steps (4-5 min each, a service restart each) instead of Klein."},
-    {"key": "seeds", "type": "int", "default": 3, "help": "Side candidates (or view candidates) to paint."},
+    {"key": "seeds", "type": "int", "default": 3, "label": "Candidates", "help": "How many candidates to paint and pick from, each on a seed of its own: the side view (or the views painted again as candidates)."},
+    {"key": "first_seed", "type": "int", "default": 0, "label": "First seed", "help": "Where this job's seeds start: candidate k paints on the first seed + k x 1,000,003, the whole set moved by this job's id and by every re-run, so no two jobs paint the same pictures (tools/cand_seeds.py); 0 = the tool's own start, from the asset's id; another number = a fresh set from the same words."},
     {"key": "skip_qa", "type": "bool", "default": false, "help": "Skip the vision QA (it once hung 15 min); you review by eye anyway."}
    ],
    "refs": {"2d": true, "3d": ["look", "animation"]},
@@ -637,7 +638,8 @@
    "job_fields": [
     {"key": "picture", "type": "file", "default": "", "help": "The 2D picture (png/jpg/webp under the repo)."},
     {"key": "prompt", "type": "textarea", "default": "", "help": "What it is, in the house style's words ('a hunched werewolf with torn trousers')."},
-    {"key": "seeds", "type": "int", "default": 4, "help": "How many candidates to paint (about 20 s each)."},
+    {"key": "seeds", "type": "int", "default": 4, "label": "Candidates", "help": "How many candidates to paint and pick from, each on a seed of its own (about 20 s each)."},
+    {"key": "first_seed", "type": "int", "default": 0, "label": "First seed", "help": "Where this job's seeds start: candidate k paints on the first seed + k x 1,000,003, the whole set moved by this job's id and by every re-run, so no two jobs paint the same pictures (tools/cand_seeds.py); 0 = the tool's own start, from the asset's id; another number = a fresh set from the same words."},
     {"key": "screen", "type": "select", "default": "green", "options": ["green", "blue"], "help": "The screen the candidates are painted on."},
     {"key": "keep", "type": "text", "default": "", "help": "Appended as 'Keep <keep>.' (the thing the redraw must not lose)."},
     {"key": "no_style_ref", "type": "bool", "default": false, "help": "Drop the style anchor: the picture is the only reference (copy exactly; the house style is then words only)."},
@@ -727,7 +729,8 @@
     {"key": "screen", "type": "select", "default": "", "options": ["", "green", "blue"], "help": "The screen colour (blue for anything with green in it). Empty = the creature's or item's own screen, else the one gen_art paints it on."},
     {"key": "style", "type": "textarea", "default": "", "help": "Replaces the Shop Titans style words (UI art, badges)."},
     {"key": "file", "type": "text", "default": "", "help": "The icon file the pick writes. Empty = a look's <id>_icon_<x>.png, else the icon the game reads (<id>_icon.png)."},
-    {"key": "seeds", "type": "int", "default": 4, "help": "How many candidates."},
+    {"key": "seeds", "type": "int", "default": 4, "label": "Candidates", "help": "How many candidates to paint and pick from, each on a seed of its own."},
+    {"key": "first_seed", "type": "int", "default": 0, "label": "First seed", "help": "Where this job's seeds start: candidate k paints on the first seed + k x 1,000,003, the whole set moved by this job's id and by every re-run, so no two jobs paint the same pictures (tools/cand_seeds.py); 0 = the tool's own start, from the asset's id; another number = a fresh set from the same words."},
     {"key": "dev", "type": "bool", "default": false, "help": "Flux.2 dev instead of Klein: 8 Turbo steps, 28 with Turbo off (better, 4-5 min a seed, one service restart each)."}
    ],
    "refs": {"2d": true, "3d": ["icon"]},
@@ -755,8 +758,8 @@
     {"key": "prompt", "type": "textarea", "default": "", "help": "The portrait's action. Empty = the hero's portrait_prompt (else 'smiling at the viewer')."},
     {"key": "ref", "type": "file", "default": "", "help": "The identity picture the portrait is edited from. Empty = the look's own front still, else the hero's (tools/dl/ai_raw_anime/<key>.png); any picture path, or an upload."},
     {"key": "variant", "type": "text", "default": "", "help": "The look the badge is for (filled from the target's code): its pick writes <id>_icon_<x>.png and that look's icon; empty = the hero's own badge."},
-    {"key": "seeds", "type": "int", "default": 4, "help": "How many portraits."},
-    {"key": "first_seed", "type": "int", "default": 0, "help": "Added to every seed."},
+    {"key": "seeds", "type": "int", "default": 4, "label": "Candidates", "help": "How many candidates to paint and pick from, each on a seed of its own."},
+    {"key": "first_seed", "type": "int", "default": 0, "label": "First seed", "help": "Where this job's seeds start: candidate k paints on the first seed + k x 1,000,003, the whole set moved by this job's id and by every re-run, so no two jobs paint the same pictures (tools/cand_seeds.py); 0 = the tool's own start, from the asset's id; another number = a fresh set from the same words."},
     {"key": "head_width", "type": "number", "default": 0.0, "help": "How wide the head sits in the badge circle (0 = the default zoom)."},
     {"key": "top_pad", "type": "number", "default": 0.03, "help": "Room above the head inside the circle."}
    ],
@@ -790,8 +793,8 @@
     {"key": "extra_ref", "type": "file", "default": "", "help": "A second picture copied exactly, e.g. a render of the held object (title_extra_ref.file)."},
     {"key": "extra_words", "type": "textarea", "default": "", "help": "The words about the second picture: 'copy its shape and colours exactly: <words>' (title_extra_ref.words)."},
     {"key": "variant", "type": "text", "default": "", "help": "The look the cut-out is for (filled from the target's code): its pick writes art/ui/wanted/hero_<id>_<x>.png and that look's title; empty = the hero's own."},
-    {"key": "seeds", "type": "int", "default": 4, "help": "How many candidates (each on its own seed: a million apart, moved by the job's id and by every re-run; pass 70)."},
-    {"key": "first_seed", "type": "int", "default": 11, "help": "The first seed."}
+    {"key": "seeds", "type": "int", "default": 4, "label": "Candidates", "help": "How many candidates to paint and pick from, each on a seed of its own."},
+    {"key": "first_seed", "type": "int", "default": 0, "label": "First seed", "help": "Where this job's seeds start: candidate k paints on the first seed + k x 1,000,003, the whole set moved by this job's id and by every re-run, so no two jobs paint the same pictures (tools/cand_seeds.py); 0 = the tool's own start, from the asset's id; another number = a fresh set from the same words."}
    ],
    "refs": {"2d": true, "3d": ["icon"]},
    "runner": {"tool": "gen_title_heroes", "call": "paint", "argv": ["--only", "{id}", "--seeds={seeds}", "--first-seed={first_seed}", "--character", "{character}?", "--pose", "{pose}?", "--holds", "{holds}?", "--camera", "{camera}?", "--ref", "{ref}?", "--extra-ref", "{extra_ref}?", "--extra-words", "{extra_words}?", "--variant", "{variant}?"],

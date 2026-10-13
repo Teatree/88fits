@@ -83,7 +83,10 @@ func test_new_creatures_and_the_second_boss() -> void:
 	for atk in gila.boss.get("attacks", []):
 		names.append(str(atk.get("name", "")))
 	assert_bool(names.has("burrow")).is_true()
-	assert_bool(names.has("rumble")).is_true()   # pass 43: the fan is a ground rumble now
+	# pass 43: the fan was a ground rumble; pass 72 (lane BOSS, Garry: "replace his 'wave' attack"): the red cactus rain, a
+	# custom attack (content/boss_attacks/cactus_rain)
+	assert_bool(names.has("cactus_rain")).is_true()
+	assert_bool(names.has("rumble")).is_false()
 
 
 func test_stage_two_brings_new_creatures_and_the_second_boss() -> void:

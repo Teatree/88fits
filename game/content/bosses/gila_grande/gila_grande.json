@@ -32,17 +32,7 @@
         "telegraph": "line"
       },
       {
-        "name": "rumble",
-        "windup": 1.0,
-        "count": 7,
-        "spread_deg": 100,
-        "speed": 13.0,
-        "length": 14.0,
-        "width": 1.2,
-        "damage": 16,
-        "knockback": 10,
-        "lift": 3.0,
-        "telegraph": "fan"
+        "name": "cactus_rain"
       },
       {
         "name": "burrow",
@@ -89,6 +79,6 @@
     "run": 15,
     "die": 8
   },
-  "doc": "Stage 2's boss: a lunge, a seven-line rumble that runs down every line of its fan, a burrow that surfaces under the hero, a ring of lizards. Pays two chests and thirty coins.",
+  "doc": "Stage 2's boss: a lunge, a rain of red cactus spikes over a huge area round it (the custom attack cactus_rain: stand between the circles), a burrow that surfaces under the hero, a ring of lizards. Pays two chests and thirty coins.",
   "head": 0.922
 }

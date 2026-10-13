@@ -921,12 +921,24 @@ def routes_checks(check, server):
         # pass 69 (lane UI): a "purchase" hero is in play too (locked or on sale on the title); Mira is back as one
         in_play = [x["availability"] in ("available", "purchase") for x in body]
         # a shape rule, not a count: Garry creates heroes in the editor while passes run (Mamy appeared mid-pass 67)
-        check(st == 200 and len(body) >= 9 and {"fadeaway", "buck"} <= {x["id"] for x in body if x["availability"] in ("available", "purchase")}
-              and [x["id"] for x in body[:5]] == ["drifter", "astro", "calavera", "ironwood", "solenne"] and [l["code"] for l in sol["looks"]] == ["SOL-A", "SOL-B", "SOL-C", "SOL-D", "SOL-E"]
+        # pass 72, lane INTEG (re-pinned): Garry re-orders, prices and hides heroes in the editor (2026-10-13: Drifter 1,
+        # Ironwood 2, Astro 3 on sale, Calavera 4, Mira hidden again), so the order and each hero's availability are read
+        # from the hero JSONs: the ones in play first in their `order`, distinct, every record's availability its file's
+        hero_json = {}
+        for x in body:
+            hp = os.path.join(ROOT, "game", "content", "characters", x["id"], x["id"] + ".json")
+            if os.path.isfile(hp):
+                hero_json[x["id"]] = json.load(open(hp, encoding="utf-8"))
+        play_ids = [x["id"] for x in body if not x["hidden_in_play"]]
+        play_orders = [hero_json[i].get("order") for i in play_ids if i in hero_json]
+        check(st == 200 and len(body) >= 9 and {"fadeaway", "buck", "drifter", "astro", "calavera", "ironwood", "solenne"} <= set(play_ids)
+              and play_orders == sorted(play_orders) and len(set(play_orders)) == len(play_orders) and play_ids[0] == "drifter"
+              and all(x["availability"] == hero_json[x["id"]].get("availability", "hidden" if hero_json[x["id"]].get("hidden") else "available")
+                      for x in body if x["id"] in hero_json)
+              and [l["code"] for l in sol["looks"]] == ["SOL-A", "SOL-B", "SOL-C", "SOL-D", "SOL-E"]
               and sol["title"] == "/art/wanted/hero_solenne.png" and sol["hero_mutations"] == ["sun_cocktail"] and sol["weapons"] == ["sun_scepter"]
-              and in_play == sorted(in_play, reverse=True) and {"dad"} <= {x["id"] for x in body if x["availability"] == "hidden"}
-              and {"mira"} <= {x["id"] for x in body if x["availability"] == "purchase"},
-              "/api/heroes: the heroes in play first by order, Solenne's five looks, title, her mutation and weapon, the hidden ones after")
+              and in_play == sorted(in_play, reverse=True) and {"dad"} <= {x["id"] for x in body if x["availability"] == "hidden"},
+              "/api/heroes: the heroes in play first by their JSON order, each hero's availability his file's, Solenne's five looks, title, her mutation and weapon, the hidden ones after")
         check(sol["looks"][1]["frame_px"] == 256 and sol["looks"][1]["imported"] in (True, False) and sol["looks"][1]["sprite_mtime"], "a hero look record carries frame_px, imported and sprite_mtime")
         st, body, h = get("/api/vocab")
         check(st == 200 and body["ok"] and "brains" in body and body["note"] == vocab.NOTE and len(body["combos_seen"]) >= 5, "/api/vocab")

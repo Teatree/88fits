@@ -38,7 +38,7 @@ favourite_bonus = {
 "type": "effects"
 }
 specials = ["motherlode"]
-availability = "purchase"
+availability = "hidden"
 price = 9999
 sprite = ExtResource("4_w8apu")
 sprite_file = "mira_sprite.png"
@@ -70,6 +70,7 @@ fps = {
 id = "mira"
 display_name = "Mira"
 flavour = "Digs for a living. Finds trouble for free."
+hidden = true
 icon = ExtResource("2_ndgrd")
 icon_file = "mira_icon.png"
 placeholder = {

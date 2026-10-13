@@ -225,7 +225,7 @@ func test_ducktape_leaves_throws_lifts_bounces_and_twisters_alone() -> void:
 	# a knockback is a push, not a clock
 	var d := _creature(em, Vector3(0, 0, 8))
 	em.damage(d, 1.0, "", Vector3(1, 0, 0), 5.0)
-	assert_float(em.kb[d].length()).is_equal_approx(5.0 / maxf(em.size[d], 0.8), 0.01)
+	assert_float(em.kb[d].length()).is_equal_approx(5.0 / maxf(em.size[d], 0.8) * em.hero_knock_mult(), 0.01)  # pass 72: the map's share of the hero's pushes (hero_knockback_mult)
 
 
 func test_a_weaponless_zone_is_a_perk_and_is_not_stretched() -> void:
@@ -344,6 +344,9 @@ func test_hot_sauce_pays_for_colour_and_keeps_the_chests_apart() -> void:
 	var w := _world()
 	var em: EnemyManager = w["em"]
 	var pk: Node = w["pk"]
+	# (pass 72, lane SPEC: a special's own chest, 0.35 by default, is pass72_spec_test's; off here, so only Hot Sauce's
+	# chests are counted)
+	em.special_defaults = {"chest_chance": 0.0}
 	var def: EnemyDef = Registry.enemy("skeleton")
 	var d: Dictionary = def.drops
 	var xp: float = def.xp_mult * (float(d.get("small", 0.0)) + 5.0 * float(d.get("medium", 0.0)) + 25.0 * float(d.get("large", 0.0)))

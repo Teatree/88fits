@@ -562,7 +562,7 @@ func test_slam_dunk_dunks_at_full_heat() -> void:
 	assert_int(Run.heat).is_equal(10)
 
 
-## Free Throw: an evade throws a ball at once, drawn white, at damage_mult, leaving the cooldown as it was, then no other
+## Free Throw: an evade throws a ball at once, drawn as the ball (pass 72; white before), at damage_mult, leaving the cooldown as it was, then no other
 ## for `every` seconds; with nobody within range no ball goes and no gap starts; the next ordinary throw is the ball's
 ## own; a ball without Free Throw never throws on an evade.
 func test_free_throw_fires_on_an_evade_and_keeps_its_gap() -> void:
@@ -583,8 +583,8 @@ func test_free_throw_fires_on_an_evade_and_keeps_its_gap() -> void:
 	assert_int(shots.size()).is_equal(1)
 	var j: int = shots[0]
 	assert_float(pm.dmg[j]).is_equal_approx(10.0, 0.001)
-	assert_int(pm.kind[j]).is_equal(pe.tint_kind(ProjectileEmitter.FREE_TINT))
-	assert_int(pm.kind[j]).is_not_equal(pe._kind())
+	# pass 72: drawn as the ball (pass 67 drew it white, which Garry read as a white basketball)
+	assert_int(pm.kind[j]).is_equal(pe._ball_kind(pe._kind()))
 	assert_float(pe.cooldown_left).is_equal(1.0)
 	# its gap: none within 0.8 s
 	pe.on_hero_evaded()

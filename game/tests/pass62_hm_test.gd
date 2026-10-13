@@ -574,7 +574,7 @@ func test_the_sun_blast_does_its_share_within_its_radius_and_throws_weakly() -> 
 	assert_float(hp_out - em.hp[outside]).is_equal(0.0)
 	# a weak shove straight out: 2.4 against a grenade's 7 (a third of a blast)
 	var mass := maxf(em.size[inside], 0.8)
-	assert_float(em.kb[inside].length()).is_equal_approx(2.4 / mass, 0.01)
+	assert_float(em.kb[inside].length()).is_equal_approx(2.4 / mass * em.hero_knock_mult(), 0.01)  # pass 72: the map's share of the hero's pushes (hero_knockback_mult)
 	assert_float(em.kb[inside].x).is_greater(0.0)
 	assert_float(em.kb[inside].length()).is_less(Registry.weapon("lob_grenade").base["knockback"] / mass * 0.5)
 	assert_float(em.kb[outside].length()).is_equal(0.0)

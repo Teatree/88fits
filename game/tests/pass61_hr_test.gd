@@ -243,9 +243,19 @@ func test_the_heroes_come_in_garrys_order() -> void:
 	# pass 66: the five are present with these orders, not "exactly these" (a hero made in the Level Editor may follow
 	# them; pass66_shape_test holds the order rule for whoever is in play)
 	assert_array(ids).contains(HEROES)
-	for i in HEROES.size():
-		assert_int(_hero(HEROES[i]).order).is_equal(i + 1)
-		assert_bool(_hero(HEROES[i]).hidden).is_false()
+	# pass 72, lane INTEG (re-pinned): Garry re-orders the heroes in the Level Editor (2026-10-13: Drifter 1, Ironwood 2,
+	# Astro 3, Calavera 4), so the rule is pinned: the five in play, the title's order the JSONs' `order`, all distinct,
+	# the Drifter first
+	var orders: Array = []
+	for id: String in HEROES:
+		assert_bool(_hero(id).hidden).override_failure_message(id).is_false()
+	for i in ids.size():
+		var c: CharacterDef = Registry.character(str(ids[i]))
+		assert_bool(orders.has(c.order)).override_failure_message("%s shares order %d" % [c.id, c.order]).is_false()
+		if i > 0:
+			assert_int(c.order).override_failure_message(c.id).is_greater(int(orders[orders.size() - 1]))
+		orders.append(c.order)
+	assert_str(str(ids[0])).is_equal("drifter")
 
 
 func test_the_trait_words() -> void:

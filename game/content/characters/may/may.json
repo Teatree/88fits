@@ -56,7 +56,7 @@
   "key_sat": 0.85,
   "key_clamp_screen": true,
   "variant_base": "MAY-G",
-  "variant": "MAY-G",
+  "variant": "MAY-P",
   "sprite": "may_sprite_g.png",
   "icon": "may_icon_g.png",
   "anims": {
@@ -296,7 +296,7 @@
         "pose_hint": "Both arms hang straight down at her sides, hands open, not on the hips. The same slim proportions in every view. Her black overalls are suspender overalls: seen from behind, a pointed black back panel rises from the waistband to the middle of her back, and two black suspender straps run from its point up over her black-and-white striped shirt to the tops of her shoulders, both straps clearly visible on her back."
       },
       "sprite": "may_sprite_p.png",
-      "icon": "may_icon_g.png",
+      "icon": "may_icon_p.png",
       "title": "hero_may_p.png",
       "anims": {
         "idle": 4,
@@ -323,7 +323,8 @@
         "hit": 12,
         "die": 8
       },
-      "fresh": true
+      "fresh": true,
+      "icon_picked": true
     },
     "MAY-Q": {
       "note": "the Puppet trial: MAY-G's stills; fd, side, bd and back walked by Wan 2.2 Fun Control on the puppet's depth video (may_puppet_run_depth), the front on the puppet's OpenPose guide (the depth video has no face), no run_scale",

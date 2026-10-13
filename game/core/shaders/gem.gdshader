@@ -23,7 +23,9 @@
 // the same sums out on the CPU).
 shader_type spatial;
 render_mode blend_mix, cull_back, depth_draw_never, shadows_disabled;
-stencil_mode read, compare_not_equal, 1;
+// Pass 72 (lane SPEC): the scenery writes 2 now (SceneryStencil), so "no painting here" is stencil 0: under every
+// painting (1) and every piece of scenery (2), as before for the paintings.
+stencil_mode read, compare_equal, 0;
 
 uniform vec3 albedo : source_color = vec3(0.4836, 0.3744, 0.78);
 // the glow lying on the sand, and at full charge (before the shimmer)

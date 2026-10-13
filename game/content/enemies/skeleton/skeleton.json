@@ -43,8 +43,8 @@
     "tint_strength": 0.18,
     "special_chance": 0.04,
     "special": {
-      "size": 1.25,
-      "hp": 10.0,
+      "size": 1.5,
+      "hp": 15.0,
       "damage": 2.0,
       "xp": 3.0,
       "tint": "#6E1A2A",

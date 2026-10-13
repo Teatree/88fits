@@ -56,6 +56,9 @@ var damage_by_weapon: Dictionary = {}
 var chests_opened := 0
 var evolutions := 0
 var bosses_killed := 0
+## The run's story for the Results screen (pass 72, lane RESULTS): the purse, the kills and their kinds, the downs and
+## the damage sources second by second (RunTimeline); a new one each start, attached and ticked by Game in a real run.
+var timeline: RunTimeline = RunTimeline.new()
 
 var player_sheet: StatSheet = StatSheet.new()
 ## Timed buffs from pickups: {"id", "label", "effects", "source", "until"}; re-applied whenever the sheet is rebuilt.
@@ -199,6 +202,7 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	character = p_character
 	map = p_map
 	map_seed = forced_map_seed if forced_map_seed != 0 else (randi() % 999983) + 1
+	timeline = RunTimeline.new()
 	elapsed = 0.0
 	held_time = 0.0
 	stage = 0
@@ -227,6 +231,8 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	kills_by_enemy.clear()
 	kills_by_weapon.clear()
 	damage_by_weapon.clear()
+	# pass 72 (lane BOSS): the DPS window starts empty
+	dps_reset()
 	chests_opened = 0
 	evolutions = 0
 	bosses_killed = 0
@@ -1396,6 +1402,8 @@ func trick_proc_mult(weapon_id: String) -> float:
 
 func add_damage(weapon_id: String, amount: float) -> void:
 	damage_by_weapon[weapon_id] = float(damage_by_weapon.get(weapon_id, 0.0)) + amount
+	# pass 72 (lane BOSS): the window the boss HP scaling reads
+	dps_note(amount)
 	if RunAnalytics.I: RunAnalytics.I.dealt(weapon_id, amount)
 	# life steal: a slice of every point of damage comes back as health
 	# lifesteal is a trickle, not a tap: at most LIFESTEAL_CAP of max HP a second, however much damage a build pours
@@ -1843,3 +1851,53 @@ func summary() -> Dictionary:
 		"kills_by_weapon": kills_by_weapon.duplicate(), "evolutions": evolutions, "chests": chests_opened,
 		"character": character.display_name if character else "", "map": map.display_name if map else "",
 	}
+
+
+# ---------------------------------------------------------------- the hero's DPS (pass 72, lane BOSS)
+
+## Garry: "Boss Max HP should scale up the bigger the Player's DPS is in that moment". Every point add_damage records (what
+## a hit took off, never past what the creature had left) goes into the bucket of its whole second on buff_clock (the
+## clock that runs on through boss fights and portal waits); recent_dps(window) is the sum of the last `window` seconds
+## over the seconds the run has had (so the first seconds of a run are not read as a weak hero). The director reads it
+## when a boss arrives (WaveDirector.boss_dps_scale).
+const DPS_BUCKETS := 240
+var _dps_sum := PackedFloat32Array()
+var _dps_sec := PackedInt32Array()
+
+
+func dps_reset() -> void:
+	_dps_sum.resize(DPS_BUCKETS)
+	_dps_sum.fill(0.0)
+	_dps_sec.resize(DPS_BUCKETS)
+	_dps_sec.fill(-1)
+
+
+func dps_note(amount: float) -> void:
+	if amount <= 0.0:
+		return
+	if _dps_sum.size() != DPS_BUCKETS:
+		dps_reset()
+	var sec := int(floor(buff_clock()))
+	var k := posmod(sec, DPS_BUCKETS)
+	if _dps_sec[k] != sec:
+		_dps_sec[k] = sec
+		_dps_sum[k] = 0.0
+	_dps_sum[k] += amount
+
+
+## The hero's damage a second over the last `window` seconds of buff_clock (the second running now counted as far as it
+## has gone); 0 before any damage.
+func recent_dps(window: float) -> float:
+	if _dps_sum.size() != DPS_BUCKETS:
+		return 0.0
+	var now := buff_clock()
+	var w := clampf(window, 1.0, float(DPS_BUCKETS - 1))
+	var sec := int(floor(now))
+	var first := int(floor(now - w))
+	var total := 0.0
+	for s in range(maxi(first, 0), sec + 1):
+		var k := posmod(s, DPS_BUCKETS)
+		if _dps_sec[k] == s:
+			total += _dps_sum[k]
+	var span := minf(w, maxf(now, 1.0))
+	return total / span

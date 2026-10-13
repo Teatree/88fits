@@ -15,7 +15,9 @@
 // stops when the run pauses. The face pattern still reads the mesh's own corners.
 shader_type spatial;
 render_mode unshaded, cull_back, shadows_disabled, depth_draw_never, blend_mix;
-stencil_mode read, compare_not_equal, 1;
+// Pass 72 (lane SPEC): the scenery writes 2 now (SceneryStencil), so "no painting here" is stencil 0: under every
+// painting (1) and every piece of scenery (2), as before for the paintings.
+stencil_mode read, compare_equal, 0;
 
 uniform vec3 face_hi : source_color = vec3(1.0, 0.88, 0.34);
 uniform vec3 face_lo : source_color = vec3(0.9, 0.56, 0.1);

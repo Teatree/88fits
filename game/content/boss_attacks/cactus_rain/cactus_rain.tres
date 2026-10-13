@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="BossAttackDef" format=3]
+
+[ext_resource type="Script" path="res://core/data/BossAttackDef.gd" id="1_if6ng"]
+
+[resource]
+script = ExtResource("1_if6ng")
+doc = "The Gila Grande rears up and fires red cactus spikes up and out in every direction; they come down over a huge area round it on rings of landing spots with a gap between every two, each spot a red circle 0.9 s before its spike lands. Stand between the circles."
+projectile = {
+"arc": 7.0,
+"flight": 1.1,
+"glow": 1.2,
+"look": "spike",
+"size": 1.7,
+"tint": "#D0242F",
+"trail": true
+}
+pattern = {
+"center": "boss",
+"count": 0.0,
+"gap": 1.0,
+"jitter": 0.25,
+"order": "out",
+"radius_max": 16.0,
+"radius_min": 3.6,
+"shape": "rings",
+"spacing": 3.2,
+"turn": true
+}
+landing = {
+"radius": 0.9
+}
+telegraph = {
+"color": "#ED4A5C",
+"kind": "circles",
+"seconds": 0.9
+}
+timing = {
+"cooldown": 0.0,
+"hold": -1.0,
+"stagger": 1.5,
+"windup": 1.0
+}
+sounds = {
+"fire": "en_cactus_spit",
+"land": "en_stalactite_hit",
+"windup": ""
+}
+id = "cactus_rain"
+display_name = "Red Cactus Rain"
+icon_file = "cactus_rain_icon.png"

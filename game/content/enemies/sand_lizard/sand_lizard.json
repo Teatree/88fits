@@ -52,8 +52,8 @@
     "tint_strength": 0.22,
     "special_chance": 0.0333,
     "special": {
-      "size": 1.25,
-      "hp": 10.0,
+      "size": 1.5,
+      "hp": 15.0,
       "damage": 2.0,
       "xp": 3.0,
       "tint": "#1F5A3A",
@@ -68,5 +68,44 @@
   },
   "doc": "The runner: a fat blue lizard nearly as fast as an ant with a goblin's bite, so a pack closes before a slow build can turn.",
   "head": 0.806,
-  "hidden": true
+  "hidden": true,
+  "variant_base": "SL-0",
+  "variant": "SL-A",
+  "variants": {
+    "SL-0": {
+      "note": "the top-level strip, before the Level Editor's looks"
+    },
+    "SL-A": {
+      "recipe": {
+        "art_prompt": "a desert lizard running on four short legs, bright cobalt blue scales with dark navy stripes down its back and a pale sky-blue belly, a long tail, a wide flat head with round eyes and a wide toothy grin, standing on the ground",
+        "death": "collapse",
+        "method": "creature_proc",
+        "painter": {
+          "model": "klein",
+          "steps": 23
+        },
+        "stills": "a",
+        "seed_offset": 5761,
+        "motion": "scurrying in place on four short legs, tail whipping side to side"
+      },
+      "sprite": "sand_lizard_sprite_a.png",
+      "icon": "sand_lizard_icon_a.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 1.0,
+      "fresh": true
+    }
+  }
 }

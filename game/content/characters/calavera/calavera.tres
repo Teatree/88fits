@@ -15,7 +15,7 @@ target = "player"
 [resource]
 script = ExtResource("1_ecvu3")
 level_trait = [SubResource("Resource_dwhhe")]
-order = 3
+order = 4
 trait_name = "Last Dance"
 trait_text = "Gain 1% attack damage per level."
 pronoun = "he"
@@ -26,7 +26,7 @@ favourite_bonus = {
 }
 start_weapon = "guitarra"
 availability = "purchase"
-price = 750
+price = 300
 sprite = ExtResource("3_o2my1")
 sprite_file = "calavera_sprite.png"
 anims = {

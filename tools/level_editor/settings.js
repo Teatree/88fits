@@ -38,6 +38,8 @@ const Settings = (() => {
       if (group === 'Stages') card.appendChild(el('p', { class: 'muted small', text: `Stage 1 ${fmtT(0)}–${fmtT(App.stageLength())}, stage 2 to ${fmtT(App.stageLength() * 2)}, stage 3 to ${fmtT(App.stageLength() * 3)}; the run clock stands still through boss fights and portals.` }));
       // pass 69 (lane EN)
       if (group === 'Coloured specials') card.appendChild(el('p', { class: 'muted small', text: 'The numbers of a coloured special (the rarer, bigger, tougher, glowing one) wherever a creature\'s own Special block (Enemies tab) leaves a box empty; a creature\'s own number always wins, an empty box here is the game\'s default (the grey number). Every creature names its own size, HP and ATK; none names a glow, so Glow here sets all of them.' }));
+      // pass 72 (lane BOSS): the references, the chart and the thinking under the Boss HP card's five rows
+      if (group === 'Boss HP' && typeof BossScaling !== 'undefined') card.appendChild(BossScaling.block(tl));
       if (group === 'Scaling') card.appendChild(el('p', { class: 'muted small', text: 'An ordinary creature spawns with HP = its hp × the stage multiplier × the HP curve at that second × the hero-level factor × creature_hp_mult, and bites for its damage × the stage multiplier × the damage curve × the hero-level factor × creature_damage_mult. The hover cards on the Timeline show both for any second.' }));
       grid.appendChild(card);
     }

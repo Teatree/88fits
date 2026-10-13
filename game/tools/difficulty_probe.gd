@@ -95,6 +95,15 @@ var _last_log = null
 var _by: Dictionary = {}
 var _hits := 0
 var _big := 0
+## pass 72 (lane BOSS): `boss=1` plays on through the boss fight the window runs into and reports it (the HP it came with,
+## the DPS scaling the director read, the fight's length); `scale=0` turns the map's boss_hp_scaling off for the run.
+var _boss_mode := false
+var _scale := -1
+var _boss_seen := false
+var _boss_done := false
+var _boss_t0 := 0.0
+var _boss_fight := 0.0
+var _boss_info: Dictionary = {}
 
 
 func _init() -> void:
@@ -115,6 +124,8 @@ func _init() -> void:
 			"spite": _spite = int(kv[1])
 			"hpx": _hpx = float(kv[1])
 			"dmgx": _dmgx = float(kv[1])
+			"boss": _boss_mode = kv[1] == "1"
+			"scale": _scale = int(kv[1])
 	process_frame.connect(_start, CONNECT_ONE_SHOT)
 
 
@@ -186,9 +197,31 @@ func _tick() -> void:
 	if ran >= _next_sample:
 		_next_sample += 10.0
 		_sample(ran)
+	if _boss_mode:
+		# pass 72: on through the boss fight (the stage clock stands still in it), until the boss falls or time is up
+		_watch_boss()
+		if _boss_done or _t - _set_t > _secs * 3.0 + 300.0:
+			_report(ran)
+			quit(0)
+		return
 	if ran >= _secs or _t - _set_t > _secs * 3.0 + 60.0:
 		_report(ran)
 		quit(0)
+
+
+## The boss the window ran into (pass 72): when it comes, its HP and the scaling the director read; when it falls, the
+## fight's length in game seconds.
+func _watch_boss() -> void:
+	var em = _game.enemies
+	if not _boss_seen and em.boss_index >= 0:
+		_boss_seen = true
+		_boss_t0 = _t
+		var i: int = em.boss_index
+		var sc = _game.director.get("last_boss_scale")
+		_boss_info = {"id": str(em.types[em.type_idx[i]]["def"].id), "hp": float(em.max_hp[i]), "scale": (sc as Dictionary).duplicate() if sc is Dictionary else {}}
+	elif _boss_seen and not _boss_done and em.boss_index < 0:
+		_boss_done = true
+		_boss_fight = _t - _boss_t0
 
 
 func _setup() -> void:
@@ -231,6 +264,9 @@ func _setup() -> void:
 			d._run_event(ev)
 	d.timeline.creature_hp_mult *= _hpx
 	d.timeline.creature_damage_mult *= _dmgx
+	# pass 72: scale=0 plays the bosses at their data HP (the DPS scaling off), scale=1 forces it on
+	if _scale >= 0:
+		d.timeline.boss_hp_scaling["enabled"] = _scale == 1
 	d.forget_sources()
 	d._apply_mults()
 	_game.enemies.kill_all(false)
@@ -445,5 +481,11 @@ func _report(ran: float) -> void:
 	for key in keys:
 		parts.append("%s %.2f" % [key, float(_by[key]) / mh / mins])
 	print("probe: BY hits %d big %d | lost/min by source (maxHP): %s" % [_hits, _big, ", ".join(parts)])
+	# pass 72 (lane BOSS): the DPS the boss HP scaling reads (the last 45 s of the clock), and the boss fight
+	print("probe: DPS45 %.0f | window dealt/s %.0f" % [_run.recent_dps(45.0), dealt / maxf(ran, 1.0)])
+	if _boss_mode:
+		var sc: Dictionary = _boss_info.get("scale", {})
+		print("probe: BOSS %s hp %.0f | scaling dps %.0f ref %.0f x%.2f | fight %s" % [str(_boss_info.get("id", "none")), float(_boss_info.get("hp", 0.0)),
+			float(sc.get("dps", 0.0)), float(sc.get("ref", 0.0)), float(sc.get("mult", 1.0)), ("%.1f s" % _boss_fight) if _boss_done else "not over"])
 	for s: Dictionary in _samples:
 		print("probe:   t+%3d alive %3d load %5.1f cap %3d kills %5d lost %6.0f hp %4.0f" % [int(s["t"]), int(s["alive"]), float(s["load"]), int(s["cap"]), int(s["kills"]), float(s["lost"]), float(s["hp"])])

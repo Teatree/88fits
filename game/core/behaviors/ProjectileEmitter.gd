@@ -1111,8 +1111,9 @@ func _tick_looks(delta: float) -> void:
 
 
 # ---------------------------------------------------------------- pass 67 (lane P): the basketball
-## A free throw's ball glows white (Free Throw): a copy of the ball's kind in these colours (tint_kind).
-const FREE_TINT := {"albedo": "#FFFFFF", "emission": "#FFFFFF", "energy": 1.4}
+## Pass 72: a free throw's ball is the ball, in its own look (Garry: "the 3d object projectile seems to be white, should
+## be orange"): pass 67 drew it in white (albedo and a white glow at 1.4), so with Free Throw a third of his balls flew
+## white. FREE_TINT is gone; the free throw is told by the evade that threw it.
 ## Slam Dunk's dunk: its ring on the sand and its burst.
 const DUNK_COLOR := Color(1.0, 0.55, 0.12)
 
@@ -1125,10 +1126,10 @@ func _bounces() -> bool:
 ## One ball (pass 67, amount_mode "bounces"), fired through the manager along the aim with its hops seeded: the block's
 ## ricochet_any.count plus every amount past the first (ProjectileManager._ricochet_on reads extra["rc_left"] before the
 ## count), so a level, Multishot or a +amount buff sends it on to one more creature instead of throwing a second ball. A
-## free throw's ball is drawn white (FREE_TINT). The shot's index, -1 when the pool is full.
+## free throw's ball is drawn as the ball (pass 72; pass 67 drew it white). The shot's index, -1 when the pool is full.
 func _throw_ball(dir: Vector3, from: Vector3, amount: int, damage: float, speed: float, pierce: int, prad: float, life: float, knock: float) -> int:
 	var pm: ProjectileManager = game.projectiles
-	var k: int = _ball_kind(tint_kind(FREE_TINT) if _free_throw else _kind())
+	var k: int = _ball_kind(_kind())
 	var j := pm.fire(k, from, dir * speed, damage, pierce, prad, life, inst, knock)
 	if j < 0:
 		return -1
@@ -1199,7 +1200,7 @@ func on_hero_hit() -> void:
 
 ## Free Throw (pass 67, the hero mutation, `params.free_throw {every, damage_mult}`; Game calls this on every behaviour
 ## that has it when he evades a hit): a ball at once, outside the cooldown (which runs on untouched), at `damage_mult` of
-## the throw and drawn white; at most one every `every` seconds, the gap counted from a throw that went (nobody within
+## the throw and drawn as the ball (pass 72); at most one every `every` seconds, the gap counted from a throw that went (nobody within
 ## range: no throw and no gap).
 func on_hero_evaded() -> void:
 	var ft = inst.params.get("free_throw") if inst else null

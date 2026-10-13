@@ -306,86 +306,94 @@
     "roster": [
       {
         "id": "r1",
-        "t": 0,
+        "t": 123,
         "enemy": "red_goblin",
         "weights": [
           [
-            0,
+            123,
             9
           ],
           [
-            59,
+            182,
             5.1
           ],
           [
-            63,
+            186,
             8.8
           ],
           [
-            118,
+            241,
             8.4
           ]
         ],
         "stats": {
           "elite": {
             "hp_mult_per_stage": 0
-          }
+          },
+          "drops": {
+            "medium": 0
+          },
+          "hp_mult": 1.5
         },
-        "until": 122,
+        "until": 245,
         "variant": "RG-B"
       },
       {
         "id": "r2",
-        "t": 0,
-        "enemy": "red_goblin_runt",
+        "t": 141,
+        "enemy": "goblin_runt",
         "weights": [
           [
-            0,
+            141,
             3
           ],
           [
-            60,
+            201,
             3.7
           ]
         ],
-        "until": 59
+        "until": 200,
+        "stats": {
+          "speed": 4,
+          "can_be_elite": false
+        }
       },
       {
         "id": "r18",
-        "t": 58,
+        "t": 250,
         "enemy": "blue_slime",
         "weights": [
           [
-            58,
+            250,
             2.5
           ],
           [
-            121,
+            313,
             2.5
           ]
         ],
-        "until": 123,
+        "until": 315,
         "stats": {
           "hp": 40
         }
       },
       {
         "id": "r3",
-        "t": 123,
+        "t": 0,
         "enemy": "lesser_scorpion",
         "weights": [
           [
-            121,
+            0,
             8
           ],
           [
-            174,
+            51,
             7.6
           ]
         ],
-        "until": 176,
-        "pattern": "in_front",
-        "pack": 100,
+        "until": 53,
+        "pattern": "ring",
+        "pack": 6,
         "stats": {
           "speed": 1.5,
           "hp_mult": 1.2
@@ -393,30 +401,30 @@
       },
       {
         "id": "r12",
-        "t": 176,
+        "t": 53,
         "enemy": "skeleton",
         "weights": [
           [
-            177,
+            54,
             6.7
           ]
         ],
-        "until": 285,
+        "until": 123,
         "stats": {
           "hp": 20
         }
       },
       {
         "id": "r13",
-        "t": 176,
+        "t": 83,
         "enemy": "skeleton_knight",
         "weights": [
           [
-            177,
+            84,
             2.9
           ]
         ],
-        "until": 306,
+        "until": 123,
         "stats": {
           "hp": 35
         },
@@ -424,50 +432,37 @@
       },
       {
         "id": "r14",
-        "t": 176,
+        "t": 257,
         "enemy": "spit_cactus",
         "weights": [
           [
-            177,
+            258,
             1.8
           ]
         ],
-        "until": 234,
+        "until": 315,
         "pattern": "scatter"
       },
       {
-        "id": "r17",
-        "t": 368,
-        "enemy": "spit_cactus",
+        "id": "r15",
+        "t": 306,
+        "enemy": "bull_beetle",
         "weights": [
           [
-            369,
-            1.2
+            306,
+            1
           ]
         ],
         "until": 430,
         "pattern": "scatter"
       },
       {
-        "id": "r15",
-        "t": 250,
-        "enemy": "bull_beetle",
-        "weights": [
-          [
-            250,
-            1
-          ]
-        ],
-        "until": 368,
-        "pattern": "scatter"
-      },
-      {
         "id": "r16",
-        "t": 306,
+        "t": 347,
         "enemy": "werewolf",
         "weights": [
           [
-            306,
+            347,
             5.4
           ]
         ],
@@ -1506,9 +1501,14 @@
       0.4
     ],
     "colour_after_kills": 50,
+    "special_defaults": {
+      "chest_chance": 0.35,
+      "max_alive": 3
+    },
     "creature_hp_mult": 1.3,
     "creature_damage_mult": 1.25,
     "creature_speed_mult": 0.9,
+    "hero_knockback_mult": 0.5,
     "contact_cap": 0.22,
     "passive_cap": [
       5,
@@ -1516,7 +1516,19 @@
       5
     ],
     "xp_need_mult": 2.1,
-    "move_pace": 0.9
+    "move_pace": 0.9,
+    "boss_hp_scaling": {
+      "enabled": true,
+      "exponent": 0.5,
+      "window": 45,
+      "min": 0.75,
+      "max": 3.0,
+      "ref_dps": {
+        "tumbleweed_king": 600,
+        "gila_grande": 4500,
+        "brander": 20000
+      }
+    }
   },
   "placeholder": {
     "color": "#E4874C",

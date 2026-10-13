@@ -649,3 +649,158 @@ depth views, its back correct after one re-roll, its front and back heads the la
 pass66_shape_test 23/0; selftest 18,097.
 
 **The lead.** The explainer page for Garry (lane PDOC: puppet-themed, the steps with the trial's pictures, ComfyUI workflow links, Blender GUI screenshots with the manual rig, the models and their times, the cost) published at https://claude.ai/artifact/RLK1zdb7p4QhDuFfMhdyRm; its token figures: the trial about 0.82M, building it in, the page and MAY-R about 1.57M (lanes measured, the lead's share estimated). Two ships stopped on tests that failed one run in ten (the Golden Pineapple's ride, Birdshot's lane): a crowd built without a director could roll a random special, and since pass 69 a special has x10 HP and x1.25 size; EnemyManager's `colour_after_kills` now defaults to COLOUR_NEVER until a director sets it (the game always does: the timeline's value, 0 in the arena), the one test that counts specials asks for colour itself, and Birdshot's comparison allows 0.01 HP. Lesson: a random roll that grows stronger turns old exact tests into dice.
+
+**Pass 72 (2026-10-13, v0.58): knockback halved, stronger specials, bosses that answer the build, the Results show.** Four lanes and an integration lane from one contract (tools/dl/p72/INTERFACES.md): the basketball stays orange (Free Throw's white tint gone, On Fire's glow capped), a clean Rebound icon, every push the hero's side gives x0.5 (map `hero_knockback_mult`), First seed on every candidate job; specials x1.5 size, x15 HP, a 35% chest, at most 3 alive, and creature outlines only behind scenery (the stencil buffer); a boss's HP scales with the square root of the hero's last 45 s of DPS against a measured reference, shown as a chart in the Level Editor; custom boss attacks as content (`content/boss_attacks`) with their own Level Editor tab, the Gila's rumble replaced by the red cactus rain; the Results screen as a two-part show (gold along the run's own curve, a kills chart with markers and counters, the sources in the order they came, then the unlocks).
+
+**The white basketball.** Measured, not guessed (game/tools/_p72_items_ball_shot.gd: a throw at Heat 0/5/10, Alley-Oop, Slam
+Dunk, On Fire, Free Throw, a far camera; each frame also averages the ball's own pixels, a watchdog quits after `limit`).
+The plain ball was orange at every Heat; two things painted it white: (1) Free Throw (Fadeaway's hero mutation: an evaded
+hit throws a ball) drew its balls in ProjectileEmitter.FREE_TINT, white albedo plus a white glow x1.4, so with Free Throw
+a share of his balls flew pure white (measured fff8e6); FREE_TINT is gone and a free throw is the ball in its own look;
+(2) On Fire's tint (#FF3A00 at 1.6) on the body, pushed toward the heat colour and beating x1.35 at full Heat, summed past
+what the screen shows and came out yellow-white (ffdb37); the new `heat_look.body_green_max` (basketball 0.3,
+ProjectileManager._cap_body_green) caps the green the body's glow adds at max(its cold glow's, 0.3), so it stays orange;
+the plain ball never reaches the cap. Alley-Oop (dark blue) and Slam Dunk (black) unchanged (their glow is in the seams).
+Captures: tools/dl/p72/items/before*/, after/, ball_before_after.png.
+
+**Knockback halved.** One map number, `timeline_data.hero_knockback_mult` (WaveTimeline, JsonContent; Red Canyon 0.5;
+Level Editor Settings > Scaling "Hero knockback ×"), on every push the hero's side gives a creature
+(EnemyManager.hero_knock_mult): damage()'s kb_force from any hero source (HOSTILE_PUSH_IDS "loose_rocket" and "blast"
+stay whole), the new hero_throw_radius (the Nuke's throw, Thruster Burst, Grand Finale; the rocket, the loose rocket and
+the golem's boulder keep throw_radius), Buck's Ram, the tornado's toss, the Guitarra chord's bounce (ConeWave) and
+Bucking Bronco's throw distance. Not the pull, knockback_resist, the boss's 0.15 or a creature's push on the hero.
+
+**First seed everywhere.** Every candidate job shows the same two fields, "Candidates" and "First seed", with the same
+words (jobs.py CANDIDATES_HELP / FIRST_SEED_HELP): the badge, the title cut-out (its field had shown as the raw key
+first_seed in Asset settings, default 11, and the count as "candidates" at the bottom), icon candidates, creature_ctl's
+side and view candidates, a front from a picture (its "seed shift" reached no tool and is gone from those two forms),
+the puppet's arms-out fronts, and a new look's follow-on candidate jobs. tools/cand_seeds.start: the job's first seed
+when it names one, else the tool's own start; the job id and the attempt move it on as in pass 70. Every tool takes
+--first-seed (gen_badge_cands' first seed now replaces seed_for(id)+40; it was added to it). Selftest group
+selftest_ITEMS72.py.
+
+**Rebound's icon.** Its U-turn arrow had come out broken in two. Twelve new seeds (tools/dl/icons72, gen_icon_cands from words: one smooth unbroken arrow), compared with pass 69's two alternates (a backboard, a catching hand) at 96, 48 and 36 px on the dark plate and on paper: the alternates shrink the ball to nothing at HUD size; rebound72_c2 (one clean arrow leaving the ball's top, round its right side, its head pointing back at the ball) installed; the old one in tools/dl/backup/icons72/.
+
+Garry: "Specials should be more noticeable. They should be bigger. They should have way more of a chance of dropping a
+box. They should have higher HP. They should be a limit to how many of them are there"; "Make the outline of the enemies
+not appear when they're behind other enemies, only when they're behind environmental things."
+
+- **Specials**: x1.5 size and x15 HP (from x1.25 / x10) in all 22 creature special blocks and in
+  `EnemyDef.SPECIAL_DEFAULTS`; a chest on a special's death at 0.35 (`variance.special.chest_chance` > the map's
+  `special_defaults.chest_chance` > the game's; `EnemyManager._special_chest_drop`, called from `_die` after Hot Sauce's
+  pay); at most 3 alive at once (`special_defaults.max_alive`, `EnemyDef.SPECIAL_MAX_ALIVE`, 0 = no limit;
+  `EnemyManager.specials_alive` kept by spawn / `_die` / `_free`; the roll is made first and refused past the cap, so
+  below it the dice are unchanged; a forced special always comes). Red Canyon's `timeline_data.special_defaults`
+  {chest_chance 0.35, max_alive 3} written (Garry's open editor page may drop it on his next save; the game's defaults
+  are the same numbers). Level Editor: the Special block's Chest chance with a 0..1 rule and its source row, a "Max alive
+  (map)" row; Settings -> Coloured specials: Chest chance, Max alive; the defaults 1.5 / 15 everywhere; the spawn
+  estimate (and its Python twin in selftest.py) caps the expected coloured alive the same way.
+- **Outlines**: the stencil. Scenery writes 2 (new `core/systems/SceneryStencil.gd`: prop_billboard, sign_depth, the
+  structures' and the portal's runtime copy of sprite_billboard via `BillboardSprite.scenery`, the barrels', the boundary
+  wall's (posts, boulders, skulls) and the near cliffs' StandardMaterial3Ds via `mark_tree`); creatures and the hero keep
+  writing 1; `enemy_silhouette` reads `== 2`, so a creature is outlined only where scenery is the nearest thing in front of
+  it; the gems, coins, glints and the coin stream's shadows read `== 0` (were `!= 1`). Cost: GPU 0.587 ms with the
+  stencil against 0.595 ms for the old outline (250 creatures, PC), same draw calls; perf_late unchanged.
+- **Checked by eye**: tools/dl/p72/SPEC/shots1, shots2 (`cmp_*.png`: new | old): a skeleton behind a beetle no longer
+  outlined over it, a skeleton behind a mummy behind a cactus outlined only through the cactus; outlines kept behind the
+  saguaro, the rock, the war drum, a barrel, a sign post and the wall; specials at x1.5 with their glow beside plain ones.
+  Tool: game/tools/_p72_SPEC_shots.gd (mode=shots|bench|gems, a 150 s watchdog).
+- **Tests**: game/tests/pass72_spec_test.gd; re-pinned on purpose: pass69_en_test (x1.5 / x15; the Special Goblin's
+  place: Garry rebuilt stage 1, so only "in stage 1" is pinned), pass58_wv_test (two tests spawn 20 / 30 specials at
+  once: max_alive 0 there), pass47_combat_test (Hot Sauce's chest count: the special's own chest off there),
+  pass54_combat / pass56_pk / pass60_pk / pass61_pk (the pickups read stencil 0; props write 2); Level Editor:
+  selftest_SPEC72.py new, selftest_EN.py and selftest.py re-pinned.
+
+**Lane BOSS (pass 72).** **Boss HP pegged to the hero's DPS** (Garry: "Boss Max HP should scale up the bigger the
+Player's DPS is in that moment. It shouldn't be 1 to 1"): a map's `timeline_data.boss_hp_scaling {enabled, exponent,
+window, min, max, ref_dps}` (WaveTimeline, `BOSS_HP_SCALING_DEFAULTS`, static `boss_hp_mult`, `boss_ref_dps`,
+`boss_dps_window`; JsonContent reads it); `Run` keeps the hero's damage in 240 one-second buckets on `buff_clock()`
+(`dps_reset` at a run's reset, `dps_note` from `add_damage`, `recent_dps(window)`); `WaveDirector.boss_dps_scale(id)`
+(arena ×1; endless grows a returning boss's reference with its own HP growth since its stage, `boss_stage_of`;
+`last_boss_scale`; prints "boss hp scaling: ...") is held in `EnemyManager.boss_hp_scale` around `_start_boss`'s spawn
+and multiplies the boss branch's HP. Red Canyon: on, exponent 0.5 (2× DPS = 1.41× HP, the fight 29% shorter), window
+45 s, floor 0.75, ceiling 3, references measured with `difficulty_probe.gd` (new `DPS45` line, `boss=1` plays on through
+the fight and prints it, `scale=0|1`) over the 45 s before each boss on pass 64's builds: the King 600, the Gila 4500, the
+Brander 20000. Level Editor: Settings → **Boss HP** (fields.js five rows + group; `boss_scaling.js`: a reference DPS per
+boss event, a chart on a doubling DPS axis from ref/8 to 16× ref with the multiplier, the fight length against the
+reference fight with and without the scaling, the floor and ceiling shaded, a crosshair readout, and the thinking in
+plain words; the same words in the Instructions tab). **Custom boss attacks**: a content type
+`content/boss_attacks/<id>/<id>.json` (`core/data/BossAttackDef.gd`: kinds rain / volley / ring / slam / script, groups
+projectile, pattern, landing, telegraph, timing, sounds + damage × bite, knockback, lift; `DEFAULTS`; the static layout
+`points()` with its gap rule, `smallest_gap`, `land_times`, `runner_entry`); JsonContent.TYPES + `_boss_attack`,
+`Registry.boss_attacks` / `boss_attack(id)` (no icon expected), gen_placeholders skips the type. A creature's script
+names one as `{"name": "<id>"}`; EnemyManager's runner (appended section: `custom_resolved` once per def, `_custom_attack_begin`
+for the wind-up's marks, `_custom_attack_fire` from the fire step's `_:` branch, `custom_rest`, `_tick_custom_attacks`
+on the shot clock in `_update_boss`; rains, volleys, rings and slams; `custom_landed/fired/hits/last` for tests) and
+`core/systems/BossAttackFx.gd` (one MultiMesh per look and colour, filled every tick: spike, spit, pellet, shard, rock,
+fire). **The Gila Grande's red cactus rain** (`cactus_rain`) replaces its rumble: red spikes thrown up and out from its
+back, landing on rings of spots 3.6-16 m round it with at least 1 m of sand between any two circles (64 spots, about 20%
+covered), each spot a red circle 0.9 s before its spike, staggered over 1.5 s, 0.75 × its bite and a knock of 4 only
+inside a 0.9 m circle, the spikes stuck in the sand a moment. Level Editor: a **Boss attacks** tab (`boss_attacks.js`,
+`boss_model.js`, `boss.css`; routes in `boss_attacks_io.py` hooked into server.py: list, new from a blank kind or a copy,
+save key by key with a 409 on a stale file, assign / unassign a creature (only its `boss` block written), delete (refused
+while used, cascade takes it out of the scripts, the folder moved to the editor's backups)): the list with each attack's
+colour and users, the editor with every key's help and the game's default in grey, a top-down preview to scale (the boss,
+the hero, the spots, the narrowest gap marked, a time slider and Play, New layout), "In the script of" chips, its own
+Ctrl+S / Z / Y; the Enemies tab's script offers the custom attacks (★) and shows their cards as custom, not unknown.
+Tests `pass72_boss` (12+); re-pinned on purpose: pass24_test (the Gila names cactus_rain, not rumble), pass48_world_test
+(the rumble's paced-clock test runs on a test boss), hell_check (the Gila's second attack is the rain). Selftest group
+`selftest_BOSS.py`.
+
+**Lane RESULTS (pass 72): the animated Results.** Garry: "The Result Screen sequence in general should be more
+animated": the gold counting along the run's own curve, a new kills chart left to right with graves, skulls, crowns and
+gears and Kills / Damage counters in short numbers, the damage sources added in the order they were acquired, each bar
+filling in turn, then a pause, a scroll to the unlocks, each completed one stamped, the rest's bars filling. The run now
+keeps its story: `core/systems/RunTimeline.gd` (`Run.timeline`, new at every `Run.start`; `attach` from `Game._ready`
+for a real run, `tick` from `Game._process` beside the run recorder's) samples the purse, the kills and all damage each
+second and every source's damage each 5 s, marks each boss / Elite / special kill (read off `EnemyManager.creature_dying`:
+`boss_index`, `elite_idx`, `vspecial`, the gear badge) and each `Player.died`, notes each source's first owned moment
+(a scan of the build on `build_changed`) or first hit, the starting weapon, and the counted unlocks' progress as the run
+began. `ui/ResultsScreen.gd` became a sequencer of named parts (gold, breath, chart, sources | pause, scroll, unlock,
+progress) on its own clock: a tap anywhere but a button hurries the sequence ×4, a second ends it, the buttons always
+answer, the board is held (no finger, drag or wheel) until the show ends and only eases down by itself to keep the newest
+row above the buttons; `sequence()`, `part_name()`, `part_frac()`, `show_time()`, `tap()`, `skip_sequence()`,
+`skip_all()` for tools and tests; `short_num`, `ordered_sources`, `progress_list`, `unlock_time` static. New kit pieces:
+`ui/wanted/WKillChart.gd` (the chart: 48 smoothed slices, rock-red area under an ink line on an aged plot, the marks laid
+out in pixels with merges and stacking, stage names under the plot, pops with `popped`), `ui/wanted/WStamp.gd` (a rubber
+stamp that slams), `WBar.gain` (the last part of the fill in a second colour). The four markers are the game's own badge
+pictures, not emoji: none of the game's six fonts has 🪦 💀 👑 ⚙️ (checked with fontTools) and a phone's emoji fallback is
+not something to trust, so skull, crown and gear are art/ui/badges' and the grave is new (`art/ui/badges/grave.png`,
+drawn by `tools/dl/p72/RESULTS/make_grave_badge.py` in the badges' style). The end-of-run survey waits for the show.
+Proof: `game/tools/_p72_results_shot.gd` (a made-up run from `game/tools/results_story.gd`, every part captured by the
+screen's own part clock, a watchdog; 1080x1920 and inset=130), `game/tools/_p72_results_real.gd` (smoke_run's real run,
+its story checked: kills sum to Run.kills, the boss marked, the starting weapon at 0, the revive joined), wanted_shots'
+16 / 16b / 16c / 16d (chart) / 16e (stamp), touch_audit's `results_show` (buttons during the show, a swipe holds and
+hurries, taps end each sequence; then the usual audit with the board scrolling), `tests/pass72_results_test.gd` (11).
+
+**Lane INTEG (pass 72).** Garry edited content in his Level Editor while the lanes worked (2026-10-13: Astro on sale at
+300 gold and third in his order, Ironwood second, Calavera 300 and fourth, Mira hidden again, May playing MAY-P with its
+picked icon, Solenne's SOL-B icon picked, Red Canyon's stage 1 rebuilt with the scorpions first, the skeletons and
+knights, the red goblins from 2:03 and the goblin runt back on the roster at 2:21, row r2). His edits stay; this lane
+made the tree agree with them. **The goblin runt is in play again** (`retired` false; the goblin stays retired). **The
+tests that pinned his old numbers read his data now and check a rule** (each with a comment naming his 2026-10-13
+edit): pass333 / pass334 / pass45_pacing (a goblin on the roster is not retired; the knights come with or after the
+skeletons, while they walk, one to three skeletons a knight where the rows overlap), pass26 / pass46_passives / pass51
+(Mira's Blasting Cap is offered, on the page and "optional" exactly while she is in play, "hidden · Mira" in the arena
+when not), pass53_items (a save that owns Astro keeps her), pass61_hr (the title's order is the JSONs' `order`, distinct,
+the Drifter first), pass62_pc (stage 1's shape: the cap in time order from 0:00, every stage-1 row a creature there with
+weights, distinct ids and an end inside the stage, the King at 7:10, the scalars present, stage 1 at x1, path times in
+order inside it), pass66_gd ("absent" now strips the availability and price astro.json carries), pass69_hero (her
+played look is one of hers with its strip on disk), pass69_ui (every hero on sale with no quest is buyable on a clean
+save, one with a quest locked; the title and drawer cases take the first locked and owned heroes in his order),
+pass70_econ (every hero on sale has a gold price above 0, the Drifter free), and the Level Editor's selftest_S
+(/api/heroes in the JSONs' order, each record's availability its file's). **A hero on sale without an unlock quest**
+(Astro now, Fadeaway before) is buyable at once (Registry.hero_state); a save that played Astro while she was free
+opens on the Drifter until she is bought. **pass61_an's 40 -> 44 bounty** was not pass 72's code: the test's shop
+bought a random card (CardPool._pick's randf) and now and then it was Gold Tooth (greed x1.1), so the 40 bounty after
+it paid 44; the test now skips greed cards as it skipped the Phoenix Feather (pass 63) and says which card raised
+greed if one ever does. **Map safety**: Garry's open editor page saves timeline_data from its own copy and drops keys it
+never saw (server.ordered_like keeps only the page's keys one level down), so the game's defaults for an absent key are
+now pass 72's numbers: `hero_knockback_mult` 0.5 (WaveTimeline.HERO_KNOCKBACK_DEFAULT, class default and JsonContent
+fallback), `boss_hp_scaling` on by default (BOSS_HP_SCALING_DEFAULTS enabled true, exponent 0.5, window 45, 0.75..3;
+BOSS_REF_DPS_DEFAULTS King 600, Gila 4500, Brander 20000 for a boss the block's ref_dps leaves out, 0 = never scaled;
+an empty block is no longer "off"), `special_defaults` already fell back to EnemyDef.SPECIAL_DEFAULTS / SPECIAL_MAX_ALIVE
+(x1.5, x15, 35% chest, 3 alive); the Level Editor shows the same grey defaults (fields.js, boss_model.js REF_DEFAULTS,
+boss_scaling.js); new game/tests/pass72_integ_test.gd; pass72_boss / pass72_items tests and selftest_BOSS /
+selftest_ITEMS72 re-pinned to "the file's number, else the default". The three keys are in red_canyon.json as pass 72
+left them.

@@ -33,6 +33,8 @@ func _ready() -> void:
 		# the painting's square is 1.15 x the gate's height, as for every structure
 		var side := float(cfg.get("height", 3.6)) * 1.15
 		var bs := BillboardSprite.new()
+		# pass 72: scenery (a creature it hides is outlined, SceneryStencil)
+		bs.scenery = true
 		_body.add_child(bs)
 		bs.setup(load(ART), {"idle": 1}, ["idle"], side)
 		bs.position.y = 0.04

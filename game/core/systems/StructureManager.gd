@@ -268,6 +268,8 @@ func _spawn(def: StructureDef, at: Vector3) -> Structure:
 	var path := "res://art/props/%s.glb" % def.prop
 	if ResourceLoader.exists(sprite_path):
 		var bs := BillboardSprite.new()
+		# pass 72: scenery (a creature it hides is outlined, SceneryStencil)
+		bs.scenery = true
 		s.visual = bs
 		s.add_child(bs)
 		bs.setup(load(sprite_path), {"idle": 1}, ["idle"], def.height * 1.15)
@@ -279,6 +281,7 @@ func _spawn(def: StructureDef, at: Vector3) -> Structure:
 			s.visual = (load(path) as PackedScene).instantiate()
 		else:
 			s.visual = _fallback_visual(def)
+		SceneryStencil.mark_tree(s.visual)
 		s.add_child(s.visual)
 		s.visual.rotation.y = _rng.randf() * TAU
 	# the ring on the ground, in the structure's colour, always visible until used
@@ -725,7 +728,7 @@ func _grey_out(n: Node) -> void:
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = Color(0.42, 0.4, 0.4)
 		mat.roughness = 1.0
-		(n as MeshInstance3D).material_override = mat
+		(n as MeshInstance3D).material_override = SceneryStencil.mark(mat)
 	for c in n.get_children():
 		_grey_out(c)
 

@@ -55,6 +55,9 @@ static func write_for(content_root: String, only: Dictionary, force: bool) -> in
 	for type: String in JsonContent.TYPES:
 		if not only.is_empty() and not only.has(type):
 			continue
+		# a custom boss attack has no icon (pass 72)
+		if type == "boss_attacks":
+			continue
 		var ids: Array = only.get(type, [])
 		var base := content_root + type + "/"
 		var dir := DirAccess.open(base)

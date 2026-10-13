@@ -2,7 +2,7 @@
 take its render as a reference (tools/dl/<x>_ref.png, laid on the green screen first), the way the Tommy Gun's icon was
 painted from its model (pass 44), so the 2D icon and the 3D object are one thing.
 
-  python tools/gen_icon_cands.py [--only spear,cake] [--seeds 4] [--dev]
+  python tools/gen_icon_cands.py [--only spear,cake] [--seeds 4] [--first-seed N] [--dev]
       -> tools/dl/icons<set>/<key>_c<k>.png + review_<key>.png (a job's "set": 46 unless it says, 47 for pass 47's)
   python tools/gen_icon_cands.py --pick spear=2 cake=0
       -> installs into the item's folder (content icons), art/ui/badges/<b>.png (badges) or art/ui/wanted/<x>.png (UI)
@@ -771,10 +771,11 @@ def icon_words(subject, kind, has_ref, style=None, bg=None):
     return ref_lead(kind, subj, has_ref) + (subj + ". " if subj else "") + (style or ga.ICON_STYLE) + ". " + (bg or ga.BG_GREEN) + "."
 
 
-def candidate_seeds(key, seeds, attempt=1, tag=""):
-    """seed_for("icon46_" + key), moved by gen_art.LOOK_SEED_STEP for each re-run (attempt 2, 3, ...), then cand_seeds.seeds:
-    the job's own move (`tag`, the Level Editor job id; none by hand) and candidate k CAND_STEP from k-1 (pass 70)."""
-    base = ga.seed_for("icon46_" + key) + ga.LOOK_SEED_STEP * max(0, int(attempt or 1) - 1)
+def candidate_seeds(key, seeds, attempt=1, tag="", first=0):
+    """The job's first seed (pass 72, "First seed"; 0 = seed_for("icon46_" + key): cand_seeds.start), moved by
+    gen_art.LOOK_SEED_STEP for each re-run (attempt 2, 3, ...), then cand_seeds.seeds: the job's own move (`tag`, the
+    Level Editor job id; none by hand) and candidate k CAND_STEP from k-1 (pass 70)."""
+    base = cand_seeds.start(ga.seed_for("icon46_" + key), first) + ga.LOOK_SEED_STEP * max(0, int(attempt or 1) - 1)
     return cand_seeds.seeds(base, seeds, tag)
 
 
@@ -806,7 +807,7 @@ def _ref(name, blue=False):
     return comfy.upload_pil(ga.on_screen(Image.open(p), blue), comfy.safe_name(os.path.basename(p)))
 
 
-def paint(only, seeds, dev, attempt=None):
+def paint(only, seeds, dev, attempt=None, first=0):
     for key, job in JOBS.items():
         if job is None or (only and key not in only):
             continue
@@ -822,7 +823,7 @@ def paint(only, seeds, dev, attempt=None):
         refs = [_ref(job["ref"], blue)] if job.get("ref") else []
         prompt = icon_words(job.get("subject", ""), job.get("kind", ""), bool(refs), job.get("style"), ga.BG_BLUE if blue else ga.BG_GREEN)
         tiles = []
-        for k, s in enumerate(candidate_seeds(key, seeds, attempt or 1, cand_seeds.job_tag())):
+        for k, s in enumerate(candidate_seeds(key, seeds, attempt or 1, cand_seeds.job_tag(), first)):
             p = os.path.join(OUT, "%s_c%d.png" % (key, k))
             if not os.path.exists(p):
                 if dev:
@@ -933,4 +934,5 @@ if __name__ == "__main__":
         pick([x for x in a[a.index("--pick") + 1:] if "=" in x and not x.startswith("--")])
     else:
         only = _arg(a, "only")
-        paint(only.split(",") if only else None, int(_arg(a, "seeds", "4")), "--dev" in a, int(_arg(a, "attempt", "1") or 1))
+        paint(only.split(",") if only else None, int(_arg(a, "seeds", "4")), "--dev" in a, int(_arg(a, "attempt", "1") or 1),
+              int(_arg(a, "first-seed", "0") or 0))

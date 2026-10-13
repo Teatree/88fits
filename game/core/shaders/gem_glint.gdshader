@@ -7,7 +7,9 @@
 // the camera so the depth of the sand behind and under the gem never cuts into its rays.
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, blend_add, shadows_disabled, skip_vertex_transform, fog_disabled;
-stencil_mode read, compare_not_equal, 1;
+// Pass 72 (lane SPEC): the scenery writes 2 now (SceneryStencil), so "no painting here" is stencil 0: under every
+// painting (1) and every piece of scenery (2), as before for the paintings.
+stencil_mode read, compare_equal, 0;
 
 uniform float toward_cam = 0.3;   // metres towards the camera (above)
 

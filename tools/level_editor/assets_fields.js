@@ -224,6 +224,8 @@ const AFIELDS = (() => {
         P('heat_look.glow_min', 'Glow at a little Heat', 'number', 0, 'the least emission energy once there is any Heat', { min: 0, step: 0.05 }),
         P('heat_look.glow_max', 'Body glow at full Heat', 'number', 0.5, 'the body\'s emission energy at full Heat, kept low so the ball still reads as its colour (basketball 0.45, Slam Dunk 0)', { min: 0, step: 0.05 }),
         P('heat_look.seam_glow_max', 'Seam glow at full Heat', 'number', 1.6, 'the seams\' glow at full Heat: cracks of lava (Slam Dunk 2.2)', { min: 0, step: 0.1 }),
+        // pass 72 (lane ITEMS, Garry: the ball "seems to be white, should be orange")
+        P('heat_look.body_green_max', 'Body stays orange (green cap)', 'number', null, 'the most green light the body\'s heat glow may add (over its own cold glow), so a body that already glows (On Fire) stays orange at full Heat instead of bleaching yellow-white; empty = no cap (basketball 0.3; the plain ball never reaches it)', { min: 0, max: 1, step: 0.05 }),
         P('heat_look.pulse_hz', 'Beat (Hz)', 'number', 3, 'the beat at full Heat', { min: 0, step: 0.5 }),
         P('heat_look.pulse', 'Beat depth', 'number', 0.35, 'how far the beat swings the glow either way (share)', { min: 0, max: 1, step: 0.05 }),
         P('heat_look.surfaces', 'What glows', 'select', 'all', 'all, the seams only (Slam Dunk: the black body stays black) or the body only', { options: [opt('all', 'all'), opt('seams', 'seams'), opt('body', 'body')] }),
@@ -439,7 +441,10 @@ const AFIELDS = (() => {
     boulder: { label: 'Boulder', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'a boulder thrown at the hero\'s spot (Game.throw_boulder reads the whole block)', keys: [k('flight', 'Flight (s)', 'number', 1.6), k('radius', 'Radius (m)', 'number', 4.6), k('damage', 'Damage', 'number', 30), k('knockback', 'Knockback', 'number', 26), k('lift', 'Lift (m)', 'number', 6), k('creature_frac', 'Crowd share', 'number', 0.5), k('throw', 'Throw', 'number', 22), k('throw_radius', 'Throw radius (m)', 'number', 6.5), k('size', 'Boulder size', 'number', 1.7), k('arc', 'Arc', 'number', 9)] },
   };
   const ATTACK_NAMES = Object.keys(ATTACKS);
-  const attackOptions = () => ATTACK_NAMES.map((n) => opt(n, ATTACKS[n].label, ATTACKS[n].help));
+  // pass 72 (lane BOSS): the custom attacks of content/boss_attacks (the Boss attacks tab's list; none under Node)
+  const customAttacks = () => (typeof BossAttacks !== 'undefined' && BossAttacks.options ? BossAttacks.options() : []);
+  const isCustomAttack = (n) => customAttacks().some((o) => o.v === n);
+  const attackOptions = () => ATTACK_NAMES.map((n) => opt(n, ATTACKS[n].label, ATTACKS[n].help)).concat(customAttacks());
   /** the telegraph an attack draws: its own key, else its name's usual */
   const attackTelegraph = (atk) => (isObj(atk) && atk.telegraph ? String(atk.telegraph) : (ATTACKS[String(atk && atk.name)] ? ATTACKS[String(atk.name)].telegraph : 'none'));
 
@@ -513,13 +518,14 @@ const AFIELDS = (() => {
     // section's table says which applies
     T('Special', [
       { key: 'variance.special_chance', label: 'Chance', type: 'number', min: 0, max: 1, step: 0.005, def: 0, help: 'the chance one comes as its coloured special, × (1 + the hero\'s difficulty) with Hot Sauce, once the map\'s colour_after_kills is reached (a swarm event set to Special brings it for sure). Pass 69: a third of what it was (the goblin 0.04 = one in 25)' },
-      { key: 'variance.special.size', label: 'Size ×', type: 'number', min: 0.1, step: 0.05, def: 1.25, help: 'a special is exactly this much taller than the creature\'s own size (its body too; the plain ones\' size spread does not apply to it, pass 69); in a row with a size range it grows towards the range\'s top, never past it' },
-      { key: 'variance.special.hp', label: 'HP ×', type: 'number', min: 0.1, step: 0.5, def: 10, help: 'its health × this (pass 69: ×10)' },
+      { key: 'variance.special.size', label: 'Size ×', type: 'number', min: 0.1, step: 0.05, def: 1.5, help: 'a special is exactly this much taller than the creature\'s own size (its body too; the plain ones\' size spread does not apply to it, pass 69); in a row with a size range it grows towards the range\'s top, never past it. Pass 72: ×1.5 (was ×1.25)' },
+      { key: 'variance.special.hp', label: 'HP ×', type: 'number', min: 0.1, step: 0.5, def: 15, help: 'its health × this (pass 72: ×15, was ×10)' },
       { key: 'variance.special.damage', label: 'ATK ×', type: 'number', min: 0.1, step: 0.1, def: 2, help: 'its bites and shots × this (pass 69: ×2)' },
       { key: 'variance.special.xp', label: 'XP ×', type: 'number', min: 0, step: 0.5, def: 2, help: 'its gems × this (and how hard its kill counts for power-ups)' },
       { key: 'variance.special.tint', label: 'Colour', type: 'swatch', help: 'the colour it is washed with and its glow\'s hue (the glow draws the colour at full brightness); empty = it keeps a plain one\'s tint. In a row with a colour range it takes a darker shade of the hue it rolled instead. A dark, saturated colour reads best (a light one washes it pale): a warning, not a rule' },
       { key: 'variance.special.tint_strength', label: 'Colour strength', type: 'number', min: 0, max: 1, step: 0.05, def: 0.6, help: 'how strongly the colour shows on its body (the shader mixes strength × 0.65)' },
       { key: 'variance.special.glow', label: 'Glow', type: 'number', min: 0, max: 1, step: 0.05, def: 0.6, help: 'pass 69: an emissive rim round it in its colour, so it reads at a glance in a crowd: 0 = none, 1 = the widest and brightest; it breathes slowly. Burn, poison and freeze tint the rim while they last' },
+      { key: 'variance.special.chest_chance', label: 'Chest chance', type: 'number', min: 0, max: 1, step: 0.05, def: 0.35, help: 'pass 72: the chance its death drops a chest (0.35 = about one in three; 0 = never, 1 = always); empty = the map\'s Coloured specials, else the game\'s 0.35. At most the map\'s Max alive (Settings → Coloured specials, the game\'s 3) live at once: a roll past it comes plain; a Special swarm still comes' },
     ]),
     T('Sounds', [
       { key: 'sfx.hit', label: 'Hit', type: 'sfx', group: 'en_', help: 'when it is hit; empty = silent' },
@@ -957,6 +963,7 @@ const AFIELDS = (() => {
       E('variance.special.tint', (d) => { const sp = isObj(d.variance) && isObj(d.variance.special) ? d.variance.special : null; if (!sp || sp.tint == null || sp.tint === '') return false; return !hexToHsv(sp.tint); }, 'the special\'s colour must be #RRGGBB'),
       W('variance.special.tint', (d) => { const sp = isObj(d.variance) && isObj(d.variance.special) ? d.variance.special : null; if (!sp || sp.tint == null || sp.tint === '') return false; const h = hexToHsv(sp.tint); return !!h && (h.v >= 0.6 || h.s <= 0.4); }, 'a light or grey colour washes the special pale: a dark, saturated one (brightness under 60 %, saturation over 40 %) reads best; the glow shows its hue either way'),
       E('variance.special.glow', (d) => { const sp = isObj(d.variance) && isObj(d.variance.special) ? d.variance.special : null; return !!sp && sp.glow != null && !(M.isNum(sp.glow) && sp.glow >= 0 && sp.glow <= 1); }, 'the glow is 0..1 (0 = none)'),
+      E('variance.special.chest_chance', (d) => { const sp = isObj(d.variance) && isObj(d.variance.special) ? d.variance.special : null; return !!sp && sp.chest_chance != null && sp.chest_chance !== '' && !(M.isNum(sp.chest_chance) && sp.chest_chance >= 0 && sp.chest_chance <= 1); }, 'the chest chance is 0..1'),
       E('variance.special_chance', (d) => isObj(d.variance) && d.variance.special_chance != null && !(M.isNum(d.variance.special_chance) && d.variance.special_chance >= 0 && d.variance.special_chance <= 1), 'the special chance is 0..1'),
       E('anims', (d) => isObj(d.anims) && Object.keys(d.anims).some((a) => !isInt(d.anims[a]) || d.anims[a] < 0), 'anims counts must be whole numbers of 0 or more'),
       E('strip_cols', (d) => d.strip_cols != null && (!isInt(d.strip_cols) || d.strip_cols < 0), 'strip_cols is a whole number (0 = one row)'),
@@ -972,7 +979,7 @@ const AFIELDS = (() => {
       W('contact_cd', (d) => d.contact_cd != null && Number(d.contact_cd) < 0.05, 'contact_cd is at least 0.05 in play'),
       W('brain', (d, c) => { const seen = c && c.seenCombos; if (!seen) return false; const list = seen instanceof Set ? seen : new Set(seen); return !list.has(M.combo(d)); }, (d) => `No creature in play uses ${M.comboWords(d)}: untested in play`),
       W('sfx', (d, c) => unknownSfx(d, c).length > 0, (d, c) => `unknown sound id, silent in the game: ${unknownSfx(d, c).join(', ')}`),
-      W('boss.attacks', (d) => attackList(d).some((a) => isObj(a) && str(a.name) && !ATTACKS[str(a.name)]), (d) => `unknown attack name: ${attackList(d).filter((a) => isObj(a) && str(a.name) && !ATTACKS[str(a.name)]).map((a) => `"${a.name}"`).join(', ')} (the game does nothing for it)`),
+      W('boss.attacks', (d) => attackList(d).some((a) => isObj(a) && str(a.name) && !ATTACKS[str(a.name)] && !isCustomAttack(str(a.name))), (d) => `unknown attack name: ${attackList(d).filter((a) => isObj(a) && str(a.name) && !ATTACKS[str(a.name)] && !isCustomAttack(str(a.name))).map((a) => `"${a.name}"`).join(', ')} (the game does nothing for it; a custom attack is made on the Boss attacks tab)`),
       W('boss.attacks', (d) => attackList(d).some((a) => isObj(a) && ATTACKS[str(a.name)] && ATTACKS[str(a.name)].needsRingAtHero && attackTelegraph(a) !== 'ring_at_hero'), (d) => `${attackList(d).filter((a) => isObj(a) && ATTACKS[str(a.name)] && ATTACKS[str(a.name)].needsRingAtHero && attackTelegraph(a) !== 'ring_at_hero').map((a) => a.name).join(', ')}: lands where the "ring at the hero" telegraph was set; with another telegraph it has no target`),
       W('boss.attacks', (d, c) => { const en = enemies(c); if (!en) return false; return attackList(d).some((a) => isObj(a) && ((str(a.name) === 'spawn_ring' && !findIn(en, str(a.enemy) || 'coyote')) || (str(a.name) === 'erupt' && str(a.spawn) && !findIn(en, a.spawn)))); }, 'spawn_ring / erupt names a creature that does not exist (the game\'s default "coyote" is gone): it spawns nothing'),
       W('boss.attacks', (d) => attackList(d).some((a) => isObj(a) && a.telegraph != null && !['line', 'ring', 'ring_at_hero', 'sector', 'fan', 'spokes', 'none'].includes(str(a.telegraph))), 'an attack names an unknown telegraph (line, ring, ring_at_hero, sector, fan, spokes, none)'),

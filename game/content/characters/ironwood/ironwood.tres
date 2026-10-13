@@ -20,7 +20,7 @@ target = "player"
 [resource]
 script = ExtResource("1_6xkvr")
 level_trait = [SubResource("Resource_gdcmj"), SubResource("Resource_ccyo4")]
-order = 4
+order = 2
 trait_name = "Enduring"
 trait_text = "Gain 0.1 HP regen and 0.05 s less regen delay per level (regen delay never under 0.5 s)."
 pronoun = "he"

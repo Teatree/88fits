@@ -681,6 +681,8 @@ func test_a_coloured_rows_special_keeps_the_rows_hue_darker() -> void:
 	var w := _world(Vector3(0, 0, 60))
 	var em: EnemyManager = w["em"]
 	em.colour_after_kills = 0
+	# (pass 72, lane SPEC: twenty specials at once, so no cap on how many live, EnemyDef.special_max_alive)
+	em.special_defaults = {"max_alive": 0}
 	# the lead (pass 58): the special of a coloured row is a darker, stronger shade of the hue it rolled, not its own wine
 	var s := {"tint": {"hue": [100, 120], "sat": 0.8, "val": 1.0, "amount": 0.5}}
 	for k in range(20):
@@ -1027,6 +1029,8 @@ func test_a_size_ranges_special_stays_inside_the_range() -> void:
 	var w := _world(Vector3(0, 0, 60))
 	var em: EnemyManager = w["em"]
 	em.colour_after_kills = 0
+	# (pass 72, lane SPEC: thirty specials at once, so no cap on how many live, EnemyDef.special_max_alive)
+	em.special_defaults = {"max_alive": 0}
 	var plain := em.spawn(d.id, Vector3(0, 0, -20), null, 1.0, 1.0, "", {"size": [3, 5], "variance": {"special_chance": 0.0}})
 	for k in range(30):
 		var i := em.spawn(d.id, Vector3(float(k % 10) * 3.0 - 15.0, 0, floorf(float(k) / 10.0) * 3.0), null, 1.0, 1.0, "", {"size": [3, 5]})

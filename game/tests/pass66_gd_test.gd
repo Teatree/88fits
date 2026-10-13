@@ -64,8 +64,12 @@ func test_availability_folds_into_hidden() -> void:
 	var hid := base.duplicate(true)
 	hid["availability"] = "hidden"
 	assert_bool(_hero_from(hid).hidden).is_true()
-	# absent: `hidden` says, and availability is derived from it
-	var plain := _hero_from(base.duplicate(true))
+	# absent: `hidden` says, and availability is derived from it (pass 72, lane INTEG: astro.json carries Garry's own
+	# availability and price since his 2026-10-13 edit, purchase at 300, so the keys are taken out here)
+	var bare := base.duplicate(true)
+	for k: String in ["availability", "price", "currency_type"]:
+		bare.erase(k)
+	var plain := _hero_from(bare)
 	assert_bool(plain.hidden).is_equal(bool(base.get("hidden", false)))
 	assert_str(plain.availability).is_equal("hidden" if bool(base.get("hidden", false)) else "available")
 	assert_int(plain.price).is_equal(0)

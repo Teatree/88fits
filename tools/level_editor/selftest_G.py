@@ -260,7 +260,10 @@ def _badge_checks(check, ga, gbc):
     base = ga.seed_for("mamy") + 40
     # pass 70 (lane LE, tools/cand_seeds.py): candidate k a prime past a million from k-1; a job's id moves them all
     check(gbc.badge_seeds("mamy", 3) == [base, base + 1000003, base + 2 * 1000003], "badge: by hand (no job) the base's first attempt: k a million apart (pass 70)")
-    check(gbc.badge_seeds("mamy", 2, 5, 2, 3) == [base + 5 + 4 * 104729, base + 5 + 4 * 104729 + 1000003], "badge: first seed, look offset and attempt move the seeds")
+    # pass 72 (lane ITEMS): a job's First seed is where its seeds start (tools/cand_seeds.start; 0 = the tool's own,
+    # seed_for(id) + 40); it was added to that before
+    check(gbc.badge_seeds("mamy", 2, 5, 2, 3) == [5 + 4 * 104729, 5 + 4 * 104729 + 1000003], "badge: the first seed starts them, the look offset and attempt move them")
+    check(gbc.badge_seeds("mamy", 2, 0, 2, 3) == [base + 4 * 104729, base + 4 * 104729 + 1000003], "badge: first seed 0 = the tool's own start")
     d = {"id": "mamy", "variant_base": "MAM-A", "still_keys": {}, "variants": {"MAM-A": {}, "MAM-C": {"recipe": {"stills": "c"}},
                                                                             "MAM-D": {"recipe": {"still_keys": {"front": "mamy_d55_front"}}}, "MAM-E": {"recipe": {"stills": ""}}}}
     check(gbc.front_still_key(d, "mamy") == "mamy_front" and gbc.front_still_key(d, "mamy", "MAM-C") == "mamy_c_front"

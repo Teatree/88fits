@@ -158,15 +158,16 @@ func test_every_creature_special_is_rarer_bigger_tougher_and_harder() -> void:
 		var vr: Dictionary = d["variance"]
 		assert_float(float(vr["special_chance"])).override_failure_message(id + " chance").is_equal_approx(snappedf(float(OLD_CHANCE[id]) / 3.0, 0.0001), 0.00001)
 		var sp: Dictionary = vr["special"]
-		assert_float(float(sp["size"])).override_failure_message(id + " size").is_equal(1.25)
-		assert_float(float(sp["hp"])).override_failure_message(id + " hp").is_equal(10.0)
+		# (pass 72, lane SPEC, re-pinned: Garry's "bigger ... higher HP": x1.5 and x15 since pass 72)
+		assert_float(float(sp["size"])).override_failure_message(id + " size").is_equal(1.5)
+		assert_float(float(sp["hp"])).override_failure_message(id + " hp").is_equal(15.0)
 		assert_float(float(sp["damage"])).override_failure_message(id + " damage").is_equal(2.0)
 		# the XP stays as it was (3 on every one of them)
 		assert_float(float(sp["xp"])).override_failure_message(id + " xp").is_equal(3.0)
 		# and the .tres the game plays says the same
 		var def: EnemyDef = Registry.enemy(id)
 		assert_float(float(def.variance["special_chance"])).is_equal_approx(float(vr["special_chance"]), 0.00001)
-		assert_float(float((def.variance["special"] as Dictionary)["hp"])).is_equal(10.0)
+		assert_float(float((def.variance["special"] as Dictionary)["hp"])).is_equal(15.0)
 		seen += 1
 	assert_int(seen).is_equal(21)
 	# no creature in play with a special chance is left out of the table
@@ -175,12 +176,13 @@ func test_every_creature_special_is_rarer_bigger_tougher_and_harder() -> void:
 			assert_bool(OLD_CHANCE.has(def.id)).override_failure_message(def.id + " has a special chance the table misses").is_true()
 	# the shaman's block (chance 0) carries the new numbers too, for the day it is turned on
 	var sh: Dictionary = _json("res://content/enemies/dust_shaman/dust_shaman.json")["variance"]["special"]
-	assert_float(float(sh["hp"])).is_equal(10.0)
+	assert_float(float(sh["hp"])).is_equal(15.0)
 
 
 func test_special_value_falls_back_from_the_creature_to_the_map_to_the_game() -> void:
-	assert_float(EnemyDef.special_value({}, {}, "size")).is_equal(1.25)
-	assert_float(EnemyDef.special_value({}, {}, "hp")).is_equal(10.0)
+	# (pass 72, lane SPEC, re-pinned: the game's 1.5 and 15 since pass 72)
+	assert_float(EnemyDef.special_value({}, {}, "size")).is_equal(1.5)
+	assert_float(EnemyDef.special_value({}, {}, "hp")).is_equal(15.0)
 	assert_float(EnemyDef.special_value({}, {}, "damage")).is_equal(2.0)
 	assert_float(EnemyDef.special_value({}, {}, "xp")).is_equal(2.0)
 	assert_float(EnemyDef.special_value({}, {}, "tint_strength")).is_equal(0.6)
@@ -278,12 +280,12 @@ func test_red_canyon_has_one_special_goblin_at_the_end_of_the_first_wave() -> vo
 	assert_str(str(ev["type"])).is_equal("swarm")
 	assert_str(str(ev["enemy"])).is_equal("red_goblin")
 	assert_int(int(ev["count"])).is_equal(1)
-	# within the first row's life (r1, the red goblins: Garry calls a row a wave), near its end
+	# (pass 72, lane SPEC, re-pinned: Garry rebuilt stage 1 in the Level Editor (the red goblins' row now 2:03-4:05, a
+	# scorpion row from 0:00) and kept the special Goblin at 2:00; where it stands is his to drag, so only that it comes
+	# in the first stage is pinned, read from the file)
 	var tl: Dictionary = _json("res://content/maps/red_canyon/red_canyon.json")["timeline_data"]
-	var r1: Dictionary = tl["roster"][0]
-	assert_str(str(r1["enemy"])).is_equal("red_goblin")
-	assert_float(float(ev["t"])).is_less_equal(float(r1["until"]))
-	assert_float(float(ev["t"])).is_greater_equal(float(r1["until"]) - 10.0)
+	assert_float(float(ev["t"])).is_greater_equal(0.0)
+	assert_float(float(ev["t"])).is_less_equal(float(tl.get("stage_length", 430.0)))
 	# the .tres the game plays carries it
 	var played: Array = Registry.map("red_canyon").timeline.events.filter(func(e: Dictionary) -> bool: return bool(e.get("special", false)))
 	assert_int(played.size()).is_equal(1)
@@ -330,11 +332,12 @@ func test_the_forced_special_spawns_once_at_its_second_x10_x2_x125_without_a_ban
 	# x10 HP and x2 ATK over the same creature's plain numbers (its row's fixed ones, kept in f_*)
 	var plain_hp := def.hp * em.f_stage[i] * em.f_hpt[i] * em.f_lvh[i] * em.creature_hp_mult
 	var plain_dmg := def.damage * em.f_stage[i] * em.f_lvd[i] * em.creature_damage_mult * em.f_dmt[i]
-	assert_float(em.max_hp[i] / plain_hp).is_equal_approx(10.0, 0.001)
+	# (pass 72, lane SPEC, re-pinned: x15 and x1.5 since pass 72, the creature's own block)
+	assert_float(em.max_hp[i] / plain_hp).is_equal_approx(15.0, 0.001)
 	assert_float(em.dmg[i] / plain_dmg).is_equal_approx(2.0, 0.001)
 	# exactly x1.25 the creature's size: a special drops the plain ones' spread (red goblins roll 0.8-1.2 of theirs)
 	assert_float(float(def.variance.get("size", 0.0))).is_greater(0.0)
-	assert_float(em.size[i] / def.size).is_equal_approx(1.25, 0.0001)
+	assert_float(em.size[i] / def.size).is_equal_approx(1.5, 0.0001)
 	# no SWARM! banner for it; the force is let go
 	assert_bool((g.get("toasts") as Array).has("SWARM!")).is_false()
 	assert_bool(em.force_special).is_false()

@@ -337,9 +337,56 @@ func _start_boss(id: String, where: Vector3 = Vector3.INF, variant := "", stats 
 	# fixed numbers reach only a regular creature a boss event might name)
 	var at: Vector3 = mb.flats_center + Vector3(0, 0, -10) if where == Vector3.INF else where
 	var en := event_numbers(id, variant, stats)
+	# pass 72 (lane BOSS): its HP pegged to the hero's DPS (boss_dps_scale), held around the spawn only
+	em.set("boss_hp_scale", boss_dps_scale(id))
 	em.spawn_boss(id, at, variant, en["stats"], en["src"])
+	em.set("boss_hp_scale", 1.0)
 	boss_started.emit(def)
 	game.toast(def.display_name.to_upper(), Color(0.93, 0.29, 0.36))
+
+
+## Boss HP pegged to the hero's DPS (pass 72, lane BOSS; Garry: "Boss Max HP should scale up the bigger the Player's DPS is
+## in that moment. It shouldn't be 1 to 1"): the multiplier boss `id` spawns with now, from the hero's damage a second
+## over the map's window (Run.recent_dps) against the boss's ref_dps (WaveTimeline.boss_hp_mult). In endless a returning
+## boss's reference grows as its own HP has grown since its stage (hp_mult_per_stage^stage x the stage multiplier), so a
+## build that kept up with the clock is not tripled on top. 1 in the debug arena (its bosses keep their data HP), with
+## scaling off or without a reference. What it read is kept in last_boss_scale (the probe, the debug panel, the tests).
+var last_boss_scale: Dictionary = {}
+
+
+func boss_dps_scale(id: String) -> float:
+	last_boss_scale = {}
+	# (pass 72, lane INTEG: an empty block plays WaveTimeline's defaults, on; enabled false turns it off)
+	if Run.arena or timeline == null or not bool(timeline.boss_hp_scaling.get("enabled", WaveTimeline.BOSS_HP_SCALING_DEFAULTS["enabled"])):
+		return 1.0
+	var ref: float = timeline.boss_ref_dps(id)
+	if ref <= 0.0:
+		return 1.0
+	var def: EnemyDef = Registry.enemy(id)
+	var s0 := boss_stage_of(id)
+	var grow := 1.0
+	if def != null and s0 >= 0 and Run.stage > s0:
+		var hpm := float(def.boss.get("hp_mult_per_stage", 1.6))
+		var now_f := pow(hpm, float(Run.stage)) * maxf(Run.stage_mult(), 1.0)
+		var own_f := pow(hpm, float(s0)) * maxf(timeline.stage_mult(s0), 1.0)
+		grow = now_f / maxf(own_f, 0.0001)
+	var window: float = timeline.boss_dps_window()
+	var dps: float = Run.recent_dps(window)
+	var mult: float = WaveTimeline.boss_hp_mult(timeline.boss_hp_scaling, dps, ref * grow)
+	last_boss_scale = {"id": id, "dps": dps, "ref": ref * grow, "mult": mult, "window": window, "stage": Run.stage}
+	print("boss hp scaling: %s dps %.0f over %.0f s, ref %.0f -> HP x%.2f" % [id, dps, window, ref * grow, mult])
+	return mult
+
+
+## The stage (0-based) the timeline's first boss event for `id` ends: the event at the stage's last second (7:10 = 430 s
+## on Red Canyon) belongs to the stage it closes. -1 when no boss event names it.
+func boss_stage_of(id: String) -> int:
+	if timeline == null:
+		return -1
+	for ev in timeline.events:
+		if str(ev.get("type", "")) == "boss" and str(ev.get("enemy", "")) == id:
+			return maxi(int(ceil(float(ev.get("t", 0.0)) / maxf(timeline.stage_length, 1.0))) - 1, 0)
+	return -1
 
 
 ## The mini-boss: one big creature near the hero, a toast and nothing else. Its chest comes from its drops.

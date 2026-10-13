@@ -343,6 +343,18 @@ func test_a_death_banks_the_purse() -> void:
 	assert_int(int(rb.gold_end(0)["gold_lost"])).is_equal(40)
 
 
+## Whether card def `d` (a passive, a line, a weapon) raises greed at any level (pass 72, lane INTEG).
+func _raises_greed(d) -> bool:
+	if not (d is PassiveDef):
+		return false
+	for lv in (d as PassiveDef).levels:
+		if lv is Array:
+			for e in lv:
+				if e is Effect and (e as Effect).stat == "greed":
+					return true
+	return false
+
+
 ## A real run (the Game scene, the recorder on, the client opened like a phone's): coins of three origins, an Elite's
 ## purse, a chest's gold, debug gold, a shop buy, a revive bought on Down!, a Strongbox, the extraction. The recorder's
 ## tallies, the run_summary and the run_end the client queues all agree, and the save's two moves are gold_meta events.
@@ -388,10 +400,12 @@ func test_a_real_run_counts_every_coin_in_and_out() -> void:
 	shop.open(offer)
 	# a card that changes nothing below (pass 63: a Phoenix Feather bought here revived the hero on its own, so Down!
 	# never opened and the test failed now and then)
+	# pass 72, lane INTEG: nor a greed card (Gold Tooth x1.1, Gold Rush, Sinner's Greed): the shop's offer is random
+	# (CardPool._pick's randf), and a Gold Tooth bought here paid the 40 bounty below as 44, so the test failed now and then
 	var pick := 0
 	for k in offer.size():
 		var d = offer[k].get("def")
-		if d == null or str(d.id) != "phoenix_feather":
+		if d == null or (str(d.id) != "phoenix_feather" and not _raises_greed(d)):
 			pick = k
 			break
 	var price := StructureShop.price_of(offer[pick])
@@ -420,6 +434,7 @@ func test_a_real_run_counts_every_coin_in_and_out() -> void:
 	assert_int(int(metas[0]["balance_after"])).is_equal(boxed)
 	assert_bool(bool(metas[0]["in_run"])).is_true()
 	assert_str(str(metas[0]["run_id"])).is_equal(str(ra.header["run_id"]))
+	assert_float(Run.player_sheet.get_stat("greed", 1.0)).override_failure_message("the card bought (%s) raised greed" % str(offer[pick].get("def").id if offer[pick].get("def") else "?")).is_equal(1.0)
 	Run.add_gold(40, "bounty")
 	await get_tree().create_timer(1.1).timeout
 	# the end as Game.end_run does it for an extraction (its scene change has no place in a test)

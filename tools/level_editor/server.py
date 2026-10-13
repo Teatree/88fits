@@ -93,7 +93,7 @@ EDIT_KINDS = ("enemy", "boss", "hero", "weapon", "evolution", "passive", "mutati
 LOOK_KINDS = ("enemy", "boss", "hero")
 # every content type the game scans (JsonContent.TYPES): a new id must be free under all of them
 ALL_TYPES = ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters",
-             "talents", "quests", "maps", "pickups", "structures"]
+             "talents", "quests", "maps", "pickups", "structures", "boss_attacks"]
 # the keys of a boss attack the estimate times its script by (pass 57)
 SCRIPT_KEYS = ("name", "windup", "duration", "count", "enemy", "interval", "warn", "spawn")
 # INTERFACES §0.1 (BALANCING §13): a new weapon starts hidden with its three template mutations and its evolution
@@ -120,6 +120,7 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import locks  # noqa: E402  (tools/locks.py: the repo-wide Godot and ComfyUI locks, the PC save kept aside)
 import content_io as cio  # noqa: E402
 import vocab as VOCAB  # noqa: E402
+import boss_attacks_io as BAIO  # noqa: E402  (pass 72, lane BOSS: the custom boss attacks' routes)
 
 _write_lock = threading.Lock()
 # a test hook: a module-like object standing in for jobs.py (selftest_S.py); None = import jobs.py when it is there
@@ -3079,6 +3080,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200 if res.get("ok") else 404, res)
         if parts == ["refs"]:
             return self._send(200, list_refs())
+        if parts[:1] == ["boss_attacks"]:
+            # pass 72 (lane BOSS): the custom boss attacks (boss_attacks_io.py)
+            return BAIO.api_get(self, sys.modules[__name__], parts[1:], query)
         if len(parts) == 2 and parts[0] == "templates":
             if parts[1] not in EDIT_KINDS:
                 return self._error(404, "unknown kind %s" % parts[1])
@@ -3368,6 +3372,9 @@ class Handler(BaseHTTPRequestHandler):
                                                        "error": "" if ok else "held by another process: send force"})
             if parts[:2] == ["api", "jobs"]:
                 return self._post_jobs(parts[2:])
+            if parts[:2] == ["api", "boss_attacks"]:
+                # pass 72 (lane BOSS): new, save, assign, delete (boss_attacks_io.py)
+                return BAIO.api_post(self, sys.modules[__name__], parts[2:])
             return self._error(404, "unknown API path")
         except Exception as e:
             import traceback

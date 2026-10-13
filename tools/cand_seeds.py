@@ -53,6 +53,17 @@ def job_attempt(attempt=None):
     return 1
 
 
+def start(own, first=0):
+    """Where a job's seeds start (pass 72, Garry: "first seed" on every asset that has candidates): the job's "First seed"
+    when it names one (any whole number but 0), else the tool's own start `own` (from the asset's id). Every candidate
+    tool takes its base through here; the look's offset, a re-run's attempt and the job id (seeds) move it on as before."""
+    try:
+        f = int(first or 0)
+    except (TypeError, ValueError):
+        f = 0
+    return f if f else int(own)
+
+
 def seeds(base, n, tag=""):
     """Candidate k's seed: base + job_salt(tag) + k * CAND_STEP, for k in 0..n-1 (base already holds the tool's own moves:
     the look's seed_offset, the attempt)."""

@@ -7,8 +7,12 @@
 // Pass 60: x carries 0.5 in its fraction (EnemyManager.RISE_FLAG) while the creature rises out of the sand after a burrow:
 // nothing is drawn for it then, or the part still under the sand, which the terrain hides from the main pass, would show
 // through this pass as a ghost of the whole figure.
+// Pass 72 (lane SPEC; Garry: the outline only "when they're behind environmental things", never behind other
+// creatures): drawn only where the nearest thing at the pixel is scenery, which writes stencil 2 (SceneryStencil.VALUE:
+// props, structures, the portal, signs, barrels, the wall, the cliffs); a creature or the hero in front writes 1.
 shader_type spatial;
 render_mode cull_disabled, unshaded, skip_vertex_transform, depth_test_inverted, depth_draw_never, blend_mix;
+stencil_mode read, compare_equal, 2;
 
 uniform sampler2D sprite : source_color, filter_linear_mipmap, repeat_disable;
 uniform float frames = 8.0;

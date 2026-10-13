@@ -101,7 +101,8 @@
       "flame_from": 0.4,
       "halo": 1.8,
       "halo_from": 0.9,
-      "halo_alpha": 0.22
+      "halo_alpha": 0.22,
+      "body_green_max": 0.3
     }
   },
   "sfx": {

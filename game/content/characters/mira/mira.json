@@ -4,8 +4,8 @@
   "flavour": "Digs for a living. Finds trouble for free.",
   "order": 9,
   "pronoun": "she",
-  "hidden": false,
-  "availability": "purchase",
+  "hidden": true,
+  "availability": "hidden",
   "price": 9999,
   "currency_type": "gold",
   "trait": [

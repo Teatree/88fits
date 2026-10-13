@@ -85,8 +85,8 @@ DROP_KEYS = {"small": 0.0, "medium": 0.0, "large": 0.0, "gold": 0.0, "chest": 0.
              "coins": 12, "chests": 1}
 DROPS_DEFAULT = {"small": 1.0, "gold": 0.02}
 VARIANCE_KEYS = {"size": 0.0, "speed": 0.0, "tints": [], "tint_strength": 0.35, "special_chance": 0.0,
-                 "special": {"size": 1.25, "hp": 10.0, "damage": 2.0, "xp": 2.0, "tint": "", "tint_strength": 0.6,
-                             "glow": 0.6}}  # pass 69 (lane EN): EnemyDef.SPECIAL_DEFAULTS
+                 "special": {"size": 1.5, "hp": 15.0, "damage": 2.0, "xp": 2.0, "tint": "", "tint_strength": 0.6,
+                             "glow": 0.6, "chest_chance": 0.35}}  # pass 69 (lane EN): EnemyDef.SPECIAL_DEFAULTS (pass 72: 1.5, 15, chest 0.35)
 SHADOW_KEYS = {"scale": 1.0, "up": 0.0, "drop": 0.0}
 SFX_HOOKS = {"enemy": ["hit", "die", "attack", "spawn"], "weapon": ["fire", "hit", "place", "burst", "reload", "land"]}
 # body keys with the game's defaults (JsonContent._enemy)

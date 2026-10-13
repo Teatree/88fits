@@ -172,14 +172,18 @@ func test_every_talent_rank_costs_two_and_a_half_times_pass_69s() -> void:
 
 
 func test_every_hero_on_sale_costs_his_new_price() -> void:
+	# pass 72, lane INTEG (re-pinned): pass 70 set HERO_PRICES (x2.5); Garry prices heroes in the Level Editor since
+	# (2026-10-13: Astro on sale at 300, Calavera 300), so the rule is pinned: every hero there, every one on sale at a
+	# gold price above 0, the Drifter (the default hero) free
 	for id in HERO_PRICES:
 		var c: CharacterDef = Registry.character(id)
 		assert_object(c).override_failure_message(id).is_not_null()
-		assert_int(c.price).override_failure_message(id).is_equal(int(HERO_PRICES[id]))
-		assert_str(c.currency_type).is_equal("gold")
-	# the free ones stay free
-	for id in ["astro", "drifter"]:
-		assert_int(Registry.character(id).price).is_equal(0)
+	for c: CharacterDef in Registry.characters.values():
+		if c.availability == "purchase" and not c.hidden:
+			assert_int(c.price).override_failure_message(c.id).is_greater(0)
+			assert_str(c.currency_type).override_failure_message(c.id).is_equal("gold")
+	assert_str(Registry.character("drifter").availability).is_equal("available")
+	assert_int(Registry.character("drifter").price).is_equal(0)
 
 
 # ---------------------------------------------------------------- 3. Elites and bosses x5

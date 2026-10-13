@@ -270,7 +270,8 @@ func test_the_float_and_the_spin_live_in_the_shaders() -> void:
 		var code: String = (load(path) as Shader).code
 		assert_str(code).contains("uniform float t_now")
 		assert_str(code).contains("float_base")
-		assert_str(code).contains("stencil_mode read, compare_not_equal, %d;" % PickupManager.PAINTING_STENCIL)
+		# (pass 72, lane SPEC, re-pinned: the scenery writes stencil 2 now, so the pickups read 0, nothing painted)
+		assert_str(code).contains("stencil_mode read, compare_equal, 0;")
 	assert_str((load("res://core/shaders/gem.gdshader") as Shader).code).contains("INSTANCE_CUSTOM.y")
 
 

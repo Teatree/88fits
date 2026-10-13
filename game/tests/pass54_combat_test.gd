@@ -262,21 +262,25 @@ func test_gems_and_coins_are_drawn_under_every_painting() -> void:
 			assert_int(sm.depth_draw_mode).is_equal(BaseMaterial3D.DEPTH_DRAW_DISABLED)
 			assert_int(sm.stencil_mode).is_equal(BaseMaterial3D.STENCIL_MODE_CUSTOM)
 			assert_int(sm.stencil_flags).is_equal(BaseMaterial3D.STENCIL_FLAG_READ)
-			assert_int(sm.stencil_compare).is_equal(BaseMaterial3D.STENCIL_COMPARE_NOT_EQUAL)
-			assert_int(sm.stencil_reference).is_equal(PickupManager.PAINTING_STENCIL)
+			# (pass 72, lane SPEC, re-pinned: the scenery writes stencil 2 now, so the pickups read 0, nothing painted)
+			assert_int(sm.stencil_compare).is_equal(BaseMaterial3D.STENCIL_COMPARE_EQUAL)
+			assert_int(sm.stencil_reference).is_equal(0)
 		elif mat is ShaderMaterial:
 			# pass 60: the gems draw through core/shaders/gem.gdshader (the charged look): the same rules in its source
 			var gem_code: String = ((mat as ShaderMaterial).shader as Shader).code
 			assert_str(gem_code).contains("depth_draw_never")
 			assert_str(gem_code).contains("blend_mix")
-			assert_str(gem_code).contains("stencil_mode read, compare_not_equal, %d;" % PickupManager.PAINTING_STENCIL)
+			assert_str(gem_code).contains("stencil_mode read, compare_equal, 0;")
 	var coin: String = PickupManager.coin_material().shader.code
 	assert_str(coin).contains("depth_draw_never")
-	assert_str(coin).contains("stencil_mode read, compare_not_equal, %d;" % PickupManager.PAINTING_STENCIL)
-	# every painting writes the value: the creatures, the hero (structures, the portal, power-ups, flowers) and the props
-	for path in ["res://core/shaders/enemy_billboard.gdshader", "res://core/shaders/sprite_billboard.gdshader", "res://core/shaders/prop_billboard.gdshader"]:
+	# (pass 72, lane SPEC, re-pinned: the scenery writes stencil 2 now, so the pickups read 0, nothing painted)
+	assert_str(coin).contains("stencil_mode read, compare_equal, 0;")
+	# every painting writes a value: the creatures and the hero (power-ups, flowers) PAINTING_STENCIL, the props (and the
+	# structures and the portal through SceneryStencil.scenery_shader) the scenery's (pass 72)
+	for path in ["res://core/shaders/enemy_billboard.gdshader", "res://core/shaders/sprite_billboard.gdshader"]:
 		var code: String = (load(path) as Shader).code
 		assert_str(code).override_failure_message(path + " writes no stencil").contains("stencil_mode write, compare_always, %d;" % PickupManager.PAINTING_STENCIL)
+	assert_str((load("res://core/shaders/prop_billboard.gdshader") as Shader).code).contains("stencil_mode write, compare_always, %d;" % SceneryStencil.VALUE)
 	# the order among the see-through: shadows, then gems and coins, then the hero's over pass
 	assert_int(EnemyManager.SHADOW_PRIORITY).is_less(PickupManager.PICKUP_PRIORITY)
 	assert_int(PickupManager.PICKUP_PRIORITY).is_less(BillboardSprite.OVER_PRIORITY)

@@ -233,8 +233,9 @@ func test_a_clean_save_opens_on_the_drifter_and_nothing_moves_him() -> void:
 	assert_bool((Save.data["once"] as Array).has("hero_astro")).is_false()
 	var src := FileAccess.get_file_as_string("res://core/autoload/Save.gd")
 	assert_bool(src.contains("\"hero_astro\"")).is_false()
-	# an existing save keeps the hero it last played, whether or not it carries the old flag
-	_write(Save.path(), JSON.stringify({"version": 5, "once": ["hero_astro"], "last_character": "astro"}))
+	# an existing save keeps the hero it last played, whether or not it carries the old flag (pass 72, lane INTEG: Garry
+	# put Astro on sale on 2026-10-13, so this save owns her, as one that bought her would)
+	_write(Save.path(), JSON.stringify({"version": 5, "once": ["hero_astro"], "last_character": "astro", "heroes_owned": ["astro"]}))
 	Save.load_save()
 	assert_str(str(Save.data["last_character"])).is_equal("astro")
 	_write(Save.path(), JSON.stringify({"version": 5, "once": [], "last_character": "calavera", "heroes_owned": ["calavera"]}))

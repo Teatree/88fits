@@ -69,7 +69,13 @@ func test_may_loads_as_may_with_her_looks_and_no_mamy_is_left() -> void:
 	assert_object(Registry.character("mamy")).is_null()
 	assert_str(may.display_name).is_equal("May")
 	assert_str(may.pronoun).is_equal("she")
-	assert_str(may.variant).is_equal("MAY-G")  # lane ART: the dev look, played from pass 69
+	# lane ART: the dev look MAY-G, played from pass 69; Garry picks her look in the Level Editor (2026-10-13: MAY-P, the
+	# Puppet's): one of her own, its strip on disk
+	assert_str(may.variant).starts_with("MAY-")
+	assert_bool(may.variants.has(may.variant)).override_failure_message(may.variant).is_true()
+	var played: Dictionary = may.variants.get(may.variant, {})
+	assert_bool(ResourceLoader.exists("res://content/characters/may/" + str(played.get("sprite_file", may.sprite_file)))).override_failure_message(may.variant + " strip").is_true()
+	assert_object(may.sprite).is_not_null()
 	# pass 70 (lane LE): Garry had the base MAY-A removed in the Level Editor; MAY-G is her base and her look
 	assert_array(may.variant_codes(true)).contains(["MAY-G", "MAY-B", "MAY-C"])
 	# Garry's drafts come and go in the Level Editor (MAY-F became MAY-E while pass 69 shipped): only the shape is

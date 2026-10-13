@@ -155,7 +155,9 @@
         "run": 36,
         "hit": 12,
         "die": 8
-      }
+      },
+      "icon": "solenne_icon_b.png",
+      "icon_picked": true
     },
     "SOL-C": {
       "note": "Mixamo's Catwalk Walking (Garry's _REFERENCES/3d/Catwalk Walking.fbx), fitted to her the same way.",
