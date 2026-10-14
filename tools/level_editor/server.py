@@ -17,6 +17,9 @@ routes are listed in docs/level_editor.md ("The API (for scripts)"); in short:
                             /api/upload, /api/test_launch
     the jobs (66, jobs.py): GET /api/jobs[?since=rev], /api/job/<id>, /api/jobs/specs, /api/jobs/defaults?kind=&target=
                             (68); POST /api/jobs, /api/jobs/<id>[/cancel|requeue|pick|install|move|delete]
+    the icon guard (76):    GET /api/content/<kind>/<id>/icons, /iconfile/<kind>/<id>/<ref>; POST /api/content/<kind>/<id>/icon
+                            {op: revert|use, code, ref, confirm} (also the look ops revert_icon / use_icon); an icon install
+                            into the look in play or the base is a 409 confirm_needed until it is sent with confirm: true
 
 Garry (the user) is not a programmer, so the server stays plain: the standard library only, nothing installed, nothing
 fetched from the internet. What it writes: the map JSON it was asked to save; one content JSON at a time, edited line
@@ -92,8 +95,12 @@ EDIT_KINDS = ("enemy", "boss", "hero", "weapon", "evolution", "passive", "mutati
 # the kinds that carry art looks (`variants`)
 LOOK_KINDS = ("enemy", "boss", "hero")
 # pass 73 (lane CARDS): the kinds whose looks are icons alone (the line items' fortune cards: A the old icon, B-E the four
-# card framings): `variants {CODE: {icon, note, recipe?, shelved?}}` + `variant` + `variant_base`, no strips
-ITEM_LOOK_KINDS = ("passive",)
+# card framings): `variants {CODE: {icon, note, recipe?, shelved?}}` + `variant` + `variant_base`, no strips. Pass 76 (lane
+# LOOKS): a weapon family's looks too (game/core/data/ItemLooks.gd): a weapon, an evolution or a mutation carries
+# `variants {CODE: {name, flavour, text, icon, visual, params, noun, nouns, note, shelved, fresh}}` + `variant_base` ("A"),
+# and the WEAPON's `variant` is the code its whole family plays (FAMILY_LOOK_KINDS)
+ITEM_LOOK_KINDS = ("passive", "weapon", "evolution", "mutation")
+FAMILY_LOOK_KINDS = ("weapon", "evolution", "mutation")
 # every content type the game scans (JsonContent.TYPES): a new id must be free under all of them
 ALL_TYPES = ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters",
              "talents", "quests", "maps", "pickups", "structures", "boss_attacks"]
@@ -270,9 +277,12 @@ def playable_codes(folder, d):
     return out
 
 
-def item_playable_codes(folder, d):
+def item_playable_codes(folder, d, kind="passive"):
     """pass 73 (lane CARDS): the looks an item JSON can play (JsonContent._passive_variants): the base look's code
-    (`variant_base`, its icon the top-level one) and every other entry with an `icon` whose file is on disk."""
+    (`variant_base`, its icon the top-level one) and every other entry with an `icon` whose file is on disk. Pass 76 (lane
+    LOOKS): a weapon family member's (FAMILY_LOOK_KINDS) by family_playable_codes."""
+    if kind in FAMILY_LOOK_KINDS:
+        return family_playable_codes(folder, d)
     out = set()
     base_code = str(d.get("variant_base", ""))
     if base_code:
@@ -286,14 +296,18 @@ def item_playable_codes(folder, d):
     return out
 
 
-def item_looks(kind, cid, folder, d):
+def item_looks(kind, cid, folder, d, play=None):
     """pass 73 (lane CARDS): one record per look of an item (the cards' A-E): {code, note, icon (the page's URL),
     icon_file, exists (its picture is on disk: the game can play it), base, default (the look the game plays), shelved,
-    recipe (the words it was painted from), painted}; the base look first, then the others by code."""
+    recipe (the words it was painted from), painted}; the base look first, then the others by code. Pass 76 (lane LOOKS):
+    a weapon family member's records also carry name (the look's, else the item's), fresh, own (it has an entry for the
+    code) and visual_file; its base is "A" when it names none; `play` is the code its family plays (family_member_play:
+    a member wears its weapon's look, its base when it cannot), None = its own `variant` (a card, a weapon)."""
     vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
-    base_code = str(d.get("variant_base", ""))
-    playable = item_playable_codes(folder, d)
-    want = str(d.get("variant", base_code))
+    fam = kind in FAMILY_LOOK_KINDS
+    base_code = family_base_code(d) if fam else str(d.get("variant_base", ""))
+    playable = item_playable_codes(folder, d, kind)
+    want = str(d.get("variant", base_code)) if play is None else str(play)
     play = want if want in playable else base_code
     top_icon = str(d.get("icon") or (cid + "_icon.png"))
     codes = sorted(set(vs.keys()) | ({base_code} if base_code else set()), key=lambda c: (c != base_code, c))
@@ -301,29 +315,39 @@ def item_looks(kind, cid, folder, d):
     for code in codes:
         entry = vs.get(code) if isinstance(vs.get(code), dict) else {}
         is_base = code == base_code
-        file_ = str(entry.get("icon") or (top_icon if is_base else ""))
+        file_ = str(entry.get("icon") or (top_icon if is_base or fam else ""))
         recipe = entry.get("recipe") if isinstance(entry.get("recipe"), dict) else None
-        out.append({"code": code, "note": str(entry.get("note", "")), "icon": "/icon/%s/%s/%s" % (kind, cid, code),
-                    "icon_file": file_, "exists": code in playable, "base": is_base, "default": code == play,
-                    "shelved": bool(entry.get("shelved", False)), "recipe": recipe,
-                    "painted": entry.get("painted") if isinstance(entry.get("painted"), dict) else None})
+        rec = {"code": code, "note": str(entry.get("note", "")), "icon": "/icon/%s/%s/%s" % (kind, cid, code),
+               "icon_file": file_, "exists": code in playable, "base": is_base, "default": code == play,
+               "shelved": bool(entry.get("shelved", False)), "recipe": recipe,
+               "painted": entry.get("painted") if isinstance(entry.get("painted"), dict) else None}
+        if fam:
+            rec.update({"name": str(entry.get("name") or d.get("name") or cid), "fresh": bool(entry.get("fresh", False)),
+                        "own": isinstance(vs.get(code), dict), "visual_file": str(entry.get("visual", ""))})
+        out.append(rec)
     return out
 
 
-def item_look_state(kind, cid, folder, d):
-    """{variant, variant_base, play, icon_play, looks} of an item for the page (pass 73, lane CARDS)."""
-    looks = item_looks(kind, cid, folder, d)
+def item_look_state(kind, cid, folder, d, play=None):
+    """{variant, variant_base, play, icon_play, looks} of an item for the page (pass 73, lane CARDS); pass 76 (lane
+    LOOKS): a weapon family member's also `name_play` (the name it goes by in the look it wears); `play` as item_looks'."""
+    looks = item_looks(kind, cid, folder, d, play)
     play = next((x["code"] for x in looks if x["default"]), "")
-    return {"variant": str(d.get("variant", "")), "variant_base": str(d.get("variant_base", "")), "play": play,
-            "icon_play": "/icon/%s/%s/%s" % (kind, cid, play) if play else "/icon/%s/%s" % (kind, cid), "looks": looks}
+    out = {"variant": str(d.get("variant", "")), "variant_base": str(d.get("variant_base", "")), "play": play,
+           "icon_play": "/icon/%s/%s/%s" % (kind, cid, play) if play else "/icon/%s/%s" % (kind, cid), "looks": looks}
+    if kind in FAMILY_LOOK_KINDS:
+        cur = next((x for x in looks if x["default"]), None)
+        out["name_play"] = cur["name"] if cur else str(d.get("name", cid))
+    return out
 
 
 def set_item_looks_all(kind, code, ids=None):
     """POST /api/item_looks/set_all (pass 73, lane CARDS; Garry: "set every card to look X"): every line card (`line`
     true; or the ids given) that can play `code` gets its top-level `variant` set to it, one line each (a backup each,
     every other byte as it was); a card without that look painted keeps its own. One import of the changed folders."""
-    if kind not in ITEM_LOOK_KINDS:
-        return {"ok": False, "error": "only %s have item looks" % ", ".join(ITEM_LOOK_KINDS)}
+    # pass 76 (lane LOOKS): the cards only (a weapon family plays its weapon's look: write_variant_kind on the weapon)
+    if kind != "passive":
+        return {"ok": False, "error": "only the cards (passive) are set all at once; a weapon family plays its weapon's variant"}
     if not isinstance(code, str) or not CODE_RE.match(code):
         return {"ok": False, "error": "the body needs a look code: {\"code\": \"B\"}"}
     changed, kept, skipped = [], [], []
@@ -355,6 +379,122 @@ def set_item_looks_all(kind, code, ids=None):
     if changed:
         import_ok, output = run_import(",".join("%s/%s" % (KIND_FOLDERS[kind], c) for c in changed))
     return {"ok": True, "code": code, "changed": changed, "kept": kept, "skipped": skipped, "import_ok": import_ok, "output": output}
+
+
+# ---------------------------------------------------------------- pass 76 (lane LOOKS): a weapon family's looks
+
+# Garry, pass 76: the Grenade as a Dynamite Stick "as a Look (with several candidates), so I can switch back to the
+# grenade if I ever change my mind", the Molotov "in several different versions". A weapon, an evolution or a mutation
+# carries `variants` + `variant_base` (game/core/data/ItemLooks.gd); the WEAPON's `variant` is the look its whole family
+# plays (Registry.played_item_look; a phone's Save.item_looks over it), and every member wears its entry for that code or
+# its base. The Items tab's weapon editor shows the family's looks (family_looks) and plays one (write_variant_kind on
+# the weapon); a member's editor says which look its family plays.
+
+def family_base_code(d):
+    """A weapon family member's base look: its `variant_base`, "A" when it has looks and names none (ItemLooks.read);
+    "" without looks."""
+    b = str(d.get("variant_base") or "")
+    return b or ("A" if isinstance(d.get("variants"), dict) and d["variants"] else "")
+
+
+def family_playable_codes(folder, d):
+    """The looks a weapon family member's JSON can wear (ItemLooks.read): its base, and every entry whose files (`icon`,
+    `visual`) are all on disk; an entry naming no file (words or params alone) plays too."""
+    out = set()
+    base = family_base_code(d)
+    if base:
+        out.add(base)
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    for code, entry in vs.items():
+        if not isinstance(entry, dict):
+            continue
+        if all(resolve_file(folder, str(entry[k])) for k in ("icon", "visual") if entry.get(k)):
+            out.add(str(code))
+    return out
+
+
+def weapon_play_code(folder, wd):
+    """The look a weapon's family plays by its JSON (no phone's choice here): its `variant` when it can play it, else its
+    base; "" for a weapon without looks."""
+    base = family_base_code(wd)
+    want = str(wd.get("variant") or base)
+    return want if want in family_playable_codes(folder, wd) else base
+
+
+def family_weapon_id(kind, cid, d):
+    """The weapon whose family a member belongs to (Registry.item_family_root): a weapon's own id, an evolution's
+    `evolved_from` (else the weapon that evolves into it), a mutation's `weapon` (or that evolution's weapon); "" for none."""
+    if kind == "weapon":
+        return cid
+    if kind == "evolution":
+        src = str(d.get("evolved_from") or "")
+        if src and content_path("weapon", src)[1]:
+            return src
+        for wcid, wfolder, wpath, wd in _load_kind("weapon"):
+            if str(wd.get("evolves_into", "")) == cid:
+                return wcid
+        return ""
+    if kind == "mutation":
+        w = str(d.get("weapon") or "")
+        if w and content_path("weapon", w)[1]:
+            return w
+        epath = content_path("evolution", w)[1] if w else None
+        if epath:
+            try:
+                return family_weapon_id("evolution", w, load_json(epath))
+            except (OSError, ValueError):
+                return ""
+    return ""
+
+
+def family_member_play(kind, cid, d):
+    """The look an evolution or a mutation wears in the game: its weapon's (weapon_play_code); None for a weapon (its own
+    `variant` says it) and for a member of no weapon on disk."""
+    if kind not in ("evolution", "mutation"):
+        return None
+    wid = family_weapon_id(kind, cid, d)
+    wpath = content_path("weapon", wid)[1] if wid else None
+    if not wpath:
+        return None
+    try:
+        return weapon_play_code(os.path.dirname(wpath), load_json(wpath))
+    except (OSError, ValueError):
+        return None
+
+
+def family_records_wear(w, members):
+    """The Items list's records of a weapon family as the game wears it (list_items): every member's play, icon_play,
+    name_play and looks' `default` follow the weapon's played look (a member without that look wears its base), each
+    member names its `family`; the weapon's record gains `family_looks`, per look of the weapon: {code, note, shelved,
+    fresh, exists, default, base, name, icon, members: [{kind, id, role, name, icon, own, hidden}]} (a member's own
+    icon and name in that look, else its base's)."""
+    code = str(w.get("play") or "")
+    for m in members:
+        m["family"] = w["id"]
+        looks = m.get("looks") or []
+        ok = [x["code"] for x in looks if x.get("exists")]
+        mine = code if code and code in ok else next((x["code"] for x in looks if x.get("base")), "")
+        for x in looks:
+            x["default"] = x["code"] == mine
+        m["play"] = mine
+        m["icon_play"] = "/icon/%s/%s/%s" % (m["kind"], m["id"], mine) if mine else "/icon/%s/%s" % (m["kind"], m["id"])
+        cur = next((x for x in looks if x["code"] == mine), None)
+        m["name_play"] = cur.get("name", m["name"]) if cur else m["name"]
+    out = []
+    for lk in w.get("looks") or []:
+        c = lk["code"]
+        mem = []
+        for m in members:
+            ml = next((x for x in m.get("looks") or [] if x["code"] == c), None)
+            own = bool(ml and ml.get("own") and ml.get("exists"))
+            mem.append({"kind": m["kind"], "id": m["id"], "role": m.get("mutation_kind") or m["kind"],
+                        "name": ml.get("name", m["name"]) if own else m["name"],
+                        "icon": "/icon/%s/%s/%s" % (m["kind"], m["id"], c) if own else "/icon/%s/%s" % (m["kind"], m["id"]),
+                        "own": own, "hidden": bool(m.get("hidden"))})
+        out.append({"code": c, "note": lk["note"], "shelved": lk["shelved"], "fresh": lk.get("fresh", False),
+                    "exists": lk["exists"], "default": lk["default"], "base": lk["base"], "name": lk.get("name", w["name"]),
+                    "icon": lk["icon"], "members": mem})
+    w["family_looks"] = out
 
 
 def _num(v, default):
@@ -739,6 +879,8 @@ def item_record(kind, cid, folder, d, path, quests):
                     "visual_exists": os.path.isfile(os.path.join(folder, str(d.get("visual", cid + "_visual.tscn")))),
                     # pass 69: a mutation's typed params show what its weapon already sets (the effective value and its source)
                     "params": d.get("params", {}) if isinstance(d.get("params"), dict) else {}})
+        # pass 76 (lane LOOKS): its looks in its weapon family (list_items makes a member follow its weapon's)
+        rec.update(item_look_state(kind, cid, folder, d))
     elif kind == "passive":
         rec.update({"line": bool(d.get("line", False)), "max_level": d.get("max_level", 8), "levels": d.get("levels", []),
                     "repeat_last_level": bool(d.get("repeat_last_level", True)), "evolves_into": str(d.get("evolves_into", "")),
@@ -750,6 +892,8 @@ def item_record(kind, cid, folder, d, path, quests):
         rec.update({"weapon": str(d.get("weapon", "")), "mutation_kind": str(d.get("kind", "motion")), "hero": str(d.get("hero", "")),
                     "text": str(d.get("text", "")), "vfx": str(d.get("vfx", "")), "effects": d.get("effects", []),
                     "params": d.get("params", {}), "behavior": str(d.get("behavior", "")), "visual": str(d.get("visual", ""))})
+        # pass 76 (lane LOOKS): its looks in its weapon family (list_items makes it follow its weapon's)
+        rec.update(item_look_state(kind, cid, folder, d))
     return rec
 
 
@@ -782,6 +926,8 @@ def list_items():
         path_kinds = [m["mutation_kind"] for m in own if not m["hidden"] and not m["hero"]]
         w["path"] = path_kinds
         w["path_missing"] = weapon_path_missing_from(w, own, evo)
+        # pass 76 (lane LOOKS): the family wears the weapon's look; the weapon's record carries the family's looks
+        family_records_wear(w, ([evo] if evo else []) + own)
     pas_by_id = {p["id"]: p for p in passives}
     lines, items = [], []
     for p in passives:
@@ -1045,22 +1191,31 @@ def write_variant_kind(kind, cid, code):
     before `variants`), every other byte as it was (pass 58: the old re-dump turned the three files with a CRLF only on
     their last line into CRLF throughout; pass 66: a file that cannot be edited line by line is refused, never
     re-dumped), then the JSON -> .tres import of that one folder. Creatures (pass 54) and heroes (pass 66); items with
-    looks (pass 73, the cards: a look plays once its icon is on disk)."""
+    looks (pass 73, the cards: a look plays once its icon is on disk); pass 76 (lane LOOKS): a weapon, for its whole
+    family (an evolution or a mutation is refused: it wears its weapon's look)."""
     if kind not in LOOK_KINDS and kind not in ITEM_LOOK_KINDS:
-        return {"ok": False, "error": "only enemies, bosses, heroes and cards have looks"}
+        return {"ok": False, "error": "only enemies, bosses, heroes, cards and weapons have looks"}
     _, path = content_path(kind, cid)
     if path is None:
         return {"ok": False, "error": "no %s %s" % (kind, cid)}
+    if kind in ("evolution", "mutation"):
+        try:
+            wid = family_weapon_id(kind, cid, load_json(path))
+        except (OSError, ValueError):
+            wid = ""
+        return {"ok": False, "error": "%s wears its weapon family's look: play the look on the weapon %s (one look for "
+                                      "the whole family)" % (cid, wid or "it belongs to")}
     if not isinstance(code, str) or not CODE_RE.match(code):
         return {"ok": False, "error": "the body needs a variant code: {\"code\": \"SK-B\"}"}
     with _write_lock:
         src = cio.read_text(path)
         d = json.loads(src)
-        playable = (item_playable_codes if kind in ITEM_LOOK_KINDS else playable_codes)(os.path.dirname(path), d)
+        playable = item_playable_codes(os.path.dirname(path), d, kind) if kind in ITEM_LOOK_KINDS else playable_codes(os.path.dirname(path), d)
         if code not in playable:
             vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
             known = ", ".join(sorted(playable)) or "none"
-            why = ("its %s is not painted yet" % ("icon" if kind in ITEM_LOOK_KINDS else "strip")) if code in vs else "it has no such variant"
+            what = "icon or visual is not on disk" if kind in FAMILY_LOOK_KINDS else ("icon" if kind in ITEM_LOOK_KINDS else "strip") + " is not painted"
+            why = ("its %s yet" % what) if code in vs else "it has no such variant"
             return {"ok": False, "error": "%s cannot play %s: %s (it can play: %s)" % (cid, code, why, known)}
         before = str(d.get("variant", ""))
         text = cio.set_top_block(src, "variant", code, [("before", "variants"), ("end", None)])
@@ -1363,7 +1518,7 @@ def read_content(kind, cid):
     out = {"ok": True, "kind": kind, "id": cid, "file": rel(path), "mtime": mtime_of(path), "text": src, "json": d,
            "layout": cio.layout(src), "editable": cio.top_spans(src) is not None,
            "looks": look_records(kind, cid, folder, d, path) if kind in LOOK_KINDS else (
-               item_looks(kind, cid, folder, d) if kind in ITEM_LOOK_KINDS else []),
+               item_looks(kind, cid, folder, d, family_member_play(kind, cid, d)) if kind in ITEM_LOOK_KINDS else []),
            "refs": references_to(kind, cid), "availability": avail, "locked_by": locked_by,
            # pass 69: a hero's quest is the one that unlocks {type character, id} (his requirement)
            "quest": quests.get(("character" if kind == "hero" else "weapon" if kind in ("weapon", "evolution") else "passive", cid)),
@@ -2203,6 +2358,10 @@ def look_op(kind, cid, codes, op, body=None):
     backups/deleted/<id>/<stamp>/), note {note}, recipe {recipe}, default (the look in play). One backup, one write; an
     import for what the game reads (shelve, unshelve, remove, default)."""
     body = body if isinstance(body, dict) else {}
+    if op in ("revert_icon", "use_icon"):
+        # pass 76 (lane ICON): "Revert icon" and the gallery's "Use for this look", on any asset with an icon (icon_op)
+        c = codes[0] if isinstance(codes, list) and codes else (codes if isinstance(codes, str) else "")
+        return icon_op(kind, cid, str(c or ""), op, body)
     if kind not in LOOK_KINDS:
         return {"ok": False, "error": "only enemies, bosses and heroes have looks", "status": 400}
     tfolder, path = content_path(kind, cid)
@@ -2300,6 +2459,656 @@ def look_op(kind, cid, codes, op, body=None):
             "import_ok": import_ok, "output": output, "moved": moved, "job": job}
 
 
+# ---------------------------------------------------------------- pass 76 (lane ICON): the icon guard
+
+# Garry, pass 76: "I made a variant of an Icon and can't find the old one. Make a fix in LevelEditor to make sure that
+# this doesn't happen." (A badge painted for Solenne's base was installed into SOL-B, the look in play, and the hero's
+# own badge left every screen.) From here every change of an icon goes through set_look_icon:
+#   - nothing is overwritten: an installed candidate lands in a file of its own (fresh_icon_name);
+#   - the key that names an icon keeps its past beside it: `icon_history` (a look's in its entry, the base's at the top
+#     level next to `icon`), each step with a copy of the picture it replaced under backups/<id>/ (keep_icon_copy);
+#   - the look in play and the base (every look without an icon of its own shows the base's) change only with
+#     `confirm: true` (the page asks first: now -> new, the file names, "the look the game plays");
+#   - "Revert icon" (revert_icon) steps back one change; "Use for this look" (use_icon) puts any picture of
+#     icon_gallery's on a look: the folder's icons, backups/<id>/, removed looks' files (backups/deleted/<id>/) and the
+#     older tools' copies (tools/dl/backup/icons*/).
+
+WEAPON_FAMILY_KINDS = FAMILY_LOOK_KINDS   # lane LOOKS' weapon families (a weapon, its evolution, its mutations)
+ICON_HISTORY_MAX = 40
+LEGACY_ICON_BACKUPS = os.path.join(DL, "backup")
+
+
+def _icon_name_re(cid):
+    """The icon files of an asset: <id>_icon.png, <id>_icon_<x>.png, <id>_icon_<x>_<tag>_c2.png, <id>_icon_<stamp>.png."""
+    return re.compile(r"^%s_icon(?:[_.-][A-Za-z0-9._-]*)?\.png$" % re.escape(cid))
+
+
+def _abs_path(p):
+    """A path rel() wrote (repo-relative with forward slashes, or absolute on another drive) as an absolute one."""
+    p = str(p or "")
+    if not p:
+        return ""
+    return p if os.path.isabs(p) else os.path.join(ROOT, p.replace("/", os.sep))
+
+
+def _file_digest(path):
+    import hashlib
+    h = hashlib.sha1()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 16), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _same_bytes(a, b):
+    try:
+        return os.path.getsize(a) == os.path.getsize(b) and _file_digest(a) == _file_digest(b)
+    except OSError:
+        return False
+
+
+def _load_or_empty(path):
+    try:
+        d = load_json(path) if path else {}
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def _backups_root():
+    """backups/ with its .gitignore (nothing under it goes in the repository), as backup() makes it."""
+    os.makedirs(BACKUPS, exist_ok=True)
+    ignore = os.path.join(BACKUPS, ".gitignore")
+    if not os.path.exists(ignore):
+        with open(ignore, "w", encoding="utf-8", newline="\n") as f:
+            f.write("*\n")
+
+
+def icon_backup_dir(cid):
+    """tools/level_editor/backups/<id>/: the copies of an asset's icons (pass 76), beside its JSON backups."""
+    return os.path.join(BACKUPS, cid)
+
+
+def keep_icon_copy(cid, full):
+    """A copy of the picture `full` under backups/<id>/ as <stem>_<stamp>.png, unless a copy with the same bytes is there
+    already. The rel path of the copy (made now or found); "" when `full` is not a file."""
+    if not full or not os.path.isfile(full):
+        return ""
+    _backups_root()
+    folder = icon_backup_dir(cid)
+    os.makedirs(folder, exist_ok=True)
+    size, digest = os.path.getsize(full), None
+    for name in sorted(os.listdir(folder)):
+        p = os.path.join(folder, name)
+        if name.lower().endswith(".png") and os.path.isfile(p) and os.path.getsize(p) == size:
+            digest = digest or _file_digest(full)
+            if _file_digest(p) == digest:
+                return rel(p)
+    stem = os.path.splitext(os.path.basename(full))[0]
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    dest = os.path.join(folder, "%s_%s.png" % (stem, stamp))
+    n = 1
+    while os.path.exists(dest):
+        n += 1
+        dest = os.path.join(folder, "%s_%s-%d.png" % (stem, stamp, n))
+    shutil.copy2(full, dest)
+    return rel(dest)
+
+
+def _named_icons(cid, d):
+    """The icon file names a JSON names: its top-level `icon` (or <id>_icon.png) and every look entry's `icon`."""
+    out = [os.path.basename(str(d.get("icon") or cid + "_icon.png"))]
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    for e in vs.values():
+        if isinstance(e, dict) and e.get("icon"):
+            out.append(os.path.basename(str(e["icon"])))
+    return [n for n in dict.fromkeys(out) if FILENAME_RE.match(n)]
+
+
+def _folder_icon_names(cid, folder, d):
+    """The icon PNGs in an asset's folder: every <id>_icon*.png and any other file its JSON names as an icon, sorted."""
+    pat = _icon_name_re(cid)
+    names = set(n for n in _named_icons(cid, d) if os.path.isfile(os.path.join(folder, n)))
+    try:
+        for n in os.listdir(folder):
+            if pat.match(n) and os.path.isfile(os.path.join(folder, n)):
+                names.add(n)
+    except OSError:
+        pass
+    return sorted(names)
+
+
+def snapshot_icons(kind, cid):
+    """Every icon of an asset (_folder_icon_names) copied into backups/<id>/ unless those bytes are there already: run
+    before a job that may paint over one (a look's re-roll repaints its own icon, an item icon roll its <id>_icon.png).
+    The rel paths of the copies (made now or found)."""
+    tfolder, path = content_path(kind, cid)
+    if path is None:
+        return []
+    folder = os.path.dirname(path)
+    out = []
+    for name in _folder_icon_names(cid, folder, _load_or_empty(path)):
+        r = keep_icon_copy(cid, os.path.join(folder, name))
+        if r:
+            out.append(r)
+    return out
+
+
+def fresh_icon_name(folder, cid, code="", tag=""):
+    """A file name no file in `folder` has, for a new icon (a pick never overwrites): <id>_icon[_<letter>][_<tag>].png,
+    then _2, _3... A look's letter is its code's last part (SOL-B -> b); the base's icon has none."""
+    letter = str(code).split("-")[-1].lower() if code else ""
+    tag = re.sub(r"[^A-Za-z0-9_-]", "", str(tag or ""))
+    stem = "%s_icon%s%s" % (cid, "_" + letter if letter else "", "_" + tag if tag else "")
+    name, n = stem + ".png", 1
+    while os.path.exists(os.path.join(folder, name)) or os.path.exists(os.path.join(folder, name + ".import")):
+        n += 1
+        name = "%s_%d.png" % (stem, n)
+    return name
+
+
+def _base_code(kind, d):
+    """The base look's code: `variant_base`; a weapon family member's family_base_code (lane LOOKS: "A" when it has looks
+    and names none)."""
+    if kind in WEAPON_FAMILY_KINDS:
+        return family_base_code(d)
+    return str(d.get("variant_base") or "")
+
+
+def icon_played_code(kind, cid, folder, d):
+    """The look whose icon the game shows for an asset: the JSON's `variant` when it can play it, else the base ("" for an
+    asset without looks). A weapon family (lane LOOKS' helpers): the weapon's weapon_play_code, a member wears its
+    weapon's look when it can (family_member_play), else its base."""
+    base = _base_code(kind, d)
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    if not vs:
+        return base
+    want = str(d.get("variant") or base)
+    if kind in LOOK_KINDS:
+        ok = playable_codes(folder, d)
+    elif kind in WEAPON_FAMILY_KINDS:
+        if kind == "weapon":
+            return weapon_play_code(folder, d)
+        want = family_member_play(kind, cid, d) or base
+        ok = family_playable_codes(folder, d)
+    else:
+        ok = item_playable_codes(folder, d)
+    return want if want in ok else base
+
+
+def look_icon_info(kind, cid, folder, d, code):
+    """A look's icon now: {code (the base's own code for the base), base, played, play, shown (the file the game shows for
+    it), own (the look names its own; the base: the JSON names its icon), picked, history, exists, url, what (badge for a
+    hero, else icon), shared_by (the base: the looks without an icon of their own, which show its icon), revertable}. The
+    game's order (JsonContent): a look's own icon when its file is there, else the top-level `icon` (or <id>_icon.png); the
+    base reads the top level (a card, or a hero base with a strip of its own, reads its entry's icon first)."""
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    base = _base_code(kind, d)
+    is_base = not code or code == base
+    code = base if is_base else str(code)
+    top = os.path.basename(str(d.get("icon") or cid + "_icon.png"))
+    e = vs.get(code) if isinstance(vs.get(code), dict) else {}
+    own_name = os.path.basename(str(e.get("icon") or ""))
+    own_ok = bool(own_name) and resolve_file(folder, own_name) is not None
+    if is_base:
+        entry_first = own_ok and kind not in ("enemy", "boss") and (kind != "hero" or bool(e.get("sprite")))
+        shown, own, hist, picked = (own_name if entry_first else top), (entry_first or bool(d.get("icon"))), d.get("icon_history"), False
+    else:
+        shown, own, hist, picked = (own_name if own_ok else top), own_ok, e.get("icon_history"), bool(e.get("icon_picked"))
+    hist = [h for h in hist if isinstance(h, dict)] if isinstance(hist, list) else []
+    played = icon_played_code(kind, cid, folder, d)
+    shared = []
+    if is_base:
+        for c, x in vs.items():
+            if c == code or not isinstance(x, dict):
+                continue
+            n = os.path.basename(str(x.get("icon") or ""))
+            if n and resolve_file(folder, n):
+                continue
+            if (kind in LOOK_KINDS and x.get("sprite")) or kind in WEAPON_FAMILY_KINDS:
+                shared.append(str(c))
+    full = resolve_file(folder, shown)
+    return {"code": code, "base": is_base, "played": code == played, "play": played, "shown": shown, "own": own,
+            "picked": picked, "history": hist, "exists": full is not None,
+            "url": ("/iconfile/%s/%s/folder/%s?v=%d" % (kind, cid, shown, int(os.path.getmtime(full)))) if full else "",
+            "what": "badge" if kind == "hero" else "icon", "shared_by": sorted(shared),
+            "revertable": bool(hist) or (not is_base and own_ok and picked)}
+
+
+def _now_text():
+    return time.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _icon_refusal(kind, cid, d, info, new_name, new_url, label, verb="change"):
+    """The 409 the page turns into its question: the look in play or the base changes its icon only with confirm: true.
+    The body carries what the question shows: now -> new (files and pictures), played, base, the looks that share it."""
+    name = str(d.get("name") or cid)
+    what = info["what"]
+    who = info["code"] or name
+    bits = []
+    if not info["code"]:
+        bits.append("it is %s's own %s (it has no other looks): the game shows it wherever it shows %s" % (name, what, name))
+    else:
+        if info["played"]:
+            bits.append("%s is the look the game plays" % who)
+        if info["base"]:
+            sb = info["shared_by"]
+            bits.append("%s is the base look: its %s is %s's own%s" % (who, what, name, (", and %s show%s it too (no %s of %s own)" % (
+                ", ".join(sb), "s" if len(sb) == 1 else "", what, "its" if len(sb) == 1 else "their")) if sb else ""))
+            if info["play"] in sb:
+                bits.append("%s, the look the game plays, is one of them" % info["play"])
+    return {"ok": False, "status": 409, "confirm_needed": True, "kind": kind, "id": cid, "name": name, "what": what,
+            "look": info["code"], "base": info["base"], "played": info["played"], "play": info["play"], "shared_by": info["shared_by"],
+            "verb": verb, "now": {"file": info["shown"], "url": info["url"], "own": info["own"]},
+            "next": {"file": new_name, "url": new_url, "label": label},
+            "error": "%s's %s for %s would change: now %s, new %s. %s. Nothing is overwritten (%s stays on disk); send "
+                     "confirm: true to go on" % (name, what, who, info["shown"], new_name or "?", "; ".join(bits), info["shown"])}
+
+
+def set_look_icon(kind, cid, code, file, why="", confirm=None, need_file=True):
+    """THE one place an icon changes (pass 76, lane ICON): the look's icon set to `file`, a plain PNG name in the asset's
+    folder (`need_file`: it must be on disk; a job's landing names the file its tool just wrote). A look (any code but the
+    base's): its entry's `icon` and `icon_picked` (its re-rolls keep it). The base (code "" or `variant_base`): the
+    top-level `icon`, and the base entry's when that entry names one of its own. First the picture the look showed is
+    copied into backups/<id>/ (keep_icon_copy) and a step {icon (what the key said, "" = nothing of its own), shown,
+    backup, to, at, why[, picked | entry_icon]} goes onto the `icon_history` beside the key (the last ICON_HISTORY_MAX
+    kept). One JSON backup, one write, no import (the caller's). `confirm` None: no question (a job landing: its install
+    was confirmed when queued); else the look in play and the base need confirm True, or the 409 the page asks with
+    (_icon_refusal). Heroes, creatures and items (cards; weapon families) alike."""
+    if kind not in EDIT_KINDS:
+        return {"ok": False, "status": 400, "error": "%s has no icon the editor sets" % kind}
+    tfolder, path = content_path(kind, cid)
+    if path is None:
+        return {"ok": False, "status": 404, "error": "no %s %s" % (kind, cid)}
+    folder = os.path.dirname(path)
+    name = str(file or "")
+    if not name or not FILENAME_RE.match(name) or name.startswith(".") or not name.lower().endswith(".png"):
+        return {"ok": False, "status": 400, "error": "an icon is a PNG file name beside the JSON (got %r)" % (file,)}
+    if need_file and not os.path.isfile(os.path.join(folder, name)):
+        return {"ok": False, "status": 404, "error": "%s is not in %s" % (name, rel(folder))}
+    code = str(code or "")
+    if code and not CODE_RE.match(code):
+        return {"ok": False, "status": 400, "error": "bad look code %r" % code}
+    with _write_lock:
+        src = cio.read_text(path)
+        d = json.loads(src)
+        vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+        base = _base_code(kind, d)
+        is_base = not code or code == base
+        if not is_base and code not in vs:
+            return {"ok": False, "status": 404, "error": "%s has no look %s" % (cid, code)}
+        info = look_icon_info(kind, cid, folder, d, code)
+        e = vs.get(code) if isinstance(vs.get(code), dict) else {}
+        be = vs.get(base) if base and isinstance(vs.get(base), dict) else {}
+        if is_base:
+            same = os.path.basename(str(d.get("icon") or cid + "_icon.png")) == name and (not be.get("icon") or be.get("icon") == name)
+        else:
+            same = e.get("icon") == name and e.get("icon_picked") is True
+        if same:
+            return {"ok": True, "unchanged": True, "kind": kind, "id": cid, "code": info["code"], "base": is_base, "file": name,
+                    "was": name, "backup": "", "icon_backup": "", "layout": "entry", "icon": info, "entry": e or None}
+        if confirm is not None and confirm is not True and (info["played"] or info["base"]):
+            return _icon_refusal(kind, cid, d, info, name, "/iconfile/%s/%s/folder/%s" % (kind, cid, name), name)
+        shown_full = resolve_file(folder, info["shown"])
+        copy = keep_icon_copy(cid, shown_full) if shown_full else ""
+        if is_base:
+            step = {"icon": os.path.basename(str(d["icon"])) if d.get("icon") else ""}
+            if base and isinstance(vs.get(base), dict) and vs[base].get("icon"):
+                step["entry_icon"] = os.path.basename(str(vs[base]["icon"]))
+        else:
+            step = {"icon": os.path.basename(str(e["icon"])) if e.get("icon") else "", "picked": bool(e.get("icon_picked"))}
+        step.update({"shown": info["shown"], "backup": copy, "to": name, "at": _now_text(), "why": str(why or "")})
+        history = (info["history"] + [step])[-ICON_HISTORY_MAX:]
+        if is_base:
+            text = cio.set_top_block(src, "icon", name, [("before", "variants"), ("end", None)])
+            if text is not None:
+                text = cio.set_top_block(text, "icon_history", history, [("after", "icon"), ("before", "variants"), ("end", None)])
+            if text is not None and step.get("entry_icon"):
+                text = cio.set_variant_entry(text, base, {"icon": name})
+        else:
+            text = cio.set_variant_entry(src, code, {"icon": name, "icon_picked": True, "icon_history": history})
+        if text is None:
+            return {"ok": False, "status": 400, "error": _layout_error(path, "the icon keys")}
+        backup_rel = backup(cid, path)
+        cio.write_atomic(path, text)
+        d2 = json.loads(text)
+    return {"ok": True, "kind": kind, "id": cid, "code": info["code"], "base": is_base, "file": name, "was": info["shown"],
+            "icon_backup": copy, "backup": backup_rel, "layout": "entry", "history": len(history),
+            "entry": None if is_base else (d2.get("variants") or {}).get(code), "icon": look_icon_info(kind, cid, folder, d2, code)}
+
+
+def _picture_in_folder(cid, folder, name, copy_rel, dry=False):
+    """(file, put_back) for a picture a history step names: `name` when it is in the folder with the bytes of its copy
+    (or there is no copy to compare), else the copy put back into the folder under its own name (a fresh one when that is
+    taken); ("", False) when neither is there. `dry`: the name it would get, nothing copied."""
+    full = os.path.join(folder, name) if name else ""
+    copy = _abs_path(copy_rel)
+    have_copy = bool(copy) and os.path.isfile(copy)
+    if full and os.path.isfile(full) and (not have_copy or _same_bytes(full, copy)):
+        return name, False
+    if not have_copy:
+        return "", False
+    for n in _folder_icon_names(cid, folder, {}):
+        if _same_bytes(os.path.join(folder, n), copy):
+            return n, False
+    want = os.path.basename(copy)
+    if os.path.exists(os.path.join(folder, want)) or os.path.exists(os.path.join(folder, want + ".import")):
+        stem, k = os.path.splitext(want)[0], 1
+        while True:
+            k += 1
+            want = "%s-%d.png" % (stem, k)
+            if not os.path.exists(os.path.join(folder, want)) and not os.path.exists(os.path.join(folder, want + ".import")):
+                break
+    if not dry:
+        shutil.copy2(copy, os.path.join(folder, want))
+    return want, True
+
+
+def _icon_import(kind, cid, new_png):
+    """After an icon op: a PNG new to the folder needs Godot's --import before import_json can name it (an `import` job:
+    --import, lossy_imports, --import, import_json); one already imported only the JSON -> .tres import."""
+    target = "%s/%s" % (KIND_FOLDERS[kind], cid)
+    if new_png:
+        r = _enqueue("import", {"kind": "content", "id": target}, {"targets": [target]}, "import %s (an icon put back)" % target)
+        return None, ("import queued (the PNG first)" if r.get("job") else "import not queued: %s" % r.get("error")), r.get("job")
+    ok, out = run_import(target)
+    return ok, out, None
+
+
+def revert_icon(kind, cid, code, confirm=None):
+    """"Revert icon" (pass 76, a look op): the look's (or the base's) icon one change back. The last `icon_history` step is
+    undone: the key gets back what it said (the picture put back from the step's copy when its file was painted over
+    since; a look's icon_picked as it was; a step from when the look had no icon of its own drops its `icon`; the base's
+    default <id>_icon.png when the top level named none, or the copy when that file changed since), and the step goes.
+    With no history, a look whose own icon was picked (before pass 76: Solenne's SOL-B) loses that icon and shows the
+    base's again; anything else has nothing to revert. The look in play and the base need confirm, like set_look_icon;
+    the question is asked before anything is copied. One JSON backup, one write, then the import."""
+    if kind not in EDIT_KINDS:
+        return {"ok": False, "status": 400, "error": "%s has no icon the editor sets" % kind}
+    tfolder, path = content_path(kind, cid)
+    if path is None:
+        return {"ok": False, "status": 404, "error": "no %s %s" % (kind, cid)}
+    code = str(code or "")
+    if code and not CODE_RE.match(code):
+        return {"ok": False, "status": 400, "error": "bad look code %r" % code}
+    folder = os.path.dirname(path)
+    put_back = False
+    with _write_lock:
+        src = cio.read_text(path)
+        d = json.loads(src)
+        vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+        base = _base_code(kind, d)
+        is_base = not code or code == base
+        if not is_base and code not in vs:
+            return {"ok": False, "status": 404, "error": "%s has no look %s" % (cid, code)}
+        info = look_icon_info(kind, cid, folder, d, code)
+        hist = info["history"]
+        step = hist[-1] if hist else None
+        # what the key gets back: (name, copy to put back) -- name "" = the key goes
+        if step is not None:
+            prev = os.path.basename(str(step.get("icon") or ""))
+            copy_rel = str(step.get("backup") or "")
+            if prev:
+                name, needs = _picture_in_folder(cid, folder, prev, copy_rel, dry=True)
+                if not name:
+                    return {"ok": False, "status": 409, "error": "%s is gone and its copy (%s) too: use the gallery" % (prev, copy_rel or "none")}
+            elif is_base:
+                dflt = cid + "_icon.png"
+                name, needs = (_picture_in_folder(cid, folder, dflt, copy_rel, dry=True) if step.get("shown") == dflt else (dflt, False))
+                name = "" if name == dflt and not needs else name
+            else:
+                name, needs = "", False
+        elif not is_base and info["own"] and info["picked"]:
+            name, needs, copy_rel = "", False, ""
+        else:
+            return {"ok": False, "status": 409, "error": "nothing to revert: %s's %s for %s has no earlier one recorded%s" % (
+                cid, info["what"], info["code"] or "it", "" if is_base else " and was not picked (use the gallery to put another on it)")}
+        if is_base:
+            after = name or cid + "_icon.png"
+        else:
+            after = name or os.path.basename(str(d.get("icon") or cid + "_icon.png"))
+        if confirm is not None and confirm is not True and (info["played"] or info["base"]):
+            url = ("/iconfile/%s/%s/folder/%s" % (kind, cid, after)) if not needs else ("/iconfile/%s/%s/%s" % (kind, cid, _gallery_ref(cid, _abs_path(copy_rel))))
+            if not is_base and not name:
+                label = "the base's %s: %s has none of its own again" % (info["what"], info["code"])
+            else:
+                label = "as it was before %s" % str((step or {}).get("at") or "the last change")[:16]
+            return _icon_refusal(kind, cid, d, info, after, url, label, verb="revert")
+        if needs:
+            name, put_back = _picture_in_folder(cid, folder, name, copy_rel)
+        rest = hist[:-1]
+        if is_base:
+            text = cio.set_top_block(src, "icon", name, [("before", "variants"), ("end", None)]) if name else (cio.del_top_block(src, "icon") if "icon" in d else src)
+            if text is not None:
+                text = cio.set_top_block(text, "icon_history", rest, [("after", "icon"), ("before", "variants"), ("end", None)]) if rest else (
+                    cio.del_top_block(text, "icon_history") if "icon_history" in d else text)
+            if text is not None and step is not None and "entry_icon" in step and isinstance(vs.get(base), dict):
+                # the base entry named its own icon too (a base made from a look, pass 70): it gets its own back
+                ei = os.path.basename(str(step.get("entry_icon") or ""))
+                keep = ei if ei and os.path.isfile(os.path.join(folder, ei)) else name
+                text = cio.set_variant_entry(text, base, {"icon": keep if keep else cio.REMOVE})
+        else:
+            prev_picked = bool(step.get("picked")) if step is not None else False
+            update = {"icon": name if name else cio.REMOVE, "icon_picked": True if (name and prev_picked) else cio.REMOVE,
+                      "icon_history": rest if rest else cio.REMOVE}
+            text = cio.set_variant_entry(src, code, update)
+        if text is None:
+            return {"ok": False, "status": 400, "error": _layout_error(path, "the icon keys")}
+        backup_rel = backup(cid, path)
+        cio.write_atomic(path, text)
+        d2 = json.loads(text)
+    import_ok, output, job = _icon_import(kind, cid, put_back)
+    now = look_icon_info(kind, cid, folder, d2, code)
+    return {"ok": True, "op": "revert_icon", "kind": kind, "id": cid, "code": info["code"], "base": is_base, "was": info["shown"],
+            "file": now["shown"], "put_back": put_back, "backup": backup_rel, "icon": now, "import_ok": import_ok, "output": output, "job": job}
+
+
+def _gallery_ref(cid, full):
+    """The gallery ref of a file under backups/<id>/ (backup/<f>), else of a folder file (folder/<f>)."""
+    if full and os.path.dirname(os.path.abspath(full)) == os.path.abspath(icon_backup_dir(cid)):
+        return "backup/" + os.path.basename(full)
+    return "folder/" + os.path.basename(full or "")
+
+
+def icon_ref_path(kind, cid, ref):
+    """The file an icon_gallery ref names, or None: folder/<f> (the asset's folder: an <id>_icon*.png or a file its JSON
+    names), backup/<f> (backups/<id>/), deleted/<stamp>/<f> (a removed look's, backups/deleted/<id>/<stamp>/) or
+    legacy/<icons dir>/<f> (the older tools' copies, tools/dl/backup/icons*/): every part a plain name, a PNG."""
+    tfolder, path = content_path(kind, cid)
+    if path is None or not isinstance(ref, str):
+        return None
+    parts = ref.split("/")
+    if any(not p or p.startswith(".") or not FILENAME_RE.match(p) for p in parts) or not parts[-1].lower().endswith(".png"):
+        return None
+    pat = _icon_name_re(cid)
+    if parts[0] == "folder" and len(parts) == 2:
+        if not (pat.match(parts[1]) or parts[1] in _named_icons(cid, _load_or_empty(path))):
+            return None
+        full = os.path.join(os.path.dirname(path), parts[1])
+    elif parts[0] == "backup" and len(parts) == 2:
+        full = os.path.join(icon_backup_dir(cid), parts[1])
+    elif parts[0] == "deleted" and len(parts) == 3 and pat.match(parts[2]):
+        full = os.path.join(BACKUPS, "deleted", cid, parts[1], parts[2])
+    elif parts[0] == "legacy" and len(parts) == 3 and parts[1].startswith("icons") and pat.match(parts[2]):
+        full = os.path.join(LEGACY_ICON_BACKUPS, parts[1], parts[2])
+    else:
+        return None
+    return full if os.path.isfile(full) else None
+
+
+def use_icon(kind, cid, code, ref, confirm=None):
+    """"Use for this look" (pass 76, the gallery): the picture an icon_gallery ref names put on a look (code "" = the base):
+    a folder file as it is; any other (a backup, a removed look's, an older tool's copy) put back into the folder first,
+    under its own name or a fresh one (a folder file with the same bytes is used instead). Then set_look_icon (why "use
+    <ref>"). The look in play and the base need confirm (asked before anything is copied); then the import."""
+    if kind not in EDIT_KINDS:
+        return {"ok": False, "status": 400, "error": "%s has no icon the editor sets" % kind}
+    full = icon_ref_path(kind, cid, ref)
+    if full is None:
+        return {"ok": False, "status": 404, "error": "no icon %s of %s %s" % (ref, kind, cid)}
+    tfolder, path = content_path(kind, cid)
+    folder = os.path.dirname(path)
+    code = str(code or "")
+    d = _load_or_empty(path)
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    if code and code != _base_code(kind, d) and code not in vs:
+        return {"ok": False, "status": 404, "error": "%s has no look %s" % (cid, code)}
+    info = look_icon_info(kind, cid, folder, d, code)
+    where = ref.split("/", 1)[0]
+    name = os.path.basename(full)
+    same = ""
+    if where != "folder":
+        same = next((n for n in _folder_icon_names(cid, folder, d) if _same_bytes(os.path.join(folder, n), full)), "")
+        name = same or name
+    if confirm is not True and (info["played"] or info["base"]) and not (info["shown"] == name and (info["own"] or info["base"])):
+        label = {"folder": "in %s's folder" % str(d.get("name") or cid), "backup": "a backup copy (put back into the folder)",
+                 "deleted": "a removed look's file (put back into the folder)", "legacy": "an older tool's copy (put back into the folder)"}.get(where, ref)
+        if where != "folder" and same:
+            label = "in %s's folder (the same picture as this %s copy)" % (str(d.get("name") or cid), where)
+        return _icon_refusal(kind, cid, d, info, name, "/iconfile/%s/%s/%s" % (kind, cid, ref), label, verb="use another")
+    put_back = False
+    if where != "folder" and not same:
+        if os.path.exists(os.path.join(folder, name)) or os.path.exists(os.path.join(folder, name + ".import")):
+            name = fresh_icon_name(folder, cid, "", os.path.splitext(name)[0][len(cid) + 6:] or "r")
+        shutil.copy2(full, os.path.join(folder, name))
+        put_back = True
+    res = set_look_icon(kind, cid, code, name, "use %s" % ref, confirm=None)
+    if not res.get("ok"):
+        return res
+    if res.get("unchanged") and not put_back:
+        res.update(import_ok=None, output="no change: %s already shows %s" % (info["code"] or cid, name), job=None)
+        return res
+    import_ok, output, job = _icon_import(kind, cid, put_back)
+    res.update(op="use_icon", put_back=put_back, import_ok=import_ok, output=output, job=job)
+    return res
+
+
+def icon_gallery(kind, cid):
+    """GET /api/content/<kind>/<id>/icons (pass 76): every icon picture of an asset on disk, one tile per picture (copies
+    with the same bytes are one tile, listed under `copies`): the folder's (_folder_icon_names), backups/<id>/ (the
+    guard's copies), backups/deleted/<id>/<stamp>/ (removed looks') and the older tools' copies under
+    tools/dl/backup/icons*/; each tile with the looks that show it (`used_by`); and every look's icon now
+    (look_icon_info: the base first)."""
+    if kind not in EDIT_KINDS:
+        return {"ok": False, "status": 400, "error": "%s has no icons" % kind}
+    tfolder, path = content_path(kind, cid)
+    if path is None:
+        return {"ok": False, "status": 404, "error": "no %s %s" % (kind, cid)}
+    folder = os.path.dirname(path)
+    d = _load_or_empty(path)
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    base = _base_code(kind, d)
+    codes = [base] + sorted((c for c in vs if c != base), key=lambda c: str(c))
+    looks = [look_icon_info(kind, cid, folder, d, c) for c in codes]
+    shown_by = {}
+    for x in looks:
+        shown_by.setdefault(x["shown"], []).append(x["code"])
+    pat = _icon_name_re(cid)
+    cands = [("folder/" + n, os.path.join(folder, n), "folder") for n in _folder_icon_names(cid, folder, d)]
+    bdir = icon_backup_dir(cid)
+    if os.path.isdir(bdir):
+        cands += [("backup/" + n, os.path.join(bdir, n), "backup") for n in sorted(os.listdir(bdir))
+                  if n.lower().endswith(".png") and FILENAME_RE.match(n) and os.path.isfile(os.path.join(bdir, n))]
+    ddir = os.path.join(BACKUPS, "deleted", cid)
+    if os.path.isdir(ddir):
+        for stamp in sorted(os.listdir(ddir), reverse=True):
+            sd = os.path.join(ddir, stamp)
+            if os.path.isdir(sd) and FILENAME_RE.match(stamp):
+                cands += [("deleted/%s/%s" % (stamp, n), os.path.join(sd, n), "deleted") for n in sorted(os.listdir(sd)) if pat.match(n)]
+    if os.path.isdir(LEGACY_ICON_BACKUPS):
+        for sub in sorted(os.listdir(LEGACY_ICON_BACKUPS)):
+            sd = os.path.join(LEGACY_ICON_BACKUPS, sub)
+            if sub.startswith("icons") and FILENAME_RE.match(sub) and os.path.isdir(sd):
+                cands += [("legacy/%s/%s" % (sub, n), os.path.join(sd, n), "legacy") for n in sorted(os.listdir(sd)) if pat.match(n)]
+    tiles, order = {}, []
+    for ref, full, where in cands:
+        try:
+            st = os.stat(full)
+            dg = _file_digest(full)
+        except OSError:
+            continue
+        item = {"ref": ref, "where": where, "file": os.path.basename(full), "mtime": int(st.st_mtime), "size": st.st_size,
+                "when": time.strftime("%Y-%m-%d %H:%M", time.localtime(st.st_mtime))}
+        t = tiles.get(dg)
+        if t is None:
+            t = dict(item, digest=dg[:12], url="/iconfile/%s/%s/%s?v=%d" % (kind, cid, ref, int(st.st_mtime)), copies=[], used_by=[])
+            tiles[dg] = t
+            order.append(dg)
+        else:
+            t["copies"].append(item)
+        if where == "folder":
+            for c in shown_by.get(item["file"], []):
+                if c not in t["used_by"]:
+                    t["used_by"].append(c)
+    return {"ok": True, "kind": kind, "id": cid, "name": str(d.get("name") or cid), "base": base,
+            "play": icon_played_code(kind, cid, folder, d), "looks": looks, "files": [tiles[k] for k in order],
+            "folder": rel(folder), "backups": rel(bdir)}
+
+
+def icon_op(kind, cid, code, op, body=None):
+    """POST /api/content/<kind>/<id>/icon {op: revert | use, code ("" = the base), ref (use), confirm} and the look ops
+    revert_icon / use_icon {ref, confirm} (pass 76)."""
+    body = body if isinstance(body, dict) else {}
+    confirm = True if body.get("confirm") is True else False
+    if op in ("revert", "revert_icon"):
+        return revert_icon(kind, cid, code, confirm)
+    if op in ("use", "use_icon"):
+        return use_icon(kind, cid, code, str(body.get("ref") or ""), confirm)
+    return {"ok": False, "status": 400, "error": "unknown icon op %s (revert or use)" % op}
+
+
+def install_guard(job_id, body):
+    """POST /api/jobs/<id>/install, an icon candidate (icon_cands, hero_badge) going on a look (pass 76): (status, body) of
+    the refusal when it must wait (the look in play or the base without `confirm: true`: the page asks now -> new), else
+    (None, the options jobs.install gets): the install's own new file (`icon_file`: the job form's named file when it is
+    free, else fresh_icon_name; nothing is overwritten), the look (`icon_code`, "" = the base) and why. Anything else (a
+    title cut-out, an unknown or unfinished job): (None, the options as sent)."""
+    body = body if isinstance(body, dict) else {}
+    sent = body.get("options") if isinstance(body.get("options"), dict) else (body.get("badge") if isinstance(body.get("badge"), dict) else None)
+    options = dict(sent or {})
+    st, got = jobs_call("get", job_id)
+    src = got.get("job") if st == 200 and isinstance(got, dict) else None
+    if not isinstance(src, dict) or src.get("kind") not in ("icon_cands", "hero_badge") or src.get("state") != "done":
+        return None, sent
+    t = src.get("target") or {}
+    kind, cid = str(t.get("kind") or ("hero" if src["kind"] == "hero_badge" else "")), str(t.get("id") or "")
+    tfolder, path = content_path(kind, cid)
+    if path is None or kind not in EDIT_KINDS:
+        return None, sent
+    folder = os.path.dirname(path)
+    d = _load_or_empty(path)
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    if "variant" in options:
+        code = str(options.get("variant") or "").strip()
+    elif src["kind"] == "hero_badge" and str((src.get("spec") or {}).get("variant") or "").strip():
+        code = str(src["spec"]["variant"]).strip()
+    else:
+        code = str(t.get("code") or "")
+    if code and code != _base_code(kind, d) and code not in vs:
+        return None, sent
+    info = look_icon_info(kind, cid, folder, d, code)
+    choice = str(body.get("choice") if body.get("choice") is not None else "").strip()
+    tag = re.sub(r"[^A-Za-z0-9]", "", str(src.get("id") or ""))[-4:]
+    choices = [c for c in (src.get("choices") or []) if isinstance(c, dict)]
+    # the Jobs tab and an item's candidates send the label ("c2"), the look picker the id ("2"): jobs.choice_id's rule
+    ch = next((c for c in choices if str(c.get("id")) == choice), None) or next((c for c in choices if str(c.get("label")) == choice), None)
+    choice = str(ch.get("id")) if ch else choice
+    label = "%s of #%s" % ((ch or {}).get("label") or ("c" + choice), tag)
+    named = os.path.basename(str(((src.get("plan") or {}).get("icon_job") or {}).get("file") or ""))
+    if named and FILENAME_RE.match(named) and named.lower().endswith(".png") and not os.path.exists(os.path.join(folder, named)):
+        new_name = named
+    else:
+        new_name = fresh_icon_name(folder, cid, "" if info["base"] else info["code"], "%s_c%s" % (tag, choice) if choice.isdigit() else tag)
+    if (info["played"] or info["base"]) and body.get("confirm") is not True:
+        ref = _icon_refusal(kind, cid, d, info, new_name, (ch or {}).get("url", ""), label, verb="install a new")
+        ref["next"]["candidate"] = True
+        ref["job"] = src.get("id")
+        ref["choice"] = choice
+        return ref.pop("status"), ref
+    options.update(icon_file=new_name, icon_code="" if info["base"] else info["code"], why="install %s" % label)
+    return None, options
+
+
 # ---------------------------------------------------------------- the hooks jobs.py writes content through
 
 class Hooks:
@@ -2314,6 +3123,10 @@ class Hooks:
 
     def content_path(self, kind, cid):
         return content_path(kind, cid)
+
+    def snapshot_icons(self, kind, cid):
+        """pass 76 (lane ICON): the asset's icons copied into backups/<id>/ before a job that may paint over one runs."""
+        return snapshot_icons(kind, cid)
 
     def look_records(self, kind, cid):
         tfolder, path = content_path(kind, cid)
@@ -2345,6 +3158,11 @@ class Hooks:
             vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
             existing = vs.get(code) if isinstance(vs.get(code), dict) else {}
             update = dict(entry)
+            # pass 76 (lane ICON): a look whose icon was picked keeps it when a re-roll lands (the tools name their front
+            # crop <id>_icon_<x>.png; a pick has had a file of its own since pass 76)
+            if "icon" in update and existing.get("icon_picked") and existing.get("icon") and update["icon"] != existing["icon"] \
+                    and resolve_file(os.path.dirname(path), str(existing["icon"])):
+                update.pop("icon")
             if kind == "hero" and "frame_px" not in update and isinstance(existing.get("recipe"), dict) and existing["recipe"].get("frame_px"):
                 update["frame_px"] = existing["recipe"]["frame_px"]
             update["fresh"] = True
@@ -2476,12 +3294,23 @@ class Hooks:
             cio.write_atomic(path, text)
         return {"ok": True, "file": rel(path), "keys": ["variants"], "backup": backup_rel, "code": code, "recipe": merged}
 
-    def set_look_files(self, kind, cid, code, files):
+    def set_look_files(self, kind, cid, code, files, meta=None):
         """pass 68 (D8): a candidate picked for a look lands in its entry: {"icon": "<id>_icon_<x>.png"} (a badge or an
         icon beside the JSON) and/or {"title": "hero_<id>_<x>.png"} (a hero's title cut-out under art/ui/wanted/). The
         entry is edited in place (content_io's entry writer), with a backup; no `fresh` (the strip is not touched) and no
         import here (the job queues one). The look must exist: a pick never creates an entry. Pass 73 (lane CARDS): a
-        card's look (ITEM_LOOK_KINDS) takes its icon the same way."""
+        card's look (ITEM_LOOK_KINDS) takes its icon the same way. Pass 76 (lane ICON): the icon goes through
+        set_look_icon, the one place an icon changes (the look's icon_history, a copy of the icon it replaces under
+        backups/<id>/; code "" or the base's own: the top-level icon, for any asset); `meta` {why} is the step's reason."""
+        if isinstance(files, dict) and "icon" in files and set(files) <= {"icon", "title"}:
+            why = str(meta.get("why") or "") if isinstance(meta, dict) else ""
+            r = set_look_icon(kind, cid, code if isinstance(code, str) else "", str(files.get("icon") or ""), why, confirm=None, need_file=False)
+            r.pop("status", None)
+            r["layout"] = r.get("layout", "entry") if r.get("ok") else "unmerged"
+            r["keys"] = ["icon", "icon_history"] if r.get("base") else ["variants"]
+            if not r.get("ok") or "title" not in files:
+                return r
+            files = {"title": files["title"]}
         if kind not in LOOK_KINDS and not (kind in ITEM_LOOK_KINDS and set(files or {}) <= {"icon"}):
             return {"ok": False, "layout": "unmerged", "error": "only enemies, bosses, heroes and cards have looks"}
         tfolder, path = content_path(kind, cid)
@@ -3104,6 +3933,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._api_get(parts[1:], query)
             if parts[:1] == ["icon"]:
                 return self._icon(parts[1:])
+            if parts[:1] == ["iconfile"]:
+                return self._iconfile(parts[1:])   # pass 76 (lane ICON): a picture of the icon gallery
             if parts[:1] == ["sprite"]:
                 return self._sprite(parts[1:])
             if parts[:2] == ["art", "wanted"] and len(parts) == 3:
@@ -3192,6 +4023,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._error(404, "bad id")
             if len(parts) == 3:
                 return self._result(read_content(kind, cid))
+            if parts[3] == "icons":
+                # pass 76 (lane ICON): every icon picture on disk and every look's icon now (the gallery, Revert icon)
+                return self._result(icon_gallery(kind, cid))
             if parts[3] == "next_codes":
                 n = query.get("n", ["1"])[0]
                 try:
@@ -3227,6 +4061,15 @@ class Handler(BaseHTTPRequestHandler):
             st, body = jobs_call("get", parts[1])
             return self._send(st, body)
         return self._error(404, "unknown API path")
+
+    def _iconfile(self, parts):
+        """/iconfile/<kind>/<id>/<ref> (pass 76): one picture of the icon gallery (icon_ref_path checks the ref)."""
+        if len(parts) < 4 or parts[0] not in KIND_FOLDERS or not ID_RE.match(parts[1]):
+            return self._error(404, "icon gallery paths are /iconfile/<kind>/<id>/<folder|backup|deleted|legacy>/...")
+        full = icon_ref_path(parts[0], parts[1], "/".join(parts[2:]))
+        if not full:
+            return self._error(404, "no such icon")
+        self._file(full, "image/png")
 
     def _icon(self, parts):
         if len(parts) not in (2, 3):
@@ -3515,6 +4358,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._result(set_availability(kind, cid, data))
             if op == "delete":
                 return self._result(delete_content(kind, cid, bool(data.get("cascade", False))))
+            if op == "icon":
+                # pass 76 (lane ICON): {op: revert | use, code ("" = the base), ref, confirm}
+                return self._result(icon_op(kind, cid, str(data.get("code") or ""), str(data.get("op") or ""), data))
             if op == "make_path":
                 if kind != "weapon":
                     return self._error(400, "make_path is for weapons")
@@ -3573,7 +4419,12 @@ class Handler(BaseHTTPRequestHandler):
         elif op == "pick":
             st, body = jobs_call("pick", jid, data.get("choice"))
         elif op == "install":
-            st, body = jobs_call("install", jid, data.get("choice"), data.get("options") or data.get("badge"))
+            # pass 76 (lane ICON): an icon for the look in play or the base waits for confirm: true (the page asks: now ->
+            # new); every icon install gets a file of its own (install_guard: nothing is overwritten)
+            gst, gopts = install_guard(jid, data)
+            if gst is not None:
+                return self._send(gst, gopts)
+            st, body = jobs_call("install", jid, data.get("choice"), gopts if gopts is not None else (data.get("options") or data.get("badge")))
         elif op == "move":
             st, body = jobs_call("move", jid, int(_num(data.get("delta"), 0)))
         elif op == "delete":

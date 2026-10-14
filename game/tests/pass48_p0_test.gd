@@ -308,32 +308,34 @@ func test_both_barrels_is_every_heros_motion_pick() -> void:
 
 
 func test_the_evolution_needs_the_whole_path() -> void:
+	# pass 76 (lane DYN): the Drifter's favourite and his own mutation moved to the dynamite (the Lob Grenade and Fire in
+	# the Hole; the Peashooter and Fan the Hammer are hidden): the same walk down its path
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
-	var w := Run.add_weapon(Registry.weapon("peashooter"), 5)
+	var w := Run.add_weapon(Registry.weapon("lob_grenade"), 5)
 	assert_bool(Run.path_progress(w) == Vector2i(0, 3)).override_failure_message(str(Run.path_progress(w))).is_true()
 	assert_bool(Run.path_progress(null) == Vector2i.ZERO).is_true()
 	# the hero's own option is the stage's pick but no step down the path
-	assert_bool(Run.add_mutation("fan_the_hammer")).is_true()
+	assert_bool(Run.add_mutation("fire_in_the_hole")).is_true()
 	assert_bool(Run.path_progress(w) == Vector2i(0, 3)).is_true()
 	Run.stage = 1
-	Run.add_mutation("toxic_peas")
+	Run.add_mutation("new_equipment")
 	Run.stage = 2
-	Run.add_mutation("big_peas")
+	Run.add_mutation("frag")
 	assert_bool(Run.path_progress(w) == Vector2i(2, 3)).is_true()
 	assert_bool(Run.evolution_ready(w)).is_false()
 	assert_str(Run.evolution_status(w)).contains("2/3 mutations")
 	Run.stage = 3
-	Run.add_mutation("bouncing_peas")
+	Run.add_mutation("sticky")
 	assert_bool(Run.path_progress(w) == Vector2i(3, 3)).is_true()
 	assert_bool(Run.evolution_ready(w)).is_true()
 	assert_str(Run.evolution_status(w)).contains("3/3 mutations")
 	var r := Run.chest_roll()
 	assert_str(str(r["type"])).is_equal("evolution")
-	assert_str(str(r["id"])).is_equal("pea_cannon")
+	assert_str(str(r["id"])).is_equal("golden_pineapple")
 	Run.chest_take(r)
-	var evo := Run.weapon_instance("pea_cannon")
+	var evo := Run.weapon_instance("golden_pineapple")
 	assert_object(evo).is_not_null()
-	assert_str(evo.def.targeting).is_equal("priority")
+	assert_str(evo.def.targeting).is_equal("densest")
 	assert_int(evo.mutations.size()).is_equal(4)
 	# not at the top level: not ready, whatever it carries
 	var sab := Run.add_weapon(Registry.weapon("sabre"), 4)
@@ -355,7 +357,9 @@ func test_the_new_evolutions_replace_the_old() -> void:
 		assert_bool(evo.is_evolution).is_true()
 		assert_str(evo.evolved_from).is_equal(base)
 		assert_int(evo.max_level).is_equal(1)
-		assert_bool(Registry.is_hidden(evo)).override_failure_message(new_id + " hidden").is_false()
+		# pass 76 (lane DYN): an evolution is out of play exactly when its weapon is (the Peashooter is hidden, so is the
+		# Pea Cannon)
+		assert_bool(Registry.is_hidden(evo)).override_failure_message(new_id + " hidden").is_equal(b.hidden)
 		assert_object(evo.visual).override_failure_message(new_id + " has no visual").is_not_null()
 		assert_bool(evo.has_icon()).override_failure_message(new_id + " has no icon").is_true()
 		var old: WeaponDef = Registry.weapon(old_id)

@@ -1188,6 +1188,10 @@ def _plan(job):
                     icon_job["variant"] = spec["variant"]
                 else:
                     icon_job.pop("variant", None)
+            if spec.get("icon_file"):
+                # pass 76 (lane ICON): the install's own new file; keep_old: never written over a different picture
+                icon_job["file"] = spec["icon_file"]
+                icon_job["keep_old"] = True
             p.update(tool="gen_icon_cands", call="pick", lock=None, argv=["--pick", "%s=%s" % (sp.get("key", cid), choice)], key=sp.get("key", cid),
                      icon_job=icon_job, choice=choice, id=src["target"].get("id", ""), type=sp.get("type", ""))
             p["equiv"] = "python tools/gen_icon_cands.py --pick %s=%s   (JOBS[%r] = %s)" % (p["key"], choice, p["key"], json.dumps(p["icon_job"], ensure_ascii=False))
@@ -1206,6 +1210,8 @@ def _plan(job):
             # the candidates are keyed by the job that painted them (<id>_portrait_<tag>_c<k>): the pick names that job
             # (--tag; its ASSET_JOB_ID is that job's too, _asset_env)
             argv += ["--tag", str(src["id"])]
+            if spec.get("icon_file"):
+                argv += ["--icon-file", str(spec["icon_file"])]   # pass 76 (lane ICON): its own new file, nothing overwritten
             p.update(tool="gen_badge_cands", call="main", lock=None, argv=argv, equiv=_equiv_py("gen_badge_cands", argv), id=hid, type="characters",
                      variant=variant, source_job=src["id"], tag=_badge_tag(src))
         elif src["kind"] == "hero_title":
@@ -2521,6 +2527,17 @@ def pick(job_id, choice):
         return _public(job, LOG_TAIL_SHORT)
 
 
+def choice_id(src, choice):
+    """pass 76 (lane ICON): the candidate a pick names, as its id: the Jobs tab and an item's icon candidates send the
+    label ("c2", "#1"), the look picker the id ("2"); the pick tools read the id (gen_icon_cands looked for <key>_cc2.png)."""
+    c = str(choice if choice is not None else "")
+    ids = [str(x.get("id")) for x in (src.get("choices") or []) if isinstance(x, dict)]
+    if c in ids:
+        return c
+    hit = next((str(x.get("id")) for x in (src.get("choices") or []) if isinstance(x, dict) and str(x.get("label")) == c), None)
+    return hit if hit is not None else c
+
+
 def install(job_id, choice, options=None):
     _writable()
     with _lock:
@@ -2531,10 +2548,17 @@ def install(job_id, choice, options=None):
             raise ValueError("nothing to install from a %s job" % src["kind"])
         if src["state"] != "done":
             raise ValueError("job %s is %s: its candidates are not ready" % (job_id, src["state"]))
+        choice = choice_id(src, choice)
     spec = {"source_job": job_id, "choice": str(choice)}
     for k in ("head_width", "top_pad"):
         if options and options.get(k) is not None:
             spec[k] = options[k]
+    # pass 76 (lane ICON): the server's install guard names the install's own new file (never an existing one), the look
+    # it is for ("" = the base: the top-level icon) and why; the pick writes that file and lands through set_look_files
+    if options and options.get("icon_file"):
+        spec["icon_file"] = os.path.basename(str(options["icon_file"]))
+        spec["icon_code"] = str(options.get("icon_code") or "")
+        spec["why"] = str(options.get("why") or "")
     target = dict(src.get("target") or {})
     more = ""
     if options and options.get("variant") is not None:
@@ -2850,6 +2874,7 @@ def _run(job):
                 return
             live.lock = lk
         try:
+            _snapshot_icons(job)   # pass 76 (lane ICON): the asset's icons into backups/<id>/ before anything paints
             if job["lane"] == "comfy":
                 with _lock:
                     job["qa_online"] = qa_online()
@@ -3318,6 +3343,8 @@ def _post(job):
                 return {"file": "", "keys": ["variants"], "backup": "", "layout": "unmerged"}, "no merge hook"
             r = h(t["kind"], t["id"], t["code"], entry, {"pipeline": "recolour_strip", "from": src_code}) or {}
             return _written(t, r, ["variants"]), ("" if r.get("ok") else str(r.get("error") or ""))
+        if kind == "install" and (job.get("spec") or {}).get("icon_file"):
+            return _post_install_icon(job, res)   # pass 76 (lane ICON)
         if kind == "install" and _install_code(job, res):
             return _post_install_look(job, res, _install_code(job, res))
         if kind == "item_icon" or (kind == "install" and (res.get("top") or {}).get("badge")):
@@ -3428,6 +3455,54 @@ def _post_install_look(job, res, code=None):
     w = _written(t, r, ["variants"])
     w["entry_keys"] = sorted(files)
     return w, ("" if r.get("ok") else str(r.get("error") or "the look's entry could not be written"))
+
+
+def _post_install_icon(job, res):
+    """pass 76 (lane ICON): an install the server's guard named a file for (spec.icon_file, never an existing file) lands
+    through set_look_files for its look (spec.icon_code; "" = the base: the top-level icon), which keeps the look's
+    icon_history and a copy of the icon it replaces under tools/level_editor/backups/<id>/; a hero base's badge block
+    follows (merge_top). The file is the one the tool says it wrote (its sidecar entry, or info.icon_file)."""
+    t = job.get("target") or {}
+    spec = job.get("spec") or {}
+    folder = _content_folder(t.get("kind", ""), t.get("id", "")) or ""
+    ent = res.get("entry") if isinstance(res.get("entry"), dict) else {}
+    info = res.get("info") if isinstance(res.get("info"), dict) else {}
+    name = os.path.basename(str(ent.get("icon") or info.get("icon_file") or spec.get("icon_file") or ""))
+    if not name or not os.path.isfile(os.path.join(folder, name)):
+        return None, "the install wrote no icon file (looked for %s in %s)" % (name or "?", _rel(folder) if folder else "?")
+    h = _hook("set_look_files")
+    if not h:
+        return {"file": "", "keys": ["icon"], "backup": "", "layout": "unmerged"}, "no set_look_files hook: %s sits on disk, not in the JSON" % name
+    code = str(spec.get("icon_code") or "")
+    r = h(t.get("kind", ""), t["id"], code, {"icon": name}, {"why": str(spec.get("why") or "install")}) or {}
+    w = _written(t, r, ["variants"] if code else ["icon", "icon_history"])
+    w["entry_keys"] = ["icon"]
+    w["icon_file"] = name
+    err = "" if r.get("ok") else str(r.get("error") or "the icon could not be written")
+    top = res.get("top") or {}
+    if top.get("badge") and _hook("merge_top"):
+        r2 = _hook("merge_top")("hero", t["id"], {"badge": top["badge"]}) or {}
+        if not r2.get("ok"):
+            err = err or str(r2.get("error") or "the badge block could not be written")
+        elif r2.get("keys"):
+            w["keys"] = w["keys"] + [k for k in r2["keys"] if k not in w["keys"]]
+    return w, err
+
+
+def _snapshot_icons(job):
+    """pass 76 (lane ICON): before a look, an item icon or an install job runs, every icon of its asset is copied into
+    tools/level_editor/backups/<id>/ (the server's snapshot_icons hook; a picture already there is not copied again), so a
+    repaint never loses one. Never fails the job."""
+    if job.get("kind") not in ("look", "item_icon", "install"):
+        return
+    t = job.get("target") or {}
+    h = _hook("snapshot_icons")
+    if not h or not t.get("id"):
+        return
+    try:
+        h(t.get("kind", "") or ("hero" if job.get("kind") == "install" else ""), t["id"])
+    except Exception as e:
+        _log("jobs: the icon snapshot of %s failed: %s: %s" % (t.get("id"), type(e).__name__, e))
 
 
 def _after_done(job):

@@ -2,6 +2,9 @@
 
 [ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_begve"]
 [ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon.png" id="1_p1m03"]
+[ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon_b.png" id="3_wt5rr"]
+[ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon_c.png" id="4_0jsam"]
+[ext_resource type="Texture2D" path="res://content/mutations/frag/frag_icon_d.png" id="5_6hrc5"]
 
 [resource]
 script = ExtResource("1_begve")
@@ -18,6 +21,48 @@ params = {
 "speed": 14.0
 }
 }
+variants = {
+"A": {
+"note": "the grenade's: steel spikes"
+},
+"B": {
+"flavour": "Saves the undertaker a trip.",
+"fresh": true,
+"icon": ExtResource("3_wt5rr"),
+"icon_file": "frag_icon_b.png",
+"name": "Coffin Nails",
+"note": "B · the stick (or the bundle) in red paper; nails in its words",
+"params": {
+"model_colour": "red"
+},
+"text": "The burst throws six coffin nails out past the blast."
+},
+"C": {
+"flavour": "Saves the undertaker a trip.",
+"fresh": true,
+"icon": ExtResource("4_0jsam"),
+"icon_file": "frag_icon_c.png",
+"name": "Coffin Nails",
+"note": "C · the stick (or the bundle) in red paper; nails in its words",
+"params": {
+"model_colour": "red"
+},
+"text": "The burst throws six coffin nails out past the blast."
+},
+"D": {
+"flavour": "Saves the undertaker a trip.",
+"fresh": true,
+"icon": ExtResource("5_6hrc5"),
+"icon_file": "frag_icon_d.png",
+"name": "Coffin Nails",
+"note": "D · the stick (or the bundle) in red paper; nails in its words",
+"params": {
+"model_colour": "red"
+},
+"text": "The burst throws six coffin nails out past the blast."
+}
+}
+variant_base = "A"
 id = "frag"
 display_name = "Frag"
 flavour = "The pieces are the point."

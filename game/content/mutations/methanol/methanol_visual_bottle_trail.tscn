@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://art/props/molotov_bottle_blue.glb" id="model"]
+
+[sub_resource type="StandardMaterial3D" id="paint"]
+vertex_color_use_as_albedo = true
+roughness = 0.24
+
+[node name="MethanolVisual" type="Node3D"]
+
+[node name="Projectile" parent="." instance=ExtResource("model")]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
+
+[node name="Bottle" parent="Projectile" index="0"]
+surface_material_override/0 = SubResource("paint")

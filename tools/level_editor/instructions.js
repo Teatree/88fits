@@ -24,6 +24,7 @@ const Instructions = (() => {
     clear(container);
     const root = el('div', { class: 'instr' });
     intro(root);
+    pass76Icons(root);   // pass 76 (lane ICON): the icon guard
     // pass 72 (lane BOSS): boss HP pegged to DPS, the custom boss attacks (boss_attacks.js writes the section)
     if (typeof BossAttacks !== 'undefined' && BossAttacks.instructions) BossAttacks.instructions(root);
     pass71(root);   // pass 71 (lane PLE): the Puppet method
@@ -552,6 +553,32 @@ const Instructions = (() => {
     how('Run a puppet job again from one stage', null, ol(
       'Jobs tab → the puppet job → <b>Re-roll…</b> → <i>run the puppet again from a stage</i>: the arms-out paintings, the shape, the rig, the clips and colours, or the guides. That stage\'s files and the later ones move to <code>old/&lt;stamp&gt;/</code> and are made again; then the walks.',
       'On a pick: <b>Re-roll 4 more</b> paints that pick\'s candidates again on new seeds. In the job form of a look: re-roll <i>run the puppet again from a stage</i>.'));
+  }
+
+  // ------------------------------------------------------------------ pass 76: the icon guard (lane ICON)
+
+  /** Garry (pass 76): "Bring back the old Solenne icon, I made a variant of an Icon and can't find the old one. Make a fix
+   *  in LevelEditor to make sure that this doesn't happen." What changed, and how to find, undo and choose icons now. */
+  function pass76Icons(root) {
+    const ol = (...steps) => el('ol', { class: 'howto' }, steps.map((s) => li(s)));
+    const how = (title, intro2, steps) => { root.appendChild(el('h3', { text: title })); if (intro2) root.appendChild(p(intro2)); root.appendChild(steps); };
+    root.appendChild(el('h2', { text: 'Pass 76: an icon is never lost again' }));
+    root.appendChild(p('Solenne\'s old badge had not gone: a badge painted for her base was installed into SOL-B, the look the game plays, so every screen showed the new one. Her old badge is back (SOL-B shows her own again); the other one, <code>solenne_icon_b.png</code>, is still on disk. From now on:'));
+    root.appendChild(el('ul', {},
+      li('<b>Nothing is overwritten.</b> An installed badge, icon or card gets a new file of its own (<code>solenne_icon_b_3d3c_c2.png</code> = candidate c2 of job #3d3c for SOL-B); the old file stays.'),
+      li('<b>The editor asks first</b> when the icon of <b>the look the game plays</b>, or of <b>the base look</b> (which every look without its own icon shows), would change: the picture now and the new one side by side, with their file names. <b>Cancel</b> changes nothing.'),
+      li('<b>Every change is remembered</b> with a copy of the old picture under <code>tools/level_editor/backups/&lt;id&gt;/</code>, and <b>Revert icon</b> undoes the last one.')));
+    how('Find an old icon and put it back', null, ol(
+      'Heroes (or Enemies) tab → the hero → <b>Looks &amp; previews</b> → click the look\'s card. An item: Items tab → the item → <b>Art</b>.',
+      'Under the pictures, the <b>Icon now</b> box says which file the game shows for that look and where it comes from. Open <b>All icons on disk</b>: every picture of that hero, creature or item that exists anywhere (its folder, the editor\'s backups, removed looks\' files, older tools\' copies), each once, with the looks that use it. Double-click one to see it big.',
+      'Press <b>Use for &lt;look&gt;</b> under the one you want. For the look in play or the base the editor asks first; say yes. A backup copy is put back into the folder under its own name, then the import runs.'));
+    how('Undo an icon change', null, ol(
+      'The look\'s <b>Icon now</b> box → <b>Revert icon</b> (it is greyed out when there is nothing to undo; <b>Changes</b> lists every change, newest first).',
+      'Look at the question (now → back to) and say yes: the look shows what it showed before, and the file it showed stays on disk.'));
+    how('Install a candidate without surprises', null, ol(
+      'Any <b>Install</b> button (a look\'s <i>Choose … from everything painted</i>, the Jobs tab\'s candidates, an item\'s icon candidates).',
+      'For the look in play or the base, the question says what changes and where: "SOL-B is the look the game plays", or "SOL-A is the base look: SOL-B, SOL-C … show it too". Check the two pictures and the look\'s code before you say yes.',
+      'Close the Level Editor and open it again once (<code>tools\\level_editor.cmd</code>) to get all of this: an editor started before pass 76 does not have it.'));
   }
 
   // ------------------------------------------------------------------ pass 69: how to use what pass 69 added (lane LE)

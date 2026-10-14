@@ -3,6 +3,8 @@
 [ext_resource type="Texture2D" path="res://content/evolutions/moonshine/moonshine_icon.png" id="1_ed5lh"]
 [ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_jr1s3"]
 [ext_resource type="PackedScene" path="res://content/evolutions/moonshine/moonshine_visual.tscn" id="3_ed5lh"]
+[ext_resource type="PackedScene" path="res://content/evolutions/moonshine/moonshine_visual_jug.tscn" id="3_gf714"]
+[ext_resource type="PackedScene" path="res://content/evolutions/moonshine/moonshine_visual_jug_trail.tscn" id="4_bin1s"]
 
 [resource]
 script = ExtResource("2_jr1s3")
@@ -49,6 +51,72 @@ params = {
 },
 "fire_blue": true
 }
+variants = {
+"B": {
+"fresh": true,
+"note": "the brown jug tumbling, a blue torch flame on its plug",
+"params": {
+"pool_flame": {
+"size": 0.78,
+"style": "torch"
+},
+"wick_flame": {
+"life": 0.28,
+"offset": [0.0, 0.19, 0.0],
+"rate": 10.0,
+"size": 0.713,
+"style": "torch",
+"tumble": 1.0
+}
+},
+"visual": ExtResource("3_gf714"),
+"visual_file": "moonshine_visual_jug.tscn"
+},
+"C": {
+"fresh": true,
+"note": "the brown jug base first, a blue streamer from its mouth",
+"params": {
+"pool_flame": {
+"size": 0.78,
+"style": "torch"
+},
+"wick_flame": {
+"life": 0.25,
+"offset": [0.0, 0.2, 0.0],
+"rate": 8.0,
+"size": 0.69,
+"style": "streamer",
+"tail": 0.12
+}
+},
+"visual": ExtResource("4_bin1s"),
+"visual_file": "moonshine_visual_jug_trail.tscn"
+},
+"D": {
+"fresh": true,
+"note": "the brown jug tumbling, a blue inked cartoon flame",
+"params": {
+"pool_flame": {
+"life": 1.1,
+"size": 0.66,
+"style": "cartoon"
+},
+"wick_flame": {
+"lean": 0.025,
+"life": 0.3,
+"offset": [0.0, 0.19, 0.0],
+"rate": 5.0,
+"size": 0.632,
+"style": "cartoon",
+"tumble": 1.0
+}
+},
+"visual": ExtResource("3_gf714"),
+"visual_file": "moonshine_visual_jug.tscn"
+}
+}
+variant_base = "A"
+variant = "A"
 id = "moonshine"
 display_name = "Moonshine"
 flavour = "Blue fire always: pools burn three times as long and slowly spread 60% wider, the jug lays a burning line all along its throw, and an enemy that dies burning splashes a small blue pool (6 at most)."

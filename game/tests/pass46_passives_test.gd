@@ -335,9 +335,13 @@ func test_the_collection_has_its_tabs_and_marks_the_heroes_mutations() -> void:
 	assert_str(str(rain[3])).is_equal("danza_macabra")
 	assert_str(CollectionScreen.hero_only_text(Registry.mutation("danza_macabra"))).is_equal("CALAVERA ONLY")
 	assert_str(CollectionScreen.hero_only_text(Registry.mutation(str(rain[0])))).is_equal("")
+	# pass 76 (lane DYN): the Drifter's own is Fire in the Hole on the dynamite (the Lob Grenade); the Peashooter and his
+	# Fan the Hammer are hidden
+	var lob: Array = CollectionScreen.page_mutations(Registry.weapon("lob_grenade")).map(func(m: MutationDef) -> String: return m.id)
+	assert_bool(lob.has("fire_in_the_hole")).is_true()
+	assert_str(CollectionScreen.hero_only_text(Registry.mutation("fire_in_the_hole"))).is_equal("DRIFTER ONLY")
 	var pea: Array = CollectionScreen.page_mutations(Registry.weapon("peashooter")).map(func(m: MutationDef) -> String: return m.id)
-	assert_bool(pea.has("fan_the_hammer")).is_true()
-	assert_str(CollectionScreen.hero_only_text(Registry.mutation("fan_the_hammer"))).is_equal("DRIFTER ONLY")
+	assert_bool(pea.has("fan_the_hammer")).is_false()
 	# pass 67: Buck is back in play, so his own is on his weapon's page, marked as his; pass 69: he is Jeżyk, his own is
 	# Salt Flats on the Salt's page and the Tommy Gun's Drum Roll is hidden (off the page)
 	var tommy: Array = CollectionScreen.page_mutations(Registry.weapon("tommy_gun")).map(func(m: MutationDef) -> String: return m.id)

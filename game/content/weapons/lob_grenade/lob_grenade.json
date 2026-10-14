@@ -10,10 +10,21 @@
     "damage": 25,
     "cooldown": 2.2,
     "amount": 1,
-    "area": 2.5,
+    "area": 2.8,
     "range": 10,
-    "knockback": 7.0,
+    "knockback": 14.0,
     "speed": 9
+  },
+  "params": {
+    "fuse": {
+      "seconds": 1.0,
+      "out_before": 0.5,
+      "lie": true,
+      "spark": {
+        "color": "#FF9A2E",
+        "size": 0.13
+      }
+    }
   },
   "max_level": 5,
   "levels": [
@@ -72,5 +83,153 @@
     "color": "#5C7A3A",
     "glyph": "grenade"
   },
-  "art_prompt": "a round olive-green hand grenade with a silver pin and lever"
+  "art_prompt": "a round olive-green hand grenade with a silver pin and lever",
+  "variant_base": "A",
+  "variant": "B",
+  "variants": {
+    "A": {
+      "note": "the grenade (passes 26-75): the olive pineapple grenade"
+    },
+    "B": {
+      "name": "Dynamite Stick",
+      "flavour": "Light it. Lob it. Count to one.",
+      "noun": "stick",
+      "nouns": "sticks",
+      "icon": "lob_grenade_icon_b.png",
+      "note": "B · classic paper stick: dark rings, cream ends, a pale cord fuse; the bundle three sticks in black tape",
+      "params": {
+        "models": {
+          "stick": {
+            "tan": "res://art/props/dynamite_b_stick_tan.glb",
+            "red": "res://art/props/dynamite_b_stick_red.glb",
+            "tip": [
+              0.3589,
+              0.1171,
+              -0.0229
+            ]
+          },
+          "bundle": {
+            "tan": "res://art/props/dynamite_b_bundle_tan.glb",
+            "red": "res://art/props/dynamite_b_bundle_red.glb",
+            "tip": [
+              0.3589,
+              0.2171,
+              -0.0229
+            ]
+          }
+        },
+        "model_form": "stick",
+        "model_colour": "tan",
+        "model_metallic": 0.0,
+        "model_roughness": 0.85
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours, the fuse may curl a little longer. A single stick of dynamite: a smooth sandy-brown paper cylinder with two thin dark brown rings near each end and flat cream paper ends, a pale grey cord fuse curling out of its top end with a charred black tip, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally from the bottom left to the top right with the fuse at the top right",
+        "ref": "tools/dl/dynamite_b_stick_tan_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-174431-15b4",
+        "pick": "c3",
+        "seed": 282867821888,
+        "model": "klein"
+      }
+    },
+    "C": {
+      "name": "Dynamite Stick",
+      "flavour": "Light it. Lob it. Count to one.",
+      "noun": "stick",
+      "nouns": "sticks",
+      "icon": "lob_grenade_icon_c.png",
+      "note": "C · chunky cartoon stick: rounded ends, a cream label in black borders, a black curly fuse; the bundle four sticks tied with rope and a bow",
+      "params": {
+        "models": {
+          "stick": {
+            "tan": "res://art/props/dynamite_c_stick_tan.glb",
+            "red": "res://art/props/dynamite_c_stick_red.glb",
+            "tip": [
+              0.3492,
+              0.1729,
+              -0.0535
+            ]
+          },
+          "bundle": {
+            "tan": "res://art/props/dynamite_c_bundle_tan.glb",
+            "red": "res://art/props/dynamite_c_bundle_red.glb",
+            "tip": [
+              0.3492,
+              0.1729,
+              -0.0535
+            ]
+          }
+        },
+        "model_form": "stick",
+        "model_colour": "tan",
+        "model_metallic": 0.0,
+        "model_roughness": 0.8
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours, the fuse may curl a little longer. A single fat cartoon stick of dynamite: a chunky sandy-brown paper cylinder with rounded ends and a narrow cream label band with thick black borders round its middle, a thick black curly fuse, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally from the bottom left to the top right with the fuse at the top right",
+        "ref": "tools/dl/dynamite_c_stick_tan_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-174833-4fa5",
+        "pick": "c3",
+        "seed": 388481407580,
+        "model": "klein"
+      }
+    },
+    "D": {
+      "name": "Dynamite Stick",
+      "flavour": "Light it. Lob it. Count to one.",
+      "noun": "stick",
+      "nouns": "sticks",
+      "icon": "lob_grenade_icon_d.png",
+      "note": "D · waxed miner's stick: crimped ends, a printed band, a silver blasting cap and a tarred fuse; the bundle seven sticks in copper wire",
+      "params": {
+        "models": {
+          "stick": {
+            "tan": "res://art/props/dynamite_d_stick_tan.glb",
+            "red": "res://art/props/dynamite_d_stick_red.glb",
+            "tip": [
+              0.4135,
+              0.1111,
+              -0.0225
+            ]
+          },
+          "bundle": {
+            "tan": "res://art/props/dynamite_d_bundle_tan.glb",
+            "red": "res://art/props/dynamite_d_bundle_red.glb",
+            "tip": [
+              0.4135,
+              0.1111,
+              -0.0225
+            ]
+          }
+        },
+        "model_form": "stick",
+        "model_colour": "tan",
+        "model_metallic": 0.0,
+        "model_roughness": 0.6
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours, the fuse may curl a little longer. A single slim stick of miner's dynamite in glossy waxed sandy-brown paper with crimped twisted paper ends, a dark brown printed band with two thin cream stripes round its middle, a small silver blasting cap in its top end with a black tarred fuse curling out of it, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally from the bottom left to the top right with the fuse at the top right",
+        "ref": "tools/dl/dynamite_d_stick_tan_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-175905-bee5",
+        "pick": "c1",
+        "seed": 201084979443,
+        "model": "klein"
+      }
+    }
+  }
 }

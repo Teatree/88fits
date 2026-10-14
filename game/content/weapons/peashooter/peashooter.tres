@@ -76,6 +76,7 @@ params = {
 id = "peashooter"
 display_name = "Peashooter"
 flavour = "It goes pew. Reliably."
+hidden = true
 icon = ExtResource("1_fneh5")
 icon_file = "peashooter_icon.png"
 placeholder = {

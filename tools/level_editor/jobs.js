@@ -469,7 +469,12 @@ const Jobs = (() => {
 
   async function act(j, path, body, busyText) {
     App.status(`${title(j)}: ${busyText || path}…`, 'busy');
-    const res = await post(`/api/jobs/${encodeURIComponent(j.id)}/${path}`, body);
+    let res = await post(`/api/jobs/${encodeURIComponent(j.id)}/${path}`, body);
+    // pass 76 (lane ICON): an icon for the look in play or the base asks first (now -> new), then goes with confirm: true
+    if (res && res.confirm_needed && path === 'install' && typeof LookGrid !== 'undefined' && LookGrid.confirmIconChange) {
+      if (!(await LookGrid.confirmIconChange(res))) { App.status(`${title(j)}: not installed, nothing changed`); return res; }
+      res = await post(`/api/jobs/${encodeURIComponent(j.id)}/${path}`, Object.assign({}, body, { confirm: true }));
+    }
     if (!res.ok) { App.status(`${title(j)}: ${path} refused: ${res.error}`, 'bad', res.output || ''); return res; }
     App.status(`${title(j)}: ${path} done`, 'good');
     await poll();

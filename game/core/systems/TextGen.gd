@@ -252,6 +252,29 @@ static func land_blast_words(params: Dictionary, sheet: StatSheet) -> String:
 	return " Each one %s as it lands: %.0f damage within %.1f m and a light shove." % [how, dmg, r]
 
 
+## The dynamite's fuse in words (pass 76, lane DYN, params.fuse {seconds}): " It lies where it lands and blows a second
+## later." (" Each one ..." for a volley, " One that sticks to nothing ..." with Sticky), "" without a fuse.
+static func fuse_words(pr: Dictionary, amount: int = 1) -> String:
+	var fz = pr.get("fuse")
+	if not fz is Dictionary:
+		return ""
+	var s := float((fz as Dictionary).get("seconds", 1.0))
+	if s <= 0.0:
+		return ""
+	var when := "a second later" if absf(s - 1.0) < 0.01 else "%s s later" % _plain(s)
+	var who := "One that sticks to nothing" if pr.get("sticky") is Dictionary else ("It" if amount <= 1 else "Each one")
+	return " %s lies where it lands and blows %s." % [who, when]
+
+
+## The Drifter's Fire in the Hole in words (pass 76, lane DYN, params.mass_mini {min_hits}): " A blast that catches 9 or
+## more enemies lands a Mini Crit on every one of them.", "" without it.
+static func mass_mini_words(pr: Dictionary) -> String:
+	var mm = pr.get("mass_mini")
+	if not mm is Dictionary:
+		return ""
+	return " A blast that catches %d or more enemies lands a Mini Crit on every one of them." % maxi(int((mm as Dictionary).get("min_hits", 9)), 1)
+
+
 ## The basketball in words (pass 67, params.return_on_hit; its amount counts bounces with amount_mode "bounces"): "Throws
 ## a ball at the strongest enemy within 9 m: it bounces to 1 more enemy within 7 m, then flies back to his hand, hitting
 ## up to 2 on the way." (return_pierce 80 or more: "hitting everything on the way"), then its Heat (params.catch): "Every
@@ -395,14 +418,17 @@ static func weapon_description(def: WeaponDef, sheet: StatSheet, params: Diction
 		"Orbiter":
 			text = "%d blade%s circle you at %.1f m, hitting anything they touch." % [amount, "" if amount == 1 else "s", sheet.get_stat("orbit_radius", 2.0)]
 		"Lobber":
+			# pass 76 (lane LOOKS): the thing lobbed in the look's words (thing_word: "sticks"), else the sentence's own
 			if sheet.get_stat("fire_damage", 0.0) > 0.0:
-				text = "Lobs %d bottle%s of fire at the thickest crowd that is not burning yet. Leaves a %.1f m pool of flames." % [amount, "" if amount == 1 else "s", sheet.get_stat("area", 2.5)]
+				text = "Lobs %d %s of fire at the thickest crowd that is not burning yet. Leaves a %.1f m pool of flames." % [amount, thing_word(def, amount, "bottle", "bottles"), sheet.get_stat("area", 2.5)]
 			elif sheet.get_stat("poison_damage", 0.0) > 0.0:
-				text = "Lobs %d poison bomb%s at the thickest crowd of healthy enemies. Leaves a %.1f m cloud of green smoke." % [amount, "" if amount == 1 else "s", sheet.get_stat("area", 2.5)]
+				text = "Lobs %d poison %s at the thickest crowd of healthy enemies. Leaves a %.1f m cloud of green smoke." % [amount, thing_word(def, amount, "bomb", "bombs"), sheet.get_stat("area", 2.5)]
 			else:
-				text = "Lobs %d grenade%s at the densest crowd. Explodes in a %.1f m radius." % [amount, "" if amount == 1 else "s", sheet.get_stat("area", 2.5)]
+				text = "Lobs %d %s at the densest crowd. Explodes in a %.1f m radius." % [amount, thing_word(def, amount, "grenade", "grenades"), sheet.get_stat("area", 2.5)]
 			# pass 62, Sun Cocktail (params.land_blast): a small blast where each one lands
 			text += land_blast_words(pr, sheet)
+			# pass 76 (lane DYN): the dynamite's fuse and the Drifter's mass mini crits
+			text += fuse_words(pr, amount) + mass_mini_words(pr)
 		"Beam":
 			text = "Zaps a random enemy within %.0f m and chains to %d more." % [range_m, sheet.get_int("chains", 2)]
 		"Thruster":
@@ -782,6 +808,37 @@ static func _weapon_row(a: WeaponInstance, b: WeaponInstance, st: String, before
 	return {"stat": st, "name": _sentence(label), "before": pair[0], "after": pair[1], "worse": _worse(st, v0, v1)}
 
 
+## A weapon's thing words in the look it wears (pass 76, lane LOOKS: the Grenade as a Dynamite Stick), [one, many]:
+## WeaponDef.noun / nouns (the look's `noun` / `nouns`, else the JSON's top level); an evolution with none takes its family
+## weapon's; one given alone makes the other ("stick" -> "sticks"). ["", ""] when there are none: the sentence keeps its
+## own word ("grenade", "bottle", "bomb").
+static func weapon_nouns(def: WeaponDef) -> Array:
+	if def == null:
+		return ["", ""]
+	var one: String = def.noun
+	var many: String = def.nouns
+	if one == "" and many == "" and def.is_evolution:
+		var reg := _registry()
+		var root := str(reg.call("item_family_root", def.id)) if reg and reg.has_method("item_family_root") else def.evolved_from
+		var w = reg.call("weapon", root) if reg and root != "" else null
+		if w is WeaponDef and w != def:
+			one = (w as WeaponDef).noun
+			many = (w as WeaponDef).nouns
+	if one != "" and many == "":
+		many = one + "s"
+	elif many != "" and one == "":
+		one = _singular(many)
+	return [one, many]
+
+
+## The word for `n` of a weapon's things (pass 76): its look's (weapon_nouns), else `one` / `many`, the sentence's own.
+static func thing_word(def: WeaponDef, n: int, one: String, many: String) -> String:
+	var nn := weapon_nouns(def)
+	if n == 1:
+		return str(nn[0]) if str(nn[0]) != "" else one
+	return str(nn[1]) if str(nn[1]) != "" else many
+
+
 ## What a weapon's `amount` counts, in the word its description uses (pass 58 review: the change rows said "Projectiles
 ## 2 → 3" on the Hammer, the Gravity Gun and the Orbit Saws): plural, lower case. `sheet` and `params` are the weapon's as
 ## it is carried (WeaponInstance.sheet, .params; empty params = the def's). The Sun Scepter's pillars and the Guitarra's
@@ -809,7 +866,8 @@ static func amount_noun(def: WeaponDef, sheet: StatSheet = null, params: Diction
 		"Orbiter":
 			return "blades"
 		"Lobber":
-			return "bottles" if fire else ("bombs" if poison else "grenades")
+			# pass 76 (lane LOOKS): the look's word ("sticks") when it has one
+			return thing_word(def, 2, "", "bottles" if fire else ("bombs" if poison else "grenades"))
 		"Thruster":
 			# a slice swings `amount` times a stroke; the Spear's sweep (amount_mode "blades") and a thrust are blades
 			var th = pr.get("thrust", {})
@@ -1202,3 +1260,74 @@ static func hero_trait_at(c: CharacterDef, level: int) -> String:
 static func hero_trait_now(c: CharacterDef, level: int) -> String:
 	var at := hero_trait_at(c, level)
 	return "" if at == "" else "%s at level %d" % [at, level]
+
+
+# ---------------------------------------------------------------- pass 76 (lane UI): the hero's own numbers
+
+## The hero's stats that multiply a weapon's own number though a weapon's is counted in seconds: on the hero's sheet
+## cooldown and duration are 1 = as the weapon has it (StatSheet.PLAYER_DEFAULTS), so the pause Stats tab reads them as a
+## share ("100%", "92%"), never "1.00 s".
+const PLAYER_SHARE := ["cooldown", "duration"]
+
+
+## A hero stat's kind as the pause Stats tab says it: the shares above as "pct", the rest as STATS has them.
+static func player_kind(stat: String) -> String:
+	return "pct" if PLAYER_SHARE.has(stat) else stat_kind(stat)
+
+
+## A hero stat's value as the pause Stats tab shows it ("100%", "144.6", "1.5 m"): format_value, the shares as a percent.
+static func player_value(stat: String, v: float) -> String:
+	if PLAYER_SHARE.has(stat):
+		return "%d%%" % int(round(v * 100.0))
+	return format_value(stat, v)
+
+
+## How far a hero stat moved, unsigned, in its value's own unit ("20%", "12", "0.7", "0.6 m", "1"; a percent stat in
+## points): the Stats tab's change mark (the arrow says which way), whole from 10 up, else to a tenth. "" when it moved by
+## less than that unit shows.
+static func player_change(stat: String, v0: float, v1: float) -> String:
+	var d := absf(v1 - v0)
+	match player_kind(stat):
+		"pct":
+			var p := _change_amount(d * 100.0)
+			return "" if p == "" else p + "%"
+		"count":
+			return "" if roundf(d) < 1.0 else str(int(roundf(d)))
+		"sec":
+			return "" if d < 0.05 else _change_amount(d) + " s"
+		"m":
+			return "" if d < 0.05 else _change_amount(d) + " m"
+		"deg":
+			return "" if d < 0.5 else "%d°" % int(round(d))
+		"rule":
+			return "" if d < 0.05 else _change_amount(d) + str(RULE_TEXT.get(stat, ["", ""])[1])
+	return _change_amount(d)
+
+
+## The same move as a share of where it started ("15%": 90% -> 76% cooldown is a 15% cut): how the Stats tab says it
+## when every source of the stat multiplies (its rows say "+8%", "−15%" too). "" for nothing, or from 0.
+static func player_share_change(v0: float, v1: float) -> String:
+	if absf(v0) < 0.000001:
+		return ""
+	var x := absf(v1 / v0 - 1.0) * 100.0
+	return "" if x < 0.05 else _change_amount(x) + "%"
+
+
+## An unsigned amount as a change mark says it: whole from 10 up, else to a tenth; "" under a twentieth.
+static func _change_amount(x: float) -> String:
+	if x < 0.05:
+		return ""
+	if x >= 9.95:
+		return str(int(roundf(x)))
+	return _plain(snappedf(x, 0.1))
+
+
+## One source's amount on a hero stat, as its row in the Stats tab says it ("+10%", "+12", "−8%", "= 100%"): describe_effect
+## without the name, a share's flat step in percent too.
+static func player_effect(e: Effect) -> String:
+	if PLAYER_SHARE.has(e.stat):
+		if e.op == "set":
+			return "= " + player_value(e.stat, e.value)
+		if e.op == "add":
+			return _signed(e.value * 100.0, "%")
+	return describe_effect(e, false)

@@ -572,3 +572,310 @@ In a weapon's `params.familiar` (ProjectileEmitter's companion; the Revolver and
 | `spin.gap` | s | 2 | never sooner after the last |
 | `spin.hop` | m | 0.15 | lifts at its middle |
 | `spin.axis` | "x" / "y" | "x" | about the trigger guard, or flat |
+
+## Pass 76: new keys
+
+Every key the lanes added, as each lane wrote it.
+
+### Weapon-family looks
+
+Status (2026-10-14): built and tested (game/tests/pass76_looks_test.gd 11/11, touch_audit arena_item_looks 3/3,
+tools/level_editor/selftest_LOOKS76.py 28/28). Write your entries against this page; after a JSON edit run
+`import_json.gd -- only=<type>/<id>` (the game reads the .tres). Questions: a line in your status file, LOOKS reads them.
+
+#### JSON keys
+
+On a **weapon**, an **evolution** or a **mutation** JSON (`content/weapons|evolutions|mutations/<id>/<id>.json`):
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `variant_base` | string | `"A"` | the code the item's top-level fields are (its name, flavour, text, icon, visual, params, noun/nouns) |
+| `variants` | object `{CODE: entry}` | `{}` | the looks; CODE matches `[A-Za-z0-9_-]+` (use `A`, `B`, `C`, `D`) |
+| `variant` | string | `variant_base` | **on the weapon only**: the look the whole family plays (the weapon, its mutations incl. hero mutations, its evolutions). On an evolution or a mutation it is ignored. Save.item_looks wins over it (the arena's chips). |
+| `noun`, `nouns` | string | `""` | **weapon / evolution top level**: the base look's thing words for TextGen ("" = the behaviour's own: a Lobber says "grenade"/"grenades", "bottle(s) of fire" when it burns, "poison bomb(s)") |
+
+An **entry** (every key optional; a key it leaves out is the item's top-level value):
+
+| key | type | meaning |
+|---|---|---|
+| `name` | string | the display name in this look (cards, HUD, pause, Collection, results, quest texts all read it) |
+| `flavour` | string | the flavour line |
+| `text` | string | a mutation's card line |
+| `icon` | string | a PNG in the item's folder (`<id>_icon_<letter>.png`), or a `res://` path. **Named but not on disk (not imported) = the whole entry is dropped** (the item wears its base in that look) |
+| `visual` | string | a `.tscn` in the item's folder, or `res://`. Named but missing = the entry is dropped |
+| `params` | object | laid over the item's top-level `params` **one level deep**: each key replaces the item's key of that name (a nested object is replaced whole, not merged). Two extras: `final` (an evolution's block) is laid one level deeper, so `{"final": {"tint": null}}` touches only `final.tint`; and a **`null` value removes** the key (`{"size_mult": null}`). Rules stay out of looks: put only drawing keys here (`model`, `models`, `model_form`, `model_colour`, `model_scale`, `model_metallic`, `model_roughness`, `fuse_tip`, `tint`, `look`, `wick_flame`, ...) |
+| `noun`, `nouns` | string | the weapon's thing words in this look ("stick" / "sticks"); TextGen uses them where it said "grenade(s)" (also "N of fire" / "poison N"). An evolution with none takes its family weapon's (worn) words |
+| `note` | string | a word for Garry (arena, Level Editor) |
+| `shelved` | bool | out of the arena's chips and the Level Editor's play list; a phone that kept it falls back to the weapon's `variant` |
+| `fresh` | bool | a look not yet approved (the Level Editor marks it) |
+| `recipe`, `painted`, `icon_picked`, `icon_history` | any | the Level Editor's; the game skips them |
+
+An entry for the base code (`"A": {"note": "the grenade"}`) is allowed: its keys overlay the top level like any other
+entry (normally it carries only `note`). A member with no entry for the code the family plays wears its base.
+
+##### Example (the grenade family, look B)
+
+```json
+// lob_grenade.json (weapon): top level stays the grenade (A)
+"variant_base": "A",
+"variant": "B",
+"variants": {
+  "A": {"note": "the grenade"},
+  "B": {"name": "Dynamite Stick", "flavour": "...", "icon": "lob_grenade_icon_b.png", "noun": "stick", "nouns": "sticks",
+        "note": "classic paper stick", "fresh": true,
+        "params": {"models": {"stick": {"tan": "res://art/props/dynamite_b_stick_tan.glb", "red": "...", "tip": [0, 0.1, -0.3]},
+                              "bundle": {"tan": "...", "red": "...", "tip": [0, 0.1, -0.3]}},
+                   "model_form": "stick", "model_colour": "tan"}}
+}
+// new_equipment.json (mutation): "variants": {"B": {"name": "Dynamite Bundle", "text": "...", "icon": "new_equipment_icon_b.png", "params": {"model_form": "bundle"}}}
+// frag.json:            "variants": {"B": {"name": "Coffin Nails", "text": "...", "icon": "frag_icon_b.png", "params": {"model_colour": "red"}}}
+// golden_pineapple.json (evolution): "variants": {"B": {"name": "Boomtown", "flavour": "...", "icon": "golden_pineapple_icon_b.png",
+//                       "params": {"model": "res://art/props/dynamite_b_evo.glb", "fuse_tip": [0, 0.2, -0.4], "final": {"tint": null}}}}
+```
+(`final.tint` is the Golden Pineapple's gold; `null` drops it in that look so the model keeps its own colours. Leave
+it out if Boomtown should stay gold-tinted.)
+
+Write `variant_base` and `variants` as top-level keys, one per line (the Level Editor edits them line by line), and
+run `import_json.gd -- only=<type>/<id>` after each JSON edit (and `--import` first for new PNG/GLB).
+
+#### Game API (GDScript)
+
+- **WeaponDef** (weapons and evolutions) and **MutationDef**: `variants` (code -> resolved entry: only the keys the JSON
+  entry has, `icon` a Texture2D + `icon_file`, `visual` a PackedScene + `visual_file`), `variant_base`; WeaponDef also
+  `variant`, `noun`, `nouns`. Methods (the same names as PassiveDef's): `variant_codes(include_shelved := false)` (base
+  first, then by code; [] with one look), `variant_shelved(code)`, `variant_note(code)`, `look_icon(code)`,
+  `look_name(code)`, `wear_look(code) -> String` (wears entry `code` over the top level, or the base when it has none;
+  returns the code worn), `look_code()` (the code worn now), `look_worn` (the family code it was last asked to wear,
+  "?" never).
+- **Registry**: `item_family(W) -> Array` (the weapon def, its evolutions, every mutation whose `weapon` is W or one of
+  its evolutions, hero mutations and hidden ones included), `item_family_root(id) -> String` (the weapon id of any
+  member: a weapon, an evolution, a mutation; "" for none), `item_look_codes(W) -> Array` (the weapon's playable
+  looks, not shelved, base first; [] with one look), `played_item_look(W) -> String` (Save.item_looks[W] when playable
+  and not shelved, else the weapon's `variant`, else its base; "" for a family without looks), `apply_item_looks()`
+  (every family wears its played look; called at the end of Registry.scan, by Save.load_save, Save.set_item_look and
+  Save.wipe; families whose look changed during a live run rebuild: params at once, the behaviour (visual, model)
+  recreated by Game._sync_weapons).
+- **Save**: data key `item_looks` `{W: CODE}`; `item_looks() -> Dictionary`, `item_look(W) -> String` ("" none kept),
+  `set_item_look(W, code)` ("" = the JSON's again; kept past the arena's sandbox like `card_look`, applied at once).
+  Writing `Save.data["item_looks"][W]` by hand then calling `Registry.apply_item_looks()` works too (MOLO's shot tool).
+- **TextGen**: `weapon_nouns(def: WeaponDef) -> Array` = `[one, many]` (`["", ""]` when neither the def nor, for an
+  evolution, its family weapon has any). DYN: use it for the fuse words ("The sticks blow a second after they land";
+  fall back to "grenade(s)" / "bottles"...). The Lobber sentence and `amount_noun` use it already.
+- **WeaponBehavior**: `look_seen` (the def's `look_worn` at setup), `look_stale() -> bool`. Game._sync_weapons recreates a
+  stale behaviour (a fresh setup: `_load_visual`, `_use_model`, every node from the visual), so a Lobber needs no
+  look-specific code: DYN's `refresh_model()` is still the way for a mutation that changes `model_form`/`model_colour`.
+
+#### Arena (ITEMS tab)
+A "Look · <weapon name>" row of chips for every weapon family with two or more playable looks (row node
+`ItemLooks_<W>`, chips `ItemLook_<W>_<CODE>` and `ItemLook_<W>_JSON`): a tap keeps that look on this phone
+(Save.set_item_look, past the sandbox) and the family wears it at once, held weapons included.
+
+#### Level Editor
+`ITEM_LOOK_KINDS = ("passive", "weapon", "evolution", "mutation")`. A weapon look (any kind but passive) is playable when
+every file its entry names (icon, visual) is on disk; an entry naming none is playable. `POST /api/content/weapon/<id>/variant
+{code}` writes the weapon's `variant` (an evolution or a mutation is refused: the family plays its weapon's). The weapon
+record (`/api/items`, a document) carries `family_looks`: per code {code, note, shelved, fresh, exists, default, base,
+name, icon, members: [{kind, id, name, icon, own}]}; `/icon/<kind>/<id>/<code>` serves a member's look icon (its base
+icon when it has no entry). The Items tab's weapon editor (Art) shows them: Play this look, Show, the note.
+Every weapon / evolution / mutation record (`/api/items`) also carries `play` (the look it wears: a member follows its
+weapon, its base when it lacks that look), `icon_play`, `name_play`, `looks` (per code: name, own, exists, fresh,
+shelved, default...) and, on a member, `family` (its weapon's id); a member's document (`/api/content/<kind>/<id>`)
+marks the look it wears as `default`. `family_looks[].members[]` = {kind, id, role (element/volume/motion/hero or
+evolution), name, icon, own, hidden}. The icon guard (lane ICON) covers a weapon look's icon like a card's.
+
+### The fuse, models by form and colour, mass mini crits
+
+#### Content keys
+
+On a **Lobber weapon or evolution** (`params`, top level: rules stay out of looks):
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `fuse` | object | none | the weapon's shots carry a fuse (lob_grenade, golden_pineapple). Without it a shot blows as it lands, as before |
+| `fuse.seconds` | float s | 1.0 | a shot that lands and is not caught by Sticky lies where it landed this long, then blows |
+| `fuse.out_before` | float s | 0.5 | the spark goes out this long before any blast of the shot (the ground fuse or the Sticky ride) |
+| `fuse.lie` | bool | true | true: it lies on its side (a model at least 1.25x taller than wide is laid down; one long along X or Z lies as it is; a squat one sits), along its throw +-20 degrees, on the slope, still. false: it stays as it flew in, its spin stopped |
+| `fuse.spark.color` | hex | "#FF9A2E" | the spark's glow and flung sparks (its core is this lightened) |
+| `fuse.spark.size` | float m | 0.13 | the spark's core; its glows are 3.4x and 1.7x, its twinkle 3.8x long; a bomblet's spark 0.6x |
+| `fuse.bomblet_seconds` | float s | = `seconds` | how long a bomblet (the evolution's) lies before it blows |
+| `mass_mini` | object | none | the Drifter's Fire in the Hole: a blast that catches `min_hits` creatures or more mini-crits every one |
+| `mass_mini.min_hits` | int | 9 | "more than 8 enemies at once" |
+
+Drawing keys (a look's `params`, lane DYNART writes them; read by the Lobber and the spark):
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `models` | object `{<form>: {<colour>: "res://...glb", "tip": [x, y, z]}}` | none | the shot's model by form and colour; `tip` is the fuse tip in the model's own space (Godot, metres, before model_scale and the shot's size) |
+| `model_form` | string | "stick" | which form (Dynamite Bundle's look sets "bundle") |
+| `model_colour` | string | "tan" | which colour (Coffin Nails' look sets "red") |
+| `model` | string | "" | the fallback model when `models[form][colour]` is missing or its file is not on disk (Boomtown's) |
+| `fuse_tip` | [x, y, z] | the top of the mesh | the spark's place when the chosen model came from `model` (or a form names no tip) |
+
+#### Game API
+
+- `EnemyManager.damage_radius(center, r, amount, weapon_id := "", kb_force := 0.0, flags := 0)`: `flags` passed to
+  damage() for every creature in the blast (HIT_MINI).
+- `EnemyManager.blast_count(center, r) -> int`: the creatures a blast there would strike (alive, not dying, hidden or held).
+- `ProjectileManager`: `fuse_of(w) -> Dictionary` (static), `fuse_seconds(fz, extra) -> float` (static),
+  `fuse_lit(i) -> bool`, `fuse_tip(i) -> Vector3` (world), diagnostics `sparks_drawn`, `fuses_out`, `mass_minis`,
+  `last_blast_caught`; per shot in `extra`: `fz` (its tip, model space; INF = mesh top), `lie_t` (seconds left lying),
+  `lie_b` (the lying basis), `fz_lit`, `fz_t`.
+- `Lobber`: `model_path() -> String` (the model drawn now), `refresh_model()` (re-models when the params choose another;
+  refresh_marks calls it, so a mutation taken re-models), `static model_choice(params) -> {"path", "tip"}`.
+- `TextGen.fuse_words(params, amount := 1) -> String`, `TextGen.mass_mini_words(params) -> String` (appended to the
+  Lobber's description).
+
+#### Level Editor
+- `tools/level_editor/vocab.py` PARAMS_KEYS["Lobber"] and `assets_fields.js` PARAMS_KEYS.Lobber list `fuse`, `models`,
+  `model_form`, `model_colour`, `fuse_tip`, `mass_mini` (so the Items tab knows them; selftest green).
+
+#### Content
+
+- `content/mutations/fire_in_the_hole/` (new): hero mutation of the Drifter on lob_grenade, rare, weight 8,
+  `params.mass_mini {min_hits 9}`, text "A blast that catches nine or more creatures lands a Mini Crit on every one of
+  them.", a placeholder icon (lane DYNART paints the looks' icons and its base one).
+- drifter.json `favourite_weapon` "lob_grenade"; peashooter.json and fan_the_hammer.json `hidden: true`.
+
+#### Notes for lane DYNART (from filming your B models in memory, tools/dl/p76/DYN/cap_b/)
+- They fly, lie along their throw (long along Z: no lay-down; B's crate is squat and sits up), spark at your tips, go
+  out 0.5 s before the blast with a wisp of smoke, and blow. A shot Sticky catches rides in the same pose.
+- The tan stick reads orange in game: the Lobber's model material defaults to the gold grenade's finish
+  (`model_metallic` 0.45, `model_roughness` 0.35). Paper wants `"model_metallic": 0.0, "model_roughness": 0.85` (or so)
+  in the look's params.
+- The evolution's bomblets are drawn with the evolution's own model at `bomblet_size` (0.5).
+- Sticky's `look.blink` light sits where the spark is on a riding shot; `"look": null` in Sticky's look entry drops it.
+
+### The wick flame and the pool flame
+
+All are drawing keys (looks may carry them in `variants.<CODE>.params`); none changes a rule.
+
+#### `params.wick_flame` (a lobbed weapon or evolution; read through WeaponInstance.params, so a look or a mutation may set it)
+A fire bottle burns AT ITS WICK instead of dropping the old string of tongues (ProjectileManager's old branch is used
+only when a shot has no wick_flame). Drawn by `core/systems/WickFlames.gd` + `core/shaders/wick_flame.gdshader` (one
+MultiMesh for every flame, ember and spark in the air).
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `style` | string | `"torch"` | `"torch"` a steady licking flame with a soft glow and embers; `"streamer"` a continuous tapered ribbon of fire along the wick's last `tail` seconds of path (risen as it cools) under a small flame on the wick; `"cartoon"` a bold three-layer flame in a dark ink line, its tongues jumping on a stepped clock, with inked star sparks. Unknown: torch |
+| `offset` | [x, y, z] | `[0, 0.25, 0]` | the wick's tip in the shot model's own space (metres, before the kind's scale; Godot axes: +Y is the bottle's neck). Turned and scaled with the shot as ProjectileManager.draw_basis draws it |
+| `size` | float | `0.55` | the flame's height in metres (x the shot's size_mult); a streamer's width is half of it |
+| `rate` | float | `12` | embers a second (sparks for the cartoon flame); 0 none |
+| `life` | float | `0.28` | an ember's life in seconds (x 0.7..1.25) |
+| `tumble` | float | `0` | turns a second end over end (about the axis across the flight); the bottle leaves the hand neck up. 0: the shot keeps the old spin about its flight line |
+| `lean` | float | `0.045` | how far the flame leans back against the flight (seconds of flat speed added to the camera's up) |
+| `tail` | float | `0.16` | the streamer's length in seconds of the wick's path |
+| `rise` | float | `1.4` | m/s the streamer's tail rises as it ages |
+| `depth` | float | torch -0.1, streamer 0, cartoon -0.12 | metres the flame is drawn towards the camera (negative: behind the wick, so the bottle stays in front of its own fire) |
+
+Blue (WeaponInstance.blue_fire: Methanol, the Moonshine) burns each style in the blue palette.
+
+#### `params.pool_flame` (the same weapons; read by ElementCloud for a fire pool, a Moonshine line or death pool)
+The spill's flames in the look's style, stood by `WickFlames.ground_flame` in the same MultiMesh, instead of Fx's
+teardrops. Without it: Fx's teardrops as before. The burning creatures (EnemyManager -> Fx.fire) are not changed.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `style` | string | `"torch"` | `"torch"` (eaten away as it ages, a soft glow) or `"cartoon"` (pops up, holds, shrinks away; inked). `"streamer"` burns as torch |
+| `size` | float | `1.0` | x the height the spill gives a flame (0.6 + radius x 0.45, 0.6..1.9 m, x 0.75..1.2) |
+| `life` | float | `1.0` | x a flame's life (0.45..0.7 s) |
+
+#### The Molotov family's looks (variant_base "A", `variant` "B": the family plays the torch)
+| code | molotov `visual` | methanol `visual` | moonshine `visual` | wick_flame | pool_flame |
+|---|---|---|---|---|---|
+| A | molotov_visual.tscn (today's) | methanol_visual.tscn | moonshine_visual.tscn | none (the old string) | none (Fx) |
+| B | molotov_visual_bottle.tscn | methanol_visual_bottle.tscn | moonshine_visual_jug.tscn | torch, tumble 1.0 | torch 0.78 |
+| C | molotov_visual_bottle_trail.tscn | methanol_visual_bottle_trail.tscn | moonshine_visual_jug_trail.tscn | streamer (the bottle flies base first) | torch 0.78 |
+| D | molotov_visual_bottle.tscn | methanol_visual_bottle.tscn | moonshine_visual_jug.tscn | cartoon, tumble 1.0 | cartoon 0.66, life 1.1 |
+
+Models: `art/props/molotov_bottle.glb`, `molotov_bottle_blue.glb` (Methanol's), `moonshine_jug.glb`
+(tools/blender_molotov.py; wick tips bottle +0.2433, jug +0.2101 on +Y; the looks stand the flame a little inside the
+rag: 0.22 / 0.19, the trail visuals 0.235 / 0.2). Accelerant, Oil Slick, Sun Cocktail and Bar Fight have no entries
+(they wear their base in every look; Sun Cocktail's `tint` gilds the new bottle as it did the old).
+
+#### Code API (for tests and tools)
+- `ProjectileManager.wick_flames() -> WickFlames` (made on first use), `wick_world(i) -> Vector3`,
+  `warm_wick_flames(at)` (Vector3.INF stops it; builds nothing while no weapon or evolution wears wick_flame or
+  pool_flame in its played look: `_wick_looks_played()`).
+- `WickFlames`: `config(w)`, `style_of(cfg)`, `offset_of(cfg)`, `wick_world(pm, i, cfg)`, `tick(pm, i, w, dt)`,
+  `draw(pm, dt)`, `ground_flame(at, height, life, style, blue, must=false) -> bool`, `warm(at)`; diagnostics
+  `flames_drawn`, `pieces_drawn`, `wicks`, `axes`, `styles_drawn`, `ground_flames`, `ember_count()`, `ground_count()`.
+
+### Source ids, start stats, the tracer
+
+#### Content JSON
+One new weapon param, `tracer_clear` (float metres, default 0 = beads everywhere): no tracer bead drops within that
+distance of the hero on the ground plane (ProjectileManager._tracer_clear_of). The Revolver: 1.1 (its companion gun
+orbits at 1.2 m and fires past the hero; the dim red beads over his coat read as blood). Mutations inherit it.
+
+Values set on existing keys in `content/weapons/revolver/revolver.json` params:
+- `tracer_color` (hex string, default none = gold): "#7A1F17". Pass 76 meaning on a WEAPON's own params: its plain
+  colour, below Silver Bullet (`silver`) and an element (fire, poison); a MUTATION's `tracer_color` still comes first.
+  The beads draw lighter than the hex says (a dark hex reads mid-tone on the sand).
+- `tracer_alpha` (float, default 0.9): 0.85.
+- `tracer_size` (float, default 0.9): 1.35.
+
+#### Code (for the lead's notes; nothing for the Level Editor)
+- `StatSheet` entries carry `"sid"` beside `"source"`: the source's stable id (`hero:<id>`, `trait:<id>`,
+  `talent:<id>:<form>`, `passive:<id>`, `favourite:<id>`, `perk:<id>`, `mutation:<id>`, `buff:<id>`, `totem:<id>`,
+  `stranger`, `momentum:<hero>`; running bonuses take their item's id). `add_effect(e, source, sid = "")`,
+  `add_effects(list, source, sid = "")`: an empty sid is the source's words. `StatSheet.aims_at_weapons(e)`.
+- `Run.start_stats` (stat -> value), `Run.start_stats_hero`, `Run.start_stat(stat, default)`.
+- `TextGen.PLAYER_SHARE` (["cooldown", "duration"]), `player_kind`, `player_value`, `player_change`,
+  `player_share_change`, `player_effect`.
+- `core/systems/StatSources.gd` (class StatSources; preloaded by path in PauseScreen): `grid_stats`, `changed`,
+  `change`, `all_multiply`, `rows` (START / RUN), `describe_source`, `at_start`, `now`.
+- `QuestTracker.owned_reward(q)`.
+
+### Icon history and the icon guard
+
+#### Content JSON keys (tool-only: the game never reads them)
+| Key | Where | Type | Default | Meaning |
+|---|---|---|---|---|
+| `icon_history` | a look's entry (`variants[CODE]`) | array of steps | absent | that look's icon changes, oldest first (at most 40) |
+| `icon_history` | top level, next to `icon` | array of steps | absent | the BASE look's icon changes (the base's icon is the top-level `icon`); also for an item without looks |
+| step `icon` | a step | string | "" | what the key said before ("" = the look had no icon of its own / the top level named none) |
+| step `shown` | a step | string | | the file the look showed before |
+| step `backup` | a step | string | "" | repo-relative path of the copy of that picture under tools/level_editor/backups/<id>/ |
+| step `to` | a step | string | | the file it changed to |
+| step `at` | a step | string | | "YYYY-MM-DD HH:MM:SS" |
+| step `why` | a step | string | "" | "install c2 of #3d3c", "use backup/<file>", "use folder/<file>" |
+| step `picked` | a look's step | bool | | the look's `icon_picked` before |
+| step `entry_icon` | a base step | string | | the base entry's own `icon` before (a base made from a look names one) |
+| `icon_picked` | a look's entry | bool | absent | (pass 68 key) now written by every install and "Use for this look"; Revert icon puts back what it was |
+
+#### Install job spec (jobs.py, set by the server's install guard)
+| Key | Type | Meaning |
+|---|---|---|
+| `icon_file` | string | the install's own new file (never an existing one) |
+| `icon_code` | string | the look it lands in ("" = the base: the top-level `icon`) |
+| `why` | string | the history step's reason ("install c2 of #a432") |
+
+#### Tool flags
+- `tools/gen_badge_cands.py --pick k ... --icon-file NAME`: the badge goes to NAME (`NAME_2.png` when another picture
+  has that name); the sidecar says the file (`entry.icon` for a look, `info.icon_file` for the base) and gets no
+  `<id>_icon.png` overwrite.
+- `tools/gen_icon_cands.py` JOBS entry `keep_old: true` (with `file`): the same rule for an icon pick; `info.icon_file`.
+- `gen_art.free_icon_name(folder, name, data=None) -> (name, path)`.
+
+#### Routes (server.py)
+- `GET /api/content/<kind>/<id>/icons` -> `{ok, kind, id, name, base, play, looks: [look_icon_info], files: [tile]}`;
+  look_icon_info `{code, base, played, play, shown, own, picked, history, exists, url, what, shared_by, revertable}`;
+  tile `{ref, where (folder|backup|deleted|legacy), file, mtime, when, size, digest, url, copies: [...], used_by: [codes]}`.
+- `GET /iconfile/<kind>/<id>/<ref>`: one picture (refs `folder/<f>`, `backup/<f>`, `deleted/<stamp>/<f>`, `legacy/<icons dir>/<f>`).
+- `POST /api/content/<kind>/<id>/icon {op: "revert" | "use", code ("" = the base), ref (use), confirm}`; the same as look
+  ops `POST /api/content/<kind>/<id>/look/<code> {op: "revert_icon" | "use_icon", ref, confirm}`.
+- `POST /api/jobs/<job>/install {choice, options, confirm}`: an icon install into the look in play or the base answers
+  **409** `{confirm_needed: true, kind, id, name, what (badge|icon), look, base, played, play, shared_by, verb, now
+  {file, url, own}, next {file, url, label, candidate}, job, choice, error}` until `confirm: true`.
+
+#### Hooks (server.Hooks, for jobs.py)
+- `set_look_files(kind, cid, code, files, meta=None)`: `{"icon": ...}` goes through `set_look_icon` (code "" or the
+  base's code = the top-level icon); `meta {why}`.
+- `snapshot_icons(kind, cid)`: the asset's icons into backups/<id>/ (once per picture).
+- `jobs.choice_id(src, choice)`: a candidate's label -> its id.
+
+#### Page (looks.js, `LookGrid`)
+`confirmIconChange(res) -> Promise<bool>`, `installPick(jobId, choice, options)`, `iconOp(kind, id, code, op, extra)`,
+`iconPanel(kind, id, code, {onChanged})`, `bustUrl(url, v)`. jobs.js `act()` and typed_forms.js `install()` ask through
+`LookGrid.confirmIconChange`; assets.js shows `LookGrid.iconPanel` in an item's icon preview and takes the top-level
+`icon_history` from disk in `refreshRecord`.

@@ -36,6 +36,8 @@
 ## at nothing), path_offer (the mutation offer's pre-reel: it runs, a tap skips it to the landing, the cards come and a
 ## real tap on one picks it) and settings_debug also flips "Ranged weapons aim only on screen" (RangedOnScreen) for real
 ## when the setting exists. The path state waits for the reel before it audits.
+## Pass 76 (lane UI): pause_stats (run with pause: three cells of the pause Stats tab under a real finger, each opening
+## its sources under its row in sight, a second tap closing them).
 ## Pass 55: arena_hero (the arena's HERO tab under real fingers: another hero's tile swaps him in and the first hero's
 ## brings him back, a look chip draws that look on the hero for the visit, USE FROM NOW ON keeps it; all put back after;
 ## run on its own with only=arena_hero, which audits the tab's controls first).
@@ -64,6 +66,8 @@
 ## Pass 73 (lane STRUCT): totem: a Totem Pole used in the run opens its menu of gifts through the one-screen rule; every
 ## plank answers a finger (muted), a real tap on one takes its gift (the menu closes, the gift is on the run, the run goes
 ## on); then a menu built under a 130 px camera cutout (totem_inset130): its planks answer and a real tap takes one.
+## Pass 76 (lane LOOKS): arena_item_looks (run with arena): a real tap on a weapon family's look chip on ITEMS keeps that
+## look on the phone, the family wears it and a held weapon of it is made again in it; JSON gives its own look back.
 extends SceneTree
 
 const MAX_PER_KIND := 40     # cards of one screen tapped at most (a long list: a sample, spread over it)
@@ -482,8 +486,9 @@ func _run() -> void:
 		current_scene._open_page(root.get_node("Registry").weapon("boomstick"))
 		await _wait(0.6)
 		await _audit("collection_page", current_scene)
-		# a weapon whose mutations take a fourth, a hero's (pass 46: the Drifter's Fan the Hammer), in centred rows
-		var pea = root.get_node("Registry").weapon("peashooter")
+		# a weapon whose mutations take a fourth, a hero's (pass 46: the Drifter's Fan the Hammer; pass 76: his Fire in the
+		# Hole on the grenade, the Peashooter is hidden), in centred rows
+		var pea = root.get_node("Registry").weapon("lob_grenade")
 		if pea:
 			current_scene._open_page(pea)
 			await _wait(0.6)
@@ -1261,6 +1266,9 @@ func _in_game() -> void:
 		await _wait(0.3)
 	if _want("pause") or _want("pause_options"):
 		await _pause_options(g)
+	# pass 76 (lane UI): the Stats tab's cells open and close their sources under a real finger
+	if _want("pause") or _want("pause_stats"):
+		await _pause_stats(g)
 	if _want("cards"):
 		g._pending_levels += 1
 		g._show_next_level_cards()
@@ -1400,6 +1408,8 @@ func _in_game() -> void:
 				await _arena_items(a.arena_panel)
 				# pass 73 (lane CARDS): the cards' look chips on ITEMS
 				await _arena_card_looks(a.arena_panel)
+				# pass 76 (lane LOOKS): the weapon families' look chips on ITEMS
+				await _arena_item_looks(a.arena_panel)
 				a.arena_panel._tab = "world"
 				a.arena_panel._refresh()
 				await _wait(0.4)
@@ -1748,21 +1758,22 @@ func _row_button(panel, row_name: String, text: String) -> Button:
 	return null
 
 
-## The ITEMS tab's stacks (pass 49) under a real finger: the Peashooter's toggle opens its stack under it, and every row
-## drawn there answers like the rest (audited as arena_stack); the stack is shut again after.
+## The ITEMS tab's stacks (pass 49) under a real finger: a weapon's toggle opens its stack under it, and every row drawn
+## there answers like the rest (audited as arena_stack); the stack is shut again after. Pass 76 (lane DYN): the Skull
+## Rain's (the Peashooter this used is hidden, its row out of the list).
 func _arena_items(panel) -> void:
 	panel._tab = "items"
 	panel._refresh()
 	await _wait(0.4)
-	var row: Node = panel._content.find_child("Item_weapon_peashooter", true, false)
+	var row: Node = panel._content.find_child("Item_weapon_skull_rain", true, false)
 	var tg: Control = row.find_child("Stack", true, false) if row else null
 	if tg == null:
 		_count("arena_stack", false)
-		_fail("arena_stack", "the Peashooter's stack", "no toggle on its row")
+		_fail("arena_stack", "the Skull Rain's stack", "no toggle on its row")
 		return
 	await _tap(await _spot(tg))
 	await _wait(0.4)
-	var stack: Array = panel.weapon_stack(root.get_node("Registry").weapon("peashooter"))
+	var stack: Array = panel.weapon_stack(root.get_node("Registry").weapon("skull_rain"))
 	var found := 0
 	for entry in stack:
 		var under: Node = panel._content.find_child("Under_%s_%s" % [str(entry[0]), str(entry[1].id)], true, false)
@@ -1772,27 +1783,27 @@ func _arena_items(panel) -> void:
 	var opened: bool = not stack.is_empty() and found == stack.size()
 	_count("arena_stack", opened)
 	if not opened:
-		_fail("arena_stack", "the Peashooter's stack", "a tap on its toggle opened %d of %d rows" % [found, stack.size()])
-	panel._open.erase("stack:peashooter")
+		_fail("arena_stack", "the Skull Rain's stack", "a tap on its toggle opened %d of %d rows" % [found, stack.size()])
+	panel._open.erase("stack:skull_rain")
 	# pass 51: its INFO under a real finger opens what a player reads about it, the very words item_texts gives
 	panel._refresh()
 	await _wait(0.3)
-	row = panel._content.find_child("Item_weapon_peashooter", true, false)
+	row = panel._content.find_child("Item_weapon_skull_rain", true, false)
 	var ib: Control = row.find_child("Info", true, false) if row else null
 	if ib == null:
 		_count("arena_info", false)
-		_fail("arena_info", "the Peashooter's INFO", "no toggle on its row")
+		_fail("arena_info", "the Skull Rain's INFO", "no toggle on its row")
 		return
 	await _tap(await _spot(ib))
 	await _wait(0.4)
-	var box: Node = panel._content.find_child("Info_weapon_peashooter", true, false)
-	var want: Array = panel.item_texts("weapon", root.get_node("Registry").weapon("peashooter"))
+	var box: Node = panel._content.find_child("Info_weapon_skull_rain", true, false)
+	var want: Array = panel.item_texts("weapon", root.get_node("Registry").weapon("skull_rain"))
 	var shown: Label = box.find_child("InfoText0", true, false) if box else null
 	var info_ok: bool = shown != null and not want.is_empty() and shown.text == str((want[0] as Array)[1])
 	_count("arena_info", info_ok)
 	if not info_ok:
-		_fail("arena_info", "the Peashooter's INFO", "a tap did not open its words (%s)" % ("no text" if shown == null else shown.text.left(60)))
-	panel._open.erase("info:weapon:peashooter")
+		_fail("arena_info", "the Skull Rain's INFO", "a tap did not open its words (%s)" % ("no text" if shown == null else shown.text.left(60)))
+	panel._open.erase("info:weapon:skull_rain")
 
 
 ## The cards' look on the arena's ITEMS tab (pass 73, lane CARDS) under a real finger: a tap on a look's chip draws every
@@ -1850,6 +1861,97 @@ func _arena_card_looks(panel) -> void:
 	if not reset:
 		_fail("arena_card_looks", "the JSON chip", "a tap left the cards in %s" % str(sv.card_look()))
 	sv.set_card_look("")
+
+
+## The weapon families' looks on the arena's ITEMS tab (pass 76, lane LOOKS) under a real finger: a tap on a look's chip
+## keeps it for the family on the phone (Save.item_look), the family wears it at once (the weapon's name and icon are the
+## look's) and a held weapon of it is made again in it (Game._sync_weapons: a new behaviour whose look_seen is the new
+## look); JSON gives the family its weapon's own look back. While no family has two looks to play, lob_grenade gets a
+## stand-in look "Z" in memory (the Revolver's icon) for the audit and loses it after, so the chips are always tried.
+func _arena_item_looks(panel) -> void:
+	var reg := root.get_node("Registry")
+	var sv := root.get_node("Save")
+	var run := root.get_node("Run")
+	var g = panel.game
+	var fams: Array = panel.item_look_weapons()
+	var stand_in = null
+	var stand_in_was := {}
+	if fams.is_empty():
+		var lg = reg.weapon("lob_grenade")
+		var rv = reg.weapon("revolver")
+		if lg == null or rv == null:
+			_count("arena_item_looks", false)
+			_fail("arena_item_looks", "a family to try", "no lob_grenade or revolver to make a stand-in look from")
+			return
+		stand_in = lg
+		stand_in_was = {"variants": (lg.variants as Dictionary).duplicate(), "variant_base": str(lg.variant_base)}
+		if str(lg.variant_base) == "":
+			lg.variant_base = "A"
+		lg.variants["Z"] = {"name": "Audit Look", "icon": rv.icon, "icon_file": "", "note": "touch audit stand-in"}
+		reg.apply_item_looks()
+		fams = panel.item_look_weapons()
+	if fams.is_empty():
+		_count("arena_item_looks", false)
+		_fail("arena_item_looks", "the Weapon looks rows", "no family offers two looks")
+		return
+	var w = fams[0]
+	var held_before: bool = run.weapon_instance(w.id) != null
+	if not held_before:
+		run.debug_set_item("weapon", w.id, 1)
+	panel._tab = "items"
+	panel._refresh()
+	await _wait(0.4)
+	# the held weapon's behaviour by its id: once it is made again the old one is freed, and a freed object reads as null
+	var b0 = g._behaviors.get(w.id) if g else null
+	var b0_id: int = (b0 as Object).get_instance_id() if b0 != null else 0
+	var row: Node = panel._content.find_child("ItemLooks_" + str(w.id), true, false)
+	if row == null:
+		_count("arena_item_looks", false)
+		_fail("arena_item_looks", "the %s looks row" % str(w.id), "missing with looks %s" % str(reg.item_look_codes(w.id)))
+	else:
+		var playing: String = reg.played_item_look(w.id)
+		var want := ""
+		for c in reg.item_look_codes(w.id):
+			if str(c) != playing:
+				want = str(c)
+		var chip: Control = row.find_child("ItemLook_%s_%s" % [str(w.id), want], true, false)
+		if chip == null:
+			_count("arena_item_looks", false)
+			_fail("arena_item_looks", "the %s chip" % want, "not in the row")
+		else:
+			await _tap(await _spot(chip))
+			await _wait(0.4)
+			var worn: bool = str(sv.item_look(w.id)) == want and str(w.look_code()) == want and w.icon == w.look_icon(want)
+			_count("arena_item_looks", worn)
+			if not worn:
+				_fail("arena_item_looks", "the %s chip" % want, "a tap left %s in %s (kept %s)" % [str(w.id), str(w.look_code()), str(sv.item_look(w.id))])
+			# the held weapon was made again in the look
+			var b1 = g._behaviors.get(w.id) if g else null
+			if b0_id != 0:
+				var remade: bool = b1 != null and is_instance_valid(b1) and (b1 as Object).get_instance_id() != b0_id and str(b1.look_seen) == str(w.look_worn)
+				_count("arena_item_looks", remade)
+				if not remade:
+					_fail("arena_item_looks", "the held %s" % str(w.id), "its behaviour was not made again in %s" % want)
+			# JSON: the weapon's own look again
+			row = panel._content.find_child("ItemLooks_" + str(w.id), true, false)
+			var back: Control = row.find_child("ItemLook_%s_JSON" % str(w.id), true, false) if row else null
+			if back:
+				await _tap(await _spot(back))
+				await _wait(0.4)
+			var reset: bool = str(sv.item_look(w.id)) == "" and str(w.look_code()) == playing
+			_count("arena_item_looks", reset)
+			if not reset:
+				_fail("arena_item_looks", "the JSON chip", "a tap left %s in %s (kept %s)" % [str(w.id), str(w.look_code()), str(sv.item_look(w.id))])
+	sv.set_item_look(w.id, "")
+	if not held_before:
+		run.debug_set_item("weapon", w.id, 0)
+	if stand_in != null:
+		stand_in.variants = stand_in_was["variants"]
+		stand_in.variant_base = stand_in_was["variant_base"]
+		stand_in.wear_look("")
+		reg.apply_item_looks()
+	panel._refresh()
+	await _wait(0.2)
 
 
 ## The level-up's choices by real fingers (pass 47: two skips and one banish a stage): SKIP with none left stays open and
@@ -2053,6 +2155,53 @@ func _path_offer(g) -> void:
 			g.cards.chosen.disconnect(probe)
 	g.cards.visible = false
 	g.set_paused(false)
+	await _wait(0.3)
+
+
+## The pause Stats tab (pass 76, lane UI) under a real finger: a tap on a stat's cell opens its sources under its row
+## (the card in view), a second tap on it closes them; three stats down the grid (the last one low enough to scroll).
+func _pause_stats(g) -> void:
+	var ps = g.pause_screen
+	g.open_pause()
+	await _wait(0.4)
+	ps._tab = 1
+	ps._stat = "max_hp"
+	ps._scroll.scroll_vertical = 0
+	ps._refresh()
+	await _wait(0.5)
+	for stat in ["move_speed", "cooldown", "revives"]:
+		var cell: Control = ps._content.find_child("Stat_" + stat, true, false)
+		if cell == null:
+			_count("pause_stats", false)
+			_fail("pause_stats", stat, "no cell on the Stats tab")
+			continue
+		var at: Vector2 = await _spot(cell)
+		if at == Vector2.INF:
+			_count("pause_stats", false)
+			_fail("pause_stats", stat, "its cell is not on the screen")
+			continue
+		await _tap(at)
+		await _wait(0.4)
+		var card: Control = ps._content.find_child("Sources", true, false)
+		var opened: bool = str(ps._stat) == stat and card != null
+		_count("pause_stats", opened)
+		if not opened:
+			_fail("pause_stats", stat, "a tap did not open its sources")
+			continue
+		var shown: Rect2 = ps._scroll.get_global_rect().intersection(card.get_global_rect())
+		_count("pause_stats", shown.size.y >= minf(card.size.y, ps._scroll.size.y) - 2.0)
+		if shown.size.y < minf(card.size.y, ps._scroll.size.y) - 2.0:
+			_fail("pause_stats", stat, "its sources opened out of sight (%d of %d px shown)" % [int(shown.size.y), int(card.size.y)])
+		cell = ps._content.find_child("Stat_" + stat, true, false)
+		at = await _spot(cell)
+		await _tap(at)
+		await _wait(0.4)
+		var closed: bool = str(ps._stat) == "" and ps._content.find_child("Sources", true, false) == null
+		_count("pause_stats", closed)
+		if not closed:
+			_fail("pause_stats", stat, "a second tap did not close its sources")
+	print("touch_audit: pause_stats  cells %d" % 3)
+	g.close_pause()
 	await _wait(0.3)
 
 

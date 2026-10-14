@@ -138,17 +138,19 @@ const Items = (() => {
     art.appendChild(el('div', { class: 'icard-top' },
       el('div', { class: 'icard-icon' + (kind === 'hero' ? ' round' : ''), style: `background:${plate(x.rarity)}` }, el('img', { src: x.icon_play || icon(kind, x.id), alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } })),
       el('div', { class: 'icard-id' },
-        el('h3', {}, el('span', { text: x.name || x.id }), doc && Assets.docDirty(doc) ? el('span', { class: 'ccard-dirty', text: ' ●', title: 'unsaved changes' }) : null),
+        el('h3', {}, el('span', { text: x.name_play || x.name || x.id, title: x.name_play && x.name_play !== x.name ? `${x.name} in its look ${x.play}` : '' }), doc && Assets.docDirty(doc) ? el('span', { class: 'ccard-dirty', text: ' ●', title: 'unsaved changes' }) : null),
         el('div', { class: 'muted small', text: `${x.id} · ${x.rarity || 'common'}${x.weight != null ? ' · weight ' + x.weight : ''}${extraTop ? ' · ' + extraTop : ''}` }),
         el('div', { class: 'tags' }, statusChips(x, kind))),
       el('button', { class: 'btn small' + (editing ? ' primary' : ''), type: 'button', text: editing ? 'Editing' : 'Edit', onclick: () => Assets.open(kind, x.id) })));
     return art;
   }
-  const sub = (kind, x, label, note) => el('div', { class: 'isub' }, el('img', { src: x.icon_play || icon(kind, x.id), alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } }), el('span', { class: 'achip ' + (label.includes('hero') ? 'hero' : ''), text: label }), el('b', { text: x.name || x.id }), x.hidden ? el('span', { class: 'achip hidden', text: 'hidden' }) : null, note ? el('span', { class: 'muted small', text: note }) : null, el('button', { class: 'btn small ghost', type: 'button', text: 'Edit', onclick: () => Assets.open(kind, x.id) }));
+  const sub = (kind, x, label, note) => el('div', { class: 'isub' }, el('img', { src: x.icon_play || icon(kind, x.id), alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } }), el('span', { class: 'achip ' + (label.includes('hero') ? 'hero' : ''), text: label }), el('b', { text: x.name_play || x.name || x.id }), x.hidden ? el('span', { class: 'achip hidden', text: 'hidden' }) : null, note ? el('span', { class: 'muted small', text: note }) : null, el('button', { class: 'btn small ghost', type: 'button', text: 'Edit', onclick: () => Assets.open(kind, x.id) }));
 
   function weaponCard(w, fl) {
     const base = M.isObj(w.base) ? w.base : {};
-    const art = cardShell('weapon', w, `${w.behavior || 'ProjectileEmitter'} · ${w.targeting || 'nearest'} · dmg ${fmtN(M.num(base.damage, 5))} · cd ${fmtN(M.num(base.cooldown, 1))} s · ×${fmtN(M.num(base.amount, 1))}`);
+    // pass 76 (lane LOOKS): a family with looks says the one it plays
+    const looked = Array.isArray(w.family_looks) && w.family_looks.length > 1 ? ` · look ${w.play} of ${w.family_looks.length}` : '';
+    const art = cardShell('weapon', w, `${w.behavior || 'ProjectileEmitter'} · ${w.targeting || 'nearest'} · dmg ${fmtN(M.num(base.damage, 5))} · cd ${fmtN(M.num(base.cooldown, 1))} s · ×${fmtN(M.num(base.amount, 1))}${looked}`);
     const subs = el('div', { class: 'icard-sub' });
     const evo = fl.evolutions.find((e) => e.id === w.evolves_into) || null;
     if (evo) subs.appendChild(sub('evolution', evo, 'evolution', evo.evolved_from && evo.evolved_from !== w.id ? `evolved_from ${evo.evolved_from}` : ''));
@@ -219,6 +221,8 @@ const Items = (() => {
       if (name === 'Art' && typeof TypedForms !== 'undefined') { const ic = TypedForms.iconCandidates(doc); if (ic) extra.push(ic); }
       // pass 73 (lane CARDS): the card's looks (A the old icon, B-E the four framings), the one the game plays, its words
       if (name === 'Art' && kind === 'passive') { const lk = itemLooks(doc); if (lk) extra.unshift(lk); }
+      // pass 76 (lane LOOKS): a weapon family's looks (the weapon plays one for all; a member says which it wears)
+      if (name === 'Art' && (kind === 'weapon' || kind === 'evolution' || kind === 'mutation')) { const fk = familyLooks(doc); if (fk) extra.unshift(fk); }
       const all = nodes.concat(extra);
       if (!all.length) continue;
       const keys = Assets.sectionKeys(defs, name).concat(name === 'Evolution & path' ? ['path'] : name === 'Availability' ? ['band', 'quest_lock'] : []);
@@ -401,5 +405,91 @@ const Items = (() => {
     App.render('tab');
   }
 
-  return { render, redraw, weaponCard, pathStrip, questLock, bandGauge, cardLooksBar, itemLooks, setAllCards, playLook };
+  // ------------------------------------------------------------------ pass 76 (lane LOOKS): a weapon family's looks
+
+  /** A weapon family's looks (Garry: the Grenade as a Dynamite Stick "as a Look (with several candidates), so I can switch
+   *  back to the grenade"). In the weapon's editor: per look of the weapon its icon on the plate (112 and 48), its code and
+   *  name, PLAYS on the one the family plays (the weapon's `variant`), its members in that look (their icons; faint where a
+   *  member has no entry for it and wears its base), the note, Play this look (the weapon's variant, then an import) and
+   *  Show (the icon preview and "+ Icon candidates" follow the look shown). In an evolution's or a mutation's editor: the
+   *  look its family plays, the one it wears, its own looks with Show, and a way to its weapon. */
+  function familyLooks(doc) {
+    const rec = Assets.listRecord(doc) || {};
+    const hide = (e) => { e.target.style.visibility = 'hidden'; };
+    const v = `?v=${doc.baseMtime || 0}`;
+    const pl = (px, url) => el('div', { class: 'iconplate', style: `width:${px}px;height:${px}px;background:${plate(doc.data.rarity)}` }, el('img', { src: url, alt: '', width: px, height: px, onerror: hide }));
+    const looks = Array.isArray(doc.looks) ? doc.looks : [];
+    if (M.isObj(doc.data.variants) && Object.keys(doc.data.variants).length && !looks.length) {
+      return el('p', { class: 'muted small', 'data-key': 'variants', text: 'This item has looks in its JSON, but this Level Editor was started before weapons had looks: close it and open it again to see and pick them.' });
+    }
+    if (doc.kind === 'weapon') {
+      const fls = Array.isArray(rec.family_looks) ? rec.family_looks : [];
+      if (fls.length < 2) return null;
+      const playing = (fls.find((l) => l.default) || {}).code || '';
+      const wrap = el('div', { class: 'ilooks', 'data-key': 'variants' });
+      wrap.appendChild(el('div', { class: 'muted small', text: `Looks of the whole family: the game plays ${playing} (this weapon's variant), its mutations and its evolution with it. On the phone the arena's ITEMS tab switches the family's look (Weapon looks). A look changes names, words, icons and drawing params, never the rules.` }));
+      const grid = el('div', { class: 'ilooks-grid' });
+      for (const l of fls) {
+        const shown = doc.ui.look === l.code;
+        const tile = el('figure', { class: 'ilook' + (l.default ? ' plays' : '') + (shown ? ' shown' : '') + (l.exists ? '' : ' missing'), 'data-look': l.code });
+        tile.appendChild(el('div', { class: 'ilook-plates' }, pl(112, l.icon + v), pl(48, l.icon + v)));
+        tile.appendChild(el('figcaption', {}, el('b', { text: `${l.code} · ${l.name}` }), l.default ? el('span', { class: 'achip good', text: 'plays' }) : null,
+          l.shelved ? el('span', { class: 'achip hidden', text: 'shelved' }) : null, l.fresh ? el('span', { class: 'achip', text: 'unreviewed' }) : null,
+          !l.exists ? el('span', { class: 'achip bad', text: 'files missing' }) : null,
+          el('div', { class: 'muted small', text: l.note || (l.base ? 'the top level' : '') })));
+        const mem = el('div', { class: 'flook-members', style: 'display:flex;flex-wrap:wrap;gap:4px;margin:6px 0' });
+        for (const m of l.members || []) {
+          mem.appendChild(el('img', { src: m.icon + v, alt: '', width: 40, height: 40, onerror: hide,
+            style: `width:40px;height:40px;border-radius:6px;background:${plate(doc.data.rarity)};${m.own || l.base ? '' : 'opacity:0.45;'}${m.hidden ? 'filter:grayscale(1);' : ''}`,
+            title: `${m.role} · ${m.name}${m.own || l.base ? '' : ` (no ${l.code} of its own: its base)`}${m.hidden ? ' · hidden' : ''}` }));
+        }
+        tile.appendChild(mem);
+        const acts = el('div', { class: 'alt-actions' });
+        if (!l.default) acts.appendChild(el('button', { class: 'btn small primary', type: 'button', text: 'Play this look', disabled: !l.exists, title: l.exists ? 'writes this weapon\'s variant (its whole family plays it) and imports it' : 'a file its entry names is not on disk yet', onclick: () => playFamilyLook(doc, l.code) }));
+        acts.appendChild(el('button', { class: 'btn small ghost', type: 'button', text: shown ? 'Shown above' : 'Show', title: 'the icon preview and "+ Icon candidates" follow the look shown', onclick: () => { doc.ui.look = shown ? null : l.code; Assets.redraw(doc, 'editor'); } }));
+        tile.appendChild(acts);
+        grid.appendChild(tile);
+      }
+      wrap.appendChild(grid);
+      return wrap;
+    }
+    // an evolution or a mutation: it wears its weapon's look (its base when it has none of that code)
+    const fam = rec.family || '';
+    const fl = Assets.flatItems();
+    const wrec = fam && fl ? fl.weapons.find((w) => w.id === fam) : null;
+    const famLooks = wrec && Array.isArray(wrec.family_looks) ? wrec.family_looks : [];
+    if (!looks.length && famLooks.length < 2) return null;
+    const wears = (looks.find((l) => l.default) || {}).code || '';
+    const wrap = el('div', { class: 'ilooks', 'data-key': 'variants' });
+    const famText = wrec ? `${wrec.name_play || wrec.name} (${fam}) plays ${wrec.play || 'its top level'}` : 'its weapon plays one look for the family';
+    const mine = looks.length ? `wears ${wears}${wrec && wrec.play && wrec.play !== wears ? ` (it has no ${wrec.play} of its own: its base)` : ''}` : 'has no looks of its own and wears its top level in every look';
+    wrap.appendChild(el('div', { class: 'muted small', text: `Its weapon family's look: ${famText}; this ${doc.kind} ${mine}. The look is played on the weapon.` }));
+    if (fam) wrap.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small', type: 'button', text: `Open ${fam}`, onclick: () => Assets.open('weapon', fam) })));
+    if (!looks.length) return wrap;
+    const grid = el('div', { class: 'ilooks-grid' });
+    for (const l of looks) {
+      const shown = doc.ui.look === l.code;
+      const tile = el('figure', { class: 'ilook' + (l.default ? ' plays' : '') + (shown ? ' shown' : '') + (l.exists ? '' : ' missing'), 'data-look': l.code });
+      tile.appendChild(el('div', { class: 'ilook-plates' }, pl(112, l.icon + v), pl(48, l.icon + v)));
+      tile.appendChild(el('figcaption', {}, el('b', { text: `${l.code} · ${l.name || doc.data.name || doc.id}` }), l.default ? el('span', { class: 'achip good', text: 'wears' }) : null,
+        l.shelved ? el('span', { class: 'achip hidden', text: 'shelved' }) : null, l.fresh ? el('span', { class: 'achip', text: 'unreviewed' }) : null,
+        !l.exists ? el('span', { class: 'achip bad', text: 'files missing' }) : null, el('div', { class: 'muted small', text: l.note || (l.base ? 'the top level' : '') })));
+      tile.appendChild(el('div', { class: 'alt-actions' }, el('button', { class: 'btn small ghost', type: 'button', text: shown ? 'Shown above' : 'Show', title: 'the icon preview and "+ Icon candidates" follow the look shown', onclick: () => { doc.ui.look = shown ? null : l.code; Assets.redraw(doc, 'editor'); } })));
+      grid.appendChild(tile);
+    }
+    wrap.appendChild(grid);
+    return wrap;
+  }
+  async function playFamilyLook(doc, code) {
+    if (Assets.docDirty(doc) && !confirm(`${doc.id} has unsaved changes. Playing look ${code} writes only its variant line; your other edits stay unsaved. Go on?`)) return;
+    App.status(`${doc.id}'s family plays ${code}…`, 'busy');
+    const { status, data } = await Assets.postJSON(`/api/content/weapon/${encodeURIComponent(doc.id)}/variant`, { code });
+    if (!data.ok) { App.status(`${doc.id}: ${data.error || status}`, 'bad'); return; }
+    App.toast(`${doc.id} and its family play ${code}${data.import_ok === false ? ' · the import did not run: ' + (data.output || '') : ''}`);
+    await Assets.refreshRecord('weapon', doc.id);
+    await Assets.refreshList('items');
+    App.render('tab');
+  }
+
+  return { render, redraw, weaponCard, pathStrip, questLock, bandGauge, cardLooksBar, itemLooks, setAllCards, playLook, familyLooks, playFamilyLook };
 })();

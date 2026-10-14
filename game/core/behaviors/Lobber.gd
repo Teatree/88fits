@@ -16,6 +16,11 @@
 ## racing out over the sand. `params.halo {size, color, strength, pulse, motes}` hangs a sunburst (the chest's shine,
 ## mode 0) on every shot of the weapon while it flies and drops gold motes behind it every `motes` seconds; the shot
 ## itself shines through `params.tint` (shot_kind: a gold emissive bottle).
+## Pass 76 (lane DYN, the dynamite): `params.models {<form>: {<colour>: "res://...glb", "tip": [x, y, z]}}` with
+## `params.model_form` ("stick") and `params.model_colour` ("tan") pick the model the shot is drawn with (a look's sticks
+## and bundles, tan or red: Dynamite Bundle sets the form, Coffin Nails the colour), falling back to `params.model`; a
+## mutation taken or a look switched re-models the weapon (refresh_model). The fuse's spark sits at the model's `tip`
+## (or `params.fuse_tip`; ProjectileManager's fuse, model_choice).
 class_name Lobber
 extends WeaponBehavior
 
@@ -26,6 +31,13 @@ var _deaths_hooked := false
 var death_pools := 0
 ## The models' meshes by path, so a second weapon (or a swap) does not load one twice.
 static var _model_meshes: Dictionary = {}
+## Pass 76 (lane DYN): the model drawn now ("" for the visual's own shot), the visual's own kind (back when no model is
+## chosen any more), the kinds this weapon registered for its models (by path and finish, made once each), and which
+## model files exist (a missing one falls back to params.model).
+var _model_path := ""
+var _visual_kind := -1
+var _model_kinds: Dictionary = {}
+static var _model_exists: Dictionary = {}
 ## Pass 62 (params.halo): the sunbursts riding the shots in flight (one each, made as needed, hidden when spare), the
 ## shots they ride ([projectile index, stamp]: a freed slot taken by another shot no longer carries the stamp), the
 ## stamp the next shot gets, the clock the motes keep; halos hung and land blasts made (tests).
@@ -53,6 +65,8 @@ func _on_setup() -> void:
 func refresh_marks() -> void:
 	super.refresh_marks()
 	_check_visual()
+	# pass 76: a mutation that changes the model's form or colour (Dynamite Bundle, Coffin Nails) re-models the shot
+	refresh_model()
 	_hook_deaths()
 
 
@@ -81,11 +95,21 @@ func _check_visual() -> void:
 
 
 ## params.model: the shot drawn with that model's first mesh, its own vertex colours lit as metal (pass 48: the Golden
-## Pineapple's golden_grenade.glb), at params.model_scale. Nothing changes when the model is missing.
+## Pineapple's golden_grenade.glb), at params.model_scale. Nothing changes when the model is missing. Pass 76: the model
+## is model_choice's (params.models by form and colour, else params.model), each one registered once per weapon; a
+## weapon whose model goes away (a look without one) is drawn with its visual's own shot again.
 func _use_model() -> void:
-	var path := str(inst.params.get("model", ""))
+	var path := model_path()
+	# the visual's own kind, whenever the kind drawn now is none of this weapon's models
+	if projectile_kind >= 0 and not _model_kinds.values().has(projectile_kind):
+		_visual_kind = projectile_kind
 	if path == "":
+		if _model_path != "" and _visual_kind >= 0:
+			projectile_kind = _visual_kind
+		_model_path = ""
 		return
+	# a missing model is not tried again until the choice changes
+	_model_path = path
 	var mesh: Mesh = _model_meshes.get(path)
 	if mesh == null:
 		if not ResourceLoader.exists(path):
@@ -102,12 +126,67 @@ func _use_model() -> void:
 		if mesh == null:
 			return
 		_model_meshes[path] = mesh
+	var metallic := float(inst.params.get("model_metallic", 0.45))
+	var roughness := float(inst.params.get("model_roughness", 0.35))
+	var msc := float(inst.params.get("model_scale", 1.0))
+	var key := "%s|%s|%s|%s" % [path, metallic, roughness, msc]
+	if _model_kinds.has(key):
+		projectile_kind = int(_model_kinds[key])
+		return
 	var mat := StandardMaterial3D.new()
 	mat.vertex_color_use_as_albedo = true
 	mat.albedo_color = Color.WHITE
-	mat.metallic = float(inst.params.get("model_metallic", 0.45))
-	mat.roughness = float(inst.params.get("model_roughness", 0.35))
-	projectile_kind = game.projectiles.register_kind(mesh, mat, float(inst.params.get("model_scale", 1.0)))
+	mat.metallic = metallic
+	mat.roughness = roughness
+	projectile_kind = game.projectiles.register_kind(mesh, mat, msc)
+	_model_kinds[key] = projectile_kind
+
+
+## The model the shot is drawn with now (pass 76, model_choice): "" for the visual's own shot.
+func model_path() -> String:
+	if inst == null:
+		return ""
+	return str(model_choice(inst.params)["path"])
+
+
+## Pass 76 (lane DYN): re-models the shot when its params now choose another model: a mutation taken (Dynamite Bundle's
+## form, Coffin Nails' colour) or a look switched (lane LOOKS calls this). Nothing happens when the choice is the same.
+func refresh_model() -> void:
+	if inst == null or game == null or game.get("projectiles") == null:
+		return
+	if model_path() != _model_path:
+		_use_model()
+
+
+## The model a shot of params `p` is drawn with, and its fuse's tip (pass 76): {"path": params.models[model_form]
+## [model_colour] ("stick" and "tan" when unset) when that file exists, else params.model ("" for none); "tip": that
+## form's `tip`, else params.fuse_tip, as a Vector3 in the model's own space (Vector3.INF when none is given: the
+## mesh's top, ProjectileManager.fuse_tip)}.
+static func model_choice(p: Dictionary) -> Dictionary:
+	var fallback_tip := _vec3(p.get("fuse_tip"), Vector3.INF)
+	var ms = p.get("models")
+	if ms is Dictionary:
+		var f = (ms as Dictionary).get(str(p.get("model_form", "stick")))
+		if f is Dictionary:
+			var path := str((f as Dictionary).get(str(p.get("model_colour", "tan")), ""))
+			if path != "" and _model_file_exists(path):
+				return {"path": path, "tip": _vec3((f as Dictionary).get("tip"), fallback_tip)}
+	return {"path": str(p.get("model", "")), "tip": fallback_tip}
+
+
+static func _model_file_exists(path: String) -> bool:
+	if not _model_exists.has(path):
+		_model_exists[path] = ResourceLoader.exists(path)
+	return bool(_model_exists[path])
+
+
+## [x, y, z] (or a Vector3) as a Vector3, else `fallback`.
+static func _vec3(v, fallback: Vector3) -> Vector3:
+	if v is Vector3:
+		return v
+	if v is Array and (v as Array).size() >= 3:
+		return Vector3(float(v[0]), float(v[1]), float(v[2]))
+	return fallback
 
 
 ## The kind a bomb is drawn with (pass 61): the visual's (or the model's), in a mutation's `params.tint` when it brings one

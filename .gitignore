@@ -37,3 +37,6 @@ analytics/runs/
 
 # the PostHog personal API key for tools/posthog_boards.py (a secret: never commit, never ship)
 tools/posthog_personal_key.txt
+
+# pass 76: a reference picture of Garry's copied into the Totem brief (it stays on disk and in Drive, not in git)
+docs/ui_review/totem/art/garry_reference_*

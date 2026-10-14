@@ -30,7 +30,7 @@ var game: Node
 var _tabs: WTabs
 var _tab := 0
 var _expanded := ""
-var _stat := "max_hp"
+var _stat := AUTO
 var _clock: WText
 var _board: PanelContainer
 var _scroll: ScrollContainer
@@ -61,7 +61,8 @@ func _ready() -> void:
 	_tabs.offset_left = 48
 	_tabs.offset_right = -48
 	_tabs.offset_top = 230 + inset
-	_tabs.changed.connect(func(i): _tab = i; _refresh())
+	# pass 76: another tab opens at its top (the Build list scrolled to its end left the Stats grid scrolled too)
+	_tabs.changed.connect(func(i): _tab = i; _scroll.scroll_vertical = 0; _refresh())
 	add_child(_tabs)
 	# the board: paper, 5 px ink on three sides; the chosen tab opens into it
 	_board = PanelContainer.new()
@@ -153,6 +154,10 @@ func _fit_board() -> void:
 	_scroll.custom_minimum_size.y = h
 	# anchored across the screen: its height is set by the bottom offset (reset_size would undo the anchors)
 	_board.offset_bottom = _board.offset_top + h + pads
+	# pass 76: a card a tap opened scrolls into view once the list is laid out
+	if _reveal and _tab == 1:
+		await get_tree().process_frame
+		_reveal_card()
 
 
 # ---------------------------------------------------------------- build
@@ -337,63 +342,344 @@ static func evolve_note(inst: WeaponInstance) -> String:
 
 # ---------------------------------------------------------------- stats
 
+## core/systems/StatSources.gd by path (pass 76: a new script's class name is unknown until the editor imports it)
+const SOURCES := preload("res://core/systems/StatSources.gd")
+
 const STATS := ["damage_reduction", "regen", "move_speed", "might", "cooldown", "area", "projectile_speed", "duration", "amount",
 	"magnet", "luck", "greed", "xp_gain", "lifesteal", "evade", "crit_chance", "thorns", "execute_frac", "revives"]
+
+## Pass 76 (lane UI; Garry: "Stats in pause menu. Mark the stats that were changed since the start of the game. Provide
+## some minimal info on which items are doing the stat changes underneath somewhere. Think like a good game UI designer
+## here and be inspired by Vampire Survivors or Megabonk"): the grid in two columns, every stat that moved since the run
+## began (StatSources, against Run.start_stats) in ink with a change pill (a drawn arrow the way the number went and how
+## far, in the value's own unit; sage when it is better, rock when worse: a cooldown cut is sage), every one that did
+## not dimmed; a stat that moved outside the list gets a cell of its own. A tapped cell opens its sources right under its
+## row (the Build tab's rows open the same way), an aged card pointing at the cell: "At the start" (the base, the hero,
+## the Upgrade board) and "This run" (cards, items, perks, mutations, the hero's levels, Totem gifts, the Stranger, timed
+## buffs with their seconds left), a row a source with its icon and its summed amount. The first stat that moved opens
+## by itself (max HP when none did); tapped again it closes.
+## The open stat before the player picks one: the first that moved (see above).
+const AUTO := "?"
+## The Kills cell's key (a count, not a stat: never marked, never opened).
+const KILLS := "kills"
+## The two columns' gap and a cell's side padding.
+const COL_GAP := 40
+const CELL_PAD := 10
+## The change pill's colours: better, worse (on the paper board and on the aged card).
+const BETTER := W.SAGE
+const WORSE := W.ROCK
+## A source row's amount on the aged card: better, worse (darker than the pill's, so a small number reads on aged paper).
+const BETTER_TEXT := Color("4a6b3c")
+const WORSE_TEXT := Color("a03a22")
+## The card's pointer: its height over the card's top edge and its half width.
+const POINTER_H := 16.0
+const POINTER_HW := 18.0
+## An unchanged cell's ink: ink-soft, faded, so the stats that moved stand out.
+const DIM_ALPHA := 0.62
+## A source row's icon plate.
+const SOURCE_PX := 40.0
+
+var _open_card: Control
+## Set by a tap: once laid out, the list scrolls so the card that opened is in view (_reveal_card).
+var _reveal := false
 
 
 static func _cap(s: String) -> String:
 	return s.substr(0, 1).to_upper() + s.substr(1)
 
 
+static func _dim_ink() -> Color:
+	return Color(W.INK_SOFT.r, W.INK_SOFT.g, W.INK_SOFT.b, DIM_ALPHA)
+
+
 func _stats_tab() -> void:
 	var sheet := Run.player_sheet
-	# the open stat: its value and where it comes from
-	var card := PanelContainer.new()
-	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_theme_stylebox_override("panel", W.box(W.AGED, 4, 0).pad(24, 20, 24, 20))
-	var cv := VBoxContainer.new()
-	cv.add_theme_constant_override("separation", 6)
-	cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(cv)
-	var top := HBoxContainer.new()
-	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var nm := W.serif_text(_cap(TextGen.stat_name(_stat)), 28, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(nm)
-	top.add_child(W.slab_text(TextGen.format_value(_stat, sheet.get_stat(_stat)), 36, W.INK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0))
-	cv.add_child(top)
-	for r in sheet.breakdown(_stat):
-		if r["source"] == "total":
-			continue
-		var t := str(r["text"])
-		var bad := t.begins_with("-") or t.begins_with("−")
-		var line := HBoxContainer.new()
-		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var src := W.serif_text(_source_name(str(r["source"])), 24, W.ROCK if bad else W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-		src.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		line.add_child(src)
-		line.add_child(W.serif_text(t, 24, W.ROCK if bad else W.INK_SOFT, 400, false, HORIZONTAL_ALIGNMENT_RIGHT, 0.0))
-		cv.add_child(line)
-	_content.add_child(card)
-	_content.add_child(_spacer(2))
-	# two columns of the rest, each a tap away from its breakdown
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 40)
-	grid.add_theme_constant_override("v_separation", 0)
+	var keys: Array = SOURCES.grid_stats(sheet, STATS)
+	var moved: Array = keys.filter(func(s) -> bool: return SOURCES.changed(sheet, str(s)))
+	if _stat == AUTO:
+		_stat = str(moved[0]) if not moved.is_empty() else "max_hp"
+	_content.add_child(_stats_head(moved.size()))
+	var grid := VBoxContainer.new()
+	grid.name = "StatGrid"
+	grid.add_theme_constant_override("separation", 0)
 	grid.mouse_filter = Control.MOUSE_FILTER_PASS
-	var keys: Array = STATS.duplicate()
-	if _stat != "max_hp":
-		keys.push_front("max_hp")
-		keys.erase(_stat)
-	if sheet.get_stat("shield_max", 0.0) > 0.0 and not keys.has("shield_max") and _stat != "shield_max":
-		keys.append("shield_max")
-	for s in keys:
-		grid.add_child(_stat_cell(_cap(TextGen.stat_name(s)), TextGen.format_value(s, sheet.get_stat(s)), s))
-	grid.add_child(_stat_cell("Kills", W.num(Run.kills), ""))
 	_content.add_child(grid)
+	var cells: Array = keys.duplicate()
+	cells.append(KILLS)
+	_open_card = null
+	for k in range(0, cells.size(), 2):
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", COL_GAP)
+		row.mouse_filter = Control.MOUSE_FILTER_PASS
+		var col := -1
+		for j in range(2):
+			if k + j < cells.size():
+				var s := str(cells[k + j])
+				row.add_child(_stat_cell(sheet, s))
+				if s != KILLS and s == _stat:
+					col = j
+			else:
+				var filler := Control.new()
+				filler.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				filler.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				row.add_child(filler)
+		grid.add_child(row)
+		if col >= 0:
+			_open_card = _sources_card(sheet, _stat, col)
+			grid.add_child(_open_card)
 
 
+## The tab's head (as the Build tab's group heads): how many stats moved since the run began, and what a tap does.
+func _stats_head(moved: int) -> Control:
+	var h := HBoxContainer.new()
+	h.name = "StatsHead"
+	h.add_theme_constant_override("separation", 14)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(W.label("Changed this run", 20, W.INK_SOFT))
+	var n := W.serif_text(str(moved) if moved > 0 else "none yet", 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
+	n.name = "Moved"
+	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(n)
+	var tip := W.serif_text("tap a stat for its sources", 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, false, false)
+	tip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(tip)
+	return h
+
+
+## One stat in the grid: its name, its change pill when it moved since the run began, its value; dimmed when it did not
+## move; aged while its sources are open under it. A tap opens its sources, a tap on the open one closes them.
+func _stat_cell(sheet: StatSheet, stat: String) -> Control:
+	var kills := stat == KILLS
+	var ch: Dictionary = {} if kills else SOURCES.change(sheet, stat)
+	var moved := bool(ch.get("moved", false))
+	var is_open := not kills and stat == _stat
+	var cell := WTap.new()
+	cell.name = "Stat_" + stat
+	cell.set_meta("stat", stat)
+	cell.set_meta("moved", moved)
+	var b := W.box(W.AGED if is_open else Color(0, 0, 0, 0), 2, 0).pad(CELL_PAD, 12, CELL_PAD, 12)
+	b.sides = [false, false, false, not is_open]
+	b.border_color = W.AGED
+	cell.box = b
+	cell.box_down = b
+	cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 8)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ink := W.INK if (moved or kills or is_open) else _dim_ink()
+	var l := W.serif_text("Kills" if kills else _cap(TextGen.stat_name(stat)), 28, ink, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	l.name = "Name"
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(l)
+	if moved:
+		var pill := _change_pill(ch, 22)
+		pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(pill)
+	var v := W.slab_text(W.num(Run.kills) if kills else TextGen.player_value(stat, SOURCES.now(sheet, stat)), 30, ink,
+		HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	v.name = "Value"
+	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(v)
+	cell.add_child(h)
+	if not kills:
+		cell.pressed.connect(func():
+			_stat = "" if _stat == stat else stat
+			_reveal = _stat != ""
+			_refresh())
+	return cell
+
+
+## A change since the run began as a pill: a drawn arrow the way the number went and how far, paper on sage (better) or
+## rock (worse). Named "Change", its meta "worse" and "up" for the tests.
+func _change_pill(ch: Dictionary, px: int) -> PanelContainer:
+	var worse := bool(ch.get("worse", false))
+	var up := bool(ch.get("up", true))
+	var p := PanelContainer.new()
+	p.name = "Change"
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.set_meta("worse", worse)
+	p.set_meta("up", up)
+	p.add_theme_stylebox_override("panel", W.box(WORSE if worse else BETTER, 0, 0, 6).pad(7, 2, 9, 2))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 5)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(h)
+	h.add_child(_arrow(up, W.PAPER, float(px) * 0.55))
+	var t := W.slab_text(str(ch.get("text", "")), px, W.PAPER, HORIZONTAL_ALIGNMENT_LEFT, float(px) + 2.0)
+	t.name = "Amount"
+	h.add_child(t)
+	return p
+
+
+## A small filled triangle, pointing up or down (drawn: the kit's faces carry no arrow glyphs).
+static func _arrow(up: bool, col: Color, px: float) -> Control:
+	var a := Control.new()
+	a.name = "Up" if up else "Down"
+	a.custom_minimum_size = Vector2(px * 1.1, px)
+	a.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	a.draw.connect(func():
+		var w := a.size.x
+		var hh := a.size.y
+		var pts := PackedVector2Array([Vector2(0, 0), Vector2(w, 0), Vector2(w * 0.5, hh)])
+		if up:
+			pts = PackedVector2Array([Vector2(0, hh), Vector2(w * 0.5, 0), Vector2(w, hh)])
+		a.draw_colored_polygon(pts, col))
+	return a
+
+
+## The open stat's sources under its row: an aged card pointing at the cell in column `col`, "At the start" with the
+## value the run began with, then "This run" with the change (StatSources.rows: one row a source, its amount summed).
+func _sources_card(sheet: StatSheet, stat: String, col: int) -> Control:
+	var holder := MarginContainer.new()
+	holder.name = "Sources"
+	holder.add_theme_constant_override("margin_top", int(POINTER_H) + 4)
+	holder.add_theme_constant_override("margin_bottom", 22)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var card := PanelContainer.new()
+	card.name = "Card"
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_theme_stylebox_override("panel", W.box(W.AGED, 4, 0).pad(26, 20, 26, 22))
+	card.draw.connect(func(): _draw_pointer(card, col))
+	holder.add_child(card)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(v)
+	var rs: Dictionary = SOURCES.rows(sheet, stat)
+	var ch: Dictionary = SOURCES.change(sheet, stat)
+	var start_v := W.slab_text(TextGen.player_value(stat, SOURCES.at_start(stat)), 26, W.INK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	v.add_child(_group_head("At the start", start_v, "GroupStart"))
+	for r: Dictionary in rs[SOURCES.START]:
+		v.add_child(_source_row(r, false))
+	v.add_child(_spacer(6))
+	var right: Control
+	if bool(ch.get("moved", false)):
+		right = _change_pill(ch, 22)
+	else:
+		right = W.serif_text("unchanged", 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_RIGHT, 0.0, false, false)
+	v.add_child(_group_head("This run", right, "GroupRun"))
+	for r: Dictionary in rs[SOURCES.RUN]:
+		v.add_child(_source_row(r, true))
+	return holder
+
+
+## The card's pointer: an aged triangle over its top edge, under the middle of the open cell's column, its two sides
+## inked as the card's border is.
+func _draw_pointer(card: Control, col: int) -> void:
+	var w := card.size.x
+	var cw := (w - float(COL_GAP)) * 0.5
+	var x := cw * 0.5 if col == 0 else w - cw * 0.5
+	card.draw_colored_polygon(PackedVector2Array([Vector2(x - POINTER_HW, 4.0), Vector2(x, -POINTER_H),
+		Vector2(x + POINTER_HW, 4.0)]), W.AGED)
+	card.draw_polyline(PackedVector2Array([Vector2(x - POINTER_HW - 4.0, 2.0), Vector2(x, -POINTER_H),
+		Vector2(x + POINTER_HW + 4.0, 2.0)]), W.INK, 4.0)
+
+
+## A group's head on the card: its word tracked in ink-soft, what stands at its right (a value, the change pill).
+func _group_head(title: String, right: Control, node_name: String) -> Control:
+	var h := HBoxContainer.new()
+	h.name = node_name
+	h.add_theme_constant_override("separation", 14)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var l := W.label(title, 20, W.INK_SOFT)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(l)
+	right.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(right)
+	return h
+
+
+## One source on the card: its icon plate, its name (a timed buff's seconds left after it), its amount; "This run"'s
+## amounts in the change's colours, the start's in ink-soft (rock when it pulls the stat the wrong way).
+func _source_row(r: Dictionary, this_run: bool) -> Control:
+	var h := HBoxContainer.new()
+	h.name = "Source"
+	h.set_meta("sid", str(r.get("sid", "")))
+	h.set_meta("key", str(r.get("key", "")))
+	h.add_theme_constant_override("separation", 14)
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(_source_icon(r))
+	var n := W.serif_text(str(r.get("name", "")), 24, W.INK if str(r.get("kind", "")) != "base" else W.INK_SOFT, 400, false,
+		HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	n.name = "Name"
+	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	n.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(n)
+	var clock := float(r.get("clock", -1.0))
+	if clock >= 0.0:
+		var c := W.serif_text("%d s left" % int(ceilf(clock)), 22, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+		c.name = "Clock"
+		c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(c)
+	var worse := bool(r.get("worse", false))
+	var col := W.INK_SOFT
+	if worse:
+		col = WORSE_TEXT
+	elif this_run and str(r.get("op", "")) != "set":
+		col = BETTER_TEXT
+	var a := W.slab_text(str(r.get("text", "")), 24, col, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	a.name = "Amount"
+	a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(a)
+	return h
+
+
+## A source's plate (SOURCE_PX): an item on its own plate (its colour, its level's for a card or a passive item), a hero
+## on his round badge, anything else that has a picture (a talent's form, the Totem Pole, the Stranger) on paper; the base
+## has none (an empty square keeps the names in line).
+func _source_icon(r: Dictionary) -> Control:
+	var def = r.get("def")
+	var tex = r.get("icon")
+	if def is ContentDef and (def is PassiveDef or def is PerkDef or def is MutationDef or def is WeaponDef or def is CharacterDef):
+		var lv := int(Run.passives.get((def as ContentDef).id, 0)) if def is PassiveDef else 0
+		var pl := WPlate.new().for_def(def, SOURCE_PX, false, lv)
+		pl.name = "Icon"
+		pl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		return pl
+	if tex is Texture2D:
+		var p := WPlate.new()
+		p.name = "Icon"
+		p.side = SOURCE_PX
+		p.fill = W.PAPER
+		p.border = 3
+		p.radius = 8
+		p.tex = tex
+		p.icon_frac = 0.86
+		p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		return p
+	var e := Control.new()
+	e.custom_minimum_size = Vector2(SOURCE_PX, SOURCE_PX)
+	e.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return e
+
+
+## Once a tap opened a card and the list is laid out: scrolled so the whole card shows, never so far that the row it
+## opened from leaves the top.
+func _reveal_card() -> void:
+	_reveal = false
+	if not is_instance_valid(_open_card) or not _open_card.is_inside_tree():
+		return
+	var top := _open_card.get_global_position().y - _content.get_global_position().y
+	var bottom := top + _open_card.size.y
+	var view := _scroll.size.y
+	var at := float(_scroll.scroll_vertical)
+	if bottom <= at + view:
+		return
+	# the row above the card stays in sight (its height is the card's holder's previous sibling's)
+	var row_top := top
+	var i := _open_card.get_index()
+	if i > 0:
+		row_top = top - (_open_card.get_parent().get_child(i - 1) as Control).size.y
+	_scroll.scroll_vertical = int(maxf(at, minf(bottom - view, row_top)))
+
+
+## The name a sheet's source goes by in words (pass 49; the Stats tab names its rows by their source ids since pass 76:
+## StatSources.describe_source): a timed buff by its label, an item by its name. Pass 76: a source in words of its own
+## ("Totem: Le-loo", "Grit: Padding 3") is said whole; the ':' was cut and its first part lost.
 func _source_name(src: String) -> String:
 	if src == "base":
 		return "Base"
@@ -406,7 +692,7 @@ func _source_name(src: String) -> String:
 		if pk:
 			return pk.display_name
 	var parts := src.split(":")
-	if parts.size() == 2:
+	if parts.size() == 2 and parts[0] in ["passive", "favourite", "perk", "mutation", "character", "weapon"]:
 		var def: ContentDef = null
 		match parts[0]:
 			"passive", "favourite":
@@ -422,30 +708,9 @@ func _source_name(src: String) -> String:
 		if def:
 			return def.display_name
 		return _cap(parts[1].replace("_", " "))
+	if src.contains(": "):
+		return src
 	return _cap(src.replace("_", " "))
-
-
-func _stat_cell(n: String, v: String, stat: String) -> Control:
-	var cell := WTap.new()
-	var b := W.box(Color(0, 0, 0, 0), 2, 0).pad(0, 12, 0, 12)
-	b.sides = [false, false, false, true]
-	b.border_color = W.AGED
-	cell.box = b
-	cell.box_down = b
-	cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var h := HBoxContainer.new()
-	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var l := W.serif_text(n, 28, W.INK, 400, false, HORIZONTAL_ALIGNMENT_LEFT, 0.0)
-	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.add_child(l)
-	h.add_child(W.slab_text(v, 30, W.INK, HORIZONTAL_ALIGNMENT_RIGHT, 0.0))
-	cell.add_child(h)
-	if stat != "":
-		cell.pressed.connect(func():
-			_stat = stat
-			_refresh())
-	return cell
-
 
 func _spacer(h: float) -> Control:
 	var c := Control.new()

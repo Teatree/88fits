@@ -496,7 +496,12 @@ func test_the_amount_row_names_what_the_weapon_counts() -> void:
 		var w: WeaponDef = Registry.weapon(id)
 		assert_object(w).override_failure_message(id).is_not_null()
 		var one := _plain_at(w, 1)
-		assert_str(TextGen.amount_noun(w, one.sheet, one.params)).override_failure_message(id).is_equal(str(NOUNS[id]))
+		# pass 76 (lane LOOKS): a family whose look names its things (the Dynamite Stick's "sticks") counts in its words
+		var want := str(NOUNS[id])
+		var look_words: Array = TextGen.weapon_nouns(w)
+		if str(look_words[1]) != "":
+			want = str(look_words[1])
+		assert_str(TextGen.amount_noun(w, one.sheet, one.params)).override_failure_message(id).is_equal(want)
 	# every amount row of every weapon's step says what it counts, never "Projectiles"
 	var seen := {}
 	for w: WeaponDef in Registry.weapons.values():

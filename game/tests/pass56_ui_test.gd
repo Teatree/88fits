@@ -466,18 +466,19 @@ func test_the_level_up_screen_moves_down_with_the_rail_and_keeps_its_gaps() -> v
 
 
 func test_a_long_mutation_offer_stays_between_its_head_and_its_skip() -> void:
-	# four cards (the Peashooter's three and the Drifter's Fan the Hammer), with and without a camera cutout: under one
-	# they ran over the weapon's name before the fix round, and three ran into SKIP
+	# four cards (the grenade's three and the Drifter's Fire in the Hole; pass 76, lane DYN: the Peashooter and his Fan
+	# the Hammer it used are hidden), with and without a camera cutout: under one they ran over the weapon's name before
+	# the fix round, and three ran into SKIP
 	for inset: int in [0, 130]:
 		Settings.top_inset = inset
 		_start("drifter")
 		Run.debug_clear_items()
-		Run.add_weapon(Registry.weapon("peashooter"), 3)
+		Run.add_weapon(Registry.weapon("lob_grenade"), 3)
 		var offer: Array = []
-		for m: MutationDef in Registry.mutations_of("peashooter"):
+		for m: MutationDef in Registry.mutations_of("lob_grenade"):
 			if offer.size() < 3:
 				offer.append({"type": "mutation", "id": m.id, "def": m, "level_from": 0, "level_to": 1, "is_new": true})
-		for m: MutationDef in Registry.weapon_hero_mutations("peashooter"):
+		for m: MutationDef in Registry.weapon_hero_mutations("lob_grenade"):
 			offer.append({"type": "mutation", "id": m.id, "def": m, "level_from": 0, "level_to": 1, "is_new": true})
 			break
 		assert_int(offer.size()).is_equal(4)

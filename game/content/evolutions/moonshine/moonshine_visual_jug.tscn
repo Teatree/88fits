@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://art/props/moonshine_jug.glb" id="model"]
+
+[sub_resource type="StandardMaterial3D" id="paint"]
+vertex_color_use_as_albedo = true
+roughness = 0.4
+
+[node name="MoonshineVisual" type="Node3D"]
+
+[node name="Projectile" parent="." instance=ExtResource("model")]
+
+[node name="Jug" parent="Projectile" index="0"]
+surface_material_override/0 = SubResource("paint")

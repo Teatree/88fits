@@ -1230,8 +1230,9 @@ func _sync_weapons() -> void:
 		var id: String = w.def.id
 		if _behaviors.has(id):
 			var b: WeaponBehavior = _behaviors[id]
-			# a mutation that swaps the behaviour (Needle Rain, Homing Skulls, Walking Buddy) rebuilds it
-			if b.get_script() == _behavior_script(w.behavior()):
+			# a mutation that swaps the behaviour (Needle Rain, Homing Skulls, Walking Buddy) rebuilds it; so does a family
+			# look changed under it (pass 76, lane LOOKS: the arena's chips; its visual and model are the look's)
+			if b.get_script() == _behavior_script(w.behavior()) and not b.look_stale():
 				b.inst = w
 				b.refresh_marks()
 				continue
@@ -1379,8 +1380,9 @@ func _check_quests() -> void:
 		# the banner carries the item's own icon (pass 44), so the unlock is seen, not only read; a hero's badge is the
 		# one of the look he is played in (pass 68, unlock_banner_def)
 		var def: ContentDef = unlock_banner_def(q)
-		# pass 69: a hero on sale is not his yet: the banner says so and keeps him unknown
-		if def is CharacterDef and (def as CharacterDef).availability == "purchase":
+		# pass 69: a hero on sale is not his yet: the banner says so and keeps him unknown; pass 76: only while he is on
+		# sale (Registry.hero_state; check_all never returns a hero owned already)
+		if def is CharacterDef and Registry.hero_state(def as CharacterDef) == "buyable":
 			hud.banner("A NEW HERO IS FOR SALE", UiKit.GOOD, null)
 		else:
 			hud.banner("UNLOCKED: " + (def.display_name if def else q.display_name), UiKit.GOOD, def.icon if def else null)

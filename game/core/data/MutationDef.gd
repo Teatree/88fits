@@ -21,10 +21,49 @@ extends ContentDef
 ## An optional visual scene that replaces the weapon's.
 @export var visual: PackedScene
 @export var visual_file: String = ""
+## Pass 76 (lane LOOKS): its looks in its weapon family (ItemLooks; the family plays its weapon's `variant`): code -> the
+## JSON entry resolved (name, flavour, text, icon, visual, params, note, shelved, fresh: only the keys it has), worn in
+## place while its family plays that code; without an entry for the code it wears its top level (`look_top`).
+@export var variants: Dictionary = {}
+@export var variant_base: String = ""
+var look_top: Dictionary = {}
+var look_worn := "?"
+const ItemLooks := preload("res://core/data/ItemLooks.gd")
 
 
 func kind() -> String:
 	return "mutation"
+
+
+## Its looks (pass 76): its base first, then by code; shelved ones only when asked; [] with one look.
+func variant_codes(include_shelved := false) -> Array:
+	var all: Array = ItemLooks.codes(self, include_shelved)
+	return all if all.size() > 1 else []
+
+
+func variant_shelved(code: String) -> bool:
+	return ItemLooks.shelved(self, code)
+
+
+func variant_note(code: String) -> String:
+	return ItemLooks.note(self, code)
+
+
+func look_icon(code: String) -> Texture2D:
+	return ItemLooks.look_icon(self, code)
+
+
+func look_name(code: String) -> String:
+	return ItemLooks.look_name(self, code)
+
+
+## Wears look `code` (its entry, or its top level when it has none); returns the code worn.
+func wear_look(code: String) -> String:
+	return ItemLooks.wear(self, code)
+
+
+func look_code() -> String:
+	return ItemLooks.code_worn(self)
 
 
 func is_hero() -> bool:

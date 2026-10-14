@@ -1125,3 +1125,182 @@ packs, an Elite, heals of every kind, a reroll, a banish, a skip, the first boss
 record the cards were checked on (analytics/runs/tools/2026-10-14T15-13-11.json).
 
 **Pass 75 (2026-10-14, v0.61): the Revolver's punch and its trick spin.** Garry: "Let's work on the 3D object of the revolver. The shots still feel sluggish and jerky. Let's make it so the revolver does a little spin every now and then right after firing a shot. There should be much more visible impact on the revolver every time it shoots as well, a bigger punch." Filmed frame by frame first (game/tools/_p75_revolver_shot.gd, fixed 60 fps, a crop round the companion): the old kick (10 cm back, the muzzle tipped 0.28 rad, gone in 0.11 s) went through the companion's eased follow of the hero, which let about 1.5 cm of it through; it showed a frame after the round left (`_tick` places the gun before `_fire` pulls); between shots the gun pointed along the hero's line to the target while its rounds flew along its own, so every shot jerked it round; and from the camera above an upright gun (pass 35b kept it upright: laid on its side it read as sideways) a muzzle tip only shortens it. ProjectileEmitter: a companion whose `params.familiar` carries `kick {back, climb, twist, pop, hz, decay}` keeps its orbit place apart (`_fam_base`, the eased follow) and wears the kick on top of it unsmoothed (`_pose_punch`), on the frame the round leaves (`_start_punch` from `_kick`), as a damped spring past rest (`punch()`: amp x e^(-decay t) x cos(2 pi hz t)); it slides back along its barrel, climbs, twists to a random side and swells (the pop is what reads from above); a round on a kicking gun stacks half of what is left (KICK_STACK_MAX), a silver one kicks SILVER_PUNCH 1.3 times; it aims along its own line between shots and lines its barrel up with each round; `spin {chance, seconds, turns, gap, hop, axis}` (`_maybe_trick_spin`) twirls it about its trigger guard after the last round of a pull now and then, only when the twirl ends before the next pull, never within the gap or during a hip shot (whose twirl now runs on `_spin_len`), heard as the hip shot's twirl. The Revolver and the Golden Revolver carry both (back 0.32 m, climb 0.55, twist 0.14, pop 0.28, 3.2 Hz, decay 9; chance 0.3, 0.5 s, one turn, gap 2 s, hop 0.15 m); every other companion has neither and is as before. Both revolver visuals gained a hot muzzle "Flash" (orange-gold, 0.06 s). New game/tests/pass75_revolver_test.gd (8: the kick on the frame and unsmoothed, the spring past rest and settled, silver harder and capped, the spin follows the pull and ends, keeps its gap and the next pull, the own-line aim, the other companions unchanged); pass48/55/35/46 weapon tests green. Rules: BALANCING.md §22. The first ship stopped on pass64_pl_test's return-spot case, a flake pass 73 had made: it held every return spot 11 m (half the map's 22 m) from every structure, Totem Poles included, while pass 73's StructureManager.find_spot keeps a pole only at half its own 14 m when the search relaxes; a probe of 3,000 spots on its map found 32 breaking the old rule and none the new, so the case now checks the poles at their own spacing (re-pinned on purpose).
+
+**Pass 76 (2026-10-14, v0.62): the Dynamite Stick, weapon looks, the Molotov's flames, the pause stats.** Seven lanes from one contract (tools/dl/p76/INTERFACES.md, read-only surveys first): weapon families got switchable looks (name, words, icon, visual, params; per save in the arena, per game in the Level Editor); the Grenade became the Drifter's favourite and, as its played look B (with C and D as candidates and the grenade kept as A), a Dynamite Stick that lies a second on the sand before it blows, its fuse spark going out half a second before, a slightly wider blast and twice the push, with Dynamite Bundle, Coffin Nails (the red stick), Sticky, the Drifter's new hero mutation Fire in the Hole (a blast catching nine or more creatures mini-crits all of them) and Boomtown; the Peashooter and Fan the Hammer hidden; the Molotov a real bottle and jug with flames on the wick in three new looks (the torch played); the pause Stats tab marks what changed since the run began and lists each stat's sources with icons; the Results screen never announces a hero already owned; the Revolver's tracer a dim brick red, thicker; the Totem Pole's gifts cut to about 0.4 of a card level each and a Claude Design brief for its screen in Drive; Solenne's first badge back and the Level Editor's icon guard (no overwrite, history, revert, a gallery). The lead fitted the Stranger's screen under a camera cutout and the arena's hero labels to hero_state. Known and older than this pass: about one headless game run in four to eight (smoke_run, touch_audit, a gdUnit run that plays) exits with 0xC0000005 while the scene tree is freed after the tool has printed its result (pass 75's code, extracted with git archive and run 8 times, did it once; check_scripts never did in 6); results are unaffected and ship.sh reads the printed result, not the exit code. And `--headless --quit` on the boot scene cuts Boot.gd's threaded title load short, so its preload errors (silhouette.gdshader, blob_shadow.gdshader) are an artifact of quitting on the first frame, not a fault in the files.
+
+**Pass 76, lane LOOKS: weapon-family looks.** Garry wanted the Grenade restyled as a Dynamite Stick "as a Look (with several candidates), so I can switch back to the grenade if I ever change my mind", and the Molotov in several flame versions: pass 73's card looks (icons only, passives only) grew into looks for a whole weapon family. A weapon, an evolution or a mutation JSON carries `variants {CODE: entry}` and `variant_base` (the code its top level is, "A" by default); the weapon's `variant` is the code its family plays (the weapon, its evolutions, every mutation of it, hero mutations too). An entry may carry name, flavour, text (a mutation's), icon, visual, params, noun / nouns, note, shelved and fresh; an entry naming an icon or a visual that is not on disk is left out, as the cards' were. New game/core/data/ItemLooks.gd (no class_name, preloaded where it is used, so no Godot run before the next --import meets an unknown class) reads the entries (JsonContent, never worn there: the .tres keeps the top level) and wears a look in place, as PassiveDef.wear_look puts a card's icon on: display_name, flavour, text, icon, visual, params, noun and nouns become the look's, so every screen, the cards, TextGen and WeaponInstance.fold_params read it with no code of their own, the top level kept aside in `look_top`; a look's params are laid over the top level's one level deep, an evolution's `final` one level deeper, and a null removes a key (`{"final": {"tint": null}}` drops the Golden Pineapple's gold in a look). WeaponDef and MutationDef gained `variants`, `variant_base` (a weapon `variant`, `noun`, `nouns`) and the PassiveDef-style methods (variant_codes, variant_shelved, variant_note, look_icon, look_name, wear_look, look_code). Registry: `item_family`, `item_family_root`, `item_look_codes`, `played_item_look` (the phone's Save.item_looks while the weapon can play it and it is not shelved, else the JSON's `variant`, else the base) and `apply_item_looks` (end of scan, Save.load_save, Save.set_item_look, a wipe; a family none of whose members has looks is never touched); a family whose look changes while the run holds its weapon folds its params again and, in a live run, Run.rebuild_sheets, whose build_changed has Game._sync_weapons make the behaviour again (WeaponBehavior.look_seen / look_stale: its visual, its model and every node made from them are the new look's; one condition in _sync_weapons). TextGen: `weapon_nouns` / `thing_word`: a Lobber's sentence and amount_noun name the look's thing ("Lobs 2 sticks", "jugs of fire"), an evolution without words takes its weapon's, none keeps "grenade(s)". The arena's ITEMS tab has a Weapon looks row per family with two or more looks (JSON and a chip per look, ● on the one it plays; rows ItemLooks_<id>, chips ItemLook_<id>_<code>). Level Editor: ITEM_LOOK_KINDS gained weapon, evolution and mutation (FAMILY_LOOK_KINDS; a family look plays when every file it names is on disk); the weapon record carries `family_looks` (per look the weapon's icon and name and every member's, own or base) and the members follow the weapon's look (play, icon_play, name_play); the weapon's editor (Art) shows the family's looks with Play this look (writes the weapon's `variant`, then an import) and Show; an evolution's or a mutation's says which look its family plays and which it wears (Play this look is refused there); the list cards show the name a family plays under. Tests: game/tests/pass76_looks_test.gd (11, on a test-only family: reading and a missing file, the .tres round trip, the overlay, the family wearing names, icons, params and visuals, a kept look over the JSON and back, the sandbox and a wipe, the nouns, the cards and the fortune cards apart, a held weapon's params and a stale behaviour, the arena's chips, every real family); tools/touch_audit.gd arena_item_looks (a real tap: the look kept, worn, the held weapon remade, JSON back; a stand-in look on the grenade while no family has two); tools/level_editor/selftest_LOOKS76.py (28 checks).
+
+**Lane DYN (the dynamite's rules, the Drifter, the Peashooter).** Garry made the grenade the Drifter's new favourite and
+asked for a Dynamite Stick that "sit[s] there for 1 second and then explode[s]", with "a slightly bigger area", "double
+the knockback for any of its explosions", "the little fuse light" that goes out 0.5 s before the blast, and a Drifter
+special: "Hitting more than 8 enemies at once with the Dynamite guarantees that all those enemies will get a Mini Crit";
+and "Peashooter ... Hide it for now". The rules are the same in every look (the grenade A, the dynamite B-D of lane
+DYNART). Numbers: lob_grenade area 2.5 -> 2.8, knockback 7 -> 14; golden_pineapple knockback 9 -> 18 (its bomblets and
+Frag's spikes push at half, so they double too). New primitive `params.fuse {seconds 1.0, out_before 0.5, lie, spark
+{color #FF9A2E, size 0.13}, bomblet_seconds}` in both base params: ProjectileManager marks a fused weapon's lobs
+(`_fuse_mark`, the spark's tip from Lobber.model_choice); a shot that lands and is not caught by Sticky lies where it
+landed (`_fuse_lie`: a long model on its side along its throw, a squat one sitting, still, resting on the sand; its spot
+stays claimed) and blows after `seconds` (`_tick_lying`); one Sticky catches rides in that same pose (`_fuse_ride`). The
+spark (one MultiMesh in the blinker's recipe, drawn once in the warm-up: two glows, a four-point twinkle turning in the
+camera's plane, a white-hot core, little sparks flung off through Fx.mote, a wisp of smoke as it goes out) burns at the
+fuse tip in flight, lying and riding, and goes out out_before seconds before the blast (`fuse_lit`). The Lobber draws
+its shot with `params.models[model_form][model_colour]` (stick/bundle, tan/red; Dynamite Bundle sets the form, Coffin
+Nails the colour, so a bundle taken before or after is red too), falling back to `params.model`; `refresh_model()`
+re-models it when a mutation changes the choice, each model registered once. `params.mass_mini {min_hits 9}`:
+`EnemyManager.damage_radius` gained a `flags` argument and `blast_count`; `_explode` counts the creatures a blast catches
+before it strikes and mini-crits all of them at nine or more (each bomblet on its own, never Frag's spikes). New hero
+mutation `content/mutations/fire_in_the_hole` "Fire in the Hole" (placeholder icon until DYNART's); the Drifter's
+favourite is lob_grenade; the Peashooter and Fan the Hammer are hidden (the Pea Cannon and the pea path hide with them).
+TextGen: the Lobber's card says "It lies where it lands and blows a second later." ("Each one ...", "One that sticks to
+nothing ..." with Sticky) and the mass mini sentence. The Level Editor's params vocabulary (vocab.py, assets_fields.js)
+knows the new keys. Filmed in game (game/tools/_p76_DYN_fuse_shot.gd: the grenade look, and DYNART's B models laid in
+memory): the shot lying, the spark, its going out, the blast, the Sticky ride, Fire in the Hole's 45s on 30-damage
+blasts. Tests: game/tests/pass76_dyn_test.gd; re-pinned on purpose: pass26 (Fire in the Hole on the grenade),
+pass46_passives (the grenade's Collection page), pass48_p0 (the whole-path walk on the grenade; an evolution hidden
+exactly when its weapon is), pass48_ui, pass45_runflow and pass62_ux (the favourite at level 2 is the grenade),
+pass49_dummies and pass51 (the arena's example stack and INFO row are the Skull Rain's), pass56_ui (the grenade's three
+and Fire in the Hole as the long mutation offer); touch_audit and arena_check's examples moved the same way.
+
+**Lane DYNART (the dynamite looks).** The grenade family (lob_grenade, new_equipment, frag, sticky, fire_in_the_hole,
+golden_pineapple) gained three dynamite looks beside the grenade (A), all `fresh`, on lane LOOKS' engine and lane DYN's
+models-by-form drawing; the family plays B. `tools/blender_dynamite.py -- look=b|c|d` builds each look's five models as
+one vertex-coloured mesh each (like blender_grenade.py): a stick and a bundle in sandy brown and in red, and Boomtown's
+own (B a gold-trimmed crate of nine red sticks that sits up when it lies, C a powder keg in gold hoops with four sticks
+strapped on, D a gilded seven-stick bundle under a brass cap with a gold star), the fuse tips in
+tools/dl/p76/DYNART/tips_<l>.json, three-quarter reference renders for the icons (tools/dl/dynamite_<l>_<part>_ref.png)
+and review renders on sand. B is a classic paper stick (dark rings, cream ends, a pale cord fuse; a bundle of three in
+black tape), C a chunky cartoon one (round shoulders, a cream label in black borders, a thick curly fuse; four sticks
+tied with rope and a bow), D a waxed miner's stick (crimped ends, a printed band, a silver blasting cap; seven sticks in
+copper wire). The 19 icons (the six items in B, C, D and Fire in the Hole's grenade icon) were painted through Garry's
+running Level Editor queue as icon_cands jobs (target kind "", at most four of the lane's jobs open so lane MOLO's ran
+between; five seeds each, the renders as references, the blue screen), picked by eye at icon size and at the HUD's
+52 px and finished like gen_icon_cands' pick (tools/dl/p76/DYNART/: icons.py, q.py, review.py, install.py, picks.json).
+The first stick icons read as plain tubes: the words were redone with a big spark burst and a freer fuse. The look
+entries (tools/dl/p76/DYNART/looks.py, line by line through content_io) name the family the same in every dynamite look
+(Dynamite Stick, Dynamite Bundle, Coffin Nails, Sticky, Fire in the Hole, Boomtown), carry the models by form and colour
+on the weapon (Dynamite Bundle sets the form, Coffin Nails the colour, so a bundle is red whichever came first),
+Boomtown's model, tip and own colours (its gold tint dropped), a matte paper finish, and under Sticky no amber tint and
+no blinking light (Garry: "No need for visual changes to the 3d object"; the spark shows alone). Filmed in game
+(game/tools/_p76_DYNART_shot.gd: stick, red, bundle, red bundle, Sticky's ride, Boomtown riding and lying) three times:
+the first film showed the sandy brown as orange (a calibration row, _p76_DYNART_colours.gd, proved the game reads a
+GLB's vertex colours as sRGB values: the script now writes them so, and the papers were picked in the game's light on
+the sand); the second showed sticks flying like darts (a shot spins about the way it flies), so the models are exported
+turned a quarter, long across their flight: they tumble like thrown sticks and still lie along the throw. Tests:
+pass76_dynart_test (looks, names, icons, models by form and colour, no rule moved, Sticky's paper); pass61_wp1's Sticky
+and pineapple tests wear the grenade look on purpose. Lessons: write vertex colours sRGB-encoded for this game; Klein's
+"sandy brown" is the peachy CSS sandybrown, fine on the HUD's dark slots; check a 3D shot's paper in the game's warm
+light before painting more.
+
+Garry: "Regenerate the Molotov Visuals, the flame looks weird. Make several different versions." Filmed first
+(game/tools/_p76_molo_shot.gd: a windowed capture of one throw at a still pack, frame by frame, bounded waits and a
+watchdog; tools/dl/p76/MOLO/film0/): the bottle was the passes 17-19 placeholder, a flat amber cylinder spinning like a
+propeller (Methanol's white, the Moonshine's a tan cone) whose scene "Flame" sphere was never drawn; the flight flame was
+a dotted string of tiny separate tongues dropped every 0.07 s at the bottle's middle and pulled at the camera, so it read
+as drips falling off a can; in blue (Methanol, the Moonshine) the same teardrops with a dark blue rim read as water drops,
+and the pool was a shadow-like smudge with a few separate candles (raindrops in blue). New: a real bottle and jug
+(tools/blender_molotov.py -> art/props/molotov_bottle.glb, molotov_bottle_blue.glb for Methanol, moonshine_jug.glb: clear
+glass with the liquid, a tan rag stuffed and tied at the neck with a flap; a round brown jug with a loop handle and a
+cloth plug; one surface each in vertex colours, since Blender 5.2's glTF export writes the colours of a mesh's first
+primitive only), and a flame that burns AT THE WICK: `params.wick_flame {style, offset, size, rate, life, tumble, ...}`
+(core/systems/WickFlames.gd + core/shaders/wick_flame.gdshader, owned by ProjectileManager; the old branch is kept for a
+bottle without it) finds the wick every tick as the shot is drawn and stands the flame upright there (the camera's up,
+leaning back with speed) while the bottle tumbles end over end, neck up as it leaves the hand. Three styles in one
+shader and one MultiMesh (one draw call for every flame, ember and spark in the air): "torch" (a steady licking flame
+with a glow and embers flung with the bottle's speed so they scatter instead of lining up), "streamer" (a continuous
+tapered ribbon of fire along the wick's last 0.12 s of path under a small flame; its bottle flies base first, the visual
+turned a quarter), "cartoon" (a bold three-layer flame in an ink line like the icons', its tongues jumping twelve times
+a second, inked star sparks). `params.pool_flame {style, size, life}` burns the pool in the same style
+(ElementCloud._flame_at -> WickFlames.ground_flame: the torch's pool flames stand on a flat foot fading out of the spill,
+the cartoon's pop up and down; thinned in their own pool of 256). The Molotov family wears looks A (today's), B (torch),
+C (streamer), D (cartoon) through lane LOOKS' engine (`variants` in molotov.json, methanol.json, moonshine.json:
+`visual` + `params`); the Moonshine's jug and its own wick hold over Methanol's bottle (an evolution keeps its visual);
+the family plays B, the torch (`variant: "B"`): it fixes both weird parts and stays in the same visual family as the
+creatures' burning flames; C and D are one chip away in the arena (D's inked flame is the icons' and its blue reads best;
+its inked pool clashes with the creatures' un-inked fire beside it). The icons stay: the new bottle and jug match them. Lessons: a style code packed with a flag in one instance float must be
+read `flat` and rounded (an interpolated 8.0 came out 7.99 on some pixels and sprayed the blue flames with other styles'
+colours); a flame pulled towards the camera covers a tumbling bottle (each style now places its own depth, a little
+behind the wick); a teardrop with a round foot reads as a drop of water in blue: fire needs ragged tips and a foot that
+rises out of the ground. Tests: game/tests/pass76_molo_test.gd.
+
+**Lane UI: the pause Stats tab marks what changed and says why; owned heroes off the Results; a dim red Revolver
+tracer.** Garry: "Stats in pause menu. Mark the stats that were changed since the start of the game. Provide some
+minimal info on which items are doing the stat changes underneath somewhere. Think like a good game UI designer here and
+be inspired by Vampire Survivors or Megabonk." Run.start now keeps the hero's numbers as the run began
+(`Run.start_stats`, `start_stat()`: level 1, the Upgrade board, nothing taken; a fresh level-1 sheet after an arena
+hero swap). The Stats tab (ui/PauseScreen.gd, data in the new core/systems/StatSources.gd, preloaded by path) became a
+two-column grid where every stat that moved since the start carries a change pill (a drawn up/down triangle the way the
+number went and how far; sage when better, rock when worse by TextGen._worse, so a cooldown cut is green; said as a
+share of the start when every source multiplies, so "Cooldown ▼15%" reads as its "The Tower −15%" row, else in the
+value's unit) and every one that did not is dimmed; any other stat that moved gets a cell of its own (weapon speed under
+Berserk, Solenne's debuff duration, crit damage...; "word" and "rule" stats never). A tapped cell opens its sources right
+under its row as an aged card with a pointer (the Build tab's rows open the same way; the first stat that moved opens by
+itself, tapped again it closes, a card scrolls into view): "At the start" (the base, the hero, his signature stat's
+level-1 step, the Upgrade board's ranks as one row a form) with the start value, and "This run" (the signature stat's
+growth with his level, cards and passive items with their level, perks, mutations, Totem gifts one row a spirit with
+"×2", the Stranger's cut, momentum, running bonuses under the item that gives them, timed buffs last with their seconds
+left) with the change, each row an icon plate, a name and its summed amount. For that the hero's sheet carries a stable
+source id beside every source's words (StatSheet entries' `sid`: talent:grit:0, totem:wolf, trait:solenne...; the words
+the older tests read are kept). The five old bugs went with it: talent and totem names lost their first word and three
+ranks were three rows; the hero's cooldown and duration read "1.00 s" (TextGen.PLAYER_SHARE: now "100%"); a cooldown cut
+was coloured bad; effects aimed at weapons were listed in the hero's breakdown though never in his number
+(StatSheet.breakdown in player scope leaves them out); changed stats outside the list were never shown. A tab change
+opens at the top. "Result Screen unlocks are showing heroes that I already unlocked": a quest whose reward is a hero on
+sale already owned (bought, or the developer menu's "own every hero") is marked done quietly (QuestTracker.owned_reward:
+never returned, never in "Unlocked this run", never on the in-run banner, never in "Unlock progress"); FOR SALE and "A
+NEW HERO IS FOR SALE" only while Registry.hero_state says "buyable"; "Unlocked this run" holds only the run's own checks
+(the title's quiet check no longer adds to it, Run.start empties it). "Make the revolver basic projectile trail thing be
+a dim red instead of yellow ... a bit thicker too": the Revolver's tracer_color #7A1F17 (the beads draw lighter than
+their hex: it shows as a dim brick red on the sand; #A33A2E showed salmon), alpha 0.85, tracer_size 1.35 (0.9); the
+colour order puts a weapon's own plain colour below Silver Bullet and an element, so Silver Bullet keeps its pale blue
+and Venom Rounds its green; a new `tracer_clear` (1.1 m on the Revolver) keeps beads off the hero (the dim red laid over
+his coat read as blood when his companion gun fired past him). Tests: pass76_ui_test.gd (10).
+
+**Lane TOTEM: the Totem Pole's gifts reassessed, and a Claude Design brief for its screen.** Garry: "also some of the
+upgrades are very powerful, can you reassess them please" and "Totem UI. It looks silly. Write a prompt explaining what
+it is and how it works. Include screenshots that could be relevant for Claude design." One rule now sets the gifts
+(BALANCING §23): a gift's average is about 0.4 of one level of the line item (fortune card) for its stat, a mul stat
+measured in multiplier space because mul effects compound ((1 + m)^0.4 - 1), so a map's 10-12 gifts come to about one
+maxed line (4 levels); ranges in whole steps of what the screen shows (TextGen rounds a mul to whole percents), the
+smallest roll at least a third of the biggest (pass 73's floor), and a span of steps never a multiple of three (pass
+73's 3-step percent ranges let a rounding error pick the feathers: the Thunderbird's -3% hung one feather where the
+Raven's +4%, at the same place in its range, hung two). Pass 73's gifts averaged 0.67 of a level (10-12 gifts = 6.7-8.1
+levels, two maxed lines with no slot taken); now 0.40 (4.0-4.9). New ranges in `content/structures/totem_pole`: Wolf
++1-3% move speed (was 3-7), Whale +2-6 max HP (6-14), Bear +2-6% attack damage (3-7), Thunderbird -2 to -4% cooldown
+(-2 to -5), Seal +10-20% pickup radius (8-18: it was under the rule), Salmon +0.1-0.3 regen (0.2-0.5), Frog +2-4% XP
+(4-8), Bullhead +1-3% damage reduction (2-4), Raven +2-6% luck (3-6), Serpent +2-4% area (3-6); the Killer Whale's
++2-4% crit was on the rule already; the weights, the feathers' rule, `per_map` and `choices` kept
+(`tools/dl/p76/TOTEM/gift_table.py` prints the table). The brief is `docs/ui_review/totem/`: PROMPT.md (what a pole is
+and how it works, the gifts' table, today's screen as the thing under review with our doubts, what the screen must do,
+genre peers from Megabonk's charge shrines to Hades' boons, the real limits, three directions with mocks), 15
+screenshots from `game/tools/_p76_TOTEM_shots.gd` in a real Red Canyon run with a mid-run kit (three chosen offers and
+the same under a 130 px cutout, an offer the game rolled, a pole and its signpost, the hero in the ring with the pie,
+the toast after a real tap, the used grey pole, the HUD in a fight, the level-up cards and the Stranger as siblings),
+an overview sheet, the pole's painting, its grey and its keyed 883 px source, and Garry's word reference; copied to
+Drive (`88fits builds/totem_ui_brief/` and `totem_ui_brief.zip`), built by `tools/dl/p76/TOTEM/make_brief.py`. Tests:
+`pass76_totem_test.gd` (5: the rule, a map's sum, plain numbers, the feathers by thirds, the weights kept);
+`pass73_struct_test.gd` re-pinned (the Whale's 6 and 14 read from the pool).
+
+**Solenne's badge, and the icon guard (lane ICON).** Garry: "Bring back the old Solenne icon, I made a variant of an
+Icon and can't find the old one. Make a fix in LevelEditor to make sure that this doesn't happen." What had happened
+(2026-10-13 21:11): badge candidates painted for her base (job #a432) were installed into SOL-B, the look in play;
+set_look_files wrote `icon: solenne_icon_b.png` + `icon_picked` into SOL-B's entry without a word, and the game puts the
+played look's icon on the hero, so the drawer, the sheet and the results showed the new badge; the old
+`solenne_icon.png` was untouched but only the other looks' tiles showed it. Fixed: the two keys left SOL-B (she plays
+SOL-B with her own badge again; checked in a windowed capture of the title, the hero drawer and the sheet), and
+`solenne_icon_b.png` stays on disk. The guard (server.py "pass 76 (lane ICON)": set_look_icon, the one place an icon
+changes, for heroes, creatures, cards and lane LOOKS' weapon families): an install never overwrites (a file of its own,
+`<id>_icon[_<x>]_<tag>_c<k>.png`, named by the server's install guard and written by gen_badge_cands `--icon-file` /
+gen_icon_cands `keep_old`); an icon change of the look in play or the base is a 409 `confirm_needed` until confirmed,
+and the page asks first (now -> new, the file names, "the look the game plays", the looks that share the base's
+badge); every change goes onto the look's `icon_history` (the base's at the top level) with a copy of the replaced
+picture under tools/level_editor/backups/<id>/; "Revert icon" steps back; "All icons on disk" lists every picture of the
+asset (the folder, backups/<id>/, removed looks', the older tools' tools/dl/backup/icons*/ copies), one tile per
+picture, with "Use for <look>"; look, item-icon and install jobs snapshot the asset's icons first; a re-roll keeps a
+picked icon (merge_look, gen_art, gen_ctl). Found on the way: the Jobs tab's and an item's Install sent the candidate's
+label ("c2"), which gen_icon_cands read as `<key>_cc2.png` (jobs.choice_id maps it to the id). Tests:
+selftest_ICON76.py (87 checks: the guard over HTTP, picks, revert, a picture painted over since, the gallery, Use from
+a backup and an older tool's copy, weapon families, the jobs' plan / landing / snapshot, the pick tools on a temp
+tree, the page, Solenne's JSON); re-pinned on purpose: selftest_S D8 (the entry also gets icon_history) and selftest_LE70
+(the picker installs through LookGrid.installPick); one end-to-end install of the real candidate c2 of #a432 on a temp
+copy (tools/dl/p76/ICON/e2e_install.py); the page checked in Chrome on a server copy (tools/dl/p76/ICON/chrome/).
+Garry's running editor gets the guard only after he restarts it.

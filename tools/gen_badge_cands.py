@@ -13,6 +13,9 @@ from, so a later gen_art run makes the same badge (the JSON's "badge" {still, he
            For a look (--variant, a code other than the base strip's: the base's code is the hero's own, as above):
            <id>_icon_<letter>.png and the look's own entry {"icon": ...} (variants[CODE].icon; the sidecar's `entry`
            under a job), no badge block.
+           Pass 76: --icon-file NAME (the Level Editor's install, its icon guard) writes the badge to NAME instead, a file
+           of its own (NAME_2.png when another picture has that name: nothing is overwritten); the sidecar says the file
+           (`entry.icon` for a look, `info.icon_file` for the base) and the server names it in the JSON.
 
 The words (pass 68, badge_prompt): "this exact character: <character>, only the head and shoulders, ..., <action>, ...".
 The character only when --character gives one (the Level Editor fills it from the hero's description); the action is
@@ -207,7 +210,7 @@ def paint(hid, seeds, words="", first=0, head_width=0.0, top_pad=0.03, character
     return keys, path
 
 
-def pick(hid, k, head_width=0.0, top_pad=0.03, variant="", tag=None):
+def pick(hid, k, head_width=0.0, top_pad=0.03, variant="", tag=None, icon_file=""):
     key = pick_key(hid, k, tag)
     src = os.path.join(g.RAW, key + ".png")
     if not os.path.isfile(src):
@@ -221,6 +224,28 @@ def pick(hid, k, head_width=0.0, top_pad=0.03, variant="", tag=None):
     buf = io.BytesIO()
     badge.save(buf, "PNG")
     sidecar = os.environ.get("ASSET_JOB_SIDECAR", "")
+    icon_file = os.path.basename(str(icon_file or ""))
+    if icon_file:
+        # pass 76 (the Level Editor's icon guard): the badge goes into a file of its own (--icon-file, the server's new
+        # name), never over another picture; the look's entry (or, for the base, the top-level icon) is named by the
+        # server through set_look_files, which keeps the look's icon_history
+        name, dst = g.free_icon_name(hero_folder(hid), icon_file, buf.getvalue())
+        badge.save(dst)
+        g.log("installed %s -> %s for %s (a file of its own: nothing overwritten)" % (key, dst, code or "the base"))
+        info = {"pipeline": "gen_badge_cands", "pick": key, "icon_backup": "", "icon_file": name, "head_width": float(head_width),
+                "top_pad": float(top_pad)}
+        top = {} if code else {"badge": {"still": key, "head_width": float(head_width), "top_pad": float(top_pad)}}
+        if sidecar:
+            g.emit_sidecar(hero_folder(hid), hid, code, {"icon": name} if code else {}, info, top=top)
+            return dst
+        jpath = os.path.join(hero_folder(hid), hid + ".json")
+        if code:
+            g.write_look_entry(jpath, code, {"icon": name, "icon_picked": True})
+        else:
+            g.write_top_block(jpath, "icon", name, (("after", "flavour"), ("end", None)))
+            g.write_top_block(jpath, "badge", top["badge"], (("after", "portrait_prompt"), ("end", None)))
+        g.log("%s names its icon %s" % (code or hid, name))
+        return dst
     if code:
         # pass 68 (D8): a look's own badge beside the hero's; the look's entry names it, the hero's badge block is untouched
         name = "%s_icon_%s.png" % (hid, g.look_letter(code))
@@ -261,7 +286,8 @@ def main():
     if opt("pick") is not None:
         # the candidates' tag: --tag, else the job the queue runs the pick under (an install job carries the painting
         # job's id as ASSET_JOB_ID); by hand neither: the x candidates, then the pass 66 untagged ones
-        pick(hid, opt("pick"), head_width, top_pad, variant, opt("tag") or os.environ.get("ASSET_JOB_ID") or None)
+        pick(hid, opt("pick"), head_width, top_pad, variant, opt("tag") or os.environ.get("ASSET_JOB_ID") or None,
+             icon_file=opt("icon-file", "") or "")
         return
     paint(hid, int(opt("seeds", "4")), opt("prompt", "") or "", int(opt("first-seed", "0") or 0), head_width, top_pad,
           character=opt("character", "") or "", ref=opt("ref", "") or "", variant=variant, tag=opt("tag"),

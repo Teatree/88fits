@@ -14,7 +14,7 @@
     "amount": 2,
     "area": 3.0,
     "range": 11,
-    "knockback": 9.0,
+    "knockback": 18.0,
     "speed": 9
   },
   "params": {
@@ -22,6 +22,15 @@
     "model_scale": 1.0,
     "model_metallic": 0.45,
     "model_roughness": 0.3,
+    "fuse": {
+      "seconds": 1.0,
+      "out_before": 0.5,
+      "lie": true,
+      "spark": {
+        "color": "#FF9A2E",
+        "size": 0.13
+      }
+    },
     "final": {
       "tint": {
         "albedo": "#FFF2D0",
@@ -63,5 +72,113 @@
     "gold": true
   },
   "art_prompt": "a big golden pineapple hand grenade with a gleaming pin",
-  "visual": "golden_pineapple_visual.tscn"
+  "visual": "golden_pineapple_visual.tscn",
+  "variant_base": "A",
+  "variants": {
+    "A": {
+      "note": "the golden pineapple grenade (pass 48)"
+    },
+    "B": {
+      "name": "Boomtown",
+      "flavour": "A gold-trimmed crate of dynamite that sticks to the strongest enemy in its crowd, rides it 1.3 s, then blows 40% wider, throwing 12 coffin nails and 4 small sticky crates.",
+      "noun": "crate",
+      "nouns": "crates",
+      "icon": "golden_pineapple_icon_b.png",
+      "note": "B · Boomtown: a gold-trimmed wooden crate packed with nine red sticks (stands up when it lies); its bomblets are small copies of it",
+      "params": {
+        "model": "res://art/props/dynamite_b_evo.glb",
+        "fuse_tip": [
+          -0.0564,
+          0.4363,
+          0.0508
+        ],
+        "model_metallic": 0.0,
+        "model_roughness": 0.7,
+        "final": {
+          "tint": null
+        }
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "a small wooden crate of planks trimmed with shiny gold corner posts and gold rims, a blank gold plate on its side, packed with nine sticks of red dynamite standing up with cream ends, one pale grey cord fuse rising and curling out of the middle stick, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it",
+        "ref": "tools/dl/dynamite_b_evo_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-173945-68c5",
+        "pick": "c2",
+        "seed": 554612764607,
+        "model": "klein"
+      }
+    },
+    "C": {
+      "name": "Boomtown",
+      "flavour": "A powder keg strapped with dynamite that sticks to the strongest enemy in its crowd, rides it 1.3 s, then blows 40% wider, throwing 12 coffin nails and 4 small sticky kegs.",
+      "noun": "keg",
+      "nouns": "kegs",
+      "icon": "golden_pineapple_icon_c.png",
+      "note": "C · Boomtown: a powder keg in four gold hoops, four red sticks strapped round it; its bomblets are small copies of it",
+      "params": {
+        "model": "res://art/props/dynamite_c_evo.glb",
+        "fuse_tip": [
+          0.3492,
+          0.1779,
+          -0.0535
+        ],
+        "model_metallic": 0.0,
+        "model_roughness": 0.65,
+        "final": {
+          "tint": null
+        }
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "a round wooden powder keg lying on its side, its staves in two browns bound with four shiny gold hoops, four red sticks of dynamite strapped round it with a dark leather strap, a thick black curly fuse out of a gold bung in its end, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it",
+        "ref": "tools/dl/dynamite_c_evo_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-175705-0c45",
+        "pick": "c1",
+        "seed": 342331554637,
+        "model": "klein"
+      }
+    },
+    "D": {
+      "name": "Boomtown",
+      "flavour": "A gilded bundle of dynamite under a brass cap that sticks to the strongest enemy in its crowd, rides it 1.3 s, then blows 40% wider, throwing 12 coffin nails and 4 small sticky bundles.",
+      "noun": "bundle",
+      "nouns": "bundles",
+      "icon": "golden_pineapple_icon_d.png",
+      "note": "D · Boomtown: a gilded bundle of seven red sticks under a brass cap, a gold band and a gold star; its bomblets are small copies of it",
+      "params": {
+        "model": "res://art/props/dynamite_d_evo.glb",
+        "fuse_tip": [
+          0.4184,
+          0.1266,
+          -0.0279
+        ],
+        "model_metallic": 0.1,
+        "model_roughness": 0.45,
+        "final": {
+          "tint": null
+        }
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "a gilded bundle of seven red sticks of dynamite with crimped paper ends, their tops capped by one big shiny brass cap with a small brass nipple, a broad gold band round their middle with a gold star on it, a thin gold band near their feet, a black tarred fuse curling out of the brass nipple, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it",
+        "ref": "tools/dl/dynamite_d_evo_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-180805-4a58",
+        "pick": "c1",
+        "seed": 637383702413,
+        "model": "klein"
+      }
+    }
+  }
 }

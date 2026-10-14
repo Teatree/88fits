@@ -188,28 +188,29 @@ func test_info_follows_the_run_as_it_stands() -> void:
 
 
 func test_the_items_tab_opens_info_under_a_row_and_fills_it_again_when_a_level_is_set() -> void:
+	# pass 76 (lane DYN): the Skull Rain's row (the Peashooter this read is hidden, its row out of the list)
 	var panel: ArenaPanel = auto_free(ArenaPanel.new())
 	add_child(panel)
 	panel._tab = "items"
-	panel._open["info:weapon:peashooter"] = true
+	panel._open["info:weapon:skull_rain"] = true
 	panel._refresh()
-	var row: Node = panel._content.find_child("Item_weapon_peashooter", true, false)
+	var row: Node = panel._content.find_child("Item_weapon_skull_rain", true, false)
 	assert_object(row).is_not_null()
 	assert_object(row.find_child("Info", true, false)).is_not_null()
 	assert_object(row.find_child("Stack", true, false)).is_not_null()
-	var box: Node = panel._content.find_child("Info_weapon_peashooter", true, false)
+	var box: Node = panel._content.find_child("Info_weapon_skull_rain", true, false)
 	assert_object(box).is_not_null()
 	var shown: Label = box.find_child("InfoText0", true, false)
-	assert_str(shown.text).is_equal(str(ArenaPanel.item_texts("weapon", Registry.weapon("peashooter"))[0][1]))
+	assert_str(shown.text).is_equal(str(ArenaPanel.item_texts("weapon", Registry.weapon("skull_rain"))[0][1]))
 	# the row's + gives it a level, and the open words become the held weapon's
 	var plus: Button = null
 	for b in row.find_children("*", "Button", true, false):
 		if (b as Button).text == "+":
 			plus = b
 	plus.pressed.emit()
-	assert_int(Run.weapon_instance("peashooter").level).is_equal(1)
+	assert_int(Run.weapon_instance("skull_rain").level).is_equal(1)
 	shown = box.find_child("InfoText0", true, false)
-	assert_str(shown.text).is_equal(Run.weapon_instance("peashooter").description())
+	assert_str(shown.text).is_equal(Run.weapon_instance("skull_rain").description())
 	# a passive row has INFO and no EVO
 	panel._open["Cards"] = true   # pass 73 (lane CARDS): the lines' section says Cards
 	panel._refresh()

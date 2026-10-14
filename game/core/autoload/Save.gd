@@ -158,6 +158,8 @@ func load_save() -> void:
 	last_saved_unix = int(data.get("saved_at", 0))
 	# pass 73 (lane CARDS): the cards in the look kept on this phone (the Registry scanned before the save was read)
 	Registry.apply_card_looks()
+	# pass 76 (lane LOOKS): and every weapon family in the look kept for it here (item_looks)
+	Registry.apply_item_looks()
 
 
 func _read_json(p: String) -> Variant:
@@ -417,6 +419,42 @@ func set_card_look(code: String) -> void:
 	Registry.apply_card_looks()
 
 
+# ---------------------------------------------------------------- the weapon families' looks (pass 76, lane LOOKS)
+
+## The look kept on this phone for each weapon family ({weapon id: look code}, data key "item_looks", set from the arena's
+## ITEMS tab); a family missing here plays its weapon's JSON `variant` (Registry.played_item_look).
+func item_looks() -> Dictionary:
+	var looks = data.get("item_looks")
+	return looks if looks is Dictionary else {}
+
+
+## The look kept for weapon family `weapon_id` ("" = none kept).
+func item_look(weapon_id: String) -> String:
+	return str(item_looks().get(weapon_id, ""))
+
+
+## Keeps `code` as the look family `weapon_id` plays from now on ("" = its JSON's again), past the arena's sandbox as
+## set_card_look does (a look is a choice about the game, not something that happened in a run), and puts it on at once:
+## the family's defs, and a held weapon's params and behaviour (Registry.apply_item_looks).
+func set_item_look(weapon_id: String, code: String) -> void:
+	var targets: Array = [data]
+	if _sandboxed:
+		targets.append(_sandbox_backup)
+	for d: Dictionary in targets:
+		if not (d.get("item_looks") is Dictionary):
+			d["item_looks"] = {}
+		var looks: Dictionary = d["item_looks"]
+		if code == "":
+			looks.erase(weapon_id)
+		else:
+			looks[weapon_id] = code
+	if _sandboxed:
+		_write(_sandbox_backup)
+	else:
+		request_save()
+	Registry.apply_item_looks()
+
+
 # ---------------------------------------------------------------- the install id (pass 57)
 
 ## The anonymous id the play data goes out under (pass 57, core/autoload/Analytics.gd, PostHog's distinct_id): a random
@@ -534,6 +572,8 @@ func wipe() -> void:
 	data = _default()
 	data.merge(keep, true)
 	save_now()
+	# pass 76 (lane LOOKS): the weapon looks kept here went with the progress: every family plays its JSON's look again
+	Registry.apply_item_looks()
 	# the saved gold went with it (pass 61: the balance chart drops to it)
 	if had > gold():
 		gold_moved.emit(gold() - had, "wipe", gold(), {})

@@ -24,5 +24,80 @@
   "placeholder": {
     "color": "#A0A890",
     "glyph": "star"
+  },
+  "variant_base": "A",
+  "variants": {
+    "A": {
+      "note": "the grenade's: steel spikes"
+    },
+    "B": {
+      "name": "Coffin Nails",
+      "flavour": "Saves the undertaker a trip.",
+      "text": "The burst throws six coffin nails out past the blast.",
+      "icon": "frag_icon_b.png",
+      "note": "B · the stick (or the bundle) in red paper; nails in its words",
+      "params": {
+        "model_colour": "red"
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A single stick of red dynamite: a smooth red paper cylinder with two thin dark brown rings near each end and flat cream paper ends, a pale grey cord fuse curling out of its top end with a charred black tip, with five long black iron coffin nails with flat square heads lashed along its sides by a few turns of rough twine, the nails longer than the stick so their sharp points stick out past its ends, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
+        "ref": "tools/dl/dynamite_b_stick_red_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-174432-b7c7",
+        "pick": "c4",
+        "seed": 359260563484,
+        "model": "klein"
+      }
+    },
+    "C": {
+      "name": "Coffin Nails",
+      "flavour": "Saves the undertaker a trip.",
+      "text": "The burst throws six coffin nails out past the blast.",
+      "icon": "frag_icon_c.png",
+      "note": "C · the stick (or the bundle) in red paper; nails in its words",
+      "params": {
+        "model_colour": "red"
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A single fat cartoon stick of red dynamite: a chunky red paper cylinder with rounded ends and a narrow cream label band with thick black borders round its middle, a thick black curly fuse, with five long black iron coffin nails with flat square heads lashed along its sides by a few turns of rough twine, the nails longer than the stick so their sharp points stick out past its ends, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
+        "ref": "tools/dl/dynamite_c_stick_red_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-175204-aa0e",
+        "pick": "c0",
+        "seed": 111854416209,
+        "model": "klein"
+      }
+    },
+    "D": {
+      "name": "Coffin Nails",
+      "flavour": "Saves the undertaker a trip.",
+      "text": "The burst throws six coffin nails out past the blast.",
+      "icon": "frag_icon_d.png",
+      "note": "D · the stick (or the bundle) in red paper; nails in its words",
+      "params": {
+        "model_colour": "red"
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A single slim stick of miner's dynamite in glossy waxed red paper with crimped twisted paper ends, a black printed band with two thin cream stripes round its middle, a small silver blasting cap in its top end with a black tarred fuse curling out of it, with five long black iron coffin nails with flat square heads lashed along its sides by a few turns of rough twine, the nails longer than the stick so their sharp points stick out past its ends, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
+        "ref": "tools/dl/dynamite_d_stick_red_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-180234-d8d0",
+        "pick": "c2",
+        "seed": 591004503323,
+        "model": "klein"
+      }
+    }
   }
 }

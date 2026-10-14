@@ -3,25 +3,47 @@
 class_name QuestTracker
 extends RefCounted
 
+## The quests a run completed, for the Results screen's "Unlocked this run" (pass 76, lane UI: only a run's own checks
+## add to it, the title's quiet one does not, and Run.start empties it, so nothing of an earlier run or of the title shows
+## there).
 static var just_completed: Array = []
 
 
 static func check_all(in_run: bool) -> Array:
-	## Returns the ids completed by this check.
+	## Returns the ids completed by this check that unlock something (pass 76: not one whose hero is already owned).
 	var done: Array = []
 	# nothing done in the debug arena counts (pass 33.4)
 	if Run.arena:
 		return done
+	var marked := false
 	for q in Registry.quests.values():
 		if Save.quest_done(q.id) or not Registry.quest_visible(q):
 			continue
 		if _satisfied(q, in_run):
+			# pass 76 (Garry: "Result Screen unlocks are showing heroes that I already unlocked"): a hero already owned
+			# (bought, or given by the developer menu) has his quest marked done quietly; asked before the mark, since a
+			# free hero is owned once his quest is done
+			var quiet := owned_reward(q)
 			Save.mark_quest(q.id)
+			marked = true
+			if quiet:
+				continue
 			done.append(q.id)
-			just_completed.append(q.id)
-	if not done.is_empty():
+			if in_run:
+				just_completed.append(q.id)
+	if marked:
 		Save.request_save()
 	return done
+
+
+## Whether quest `q` hands over a hero the player owns already (pass 76): a hero on sale (availability "purchase") he has
+## bought, or that the developer menu gave him. A free hero is owned exactly when his quest is done (Registry.hero_state),
+## so his quest still unlocks him. Its completion is never announced, its progress never shown.
+static func owned_reward(q: QuestDef) -> bool:
+	if q == null or str(q.unlocks.get("type", "")) != "character":
+		return false
+	var c: CharacterDef = Registry.character(str(q.unlocks.get("id", "")))
+	return c != null and c.availability == "purchase" and Save.owns_hero(c.id)
 
 
 static func check_run_events() -> Array:

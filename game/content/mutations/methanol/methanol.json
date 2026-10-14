@@ -31,5 +31,23 @@
     "color": "#5A8CFF",
     "glyph": "star"
   },
-  "visual": "methanol_visual.tscn"
+  "visual": "methanol_visual.tscn",
+  "variant_base": "A",
+  "variants": {
+    "B": {
+      "visual": "methanol_visual_bottle.tscn",
+      "note": "the glass bottle, pale blue methanol",
+      "fresh": true
+    },
+    "C": {
+      "visual": "methanol_visual_bottle_trail.tscn",
+      "note": "the glass bottle base first, pale blue methanol",
+      "fresh": true
+    },
+    "D": {
+      "visual": "methanol_visual_bottle.tscn",
+      "note": "the glass bottle, pale blue methanol",
+      "fresh": true
+    }
+  }
 }

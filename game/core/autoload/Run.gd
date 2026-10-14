@@ -61,6 +61,11 @@ var bosses_killed := 0
 var timeline: RunTimeline = RunTimeline.new()
 
 var player_sheet: StatSheet = StatSheet.new()
+## The hero's numbers as the run began (pass 76, lane UI: the pause Stats tab marks every stat that moved since): stat ->
+## value for every stat on the sheet start() built (level 1, the Upgrade board, nothing taken yet), and the hero they were
+## taken for (start_stat reads a fresh level-1 sheet when the arena swapped heroes since).
+var start_stats: Dictionary = {}
+var start_stats_hero := ""
 ## Timed buffs from pickups: {"id", "label", "effects", "source", "until"}; re-applied whenever the sheet is rebuilt.
 var timed: Array = []
 var lifesteal_pool := 0.0
@@ -277,6 +282,10 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	heat = 0
 	overdrive = 0
 	_build_player_sheet()
+	# pass 76 (lane UI): the stats as the run began, and no unlock of an earlier run (or of the title's quiet check) is
+	# this run's
+	_take_start_stats()
+	QuestTracker.just_completed.clear()
 	rerolls_left = player_sheet.get_int("rerolls")
 	refill_choices()
 	Save.note_run_started()
@@ -308,11 +317,11 @@ func _build_player_sheet() -> void:
 			var e3 := Effect.new()
 			e3.stat = "evade"; e3.op = "add"; e3.value = eb * momentum; e3.target = "player"
 			mfx.append(e3)
-		player_sheet.add_effects(mfx, "Momentum %d%%" % int(round(momentum * 100.0)))
+		player_sheet.add_effects(mfx, "Momentum %d%%" % int(round(momentum * 100.0)), "momentum:" + (character.id if character else ""))
 	if stranger_cost > 0.0:
 		var sc := Effect.new()
 		sc.stat = "max_hp"; sc.op = "mul"; sc.value = -stranger_cost; sc.target = "player"
-		player_sheet.add_effects([sc], "The Stranger's cut")
+		player_sheet.add_effects([sc], "The Stranger's cut", "stranger")
 	# pass 73 (lane STRUCT): the Totem Poles' gifts, before the passives (Heavyweight reads the max HP they give)
 	_apply_totem_boons()
 	_apply_passives_to_sheet()
@@ -325,17 +334,17 @@ func _build_player_sheet() -> void:
 			a1.stat = "move_speed"; a1.op = "mul"; a1.value = sp; a1.target = "player"
 			var a2 := Effect.new()
 			a2.stat = "might"; a2.op = "mul"; a2.value = mg; a2.target = "player"
-			player_sheet.add_effects([a1, a2], "Adrenaline ×%d" % adrenaline)
+			player_sheet.add_effects([a1, a2], "Adrenaline ×%d" % adrenaline, _ramp_sid("adrenaline_speed", "adrenaline_might"))
 	if crescendo > 0 and has_perk("crescendo"):
 		var c1 := Effect.new()
 		c1.stat = "might"; c1.op = "mul"; c1.value = crescendo_might(); c1.target = "player"
-		player_sheet.add_effects([c1], "Crescendo +%d%%" % int(round(crescendo_might() * 100.0)))
+		player_sheet.add_effects([c1], "Crescendo +%d%%" % int(round(crescendo_might() * 100.0)), _perk_sid("crescendo"))
 	# Overdrive (pass 67, Buck's perk): the gears his full charge has counted, each the perk's `step` of attack damage
 	var od := overdrive_might()
 	if od > 0.0:
 		var o1 := Effect.new()
 		o1.stat = "might"; o1.op = "mul"; o1.value = od; o1.target = "player"
-		player_sheet.add_effects([o1], "Overdrive +%d%%" % int(round(od * 100.0)))
+		player_sheet.add_effects([o1], "Overdrive +%d%%" % int(round(od * 100.0)), _perk_sid("overdrive"))
 	# Last Stand (pass 69): while its slowed time runs, its attack damage stays on through any rebuild
 	_apply_last_stand()
 	haste = player_sheet.get_stat("haste", 1.0)
@@ -351,21 +360,21 @@ func hero_sheet(c: CharacterDef, at_level: int = 1) -> StatSheet:
 	if not base_crit:
 		sheet.set_bases({"crit_chance": 0.0})
 	if c:
-		sheet.add_effects(c.trait_effects, c.display_name)
+		sheet.add_effects(c.trait_effects, c.display_name, "hero:" + c.id)
 		# the signature stat (pass 61): one effect per stat worth the level's whole bonus, named with the level; under
 		# the test runner the Drifter's crit chance stays out with the base 1% (base_crit), for the same reason
 		var lv := c.level_effects(at_level)
 		if not base_crit:
 			lv = lv.filter(func(e: Effect) -> bool: return e.stat != "crit_chance")
 		if not lv.is_empty():
-			sheet.add_effects(lv, trait_source(c, at_level))
+			sheet.add_effects(lv, trait_source(c, at_level), "trait:" + c.id)
 	# the Mirror: each talent's ranks by the form chosen for each (pass 63: a rank keeps its form; Padding x2 and Plate x1
 	# are two Padding ranks and one Plate rank, each form's ranks counted on their own)
 	for tdef: TalentDef in Registry.talents.values():
 		for form in range(2):
 			var n := Save.talent_count(tdef.id, form)
 			if n > 0:
-				sheet.add_effects(tdef.effects_for(form, n), "%s: %s %d" % [tdef.display_name, tdef.form_name(form), n])
+				sheet.add_effects(tdef.effects_for(form, n), "%s: %s %d" % [tdef.display_name, tdef.form_name(form), n], "talent:%s:%d" % [tdef.id, form])
 	return sheet
 
 
@@ -373,6 +382,48 @@ func hero_sheet(c: CharacterDef, at_level: int = 1) -> StatSheet:
 static func trait_source(c: CharacterDef, at_level: int) -> String:
 	var n := c.trait_name if c.trait_name != "" else c.display_name
 	return "%s (Lv %d)" % [n, at_level]
+
+
+# ---------------------------------------------------------------- pass 76 (lane UI): the stats as the run began
+
+## The start's snapshot (start() calls it once the sheet is built): every stat the sheet knows (its bases and every stat
+## an effect names), as it stands.
+func _take_start_stats() -> void:
+	start_stats = {}
+	for s in player_sheet.stats():
+		var st := str(s)
+		start_stats[st] = player_sheet.get_stat(st, float(StatSheet.PLAYER_DEFAULTS.get(st, 0.0)))
+	start_stats_hero = character.id if character else ""
+
+
+## A stat as the run began (the pause Stats tab's mark compares the sheet with it): the snapshot's, or a fresh level-1
+## sheet's when there is none or the arena swapped the hero since (hero_sheet: the defaults, his trait, the Upgrade
+## board); `default` for a stat neither knows.
+func start_stat(stat: String, default: float = 0.0) -> float:
+	var hero_id := character.id if character else ""
+	if not start_stats.is_empty() and hero_id == start_stats_hero:
+		return float(start_stats.get(stat, default))
+	return hero_sheet(character, 1).get_stat(stat, default)
+
+
+## The source id a running bonus goes by on the sheet (Hot Streak's, Desperado's, Adrenaline's...): the id of the item
+## that put its stat there (the first entry naming `stat`, else `alt`: "passive:hot_streak"), so the Stats tab shows it
+## with that item's name and icon; "" (the bonus's own words) when nothing names it.
+func _ramp_sid(stat: String, alt: String = "") -> String:
+	for en in player_sheet.entries:
+		var s := str((en["effect"] as Effect).stat)
+		if s == stat or (alt != "" and s == alt):
+			return str(en.get("sid", en["source"]))
+	return ""
+
+
+## The source id of the perk whose `special` a running bonus is (Crescendo, Overdrive): "perk:<id>"; "" with none.
+func _perk_sid(special: String) -> String:
+	for pk in perks:
+		var def: PerkDef = Registry.perk(str(pk))
+		if def and def.special == special:
+			return "perk:" + str(pk)
+	return ""
 
 
 ## Whether the hero's numbers move with his level (pass 61: every hero in play), so a level-up rebuilds the sheets.
@@ -440,7 +491,7 @@ func _apply_streak() -> void:
 	if v <= 0.0:
 		return
 	_streak_source = "Hot Streak +%d%%" % int(round(v * 100.0))
-	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _streak_source)
+	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _streak_source, _ramp_sid("kill_might"))
 
 
 # ---------------------------------------------------------------- pass 70 (lane LINES): Gold Rush
@@ -491,7 +542,7 @@ func _apply_gold_rush() -> void:
 		return
 	# pass 73 (lane CARDS): named by the card's own name (Gold Tooth's evolution is a fortune card now)
 	_gold_rush_source = "%s +%d%%" % [PassiveDef.display_name_of("gold_rush", "Gold Rush"), int(round(v * 100.0))]
-	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _gold_rush_source)
+	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _gold_rush_source, _ramp_sid("gold_might"))
 
 
 ## A run starts with none counted (start() calls it), and the purse's gold_gained is heard from then on.
@@ -615,7 +666,7 @@ func _apply_heavyweight() -> void:
 	if v <= 0.0:
 		return
 	_heavy_source = "Heavyweight +%d%%" % int(round(v * 100.0))
-	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _heavy_source)
+	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _heavy_source, _ramp_sid("heavyweight"))
 
 
 ## Last Stand (pass 69, Garry: "Upon taking damage below N% Max HP, slow down time and deal Nx damage for like 2
@@ -661,7 +712,7 @@ func _apply_last_stand() -> void:
 		return
 	var v := player_sheet.get_stat("last_stand", 0.0)
 	if v > 0.0:
-		player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _LAST_STAND_SOURCE)
+		player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _LAST_STAND_SOURCE, _ramp_sid("last_stand"))
 
 
 ## Phoenix Feather (pass 48): the hero carries a free revive (the player stat `phoenix_revive`) not spent this run.
@@ -724,7 +775,7 @@ func _apply_desperado() -> void:
 	var e := Effect.new()
 	e.stat = "might"; e.op = "mul"; e.value = v; e.target = "player"
 	_desperado_source = "Desperado +%d%%" % int(round(v * 100.0))
-	player_sheet.add_effects([e], _desperado_source)
+	player_sheet.add_effects([e], _desperado_source, _ramp_sid("desperado"))
 
 
 func _apply_passives_to_sheet() -> void:
@@ -792,7 +843,7 @@ func _apply_steady() -> void:
 	if v <= 0.0:
 		return
 	_steady_source = "Steady Hand +%d%%" % int(round(v * 100.0))
-	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _steady_source)
+	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _steady_source, _ramp_sid("still_might"))
 
 
 ## The debug arena (pass 33.4): set by the title screen before Game loads (arena_next), held through the session.
@@ -1559,7 +1610,7 @@ func take_totem_boon(boon: Dictionary) -> String:
 ## Every gift taken, each its own source on the sheet ("Totem: Le-loo"), so the pause screen's breakdown names it.
 func _apply_totem_boons() -> void:
 	for b: Dictionary in totem_boons:
-		player_sheet.add_effects([TOTEM_BOONS.effect_of(b)], TOTEM_BOONS.source(b))
+		player_sheet.add_effects([TOTEM_BOONS.effect_of(b)], TOTEM_BOONS.source(b), "totem:" + str(b.get("id", b.get("stat", ""))))
 
 
 func has_weapon(id: String) -> bool:

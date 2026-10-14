@@ -1,0 +1,93 @@
+{
+  "id": "fire_in_the_hole",
+  "name": "Fire in the Hole",
+  "flavour": "The Drifter waits for a crowd worth the noise.",
+  "rarity": "rare",
+  "weight": 8,
+  "weapon": "lob_grenade",
+  "kind": "hero",
+  "element": "",
+  "hero": "drifter",
+  "text": "A blast that catches nine or more creatures lands a Mini Crit on every one of them.",
+  "vfx": "a big blast in a packed crowd, every creature in it flashing the mini crit's pale gold number",
+  "effects": [],
+  "params": {
+    "mass_mini": {
+      "min_hits": 9
+    }
+  },
+  "art_prompt": "a big cartoon blast going off in the middle of a tight huddle of tiny desert critters, little gold stars popping over every one of them",
+  "placeholder": {
+    "color": "#E0A040",
+    "glyph": "star"
+  },
+  "variant_base": "A",
+  "variants": {
+    "A": {
+      "note": "the grenade look's icon",
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the hand grenade to draw: keep its shape, parts and colours. The olive-green pineapple hand grenade with its lever and pull ring, flying in front of a big round burst of orange and yellow flame, with a ring of nine small bright golden four-pointed stars circling round the burst, no letters or writing anywhere",
+        "ref": "game/content/weapons/lob_grenade/lob_grenade_icon.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-180936-ec08",
+        "pick": "c3",
+        "seed": 659422084811,
+        "model": "klein"
+      }
+    },
+    "B": {
+      "icon": "fire_in_the_hole_icon_b.png",
+      "note": "B · the icon only",
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A lit sandy-brown paper stick of dynamite with dark rings and cream ends, its fuse spitting bright sparks, in front of a big round burst of orange and yellow flame, with a ring of nine small bright golden four-pointed stars circling round the burst, plain paper with no letters, numbers or writing anywhere on it",
+        "ref": "tools/dl/dynamite_b_stick_tan_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-174632-329c",
+        "pick": "c3",
+        "seed": 737223060560,
+        "model": "klein"
+      }
+    },
+    "C": {
+      "icon": "fire_in_the_hole_icon_c.png",
+      "note": "C · the icon only",
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A lit fat sandy-brown cartoon stick of dynamite with rounded ends and a cream label band in black borders, its fuse spitting bright sparks, in front of a big round burst of orange and yellow flame, with a ring of nine small bright golden four-pointed stars circling round the burst, plain paper with no letters, numbers or writing anywhere on it",
+        "ref": "tools/dl/dynamite_c_stick_tan_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-175535-49f1",
+        "pick": "c2",
+        "seed": 251585396914,
+        "model": "klein"
+      }
+    },
+    "D": {
+      "icon": "fire_in_the_hole_icon_d.png",
+      "note": "D · the icon only",
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A lit slim waxed sandy-brown miner's dynamite stick with crimped ends, a dark printed band and a silver blasting cap, its fuse spitting bright sparks, in front of a big round burst of orange and yellow flame, with a ring of nine small bright golden four-pointed stars circling round the burst, plain paper with no letters, numbers or writing anywhere on it",
+        "ref": "tools/dl/dynamite_d_stick_tan_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-180605-cb82",
+        "pick": "c2",
+        "seed": 71670640617,
+        "model": "klein"
+      }
+    }
+  }
+}

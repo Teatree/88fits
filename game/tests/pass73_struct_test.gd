@@ -208,14 +208,19 @@ func test_an_offer_is_three_different_stats_each_rolled_in_its_range() -> void:
 			assert_float(float(b["value"])).is_between(lo - 0.00001, hi + 0.00001)
 			assert_int(int(b["quality"])).is_between(1, 3)
 	# the amounts range over the whole span: over many offers the smallest and the biggest both come up
+	# (pass 76, lane TOTEM, re-pinned on purpose: the Whale's range is read from the pool, 2-6 since pass 76, was 6-14)
+	var whale := {}
+	for e: Dictionary in BOONS.pool_of(d):
+		if str(e["stat"]) == "max_hp":
+			whale = e
 	var seen := {}
 	for k in range(600):
 		rng.seed = 1000 + k
 		for b: Dictionary in BOONS.offer(d, rng):
 			if str(b["stat"]) == "max_hp":
 				seen[int(round(float(b["value"])))] = true
-	assert_bool(seen.has(6)).is_true()
-	assert_bool(seen.has(14)).is_true()
+	assert_bool(seen.has(int(round(float(whale["min"]))))).is_true()
+	assert_bool(seen.has(int(round(float(whale["max"]))))).is_true()
 
 
 func test_common_stats_are_offered_more_often() -> void:

@@ -2371,7 +2371,9 @@ func hero_throw_radius(center: Vector3, r: float, force: float, except_i: int = 
 	return throw_radius(center, r, force * hero_knock_mult(), except_i)
 
 
-func damage_radius(center: Vector3, r: float, amount: float, weapon_id: String = "", kb_force: float = 0.0) -> int:
+## `flags` (pass 76, lane DYN): damage()'s hit flags for every creature in the blast (HIT_MINI: the dynamite's mass mini
+## crits, ProjectileManager._mass_mini_flags).
+func damage_radius(center: Vector3, r: float, amount: float, weapon_id: String = "", kb_force: float = 0.0, flags: int = 0) -> int:
 	var hit := 0
 	for i in indices_in_radius(center, r):
 		var d := pos[i] - center
@@ -2380,11 +2382,21 @@ func damage_radius(center: Vector3, r: float, amount: float, weapon_id: String =
 			var bdef: EnemyDef = types[type_idx[i]]["def"]
 			if i == boss_index or bdef.archetype == "elite" or bdef.archetype == "boss":
 				amt = max_hp[i] * 0.1
-		if damage(i, amt, weapon_id, d, kb_force):
+		if damage(i, amt, weapon_id, d, kb_force, false, false, flags):
 			hit += 1
 		else:
 			hit += 1
 	return hit
+
+
+## Pass 76 (lane DYN, the dynamite's mass mini crits, params.mass_mini): how many creatures a blast of radius `r` at
+## `center` catches, counted as damage() takes them (alive, not dying, hidden or held), before damage_radius strikes.
+func blast_count(center: Vector3, r: float) -> int:
+	var n := 0
+	for i in indices_in_radius(center, r):
+		if alive[i] == 1 and state[i] != STATE_DYING and hidden[i] == 0 and held[i] == 0:
+			n += 1
+	return n
 
 
 func _die(i: int, weapon_id: String) -> void:

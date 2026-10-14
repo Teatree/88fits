@@ -2,6 +2,9 @@
 
 [ext_resource type="Script" path="res://core/data/MutationDef.gd" id="1_atuyo"]
 [ext_resource type="Texture2D" path="res://content/mutations/sticky/sticky_icon.png" id="1_stcdf"]
+[ext_resource type="Texture2D" path="res://content/mutations/sticky/sticky_icon_b.png" id="3_ao7sr"]
+[ext_resource type="Texture2D" path="res://content/mutations/sticky/sticky_icon_c.png" id="4_m7g0s"]
+[ext_resource type="Texture2D" path="res://content/mutations/sticky/sticky_icon_d.png" id="5_0qdje"]
 
 [resource]
 script = ExtResource("1_atuyo")
@@ -27,6 +30,42 @@ params = {
 "roughness": 0.08
 }
 }
+variants = {
+"A": {
+"note": "the grenade's: a glossy amber grenade with a blinking light"
+},
+"B": {
+"fresh": true,
+"icon": ExtResource("3_ao7sr"),
+"icon_file": "sticky_icon_b.png",
+"note": "B · the stick keeps its own paper and its spark (no amber tint, no blinking light); the icon in amber resin",
+"params": {
+"look": null,
+"tint": null
+}
+},
+"C": {
+"fresh": true,
+"icon": ExtResource("4_m7g0s"),
+"icon_file": "sticky_icon_c.png",
+"note": "C · the stick keeps its own paper and its spark (no amber tint, no blinking light); the icon in amber resin",
+"params": {
+"look": null,
+"tint": null
+}
+},
+"D": {
+"fresh": true,
+"icon": ExtResource("5_0qdje"),
+"icon_file": "sticky_icon_d.png",
+"note": "D · the stick keeps its own paper and its spark (no amber tint, no blinking light); the icon in amber resin",
+"params": {
+"look": null,
+"tint": null
+}
+}
+}
+variant_base = "A"
 id = "sticky"
 display_name = "Sticky"
 flavour = "It goes where they go."

@@ -143,9 +143,9 @@ func test_the_start_weapon_takes_the_favourite_bonus_only_when_it_is_the_favouri
 	assert_str(rev.def.id).is_equal("revolver")
 	assert_int(rev.level).is_equal(1)
 	assert_bool(rev.bonus_effects.is_empty()).is_true()
-	# a launch file naming the favourite gets the bonus the pick gave: the Drifter's Peashooter at level 2 (pass 48: of five,
-	# it was 3 of eight)
-	var pea := Run.add_weapon(Registry.weapon("peashooter"), 1)
+	# a launch file naming the favourite gets the bonus the pick gave: the Drifter's favourite at level 2 (pass 48: of five,
+	# it was 3 of eight; pass 76, lane DYN: his favourite is the dynamite, the Lob Grenade, the Peashooter is hidden)
+	var pea := Run.add_weapon(Registry.weapon("lob_grenade"), 1)
 	CardPool.apply_favourite(pea)
 	assert_int(pea.level).is_equal(2)
 

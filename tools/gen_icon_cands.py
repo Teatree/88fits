@@ -902,13 +902,19 @@ def pick(pairs):
                 if own and re.match(r"^[A-Za-z0-9._-]+\.png$", own):
                     name = own
             dst = os.path.join(folder, name)
-            if os.path.exists(dst):
+            if job.get("keep_old"):
+                # pass 76 (the Level Editor's icon guard): the install's own new file, never over another picture (the
+                # server names it in the look's entry, or as the base's top-level icon, through set_look_files)
+                buf = io.BytesIO()
+                icon.save(buf, "PNG")
+                name, dst = ga.free_icon_name(folder, name, buf.getvalue())
+            elif os.path.exists(dst):
                 bk = os.path.join(DL, "backup", "icons" + str(job.get("set", "46")))
                 os.makedirs(bk, exist_ok=True)
                 Image.open(dst).save(os.path.join(bk, os.path.basename(dst)))
             icon.save(dst)
             sidecar = os.environ.get("ASSET_JOB_SIDECAR", "")
-            info = {"pipeline": "gen_icon_cands", "pick": "%s_c%s" % (key, n)}
+            info = {"pipeline": "gen_icon_cands", "pick": "%s_c%s" % (key, n), "icon_file": name}
             if code and sidecar:
                 ga.emit_sidecar(folder, job["id"], code, {"icon": name}, info)
             elif code:

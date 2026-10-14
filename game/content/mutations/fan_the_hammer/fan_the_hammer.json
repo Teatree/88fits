@@ -3,6 +3,7 @@
   "name": "Fan the Hammer",
   "flavour": "The Drifter's hands are faster than his feet.",
   "rarity": "rare",
+  "hidden": true,
   "weight": 8,
   "weapon": "peashooter",
   "kind": "hero",

@@ -18,7 +18,7 @@ order = 1
 trait_name = "Long Road"
 trait_text = "Gain 1% crit chance per level."
 pronoun = "he"
-favourite_weapon = "peashooter"
+favourite_weapon = "lob_grenade"
 favourite_bonus = {
 "type": "level",
 "value": 2.0

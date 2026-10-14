@@ -100,8 +100,34 @@ func open(offer: Dictionary, hp_cost: float) -> void:
 	_bar.value = 1.0 - hp_cost
 	_bar.loss = hp_cost
 	modulate.a = 1.0
+	_fit_layout()
 	enter()
 	Audio.play("ui_pause")
+	# the card's wrapped text knows its height only once the containers have sorted: fit again then
+	await get_tree().process_frame
+	if is_instance_valid(self) and visible:
+		_fit_layout()
+
+
+## Pass 76 (the Totem brief's capture showed it): under a camera cutout the deal panel ran under WALK AWAY / DEAL. The
+## panel and the quote rise by what would overlap the buttons (a gap of BUTTON_GAP above them) and the portrait shrinks
+## by as much (about its top middle), never below PORTRAIT_MIN of its size; on a phone without a cutout nothing moves.
+const BUTTON_GAP := 24.0
+const PORTRAIT_MIN := 0.6
+
+
+func _fit_layout() -> void:
+	var top := W.safe_top()
+	var h := get_viewport_rect().size.y
+	var limit := h - 90.0 - 114.0 - BUTTON_GAP
+	var panel_h := maxf(_panel.get_combined_minimum_size().y, _panel.size.y)
+	var shift := clampf(1100.0 + top + panel_h - limit, 0.0, 660.0 * (1.0 - PORTRAIT_MIN))
+	_panel.offset_top = 1100.0 + top - shift
+	_quote.offset_top = 1012.0 + top - shift
+	_quote.offset_bottom = 1012.0 + 41.0 + top - shift
+	var s := (660.0 - shift) / 660.0
+	_portrait.scale = Vector2(s, s)
+	_portrait.position = Vector2(120.0 + 840.0 * (1.0 - s) * 0.5, 320.0 + top)
 
 
 func result() -> Dictionary:

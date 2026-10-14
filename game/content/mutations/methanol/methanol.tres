@@ -3,15 +3,17 @@
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_3upw0"]
 [ext_resource type="Texture2D" path="res://content/mutations/methanol/methanol_icon.png" id="2_qn6kh"]
 [ext_resource type="Script" path="res://core/data/MutationDef.gd" id="3_3778e"]
+[ext_resource type="PackedScene" path="res://content/mutations/methanol/methanol_visual_bottle.tscn" id="4_ekdl0"]
 [ext_resource type="PackedScene" path="res://content/mutations/methanol/methanol_visual.tscn" id="4_qn6kh"]
+[ext_resource type="PackedScene" path="res://content/mutations/methanol/methanol_visual_bottle_trail.tscn" id="5_5vuyq"]
 
-[sub_resource type="Resource" id="Resource_qn6kh"]
+[sub_resource type="Resource" id="Resource_ekdl0"]
 script = ExtResource("1_3upw0")
 stat = "fire_damage"
 op = "mul"
 value = -0.2
 
-[sub_resource type="Resource" id="Resource_3778e"]
+[sub_resource type="Resource" id="Resource_5vuyq"]
 script = ExtResource("1_3upw0")
 stat = "fire_duration"
 op = "mul"
@@ -23,13 +25,34 @@ weapon = "molotov"
 mutation_kind = "volume"
 text = "The fire burns blue: pools 50% bigger, burns last 75% longer, −20% burn damage."
 vfx = "blue flames in the pools, on burning creatures and dripping from the bottle"
-effects = [SubResource("Resource_qn6kh"), SubResource("Resource_3778e")]
+effects = [SubResource("Resource_ekdl0"), SubResource("Resource_5vuyq")]
 params = {
 "cloud_mult": 1.5,
 "fire_blue": true
 }
 visual = ExtResource("4_qn6kh")
 visual_file = "methanol_visual.tscn"
+variants = {
+"B": {
+"fresh": true,
+"note": "the glass bottle, pale blue methanol",
+"visual": ExtResource("4_ekdl0"),
+"visual_file": "methanol_visual_bottle.tscn"
+},
+"C": {
+"fresh": true,
+"note": "the glass bottle base first, pale blue methanol",
+"visual": ExtResource("5_5vuyq"),
+"visual_file": "methanol_visual_bottle_trail.tscn"
+},
+"D": {
+"fresh": true,
+"note": "the glass bottle, pale blue methanol",
+"visual": ExtResource("4_ekdl0"),
+"visual_file": "methanol_visual_bottle.tscn"
+}
+}
+variant_base = "A"
 id = "methanol"
 display_name = "Methanol"
 flavour = "Burns cold. Burns long."

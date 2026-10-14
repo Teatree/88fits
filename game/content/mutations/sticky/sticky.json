@@ -34,5 +34,74 @@
   "placeholder": {
     "color": "#E0D060",
     "glyph": "star"
+  },
+  "variant_base": "A",
+  "variants": {
+    "A": {
+      "note": "the grenade's: a glossy amber grenade with a blinking light"
+    },
+    "B": {
+      "icon": "sticky_icon_b.png",
+      "note": "B · the stick keeps its own paper and its spark (no amber tint, no blinking light); the icon in amber resin",
+      "params": {
+        "tint": null,
+        "look": null
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A sandy-brown paper stick of dynamite with dark rings and cream ends sealed inside a thick blob of glossy translucent golden amber resin: the amber coats the whole stick with a shiny highlight, the stick showing through it, fat amber drips hanging off its underside, the fuse sticking out of the amber with the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
+        "ref": "tools/dl/dynamite_b_stick_tan_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-174432-6124",
+        "pick": "c2",
+        "seed": 129897452886,
+        "model": "klein"
+      }
+    },
+    "C": {
+      "icon": "sticky_icon_c.png",
+      "note": "C · the stick keeps its own paper and its spark (no amber tint, no blinking light); the icon in amber resin",
+      "params": {
+        "tint": null,
+        "look": null
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A fat sandy-brown cartoon stick of dynamite with rounded ends and a cream label band in black borders sealed inside a thick blob of glossy translucent golden amber resin: the amber coats the whole stick with a shiny highlight, the stick showing through it, fat amber drips hanging off its underside, the fuse sticking out of the amber with the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
+        "ref": "tools/dl/dynamite_c_stick_tan_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-175334-d261",
+        "pick": "c2",
+        "seed": 401302687851,
+        "model": "klein"
+      }
+    },
+    "D": {
+      "icon": "sticky_icon_d.png",
+      "note": "D · the stick keeps its own paper and its spark (no amber tint, no blinking light); the icon in amber resin",
+      "params": {
+        "tint": null,
+        "look": null
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "The reference image shows the stick of dynamite to draw: keep its shape, parts and colours. A slim waxed sandy-brown miner's dynamite stick with crimped ends, a dark printed band and a silver blasting cap sealed inside a thick blob of glossy translucent golden amber resin: the amber coats the whole stick with a shiny highlight, the stick showing through it, fat amber drips hanging off its underside, the fuse sticking out of the amber with the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
+        "ref": "tools/dl/dynamite_d_stick_tan_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-180404-f599",
+        "pick": "c1",
+        "seed": 305211907960,
+        "model": "klein"
+      }
+    }
   }
 }

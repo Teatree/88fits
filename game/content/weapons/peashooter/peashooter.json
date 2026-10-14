@@ -3,6 +3,7 @@
   "name": "Peashooter",
   "flavour": "It goes pew. Reliably.",
   "rarity": "common",
+  "hidden": true,
   "weight": 10,
   "behavior": "ProjectileEmitter",
   "targeting": "priority",

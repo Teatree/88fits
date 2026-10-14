@@ -323,7 +323,9 @@ PARAMS_KEYS = {
                           "launch", "heat_look", "fire_without_target", "stream"],
     "Orbiter": ["spin_speed", "breathe", "gyro", "lasso", "side_knock", "solid_ring", "strike", "rust", "rust_patina"],
     "Lobber": ["model", "model_scale", "model_metallic", "model_roughness", "tint", "sticky", "death_pool", "death_of",
-               "land_blast", "halo", "bounce", "bomblets", "bomblet_damage_mult", "burst_spawn", "cloud_seconds"],
+               "land_blast", "halo", "bounce", "bomblets", "bomblet_damage_mult", "burst_spawn", "cloud_seconds",
+               # pass 76 (lane DYN): the dynamite's fuse, its models by form and colour, the Drifter's mass mini crits
+               "fuse", "models", "model_form", "model_colour", "fuse_tip", "mass_mini"],
     "Beam": ["follow", "zone", "echo_zap"],
     "LaserBeam": ["beam"],
     "ConeWave": ["cone", "tinnitus"],

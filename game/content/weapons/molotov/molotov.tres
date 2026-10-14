@@ -4,43 +4,45 @@
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="1_s1w3i"]
 [ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_8ub66"]
 [ext_resource type="PackedScene" path="res://content/weapons/molotov/molotov_visual.tscn" id="3_ltqcv"]
+[ext_resource type="PackedScene" path="res://content/weapons/molotov/molotov_visual_bottle.tscn" id="4_84lem"]
+[ext_resource type="PackedScene" path="res://content/weapons/molotov/molotov_visual_bottle_trail.tscn" id="5_keo0u"]
 
-[sub_resource type="Resource" id="Resource_8ub66"]
+[sub_resource type="Resource" id="Resource_84lem"]
 script = ExtResource("1_s1w3i")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_ltqcv"]
+[sub_resource type="Resource" id="Resource_keo0u"]
 script = ExtResource("1_s1w3i")
 stat = "area"
 op = "mul"
 value = 0.15
 
-[sub_resource type="Resource" id="Resource_84lem"]
+[sub_resource type="Resource" id="Resource_p7bql"]
 script = ExtResource("1_s1w3i")
 stat = "cooldown"
 op = "mul"
 value = -0.12
 
-[sub_resource type="Resource" id="Resource_keo0u"]
+[sub_resource type="Resource" id="Resource_g0sfe"]
 script = ExtResource("1_s1w3i")
 stat = "fire_spread"
 value = 0.1
 
-[sub_resource type="Resource" id="Resource_p7bql"]
+[sub_resource type="Resource" id="Resource_u8543"]
 script = ExtResource("1_s1w3i")
 stat = "fire_damage"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_g0sfe"]
+[sub_resource type="Resource" id="Resource_c3fjh"]
 script = ExtResource("1_s1w3i")
 stat = "area"
 op = "mul"
 value = 0.15
 
-[sub_resource type="Resource" id="Resource_u8543"]
+[sub_resource type="Resource" id="Resource_wsy06"]
 script = ExtResource("1_s1w3i")
 stat = "fire_duration"
 value = 0.6
@@ -61,7 +63,7 @@ base = {
 "range": 10.0,
 "speed": 10.0
 }
-levels = [[], [SubResource("Resource_8ub66"), SubResource("Resource_ltqcv")], [SubResource("Resource_84lem"), SubResource("Resource_keo0u")], [SubResource("Resource_p7bql")], [SubResource("Resource_g0sfe"), SubResource("Resource_u8543")]]
+levels = [[], [SubResource("Resource_84lem"), SubResource("Resource_keo0u")], [SubResource("Resource_p7bql"), SubResource("Resource_g0sfe")], [SubResource("Resource_u8543")], [SubResource("Resource_c3fjh"), SubResource("Resource_wsy06")]]
 max_level = 5
 evolves_into = "moonshine"
 sfx = {
@@ -73,6 +75,75 @@ visual_file = "molotov_visual.tscn"
 params = {
 "cloud_seconds": 3.0
 }
+variants = {
+"A": {
+"note": "today's: the placeholder amber cylinder, flames dropped in a string behind it"
+},
+"B": {
+"fresh": true,
+"note": "Torch: the glass bottle tumbling end over end, a steady licking flame on its rag with embers flying off",
+"params": {
+"pool_flame": {
+"size": 0.78,
+"style": "torch"
+},
+"wick_flame": {
+"life": 0.28,
+"offset": [0.0, 0.22, 0.0],
+"rate": 10.0,
+"size": 0.62,
+"style": "torch",
+"tumble": 1.0
+}
+},
+"visual": ExtResource("4_84lem"),
+"visual_file": "molotov_visual_bottle.tscn"
+},
+"C": {
+"fresh": true,
+"note": "Streamer: the bottle flies base first, a continuous ribbon of fire streaming back from its neck",
+"params": {
+"pool_flame": {
+"size": 0.78,
+"style": "torch"
+},
+"wick_flame": {
+"life": 0.25,
+"offset": [0.0, 0.235, 0.0],
+"rate": 8.0,
+"size": 0.6,
+"style": "streamer",
+"tail": 0.12
+}
+},
+"visual": ExtResource("5_keo0u"),
+"visual_file": "molotov_visual_bottle_trail.tscn"
+},
+"D": {
+"fresh": true,
+"note": "Cartoon: the bottle tumbling, a bold inked three-layer flame like the icon's, star sparks",
+"params": {
+"pool_flame": {
+"life": 1.1,
+"size": 0.66,
+"style": "cartoon"
+},
+"wick_flame": {
+"lean": 0.025,
+"life": 0.3,
+"offset": [0.0, 0.22, 0.0],
+"rate": 5.0,
+"size": 0.55,
+"style": "cartoon",
+"tumble": 1.0
+}
+},
+"visual": ExtResource("4_84lem"),
+"visual_file": "molotov_visual_bottle.tscn"
+}
+}
+variant_base = "A"
+variant = "B"
 id = "molotov"
 display_name = "Molotov"
 flavour = "Bottle. Rag. Regret, for them."

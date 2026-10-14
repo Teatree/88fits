@@ -980,3 +980,89 @@ mirror and a whole dry chain on a temp copy; puppet.js's copy of the templates; 
 hero_puppet in jobs.py on a temp queue and tree: the spec, the refusals, the lanes, the argv, the stages, the recipe, the
 markers, the phase ends, pick, requeue, the stage re-roll, the GLB output; the server's routes on Jeżyk's real puppet;
 methods.json's card; the page hooks; these docs).
+
+## Pass 76: the icon guard (an icon is never lost again)
+
+Garry (2026-10-14): "Bring back the old Solenne icon, I made a variant of an Icon and can't find the old one. Make a fix
+in LevelEditor to make sure that this doesn't happen."
+
+**What happened to Solenne.** A badge painted "for the base" was installed into SOL-B, the look the game plays. The
+editor wrote it into SOL-B's own entry without asking, so every screen (the title's hero drawer, the hero sheet, the
+results) showed the new badge, and the old one (`solenne_icon.png`) was only on the other looks' tiles. Nothing was
+deleted. Her old badge is back: SOL-B no longer names a badge of its own, so it shows hers again. The new one
+(`solenne_icon_b.png`) is still on disk: open Solenne, select SOL-B, open **All icons on disk** and press **Use for
+SOL-B** if you ever want it back.
+
+**What is different now.** The editor needs a newer server: close the Level Editor and open it again
+(`tools\level_editor.cmd`) to get all of this.
+
+- **Nothing is overwritten.** Installing a candidate (a badge, an icon, a card) always writes a new file of its own,
+  named after the job and the candidate: `solenne_icon_b_3d3c_c2.png` is candidate c2 of job #3d3c for SOL-B, and
+  `solenne_icon_3d3c_c2.png` the same for the base. The file the look showed before stays where it was.
+- **The editor asks before it changes what the game shows.** When the icon of **the look the game plays**, or of **the
+  base look** (whose icon every look without one of its own shows too), would change, a box asks first: the picture
+  now and the new one side by side, with their file names, and why it matters ("SOL-B is the look the game plays";
+  "SOL-A is the base look: SOL-C, SOL-D and SOL-E show it too"). **Cancel** changes nothing. This box comes from
+  every Install button: a look's "Choose ... from everything painted", the Jobs tab's candidates, an item's icon
+  candidates. A look that is neither played nor the base changes at once (it still gets a file of its own).
+- **Every change is remembered.** The look keeps a list of its icon changes (`icon_history` in its entry; the base's
+  sits next to the JSON's top-level `icon`), each with the date, the old and new file names, why ("install c2 of
+  #3d3c", "use backup/…") and a copy of the old picture.
+- **Revert icon.** Under each look's picture (select a look in the Looks grid), and in an item's Art section, the
+  **Icon now** box shows the picture the game uses for that look, its file and where it comes from (its own, the
+  base's), with a **Revert icon** button: it undoes the last change (asking first for the look in play or the base).
+  A look whose badge was picked before this pass (like SOL-B was) goes back to the base's badge. **Changes · N** lists
+  every change, newest first.
+- **All icons on disk.** The same box opens a gallery of every picture of that hero, creature or item that exists
+  anywhere: its folder, the copies the editor keeps (`tools/level_editor/backups/<id>/`), the files of removed looks
+  (`backups/deleted/<id>/`) and the copies older tools made (`tools/dl/backup/icons*/`). Each picture shows once, with
+  the looks that use it; **Use for <look>** puts it on the selected look (a copy from a backup is first put back into
+  the folder under its own name). Double-click a picture to see it big.
+- **Backups.** Before the editor changes an icon it copies the picture being replaced into
+  `tools/level_editor/backups/<id>/` (once per picture), beside the JSON backups. A job that may paint over an icon (a
+  look's re-roll, an item's icon roll, an install) first copies all of the asset's icons there too. These copies are
+  not in git (the folder's `.gitignore`).
+- **A picked icon stays picked.** A look's re-roll used to name its own front crop as the look's icon again; a picked
+  icon now stays (the server, gen_art and gen_ctl all keep it).
+
+For scripts: `GET /api/content/<kind>/<id>/icons` (the gallery and each look's icon now), `GET
+/iconfile/<kind>/<id>/<folder|backup|deleted|legacy>/...` (one picture), `POST /api/content/<kind>/<id>/icon {op:
+"revert" | "use", code ("" = the base), ref, confirm}` (also the look ops `revert_icon` / `use_icon`), and `POST
+/api/jobs/<job>/install` answers **409** with `confirm_needed` (now, next, played, base, shared_by) until it is sent
+again with `confirm: true`. The keys: `icon_history` [{icon, shown, backup, to, at, why, picked | entry_icon}].
+
+Self-test: `selftest_ICON76.py` (the question before an install into the look in play or the base, over HTTP too; a
+pick's own file and the old file's bytes unchanged; Revert icon, a picture painted over since put back from its copy,
+a pick from before the guard; the gallery and Use for this look from the folder, a backup and an older tool's copy;
+the backups under `backups/<id>/`; the jobs' plan, landing and snapshot; the pick tools; the page; Solenne's JSON).
+
+## Pass 76: a weapon family's looks
+
+Garry (2026-10-14): the Grenade as a Dynamite Stick "as a Look (with several candidates), so I can switch back to the
+grenade if I ever change my mind", and the Molotov in several flame versions. A weapon, its evolution and its mutations
+now have looks the way the cards (pass 73) and the heroes have, and the whole family plays one look at a time.
+
+**What a look is.** Each item keeps its own fields as its base look (A); its JSON's `variants` holds the others (B, C,
+D...), each saying only what changes in that look: its name, flavour, card text (a mutation's), icon, visual, the
+drawing params (the dynamite's models, a flame's style), and the weapon's thing words ("stick" / "sticks", which the
+card text uses instead of "grenade"). A look never changes the numbers: the stats, levels and rules are the family's in
+every look. A mutation or an evolution without an entry for the look the family plays simply wears its base.
+
+**Which look plays.** The weapon's `variant` (its JSON) is the look of the whole family: the weapon, its mutations
+(the Drifter's own one too) and its evolution. On the phone the debug arena's ITEMS tab has a **Weapon looks** row for
+every family with two or more looks: a tap plays that look on this phone from then on (the cards, the HUD, the pause
+screen, the Collection, and the weapon in your hands at once); **JSON** goes back to the weapon's own `variant`.
+
+**In the editor.** Open the weapon (Items tab) and look at its **Art** section: every look of the family as a tile, its
+icon on the item's plate at 112 and 48 px, its name, PLAYS on the one the game plays, the note, and under it the
+family's other members in that look (faint when one has no look of that code and wears its base). **Play this look**
+writes the weapon's `variant` and imports it; **Show** makes the icon preview above (and **+ Icon candidates**) follow
+that look, so a repaint lands in it. An evolution's or a mutation's Art section says which look its family plays and
+which one it wears, with its own looks and **Open <weapon>** (a member never plays a look of its own: play it on the
+weapon). The weapon's card in the list says "look B of 4" and shows the name it plays under. A look whose icon or
+visual file is not on disk yet cannot be played (its tile says "files missing").
+
+For scripts: `POST /api/content/weapon/<id>/variant {code}` (an evolution or a mutation is refused); the weapon's
+record in `/api/items` carries `family_looks` (per look: code, name, icon, note, shelved, fresh, exists, default, base,
+members [{kind, id, role, name, icon, own, hidden}]) and every family member `play`, `icon_play`, `name_play`. The keys:
+tools/dl/p76/keys_LOOKS.md (the lead folds them into docs/assets_schema.md). Self-test: `selftest_LOOKS76.py`.

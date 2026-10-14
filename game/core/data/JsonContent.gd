@@ -5,6 +5,8 @@ class_name JsonContent
 extends RefCounted
 
 const TYPES := ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters", "talents", "quests", "maps", "pickups", "structures", "boss_attacks"]
+## Pass 76 (lane LOOKS): the weapon families' looks, preloaded (it has no class_name: see its header).
+const ItemLooks := preload("res://core/data/ItemLooks.gd")
 
 
 static func load_json(path: String) -> Dictionary:
@@ -75,6 +77,10 @@ static func build(type: String, d: Dictionary, dir: String) -> ContentDef:
 	# pass 73 (lane CARDS): an item playing a look (a card's B-E) shows that look's icon (PassiveDef.wear_look)
 	if res is PassiveDef:
 		(res as PassiveDef).wear_look("")
+	# pass 76 (lane LOOKS): a weapon family's looks (ItemLooks), read but not worn: the def keeps its top level (the .tres
+	# too), Registry.apply_item_looks puts the family's look on
+	if res is WeaponDef or res is MutationDef:
+		ItemLooks.read(res, d, dir)
 	return res
 
 
@@ -154,6 +160,9 @@ static func _weapon(d: Dictionary, dir: String, is_evo: bool) -> WeaponDef:
 	w.visual_file = str(d.get("visual", str(d.get("id", "")) + "_visual.tscn"))
 	w.visual = resolve_scene(dir, w.visual_file)
 	w.hero = str(d.get("hero", ""))
+	# pass 76 (lane LOOKS): the base look's thing words for TextGen ("" = the behaviour's own)
+	w.noun = str(d.get("noun", ""))
+	w.nouns = str(d.get("nouns", ""))
 	return w
 
 

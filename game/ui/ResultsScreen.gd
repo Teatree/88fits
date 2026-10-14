@@ -398,7 +398,9 @@ func _source_rows(dmg: Dictionary) -> VBoxContainer:
 func _build_unlocks() -> void:
 	var done: Array = []
 	for id in QuestTracker.just_completed:
-		if not done.has(id):
+		# pass 76 (Garry: "Result Screen unlocks are showing heroes that I already unlocked"): a hero owned already is
+		# never announced
+		if not done.has(id) and not QuestTracker.owned_reward(Registry.quests.get(id)):
 			done.append(id)
 	QuestTracker.just_completed.clear()
 	var closer := progress_list(_tl.quests_before)
@@ -462,7 +464,8 @@ static func progress_list(before: Dictionary) -> Array:
 	var out: Array = []
 	for id in before:
 		var q: QuestDef = Registry.quests.get(id)
-		if q == null or Save.quest_done(q.id):
+		# pass 76: nor a hero owned already (bought before his quest was done)
+		if q == null or Save.quest_done(q.id) or QuestTracker.owned_reward(q):
 			continue
 		var p := QuestTracker.progress(q)
 		if p.y <= 0 or p.x <= int(before[id]):
@@ -1142,8 +1145,9 @@ func _unlocked(q: QuestDef) -> PanelContainer:
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(h)
 	var def := _reward(q)
-	# pass 69: a hero to buy is not his yet: on sale, still unknown (his badge black with a "?")
-	var on_sale := def is CharacterDef and (def as CharacterDef).availability == "purchase"
+	# pass 69: a hero to buy is not his yet: on sale, still unknown (his badge black with a "?"); pass 76: only while
+	# Registry.hero_state says so (a hero owned already never reads FOR SALE)
+	var on_sale := def is CharacterDef and Registry.hero_state(def as CharacterDef) == "buyable"
 	if def:
 		var pl := WPlate.new().for_def(def, 96.0)
 		pl.name = "Plate"

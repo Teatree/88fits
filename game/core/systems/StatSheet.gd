@@ -71,7 +71,9 @@ const STAT_FLOORS := {"regen_delay": 0.5}
 ## for the weapons to pick up but never folded into the hero's numbers; "" folds everything (a weapon's sheet)
 var scope := ""
 var base: Dictionary = {}
-## Array of {"effect": Effect, "source": String}
+## Array of {"effect": Effect, "source": String, "sid": String}. Pass 76 (lane UI): `sid` is the source's stable id beside
+## its words ("talent:grit:0", "totem:wolf", "passive:brawn", "trait:solenne"), what the pause Stats tab groups, names and
+## draws a source by; the source's words when none is given (remove_source still goes by the words).
 var entries: Array = []
 
 
@@ -84,16 +86,22 @@ func set_bases(d: Dictionary) -> void:
 		base[str(k)] = float(d[k])
 
 
-func add_effect(e: Effect, source: String = "") -> void:
+func add_effect(e: Effect, source: String = "", sid: String = "") -> void:
 	if e == null or e.stat == "":
 		return
-	entries.append({"effect": e, "source": source})
+	entries.append({"effect": e, "source": source, "sid": sid if sid != "" else source})
 
 
-func add_effects(list: Array, source: String = "") -> void:
+func add_effects(list: Array, source: String = "", sid: String = "") -> void:
 	for e in list:
 		if e is Effect:
-			add_effect(e, source)
+			add_effect(e, source, sid)
+
+
+## Whether an effect is aimed at weapons ("all_weapons", "weapon:<id>", "tag:<tag>"): carried on the hero's sheet for the
+## weapons to pick up, never in the hero's own numbers (get_stat's player scope; pass 76: his breakdown too).
+static func aims_at_weapons(e: Effect) -> bool:
+	return e.target == "all_weapons" or e.target.begins_with("weapon:") or e.target.begins_with("tag:")
 
 
 func remove_source(source: String) -> void:
@@ -159,6 +167,9 @@ func breakdown(stat: String) -> Array:
 	for en in entries:
 		var e: Effect = en["effect"]
 		if e.stat == stat:
+			# pass 76 (lane UI): an effect aimed at weapons is not in the hero's number, so not among his rows
+			if scope == "player" and aims_at_weapons(e):
+				continue
 			rows.append({"source": en["source"], "text": TextGen.describe_effect(e, false)})
 	rows.append({"source": "total", "text": TextGen.format_value(stat, get_stat(stat))})
 	return rows

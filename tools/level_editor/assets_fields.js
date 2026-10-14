@@ -106,7 +106,9 @@ const AFIELDS = (() => {
     ConeWave: ['cone', 'familiar', 'tinnitus'],
     GravityGun: ['familiar', 'gravity'],
     LaserBeam: ['beam', 'familiar'],
-    Lobber: ['death_of', 'death_pool', 'halo', 'land_blast', 'model', 'model_metallic', 'model_roughness', 'model_scale', 'sticky', 'tint', 'bounce', 'bomblets', 'bomblet_damage_mult', 'burst_spawn'],
+    Lobber: ['death_of', 'death_pool', 'halo', 'land_blast', 'model', 'model_metallic', 'model_roughness', 'model_scale', 'sticky', 'tint', 'bounce', 'bomblets', 'bomblet_damage_mult', 'burst_spawn',
+      // pass 76 (lane DYN): the dynamite's fuse, its models by form and colour, the Drifter's mass mini crits
+      'fuse', 'models', 'model_form', 'model_colour', 'fuse_tip', 'mass_mini'],
     MineLayer: ['extra_supply', 'jackrabbit', 'lay_ahead', 'max_mines', 'trigger_radius', 'spring'],
     MissilePod: ['cluster_spin', 'familiar', 'hawk', 'missile', 'overpressure', 'pollen', 'pressure', 'cluster', 'blast_fx'],
     Orbiter: ['breathe', 'gyro', 'lasso', 'rust', 'rust_patina', 'side_knock', 'solid_ring', 'spin_speed', 'strike'],

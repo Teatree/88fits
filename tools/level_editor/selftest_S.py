@@ -703,9 +703,12 @@ def create_checks(check, server):
             before = json.loads(src)["variants"]["TB-C"]
             r = hooks.set_look_files("enemy", "testbeast", "TB-C", {"icon": "testbeast_icon_c2.png"})
             after = json.loads(_read(cpath))["variants"]["TB-C"]
-            # the lead: a picked icon also marks the entry (icon_picked) so the look's later runs keep it
-            check(r["ok"] and r["layout"] == "entry" and r["backup"] and after == dict(before, icon="testbeast_icon_c2.png", icon_picked=True) and cio.diff_within_entry(src, _read(cpath), "TB-C"),
-                  "D8 set_look_files: the icon written into the look's entry only (marked icon_picked), the rest of it (fresh, sprite) as it was: %s" % r.get("error"))
+            # the lead: a picked icon also marks the entry (icon_picked) so the look's later runs keep it; pass 76 (lane ICON):
+            # and the entry keeps the step in its icon_history (what it showed before: testbeast_icon_c.png)
+            hist = after.get("icon_history") or []
+            check(r["ok"] and r["layout"] == "entry" and r["backup"] and {k: v for k, v in after.items() if k != "icon_history"} == dict(before, icon="testbeast_icon_c2.png", icon_picked=True)
+                  and len(hist) == 1 and hist[0].get("icon") == before.get("icon") and hist[0].get("to") == "testbeast_icon_c2.png" and cio.diff_within_entry(src, _read(cpath), "TB-C"),
+                  "D8 set_look_files: the icon written into the look's entry only (marked icon_picked, the step in icon_history), the rest of it (fresh, sprite) as it was: %s" % r.get("error"))
             r = hooks.set_look_files("enemy", "testbeast", "TB-C", {"icon": "testbeast_icon_c2.png"})
             check(r["ok"] and r.get("unchanged") and not r["backup"], "set_look_files of the same file again writes nothing")
             for files, code, what in (({"title": "hero_x.png"}, "TB-C", "a title for a creature"), ({"sprite": "x.png"}, "TB-C", "a key other than icon/title"),

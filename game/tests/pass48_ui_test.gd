@@ -83,7 +83,8 @@ func test_cards_show_the_level_the_pick_lands_on() -> void:
 	# the plaque: a favourite at its bonus level, the gun he lands with at 1
 	var ts = load("res://ui/TitleScreen.gd")
 	var drifter: CharacterDef = Registry.character("drifter")
-	assert_int(ts.start_level(drifter, Registry.weapon("peashooter"))).is_equal(2)
+	# pass 76 (lane DYN): his favourite is the dynamite (the Lob Grenade) now
+	assert_int(ts.start_level(drifter, Registry.weapon("lob_grenade"))).is_equal(2)
 	assert_int(ts.start_level(drifter, Registry.weapon("revolver"))).is_equal(1)
 	assert_int(ts.start_level(Registry.character("calavera"), Registry.weapon("skull_rain"))).is_equal(2)
 	assert_int(ts.start_level(Registry.character("ironwood"), Registry.passive("brawn"))).is_equal(2)

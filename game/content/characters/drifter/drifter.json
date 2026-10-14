@@ -17,7 +17,7 @@
       "target": "player"
     }
   ],
-  "favourite_weapon": "peashooter",
+  "favourite_weapon": "lob_grenade",
   "start_weapon": "revolver",
   "favourite_bonus": {
     "type": "level",

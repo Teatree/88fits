@@ -34,5 +34,80 @@
   "placeholder": {
     "color": "#7A8A4A",
     "glyph": "star"
+  },
+  "variant_base": "A",
+  "variants": {
+    "A": {
+      "note": "the grenade's: a bigger, shinier grenade"
+    },
+    "B": {
+      "name": "Dynamite Bundle",
+      "flavour": "One stick is a warning. A bundle is a statement.",
+      "text": "+30% knockback, +20% area, +20% damage, and a bundle of sticks 35% bigger.",
+      "icon": "new_equipment_icon_b.png",
+      "note": "B · the bundle: three sticks in black tape",
+      "params": {
+        "model_form": "bundle"
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "a bundle of three sticks of dynamite in smooth sandy-brown paper with cream ends, bound together with two bands of black tape, one pale grey cord fuse curling out of the top stick with a charred black tip, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
+        "ref": "tools/dl/dynamite_b_bundle_tan_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-174432-524c",
+        "pick": "c2",
+        "seed": 162634590178,
+        "model": "klein"
+      }
+    },
+    "C": {
+      "name": "Dynamite Bundle",
+      "flavour": "One stick is a warning. A bundle is a statement.",
+      "text": "+30% knockback, +20% area, +20% damage, and a bundle of sticks 35% bigger.",
+      "icon": "new_equipment_icon_c.png",
+      "note": "C · the bundle: four sticks tied with rope and a bow",
+      "params": {
+        "model_form": "bundle"
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "four fat cartoon sticks of dynamite in sandy-brown paper with rounded ends, each with a narrow cream label band in black borders, tied together in a square bundle with two loops of tan rope and a rope bow on top, one thick black curly fuse out of the middle, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
+        "ref": "tools/dl/dynamite_c_bundle_tan_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-175003-04eb",
+        "pick": "c3",
+        "seed": 739917591129,
+        "model": "klein"
+      }
+    },
+    "D": {
+      "name": "Dynamite Bundle",
+      "flavour": "One stick is a warning. A bundle is a statement.",
+      "text": "+30% knockback, +20% area, +20% damage, and a bundle of sticks 35% bigger.",
+      "icon": "new_equipment_icon_d.png",
+      "note": "D · the bundle: seven sticks in copper wire",
+      "params": {
+        "model_form": "bundle"
+      },
+      "fresh": true,
+      "icon_picked": true,
+      "recipe": {
+        "subject": "a round bundle of seven slim sticks of waxed sandy-brown miner's dynamite with crimped paper ends and dark brown printed bands, bound with two bands of copper wire, a small silver blasting cap and a black tarred fuse out of the middle stick, the fuse lit: a big bright yellow and orange spark burst fizzing at its tip with a few tiny sparks flying off, easy to see, plain paper with no letters, numbers or writing anywhere on it, lying diagonally",
+        "ref": "tools/dl/dynamite_d_bundle_tan_ref.png",
+        "screen": "blue"
+      },
+      "painted": {
+        "job": "j20261014-180033-c547",
+        "pick": "c1",
+        "seed": 506373291254,
+        "model": "klein"
+      }
+    }
   }
 }

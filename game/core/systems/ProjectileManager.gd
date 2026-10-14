@@ -334,6 +334,8 @@ func lob(p_kind: int, from: Vector3, target: Vector3, speed: float, damage: floa
 	# its own copy (a caller may hand in a weapon's params), with where it will come down, for the other throwers
 	extra[i] = params.duplicate()
 	extra[i]["target"] = target
+	# pass 76 (lane DYN, params.fuse): a fused weapon's shot carries its fuse (the spark's tip)
+	_fuse_mark(i, w)
 	lobs_fired += 1
 	return i
 
@@ -643,6 +645,10 @@ func _physics_process(delta: float) -> void:
 				_explode(i)
 				_free(i)
 			continue
+		# pass 76 (lane DYN, params.fuse): a fused shot lying where it landed burns its fuse down, then blows
+		if hostile[i] == 0 and extra[i].has("lie_t"):
+			_tick_lying(i, delta)
+			continue
 		if homing[i] == 1:
 			if life[i] <= 0.0:
 				_explode(i)
@@ -736,6 +742,8 @@ func _physics_process(delta: float) -> void:
 					stuck[i] = near
 					var bomblet: bool = (extra[i] as Dictionary).has("is_bomblet")
 					stuck_t[i] = float(st.get("bomblet_seconds", st.get("seconds", 1.3))) if bomblet else float(st.get("seconds", 1.3))
+					# pass 76 (lane DYN): a fused shot rides in the pose it would lie in, its spark up at the fuse tip
+					_fuse_ride(i)
 					arc[i] = 0
 					vel[i] = Vector3.ZERO
 					# pass 61 (Sticky's look): a light on whatever it rides, blinking faster towards the blast (_render_blinks)
@@ -744,6 +752,9 @@ func _physics_process(delta: float) -> void:
 						extra[i]["blink"] = 0.0
 						extra[i]["blink_t0"] = maxf(stuck_t[i], 0.05)
 					continue
+			# pass 76 (lane DYN, params.fuse): a fused shot nothing caught lies where it landed and blows when its fuse is out
+			if _fuse_lie(i, ground):
+				continue
 			_explode(i)
 			_free(i)
 			continue
@@ -755,7 +766,11 @@ func _physics_process(delta: float) -> void:
 			# a fire bottle's rag burns as it flies (pass 48: blue for Methanol's bottle and the Moonshine's jug, whose
 			# drawn shot is the bottle alone)
 			var wl: WeaponInstance = weapon[i]
-			if wl and not extra[i].has("is_bomblet") and wl.stat("fire_damage", 0.0) > 0.0 and game.get("fx") != null:
+			# pass 76 (lane MOLO): a bottle with params.wick_flame burns at its wick instead (WickFlames: upright on the
+			# wick while the bottle turns, one draw call for every flame in the air); without it, as before
+			if wl and not extra[i].has("is_bomblet") and wl.params.get("wick_flame") is Dictionary:
+				_wick_flame_tick(i, wl, delta)
+			elif wl and not extra[i].has("is_bomblet") and wl.stat("fire_damage", 0.0) > 0.0 and game.get("fx") != null:
 				_trail_t[i] -= delta
 				if _trail_t[i] <= 0.0 or _trail_t[i] > 0.2:
 					_trail_t[i] = 0.07
@@ -867,13 +882,18 @@ func _physics_process(delta: float) -> void:
 					extra[i]["tc"] = _tracer_colour(w)
 				var t_size := float(w.params.get("tracer_size", 0.9))
 				var t_life := float(w.params.get("tracer_life", TRAIL_LIFE))
-				_drop_trail(pos[i], extra[i]["tc"], t_size, t_life)
+				# pass 76 (lane UI): no bead within the weapon's `tracer_clear` of the hero (_tracer_clear_of)
+				var t_ok := _tracer_clear_of(w, pos[i], player)
+				if t_ok:
+					_drop_trail(pos[i], extra[i]["tc"], t_size, t_life)
 				# pass 61 (Drum Mag's denser trails): `tracer_beads` beads a drop, the others spread back along the ground
 				# this tick moved over (one bead a physics tick is the most a step can give)
 				# (the review: on a Chicago Typewriter's long bursts the extra beads lapped the shared ring of TRAIL_MAX in
 				# under half a second and cut every other trail short, the hostile rocket's warning among them): the extra
 				# beads only while the screen is not busy with shots, and at half the life
 				var nb := int(w.params.get("tracer_beads", 1)) if count <= TRACER_EXTRA_BUSY else 1
+				if not t_ok:
+					nb = 0
 				for b in range(1, nb):
 					_drop_trail(pos[i] - vel[i] * delta * float(b) / float(nb), extra[i]["tc"], t_size, t_life * 0.5)
 		# pass 69 (the ball's Heat, params.heat_look): an orange trail and flames behind it, growing with Heat
@@ -1009,6 +1029,9 @@ func _process(_delta: float) -> void:
 	_drawn = _ticks
 	var t0 := Time.get_ticks_usec()
 	_render()
+	# pass 76 (lane MOLO): the flames on the bottles' wicks, on the bottles just drawn
+	if _wick != null:
+		_wick.draw(self, _draw_dt)
 	_tick_trail(_draw_dt)
 	_tick_specks(_draw_dt)
 	_draw_dt = 0.0
@@ -1141,9 +1164,13 @@ func _dust_trail(i: int, w: WeaponInstance, ground: float) -> void:
 
 
 ## A tracer bead's colour: gold, orange for a burning weapon, green for a poison one, the Silver Bullet's pale blue;
-## a weapon's own `tracer_color` (pass 61, a mutation's look: Toxic Peas' sickly green, Drum Mag's hot orange) first.
+## a mutation's own `tracer_color` (pass 61, its look: Toxic Peas' sickly green, Drum Mag's hot orange) first. Pass 76
+## (lane UI; Garry: "Make the revolver basic projectile trail thing be a dim red instead of yellow"): a weapon's own
+## `tracer_color` (the Revolver's dim red) is its plain colour, below the Silver Bullet and an element, so Silver Bullet
+## keeps its pale blue on it and Venom Rounds its green.
 func _tracer_colour(w: WeaponInstance) -> Color:
-	if w.params.has("tracer_color"):
+	var own := _own_tracer(w)
+	if w.params.has("tracer_color") and not own:
 		var tc := Color(str(w.params["tracer_color"]))
 		return Color(tc.r, tc.g, tc.b, float(w.params.get("tracer_alpha", 0.9)))
 	if bool(w.params.get("silver", false)):
@@ -1153,7 +1180,32 @@ func _tracer_colour(w: WeaponInstance) -> Color:
 			return Color(1.0, 0.5, 0.15, 0.9)
 		"poison":
 			return Color(0.5, 1.0, 0.35, 0.9)
+	if own:
+		var oc := Color(str(w.params["tracer_color"]))
+		return Color(oc.r, oc.g, oc.b, float(w.params.get("tracer_alpha", 0.9)))
 	return Color(1.0, 0.85, 0.35, 0.9)
+
+
+## Whether a tracer bead may drop at `at` (pass 76, lane UI): not within the weapon's `tracer_clear` metres of the hero on
+## the ground plane (the Revolver's dim red beads laid over him read as blood when his companion gun fired past him);
+## `tracer_clear` 0 (the default) drops them everywhere, as before.
+static func _tracer_clear_of(w: WeaponInstance, at: Vector3, hero: Node3D) -> bool:
+	var r := float(w.params.get("tracer_clear", 0.0))
+	if r <= 0.0 or hero == null:
+		return true
+	var d := Vector2(at.x - hero.global_position.x, at.z - hero.global_position.z)
+	return d.length_squared() >= r * r
+
+
+## Whether the `tracer_color` a weapon carries is its own plain one (pass 76): its def sets it and none of its mutations
+## sets one of its own.
+static func _own_tracer(w: WeaponInstance) -> bool:
+	if not w.params.has("tracer_color") or not w.def.params.has("tracer_color"):
+		return false
+	for m in w.mutations:
+		if m is MutationDef and (m as MutationDef).params.has("tracer_color"):
+			return false
+	return true
 
 
 ## The boomerang turns for home (pass 53; pass 67: factored out so the basketball's return_on_hit turns the same way):
@@ -2070,7 +2122,8 @@ func _explode(i: int) -> void:
 	lobs_exploded += 1
 	if not (extra[i] as Dictionary).has("is_bomblet"):
 		_landed.append({"at": pos[i], "t": LANDED_CLAIM})
-	enemies.damage_radius(pos[i], area[i], dmg[i], wid, kb[i])
+	# pass 76 (lane DYN, params.mass_mini): a blast that catches enough creatures mini-crits every one of them
+	enemies.damage_radius(pos[i], area[i], dmg[i], wid, kb[i], _mass_mini_flags(i, w))
 	# a landing blast on top (pass 62, Solenne's Sun Cocktail: params.land_blast, Lobber.land_blast)
 	if w and w.params.has("land_blast"):
 		Lobber.land_blast(game, pos[i], w, area[i], extra[i])
@@ -2624,6 +2677,8 @@ func _render_blinks() -> void:
 func _warm_looks(_at: Vector3) -> void:
 	_tick_specks(0.0)
 	_render_blinks()
+	# pass 76 (lane DYN): the fuse's spark too
+	_render_sparks()
 
 
 ## Warm-up: one instance of every kind at `at` (Vector3.INF stops it), so the instanced shader variants compile early.
@@ -2661,6 +2716,9 @@ func draw_basis(i: int) -> Basis:
 	var v := vel[i]
 	if hostile[i] == 0 and extra[i].has("planted"):
 		bs = extra[i]["planted"]
+	elif hostile[i] == 0 and extra[i].has("lie_b"):
+		# pass 76 (lane DYN): a fused shot lying on the sand (_fuse_lie), still
+		bs = extra[i]["lie_b"]
 	elif v.length_squared() > 0.01:
 		var fwd := v.normalized()
 		var up := Vector3.UP if abs(fwd.dot(Vector3.UP)) < 0.95 else Vector3.RIGHT
@@ -2698,6 +2756,9 @@ func _render() -> void:
 		counters[k] = n + 1
 		if stuck[i] >= 0 and extra[i].has("blink"):
 			_blink_list.append(i)
+		# pass 76 (lane DYN): a fused shot's spark (_render_sparks)
+		if hostile[i] == 0 and extra[i].has("fz"):
+			_spark_list.append(i)
 		# pass 62: a spit that breathes gets its halo in the trail's MultiMesh (_tick_trail, after this)
 		if hostile[i] == 1 and extra[i].has("pulse"):
 			_pulse_list.append(i)
@@ -2705,6 +2766,7 @@ func _render() -> void:
 		if hostile[i] == 0 and extra[i].has("heat_t"):
 			_heat_list.append(i)
 	_render_blinks()
+	_render_sparks()
 	for k in range(kinds.size()):
 		if _warm_at != Vector3.INF:
 			kinds[k]["mm"].set_instance_transform(counters[k], Transform3D(Basis(), _warm_at))
@@ -3051,3 +3113,394 @@ func _halo_multimesh() -> MultiMesh:
 	mmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
 	add_child(mmi)
 	return _halo_mm
+
+
+# ---------------------------------------------------------------- pass 76 (lane DYN): the dynamite's fuse
+## Pass 76 (Garry: "instead of exploding immediately when the Dynamite Stick lands let's have it sit there for 1 second
+## and then explode ... the little fuse light ... That fuse should 'go out' 0.5s before the explosion"): a weapon's
+## `params.fuse {seconds, out_before, lie, spark {color, size}, bomblet_seconds}`. Every lobbed shot of it carries the
+## fuse (_fuse_mark: "fz", its spark's tip). One that lands and is not caught by Sticky lies where it landed (_fuse_lie:
+## with `lie` on its side, along the way it came down, still; "lie_t" counts down) and blows when the count runs out
+## (_tick_lying), a bomblet after `bomblet_seconds` (else `seconds`); one Sticky catches rides in that pose (_fuse_ride).
+## A spark burns at the shot's fuse tip in flight,
+## lying and riding a creature, and goes out `out_before` seconds before the blast with a wisp of smoke (fuse_lit); one
+## MultiMesh for every spark (_render_sparks: two glows, a turning four-point twinkle facing the camera and a white-hot
+## core; drawn once in the warm-up), little sparks flung off it (Fx.mote). `params.mass_mini {min_hits}` (the Drifter's Fire in the Hole): a blast of the weapon's
+## shot (its ground fuse, its Sticky ride, each bomblet on its own; never Frag's spikes) that catches min_hits creatures
+## or more lands a Mini Crit on every one of them (_mass_mini_flags, EnemyManager.HIT_MINI).
+
+## The most sparks drawn at once (SPARK_PARTS instances each, and one for the warm-up).
+const SPARK_MAX := 40
+const SPARK_PARTS := 5
+## A spark's two glows are these many times its size, at these alphas; its twinkle's rays this long and thin (times its
+## size) and turning this fast (radians a second); a little spark flies off it about every SPARK_FLING seconds.
+const SPARK_GLOW := 3.4
+const SPARK_GLOW_ALPHA := 0.24
+const SPARK_GLOW_IN := 1.7
+const SPARK_GLOW_IN_ALPHA := 0.6
+const SPARK_RAY := 3.8
+const SPARK_RAY_W := 0.26
+const SPARK_TURN := 9.0
+const SPARK_FLING := 0.04
+## A model at least this many times taller than it is wide or deep is laid on its side when it lies (_lie_basis).
+const LIE_TALL := 1.25
+## A fuse block's defaults for the keys it leaves out.
+const FUSE_SECONDS := 1.0
+const FUSE_OUT_BEFORE := 0.5
+const SPARK_COLOR := "#FF9A2E"
+const SPARK_SIZE := 0.13
+var _spark_mm: MultiMesh
+var _spark_list: Array = []
+## The top of each kind's mesh (the spark's place on a shot whose model names no tip), by kind.
+var _kind_tops: Dictionary = {}
+## Diagnostics and tests: sparks drawn on the last frame, fuses gone out, blasts that dealt mass mini crits, and how
+## many creatures the last blast of a mass_mini weapon caught.
+var sparks_drawn := 0
+var fuses_out := 0
+var mass_minis := 0
+var last_blast_caught := -1
+
+
+## A weapon's fuse ({} without one).
+static func fuse_of(w: WeaponInstance) -> Dictionary:
+	if w == null:
+		return {}
+	var f = w.params.get("fuse")
+	return f if f is Dictionary else {}
+
+
+## How long a shot whose extra is `ex` lies on the sand before it blows: the fuse's `seconds`, a bomblet's
+## `bomblet_seconds` (else `seconds`).
+static func fuse_seconds(fz: Dictionary, ex: Dictionary) -> float:
+	var s := float(fz.get("seconds", FUSE_SECONDS))
+	if ex.has("is_bomblet"):
+		s = float(fz.get("bomblet_seconds", s))
+	return s
+
+
+## lob() marks a fused weapon's shot: "fz" holds its spark's tip in the model's own space (Lobber.model_choice;
+## Vector3.INF for the mesh's top). Any fuse or lying state a copied extra brought along (a bounce copies its shot's) is
+## dropped first.
+func _fuse_mark(i: int, w: WeaponInstance) -> void:
+	var ex: Dictionary = extra[i]
+	for k: String in ["fz", "fz_lit", "fz_t", "lie_t", "lie_b"]:
+		ex.erase(k)
+	if fuse_of(w).is_empty():
+		return
+	ex["fz"] = Lobber.model_choice(w.params)["tip"]
+	ex["fz_lit"] = true
+	ex["fz_t"] = 0.0
+
+
+## A fused shot that came down and was not caught by Sticky lies where it landed (true) until its fuse runs out
+## (_tick_lying); false for a shot without a fuse (it blows at once, as before).
+func _fuse_lie(i: int, ground: float) -> bool:
+	if hostile[i] == 1 or not (extra[i] as Dictionary).has("fz"):
+		return false
+	var fz := fuse_of(weapon[i])
+	if fz.is_empty():
+		return false
+	var secs := fuse_seconds(fz, extra[i])
+	if secs <= 0.0:
+		return false
+	extra[i]["lie_t"] = secs
+	extra[i]["lie_b"] = _lie_basis(i, fz)
+	vel[i] = Vector3.ZERO
+	spin[i] = 0.0
+	pos[i].y = ground + _lie_lift(i)
+	return true
+
+
+## A fused shot Sticky caught rides its creature in the pose it would lie in (_lie_basis: on its side along its throw,
+## still), so its spark sits up at the fuse tip rather than wherever the flight's spin left it. Read before its flight
+## stops.
+func _fuse_ride(i: int) -> void:
+	if not (extra[i] as Dictionary).has("fz"):
+		return
+	var fz := fuse_of(weapon[i])
+	if fz.is_empty():
+		return
+	extra[i]["lie_b"] = _lie_basis(i, fz)
+	spin[i] = 0.0
+
+
+## The fuse burns down on the sand; the shot blows when it is out.
+func _tick_lying(i: int, delta: float) -> void:
+	var t: float = float(extra[i]["lie_t"]) - delta
+	extra[i]["lie_t"] = t
+	if t <= 0.0:
+		_explode(i)
+		_free(i)
+
+
+## The turn a landed shot lies in: with `lie` (the default) on its side, its long axis along the way it came down give
+## or take 20 degrees, on the slope it fell on; without, as it flew in, its spin stopped. Read before its flight stops.
+func _lie_basis(i: int, fz: Dictionary) -> Basis:
+	var dir := Vector3(vel[i].x, 0.0, vel[i].z)
+	if not bool(fz.get("lie", true)):
+		var bs := Basis()
+		if vel[i].length_squared() > 0.01:
+			var fwd := vel[i].normalized()
+			bs = Basis.looking_at(fwd, Vector3.UP if absf(fwd.dot(Vector3.UP)) < 0.95 else Vector3.RIGHT)
+		return bs.rotated(bs.z, spin[i])
+	var box := _kind_box(kind[i])
+	var b := Basis()
+	var along := Vector3.BACK
+	if box.size.y > maxf(box.size.x, box.size.z) * LIE_TALL:
+		# a long model standing along Y is laid down (its Y onto Z); one already long along X or Z lies as it is, and a
+		# squat one (a crate, a ball) sits as it is
+		b = Basis(Vector3.RIGHT, PI * 0.5)
+		along = b * Vector3.UP
+	elif box.size.x > box.size.z * 1.05:
+		along = Vector3.RIGHT
+	var want: float = (atan2(dir.x, dir.z) if dir.length_squared() > 0.0001 else randf() * TAU) + randf_range(-0.35, 0.35)
+	var lie := Basis(Vector3.UP, want - atan2(along.x, along.z)) * b
+	var map = game.map if game else null
+	if map != null and map.has_method("normal_at"):
+		lie = MapBase.ground_basis(map.normal_at(pos[i].x, pos[i].z)) * lie
+	return lie
+
+
+## Kind `k`'s mesh bounds in the frame it is drawn in (its own turn in); a half-metre box without a mesh.
+func _kind_box(k: int) -> AABB:
+	var none := AABB(Vector3(-0.25, -0.25, -0.25), Vector3(0.5, 0.5, 0.5))
+	if k < 0 or k >= kinds.size():
+		return none
+	var mesh: Mesh = (kinds[k]["mm"] as MultiMesh).mesh
+	if mesh == null:
+		return none
+	return Transform3D(kinds[k].get("basis", Basis()), Vector3.ZERO) * mesh.get_aabb()
+
+
+## How high a lying shot's middle sits so its lowest point rests on the sand (its turn and size in).
+func _lie_lift(i: int) -> float:
+	var k := kind[i]
+	if k < 0 or k >= kinds.size() or (kinds[k]["mm"] as MultiMesh).mesh == null:
+		return 0.15
+	var box: AABB = Transform3D(draw_basis(i), Vector3.ZERO) * (kinds[k]["mm"] as MultiMesh).mesh.get_aabb()
+	return maxf(-box.position.y, 0.0) + 0.02
+
+
+## Whether shot `i`'s fuse burns now: in flight; lying, until out_before seconds are left; riding a creature with Sticky,
+## the same (a ride cut short by its creature's death blows with the spark still lit).
+func fuse_lit(i: int) -> bool:
+	if i < 0 or i >= MAX or alive[i] == 0 or not (extra[i] is Dictionary) or not (extra[i] as Dictionary).has("fz"):
+		return false
+	var ob := float(fuse_of(weapon[i]).get("out_before", FUSE_OUT_BEFORE))
+	if (extra[i] as Dictionary).has("lie_t"):
+		return float(extra[i]["lie_t"]) > ob
+	if stuck[i] >= 0:
+		return stuck_t[i] > ob
+	return true
+
+
+## Where shot `i`'s spark burns: its fuse tip ("fz", else the top of its mesh) carried by the shot's drawn turn and size.
+func fuse_tip(i: int) -> Vector3:
+	var tip = (extra[i] as Dictionary).get("fz", Vector3.INF)
+	if not tip is Vector3 or not (tip as Vector3).is_finite():
+		tip = _kind_top(kind[i])
+	return pos[i] + draw_basis(i) * (tip as Vector3)
+
+
+## The middle of the top of kind `k`'s mesh, in its own space.
+func _kind_top(k: int) -> Vector3:
+	if _kind_tops.has(k):
+		return _kind_tops[k]
+	var top := Vector3(0, 0.25, 0)
+	if k >= 0 and k < kinds.size():
+		var mesh: Mesh = (kinds[k]["mm"] as MultiMesh).mesh
+		if mesh:
+			var ab := mesh.get_aabb()
+			top = Vector3(ab.get_center().x, ab.end.y, ab.get_center().z)
+	_kind_tops[k] = top
+	return top
+
+
+## The sparks of the fused shots _render listed, at each lit fuse's tip: a wide faint glow and a smaller bright one in
+## the spark's colour, a four-point twinkle turning in the camera's plane, its rays flickering, and a white-hot core;
+## little sparks flung off it now and then; a fuse that just went out puffs a wisp of smoke. Drawn over everything (the
+## blinker's recipe: a fuse on a creature's back reads over its painting).
+func _render_sparks() -> void:
+	if _spark_list.is_empty() and _warm_at == Vector3.INF:
+		if _spark_mm != null and _spark_mm.visible_instance_count != 0:
+			_spark_mm.visible_instance_count = 0
+		sparks_drawn = 0
+		return
+	var mm := _spark_multimesh()
+	var fx = game.get("fx") if game else null
+	var can_fling: bool = fx != null and fx.has_method("mote")
+	# the twinkle lies in the camera's plane (the screen's right and up), facing it
+	var right := Vector3.RIGHT
+	var up := Vector3.UP
+	var face := Vector3.BACK
+	var cam: Camera3D = get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam:
+		right = cam.global_transform.basis.x.normalized()
+		up = cam.global_transform.basis.y.normalized()
+		face = cam.global_transform.basis.z.normalized()
+	var t := float(Time.get_ticks_msec()) * 0.001
+	var n := 0
+	var shown := 0
+	for i: int in _spark_list:
+		if shown >= SPARK_MAX:
+			break
+		if alive[i] == 0:
+			continue
+		var ex: Dictionary = extra[i]
+		if not fuse_lit(i):
+			if bool(ex.get("fz_lit", false)):
+				ex["fz_lit"] = false
+				fuses_out += 1
+				_fuse_smoke(fuse_tip(i), fx)
+			continue
+		var sp = fuse_of(weapon[i]).get("spark", {})
+		var sd: Dictionary = sp if sp is Dictionary else {}
+		var col := Color(str(sd.get("color", SPARK_COLOR)))
+		var hot := col.lightened(0.55)
+		var size := float(sd.get("size", SPARK_SIZE)) * (0.6 if ex.has("is_bomblet") else 1.0)
+		var at := fuse_tip(i)
+		var fl := randf_range(0.75, 1.25)
+		var g := size * SPARK_GLOW * fl
+		mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(g, g, g)), at))
+		mm.set_instance_color(n, Color(col.r, col.g, col.b, SPARK_GLOW_ALPHA))
+		n += 1
+		var gi := size * SPARK_GLOW_IN * fl
+		mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(gi, gi, gi)), at))
+		mm.set_instance_color(n, Color(hot.r, hot.g, hot.b, SPARK_GLOW_IN_ALPHA))
+		n += 1
+		var ang := t * SPARK_TURN + float(i) * 1.3
+		var w := size * SPARK_RAY_W
+		for r in range(2):
+			var a := ang + PI * 0.5 * float(r)
+			var u := right * cos(a) + up * sin(a)
+			var v := face.cross(u).normalized()
+			var ln := size * SPARK_RAY * randf_range(0.6, 1.2) * (1.0 if r == 0 else 0.75)
+			mm.set_instance_transform(n, Transform3D(Basis(u * ln, v * w, face * w), at))
+			mm.set_instance_color(n, Color(hot.r, hot.g, hot.b, 0.9))
+			n += 1
+		var c := size * fl * 0.85
+		mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(c, c, c)), at))
+		mm.set_instance_color(n, Color(1.0, 0.98, 0.88, 1.0))
+		n += 1
+		shown += 1
+		if can_fling:
+			var ft := float(ex.get("fz_t", 0.0)) - _draw_dt
+			if ft <= 0.0:
+				ft = SPARK_FLING * randf_range(0.6, 1.4)
+				var out := Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)).normalized() * randf_range(1.2, 2.4)
+				fx.mote(at, out + Vector3(0, randf_range(1.0, 2.6), 0), randf_range(0.16, 0.3), size * 0.75, Color(hot.r, hot.g, hot.b, 1.0))
+			ex["fz_t"] = ft
+	_spark_list.clear()
+	if _warm_at != Vector3.INF and n < SPARK_MAX * SPARK_PARTS + 1:
+		mm.set_instance_transform(n, Transform3D(Basis().scaled(Vector3(0.1, 0.1, 0.1)), _warm_at))
+		mm.set_instance_color(n, Color(1.0, 0.7, 0.2, 0.5))
+		n += 1
+	mm.visible_instance_count = n
+	sparks_drawn = shown
+
+
+## A fuse going out: a wisp of grey smoke rising off its tip.
+func _fuse_smoke(at: Vector3, fx) -> void:
+	if fx == null or not fx.has_method("mote"):
+		return
+	for k in range(4):
+		fx.mote(at + Vector3(randf_range(-0.05, 0.05), 0.05 * float(k), randf_range(-0.05, 0.05)), Vector3(randf_range(-0.12, 0.12), randf_range(0.45, 0.8), randf_range(-0.12, 0.12)), randf_range(0.55, 0.85), 0.22, Color(0.5, 0.48, 0.46, 0.7))
+
+
+## The sparks' MultiMesh, made on first use: smooth spheres in the blinker's material recipe (unshaded, see-through,
+## vertex colours, over everything), so no new shader.
+func _spark_multimesh() -> MultiMesh:
+	if _spark_mm != null:
+		return _spark_mm
+	_spark_mm = MultiMesh.new()
+	_spark_mm.transform_format = MultiMesh.TRANSFORM_3D
+	_spark_mm.use_colors = true
+	var sp := SphereMesh.new()
+	sp.radius = 0.5
+	sp.height = 1.0
+	sp.radial_segments = 10
+	sp.rings = 5
+	_spark_mm.mesh = sp
+	_spark_mm.instance_count = SPARK_MAX * SPARK_PARTS + 1
+	_spark_mm.visible_instance_count = 0
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = _spark_mm
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.vertex_color_use_as_albedo = true
+	mat.no_depth_test = true
+	mat.render_priority = 4
+	mmi.material_override = mat
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
+	add_child(mmi)
+	return _spark_mm
+
+
+## The hit flags a blast of shot `i` strikes with (params.mass_mini {min_hits}): HIT_MINI when it catches min_hits
+## creatures or more (EnemyManager.blast_count, before it strikes), else 0. Every blast of such a weapon is counted.
+func _mass_mini_flags(i: int, w: WeaponInstance) -> int:
+	if w == null or game == null:
+		return 0
+	var mmd = w.params.get("mass_mini")
+	if not mmd is Dictionary:
+		return 0
+	var em = game.get("enemies")
+	if em == null or not em.has_method("blast_count"):
+		return 0
+	var caught: int = em.blast_count(pos[i], area[i])
+	last_blast_caught = caught
+	if caught >= maxi(int((mmd as Dictionary).get("min_hits", 9)), 1):
+		mass_minis += 1
+		return EnemyManager.HIT_MINI
+	return 0
+
+
+# ---------------------------------------------------------------- pass 76 (lane MOLO): the flame on a bottle's wick
+
+## The wick flames (WickFlames): made at the first bottle that has one, or by the warm-up.
+var _wick: WickFlames = null
+
+
+## The wick flames' system, made when first asked for.
+func wick_flames() -> WickFlames:
+	if _wick == null:
+		_wick = WickFlames.new()
+		_wick.name = "WickFlames"
+		add_child(_wick)
+	return _wick
+
+
+## A lobbed shot with params.wick_flame, one tick of its flight: its tumble, its wick's place, its embers.
+func _wick_flame_tick(i: int, w: WeaponInstance, delta: float) -> void:
+	wick_flames().tick(self, i, w, delta)
+
+
+## Where shot `i`'s wick is now (its params.wick_flame offset, turned and scaled as the shot is drawn); the shot's own
+## position when it has none.
+func wick_world(i: int) -> Vector3:
+	var w: WeaponInstance = weapon[i]
+	var cfg := WickFlames.config(w)
+	if cfg.is_empty():
+		return pos[i]
+	return WickFlames.wick_world(self, i, cfg)
+
+
+## Warm-up: one piece of every wick-flame style drawn at `at` (Vector3.INF stops it), so its shader compiles under the
+## spawn beam.
+func warm_wick_flames(at: Vector3) -> void:
+	if at == Vector3.INF and _wick == null:
+		return
+	# nothing to warm (and no system made) while no weapon's look burns at its wick or in its pool
+	if at != Vector3.INF and _wick == null and not _wick_looks_played():
+		return
+	wick_flames().warm(at)
+
+
+## Whether any weapon (or evolution) wears params.wick_flame or params.pool_flame in the look its family plays.
+func _wick_looks_played() -> bool:
+	for wd: WeaponDef in Registry.weapons.values():
+		if wd.params.get("wick_flame") is Dictionary or wd.params.get("pool_flame") is Dictionary:
+			return true
+	return false

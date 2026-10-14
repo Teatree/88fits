@@ -91,6 +91,18 @@ func before_test() -> void:
 func after_test() -> void:
 	Run.debug_clear_items()
 	Run.end()
+	# pass 76 (lane DYNART): a test that wore the grenade look puts its family back in the look it plays
+	for d in Registry.item_family("lob_grenade"):
+		d.look_worn = "?"
+	Registry.apply_item_looks()
+
+
+## Pass 76 (lane DYNART): the grenade family wears the grenade (look A) whatever look it plays, so the Sticky tests keep
+## testing the grenade's glossy amber and its blinking light (the dynamite looks leave the stick its own paper and its
+## spark: pass76_dynart_test).
+func _wear_grenade() -> void:
+	for d in Registry.item_family("lob_grenade"):
+		d.wear_look("A")
 
 
 func _script(src: String) -> GDScript:
@@ -450,6 +462,7 @@ func test_the_chicago_typewriter_keeps_the_big_drum() -> void:
 # ---------------------------------------------------------------- Sticky
 
 func test_sticky_glossy_resin_and_a_light_blinking_faster_on_its_ride() -> void:
+	_wear_grenade()
 	var w := _world()
 	var pm: ProjectileManager = w["pm"]
 	var em: EnemyManager = w["em"]
@@ -496,6 +509,7 @@ func test_sticky_glossy_resin_and_a_light_blinking_faster_on_its_ride() -> void:
 
 
 func test_a_plain_grenade_has_no_resin_and_no_light() -> void:
+	_wear_grenade()
 	var w := _world()
 	var pm: ProjectileManager = w["pm"]
 	var lb := Lobber.new()
@@ -509,6 +523,7 @@ func test_a_plain_grenade_has_no_resin_and_no_light() -> void:
 
 
 func test_the_golden_pineapple_stays_gold_under_the_resin() -> void:
+	_wear_grenade()
 	var w := _world()
 	var pm: ProjectileManager = w["pm"]
 	var lb := Lobber.new()
@@ -617,6 +632,7 @@ func test_the_warm_up_makes_the_look_kinds_before_the_run() -> void:
 
 
 func test_every_look_is_data_in_its_mutation() -> void:
+	_wear_grenade()
 	var looks := {
 		"dragons_breath": ["tint", "look"],
 		"both_barrels": ["look"],

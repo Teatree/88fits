@@ -83,6 +83,9 @@ func _build(game: Node) -> void:
 				root.free()
 	_warm_mutation_shots(pm)
 	pm.warm_draw(global_position)
+	# pass 76 (lane MOLO): the flames on the bottles' wicks, every style (core/shaders/wick_flame.gdshader) once
+	if pm.has_method("warm_wick_flames"):
+		pm.warm_wick_flames(global_position)
 	# pass 54: the gems and coins draw see-through and read the stencil now: one of each under the beam, so their
 	# materials compile here rather than at the first kill (PickupManager.warm_draw). Pass 60: that one gem of each kind
 	# is drawn charged, so core/shaders/gem.gdshader compiles here on the gem MultiMeshes themselves (a quad would compile
@@ -235,6 +238,8 @@ func _finish(game: Node) -> void:
 		game.enemies.warm_draw(Vector3.INF)
 	if is_instance_valid(game) and game.projectiles:
 		game.projectiles.warm_draw(Vector3.INF)
+		if game.projectiles.has_method("warm_wick_flames"):
+			game.projectiles.warm_wick_flames(Vector3.INF)
 	if is_instance_valid(game) and game.get("pickups") and game.pickups.has_method("warm_draw"):
 		game.pickups.warm_draw(Vector3.INF)
 	queue_free()

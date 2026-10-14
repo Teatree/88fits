@@ -206,6 +206,27 @@ def backup_icon(dst, new_png_bytes=None, folder=None):
     return out
 
 
+def free_icon_name(folder, name, data=None):
+    """pass 76 (the Level Editor's icon guard: a pick never overwrites): a file name in `folder` that covers no other
+    picture: `name` when no file has it (or the file there holds these very bytes, `data`), else <stem>_2.png, _3...
+    Returns (name, path)."""
+    stem = os.path.splitext(os.path.basename(name))[0]
+    cand, n = os.path.basename(name), 1
+    while True:
+        p = os.path.join(folder, cand)
+        if not os.path.exists(p) and not os.path.exists(p + ".import"):
+            return cand, p
+        if data is not None and os.path.isfile(p):
+            try:
+                with open(p, "rb") as f:
+                    if f.read() == data:
+                        return cand, p
+            except OSError:
+                pass
+        n += 1
+        cand = "%s_%d.png" % (stem, n)
+
+
 # ---------------------------------------------------------------- prompts
 
 def anchor_prompt():
@@ -1481,6 +1502,10 @@ def process(type_, folder, id_):
             d["sprite"] = id_ + "_sprite_" + vcode.split("-")[-1].lower() + ".png"
             strip.save(os.path.join(folder, d["sprite"]))
             d["icon"] = id_ + "_icon_" + vcode.split("-")[-1].lower() + ".png"
+            # pass 76: a pick has a file of its own since the Level Editor's icon guard (<id>_icon_<x>_<tag>_c<k>.png)
+            picked = os.path.basename(str(ventry.get("icon") or "")) if isinstance(ventry, dict) and ventry.get("icon_picked") else ""
+            if picked and os.path.isfile(os.path.join(folder, picked)):
+                d["icon"] = picked
             if isinstance(ventry, dict) and ventry.get("icon_picked") and os.path.isfile(os.path.join(folder, d["icon"])):
                 # pass 68: the look's icon was picked from candidates (the Level Editor marks the entry): kept
                 log("  the look's icon was picked from candidates: kept (%s)" % d["icon"])

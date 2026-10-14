@@ -197,19 +197,21 @@ func test_perks_are_the_heros_own() -> void:
 	for m in Run.open_mutations(Run.weapon_instance("land_mine")):
 		ids.append(m.id)
 	assert_bool(ids.has("blasting_cap")).is_equal(mira_in_play)
-	# the hero mutation shows for the favourite weapon only: the Drifter's Fan the Hammer on the Peashooter
+	# the hero mutation shows for the favourite weapon only: the Drifter's Fire in the Hole on the dynamite (pass 76, lane
+	# DYN: his favourite is the Lob Grenade now, Fan the Hammer is hidden with the Peashooter)
 	_start("drifter")
-	_give("peashooter", 3)
+	_give("lob_grenade", 3)
 	_give("boomstick", 3)
 	ids.clear()
-	for m in Run.open_mutations(Run.weapon_instance("peashooter")):
+	for m in Run.open_mutations(Run.weapon_instance("lob_grenade")):
 		ids.append(m.id)
-	assert_bool(ids.has("fan_the_hammer")).is_true()
+	assert_bool(ids.has("fire_in_the_hole")).is_true()
+	assert_bool(ids.has("fan_the_hammer")).is_false()
 	for m in Run.open_mutations(Run.weapon_instance("boomstick")):
 		assert_bool((m as MutationDef).is_hero()).is_false()
-	assert_bool(Run.add_mutation("fan_the_hammer")).is_true()
+	assert_bool(Run.add_mutation("fire_in_the_hole")).is_true()
 	# a hero mutation is the stage's pick for that weapon (pass 45; it was a free extra before)
-	assert_bool(Run.can_mutate(Run.weapon_instance("peashooter"))).is_false()
+	assert_bool(Run.can_mutate(Run.weapon_instance("lob_grenade"))).is_false()
 
 
 ## Pass 48: every mutation of the path (it was two of the three since pass 26).

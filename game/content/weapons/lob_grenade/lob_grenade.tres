@@ -4,41 +4,44 @@
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_c0d5c"]
 [ext_resource type="Script" path="res://core/data/WeaponDef.gd" id="2_yk424"]
 [ext_resource type="PackedScene" path="res://content/weapons/lob_grenade/lob_grenade_visual.tscn" id="3_yk424"]
+[ext_resource type="Texture2D" path="res://content/weapons/lob_grenade/lob_grenade_icon_b.png" id="4_j2c1t"]
+[ext_resource type="Texture2D" path="res://content/weapons/lob_grenade/lob_grenade_icon_c.png" id="5_gpbls"]
+[ext_resource type="Texture2D" path="res://content/weapons/lob_grenade/lob_grenade_icon_d.png" id="6_1bixm"]
 
-[sub_resource type="Resource" id="Resource_c0d5c"]
+[sub_resource type="Resource" id="Resource_j2c1t"]
 script = ExtResource("2_c0d5c")
 stat = "damage"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_n6aji"]
+[sub_resource type="Resource" id="Resource_gpbls"]
 script = ExtResource("2_c0d5c")
 stat = "area"
 value = 0.5
 
-[sub_resource type="Resource" id="Resource_xrml6"]
+[sub_resource type="Resource" id="Resource_1bixm"]
 script = ExtResource("2_c0d5c")
 stat = "cooldown"
 op = "mul"
 value = -0.1
 
-[sub_resource type="Resource" id="Resource_j2c1t"]
+[sub_resource type="Resource" id="Resource_ikrwc"]
 script = ExtResource("2_c0d5c")
 stat = "amount"
 value = 1.0
 
-[sub_resource type="Resource" id="Resource_gpbls"]
+[sub_resource type="Resource" id="Resource_jpxn0"]
 script = ExtResource("2_c0d5c")
 stat = "damage"
 op = "mul"
 value = 0.2
 
-[sub_resource type="Resource" id="Resource_1bixm"]
+[sub_resource type="Resource" id="Resource_k2ab8"]
 script = ExtResource("2_c0d5c")
 stat = "area"
 value = 0.5
 
-[sub_resource type="Resource" id="Resource_ikrwc"]
+[sub_resource type="Resource" id="Resource_lpd3n"]
 script = ExtResource("2_c0d5c")
 stat = "damage"
 op = "mul"
@@ -50,14 +53,14 @@ behavior = "Lobber"
 targeting = "densest"
 base = {
 "amount": 1.0,
-"area": 2.5,
+"area": 2.8,
 "cooldown": 2.2,
 "damage": 25.0,
-"knockback": 7.0,
+"knockback": 14.0,
 "range": 10.0,
 "speed": 9.0
 }
-levels = [[], [SubResource("Resource_c0d5c"), SubResource("Resource_n6aji")], [SubResource("Resource_xrml6"), SubResource("Resource_j2c1t")], [SubResource("Resource_gpbls")], [SubResource("Resource_1bixm"), SubResource("Resource_ikrwc")]]
+levels = [[], [SubResource("Resource_j2c1t"), SubResource("Resource_gpbls")], [SubResource("Resource_1bixm"), SubResource("Resource_ikrwc")], [SubResource("Resource_jpxn0")], [SubResource("Resource_k2ab8"), SubResource("Resource_lpd3n")]]
 max_level = 5
 evolves_into = "golden_pineapple"
 sfx = {
@@ -66,6 +69,108 @@ sfx = {
 }
 visual = ExtResource("3_yk424")
 visual_file = "lob_grenade_visual.tscn"
+params = {
+"fuse": {
+"lie": true,
+"out_before": 0.5,
+"seconds": 1.0,
+"spark": {
+"color": "#FF9A2E",
+"size": 0.13
+}
+}
+}
+variants = {
+"A": {
+"note": "the grenade (passes 26-75): the olive pineapple grenade"
+},
+"B": {
+"flavour": "Light it. Lob it. Count to one.",
+"fresh": true,
+"icon": ExtResource("4_j2c1t"),
+"icon_file": "lob_grenade_icon_b.png",
+"name": "Dynamite Stick",
+"note": "B · classic paper stick: dark rings, cream ends, a pale cord fuse; the bundle three sticks in black tape",
+"noun": "stick",
+"nouns": "sticks",
+"params": {
+"model_colour": "tan",
+"model_form": "stick",
+"model_metallic": 0.0,
+"model_roughness": 0.85,
+"models": {
+"bundle": {
+"red": "res://art/props/dynamite_b_bundle_red.glb",
+"tan": "res://art/props/dynamite_b_bundle_tan.glb",
+"tip": [0.3589, 0.2171, -0.0229]
+},
+"stick": {
+"red": "res://art/props/dynamite_b_stick_red.glb",
+"tan": "res://art/props/dynamite_b_stick_tan.glb",
+"tip": [0.3589, 0.1171, -0.0229]
+}
+}
+}
+},
+"C": {
+"flavour": "Light it. Lob it. Count to one.",
+"fresh": true,
+"icon": ExtResource("5_gpbls"),
+"icon_file": "lob_grenade_icon_c.png",
+"name": "Dynamite Stick",
+"note": "C · chunky cartoon stick: rounded ends, a cream label in black borders, a black curly fuse; the bundle four sticks tied with rope and a bow",
+"noun": "stick",
+"nouns": "sticks",
+"params": {
+"model_colour": "tan",
+"model_form": "stick",
+"model_metallic": 0.0,
+"model_roughness": 0.8,
+"models": {
+"bundle": {
+"red": "res://art/props/dynamite_c_bundle_red.glb",
+"tan": "res://art/props/dynamite_c_bundle_tan.glb",
+"tip": [0.3492, 0.1729, -0.0535]
+},
+"stick": {
+"red": "res://art/props/dynamite_c_stick_red.glb",
+"tan": "res://art/props/dynamite_c_stick_tan.glb",
+"tip": [0.3492, 0.1729, -0.0535]
+}
+}
+}
+},
+"D": {
+"flavour": "Light it. Lob it. Count to one.",
+"fresh": true,
+"icon": ExtResource("6_1bixm"),
+"icon_file": "lob_grenade_icon_d.png",
+"name": "Dynamite Stick",
+"note": "D · waxed miner's stick: crimped ends, a printed band, a silver blasting cap and a tarred fuse; the bundle seven sticks in copper wire",
+"noun": "stick",
+"nouns": "sticks",
+"params": {
+"model_colour": "tan",
+"model_form": "stick",
+"model_metallic": 0.0,
+"model_roughness": 0.6,
+"models": {
+"bundle": {
+"red": "res://art/props/dynamite_d_bundle_red.glb",
+"tan": "res://art/props/dynamite_d_bundle_tan.glb",
+"tip": [0.4135, 0.1111, -0.0225]
+},
+"stick": {
+"red": "res://art/props/dynamite_d_stick_red.glb",
+"tan": "res://art/props/dynamite_d_stick_tan.glb",
+"tip": [0.4135, 0.1111, -0.0225]
+}
+}
+}
+}
+}
+variant_base = "A"
+variant = "B"
 id = "lob_grenade"
 display_name = "Lob Grenade"
 flavour = "Big numbers on big groups."

@@ -166,7 +166,8 @@ func _ready() -> void:
 	_wash_rect = _wash()
 	add_child(_wash_rect)
 	# quests a save's totals already satisfy (pass 44 added many) complete here, quietly, instead of all at once five
-	# seconds into the next run; the results screen still lists them
+	# seconds into the next run; since pass 76 they are not listed again as "Unlocked this run" (only a run's own checks
+	# fill QuestTracker.just_completed)
 	QuestTracker.check_all(false)
 	# gold cannot change on the title: the Upgrade mark is decided once
 	_affordable = _rank_affordable()

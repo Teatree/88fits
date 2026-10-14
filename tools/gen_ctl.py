@@ -321,6 +321,9 @@ def main():
     fname = cid + "_sprite_" + letter + ".png"
     strip.save(os.path.join(folder, fname))
     iname = cid + "_icon_" + letter + ".png"
+    # pass 76: a pick has a file of its own since the Level Editor's icon guard (<id>_icon_<x>_<tag>_c<k>.png)
+    if isinstance(entry, dict) and entry.get("icon_picked") and entry.get("icon") and os.path.isfile(os.path.join(folder, os.path.basename(str(entry["icon"])))):
+        iname = os.path.basename(str(entry["icon"]))
     if keeps_picked_icon(entry, os.path.join(folder, iname)):
         log("  the look's icon was picked from candidates: kept (%s)" % iname)
     else:

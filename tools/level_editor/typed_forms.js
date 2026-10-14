@@ -246,9 +246,14 @@ const TypedForms = (() => {
 
   async function install(job, choice) {
     App.status(`Installing ${choice} from ${job.id}…`, 'busy');
-    const { status, data } = await Assets.postJSON(`/api/jobs/${encodeURIComponent(job.id)}/install`, { choice });
+    let { status, data } = await Assets.postJSON(`/api/jobs/${encodeURIComponent(job.id)}/install`, { choice });
+    // pass 76 (lane ICON): the item's own icon or the look in play asks first (now -> new), then goes with confirm: true
+    if (data && data.confirm_needed && typeof LookGrid !== 'undefined' && LookGrid.confirmIconChange) {
+      if (!(await LookGrid.confirmIconChange(data))) { App.status(`${job.id}: not installed, nothing changed`); return; }
+      ({ status, data } = await Assets.postJSON(`/api/jobs/${encodeURIComponent(job.id)}/install`, { choice, confirm: true }));
+    }
     if (!data || !data.ok) { App.status(`Could not install: ${(data && data.error) || status}`, 'bad'); return; }
-    App.status(`Install of ${choice} queued (job ${(data.job && data.job.id) || ''}): the icon is replaced (the old one backed up) and imported`, 'good');
+    App.status(`Install of ${choice} queued (job ${(data.job && data.job.id) || ''}): the new icon gets a file of its own (the old one stays, Revert icon brings it back), then the import`, 'good');
     if (typeof Jobs !== 'undefined' && Jobs.poll) Jobs.poll();
   }
 

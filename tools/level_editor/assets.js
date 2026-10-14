@@ -411,7 +411,8 @@ const Assets = (() => {
         // pass 70: removing the base look (or a landing on a base with its own strip) rewrites the top-level art keys; a
         // key whose value on disk differs from the one the document was read with is taken from disk too (the
         // document's own edits of a key the server did not touch stay), so a later Save never writes the old art back
-        for (const kk of ['sprite', 'icon', 'anims', 'strip_cols', 'fps', 'frame_px', 'head', 'badge']) {
+        // pass 76 (lane ICON): the base's icon_history is written beside the top-level icon by the icon ops
+        for (const kk of ['sprite', 'icon', 'anims', 'strip_cols', 'fps', 'frame_px', 'head', 'badge', 'icon_history']) {
           if (JSON.stringify(fresh[kk]) === JSON.stringify(saved[kk])) continue;
           if (kk in fresh) { doc.data[kk] = fresh[kk]; saved[kk] = fresh[kk]; } else { delete doc.data[kk]; delete saved[kk]; }
         }
@@ -983,6 +984,15 @@ const Assets = (() => {
       round ? el('button', { class: 'btn small', type: 'button', text: lookCode ? `+ Badge candidates for ${lookCode}…` : '+ Badge candidates…', title: `paint round badge candidates and pick one by eye (a job): the hero's words and ${lookCode ? lookCode + '\'s' : 'the base look\'s'} front still as the reference${shownWhere('badge') ? '; ' + shownWhere('badge') : ''}`, onclick: () => openJobForm(doc, { method: 'hero_badge', mode: 'badge', code: lookCode || undefined }) })
         : el('button', { class: 'btn small', type: 'button', text: '+ Icon candidates…', title: 'paint several icons and pick one by eye (a job)', onclick: () => openJobForm(doc, { method: 'icon_cands', mode: 'icon', code: lookCode || undefined }) }),
       el('span', { class: 'muted small', text: round ? `the round badge (128: the hero sheet's plate): ${shownWhere('badge') || 'the hero sheet, the results'}` : `on its ${doc.data.rarity || 'common'} plate (W.RARITY_PLATE)` })));
+    // pass 76 (lane ICON): an item's icon now (the look shown, else its own), Revert icon, its changes and every icon on
+    // disk with "Use for ..." (heroes and creatures have the same panel in their look grid's stage)
+    if (!['hero', 'enemy', 'boss'].includes(doc.kind) && typeof LookGrid !== 'undefined' && typeof LookGrid.iconPanel === 'function') {
+      wrap.appendChild(LookGrid.iconPanel(doc.kind, doc.id, lookCode, { onChanged: async () => {
+        await refreshRecord(doc.kind, doc.id);
+        await refreshList(tabOf(doc.kind) === 'creatures' ? 'enemies' : tabOf(doc.kind));
+        App.render('tab');
+      } }));
+    }
     return wrap;
   }
   /** Where the game shows a hero look's badge or cut-out (LookGrid.WHERE_SHOWN): said beside every badge and cut-out

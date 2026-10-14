@@ -547,17 +547,18 @@ func test_the_items_tab_stacks_each_weapons_mutations_and_evolution_under_it() -
 		titles.append(str(s[0]))
 	# pass 73 (lane CARDS): the lines' section says Cards
 	assert_array(titles).contains_exactly(["Weapons", "Hidden weapons", "Cards", "Passives", "Perks"])
-	# the Peashooter: its path by kind (element, volume, motion), the Drifter's own, its evolution, then what is hidden
-	var pea: WeaponDef = Registry.weapon("peashooter")
-	var st := p.weapon_stack(pea)
+	# the Skull Rain: its path by kind (element, volume, motion), Calavera's own, its evolution, then what is hidden (pass
+	# 76, lane DYN: the Peashooter this read is hidden, Fan the Hammer with it, and the grenade family has looks of its own)
+	var rain: WeaponDef = Registry.weapon("skull_rain")
+	var st := p.weapon_stack(rain)
 	var ids: Array = []
 	var tags: Array = []
 	for entry in st:
 		ids.append(str((entry[1] as ContentDef).id))
 		tags.append(str(entry[2]))
-	assert_array(ids).is_equal(["toxic_peas", "big_peas", "bouncing_peas", "fan_the_hammer", "pea_cannon", "pea_hose", "bullet_hose"])
+	assert_array(ids).is_equal(["plague", "curare", "bouncing_skull", "danza_macabra", "grave_hail", "bone_storm", "homing_skulls", "dia_de_muertos"])
 	# pass 51: the hero's own is marked optional, and the EVO toggle counts the three the evolution needs
-	assert_array(tags).is_equal(["Element", "Volume", "Motion", Registry.character("drifter").display_name + " · optional", "Evolution", "hidden mutation", "hidden evolution"])
+	assert_array(tags).is_equal(["Element", "Volume", "Motion", Registry.character("calavera").display_name + " · optional", "Evolution", "hidden mutation", "hidden mutation", "hidden evolution"])
 	assert_str(str(st[4][0])).is_equal("evolution")
 	assert_str(ArenaPanel.stack_summary(st)).is_equal("3 + EVO")
 	# the Revolver's old Golden Revolver is kept hidden at the end of its stack, the new one is its evolution
@@ -618,21 +619,22 @@ func test_a_weapons_toggle_opens_its_stack_under_it() -> void:
 	add_child(p)
 	p._tab = "items"
 	p._refresh()
-	var row: Control = p._content.find_child("Item_weapon_peashooter", true, false)
+	# pass 76 (lane DYN): the Skull Rain (the Peashooter this opened is hidden now)
+	var row: Control = p._content.find_child("Item_weapon_skull_rain", true, false)
 	assert_object(row).is_not_null()
 	var tg: Button = row.find_child("Stack", true, false)
 	assert_object(tg).is_not_null()
 	assert_str(tg.text).starts_with("▶")
-	assert_object(p._content.find_child("Item_mutation_toxic_peas", true, false)).is_null()
+	assert_object(p._content.find_child("Item_mutation_plague", true, false)).is_null()
 	tg.pressed.emit()
 	# drawn again: the stack sits under its weapon, indented, in order
 	var kids: Array = p._content.get_children()
 	var at := -1
 	for k in range(kids.size()):
-		if (kids[k] as Node).name == "Item_weapon_peashooter":
+		if (kids[k] as Node).name == "Item_weapon_skull_rain":
 			at = k
 	assert_int(at).is_greater_equal(0)
-	var stack := p.weapon_stack(Registry.weapon("peashooter"))
+	var stack := p.weapon_stack(Registry.weapon("skull_rain"))
 	for k in range(stack.size()):
 		var under: Node = kids[at + 1 + k]
 		assert_str(str(under.name)).is_equal("Under_%s_%s" % [str(stack[k][0]), (stack[k][1] as ContentDef).id])
@@ -640,14 +642,14 @@ func test_a_weapons_toggle_opens_its_stack_under_it() -> void:
 	var tg2: Button = (kids[at] as Node).find_child("Stack", true, false)
 	assert_str(tg2.text).starts_with("▼")
 	# a stack row's + hands the mutation over
-	var mrow: Node = p._content.find_child("Item_mutation_toxic_peas", true, false)
+	var mrow: Node = p._content.find_child("Item_mutation_plague", true, false)
 	var plus: Button = null
 	for c in mrow.find_children("*", "Button", true, false):
 		if (c as Button).text == "+":
 			plus = c
 	assert_object(plus).is_not_null()
 	plus.pressed.emit()
-	assert_bool(Run.mutations_held("peashooter").has("toxic_peas")).is_true()
+	assert_bool(Run.mutations_held("skull_rain").has("plague")).is_true()
 	Run.debug_clear_items()
 	# the rows the redraw took out go at the end of the frame
 	await get_tree().process_frame

@@ -557,7 +557,9 @@ def picker_checks(check, server):
     # the page
     looks = _read(os.path.join(HERE, "looks.js"))
     heroes = _read(os.path.join(HERE, "heroes.js"))
-    check("function picker(kind, id, o)" in looks and "options: { variant: code }" in looks and "function pickers(kind, id, look)" in looks
+    # pass 76 (lane ICON): the picker posts through LookGrid.installPick (the question before the look in play changes)
+    check("function picker(kind, id, o)" in looks and ("options: { variant: code }" in looks or "installPick(picked.job.id, picked.choice, { variant: code })" in looks)
+          and "function pickers(kind, id, look)" in looks
           and "if (!isStub(look)) info.appendChild(pickers(kind, id, look));" in looks, "LE70 picker: the look's stage offers the pickers; Install posts the look as options.variant")
     check("h.icon_play || h.icon" in heroes and "LookGrid.pickers('hero', doc.id, shown)" in heroes and "shown.title_file" in heroes,
           "LE70 picker: the Heroes list shows the played look's badge; the previews show the look's own cut-out and its pickers")

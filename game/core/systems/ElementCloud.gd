@@ -159,7 +159,27 @@ func _flame_at(k: float) -> void:
 	if game.map:
 		at.y = game.map.height_at(at.x, at.z)
 	var h: float = clampf(0.6 + radius * 0.45, 0.6, 1.9) * randf_range(0.75, 1.2) * k
+	# pass 76 (lane MOLO): a weapon whose look burns its pool in its own style (params.pool_flame {style, size}) stands
+	# its flames there (WickFlames.ground_flame); without it, Fx's tongues as before
+	if _pool_flame(at, h):
+		return
 	game.fx.flame(at, h, randf_range(0.45, 0.7), Fx.FLAME_ORANGE, blue)
+
+
+## Pass 76 (lane MOLO): one of the spill's flames in the weapon's look (params.pool_flame {style, size, life}: "torch"
+## or "cartoon", `size` x the height the spill gives it, `life` x its life), through ProjectileManager's wick flames.
+## False (Fx's tongue instead) when the weapon has no pool_flame.
+func _pool_flame(at: Vector3, h: float) -> bool:
+	var pf = weapon.params.get("pool_flame") if weapon else null
+	if not (pf is Dictionary):
+		return false
+	var pm = game.get("projectiles")
+	if pm == null or not pm.has_method("wick_flames"):
+		return false
+	var d: Dictionary = pf
+	var life: float = randf_range(0.45, 0.7) * float(d.get("life", 1.0))
+	pm.wick_flames().ground_flame(at, h * float(d.get("size", 1.0)), life, str(d.get("style", "torch")), blue, _t < 0.05)
+	return true
 
 
 ## The billows: each breathes, rises slowly and turns, and fades with the cloud (`fade` 0..1).

@@ -244,7 +244,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-14, pass 75, version 0.61)
+## Status (2026-10-14, pass 76, version 0.62)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -253,8 +253,8 @@ changed.
 
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
-parse check, all gdUnit tests (~1,669 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.61). The PC exe carries game/icon.ico and
+parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.62). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
@@ -315,7 +315,15 @@ Ducktape), Tin Star, Prospector and Gold Tooth (lines now), each with an evoluti
 `SaltShaker` (patches laid along the hero's path, `params.salt`) and `Frisbee` (curving discs through everything,
 `params.frisbee`), the ball's `launch` (Alley-Oop) and `heat_look`, a ball tint's `body`/`seams`/`ambient`, a gun's
 `fire_without_target`/`stream`, perk special `decoy`, player stats counter_*/heavyweight/overheal/heal_pulse/last_stand/
-xp_pull_*, TextGen's stat kind "word" (named, never numbered). Pass 68: a look's recipe carries `stills` (heroes too), `seed_offset`, `method`, `from` (a draft), `painter.stills`; a look entry `icon_picked` and `title` (a hero look's own cut-out); a hero is drawn in the look he is played in (`Registry.played_look`: the badge everywhere, the cut-out on the Painted title). Pass 67 primitives: a weapon's `amount_mode: "bounces"`, `return_on_hit`/`return_pierce`, `catch` (the ball's refund and Heat), a creature's `knockback_resist`, the map's `weapon_grade` (every 3D weapon's lit materials darker and richer), perk specials `periodic_buff`/`timeout`/`overdrive`, the pickup effect `leap`. Pass 75: a companion gun's `params.familiar.kick` (a punch on every round, on its frame, unsmoothed, a spring past
+xp_pull_*, TextGen's stat kind "word" (named, never numbered). Pass 68: a look's recipe carries `stills` (heroes too), `seed_offset`, `method`, `from` (a draft), `painter.stills`; a look entry `icon_picked` and `title` (a hero look's own cut-out); a hero is drawn in the look he is played in (`Registry.played_look`: the badge everywhere, the cut-out on the Painted title). Pass 67 primitives: a weapon's `amount_mode: "bounces"`, `return_on_hit`/`return_pierce`, `catch` (the ball's refund and Heat), a creature's `knockback_resist`, the map's `weapon_grade` (every 3D weapon's lit materials darker and richer), perk specials `periodic_buff`/`timeout`/`overdrive`, the pickup effect `leap`. Pass 76: **weapon-family looks** (a weapon's `variants`/`variant_base`/`variant`, its mutations' and evolutions'
+entries by the same codes: name, flavour, text, icon, visual, params laid over, nouns; per save `Save.item_looks` from
+the arena chips, for everyone the weapon's `variant`; `core/data/ItemLooks.gd`, Registry.apply_item_looks); the
+Grenade family plays **B, the Dynamite Stick** (C, D candidates, the grenade A): `params.fuse` (lies a second, the
+spark out half a second before), models by form and colour (`models`, `model_form`, `model_colour`), `mass_mini`
+(Fire in the Hole, the Drifter's hero mutation; his favourite is now lob_grenade; the Peashooter and Fan the Hammer
+hidden); the Molotov family plays B, the torch (`wick_flame`, `pool_flame`, core/systems/WickFlames.gd); the pause
+Stats tab marks changes since `Run.start_stats` and lists sources (core/systems/StatSources.gd, stable source ids).
+Pass 75: a companion gun's `params.familiar.kick` (a punch on every round, on its frame, unsmoothed, a spring past
 rest) and `familiar.spin` (a trick spin after a pull now and then), on the Revolver and the Golden Revolver only.
 Numbers and rules: `BALANCING.md`.
 A weapon the editor creates starts hidden with three template path mutations and a template evolution, all hidden,
@@ -335,6 +343,9 @@ items; the Collection shows only what was met.
 mouse emulation (`TouchScroll`, `TouchSlider`); prove UI with `touch_audit.gd`. The developer menu (hold the Settings
 version line 2 s) and the player's debug mode (10 taps on the hints switch) hold the test switches; the debug arena is on
 the title in debug mode. The title's hero plaque is one size for every hero and state (pass 73, ui/TitleScreen.gd constants).
+The Level Editor never overwrites an icon and asks before changing a played look's (pass 76: icon history, Revert icon,
+All icons on disk). Known (older than pass 76): about one headless game run in four to eight exits 0xC0000005 in the
+scene tree's teardown after its result is printed; results are unaffected.
 
 **Analytics.** `core/autoload/Analytics.gd` -> PostHog EU (write-only `phc_` key in `game/config/analytics.json`; the
 personal `phx_` key only in git-ignored `tools/posthog_personal_key.txt`, never in the game or a commit; Garry's email is

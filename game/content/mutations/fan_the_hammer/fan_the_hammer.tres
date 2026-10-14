@@ -28,6 +28,7 @@ display_name = "Fan the Hammer"
 flavour = "The Drifter's hands are faster than his feet."
 rarity = "rare"
 weight = 8.0
+hidden = true
 icon = ExtResource("1_5v15t")
 icon_file = "fan_the_hammer_icon.png"
 placeholder = {

@@ -1951,6 +1951,7 @@ Every number below lives in `game/content/structures/totem_pole/totem_pole.json`
   other structures and only a pole's own 14 m from a pole.
 
 ## The gifts
+(Pass 76 replaced the ranges in this table: see §23.TOTEM. The rolling, the feathers and the weights below still hold.)
 - **Offer**: 3 gifts (`params.choices`), drawn by `weight` without putting one back, never two of one stat.
 - **Amount**: even between the gift's `min` and `max`, snapped to its `step` (1% for percents, 1 max HP, 0.1 regen).
 - **Feathers**: 1-3 feathers on a plank = which third of its range the amount's size landed in (TotemBoons.quality);
@@ -2166,3 +2167,334 @@ fallbacks `ProjectileEmitter.KICK_DEFAULTS` / `SPIN_DEFAULTS`); every other comp
   .muzzle_flash fires it with the sparks, as the Tommy Gun's).
 - Tests: game/tests/pass75_revolver_test.gd (8). Capture: game/tools/_p75_revolver_shot.gd (frame by frame round a pull,
   `force_spin=1`, `level=`, `zoom=`).
+
+## 23. Pass 76 (v0.62): the Dynamite Stick, weapon looks, the Molotov's flames, the pause stats
+
+Garry's request (2026-10-14, tools/dl/p76/REQUEST.md). Each lane's rules as it wrote them.
+
+### 23.LOOKS Weapon-family looks
+
+Where it lives: game/core/data/ItemLooks.gd (reading, wearing, the params overlay), Registry.item_family /
+played_item_look / apply_item_looks, Save.item_looks, TextGen.weapon_nouns / thing_word, ArenaPanel._weapon_looks.
+Keys: tools/dl/p76/keys_LOOKS.md.
+
+1. **One look per family.** A weapon family (the weapon, its evolutions, every mutation of it, hero mutations
+   included) plays one look at a time: the look this phone keeps for it (the arena's ITEMS tab, Save `item_looks`),
+   else the weapon's JSON `variant`, else its base (`variant_base`, "A"). A kept look that has since been shelved, or
+   that the weapon can no longer play, gives way to the JSON's. A wipe drops the kept looks.
+2. **A look never changes the rules.** It changes names, flavour, a mutation's card text, icons, the visual scene, the
+   thing words and drawing params; the stats, levels, mutations' effects and the evolution recipe are the family's in
+   every look. (The engine lays any `params` key; keeping rule keys out of a look's params is the authors' rule,
+   keys_LOOKS.md.)
+3. **A member without that look wears its base.** A mutation or an evolution with no entry for the code the family
+   plays is drawn and named as its top level (a hero mutation with an icon-only entry keeps its name and text).
+4. **A look whose file is missing is left out.** An entry naming an icon or a visual that is not on disk (not imported)
+   is dropped when the content is read: in that look the item wears its base. On the weapon this means the family
+   cannot play it (the chips and the Level Editor leave it out).
+5. **Params overlay.** A look's `params` replace the item's top-level params one level deep (a nested block is replaced
+   whole); an evolution's `final` block is laid one level deeper (a look can change one of its keys and keep the rest);
+   a `null` removes a key (`{"final": {"tint": null}}` drops the Golden Pineapple's gold tint in that look).
+6. **Thing words.** A Lobber's card text names the look's thing ("Lobs 1 stick", "Lobs 2 sticks"; with a fire or a
+   poison weapon "Lobs 2 jugs of fire", "Lobs 1 poison stick"), and so does a weapon's amount row ("Sticks 1 → 2").
+   An evolution without words of its own uses its weapon's; one word given alone makes the other ("stick" ->
+   "sticks"); without any, the old words ("grenade(s)", "bottle(s) of fire", "poison bomb(s)").
+7. **Switching in the arena.** A tap on a family's look chip puts the look on at once: the cards, the HUD, the pause
+   screen, the Collection, and a weapon of that family held now is set up again in the new look (a fresh behaviour: its
+   cooldown starts over, so it may throw at once; shots already in the air keep the old model until they land).
+8. **The cards (pass 73) are apart.** The fortune cards' Card look and a weapon family's look are separate choices;
+   neither moves the other.
+
+### 23.DYN The dynamite's rules, the Drifter's favourite, the Peashooter hidden
+
+## Numbers (Garry: "a slightly bigger area of effect", "Double the knockback for any of its explosions")
+- Lob Grenade (the Dynamite Stick in looks B-D) base `area` 2.5 -> **2.8** m, `knockback` 7.0 -> **14.0**.
+- Golden Pineapple (Boomtown) `knockback` 9.0 -> **18.0**; its `area` stays 3.0.
+- The evolution's bomblets push at the blast's knockback x 0.5 as before, so they double too (9.0); so do Frag's (Coffin
+  Nails') spikes (x 0.5 of the shot's: 7.0 off the stick, 9.0 off the evolution).
+- Every other number of the family is unchanged (damage, cooldown, amount, range, speed, levels, the path, the
+  evolution's `final`).
+
+## The fuse (`params.fuse` in lob_grenade's and golden_pineapple's base params, so every look has it)
+- **Ground fuse**: a lobbed shot that lands and is not caught by Sticky lies where it landed for `fuse.seconds`
+  (**1.0 s**), then blows as before (the same blast, area, element, Frag's spikes, the evolution's bomblets).
+- **Bomblets** (the evolution's four) carry the fuse too: one that lands by no creature lies `fuse.bomblet_seconds`
+  (default: `seconds`, **1.0 s**) before it blows; one that lands by a creature rides it as before
+  (`sticky.bomblet_seconds` 0.7 s). (Choice, named here: every stick of the family has a fuse.)
+- **Sticky**: a shot that lands within `sticky.reach` of a creature rides it as before (Sticky 1.3 s, the evolution
+  1.3 s then 40% wider); no ground fuse then. A shot lying on the sand never catches a creature that walks up to it
+  later (choice: nothing new was asked of Sticky).
+- **The spark** burns at the shot's fuse tip in flight, on the sand and riding a creature, and goes out
+  `fuse.out_before` (**0.5 s**) before the shot's blast, with a small wisp of smoke: on the sand when 0.5 s of the
+  fuse is left, riding when 0.5 s of the ride is left. A ride cut short (its creature dies) blows with the spark still
+  lit. A fuse no longer than out_before goes out as the shot lands. At most 40 sparks are drawn at once.
+- **Lying**: with `fuse.lie` (true) a long model lies on its side (a model 1.25x taller than wide is laid down; one long
+  along X or Z lies as it is; a squat one, a crate, sits as it is), turned along its throw give or take 20 degrees, on
+  the slope; still (no spin, no slide). A shot Sticky catches rides its creature in that same pose (its flight's spin
+  stopped), so the spark sits up at the fuse tip. A lying shot keeps its landing spot claimed so the next bomb picks
+  another crowd, then LANDED_CLAIM (2 s) after the blast as before.
+- The spark's look (data: `fuse.spark {color #FF9A2E, size 0.13}`): two glows (3.4x and 1.7x its size), a four-point
+  twinkle turning in the camera's plane (3.8x long), a white-hot core, little sparks flung off about every 0.04 s; a
+  bomblet's at 0.6x. Drawn over everything (like Sticky's blinker).
+- The fuse delays the damage; the cooldown, the DPS estimate and the pause rows are unchanged.
+
+## Mass mini crits (`params.mass_mini {min_hits 9}`, the Drifter's Fire in the Hole)
+- A blast of the weapon's shot (its ground fuse, its Sticky ride, **each bomblet on its own**) that catches **9 or more**
+  creatures ("more than 8") deals **every one of them a Mini Crit** (EnemyManager.HIT_MINI: x(1 + (crit_damage - 1) x
+  0.5) = **x1.5** with the default x2 crit damage). Never instead of a full crit: a creature whose hit rolls a full crit
+  takes the full crit.
+- "Caught" = the creatures the blast strikes, counted before it strikes: alive, not dying, not hidden (burrowed) or held,
+  within the blast's radius (the shot's area; a Sticky ride's blast_mult included). Frag's spikes, the Overkill splash
+  and a land blast never count and never mini-crit by it.
+- The evolution keeps it (the path and the hero's own stay on the evolved form).
+
+## The Drifter and the Peashooter (Garry: "Make a Grenade The Drifters new fav Item", "Peashooter ... Hide it for now")
+- The Drifter's `favourite_weapon` is **lob_grenade** (favourite_bonus unchanged: found at level 2), offered to him
+  whatever its unlock quest (CardPool.offer_weapons, pass 62). His hero mutation is **Fire in the Hole** (rare, weight
+  8, Fan the Hammer's shape), his only one (pass66_shape_test).
+- The **Peashooter** is `hidden` (out of the offers, chests, the Stranger, the Collection's play list); its evolution
+  (Pea Cannon) and its path hide with it (Registry.is_hidden). **Fan the Hammer** is `hidden` too. Both stay in the
+  content: `Registry.start_weapon_for` and the arena still fall back to the Peashooter, tools may hand it out.
+
+### 23.DYNART The dynamite looks (Dynamite Stick, Dynamite Bundle, Coffin Nails, Sticky, Fire in the Hole, Boomtown)
+
+No number of the rules changes in a look (lane DYN owns the dynamite's rules: the fuse, the knockback, the area, the
+mass mini crits; pass76_dynart_test checks every look leaves every rule as the grenade has it). What a player sees:
+
+## The looks (game/content/{weapons/lob_grenade, mutations/new_equipment|frag|sticky|fire_in_the_hole, evolutions/golden_pineapple})
+- **A** is the grenade (the top-level fields, today's art). Fire in the Hole has a painted grenade icon now (the olive
+  grenade in a blast ringed by nine gold stars) in place of its placeholder.
+- **B, C, D** are the dynamite, `fresh` until Garry approves one; the family plays the weapon's `variant` (**B**), or the
+  look a phone keeps (the arena's ITEMS "Look" chips, Save.item_looks); Garry switches back to the grenade with A.
+  - **B, classic paper stick**: a plain paper stick with dark printed rings near its ends, cream end plugs, a pale cord
+    fuse with a charred tip; the bundle is three sticks in black tape; Boomtown is a wooden crate trimmed in gold, packed
+    with nine red sticks, one fuse rising from the middle one (it sits up when it lies).
+  - **C, chunky cartoon stick**: a fat stick with round shoulders and a narrow cream label in thick black borders, a
+    thick black curly fuse; the bundle is four sticks tied with rope and a bow; Boomtown is a powder keg in four gold
+    hoops with four red sticks strapped round it (it lies on its side).
+  - **D, waxed miner's stick**: a slim glossy stick with crimped paper ends, a dark printed band with cream stripes, a
+    silver blasting cap and a tarred fuse; the bundle is seven sticks in copper wire; Boomtown is a gilded bundle of
+    seven red sticks under a brass cap, a gold band with a gold star.
+- **Names, the same in B, C and D**: Lob Grenade -> **Dynamite Stick** (things: "stick" / "sticks"); New Equipment ->
+  **Dynamite Bundle** ("... and a bundle of sticks 35% bigger."); Frag -> **Coffin Nails** ("The burst throws six coffin
+  nails out past the blast."); **Sticky** and **Fire in the Hole** keep theirs (new icons only); Golden Pineapple ->
+  **Boomtown** (things: crate(s) in B, keg(s) in C, bundle(s) in D; its flavour keeps 1.3 s, 40%, 12 and 4).
+- **Colour rule**: the stick (and the bundle) is sandy brown; **Coffin Nails colours it red**, whichever came first, the
+  bundle or the nails (the weapon's look names `models {stick|bundle: {tan, red, tip}}`; Dynamite Bundle's look sets
+  `model_form: "bundle"`, Coffin Nails' `model_colour: "red"`).
+- **How a shot moves** (the models, not a rule): the stick and the bundle fly across their flight, so they tumble like a
+  thrown stick (a shot spins about the way it flies); they lie along their throw (DYN's lie); the spark burns at the fuse
+  tip and goes out half a second before the blast.
+- **Sticky in the dynamite looks** (Garry: "No need for visual changes to the 3d object"): the stick keeps its own paper
+  (no amber resin tint) and its fuse spark shows alone (no red blinking light); its look entry removes both
+  (`params: {tint: null, look: null}`). Its icon shows the stick in amber resin. In the grenade look (A) Sticky is still
+  the glossy amber grenade with its blinking light.
+- **Boomtown draws its own colours** in the dynamite looks (`params.final.tint: null`: the Golden Pineapple's gold tint
+  is the grenade look's); the gold is the model's own trim.
+- **Boomtown's bomblets** are small copies of Boomtown's own model (half size: small crates, kegs or gilded bundles):
+  the Lobber has no separate bomblet model (no key for it); named here so it does not read as a bug.
+- **Materials**: the paper is matte (`model_metallic` 0, `model_roughness` 0.85 B / 0.8 C / 0.6 D, the waxed one a
+  little glossier); Boomtown 0 / 0.7 B, 0 / 0.65 C, 0.1 / 0.45 D. The papers were picked in the game's light on the sand
+  (sandy brown that still reads against the sand: B #A47C52, C #B38755, D #A9825A; red B #B32A22, C #C22A20,
+  D #B02A22). The game reads a GLB's vertex colours as sRGB values: tools/blender_dynamite.py writes them so.
+
+### 23.MOLO The Molotov's flame looks
+
+No rule changes: every number below is a drawing number. The Molotov, Methanol and the Moonshine burn, deal damage, last
+and spread exactly as before in every look (A, B, C, D).
+
+- **The flame on the wick** (`params.wick_flame`, WickFlames): stands at `offset` turned and scaled with the shot (so it
+  follows the wick as the bottle turns), upright along the camera's up, leaning back by `lean` x the flat speed
+  (0.045 s), up to 25% taller at 12 m/s flat. Per look: B torch 0.62 m, C streamer 0.6 m (tail 0.12 s, rising 1.4 m/s),
+  D cartoon 0.55 m; the Moonshine's x1.15. Embers: B 10/s, C 8/s, D 5 sparks/s, living `life` x 0.7..1.25 (0.25-0.3 s),
+  flung with 35-75% of the bottle's flat speed (so they scatter round the flame instead of lining up behind it).
+- **Tumble**: B and D turn end over end at 1.0 turn a second, leaving the hand neck up; C flies base first (its visual
+  turned a quarter) spinning about its own length at the old 12 rad/s; A keeps the old spin about its flight line.
+- **The pool's flames** (`params.pool_flame`): the same flames as before in number and height (ElementCloud's clock and
+  0.6 + r x 0.45 m, 0.6..1.9, x0.75..1.2) times the look's `size` (B/C torch 0.78, D cartoon 0.66 living x1.1), drawn by
+  WickFlames instead of Fx. They are thinned in their own pool (256): past 40% of it a third of new ones are dropped,
+  past 75% two thirds; the two at landing never are. (Fx's tongues were thinned by the shared effect budget, which the
+  burning creatures fill, so today's pool looked sparser in a crowd.) The burning creatures' flames are unchanged.
+- **Draw cost**: one MultiMesh (704 + 256 instances, one draw call, one shader) for every wick flame, streamer piece,
+  ember, spark and pool flame of every look; a torch or cartoon bottle is one instance, a streamer about 8-12.
+- **Which look plays**: the family plays `molotov.json`'s `variant`: **B** (the torch; lane MOLO's pick by eye);
+  Save.item_looks (the arena's chips) wins over it. A, C and D stay playable (every new entry is `fresh`).
+- **Warm-up**: the wick flames' MultiMesh is made under the spawn beam only when some played look wears `wick_flame`
+  or `pool_flame` (otherwise at the first such bottle).
+
+### 23.UI The pause Stats tab, the Results unlocks, the Revolver's tracer
+
+## The pause Stats tab (ui/PauseScreen.gd, core/systems/StatSources.gd)
+- **The start.** Run.start takes a snapshot of every stat on the hero's sheet once it is built (`Run.start_stats`: level
+  1, the Upgrade board, nothing taken yet) and the hero it was taken for (`start_stats_hero`). `Run.start_stat(stat)`
+  reads it; with no snapshot, or after the arena swapped heroes, a fresh level-1 sheet (`hero_sheet(character, 1)`).
+- **Changed.** A stat is marked when it differs from the start by at least what its display shows: a percent stat 0.05
+  points, a number, seconds or metres 0.05, a count 1 (TextGen.player_change returns "" below that).
+- **The mark.** A pill before the value: a drawn triangle the way the number went (up/down), the amount, sage
+  (W.SAGE) when better, rock (W.ROCK) when worse. Better/worse is TextGen._worse: higher is better except LOWER_BETTER
+  (cooldown, shield_delay, regen_delay, star_block_every, gem_sweep_every), so a cooldown cut is green.
+- **The amount.** As a share of the start (now / start - 1) when every effect on the stat multiplies (op "mul"):
+  "Cooldown 90% -> 76%" reads "15%", as its "The Tower -15%" row does; otherwise in the value's own unit (a percent stat
+  in points: crit chance 1% -> 9% reads "8%"; max HP with a Totem's flat +10 reads "12"). Whole numbers from 10 up,
+  else to a tenth.
+- **Unchanged** cells are dimmed (ink-soft at 62% alpha). Kills is a count: never marked, never dimmed, never opened.
+- **Values.** The hero's cooldown and duration read as a percent of normal ("100%", "76%"; they read "1.00 s" before:
+  they are multipliers on the hero's sheet). TextGen.PLAYER_SHARE.
+- **Cells.** Max HP, the 19 of PauseScreen.STATS, the shield while it is above 0, then every other stat that moved since
+  the start, in StatSheet.PLAYER_DEFAULTS order (then any other the sheet names); a stat said in words (TextGen kind
+  "word", the Magnet's pulls) or as a rule sentence ("rule") never gets a cell. Kills last.
+- **Open.** The first stat that moved (grid order) opens by itself, max HP when none did; a tap opens a stat's sources
+  under its row, a tap on the open one closes them; the choice holds while the run lasts. A tap on a tab opens it at its
+  top; an opened card scrolls into view without pushing its row off the top.
+- **Sources.** "At the start": the base, the hero's flat trait (hidden heroes), his signature stat's level-1 step, the
+  Upgrade board's ranks (one row a talent form: "Grit · Padding rank 3"). "This run": the signature stat's growth (the
+  other level - 1 steps, "Magic Hour · Lv 12"), cards and passive items (with their level), a favourite's bonus, perks,
+  mutations, Totem gifts (one row a spirit, "×2" when taken twice), the Stranger's cut, momentum, running bonuses under
+  the item that gives them (Hot Streak, Desperado, Steady Hand, Adrenaline, Gold Rush, Heavyweight, Last Stand, Crescendo,
+  Overdrive), then timed buffs with their seconds left. Rows merge by source id and op; a "mul" compounds as the sheet
+  folds it (three Padding ranks of +10% are +33%); a row worth nothing is left out. Run amounts in a dark sage
+  (#4a6b3c) or dark rock (#a03a22); start amounts in ink-soft, dark rock when they pull the wrong way.
+- **Weapon-aimed effects** (target all_weapons, weapon:<id>, tag:<tag>) are not in the hero's numbers (get_stat's player
+  scope never folded them) and are no longer listed in his breakdown either (StatSheet.breakdown in player scope).
+
+## The Results unlocks (core/systems/QuestTracker.gd, ui/ResultsScreen.gd, game/Game.gd)
+- A quest whose reward is a hero on sale (availability "purchase") the player already owns (bought, or the developer
+  menu's "own every hero") is marked done quietly: never returned by check_all, never in "Unlocked this run", never on
+  the in-run banner, never in "Unlock progress" (QuestTracker.owned_reward). A free hero (availability "available") is
+  owned exactly when his quest is done, so his quest still announces him.
+- FOR SALE (the Results stamp, "A new hero", the in-run "A NEW HERO IS FOR SALE") only while Registry.hero_state says
+  "buyable".
+- "Unlocked this run" lists only what the run's own checks completed (check_all(true)); Run.start empties it, and the
+  title's quiet check (check_all(false)) no longer adds to it (pass 44 let the next Results list the title's quiet
+  completions as "this run").
+
+## The Revolver's tracer (content/weapons/revolver/revolver.json, core/systems/ProjectileManager.gd)
+- tracer_color #7A1F17, tracer_alpha 0.85, tracer_size 1.35 (0.9 before; Silver Bullet's and Venom Rounds' shots are
+  that thick too). The beads are drawn lighter than their hex (the 3D pipeline lifts them): #7A1F17 shows on the sand as
+  a dim brick red (about #AF4E2F); #A33A2E, the brief's first pick, showed salmon (about #D6784F).
+- `tracer_clear` (new weapon param, metres, default 0): no bead within it of the hero on the ground plane. The Revolver
+  1.1 (its companion gun orbits at 1.2 m; a shot fired past him laid dim red beads on his coat that read as blood).
+- Tracer colour order: a mutation's own tracer_color (its look: Toxic Peas, On Fire), then Silver Bullet's pale blue,
+  then the weapon's element (fire orange, poison green), then the weapon's own tracer_color (its plain colour: the
+  Revolver's dim red), then gold. The Golden Revolver has its own params: unchanged (silver, size 0.9).
+
+### 23.TOTEM The Totem Pole's gifts reassessed
+
+Garry (2026-10-14): "also some of the upgrades are very powerful, can you reassess them please". Where the numbers live:
+`content/structures/totem_pole/totem_pole.json` `params.boons` (min, max, step, weight per gift); the rolls and the
+feathers: `core/systems/TotemBoons.gd` (unchanged). Table maker: `python tools/dl/p76/TOTEM/gift_table.py`.
+
+## The rule (new)
+- **A gift's average is about 0.4 of one level of the line item for its stat**, so a map's 10-12 gifts come to about
+  one maxed line (4 levels) in all. Pass 73's gifts averaged 0.67 of a level (10-12 gifts = 6.7-8.1 levels, about two
+  maxed lines, with no slot taken); now 0.40 (4.0-4.9 levels).
+- **Measured against** the line item that carries the stat: The Chariot (move speed +6% a level), The Giant (max HP +8% a
+  level: 8 HP on the base 100), The Sun (attack damage +10%), The Tower (cooldown -8%), The Magnet (pickup radius +40%),
+  Temperance (regen +0.45/s), The Sage (XP +8%), The Eye (crit chance +8%), The Emperor (damage reduction +5%), The Star
+  (luck +10%). No line raises the area: the Serpent is measured against Reach (a passive item, +8% a level).
+- **Mul stats in multiplier space**, because mul effects compound (StatSheet: (base + adds) x the product of (1 + v)):
+  0.4 of a level of +m is (1 + m)^0.4 - 1, so ten average gifts of one stat are that line maxed, (1 + m)^4. An add stat
+  is 0.4 x its level. A roll's average is the middle of its range (TotemBoons.roll draws evenly and snaps to the step;
+  the two ends are half as likely, so the mean stays the midpoint).
+- **Ranges**: whole steps of what the screen shows (TextGen writes a mul as whole percents, so every mul gift steps 1%:
+  a 2.5% would read "+3%"); the smallest roll at least a third of the biggest (pass 73's "small but not nothing"); a span
+  of steps that is not a multiple of three (2, 4 or 10 steps), so no roll sits exactly on a third of its range, where a
+  rounding error picked the feathers (pass 73's Thunderbird -3% hung 1 feather while the Raven's +4%, at the same place
+  in its range, hung 2), and 1, 2 and 3 feathers all come up (25/50/25% over 2 steps, 37.5/25/37.5% over 4, 35/30/35%
+  over the Seal's 10).
+- **Kept**: the weights (3, 3, 3, 2, 2, 2, 2, 1.5, 1.5, 1, 1), the feathers' rule (TotemBoons.quality: the third of its
+  range a roll fell in), `per_map` 10-12, `spacing` 14, `choices` 3, the words.
+
+## Choices where the rule leaves room
+- **Wolf** +1-3% (0.34 of a Chariot level), not +2-4% (0.51): whole percents allow nothing nearer 0.4 with three values,
+  and move speed was the gift Garry felt most.
+- **Whale** +2-6 HP (average 4): 0.5 of the Giant's +8 HP on a fresh 100 HP hero; an add gift does not grow with the
+  hero's own HP adds while the Giant's % does, so once a hero has grown (Astro +2 HP a level) it is about 0.4. The
+  Giant's damage reduction (+5% at its 2nd and 4th levels) is left out: the Whale gives HP only.
+- **Thunderbird** -2 to -4% (0.37), not its old -2 to -5% (0.43, nearer the rule): a 3-step span puts -3% on the third.
+- **Killer Whale** +2-4% was on the rule already (0.38): unchanged.
+- **Seal** goes UP a little (+8-18% -> +10-20%): it was under the rule (0.36 of a Magnet level).
+
+## Before and after
+| Gift | stat (op) | weight | in an offer | line item, one level | 0.4 of it | pass 73 range (avg) | levels | pass 76 range (avg) | levels | feathers 1/2/3 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Le-loo, the Wolf | move_speed (mul) | 3 | 39% | The Chariot +6% | +2.36% | +3 to +7% (+5%) | 0.84 | **+1 to +3% (+2%)** | 0.34 | 25/50/25 |
+| El-kolie, the Whale | max_hp (add) | 3 | 39% | The Giant +8% (8 HP of 100) | +3.2 | +6 to +14 (+10) | 1.25 | **+2 to +6 (+4)** | 0.50 | 37.5/25/37.5 |
+| Chet-woot, the Bear | might (mul) | 3 | 39% | The Sun +10% | +3.89% | +3 to +7% (+5%) | 0.51 | **+2 to +6% (+4%)** | 0.41 | 37.5/25/37.5 |
+| Thunderbird | cooldown (mul) | 2 | 28% | The Tower -8% | -3.28% | -2 to -5% (-3.5%) | 0.43 | **-2 to -4% (-3%)** | 0.37 | 25/50/25 |
+| Ol-hiyo, the Seal | magnet (mul) | 2 | 28% | The Magnet +40% | +14.4% | +8 to +18% (+13%) | 0.36 | **+10 to +20% (+15%)** | 0.42 | 35/30/35 |
+| Walalee, the Salmon | regen (add) | 2 | 28% | Temperance +0.45/s | +0.18 | +0.2 to +0.5 (+0.35) | 0.78 | **+0.1 to +0.3 (+0.2)** | 0.44 | 25/50/25 |
+| Frog | xp_gain (mul) | 2 | 28% | The Sage +8% | +3.13% | +4 to +8% (+6%) | 0.76 | **+2 to +4% (+3%)** | 0.38 | 25/50/25 |
+| Skana, the Killer Whale | crit_chance (add) | 1.5 | 21% | The Eye +8% | +3.2% | +2 to +4% (+3%) | 0.38 | +2 to +4% (+3%), unchanged | 0.38 | 25/50/25 |
+| Kuuma, the Bullhead | damage_reduction (add) | 1.5 | 21% | The Emperor +5% | +2% | +2 to +4% (+3%) | 0.60 | **+1 to +3% (+2%)** | 0.40 | 25/50/25 |
+| Raven | luck (add) | 1 | 15% | The Star +10% | +4% | +3 to +6% (+4.5%) | 0.45 | **+2 to +6% (+4%)** | 0.40 | 37.5/25/37.5 |
+| Se-sook, the Two-headed Serpent | area (mul) | 1 | 15% | Reach +8% (passive item) | +3.13% | +3 to +6% (+4.5%) | 0.57 | **+2 to +4% (+3%)** | 0.38 | 25/50/25 |
+
+"in an offer": the chance a gift is one of an offer's three (200,000 simulated offers; the weights are unchanged, so
+these are pass 73's too). "levels": the average roll in levels of its line item. Steps: 1 HP, 0.1 regen, 1% for the rest.
+
+## What a run gets
+- Offer-weighted average gift: 0.67 -> 0.40 line levels. A map's 10-12 gifts: 6.7-8.1 -> 4.0-4.9 levels (one maxed line
+  is 4).
+- The gift taken whenever offered (12 poles; mul gifts compound): the Wolf (4.7 picks) +26% -> +10% move speed; the
+  Whale (4.7) +47 -> +19 max HP; the Bear (4.7) +26% -> +20% attack damage; the Thunderbird (3.3) -11% -> -10% cooldown;
+  the Seal (3.3) +50% -> +59% pickup radius; the Salmon (3.3) +1.16 -> +0.66 regen/s; the Frog (3.3) +21% -> +10% XP; the
+  Killer Whale (2.6) +7.7% crit (same); the Bullhead (2.6) +7.7% -> +5.1% damage reduction; the Raven (1.8) +7.9% ->
+  +7.0% luck; the Serpent (1.8) +8.0% -> +5.3% area.
+- Cap: damage reduction is capped at 0.8 (Player.gd:910). Twelve Bullheads at their best roll are +36%; with a maxed
+  Emperor (+20%), its Risen (+25%) and a maxed Giant (+10%) a build could pass the cap, which holds.
+
+## Tests
+- `game/tests/pass73_struct_test.gd` re-pinned on purpose: `test_an_offer_is_three_different_stats_each_rolled_in_its_range`
+  saw the Whale's 6 and 14; it now reads the Whale's min and max from the pool (2 and 6 today).
+- New `game/tests/pass76_totem_test.gd` (5): every gift's average 0.3-0.55 of a level of its line (the line named per
+  stat; mul in multiplier space); a map's gifts 3-5.8 levels in all (offer-weighted mean 0.33-0.47); every roll reads as
+  the amount it gives (mul gifts whole percents); every gift hangs 1, 2 and 3 feathers by its third, its span never a
+  multiple of three steps, its smallest roll at least a third of its biggest; the weights' order and the feathers' rule
+  kept, the Bullhead far from the damage reduction cap.
+
+## For the lead
+- BALANCING.md §20.STRUCT ("The gifts", the pool table) still lists pass 73's ranges: the new ones above replace them
+  (the weights, steps and the feathers' rule there stay true).
+
+### 23.ICON The Level Editor's icon guard, Solenne's badge back
+
+These are editor rules (no game numbers change). The constants live in tools/level_editor/server.py's "pass 76 (lane
+ICON): the icon guard" section.
+
+1. **An installed icon never overwrites a file.** An icon install (an `icon_cands` or `hero_badge` candidate, from a
+   look's picker, the Jobs tab or an item's candidates) writes a file of its own: `<id>_icon[_<letter>]_<tag>_c<k>.png`
+   (letter = the look code's last part, none for the base; tag = the last four letters/digits of the painting job's id;
+   k = the candidate), then `_2`, `_3`, ... when that name (or its `.import`) is taken. The job form's named "Icon file"
+   is used instead when no file has it. The pick tools refuse to write over another picture even if told to (they add
+   `_2`; a file holding the very same bytes is reused). Title cut-outs are not covered (they still overwrite
+   `hero_<id>_<x>.png`, backed up to tools/dl/backup/title/).
+2. **The look in play and the base ask first.** An icon change (install, "Use for this look", "Revert icon") of the
+   look the game plays (the JSON's `variant` when playable, else the base; a weapon family member: the look its weapon
+   plays, lane LOOKS' `family_member_play`) or of the base look (`variant_base`; an asset without looks: its own icon)
+   is refused with 409 `confirm_needed` until it is sent with `confirm: true`; the page shows the question (now -> new,
+   file names, played, base, the looks that share the base's icon). Any other look changes at once. A job's landing
+   never asks (the install was confirmed when it was queued).
+3. **History.** Every change of a look's icon adds one step to `icon_history` beside the key it changes (a look: in
+   its entry; the base: at the JSON's top level next to `icon`), at most **40** steps (`ICON_HISTORY_MAX`; the oldest
+   dropped, their pictures stay on disk and in the backups).
+4. **Copies.** Before an icon changes, the picture the look showed is copied to
+   `tools/level_editor/backups/<id>/<stem>_<YYYYMMDD-HHMMSS>.png`, once per picture (SHA-1; a picture already there is
+   not copied again). Before a `look`, `item_icon` or `install` job runs, every icon of its asset is copied there the
+   same way. These copies are never trimmed (the JSON backups keep 30).
+5. **Revert icon** undoes the last step: the key gets back what it said (a look's `icon_picked` as it was; a look that
+   had no icon of its own drops its `icon` and shows the base's again). When the file a step names was painted over
+   since, its copy is put back into the folder under the copy's own name. With no history: a look whose own icon was
+   picked (made before pass 76, like Solenne's SOL-B) loses it; anything else is "nothing to revert" (409).
+6. **A picked icon stays picked** through the look's re-rolls: the server's `merge_look` keeps the entry's picked icon
+   (a re-roll names its front crop `<id>_icon_<x>.png`), and gen_art / gen_ctl keep the entry's own picked file.
+7. **The gallery ("All icons on disk")** lists one tile per picture (SHA-1): the folder's `<id>_icon*.png` and any file
+   the JSON names as an icon, `backups/<id>/`, removed looks' files under `backups/deleted/<id>/<stamp>/`, and the older
+   tools' copies under `tools/dl/backup/icons*/` (only files named `<id>_icon*`). "Use for this look" on a copy puts it
+   back into the folder under its own name (a fresh one when taken); a folder file with the same bytes is used instead.
+8. **A candidate may be named by its id or its label** (`2` or `c2`; a title `1` or `#1`): both install the same
+   candidate (the Jobs tab and an item's candidates sent the label, and gen_icon_cands then looked for `<key>_cc2.png`).
+
+### 23.LEAD The lead's fixes
+
+- The Stranger's screen under a camera cutout: the deal panel and the quote rise by what would overlap WALK AWAY / DEAL (24 px above them) and the portrait shrinks by as much, never below 0.6 of its size (ui/StrangerScreen.gd `_fit_layout`, again a frame after it opens).
+- The arena's hero tiles read `Registry.hero_state`: "locked", "for sale", or nothing for an owned hero (a hero bought before his quest was done read "locked").

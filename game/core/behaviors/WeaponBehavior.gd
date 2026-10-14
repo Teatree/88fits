@@ -24,6 +24,8 @@ const GRADE := {"value": 0.78, "saturation": 1.3}
 
 func setup(p_inst: WeaponInstance, p_game: Node) -> void:
 	inst = p_inst
+	# pass 76 (lane LOOKS): the family look it is set up in (look_stale)
+	look_seen = str(inst.def.look_worn) if inst and inst.def else "?"
 	game = p_game
 	player = p_game.player
 	_load_visual()
@@ -40,6 +42,15 @@ func setup(p_inst: WeaponInstance, p_game: Node) -> void:
 
 var _stray: Node3D = null
 var _stray_orbit := 0.0
+## Pass 76 (lane LOOKS): the look its weapon family wore when it was set up (the def's look_worn, "?" for a family without
+## looks).
+var look_seen := "?"
+
+
+## Whether its family has put on another look since it was set up (Save.set_item_look, the arena's chips): then
+## Game._sync_weapons makes it again, so its visual, its model and everything made from them are the new look's.
+func look_stale() -> bool:
+	return inst != null and inst.def != null and str(inst.def.look_worn) != look_seen
 
 
 ## The loose companion's circle: the gun familiars' radius, height, speed and bob (params.familiar), facing along it.

@@ -21,6 +21,9 @@
 // fixes: the page says where the game shows a look's badge and cut-out (WHERE_SHOWN: the cut-out only on the Painted
 // title); a change in the job list redraws the grid only for the asset on screen and never under the open edit or
 // confirm box, and the edit box keeps what was typed through any redraw.
+// Pass 76 (lane ICON), the icon guard: installPick / iconOp ask before the look in play or the base changes its icon
+// (confirmIconChange: now -> new, the file names); iconPanel shows a look's icon now, Revert icon, its changes and
+// "All icons on disk" with "Use for <look>" (the stage here, an item's Art section through assets.js).
 'use strict';
 
 const LookGrid = (() => {
@@ -228,7 +231,11 @@ const LookGrid = (() => {
   function stage(kind, id, record, looks, s) {
     const wrap = el('div', { class: 'lg-stage' });
     const look = looks.find((l) => l.code === s.selected) || looks[0];
-    if (!look) { wrap.appendChild(el('span', { class: 'muted', text: 'no looks: the game plays the top-level strip' })); return wrap; }
+    if (!look) {
+      wrap.appendChild(el('span', { class: 'muted', text: 'no looks: the game plays the top-level strip' }));
+      wrap.appendChild(iconPanel(kind, id, '', { onChanged: () => refresh(kind, id, record, s) }));   // pass 76: its own icon
+      return wrap;
+    }
     const draft = isDraft(look, kind, id);
     if (isStub(look)) {
       // nothing painted: the server would serve the top-level strip in its place (sprite_path's fallback), so say so instead
@@ -271,7 +278,7 @@ const LookGrid = (() => {
       const ownCut = look.title_file;   // pass 70: a base made from a look keeps its own cut-out (the game reads the base entry's title)
       const cut = `/art/wanted/${encodeURIComponent(ownCut ? look.title_file : 'hero_' + id + '.png')}`;
       const thumbs = el('span', { class: 'lg-thumbs' },
-        el('img', { src: `${look.icon || ''}${look.sprite_mtime ? '?v=' + encodeURIComponent(look.sprite_mtime) : ''}`, alt: '', title: (look.icon_file ? `its own badge: ${look.icon_file}` : 'the hero\'s badge (no badge of its own yet: Badge candidates…)') + ` · ${WHERE_SHOWN.badge}`, onerror: (e) => { e.target.remove(); } }),
+        el('img', { src: bustUrl(look.icon || '', look.sprite_mtime), alt: '', title: (look.icon_file ? `its own badge: ${look.icon_file}` : 'the hero\'s badge (no badge of its own yet: Badge candidates…)') + ` · ${WHERE_SHOWN.badge}`, onerror: (e) => { e.target.remove(); } }),
         el('img', { src: cut, alt: '', title: (ownCut ? `its own title cut-out: ${look.title_file}` : `the hero's title cut-out (hero_${id}.png): Cut-out candidates… paints ${look.base ? 'it' : 'one of this look\'s own'}`) + ` · ${WHERE_SHOWN.cutout}`, onerror: (e) => { e.target.remove(); } }),
         el('span', { class: 'muted small', text: `${look.icon_file ? 'its own badge' : 'the hero\'s badge'} · ${ownCut ? 'its own cut-out' : 'the hero\'s cut-out'}` }));
       // where the game shows each one (pass 68 review: the cut-out never shows on the default Live title)
@@ -282,6 +289,8 @@ const LookGrid = (() => {
     info.appendChild(dl);
     // pass 70: choose the look's badge / icon / cut-out from everything the finished jobs painted
     if (!isStub(look)) info.appendChild(pickers(kind, id, look));
+    // pass 76 (lane ICON): the look's icon now, Revert icon, its changes and every icon on disk ("Use for this look")
+    if (!isStub(look)) info.appendChild(iconPanel(kind, id, look.base ? '' : look.code, { onChanged: () => refresh(kind, id, record, s) }));
     const acts = el('div', { class: 'lg-actions' });
     actions(acts, kind, id, record, look, s);
     info.appendChild(acts);
@@ -570,13 +579,15 @@ const LookGrid = (() => {
     }
     let picked = null;
     const msg = el('span', { class: 'muted small' });
-    const btn = el('button', { type: 'button', class: 'btn small primary', text: `Install as ${forWhom} ${noun}`, disabled: true, title: 'queues an install job: the old file is backed up, the look\'s entry names the new one, then an import' });
+    const btn = el('button', { type: 'button', class: 'btn small primary', text: `Install as ${forWhom} ${noun}`, disabled: true, title: 'queues an install job: the new picture gets a file of its own (nothing is overwritten), the look\'s entry names it and keeps the old one in its history (Revert icon), then an import; the look in play and the base ask first' });
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (!picked) return;
       btn.disabled = true;
       msg.textContent = 'queuing…';
-      const res = await post(`/api/jobs/${encodeURIComponent(picked.job.id)}/install`, { choice: picked.choice, options: { variant: code } });
+      // pass 76 (lane ICON): the look in play or the base asks first (now -> new); the pick gets a file of its own
+      const res = await installPick(picked.job.id, picked.choice, { variant: code });
+      if (res && res.cancelled) { msg.textContent = 'not installed: nothing changed'; btn.disabled = false; return; }
       if (!res || !res.ok) { msg.textContent = `refused: ${(res && res.error) || 'no answer'}`; btn.disabled = false; return; }
       msg.textContent = `queued ${res.job && res.job.id ? '#' + String(res.job.id).slice(-4) : 'an install job'}: ${picked.label} becomes ${forWhom} ${noun}, then an import (see the Jobs tab)`;
       if (typeof App !== 'undefined') App.status(`${id}: installing ${picked.label} of #${String(picked.job.id).slice(-4)} as ${forWhom} ${noun}`, 'good');
@@ -617,6 +628,233 @@ const LookGrid = (() => {
       wrap.appendChild(picker(kind, id, { what: 'title', code, label }));
     } else wrap.appendChild(picker(kind, id, { what: 'icon', code, label }));
     return wrap;
+  }
+
+  // ------------------------------------------------------------------ pass 76 (lane ICON): the icon guard
+
+  // Garry, pass 76: "I made a variant of an Icon and can't find the old one. Make a fix in LevelEditor to make sure that
+  // this doesn't happen." The server never overwrites an icon (a pick gets a file of its own), keeps each look's
+  // icon_history with a copy of every replaced picture under tools/level_editor/backups/<id>/, and answers 409
+  // confirm_needed when the look in play or the base would change: the page asks first (confirmIconChange: now -> new),
+  // then sends confirm: true. iconPanel shows a look's icon now, Revert icon, its changes and every icon on disk.
+  let iconBust = 0;               // bumped by every icon change: the pictures are fetched again (the server caches 60 s)
+  const iconCache = new Map();    // `${kind}|${id}` -> {t, data}: GET /api/content/<kind>/<id>/icons, for 4 s
+
+  /** `url` with a cache-busting suffix (its own `v` and the page's iconBust). */
+  function bustUrl(url, v) {
+    if (!url) return '';
+    return `${url}${url.includes('?') ? '&' : '?'}${v != null ? 'v=' + encodeURIComponent(v) + '&' : ''}b=${iconBust}`;
+  }
+
+  /** The question before the icon of the look in play or the base changes (the server's 409 confirm_needed body): now ->
+   *  new with both pictures and file names, what is at stake (the look the game plays; the base and the looks that show
+   *  its icon) and that nothing is overwritten. Resolves true on Yes; Escape, Cancel or a click outside say no. */
+  function confirmIconChange(res) {
+    return new Promise((resolve) => {
+      const r = res || {};
+      const what = r.what || 'icon';
+      const round = what === 'badge';
+      const name = r.name || r.id || 'it';
+      const who = r.look || name;
+      const back = el('div', { class: 'amodal-back icg-confirm' });
+      let done = false;
+      const close = (v) => { if (done) return; done = true; back.remove(); document.removeEventListener('keydown', onKey, true); resolve(v); };
+      const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close(false); } };
+      document.addEventListener('keydown', onKey, true);
+      const pic = (o, label, sub) => el('figure', { class: 'icg-fig' },
+        el('div', { class: 'icg-pic big' + (round ? ' round' : '') }, o && o.url ? el('img', { src: o.url, alt: '' }) : el('span', { class: 'muted small', text: 'no picture yet' })),
+        el('figcaption', {}, el('b', { text: label }), el('div', { class: 'mono small', text: (o && o.file) || '?' }), sub ? el('div', { class: 'muted small', text: sub }) : null));
+      const revert = r.verb === 'revert';
+      const stakes = [];
+      if (!r.look) stakes.push(el('div', { class: 'icg-stake played', text: `● This is ${name}'s own ${what} (it has no other looks): the game shows it wherever it shows ${name}.` }));
+      else {
+        if (r.played) stakes.push(el('div', { class: 'icg-stake played', text: `● ${who} is the look the game plays: its ${what} changes everywhere the game shows ${name}.` }));
+        if (r.base) {
+          const sb = Array.isArray(r.shared_by) ? r.shared_by : [];
+          stakes.push(el('div', { class: 'icg-stake base', text: `${who} is the base look: its ${what} is ${name}'s own${sb.length ? `, and ${sb.join(', ')} show${sb.length === 1 ? 's' : ''} it too (no ${what} of ${sb.length === 1 ? 'its' : 'their'} own)` : ''}.` }));
+          if (r.play && sb.includes(r.play)) stakes.push(el('div', { class: 'icg-stake played', text: `● ${r.play}, the look the game plays, is one of them: the ${what} the game shows changes.` }));
+        }
+      }
+      const nowSub = r.now && r.now.own === false && !r.base ? `the base's ${what}: ${who} has none of its own` : '';
+      const nextSub = r.next && r.next.candidate ? (round ? `${r.next.label || 'the candidate'}: the badge is cut round from this painting` : r.next.label || '') : (r.next && r.next.label && r.next.label !== r.next.file ? r.next.label : '');
+      const dlg = el('div', { class: 'amodal icg-dialog', role: 'dialog', 'aria-modal': 'true' },
+        el('h3', { text: `${revert ? 'Revert' : 'Change'} ${name}'s ${what} for ${who}?` }),
+        el('div', { class: 'icg-row' }, pic(r.now, 'now', nowSub), el('span', { class: 'icg-arrow', text: '→', 'aria-hidden': 'true' }), pic(r.next, revert ? 'back to' : 'new', nextSub)),
+        ...stakes,
+        el('p', { class: 'muted small', text: `Nothing is overwritten: ${(r.now && r.now.file) || 'the old file'} stays on disk, "Revert icon" brings it back, and "All icons on disk" lists every ${what} ${name} ever had.` }),
+        el('div', { class: 'amodal-actions' },
+          el('button', { type: 'button', class: 'btn primary', text: revert ? `Yes, revert ${who}` : `Yes, change ${who}'s ${what}`, onclick: () => close(true) }),
+          el('button', { type: 'button', class: 'btn ghost', text: 'Cancel', onclick: () => close(false) })));
+      back.appendChild(dlg);
+      back.addEventListener('click', (e) => { if (e.target === back) close(false); });
+      document.body.appendChild(back);
+      const yes = dlg.querySelector('.btn.primary');
+      if (yes) yes.focus();
+    });
+  }
+
+  /** Install a candidate (POST /api/jobs/<job>/install {choice, options}): when the server says the look in play or the
+   *  base would change, ask (confirmIconChange) and send it again with confirm: true. The server's answer, or {ok:false,
+   *  cancelled:true} when the answer was no. The look picker, the Jobs tab's Install and an item's candidates use it. */
+  async function installPick(jobId, choice, options) {
+    const url = `/api/jobs/${encodeURIComponent(jobId)}/install`;
+    const body = { choice };
+    if (options) body.options = options;
+    let res = await post(url, body);
+    if (res && res.confirm_needed) {
+      if (!(await confirmIconChange(res))) return { ok: false, cancelled: true, error: 'cancelled' };
+      res = await post(url, Object.assign({}, body, { confirm: true }));
+    }
+    if (res && res.ok) { iconBust++; iconCache.clear(); }
+    return res;
+  }
+
+  /** An icon op on a look (POST /api/content/<kind>/<id>/icon {op: revert | use, code ('' = the base), ref}), asked first
+   *  like installPick when the look in play or the base would change. */
+  async function iconOp(kind, id, code, opName, extra) {
+    const url = `/api/content/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/icon`;
+    const body = Object.assign({ op: opName, code: code || '' }, extra || {});
+    let res = await post(url, body);
+    if (res && res.confirm_needed) {
+      if (!(await confirmIconChange(res))) return { ok: false, cancelled: true, error: 'cancelled' };
+      res = await post(url, Object.assign({}, body, { confirm: true }));
+    }
+    iconCache.delete(`${kind}|${id}`);
+    if (res && res.ok) iconBust++;
+    return res;
+  }
+
+  async function loadIcons(kind, id, fresh) {
+    const k = `${kind}|${id}`;
+    const c = iconCache.get(k);
+    if (c && !fresh && Date.now() - c.t < 4000) return c.data;
+    const r = await fetch(`/api/content/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/icons`, { cache: 'no-store' });
+    let data = null;
+    try { data = await r.json(); } catch (_) { data = null; }
+    if (r.status === 404 && (!data || /unknown API path/.test(String(data.error || '')))) throw new Error('this Level Editor was started before pass 76: close it and open it again to get Revert icon and the gallery');
+    if (!r.ok || !data || !data.ok) throw new Error((data && data.error) || `HTTP ${r.status}`);
+    iconCache.set(k, { t: Date.now(), data });
+    return data;
+  }
+
+  /** One look's icon (code '' = the base, or an asset without looks), pass 76: the picture the game shows now with its
+   *  file and where it comes from, "Revert icon" (one change back), the changes (icon_history), and "All icons on disk"
+   *  (every picture of the asset: its folder, tools/level_editor/backups/<id>/, removed looks' files, the older tools'
+   *  copies; one tile per picture), each with "Use for <look>". opts.onChanged(res) after a change. */
+  function iconPanel(kind, id, code, opts) {
+    const wrap = el('div', { class: 'lg-iconpanel', 'data-code': code || '' });
+    wrap.addEventListener('click', (e) => e.stopPropagation());
+    wrap.appendChild(el('div', { class: 'muted small', text: 'icon: reading…' }));
+    loadIcons(kind, id).then((g) => fillIconPanel(wrap, kind, id, code, g, opts || {}))
+      .catch((e) => { clear(wrap); wrap.appendChild(el('div', { class: 'warn-text small', text: `The icon history could not be read: ${e.message}` })); });
+    return wrap;
+  }
+
+  function fillIconPanel(wrap, kind, id, code, g, o) {
+    clear(wrap);
+    const looks = Array.isArray(g.looks) ? g.looks : [];
+    const L = looks.find((x) => code && x.code === code) || looks.find((x) => x.base) || looks[0];
+    if (!L) { wrap.appendChild(el('div', { class: 'muted small', text: 'no icon' })); return; }
+    const what = L.what || 'icon';
+    const name = g.name || id;
+    const who = L.code || name;
+    const opCode = L.base ? '' : L.code;
+    const after = async (res, verb) => {
+      if (res && res.cancelled) { App.status(`${id}: nothing changed`, ''); return; }
+      if (!res || !res.ok) { App.status(`${id} ${who}: ${verb} refused: ${(res && res.error) || 'no answer'}`, 'bad', (res && res.output) || ''); fillIconPanel(wrap, kind, id, code, g, o); return; }
+      App.status(`${id} ${who}: ${verb} done · now ${(res.icon && res.icon.shown) || res.file || '?'}${res.import_ok === false ? ' · the import did not run (the game plays the old .tres until one runs)' : res.job ? ' · import queued' : ''}`,
+        res.import_ok === false ? 'bad' : 'good', res.output || '');
+      if (typeof o.onChanged === 'function') await o.onChanged(res);
+      else if (wrap.isConnected) iconPanelRefresh(wrap, kind, id, code, o);
+    };
+    // the icon now
+    const now = el('div', { class: 'icg-now' });
+    now.appendChild(el('div', { class: 'icg-pic' + (what === 'badge' ? ' round' : '') }, L.url ? el('img', { src: bustUrl(L.url), alt: '', title: L.shown }) : el('span', { class: 'muted small', text: 'missing' })));
+    const facts = el('div', { class: 'icg-facts' });
+    facts.appendChild(el('div', {}, el('b', { text: `${cap(what)} now ` }), el('span', { class: 'mono small', text: L.shown || '?' })));
+    const chips = el('div', { class: 'icg-chips' });
+    if (L.played) chips.appendChild(el('span', { class: 'chip default', text: '● in play', title: `the look the game plays: its ${what} shows wherever the game shows ${name}` }));
+    if (L.base) chips.appendChild(el('span', { class: 'chip base', text: 'base', title: `the base look: its ${what} is ${name}'s own (the JSON's top-level icon), and every look without one of its own shows it` }));
+    chips.appendChild(el('span', { class: 'chip', text: L.base ? (L.own ? 'named in the JSON' : 'the default file') : (L.own ? (L.picked ? 'its own (picked)' : 'its own painting') : 'the base\'s'),
+      title: L.base ? `the top-level "icon" key${L.own ? '' : ` (none: ${id}_icon.png)`}` : (L.own ? `variants["${L.code}"].icon` : `${L.code} has no ${what} of its own: it shows the base's`) }));
+    facts.appendChild(chips);
+    const hist = Array.isArray(L.history) ? L.history : [];
+    const last = hist[hist.length - 1];
+    if (last) facts.appendChild(el('div', { class: 'muted small', text: `last change ${String(last.at || '').slice(0, 16)}: ${last.shown || '?'} → ${last.to || '?'}${last.why ? ' (' + last.why + ')' : ''}` }));
+    if (L.base && Array.isArray(L.shared_by) && L.shared_by.length) facts.appendChild(el('div', { class: 'muted small', text: `${L.shared_by.join(', ')} show${L.shared_by.length === 1 ? 's' : ''} this ${what} too (no ${what} of ${L.shared_by.length === 1 ? 'its' : 'their'} own)` }));
+    now.appendChild(facts);
+    const rev = el('button', { type: 'button', class: 'btn small', text: 'Revert icon', disabled: !L.revertable,
+      title: L.revertable ? (last ? `back to ${last.shown || 'what it showed'} (${String(last.at || '').slice(0, 16)}): the last change undone; ${last.to} stays on disk` : `drop ${L.code}'s picked ${what} (${L.shown}): it shows the base's again; the file stays on disk`)
+        : `nothing to revert: ${who}'s ${what} has no change recorded${L.own && !L.base && !L.picked ? ' (it is the look\'s own painting)' : ''}; "All icons on disk" puts any other on it` });
+    rev.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      rev.disabled = true;
+      App.status(`${id} ${who}: reverting the ${what}…`, 'busy');
+      after(await iconOp(kind, id, opCode, 'revert'), 'Revert icon');
+    });
+    now.appendChild(rev);
+    wrap.appendChild(now);
+    // the changes, newest first
+    if (hist.length) {
+      const det = el('details', { class: 'icg-history' });
+      det.appendChild(el('summary', { text: `Changes · ${hist.length}`, title: `icon_history in ${L.base ? 'the JSON\'s top level' : `variants["${L.code}"]`}: each change with a copy of the picture it replaced under tools/level_editor/backups/${id}/` }));
+      const ol = el('ol', { class: 'icg-steps' });
+      for (const h of hist.slice().reverse()) {
+        ol.appendChild(el('li', { class: 'small' }, el('span', { class: 'muted', text: `${String(h.at || '').slice(0, 16)} · ` }),
+          el('span', { class: 'mono', text: `${h.shown || '?'} → ${h.to || '?'}` }), h.why ? el('span', { class: 'muted', text: ` · ${h.why}` }) : null,
+          h.backup ? el('span', { class: 'muted', text: ` · copy ${String(h.backup).split(/[\\/]/).pop()}`, title: h.backup }) : null));
+      }
+      det.appendChild(ol);
+      wrap.appendChild(det);
+    }
+    // every icon on disk
+    const files = Array.isArray(g.files) ? g.files : [];
+    const det = el('details', { class: 'icg-gallery' });
+    const okey = `${kind}|${id}|icons`;
+    if (pickOpen.has(okey)) det.open = true;
+    det.addEventListener('toggle', () => { if (det.open) pickOpen.add(okey); else pickOpen.delete(okey); });
+    det.appendChild(el('summary', { text: `All icons on disk · ${files.length}`, title: `every picture of ${name}'s ${what} on disk, one tile per picture: its folder, tools/level_editor/backups/${id}/, removed looks' files, the older tools' copies under tools/dl/backup/` }));
+    const groups = [['folder', `In ${name}'s folder`], ['backup', `Backups · tools/level_editor/backups/${id}/`], ['deleted', 'Removed looks\' files'], ['legacy', 'Older tools\' copies · tools/dl/backup/']];
+    for (const [w, label] of groups) {
+      const list = files.filter((t) => t.where === w);
+      if (!list.length) continue;
+      det.appendChild(el('div', { class: 'muted small icg-group', text: `${label} · ${list.length}` }));
+      const grid = el('div', { class: 'icg-grid' });
+      for (const t of list) grid.appendChild(tile(t));
+      det.appendChild(grid);
+    }
+    if (!files.length) det.appendChild(el('div', { class: 'muted small', text: 'no icon files found' }));
+    wrap.appendChild(det);
+
+    function tile(t) {
+      const copies = Array.isArray(t.copies) ? t.copies : [];
+      // the same picture under another file name (a candidate installed twice) is the same tile
+      const isNow = [t].concat(copies).some((x) => x.where === 'folder' && x.file === L.shown);
+      const card = el('figure', { class: 'icg-tile' + (isNow ? ' now' : '') });
+      const img = el('img', { src: t.url, alt: '', loading: 'lazy' });
+      img.addEventListener('dblclick', () => { if (typeof StripPlayer !== 'undefined' && StripPlayer.openImage) StripPlayer.openImage(t.url, `${name} · ${t.file}`); });
+      card.appendChild(el('div', { class: 'icg-pic' + (what === 'badge' ? ' round' : '') }, img));
+      const cap2 = el('figcaption', {},
+        el('div', { class: 'mono small icg-file', text: t.file, title: `${t.ref}${copies.length ? '\nalso: ' + copies.map((x) => x.ref).join('\n') : ''}` }),
+        el('div', { class: 'muted small', text: `${t.when || ''}${copies.length ? ` · ${copies.length} cop${copies.length === 1 ? 'y' : 'ies'}` : ''}` }));
+      if (Array.isArray(t.used_by) && t.used_by.length) cap2.appendChild(el('div', { class: 'icg-used' }, ...t.used_by.map((c) => el('span', { class: 'chip' + (c === g.play ? ' default' : ''), text: c || 'base', title: `${c || name} shows this ${what}` }))));
+      card.appendChild(cap2);
+      const use = el('button', { type: 'button', class: 'btn small' + (isNow ? ' ghost' : ''), text: isNow ? `${who} shows it` : `Use for ${who}`, disabled: isNow,
+        title: isNow ? `${who}'s ${what} now` : `${who}'s ${what} becomes this picture${t.where === 'folder' ? '' : ' (put back into the folder first)'}; the one it shows now stays on disk and in its history${L.played || L.base ? '; asks first' : ''}` });
+      use.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        use.disabled = true;
+        App.status(`${id} ${who}: using ${t.file}…`, 'busy');
+        after(await iconOp(kind, id, opCode, 'use', { ref: t.ref }), `Use ${t.file}`);
+      });
+      card.appendChild(use);
+      return card;
+    }
+  }
+
+  /** Read the icons again and redraw a panel in place (after a change when the caller has no refresh of its own). */
+  async function iconPanelRefresh(wrap, kind, id, code, o) {
+    try { fillIconPanel(wrap, kind, id, code, await loadIcons(kind, id, true), o || {}); } catch (e) { App.status(`${id}: the icons could not be read again (${e.message})`, 'bad'); }
   }
 
   // ------------------------------------------------------------------ the server
@@ -751,6 +989,7 @@ const LookGrid = (() => {
   }
 
   return { painterText, painterShort, ownKeys, isStub, isDraft, BOOK_KEYS, WHERE_SHOWN, render, select, dispose, playerOpts, looksOf, generate, jobsChanged, PAGE, STATUS,
-    picker, pickers, paintedCandidates, PICK_KINDS, baseChoices };   // pass 70
+    picker, pickers, paintedCandidates, PICK_KINDS, baseChoices,   // pass 70
+    confirmIconChange, installPick, iconOp, iconPanel, bustUrl };   // pass 76 (lane ICON)
 })();
 if (typeof module !== 'undefined') module.exports = LookGrid;

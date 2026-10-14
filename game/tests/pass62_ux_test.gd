@@ -331,17 +331,18 @@ func _offer_card_of(id: String, tries: int = 400) -> Dictionary:
 	return {}
 
 
-func test_the_drifters_first_peashooter_shows_level_two_and_its_numbers() -> void:
+## Pass 76 (lane DYN): the Drifter's favourite is the dynamite (the Lob Grenade) now, the Peashooter is hidden.
+func test_the_drifters_first_favourite_shows_level_two_and_its_numbers() -> void:
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
-	var pea: WeaponDef = Registry.weapon("peashooter")
+	var pea: WeaponDef = Registry.weapon("lob_grenade")
 	assert_int(CardPool.first_weapon_level(pea)).is_equal(2)
 	assert_int(CardPool.first_weapon_level(Registry.weapon("boomstick"))).is_equal(1)
 	seed(6201)
-	var card := _offer_card_of("peashooter")
-	assert_bool(card.is_empty()).override_failure_message("no Peashooter card").is_false()
+	var card := _offer_card_of("lob_grenade")
+	assert_bool(card.is_empty()).override_failure_message("no Lob Grenade card").is_false()
 	assert_int(int(card["level_to"])).is_equal(2)
 	assert_bool(WItem.favourite(card)).is_true()
-	# the level-2 stars and the level-2 words: two shots, as he will get them
+	# the level-2 stars and the level-2 words: a wider blast, as he will get it
 	assert_array(WItem.stars(card)).is_equal([pea.max_level, 2, -1])
 	var two := CardPool.preview_weapon(pea, 2).description()
 	var one := CardPool.preview_weapon(pea, 1).description()
@@ -360,7 +361,7 @@ func test_the_drifters_first_peashooter_shows_level_two_and_its_numbers() -> voi
 	assert_str(str(o["tag"])).is_equal("NEW")
 	# taken, it is what the card said
 	CardPool.apply(card)
-	var inst := Run.weapon_instance("peashooter")
+	var inst := Run.weapon_instance("lob_grenade")
 	assert_int(inst.level).is_equal(2)
 	assert_str(inst.description()).is_equal(two)
 	# its upgrades keep the quiet mark, without the bonus words
@@ -440,7 +441,8 @@ func test_the_stranger_hands_the_favourite_over_with_its_bonus() -> void:
 
 func test_the_chest_landing_on_the_favourite_wears_the_heart() -> void:
 	Run.start(Registry.character("drifter"), Registry.map("red_canyon"))
-	var pea: WeaponDef = Registry.weapon("peashooter")
+	# pass 76 (lane DYN): his favourite is the dynamite (the Lob Grenade) now
+	var pea: WeaponDef = Registry.weapon("lob_grenade")
 	Run.add_weapon(pea, 2)
 	var cs: ChestScreen = auto_free(ChestScreen.new())
 	add_child(cs)

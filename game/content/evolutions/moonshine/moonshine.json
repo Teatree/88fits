@@ -51,5 +51,67 @@
     "glyph": "bottle"
   },
   "art_prompt": "a clay moonshine jug marked XXX with blue flames licking from its neck",
-  "visual": "moonshine_visual.tscn"
+  "visual": "moonshine_visual.tscn",
+  "variant_base": "A",
+  "variants": {
+    "B": {
+      "visual": "moonshine_visual_jug.tscn",
+      "params": {
+        "wick_flame": {
+          "style": "torch",
+          "offset": [0, 0.19, 0],
+          "size": 0.713,
+          "rate": 10,
+          "life": 0.28,
+          "tumble": 1.0
+        },
+        "pool_flame": {
+          "style": "torch",
+          "size": 0.78
+        }
+      },
+      "note": "the brown jug tumbling, a blue torch flame on its plug",
+      "fresh": true
+    },
+    "C": {
+      "visual": "moonshine_visual_jug_trail.tscn",
+      "params": {
+        "wick_flame": {
+          "style": "streamer",
+          "offset": [0, 0.2, 0],
+          "size": 0.69,
+          "rate": 8,
+          "life": 0.25,
+          "tail": 0.12
+        },
+        "pool_flame": {
+          "style": "torch",
+          "size": 0.78
+        }
+      },
+      "note": "the brown jug base first, a blue streamer from its mouth",
+      "fresh": true
+    },
+    "D": {
+      "visual": "moonshine_visual_jug.tscn",
+      "params": {
+        "wick_flame": {
+          "style": "cartoon",
+          "offset": [0, 0.19, 0],
+          "size": 0.632,
+          "rate": 5,
+          "life": 0.3,
+          "tumble": 1.0,
+          "lean": 0.025
+        },
+        "pool_flame": {
+          "style": "cartoon",
+          "size": 0.66,
+          "life": 1.1
+        }
+      },
+      "note": "the brown jug tumbling, a blue inked cartoon flame",
+      "fresh": true
+    }
+  }
 }

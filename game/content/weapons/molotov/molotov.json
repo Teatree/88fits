@@ -78,5 +78,71 @@
     "color": "#FF9A2E",
     "glyph": "bottle"
   },
-  "art_prompt": "a glass bottle of amber liquid with a burning rag stuffed in its neck, flames licking up from the rag"
+  "art_prompt": "a glass bottle of amber liquid with a burning rag stuffed in its neck, flames licking up from the rag",
+  "variant_base": "A",
+  "variant": "B",
+  "variants": {
+    "A": {
+      "note": "today's: the placeholder amber cylinder, flames dropped in a string behind it"
+    },
+    "B": {
+      "visual": "molotov_visual_bottle.tscn",
+      "params": {
+        "wick_flame": {
+          "style": "torch",
+          "offset": [0, 0.22, 0],
+          "size": 0.62,
+          "rate": 10,
+          "life": 0.28,
+          "tumble": 1.0
+        },
+        "pool_flame": {
+          "style": "torch",
+          "size": 0.78
+        }
+      },
+      "note": "Torch: the glass bottle tumbling end over end, a steady licking flame on its rag with embers flying off",
+      "fresh": true
+    },
+    "C": {
+      "visual": "molotov_visual_bottle_trail.tscn",
+      "params": {
+        "wick_flame": {
+          "style": "streamer",
+          "offset": [0, 0.235, 0],
+          "size": 0.6,
+          "rate": 8,
+          "life": 0.25,
+          "tail": 0.12
+        },
+        "pool_flame": {
+          "style": "torch",
+          "size": 0.78
+        }
+      },
+      "note": "Streamer: the bottle flies base first, a continuous ribbon of fire streaming back from its neck",
+      "fresh": true
+    },
+    "D": {
+      "visual": "molotov_visual_bottle.tscn",
+      "params": {
+        "wick_flame": {
+          "style": "cartoon",
+          "offset": [0, 0.22, 0],
+          "size": 0.55,
+          "rate": 5,
+          "life": 0.3,
+          "tumble": 1.0,
+          "lean": 0.025
+        },
+        "pool_flame": {
+          "style": "cartoon",
+          "size": 0.66,
+          "life": 1.1
+        }
+      },
+      "note": "Cartoon: the bottle tumbling, a bold inked three-layer flame like the icon's, star sparks",
+      "fresh": true
+    }
+  }
 }

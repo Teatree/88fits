@@ -38,6 +38,8 @@ func scan() -> void:
 		_scan_type(type)
 	_load_soundmap()
 	_validate()
+	# pass 76 (lane LOOKS): every weapon family in the look it plays (the JSON's until the save is read)
+	apply_item_looks()
 	scanned = true
 	print("Registry: %d weapons, %d passives, %d enemies, %d elites, %d characters, %d talents, %d quests, %d maps, %d sounds" % [
 		weapons.size(), passives.size(), enemies.size(), elites.size(), characters.size(), talents.size(), quests.size(), maps.size(), soundmap.entries.size()])
@@ -613,3 +615,122 @@ func card_look_codes() -> Array:
 	var out: Array = seen.keys()
 	out.sort()
 	return out
+
+
+# ---------------------------------------------------------------- pass 76 (lane LOOKS): the weapon families' looks
+
+## The family of weapon `w_id` (pass 76; any member's id finds its weapon, item_family_root): the base weapon first, then
+## its evolutions (its `evolves_into` first, then any whose `evolved_from` is it), then every mutation of the weapon or of
+## one of its evolutions, hero mutations and hidden ones included, in path order. [] for an id of no family.
+func item_family(w_id: String) -> Array:
+	var w: WeaponDef = weapons.get(item_family_root(w_id))
+	if w == null:
+		return []
+	var evos: Array = []
+	for e: WeaponDef in weapons.values():
+		if e.is_evolution and e != w and (e.id == w.evolves_into or e.evolved_from == w.id):
+			evos.append(e)
+	evos.sort_custom(func(a: WeaponDef, b: WeaponDef) -> bool:
+		if (a.id == w.evolves_into) != (b.id == w.evolves_into):
+			return a.id == w.evolves_into
+		return a.id < b.id)
+	var ids := {w.id: true}
+	for e: WeaponDef in evos:
+		ids[e.id] = true
+	var muts: Array = []
+	for m: MutationDef in mutations.values():
+		if ids.has(m.weapon):
+			muts.append(m)
+	muts.sort_custom(func(a: MutationDef, b: MutationDef) -> bool:
+		var ka := int(MUTATION_ORDER.get(a.mutation_kind, 9))
+		var kb := int(MUTATION_ORDER.get(b.mutation_kind, 9))
+		return ka < kb if ka != kb else a.id < b.id)
+	var out: Array = [w]
+	out.append_array(evos)
+	out.append_array(muts)
+	return out
+
+
+## The base weapon whose family `id` belongs to (pass 76): a base weapon's own id, an evolution's `evolved_from` (else the
+## base weapon that evolves into it), a mutation's weapon's; "" for none.
+func item_family_root(id: String) -> String:
+	var w: WeaponDef = weapons.get(id)
+	if w != null:
+		if not w.is_evolution:
+			return w.id
+		var src: WeaponDef = weapons.get(w.evolved_from)
+		if src != null and not src.is_evolution:
+			return src.id
+		for b: WeaponDef in weapons.values():
+			if not b.is_evolution and b.evolves_into == id:
+				return b.id
+		return ""
+	var m: MutationDef = mutations.get(id)
+	if m != null and m.weapon != id and weapons.has(m.weapon):
+		return item_family_root(m.weapon)
+	return ""
+
+
+## The looks family `w_id` can play (pass 76): its weapon's, base first, shelved ones left out; [] with one look (the
+## arena's chips want two or more).
+func item_look_codes(w_id: String) -> Array:
+	var w: WeaponDef = weapons.get(item_family_root(w_id))
+	return w.variant_codes() if w else []
+
+
+## The look family `w_id` plays (pass 76): the one this phone keeps for it (Save.item_looks) while the weapon can play it
+## and it is not shelved, else the weapon's JSON `variant`, else its base; "" for a family whose weapon has no looks.
+func played_item_look(w_id: String) -> String:
+	var w: WeaponDef = weapons.get(item_family_root(w_id))
+	if w == null or w.variants.is_empty():
+		return ""
+	var sv := get_node_or_null("/root/Save")
+	var kept := str(sv.call("item_look", w.id)) if sv and sv.has_method("item_look") else ""
+	if kept != "" and w.variant_codes().has(kept):
+		return kept
+	if w.variant != "" and (w.variant == w.variant_base or w.variants.has(w.variant)):
+		return w.variant
+	return w.variant_base
+
+
+## Every weapon family in the look it plays (pass 76, played_item_look): each member wears its entry for that code, or its
+## top level when it has none (ItemLooks.wear), so the cards, the HUD, the pause screen, the Collection and TextGen read
+## the look; a member already in it is left alone. A family whose look changed while the run holds its weapon is rebuilt
+## (_rebuild_looked). Called at the end of scan, by Save once the save is read, by Save.set_item_look (the arena's chips)
+## and after a wipe. A family none of whose members has looks is never touched.
+func apply_item_looks() -> void:
+	var changed: Dictionary = {}
+	for w: WeaponDef in weapons.values():
+		if w.is_evolution:
+			continue
+		var fam := item_family(w.id)
+		var any := false
+		for d in fam:
+			if not (d.variants as Dictionary).is_empty():
+				any = true
+				break
+		if not any:
+			continue
+		var code := played_item_look(w.id)
+		for d in fam:
+			if str(d.look_worn) != code:
+				d.wear_look(code)
+				changed[w.id] = true
+	if not changed.is_empty():
+		_rebuild_looked(changed)
+
+
+## The run's weapons of the families in `fams` once their look changed (apply_item_looks): their params folded again at
+## once, and in a live run every sheet (Run.rebuild_sheets), whose build_changed has Game._sync_weapons set each one's
+## behaviour up again in the new look (WeaponBehavior.look_stale: its visual, its model, everything made from them).
+func _rebuild_looked(fams: Dictionary) -> void:
+	var run := get_node_or_null("/root/Run")
+	if run == null:
+		return
+	var held := false
+	for wi in run.get("weapons"):
+		if wi is WeaponInstance and fams.has(item_family_root((wi as WeaponInstance).def.id)):
+			(wi as WeaponInstance).params = (wi as WeaponInstance).fold_params()
+			held = true
+	if held and bool(run.get("active")):
+		run.call("rebuild_sheets")

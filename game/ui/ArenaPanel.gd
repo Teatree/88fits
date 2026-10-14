@@ -15,6 +15,8 @@
 ##          the weapon's row (weapon_stack); the weapons out of play have a section of their own. Pass 51: every row's INFO
 ##          opens what a player reads about it, at the level held and with the hero's stats now (item_texts), and a
 ##          weapon's EVO toggle counts the three path mutations its evolution needs (heroes' own are optional extras).
+##          Pass 76: under the Card look row, a Weapon looks row for every weapon family with two or more looks (the
+##          dynamite and the grenade, the Molotov's flames): a tap keeps that look for the family on this phone.
 ##   HERO   levels (+1, +5, +10, to 30), level-up cards on or off, god mode, heal, a hit, going down, gold, rerolls.
 ##          Pass 55: on top, every hero in play (and the ones out of play with the player's debug mode on), a tap swapping
 ##          him in where he stands (Game.arena_swap_hero), and the hero's looks (art variants) as chips: a tap draws him
@@ -703,6 +705,7 @@ func _special_now() -> void:
 func _items_tab() -> void:
 	_buttons([["Max all held", func(): _max_held(); _refresh()], ["Remove every item", func(): _remove_all(); _refresh()]])
 	_card_looks()
+	_weapon_looks()
 	for sec in item_sections():
 		var title: String = sec[0]
 		var kind: String = sec[1]
@@ -738,6 +741,57 @@ func _card_looks() -> void:
 	var row := _choice("Card look", opts, Save.card_look(), func(v): Save.set_card_look(str(v)))
 	row.name = "CardLooks"
 	_note("Every card in this look on this phone. JSON = each card's own look (the Level Editor's pick); A = the icons before the cards, B tilted card, C on a deck, D fanned hand, E gloved hand.")
+
+
+## The weapon families' looks (pass 76, lane LOOKS; Garry: the Grenade as a Dynamite Stick "as a Look (with several
+## candidates), so I can switch back to the grenade if I ever change my mind", the Molotov's flame versions): a row of
+## chips for every weapon family with two or more looks (item_look_weapons): JSON (the weapon's own `variant`, the Level
+## Editor's pick) and one per look. A tap keeps that look for the whole family on this phone (Save.set_item_look, past the
+## arena's sandbox) and the family wears it at once: the weapon, its mutations and its evolution, on the cards, the HUD,
+## the pause screen and the Collection, and a weapon held now is made again in it (Registry.apply_item_looks). The lit
+## chip is the one kept, ● the look the family plays. Rows `ItemLooks_<id>`, chips `ItemLook_<id>_<code>` and
+## `ItemLook_<id>_JSON`, each look's note under its row.
+func _weapon_looks() -> void:
+	var fams: Array = item_look_weapons()
+	if fams.is_empty():
+		return
+	_section("Weapon looks")
+	_note("A tap keeps that look for the whole family (the weapon, its mutations, its evolution) on this phone. JSON = the weapon's own look (the Level Editor's pick). ● is the look it plays now.")
+	for w: WeaponDef in fams:
+		var codes: Array = Registry.item_look_codes(w.id)
+		var kept: String = Save.item_look(w.id)
+		var playing: String = Registry.played_item_look(w.id)
+		var row := _chip_flow("ItemLooks_" + w.id)
+		var l := UiKit.label(w.display_name, 22, UiKit.INK2)
+		l.custom_minimum_size = Vector2(150, 0)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_child(l)
+		var opts: Array = [""]
+		opts.append_array(codes)
+		for o in opts:
+			var code := str(o)
+			var b := UiKit.button(item_look_chip_text(code, playing), 20, code == kept, 64)
+			b.name = "ItemLook_%s_%s" % [w.id, code if code != "" else "JSON"]
+			b.pressed.connect(func(): Save.set_item_look(w.id, code); _refresh())
+			row.add_child(b)
+		_content.add_child(row)
+		_look_notes(codes, func(c: String) -> String: return w.variant_note(c), playing)
+
+
+## The base weapons whose family has two or more looks to play (pass 76; Registry.item_look_codes), by id (their names
+## change with their looks).
+static func item_look_weapons() -> Array:
+	var out: Array = []
+	for w: WeaponDef in Registry.weapons.values():
+		if not w.is_evolution and Registry.item_look_codes(w.id).size() >= 2:
+			out.append(w)
+	out.sort_custom(func(a: WeaponDef, b: WeaponDef) -> bool: return a.id < b.id)
+	return out
+
+
+## A weapon look chip's words (pass 76): the code ("JSON" for ""), ● on the look the family plays now.
+static func item_look_chip_text(code: String, playing: String) -> String:
+	return (code if code != "" else "JSON") + (" ●" if code != "" and code == playing else "")
 
 
 ## [title, kind, defs] for each section of the ITEMS tab, each list by name (pass 49): Weapons (the base weapons in play;
@@ -1125,7 +1179,10 @@ func _hero_switch() -> void:
 ## (Registry.played_look).
 func _hero_tile(c: CharacterDef, dim: bool) -> Control:
 	var playing := Run.character != null and Run.character.id == c.id
-	var sub := "● playing" if playing else ("out of play" if c.hidden else ("locked" if not Registry.is_unlocked("character", c.id) else ""))
+	# pass 76: by Registry.hero_state, as the title and the drawer read it (a hero bought before his quest was done
+	# read "locked" here)
+	var st := Registry.hero_state(c)
+	var sub := "● playing" if playing else ("out of play" if c.hidden else ("locked" if st == "locked" else ("for sale" if st == "buyable" else "")))
 	var art: CharacterDef = c.variant_def(shown_look()) if playing else Registry.played_look(c)
 	var t := _tile(art, "character", sub, func(): swap_hero(c.id))
 	t.name = "Hero_" + c.id

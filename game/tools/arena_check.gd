@@ -110,8 +110,9 @@ func _tick() -> void:
 				_step = 1
 		1:
 			var p = _game.arena_panel
-			# a weapon's stack open on ITEMS (pass 49): its mutations and evolution drawn under it
-			p._open["stack:peashooter"] = true
+			# a weapon's stack open on ITEMS (pass 49): its mutations and evolution drawn under it (pass 76: the Skull Rain's,
+			# the Peashooter is hidden)
+			p._open["stack:skull_rain"] = true
 			for tab in ["enemy", "waves", "items", "hero", "drops", "world"]:
 				p.open()
 				p._tab = tab
