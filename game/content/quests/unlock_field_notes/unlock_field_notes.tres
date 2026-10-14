@@ -14,7 +14,7 @@ unlocks = {
 "type": "passive"
 }
 id = "unlock_field_notes"
-display_name = "Field Notes"
+display_name = "The Sage"
 icon = ExtResource("1_duyck")
 icon_file = "unlock_field_notes_icon.png"
 placeholder = {

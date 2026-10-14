@@ -121,6 +121,10 @@ func _apply_mults() -> void:
 	em.creature_speed_mult = timeline.creature_speed_mult
 	# pass 69 (lane EN): the map's fallbacks for a variance special's numbers (EnemyDef.special_value)
 	em.special_defaults = timeline.special_defaults
+	# pass 73 (lane SNIPER): the weapons' target priority (EnemyManager.priority_target)
+	em.set_target_priority(timeline.target_priority)
+	# pass 73 (lane GROUND): every spawn grows out of the ground (EnemyManager.set_spawn_rise), the arena included
+	em.set_spawn_rise(timeline.spawn_rise_value("seconds"), timeline.spawn_rise_value("big_seconds"), timeline.spawn_rise_value("targetable"), timeline.spawn_rise_value("dust"))
 
 
 ## Whether colour may come yet (pass 46): the run has made its first `colour_after_kills` kills (the arena always may).

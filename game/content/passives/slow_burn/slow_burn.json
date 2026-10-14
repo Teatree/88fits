@@ -1,7 +1,7 @@
 {
   "id": "slow_burn",
-  "name": "Slow Burn",
-  "flavour": "Patience is a kind of fire.",
+  "name": "The Ember",
+  "flavour": "The Ember never quite goes out. Patience is a kind of fire.",
   "rarity": "common",
   "weight": 9,
   "line": true,
@@ -18,11 +18,82 @@
   ],
   "repeat_last_level": true,
   "trade": "",
-  "text": "Your burns, poison, slows, freezes and stuns last 20% longer a level.",
+  "text": "The Ember keeps them burning: your burns, poison, slows, freezes and stuns last 20% longer a level.",
   "evolves_into": "prairie_fire",
   "art_prompt": "a coiled black fuse cord burning at one end with a bright orange spark and a small curl of grey smoke",
   "placeholder": {
     "color": "#E07030",
     "glyph": "star"
+  },
+  "variant_base": "A",
+  "variant": "B",
+  "variants": {
+    "A": {
+      "note": "the icon before the cards (passes 47-72): an object, not a card"
+    },
+    "B": {
+      "icon": "slow_burn_icon_b.png",
+      "note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
+      "icon_picked": true,
+      "recipe": {
+        "subject": "One single fortune-teller tarot card standing upright and tilted about 12 degrees clockwise, filling the picture from top to bottom, seen straight on. The card has a thick cream parchment border with rounded corners and a thin dark brown line just inside it and a deep brown-black face. One huge bold symbol fills almost the whole face: one big glowing orange ember coal with a small steady flame curling up from it, in orange, red and black. The symbol is so big it overlaps the border a little. Nothing else on the card: no stars, no landscape, no corner ornaments, no frame lines inside",
+        "style": "Mobile game item icon in the cel-shaded anime style of an action RPG mobile game: crisp confident black line art, a thick clean black outline round the whole silhouette, flat colours with two-tone cel shadows and one sharp highlight, simple chunky shapes, only two or three bold saturated colours plus black and the card's border, high contrast, readable at thumbnail size, centred and filling the frame with a small margin. Nothing is written anywhere: no title banner, no letters, no numbers, no roman numerals",
+        "screen": "green"
+      },
+      "painted": {
+        "job": "j20261014-015617-6df0",
+        "pick": "c3",
+        "seed": 42248461978,
+        "model": "klein"
+      }
+    },
+    "C": {
+      "icon": "slow_burn_icon_c.png",
+      "note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
+      "icon_picked": true,
+      "recipe": {
+        "subject": "A small fan of fortune-teller tarot cards seen from the front: three cards lie fanned out behind and below, showing their deep red backs with a simple gold diamond pattern, and one card stands on top of them facing the viewer, upright and tilted slightly to the right, filling most of the picture. The top card has a thick cream parchment border with rounded corners and a thin dark brown line just inside it and a deep brown-black face showing one big bold symbol in its middle: one big glowing orange ember coal with a small steady flame curling up from it, in orange, red and black. A small gold four-pointed star in each corner of the top card's face, nothing else on it",
+        "style": "Mobile game item icon in the cel-shaded anime style of an action RPG mobile game: crisp confident black line art, a thick clean black outline round the whole silhouette, flat colours with two-tone cel shadows and one sharp highlight, simple chunky shapes, only two or three bold saturated colours plus black and the card's border, high contrast, readable at thumbnail size, centred and filling the frame with a small margin. Nothing is written anywhere: no title banner, no letters, no numbers, no roman numerals",
+        "screen": "green"
+      },
+      "painted": {
+        "job": "j20261014-123508-fa2e",
+        "pick": "c1",
+        "seed": 371832084225,
+        "model": "klein"
+      }
+    },
+    "D": {
+      "icon": "slow_burn_icon_d.png",
+      "note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
+      "icon_picked": true,
+      "recipe": {
+        "subject": "Three fortune-teller tarot cards fanned out like a winning hand of cards, seen from the front: the left and right cards lean outwards behind, showing their deep red backs with a gold star pattern, and the middle card stands upright in front of them, bigger, facing the viewer. The front card has a thick cream parchment border with rounded corners and a thin dark brown line just inside it and a deep brown-black face showing one big bold symbol: one big glowing orange ember coal with a small steady flame curling up from it, in orange, red and black. A thin gold line frames the front card's face and a small gold star sits in each of its corners",
+        "style": "Mobile game item icon in the cel-shaded anime style of an action RPG mobile game: crisp confident black line art, a thick clean black outline round the whole silhouette, flat colours with two-tone cel shadows and one sharp highlight, simple chunky shapes, only two or three bold saturated colours plus black and the card's border, high contrast, readable at thumbnail size, centred and filling the frame with a small margin. Nothing is written anywhere: no title banner, no letters, no numbers, no roman numerals",
+        "screen": "green"
+      },
+      "painted": {
+        "job": "j20261014-130616-efc9",
+        "pick": "c0",
+        "seed": 54092147212,
+        "model": "klein"
+      }
+    },
+    "E": {
+      "icon": "slow_burn_icon_e.png",
+      "note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
+      "icon_picked": true,
+      "recipe": {
+        "subject": "A fortune teller's slender hand in a black lace glove rises from the bottom of the picture and holds up one fortune-teller tarot card between its fingers, the card tilted a little to the left and filling most of the picture. The card has a thick cream parchment border with rounded corners and a thin dark brown line just inside it and a deep brown-black face showing one big bold symbol: one big glowing orange ember coal with a small steady flame curling up from it, in orange, red and black, with fine engraved hatching in its shadows and a tiny desert horizon of cactus silhouettes along the bottom of the card's face. Small gold stars in the face's corners. More detail than a plain icon, but the symbol stays big and clear",
+        "style": "Mobile game item icon in the cel-shaded anime style of an action RPG mobile game: crisp confident black line art, a thick clean black outline round the whole silhouette, flat colours with two-tone cel shadows and one sharp highlight, simple chunky shapes, only two or three bold saturated colours plus black and the card's border, high contrast, readable at thumbnail size, centred and filling the frame with a small margin. Nothing is written anywhere: no title banner, no letters, no numbers, no roman numerals",
+        "screen": "green"
+      },
+      "painted": {
+        "job": "j20261014-133656-2c05",
+        "pick": "c0",
+        "seed": 164258576618,
+        "model": "klein"
+      }
+    }
   }
 }

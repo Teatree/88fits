@@ -169,7 +169,12 @@ func _fire() -> bool:
 	var keep_r := maxf(stat("area", 2.5), 1.5)
 	var taken: Array = game.projectiles.claimed_spots()
 	var targets: Array = []
-	for k in range(amount):
+	# pass 73 (lane SNIPER): the first bomb goes for a special, an Elite or the boss within reach; the rest find crowds of
+	# their own as before (its spot among the ones they keep away from)
+	var pt: int = priority_pick(hero, range_m)
+	if pt >= 0:
+		targets.append(enemies.pos[pt])
+	for k in range(amount - targets.size()):
 		var avoid: Array = taken + targets
 		var t := enemies.densest_point(hero, range_m, el, avoid, keep_r)
 		if t == Vector3.INF and el != "":

@@ -37,7 +37,8 @@ static func word(card: Dictionary) -> String:
 			var src = reg.weapon(from) if reg and from != "" else null
 			return "EVOLVES " + src.display_name.to_upper() if src else "EVOLUTION"
 		"line", "passive":
-			var what := "LINE" if kind(def) == "line" else "PASSIVE"
+			# pass 73 (lane CARDS): a line item is a fortune card to the player
+			var what := "CARD" if kind(def) == "line" else "PASSIVE"
 			if bool(card.get("evolve", false)):
 				var src = W.node("Registry").passive((def as PassiveDef).evolves_from)
 				return "EVOLVES " + (src.display_name.to_upper() if src else "A " + what)

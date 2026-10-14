@@ -407,7 +407,10 @@ func _tick(_delta: float) -> void:
 		if _track_cd <= 0.0 or _track_i < 0 or enemies.alive[_track_i] == 0 or enemies.state[_track_i] == EnemyManager.STATE_DYING:
 			_track_cd = TRACK_EVERY
 			if inst.def.targeting == "healthy":
-				_track_i = enemies.nearest_index(hero, stat("range", 9.0), inst.element())
+				# pass 73 (lane SNIPER): a special, an Elite or the boss within reach first
+				_track_i = priority_pick(hero, stat("range", 9.0))
+				if _track_i < 0:
+					_track_i = enemies.nearest_index(hero, stat("range", 9.0), inst.element())
 				if _track_i < 0:
 					_track_i = enemies.nearest_index(hero, stat("range", 9.0))
 			else:
@@ -564,14 +567,20 @@ func _fire() -> bool:
 			if _held:
 				_held.scale = Vector3(1.0, 1.0, 0.7)
 		"random":
-			target = enemies.random_in_range(hero, range_m)
+			# pass 73 (lane SNIPER): a special, an Elite or the boss within reach first
+			target = priority_pick(hero, range_m)
+			if target < 0:
+				target = enemies.random_in_range(hero, range_m)
 			if target < 0:
 				return false
 			dir = (enemies.pos[target] - hero)
 			half_spread = _fan_half(amount)
 		"healthy":
-			# the nearest creature not carrying this weapon's element yet; when everyone does, the nearest one
-			target = enemies.nearest_index(hero, range_m, inst.element())
+			# the nearest creature not carrying this weapon's element yet; when everyone does, the nearest one (pass 73:
+			# a special, an Elite or the boss within reach before either)
+			target = priority_pick(hero, range_m)
+			if target < 0:
+				target = enemies.nearest_index(hero, range_m, inst.element())
 			if target < 0:
 				target = enemies.nearest_index(hero, range_m)
 			if target < 0:

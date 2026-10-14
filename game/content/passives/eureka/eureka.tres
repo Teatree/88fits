@@ -1,16 +1,20 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/eureka/eureka_icon.png" id="1_02jab"]
+[ext_resource type="Texture2D" path="res://content/passives/eureka/eureka_icon_b.png" id="1_ku7b0"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_ku7b0"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_2i0ta"]
+[ext_resource type="Texture2D" path="res://content/passives/eureka/eureka_icon_c.png" id="5_hb6pe"]
+[ext_resource type="Texture2D" path="res://content/passives/eureka/eureka_icon_d.png" id="6_6je7v"]
+[ext_resource type="Texture2D" path="res://content/passives/eureka/eureka_icon_e.png" id="7_pgkt0"]
 
-[sub_resource type="Resource" id="Resource_02jab"]
+[sub_resource type="Resource" id="Resource_hb6pe"]
 script = ExtResource("2_ku7b0")
 stat = "xp_drop_chance"
 value = 0.35
 target = "player"
 
-[sub_resource type="Resource" id="Resource_ku7b0"]
+[sub_resource type="Resource" id="Resource_6je7v"]
 script = ExtResource("2_ku7b0")
 stat = "vein_chance"
 value = 0.04
@@ -19,16 +23,50 @@ target = "player"
 [resource]
 script = ExtResource("3_2i0ta")
 line = true
-levels = [[SubResource("Resource_02jab"), SubResource("Resource_ku7b0")]]
+levels = [[SubResource("Resource_hb6pe"), SubResource("Resource_6je7v")]]
 repeat_last_level = false
 max_level = 1
 evolves_from = "prospector"
+variants = {
+"A": {
+"icon": ExtResource("1_02jab"),
+"icon_file": "eureka_icon.png",
+"note": "the icon before the cards (passes 47-72): an object, not a card",
+"shelved": false
+},
+"B": {
+"icon": ExtResource("1_ku7b0"),
+"icon_file": "eureka_icon_b.png",
+"note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
+"shelved": false
+},
+"C": {
+"icon": ExtResource("5_hb6pe"),
+"icon_file": "eureka_icon_c.png",
+"note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
+"shelved": false
+},
+"D": {
+"icon": ExtResource("6_6je7v"),
+"icon_file": "eureka_icon_d.png",
+"note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
+"shelved": false
+},
+"E": {
+"icon": ExtResource("7_pgkt0"),
+"icon_file": "eureka_icon_e.png",
+"note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
+"shelved": false
+}
+}
+variant = "B"
+variant_base = "A"
 id = "eureka"
-display_name = "Eureka"
-flavour = "Every claim pays. Some pay all at once."
+display_name = "The Miner Risen"
+flavour = "The Miner strikes the vein. Every claim pays; some pay all at once."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_02jab")
+icon = ExtResource("1_ku7b0")
 icon_file = "eureka_icon.png"
 placeholder = {
 "color": "#FFB84A",

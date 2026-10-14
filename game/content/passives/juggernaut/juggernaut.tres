@@ -1,17 +1,21 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/juggernaut/juggernaut_icon.png" id="1_0rbmk"]
+[ext_resource type="Texture2D" path="res://content/passives/juggernaut/juggernaut_icon_b.png" id="1_lpa8h"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_lpa8h"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_wextt"]
+[ext_resource type="Texture2D" path="res://content/passives/juggernaut/juggernaut_icon_c.png" id="5_r70t3"]
+[ext_resource type="Texture2D" path="res://content/passives/juggernaut/juggernaut_icon_d.png" id="6_40cwp"]
+[ext_resource type="Texture2D" path="res://content/passives/juggernaut/juggernaut_icon_e.png" id="7_gt6p2"]
 
-[sub_resource type="Resource" id="Resource_0rbmk"]
+[sub_resource type="Resource" id="Resource_r70t3"]
 script = ExtResource("2_lpa8h")
 stat = "might"
 op = "mul"
 value = 0.5
 target = "player"
 
-[sub_resource type="Resource" id="Resource_lpa8h"]
+[sub_resource type="Resource" id="Resource_40cwp"]
 script = ExtResource("2_lpa8h")
 stat = "damage_reduction"
 value = 0.1
@@ -20,16 +24,50 @@ target = "player"
 [resource]
 script = ExtResource("3_wextt")
 line = true
-levels = [[SubResource("Resource_0rbmk"), SubResource("Resource_lpa8h")]]
+levels = [[SubResource("Resource_r70t3"), SubResource("Resource_40cwp")]]
 repeat_last_level = false
 max_level = 1
 evolves_from = "brawn"
+variants = {
+"A": {
+"icon": ExtResource("1_0rbmk"),
+"icon_file": "juggernaut_icon.png",
+"note": "the icon before the cards (passes 47-72): an object, not a card",
+"shelved": false
+},
+"B": {
+"icon": ExtResource("1_lpa8h"),
+"icon_file": "juggernaut_icon_b.png",
+"note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
+"shelved": false
+},
+"C": {
+"icon": ExtResource("5_r70t3"),
+"icon_file": "juggernaut_icon_c.png",
+"note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
+"shelved": false
+},
+"D": {
+"icon": ExtResource("6_40cwp"),
+"icon_file": "juggernaut_icon_d.png",
+"note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
+"shelved": false
+},
+"E": {
+"icon": ExtResource("7_gt6p2"),
+"icon_file": "juggernaut_icon_e.png",
+"note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
+"shelved": false
+}
+}
+variant = "B"
+variant_base = "A"
 id = "juggernaut"
-display_name = "Juggernaut"
-flavour = "Nothing moves you. You move everything."
+display_name = "The Sun Risen"
+flavour = "The Sun at its height. Nothing moves you; you move everything."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_0rbmk")
+icon = ExtResource("1_lpa8h")
 icon_file = "juggernaut_icon.png"
 placeholder = {
 "color": "#FFB84A",

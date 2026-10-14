@@ -34,10 +34,11 @@ DEFAULTS = {
     "pattern": {"shape": "rings", "center": "boss", "radius_min": 3.0, "radius_max": 16.0, "spacing": 3.2, "count": 0,
                 "jitter": 0.2, "gap": 1.0, "turn": True, "order": "out", "spread_deg": 360.0, "aim": "hero", "waves": 1,
                 "wave_gap": 0.5, "width": 1.2},
-    "landing": {"radius": 0.9},
-    "telegraph": {"kind": "circles", "color": "#ED4A5C", "seconds": 0.9},
+    "landing": {"radius": 0.9, "mode": "stagger"},
+    "telegraph": {"kind": "circles", "color": "#ED4A5C", "seconds": 0.9, "all_at_once": False},
     "timing": {"windup": 1.0, "stagger": 1.5, "cooldown": 0.0, "hold": -1.0},
     "sounds": {"windup": "", "fire": "en_boss_attack", "land": ""},
+    "spew": {"crouch": 0.35, "burst": 0.12, "mouth": 0.62, "squash": 0.82, "stretch": 1.25},
 }
 # the creature folders whose JSON may carry a script (boss.attacks)
 SCRIPTED = (("boss", "bosses"), ("enemy", "enemies"))
@@ -153,6 +154,8 @@ def blank(kind, aid, name):
     a["pattern"] = dict(DEFAULTS["pattern"])
     if k == "rain":
         a["landing"] = dict(DEFAULTS["landing"])
+        # pass 73 (lane GROUND): a volley rain's spew (boss_model.js blank() makes the same)
+        a["spew"] = dict(DEFAULTS["spew"])
     a["telegraph"] = dict(DEFAULTS["telegraph"], kind="circles" if k == "rain" else "lines" if k == "volley" else "ring")
     a.update({"damage": 0.75, "knockback": 4.0, "lift": 0.0})
     a["timing"] = dict(DEFAULTS["timing"])

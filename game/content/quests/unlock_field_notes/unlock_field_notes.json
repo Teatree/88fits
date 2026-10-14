@@ -1,6 +1,6 @@
 {
   "id": "unlock_field_notes",
-  "name": "Field Notes",
+  "name": "The Sage",
   "condition": {
     "type": "runs_total",
     "count": 3

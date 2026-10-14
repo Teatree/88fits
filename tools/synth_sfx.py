@@ -313,7 +313,53 @@ def trampoline_drop():
     return fade_out(y, 40)
 
 
+# ------------------------------------------------------------------ pass 73 (lane SNIPER): the Saiga Sniper's laser
+def sniper_aim():
+    # the laser sight gathering on the hero (2 s, the aim): a thin electric whine climbing a twelfth, a tremolo that
+    # quickens with it, a faint shimmer an octave up, swelling from nothing
+    t = t_of(2.0)
+    f = 520.0 * (1560.0 / 520.0) ** np.clip(t / 2.0, 0, 1) ** 1.6
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    rate = 5.0 + 23.0 * np.clip(t / 2.0, 0, 1) ** 1.5
+    trem = 0.55 + 0.45 * np.sin(2 * np.pi * np.cumsum(rate) / SR)
+    swell = np.clip(t / 0.35, 0, 1) * (0.45 + 0.55 * np.clip(t / 2.0, 0, 1))
+    y = (0.6 * np.sin(ph) + 0.18 * np.sin(2 * ph + 0.4) + 0.08 * np.sin(3 * ph)) * trem * swell
+    return fade_out(y, 30)
+
+
+def sniper_lock():
+    # the lock: two short hard beeps, the second higher (a target acquired)
+    t = t_of(0.3)
+    y = np.zeros_like(t)
+    for at, fr in ((0.0, 1480.0), (0.11, 1975.0)):
+        on = (t >= at) & (t < at + 0.065)
+        tt = np.maximum(t - at, 0)
+        y += np.where(on, 0.6 * square(2 * np.pi * fr * tt) * np.clip(tt / 0.003, 0, 1), 0.0)
+        y += np.where(on, 0.25 * np.sin(2 * np.pi * fr * 2 * tt), 0.0)
+    return fade_out(y, 20)
+
+
+def sniper_shot():
+    # the beam crossing the map: a crack (a white burst falling fast), a zap sweeping 3.6 kHz down to 220 Hz, a low thump
+    # under it, and the sizzle of the sparks it leaves, crackling as it fades
+    t = t_of(0.9)
+    n = rng.normal(0, 1.0, len(t))
+    y = 0.9 * n * env_ad(t, 0.0008, 0.018)
+    f = 220.0 + 3400.0 * np.exp(-t / 0.045)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    y += 0.7 * (0.6 * np.sin(ph) + 0.4 * square(ph * 0.5)) * env_ad(t, 0.001, 0.09)
+    y += partial(t, 64.0, 1.0, 0.08, 0.002) + partial(t, 101.0, 0.45, 0.06, 0.002)
+    hiss = n - np.convolve(n, np.ones(5) / 5, mode="same")
+    crackle = (rng.uniform(0, 1, len(t)) > 0.9965).astype(float) * rng.uniform(0.4, 1.0, len(t))
+    tail = env_ad(np.maximum(t - 0.06, 0), 0.02, 0.28) * (t >= 0.06)
+    y += (0.16 * hiss + 0.55 * np.convolve(crackle, np.hanning(9), mode="same")) * tail
+    return fade_out(y, 40)
+
+
 SOUNDS = {
+    "en_sniper_aim": sniper_aim,
+    "en_sniper_lock": sniper_lock,
+    "en_sniper_shot": sniper_shot,
     "w_salt_shake": salt_shake,
     "pk_decoy_land": decoy_land,
     "pk_decoy_pop": decoy_pop,

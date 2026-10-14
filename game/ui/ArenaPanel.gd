@@ -702,6 +702,7 @@ func _special_now() -> void:
 ## opened; the lines, the passives and the perks follow as before.
 func _items_tab() -> void:
 	_buttons([["Max all held", func(): _max_held(); _refresh()], ["Remove every item", func(): _remove_all(); _refresh()]])
+	_card_looks()
 	for sec in item_sections():
 		var title: String = sec[0]
 		var kind: String = sec[1]
@@ -721,6 +722,22 @@ func _items_tab() -> void:
 			if bool(_open.get(STACK_KEY + def.id, false)):
 				for entry in stack:
 					_content.add_child(_item_row(str(entry[0]), entry[1], str(entry[2]), true))
+
+
+## The cards' look on this phone (pass 73, lane CARDS; Garry: "Each a new 'Look' so I can come back to the old one"): a
+## chip per look any card has (A the icon before the cards, B-E the four card framings) and JSON (each card's own JSON
+## `variant`, the Level Editor's pick); a tap draws every card in that look at once, on the HUD, the cards, the pause
+## screen and the Collection, and keeps it on this phone (Save.set_card_look, past the arena's sandbox).
+func _card_looks() -> void:
+	var codes: Array = Registry.card_look_codes()
+	if codes.is_empty():
+		return
+	var opts: Array = [["", "JSON"]]
+	for c in codes:
+		opts.append([str(c), str(c)])
+	var row := _choice("Card look", opts, Save.card_look(), func(v): Save.set_card_look(str(v)))
+	row.name = "CardLooks"
+	_note("Every card in this look on this phone. JSON = each card's own look (the Level Editor's pick); A = the icons before the cards, B tilted card, C on a deck, D fanned hand, E gloved hand.")
 
 
 ## [title, kind, defs] for each section of the ITEMS tab, each list by name (pass 49): Weapons (the base weapons in play;
@@ -752,7 +769,7 @@ func item_sections() -> Array:
 	perks.sort_custom(func(a, b): return a.hero + a.display_name < b.hero + b.display_name)
 	var stray_muts: Array = Registry.mutations.values().filter(func(m: MutationDef) -> bool: return _mutation_owner(m) == "")
 	stray_muts.sort_custom(func(a, b): return a.weapon + a.display_name < b.weapon + b.display_name)
-	var out: Array = [["Weapons", "weapon", weapons], ["Hidden weapons", "weapon", out_of_play], ["Lines", "passive", lines],
+	var out: Array = [["Weapons", "weapon", weapons], ["Hidden weapons", "weapon", out_of_play], ["Cards", "passive", lines],
 		["Passives", "passive", passives], ["Perks", "perk", perks]]
 	if not stray_muts.is_empty():
 		out.append(["Other mutations", "mutation", stray_muts])

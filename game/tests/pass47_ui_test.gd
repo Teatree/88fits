@@ -120,11 +120,12 @@ func test_kinds_and_their_words() -> void:
 	# the cards' one word, and beside it the tag (pass 58: NEW and UPGRADE moved out of the word into the tag, and the
 	# "LV 2 → 3" went for the stars and the change rows; Garry: "There should be some kind of an indicator on items when
 	# they are upgraded rather than a new item")
-	assert_str(WItem.word({"def": brawn, "level_from": 0, "level_to": 1})).is_equal("LINE")
+	# pass 73 (lane CARDS): a line item says CARD (it is a fortune card to the player)
+	assert_str(WItem.word({"def": brawn, "level_from": 0, "level_to": 1})).is_equal("CARD")
 	assert_str(WItem.tag({"def": brawn, "level_from": 0, "level_to": 1})).is_equal("NEW")
-	assert_str(WItem.word({"def": brawn, "level_from": 2, "level_to": 3})).is_equal("LINE")
+	assert_str(WItem.word({"def": brawn, "level_from": 2, "level_to": 3})).is_equal("CARD")
 	assert_str(WItem.tag({"def": brawn, "level_from": 2, "level_to": 3})).is_equal("UPGRADE")
-	assert_str(WItem.word({"def": Registry.passive("juggernaut"), "level_from": 4, "level_to": 5, "evolve": true})).is_equal("EVOLVES BRAWN")
+	assert_str(WItem.word({"def": Registry.passive("juggernaut"), "level_from": 4, "level_to": 5, "evolve": true})).is_equal("EVOLVES " + brawn.display_name.to_upper())
 	assert_str(WItem.tag({"def": Registry.passive("juggernaut"), "level_from": 4, "level_to": 5, "evolve": true})).is_equal("EVOLUTION")
 	assert_str(WItem.word({"def": magnet, "level_from": 0, "level_to": 1})).is_equal("PASSIVE")
 	assert_str(WItem.tag({"def": magnet, "level_from": 0, "level_to": 1})).is_equal("NEW")
@@ -241,7 +242,8 @@ func test_gold_rises_from_the_hero_and_steady_shows_beside_adrenaline() -> void:
 # ---------------------------------------------------------------- the Collection
 
 func test_the_collection_has_five_tabs_and_marks_the_dangerous_enemies() -> void:
-	assert_array(CollectionScreen.TABS).is_equal(["Weapons", "Lines", "Passives", "Perks", "Enemies"])
+	# pass 73 (lane CARDS): the lines' tab says Cards
+	assert_array(CollectionScreen.TABS).is_equal(["Weapons", "Cards", "Passives", "Perks", "Enemies"])
 	assert_str(CollectionScreen.danger_role(Registry.enemy("brander"))).is_equal("boss")
 	assert_str(CollectionScreen.danger_role(Registry.enemy("dune_scorpion"))).is_equal("elite")
 	assert_str(CollectionScreen.danger_role(Registry.enemy("rocketeer"))).is_equal("special")
@@ -522,12 +524,13 @@ func test_the_build_tab_lists_the_lines_and_every_passive_item() -> void:
 	ps._tab = 0
 	ps._refresh()
 	await get_tree().process_frame
-	for g in ["GroupWeapons", "GroupLines", "GroupPassives"]:
+	# pass 73 (lane CARDS): the lines' group says Cards
+	for g in ["GroupWeapons", "GroupCards", "GroupPassives"]:
 		assert_object(ps._content.find_child(g, false, false)).override_failure_message(g).is_not_null()
 	var rows: Array = ps._content.get_children().filter(func(n: Node) -> bool: return n is WRow)
 	assert_int(rows.size()).is_equal(4)
 	var said := _texts(ps._content)
 	assert_str(said).contains("Magnet")
 	assert_str(said).contains("Desperado")
-	assert_str(said).contains("Brawn")
+	assert_str(said).contains(Registry.passive("brawn").display_name)
 	ps.visible = false

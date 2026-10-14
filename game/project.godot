@@ -12,13 +12,14 @@ config_version=5
 
 config/name="88fits"
 config/description="Hold to run. Slide to steer. The guns fire themselves."
-config/version="0.58"
+config/version="0.59"
 run/main_scene="res://ui/Boot.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.9529412, 0.9019608, 0.78431374, 1)
 boot_splash/image="res://art/ui/splash.png"
 config/icon="res://icon.png"
+config/windows_native_icon="res://icon.ico"
 
 [autoload]
 

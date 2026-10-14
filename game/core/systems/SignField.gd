@@ -97,6 +97,7 @@ const SHORT := {
 	"shop": "SHOP",
 	"war_drum": "DRUM",
 	"beacon": "BEACON",
+	"totem_pole": "TOTEM",
 }
 const MODEL := "res://art/props/sign.glb"
 ## this script (spawn makes a field without naming its own class, which a fresh class is not registered as until the
@@ -247,10 +248,16 @@ func nearest_unused(at: Vector3, n: int, apart_deg: float = 0.0) -> Array:
 	pool.sort_custom(func(a, b): return a[0] < b[0])
 	var out: Array = []
 	var yaws: Array = []
+	# pass 73: arms taken per kind, for a kind with `params.per_sign` (per_sign_cap)
+	var kinds: Dictionary = {}
 	for item in pool:
 		if out.size() >= n:
 			break
 		var s: Node = item[1]
+		var cap := per_sign_cap(s)
+		var kid := str(s.get("def").get("id")) if s.get("def") != null else ""
+		if cap >= 0 and int(kinds.get(kid, 0)) >= cap:
+			continue
 		var yaw := yaw_to(at, BarrelField.structure_position(s))
 		var clear := true
 		for y in yaws:
@@ -260,7 +267,18 @@ func nearest_unused(at: Vector3, n: int, apart_deg: float = 0.0) -> Array:
 		if clear:
 			out.append(s)
 			yaws.append(yaw)
+			kinds[kid] = int(kinds.get(kid, 0)) + 1
 	return out
+
+
+## How many arms of one sign may point at structures of `s`'s kind (pass 73, the Totem Poles, Garry: "Signs show to them
+## as well"): its JSON's `params.per_sign`, -1 (no cap) without one. Ten to twelve poles stand on a map, so without a cap
+## the nearest-first arms would point at little else.
+static func per_sign_cap(s: Node) -> int:
+	var d = s.get("def") if s != null else null
+	if d == null or not d.get("params") is Dictionary:
+		return -1
+	return int((d.get("params") as Dictionary).get("per_sign", -1))
 
 
 ## The heading an arm modelled along +X takes to point from `from` at `to`: a turn about the post (yaw) such that

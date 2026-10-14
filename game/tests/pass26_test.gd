@@ -256,7 +256,8 @@ func test_offer_limits_and_forcing() -> void:
 	# applying each kind of card
 	var m := Registry.mutation("tarantula_hawk")
 	assert_str(CardPool.apply({"type": "mutation", "id": "tarantula_hawk", "def": m, "level_from": 0, "level_to": 1, "is_new": true})).is_equal("Tarantula Hawk")
-	assert_str(CardPool.apply({"type": "passive", "id": "mend", "def": Registry.passive("mend"), "level_from": 0, "level_to": 1, "is_new": true})).is_equal("Mend Lv 1")
+	# pass 73 (lane CARDS): Mend is the card Temperance; the line names it by its display name
+	assert_str(CardPool.apply({"type": "passive", "id": "mend", "def": Registry.passive("mend"), "level_from": 0, "level_to": 1, "is_new": true})).is_equal(Registry.passive("mend").display_name + " Lv 1")
 
 
 func test_stranger_sells_a_closed_mutation() -> void:

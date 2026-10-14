@@ -7,7 +7,7 @@
 [resource]
 script = ExtResource("1_h6e4h")
 archetype = "boss"
-doc = "Stage 2's boss: a lunge, a rain of red cactus spikes over a huge area round it (the custom attack cactus_rain: stand between the circles), a burrow that surfaces under the hero, a ring of lizards. Pays two chests and thirty coins."
+doc = "Stage 2's boss: a lunge, a rain of red cactus spikes over a huge area round it (the custom attack cactus_rain: every circle lights at once, then it spews; stand in a gap), a burrow (it sinks out of sight, waits three seconds and erupts where the hero is heading, throwing him and the crowd), a ring of lizards (never specials). Pays two chests and thirty coins."
 brain = "boss"
 hp = 2400.0
 speed = 1.4
@@ -51,14 +51,23 @@ boss = {
 }, {
 "name": "cactus_rain"
 }, {
+"creature_damage": 0.03,
+"creature_out": 4.0,
+"creature_up": 2.5,
 "damage": 32.0,
 "knockback": 9.0,
 "name": "burrow",
+"predict": 0.6,
 "radius": 5.0,
-"telegraph": "ring_at_hero",
-"windup": 1.4
+"rise": 0.6,
+"sink": 0.6,
+"telegraph": "none",
+"throw_out": 4.0,
+"throw_up": 2.5,
+"warn": 0.4,
+"windup": 4.0
 }, {
-"count": 8.0,
+"count": 12.0,
 "enemy": "sand_lizard",
 "name": "spawn_ring",
 "telegraph": "none",

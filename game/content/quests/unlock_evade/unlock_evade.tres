@@ -14,7 +14,7 @@ unlocks = {
 "type": "passive"
 }
 id = "unlock_evade"
-display_name = "Evade"
+display_name = "The Ghost"
 icon = ExtResource("1_lfarp")
 icon_file = "unlock_evade_icon.png"
 placeholder = {

@@ -18,6 +18,7 @@ const OLD_TOP_Y := 30.0
 const OLD_SLOT_Y := 126.0
 const OLD_BAND_H := 220.0
 const GLYPH := "res://art/ui/wanted/kind_weapon.png"
+## The line items' glyph: a rolled scroll until pass 72, a fortune card since pass 73 (lane CARDS); the same file.
 const SCROLL := "res://art/ui/wanted/kind_line.png"
 
 

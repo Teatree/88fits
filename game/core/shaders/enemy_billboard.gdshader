@@ -6,6 +6,10 @@
 // special's emissive rim in its own tint's colour, EnemyManager.special_glow_code), z = flash (-1..1, negative = poison
 // green), w = squash (1 = normal)
 // INSTANCE COLOR:  rgb = tint (elite colour), a = tint strength
+// Pass 73 (lane GROUND, the ground-clip): the instance basis' z column carries in its y (MODEL_MATRIX[2].y, read by no
+// other maths here, and a float32 where the Compatibility renderer packs custom data as half floats) the share of the
+// quad, from its foot up, that is under the sand while the creature rises out of it or sinks into it
+// (EnemyManager.ground_clip): that part is cut, and the painting just above the cut is dusted with sand. 0 = no cut.
 shader_type spatial;
 render_mode cull_disabled, unshaded, skip_vertex_transform, depth_draw_opaque;
 // Every painting writes stencil 1 where it draws a pixel (pass 54, Garry: gems and coins drawn under every 2.5D sprite):
@@ -32,8 +36,19 @@ varying float v_glow;
 // breath (0.8..1) so a special reads at a glance in a crowd
 varying float v_sglow;
 varying vec3 v_rim;
+// pass 73: the quad's own height 0 (its foot) .. 1 (its top) and across 0 .. 1, the cut (the share under the sand, 0 =
+// none) and the sand-dusted band above it as a share of the quad (GROUND_BAND metres, a little more on a big figure)
+varying float v_qh;
+varying float v_qx;
+varying float v_clip;
+varying float v_band;
+const float GROUND_BAND = 0.12;
+const vec3 GROUND_SAND = vec3(0.86, 0.69, 0.45);
 
 void vertex() {
+	v_qh = VERTEX.y + 0.5;
+	v_qx = VERTEX.x + 0.5;
+	v_clip = MODEL_MATRIX[2].y;
 	float frame = floor(INSTANCE_CUSTOM.x);
 	float sg = floor(INSTANCE_CUSTOM.y / 64.0);
 	float rest = INSTANCE_CUSTOM.y - sg * 64.0;
@@ -69,6 +84,7 @@ void vertex() {
 	vec3 right = normalize(cross(up, cam_back));
 	float w = sx * (1.0 + (1.0 - squash) * 0.5);
 	float h = sy * squash;
+	v_band = (GROUND_BAND + 0.04 * h) / max(h, 0.1);
 	// a roll about the feet (pass 50: a charger's rock and lean), read off the angle of the instance's x column; a plain
 	// scaled basis rolls 0
 	float roll = atan(MODEL_MATRIX[0].y, MODEL_MATRIX[0].x);
@@ -80,6 +96,15 @@ void vertex() {
 }
 
 void fragment() {
+	// pass 73 (lane GROUND): the part under the sand is cut along a slightly ragged line of sand
+	float above = 1.0;
+	if (v_clip > 0.0) {
+		float cut = v_clip + v_band * 0.32 * (sin(v_qx * 23.0 + 0.4) + 0.7 * sin(v_qx * 61.0 + 1.7) + 0.4 * sin(v_qx * 137.0));
+		if (v_qh < cut) {
+			discard;
+		}
+		above = clamp((v_qh - cut) / max(v_band, 0.0001), 0.0, 1.0);
+	}
 	vec4 c = texture(sprite, v_uv);
 	if (c.a < alpha_cut) {
 		// the rim: a pixel just outside the figure takes a dark red, up to two screen pixels out at full mark; a glowing
@@ -171,6 +196,8 @@ void fragment() {
 			col = mix(col, v_rim, 0.85 * v_sglow);
 		}
 	}
+	// pass 73: sand clings to the painting just above the cut while it rises or sinks
+	col = mix(col, GROUND_SAND, (1.0 - smoothstep(0.0, 1.0, above)) * 0.85);
 	ALBEDO = col;
 	}
 }

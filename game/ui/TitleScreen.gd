@@ -36,6 +36,27 @@ const PLAQUE_UP := 590.0
 const PLAY_UP := 360.0
 ## The plaque's foot sits this far above PLAY (the mock's 1497 -> 1560); the plaque grows upwards from there.
 const PLAQUE_GAP := 63.0
+## Pass 73 (Garry: "The size of the hero plaque in the main menu keeps changing depending on which hero you're looking
+## at ... Make it so that it stays static ... The font size should be consistent for all the heroes"): one height for
+## every hero in every state (owned, on sale, locked), the Hero Collections button a square of it, the width what the
+## screen leaves; inside, the padding (border included) and one set of sizes: the name, the flavour (at most
+## LINE_MAX lines), the trait's numbers and every label. The longest hero decides them (pass73_uipc_test fits every
+## hero in every state); a hero whose words do not fit is cut at the plaque's edge rather than moving anything.
+const PLAQUE_H := 200.0
+const PLAQUE_PAD := Vector2(30, 19)
+const NAME_PX := 52
+const LINE_PX := 24
+const LINE_LH := 29.0
+const LINE_MAX := 2
+const VALUE_PX := 30
+const LABEL_PX := 18
+const PLATE_PX := 84.0
+## The plates' column on the right (two plates: START and FAVOURITE, the wider label's width each), and the gap
+## between it and the words.
+const ITEMS_W := 216.0
+const ITEMS_GAP := 20.0
+## The most item plates the plaque shows: the start weapon and the favourite (the hero's sheet lists any other).
+const PLATES_MAX := 2
 const MAP_UP := 200.0
 ## A finger that travels this far sideways over the hero changes it.
 const SWIPE := 90.0
@@ -62,7 +83,9 @@ var _dots: Control
 var _plaque: PanelContainer
 var _name: WText
 var _line: WText
+## The item plates (START, FAVOURITE) on the plaque's right; the trait's numbers flow under the flavour (pass 73).
 var _stats: HBoxContainer
+var _trait: HFlowContainer
 var _play: WButton
 var _map_tap: WTap
 var _map_line: WText
@@ -278,7 +301,7 @@ func _build_hero_row() -> void:
 func _build_lower() -> void:
 	var tap := WTap.new()
 	tap.name = "Plaque"
-	tap.box = W.box(W.PAPER, 5, 8).pad(35, 27, 35, 27)
+	tap.box = W.box(W.PAPER, 5, 8).pad(PLAQUE_PAD.x, PLAQUE_PAD.y, PLAQUE_PAD.x, PLAQUE_PAD.y)
 	tap.pressed.connect(open_sheet)
 	_plaque = tap
 	add_child(_plaque)
@@ -287,7 +310,6 @@ func _build_lower() -> void:
 	_drawer_btn = WTap.new()
 	_drawer_btn.name = "HeroesButton"
 	_drawer_btn.box = W.box(W.PAPER, 5, 8)
-	_plaque.resized.connect(_on_plaque_resized)
 	_drawer_btn.custom_minimum_size = Vector2(BOX_BTN, BOX_BTN)
 	_drawer_btn.size = Vector2(BOX_BTN, BOX_BTN)
 	_drawer_glyph = Control.new()
@@ -297,33 +319,63 @@ func _build_lower() -> void:
 	_drawer_btn.add_child(_drawer_glyph)
 	_drawer_btn.pressed.connect(toggle_drawer)
 	add_child(_drawer_btn)
-	var pv := VBoxContainer.new()
-	pv.add_theme_constant_override("separation", 14)
-	pv.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_plaque.add_child(pv)
+	# pass 73: the insides sit in a plain Control, so no hero's words can make the plaque grow; the name at the top left,
+	# the flavour under it, the trait's numbers along the foot (a second row when they need it), the item plates top
+	# right and "Details ›" (what a tap on the plaque does, pass 61) in the bottom-right corner
+	var body := Control.new()
+	body.name = "Body"
+	body.clip_contents = true
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_plaque.add_child(body)
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 26)
+	h.name = "Columns"
+	h.add_theme_constant_override("separation", int(ITEMS_GAP))
 	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pv.add_child(h)
+	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	body.add_child(h)
 	var left := VBoxContainer.new()
-	left.add_theme_constant_override("separation", 6)
+	left.name = "Words"
+	left.add_theme_constant_override("separation", 4)
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(left)
-	_name = W.slab_text("", 56, W.INK, HORIZONTAL_ALIGNMENT_LEFT, 56.0)
+	_name = W.slab_text("", NAME_PX, W.INK, HORIZONTAL_ALIGNMENT_LEFT, float(NAME_PX))
+	_name.name = "Name"
 	left.add_child(_name)
-	_line = W.serif_text("", 24, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, 0.0, true)
+	_line = W.serif_text("", LINE_PX, W.INK_SOFT, 400, true, HORIZONTAL_ALIGNMENT_LEFT, LINE_LH, true)
+	_line.name = "Flavour"
+	_line.max_lines = LINE_MAX
 	left.add_child(_line)
-	# what a tap on the plaque does (pass 61)
-	var more := W.label("Details ›", 16, W.BRASS_DARK, 0.15)
-	more.name = "Details"
-	left.add_child(more)
+	var gap := Control.new()
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	left.add_child(gap)
+	_trait = HFlowContainer.new()
+	_trait.name = "Trait"
+	_trait.add_theme_constant_override("h_separation", 22)
+	_trait.add_theme_constant_override("v_separation", 6)
+	_trait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	left.add_child(_trait)
+	var right := VBoxContainer.new()
+	right.name = "Items"
+	right.add_theme_constant_override("separation", 0)
+	right.custom_minimum_size = Vector2(ITEMS_W, 0)
+	right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.add_child(right)
 	_stats = HBoxContainer.new()
-	_stats.add_theme_constant_override("separation", 14)
-	_stats.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_stats.name = "Plates"
+	_stats.add_theme_constant_override("separation", 12)
+	_stats.alignment = BoxContainer.ALIGNMENT_END
 	_stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	h.add_child(_stats)
+	right.add_child(_stats)
+	var gap2 := Control.new()
+	gap2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	gap2.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right.add_child(gap2)
+	var more := W.label("Details ›", LABEL_PX, W.BRASS_DARK, 0.15)
+	more.name = "Details"
+	more.align = HORIZONTAL_ALIGNMENT_RIGHT
+	right.add_child(more)
 	_play = WButton.make(["PLAY"], 84, WButton.PRIMARY, 6, 10, 22.0, 22.0, 84.0)
 	_play.pressed.connect(_on_play)
 	add_child(_play)
@@ -381,11 +433,11 @@ func _build_lower() -> void:
 func _place() -> void:
 	var vp := get_viewport_rect().size
 	# pass 69: the Hero Collections button takes the plaque's left end; the plaque keeps its right edge (PLAY's)
-	# pass 70: the button is a square as tall as the plaque (drawer_side settles the two together)
+	# pass 70: the button is a square as tall as the plaque; pass 73: both one size whatever the hero (PLAQUE_H)
 	var btn_side := drawer_side(vp)
 	var plaque_x := BOX_LEFT + btn_side + BOX_GAP
-	_plaque.size = Vector2(vp.x - 60.0 - plaque_x, 0)
-	var plaque_h := _plaque.get_combined_minimum_size().y
+	var plaque_h := btn_side
+	_plaque.size = Vector2(vp.x - 60.0 - plaque_x, plaque_h)
 	var plaque_top := vp.y - PLAY_UP - PLAQUE_GAP - plaque_h
 	_plaque.position = Vector2(plaque_x, plaque_top)
 	_drawer_btn.custom_minimum_size = Vector2(btn_side, btn_side)
@@ -397,7 +449,9 @@ func _place() -> void:
 	_map_tap.position = Vector2(0, vp.y - MAP_UP)
 	_map_tap.size = Vector2(vp.x, 0)
 	var top := HERO_TOP + W.safe_top() + (vp.y - 1920.0) * 0.5
-	var room := plaque_top - 38.0 - 440.0
+	# the room between the title's words (440 on a 1920 screen, moved down by a camera cutout's inset: pass 73, the
+	# hero's hat reached the tag line on a short screen with a cutout) and the plaque
+	var room := plaque_top - 38.0 - 440.0 - W.safe_top()
 	var k := clampf(room / HERO_SIZE.y, 0.5, 1.0)
 	if top + HERO_SIZE.y * k > plaque_top - 38.0:
 		top = plaque_top - 38.0 - HERO_SIZE.y * k
@@ -501,16 +555,17 @@ func _show_plaque(c: CharacterDef) -> void:
 	var locked := _is_locked(c)
 	_dots.queue_redraw()
 	_name.text = ("The " + c.display_name) if c.id == "drifter" else c.display_name
-	# out of the row at once: a queued plate still counts, and the plaque sized in that moment stayed too wide
-	for s in _stats.get_children():
-		_stats.remove_child(s)
-		s.queue_free()
+	# out of the rows at once: a queued plate still counts in its row's size
+	for row: Control in [_stats, _trait]:
+		for s in row.get_children():
+			row.remove_child(s)
+			s.queue_free()
 	_line.visible = not locked
 	if locked:
 		_name.text = "Unknown"
 		_line.text = ""
 		for st in _stats_of(c):
-			_stats.add_child(_stat("?", "???", true, true))
+			_trait.add_child(_stat("?", "???", true, true))
 		var start0 := Registry.start_weapon_for(c)
 		if start0:
 			_stats.add_child(_item_plate(start0, "Start", 1, true))
@@ -522,9 +577,9 @@ func _show_plaque(c: CharacterDef) -> void:
 		_line.color = W.INK_SOFT
 		_line.text = c.flavour
 		for st in _stats_of(c):
-			_stats.add_child(_stat(st[0], st[1], bool(st[2])))
+			_trait.add_child(_stat(st[0], st[1], bool(st[2])))
 		# the hero's items as plates: the weapon he lands with (pass 47b, Garry: Ironwood's Spear did not show), the
-		# favourite, then any other weapon only this hero can find
+		# favourite, then any other weapon only this hero can find while there is room (PLATES_MAX, pass 73)
 		var start := Registry.start_weapon_for(c)
 		if start:
 			_stats.add_child(_item_plate(start, "Start", start_level(c, start)))
@@ -532,7 +587,7 @@ func _show_plaque(c: CharacterDef) -> void:
 		if fav and fav != start:
 			_stats.add_child(_item_plate(fav, "Favourite", start_level(c, fav)))
 		for w: WeaponDef in _own_weapons(c):
-			if w != start:
+			if w != start and _stats.get_child_count() < PLATES_MAX:
 				_stats.add_child(_item_plate(w, "Special", 1))
 	_play.locked = locked
 	_play.set_parts(["LOCKED" if locked else "PLAY"])
@@ -569,19 +624,22 @@ static func start_level(c: CharacterDef, def: ContentDef) -> int:
 	return 1
 
 
-## An item on the plaque: its 92 px plate in the colour of the level he has it at and a tracked word under it (START,
-## FAVOURITE, SPECIAL).
+## An item on the plaque: its plate (PLATE_PX) in the colour of the level he has it at and a tracked word under it
+## (START, FAVOURITE, SPECIAL) at the plaque's one label size (pass 73: 14 px before, too small to read on the phone).
 func _item_plate(def: ContentDef, word: String, level: int = 1, mystery: bool = false) -> VBoxContainer:
 	var col := _column()
 	col.name = word
 	col.set_meta("def", def)
 	col.set_meta("level", level)
-	var p := WPlate.new().for_def(def, 92.0, false, level)
+	var p := WPlate.new().for_def(def, PLATE_PX, false, level)
 	p.icon_frac = 68.0 / 92.0
+	p.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	# pass 69: a hero not owned yet shows only the item's black shape and a "?"
 	p.mystery = mystery
 	col.add_child(p)
-	col.add_child(W.label(word, 14, W.INK_SOFT, 0.1))
+	var l := W.label(word, LABEL_PX, W.INK_SOFT, 0.1)
+	l.align = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(l)
 	return col
 
 
@@ -624,13 +682,23 @@ func _column() -> VBoxContainer:
 	return v
 
 
-## One number on the plaque: sage slab (dark red for a debuff) over a tracked label.
-func _stat(value: String, what: String, good: bool = true, unknown: bool = false) -> VBoxContainer:
-	var v := _column()
-	var n := W.slab_text(value, 34, W.INK_SOFT if unknown else (W.SAGE if good else W.BAD_DARK), HORIZONTAL_ALIGNMENT_CENTER, 0.0)
+## One of the trait's numbers on the plaque: sage slab (dark red for a debuff) and its tracked label beside it, on one
+## baseline (pass 73: the numbers flow along the plaque's foot; they stood over their labels in a row that pushed the
+## plaque wider and taller).
+func _stat(value: String, what: String, good: bool = true, unknown: bool = false) -> HBoxContainer:
+	var v := HBoxContainer.new()
+	v.name = "Stat"
+	v.add_theme_constant_override("separation", 7)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var n := W.slab_text(value, VALUE_PX, W.INK_SOFT if unknown else (W.SAGE if good else W.BAD_DARK), HORIZONTAL_ALIGNMENT_LEFT, float(VALUE_PX))
+	n.name = "Value"
 	v.add_child(n)
-	var l := W.label(what, 14, W.INK_SOFT, 0.1)
-	l.align = HORIZONTAL_ALIGNMENT_CENTER
+	var l := W.label(what, LABEL_PX, W.INK_SOFT, 0.1)
+	l.name = "Label"
+	# the label's line box at the foot of the number's: their baselines meet (Alfa Slab's at 25.5 of 30, Bitter's at
+	# 17 of 22)
+	l.custom_minimum_size.y = float(VALUE_PX)
+	l.valign = VERTICAL_ALIGNMENT_BOTTOM
 	v.add_child(l)
 	return v
 
@@ -994,36 +1062,17 @@ func _on_drawer_pick(h: CharacterDef) -> void:
 
 
 ## Pass 70 (Garry: "make it the same height as the Hero plaque while maintaining square aspect ratio"): the Hero
-## Collections button's side, the plaque's height at the width that side leaves it. The plaque's line can wrap, so its
-## height may follow its width: a few rounds settle the pair (one on every hero today). Leaves the plaque at that width.
-func drawer_side(vp: Vector2) -> float:
-	var side := maxf(_drawer_btn.size.x, BOX_BTN) if _drawer_btn else BOX_BTN
-	for k in 4:
-		_plaque.size = Vector2(vp.x - 60.0 - (BOX_LEFT + side + BOX_GAP), 0)
-		var h := _plaque.get_combined_minimum_size().y
-		if absf(h - side) < 0.5:
-			return h
-		side = h
-	return side
+## Collections button's side, the plaque's height. Since pass 73 that height is PLAQUE_H for every hero (it followed
+## the hero's words before, and the button, the plaque and the hero above them moved with every swipe). `vp` is kept
+## for the callers.
+func drawer_side(_vp: Vector2) -> float:
+	return PLAQUE_H
 
 
-## The plaque laid out again (its line wrapped at the width it was given, later than _place asked): when its height is
-## no longer the button's side, the lower block is placed again so the two stay one height (pass 70). A few times a
-## frame at most, so a line that wraps back and forth cannot loop.
-var _fit_frame := -1
-var _fit_runs := 0
-func _on_plaque_resized() -> void:
-	# not before the lower block is whole (_build_lower fills the plaque after connecting this)
-	if not is_inside_tree() or _lower.is_empty() or absf(_plaque.size.y - _drawer_btn.size.y) <= 0.5:
-		return
-	var f := Engine.get_process_frames()
-	if f != _fit_frame:
-		_fit_frame = f
-		_fit_runs = 0
-	if _fit_runs >= 2:
-		return
-	_fit_runs += 1
-	_place()
+## The plaque's room inside its border and padding (pass 73): what the name, the flavour, the numbers and the plates
+## share, the same for every hero.
+func plaque_inner() -> Vector2:
+	return _plaque.size - PLAQUE_PAD * 2.0 if _plaque else Vector2.ZERO
 
 
 ## The glyph's grid (pass 70): its squares span GLYPH_SPAN of the button's side, GLYPH_GAP of a square apart.

@@ -144,7 +144,8 @@ func _tick(delta: float) -> void:
 			var best_d := float(strike.get("reach", 6.0))
 			for e in enemies.indices_in_radius(center, float(strike.get("reach", 6.0))):
 				var dd := (enemies.pos[e] - center).length()
-				if dd > r + 0.4 and dd < best_d:
+				# (pass 73, lane GROUND: never one still rising out of the sand)
+				if dd > r + 0.4 and dd < best_d and enemies.targetable(e):
 					best_d = dd
 					best = e
 			if best >= 0:

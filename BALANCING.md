@@ -1716,3 +1716,353 @@ All numbers are constants in `ui/ResultsScreen.gd` (the show), `ui/wanted/WKillC
 - **A hero on sale with no unlock quest is buyable at once** (Registry.hero_state "buyable" on a clean save): Astro since
   Garry's 2026-10-13 edit (300 gold), Fadeaway (1,000) before. A save that played Astro while she was free does not own
   her now (Save.load_save opens it on the Drifter until she is bought; the developer menu's own_every_hero still owns all).
+
+## 20. Pass 73 (v0.59): priority targets, the Saiga Sniper, burrows and rain, fortune cards, Totem Poles
+
+Garry's request (2026-10-14, tools/dl/p73/REQUEST.md). Each lane's rules as it wrote them.
+
+### 20.SNIPER Target priority, the Saiga Sniper, flee on hit, the Raider's rocket
+
+Every number below is data (the file named) unless marked *code*; Garry tunes the data in the Level Editor.
+
+## Target priority (map `timeline_data.target_priority`, WaveTimeline.TARGET_PRIORITY_DEFAULTS)
+- **Rule**: every weapon that chooses its target takes a *priority creature* first when one is within
+  `reach` = min(the weapon's own targeting range, `target_priority.reach` **10 m**) of the hero; among several, the
+  nearest. `enabled` **true**. A map without the block plays the defaults (on, 10 m). Red Canyon names the block.
+- **Priority creature** (*code*, EnemyManager.is_priority): a coloured variance special, a gear-badge creature (the
+  Vulture Raider, the Harpoon Troglodyte, the Saiga Sniper), an Elite by its kind, a creature wearing an elite
+  modifier, the boss. Never one dying, buried, held, or still under 70% risen (lane GROUND's grid rule).
+- **Where it is measured from** (*code*): the hero; a turret from itself; a homing seeker's retarget from the hero.
+  On the screen only, as the weapon's own pick (Settings.ranged_on_screen), unless the weapon hunts off the screen
+  (missiles, hawks).
+- **Which weapons** (*code*): every pick through WeaponBehavior.aim_index (the guns, the held gun's tracking and the
+  companion, the Spear and Sabre lines, the turrets, the Missile Pod's lock, the Frisbee) and now the Guitarra's chords
+  and Big Mouth's beam (they went to the nearest by hand); the "healthy" and "random" picks; missile seekers.
+- **Volleys spread over different creatures keep that rule; only their first shot takes the priority one** (*code*):
+  the Sun Scepter's first pillar (the rest drawn as before, none twice), the Zap Beam's first link (the chain goes on
+  as before), the Lobber's first bomb (the others on other crowds), the Hammer's first head and the Gravity Gun's first
+  throw (WeaponBehavior.crowd_spots' first spot), the Singularity's black hole, the first Tarantula Hawk (one hawk a
+  creature).
+- **Untouched**: orbits and auras (Orbiter), the Salt's patches, mines and their triggers, the Golden Pineapple's
+  landing stick, a dead Raider's loose rocket.
+- **Cost** (perf_late build=six, stage 3, headless PC, 2 × 20 s each): the query scans a short list of the priority
+  creatures alive (gathered once a tick), so it costs nothing measurable; the weapons' own time reads 0.44-0.71 ms a
+  frame with the rule on against 0.44-0.45 off, the spread being what they hit when an Elite or a special is in reach
+  (frame 6.1-7.0 ms on, 6.8 off: noise).
+
+## The Saiga Sniper (`content/enemies/saiga_sniper/saiga_sniper.json`, block `sniper`)
+- A special (gear badge), never an Elite (`can_be_elite` false), never grabbed, at most 1 alive (`max_alive`).
+  HP **35**, XP × **3.5** (the Vulture Raider's), walk **3.2** m/s, bite 8, bite knock 4.81, size 3.0, radius 0.8,
+  drops as the Raider's.
+- **Spawn**: placed at `stand_off` **26 m** from the hero (never nearer, inside the wall), like the Raider.
+  First aim `first` **2.5 s** after he arrives.
+- **Walk** (*code* rules, data numbers): hero nearer than `flee_range` **14 m** -> he runs straight away (sliding along
+  the wall when backed against it), never aims; farther than `follow` **38 m** -> walks back in; between -> stands and
+  aims when his rest is over.
+- **Aim**: frozen (no walk, the `attack` strip = his aiming pose, front or back half by his facing), `aim` **2.0 s** of
+  red lines gathering on the hero and following him (a quick ease, 10/s, *code*), then the lock: `lock` **1.0 s** of a
+  still, blinking line (3 -> 11 Hz, *code*), then the shot. Both × 1/pace like every wind-up: on Red Canyon
+  (move_pace 0.9 × creature_speed_mult 0.9 = 0.81) the aim shows **2.47 s** and the hold **1.23 s**. (For exactly 2.0 /
+  1.0 s there, set aim 1.62 and lock 0.81.)
+- **The lines** (`cone_deg` **44**, `lines` **14**; *code*: the k-th appears at (aim − 0.2) × (k / lines)^0.6, so they
+  come closer and closer together; each sweeps in from its side of the cone, starting at 75-100 % of the half cone, over
+  0.8 s for the first down to 0.2 s for the last; sides alternate; every one lands by the lock; the line on the hero
+  brightens with each arrival).
+- **The shot** (`beam`): from the muzzle (`muzzle` {up 1.95, side 1.3, forward 0.2}, to be fitted to ART's painting)
+  along the locked line for `length` **60 m**, `width` **0.5 m**, shown `seconds` **0.15 s** (a white core in a red glow),
+  then a red afterglow and sparks (2.4 a metre, *code*) shimmering and fading over `sparks` **1.5 s**.
+- **The hero** is hit when his feet are within half the width + **0.4 m** (*code*) of the line: damage =
+  `damage_mult` **0.7** × the missile damage of `damage_from` (**rocketeer**: 22 -> 15.4) × the sniper's own stage,
+  hero-level and hostile factors (as the rocket's); knock `knockback` **5** m/s along the beam. A fixed `damage` 15.4 is
+  used when `damage_from` names nobody.
+- **Creatures on the line** (their feet within half the width + their radius): `creature_frac` **5 %** of their max HP,
+  at most `creature_max` **40**, from nobody (no crit, no item effects), and pushed `push` **3 m** off the line to the
+  side they stood on (an 18 m/s knock × their knockback_resist share; a boss 0.15 × that). It is a hit: their flee on
+  hit, a Raider's rocket slow.
+- **After the shot** (*code*, SNIPER_AFTER_HOLD **0.35 s**): he keeps the aiming pose through the beam's flash and a
+  breath after, then may move (he had dropped to his walk on the very frame the beam showed).
+- **Interval**: `interval` **9 s** ± `interval_jitter` **1.5 s** from shot to shot (the rest after a shot = interval ±
+  jitter − (aim + lock) / pace, never under 0.5 s, *code*).
+- **A spoiled aim**: a hit (flee on hit), a stun, a freeze, a launch, a grab or the hero's death drops the aim (no shot);
+  the next aim waits at least `recover` **2.5 s**.
+- **Red Canyon**: one row `{"enemy": "saiga_sniper"}` in `specials.pool` beside the Raider's (no `stage`: from stage 1,
+  as his). The pool draws evenly among its open rows and keeps one special at a time (`max_alive` 1), so in stage 1 the
+  Sniper and the Raider now come equally often, **each half as often as the Raider alone did**; from stage 2 a third
+  each with the harpooner. (If Garry wants the Raider's own rate kept, raise `specials.max_alive` to 2 or shorten
+  `specials.interval`.)
+- Sounds (synthesised by tools/synth_sfx.py): `en_sniper_aim` (2 s whine, −10 dB), `en_sniper_lock` (−1 dB),
+  `en_sniper_shot` (0 dB). The hint "SAIGA SNIPER: step off his red line before he fires. Hit him to spoil his aim."
+  shows once.
+
+## Flee on hit (any creature, block `flee_on_hit`)
+- `seconds` **1.0**, `speed_mult` **1.8**, `interrupts` **true** (the Sniper's numbers; none on any other creature).
+- **Rule** (*code*): a hit that takes health (never a poison or fire tick) sends it straight away from the hero at its
+  speed × `speed_mult` for `seconds` (along the wall when backed against it, round the rocks), its brain idle; a new hit
+  starts the clock again, never a faster run. Never a boss; not while held, buried or in the air.
+- With `interrupts`: a wind-up under way is dropped (its next try waits ≥ 1 s; the Raider's rocket stays in the tube
+  and he reloads), a scripted attack is dropped (its script waits ≥ 1 s), the Sniper's aim is dropped (`recover`).
+
+## The Vulture Raider's rocket (`rocketeer.json`, `artillery.missile.hit_slow`)
+- `mult` **0.5**, `recover` **3.0 s**, `shake` **0.35 s**.
+- **Rule** (*code*): every hit on the Raider (never a tick) drops each of his rockets under guidance to `mult` of its
+  speed at once; it climbs back to full in a straight line over `recover` seconds; a hit while it climbs starts the
+  climb again from `mult` (never lower). The recovery runs on the creatures' shot clock like every hostile shot's flight
+  (× 1/pace: **3.7 s** on Red Canyon). It shakes for `shake` s: position ±0.16 m and nose ±16° (*code*), fading out.
+  No `hit_slow` = never slowed (any other artillery creature).
+- Fix: a Raider whose wind-up was dropped (a stun, a launch, now a hit's flee) waited for good for a rocket that never
+  left; he now winds up again.
+
+### 20.GROUND The Gila's rain and burrow, the Scorpion's burrow, summons, growing out of the ground
+
+## The Gila's cactus rain, reworked (content/boss_attacks/cactus_rain; Garry: "each spot where the projectile will fall is highlighted. At once they wait for a little bit and then the boss does his animation of all those projectiles flying out of his mouth but they all land around the same time. Also make it so that the projectiles are bigger and they affect a bigger area so there is less space for the player to hide in")
+
+- **New attack keys** (BossAttackDef, the Boss attacks tab): `landing.mode` "stagger" (pass 72: one after another
+  from the boss's back over `timing.stagger`) | "volley" (one spew from the mouth); `telegraph.all_at_once`; the `spew`
+  group {crouch, burst, mouth, squash, stretch}.
+- **All at once** (`telegraph.all_at_once` true, a rain): every landing circle lights up together `telegraph.seconds`
+  before the spikes leave and stays lit until its own spike lands. The wind-up the runner plays is
+  max(`timing.windup`, `telegraph.seconds`) (BossAttackDef.windup_seconds), so the circles can show that long; when
+  the wind-up is longer they light `telegraph.seconds` before its end. In the game the circles are held ground marks at
+  full radius (a disc at 0.26 alpha and a ring pulsing 0.74 ± 0.14 while they wait; after the spew the disc fills to
+  0.46 as its spike comes down and the ring blinks in its last 0.3 s), each released as its spike lands, all of them
+  if the boss dies or leaves its attack before the spew. No outline of the area then.
+- **Volley** (`landing.mode` "volley"): the spots are laid out at the wind-up's start (the pass-72 layout and gap rule);
+  at the spew every spike leaves the boss's mouth (its feet, up its painting `spew.mouth` × its size, 0.45 m towards the
+  camera) within `spew.burst` seconds (at random) and flies `projectile.flight` + (`timing.stagger` − burst) × dn,
+  dn = 0 for the spot nearest the centre .. 1 for the farthest (BossAttackDef.volley_times), so every spike lands within
+  `timing.stagger` of the others, the nearest first. The boss stands `spew.burst` + 0.35 s after the spew (hold −1).
+- **The spew's animation**: through the last `spew.crouch` seconds of the wind-up (× 1/pace) the boss is squashed from 1
+  to `spew.squash` (shorter and wider); at the spew it stretches to `spew.stretch` (taller and narrower, easing back to
+  1 at the creatures' usual rate), a light flash (0.25) and a burst of the shots' colour at its mouth.
+- **Red Canyon's cactus rain**: volley, all at once, `telegraph.seconds` 1.4 and `timing.windup` 1.4 (1.73 s on the map,
+  pace 0.81), `timing.stagger` 0.25, flight 1.1, arc 7, spikes `projectile.size` 2.72 (pass 72's 1.7 × 1.6), landing
+  radius 1.4 m (pass 72: 0.9; the hero is hit when his middle is within 1.6 m), pattern rings 3.6-16 m, spacing 3.9
+  (pass 72: 3.2), gap 1.0 (the rule), jitter 0.25; spew crouch 0.35, burst 0.12, mouth 0.62, squash 0.82, stretch 1.25.
+  Damage 0.75 × bite and knockback 4 unchanged. Typical: 59 spots, the narrowest gap 1.0-1.1 m, the median gap between
+  neighbours 1.1-1.2 m (Garry: "less space"; pass 72: 1.1-1.4 m), the circles cover about 48% of the ring (pass 72:
+  20%); on the map the spikes land 1.36-1.65 s after the spew, all within about 0.3 s.
+
+## Burrowing you can see; the Gila's three hidden seconds and its predicted eruption (Garry: "the boss just disappears and then pops out. It would be nice if I can actually see him burrowing into the ground ... also true for the Scorpion Elite"; "wait for 3 seconds ... not showing the player where the attack is going to happen ... tries to guess where the player is going to be ... in the next 2 steps or so"; "throw other enemies out of the way and the Player too. Enemies don't get a lot of damage ... a real throw instead of just a knockback. Scorpion attack also does this, but not as strong")
+
+- **Keys** of a `burrow` entry (the creature's boss.attacks; the Enemies tab's attack card), all optional, the old
+  behaviour without them: `sink` (s, 0), `rise` (s, 0.4 = RISE_TIME), `predict` (s, 0), `warn` (s, 0.4), `mound` (true),
+  `throw_up` (m, 0), `throw_out` (m, 0), `throw_air` (s, empty = from the height), `throw_control` (0.15),
+  `creature_up` (m, 0), `creature_out` (m, 0), `creature_damage` (share of max HP, 0). The wind-up still runs from the
+  dig to the eruption (× 1/pace).
+- **The sink**: with `sink` > 0 the creature sinks out of sight where it stands over `sink` / pace seconds (the
+  ground-clip below), a ring of dust round it at the start (Fx.dig_ring), sand spraying off it every 0.09 s (Fx.dig_spray)
+  and a small poof (pop_dust at 0.6 × its size) as the sand closes; then it is hidden (not drawn, not hit, no shadow).
+  It can be hit while it sinks (and is passed over as a target once it is under 70% of the way out). A burrow dropped
+  before it erupts (its attack ends or another starts) brings it back up at RISE_TIME's rate.
+- **The ring and the mound** (no `predict`): as pass 60, the ring at the hero's spot at the wind-up's start and the mound
+  swelling there, the mound kept through the sink. **Predict** (> 0): nothing shows (no ring, no mound, no shadow) until
+  `warn` / pace seconds before the eruption; then the spot is fixed at the hero's place plus his flat velocity ×
+  `predict` (EnemyManager.predict_spot), kept on the walkable map (the map's clamp_to_arena), and a red ring of the
+  burrow's radius shows there for what is left of the wind-up.
+- **The eruption**: up at the spot over `rise` / pace seconds through the ground-clip (pop_dust at its size, a flash ring
+  at its radius, the camera's kick 1.3 with a throw, 1.0 without). The hero within radius + 0.5 m takes damage × stage ×
+  host (as pass 60). With `throw_up` > 0 and a hit that landed (or an Energy Shield's catch; never an evade, the
+  Invincibility bubble, an immune blink or a hero already in the air) he is thrown on his airborne arc
+  (Player.trampoline_launch): `throw_up` m up, `throw_out` m away from the eruption's middle (away from where it dug in
+  when he stands within 0.3 m of the middle), over `throw_air` s or sqrt(8 × up / 24) (his gravity: 2.5 m = 0.91 s,
+  1.3 m = 0.66 s), the stick bending the arc by `throw_control` of his walk; nothing hits him in the air (pass 70's
+  rule). Without `throw_up` the old shove of `knockback`.
+- **The crowd**: every creature within radius + 0.5 m but the burrower goes `creature_up` m up (pass 69's launch: no
+  walk, bite or attack in the air) over clamp(sqrt(8 × up / 24), 0.45, 1.4) s, drifting `creature_out` × (1 −
+  knockback_resist) m away from the middle, and takes `creature_damage` × its max HP as it lands (no hero credit). One
+  that cannot go up (the boss, an Elite or an elite-modded one, one already in the air or rising) takes it at once and a
+  shove of 3 × `creature_out` m/s × its share (× 0.15 for the boss).
+- **The Gila Grande's burrow**: windup 4.0 = sink 0.6 + 3.0 under unseen + warn 0.4 (on Red Canyon, pace 0.81: 0.74 +
+  3.7 + 0.49 = 4.94 s), radius 5 (Garry's), damage 32, telegraph none, predict 0.6, rise 0.6, throw_up 2.5, throw_out
+  4.0, creature_up 2.5, creature_out 4.0, creature_damage 0.03. Note: with a 0.49 s warning and a 5 m radius a hero who
+  keeps his line is hit; the counter is to change course while it is under (the warning and the radius are the knobs).
+- **The Dune Scorpion's burrow**: windup 2.3 (sink 0.6, then about 1.7 under with its ring and mound), radius 4.6,
+  damage 24, telegraph ring_at_hero, rise 0.6, throw_up 1.3, throw_out 2.0, creature_up 1.3, creature_out 2.0,
+  creature_damage 0.03.
+
+## Summons (Garry: "Spawning enemies with a skill should never allow for any special enemies. Also spawn 4 more. Do the same for Tumbleweed King and the other Boss")
+
+- A creature brought by an attack (spawn_ring; an erupt's young) never rolls its variance special (EnemyManager.
+  force_plain, held by the runner round the spawn); its tints still roll.
+- spawn_ring counts: the Tumbleweed King 12 → 16 tumbleweed minions, the Gila Grande 8 → 12 sand lizards, the Brander
+  10 → 14 imps.
+
+## Growing out of the ground (Garry: "currently the enemies just kind of appear. Let's make it so that they grow out of the ground. Kind of like expand out of it or something")
+
+- **Where**: map `timeline_data.spawn_rise` {seconds, big_seconds, targetable, dust} (WaveTimeline.spawn_rise,
+  SPAWN_RISE_DEFAULTS {0.45, 0.9, 0.7, 1.0}; a key or the whole block left out plays the default; seconds 0 = off),
+  handed to EnemyManager.set_spawn_rise by WaveDirector._apply_mults (a run and the arena). Without a director (tests,
+  tools) spawns appear at once as before. Red Canyon names 0.45 / 0.9 / 0.7 / 1.0. Level Editor: Settings → Spawning.
+- **Rule**: every creature that spawns (roster, waves, events, summons, an erupt's young, the arena; not one waiting
+  buried, the ambush brain) rises out of the sand over `seconds` / pace (0.56 s on Red Canyon; an Elite or a boss by its
+  kind `big_seconds` / pace = 1.11 s): its spawn state lasts the whole rise (it stands, bites nobody, starts no attack).
+  The lead's rule (pass 73): no weapon CHOOSES it as its target until it is `targetable` (0.7) of the way up
+  (EnemyManager.targetable: nearest_index, priority_index, priority_target, random_in_range, densest_point, screen_ok =
+  the crowd spots and the Gravity Gun, a beam's chain, a shot's ricochet and "ahead" picks, the Land Mine's sense, the
+  Orbiter's strike), but area damage hits it all along (it stays in the crowd's grid: blasts, the revive, the Nuke,
+  patches, beams, rings, ground fire, the sniper's line). A burrower rising or sinking follows the same rule.
+- **Look**: the billboard's ground-clip cuts the part under the sand along a ragged line, the painting just above it
+  sand-dusted (0.12 m + 0.04 × its height, 85% sand at the cut); the figure a touch stretched (1.12 → 1) as it pushes
+  up; a small dust puff at its feet (4-7 puffs and 3-6 grains × `dust` × its size, only on the screen, thinned with the
+  rest when the screen is busy unless it is an Elite's or a boss's); a creature 2.4 m or taller sprays sand off itself
+  every 5 ticks all the way up.
+- **Cost**: the cut's share rides in the instance transform's basis z column (MODEL_MATRIX[2].y, read by nothing else;
+  no new buffer, no new draw call); perf_late (build six, 30 s, 504×1122, fixed 60): enemies.render 0.81-0.91 ms
+  (before 0.90-0.93), enemies.sim 2.1-2.4 ms (before 2.5-2.6), draw calls 190-199 (before 191-196), ~230 creatures.
+
+### 20.STRUCT Totem Poles and the Stranger
+
+Every number below lives in `game/content/structures/totem_pole/totem_pole.json` unless a code constant is named.
+
+## Totem Poles on the map
+- **Count**: 10-12 a run (`params.per_map.min` 10, `max` 12; a fresh draw each run), placed **apart from the weighted
+  draw**: the map's `structures.count` (9 on Red Canyon) still counts only the other structures, and every other kind
+  still lands at least once. A structure without `per_map` is drawn as before.
+- **Spread**: each pole is the best of `StructureManager.PER_MAP_CANDIDATES` (16) fair spots, the one farthest from
+  everything already standing; a fair spot is inside `PER_MAP_BAND` (0.24-0.88 of the arena's radius), passes the
+  structures' start rules (18 m off the flats' centre, `per_map.spacing` 14 m off every structure and pole, 3.5 m past
+  an obstacle circle, off bushes and water; the distances relax to half as the `PER_MAP_TRIES` 500 tries run out), off
+  the dry river's bed (`RIVER_CLEAR` 1.5 m past its half width) and out of every painting's cover band. Seed 11 gave
+  12 poles with the nearest two 18.5 m apart.
+- **Interaction**: ring radius 1.2 m (the others 2.2 m), the same 3.0 s to stand in it as most structures; no light on
+  the PC (`glow` false: the ring shows it, and a dozen lights cost frames).
+- **Size**: `height` 1.8 m = 75% of the other structures' median (2.4 m); the painting is drawn 1.15 x that tall, like
+  every structure.
+- **Signs**: at most one arm of a sign points at a pole (`params.per_sign` 1, SignField.per_sign_cap), so the arms
+  still lead to the shop, the Stranger and the rest (nearest first, as before).
+- **Used**: the pole turns grey (its own painting desaturated: `StructureManager.SPENT_GREY_BRIGHTNESS` 0.86,
+  `SPENT_GREY_CONTRAST` 0.92, saturation 0, tinted `SPENT_GREY_TINT` 0.93) and stays standing; it is never used again.
+  (`params.spent "grey"`; a structure with an `_off` painting keeps it.)
+- **A returning Strongbox** (pass 64's `params.respawn`, out of play since pass 70) keeps the map's spacing from the
+  other structures and only a pole's own 14 m from a pole.
+
+## The gifts
+- **Offer**: 3 gifts (`params.choices`), drawn by `weight` without putting one back, never two of one stat.
+- **Amount**: even between the gift's `min` and `max`, snapped to its `step` (1% for percents, 1 max HP, 0.1 regen).
+- **Feathers**: 1-3 feathers on a plank = which third of its range the amount's size landed in (TotemBoons.quality);
+  looks only.
+- **Duration**: the whole run; a death and a revive keep them; a new run starts without any. Each gift is its own
+  source on the sheet ("Totem: Le-loo"), so two poles giving the same spirit stack (percent gifts multiply, as every
+  `mul` does). A max HP gift brings the same health with it (Player.refresh_stats, as any max HP rise).
+- **Nothing to refuse**: a pick is free; the menu has no leave button. A pole whose pool is empty only says its name.
+- **The pool** (name, animal, stat, range, weight; 23.5 weight in all):
+
+| Word | Animal | Stat | Range | Weight |
+|---|---|---|---|---|
+| Le-loo | the Wolf | move speed (mul) | +3 to +7% | 3 |
+| El-kolie | the Whale | max HP (add) | +6 to +14 | 3 |
+| Chet-woot | the Bear | attack damage (might, mul) | +3 to +7% | 3 |
+| Thunderbird | | cooldown (mul) | -2 to -5% | 2 |
+| Ol-hiyo | the Seal | pickup radius (magnet, mul) | +8 to +18% | 2 |
+| Walalee | the Salmon | regen per second (add) | +0.2 to +0.5 | 2 |
+| Frog | | XP gain (mul) | +4 to +8% | 2 |
+| Skana | the Killer Whale | crit chance (add) | +2 to +4% | 1.5 |
+| Kuuma | the Bullhead | damage reduction (armour, add) | +2 to +4% | 1.5 |
+| Raven | | luck (add) | +3 to +6% | 1 |
+| Se-sook | the Two-headed Serpent | area of effect (mul) | +3 to +6% | 1 |
+
+  Area of effect (Se-sook) is the one stat past INTERFACES' list: the reference's eleventh word needed a gift, and the
+  two-headed serpent "reaching both ways" reads as area. Armour is the game's damage reduction ("+3% damage
+  reduction" on the plank).
+
+### 20.CARDS The line items as fortune cards
+
+The line items became fortune cards (Garry: "For our purposes I thought Fortune Teller Cards would work best"). Not one
+number moved: every level table, weight, rarity, trade and cap is as it was; the ids are as they were (saves, quests,
+analytics, the Level Editor's references). What changed is what the player reads and sees:
+
+## Names
+- Each line is a tarot card, each evolution its card "Risen" (the pattern chosen: the shortest that fits the level-up
+  card's name column; "Ascendant" ran to 817 px at the card's 60 px slab where the column holds about 700, "Risen" tops
+  out at 659 px with The Hourglass Risen).
+
+| line (id) | card | evolution (id) | card |
+|---|---|---|---|
+| brawn | The Sun | juggernaut | The Sun Risen |
+| bristle | The Thorn | cactus_hide | The Thorn Risen |
+| clover | The Star | golden_horseshoe | The Star Risen |
+| deadeye | The Eye | eagle_eye | The Eye Risen |
+| ducktape | The Hourglass | shackles | The Hourglass Risen |
+| energy_shield | The Guardian | aegis | The Guardian Risen |
+| evade | The Ghost | ghost_step | The Ghost Risen |
+| field_notes | The Sage | almanac | The Sage Risen |
+| gold_tooth | The King | gold_rush | The King Risen |
+| haste | The Tower | quicksilver | The Tower Risen |
+| hot_sauce | The Devil | ghost_pepper | The Devil Risen |
+| lodestone | The Magnet | mother_lode | The Magnet Risen |
+| mend | Temperance | second_wind | Temperance Risen |
+| mule_kick | The Storm | bucking_bronco | The Storm Risen |
+| multishot | The Hydra | barrage | The Hydra Risen |
+| prospector | The Miner | eureka | The Miner Risen |
+| slow_burn | The Ember (new; Garry's list had none) | prairie_fire | The Ember Risen |
+| stride | The Chariot | roadrunner | The Chariot Risen |
+| thirst | Death | bloodthirst | Death Risen |
+| tin_star | The Emperor | marshals_star | The Emperor Risen |
+| vigour | The Giant | ironclad | The Giant Risen |
+
+- The seven unlock quests of lines carry their card's name (their `name`; ids kept).
+- Texts: every flavour is the card read aloud (no numbers in it); the seven cards with a card text of their own lead with
+  the card and keep the rule's numbers plain ("The Star smiles on you: +10% luck a level, so ...").
+- Every player-facing "Line"/"Lines" says "Card"/"Cards": the level-up/chest/shop card's word (CARD; an evolution
+  "EVOLVES THE SUN"), the Collection's tab, the pause screen's Build group, the arena's ITEMS section, the hero sheet's
+  "Favourite card". The code and the JSON keep `line`. Two texts that named a card by hand now read its name: the pause
+  breakdown's Gold Rush source ("The King Risen +12%") and the damage log's star block ("blocked by The Emperor Risen").
+
+## Looks (new rules)
+- Every card has looks: **A** the icon it had before the cards (an object), **B** a single card tilted 10 degrees
+  clockwise (the least detail), **C** the card on a small fan of card backs, **D** three cards fanned with the card in
+  front, **E** the card held up in a black lace glove (the most detail). A Risen card has a gilded gold border, a base
+  card a cream one.
+- The look the game plays is the card's JSON `variant`: **B for all 42** (A, the old objects, no longer matches the tarot
+  names: The Sun showed a flexed arm, The Star a clover). The icon of the look played is the item's icon everywhere.
+- A phone may keep another look for every card (the arena's ITEMS tab, "Card look"; Save `card_look`): it wins over the
+  JSON for every card that has that look; "JSON" gives each card its own back. A shelved look is never worn.
+- The Level Editor's "Set every card to look X" sets the JSON `variant` of every card that has look X painted; a card
+  without it keeps its own.
+- The B icons are turned to one lean at install (10 degrees clockwise, measured per painting), so the 42 lean alike.
+- The kind glyph on a card's plate is a tilted card with a star (was a scroll); the file is still art/ui/wanted/kind_line.png.
+
+### 20.UIPC The hero plaque and the PC build
+
+## The title's hero plaque (ui/TitleScreen.gd constants)
+- **One size for every hero.** The plaque is PLAQUE_H = 200 px tall for every hero in every state (owned, on sale,
+  locked, a hidden one previewed). It is as wide as the screen leaves: 770 px on a 1080 canvas.
+  - The Hero Collections button is a 200 px square beside it (pass 70's rule kept).
+  - Since nothing about the plaque changes, the hero above it, PLAY, the dots and the map line never move on a swipe.
+- **One set of sizes, the same for every hero.**
+
+  | Text | Size | Before |
+  |---|---|---|
+  | Name | 52 | 56 |
+  | Flavour | 24, line height 29 | 24 |
+  | Trait numbers | 30 | 34 |
+  | Every label (trait labels, START / FAVOURITE, Details ›) | 18 | 14-16 |
+  | Item plates | 84 | 92 |
+
+  Padding inside the 5 px border: 30 px on the sides, 19 px top and bottom. The plates' column is 216 px wide, 20 px
+  from the words.
+- **The flavour gets at most 2 lines.** Jeżyk's is the only one that needs both.
+- **The trait's numbers flow under the flavour** as "+1% CRIT / LV" pairs, each label on its number's baseline. They
+  take a second row when they need it (Ironwood's two). The plates sit top right, "Details ›" bottom right.
+- **At most 2 item plates** (PLATES_MAX): the start weapon and the favourite. A hero's other own weapon ("Special")
+  shows only while there is room. The hero's sheet lists everything.
+- **Words that do not fit are cut at the plaque's edge; nothing grows.** pass73_uipc_test fails if any hero in any state
+  does not fit, so a new hero with a longer name or flavour is caught before he ships.
+- **The hero above the plaque keeps clear of the title's words under a camera cutout.** His room starts 440 px down
+  plus the cutout's inset (W.safe_top()). On a 16:9 screen with a 130 px inset he is drawn about 6% smaller, 570 px
+  down; on a taller phone (20:9) nothing changes.
+
+## The PC build
+- **Version.** The exe's version info (FileVersion, ProductVersion) is application/config/version from project.godot
+  (0.58 → 0.58.0.0). The Windows preset leaves its own version fields empty so Godot falls back to it.
+  - ship.sh checks the exported exe against it (tools/exe_info.py --expect-version) and warns on a mismatch.
+- **Icon.** game/icon.ico (tools/make_win_icon.py) holds 16, 20, 24, 32, 40, 48, 64, 96, 128 and 256 px.
+  - Framing: the whole picture at 96 px and up; the hat about 2/3 of the tile at 40-64; 84-88% at 16-32, sharpened;
+    corners rounded at 14% of the side.
+  - Godot embeds 16, 32, 48, 64, 128 and 256 in the exe.
+  - ship.sh makes the .ico again when game/icon.png is newer.
+- **Signing is off unless tools/keys/codesign.env exists** (git-ignored).
+  - With the file, ship.sh signs with tools/sign_exe.ps1 (SHA-256, time-stamped by http://timestamp.digicert.com
+    unless CODESIGN_TIMESTAMP=none).
+  - A signing that fails keeps the exe out of Drive. The APK still ships.
+- **ship.sh deletes the old export before exporting**, so a failed export cannot send the previous exe to Drive again.

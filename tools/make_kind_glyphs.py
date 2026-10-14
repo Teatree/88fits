@@ -11,6 +11,10 @@ to the right and tilted up 15 degrees, filled in ink: a round cylinder with two 
 a hammer, a trigger guard ring with its hole clear and a grip curving down and back. One connected shape, against the
 scroll's hollow outlined box. A glyph whose pixels have not changed is not written again (the scroll keeps its import).
 
+Pass 73 (lane CARDS; Garry: the line items are fortune-teller cards, "Update the symbol to be a Card instead of whatever
+it is now"): the line's glyph is one card tilted 12 degrees with a bold star on its face (line()); the scroll is kept as
+scroll(), drawn by nothing. The file keeps its name, kind_line.png (the kind is still "line" in the code).
+
     python tools/make_kind_glyphs.py [--preview <png>]
 """
 import argparse
@@ -110,7 +114,45 @@ def weapon() -> Image.Image:
 
 
 def line() -> Image.Image:
-    """A rolled scroll lying across, a roll at each end, three lines of writing, a ribbon tied round its middle."""
+    """The line items' glyph since pass 73 (lane CARDS; Garry: "Update the symbol to be a Card instead of whatever it is
+    now"): one fortune card standing tilted CARD_TILT degrees clockwise, a thick ink outline with rounded corners round
+    a paper face, and a bold four-pointed star in its middle, apart from the outline (two shapes: at the card plate's
+    28 px it reads as a card, not as the revolver's one dark shape)."""
+    m = Image.new("L", (S, S), 0)
+    d = ImageDraw.Draw(m)
+    u = S / 64.0
+    cx, cy = S * 0.5, S * 0.5
+    hw, hh = 18.5 * u, 27.0 * u                  # half the card: 37 x 54 at 64 px, a tarot card's 2:3 or near it
+    w = int(round(5.0 * u))                      # the outline: 5 px at 64, about 2 px at the card's 28
+    d.rounded_rectangle([cx - hw, cy - hh, cx + hw, cy + hh], radius=6.0 * u, outline=255, width=w)
+    # the star: four long points (the up and down ones longer, filling the tall face) and four short ones, solid ink, its
+    # tips clear of the outline
+    pts = []
+    for k in range(16):
+        ang = math.pi * k / 8.0 - math.pi / 2.0
+        if k % 8 == 0:
+            r = 15.5          # up, down
+        elif k % 4 == 0:
+            r = 10.5          # left, right: the face is narrower
+        elif k % 2 == 0:
+            r = 8.0           # the diagonals
+        else:
+            r = 6.4           # the valleys between: wide, so every point stays thick at 28 px
+        pts.append((cx + r * u * math.cos(ang), cy + r * u * math.sin(ang)))
+    d.polygon(pts, fill=255)
+    m = m.rotate(-CARD_TILT, resample=Image.BICUBIC, center=(S * 0.5, S * 0.5))
+    im = Image.new("RGBA", (S, S), INK[:3] + (0,))
+    im.putalpha(m)
+    return _fit(im)
+
+
+## The card's tilt (pass 73): its top leans right, as the painted cards' B look stands.
+CARD_TILT = 12.0
+
+
+def scroll() -> Image.Image:
+    """The line glyph from pass 54 to pass 72: a rolled scroll lying across, a roll at each end, three lines of writing,
+    a ribbon tied round its middle (kept for the record; nothing draws it)."""
     im = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     u = S / 64.0

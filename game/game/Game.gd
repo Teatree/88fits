@@ -26,6 +26,10 @@ var chest_screen: ChestScreen
 var resume_gate: ResumeGate
 var revive_screen: ReviveScreen
 var stranger_screen: StrangerScreen
+## pass 73 (lane STRUCT): the Totem Pole's gifts (ui/TotemScreen.gd, by path: a new script's class name is unknown
+## until the editor imports it)
+const TOTEM_SCREEN := preload("res://ui/TotemScreen.gd")
+var totem_screen: TOTEM_SCREEN
 var paused := false
 var hud: HUD
 ## the floating damage numbers (pass 46, DamageNumbers): on the UI layer under the HUD
@@ -234,6 +238,10 @@ func _ready() -> void:
 	revive_screen.decided.connect(_on_revive_decided)
 	stranger_screen = StrangerScreen.new()
 	ui.add_child(stranger_screen)
+	# pass 73 (lane STRUCT): the Totem Pole's gifts
+	totem_screen = TOTEM_SCREEN.new()
+	totem_screen.name = "TotemScreen"
+	ui.add_child(totem_screen)
 	resume_gate = ResumeGate.new()
 	resume_gate.hud = hud
 	ui.add_child(resume_gate)
@@ -968,8 +976,9 @@ func close_pause() -> void:
 ## - A tool or a test that opens a screen by hand (chest_screen.open, cards.show_offer, set_paused) stands outside the
 ##   rule, as before; the openers mark _modal themselves, so a direct _show_next_level_cards still holds the turn.
 ##   With Settings.debug_mode on, _check_one_modal prints an error the frame two of these screens are visible.
-enum Modal {NONE, CARDS, PATH, CHEST, PORTAL, REVIVE, SHOP, STRANGER}
-const MODAL_PRIORITY := {Modal.REVIVE: 70, Modal.PORTAL: 60, Modal.CHEST: 40, Modal.CARDS: 30, Modal.PATH: 20, Modal.SHOP: 10, Modal.STRANGER: 10}
+## pass 73 (lane STRUCT): TOTEM, the Totem Pole's gifts, waits with the shop and the Stranger
+enum Modal {NONE, CARDS, PATH, CHEST, PORTAL, REVIVE, SHOP, STRANGER, TOTEM}
+const MODAL_PRIORITY := {Modal.REVIVE: 70, Modal.PORTAL: 60, Modal.CHEST: 40, Modal.CARDS: 30, Modal.PATH: 20, Modal.SHOP: 10, Modal.STRANGER: 10, Modal.TOTEM: 10}
 ## a boss's chest goes before an ordinary one that fell beside it
 const BOSS_CHEST_BUMP := 5
 ## the beat between one screen closing and the next opening (the run paused meanwhile), and the longer one after the
@@ -1098,7 +1107,7 @@ func _open_next_modal() -> void:
 func visible_modals() -> Array:
 	var out: Array = []
 	for pair in [["cards", cards], ["chest", chest_screen], ["portal", portal_dialog], ["revive", revive_screen],
-			["shop", structure_shop], ["stranger", stranger_screen], ["pause", pause_screen]]:
+			["shop", structure_shop], ["stranger", stranger_screen], ["totem", totem_screen], ["pause", pause_screen]]:
 		var n = pair[1]
 		if n != null and is_instance_valid(n) and (n as CanvasItem).visible:
 			out.append(pair[0])
@@ -2173,8 +2182,33 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 			hud.toast("LEVEL UP!", UiKit.XP)
 		"dice":
 			_roll_dice(def, at)
+		"totem":
+			_use_totem(def)
 		_:
 			hud.toast(def.display_name, def.color)
+
+
+## A Totem Pole used (pass 73, lane STRUCT; use_structure's "totem"): its menu of gifts (ui/TotemScreen.gd) through the
+## one-screen rule, the offer rolled when the menu opens (core/systems/TotemBoons.gd, the pole's `params.boons`); the
+## gift picked stays on the hero for the run (Run.take_totem_boon) and a toast says it. A pole with nothing to offer only
+## says its name.
+func _use_totem(def: StructureDef) -> void:
+	_request_modal(Modal.TOTEM, func() -> bool:
+		var offer: Array = TOTEM_SCREEN.BOONS.offer(def)
+		if offer.is_empty():
+			hud.toast(def.display_name, def.color)
+			return false
+		_modal = Modal.TOTEM
+		set_paused(true)
+		totem_screen.open(offer, def)
+		totem_screen.closed.connect(func(boon: Dictionary) -> void:
+			if not boon.is_empty():
+				var words := Run.take_totem_boon(boon)
+				player.refresh_stats()
+				var title := TOTEM_SCREEN.BOONS.title(boon)
+				hud.toast("%s: %s" % [title.to_upper(), words], def.color)
+			_modal_done({}, false), CONNECT_ONE_SHOT)
+		return true)
 
 
 ## The Strongbox's purse (use_structure's "bank"; out of it in pass 58, so the deposit's coins can show it leaving): every

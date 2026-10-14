@@ -69,10 +69,11 @@ func test_the_scorpion_comes_up_from_its_burrow() -> void:
 	em.state[i] = EnemyManager.STATE_MOVE
 	em._update_boss(1.0 / 60.0, hero.global_position)
 	assert_int(em.state[i]).is_equal(EnemyManager.STATE_ATTACK)
-	assert_int(em.hidden[i]).is_equal(1)
+	# (pass 73, lane GROUND, re-pinned on purpose: it sinks in sight first, the physics tick taking it under)
+	assert_float(em.rise_v[i]).is_less(0.0)
 	# the wind-up runs out and it bursts up where the ring was, where it can be hit again
 	var t := 0.0
-	while t < 3.0 and em.hidden[i] == 1:
+	while t < 3.5 and em.state[i] == EnemyManager.STATE_ATTACK:
 		em._update_boss(1.0 / 60.0, hero.global_position)
 		t += 1.0 / 60.0
 	assert_int(em.hidden[i]).is_equal(0)

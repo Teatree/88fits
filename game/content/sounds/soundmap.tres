@@ -112,7 +112,10 @@
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_sun_zenith.wav" id="95_6mt6w"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_spear_throw.wav" id="96_bx6sg"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/w_spear_hit.wav" id="97_16cdd"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_sniper_aim.wav" id="97_dlbqk"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_sniper_lock.wav" id="98_3iyoe"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_slime_hit.wav" id="98_mnsro"]
+[ext_resource type="AudioStream" path="res://content/sounds/real/en_sniper_shot.wav" id="99_es18q"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_slime_die.wav" id="99_lg442"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_golem_attack.wav" id="100_cvnyb"]
 [ext_resource type="AudioStream" path="res://content/sounds/real/en_golem_throw.wav" id="101_rjcot"]
@@ -411,6 +414,33 @@ entries = {
 "stream": ExtResource("98_mnsro"),
 "voices": 3,
 "volume_db": -8.0
+},
+"en_sniper_aim": {
+"category": "enemy",
+"file": "real/en_sniper_aim.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("97_dlbqk"),
+"voices": 1,
+"volume_db": -10.0
+},
+"en_sniper_lock": {
+"category": "enemy",
+"file": "real/en_sniper_lock.wav",
+"loop": false,
+"pitch_spread": 0.0,
+"stream": ExtResource("98_3iyoe"),
+"voices": 1,
+"volume_db": -1.0
+},
+"en_sniper_shot": {
+"category": "enemy",
+"file": "real/en_sniper_shot.wav",
+"loop": false,
+"pitch_spread": 0.03,
+"stream": ExtResource("99_es18q"),
+"voices": 1,
+"volume_db": 0.0
 },
 "en_stalactite_hit": {
 "category": "enemy",

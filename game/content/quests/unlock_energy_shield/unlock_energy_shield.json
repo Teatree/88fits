@@ -1,6 +1,6 @@
 {
   "id": "unlock_energy_shield",
-  "name": "Energy Shield",
+  "name": "The Guardian",
   "condition": {
     "type": "survive_minutes",
     "minutes": 10

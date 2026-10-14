@@ -74,7 +74,7 @@ boss = {
 "width": 1.1,
 "windup": 1.0
 }, {
-"count": 10.0,
+"count": 14.0,
 "enemy": "imp",
 "name": "spawn_ring",
 "telegraph": "none",

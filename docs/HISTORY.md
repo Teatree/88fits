@@ -804,3 +804,246 @@ an empty block is no longer "off"), `special_defaults` already fell back to Enem
 boss_scaling.js); new game/tests/pass72_integ_test.gd; pass72_boss / pass72_items tests and selftest_BOSS /
 selftest_ITEMS72 re-pinned to "the file's number, else the default". The three keys are in red_canyon.json as pass 72
 left them.
+
+**Pass 73 (2026-10-14, v0.59): priority targets, the Saiga Sniper, the Gila's new rain and burrow, creatures that grow out of the ground, fortune cards, Totem Poles, the plaque at one size, the PC exe's icon.** Six lanes from one contract (tools/dl/p73/INTERFACES.md), every painting through Garry's Level Editor queue: weapons aim at the nearest special, Elite or boss within 10 m first (a volley spread over the crowd sends only its first shot there); the Saiga Sniper (a new special from Garry's picture, look SS-A) aims from the edge of the screen with a gathering red line that locks on and fires a beam across the map, runs from the hero, and runs when hit (`flee_on_hit`, a block any creature can carry); the Vulture Raider's rocket shakes and slows to half on every hit and recovers in 3 s; the Gila's cactus rain marks every spot at once and spews them all out of its mouth to land together, bigger and wider; the Gila and the Scorpion Elite sink into the sand where they can be seen, the Gila waits 3 s hidden and erupts where the hero is about to be, throwing the hero and the crowd; boss summons are never special and four more; every creature grows out of the ground when it spawns; the title's hero plaque has one size and one font set; the line items are fortune cards (tarot names, "<card> Risen" for their evolutions, a card glyph, four painted framings as item looks, the tilted card played); the Stranger's pictures lost their seams; 10 to 12 Totem Poles a map each offer three small boosts; the PC exe carries its own icon and version, and a signing hook waits for a certificate.
+
+**Pass 73, lane SNIPER (Garry's "Special Enemies").** *Target priority*: one shared helper,
+`EnemyManager.priority_target` (+ `is_priority`, `set_target_priority`): the nearest special (a coloured variance special or
+a gear-badge creature), Elite (by kind or modifier) or boss within min(the weapon's range, the map's
+`target_priority.reach` 10 m), on the screen as the weapon's own pick; `WeaponBehavior.aim_index` asks it first, and so
+do the pickers that never went through aim_index (ProjectileEmitter's healthy/random picks and tracking, the
+Guitarra and Big Mouth now through aim_index, missile seekers' retarget); a volley spread over different creatures sends
+only its first shot there (`WeaponBehavior.priority_pick` + `crowd_spots`' first spot: the Hammer's first head, the
+Gravity Gun's first throw; the Lobber's first bomb, the Zap Beam's first link, the Sun Scepter's first pillar, the
+Singularity's hole, the first Tarantula Hawk). The map's `target_priority {enabled, reach}` (WaveTimeline,
+TARGET_PRIORITY_DEFAULTS) and the Level Editor's Targeting card. *The Saiga Sniper* (`content/enemies/saiga_sniper`,
+Garry's Antelope_Sniper.png; lane ART paints the look): a new brain `sniper` in its own EnemyManager section — the
+Raider's stand-off spawn (26 m), runs inside 14 m, walks in past 38 m, and between them freezes in his aiming pose (the
+`attack` strip, its front or back half by facing: `EnemyDef.attack_views "front_back"`, `_attack_view_frame`) while red
+lines gather on the hero from the sides of a 44° cone, more and faster (`SniperFx.line_plan`: the k-th at
+(aim − 0.2)(k/n)^0.6, sweeps 0.8 -> 0.2 s), following him for `aim` 2 s, then lock, blink through a 1 s hold, and a
+60 m beam crosses the map along the locked line (0.15 s white core in red glow, then a red afterglow and shimmering
+sparks over 1.5 s) — all drawn by the new `core/systems/SniperFx.gd` (two ImmediateMeshes, blended: the first capture
+showed an added-on glow reading pale yellow on the sand). The hero on the line takes 0.7 × the Raider's rocket damage at
+the sniper's own stage (read from the Raider's data, `beam.damage_from`) and a knock of 5; creatures on it take 5 % of
+their max HP (≤ 40) and a 3 m push to their side. 9 ± 1.5 s shot to shot; a hit, stun, freeze or launch spoils the
+aim (`recover` 2.5 s). Aim and hold × 1/pace like every wind-up (2.47 / 1.23 s on Red Canyon). Synthesised sounds
+en_sniper_aim / lock / shot (tools/synth_sfx.py). Red Canyon: a `specials.pool` row beside the Raider's (same stage,
+so the same chance; one special at a time, so each now comes half as often as the Raider alone did). *Flee on hit*
+(`EnemyDef.flee_on_hit {seconds, speed_mult, interrupts}`, any creature, `flee_start` / `_flee_steer` / `_interrupt`,
+a hook in `damage()` and one before `_steer`'s brain). *The Raider's rocket*: `artillery.missile.hit_slow {mult 0.5,
+recover 3, shake 0.35}` (ProjectileManager.shooter_hit / _rocket_hit_slow / rocket_shake_basis): every hit on him
+halves his rocket's speed at once, back to full linearly over 3 s of the shot clock, the nose and the body jittering;
+and a fix: a Raider whose wind-up a stun or launch dropped no longer waits for good for a rocket that never left.
+He holds the aiming pose 0.35 s after the shot (the capture with lane ART's SS-A showed him lowering the rifle on the
+beam's own frame); the muzzle was fitted to that painting (the barrel tip 1.25 m right, 2.1 m up at size 3).
+`priority_target` scans a short list of the priority creatures alive, gathered once per grid rebuild or spawn
+(`_priority_list`, a `_grid_epoch` bump at the top of `_rebuild_grid`), after perf_late showed the per-pick radius query.
+Tests `game/tests/pass73_sniper_test.gd` (17; pass334's specials pool re-pinned on purpose); captures
+`game/tools/_p73_sniper_shot.gd` (`only=sniper,rocket`, `variant=SS-A`, bounded, a watchdog) -> tools/dl/p73/SNIPER/.
+Lesson: on the bright sand an additive red glow reads pale yellow; blend red over it.
+
+Lane ART (pass 73), every painting through Garry's running Level Editor queue (port 8787), interleaved with lane
+CARDS' card jobs and Garry's own sand-lizard looks; nothing raced ComfyUI from a shell. **The Saiga Sniper** (look
+SS-A, now the played look; `fresh` left for Garry's approval): Garry's picture `tools/dl/uploads/2d/Antelope_Sniper.png`
+cut into its three figures (tools/dl/p73/art/sniper_front / back / aim.png); the front painted from his front figure
+(front_from_picture, 6 Klein seeds, c3 picked: the cowl, the chevrons on the side flaps and the hem, the studded boots,
+both gloves on the rifle where his are; every candidate painted the horns golden-amber and the poncho to mid-shin, his
+are red-brown and ankle-long); free Wan walks front and back like the Bandit (a long poncho and a rifle held in both
+hands fit no Mixamo driver); a Wan fall into a sideways dead still. Two in-job stills failed the frame check although
+the vision QA passed them: the back (painted with his back figure as a second reference: a rifle with two muzzles) and
+the dead (a barrel in his hand AND a rifle beside him). Every still of the look was then painted as candidates through
+the queue with `icon_cands` jobs used as a candidate painter (a reference, the creature style words, "one single rifle")
+and picked by eye into the paintings' cache: the back from his back figure (c1: stock up right, barrel and scope low
+left, the hem and boots like the front), the aim as an edit of our front still with his aim words (route A c0: eye at
+the scope, stock at the shoulder; route B, his third figure redrawn, was closer to his pose but painted a lighter
+poncho), the aim from behind as an edit of our back still now aiming (route D c1; route C, the aim turned around,
+lighter again), the dead with one rifle on the ground (c0). gen_art gained default-off keys for this (keys_ART.md):
+painted attack poses from lane SNIPER's `aim_hint` / `aim_back_hint`, packed as the `attack` strip's front half and
+back half (`attack_views: "front_back"`: attack 4 = the pose and a 1 px breath, from the front, then from behind),
+placed on the standing figure's feet and height so he neither jumps nor changes size when he stops to aim, and their
+browns matched to the walk (`aim_match`: the poses came out 5-7 degrees yellower); `back_ref` (a picture as the back
+still's second reference: documented as risky after the two-muzzle back); the walk front scaled 0.955 (`run_scale`:
+it stood 4 % taller than the idle with the horns on the cell's top row). Frame by frame (contact sheet
+tools/dl/p73/art/saiga_sniper_SS-A_frames.png, the phone-scale row _phone.png, the walks and the death at zoom): no
+frame touches the cell edge; the walks keep one figure, one rifle, no face on the back; the fall's third frame is a
+motion smear with a bent barrel and the lying frames carry thin colour fringes at 4x (a Wan first-last-frame fall;
+death "" would give the clean procedural tilt the Rocketeer and the Bandit have). The icon is the front painting, like
+every creature's. Lane SNIPER fitted the beam's muzzle to the aim's barrel. **The totem pole**: the queue has no
+structure kind, so the painting came as an `icon_cands` job on the bare id with the style anchor as reference and
+gen_props' scenery words (6 Klein seeds; three painted a green frog the green screen would eat); c2 picked (an eagle
+thunderbird with red-brown wings tipped black and turquoise over a red face, a bear, a grinning grey wolf and a
+turquoise frog on a plank) and finished like gen_props' structures into game/art/sprites/props/st_totem_pole.png;
+checked on the sand at the game's scale beside five structures with its grey used state, and in lane STRUCT's world
+captures (1.8 m, grey when used). Lessons: the vision QA does not count guns; a two-reference edit whose references
+hold different poses mixes them; candidates from one reference plus words, picked by eye, hold the identity and the
+gun; a pose painted as its own edit drifts in hue and wants matching to the walk.
+
+**Lane GROUND (pass 73).** **The ground-clip**: `enemy_billboard.gdshader` cuts the part of a creature under the sand
+while it rises or sinks along a ragged sand line (the share of the quad under the line rides in the instance basis' z
+column, MODEL_MATRIX[2].y: no new buffer; EnemyManager.ground_clip = the painting's drop + (1 − rise_ease) × head) and
+dusts the painting just above it with sand; `rise_v[]` (signed: rising at its own rate, sinking hides it at the bottom),
+`_tick_rise`. **Growing out of the ground**: map `timeline_data.spawn_rise {seconds 0.45, big_seconds 0.9, targetable
+0.7, dust 1}` (WaveTimeline.SPAWN_RISE_DEFAULTS, JsonContent, WaveDirector._apply_mults → EnemyManager.set_spawn_rise;
+off without a director): every spawn rises through its spawn state (no walk, bite or attack until up), a dust puff on
+the screen (Fx.emerge_dust), big ones (≥ 2.4 m) spraying sand all the way up; the lead's rule (STRUCT's smoke_run caught
+the first version, which left rising creatures out of the grid so the revive hit nobody): no weapon chooses a creature
+under `targetable` (EnemyManager.targetable guards nearest_index, priority_index, priority_target, random_in_range,
+densest_point, screen_ok, the beam's chain, the ricochet and "ahead" picks, the Land Mine's sense, the Orbiter's strike)
+but area damage hits it. **Burrows you can see** (`_burrow_begin`, `_tick_burrows`, `_burrow_warn`, `_burrow_erupt`,
+`_erupt_throw_hero`, `_erupt_throw_crowd`, `predict_spot`; Fx.dig_ring / dig_spray): a burrow entry's `sink` (in sight,
+dust ring, spray, a poof as the sand closes), `rise`, `predict` + `warn` (the Gila: 3 s under unseen, then a 0.4 s ring
+where the hero will be in 0.6 s, kept on the map), `mound`, the hero's throw (`throw_up/out/air/control` on his airborne
+arc, Player.trampoline_launch; only a hit that landed) and the crowd's (`creature_up/out/damage`: launch with a drift,
+3% of max HP on landing). The Gila: windup 4.0 (0.6 + 3.0 + 0.4), throw 2.5 m / 4 m; the Dune Scorpion: sink and rise
+0.6, its ring and mound kept, throw 1.3 m / 2 m. **The cactus rain reworked** (BossAttackDef `landing.mode` volley,
+`telegraph.all_at_once`, the `spew` group, `windup_seconds`, `volley_times`; the runner's `_custom_lit_*`,
+`_custom_marks_*`, `_custom_rain_spots`, `custom_mouth`, `_custom_spew`): every circle lit at once 1.4 s before the spew
+(held ground marks, released as each spike lands or with the boss), the Gila crouching, rearing up and spewing big red
+spikes (2.72) from its mouth, all landing within 0.25 s on wider circles (1.4 m, spacing 3.9: gaps 1.0-1.2 m, 48% of the
+ring covered). **Summons** never specials (`force_plain` round spawn_ring and an erupt's young), +4: the King 16, the
+Gila 12, the Brander 14. Level Editor: the Boss attacks tab's new rows and Spew section with the volley preview and facts
+(boss_model.js `volleyTimes`, `isVolley`, `litAtOnce`, `windupSeconds`; boss_attacks_io.py DEFAULTS and blank), the
+burrow's twelve keys in the attack card (assets_fields.js, vocab.py) and the ring-at-hero warning's exception for
+predict, Settings → Spawning's four spawn_rise rows; selftest group `selftest_GROUND.py`. Tests `pass73_ground` (18);
+re-pinned on purpose: pass60_en_test (the burrows sink in sight; the Gila's wind-up 0.6 + 3 + 0.4), pass336_test,
+pass69_hero_test (the decoy test's elite spawn is set up risen), pass72_boss_test (the cactus rain lit at once),
+hell_check (the giant it places is up and its slam due). Captures `tools/dl/p73/GROUND/cap1-3` (`game/tools/_p73_ground_shot.gd`).
+perf_late: enemies.render 0.81-0.91 ms against 0.90-0.93 before, no new draw call.
+
+**Lane STRUCT (pass 73): the Stranger without a seam, and the Totem Poles.** Garry: "The Guy who you sacrifice Max HP
+to in order to get an item art cuts off weirdly, should be seamless" and "New Structure type - Totem Poles ... a smaller
+area ... just as much time ... a choice between 3 small stats improvements for that run ... titled ... like one of those
+native American words for animals ... always between 10-12 of them on the map. Signs show to them as well ... a bit
+smaller than other Structures ... When used they turn gray as well, but they don't get 'destroyed'". The Stranger had
+two seams, both in the pictures: his world painting (`st_hooded_figure.png`) kept the keyed "faint violet glow from
+inside the hood" of its prompt as an opaque pale bubble round the hood, outlined like a sticker; and his bargain
+screen's cut-out (`art/ui/wanted/stranger.png`) ran off the picture's bottom edge, so his robe stopped on a hard line
+over the dim. The bubble and its ring are gone (the hood re-outlined) and the cut-out's lower quarter fades out
+(`tools/dl/p73/STRUCT/fix_stranger.py`, originals in `tools/dl/p73/STRUCT/backup/`). The Totem Pole is content
+(`content/structures/totem_pole`, effect "totem"): `params.per_map {10, 12, spacing 14}` stands it apart from the
+weighted draw (StructureManager.place_apart: the best of 16 fair spots, farthest from everything, off the river's bed
+and out of the cover bands), a 1.2 m ring and the usual 3 s, 1.8 m tall (75% of the others' median), no light,
+`per_sign 1` (one arm a sign at most), `spent "grey"` (its own painting desaturated in code, standing). Its menu
+(`ui/TotemScreen.gd`, Game.Modal.TOTEM): a cedar dim, "★ CARVED SPIRITS ★ / THE TOTEM", the pole's painting, three
+carved planks low on the screen in the thumb's reach, each a gift from `params.boons` (11 spirits from Garry's
+reference: Le-loo the Wolf move speed, El-kolie the Whale max HP, Chet-woot the Bear attack damage, Thunderbird
+cooldown, Ol-hiyo the Seal pickup radius, Walalee the Salmon regen, Frog XP, Skana the Killer Whale crit, Kuuma the
+Bullhead armour, Raven luck, Se-sook the Two-headed Serpent area), its amount big on a paper disc, the plain line
+("+6% move speed", TextGen) and one to three feathers for how big it rolled (TotemBoons). A pick stays all run
+(Run.totem_boons, a sheet source "Totem: <word>"). Lane ART painted the pole (a thunderbird with spread wings over
+bear, wolf and frog faces) through the Level Editor's queue. Tests `pass73_struct_test.gd` (13); re-pinned
+content_test, pass25_test and pass70_econ_test (structure counts are the draw's); touch_audit `totem` and
+`totem_inset130`.
+
+**The line items are fortune cards.** Garry: "The Line Items are weird in that they look like just another set of
+Passive Items, while in games like Megabonk the 'Line' items are a distinct object ... For our purposes I thought Fortune
+Teller Cards would work best." The 21 lines and their 21 evolutions keep their ids (saves, quests, analytics, the Level
+Editor) and every number; to the player they are tarot cards: Brawn is The Sun, Bristle The Thorn, Clover The Star,
+Deadeye The Eye, Ducktape The Hourglass, Energy Shield The Guardian, Evade The Ghost, Field Notes The Sage, Gold Tooth The
+King, Haste The Tower, Hot Sauce The Devil, Lodestone The Magnet, Mend Temperance, Mule Kick The Storm, Multishot The
+Hydra, Prospector The Miner, Slow Burn The Ember (new), Stride The Chariot, Thirst Death, Tin Star The Emperor, Vigour The
+Giant (Garry's prompt file named most), and each evolution is its card "Risen" (The Sun Risen; "Ascendant", the brief's
+example, ran 817 px on the level-up card's 60 px slab where the column holds about 700; "Risen" tops out at 659). The
+flavours read the card aloud in the old wry voice, numberless; the seven card texts lead with the card and keep their
+numbers plain; the seven unlock quests of lines carry the card names. tools/dl/p73/CARDS/rename_cards.py wrote the lines
+in place (gold_tooth.json keeps its CRLF).
+
+**Card, not Line.** WItem's word CARD ("EVOLVES THE SUN" on an evolution), the Collection tab Cards, the pause screen's
+Build group Cards, the arena's ITEMS section Cards, the hero sheet's "Favourite card"; the Level Editor's Items tab
+(filter chip, heading, create dialog, the passive form's flag "Card (line item)", the page guide). Two texts that named
+cards by hand read the item's name now (PassiveDef.display_name_of): the pause breakdown's Gold Rush source (Run.gd) and
+the damage log's star block (Player.gd). The kind glyph on a card's plate (art/ui/wanted/kind_line.png, the file name
+kept) is a card tilted 10 degrees with a bold star, drawn by tools/make_kind_glyphs.py line() (the scroll kept as
+scroll()); it stays two shapes at the level-up card's 28 px, unlike the revolver.
+
+**Item looks.** Passive items may carry looks like creatures and heroes, icons only: `variants {CODE: {icon, note,
+shelved, icon_picked, recipe, painted}}`, `variant` (the look played) and `variant_base` (the look whose icon is the
+top-level one). PassiveDef.variants / variant / variant_base / wear_look / look_icon / variant_codes;
+JsonContent._passive_variants; build() puts the played look's icon on the def, so every screen (HUD, cards, chest, shop,
+Stranger, pause, Collection, results) shows it. Every card has A (the icon it had, an object) and B-E (below); the game
+plays **B**: A no longer matched the tarot names (The Sun showed a flexed arm, The Star a clover). On the phone the
+arena's ITEMS tab has "Card look: JSON A B C D E" (Save.card_look, kept past the arena's sandbox like a hero's look,
+Registry.apply_card_looks at boot and on a tap) so Garry can play every card in another look without a build.
+
+**The four framings, painted.** Garry's references were "a bit too detailed, and they are just cards, which could look
+weird in a square icon". tools/dl/p73/cards/prompts.md (written from card_prompts.py, the table the jobs came from): our
+icon style crossed with the style anchor's cel shading, one bold symbol per card in two or three colours on its own dark
+face colour, a thick border with rounded corners (cream on a base card, gilded gold on a Risen one), nothing written. B a
+single card tilted (the least detail), C the card on a small fan of red card backs, D three cards fanned with the card in
+front, E the card held up in a black lace glove with a tiny desert horizon (the most detail). A pilot (Garry's four
+references and The Sun Risen in all four) through his Level Editor's queue, then all 42 x 4 as icon_cands jobs (B four
+seeds, C-E three), six of mine open at a time so his and lane ART's jobs ran between them. Picked by eye on sheets that
+show each candidate keyed and finished exactly as installed on the plate the game draws it on at 150 px and the HUD's
+52 px (review_cards.py, zoom.py); B cards are turned to one 10-degree lean at install (cardkit.py: Klein leaned them 8
+degrees left to 12 right). install_cards.py writes <id>_icon_<b..e>.png and each look's entry with the words it was
+painted from. In numbers: 168 jobs, 603 candidates, none failed, 168 picks (sheets/picked_<frame>.png; every look of
+every card side by side in sheets/looks_<n>.png; the HUD, a level-up and the pause screen captured in all five looks in
+tools/dl/p73/CARDS/shots_final/, sheets/ingame_hud.png). The Magnet's face was simplified after the pilot (one magnet,
+two gems: the gems and coins down both sides read as noise at 48 px) and repainted in all four framings.
+
+**Level Editor.** The Items tab shows each card's played look in its list, a "Set every card to look X" bar above the
+cards (POST /api/item_looks/set_all: every card that has the look painted plays it, the rest keep theirs; one import),
+and in a card's editor its looks at 112 and 48 px with PLAYS, "Play this look" (write_variant_kind takes passives),
+Show (the icon preview and "+ Icon candidates" follow it, so a repaint lands in that look) and "painted from"; a
+candidate installed into a card's look merges (set_look_files takes a card's icon); the candidate list says which look a
+job was for. Server routes need the editor restarted once. selftest_CARDS73.py.
+
+Tests: game/tests/pass73_cards_test.gd; re-pinned on purpose: pass46_passives, pass47_ui, pass49_dummies, pass51,
+pass56_ui (the glyph's doc), pass58_uib (three Brawn pins), pass70_lines (the star block's log). touch_audit drives the
+arena's Card look chips (arena_card_looks).
+
+**Lane UIPC: the hero plaque at one size, the PC build's icon and version, and why Windows warns.**
+
+*The plaque.* Garry: "The size of the hero plaque in the main menu keeps changing depending on which hero you're
+looking at ... It's annoying and it shifts a whole bunch of other UI elements back and forth ... The font size should
+be consistent for all the heroes."
+- **The cause.** The plaque took its height from its words and its width from its row of numbers and plates. Over
+  the eight heroes it ran 167-225 px tall and 745-848 wide; Ironwood's ran 75 px past the screen's right edge. The
+  Collections button (a square of the plaque's height, pass 70) and the hero above both moved on every swipe, by up
+  to 58 px.
+- **Size and sizes.** It is now one 200 px plaque (770 wide on a 1080 canvas) with one set of sizes: name 52,
+  flavour 24 (at most two lines), numbers 30, every label 18 (14 before, too small on the phone), plates 84.
+- **The insides.** They sit in a plain Control ("Body"), which clips and never grows.
+  - The trait's numbers moved from columns beside the plates to a line under the flavour, "+1% CRIT / LV", label on
+    the number's baseline (HFlowContainer `_trait`). Ironwood's two take a second row.
+  - The plates sit top right (`_stats`, at most two: START and FAVOURITE), "Details ›" bottom right.
+- **Code.** drawer_side() returns PLAQUE_H; pass 70's resize loop (_on_plaque_resized) is gone.
+- **The hero's room now counts the camera cutout's inset.** With a 130 px inset on a 16:9 screen, the taller plaque
+  had pushed the hat into "Drag · Dodge · Survive".
+- **Verification.**
+  - Every hero was captured in every state (owned / on sale / locked / hidden previewed), both looks, at 1080x1920
+    and with inset 130 (game/tools/_p73_uipc_title_shots.gd writes geometry.json too). All 52 shots have identical
+    plaque, button, PLAY and hero rects, and every word is inside the Body.
+  - pass73_uipc_test pins it: one size, nothing moves, every hero fits at one set of sizes, flavour ≤ 2 lines.
+  - pass70's square-button test passes unchanged; touch_audit title, hero_sheet, hero_drawer, hero_buy and
+    title_live: 55/55.
+
+*The PC build.* Garry: "Can you make an icon for the PC build".
+- **The icon.** The exe already carried Godot's own conversion of the 1024 px app icon, a brown speck on sand at
+  16-48 px. tools/make_win_icon.py now writes game/icon.ico with each size framed for its size (the hat filling the
+  tile at 16-32), and the Windows preset embeds it.
+- **The version.** It had been frozen at 0.50.0.0; it now follows application/config/version because the preset's
+  version fields are empty (EditorExportPreset.get_version).
+- **rcedit is gone from Godot.** The brief asked for rcedit, but Godot 4.5 writes the icon and version itself
+  (PR #75950, merged 2025-06-05). The 4.7.2 binary has no rcedit code, so nothing was downloaded.
+- **ship.sh**
+  - remakes a stale icon;
+  - deletes the old exe before exporting;
+  - checks the exe's version against the game's (tools/exe_info.py);
+  - signs only when tools/keys/codesign.env exists (tools/sign_exe.ps1: a .pfx, a store or token certificate by
+    thumbprint, or a service's command; signtool from the Windows SDK, else Set-AuthenticodeSignature);
+  - keeps an exe whose signing failed out of Drive.
+- **Tests of the hook.** Run in a sandbox with a throwaway self-signed certificate: no file, a good one, a wrong
+  password. A signed exe still boots with its packed game.
+
+*Why Windows warns* (tools/dl/p73/UIPC/trust.md, sources dated):
+- The Google Drive for desktop drive (FAT32, virtual) presents every file in My Drive as downloaded from the Internet
+  (Zone.Identifier ZoneId=3, measured), so SmartScreen checks each new unsigned build.
+- A copy on a local disk carries no mark (tested with Explorer's copy engine and PowerShell) and starts without the
+  warning.
+- A paid certificate shows his name but does not stop the warning until "hundreds of clean installs". EV lost its
+  bypass in 2024. Microsoft's Artifact Signing is closed to individuals outside the US and Canada.
+- The Microsoft Store (free for individuals since 2025-09-10, MSIX re-signed by Microsoft, private audience) is the
+  one route without the warning.
+- Recommendation: buy nothing; run a local copy.

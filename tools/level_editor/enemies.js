@@ -13,7 +13,7 @@ const Enemies = (() => {
   const M = AssetsModel, F = AFIELDS;
   const RED = 'rgba(237, 74, 92, 0.9)';
   // which brains read a block (EnemyManager.gd:2858-3365); "any" = every creature
-  const READ_BY = { ranged: ['kite', 'ambush', 'dummy'], charge: ['charge'], kamikaze: ['kamikaze'], artillery: ['artillery'], caster: ['caster'], support: ['support'], ambush: ['ambush'], death_burst: ['any'], boss: ['any'], elite: ['elite archetype'] };
+  const READ_BY = { ranged: ['kite', 'ambush', 'dummy'], charge: ['charge'], kamikaze: ['kamikaze'], artillery: ['artillery'], caster: ['caster'], support: ['support'], ambush: ['ambush'], death_burst: ['any'], boss: ['any'], elite: ['elite archetype'], sniper: ['sniper'], flee_on_hit: ['any'] };
 
   function render(pane, doc) {
     const iss = Assets.issuesOf(doc);
@@ -131,7 +131,9 @@ const Enemies = (() => {
       const readers = READ_BY[b] || [];
       const readNote = readers[0] === 'any' ? 'read by every creature' : readers[0] === 'elite archetype' ? 'read for the elite archetype' : `read by the ${readers.join(' / ')} brain${readers.length > 1 ? 's' : ''}`;
       const card = el('div', { class: 'block-card' + (isNat ? ' natural' : ' extra') + (isPresent ? '' : ' empty'), 'data-key': b });
-      const head = el('div', { class: 'block-head' }, el('b', { text: spec.label }), el('span', { class: 'achip ' + (isNat ? 'available' : 'warn'), text: isNat ? readNote : `${readNote}: the ${d.brain || 'chase'} brain does not` }),
+      // (pass 73: a block every creature reads, flee on hit or a death burst, is never "not read by this brain")
+      const readsIt = isNat || readers[0] === 'any';
+      const head = el('div', { class: 'block-head' }, el('b', { text: spec.label }), el('span', { class: 'achip ' + (readsIt ? 'available' : 'warn'), text: readsIt ? readNote : `${readNote}: the ${d.brain || 'chase'} brain does not` }),
         isPresent ? el('button', { class: 'btn small ghost', type: 'button', text: '× remove block', title: `delete the ${b} block from the file`, onclick: () => Assets.apply(doc, (dd) => { delete dd[b]; }, 'editor') }) : el('span', { class: 'muted small', text: 'not in the file: the game\'s defaults (grey); a value typed adds the block' }));
       card.appendChild(head);
       card.appendChild(el('p', { class: 'muted small', text: spec.help }));

@@ -44,7 +44,7 @@ const Settings = (() => {
       grid.appendChild(card);
     }
     grid.appendChild(el('section', { class: 'card' }, el('h2', { text: 'Power-up drops' }), el('p', { class: 'muted small', text: 'What kills drop and how often; the harder the creature (its xp_mult) the likelier a drop and the more the hard_bias counts.' }), Forms.pickupsBlock(tl)));
-    grid.appendChild(el('section', { class: 'card' }, el('h2', { text: 'Specials' }), el('p', { class: 'muted small', text: 'The Vulture Raider and the harpooner: not roster creatures but a clock of their own.' }), Forms.specialsBlock(tl)));
+    grid.appendChild(el('section', { class: 'card' }, el('h2', { text: 'Specials' }), el('p', { class: 'muted small', text: 'The Vulture Raider, the Saiga Sniper and the harpooner: not roster creatures but a clock of their own; one comes at a time, drawn evenly from the rows whose stage has come.' }), Forms.specialsBlock(tl)));
     const other = Object.keys(tl).filter((k) => !KNOWN.has(k));
     if (other.length) {
       const o = {};

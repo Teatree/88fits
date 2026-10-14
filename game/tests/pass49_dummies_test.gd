@@ -545,7 +545,8 @@ func test_the_items_tab_stacks_each_weapons_mutations_and_evolution_under_it() -
 	var titles: Array = []
 	for s in secs:
 		titles.append(str(s[0]))
-	assert_array(titles).contains_exactly(["Weapons", "Hidden weapons", "Lines", "Passives", "Perks"])
+	# pass 73 (lane CARDS): the lines' section says Cards
+	assert_array(titles).contains_exactly(["Weapons", "Hidden weapons", "Cards", "Passives", "Perks"])
 	# the Peashooter: its path by kind (element, volume, motion), the Drifter's own, its evolution, then what is hidden
 	var pea: WeaponDef = Registry.weapon("peashooter")
 	var st := p.weapon_stack(pea)

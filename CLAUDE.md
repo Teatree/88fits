@@ -77,6 +77,8 @@ python tools/wanted_compare.py <dir>/<state>.png <mock-name> [--diff] [--crop=x,
 JAVA_HOME=D:/_projects/88fits/tools/jdk17/jdk-17.0.20.1+1 "$GODOT" $P --export-debug "Android" export/88fits-debug.apk   # signed debug APK
 bash tools/ship.sh [--quick] [--no-install]                       # checks -> signed APK -> install + launch on the phone (adb over USB or Wi-Fi)
 bash tools/release.sh "note"                                      # upload the APK as the next GitHub release in the private builds repo (needs gh auth login once)
+python tools/make_win_icon.py [--if-stale] && python tools/exe_info.py game/export/88fits.exe --expect-version 0.59   # pass 73: game/icon.ico (16..256, framed per size) for the PC exe; Godot 4.5+ embeds the icon and version itself (rcedit is obsolete); exe_info reads the exe's version resource
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/sign_exe.ps1 -Exe game/export/88fits.exe   # pass 73: signs the PC exe only when tools/keys/codesign.env exists (git-ignored; a .pfx, a store certificate or a signing service); ship.sh calls it and keeps a failed signing out of Drive; why Windows warns and what fixes cost: docs/pc_build_trust.md
 python tools/gen_textures.py && python tools/gen_music.py && python tools/paint_pass.py   # art + music regeneration (see docs/RUNNING.md)
 python tools/make_pipeline_figs.py && python tools/make_bible.py   # bible section 15b's step-by-step art pictures (from tools/dl/ intermediates), then the bible
 python tools/ai_sfx.py [--dry-run | --gen-only | --auto | --bind | --report | --docs | --only ids | --cands N | --pick id=k | --volume id=dB]   # pass 60: every sound effect from Stable Audio (Garry's app at http://127.0.0.1:7861/, AudioGen on 7860 as the alternate) -> content/sounds/real/<id>.wav + the soundmap rows; then --import + import_json -- only=sounds; python tools/make_sfx_review.py -> docs/sfx_review.html + tools/dl/sfx60/sfx_review.zip (the voice barks are gone; gen_voice.py lives in tools/dl/backup/)
@@ -241,7 +243,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-13, pass 72, version 0.58)
+## Status (2026-10-14, pass 73, version 0.59)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -250,8 +252,9 @@ changed.
 
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
-parse check, all gdUnit tests (~1,525 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.58).
+parse check, all gdUnit tests (~1,644 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.59). The PC exe carries game/icon.ico and
+the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
 rolled per run from `Run.map_seed`, a stone boundary wall; everything but the ground, the wall, barrels, signs and a few
@@ -272,6 +275,16 @@ push the hero's side gives x `hero_knockback_mult` (0.5); a boss's HP x clamp((r
 (`boss_hp_scaling`, refs King 600 / Gila 4500 / Brander 20000); custom boss attacks are content
 (`content/boss_attacks/<id>`, kinds rain/volley/ring/slam/script; the Gila's `cactus_rain`), edited in the Level
 Editor's Boss attacks tab. The Results screen is a two-part show fed by `Run.timeline` (core/systems/RunTimeline.gd).
+Pass 73: weapons take the nearest special, Elite or boss within 10 m first (map `target_priority`;
+`EnemyManager.priority_target`, a spread volley sends only its first shot there); the Saiga Sniper (special, brain
+`sniper`, core/systems/SniperFx.gd: a gathering red line, a lock, a beam across the map; look SS-A) and the `flee_on_hit`
+block any creature can carry; the Raider's rocket slows to half on every hit (`artillery.missile.hit_slow`); custom
+boss attacks gained `volley` landing (every spot lit at once, a `spew` from the mouth, all land together: the Gila's
+cactus_rain); visible burrowing (a ground-clip in enemy_billboard.gdshader; the Gila waits 3 s hidden and erupts where
+the hero is about to be, throwing him and the crowd; the Scorpion Elite weaker); boss summons never special, four more;
+every spawn grows out of the ground (map `spawn_rise`; not a target until 70% up, area damage hits it); 10-12 Totem
+Poles a map (content/structures/totem_pole, ui/TotemScreen.gd, core/systems/TotemBoons.gd, `Run.totem_boons`): three
+small weighted boosts named in Pacific Northwest animal words, grey when used.
 
 **Heroes** (title order): Drifter (Revolver) and Astro (Gravity Gun) are free; Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), Fadeaway (the Basketball: evade per level, Heat shown on the ball itself, the Timeout
@@ -290,7 +303,9 @@ quest edited from the Heroes tab (memory `88fits-hero-purchase-parked`: decided 
 
 **Items.** Weapons (5 slots, 5 levels; three path mutations each, offered at set slots `path_times`; all three + level 5
 = evolution at a chest; hero mutations optional), lines (5 slots, 4 levels, evolve when maxed; `PassiveDef.line`) and
-passive items (no cap). Everything is content: `content/weapons|evolutions|mutations|passives|perks|pickups|structures|
+passive items (no cap). Since pass 73 the lines are **Cards** to the player (tarot names, evolutions "<card> Risen";
+ids unchanged; `PassiveDef.display_name_of`); passives carry item looks (`variants`/`variant`, the cards A-E, the game
+plays B, a save's own `Save.card_look` from the arena chips, the Level Editor's "Set every card to look"). Everything is content: `content/weapons|evolutions|mutations|passives|perks|pickups|structures|
 enemies|bosses|characters|talents|maps|sounds`. Mutation looks come from their `params` (`look`, `tint`, ...); emblems
 are gone. Pierce drop-off is on by default (`Settings.pierce_falloff`, Debug panel). Pass 70: lines Lodestone, Mule Kick (evolution Bucking Bronco throws creatures up and away), Slow Burn (overlaps
 Ducktape), Tin Star, Prospector and Gold Tooth (lines now), each with an evolution (21 lines); perk special `trampoline`
@@ -315,7 +330,7 @@ items; the Collection shows only what was met.
 (`Game._request_modal`); the camera cutout is respected everywhere (`W.safe_top()`); touch is raw ScreenTouch, never
 mouse emulation (`TouchScroll`, `TouchSlider`); prove UI with `touch_audit.gd`. The developer menu (hold the Settings
 version line 2 s) and the player's debug mode (10 taps on the hints switch) hold the test switches; the debug arena is on
-the title in debug mode.
+the title in debug mode. The title's hero plaque is one size for every hero and state (pass 73, ui/TitleScreen.gd constants).
 
 **Analytics.** `core/autoload/Analytics.gd` -> PostHog EU (write-only `phc_` key in `game/config/analytics.json`; the
 personal `phx_` key only in git-ignored `tools/posthog_personal_key.txt`, never in the game or a commit; Garry's email is

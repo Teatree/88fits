@@ -942,3 +942,15 @@ textarea.txt.area.bad { border-color: var(--crit); box-shadow: 0 0 0 1px var(--c
 .icand.picked { border-color: var(--sel); }
 ol.howto { margin: 4px 0 14px 22px; padding: 0; }
 ol.howto li { margin: 4px 0; }
+/* pass 73 (lane CARDS): the cards' looks (the Items tab's "Set every card to look" bar and a card's looks in its editor) */
+.cardlooks { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin: 2px 0 6px; }
+.ilooks { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.ilooks-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+.ilook { margin: 0; width: 184px; display: flex; flex-direction: column; gap: 4px; border: 2px solid var(--border); border-radius: 10px; padding: 6px; background: var(--surface-2); }
+.ilook.plays { border-color: var(--good); }
+.ilook.shown { box-shadow: 0 0 0 2px var(--sel) inset; }
+.ilook.missing { opacity: 0.6; border-style: dashed; }
+.ilook-plates { display: flex; gap: 8px; align-items: flex-end; }
+.ilook figcaption { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.ilook pre.recipe-words { white-space: pre-wrap; font-size: 0.72rem; max-height: 160px; overflow: auto; margin: 4px 0 0; }
+.achip.good { color: var(--good); border-color: rgba(25,158,112,0.5); }

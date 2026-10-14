@@ -183,9 +183,31 @@ const HERO_KNOCKBACK_DEFAULT := 0.5
 @export var boss_hp_scaling: Dictionary = {}
 ## What boss_hp_scaling plays for a key it leaves out (the Level Editor's grey numbers).
 const BOSS_HP_SCALING_DEFAULTS := {"enabled": true, "exponent": 0.5, "window": 45.0, "min": 0.75, "max": 3.0}
+## Pass 73 (lane SNIPER; Garry: "Player Attacks should prioritize Special Enemies, Elites and Bosses once Player is close
+## enough to them"): {"enabled", "reach"}. Every weapon that chooses its target takes a special (a coloured variance
+## special or a gear-badge creature), an Elite or a boss within min(its own range, `reach` m) first, the nearest of them
+## (EnemyManager.priority_target). A key the block leaves out plays TARGET_PRIORITY_DEFAULTS (on, 10 m), so a map saved
+## without the block still prioritises; enabled false = off.
+@export var target_priority: Dictionary = {}
+const TARGET_PRIORITY_DEFAULTS := {"enabled": true, "reach": 10.0}
 ## The reference DPS of a boss the block's ref_dps does not name (lane BOSS measured them with tools/difficulty_probe.gd:
 ## the DPS over the 45 s before each boss, Calavera and the Drifter on stage builds; pass 72).
 const BOSS_REF_DPS_DEFAULTS := {"tumbleweed_king": 600.0, "gila_grande": 4500.0, "brander": 20000.0}
+## Growing out of the ground (pass 73, lane GROUND; Garry: "currently the enemies just kind of appear. Let's make it so
+## that they grow out of the ground"): every creature that spawns rises out of the sand over `seconds` (an Elite or a
+## boss by its kind over `big_seconds`), at the creatures' pace, the part still under cut by the billboard's ground-clip,
+## in a small puff of dust `dust` times its size (0 = none, drawn only on the screen); no weapon chooses it as its target
+## until it is `targetable` of the way up (EnemyManager.targetable; area damage still hits it), and it walks, bites and
+## attacks only once it is all the way up. {"seconds", "big_seconds", "targetable", "dust"}; a key the block leaves out (the whole block too) plays
+## SPAWN_RISE_DEFAULTS (WaveDirector._apply_mults hands them to EnemyManager.set_spawn_rise); seconds 0 = off.
+@export var spawn_rise: Dictionary = {}
+const SPAWN_RISE_DEFAULTS := {"seconds": 0.45, "big_seconds": 0.9, "targetable": 0.7, "dust": 1.0}
+
+
+## One number of spawn_rise (pass 73): the map's, else SPAWN_RISE_DEFAULTS'.
+func spawn_rise_value(key: String) -> float:
+	var v = spawn_rise.get(key, SPAWN_RISE_DEFAULTS.get(key, 0.0))
+	return float(v) if (v is float or v is int) else float(SPAWN_RISE_DEFAULTS.get(key, 0.0))
 
 
 ## The boss HP multiplier for a hero dealing `dps` against the reference `ref` (pass 72): (dps / ref) ^ exponent, held

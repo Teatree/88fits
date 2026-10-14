@@ -464,6 +464,8 @@ func _ready() -> void:
 	poison_src.resize(MAX); fire_src.resize(MAX); fire_tick.resize(MAX); flash_hot.resize(MAX); fire_puff.resize(MAX)
 	# pass 60: everyone starts up on the sand, meaning to go nowhere, free to turn
 	rise_t.resize(MAX); rise_t.fill(1.0); intent.resize(MAX); view_t.resize(MAX)
+	# pass 73 (lane GROUND): how fast each one rises or sinks
+	rise_v.resize(MAX)
 	for i in range(MAX):
 		poison_src[i] = {}; fire_src[i] = {}; lift_t.resize(MAX); lift_d.resize(MAX); lift_h.resize(MAX); lift_a.resize(MAX); lift_cd.resize(MAX)
 	for i in range(MAX - 1, -1, -1):
@@ -619,6 +621,9 @@ func _screen_only(any_screen: bool) -> bool:
 
 ## Whether creature `i` may be a ranged weapon's pick (pass 54): it is on the screen, or the pick may be anywhere.
 func screen_ok(i: int, any_screen: bool = false) -> bool:
+	# pass 73 (lane GROUND): never one still rising out of the sand (targetable)
+	if not targetable(i):
+		return false
 	return not _screen_only(any_screen) or (i >= 0 and i < onscreen.size() and onscreen[i] == 1)
 
 
@@ -846,7 +851,7 @@ func register_type(def: EnemyDef) -> int:
 	_t_eight.append(1 if bool(t["eight"]) else 0)
 	_t_run_fps.append(float(t["run_fps"]))
 	_t_die_fps.append(float(t["die_fps"]))
-	_t_faces.append(1 if def.brain in ["caster", "kite", "artillery", "support"] else 0)
+	_t_faces.append(1 if def.brain in ["caster", "kite", "artillery", "support", "sniper"] else 0)
 	_t_face_fix.append(_face_fix(def.front_faces))
 	_t_face_fix.append(_face_fix(def.back_faces))
 	_t_mm.append(mm)
@@ -861,6 +866,8 @@ func register_type(def: EnemyDef) -> int:
 	_t_okb.append(1 if def.frames_of("idle_b") > 0 else 0)
 	_t_big.append(1 if def.archetype == "elite" or def.archetype == "boss" else 0)
 	_t_dummy.append(1 if def.brain == "dummy" else 0)
+	# pass 73 (lane SNIPER): an attack strip painted front and back (EnemyDef.attack_views)
+	_t_atkv.append(1 if def.attack_views == "front_back" else 0)
 	_t_sh.append_array(shadow_numbers(def))
 	_t_cv.append_array(charge_numbers(def))
 	return types.size() - 1
@@ -1017,6 +1024,9 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 			# pass 72 (lane SPEC): at most special_max_alive at once; a roll past it comes plain, a forced one still comes
 			if sp_roll and not force_special and not _special_room():
 				sp_roll = false
+			# pass 73 (lane GROUND): a boss's or a caster's summon is never a special (force_plain, held round it)
+			if force_plain:
+				sp_roll = false
 			if sp_roll:
 				var sp: Dictionary = vr.get("special", {})
 				# pass 69: each number the creature's own, else the map's special_defaults, else EnemyDef.SPECIAL_DEFAULTS
@@ -1053,6 +1063,7 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	cooldown[i] = _rng.randf_range(0.5, 2.0)
 	hidden[i] = 0
 	rise_t[i] = 1.0
+	rise_v[i] = 0.0
 	intent[i] = Vector3.ZERO
 	view_t[i] = 0.0
 	atk_i[i] = 0
@@ -1120,6 +1131,11 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 		Audio.play("en_elite_spawn", pos[i])
 	if def.brain == "artillery":
 		_stand_off(i, def)
+	elif def.brain == "sniper":
+		# pass 73 (lane SNIPER): the Saiga Sniper comes in at its stand-off too, its first aim a moment after
+		_sniper_spawned(i, def)
+	# pass 73 (lane GROUND): it grows out of the ground (the map's spawn_rise; nothing without a director)
+	_emerge_start(i, def)
 	return i
 
 
@@ -1616,6 +1632,8 @@ func damage(i: int, amount: float, weapon_id: String = "", kb_dir: Vector3 = Vec
 		# the death and the overkill splash may have landed hits of their own since
 		last_crit = crit
 		return true
+	# pass 73 (lane SNIPER): flee on hit, and a hit Vulture Raider's rockets shake and slow
+	_on_hit_reactions(i, def, dealt, green or hot)
 	Audio.play(str(def.sfx.get("hit", "")), pos[i])
 	return false
 
@@ -2540,6 +2558,8 @@ func _gcol(v: float) -> int:
 
 
 func _rebuild_grid() -> void:
+	# pass 73 (lane SNIPER): the priority creatures' list is gathered again after every rebuild (priority_target)
+	_grid_epoch += 1
 	var half: float = ceilf((arena_radius + 12.0) / CELL) * CELL
 	if _gw == 0 or half != _g_half:
 		_g_half = half
@@ -2639,6 +2659,9 @@ func priority_index(from: Vector3, max_range: float, avoid: String = "", any_scr
 	for i in indices_in_radius(from, max_range):
 		if so and onscreen[i] == 0:
 			continue
+		# pass 73 (lane GROUND): one still rising out of the sand (or sinking into it) is never chosen yet
+		if rise_t[i] < rise_targetable:
+			continue
 		if has_avoid and has_element(i, avoid):
 			continue
 		var dx := pos[i].x - from.x
@@ -2679,6 +2702,9 @@ func nearest_index(from: Vector3, max_range: float, avoid: String = "", any_scre
 	for i in indices_in_radius(from, max_range):
 		if so and onscreen[i] == 0:
 			continue
+		# pass 73 (lane GROUND): one still rising out of the sand (or sinking into it) is never chosen yet
+		if rise_t[i] < rise_targetable:
+			continue
 		if avoid != "" and has_element(i, avoid):
 			continue
 		var d := pos[i] - from
@@ -2698,6 +2724,9 @@ func random_in_range(from: Vector3, max_range: float, exclude: Array = [], avoid
 	var so := _screen_only(any_screen)
 	for i in cands:
 		if so and onscreen[i] == 0:
+			continue
+		# pass 73 (lane GROUND): one still rising out of the sand (or sinking into it) is never chosen yet
+		if rise_t[i] < rise_targetable:
 			continue
 		if avoid != "" and has_element(i, avoid):
 			continue
@@ -2724,6 +2753,9 @@ func densest_point(from: Vector3, max_range: float, avoid: String = "", keep_awa
 	for k in range(0, cands.size(), step):
 		var i := cands[k]
 		if so and onscreen[i] == 0:
+			continue
+		# pass 73 (lane GROUND): one still rising out of the sand (or sinking into it) is never chosen yet
+		if rise_t[i] < rise_targetable:
 			continue
 		if avoid != "" and has_element(i, avoid):
 			continue
@@ -3061,6 +3093,8 @@ func _physics_process(delta: float) -> void:
 		if state[i] == STATE_SPAWN:
 			timer[i] -= delta
 			squash[i] = lerp(squash[i], 1.0, delta * 10.0)
+			# pass 73 (lane GROUND): growing out of the ground, the spawn state lasting the rise
+			_tick_emerge(i, delta)
 			if timer[i] <= 0.0:
 				state[i] = STATE_MOVE
 			continue
@@ -3079,9 +3113,10 @@ func _physics_process(delta: float) -> void:
 			shove_t[i] -= delta
 		if ign_t[i] > 0.0:
 			ign_t[i] -= delta
-		# coming up out of the sand (pass 60): RISE_TIME at the creatures' pace, then it is up
-		if rise_t[i] < 1.0:
-			rise_t[i] = minf(rise_t[i] + delta * pace / RISE_TIME, 1.0)
+		# coming up out of the sand (pass 60): RISE_TIME at the creatures' pace, then it is up; pass 73 (lane GROUND): at
+		# its own rate (rise_v), or sinking into it (a visible burrow)
+		if rise_t[i] < 1.0 or rise_v[i] != 0.0:
+			_tick_rise(i, delta)
 		if view_t[i] > 0.0:
 			view_t[i] -= delta
 		if (i & 1) == parity:
@@ -3236,6 +3271,8 @@ func _physics_process(delta: float) -> void:
 	_mean_max_hp = crowd_hp / float(crowd_n) if crowd_n > 0 else 0.0
 	Run.poisoned_alive = poisoned
 	_update_boss(delta, ppos)
+	# pass 73 (lane SNIPER): the Saiga Snipers' aims, locks and shots
+	_tick_snipers(delta, ppos)
 	# the burrows' mounds swell with their wind-ups (pass 60), after the runner has moved the timers
 	_tick_mounds()
 	_ticks += 1
@@ -3308,6 +3345,9 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 		intent[i] = Vector3.ZERO
 		if game and int(spin_t[i] * 8.0) != int((spin_t[i] + dt) * 8.0):
 			game.fx_burst(pos[i] + Vector3(0, size[i] * 0.3, 0), Color(0.95, 0.85, 0.55), 0.7)
+		return
+	# pass 73 (lane SNIPER): flee on hit: straight away from the hero, no brain while it runs (_flee_steer)
+	if not _flee.is_empty() and _flee.has(i) and _flee_steer(i, dir, spd, dt):
 		return
 	match state[i]:
 		STATE_WINDUP:
@@ -3388,6 +3428,10 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 					# is not a speck among the crowd
 					flash[i] = maxf(flash[i], 0.3 + 0.22 * sin(anim_t[i] * 2.2))
 					flash_hot[i] = 1
+					# pass 73 (lane SNIPER): a wind-up something dropped (a stun, a launch, a hit's flee) leaves him ready
+					# again, not waiting for a rocket that never left
+					if atk_i[i] == 1:
+						atk_i[i] = 0
 					if atk_i[i] == 2 and not (game and game.has_method("rocket_out") and game.rocket_out(i)):
 						atk_i[i] = 0
 						cooldown[i] = float(def.artillery.get("reload", 2.5))
@@ -3399,6 +3443,9 @@ func _steer(i: int, ppos: Vector3, dt: float) -> void:
 						if game and game.has_method("telegraph_line"):
 							game.telegraph_line(pos[i], dir, 5.0, timer[i], Color(0.93, 0.29, 0.36))
 						Audio.play(str(def.sfx.get("attack", "")), pos[i])
+				"sniper":
+					# pass 73 (lane SNIPER): the Saiga Sniper keeps far off, runs from the hero, and aims (_sniper_steer)
+					desired = _sniper_steer(i, def, dir, dist, spd)
 				"kite":
 					var keep := float(def.ranged.get("keep_distance", 5.0))
 					var rng := float(def.ranged.get("range", 8.0))
@@ -3890,7 +3937,10 @@ func _tick_rains(delta: float, ppos: Vector3) -> void:
 			if sp_id != "":
 				# the sand bursts and something comes up through it, thrown a little towards the hero
 				# on the numbers of the moment the eruption was called (pass 58, R1; brood_numbers)
+				# (pass 73, lane GROUND: a summon is never a variance special)
+				force_plain = true
 				var j := spawn(sp_id, at, null, 1.0, 1.0, "", r.get("stats", {}), r.get("src", {}))
+				force_plain = false
 				if j >= 0:
 					var tow := ppos - at
 					tow.y = 0.0
@@ -4093,6 +4143,8 @@ func _update_boss(delta: float, ppos: Vector3) -> void:
 				if hidden[i] == 1 and state[i] != STATE_ATTACK and adef.brain != "ambush":
 					hidden[i] = 0
 					rise_t[i] = 0.0
+	# pass 73 (lane GROUND): the burrows under way (the sink's sand, the predicted spot and its warning)
+	_tick_burrows(delta, ppos)
 
 
 ## The attack runner: a creature with a `boss.attacks` list (the bosses, the casters) cycles through them, each with a
@@ -4201,17 +4253,11 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 							var sa := sphase + TAU * float(k) / float(maxi(sn, 1))
 							game.telegraph_line(pos[i], Vector3(cos(sa), 0, sin(sa)), slen, timer[i], Color(0.93, 0.29, 0.36))
 			if str(atk.get("name", "")) == "burrow":
-				# under the sand for the wind-up: it digs in with a poof of its own and a small burst (pass 60; the 4.0 burst
-				# was an 8 m pale disc); the ring on the hero says where it comes up, and the sand there swells into a mound
-				# through the wind-up (_mound_start, ticked from the wind-up's timer, gone at the pop)
-				hidden[i] = 1
-				if game:
-					game.fx_burst(pos[i] + Vector3(0, 0.5, 0), Color(0.85, 0.7, 0.5), 0.4 * size[i])
-					var dfx = game.get("fx")
-					if dfx and dfx.has_method("pop_dust"):
-						dfx.pop_dust(pos[i], size[i] * 0.6)
-				var mt: Vector3 = atk_target[i]
-				_mound_start(i, Vector3(mt.x, _height(mt.x, mt.z), mt.z), MOUND_FRAC * size[i])
+				# under the sand for the wind-up (pass 60): the ring on the hero says where it comes up, and the sand there
+				# swells into a mound through the wind-up (_mound_start, ticked from the wind-up's timer, gone at the pop).
+				# Pass 73 (lane GROUND): with a `sink` it sinks out of sight where it stands first; one that `predict`s its
+				# spot shows nothing until its warning (_burrow_begin, _tick_burrows)
+				_burrow_begin(i, atk)
 			Audio.play(str(def.sfx.get("attack", "en_boss_attack")), pos[i])
 	elif state[i] == STATE_ATTACK:
 		timer[i] -= delta * attack_clock(i)
@@ -4230,7 +4276,10 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 					# brings the same creature then (the fix round, brood_numbers)
 					var bid := str(atk.get("enemy", "coyote"))
 					var bn := brood_numbers(bid)
+					# pass 73 (lane GROUND): a summon is never a variance special
+					force_plain = true
 					spawn_ring(bid, int(atk.get("count", 10)), pos[i], 5.0, "", bn["stats"], bn["src"])
+					force_plain = false
 					state[i] = STATE_MOVE
 				"slam_at":
 					# a rock on the marked spot: damage there, the caster stays where it is
@@ -4277,37 +4326,10 @@ func _update_attacks(i: int, delta: float, ppos: Vector3) -> void:
 						game.fx_burst(pos[i] + Vector3(0, size[i] * 0.5, 0), Color(0.9, 0.78, 0.55), 2.2)
 					state[i] = STATE_MOVE
 				"burrow":
-					# up it comes (pass 60): the figure rises out of the sand over RISE_TIME (rise_t, drawn sunk by the part
-					# still under) in a poof of soft dust (Fx.pop_dust, the Bull Beetle's dust as one burst), the damage
-					# landing at this moment as before
-					hidden[i] = 0
-					rise_t[i] = 0.0
-					_mound_end(i)
-					var bp: Vector3 = atk_target[i]
-					pos[i] = Vector3(bp.x, _height(bp.x, bp.z), bp.z)
-					if game:
-						var pfx = game.get("fx")
-						if pfx and pfx.has_method("pop_dust"):
-							pfx.pop_dust(pos[i], size[i])
-					var rb := float(atk.get("radius", 5.0))
-					var db := ppos - pos[i]
-					db.y = 0.0
-					if db.length() <= rb + 0.5:
-						player.take_damage(float(atk.get("damage", 28)) * stage_of(i) * host_of(i), pos[i], hit_info(i, "melee", ["burst up from the sand", "knocked back"]))
-						if player.has_method("shove"):
-							player.shove(db.normalized() * float(atk.get("knockback", 8.0)))
-					if game:
-						# the hit's ring and the camera's kick without the shockwave's 6 m burst, and the old 5.0 burst (an 11 m
-						# pale disc) cut to the body's size (pass 60: they swamped the poof and hid the figure coming up)
-						var tg = game.get("telegraphs")
-						if tg and tg.has_method("flash_ring"):
-							tg.flash_ring(pos[i], rb, Color(1.0, 0.6, 0.3), 0.4)
-						elif game.has_method("shockwave"):
-							game.shockwave(pos[i], rb)
-						var cam = game.get("camera")
-						if cam and cam.has_method("shake"):
-							cam.shake(1.0)
-						game.fx_burst(pos[i] + Vector3(0, 0.5, 0), Color(0.85, 0.7, 0.5), 0.4 * size[i])
+					# up it comes (pass 60): the figure rises out of the sand (rise_t, drawn sunk by the part still under) in a
+					# poof of soft dust (Fx.pop_dust), the damage landing at this moment as before. Pass 73 (lane GROUND): over
+					# its own `rise`, through the ground-clip, throwing the hero and the crowd round it (_burrow_erupt)
+					_burrow_erupt(i, atk, ppos)
 					state[i] = STATE_MOVE
 				"rain", "erupt":
 					# a sequence of small strikes around the hero, each a red ring first: a dodge that lasts a few seconds;
@@ -4751,7 +4773,8 @@ func _tick_mounds() -> void:
 		return
 	for key in _mounds.keys():
 		var i: int = key
-		if alive[i] == 0 or hidden[i] == 0 or state[i] != STATE_ATTACK:
+		# (pass 73, lane GROUND: and while it sinks out of sight before it is under)
+		if alive[i] == 0 or (hidden[i] == 0 and rise_v[i] >= 0.0) or state[i] != STATE_ATTACK:
 			_mound_end(i)
 			continue
 		var m: Dictionary = _mounds[i]
@@ -4838,6 +4861,9 @@ func _render() -> void:
 		var strip := _strip_of(i, t)
 		var n := _t_cnt[t * N_ANIMS + strip]
 		var frame := _t_off[t * N_ANIMS + strip] + (mini(int(anim_t[i]), n - 1) if strip == A_DIE else (int(anim_t[i]) % maxi(n, 1)))
+		if strip == A_ATTACK and _t_atkv[t] == 1:
+			# pass 73 (lane SNIPER): the front or the back half of an attack strip painted both ways (the sniper's aim)
+			frame = _attack_view_frame(i, t)
 		var sq := squash[i]
 		# procedural bob while moving
 		if strip == A_RUN:
@@ -4860,7 +4886,11 @@ func _render() -> void:
 		var rise_k := rise_ease(rise)
 		if rise < 1.0:
 			at -= rise_sink(i, sq, cam_up)
-		mm.set_instance_transform(k, Transform3D(Basis().scaled(Vector3(s, s, s)) if cp.w == 0.0 else roll_basis(s, cp.w), at))
+		var xb: Basis = Basis().scaled(Vector3(s, s, s)) if cp.w == 0.0 else roll_basis(s, cp.w)
+		if rise < 1.0:
+			# pass 73 (lane GROUND): the ground-clip, the share of the quad under the sand (the shader reads basis.z.y)
+			xb.z = Vector3(xb.z.x, ground_clip(i), xb.z.z)
+		mm.set_instance_transform(k, Transform3D(xb, at))
 		# the flash: white, green for a poison tick (negative), orange for a fire tick (2 + flash)
 		var fl: float = flash[i]
 		if i == bounty_i and fl < 0.4:
@@ -4932,6 +4962,485 @@ func _render() -> void:
 				bmm2.set_instance_custom_data(bn2, Color(1.0, 0.3, 0.0, 0.0))
 				bn2 += 1
 			bmm2.visible_instance_count = bn2
+
+
+# ---------------------------------------------------------------- pass 73 (lane SNIPER): target priority, flee on hit, the Saiga Sniper
+
+## The weapons' target priority (pass 73; the map's `target_priority`, WaveTimeline, handed on by the director's
+## _apply_mults): on or off, and how far from the hero (a turret: from itself) a special, an Elite or the boss is taken
+## first. A manager without a director (tools, tests) plays WaveTimeline.TARGET_PRIORITY_DEFAULTS.
+var target_priority_on := true
+var target_priority_reach := 10.0
+## diagnostics and tests: how many target choices the rule decided
+var priority_picks := 0
+## per type: 1 for a type every one of which is a priority creature (a gear-badge special, an Elite or a boss by its kind)
+var _t_prio := PackedByteArray()
+## per type: 1 when its attack strip holds the front and the back views (EnemyDef.attack_views "front_back")
+var _t_atkv := PackedByteArray()
+
+
+func set_target_priority(cfg: Dictionary) -> void:
+	target_priority_on = bool(cfg.get("enabled", WaveTimeline.TARGET_PRIORITY_DEFAULTS["enabled"]))
+	target_priority_reach = maxf(float(cfg.get("reach", WaveTimeline.TARGET_PRIORITY_DEFAULTS["reach"])), 0.0)
+
+
+## Whether creature `i` is one the weapons take first (pass 73): a coloured variance special, a gear-badge special (the
+## Vulture Raider, the harpooner, the Saiga Sniper), an Elite (by its kind, or wearing an elite modifier) or the boss.
+func is_priority(i: int) -> bool:
+	if i < 0 or i >= MAX or alive[i] == 0:
+		return false
+	_grow_prio()
+	return vspecial[i] == 1 or elite_idx[i] >= 0 or i == boss_index or _t_prio[type_idx[i]] == 1
+
+
+func _grow_prio() -> void:
+	while _t_prio.size() < types.size():
+		var t := _t_prio.size()
+		_t_prio.append(1 if _t_big[t] == 1 or _t_badge[t] == "gear" else 0)
+
+
+## The creature a weapon that chooses its target takes first (pass 73; Garry: "Player Attacks should prioritize Special
+## Enemies, Elites and Bosses once Player is close enough to them. This is to make it more predictable to kill them"): the
+## nearest priority creature (is_priority) within min(`range_m`, target_priority_reach) of `from`, standing (not dying,
+## buried or held: the grid's own rule), on the screen unless `any_screen`. -1 for none, or with the rule off. Every
+## chooser asks this first and falls back on its own rule (WeaponBehavior.aim_index and priority_pick; the seekers'
+## retarget; only the first shot of a volley that spreads over different creatures).
+func priority_target(from: Vector3, range_m: float, any_screen: bool = false) -> int:
+	if not target_priority_on:
+		return -1
+	var reach := minf(range_m, target_priority_reach)
+	if reach <= 0.0:
+		return -1
+	var list := _priority_list()
+	if list.is_empty():
+		return -1
+	var so := _screen_only(any_screen)
+	var best := -1
+	var best_d := reach * reach
+	for i in list:
+		# standing as the grid keeps them: alive, not dying, buried or held
+		if alive[i] == 0 or state[i] == STATE_DYING or hidden[i] == 1 or held[i] == 1:
+			continue
+		if so and onscreen[i] == 0:
+			continue
+		# pass 73 (lane GROUND): one still rising out of the sand (or sinking into it) is never chosen yet
+		if rise_t[i] < rise_targetable:
+			continue
+		var dx := pos[i].x - from.x
+		var dz := pos[i].z - from.z
+		var d2 := dx * dx + dz * dz
+		if d2 <= best_d:
+			best_d = d2
+			best = i
+	if best >= 0:
+		priority_picks += 1
+	return best
+
+
+## The priority creatures alive (pass 73), gathered again after each grid rebuild (once a tick) or spawn: priority_target
+## scans this short list instead of the crowd in reach (perf_late, stage 3: the radius query on every weapon's pick cost
+## about 0.2 ms a frame on the PC).
+var _prio_list := PackedInt32Array()
+var _prio_epoch := -1
+var _prio_serial := -1
+var _grid_epoch := 0
+
+
+func _priority_list() -> PackedInt32Array:
+	if _prio_epoch == _grid_epoch and _prio_serial == _serial:
+		return _prio_list
+	_prio_epoch = _grid_epoch
+	_prio_serial = _serial
+	_grow_prio()
+	_prio_list.clear()
+	for i in range(MAX):
+		if alive[i] == 0 or state[i] == STATE_DYING:
+			continue
+		if vspecial[i] == 1 or elite_idx[i] >= 0 or i == boss_index or _t_prio[type_idx[i]] == 1:
+			_prio_list.append(i)
+	return _prio_list
+
+
+## Flee on hit (pass 73; Garry: "Being hit causes the aiming to stop. And the enemy tries to run away with a small 1 second
+## speed boost ... Add this ability as something I can add to any enemy"): creature index -> {serial, t, mult}.
+var _flee: Dictionary = {}
+## diagnostics and tests
+var flee_starts := 0
+
+
+## A hit landed on creature `i` (pass 73, from damage(): a hit that took health, never a poison or fire tick): its flee on
+## hit (EnemyDef.flee_on_hit), and the rockets it has in the air shake and slow (ProjectileManager.shooter_hit).
+func _on_hit_reactions(i: int, def: EnemyDef, dealt: float, tick: bool) -> void:
+	if tick or dealt <= 0.0 or alive[i] == 0:
+		return
+	if not def.flee_on_hit.is_empty():
+		flee_start(i, def)
+	if def.brain == "artillery" and game != null:
+		var pm = game.get("projectiles")
+		if pm != null and pm.has_method("shooter_hit"):
+			pm.shooter_hit(i)
+
+
+## Creature `i` starts (or starts again) its flee on hit (pass 73, EnemyDef.flee_on_hit {seconds 1, speed_mult 1.8,
+## interrupts true}): with `interrupts` a wind-up or aim under way is dropped (_interrupt: the shot never comes), and for
+## `seconds` it runs straight away from the hero at its speed x `speed_mult` (_flee_steer), its brain idle. A new hit
+## starts the clock again (the run is never faster). Never a boss, nor one held, buried or in the air. True when it runs.
+func flee_start(i: int, def: EnemyDef = null) -> bool:
+	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING:
+		return false
+	if def == null:
+		def = types[type_idx[i]]["def"]
+	var fo: Dictionary = def.flee_on_hit
+	if fo.is_empty() or i == boss_index or def.archetype == "boss" or held[i] == 1 or hidden[i] == 1 or lift_t[i] > 0.0:
+		return false
+	var secs := float(fo.get("seconds", 1.0))
+	if secs <= 0.0:
+		return false
+	if bool(fo.get("interrupts", true)):
+		_interrupt(i, def)
+	_flee[i] = {"serial": serial[i], "t": secs, "mult": maxf(float(fo.get("speed_mult", 1.8)), 0.0)}
+	flee_starts += 1
+	return true
+
+
+## Whether creature `i` is running from a hit right now (pass 73).
+func is_fleeing(i: int) -> bool:
+	return _flee.has(i) and int((_flee[i] as Dictionary)["serial"]) == serial[i] and alive[i] == 1
+
+
+## A wind-up or aim under way is dropped (pass 73, flee on hit's `interrupts`), as a stun drops one: the shot, charge or
+## scripted attack never comes and the next try waits a beat (a sniper: its aim and lines, _sniper_cancel; the Vulture
+## Raider: his rocket stays in the tube and he reloads).
+func _interrupt(i: int, def: EnemyDef) -> void:
+	if def.brain == "sniper":
+		_sniper_cancel(i, def)
+		return
+	match state[i]:
+		STATE_WINDUP:
+			state[i] = STATE_MOVE
+			cooldown[i] = maxf(cooldown[i], 1.0)
+			if def.brain == "artillery":
+				atk_i[i] = 0
+				cooldown[i] = maxf(cooldown[i], float(def.artillery.get("reload", 2.5)))
+		STATE_ATTACK:
+			state[i] = STATE_MOVE
+			atk_t[i] = maxf(atk_t[i], 1.0)
+
+
+## Flee on hit's run (pass 73), from _steer before the brain: straight away from the hero at its speed x mult (along the
+## wall when backed against it), round the rocks; true while it runs (the brain waits), false once it is over.
+func _flee_steer(i: int, dir: Vector3, spd: float, dt: float) -> bool:
+	var f: Dictionary = _flee[i]
+	if int(f["serial"]) != serial[i]:
+		_flee.erase(i)
+		return false
+	var left := float(f["t"]) - dt
+	if left <= 0.0:
+		_flee.erase(i)
+		return false
+	f["t"] = left
+	var run_dir := -dir
+	if run_dir.length_squared() < 0.0001:
+		run_dir = Vector3(cos(float(i)), 0.0, sin(float(i)))
+	var want := _along_wall(i, run_dir) * spd * float(f["mult"])
+	vel[i] = want + _obstacle_push(i) * 4.0
+	intent[i] = want
+	return true
+
+
+## A run's heading `d` (flat, unit) near the arena's wall (pass 73): the part that would take it out of the walkable disc
+## goes, so a creature backed against the wall slides along it instead of standing there.
+func _along_wall(i: int, d: Vector3) -> Vector3:
+	var flat := Vector2(pos[i].x, pos[i].z)
+	var r := flat.length()
+	if r < arena_radius - 6.0 or r < 0.001:
+		return d
+	var out := Vector3(flat.x / r, 0.0, flat.y / r)
+	var o := d.dot(out)
+	if o <= 0.0:
+		return d
+	var tg := d - out * o
+	if tg.length_squared() < 0.0001:
+		tg = Vector3(-out.z, 0.0, out.x)
+	return tg.normalized()
+
+
+## The frame of the `attack` strip creature `i` shows (pass 73, EnemyDef.attack_views "front_back"): the strip's first half
+## is painted from the front and its second half from the back; the half its facing shows (away), at the attack's pace.
+func _attack_view_frame(i: int, t: int) -> int:
+	var n := _t_cnt[t * N_ANIMS + A_ATTACK]
+	var off := _t_off[t * N_ANIMS + A_ATTACK]
+	if n < 2:
+		return off
+	var half := n >> 1
+	return off + (half if away[i] == 1 else 0) + (int(anim_t[i]) % half)
+
+
+# ---- the Saiga Sniper (pass 73; content/enemies/saiga_sniper, EnemyDef.sniper; drawn by SniperFx)
+
+const SNIPER_IDLE := 0
+const SNIPER_AIM := 1
+const SNIPER_LOCK := 2
+## after the shot he keeps the aiming pose SNIPER_AFTER_HOLD seconds (the beam's flash and a breath): he dropped back to
+## his walk on the very frame the beam showed (the capture with lane ART's painting)
+const SNIPER_AFTER := 3
+const SNIPER_AFTER_HOLD := 0.35
+## the wind-up's own timer while a sniper aims: its clock is _tick_snipers', so _steer's wind-up branch never runs it out
+const SNIPER_HELD := 1.0e6
+## how fast the aim follows the hero (1/s: a quick ease, so a dash still drags the lines after him)
+const SNIPER_FOLLOW := 10.0
+## the hero's body on the beam: hit when his feet are within the beam's half width + this of its line
+const SNIPER_HERO_R := 0.4
+## a pushed creature's knockback, m/s for every metre of push (knockback dies away at 6 a second: v / 6 metres)
+const KB_PER_M := 6.0
+## sniper index -> {serial, phase, t, aim (the point it follows), dir (flat: from it to that point), lines (SniperFx.line_plan),
+## from, ldir, d (the locked muzzle, line and distance)}
+var _snipers: Dictionary = {}
+var _sniper_fx: SniperFx = null
+## diagnostics and tests
+var sniper_aims := 0
+var sniper_shots := 0
+var sniper_hero_hits := 0
+var sniper_cancels := 0
+var sniper_last: Dictionary = {}
+
+
+## A sniper comes in (pass 73, from spawn()): at its stand-off from the hero like the Vulture Raider (never closer, inside
+## the wall), its first aim `first` seconds after it lands.
+func _sniper_spawned(i: int, def: EnemyDef) -> void:
+	var sn: Dictionary = def.sniper
+	if player:
+		var so := float(sn.get("stand_off", 26.0))
+		var pp: Vector3 = player.global_position
+		var d := pos[i] - pp
+		d.y = 0.0
+		if d.length_squared() < 0.01:
+			d = Vector3.FORWARD
+		if d.length() < so:
+			var np: Vector3 = pp + d.normalized() * so
+			var map = game.get("map") if game != null else null
+			if map != null and map.has_method("clamp_to_arena"):
+				np = map.clamp_to_arena(np)
+			else:
+				np = _clamp_arena(np)
+			pos[i] = Vector3(np.x, _height(np.x, np.z), np.z)
+			home[i] = pos[i]
+	cooldown[i] = maxf(float(sn.get("first", 2.5)), 0.0)
+	_snipers[i] = {"serial": serial[i], "phase": SNIPER_IDLE}
+
+
+## The sniper's walk (pass 73, _steer's brain "sniper" while it is not aiming): inside `flee_range` of the hero it runs
+## (straight away, along the wall when backed against it); past `follow` (stand_off + 12 m) it walks back in; between, it
+## stands, and once its rest is over (cooldown) it starts an aim at him.
+func _sniper_steer(i: int, def: EnemyDef, dir: Vector3, dist: float, spd: float) -> Vector3:
+	var sn: Dictionary = def.sniper
+	if dist < float(sn.get("flee_range", 14.0)):
+		var run_dir := -dir if dir.length_squared() > 0.0001 else Vector3(cos(float(i)), 0.0, sin(float(i)))
+		return _along_wall(i, run_dir) * spd
+	if dist > float(sn.get("follow", float(sn.get("stand_off", 26.0)) + 12.0)):
+		return dir * spd
+	if cooldown[i] <= 0.0 and player != null and player.get("dead") != true:
+		_sniper_aim_start(i, def, dir)
+	return Vector3.ZERO
+
+
+## The aim starts (pass 73): frozen in the aiming pose (a held wind-up: the `attack` strip), facing the hero, the lines'
+## plan drawn for this aim.
+func _sniper_aim_start(i: int, def: EnemyDef, dir: Vector3) -> void:
+	var sn: Dictionary = def.sniper
+	state[i] = STATE_WINDUP
+	timer[i] = SNIPER_HELD
+	charge_dir[i] = dir
+	vel[i] = Vector3.ZERO
+	_snipers[i] = {"serial": serial[i], "phase": SNIPER_AIM, "t": 0.0, "aim": player.global_position, "dir": dir,
+		"lines": SniperFx.line_plan(int(sn.get("lines", 14)), float(sn.get("aim", 2.0)), float(sn.get("cone_deg", 44.0)), _rng)}
+	sniper_aims += 1
+	Audio.play(str(def.sfx.get("aim", "")), pos[i])
+	if game != null and game.has_method("hint_once"):
+		game.hint_once("sniper", "SAIGA SNIPER: step off his red line before he fires. Hit him to spoil his aim.")
+
+
+## The aim is dropped (pass 73: a hit with flee on hit's `interrupts`, a stun, a freeze, a launch, the hero down): no shot,
+## the lines go with it, and the next aim waits `recover` seconds (2.5) at least.
+func _sniper_cancel(i: int, def: EnemyDef) -> void:
+	var s: Dictionary = _snipers.get(i, {})
+	if s.is_empty() or int(s.get("serial", -1)) != serial[i]:
+		return
+	var was := int(s.get("phase", SNIPER_IDLE))
+	if was == SNIPER_AIM or was == SNIPER_LOCK:
+		sniper_cancels += 1
+		cooldown[i] = maxf(cooldown[i], float(def.sniper.get("recover", 2.5)))
+	s["phase"] = SNIPER_IDLE
+	if state[i] == STATE_WINDUP:
+		state[i] = STATE_MOVE
+
+
+## The snipers' aims, once a tick (pass 73, from _physics_process): the aim follows the hero for `aim` seconds, locks,
+## holds `lock` seconds and fires (_sniper_fire), on the creatures' clock (a hamper slows it, the pace knob stretches it
+## as it does every wind-up); anything that drops the wind-up (a stun, a launch, a freeze, a grab) drops the aim. What
+## shows is handed to SniperFx every tick.
+func _tick_snipers(delta: float, ppos: Vector3) -> void:
+	if _snipers.is_empty() and _sniper_fx == null:
+		return
+	var fx := _sniper_fx_node()
+	fx.time_scale = time_scale
+	fx.begin()
+	for key in _snipers.keys():
+		var i: int = int(key)
+		var s: Dictionary = _snipers[key]
+		if alive[i] == 0 or serial[i] != int(s["serial"]) or state[i] == STATE_DYING:
+			_snipers.erase(key)
+			continue
+		var phase := int(s["phase"])
+		if phase == SNIPER_IDLE:
+			continue
+		if phase == SNIPER_AFTER:
+			# the aiming pose held a breath after the shot; anything that moves him ends it at once
+			s["t"] = float(s["t"]) + delta
+			if float(s["t"]) >= SNIPER_AFTER_HOLD or state[i] != STATE_WINDUP or freeze_t[i] > 0.0 or stun_t[i] > 0.0:
+				s["phase"] = SNIPER_IDLE
+				if state[i] == STATE_WINDUP:
+					state[i] = STATE_MOVE
+			continue
+		var def: EnemyDef = types[type_idx[i]]["def"]
+		if state[i] != STATE_WINDUP or freeze_t[i] > 0.0 or stun_t[i] > 0.0 or held[i] == 1 or hidden[i] == 1 or lift_t[i] > 0.0 \
+				or player == null or player.get("dead") == true:
+			_sniper_cancel(i, def)
+			continue
+		var sn: Dictionary = def.sniper
+		s["t"] = float(s["t"]) + delta * attack_clock(i) * pace
+		if phase == SNIPER_AIM:
+			var aim_pt: Vector3 = (s["aim"] as Vector3).lerp(ppos, clampf(delta * SNIPER_FOLLOW, 0.0, 1.0))
+			s["aim"] = aim_pt
+			var d := aim_pt - pos[i]
+			d.y = 0.0
+			if d.length_squared() > 0.01:
+				s["dir"] = d.normalized()
+				charge_dir[i] = d.normalized()
+			var total := float(sn.get("aim", 2.0))
+			var from := _sniper_muzzle(i, def, s["dir"])
+			if float(s["t"]) < total:
+				fx.aim(from, aim_pt, float(s["t"]), total, s["lines"])
+				continue
+			# the lock: the line stops following him
+			var ld := Vector3(aim_pt.x - from.x, 0.0, aim_pt.z - from.z)
+			s["phase"] = SNIPER_LOCK
+			s["t"] = 0.0
+			s["from"] = from
+			s["ldir"] = ld.normalized() if ld.length_squared() > 0.0001 else s["dir"]
+			s["d"] = ld.length()
+			Audio.play(str(def.sfx.get("lock", "")), pos[i])
+		var bm := _beam_block(def)
+		var hold := float(sn.get("lock", 1.0))
+		if float(s["t"]) >= hold:
+			_sniper_fire(i, def, s)
+		else:
+			fx.lock(s["from"], s["ldir"], float(s["d"]), float(s["t"]), hold, float(bm.get("length", 60.0)), float(bm.get("width", 0.5)))
+
+
+## Where the sniper's shot leaves (pass 73): the rifle's muzzle as painted, the def's `sniper.muzzle` {up, side, forward}
+## in metres at its size, scaled with this spawn's: `up` along the billboard's up, `side` towards the barrel (screen-right
+## as painted, screen-left when the painting is mirrored), `forward` along the aim. Without one, 0.65 of its size up.
+func _sniper_muzzle(i: int, def: EnemyDef, aim: Vector3) -> Vector3:
+	var mz = def.sniper.get("muzzle", {})
+	if not (mz is Dictionary) or (mz as Dictionary).is_empty():
+		return pos[i] + Vector3(0, size[i] * 0.65, 0)
+	var k: float = size[i] / maxf(def.size, 0.01)
+	var sgn := -1.0 if _face_bit(flip[i], type_idx[i], A_ATTACK) > 0.5 else 1.0
+	var scr := Vector3(-_cf_tick.z, 0, _cf_tick.x)
+	var a := Vector3(aim.x, 0, aim.z)
+	a = a.normalized() if a.length_squared() > 0.0001 else Vector3.ZERO
+	var at := pos[i] + Vector3(0, lift_h[i], 0)
+	return at + _cam_up() * (float(mz.get("up", 0.0)) * k) + scr * (sgn * float(mz.get("side", 0.0)) * k) + a * (float(mz.get("forward", 0.0)) * k)
+
+
+func _beam_block(def: EnemyDef) -> Dictionary:
+	var b = def.sniper.get("beam", {})
+	return b if b is Dictionary else {}
+
+
+## The beam's damage to the hero (pass 73): `beam.damage_mult` (0.7) x the missile damage of the creature
+## `beam.damage_from` names (the Vulture Raider's rocket, read from its data so his number leads), else `beam.damage`;
+## times this sniper's own stage, level and hostile factors, as the rocket's (_fire_artillery).
+func sniper_damage(i: int, def: EnemyDef) -> float:
+	var bm := _beam_block(def)
+	var base := float(bm.get("damage", 15.4))
+	var src := str(bm.get("damage_from", ""))
+	if src != "":
+		var sd: EnemyDef = Registry.enemy(src)
+		if sd != null and sd.artillery.get("missile") is Dictionary and (sd.artillery["missile"] as Dictionary).has("damage"):
+			base = float(sd.artillery["missile"]["damage"]) * float(bm.get("damage_mult", 0.7))
+	return base * stage_of(i) * lvd_of(i) * host_of(i)
+
+
+## How far `p` stands off a beam from `from` along `dir` (flat, unit) for `length` m, on the ground's plane (pass 73).
+static func beam_distance(p: Vector3, from: Vector3, dir: Vector3, length: float) -> float:
+	var rx := p.x - from.x
+	var rz := p.z - from.z
+	var s := clampf(rx * dir.x + rz * dir.z, 0.0, length)
+	return Vector2(rx - dir.x * s, rz - dir.z * s).length()
+
+
+## The shot (pass 73): the beam from the muzzle along the locked line, `beam.length` m over the map, `beam.width` wide. The
+## hero, when his feet are within half its width + SNIPER_HERO_R of its line, takes sniper_damage and a knock of
+## `beam.knockback` along it; every creature on it takes `creature_frac` of its max HP (at most `creature_max`) and is
+## pushed `push` m off the line to the side it stood on. Then the sparks, and a rest of interval +- interval_jitter from
+## this shot to the next (less the aim and the hold, which run on the creatures' clock).
+func _sniper_fire(i: int, def: EnemyDef, s: Dictionary) -> void:
+	var sn: Dictionary = def.sniper
+	var bm := _beam_block(def)
+	var from: Vector3 = s["from"]
+	var dir: Vector3 = s["ldir"]
+	var length := float(bm.get("length", 60.0))
+	var width := float(bm.get("width", 0.5))
+	var half := width * 0.5
+	var dealt := sniper_damage(i, def)
+	var hit_hero := false
+	if player != null and player.get("dead") != true:
+		if beam_distance(player.global_position, from, dir, length) <= half + SNIPER_HERO_R:
+			var info := hit_info(i, "ranged", ["laser"])
+			info["knock"] = float(bm.get("knockback", 5.0))
+			player.take_damage(dealt, from, info)
+			hit_hero = true
+			sniper_hero_hits += 1
+	var frac := float(bm.get("creature_frac", 0.05))
+	var cap := float(bm.get("creature_max", 40.0))
+	var push := float(bm.get("push", 3.0))
+	var side := Vector3(-dir.z, 0.0, dir.x)
+	var hit := PackedInt32Array()
+	for j in range(MAX):
+		if j == i or alive[j] == 0 or state[j] == STATE_DYING or hidden[j] == 1 or held[j] == 1:
+			continue
+		if beam_distance(pos[j], from, dir, length) <= half + radius[j]:
+			hit.append(j)
+	for j in hit:
+		if alive[j] == 0 or state[j] == STATE_DYING:
+			continue
+		var rel := Vector3(pos[j].x - from.x, 0.0, pos[j].z - from.z)
+		var sg := 1.0 if rel.dot(side) >= 0.0 else -1.0
+		kb[j] += side * (sg * push * KB_PER_M * _t_kbt[type_idx[j]] * (0.15 if j == boss_index else 1.0))
+		damage(j, minf(max_hp[j] * frac, cap), "", Vector3.ZERO, 0.0)
+	_sniper_fx_node().beam(from, dir, length, width, float(s["d"]), float(bm.get("seconds", 0.15)), float(bm.get("sparks", 1.5)))
+	if game != null and game.has_method("fx_burst"):
+		game.fx_burst(from, Color(1.0, 0.35, 0.3), 1.3)
+	Audio.play(str(def.sfx.get("shot", "")), from)
+	sniper_shots += 1
+	sniper_last = {"from": from, "dir": dir, "length": length, "width": width, "damage": dealt, "hero_hit": hit_hero, "creatures": hit.size()}
+	var iv := float(sn.get("interval", 9.0)) + _rng.randf_range(-1.0, 1.0) * float(sn.get("interval_jitter", 1.5))
+	var p := maxf(pace, 0.05)
+	cooldown[i] = maxf(iv - (float(sn.get("aim", 2.0)) + float(sn.get("lock", 1.0))) / p, 0.5)
+	# the aiming pose held a breath after the shot (SNIPER_AFTER); the rest above runs from now
+	s["phase"] = SNIPER_AFTER
+	s["t"] = 0.0
+
+
+func _sniper_fx_node() -> SniperFx:
+	if _sniper_fx == null or not is_instance_valid(_sniper_fx):
+		_sniper_fx = SniperFx.new()
+		_sniper_fx.name = "SniperFx"
+		_sniper_fx.height_fn = _height
+		add_child(_sniper_fx)
+	return _sniper_fx
 
 
 # ---------------------------------------------------------------- custom boss attacks (pass 72, lane BOSS)
@@ -5029,6 +5538,12 @@ func _custom_attack_begin(i: int, atk: Dictionary, ppos: Vector3) -> void:
 	var ws := cdef.text("sounds", "windup")
 	if ws != "":
 		Audio.play(ws, pos[i])
+	# pass 73 (lane GROUND): a rain lit all at once or spewed lays its spots out now (_custom_lit_start); its circles go up
+	# together before the spew instead of the area's edge
+	if cdef.attack_kind == "rain" and (cdef.lit_at_once() or cdef.is_volley()):
+		_custom_lit_start(i, cdef, center)
+		if cdef.lit_at_once():
+			return
 	if game == null or cdef.text("telegraph", "kind") == "none":
 		return
 	var col := cdef.telegraph_color()
@@ -5089,6 +5604,10 @@ func _custom_attack_fire(i: int, atk: Dictionary, ppos: Vector3) -> void:
 		"rain":
 			_custom_rain_start(run, cdef)
 			leave = cdef.num("timing", "stagger")
+			if cdef.is_volley():
+				# pass 73 (lane GROUND): the spew from its mouth; it stands while its spikes leave and its stretch settles
+				_custom_spew(i, cdef, run)
+				leave = maxf(cdef.num("spew", "burst"), 0.0) + 0.35
 		"volley":
 			_custom_volley_start(run, cdef, float(aimd["aim"]))
 			leave = maxf(cdef.num("pattern", "waves") - 1.0, 0.0) * cdef.num("pattern", "wave_gap")
@@ -5119,21 +5638,19 @@ func _custom_attack_fire(i: int, atk: Dictionary, ppos: Vector3) -> void:
 
 ## A rain's landing spots (BossAttackDef.rain_points round its centre, those past the arena's wall left out) and each
 ## one's landing time on the shot clock (BossAttackDef.land_times: the first after its flight, the last `stagger` later).
+## Pass 73 (lane GROUND): _custom_rain_spots lays them out (a volley's on BossAttackDef.volley_times, each with its own
+## flight `fl`); a rain lit or spewed at its wind-up's start takes the spots it laid out then (_custom_lit).
 func _custom_rain_start(run: Dictionary, cdef: BossAttackDef) -> void:
-	var pts := cdef.rain_points(_rng)
-	var flight := maxf(cdef.num("projectile", "flight"), 0.1)
-	var times := BossAttackDef.land_times(pts.size(), cdef.num("timing", "stagger"), flight)
-	var c: Vector3 = run["center"]
-	var lim := arena_radius - 1.0
+	var i: int = run["owner"]
+	var lit = _custom_lit.get(i)
 	var spots: Array = []
-	for k in range(pts.size()):
-		var at := Vector3(c.x + pts[k].x, 0.0, c.z + pts[k].y)
-		if Vector2(at.x, at.z).length() > lim:
-			continue
-		at.y = _height(at.x, at.z)
-		spots.append({"at": at, "land": times[k], "tel": false, "done": false})
+	if lit is Dictionary and int((lit as Dictionary)["serial"]) == serial[i]:
+		spots = (lit as Dictionary)["spots"]
+		_custom_lit.erase(i)
+	else:
+		spots = _custom_rain_spots(cdef, run["center"])
 	run["spots"] = spots
-	run["flight"] = flight
+	run["flight"] = maxf(cdef.num("projectile", "flight"), 0.1)
 	custom_fired += spots.size()
 
 
@@ -5189,6 +5706,8 @@ func _custom_hit(run: Dictionary, cdef: BossAttackDef, at: Vector3, ppos: Vector
 ## Everything of the custom attacks in the air, a tick: the shot clock moves on, rains telegraph, fly and land, volleys fly
 ## and hit, rings race out; what is done is dropped. The shots are drawn afresh (BossAttackFx).
 func _tick_custom_attacks(delta: float, ppos: Vector3) -> void:
+	# pass 73 (lane GROUND): the rains lit or spewed whose wind-ups are on (their circles, the crouch)
+	_tick_custom_lit(delta)
 	if _custom_runs.is_empty():
 		if _custom_fx != null and is_instance_valid(_custom_fx) and _custom_fx.drawn > 0:
 			_custom_fx.begin()
@@ -5232,9 +5751,13 @@ func _tick_custom_rain(run: Dictionary, ppos: Vector3, k_real: float, fx: BossAt
 	var from: Vector3 = run["from"]
 	var going := false
 	var launching := false
+	# pass 73 (lane GROUND): the circles lit all at once fill in as their shots come down
+	_custom_marks_pulse(run["spots"], float(run["clock"]) / k_real, c)
 	for s: Dictionary in run["spots"]:
 		var land := float(s["land"])
 		var at: Vector3 = s["at"]
+		# (pass 73: a volley's spot has its own flight)
+		var fl := float(s.get("fl", flight))
 		if bool(s["done"]):
 			if c - land < CUSTOM_STICK:
 				going = true
@@ -5248,16 +5771,17 @@ func _tick_custom_rain(run: Dictionary, ppos: Vector3, k_real: float, fx: BossAt
 		if show_tel and not bool(s["tel"]) and c >= land - tel:
 			s["tel"] = true
 			game.telegraph_ring(at, lr, maxf(land - c, 0.05) / k_real, col, true)
-		var launch := land - flight
+		var launch := land - fl
 		if c < launch:
 			continue
 		launching = launching or c - launch < 0.1
 		if c >= land:
 			s["done"] = true
+			_custom_mark_release(s)
 			_custom_land(run, cdef, at, lr, ppos)
 			continue
 		if fx:
-			var u := clampf((c - launch) / flight, 0.0, 1.0)
+			var u := clampf((c - launch) / maxf(fl, 0.05), 0.0, 1.0)
 			fx.put(run["key"], run["look"], run["tint"], run["glow"], _custom_xf(_custom_arc(from, at, peak, u), _custom_arc_dir(from, at, peak, u), sz))
 			if trail:
 				for k in range(1, 4):
@@ -5383,3 +5907,527 @@ func _tick_custom_ring(run: Dictionary, ppos: Vector3, k_real: float) -> bool:
 			r["hit"] = true
 			_custom_hit(run, cdef, center, ppos)
 	return going
+
+
+# ---------------------------------------------------------------- pass 73 (lane GROUND): the ground
+
+## Garry (pass 73): "The Pop out of Sand Attack looks a bit weird because the boss just disappears and then pops out. It
+## would be nice if I can actually see him burrowing into the ground"; "currently the enemies just kind of appear. Let's
+## make it so that they grow out of the ground". THE GROUND-CLIP: while a creature rises out of the sand or sinks into it
+## (rise_t < 1) _render slides its painting down the billboard's up by the part under (rise_sink, as pass 60 did) and
+## hands enemy_billboard.gdshader the share of the quad under the sand line (ground_clip, in the instance basis' z
+## column), which it cuts along a ragged line of sand: the cut no longer leans on the terrain hiding that part (a slope
+## falling towards the camera had shown it). `rise_v` is how fast rise_t moves (a share a second at the creatures'
+## pace): positive while it comes up (0 = RISE_TIME's rate), negative while it sinks (a visible burrow: hidden at 0).
+var rise_v := PackedFloat32Array()
+## Growing out of the ground (WaveTimeline.spawn_rise, handed over by the director: set_spawn_rise; 0 without one, so a
+## crowd built by hand in a test or a tool appears at once as before): the seconds a spawn rises over (an Elite or a boss
+## by its kind: spawn_rise_big_s), the share of the way up below which no weapon chooses it as its target (targetable; a
+## sinking burrower too; area damage still hits it), the dust puff's size factor.
+var spawn_rise_s := 0.0
+var spawn_rise_big_s := 0.0
+var rise_targetable := 0.7
+var spawn_rise_dust := 1.0
+## Summons (pass 73, Garry: "Spawning enemies with a skill should never allow for any special enemies"): held true by the
+## attack runner around a scripted summon (spawn_ring, an erupt's young), so none of them rolls its variance special.
+var force_plain := false
+## The figure's stretch as it pushes up out of the sand (squash > 1: taller and narrower), easing to 1 at the top.
+const EMERGE_STRETCH := 1.12
+## A spawn this tall (m) or taller throws sand off itself all the way up (_tick_emerge).
+const EMERGE_SPRAY_SIZE := 2.4
+## The hero's gravity (Player: 24 m/s^2): a throw's air time from its height when the attack names none.
+const THROW_G := 24.0
+## Seconds between two sprays of sand off a creature sinking into its burrow.
+const DIG_SPRAY_GAP := 0.09
+## Spawns that rose out of the ground, burrows dug, eruptions, creatures and heroes they threw, the last eruption (tests,
+## captures).
+var emerged := 0
+var digs := 0
+var eruptions := 0
+var erupt_thrown := 0
+var erupt_hero_throws := 0
+var last_erupt: Dictionary = {}
+## The burrows under way: creature -> {serial, atk, warned, spray, from, erupted, closed}; _tick_burrows (_update_boss).
+var _burrows: Dictionary = {}
+## A rain that lights its circles all at once or spews them (pass 73): creature -> {serial, def, spots, shown, t}, laid
+## out at the wind-up's start (_custom_lit_start), ticked by _tick_custom_lit until the spew takes the spots.
+var _custom_lit: Dictionary = {}
+
+
+## The map's spawn rise (pass 73, WaveDirector._apply_mults): seconds (0 = off), an Elite's or a boss's seconds, the
+## share of the way up from which the hero may target and hit it, the dust's size factor.
+func set_spawn_rise(seconds: float, big_seconds: float, targetable: float, dust: float) -> void:
+	spawn_rise_s = maxf(seconds, 0.0)
+	spawn_rise_big_s = maxf(big_seconds, 0.0)
+	rise_targetable = clampf(targetable, 0.0, 1.0)
+	spawn_rise_dust = maxf(dust, 0.0)
+
+
+## Whether a weapon may choose creature `i` as its target (pass 73, the lead's rule): not while it is still under
+## `rise_targetable` of the way up out of the sand (rising from a spawn or a burrow, or sinking into one). Area damage
+## (blasts, the revive, the Nuke, patches, beams, rings, ground fire, the sniper's line) still hits it: it stays in the
+## crowd's grid; only the choosers (nearest_index, priority_index, priority_target, random_in_range, densest_point,
+## screen_ok, a beam's chain) pass it over. It bites and attacks only once it is all the way up.
+func targetable(i: int) -> bool:
+	return i < 0 or i >= rise_t.size() or rise_t[i] >= rise_targetable
+
+
+## The share of creature `i`'s quad under the sand line while it rises or sinks (the billboard's ground-clip): its
+## painting's own drop below its feet (EnemyDef.shadow "drop") plus the part of the figure still under (rise_sink's share
+## of the cell; the size and the squash cancel out). 0 once it is up: nothing is cut.
+func ground_clip(i: int) -> float:
+	var rise: float = rise_t[i]
+	if rise >= 1.0:
+		return 0.0
+	var t := type_idx[i]
+	var head: float = float((types[t] as Dictionary).get("head", 1.0))
+	return clampf(_t_sh[t * 4 + 3] + (1.0 - rise_ease(rise)) * head, 0.0, 1.0)
+
+
+## One tick of creature `i`'s rise or sink (the physics tick, every state but the dying, STATE_SPAWN's too): rise_t moves
+## by rise_v (RISE_TIME's rate when it rises without one) at the creatures' pace; a sink that reaches the bottom hides it
+## (the burrow's wait under the sand); a rise that reaches the top is done. Nothing moves while it is hidden.
+func _tick_rise(i: int, delta: float) -> void:
+	if hidden[i] == 1:
+		return
+	var v: float = rise_v[i]
+	if v < 0.0:
+		rise_t[i] = maxf(rise_t[i] + delta * pace * v, 0.0)
+		if rise_t[i] <= 0.0:
+			rise_v[i] = 0.0
+			hidden[i] = 1
+		return
+	if rise_t[i] < 1.0:
+		rise_t[i] = minf(rise_t[i] + delta * pace * (v if v > 0.0 else 1.0 / RISE_TIME), 1.0)
+		if rise_t[i] >= 1.0:
+			rise_v[i] = 0.0
+
+
+## Whether `p` shows on the screen (or within a metre of it): the spawn's dust is not thrown where nobody sees it. True
+## without a camera that can say (tools, tests).
+func _point_on_screen(p: Vector3) -> bool:
+	var rig = game.get("camera") if game != null else null
+	if not (rig is Node) or not (rig as Node).has_method("on_screen"):
+		return true
+	var cam := (rig as Node).get("camera") as Camera3D
+	if cam == null or not cam.is_inside_tree():
+		return true
+	var ppm: float = float((rig as Node).call("pixels_per_metre")) if (rig as Node).has_method("pixels_per_metre") else 90.0
+	var rect := cam.get_viewport().get_visible_rect().grow(SCREEN_MARGIN_M * ppm)
+	var q := p + Vector3(0, 0.4, 0)
+	return not cam.is_position_behind(q) and rect.has_point(cam.unproject_position(q))
+
+
+## A spawn grows out of the ground (pass 73; spawn() calls it last): rise_t from 0 over spawn_rise_s (an Elite or a boss
+## by its kind over spawn_rise_big_s) through its spawn state (it stands, bites nobody and starts nothing until it is all
+## the way up), a small dust puff at its feet when the spot is on the screen. Nothing without the director's numbers
+## (tests, tools), for one waiting buried (the ambush brain) or a rise of 0 s.
+func _emerge_start(i: int, def: EnemyDef) -> void:
+	if def == null or hidden[i] == 1 or alive[i] == 0:
+		return
+	var big := def.archetype == "boss" or def.archetype == "elite"
+	var secs: float = spawn_rise_big_s if big else spawn_rise_s
+	if secs <= 0.0:
+		return
+	rise_t[i] = 0.0
+	rise_v[i] = 1.0 / secs
+	squash[i] = EMERGE_STRETCH
+	if state[i] == STATE_SPAWN:
+		timer[i] = secs / maxf(pace, 0.05) + 0.02
+	emerged += 1
+	if spawn_rise_dust > 0.0 and game != null and _point_on_screen(pos[i]):
+		var fx = game.get("fx")
+		if fx != null and fx.has_method("emerge_dust"):
+			fx.emerge_dust(pos[i], size[i] * spawn_rise_dust, big)
+
+
+## The spawn state's rise (pass 73; the physics tick's STATE_SPAWN branch calls it): the rise goes on, the figure a touch
+## stretched as it pushes up (EMERGE_STRETCH, easing to 1), and the state holds until it is all the way up.
+func _tick_emerge(i: int, delta: float) -> void:
+	if rise_t[i] >= 1.0 and rise_v[i] <= 0.0:
+		return
+	_tick_rise(i, delta)
+	squash[i] = lerpf(EMERGE_STRETCH, 1.0, rise_ease(rise_t[i]))
+	timer[i] = maxf(timer[i], 0.01) if rise_t[i] < 1.0 else 0.0
+	# a big one (EMERGE_SPRAY_SIZE m and up: the Elites, the bosses, the giants) throws sand off as it pushes up, every few
+	# ticks while it rises, so its foot never shows as a bare cut
+	if size[i] >= EMERGE_SPRAY_SIZE and rise_t[i] < 0.95 and spawn_rise_dust > 0.0 and (_tick + i) % 5 == 0 and game != null:
+		var fx = game.get("fx")
+		if fx != null and fx.has_method("dig_spray"):
+			fx.dig_spray(pos[i], size[i] * spawn_rise_dust, rise_t[i])
+
+
+## The burrow's start (pass 73; the runner's wind-up calls it in place of pass 60's dig): with `sink` > 0 the creature
+## sinks out of sight where it stands over that many seconds (rise_v < 0; hidden at the bottom), a ring of dust round it
+## and sand spraying off it while it goes (_tick_burrows), the sand closing over it in a small poof; with none it is gone
+## at once in that poof (pass 60). The mound swells on the ring at the hero (atk_target) through the wind-up, unless the
+## attack predicts its spot (`predict` > 0: nothing shows until its warning) or says `mound` false.
+func _burrow_begin(i: int, atk: Dictionary) -> void:
+	var sink := maxf(float(atk.get("sink", 0.0)), 0.0)
+	var predict := maxf(float(atk.get("predict", 0.0)), 0.0)
+	_burrows[i] = {"serial": serial[i], "atk": atk, "warned": false, "spray": 0.0, "from": pos[i], "erupted": false,
+		"closed": sink <= 0.0, "k": atk_i[i]}
+	digs += 1
+	var fx = game.get("fx") if game != null else null
+	if sink > 0.0:
+		rise_v[i] = -1.0 / sink
+		if fx != null and fx.has_method("dig_ring"):
+			fx.dig_ring(pos[i], size[i])
+	else:
+		hidden[i] = 1
+		if game:
+			game.fx_burst(pos[i] + Vector3(0, 0.5, 0), Color(0.85, 0.7, 0.5), 0.4 * size[i])
+			if fx != null and fx.has_method("pop_dust"):
+				fx.pop_dust(pos[i], size[i] * 0.6)
+	if predict <= 0.0 and bool(atk.get("mound", true)):
+		var mt: Vector3 = atk_target[i]
+		_mound_start(i, Vector3(mt.x, _height(mt.x, mt.z), mt.z), MOUND_FRAC * size[i])
+
+
+## Where the hero will be `ahead` seconds from now if he keeps going (pass 73, the Gila's eruption): his place plus his
+## flat velocity x `ahead`, kept on the walkable map (the map's clamp_to_arena, else the arena's circle).
+func predict_spot(ppos: Vector3, ahead: float) -> Vector3:
+	var flat := Vector3.ZERO
+	var v = player.get("velocity") if player != null else null
+	if v is Vector3:
+		flat = Vector3((v as Vector3).x, 0.0, (v as Vector3).z)
+	var p := ppos + flat * maxf(ahead, 0.0)
+	var mp = game.get("map") if game != null else null
+	if mp != null and mp.has_method("clamp_to_arena"):
+		p = mp.clamp_to_arena(p)
+	else:
+		p = _clamp_arena(p)
+	p.y = _height(p.x, p.z)
+	return p
+
+
+## The burrows under way, a tick (pass 73; _update_boss calls it after the runner): sand sprays off a creature sinking
+## and closes over it in a poof once it is under; a predicting burrow (the Gila's) picks its spot `warn` seconds (x 1/pace)
+## before it erupts, where the hero will be (predict_spot), and rings it for those seconds; a creature whose burrow was
+## dropped before it erupted (it left its attack) comes back up where it is.
+func _tick_burrows(delta: float, ppos: Vector3) -> void:
+	if _burrows.is_empty():
+		return
+	for key in _burrows.keys():
+		var i: int = key
+		var b: Dictionary = _burrows[i]
+		if alive[i] == 0 or serial[i] != int(b["serial"]) or state[i] == STATE_DYING:
+			_burrows.erase(i)
+			continue
+		# its attack is over (it erupted), or dropped or replaced (another started) before it erupted: back up if it was
+		# going under
+		if state[i] != STATE_ATTACK or atk_i[i] != int(b["k"]):
+			if not bool(b["erupted"]) and (hidden[i] == 1 or rise_v[i] < 0.0):
+				hidden[i] = 0
+				rise_v[i] = 1.0 / RISE_TIME
+			_burrows.erase(i)
+			continue
+		var atk: Dictionary = b["atk"]
+		var fx = game.get("fx") if game != null else null
+		if rise_v[i] < 0.0 and hidden[i] == 0:
+			b["spray"] = float(b["spray"]) - delta
+			if float(b["spray"]) <= 0.0:
+				b["spray"] = DIG_SPRAY_GAP
+				if fx != null and fx.has_method("dig_spray"):
+					fx.dig_spray(pos[i], size[i], 1.0 - rise_t[i])
+		elif hidden[i] == 1 and not bool(b["closed"]):
+			b["closed"] = true
+			if fx != null and fx.has_method("pop_dust"):
+				fx.pop_dust(pos[i], size[i] * 0.6)
+		if float(atk.get("predict", 0.0)) > 0.0 and not bool(b["warned"]):
+			var warn := maxf(float(atk.get("warn", 0.4)), 0.0) / maxf(pace, 0.05)
+			if timer[i] <= warn:
+				_burrow_warn(i, atk, b, ppos)
+
+
+## A predicting burrow's warning (pass 73): its spot fixed where the hero will be, a red ring there for what is left of
+## the wind-up.
+func _burrow_warn(i: int, atk: Dictionary, b: Dictionary, ppos: Vector3) -> void:
+	b["warned"] = true
+	var spot := predict_spot(ppos, float(atk.get("predict", 0.0)))
+	atk_target[i] = spot
+	if game:
+		game.telegraph_ring(spot, float(atk.get("radius", 5.0)), maxf(timer[i], 0.05), Color(0.93, 0.29, 0.36))
+
+
+## The burrow's eruption (pass 73; the runner's fire step calls it): up it comes at its spot (atk_target: the ring at the
+## hero, or the predicted spot), rising over `rise` seconds (RISE_TIME without one) through the ground-clip in a poof of
+## dust; the hero within `radius` takes the hit (damage x stage x host, as pass 60) and is thrown `throw_up` m up and
+## `throw_out` m out on a real arc (_erupt_throw_hero; with no throw the old shove of `knockback`); every creature within
+## it but the burrower is thrown `creature_up` m up and `creature_out` m away, taking `creature_damage` of its max HP
+## (_erupt_throw_crowd).
+func _burrow_erupt(i: int, atk: Dictionary, ppos: Vector3) -> void:
+	var b: Dictionary = _burrows.get(i, {})
+	if not b.is_empty():
+		b["erupted"] = true
+		if float(atk.get("predict", 0.0)) > 0.0 and not bool(b["warned"]):
+			_burrow_warn(i, atk, b, ppos)
+	hidden[i] = 0
+	rise_t[i] = 0.0
+	var rs := float(atk.get("rise", 0.0))
+	rise_v[i] = 1.0 / rs if rs > 0.0 else 0.0
+	_mound_end(i)
+	var bp: Vector3 = atk_target[i]
+	pos[i] = Vector3(bp.x, _height(bp.x, bp.z), bp.z)
+	eruptions += 1
+	if game:
+		var pfx = game.get("fx")
+		if pfx and pfx.has_method("pop_dust"):
+			pfx.pop_dust(pos[i], size[i])
+	var rb := float(atk.get("radius", 5.0))
+	var up := maxf(float(atk.get("throw_up", 0.0)), 0.0)
+	var db := ppos - pos[i]
+	db.y = 0.0
+	var thrown := false
+	if player and not bool(player.get("dead")) and db.length() <= rb + 0.5:
+		var words: Array = ["burst up from the sand", "thrown" if up > 0.0 else "knocked back"]
+		player.take_damage(float(atk.get("damage", 28)) * stage_of(i) * host_of(i), pos[i], hit_info(i, "melee", words))
+		if up > 0.0:
+			thrown = _erupt_throw_hero(i, atk, db, b)
+		elif player.has_method("shove"):
+			player.shove(db.normalized() * float(atk.get("knockback", 8.0)))
+	var cup := maxf(float(atk.get("creature_up", 0.0)), 0.0)
+	var cfrac := maxf(float(atk.get("creature_damage", 0.0)), 0.0)
+	var n := 0
+	if cup > 0.0 or cfrac > 0.0:
+		n = _erupt_throw_crowd(i, rb, cup, maxf(float(atk.get("creature_out", 0.0)), 0.0), cfrac)
+	last_erupt = {"at": pos[i], "radius": rb, "hero_thrown": thrown, "crowd": n, "id": (types[type_idx[i]]["def"] as EnemyDef).id}
+	if game:
+		# the hit's ring and the camera's kick without the shockwave's 6 m burst (pass 60)
+		var tg = game.get("telegraphs")
+		if tg and tg.has_method("flash_ring"):
+			tg.flash_ring(pos[i], rb, Color(1.0, 0.6, 0.3), 0.4)
+		elif game.has_method("shockwave"):
+			game.shockwave(pos[i], rb)
+		var cam = game.get("camera")
+		if cam and cam.has_method("shake"):
+			cam.shake(1.0 if up <= 0.0 else 1.3)
+		game.fx_burst(pos[i] + Vector3(0, 0.5, 0), Color(0.85, 0.7, 0.5), 0.4 * size[i])
+
+
+## The hero thrown by an eruption (pass 73; Garry: "a real throw instead of just a knockback"): when the hit landed (or
+## a line's Energy Shield caught it; never an evade, the Invincibility bubble or a blink), up `throw_up` m and out
+## `throw_out` m away from the eruption's middle (away from where it dug in when he stands right on it) on the arc of his
+## airborne flight (Player.trampoline_launch, pass 70: he cannot be hit up there, the stick bends the arc by
+## `throw_control` of his walk), over `throw_air` seconds (at his own gravity from the height when the attack names
+## none). True when he went up.
+func _erupt_throw_hero(i: int, atk: Dictionary, off: Vector3, b: Dictionary) -> bool:
+	var outcome := str(player.get("last_outcome"))
+	if outcome != "hit" and outcome != "shield":
+		return false
+	if player.has_method("knock_immune") and bool(player.call("knock_immune")):
+		return false
+	var dir := Vector3(off.x, 0.0, off.z)
+	if dir.length_squared() < 0.09:
+		var from: Vector3 = b.get("from", pos[i])
+		dir = player.global_position - from
+		dir.y = 0.0
+	if dir.length_squared() < 0.0001:
+		dir = Vector3.FORWARD
+	dir = dir.normalized()
+	var up := maxf(float(atk.get("throw_up", 0.0)), 0.0)
+	var out := maxf(float(atk.get("throw_out", 0.0)), 0.0)
+	var air := float(atk.get("throw_air", 0.0))
+	if air <= 0.0:
+		air = sqrt(8.0 * up / THROW_G)
+	air = maxf(air, 0.2)
+	var went := false
+	if player.has_method("trampoline_launch"):
+		went = bool(player.call("trampoline_launch", dir, up, out, air, clampf(float(atk.get("throw_control", 0.15)), 0.0, 1.0)))
+	elif player.has_method("blast"):
+		player.blast(dir * (out / air), 4.0 * up / air)
+		went = true
+	if went:
+		erupt_hero_throws += 1
+	return went
+
+
+## The crowd an eruption throws (pass 73; Garry: "throw other enemies out of the way ... Enemies don't get a lot of damage
+## because of this at all"): every creature within `r` (+0.5) of creature `i`'s spot but `i` goes `up` m up (pass 69's
+## launch) and `out` m away from the middle while it flies (its share of a shove: knockback_resist), taking `frac` of its
+## max HP as it lands; one that cannot go up (the boss, an Elite, an elite-modded one, one already in the air) takes it
+## at once and a shove of about half that way. How many went up.
+func _erupt_throw_crowd(i: int, r: float, up: float, out: float, frac: float) -> int:
+	var n := 0
+	var air := clampf(sqrt(8.0 * up / THROW_G), 0.45, 1.4) if up > 0.0 else 0.0
+	for j in indices_in_radius(pos[i], r + 0.5):
+		if j == i or alive[j] == 0 or state[j] == STATE_DYING or hidden[j] == 1 or held[j] == 1:
+			continue
+		var off := pos[j] - pos[i]
+		off.y = 0.0
+		var dir := off.normalized() if off.length_squared() > 0.0001 else Vector3(cos(float(j)), 0.0, sin(float(j)))
+		var fall := max_hp[j] * frac
+		if up > 0.0 and launch(j, up, air, fall, ""):
+			(_launched[j] as Dictionary)["drift"] = dir * (out * _t_kbt[type_idx[j]] / air)
+			n += 1
+			continue
+		if fall > 0.0:
+			damage(j, fall, "")
+		if alive[j] == 1 and state[j] != STATE_DYING and out > 0.0:
+			kb[j] += dir * out * 3.0 * _t_kbt[type_idx[j]] * (0.15 if j == boss_index else 1.0)
+	erupt_thrown += n
+	return n
+
+
+# ---------------------------------------------------------------- pass 73 (lane GROUND): the volley rain
+
+## The spots of a rain round `c` (BossAttackDef.rain_points, those past the arena's wall left out), each with its landing
+## time and flight on the shot clock: staggered (BossAttackDef.land_times over every point, as pass 72) or, for a volley,
+## all in one spew landing within the stagger (BossAttackDef.volley_times over the spots that fall).
+func _custom_rain_spots(cdef: BossAttackDef, c: Vector3) -> Array:
+	var pts := cdef.rain_points(_rng)
+	var flight := maxf(cdef.num("projectile", "flight"), 0.1)
+	var lim := arena_radius - 1.0
+	var spots: Array = []
+	if not cdef.is_volley():
+		var times := BossAttackDef.land_times(pts.size(), cdef.num("timing", "stagger"), flight)
+		for k in range(pts.size()):
+			var at := Vector3(c.x + pts[k].x, 0.0, c.z + pts[k].y)
+			if Vector2(at.x, at.z).length() > lim:
+				continue
+			at.y = _height(at.x, at.z)
+			spots.append({"at": at, "land": times[k], "fl": flight, "tel": false, "done": false})
+		return spots
+	var keep := PackedVector2Array()
+	for p: Vector2 in pts:
+		if Vector2(c.x + p.x, c.z + p.y).length() <= lim:
+			keep.append(p)
+	var vt: Array = BossAttackDef.volley_times(keep, flight, cdef.num("timing", "stagger"), cdef.num("spew", "burst"), _rng)
+	var deps: PackedFloat32Array = vt[0]
+	var lands: PackedFloat32Array = vt[1]
+	for k in range(keep.size()):
+		var at := Vector3(c.x + keep[k].x, 0.0, c.z + keep[k].y)
+		at.y = _height(at.x, at.z)
+		spots.append({"at": at, "land": lands[k], "fl": lands[k] - deps[k], "tel": false, "done": false})
+	return spots
+
+
+## A rain that lights its circles all at once or spews its shots (pass 73; _custom_attack_begin calls it at the wind-up's
+## start): its spots are laid out now round `center` and kept for the spew (_custom_rain_start takes them); the circles
+## go up `telegraph.seconds` before the spew (_tick_custom_lit).
+func _custom_lit_start(i: int, cdef: BossAttackDef, center: Vector3) -> void:
+	_custom_lit_drop(i)
+	var spots := _custom_rain_spots(cdef, center)
+	if cdef.lit_at_once():
+		for s: Dictionary in spots:
+			s["tel"] = true
+	_custom_lit[i] = {"serial": serial[i], "def": cdef, "spots": spots, "shown": false, "t": 0.0}
+	# the circles go up now when the wind-up is no longer than their warning (the runner set its timer)
+	if cdef.lit_at_once() and timer[i] <= maxf(cdef.num("telegraph", "seconds"), 0.0) / maxf(pace, 0.05) + 0.0001:
+		_custom_lit[i]["shown"] = true
+		_custom_marks_show(cdef, spots, timer[i])
+
+
+## A wind-up's lit rain dropped (its boss gone, or out of its attack before the spew): its circles go.
+func _custom_lit_drop(i: int) -> void:
+	var lit = _custom_lit.get(i)
+	if lit is Dictionary:
+		for s: Dictionary in (lit as Dictionary)["spots"]:
+			_custom_mark_release(s)
+	_custom_lit.erase(i)
+
+
+## The lit rains through their wind-ups, a tick (pass 73; _tick_custom_attacks calls it first): the circles go up
+## `telegraph.seconds` (x 1/pace) before the spew and pulse while they wait; a volley's boss crouches through the last
+## `spew.crouch` seconds (squashed to `spew.squash`); one whose boss died or left its attack is dropped.
+func _tick_custom_lit(delta: float) -> void:
+	if _custom_lit.is_empty():
+		return
+	for key in _custom_lit.keys():
+		var i: int = key
+		var lit: Dictionary = _custom_lit[i]
+		if alive[i] == 0 or serial[i] != int(lit["serial"]) or state[i] != STATE_ATTACK:
+			_custom_lit_drop(i)
+			continue
+		var cdef: BossAttackDef = lit["def"]
+		var k := maxf(pace, 0.05)
+		lit["t"] = float(lit["t"]) + delta
+		if cdef.lit_at_once():
+			if not bool(lit["shown"]) and timer[i] <= maxf(cdef.num("telegraph", "seconds"), 0.0) / k + 0.0001:
+				lit["shown"] = true
+				_custom_marks_show(cdef, lit["spots"], timer[i])
+			if bool(lit["shown"]):
+				_custom_marks_pulse(lit["spots"], float(lit["t"]), -1.0)
+		if cdef.is_volley():
+			var cr := maxf(cdef.num("spew", "crouch"), 0.0) / k
+			if cr > 0.0 and timer[i] < cr:
+				squash[i] = lerpf(1.0, cdef.num("spew", "squash"), clampf(1.0 - timer[i] / cr, 0.0, 1.0))
+
+
+## Every landing circle of a lit rain goes up at once (pass 73): a held disc and ring per spot on the ground marks
+## (Telegraphs.hold_disc / hold_ring: full size from the start, their alpha set every tick, gone as the shot lands); a
+## stand-in game without them (tests) gets one telegraph ring per spot lasting until its landing.
+func _custom_marks_show(cdef: BossAttackDef, spots: Array, wind_left: float) -> void:
+	if game == null:
+		return
+	var col := cdef.telegraph_color()
+	var lr := maxf(cdef.num("landing", "radius"), 0.05)
+	var tg = game.get("telegraphs")
+	var held_ok: bool = tg != null and tg.has_method("hold_disc") and tg.has_method("hold_ring")
+	var k_real := maxf(pace * time_scale, 0.05)
+	for s: Dictionary in spots:
+		if held_ok:
+			s["mk"] = [tg.hold_disc(s["at"], lr, Color(col.r, col.g, col.b, 0.26)), tg.hold_ring(s["at"], lr, Color(col.r, col.g, col.b, 0.85))]
+		else:
+			game.telegraph_ring(s["at"], lr, maxf(wind_left, 0.0) + float(s["land"]) / k_real, col, true)
+
+
+## The lit circles' strength (pass 73): before the spew (`c` < 0) a steady pulse; after it (`c` the run's clock) each
+## fills in as its shot comes down and blinks in its last 0.3 s.
+func _custom_marks_pulse(spots: Array, t: float, c: float) -> void:
+	var tg = game.get("telegraphs") if game != null else null
+	if tg == null:
+		return
+	for s: Dictionary in spots:
+		if not s.has("mk") or bool(s["done"]):
+			continue
+		var mk: Array = s["mk"]
+		var a_disc := 0.26
+		var a_ring := 0.74 + 0.14 * sin(t * 7.0)
+		if c >= 0.0:
+			var land := float(s["land"])
+			var left := land - c
+			var f := clampf(c / maxf(land, 0.05), 0.0, 1.0)
+			a_disc = 0.26 + 0.2 * f
+			a_ring = 0.9 if left > 0.3 or int(t * 12.0) % 2 == 0 else 0.45
+		tg.set_alpha(int(mk[0]), a_disc)
+		tg.set_alpha(int(mk[1]), a_ring)
+
+
+## A spot's held circles go (its shot landed, or its rain was dropped).
+func _custom_mark_release(s: Dictionary) -> void:
+	if not s.has("mk"):
+		return
+	var tg = game.get("telegraphs") if game != null else null
+	if tg != null and tg.has_method("release"):
+		for id in (s["mk"] as Array):
+			tg.release(int(id))
+	s.erase("mk")
+
+
+## The camera's back (towards the camera; the billboards face it): the live camera's, else the fixed rig's.
+func _cam_back() -> Vector3:
+	var vp := get_viewport()
+	var cam: Camera3D = vp.get_camera_3d() if vp else null
+	if cam:
+		return cam.global_transform.basis.z
+	return Vector3(0, 0.719, 0) - _cf_tick * 0.695
+
+
+## Where a volley rain's shots leave from (pass 73): the boss's mouth, `spew.mouth` of its size up its painting (the
+## billboard's up from its feet), a little in front of the painting so the shots are drawn over it.
+func custom_mouth(i: int, cdef: BossAttackDef) -> Vector3:
+	var cam_up := _cam_up()
+	var at := pos[i] + Vector3(0, lift_h[i], 0) - sprite_sink(i, 1.0, cam_up)
+	return at + cam_up * (cdef.num("spew", "mouth") * size[i]) + _cam_back() * 0.45
+
+
+## The spew (pass 73; _custom_attack_fire calls it for a volley rain): the shots leave from the mouth, the boss stretches
+## up (`spew.stretch`, easing back to 1 by itself), a burst of its colour at its mouth and the camera's kick.
+func _custom_spew(i: int, cdef: BossAttackDef, run: Dictionary) -> void:
+	var mouth := custom_mouth(i, cdef)
+	run["from"] = mouth
+	squash[i] = cdef.num("spew", "stretch")
+	flash[i] = maxf(flash[i], 0.25)
+	if game:
+		game.fx_burst(mouth, cdef.tint(), clampf(size[i] * 0.12, 0.35, 0.9))

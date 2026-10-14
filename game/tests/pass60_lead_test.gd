@@ -74,7 +74,8 @@ func test_build_text_reads_as_one_line() -> void:
 	ra.free()
 	assert_str(text).contains("Peashooter 3 +1")
 	assert_str(text).contains("Sabre 1")
-	assert_str(text).contains("Clover 2")
+	# pass 73 (lane CARDS): Clover is the card The Star (the line reads display names; the ids go out as ids)
+	assert_str(text).contains(Registry.passive("clover").display_name + " 2")
 	assert_str(text).contains(" | ")
 	assert_str(text).not_contains("+0")
 

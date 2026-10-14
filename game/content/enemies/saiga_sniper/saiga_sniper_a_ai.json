@@ -1,0 +1,144 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 4
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a saiga antelope sniper: a tall lean antelope-man with sandy tan fur, a long drooping pale saiga nose, heavy-lidded stern eyes, furry ears and two long ridged amber-brown horns curving up and back, wearing a long dark brown hooded poncho that falls to his ankles with two pale peach chevron stripes near the hem and a long tassel fringe, cream shirt cuffs and brown leather gloves, dark grey trousers and brown boots, holding a long bolt-action sniper rifle across his body in both gloved hands, a reddish-brown wooden stock, a long black telescopic scope with brass rings, a long black barrel pointing down to the ground beside him",
+ "renders": {
+  "front": {
+   "seed": 749348447272,
+   "prompt": "The first reference image shows the art style only; do not copy its subjects. The second reference image is the creature: redraw this exact creature as a finished 2D anime game creature illustration of a saiga antelope sniper: a tall lean antelope-man with sandy tan fur, a long drooping pale saiga nose, heavy-lidded stern eyes, furry ears and two long ridged amber-brown horns curving up and back, wearing a long dark brown hooded poncho that falls to his ankles with two pale peach chevron stripes near the hem and a long tassel fringe, cream shirt cuffs and brown leather gloves, dark grey trousers and brown boots, holding a long bolt-action sniper rifle diagonally across his body in both gloved hands: a reddish-brown wooden stock up at his left side, a long black telescopic scope with brass rings and a purple lens, the long black barrel pointing down to the lower right. Full body, front view, standing and facing the viewer, feet fully visible, the whole creature inside the picture. Keep the long scoped rifle held diagonally across his body with its barrel pointing down to the lower right, the two curved ridged horns, the long pale saiga nose, the poncho's two peach chevron stripes and its tassel fringe. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/style_anchor.png",
+    "88fits/saiga_sniper_ssa_ref.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": false,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "side",
+    "matches": true,
+    "problems": [
+     "view=side"
+    ],
+    "geometry": {
+     "left": 254,
+     "right": 87,
+     "top": 46,
+     "bottom": 42,
+     "height": 935,
+     "width": 682
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "cached": true
+  },
+  "back": {
+   "seed": 503523880359,
+   "prompt": "The reference image shows this exact creature seen from behind: redraw it as a finished 2D anime game creature illustration, seen directly from behind, full body, standing: a tall lean saiga antelope-man seen from behind, the back of his sandy tan furry head with two long ridged amber horns curving up and back and two furry ears, a dark brown poncho with its hood folded down at the back of his neck, the poncho falling to his shins with two pale peach chevron stripes near the hem and a long tassel fringe, dark grey trousers and brown boots under the hem, holding one long scoped rifle in front of his body so that only its two ends stick out behind him: the reddish-brown wooden stock sticking out at the upper right beside his shoulder, and the long black barrel with the black scope sticking out at the lower left; one single rifle, no face. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole creature and everything it holds inside the picture, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/sniper_back.png"
+   ],
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "picked_from": "tools/dl/icons_le_j20261014-012205-1c56/saiga_sniper_back_c1.png",
+   "note": "pass 73 lane ART: a candidate picked by eye and installed into the paintings' cache",
+   "cached": true
+  },
+  "attack_front": {
+   "seed": 300952309587,
+   "prompt": "The reference image shows this exact creature: keep its face, horns, fur, poncho, stripes, colors and proportions exactly, and redraw it full body aiming his one long scoped rifle to the right of the picture: the wooden stock tucked into his right shoulder, his cheek on the stock and one eye at the scope, his right gloved hand on the grip and his left gloved hand under the fore-end, the long black barrel held level and pointing straight to the right, his body turned three-quarters to the right, standing perfectly still, the poncho hanging down, both boots on the ground. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole creature and the whole rifle inside the picture, one single rifle, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/saiga_sniper_ssa_front.png"
+   ],
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "picked_from": "tools/dl/icons_le_j20261014-012448-1406/saiga_sniper_aim_a_c0.png",
+   "note": "pass 73 lane ART: a candidate picked by eye and installed into the paintings' cache",
+   "cached": true
+  },
+  "attack_back": {
+   "seed": 96323129427,
+   "prompt": "The reference image shows this exact creature seen from behind: keep it seen directly from behind, no face visible: the back of his tan furry head with the two long ridged horns and the furry ears, the dark brown poncho's hood folded down at the back of his neck, the back of the poncho with its pale peach chevron stripes and tassel fringe, dark grey trousers and brown boots under the hem, keep its colors and proportions, and redraw it full body aiming his one long scoped rifle away to the right of the picture: the rifle raised to his right shoulder and held level, his head bent to the scope, his gloved hands on it, the long black barrel sticking out level to the right past his shoulder, the wooden stock hidden against his shoulder, standing perfectly still. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. Full body, the whole creature and the whole rifle inside the picture, one single rifle, no ground, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/saiga_sniper_ssa_back.png"
+   ],
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "picked_from": "tools/dl/icons_le_j20261014-120339-412d/saiga_sniper_aimback_d_c1.png",
+   "note": "pass 73 lane ART: a candidate picked by eye and installed into the paintings' cache",
+   "cached": true
+  },
+  "dead": {
+   "seed": 607928568600,
+   "prompt": "The reference image shows this exact creature: keep its face, horns, fur, clothes, colors and proportions exactly, and redraw it lying dead sideways across the picture: his horned head on the left with his eyes shut, his boots on the right, the poncho spread flat, both gloved hands empty and limp, and his one long scoped rifle lying on its own on the ground just below his body, parallel to it, seen from the front and a little above so the whole body is visible. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. The whole creature and the whole rifle inside the picture, one single rifle, nothing in his hands, no ground, no sand, no shadow. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/saiga_sniper_ssa_front.png"
+   ],
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 4
+   },
+   "picked_from": "tools/dl/icons_le_j20261014-122135-37cb/saiga_sniper_dead_c0.png",
+   "note": "pass 73 lane ART: a candidate picked by eye and installed into the paintings' cache (the in-job dead still held a second gun)",
+   "cached": true
+  }
+ },
+ "recipe_ran": {
+  "stills": "ssa",
+  "motion": "walking in place with slow careful strides, the long scoped rifle held still diagonally across his body in both gloved hands the whole time, the long poncho and its tassel fringe swaying with each step, his boots stepping under the hem, his horned head steady",
+  "back_hint": "seen from behind: the poncho's hood folded down at the back of his neck, the back of the long dark brown poncho with its two pale peach chevron stripes near the hem and the long tassel fringe, the back of his tan head with the two long ridged horns and the furry ears, the rifle carried diagonally behind his body: its reddish-brown wooden stock sticking out at the upper right past his shoulder, its long black barrel with the scope sticking out at the lower left, his boots under the hem, no face, no nose",
+  "dead_hint": "lying dead sideways across the picture, his horned head on the left and his boots on the right, eyes shut, the long poncho spread flat, the long rifle dropped beside him; no ground, no sand, no shadow",
+  "death": "clip",
+  "screen": "green",
+  "method": "creature_free2",
+  "painter": {
+   "model": "klein",
+   "steps": 0
+  },
+  "seed_offset": 4191,
+  "art_prompt": "a saiga antelope sniper: a tall lean antelope-man with sandy tan fur, a long drooping pale saiga nose, heavy-lidded stern eyes, furry ears and two long ridged amber-brown horns curving up and back, wearing a long dark brown hooded poncho that falls to his ankles with two pale peach chevron stripes near the hem and a long tassel fringe, cream shirt cuffs and brown leather gloves, dark grey trousers and brown boots, holding a long bolt-action sniper rifle across his body in both gloved hands, a reddish-brown wooden stock, a long black telescopic scope with brass rings, a long black barrel pointing down to the ground beside him",
+  "anim_negative": "a gun firing, a muzzle flash, smoke, a laser, extra arms, a second rifle, the rifle swinging, a human face, a goat beard",
+  "run_scale": {
+   "front": 0.955
+  },
+  "anim_seed": 1
+ },
+ "clip_kind": {
+  "front": "free",
+  "back": "free",
+  "die": "flf"
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": ""
+ },
+ "attack_slid_px": {
+  "front": 0,
+  "back": 0
+ },
+ "qa_online": null
+}

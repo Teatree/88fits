@@ -143,7 +143,9 @@ func _fire_hole() -> bool:
 	var reach := stat("range", 9.0)
 	# a crowd no bomb is headed for or has just come down on (pass 36), else the thickest one
 	var r := float(_hole().get("radius", 3.2)) * stat("area", 1.0)
-	var target := em.densest_point(player.global_position, reach, "", game.projectiles.claimed_spots(), r)
+	# pass 73 (lane SNIPER): a special, an Elite or the boss within reach takes the black hole
+	var pt: int = priority_pick(player.global_position, reach)
+	var target: Vector3 = em.pos[pt] if pt >= 0 else em.densest_point(player.global_position, reach, "", game.projectiles.claimed_spots(), r)
 	if target == Vector3.INF:
 		target = em.densest_point(player.global_position, reach)
 	if target == Vector3.INF:

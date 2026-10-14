@@ -72,6 +72,9 @@ static func build(type: String, d: Dictionary, dir: String) -> ContentDef:
 		# Pass 69 (the purchase loop is wired): "hidden" hides him; "purchase" shows him on the title, locked or on sale
 		# (Registry.hero_state), whatever `hidden` says; "available" with `hidden: true` stays hidden (hidden wins there)
 		cd.hidden = cd.availability == "hidden" or (cd.hidden and cd.availability != "purchase")
+	# pass 73 (lane CARDS): an item playing a look (a card's B-E) shows that look's icon (PassiveDef.wear_look)
+	if res is PassiveDef:
+		(res as PassiveDef).wear_look("")
 	return res
 
 
@@ -167,7 +170,44 @@ static func _passive(d: Dictionary, dir: String) -> PassiveDef:
 	p.text = str(d.get("text", ""))
 	# pass 47: a line item (four levels, an evolution, one of six slots) or a passive item (no cap, off the HUD)
 	p.line = bool(d.get("line", false))
+	# pass 73 (lane CARDS): its looks (the cards' A-E)
+	_passive_variants(p, d, dir)
 	return p
+
+
+## An item's looks (pass 73, lane CARDS; the heroes' scheme of pass 55 for icons alone): `variant_base` names the look
+## whose icon is the top-level `icon` (or <id>_icon.png), every other entry names its own `icon` file; an entry whose file
+## is not on disk yet is left out. `variant` is the look the game plays (build() puts its icon on; a phone's kept card look,
+## Registry.apply_card_looks, wins over it). An entry may carry a `recipe` (the words it was painted from): the game skips it.
+static func _passive_variants(p: PassiveDef, d: Dictionary, dir: String) -> void:
+	var vs = d.get("variants", {})
+	if not (vs is Dictionary) or (vs as Dictionary).is_empty():
+		return
+	var base_code := str(d.get("variant_base", ""))
+	var base_file := str(d.get("icon", str(d.get("id", "")) + "_icon.png"))
+	var base_icon: Texture2D = resolve_texture(dir, base_file)
+	var all: Dictionary = {}
+	for code in (vs as Dictionary).keys():
+		var v = vs[code]
+		if not (v is Dictionary):
+			continue
+		var e: Dictionary = v
+		var file := str(e.get("icon", ""))
+		var tex: Texture2D = resolve_texture(dir, file) if file != "" else null
+		if str(code) == base_code and tex == null:
+			file = base_file
+			tex = base_icon
+		if tex == null:
+			continue
+		all[str(code)] = {"icon": tex, "icon_file": file, "note": str(e.get("note", "")), "shelved": bool(e.get("shelved", false))}
+	if base_code != "" and not all.has(base_code) and base_icon != null:
+		all[base_code] = {"icon": base_icon, "icon_file": base_file, "note": "", "shelved": false}
+	if all.is_empty():
+		return
+	p.variants = all
+	p.variant_base = base_code
+	var use := str(d.get("variant", base_code))
+	p.variant = use if all.has(use) else (base_code if all.has(base_code) else "")
 
 
 static func _mutation(d: Dictionary, dir: String) -> MutationDef:
@@ -298,6 +338,12 @@ static func _enemy(d: Dictionary, dir: String) -> EnemyDef:
 	e.kamikaze = km if km is Dictionary else {}
 	var art = d.get("artillery", {})
 	e.artillery = art if art is Dictionary else {}
+	# pass 73 (lane SNIPER): the sniper brain's block, any creature's flee on hit, the attack strip's two views
+	var snp = d.get("sniper", {})
+	e.sniper = snp if snp is Dictionary else {}
+	var foh = d.get("flee_on_hit", {})
+	e.flee_on_hit = foh if foh is Dictionary else {}
+	e.attack_views = str(d.get("attack_views", ""))
 	var am = d.get("ambush", {})
 	e.ambush = am if am is Dictionary else {}
 	var su = d.get("support", {})
@@ -556,7 +602,7 @@ static func _boss_attack(d: Dictionary) -> BossAttackDef:
 	var a := BossAttackDef.new()
 	a.attack_kind = str(d.get("kind", "rain"))
 	a.doc = str(d.get("doc", ""))
-	for g: String in ["projectile", "pattern", "landing", "telegraph", "timing", "sounds", "params"]:
+	for g: String in ["projectile", "pattern", "landing", "telegraph", "timing", "sounds", "params", "spew"]:
 		var v = d.get(g, {})
 		a.set(g, (v as Dictionary).duplicate(true) if v is Dictionary else {})
 	a.damage = float(d.get("damage", 0.75))
@@ -642,6 +688,12 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 72 (lane BOSS): boss HP pegged to the hero's DPS (read as it is; WaveTimeline.boss_hp_mult)
 	var bhs = t.get("boss_hp_scaling", {})
 	w.boss_hp_scaling = bhs if bhs is Dictionary else {}
+	# pass 73 (lane SNIPER): the weapons' target priority (read as it is; WaveTimeline.TARGET_PRIORITY_DEFAULTS fill gaps)
+	var tpr = t.get("target_priority", {})
+	w.target_priority = tpr if tpr is Dictionary else {}
+	# pass 73 (lane GROUND): growing out of the ground (read as it is; WaveTimeline.SPAWN_RISE_DEFAULTS fill gaps)
+	var srs = t.get("spawn_rise", {})
+	w.spawn_rise = srs if srs is Dictionary else {}
 	var pt = t.get("path_times", [[55, 115, 175, 230, 270], [35, 90, 145, 200, 245, 280]])
 	w.path_times = pt if pt is Array else []
 	return w

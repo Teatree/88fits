@@ -91,6 +91,9 @@ KIND_FOLDERS = {"enemy": "enemies", "boss": "bosses", "elite": "elites", "pickup
 EDIT_KINDS = ("enemy", "boss", "hero", "weapon", "evolution", "passive", "mutation", "perk")
 # the kinds that carry art looks (`variants`)
 LOOK_KINDS = ("enemy", "boss", "hero")
+# pass 73 (lane CARDS): the kinds whose looks are icons alone (the line items' fortune cards: A the old icon, B-E the four
+# card framings): `variants {CODE: {icon, note, recipe?, shelved?}}` + `variant` + `variant_base`, no strips
+ITEM_LOOK_KINDS = ("passive",)
 # every content type the game scans (JsonContent.TYPES): a new id must be free under all of them
 ALL_TYPES = ["weapons", "evolutions", "passives", "mutations", "perks", "enemies", "bosses", "elites", "characters",
              "talents", "quests", "maps", "pickups", "structures", "boss_attacks"]
@@ -265,6 +268,93 @@ def playable_codes(folder, d):
         if resolve_file(folder, str(entry["sprite"])):
             out.add(str(code))
     return out
+
+
+def item_playable_codes(folder, d):
+    """pass 73 (lane CARDS): the looks an item JSON can play (JsonContent._passive_variants): the base look's code
+    (`variant_base`, its icon the top-level one) and every other entry with an `icon` whose file is on disk."""
+    out = set()
+    base_code = str(d.get("variant_base", ""))
+    if base_code:
+        out.add(base_code)
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    for code, entry in vs.items():
+        if str(code) == base_code or not isinstance(entry, dict) or not entry.get("icon"):
+            continue
+        if resolve_file(folder, str(entry["icon"])):
+            out.add(str(code))
+    return out
+
+
+def item_looks(kind, cid, folder, d):
+    """pass 73 (lane CARDS): one record per look of an item (the cards' A-E): {code, note, icon (the page's URL),
+    icon_file, exists (its picture is on disk: the game can play it), base, default (the look the game plays), shelved,
+    recipe (the words it was painted from), painted}; the base look first, then the others by code."""
+    vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
+    base_code = str(d.get("variant_base", ""))
+    playable = item_playable_codes(folder, d)
+    want = str(d.get("variant", base_code))
+    play = want if want in playable else base_code
+    top_icon = str(d.get("icon") or (cid + "_icon.png"))
+    codes = sorted(set(vs.keys()) | ({base_code} if base_code else set()), key=lambda c: (c != base_code, c))
+    out = []
+    for code in codes:
+        entry = vs.get(code) if isinstance(vs.get(code), dict) else {}
+        is_base = code == base_code
+        file_ = str(entry.get("icon") or (top_icon if is_base else ""))
+        recipe = entry.get("recipe") if isinstance(entry.get("recipe"), dict) else None
+        out.append({"code": code, "note": str(entry.get("note", "")), "icon": "/icon/%s/%s/%s" % (kind, cid, code),
+                    "icon_file": file_, "exists": code in playable, "base": is_base, "default": code == play,
+                    "shelved": bool(entry.get("shelved", False)), "recipe": recipe,
+                    "painted": entry.get("painted") if isinstance(entry.get("painted"), dict) else None})
+    return out
+
+
+def item_look_state(kind, cid, folder, d):
+    """{variant, variant_base, play, icon_play, looks} of an item for the page (pass 73, lane CARDS)."""
+    looks = item_looks(kind, cid, folder, d)
+    play = next((x["code"] for x in looks if x["default"]), "")
+    return {"variant": str(d.get("variant", "")), "variant_base": str(d.get("variant_base", "")), "play": play,
+            "icon_play": "/icon/%s/%s/%s" % (kind, cid, play) if play else "/icon/%s/%s" % (kind, cid), "looks": looks}
+
+
+def set_item_looks_all(kind, code, ids=None):
+    """POST /api/item_looks/set_all (pass 73, lane CARDS; Garry: "set every card to look X"): every line card (`line`
+    true; or the ids given) that can play `code` gets its top-level `variant` set to it, one line each (a backup each,
+    every other byte as it was); a card without that look painted keeps its own. One import of the changed folders."""
+    if kind not in ITEM_LOOK_KINDS:
+        return {"ok": False, "error": "only %s have item looks" % ", ".join(ITEM_LOOK_KINDS)}
+    if not isinstance(code, str) or not CODE_RE.match(code):
+        return {"ok": False, "error": "the body needs a look code: {\"code\": \"B\"}"}
+    changed, kept, skipped = [], [], []
+    for cid, folder, path, d in _load_kind(kind):
+        if ids is not None and cid not in ids:
+            continue
+        if ids is None and not d.get("line"):
+            continue
+        if not isinstance(d.get("variants"), dict) or not d.get("variants"):
+            skipped.append({"id": cid, "why": "no looks"})
+            continue
+        vs = d["variants"]
+        if code not in item_playable_codes(folder, d) or (isinstance(vs.get(code), dict) and vs[code].get("shelved")):
+            skipped.append({"id": cid, "why": "look %s not painted" % code if code not in item_playable_codes(folder, d) else "look %s shelved" % code})
+            continue
+        if str(d.get("variant", "")) == code:
+            kept.append(cid)
+            continue
+        with _write_lock:
+            src = cio.read_text(path)
+            text = cio.set_top_block(src, "variant", code, [("before", "variants"), ("end", None)])
+            if text is None:
+                skipped.append({"id": cid, "why": "layout: not one top-level key per line"})
+                continue
+            backup(cid, path)
+            cio.write_atomic(path, text)
+        changed.append(cid)
+    import_ok, output = (True, "nothing changed: no import")
+    if changed:
+        import_ok, output = run_import(",".join("%s/%s" % (KIND_FOLDERS[kind], c) for c in changed))
+    return {"ok": True, "code": code, "changed": changed, "kept": kept, "skipped": skipped, "import_ok": import_ok, "output": output}
 
 
 def _num(v, default):
@@ -654,6 +744,8 @@ def item_record(kind, cid, folder, d, path, quests):
                     "repeat_last_level": bool(d.get("repeat_last_level", True)), "evolves_into": str(d.get("evolves_into", "")),
                     "evolves_from": str(d.get("evolves_from", "")), "text": str(d.get("text", "")),
                     "pairs_with": str(d.get("pairs_with", "")), "trade": str(d.get("trade", ""))})
+        # pass 73 (lane CARDS): its looks (the cards' A-E) and the one the game plays
+        rec.update(item_look_state(kind, cid, folder, d))
     elif kind == "mutation":
         rec.update({"weapon": str(d.get("weapon", "")), "mutation_kind": str(d.get("kind", "motion")), "hero": str(d.get("hero", "")),
                     "text": str(d.get("text", "")), "vfx": str(d.get("vfx", "")), "effects": d.get("effects", []),
@@ -952,9 +1044,10 @@ def write_variant_kind(kind, cid, code):
     `variants` whose strip is on disk): a backup like a map's, then that one line written (in place, or a new line just
     before `variants`), every other byte as it was (pass 58: the old re-dump turned the three files with a CRLF only on
     their last line into CRLF throughout; pass 66: a file that cannot be edited line by line is refused, never
-    re-dumped), then the JSON -> .tres import of that one folder. Creatures (pass 54) and heroes (pass 66)."""
-    if kind not in LOOK_KINDS:
-        return {"ok": False, "error": "only enemies, bosses and heroes have looks"}
+    re-dumped), then the JSON -> .tres import of that one folder. Creatures (pass 54) and heroes (pass 66); items with
+    looks (pass 73, the cards: a look plays once its icon is on disk)."""
+    if kind not in LOOK_KINDS and kind not in ITEM_LOOK_KINDS:
+        return {"ok": False, "error": "only enemies, bosses, heroes and cards have looks"}
     _, path = content_path(kind, cid)
     if path is None:
         return {"ok": False, "error": "no %s %s" % (kind, cid)}
@@ -963,11 +1056,11 @@ def write_variant_kind(kind, cid, code):
     with _write_lock:
         src = cio.read_text(path)
         d = json.loads(src)
-        playable = playable_codes(os.path.dirname(path), d)
+        playable = (item_playable_codes if kind in ITEM_LOOK_KINDS else playable_codes)(os.path.dirname(path), d)
         if code not in playable:
             vs = d.get("variants") if isinstance(d.get("variants"), dict) else {}
             known = ", ".join(sorted(playable)) or "none"
-            why = "its strip is not painted yet" if code in vs else "it has no such variant"
+            why = ("its %s is not painted yet" % ("icon" if kind in ITEM_LOOK_KINDS else "strip")) if code in vs else "it has no such variant"
             return {"ok": False, "error": "%s cannot play %s: %s (it can play: %s)" % (cid, code, why, known)}
         before = str(d.get("variant", ""))
         text = cio.set_top_block(src, "variant", code, [("before", "variants"), ("end", None)])
@@ -1269,7 +1362,8 @@ def read_content(kind, cid):
     ledger = ledger_load()["ids"]
     out = {"ok": True, "kind": kind, "id": cid, "file": rel(path), "mtime": mtime_of(path), "text": src, "json": d,
            "layout": cio.layout(src), "editable": cio.top_spans(src) is not None,
-           "looks": look_records(kind, cid, folder, d, path) if kind in LOOK_KINDS else [],
+           "looks": look_records(kind, cid, folder, d, path) if kind in LOOK_KINDS else (
+               item_looks(kind, cid, folder, d) if kind in ITEM_LOOK_KINDS else []),
            "refs": references_to(kind, cid), "availability": avail, "locked_by": locked_by,
            # pass 69: a hero's quest is the one that unlocks {type character, id} (his requirement)
            "quest": quests.get(("character" if kind == "hero" else "weapon" if kind in ("weapon", "evolution") else "passive", cid)),
@@ -2386,9 +2480,10 @@ class Hooks:
         """pass 68 (D8): a candidate picked for a look lands in its entry: {"icon": "<id>_icon_<x>.png"} (a badge or an
         icon beside the JSON) and/or {"title": "hero_<id>_<x>.png"} (a hero's title cut-out under art/ui/wanted/). The
         entry is edited in place (content_io's entry writer), with a backup; no `fresh` (the strip is not touched) and no
-        import here (the job queues one). The look must exist: a pick never creates an entry."""
-        if kind not in LOOK_KINDS:
-            return {"ok": False, "layout": "unmerged", "error": "only enemies, bosses and heroes have looks"}
+        import here (the job queues one). The look must exist: a pick never creates an entry. Pass 73 (lane CARDS): a
+        card's look (ITEM_LOOK_KINDS) takes its icon the same way."""
+        if kind not in LOOK_KINDS and not (kind in ITEM_LOOK_KINDS and set(files or {}) <= {"icon"}):
+            return {"ok": False, "layout": "unmerged", "error": "only enemies, bosses, heroes and cards have looks"}
         tfolder, path = content_path(kind, cid)
         if path is None:
             return {"ok": False, "layout": "unmerged", "error": "no %s %s" % (kind, cid)}
@@ -3345,6 +3440,15 @@ class Handler(BaseHTTPRequestHandler):
                 color = data.get("color") if isinstance(data, dict) else None
                 result = write_blood(cid, color)
                 return self._send(200 if result.get("ok") else 400, result)
+            if parts == ["api", "item_looks", "set_all"]:
+                # pass 73 (lane CARDS): "set every card to look X" (the Items tab's Cards bar)
+                data, err = self._body()
+                if err:
+                    return self._error(400, err)
+                data = data if isinstance(data, dict) else {}
+                ids = data.get("ids") if isinstance(data.get("ids"), list) else None
+                res = set_item_looks_all(str(data.get("kind") or "passive"), data.get("code"), ids)
+                return self._send(200 if res.get("ok") else 400, res)
             # ---- pass 66: the content model
             if parts[:2] == ["api", "content"] and len(parts) >= 3:
                 return self._post_content(parts[2:])

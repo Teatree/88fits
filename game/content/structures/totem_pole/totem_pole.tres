@@ -1,0 +1,142 @@
+[gd_resource type="Resource" script_class="StructureDef" format=3]
+
+[ext_resource type="Texture2D" path="res://content/structures/totem_pole/totem_pole_icon.png" id="1_kr7il"]
+[ext_resource type="Script" path="res://core/data/StructureDef.gd" id="2_33a5v"]
+
+[resource]
+script = ExtResource("2_33a5v")
+effect_kind = "totem"
+params = {
+"boons": [{
+"animal": "the Wolf",
+"id": "wolf",
+"max": 0.07,
+"min": 0.03,
+"name": "Le-loo",
+"op": "mul",
+"stat": "move_speed",
+"step": 0.01,
+"weight": 3.0
+}, {
+"animal": "the Whale",
+"id": "whale",
+"max": 14.0,
+"min": 6.0,
+"name": "El-kolie",
+"op": "add",
+"stat": "max_hp",
+"step": 1.0,
+"weight": 3.0
+}, {
+"animal": "the Bear",
+"id": "bear",
+"max": 0.07,
+"min": 0.03,
+"name": "Chet-woot",
+"op": "mul",
+"stat": "might",
+"step": 0.01,
+"weight": 3.0
+}, {
+"animal": "",
+"id": "thunderbird",
+"max": -0.02,
+"min": -0.05,
+"name": "Thunderbird",
+"op": "mul",
+"stat": "cooldown",
+"step": 0.01,
+"weight": 2.0
+}, {
+"animal": "the Seal",
+"id": "seal",
+"max": 0.18,
+"min": 0.08,
+"name": "Ol-hiyo",
+"op": "mul",
+"stat": "magnet",
+"step": 0.01,
+"weight": 2.0
+}, {
+"animal": "the Salmon",
+"id": "salmon",
+"max": 0.5,
+"min": 0.2,
+"name": "Walalee",
+"op": "add",
+"stat": "regen",
+"step": 0.1,
+"weight": 2.0
+}, {
+"animal": "",
+"id": "frog",
+"max": 0.08,
+"min": 0.04,
+"name": "Frog",
+"op": "mul",
+"stat": "xp_gain",
+"step": 0.01,
+"weight": 2.0
+}, {
+"animal": "the Killer Whale",
+"id": "killer_whale",
+"max": 0.04,
+"min": 0.02,
+"name": "Skana",
+"op": "add",
+"stat": "crit_chance",
+"step": 0.01,
+"weight": 1.5
+}, {
+"animal": "the Bullhead",
+"id": "bullhead",
+"max": 0.04,
+"min": 0.02,
+"name": "Kuuma",
+"op": "add",
+"stat": "damage_reduction",
+"step": 0.01,
+"weight": 1.5
+}, {
+"animal": "",
+"id": "raven",
+"max": 0.06,
+"min": 0.03,
+"name": "Raven",
+"op": "add",
+"stat": "luck",
+"step": 0.01,
+"weight": 1.0
+}, {
+"animal": "the Two-headed Serpent",
+"id": "serpent",
+"max": 0.06,
+"min": 0.03,
+"name": "Se-sook",
+"op": "mul",
+"stat": "area",
+"step": 0.01,
+"weight": 1.0
+}],
+"choices": 3.0,
+"glow": false,
+"per_map": {
+"max": 12.0,
+"min": 10.0,
+"spacing": 14.0
+},
+"per_sign": 1.0,
+"spent": "grey"
+}
+radius = 1.2
+color = Color(0.18431373, 0.70980394, 0.65882355, 1)
+height = 1.8
+id = "totem_pole"
+display_name = "Totem Pole"
+flavour = "Old cedar, older spirits. Each one lends a little strength."
+icon = ExtResource("1_kr7il")
+icon_file = "totem_pole_icon.png"
+placeholder = {
+"color": "#9A5A34",
+"glyph": "totem"
+}

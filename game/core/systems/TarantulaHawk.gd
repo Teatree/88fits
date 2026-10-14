@@ -139,6 +139,10 @@ static func held_serials(p_game: Node) -> Dictionary:
 ## The creature a new hawk takes: the strongest near `from` within `range_m` by priority_index's measure (distance over
 ## a weight by max HP, big game at the cap) that no hawk holds yet; -1 for none.
 static func pick(em: EnemyManager, from: Vector3, range_m: float, taken: Dictionary) -> int:
+	# pass 73 (lane SNIPER): a special, an Elite or the boss within reach first (one hawk per creature still)
+	var pt := em.priority_target(from, range_m, true)
+	if pt >= 0 and not taken.has(em.serial[pt]):
+		return pt
 	# it hunts off the screen too (pass 54: the homing weapons are not held to the screen)
 	var first := em.priority_index(from, range_m, "", true)
 	if first < 0 or not taken.has(em.serial[first]):

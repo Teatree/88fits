@@ -120,7 +120,8 @@ func spring_target(from: Vector3, sense: float, mine: Node) -> int:
 	var best := -1
 	var best_d := sense * sense
 	for i in em.indices_in_radius(from, sense):
-		if em.alive[i] == 0 or em.state[i] == EnemyManager.STATE_DYING:
+		# (pass 73, lane GROUND: never one still rising out of the sand)
+		if em.alive[i] == 0 or em.state[i] == EnemyManager.STATE_DYING or not em.targetable(i):
 			continue
 		var holder = _claims.get(em.serial[i])
 		if holder != null and is_instance_valid(holder) and holder != mine:

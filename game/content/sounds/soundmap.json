@@ -713,6 +713,27 @@
       "volume_db": -4,
       "file": "real/en_rocket_wild.wav"
     },
+    "en_sniper_aim": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -10,
+      "file": "real/en_sniper_aim.wav"
+    },
+    "en_sniper_lock": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.0,
+      "volume_db": -1,
+      "file": "real/en_sniper_lock.wav"
+    },
+    "en_sniper_shot": {
+      "category": "enemy",
+      "voices": 1,
+      "pitch_spread": 0.03,
+      "volume_db": 0,
+      "file": "real/en_sniper_shot.wav"
+    },
     "en_rocket_dive": {
       "category": "enemy",
       "voices": 1,

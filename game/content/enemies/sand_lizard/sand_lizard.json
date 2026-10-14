@@ -106,6 +106,70 @@
       },
       "head": 1.0,
       "fresh": true
+    },
+    "SL-B": {
+      "recipe": {
+        "art_prompt": "a desert lizard running on four short legs, bright cobalt blue scales with dark navy stripes down its back and a pale sky-blue belly, a long tail, a wide flat head with beady eyes and a wide toothy grin, standing on the ground",
+        "back_hint": "on all fours",
+        "seed_offset": 666,
+        "method": "creature_proc",
+        "painter": {
+          "model": "klein",
+          "steps": 45
+        },
+        "stills": "b",
+        "motion": "scurrying in place on four short legs, tail whipping side to side"
+      },
+      "sprite": "sand_lizard_sprite_b.png",
+      "icon": "sand_lizard_icon_b.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 0.981,
+      "fresh": true
+    },
+    "SL-C": {
+      "recipe": {
+        "art_prompt": "a desert lizard running on four short legs, bright cobalt blue scales with dark navy stripes down its back and a pale sky-blue belly, a long tail, a wide flat head with beady eyes and a wide toothy grin, standing on the ground",
+        "back_hint": "on all fours",
+        "seed_offset": 111,
+        "method": "creature_proc",
+        "painter": {
+          "model": "klein",
+          "steps": 45
+        },
+        "stills": "c",
+        "motion": "scurrying in place on four short legs, tail whipping side to side"
+      },
+      "sprite": "sand_lizard_sprite_c.png",
+      "icon": "sand_lizard_icon_c.png",
+      "anims": {
+        "idle": 4,
+        "run": 12,
+        "attack": 2,
+        "hit": 1,
+        "die": 5,
+        "run_b": 12,
+        "idle_b": 4
+      },
+      "strip_cols": 40,
+      "fps": {
+        "run": 15,
+        "die": 8
+      },
+      "head": 1.0,
+      "fresh": true
     }
   }
 }

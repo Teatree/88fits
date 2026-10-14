@@ -588,3 +588,28 @@ func talents_list() -> Array:
 	var out: Array = talents.values()
 	out.sort_custom(func(a, b): return a.order < b.order)
 	return out
+
+
+# ---------------------------------------------------------------- pass 73 (lane CARDS): the cards' looks
+
+## Every card (line item) drawn in the look kept on this phone (Save.card_look; "" = each card's JSON `variant`): its icon
+## becomes that look's (PassiveDef.wear_look) wherever it is drawn from now on. A card without that look, or with it
+## shelved, wears its own JSON look. Save calls it once the save is read and again when the arena changes it.
+func apply_card_looks() -> void:
+	var sv := get_node_or_null("/root/Save")
+	var code := str(sv.call("card_look")) if sv else ""
+	for p: PassiveDef in passives.values():
+		if not p.variants.is_empty():
+			p.wear_look(code)
+
+
+## The look codes any card has (sorted, shelved ones left out): the arena's chips.
+func card_look_codes() -> Array:
+	var seen: Dictionary = {}
+	for p: PassiveDef in passives.values():
+		if p.is_line():
+			for c in p.variant_codes():
+				seen[str(c)] = true
+	var out: Array = seen.keys()
+	out.sort()
+	return out

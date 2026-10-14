@@ -1,6 +1,6 @@
 {
   "id": "unlock_stride",
-  "name": "Stride",
+  "name": "The Chariot",
   "condition": {
     "type": "survive_minutes_no_lift",
     "minutes": 2

@@ -1421,7 +1421,8 @@ func _nearest_other(enemies: EnemyManager, from: Vector3, r: float, seen: Dictio
 	var best := -1
 	var best_d := r * r
 	for e in enemies.indices_in_radius(from, r):
-		if seen.has(e) or enemies.state[e] == EnemyManager.STATE_DYING:
+		# (pass 73, lane GROUND: never one still rising out of the sand)
+		if seen.has(e) or enemies.state[e] == EnemyManager.STATE_DYING or not enemies.targetable(e):
 			continue
 		var d2: float = (enemies.pos[e] - from).length_squared()
 		if d2 < best_d:
@@ -1476,6 +1477,95 @@ func has_rocket_of(shooter: int) -> bool:
 		if int(rocket_of[pi]) == shooter and alive[int(pi)] == 1:
 			return true
 	return false
+
+
+## Pass 73 (lane SNIPER): a hit on the Vulture Raider (Garry: "Every time Rocketeer gets hit the Rocket that was following
+## the Player gets a visible shake and slows down from every hit. Takes 3 seconds to recover. About half speed"): every
+## live rocket of `shooter` whose missile block names `hit_slow` {mult 0.5, recover 3, shake 0.35} drops to `mult` of its
+## speed at once and climbs back to full in a straight line over `recover` seconds; a hit while it climbs starts the
+## climb again from `mult` (never lower). It shakes for `shake` seconds: its position jitters ROCKET_SHAKE_M and its turn
+## ROCKET_SHAKE_DEG, fading out. From EnemyManager._on_hit_reactions. Returns how many rockets it reached.
+const ROCKET_SHAKE_M := 0.16
+const ROCKET_SHAKE_DEG := 16.0
+## diagnostics and tests
+var rocket_slows := 0
+
+
+func shooter_hit(shooter: int) -> int:
+	var n := 0
+	for pi in rocket_of.keys():
+		if int(rocket_of[pi]) != shooter:
+			continue
+		var i: int = int(pi)
+		if alive[i] == 0 or hostile[i] == 0 or not extra[i].has("rocket") or bool(extra[i].get("loose", false)):
+			continue
+		var hs := _rocket_slow_block(extra[i])
+		if hs.is_empty():
+			continue
+		var p: Dictionary = extra[i]
+		p["slow_t"] = 0.0
+		p["shake_t"] = maxf(float(hs.get("shake", 0.35)), 0.0)
+		n += 1
+		rocket_slows += 1
+	return n
+
+
+static func _rocket_slow_block(p: Dictionary) -> Dictionary:
+	var bl = p.get("blast", {})
+	var hs = (bl as Dictionary).get("hit_slow", {}) if bl is Dictionary else {}
+	return hs if hs is Dictionary else {}
+
+
+## This tick's share of a hit rocket's speed (pass 73, shooter_hit): `mult` just after the hit, back to 1 in a straight
+## line over `recover` seconds; 1 for a rocket never hit. While its shake lasts it puts last tick's jitter back and moves
+## the rocket by a new one (so the jitter never adds up), fading with the shake.
+func _rocket_hit_slow(i: int, p: Dictionary, delta: float) -> float:
+	var off: Vector3 = p.get("shake_off", Vector3.ZERO)
+	if off != Vector3.ZERO:
+		pos[i] -= off
+		p["shake_off"] = Vector3.ZERO
+	if not p.has("slow_t"):
+		return 1.0
+	var hs := _rocket_slow_block(p)
+	var shake := float(p.get("shake_t", 0.0))
+	if shake > 0.0:
+		shake = maxf(shake - delta, 0.0)
+		p["shake_t"] = shake
+		var k := shake / maxf(float(hs.get("shake", 0.35)), 0.01)
+		var tt := float(p.get("age2", 0.0)) + float(p.get("slow_t", 0.0))
+		var o := Vector3(sin(tt * 83.0), 0.5 * sin(tt * 61.0 + 1.3), sin(tt * 97.0 + 2.1)) * ROCKET_SHAKE_M * k
+		pos[i] += o
+		p["shake_off"] = o
+	var rec := maxf(float(hs.get("recover", 3.0)), 0.01)
+	var st := float(p["slow_t"]) + delta
+	p["slow_t"] = st
+	if st >= rec:
+		p.erase("slow_t")
+		return 1.0
+	return lerpf(clampf(float(hs.get("mult", 0.5)), 0.0, 1.0), 1.0, st / rec)
+
+
+## The share of its speed a rocket flies at now (pass 73; 1 for one never hit): tests and the capture read it.
+func rocket_speed_share(i: int) -> float:
+	if i < 0 or i >= MAX or alive[i] == 0 or not extra[i].has("slow_t"):
+		return 1.0
+	var hs := _rocket_slow_block(extra[i])
+	return lerpf(clampf(float(hs.get("mult", 0.5)), 0.0, 1.0), 1.0, clampf(float(extra[i]["slow_t"]) / maxf(float(hs.get("recover", 3.0)), 0.01), 0.0, 1.0))
+
+
+## A shaken rocket's turn (pass 73, draw_basis): its pitch and yaw wobbling up to ROCKET_SHAKE_DEG x what is left of the
+## shake.
+func rocket_shake_basis(i: int, bs: Basis) -> Basis:
+	var p: Dictionary = extra[i]
+	var shake := float(p.get("shake_t", 0.0))
+	if shake <= 0.0:
+		return bs
+	var k := shake / maxf(float(_rocket_slow_block(p).get("shake", 0.35)), 0.01)
+	var tt := float(p.get("age2", 0.0)) + float(p.get("slow_t", 0.0))
+	var a := deg_to_rad(ROCKET_SHAKE_DEG) * k
+	var ax := bs.x.normalized() if bs.x.length_squared() > 0.000001 else Vector3.RIGHT
+	var ay := bs.y.normalized() if bs.y.length_squared() > 0.000001 else Vector3.UP
+	return bs.rotated(ax, a * sin(tt * 71.0)).rotated(ay, a * sin(tt * 53.0 + 0.7))
 
 
 ## The rockets whose thrower was `shooter` lose their guidance and go loose (pass 45, _fly_loose): they stop and blink
@@ -1539,6 +1629,8 @@ func _fly_rocket(i: int, delta: float, map) -> void:
 			elif ang >= PI - 0.02:
 				heading = heading.rotated(Vector3.UP, float(p["turn"]) * delta).normalized()
 	vel[i] = heading * float(p["speed"])
+	# pass 73 (lane SNIPER): a hit on its shooter shakes it and slows it to half, back to full over 3 s (shooter_hit)
+	vel[i] *= _rocket_hit_slow(i, p, delta)
 	pos[i] += vel[i] * delta
 	# no tumbling: a rocket points where it is going, and it pulses bigger and smaller twice a second so the eye
 	# catches it against the sand
@@ -1761,7 +1853,10 @@ func _fly_missile(i: int, delta: float, enemies: EnemyManager, map) -> void:
 			var wl: WeaponInstance = weapon[i]
 			var reach: float = float(p["range"]) + 6.0
 			# homing (pass 54): a seeker hunts off the screen too
-			t = enemies.priority_index(pos[i], reach, "", true) if (wl and wl.def.targeting == "priority") else enemies.nearest_index(pos[i], reach, "", true)
+			# pass 73 (lane SNIPER): a special, an Elite or the boss within the weapon's range of the hero first
+			t = enemies.priority_target(game.player.global_position if game.player else pos[i], float(p["range"]), true)
+			if t < 0:
+				t = enemies.priority_index(pos[i], reach, "", true) if (wl and wl.def.targeting == "priority") else enemies.nearest_index(pos[i], reach, "", true)
 			p["target"] = t
 		if t >= 0:
 			var want: Vector3 = (enemies.pos[t] + Vector3(0, enemies.size[t] * 0.45, 0) - pos[i]).normalized()
@@ -2101,7 +2196,8 @@ func _ahead(enemies: EnemyManager, from: Vector3, dir: Vector3, r: float) -> int
 	for e in enemies.indices_in_radius(from, r):
 		var to: Vector3 = enemies.pos[e] - from
 		to.y = 0.0
-		if to.dot(dir) <= 0.0:
+		# (pass 73, lane GROUND: never one still rising out of the sand)
+		if to.dot(dir) <= 0.0 or not enemies.targetable(e):
 			continue
 		var d2 := to.length_squared()
 		if d2 < best_d:
@@ -2575,6 +2671,9 @@ func draw_basis(i: int) -> Basis:
 		bs = bs.rotated(bs.x, -spin[i]).scaled(Vector3(s, s, s) * psize[i])
 	else:
 		bs = bs.rotated(bs.z, spin[i]).scaled(Vector3(s, s, s) * psize[i])
+	if hostile[i] == 1 and extra[i].has("shake_t"):
+		# pass 73 (lane SNIPER): a rocket whose shooter was hit wobbles while its shake lasts
+		bs = rocket_shake_basis(i, bs)
 	if bool(kd.get("turned", false)):
 		bs = bs * (kd["basis"] as Basis)
 	return bs

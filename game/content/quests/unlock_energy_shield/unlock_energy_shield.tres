@@ -14,7 +14,7 @@ unlocks = {
 "type": "passive"
 }
 id = "unlock_energy_shield"
-display_name = "Energy Shield"
+display_name = "The Guardian"
 icon = ExtResource("1_we8wk")
 icon_file = "unlock_energy_shield_icon.png"
 placeholder = {

@@ -313,6 +313,11 @@ func _screens() -> void:
 		_game.stranger_screen._finish(false)
 	if _game.get("structure_shop") and _game.structure_shop and _game.structure_shop.visible:
 		_game.structure_shop._finish(false)
+	# pass 73 (lane STRUCT): a Totem Pole stood in: its first gift taken, so the run goes on
+	if _game.get("totem_screen") and _game.totem_screen and _game.totem_screen.visible and not _game.totem_screen._done:
+		var tp: Array = _game.totem_screen.planks()
+		if not tp.is_empty():
+			_game.totem_screen._pick(tp[0])
 	if _game.portal_dialog and _game.portal_dialog.visible:
 		_game.portal_dialog.visible = false
 		_game.portal_dialog.decided.emit(false)

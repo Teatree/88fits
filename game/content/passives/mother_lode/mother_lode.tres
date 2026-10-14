@@ -1,17 +1,21 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/mother_lode/mother_lode_icon.png" id="1_exuag"]
+[ext_resource type="Texture2D" path="res://content/passives/mother_lode/mother_lode_icon_b.png" id="1_xb37h"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_xb37h"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_jpw3f"]
+[ext_resource type="Texture2D" path="res://content/passives/mother_lode/mother_lode_icon_c.png" id="5_gymrr"]
+[ext_resource type="Texture2D" path="res://content/passives/mother_lode/mother_lode_icon_d.png" id="6_ps6i8"]
+[ext_resource type="Texture2D" path="res://content/passives/mother_lode/mother_lode_icon_e.png" id="7_3tpk2"]
 
-[sub_resource type="Resource" id="Resource_exuag"]
+[sub_resource type="Resource" id="Resource_gymrr"]
 script = ExtResource("2_xb37h")
 stat = "magnet"
 op = "mul"
 value = 3.5
 target = "player"
 
-[sub_resource type="Resource" id="Resource_xb37h"]
+[sub_resource type="Resource" id="Resource_ps6i8"]
 script = ExtResource("2_xb37h")
 stat = "gem_sweep_every"
 value = 12.0
@@ -20,16 +24,50 @@ target = "player"
 [resource]
 script = ExtResource("3_jpw3f")
 line = true
-levels = [[SubResource("Resource_exuag"), SubResource("Resource_xb37h")]]
+levels = [[SubResource("Resource_gymrr"), SubResource("Resource_ps6i8")]]
 repeat_last_level = false
 max_level = 1
 evolves_from = "lodestone"
+variants = {
+"A": {
+"icon": ExtResource("1_exuag"),
+"icon_file": "mother_lode_icon.png",
+"note": "the icon before the cards (passes 47-72): an object, not a card",
+"shelved": false
+},
+"B": {
+"icon": ExtResource("1_xb37h"),
+"icon_file": "mother_lode_icon_b.png",
+"note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
+"shelved": false
+},
+"C": {
+"icon": ExtResource("5_gymrr"),
+"icon_file": "mother_lode_icon_c.png",
+"note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
+"shelved": false
+},
+"D": {
+"icon": ExtResource("6_ps6i8"),
+"icon_file": "mother_lode_icon_d.png",
+"note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
+"shelved": false
+},
+"E": {
+"icon": ExtResource("7_3tpk2"),
+"icon_file": "mother_lode_icon_e.png",
+"note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
+"shelved": false
+}
+}
+variant = "B"
+variant_base = "A"
 id = "mother_lode"
-display_name = "Mother Lode"
-flavour = "Every gem in sight comes home."
+display_name = "The Magnet Risen"
+flavour = "The Magnet pulls the earth open. Every gem in sight comes home."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_exuag")
+icon = ExtResource("1_xb37h")
 icon_file = "mother_lode_icon.png"
 placeholder = {
 "color": "#FFB84A",

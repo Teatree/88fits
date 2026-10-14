@@ -15,7 +15,7 @@ unlocks = {
 "type": "passive"
 }
 id = "unlock_thirst"
-display_name = "Thirst"
+display_name = "Death"
 icon = ExtResource("1_ty15x")
 icon_file = "unlock_thirst_icon.png"
 placeholder = {

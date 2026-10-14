@@ -135,7 +135,14 @@ func _tick() -> void:
 				if gi >= 0:
 					em.pos[gi] = Vector3(near_at.x, _game.map.height_at(near_at.x, near_at.z), near_at.z)
 				else:
-					em.spawn("hammer_giant", near_at)
+					gi = em.spawn("hammer_giant", near_at)
+				# (pass 73, lane GROUND: up out of the sand at once and its slam due, so it winds up while the walking hero
+				# is still in its reach; a fresh spawn rises out of the ground first since pass 73)
+				if gi >= 0:
+					em.rise_t[gi] = 1.0
+					em.rise_v[gi] = 0.0
+					em.state[gi] = em.STATE_MOVE
+					em.atk_t[gi] = 0.0
 			for i in range(em.MAX):
 				if em.alive[i] == 1 and (em.types[em.type_idx[i]]["def"]).id == "hammer_giant" and em.state[i] == em.STATE_ATTACK:
 					_seen["giant_windup"] = true
@@ -195,7 +202,7 @@ func _tick() -> void:
 		_last_report = sec
 		var em2 = _game.enemies
 		var up: Array = []
-		for k in ["cards", "chest_screen", "resume_gate", "portal_dialog", "stranger_screen", "revive_screen", "structure_shop", "pause_screen"]:
+		for k in ["cards", "chest_screen", "resume_gate", "portal_dialog", "stranger_screen", "revive_screen", "structure_shop", "totem_screen", "pause_screen"]:
 			var c = _game.get(k)
 			if c != null and c is CanvasItem and (c as CanvasItem).visible:
 				up.append(k)

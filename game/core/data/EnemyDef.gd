@@ -138,6 +138,17 @@ var tint_range: Dictionary = {}
 @export var kamikaze: Dictionary = {}
 ## the artillery brain (the rocketeer): {stand_off, windup, missile {speed, turn, damage, area}}
 @export var artillery: Dictionary = {}
+## Pass 73 (lane SNIPER): the sniper brain (the Saiga Sniper): {stand_off, flee_range, follow, first, aim, lock, interval,
+## interval_jitter, recover, cone_deg, lines, beam {length, width, seconds, damage_from, damage_mult, damage, knockback,
+## creature_frac, creature_max, push, sparks}, muzzle {up, side, forward}} (EnemyManager._sniper_*)
+@export var sniper: Dictionary = {}
+## Pass 73 (lane SNIPER): flee on hit, for any creature: {seconds, speed_mult, interrupts}. A hit that lands stops its
+## wind-up or aim (`interrupts`) and it runs straight away from the hero at its speed x `speed_mult` for `seconds`
+## (EnemyManager.flee_start). {} = none.
+@export var flee_on_hit: Dictionary = {}
+## Pass 73: "front_back" = the `attack` strip's first half is painted from the front and its second half from the back
+## (the Saiga Sniper's aiming pose; EnemyManager._attack_view_frame); "" = every attack frame faces the camera.
+@export var attack_views: String = ""
 ## Boss: {"attacks": [ {"name":"roll", ...}, ... ], "hp_mult_per_stage": 1.0 }
 @export var boss: Dictionary = {}
 ## Mini-boss tuning: {"hp_mult_per_stage": 1.8}
@@ -243,6 +254,9 @@ func with_overrides(stats: Dictionary) -> EnemyDef:
 	v.boss = boss.duplicate(true)
 	v.kamikaze = kamikaze.duplicate(true)
 	v.artillery = artillery.duplicate(true)
+	# pass 73 (lane SNIPER): the sniper's block and flee on hit, as deep copies too (a row may override them)
+	v.sniper = sniper.duplicate(true)
+	v.flee_on_hit = flee_on_hit.duplicate(true)
 	v.pickup_weights = pickup_weights.duplicate(true)
 	# pass 58: `size` may be a range [min, max] (each creature rolls its own; `size_mult` scales both ends), and `tint` a
 	# colour range; a plain size goes through the direct fields as before
@@ -274,7 +288,7 @@ func with_overrides(stats: Dictionary) -> EnemyDef:
 	v.pack_size = maxi(v.pack_size, 1)
 	if stats.get("pickup_weights") is Dictionary:
 		v.pickup_weights = (stats["pickup_weights"] as Dictionary).duplicate(true)
-	for block: String in ["ranged", "charge", "drops", "elite", "kamikaze", "artillery"]:
+	for block: String in ["ranged", "charge", "drops", "elite", "kamikaze", "artillery", "sniper", "flee_on_hit"]:
 		if stats.get(block) is Dictionary:
 			v.set(block, deep_merge(v.get(block), stats[block]))
 	if stats.get("boss") is Dictionary:

@@ -1,17 +1,21 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
+[ext_resource type="Texture2D" path="res://content/passives/bucking_bronco/bucking_bronco_icon_b.png" id="1_4iaav"]
 [ext_resource type="Texture2D" path="res://content/passives/bucking_bronco/bucking_bronco_icon.png" id="1_7xlfu"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_4iaav"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_588p5"]
+[ext_resource type="Texture2D" path="res://content/passives/bucking_bronco/bucking_bronco_icon_c.png" id="5_6atjy"]
+[ext_resource type="Texture2D" path="res://content/passives/bucking_bronco/bucking_bronco_icon_d.png" id="6_olfjm"]
+[ext_resource type="Texture2D" path="res://content/passives/bucking_bronco/bucking_bronco_icon_e.png" id="7_n1vfu"]
 
-[sub_resource type="Resource" id="Resource_7xlfu"]
+[sub_resource type="Resource" id="Resource_6atjy"]
 script = ExtResource("2_4iaav")
 stat = "knockback"
 op = "mul"
 value = 2.0
 target = "all_weapons"
 
-[sub_resource type="Resource" id="Resource_4iaav"]
+[sub_resource type="Resource" id="Resource_olfjm"]
 script = ExtResource("2_4iaav")
 stat = "bronco_chance"
 value = 0.35
@@ -20,16 +24,50 @@ target = "player"
 [resource]
 script = ExtResource("3_588p5")
 line = true
-levels = [[SubResource("Resource_7xlfu"), SubResource("Resource_4iaav")]]
+levels = [[SubResource("Resource_6atjy"), SubResource("Resource_olfjm")]]
 repeat_last_level = false
 max_level = 1
 evolves_from = "mule_kick"
+variants = {
+"A": {
+"icon": ExtResource("1_7xlfu"),
+"icon_file": "bucking_bronco_icon.png",
+"note": "the icon before the cards (passes 47-72): an object, not a card",
+"shelved": false
+},
+"B": {
+"icon": ExtResource("1_4iaav"),
+"icon_file": "bucking_bronco_icon_b.png",
+"note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
+"shelved": false
+},
+"C": {
+"icon": ExtResource("5_6atjy"),
+"icon_file": "bucking_bronco_icon_c.png",
+"note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
+"shelved": false
+},
+"D": {
+"icon": ExtResource("6_olfjm"),
+"icon_file": "bucking_bronco_icon_d.png",
+"note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
+"shelved": false
+},
+"E": {
+"icon": ExtResource("7_n1vfu"),
+"icon_file": "bucking_bronco_icon_e.png",
+"note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
+"shelved": false
+}
+}
+variant = "B"
+variant_base = "A"
 id = "bucking_bronco"
-display_name = "Bucking Bronco"
-flavour = "Eight seconds is a long time up there."
+display_name = "The Storm Risen"
+flavour = "The Storm bucks. Eight seconds is a long time up there."
 rarity = "rare"
 weight = 0.0
-icon = ExtResource("1_7xlfu")
+icon = ExtResource("1_4iaav")
 icon_file = "bucking_bronco_icon.png"
 placeholder = {
 "color": "#FFB84A",

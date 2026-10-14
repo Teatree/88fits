@@ -5,6 +5,10 @@
 [ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_sprite.png" id="3_1atbf"]
 [ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_sprite_a.png" id="4_kqten"]
 [ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_icon_a.png" id="5_onl8u"]
+[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_sprite_b.png" id="6_wviw3"]
+[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_icon_b.png" id="7_afmyo"]
+[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_sprite_c.png" id="8_pbh4q"]
+[ext_resource type="Texture2D" path="res://content/enemies/sand_lizard/sand_lizard_icon_c.png" id="9_r8q0c"]
 
 [resource]
 script = ExtResource("1_aj6kf")
@@ -92,6 +96,56 @@ variants = {
 "shelved": false,
 "sprite": ExtResource("4_kqten"),
 "sprite_file": "sand_lizard_sprite_a.png",
+"strip_cols": 40
+},
+"SL-B": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 0.981,
+"icon": ExtResource("7_afmyo"),
+"note": "",
+"shadow": {},
+"shelved": false,
+"sprite": ExtResource("6_wviw3"),
+"sprite_file": "sand_lizard_sprite_b.png",
+"strip_cols": 40
+},
+"SL-C": {
+"anims": {
+"attack": 2.0,
+"die": 5.0,
+"hit": 1.0,
+"idle": 4.0,
+"idle_b": 4.0,
+"run": 12.0,
+"run_b": 12.0
+},
+"back_faces": "right",
+"fps": {
+"die": 8.0,
+"run": 15.0
+},
+"front_faces": "right",
+"head": 1.0,
+"icon": ExtResource("9_r8q0c"),
+"note": "",
+"shadow": {},
+"shelved": false,
+"sprite": ExtResource("8_pbh4q"),
+"sprite_file": "sand_lizard_sprite_c.png",
 "strip_cols": 40
 }
 }

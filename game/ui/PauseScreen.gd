@@ -169,7 +169,8 @@ func _build_tab() -> void:
 	if not lines.is_empty():
 		# out of the six slots (the arena's cap is as many as it likes: then the count alone)
 		var cap := Run.line_cap()
-		_group("Lines", ("%d / %d" % [lines.size(), cap]) if cap <= Run.MAX_LINES else str(lines.size()))
+		# pass 73 (lane CARDS): the line items are fortune cards to the player
+		_group("Cards", ("%d / %d" % [lines.size(), cap]) if cap <= Run.MAX_LINES else str(lines.size()))
 	for pid in lines:
 		var ld: PassiveDef = Registry.passive(str(pid))
 		if ld:

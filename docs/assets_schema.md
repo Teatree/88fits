@@ -322,3 +322,232 @@ Keys Game.gd reads: `character, map, map_seed, weapon, level, spawn, analytics` 
 before `Run.arena_next`), `look: CODE` (the hero's look, the save untouched), `spawn_enemy: id`, `variant: CODE`, `count:
 int` (default 3). The `launch` job writes the file right before the window opens and deletes it if the process dies with
 it still there.
+
+## Pass 73: new keys
+
+Every key the lanes added, as each lane wrote it. The map's `target_priority` and `spawn_rise` are in docs/waves_schema.md too.
+
+### Target priority, the sniper, flee on hit, the rocket's slow
+
+All of them are in the Level Editor already (this lane added the rows; selftest_P's block count re-pinned 10 -> 12).
+
+#### Creature JSON (`content/enemies/<id>/<id>.json`, EnemyDef, JsonContent._enemy)
+
+| Key | Type | Default | What it does |
+|---|---|---|---|
+| `brain: "sniper"` | brain | | the Saiga Sniper's brain (EnemyManager._sniper_*): placed `stand_off` away, runs inside `flee_range`, walks in past `follow`, between them freezes to aim; a new case in vocab.BRAINS / BRAIN_BLOCKS (`sniper: ["sniper"]`) |
+| `sniper` | block | `{}` | the sniper brain's numbers (below); a row's `stats` may deep-merge over it (EnemyDef.with_overrides) |
+| `sniper.stand_off` | m | 26 | where it is placed when it spawns (never nearer the hero), inside the wall |
+| `sniper.flee_range` | m | 14 | it runs straight away from the hero while he is nearer (never while aiming) |
+| `sniper.follow` | m | stand_off + 12 | it walks back in while he is farther |
+| `sniper.first` | s | 2.5 | from its arrival to its first aim |
+| `sniper.aim` | s | 2.0 | the lines gather and follow the hero this long (× 1/pace) |
+| `sniper.lock` | s | 1.0 | the locked line holds still this long before the shot (× 1/pace) |
+| `sniper.interval` | s | 9.0 | from one shot to the next, the aim and the hold included |
+| `sniper.interval_jitter` | s | 1.5 | the interval varies this much either way |
+| `sniper.recover` | s | 2.5 | after a spoiled aim (a hit, a stun, a freeze, a launch) the next waits at least this long |
+| `sniper.cone_deg` | ° | 44 | the lines start on the two sides of a cone this wide round his aim |
+| `sniper.lines` | int | 14 | how many lines gather over the aim |
+| `sniper.beam` | object | | `{length 60, width 0.5, seconds 0.15, damage_from "", damage_mult 0.7, damage 15.4, knockback 5, creature_frac 0.05, creature_max 40, push 3, sparks 1.5}`: the beam's reach and width, how long it shows; the hero's damage = damage_mult × the missile damage of the creature `damage_from` names (else `damage`) × the sniper's stage, level and hostile factors; his knock (m/s); what each creature on the line takes (its max HP share, capped) and how far it is pushed off (m); how long the sparks shimmer (s) |
+| `sniper.muzzle` | object | `{}` | `{up, side, forward}` in metres at the def's size: where the lines and the beam leave (the rifle's end as painted: `side` towards the barrel, screen-right in the painting); empty = 0.65 of its size straight up |
+| `flee_on_hit` | block | `{}` | any creature: `{seconds 1.0, speed_mult 1.8, interrupts true}`: a hit that takes health (never a poison or fire tick) sends it straight away from the hero at speed × speed_mult for `seconds`; `interrupts` drops a wind-up, an aim or a scripted attack under way. Never a boss. vocab BLOCKS `flee_on_hit`; the editor's READ_BY `any` |
+| `attack_views` | `""` \| `"front_back"` | `""` | `front_back`: the `attack` strip's first half is painted from the front, its second half from the back; the game shows the half the creature's facing shows (EnemyManager._attack_view_frame). The Saiga Sniper's aiming pose |
+| `sfx.aim`, `sfx.lock`, `sfx.shot` | sound id | `""` | the sniper brain's three sounds (en_sniper_aim, en_sniper_lock, en_sniper_shot); vocab SFX_HOOKS enemy += aim, lock, shot; the form shows the rows for the sniper brain only |
+| `aim_hint`, `aim_back_hint` | text | | *tool-only* (lane ART): the aiming pose's words, front and back |
+| `artillery.missile.hit_slow` | object | absent | `{mult 0.5, recover 3, shake 0.35}`: every hit on the shooter drops its rockets under guidance to `mult` of their speed, back to full in a straight line over `recover` s of the shot clock; `shake` s of jitter. Absent = never slowed. The Vulture Raider names it. vocab SUBBLOCKS `artillery.missile.hit_slow` |
+
+#### Map timeline (`content/maps/<id>/<id>.json` `timeline_data`, WaveTimeline, JsonContent.timeline_from_dict)
+
+| Key | Type | Default | What it does |
+|---|---|---|---|
+| `target_priority` | block | `{}` (= the defaults) | the weapons' target priority (EnemyManager.priority_target), handed on by WaveDirector._apply_mults |
+| `target_priority.enabled` | bool | true | every weapon that picks its target takes a special, an Elite or the boss within reach first (only the first shot of a volley spread over different creatures) |
+| `target_priority.reach` | m | 10 | how near the hero (a turret: itself) it must be; never past the weapon's own range |
+| `specials.pool[] {"enemy": "saiga_sniper"}` | row | | Red Canyon's new row, beside the Rocketeer's |
+
+The Settings tab shows `target_priority.*` in a new **Targeting** card (fields.js SCALAR_GROUPS += 'Targeting');
+the Specials card's words name the Sniper.
+
+### Volley rain, burrow, summons, spawn rise
+
+#### Custom boss attack (`content/boss_attacks/<id>/<id>.json`, BossAttackDef; the Boss attacks tab)
+
+| group.key | type | default | kinds | meaning |
+|---|---|---|---|---|
+| landing.mode | "stagger" \| "volley" | stagger | rain | stagger: one after another from the boss's back over timing.stagger (pass 72); volley: all in one spew from its mouth, landing within timing.stagger of each other, the nearest first |
+| telegraph.all_at_once | bool | false | rain | every landing circle lights together telegraph.seconds before the spikes leave (the wind-up made at least that long) and stays lit until its spike lands; off: each circle telegraph.seconds before its own landing |
+| spew.crouch | s | 0.35 | rain (volley) | the boss crouches through the last this many seconds of its wind-up (× 1/pace) |
+| spew.squash | 0.3..1 | 0.82 | rain (volley) | the crouch's squash (shorter, wider) |
+| spew.stretch | 1..2 | 1.25 | rain (volley) | the spew's stretch (taller, narrower), easing back to 1 |
+| spew.mouth | share of its height | 0.62 | rain (volley) | where the shots leave from, up its painting |
+| spew.burst | s | 0.12 | rain (volley) | every shot leaves within this long of the spew |
+
+BossAttackDef: `LANDING_MODES`, `is_volley()`, `lit_at_once()`, `windup_seconds()` (max(windup, telegraph.seconds) for a
+rain lit all at once; runner_entry's windup), static `volley_times(pts, flight, stagger, burst, rng) -> [departs, lands]`.
+JsonContent reads the `spew` group.
+
+#### A creature's `burrow` attack entry (`boss.attacks[]` with `"name": "burrow"`; the Enemies tab's attack card)
+
+| key | type | default (absent) | meaning |
+|---|---|---|---|
+| sink | s | 0 | sinks out of sight where it stands over this long (× 1/pace), dust ring + sand spray + a poof as it closes; 0 = gone at once (pass 60) |
+| rise | s | 0.4 (RISE_TIME) | comes up out of the sand over this long at the eruption |
+| predict | s | 0 | > 0: no ring and no mound before; `warn` s before the eruption the spot is fixed where the hero will be (his place + his flat velocity × this, on the walkable map) and ringed; 0: the ring at the hero (telegraph ring_at_hero) |
+| warn | s | 0.4 | with predict: the warning ring's time before the eruption (× 1/pace) |
+| mound | bool | true | the sand swells at the ring through the wind-up (never with predict) |
+| throw_up | m | 0 | a hit that lands throws the hero this high on his airborne arc (Player.trampoline_launch) instead of the knockback shove |
+| throw_out | m | 0 | how far that throw carries him, away from the middle |
+| throw_air | s | empty | his time in the air; empty = sqrt(8 × throw_up / 24) |
+| throw_control | 0..1 | 0.15 | the stick's share of his walk added to the arc |
+| creature_up | m | 0 | every creature within the radius (not the burrower) thrown this high (launch) |
+| creature_out | m | 0 | ... and this far away from the middle (× its share of a shove: 1 − knockback_resist) |
+| creature_damage | share | 0 | of its max HP, taken as it lands (at once for one that cannot go up) |
+
+vocab.py ATTACKS["burrow"]["keys"] and assets_fields.js ATTACKS.burrow.keys carry them; a burrow with predict > 0 is not
+warned for lacking the ring-at-hero telegraph.
+
+#### Map `timeline_data.spawn_rise` (WaveTimeline.spawn_rise; Settings → Spawning)
+
+| key | type | default (absent) | meaning |
+|---|---|---|---|
+| seconds | s | 0.45 | every spawn rises out of the sand over this long (× 1/pace); 0 = off |
+| big_seconds | s | 0.9 | the same for an Elite or a boss by its kind |
+| targetable | 0..1 | 0.7 | the share of the way up from which a weapon may choose it as its target (area damage hits it all along) |
+| dust | × | 1.0 | the dust puff's size × its size (0 = none; only on the screen) |
+
+WaveTimeline: `SPAWN_RISE_DEFAULTS`, `spawn_rise_value(key)`; JsonContent reads the block as it is.
+
+#### Game API (EnemyManager, for other lanes and tools)
+
+`targetable(i)` (the choosers' rule), `set_spawn_rise(seconds, big_seconds, targetable, dust)`, `ground_clip(i)`,
+`predict_spot(ppos, ahead)`, `custom_mouth(i, cdef)`, `rise_v[]` (signed rise rate), `force_plain`; counters `emerged`,
+`digs`, `eruptions`, `erupt_thrown`, `erupt_hero_throws`, `last_erupt`. Shader: enemy_billboard.gdshader reads the cut
+share from MODEL_MATRIX[2].y (the instance basis' z column's y). Fx: `emerge_dust(at, size, big)`, `dig_ring(at, size)`,
+`dig_spray(at, size, k)`.
+
+### The aiming pose in gen_art
+
+All in `tools/gen_art.py` (creatures: enemies and bosses), read from a look's recipe or the creature JSON; every one is
+off unless named, so no other creature's paintings or strip change. (Lane SNIPER owns `aim_hint`, `aim_back_hint` and
+`attack_views` in the creature JSON; gen_art reads them.)
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `aim_hint` | text | "" | Words for a painted attack pose (the Saiga Sniper's aim). With it, the creature's `attack` frames are a painted pose instead of the two procedural leans: `<id>_<stills>_attack_front`, an edit of the front still ALONE with these words (identity and colours stay the walk's). |
+| `aim_back_hint` | text | "" (falls back to aim_hint) | The same pose seen from behind: `<id>_<stills>_attack_back`, an edit of the BACK still alone, now in the pose (its poncho and stripes stay the back walk's). Painted only when the creature has `attack_views: "front_back"`. |
+| `attack_views` | "front_back" or absent | absent | Lane SNIPER's key: the `attack` strip holds the pose from the front (first half) and from behind (second half). gen_art packs attack 4 = [front pose, front pose with a 1 px breath, back pose, back pose with a breath]. |
+| `aim_ref` | text (a picture path) | "" | Optional: a picture of the pose as a SECOND reference of the front pose (riskier: two references with different poses painted the sniper a two-muzzled rifle once). The sniper does not use it. |
+| `aim_fit` | number | 1.0 | The pose's height against the standing figure's (1 when the pose stands as tall as the standing painting, as the sniper's aim does: 937 vs 935 px). |
+| `aim_match` | {lo, hi, min_s} or false | {"lo": 0, "hi": 60} | The hue band (degrees) whose colours in the pose are moved to the standing painting's mean hue and saturation (match_band). A pose painted as its own edit came out ~7 degrees yellower than the walk (the sniper's poncho: front aim 31.2 -> 23.9 degrees, back aim 27.9 -> 23.0). false = off. |
+| `back_ref` | text (a picture path) | "" | A picture of the creature from behind as the back still's second reference. Tried once on the sniper: the front's pose and the drawing's back mixed into a rifle with two muzzles (the vision QA passed it). Check the back after a run with it; the sniper's back was painted as candidates instead (below). |
+
+How a pose is placed (pose_cell): fitted by its alpha height to the standing figure's height x `aim_fit`, its lower
+body (the bottom 45 % of the figure: legs, a poncho's hem) centred where the standing figure's is, its soles on the
+standing figure's floor line, slid back inside the cell when what it holds out would leave it (the slide is recorded
+in the look's `_ai.json` as `attack_slid_px`; 0 for the sniper). So the creature does not jump or change size when it
+stops to aim.
+
+Cache keys (tools/dl/ai_raw_anime/): `<id>_<slug>_attack_front`, `<id>_<slug>_attack_back`. The Level Editor's
+re-roll list (jobs.cache_keys) does not know them: to paint one again, move its PNG and JSON aside and re-queue the
+look (a later pass may add them to jobs.cache_keys / expected_stages when the creature names aim_hint).
+
+#### Painting a still as candidates through the queue (what the sniper's back, aims and dead still were)
+
+The look methods paint one seed per still (the QA retries up to three, and it does not see guns: two of the sniper's
+in-job stills had two guns). A still can be painted as candidates with an `icon_cands` job used as a candidate painter:
+target the creature's look, `ref` = the picture to start from (the front still `tools/dl/ai_raw_anime/<id>_<slug>_front.png`,
+the back still, or the drawing), `subject` beginning "The reference image shows this exact creature: keep its face,
+..., colors and proportions exactly, and redraw it full body <pose>", `style` = gen_art's STYLE + "Full body, ... one
+single rifle, no ground, no shadow", a `key` of its own and a dummy `file` (so an Install by mistake writes nothing in
+use). Pick by eye, copy the PNG and its JSON into the cache under the still's key (the old one moved aside as _old),
+then re-queue the look: gen_art takes the cached still. Scripts: tools/dl/p73/art/scripts/q_back.py, q_aim.py,
+q_aimback.py, q_dead.py.
+
+#### The totem pole (a structure: the queue has no structure kind)
+
+`icon_cands` with target `{kind: "", id: "totem_pole"}`, `ref` = the style anchor (game/art/style/style_anchor.png),
+`subject` = gen_props' styled() words ("Using exactly the same art style ... draw a new subject: a desert prop for a
+game: <the totem>"), `style` = the scenery view words + STYLE; the pick finished like gen_props' structures by
+tools/dl/p73/art/scripts/finish_totem.py (keyed, 256 cell at 0.9 on the floor line, warm 0.007 outline, mute 0.18).
+
+### Item looks (the fortune cards)
+
+#### Item looks (content/passives/<id>/<id>.json; every line card has them, a passive item may)
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `variant_base` | string | "" | the look whose icon is the top-level `icon` (or `<id>_icon.png`); the cards: `"A"` (the icon each had before the cards) |
+| `variant` | string | `variant_base` | the look the game plays: its icon is the def's own `icon` everywhere (HUD, cards, pause, Collection, chest, shop, Stranger). A code without its picture on disk falls back to the base. The cards: `"B"` |
+| `variants` | object | {} | code -> look entry, below. A look whose `icon` file is not on disk is left out by the game (JsonContent._passive_variants) |
+| `variants[CODE].icon` | string | (base: the top-level icon) | the look's icon file beside the JSON: `<id>_icon_<letter>.png` (B-E: `_icon_b.png` .. `_icon_e.png`) |
+| `variants[CODE].note` | string | "" | words for the editor and the arena ("B · tilted card (detail: the least ...)") |
+| `variants[CODE].shelved` | bool | false | kept but out of the chips and of "set every card to look X"; never worn by the phone's card look |
+| `variants[CODE].icon_picked` | bool | false | the icon was picked by eye from candidates (the editor's install marks it) |
+| `variants[CODE].recipe` | object | none | the words it was painted from, as the icon_cands job takes them: `subject`, `style`, `screen` (green or blue). The game skips it |
+| `variants[CODE].painted` | object | none | where the pick came from: `job` (the editor's job id), `pick` (`c<k>`), `seed`, `model` (klein) |
+
+PassiveDef (game): `variants` {code: {icon: Texture2D, icon_file, note, shelved}}, `variant`, `variant_base`, `worn`
+(runtime), `variant_codes(include_shelved)`, `variant_shelved(code)`, `variant_note(code)`, `look_icon(code)`,
+`look_code()`, `wear_look(code)`; static `display_name_of(id, fallback)` (a text that names a card reads its name).
+
+#### The phone's card look (Save)
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `card_look` (save.json) | string | "" (absent) | every card drawn in this look on this phone (the arena's ITEMS tab, row "Card look": JSON A B C D E); "" = each card's JSON `variant`. Kept past the arena's sandbox like `hero_look`. `Save.card_look()`, `Save.set_card_look(code)`, `Registry.apply_card_looks()`, `Registry.card_look_codes()` |
+
+#### Level Editor (server.py) routes and records
+
+- `GET /api/items`: each passive record carries `variant`, `variant_base`, `play` (the look the game plays),
+  `icon_play` (`/icon/passive/<id>/<play>`), `looks` [{code, note, icon, icon_file, exists, base, default, shelved,
+  recipe, painted}] (`item_look_state`).
+- `GET /api/content/passive/<id>`: `looks` as above (`item_looks`).
+- `POST /api/content/passive/<id>/variant {code}`: plays that look (one line, a backup, an import; refused when its icon
+  is not on disk) - `write_variant_kind` takes ITEM_LOOK_KINDS ("passive").
+- `POST /api/item_looks/set_all {kind: "passive", code, ids?}`: "Set every card to look X": every line card (or the ids)
+  that can play the look gets `variant` = code; the rest keep theirs and are listed (`skipped` [{id, why}]); `changed`,
+  `kept`, one import. `set_item_looks_all`.
+- The jobs' `set_look_files` hook takes a card look's `icon` (a candidate installed into look B..E), never a `title`.
+- An `icon_cands` job on target {kind: passive, id, code: B} paints `<id>_icon_b.png` candidates (the job fields
+  subject / style / screen = the look's recipe).
+
+The page (items.js): the Items tab's filter chip and heading say Cards; above the cards a "Set every card to look"
+bar (a button per painted look with how many cards have it, and what plays now); a card's editor (Art) shows its looks
+at 112 px and the HUD's 48 px with PLAYS, "Play this look", Show (the icon preview and "+ Icon candidates" follow the
+look shown) and "painted from" (the recipe). assets_fields.js: the passive flag `line` is labelled "Card (line item)".
+A Level Editor started before this pass shows a "restart the editor" note instead (its server has no looks routes).
+
+### The Totem Pole
+
+Structures are not editable in the Level Editor (its kinds are enemy, boss, hero, weapon, evolution, passive, mutation,
+perk; the map's World group has only `structures.count` and `structures.min_spacing`), so no editor form changed. The
+Totem Pole's pool is hand-edited in its JSON; `import_json.gd -- only=structures/totem_pole` writes the .tres.
+
+#### A structure's JSON (`content/structures/<id>/<id>.json`)
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `effect` | string | "heal" | new value **"totem"**: the Totem Pole's menu of gifts (Game._use_totem) |
+| `params.per_map` | {min int, max int, spacing float} | none | stands min..max times a run apart from the weighted draw, `spacing` m from everything (the map's `min_spacing` when absent); without it the structure is drawn by weight as before |
+| `params.per_sign` | int | -1 (no cap) | at most this many arms of one sign point at structures of this kind |
+| `params.spent` | string | "" | new value **"grey"**: when used, its own painting desaturated (no `_off` painting needed); "fly_away" as before |
+| `params.glow` | bool | true | false: no light on the PC |
+| `params.choices` | int | 3 | gifts a totem menu offers |
+| `params.boons` | array | [] | the gift pool: `{id, name, animal, stat, op ("add"/"mul"), min, max, step, weight}`; `name` the spirit's word (the menu's title), `animal` "the Wolf" ("" for none), `stat` any player stat TextGen names, `min`/`max` the roll's range (negative for cooldown), `step` the snap (0 = none), `weight` how often it is drawn |
+
+#### Code (for other lanes and tools)
+- `StructureManager`: `drawn(defs)`, `placed_apart(defs)`, `per_map_range(def) -> Vector2i` ((-1, -1) = drawn),
+  `place_apart(def, placed) -> int`, `own_spacing(def)`, `off_river(p)`, `river_distance(p, pts)`,
+  `nearest_distance(p, placed)`, `grey_painting(def) -> Texture2D` (cached per kind); constants `PER_MAP_CANDIDATES`,
+  `PER_MAP_BAND`, `PER_MAP_TRIES`, `RIVER_CLEAR`, `SPENT_GREY_*`. A painted structure's one-frame billboard no longer
+  ticks its frame (`playing = false`).
+- `SignField.per_sign_cap(structure) -> int`; `SHORT["totem_pole"] = "TOTEM"`.
+- `core/systems/TotemBoons.gd` (class TotemBoons): `pool_of`, `offer(def, rng, n)`, `roll`, `quality`, `effect_of`,
+  `text` ("+6% move speed"), `amount_text`, `stat_text`, `title`, `source` ("Totem: Le-loo").
+- `Run.totem_boons` (Array of rolled gifts, cleared by `Run.start`), `Run.take_totem_boon(boon) -> String`
+  (analytics event kind "totem").
+- `ui/TotemScreen.gd` (class TotemScreen, a WModal): `open(offer, def)`, signal `closed(boon)`, `planks()`, `offer()`.
+- `Game.Modal.TOTEM` (priority 10, with the shop and the Stranger), `Game.totem_screen`, `Game.TOTEM_SCREEN` (the
+  script by path), `visible_modals()` names it "totem".
+- Tools: `touch_audit.gd -- only=totem` (the in-run menu and one under a 130 px cutout); smoke_run and
+  difficulty_probe take a pole's first gift when its menu opens; hell_check lists "totem_screen";
+  `game/tools/_p73_STRUCT_shots.gd -- out=<dir> [only=stranger,totem,menu,map] [tag=] [inset=]`.

@@ -380,7 +380,7 @@ func _items() -> void:
 		var bonus := _bonus_words(start) if start == fav else ""
 		v.add_child(_item(start, "start", "Start weapon" + (" · favourite" if start == fav else ""), _level_of(start), bonus, sheet))
 	if fav and fav != start:
-		var word := "Favourite " + ("weapon" if fav is WeaponDef else ("line" if W.is_line(fav) else "item"))
+		var word := "Favourite " + ("weapon" if fav is WeaponDef else ("card" if W.is_line(fav) else "item"))
 		v.add_child(_item(fav, "favourite", word, _level_of(fav), _bonus_words(fav), sheet))
 	for w: WeaponDef in own_weapons(hero):
 		if w != start and w != fav:

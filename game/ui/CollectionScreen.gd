@@ -11,7 +11,8 @@
 class_name CollectionScreen
 extends ScreenBase
 
-const TABS := ["Weapons", "Lines", "Passives", "Perks", "Enemies"]
+## pass 73 (lane CARDS): the line items are fortune cards to the player (the tab "Lines" before)
+const TABS := ["Weapons", "Cards", "Passives", "Perks", "Enemies"]
 ## The tab strip's type and padding: five tabs, the open one with its count, fit across a 1080 px screen.
 const TAB_PX := 26
 const TAB_PAD := Vector2(18, 16)
@@ -367,7 +368,7 @@ func _kind_line(def: ContentDef) -> String:
 	if def is WeaponDef:
 		return ("Evolution" if (def as WeaponDef).is_evolution else "Weapon") + " · %d levels" % (def as WeaponDef).max_level
 	if def is PassiveDef:
-		return "%s · %d levels" % ["Line" if W.is_line(def) else "Passive", W.max_level_of(def)]
+		return "%s · %d levels" % ["Card" if W.is_line(def) else "Passive", W.max_level_of(def)]
 	if def is PerkDef:
 		var hero := Registry.character((def as PerkDef).hero)
 		return "%s's perk" % (hero.display_name if hero else (def as PerkDef).hero.capitalize())

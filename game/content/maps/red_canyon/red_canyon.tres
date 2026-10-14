@@ -28,6 +28,8 @@ specials = {
 "pool": [{
 "enemy": "rocketeer"
 }, {
+"enemy": "saiga_sniper"
+}, {
 "enemy": "harpoon_troglodyte",
 "stage": 2.0
 }]
@@ -739,6 +741,16 @@ boss_hp_scaling = {
 "tumbleweed_king": 600.0
 },
 "window": 45.0
+}
+target_priority = {
+"enabled": true,
+"reach": 10.0
+}
+spawn_rise = {
+"big_seconds": 0.9,
+"dust": 1.0,
+"seconds": 0.45,
+"targetable": 0.7
 }
 
 [resource]

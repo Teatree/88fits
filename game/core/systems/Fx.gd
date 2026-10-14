@@ -1507,3 +1507,58 @@ func salt_grains(from: Vector3, col: Color) -> void:
 	for k in range(2):
 		var v := Vector3(randf_range(-0.35, 0.35), randf_range(-0.6, 0.1), randf_range(-0.35, 0.35))
 		_emit(from + Vector3(randf_range(-0.03, 0.03), 0.0, randf_range(-0.03, 0.03)), v, randf_range(0.45, 0.65), 0.06, 0.035, 1.0, 0.85, c, 9.0, true)
+
+
+# ---- pass 73, lane GROUND: the ground ----
+
+## A creature growing out of the ground (pass 73, EnemyManager._emerge_start; Garry: "currently the enemies just kind of
+## appear. Let's make it so that they grow out of the ground"): a small low puff all round its feet that spreads as the
+## figure pushes up, and a few grains thrown up. `size` is the creature's size (m) times the map's dust factor. Thinned
+## with the rest when the screen is busy (a crowd arrives in bursts), unless `big` (an Elite's or a boss's).
+func emerge_dust(at: Vector3, size: float = 1.0, big: bool = false) -> void:
+	var w := clampf(size * 0.55, 0.35, 3.5)
+	var n := 4 if w < 1.0 else 7
+	var phase := randf() * TAU
+	for k in range(n):
+		var ang := phase + TAU * float(k) / float(n)
+		var out := Vector3(cos(ang), 0.0, sin(ang))
+		_emit_dust(at + out * 0.25 * w + Vector3(0, 0.12, 0), out * randf_range(0.6, 1.1) * w + Vector3(0, randf_range(0.25, 0.5), 0),
+			randf_range(0.5, 0.7), 0.3 * w, randf_range(0.9, 1.2) * w, 0.6, DUST_PALE if k % 2 == 0 else DUST_TAN, big)
+	for k in range(3 if w < 1.0 else 6):
+		var ga := randf() * TAU
+		var gv := Vector3(cos(ga), 0.0, sin(ga)) * randf_range(0.6, 1.6) * w + Vector3(0, randf_range(1.6, 3.0), 0)
+		_emit(at + Vector3(0, 0.08, 0), gv, randf_range(0.3, 0.45), 0.08 * maxf(w, 0.6), 0.04, 1.0, 0.6, DUST_GRAIN, 12.0, true, big)
+
+
+## A creature digging itself into the sand (pass 73, the visible burrow; Garry: "It would be nice if I can actually see
+## him burrowing into the ground"): a ring of dust thrown out low all round it as it starts to sink, and clods kicked up.
+## Never thinned: the dig is the attack's tell.
+func dig_ring(at: Vector3, size: float = 1.0) -> void:
+	var w := maxf(size * 0.6, 0.6)
+	var n := 10 + mini(int(size), 6)
+	var phase := randf() * TAU
+	for k in range(n):
+		var ang := phase + TAU * float(k) / float(n)
+		var out := Vector3(cos(ang), 0.0, sin(ang))
+		_emit_dust(at + out * randf_range(0.35, 0.5) * w + Vector3(0, 0.15, 0), out * randf_range(1.2, 2.0) * w * 0.6 + Vector3(0, randf_range(0.2, 0.5), 0),
+			randf_range(0.7, 1.0), 0.35 * w, randf_range(1.0, 1.35) * w, 0.66, DUST_PALE if k % 3 == 1 else DUST_TAN, true)
+	for k in range(6):
+		var ca := phase + TAU * (float(k) + 0.5) / 6.0
+		var cv := Vector3(cos(ca), 0.0, sin(ca)) * randf_range(1.0, 2.0) * w * 0.5 + Vector3(0, randf_range(2.5, 4.0), 0)
+		_emit(at + Vector3(cos(ca) * 0.3 * w, 0.2, sin(ca) * 0.3 * w), cv, randf_range(0.45, 0.65), 0.09 * w, 0.06 * w, 1.0, 0.9, CLOD, 12.0, true, true)
+
+
+## Sand spraying off a creature as it sinks (pass 73; EnemyManager._tick_burrows, about ten a second while it goes down):
+## grains flung up and out round it and a low puff drifting out; `k` (0..1) how far down it is, the spray dying away as
+## the sand closes over it. Never thinned.
+func dig_spray(at: Vector3, size: float = 1.0, k: float = 0.0) -> void:
+	var w := maxf(size * 0.5, 0.5)
+	var strength := clampf(1.0 - k * 0.6, 0.3, 1.0)
+	for n in range(3):
+		var ga := randf() * TAU
+		var o := Vector3(cos(ga), 0.0, sin(ga))
+		var gv := o * randf_range(1.0, 2.6) * w * 0.6 + Vector3(0, randf_range(2.2, 4.2) * strength, 0)
+		_emit(at + o * 0.35 * w + Vector3(0, 0.12, 0), gv, randf_range(0.35, 0.55), 0.1 * maxf(w, 0.8), 0.05, 1.0, 0.6, DUST_GRAIN, 12.0, true, true)
+	var pa := randf() * TAU
+	var po := Vector3(cos(pa), 0.0, sin(pa))
+	_emit_dust(at + po * 0.4 * w + Vector3(0, 0.12, 0), po * 0.8 * w + Vector3(0, 0.35, 0), randf_range(0.55, 0.75), 0.3 * w, 0.9 * w * strength, 0.55, DUST_TAN, true)

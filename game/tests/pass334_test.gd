@@ -155,7 +155,7 @@ func test_the_specials_come_one_at_a_time_on_their_own_clock() -> void:
 	var tl: WaveTimeline = Registry.map("red_canyon").timeline
 	# off the roster, onto their own clock
 	for r in tl.roster:
-		assert_bool(["rocketeer", "harpoon_troglodyte"].has(str(r["enemy"]))).is_false()
+		assert_bool(["rocketeer", "harpoon_troglodyte", "saiga_sniper"].has(str(r["enemy"]))).is_false()
 	# half way through stage 1: 2:30 until pass 46 stretched the clocks by 430/300, 3:35 since
 	assert_float(float(tl.specials.get("from", 0))).is_equal(215.0)
 	var d := _director()
@@ -165,9 +165,9 @@ func test_the_specials_come_one_at_a_time_on_their_own_clock() -> void:
 	_tick(d, 60.0)
 	assert_int(d.specials_alive()).is_equal(0)
 	# from 3:35: one comes within 64 to 86 seconds (45 to 60 before the stretch, 20 to 40 before pass 33.7), and only the
-	# rocketeer (the harpooner waits for stage 2)
+	# rocketeer and (pass 73) the Saiga Sniper, drawn evenly (the harpooner waits for stage 2)
 	Run.elapsed = 215.0
-	assert_array(d.specials_pool()).contains_exactly(["rocketeer"])
+	assert_array(d.specials_pool()).contains_exactly(["rocketeer", "saiga_sniper"])
 	_tick(d, 63.0)
 	assert_int(d.specials_alive()).is_equal(0)
 	_tick(d, 24.0)
@@ -187,7 +187,7 @@ func test_the_specials_come_one_at_a_time_on_their_own_clock() -> void:
 	assert_int(d.specials_alive()).is_equal(1)
 	# stage 2 adds the harpooner to the pool
 	Run.stage = 1
-	assert_array(d.specials_pool()).contains_exactly(["rocketeer", "harpoon_troglodyte"])
+	assert_array(d.specials_pool()).contains_exactly(["rocketeer", "saiga_sniper", "harpoon_troglodyte"])
 
 
 # ---------------------------------------------------------------- the arena's hand on the build

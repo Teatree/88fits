@@ -183,4 +183,5 @@ func test_mira_is_the_economy_hero() -> void:
 
 func test_every_structure_kind_lands() -> void:
 	var m: MapDef = Registry.map("red_canyon")
-	assert_int(int(m.timeline.structures.get("count", 0))).is_greater_equal(Registry.structures.size())
+	# pass 73: a structure that stands its own count (params.per_map, the Totem Poles) is not in the draw
+	assert_int(int(m.timeline.structures.get("count", 0))).is_greater_equal(StructureManager.drawn(Registry.structures.values()).size())

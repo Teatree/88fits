@@ -298,26 +298,30 @@ func test_the_cactus_rain_telegraphs_every_spot_and_lands_on_time() -> void:
 	var i := em.spawn("gila_grande", Vector3(0, 0, 0))
 	assert_int(i).is_greater_equal(0)
 	_begin(em, i, k)
-	# the wind-up is the attack's own, 1/pace long, with the outline of the whole area
-	assert_float(em.timer[i]).is_equal_approx(rain.num("timing", "windup") / em.pace, 0.001)
-	assert_int(g.rings.size()).is_equal(1)
-	assert_float(float(g.rings[0]["r"])).is_equal_approx(rain.num("pattern", "radius_max"), 0.001)
+	# the wind-up is the attack's own, 1/pace long (pass 73, lane GROUND, re-pinned on purpose: the rain lights every
+	# landing circle at once as the wind-up starts, each up until its spike lands, instead of the area's outline and a
+	# circle `telegraph.seconds` before each landing)
+	assert_float(em.timer[i]).is_equal_approx(rain.windup_seconds() / em.pace, 0.001)
+	var lit: Array = em._custom_lit[i]["spots"]
+	assert_int(g.rings.size()).is_equal(lit.size())
+	for r: Dictionary in g.rings:
+		assert_float(float(r["r"])).is_equal_approx(rain.num("landing", "radius"), 0.001)
+		assert_bool(bool(r["filled"])).is_true()
+		assert_float(float(r["dur"])).is_greater(rain.num("telegraph", "seconds") / em.pace)
 	g.rings.clear()
 	_fire(em, i)
 	assert_int(em._custom_runs.size()).is_equal(1)
 	var spots: Array = em._custom_runs[0]["spots"]
 	assert_int(spots.size()).is_greater(30)
+	assert_int(spots.size()).is_equal(lit.size())
 	assert_int(em.custom_last.get("spots", 0)).is_equal(spots.size())
-	# the boss stands while its spikes leave (the stagger, on the shot clock)
-	assert_float(em.hold_t[i]).is_equal_approx(rain.num("timing", "stagger") / em.pace, 0.01)
+	# the boss stands while its spikes leave its mouth and its stretch settles (pass 73: the spew's burst + 0.35 s, on the
+	# shot clock)
+	assert_float(em.hold_t[i]).is_equal_approx((rain.num("spew", "burst") + 0.35) / em.pace, 0.01)
 	_tick_until_done(em, hero)
 	assert_bool(em._custom_runs.is_empty()).is_true()
-	# one circle per spot, each up `telegraph.seconds` (on the shot clock) before its spike, at the landing radius
-	assert_int(g.rings.size()).is_equal(spots.size())
-	for r: Dictionary in g.rings:
-		assert_float(float(r["r"])).is_equal_approx(rain.num("landing", "radius"), 0.001)
-		assert_bool(bool(r["filled"])).is_true()
-		assert_float(float(r["dur"])).is_between(rain.num("telegraph", "seconds") / em.pace - 0.05, rain.num("telegraph", "seconds") / em.pace + 0.001)
+	# no circle more after the spew: they were all up already
+	assert_int(g.rings.size()).is_equal(0)
 	assert_int(em.custom_landed).is_equal(spots.size())
 	# the hero 40 m off was never hit
 	assert_int(hero.hits).is_equal(0)

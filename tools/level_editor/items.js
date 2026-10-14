@@ -10,7 +10,8 @@ const Items = (() => {
   const { el, clear, fmtN } = U;
   const M = AssetsModel, F = AFIELDS;
   let listEl = null, createHost = null, creating = false, createKind = 'weapon';
-  const KINDS = [['all', 'all'], ['weapons', 'weapons'], ['lines', 'lines'], ['passives', 'passive items'], ['mutations', 'mutations'], ['evolutions', 'evolutions']];
+  // pass 73 (lane CARDS): the line items are fortune cards to the player ('lines' stays the filter's key)
+  const KINDS = [['all', 'all'], ['weapons', 'weapons'], ['lines', 'cards'], ['passives', 'passive items'], ['mutations', 'mutations'], ['evolutions', 'evolutions']];
   const filt = () => Assets.S.filters.items;
 
   function render(panel) {
@@ -51,13 +52,13 @@ const Items = (() => {
     if (!creating) return;
     const fl = Assets.flatItems();
     if (!fl) { createHost.appendChild(el('p', { class: 'muted small', text: 'the item lists have not loaded' })); return; }
-    const kindSel = Forms.select([{ v: 'weapon', label: 'a weapon (with three template mutations and an evolution, all hidden)' }, { v: 'passive', label: 'a line or passive item (available at once)' }, { v: 'mutation', label: 'a mutation of a weapon' }], createKind, (v) => { createKind = v || 'weapon'; drawCreate(); }, { path: 'items.createKind' });
+    const kindSel = Forms.select([{ v: 'weapon', label: 'a weapon (with three template mutations and an evolution, all hidden)' }, { v: 'passive', label: 'a card (line item) or passive item (available at once)' }, { v: 'mutation', label: 'a mutation of a weapon' }], createKind, (v) => { createKind = v || 'weapon'; drawCreate(); }, { path: 'items.createKind' });
     const mk = (list, k) => list.map((x) => ({ v: x.id, label: x.name || x.id, icon: icon(k, x.id), sub: `${x.id} · ${x.rarity || ''}${x.hidden ? ' · hidden' : ''}`, dim: !!x.hidden }));
-    const templates = createKind === 'weapon' ? mk(fl.weapons, 'weapon') : createKind === 'passive' ? [{ group: 'Lines', options: mk(fl.passives.filter((p) => p.line && !p.evolves_from), 'passive') }, { group: 'Passive items', options: mk(fl.passives.filter((p) => !p.line), 'passive') }] : mk(fl.mutations, 'mutation');
+    const templates = createKind === 'weapon' ? mk(fl.weapons, 'weapon') : createKind === 'passive' ? [{ group: 'Cards (line items)', options: mk(fl.passives.filter((p) => p.line && !p.evolves_from), 'passive') }, { group: 'Passive items', options: mk(fl.passives.filter((p) => !p.line), 'passive') }] : mk(fl.mutations, 'mutation');
     const taken = new Set([].concat(fl.weapons, fl.evolutions, fl.mutations, fl.passives, fl.quests).map((x) => x.id).concat((App.S.enemies || []).map((c) => c.id), (Assets.S.lists.heroes || []).map((h) => h.id)));
     const notes = {
       weapon: 'INTERFACES §0.1: a new weapon is created hidden with <id>_element, <id>_volume, <id>_motion (kinds element / volume / motion) and <id>_evolved, all five hidden; it may turn available once each template mutation has text and an effect or param and the evolution a name. Its path and evolution land as a register job.',
-      passive: 'Garry\'s answer 13: a new line or passive item is available at once, at its template\'s weight (its rarity\'s usual). The band below moves: the ship test wants 28-56% of base items behind a quest (pass 69).',
+      passive: 'Garry\'s answer 13: a new card (line item) or passive item is available at once, at its template\'s weight (its rarity\'s usual). The band below moves: the ship test wants 28-56% of base items behind a quest (pass 69).',
       mutation: 'A mutation of a weapon: its kind, weapon and text come from the template; the weapon\'s path wants one of each kind (element, volume, motion) among its non-hidden mutations.',
     };
     const dlg = Assets.createDialog(createKind, templates, taken, {
@@ -108,7 +109,8 @@ const Items = (() => {
     }
     if (kind === 'all' || kind === 'lines') {
       const ls = fl.passives.filter((p) => p.line && !p.evolves_from && matches(p, 'passive')).sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
-      if (ls.length) listEl.appendChild(el('h3', { class: 'ihead', text: `Lines · ${ls.length}` }));
+      if (ls.length) listEl.appendChild(el('h3', { class: 'ihead', text: `Cards · ${ls.length}` }));
+      if (ls.length) { const bar = cardLooksBar(fl); if (bar) listEl.appendChild(bar); }
       for (const l of ls) add(lineCard(l, fl));
     }
     if (kind === 'all' || kind === 'passives') {
@@ -134,7 +136,7 @@ const Items = (() => {
     const editing = !!doc && Assets.S.open.items === doc.key;
     const art = el('article', { class: 'icard' + (x.hidden ? ' dim' : '') + (editing ? ' editing' : ''), 'data-id': x.id, 'data-kind': kind });
     art.appendChild(el('div', { class: 'icard-top' },
-      el('div', { class: 'icard-icon' + (kind === 'hero' ? ' round' : ''), style: `background:${plate(x.rarity)}` }, el('img', { src: icon(kind, x.id), alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } })),
+      el('div', { class: 'icard-icon' + (kind === 'hero' ? ' round' : ''), style: `background:${plate(x.rarity)}` }, el('img', { src: x.icon_play || icon(kind, x.id), alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } })),
       el('div', { class: 'icard-id' },
         el('h3', {}, el('span', { text: x.name || x.id }), doc && Assets.docDirty(doc) ? el('span', { class: 'ccard-dirty', text: ' ●', title: 'unsaved changes' }) : null),
         el('div', { class: 'muted small', text: `${x.id} · ${x.rarity || 'common'}${x.weight != null ? ' · weight ' + x.weight : ''}${extraTop ? ' · ' + extraTop : ''}` }),
@@ -142,7 +144,7 @@ const Items = (() => {
       el('button', { class: 'btn small' + (editing ? ' primary' : ''), type: 'button', text: editing ? 'Editing' : 'Edit', onclick: () => Assets.open(kind, x.id) })));
     return art;
   }
-  const sub = (kind, x, label, note) => el('div', { class: 'isub' }, el('img', { src: icon(kind, x.id), alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } }), el('span', { class: 'achip ' + (label.includes('hero') ? 'hero' : ''), text: label }), el('b', { text: x.name || x.id }), x.hidden ? el('span', { class: 'achip hidden', text: 'hidden' }) : null, note ? el('span', { class: 'muted small', text: note }) : null, el('button', { class: 'btn small ghost', type: 'button', text: 'Edit', onclick: () => Assets.open(kind, x.id) }));
+  const sub = (kind, x, label, note) => el('div', { class: 'isub' }, el('img', { src: x.icon_play || icon(kind, x.id), alt: '', onerror: (e) => { e.target.style.visibility = 'hidden'; } }), el('span', { class: 'achip ' + (label.includes('hero') ? 'hero' : ''), text: label }), el('b', { text: x.name || x.id }), x.hidden ? el('span', { class: 'achip hidden', text: 'hidden' }) : null, note ? el('span', { class: 'muted small', text: note }) : null, el('button', { class: 'btn small ghost', type: 'button', text: 'Edit', onclick: () => Assets.open(kind, x.id) }));
 
   function weaponCard(w, fl) {
     const base = M.isObj(w.base) ? w.base : {};
@@ -163,11 +165,11 @@ const Items = (() => {
     return art;
   }
   function lineCard(l, fl) {
-    const art = cardShell('passive', l, `line · ${l.max_level || 4} levels`);
+    const art = cardShell('passive', l, `card · ${l.max_level || 4} levels${l.play ? ' · look ' + l.play : ''}`);
     const evo = l.evolves_into ? fl.passives.find((p) => p.id === l.evolves_into) : null;
     const subs = el('div', { class: 'icard-sub' });
     if (evo) subs.appendChild(sub('passive', evo, 'evolved form', evo.evolves_from !== l.id ? `evolves_from ${evo.evolves_from}` : ''));
-    else subs.appendChild(el('div', { class: 'isub muted small' }, el('span', { class: 'achip bad', text: 'no evolved form' }), el('span', { text: 'a line evolves when maxed: evolves_into names its evolved form' })));
+    else subs.appendChild(el('div', { class: 'isub muted small' }, el('span', { class: 'achip bad', text: 'no evolved form' }), el('span', { text: 'a card evolves when maxed: evolves_into names its evolved form' })));
     art.appendChild(subs);
     return art;
   }
@@ -215,6 +217,8 @@ const Items = (() => {
       if (kind === 'mutation' && name === 'Effect') extra.unshift(el('p', { class: 'muted small', text: `Params merge deep over ${doc.data.weapon || 'the weapon'}'s; the chips are ${behavior || 'the behaviour'}'s keys.` }));
       // pass 69 (lane LE): the item's finished icon candidate jobs, each picture installable (Rebound's three designs)
       if (name === 'Art' && typeof TypedForms !== 'undefined') { const ic = TypedForms.iconCandidates(doc); if (ic) extra.push(ic); }
+      // pass 73 (lane CARDS): the card's looks (A the old icon, B-E the four framings), the one the game plays, its words
+      if (name === 'Art' && kind === 'passive') { const lk = itemLooks(doc); if (lk) extra.unshift(lk); }
       const all = nodes.concat(extra);
       if (!all.length) continue;
       const keys = Assets.sectionKeys(defs, name).concat(name === 'Evolution & path' ? ['path'] : name === 'Availability' ? ['band', 'quest_lock'] : []);
@@ -313,5 +317,89 @@ const Items = (() => {
     return wrap;
   }
 
-  return { render, redraw, weaponCard, pathStrip, questLock, bandGauge };
+  // ------------------------------------------------------------------ pass 73 (lane CARDS): the cards' looks
+
+  /** "Set every card to look X" (Garry): a button per look any card has painted, with how many cards have it; a card
+   *  without that look keeps its own (the server says which). One import for all. Says so when the server is older than
+   *  the item looks (the records carry no `looks`): a restart of the editor loads them. */
+  function cardLooksBar(fl) {
+    const cards = fl.passives.filter((p) => p.line);
+    const wrap = el('div', { class: 'cardlooks' });
+    if (!cards.some((p) => Array.isArray(p.looks))) {
+      wrap.appendChild(el('p', { class: 'muted small', text: 'The cards have looks (A the icons before the cards, B-E the four card framings): this Level Editor was started before they existed, so close it and open it again to pick them here.' }));
+      return wrap;
+    }
+    const have = {}, plays = {};
+    for (const p of cards) {
+      for (const l of p.looks || []) if (l.exists && !l.shelved) have[l.code] = (have[l.code] || 0) + 1;
+      if (p.play) plays[p.play] = (plays[p.play] || 0) + 1;
+    }
+    const codes = Object.keys(have).sort();
+    if (codes.length < 2) return null;
+    wrap.appendChild(el('span', { class: 'muted small', text: 'Set every card to look' }));
+    for (const c of codes) wrap.appendChild(el('button', { class: 'btn small', type: 'button', text: `${c} · ${have[c]}/${cards.length}`, title: `every card with look ${c} painted plays it (its JSON's variant), the rest keep theirs; one import`, onclick: () => setAllCards(c, cards.length) }));
+    wrap.appendChild(el('span', { class: 'muted small', text: 'playing now: ' + Object.keys(plays).sort().map((c) => `${c} ×${plays[c]}`).join(' · ') }));
+    return wrap;
+  }
+  async function setAllCards(code, total) {
+    if (!confirm(`Every card that has look ${code} plays it from now on (its JSON's variant, then one import). Go on?`)) return;
+    App.status(`Setting every card to look ${code}…`, 'busy');
+    const { status, data } = await Assets.postJSON('/api/item_looks/set_all', { kind: 'passive', code });
+    if (status === 404) { App.status('This Level Editor was started before the cards had looks: close it and open it again', 'bad'); return; }
+    if (!data.ok) { App.status(`Could not set the cards to ${code}: ${data.error || status}`, 'bad'); return; }
+    const skipped = data.skipped || [];
+    App.toast(`${(data.changed || []).length} of ${total} cards now play ${code}${(data.kept || []).length ? `, ${data.kept.length} already did` : ''}${skipped.length ? `; kept their own: ${skipped.map((x) => `${x.id} (${x.why})`).join(', ')}` : ''}${data.import_ok === false ? ' · the import did not run: ' + (data.output || '') : ''}`);
+    for (const d of Object.values(Assets.S.docs)) if (d.kind === 'passive') await Assets.refreshRecord('passive', d.id);
+    await Assets.refreshList('items');
+    App.render('tab');
+  }
+
+  /** A card's looks in its editor (Art): each look's icon on the card's plate at 112 px and at the HUD's 48, its code and
+   *  note, PLAYS on the one the game plays, "Play this look" (its JSON's variant, then an import), Show (the icon preview
+   *  and "+ Icon candidates" follow the look shown: a repaint lands in that look) and the words it was painted from. */
+  function itemLooks(doc) {
+    const looks = Array.isArray(doc.looks) ? doc.looks : [];
+    const vs = doc.data && doc.data.variants;
+    if (!looks.length) {
+      if (M.isObj(vs) && Object.keys(vs).length) return el('p', { class: 'muted small', 'data-key': 'variants', text: 'This card has looks in its JSON, but this Level Editor was started before items had looks: close it and open it again to see and pick them.' });
+      return null;
+    }
+    const playing = (looks.find((l) => l.default) || {}).code || '';
+    const wrap = el('div', { class: 'ilooks', 'data-key': 'variants' });
+    wrap.appendChild(el('div', { class: 'muted small', text: `Looks: the game plays ${playing || 'its own icon'} (the JSON's variant). On the phone the arena's ITEMS tab shows every card in any look (Card look).` }));
+    const grid = el('div', { class: 'ilooks-grid' });
+    const hide = (e) => { e.target.style.visibility = 'hidden'; };
+    for (const l of looks) {
+      const shown = doc.ui.look === l.code;
+      const url = `${l.icon}?v=${doc.baseMtime || 0}`;
+      const tile = el('figure', { class: 'ilook' + (l.default ? ' plays' : '') + (shown ? ' shown' : '') + (l.exists ? '' : ' missing') });
+      tile.appendChild(el('div', { class: 'ilook-plates' },
+        el('div', { class: 'iconplate', style: `width:112px;height:112px;background:${plate(doc.data.rarity)}` }, el('img', { src: url, alt: '', width: 112, height: 112, onerror: hide })),
+        el('div', { class: 'iconplate', style: `width:48px;height:48px;background:${plate(doc.data.rarity)}` }, el('img', { src: url, alt: '', width: 48, height: 48, onerror: hide }))));
+      tile.appendChild(el('figcaption', {}, el('b', { text: l.code }), l.default ? el('span', { class: 'achip good', text: 'plays' }) : null,
+        l.shelved ? el('span', { class: 'achip hidden', text: 'shelved' }) : null, !l.exists ? el('span', { class: 'achip bad', text: 'not painted' }) : null,
+        el('div', { class: 'muted small', text: l.note || (l.base ? 'the icon before the cards' : '') })));
+      const acts = el('div', { class: 'alt-actions' });
+      if (!l.default) acts.appendChild(el('button', { class: 'btn small primary', type: 'button', text: 'Play this look', disabled: !l.exists, title: l.exists ? 'writes this card\'s variant and imports it' : 'its icon is not painted yet', onclick: () => playLook(doc, l.code) }));
+      acts.appendChild(el('button', { class: 'btn small ghost', type: 'button', text: shown ? 'Shown above' : 'Show', title: 'the icon preview and "+ Icon candidates" follow the look shown', onclick: () => { doc.ui.look = shown ? null : l.code; Assets.redraw(doc, 'editor'); } }));
+      tile.appendChild(acts);
+      const r = M.isObj(l.recipe) ? l.recipe : null;
+      if (r) tile.appendChild(el('details', { class: 'small' }, el('summary', { text: 'painted from' }), el('pre', { class: 'recipe-words', text: [r.subject ? 'subject: ' + r.subject : '', r.style ? 'style: ' + r.style : '', r.screen ? 'screen: ' + r.screen : '', l.painted ? 'pick: ' + JSON.stringify(l.painted) : ''].filter(Boolean).join('\n\n') })));
+      grid.appendChild(tile);
+    }
+    wrap.appendChild(grid);
+    return wrap;
+  }
+  async function playLook(doc, code) {
+    if (Assets.docDirty(doc) && !confirm(`${doc.id} has unsaved changes. Playing look ${code} writes only its variant line; your other edits stay unsaved. Go on?`)) return;
+    App.status(`${doc.id} plays ${code}…`, 'busy');
+    const { status, data } = await Assets.postJSON(`/api/content/passive/${encodeURIComponent(doc.id)}/variant`, { code });
+    if (!data.ok) { App.status(`${doc.id}: ${data.error || status}`, 'bad'); return; }
+    App.toast(`${doc.id} plays ${code}${data.import_ok === false ? ' · the import did not run: ' + (data.output || '') : ''}`);
+    await Assets.refreshRecord('passive', doc.id);
+    await Assets.refreshList('items');
+    App.render('tab');
+  }
+
+  return { render, redraw, weaponCard, pathStrip, questLock, bandGauge, cardLooksBar, itemLooks, setAllCards, playLook };
 })();

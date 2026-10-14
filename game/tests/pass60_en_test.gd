@@ -244,7 +244,10 @@ func test_wind_ups_and_scripted_speeds_follow_the_multiple() -> void:
 
 func test_the_scorpions_burrow_winds_up_a_second_longer_and_the_gilas_as_before() -> void:
 	assert_float(float(_attack("dune_scorpion", "burrow")["windup"])).is_equal_approx(2.3, 0.001)
-	assert_float(float(_attack("gila_grande", "burrow")["windup"])).is_equal_approx(1.4, 0.001)
+	# (pass 73, lane GROUND, re-pinned on purpose: the Gila's wind-up is its sink, three seconds under unseen and its
+	# warning: 0.6 + 3.0 + 0.4)
+	var gb := _attack("gila_grande", "burrow")
+	assert_float(float(gb["windup"])).is_equal_approx(float(gb.get("sink", 0.0)) + 3.0 + float(gb.get("warn", 0.4)), 0.001)
 	assert_float(EnemyManager.RISE_TIME).is_equal_approx(0.4, 0.0001)
 
 
@@ -255,8 +258,9 @@ func test_the_burrow_raises_a_mound_under_the_ring_through_the_wind_up() -> void
 	var ppos: Vector3 = w["hero"].global_position
 	var i := em.spawn("dune_scorpion", Vector3.ZERO)
 	_force_attack(em, i, "dune_scorpion", "burrow", ppos)
-	assert_int(em.hidden[i]).is_equal(1)
-	assert_float(em.rise_t[i]).is_equal(1.0)
+	# (pass 73, lane GROUND, re-pinned on purpose: it sinks out of sight in the open first, then it is under)
+	assert_int(em.hidden[i]).is_equal(0)
+	assert_float(em.rise_v[i]).is_less(0.0)
 	# the ring on the hero, as long as the wind-up
 	assert_int((g.rings as Array).size()).is_equal(1)
 	var ring: Dictionary = g.rings[0]
@@ -303,10 +307,15 @@ func test_the_pop_brings_it_up_rising_in_a_poof_with_the_damage_at_once_and_no_b
 	var i := em.spawn("dune_scorpion", Vector3.ZERO)
 	em.cooldown[i] = 99.0
 	_force_attack(em, i, "dune_scorpion", "burrow", hero.global_position)
-	# under the sand for the whole wind-up: nothing drawn, nothing hit (damage() says true only for a kill: the proof is
-	# the HP untouched)
-	var hp0: float = em.hp[i]
+	# (pass 73, lane GROUND, re-pinned on purpose: it sinks in sight first, `sink` seconds, then it is under)
 	var t := 0.0
+	while t < 3.0 and em.hidden[i] == 0 and em.state[i] == EnemyManager.STATE_ATTACK:
+		em._physics_process(DT)
+		t += DT
+	assert_int(em.hidden[i]).is_equal(1)
+	# under the sand for the rest of the wind-up: nothing drawn, nothing hit (damage() says true only for a kill: the
+	# proof is the HP untouched)
+	var hp0: float = em.hp[i]
 	while t < 6.0 and em.hidden[i] == 1:
 		em.damage(i, 1.0, "")
 		assert_float(em.hp[i]).is_equal(hp0)
@@ -328,9 +337,11 @@ func test_the_pop_brings_it_up_rising_in_a_poof_with_the_damage_at_once_and_no_b
 	em.damage(i, 1.0, "")
 	assert_float(em.hp[i]).is_less(hp0)
 	assert_float(em.flash[i]).is_equal(1.0)
-	# it rises over RISE_TIME at the creatures' pace: about half way at half the time, and it bites nobody meanwhile
-	# (the hero stands on top of it, well within reach); the time is counted in the whole ticks really stepped
-	var rose: float = _step(em, EnemyManager.RISE_TIME / em.pace * 0.5)
+	# it rises over its `rise` (pass 73; RISE_TIME without one) at the creatures' pace: about half way at half the time,
+	# and it bites nobody meanwhile (the hero stands on top of it, well within reach); the time is counted in the whole
+	# ticks really stepped
+	var rise_s := float(_attack("dune_scorpion", "burrow").get("rise", EnemyManager.RISE_TIME))
+	var rose: float = _step(em, rise_s / em.pace * 0.5)
 	assert_float(em.rise_t[i]).is_between(0.4, 0.6)
 	assert_int(hero.hits).is_equal(1)
 	while rose < 1.0 and em.rise_t[i] < 1.0:
@@ -338,7 +349,7 @@ func test_the_pop_brings_it_up_rising_in_a_poof_with_the_damage_at_once_and_no_b
 		em._physics_process(DT)
 		rose += DT
 	assert_float(em.rise_t[i]).is_equal(1.0)
-	assert_float(rose).is_between(EnemyManager.RISE_TIME / em.pace - 0.001, EnemyManager.RISE_TIME / em.pace + 2.5 * DT)
+	assert_float(rose).is_between(rise_s / em.pace - 0.001, rise_s / em.pace + 2.5 * DT)
 	# up: the bite lands
 	_step(em, 0.5)
 	assert_int(hero.hits).is_greater_equal(2)

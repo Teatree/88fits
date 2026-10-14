@@ -1,6 +1,6 @@
 {
   "id": "unlock_haste",
-  "name": "Haste",
+  "name": "The Tower",
   "condition": {
     "type": "kills_of_enemy",
     "enemy": "bull_beetle",

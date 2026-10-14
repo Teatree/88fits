@@ -51,6 +51,22 @@ const RETURN_HERO_CLEAR := 20.0  # never lands within this of the hero
 const RETURN_SIGN_CLEAR := 4.0
 const RETURN_BARREL_CLEAR := 2.5
 const RETURN_RETRY := 5.0      # no spot found (a crowded map): try again this much later
+## Pass 73 (the Totem Poles, Garry: "There are always between 10-12 of them on the map"): a structure whose JSON has
+## `params.per_map {min, max, spacing}` stands min..max times a run (a fresh count each run) apart from the weighted
+## draw, spread over the map: each one the best of PER_MAP_CANDIDATES fair spots (the farthest from everything already
+## standing), within the band PER_MAP_BAND of the arena's radius, off the dry river's bed (RIVER_CLEAR past its half
+## width) and out of every painting's cover band.
+const PER_MAP_CANDIDATES := 16
+const PER_MAP_BAND := Vector2(0.24, 0.88)
+const PER_MAP_TRIES := 500
+const RIVER_CLEAR := 1.5
+## the spent painting of a structure with `params.spent "grey"` (pass 73, the Totem Pole, Garry: "When used they turn
+## gray as well, but they don't get 'destroyed'"): its own painting with the colour taken out, this much darker, a
+## little flatter, and tinted by SPENT_GREY_TINT; made once per structure kind (_grey_cache)
+const SPENT_GREY_BRIGHTNESS := 0.86
+const SPENT_GREY_CONTRAST := 0.92
+const SPENT_GREY_TINT := Color(0.93, 0.92, 0.92, 1.0)
+static var _grey_cache: Dictionary = {}
 
 var game: Node
 var map: MapBase
@@ -119,32 +135,150 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 			if d:
 				defs.append(d)
 	defs = in_play(defs)
-	if defs.is_empty() or count <= 0:
+	# pass 73: the structures that stand their own count (params.per_map, the Totem Poles) come after the draw
+	var apart := placed_apart(defs)
+	defs = drawn(defs)
+	if count <= 0 or (defs.is_empty() and apart.is_empty()):
 		return
-	# every kind appears at least once per run; the rest of the count is drawn by weight
-	count = maxi(count, defs.size())
-	var picks: Array = defs.duplicate()
-	picks.shuffle()
-	while picks.size() < count:
-		picks.append(_pick(defs))
 	var placed: Array = []
-	var tries := 0
-	# every kind must land: when the map fights back, the spacing relaxes rather than a structure being dropped
-	while placed.size() < count and tries < count * 200:
-		tries += 1
-		var relax: float = 1.0 - 0.5 * clampf(float(tries) / float(count * 100), 0.0, 1.0)
-		var a := _rng.randf() * TAU
-		var r := _rng.randf_range(map.arena_radius * 0.3, map.arena_radius * 0.86)
-		var p := Vector3(cos(a) * r, 0, sin(a) * r)
-		if not start_spot_ok(p, placed, spacing, relax):
-			continue
-		p.y = map.height_at(p.x, p.z)
-		placed.append(p)
-	for k in range(placed.size()):
-		var def: StructureDef = picks[k]
-		var _st := _spawn(def, placed[k])
-	if placed.size() < defs.size():
-		push_warning("StructureManager: placed %d of %d kinds" % [placed.size(), defs.size()])
+	if not defs.is_empty():
+		# every kind appears at least once per run; the rest of the count is drawn by weight
+		count = maxi(count, defs.size())
+		var picks: Array = defs.duplicate()
+		picks.shuffle()
+		while picks.size() < count:
+			picks.append(_pick(defs))
+		var tries := 0
+		# every kind must land: when the map fights back, the spacing relaxes rather than a structure being dropped
+		while placed.size() < count and tries < count * 200:
+			tries += 1
+			var relax: float = 1.0 - 0.5 * clampf(float(tries) / float(count * 100), 0.0, 1.0)
+			var a := _rng.randf() * TAU
+			var r := _rng.randf_range(map.arena_radius * 0.3, map.arena_radius * 0.86)
+			var p := Vector3(cos(a) * r, 0, sin(a) * r)
+			if not start_spot_ok(p, placed, spacing, relax):
+				continue
+			p.y = map.height_at(p.x, p.z)
+			placed.append(p)
+		for k in range(placed.size()):
+			var def: StructureDef = picks[k]
+			var _st := _spawn(def, placed[k])
+		if placed.size() < defs.size():
+			push_warning("StructureManager: placed %d of %d kinds" % [placed.size(), defs.size()])
+	for d: StructureDef in apart:
+		var _n := place_apart(d, placed)
+
+
+## The structures of `defs` the weighted draw scatters (pass 73): every one without `params.per_map`.
+static func drawn(defs: Array) -> Array:
+	var out: Array = []
+	for d: StructureDef in defs:
+		if d != null and per_map_range(d) == Vector2i(-1, -1):
+			out.append(d)
+	return out
+
+
+## The structures of `defs` that stand their own count apart from the draw (pass 73): every one with `params.per_map`.
+static func placed_apart(defs: Array) -> Array:
+	var out: Array = []
+	for d: StructureDef in defs:
+		if d != null and per_map_range(d) != Vector2i(-1, -1):
+			out.append(d)
+	return out
+
+
+## How many of a structure stand on a map apart from the draw (pass 73): (min, max) from `params.per_map`, max never
+## under min, neither under 0; (-1, -1) when it has none (it is drawn by weight).
+static func per_map_range(d: StructureDef) -> Vector2i:
+	var pm = d.params.get("per_map") if d != null else null
+	if not pm is Dictionary:
+		return Vector2i(-1, -1)
+	var lo := maxi(int((pm as Dictionary).get("min", 1)), 0)
+	var hi := maxi(int((pm as Dictionary).get("max", lo)), lo)
+	return Vector2i(lo, hi)
+
+
+## Stands a `params.per_map` structure its count of times (pass 73, PER_MAP_*): a fresh count in its range, each one at
+## the best of PER_MAP_CANDIDATES fair spots (start_spot_ok against everything in `placed` at the structure's own
+## `spacing`, relaxing to half as the tries run out; off the river's bed; out of the paintings' cover bands), the one
+## farthest from everything standing. `placed` grows with each one. Returns how many stood.
+func place_apart(def: StructureDef, placed: Array) -> int:
+	var rng := per_map_range(def)
+	if rng.y <= 0:
+		return 0
+	var n := _rng.randi_range(rng.x, rng.y)
+	var spacing := own_spacing(def)
+	var covers: Array = BarrelField.covers_of(game, map) if game else []
+	var made := 0
+	for k in range(n):
+		var best := Vector3.INF
+		var best_d := -1.0
+		var found := 0
+		var tries := 0
+		while found < PER_MAP_CANDIDATES and tries < PER_MAP_TRIES:
+			tries += 1
+			var relax: float = 1.0 - 0.5 * clampf(float(tries) / float(PER_MAP_TRIES * 0.6), 0.0, 1.0)
+			var a := _rng.randf() * TAU
+			var r := _rng.randf_range(map.arena_radius * PER_MAP_BAND.x, map.arena_radius * PER_MAP_BAND.y)
+			var p := Vector3(cos(a) * r, 0, sin(a) * r)
+			if not start_spot_ok(p, placed, spacing, relax) or not off_river(p):
+				continue
+			if BarrelField.in_cover(covers, Vector2(p.x, p.z), 1.0):
+				continue
+			found += 1
+			var dmin := nearest_distance(p, placed)
+			if dmin > best_d:
+				best_d = dmin
+				best = p
+		if best == Vector3.INF:
+			break
+		best.y = map.height_at(best.x, best.z)
+		placed.append(best)
+		var s := _spawn(def, best)
+		# its own painting's cover band, so the next one keeps out of it
+		covers.append(Vector4(best.x, best.z, BarrelField.STRUCTURE_HALF_W, def.height / tan(deg_to_rad(BarrelField.CAMERA_PITCH_DEG))))
+		if s:
+			made += 1
+	if made < rng.x:
+		push_warning("StructureManager: placed %d of %d %s" % [made, rng.x, def.id])
+	return made
+
+
+## A per-map structure's own spacing (`params.per_map.spacing`), the map's when it names none.
+func own_spacing(d: StructureDef) -> float:
+	var pm = d.params.get("per_map") if d != null else null
+	return float((pm as Dictionary).get("spacing", _spacing)) if pm is Dictionary else _spacing
+
+
+## The flat distance from `p` to the nearest of `placed` (INF when there is none).
+static func nearest_distance(p: Vector3, placed: Array) -> float:
+	var best := INF
+	for q: Vector3 in placed:
+		best = minf(best, Vector2(p.x - q.x, p.z - q.z).length())
+	return best
+
+
+## Whether `p` keeps off the map's dry river bed (pass 73: the Totem Poles stand beside the paths, never in their
+## middle): RIVER_CLEAR past the bed's half width from the river's line (RedCanyon.river_points); true on a map without
+## a river.
+func off_river(p: Vector3) -> bool:
+	if map == null or not map.has_method("river_points"):
+		return true
+	var pts: Array = map.call("river_points")
+	var half: float = float(map.get("river_width")) * 0.5 if map.get("river_width") != null else 3.0
+	return river_distance(Vector2(p.x, p.z), pts) >= half + RIVER_CLEAR
+
+
+## The flat distance from `p` to a polyline of Vector2 points (INF with fewer than two).
+static func river_distance(p: Vector2, pts: Array) -> float:
+	var best := INF
+	for k in range(pts.size() - 1):
+		var a: Vector2 = pts[k]
+		var b: Vector2 = pts[k + 1]
+		var ab := b - a
+		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+		best = minf(best, p.distance_to(a + ab * t))
+	return best
 
 
 ## The structures that may stand on a map (pass 70, Garry: "Remove the Balloon Chest thing now"): every one but a
@@ -194,9 +328,14 @@ func _wet(p: Vector3, r: float) -> bool:
 ## half as the tries run out, like the start's. Vector3.INF when the map has no room.
 func find_spot() -> Vector3:
 	var standing: Array = []
+	# pass 73: a structure standing its own count (a Totem Pole) is kept at its own spacing, not the map's
+	var apart_at: Array = []
 	for st: Structure in items:
 		if is_instance_valid(st) and not st.flown and not st.leaving:
-			standing.append(st.global_position)
+			if per_map_range(st.def) == Vector2i(-1, -1):
+				standing.append(st.global_position)
+			else:
+				apart_at.append(Vector4(st.global_position.x, st.global_position.z, own_spacing(st.def), 0.0))
 	var hero := Vector3.INF
 	if game and game.get("player") and is_instance_valid(game.player):
 		hero = game.player.global_position
@@ -217,6 +356,10 @@ func find_spot() -> Vector3:
 		if hero != Vector3.INF and Vector2(p.x - hero.x, p.z - hero.z).length() < RETURN_HERO_CLEAR:
 			continue
 		var ok := true
+		for q: Vector4 in apart_at:
+			if Vector2(p.x - q.x, p.z - q.y).length() < q.z * relax:
+				ok = false
+				break
 		for q: Vector3 in signs:
 			if Vector2(p.x - q.x, p.z - q.z).length() < RETURN_SIGN_CLEAR:
 				ok = false
@@ -273,6 +416,8 @@ func _spawn(def: StructureDef, at: Vector3) -> Structure:
 		s.visual = bs
 		s.add_child(bs)
 		bs.setup(load(sprite_path), {"idle": 1}, ["idle"], def.height * 1.15)
+		# one frame: nothing to play (pass 73: a dozen Totem Poles no longer set their frame every frame)
+		bs.playing = false
 		bs.position.y = 0.04
 		if def.params.get("portal") is Dictionary:
 			_add_portal(s, def.params["portal"], def.height * 1.15, def.color)
@@ -302,7 +447,8 @@ func _spawn(def: StructureDef, at: Vector3) -> Structure:
 	s.hand.top_level = true
 	s.hand.visible = false
 	add_child(s.hand)
-	if Fx.want_lights():
+	# pass 73: `params.glow` false leaves the light off (the dozen Totem Poles: their ring shows them)
+	if Fx.want_lights() and bool(def.params.get("glow", true)):
 		s.glow = OmniLight3D.new()
 		s.glow.light_color = def.color
 		s.glow.omni_range = 5.0
@@ -466,6 +612,10 @@ func _use(s: Structure) -> void:
 		if s.visual is BillboardSprite and ResourceLoader.exists(off_path):
 			(s.visual as BillboardSprite).set_texture(load(off_path))
 			(s.visual as BillboardSprite).set_tint(Color(0.8, 0.78, 0.78, 1.0))
+		elif s.visual is BillboardSprite and str(s.def.params.get("spent", "")) == "grey" and grey_painting(s.def) != null:
+			# pass 73 (the Totem Pole): its own painting in grey, standing where it stood
+			(s.visual as BillboardSprite).set_texture(grey_painting(s.def))
+			(s.visual as BillboardSprite).set_tint(SPENT_GREY_TINT)
 		else:
 			_grey_out(s.visual)
 	game.use_structure(s.def, s.global_position)
@@ -718,6 +868,31 @@ func _tick_bounce(s: Structure, delta: float) -> void:
 			(s.visual as BillboardSprite).set_flash(0.0)
 		elif s.visual:
 			s.visual.scale = Vector3.ONE
+
+
+## A structure's painting with the colour taken out (pass 73, `params.spent "grey"`): art/sprites/props/st_<id>.png as an
+## image, desaturated, SPENT_GREY_BRIGHTNESS darker and SPENT_GREY_CONTRAST flatter, made once per kind and kept; null
+## when the painting is missing or its pixels cannot be read (the tint grey-out then stands in).
+static func grey_painting(def: StructureDef) -> Texture2D:
+	if def == null:
+		return null
+	if _grey_cache.has(def.id):
+		return _grey_cache[def.id]
+	var path := "res://art/sprites/props/st_%s.png" % def.id
+	var out: Texture2D = null
+	if ResourceLoader.exists(path):
+		var tex := load(path) as Texture2D
+		var img: Image = tex.get_image() if tex else null
+		if img != null and not img.is_empty():
+			img = img.duplicate() as Image
+			if img.is_compressed():
+				img.decompress()
+			if img.get_format() != Image.FORMAT_RGBA8:
+				img.convert(Image.FORMAT_RGBA8)
+			img.adjust_bcs(SPENT_GREY_BRIGHTNESS, SPENT_GREY_CONTRAST, 0.0)
+			out = ImageTexture.create_from_image(img)
+	_grey_cache[def.id] = out
+	return out
 
 
 func _grey_out(n: Node) -> void:

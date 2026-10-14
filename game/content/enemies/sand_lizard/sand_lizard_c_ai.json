@@ -1,0 +1,134 @@
+{
+ "pipeline": "gen_art v2",
+ "model": "flux-2-klein-9b-fp8.safetensors",
+ "painter": {
+  "model": "klein",
+  "unet": "flux-2-klein-9b-fp8.safetensors",
+  "steps": 45
+ },
+ "anchor": "72ae817babd1",
+ "subject": "a desert lizard running on four short legs, bright cobalt blue scales with dark navy stripes down its back and a pale sky-blue belly, a long tail, a wide flat head with beady eyes and a wide toothy grin, standing on the ground",
+ "renders": {
+  "front": {
+   "seed": 11646902,
+   "prompt": "Using exactly the same art style, rendering, shading, palette and outline treatment as the reference image, draw a new subject: a desert lizard running on four short legs, bright cobalt blue scales with dark navy stripes down its back and a pale sky-blue belly, a long tail, a wide flat head with beady eyes and a wide toothy grin, standing on the ground. Full body, front view, standing and facing the viewer. in a clean modern anime art style: crisp confident line art, cel shading with two-tone shadows and sharp highlights, flat saturated colors, appealing stylized proportions, simple readable shapes with no texture noise, like character art from a Japanese action RPG mobile game. Game asset. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark. Do not copy any subject from the reference.",
+   "refs": [
+    "88fits/style_anchor.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 179,
+     "right": 221,
+     "top": 121,
+     "bottom": 232,
+     "height": 670,
+     "width": 623
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 45
+   }
+  },
+  "back": {
+   "seed": 11646903,
+   "prompt": "Turn this exact creature around and show a full-body back view seen directly from behind, no face visible. Keep the same colors, proportions and art style, standing. on all fours isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/sand_lizard_c_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "back",
+    "matches": true,
+    "problems": [],
+    "geometry": {
+     "left": 188,
+     "right": 295,
+     "top": 114,
+     "bottom": 138,
+     "height": 771,
+     "width": 540
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 45
+   }
+  },
+  "dead": {
+   "seed": 11646911,
+   "prompt": "This exact creature lying flat on its back on the ground, dead: eyes shut tight, tongue hanging out, limbs sprawled limp in the air, seen from the front and a little above so the whole body is visible. Keep the same colors, proportions and art style. isolated on a flat solid bright green (#00FF00) background that fills the entire frame, floating in empty space with no ground plane, no cast shadow, no grass, no text, no watermark.",
+   "refs": [
+    "88fits/sand_lizard_c_front.png"
+   ],
+   "qa": {
+    "subjects": 1,
+    "background": "flat",
+    "ground": true,
+    "text": false,
+    "cropped": false,
+    "legs": true,
+    "view": "front",
+    "matches": false,
+    "problems": [
+     "no-match"
+    ],
+    "geometry": {
+     "left": 58,
+     "right": 49,
+     "top": 130,
+     "bottom": 245,
+     "height": 648,
+     "width": 916
+    }
+   },
+   "attempt": 0,
+   "painter": {
+    "model": "klein",
+    "unet": "flux-2-klein-9b-fp8.safetensors",
+    "steps": 45
+   }
+  }
+ },
+ "recipe_ran": {
+  "art_prompt": "a desert lizard running on four short legs, bright cobalt blue scales with dark navy stripes down its back and a pale sky-blue belly, a long tail, a wide flat head with beady eyes and a wide toothy grin, standing on the ground",
+  "back_hint": "on all fours",
+  "seed_offset": 111,
+  "method": "creature_proc",
+  "painter": {
+   "model": "klein",
+   "steps": 45
+  },
+  "stills": "c",
+  "motion": "scurrying in place on four short legs, tail whipping side to side"
+ },
+ "clip_kind": {
+  "front": "free",
+  "back": "free",
+  "die": "procedural"
+ },
+ "clips": {
+  "walk_f": true,
+  "walk_b": true,
+  "pose": ""
+ },
+ "qa_online": true
+}

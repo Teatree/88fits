@@ -1,0 +1,41 @@
+{
+  "id": "totem_pole",
+  "name": "Totem Pole",
+  "flavour": "Old cedar, older spirits. Each one lends a little strength.",
+  "doc": "Stand in its small circle for three seconds and the pole offers three gifts of its carved spirits; take one and it stays with you for the whole run. Ten to twelve stand on every map; a used pole turns grey and stays.",
+  "effect": "totem",
+  "radius": 1.2,
+  "interact_time": 3.0,
+  "color": "#2FB5A8",
+  "prop": "",
+  "height": 1.8,
+  "params": {
+    "per_map": {
+      "min": 10,
+      "max": 12,
+      "spacing": 14
+    },
+    "per_sign": 1,
+    "spent": "grey",
+    "glow": false,
+    "choices": 3,
+    "boons": [
+      {"id": "wolf", "name": "Le-loo", "animal": "the Wolf", "stat": "move_speed", "op": "mul", "min": 0.03, "max": 0.07, "step": 0.01, "weight": 3},
+      {"id": "whale", "name": "El-kolie", "animal": "the Whale", "stat": "max_hp", "op": "add", "min": 6, "max": 14, "step": 1, "weight": 3},
+      {"id": "bear", "name": "Chet-woot", "animal": "the Bear", "stat": "might", "op": "mul", "min": 0.03, "max": 0.07, "step": 0.01, "weight": 3},
+      {"id": "thunderbird", "name": "Thunderbird", "animal": "", "stat": "cooldown", "op": "mul", "min": -0.05, "max": -0.02, "step": 0.01, "weight": 2},
+      {"id": "seal", "name": "Ol-hiyo", "animal": "the Seal", "stat": "magnet", "op": "mul", "min": 0.08, "max": 0.18, "step": 0.01, "weight": 2},
+      {"id": "salmon", "name": "Walalee", "animal": "the Salmon", "stat": "regen", "op": "add", "min": 0.2, "max": 0.5, "step": 0.1, "weight": 2},
+      {"id": "frog", "name": "Frog", "animal": "", "stat": "xp_gain", "op": "mul", "min": 0.04, "max": 0.08, "step": 0.01, "weight": 2},
+      {"id": "killer_whale", "name": "Skana", "animal": "the Killer Whale", "stat": "crit_chance", "op": "add", "min": 0.02, "max": 0.04, "step": 0.01, "weight": 1.5},
+      {"id": "bullhead", "name": "Kuuma", "animal": "the Bullhead", "stat": "damage_reduction", "op": "add", "min": 0.02, "max": 0.04, "step": 0.01, "weight": 1.5},
+      {"id": "raven", "name": "Raven", "animal": "", "stat": "luck", "op": "add", "min": 0.03, "max": 0.06, "step": 0.01, "weight": 1},
+      {"id": "serpent", "name": "Se-sook", "animal": "the Two-headed Serpent", "stat": "area", "op": "mul", "min": 0.03, "max": 0.06, "step": 0.01, "weight": 1}
+    ]
+  },
+  "placeholder": {
+    "color": "#9A5A34",
+    "glyph": "totem"
+  },
+  "art_prompt": "a tall carved wooden totem pole standing upright, a loose and respectful take on Pacific Northwest carving: four carved animal faces stacked one on another (a bear, a wolf, a killer whale and a frog at the base) with big rounded formline eyes and wide carved mouths, a thunderbird on top with its carved wooden wings spread wide to both sides, warm red-brown cedar wood painted in deep red, black and turquoise, a short square wooden base on the ground; carved painted wood only, no living creature, no text, no feathers on the ground"
+}

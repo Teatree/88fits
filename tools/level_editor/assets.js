@@ -514,7 +514,8 @@ const Assets = (() => {
     const iconUrl = `/icon/${KIND_ICON[doc.kind] || doc.kind}/${encodeURIComponent(doc.id)}${lookCode ? '/' + encodeURIComponent(lookCode) : ''}?v=${doc.baseMtime || 0}`;
     const title = el('div', { class: 'ahead-title' },
       el('img', { class: 'ahead-icon', src: iconUrl, alt: '', width: 44, height: 44, title: `${doc.data.name || doc.id}${lookCode ? ' · look ' + lookCode : ''}`, onerror: (e) => { e.target.classList.add('none'); } }),
-      el('span', { class: 'akind ' + doc.kind, text: KIND_LABEL[doc.kind] || doc.kind.toUpperCase() }),
+      // pass 73 (lane CARDS): a line item says CARD (a fortune card to the player)
+      el('span', { class: 'akind ' + doc.kind, text: doc.kind === 'passive' && doc.data && doc.data.line ? 'CARD' : (KIND_LABEL[doc.kind] || doc.kind.toUpperCase()) }),
       el('b', { class: 'ahead-name', text: String(doc.data.name || doc.id), title: `${doc.kind} ${doc.id}` }),
       el('span', { class: 'muted small', text: doc.file ? doc.file.split(/[\\/]/).slice(-2).join('/') : `${doc.id}.json` }),
       el('span', { class: 'muted small achanges', text: d ? `${changes} change${changes === 1 ? '' : 's'} · unsaved` : (changes ? `${changes} change${changes === 1 ? '' : 's'} · saved` : 'as on disk') }));

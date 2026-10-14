@@ -1,10 +1,14 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/gold_tooth/gold_tooth_icon.png" id="1_dbkqi"]
+[ext_resource type="Texture2D" path="res://content/passives/gold_tooth/gold_tooth_icon_b.png" id="1_iaxgh"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_iaxgh"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_mvea4"]
+[ext_resource type="Texture2D" path="res://content/passives/gold_tooth/gold_tooth_icon_c.png" id="5_2vu8d"]
+[ext_resource type="Texture2D" path="res://content/passives/gold_tooth/gold_tooth_icon_d.png" id="6_o16gb"]
+[ext_resource type="Texture2D" path="res://content/passives/gold_tooth/gold_tooth_icon_e.png" id="7_b0avh"]
 
-[sub_resource type="Resource" id="Resource_dbkqi"]
+[sub_resource type="Resource" id="Resource_2vu8d"]
 script = ExtResource("2_iaxgh")
 stat = "greed"
 op = "mul"
@@ -14,13 +18,47 @@ target = "player"
 [resource]
 script = ExtResource("3_mvea4")
 line = true
-levels = [[SubResource("Resource_dbkqi")]]
+levels = [[SubResource("Resource_2vu8d")]]
 max_level = 4
 evolves_into = "gold_rush"
+variants = {
+"A": {
+"icon": ExtResource("1_dbkqi"),
+"icon_file": "gold_tooth_icon.png",
+"note": "the icon before the cards (passes 47-72): an object, not a card",
+"shelved": false
+},
+"B": {
+"icon": ExtResource("1_iaxgh"),
+"icon_file": "gold_tooth_icon_b.png",
+"note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
+"shelved": false
+},
+"C": {
+"icon": ExtResource("5_2vu8d"),
+"icon_file": "gold_tooth_icon_c.png",
+"note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
+"shelved": false
+},
+"D": {
+"icon": ExtResource("6_o16gb"),
+"icon_file": "gold_tooth_icon_d.png",
+"note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
+"shelved": false
+},
+"E": {
+"icon": ExtResource("7_b0avh"),
+"icon_file": "gold_tooth_icon_e.png",
+"note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
+"shelved": false
+}
+}
+variant = "B"
+variant_base = "A"
 id = "gold_tooth"
-display_name = "Gold Tooth"
-flavour = "Smile. It pays."
-icon = ExtResource("1_dbkqi")
+display_name = "The King"
+flavour = "The King smiles a gold smile. It pays."
+icon = ExtResource("1_iaxgh")
 icon_file = "gold_tooth_icon.png"
 placeholder = {
 "color": "#E0B030",

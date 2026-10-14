@@ -385,3 +385,28 @@ along, one added while the page was open too); the page does not edit it.
   XP x, Colour, Colour strength, Glow), with what applies and from where, and the plain one beside its special.
 - `tint` may be any colour (pass27_test wanted a dark one before; the editor now only warns on a light or grey one).
 - A row's `stats.variance.special.glow` overrides it like the other special numbers ("Special glow" in the Elite group).
+
+## Pass 73: target priority and growing out of the ground
+
+### Map timeline (`content/maps/<id>/<id>.json` `timeline_data`, WaveTimeline, JsonContent.timeline_from_dict)
+
+| Key | Type | Default | What it does |
+|---|---|---|---|
+| `target_priority` | block | `{}` (= the defaults) | the weapons' target priority (EnemyManager.priority_target), handed on by WaveDirector._apply_mults |
+| `target_priority.enabled` | bool | true | every weapon that picks its target takes a special, an Elite or the boss within reach first (only the first shot of a volley spread over different creatures) |
+| `target_priority.reach` | m | 10 | how near the hero (a turret: itself) it must be; never past the weapon's own range |
+| `specials.pool[] {"enemy": "saiga_sniper"}` | row | | Red Canyon's new row, beside the Rocketeer's |
+
+The Settings tab shows `target_priority.*` in a new **Targeting** card (fields.js SCALAR_GROUPS += 'Targeting');
+the Specials card's words name the Sniper.
+
+### Map `timeline_data.spawn_rise` (WaveTimeline.spawn_rise; Settings → Spawning)
+
+| key | type | default (absent) | meaning |
+|---|---|---|---|
+| seconds | s | 0.45 | every spawn rises out of the sand over this long (× 1/pace); 0 = off |
+| big_seconds | s | 0.9 | the same for an Elite or a boss by its kind |
+| targetable | 0..1 | 0.7 | the share of the way up from which a weapon may choose it as its target (area damage hits it all along) |
+| dust | × | 1.0 | the dust puff's size × its size (0 = none; only on the screen) |
+
+WaveTimeline: `SPAWN_RISE_DEFAULTS`, `spawn_rise_value(key)`; JsonContent reads the block as it is.

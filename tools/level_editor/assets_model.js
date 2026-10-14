@@ -388,9 +388,9 @@ const AssetsModel = (() => {
   /** EnemyDef.default_knockback: clamp(3.4 * sqrt(damage / 4), 2.5, 7.0) */
   function defaultKnockback(damage) { return Math.min(7, Math.max(2.5, 3.4 * Math.sqrt(Math.max(0, num(damage, 0)) / 4))); }
 
-  const BLOCK_NAMES = ['ranged', 'charge', 'kamikaze', 'artillery', 'caster', 'support', 'ambush', 'death_burst', 'boss', 'elite'];
+  const BLOCK_NAMES = ['ranged', 'charge', 'kamikaze', 'artillery', 'caster', 'support', 'ambush', 'death_burst', 'boss', 'elite', 'sniper', 'flee_on_hit'];
   // the blocks each brain reads (EnemyManager.gd:2858-3061); chase / flock / dummy read none
-  const NATURAL = { kite: ['ranged'], charge: ['charge'], kamikaze: ['kamikaze'], artillery: ['artillery'], caster: ['caster', 'boss'], support: ['support'], ambush: ['ambush', 'ranged'], boss: ['boss'] };
+  const NATURAL = { kite: ['ranged'], charge: ['charge'], kamikaze: ['kamikaze'], artillery: ['artillery'], caster: ['caster', 'boss'], support: ['support'], ambush: ['ambush', 'ranged'], boss: ['boss'], sniper: ['sniper'] };
   function naturalBlocks(brain, archetype) {
     const out = (NATURAL[brain] || []).slice();
     if (archetype === 'elite' && !out.includes('elite')) out.push('elite');

@@ -243,7 +243,9 @@ func test_no_strongbox_stands_in_a_long_run() -> void:
 	g.director.stop()
 	var sm: StructureManager = g.structures
 	var plan: Dictionary = Run.map.timeline.structures
-	assert_int(sm.items.size()).is_equal(maxi(int(plan.get("count", 0)), StructureManager.in_play(Registry.structures.values()).size()))
+	# pass 73: the draw's structures; the Totem Poles (params.per_map) stand their own count beside them
+	var drawn_items: Array = sm.items.filter(func(s) -> bool: return StructureManager.per_map_range(s.def) == Vector2i(-1, -1))
+	assert_int(drawn_items.size()).is_equal(maxi(int(plan.get("count", 0)), StructureManager.drawn(StructureManager.in_play(Registry.structures.values())).size()))
 	for s in sm.items:
 		assert_str(s.def.id).is_not_equal("gold_bank")
 	# half an hour of the structures' own clock (the returns live there): nothing comes down

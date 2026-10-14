@@ -190,7 +190,8 @@ func test_a_new_item_says_new_and_keeps_its_line() -> void:
 	assert_array(WItem.changes(pea)).is_empty()
 	var brawn := {"def": Registry.passive("brawn"), "level_from": 0, "level_to": 1}
 	assert_str(WItem.tag(brawn)).is_equal("NEW")
-	assert_str(WItem.word(brawn)).is_equal("LINE")
+	# pass 73 (lane CARDS): a line item says CARD
+	assert_str(WItem.word(brawn)).is_equal("CARD")
 
 
 func test_a_line_s_next_rank_lists_its_change() -> void:
@@ -252,7 +253,8 @@ func test_evolutions_say_evolution_and_mutations_and_perks_are_unchanged() -> vo
 	_start()
 	var juggernaut := {"def": Registry.passive("juggernaut"), "level_from": 4, "level_to": 5, "evolve": true}
 	assert_str(WItem.tag(juggernaut)).is_equal("EVOLUTION")
-	assert_str(WItem.word(juggernaut)).is_equal("EVOLVES BRAWN")
+	# pass 73 (lane CARDS): the word names the card it evolves (Brawn is The Sun)
+	assert_str(WItem.word(juggernaut)).is_equal("EVOLVES " + Registry.passive("brawn").display_name.to_upper())
 	assert_array(WItem.changes(juggernaut)).is_empty()
 	var jc: WCard = auto_free(WCard.make(juggernaut["def"], WItem.options(juggernaut)))
 	assert_str(_tag_word(jc.tag_node)).is_equal("EVOLUTION")
@@ -339,7 +341,7 @@ func test_the_chest_never_banishes_a_held_item() -> void:
 	assert_bool(ChestScreen.can_banish({"type": "weapon", "id": boom.id, "def": boom})).is_false()
 	# the words say why, plainly
 	assert_str(ChestScreen.banish_refusal(held_w)).is_equal("You have %s. Only new items can be banished." % boom.display_name)
-	assert_str(ChestScreen.banish_refusal(held_p)).contains("You have Brawn")
+	assert_str(ChestScreen.banish_refusal(held_p)).contains("You have " + Registry.passive("brawn").display_name)
 	assert_str(ChestScreen.banish_refusal({"type": "mutation", "id": mut.id, "def": mut})).is_equal("A mutation cannot be banished.")
 	assert_str(ChestScreen.banish_refusal({"type": "mutation", "id": hm.id, "def": hm, "boss": true})).is_equal("A mutation cannot be banished.")
 	assert_str(ChestScreen.banish_refusal({"type": "evolution", "id": evo.id, "def": evo})).is_equal("An evolution cannot be banished.")
@@ -610,7 +612,7 @@ func test_a_starless_upgrade_card_says_its_step() -> void:
 	var mut: MutationDef = Registry.mutations_of("hammer")[0]
 	assert_str(str(WItem.options({"def": mut, "level_from": 0, "level_to": 1}, {"stars": []})["word"])).is_equal("MUTATION")
 	var jug := {"def": Registry.passive("juggernaut"), "level_from": 4, "level_to": 5, "evolve": true}
-	assert_str(str(WItem.options(jug, {"stars": []})["word"])).is_equal("EVOLVES BRAWN")
+	assert_str(str(WItem.options(jug, {"stars": []})["word"])).is_equal("EVOLVES " + Registry.passive("brawn").display_name.to_upper())
 	assert_str(str(WItem.options({"def": Registry.passive("magnet"), "level_from": 1, "level_to": 2}, {"stars": []})["word"])).is_equal("PASSIVE · LV 1 → 2")
 	# what a card shows under its name as one line (the arena's INFO can quote it): an upgrade's rows, else its line
 	var parts: Array = []

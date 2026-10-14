@@ -61,6 +61,9 @@
 ## the show plays and a tap on one does not hurry it, a swipe does not move the board (and hurries the show), a tap ends
 ## the first sequence, a tap hurries the second and another ends it; then the screen is audited as before (the board
 ## scrolls under a finger again).
+## Pass 73 (lane STRUCT): totem: a Totem Pole used in the run opens its menu of gifts through the one-screen rule; every
+## plank answers a finger (muted), a real tap on one takes its gift (the menu closes, the gift is on the run, the run goes
+## on); then a menu built under a 130 px camera cutout (totem_inset130): its planks answer and a real tap takes one.
 extends SceneTree
 
 const MAX_PER_KIND := 40     # cards of one screen tapped at most (a long list: a sample, spread over it)
@@ -1338,6 +1341,8 @@ func _in_game() -> void:
 		await _audit("shop", g.structure_shop)
 		g.structure_shop.visible = false
 		g.set_paused(false)
+	if _want("totem"):
+		await _totem(g)
 	if _want("revive"):
 		# the player's debug mode shows the last hits on Down! (pass 46: they moved there from Results), so its list and
 		# buttons are tapped too; put back after and written back, since a save in between keeps the settings it saw
@@ -1393,6 +1398,8 @@ func _in_game() -> void:
 					await _audit("arena_" + str(t[0]), a.arena_panel._sheet)
 				# a weapon's stack on ITEMS (pass 49), opened by its toggle
 				await _arena_items(a.arena_panel)
+				# pass 73 (lane CARDS): the cards' look chips on ITEMS
+				await _arena_card_looks(a.arena_panel)
 				a.arena_panel._tab = "world"
 				a.arena_panel._refresh()
 				await _wait(0.4)
@@ -1413,6 +1420,62 @@ func _in_game() -> void:
 ## The resume gate under a finger on the HUD's strip (pass 56): after a level-up's pick, a tap under the clock, at the
 ## strip's foot or on the pause disc lets the run go and does nothing else (the gate let the touch through, the strip
 ## heard it and the pause menu opened as the run went on); a tap under the strip lets the run go and starts the stick.
+## The Totem Pole's gifts (pass 73, lane STRUCT): see the header. The save's run state is the tool's own run.
+func _totem(g) -> void:
+	var run = root.get_node("Run")
+	var d = root.get_node("Registry").structure("totem_pole")
+	if d == null:
+		_count("totem", false)
+		_fail("totem", "content/structures/totem_pole", "no such structure")
+		return
+	var before: int = run.totem_boons.size()
+	g.use_structure(d, g.player.global_position)
+	await _wait(0.8)
+	var ts = g.totem_screen
+	_count("totem", ts.visible)
+	if not ts.visible:
+		_fail("totem", "the menu", "using a pole did not open it")
+		return
+	await _audit("totem", ts)
+	var planks: Array = ts.planks()
+	await _tap((planks[0] as Control).get_global_rect().get_center())
+	await _wait(0.6)
+	var took: bool = not ts.visible and run.totem_boons.size() == before + 1 and not g.paused
+	_count("totem", took)
+	if not took:
+		_fail("totem", "a plank", "a real tap did not take its gift and close the menu")
+		ts.visible = false
+		g.modal_reset()
+		g.set_paused(false)
+	# under a camera cutout: a menu built at a 130 px inset, its planks under real fingers
+	var st = root.get_node("Settings")
+	var was: int = st.top_inset
+	st.top_inset = 130
+	var scr = load("res://ui/TotemScreen.gd").new()
+	g.ui.add_child(scr)
+	var took2 := [{}]
+	scr.closed.connect(func(b: Dictionary) -> void: took2[0] = b)
+	g.set_paused(true)
+	scr.open(load("res://core/systems/TotemBoons.gd").offer(d), d)
+	await _wait(0.8)
+	await _audit("totem_inset130", scr)
+	var pl2: Array = scr.planks()
+	var top_ok: bool = (pl2[0] as Control).get_global_rect().position.y > scr.header.offset_top
+	_count("totem_inset130", top_ok)
+	if not top_ok:
+		_fail("totem_inset130", "the planks", "a plank sits over the header")
+	await _tap((pl2[2] as Control).get_global_rect().get_center())
+	await _wait(0.6)
+	var ok2: bool = not scr.visible and str((took2[0] as Dictionary).get("id", "")) == str(pl2[2].boon.get("id", "?"))
+	_count("totem_inset130", ok2)
+	if not ok2:
+		_fail("totem_inset130", "a plank", "a real tap did not take its gift")
+	scr.queue_free()
+	st.top_inset = was
+	g.set_paused(false)
+	await _wait(0.3)
+
+
 func _gate_strip(g) -> void:
 	var vp := root.get_visible_rect().size
 	var bh: float = float(g.hud.get("band_h"))
@@ -1730,6 +1793,63 @@ func _arena_items(panel) -> void:
 	if not info_ok:
 		_fail("arena_info", "the Peashooter's INFO", "a tap did not open its words (%s)" % ("no text" if shown == null else shown.text.left(60)))
 	panel._open.erase("info:weapon:peashooter")
+
+
+## The cards' look on the arena's ITEMS tab (pass 73, lane CARDS) under a real finger: a tap on a look's chip draws every
+## card in it at once (The Sun's icon is that look's) and keeps it on the phone (Save.card_look); JSON gives each card its
+## own look back. Skipped (counted as passed) while the cards have one look only.
+func _arena_card_looks(panel) -> void:
+	var reg := root.get_node("Registry")
+	var sv := root.get_node("Save")
+	panel._tab = "items"
+	panel._refresh()
+	await _wait(0.4)
+	var row: Node = panel._content.find_child("CardLooks", true, false)
+	var codes: Array = reg.card_look_codes()
+	if codes.size() < 2:
+		_count("arena_card_looks", row == null)
+		if row != null:
+			_fail("arena_card_looks", "the Card look row", "shown with one look")
+		return
+	if row == null:
+		_count("arena_card_looks", false)
+		_fail("arena_card_looks", "the Card look row", "missing with looks %s" % str(codes))
+		return
+	var want := str(codes[codes.size() - 1])
+	var chip: Control = null
+	for b in row.get_children():
+		if b is Button and (b as Button).text == want:
+			chip = b
+	if chip == null:
+		_count("arena_card_looks", false)
+		_fail("arena_card_looks", "the %s chip" % want, "not in the row")
+		return
+	panel._scroll.ensure_control_visible(chip)
+	await _wait(0.2)
+	await _tap(await _spot(chip))
+	await _wait(0.4)
+	var sun = reg.passive("brawn")
+	var ok: bool = str(sv.card_look()) == want and sun != null and sun.icon == sun.look_icon(want)
+	_count("arena_card_looks", ok)
+	if not ok:
+		_fail("arena_card_looks", "the %s chip" % want, "a tap left the cards in %s" % str(sv.card_look()))
+	# JSON: each card's own look again
+	row = panel._content.find_child("CardLooks", true, false)
+	var back: Control = null
+	if row:
+		for b in row.get_children():
+			if b is Button and (b as Button).text == "JSON":
+				back = b
+	if back:
+		panel._scroll.ensure_control_visible(back)
+		await _wait(0.2)
+		await _tap(await _spot(back))
+		await _wait(0.4)
+	var reset: bool = str(sv.card_look()) == "" and sun != null and sun.icon == sun.look_icon(sun.variant)
+	_count("arena_card_looks", reset)
+	if not reset:
+		_fail("arena_card_looks", "the JSON chip", "a tap left the cards in %s" % str(sv.card_look()))
+	sv.set_card_look("")
 
 
 ## The level-up's choices by real fingers (pass 47: two skips and one banish a stage): SKIP with none left stays open and

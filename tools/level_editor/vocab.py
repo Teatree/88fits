@@ -19,11 +19,11 @@ NOTE = "a new kind needs code: ask Claude"
 # ---------------------------------------------------------------- creatures (EnemyManager.gd, EnemyDef.gd, JsonContent._enemy)
 
 # the brains `_steer` dispatches on (EnemyManager.gd `match def.brain:`); an unknown brain chases
-BRAINS = ["chase", "flock", "kite", "charge", "kamikaze", "artillery", "boss", "dummy", "ambush", "caster", "support"]
+BRAINS = ["chase", "flock", "kite", "charge", "kamikaze", "artillery", "boss", "dummy", "ambush", "caster", "support", "sniper"]
 # the blocks a brain reads (the form opens these cards first; any block may be added to any brain: "untested in play")
 BRAIN_BLOCKS = {"chase": [], "flock": [], "kite": ["ranged"], "charge": ["charge"], "kamikaze": ["kamikaze"],
                 "artillery": ["artillery"], "boss": ["boss"], "dummy": ["ranged"], "ambush": ["ambush", "ranged"],
-                "caster": ["caster", "boss"], "support": ["support"]}
+                "caster": ["caster", "boss"], "support": ["support"], "sniper": ["sniper"]}
 # only `boss` and `elite` change behaviour; the rest are labels (and the map's skin roles)
 ARCHETYPES = ["walker", "swarmer", "spitter", "brute", "tank", "runner", "elite", "boss"]
 ARCHETYPES_MEANINGFUL = ["elite", "boss"]
@@ -41,7 +41,11 @@ ATTACKS = {
     "spawn_ring": {"keys": {"enemy": "", "count": 10}, "telegraph": "none", "needs_ring_at_hero": False},
     "slam_at": {"keys": {"radius": 2.6, "damage": 18.0, "knockback": 6.0}, "telegraph": "ring_at_hero", "needs_ring_at_hero": True},
     "blink": {"keys": {"to": "", "distance": 8.0}, "telegraph": "none", "needs_ring_at_hero": False},
-    "burrow": {"keys": {"radius": 5.0, "damage": 28.0, "knockback": 8.0}, "telegraph": "ring_at_hero", "needs_ring_at_hero": True},
+    # pass 73 (lane GROUND): the visible sink, the predicted spot and its warning, the throws (EnemyManager._burrow_*)
+    "burrow": {"keys": {"radius": 5.0, "damage": 28.0, "knockback": 8.0, "sink": 0.0, "rise": 0.4, "predict": 0.0, "warn": 0.4,
+                        "mound": True, "throw_up": 0.0, "throw_out": 0.0, "throw_air": None, "throw_control": 0.15,
+                        "creature_up": 0.0, "creature_out": 0.0, "creature_damage": 0.0},
+               "telegraph": "ring_at_hero", "needs_ring_at_hero": True},
     "rain": {"keys": {"count": 10, "interval": 0.3, "spread": 5.0, "radius": 1.6, "damage": 14.0, "warn": 0.55, "spawn": "", "pillar": False, "knockback": 0.0}, "telegraph": "none", "needs_ring_at_hero": False},
     "erupt": {"keys": {"count": 10, "interval": 0.3, "spread": 5.0, "radius": 1.6, "damage": 14.0, "warn": 0.55, "spawn": "", "pillar": False, "knockback": 0.0}, "telegraph": "none", "needs_ring_at_hero": False},
     "spit_volley": {"keys": {"count": 7, "spread_deg": 90.0, "damage": 12.0, "straight": False, "speed": 14.0, "splash": 0.5, "life": 1.0, "shot": "", "knockback": 0.0, "length": 14.0}, "telegraph": "fan", "needs_ring_at_hero": False},
@@ -71,6 +75,10 @@ BLOCKS = {
     "death_burst": {"delay": 2.0, "radius": 2.4, "damage": 12.0, "knockback": 0.0},
     "boss": {"attacks": [], "cooldown_between": 2.0, "hp_mult_per_stage": 1.6, "ring": {}},
     "elite": {"hp_mult_per_stage": 1.8},
+    # pass 73 (lane SNIPER): the Saiga Sniper's brain block, and flee on hit (any creature: EnemyManager.flee_start)
+    "sniper": {"stand_off": 26.0, "flee_range": 14.0, "follow": 38.0, "first": 2.5, "aim": 2.0, "lock": 1.0, "interval": 9.0,
+               "interval_jitter": 1.5, "recover": 2.5, "cone_deg": 44.0, "lines": 14, "beam": {}, "muzzle": {}},
+    "flee_on_hit": {"seconds": 1.0, "speed_mult": 1.8, "interrupts": True},
 }
 # the sub-blocks' keys (same shape), for the forms' nested rows
 SUBBLOCKS = {
@@ -78,7 +86,11 @@ SUBBLOCKS = {
     "ranged.trail": {"color": "#62F27F", "alpha": None, "size": 1.0, "life": 1.4, "step": 0.055},
     "ranged.pulse": {"hz": 3.0, "size": 0.12, "glow": 0.3, "halo": 1.6, "color": "#9CFF6E"},
     "artillery.muzzle": {"up": 0.0, "side": 0.0, "forward": 0.0},
-    "artillery.missile": {"speed": 4.0, "turn": 1.3, "damage": 22.0, "area": 1.6, "speed_of_hero": 0.0},
+    "artillery.missile": {"speed": 4.0, "turn": 1.3, "damage": 22.0, "area": 1.6, "speed_of_hero": 0.0, "hit_slow": {}},
+    "artillery.missile.hit_slow": {"mult": 0.5, "recover": 3.0, "shake": 0.35},
+    "sniper.beam": {"length": 60.0, "width": 0.5, "seconds": 0.15, "damage_from": "", "damage_mult": 0.7, "damage": 15.4,
+                    "knockback": 5.0, "creature_frac": 0.05, "creature_max": 40.0, "push": 3.0, "sparks": 1.5},
+    "sniper.muzzle": {"up": 0.0, "side": 0.0, "forward": 0.0},
     "boss.ring": {"radius": 21.0, "min_radius": 8.0, "shrink": 42.0, "hold": 8.0, "burn": 0.07, "creature_burn": 0.12},
 }
 DROP_KEYS = {"small": 0.0, "medium": 0.0, "large": 0.0, "gold": 0.0, "chest": 0.0, "pickup": {"id": "", "chance": 0.0},
@@ -88,7 +100,7 @@ VARIANCE_KEYS = {"size": 0.0, "speed": 0.0, "tints": [], "tint_strength": 0.35, 
                  "special": {"size": 1.5, "hp": 15.0, "damage": 2.0, "xp": 2.0, "tint": "", "tint_strength": 0.6,
                              "glow": 0.6, "chest_chance": 0.35}}  # pass 69 (lane EN): EnemyDef.SPECIAL_DEFAULTS (pass 72: 1.5, 15, chest 0.35)
 SHADOW_KEYS = {"scale": 1.0, "up": 0.0, "drop": 0.0}
-SFX_HOOKS = {"enemy": ["hit", "die", "attack", "spawn"], "weapon": ["fire", "hit", "place", "burst", "reload", "land"]}
+SFX_HOOKS = {"enemy": ["hit", "die", "attack", "spawn", "aim", "lock", "shot"], "weapon": ["fire", "hit", "place", "burst", "reload", "land"]}
 # body keys with the game's defaults (JsonContent._enemy)
 ENEMY_DEFAULTS = {"archetype": "walker", "brain": "chase", "hp": 10.0, "speed": 2.5, "damage": 5.0, "radius": 0.5,
                   "size": 1.0, "knockback": 0.0, "damage_reduction": 0.0, "contact_cd": 0.6, "head": 0.86,

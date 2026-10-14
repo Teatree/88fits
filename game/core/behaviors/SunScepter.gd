@@ -264,7 +264,15 @@ func pick_targets(n: int) -> Array:
 	for c in cands:
 		weights.append(weight_at(float(c[1]), power))
 	var out: Array = []
-	for k in range(mini(n, cands.size())):
+	# pass 73 (lane SNIPER): the first pillar goes to a special, an Elite or the boss she can see within reach
+	# (priority_pick, the map's 10 m); the rest are drawn as before, none twice
+	var pt: int = priority_pick(player.global_position, stat("range", 10.0)) if n > 0 and player != null else -1
+	for j in range(cands.size()):
+		if pt >= 0 and int(cands[j][0]) == pt:
+			out.append(pt)
+			weights[j] = 0.0
+			break
+	for k in range(mini(n, cands.size()) - out.size()):
 		var total := 0.0
 		for w in weights:
 			total += float(w)

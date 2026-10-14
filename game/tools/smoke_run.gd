@@ -159,6 +159,12 @@ func _tick_run(dt: float) -> void:
 	if _game.get("structure_shop") and _game.structure_shop and _game.structure_shop.visible:
 		_game.structure_shop._finish(false)
 		print("smoke_run: the shop -> left")
+	# pass 73 (lane STRUCT): the Totem Pole's gifts close through their own pick too; the smoke takes the first
+	if _game.get("totem_screen") and _game.totem_screen and _game.totem_screen.visible and not _game.totem_screen._done:
+		var tp: Array = _game.totem_screen.planks()
+		if not tp.is_empty():
+			_game.totem_screen._pick(tp[0])
+			print("smoke_run: the totem -> %s" % str(tp[0].boon.get("id", "")))
 	if _game.portal_dialog and _game.portal_dialog.visible:
 		if not _declined and _game.portal_dialog.has_signal("declined"):
 			# pass 48: "Not yet" the first time: unpaused, the portal still there; out past 2.5 m and back in, it asks again

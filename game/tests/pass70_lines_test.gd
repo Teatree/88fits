@@ -453,7 +453,8 @@ func test_marshals_star_blocks_a_whole_hit_then_recharges() -> void:
 	assert_str(p.last_outcome).is_equal("shield")
 	assert_int(p.star_guard.blocks).is_equal(1)
 	assert_float(p.invuln).is_greater(0.0)
-	assert_bool(p.damage_log_text().contains("Marshal's Star")).is_true()
+	# pass 73 (lane CARDS): the log names the card by its name (The Emperor Risen since the cards)
+	assert_bool(p.damage_log_text().contains(Registry.passive("marshals_star").display_name)).is_true()
 	# spent: the next one lands, less its damage reduction
 	assert_bool(p.star_guard.is_ready()).is_false()
 	assert_float(p.star_guard.seconds_left()).is_equal_approx(every, 0.01)

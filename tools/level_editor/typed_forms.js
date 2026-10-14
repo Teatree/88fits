@@ -268,10 +268,12 @@ const TypedForms = (() => {
     // the queue's own order (the order they were queued in: Rebound's A backboard, B return arrow, C catching hand)
     jobs.forEach((j, n) => {
       const subject = String((j.spec && j.spec.subject) || j.title || '');
+      // pass 73 (lane CARDS): a job painted for a look (a card's B-E) says so; its Install lands in that look
+      const code = j.target && j.target.code ? String(j.target.code) : '';
       const box = el('div', { class: 'icand-job' });
-      box.appendChild(el('div', { class: 'small' }, el('b', { text: `Design ${String.fromCharCode(65 + n)}` }), el('span', { class: 'muted small', text: ` · ${j.id} · ${subject.length > 140 ? subject.slice(0, 140) + '…' : subject}`, title: subject })));
+      box.appendChild(el('div', { class: 'small' }, el('b', { text: `Design ${String.fromCharCode(65 + n)}${code ? ' · for look ' + code : ''}` }), el('span', { class: 'muted small', text: ` · ${j.id} · ${subject.length > 140 ? subject.slice(0, 140) + '…' : subject}`, title: subject })));
       let picked = null;
-      const btn = el('button', { class: 'btn small primary', type: 'button', text: 'Install', disabled: true, onclick: () => install(j, picked) });
+      const btn = el('button', { class: 'btn small primary', type: 'button', text: 'Install', disabled: true, title: code ? `installs into look ${code} (${doc.id}_icon_${code.toLowerCase()}.png)` : 'installs as the item\'s icon', onclick: () => install(j, picked) });
       const grid = el('div', { class: 'icand-grid' });
       for (const ch of j.choices) {
         const key = ch.key != null ? ch.key : ch.label;

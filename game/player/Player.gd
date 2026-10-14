@@ -1050,7 +1050,8 @@ static func log_text(rows: Array) -> String:
 			"power-up":
 				what = "blocked by the Shield power-up (%d)" % roundi(raw)
 			"star":
-				what = "blocked by Marshal's Star (%d)" % roundi(raw)
+				# pass 73 (lane CARDS): the card's own name (Tin Star's evolution is a fortune card now)
+				what = "blocked by %s (%d)" % [PassiveDef.display_name_of("marshals_star", "Marshal's Star"), roundi(raw)]
 			"shield":
 				what = "−%d shield" % roundi(float(e.get("shield", 0.0)))
 			"broke":

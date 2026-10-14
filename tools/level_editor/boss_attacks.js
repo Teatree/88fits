@@ -24,6 +24,8 @@ const BossAttacks = (() => {
   const AIM_OPTS = [o('hero', 'at the hero'), o('random', 'a random way'), o('fixed', 'fixed (due east)')];
   const CENTER_OPTS = [o('boss', 'round the boss'), o('hero', 'round the hero\'s spot')];
   const TEL_OPTS = [o('circles', 'circles on the landing spots'), o('lines', 'lines down the shots\' way'), o('ring', 'a ring round its reach'), o('none', 'no warning')];
+  // pass 73 (lane GROUND): a rain's landing (BossAttackDef.LANDING_MODES)
+  const MODE_OPTS = [o('stagger', 'stagger: one after another, from its back'), o('volley', 'volley: one spew from its mouth, landing together')];
   const KIND_OPTS = [
     o('rain', 'rain: shots thrown up and out, landing on a pattern', 'projectiles thrown up and out in every direction, landing on the points of a pattern round the boss, each spot warned before it lands; the hero is hit only inside a landing circle'),
     o('volley', 'volley: straight shots out from the boss', 'shots flying straight out over a fan (or all round), in waves; a shot hits the hero once and is gone'),
@@ -40,6 +42,7 @@ const BossAttacks = (() => {
     ['telegraph', 'Telegraph', 'how the hero is warned'],
     ['_top', 'Damage and push', 'what a hit does'],
     ['timing', 'Timing', 'wind-up, stagger, rest'],
+    ['spew', 'Spew', 'a volley rain: the crouch, and the shots out of the boss\'s mouth (pass 73)'],
     ['sounds', 'Sounds', 'ids from content/sounds/soundmap.json'],
   ];
   const FIELDS = [
@@ -69,19 +72,28 @@ const BossAttacks = (() => {
     { g: 'pattern', k: 'wave_gap', label: 'Between waves (s)', type: 'number', min: 0, step: 0.05, kinds: ['volley', 'ring'], help: 'seconds between two volleys, or two rings' },
     { g: 'pattern', k: 'width', label: 'Ring width (m)', type: 'number', min: 0.1, step: 0.1, kinds: ['ring'], help: 'how thick each ring is' },
     { g: 'landing', k: 'radius', label: 'Landing radius (m)', type: 'number', min: 0.1, step: 0.05, kinds: ['rain'], help: 'the circle each shot lands in: the hero is hit only inside it (his middle within the radius + 0.2 m)' },
+    { g: 'landing', k: 'mode', label: 'Landing', type: 'select', opts: MODE_OPTS, kinds: ['rain'], help: 'stagger: the shots leave the boss\'s back one after another and land over the Stagger; volley (pass 73, the Gila\'s cactus rain): the boss crouches, rears up and spews them all from its mouth, each leaving within the Spew\'s Burst and landing within the Stagger of the others, the nearest first' },
     { g: 'telegraph', k: 'kind', label: 'Warning', type: 'select', opts: TEL_OPTS, kinds: ALL, help: 'rain: a red circle on each landing spot (and the edge of the area through the wind-up); volley: a line down each shot\'s way; ring and slam: a circle round its reach; none = no warning' },
     { g: 'telegraph', k: 'color', label: 'Warning colour', type: 'color', kinds: ALL, help: 'the warning\'s colour' },
-    { g: 'telegraph', k: 'seconds', label: 'Circle shows (s)', type: 'number', min: 0, step: 0.05, kinds: ['rain'], help: 'how long before a shot lands its circle shows (×1/pace on the map). The hero walks about 3 m a second: 0.9 s is time to step out of a 0.9 m circle' },
+    { g: 'telegraph', k: 'seconds', label: 'Circle shows (s)', type: 'number', min: 0, step: 0.05, kinds: ['rain'], help: 'how long before a shot lands its circle shows (×1/pace on the map). The hero walks about 3 m a second: 0.9 s is time to step out of a 0.9 m circle. With All circles at once: how long before the spikes leave every circle lights up (the wind-up is made at least this long)' },
+    { g: 'telegraph', k: 'all_at_once', label: 'All circles at once', type: 'bool', kinds: ['rain'], help: 'pass 73: every landing circle lights up together, Circle shows seconds before the shots leave (at the wind-up\'s start when the wind-up is no longer), full size from the start, and stays lit until its own shot lands, filling in as it comes down; off: each circle shows Circle shows seconds before its own shot lands' },
     { g: '_top', k: 'damage', label: 'Damage × bite', type: 'number', min: 0, step: 0.05, kinds: ALL, help: 'a hit takes this × the boss\'s bite (its JSON damage: the Gila\'s 24), then the stage, hero-level and map factors, as every scripted attack' },
     { g: '_top', k: 'knockback', label: 'Knockback (m/s)', type: 'number', min: 0, step: 0.5, kinds: ALL, help: 'the shove where it hits him (an evade or the Invincibility bubble ignores it)' },
     { g: '_top', k: 'lift', label: 'Lift (m/s)', type: 'number', min: 0, step: 0.5, kinds: ALL, help: 'throws him up with the shove (0 = a plain shove)' },
     { g: 'timing', k: 'windup', label: 'Wind-up (s)', type: 'number', min: 0, step: 0.05, kinds: ALL, help: 'seconds the boss winds up first, the warning showing (×1/pace on the map); a boss\'s own entry may set its own' },
-    { g: 'timing', k: 'stagger', label: 'Stagger (s)', type: 'number', min: 0, step: 0.05, kinds: ['rain'], help: 'the rain arrives over this long: the first shot lands after its flight, the last this much later' },
+    { g: 'timing', k: 'stagger', label: 'Stagger (s)', type: 'number', min: 0, step: 0.05, kinds: ['rain'], help: 'the rain arrives over this long: the first shot lands after its flight, the last this much later. A volley: every shot lands within this long of the others (the farthest a touch later)' },
     { g: 'timing', k: 'cooldown', label: 'Rest after (s)', type: 'number', min: 0, step: 0.1, kinds: ALL, help: 'the rest after this attack before the next; 0 = the boss\'s own Between attacks' },
     { g: 'timing', k: 'hold', label: 'Stands (s)', type: 'number', min: -1, step: 0.1, kinds: ALL, help: 'seconds the boss stands still after it fires; -1 = while its shots leave (the stagger, the volleys)' },
     { g: 'sounds', k: 'windup', label: 'Wind-up sound', type: 'sound', kinds: ALL, help: 'played as the wind-up starts (the boss\'s own attack sound plays anyway)' },
     { g: 'sounds', k: 'fire', label: 'Fire sound', type: 'sound', kinds: ALL, help: 'played as the shots leave (a rain: every 0.35 s while they leave)' },
     { g: 'sounds', k: 'land', label: 'Land sound', type: 'sound', kinds: ['rain'], help: 'played as shots land near the hero (at most one every 0.12 s)' },
+    // pass 73 (lane GROUND; Garry: "the boss does his animation of all those projectiles flying out of his mouth but they
+    // all land around the same time"): a volley rain's spew (read only with Landing = volley)
+    { g: 'spew', k: 'crouch', label: 'Crouch (s)', type: 'number', min: 0, step: 0.05, kinds: ['rain'], help: 'volley: the boss crouches, squashed, through the last this many seconds of its wind-up (×1/pace on the map)' },
+    { g: 'spew', k: 'squash', label: 'Crouch squash', type: 'number', min: 0.3, max: 1, step: 0.02, kinds: ['rain'], help: 'volley: how low it crouches: 1 = not at all, 0.82 = 18% shorter and a little wider' },
+    { g: 'spew', k: 'stretch', label: 'Spew stretch', type: 'number', min: 1, max: 2, step: 0.05, kinds: ['rain'], help: 'volley: how tall it rears up as it spews (1.25 = a quarter taller and narrower), easing back to 1 by itself' },
+    { g: 'spew', k: 'mouth', label: 'Mouth height', type: 'number', min: 0, max: 1.2, step: 0.02, kinds: ['rain'], help: 'volley: where the shots leave from, this share of the boss\'s height up its painting (the Gila\'s mouth 0.62), a little in front of it' },
+    { g: 'spew', k: 'burst', label: 'Burst (s)', type: 'number', min: 0, step: 0.02, kinds: ['rain'], help: 'volley: every shot leaves the mouth within this many seconds of the spew (keep it under the Stagger)' },
   ];
 
   // ------------------------------------------------------------------ data
@@ -331,7 +343,7 @@ const BossAttacks = (() => {
     const b = M.blank(v, x.id, x.name);
     const reads = (k) => new Set(FIELDS.filter((f) => f.kinds.includes(k)).map((f) => f.g + '.' + f.k));
     const had = reads(M.KINDS.includes(x.kind) ? x.kind : 'rain'), now = reads(v);
-    for (const g of ['projectile', 'pattern', 'landing', 'telegraph', 'timing', 'sounds']) if (b[g] && (x[g] == null || typeof x[g] !== 'object')) x[g] = {};
+    for (const g of ['projectile', 'pattern', 'landing', 'telegraph', 'timing', 'sounds', 'spew']) if (b[g] && (x[g] == null || typeof x[g] !== 'object')) x[g] = {};
     for (const f of FIELDS) {
       const key = f.g + '.' + f.k;
       if (!now.has(key) || f.g === '_top' || !b[f.g]) continue;
@@ -414,7 +426,8 @@ const BossAttacks = (() => {
     const wrap = el('div', { class: 'batk-prev' });
     const boss = scripted().find((c) => (recOf(S.open) || { used_by: [] }).used_by.includes(c.id)) || scripted().find((c) => c.kind === 'boss') || { radius: 2.4, damage: 24, name: 'boss' };
     const bossR = M.num(boss.radius, 2.4);
-    const wind = M.num(M.val(d, 'timing', 'windup'), 1);
+    // (pass 73: a rain lit all at once winds up at least as long as its circles show)
+    const wind = M.windupSeconds(d);
     const lay = kind === 'rain' ? M.rainLayout(d, S.seed) : null;
     const pat = M.patternFull(d);
     const rmax = M.num(pat.radius_max, 16);
@@ -441,7 +454,9 @@ const BossAttacks = (() => {
     if (kind === 'rain') {
       s.appendChild(svg('circle', { cx: X(cx), cy: Y(cz), r: lay.rmax * ppm, class: 'bp-edge' }));
       if (lay.rmin > 0) s.appendChild(svg('circle', { cx: X(cx), cy: Y(cz), r: lay.rmin * ppm, class: 'bp-edge inner' }));
-      if (!fired && telKind !== 'none') s.appendChild(svg('circle', { cx: X(cx), cy: Y(cz), r: lay.rmax * ppm, fill: 'none', stroke: warn, 'stroke-width': 2, opacity: 0.7 }));
+      // pass 73: a rain lit all at once shows its circles instead of the area's outline
+      const allAt = M.litAtOnce(d);
+      if (!fired && telKind !== 'none' && !allAt) s.appendChild(svg('circle', { cx: X(cx), cy: Y(cz), r: lay.rmax * ppm, fill: 'none', stroke: warn, 'stroke-width': 2, opacity: 0.7 }));
       const tel = M.num(M.val(d, 'telegraph', 'seconds'), 0.9);
       // the narrowest gap
       let pair = null, best = Infinity;
@@ -449,18 +464,22 @@ const BossAttacks = (() => {
       lay.pts.forEach((p, k) => {
         const land = lay.times[k];
         const x = X(cx + p[0]), y = Y(cz + p[1]), r = lay.landR * ppm;
-        if (!fired || tc < land - tel) { s.appendChild(svg('circle', { cx: x, cy: y, r, class: 'bp-spot' })); }
+        // when its circle lights, in seconds after the spikes leave (pass 73: all at once, before the spew)
+        const litAt = allAt ? -Math.min(tel, wind) : land - tel;
+        if (telKind === 'none' || tc < litAt) { s.appendChild(svg('circle', { cx: x, cy: y, r, class: 'bp-spot' })); }
         else if (tc < land) {
-          const f = (tc - (land - tel)) / Math.max(tel, 0.01);
-          s.appendChild(svg('circle', { cx: x, cy: y, r: r * (0.4 + 0.6 * f), fill: warn, 'fill-opacity': 0.18, stroke: warn, 'stroke-width': 1.6 }));
+          const f = Math.min(Math.max((tc - litAt) / Math.max(land - litAt, 0.01), 0), 1);
+          if (allAt) s.appendChild(svg('circle', { cx: x, cy: y, r, fill: warn, 'fill-opacity': 0.2 + 0.25 * f, stroke: warn, 'stroke-width': 1.8 }));
+          else s.appendChild(svg('circle', { cx: x, cy: y, r: r * (0.4 + 0.6 * f), fill: warn, 'fill-opacity': 0.18, stroke: warn, 'stroke-width': 1.6 }));
         } else {
           const age = tc - land;
           s.appendChild(svg('circle', { cx: x, cy: y, r, fill: tint, 'fill-opacity': Math.max(0.15, 0.6 - age * 0.5), stroke: tint, 'stroke-width': 1 }));
         }
-        // a shot in the air (from above: on the straight line from the boss)
-        const launch = land - lay.flight;
+        // a shot in the air (from above: on the straight line from the boss; pass 73: a volley's own flight)
+        const fl = lay.flights ? lay.flights[k] : lay.flight;
+        const launch = land - fl;
         if (fired && tc >= launch && tc < land) {
-          const u = (tc - launch) / lay.flight;
+          const u = (tc - launch) / fl;
           s.appendChild(svg('circle', { cx: X(p[0] * u + cx * u), cy: Y(p[1] * u + cz * u), r: Math.max(2.5, 0.25 * M.num(M.val(d, 'projectile', 'size'), 1) * ppm), fill: tint, stroke: '#000', 'stroke-width': 0.6 }));
         }
       });
@@ -518,7 +537,9 @@ const BossAttacks = (() => {
       li(`<b>${lay.pts.length}</b> landing spots between ${fmtN(lay.rmin, 1)} and ${fmtN(lay.rmax, 1)} m (${pat.shape}, ${pat.order === 'out' ? 'nearest first' : pat.order})`);
       li(`the narrowest gap <b>${isFinite(lay.gap) ? fmtN(lay.gap, 2) : '—'} m</b> between two circles (the rule: at least ${fmtN(M.num(pat.gap, 1), 2)} m; the hero is ${fmtN(2 * M.HERO_RADIUS, 1)} m wide) <span class="bp-gapkey">━</span>`);
       li(`the circles cover <b>${fmtN(lay.cover * 100, 0)}%</b> of the ring`);
-      li(`after the ${fmtN(wind, 2)} s wind-up the shots land from ${fmtN(lay.flight, 2)} s to ${fmtN(lay.lasts, 2)} s, each circle showing ${fmtN(M.num(M.val(d, 'telegraph', 'seconds'), 0.9), 2)} s before (×1/pace on the map)`);
+      if (M.isVolley(d)) li(`one spew from its mouth after the ${fmtN(wind, 2)} s wind-up (it crouches the last ${fmtN(M.num(M.val(d, 'spew', 'crouch'), 0.35), 2)} s): every shot lands between ${fmtN(lay.first, 2)} s and ${fmtN(lay.lasts, 2)} s after it, <b>all within ${fmtN(lay.lasts - lay.first, 2)} s</b> (×1/pace on the map)`);
+      else li(`after the ${fmtN(wind, 2)} s wind-up the shots land from ${fmtN(lay.flight, 2)} s to ${fmtN(lay.lasts, 2)} s, each circle showing ${fmtN(M.num(M.val(d, 'telegraph', 'seconds'), 0.9), 2)} s before (×1/pace on the map)`);
+      if (M.litAtOnce(d)) li(`<b>every circle lights at once</b> ${fmtN(Math.min(M.num(M.val(d, 'telegraph', 'seconds'), 0.9), wind), 2)} s before the spikes leave and stays lit until its own spike lands`);
     }
     if (kind === 'volley') li(`${Math.max(Math.round(M.num(pat.count, 1)), 1)} shots a wave × ${Math.max(Math.round(M.num(pat.waves, 1)), 1)} over ${fmtN(M.num(pat.spread_deg, 360), 0)}°, ${fmtN(M.num(M.val(d, 'projectile', 'range'), 18), 0)} m at ${fmtN(M.num(M.val(d, 'projectile', 'speed'), 12), 1)} m/s`);
     if (kind === 'ring') li(`${Math.max(Math.round(M.num(pat.count, 1)), 1)} ring(s) to ${fmtN(rmax, 1)} m, ${fmtN(M.num(pat.width, 1.2), 1)} m thick`);

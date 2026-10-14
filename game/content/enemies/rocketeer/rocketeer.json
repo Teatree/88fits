@@ -25,7 +25,12 @@
       "knockback": 26.0,
       "lift": 6.5,
       "throw": 26.0,
-      "throw_radius": 4.5
+      "throw_radius": 4.5,
+      "hit_slow": {
+        "mult": 0.5,
+        "recover": 3.0,
+        "shake": 0.35
+      }
     },
     "reload": 2.5,
     "muzzle": {
@@ -65,7 +70,7 @@
     "special_chance": 0.0,
     "special": {}
   },
-  "doc": "A vulture with a rocket launcher (Garry's picture): keeps 28 m off and sends one slow homing rocket at the hero, then reloads; kill him and the rocket goes loose and dives on the crowd.",
+  "doc": "A vulture with a rocket launcher (Garry's picture): keeps 28 m off and sends one slow homing rocket at the hero, then reloads; kill him and the rocket goes loose and dives on the crowd. Every hit on him shakes his rocket and halves its speed, back to full over 3 s (pass 73).",
   "anims": {
     "idle": 4,
     "run": 12,

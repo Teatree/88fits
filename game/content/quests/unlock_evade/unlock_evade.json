@@ -1,6 +1,6 @@
 {
   "id": "unlock_evade",
-  "name": "Evade",
+  "name": "The Ghost",
   "condition": {
     "type": "reach_stage",
     "stage": 3

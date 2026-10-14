@@ -54,7 +54,7 @@
         "name": "spawn_ring",
         "windup": 0.8,
         "enemy": "tumbleweed_minion",
-        "count": 12,
+        "count": 16,
         "telegraph": "none"
       },
       {

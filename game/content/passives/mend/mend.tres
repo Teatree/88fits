@@ -1,10 +1,14 @@
 [gd_resource type="Resource" script_class="PassiveDef" format=3]
 
 [ext_resource type="Texture2D" path="res://content/passives/mend/mend_icon.png" id="1_u86aa"]
+[ext_resource type="Texture2D" path="res://content/passives/mend/mend_icon_b.png" id="1_ylpmn"]
 [ext_resource type="Script" path="res://core/data/Effect.gd" id="2_ylpmn"]
 [ext_resource type="Script" path="res://core/data/PassiveDef.gd" id="3_3geg2"]
+[ext_resource type="Texture2D" path="res://content/passives/mend/mend_icon_c.png" id="5_4v1n1"]
+[ext_resource type="Texture2D" path="res://content/passives/mend/mend_icon_d.png" id="6_5g7ws"]
+[ext_resource type="Texture2D" path="res://content/passives/mend/mend_icon_e.png" id="7_fb6d4"]
 
-[sub_resource type="Resource" id="Resource_u86aa"]
+[sub_resource type="Resource" id="Resource_4v1n1"]
 script = ExtResource("2_ylpmn")
 stat = "regen"
 value = 0.45
@@ -13,14 +17,48 @@ target = "player"
 [resource]
 script = ExtResource("3_3geg2")
 line = true
-levels = [[SubResource("Resource_u86aa")]]
+levels = [[SubResource("Resource_4v1n1")]]
 max_level = 4
 trade = "the tick waits 3 s after every hit"
 evolves_into = "second_wind"
+variants = {
+"A": {
+"icon": ExtResource("1_u86aa"),
+"icon_file": "mend_icon.png",
+"note": "the icon before the cards (passes 47-72): an object, not a card",
+"shelved": false
+},
+"B": {
+"icon": ExtResource("1_ylpmn"),
+"icon_file": "mend_icon_b.png",
+"note": "B · tilted card (detail: the least: flat colours, one symbol, nothing else)",
+"shelved": false
+},
+"C": {
+"icon": ExtResource("5_4v1n1"),
+"icon_file": "mend_icon_c.png",
+"note": "C · card on a deck (detail: low: a few card backs, small corner stars)",
+"shelved": false
+},
+"D": {
+"icon": ExtResource("6_5g7ws"),
+"icon_file": "mend_icon_d.png",
+"note": "D · fanned hand (detail: medium: three cards, gold pattern backs, corner stars and a thin gold line round the face)",
+"shelved": false
+},
+"E": {
+"icon": ExtResource("7_fb6d4"),
+"icon_file": "mend_icon_e.png",
+"note": "E · gloved hand (detail: the most: a lace glove, engraved hatching, a tiny desert horizon)",
+"shelved": false
+}
+}
+variant = "B"
+variant_base = "A"
 id = "mend"
-display_name = "Mend"
-flavour = "It knits."
-icon = ExtResource("1_u86aa")
+display_name = "Temperance"
+flavour = "Temperance pours slowly. It knits."
+icon = ExtResource("1_ylpmn")
 icon_file = "mend_icon.png"
 placeholder = {
 "color": "#70E090",

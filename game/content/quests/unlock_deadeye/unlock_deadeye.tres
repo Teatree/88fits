@@ -14,7 +14,7 @@ unlocks = {
 "type": "passive"
 }
 id = "unlock_deadeye"
-display_name = "Deadeye"
+display_name = "The Eye"
 icon = ExtResource("1_smemt")
 icon_file = "unlock_deadeye_icon.png"
 placeholder = {

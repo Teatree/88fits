@@ -99,15 +99,18 @@ const BossModel = (() => {
   const AIMS = ['hero', 'random', 'fixed'];
   const CENTERS = ['boss', 'hero'];
   const TELEGRAPHS = ['circles', 'lines', 'ring', 'none'];
+  // pass 73 (lane GROUND): a rain's landing, BossAttackDef.LANDING_MODES
+  const LANDING_MODES = ['stagger', 'volley'];
   const SCRIPTS = ['roll', 'spawn_ring', 'slam_at', 'blink', 'burrow', 'rain', 'erupt', 'spit_volley', 'slam', 'rumble',
     'brand', 'tumbleweed_volley', 'swoop', 'boulder'];
   const DEFAULTS = {
     projectile: { look: 'spike', tint: '#D0242F', size: 1.0, glow: 1.0, flight: 1.0, arc: 6.0, speed: 12.0, range: 18.0, hit_radius: 0.5, trail: true },
     pattern: { shape: 'rings', center: 'boss', radius_min: 3.0, radius_max: 16.0, spacing: 3.2, count: 0, jitter: 0.2, gap: 1.0, turn: true, order: 'out', spread_deg: 360.0, aim: 'hero', waves: 1, wave_gap: 0.5, width: 1.2 },
-    landing: { radius: 0.9 },
-    telegraph: { kind: 'circles', color: '#ED4A5C', seconds: 0.9 },
+    landing: { radius: 0.9, mode: 'stagger' },
+    telegraph: { kind: 'circles', color: '#ED4A5C', seconds: 0.9, all_at_once: false },
     timing: { windup: 1.0, stagger: 1.5, cooldown: 0.0, hold: -1.0 },
     sounds: { windup: '', fire: 'en_boss_attack', land: '' },
+    spew: { crouch: 0.35, burst: 0.12, mouth: 0.62, squash: 0.82, stretch: 1.25 },
   };
   const TOP_DEFAULTS = { damage: 0.75, knockback: 4.0, lift: 0.0 };
   /** The Player's body radius (Player.RADIUS), for the preview's hero. */
@@ -233,22 +236,58 @@ const BossModel = (() => {
     return out;
   }
 
-  /** A rain's example layout and its numbers: spots, landing times, smallest gap, the share of the area its circles
-   *  cover, how long the rain lasts after it fires. */
+  /** Pass 73 (lane GROUND): a rain that throws every shot in one spew from the boss's mouth (landing.mode "volley"). */
+  const isVolley = (a) => String((a && a.kind) || 'rain') === 'rain' && String(val(a, 'landing', 'mode')) === 'volley';
+  /** ... that lights every landing circle at once before the spew (telegraph.all_at_once). */
+  const litAtOnce = (a) => String((a && a.kind) || 'rain') === 'rain' && val(a, 'telegraph', 'all_at_once') === true && val(a, 'telegraph', 'kind') !== 'none';
+  /** BossAttackDef.windup_seconds: timing.windup, or for a rain lit all at once at least telegraph.seconds. */
+  function windupSeconds(a) {
+    let w = Math.max(num(val(a, 'timing', 'windup'), 1), 0);
+    if (String((a && a.kind) || 'rain') === 'rain' && val(a, 'telegraph', 'all_at_once') === true) w = Math.max(w, Math.max(num(val(a, 'telegraph', 'seconds'), 0.9), 0));
+    return w;
+  }
+
+  /** BossAttackDef.volley_times: every shot leaves within `burst` of the spew and flies `flight` to the nearest spot, up
+   *  to `stagger - burst` longer to the farthest, so all land within `stagger` of each other. {dep, land} per point. */
+  function volleyTimes(pts, flight, stagger, burst, R) {
+    const fl = Math.max(flight, 0.05), st = Math.max(stagger, 0), b = clamp(burst, 0, st);
+    const ds = pts.map((p) => Math.hypot(p[0], p[1]));
+    const lo = ds.length ? Math.min(...ds) : 0, hi = ds.length ? Math.max(...ds) : 0;
+    const dep = [], land = [];
+    for (let k = 0; k < pts.length; k++) {
+      const dn = hi - lo > 0.001 ? (ds[k] - lo) / (hi - lo) : 0;
+      dep.push(b * R.randf());
+      land.push(dep[k] + fl + (st - b) * dn);
+    }
+    return { dep, land };
+  }
+
+  /** A rain's example layout and its numbers: spots, landing times and each shot's flight, smallest gap, the share of
+   *  the area its circles cover, how long the rain lasts after it fires (pass 73: a volley's times by volleyTimes). */
   function rainLayout(a, seed) {
     const lr = Math.max(num(val(a, 'landing', 'radius'), 0.9), 0);
-    const pts = points(patternFull(a), lr, rng(seed == null ? 1 : seed));
+    const R = rng(seed == null ? 1 : seed);
+    const pts = points(patternFull(a), lr, R);
     const flight = Math.max(num(val(a, 'projectile', 'flight'), 1), 0.1);
     const stagger = num(val(a, 'timing', 'stagger'), 1.5);
-    const times = landTimes(pts.length, stagger, flight);
+    let times, flights;
+    if (isVolley(a)) {
+      const vt = volleyTimes(pts, flight, stagger, num(val(a, 'spew', 'burst'), 0.12), R);
+      times = vt.land;
+      flights = vt.land.map((l, k) => l - vt.dep[k]);
+    } else {
+      times = landTimes(pts.length, stagger, flight);
+      flights = times.map(() => flight);
+    }
     const pat = patternFull(a);
     const rmin = Math.max(num(pat.radius_min, 3), 0), rmax = Math.max(num(pat.radius_max, 16), rmin);
     const area = Math.PI * (rmax * rmax - rmin * rmin);
     return {
-      pts, times, landR: lr, flight, stagger, rmin, rmax,
+      pts, times, flights, landR: lr, flight, stagger, rmin, rmax,
       gap: smallestGap(pts, lr),
       cover: area > 0 ? pts.length * Math.PI * lr * lr / area : 0,
-      lasts: times.length ? times[times.length - 1] : flight,
+      lasts: times.length ? Math.max(...times) : flight,
+      first: times.length ? Math.min(...times) : flight,
     };
   }
 
@@ -286,7 +325,9 @@ const BossModel = (() => {
       if (num(pat.radius_max, 16) <= num(pat.radius_min, 3)) errors.push('the outer radius must be bigger than the inner one');
       const lay = rainLayout(a, 1);
       if (!lay.pts.length) errors.push('no landing spot fits between the radii');
-      if (num(val(a, 'telegraph', 'seconds'), 0.9) > num(val(a, 'projectile', 'flight'), 1) + num(val(a, 'timing', 'stagger'), 1.5)) warnings.push('the circles show before the first spike is even thrown');
+      if (!LANDING_MODES.includes(String(val(a, 'landing', 'mode')))) errors.push(`unknown landing "${val(a, 'landing', 'mode')}" (${LANDING_MODES.join(', ')})`);
+      if (!litAtOnce(a) && num(val(a, 'telegraph', 'seconds'), 0.9) > num(val(a, 'projectile', 'flight'), 1) + num(val(a, 'timing', 'stagger'), 1.5)) warnings.push('the circles show before the first spike is even thrown');
+      if (isVolley(a) && num(val(a, 'spew', 'burst'), 0.12) > num(val(a, 'timing', 'stagger'), 1.5)) warnings.push('the burst is longer than the stagger: the spikes cannot all land within the stagger');
       if (num(val(a, 'telegraph', 'seconds'), 0.9) < 0.4 && val(a, 'telegraph', 'kind') !== 'none') warnings.push('under 0.4 s of warning: hard to step out of a circle (the hero walks about 3 m a second)');
       if (num(pat.gap, 1) < 2 * HERO_RADIUS) warnings.push(`a gap under ${2 * HERO_RADIUS} m is narrower than the hero`);
       if (lay.pts.length > 200) warnings.push(`${lay.pts.length} spots: heavy on a phone (keep it under 200)`);
@@ -306,6 +347,7 @@ const BossModel = (() => {
     a.projectile = Object.assign({}, DEFAULTS.projectile);
     a.pattern = Object.assign({}, DEFAULTS.pattern);
     if (k === 'rain') a.landing = Object.assign({}, DEFAULTS.landing);
+    if (k === 'rain') a.spew = Object.assign({}, DEFAULTS.spew);
     a.telegraph = Object.assign({}, DEFAULTS.telegraph, { kind: k === 'rain' ? 'circles' : k === 'volley' ? 'lines' : 'ring' });
     a.damage = TOP_DEFAULTS.damage; a.knockback = TOP_DEFAULTS.knockback; a.lift = TOP_DEFAULTS.lift;
     a.timing = Object.assign({}, DEFAULTS.timing);
@@ -318,8 +360,9 @@ const BossModel = (() => {
 
   const api = {
     SCALING_DEFAULTS, REF_DEFAULTS, scalingOf, hpMult, dpsForMult, bossEvents, stageMult, bossBaseHp, chartSeries, fightRel,
-    KINDS, SHAPES, LOOKS, ORDERS, AIMS, CENTERS, TELEGRAPHS, SCRIPTS, DEFAULTS, TOP_DEFAULTS, HERO_RADIUS,
+    KINDS, SHAPES, LOOKS, ORDERS, AIMS, CENTERS, TELEGRAPHS, SCRIPTS, DEFAULTS, TOP_DEFAULTS, HERO_RADIUS, LANDING_MODES,
     val, patternFull, topVal, rng, points, smallestGap, landTimes, rainLayout, volleyDirs, ringFront, hitDamage, issues, blank, num,
+    isVolley, litAtOnce, windupSeconds, volleyTimes,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

@@ -156,6 +156,8 @@ func load_save() -> void:
 	_survey_counted_from_runs()
 	Settings.from_dict(data.get("settings", {}))
 	last_saved_unix = int(data.get("saved_at", 0))
+	# pass 73 (lane CARDS): the cards in the look kept on this phone (the Registry scanned before the save was read)
+	Registry.apply_card_looks()
 
 
 func _read_json(p: String) -> Variant:
@@ -387,6 +389,32 @@ func set_hero_look(id: String, code: String) -> void:
 		_write(_sandbox_backup)
 	else:
 		request_save()
+
+
+# ---------------------------------------------------------------- the cards' look (pass 73, lane CARDS)
+
+## The look every fortune card (line item) is drawn in on this phone, kept from the arena's ITEMS tab ("" = each card's
+## JSON `variant`): Garry compares the card framings in play. Registry.apply_card_looks puts it on.
+func card_look() -> String:
+	return str(data.get("card_look", ""))
+
+
+## Keeps `code` as every card's look from now on ("" = each card's JSON look again), past the arena's sandbox as
+## set_hero_look does, and puts it on at once.
+func set_card_look(code: String) -> void:
+	var targets: Array = [data]
+	if _sandboxed:
+		targets.append(_sandbox_backup)
+	for d: Dictionary in targets:
+		if code == "":
+			d.erase("card_look")
+		else:
+			d["card_look"] = code
+	if _sandboxed:
+		_write(_sandbox_backup)
+	else:
+		request_save()
+	Registry.apply_card_looks()
 
 
 # ---------------------------------------------------------------- the install id (pass 57)

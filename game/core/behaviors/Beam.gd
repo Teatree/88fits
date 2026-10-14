@@ -97,7 +97,10 @@ func _zap(enemies: EnemyManager, i: int, damage: float, gap: float) -> void:
 func _fire() -> bool:
 	var enemies: EnemyManager = game.enemies
 	var range_m := stat("range", 9.0)
-	var first := enemies.random_in_range(player.global_position, range_m)
+	# pass 73 (lane SNIPER): a special, an Elite or the boss within reach takes the first link; the chain goes on as before
+	var first: int = priority_pick(player.global_position, range_m)
+	if first < 0:
+		first = enemies.random_in_range(player.global_position, range_m)
 	if first < 0:
 		return false
 	var chains: int = max(stat_int("chains", 2), 0)
@@ -133,7 +136,8 @@ func _fire() -> bool:
 		var best := -1
 		var best_d := 25.0
 		for e in enemies.indices_in_radius(enemies.pos[current], 5.0):
-			if hit.has(e):
+			# (pass 73, lane GROUND: never one still rising out of the sand, EnemyManager.targetable)
+			if hit.has(e) or not enemies.targetable(e):
 				continue
 			var d := enemies.pos[e].distance_squared_to(enemies.pos[current])
 			if d < best_d:

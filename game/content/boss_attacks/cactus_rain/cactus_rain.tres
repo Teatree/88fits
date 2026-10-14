@@ -4,13 +4,13 @@
 
 [resource]
 script = ExtResource("1_if6ng")
-doc = "The Gila Grande rears up and fires red cactus spikes up and out in every direction; they come down over a huge area round it on rings of landing spots with a gap between every two, each spot a red circle 0.9 s before its spike lands. Stand between the circles."
+doc = "Every landing spot round the Gila Grande lights up red at once; it crouches, rears up and spews a burst of big red cactus spikes out of its mouth, and they all come down together a moment later, on rings of wide circles with a narrow gap between every two. Find a gap before the spew."
 projectile = {
 "arc": 7.0,
 "flight": 1.1,
 "glow": 1.2,
 "look": "spike",
-"size": 1.7,
+"size": 2.72,
 "tint": "#D0242F",
 "trail": true
 }
@@ -23,27 +23,36 @@ pattern = {
 "radius_max": 16.0,
 "radius_min": 3.6,
 "shape": "rings",
-"spacing": 3.2,
+"spacing": 3.9,
 "turn": true
 }
 landing = {
-"radius": 0.9
+"mode": "volley",
+"radius": 1.4
 }
 telegraph = {
+"all_at_once": true,
 "color": "#ED4A5C",
 "kind": "circles",
-"seconds": 0.9
+"seconds": 1.4
 }
 timing = {
 "cooldown": 0.0,
 "hold": -1.0,
-"stagger": 1.5,
-"windup": 1.0
+"stagger": 0.25,
+"windup": 1.4
 }
 sounds = {
 "fire": "en_cactus_spit",
 "land": "en_stalactite_hit",
 "windup": ""
+}
+spew = {
+"burst": 0.12,
+"crouch": 0.35,
+"mouth": 0.62,
+"squash": 0.82,
+"stretch": 1.25
 }
 id = "cactus_rain"
 display_name = "Red Cactus Rain"

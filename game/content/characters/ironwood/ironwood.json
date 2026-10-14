@@ -5,7 +5,7 @@
   "order": 2,
   "pronoun": "he",
   "hidden": false,
-  "availability": "purchase",
+  "availability": "available",
   "price": 1000,
   "currency_type": "gold",
   "trait": [],

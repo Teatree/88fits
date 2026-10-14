@@ -151,7 +151,7 @@ func _tick(delta: float) -> void:
 	var em: EnemyManager = game.enemies
 	if em:
 		var from := _apex()
-		var near := em.nearest_index(from, stat("range", 6.0))
+		var near := aim_index(from, stat("range", 6.0))
 		if near >= 0:
 			var to: Vector3 = em.pos[near] - from
 			to.y = 0.0
@@ -178,7 +178,8 @@ func _tick(delta: float) -> void:
 func _fire() -> bool:
 	var em: EnemyManager = game.enemies
 	var from := _apex()
-	var t := em.nearest_index(from, stat("range", 6.0))
+	# pass 73 (lane SNIPER): aim_index, the nearest with a special, an Elite or the boss within reach first
+	var t := aim_index(from, stat("range", 6.0))
 	if t < 0:
 		return false
 	var dir: Vector3 = em.pos[t] - from

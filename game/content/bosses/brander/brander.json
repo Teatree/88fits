@@ -71,7 +71,7 @@
         "name": "spawn_ring",
         "windup": 0.8,
         "enemy": "imp",
-        "count": 10,
+        "count": 14,
         "telegraph": "none"
       }
     ],

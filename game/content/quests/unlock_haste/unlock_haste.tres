@@ -15,7 +15,7 @@ unlocks = {
 "type": "passive"
 }
 id = "unlock_haste"
-display_name = "Haste"
+display_name = "The Tower"
 icon = ExtResource("1_ohd44")
 icon_file = "unlock_haste_icon.png"
 placeholder = {

@@ -326,7 +326,8 @@ func test_the_hud_shows_twelve_slots_from_the_start() -> void:
 func test_the_collection_has_its_tabs_and_marks_the_heroes_mutations() -> void:
 	# pass 47: the lines and the passive items each have a tab again
 	assert_bool(CollectionScreen.TABS.has("Weapons")).is_true()
-	assert_bool(CollectionScreen.TABS.has("Lines")).is_true()
+	# pass 73 (lane CARDS): the line items are fortune cards, their tab says Cards
+	assert_bool(CollectionScreen.TABS.has("Cards")).is_true()
 	assert_bool(CollectionScreen.TABS.has("Passives")).is_true()
 	assert_bool(CollectionScreen.TABS.has("Perks")).is_true()
 	var rain: Array = CollectionScreen.page_mutations(Registry.weapon("skull_rain")).map(func(m: MutationDef) -> String: return m.id)

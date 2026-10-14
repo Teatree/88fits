@@ -256,7 +256,7 @@ func _place_model(delta: float, t: float, firing: bool, winding: bool) -> void:
 		_cavity_mat.emission_energy_multiplier = ((2.2 + 0.6 * sin(t * 40.0)) * minf(_open, 1.0)) if firing else 0.0
 	var face := _dir() if (firing or winding) else Vector3.ZERO
 	if not firing and not winding:
-		var near: int = game.enemies.nearest_index(_familiar.global_position, stat("range", 12.0))
+		var near: int = aim_index(_familiar.global_position, stat("range", 12.0))
 		if near >= 0:
 			face = game.enemies.pos[near] - _familiar.global_position
 	face.y = 0.0
@@ -281,7 +281,8 @@ func muzzle() -> Vector3:
 
 func _fire() -> bool:
 	var enemies: EnemyManager = game.enemies
-	var t := enemies.nearest_index(player.global_position, stat("range", 12.0))
+	# pass 73 (lane SNIPER): aim_index, the nearest with a special, an Elite or the boss within reach first
+	var t := aim_index(player.global_position, stat("range", 12.0))
 	if t < 0:
 		return false
 	var d: Vector3 = enemies.pos[t] - muzzle()

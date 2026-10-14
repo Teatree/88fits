@@ -19,6 +19,14 @@
 ##          tuned copy of a built-in.
 ## Every damage is `damage` times the boss's bite (its JSON `damage`) times the stage, the hero-level and the map's
 ## hostile factors, as the built-in attacks; knockback (m/s) and lift (m) are the hero's shove / throw.
+##
+## Pass 73 (lane GROUND; Garry: "each spot where the projectile will fall is highlighted. At once they wait for a little
+## bit and then the boss does his animation of all those projectiles flying out of his mouth but they all land around
+## the same time"): a rain's `landing.mode` "volley" throws every shot in one spew from the boss's mouth (`spew.mouth` up
+## its painting), each leaving within `spew.burst` of the spew and landing within `timing.stagger` of the others (the
+## nearest first: volley_times); `telegraph.all_at_once` lights every landing circle `telegraph.seconds` before the spew
+## (the wind-up grows to that when it is shorter) and keeps it lit until its shot lands; the boss crouches through the
+## last `spew.crouch` seconds of its wind-up (squashed to `spew.squash`) and stretches to `spew.stretch` as it spews.
 class_name BossAttackDef
 extends ContentDef
 
@@ -29,6 +37,9 @@ const ORDERS := ["out", "in", "random", "sweep"]
 const AIMS := ["hero", "random", "fixed"]
 const CENTERS := ["boss", "hero"]
 const TELEGRAPHS := ["circles", "lines", "ring", "none"]
+## A rain's landing (pass 73): "stagger" one after another over timing.stagger, thrown from the boss's back (pass 72);
+## "volley" all in one spew from its mouth, landing within timing.stagger of each other.
+const LANDING_MODES := ["stagger", "volley"]
 ## The built-in attack names a `script` attack may wrap (EnemyManager's runner; tools/level_editor/vocab.py ATTACKS).
 const SCRIPTS := ["roll", "spawn_ring", "slam_at", "blink", "burrow", "rain", "erupt", "spit_volley", "slam", "rumble",
 	"brand", "tumbleweed_volley", "swoop", "boulder"]
@@ -41,10 +52,11 @@ const DEFAULTS := {
 	"pattern": {"shape": "rings", "center": "boss", "radius_min": 3.0, "radius_max": 16.0, "spacing": 3.2, "count": 0,
 		"jitter": 0.2, "gap": 1.0, "turn": true, "order": "out", "spread_deg": 360.0, "aim": "hero", "waves": 1,
 		"wave_gap": 0.5, "width": 1.2},
-	"landing": {"radius": 0.9},
-	"telegraph": {"kind": "circles", "color": "#ED4A5C", "seconds": 0.9},
+	"landing": {"radius": 0.9, "mode": "stagger"},
+	"telegraph": {"kind": "circles", "color": "#ED4A5C", "seconds": 0.9, "all_at_once": false},
 	"timing": {"windup": 1.0, "stagger": 1.5, "cooldown": 0.0, "hold": -1.0},
 	"sounds": {"windup": "", "fire": "en_boss_attack", "land": ""},
+	"spew": {"crouch": 0.35, "burst": 0.12, "mouth": 0.62, "squash": 0.82, "stretch": 1.25},
 }
 
 ## rain | volley | ring | slam | script (the JSON's `kind`; `kind()` is ContentDef's content kind)
@@ -57,6 +69,8 @@ const DEFAULTS := {
 @export var telegraph: Dictionary = {}
 @export var timing: Dictionary = {}
 @export var sounds: Dictionary = {}
+## pass 73: a volley rain's spew (DEFAULTS.spew: crouch, burst, mouth, squash, stretch)
+@export var spew: Dictionary = {}
 ## times the boss's bite (its JSON `damage`), then the stage, hero-level and hostile factors
 @export var damage: float = 0.75
 ## the hero's shove (m/s) where it hits him, and his throw up (m, 0 = a plain shove)
@@ -264,17 +278,62 @@ static func land_times(n: int, stagger: float, flight: float) -> PackedFloat32Ar
 	return out
 
 
+## Pass 73: whether this rain throws every shot in one spew from the boss's mouth (landing.mode "volley").
+func is_volley() -> bool:
+	return attack_kind == "rain" and text("landing", "mode") == "volley"
+
+
+## Pass 73: whether this rain lights every landing circle at once before the spikes leave (telegraph.all_at_once).
+func lit_at_once() -> bool:
+	return attack_kind == "rain" and flag("telegraph", "all_at_once") and text("telegraph", "kind") != "none"
+
+
+## The wind-up the runner plays (data seconds, x 1/pace on the map): timing.windup, or for a rain that lights its circles
+## all at once at least telegraph.seconds, so the circles can show that long before the spew (pass 73).
+func windup_seconds() -> float:
+	var w := maxf(num("timing", "windup"), 0.0)
+	if attack_kind == "rain" and flag("telegraph", "all_at_once"):
+		w = maxf(w, maxf(num("telegraph", "seconds"), 0.0))
+	return w
+
+
+## A volley rain's times (pass 73, lane GROUND): every shot leaves within `burst` seconds of the spew (at random) and flies
+## `flight` seconds to the spot nearest the centre, up to `stagger - burst` longer to the farthest (by its distance from
+## the centre), so they all land within `stagger` seconds of each other, the nearest first. [departs, lands] in shot-clock
+## seconds after the spew, in the order of `pts`.
+static func volley_times(pts: PackedVector2Array, flight: float, stagger: float, burst: float, rng: RandomNumberGenerator) -> Array:
+	var n := pts.size()
+	var dep := PackedFloat32Array()
+	dep.resize(n)
+	var land := PackedFloat32Array()
+	land.resize(n)
+	var fl := maxf(flight, 0.05)
+	var st := maxf(stagger, 0.0)
+	var b := clampf(burst, 0.0, st)
+	var dlo := INF
+	var dhi := 0.0
+	for p: Vector2 in pts:
+		dlo = minf(dlo, p.length())
+		dhi = maxf(dhi, p.length())
+	for k in range(n):
+		var dn := (pts[k].length() - dlo) / (dhi - dlo) if dhi - dlo > 0.001 else 0.0
+		dep[k] = b * rng.randf()
+		land[k] = dep[k] + fl + (st - b) * dn
+	return [dep, land]
+
+
 ## The entry the attack runner plays for this attack, from the boss's list entry `entry` ({"name": id, ...overrides}):
 ## a `script` attack becomes its built-in (`params` with `name` = `script_name`); any other kind keeps its id as the name
 ## (no built-in matches it, so the runner's fire step hands it to EnemyManager._custom_attack_fire) with "custom" = its
-## id, its wind-up and no built-in telegraph. The entry's own keys (min_range, max_range, reach, windup) win.
+## id, its wind-up (windup_seconds, pass 73) and no built-in telegraph. The entry's own keys (min_range, max_range,
+## reach, windup) win.
 func runner_entry(entry: Dictionary) -> Dictionary:
 	var out: Dictionary = {}
 	if attack_kind == "script":
 		out = params.duplicate(true)
 		out["name"] = script_name
 	else:
-		out = {"name": id, "custom": id, "windup": num("timing", "windup"), "telegraph": "none"}
+		out = {"name": id, "custom": id, "windup": windup_seconds(), "telegraph": "none"}
 	for k in entry.keys():
 		if str(k) != "name":
 			out[k] = entry[k]

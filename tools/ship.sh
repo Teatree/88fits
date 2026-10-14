@@ -8,6 +8,10 @@
 #   bash tools/ship.sh --no-pc      # skip the PC build (88fits.exe), which otherwise follows the APK into the Drive folder
 #   bash tools/ship.sh --debug-key  # allow a debug-keystore build when tools/keys/keystore.env is missing (on purpose only)
 #
+# The PC build (pass 73): its icon is game/icon.ico (tools/make_win_icon.py, made again when game/icon.png changes), its
+# version info follows application/config/version, and it is signed only when tools/keys/codesign.env exists (git-
+# ignored; what it holds: tools/sign_exe.ps1; why Windows warns and what signing changes: docs/pc_build_trust.md).
+#
 # Never uninstall the app on the phone to fix an install: it deletes the save. A build signed with the same keystore
 # always updates in place (adb install -r); a build signed differently is refused by Android, and that is the right
 # outcome, so this script stops rather than export a debug-signed APK by accident (pass 45).
@@ -93,17 +97,39 @@ done
 EXE="$ROOT/game/export/88fits.exe"
 if [ "$NO_PC" = "0" ]; then
   step "pc build"
+  # pass 73: the Windows icon made again when the app icon changed; the old exe removed first, so a failed export
+  # cannot send the last build to Drive again
+  python tools/make_win_icon.py --if-stale
+  rm -f "$EXE"
   ( cd "$ROOT/game" && "$GODOT" --headless --path "$ROOT/game" --export-release "Windows Desktop" export/88fits.exe > /dev/null 2>&1 )
+  PC_OK=0
   if [ -s "$EXE" ]; then
+    PC_OK=1
     echo "$(du -m "$EXE" | cut -f1) MiB"
+    # what Windows will show: the icon's sizes, the version (the game's, from project.godot), the signature
+    python tools/exe_info.py "$EXE" --expect-version "$(grep -m1 '^config/version=' "$ROOT/game/project.godot" | sed 's/.*="\(.*\)"/\1/')" || echo "WARNING: the exe's version info is not the game's version"
+    # pass 73: Windows code signing, off until tools/keys/codesign.env exists; a build that should be signed and is
+    # not stays out of Drive
+    if [ -f "$ROOT/tools/keys/codesign.env" ]; then
+      step "pc signature"
+      if ( set -a; . "$ROOT/tools/keys/codesign.env"; set +a; powershell -NoProfile -ExecutionPolicy Bypass -File "$ROOT/tools/sign_exe.ps1" -Exe "$EXE" ); then
+        :
+      else
+        echo "STOP (PC build): signing failed, the exe is not copied to Drive"; PC_OK=0
+      fi
+    fi
+  else
+    echo "PC export failed: no $EXE"
+  fi
+  if [ "$PC_OK" = "1" ]; then
     for D in /e/"My Drive" /g/"My Drive" /h/"My Drive" /i/"My Drive" "$USERPROFILE/My Drive" "$USERPROFILE/Google Drive"; do
       if [ -d "$D" ]; then
-        cp -f "$EXE" "$D/88fits builds/88fits.exe" && echo "copied to Google Drive: $D/88fits builds/88fits.exe (download on the PC and run it)"
+        # the Drive drive marks every file as downloaded from the Internet (SmartScreen asks about each new build):
+        # a copy on a local disk carries no mark and starts without the warning (docs/pc_build_trust.md)
+        cp -f "$EXE" "$D/88fits builds/88fits.exe" && echo "copied to Google Drive: $D/88fits builds/88fits.exe (copy it to a local folder, e.g. the Desktop, and run it there)"
         break
       fi
     done
-  else
-    echo "PC export failed: no $EXE"
   fi
 fi
 step "done"; echo "APK: $APK"; [ "$NO_PC" = "0" ] && echo "EXE: $EXE"

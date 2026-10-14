@@ -20,7 +20,9 @@ const AFIELDS = (() => {
     brains: [opt('chase', 'chase', 'walks at the hero'), opt('flock', 'flock', 'walks at the hero, keeps with its pack'), opt('kite', 'kite', 'keeps its distance and shoots (the ranged block)'),
       opt('charge', 'charge', 'winds up and rushes (the charge block)'), opt('kamikaze', 'kamikaze', 'runs in and blows up (the kamikaze block)'), opt('artillery', 'artillery', 'stands off and fires rockets (the artillery block)'),
       opt('boss', 'boss', 'runs the attack script (the boss block)'), opt('dummy', 'dummy', 'the arena dummies: stands still'), opt('ambush', 'ambush', 'hides in the sand until the hero is near (the ambush block, ranged for its silk)'),
-      opt('caster', 'caster', 'keeps away and casts from the attack script (caster + boss blocks)'), opt('support', 'support', 'heals and frenzies the crowd round it (the support block)')],
+      opt('caster', 'caster', 'keeps away and casts from the attack script (caster + boss blocks)'), opt('support', 'support', 'heals and frenzies the crowd round it (the support block)'),
+      // pass 73 (lane SNIPER)
+      opt('sniper', 'sniper', 'keeps far off, runs from the hero, freezes to aim a gathering red-line laser across the map (the sniper block)')],
     archetypes: [opt('walker', 'walker', 'a label'), opt('swarmer', 'swarmer', 'a label'), opt('spitter', 'spitter', 'a label'), opt('brute', 'brute', 'a label'), opt('tank', 'tank', 'a label'), opt('runner', 'runner', 'a label'),
       opt('elite', 'elite (mini-boss)', 'its HP follows elite.hp_mult_per_stage, a crown, a chest every time, never stunned or grabbed'), opt('boss', 'boss', 'the stage boss: boss.hp_mult_per_stage, the bar, the skull, the purse')],
     telegraphs: [opt('none'), opt('line', 'line', 'a red line ahead'), opt('ring', 'ring', 'a ring round the creature'), opt('ring_at_hero', 'ring at the hero', 'a ring where the hero stands (slam_at, burrow and boulder need it)'),
@@ -376,7 +378,7 @@ const AFIELDS = (() => {
       { key: 'windup', label: 'Wind-up (s)', type: 'number', min: 0, step: 0.05, def: 1.4, help: 'a 5 m line telegraph' },
       { key: 'reload', label: 'Reload (s)', type: 'number', min: 0, step: 0.1, def: 2.5 },
       { key: 'muzzle', label: 'Muzzle', type: 'json', help: '{up, side, forward} in metres at the def\'s size' },
-      { key: 'missile', label: 'Missile', type: 'json', help: '{speed 4, turn 1.3, damage 22, area 1.6, speed_of_hero 0}' },
+      { key: 'missile', label: 'Missile', type: 'json', help: '{speed 4, turn 1.3, damage 22, area 1.6, speed_of_hero 0, hit_slow {mult 0.5, recover 3, shake 0.35}}: pass 73, hit_slow = every hit on the shooter shakes its live rocket for `shake` s and drops it to `mult` of its speed, back to full in a straight line over `recover` s (a new hit starts that again, never lower); no hit_slow = never slowed' },
     ] },
     caster: { label: 'Caster', help: 'the caster brain: keeps away, sidesteps, casts its tricks from the attack script', rows: [
       { key: 'keep_distance', label: 'Keep distance (m)', type: 'number', min: 0, def: 7 },
@@ -411,8 +413,29 @@ const AFIELDS = (() => {
     elite: { label: 'Elite (mini-boss)', help: 'read for the elite archetype only', rows: [
       { key: 'hp_mult_per_stage', label: 'HP x per stage', type: 'number', min: 0, step: 0.1, def: 1.8, help: 'HP = hp x this^stage x max(stage_mult, 1) x creature_hp_mult' },
     ] },
+    // pass 73 (lane SNIPER): the Saiga Sniper's brain (EnemyManager._sniper_*) and flee on hit, for any creature
+    sniper: { label: 'Sniper', help: 'the sniper brain (the Saiga Sniper): placed stand-off away like the Vulture Raider; inside "Runs inside" it runs from the hero, past "Walks in past" it walks back in; between, it freezes in its aiming pose (the attack strip) while red lines gather on the hero and follow him for Aim s, then lock, hold for Hold s, and a laser crosses the map along the locked line. Aim and Hold × 1/pace like every wind-up', rows: [
+      { key: 'stand_off', label: 'Stand-off (m)', type: 'number', min: 0, def: 26, help: 'where it is placed when it spawns (never nearer the hero), inside the wall' },
+      { key: 'flee_range', label: 'Runs inside (m)', type: 'number', min: 0, def: 14, help: 'it runs straight away from the hero (along the wall when backed against it) while he is nearer than this; never while it aims' },
+      { key: 'follow', label: 'Walks in past (m)', type: 'number', min: 0, def: 38, help: 'it walks back towards the hero while he is farther than this; empty = stand-off + 12' },
+      { key: 'first', label: 'First aim after (s)', type: 'number', min: 0, step: 0.1, def: 2.5, help: 'seconds after it arrives before its first aim' },
+      { key: 'aim', label: 'Aim (s)', type: 'number', min: 0.1, step: 0.1, def: 2, help: 'the lines gather on the hero and follow him this long (× 1/pace)' },
+      { key: 'lock', label: 'Hold (s)', type: 'number', min: 0, step: 0.1, def: 1, help: 'the locked line holds still this long before the shot (× 1/pace): the time to step off it' },
+      { key: 'interval', label: 'Shot every (s)', type: 'number', min: 1, step: 0.5, def: 9, help: 'from one shot to the next, the aim and the hold included' },
+      { key: 'interval_jitter', label: 'Shot every ± (s)', type: 'number', min: 0, step: 0.1, def: 1.5, help: 'the interval varies this much either way, at random' },
+      { key: 'recover', label: 'After a spoiled aim (s)', type: 'number', min: 0, step: 0.1, def: 2.5, help: 'a hit (flee on hit), a stun, a freeze or a launch drops the aim; the next one waits at least this long' },
+      { key: 'cone_deg', label: 'Line cone (°)', type: 'number', min: 1, max: 180, def: 44, help: 'the lines start on the two sides of a cone this wide round his aim and sweep in to the hero' },
+      { key: 'lines', label: 'Lines', type: 'int', min: 1, def: 14, help: 'how many lines gather over the aim: closer and closer together, each sweeping in faster than the last' },
+      { key: 'beam', label: 'Beam', type: 'json', help: '{length 60 (m across the map), width 0.5, seconds 0.15 (how long it shows), damage_from "rocketeer" + damage_mult 0.7 (the hero takes that share of that creature\'s rocket damage, at the sniper\'s own stage), damage 15.4 (used without damage_from), knockback 5, creature_frac 0.05 + creature_max 40 (what each creature on the line takes), push 3 (m off the line), sparks 1.5 (s they shimmer)}' },
+      { key: 'muzzle', label: 'Muzzle', type: 'json', help: '{up, side, forward} in metres at the def\'s size: where the lines and the beam leave, the rifle\'s end as painted (side = towards the barrel, screen-right in the painting)' },
+    ] },
+    flee_on_hit: { label: 'Flee on hit', help: 'any creature: a hit that lands (never a poison or fire tick) sends it running straight away from the hero for Runs for s at its speed × Speed ×; with Spoils its attack it drops a wind-up, aim or scripted attack under way (that shot never comes). A new hit starts the run again (never faster). Never a boss', rows: [
+      { key: 'seconds', label: 'Runs for (s)', type: 'number', min: 0, step: 0.1, def: 1, help: 'how long one hit sends it running (0 = off)' },
+      { key: 'speed_mult', label: 'Speed ×', type: 'number', min: 0, step: 0.1, def: 1.8, help: 'its walk times this while it runs' },
+      { key: 'interrupts', label: 'Spoils its attack', type: 'bool', def: true, help: 'the hit drops a wind-up, an aim or a scripted attack under way' },
+    ] },
   };
-  const BLOCK_ORDER = ['ranged', 'charge', 'kamikaze', 'artillery', 'caster', 'support', 'ambush', 'death_burst', 'boss', 'elite'];
+  const BLOCK_ORDER = ['ranged', 'charge', 'kamikaze', 'artillery', 'sniper', 'caster', 'support', 'ambush', 'death_burst', 'flee_on_hit', 'boss', 'elite'];
 
   // ------------------------------------------------------------------ the attack script's names (EnemyManager.gd:3696-3882)
 
@@ -429,7 +452,19 @@ const AFIELDS = (() => {
     spawn_ring: { label: 'Spawn ring', telegraph: 'none', help: 'a ring of `count` creatures 5 m out (brood numbers)', keys: [k('enemy', 'Creature', 'enemy', '', 'the creature it brings (the game\'s default "coyote" no longer exists)'), k('count', 'Count', 'int', 10)] },
     slam_at: { label: 'Slam at the hero', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'a blast where the hero stood at the wind-up', keys: [k('radius', 'Radius (m)', 'number', 2.6), k('damage', 'Damage', 'number', 18), k('knockback', 'Knockback', 'number', 6)] },
     blink: { label: 'Blink', telegraph: 'none', help: 'teleports: `to` "screen" uses the caster\'s keep / side distance', keys: [k('to', 'To', 'select', '', '', { options: (v) => v.blinkTo, min: undefined }), k('distance', 'Distance (m)', 'number', 8)] },
-    burrow: { label: 'Burrow', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'under the sand for the wind-up (a mound swells at the ring), then up at the hero', keys: [k('radius', 'Radius (m)', 'number', 5), k('damage', 'Damage', 'number', 28), k('knockback', 'Knockback', 'number', 8)] },
+    burrow: { label: 'Burrow', telegraph: 'ring_at_hero', needsRingAtHero: true, help: 'under the sand for the wind-up (a mound swells at the ring), then up at the hero; the wind-up runs from the dig to the eruption (pass 73: the sink, the wait under the sand, a predicted spot\'s warning). Pass 73: it can sink in sight, wait unseen and erupt where the hero is heading, throwing him and the crowd', keys: [k('radius', 'Radius (m)', 'number', 5), k('damage', 'Damage', 'number', 28), k('knockback', 'Knockback', 'number', 8, 'the old shove, when it throws no one (Throw hero up empty)'),
+      k('sink', 'Sink (s)', 'number', 0, 'seconds it sinks out of sight where it stands, in a ring of dust and a spray of sand (0 = gone at once, as before pass 73); ×1/pace on the map'),
+      k('rise', 'Rise (s)', 'number', 0.4, 'seconds it takes to come up out of the sand at the eruption (the game\'s 0.4 when empty)'),
+      k('predict', 'Predict (s)', 'number', 0, 'above 0: no ring and no mound before; Warning seconds before it erupts it picks the spot where the hero will be this many seconds on (his place + his velocity × this, on the walkable map) and rings it (the Gila\'s 0.6 = about two steps ahead); 0: the ring at the hero'),
+      k('warn', 'Warning (s)', 'number', 0.4, 'with Predict: the red ring on the spot this long before it erupts (×1/pace on the map)'),
+      k('mound', 'Mound', 'bool', true, 'the sand swells into a mound at the ring through the wind-up (never with Predict)', { min: undefined }),
+      k('throw_up', 'Throw hero up (m)', 'number', 0, 'a hit that lands throws the hero this high on a real arc (his airborne flight: nothing hits him up there) instead of the Knockback shove; 0 = the shove'),
+      k('throw_out', 'Throw hero out (m)', 'number', 0, 'how far the throw carries him, away from the eruption\'s middle'),
+      k('throw_air', 'Throw air time (s)', 'number', null, 'seconds he is up; empty = from the height at his own gravity (2.5 m: 0.91 s)'),
+      k('throw_control', 'Air control', 'number', 0.15, 'the share of his walk the stick adds to the throw\'s arc (0..1)', { max: 1, step: 0.05 }),
+      k('creature_up', 'Throw crowd up (m)', 'number', 0, 'every creature within the radius (not the burrower) is thrown this high and away; the boss, an Elite or an elite-modded one only takes the damage and a shove'),
+      k('creature_out', 'Throw crowd out (m)', 'number', 0, 'how far they fly away from the middle (× their own share of a shove, knockback resist)'),
+      k('creature_damage', 'Crowd damage', 'number', 0, 'the share of its max HP each creature in the radius takes as it lands (0.03 = 3%)', { max: 1, step: 0.01 })] },
     rain: { label: 'Rain', telegraph: 'none', help: '`count` strikes every `interval` within `spread` of the hero, each warned `warn` s', keys: [k('count', 'Strikes', 'int', 10), k('interval', 'Interval (s)', 'number', 0.3), k('spread', 'Spread (m)', 'number', 5), k('radius', 'Strike radius (m)', 'number', 1.6), k('damage', 'Damage', 'number', 14), k('warn', 'Warning (s)', 'number', 0.55), k('pillar', 'Pillar', 'bool', false, '', { min: undefined }), k('knockback', 'Knockback', 'number', 0)] },
     erupt: { label: 'Erupt', telegraph: 'none', help: 'the rain, and a creature rises from every strike', keys: [k('count', 'Strikes', 'int', 10), k('interval', 'Interval (s)', 'number', 0.3), k('spread', 'Spread (m)', 'number', 5), k('radius', 'Strike radius (m)', 'number', 1.6), k('damage', 'Damage', 'number', 14), k('warn', 'Warning (s)', 'number', 0.55), k('spawn', 'Rises', 'enemy', '', 'the creature each strike brings'), k('pillar', 'Pillar', 'bool', false, '', { min: undefined }), k('knockback', 'Knockback', 'number', 0)] },
     spit_volley: { label: 'Spit volley', telegraph: 'fan', help: '`count` shots over `spread_deg`; straight (x level too) or lobbed', keys: [k('count', 'Shots', 'int', 7), k('spread_deg', 'Spread (°)', 'number', 90), k('speed', 'Speed (m/s)', 'number', 14, 'straight 14, lob 7'), k('damage', 'Damage', 'number', 12), k('splash', 'Splash (m)', 'number', 0.5, 'straight 0.5, lob 1.4'), k('life', 'Life (s)', 'number', 1), k('straight', 'Straight', 'bool', false, '', { min: undefined }), k('shot', 'Shot look', 'select', '', '', { options: (v) => v.shotKinds, min: undefined }), k('knockback', 'Knockback', 'number', 0), k('length', 'Fan length (m)', 'number', 14, 'the telegraph\'s lines')] },
@@ -483,6 +518,8 @@ const AFIELDS = (() => {
       { key: 'head', label: 'Head (share of the cell)', type: 'number', min: 0, max: 1, step: 0.01, def: 0.86, help: 'where the top of the figure is: the badge sits there, the sand sink reads it; measured by the art tools' },
       { key: 'front_faces', label: 'Front faces', type: 'select', options: (v) => v.faces, def: 'right', help: 'the mirror rule of the front set' },
       { key: 'back_faces', label: 'Back faces', type: 'select', options: (v) => v.faces, def: 'right', help: 'the mirror rule of the back set' },
+      // pass 73 (lane SNIPER): an attack strip painted from the front and the back (the Saiga Sniper's aim)
+      { key: 'attack_views', label: 'Attack strip views', type: 'select', options: [opt('', 'front only (the default)', 'every attack frame faces the camera'), opt('front_back', 'front, then back', 'the attack strip\'s first half is painted from the front, its second half from the back; the game shows the half his facing shows')], def: '', help: 'how the attack frames are painted' },
       { key: 'badge', label: 'Badge', type: 'select', options: (v) => v.badges, def: '', help: 'the icon over its head; the crown shows only on the elite archetype' },
     ]),
     T('Spawning', [
@@ -532,6 +569,10 @@ const AFIELDS = (() => {
       { key: 'sfx.die', label: 'Die', type: 'sfx', group: 'en_', help: 'when it dies' },
       { key: 'sfx.attack', label: 'Attack', type: 'sfx', group: 'en_', help: 'a charge, a shot, a wind-up (the script\'s default en_boss_attack)' },
       { key: 'sfx.spawn', label: 'Spawn (boss)', type: 'sfx', group: 'en_', only: isBoss, help: 'boss archetype only, default en_boss_roar (elites always play en_elite_spawn)' },
+      // pass 73 (lane SNIPER): the sniper brain's three sounds
+      { key: 'sfx.aim', label: 'Aim (sniper)', type: 'sfx', group: 'en_', only: (d) => d.brain === 'sniper', help: 'the sniper brain: as its aim starts and the lines gather' },
+      { key: 'sfx.lock', label: 'Lock (sniper)', type: 'sfx', group: 'en_', only: (d) => d.brain === 'sniper', help: 'the sniper brain: as the line locks, before the hold' },
+      { key: 'sfx.shot', label: 'Shot (sniper)', type: 'sfx', group: 'en_', only: (d) => d.brain === 'sniper', help: 'the sniper brain: the laser crossing the map' },
     ]),
     T('Looks', [
       { key: 'variant_base', label: 'Base look', type: 'readonly', help: 'the code of the top-level strip' },
@@ -598,7 +639,7 @@ const AFIELDS = (() => {
       { key: 'favourite_bonus.type', label: 'Favourite arrives', type: 'select', options: (v) => v.favouriteBonus, def: 'level', help: 'at a level, or with effects' },
       { key: 'favourite_bonus.value', label: 'At level', type: 'int', min: 1, def: 2, only: (d) => !d.favourite_bonus || (d.favourite_bonus.type || 'level') === 'level' },
       { key: 'favourite_bonus.effects', label: 'With effects', type: 'stat_effects', stats: 'weapon', target: 'self', only: (d) => d.favourite_bonus && d.favourite_bonus.type === 'effects' },
-      { key: 'favourite_passive', label: 'Favourite passive', type: 'id_select', kind: 'passive', help: 'Ironwood\'s Brawn: bypasses the quest' },
+      { key: 'favourite_passive', label: 'Favourite passive', type: 'id_select', kind: 'passive', help: 'a card or a passive item (Ironwood\'s: The Sun, id brawn): bypasses the quest' },
       { key: 'favourite_passive_bonus.type', label: 'Passive arrives', type: 'select', options: (v) => v.passiveBonus, def: 'level', only: (d) => !!d.favourite_passive },
       { key: 'favourite_passive_bonus.value', label: 'At level', type: 'int', min: 1, def: 2, only: (d) => !!d.favourite_passive && (!d.favourite_passive_bonus || (d.favourite_passive_bonus.type || 'level') === 'level') },
       { key: 'favourite_passive_bonus.effects', label: 'With effects', type: 'stat_effects', stats: 'player', target: 'player', only: (d) => !!d.favourite_passive && d.favourite_passive_bonus && d.favourite_passive_bonus.type === 'effects' },
@@ -728,18 +769,18 @@ const AFIELDS = (() => {
       { key: 'name', label: 'Name', type: 'text', required: true },
       { key: 'flavour', label: 'Flavour', type: 'text' },
       { key: 'rarity', label: 'Rarity', type: 'select', options: (v) => v.rarities, def: 'common' },
-      { key: 'weight', label: 'Weight', type: 'number', min: 0, def: 10, help: 'evolved lines carry 0: they come from their base line' },
-      { key: 'line', label: 'Line', type: 'bool', def: false, help: 'a line takes one of the 5 line slots and evolves when maxed; else a passive item (no cap)' },
+      { key: 'weight', label: 'Weight', type: 'number', min: 0, def: 10, help: 'evolved cards carry 0: they come from their base card' },
+      { key: 'line', label: 'Card (line item)', type: 'bool', def: false, help: 'a fortune card (`line` in the JSON; pass 73) takes one of the 5 card slots and evolves when maxed; else a passive item (no cap)' },
     ]),
     T('Levels', [
-      { key: 'levels', label: 'Levels', type: 'level_steps', stats: 'player', target: 'player', help: 'the effects per level (target player; a weapon stat with target all_weapons reaches every weapon, as Kindling does); a line lists one level and repeats it' },
+      { key: 'levels', label: 'Levels', type: 'level_steps', stats: 'player', target: 'player', help: 'the effects per level (target player; a weapon stat with target all_weapons reaches every weapon, as Kindling does); a card lists one level and repeats it' },
       { key: 'repeat_last_level', label: 'Repeat the last level', type: 'bool', def: true },
-      { key: 'max_level', label: 'Max level', type: 'int', min: 1, def: 8, help: 'lines 4, evolved lines 1, items 5 / 3 / 1' },
+      { key: 'max_level', label: 'Max level', type: 'int', min: 1, def: 8, help: 'cards 4, evolved cards 1, items 5 / 3 / 1' },
     ]),
     T('Links', [
       { key: 'pairs_with', label: 'Pairs with', type: 'id_select', kind: 'any_item', help: 'informational' },
       { key: 'trade', label: 'Trade', type: 'text', help: 'what it costs, in words' },
-      { key: 'evolves_into', label: 'Evolves into', type: 'id_select', kind: 'passive', only: (d) => !d.evolves_from, help: 'a line\'s evolved form (both must agree on `line`)' },
+      { key: 'evolves_into', label: 'Evolves into', type: 'id_select', kind: 'passive', only: (d) => !d.evolves_from, help: 'a card\'s evolved form, its Risen card (both must agree on `line`)' },
       { key: 'evolves_from', label: 'Evolved from', type: 'id_select', kind: 'passive', only: (d) => !!d.evolves_from || !d.evolves_into, help: 'marks the evolved form: never offered alone' },
     ]),
     T('Text', [
@@ -980,7 +1021,8 @@ const AFIELDS = (() => {
       W('brain', (d, c) => { const seen = c && c.seenCombos; if (!seen) return false; const list = seen instanceof Set ? seen : new Set(seen); return !list.has(M.combo(d)); }, (d) => `No creature in play uses ${M.comboWords(d)}: untested in play`),
       W('sfx', (d, c) => unknownSfx(d, c).length > 0, (d, c) => `unknown sound id, silent in the game: ${unknownSfx(d, c).join(', ')}`),
       W('boss.attacks', (d) => attackList(d).some((a) => isObj(a) && str(a.name) && !ATTACKS[str(a.name)] && !isCustomAttack(str(a.name))), (d) => `unknown attack name: ${attackList(d).filter((a) => isObj(a) && str(a.name) && !ATTACKS[str(a.name)] && !isCustomAttack(str(a.name))).map((a) => `"${a.name}"`).join(', ')} (the game does nothing for it; a custom attack is made on the Boss attacks tab)`),
-      W('boss.attacks', (d) => attackList(d).some((a) => isObj(a) && ATTACKS[str(a.name)] && ATTACKS[str(a.name)].needsRingAtHero && attackTelegraph(a) !== 'ring_at_hero'), (d) => `${attackList(d).filter((a) => isObj(a) && ATTACKS[str(a.name)] && ATTACKS[str(a.name)].needsRingAtHero && attackTelegraph(a) !== 'ring_at_hero').map((a) => a.name).join(', ')}: lands where the "ring at the hero" telegraph was set; with another telegraph it has no target`),
+      // (pass 73: a burrow that predicts its spot picks it itself, with no ring at the hero)
+      W('boss.attacks', (d) => attackList(d).some((a) => isObj(a) && ATTACKS[str(a.name)] && ATTACKS[str(a.name)].needsRingAtHero && attackTelegraph(a) !== 'ring_at_hero' && !(str(a.name) === 'burrow' && Number(a.predict) > 0)), (d) => `${attackList(d).filter((a) => isObj(a) && ATTACKS[str(a.name)] && ATTACKS[str(a.name)].needsRingAtHero && attackTelegraph(a) !== 'ring_at_hero' && !(str(a.name) === 'burrow' && Number(a.predict) > 0)).map((a) => a.name).join(', ')}: lands where the "ring at the hero" telegraph was set; with another telegraph it has no target (a burrow with Predict picks its own spot)`),
       W('boss.attacks', (d, c) => { const en = enemies(c); if (!en) return false; return attackList(d).some((a) => isObj(a) && ((str(a.name) === 'spawn_ring' && !findIn(en, str(a.enemy) || 'coyote')) || (str(a.name) === 'erupt' && str(a.spawn) && !findIn(en, a.spawn)))); }, 'spawn_ring / erupt names a creature that does not exist (the game\'s default "coyote" is gone): it spawns nothing'),
       W('boss.attacks', (d) => attackList(d).some((a) => isObj(a) && a.telegraph != null && !['line', 'ring', 'ring_at_hero', 'sector', 'fan', 'spokes', 'none'].includes(str(a.telegraph))), 'an attack names an unknown telegraph (line, ring, ring_at_hero, sector, fan, spokes, none)'),
       W('shadow.up', (d) => isObj(d.shadow) && M.isNum(d.shadow.up) && M.isNum(d.size) && d.shadow.up > d.size, 'shadow.up is higher than the creature (size)'),
@@ -1060,7 +1102,7 @@ const AFIELDS = (() => {
       E('evolves_into', (d, c) => { const t = str(d.evolves_into) && findIn(flat(c, 'passives'), d.evolves_into); return !!t && (String(t.evolves_from) !== String((c && c.id) || d.id) || !!t.line !== !!d.line); }, (d) => `"${d.evolves_into}" must name this as its evolves_from and agree on line (Registry.problems)`),
       E('evolves_from', (d, c) => { const t = str(d.evolves_from) && flat(c, 'passives') && findIn(flat(c, 'passives'), d.evolves_from); return str(d.evolves_from) && flat(c, 'passives') && (!t || String(t.evolves_into) !== String((c && c.id) || d.id)); }, (d) => `evolves_from "${d.evolves_from}" is not a passive whose evolves_into is this`),
       E('element', (d, c) => d.element != null && !vals(vocabOf(c).elements).includes(str(d.element)), (d) => `unknown element "${d.element}"`),
-      W('weight', (d) => str(d.evolves_from) && Number(d.weight) > 0, 'an evolved line usually weighs 0: it comes from its base line, never on its own'),
+      W('weight', (d) => str(d.evolves_from) && Number(d.weight) > 0, 'an evolved card usually weighs 0: it comes from its base card, never on its own'),
       W('band', (d, c) => !d.evolves_from && !!bandWarn(c), (d, c) => { const b = bandWarn(c); return `quest-locked base items ${b.locked} of ${b.base} = ${Math.round(b.share * 100)}%: the ship test wants ${Math.round(b.lo * 100)}-${Math.round(b.hi * 100)}% (pass44_test); add a quest lock or ask Claude to widen the band`; }),
     ]),
     mutation: [].concat(common('mutation'), rarityRules, [

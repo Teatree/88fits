@@ -512,6 +512,175 @@ def figure_height_cell(cell_img):
     return float(ys.max() - ys.min()) if len(ys) else 0.0
 
 
+# ---------------------------------------------------------------- pass 73 (lane ART): a picture of the back, painted attack poses
+
+def lower_center_x(cell_img, frac=0.45):
+    """Where a figure stands across its cell: the alpha-weighted mean column of its lower `frac` of rows (the legs, a
+    poncho's hem), whatever it holds out at shoulder height (pass 73: the Saiga Sniper's rifle)."""
+    a = np.asarray(cell_img.convert("RGBA"))[..., 3].astype(np.float32)
+    ys = np.nonzero(a.max(axis=1) > 40)[0]
+    if len(ys) == 0:
+        return cell_img.width / 2.0
+    y1 = int(ys.max())
+    cut = int(round(y1 - (y1 - int(ys.min())) * frac))
+    sub = a[cut:y1 + 1]
+    w = float(sub.sum())
+    if w <= 0:
+        return cell_img.width / 2.0
+    return float((sub.sum(axis=0) * np.arange(a.shape[1], dtype=np.float32)).sum() / w)
+
+
+def back_ref_render(d, sk, bg, front_ref, back_prompt):
+    """Pass 73 (lane ART, the Saiga Sniper): a creature's `back_ref` (a picture of it seen from behind: the back figure
+    of Garry's turnaround) goes in as the back still's second reference, so the back copies the drawing's back (a hood,
+    a poncho's stripes, a rifle across the back) instead of guessing it from the front. Returns (refs, prompt); without
+    a back_ref (every creature before), ([front_ref], back_prompt) unchanged. Tried once on the sniper: the front's
+    pose and the drawing's back mixed into a rifle with two muzzles (the QA passed it); the back he walks with was
+    painted as candidates from the drawing alone and picked by eye, so check the back still after a back_ref run."""
+    pic = ref_path(d.get("back_ref")) if d.get("back_ref") else None
+    if not pic:
+        if d.get("back_ref"):
+            log("  (back_ref %r is not on disk: the back is edited from the front alone)" % str(d.get("back_ref")))
+        return [front_ref], back_prompt
+    up = comfy.upload_pil(on_screen(Image.open(pic), bg == BG_BLUE), sk + "_back_ref.png")
+    copy = ("The second reference image shows this same creature seen from behind: copy its back view from it (its pose, the back "
+            "of its head and clothes, how it carries what it holds), drawn in exactly the art style, colors and proportions of the "
+            "first reference image. ")
+    if d.get("back_prompt"):
+        prompt = str(d["back_prompt"]) + " " + copy + bg + "."
+    else:
+        prompt = ("Turn the creature of the first reference image around and show a full-body back view seen directly from behind, no "
+                  "face visible. " + copy + "Standing. " + str(d.get("back_hint", "")) + " " + bg + ".")
+    return [front_ref, up], prompt
+
+
+def attack_stills(d, sk, subject, bg, front_ref, img, back_img, seed, info):
+    """Pass 73 (lane ART, the Saiga Sniper's aim): painted attack poses for a creature whose recipe or JSON names one:
+    the pose in words (`aim_hint`, lane SNIPER's key), optionally with a picture of it (`aim_ref`). The front pose is
+    an edit of the front still alone with the pose in words (<sk>_attack_front: identity and colours stay the walk's;
+    a picture of the pose goes in as a second reference only when `aim_ref` names one: riskier, a two-reference edit
+    of the sniper's back with another pose painted two guns); the pose from behind is an edit of the BACK still alone,
+    now in the pose (<sk>_attack_back, words `aim_back_hint`), so its poncho and stripes are the back walk's, painted
+    when the creature has `attack_views: "front_back"`. Both cached like every still (a re-roll moves them aside). None
+    when nothing names a pose. The words are the ones the sniper's picked candidates were painted with
+    (tools/dl/p73/art/scripts/q_aim.py route A, q_aimback.py route D; route C, the aim front turned around, painted a
+    lighter poncho)."""
+    hint, pic_name = str(d.get("aim_hint") or "").strip(), str(d.get("aim_ref") or "").strip()
+    if not hint and not pic_name:
+        return None
+    pic = ref_path(pic_name) if pic_name else None
+    if pic_name and not pic:
+        log("  (aim_ref %r is not on disk: the attack pose is painted from its words)" % pic_name)
+    tail = (" " + STYLE + ". Full body, the whole creature and everything it holds inside the picture, one of each thing it holds, no "
+            "ground, no shadow. " + bg + ".")
+    refs = [front_ref]
+    if pic:
+        refs.append(comfy.upload_pil(on_screen(Image.open(pic), bg == BG_BLUE), sk + "_attack_ref.png"))
+        prompt = ("Show the creature of the first reference image in the pose of the second reference image" + (": " + hint if hint else "") +
+                  ". Copy the pose, the angle and how it holds what it carries from the second reference image, but draw it in exactly the "
+                  "art style, colors, proportions, face and outfit of the first reference image." + tail)
+    else:
+        prompt = ("The reference image shows this exact creature: keep its face, horns, fur, clothes, colors and proportions exactly, and "
+                  "redraw it full body " + hint + "." + tail)
+    h = figure_height(img)
+    aim, inf = render(sk + "_attack_front", prompt, refs, {"subject": subject, "view": None, "subjects_max": 1, "ref_h": h}, seed + 11)
+    info["renders"]["attack_front"] = inf
+    if str(d.get("attack_views", "")) != "front_back":
+        return aim, None
+    back_up = comfy.upload_pil(back_img, sk + "_back.png")
+    bhint = str(d.get("aim_back_hint") or hint).strip()
+    bprompt = ("The reference image shows this exact creature seen from behind: keep it seen directly from behind, no face visible, "
+               "keep its colors and proportions, and redraw it full body " + bhint + "." + tail)
+    aim_b, inf = render(sk + "_attack_back", bprompt, [back_up], {"subject": "the same creature seen from behind", "view": None,
+                        "subjects_max": 1, "ref_h": h}, seed + 12)
+    info["renders"]["attack_back"] = inf
+    return aim, aim_b
+
+
+def _warm_stats(rgba, lo, hi, min_s):
+    """Mean hue (degrees) and saturation of a figure's pixels in a hue band (saturated past min_s)."""
+    arr = np.asarray(rgba.convert("RGBA"))
+    hsv = np.asarray(Image.fromarray(arr[..., :3]).convert("HSV")).astype(np.float32) / 255.0
+    m = (arr[..., 3] > 127) & (hsv[..., 0] * 360.0 >= lo) & (hsv[..., 0] * 360.0 <= hi) & (hsv[..., 1] > min_s)
+    if not m.any():
+        return None
+    return float(hsv[..., 0][m].mean() * 360.0), float(hsv[..., 1][m].mean())
+
+
+def match_band(pose_rgba, ref_rgba, lo=0.0, hi=60.0, min_s=0.25):
+    """Pass 73 (lane ART): a painted pose's hues in a band (the browns: 0-60 degrees) moved by the difference of the two
+    figures' mean hue there, and their saturation scaled to the reference's; the change fades out over 15 degrees past
+    the band and toward grey, so blacks, greys and other colours stay. A pose painted as its own edit came out ~7
+    degrees yellower and a little more saturated than the walk it plays between (the Saiga Sniper's poncho)."""
+    ps, rs = _warm_stats(pose_rgba, lo, hi, min_s), _warm_stats(ref_rgba, lo, hi, min_s)
+    if not ps or not rs:
+        return pose_rgba
+    arr = np.asarray(pose_rgba.convert("RGBA"))
+    hsv = np.asarray(Image.fromarray(arr[..., :3]).convert("HSV")).astype(np.float32) / 255.0
+    h = hsv[..., 0] * 360.0
+    w = np.clip(1.0 - np.maximum(lo - h, h - hi) / 15.0, 0.0, 1.0) * np.clip((hsv[..., 1] - min_s * 0.5) / (min_s * 0.5), 0.0, 1.0)
+    hsv[..., 0] = ((h + (rs[0] - ps[0]) * w) % 360.0) / 360.0
+    hsv[..., 1] = np.clip(hsv[..., 1] * (1.0 + (rs[1] / max(ps[1], 1e-4) - 1.0) * w), 0.0, 1.0)
+    out = Image.fromarray((hsv * 255.0 + 0.5).astype(np.uint8), "HSV").convert("RGBA")
+    out.putalpha(Image.fromarray(arr[..., 3]))
+    return out
+
+
+def pose_cell(still_rgb, stand_cell, cell, outline_frac, outline_color, fit=1.0, pad_bottom=0.06, match=None):
+    """A painted pose (an attack still) placed like the standing figure: its height the standing figure's x `fit` (1 when
+    the pose stands as tall as the standing painting: the Saiga Sniper's aim), its lower body centred where the standing
+    figure's is (lower_center_x) and its soles on the cell's floor line, slid back inside the cell when what it holds
+    out (a rifle) would leave it; `match` {lo, hi} moves its colours in that hue band to the standing figure's
+    (match_band). Returns (cell image, how far it was slid in px)."""
+    keyed = artkit.crop_alpha(artkit.punch(artkit.key_background(still_rgb)))
+    if isinstance(match, dict):
+        keyed = match_band(keyed, stand_cell, float(match.get("lo", 0.0)), float(match.get("hi", 60.0)), float(match.get("min_s", 0.25)))
+    al = np.asarray(keyed)[..., 3] > 127
+    ys = np.nonzero(al.max(axis=1))[0]
+    alpha_h = float(ys.max() - ys.min() + 1) if len(ys) else float(keyed.height)
+    px = max(1, int(round(cell * outline_frac)))
+    # the standing figure's height counts its outline; the pose's alpha (not its padded crop) is fitted to the rest
+    target = max(1.0, figure_height_cell(stand_cell) * float(fit) - 2 * px)
+    sc = target / max(1.0, alpha_h)
+    w, h = max(1, int(round(keyed.width * sc))), max(1, int(round(keyed.height * sc)))
+    if w > cell - 2 * px or h > cell - 2 * px:
+        s2 = min((cell - 2 * px) / keyed.width, (cell - 2 * px) / keyed.height)
+        w, h = max(1, int(keyed.width * s2)), max(1, int(keyed.height * s2))
+    small = keyed.resize((w, h), Image.LANCZOS)
+    want = int(round(lower_center_x(stand_cell) - lower_center_x(small)))
+    x = max(px, min(cell - px - w, want))
+    sa = np.asarray(small)[..., 3] > 127
+    sy = np.nonzero(sa.max(axis=1))[0]
+    bottom_pad = (h - 1 - int(sy.max())) if len(sy) else 0
+    st = np.asarray(stand_cell)[..., 3] > 127
+    ty = np.nonzero(st.max(axis=1))[0]
+    # the soles on the standing figure's floor line (its outline counted), else the cell's
+    floor = (int(ty.max()) - px) if len(ty) else cell - int(cell * pad_bottom)
+    canvas = Image.new("RGBA", (cell, cell), (0, 0, 0, 0))
+    canvas.alpha_composite(small, (x, max(0, floor - (h - bottom_pad) + 1)))
+    return artkit.add_outline(canvas, px, outline_color), x - want
+
+
+def attack_frames(aim, aim_b, stand_cell, back_cell, cell, outline_frac, outline_color, d, info):
+    """The `attack` frames from the painted poses (attack_stills): the front pose held, a still and a breath (the aim
+    "cannot move a muscle"); with the creature's "attack_views": "front_back" (lane SNIPER, pass 73: the game shows the
+    first half while the aim points towards the camera, the second while it points away) the pose from behind follows
+    as the second half. `aim_fit`: the pose's height against the standing figure's (1 = the same); `aim_match` (default
+    {"lo": 0, "hi": 60}: the browns; false = off): the hue band whose colours are matched to the standing paintings."""
+    fit = float(d.get("aim_fit", 1.0) or 1.0)
+    match = d.get("aim_match", {"lo": 0, "hi": 60})
+    match = match if isinstance(match, dict) else None
+    a, slid = pose_cell(aim, stand_cell, cell, outline_frac, outline_color, fit, match=match)
+    breath = cell / 160.0
+    frames = [a, artkit.transform(a, bob=breath, sy=0.996, sx=1.002)]
+    info["attack_slid_px"] = {"front": slid}
+    if str(d.get("attack_views", "")) == "front_back" and aim_b is not None:
+        b, slid_b = pose_cell(aim_b, back_cell, cell, outline_frac, outline_color, fit, match=match)
+        frames += [b, artkit.transform(b, bob=breath, sy=0.996, sx=1.002)]
+        info["attack_slid_px"]["back"] = slid_b
+    return {"attack": frames}
+
+
 def run_scale_of(d, view):
     """Pass 70 (lane ART): a look's per-view size of its run/walk clip, "run_scale": {"side": 0.88, "back": 1.06} in
     the recipe (or the JSON), multiplied into the clip's fitted scale (1 = as fitted). A driven clip is fitted by its
@@ -1186,7 +1355,9 @@ def process(type_, folder, id_):
         # or the JSON says the whole back prompt itself ("back_prompt"): a creature whose pose the generic wording undoes
         if d.get("back_prompt"):
             back_prompt = str(d["back_prompt"]) + " " + bg + "."
-        back_img, inf = render(sk + "_back", back_prompt, [front_ref], {"subject": "the same creature seen from behind", "view": "back", "subjects_max": 1,
+        # pass 73 (lane ART): a picture of the back ("back_ref") as the back still's second reference
+        back_refs, back_prompt = back_ref_render(d, sk, bg, front_ref, back_prompt)
+        back_img, inf = render(sk + "_back", back_prompt, back_refs, {"subject": "the same creature seen from behind", "view": "back", "subjects_max": 1,
                                "ref_h": figure_height(img)}, seed + 1)
         info["renders"]["back"] = inf
         # creatures get a heavier, darker outline than the hero so they separate from the sand and from each other
@@ -1263,6 +1434,10 @@ def process(type_, folder, id_):
             base = passing_frame(run_f)
             back_cell = passing_frame(run_b)
         frames = artkit.enemy_frames(base, cell, run_f, back_cell, run_b, views)
+        # pass 73 (lane ART, the Saiga Sniper's aim): painted attack poses (aim_hint / aim_ref) instead of the leans
+        atk = attack_stills(d, sk, subject, bg, front_ref, img, back_img, seed, info)
+        if atk:
+            frames.update(attack_frames(atk[0], atk[1], base, back_cell, cell, CF, CO, d, info))
         # the death: a painted "dead" still edited from the front, and three frames of the standing painting tipping over into it
         # a creature JSON may carry "dead_hint": the death pose in its own words (the generic "limbs sprawled, tongue out" turned
         # the centipede into a goblin with arms)

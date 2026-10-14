@@ -225,6 +225,9 @@
           "enemy": "rocketeer"
         },
         {
+          "enemy": "saiga_sniper"
+        },
+        {
           "enemy": "harpoon_troglodyte",
           "stage": 2
         }
@@ -1528,6 +1531,16 @@
         "gila_grande": 4500,
         "brander": 20000
       }
+    },
+    "target_priority": {
+      "enabled": true,
+      "reach": 10.0
+    },
+    "spawn_rise": {
+      "seconds": 0.45,
+      "big_seconds": 0.9,
+      "targetable": 0.7,
+      "dust": 1.0
     }
   },
   "placeholder": {

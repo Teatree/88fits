@@ -206,6 +206,10 @@ func test_the_decoy_cycle_throw_land_fool_inside_only_never_a_boss_then_pop() ->
 	var boss := em.spawn_boss("tumbleweed_king", spot + Vector3(-2.5, 0, 0))
 	em.rise_t[boss] = 1.0
 	em.state[boss] = EnemyManager.STATE_MOVE
+	# (pass 73, lane GROUND, re-pinned on purpose: a spawn in a real game rises out of the ground first; this one is up)
+	em.rise_t[elite] = 1.0
+	em.rise_v[elite] = 0.0
+	em.state[elite] = EnemyManager.STATE_MOVE
 	em._rebuild_grid()
 	assert_bool(em.decoy_on).is_false()
 	assert_bool(em.is_fooled(inside)).is_false()

@@ -68,7 +68,8 @@ func test_structures_are_content() -> void:
 	assert_int(drum.effects.size()).is_equal(2)
 	assert_float(Registry.structure("uber_magnet").weight).is_less(Registry.structure("healing_well").weight)
 	var m: MapDef = Registry.map("red_canyon")
-	assert_int(int(m.timeline.structures.get("count", 0))).is_greater_equal(Registry.structures.size())
+	# pass 73: a structure that stands its own count (params.per_map, the Totem Poles) is not in the draw
+	assert_int(int(m.timeline.structures.get("count", 0))).is_greater_equal(StructureManager.drawn(Registry.structures.values()).size())
 
 
 func test_poison_weapons_are_content() -> void:

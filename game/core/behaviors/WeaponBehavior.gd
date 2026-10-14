@@ -376,7 +376,14 @@ func crowd_spots(n: int, reach: float, r: float, skip: Dictionary = {}, any_scre
 	var out: Array = []
 	var covered := {}
 	var step: int = maxi(1, cands.size() / 40)
-	for s in range(n):
+	# pass 73 (lane SNIPER): the first blow goes to a special, an Elite or the boss within reach (priority_pick) and the crowd
+	# round it counts as covered; the rest find crowds of their own as before
+	var pt: int = priority_pick(player.global_position, reach, any_screen) if n > 0 else -1
+	if pt >= 0 and not skip.has(pt):
+		out.append(em.pos[pt])
+		for j in em.indices_in_radius(em.pos[pt], r):
+			covered[j] = true
+	for s in range(out.size(), n):
 		var best := -1
 		var best_n := 0
 		for k in range(0, cands.size(), step):
@@ -410,9 +417,21 @@ func stat_int(name: String, default: int = 0) -> int:
 ## Pass 54: only a creature on the screen (Settings.ranged_on_screen) unless `any_screen` (the homing weapons pass it).
 func aim_index(from: Vector3, range_m: float, avoid: String = "", any_screen: bool = false) -> int:
 	var em: EnemyManager = game.enemies
+	# pass 73 (lane SNIPER): a special, an Elite or the boss within reach first (EnemyManager.priority_target)
+	var pt := em.priority_target(from, range_m, any_screen)
+	if pt >= 0:
+		return pt
 	if inst.def.targeting == "priority":
 		return em.priority_index(from, range_m, avoid, any_screen)
 	return em.nearest_index(from, range_m, avoid, any_screen)
+
+
+## The priority creature for a chooser that does not go through aim_index (pass 73: the "healthy" and "random" picks, a
+## chain's first link, a spreading volley's first bomb or blow, the black hole): EnemyManager.priority_target from `from`
+## within min(`range_m`, the map's reach); -1 for none.
+func priority_pick(from: Vector3, range_m: float, any_screen: bool = false) -> int:
+	var em: EnemyManager = game.enemies if game else null
+	return em.priority_target(from, range_m, any_screen) if em else -1
 
 
 func sfx(event: String, at: Vector3 = Vector3.INF) -> void:

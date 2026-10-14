@@ -1,6 +1,6 @@
 {
   "id": "unlock_deadeye",
-  "name": "Deadeye",
+  "name": "The Eye",
   "condition": {
     "type": "evolve_any",
     "count": 1

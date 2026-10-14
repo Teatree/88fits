@@ -211,7 +211,7 @@ func test_the_items_tab_opens_info_under_a_row_and_fills_it_again_when_a_level_i
 	shown = box.find_child("InfoText0", true, false)
 	assert_str(shown.text).is_equal(Run.weapon_instance("peashooter").description())
 	# a passive row has INFO and no EVO
-	panel._open["Lines"] = true
+	panel._open["Cards"] = true   # pass 73 (lane CARDS): the lines' section says Cards
 	panel._refresh()
 	var prow: Node = panel._content.find_child("Item_passive_deadeye", true, false)
 	assert_object(prow.find_child("Info", true, false)).is_not_null()

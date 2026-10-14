@@ -143,6 +143,9 @@ var run_materials: Dictionary = {"bones": 0, "relics": 0}
 var harvest: Dictionary = {}          # what the homestead yielded at this run's end (Save.harvest)
 ## the Stranger's cut: a fraction of max HP given up for his item, for the rest of the run
 var stranger_cost := 0.0
+## pass 73 (lane STRUCT): the Totem Poles' gifts taken this run (TotemBoons.roll dictionaries), each on the sheet for
+## the rest of the run (_apply_totem_boons)
+var totem_boons: Array = []
 ## The level-up's choices (pass 47, Garry: "only two skips per Stage, and those skips work for both Level Ups and
 ## Chests ... the same treatment for Banish, but initially Players only get 1 Banish"): skips and banishes are a stage's,
 ## refill_choices() puts them back to the sheet's `skips` (2) and `banishes` (1) at the run's start and at every stage,
@@ -247,6 +250,7 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	banished.clear()
 	run_materials = {"bones": 0, "relics": 0}
 	stranger_cost = 0.0
+	totem_boons = []
 	adrenaline = 0
 	adrenaline_until = 0.0
 	crescendo = 0
@@ -309,6 +313,8 @@ func _build_player_sheet() -> void:
 		var sc := Effect.new()
 		sc.stat = "max_hp"; sc.op = "mul"; sc.value = -stranger_cost; sc.target = "player"
 		player_sheet.add_effects([sc], "The Stranger's cut")
+	# pass 73 (lane STRUCT): the Totem Poles' gifts, before the passives (Heavyweight reads the max HP they give)
+	_apply_totem_boons()
 	_apply_passives_to_sheet()
 	# adrenaline reads the per-stack values the passives just put on the sheet, so it goes on last
 	if adrenaline > 0:
@@ -483,7 +489,8 @@ func _apply_gold_rush() -> void:
 	var v := gold_rush_bonus()
 	if v <= 0.0:
 		return
-	_gold_rush_source = "Gold Rush +%d%%" % int(round(v * 100.0))
+	# pass 73 (lane CARDS): named by the card's own name (Gold Tooth's evolution is a fortune card now)
+	_gold_rush_source = "%s +%d%%" % [PassiveDef.display_name_of("gold_rush", "Gold Rush"), int(round(v * 100.0))]
 	player_sheet.add_effects([Effect.make("might", "mul", v, "player")], _gold_rush_source)
 
 
@@ -1530,6 +1537,29 @@ func stranger_take(offer: Dictionary, hp_cost: float) -> String:
 
 ## The rarities the Stranger never sells.
 const STRANGER_SKIPS := ["common", "uncommon"]
+
+
+# ---------------------------------------------------------------- the Totem Poles (pass 73, lane STRUCT)
+
+## core/systems/TotemBoons.gd, by path (a new script's class name is unknown until the editor imports it)
+const TOTEM_BOONS := preload("res://core/systems/TotemBoons.gd")
+
+
+## A Totem Pole's gift taken (TotemBoons: a rolled {id, name, animal, stat, op, value, ...}): on the hero for the rest of
+## the run, the sheets rebuilt. Returns its words ("+6% move speed").
+func take_totem_boon(boon: Dictionary) -> String:
+	if boon.is_empty() or str(boon.get("stat", "")) == "":
+		return ""
+	totem_boons.append(boon.duplicate())
+	_note("totem", str(boon.get("id", "")), totem_boons.size(), {"stat": str(boon.get("stat", "")), "value": float(boon.get("value", 0.0))})
+	rebuild_sheets()
+	return TOTEM_BOONS.text(boon)
+
+
+## Every gift taken, each its own source on the sheet ("Totem: Le-loo"), so the pause screen's breakdown names it.
+func _apply_totem_boons() -> void:
+	for b: Dictionary in totem_boons:
+		player_sheet.add_effects([TOTEM_BOONS.effect_of(b)], TOTEM_BOONS.source(b))
 
 
 func has_weapon(id: String) -> bool:

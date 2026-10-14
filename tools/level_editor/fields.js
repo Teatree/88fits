@@ -256,8 +256,18 @@ const FIELDS = (() => {
     { key: 'boss_hp_scaling.window', group: 'Boss HP', label: 'DPS window (s)', type: 'number', min: 5, max: 180, step: 5, def: 45, help: 'the seconds before the boss arrives whose damage counts: the hero\'s DPS is what his hits took off creatures over them, ÷ the window (the clock runs through boss fights too)' },
     { key: 'boss_hp_scaling.min', group: 'Boss HP', label: 'Floor ×', type: 'number', min: 0.05, max: 1, step: 0.05, def: 0.75, help: 'the least the HP is multiplied by: a weak build meets a softer boss, never a pushover (0.75 = at most a quarter off)' },
     { key: 'boss_hp_scaling.max', group: 'Boss HP', label: 'Ceiling ×', type: 'number', min: 1, step: 0.25, def: 3, help: 'the most the HP is multiplied by: a monster build never meets a sponge (3 = reached at 9× the reference DPS with the exponent 0.5)' },
+    // pass 73 (lane SNIPER; Garry: "Player Attacks should prioritize Special Enemies, Elites and Bosses once Player is close
+    // enough to them"): WaveTimeline.target_priority, EnemyManager.priority_target
+    { key: 'target_priority.enabled', group: 'Targeting', label: 'Specials first', type: 'bool', def: true, help: 'on: every weapon that picks its target takes a special (a coloured special or a gear-badge creature: the Vulture Raider, the harpooner, the Saiga Sniper), an Elite or the boss first when one is within reach, the nearest of them; a volley spread over different creatures sends only its first shot there. Weapons that pick no target (orbits, auras, salt, mines) are not changed. Off: every weapon as before. Empty = the game\'s: on' },
+    { key: 'target_priority.reach', group: 'Targeting', label: 'Reach (m)', type: 'number', min: 0, step: 0.5, def: 10, help: 'how near the hero (a turret: itself) a special, an Elite or the boss must be to be taken first; never past the weapon\'s own range (empty = the game\'s 10 m)' },
+    // pass 73 (lane GROUND; Garry: "currently the enemies just kind of appear. Let's make it so that they grow out of the
+    // ground"): WaveTimeline.spawn_rise, handed to EnemyManager.set_spawn_rise by the director (the arena too)
+    { key: 'spawn_rise.seconds', group: 'Spawning', label: 'Rise out of the ground (s)', type: 'number', min: 0, step: 0.05, def: 0.45, help: 'every creature that spawns grows out of the sand over this many seconds (×1/pace on the map): the part still under is cut along a line of sand, a small puff of dust at its feet; it stands, bites nobody and starts no attack until it is all the way up. 0 = off (they appear at once)' },
+    { key: 'spawn_rise.big_seconds', group: 'Spawning', label: 'Elite / boss rise (s)', type: 'number', min: 0, step: 0.05, def: 0.9, help: 'the same for an Elite or a boss by its kind (they throw sand off themselves all the way up)' },
+    { key: 'spawn_rise.targetable', group: 'Spawning', label: 'Targetable from', type: 'number', min: 0, max: 1, step: 0.05, def: 0.7, help: 'the share of the way up from which a weapon may choose a rising creature as its target (below it no weapon picks it, nothing aims at it; area damage, blasts, patches, beams and rings still hit it); a burrower sinking out of sight is passed over below it too. It bites and attacks only once it is all the way up' },
+    { key: 'spawn_rise.dust', group: 'Spawning', label: 'Rise dust ×', type: 'number', min: 0, step: 0.1, def: 1, help: 'the size of the dust puff a rising creature throws up, × its size (0 = none; only drawn on the screen)' },
   ];
-  const SCALAR_GROUPS = ['Stages', 'Cap', 'Spawning', 'Portal', 'Scaling', 'Coloured specials', 'Boss HP', 'Endless', 'Items', 'World'];
+  const SCALAR_GROUPS = ['Stages', 'Cap', 'Spawning', 'Portal', 'Scaling', 'Coloured specials', 'Boss HP', 'Targeting', 'Endless', 'Items', 'World'];
 
   // the two curves' own fields (the HP x / ATK x inspectors and the Settings block)
   const CURVE = [
