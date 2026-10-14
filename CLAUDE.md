@@ -68,7 +68,8 @@ python tools/make_solenne_static.py [--no-raw]   # pass 54: Solenne's title cut-
 python tools/recolour_strip.py --src <strip> --dst <strip> --mode tint --ranges 10-75 --to 222 --set-sat 0.55 --value 0.6 --min-val 0.3   # pass 54: a pale material made dark and saturated frame by frame (the dark-blue SK-E / KN-E looks; artkit.tint_range)
 "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/walking_sun.fbx out=tools/dl/drivers/walk_sun frames=24 pitch=25 && python tools/pose_spread.py tools/dl/drivers/walk_sun tools/dl/drivers/walk_sun_spread   # pass 54: Solenne's walk (Garry's Walking_sun.fbx), the spread copy for the back views
 python tools/posthog_boards.py [--check]   # pass 59/60: (re)builds the eight PostHog dashboards from HogQL/Trends queries (personal phx_ key in tools/posthog_personal_key.txt, git-ignored; never in the game); a rerun keeps every board's id and replaces its tiles; every SQL tile gets PostHog's `{filters}` placeholder (`scoped()`), so a dashboard filter such as person property player_name reaches it (pass 62; how-tos for Garry's analytics questions live in analytics/howto/*.md)
-# analytics/dashboard.html: open in a browser after a run played from the editor binary (runs land in analytics/runs/, latest.js + index.js); analytics/SCHEMA.md documents the record
+# analytics/dashboard.html: open in a browser after a run played from the editor binary (played runs land in analytics/runs/, tool runs in analytics/runs/tools/, each with latest.js + index.js; pass 74: record schema 2, CSV buttons); analytics/SCHEMA.md documents the record
+python tools/analytics_csv.py [--runs analytics/runs] [--tools] [--out <dir>]   # pass 74: every run file as CSVs (rows a second, events, the history) for Excel/Sheets; default out analytics/runs/csv/
 "$GODOT" --audio-driver Dummy --resolution 1080x1920 --path D:/_projects/88fits/game --script res://tools/wanted_shots.gd -- out=<dir> [only=title,hud,...] [white=1] [inset=130]   # every Wanted screen state as the handoff's PNGs show it (only=backdrop rewrites art/ui/wanted/menu_backdrop.jpg; inset=N shows the screens under a camera cutout)
 python tools/wanted_compare.py <dir>/<state>.png <mock-name> [--diff] [--crop=x,y,w,h]   # a render beside its PNG in design_handoff_88fits_wanted/screens/
 "$GODOT" --audio-driver Dummy --resolution 504x1122 --fixed-fps 60 --path D:/_projects/88fits/game --script res://tools/perf_late.gd -- build=six   # late-game benchmark: ms per system and draw calls (--fixed-fps 30 = a phone at 30)
@@ -243,7 +244,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-14, pass 73, version 0.59)
+## Status (2026-10-14, pass 74, version 0.60)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -252,8 +253,8 @@ changed.
 
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
-parse check, all gdUnit tests (~1,644 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.59). The PC exe carries game/icon.ico and
+parse check, all gdUnit tests (~1,661 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.60). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
@@ -274,7 +275,8 @@ special Red Goblin (a swarm event with `special: true`). Pass 72: specials x1.5 
 push the hero's side gives x `hero_knockback_mult` (0.5); a boss's HP x clamp((recent DPS / reference)^0.5, 0.75, 3)
 (`boss_hp_scaling`, refs King 600 / Gila 4500 / Brander 20000); custom boss attacks are content
 (`content/boss_attacks/<id>`, kinds rain/volley/ring/slam/script; the Gila's `cactus_rain`), edited in the Level
-Editor's Boss attacks tab. The Results screen is a two-part show fed by `Run.timeline` (core/systems/RunTimeline.gd).
+Editor's Boss attacks tab. The Results screen is a two-part show fed by `Run.timeline` (core/systems/RunTimeline.gd); since pass 74 the chart
+block pops in after the gold count and the line, the counters and the damage sources play together on one clock.
 Pass 73: weapons take the nearest special, Elite or boss within 10 m first (map `target_priority`;
 `EnemyManager.priority_target`, a spread volley sends only its first shot there); the Saiga Sniper (special, brain
 `sniper`, core/systems/SniperFx.gd: a gathering red line, a lock, a beam across the map; look SS-A) and the `flee_on_hit`
@@ -337,7 +339,11 @@ personal `phx_` key only in git-ignored `tools/posthog_personal_key.txt`, never 
 never sent anywhere). Consent card first, persons named by `Save.player_name()`, `run_summary` per-minute curves, gold
 sources/sinks, surveys from PostHog Surveys with `[after N]` / `[run N]` name tags. Boards: `python tools/posthog_boards.py
 [--check]` (nine boards, ids kept on a rerun, SQL tiles follow dashboard filters). How-tos for Garry: `analytics/howto/`.
-Plan: `docs/analytics_plan.html` (artifact AK53A8KLchrSUFXxZo4kSu). Local runs: `analytics/dashboard.html`.
+Plan: `docs/analytics_plan.html` (artifact AK53A8KLchrSUFXxZo4kSu). Local runs: `analytics/dashboard.html` (pass 74: the
+record is schema 2, `core/systems/RunAnalytics.gd`, documented in `analytics/SCHEMA.md`: the look, trait, talents,
+settings, the map's settings, totems and their offers, the Stranger, specials and Elite modifiers, the bosses' HP
+scaling, healing by source, the run's timeline, quest progress, FPS; tool runs go to `analytics/runs/tools/`; a phone
+keeps its newest 50 run files, the PC every one; CSV downloads on the page and `tools/analytics_csv.py`).
 
 **Art and sound pipelines.** Flux.2 Klein / dev stills + Wan 2.2 clips on ComfyUI 192.168.137.54:8188 (skills
 sprite-pipeline, sprite-animation; heroes walk on Mixamo pose drivers fitted to the painting; creatures on Blender

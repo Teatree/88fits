@@ -381,6 +381,7 @@ func _tick_regen(delta: float) -> void:
 		_heal_batch += hp - before
 		# Hot Springs (pass 69): regen's ticks count towards the pulse too (Snake Oil's overheal they never fill)
 		_note_heal_pulse(hp - before)
+		if RunAnalytics.I: RunAnalytics.I.regen(hp - before)
 		damaged.emit(hp, max_hp)
 	_flush_heal_batch(delta)
 
@@ -776,7 +777,7 @@ func heal(amount: float, source: String = "") -> void:
 	# Snake Oil (pass 69): what the full bar could not take fills the overheal, up to its cap; Hot Springs hears it all
 	var got := hp - before + _fill_overheal(amount - (hp - before))
 	_note_heal_pulse(got)
-	if RunAnalytics.I: RunAnalytics.I.healed(got)
+	if RunAnalytics.I: RunAnalytics.I.healed(got, source)
 	# a green number on him (pass 47): pickups, lifesteal and the level patch as they come, lifesteal's points merged
 	if got >= 0.5 and DamageNumbers.I: DamageNumbers.I.hero_heal(got)
 	if source != "" and got >= 0.5:

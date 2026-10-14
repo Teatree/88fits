@@ -265,6 +265,30 @@ func kills_so_far() -> PackedFloat32Array:
 	return out
 
 
+## A damage id's damage so far `at` seconds into the run (pass 74: the Results' source rows grow with the chart's line):
+## its SRC_STEP samples (sample k is its damage at (k + 1) x SRC_STEP), linear between them, 0 at the start and `final`
+## (what the run counted for it) at the end, so it only grows; -1 when the record has no sample of it (a tool's run, or
+## a source that first hit in the last few seconds).
+func source_damage_at(id: String, at: float, final: float) -> float:
+	if not sources.has(id):
+		return -1.0
+	var c: PackedFloat32Array = (sources[id] as Dictionary).get("curve", PackedFloat32Array())
+	var n := c.size()
+	if n == 0:
+		return -1.0
+	if at <= 0.0:
+		return 0.0
+	if at >= length():
+		return final
+	var k := int(floor(at / SRC_STEP))
+	if k < n:
+		var y0: float = 0.0 if k == 0 else float(c[k - 1])
+		return minf(lerpf(y0, float(c[k]), (at - float(k) * SRC_STEP) / SRC_STEP), final)
+	# past the last sample: from it to the end
+	var x0 := float(n) * SRC_STEP
+	return lerpf(minf(float(c[n - 1]), final), final, clampf((at - x0) / maxf(length() - x0, 0.001), 0.0, 1.0))
+
+
 ## The kills in `n` equal slices of the run (the chart's bars), as a count per slice.
 func kill_slices(n: int) -> PackedFloat32Array:
 	var out := PackedFloat32Array()

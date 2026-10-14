@@ -12,12 +12,30 @@
 ## fps_low). Each settled offer is recorded as an "offer" event (the cards shown, the pick or the skip, the rerolls and
 ## banishes on the way, how long it took), read off the card screen's own signals; the run's id and the map's Level
 ## Editor version (map_rev) are in the header.
+## Pass 74 (Garry: "Update it so it contains all the info that might need adding or updating"), schema 2: the header adds
+## the hero's look and trait, the Upgrade board, the settings, the map's numbers as played, the launch file, the gold's
+## end block, the frame rate, the totems, the lines apart from the passive items, the Results' story (markers, when each
+## damage source joined), the quests' progress and the crowd's counters; the rows add healing by source, regen, hits by
+## creature and the specials alive; the events add the boss's HP pegging, the coloured specials (came, fell, chest),
+## creatures wearing an Elite modifier (came, fell), the Stranger's deals and the Totem Poles' offers. A tool's run
+## (headless, or started with --script) mirrors into analytics/runs/tools/ so the dashboard opens on a played run, and
+## a phone keeps only the newest KEEP_FILES run files under user:// (the PC never prunes; the repo's mirror neither).
 class_name RunAnalytics
 extends Node
 
 static var I: RunAnalytics = null
 
-const SCHEMA := 1
+const SCHEMA := 2
+## Pass 74: the run files a phone keeps in user://analytics/runs (the newest by name: a name is the run's start stamp);
+## the PC keeps every one (prunes_here).
+const KEEP_FILES := 50
+## Pass 74: RunTimeline's marker kinds by name (its KIND_* order: a special, an Elite or a boss killed, the hero down).
+const MARKER_NAMES := ["plain", "special", "elite", "boss", "down"]
+## Pass 74: the header blocks the index leaves out (big, or the run file's own business); the rest goes in flattened.
+const INDEX_SKIP := ["names", "hit_log", "samples", "events", "build", "totals", "timeline", "quests", "talents",
+	"talent_forms", "totems", "stat_names", "build_text"]
+## The Totem Poles' gifts (pass 73), by path as Run reads them.
+const TOTEM_BOONS := preload("res://core/systems/TotemBoons.gd")
 ## The player stats a sheet snapshot carries (StatSheet.PLAYER_DEFAULTS minus the bookkeeping ones; pass 47 added the
 ## new items' stats and the stage's skips and banishes).
 const STAT_KEYS := ["max_hp", "damage_reduction", "regen", "move_speed", "might", "cooldown", "area", "projectile_speed",
@@ -65,6 +83,8 @@ var events: Array = []
 var via := "card"            # how the next item arrives: card|path|starter|chest|boss_chest|stranger|shop|debug (set by Game before applying)
 var abandoned := false
 var mirror := true           # the PC copy beside the repo (tests turn it off)
+## Pass 74: the folder that stands in for the repo's analytics/ ("" = the one beside res://; tests name their own)
+var mirror_root := ""
 
 var _acc_t := 0.0
 var _finished := false
@@ -107,15 +127,50 @@ var _frame_hist := PackedInt32Array()
 var _frame_n := 0
 var _frame_ms := 0.0
 var _frame_last_us := 0
+# pass 74: the second's healing by source (Player.heal's source; an unnamed heal waits in _heal_unnamed for the signal
+# that caused it to name it: lifesteal, level_up), its regen, and the hits each creature landed
+var _heal_by: Dictionary = {}
+var _heal_unnamed := 0.0
+var _regen := 0.0
+var _hits_by: Dictionary = {}
+# pass 74: the crowd's special chests seen so far (a special's kill dropped one when the count moved)
+var _special_chests_seen := 0
+# pass 74: names the Registry does not know (a totem gift's id -> its title)
+var _extra_names: Dictionary = {}
 
 
-## The one line Game._ready needs: a recorder under the game, begun.
-static func create(p_game: Node) -> RunAnalytics:
+## The one line Game._ready needs: a recorder under the game, begun. `launch` is the debug launch file the run started
+## from (a tool's, the content dock's test launch; {} for a run from the title), kept in the header (pass 74).
+static func create(p_game: Node, launch: Dictionary = {}) -> RunAnalytics:
 	var ra := RunAnalytics.new()
 	ra.name = "RunAnalytics"
 	p_game.add_child(ra)
 	ra.begin(p_game)
+	ra.set_launch(launch)
 	return ra
+
+
+## Pass 74: the launch file's plain values (the hero, the weapon and its level, the map, its seed, the spawn beam) in the
+## header as `launch`; nothing for a run from the title.
+func set_launch(launch: Dictionary) -> void:
+	var out := {}
+	for k in launch:
+		var v = launch[k]
+		if v is String or v is int or v is float or v is bool:
+			out[str(k)] = v
+	if not out.is_empty():
+		header["launch"] = out
+
+
+## Pass 74: a tool's process (headless, or a script started with --script / -s: smoke_run, perf_late, a capture): its run
+## files mirror into analytics/runs/tools/, so the dashboard opens on a played run.
+static func is_tool_process() -> bool:
+	if DisplayServer.get_name() == "headless":
+		return true
+	for a in OS.get_cmdline_args():
+		if a == "--script" or a == "-s" or a.begins_with("--script="):
+			return true
+	return false
 
 
 func begin(p_game: Node) -> void:
@@ -139,14 +194,24 @@ func begin(p_game: Node) -> void:
 	header["map_rev"] = Analytics.map_rev(mapdef)
 	# the saved gold as the run began (pass 61: run_end's gold_before; gold_after - gold_before = what the run banked)
 	header["gold_before"] = Save.gold()
+	# pass 74 (schema 2): a tool's run or a played one, the look he wears, the Upgrade board, the switches, the map's numbers
+	header["tool"] = RunAnalytics.is_tool_process()
+	header["hero_look"] = Analytics.hero_look_of(hero)
+	header["talents"] = _talents()
+	header["talent_forms"] = _talent_forms()
+	header["settings"] = _settings()
+	header["map_settings"] = RunAnalytics.map_settings(mapdef.timeline if mapdef else null)
+	header["stat_names"] = RunAnalytics.stat_names()
 	Analytics.run_begin(str(header["run_id"]))
 	var em = game.get("enemies")
 	var dir = game.get("director")
 	_connect(em, "enemy_died", _on_enemy_died)
 	_connect(em, "boss_died", func(def, _p): event("boss_end", def.id))
-	_connect(dir, "boss_started", func(def): event("boss_start", def.id))
+	_connect(dir, "boss_started", _on_boss_started)
 	_connect(dir, "stage_started", func(s): event("stage", "", int(s) + 1); _sheet_dirty = true)
-	Run.level_up.connect(func(l): event("level", "", int(l)))
+	Run.level_up.connect(_on_level)
+	# pass 74: lifesteal's heal is unnamed on the hero; Game's handler heals before this one hears it (connected first)
+	Run.lifesteal_healed.connect(func(_n): _name_heal("lifesteal"))
 	Run.build_changed.connect(_on_build_changed)
 	_on_build_changed()
 	# the card screen is made after the recorder (Game._ready): its signals are joined once the game is built
@@ -176,7 +241,7 @@ func _exit_tree() -> void:
 		_finished = true
 		_flush_gold()
 		header["result"] = "quit"
-		_fill_end(false)
+		_fill_end(false, 0)
 		_write(true)
 		_send_held()
 		Analytics.run_finish(_end_props(0), _summary_props())
@@ -195,6 +260,7 @@ func took(info: Dictionary, raw: float, lost: float, shield: float, note: String
 	if key == "":
 		key = str(info.get("by", "something"))
 	_hits += 1
+	_hits_by[key] = int(_hits_by.get(key, 0)) + 1
 	_took_raw += raw
 	_took[key] = float(_took.get(key, 0.0)) + lost
 	var kind := str(info.get("kind", "melee"))
@@ -213,9 +279,112 @@ func spawned(def: EnemyDef) -> void:
 		event("elite", def.id)
 
 
-## Player.heal: the health actually restored.
-func healed(n: float) -> void:
+## Player.heal: the health actually restored, and what restored it (pass 74: Player.heal's `source`, the pickup's or the
+## structure's name; an unnamed heal is "other" until the signal that caused it names it: lifesteal, level_up).
+func healed(n: float, source: String = "") -> void:
 	_healed += n
+	var key := source if source != "" else "other"
+	_heal_by[key] = float(_heal_by.get(key, 0.0)) + n
+	if source == "":
+		_heal_unnamed += n
+
+
+## Pass 74: the unnamed heal just recorded came from `why`. Run.lifesteal_healed and Run.level_up reach this recorder
+## after Game's own handlers (connected before it), which are the ones that heal.
+func _name_heal(why: String) -> void:
+	if _heal_unnamed <= 0.0:
+		return
+	_heal_by["other"] = maxf(float(_heal_by.get("other", 0.0)) - _heal_unnamed, 0.0)
+	_heal_by[why] = float(_heal_by.get(why, 0.0)) + _heal_unnamed
+	_heal_unnamed = 0.0
+
+
+## Pass 74, Player._tick_regen: health regenerated (regen, Siesta, Deep Breath), apart from the heals.
+func regen(n: float) -> void:
+	_regen += n
+
+
+## Run.level_up (pass 74: a method, so the level-up's heal is named first).
+func _on_level(l: int) -> void:
+	_name_heal("level_up")
+	event("level", "", int(l))
+
+
+## EnemyManager.spawn (pass 74), for the marked ones only: a coloured variance special came (`forced`: a Special swarm
+## made it), or a creature wearing an Elite modifier (`elite`). An Elite by its kind is spawned()'s "elite" event.
+func spawned_marked(def: EnemyDef, elite: EliteModDef, special: bool, forced: bool) -> void:
+	if special:
+		event("special", def.id, 0, {"forced": forced})
+	if elite != null:
+		event("elite_mod", def.id, 0, {"mod": elite.id})
+
+
+## EnemyManager._die (pass 74): a coloured special fell to `weapon_id`; `chests` is the crowd's count of special chests so
+## far (EnemyManager.special_chests), which moved if this one dropped one.
+func special_killed(def: EnemyDef, chests: int, weapon_id: String) -> void:
+	var chest := chests > _special_chests_seen
+	_special_chests_seen = maxi(chests, _special_chests_seen)
+	event("special_kill", def.id, 0, {"chest": chest, "weapon": weapon_id})
+
+
+## The Stranger's screen closing (pass 74, Game): the deal taken ("stranger": the item, its kind, the level it comes at,
+## the cut of max HP, and his max HP before the deal and after it) or turned down ("stranger_decline").
+func stranger(offer: Dictionary, cost: float, hp_max: float, took_it: bool) -> void:
+	var extra := {"type": str(offer.get("type", "")), "cost": snappedf(cost, 0.01)}
+	if took_it:
+		extra["hp_max_before"] = snappedf(hp_max, 0.1)
+	event("stranger" if took_it else "stranger_decline", str(offer.get("id", "")), int(offer.get("level_to", 0)), extra)
+	if took_it:
+		# his sheet is rebuilt by Game right after this call: the new max HP is read once that is done
+		call_deferred("_stranger_after", events.size() - 1)
+
+
+func _stranger_after(i: int) -> void:
+	var player = game.get("player") if game != null and is_instance_valid(game) else null
+	if player != null and i >= 0 and i < events.size() and str(events[i].get("kind", "")) == "stranger":
+		events[i]["hp_max_after"] = snappedf(float(player.get("max_hp")), 0.1)
+
+
+## A Totem Pole's menu closing (pass 74, Game): the gifts it offered (ids, stats, amounts, their quality 1-3 and their
+## words) and the one taken (the event's id; "" when none was).
+func totem_offer(offer: Array, taken: Dictionary) -> void:
+	var ids: Array = []
+	var stats: Array = []
+	var values: Array = []
+	var quality: Array = []
+	var words: Array = []
+	for b in offer:
+		if not (b is Dictionary):
+			continue
+		var bid := str(b.get("id", ""))
+		ids.append(bid)
+		stats.append(str(b.get("stat", "")))
+		values.append(snappedf(float(b.get("value", 0.0)), 0.001))
+		quality.append(int(b.get("quality", 0)))
+		words.append(TOTEM_BOONS.text(b))
+		_extra_names[bid] = TOTEM_BOONS.title(b)
+	event("totem_offer", str(taken.get("id", "")), 0, {"offered": ids, "stats": stats, "values": values, "quality": quality,
+		"words": words})
+
+
+## The director's boss_started (pass 74): the boss's max HP as it came and the pegging that set it (WaveDirector's
+## last_boss_scale: the hero's DPS over the window, the boss's reference DPS, the multiplier; none with scaling off).
+func _on_boss_started(def: EnemyDef) -> void:
+	var extra := {}
+	var dir = game.get("director") if game != null and is_instance_valid(game) else null
+	var sc = dir.get("last_boss_scale") if dir != null else null
+	if sc is Dictionary and str((sc as Dictionary).get("id", "")) == def.id:
+		extra["dps"] = snappedf(float(sc.get("dps", 0.0)), 0.1)
+		extra["ref"] = snappedf(float(sc.get("ref", 0.0)), 0.1)
+		extra["mult"] = snappedf(float(sc.get("mult", 1.0)), 0.01)
+		extra["window"] = snappedf(float(sc.get("window", 0.0)), 0.1)
+	var em = game.get("enemies") if game != null and is_instance_valid(game) else null
+	if em != null:
+		var bi = em.get("boss_index")
+		var mx = em.get("max_hp")
+		if bi != null and int(bi) >= 0 and mx != null and int(bi) < (mx as PackedFloat32Array).size():
+			extra["hp"] = roundf(float(mx[int(bi)]))
+	event("boss_start", def.id, 0, extra)
 
 
 ## Run.add_gold (pass 61): `n` gold came into the purse from `source` (after greed; `greed` of it is greed's share).
@@ -248,10 +417,15 @@ static func _sum_ints(d: Dictionary) -> int:
 	return t
 
 
-func _on_enemy_died(def: EnemyDef, _pos: Vector3, elite: EliteModDef, _weapon_id: String) -> void:
+func _on_enemy_died(def: EnemyDef, _pos: Vector3, elite: EliteModDef, weapon_id: String) -> void:
 	_kills[def.id] = int(_kills.get(def.id, 0)) + 1
 	if elite != null or def.archetype == "elite":
 		_elite_kills += 1
+		# pass 74: which one fell, to what, and the modifier it wore (none for an Elite by its kind)
+		var extra := {"weapon": weapon_id}
+		if elite != null:
+			extra["mod"] = elite.id
+		event("elite_kill", def.id, 0, extra)
 
 
 func _on_build_changed() -> void:
@@ -320,7 +494,8 @@ func _on_offer_chosen(card: Dictionary) -> void:
 # ---------------------------------------------------------------- events
 
 ## A moment in the run: {t, clock, kind, id?, level?} plus `extra`. Pass 47: a skip carries the skips left (no gold any
-## more) and a chest let go adds "chest_skip" (Game); a chest's banish is Run's "banish" with "where": "chest". An item kind also records how it arrived (`via`)
+## more) and a chest let go is Run's "chest" with "skip": true and the skips left; a chest's banish is Run's "banish" with
+## "where": "chest". An item kind also records how it arrived (`via`)
 ## and the build's estimated DPS before it; the next build_changed fills `est_after`.
 ## Pass 57: the keys every event has (t, clock, kind) are never overwritten by `extra` (the death's hit kind and the
 ## debug hand's item kind came as "kind" and replaced the event's own: the death was recorded as "melee"); the debug
@@ -337,6 +512,11 @@ func event(kind: String, id: String = "", level: int = 0, extra: Dictionary = {}
 			e["item_kind"] = extra[k]
 		elif k != "t" and k != "clock":
 			e[k] = extra[k]
+	# pass 74: a line (a fortune card, PassiveDef.is_line) says so, so the build's story keeps the lines apart
+	if (kind == "passive" or kind == "passive_evolution") and id != "":
+		var pd: PassiveDef = Registry.passive(id)
+		if pd != null and pd.is_line():
+			e["line"] = true
 	if kind in ITEM_KINDS:
 		e["via"] = via
 		e["est_before"] = snappedf(_est_now, 0.1)
@@ -489,6 +669,10 @@ func _sample() -> void:
 	_put(row, "evaded", _evaded)
 	_putf(row, "shielded", _shielded)
 	_putf(row, "healed", _healed)
+	# pass 74: the hits by creature, the healing by source (it sums to healed) and the regen (not in healed)
+	_put_map(row, "hits_by", _hits_by, false)
+	_put_map(row, "healed_by", _heal_by, true)
+	_putf(row, "regen", _regen)
 	_put_map(row, "killed", _kills, false)
 	_put(row, "elite_kills", _elite_kills)
 	_put_map(row, "spawned", _spawns, false)
@@ -529,9 +713,17 @@ func _sample() -> void:
 		var bi: int = em.boss_index
 		if bi >= 0 and bi < alive.size() and alive[bi] == 1 and mx[bi] > 0.0:
 			row["boss_hp"] = snappedf(hp[bi] / mx[bi], 0.01)
+		# pass 74: the coloured specials up now (EnemyManager.specials_alive)
+		var sa = em.get("specials_alive")
+		if sa != null:
+			_put(row, "specials_alive", int(sa))
 		var m := {"stage": snappedf(float(em.stage_mult), 0.01), "hp_t": snappedf(float(em.hp_time_mult), 0.01),
 			"lvl_hp": snappedf(float(em.level_hp_mult), 0.01), "lvl_dmg": snappedf(float(em.level_dmg_mult), 0.01),
 			"time_scale": snappedf(float(em.time_scale), 0.01)}
+		# pass 74: the timeline's damage ramp beside its HP ramp
+		var dmt = em.get("damage_time_mult")
+		if dmt != null:
+			m["dmg_t"] = snappedf(float(dmt), 0.01)
 		if m != _mults_last:
 			row["mults"] = m
 			_mults_last = m
@@ -539,7 +731,10 @@ func _sample() -> void:
 	if _sheet_dirty and (_item_since_snapshot or play_t - _last_snapshot_t >= SNAPSHOT_EVERY):
 		row["stats"] = _stats_snapshot()
 		row["weapons"] = _weapons_snapshot()
-		row["passives"] = Run.passives.duplicate()
+		# pass 74: the lines (fortune cards) apart from the passive items
+		var split := _passives_split()
+		row["passives"] = split[0]
+		row["lines"] = split[1]
 		row["perks"] = Run.perks.duplicate()
 		_sheet_dirty = false
 		_item_since_snapshot = false
@@ -560,11 +755,17 @@ func _sample() -> void:
 		_gold_in[k] = 0
 	for k in _gold_out:
 		_gold_out[k] = 0
+	for k in _hits_by:
+		_hits_by[k] = 0
+	for k in _heal_by:
+		_heal_by[k] = 0.0
 	_took_raw = 0.0
 	_hits = 0
 	_evaded = 0
 	_shielded = 0.0
 	_healed = 0.0
+	_heal_unnamed = 0.0
+	_regen = 0.0
 	_elite_kills = 0
 
 
@@ -605,10 +806,11 @@ func finish() -> void:
 		header["result"] = "death"
 	else:
 		header["result"] = "end"
-	_fill_end(true)
+	var banked := int(Run.last_result.get("banked", 0))
+	_fill_end(true, banked)
 	_write(true)
 	_send_held()
-	Analytics.run_finish(_end_props(int(Run.last_result.get("banked", 0))), _summary_props())
+	Analytics.run_finish(_end_props(banked), _summary_props())
 
 
 ## Gold of a second the rows have not taken yet (pass 61: a chest or the shop pays while the game is paused, and the
@@ -636,11 +838,12 @@ func _flush_gold() -> void:
 func checkpoint() -> void:
 	if _finished:
 		return
-	_fill_end(false)
+	_fill_end(false, 0)
 	_write(false)
 
 
-func _fill_end(with_log: bool) -> void:
+## The header's end state. `banked` is what the run's end brought home (gold_end; 0 before the end and for a quit).
+func _fill_end(with_log: bool, banked: int = 0) -> void:
 	header["length"] = snappedf(play_t, 0.1)
 	header["clock"] = snappedf(Run.elapsed, 0.1)
 	header["stage"] = Run.stage + 1
@@ -650,9 +853,23 @@ func _fill_end(with_log: bool) -> void:
 	header["gold"] = Run.run_gold
 	header["strongbox"] = Run.banked_gold
 	header["revives"] = Run.revives_used
-	header["build"] = _build()
+	# pass 74: the lines apart from the passive items (PostHog's run_summary keeps _build(), every passive together), and
+	# the build in one line in the order it was taken (the file's JSON sorts keys, so it cannot be rebuilt from it)
+	header["build"] = _build_record()
+	header["build_text"] = build_text(_build())
 	header["totals"] = {"damage_by_weapon": Run.damage_by_weapon.duplicate(), "kills_by_weapon": Run.kills_by_weapon.duplicate(),
 		"kills_by_enemy": Run.kills_by_enemy.duplicate()}
+	# pass 74 (schema 2): the trait as it ended, the totems' gifts, the Results' story, the quests, the crowd's counters,
+	# the gold's end block (run_end's), the frame rate (a window's only)
+	header["trait"] = _trait()
+	header["totems"] = _totems()
+	header["timeline"] = _timeline()
+	header["quests"] = _quests()
+	header["crowd"] = _crowd()
+	header["gold_end"] = gold_end(banked)
+	var fps := fps_stats()
+	if not fps.is_empty() and not bool(header.get("headless", false)):
+		header["fps"] = {"avg": fps["fps_avg"], "low": fps["fps_low"]}
 	header["names"] = _names()
 	if with_log and game and is_instance_valid(game):
 		var player = game.get("player")
@@ -957,6 +1174,189 @@ func _build() -> Dictionary:
 	return {"weapons": ws, "passives": Run.passives.duplicate(), "perks": Run.perks.duplicate()}
 
 
+# ---------------------------------------------------------------- pass 74: the header's new blocks
+
+## The build as the record keeps it (pass 74): the lines (PassiveDef.is_line, the fortune cards) apart from the passive
+## items; PostHog's run_summary keeps _build(), every passive in one map.
+func _build_record() -> Dictionary:
+	var b := _build()
+	var split := _passives_split()
+	b["passives"] = split[0]
+	b["lines"] = split[1]
+	return b
+
+
+## [the passive items held {id: level}, the lines held {id: level}] (Run.passives split by PassiveDef.is_line).
+func _passives_split() -> Array:
+	var items := {}
+	var lines := {}
+	for id in Run.passives:
+		var d: PassiveDef = Registry.passive(str(id))
+		if d != null and d.is_line():
+			lines[id] = Run.passives[id]
+		else:
+			items[id] = Run.passives[id]
+	return [items, lines]
+
+
+## The hero's trait as the run ended: its name and line (CharacterDef.trait_name, trait_text), its numbers at the level
+## he reached (CharacterDef.level_effects: {stat: value}) and those numbers in words (TextGen).
+func _trait() -> Dictionary:
+	var c: CharacterDef = Run.character
+	if c == null:
+		return {}
+	var effects: Array = c.level_effects(Run.level)
+	var stats := {}
+	for e in effects:
+		if e is Effect:
+			stats[(e as Effect).stat] = snappedf((e as Effect).value, 0.001)
+	return {"name": c.trait_name, "text": c.trait_text, "level": Run.level, "stats": stats,
+		"words": TextGen.describe_effects(effects) if not effects.is_empty() else ""}
+
+
+## The Totem Poles' gifts taken (Run.totem_boons), each with its title and words.
+func _totems() -> Array:
+	var out: Array = []
+	for b in Run.totem_boons:
+		if b is Dictionary:
+			out.append({"id": str(b.get("id", "")), "name": TOTEM_BOONS.title(b), "stat": str(b.get("stat", "")),
+				"op": str(b.get("op", "add")), "value": snappedf(float(b.get("value", 0.0)), 0.001),
+				"quality": int(b.get("quality", 0)), "words": TOTEM_BOONS.text(b)})
+	return out
+
+
+## The Results screen's story (Run.timeline, RunTimeline) without its second-by-second samples (the rows have them): every
+## marker [t, kind] (a special, an Elite or a boss killed; "down": the hero fell), the stages' starts [t, stage index],
+## each damage source's moment it was first owned and first hit (-1 = never), and the starting weapon. Its play clock is
+## the rows' (both tick with Game's unpaused frames).
+func _timeline() -> Dictionary:
+	var tl = Run.get("timeline")
+	if tl == null or not (tl is Object):
+		return {}
+	var markers: Array = []
+	var raw = tl.get("markers")
+	if raw is Array:
+		for m in raw:
+			if m is Array and (m as Array).size() >= 2:
+				var k := int(m[1])
+				markers.append([snappedf(float(m[0]), 0.1), MARKER_NAMES[k] if k >= 0 and k < MARKER_NAMES.size() else str(k)])
+	var stages: Array = []
+	var st = tl.get("stages")
+	if st is Array:
+		for s in st:
+			if s is Array and (s as Array).size() >= 2:
+				stages.append([snappedf(float(s[0]), 0.1), int(s[1])])
+	var sources := {}
+	var src = tl.get("sources")
+	if src is Dictionary:
+		for id in src:
+			var e = src[id]
+			if e is Dictionary:
+				sources[str(id)] = {"owned": snappedf(float(e.get("owned", -1.0)), 0.1), "hit": snappedf(float(e.get("hit", -1.0)), 0.1)}
+	var sw = tl.get("start_weapon")
+	return {"start_weapon": str(sw) if sw != null else "", "markers": markers, "stages": stages, "sources": sources}
+
+
+## The counted quests the run could move (Run.timeline.quests_before: every one not done as it began): its name, its
+## progress as the run began and as it ended (QuestTracker.progress), what it needs, and whether it is done now.
+func _quests() -> Dictionary:
+	var out := {}
+	var tl = Run.get("timeline")
+	var before = tl.get("quests_before") if tl != null and tl is Object else null
+	if not (before is Dictionary):
+		return out
+	for id in before:
+		var q: QuestDef = Registry.quests.get(str(id))
+		if q == null:
+			continue
+		var p := QuestTracker.progress(q)
+		out[str(id)] = {"name": q.display_name, "before": int(before[id]), "after": p.x, "need": p.y, "done": Save.quest_done(q.id)}
+	return out
+
+
+## The crowd's own counters at the end (EnemyManager): the chests specials dropped (special_chests) and Hot Sauce's
+## (hot_chests), and the Saiga Sniper's aims, shots, hits on the hero and spoiled aims; only those above zero.
+func _crowd() -> Dictionary:
+	var em = game.get("enemies") if game != null and is_instance_valid(game) else null
+	var out := {}
+	if em == null:
+		return out
+	for k in ["special_chests", "hot_chests", "sniper_aims", "sniper_shots", "sniper_hero_hits", "sniper_cancels"]:
+		var v = em.get(k)
+		if v != null and int(v) != 0:
+			out[k] = int(v)
+	return out
+
+
+## The Upgrade board as the run began: {talent id: the form of each rank bought, in order} (Save.talent_picks: 0 its
+## first form, 1 its second), only the talents with a rank.
+func _talents() -> Dictionary:
+	var out := {}
+	for t in Registry.talents.values():
+		var tdef := t as TalentDef
+		if tdef == null:
+			continue
+		var picks := Save.talent_picks(tdef.id)
+		if not picks.is_empty():
+			out[tdef.id] = picks
+	return out
+
+
+## The two forms' names of every talent the run had a rank of: {talent id: [first form, second form]}.
+func _talent_forms() -> Dictionary:
+	var out := {}
+	for t in Registry.talents.values():
+		var tdef := t as TalentDef
+		if tdef == null or Save.talent_picks(tdef.id).is_empty():
+			continue
+		out[tdef.id] = [tdef.form_name(0), tdef.form_name(1)]
+	return out
+
+
+## The words the pause screen uses for every stat the record's snapshots carry (TextGen.stat_name: "attack damage", not
+## "might"), so the dashboard needs no content folder for them.
+static func stat_names() -> Dictionary:
+	var out := {}
+	for k in STAT_KEYS:
+		out[k] = TextGen.stat_name(k)
+	return out
+
+
+## The switches the run played with: pierce drop-off (Settings.pierce_falloff), the player's debug mode, and whether
+## the run counts as Garry's own (Analytics.is_dev: the editor binary, a debug build or debug mode).
+func _settings() -> Dictionary:
+	return {"pierce_falloff": bool(Settings.pierce_falloff), "debug_mode": bool(Settings.debug_mode), "dev": Analytics.is_dev()}
+
+
+## The map's numbers the run played, each block with the game's own defaults where the map leaves a key out (an empty
+## block plays the defaults): the push the hero's side gives, the variance specials (with max_alive; -1 = no limit),
+## boss HP pegged to DPS (with every boss's ref_dps), the weapons' priority targets, the spawns rising out of the sand,
+## the creatures' own multipliers, the pace and the XP need.
+static func map_settings(tl: WaveTimeline) -> Dictionary:
+	if tl == null:
+		return {}
+	var sd: Dictionary = EnemyDef.SPECIAL_DEFAULTS.duplicate()
+	sd.merge(tl.special_defaults, true)
+	sd["max_alive"] = EnemyDef.special_max_alive(tl.special_defaults)
+	var bs: Dictionary = WaveTimeline.BOSS_HP_SCALING_DEFAULTS.duplicate()
+	for k in tl.boss_hp_scaling:
+		if str(k) != "ref_dps":
+			bs[k] = tl.boss_hp_scaling[k]
+	var refs: Dictionary = WaveTimeline.BOSS_REF_DPS_DEFAULTS.duplicate()
+	var mr = tl.boss_hp_scaling.get("ref_dps", {})
+	if mr is Dictionary:
+		refs.merge(mr, true)
+	bs["ref_dps"] = refs
+	var tp: Dictionary = WaveTimeline.TARGET_PRIORITY_DEFAULTS.duplicate()
+	tp.merge(tl.target_priority, true)
+	var sr: Dictionary = WaveTimeline.SPAWN_RISE_DEFAULTS.duplicate()
+	sr.merge(tl.spawn_rise, true)
+	return {"hero_knockback_mult": tl.hero_knockback_mult, "special_defaults": sd, "boss_hp_scaling": bs,
+		"target_priority": tp, "spawn_rise": sr, "creature_hp_mult": tl.creature_hp_mult,
+		"creature_damage_mult": tl.creature_damage_mult, "creature_speed_mult": tl.creature_speed_mult,
+		"move_pace": tl.move_pace, "xp_need_mult": tl.xp_need_mult}
+
+
 ## id -> display name for everything the record mentions, so the dashboard needs no content folder.
 func _names() -> Dictionary:
 	var ids := {}
@@ -975,6 +1375,16 @@ func _names() -> Dictionary:
 	for e in events:
 		if e.has("id"):
 			ids[str(e["id"])] = true
+		# pass 74: the modifier a creature wore, the weapon a kill or a mutation names, the cards an offer showed
+		for k in ["mod", "weapon", "from"]:
+			if e.has(k) and str(e[k]) != "":
+				ids[str(e[k])] = true
+		for k in ["cards", "banished"]:
+			if e.get(k) is Array:
+				for c in e[k]:
+					ids[str(c)] = true
+	for k in header.get("talents", {}):
+		ids[str(k)] = true
 	for w in Run.weapons:
 		ids[w.def.id] = true
 		for m in w.mutations:
@@ -988,6 +1398,10 @@ func _names() -> Dictionary:
 		var n := _name_of(str(id))
 		if n != "":
 			out[id] = n
+	# pass 74: the totem gifts' titles (no content folder of their own)
+	for id in _extra_names:
+		if not out.has(id) and str(_extra_names[id]) != "":
+			out[id] = _extra_names[id]
 	return out
 
 
@@ -1010,6 +1424,11 @@ func _name_of(id: String) -> String:
 		d = Registry.pickup(id)
 	if d == null:
 		d = Registry.structure(id)
+	# pass 74: an Elite modifier, a talent of the Upgrade board
+	if d == null:
+		d = Registry.elites.get(id) as ContentDef
+	if d == null:
+		d = Registry.talents.get(id) as ContentDef
 	if d == null:
 		return str(SOURCE_NAMES.get(id, ""))
 	return d.display_name
@@ -1026,6 +1445,10 @@ func _write(index: bool) -> String:
 	DirAccess.make_dir_recursive_absolute("user://analytics/runs")
 	var out := "user://analytics/runs/" + fname
 	_store(out, json)
+	# pass 74: a phone keeps the newest KEEP_FILES run files (at a run's end; a checkpoint never prunes). The PC never
+	# prunes: a run played in the PC exe lives only here (no repo mirror), and Garry drags them into the dashboard
+	if index and RunAnalytics.prunes_here():
+		RunAnalytics.prune("user://analytics/runs", KEEP_FILES)
 	if mirror and not OS.has_feature("mobile"):
 		var dir := _mirror_dir()
 		if dir != "":
@@ -1038,16 +1461,47 @@ func _write(index: bool) -> String:
 	return out
 
 
-## The repo's analytics/runs/ when the game runs from the repo (the editor binary); "" anywhere else.
+## The repo's analytics/runs/ when the game runs from the repo (the editor binary); analytics/runs/tools/ for a tool's run
+## (pass 74: header.tool; its own latest.js and index); "" anywhere else. `mirror_root` stands in for analytics/ (tests).
 func _mirror_dir() -> String:
-	var repo := ProjectSettings.globalize_path("res://").trim_suffix("/").get_base_dir()
-	var parent := repo.path_join("analytics")
+	var parent := mirror_root
+	if parent == "":
+		var repo := ProjectSettings.globalize_path("res://").trim_suffix("/").get_base_dir()
+		parent = repo.path_join("analytics")
 	if not DirAccess.dir_exists_absolute(parent):
 		return ""
 	var dir := parent.path_join("runs")
+	if bool(header.get("tool", false)):
+		dir = dir.path_join("tools")
 	if not DirAccess.dir_exists_absolute(dir):
 		DirAccess.make_dir_recursive_absolute(dir)
 	return dir
+
+
+## Pass 74 (the lead's rule): whether this platform prunes its user://analytics/runs: a phone only
+## (OS.has_feature("mobile")). The PC (the editor binary, the PC exe, tools, tests) never deletes a run file.
+static func prunes_here() -> bool:
+	return OS.has_feature("mobile")
+
+
+## Pass 74: only the newest `keep` run files stay in `dir`, the newest by name (a name is the run's start stamp, so it
+## sorts by time); the older ones are deleted. Returns how many went. A phone's user://analytics/runs at a run's end
+## (prunes_here); the repo's mirror and the PC's folder are never pruned. Tests call it on a folder of their own.
+static func prune(dir: String, keep: int = KEEP_FILES) -> int:
+	if not DirAccess.dir_exists_absolute(dir):
+		return 0
+	var files: Array = []
+	for f in DirAccess.get_files_at(dir):
+		if f.ends_with(".json") and f != "index.json":
+			files.append(f)
+	if files.size() <= keep:
+		return 0
+	files.sort()
+	var gone := 0
+	for i in range(files.size() - maxi(keep, 0)):
+		if DirAccess.remove_absolute(dir.path_join(str(files[i]))) == OK:
+			gone += 1
+	return gone
 
 
 func _update_index(dir: String) -> void:
@@ -1065,15 +1519,99 @@ func _update_index(dir: String) -> void:
 		if arr[i] is Dictionary and str(arr[i].get("stamp", "")) == stamp:
 			arr.remove_at(i)
 			break
-	arr.append({"file": stamp + ".json", "stamp": stamp, "started": header.get("started", ""), "hero": header.get("hero", ""),
-		"hero_name": header.get("hero_name", ""), "map": header.get("map", ""), "result": header.get("result", ""),
-		"length": header.get("length", 0.0), "clock": header.get("clock", 0.0), "stage": header.get("stage", 1),
-		"level": header.get("level", 1), "kills": header.get("kills", 0), "gold": header.get("gold", 0),
-		"version": header.get("version", ""), "headless": header.get("headless", false)})
+	arr.append(index_row())
 	while arr.size() > INDEX_KEEP:
 		arr.pop_front()
 	_store(ipath, JSON.stringify(arr))
 	_store(dir.path_join("index.js"), "window.RUNS = " + JSON.stringify(arr) + ";\n")
+
+
+## One run in the index (index.json / index.js: the dashboard's history and its CSV; pass 74, schema 2): the file, every
+## header field but the big blocks (INDEX_SKIP) with the small blocks flattened as "block.key" (gold_end.gold_banked,
+## fps.avg, settings.dev, map_settings.boss_hp_scaling.exponent, trait.stats.might, launch.weapon, ...), the Upgrade
+## board as ranks (talents = all of them, talents.<id> each), the totems taken, and the sums the history draws: the
+## damage dealt and the source that dealt the most, the build's estimate at the end, the build in one line, the HP lost
+## and the hits taken, the bosses, specials and Elites killed, and what put the hero down last. tools/analytics_csv.py
+## makes the same row from a run file.
+func index_row() -> Dictionary:
+	var row := {"file": str(header.get("stamp", "")) + ".json"}
+	for k in header:
+		if not INDEX_SKIP.has(str(k)):
+			RunAnalytics.flatten_into(row, str(k), header[k])
+	var ranks := 0
+	var tal = header.get("talents", {})
+	if tal is Dictionary:
+		for id in tal:
+			var n: int = (tal[id] as Array).size() if tal[id] is Array else 0
+			row["talents." + str(id)] = n
+			ranks += n
+	row["talents"] = ranks
+	row["totems"] = (header["totems"] as Array).size() if header.get("totems") is Array else 0
+	var dmg := 0.0
+	var top := ""
+	var top_v := -1.0
+	var totals = header.get("totals", {})
+	var dbw: Variant = {}
+	if totals is Dictionary:
+		dbw = (totals as Dictionary).get("damage_by_weapon", {})
+	if dbw is Dictionary:
+		for id in dbw:
+			var v := float(dbw[id])
+			dmg += v
+			if v > top_v:
+				top_v = v
+				top = str(id)
+	row["damage"] = roundf(dmg)
+	row["top_source"] = top
+	var lost := 0.0
+	var hits := 0
+	for r in samples:
+		if r is Dictionary:
+			var tk = (r as Dictionary).get("took")
+			if tk is Dictionary:
+				for c in tk:
+					lost += float(tk[c])
+			hits += int((r as Dictionary).get("hits", 0))
+	row["hp_lost"] = snappedf(lost, 0.1)
+	row["hits_taken"] = hits
+	row["dps_end"] = float((samples[-1] as Dictionary).get("est_total", 0.0)) if not samples.is_empty() and samples[-1] is Dictionary else 0.0
+	row["build"] = str(header.get("build_text", build_text(_build())))
+	var counts := {"boss_end": 0, "special_kill": 0, "elite_kill": 0}
+	var killer := ""
+	for e in events:
+		var kind := str(e.get("kind", ""))
+		if counts.has(kind):
+			counts[kind] = int(counts[kind]) + 1
+		elif kind == "death":
+			killer = str(e.get("id", ""))
+	row["bosses"] = counts["boss_end"]
+	row["specials_killed"] = counts["special_kill"]
+	row["elites_killed"] = counts["elite_kill"]
+	row["killer"] = killer
+	return row
+
+
+## Pass 74: `v` under `key` in a flat row: a dictionary as "key.sub" all the way down, a list of plain values as one text
+## joined by "; ", a list of anything else as its length, a plain value as it is (the index, the CSVs).
+static func flatten_into(row: Dictionary, key: String, v: Variant) -> void:
+	if v is Dictionary:
+		for k in v:
+			RunAnalytics.flatten_into(row, key + "." + str(k), v[k])
+	elif v is Array:
+		var plain := true
+		for x in v:
+			if x is Dictionary or x is Array:
+				plain = false
+				break
+		if plain:
+			var parts := PackedStringArray()
+			for x in v:
+				parts.append(str(x))
+			row[key] = "; ".join(parts)
+		else:
+			row[key] = (v as Array).size()
+	else:
+		row[key] = v
 
 
 func _store(path: String, text: String) -> bool:

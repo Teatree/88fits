@@ -1109,6 +1109,7 @@ func spawn(def_id: String, at: Vector3, elite: EliteModDef = null, scale_mult :=
 	if vspecial[i] == 1:
 		specials_alive += 1
 	if RunAnalytics.I: RunAnalytics.I.spawned(def)
+	if RunAnalytics.I and (vspecial[i] == 1 or elite != null): RunAnalytics.I.spawned_marked(def, elite, vspecial[i] == 1, force_special)
 	if def.archetype == "boss":
 		boss_index = i
 		atk_i[i] = 0
@@ -2442,6 +2443,7 @@ func _die(i: int, weapon_id: String) -> void:
 	died_size = 0.0
 	_hot_sauce_pay(i, def, elite)
 	_special_chest_drop(i, def, elite)
+	if RunAnalytics.I and vspecial[i] == 1: RunAnalytics.I.special_killed(def, special_chests, weapon_id)
 	if game and game.has_method("on_creature_died_index"):
 		game.on_creature_died_index(i)
 	if not def.death_burst.is_empty() and blown[i] == 0 and game and game.has_method("elite_explosion"):

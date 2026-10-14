@@ -2993,14 +2993,16 @@ def fit_turnover(map_id, include_headless=False, runs_dir=None):
     used, fights, waits = [], [], []
     by_min, by_stage = {}, {}
     k_all = a_all = 0.0
-    names = sorted(os.listdir(base)) if os.path.isdir(base) else []
+    # pass 74: tool runs (headless or started with --script) are kept apart in analytics/runs/tools/
+    dirs = [base] + ([os.path.join(base, "tools")] if include_headless else [])
+    entries = sorted((n, os.path.join(d, n)) for d in dirs if os.path.isdir(d) for n in os.listdir(d))
     picked = []
-    for name in reversed(names):
+    for name, path in reversed(entries):
         if len(picked) >= FIT_MAX_RUNS:
             break
         if not name.endswith(".json") or name.startswith("index"):
             continue
-        s = run_summary(os.path.join(base, name))
+        s = run_summary(path)
         if not s or s["map"] != map_id or (s["headless"] and not include_headless) or len(s["rows"]) < 60:
             continue
         picked.append(s)

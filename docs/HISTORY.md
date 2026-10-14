@@ -1047,3 +1047,79 @@ be consistent for all the heroes."
 - The Microsoft Store (free for individuals since 2025-09-10, MSIX re-signed by Microsoft, private audience) is the
   one route without the warning.
 - Recommendation: buy nothing; run a local copy.
+
+**Pass 74 (2026-10-14, v0.60): the Results show on one clock, the run dashboard made whole.** Two lanes from one contract (tools/dl/p74/INTERFACES.md), after pass 73 was committed as Garry asked: the Results screen keeps its chart block out of sight while the gold counts and pops it in when the count ends, then plays the chart's line, its marks, the Kills and Damage counters and the damage sources together on one clock (each source's row arriving when the line reaches the moment it joined); the local run record went to schema 2 (the look played, the trait, talents, settings, the map's settings, the gold at the end, FPS, totems and their offers, lines apart from passive items, the run's timeline, quest progress, healing by source, specials and Elite modifiers, the bosses' HP scaling, the Stranger), tool runs went to their own folder, and analytics/dashboard.html shows all of it and downloads CSVs (a run's rows, its events, the history, every table; `tools/analytics_csv.py` for every run at once).
+
+**Lane RESULTS (pass 74): the chart pops in after the gold; the line, the counters and the sources play together.**
+Garry: "The empty chart shouldn't just be sitting there, it should pop-in after the Coin count sequence is concluded"
+and "I wanted the chart, the kill count, the damage dealt and the individual damage sources sequence to play together at
+the same time". `ui/ResultsScreen.gd`: while the gold counts, the "Run performance" label, the chart block, the "Damage
+dealt" label and every source row wait unseen in their places (nothing on the board moves when they come); a new part
+`pop` (POP_TIME 0.3 s) grows the block from 85 % past its size and back (ease-out-back, about 3 % over) while it fades
+in, through a CanvasGroup (`_pop_holder`: the panel sits in a plain holder Control, so the board's column never resets
+its scale, and in a CanvasGroup while it pops, so it fades as one picture instead of showing its ink shadow and plot
+through the paper; `_land_pop` hands it back to the holder once landed, so nothing is drawn twice for the rest of the
+show); the two parts "chart" and "sources" became ONE part, still named "chart" (wanted_shots' `_show_at("chart")` keeps
+meaning "the chart half drawn"), JOINT_TIME 3.2 s: the line, its marks, the Kills and Damage counters and the rows on one
+clock, each row coming in when the line reaches the moment its source joined (`row_times`: the starting weapon's with the
+pop, ROW_BEAT 0.12 s between rows that joined together, ROW_FADE 0.2 s; the part runs on only if the last row needs it),
+its bar, number and percent at its damage so far (`_row_damage`; the percent of the run's final total, so bars only grow
+and end on their share); a run with no story keeps biggest first, spread evenly. `ordered_sources` keeps each source's
+ids (`ids`); `core/systems/RunTimeline.gd` gained `source_damage_at(id, at, final)` (the 5 s samples, linear, 0 at the
+start, the total at the end, -1 when never sampled); no field of the record changed (lane ANALYTICS reads them). The
+first sequence went from about 9.1 s to 6.35 s. Proof: `game/tools/_p74_RESULTS_shot.gd` films the show frame by frame
+on its own clock (the screen's processing stopped and stepped: the gold every 0.5 s, the pop every 0.04 s, the chart
+part every 0.16 s; a made-up run, its fall, a run with no story; 1080x1920 and inset=130; a watchdog), and
+`game/tools/_p74_RESULTS_real.gd` plays a real run first (the Drifter at x4 time with god mode, a down and a debug
+revive at 150 s, the 3:35 Elite struck down, the King at 4:00, extraction) and films its Results;
+`tools/dl/p74/RESULTS/sheet.py` makes the contact sheets checked by eye. Tests: `game/tests/pass74_results_test.gd` (9),
+`pass72_results_test` re-pinned (row 0 unseen before the pop; the parts list), touch_audit's results part unchanged and
+green.
+
+**Pass 74, lane ANALYTICS (Garry: "Let's go back to that local Analytics dashboard that tracks individual runs. 1. Update
+it so it contains all the info that might need adding or updating 2. Make it so that I can actually download the data as
+a .csv file").** *The record, schema 2* (core/systems/RunAnalytics.gd): the header gained the hero's look, his trait as
+it ended (name, line, numbers, words), the Upgrade board (each talent's forms), the switches (pierce drop-off, debug
+mode, a developer run), the map's numbers as played with the game's defaults filled in (the knockback mult, the
+specials' numbers and cap, the boss HP pegging with every reference, priority targets, the rise out of the sand, the
+creature mults, the pace, the XP need), the stat words (TextGen), the launch file a tool or the editor's test launch
+started from, the gold's end block (PostHog's run_end), the frame rate (a window only), the Totem gifts, the lines (the
+fortune cards) apart from the passive items, the build in one line, the Results' story (markers, when each damage source
+joined), the counted quests' progress before and after, and the crowd's counters (special and Hot Sauce chests, the Saiga
+Sniper's aims, shots, hits, spoiled aims); a row gained the hits by creature, the healing by source (Player.heal's name;
+life steal and the level-up patch named by the signals that cause them, heard right after Game heals), regen (never in
+`healed`), the specials up and the damage ramp; the events gained the boss's HP and its pegging on boss_start, the
+coloured specials (came, forced, fell, chest), creatures wearing an Elite modifier (came, fell with the modifier), Elites
+by their kind falling, the Stranger's deals (the item, its cost, max HP before and after) and the ones turned down, and
+each Totem Pole's offer (the three gifts, the one taken); a line's passive events say `line: true`. Hooks: one line each
+in Player (heal's source, regen), EnemyManager (a marked spawn, a special's death after its chest roll), Game (the
+Stranger's screen, the totem's menu, the launch file into create); `totem` and `special_kill` reach PostHog
+(`totem_taken`, `special_killed`), nothing else new does. A tool's run (headless or `--script`) mirrors into
+`analytics/runs/tools/` with its own latest.js and index, so the dashboard opens on a played run; a phone keeps its newest
+50 run files, the PC every one (the lead's rule after the first test run had pruned the PC's user folder to 50: those
+files were copies of analytics/runs as far as the counts, the survivors and PostHog can tell; tools/dl/p74/
+status_ANALYTICS.md has the evidence). The index row is the header flattened (`gold_end.gold_banked`, `fps.avg`, ...) plus
+the sums the history draws. *The dashboard* (analytics/dashboard.html, one file, the vendored Chart.js): a card per
+question in plain words: the run (every fact above), was the build strong enough (with special and Elite kills as dots),
+crowd pressure, when did the crowd outgrow me, health (falls named by their killer), what hurt me (HP lost and hits by
+creature), the last 30 seconds (the Down! list), how hard did each boss scale (its multiplier, the DPS it read against the
+reference, its health over the fight), specials and Elites, which weapon carried, estimate against real, how did the build
+grow (a lane per item, levels, mutations, evolutions, lines apart), the picks (with the decisions and the pickups
+counted), how did I choose (decision times, skips, rerolls, banishes, each card's pick rate), Totems and the Stranger,
+where did my healing come from, survivability per minute (now with regen), how did his numbers grow (every stat that
+moved, each weapon's numbers at the end), how strong did the creatures get, stacking bonuses, the crowd against the cap,
+spawned and killed, progression, gold, quest progress and the history; a Played runs / Tool runs switch; "Where the runs
+come from" (the editor binary, the tools, the PC exe's folder, the phone); every card hides itself when its data is
+absent, and schema 1 files still open. Fixed: the debug hand's note printed "debug_item" (now its item kind), the
+creatures' always-blank hits column (now `hits_by`), the picks' comment that promised pickups (now a counted table), and
+a damage-share dip to -300 % after a quiet stretch (the rolling mean's float drift). *CSV*: the toolbar downloads this
+run's rows (a line a second, every column, maps as `group.key`, the build's snapshots carried forward), its events (a
+line each, every field) and the history (a line per run, every field); every card's table has its own CSV button (raw
+numbers, times in seconds); `python tools/analytics_csv.py [--runs <folder>] [--tools] [--out <folder>] [--only ...]`
+writes the rows and events CSVs of every run file in a folder and one history. UTF-8 with a BOM, commas, dots, CR LF,
+`88fits_<stamp>_<what>.csv`. The page's CSV code and the Python tool were compared byte for byte (Node on the page's own
+script) on a v0.51 played run and seven tool runs, and the browser's downloads matched the Python files.
+Tests: game/tests/pass74_analytics_test.gd (8 cases); pass45_analytics_test re-pinned at two lines (schema 1 -> 2).
+A windowed run driven by game/tools/_p74_ANALYTICS_run.gd (Astro, totems, the Stranger twice, a forced special, Elite
+packs, an Elite, heals of every kind, a reroll, a banish, a skip, the first boss, stage 2, a revive, a death) made the
+record the cards were checked on (analytics/runs/tools/2026-10-14T15-13-11.json).

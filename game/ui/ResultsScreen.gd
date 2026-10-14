@@ -11,12 +11,15 @@
 ## run's own story (Run.timeline, RunTimeline):
 ## 1. "Run performance", the board held at the top (no finger or wheel moves it; it only eases down by itself when a
 ##    source row would land under the buttons): the banked gold counts up along the run's own purse curve in
-##    GOLD_TIME, then the kills chart draws left to right in CHART_TIME along the run's kills, its badges popping in as
-##    the line reaches them (a grave for each time the hero went down, a skull a boss, a crown an Elite, a gear a
-##    special) with its Kills and Damage counters counting up beside it in short numbers (999, 1.2k, 20k, 1.2m), then
-##    the damage sources: the starting weapon's row is there from the start, every other source comes in the order it
-##    joined the run (first owned, else first hit: a revive's blast only when he got up again), each bar filling in
-##    turn.
+##    GOLD_TIME while the rest of the board waits unseen in its place (pass 74, Garry: "The empty chart shouldn't just
+##    be sitting there"); then the chart block pops in (POP_TIME) with the starting weapon's row; then the chart part
+##    (pass 74, Garry: "the chart, the kill count, the damage dealt and the individual damage sources sequence to play
+##    together at the same time"): one clock, JOINT_TIME for the whole run, draws the kills line left to right, its
+##    badges popping in as the line reaches them (a grave for each time the hero went down, a skull a boss, a crown an
+##    Elite, a gear a special), the Kills and Damage counters counting up in short numbers (999, 1.2k, 20k, 1.2m), and
+##    the damage sources coming in as the line reaches the moment each joined the run (first owned, else first hit: a
+##    revive's blast only when he got up again; ROW_BEAT between two that joined together), each bar, number and
+##    percent showing its damage so far at the line's moment against the run's final total.
 ## 2. After PAUSE seconds the board scrolls down to the unlocks: each one this run completed lands in turn (its plate
 ##    from a silhouette to its art, a flash, an UNLOCKED stamp, a burst), then every unlock the run brought closer fills
 ##    its bar from where it stood to where it stands (this run's part in sage).
@@ -41,17 +44,23 @@ const SOURCES := {
 	"hot_springs": ["passive:hot_springs", "Hot Springs"],
 }
 
-## The show's pace (pass 72), in seconds at normal speed.
+## The show's pace (pass 72; pass 74 the pop and the one chart part), in seconds at normal speed.
 const GOLD_TIME := 2.5
-const CHART_TIME := 2.8
-## A source row starts this long after the one before (at most; a long list goes faster so the part stays inside
-## SOURCES_MAX) and fills over ROW_FILL.
-const ROW_STEP := 0.36
-const ROW_FILL := 0.5
-const SOURCES_MAX := 3.0
-## Before the first part (the board's own slide-in) and between two parts of the first sequence.
+## The chart block's pop once the gold is counted: from POP_FROM of its size, an ease-out-back of POP_BACK (a small
+## overshoot, about 3 % past its size halfway through) and a fade over the first POP_FADE of it (as one picture:
+## _pop_holder's CanvasGroup).
+const POP_TIME := 0.3
+const POP_FROM := 0.85
+const POP_BACK := 2.6
+const POP_FADE := 0.5
+## The chart part: the line crosses the whole run in JOINT_TIME, the counters and the source rows on the same clock; a
+## row comes in at its source's moment on the line, at least ROW_BEAT after the row before (two that joined together),
+## and fades in over ROW_FADE; the part runs on past JOINT_TIME only as long as the last row needs.
+const JOINT_TIME := 3.2
+const ROW_BEAT := 0.12
+const ROW_FADE := 0.2
+## Before the first part (the board's own slide-in).
 const LEAD_IN := 0.35
-const BREATH := 0.2
 const PAUSE := 2.0
 const SCROLL_TIME := 0.7
 const UNLOCK_TIME := 1.2
@@ -80,10 +89,23 @@ var _run_time := 0.0
 var _chart: WKillChart
 var _kills_num: WText
 var _dmg_num: WText
+## The chart block (pass 74): unseen until the gold is counted, then popped in; the panel sits in a plain holder so its
+## scale is not reset by the board's column (a Container resets its children's scale whenever it sorts).
+var _chart_box: Control
+var _chart_panel: PanelContainer
+## The pop's own picture of the panel (a CanvasGroup: the panel fades as one picture, not layer by layer); gone once
+## the block has landed (the panel back in its holder, so nothing is drawn twice for the rest of the show).
+var _pop_group: CanvasGroup
+var _perf_label: Control
+var _dmg_label: Control
+var _popped := false
+## How long the chart part lasts: JOINT_TIME, or a little more when the last source row comes in later (ROW_BEAT).
+var _joint_time := JOINT_TIME
 var _kill_curve := PackedFloat32Array()
 var _kills_total := 0
 var _dmg_total := 0.0
-## The source rows: {"row", "bar", "amount", "share", "frac", "value", "on"}.
+## The source rows: {"row", "bar", "amount", "share", "frac", "value", "on", "ids": [[id, its damage]], "at": when it
+## comes in on the chart part's clock, "from": that moment as a share of the run}.
 var _rows: Array = []
 ## The unlocks completed: {"panel", "plate", "stamp", "landed"}.
 var _unlocks: Array = []
@@ -210,13 +232,21 @@ func build() -> void:
 	for id in dmg:
 		_dmg_total += float(dmg[id])
 	content.add_child(_gap(46))
-	content.add_child(W.label("Run performance", 22, W.INK_SOFT))
+	# pass 74: the block waits unseen in its place (nothing under it moves) until the gold is counted, then pops in
+	_perf_label = W.label("Run performance", 22, W.INK_SOFT)
+	_perf_label.modulate.a = 0.0
+	content.add_child(_perf_label)
 	content.add_child(_gap(16))
-	content.add_child(_kills_panel())
+	_chart_panel = _kills_panel()
+	_chart_box = _pop_holder(_chart_panel)
+	_pop_group.self_modulate.a = 0.0
+	content.add_child(_chart_box)
 	# the damage dealt, by source, in the order each joined the run (pass 47: every row its plate, its name and its number)
 	if not dmg.is_empty():
 		content.add_child(_gap(46))
-		content.add_child(W.label("Damage dealt", 22, W.INK_SOFT))
+		_dmg_label = W.label("Damage dealt", 22, W.INK_SOFT)
+		_dmg_label.modulate.a = 0.0
+		content.add_child(_dmg_label)
 		content.add_child(_gap(16))
 		content.add_child(_source_rows(dmg))
 	# what the run unlocked, and what it brought closer
@@ -252,6 +282,45 @@ func _gap(h: float) -> Control:
 	c.custom_minimum_size.y = h
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return c
+
+
+## A plain holder for a panel the show pops in (pass 74, the chart block): as tall as the panel wants to be, the panel
+## filling it. Until it has landed the panel sits in a CanvasGroup (`_pop_group`) centred in the holder, which the pop
+## scales and fades as one picture (a see-through panel showed its ink shadow and its plot's ink through the paper);
+## the board's column lays out only the holder, so nothing resets the pop's scale.
+func _pop_holder(panel: Control) -> Control:
+	var holder := Control.new()
+	holder.name = "ChartBlock"
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pop_group = CanvasGroup.new()
+	_pop_group.name = "Pop"
+	holder.add_child(_pop_group)
+	_pop_group.add_child(panel)
+	var fit := func():
+		holder.custom_minimum_size.y = panel.get_combined_minimum_size().y
+	panel.minimum_size_changed.connect(fit)
+	holder.tree_entered.connect(fit)
+	holder.resized.connect(func():
+		panel.size = holder.size
+		if is_instance_valid(_pop_group) and panel.get_parent() == _pop_group:
+			_pop_group.position = holder.size * 0.5
+			panel.position = -holder.size * 0.5
+		else:
+			panel.position = Vector2.ZERO)
+	fit.call()
+	return holder
+
+
+## The block has landed: the panel back in its holder at its place, the pop's picture gone.
+func _land_pop() -> void:
+	if not is_instance_valid(_pop_group):
+		return
+	_pop_group.remove_child(_chart_panel)
+	_chart_box.add_child(_chart_panel)
+	_chart_panel.position = Vector2.ZERO
+	_chart_panel.size = _chart_box.size
+	_pop_group.queue_free()
+	_pop_group = null
 
 
 # ---------------------------------------------------------------- the parts the show fills
@@ -293,22 +362,35 @@ func _kills_panel() -> PanelContainer:
 	return p
 
 
-## The damage rows in the order their sources joined the run; only the first (the starting weapon) shows before its part.
+## The damage rows in the order their sources joined the run, each unseen until its moment in the chart part (pass 74:
+## `at`, row_times), the starting weapon's with the chart block's pop.
 func _source_rows(dmg: Dictionary) -> VBoxContainer:
 	var rows := VBoxContainer.new()
 	rows.name = "DamageRows"
 	rows.add_theme_constant_override("separation", 18)
 	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var total := maxf(_dmg_total, 1.0)
+	var story := not _tl.sources.is_empty()
+	var joins: Array = []
 	for src: Dictionary in ordered_sources(dmg, _tl):
 		var frac := float(src["amount"]) / total
 		var row := damage_row(src, frac)
 		rows.add_child(row)
 		var e := {"row": row, "bar": row.find_child("Bar", true, false), "amount": row.find_child("Amount", true, false),
-			"share": row.find_child("Share", true, false), "frac": frac, "value": float(src["amount"]), "on": false}
+			"share": row.find_child("Share", true, false), "frac": frac, "value": float(src["amount"]), "on": false,
+			"ids": src.get("ids", []), "at": 0.0, "from": 0.0}
 		_rows.append(e)
 		_fill_row(e, 0.0)
-		row.modulate.a = 1.0 if _rows.size() == 1 else 0.0
+		row.modulate.a = 0.0
+		var at := float(src.get("at", INF))
+		joins.append(INF if is_inf(at) else maxf(at, 0.0) / _tl.length())
+	# pass 74: when each row comes in on the chart part's clock
+	var times := row_times(joins, story, JOINT_TIME, ROW_BEAT)
+	for k in _rows.size():
+		_rows[k]["at"] = times[k]
+		_rows[k]["from"] = clampf(times[k] / JOINT_TIME, 0.0, 1.0)
+	if not _rows.is_empty():
+		_joint_time = maxf(JOINT_TIME, float(times[times.size() - 1]) + ROW_FADE)
 	return rows
 
 
@@ -435,16 +517,14 @@ func _progress_row(c: Dictionary) -> Dictionary:
 
 # ---------------------------------------------------------------- the show
 
-## The parts in their order: the first sequence (gold, chart, sources), then the second (a pause, the scroll, each
-## unlock, the bars) when the run unlocked or brought anything closer.
+## The parts in their order: the first sequence (the gold, the chart block's pop, the chart part: the line, the counters
+## and the sources together), then the second (a pause, the scroll, each unlock, the bars) when the run unlocked or
+## brought anything closer.
 func _plan() -> void:
 	_parts.clear()
 	_add(1, "gold", GOLD_TIME, _part_gold)
-	_add(1, "breath", BREATH, _noop)
-	_add(1, "chart", CHART_TIME, _part_chart)
-	if _rows.size() > 0:
-		_add(1, "breath", BREATH, _noop)
-		_add(1, "sources", _sources_time(), _part_sources)
+	_add(1, "pop", POP_TIME, _part_pop)
+	_add(1, "chart", _joint_time, _part_chart)
 	if _unlock_box:
 		_add(2, "pause", PAUSE, _noop)
 		_add(2, "scroll", SCROLL_TIME, _part_scroll)
@@ -479,8 +559,22 @@ static func unlock_time(n: int) -> float:
 	return clampf(UNLOCKS_MAX / float(maxi(n, 1)), UNLOCK_MIN, UNLOCK_TIME)
 
 
-func _sources_time() -> float:
-	return row_step(_rows.size(), ROW_STEP, ROW_FILL, SOURCES_MAX) * float(maxi(_rows.size() - 1, 0)) + ROW_FILL
+## When each source row comes in on the chart part's clock (seconds from its start; pass 74), from `joins`, each source's
+## moment as a share of the run (INF for one the record never saw): a run with a story brings each in as the line
+## reaches its moment (the starting weapon at 0, one never seen at the line's end), a run without one (a tool's, a
+## test's) spreads them evenly, row k at k / n of `part`; never closer than `beat` to the row before.
+static func row_times(joins: Array, story: bool, part: float, beat: float) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	var n := joins.size()
+	for k in n:
+		var at := part * float(k) / float(maxi(n, 1))
+		if story:
+			var j := float(joins[k])
+			at = part if is_inf(j) else clampf(j, 0.0, 1.0) * part
+		if k > 0:
+			at = maxf(at, out[k - 1] + beat)
+		out.append(at)
+	return out
 
 
 func _progress_time() -> float:
@@ -499,16 +593,76 @@ func _part_gold(f: float, live: bool) -> void:
 	_gold_shown = iv
 
 
-## The chart drawn to `f` of the run, the counters at what the run had reached by then.
+## The chart block pops in once the gold is counted (pass 74): the panel from POP_FROM of its size past its size and
+## back, fading in; the section labels and the rows that come in at the chart part's very start (the starting weapon's)
+## fade in with it.
+func _part_pop(f: float, live: bool) -> void:
+	if live and not _popped:
+		_popped = true
+		W.sfx("ui_card")
+	var a := 1.0 if f >= 1.0 else clampf(f / POP_FADE, 0.0, 1.0)
+	if f >= 1.0:
+		_land_pop()
+	elif is_instance_valid(_pop_group):
+		_pop_group.scale = Vector2.ONE * lerpf(POP_FROM, 1.0, back_out(f, POP_BACK))
+		_pop_group.self_modulate.a = a
+	_perf_label.modulate.a = a
+	if _dmg_label:
+		_dmg_label.modulate.a = a
+	for e: Dictionary in _rows:
+		if float(e["at"]) <= 0.0:
+			e["on"] = true
+			(e["row"] as Control).modulate.a = a
+
+
+## An ease-out-back: 0 to 1 past 1 and back (`c1` the overshoot's strength; 1.70158 the usual 10 %).
+static func back_out(f: float, c1: float) -> float:
+	var t := clampf(f, 0.0, 1.0)
+	return 1.0 + (c1 + 1.0) * pow(t - 1.0, 3.0) + c1 * pow(t - 1.0, 2.0)
+
+
+## The chart part (pass 74: everything on one clock): the line drawn across `x` of the run in JOINT_TIME, its marks as
+## it reaches them, the counters at what the run had reached by then, and each source row once the clock passes its
+## moment (`at`), fading in, its bar, number and percent at its damage so far at `x` (_row_damage).
 func _part_chart(f: float, live: bool) -> void:
+	var clock := f * _joint_time
+	var x := 1.0 if f >= 1.0 else clampf(clock / JOINT_TIME, 0.0, 1.0)
 	if not live and f >= 1.0:
 		_chart.finish()
 	else:
-		_chart.head = f
-	var k: float = _tl.value_at(_kill_curve, float(_kills_total), f) if not _tl.is_empty() else float(_kills_total) * f
-	var d: float = _tl.value_at(_tl.damage, _dmg_total, f) if not _tl.is_empty() else _dmg_total * f
+		_chart.head = x
+	var k: float = _tl.value_at(_kill_curve, float(_kills_total), x) if not _tl.is_empty() else float(_kills_total) * x
+	var d: float = _tl.value_at(_tl.damage, _dmg_total, x) if not _tl.is_empty() else _dmg_total * x
 	_kills_num.text = short_num(k)
 	_dmg_num.text = short_num(d)
+	for e: Dictionary in _rows:
+		var at := float(e["at"])
+		if f < 1.0 and clock < at:
+			continue
+		if not bool(e["on"]):
+			e["on"] = true
+			if live:
+				W.sfx("ui_card")
+				_follow_into(e["row"])
+		var row: Control = e["row"]
+		row.modulate.a = 1.0 if f >= 1.0 else maxf(row.modulate.a, clampf((clock - at) / ROW_FADE, 0.0, 1.0))
+		_fill_row(e, _row_damage(e, x))
+
+
+## A source row's damage so far when the line stands at `x` of the run: each of its ids' own samples
+## (RunTimeline.source_damage_at), else (a run with no story, an id the record never sampled) the id's damage spread
+## evenly from the row's own moment (`from`) to the end. At the end every row stands at its whole damage.
+func _row_damage(e: Dictionary, x: float) -> float:
+	var at := x * _tl.length()
+	var from := float(e["from"])
+	var sum := 0.0
+	for pair in e["ids"]:
+		var fin := float(pair[1])
+		var v := _tl.source_damage_at(str(pair[0]), at, fin)
+		if v < 0.0:
+			v = fin if x >= 1.0 or from >= 1.0 else fin * clampf((x - from) / (1.0 - from), 0.0, 1.0)
+		sum += v
+	return sum
 
 
 func _on_mark_popped(kind: int) -> void:
@@ -518,34 +672,18 @@ func _on_mark_popped(kind: int) -> void:
 	W.sfx("ui_locked" if kind == RunTimeline.KIND_DOWN else ("ui_card_pick" if kind == RunTimeline.KIND_BOSS else "ui_reel_tick"))
 
 
-## Row k comes in at k steps and fills over ROW_FILL: its bar to its share, its number and its percent counting up.
-func _part_sources(f: float, live: bool) -> void:
-	var step := row_step(_rows.size(), ROW_STEP, ROW_FILL, SOURCES_MAX)
-	var at := f * _sources_time()
-	for k in _rows.size():
-		var e: Dictionary = _rows[k]
-		var local := clampf((at - float(k) * step) / ROW_FILL, 0.0, 1.0) if f < 1.0 else 1.0
-		if local <= 0.0 and not bool(e["on"]):
-			continue
-		if not bool(e["on"]):
-			e["on"] = true
-			if live:
-				W.sfx("ui_card")
-				_follow_into(e["row"])
-		(e["row"] as Control).modulate.a = maxf((e["row"] as Control).modulate.a, clampf(local * 4.0, 0.0, 1.0))
-		_fill_row(e, _ease_out(local))
-
-
-func _fill_row(e: Dictionary, k: float) -> void:
+## A source row at `dmg` dealt so far: its bar and its percent against the run's final total (so a bar only grows, and
+## ends on its share), its number.
+func _fill_row(e: Dictionary, dmg: float) -> void:
+	var frac := clampf(dmg / maxf(_dmg_total, 1.0), 0.0, 1.0)
 	var bar: WBar = e["bar"]
 	if bar:
-		bar.value = float(e["frac"]) * k
+		bar.value = frac
 	var amt: WText = e["amount"]
 	if amt:
-		amt.text = W.num(float(e["value"]) * k)
+		amt.text = W.num(dmg)
 	var sh: WText = e["share"]
 	if sh:
-		var frac := float(e["frac"]) * k
 		var pct := roundf(frac * 100.0)
 		sh.text = "<1%" if frac > 0.0 and pct < 1.0 else "%d%%" % int(pct)
 
@@ -702,8 +840,8 @@ func speed() -> float:
 	return _speed
 
 
-## The part playing ("gold", "chart", "sources", "pause", "scroll", "unlock", "progress"; "" when none) and how far it
-## has come (0..1): the captures wait on it.
+## The part playing ("gold", "pop", "chart" (pass 74: the line, its marks, both counters and the sources together),
+## "pause", "scroll", "unlock", "progress"; "" when none) and how far it has come (0..1): the captures wait on it.
 func part_name() -> String:
 	return str(_parts[_part]["name"]) if _seq > 0 and _seq < DONE and _part < _parts.size() else ""
 
@@ -860,7 +998,8 @@ static func damage_source(id: String) -> Dictionary:
 
 ## The damage sources, one a source (the ids that are one source summed), in the order they joined the run (pass 72):
 ## the starting weapon first, then each at the moment it was first owned, else first hit (RunTimeline.joined); a run
-## with no story (a tool's, a test's) biggest first. Each source dict gains "amount" and "at".
+## with no story (a tool's, a test's) biggest first. Each source dict gains "amount", "at" (its moment in the run's
+## seconds; -1 the starting weapon, INF never seen) and "ids" ([[id, its damage]], pass 74: the row's bar follows them).
 static func ordered_sources(dmg: Dictionary, tl: RunTimeline) -> Array:
 	var by_key: Dictionary = {}
 	for id in dmg.keys():
@@ -873,9 +1012,11 @@ static func ordered_sources(dmg: Dictionary, tl: RunTimeline) -> Array:
 		if by_key.has(k):
 			by_key[k]["amount"] = float(by_key[k]["amount"]) + amount
 			by_key[k]["at"] = minf(float(by_key[k]["at"]), at)
+			(by_key[k]["ids"] as Array).append([str(id), amount])
 		else:
 			src["amount"] = amount
 			src["at"] = at
+			src["ids"] = [[str(id), amount]]
 			by_key[k] = src
 	var out: Array = by_key.values()
 	out.sort_custom(func(a, b):

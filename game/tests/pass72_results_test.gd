@@ -292,13 +292,13 @@ func test_the_first_sequence_holds_the_board_and_tells_the_gold_the_chart_and_th
 	assert_str(r.part_name()).is_equal("gold")
 	assert_str(r._count.text).is_equal("+0")
 	assert_str((r.find_child("Kills", true, false) as WText).text).is_equal("0")
-	# only the starting weapon's row shows before its part; the rest wait their turn, in the order they joined
+	# every row waits its turn, in the order they joined (re-pinned in pass 74: the starting weapon's row too, until the
+	# chart block pops in after the gold; pass74_results_test has the rest)
 	var rows := _rows(r)
 	assert_int(rows.size()).is_equal(8)
 	assert_str(str(rows[0].get_meta("source")["name"])).is_equal("Revolver")
 	assert_str(str(rows[1].get_meta("source")["name"])).is_equal("Boomstick")
-	assert_float((rows[0] as Control).modulate.a).is_equal(1.0)
-	for k in range(1, rows.size()):
+	for k in range(0, rows.size()):
 		assert_float((rows[k] as Control).modulate.a).is_equal(0.0)
 	assert_float((rows[0].find_child("Bar", true, false) as WBar).value).is_equal(0.0)
 	# the gold follows the run's own purse: a quarter of the way through it shows what he held a quarter into the run
@@ -400,7 +400,8 @@ func test_the_show_plays_by_itself_to_its_end() -> void:
 			parts.append(n)
 		guard += 1
 	assert_int(r.sequence()).is_equal(RESULTS.DONE)
-	assert_array(parts).is_equal(["gold", "breath", "chart", "breath", "sources", "pause", "scroll", "unlock", "progress"])
+	# re-pinned in pass 74: the chart block's pop, then one chart part for the line, the counters and the sources
+	assert_array(parts).is_equal(["gold", "pop", "chart", "pause", "scroll", "unlock", "progress"])
 	# the fall's run: two graves on the chart, the revive's blast the last source to join
 	var graves := 0
 	for mk: Dictionary in r._chart.marks:

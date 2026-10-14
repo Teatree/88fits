@@ -458,14 +458,40 @@ func _analytics_check() -> String:
 		return "the analytics events have no revive"
 	if not totals.has("revive") or not totals.has("nuke"):
 		return "the revive's or the Nuke's damage is not in the run file (%s)" % str(totals.keys())
-	var mirror := ProjectSettings.globalize_path("res://").trim_suffix("/").get_base_dir().path_join("analytics/runs")
-	if DirAccess.dir_exists_absolute(mirror):
+	# pass 74 (schema 2): a tool's run, the header's new blocks, the boss's HP as it came, a totem gift's offer
+	if int(mine.get("schema", 0)) != 2:
+		return "the run file is schema %s, not 2" % str(mine.get("schema", "?"))
+	if not bool(mine.get("tool", false)):
+		return "the smoke's run file is not marked as a tool's run"
+	for k in ["hero_look", "settings", "map_settings", "gold_end", "timeline", "quests", "trait", "totems"]:
+		if not mine.has(k):
+			return "the run file has no " + k
+	if not (mine.get("build", {}) as Dictionary).has("lines"):
+		return "the run file's build keeps no lines apart from the passive items"
+	for e in events:
+		if str(e.get("kind", "")) == "boss_start" and not (e as Dictionary).has("hp"):
+			return "boss_start carries no hp"
+	if kinds.has("totem") and not kinds.has("totem_offer"):
+		return "a totem gift was taken but its offer was not recorded"
+	print("smoke_run: analytics schema 2: %d specials, %d elite kills, %d stranger, %d totem offers" % [
+		events.filter(func(e): return str(e.get("kind", "")) == "special").size(),
+		events.filter(func(e): return str(e.get("kind", "")) == "elite_kill").size(),
+		events.filter(func(e): return str(e.get("kind", "")).begins_with("stranger")).size(),
+		events.filter(func(e): return str(e.get("kind", "")) == "totem_offer").size()])
+	# pass 74: a tool's run mirrors into analytics/runs/tools/ (its own latest.js), never over the played runs' latest.js
+	var runs := ProjectSettings.globalize_path("res://").trim_suffix("/").get_base_dir().path_join("analytics/runs")
+	var mirror := runs.path_join("tools")
+	if DirAccess.dir_exists_absolute(runs):
+		if not FileAccess.file_exists(mirror.path_join(fname)):
+			return "analytics/runs/tools/%s was not written" % fname
+		if FileAccess.file_exists(runs.path_join(fname)):
+			return "the smoke's run file landed among the played runs (analytics/runs/%s)" % fname
 		var lj := mirror.path_join("latest.js")
 		if not FileAccess.file_exists(lj):
-			return "analytics/runs/latest.js was not written"
+			return "analytics/runs/tools/latest.js was not written"
 		var lf := FileAccess.open(lj, FileAccess.READ)
 		var head := lf.get_buffer(13).get_string_from_utf8()
 		lf.close()
 		if head != "window.RUN = ":
-			return "analytics/runs/latest.js does not start with window.RUN = "
+			return "analytics/runs/tools/latest.js does not start with window.RUN = "
 	return ""

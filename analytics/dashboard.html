@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>88fits Run Watch</title>
-<meta name="description" content="One run of 88fits, second by second: the hero's power against the crowd's pressure, health, kills, the build and every pick.">
+<meta name="description" content="One run of 88fits, second by second: the hero's power against the crowd's pressure, what hurt him, the bosses, the build, every pick and every gold coin, with every table as a CSV.">
 <style>
   :root {
     color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #222221; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #222221; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
     --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
     --good: #0ca30c; --warn: #fab219; --serious: #ec835a; --crit: #d03b3b;
@@ -21,34 +21,46 @@
   header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 18px; padding: 22px 0 10px; border-bottom: 1px solid var(--border); }
   header.top h1 { font-size: 1.35rem; margin: 0; font-weight: 650; letter-spacing: 0.01em; }
   header.top .sub { color: var(--ink-2); font-size: 0.92rem; }
-  .toolbar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 12px 0; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 12px 0 4px; }
   .toolbar label { color: var(--ink-2); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; }
   .toolbar input[type=file] { color: var(--ink-2); font-size: 0.85rem; max-width: 100%; }
-  .toolbar .hint { color: var(--muted); font-size: 0.85rem; }
+  .toolbar .lbl { color: var(--muted); font-size: 0.85rem; }
+  .toolbar .hint { color: var(--muted); font-size: 0.82rem; }
   .btn { background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font: inherit; font-size: 0.85rem; cursor: pointer; }
   .btn:hover { background: #2a2a28; }
+  .btn:disabled { color: var(--muted); cursor: default; background: var(--surface); }
+  .btn.small { font-size: 0.76rem; padding: 2px 8px; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .seg button { background: var(--surface); color: var(--ink-2); border: 0; padding: 6px 12px; font: inherit; font-size: 0.85rem; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button.on { background: var(--surface-2); color: var(--ink); font-weight: 600; }
   .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; font-size: 0.82rem; color: var(--ink-2); }
   .chip b { color: var(--ink); font-weight: 600; }
   .chip .x { cursor: pointer; color: var(--muted); }
   .chip .x:hover { color: var(--ink); }
   .drop { border: 1px dashed var(--axis); border-radius: 10px; padding: 10px 14px; color: var(--muted); font-size: 0.88rem; flex: 1 1 240px; }
   .drop.over { border-color: var(--s1); color: var(--ink-2); background: var(--surface); }
-  .empty { margin: 32px auto; max-width: 560px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; text-align: center; color: var(--ink-2); }
+  details.where { margin: 6px 0 4px; color: var(--ink-2); font-size: 0.86rem; }
+  details.where summary { cursor: pointer; color: var(--ink-2); }
+  details.where ul { margin: 6px 0 0; padding-left: 20px; }
+  details.where li { margin: 3px 0; }
+  code { color: var(--ink); background: var(--surface-2); padding: 1px 6px; border-radius: 4px; font-size: 0.88em; word-break: break-all; }
+  .empty { margin: 32px auto; max-width: 620px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; color: var(--ink-2); }
   .empty h2 { margin: 0 0 8px; color: var(--ink); font-size: 1.1rem; }
-  .empty code { color: var(--ink); background: var(--surface-2); padding: 1px 6px; border-radius: 4px; font-size: 0.88em; }
   /* summary */
-  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 10px; margin: 8px 0 18px; }
-  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; min-height: 76px; }
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 10px; margin: 12px 0 18px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; min-height: 76px; min-width: 0; }
   .tile .lbl { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.02em; }
-  .tile .val { font-size: 1.55rem; font-weight: 600; margin-top: 2px; line-height: 1.15; }
+  .tile .val { font-size: 1.55rem; font-weight: 600; margin-top: 2px; line-height: 1.15; overflow-wrap: anywhere; }
   .tile .val.hero { font-size: 2.4rem; }
   .tile .sub { color: var(--ink-2); font-size: 0.82rem; margin-top: 3px; }
   .tile.wide { grid-column: 1 / -1; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 10px; margin: 6px 0 10px; }
+  .tiles .tile { background: var(--surface-2); }
   .build { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
   .build .chip { font-size: 0.8rem; }
   .build .chip .mut { color: var(--muted); }
-  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
-  .badge { display: inline-block; font-size: 0.72rem; padding: 1px 7px; border-radius: 4px; border: 1px solid var(--border); color: var(--ink-2); vertical-align: middle; margin-left: 6px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
   .result-extract { color: var(--good); } .result-death { color: var(--crit); } .result-quit, .result-abandon, .result-in_progress, .result-end { color: var(--warn); }
   /* cards */
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 14px; }
@@ -56,39 +68,74 @@
   .card.wide { grid-column: 1 / -1; }
   .card h2 { font-size: 0.98rem; font-weight: 600; margin: 0; }
   .card .head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+  .card .head .acts { display: flex; gap: 6px; flex: none; }
   .card .desc { color: var(--muted); font-size: 0.82rem; margin: 0 0 8px; }
+  .card h3 { font-size: 0.82rem; font-weight: 500; color: var(--ink-2); margin: 10px 0 4px; }
   .card .tog { color: var(--ink-2); background: none; border: 1px solid var(--border); border-radius: 6px; font: inherit; font-size: 0.78rem; padding: 2px 8px; cursor: pointer; white-space: nowrap; }
   .card .tog:hover { color: var(--ink); background: var(--surface-2); }
+  .card .tog[hidden] { display: none; }
   .plot { position: relative; height: 280px; }
   .plot.short { height: 200px; }
   .plot.tall { height: 340px; }
-  .plot.auto { height: auto; }
   .multi { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; }
   .multi .plot { height: 170px; }
-  .multi h3 { font-size: 0.82rem; font-weight: 500; color: var(--ink-2); margin: 0 0 2px; }
+  .multi h3 { margin: 0 0 2px; }
   .mkey { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.78rem; margin-top: 6px; }
   .mkey span::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border-radius: 2px; background: var(--k); }
+  .mkey span.round::before { border-radius: 50%; }
   .tbl { display: none; overflow-x: auto; max-height: 420px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+  .tbl.always { display: block; }
   .card.table .tbl { display: block; }
-  .card.table .plot, .card.table .multi, .card.table .mkey { display: none; }
+  .card.table .plot, .card.table .multi, .card.table .mkey, .card.table .lanes, .card.table .tiles, .card.table .facts, .card.table .meters { display: none; }
+  .tblbar { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 12px 0 4px; }
+  .tblbar .desc { margin: 0; }
   table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
   th, td { padding: 5px 9px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--grid); }
   th { color: var(--muted); font-weight: 500; position: sticky; top: 0; background: var(--surface); font-size: 0.76rem; letter-spacing: 0.02em; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   td .dot { margin-right: 6px; vertical-align: -1px; }
+  td.wrap { white-space: normal; min-width: 220px; }
   .pos { color: var(--s1); } .neg { color: var(--s8); }
-  .items-wrap { overflow-x: auto; }
-  .items-wrap table td { white-space: nowrap; }
+  /* the run's facts */
+  .facts { display: grid; grid-template-columns: minmax(130px, max-content) 1fr; gap: 6px 16px; margin: 6px 0 4px; font-size: 0.86rem; }
+  .facts dt { color: var(--muted); }
+  .facts dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+  /* the build's lanes */
+  .lanes { margin-top: 6px; font-size: 0.8rem; }
+  .lane-axis, .lane { display: grid; grid-template-columns: minmax(110px, 190px) 1fr; gap: 8px; align-items: center; }
+  .lane-axis .track { position: relative; height: 16px; color: var(--muted); font-size: 0.72rem; }
+  .lane-axis .track span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .lane-group { color: var(--muted); font-size: 0.76rem; letter-spacing: 0.02em; margin: 10px 0 2px; }
+  .lane { min-height: 24px; }
+  .lane .name { display: flex; align-items: center; gap: 6px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lane .track { position: relative; height: 22px; border-bottom: 1px solid var(--grid); }
+  .lane .bar { position: absolute; top: 7px; height: 8px; border-radius: 4px; }
+  .lane .tick { position: absolute; top: 2px; transform: translateX(-50%); font-size: 0.7rem; color: var(--ink); background: var(--surface); border-radius: 3px; padding: 0 2px; line-height: 1.1; cursor: default; }
+  .lane .mut { position: absolute; top: 6px; width: 10px; height: 10px; transform: translateX(-50%) rotate(45deg); border: 2px solid var(--surface); cursor: default; }
+  .lane .evo { position: absolute; top: 1px; transform: translateX(-50%); font-size: 0.8rem; color: var(--s4); cursor: default; }
+  /* quests */
+  .meters { display: grid; gap: 8px; margin-top: 6px; }
+  .meter-row { display: grid; grid-template-columns: minmax(140px, 260px) 1fr minmax(90px, max-content); gap: 10px; align-items: center; font-size: 0.82rem; }
+  .meter-row .nm { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .meter-row .nums { color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+  .meter { position: relative; height: 10px; border-radius: 5px; background: #184f95; overflow: hidden; }
+  .meter .before, .meter .gain { position: absolute; top: 0; bottom: 0; }
+  .meter .before { background: var(--gray); }
+  .meter .gain { background: var(--s1); }
   .hist-row { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; color: var(--ink-2); font-size: 0.85rem; margin: 8px 0 4px; }
   .hist-pick { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; color: var(--ink-2); margin-top: 8px; display: none; }
   .hist-pick b { color: var(--ink); }
-  .hist-pick code { color: var(--ink); background: var(--page); padding: 1px 6px; border-radius: 4px; }
   select { background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 0.85rem; max-width: 100%; }
   footer { color: var(--muted); font-size: 0.8rem; margin-top: 26px; }
   @media (max-width: 560px) {
     .plot { height: 240px; }
     .tile .val { font-size: 1.3rem; }
     .tile .val.hero { font-size: 1.9rem; }
+    .facts { grid-template-columns: 1fr; gap: 2px 0; }
+    .facts dd { margin-bottom: 6px; }
+    .lane-axis, .lane { grid-template-columns: 96px 1fr; }
+    .meter-row { grid-template-columns: 1fr; gap: 2px; }
+    .meter-row .nums { text-align: left; }
   }
 </style>
 <script src="lib/chart.umd.js" onerror="this.remove(); var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js'; document.head.appendChild(s)"></script>
@@ -98,41 +145,225 @@
 <body>
 <header class="top">
   <h1>88fits Run Watch</h1>
-  <span class="sub">the hero's power against the crowd's pressure, one run at a time</span>
+  <span class="sub">one run, second by second: the hero's power against the crowd, what hurt him, the bosses, the build and the gold</span>
 </header>
 
 <div class="toolbar">
-  <label>Run file <input id="file" type="file" accept=".json,.js" multiple></label>
-  <div class="drop" id="drop">or drop run files here: the first is the run, any more are overlaid (dashed) for an A/B</div>
+  <div class="seg" id="source" role="group" aria-label="Which runs">
+    <button type="button" data-src="played" class="on">Played runs</button>
+    <button type="button" data-src="tools">Tool runs</button>
+  </div>
+  <label>Open a run file <input id="file" type="file" accept=".json,.js" multiple></label>
+  <div class="drop" id="drop">or drop run files here: the first is the run, any more are drawn dashed over it to compare</div>
   <span id="loaded"></span>
 </div>
+<div class="toolbar">
+  <span class="lbl">Download CSV:</span>
+  <button type="button" class="btn" id="csv-rows">This run, second by second</button>
+  <button type="button" class="btn" id="csv-events">This run's events</button>
+  <button type="button" class="btn" id="csv-history">Every run (history)</button>
+  <span class="hint">Excel opens them as they are; every card's table has its own CSV button.</span>
+</div>
+<details class="where" id="where">
+  <summary>Where the runs come from</summary>
+  <ul>
+    <li><b>Played from the editor binary</b> (the Godot editor, or the game started from it): every run lands in <code>analytics/runs/</code> beside this page, and this page opens the newest one by itself.</li>
+    <li><b>Tool runs</b> (smoke_run, perf_late, hell_check, captures: anything headless or started with <code>--script</code>): <code>analytics/runs/tools/</code>, shown with the <i>Tool runs</i> switch above.</li>
+    <li><b>The PC build</b> (<code>88fits.exe</code>): <code>%APPDATA%\Godot\app_userdata\88fits\analytics\runs\</code> (paste that into Explorer's address bar), then drop a file here. The PC keeps every run file.</li>
+    <li><b>The phone</b>: only PostHog (the boards). The phone keeps its newest 50 run files, out of reach.</li>
+    <li><b>Every CSV for a whole folder at once</b>: <code>python tools/analytics_csv.py</code> (add <code>--tools</code> for the tool runs, or <code>--runs &lt;folder&gt;</code> for the PC build's folder).</li>
+  </ul>
+</details>
 
 <div id="empty" class="empty" hidden>
-  <h2>No run yet</h2>
-  <p>Play one from the editor binary and the game writes <code>analytics/runs/latest.js</code> beside this page, or drop a run file (<code>user://analytics/runs/*.json</code>) above.</p>
+  <h2>No run here yet</h2>
+  <p>Play a run from the editor binary and it lands in <code>analytics/runs/</code> beside this page, or open a run file above (see <i>Where the runs come from</i>).</p>
 </div>
 
 <div id="main"></div>
 
-<footer>Rows are one per second of unpaused play; the stage clock (which stops for bosses and portals) is in every tooltip. The estimate is each weapon's sheet (<code>damage × amount / cooldown</code>, the pause screen's "dps"); the real line is damage that landed, a 10 s rolling mean. Schema in SCHEMA.md.</footer>
+<footer>Rows are one per second of unpaused play; the stage clock (which stops for bosses and portals) is in every tooltip. The estimate is each weapon's sheet (<code>damage × amount ÷ cooldown</code>, the pause screen's "dps"); the real line is the damage that landed, a 10 s rolling mean. Every key of the record is in <code>analytics/SCHEMA.md</code>.</footer>
+
+<script id="csv-lib">
+// The CSVs (pass 74). tools/analytics_csv.py writes the same files for every run in a folder; the lane's test runs both on
+// one record and compares them byte for byte, so change the two together. UTF-8 with a BOM (Excel), commas, numbers with
+// a dot, CR LF line ends, a list of plain values joined with "; ", anything nested as JSON.
+(function (root) {
+  'use strict';
+  const BOM = '﻿';
+  // the row's plain keys, in this order; a key the record left out is 0 (it means 0), boss_hp empty (no boss up)
+  const BASE = ['t', 'clock', 'stage', 'phase', 'wave', 'level', 'xp', 'xp_next', 'hp', 'hp_max', 'shield', 'invuln', 'gold',
+    'banked', 'kills', 'adren', 'cresc', 'desp', 'steady', 'est_total', 'took_raw', 'hits', 'evaded', 'shielded', 'healed',
+    'regen', 'elite_kills', 'alive', 'cap', 'load', 'hard_cap', 'press', 'press_hp', 'press_dmg', 'boss_hp', 'specials_alive'];
+  const EMPTY_WHEN_MISSING = ['boss_hp'];
+  // the second's tallies by id, flattened as group.key; a missing one is 0
+  const MAPS = ['est', 'dmg', 'took', 'took_kind', 'hits_by', 'healed_by', 'killed', 'spawned', 'alive_by', 'gold_in', 'gold_out'];
+  // the build's snapshots: on a row only when they changed; carried forward to every second until the next one
+  const CARRY = ['mults', 'stats', 'weapons', 'passives', 'lines', 'perks'];
+  const WEAPON_FIELDS = ['level', 'dmg', 'cd', 'amount', 'pierce', 'area', 'est', 'mut'];
+  const EVENT_FIRST = ['t', 'clock', 'kind', 'id', 'name', 'level'];
+  const HISTORY_FIRST = ['file', 'stamp', 'started', 'version', 'schema', 'tool', 'headless', 'hero', 'hero_name', 'hero_look',
+    'map', 'map_rev', 'seed', 'result', 'length', 'clock', 'stage', 'endless_wave', 'level', 'kills', 'gold', 'strongbox',
+    'revives', 'gold_before', 'damage', 'top_source', 'dps_end', 'hp_lost', 'hits_taken', 'bosses', 'specials_killed',
+    'elites_killed', 'killer', 'totems', 'talents', 'build'];
+
+  const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+  const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  function text(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'boolean') return v ? 'true' : 'false';
+    if (typeof v === 'number') return Number.isFinite(v) ? String(v) : '';
+    if (typeof v === 'string') return v;
+    if (Array.isArray(v)) return v.map((x) => (x !== null && typeof x === 'object') ? JSON.stringify(x) : text(x)).join('; ');
+    return JSON.stringify(v);
+  }
+  function cell(v) {
+    const s = text(v);
+    return (/[",\r\n]/.test(s) || /^\s|\s$/.test(s)) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function toCSV(columns, rows) {
+    const out = [columns.map(cell).join(',')];
+    for (const r of rows) out.push(r.map(cell).join(','));
+    return out.join('\r\n') + '\r\n';
+  }
+  const byT = (a, b) => (+(a && a.t) || 0) - (+(b && b.t) || 0);
+  const sorted = (set) => Array.from(set).sort();
+
+  // this run's rows: one line a second, every scalar column, each map flattened as group.key
+  function rowsTable(run) {
+    const rows = (run.samples || []).filter(isObj).slice().sort(byT);
+    const base = new Set(), extra = new Set(), extraMaps = new Set(), mapKeys = {}, carry = { mults: new Set(), stats: new Set(), passives: new Set(), lines: new Set() };
+    const wids = [], wfields = new Set();
+    let perks = false;
+    for (const r of rows) {
+      for (const k of Object.keys(r)) {
+        const v = r[k];
+        if (BASE.includes(k)) { base.add(k); continue; }
+        if (CARRY.includes(k)) {
+          if (k === 'weapons') {
+            for (const w of Array.isArray(v) ? v : []) {
+              if (!isObj(w)) continue;
+              const id = String(w.id);
+              if (!wids.includes(id)) wids.push(id);
+              for (const f of Object.keys(w)) if (f !== 'id') wfields.add(f);
+            }
+          } else if (k === 'perks') perks = true;
+          else if (isObj(v)) for (const kk of Object.keys(v)) carry[k].add(kk);
+          continue;
+        }
+        if (MAPS.includes(k) || isObj(v)) {
+          if (!MAPS.includes(k)) extraMaps.add(k);
+          if (!mapKeys[k]) mapKeys[k] = new Set();
+          if (isObj(v)) for (const kk of Object.keys(v)) mapKeys[k].add(kk);
+          continue;
+        }
+        extra.add(k);
+      }
+    }
+    const baseCols = BASE.filter((k) => base.has(k));
+    const extraCols = sorted(extra);
+    const maps = MAPS.filter((g) => mapKeys[g]).concat(sorted(extraMaps));
+    const mapCols = maps.map((g) => [g, sorted(mapKeys[g])]);
+    const wf = WEAPON_FIELDS.filter((f) => wfields.has(f)).concat(sorted(wfields).filter((f) => !WEAPON_FIELDS.includes(f)));
+    const cols = baseCols.concat(extraCols);
+    for (const [g, ks] of mapCols) for (const k of ks) cols.push(g + '.' + k);
+    const multsK = sorted(carry.mults), statsK = sorted(carry.stats), passK = sorted(carry.passives), linesK = sorted(carry.lines);
+    for (const k of multsK) cols.push('mults.' + k);
+    for (const k of statsK) cols.push('stats.' + k);
+    for (const id of wids) for (const f of wf) cols.push('weapons.' + id + '.' + f);
+    for (const k of passK) cols.push('passives.' + k);
+    for (const k of linesK) cols.push('lines.' + k);
+    if (perks) cols.push('perks');
+    // a run that ended before its first second still gets a header
+    if (!cols.length) return { columns: ['t'], rows: [] };
+    const st = { mults: null, stats: null, weapons: null, passives: null, lines: null, perks: null };
+    const pick = (o, k) => (isObj(o) && has(o, k) && o[k] !== null) ? o[k] : '';
+    const out = rows.map((r) => {
+      for (const g of CARRY) if (has(r, g)) st[g] = r[g];
+      const line = [];
+      for (const k of baseCols) line.push(has(r, k) && r[k] !== null ? r[k] : (EMPTY_WHEN_MISSING.includes(k) ? '' : 0));
+      for (const k of extraCols) line.push(has(r, k) && r[k] !== null ? r[k] : '');
+      for (const [g, ks] of mapCols) for (const k of ks) line.push(isObj(r[g]) && has(r[g], k) && r[g][k] !== null ? r[g][k] : 0);
+      for (const k of multsK) line.push(pick(st.mults, k));
+      for (const k of statsK) line.push(pick(st.stats, k));
+      for (const id of wids) {
+        const w = Array.isArray(st.weapons) ? st.weapons.find((x) => isObj(x) && String(x.id) === id) : null;
+        for (const f of wf) line.push(pick(w, f));
+      }
+      for (const k of passK) line.push(pick(st.passives, k));
+      for (const k of linesK) line.push(pick(st.lines, k));
+      if (perks) line.push(Array.isArray(st.perks) ? st.perks : '');
+      return line;
+    });
+    return { columns: cols, rows: out };
+  }
+
+  // this run's events: one line each, every field a column (the id's name beside it)
+  function eventsTable(run) {
+    const evs = (run.events || []).filter(isObj).slice().sort(byT);
+    const names = isObj(run.names) ? run.names : {};
+    const keys = new Set();
+    for (const e of evs) for (const k of Object.keys(e)) keys.add(k);
+    const rest = sorted(keys).filter((k) => !EVENT_FIRST.includes(k));
+    const cols = EVENT_FIRST.concat(rest);
+    const out = evs.map((e) => cols.map((k) => {
+      if (k === 'name') return (e.id !== undefined && has(names, String(e.id))) ? names[String(e.id)] : (has(e, 'name') ? e.name : '');
+      return has(e, k) && e[k] !== null ? e[k] : '';
+    }));
+    return { columns: cols, rows: out };
+  }
+
+  // the history: one line per run (the index's rows), every field a column
+  function historyTable(runs) {
+    const list = (runs || []).filter(isObj);
+    const keys = new Set();
+    for (const r of list) for (const k of Object.keys(r)) keys.add(k);
+    const cols = HISTORY_FIRST.filter((k) => keys.has(k)).concat(sorted(keys).filter((k) => !HISTORY_FIRST.includes(k)));
+    return { columns: cols, rows: list.map((r) => cols.map((k) => has(r, k) && r[k] !== null ? r[k] : '')) };
+  }
+
+  root.RunCSV = { BOM, cell, text, toCSV, rowsTable, eventsTable, historyTable, BASE, MAPS, CARRY, HISTORY_FIRST };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
 
 <script>
 (function () {
   'use strict';
+  const CSV = window.RunCSV;
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   const COL = { s: [css('--s1'), css('--s2'), css('--s3'), css('--s4'), css('--s5'), css('--s6'), css('--s7'), css('--s8')],
     good: css('--good'), warn: css('--warn'), serious: css('--serious'), crit: css('--crit'), gray: css('--gray'),
     ink: css('--ink'), ink2: css('--ink-2'), muted: css('--muted'), grid: css('--grid'), axis: css('--axis'), surface: css('--surface') };
   // the fixed roles on the time charts (not the weapon slots, so a weapon hue never reads as "the estimate")
-  const ROLE = { est: COL.s[6], real: COL.s[1], press: COL.s[7], hp: COL.s[5], shield: COL.s[0], took: COL.s[7], alive: COL.s[0], cap: COL.ink2, load: COL.s[6], spawned: COL.s[3], killed: COL.s[2], level: COL.s[0], gold: COL.s[3], kills: COL.s[2] };
+  const ROLE = { est: COL.s[6], real: COL.s[1], press: COL.s[7], hp: COL.s[5], shield: COL.s[0], took: COL.s[7], alive: COL.s[0], cap: COL.ink2, load: COL.s[6], spawned: COL.s[3], killed: COL.s[2], level: COL.s[0], gold: COL.s[3], kills: COL.s[2], special: COL.s[4], elite: COL.s[3] };
   // pass 46 folded the lines into the passives: 'line' and 'line_evolution' stay for the records written before it
   const ITEM_KINDS = ['weapon', 'passive', 'mutation', 'perk', 'evolution', 'passive_evolution', 'line', 'line_evolution'];
   const EVO_KINDS = ['evolution', 'passive_evolution', 'line_evolution'];
+  const RESULT_WORDS = { extract: 'Extracted', death: 'Died', abandon: 'Gave up', quit: 'Quit', in_progress: 'In progress', end: 'Ended' };
+  // the pause screen's words for the stats (TextGen); a schema 2 file carries its own (stat_names)
+  const STAT_WORDS = { max_hp: 'max HP', damage_reduction: 'damage reduction', regen: 'regen per second', move_speed: 'move speed', might: 'attack damage', cooldown: 'cooldown', area: 'area of effect', projectile_speed: 'projectile speed', duration: 'duration', amount: 'projectiles', magnet: 'pickup radius', luck: 'luck', greed: 'coin gain', xp_gain: 'XP gain', lifesteal: 'life steal', evade: 'evade chance', crit_chance: 'crit chance', crit_damage: 'crit damage', thorns: 'thorns damage', execute_frac: 'execute threshold', overkill: 'overkill splash', haste: 'weapon speed', shield_max: 'shield', ricochet: 'ricochet chance', cooldown_on_kill: 'cooldown cut per kill', still_regen: 'regen per second standing still', still_might: 'attack damage per second standing still', barrel_speed: 'move speed after a barrel', barrel_seconds: 'barrel boost', xp_drop_chance: 'extra XP gem chance', elite_damage: 'damage to Elites and bosses', debuff_duration: 'debuff duration', difficulty: 'difficulty', skips: 'skips', banishes: 'banishes', powerup_duration: 'power-up duration', powerup_chance: 'power-up drop chance' };
+  const HEAL_WORDS = { lifesteal: 'life steal', level_up: 'level-up patch', other: 'unnamed heals', regen: 'regen (and Siesta, Deep Breath)' };
   const alpha = (hex, a) => hex + Math.round(a * 255).toString(16).padStart(2, '0');
-  const fmtT = (s) => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
-  const fmtN = (n, d) => { if (n == null || isNaN(n)) return '–'; const a = Math.abs(n); if (a >= 1e6) return (n / 1e6).toFixed(1) + 'M'; if (a >= 1e4) return (n / 1e3).toFixed(1) + 'k'; if (a >= 100) return Math.round(n).toLocaleString(); return (+n).toFixed(d == null ? (a >= 10 ? 0 : 1) : d); };
+  const fmtT = (s) => { s = Math.max(0, Math.round(+s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const fmtT1 = (v) => { v = Math.max(0, +v || 0); const s = Math.floor(v); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') + '.' + Math.floor((v - s) * 10); };
+  const fmtN = (n, d) => { if (n == null || n === '' || isNaN(n)) return '–'; n = +n; if (n === 0) return '0'; const a = Math.abs(n); if (a >= 1e6) return (n / 1e6).toFixed(1) + 'M'; if (a >= 1e4) return (n / 1e3).toFixed(1) + 'k'; if (a >= 100) return Math.round(n).toLocaleString('en-US'); return n.toFixed(d == null ? (a >= 10 ? 0 : 1) : d); };
+  const fmtI = (n) => (n == null || n === '' || isNaN(n)) ? '–' : Math.round(+n).toLocaleString('en-US');
+  const fmtPct = (x, d) => (x == null || isNaN(x)) ? '–' : (100 * x).toFixed(d == null ? 0 : d) + ' %';
+  const fmtX = (x) => (x == null || isNaN(x)) ? '–' : '×' + (+(+x).toFixed(2));
   const sum = (o) => Object.values(o || {}).reduce((a, b) => a + (+b || 0), 0);
   const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const titleCase = (s) => String(s || '').replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+  const slug = (s) => String(s || 'table').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'table';
+  const r4 = (v) => (typeof v === 'number' && isFinite(v)) ? Math.round(v * 1e4) / 1e4 : v;
+  const nowStamp = () => { const d = new Date(), p = (n) => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + '-' + p(d.getMinutes()) + '-' + p(d.getSeconds()); };
+
+  function download(name, text) {
+    const blob = new Blob([CSV.BOM + text], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  }
+  const fileName = (stamp, what) => '88fits_' + (stamp || nowStamp()) + '_' + what + '.csv';
 
   // ------------------------------------------------------------ Chart.js defaults and the two plugins
   function chartReady() { return typeof Chart !== 'undefined'; }
@@ -161,7 +392,7 @@
     Chart.defaults.elements.point.hoverBorderColor = COL.surface;
     Chart.defaults.elements.bar.borderRadius = 4;
     Chart.defaults.elements.bar.borderSkipped = 'start';
-    // the markers: boss bands, stage lines, picks, death and revive, drawn over the data of a time chart
+    // the markers: boss bands, stage lines, picks, downs and revives at the top, special and Elite kills at the bottom
     Chart.register({
       id: 'markers',
       afterDatasetsDraw(chart) {
@@ -171,7 +402,7 @@
         for (const b of o.bands || []) {
           const x1 = x.getPixelForValue(b.from), x2 = x.getPixelForValue(b.to);
           ctx.fillStyle = alpha(COL.s[7], 0.10); ctx.fillRect(x1, a.top, Math.max(2, x2 - x1), a.bottom - a.top);
-          ctx.fillStyle = COL.ink2; ctx.font = '10px system-ui'; ctx.textAlign = 'left'; ctx.fillText(b.label, x1 + 3, a.bottom - 5);
+          ctx.fillStyle = COL.ink2; ctx.font = '10px system-ui'; ctx.textAlign = 'left'; ctx.fillText(b.label, x1 + 3, a.bottom - 14);
         }
         for (const s of o.stages || []) {
           const px = x.getPixelForValue(s.t);
@@ -186,6 +417,11 @@
           ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(px, a.top + 1); ctx.lineTo(px - 4, a.top + 8); ctx.lineTo(px + 4, a.top + 8); ctx.closePath(); ctx.fill();
           if (e.line) { ctx.strokeStyle = alpha(c, 0.55); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(px, a.top + 8); ctx.lineTo(px, a.bottom); ctx.stroke(); }
           if (e.label && px > lastRight + 4) { const w = ctx.measureText(e.label).width; if (px + 6 + w < a.right) { ctx.fillStyle = COL.ink2; ctx.fillText(e.label, px + 6, a.top + 9); lastRight = px + 6 + w; } }
+        }
+        for (const d of o.dots || []) {
+          const px = x.getPixelForValue(d.t);
+          ctx.fillStyle = COL.surface; ctx.beginPath(); ctx.arc(px, a.bottom - 6, 5.5, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(px, a.bottom - 6, 3.5, 0, Math.PI * 2); ctx.fill();
         }
         ctx.restore();
       },
@@ -203,7 +439,7 @@
 
   // ------------------------------------------------------------ parsing and resampling
   function parseRunText(text) {
-    let s = text.trim();
+    let s = text.replace(/^﻿/, '').trim();
     const m = s.match(/^window\.RUN\s*=\s*/);
     if (m) s = s.slice(m[0].length).replace(/;\s*$/, '');
     return JSON.parse(s);
@@ -214,12 +450,12 @@
     const rows = (run.samples || []).slice().sort((p, q) => p.t - q.t);
     const n = rows.length ? Math.round(rows[rows.length - 1].t) + 1 : 0;
     const A = () => new Float64Array(n);
-    const S = { run, n, has: new Uint8Array(n), hp: A(), hpMax: A(), shield: A(), invuln: A(), est: A(), real: A(), tookRaw: A(), took: A(), hits: A(), evaded: A(), shielded: A(), healed: A(), killed: A(), spawned: A(), eliteKills: A(), alive: A(), cap: A(), load: A(), hardCap: A(), press: A(), pressHp: A(), pressDmg: A(), level: A(), xpFrac: A(), gold: A(), banked: A(), kills: A(), stage: A(), phase: A(), bossHp: A(), clock: A(),
-      dmgBy: {}, estBy: {}, tookBy: {}, killedBy: {}, spawnedBy: {}, aliveBy: {}, tookKind: { melee: A(), ranged: A(), boss: A() }, snaps: [] };
+    const S = { run, n, schema: +run.schema || 1, has: new Uint8Array(n), hp: A(), hpMax: A(), shield: A(), invuln: A(), est: A(), real: A(), tookRaw: A(), took: A(), hits: A(), evaded: A(), shielded: A(), healed: A(), regen: A(), killed: A(), spawned: A(), eliteKills: A(), alive: A(), cap: A(), load: A(), hardCap: A(), press: A(), pressHp: A(), pressDmg: A(), level: A(), xpFrac: A(), gold: A(), banked: A(), kills: A(), stage: A(), phase: A(), bossHp: A(), clock: A(), specials: A(), hpMult: A(), dmgMult: A(), timeScale: A(), adren: A(), cresc: A(), desp: A(), steady: A(),
+      dmgBy: {}, estBy: {}, tookBy: {}, hitsBy: {}, healedBy: {}, killedBy: {}, spawnedBy: {}, aliveBy: {}, tookKind: { melee: A(), ranged: A(), boss: A() }, snaps: [] };
     const byAdd = (map, s, obj) => { for (const k in obj || {}) { if (!map[k]) map[k] = A(); map[k][s] += +obj[k] || 0; } };
     const bySet = (map, s, obj) => { for (const k in obj || {}) { if (!map[k]) map[k] = A(); map[k][s] = +obj[k] || 0; } };
-    const STATE = ['hp', 'hpMax', 'shield', 'est', 'alive', 'cap', 'load', 'hardCap', 'press', 'pressHp', 'pressDmg', 'level', 'xpFrac', 'gold', 'banked', 'kills', 'stage', 'phase', 'bossHp', 'clock'];
-    let hpMax = 0;
+    const STATE = ['hp', 'hpMax', 'shield', 'est', 'alive', 'cap', 'load', 'hardCap', 'press', 'pressHp', 'pressDmg', 'level', 'xpFrac', 'gold', 'banked', 'kills', 'stage', 'phase', 'bossHp', 'clock', 'specials', 'hpMult', 'dmgMult', 'timeScale'];
+    let hpMax = 0, curM = null;
     for (const r of rows) {
       const s = Math.min(n - 1, Math.max(0, Math.round(r.t)));
       S.has[s] = 1;
@@ -228,16 +464,19 @@
       S.est[s] = r.est_total || 0; S.alive[s] = r.alive || 0; S.cap[s] = r.cap || 0; S.load[s] = r.load || 0; S.hardCap[s] = r.hard_cap || 0;
       S.press[s] = r.press || 0; S.pressHp[s] = r.press_hp || 0; S.pressDmg[s] = r.press_dmg || 0;
       S.level[s] = r.level || 1; S.xpFrac[s] = r.xp_next ? Math.min(1, (r.xp || 0) / r.xp_next) : 0; S.gold[s] = r.gold || 0; S.banked[s] = r.banked || 0; S.kills[s] = r.kills || 0;
-      S.stage[s] = r.stage || 1; S.phase[s] = r.phase || 0; S.bossHp[s] = r.boss_hp || 0; S.clock[s] = r.clock || 0;
+      S.stage[s] = r.stage || 1; S.phase[s] = r.phase || 0; S.bossHp[s] = r.boss_hp || 0; S.clock[s] = r.clock || 0; S.specials[s] = r.specials_alive || 0;
+      S.adren[s] = r.adren || 0; S.cresc[s] = r.cresc || 0; S.desp[s] = r.desp || 0; S.steady[s] = r.steady || 0;
+      if (r.mults) curM = r.mults;
+      if (curM) { S.hpMult[s] = (curM.stage || 1) * (curM.hp_t || 1) * (curM.lvl_hp || 1); S.dmgMult[s] = (curM.stage || 1) * (curM.dmg_t || 1) * (curM.lvl_dmg || 1); S.timeScale[s] = curM.time_scale || 1; }
       S.real[s] += sum(r.dmg); S.tookRaw[s] += r.took_raw || 0; S.took[s] += sum(r.took); S.hits[s] += r.hits || 0; S.evaded[s] += r.evaded || 0;
-      S.shielded[s] += r.shielded || 0; S.healed[s] += r.healed || 0; S.killed[s] += sum(r.killed); S.spawned[s] += sum(r.spawned); S.eliteKills[s] += r.elite_kills || 0;
-      byAdd(S.dmgBy, s, r.dmg); bySet(S.estBy, s, r.est); byAdd(S.tookBy, s, r.took); byAdd(S.killedBy, s, r.killed); byAdd(S.spawnedBy, s, r.spawned); bySet(S.aliveBy, s, r.alive_by);
+      S.shielded[s] += r.shielded || 0; S.healed[s] += r.healed || 0; S.regen[s] += r.regen || 0; S.killed[s] += sum(r.killed); S.spawned[s] += sum(r.spawned); S.eliteKills[s] += r.elite_kills || 0;
+      byAdd(S.dmgBy, s, r.dmg); bySet(S.estBy, s, r.est); byAdd(S.tookBy, s, r.took); byAdd(S.hitsBy, s, r.hits_by); byAdd(S.healedBy, s, r.healed_by); byAdd(S.killedBy, s, r.killed); byAdd(S.spawnedBy, s, r.spawned); bySet(S.aliveBy, s, r.alive_by);
       for (const k in r.took_kind || {}) { if (!S.tookKind[k]) S.tookKind[k] = A(); S.tookKind[k][s] += r.took_kind[k]; }
-      if (r.stats || r.weapons) S.snaps.push({ s, stats: r.stats, weapons: r.weapons, passives: Object.assign({}, r.passives || {}, r.lines || {}), perks: r.perks });
+      if (r.stats || r.weapons) S.snaps.push({ s, stats: r.stats, weapons: r.weapons, passives: Object.assign({}, r.passives || {}), lines: Object.assign({}, r.lines || {}), perks: r.perks });
     }
+    S.hasMults = !!curM;
     for (let s = 1; s < n; s++) if (!S.has[s]) { for (const k of STATE) S[k][s] = S[k][s - 1]; for (const k in S.estBy) S.estBy[k][s] = S.estBy[k][s - 1]; for (const k in S.aliveBy) S.aliveBy[k][s] = S.aliveBy[k][s - 1]; }
-    // the first row is second 1 (a row closes a second): the seconds before it take its state, not zeros (the HP line
-    // started at 0 and jumped to full)
+    // the first row is second 1 (a row closes a second): the seconds before it take its state, not zeros
     const first = S.has.indexOf(1);
     for (let s = 0; s < first; s++) { for (const k of STATE) S[k][s] = S[k][first]; for (const k in S.estBy) S.estBy[k][s] = S.estBy[k][first]; for (const k in S.aliveBy) S.aliveBy[k][s] = S.aliveBy[k][first]; }
     S.realR10 = roll(S.real, 10); S.killedR10 = roll(S.killed, 10); S.spawnedR10 = roll(S.spawned, 10); S.tookR10 = roll(S.took, 10);
@@ -250,7 +489,8 @@
     for (const k of Object.keys(S.estBy)) if (!seen.has(k)) { seen.add(k); weaponIds.push(k); }
     S.weaponIds = weaponIds;
     S.otherDmg = Object.keys(S.dmgBy).filter((k) => !seen.has(k));
-    S.name = (id) => names[id] || id;
+    S.name = (id) => (id == null || id === '') ? '' : (names[id] || titleCase(id));
+    S.statName = (k) => (run.stat_names && run.stat_names[k]) || STAT_WORDS[k] || String(k).replace(/_/g, ' ');
     // creatures by what came
     const tot = {}; for (const k in S.spawnedBy) tot[k] = S.spawnedBy[k].reduce((a, b) => a + b, 0);
     for (const k in S.killedBy) tot[k] = Math.max(tot[k] || 0, S.killedBy[k].reduce((a, b) => a + b, 0));
@@ -258,38 +498,94 @@
     S.enemyIds = Object.keys(tot).sort((a, b) => tot[b] - tot[a]);
     S.events = (run.events || []).slice().sort((p, q) => p.t - q.t);
     S.items = S.events.filter((e) => ITEM_KINDS.includes(e.kind));
+    const deaths = S.events.filter((e) => e.kind === 'death');
+    S.killer = deaths.length ? deaths[deaths.length - 1] : null;
+    S.maxSpecials = Math.max(0, ...S.specials);
     return S;
   }
-  function roll(arr, w) { const out = new Float64Array(arr.length); let acc = 0; for (let i = 0; i < arr.length; i++) { acc += arr[i]; if (i >= w) acc -= arr[i - w]; out[i] = acc / Math.min(w, i + 1); } return out; }
+  // a rolling mean over w seconds; the running sum snaps back to 0 when it is only float drift (the record's values are
+  // 0.1 apart at the finest), else a quiet stretch after a busy one reads as ±1e-12 and a share of it as anything
+  function roll(arr, w) { const out = new Float64Array(arr.length); let acc = 0; for (let i = 0; i < arr.length; i++) { acc += arr[i]; if (i >= w) acc -= arr[i - w]; if (Math.abs(acc) < 1e-6) acc = 0; out[i] = acc / Math.min(w, i + 1); } return out; }
   const mean = (arr, a, b) => { let s = 0, c = 0; for (let i = Math.max(0, a); i < Math.min(arr.length, b); i++) { s += arr[i]; c++; } return c ? s / c : 0; };
   const pts = (arr) => Array.from(arr, (v, i) => ({ x: i, y: v }));
-  const total = (arr) => Array.from(arr).reduce((a, b) => a + b, 0);
+  const total = (arr) => Array.from(arr || []).reduce((a, b) => a + b, 0);
+  const evs = (S, kind) => S.events.filter((e) => e.kind === kind);
 
   // ------------------------------------------------------------ the page
-  let MAIN = null, OVERLAYS = [], CHARTS = [], SHOW_HEADLESS = false;
+  const SRC = { played: { run: (window.RUN && window.RUN.samples) ? window.RUN : null, runs: Array.isArray(window.RUNS) ? window.RUNS : [], loaded: true }, tools: { run: null, runs: [], loaded: false } };
+  let SOURCE = 'played', MAIN = null, OVERLAYS = [], CHARTS = [], SHOW_HEADLESS = false;
   const $main = document.getElementById('main'), $empty = document.getElementById('empty'), $loaded = document.getElementById('loaded');
 
+  // a card: its title, what it shows in plain words, and its Table and CSV buttons (shown once a table is in it)
   function card(title, desc, opts) {
-    const c = el('section', 'card' + (opts && opts.wide ? ' wide' : ''));
+    opts = opts || {};
+    const c = el('section', 'card' + (opts.wide ? ' wide' : ''));
+    c._slug = slug(opts.slug || title); c._tables = [];
     const head = el('div', 'head'); head.appendChild(el('h2', null, title));
-    const tog = el('button', 'tog', 'Table'); tog.type = 'button'; tog.onclick = () => { c.classList.toggle('table'); tog.textContent = c.classList.contains('table') ? 'Chart' : 'Table'; }; head.appendChild(tog);
+    const acts = el('div', 'acts');
+    const tog = el('button', 'tog', 'Table'); tog.type = 'button'; tog.hidden = true;
+    tog.onclick = () => { c.classList.toggle('table'); tog.textContent = c.classList.contains('table') ? 'Chart' : 'Table'; };
+    const csv = el('button', 'tog', 'CSV'); csv.type = 'button'; csv.hidden = true; csv.title = 'Download this card\'s table as a CSV file';
+    csv.onclick = () => { const t = c._tables[0]; if (t) downloadTable(t); };
+    acts.appendChild(tog); acts.appendChild(csv); head.appendChild(acts);
+    c._tog = tog; c._csv = csv; c._noToggle = !!opts.noToggle;
     c.appendChild(head); if (desc) c.appendChild(el('p', 'desc', desc));
     return c;
   }
-  function plot(c, cls) { const p = el('div', 'plot' + (cls ? ' ' + cls : '')); const cv = document.createElement('canvas'); p.appendChild(cv); c.appendChild(p); return cv; }
-  function tableView(c, columns, rows) {
-    const wrap = el('div', 'tbl'); const t = document.createElement('table'); const thead = document.createElement('thead'); const tr = document.createElement('tr');
-    for (const col of columns) { const th = el('th', col.num ? 'num' : null, col.label); tr.appendChild(th); }
-    thead.appendChild(tr); t.appendChild(thead); const tb = document.createElement('tbody');
-    for (const r of rows) { const trr = document.createElement('tr'); columns.forEach((col, i) => { const td = el('td', col.num ? 'num' : null); const v = r[i]; if (v instanceof Node) td.appendChild(v); else td.textContent = v == null ? '' : String(v); trr.appendChild(td); }); tb.appendChild(trr); }
-    t.appendChild(tb); wrap.appendChild(t); c.appendChild(wrap);
+  function downloadTable(t) {
+    const stamp = MAIN ? MAIN.run.stamp : null;
+    download(fileName(stamp, t.name), CSV.toCSV(t.columns.map((c) => c.csv || c.label), t.csvRows || t.rows));
   }
-  // a time table sampled every `step` seconds so it stays readable
+  function plot(c, cls) { const p = el('div', 'plot' + (cls ? ' ' + cls : '')); const cv = document.createElement('canvas'); p.appendChild(cv); c.appendChild(p); return cv; }
+  // a time column: m:ss in the view, seconds in the CSV under a plain name ("came at (play)" -> came_at_play_s)
+  const colT = (label) => ({ label, fmt: fmtT, csv: label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') + '_s' });
+  function show(v, col) {
+    if (v === null || v === undefined || v === '') return '';
+    if (col.fmt) return col.fmt(v);
+    if (typeof v === 'number') return fmtN(v, col.d);
+    if (typeof v === 'boolean') return v ? 'yes' : 'no';
+    if (Array.isArray(v)) return v.join(', ');
+    return String(v);
+  }
+  // a table: raw values in `rows` (the CSV takes them as they are), each column's fmt for the view; opts.always shows it
+  // under its own title with its own CSV button, else it is the card's Table view; opts.csvRows: the CSV's rows when the
+  // view shows fewer (a time table every few seconds, its CSV every second)
+  function tableView(c, columns, rows, opts) {
+    opts = opts || {};
+    const t0 = { name: c._slug + (opts.name ? '-' + slug(opts.name) : ''), columns, rows, csvRows: opts.csvRows || null };
+    c._tables.push(t0);
+    if (opts.always) {
+      const bar = el('div', 'tblbar'); bar.appendChild(el('p', 'desc', opts.title || ''));
+      const b = el('button', 'btn small', 'CSV'); b.type = 'button'; b.onclick = () => downloadTable(t0); bar.appendChild(b);
+      c.appendChild(bar);
+    } else {
+      if (!c._noToggle) c._tog.hidden = false;
+      c._csv.hidden = false;
+    }
+    const wrap = el('div', 'tbl' + (opts.always ? ' always' : ''));
+    const t = document.createElement('table'); const thead = document.createElement('thead'); const tr = document.createElement('tr');
+    for (const col of columns) tr.appendChild(el('th', col.num ? 'num' : null, col.label));
+    thead.appendChild(tr); t.appendChild(thead); const tb = document.createElement('tbody');
+    for (const r of rows) {
+      const trr = document.createElement('tr');
+      columns.forEach((col, i) => {
+        const td = el('td', col.num ? 'num' : (col.wrap ? 'wrap' : null));
+        if (col.dot) { const c0 = col.dot(r[i], r); if (c0) { const d = el('span', 'dot'); d.style.background = c0; td.appendChild(d); } }
+        td.appendChild(document.createTextNode(show(r[i], col)));
+        if (col.cls) { const k = col.cls(r[i], r); if (k) td.classList.add(k); }
+        trr.appendChild(td);
+      });
+      tb.appendChild(trr);
+    }
+    t.appendChild(tb); wrap.appendChild(t); c.appendChild(wrap);
+    return wrap;
+  }
+  // a time table: the view every `step` seconds so it stays readable, the CSV every second
   function timeTable(c, S, series, step) {
     step = step || Math.max(1, Math.round(S.n / 60));
-    const cols = [{ label: 'play' }, { label: 'clock' }].concat(series.map((s) => ({ label: s.label, num: true })));
-    const rows = []; for (let i = 0; i < S.n; i += step) rows.push([fmtT(i), fmtT(S.clock[i])].concat(series.map((s) => fmtN(s.data[i], s.d))));
-    tableView(c, cols, rows);
+    const cols = [colT('play'), colT('clock')].concat(series.map((s) => ({ label: s.label, num: true, d: s.d })));
+    const all = []; for (let i = 0; i < S.n; i++) all.push([i, S.clock[i]].concat(series.map((s) => r4(s.data[i]))));
+    tableView(c, cols, all.filter((_, i) => i % step === 0), { csvRows: all });
   }
   function markerOpts(S, which) {
     const bands = []; let open = null;
@@ -297,17 +593,23 @@
     if (open) bands.push({ from: open.from, to: S.n - 1, label: open.label });
     const stages = S.events.filter((e) => e.kind === 'stage' && e.level >= 2).map((e) => ({ t: e.t, label: 'Stage ' + e.level }));
     for (const e of S.events) if (e.kind === 'wave') stages.push({ t: e.t, label: 'W' + e.level });
-    const ev = [];
+    const ev = [], dots = [];
     for (const e of S.events) {
       if (which.items && ITEM_KINDS.includes(e.kind)) ev.push({ t: e.t, color: EVO_KINDS.includes(e.kind) ? COL.s[3] : COL.ink2, label: S.name(e.id) + (e.level > 1 && !EVO_KINDS.includes(e.kind) ? ' ' + e.level : '') });
-      if (e.kind === 'death') ev.push({ t: e.t, color: COL.crit, line: true, label: 'down' });
+      if (e.kind === 'death') ev.push({ t: e.t, color: COL.crit, line: true, label: 'down' + (e.id ? ': ' + S.name(e.id) : '') });
       if (e.kind === 'revive') ev.push({ t: e.t, color: COL.good, line: true, label: 'revived' });
       if (which.portal && e.kind === 'portal') ev.push({ t: e.t, color: COL.s[2], line: true, label: e.extract ? 'extract' : 'portal' });
+      if (which.kills && e.kind === 'special_kill') dots.push({ t: e.t, color: ROLE.special });
+      if (which.kills && e.kind === 'elite_kill') dots.push({ t: e.t, color: ROLE.elite });
     }
-    return { bands, stages, events: ev };
+    // a record from before v0.60 has no elite_kill events: the seconds with Elite kills stand in for them
+    if (which.kills && !S.events.some((e) => e.kind === 'elite_kill')) for (let s = 0; s < S.n; s++) if (S.eliteKills[s] > 0) dots.push({ t: s, color: ROLE.elite });
+    return { bands, stages, events: ev, dots };
   }
   function xScale(S) { return { type: 'linear', offset: false, min: 0, max: Math.max(1, S.n - 1), grid: { color: COL.grid }, border: { color: COL.axis }, ticks: { callback: (v) => fmtT(v), maxTicksLimit: 10, maxRotation: 0 } }; }
-  function yScale(extra) { return Object.assign({ beginAtZero: true, grid: { color: COL.grid }, border: { display: false }, ticks: { callback: (v) => fmtN(v), maxTicksLimit: 6 } }, extra || {}); }
+  // an axis tick: under 1, two significant digits (0.05, 0.15), so small ratios do not all read "0.1"
+  const fmtTick = (v) => { const a = Math.abs(v); return (a > 0 && a < 1) ? String(+(+v).toPrecision(2)) : fmtN(v); };
+  function yScale(extra) { return Object.assign({ beginAtZero: true, grid: { color: COL.grid }, border: { display: false }, ticks: { callback: (v) => fmtTick(v), maxTicksLimit: 6 } }, extra || {}); }
   function timeChart(cv, S, datasets, o) {
     o = o || {};
     const ch = new Chart(cv, {
@@ -316,17 +618,17 @@
       options: {
         responsive: true, maintainAspectRatio: false, parsing: false, normalized: true,
         interaction: { mode: 'index', intersect: false },
-        scales: { x: xScale(S), y: yScale(o.y) },
+        scales: { x: o.x || xScale(S), y: yScale(o.y) },
         plugins: {
           legend: { display: datasets.length > 1, position: 'top', align: 'start' },
           markers: o.markers || null, crosshair: true,
-          tooltip: { callbacks: { title: (items) => items.length ? 'play ' + fmtT(items[0].parsed.x) + '  ·  clock ' + fmtT(S.clock[Math.round(items[0].parsed.x)] || 0) : '', label: (it) => ' ' + fmtN(it.parsed.y, it.dataset.d) + (it.dataset.unit || '') + '  ' + it.dataset.label } },
+          tooltip: { callbacks: { title: (items) => items.length ? (o.title ? o.title(items[0].parsed.x) : 'play ' + fmtT(items[0].parsed.x) + '  ·  clock ' + fmtT(S.clock[Math.round(items[0].parsed.x)] || 0)) : '', label: (it) => ' ' + (it.dataset.fmt ? it.dataset.fmt(it.parsed.y) : fmtN(it.parsed.y, it.dataset.d)) + (it.dataset.unit || '') + '  ' + it.dataset.label } },
         },
       },
     });
     CHARTS.push(ch); return ch;
   }
-  function line(label, arr, color, extra) { return Object.assign({ label, data: pts(arr), borderColor: color, backgroundColor: alpha(color, 0.10), pointBackgroundColor: color, fill: false }, extra || {}); }
+  function line(label, arr, color, extra) { return Object.assign({ label, data: Array.isArray(arr) && arr.length && typeof arr[0] === 'object' ? arr : pts(arr), borderColor: color, backgroundColor: alpha(color, 0.10), pointBackgroundColor: color, fill: false }, extra || {}); }
   function barChart(cv, labels, datasets, o) {
     o = o || {};
     const ch = new Chart(cv, {
@@ -343,19 +645,28 @@
     CHARTS.push(ch); return ch;
   }
   const bar = (label, data, color, extra) => Object.assign({ label, data, backgroundColor: color, borderColor: COL.surface, borderWidth: 1, maxBarThickness: 24 }, extra || {});
+  // small multiples: a titled box with its own canvas
+  function multiBox(m, title, h) { const b = el('div'); b.appendChild(el('h3', null, title)); const p = el('div', 'plot'); if (h) p.style.height = h + 'px'; const cv = document.createElement('canvas'); p.appendChild(cv); b.appendChild(p); m.appendChild(b); return cv; }
+  function tileIn(wrap, lbl, val, sub, cls) { const t = el('div', 'tile' + (cls ? ' ' + cls : '')); t.appendChild(el('div', 'lbl', lbl)); const v = el('div', 'val'); if (val instanceof Node) v.appendChild(val); else v.textContent = val; t.appendChild(v); if (sub) t.appendChild(el('div', 'sub', sub)); wrap.appendChild(t); return t; }
+  function mkey(c, pairs) { const key = el('div', 'mkey'); for (const [k, v, round] of pairs) { const s = el('span', round ? 'round' : null, k); s.style.setProperty('--k', v); key.appendChild(s); } c.appendChild(key); }
 
   function render() {
     for (const ch of CHARTS) ch.destroy(); CHARTS = []; $main.textContent = '';
     renderLoaded();
+    document.getElementById('csv-rows').disabled = !MAIN;
+    document.getElementById('csv-events').disabled = !MAIN;
+    document.getElementById('csv-history').disabled = !currentRuns().length;
     if (!MAIN) { $empty.hidden = false; renderHistory($main); return; }
     $empty.hidden = true;
-    if (!chartReady()) { $main.appendChild(el('p', 'desc', 'Chart.js did not load (lib/chart.umd.js missing and no internet).')); }
+    if (!chartReady()) $main.appendChild(el('p', 'desc', 'Chart.js did not load (lib/chart.umd.js missing and no internet): the tables still work.'));
     const S = MAIN;
     renderSummary($main, S);
     const grid = el('div', 'grid'); $main.appendChild(grid);
-    if (chartReady()) {
-      renderPower(grid, S); renderPressure(grid, S); renderHealth(grid, S); renderCrowd(grid, S); renderRates(grid, S); renderProgress(grid, S); renderGold(grid, S);
-      renderShare(grid, S); renderEstVsReal(grid, S); renderEnemies(grid, S); renderItems(grid, S); renderSurvival(grid, S); renderRatio(grid, S);
+    const steps = [renderFacts, renderPower, renderPressure, renderRatio, renderHealth, renderEnemies, renderHitLog, renderBosses, renderSpecials,
+      renderShare, renderEstVsReal, renderBuild, renderItems, renderOffers, renderTotems, renderHealing, renderSurvival, renderStats,
+      renderMults, renderStacks, renderCrowd, renderRates, renderProgress, renderGold, renderQuests];
+    for (const f of steps) {
+      try { f(grid, S); } catch (err) { const c = card(f.name.replace(/^render/, ''), 'This card could not be drawn for this file: ' + err.message); grid.appendChild(c); console.error(err); }
     }
     renderHistory($main);
   }
@@ -366,87 +677,522 @@
     OVERLAYS.forEach((o, i) => { const c = el('span', 'chip'); c.appendChild(document.createTextNode('overlay ' + (i + 1) + ': ')); c.appendChild(el('b', null, (o.run.hero_name || o.run.hero || '') + ' ' + (o.run.stamp || ''))); const x = el('span', 'x', '✕'); x.title = 'remove'; x.onclick = () => { OVERLAYS.splice(i, 1); render(); }; c.appendChild(x); $loaded.appendChild(c); });
   }
 
-  // 1 summary
+  // ------------------------------------------------------------ 1 the summary
   function renderSummary(root, S) {
     const r = S.run, wrap = el('div', 'summary');
-    const tile = (lbl, val, sub, cls) => { const t = el('div', 'tile' + (cls ? ' ' + cls : '')); t.appendChild(el('div', 'lbl', lbl)); const v = el('div', 'val'); if (val instanceof Node) v.appendChild(val); else v.textContent = val; t.appendChild(v); if (sub) t.appendChild(el('div', 'sub', sub)); wrap.appendChild(t); return t; };
-    const res = el('span', 'result-' + (r.result || 'end'), ({ extract: 'Extracted', death: 'Died', abandon: 'Gave up', quit: 'Quit', in_progress: 'In progress', end: 'Ended' })[r.result] || r.result || '?');
-    const heroTile = tile((r.hero_name || r.hero || '?') + ' · ' + (r.map || ''), res, 'v' + (r.version || '?') + ' · seed ' + (r.seed || '?') + ' · ' + (r.started || '').replace('T', ' ') + (r.headless ? ' · headless tool run' : '') + (r.device ? ' · ' + r.device : ''));
+    const tile = (lbl, val, sub, cls) => tileIn(wrap, lbl, val, sub, cls);
+    const res = el('span', 'result-' + (r.result || 'end'), RESULT_WORDS[r.result] || r.result || '?');
+    const origin = r.tool ? 'a tool\'s run' : (r.headless ? 'a headless tool run' : 'played');
+    const heroTile = tile((r.hero_name || r.hero || '?') + (r.hero_look ? ' (' + r.hero_look + ')' : '') + ' · ' + titleCase(r.map || ''), res, 'v' + (r.version || '?') + ' · seed ' + (r.seed || '?') + ' · ' + (r.started || '').replace('T', ' ') + ' · ' + origin + (r.device ? ' · ' + r.device : ''));
     heroTile.querySelector('.val').classList.add('hero'); heroTile.classList.add('wide');
-    tile('Play time', fmtT(r.length || S.n), 'stage clock ' + fmtT(r.clock || 0) + ' (stops for bosses and portals)');
-    tile('Stage', String(r.stage || 1) + (r.endless_wave ? ' · wave ' + r.endless_wave : ''), S.events.filter((e) => e.kind === 'boss_start').map((e) => S.name(e.id)).join(', ') || 'no boss met');
+    tile('Play time', fmtT(r.length || S.n), 'stage clock ' + fmtT(r.clock || 0) + ' (it stops for bosses and portals)');
+    tile('Stage', String(r.stage || 1) + (r.endless_wave ? ' · wave ' + r.endless_wave : ''), evs(S, 'boss_start').map((e) => S.name(e.id)).join(', ') || 'no boss met');
     tile('Level', String(r.level || 1), S.items.length + ' picks');
-    tile('Kills', fmtN(r.kills || 0), (S.events.filter((e) => e.kind === 'elite').length) + ' Elites met');
-    tile('Gold', fmtN(r.gold || 0), (r.strongbox ? fmtN(r.strongbox) + ' banked by a Strongbox' : 'nothing banked') + (r.revives ? ' · ' + r.revives + ' revive' + (r.revives > 1 ? 's' : '') : ''));
+    const sk = evs(S, 'special_kill').length, ek = evs(S, 'elite_kill').length;
+    tile('Kills', fmtN(r.kills || 0), S.schema >= 2 ? (ek + ' Elites · ' + sk + ' specials') : (evs(S, 'elite').length + ' Elites met'));
+    const ge = r.gold_end;
+    tile('Gold', fmtI(r.gold || 0), ge ? ('earned ' + fmtI(ge.gold_earned) + ' · spent ' + fmtI(ge.gold_spent) + ' · banked ' + fmtI(ge.gold_banked)) : ((r.strongbox ? fmtI(r.strongbox) + ' banked by a Strongbox' : 'nothing banked') + (r.revives ? ' · ' + r.revives + ' revive' + (r.revives > 1 ? 's' : '') : '')));
     tile('Damage dealt', fmtN(sum((r.totals || {}).damage_by_weapon)), 'estimate at the end ' + fmtN(S.est[S.n - 1] || 0) + ' dps · real mean ' + fmtN(total(S.real) / Math.max(1, S.n)) + ' dps');
-    tile('Damage taken', fmtN(total(S.took)), total(S.hits) + ' hits · ' + total(S.evaded) + ' evaded · ' + fmtN(total(S.healed)) + ' healed');
+    tile('Damage taken', fmtN(total(S.took)), total(S.hits) + ' hits · ' + total(S.evaded) + ' evaded · ' + fmtN(total(S.healed) + total(S.regen)) + ' healed');
+    if (S.killer) tile('What put you down', S.name(S.killer.id) || 'unknown', (S.killer.hit ? S.killer.hit + ' hit' : '') + ' at ' + fmtT(S.killer.t) + (evs(S, 'death').length > 1 ? ' · down ' + evs(S, 'death').length + ' times' : ''));
+    if (r.fps) tile('Frame rate', fmtN(r.fps.avg, 0) + ' fps', '1 % low ' + fmtN(r.fps.low, 0) + ' fps');
     // the final build
     const b = r.build || {}; const bt = el('div', 'tile wide'); bt.appendChild(el('div', 'lbl', 'The build at the end'));
     const row = el('div', 'build');
     (b.weapons || []).forEach((w, i) => { const c = el('span', 'chip'); const d = el('span', 'dot'); d.style.background = COL.s[Math.min(7, S.weaponIds.indexOf(w.id) < 0 ? i : S.weaponIds.indexOf(w.id))]; c.appendChild(d); c.appendChild(el('b', null, S.name(w.id))); c.appendChild(document.createTextNode(' Lv ' + w.level)); if (w.mutations && w.mutations.length) c.appendChild(el('span', 'mut', ' · ' + w.mutations.map(S.name).join(', '))); row.appendChild(c); });
-    // a record from before pass 46 kept its lines apart: they are passives now
-    for (const [id, lv] of Object.entries(Object.assign({}, b.passives || {}, b.lines || {}))) { const c = el('span', 'chip'); c.appendChild(document.createTextNode('passive ')); c.appendChild(el('b', null, S.name(id))); c.appendChild(document.createTextNode(' Lv ' + lv)); row.appendChild(c); }
-    for (const id of b.perks || []) { const c = el('span', 'chip'); c.appendChild(document.createTextNode('perk ')); c.appendChild(el('b', null, S.name(id))); row.appendChild(c); }
+    const chipKind = (kind, id, lv) => { const c = el('span', 'chip'); c.appendChild(document.createTextNode(kind + ' ')); c.appendChild(el('b', null, S.name(id))); if (lv != null) c.appendChild(document.createTextNode(' Lv ' + lv)); row.appendChild(c); };
+    // schema 2 keeps the lines (fortune cards) apart; a record from before pass 46 kept its old lines apart too
+    for (const [id, lv] of Object.entries(b.lines || {})) chipKind('card', id, lv);
+    for (const [id, lv] of Object.entries(b.passives || {})) chipKind('passive', id, lv);
+    for (const id of b.perks || []) chipKind('perk', id, null);
     if (!row.childElementCount) row.appendChild(el('span', 'chip', 'empty'));
     bt.appendChild(row); wrap.appendChild(bt);
     root.appendChild(wrap);
   }
 
-  // 2 power
+  // ------------------------------------------------------------ 2 the run's facts
+  function renderFacts(grid, S) {
+    const r = S.run; const facts = [];
+    const add = (k, v) => { if (v !== undefined && v !== null && v !== '') facts.push([k, String(v)]); };
+    add('Hero', (r.hero_name || r.hero || '?') + (r.hero_look ? ' in look ' + r.hero_look : ''));
+    if (r.trait && r.trait.name) add('Trait', r.trait.name + (r.trait.words ? ': ' + r.trait.words + ' at level ' + r.trait.level : '') + (r.trait.text ? ' (' + r.trait.text + ')' : ''));
+    add('Map', titleCase(r.map) + (r.map_rev ? ' · Level Editor version ' + r.map_rev : '') + ' · layout seed ' + (r.seed != null ? r.seed : '?'));
+    add('Game version', 'v' + (r.version || '?') + ' · record schema ' + S.schema);
+    add('Started', (r.started || '').replace('T', ' '));
+    add('Result', (RESULT_WORDS[r.result] || r.result || '?') + (S.killer ? ' · last down to ' + S.name(S.killer.id) : '') + (r.revives ? ' · ' + r.revives + ' revive' + (r.revives > 1 ? 's' : '') + ' bought' : ''));
+    add('Length', 'play ' + fmtT(r.length || S.n) + ' · stage clock ' + fmtT(r.clock || 0));
+    add('Reached', 'stage ' + (r.stage || 1) + (r.endless_wave ? ', endless wave ' + r.endless_wave : '') + ' · level ' + (r.level || 1) + ' · ' + fmtN(r.kills || 0) + ' kills');
+    add('Played on', (r.tool ? 'a tool (' + (r.headless ? 'headless' : 'windowed') + ')' : (r.headless ? 'a headless tool' : 'played')) + ' · ' + (r.platform || '?') + (r.device ? ' · ' + r.device : ''));
+    if (r.launch) add('Launch file', Object.entries(r.launch).map(([k, v]) => k.replace(/_/g, ' ') + ' ' + v).join(' · ') + ' (a tool\'s or the editor\'s test launch)');
+    if (r.talents) {
+      const ids = Object.keys(r.talents);
+      add('Upgrade board', ids.length ? ids.map((id) => { const p = r.talents[id] || []; const f = (r.talent_forms || {})[id] || ['first form', 'second form']; const n0 = p.filter((x) => +x === 0).length, n1 = p.length - n0; return S.name(id) + ': ' + [n0 ? f[0] + ' ×' + n0 : '', n1 ? f[1] + ' ×' + n1 : ''].filter(Boolean).join(', '); }).join(' · ') : 'no ranks bought');
+    }
+    if (r.settings) add('Switches', 'pierce drop-off ' + (r.settings.pierce_falloff ? 'on' : 'off') + ' · debug mode ' + (r.settings.debug_mode ? 'on' : 'off') + ' · ' + (r.settings.dev ? 'a developer run' : 'a player\'s run'));
+    const ms = r.map_settings;
+    if (ms) {
+      add('Push from his side', fmtX(ms.hero_knockback_mult) + ' on every knockback the hero\'s side gives');
+      const sd = ms.special_defaults || {};
+      add('Coloured specials', 'HP ' + fmtX(sd.hp) + ' · damage ' + fmtX(sd.damage) + ' · size ' + fmtX(sd.size) + ' · XP ' + fmtX(sd.xp) + ' · chest ' + fmtPct(sd.chest_chance) + ' · ' + (sd.max_alive < 0 ? 'no limit up at once' : 'at most ' + sd.max_alive + ' up at once'));
+      const bs = ms.boss_hp_scaling || {};
+      add('Boss HP pegging', bs.enabled === false ? 'off' : 'HP × (your DPS ÷ its reference)^' + bs.exponent + ', between ' + fmtX(bs.min) + ' and ' + fmtX(bs.max) + ', your DPS over the last ' + bs.window + ' s · references: ' + Object.entries(bs.ref_dps || {}).map(([k, v]) => S.name(k) + ' ' + fmtI(v) + ' DPS').join(', '));
+      const tp = ms.target_priority || {};
+      add('Priority targets', tp.enabled === false ? 'off' : 'on: specials, Elites and bosses within ' + tp.reach + ' m come first');
+      const sr = ms.spawn_rise || {};
+      add('Rising out of the sand', (+sr.seconds > 0 ? sr.seconds + ' s (Elites and bosses ' + sr.big_seconds + ' s), a target once ' + fmtPct(sr.targetable) + ' up' : 'off'));
+      add('Creatures', 'HP ' + fmtX(ms.creature_hp_mult) + ' · damage ' + fmtX(ms.creature_damage_mult) + ' · speed ' + fmtX(ms.creature_speed_mult) + ' · the pace ' + fmtX(ms.move_pace) + ' · XP needed ' + fmtX(ms.xp_need_mult));
+    }
+    if (Array.isArray(r.totems) && r.totems.length) add('Totem gifts', r.totems.map((t) => t.name + ': ' + t.words).join(' · '));
+    const ge = r.gold_end;
+    if (ge) add('Gold', 'earned ' + fmtI(ge.gold_earned) + (ge.gold_greed ? ' (greed ' + fmtI(ge.gold_greed) + ')' : '') + ' · spent ' + fmtI(ge.gold_spent) + ' · banked ' + fmtI(ge.gold_banked) + (ge.gold_strongbox ? ' (Strongbox ' + fmtI(ge.gold_strongbox) + ')' : '') + ' · lost ' + fmtI(ge.gold_lost) + ' · saved gold ' + fmtI(ge.gold_before) + ' → ' + fmtI(ge.gold_after));
+    else if (r.gold_before != null) add('Gold', 'saved gold as it began ' + fmtI(r.gold_before));
+    add('Run id', r.run_id ? r.run_id + ' (the same id on its PostHog events)' : '');
+    const c = card('The run', 'Who played what, where, with which upgrades and switches, and the map\'s numbers as this run played them.', { wide: true });
+    const dl = el('dl', 'facts');
+    for (const [k, v] of facts) { dl.appendChild(el('dt', null, k)); dl.appendChild(el('dd', null, v)); }
+    c.appendChild(dl);
+    tableView(c, [{ label: 'what' }, { label: 'value', wrap: true }], facts);
+    grid.appendChild(c);
+  }
+
+  // ------------------------------------------------------------ 3 power
   function renderPower(grid, S) {
-    const c = card('Power', 'The build\'s estimated DPS (every weapon\'s sheet) against the damage that landed (10 s mean). Picks are marked at the top, bosses shaded, a death in red.', { wide: true });
+    const c = card('Was the build strong enough?', 'The build\'s estimated DPS (every weapon\'s sheet) against the damage that landed (10 s mean). Picks are marked at the top, bosses shaded, a fall in red; dots at the bottom are special and Elite kills.', { wide: true, slug: 'power' });
     const ds = [line('estimated dps', S.est, ROLE.est, { fill: true }), line('real dps (10 s)', S.realR10, ROLE.real)];
     OVERLAYS.forEach((o, i) => { ds.push(line('overlay ' + (i + 1) + ' estimated', o.est, ROLE.est, { borderDash: [6, 4], borderWidth: 1.5 })); ds.push(line('overlay ' + (i + 1) + ' real', o.realR10, ROLE.real, { borderDash: [6, 4], borderWidth: 1.5 })); });
-    timeChart(plot(c, 'tall'), S, ds, { markers: markerOpts(S, { items: true, portal: true }) });
-    const key = el('div', 'mkey'); for (const [k, v] of [['pick', COL.ink2], ['evolution', COL.s[3]], ['boss', alpha(COL.s[7], 0.5)], ['down', COL.crit], ['revived', COL.good], ['portal', COL.s[2]]]) { const s = el('span', null, k); s.style.setProperty('--k', v); key.appendChild(s); } c.appendChild(key);
+    if (chartReady()) timeChart(plot(c, 'tall'), S, ds, { markers: markerOpts(S, { items: true, portal: true, kills: true }) });
+    mkey(c, [['pick', COL.ink2], ['evolution', COL.s[3]], ['boss fight', alpha(COL.s[7], 0.5)], ['down', COL.crit], ['revived', COL.good], ['portal', COL.s[2]], ['special killed', ROLE.special, true], ['Elite killed', ROLE.elite, true]]);
     timeTable(c, S, [{ label: 'estimated dps', data: S.est }, { label: 'real dps (10 s)', data: S.realR10 }, { label: 'real this second', data: S.real }]);
     grid.appendChild(c);
   }
-  // 2b pressure
   function renderPressure(grid, S) {
     const c = card('Crowd pressure', 'Σ over live creatures of max HP × damage: how much hurt is walking at the hero. Its own scale, under the power curve.', { wide: true });
     const ds = [line('pressure', S.press, ROLE.press, { fill: true })];
     OVERLAYS.forEach((o, i) => ds.push(line('overlay ' + (i + 1) + ' pressure', o.press, ROLE.press, { borderDash: [6, 4], borderWidth: 1.5 })));
-    timeChart(plot(c, 'short'), S, ds, { markers: markerOpts(S, { items: false, portal: true }) });
+    if (chartReady()) timeChart(plot(c, 'short'), S, ds, { markers: markerOpts(S, { items: false, portal: true }) });
     timeTable(c, S, [{ label: 'pressure', data: S.press }, { label: 'Σ hp up', data: S.pressHp }, { label: 'Σ damage up', data: S.pressDmg }]);
     grid.appendChild(c);
   }
-  // 3 health
+  function renderRatio(grid, S) {
+    const c = card('When did the crowd outgrow me?', 'Left: the estimate over the crowd\'s summed damage per hit (higher = a build ahead of the room). Right: real DPS over the crowd\'s summed HP, the share of the room cleared each second. Where a line sinks and stays down, the crowd got ahead.', { wide: true, slug: 'power-vs-pressure' });
+    const r1 = Float64Array.from(S.est, (v, i) => S.pressDmg[i] > 0 ? v / S.pressDmg[i] : 0); const r2 = Float64Array.from(S.realR10, (v, i) => S.pressHp[i] > 0 ? v / S.pressHp[i] : 0);
+    if (chartReady()) {
+      const m = el('div', 'multi');
+      const mo = markerOpts(S, {});
+      timeChart(multiBox(m, 'estimate ÷ Σ damage up'), S, [line('estimate ÷ Σ damage up', r1, ROLE.est, { fill: true, d: 2 })], { markers: { bands: mo.bands, stages: mo.stages } });
+      timeChart(multiBox(m, 'real dps ÷ Σ hp up'), S, [line('real dps ÷ Σ hp up', r2, ROLE.real, { fill: true, d: 3 })], { markers: { bands: mo.bands, stages: mo.stages } });
+      c.appendChild(m);
+    }
+    timeTable(c, S, [{ label: 'estimate / Σ dmg', data: r1, d: 2 }, { label: 'real / Σ hp', data: r2, d: 3 }]);
+    grid.appendChild(c);
+  }
   function renderHealth(grid, S) {
-    const c = card('Health and incoming damage', 'The hero\'s HP and shield, the HP lost each second, the line at 30 %. Deaths and revives are marked.', { wide: true });
+    const c = card('Health and incoming damage', 'The hero\'s HP and shield, the HP lost each second, the line at 30 %. Falls are marked with what put him down.', { wide: true });
     const thirty = Float64Array.from(S.hpMax, (v) => v * 0.3);
     const ds = [line('hp', S.hp, ROLE.hp, { fill: true }), line('max hp', S.hpMax, COL.gray, { borderWidth: 1 }), line('30 %', thirty, COL.serious, { borderWidth: 1 }), line('shield', S.shield, ROLE.shield),
       Object.assign(bar('hp lost this second', pts(S.took), ROLE.took), { type: 'bar', parsing: false, maxBarThickness: 6, borderWidth: 0 })];
     OVERLAYS.forEach((o, i) => ds.splice(1, 0, line('overlay ' + (i + 1) + ' hp', o.hp, ROLE.hp, { borderDash: [6, 4], borderWidth: 1.5 })));
-    timeChart(plot(c), S, ds, { markers: markerOpts(S, { items: false, portal: false }) });
-    timeTable(c, S, [{ label: 'hp', data: S.hp }, { label: 'max', data: S.hpMax }, { label: 'shield', data: S.shield }, { label: 'lost', data: S.took }, { label: 'thrown', data: S.tookRaw }, { label: 'hits', data: S.hits, d: 0 }, { label: 'healed', data: S.healed }]);
+    if (chartReady()) timeChart(plot(c), S, ds, { markers: markerOpts(S, { items: false, portal: false }) });
+    timeTable(c, S, [{ label: 'hp', data: S.hp }, { label: 'max', data: S.hpMax }, { label: 'shield', data: S.shield }, { label: 'lost', data: S.took }, { label: 'thrown', data: S.tookRaw }, { label: 'hits', data: S.hits, d: 0 }, { label: 'healed', data: S.healed }, { label: 'regen', data: S.regen }]);
     grid.appendChild(c);
   }
-  // 4 crowd
+
+  // ------------------------------------------------------------ 4 what hurt him
+  function renderEnemies(grid, S) {
+    const c = card('What hurt me?', 'HP lost to each creature (and how many hits it landed), who was killed, who was spawned, and how the hits came.', { wide: true, slug: 'creatures' });
+    const kbe = (S.run.totals || {}).kills_by_enemy || {};
+    const byTook = Object.keys(S.tookBy).map((k) => [k, total(S.tookBy[k])]).filter((p) => p[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 12);
+    const ids = S.enemyIds.slice(0, 14);
+    const hasHits = Object.keys(S.hitsBy).length > 0;
+    if (chartReady()) {
+      const m = el('div', 'multi');
+      if (byTook.length) barChart(multiBox(m, 'HP lost to each creature', Math.max(170, 28 * byTook.length + 60)), byTook.map((p) => S.name(p[0])), [bar('hp lost', byTook.map((p) => p[1]), ROLE.took)], { horizontal: true });
+      barChart(multiBox(m, 'spawned vs killed', Math.max(170, 36 * ids.length + 60)), ids.map(S.name), [bar('spawned', ids.map((id) => total(S.spawnedBy[id] || [])), alpha(ROLE.spawned, 0.5), { d: 0 }), bar('killed', ids.map((id) => kbe[id] != null ? kbe[id] : total(S.killedBy[id] || [])), ROLE.killed, { d: 0 })], { horizontal: true });
+      const kinds = ['melee', 'ranged', 'boss']; const kt = kinds.map((k) => total(S.tookKind[k] || [])); const ktot = kt.reduce((a, b) => a + b, 0) || 1;
+      barChart(multiBox(m, 'how the hits came (HP lost)', 120), ['hits'], kinds.map((k, i) => bar(k, [100 * kt[i] / ktot], [COL.s[7], COL.s[3], COL.s[6]][i], { unit: '%', d: 0 })), { horizontal: true, stacked: true, v: { max: 100, ticks: { callback: (v) => v + ' %' } } });
+      c.appendChild(m);
+      const top = S.enemyIds.filter((id) => S.aliveBy[id]).slice(0, 7); const rest = S.enemyIds.filter((id) => S.aliveBy[id]).slice(7);
+      const oth = new Float64Array(S.n); for (const id of rest) for (let i = 0; i < S.n; i++) oth[i] += S.aliveBy[id][i];
+      const ds = top.map((id, i) => line(S.name(id), S.aliveBy[id], COL.s[i], { fill: true, backgroundColor: alpha(COL.s[i], 0.55), borderColor: COL.surface, borderWidth: 1, d: 0 }));
+      if (rest.length) ds.push(line('other', oth, COL.gray, { fill: true, backgroundColor: alpha(COL.gray, 0.55), borderColor: COL.surface, borderWidth: 1, d: 0 }));
+      c.appendChild(el('h3', null, 'who was up, second by second'));
+      if (ds.length) { const ch = timeChart(plot(c, 'short'), S, ds, { y: { stacked: true }, markers: markerOpts(S, { items: false, portal: false }) }); ch.options.scales.y.stacked = true; ch.update(); }
+    }
+    const cols = [{ label: 'creature' }, { label: 'id' }, { label: 'spawned', num: true, d: 0 }, { label: 'killed', num: true, d: 0 }, { label: 'hp lost to it', num: true }];
+    if (hasHits) cols.push({ label: 'hits it landed', num: true, d: 0 });
+    tableView(c, cols, S.enemyIds.map((id) => { const row = [S.name(id), id, total(S.spawnedBy[id] || []), kbe[id] != null ? kbe[id] : total(S.killedBy[id] || []), r4(total(S.tookBy[id] || []))]; if (hasHits) row.push(total(S.hitsBy[id] || [])); return row; }));
+    grid.appendChild(c);
+  }
+  function renderHitLog(grid, S) {
+    const log = S.run.hit_log; if (!Array.isArray(log) || !log.length) return;
+    const c = card('The last 30 seconds', 'What reached the hero before the run ended, as the Down! screen lists it, newest first. Times are the stage clock (it stops in boss fights).', { wide: true, noToggle: true, slug: 'last-hits' });
+    const rows = log.slice().reverse().map((h) => [r4(h.t), h.by || '', h.kind || '', h.kind === 'heal' ? null : r4(h.raw), h.kind === 'heal' ? r4(h.amount) : r4(h.dealt), r4(h.shield || 0), h.note || '', r4(h.hp), !!h.fatal]);
+    tableView(c, [{ label: 'clock', fmt: fmtT1, csv: 'clock_s' }, { label: 'what' }, { label: 'kind' }, { label: 'thrown', num: true }, { label: 'lost (healed)', num: true, csv: 'lost_or_healed' }, { label: 'shield took', num: true }, { label: 'note' }, { label: 'hp after', num: true }, { label: 'the last', fmt: (v) => v ? '✕ fatal' : '', csv: 'fatal' }], rows, { always: true, title: 'Every hit (and named heal) in the last 30 s' });
+    grid.appendChild(c);
+  }
+
+  // ------------------------------------------------------------ 5 the bosses
+  function renderBosses(grid, S) {
+    const starts = evs(S, 'boss_start'); if (!starts.length) return;
+    const fights = starts.map((b, i) => {
+      const end = S.events.find((e) => e.kind === 'boss_end' && e.id === b.id && e.t >= b.t);
+      const next = starts.slice(i + 1).find((x) => x.id === b.id);
+      const to = end ? end.t : (next ? next.t : S.n - 1);
+      let lost = 0, hits = 0; const tb = S.tookBy[b.id], hb = S.hitsBy[b.id];
+      for (let s = Math.round(b.t); s <= Math.round(to) && s < S.n; s++) { if (tb) lost += tb[s]; if (hb) hits += hb[s]; }
+      const downs = S.events.filter((e) => e.kind === 'death' && e.t >= b.t && e.t <= to).length;
+      return { b, end, to, secs: to - b.t, lost, hits, downs };
+    });
+    const c = card('How hard did each boss scale?', 'A boss\'s health is pegged to the damage the hero was dealing as it came (since v0.58): HP × (his DPS over the window ÷ the DPS it expects)^exponent, held between the map\'s floor and ceiling. Each fight, and the boss\'s health over it.', { wide: true, slug: 'boss-fights' });
+    const tiles = el('div', 'tiles');
+    for (const f of fights) {
+      const b = f.b;
+      const val = b.mult != null ? 'HP ' + fmtX(b.mult) : (S.schema >= 2 ? 'not pegged' : 'HP ×?');
+      const sub = (b.dps != null ? 'his ' + fmtN(b.dps) + ' DPS over ' + b.window + ' s vs ' + fmtN(b.ref) + ' expected · ' : (S.schema < 2 ? 'the pegging is recorded from v0.60 · ' : '')) + (b.hp != null ? fmtN(b.hp) + ' HP · ' : '') + (f.end ? 'down in ' + fmtT(f.secs) : 'not killed (' + fmtT(f.secs) + ')') + (f.downs ? ' · the hero fell ' + f.downs + '×' : '');
+      tileIn(tiles, S.name(b.id) + ' at ' + fmtT(b.t), val, sub);
+    }
+    c.appendChild(tiles);
+    if (chartReady()) {
+      const m = el('div', 'multi');
+      for (const f of fights) {
+        // from its first second on the record (the row of the second it came in may close before it spawned)
+        let a = Math.round(f.b.t); const z = Math.min(S.n - 1, Math.round(f.to));
+        while (a < z && S.bossHp[a] <= 0) a++;
+        const data = []; for (let s = a; s <= z; s++) data.push({ x: s - a, y: 100 * S.bossHp[s] });
+        const n = Math.max(1, z - a);
+        timeChart(multiBox(m, S.name(f.b.id) + ': its health'), S, [line('boss health', data, COL.s[7], { fill: true, unit: ' %', d: 0 })], { x: { type: 'linear', min: 0, max: n, grid: { color: COL.grid }, border: { color: COL.axis }, ticks: { callback: (v) => fmtT(v), maxTicksLimit: 6, maxRotation: 0 } }, y: { max: 100, ticks: { callback: (v) => v + ' %', maxTicksLimit: 5 } }, title: (x) => fmtT(x) + ' into the fight' });
+      }
+      c.appendChild(m);
+    }
+    tableView(c, [{ label: 'boss' }, colT('came at (play)'), colT('came at (clock)'), { label: 'HP', num: true, d: 0 }, { label: 'HP ×', num: true, fmt: fmtX, csv: 'hp_mult' }, { label: 'his DPS', num: true }, { label: 'expected DPS', num: true }, { label: 'window s', num: true, d: 0 }, colT('fight'), { label: 'killed' }, { label: 'HP lost to it', num: true }, { label: 'hits it landed', num: true, d: 0 }, { label: 'falls', num: true, d: 0 }],
+      fights.map((f) => [S.name(f.b.id), f.b.t, f.b.clock, f.b.hp != null ? f.b.hp : '', f.b.mult != null ? f.b.mult : '', f.b.dps != null ? f.b.dps : '', f.b.ref != null ? f.b.ref : '', f.b.window != null ? f.b.window : '', r4(f.secs), !!f.end, r4(f.lost), f.hits, f.downs]));
+    grid.appendChild(c);
+  }
+
+  // ------------------------------------------------------------ 6 specials and Elites
+  function renderSpecials(grid, S) {
+    const sp = evs(S, 'special'), sk = evs(S, 'special_kill'), em = evs(S, 'elite_mod'), ek = evs(S, 'elite_kill'), el0 = evs(S, 'elite');
+    const eliteSecs = total(S.eliteKills);
+    if (!sp.length && !sk.length && !em.length && !ek.length && !el0.length && !eliteSecs && !S.maxSpecials) return;
+    const c = card('Specials and Elites', 'The coloured specials (the dark, big, glowing ones: more HP, a chance at a chest), the Elites by their kind, and creatures wearing an Elite modifier: what came, what fell, what it paid.', { wide: true, slug: 'specials-and-elites' });
+    const tiles = el('div', 'tiles');
+    if (S.schema >= 2) {
+      const chests = sk.filter((e) => e.chest).length;
+      tileIn(tiles, 'Coloured specials', sp.length + ' came', (sp.filter((e) => e.forced).length ? sp.filter((e) => e.forced).length + ' forced by a Special swarm · ' : '') + sk.length + ' killed · ' + chests + ' chest' + (chests === 1 ? '' : 's') + (sk.length ? ' (' + fmtPct(chests / sk.length) + ')' : '') + ' · at most ' + S.maxSpecials + ' up at once');
+      const ekKind = ek.filter((e) => !e.mod), ekMod = ek.filter((e) => e.mod);
+      tileIn(tiles, 'Elites by their kind', el0.length + ' came', ekKind.length + ' killed');
+      const mods = {}; for (const e of em) mods[e.mod] = (mods[e.mod] || 0) + 1;
+      tileIn(tiles, 'Wearing an Elite modifier', em.length + ' came', ekMod.length + ' killed' + (Object.keys(mods).length ? ' · ' + Object.entries(mods).map(([k, v]) => S.name(k) + ' ×' + v).join(', ') : ''));
+    } else {
+      tileIn(tiles, 'Elites', el0.length + ' came', fmtN(eliteSecs, 0) + ' Elite kills (with modifier-wearers) · specials are recorded from v0.60');
+    }
+    c.appendChild(tiles);
+    if (chartReady() && S.schema >= 2) {
+      const mo = markerOpts(S, { kills: true });
+      const elites = el0.map((e) => ({ t: e.t, color: ROLE.elite, label: S.name(e.id) }));
+      timeChart(plot(c, 'short'), S, [line('coloured specials up', S.specials, ROLE.special, { stepped: true, fill: true, d: 0 })], { markers: { bands: mo.bands, stages: mo.stages, events: elites, dots: mo.dots }, y: { suggestedMax: 3, ticks: { stepSize: 1, maxTicksLimit: 5 } } });
+      mkey(c, [['special killed', ROLE.special, true], ['Elite killed', ROLE.elite, true], ['an Elite came', ROLE.elite]]);
+    }
+    // one row per creature and kind
+    const rows = new Map();
+    const row = (kind, id, mod) => { const k = kind + '|' + id + '|' + (mod || ''); if (!rows.has(k)) rows.set(k, { kind, id, mod: mod || '', came: 0, killed: 0, chests: 0, first: null }); return rows.get(k); };
+    for (const e of sp) { const r = row('coloured special', e.id); r.came++; if (r.first == null) r.first = e.t; }
+    for (const e of sk) { const r = row('coloured special', e.id); r.killed++; if (e.chest) r.chests++; }
+    for (const e of el0) { const r = row('Elite', e.id); r.came++; if (r.first == null) r.first = e.t; }
+    for (const e of em) { const r = row('Elite modifier', e.id, e.mod); r.came++; if (r.first == null) r.first = e.t; }
+    for (const e of ek) { const r = e.mod ? row('Elite modifier', e.id, e.mod) : row('Elite', e.id); r.killed++; }
+    tableView(c, [{ label: 'kind' }, { label: 'creature' }, { label: 'modifier' }, { label: 'came', num: true, d: 0 }, { label: 'killed', num: true, d: 0 }, { label: 'chests', num: true, d: 0 }, colT('first came')],
+      Array.from(rows.values()).map((r) => [r.kind, S.name(r.id), r.mod ? S.name(r.mod) : '', r.came, r.killed, r.chests, r.first != null ? r.first : '']));
+    grid.appendChild(c);
+  }
+
+  // ------------------------------------------------------------ 7 the weapons
+  function weaponColor(S, id) { const i = S.weaponIds.indexOf(id); return i < 0 ? COL.gray : COL.s[Math.min(7, i)]; }
+  function renderShare(grid, S) {
+    const c = card('Which weapon carried?', 'Each weapon\'s share of the damage landing (15 s mean, stacked to 100 %); blasts, the Nuke and the revive are "other".', { wide: true, slug: 'damage-share' });
+    const ids = S.weaponIds.filter((id) => S.dmgBy[id]).slice(0, 7); const other = S.weaponIds.filter((id) => S.dmgBy[id]).slice(7).concat(S.otherDmg);
+    const tot = new Float64Array(S.n); const cols = {};
+    for (const id of ids) { cols[id] = S.dmgByR15[id]; for (let i = 0; i < S.n; i++) tot[i] += cols[id][i]; }
+    const oth = new Float64Array(S.n); for (const id of other) for (let i = 0; i < S.n; i++) oth[i] += S.dmgByR15[id][i]; for (let i = 0; i < S.n; i++) tot[i] += oth[i];
+    const share = (arr) => Float64Array.from(arr, (v, i) => tot[i] > 1e-6 ? Math.max(0, 100 * v / tot[i]) : 0);
+    if (chartReady()) {
+      const ds = ids.map((id) => line(S.name(id), share(cols[id]), weaponColor(S, id), { fill: true, backgroundColor: alpha(weaponColor(S, id), 0.55), borderColor: COL.surface, borderWidth: 1, unit: '%', d: 0 }));
+      if (other.length) ds.push(line('other', share(oth), COL.gray, { fill: true, backgroundColor: alpha(COL.gray, 0.55), borderColor: COL.surface, borderWidth: 1, unit: '%', d: 0 }));
+      const ch = timeChart(plot(c), S, ds, { y: { stacked: true, max: 100, ticks: { callback: (v) => v + ' %', maxTicksLimit: 6 } }, markers: markerOpts(S, { items: true, portal: false }) });
+      ch.options.scales.y.stacked = true; ch.update();
+    }
+    timeTable(c, S, ids.map((id) => ({ label: S.name(id) + ' dps (15 s)', data: cols[id] })).concat(other.length ? [{ label: 'other', data: oth }] : []));
+    grid.appendChild(c);
+  }
+  function renderEstVsReal(grid, S) {
+    const c = card('Estimate against real, per weapon', 'The damage each weapon would have dealt at its estimate every second it was held (Σ estimate) beside what it dealt, and its kills.', { wide: true });
+    const tot = (S.run.totals || {}); const dbw = tot.damage_by_weapon || {}; const kbw = tot.kills_by_weapon || {};
+    const ids = S.weaponIds.filter((id) => S.estBy[id] || dbw[id]);
+    const expected = ids.map((id) => S.estBy[id] ? total(S.estBy[id]) : 0); const real = ids.map((id) => dbw[id] != null ? dbw[id] : total(S.dmgBy[id] || []));
+    if (chartReady() && ids.length) {
+      const m = el('div', 'multi'); const h = Math.max(170, 36 * ids.length + 60);
+      barChart(multiBox(m, 'damage: Σ estimate vs real', h), ids.map(S.name), [bar('Σ estimate', expected, alpha(ROLE.est, 0.5)), bar('real', real, ROLE.real)], { horizontal: true });
+      barChart(multiBox(m, 'kills per weapon', h), ids.map(S.name), [bar('kills', ids.map((id) => kbw[id] || 0), ROLE.killed, { d: 0 })], { horizontal: true });
+      c.appendChild(m);
+    }
+    tableView(c, [{ label: 'weapon' }, { label: 'Σ estimate', num: true }, { label: 'real', num: true }, { label: 'real ÷ estimate', num: true, d: 2 }, { label: 'kills', num: true, d: 0 }, { label: 'estimate at the end', num: true }],
+      ids.map((id, i) => [S.name(id), r4(expected[i]), r4(real[i]), expected[i] > 0 ? r4(real[i] / expected[i]) : '', kbw[id] || 0, S.estBy[id] ? S.estBy[id][S.n - 1] : 0]));
+    grid.appendChild(c);
+  }
+
+  // ------------------------------------------------------------ 8 the build's story
+  function renderBuild(grid, S) {
+    if (!S.items.length) return;
+    const lineIds = new Set(Object.keys((S.run.build || {}).lines || {}));
+    for (const e of S.items) if (e.line || e.kind === 'line' || e.kind === 'line_evolution') lineIds.add(e.id);
+    const groupOf = (e) => (e.kind === 'weapon' || e.kind === 'evolution') ? 'weapons' : e.kind === 'perk' ? 'perks' : (lineIds.has(e.id) ? 'lines' : 'passives');
+    const lanes = new Map(); const muts = [];
+    for (const e of S.items) {
+      if (e.kind === 'mutation') { muts.push(e); continue; }
+      let L = lanes.get(e.id);
+      if (!L) { L = { id: e.id, group: groupOf(e), from: e.t, to: S.n - 1, via: e.via || '', levels: [], muts: [], into: '', fromId: EVO_KINDS.includes(e.kind) ? (e.from || '') : '' }; lanes.set(e.id, L); }
+      L.levels.push({ t: e.t, level: e.level || 1, via: e.via || '' });
+      if (EVO_KINDS.includes(e.kind) && e.from && lanes.has(e.from)) { const src = lanes.get(e.from); src.to = e.t; src.into = e.id; }
+    }
+    for (const e of muts) {
+      let L = lanes.get(e.weapon);
+      if (L && L.into && e.t > L.to && lanes.has(L.into)) L = lanes.get(L.into);
+      if (!L) { L = { id: e.weapon || e.id, group: 'weapons', from: e.t, to: S.n - 1, via: '', levels: [], muts: [], into: '', fromId: '' }; lanes.set(L.id, L); }
+      L.muts.push(e);
+    }
+    const GROUPS = [['weapons', 'Weapons'], ['lines', 'Lines (fortune cards)'], ['passives', S.schema >= 2 ? 'Passive items' : 'Passive items and lines'], ['perks', 'Perks']];
+    const c = card('How did the build grow?', 'Every item from the moment it joined: the number on its bar is the level it reached then, a diamond a mutation, a star an evolution. Lines (the fortune cards) apart from the passive items.', { wide: true, slug: 'build' });
+    const n = Math.max(1, S.n - 1); const pct = (t) => Math.max(0, Math.min(100, 100 * t / n)) + '%';
+    const wrap = el('div', 'lanes');
+    const axis = el('div', 'lane-axis'); axis.appendChild(el('div')); const at = el('div', 'track');
+    const step = n > 1200 ? 300 : n > 600 ? 120 : 60;
+    for (let t = 0; t <= n; t += step) { const s = el('span', null, fmtT(t)); s.style.left = pct(t); at.appendChild(s); }
+    axis.appendChild(at); wrap.appendChild(axis);
+    const colorOf = (L) => L.group === 'weapons' ? weaponColor(S, L.id) : L.group === 'lines' ? COL.s[6] : L.group === 'perks' ? COL.s[3] : COL.s[2];
+    for (const [g, label] of GROUPS) {
+      const ls = Array.from(lanes.values()).filter((L) => L.group === g); if (!ls.length) continue;
+      wrap.appendChild(el('div', 'lane-group', label));
+      for (const L of ls) {
+        const row = el('div', 'lane'); const nm = el('div', 'name'); const d = el('span', 'dot'); d.style.background = colorOf(L); nm.appendChild(d); nm.appendChild(document.createTextNode(S.name(L.id))); nm.title = S.name(L.id) + (L.fromId ? ' (evolved from ' + S.name(L.fromId) + ')' : '');
+        row.appendChild(nm);
+        const tr = el('div', 'track');
+        const b = el('div', 'bar'); b.style.left = pct(L.from); b.style.width = 'calc(' + pct(L.to) + ' - ' + pct(L.from) + ')'; b.style.background = alpha(colorOf(L), 0.45); tr.appendChild(b);
+        if (L.fromId) { const s = el('span', 'evo', '★'); s.style.left = pct(L.from); s.title = 'evolved from ' + S.name(L.fromId) + ' at ' + fmtT(L.from); tr.appendChild(s); }
+        else for (const lv of L.levels) { const tk = el('span', 'tick', String(lv.level)); tk.style.left = pct(lv.t); tk.title = 'level ' + lv.level + ' at ' + fmtT(lv.t) + (lv.via ? ' (' + lv.via + ')' : ''); tr.appendChild(tk); }
+        for (const m of L.muts) { const s = el('span', 'mut'); s.style.left = pct(m.t); s.style.background = m.hero ? COL.s[4] : COL.ink2; s.title = S.name(m.id) + (m.hero ? ' (hero mutation)' : '') + ' at ' + fmtT(m.t) + (m.via ? ' (' + m.via + ')' : ''); tr.appendChild(s); }
+        row.appendChild(tr); wrap.appendChild(row);
+      }
+    }
+    c.appendChild(wrap);
+    mkey(c, [['level reached (the number)', COL.ink], ['mutation', COL.ink2], ['hero mutation', COL.s[4]], ['evolution ★', COL.s[3]]]);
+    const rows = [];
+    for (const [g, label] of GROUPS) for (const L of Array.from(lanes.values()).filter((x) => x.group === g)) {
+      rows.push([label, S.name(L.id), L.id, L.from, L.via, L.levels.length ? L.levels[L.levels.length - 1].level : '', L.levels.map((v) => 'Lv ' + v.level + ' at ' + fmtT(v.t)).join('; '), L.muts.map((m) => S.name(m.id)).join('; '), L.fromId ? 'from ' + S.name(L.fromId) : (L.into ? 'into ' + S.name(L.into) + ' at ' + fmtT(L.to) : '')]);
+    }
+    tableView(c, [{ label: 'group' }, { label: 'item' }, { label: 'id' }, colT('joined at'), { label: 'how it came' }, { label: 'last level', num: true, d: 0 }, { label: 'levels', wrap: true }, { label: 'mutations', wrap: true }, { label: 'evolution' }], rows);
+    grid.appendChild(c);
+  }
+  function renderItems(grid, S) {
+    const c = card('The picks', 'Every item that joined or grew, how it came, the build\'s estimated DPS before and after it, and the real DPS over the 20 s before and after.', { wide: true, noToggle: true, slug: 'picks' });
+    const rows = S.items.map((e) => { const s = Math.round(e.t); const before = mean(S.real, s - 20, s), after = mean(S.real, s + 1, s + 21); return { e, s, before, after, dEst: (e.est_after != null && e.est_before != null) ? e.est_after - e.est_before : null, dReal: after - before }; });
+    if (chartReady() && rows.length) {
+      const m = el('div', 'multi');
+      const labels = rows.map((r) => S.name(r.e.id) + (r.e.level > 1 && r.e.kind !== 'evolution' ? ' ' + r.e.level : ''));
+      const h = Math.max(170, 22 * rows.length + 60);
+      const diverge = (vals) => vals.map((v) => (v == null ? COL.gray : v >= 0 ? COL.s[0] : COL.s[7]));
+      barChart(multiBox(m, 'Δ estimated dps per pick', h), labels, [bar('Δ estimate', rows.map((r) => r.dEst), diverge(rows.map((r) => r.dEst)), { maxBarThickness: 16 })], { horizontal: true, v: { beginAtZero: true } });
+      barChart(multiBox(m, 'Δ real dps (20 s after − 20 s before)', h), labels, [bar('Δ real', rows.map((r) => r.dReal), diverge(rows.map((r) => r.dReal)), { maxBarThickness: 16 })], { horizontal: true, v: { beginAtZero: true } });
+      c.appendChild(m);
+    }
+    const sign = (v) => v == null ? '' : (v >= 0 ? '+' : '') + fmtN(v);
+    tableView(c, [colT('play'), colT('clock'), { label: 'kind' }, { label: 'item', dot: (v, r) => /^(weapon|evolution)\b/.test(r[2]) ? weaponColor(S, r[12]) : null }, { label: 'Lv / from', num: true }, { label: 'via' }, { label: 'est before', num: true }, { label: 'est after', num: true }, { label: 'Δ est', num: true, fmt: sign, cls: (v) => v == null || v === '' ? null : v >= 0 ? 'pos' : 'neg' }, { label: 'real 20 s before', num: true }, { label: 'real 20 s after', num: true }, { label: 'Δ real', num: true, fmt: sign, cls: (v) => v >= 0 ? 'pos' : 'neg' }, { label: 'id' }],
+      rows.map((r) => { const e = r.e; return [e.t, e.clock || 0, e.kind + (e.new === false ? ' (up)' : '') + (e.line ? ' (line)' : ''), S.name(e.id) + (e.kind === 'mutation' && e.weapon ? ' (' + S.name(e.weapon) + ')' : ''), EVO_KINDS.includes(e.kind) ? (e.from ? 'from ' + S.name(e.from) : '') : (e.level || ''), e.via || '', e.est_before != null ? e.est_before : '', e.est_after != null ? e.est_after : '', r.dEst != null ? r4(r.dEst) : '', r4(r.before), r4(r.after), r4(r.dReal), e.id]; }), { always: true, title: 'Every pick' });
+    // the decisions: chests, skips, banishes, rerolls, structures, the debug hand and the unlocks
+    const dec = S.events.filter((e) => ['chest', 'skip', 'banish', 'reroll', 'structure', 'debug_item', 'unlock'].includes(e.kind));
+    if (dec.length) {
+      const note = (e) => e.kind === 'chest' ? ((e.take ? 'taken' : (e.skip ? 'skipped' + (e.left != null ? ' · ' + e.left + ' left' : '') : 'sold for ' + (e.gold || 0))) + (e.boss ? ' · boss chest' : '') + (e.roll ? ' · ' + e.roll : ''))
+        : e.kind === 'skip' ? (e.left != null ? 'skipped · ' + e.left + ' left' : '+' + (e.gold || 0) + ' gold') + (e.id === 'path' ? ' (mutation offer)' : '')
+        : e.kind === 'banish' ? (e.where === 'chest' ? 'in a chest' + (e.roll ? ' · ' + e.roll : '') : 'from the cards')
+        : e.kind === 'structure' ? (e.effect || '')
+        : e.kind === 'debug_item' ? ((e.item_kind || '') + ' Lv ' + (e.level || '')) : '';
+      tableView(c, [colT('play'), { label: 'kind' }, { label: 'what' }, { label: 'note' }], dec.map((e) => [e.t, e.kind.replace(/_/g, ' '), e.kind === 'skip' ? '' : S.name(e.id || ''), note(e)]), { always: true, name: 'decisions', title: 'Chests, skips, banishes, rerolls, structures, the debug hand and unlocks' });
+    }
+    // the pickups, counted (one line each would bury the rest)
+    const pk = evs(S, 'pickup');
+    if (pk.length) {
+      const by = new Map();
+      for (const e of pk) { const k = e.id || '?'; if (!by.has(k)) by.set(k, { id: k, n: 0, small: !!e.small, effect: e.effect || '', first: e.t, last: e.t }); const r = by.get(k); r.n++; r.last = e.t; }
+      tableView(c, [{ label: 'pickup' }, { label: 'taken', num: true, d: 0 }, { label: 'small' }, { label: 'effect' }, colT('first'), colT('last')], Array.from(by.values()).sort((a, b) => b.n - a.n).map((r) => [S.name(r.id), r.n, r.small, r.effect, r.first, r.last]), { always: true, name: 'pickups', title: 'Pickups taken (counted by kind)' });
+    }
+    grid.appendChild(c);
+  }
+
+  // ------------------------------------------------------------ 9 the offers
+  function renderOffers(grid, S) {
+    const offers = evs(S, 'offer'); if (!offers.length) return;
+    const c = card('How did I choose?', 'Every offer the card screen settled: how long the choice took, what was skipped, rerolled or struck out, and each card\'s pick rate (picked ÷ offered).', { wide: true, slug: 'offers' });
+    const secs = offers.map((e) => (+e.decision_ms || 0) / 1000);
+    const sorted = secs.slice().sort((a, b) => a - b); const med = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
+    const tiles = el('div', 'tiles');
+    const path = offers.filter((e) => e.route === 'path').length;
+    tileIn(tiles, 'Offers', String(offers.length), (offers.length - path) + ' level-up · ' + path + ' mutation path');
+    tileIn(tiles, 'Skipped', String(offers.filter((e) => e.skipped).length), offers.filter((e) => e.skipped && e.route === 'path').length + ' of them mutation offers');
+    tileIn(tiles, 'Rerolls and banishes', String(offers.reduce((a, e) => a + (+e.rerolls || 0), 0)) + ' · ' + String(offers.reduce((a, e) => a + ((e.banished || []).length), 0)), 'rerolled · struck out');
+    tileIn(tiles, 'Time to choose', med.toFixed(1) + ' s', 'the middle one · slowest ' + Math.max(...secs).toFixed(1) + ' s');
+    c.appendChild(tiles);
+    // each card's pick rate
+    const cardsBy = new Map();
+    for (const e of offers) { for (const id of e.cards || []) { if (!cardsBy.has(id)) cardsBy.set(id, { id, offered: 0, picked: 0 }); cardsBy.get(id).offered++; } if (e.id && cardsBy.has(e.id)) cardsBy.get(e.id).picked++; }
+    const cards = Array.from(cardsBy.values()).sort((a, b) => b.offered - a.offered || b.picked - a.picked);
+    if (chartReady()) {
+      const m = el('div', 'multi');
+      const lu = offers.filter((e) => e.route !== 'path'), pa = offers.filter((e) => e.route === 'path');
+      timeChart(multiBox(m, 'seconds to choose, at each offer'), S, [Object.assign(bar('level-up offer', lu.map((e) => ({ x: e.t, y: (+e.decision_ms || 0) / 1000 })), COL.s[0]), { type: 'bar', parsing: false, maxBarThickness: 6, borderWidth: 0, unit: ' s', d: 1 }), Object.assign(bar('mutation offer', pa.map((e) => ({ x: e.t, y: (+e.decision_ms || 0) / 1000 })), COL.s[6]), { type: 'bar', parsing: false, maxBarThickness: 6, borderWidth: 0, unit: ' s', d: 1 })], { markers: { stages: markerOpts(S, {}).stages } });
+      const top = cards.slice(0, 14);
+      barChart(multiBox(m, 'the most offered cards: picked and passed', Math.max(170, 26 * top.length + 60)), top.map((x) => S.name(x.id)), [bar('picked', top.map((x) => x.picked), COL.s[0], { d: 0 }), bar('passed', top.map((x) => x.offered - x.picked), alpha(COL.gray, 0.8), { d: 0 })], { horizontal: true, stacked: true });
+      c.appendChild(m);
+    }
+    tableView(c, [colT('play'), { label: 'route' }, { label: 'cards', wrap: true }, { label: 'picked' }, { label: 'skipped' }, { label: 'rerolls', num: true, d: 0 }, { label: 'struck out', wrap: true }, { label: 'seconds', num: true, d: 1 }, { label: 'level', num: true, d: 0 }],
+      offers.map((e) => [e.t, e.route === 'path' ? 'mutation path' + (e.weapon ? ' (' + S.name(e.weapon) + ')' : '') : 'level-up', (e.cards || []).map(S.name).join(' / '), e.skipped ? '' : S.name(e.id), !!e.skipped, +e.rerolls || 0, (e.banished || []).map(S.name).join(' / '), r4((+e.decision_ms || 0) / 1000), e.level || '']));
+    tableView(c, [{ label: 'card' }, { label: 'id' }, { label: 'offered', num: true, d: 0 }, { label: 'picked', num: true, d: 0 }, { label: 'pick rate', num: true, fmt: (v) => fmtPct(v), csv: 'pick_rate' }], cards.map((x) => [S.name(x.id), x.id, x.offered, x.picked, r4(x.picked / x.offered)]), { always: true, name: 'pick-rates', title: 'Each card: offered, picked, its pick rate' });
+    grid.appendChild(c);
+  }
+
+  // ------------------------------------------------------------ 10 the Totem Poles and the Stranger
+  function renderTotems(grid, S) {
+    const to = evs(S, 'totem_offer'), tk = evs(S, 'totem'), st = evs(S, 'stranger'), sd = evs(S, 'stranger_decline');
+    const viaStranger = S.items.filter((e) => e.via === 'stranger');
+    if (!to.length && !tk.length && !st.length && !sd.length && !viaStranger.length) return;
+    const c = card('Totems and the Stranger', 'A Totem Pole offers three small gifts for the rest of the run; the Stranger sells one rare item for a cut of max HP.', { wide: true, noToggle: true, slug: 'totems-and-stranger' });
+    if (to.length) {
+      tableView(c, [colT('play'), { label: 'offered', wrap: true }, { label: 'taken' }, { label: 'its gift', wrap: true }, { label: 'quality (1-3)', num: true, d: 0 }, { label: 'offered ids' }],
+        to.map((e) => { const i = (e.offered || []).indexOf(e.id); return [e.t, (e.words || []).map((w, k) => S.name((e.offered || [])[k]) + ': ' + w).join(' · '), e.id ? S.name(e.id) : 'nothing', i >= 0 ? (e.words || [])[i] : '', i >= 0 ? (e.quality || [])[i] : '', e.offered || []]; }), { always: true, name: 'totems', title: 'Totem Poles: what each offered and the one taken' });
+    } else if (tk.length) {
+      tableView(c, [colT('play'), { label: 'gift' }, { label: 'stat' }, { label: 'amount', num: true, d: 3 }], tk.map((e) => [e.t, S.name(e.id), S.statName(e.stat), e.value]), { always: true, name: 'totems', title: 'Totem gifts taken (what was offered is recorded from v0.60)' });
+    }
+    if (st.length || sd.length) {
+      const deals = st.concat(sd).sort((a, b) => a.t - b.t);
+      tableView(c, [colT('play'), { label: 'the deal' }, { label: 'kind' }, { label: 'at level', num: true, d: 0 }, { label: 'cost of max HP', num: true, fmt: (v) => fmtPct(v), csv: 'cost' }, { label: 'taken' }, { label: 'max HP before', num: true }, { label: 'max HP after', num: true }],
+        deals.map((e) => [e.t, S.name(e.id), e.type || '', e.level || '', e.cost, e.kind === 'stranger', e.hp_max_before != null ? e.hp_max_before : '', e.hp_max_after != null ? e.hp_max_after : '']), { always: true, name: 'stranger', title: 'The Stranger: each deal, taken or turned down' });
+    } else if (viaStranger.length) {
+      tableView(c, [colT('play'), { label: 'item from the Stranger' }, { label: 'kind' }, { label: 'level', num: true, d: 0 }], viaStranger.map((e) => [e.t, S.name(e.id), e.kind, e.level || '']), { always: true, name: 'stranger', title: 'Items the Stranger sold (his price and the deals turned down are recorded from v0.60)' });
+    }
+    grid.appendChild(c);
+  }
+
+  // ------------------------------------------------------------ 11 healing
+  function renderHealing(grid, S) {
+    const tot = {}; for (const k in S.healedBy) { const v = total(S.healedBy[k]); if (v > 0) tot[k] = v; }
+    const regen = total(S.regen); if (regen > 0) tot.regen = regen;
+    if (!Object.keys(tot).length) return;
+    const word = (k) => HEAL_WORDS[k] || k;
+    const order = Object.keys(tot).sort((a, b) => tot[b] - tot[a]);
+    const all = order.reduce((a, k) => a + tot[k], 0);
+    const c = card('Where did my healing come from?', 'HP back by what gave it: pickups and structures by name, life steal, the level-up patch and regen; with the HP lost beside it, minute by minute.', { wide: true, slug: 'healing' });
+    if (chartReady()) {
+      const m = el('div', 'multi');
+      barChart(multiBox(m, 'HP healed by source', Math.max(150, 30 * order.length + 50)), order.map(word), [bar('HP healed', order.map((k) => tot[k]), COL.s[2])], { horizontal: true });
+      const mins = Math.max(1, Math.ceil(S.n / 60)); const labels = Array.from({ length: mins }, (_, i) => fmtT(i * 60));
+      const top = order.slice(0, 5), rest = order.slice(5);
+      const perMin = (arr) => { const o = new Array(mins).fill(0); for (let s = 0; s < S.n; s++) o[Math.floor(s / 60)] += arr[s]; return o; };
+      // a source keeps its colour whatever its rank: regen, life steal and the level-up patch their own, the named ones the rest in turn
+      const FIXED = { regen: 2, lifesteal: 0, level_up: 6 }; const free = [3, 4, 1, 5, 7]; let fi = 0;
+      const colorOf = (k) => k === 'other' ? COL.gray : COL.s[FIXED[k] != null ? FIXED[k] : free[Math.min(free.length - 1, fi++)]];
+      const series = top.map((k) => bar(word(k), perMin(k === 'regen' ? S.regen : S.healedBy[k]), colorOf(k), { borderWidth: 2 }));
+      if (rest.length) { const o = new Array(mins).fill(0); for (const k of rest) { const p = perMin(k === 'regen' ? S.regen : S.healedBy[k]); p.forEach((v, i) => { o[i] += v; }); } series.push(bar('other sources', o, COL.gray, { borderWidth: 2 })); }
+      barChart(multiBox(m, 'healed per minute, by source'), labels, series, { stacked: true, autoSkip: true });
+      barChart(multiBox(m, 'HP lost per minute'), labels, [bar('HP lost', perMin(S.took), ROLE.took)], { autoSkip: true });
+      c.appendChild(m);
+    }
+    const secsOf = (k) => { const a = k === 'regen' ? S.regen : S.healedBy[k]; let n = 0; for (let s = 0; s < S.n; s++) if (a[s] > 0) n++; return n; };
+    tableView(c, [{ label: 'source' }, { label: 'key' }, { label: 'HP healed', num: true }, { label: 'share', num: true, fmt: (v) => fmtPct(v, 1), csv: 'share' }, { label: 'seconds it healed in', num: true, d: 0 }], order.map((k) => [word(k), k, r4(tot[k]), r4(tot[k] / all), secsOf(k)]));
+    grid.appendChild(c);
+  }
+  function renderSurvival(grid, S) {
+    const c = card('Survivability per minute', 'HP lost, hits taken and seconds spent under 30 % health in each minute of play; the table adds evades, shield spent, healing and regen.', { wide: true });
+    const mins = Math.max(1, Math.ceil(S.n / 60)); const z = () => new Array(mins).fill(0);
+    const lost = z(), hits = z(), low = z(), shielded = z(), evaded = z(), healed = z(), regen = z(), shieldOn = z(), inv = z();
+    for (let s = 0; s < S.n; s++) { const m = Math.floor(s / 60); lost[m] += S.took[s]; hits[m] += S.hits[s]; if (S.hpMax[s] > 0 && S.hp[s] / S.hpMax[s] < 0.3) low[m]++; shielded[m] += S.shielded[s]; evaded[m] += S.evaded[s]; healed[m] += S.healed[s]; regen[m] += S.regen[s]; if (S.shield[s] > 0) shieldOn[m]++; inv[m] += S.invuln[s]; }
+    const labels = Array.from({ length: mins }, (_, i) => fmtT(i * 60));
+    if (chartReady()) {
+      const m = el('div', 'multi');
+      barChart(multiBox(m, 'HP lost'), labels, [bar('hp lost', lost, ROLE.took)], { autoSkip: true });
+      barChart(multiBox(m, 'hits taken'), labels, [bar('hits', hits, COL.s[3], { d: 0 })], { autoSkip: true });
+      barChart(multiBox(m, 'seconds under 30 % HP'), labels, [bar('seconds', low, COL.serious, { d: 0 })], { autoSkip: true, v: { max: 60 } });
+      c.appendChild(m);
+    }
+    tableView(c, [{ label: 'minute', csv: 'minute_start' }, { label: 'hp lost', num: true }, { label: 'hits', num: true, d: 0 }, { label: 's under 30 %', num: true, d: 0 }, { label: 'evaded', num: true, d: 0 }, { label: 'shield spent', num: true }, { label: 's with shield', num: true, d: 0 }, { label: 's invulnerable', num: true, d: 0 }, { label: 'healed', num: true }, { label: 'regen', num: true }],
+      labels.map((l, i) => [l, r4(lost[i]), hits[i], low[i], evaded[i], r4(shielded[i]), shieldOn[i], inv[i], r4(healed[i]), r4(regen[i])]));
+    grid.appendChild(c);
+  }
+
+  // ------------------------------------------------------------ 12 the sheet over time
+  function renderStats(grid, S) {
+    const snaps = S.snaps.filter((x) => x.stats); if (!snaps.length) return;
+    const keys = Object.keys(snaps[0].stats);
+    for (const sn of snaps) for (const k of Object.keys(sn.stats)) if (!keys.includes(k)) keys.push(k);
+    const changed = keys.filter((k) => snaps.some((sn) => (sn.stats[k] || 0) !== (snaps[0].stats[k] || 0)));
+    const c = card('How did his numbers grow?', 'The hero\'s sheet each time the build changed (the pause screen\'s numbers): every stat that moved during the run, then each weapon\'s numbers at the end.', { wide: true, slug: 'stats-over-time' });
+    if (chartReady() && changed.length) {
+      const m = el('div', 'multi');
+      for (const k of changed.slice(0, 12)) {
+        const arr = new Float64Array(S.n); let si = 0, cur = snaps[0].stats[k] || 0;
+        for (let s = 0; s < S.n; s++) { while (si < snaps.length && snaps[si].s <= s) { cur = snaps[si].stats[k] || 0; si++; } arr[s] = cur; }
+        timeChart(multiBox(m, S.statName(k)), S, [line(S.statName(k), arr, COL.s[0], { stepped: true, fill: true, d: 3 })], {});
+      }
+      c.appendChild(m);
+      if (changed.length > 12) c.appendChild(el('p', 'desc', (changed.length - 12) + ' more in the table.'));
+    } else if (!changed.length) c.appendChild(el('p', 'desc', 'No stat moved during this run.'));
+    const unchanged = keys.filter((k) => !changed.includes(k));
+    if (unchanged.length) c.appendChild(el('p', 'desc', 'Unchanged all run: ' + unchanged.map((k) => S.statName(k) + ' ' + (+(+snaps[0].stats[k]).toFixed(3))).join(' · ')));
+    tableView(c, [colT('play')].concat(changed.map((k) => ({ label: S.statName(k), num: true, d: 3, csv: k }))), snaps.map((sn) => [sn.s].concat(changed.map((k) => sn.stats[k] != null ? sn.stats[k] : ''))));
+    const last = S.snaps.filter((x) => x.weapons).pop();
+    if (last && last.weapons.length) {
+      tableView(c, [{ label: 'weapon', dot: (v, r) => weaponColor(S, r[9]) }, { label: 'level', num: true, d: 0 }, { label: 'damage', num: true }, { label: 'cooldown s', num: true, d: 3 }, { label: 'projectiles', num: true, d: 0 }, { label: 'pierce', num: true, d: 0 }, { label: 'area ×', num: true, d: 2 }, { label: 'estimated dps', num: true }, { label: 'mutations', wrap: true }, { label: 'id' }],
+        last.weapons.map((w) => [S.name(w.id), w.level, w.dmg, w.cd, w.amount, w.pierce, w.area, w.est, (w.mut || []).map(S.name).join(', '), w.id]), { always: true, name: 'weapons', title: 'Each weapon\'s numbers at ' + fmtT(last.s) + ' (the last change)' });
+    }
+    grid.appendChild(c);
+  }
+  function renderMults(grid, S) {
+    if (!S.hasMults) return;
+    const c = card('How strong did the creatures get?', 'The multipliers on a creature spawned now: its HP (stage × the timeline\'s HP ramp × the hero\'s level) and its damage (stage × the damage ramp × the hero\'s level). A creature keeps the numbers of the moment its row began.', { wide: true, slug: 'creature-multipliers' });
+    if (chartReady()) timeChart(plot(c, 'short'), S, [line('HP ×', S.hpMult, COL.s[7], { d: 2 }), line('damage ×', S.dmgMult, COL.s[1], { d: 2 })], { markers: markerOpts(S, { portal: true }) });
+    timeTable(c, S, [{ label: 'HP ×', data: S.hpMult, d: 2 }, { label: 'damage ×', data: S.dmgMult, d: 2 }, { label: 'time scale', data: S.timeScale, d: 2 }]);
+    grid.appendChild(c);
+  }
+  function renderStacks(grid, S) {
+    const parts = [['adrenaline stacks', S.adren, 0], ['crescendo stacks', S.cresc, 0], ['Desperado: attack damage +', S.desp, 2], ['Steady Hand: attack damage +', S.steady, 2]].filter((p) => total(p[1]) > 0);
+    if (!parts.length) return;
+    const c = card('Stacking bonuses', 'The bonuses that rise and fall within a run: kill stacks and the health- or stillness-driven attack damage.', { wide: true });
+    if (chartReady()) { const m = el('div', 'multi'); parts.forEach((p, i) => timeChart(multiBox(m, p[0]), S, [line(p[0], p[1], COL.s[[0, 2, 4, 6][i]], { fill: true, d: p[2] })], {})); c.appendChild(m); }
+    timeTable(c, S, parts.map((p) => ({ label: p[0], data: p[1], d: p[2] })));
+    grid.appendChild(c);
+  }
+
+  // ------------------------------------------------------------ 13 the crowd, the clock, the gold
   function renderCrowd(grid, S) {
     const c = card('The crowd against the cap', 'Creatures up, the director\'s live cap (lower in a boss fight and at a portal), and the crowd in cap-share units (fodder counts half).');
-    timeChart(plot(c), S, [line('alive', S.alive, ROLE.alive, { fill: true }), line('cap', S.cap, ROLE.cap, { borderWidth: 1.5 }), line('load', S.load, ROLE.load)], { markers: markerOpts(S, { items: false, portal: true }) });
-    timeTable(c, S, [{ label: 'alive', data: S.alive, d: 0 }, { label: 'cap', data: S.cap, d: 0 }, { label: 'load', data: S.load }, { label: 'hard cap', data: S.hardCap, d: 0 }]);
+    if (chartReady()) timeChart(plot(c), S, [line('alive', S.alive, ROLE.alive, { fill: true }), line('cap', S.cap, ROLE.cap, { borderWidth: 1.5 }), line('load', S.load, ROLE.load)], { markers: markerOpts(S, { items: false, portal: true }) });
+    timeTable(c, S, [{ label: 'alive', data: S.alive, d: 0 }, { label: 'cap', data: S.cap, d: 0 }, { label: 'load', data: S.load }, { label: 'hard cap', data: S.hardCap, d: 0 }, { label: 'specials up', data: S.specials, d: 0 }]);
     grid.appendChild(c);
   }
-  // 4b rates
   function renderRates(grid, S) {
     const c = card('Spawned and killed per second', '10 s means. Kills above spawns means the hero is winning the room.');
-    timeChart(plot(c), S, [line('killed /s', S.killedR10, ROLE.killed, { fill: true }), line('spawned /s', S.spawnedR10, ROLE.spawned)], { markers: markerOpts(S, { items: false, portal: false }) });
+    if (chartReady()) timeChart(plot(c), S, [line('killed /s', S.killedR10, ROLE.killed, { fill: true }), line('spawned /s', S.spawnedR10, ROLE.spawned)], { markers: markerOpts(S, { items: false, portal: false }) });
     timeTable(c, S, [{ label: 'killed /s', data: S.killedR10 }, { label: 'spawned /s', data: S.spawnedR10 }, { label: 'kills total', data: S.kills, d: 0 }]);
     grid.appendChild(c);
   }
-  // 5 progression (small multiples: different units)
   function renderProgress(grid, S) {
     const c = card('Progression', 'Level, gold in the purse and kills over play time, each on its own scale.', { wide: true });
-    const m = el('div', 'multi');
-    const one = (title, arr, color, extra) => { const box = el('div'); box.appendChild(el('h3', null, title)); const p = el('div', 'plot'); const cv = document.createElement('canvas'); p.appendChild(cv); box.appendChild(p); m.appendChild(box); timeChart(cv, S, [line(title, arr, color, Object.assign({ fill: true }, extra || {}))], { markers: { stages: markerOpts(S, {}).stages } }); };
-    one('level', S.level, ROLE.level, { stepped: true }); one('gold', S.gold, ROLE.gold); one('kills', S.kills, ROLE.kills);
-    c.appendChild(m);
+    if (chartReady()) {
+      const m = el('div', 'multi');
+      const one = (title, arr, color, extra) => timeChart(multiBox(m, title), S, [line(title, arr, color, Object.assign({ fill: true }, extra || {}))], { markers: { stages: markerOpts(S, {}).stages } });
+      one('level', S.level, ROLE.level, { stepped: true }); one('gold', S.gold, ROLE.gold); one('kills', S.kills, ROLE.kills);
+      c.appendChild(m);
+    }
     timeTable(c, S, [{ label: 'level', data: S.level, d: 0 }, { label: 'xp to next', data: S.xpFrac, d: 2 }, { label: 'gold', data: S.gold, d: 0 }, { label: 'banked', data: S.banked, d: 0 }, { label: 'kills', data: S.kills, d: 0 }]);
     grid.appendChild(c);
   }
-  // 5b gold (pass 61): what came in and went out over play time, the purse and the Strongbox; each source and sink
   function renderGold(grid, S) {
     const rows = S.run.samples || [];
     if (!rows.some((r) => r.gold_in || r.gold_out)) return;
@@ -458,167 +1204,79 @@
     }
     for (let i = 1; i < S.n; i++) { earned[i] += earned[i - 1]; spent[i] += spent[i - 1]; }
     const c = card('Gold in and out', 'Gold earned and spent so far (every source and sink, greed included), the purse and what a Strongbox banked; below, each source and sink for the run.', { wide: true });
-    timeChart(plot(c), S, [line('earned', earned, COL.s[2], { d: 0 }), line('spent', spent, COL.s[7], { d: 0 }), line('purse', S.gold, ROLE.gold, { d: 0 }), line('banked', S.banked, COL.s[0], { d: 0 })], { markers: { stages: markerOpts(S, {}).stages } });
     const tin = Object.values(gin).reduce((a, b) => a + b, 0), tout = Object.values(gout).reduce((a, b) => a + b, 0);
     const ins = Object.entries(gin).sort((a, b) => b[1] - a[1]), outs = Object.entries(gout).sort((a, b) => b[1] - a[1]);
-    const labels = ins.map((e) => 'in: ' + e[0].replace(/_/g, ' ')).concat(outs.map((e) => 'out: ' + e[0].replace(/_/g, ' ')));
-    const cv = plot(c, 'auto'); cv.parentNode.style.height = Math.max(120, 26 * labels.length + 40) + 'px';
-    barChart(cv, labels, [bar('gold', ins.map((e) => e[1]).concat(outs.map((e) => e[1])), labels.map((l) => l.startsWith('in') ? COL.s[2] : COL.s[7]), { d: 0 })], { horizontal: true });
-    tableView(c, [{ label: 'way' }, { label: 'source or sink' }, { label: 'gold', num: true }, { label: 'share' }],
-      ins.map((e) => ['in', e[0].replace(/_/g, ' '), Math.round(e[1]), tin ? (100 * e[1] / tin).toFixed(1) + ' %' : ''])
-        .concat(outs.map((e) => ['out', e[0].replace(/_/g, ' '), Math.round(e[1]), tout ? (100 * e[1] / tout).toFixed(1) + ' %' : ''])));
-    grid.appendChild(c);
-  }
-  // 6 weapon share
-  function weaponColor(S, id) { const i = S.weaponIds.indexOf(id); return i < 0 ? COL.gray : COL.s[Math.min(7, i)]; }
-  function renderShare(grid, S) {
-    const c = card('Damage share per weapon', 'Each weapon\'s share of the damage landing (15 s mean, stacked to 100 %); blasts, the nuke and the revive are "other".', { wide: true });
-    const ids = S.weaponIds.filter((id) => S.dmgBy[id]).slice(0, 7); const other = S.weaponIds.filter((id) => S.dmgBy[id]).slice(7).concat(S.otherDmg);
-    const tot = new Float64Array(S.n); const cols = {};
-    for (const id of ids) { cols[id] = S.dmgByR15[id]; for (let i = 0; i < S.n; i++) tot[i] += cols[id][i]; }
-    const oth = new Float64Array(S.n); for (const id of other) for (let i = 0; i < S.n; i++) oth[i] += S.dmgByR15[id][i]; for (let i = 0; i < S.n; i++) tot[i] += oth[i];
-    const share = (arr) => Float64Array.from(arr, (v, i) => tot[i] > 0 ? 100 * v / tot[i] : 0);
-    const ds = ids.map((id) => line(S.name(id), share(cols[id]), weaponColor(S, id), { fill: true, backgroundColor: alpha(weaponColor(S, id), 0.55), borderColor: COL.surface, borderWidth: 1, unit: '%', d: 0 }));
-    if (other.length) ds.push(line('other', share(oth), COL.gray, { fill: true, backgroundColor: alpha(COL.gray, 0.55), borderColor: COL.surface, borderWidth: 1, unit: '%', d: 0 }));
-    const ch = timeChart(plot(c), S, ds, { y: { stacked: true, max: 100, ticks: { callback: (v) => v + ' %', maxTicksLimit: 6 } }, markers: markerOpts(S, { items: true, portal: false }) });
-    ch.options.scales.y.stacked = true; ch.update();
-    timeTable(c, S, ids.map((id) => ({ label: S.name(id) + ' dps (15 s)', data: cols[id] })).concat(other.length ? [{ label: 'other', data: oth }] : []));
-    grid.appendChild(c);
-  }
-  // 6b est vs real per weapon
-  function renderEstVsReal(grid, S) {
-    const c = card('Estimate against real, per weapon', 'The damage each weapon would have dealt at its estimate every second it was held (Σ estimate) beside what it dealt, and its kills.', { wide: true });
-    const tot = (S.run.totals || {}); const dbw = tot.damage_by_weapon || {}; const kbw = tot.kills_by_weapon || {};
-    const ids = S.weaponIds.filter((id) => S.estBy[id] || dbw[id]);
-    const expected = ids.map((id) => S.estBy[id] ? total(S.estBy[id]) : 0); const real = ids.map((id) => dbw[id] != null ? dbw[id] : total(S.dmgBy[id] || []));
-    const m = el('div', 'multi');
-    const box1 = el('div'); box1.appendChild(el('h3', null, 'damage: Σ estimate vs real')); const p1 = el('div', 'plot'); p1.style.height = Math.max(170, 36 * ids.length + 60) + 'px'; const cv1 = document.createElement('canvas'); p1.appendChild(cv1); box1.appendChild(p1); m.appendChild(box1);
-    barChart(cv1, ids.map(S.name), [bar('Σ estimate', expected, alpha(ROLE.est, 0.5)), bar('real', real, ROLE.real)], { horizontal: true });
-    const box2 = el('div'); box2.appendChild(el('h3', null, 'kills per weapon')); const p2 = el('div', 'plot'); p2.style.height = p1.style.height; const cv2 = document.createElement('canvas'); p2.appendChild(cv2); box2.appendChild(p2); m.appendChild(box2);
-    barChart(cv2, ids.map(S.name), [bar('kills', ids.map((id) => kbw[id] || 0), ROLE.killed, { d: 0 })], { horizontal: true });
-    c.appendChild(m);
-    tableView(c, [{ label: 'weapon' }, { label: 'Σ estimate', num: true }, { label: 'real', num: true }, { label: 'real / est', num: true }, { label: 'kills', num: true }, { label: 'estimate at end', num: true }],
-      ids.map((id, i) => [S.name(id), fmtN(expected[i]), fmtN(real[i]), expected[i] > 0 ? (real[i] / expected[i]).toFixed(2) : '–', kbw[id] || 0, fmtN(S.estBy[id] ? S.estBy[id][S.n - 1] : 0)]));
-    grid.appendChild(c);
-  }
-  // 7 enemies
-  function renderEnemies(grid, S) {
-    const c = card('The creatures', 'What hurt the hero (HP lost to each creature), who was killed, and who was spawned against who died.', { wide: true });
-    const kbe = (S.run.totals || {}).kills_by_enemy || {};
-    const byTook = Object.keys(S.tookBy).map((k) => [k, total(S.tookBy[k])]).filter((p) => p[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 12);
-    const ids = S.enemyIds.slice(0, 14);
-    const m = el('div', 'multi');
-    const box = (title, h) => { const b = el('div'); b.appendChild(el('h3', null, title)); const p = el('div', 'plot'); p.style.height = h + 'px'; const cv = document.createElement('canvas'); p.appendChild(cv); b.appendChild(p); m.appendChild(b); return cv; };
-    barChart(box('HP lost to each creature', Math.max(170, 28 * byTook.length + 60)), byTook.map((p) => S.name(p[0])), [bar('hp lost', byTook.map((p) => p[1]), ROLE.took)], { horizontal: true });
-    barChart(box('spawned vs killed', Math.max(170, 36 * ids.length + 60)), ids.map(S.name), [bar('spawned', ids.map((id) => total(S.spawnedBy[id] || [])), alpha(ROLE.spawned, 0.5), { d: 0 }), bar('killed', ids.map((id) => kbe[id] != null ? kbe[id] : total(S.killedBy[id] || [])), ROLE.killed, { d: 0 })], { horizontal: true });
-    // melee / ranged / boss as one 100 % bar
-    const kinds = ['melee', 'ranged', 'boss']; const kt = kinds.map((k) => total(S.tookKind[k] || [])); const ktot = kt.reduce((a, b) => a + b, 0) || 1;
-    barChart(box('how the hits came (HP lost)', 120), ['hits'], kinds.map((k, i) => bar(k, [100 * kt[i] / ktot], [COL.s[7], COL.s[3], COL.s[6]][i], { unit: '%', d: 0 })), { horizontal: true, stacked: true, v: { max: 100, ticks: { callback: (v) => v + ' %' } } });
-    c.appendChild(m);
-    // who was up: stacked area of the seven most common, the rest as other
-    const top = S.enemyIds.filter((id) => S.aliveBy[id]).slice(0, 7); const rest = S.enemyIds.filter((id) => S.aliveBy[id]).slice(7);
-    const oth = new Float64Array(S.n); for (const id of rest) for (let i = 0; i < S.n; i++) oth[i] += S.aliveBy[id][i];
-    const ds = top.map((id, i) => line(S.name(id), S.aliveBy[id], COL.s[i], { fill: true, backgroundColor: alpha(COL.s[i], 0.55), borderColor: COL.surface, borderWidth: 1, d: 0 }));
-    if (rest.length) ds.push(line('other', oth, COL.gray, { fill: true, backgroundColor: alpha(COL.gray, 0.55), borderColor: COL.surface, borderWidth: 1, d: 0 }));
-    c.appendChild(el('h3', null, 'who was up, second by second')).className = 'desc';
-    const ch = timeChart(plot(c, 'short'), S, ds, { y: { stacked: true }, markers: markerOpts(S, { items: false, portal: false }) });
-    ch.options.scales.y.stacked = true; ch.update();
-    tableView(c, [{ label: 'creature' }, { label: 'spawned', num: true }, { label: 'killed', num: true }, { label: 'hp lost to it', num: true }, { label: 'hits', num: true }],
-      S.enemyIds.map((id) => [S.name(id), total(S.spawnedBy[id] || []), kbe[id] != null ? kbe[id] : total(S.killedBy[id] || []), fmtN(total(S.tookBy[id] || [])), '']));
-    grid.appendChild(c);
-  }
-  // 8 items
-  function renderItems(grid, S) {
-    const c = card('The picks', 'Every item that joined or grew, how it came, the build\'s estimated DPS before and after it, and the real DPS over the 20 s before and after.', { wide: true });
-    const rows = S.items.map((e) => { const s = Math.round(e.t); const before = mean(S.real, s - 20, s), after = mean(S.real, s + 1, s + 21); return { e, s, before, after, dEst: (e.est_after != null && e.est_before != null) ? e.est_after - e.est_before : null, dReal: after - before }; });
-    const m = el('div', 'multi');
-    const labels = rows.map((r) => S.name(r.e.id) + (r.e.level > 1 && r.e.kind !== 'evolution' ? ' ' + r.e.level : ''));
-    const h = Math.max(170, 22 * rows.length + 60);
-    const box = (title) => { const b = el('div'); b.appendChild(el('h3', null, title)); const p = el('div', 'plot'); p.style.height = h + 'px'; const cv = document.createElement('canvas'); p.appendChild(cv); b.appendChild(p); m.appendChild(b); return cv; };
-    const diverge = (vals) => vals.map((v) => (v == null ? COL.gray : v >= 0 ? COL.s[0] : COL.s[7]));
-    barChart(box('Δ estimated dps per pick'), labels, [bar('Δ estimate', rows.map((r) => r.dEst), diverge(rows.map((r) => r.dEst)), { maxBarThickness: 16 })], { horizontal: true, v: { beginAtZero: true } });
-    barChart(box('Δ real dps (20 s after − 20 s before)'), labels, [bar('Δ real', rows.map((r) => r.dReal), diverge(rows.map((r) => r.dReal)), { maxBarThickness: 16 })], { horizontal: true, v: { beginAtZero: true } });
-    c.appendChild(m);
-    const wrap = el('div', 'items-wrap'); const t = document.createElement('table'); const th = document.createElement('tr');
-    for (const [lbl, num] of [['play', 0], ['clock', 0], ['kind', 0], ['item', 0], ['Lv', 1], ['via', 0], ['est before', 1], ['est after', 1], ['Δ est', 1], ['real 20 s before', 1], ['real 20 s after', 1], ['Δ real', 1]]) th.appendChild(el('th', num ? 'num' : null, lbl));
-    const thead = document.createElement('thead'); thead.appendChild(th); t.appendChild(thead); const tb = document.createElement('tbody');
-    for (const r of rows) {
-      const tr = document.createElement('tr'); const e = r.e;
-      const cells = [fmtT(e.t), fmtT(e.clock || 0), e.kind.replace('_', ' ') + (e.new === false ? ' ↑' : ''), null, EVO_KINDS.includes(e.kind) ? (e.from ? 'from ' + S.name(e.from) : '') : (e.level || ''), e.via || '', fmtN(e.est_before), fmtN(e.est_after), null, fmtN(r.before), fmtN(r.after), null];
-      cells.forEach((v, i) => { const td = el('td', [4, 6, 7, 8, 9, 10, 11].includes(i) ? 'num' : null); if (i === 3) { if (e.kind === 'weapon' || e.kind === 'evolution') { const d = el('span', 'dot'); d.style.background = weaponColor(S, e.id); td.appendChild(d); } td.appendChild(document.createTextNode(S.name(e.id) + (e.kind === 'mutation' && e.weapon ? ' (' + S.name(e.weapon) + ')' : ''))); }
-        else if (i === 8) { if (r.dEst != null) { td.textContent = (r.dEst >= 0 ? '+' : '') + fmtN(r.dEst); td.classList.add(r.dEst >= 0 ? 'pos' : 'neg'); } }
-        else if (i === 11) { td.textContent = (r.dReal >= 0 ? '+' : '') + fmtN(r.dReal); td.classList.add(r.dReal >= 0 ? 'pos' : 'neg'); }
-        else td.textContent = v == null ? '' : String(v); tr.appendChild(td); });
-      tb.appendChild(tr);
+    if (chartReady()) {
+      timeChart(plot(c), S, [line('earned', earned, COL.s[2], { d: 0 }), line('spent', spent, COL.s[7], { d: 0 }), line('purse', S.gold, ROLE.gold, { d: 0 }), line('banked', S.banked, COL.s[0], { d: 0 })], { markers: { stages: markerOpts(S, {}).stages } });
+      const labels = ins.map((e) => 'in: ' + e[0].replace(/_/g, ' ')).concat(outs.map((e) => 'out: ' + e[0].replace(/_/g, ' ')));
+      const cv = plot(c); cv.parentNode.style.height = Math.max(120, 26 * labels.length + 40) + 'px';
+      barChart(cv, labels, [bar('gold', ins.map((e) => e[1]).concat(outs.map((e) => e[1])), labels.map((l) => l.startsWith('in') ? COL.s[2] : COL.s[7]), { d: 0 })], { horizontal: true });
     }
-    t.appendChild(tb); wrap.appendChild(t); c.appendChild(wrap);
-    // the table of decisions: chests, skips, banishes, rerolls, structures, pickups
-    const dec = S.events.filter((e) => ['chest', 'skip', 'banish', 'reroll', 'structure', 'debug_item', 'unlock'].includes(e.kind));
-    if (dec.length) {
-      c.appendChild(el('p', 'desc', 'Chests, skips, banishes, rerolls, structures and unlocks')).style.marginTop = '12px';
-      const w2 = el('div', 'items-wrap'); const t2 = document.createElement('table'); const h2 = document.createElement('tr'); for (const l of ['play', 'kind', 'what', 'note']) h2.appendChild(el('th', null, l)); const th2 = document.createElement('thead'); th2.appendChild(h2); t2.appendChild(th2); const tb2 = document.createElement('tbody');
-      for (const e of dec) { const tr = document.createElement('tr'); const note = e.kind === 'chest' ? ((e.take ? 'taken' : (e.skip ? 'skipped' + (e.left != null ? ' · ' + e.left + ' left' : '') : 'sold for ' + (e.gold || 0))) + (e.boss ? ' · boss chest' : '') + (e.roll ? ' · ' + e.roll : '')) : e.kind === 'skip' ? (e.left != null ? 'skipped · ' + e.left + ' left' : '+' + (e.gold || 0) + ' gold') + (e.id === 'path' ? ' (mutation offer)' : '') : e.kind === 'banish' ? (e.where === 'chest' ? 'in a chest' + (e.roll ? ' · ' + e.roll : '') : '') : e.kind === 'structure' ? (e.effect || '') : e.kind === 'debug_item' ? (e.kind + ' ' + (e.level || '')) : ''; for (const v of [fmtT(e.t), e.kind.replace('_', ' '), e.kind === 'skip' ? '' : S.name(e.id || ''), note]) tr.appendChild(el('td', null, v)); tb2.appendChild(tr); }
-      t2.appendChild(tb2); w2.appendChild(t2); c.appendChild(w2);
+    tableView(c, [{ label: 'way' }, { label: 'source or sink' }, { label: 'gold', num: true, d: 0 }, { label: 'share', num: true, fmt: (v) => fmtPct(v, 1), csv: 'share' }],
+      ins.map((e) => ['in', e[0], e[1], tin ? r4(e[1] / tin) : '']).concat(outs.map((e) => ['out', e[0], e[1], tout ? r4(e[1] / tout) : ''])));
+    grid.appendChild(c);
+  }
+  function renderQuests(grid, S) {
+    const q = S.run.quests; if (!q || !Object.keys(q).length) return;
+    const list = Object.entries(q).map(([id, v]) => Object.assign({ id }, v));
+    const moved = list.filter((x) => (x.after || 0) > (x.before || 0) || (x.done && (x.before || 0) < (x.need || 0)));
+    moved.sort((a, b) => (b.done - a.done) || ((b.after - b.before) / Math.max(1, b.need) - (a.after - a.before) / Math.max(1, a.need)));
+    const c = card('Quest progress', 'The counted quests this run moved: where each stood as the run began (grey) and what the run added (blue), out of what it needs.', { wide: true, slug: 'quests' });
+    const box = el('div', 'meters');
+    for (const x of moved) {
+      const need = Math.max(1, +x.need || 1), b = Math.min(1, (+x.before || 0) / need), a = Math.min(1, (+x.after || 0) / need);
+      const rowEl = el('div', 'meter-row'); rowEl.appendChild(el('div', 'nm', (x.done ? '✓ ' : '') + (x.name || x.id)));
+      const mtr = el('div', 'meter'); const mb = el('div', 'before'); mb.style.left = '0'; mb.style.width = (100 * b) + '%'; const mg = el('div', 'gain'); mg.style.left = (100 * b) + '%'; mg.style.width = (100 * Math.max(0, a - b)) + '%'; mtr.appendChild(mb); mtr.appendChild(mg); mtr.title = (x.before || 0) + ' → ' + (x.after || 0) + ' of ' + need;
+      rowEl.appendChild(mtr); rowEl.appendChild(el('div', 'nums', fmtN(x.before, 0) + ' → ' + fmtN(x.after, 0) + ' / ' + fmtN(need, 0) + (x.done ? ' done' : '')));
+      box.appendChild(rowEl);
     }
-    const tbl = el('div', 'tbl'); tbl.appendChild(el('p', 'desc', 'The table above is the view.')); c.appendChild(tbl);
+    if (!moved.length) box.appendChild(el('p', 'desc', 'No counted quest moved in this run.'));
+    c.appendChild(box);
+    const still = list.length - moved.length;
+    if (still > 0) c.appendChild(el('p', 'desc', still + (still === 1 ? ' other counted quest did not move' : ' other counted quests did not move') + ' (in the table).'));
+    tableView(c, [{ label: 'quest' }, { label: 'id' }, { label: 'before', num: true, d: 0 }, { label: 'after', num: true, d: 0 }, { label: 'needs', num: true, d: 0 }, { label: 'gained', num: true, d: 0 }, { label: 'done' }], list.map((x) => [x.name || x.id, x.id, x.before || 0, x.after || 0, x.need || 0, (x.after || 0) - (x.before || 0), !!x.done]));
     grid.appendChild(c);
   }
-  // 9 survivability per minute
-  function renderSurvival(grid, S) {
-    const c = card('Survivability per minute', 'HP lost, hits taken and seconds spent under 30 % health in each minute of play; the table adds evades, shield spent and healing.', { wide: true });
-    const mins = Math.max(1, Math.ceil(S.n / 60)); const lost = new Array(mins).fill(0), hits = new Array(mins).fill(0), low = new Array(mins).fill(0), shielded = new Array(mins).fill(0), evaded = new Array(mins).fill(0), healed = new Array(mins).fill(0), shieldOn = new Array(mins).fill(0), inv = new Array(mins).fill(0);
-    for (let s = 0; s < S.n; s++) { const m = Math.floor(s / 60); lost[m] += S.took[s]; hits[m] += S.hits[s]; if (S.hpMax[s] > 0 && S.hp[s] / S.hpMax[s] < 0.3) low[m]++; shielded[m] += S.shielded[s]; evaded[m] += S.evaded[s]; healed[m] += S.healed[s]; if (S.shield[s] > 0) shieldOn[m]++; inv[m] += S.invuln[s]; }
-    const labels = Array.from({ length: mins }, (_, i) => fmtT(i * 60));
-    const m = el('div', 'multi');
-    const box = (title) => { const b = el('div'); b.appendChild(el('h3', null, title)); const p = el('div', 'plot'); const cv = document.createElement('canvas'); p.appendChild(cv); b.appendChild(p); m.appendChild(b); return cv; };
-    barChart(box('HP lost'), labels, [bar('hp lost', lost, ROLE.took)], { autoSkip: true });
-    barChart(box('hits taken'), labels, [bar('hits', hits, COL.s[3], { d: 0 })], { autoSkip: true });
-    barChart(box('seconds under 30 % HP'), labels, [bar('seconds', low, COL.serious, { d: 0 })], { autoSkip: true, v: { max: 60 } });
-    c.appendChild(m);
-    tableView(c, [{ label: 'minute' }, { label: 'hp lost', num: true }, { label: 'hits', num: true }, { label: 's under 30 %', num: true }, { label: 'evaded', num: true }, { label: 'shield spent', num: true }, { label: 's with shield', num: true }, { label: 's invulnerable', num: true }, { label: 'healed', num: true }],
-      labels.map((l, i) => [l, fmtN(lost[i]), hits[i], low[i], evaded[i], fmtN(shielded[i]), shieldOn[i], inv[i], fmtN(healed[i])]));
-    grid.appendChild(c);
-  }
-  // 10 ratio
-  function renderRatio(grid, S) {
-    const c = card('Power against pressure', 'Left: the estimate over the crowd\'s summed damage per hit (more is a build ahead of the room). Right: real DPS over the crowd\'s summed HP, the share of the room cleared each second.', { wide: true });
-    const r1 = Float64Array.from(S.est, (v, i) => S.pressDmg[i] > 0 ? v / S.pressDmg[i] : 0); const r2 = Float64Array.from(S.realR10, (v, i) => S.pressHp[i] > 0 ? v / S.pressHp[i] : 0);
-    const m = el('div', 'multi');
-    const one = (title, arr, color, d) => { const box = el('div'); box.appendChild(el('h3', null, title)); const p = el('div', 'plot'); const cv = document.createElement('canvas'); p.appendChild(cv); box.appendChild(p); m.appendChild(box); timeChart(cv, S, [line(title, arr, color, { fill: true, d })], { markers: { bands: markerOpts(S, {}).bands, stages: markerOpts(S, {}).stages } }); };
-    one('estimate / Σ damage up', r1, ROLE.est, 2); one('real dps / Σ hp up', r2, ROLE.real, 3);
-    c.appendChild(m);
-    timeTable(c, S, [{ label: 'estimate / Σ dmg', data: r1, d: 2 }, { label: 'real / Σ hp', data: r2, d: 3 }]);
-    grid.appendChild(c);
-  }
-  // 11 history
+
+  // ------------------------------------------------------------ 14 the history
+  function currentRuns() { return SRC[SOURCE].runs || []; }
   function renderHistory(root) {
-    const all = Array.isArray(window.RUNS) ? window.RUNS.slice() : [];
+    const all = currentRuns().slice();
     if (!all.length) return;
-    const c = card('Run history', 'Every run this folder holds (runs/index.js), oldest to newest; the open run is highlighted. Headless tool runs are hidden unless shown.', { wide: true });
-    const ctl = el('div', 'hist-row'); const lab = el('label'); const sw = document.createElement('input'); sw.type = 'checkbox'; sw.checked = SHOW_HEADLESS; sw.onchange = () => { SHOW_HEADLESS = sw.checked; render(); }; lab.appendChild(sw); lab.appendChild(document.createTextNode(' show headless tool runs')); ctl.appendChild(lab);
-    const runs = all.filter((r) => SHOW_HEADLESS || !r.headless); ctl.appendChild(el('span', null, runs.length + ' of ' + all.length + ' runs'));
-    const sel = document.createElement('select'); const o0 = document.createElement('option'); o0.textContent = 'pick a run to see its row'; o0.value = ''; sel.appendChild(o0);
+    const c = card('Run history', (SOURCE === 'tools' ? 'Every tool run in runs/tools/' : 'Every played run in runs/') + ' (index.js), oldest to newest; the open run is highlighted. Old headless rows (before v0.60 tool runs had their own folder) are hidden unless shown.', { wide: true, slug: 'history' });
+    const ctl = el('div', 'hist-row'); const lab = el('label'); const sw = document.createElement('input'); sw.type = 'checkbox'; sw.name = 'show-headless'; sw.checked = SHOW_HEADLESS; sw.onchange = () => { SHOW_HEADLESS = sw.checked; render(); }; lab.appendChild(sw); lab.appendChild(document.createTextNode(' show headless tool runs')); ctl.appendChild(lab);
+    if (SOURCE === 'tools') lab.hidden = true;
+    const runs = all.filter((r) => SHOW_HEADLESS || SOURCE === 'tools' || !r.headless); ctl.appendChild(el('span', null, runs.length + ' of ' + all.length + ' runs'));
+    const sel = document.createElement('select'); sel.name = 'history-run'; const o0 = document.createElement('option'); o0.textContent = 'pick a run to see its row'; o0.value = ''; sel.appendChild(o0);
     runs.slice().reverse().forEach((r) => { const o = document.createElement('option'); o.value = r.file; o.textContent = (r.started || r.stamp || '').replace('T', ' ') + ' · ' + (r.hero_name || r.hero) + ' · ' + (r.result || '') + ' · ' + fmtT(r.length || 0) + ' · Lv ' + Math.round(r.level || 0) + ' · ' + Math.round(r.kills || 0) + ' kills' + (r.headless ? ' · headless' : ''); sel.appendChild(o); });
     ctl.appendChild(sel); c.appendChild(ctl);
     const pick = el('div', 'hist-pick'); c.appendChild(pick);
-    const showPick = (file) => { const r = runs.find((x) => x.file === file); if (!r) { pick.style.display = 'none'; return; } pick.textContent = ''; pick.appendChild(el('b', null, (r.hero_name || r.hero) + ' · ' + (r.result || ''))); pick.appendChild(document.createTextNode(' · ' + (r.started || '').replace('T', ' ') + ' · play ' + fmtT(r.length || 0) + ', clock ' + fmtT(r.clock || 0) + ' · stage ' + Math.round(r.stage || 1) + ' · level ' + Math.round(r.level || 1) + ' · ' + Math.round(r.kills || 0) + ' kills · ' + Math.round(r.gold || 0) + ' gold · v' + (r.version || '') + ' · ')); const code = el('code', null, 'runs/' + r.file); pick.appendChild(code); pick.appendChild(document.createTextNode(' — open it with the file input above (a file:// page cannot fetch it)')); if (navigator.clipboard) navigator.clipboard.writeText(r.file).catch(() => {}); pick.style.display = 'block'; };
+    const showPick = (file) => { const r = runs.find((x) => x.file === file); if (!r) { pick.style.display = 'none'; return; } pick.textContent = ''; pick.appendChild(el('b', null, (r.hero_name || r.hero) + ' · ' + (RESULT_WORDS[r.result] || r.result || ''))); pick.appendChild(document.createTextNode(' · ' + (r.started || '').replace('T', ' ') + ' · play ' + fmtT(r.length || 0) + ', clock ' + fmtT(r.clock || 0) + ' · stage ' + Math.round(r.stage || 1) + ' · level ' + Math.round(r.level || 1) + ' · ' + Math.round(r.kills || 0) + ' kills · ' + Math.round(r.gold || 0) + ' gold' + (r.build ? ' · ' + r.build : '') + ' · v' + (r.version || '') + ' · ')); pick.appendChild(el('code', null, (SOURCE === 'tools' ? 'runs/tools/' : 'runs/') + r.file)); pick.appendChild(document.createTextNode(' — open it with the file input above (a page opened from a file cannot read it by itself)')); pick.style.display = 'block'; };
     sel.onchange = () => showPick(sel.value);
     if (chartReady() && runs.length) {
       const m = el('div', 'multi');
       const labels = runs.map((r) => (r.stamp || '').slice(5, 16).replace('T', ' '));
       const cur = MAIN ? MAIN.run.stamp : null; const colors = runs.map((r) => (r.stamp === cur ? COL.s[0] : COL.gray));
-      const box = (title) => { const b = el('div'); b.appendChild(el('h3', null, title)); const p = el('div', 'plot'); const cv = document.createElement('canvas'); p.appendChild(cv); b.appendChild(p); m.appendChild(b); return cv; };
       const opts = { autoSkip: true };
-      const ch1 = barChart(box('play minutes'), labels, [bar('minutes', runs.map((r) => (r.length || 0) / 60), colors, { d: 1 })], opts);
-      const ch2 = barChart(box('level reached'), labels, [bar('level', runs.map((r) => r.level || 0), colors, { d: 0 })], opts);
-      const ch3 = barChart(box('kills'), labels, [bar('kills', runs.map((r) => r.kills || 0), colors, { d: 0 })], opts);
+      const ch1 = barChart(multiBox(m, 'play minutes'), labels, [bar('minutes', runs.map((r) => (r.length || 0) / 60), colors, { d: 1 })], opts);
+      const ch2 = barChart(multiBox(m, 'level reached'), labels, [bar('level', runs.map((r) => r.level || 0), colors, { d: 0 })], opts);
+      const ch3 = barChart(multiBox(m, 'kills'), labels, [bar('kills', runs.map((r) => r.kills || 0), colors, { d: 0 })], opts);
       for (const ch of [ch1, ch2, ch3]) ch.options.onClick = (ev, items) => { if (items.length) { sel.value = runs[items[0].index].file; showPick(sel.value); } };
       c.appendChild(m);
     }
-    tableView(c, [{ label: 'started' }, { label: 'hero' }, { label: 'result' }, { label: 'play', num: true }, { label: 'clock', num: true }, { label: 'stage', num: true }, { label: 'level', num: true }, { label: 'kills', num: true }, { label: 'gold', num: true }, { label: 'version' }, { label: 'file' }],
-      runs.slice().reverse().map((r) => [(r.started || '').replace('T', ' '), r.hero_name || r.hero, r.result + (r.headless ? ' (headless)' : ''), fmtT(r.length || 0), fmtT(r.clock || 0), Math.round(r.stage || 1), Math.round(r.level || 1), Math.round(r.kills || 0), Math.round(r.gold || 0), r.version, r.file]));
+    tableView(c, [{ label: 'started' }, { label: 'hero' }, { label: 'result' }, colT('play'), colT('clock'), { label: 'stage', num: true, d: 0 }, { label: 'level', num: true, d: 0 }, { label: 'kills', num: true, d: 0 }, { label: 'gold', num: true, d: 0 }, { label: 'damage', num: true, d: 0 }, { label: 'version' }, { label: 'file' }],
+      runs.slice().reverse().map((r) => [(r.started || '').replace('T', ' '), r.hero_name || r.hero, (r.result || '') + (r.headless ? ' (headless)' : ''), r.length || 0, r.clock || 0, r.stage || 1, r.level || 1, r.kills || 0, r.gold || 0, r.damage != null ? r.damage : '', r.version, r.file]));
+    // its CSV is the full one: every field of every run (the toolbar's button)
+    c._tables[0].full = true;
+    c._csv.onclick = () => downloadHistory();
     root.appendChild(c);
   }
+
+  // ------------------------------------------------------------ the CSV buttons
+  function downloadHistory() { const runs = currentRuns(); if (!runs.length) return; const t = CSV.historyTable(runs); download(fileName(nowStamp(), SOURCE === 'tools' ? 'history_tools' : 'history'), CSV.toCSV(t.columns, t.rows)); }
+  document.getElementById('csv-rows').onclick = () => { if (!MAIN) return; const t = CSV.rowsTable(MAIN.run); download(fileName(MAIN.run.stamp, 'rows'), CSV.toCSV(t.columns, t.rows)); };
+  document.getElementById('csv-events').onclick = () => { if (!MAIN) return; const t = CSV.eventsTable(MAIN.run); download(fileName(MAIN.run.stamp, 'events'), CSV.toCSV(t.columns, t.rows)); };
+  document.getElementById('csv-history').onclick = downloadHistory;
 
   // ------------------------------------------------------------ loading
   function loadFiles(files) {
@@ -636,10 +1294,34 @@
   for (const ev of ['dragleave', 'drop']) document.body.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); });
   document.body.addEventListener('drop', (e) => loadFiles(e.dataTransfer.files));
 
+  // the tool runs' folder: its own index.js and latest.js, loaded by script tags on demand (they set the same globals)
+  function loadScript(src) { return new Promise((res) => { const s = document.createElement('script'); s.src = src; s.onload = () => { s.remove(); res(true); }; s.onerror = () => { s.remove(); res(false); }; document.head.appendChild(s); }); }
+  async function loadTools() {
+    if (SRC.tools.loaded) return;
+    const keepRun = window.RUN, keepRuns = window.RUNS;
+    window.RUN = undefined; window.RUNS = undefined;
+    await loadScript('runs/tools/index.js'); SRC.tools.runs = Array.isArray(window.RUNS) ? window.RUNS : [];
+    await loadScript('runs/tools/latest.js'); SRC.tools.run = (window.RUN && window.RUN.samples) ? window.RUN : null;
+    window.RUN = keepRun; window.RUNS = keepRuns; SRC.tools.loaded = true;
+  }
+  async function setSource(src, remember) {
+    if (!SRC[src]) src = 'played';
+    if (src === 'tools') await loadTools();
+    SOURCE = src;
+    for (const b of document.querySelectorAll('#source button')) b.classList.toggle('on', b.dataset.src === src);
+    if (remember) { try { localStorage.setItem('runwatch.source', src); } catch (e) { /* no storage: fine */ } }
+    MAIN = SRC[src].run ? prep(SRC[src].run) : null; OVERLAYS = [];
+    render();
+  }
+  for (const b of document.querySelectorAll('#source button')) b.addEventListener('click', () => setSource(b.dataset.src, true));
+
   function boot() {
     if (chartReady()) setupChart();
-    if (window.RUN && window.RUN.samples) MAIN = prep(window.RUN);
-    render();
+    let src = 'played';
+    try { src = localStorage.getItem('runwatch.source') || 'played'; } catch (e) { src = 'played'; }
+    // the played folder first unless the viewer chose the tools last time, or there is no played run at all
+    if (src !== 'tools' && !SRC.played.run && !SRC.played.runs.length) src = 'tools';
+    setSource(src, false);
   }
   if (chartReady()) boot(); else window.addEventListener('load', boot);
 })();

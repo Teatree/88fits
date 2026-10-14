@@ -202,7 +202,7 @@ func _ready() -> void:
 	Run.weapon_evolved.connect(_on_evolved)
 	# the run recorder (pass 45): a row a second for analytics/dashboard.html; the arena never records, and a tool's
 	# launch file may say "analytics": false (perf_late's A/B of the recorder's cost)
-	if not arena and bool(debug_launch.get("analytics", true)): RunAnalytics.create(self)
+	if not arena and bool(debug_launch.get("analytics", true)): RunAnalytics.create(self, debug_launch)
 	# the run's story for the Results screen (pass 72, RunTimeline): the arena never has one
 	if not arena: Run.timeline.attach(self)
 	# ui
@@ -2136,6 +2136,7 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 				set_paused(true)
 				stranger_screen.open(offer, cost)
 				stranger_screen.closed.connect(func(took):
+					if RunAnalytics.I: RunAnalytics.I.stranger(offer, cost, player.max_hp, bool(took))
 					if took:
 						if RunAnalytics.I: RunAnalytics.I.via = "stranger"
 						var line := Run.stranger_take(offer, cost)
@@ -2202,6 +2203,7 @@ func _use_totem(def: StructureDef) -> void:
 		set_paused(true)
 		totem_screen.open(offer, def)
 		totem_screen.closed.connect(func(boon: Dictionary) -> void:
+			if RunAnalytics.I: RunAnalytics.I.totem_offer(offer, boon)
 			if not boon.is_empty():
 				var words := Run.take_totem_boon(boon)
 				player.refresh_stats()

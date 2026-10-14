@@ -77,6 +77,8 @@ const KIND_EVENTS := {
 	"pickup": "pickup_taken", "boss_start": "boss_started", "boss_end": "boss_killed", "elite": "elite_spawned",
 	"stage": "stage_started", "wave": "endless_wave", "portal_wait": "portal_reached", "portal": "stage_cleared",
 	"death": "player_died", "revive": "revive_chosen", "unlock": "quest_completed", "debug_item": "debug_item",
+	# pass 74: a Totem Pole's gift taken, a coloured special killed (with whether it dropped a chest)
+	"totem": "totem_taken", "special_kill": "special_killed",
 }
 
 # ---------------------------------------------------------------- the key file

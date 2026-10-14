@@ -1660,25 +1660,37 @@ All numbers are constants in `ui/ResultsScreen.gd` (the show), `ui/wanted/WKillC
   blast: within a second). The starting weapon is the first weapon owned and always comes first.
 - The counted unlocks' progress (`QuestTracker.progress`, the quests counted across runs) is kept as the run begins.
 
-## Sequence 1, "Run performance" (the board held at the top)
-- Lead-in 0.35 s (the board's slide), then: gold 2.5 s, a 0.2 s breath, the chart 2.8 s, a 0.2 s breath, the sources.
-- **Gold**: the "+N" shows the purse at the same share of the run's play time (linear between seconds), ending exactly
-  on what was banked. So a run that earned early counts up early; a shop's spend shows as a dip.
-- **Chart**: the play time cut into 48 slices, kills per slice smoothed [1,2,1]/4, the busiest slice at 86 % of the
-  plot. The line is drawn left to right at a constant pace (the run's own pace). Marks pop as the line reaches them
-  (0.3 s, a little overshoot); several marks of one kind within 0.9 badge widths (twice that for specials) are one badge
-  with "×N"; a special that would cover another special joins it; other kinds that meet stack upwards (boss, Elite,
-  grave, special placed in that order). Badge sizes: boss 1.3×, Elite 1.1×, special 0.8×, grave 1× of 46 px. Graves stand
-  on the ground line; a stage's start is a dashed line with its name under the plot.
-- **Counters** beside the chart, Kills and Damage, follow the run's own curves with the line; short numbers: under
-  1,000 as is; then k / m / b with one decimal under 10 (".0" dropped) and none from 10 up; always rounded DOWN
-  (1,999 is 1.9k, 999,999 is 999k).
-- **Sources**: the starting weapon's row shows from the start (empty bar); each other row comes in the order its source
-  joined, 0.36 s after the one before (less for a long list: the whole part fits in 3.0 s), each filling its bar to its
-  share, its number and percent counting up over 0.5 s. A source with no damage has no row (as before). A run with no
-  story (a tool's or a test's) orders them biggest first, as before.
-- The board does not move under a finger or the wheel; it eases down by itself only so the newest row is not hidden
-  under the buttons (never up).
+## Sequence 1, "Run performance" (the board held at the top; pass 74)
+- Lead-in 0.35 s (the board's slide, `LEAD_IN`), then the gold (2.5 s, `GOLD_TIME`), the pop (0.3 s, `POP_TIME`), the
+  chart part (3.2 s, `JOINT_TIME`, a little longer only when its last row needs it). About 6.35 s in all.
+- **While the gold counts** nothing of the rest of the board shows: the "Run performance" label, the chart block (its
+  frame, the plot, the stage lines, the Kills and Damage counters), the "Damage dealt" label and every source row wait
+  unseen in their places (their space kept, so nothing on the board moves when they come). The gold is as before: the
+  "+N" shows the purse at the same share of the run's play time, ending exactly on what was banked.
+- **The pop**, as the gold ends: the chart block grows from 85 % of its size (`POP_FROM`) past it and back (an
+  ease-out-back of strength 2.6, `POP_BACK`: about 3 % over at its middle) while it fades in over the first half of the
+  pop (`POP_FADE` 0.5), drawn as one picture (a CanvasGroup, so its ink shadow and its plot do not show through the
+  paper while it fades). The two labels and the starting weapon's row fade in with it. A soft card sound.
+- **The chart part**, one clock for everything: the line crosses the whole run in `JOINT_TIME` (3.2 s), its marks pop as
+  it reaches them (as before), the Kills and Damage counters show what the run had reached at the line's moment (as
+  before), and the source rows play on the same clock:
+  - each row comes in when the line reaches the moment its source joined the run (first owned, else first hit:
+    RunTimeline.joined), the starting weapon's at the start (it came with the pop), one the record never saw at the
+    line's end; never sooner than `ROW_BEAT` (0.12 s) after the row before, so rows whose sources joined together come
+    a beat apart and each can be read; a row fades in over `ROW_FADE` (0.2 s) with a card sound, and the board eases
+    down to keep it above the buttons (never up);
+  - each row's bar, number and percent show that source's damage so far at the line's moment (its 5 s samples, linear
+    between them, 0 at the run's start and exactly its total at the end: RunTimeline.source_damage_at), the percent of
+    the run's FINAL total damage, so a bar only grows and ends on its share; a source that joined later in the run comes
+    in near the end with a short bar;
+  - when the last rows' moments and beats run past `JOINT_TIME` (sources that joined in the run's last seconds), the
+    part runs on until the last row has faded in (its moment + `ROW_FADE`); the line stays whole meanwhile.
+- **A run with no story** (a tool's or a test's: nothing recorded): the rows keep the biggest-first order and come in
+  spread evenly over the chart part (row k at k / n of `JOINT_TIME`, still a beat apart), each growing from its own
+  moment to its total at the end.
+- The board does not move under a finger or the wheel while the show plays; it eases down by itself only so the newest
+  row is not hidden under the buttons (never up). Taps as before: one hurries the sequence x4, a second ends it at once
+  (everything in place, its final values, no sounds).
 
 ## Sequence 2 (only when the run unlocked something or brought an unlock closer)
 - 2.0 s pause, then 0.7 s scroll to the unlocks (their label 40 px under the top of the view, as far as the board goes).
@@ -1687,7 +1699,9 @@ All numbers are constants in `ui/ResultsScreen.gd` (the show), `ui/wanted/WKillC
   UNLOCKED stamp (FOR SALE on a hero to buy) slams down over its corner, a celebration burst over the plate.
 - Then every unlock whose kept progress grew (counted quests not done; nearest to done first): each bar fills from where
   it stood to where it stands (this run's part in sage), 0.35 s apart, 0.55 s each, the lot in 3.0 s at most.
-- A normal run's whole show: about 13 s; with one unlock about 14.5 s.
+- Sequence 1 about 6.35 s; a run that unlocked nothing and brought nothing closer ends there. With four unlocks brought
+  closer about 10.65 s; with one unlock landed too about 11.85 s (the second sequence as in pass 72: 2.0 s pause, 0.7 s
+  scroll, 1.2 s an unlock, the bars at most 3.0 s).
 
 ## Taps
 - A tap anywhere but on a button (any finger lift, a drag included, while the show plays) hurries the sequence playing
@@ -2066,3 +2080,57 @@ analytics, the Level Editor's references). What changed is what the player reads
     unless CODESIGN_TIMESTAMP=none).
   - A signing that fails keeps the exe out of Drive. The APK still ships.
 - **ship.sh deletes the old export before exporting**, so a failed export cannot send the previous exe to Drive again.
+
+## 21. Pass 74 (v0.60): the Results show on one clock, the run dashboard
+
+Garry's request (2026-10-14, tools/dl/p74/REQUEST.md). Each lane's rules as it wrote them.
+
+### 21.RESULTS The chart pops in after the gold; the line, the counters and the sources together
+
+Garry (2026-10-14): "The empty chart shouldn't just be sitting there, it should pop-in after the Coin count sequence is concluded." and "I wanted the chart, the kill count, the damage dealt and the individual damage sources sequence to play together at the same time." The rules are in §19.RESULTS ("Sequence 1", marked pass 74, and the whole show's length under "Sequence 2"); every number is a constant in `ui/ResultsScreen.gd` (LEAD_IN 0.35 s, GOLD_TIME 2.5 s, POP_TIME 0.3 s, POP_FROM 0.85, POP_BACK 2.6, POP_FADE 0.5, JOINT_TIME 3.2 s, ROW_BEAT 0.12 s, ROW_FADE 0.2 s); none changes play.
+
+### 21.ANALYTICS The local run record (schema 2) and the dashboard
+
+The record is not balance, but these are rules Garry never asked for in these words, so they are written down.
+
+- **Schema 2.** `core/systems/RunAnalytics.gd` writes `schema: 2` from v0.60. The dashboard still opens schema 1 files
+  (every card that needs a schema 2 key hides itself when the run has none). `analytics/SCHEMA.md` lists every key and
+  says which schema added it.
+- **Where a run's file goes.** Always `user://analytics/runs/<stamp>.json`. On the PC, when the game runs from the
+  repo (the editor binary), also a copy in the repo: a **played** run in `analytics/runs/` (with `latest.js` and the
+  index), a **tool's run** in `analytics/runs/tools/` (its own `latest.js` and index). A tool's run is a headless one
+  or one started with `--script` / `-s` (smoke_run, perf_late, hell_check, captures, the gdUnit runner):
+  `RunAnalytics.is_tool_process()`, written in the header as `tool`. So the dashboard opens on the last run Garry
+  played, not on the last smoke run; its "Tool runs" switch shows the others.
+- **How many files are kept (the lead's rule).** A **phone** keeps the newest **50** run files in
+  `user://analytics/runs` (`RunAnalytics.KEEP_FILES`, by name = by start time), pruned at the end of a run (a mid-run
+  checkpoint never prunes); `RunAnalytics.prunes_here()` = `OS.has_feature("mobile")`. **The PC never prunes**: the
+  editor binary, the PC exe, tools and tests keep every file (a run played in the PC exe lives only in
+  `%APPDATA%\Godot\app_userdata\88fits\analytics\runs`, there is room, and Garry drags them into the dashboard). The
+  repo's `analytics/runs/` and `analytics/runs/tools/` are never pruned (git ignores them). The index keeps its last
+  500 rows as before (`INDEX_KEEP`).
+- **What reaches PostHog.** Nothing new except two event kinds through `Analytics.KIND_EVENTS`: `totem` (a Totem
+  Pole's gift taken) as `totem_taken`, and `special_kill` (a coloured special killed, with `chest` and `weapon`) as
+  `special_killed`. `boss_start` (PostHog `boss_started`) now also carries `hp`, `dps`, `ref`, `mult`, `window`, and an
+  item event of a line carries `line: true`; no board changes. Everything else new stays in the local file only:
+  `special`, `elite_mod`, `elite_kill`, `stranger`, `stranger_decline`, `totem_offer`, and every new header and row
+  key.
+- **Healing by source.** A row's `healed_by` names what healed the hero in that second: the source `Player.heal` was
+  given (a pickup's or a structure's name: Heart, Cake Slice, Healing Well, Vulture), `lifesteal` and `level_up` (the
+  hero's level patch) for the two unnamed heals (named by the signal that caused them, heard right after Game heals),
+  and `other` for any unnamed heal left. It sums to `healed`. Regen (with Siesta and Deep Breath) never went through
+  `Player.heal`: it is its own key, `regen`, and is NOT in `healed` (as before).
+- **Specials and Elites.** `special` = a coloured variance special came (`forced` when a Special swarm made it);
+  `special_kill` says whether its death dropped a chest (the crowd's special-chest count moved). `elite_mod` = a
+  creature wearing an Elite modifier came; `elite_kill` = an Elite by its kind or a modifier-wearer fell (`mod` only
+  for the latter). The gear-badge specials (rocketeer, Saiga Sniper, harpooner) are plain creature ids, as before;
+  the Saiga Sniper's aims, shots, hits on the hero and spoiled aims are in the header's `crowd` block.
+- **CSV.** Every CSV is UTF-8 with a BOM (Excel), comma-separated, numbers with a dot, lines ending CR LF, named
+  `88fits_<stamp>_<what>.csv`. The rows CSV writes one line per second with a key the record leaves out as 0 (it means
+  0), except `boss_hp` (empty: no boss up); the build's snapshots (stats, weapons, passive items, lines, perks, the
+  creature multipliers) carry forward to every second until the next one. A list of plain values is one cell joined
+  with "; ". `python tools/analytics_csv.py` writes the same rows and events CSVs for every run file in a folder and a
+  history with one line per file.
+- (lead) The Level Editor's kill-rate fit ("Spawned so far") reads the played runs in `analytics/runs/`; its "include
+  tool runs" option also reads `analytics/runs/tools/` (server.fit_turnover), where every tool run lands since pass 74.
+- (lead) The dashboard's build chips name the lines "card", as the game does since pass 73.

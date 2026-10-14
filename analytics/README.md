@@ -9,26 +9,36 @@ the crowd's pressure, plus every build change and notable moment as an event. `d
   the Settings screen's developer menu shows the `user://` path). The file is written when the run ends (extract,
   death, give up) and again if the app is sent to the background mid-run (a checkpoint, `result: "in_progress"`); a
   run the game left without an end (a quit, a tool stopping early) is written on the way out as `result: "quit"`.
-- **On the PC, when the game runs from the repo** (the editor binary, the editor's play button, every headless tool):
-  the same file is copied into this folder's `runs/`, `runs/latest.js` becomes `window.RUN = {...};` for the newest
-  run and `runs/index.js` / `runs/index.json` list every run (`window.RUNS = [...]`, the last 500). `runs/` is
-  git-ignored. A phone build writes only to `user://`.
+- **On the PC, when the game runs from the repo** (the editor binary, the editor's play button, every tool): the
+  same file is copied into this folder. A run you played goes to `runs/`; a tool's run (headless, or started with
+  `--script`: smoke_run, hell_check, perf_late, captures, tests) goes to `runs/tools/` (pass 74), so the dashboard
+  opens on your own newest run. Each folder has its own `latest.js` (`window.RUN = {...};`, its newest run) and
+  `index.js` / `index.json` (`window.RUNS = [...]`, the last 500). `runs/` is git-ignored and never pruned.
+- **How many are kept in `user://`:** every one on the PC (the PC exe's runs live only there); a phone keeps its
+  newest 50 (pass 74). A phone build writes only to `user://`.
 
 ## The dashboard
 
 Open `analytics/dashboard.html` straight from disk (`file://`): it loads `runs/index.js` and `runs/latest.js` with
-script tags (a `file://` page cannot fetch JSON), so the newest run appears on open. Other runs: pick them with the
-file input or drop them on the page; a second and third file overlay their power, real DPS and HP curves (dashed)
-over the first for an A/B. Headless tool runs (`smoke_run`, `hell_check`, `perf_late`...) carry `headless: true` and
-are hidden from the history by default (a switch shows them).
+script tags (a `file://` page cannot fetch JSON), so your newest played run appears on open; the **Played runs /
+Tool runs** switch loads `runs/tools/` instead. Other runs: pick them with the file input or drop them on the page (a
+run from the PC exe: `%APPDATA%\Godot\app_userdata\88fits\analytics\runs`); a second and third file overlay their
+curves (dashed) over the first for an A/B. "Where the runs come from" on the page says the same.
 
-The charts, top to bottom: the summary (hero, map, version, seed, result, play length against the stage clock, stage,
-level, kills, gold, the final build), the power curve (estimated DPS from the weapon sheets, real DPS as a 10 s rolling
-mean, the crowd's pressure on its own scale), health and incoming damage, the crowd against the director's cap,
-progression, damage share per weapon (rolling, stacked to 100 %), estimate against real per weapon, the creatures
-(HP lost to each, kills, spawned against killed, melee/ranged/boss), the items (each pick with how it came, the
-estimate before and after, and the real DPS 20 s before and after), survivability per minute, the power-to-pressure
-ratio, and the run history. Every chart has a table view.
+The cards (pass 74, record schema 2; a card hides itself when its run has no data for it, so schema 1 files still
+open): the run (hero and the look played, trait, map and its settings, version, seed, result, talents, switches),
+was the build strong enough, crowd pressure, when did the crowd outgrow me, health, what hurt me, the last 30
+seconds, how hard did each boss scale, specials and Elites, which weapon carried, estimate against real, how did the
+build grow (the lines, i.e. the fortune cards, apart), the picks, how did I choose (decision time, skips, rerolls,
+banishes), totems and the Stranger, where did my healing come from, survivability per minute, how did his numbers
+grow, how strong did the creatures get, stacking bonuses, the crowd against the cap, spawned against killed,
+progression, gold, quest progress and the history. Every card has a table view.
+
+**CSV downloads** (pass 74): the buttons at the top save this run second by second (`88fits_<stamp>_rows.csv`: one
+line a second, every column, maps as `group.key`), this run's events (`_events.csv`) and every run in the history
+(`_history.csv`, one line a run); every card's table has its own CSV button. UTF-8 with a BOM, commas, dot decimals:
+Excel and Google Sheets open them as they are. For every run at once:
+`python tools/analytics_csv.py [--runs <dir>] [--tools] [--out <dir>]` (default out `analytics/runs/csv/`).
 
 Chart.js is vendored at `lib/chart.umd.js` (4.4.1) with a cdnjs fallback, so the page works offline.
 
