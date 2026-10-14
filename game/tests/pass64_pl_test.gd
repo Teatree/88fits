@@ -314,14 +314,24 @@ func test_every_return_spot_keeps_the_rules() -> void:
 	var sm: StructureManager = g.structures
 	var hp: Vector3 = g.player.global_position
 	var standing: Array = []
+	# pass 75 (re-pinned): since pass 73 a structure standing its own count (a Totem Pole, `per_map`) is kept at its own
+	# spacing (half of it at the most relaxed), not the map's; this test still held them to the map's 22 m and failed now
+	# and then, when the search had relaxed and landed 7-11 m from a pole
+	var apart: Array = []
 	for s in sm.items:
-		standing.append(s.global_position)
+		if StructureManager.per_map_range(s.def) == Vector2i(-1, -1):
+			standing.append(s.global_position)
+		else:
+			apart.append([s.global_position, sm.own_spacing(s.def)])
 	var covers: Array = BarrelField.covers_of(g, g.map)
 	for k in 40:
 		var p := sm.find_spot()
 		assert_bool(p != Vector3.INF).is_true()
 		assert_float(Vector2(p.x - hp.x, p.z - hp.z).length()).is_greater_equal(StructureManager.RETURN_HERO_CLEAR)
 		assert_bool(sm.start_spot_ok(p, standing, sm._spacing, 0.5)).is_true()
+		for q: Array in apart:
+			var at: Vector3 = q[0]
+			assert_float(Vector2(p.x - at.x, p.z - at.z).length()).is_greater_equal(float(q[1]) * 0.5 - 0.001)
 		assert_bool(BarrelField.in_cover(covers, Vector2(p.x, p.z), 1.5)).is_false()
 		assert_float(p.y).is_equal_approx(g.map.height_at(p.x, p.z), 0.01)
 

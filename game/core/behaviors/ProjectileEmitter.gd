@@ -25,6 +25,14 @@
 ## Pass 67 (the basketball): `amount_mode` "bounces" throws one ball whose amount past the first is that many more hops
 ## (_throw_ball); with `catch` Game hands the ball back here when it reaches his hand (on_caught: the refund, Heat, Slam
 ## Dunk's dunk), a hit on his health cools Heat (on_hero_hit) and `free_throw` throws on an evade (on_hero_evaded).
+## Pass 75 (the Revolver; Garry: "The shots still feel sluggish and jerky ... a little spin every now and then right after
+## firing a shot ... much more visible impact on the revolver every time it shoots ... a bigger punch"): a companion whose
+## `params.familiar` carries `kick {back, climb, twist, pop, hz, decay}` punches on every round (it slides back along its
+## barrel, the muzzle climbs, it twists a little to one side and swells, then springs back past rest and settles), shown
+## on the frame the round leaves and never smoothed by the eased follow (which carries only the orbit); it aims along its
+## own line to the target between shots, so a shot no longer jerks it off the hero's line. `spin {chance, seconds, turns,
+## gap, hop, axis}`: after the last round of a pull, now and then (never twice within `gap` seconds, only when the twirl
+## ends before the next pull), it twirls about its trigger guard with a little hop. Guns without them are as before.
 class_name ProjectileEmitter
 extends WeaponBehavior
 
@@ -34,6 +42,13 @@ const BLAST_WASH := Color(1.0, 0.93, 0.68)
 const HIP_SPIN := 0.35
 const SILVER_RECOIL := 1.7
 const SILVER_SHAKE := 0.12
+## Pass 75: a punchy companion's kick and trick spin when its `familiar.kick` / `familiar.spin` leave a number out.
+const KICK_DEFAULTS := {"back": 0.3, "climb": 0.5, "twist": 0.12, "pop": 0.25, "hz": 3.2, "decay": 9.0}
+const SPIN_DEFAULTS := {"chance": 0.3, "seconds": 0.5, "turns": 1.0, "gap": 2.0, "hop": 0.15, "axis": "x"}
+## A kick on a gun still settling from the last one adds half of what is left, up to this many kicks' worth; a silver
+## round's kick is SILVER_PUNCH kicks (the old recoil's 1.7 would swell the gun by half and flip it past 50 degrees).
+const KICK_STACK_MAX := 2.2
+const SILVER_PUNCH := 1.3
 
 var _held: Node3D
 var _familiar: Node3D
@@ -63,6 +78,19 @@ var _hip_left := 0
 var _hip_t := 0.0
 var _hip_gap := 0.12
 var _spin_t := -1.0
+# pass 75: the running twirl's length (a hip shot's HIP_SPIN or a trick spin's seconds) and whether it is a trick spin
+var _spin_len := HIP_SPIN
+var _spin_trick := false
+var _since_spin := 0.0
+var _force_spin := false
+## Trick spins so far (tests, captures).
+var trick_spins := 0
+# pass 75: a punchy companion's place on its orbit without the kick, the kick's clock (< 0: at rest), its size, its side
+var _fam_base := Vector3.ZERO
+var _fam_base_set := false
+var _punch_t := -1.0
+var _punch_amp := 0.0
+var _twist_sign := 1.0
 # the Silver Bullet's pale blue rounds (a kind of their own, made the first time) and muzzle flash
 var _silver_kind := -1
 var _muzzle_silver := false
@@ -261,6 +289,8 @@ func tint_kind(tint: Dictionary) -> int:
 func _kick() -> void:
 	var silver := _silver()
 	_recoil = SILVER_RECOIL if silver else 1.0
+	if _familiar and not _fam_dict("kick").is_empty():
+		_start_punch(silver)
 	if silver:
 		var cam = game.get("camera")
 		if cam != null and cam.has_method("shake"):
@@ -291,20 +321,27 @@ func _place_familiar(delta: float) -> void:
 	_orbit += delta * _familiar_param("speed", 1.4)
 	var t := float(Time.get_ticks_msec()) * 0.001
 	var want := player.global_position + Vector3(cos(_orbit) * r, h + sin(t * 3.1) * bob, sin(_orbit) * r)
-	# recoil: the gun jumps back along its own barrel and the muzzle climbs, then settles
-	var aim := Vector3(-sin(_aim_yaw), 0, -cos(_aim_yaw))
-	want -= aim * 0.1 * _recoil
-	# eased follow, so a sprinting hero drags the companion behind him a little
-	_familiar.global_position = want if delta <= 0.0 else _familiar.global_position.lerp(want, clampf(delta * 9.0, 0.0, 1.0))
-	_familiar.rotation.y = _aim_yaw
-	# a hip shot's twirl (pass 48): one full turn over the trigger guard, quick out and easing in
-	var twirl := 0.0
-	if _spin_t >= 0.0:
-		var f: float = clampf(_spin_t / HIP_SPIN, 0.0, 1.0)
-		twirl = TAU * (1.0 - (1.0 - f) * (1.0 - f))
-	_familiar.rotation.x = -0.28 * _recoil - twirl
-	# params.familiar.roll lays a flat gun on its side, so the camera overhead sees its profile (the Revolver)
-	_familiar.rotation.z = sin(t * 2.3) * 0.08 + _familiar_param("roll", 0.0)
+	if not _fam_dict("kick").is_empty():
+		# pass 75: the eased follow carries only the orbit, and the kick rides on top of it unsmoothed (the follow had
+		# swallowed nearly all of the old 10 cm jump back)
+		_fam_base = want if (delta <= 0.0 or not _fam_base_set) else _fam_base.lerp(want, clampf(delta * 9.0, 0.0, 1.0))
+		_fam_base_set = true
+		_pose_punch()
+	else:
+		# recoil: the gun jumps back along its own barrel and the muzzle climbs, then settles
+		var aim := Vector3(-sin(_aim_yaw), 0, -cos(_aim_yaw))
+		want -= aim * 0.1 * _recoil
+		# eased follow, so a sprinting hero drags the companion behind him a little
+		_familiar.global_position = want if delta <= 0.0 else _familiar.global_position.lerp(want, clampf(delta * 9.0, 0.0, 1.0))
+		_familiar.rotation.y = _aim_yaw
+		# a hip shot's twirl (pass 48): one full turn over the trigger guard, quick out and easing in
+		var twirl := 0.0
+		if _spin_t >= 0.0:
+			var f: float = clampf(_spin_t / _spin_len, 0.0, 1.0)
+			twirl = TAU * (1.0 - (1.0 - f) * (1.0 - f))
+		_familiar.rotation.x = -0.28 * _recoil - twirl
+		# params.familiar.roll lays a flat gun on its side, so the camera overhead sees its profile
+		_familiar.rotation.z = sin(t * 2.3) * 0.08 + _familiar_param("roll", 0.0)
 	_flap += delta * 20.0
 	var wing := 0.35 + absf(sin(_flap)) * 0.55
 	if _wing_l:
@@ -316,6 +353,98 @@ func _place_familiar(delta: float) -> void:
 ## Whether the companion is twirling after a hip shot.
 func spinning() -> bool:
 	return _spin_t >= 0.0
+
+
+## Pass 75: one of the companion's own blocks (`familiar.kick`, `familiar.spin`), or {} when it has none.
+func _fam_dict(key: String) -> Dictionary:
+	var f = inst.params.get("familiar", {})
+	if f is Dictionary:
+		var d = (f as Dictionary).get(key)
+		if d is Dictionary:
+			return d
+	return {}
+
+
+## Pass 75: a number of the kick (`familiar.kick`), else KICK_DEFAULTS'.
+func _kick_value(key: String) -> float:
+	return float(_fam_dict("kick").get(key, KICK_DEFAULTS[key]))
+
+
+## Pass 75: how far into its kick the companion is now: 1 on the frame the round leaves, then a spring settling back past
+## rest (the barrel swings forward of it for a moment) to 0: amp x e^(-decay t) x cos(2 pi hz t). 0 at rest.
+func punch() -> float:
+	if _punch_t < 0.0:
+		return 0.0
+	return _punch_amp * exp(-_kick_value("decay") * _punch_t) * cos(TAU * _kick_value("hz") * _punch_t)
+
+
+## Pass 75: a round leaves a punchy companion: the kick starts over from where the last one has got to (a burst's rounds
+## stack, KICK_STACK_MAX at most; a silver round kicks SILVER_PUNCH times as hard), to a side picked at random, and the
+## gun takes the pose at once, on the frame the round leaves.
+func _start_punch(silver: bool) -> void:
+	var left := maxf(punch(), 0.0)
+	_punch_amp = minf((SILVER_PUNCH if silver else 1.0) + left * 0.5, KICK_STACK_MAX)
+	_punch_t = 0.0
+	_twist_sign = -1.0 if randf() < 0.5 else 1.0
+	if _fam_base_set:
+		_pose_punch()
+
+
+## Pass 75: the punchy companion's pose: its orbit place, pushed back along its barrel by the kick and lifted by a trick
+## spin's hop; its aim, plus the kick's muzzle climb and side twist and the twirl (about the trigger guard, or flat with
+## `spin.axis` "y"); a slow wobble about the barrel; swollen by the kick's `pop` (and a little thin past rest).
+func _pose_punch() -> void:
+	var p := punch()
+	var aim := Vector3(-sin(_aim_yaw), 0, -cos(_aim_yaw))
+	var t := float(Time.get_ticks_msec()) * 0.001
+	var pitch := _kick_value("climb") * p
+	var yaw := _aim_yaw + _kick_value("twist") * _twist_sign * p
+	var lift := 0.0
+	if _spin_t >= 0.0:
+		var f: float = clampf(_spin_t / _spin_len, 0.0, 1.0)
+		if _spin_trick:
+			var sp := _fam_dict("spin")
+			# a flick: fast out of the hand, slowing as it comes round to be caught
+			var turn := TAU * float(sp.get("turns", SPIN_DEFAULTS["turns"])) * (1.0 - pow(1.0 - f, 3.0))
+			lift = float(sp.get("hop", SPIN_DEFAULTS["hop"])) * sin(PI * f)
+			if str(sp.get("axis", SPIN_DEFAULTS["axis"])) == "y":
+				yaw += turn
+			else:
+				pitch -= turn
+		else:
+			# a hip shot's twirl (pass 48)
+			pitch -= TAU * (1.0 - (1.0 - f) * (1.0 - f))
+	_familiar.global_position = _fam_base - aim * _kick_value("back") * p + Vector3(0, lift, 0)
+	_familiar.rotation = Vector3(pitch, yaw, sin(t * 2.3) * 0.08 + _familiar_param("roll", 0.0))
+	_familiar.scale = Vector3.ONE * maxf(1.0 + _kick_value("pop") * p, 0.5)
+
+
+## Pass 75 (`familiar.spin`): after the last round of a pull, now and then a trick spin: `chance` a pull, never within
+## `gap` seconds of the last, and only when it ends before the next pull (a whole cooldown away when this is the pull's
+## own round, else what is left of the weapon's clock), never during a hip shot. The twirl is heard (the hip shot's sound).
+func _maybe_trick_spin() -> void:
+	var sp := _fam_dict("spin")
+	if sp.is_empty() or _familiar == null or _spin_t >= 0.0 or _hip_left > 0:
+		return
+	var secs := maxf(float(sp.get("seconds", SPIN_DEFAULTS["seconds"])), 0.1)
+	if not _force_spin:
+		var next := cooldown_left if cooldown_left > 0.0 else maxf(stat("cooldown", 1.0), 0.05)
+		if _since_spin < float(sp.get("gap", SPIN_DEFAULTS["gap"])) or next < secs + 0.05:
+			return
+		if randf() >= float(sp.get("chance", SPIN_DEFAULTS["chance"])):
+			return
+	_force_spin = false
+	_spin_t = 0.0
+	_spin_len = secs
+	_spin_trick = true
+	_since_spin = 0.0
+	trick_spins += 1
+	Audio.play("w_hip_spin", _familiar.global_position)
+
+
+## Pass 75: the next pull ends in a trick spin whatever the dice say (captures, tests).
+func debug_force_spin() -> void:
+	_force_spin = true
 
 
 func _fire_burst_shot() -> void:
@@ -331,14 +460,21 @@ func _fire_burst_shot() -> void:
 		dir = _from_familiar(dir)
 	# Sweep Fire: the rounds walk across a fan instead of scattering
 	var d: Vector3 = dir.rotated(Vector3.UP, float(b["angle"])) if b.has("angle") else dir.rotated(Vector3.UP, randf_range(-float(b["spread"]), float(b["spread"])))
-	var from: Vector3 = (_familiar.global_position + dir * 0.45) if _familiar else player.aim_origin(dir)
+	var punchy := _familiar != null and not _fam_dict("kick").is_empty()
+	var from: Vector3 = ((_fam_base if punchy else _familiar.global_position) + dir * 0.45) if _familiar else player.aim_origin(dir)
 	game.projectiles.fire(_kind(), from, d * float(b["speed"]), float(b["damage"]), int(b["pierce"]), float(b["prad"]), float(b["life"]), inst, float(b["knock"]))
 	if _familiar:
+		if punchy:
+			# pass 75: the barrel lies along the round as it leaves (the kick then throws it back from there)
+			_aim_yaw = atan2(-dir.x, -dir.z)
 		# every round: a kick, the drum turns a notch, a casing flies out to the right
 		_kick()
 		_turn_drum()
 		if not bool(inst.params.get("no_shells", false)):
 			game.fx.shell(_familiar.global_position + Vector3(0, 0.05, 0), dir.rotated(Vector3.UP, -PI * 0.5))
+		if _burst.is_empty():
+			# pass 75: the pull's last round; now and then a trick spin
+			_maybe_trick_spin()
 	muzzle_flash(from, d)
 
 
@@ -394,8 +530,15 @@ func _tick(_delta: float) -> void:
 			_hip_volley()
 	if _spin_t >= 0.0:
 		_spin_t += _delta
-		if _spin_t >= HIP_SPIN:
+		if _spin_t >= _spin_len:
 			_spin_t = -1.0
+			_spin_trick = false
+	_since_spin += _delta
+	if _punch_t >= 0.0:
+		_punch_t += _delta
+		# settled once the spring has lost all but 1 % of its swing
+		if exp(-_kick_value("decay") * _punch_t) < 0.01:
+			_punch_t = -1.0
 	if (_held and _held.visible) or _familiar:
 		# the held gun (or the companion) tracks its target between shots, so it points where the shots go: the nearest,
 		# or the strong and the close for a priority weapon (pass 48)
@@ -417,6 +560,10 @@ func _tick(_delta: float) -> void:
 				_track_i = aim_index(hero, stat("range", 9.0))
 		var t := _track_i
 		var want: Vector3 = (enemies.pos[t] - hero) if t >= 0 else player.forward()
+		if t >= 0 and _familiar and _fam_base_set and not _fam_dict("kick").is_empty():
+			# pass 75: a punchy companion points along its own line to the target, the line its rounds fly (the hero's
+			# line, up to some 15 degrees off it, made every shot jerk the gun round and drift back)
+			want = enemies.pos[t] - _fam_base
 		want.y = 0.0
 		if want.length_squared() > 0.0001:
 			_aim_yaw = lerp_angle(_aim_yaw, atan2(-want.x, -want.z), clampf(_delta * 12.0, 0.0, 1.0))
@@ -428,7 +575,8 @@ func _tick(_delta: float) -> void:
 	if _familiar:
 		_recoil = maxf(_recoil - _delta * 9.0, 0.0)
 		_place_familiar(_delta)
-		_familiar.scale = _familiar.scale.lerp(Vector3.ONE, _delta * 10.0)
+		if _fam_dict("kick").is_empty():
+			_familiar.scale = _familiar.scale.lerp(Vector3.ONE, _delta * 10.0)
 
 
 ## The way from the companion to creature `t` (the gun's own line of fire), else to the one it would aim at now
@@ -439,7 +587,9 @@ func _from_familiar(fallback: Vector3, t: int = -1) -> Vector3:
 		t = aim_index(player.global_position, stat("range", 9.0))
 	if t < 0:
 		return fallback
-	var to: Vector3 = em.pos[t] - _familiar.global_position
+	# pass 75: a punchy companion aims from its rest place, not from wherever its kick has thrown it
+	var origin: Vector3 = _fam_base if (_fam_base_set and not _fam_dict("kick").is_empty()) else _familiar.global_position
+	var to: Vector3 = em.pos[t] - origin
 	to.y = 0.0
 	return to.normalized() if to.length_squared() > 0.01 else fallback
 
@@ -522,18 +672,23 @@ func _hip_volley() -> void:
 	var dir: Vector3 = _aim_dir if _aim_dir.length_squared() > 0.0001 else player.forward()
 	if _familiar:
 		dir = _from_familiar(dir)
-	var from: Vector3 = (_familiar.global_position + dir * 0.45) if _familiar else player.aim_origin(dir)
+	var punchy := _familiar != null and _fam_base_set and not _fam_dict("kick").is_empty()
+	var from: Vector3 = ((_fam_base if punchy else _familiar.global_position) + dir * 0.45) if _familiar else player.aim_origin(dir)
 	var amount: int = maxi(stat_int("amount", 1), 1)
 	var speed := _speed()
 	_volley_at(dir, from, amount, stat("damage", 5.0), speed, stat_int("pierce", 0), _prad(), stat("range", 9.0) / maxf(speed, 1.0), stat("knockback", 0.0), _fan_half(amount) * 0.5)
 	hip_volleys += 1
 	if _familiar:
+		if punchy:
+			_aim_yaw = atan2(-dir.x, -dir.z)
 		_kick()
 		_turn_drum()
 	muzzle_flash(from, dir)
 	sfx("fire", from)
 	if _hip_left <= 0:
 		_spin_t = 0.0
+		_spin_len = HIP_SPIN
+		_spin_trick = false
 		# the twirl is heard (pass 48)
 		Audio.play("w_hip_spin", from)
 
@@ -607,8 +762,13 @@ func _fire() -> bool:
 		if inst.def.targeting != "random":
 			dir = _from_familiar(dir, target)
 			_aim_dir = dir
-		from = _familiar.global_position + dir * 0.45
-		_familiar.scale = Vector3(1.18, 0.86, 1.18)
+		if not _fam_dict("kick").is_empty() and _fam_base_set:
+			# pass 75: a punchy companion fires from its rest place, along its own line, and swells with its kick instead
+			from = _fam_base + dir * 0.45
+			_aim_yaw = atan2(-dir.x, -dir.z)
+		else:
+			from = _familiar.global_position + dir * 0.45
+			_familiar.scale = Vector3(1.18, 0.86, 1.18)
 	var life := range_m / maxf(speed, 1.0)
 	_shots += 1
 	# Both Barrels' beads (pass 61): one more lit towards the double
@@ -652,6 +812,9 @@ func _fire() -> bool:
 		_throw_ball(dir, from, amount, damage, speed, pierce, prad, life, knock)
 	else:
 		_volley_at(dir, from, amount, damage, speed, pierce, prad, life, knock, half_spread)
+		if _familiar:
+			# pass 75: a companion with `familiar.spin` may twirl after a volley too
+			_maybe_trick_spin()
 		# Both Barrels: every Nth pull fires the volley again a beat later; Fan the Hammer: extra volleys a beat apart, a
 		# little weaker
 		_arm_second_barrel()

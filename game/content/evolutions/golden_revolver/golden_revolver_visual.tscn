@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="PackedScene" path="res://art/props/golden_revolver.glb" id="gun"]
 
@@ -26,6 +26,18 @@ height = 0.1
 radial_segments = 5
 rings = 3
 
+[sub_resource type="StandardMaterial3D" id="flashmat"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.7, 0.16, 0.95)
+
+[sub_resource type="SphereMesh" id="flash"]
+material = SubResource("flashmat")
+radius = 0.24
+height = 0.48
+radial_segments = 8
+rings = 4
+
 [node name="GoldenRevolverVisual" type="Node3D"]
 
 [node name="Projectile" type="MeshInstance3D" parent="."]
@@ -51,3 +63,16 @@ initial_velocity_max = 10.0
 gravity = Vector3(0, -2, 0)
 scale_amount_min = 0.6
 scale_amount_max = 1.1
+
+[node name="Flash" type="CPUParticles3D" parent="."]
+emitting = false
+amount = 1
+lifetime = 0.06
+one_shot = true
+explosiveness = 1.0
+mesh = SubResource("flash")
+direction = Vector3(0, 0, -1)
+spread = 0.0
+initial_velocity_min = 1.8
+initial_velocity_max = 1.8
+gravity = Vector3(0, 0, 0)

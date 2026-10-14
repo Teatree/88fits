@@ -551,3 +551,24 @@ Totem Pole's pool is hand-edited in its JSON; `import_json.gd -- only=structures
 - Tools: `touch_audit.gd -- only=totem` (the in-run menu and one under a 130 px cutout); smoke_run and
   difficulty_probe take a pole's first gift when its menu opens; hell_check lists "totem_screen";
   `game/tools/_p73_STRUCT_shots.gd -- out=<dir> [only=stranger,totem,menu,map] [tag=] [inset=]`.
+
+## Pass 75: a companion gun's kick and trick spin
+
+In a weapon's `params.familiar` (ProjectileEmitter's companion; the Revolver and the Golden Revolver carry both):
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `kick` | block | absent = the old small kick | the punch on every round, on its frame, never smoothed |
+| `kick.back` | m | 0.3 | slides back along the barrel |
+| `kick.climb` | rad | 0.5 | the muzzle climbs |
+| `kick.twist` | rad | 0.12 | twists to a side picked at random |
+| `kick.pop` | share | 0.25 | swells by this much |
+| `kick.hz` | Hz | 3.2 | the spring's swing: past rest the other way at half a swing |
+| `kick.decay` | 1/s | 9 | how fast it settles (at rest when 1 % is left) |
+| `spin` | block | absent = never | a trick spin after the last round of a pull |
+| `spin.chance` | 0..1 | 0.3 | a pull's chance |
+| `spin.seconds` | s | 0.5 | the twirl's length; it only starts when it ends before the next pull |
+| `spin.turns` | turns | 1 | how many |
+| `spin.gap` | s | 2 | never sooner after the last |
+| `spin.hop` | m | 0.15 | lifts at its middle |
+| `spin.axis` | "x" / "y" | "x" | about the trigger guard, or flat |

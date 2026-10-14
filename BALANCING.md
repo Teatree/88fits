@@ -2134,3 +2134,35 @@ The record is not balance, but these are rules Garry never asked for in these wo
 - (lead) The Level Editor's kill-rate fit ("Spawned so far") reads the played runs in `analytics/runs/`; its "include
   tool runs" option also reads `analytics/runs/tools/` (server.fit_turnover), where every tool run lands since pass 74.
 - (lead) The dashboard's build chips name the lines "card", as the game does since pass 73.
+
+## 22. Pass 75 (v0.61): the Revolver's punch and its trick spin (not balance: named so they are not surprises)
+
+Garry (2026-10-14): "Let's work on the 3D object of the revolver. The shots still feel sluggish and jerky. Let's make it
+so the revolver does a little spin every now and then right after firing a shot. There should be much more visible impact
+on the revolver every time it shoots as well, a bigger punch." No damage, cooldown, range or timing changed. The numbers
+are the Revolver's and the Golden Revolver's `params.familiar.kick` / `params.familiar.spin` (the same in both; the game's
+fallbacks `ProjectileEmitter.KICK_DEFAULTS` / `SPIN_DEFAULTS`); every other companion gun has neither and is as before.
+
+- **What was wrong.** The old kick (every companion: 10 cm back, the muzzle tipped 0.28 rad, gone in 0.11 s) went through
+  the companion's eased follow of the hero, which let about 1.5 cm of the 10 through; it showed a frame after the round
+  left (the gun was placed before the pull fired); and between shots the gun pointed along the hero's line to the target
+  while its rounds flew along its own, up to some 15 degrees apart, so every shot jerked it round and it drifted back.
+- **The kick** (`kick`): on the frame the round leaves, never smoothed, the gun slides `back` 0.32 m along its barrel, its
+  muzzle climbs `climb` 0.55 rad (31 degrees), it twists `twist` 0.14 rad (8 degrees) to a side picked at random and swells
+  by `pop` 28 %; then a spring brings it back past rest and settles it: amp x e^(-`decay` 9 t) x cos(2 pi `hz` 3.2 t), so
+  about 25 % past rest the other way at 0.16 s (the barrel forward, the gun a little thin) and at rest by about 0.5 s
+  (`ProjectileEmitter.punch()`). A round on a gun still kicking adds half of what is left (`KICK_STACK_MAX` 2.2 kicks at
+  most); a silver round (the Golden Revolver's Silver Bullet form) kicks `SILVER_PUNCH` 1.3 times as hard (its old recoil
+  value 1.7 and its camera kick stay for the old path and the camera).
+- **The aim**: between shots the gun points along its own line from where it circles to the target (not the hero's), and
+  each round lines the barrel up with the round as it leaves; the round leaves from where the gun was before its kick.
+- **The trick spin** (`spin`): after the last round of a pull, with `chance` 0.3, the gun twirls `turns` 1 full turn about
+  its trigger guard (`axis` "x": the muzzle goes down first; "y" would spin it flat) in `seconds` 0.5, fast out of the
+  hand and slowing to the catch (1 - (1 - f)^3), lifting `hop` 0.15 m at the middle. Never within `gap` 2 s of the last
+  spin, never during a hip shot or another twirl, and only when it ends before the next pull (the weapon's clock, or a
+  whole cooldown when the pull's own round was its last, must be at least `seconds` + 0.05). The twirl is heard (the hip
+  shot's `w_hip_spin`). At level 1 (a pull a second) about one pull in three after the gap.
+- **The muzzle pop**: both revolver visuals gained a "Flash" (one hot sphere 0.24 m, 0.06 s, orange-gold; WeaponBehavior
+  .muzzle_flash fires it with the sparks, as the Tommy Gun's).
+- Tests: game/tests/pass75_revolver_test.gd (8). Capture: game/tools/_p75_revolver_shot.gd (frame by frame round a pull,
+  `force_spin=1`, `level=`, `zoom=`).

@@ -74,8 +74,24 @@ params = {
 "familiar": {
 "bob": 0.08,
 "height": 1.4,
+"kick": {
+"back": 0.32,
+"climb": 0.55,
+"decay": 9.0,
+"hz": 3.2,
+"pop": 0.28,
+"twist": 0.14
+},
 "radius": 1.2,
-"speed": 1.2
+"speed": 1.2,
+"spin": {
+"axis": "x",
+"chance": 0.3,
+"gap": 2.0,
+"hop": 0.15,
+"seconds": 0.5,
+"turns": 1.0
+}
 },
 "no_shells": true,
 "pierce_falloff": {

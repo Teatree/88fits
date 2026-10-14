@@ -244,7 +244,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-14, pass 74, version 0.60)
+## Status (2026-10-14, pass 75, version 0.61)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -253,8 +253,8 @@ changed.
 
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
-parse check, all gdUnit tests (~1,661 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.60). The PC exe carries game/icon.ico and
+parse check, all gdUnit tests (~1,669 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.61). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
@@ -315,7 +315,9 @@ Ducktape), Tin Star, Prospector and Gold Tooth (lines now), each with an evoluti
 `SaltShaker` (patches laid along the hero's path, `params.salt`) and `Frisbee` (curving discs through everything,
 `params.frisbee`), the ball's `launch` (Alley-Oop) and `heat_look`, a ball tint's `body`/`seams`/`ambient`, a gun's
 `fire_without_target`/`stream`, perk special `decoy`, player stats counter_*/heavyweight/overheal/heal_pulse/last_stand/
-xp_pull_*, TextGen's stat kind "word" (named, never numbered). Pass 68: a look's recipe carries `stills` (heroes too), `seed_offset`, `method`, `from` (a draft), `painter.stills`; a look entry `icon_picked` and `title` (a hero look's own cut-out); a hero is drawn in the look he is played in (`Registry.played_look`: the badge everywhere, the cut-out on the Painted title). Pass 67 primitives: a weapon's `amount_mode: "bounces"`, `return_on_hit`/`return_pierce`, `catch` (the ball's refund and Heat), a creature's `knockback_resist`, the map's `weapon_grade` (every 3D weapon's lit materials darker and richer), perk specials `periodic_buff`/`timeout`/`overdrive`, the pickup effect `leap`. Numbers and rules: `BALANCING.md`.
+xp_pull_*, TextGen's stat kind "word" (named, never numbered). Pass 68: a look's recipe carries `stills` (heroes too), `seed_offset`, `method`, `from` (a draft), `painter.stills`; a look entry `icon_picked` and `title` (a hero look's own cut-out); a hero is drawn in the look he is played in (`Registry.played_look`: the badge everywhere, the cut-out on the Painted title). Pass 67 primitives: a weapon's `amount_mode: "bounces"`, `return_on_hit`/`return_pierce`, `catch` (the ball's refund and Heat), a creature's `knockback_resist`, the map's `weapon_grade` (every 3D weapon's lit materials darker and richer), perk specials `periodic_buff`/`timeout`/`overdrive`, the pickup effect `leap`. Pass 75: a companion gun's `params.familiar.kick` (a punch on every round, on its frame, unsmoothed, a spring past
+rest) and `familiar.spin` (a trick spin after a pull now and then), on the Revolver and the Golden Revolver only.
+Numbers and rules: `BALANCING.md`.
 A weapon the editor creates starts hidden with three template path mutations and a template evolution, all hidden,
 until they are filled; a new line or passive item starts available; "locked" is a quest whose `unlocks.id` names it
 (the Items tab's availability op writes the quest). The count pins in the tests are shape rules now
