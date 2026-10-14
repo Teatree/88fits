@@ -1,0 +1,130 @@
+/* The Sim tab (pass 77, lane SIMUI). Round 2: ONE page that scrolls as a whole (no inner scroll areas: Garry found the
+   bottom charts cut off): the settings card on top (foldable to one line), the progress, the history, then the sim shown
+   (its header, tiles and the charts in five sections, two columns from 1300 px, one below). The editor's dark surfaces
+   and series colours (style.css tokens); thin lines, hairline grids, the boss fights a faint amber wash. */
+
+.sim { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sim h2 { font-size: 0.98rem; margin: 0; font-weight: 650; }
+.sim h3 { font-size: 0.92rem; margin: 0; font-weight: 650; }
+.sim .small { font-size: 0.78rem; }
+.sim-help { color: var(--muted); font-size: 0.76rem; margin: 0; line-height: 1.35; }
+.sim-label { color: var(--ink-2); font-size: 0.8rem; font-weight: 600; }
+.sim-input { background: var(--surface-2); color: var(--ink); border: 1px solid var(--border-2); border-radius: 6px; padding: 5px 8px; font: inherit; font-size: 0.86rem; min-width: 0; }
+.sim-input:focus { outline: 2px solid rgba(57,135,229,0.6); outline-offset: 0; }
+.sim-input:disabled { opacity: 0.45; }
+.sim-input.num { width: 100%; font-variant-numeric: tabular-nums; }
+.sim-input.tiny { width: 4.2em; padding: 4px 6px; }
+.btn.on { border-color: rgba(57,135,229,0.75); color: var(--ink); background: rgba(57,135,229,0.14); }
+.sim-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.sim-warn { background: rgba(250,178,25,0.08); border: 1px solid rgba(250,178,25,0.35); color: var(--ink); border-radius: 8px; padding: 6px 9px; font-size: 0.8rem; margin: 8px 0 0; line-height: 1.35; }
+.sim-warn .btn { margin-left: 6px; }
+
+/* the settings card */
+.sim-run-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sim-summary { color: var(--ink-2); font-size: 0.84rem; min-width: 0; }
+.sim-go { padding: 7px 18px; font-size: 0.95rem; }
+.sim-eta { margin: 8px 0 0; font-size: 0.84rem; color: var(--ink); }
+.sim-why { margin: 2px 0 0; font-size: 0.76rem; color: var(--muted); line-height: 1.35; max-width: 1100px; }
+.sim-run.collapsed .sim-why { display: none; }
+.sim-run-body { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 14px; }
+.sim-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px 16px; align-items: start; }
+.sim-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sim-mapline { display: flex; gap: 4px; align-items: baseline; flex-wrap: wrap; font-size: 0.88rem; padding: 4px 0; }
+.sim-radios { display: flex; flex-direction: column; gap: 4px; }
+.sim-radio { display: flex; gap: 7px; align-items: flex-start; font-size: 0.84rem; color: var(--ink); cursor: pointer; line-height: 1.3; }
+.sim-radio input { margin: 2px 0 0; accent-color: var(--s1); }
+.sim-confirm { border: 1px solid rgba(57,135,229,0.5); background: rgba(57,135,229,0.08); border-radius: 8px; padding: 8px 10px; margin-top: 8px; font-size: 0.84rem; }
+.sim-confirm p { margin: 0 0 8px; }
+
+/* the Upgrade board */
+.sim-board { display: flex; flex-direction: column; gap: 8px; }
+.sim-board-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sim-board-head .sim-label { margin-right: 6px; }
+.sim-board-total { color: var(--muted); font-size: 0.8rem; margin-left: 8px; }
+.sim-talents { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px 12px; }
+.sim-talent { display: grid; grid-template-columns: 74px auto minmax(0, 1fr); align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); font-size: 0.84rem; }
+.sim-talent.none { opacity: 0.7; }
+.sim-talent b { font-weight: 600; }
+
+/* the progress */
+.sim-progress .sim-run-head { margin-bottom: 6px; }
+.sim-prog-line { font-size: 0.86rem; margin: 0 0 6px; }
+.sim-bar { margin: 4px 0 8px; }
+.sim-runs-live { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 4px 16px; }
+.sim-run-live { display: grid; grid-template-columns: 46px minmax(60px, 1fr) minmax(0, 1.4fr); column-gap: 8px; font-size: 0.78rem; align-items: center; }
+.sim-run-live .k { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.sim-run-live .track { height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.sim-run-live .track i { display: block; height: 100%; background: var(--s1); border-radius: 3px; }
+.sim-run-live.done .track i { background: var(--good); }
+.sim-run-live.failed .track i { background: var(--crit); }
+.sim-run-live .v { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* the history */
+.sim-history summary { cursor: pointer; font-size: 0.92rem; }
+.sim-hist-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.sim-hist { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 8px; padding: 5px 9px; background: var(--surface-2); }
+.sim-hist.current { border-color: rgba(57,135,229,0.8); }
+.sim-hist.compared { border-color: rgba(168,167,159,0.7); border-style: dashed; }
+.sim-hist-main { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; flex: 1 1 420px; min-width: 0; font-size: 0.84rem; }
+.sim-badge { font-size: 0.7rem; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--border-2); color: var(--ink-2); white-space: nowrap; }
+.sim-badge.running, .sim-badge.queued { color: var(--s1); border-color: rgba(57,135,229,0.6); }
+.sim-badge.partial, .sim-badge.stopped, .sim-badge.cancelled { color: var(--warn); border-color: rgba(250,178,25,0.5); }
+.sim-badge.failed { color: var(--s8); border-color: rgba(230,103,103,0.5); }
+.sim-badge.synthetic { color: var(--s5); border-color: rgba(213,81,129,0.6); }
+.sim-badge.kept { color: var(--good); border-color: rgba(12,163,12,0.5); }
+
+/* the header and the tiles */
+.sim-head-top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+.sim-head .muted.small { margin-top: 2px; line-height: 1.4; }
+.sim-compare { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.sim-compare .sim-input { max-width: 420px; }
+.sim-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.sim-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+.sim-tile-label { color: var(--ink-2); font-size: 0.76rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sim-tile-value { font-size: 1.35rem; font-weight: 650; margin: 1px 0; }
+.sim-tile-note { color: var(--muted); font-size: 0.72rem; line-height: 1.25; }
+
+/* the charts, in sections */
+.sim-sections { display: flex; flex-direction: column; gap: 18px; }
+.sim-section-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 4px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+.sim-section-head h2 { font-size: 1.02rem; }
+.sim-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 1300px) { .sim-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.sim-lacking { margin: 8px 0 0; }
+.sim-chart { padding: 10px 12px 8px; min-width: 0; }
+.sim-chart-head { display: flex; align-items: center; gap: 8px; }
+.sim-chart-tools { margin-left: auto; display: flex; gap: 4px; }
+.sim-how { color: var(--muted); font-size: 0.76rem; margin: 3px 0 4px; line-height: 1.35; }
+.sim-plot { width: 100%; min-height: 200px; overflow: hidden; }
+.sim-svg { display: block; }
+.sim-svg .sim-gl { stroke: var(--grid); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.sim-svg .sim-base { stroke: var(--axis); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.sim-svg .sim-tick { fill: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.sim-svg .sim-tick.end { text-anchor: end; }
+.sim-svg .sim-tick.mid { text-anchor: middle; }
+.sim-svg .sim-boss { fill: rgba(230,160,74,0.09); }
+.sim-svg .sim-crown { fill: #e6a04a; }
+.sim-svg .sim-stage { stroke: #5a5955; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.sim-svg .sim-mark-text { fill: var(--ink-2); font-size: 10px; }
+.sim-svg .sim-mark-text.end { text-anchor: end; }
+.sim-svg .sim-cursor-line { stroke: var(--ink-2); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.sim-svg .sim-dot { stroke: var(--surface); stroke-width: 2; }
+.sim-svg .sim-hit { fill: transparent; cursor: crosshair; }
+.sim-key { flex: 0 0 auto; vertical-align: middle; }
+.sim-read { display: flex; flex-wrap: wrap; gap: 3px 12px; font-size: 0.78rem; margin-top: 4px; min-height: 18px; align-items: center; }
+.sim-read-when { color: var(--ink-2); font-variant-numeric: tabular-nums; margin-right: 4px; }
+.sim-read-item { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.sim-read-item b { font-variant-numeric: tabular-nums; font-weight: 650; }
+.sim-read-item.cmp b { color: var(--ink-2); }
+.sim-read-item.zero { opacity: 0.5; }
+.sim-table-wrap { max-height: 280px; overflow: auto; margin-top: 8px; border: 1px solid var(--border); border-radius: 6px; }
+.sim-table-wrap.wide { max-height: none; }
+.sim-table { border-collapse: collapse; width: 100%; font-size: 0.78rem; }
+.sim-table th, .sim-table td { padding: 3px 8px; border-bottom: 1px solid var(--grid); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sim-table th { position: sticky; top: 0; background: var(--surface-2); color: var(--ink-2); font-weight: 600; }
+.sim-table th:first-child, .sim-table td:first-child { text-align: left; }
+.sim-table td.build { text-align: left; white-space: normal; color: var(--ink-2); min-width: 260px; }
+.sim-table tr.bad td { color: var(--s8); }
+.sim-runs summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+.sim-runs .sim-table-wrap { margin-top: 8px; }
+.sim-empty p { max-width: 900px; line-height: 1.45; }

@@ -180,6 +180,24 @@ var path_slot := 0                    # the next path slot of the stage (WaveTim
 ## the same desert every time (the capture tool).
 var map_seed := 0
 var forced_map_seed := 0
+## Pass 77 (lane SIMRUN): a launch set in memory (the run sim's players run side by side and would race on
+## user://debug_launch.json): Game._read_debug_launch takes it before the file, empties it and leaves the file alone.
+## The file's keys, plus `analytics_memory` (the run recorder keeps its rows in memory and writes no file).
+var launch_override: Dictionary = {}
+## Pass 77 (lane SIMRUN): the run's dice seed, 0 = random (every run but the run sim's); set by seed_dice.
+var rng_seed := 0
+## Pass 77 (lane SIMRUN): the Totem Poles' gifts' own dice in a run sim (seed_dice); null in play (TotemBoons.offer rolls
+## its own random ones).
+var totem_rng: RandomNumberGenerator = null
+## Pass 77 (lane SIMRUN): the run sim's fast mode (the launch's `sim_fast`, set by Game._ready for every run): the work
+## that only draws or plays is skipped and nothing that moves a number is: the crowd's, the shots' and the pickups'
+## drawing (their _process), the ground marks' drawing (Telegraphs keeps ageing them), Fx, sounds, the HUD's and the
+## damage numbers' frames; and the sheet's rebuild throttle reads the buffs' clock (_rebuild_clock_ms).
+var sim_mode := false
+## Pass 77 (lane SIMRUN): a run sim's run, in either of its modes (the launch's `sim_clock`, set by Game._ready for every
+## run): the rules that count real time count the run's own clock instead (rule_seconds), as a phone's real time is its
+## game time while a headless run goes 2.5 to 4.5 times faster than real time.
+var sim_clock := false
 ## Poisoned creatures alive right now (pass 48: EnemyManager counts them once a tick; Gas Mask reads it).
 var poisoned_alive := 0
 ## Phoenix Feather (pass 48): its one free revive this run is spent (phoenix_ready / use_phoenix).
@@ -263,6 +281,8 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	desperado_bucket = 0
 	_desperado_dirty = false
 	_desperado_source = ""
+	# pass 77 (lane SIMRUN): the throttle's last rebuild "long ago" (the run sim's clock starts at 0 every run)
+	_desperado_built_ms = -100000
 	still_seconds = 0.0
 	steady_bucket = 0
 	_steady_dirty = false
@@ -294,6 +314,25 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 
 func end() -> void:
 	active = false
+
+
+## Pass 77 (lane SIMRUN): the run sim's dice (tools/sim_run.gd calls it before the Game scene loads): `s` seeds the
+## global randf()/randi() stream, the level-up offers' and the chests' draws (CardPool.rng, a stream of their own, so
+## the build a seed grows stays close when the fight drifts) and the director's (WaveDirector.start reads rng_seed), so
+## one simulated player is repeatable on the same content as far as the game allows; 0 puts them back to random.
+func seed_dice(s: int) -> void:
+	rng_seed = s
+	if s == 0:
+		CardPool.rng = null
+		totem_rng = null
+		randomize()
+		return
+	seed(hash([s, "global"]))
+	var r := RandomNumberGenerator.new()
+	r.seed = hash([s, "cards"])
+	CardPool.rng = r
+	totem_rng = RandomNumberGenerator.new()
+	totem_rng.seed = hash([s, "totems"])
 
 
 ## Every hero's 1% crit chance (pass 52, StatSheet.PLAYER_DEFAULTS) is left out under the test runner, so a suite that
@@ -768,7 +807,7 @@ func _apply_desperado() -> void:
 		player_sheet.remove_source(_desperado_source)
 		_desperado_source = ""
 	_desperado_dirty = false
-	_desperado_built_ms = Time.get_ticks_msec()
+	_desperado_built_ms = _rebuild_clock_ms()
 	var v := desperado_might()
 	if v <= 0.0:
 		return
@@ -1237,9 +1276,23 @@ func tick_timed() -> Array:
 		rebuild_sheets()
 	# Desperado: a new tenth of missing health, Steady Hand: a new bucket of standing still, Hot Streak: a new step of the
 	# streak, on real time (a rebuild above has already folded them in)
-	if (_desperado_dirty or _steady_dirty or _streak_dirty) and Time.get_ticks_msec() >= _desperado_built_ms + DESPERADO_REBUILD_MS:
+	if (_desperado_dirty or _steady_dirty or _streak_dirty) and _rebuild_clock_ms() >= _desperado_built_ms + DESPERADO_REBUILD_MS:
 		rebuild_sheets()
 	return ended
+
+
+## Pass 77 (lane SIMRUN): the clock the rules that count real time read, in seconds (an Orbiter's hit on the same
+## creature, Orbiter._tick; the sheet's rebuild throttle, _rebuild_clock_ms): real time in play (a phone's real time is its
+## game time), the buffs' clock in a run sim (sim_clock or sim_mode: a headless run goes 2.5 to 4.5 times faster than real
+## time, so on real time an orbiter's saws hit a creature that many times less often, the bonus lags, and how much
+## depends on the machine's speed).
+func rule_seconds() -> float:
+	return buff_clock() if (sim_clock or sim_mode) else Time.get_ticks_msec() * 0.001
+
+
+## The rebuild throttle's clock (DESPERADO_REBUILD_MS) in milliseconds: rule_seconds' clock.
+func _rebuild_clock_ms() -> int:
+	return int(buff_clock() * 1000.0) if (sim_clock or sim_mode) else Time.get_ticks_msec()
 
 
 ## Seconds left of a timed buff by its id (pass 47: Barrel Rush's boost for the HUD), 0 when there is none.

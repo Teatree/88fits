@@ -74,6 +74,9 @@ func start(p_map: MapDef) -> void:
 	_elite_retry = 0.0
 	_portal_t = 0.0
 	_rng.randomize()
+	# pass 77 (lane SIMRUN): the run sim's seed (Run.seed_dice) makes the director's dice repeatable
+	if Run.rng_seed != 0:
+		_rng.seed = hash([Run.rng_seed, "director"])
 	# pass 58: every row and wave fixes its numbers afresh at its first spawn of this run
 	forget_sources()
 	# pass 53: the events' jitter and chance and the waves' alternatives, rolled once for this run

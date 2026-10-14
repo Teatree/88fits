@@ -3296,7 +3296,8 @@ func _physics_process(delta: float) -> void:
 ## The draw runs once per shown frame, and only when a tick has moved something since the last one (pass 33.8: it ran
 ## inside the physics tick, so a phone below 60 fps drew the crowd twice for every frame it showed).
 func _process(_delta: float) -> void:
-	if player == null or _drawn == _ticks:
+	# pass 77 (lane SIMRUN): the run sim's fast mode draws no crowd (the tick keeps every number, refresh_onscreen too)
+	if player == null or _drawn == _ticks or Run.sim_mode:
 		return
 	_drawn = _ticks
 	var t0 := Time.get_ticks_usec()

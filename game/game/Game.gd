@@ -80,6 +80,10 @@ func _ready() -> void:
 	# a tool's launch file first (pass 66): its `arena` opens the debug arena as the title's ARENA does (the Level
 	# Editor's "Test in game" launches the editor binary straight into it, _launch_in_arena)
 	var debug_launch := _read_debug_launch()
+	# pass 77 (lane SIMRUN): the run sim's fast mode (Run.sim_mode), every run's own (off unless its launch says)
+	Run.sim_mode = bool(debug_launch.get("sim_fast", false))
+	# and the run's own clock for the rules that count real time (Run.rule_seconds), every run sim's in both its modes
+	Run.sim_clock = bool(debug_launch.get("sim_clock", false))
 	var arena: bool = Run.arena_next or bool(debug_launch.get("arena", false))
 	Run.arena_next = false
 	# the arena keeps nothing: the save as it is now (before Run.start counts a run) goes back when it closes
@@ -288,6 +292,12 @@ func _ready() -> void:
 
 
 func _read_debug_launch() -> Dictionary:
+	# pass 77 (lane SIMRUN): a launch set in memory comes first (Run.launch_override, the run sim's), taken once; the
+	# file is not touched then (side-by-side processes would race on it)
+	if not Run.launch_override.is_empty():
+		var lo: Dictionary = Run.launch_override
+		Run.launch_override = {}
+		return lo
 	if not FileAccess.file_exists("user://debug_launch.json"):
 		return {}
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.READ)
@@ -1358,8 +1368,10 @@ func _process(delta: float) -> void:
 	if not _dummies.is_empty() or not _attackers.is_empty():
 		_tick_dummies(delta)
 	var t0 := Time.get_ticks_usec()
-	hud.tick(delta)
-	hints.tick(delta)
+	# pass 77 (lane SIMRUN): the run sim's fast mode draws no HUD and shows no hints
+	if not Run.sim_mode:
+		hud.tick(delta)
+		hints.tick(delta)
 	Perf.add("hud", t0)
 	Perf.frame()
 	if int(Run.elapsed) % 5 == 0 and int(Run.elapsed * 10.0) % 50 == 0:
@@ -2197,7 +2209,8 @@ func use_structure(def: StructureDef, at: Vector3) -> void:
 ## says its name.
 func _use_totem(def: StructureDef) -> void:
 	_request_modal(Modal.TOTEM, func() -> bool:
-		var offer: Array = TOTEM_SCREEN.BOONS.offer(def)
+		# (pass 77, lane SIMRUN: a run sim's own dice for the gifts, Run.totem_rng; null in play: random as ever)
+		var offer: Array = TOTEM_SCREEN.BOONS.offer(def, Run.totem_rng)
 		if offer.is_empty():
 			hud.toast(def.display_name, def.color)
 			return false

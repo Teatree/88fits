@@ -357,28 +357,49 @@
         ],
         "until": 200,
         "stats": {
-          "speed": 4,
+          "speed": 3,
           "can_be_elite": false
         }
       },
       {
-        "id": "r18",
-        "t": 250,
-        "enemy": "blue_slime",
+        "id": "r21",
+        "t": 245,
+        "until": 347,
+        "enemy": "lesser_scorpion",
         "weights": [
           [
-            250,
-            2.5
+            245,
+            5.4
           ],
           [
-            313,
-            2.5
+            306,
+            10.1
+          ],
+          [
+            337,
+            10.6
+          ],
+          [
+            430,
+            3.8
           ]
         ],
-        "until": 315,
+        "pack": 30,
         "stats": {
-          "hp": 40
-        }
+          "hp_mult": 2.0,
+          "tint": {
+            "hue": [
+              350,
+              12
+            ],
+            "sat": 0.85,
+            "val": 0.8,
+            "amount": 0.4
+          },
+          "size": 2,
+          "damage_mult": 1.25
+        },
+        "pattern": "ring"
       },
       {
         "id": "r3",
@@ -440,11 +461,12 @@
         "weights": [
           [
             258,
-            1.8
+            1.2
           ]
         ],
         "until": 315,
-        "pattern": "scatter"
+        "pattern": "scatter",
+        "pack": 1
       },
       {
         "id": "r15",
@@ -456,16 +478,29 @@
             1
           ]
         ],
+        "until": 347,
+        "pattern": "scatter"
+      },
+      {
+        "id": "r4",
+        "t": 389,
+        "enemy": "bull_beetle",
+        "weights": [
+          [
+            389,
+            1.0
+          ]
+        ],
         "until": 430,
         "pattern": "scatter"
       },
       {
         "id": "r16",
-        "t": 347,
+        "t": 368,
         "enemy": "werewolf",
         "weights": [
           [
-            347,
+            368,
             5.4
           ]
         ],
@@ -474,7 +509,8 @@
           "hp": 20,
           "size": 1.4
         },
-        "pattern": "ring"
+        "pattern": "ring",
+        "pack": 35
       },
       {
         "id": "r19",
@@ -519,32 +555,22 @@
         }
       },
       {
-        "id": "r21",
-        "t": 431,
-        "until": 536,
-        "enemy": "lesser_scorpion",
+        "id": "r18",
+        "t": 430,
+        "enemy": "blue_slime",
         "weights": [
           [
-            431,
+            430,
             6.0
           ],
           [
-            536,
+            535,
             4.0
           ]
         ],
-        "pack": 5,
+        "until": 536,
         "stats": {
-          "hp_mult": 0.27,
-          "tint": {
-            "hue": [
-              350,
-              12
-            ],
-            "sat": 0.85,
-            "val": 0.8,
-            "amount": 0.4
-          }
+          "hp": 40
         }
       },
       {
@@ -1518,7 +1544,7 @@
       5,
       5
     ],
-    "xp_need_mult": 2.1,
+    "xp_need_mult": 4.1,
     "move_pace": 0.9,
     "boss_hp_scaling": {
       "enabled": true,
@@ -1527,9 +1553,9 @@
       "min": 0.75,
       "max": 3.0,
       "ref_dps": {
-        "tumbleweed_king": 600,
-        "gila_grande": 4500,
-        "brander": 20000
+        "tumbleweed_king": 6000,
+        "gila_grande": 45000,
+        "brander": 200000
       }
     },
     "target_priority": {

@@ -121,6 +121,9 @@ func setup(p_game: Node, p_map: MapBase, plan: Dictionary) -> void:
 	game = p_game
 	map = p_map
 	_rng.randomize()
+	# pass 77 (lane SIMRUN): a run sim's seed places them (Run.rng_seed; 0 in play: random as ever)
+	if Run.rng_seed != 0:
+		_rng.seed = hash([Run.rng_seed, "structures"])
 	_make_coin_stream()
 	var count := int(plan.get("count", 8))
 	var spacing := float(plan.get("min_spacing", 16.0))

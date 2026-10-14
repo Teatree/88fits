@@ -815,6 +815,8 @@ const App = (() => {
       else if (S.tab === 'instructions') Instructions.render(panel);
       // pass 72 (lane BOSS): the custom boss attacks (boss_attacks.js keeps its own documents and keys)
       else if (S.tab === 'bossattacks' && typeof BossAttacks !== 'undefined') BossAttacks.render(panel);
+      // pass 77 (lane SIMUI): the run sim (sim.js: its own state, polling and charts; plays the saved map)
+      else if (S.tab === 'sim' && typeof Sim !== 'undefined') Sim.render(panel);
       else if (assetsTab()) Assets.render(S.tab, panel);
     }
     updateTopBar();

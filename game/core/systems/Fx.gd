@@ -346,6 +346,8 @@ func _blood_piece(at: Vector3, vel: Vector3, s0: float, s1: float, grav: float, 
 ## pops open in the creature's colour with a pale hot middle and breaks into spatter, and drops flung out across the
 ## screen that fall and shrink; a boss's bursts twice.
 func blood(at: Vector3, col: Color, size: float = 1.0, big: int = 0) -> void:
+	if Run.sim_mode:
+		return
 	if _blood_mm == null:
 		return
 	big = clampi(big, 0, 2)
@@ -499,6 +501,8 @@ func _busy_skip() -> bool:
 
 
 func _emit(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, a0: float, a1: float, col: Color, grav := 0.0, shard := false, must := false) -> void:
+	if Run.sim_mode:
+		return
 	if _n >= MAX_P:
 		return
 	if not must and _busy_skip():
@@ -513,6 +517,8 @@ func _emit(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, a0: flo
 ## One flame tongue: it grows from `s0` to `s1` metres tall while the shader's noise eats it away with age. `blue` (pass
 ## 48) burns it in the blue palette: a blue body (FLAME_BLUE at `col`'s alpha) and the shader's blue heart and rim.
 func _emit_flame(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, col: Color, must := false, blue := false) -> void:
+	if Run.sim_mode:
+		return
 	if _n >= MAX_P:
 		return
 	if not must and _busy_skip():
@@ -529,6 +535,8 @@ func _emit_flame(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, c
 ## One dust puff (pass 50): a soft cloud from `s0` to `s1` metres across over `life` seconds, `a0` opaque at first and
 ## thinning to nothing, fraying as it ages (the shader). `noise_seed` places its noise (negative: a random one).
 func _emit_dust(at: Vector3, vel: Vector3, life: float, s0: float, s1: float, a0: float, col: Color, must := false, noise_seed := -1.0) -> void:
+	if Run.sim_mode:
+		return
 	if _n >= MAX_P:
 		return
 	if not must and _busy_skip():
@@ -755,6 +763,8 @@ func mote(at: Vector3, vel: Vector3, life: float, size: float, col: Color) -> vo
 ## wobbles, and fades over the last half of `life`; `col` tints the white glyph (its outline stays dark), `glyph` picks
 ## the atlas cell (-1 any).
 func note(at: Vector3, vel: Vector3, life: float, size: float, col: Color, glyph: int = -1) -> void:
+	if Run.sim_mode:
+		return
 	if _n >= MAX_P or _busy_skip():
 		return
 	var i := _n
@@ -908,6 +918,8 @@ class SpeedTrail:
 ## A speed trail (pass 48, TRAILS): `source` "gold", "blue" or "red"; `at` is the hero's feet this frame; `moving` adds to
 ## the tail (standing, or once the boost is over, it shrinks away over its seconds).
 func speed_trail(source: String, at: Vector3, delta: float, moving: bool) -> void:
+	if Run.sim_mode:
+		return
 	var tr := _trail(source)
 	if tr == null:
 		return
@@ -1008,6 +1020,8 @@ func _draw_trail(tr: SpeedTrail) -> void:
 ## only then), `moving` while he runs (streaks rush back past him; standing, they rise round him). Old streaks fly on and
 ## fade after the boost.
 func wind(at: Vector3, forward: Vector3, delta: float, on: bool, moving: bool) -> void:
+	if Run.sim_mode:
+		return
 	var k := 0
 	while k < _wind_age.size():
 		_wind_age[k] += delta
@@ -1131,6 +1145,8 @@ func speed_burst(at: Vector3, col: Color, small: bool = false) -> void:
 ## line was lost on the sand), a flash at every point, gone in a third of a second with a flicker.
 ## `width` (pass 48): Thor's Wrath's and the Earthshaker's small zaps are thinner bolts with a tighter zigzag (0.5).
 func lightning(points: Array, color: Color = Color(0.3, 0.58, 1.0), width: float = 1.0) -> void:
+	if Run.sim_mode:
+		return
 	if points.size() < 2 or _live >= MAX_LIVE:
 		return
 	# a zigzag between the points: a bolt, not a line (additive washed to white over the sand, so the sheath is a
@@ -1251,6 +1267,11 @@ func _ribbon(pts: Array, width: float, to_cam: Vector3) -> Mesh:
 
 
 func _process(delta: float) -> void:
+	# pass 77 (lane SIMRUN): the run sim's fast mode has no effects at all (nothing here moves a number): no particle,
+	# note, blood, bolt, trail or wind is made (the guards at the top of _emit, _emit_flame, _emit_dust, note, blood,
+	# lightning, speed_trail and wind) and none is aged or drawn
+	if Run.sim_mode:
+		return
 	var t0 := Time.get_ticks_usec()
 	_tick_blood(delta)
 	_draw_bolts(delta)

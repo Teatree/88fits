@@ -1066,3 +1066,195 @@ For scripts: `POST /api/content/weapon/<id>/variant {code}` (an evolution or a m
 record in `/api/items` carries `family_looks` (per look: code, name, icon, note, shelved, fresh, exists, default, base,
 members [{kind, id, role, name, icon, own, hidden}]) and every family member `play`, `icon_play`, `name_play`. The keys:
 tools/dl/p76/keys_LOOKS.md (the lead folds them into docs/assets_schema.md). Self-test: `selftest_LOOKS76.py`.
+
+## Pass 77: the Sim tab (the game plays your map, run after run)
+
+Garry (2026-10-14): "Add a game sim tab which simulates a run ... simulate like 10 players (editable) and the output is
+the average ... charts per second showing: Player DPS, Player HP, Death, Difficulty (composition of enemy HP and atk,
+which are likely to be alive at that point), Coins (total gains), Total Damage Dealt (different sources breakdown as
+well), Kills (different enemies breakdown), hero level, total exp gained ... consider the multipliers and all the enemy,
+cap and stuff ... the sim requires a manual button press".
+
+**What a sim is.** The real game plays the **saved** map, headless (no window), as many times as you ask, with a bot at
+the controls, several runs side by side; every second of play is then averaged over the runs into charts. Because it is
+the game itself, everything counts: the cap and the hard cap, the roster, the waves and events, every HP and ATK
+multiplier (stage, time, hero level), specials, Elites, the bosses and their HP pegged to the hero's DPS, the Upgrade
+board, the cards, chests and evolutions. The bot (lane SIMRUN, `game/tools/sim_run.gd` and `sim_pilot.gd`; its rules in
+BALANCING.md): it kites the crowd the way the difficulty probe does, gathers the gems when the way is clear and it is
+healthy, steps out of red warning rings, takes the level-up cards a sensible player would (an evolution, the hero's
+favourite, a new weapon while a slot is free, a weapon's next level, a hero perk, a new card, a card's next level, a
+passive item; ties at random; never a skip, reroll or banish), takes every chest, walks to the boss's chest and the
+portal and always goes on, leaves the Stranger and the shop alone, takes the Totem Pole gift with the most feathers, and
+answers Down! as you set. It plays with every item unlocked (the whole card pool, whatever the save has) and the Upgrade
+board you choose. It plays like a steady player, not a great one: read the charts as "a run like this goes like this",
+and compare sims with each other.
+
+Nothing runs until you press **Run sim**. A sim copies the game into its own folder first (the snapshot,
+`tools/dl/sim/snap/game`, with its own save folder `%APPDATA%\88fits_sim`), so it never touches your save, never waits
+for the Godot lock and never blocks a Save, an import or the tests: you can keep editing and saving while it runs. It
+plays what was saved when it started.
+
+### Run a sim
+
+The Sim tab sits right after Timeline. It is one page that scrolls as a whole: the settings on top, then the sim
+running (when one is), the history, and the sim shown with its charts.
+
+1. In **Run a sim** (**Hide settings** folds it to one line; **Show settings** opens it again):
+   - **Hero**: who plays every run.
+   - **Runs** (10): how many runs are played and averaged. More runs = smoother averages, longer to wait.
+   - **At once** (auto): how many play side by side. Auto = as many as the runs, at most the PC's logical processors
+     less 2 (14 on this PC): ten runs play all at once.
+   - **Stop at** (25:00): play time. Boss fights and portal waits count (the timeline's clock stops during them, so a
+     run that stops at 25:00 of play has reached about 21-23 minutes of the timeline).
+   - **On death** (end the run at the first death): *end the run at the first death*; *revive once with an ad, then end*
+     (Down! answered with the ad revive while it is offered); *keep playing, count every death* (the hero is put back on
+     his feet at once and plays to the stop: every run lasts the whole time, and the Deaths chart counts every fall).
+     "Revive with gold" is gone with Get up with gold. A policy the game's runner does not know yet is not offered.
+   - **Seed** (1): run 1 plays this seed, run 2 the next, ... The same seed on the same saved map plays the same runs as
+     far as the game allows (the structures' places and the Totem Poles' gifts stay random).
+   - **Note**: a few words to find the sim in the history.
+   - **Drawing** (skip it): on, the runs draw nothing and play no sound (the runner's sim mode, every rule kept: ten
+     runs of 25:00 took 10:23 instead of 18:10); off, every frame is drawn and every sound played as in the game
+     (slower: a check that the sim mode changes nothing). Offered when the game's runner has the sim mode; the header and the history say "everything
+     drawn" for a sim that played with it off.
+   - **Upgrade board**: the eight talents, each with its rank (0-6) and its form (Grit: Padding or Plate, ...). The
+     buttons fill them: **none**, **a quarter** (12 of the 48 ranks), **half**, **full** (every talent in its usual form,
+     as the difficulty probe plays them), **my save** (the talents bought in your save on this PC, forms rank by rank).
+     Change any row and the board is **custom**. Every run plays the same board. A rank's forms can be mixed in your save
+     ("2 Padding, 1 Plate"); choosing one form makes every rank that form.
+2. Press **Run sim**. If the map has unsaved changes it asks first: **Save and run**, or **Run the saved map**. The line
+   under the button says about how long it will take if every run lasts to the stop (a run that ends at a death makes
+   it shorter), and the line under that why: a sim plays the real game frame by frame (60 frames to a second of play,
+   every rule), headless, several runs at once; it learns this PC's speed from every full sim.
+3. While it runs, the card under the settings shows each run's clock and level, how many are done and about how long is
+   left (from the runs' own pace). **Cancel** stops it; the runs already finished stay as a partial result. The charts
+   take over as soon as the first run of the sim you started finishes, and fill in as the others do. The sim is also a
+   job in the **Jobs** tab (lane "sim": it never holds up the art or the imports); its card opens the Sim tab.
+
+### Read the charts
+
+The header says what the sim played: the hero, the settings, the board talent by talent, which save of the map (when it
+was saved and a short code), the game version, when it ran and how long it took, "every item unlocked". Under it, the
+**tiles**: how many runs reached the stop, when a run ended (the middle one), deaths, level, kills and coins per run
+(each run counted at its own end), and each boss: how many of the runs that met it beat it, the fight's usual length and
+its HP pegged to the hero's DPS.
+
+The charts come in five sections, in the order you listed them. Every chart has play time along the bottom, the stage
+starts as thin lines and the boss fights as amber washes (each the middle value of the runs that got there; hover one
+for the details), and says in its own words what it shows and how it was averaged:
+
+| Section | Chart | What it shows |
+|---|---|---|
+| The hero | **Player DPS** | the damage dealt each second by every source; each run smoothed over 5 s, then averaged; the pale band is the middle 80% of the runs; the dashed line is the build's own estimate (the pause screen's). **smoothed 5 s** switches to the raw per-second average |
+| | **Player HP** | health and max health (dashed), the band the middle 80% |
+| Death | **Runs still playing** | the share of the runs not yet ended |
+| | **Deaths so far** | falls per run (revived or not), counted over every run: an ended run keeps its count |
+| How hard is each second? | **Danger: health lost a second** | how much of his max health the hero loses each second before healing (the line) and after it (dashed: below 0 = he heals more than he loses). 2% means a full bar lasts 50 s |
+| | **Keeping up with the crowd** | how many seconds of his own damage he would need to kill every creature alive, the boss left out: rising = falling behind, flat or falling = keeping up. Dashed: the boss alone. The middle run at each second, not the mean (a crowd over a DPS jumps where the DPS is small) |
+| | **Close crowd** | creatures within 3 m of the hero (and 6 m, dashed): the ones that can reach him now |
+| | **Who is alive** | the crowd split by creature |
+| | **Runs in trouble** | the share of the runs whose hero is under 30% of his health |
+| | **What hurt the hero** | health lost so far, by creature or attack |
+| | **Hits taken** | hits that reached him each second (10 s mean) |
+| | **Healing** | health healed so far, by what gave it |
+| | **The crowd against the cap** | creatures alive and the director's cap at that second |
+| | **Spawned and killed** | each second, over 10 s: kills above spawns = winning the room |
+| | **How strong a creature spawned now is** | the HP × and damage × a creature spawned at that second gets (stage, timeline, hero level) |
+| Rewards | **Coins gained** | every coin picked up so far, split by where it came from (spending not taken off) |
+| | **Damage dealt** | all the damage so far, split by weapon, evolution, perk, blast |
+| | **Kills** | creatures killed so far, split by creature |
+| Growth | **Hero level** | the level, the band the middle 80% |
+| | **Total XP gained** | every point of XP so far |
+| | **The build: items held** | weapons, evolutions, lines, passive items and perks held |
+
+A chart the runs cannot draw (the game's runner did not report its numbers) is left out and named under the section.
+Crowd HP and crowd attack are no longer charts: a sum of the whole crowd's health counts the boss, and a sum of every
+creature's hit is never what can land at once; Danger, Keeping up and Close crowd say how hard a second is instead.
+
+A chart's average is over the runs **still playing** at that second (Runs still playing says how many): late in a sim
+where many runs died, the average is of the stronger runs. The splits show the 7 biggest and the rest as Other (hover:
+the biggest inside Other are named); the same creature has the same colour in Who is alive, What hurt the hero and Kills.
+
+**Hover** any chart: a line follows the mouse on every chart and the numbers under each one say what they were at that
+second (with the timeline's clock and the stage). Without the mouse they show the end. **Table** shows the numbers every
+minute; **CSV** saves every second of that chart for a spreadsheet. **The N runs one by one** (under the charts) lists
+each run: its seed, how and when it ended, its deaths, level, kills, coins and its build at the end.
+
+What came from the run dashboard (analytics/dashboard.html) and what did not: the Sim took what helps judge a timeline
+from an average of runs: what hurt the hero, hits taken, healing by source, the crowd against the cap, spawned against
+killed, the creatures' strength multipliers and the build's growth. It left out what only means something for one run or
+one player's choices: the last 30 seconds before a death, the card decisions (the bot's are rules, not choices), the
+Stranger and the totems, quests, the stat sheet's growth and the stacking bonuses.
+
+### Compare two versions
+
+1. Run a sim. Change the map or a creature, save.
+2. Run a sim again with the same settings and seed.
+3. In the **History** (the last 10 sims, newest first; **Keep** one and it is never removed), press **Compare** on the
+   older one, or pick it in **Compare with** above the charts: its lines come in grey dashes on every chart of the one
+   shown, and the numbers under each chart give both. **Show** makes a sim the one shown.
+
+The header warns when the map has been saved since the sim shown ran.
+
+### Good to know
+
+- How long a sim takes, measured on this PC (16 logical processors) with 10 runs of 25:00 that all play the whole time
+  ("keep playing"): 10:23 with ten at once and the runner's sim mode (it skips the drawing, every rule kept; each run
+  6:40 to 10:10, about 3 times as fast as real play); 18:10 with ten at once and the sim mode off; 23:39 with six at
+  once before the sim mode existed. The default settings (end at the first death) took 9:04: two runs reached 25:00,
+  the others died between 2:51 and 9:08. The time under the button comes from the last full sims at that number at
+  once, at the pace of their slowest run (ten runs at once end with the slowest); a sim where most runs ended early
+  teaches it nothing (the few left have the PC to themselves and run faster). The first sim copies the game into the snapshot
+  (about 30 s) and imports it (about 15 s); after that only what changed is copied (a second or two), and the snapshot
+  imports again only when a picture, model, sound, font or a script's class changed. A content JSON newer than its
+  `.tres` is imported in the snapshot, so the sim plays the saved JSON even when the editor's own import was queued.
+- A run that hangs (a screen up too long) or takes too long on the PC is stopped and marked "stuck"; its numbers up to
+  then still count.
+- One sim at a time (its own lock, `tools/dl/locks/sim.lock`). A lock left by a sim that was killed is released by the
+  next one; the Sim tab offers **Release it** for a lock with no owner.
+- Close the Level Editor and start it again once (`tools\level_editor.cmd`) to get the Sim tab's server part: an
+  editor started before pass 77 says so on the tab.
+
+### For scripts
+
+    python tools/sim_batch.py --out tools/dl/sim/runs/<name> --hero drifter --players 10 [--workers 0] --limit 1500 \
+        [--board 1.5 | --talents grit:AAB,study:BB [--board-label "my save"]] --death end --seed 1 [--map red_canyon] \
+        [--fps 60] [--no-fast] [--note "..."]
+    python tools/sim_batch.py --aggregate tools/dl/sim/runs/<name>     # the players' files again into result.json
+    python tools/sim_batch.py --out <dir> --synthetic                  # made-up runs (the selftest's and the page's fixture)
+
+`--talents`: one entry a talent, its picks one letter a rank (A its first form, B its second), as the save keeps them;
+it wins over `--board` (a preset: 0, 1.5, 3, 6 ranks a talent). `--workers 0` = auto. `--no-fast` plays without the
+runner's sim mode. The runs get `board=`, `talents=` (only with ranks), `death=` and `fast=0/1` (when the runner has it);
+an older runner that knows neither `talents=` nor a policy is refused before anything plays (`caps_problem`).
+
+A sim's folder `tools/dl/sim/runs/<id>/`: `settings.json`, `progress.json` (where every run is, rewritten every
+second or two), `result.json` (the averages; rewritten after every finished run, `meta.partial` until the end),
+`head.json` (what the history lists), `players/pNN.json` (each run as `sim_run.gd` wrote it, keys in
+`tools/dl/p77/keys_SIMRUN.md`) and `players/pNN.log`. `tools/dl/sim/speed.json` keeps the measured speed of the last
+full sims (play seconds a wall second per run: the middle run's and the slowest run's, `slow`; the boot; how many at
+once; `fast` = the sim mode on). `result.json`: `t` (0..T play seconds), `playing`, `series`
+{name: {mean, p10, p90} (bands for hp, dps, level, press_hp, press_dmg, danger, near3, near6), dps (5 s), dps_raw,
+danger / danger_net (% of max HP a second, 5 s), keep_up / boss_s {median, p10, p90, n} (seconds of DPS), trouble (% of
+runs), kills_ps / spawned_ps / hits_ps (10 s), deaths (over every run), clock / stage {median}}, `breakdowns` {dmg_by,
+kills_by, gold_by, took_by, healed_by, alive_by, held_by: {kind cum|level, order, mean {id: []}, score}}, `markers`
+{stages [{stage, t, n, min, max}], bosses [{id, occurrence, start, end, n, beaten, fight_s, mult, hp}], deaths,
+revives}, `players` [{k, seed, ok, end_reason, end_t, wall_s, boot_s, rate, deaths, revives, level, kills, gold, xp,
+dmg, build, assists}], `summary`, `names`, `settings` (with `talents`, `board_label`), `rules`, `meta` {started, ended,
+wall_s, partial, players_done, players_total, map_rev {sha, saved, name}, version, sync, job, unlocks, assists,
+board_differs, sim_mode (what the runs played: false = everything drawn)}.
+
+The routes (`sim_io.py`): `GET /api/sim/settings` (the form's choices and defaults, the talents and their presets with
+"my save", the runner's capabilities, the processors, the measured speed and its words, the saved map's code), `GET
+/api/sim/status` (the sim queued or running: its job, its progress.json, the lock), `GET /api/sim/history`, `GET
+/api/sim/result/<id>`; `POST /api/sim/run {settings}` (queued as a job of kind `sim`; 400 for bad settings, 409 while one
+is queued or runs or when the runner cannot play them), `POST /api/sim/settings`, `POST /api/sim/<id>/keep {keep}`,
+`POST /api/sim/<id>/delete`, `POST /api/sim/<id>/cancel`, `POST /api/sim/unlock {force}`. The job kind `sim` (jobs.py
+SPECS: hero, players, workers, limit, board, talents, board_label, death, seed, map, fps, note, fast) runs on its own
+lane `sim`. The charts' definitions are plain data in and out (`sim_model.js` `charts(result, compared, opts)`), so the
+run dashboard can reuse them.
+
+Self-test: `selftest_SIM77.py` (the averaging by hand on three tiny runs and on made-up ones; round 2's board, death
+policies, at once, the runner's capabilities and arguments, my save, the derived difficulty series and the medians; the
+snapshot's copy rules and import reasons; the sim lock; the job kind with a real run of the driver and a cancel; the
+routes; the page's maths under Node, its sections and its wiring).

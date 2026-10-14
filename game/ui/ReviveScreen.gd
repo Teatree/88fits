@@ -1,6 +1,6 @@
 ## Down! (Wanted screen 14): a rock dim; "★ 1 CHANCE LEFT ★ / DOWN!"; a paper disc with the count running out and "get
-## up"; who put the hero down; then GET UP · WATCH AN AD (a stand-in: no ads yet), GET UP for 150 gold, STAY DOWN (a
-## pop-up asks first, the count held meanwhile). One chance per run plus the Upgrade board's; the hero comes back with
+## up"; who put the hero down; then GET UP · WATCH AN AD (a stand-in: no ads yet) and STAY DOWN (a pop-up asks first,
+## the count held meanwhile); pass 77 took "GET UP for 150 gold" off (Garry: "Remove the 'Get up with gold' option"). One chance per run plus the Upgrade board's; the hero comes back with
 ## the revive_hp share of his health (half, more with Second Wind). Under the developer menu's hit log or the player's
 ## debug mode (pass 46: the Results screen no longer shows it) the last 30 seconds are listed under the count, newest
 ## first: a row a hit or a pickup heal, with its time before the fall, the badge of what did it (a skull for a boss, a
@@ -10,7 +10,7 @@
 class_name ReviveScreen
 extends WModal
 
-signal decided(kind: String)   # "ad" | "gold" | "give_up" | "timeout" | "debug"
+signal decided(kind: String)   # "ad" | "give_up" | "timeout" | "debug" ("gold" is no longer offered, pass 77)
 
 const SECONDS := 8.0
 const GOLD_COST := 150
@@ -38,7 +38,6 @@ var _gold_coin: WCoin
 var _gold_line: WText
 var _hold_btn2: WButton
 var _ad_btn: WButton
-var _gold_btn: WButton
 var _quit_btn: WButton
 var _debug_btn2: WButton
 var _log_panel: PanelContainer
@@ -152,7 +151,7 @@ func _ready() -> void:
 	_list.mouse_filter = Control.MOUSE_FILTER_PASS
 	_log_scroll.add_child(_list)
 	_touch = TouchScroll.new(_log_scroll, true)
-	# the ways up: an ad (full width), gold, or staying down
+	# the ways up: an ad (full width) or staying down (pass 77: no gold)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 24)
 	col.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
@@ -169,11 +168,6 @@ func _ready() -> void:
 	row.add_theme_constant_override("separation", 24)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(row)
-	_gold_btn = WButton.make(["GET UP ", {"coin": 34}, ["%d" % GOLD_COST, null]], 34, WButton.SECONDARY, 5, 8, 26.0, 0.0)
-	_gold_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_gold_btn.size_flags_stretch_ratio = 1.4
-	_gold_btn.pressed.connect(func(): _try("gold"))
-	row.add_child(_gold_btn)
 	_quit_btn = WButton.make(["STAY DOWN"], 34, WButton.DANGER, 5, 8, 26.0, 0.0)
 	_quit_btn.name = "StayDown"
 	_quit_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -215,7 +209,6 @@ func open(gold: int, chances: int, log_text: String = "", killer: Dictionary = {
 	var can := chances > 0
 	header.star_line.get_child(1).text = ("%d CHANCE%s LEFT" % [chances, "" if chances == 1 else "S"]) if can else "NO CHANCES LEFT"
 	_ad_btn.locked = not can
-	_gold_btn.locked = not can or gold < GOLD_COST
 	_count.text = str(int(ceil(SECONDS)))
 	if killer.is_empty():
 		killer = fatal_row(rows)
@@ -411,10 +404,9 @@ func _row(e: Dictionary, t_ref: float) -> PanelContainer:
 	return row
 
 
-## A revive that is not on offer (spent, or short of gold) says so instead of acting.
+## A revive that is not on offer (no chance left) says so instead of acting.
 func _try(kind: String) -> void:
-	var b := _ad_btn if kind == "ad" else _gold_btn
-	if b.locked:
+	if kind != "ad" or _ad_btn.locked:
 		Audio.play("ui_locked")
 		return
 	_decide(kind)

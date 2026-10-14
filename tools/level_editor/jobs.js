@@ -483,6 +483,7 @@ const Jobs = (() => {
 
   function openAsset(t) {
     if (!t || !t.kind || !t.id) return;
+    if (t.kind === 'sim') { App.switchTab('sim'); return; }   // pass 77 (lane SIMUI): a sim's charts are in the Sim tab
     const tab = TAB_OF_KIND[t.kind] || 'items';
     if (typeof Assets !== 'undefined' && typeof Assets.open === 'function') {
       try { Assets.open(t.kind, t.id); } catch (e) { App.status(`could not open ${t.id}: ${e.message}`, 'bad'); }
@@ -728,7 +729,7 @@ const Jobs = (() => {
     if (j.outputs && j.outputs.length) c.appendChild(outputs(j, c.__players));
     c.appendChild(el('div', { class: 'jcard-actions' },
       el('button', { type: 'button', class: 'btn small danger', text: 'Cancel', title: 'kill the tool (and, for a ComfyUI job, interrupt the server\'s queue, which holds only ours under the lock)', onclick: () => act(j, 'cancel', {}, 'cancelling') }),
-      j.target && j.target.id ? el('button', { type: 'button', class: 'btn small', text: 'Open asset', onclick: () => openAsset(j.target) }) : null,
+      j.target && j.target.id ? el('button', { type: 'button', class: 'btn small', text: j.kind === 'sim' ? 'Open in Sim' : 'Open asset', onclick: () => openAsset(j.target) }) : null,
       el('button', { type: 'button', class: 'btn small ghost', text: 'Log', title: 'the last 80 lines', onclick: () => showLog(j) })));
   }
 
@@ -819,9 +820,9 @@ const Jobs = (() => {
     if (j.choices && j.choices.length) installChoices(c, j);
     if (j.progress && j.progress.stages && j.progress.stages.length) c.appendChild(stagesRow(j));
     c.appendChild(el('div', { class: 'jcard-actions' },
-      j.target && j.target.id ? el('button', { type: 'button', class: 'btn small primary', text: j.target.code ? 'Open look' : 'Open asset', onclick: () => openAsset(j.target) }) : null,
+      j.target && j.target.id ? el('button', { type: 'button', class: 'btn small primary', text: j.kind === 'sim' ? 'Open in Sim' : j.target.code ? 'Open look' : 'Open asset', onclick: () => openAsset(j.target) }) : null,
       el('button', { type: 'button', class: 'btn small', text: 'Re-queue', title: 'the same spec again (attempt + 1); the tools reuse what is cached unless you re-roll', onclick: () => act(j, 'requeue', {}, 're-queueing') }),
-      el('button', { type: 'button', class: 'btn small', text: 'Re-roll…', title: 'choose which cached stills and clips to throw away, then re-queue', onclick: () => rerollPanel(c, j) }),
+      j.kind === 'sim' ? null : el('button', { type: 'button', class: 'btn small', text: 'Re-roll…', title: 'choose which cached stills and clips to throw away, then re-queue', onclick: () => rerollPanel(c, j) }),
       el('button', { type: 'button', class: 'btn small ghost', text: 'Hide', title: 'hide this card until the page reloads', onclick: () => { S.hidden.add(j.id); draw(); } }),
       el('button', { type: 'button', class: 'btn small ghost', text: 'Log', onclick: () => showLog(j) }),
       el('span', { class: 'spacer' }),
@@ -856,7 +857,7 @@ const Jobs = (() => {
     const t = j.target || {};
     c.appendChild(el('div', { class: 'jcard-actions' },
       el('button', { type: 'button', class: 'btn small primary', text: 'Re-queue', onclick: () => act(j, 'requeue', {}, 're-queueing') }),
-      el('button', { type: 'button', class: 'btn small', text: 'Re-roll…', title: 'choose which cached stills and clips to throw away, then re-queue', onclick: () => rerollPanel(c, j) }),
+      j.kind === 'sim' ? null : el('button', { type: 'button', class: 'btn small', text: 'Re-roll…', title: 'choose which cached stills and clips to throw away, then re-queue', onclick: () => rerollPanel(c, j) }),
       el('button', { type: 'button', class: 'btn small', text: 'Edit', onclick: () => openForm(t.kind, t.id, { job: j }) }),
       el('button', { type: 'button', class: 'btn small ghost', text: 'Log', onclick: () => showLog(j) }),
       j.kind === 'look' && t.code ? el('button', { type: 'button', class: 'btn small ghost', text: 'Remove the stub', title: `delete variants["${t.code}"] from ${t.id}.json when it has no strip (the server refuses otherwise)`, onclick: async () => {
@@ -1090,6 +1091,7 @@ const Jobs = (() => {
   async function openForm(kind, id, o) {
     const opts = o || {};
     const job = opts.job || null;
+    if (kind === 'sim' || (job && job.kind === 'sim')) { App.switchTab('sim'); return; }   // pass 77: a sim is set up in its tab
     const mode = opts.mode || (job ? (modeOfMethod({ id: job.method || (job.spec && job.spec.method) || '' })[0] || 'look') : 'look');
     kind = kind || (job && job.target && job.target.kind) || 'enemy';
     id = id || (job && job.target && job.target.id) || '';

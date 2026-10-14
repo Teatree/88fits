@@ -28,6 +28,8 @@ const LEVEL_DECAY := 0.88
 const HELD_WEIGHT := 1.5
 ## A maxed line's evolution card against a plain level of it.
 const EVOLVE_WEIGHT := 3.0
+## Pass 77 (lane SIMRUN): the draws' own dice while the run sim seeds them (Run.seed_dice); null = the global randf().
+static var rng: RandomNumberGenerator = null
 
 
 ## `exclude` keeps ids already on the table out of a partial redraw (a banish replaces one card, not the offer).
@@ -227,7 +229,7 @@ static func _pick(cands: Array, count: int, limits: Dictionary = {}) -> Array:
 		var total := 0.0
 		for c in pool:
 			total += float(c["weight"])
-		var r := randf() * total
+		var r := (rng.randf() if rng != null else randf()) * total
 		var chosen: Dictionary = pool[0]
 		for c in pool:
 			r -= float(c["weight"])

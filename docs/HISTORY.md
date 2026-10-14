@@ -1304,3 +1304,198 @@ tree, the page, Solenne's JSON); re-pinned on purpose: selftest_S D8 (the entry 
 (the picker installs through LookGrid.installPick); one end-to-end install of the real candidate c2 of #a432 on a temp
 copy (tools/dl/p76/ICON/e2e_install.py); the page checked in Chrome on a server copy (tools/dl/p76/ICON/chrome/).
 Garry's running editor gets the guard only after he restarts it.
+
+**Pass 77 (2026-10-15, v0.63): the run sim.** Garry: a Level Editor tab that simulates a run for about ten players and averages per-second charts (DPS, HP, deaths, difficulty, coins, damage by source, kills by creature, level, XP), with every multiplier, the cap and the timeline, started by a button. The sim plays the real game: a bot (the difficulty probe's kiting autopilot moved into game/tools/sim_pilot.gd, with sweeps for gems, ring and line dodges, a boss leash, card tiers) runs game/tools/sim_run.gd headless, ten at once on a snapshot of game/ with its own user folder under its own sim lock (tools/sim_batch.py), and the Sim tab (next to the Timeline) shows the averages, the history and a compare overlay. Garry's feedback during the pass was folded in (the hero and the whole Upgrade board, Danger / Keeping up / Close crowd instead of crowd HP and attack, the tab placed, nothing cut off, the dashboard's useful cards). Two rules that counted real time (the Orbiter's repeat hit, the rebuild throttle) now read the run's clock in a sim (Run.rule_seconds; real time on a phone), and the fast sim mode (no drawing) plays level with the full game and replays a seed exactly. The lead took the gold revive off the Down! screen, trimmed the Totem brief to its screen, gave the difficulty probe the run's clock and re-pinned two tests to Garry's map (XP multiplier 4.1, a row starting with the King).
+
+Garry (2026-10-14): a Level Editor tab that simulates a run for ~10 players and averages per-second charts. The lead's
+decision: play the real game headless with a bot, so every multiplier, the cap, the timeline, specials, Elites, bosses
+and their HP pegging count by construction. This lane built the one-player runner; lane SIMUI the driver
+(tools/sim_batch.py), the aggregation and the Sim tab.
+
+**The runner** `game/tools/sim_run.gd` (a SceneTree tool): `out= hero= seed= limit= board= talents= death=end|ad|keep
+fast= map= progress= wall= res= unlocks=` (tools/dl/p77/keys_SIMRUN.md). It sandboxes the save (every unlock quest done, the
+Upgrade board as difficulty_probe writes it), forces a player's settings, gives the headless window a phone's 9:20
+canvas (1080 x 2404: headless Godot otherwise gives the PC's 9:16 "keep" view, 25 % wider, and the ranged weapons pick
+only what is on the screen), seeds the dice, launches Game.tscn from memory and plays it to `limit` play seconds or the
+end, answering every screen. It writes one JSON of per-second series built from the run recorder's rows in memory
+(meta; t, clock, stage, phase, hp, hp_max, dps, est, alive, cap, press_hp, press_dmg, boss_hp, alive_by, gold_total,
+gold, gold_by, dmg_total, dmg_by, kills, kills_by, level, xp_total, took, healed, deaths; events), atomically (tmp then
+rename), also on a watchdog stop ("stuck:<what>"), and a `<out>.progress` file every `progress` play seconds.
+
+**In the game** (small insertions): `Run.launch_override` (a launch set in memory, taken by Game._read_debug_launch
+before the file, which is then never touched: side-by-side processes would race on user://debug_launch.json);
+`Run.seed_dice(s)` / `Run.rng_seed` (the global stream, `CardPool.rng` for the offers' and chests' draws, the
+director's dice through a hook after WaveDirector.start's randomize); `RunAnalytics.memory_only` (the launch key
+`analytics_memory`: `_write` writes nothing, so no user://analytics file, no repo mirror, no latest.js or index) and
+`RunAnalytics.xp_total` (Run.xp_gained summed; a new row key `xp_total`).
+
+**The bot**: the difficulty probe's kiting autopilot moved verbatim into `game/tools/sim_pilot.gd` (the probe steers
+through it; a test drives both against a frozen copy of pass 62's code, frame for frame), plus the sim's own: a sweep
+that leans towards the richest cluster of gems on the field when the way is clear and he is well, a dodge out of the
+creatures' red warning rings, and goals (a chest within 30 m, the boss's chest, then the portal; "Not yet" while the
+boss chest lies there, stepping out to re-arm it; put on a must-reach goal after 45 s). Cards by tier (an evolution >
+the favourite > a new weapon > a held weapon's level > a perk > a new line > a line's level > a passive item, ties at
+random), a mutation offer at random, chests taken, the Stranger and the shop left, a Totem Pole's most-feathered gift,
+the portal continued, Down! per `death`. Rules and numbers: tools/dl/p77/balancing_SIMRUN.md.
+
+**Lessons**
+- The probe's kite alone leaves the gems: it keeps off the crowd's front, which is where the kills fall. It gathered 0.5
+  to 0.85 XP a kill and left 85 % of stage 1's XP on the sand until the boss chest's vacuum pulled it in (level 16 to 34
+  in one second). A sweep that leans in only when the lane to the gems is clear, scaled by health, brought it to 1.1 to
+  1.4 XP a kill, near Garry's own 0.59 run. A pull towards gems "nearby" was not enough: most of the uncollected XP lay
+  beyond 14 m, where the crowd had pushed him from.
+- Without reading the warnings on the sand the bot died to the Stone Golem's boulders (about 62 of 121 HP a hit) in
+  stage 1: a human steps out of the red ring. The dodge reads Telegraphs' live rings by colour (the creatures' and the
+  bosses' warnings share the red).
+- `--fixed-fps` is the engine's own argument (not in OS.get_cmdline_args): the runner reads the fixed rate off the boot
+  frames' deltas.
+- A tool cannot name a game class (compiled before autoloads): the runner preloads its helper and the probe by path,
+  reads the screens through their own finish paths, and reaches EnemyManager's and PickupManager's private dice through
+  the node `ready` signal to seed them after their `_ready` randomizes them.
+
+**The lead's additions (Garry looked at the Sim tab, 2026-10-14 evening)**
+- **Talents**: `talents=` (lane SIMUI's format, one 0/1 form a rank, or `<id>:<rank>:<form>`, or `none`) writes the
+  board as Save.data.talents[id].picks, so the game folds it as it folds a bought board; it replaces `board=`.
+- **Down!**: `death=ad` (the ad revive once while Down! offers it, then the run ends) replaces `gold` (read as `ad`);
+  `end` is the default.
+- **Difficulty fields**: the recorder's rows gained `near3` / `near6` (creatures within 3 m / 6 m of the hero),
+  `hp_lost` / `hp_healed` (the second's loss before healing, and heals with regen) and `boss_now` (the boss's health;
+  `boss_hp` stays its share); the per-player output gained near3, near6, boss_hp_abs and, for lane SIMUI, hits,
+  spawned, mult_hp / mult_dmg, took_by, healed_by, held_by and the bot's `pick` events.
+- **The fast mode** (`fast=1`, the default): Run.sim_mode, set for each run from the launch's `sim_fast`, skips the work
+  that only draws or plays (the crowd's, the shots', the pickups' and the ground marks' drawing, Fx, sounds, the HUD
+  and the damage numbers' frames, the hints) and keeps every rule; the sheet's rebuild throttle (Desperado, Steady
+  Hand, Hot Streak: 250 ms) reads the buffs' clock in it instead of real time. The profile (`profile=1`, Perf's
+  buckets) before it, headless at 60 fps: a frame 3.4 to 4.4 ms in stages 1 and 2, of which the crowd's simulation
+  about 1.1 ms, its drawing 0.5 to 0.6, the shots' drawing up to 0.5, the hero 0.4, the HUD, Fx, the pickups' drawing
+  and the marks less than 0.1 each, and about 1 ms outside every bucket.
+- **Repeatability**: one seed did not replay: Audio.play gates repeats on real time and draws a random pitch from the
+  global stream, so how many draws happen hung on the machine's speed, and every later crit and drop moved (fixed by
+  the fast mode, which plays no sound). With it the managers' own dice seeded too, two runs of one seed matched frame
+  for frame for seconds, yet still parted now and then: not a race but the structures' unseeded dice and a weapon
+  companion's bob on real time (round 2, below; a fast run now replays exactly); `trace=` prints a state line a frame
+  for the next hunt.
+
+**Measured (2026-10-14/15, this PC, headless, --fixed-fps 60, one process at a time)**
+- A full 25-minute player (Drifter, a quarter of the board): before the fast mode 562 to 569 s of wall time (seed 21:
+  gold, keep); the same seed on the final code 482 s with fast=0 and 345 s with fast=1 (28 % less, 4.3 play seconds a
+  wall second against 2.7), the boot about 13 s either way. A player that dies at its first Down! (end) on 5:38: 91 s.
+  Ten players to 10:00 one at a time: 163 s each in the full game, 114 s fast (30 % less). Lane SIMUI's ten players side
+  by side to 25:00: 18:10 in the full game, 10:23 in the fast mode.
+
+**Round 2 (2026-10-15 night): the two modes, the clocks, the seeds, the boss**
+- **The two modes compared** (pairs of one seed both ways; a seed never replays across them, so only the spread over
+  seeds compares them): level with each other to 5:00, then the full game pulled ahead (level +3.7 +- 1.3 at 7:00 over
+  28 pairs) and further in the first boss fight, where the fast player's King lived longer, mostly when both held an
+  orbiter. A code review of every path the fast mode skips found only drawing and sound; the cause was the clock.
+- **The run's clock.** Two rules counted real time (Time.get_ticks_msec): an Orbiter's repeat hit on the same creature
+  (its `cooldown`, 0.2 to 0.4 s: Orbit Saws, Branding Iron, Rattlesnake and their evolutions) and Run's rebuild
+  throttle (Desperado, Steady Hand, Hot Streak, 250 ms). A headless run goes about 2.7 times real time in the full game
+  and 4.3 in the fast mode, so the saws hit a creature 2.7 or 4.3 times less often than on a phone in every sim before
+  this, the difficulty probe's included (its Drifter builds carry the Orbit Saws). In a sim both now count the run's
+  own clock (Run.sim_clock, the launch's `sim_clock`, which the runner always sends; Run.rule_seconds = buff_clock); in
+  play nothing changes. After it, ten pairs to 10:00 (seeds 71-80) end level (level +0.2 +- 1.4, kills -40 +- 390 at
+  10:00), so the fast mode is the runner's default again (it was off from 00:15 to 01:55 while this was open).
+- **Seeds that replay.** Two fast runs of one seed parted at 0:05: StructureManager.setup randomized its dice, so the
+  structures stood elsewhere every run, and the barrels, placed clear of the structures' rings, with them. Seeded from
+  the run's seed in a sim (and the Totem Poles' gifts from Run.totem_rng), the runs went on together to 3:14 and parted
+  on the Big Mouth's damage: its beam starts at its mouth (LaserBeam.muzzle), whose bob ran on real time. With every
+  weapon companion's bob on Run.rule_seconds (a look in play), a fast run replays exactly: seed 66 to 5:00 and seed 73
+  to 10:00, twice each, every row and every pick equal. The full game does not replay (its sounds' gaps run on real
+  time and each sound draws its pitch from the global dice): same seeds on two versions of the content are a paired
+  comparison only in the fast mode.
+- **The boss leash.** A boss log (a scratch tool, deleted) showed the bot's sweep leading him 40 to 60 m from the King
+  while it followed at 1.3 m/s, so the first boss fight lasted 3 s or 6 minutes by where the gems lay (the King lost 1 %
+  of its HP in two minutes in one run), and the boss chest's vacuum, 10 to 18 levels at once, came that much later. While
+  a boss lives the bot now keeps within 10 m of it (walking back from further, to 7 m) and walks only to gems and chests
+  near it: seed 73's fight went from 169 s (and 37 to 152 s in its other replays) to 26 s; over six seeds 8 to 88 s,
+  median 20, against 30 to 169 s. Close to the King the bot ate his rolls and volleys (3 deaths to him in 6 runs, none
+  before): the dodge read only red rings, so it reads his red lines too now (Telegraphs' strips: the roll, the spokes,
+  a charge's or a spit's line); seeds 72, 73, 76 then lost no life to him (fights of 92, 17 and 9 s).
+- A regression found by the whole suite and fixed: the recorder's near3/near6 read the crowd's `pos` and the hero's
+  place straight, and two analytics test files feed it a stand-in crowd without `pos` (5 failures); it reads them
+  defensively now.
+
+**Lessons (round 2)**
+- A rule that counts real time plays differently in a headless run, which goes several times faster than real time:
+  before trusting a sim's number for a weapon, grep the rules for Time.get_ticks_msec. A look can reach a rule too: a
+  companion that bobs on real time and is where the weapon fires from.
+- An unseeded RNG anywhere upstream of a rule breaks replays: structures placed at random also moved the barrels placed
+  around them. To find the next one, run one seed twice and diff the rows: the first second that differs, and the
+  weapon or creature whose numbers differ first, point at it.
+- A seed does not replay across the two modes: the full game draws its looks from the global dice (Fx's particles, the
+  sounds' pitch), so the modes part in the first seconds and only many seeds compare them (pairs, signs, standard
+  errors).
+- The first boss is a hinge for the bot: it leaves most of stage 1's XP on the sand (5,000 to 11,000 XP lying at 7:00 on
+  the content before the 00:41 import, about 2,500 after it), so the boss chest's vacuum lifts it many levels at
+  once; how fast the boss falls decides when. A curve averaged over players shows that as a slope, a single player as a
+  cliff.
+- Garry tunes the map while a batch runs: the Registry reads `red_canyon.tres`, which changed between the batches at 00:41
+  (an import of a map edit; the JSON changed again at 01:18), so batches either side of it played different content. Compare pairs within one
+  batch, never across batches, and note the content's import time with a batch.
+
+**Pass 77, lane SIMUI: the run sim's driver, its job and the Sim tab.** Garry asked for a Level Editor tab that
+"simulates a run ... like 10 players (editable) and the output is the average", per-second charts of DPS, HP, deaths,
+difficulty (the crowd's HP and attack alive and who is in it), coins, damage by source, kills by creature, level and
+XP, "considering the multipliers and all the enemy, cap and stuff", started only by a button. The sim plays the real game
+(lane SIMRUN's `game/tools/sim_run.gd`, a bot over a headless run), so no second model of the rules exists.
+`tools/sim_batch.py` drives N runs K at a time: it copies game/ into `tools/dl/sim/snap/game/` (by size and mtime, the
+.godot seeded once, the snapshot's project.godot given its own user folder `88fits_sim`), imports the snapshot only when
+an imported asset, a uid, a new scene or a script's class changed (11-14 s; a no-change sync takes 1.4 s, the first copy
+30 s), runs import_json on the snapshot for every content JSON newer than its .tres (so the sim plays the saved JSON even
+when the editor's import was queued), then runs `Godot --headless --fixed-fps 60 --log-file ... --script
+res://tools/sim_run.gd` per run with seed + k - 1 and a wall-time cap, judging each run by its JSON (one run exited
+0xC0000005 at teardown and counted). It holds its own `tools/dl/locks/sim.lock`, never the Godot lock: the snapshot is
+another project folder, so the editor's saves, imports and the tests are never blocked by a sim. It averages every
+second of play into result.json (means over the runs still playing, DPS smoothed over 5 s per run, p10/p90 bands,
+deaths over every run, breakdowns, the stage and boss times as medians, a summary from each run's own end), rewritten
+after every finished run so a cancel keeps a partial result, and keeps the newest 10 sims plus kept ones. The job kind
+`sim` runs on a new fourth lane `sim` (jobs.py: sim_plan / sim_stages / sim_parse / sim_eta / sim_title / sim_check;
+mode "sim", no lock), its card showing every run's clock; `sim_io.py` serves /api/sim/settings, status, history,
+result/<id>, run, keep, delete, cancel, unlock. The Sim tab (`sim_model.js` page-free + `sim.js` + `sim.css`): the
+settings (hero, runs, at once up to cores - 2, stop at, Upgrade board, on death, seed, note), Run sim (Save and run with
+unsaved map edits), the progress first in the column while it runs, the history (Show, Compare, Keep, Delete), the
+header (which save of the map it played, the version, when, how long), stat tiles (runs that reached the stop, the
+median end, deaths, level, kills, coins, each boss beaten of met with its fight and HP pegging), and twelve hand-built
+SVG charts in Garry's order with the stage starts and boss fights marked, each saying what it shows and how it was
+averaged, one hover cursor shared by every chart with the values under each, a compared sim in grey dashes, Table and
+CSV per chart. Colours: the editor's validated dark series slots in a fixed order, splits folded to 7 + Other, the
+creature charts sharing one colour map. Measured on this PC: see the report (the first default sim with SIMRUN's bot of
+21:30 ended every run by a death at 1:48-3:09 in 1:47 of wall time; 10 full runs of 25:00 "keep playing", 6 at once,
+in the time noted there). `selftest_SIM77.py` (132 checks): the averaging by hand on three tiny runs and on made-up ones,
+the snapshot's rules, the lock, the job with a real run of the driver (`--synthetic`) and a cancel, the routes, the page's
+maths under Node and its wiring.
+
+Lessons: Godot's output reaches a redirected file line by line (a pipe or --log-file both flushed at once in a test);
+--log-file per run keeps parallel runs off a shared user://logs. A short test sim plays only the light early game (6.7
+play seconds a wall second against ~3.5 late): it must not feed the ETA.
+
+**Pass 77, lane SIMUI, round 2 (Garry's notes on the first Sim tab).** The tab moved right after Timeline. The hero's
+Upgrade board is set talent by talent (rank 0-6 and form each; presets none / a quarter / half / full as the difficulty
+probe plays them, and "my save" read from the PC save, or the kept copy while a tool has it aside), sent to every run
+as `talents=<id>:<picks>` (A/B a rank, lane SIMRUN's new argument), checked against what each run played
+(meta.talent_forms) and named in the header when it differs. The death policies are end (the default), ad (one ad
+revive) and keep; gold is gone with Get up with gold (an older sim's label still reads). The page offers only what the
+runner knows (read off sim_run.gd's argument parser: talents=, fast=, the death list), and the run route and the driver
+refuse a custom board or a policy an older runner would misplay. Crowd HP and attack (which counted the boss and every
+hit at once) gave way to Danger (health lost a second as % of max HP, before and after healing, 5 s), Keeping up
+(seconds of the run's own DPS to clear the crowd without the boss, and the boss alone: a median, since a crowd over a
+DPS jumps where the DPS is small) and Close crowd (near3/near6); from the run dashboard came what hurt the hero, hits,
+healing by source, the crowd against the cap, spawned and killed, the creatures' strength and the build's growth, each
+drawn only when the runs carry its data (SIMRUN accepted all eleven requests). The page became one scroll in five
+sections (Garry had found the bottom charts cut off: the settings column was an inner scroll area; plots now stretch
+with their card and are redrawn on a width change). The ETA comes from speed records of the runner's current mode, at
+the slow runs' pace, and the progress card's from the runs' own pace; a line under Run sim says why a sim takes what it
+takes. At once defaults to auto (as many as the runs, at most cores - 2). A **Drawing** switch (shown when the runner
+has `fast=`) sends `fast=0`; result.meta.sim_mode records what the runs played and the header and history say
+"everything drawn". Measured on this PC, 10 runs of 25:00 (keep playing): 23:39 with 6 at once before the sim mode,
+18:10 with 10 at once and the sim mode off, 10:23 with 10 at once and lane SIMRUN's sim mode; the default settings (end
+at the first death, 10 at once, sim mode) 9:04, two runs reaching 25:00. selftest_SIM77.py: 181 checks.
+
+Lessons (round 2): ten runs at once end with the slowest (one run at 1.41 play seconds a wall second against a median
+of 1.98 made the 18:10), so the ETA plays a round at the slowest run's pace, not the median's; a sim where most runs
+die early must not feed it either (its two survivors ran 2.9x with the PC to themselves, which would have promised a
+full sim in 9:42 instead of 10:23). The same seeds 1-10 with the sim mode on (22:37) and off (22:47, after SIMRUN's
+round-2 fields) levelled differently: at 10:00 the mode-off run was higher in 9 of 9 untied pairs (38.5 against 31.9
+on average, kills 18.0K against 15.7K at the end); the runner changed between the two, so this alone does not say the
+sim mode changes the game, but lane SIMRUN's same-seed A/B is the check that settles it.

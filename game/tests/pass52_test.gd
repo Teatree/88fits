@@ -89,10 +89,13 @@ func test_hot_streak_says_it_in_fewer_words() -> void:
 
 func test_every_level_asks_five_percent_more_xp() -> void:
 	_start()
-	assert_float(Registry.map("red_canyon").timeline.xp_need_mult).is_equal_approx(2.1, 0.0001)
+	# pass 77 re-pin: the multiplier is Garry's (2.1 in pass 52, 4.1 since his 2026-10-15 edit in the Level Editor), so the
+	# test reads the map's number and checks the curve follows it
+	var mult := float(Registry.map("red_canyon").timeline.xp_need_mult)
+	assert_float(mult).is_greater(0.0)
 	for lv: int in [1, 5, 10, 25]:
 		var base: float = 15.0 + 6.0 * lv + 0.5 * lv * lv
-		assert_float(Run.xp_to_next(lv)).is_equal_approx(base * 2.0 * 1.05, 0.001)
+		assert_float(Run.xp_to_next(lv)).is_equal_approx(base * mult, 0.001)
 
 
 func test_every_hero_has_one_percent_crit_chance() -> void:

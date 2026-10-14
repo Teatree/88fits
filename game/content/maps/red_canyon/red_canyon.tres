@@ -79,20 +79,30 @@ roster = [{
 "id": "r2",
 "stats": {
 "can_be_elite": false,
-"speed": 4.0
+"speed": 3.0
 },
 "t": 141.0,
 "until": 200.0,
 "weights": [[141.0, 3.0], [201.0, 3.7]]
 }, {
-"enemy": "blue_slime",
-"id": "r18",
+"enemy": "lesser_scorpion",
+"id": "r21",
+"pack": 30.0,
+"pattern": "ring",
 "stats": {
-"hp": 40.0
+"damage_mult": 1.25,
+"hp_mult": 2.0,
+"size": 2.0,
+"tint": {
+"amount": 0.4,
+"hue": [350.0, 12.0],
+"sat": 0.85,
+"val": 0.8
+}
 },
-"t": 250.0,
-"until": 315.0,
-"weights": [[250.0, 2.5], [313.0, 2.5]]
+"t": 245.0,
+"until": 347.0,
+"weights": [[245.0, 5.4], [306.0, 10.1], [337.0, 10.6], [430.0, 3.8]]
 }, {
 "enemy": "lesser_scorpion",
 "id": "r3",
@@ -127,28 +137,37 @@ roster = [{
 }, {
 "enemy": "spit_cactus",
 "id": "r14",
+"pack": 1.0,
 "pattern": "scatter",
 "t": 257.0,
 "until": 315.0,
-"weights": [[258.0, 1.8]]
+"weights": [[258.0, 1.2]]
 }, {
 "enemy": "bull_beetle",
 "id": "r15",
 "pattern": "scatter",
 "t": 306.0,
-"until": 430.0,
+"until": 347.0,
 "weights": [[306.0, 1.0]]
+}, {
+"enemy": "bull_beetle",
+"id": "r4",
+"pattern": "scatter",
+"t": 389.0,
+"until": 430.0,
+"weights": [[389.0, 1.0]]
 }, {
 "enemy": "werewolf",
 "id": "r16",
+"pack": 35.0,
 "pattern": "ring",
 "stats": {
 "hp": 20.0,
 "size": 1.4
 },
-"t": 347.0,
+"t": 368.0,
 "until": 430.0,
-"weights": [[347.0, 5.4]]
+"weights": [[368.0, 5.4]]
 }, {
 "enemy": "buckshot_dwarf",
 "id": "r19",
@@ -172,21 +191,14 @@ roster = [{
 "until": 536.0,
 "weights": [[431.0, 5.0], [536.0, 6.0]]
 }, {
-"enemy": "lesser_scorpion",
-"id": "r21",
-"pack": 5.0,
+"enemy": "blue_slime",
+"id": "r18",
 "stats": {
-"hp_mult": 0.27,
-"tint": {
-"amount": 0.4,
-"hue": [350.0, 12.0],
-"sat": 0.85,
-"val": 0.8
-}
+"hp": 40.0
 },
-"t": 431.0,
+"t": 430.0,
 "until": 536.0,
-"weights": [[431.0, 6.0], [536.0, 4.0]]
+"weights": [[430.0, 6.0], [535.0, 4.0]]
 }, {
 "enemy": "armadillo",
 "id": "r22",
@@ -725,7 +737,7 @@ spawn_sides = {
 "top": 55.0
 }
 contact_cap = 0.22
-xp_need_mult = 2.1
+xp_need_mult = 4.1
 move_pace = 0.9
 portal_wave = {
 "count": 12.0
@@ -736,9 +748,9 @@ boss_hp_scaling = {
 "max": 3.0,
 "min": 0.75,
 "ref_dps": {
-"brander": 20000.0,
-"gila_grande": 4500.0,
-"tumbleweed_king": 600.0
+"brander": 200000.0,
+"gila_grande": 45000.0,
+"tumbleweed_king": 6000.0
 },
 "window": 45.0
 }

@@ -321,7 +321,7 @@ func _fly(delta: float) -> void:
 	var r := float(d.get("distance", 1.2))
 	var h := float(d.get("height", 1.25))
 	_orbit += delta * float(d.get("orbit_speed", 0.55))
-	var t := float(Time.get_ticks_msec()) * 0.001
+	var t := Run.rule_seconds()  # pass 77 (lane SIMRUN): real time in play, the run's clock in a run sim
 	var want: Vector3 = player.global_position + Vector3(cos(_orbit) * r, h + sin(t * 2.3) * float(d.get("bob", 0.08)), sin(_orbit) * r)
 	shaker.global_position = want if delta <= 0.0 else shaker.global_position.lerp(want, clampf(delta * 8.0, 0.0, 1.0))
 	# upright, turning slowly about itself; at a pour, tipped outwards (away from the hero) and shaken

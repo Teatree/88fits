@@ -319,7 +319,7 @@ func _place_familiar(delta: float) -> void:
 	var h := _familiar_param("height", 1.35)
 	var bob := _familiar_param("bob", 0.12)
 	_orbit += delta * _familiar_param("speed", 1.4)
-	var t := float(Time.get_ticks_msec()) * 0.001
+	var t := Run.rule_seconds()  # pass 77 (lane SIMRUN): real time in play, the run's clock in a run sim
 	var want := player.global_position + Vector3(cos(_orbit) * r, h + sin(t * 3.1) * bob, sin(_orbit) * r)
 	if not _fam_dict("kick").is_empty():
 		# pass 75: the eased follow carries only the orbit, and the kick rides on top of it unsmoothed (the follow had
@@ -396,7 +396,7 @@ func _start_punch(silver: bool) -> void:
 func _pose_punch() -> void:
 	var p := punch()
 	var aim := Vector3(-sin(_aim_yaw), 0, -cos(_aim_yaw))
-	var t := float(Time.get_ticks_msec()) * 0.001
+	var t := Run.rule_seconds()  # pass 77 (lane SIMRUN): real time in play, the run's clock in a run sim
 	var pitch := _kick_value("climb") * p
 	var yaw := _aim_yaw + _kick_value("twist") * _twist_sign * p
 	var lift := 0.0

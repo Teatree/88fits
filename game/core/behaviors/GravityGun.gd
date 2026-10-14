@@ -459,7 +459,7 @@ func _place(delta: float) -> void:
 	var h := float(fam.get("height", 1.45))
 	# it hangs still while it strains to hold something
 	_orbit += delta * float(fam.get("speed", 1.0)) * (0.25 if _open > 0.5 else 1.0)
-	var t := float(Time.get_ticks_msec()) * 0.001
+	var t := Run.rule_seconds()  # pass 77 (lane SIMRUN): real time in play, the run's clock in a run sim
 	var want := player.global_position + Vector3(cos(_orbit) * r, h + sin(t * 2.7) * float(fam.get("bob", 0.08)), sin(_orbit) * r)
 	want -= _aim_dir() * 0.18 * _recoil
 	if _open > 0.3:

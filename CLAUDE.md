@@ -48,6 +48,7 @@ python tools/puppet.py may [--stage apose|shape|rig|anim|guides|looks|compare] [
 "$BLENDER" -b --python tools/blender_salt.py   # pass 69: art/props/salt_shaker.glb (Body, Contents that a mutation tints, Cap, Holes, Spout) + the icon references tools/dl/salt_ref.png, sea_salt_ref.png, hiwa_kai_ref.png
 "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/walking.fbx out=tools/dl/drivers/walk_hold frames=12 arms=hold_r   # a walk whose right hand holds something up at the shoulder (the Vulture Raider's launcher, pass 48)
 python tools/compress_levels.py [--check]   # pass 48: weapons from 8 levels to 5 (level 5 = the old level 8); --check re-verifies against tools/dl/levels_v47.json
+python tools/sim_batch.py --out <dir> --hero drifter --players 10 --workers 0 --limit 1500 --death end --seed 1   # pass 77: the run sim the Level Editor's Sim tab runs (a snapshot of game/ in tools/dl/sim/snap with its own user folder 88fits_sim, players K at a time, under tools/dl/locks/sim.lock, never the godot lock); one player: game/tools/sim_run.gd (args in docs/assets_schema.md "Pass 77")
 python tools/gen_icon_cands.py [--only spear,cake] [--seeds 4] && python tools/gen_icon_cands.py --pick spear=0   # icon candidates (renders as references), picked by eye
 tools\level_editor.cmd                                           # pass 53: the Level Editor (a local page: waves, roster, events, overrides per map; Save writes the JSON + imports it); schema docs/waves_schema.md
 tools\ship.cmd [--quick] [--no-install]                          # pass 53: ship.sh from a double-click (Git Bash)
@@ -244,7 +245,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-14, pass 76, version 0.62)
+## Status (2026-10-15, pass 77, version 0.63)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -254,7 +255,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.62). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.63). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
@@ -342,7 +343,7 @@ items; the Collection shows only what was met.
 (`Game._request_modal`); the camera cutout is respected everywhere (`W.safe_top()`); touch is raw ScreenTouch, never
 mouse emulation (`TouchScroll`, `TouchSlider`); prove UI with `touch_audit.gd`. The developer menu (hold the Settings
 version line 2 s) and the player's debug mode (10 taps on the hints switch) hold the test switches; the debug arena is on
-the title in debug mode. The title's hero plaque is one size for every hero and state (pass 73, ui/TitleScreen.gd constants).
+the title in debug mode. The Down! screen has no gold revive (pass 77). The title's hero plaque is one size for every hero and state (pass 73, ui/TitleScreen.gd constants).
 The Level Editor never overwrites an icon and asks before changing a played look's (pass 76: icon history, Revert icon,
 All icons on disk). Known (older than pass 76): about one headless game run in four to eight exits 0xC0000005 in the
 scene tree's teardown after its result is printed; results are unaffected.
@@ -394,6 +395,9 @@ show in the game; pictures in `docs/guide_img/`; published at https://claude.ai/
   around tool runs; use `Save.begin_sandbox()` in probes).
 - Rules Garry never asked for read as bugs: name every new rule in BALANCING.md.
 - Commit every finished pass (never push); the build goes to Drive at the end of every user-facing change.
+- The run sim (pass 77) is the one exception to the Godot lock: tools/sim_batch.py runs its players on its own
+  snapshot of game/ (tools/dl/sim/snap, its own user folder 88fits_sim) under tools/dl/locks/sim.lock, so the
+  editor's saves and imports and the tests are not blocked; everything else still goes through tools/godot.sh.
 - One Level Editor server at a time runs the job queue (`tools/dl/locks/jobs.lock`, claimed at start, the port in its
   note); a second one is read-only, `--no-jobs` is view-only. A new editor never kills a job an older editor still
   runs (`server_pid` on every taken job): it starts read-only; close the old one and restart.

@@ -84,7 +84,7 @@ SAVE_THROTTLE = 2.0
 LOG_TAIL_FULL = 80
 LOG_TAIL_SHORT = 12
 STATES = ("queued", "running", "waiting", "done", "failed", "interrupted", "cancelled")
-LANES = ("comfy", "godot", "local")
+LANES = ("comfy", "godot", "local", "sim")   # pass 77 (lane SIMUI): the run sim's own lane, so a sim never holds up the others
 KIND_FOLDERS = {"enemy": "enemies", "boss": "bosses", "hero": "characters", "weapon": "weapons", "evolution": "evolutions",
                 "passive": "passives", "mutation": "mutations"}
 LOOK_METHODS = ("hero_pose5", "hero_fit", "creature_free2", "creature_pose2", "creature_free8", "creature_ctl", "creature_proc",
@@ -271,6 +271,26 @@ SPECS = {
         "source_job": _f("str", "", True, "the finished icon_cands / hero_badge / hero_title job"), "choice": _f("str", "", True, "which candidate"),
         "head_width": _f("float", 0.0, False, "badge"), "top_pad": _f("float", 0.03, False, "badge")},
         "help": "a picked candidate written into the game (then an import job)"},
+    # pass 77 (lane SIMUI): the Sim tab's run sim (tools/sim_batch.py): no ComfyUI, no Godot lock (its own sim lock, on a
+    # snapshot of game/ with its own user folder), its own lane; started only by the Sim tab's Run sim button
+    "sim": {"lane": "sim", "fields": {
+        "hero": _f("str", "drifter", False, "the hero every run plays"),
+        "players": _f("int", 10, False, "how many runs are played and averaged (1-100)"),
+        "workers": _f("int", 0, False, "how many runs play at once: 0 = as many as the runs, at most the PC's logical processors - 2"),
+        "limit": _f("int", 1500, False, "play seconds each run stops at (1500 = 25:00; boss fights and portal waits count)"),
+        "board": _f("float", 1.5, False, "the Upgrade board preset: 0 none, 1.5 a quarter, 3 half, 6 full (talents wins when given)"),
+        "talents": _f("json", {}, False, "the Upgrade board talent by talent: {talent: picks}, one letter a rank, its form (A the first, "
+                                         "B the second), e.g. {\"grit\": \"AAB\"}; empty = the board preset"),
+        "board_label": _f("str", "", False, "the board's name in the sim's header (\"my save\"; empty = the preset's, or custom)"),
+        "death": _f("enum", "end", False, "end: the first death ends the run; ad: revive once with an ad, then end; keep: every death "
+                                          "counted, the hero stood up again, played to the stop", ("end", "ad", "keep")),
+        "fast": _f("bool", True, False, "the runner's sim mode (the purely visual work skipped, every rule kept) when it has one"),
+        "seed": _f("int", 1, False, "run k plays seed + k - 1"),
+        "map": _f("str", "red_canyon", False, "the map (its saved file)"),
+        "fps": _f("int", 60, False, "--fixed-fps: 60 = a weapon can fire every frame as on the phone"),
+        "note": _f("str", "", False, "a few words to find this sim in the history"),
+        "synthetic": _f("bool", False, False, "tests only: made-up players, no Godot")},
+        "help": "N headless runs of the real game driven by a bot, averaged per second of play (the Sim tab)"},
 }
 
 # ---------------------------------------------------------------- state
@@ -662,6 +682,8 @@ def _eta(job):
     """Median seconds from methods.json's timings (else the built-in table), scaled by the stages still pending."""
     kind, method = job["kind"], job.get("method") or job["kind"]
     spec = job.get("spec") or {}
+    if kind == "sim":
+        return sim_eta(job)   # pass 77 (lane SIMUI): from the measured speed of the last sims
     key = method
     if method == "creature_ctl" and job.get("phase", 1) <= 1 and not spec.get("use_side"):
         key = "creature_ctl_side_dev" if spec.get("dev") else "creature_ctl_side"
@@ -690,6 +712,8 @@ def _title(job):
     method = job.get("method") or ""
     if job["kind"] == "look":
         return "%s %s · %s" % (name, code, method)
+    if job["kind"] == "sim":
+        return sim_title(job)   # pass 77 (lane SIMUI)
     if job["kind"] in ("register", "import"):
         return "%s %s" % (job["kind"], ", ".join((job.get("spec") or {}).get("targets") or []))
     if job["kind"] == "launch":
@@ -773,6 +797,8 @@ def validate_spec(kind, spec):
             out["recolour"] = dict(rrc)
         if out["method"] == "recolour" and not (out.get("recolour") or {}).get("from"):
             raise ValueError("recolour needs recolour.from: the look to recolour")
+    if kind == "sim":
+        out = sim_check(out)   # pass 77 (lane SIMUI): the settings' ranges (tools/sim_batch.clean_settings)
     return out
 
 
@@ -1156,6 +1182,8 @@ def _plan(job):
                         kv.append("%s=%s" % (k, v))
             p["steps"] = [[bl, "-b", "--python", os.path.join(TOOLS, "blender_ref.py"), "--"] + kv]
             p["equiv"] = '"$BLENDER" -b --python tools/blender_ref.py -- ' + " ".join(kv)
+    elif kind == "sim":
+        p.update(sim_plan(job))   # pass 77 (lane SIMUI): one tools/sim_batch.py process, its own sim lock
     elif kind in ("register", "import"):
         targets = [str(x).strip().strip("/") for x in (spec.get("targets") or []) if str(x).strip()]
         only = ",".join(targets)
@@ -1262,6 +1290,8 @@ def _derive(job):
         if kind == "hero_badge":
             for s, key in zip(stages[:n], _badge_keys(job, n)):
                 s["key"] = key
+    elif kind == "sim":
+        stages = sim_stages(spec)   # pass 77 (lane SIMUI): the snapshot, one stage a run, the charts
     elif plan["mode"] == "steps":
         stages = [{"name": _step_name(s), "key": "", "type": "step"} for s in plan["steps"]]
     elif plan["mode"] == "launch":
@@ -2880,6 +2910,8 @@ def _run(job):
                     job["qa_online"] = qa_online()
             if plan["mode"] == "launch":
                 rc = _run_launch(job, plan, live)
+            elif plan["mode"] == "sim":
+                rc = _spawn(job, live, plan["steps"][0])   # pass 77 (lane SIMUI): sim_parse moves its stages
             elif plan["mode"] == "steps":
                 rc = _run_steps(job, plan, live)
             else:
@@ -3104,6 +3136,8 @@ def parse_line(job, line, key_to_stage=None):
     stages = prog.get("stages", [])
     idx = key_to_stage if key_to_stage is not None else _stage_index(job)
     seen = None
+    if job.get("kind") == "sim":
+        return sim_parse(job, line)   # pass 77 (lane SIMUI): tools/sim_batch.py's "sim: ..." lines
     if job.get("method") == "hero_puppet" and (line.startswith("puppet: ") or line.startswith("[puppet ")):
         seen = puppet_parse(job, line)   # pass 71: the puppet's stages
         prog["done"] = sum(1 for s in stages if s.get("state") == "done")
@@ -4488,3 +4522,158 @@ def _seed_puppet_recipe(target, spec, recipe):
     # pass 71 follow-up: every setting recorded in the look's recipe (Recipe (typed) shows them; a re-queue reads them)
     pp = puppet_spec(spec, target)
     recipe["puppet"] = {k: pp[k] for k in PUPPET_SETTINGS}
+
+
+# ---------------------------------------------------------------- pass 77 (lane SIMUI): the run sim
+#
+# The Sim tab's Run sim queues one job of kind "sim" on its own lane ("sim"): one `python -u tools/sim_batch.py ...`
+# process (mode "sim": _spawn, no lock here: the driver takes tools/dl/locks/sim.lock itself and never the Godot lock).
+# Its output folder is tools/dl/sim/runs/<job id>[_a<attempt>] (the plan's sim_out), where the Sim tab reads
+# progress.json and result.json; its "sim: ..." lines move the card's stages (the snapshot, one stage a run, the charts).
+
+RE_SIM_RUN = re.compile(r"^sim: run (\d+)/(\d+) (started|done|failed)\b(.*)$")
+RE_SIM_AT = re.compile(r"^sim: run (\d+) at (\d+:\d\d(?::\d\d)?)")
+RE_SIM_WAIT = re.compile(r"^sim: waiting for the sim lock(.*)$")
+RE_SIM_STEP = re.compile(r"^sim: (sync|import|import_json): (.*)$")
+
+
+def _sim_mod():
+    import sim_batch   # tools/sim_batch.py (TOOLS is on sys.path)
+    return sim_batch
+
+
+def sim_dir():
+    """The sims' folder (tools/dl/sim): it follows DL, so a test's temporary DL holds its own sims and history."""
+    return os.path.join(DL, "sim")
+
+
+def sim_out_dir(job):
+    """tools/dl/sim/runs/<job id>, a re-queue's attempt N in <job id>_aN (each attempt a sim of its own in the history)."""
+    att = int(job.get("attempt", 1) or 1)
+    return os.path.join(sim_dir(), "runs", str(job["id"]) + ("" if att <= 1 else "_a%d" % att))
+
+
+def sim_check(spec):
+    """The spec's settings checked and coerced by sim_batch.clean_settings (ValueError with every problem)."""
+    s, probs = _sim_mod().clean_settings(spec)
+    if probs:
+        raise ValueError("sim: " + "; ".join(probs))
+    out = dict(spec)
+    out.update(s)
+    return out
+
+
+def sim_plan(job):
+    spec = job.get("spec") or {}
+    sb = _sim_mod()
+    s, _ = sb.clean_settings(spec)
+    out = sim_out_dir(job)
+    tail = ["--hero", s["hero"], "--players", str(s["players"]), "--workers", str(s["workers"]), "--limit", str(s["limit"]),
+            "--board", "%g" % max(0.0, s["board"]), "--talents", sb.talents_arg(s.get("talents") or {}), "--death", s["death"],
+            "--seed", str(s["seed"]), "--map", s["map"], "--fps", str(s["fps"]), "--job", str(job["id"])]
+    if s.get("board_label"):
+        tail += ["--board-label", s["board_label"]]
+    if not s.get("fast", True):
+        tail.append("--no-fast")
+    if s.get("note"):
+        tail += ["--note", s["note"]]
+    if spec.get("synthetic"):
+        tail.append("--synthetic")
+        if spec.get("synthetic_speed"):
+            tail += ["--synthetic-speed", "%g" % float(spec["synthetic_speed"])]
+    argv = [PY, "-u", os.path.join(TOOLS, "sim_batch.py"), "--out", out, "--sim-dir", sim_dir()] + tail
+    equiv = "python tools/sim_batch.py --out %s %s" % (_rel(out), " ".join(_q(a) for a in tail))
+    return {"mode": "sim", "lock": None, "steps": [argv], "keep_save": False, "equiv": equiv, "sim_out": _rel(out),
+            "sim_id": os.path.basename(out)}
+
+
+def sim_stages(spec):
+    s, _ = _sim_mod().clean_settings(spec)
+    return ([{"name": "snapshot", "key": "", "type": "step"}]
+            + [{"name": "run %d" % k, "key": "", "type": "run"} for k in range(1, int(s["players"]) + 1)]
+            + [{"name": "charts", "key": "", "type": "pack"}])
+
+
+def sim_eta(job):
+    """The whole sim's estimate (sim_batch.eta_seconds: the snapshot, the runs in rounds at the measured speed)."""
+    sb = _sim_mod()
+    try:
+        s, _ = sb.clean_settings(job.get("spec") or {})
+        speed = sb.load_speed(os.path.join(sim_dir(), "speed.json"), fast=bool(s.get("fast", True)))   # the chosen mode's records
+    except Exception:
+        speed = None
+    return int(sb.eta_seconds(job.get("spec") or {}, speed))
+
+
+def sim_title(job):
+    sb = _sim_mod()
+    s, _ = sb.clean_settings(job.get("spec") or {}, legacy=True)
+    name = (content_doc("hero", s["hero"]) or {}).get("name") or s["hero"]
+    death = {"gold": "gold revives", "end": "no revive", "ad": "one ad revive", "keep": "every death counted"}.get(s["death"], s["death"])
+    return "Sim · %s × %d to %s · board %s · %s" % (name, s["players"], sb.fmt_t(s["limit"]), sb.board_text(s.get("talents"), s.get("board_label")), death)
+
+
+def sim_parse(job, line):
+    """One line of tools/sim_batch.py into the card: the snapshot done at the first run's start, a run's stage running /
+    done / failed, the running runs' clocks in the stage text, the charts done at "sim: done"."""
+    prog = job["progress"]
+    stages = prog.get("stages", [])
+    by = {s.get("name"): s for s in stages}
+    clocks = prog.setdefault("sim_clocks", {})
+    seen = None
+    step = ""
+    m = RE_SIM_RUN.match(line)
+    if m:
+        k, what, rest = int(m.group(1)), m.group(3), m.group(4).strip(" :")
+        snap = by.get("snapshot")
+        if snap is not None and snap.get("state") != "done":
+            _mark(snap, "done")
+        st = by.get("run %d" % k)
+        if what == "started":
+            if st is not None and st.get("state") != "done":
+                st["state"] = "running"
+            clocks[str(k)] = "0:00"
+        else:
+            clocks.pop(str(k), None)
+            if st is not None:
+                _mark(st, "done" if what == "done" else "failed", note=rest[:90] or None)
+        seen = ("run", k, what)
+    else:
+        m = RE_SIM_AT.match(line)
+        if m:
+            clocks[m.group(1)] = m.group(2)
+            seen = ("at", int(m.group(1)), m.group(2))
+        else:
+            m = RE_SIM_WAIT.match(line)
+            if m:
+                step = "waiting for the sim lock" + m.group(1)
+                seen = ("wait", "")
+            else:
+                m = RE_SIM_STEP.match(line)
+                if m:
+                    step = {"sync": "copying the game to the snapshot", "import": "the snapshot imports",
+                            "import_json": "the snapshot imports the saved JSON"}[m.group(1)] + ": " + m.group(2)[:90]
+                    seen = ("step", m.group(1))
+                    if by.get("snapshot") is not None and by["snapshot"].get("state") == "pending":
+                        by["snapshot"]["state"] = "running"
+    if line.startswith("sim: done:"):
+        if by.get("charts") is not None:
+            _mark(by["charts"], "done")
+        clocks.clear()
+        seen = seen or ("done", "")
+    elif line.startswith("sim: error:"):
+        prog["sim_error"] = line[len("sim: error:"):].strip()[:200]
+        seen = seen or ("error", "")
+    runs = [s for s in stages if s.get("type") == "run"]
+    done_runs = sum(1 for s in runs if s.get("state") in ("done", "failed"))
+    if step:
+        prog["stage"] = step
+    elif seen and seen[0] in ("run", "at", "done"):
+        live = sorted(clocks.items(), key=lambda kv: int(kv[0]))
+        bits = ["%d of %d runs done" % (done_runs, len(runs))] + ["run %s at %s" % (k, c) for k, c in live[:6]]
+        if len(live) > 6:
+            bits.append("+%d more" % (len(live) - 6))
+        prog["stage"] = " · ".join(bits) if not line.startswith("sim: done:") else "done: %d of %d runs" % (done_runs, len(runs))
+    prog["done"] = sum(1 for s in stages if s.get("state") == "done")
+    prog["total"] = len(stages)
+    return seen

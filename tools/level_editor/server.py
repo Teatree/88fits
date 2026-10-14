@@ -17,6 +17,8 @@ routes are listed in docs/level_editor.md ("The API (for scripts)"); in short:
                             /api/upload, /api/test_launch
     the jobs (66, jobs.py): GET /api/jobs[?since=rev], /api/job/<id>, /api/jobs/specs, /api/jobs/defaults?kind=&target=
                             (68); POST /api/jobs, /api/jobs/<id>[/cancel|requeue|pick|install|move|delete]
+    the run sim (77):       GET /api/sim/settings|status|history|result/<id>; POST /api/sim/settings|run|unlock,
+                            /api/sim/<id>/keep|delete|cancel (sim_io.py; the sims are tools/sim_batch.py jobs of kind "sim")
     the icon guard (76):    GET /api/content/<kind>/<id>/icons, /iconfile/<kind>/<id>/<ref>; POST /api/content/<kind>/<id>/icon
                             {op: revert|use, code, ref, confirm} (also the look ops revert_icon / use_icon); an icon install
                             into the look in play or the base is a 409 confirm_needed until it is sent with confirm: true
@@ -131,6 +133,7 @@ import locks  # noqa: E402  (tools/locks.py: the repo-wide Godot and ComfyUI loc
 import content_io as cio  # noqa: E402
 import vocab as VOCAB  # noqa: E402
 import boss_attacks_io as BAIO  # noqa: E402  (pass 72, lane BOSS: the custom boss attacks' routes)
+import sim_io as SIMIO  # noqa: E402  (pass 77, lane SIMUI: the Sim tab's routes, /api/sim/...)
 
 _write_lock = threading.Lock()
 # a test hook: a module-like object standing in for jobs.py (selftest_S.py); None = import jobs.py when it is there
@@ -3880,7 +3883,7 @@ def fit_turnover(map_id, include_headless=False, runs_dir=None):
 # ---------------------------------------------------------------- the handler
 
 # GETs that are polled or fetched by the dozen say nothing in the console (pass 66)
-QUIET_PREFIXES = ("/api/jobs", "/api/job/", "/api/status", "/dl/", "/icon/", "/sprite/", "/art/", "/examples/", "/sound/")
+QUIET_PREFIXES = ("/api/jobs", "/api/job/", "/api/status", "/dl/", "/icon/", "/sprite/", "/art/", "/examples/", "/sound/", "/api/sim/")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -4008,6 +4011,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200 if res.get("ok") else 404, res)
         if parts == ["refs"]:
             return self._send(200, list_refs())
+        if parts[:1] == ["sim"]:
+            # pass 77 (lane SIMUI): the Sim tab (sim_io.py: settings, status, history, result/<id>)
+            return SIMIO.api_get(self, sys.modules[__name__], parts[1:], query)
         if parts[:1] == ["boss_attacks"]:
             # pass 72 (lane BOSS): the custom boss attacks (boss_attacks_io.py)
             return BAIO.api_get(self, sys.modules[__name__], parts[1:], query)
@@ -4321,6 +4327,9 @@ class Handler(BaseHTTPRequestHandler):
                                                        "error": "" if ok else "held by another process: send force"})
             if parts[:2] == ["api", "jobs"]:
                 return self._post_jobs(parts[2:])
+            if parts[:2] == ["api", "sim"]:
+                # pass 77 (lane SIMUI): the Sim tab's run, settings, keep / delete / cancel, unlock (sim_io.py)
+                return SIMIO.api_post(self, sys.modules[__name__], parts[2:])
             if parts[:2] == ["api", "boss_attacks"]:
                 # pass 72 (lane BOSS): new, save, assign, delete (boss_attacks_io.py)
                 return BAIO.api_post(self, sys.modules[__name__], parts[2:])

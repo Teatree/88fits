@@ -128,7 +128,7 @@ func _place(delta: float) -> void:
 	var h := _familiar_param("height", 1.5)
 	var bob := _familiar_param("bob", 0.14)
 	_orbit += delta * _familiar_param("speed", 1.3)
-	var t := float(Time.get_ticks_msec()) * 0.001
+	var t := Run.rule_seconds()  # pass 77 (lane SIMRUN): real time in play, the run's clock in a run sim
 	var want := player.global_position + Vector3(cos(_orbit) * r, h + sin(t * 3.1) * bob, sin(_orbit) * r)
 	# eased follow, as the gun companions: a sprinting hero drags it along a little
 	_familiar.global_position = want if delta <= 0.0 else _familiar.global_position.lerp(want, clampf(delta * 9.0, 0.0, 1.0))

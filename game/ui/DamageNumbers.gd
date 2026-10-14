@@ -420,6 +420,9 @@ func step(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	# pass 77 (lane SIMRUN): the run sim's fast mode shows no numbers (its tool suppresses them as they come, too)
+	if Run.sim_mode:
+		return
 	# a modal that pauses the run (level-up, chest, pause...) hides the numbers, as it does the HUD
 	var covered := false
 	for m in get_tree().get_nodes_in_group("wanted_modal"):

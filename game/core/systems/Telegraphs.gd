@@ -510,7 +510,9 @@ func _mat(color: Color, alpha: float) -> StandardMaterial3D:
 func _process(delta: float) -> void:
 	var t0 := Time.get_ticks_usec()
 	_advance(delta)
-	_write()
+	# pass 77 (lane SIMRUN): the run sim's fast mode keeps the marks' lives (the bot reads the warnings) but draws none
+	if not Run.sim_mode:
+		_write()
 	Perf.add("telegraphs", t0)
 
 

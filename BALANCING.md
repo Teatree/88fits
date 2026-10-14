@@ -2498,3 +2498,313 @@ ICON): the icon guard" section.
 
 - The Stranger's screen under a camera cutout: the deal panel and the quote rise by what would overlap WALK AWAY / DEAL (24 px above them) and the portrait shrinks by as much, never below 0.6 of its size (ui/StrangerScreen.gd `_fit_layout`, again a frame after it opens).
 - The arena's hero tiles read `Registry.hero_state`: "locked", "for sale", or nothing for an owned hero (a hero bought before his quest was done read "locked").
+
+## 24. Pass 77 (v0.63): the run sim (not balance, named so they are not surprises), Down! without gold
+
+Garry's request (2026-10-14/15, tools/dl/p77/REQUEST.md). Each lane's rules as it wrote them.
+
+### 24.SIMRUN One simulated player and its bot
+
+For BALANCING.md §24 (the lead). Code: `game/tools/sim_run.gd` (the run, the screens, the goals, the output) and
+`game/tools/sim_pilot.gd` (the legs). Nothing here changes the game for a player: these are the simulated player's rules.
+
+## 1. The run it plays
+- One headless run of the real game (Game.tscn) at a fixed 60 fps (`--fixed-fps 60`: a weapon fires at most once a frame),
+  launched from memory (`Run.launch_override`): hero, map, `map_seed = seed`, the recorder in memory.
+- The save is sandboxed before anything changes (Save.begin_sandbox, never ended: nothing reaches the disk), with:
+  - **every unlock quest done** (`unlocks=all`, the default): the whole content is in the card pool, whatever user
+    folder the process runs in (`unlocks=save` keeps the folder's save);
+  - **the Upgrade board** from `board` exactly as difficulty_probe writes it: its FORMS (grit 0, drive 0, stride 0,
+    fortune 0, choice 0, nerve 1, study 1, spite 1; `grit=`/`spite=` change those two), ranks by `rank_for` (a whole
+    number gives every talent that many; a half alternates ceiling/floor in FORMS order: board 1.5 = 12 of 48 ranks);
+  - or, given `talents=` (Garry: "specify the hero and what upgrades they have"), the board talent by talent: each
+    talent's ranks with each rank's form, written as Save.data.talents[id].picks (what Save.talent_picks reads, so the
+    game folds it exactly as a bought board); a talent left out has no rank; it replaces `board=`.
+- **Settings forced** to a player's: fixed camera (north up), ranged weapons pick only what is on the screen, pierce
+  drop-off on, hints off, floating damage numbers off, debug mode off.
+- **The screen** the ranged weapons test against: a 504 x 1122 window with the canvas expanding as on Android, so the
+  visible canvas is 1080 x 2404 (a 9:20 phone). Headless Godot otherwise gives a 64 x 64 window and the PC's "keep"
+  aspect (1080 x 1920, 9:16: a view 25 % wider than the phone's).
+- **Seeds**: the player's seed gives the map layout (map_seed = seed; barrels and signs follow it), the global
+  randf()/randi() stream (hash(seed, "global")), the level-up offers' and the chests' draws (CardPool.rng,
+  hash(seed, "cards")), the director's dice (hash(seed, "director")), the creatures' and the pickups' own dice
+  (hash(seed, "EnemyManager"/"PickupManager"), set right after their _ready), the bot's choices (hash(seed, "bot")) and
+  the kite's strafe (hash(seed, "pilot")), and since 2026-10-15 where the structures stand (StructureManager.setup:
+  hash(seed, "structures"); the barrels, placed clear of the structures' rings, follow) and the Totem Poles' gifts
+  (Run.totem_rng, hash(seed, "totems")). **Stays random**: cosmetic dice (blood, the coin streams' flights, shines).
+  seed + k gives each player his own map. **Repeatable**: in the fast mode a seed replays exactly (seed 66 to 5:00 and
+  seed 73 to 10:00, twice each: every row of kills, damage, XP, health, level, crowd and gold, and every pick, equal);
+  in the full game (`fast=0`) it does not (two runs of seed 66 parted at 0:08): the sounds' gaps and free players run
+  on real time and each sound played draws its pitch from the global dice, so how many draws come before the next crit
+  or drop hangs on the machine's speed. Same seeds on two versions of the content are a paired comparison only in the
+  fast mode.
+- **The fast mode** (`fast=1`, the default; Garry: "why it is that the sims are taking so long?"): the launch's
+  `sim_fast` sets Run.sim_mode for the run, and the work that only draws or plays is skipped while every rule runs:
+  the crowd's, the shots' and the pickups' drawing (EnemyManager, ProjectileManager, PickupManager `_process`: their
+  `_render`, trails, sparks, wick flames), the ground marks' drawing (Telegraphs keeps ageing them: the bot reads the
+  warnings), every Fx effect (particles, notes, blood, bolts, trails, wind), every sound (Audio.play), the HUD's and the
+  damage numbers' frames, the hints. Nothing it skips moves a number. Measured: see the history notes (wall time
+  before and after, and the same seeds both ways).
+- **The run's clock** (both modes, since 2026-10-15; the launch's `sim_clock`, Run.sim_clock): a headless run goes 2.5
+  to 4.5 times faster than real time (the full game about 2.7, the fast mode about 4.3), so a rule that counts real time
+  plays differently in a sim than on a phone, where real time is game time. Two did: an Orbiter's repeat hit on the same
+  creature (its `cooldown`, 0.25 s for the Orbit Saws: Orbit Saws, Branding Iron, Rattlesnake and their evolutions) and
+  the sheet's rebuild throttle (DESPERADO_REBUILD_MS, 250 ms: Desperado, Steady Hand, Hot Streak). In a sim both now
+  count the run's own clock (Run.rule_seconds = buff_clock), so they play at the phone's pace. So does the weapons'
+  companions' bob (the familiars, the stray gun, the salt shaker: ConeWave, GravityGun, LaserBeam, MissilePod,
+  ProjectileEmitter, SaltShaker, WeaponBehavior), a look that reached a rule where the companion is where the weapon
+  fires from (the Big Mouth's beam starts at its mouth, LaserBeam.muzzle). Before this every sim
+  (the difficulty probe's too, which keeps real time: its numbers stay comparable with pass 62/64's) had orbiters hitting
+  a creature 2.5 to 4.5 times less often than a phone, and the fast mode's less often than the full game's.
+- **The fast mode against the full game** (the same seeds both ways; a seed never replays across the two, since the
+  full game's looks draw from the global dice, so only the spread over seeds compares them): before the run's clock the
+  full game pulled ahead from about 5:00 (level +3.7 +- 1.3 at 7:00 over 28 pairs) and further in the first boss's
+  fight, the fast player's boss living longer mostly where both held an orbiter (its saws hit a creature 1.6 times less
+  often in the faster run); after it, ten pairs to 10:00 (seeds 71-80) end level: level +0.2 +- 1.4, XP +230 +- 1,640,
+  kills -40 +- 390 at 10:00 (full minus fast), the fast player a little ahead from 5:00 to 7:00 (level -0.7 +- 0.3 at
+  5:00, -1.4 +- 1.2 at 7:00), gone by 8:00. So the fast mode is the default; `fast=0` stays for a spot check, and a fast
+  batch is never mixed with a full one in one comparison.
+- **It ends** at the first recorder row at or past `limit` play seconds ("limit"), when Down! is given up ("death"), or
+  by the watchdog: a screen (or a pause with none up) left more than 10 s of the frame clock ("stuck:<screen>"), the
+  hero down more than 12 s with nothing asking ("stuck:down"), the wall clock past `wall` s ("stuck:wall"), no game
+  after 120 s ("stuck:no_game"). The output is written in every case.
+
+## 2. The legs (every unpaused frame)
+In this order of precedence: a goal, else the sweep (the kite leaning towards pickups), with the red-ring dodge on top.
+
+### 2a. The kite (pass 62's difficulty probe autopilot, moved to sim_pilot.gd unchanged; the probe still uses it)
+- Keeps the nearest creature about KEEP 4.5 m off: under FLEE 2.6 m it flees (away + 0.5 sideways), under 4.5 m it
+  drifts sideways round the crowd (sideways + 0.35 away), beyond it closes in (sideways - 0.4 away); creatures within
+  10 m push away by 1/d^2; nothing near: walks to the nearest creature; none at all: a slow wander.
+- The sideways drift flips every 3 to 7 s (its own seeded dice).
+- Danger: a hammer giant, a Bull Beetle, any Elite or boss within 7 m pushes 6x a creature's (1/d^2), a hostile rocket
+  within 10 m adds 3 straight away from it; while that push is over 0.4 he flees it (+ 0.25 sideways).
+- Near the wall: pulled to the arena's middle from 45 % of its radius out, up to 1.5 x 1.4.
+
+### 2b. The sweep (the run sim's: a player gathering his gems; the probe has none)
+- The spot: every gem, coin and vacuum gem lying on the sand (PickupManager's grid of resting pickups, 4 m cells) past
+  0.9 of his magnet's reach and within LURE_R 60 m (the whole field) is summed by cell; the cell with the most
+  worth / (distance + 2)^1.5 wins, its worth-weighted middle the spot. Worth: a gem its XP, a coin 2 per gold, a vacuum
+  gem 400; a power-up on the ground counts as 40 (a heart only while he is under 70 % of his health). Picked again every
+  6 frames.
+- The lean: 2.0 against the kite's 1 when no creature stands within 1.2 m of the way over its first 4 m (lane clear),
+  0.3 of that (0.6) when one does, none while the danger push of 2a is over 0.4; all times his health's say: whole at
+  70 % of his health or more, none at 35 % or less, linear between.
+- Why: the kite alone keeps him off the crowd's front, where the gems fall: measured at 0.5 to 0.85 XP a kill (it left
+  85 % of stage 1's XP on the sand until the boss chest's vacuum pulled it in). With the sweep, 1.1 to 1.4 XP a kill,
+  levels 8 to 12 at 5:00 (seeds 3, 4, 5, board 1.5) against Garry's 0.59 run (Drifter: level 9 at 2:50, 11 at 4:16).
+
+### 2c. The dodge (the run sim's)
+- A hostile warning on the sand (Telegraphs' growing ring in the creatures' red: r >= 0.8, g < 0.42, b < 0.5, still
+  winding up: a Stone Golem's boulder, a rocket, a slam, a spit's splash, a boss's ring) that he stands in, or within
+  0.8 m of, pushes him out from its middle: 4.0 at the middle, a third of that at its edge, added after the sweep.
+- A red line (Telegraphs' strip, added 2026-10-15 with the boss leash: the King's roll and his volley's spokes, a
+  charge's or a spit's line) pushes him straight off its axis the same way, from its start to its end, within half its
+  width (at least 0.3 m) plus 0.8 m. The cones (sectors) are not read.
+- Why: without it the Stone Golem's boulders (about 62 a hit against 121 HP at 3:35) killed the bot in stage 1.
+
+### 2d. Goals (the run sim's)
+- In order: the boss's chest (must reach), then the portal once no boss chest lies there (must reach), then (while a
+  boss lives) the boss itself when he is more than BOSS_LEASH 10 m from it, walking until he is within BOSS_BACK 7 m,
+  else the nearest unopened chest within 30 m (CHEST_RANGE).
+- **The boss leash** (added 2026-10-15): while a boss lives, the sweep's gems and power-ups and the chests he walks to
+  count only within 10 m of the boss, and he walks back to it from further. Why: the boss log (seed 73) showed the sweep
+  leading him 40 to 60 m off while the King followed at 1.3 m/s (it lost 1 % of its HP in two minutes), so the first
+  boss fight lasted anything from 3 s to 6 minutes by where the gems lay, and the boss chest's vacuum (10 to 18 levels
+  at once) came that much later. A player fights the boss: its arrow is on the HUD, his guns reach 9 to 10 m.
+- The walk: straight at it; from 7.5 m out he sidesteps a creature nearer than 2.6 m (0.7) and the danger push (0.9), and
+  turns along a rock in the way (the map's obstacle circles, within its radius + 2.5 m, ahead of him); within 1.5 m he
+  walks straight in. The red-ring dodge applies, scaled the same way.
+- A chest not reached in 20 play seconds is left alone for 30 s. A must-reach goal not reached in 45 play seconds: he is
+  put on it (an "assist": an event and meta.assists; the portal is re-armed so it asks at once).
+- The portal and the boss chest: if he walks into the portal while the boss's chest still lies there, "Not yet"; the
+  portal asks again only once he has been 2.5 m out (Portal.REARM), so he steps 3.2 m out and back in.
+
+## 3. The screens
+- **Level-up cards**: the best tier on the table, ties at random (the bot's dice); never a skip, a reroll or a banish.
+  Tiers, best first: 0 an evolution (a maxed line's evolution card), 1 the hero's favourite arriving (the card says
+  FAVOURITE), 2 a new weapon (offered only while a weapon slot is free), 3 a level of a held weapon, **4 a hero perk (the
+  contract names none: placed after the weapons, before the lines)**, 5 a new line (only while a line slot is free), 6 a
+  level of a held line, 7 a passive item (new or a level), 8 anything else.
+- **A mutation (path) offer**: one card at random (the hero's own mutation among them); the reel is skipped.
+- **A chest**: taken (its intro skipped and its spin hurried, as a player's two taps).
+- **The Stranger**: declined. **The shop**: left. **A Totem Pole**: the gift with the most feathers (its quality, 1 to 3),
+  ties at random.
+- **The portal**: continue, after stage 3 into endless; "Not yet" only as in 2d.
+- **Down!** by `death` (end the default; the lead, 2026-10-14: gold revives leave Down!): end = stay down at once (the run
+  ends); ad = GET UP on the ad revive once, while Down! offers it (its button there and not locked: a chance left,
+  1 + the revives stat - revives used), and stay down at the next; keep = never asked: the moment he falls he is stood
+  up at full health with no invulnerability (the probe's way) and the fall counted. `gold` is read as `ad`. Phoenix
+  Feather (an item) stands him up on its own in every policy; its fall counts as a fall.
+
+## 4. The output's rules (keys_SIMRUN.md)
+- The lead's difficulty fields (Garry: the crowd's whole HP and attack are "meaningless", the hero is never attacked by
+  all of it): `near3` / `near6` count the creatures up within 3 m and 6 m of the hero, flat (RunAnalytics.NEAR_CLOSE,
+  NEAR_WIDE, also row keys for the dashboard); `boss_hp_abs` is the boss's health (row key `boss_now`), `boss_hp` its
+  share; `took` is the damage taken that second before any healing (row key `hp_lost`), `healed` the healing that second
+  with regen (row key `hp_healed`). The Sim tab charts Danger (took / hp_max a second), Keeping up ((press_hp -
+  boss_hp_abs) / dps) and Close crowd (near3, near6) from them.
+- Lane SIMUI's round 2: `hits` (the recorder's hits that second), `spawned` (summed), `mult_hp` / `mult_dmg` (stage x the
+  time curve x the level's, from the recorder's `mults`, carried forward; without the map's constant creature mults),
+  `took_by` / `healed_by` (cumulative by creature / source, regen as the source `regen`), `held_by` (weapons,
+  evolutions, lines, passives, perks held, from the recorder's build snapshots, carried forward) and the `pick` event
+  (item_kind, new, level, tier, the other cards).
+- One entry per recorder row (one per second of unpaused play); `t` = ceil(row t - 0.05), so a part-second at the end
+  closes as the next whole second and `t` always rises.
+- dps = the row's damage of every source summed; dmg_by and dmg_total cumulative; kills = Run.kills (cumulative);
+  kills_by cumulative of the rows' kills by creature; gold_total cumulative of the rows' gold in (greed included);
+  gold_by cumulative by source; alive_by the row's count (not summed); took = HP lost that second; healed = heals +
+  regen that second; deaths = the recorder's death events (falls) at or before the row; xp_total = the recorder's new
+  cumulative XP (Run.xp_gained, after Field Notes).
+
+### 24.SIMUI The sim's averaging, lock and history
+
+Where they live: `tools/sim_batch.py` (aggregate, player_grid, markers, eta_seconds, sync_snapshot, the lock) and
+`tools/level_editor/sim_model.js` (the folds, the readout, the page's ETA, the same formula). The bot's own rules (cards,
+movement, Down!) are lane SIMRUN's (`balancing_SIMRUN.md`).
+
+## The averaging (per second of play)
+- **The axis**: whole seconds of play 0..T, T = the longest run's last second (at most the stop time). A sample's second
+  is round(t); when two share a second the later wins; a second without a sample carries the second before (levels and
+  totals), a rate (dps, took, healed) is 0 there; second 0 takes each run's first row (0 for a total or a rate).
+- **A run plays** from 0 to its last second. `playing[s]` = the runs whose last second is at least s.
+- **Every series is the mean over the runs still playing** at that second (HP, max HP, DPS, the estimate, the crowd's
+  HP and attack, alive, cap, coins, damage, kills, level, XP, ...). Survivors only, by design: late in a sim where many
+  runs died the average is of the stronger runs; `playing` says how many.
+- **Deaths** (cumulative falls) are the one exception: the mean over **every** run at every second, an ended run keeping
+  its last count.
+- **DPS** is smoothed per run over the trailing **5 s** (DPS_WINDOW; the first seconds over what there is) before the
+  averaging; its band comes from the smoothed values. The raw per-second mean is kept as `dps_raw` (the page's
+  "per second" button).
+- **Bands** (the pale areas): the 10th and 90th percentiles over the runs still playing, linear between the nearest
+  ranks (numpy's default; 1 run = no width), for HP, DPS, level, crowd HP, crowd attack.
+- **Breakdowns** (damage by source, kills by creature, coins by source, alive by creature): the mean per id over the runs
+  still playing; an id a run never had counts 0 for that run. Order: by the sum of each run's final value (totals) or by
+  the sum of the mean over time (alive).
+- **Markers**: a stage's start = the median of the play times the runs reached it (n = how many got there); a boss's
+  start and end = the medians over the runs that met it / beat it, matched by id and occurrence; its fight = the median
+  of each run's own end - start; its HP pegging = the median of the runs' `mult`.
+- **The clock and the stage** at each second: the median over the runs still playing (the readout's "clock 12:05").
+- **The summary** counts each run at its own end (never survivors only): runs that reached the stop (end within 1.5 s
+  of it), the median end, deaths, revives, kills, level, coins, XP and damage per run; per boss reached / beaten.
+- **A failed run** (no JSON written, or one that does not load) is left out of every average and listed with its reason.
+  A run is judged by its JSON, never by its exit code (a headless run can exit 0xC0000005 after writing it).
+- **Partial results**: result.json is written again after every finished run while at most 12 have finished, then at
+  most every 20 s, and at the end (`meta.partial` until then). A cancel keeps the last one.
+
+## The page (sim_model.js)
+- **Folds**: a split chart shows its **7 biggest** entries (by the score above) and sums the rest into "Other" (a
+  neutral grey, never a ninth hue); with 8 entries or fewer none fold. The colours are the editor's validated dark
+  series slots in fixed order, given in the order the entries first appear (the weapon taken first, the creature that
+  came first); Who is alive and Kills share one colour map (at most 8 creatures coloured; a creature that finds no free
+  colour goes into Other).
+- The readout under a split chart lists every entry at that second, biggest first, and names the three biggest inside
+  Other ("356K Other (35) (40.1K Boomstick, 39.5K Lob Grenade, 38.9K Big Mouth)").
+- The crowd's HP and attack split by creature on their own when the runs report `press_hp_by` / `press_dmg_by` (lane
+  SIMRUN's output has only the totals today: one line with its band).
+- Shares and words count **the runs in the result** (its summary's runs with data), not the runs asked for: a partial
+  result of 5 of 10 runs shows "Runs still playing" over the 5.
+- A sim started with Run sim takes over the charts at its first finished run; a sim started elsewhere (a shell, the Jobs
+  tab's Re-queue) never takes the view from the one shown (its History entry shows it, partial, as it fills).
+- The compared sim: grey (#a8a79f), dashes 7-5, on every chart; a stacked chart compares its total only.
+- The y axis: from 0 to the next round tick above the highest value drawn (lines, band tops, stack totals, the compared
+  sim); the share chart 0-100%. One unit per axis (5K, 10K once the top reaches 10,000).
+
+## The run, the snapshot, the lock
+- **Snapshot**: game/ copied to `tools/dl/sim/snap/game/` (export/, reports/, .godot/ and *.tmp never; .godot seeded
+  once from the real one minus shader_cache and exported), a file copied when its size or mtime differs (mtimes kept),
+  a file gone from game/ deleted, except the snapshot's own `.import` / `.uid` beside a file still there. Its
+  project.godot: `config/use_custom_user_dir=true`, `config/custom_user_dir_name="88fits_sim"` (user:// =
+  %APPDATA%\88fits_sim: never Garry's save or runs).
+- **The snapshot imports** (`--headless --import`) when the snapshot is new, or a `.import`, a picture/model/sound/font
+  (png jpg jpeg webp svg tga bmp exr hdr glb gltf fbx obj blend dae wav ogg mp3 ttf otf woff woff2 fnt csv), a `.uid`,
+  a new or removed scene or resource (tscn tres res scn gdshader), a new or removed script, or a script's class_name
+  changed. A content `<id>.json` newer than its `<id>.tres` by more than 1 s is imported in the snapshot
+  (`import_json.gd -- only=type/id,...`; the sound map as `sounds`), so the sim plays the saved JSON.
+- **The lock exception**: one sim at a time through `tools/dl/locks/sim.lock` (tools/locks.py's owner.json; a dead
+  owner's lock reclaimed, a folder without owner.json never: the Sim tab's Release). A sim never takes the Godot lock:
+  its Godot processes (the snapshot's import, import_json, the runs) work on another project folder with its own user
+  folder, so the editor's Save, imports and the tests are never blocked. (CLAUDE.md should say so; tools/locks.py's NAMES
+  could list "sim" so `locks.py status` shows it: the format already fits.)
+- **The runs**: `--headless --fixed-fps 60` (the fps setting) `--log-file players/pNN.log`, K at a time (auto by
+  default since round 2: as many as the runs, at most the logical processors - 2), run k plays seed + k - 1. A run past its wall-time cap,
+  max(900 s, 2 x the stop), is killed; the runner's own watchdog gets `wall=` that cap - 45 s so it writes what it has
+  first.
+- **The history**: `tools/dl/sim/runs/` keeps the newest **10** sims plus every kept one (a `kept` file); older folders
+  are deleted when a sim ends. A running sim is never deleted.
+- **The ETA** (round 2's rules, see below): the snapshot (20 s; 120 s for the first one) + rounds of K runs, each its
+  boot + the stop / the slowest run's pace; past half the logical processors at once the runs share them (speed x
+  load(measured K) / load(K), load(n) = max(1, n / (cores/2))). First guess before any record: 2.5 play seconds a wall
+  second, an 18 s boot.
+
+## Defaults (the Sim tab, the job, the CLI) (round 2)
+10 runs, at once auto (as many as the runs, at most the logical processors - 2: 14 here), stop at 25:00 (1500 s), the
+Upgrade board a quarter, on death: end the run at the first death, seed 1, the map in the editor (red_canyon), 60 fps,
+the runner's sim mode on. Ranges: runs 1-100, stop 0:30-3:00:00, a talent 0-6 ranks, seed 0-2^31-1.
+
+## Round 2 (Garry's notes on the first Sim tab, 2026-10-14)
+- **The Upgrade board talent by talent**: `talents` {talent: picks}, one letter a rank bought, its form (A the first, B
+  the second): exactly Save.data.talents[id].picks. The presets: difficulty_probe's FORMS (grit, drive, stride, fortune,
+  choice: the first form; nerve, study, spite: the second) and rank_for (a whole board gives every talent that many
+  ranks; 1.5 alternates 2 and 1 in that order: 12 of 48 ranks); "my save" = the PC save's talent picks (the copy
+  tools/locks.py keeps aside while a Godot tool has the save). Given, the talents win over board= (which then only names
+  a preset they equal: none 0, a quarter 1.5, half 3, full 6; else custom, board -1). The runs get `board=` (the preset or
+  0) and `talents=` (only when there are ranks: an empty board is board=0 alone). An empty talents block in a job spec
+  means "the preset board= names".
+- **The death policies**: end (the default), ad (revive once with an ad while it is offered, then end), keep. Gold is
+  gone with Get up with gold; an older sim's "gold" still reads (its label) but never runs.
+- **The runner's capabilities** (read off game/tools/sim_run.gd's argument parser: a `"talents":` arm, a `"fast":` arm,
+  the `_death in [...]` list): the page offers only the death policies the runner knows; a sim whose death policy the
+  runner does not know, or whose board is custom while the runner reads no talents=, is refused before anything plays
+  (the run route's 409 and the driver's error), since an older runner would play no board and a refused policy makes
+  every run fail. `fast=1` / `fast=0` is sent only to a runner that has the sim mode (it is on unless told fast=0).
+- **The board check**: a run whose meta.talents (ranks per talent) differs from the board asked is named in the
+  header ("run 1 played grit 1 (asked 3)").
+- **Difficulty, per run and second** (the derived series):
+  - danger = 100 x HP lost that second (took: after shields and armour, before healing) / max HP; danger_net = 100 x
+    (took - healed) / max HP (below 0 = healing more than lost); each over the trailing 5 s (DPS_WINDOW) like the DPS,
+    then the mean over the runs still playing, a p10/p90 band on danger;
+  - keep_up = (crowd HP alive - the boss's HP) / the run's DPS (its 5 s DPS), boss_s = the boss's HP / that DPS while a
+    boss lives; neither where the DPS is under 1; the boss's HP: the runner's boss_hp_abs, else boss_hp when above 1.5
+    (an absolute), else the fraction boss_hp x the max HP its boss_start event reported. These two are ratios that jump
+    where the DPS is small, so their aggregate is the **median** over the runs that have a value at that second, with
+    p10/p90 and the count of runs (`n`), never a mean (MEDIAN_SERIES);
+  - trouble = 100 while HP is under 30% of max HP (TROUBLE_FRAC), else 0: its mean is the share of runs in trouble;
+  - kills_ps (from the running total), spawned_ps, hits_ps: each second's count over the trailing 10 s (RATE_WINDOW,
+    the run dashboard's 10 s means);
+  - near3 / near6 (the runner's creatures within 3 / 6 m), mult_hp / mult_dmg (a creature spawned now): levels, means;
+  - took_by, healed_by (cumulative) and held_by (items held: a level) as breakdowns.
+  Crowd HP and crowd attack stay in result.json (press_hp, press_dmg) but are no charts.
+- **The charts**: five sections in Garry's order (the hero; death; how hard is each second; rewards; growth); a chart
+  whose data the runs lack is left out and named under its section. Who is alive, What hurt the hero and Kills share
+  one creature colour map. A y axis goes below 0 only when a value does (the net danger), with 0 always a tick.
+- **The page**: one scroll (no inner scroll areas); a plot that changes width is drawn again (a ResizeObserver, over
+  8 px) and stretches with its card until then.
+- **Speed and the ETA**: a speed record (tools/dl/sim/speed.json, the last 20) is made from the runs that played at
+  least 60% of the stop (and 300 s): `play_per_wall` = their median rate (play seconds a wall second after the boot),
+  `slow` = the slowest of them (a round of runs ends with its slowest run), the boot, K, `fast` (the runner's sim mode).
+  A sim where fewer than 80% of its runs played that long makes no record: a run that died early played only the light
+  early game, and when most die the few left have the PC to themselves and run faster than K at once would. The ETA
+  takes the last 5 records of the chosen mode (the Drawing switch) at the most recent record's K (unscaled; the page
+  scales to its own K with speed_at) and plays each round at the `slow` pace; the page says "if every run lasts that
+  long" unless the runs keep playing. Measured (16 logical processors, 10 runs of 25:00, keep playing): 23:39 with 6 at
+  once before the sim mode; 18:10 with 10 at once and the sim mode off (median 1.98, the slowest run 1.41 play s a wall
+  second); 10:23 with 10 at once and the sim mode (median 2.97, slowest 2.55). The ETA now says 10:32 and 18:30 for
+  those two.
+- **The Drawing switch** (`fast`, on by default, offered when the runner has `fast=`): off sends `fast=0` (everything
+  drawn and played). `result.meta.sim_mode` = what the runs played (any run's meta.fast; a runner from before the mode
+  drew everything): the header and the history say "everything drawn" when it is false.
+
+### 24.LEAD The lead's changes in this pass
+
+- **Down! has no gold revive** (Garry: "Remove the 'Get up with gold' option from the down screen"): the screen offers GET
+  UP · WATCH AN AD (a stand-in, no ads yet) and STAY DOWN. The engine's "gold" kind is kept (no button sends it).
+- **A row may start on a boss second** (Garry's r18, blue slimes at 7:10 with the King): it reads the step of the stage
+  before, as every row reads the HP/ATK step at its own start (pass62_pc re-pinned to this).
+- **The XP multiplier is Garry's** (`timeline_data.xp_need_mult`, 4.1 since 2026-10-15; 2.1 before): pass52 reads it.
+- **The difficulty probe runs on the run's own clock** (`"sim_clock": true`): the rules that counted real time (the
+  Orbiter's repeat hit, the rebuild throttle) ran 2.5 to 4.5 times too seldom in a headless probe; probe numbers from
+  pass 62/64 understate orbiter builds.
+- **The Totem brief** (docs/ui_review/totem/, Drive totem_ui_brief, artifact YbXF7fMNgFJDZ7SdjKNhVf) carries only the
+  totem screen and the pole in the game, with the screen explained element by element (Garry: "We only need the totem
+  one").

@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="preview.css">
 <link rel="stylesheet" href="boss.css">
+<link rel="stylesheet" href="sim.css">
 </head>
 <body>
 <!-- the glyphs every lane and chip uses: <use href="#g-name"> (pass 53); they take their fill from the <use> -->
@@ -40,6 +41,7 @@
 
 <nav class="tabs">
   <button type="button" data-tab="timeline" class="active">Timeline</button>
+  <button type="button" data-tab="sim" title="pass 77: the run sim: the game plays the saved map N times with a bot, every second averaged into charts (DPS, HP, deaths, danger, the crowd, coins, damage, kills, level, XP)">Sim</button>
   <button type="button" data-tab="settings">Settings</button>
   <button type="button" data-tab="creatures" title="every creature of the game: the palette, and since pass 66 the editor for enemies, elites and bosses">Enemies</button>
   <button type="button" data-tab="heroes" title="pass 66: the heroes as the game plays them, and their editor">Heroes</button>
@@ -75,6 +77,7 @@
   <section id="tab-items" class="tab-panel page" hidden></section>
   <section id="tab-jobs" class="tab-panel page" hidden></section>
   <section id="tab-bossattacks" class="tab-panel page" hidden></section>
+  <section id="tab-sim" class="tab-panel page" hidden></section>
   <section id="tab-instructions" class="tab-panel page" hidden></section>
 </main>
 
@@ -108,6 +111,9 @@
 <script src="boss_model.js"></script>
 <script src="boss_scaling.js"></script>
 <script src="boss_attacks.js"></script>
+<!-- pass 77 (lane SIMUI): the Sim tab, on its page-free maths (sim_model.js, also run under Node by selftest_SIM77.py) -->
+<script src="sim_model.js"></script>
+<script src="sim.js"></script>
 <script src="instructions.js"></script>
 </body>
 </html>

@@ -205,7 +205,7 @@ func _place(delta: float) -> void:
 	# the mouth holds still while it winds up and fires, and drifts around the hero the rest of the time
 	if _beam_t <= 0.0 and _windup_t <= 0.0:
 		_orbit += delta * _familiar_param("speed", 0.9)
-	var t := float(Time.get_ticks_msec()) * 0.001
+	var t := Run.rule_seconds()  # pass 77 (lane SIMRUN): real time in play, the run's clock in a run sim
 	var want: Vector3 = player.global_position + Vector3(cos(_orbit) * r, h + sin(t * 2.4) * bob, sin(_orbit) * r)
 	_familiar.global_position = want if delta <= 0.0 else _familiar.global_position.lerp(want, clampf(delta * 8.0, 0.0, 1.0))
 	var firing: bool = _beam_t > 0.0

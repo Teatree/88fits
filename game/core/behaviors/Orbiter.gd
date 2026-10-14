@@ -129,7 +129,8 @@ func _tick(delta: float) -> void:
 	var fdmg := stat("fire_damage", 0.0)
 	var fdur := stat("fire_duration", 1.8)
 	var fspread := stat("fire_spread", 0.5)
-	var now := Time.get_ticks_msec() * 0.001
+	# pass 77 (lane SIMRUN): real time in play, the run's own clock in a run sim (Run.rule_seconds)
+	var now := Run.rule_seconds()
 	var center: Vector3 = player.global_position + Vector3(0, 0.6, 0)
 	var n := _blade_n
 	var area := stat("area", 1.0)

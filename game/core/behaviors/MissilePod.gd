@@ -312,7 +312,7 @@ func _place(delta: float) -> void:
 	var h := _familiar_param("height", 1.6)
 	var bob := _familiar_param("bob", 0.1)
 	_orbit += delta * _familiar_param("speed", 0.9)
-	var t := float(Time.get_ticks_msec()) * 0.001
+	var t := Run.rule_seconds()  # pass 77 (lane SIMRUN): real time in play, the run's clock in a run sim
 	var want := player.global_position + Vector3(cos(_orbit) * r, h + sin(t * 2.7) * bob, sin(_orbit) * r)
 	var aim := Vector3(-sin(_aim_yaw), 0, -cos(_aim_yaw))
 	want -= aim * 0.12 * _recoil

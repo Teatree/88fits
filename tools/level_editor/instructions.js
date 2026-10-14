@@ -24,6 +24,7 @@ const Instructions = (() => {
     clear(container);
     const root = el('div', { class: 'instr' });
     intro(root);
+    pass77Sim(root);   // pass 77 (lane SIMUI): the Sim tab
     pass76Icons(root);   // pass 76 (lane ICON): the icon guard
     // pass 72 (lane BOSS): boss HP pegged to DPS, the custom boss attacks (boss_attacks.js writes the section)
     if (typeof BossAttacks !== 'undefined' && BossAttacks.instructions) BossAttacks.instructions(root);
@@ -559,6 +560,29 @@ const Instructions = (() => {
 
   /** Garry (pass 76): "Bring back the old Solenne icon, I made a variant of an Icon and can't find the old one. Make a fix
    *  in LevelEditor to make sure that this doesn't happen." What changed, and how to find, undo and choose icons now. */
+  /** Pass 77 (lane SIMUI): the Sim tab. Garry: "simulate like 10 players (editable) and the output is the average ...
+   *  charts per second ... the sim requires a manual button press". */
+  function pass77Sim(root) {
+    const ol = (...steps) => el('ol', { class: 'howto' }, steps.map((s) => li(s)));
+    const how = (title, intro2, steps) => { root.appendChild(el('h3', { text: title })); if (intro2) root.appendChild(p(intro2)); root.appendChild(steps); };
+    root.appendChild(el('h2', { text: 'Pass 77: the Sim tab (the game plays your map, run after run)' }));
+    root.appendChild(p('The <b>Sim</b> tab (right after Timeline) plays the <b>saved</b> map with the real game, headless, as many times as you ask, with a bot at the controls (it kites the crowd like the difficulty probe, gathers gems when the way is clear, steps out of red warning rings, takes the level-up cards a sensible player would, takes chests, walks to the boss\'s chest and the portal; every item unlocked), and averages every second of play into charts. Every multiplier, the cap, the waves, specials, Elites and the bosses\' HP pegging count, because it is the game itself. Nothing runs until you press <b>Run sim</b>. It is one page that scrolls as a whole.'));
+    how('Run a sim', null, ol(
+      'In <b>Run a sim</b> (on top; <b>Hide settings</b> folds it to one line): the <b>Hero</b>; <b>Runs</b> (how many are played and averaged, 10 by default); <b>At once</b> (auto: as many as the runs, at most the PC\'s logical processors less 2); <b>Stop at</b> (play time, 25:00 by default; boss fights and portal waits count, the timeline\'s clock stops in them); <b>On death</b> (end the run at the first death, revive once with an ad then end, or keep playing and count every death); the <b>Seed</b>; a <b>Note</b> to find it later; <b>Drawing</b> (on: the runs skip the drawing and the sounds, the runner\'s sim mode, much faster; off: everything drawn as in the game, a check that the sim mode changes nothing).',
+      'The <b>Upgrade board</b>: each of the eight talents with its rank (0-6) and its form. The buttons fill them: <b>none</b>, <b>a quarter</b>, <b>half</b>, <b>full</b> (each talent in its usual form, as the difficulty probe plays them) and <b>my save</b> (what you bought in your save on this PC). Change a row and the board is custom. Every run plays the same board.',
+      'Press <b>Run sim</b>. With unsaved map changes it asks first: <b>Save and run</b>, or <b>Run the saved map</b>. Under the button: about how long it takes if every run lasts to the stop (runs that end at a death make it shorter), and why (it plays the real game frame by frame, 60 frames to a second of play, several runs at once; it learns the PC\'s speed from every full sim).',
+      'While it runs, the card under the settings shows every run\'s clock, how many are done and about how long is left; <b>Cancel</b> stops it (the runs already finished stay as a partial result). The charts take over as soon as your sim\'s first run finishes. You can keep editing and saving meanwhile: the sim plays the copy it took when it started.'));
+    how('Read the charts', null, el('ul', {},
+      li('Five sections, in your order: <b>The hero</b> (DPS, HP), <b>Death</b> (runs still playing, deaths so far), <b>How hard is each second?</b>, <b>Rewards</b> (coins, damage, kills), <b>Growth</b> (level, XP, the build). The x axis is <b>play time</b>; thin lines mark where each stage starts and amber washes the boss fights.'),
+      li('Each chart is the <b>average of the runs still playing</b> at that second; the pale band holds the middle 80% of the runs. <b>Runs still playing</b> says how many that is. <b>Deaths so far</b> counts every run, a finished run keeping its count.'),
+      li('<b>How hard is each second?</b> <b>Danger</b>: the share of his max health the hero loses each second, before healing and after it (dashed). <b>Keeping up</b>: how many seconds of his own damage he would need to kill everything alive, the boss left out (rising = falling behind), and the boss alone (dashed). <b>Close crowd</b>: creatures within 3 m. Then who is alive, runs in trouble (under 30% health), what hurt him, hits taken, healing, the crowd against the cap, spawned and killed, and how strong a creature spawned now is. A chart the runs cannot draw is named under the section.'),
+      li('Move the mouse over any chart: a line follows it on <b>every</b> chart and the numbers under each say what they were at that second. Without the mouse they show the end. <b>Table</b> shows the numbers every minute, <b>CSV</b> saves every second for a spreadsheet.')));
+    how('Compare two versions of the map', null, ol(
+      'Run a sim. Change the map (or a creature) and save.',
+      'Run a sim again with the same settings and seed.',
+      'In the <b>History</b> (the last 10 sims; <b>Keep</b> one to never lose it), press <b>Compare</b> on the first: its lines come in dashed grey on every chart of the one shown, and the numbers under each chart list both. The header says which map save each played.'));
+  }
+
   function pass76Icons(root) {
     const ol = (...steps) => el('ol', { class: 'howto' }, steps.map((s) => li(s)));
     const how = (title, intro2, steps) => { root.appendChild(el('h3', { text: title })); if (intro2) root.appendChild(p(intro2)); root.appendChild(steps); };

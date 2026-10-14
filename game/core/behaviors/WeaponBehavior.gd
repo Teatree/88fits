@@ -62,7 +62,7 @@ func _fly_stray(delta: float) -> void:
 	var r := float(fam.get("radius", 1.25))
 	var h := float(fam.get("height", 1.35))
 	_stray_orbit += delta * float(fam.get("speed", 1.4))
-	var t := float(Time.get_ticks_msec()) * 0.001
+	var t := Run.rule_seconds()  # pass 77 (lane SIMRUN): real time in play, the run's clock in a run sim
 	var want := player.global_position + Vector3(cos(_stray_orbit) * r, h + sin(t * 3.1) * float(fam.get("bob", 0.12)), sin(_stray_orbit) * r)
 	_stray.global_position = want if delta <= 0.0 else _stray.global_position.lerp(want, clampf(delta * 9.0, 0.0, 1.0))
 	_stray.rotation.y = -_stray_orbit

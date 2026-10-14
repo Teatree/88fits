@@ -85,6 +85,15 @@ var abandoned := false
 var mirror := true           # the PC copy beside the repo (tests turn it off)
 ## Pass 74: the folder that stands in for the repo's analytics/ ("" = the one beside res://; tests name their own)
 var mirror_root := ""
+## Pass 77 (lane SIMRUN): the run sim's recorder (the launch's `analytics_memory`): its header, rows and events stay in
+## memory for the tool to read, and nothing is written (no user://analytics file, no mirror, no latest.js or index)
+var memory_only := false
+## Pass 77 (lane SIMRUN): every XP point the run gained so far (Run.xp_gained, after Field Notes), each row's `xp_total`
+var xp_total := 0.0
+## Pass 77 (lane SIMRUN, Garry: the crowd's whole HP and attack "meaningless": the hero is never attacked by all of it):
+## each row's `near3` / `near6` count the creatures up within these many metres of the hero (flat)
+const NEAR_CLOSE := 3.0
+const NEAR_WIDE := 6.0
 
 var _acc_t := 0.0
 var _finished := false
@@ -144,6 +153,8 @@ var _extra_names: Dictionary = {}
 static func create(p_game: Node, launch: Dictionary = {}) -> RunAnalytics:
 	var ra := RunAnalytics.new()
 	ra.name = "RunAnalytics"
+	# pass 77 (lane SIMRUN): the run sim's launch keeps the record in memory
+	ra.memory_only = bool(launch.get("analytics_memory", false))
 	p_game.add_child(ra)
 	ra.begin(p_game)
 	ra.set_launch(launch)
@@ -213,9 +224,16 @@ func begin(p_game: Node) -> void:
 	# pass 74: lifesteal's heal is unnamed on the hero; Game's handler heals before this one hears it (connected first)
 	Run.lifesteal_healed.connect(func(_n): _name_heal("lifesteal"))
 	Run.build_changed.connect(_on_build_changed)
+	# pass 77 (lane SIMRUN): the XP gained, summed (each row's xp_total)
+	Run.xp_gained.connect(_on_xp_gained)
 	_on_build_changed()
 	# the card screen is made after the recorder (Game._ready): its signals are joined once the game is built
 	call_deferred("_join_cards")
+
+
+## Pass 77 (lane SIMRUN): Run.xp_gained, the XP as credited (after Field Notes).
+func _on_xp_gained(n: float) -> void:
+	xp_total += n
 
 
 ## The settled offers (pass 57): the card screen's own signals, so the pick screens need no hook of their own.
@@ -633,6 +651,8 @@ func _sample() -> void:
 		_last_wave = wave
 	_putf(row, "xp", Run.xp)
 	_putf(row, "xp_next", Run.xp_to_next())
+	# pass 77 (lane SIMRUN): every XP point gained so far
+	_putf(row, "xp_total", xp_total)
 	if player != null:
 		row["hp"] = snappedf(float(player.hp), 0.1)
 		row["hp_max"] = snappedf(float(player.max_hp), 0.1)
@@ -673,6 +693,13 @@ func _sample() -> void:
 	_put_map(row, "hits_by", _hits_by, false)
 	_put_map(row, "healed_by", _heal_by, true)
 	_putf(row, "regen", _regen)
+	# pass 77 (lane SIMRUN): the second's HP lost (every hit's loss, before any healing: took summed) and HP healed
+	# (heals and regen), so a chart needs no sums
+	var lost_s := 0.0
+	for k in _took:
+		lost_s += float(_took[k])
+	_putf(row, "hp_lost", lost_s)
+	_putf(row, "hp_healed", _healed + _regen)
 	_put_map(row, "killed", _kills, false)
 	_put(row, "elite_kills", _elite_kills)
 	_put_map(row, "spawned", _spawns, false)
@@ -695,12 +722,25 @@ func _sample() -> void:
 		var press_hp := 0.0
 		var press_dmg := 0.0
 		var by := {}
+		# pass 77 (lane SIMRUN): the crowd close to the hero, within NEAR_CLOSE and NEAR_WIDE metres of him (flat)
+		# (read defensively: a test's stand-in crowd or hero may have no `pos` or no place)
+		var pv = em.get("pos")
+		var epos: PackedVector3Array = pv if pv is PackedVector3Array else PackedVector3Array()
+		var me: Vector3 = (player as Node3D).global_position if player is Node3D else Vector3.INF
+		var near_c := 0
+		var near_w := 0
 		for i in range(alive.size()):
 			if alive[i] == 0 or state[i] == EnemyManager.STATE_DYING:
 				continue
 			press_hp += hp[i]
 			press += mx[i] * dmg[i]
 			press_dmg += dmg[i]
+			if me != Vector3.INF and i < epos.size():
+				var d2 := Vector2(epos[i].x - me.x, epos[i].z - me.z).length_squared()
+				if d2 < NEAR_WIDE * NEAR_WIDE:
+					near_w += 1
+					if d2 < NEAR_CLOSE * NEAR_CLOSE:
+						near_c += 1
 			var ti := tidx[i]
 			if ti >= 0 and ti < types.size():
 				var tid: String = types[ti]["def"].id
@@ -708,11 +748,15 @@ func _sample() -> void:
 		_putf(row, "press", press)
 		_putf(row, "press_hp", press_hp)
 		_putf(row, "press_dmg", press_dmg)
+		_put(row, "near3", near_c)
+		_put(row, "near6", near_w)
 		if not by.is_empty():
 			row["alive_by"] = by
 		var bi: int = em.boss_index
 		if bi >= 0 and bi < alive.size() and alive[bi] == 1 and mx[bi] > 0.0:
 			row["boss_hp"] = snappedf(hp[bi] / mx[bi], 0.01)
+			# pass 77 (lane SIMRUN): the boss's health itself (boss_hp is its share), so the crowd's HP less the boss's reads
+			row["boss_now"] = roundf(hp[bi])
 		# pass 74: the coloured specials up now (EnemyManager.specials_alive)
 		var sa = em.get("specials_alive")
 		if sa != null:
@@ -1437,6 +1481,9 @@ func _name_of(id: String) -> String:
 ## The record as one JSON file under user://, and on the PC a copy beside the repo with latest.js (and the index when
 ## the run is over). Returns the path written last.
 func _write(index: bool) -> String:
+	# pass 77 (lane SIMRUN): the run sim's recorder writes nothing (its tool reads the rows in memory)
+	if memory_only:
+		return ""
 	var doc := header.duplicate(true)
 	doc["samples"] = samples
 	doc["events"] = events

@@ -52,6 +52,10 @@ func set_listener(pos: Vector3) -> void:
 
 ## Play a one-shot by id. `pos` attenuates by distance from the listener; Vector3.INF = UI/non-positional.
 func play(id: String, pos: Vector3 = Vector3.INF, volume_db: float = 0.0) -> void:
+	# pass 77 (lane SIMRUN): the run sim's fast mode plays nothing (its gaps on real time and its pitch dice would also
+	# make a headless run's random sequence hang on the machine's speed)
+	if Run.sim_mode:
+		return
 	var row := Registry.soundmap.entry(id)
 	if row.is_empty():
 		return

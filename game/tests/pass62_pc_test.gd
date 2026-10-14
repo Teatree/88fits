@@ -227,10 +227,12 @@ func test_the_bosses_keep_their_stage_and_later_stages_hit_harder_in_play() -> v
 	# Garry's and his stage 2 slopes, so each boss second is compared with the second before it, not with a number)
 	assert_float(tl.damage_mult_at(STAGE)).is_equal_approx(tl.damage_mult_at(STAGE - 1.0), 0.005)
 	assert_float(tl.damage_mult_at(STAGE * 2.0)).is_equal_approx(tl.damage_mult_at(STAGE * 2.0 - 1.0), 0.005)
-	# every stage-2 / stage-3 row starts after its stage's boss second, so it reads its own stage's step
+	# pass 77 re-pin: a row may start on a boss second (Garry's r18, blue slimes at 7:10 with the King, 2026-10-15): it
+	# reads the stage before's step there, as every row reads the step at its own start (BALANCING §24)
 	for r in tl.roster:
 		var t := float(r.get("t", 0.0))
-		assert_bool(t != STAGE and t != STAGE * 2.0).override_failure_message("row %s starts on a boss second" % str(r.get("id", ""))).is_true()
+		if t == STAGE or t == STAGE * 2.0:
+			assert_float(tl.damage_mult_at(t)).is_equal_approx(tl.damage_mult_at(t - 1.0), 0.005)
 	# in play a stage-2 bite is still harder than a stage-1 one (stage x ATK x), and stage 3's harder than stage 2's
 	var s1 := tl.stage_mult(0) * tl.damage_mult_at(300.0)
 	var s2 := tl.stage_mult(1) * tl.damage_mult_at(700.0)

@@ -160,6 +160,9 @@ func _ready() -> void:
 ## While a modal that pauses the run is up (level-up, chest, shop, pause...), the HUD steps aside; the gate brings it
 ## back so the card can land in its slot.
 func _process(_delta: float) -> void:
+	# pass 77 (lane SIMRUN): the run sim's fast mode shows no HUD
+	if Run.sim_mode:
+		return
 	var covered := false
 	for m in get_tree().get_nodes_in_group("wanted_modal"):
 		if (m as CanvasItem).visible:

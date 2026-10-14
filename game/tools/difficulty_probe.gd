@@ -13,8 +13,11 @@
 ## written as pass 63's picks (every rank in the talent's FORMS form). The probe is not deterministic (two runs of one
 ## seed can differ by 0.4 maxHP a minute): pool several seeds and both heroes before reading a cell.
 ## Autoloads are reached through the tree (SceneTree scripts compile before they exist).
+## Pass 77 (lane SIMRUN): the kiting autopilot lives in tools/sim_pilot.gd (the run sim drives with it too); the probe
+## steers through it exactly as before, its strafe dice seeded with `seed`.
 extends SceneTree
 
+const PILOT := preload("res://tools/sim_pilot.gd")
 const DOWN_AT := 0.4
 ## Builds (lane PC's assumptions, see its report): the hero's five weapons with levels and path mutations (or the
 ## evolution), his lines and passive items, at about 7:10 (b1), 14:20 (b2) and 21:30 (b3).
@@ -88,9 +91,8 @@ var _samples: Array = []
 var _next_sample := 0.0
 var _cards := 0
 var _chests := 0
-var _strafe := 1.0
-var _strafe_t := 0.0
-var _rng := RandomNumberGenerator.new()
+## the kiting autopilot (pass 77: tools/sim_pilot.gd, made in _start with the seed)
+var _pilot: PILOT
 var _last_log = null
 var _by: Dictionary = {}
 var _hits := 0
@@ -130,7 +132,7 @@ func _init() -> void:
 
 
 func _start() -> void:
-	_rng.seed = _seed
+	_pilot = PILOT.new(_seed)
 	var save := root.get_node_or_null("Save")
 	if save == null or root.get_node_or_null("Run") == null:
 		printerr("probe: the autoloads did not load (a script error elsewhere); nothing run")
@@ -158,7 +160,9 @@ func _start() -> void:
 			talents[id] = {"picks": picks, "rank": rank, "form": form}
 	save.data["talents"] = talents
 	var f := FileAccess.open("user://debug_launch.json", FileAccess.WRITE)
-	f.store_string(JSON.stringify({"weapon": START.get(_hero, "revolver"), "level": 1, "character": _hero, "map": "red_canyon", "map_seed": _seed, "analytics": false}))
+	# pass 77: the run's own clock for the rules that counted real time (the Orbiter's repeat hit, the rebuild throttle):
+	# a headless probe runs several times faster than real time, so its orbiter numbers were low before (pass 62/64)
+	f.store_string(JSON.stringify({"weapon": START.get(_hero, "revolver"), "level": 1, "character": _hero, "map": "red_canyon", "map_seed": _seed, "analytics": false, "sim_clock": true}))
 	f.close()
 	_run = root.get_node("Run")
 	change_scene_to_file("res://game/Game.tscn")
@@ -323,97 +327,11 @@ func _screens() -> void:
 		_game.portal_dialog.decided.emit(false)
 
 
-## The autopilot (a circle-strafer): it keeps the nearest creature about KEEP metres off, drifting round the crowd (a
-## sideways drift that flips now and then), flees what is closer than FLEE, closes in when nothing is near, and is pulled
-## back towards the arena's middle near the wall.
-const KEEP := 4.5
-const FLEE := 2.6
-
-
+## The autopilot (a circle-strafer, tools/sim_pilot.gd since pass 77): it keeps the nearest creature about KEEP metres
+## off, drifting round the crowd (a sideways drift that flips now and then), flees what is closer than FLEE, closes in
+## when nothing is near, and is pulled back towards the arena's middle near the wall.
 func _steer(dt: float) -> void:
-	var p: Node3D = _game.player
-	var inp = p.input
-	if inp == null or _game.paused:
-		return
-	var em = _game.enemies
-	var me: Vector3 = p.global_position
-	var away := Vector3.ZERO
-	var nearest := INF
-	var toward := Vector3.ZERO
-	for i in range(em.MAX):
-		if em.alive[i] != 1:
-			continue
-		var d: Vector3 = me - em.pos[i]
-		d.y = 0.0
-		var l2 := d.length_squared()
-		if l2 < nearest:
-			nearest = l2
-			toward = -d
-		if l2 > 100.0 or l2 < 0.0001:
-			continue
-		away += d / l2
-	nearest = sqrt(nearest) if nearest < INF else INF
-	# what a player watches for (lane PC: the bot had walked into every telegraphed hit): a hammer giant, a charger or an
-	# Elite close by pushes six times as hard, and a hostile rocket within 10 m sends him straight away from it
-	var danger := Vector3.ZERO
-	for i in range(em.MAX):
-		if em.alive[i] != 1:
-			continue
-		var def = em.types[em.type_idx[i]]["def"]
-		if not (def.id in ["hammer_giant", "bull_beetle"] or def.archetype == "elite" or def.archetype == "boss"):
-			continue
-		var dd: Vector3 = me - em.pos[i]
-		dd.y = 0.0
-		var l2 := dd.length_squared()
-		if l2 < 49.0 and l2 > 0.0001:
-			danger += dd / l2 * 6.0
-	var pm = _game.projectiles
-	if pm:
-		for pi in pm.rocket_of.keys():
-			var k := int(pi)
-			if pm.alive[k] != 1:
-				continue
-			var dr: Vector3 = me - pm.pos[k]
-			dr.y = 0.0
-			if dr.length_squared() < 100.0 and dr.length_squared() > 0.0001:
-				danger += dr.normalized() * 3.0
-	away += danger
-	_strafe_t -= dt
-	if _strafe_t <= 0.0:
-		_strafe_t = _rng.randf_range(3.0, 7.0)
-		_strafe = -_strafe
-	var dir := Vector3.ZERO
-	if away.length() > 0.0001:
-		var a := away.normalized()
-		var side := Vector3(-a.z, 0, a.x) * _strafe
-		if danger.length() > 0.4:
-			dir = a + side * 0.25
-		elif nearest < FLEE:
-			dir = a + side * 0.5
-		elif nearest < KEEP:
-			dir = side + a * 0.35
-		else:
-			dir = side - a * 0.4
-	elif toward.length() > 0.001:
-		dir = toward.normalized()
-	else:
-		dir = Vector3(sin(_t * 0.4), 0, cos(_t * 0.4))
-	var mb = _game.map
-	if mb:
-		var c: Vector3 = mb.flats_center if mb.get("flats_center") != null else Vector3.ZERO
-		var to_c: Vector3 = c - me
-		to_c.y = 0.0
-		var r: float = mb.arena_radius if mb.get("arena_radius") != null else 60.0
-		var k := clampf((to_c.length() - r * 0.45) / (r * 0.4), 0.0, 1.5)
-		if to_c.length() > 0.01:
-			dir += to_c.normalized() * k * 1.4
-	dir.y = 0.0
-	if dir.length() < 0.001:
-		dir = Vector3.FORWARD
-	dir = dir.normalized()
-	inp.wants_move = true
-	inp.origin = Vector2(216, 500)
-	inp.touch_pos = inp.origin + Vector2(dir.x, dir.z) * 120.0
+	_pilot.steer(_game, dt, _t)
 
 
 ## HP bookkeeping: every drop is a loss, every rise a heal; below DOWN_AT (or down) he is put back to full and the

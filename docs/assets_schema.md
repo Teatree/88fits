@@ -879,3 +879,182 @@ Values set on existing keys in `content/weapons/revolver/revolver.json` params:
 `iconPanel(kind, id, code, {onChanged})`, `bustUrl(url, v)`. jobs.js `act()` and typed_forms.js `install()` ask through
 `LookGrid.confirmIconChange`; assets.js shows `LookGrid.iconPanel` in an item's icon preview and takes the top-level
 `icon_history` from disk in `refreshRecord`.
+
+## Pass 77: the run sim (game/tools/sim_run.gd)
+
+Status: PUBLISHED EARLY for lane SIMUI (2026-10-14). Field names and meanings are fixed; if anything changes it is
+marked "CHANGED" here with the date.
+
+### Command
+```
+<godot> --headless --fixed-fps 60 --path <project> --script res://tools/sim_run.gd -- out=<file> hero=drifter seed=1 \
+    limit=1500 board=1.5 death=end [talents=grit:000,drive:1] [fast=1] [map=red_canyon] [progress=10] [wall=2700] [res=504x1122]
+```
+| Arg | Type | Default | Meaning |
+|---|---|---|---|
+| `out` | path | (required) | The player's JSON (absolute path, or res:// / user://). Written once at the end (also on a watchdog stop), to `<out>.tmp` then renamed, so a file that exists is complete. Parent folders are made. |
+| `hero` | id | `drifter` | The hero (any CharacterDef id; a hidden or unbought one plays too, as in the content dock's test launch). |
+| `seed` | int | `1` | The player's seed (see Seeds). Use seed + k for player k. 0 is turned into 1 (0 means "random" inside the game). |
+| `limit` | play seconds | `1500` | Stop after this many seconds of unpaused play (25:00). |
+| `board` | float | `0` | The Upgrade board in ranks a talent: 0 none, 1.5 a quarter, 3 half, 6 full (difficulty_probe's `mirror`, its FORMS and rank_for). |
+| `death` | `end` / `ad` / `keep` | `end` | CHANGED 2026-10-14 22:30 (the lead: gold revives leave Down!): end = the first Down! is given up (the run ends). ad = Down! answered with the ad revive once while it is offered (its button there and not locked: a chance left), then the next Down! is given up. keep = the probe's way: the hero stood up at full HP the moment he falls (no Down!), every fall counted, the run plays to `limit`. `gold` is still read, as `ad`. Phoenix Feather (an item) revives on its own in every policy. |
+| `map` | id | `red_canyon` | The map. |
+| `progress` | play seconds | `10` | A progress line (stdout) and the progress file every this many play seconds. |
+| `wall` | seconds | `2700` | Wall-clock cap for the whole process: past it the output is written with `end_reason` `stuck:wall` and the process quits. |
+| `res` | `WxH` | `504x1122` | The screen the ranged weapons see (they target only what is on screen): a 9:20 phone. |
+| `grit`, `spite` | int | `0`, `1` | The board's form for those two talents (as the probe). |
+| `talents` | list | (none) | ADDED 2026-10-14 22:30 (lane SIMUI's format, ACCEPTED): `<id>:<picks>,...`, picks one 0/1 digit a rank (0 the first form, 1 the second; A/B letters read too): exactly Save.data.talents[id].picks, e.g. `talents=grit:000,drive:1,nerve:11`; also `<id>:<rank>:<form>` (every rank in one form); a talent left out has rank 0; `talents=none` = an empty board. Given, it replaces `board=`. Ids: choice, drive, fortune, grit, nerve, spite, stride, study; at most 6 ranks. A bad list exits 2 with the reason on stderr. |
+| `fast` | `1` / `0` | `1` | ADDED 2026-10-14 22:30; default `0` from 2026-10-15 00:15 to 01:55, `1` again since: the game's run sim mode (Run.sim_mode, the launch key `sim_fast`): nothing is drawn or played (the crowd's, the shots', the pickups' and the ground marks' drawing, Fx, sounds, the HUD and damage numbers), about 30 % less wall time a player (43 % in lane SIMUI's 10-at-once batch), and a seed replays exactly in it (every row and pick equal: seed 66 to 5:00, seed 73 to 10:00). Measured against the full game: once the rules that counted real time count the run's clock in both modes (`sim_clock`), ten pairs to 10:00 end level (level +0.2 +- 1.4, kills -40 +- 390 at 10:00, full minus fast). `fast=0` plays the whole game (for a spot check; a seed does not replay there: the sounds' gaps run on real time and each sound draws its pitch from the global dice). A fast batch and a full one are still never mixed in one comparison. |
+| `profile` | `1` | off | Every progress line also prints the game's frame buckets (core/systems/Perf.gd, ms a frame). |
+| `trace` | frames | 0 | A debugging aid: a line of the run's state every frame for that many frames (finding what makes a seed unrepeatable). |
+| `unlocks` | `all` / `save` | `all` | ADDED 2026-10-14: `all` marks every unlock quest done in the sandboxed save (the whole content as designed is in the card pool: the snapshot's fresh user folder would otherwise offer only the base items); `save` keeps whatever the user folder's save holds. |
+| `lure_r`, `lure_w`, `lure_close` | float | `60`, `2.0`, `0.3` | ADDED 2026-10-14, tuning knobs of the bot's gem sweep (balancing_SIMRUN.md); `lure_r=0` = no sweep (the probe's pure kite plus the goals). Leave them at the defaults. |
+
+Exit code 0 when the output was written (whatever the end), 2 on bad args / no autoloads (nothing written). A headless
+Godot sometimes exits 0xC0000005 at teardown AFTER the output is written: judge a player by its output file
+(`meta.end_reason`), not by the exit code.
+
+### Progress file `<out>.progress` (rewritten every `progress` play seconds, and at the end)
+One JSON object: `{"t": play s, "limit": s, "clock": stage clock s, "stage": n, "level": n, "deaths": n, "hp": f,
+"hp_max": f, "kills": n, "wall_s": f, "state": "boot"|"running"|"done", "end_reason": "" until done, "xp_lying": f,
+"xp_lying_near": f}` (the last two, ADDED 2026-10-14: XP lying uncollected on the whole field / within 10 m).
+The same as a stdout line (CHANGED 2026-10-14, more fields; read it loosely by key):
+`sim: t=120 clock=120.0 stage=1 level=4 hp=96/115 deaths=0 kills=163 xp=204 lying=237 near=2 | sweep 100% | wall=31.3`
+(the `|...|` part: the share of frames the legs spent kiting, sweeping, walking to a chest, back to a living boss (`boss`, ADDED 2026-10-15: the boss leash), the boss chest, the portal).
+stdout is lost when Godot's console is redirected on Windows: read the file, or pass `--log-file`.
+
+### Output JSON
+Every series is an array with one entry per row, aligned with `t`. A breakdown map holds one such array per id, zero
+before the id first appears. A row is one second of unpaused play from the game's own run recorder
+(core/systems/RunAnalytics.gd rows, kept in memory: no analytics file is written).
+```
+{
+  "meta": {...},
+  "t": [1, 2, 3, ...],
+  ...series...,
+  "events": [...]
+}
+```
+#### meta
+| Key | Type | Meaning |
+|---|---|---|
+| `schema` | int | 1 |
+| `hero`, `hero_name`, `start_weapon` | str | the hero, his name, the weapon he started with |
+| `seed`, `board`, `death`, `limit`, `map`, `unlocks`, `fast` | as the args | |
+| `talent_forms` | {talent: "AAB"} | ADDED: each talent's ranks as letters, the form of each rank (A the first form, B the second) |
+| `view` | [w, h] | the canvas the ranged weapons' screen test uses (1080 x 2404 at the default `res`) |
+| `talents` | {talent: ranks} | the Upgrade board as played |
+| `map_rev` | int/str | the map's Level Editor version (the recorder's header `map_rev`) |
+| `version` | str | the game version (`application/config/version`) |
+| `fps` | int | the fixed frame rate (`--fixed-fps`, read off the frame deltas: the engine keeps that argument to itself; 0 = real time) |
+| `res` | [w, h] | the screen size the ranged weapons saw |
+| `wall_s` | float | the process's wall time at the end (boot included) |
+| `boot_s` | float | wall seconds until the run started |
+| `end_reason` | str | `limit` (played to `limit`), `death` (given up on Down!: death=end, or death=gold with no revive left or not enough gold), `extract` (never by the bot), `stuck:<what>` (a screen unanswered more than 10 game s: `stuck:cards`, `stuck:chest`, `stuck:portal`, ...; `stuck:wall` the wall cap; `stuck:no_game` the game never came up) |
+| `end_t`, `end_clock` | float | play seconds and stage clock at the end |
+| `end_stage`, `end_level`, `endless_wave` | int | at the end |
+| `deaths` | int | falls (every time the hero went down, Phoenix Feather's too) |
+| `revives` | {ad, phoenix, keep} | how each fall was got up from (CHANGED 22:30: `gold` became `ad`) |
+| `assists` | int | times the bot was put on the portal / boss chest after failing to walk there in time (see BALANCING notes) |
+| `kills`, `gold_total`, `xp_total`, `dmg_total` | number | the run's totals |
+| `build_text` | str | the build at the end in one line ("Revolver 5 +3 · ... \| Brawn 2 · ... \| perk") |
+| `picks` | int | level-up cards the bot took (`skips` never) |
+| `rows` | int | number of rows (= length of every series) |
+| `started` | str | local date-time the run started |
+
+#### Series (one entry per row)
+| Key | Type | Meaning |
+|---|---|---|
+| `t` | int | the play second the row closes (1, 2, ...; a run that ended between two seconds closes its part-second as the next whole second, so `t` is strictly increasing) |
+| `clock` | float | the stage clock (freezes in the boss fight and the portal wait; runs on in endless) |
+| `stage` | int | stage number (1, 2, 3; 4+ = endless) |
+| `phase` | int | 0 normal, 1 boss fight, 2 portal wait |
+| `hp`, `hp_max` | float | the hero's health and max health at the row |
+| `dps` | float | damage dealt in that second, every source (weapons, perks, blasts, revive blast, Powder Keg, ...) |
+| `est` | float | the build's estimated DPS (the pause screen's sum of weapon estimates) |
+| `alive` | int | creatures alive |
+| `cap` | int | the director's live cap |
+| `press_hp` | float | crowd HP alive (sum of the current HP of every creature up, every multiplier applied) |
+| `press_dmg` | float | crowd attack alive (sum of every living creature's per-hit damage, every multiplier applied) |
+| `boss_hp` | float | the boss's health fraction while one lives, else 0 |
+| `boss_hp_abs` | float | ADDED (SIMUI #4): the boss's current HP (every multiplier), 0 without one |
+| `near3`, `near6` | int | ADDED (the lead, SIMUI #3): creatures alive within 3 m / 6 m of the hero (flat) |
+| `hits` | int | ADDED (SIMUI #5): hits that reached the hero that second (evaded and shielded ones included, as the recorder counts `hits`) |
+| `spawned` | int | ADDED (SIMUI #8): creatures spawned that second |
+| `mult_hp`, `mult_dmg` | float | ADDED (SIMUI #9): the HP and damage multiplier of a creature spawned now: stage x the HP (damage) time curve x the hero's level's (the recorder's `mults`, carried forward); the map's constant creature_hp_mult / creature_damage_mult are not in it |
+| `took_by` | {creature or attack: float[]} | ADDED (SIMUI #6): cumulative HP lost to each (the recorder's `took` summed) |
+| `healed_by` | {source: float[]} | ADDED (SIMUI #7): cumulative HP healed by source (the recorder's `healed_by`; regen as the source `regen`) |
+| `held_by` | {weapons, evolutions, lines, passives, perks: int[]} | ADDED (SIMUI #10): the items held at the row (the recorder's build snapshots, carried forward; evolutions apart from the weapons) |
+| `alive_by` | {enemy: int[]} | creatures alive by id |
+| `gold_total` | int | cumulative gold gained (every source, greed included) |
+| `gold` | int | the purse (gained minus spent) |
+| `gold_by` | {source: int[]} | cumulative gold gained by source (RunAnalytics.GOLD_SOURCES ids) |
+| `dmg_total` | float | cumulative damage dealt |
+| `dmg_by` | {source: float[]} | cumulative damage dealt by source (weapon ids, evolution ids, perk/blast ids such as `revive`, `powder_keg`) |
+| `kills` | int | cumulative kills |
+| `kills_by` | {enemy: int[]} | cumulative kills by creature id |
+| `level` | int | hero level |
+| `xp_total` | float | cumulative XP gained (after Field Notes' multiplier) |
+| `took` | float | damage taken that second: HP lost to every hit, before any healing (after shield and damage reduction) (the lead's "Danger" chart) |
+| `healed` | float | healing that second: heals and regen |
+| `deaths` | int | cumulative falls |
+
+#### events (list, in time order)
+`{"t": play s (0.1), "clock": stage clock, "kind": ..., ...}`
+| kind | extra keys |
+|---|---|
+| `level` | `level` (the level reached) |
+| `death` | `killer` (creature id of the last hit, or what hit), `hit` (melee/ranged/boss) |
+| `revive` | `via`: ad / phoenix / keep (keep = the probe-style stand-up of `death=keep`; debug if keep ever meets Down!) |
+| `boss_start` | `id`, `hp` (its max HP as it came), `mult` (the DPS pegging), `dps`, `ref` |
+| `boss_end` | `id` |
+| `stage` | `stage` (the stage that began; 1 at the start) |
+| `portal` | `stage` (the stage just cleared; the bot always continues) |
+| `wave` | `wave` (an endless wave began) |
+| `assist` | `what`: portal / boss_chest (the bot was put there) |
+| `pick` | ADDED (SIMUI #11): the bot's level-up or mutation pick: `id`, `item_kind` (weapon / evolution / line / passive / perk / mutation), `new` (bool), `level` (the level it brings), `type` (the card's type), `tier` (its card_tier; -1 a mutation offer's random pick), `others` (the other cards' ids) |
+| `end` | `reason` (= meta.end_reason) |
+
+### Game-side keys and API (for the lead: CLAUDE.md, analytics/SCHEMA.md)
+| Where | Key / member | Type | Default | Meaning |
+|---|---|---|---|---|
+| launch (Run.launch_override or user://debug_launch.json) | `analytics_memory` | bool | false | The run recorder keeps its header, rows and events in memory and writes nothing (RunAnalytics.memory_only): no user://analytics/runs file, no analytics/runs mirror, no latest.js or index. |
+| Run (autoload) | `launch_override` | Dictionary | {} | A launch set in memory: Game._read_debug_launch takes it before the file, empties it, and leaves the file alone (parallel sim players never race on the file). The file's keys. |
+| Run | `rng_seed`, `seed_dice(s)` | int | 0 | The run sim's dice: `seed_dice(s)` seeds the global randf()/randi() stream, CardPool.rng (level-up offers and chest rolls) and rng_seed (read by WaveDirector.start for its own dice); `seed_dice(0)` puts them back to random. Nothing in the game calls it. |
+| CardPool | `rng` (static) | RandomNumberGenerator | null | The offers' and chests' own dice while seeded; null = the global randf() as before. |
+| RunAnalytics row | `xp_total` | float (0.1) | left out while 0 | Every XP point gained so far (Run.xp_gained, after Field Notes), cumulative. NEW row key: analytics/SCHEMA.md and tools/analytics_csv.py's BASE list could add it (nothing reads it there yet). |
+| RunAnalytics | `memory_only`, `xp_total` | bool, float | false, 0 | The two above on the recorder node. |
+| launch | `sim_fast` | bool | false | ADDED 22:30: the run sim's fast mode for this run (Game._ready sets Run.sim_mode from it, every run). |
+| Run | `sim_mode` | bool | false | The fast mode: EnemyManager / ProjectileManager / PickupManager draw nothing (their `_process`), Telegraphs ages its marks but draws none, Fx makes nothing, Audio.play plays nothing, HUD and DamageNumbers skip their frames and Game skips hud.tick and hints.tick; the rules that count real time read the run's clock (as with sim_clock, below). |
+| RunAnalytics row | `near3`, `near6` | int | left out while 0 | ADDED 22:30: creatures up within 3 m / 6 m of the hero (RunAnalytics.NEAR_CLOSE, NEAR_WIDE). |
+| RunAnalytics row | `hp_lost`, `hp_healed` | float | left out while 0 | ADDED 22:30: the second's HP lost (`took` summed, before healing) and HP healed (`healed` + `regen`). |
+| RunAnalytics row | `boss_now` | float | absent with no boss | ADDED 22:30: the boss's current HP (`boss_hp` stays its share). |
+| launch | `sim_clock` | bool | false | ADDED 2026-10-15: the runner passes it in both modes (Game._ready sets Run.sim_clock from it, every run). |
+| Run | `totem_rng` | RandomNumberGenerator | null | ADDED 2026-10-15: the Totem Poles' gifts' dice in a run sim (seed_dice: hash(seed, "totems")); Game._use_totem hands it to TotemBoons.offer, which rolls its own random ones when it is null (play). |
+| StructureManager | `setup` seed hook | - | - | ADDED 2026-10-15: with Run.rng_seed set (a run sim) its dice are seeded (hash(seed, "structures")) after their randomize: where the structures stand, their returns, and the barrels placed clear of their rings follow the seed (two fast runs of one seed parted at 0:05 without it). |
+| behaviours | companions' bob | - | - | ADDED 2026-10-15: the familiars', the stray gun's and the salt shaker's bob reads Run.rule_seconds() (ConeWave, GravityGun, LaserBeam, MissilePod, ProjectileEmitter x2, SaltShaker, WeaponBehavior): real time in play as before; in a sim the run's clock, since the Big Mouth's beam starts at its bobbing mouth (two fast runs of one seed parted at 3:14 on its damage). |
+| Run | `sim_clock`, `rule_seconds()` | bool, float | false | ADDED 2026-10-15: in a run sim (sim_clock or sim_mode) the rules that counted real time count the run's own clock (buff_clock) instead: an Orbiter's repeat hit on the same creature (its `cooldown`, Orbiter._tick: Orbit Saws, Branding Iron, Rattlesnake and their evolutions) and the sheet's rebuild throttle (Desperado, Steady Hand, Hot Streak). In play nothing changes (rule_seconds is real time). Why: a headless run goes 2.5 to 4.5 times faster than real time, so every sim before this, the difficulty probe's too, had orbiters hitting a creature 2.5 to 4.5 times less often than a phone does, and the fast mode (faster still) less often than the full game. |
+
+### Requests from lane SIMUI (2026-10-14 22:25, round 2: Garry's notes on the Sim tab, relayed by the lead)
+SIMRUN: please mark each line ACCEPTED, CHANGED (your format) or NO right here. sim_batch.py passes the args; the page
+draws a chart only when its data is in the runs, so a NO costs that chart only.
+Answers (SIMRUN, 2026-10-14 ~23:00): all ACCEPTED as proposed, in the per-player output under the names proposed (#1
+also takes `<id>:<rank>:<form>`; #4's RunAnalytics row key is `boss_now`, the output key `boss_hp_abs`). Details in the
+tables above. Implemented in sim_run.gd; covered by game/tests/pass77_simrun_test.gd.
+
+| # | What | Proposed format | For |
+|---|---|---|---|
+| 1 | arg `talents` | `talents=<id>:<picks>,<id>:<picks>,...`, picks = one digit a rank, the form (0 the first, 1 the second): exactly Save.data.talents[id].picks, e.g. `talents=grit:000,drive:1,nerve:11`; a talent left out has rank 0; `talents=none` = an empty board; given, it wins over `board=` | Garry: "specify the hero and what upgrades they have" (per talent rank and form; the presets none / quarter / half / full / my save are filled by the page) | **ACCEPTED (+ `<id>:<rank>:<form>`)** |
+| 2 | arg `death=ad` | Down! answered with the ad revive while it is offered (a chance left), then the run ends; `death=gold` dropped from the page (Garry is removing Get up with gold). If the ad revive will not stay, say NO | the death policies: end (default), ad, keep | **ACCEPTED (once, then the next Down! is given up)** |
+| 3 | row `near3` | int: creatures alive within 3 m of the hero | the Close crowd chart (the lead: "lane SIMRUN adds the field") | **ACCEPTED (+ `near6`)** |
+| 4 | row `boss_hp_abs` | float: the boss's current HP (every multiplier), 0 without one (else I use boss_hp x the boss_start event's hp) | Keeping up: the boss's seconds | **ACCEPTED as `boss_hp_abs` in the output (the row key is `boss_now`)** |
+| 5 | row `hits` | int: hits that reached the hero that second (RunAnalytics `hits`) | hits taken | **ACCEPTED** |
+| 6 | row `took_by` | {creature id or attack name: cumulative HP lost} (RunAnalytics `took`, summed) | what hurt the hero | **ACCEPTED** |
+| 7 | row `healed_by` | {source: cumulative HP healed} (RunAnalytics `healed_by`; regen as the source `regen`) | healing by source | **ACCEPTED** |
+| 8 | row `spawned` | int: creatures spawned that second (RunAnalytics `spawned`, summed) | spawned against killed | **ACCEPTED** |
+| 9 | rows `mult_hp`, `mult_dmg` | float: the HP and damage multiplier of a creature spawned now (RunAnalytics `mults`: stage x hp_t x lvl_hp; stage x dmg_t x lvl_dmg), carried forward | the creatures' strength | **ACCEPTED (your formula; the map's constant creature mults not in it)** |
+| 10 | row `held_by` | {weapons, evolutions, lines, passives, perks: int}: the items held at the row | the build's growth | **ACCEPTED** |
+| 11 | event `pick` | {t, kind: "pick", item_kind (weapon / evolution / line / passive / perk / mutation), id, level, new} | the picks' timing | **ACCEPTED (+ type, tier, others)** |
+| 12 | sim mode | (the lead: the visual work skipped) say its arg if it has one; I measure 10 runs before and after | speed | **ACCEPTED: `fast=1` (the default), `fast=0` plays it all** |
+
+SIMUI, 2026-10-14 23:40, FYI for the fast-mode proof (no request): my two 10-run sims of 25:00 (keep, seeds 1-10, 10 at once) with `fast=1` (started 22:37) and `fast=0` (22:47, the runner already with the round-2 fields) levelled differently: at 10:00 the `fast=0` run was higher in 9 of 9 untied pairs (mean level 38.5 against 31.9; kills at 25:00 18.0K against 15.7K; deaths 7.1 against 5.4). The runner changed between the two, so it proves nothing alone; the folders are tools/dl/sim/runs/p77-speed-keep-k10-fast and p77-speed-keep-k10-nofast (players/pNN.json). Wall times: 10:23 and 18:10 (the slowest runs 2.55 and 1.41 play s a wall second).

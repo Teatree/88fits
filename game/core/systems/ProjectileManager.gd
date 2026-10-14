@@ -1024,7 +1024,8 @@ func _physics_process(delta: float) -> void:
 ## The shots, their trails and the rockets' lines are drawn once per shown frame, and only after a tick has moved
 ## them (pass 33.8: inside the physics tick, a phone below 60 fps drew them twice for every frame it showed).
 func _process(_delta: float) -> void:
-	if game == null or _drawn == _ticks:
+	# pass 77 (lane SIMRUN): the run sim's fast mode draws no shots, trails, sparks or wick flames
+	if game == null or _drawn == _ticks or Run.sim_mode:
 		return
 	_drawn = _ticks
 	var t0 := Time.get_ticks_usec()
