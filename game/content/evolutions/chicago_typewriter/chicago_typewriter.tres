@@ -43,7 +43,8 @@ params = {
 },
 "radius": 0.18,
 "tracer": true,
-"tracer_life": 0.2,
+"tracer_hot": 0.45,
+"tracer_life": 0.3,
 "tracer_size": 0.4,
 "tracer_step": 0.016
 }

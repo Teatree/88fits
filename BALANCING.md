@@ -3088,3 +3088,375 @@ dark red transparent 2. Silver - thicker, correct colour. 3. Then the line disap
     spot over the unled one +1.29 +- 0.13 (L1 kite, +16%), +0.83 +- 0.07 (L5 kite, +14%), +0.59 +- 0.07 (L5 standing,
     +7%); the contract's plain walk lead +0.09 +- 0.17, +0.03 +- 0.09, -0.22 +- 0.11 (no better than none: the crowd near
     the hero is a stream and the blast is wider than the lead); the plain chase +0.44, +0.18, -0.20.
+
+## 27. Pass 80 (v0.66): the Watch and its bot, the wisp tracer, the fort wall, the oases
+
+Garry's request (2026-10-15, tools/dl/p80/REQUEST.md). Each lane's rules as it wrote them.
+
+### 27.BOT The bot: an explorer that uses the map and explains its choices
+
+Everything here is the TOOL's (game/tools/bot/, never exported): the run sim's and the Watch's player. No game rule
+changed. Where each number lives: Bot.gd (presets, the planner's commitment and hold, the Shop and the Stranger),
+BotGoals.gd (knowledge, values, utility), BotCards.gd (the scores), BotLegs.gd (the legs and their dials).
+
+#### The default
+The Sim (sim_run.gd, tools/sim_batch.py, the Level Editor's Sim tab) and the Watch play the **Explorer** preset unless
+told otherwise; `preset=sim77` is pass 77's bot exactly (proven: the same 10 seeds replay every series and event
+identically, before and after the move and again with the final code).
+
+#### Presets (Bot.PRESETS)
+| | skill | style | reaction s | dodge | daring | stray m | explore | totems | barrels | power-ups | structures | shop | stranger | boss | cards |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| sim77 | 1 | balanced | 0 | 1 | 0.5 | 60 | 0 | off | off | on | off | off | off | leash | tier |
+| explorer | 0.9 | balanced | 0 | 1 | 0.5 | 60 | 0.6 | on | on | on | on | on | on | leash | score |
+| careless | 0.4 | balanced | 0.6 | 0.5 | 0.8 | 60 | 0.4 | on | on | on | on | on | on | free | score |
+| expert | 1 | balanced | 0.1 | 1 | 0.45 | 60 | 0.7 | on | on | on | on | on | on | leash | score |
+
+#### Knowledge (BotGoals)
+- Seen = within **12 m** of the hero once (SEE_R; no pointer shows structures, barrels or Totem Poles: exploring finds them).
+  Power-ups count while within **18 m**, chests within **45 m**.
+- The arena as **11 m** cells (CELL); a cell is visited once he has been within 12 m of its middle; explore walks to the
+  unvisited one with the best utility.
+
+#### Utility (one goal at a time)
+utility = value x taste[kind] x mood[kind] x jitter[thing] x style[kind] / (1 + distance / **18 m**)
+- taste: per run and kind, **0.6..1.4** (hash of the seed); mood: per kind and **120 s** spell of play, **0.7..1.3**; jitter:
+  per thing, **0.85..1.15**. Same seed, same rolls; seeds differ ("sometimes power-ups, sometimes structures").
+- Values: Totem Pole **80**; barrel **10**, black **28**, x**1.6** with Barrel Rush held; chest **70**; explore **30** x the
+  explore dial x (0.5 + share of the arena unseen); power-ups: vacuum **35**, nuke **25**, buff **22**, shield **22**, gold
+  **15**, pollen **12**, leap **10**, others **12**, a heal **90** x (1 - health) below **80%** health (none above); a
+  power-up is no goal if it would expire before he arrives (life < distance / 3.6 m/s + 1 s).
+  Structures: Healing Well **90** x (1 - health) below 80%; Uber Magnet **15 + 40** x (XP lying on the map / the next
+  level's XP), at most **80**; Travelling Shop **45** only with **0.56** x the stage's shop base (300/500/700) in the purse
+  and shop on; the Stranger **40** only at **60%** health or more and stranger on; Teleport **60** only under **40%**
+  health with danger over **0.3**; War Drum (buff) **28**, XP Beacon **55**, Loot Cache **40**, dice **20**, others **15**;
+  the Strongbox (bank) never.
+- The sweep (the gems lying, pass 77's lure) is a candidate too: **2000** x (its worth / the next level's XP), at most
+  **45** (gems wait on the sand; a Totem Pole near beats a pile).
+- Style words (a factor on a kind): damage: War Drum x1.5, totem x1.1, explore x0.9; safety: Healing Well x1.5, heart
+  x1.5, explore x0.7, barrel x0.8; greedy: barrel x1.5, chest x1.3, Loot Cache x1.5, gems x1.3, Uber Magnet x1.4, Shop x0.6.
+- Far limit: **12 m** at 35% health or less, **75 m** from 80% up, times (1 - **0.6** x danger); a heal goal reaches **35 m**
+  at least. Danger = damage taken fading over **30 s**, over max HP (0..1). While a boss lives (boss "leash") every goal
+  must lie within **10 m** of it and explore waits.
+
+#### Commitment (Bot)
+- A new plan every **0.5 s**; a goal held is kept unless one **1.4** x better turns up (the sweep is no commitment); none
+  under **4**; patience **8 s + 0.55 s** a metre + the structure's use time; given up = rests **40 s**.
+- The kite wins when the crowd closes: **5** or more within **3 m**, a big one or a rocket pushing (danger push > **0.4**),
+  or under **50%** health with a creature inside the flee distance; back to the goal when fewer than **3** are within 3 m,
+  the push is under **0.2** and (hurt) none is inside flee distance, after **0.4 s**. Within **2.5 m** of a barrel, power-up
+  or chest he grabs it whatever comes; a structure's use **60%** done goes on above **40%** health. Patience runs at half
+  speed while he kites.
+- He stands still inside **0.55** x a structure's ring radius to use it.
+- The musts stay pass 77's: the boss's chest, then the portal (45 s then an assist), then back to a living boss (10 m / 7 m).
+
+#### Scores (BotCards)
+score = dps x w.dps + survival x w.survival x danger weight + plan x w.plan + greed x w.greed
+- dps: % of the estimated DPS now (WeaponInstance.dps_estimate, the pause screen's) on temporary instances, at most
+  **100**; stat effects through a copy of the hero's sheet with every weapon rebuilt; crit as (chance x (crit damage - 1)).
+- survival points a unit: max HP **80** (a fraction; add as a share of max HP), damage reduction **150**, regen **30** (per
+  % of max HP a second), move speed **60** (add as a share of 3.6 m/s), evade **120**, lifesteal **300**, shield **80**,
+  revives / Phoenix **25**, hit invulnerability **10**, heal mult **30**, overheal **20**, heal pulse **40**, last stand
+  **15**, thorns **20**, heal drop **60**, hurt speed **20**, still regen **15**, crit heal **40**, freeze **60**.
+- greed points a unit: XP gain **60**, magnet **20** (add over 1.5 m), luck **40**, greed **40**, coin drop **30**, XP drop
+  **60**, gold on hit / coin on hit **20**, power-up chance **20**, power-up duration **10**, XP pull radius **5**, rate
+  **10**, vein **40**.
+- plan: evolution **40**, favourite **20**, weapon level **6** (+**8** on the last), line level **3** / new line **4** (+**10**
+  on the last), new weapon **10** x free weapon slots' share, mutation **10** (+**6** the path's last; **5** with no weapon
+  of its family), perk **8**, passive item **2**, effects no table knows **3**.
+- danger weight: 0.6 + danger + 0.5 x (1 - health), i.e. **0.6..2.1**.
+- Style weights (dps / survival / plan / greed): balanced 1 / 1 / 1 / 0.6; damage 1.6 / 0.6 / 1 / 0.3; safety
+  0.7 / 1.8 / 0.8 / 0.3; greedy 0.8 / 0.7 / 0.8 / 1.8.
+- skill: each score read with a gaussian error of (1 - skill) x **25** points; the best read taken (skill 1: always the
+  best). Small differences (Totem gifts) flip more often than big ones (a new weapon), as a player's would.
+- The Shop: the best ware less its price x **0.03** points a gold x greed's weight, bought when that is **6** or more and he
+  can pay. The Stranger: taken at **60%** health or more when the ware's score less the cut (its % of max HP x **0.8** x
+  survival's weight x the danger weight) is **5** or more.
+
+#### The legs' dials (BotLegs)
+- daring: keep **4.5 + (0.5 - daring) x 4** m, flee **2.6 + (0.5 - daring) x 2** m (0.5 = pass 77's 4.5 / 2.6).
+- reaction: a warning on the sand is seen once it has been up that long; the big ones' and rockets' push is the one of
+  that many seconds ago. dodge: the share of warnings seen at all (a fixed roll per warning from its place, length and
+  kind with the bot's seed). stray: the sweep's reach. boss free: no leash.
+
+#### Measured (10 runs each: Drifter, a quarter board, 25:00, death=keep so every fall counts and every run plays to the end, seeds 1-10, game 0.65 + this lane's tools)
+| bot | falls mean / median | first fall (median; runs with none) | level at 5/10/15/20/25 min | kills | XP | gold | Totem Poles (by 20:00) | barrels | other structures | power-ups | shop buys / visits (all runs) | Stranger deals / visits | metres walked | map seen | goals given up |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Sim (pass 77) | 13.9 / 8.0 | 9:36 (0 none) | 12 / 30 / 41 / 54 / 71 | 17.0k | 131k | 39.0k | 0.0 (0.0) | 16.9 | 0.8 | 81 | 0/0 | 0/2 | 6640 | 0% | 0.0 |
+| Explorer (the default) | 13.4 / 6.5 | 9:44 (3 none) | 14 / 30 / 38 / 53 / 69 | 17.8k | 127k | 39.6k | 9.6 (9.1) | 26.0 | 6.7 | 64 | 4/8 | 4/11 | 6130 | 93% | 4.7 |
+| Careless | 15.2 / 13.5 | 8:25 (1 none) | 12 / 27 / 36 / 50 / 66 | 16.4k | 121k | 33.7k | 9.2 (7.8) | 26.1 | 6.5 | 67 | 6/8 | 4/11 | 6159 | 91% | 5.2 |
+| Expert | 6.2 / 3.0 | 11:03 (3 none) | 12 / 28 / 39 / 52 / 68 | 17.7k | 124k | 42.4k | 10.1 (9.1) | 25.2 | 6.4 | 79 | 3/8 | 6/11 | 6102 | 95% | 6.0 |
+
+- Falls (death=keep counts every fall; one run with 40-50 falls moves a mean a lot, so the median and the first fall are
+  the steadier numbers): the Explorer falls no more than pass 77's bot (median 6.5 against 8.0, three runs of ten never
+  fall against none), the Expert least, the Careless most: the dials move the right way.
+- The map: the Explorer uses 9.6 of the 10-12 Totem Poles a run (9.1 by 20:00), breaks 26 of the 33 barrels (pass 77's
+  bot 17, by walking into them), uses 6.7 other structures (0.8), sees 93% of the arena; the Shop sells in about half
+  its visits, the Stranger's deal is taken in a third (hurt or not worth the cut otherwise).
+- The cost: about 3% less XP and 2 levels fewer at 25:00 than pass 77's sweep-only bot (the gems wait while he walks to a
+  pole), the same kills and gold.
+- The sims: tools/dl/p80/BOT/sim/runs/{base_head, m1_sim77, f_sim77, e1_explorer, e2_explorer, g_explorer, g_careless,
+  g_expert}; base_head (the code before the move) and m1_sim77 / f_sim77 (preset=sim77 after) are identical player by
+  player. Tuning between e1 and e2: the sweep's utility had been the gems' raw worth (it swamped every pole past 8
+  minutes: 5.8 poles a run); it is now their worth over the next level's XP, capped at 45, the pole 80 (was 60), and the
+  sweep is no commitment (a goal may take over at once).
+
+### 27.WATCH The Watch tool
+
+A tool, not the game: nothing here changes a phone's or a played run. Numbers live in game/tools/watch/*.gd.
+
+#### Speed (WatchClock.gd)
+- The speeds: pause, 0.25x, 0.5x, 1x, 2x, 4x, 8x (SPEEDS). Godot runs with `--fixed-fps 60`: every frame is one step of
+  1/60 s of game time (one process step and one physics step) whatever the wall clock does.
+- Up to 1x the clock slows: Engine.time_scale = the speed (each step that much shorter), 60 frames a wall second. The
+  game's own writes to the time scale (the hit-stop's 0.08, Last Stand's slow clock) are kept and multiplied in
+  (game_scale_of: a value the Watch did not write is the game's; the Watch's nominal value or 1 written back = the
+  game's 1). Below 1x the hit-stop does not fire (the game asks for a clock of 1 first).
+- Above 1x the step stays 1/60 s (a weapon still fires at most once a step; Run.rule_seconds counts the run's own
+  clock: sim_clock), and the frames come 60 x the speed a wall second; a frame is drawn only when 1/DRAW_HZ = 1/60 s of
+  wall time has passed since the last one drawn (RenderingServer.render_loop_enabled), 1/DRAW_HZ_FAST = 1/30 s from 4x
+  on (a drawn frame costs about 4 ms more than one that is not: the game's step needs that time there), so at 4x seven
+  frames in eight are not drawn.
+- The frames not drawn skip the work that only draws (Run.sim_mode, the run sim's fast mode, set per frame; skip_draw=0
+  keeps it): the crowd's, the shots' and the pickups' drawing, effects, the HUD's frame and the floating numbers. So above
+  1x an effect or a tracer made on a frame that is not drawn is not shown, and the HUD's timers and the effects age on
+  the drawn frames only (they run at wall speed).
+- Frame pacing is the Watch's own (pace): --fixed-fps turns the engine's frame limit off, so each frame waits for its
+  1/(60 x speed) s of wall time (1/60 s while paused); a frame that ran late is made up by the next ones not waiting, at
+  most CATCH_UP_US = 0.25 s behind (past that the clock starts again from now: the run goes as fast as the PC lets it).
+- The reached speed: game seconds over wall seconds of the frames that played (a screen up does not count), in
+  half-second buckets, the newest 4; shown in the header (red, "short") when under SHORT = 90 % of the speed asked.
+- Short of the speed asked (at least two buckets measured): the drawing steps down to DRAW_HZ_FAST = 30 frames a wall
+  second at any speed (1x included: half the steps not drawn), so the steps get the time; after LOW_DRAW_RETRY_S = 20
+  wall seconds of play it tries the full rate again (and at every new speed, step, run to a level-up or pause).
+- Sound is off above 1x (and when switched off); the floating damage numbers are off above 2x.
+- Step one second: STEP_SECONDS = 1 s of play at the speed running (1x from a pause), then paused. Next level-up: 8x
+  until a level-up's cards are on screen (not a mutation offer), then paused before the bot picks.
+- The Watch's pause holds the tree paused (re-asserted every physics and process frame, as a game timer between two
+  screens may unpause it) and does not tick the bot; going on hands the tree back to the game's own paused state. The
+  game's SubViewport is pausable (the game pauses as it does under the window's root); the Watch and its panel process
+  always. Before the run is up, while paused and after the run, the frames come 60 a wall second.
+- The badge over the phone view: PAUSED, STEP 1 s, TO THE NEXT LEVEL-UP 8x, RUN OVER, or the speed when it is not 1x
+  (with the reached speed when short); nothing at a plain 1x.
+
+#### The bot in the Watch (Watch.gd)
+- A screen (cards, a chest, a totem, the Stranger, the shop, the portal, Down!, the TAP TO GO gate) stays HOLD_S = 0.8
+  wall seconds at 1x (HOLD_S / speed above it) before the bot answers it, so it can be seen. One left up STUCK_S = 15
+  wall seconds is reported in the header (Down! is then given up).
+- The bot is tools/bot/Bot.gd (lane BOT) with the options passed; the stand-in (bot=stub) answers the screens as pass 77
+  did and only kites.
+
+#### The numbers (WatchData.gd, the Sim tab's definitions)
+- Real DPS: damage dealt in a second (the recorder's rows), the mean of the last DPS_WINDOW = 5 s.
+- Danger: HP lost in a second as % of max HP, the mean of the last 5 s.
+- Keeping up: (the crowd's HP alive - the boss's HP) / real DPS, in seconds; none under 1 DPS.
+- Creatures close: within 3 m and 6 m (the rows' near3 / near6).
+- The real DPS change after a decision: the mean real DPS over the AFTER_S = 30 s after it against the BEFORE_S = 30 s
+  before it (fewer at the start of a run), filled once the run has played 30 s past it (at the run's end, what there is);
+  no percentage when the DPS before was under 1.
+- Threat: HP lost and hits by creature over the last THREAT_S = 10 rows; a fall's last hits are the hero's damage log's
+  newest 6 when the recorder's death event is read.
+- The charts: the last WINDOW_S = 180 s of play scrolling (or the whole run, G), at most 360 points a line (buckets of
+  means past that); the damage share in at most 240 columns, each its rows and the 4 s before them, the window's top 6
+  sources by name and the rest "other", a source keeping its colour for the run. The grey line is the Sim result's mean
+  of the same series (dps: its 5 s smoothed DPS; hp; level; danger), one value a second of play.
+- The panel is refreshed every REFRESH_S = 1 wall second, the charts at most every CHART_EVERY = 0.5 s when new rows came.
+
+#### The run
+- The save sandboxed (nothing reaches the disk; the Watch's own user folder 88fits_watch anyway), runs_started 1, the
+  board as given, every unlock quest done (unlocks=all), the settings as the Sim's (the north-up camera the bot steers
+  by, ranged weapons on what is on screen, pierce drop-off, no hints, not debug), the damage numbers on (numbers=0 off).
+- The launch in memory: hero, map, map_seed = seed, sim_clock (the rules that count real time count the run's clock),
+  `watch: true`; the dice seeded as sim_run.gd seeds them. A seed does not replay exactly here (the drawing and the
+  sounds draw from the global dice), so a Watch and a Sim player of the same seed share the map, not the run.
+- The end: the record goes to analytics/runs/tools/ (RunAnalytics.mirror_root = the repo's analytics/), the decision log
+  beside it as <stamp>_decisions.csv; the Game is freed before its Results screen comes (the last frame stays, dimmed).
+- One Watch at a time (tools/dl/locks/watch.lock); it never takes the Godot lock or the Sim's.
+
+### 27.TRAIL The tracer's wisp
+
+##### 27.TRAIL The tracers' looks (pass 80, lane TRAIL)
+
+###### Tracer styles (ProjectileManager, "pass 79 (lane FX): the tracers' lines" section; core/shaders/tracer_line.gdshader)
+Garry: "The revolver trail looks awful, I don't like it at all. Search the internet for a better option than this, I want
+a clear visible trail, but one that doesn't look this bad." Research: tools/dl/p80/TRAIL/research.md.
+- Every tracer weapon draws one of five looks, `params.tracer_style`, default `TRACER_STYLE` = **wisp**:
+  - **wisp** (the shipped look): a tapered streak riding with the bullet, its first `hot` 30% of the life (0.165 s at the
+    default 0.55 s): full width at the bullet tapering to a point ((1 - f/hot)^0.75), a solid stroke of the colour
+    (42% of the width) with a thin white-hot middle, a soft halo of the same colour round it (opacity 0.42 falling to
+    0 at the edge), the colour lit to full brightness towards the bullet (head_glow 0.8). Under it a pale smoke of the
+    colour mixed 78% to a warm white, fading in over the first quarter of the life and out after ((1 - f)^1.4, at
+    most 0.38 opaque), widening from 0.72x to 2.4x the head width and rising 0.35 m/s. No sway, no grey.
+  - **streak**: the streak alone, life 0.13 s (4.3 m behind a 33 m/s Revolver round), white middle for 70% of it, fading
+    over its last 45%.
+  - **ribbon**: life 0.3 s, tapering (1 - f) while widening 0.7x over its life (a wake), white middle for its first 40%,
+    fading (1 - f)^1.1.
+  - **toon**: hard bands (white middle 24% of the half-width, the colour, a dark outline past 74%: the rim colour x 0.62),
+    0.6 of the width (no halo), tapering (1 - f)^0.35, opaque until its last 22%; life 0.2 s.
+  - **line**: pass 79's line unchanged (life 1.4 s by default, 0.05 m, widens, drifts up, sways, greys).
+- Each style's own life (`TRACER_STYLE_LIFE`: line 1.4, streak 0.13, ribbon 0.3, wisp 0.55, toon 0.2 s), head width
+  (`TRACER_STYLE_WIDTH`: 0.1 m; the line 0.05) and hot part (`TRACER_STYLE_HOT`: streak 0.7, ribbon 0.4, wisp 0.3,
+  toon 0.5) apply where the weapon sets no `tracer_life` / `tracer_width` / `tracer_hot` (0.02..1).
+- Width `tracer_width` is now the width at the bullet including the glow; the head is never under 3 screen pixels (the
+  line: 1.5, which pass 79 meant but never got: the Compatibility renderer flips the projection's y on a render target,
+  so the pixel floor came out negative and did nothing).
+- Colour and order unchanged (`_tracer_colour`). The rim (the stroke's edge, a darker shade of the same hue: colour^2.4
+  x 0.9) takes 35% of a dark colour's edge and 90% of a light one's; a light colour (luminance 0.45..0.85 and up:
+  Silver Bullet, gold) also gets a body 30% towards its rim and a halo 85% towards it, so it reads on the light sand
+  (value contrast). A light and saturated colour (gold; `warm_light`: luminance 0.45..0.85 x saturation 0.25..0.55)
+  gets its body 80% towards its rim instead (a deep amber, not a cream fill) and its white middle only over 30% of its
+  usual length (the tip). Alpha blending only (additive washes out on the sand).
+- Segment laying, `TRACER_SEG_MIN` 0.3 m (0.6 m past 60 shots), `TRACER_LINE_MAX` 2048 and `tracer_clear` as pass 79.
+
+###### Content set (pass 80)
+- Revolver: `tracer_style` "wisp" (named in its JSON so it is one word away), colour #C41E16 (was #8B0A0A: Garry's "dark
+  red, see-through" kept as a readable crimson), alpha 0.9, width 0.2 m (was 0.045), its 0.9 s life dropped (the
+  style's 0.55 s), `tracer_clear` 1.1 m kept.
+- Silver Bullet and the Golden Revolver's `final`: width 0.3 m (was 0.11), #C9DCEF kept (the light-colour rim makes it
+  a steel-blue edged silver).
+- Drum Mag 0.13 m (was 0.065: still bolder than the Tommy Gun's 0.1).
+- Tommy Gun and Chicago Typewriter: width the style's 0.1 m, life 0.3 s (was 0.2 for the line) with `tracer_hot` 0.45
+  (0.135 s of streak, then a short smoke: a burst does not fill the screen).
+- Boomstick and Blunderbuss pellets: width 0.08 m (was 0.035), life 0.25 s (was 0.16), `tracer_hot` 0.5.
+- Dragon's Breath: its 0.28 s life dropped (it takes the Boomstick's 0.25 s; its fire is in the colour). On Fire's 0.3 s
+  (the ball's "short flame tracer") and Toxic Peas' 0.45 s kept.
+- Turrets, Iron Bastion: the wisp's own 0.55 s, 0.1 m.
+- The rounds themselves (content visuals): the Tommy Gun's and the Chicago Typewriter's core box 0.12 x 0.12 x 0.95 m ->
+  0.055 x 0.055 x 0.4 and its halo capsule r 0.105 h 1.08 -> r 0.055 h 0.5; the Boomstick's and the Blunderbuss's
+  pellet core capsule r 0.055 h 0.36 -> r 0.035 h 0.22 and halo r 0.085 h 0.46 -> r 0.05 h 0.28 (they read as fat
+  cream sticks with an orange outline; now a short white-hot tip in a thin amber halo, the tracer behind is the body).
+
+### 27.WALLS Sand to the wall, the fort wall, the cliffs, the sign
+
+#### Sand to the wall (Garry: "make the edges of the map just sand instead of that dark orange stuff, that orange-dark
+#### stuff should be behind the walls")
+- Inside the wall the ground is sand all the way to the wall's foot: the terrain's red-rock weight
+  (RedCanyon.rock_weight, the vertex colour's blue) is **0** everywhere closer than arena_radius + ROCK_FROM (**66.4 m**)
+  and **1** from there out (the strip between the wall and the cliffs, and the map's corners). Pass 79's rim was rock
+  from rim_start (44 m) out, blended by noise, which drew a stair-stepped edge on the sand.
+- The rim still rises: from `rim_start` **44 m** the sand climbs by `rim_height` **2.2 m** x (rim fraction)^2 at the wall
+  (unchanged), with softer bumps: `rim_bumps` **0.45 m** at `rim_bump_freq` **1.4** x the dunes' noise (were 1.2 m at
+  2.5x, "broken red rock"). rim_start now means where the sand starts rising towards the wall. Nothing about play
+  changes but the ground's height near the rim (a few tenths of a metre at most).
+- `rock_color` (#785C5E) is the ground outside the wall now; the scatter's "rock fields near the rim" (36 m out to 7 m
+  inside the wall) stand on sand.
+
+#### The cliffs (Garry: "the textures on the mountains behind the walls look too low res")
+- A painted rock face, art/env/cliff_rock.png, **2048 x 2048**, seamless, VRAM compressed with mipmaps, anisotropic
+  filtering. Painted by Flux.2 Klein 9B on the AI server (prompt "Monument Valley mesa cliff face ... dozens of thin
+  horizontal sandstone layers", 2048 px, seed 35, one of 6 seeds at 2048 and 12 at 1024, picked by eye), made seamless
+  (rolled by half, the seam cross repainted under a soft mask, DifferentialDiffusion, 8 steps), brought to a grey mean
+  (0.8, 15% of its own hue kept) so `wall_colors.near/far/farther` stay the colours drawn.
+- Each ring's own UVs in metres: round the ring a whole number of tiles, up the face the height, over the top the
+  distance: one tile is **14 m** (near ring), **20 m** (far), **28 m** (farther), so the farther ranges' strata are
+  bigger. The near ring is 146 texels a metre (the sand is 92). The face is pushed in and out by up to **0.9 m** at a
+  third and two thirds of its height (and up and down by up to 0.6 m), so it breaks into ledges.
+- The colours did not move: on the phone's canvas (seed 11, the north rim pulled out) the cliffs read hue 26-27,
+  saturation 0.53-0.54, value 0.66-0.70 (before: 26-27, 0.51-0.52, 0.68-0.73).
+
+#### The fort wall (Garry: "Make the walls look like sandstone castle walls (but western)")
+- The boundary is a western sandstone fort wall (CanyonWalls.fort_wall) on the old footprint: **1.7 m** thick centred
+  on the arena's edge (66 m), its foundation **0.8 m** under the ground. It has no collider and no obstacle: the hero is
+  stopped by RedCanyon's invisible fence 1.1 m inside, as before (40 boxes, unchanged). Nothing of the wall reaches into
+  the arena past the fence's inner side (64.65 m): its face at 65.15 m, the cap course and the towers' trim 0.1 m over
+  it, the vigas' tips at 64.81 m (the wall) and 64.76 m (the towers).
+- Its walk stands **2.0 m** over the ground at its foot, level along a stretch and stepping by **0.25 m** where the
+  ground (smoothed over five stretches, 120 round the ring) climbs: 1.5 to 3.0 m over the very spot (the old wall's
+  blocks stood 1.9 to 2.75 m). Above the walk the parapet (**0.55 m** thick on the outer edge) rises **0.45 m**, and on
+  it rounded merlons (Spanish colonial "almenas") **1.0 m** wide every **1.7 m**, **0.46 m** tall (0.22 straight + 0.24
+  arc). The inner face leans back **0.12 m**; a cap course **0.22 m** tall juts **0.10 m** under the walk.
+- Vigas (round wooden beam ends, radius **0.10 m**) jut **0.45 m** from the face **0.42 m** under the cap course every
+  **1.7 m**; three on each tower's face. A squat tower every **30 degrees** (12; the first at 15 degrees, none square to
+  the north): **5 m** wide, standing **1.4 m** out past the outer face (its inner face flush with the wall's), its roof
+  **1.4 m** over the walk, a parapet and three merlons on its inner and outer edges.
+- The blocks: art/env/fort_wall.png, **1024 x 1024**, one tile every **3.2 m** (320 texels a metre), courses level in
+  the world; Klein 9B ("dressed sandstone block wall ... Spanish mission fort", seed 1 of 6 candidates in 3 prompts,
+  seamless repaint seed 11), grey on average (0.82).
+- Drawn **unshaded**, like the painted scenery: the sun stands in the north-east, so a lit wall showed the camera (which
+  looks north) its dark side round the whole north half. Its light and shade are painted into its vertex colours: tops
+  `light` / `cap`, faces `stone`, the sides across `riser`, the outer face x 0.75, the foot x 0.68 up to 0.9 m over the
+  ground, each stretch +-7% (noise). The vigas are lit (wood, `beams`).
+- Colours (map keys, picked by eye from six palettes on the phone's canvas): stone **#C59E7B**, light **#DEC09F**, cap
+  **#A58266**, riser **#7A604E**, beams **#4F3626**. Stage 3's hell multiplies the wall by (0.97, 0.79, 0.72) over its
+  tween, as the ground.
+- Kept: the 36 posts before the wall (one MultiMesh) and a skull on every fourth. Gone: pass 79's stacked blocks,
+  battlements and the boulders on top.
+
+#### The sign's z-fighting (Garry: "There is some z-fighting on the sign 3d. Fix it")
+- Cause: sign_depth.gdshader (pass 60) draws a sign at its foot's depth and kept only **2%** of its own depth, so the
+  board's stub behind the post and its part inside the post lay about a millimetre behind the post's face, under what
+  the depth buffer tells apart 25-50 m away: they flickered through the post as the camera moved; the nail heads, 4 mm
+  proud, flickered in and out of the wood.
+- Fix: the depth a vertex owes to its height over the foot keeps `squash` **0.02** (the tall post never reaches over a
+  hero south of its foot), the depth it owes to its run over the ground keeps `squash_h` **0.25**; `bias` 0.03 m
+  unchanged. A board pointing straight at the camera (1.13 m out on the drawn sign) comes 0.2 m nearer than the foot; a
+  hero against the post's south side (his feet 0.57 m from its axis) stands 0.4 m nearer, so he still draws over it. The nail heads stand **12 mm**
+  proud (blender_sign.py, sign.glb regenerated).
+- Measured (game/tools/_p80_WALLS_shots.gd `only=signdiag`: every sign drawn alone with the game's depth and with true
+  depth, the hero walked past each in 10 places): the sign's pixels sorted differently from true depth **5.45% -> 0.40%**
+  at the play zoom and **2.76% -> 0.30%** pulled out; what is left is single pixels along edges (the moved vertices
+  rasterise a hair apart), no clusters.
+
+#### Cost (perf)
+- Draw calls unchanged (the wall mesh and the vigas' MultiMesh replace the wall mesh and the boulders' MultiMesh; the
+  three cliff rings stay three). Primitives +19.7k (92.8k -> 112.6k on the PC's frame: the merlons, the vigas, the
+  towers). Texture memory -0.7 MB (the old sandstone painting, 4 MB uncompressed, is no longer loaded; the two new
+  paintings are VRAM compressed with mipmaps, about 3.4 MB together). perf_late build=six (504 x 1122, fixed 60):
+  14.5 / 15.6 / 17.1 ms a frame after against 15.8 / 16.0 / 17.9 before, draw calls 183 / 188 / 207 against
+  181 / 192 / 214 (a shared machine: noise).
+
+### 27.OASIS Two or three oases; the water's slow
+
+Garry (2026-10-15): "make the water slow everyone down when they walk though it, not by a lot, just 10%. And make it so
+there are 2 oasis at least per level generation in the red canyon, sometimes 3".
+
+#### The oases (RedCanyon._roll_oases; map keys in red_canyon.json timeline_data `oases`, WaveTimeline.OASES_DEFAULTS)
+- **Count**: `min` 2 a run; then one more with `extra_chance` 0.35 each, up to `max` 3. Measured over 2,000 seeds:
+  1,298 with two, 702 with three (35.1%), never fewer than two.
+- **The first lake is rolled exactly as the one lake was** (the same draws, so a seed keeps its first oasis where it
+  was: seed 5's at (28.5, -2.5), 5.64 m); the others after it.
+- **Each extra lake** like the first: radius 5.5-7.5 m (RedCanyon.LAKE_R), centre 24 m out to 18 m inside the wall (24-48
+  m from the middle), at least 8 m past its radius off the flats (the start stands in their middle), at least 5 m past its
+  radius off the dry river's bed (half its width). New: every two lakes' dishes (each reaches 1.6 x its radius,
+  LAKE_DISH) at least `gap` 10 m of open ground apart. A lake that finds no spot in 240 tries takes a third of the gap
+  for 120 more, then no gap (dishes still apart) for 120; one past `min` that still finds none is left out. Over 2,000
+  seeds the gap never had to relax (closest pair 10.0 m), river clearance never under 5 m, flats never under 8 m, every
+  dish at least 6 m inside the arena's edge.
+- **Each oasis has everything the one had**: the dish (knee-deep flat floor, `lake_depth` 0.45 under the shore, the
+  surface 4 cm under the shore), the damp ring, its own water disc ("Oasis", "Oasis2", "Oasis3", one material), 8-10
+  palms at the shore and 22-28 low greenery round it (the first lake's greenery drawn first, as before).
+- **Everything that keeps out of the water keeps out of every lake** (in_water is true in any lake): barrels, structures
+  and Totem Poles (3 m off), signs, flowers, the Trampoline, spawn spots (rings cut every lake's arc out; a point ahead
+  turns past whichever lake holds it), the painted scenery (1.2 m off the water), the creature shadows and the hero's
+  water cut (each lake's own disc and level).
+- **Bush patches** (pass 61's five to seven a map): a patch keeps its centre 11 m + 0.6 of its radius off every lake's
+  water as before; past 200 of its 300 tries (BUSH_LAKE_RELAX) only 6 m + 0.6 of its radius (BUSH_LAKE_NEAR), and a map
+  still short of five patches gets 200 more tries (BUSH_EXTRA_TRIES) out to 10 m inside the wall, the regions 0.6 of
+  their 18 m apart. Without this, three oases left 3 seeds in 60 with four patches (seed 11); with it, 200 seeds all have
+  five to seven.
+
+#### The water's slow (map key `water_slow` 0.1, WaveTimeline.WATER_SLOW_DEFAULT; 0 = off, held to 0..0.95)
+- **Anyone walking in water moves at 1 - water_slow = 90% of his walking speed**: in any lake, out to in_water's edge
+  (1.02 x the lake's radius; the drawn disc reaches 1.06).
+- **The hero** (Player._wade_mult): his stick's walk (and a cannot_stop hero's walk on) x 0.9, on top of everything else
+  (his speed stat, the map's pace, a harpoon rope's leash). Not slowed: in Hang Time's flight (airborne), more than 0.35 m
+  over the ground (a launch, a leap: WADE_AIR), dead, in the spawn beam; never a shove, a knockback or a pull (his `_kb`).
+- **Every creature, Elite and boss** (EnemyManager._wade_mult): its own move x 0.9 (vel: the walk, the crowd's spacing
+  in it, a charge, a roll, a scripted move, a flight from a hit). Not slowed: a push, a knockback or a pull (kb), anyone
+  in the air (tossed by a tornado, bounced, launched, held by the Gravity Gun: those never walk), under the sand
+  (burrowed, hidden) or part-way (rising out of it, sinking into it). Its walk cycle keeps its pace (the legs are under
+  the water).
+- **The rocketeer's rocket keeps to 90% of the hero's dry speed** (Player.max_speed is unchanged): wading, he runs
+  exactly as fast as it flies, so he cannot outrun it in the water (it still slows to half on every hit). Named, not
+  changed.
+- **Nothing new on screen**: the ripples already show who wades.
+- Cost: once a tick the crowd's grid is asked which creatures stand in each lake (indices_in_radius, a few cells a lake)
+  and those are marked (`_wade_k`); the walk reads one number a creature. Measured (tools/_p80_OASIS_bench.gd, 250
+  creatures, a tenth of them wading, three lakes): 33 us a tick on the PC, under 1% of the crowd's 4 ms.
+
+### 27.LEAD The lead's changes in this pass
+
+- **The run record names the water** (`map_settings.water_slow`, `map_settings.oases` with the game's defaults under
+  the map's keys; analytics/SCHEMA.md).
+- **The gold tracers re-cut** after the first wisp read like pale sticks at phone size (the lead asked lane TRAIL for
+  thinner amber streaks; the numbers in 27.TRAIL are the final ones).

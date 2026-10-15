@@ -223,12 +223,14 @@ func test_the_revolver_is_a_heavier_faster_tommy_gun() -> void:
 	assert_float(float(r.base["damage"])).is_greater(float(t.base["damage"]) * 4.0)
 	assert_float(float(r.base["speed"])).is_equal_approx(float(t.base["speed"]) * 1.5, 0.01)
 	assert_float(float(r.params["scatter_deg"])).is_less(3.0)
-	# the bullet is the Tommy Gun's, smaller
+	# the bullet was the Tommy Gun's, smaller; pass 80 (lane TRAIL) slimmed the Tommy Gun's round to a thin hot tip as long
+	# as the Revolver's, the trail behind it being the body: the Revolver's round is the stouter one now, never longer
 	var rs: Node = (r.visual as PackedScene).instantiate()
 	var ts: Node = (t.visual as PackedScene).instantiate()
 	var rb: Vector3 = ((rs.get_node("Projectile") as MeshInstance3D).mesh as BoxMesh).size
 	var tb: Vector3 = ((ts.get_node("Projectile") as MeshInstance3D).mesh as BoxMesh).size
-	assert_float(rb.z).is_less(tb.z)
+	assert_float(rb.z).is_less_equal(tb.z + 0.001)
+	assert_float(tb.x).is_less(rb.x)
 	assert_object(rs.find_child("Drum", true, false)).override_failure_message("no turning cylinder").is_not_null()
 	rs.free()
 	ts.free()

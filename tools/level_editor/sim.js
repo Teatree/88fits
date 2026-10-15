@@ -88,6 +88,9 @@ const Sim = (() => {
     const deaths = (meta.deaths || []).map((d) => d.value);
     if (deaths.length && !deaths.includes(f.death)) f.death = deaths.includes('end') ? 'end' : deaths[0];
     if (!(Number(f.workers) >= 0)) f.workers = 0;
+    // pass 80 (lane BOT): the bot's options, a preset and the keys set over it (an older draft: the default preset)
+    if (!f.bot || typeof f.bot !== 'object' || Array.isArray(f.bot)) f.bot = {};
+    if (!f.bot.preset) f.bot = Object.assign({ preset: (meta.bot || {}).default || 'explorer' }, f.bot);
   }
 
   async function loadHistory() {
@@ -206,7 +209,8 @@ const Sim = (() => {
   function formSettings() {
     const f = S.form;
     return { hero: f.hero, players: f.players, workers: Number(f.workers) > 0 ? f.workers : 0, limit: f.limit, board: f.board, talents: f.talents || {},
-      board_label: f.board_label || '', death: f.death, seed: f.seed, map: App.S.mapId || f.map, fps: f.fps || 60, note: f.note || '' };
+      board_label: f.board_label || '', death: f.death, seed: f.seed, map: App.S.mapId || f.map, fps: f.fps || 60, note: f.note || '',
+      bot: f.bot || {} };
   }
 
   async function runSim(saveFirst) {
@@ -232,6 +236,15 @@ const Sim = (() => {
     await loadHistory();
     draw();
     schedule();
+  }
+
+  // pass 80 (lane WATCH): the Watch button: tools/watch.py with the tab's hero, board, seed and bot (POST /api/sim/watch)
+  async function watchRun() {
+    S.watching = true; draw();
+    const res = await post('/api/sim/watch', { settings: formSettings() });
+    S.watching = false; draw();
+    if (!res.ok) { App.status(`The Watch did not start: ${res.error || 'no reason given'}`, 'bad'); return; }
+    App.status(`Watch: ${heroName(S.form.hero)}, seed ${S.form.seed}: ${res.message || 'starting'}`, 'good');
   }
 
   async function cancelSim() {
@@ -342,9 +355,13 @@ const Sim = (() => {
       onclick: () => { if (App.dirty()) { S.confirm = true; draw(); } else runSim(false); } });
     const head = el('div', { class: 'sim-run-head' },
       el('h2', { text: 'Run a sim' }),
-      S.collapsed ? el('span', { class: 'sim-summary', text: `${heroName(f.hero)} · ${f.players} runs, ${workersOf(f)} at once · to ${M.fmtT(f.limit)} · board ${M.boardWords(f)} · ${M.DEATHS[f.death] || f.death} · seed ${f.seed}` }) : null,
+      S.collapsed ? el('span', { class: 'sim-summary', text: `${heroName(f.hero)} · ${f.players} runs, ${workersOf(f)} at once · to ${M.fmtT(f.limit)} · board ${M.boardWords(f)} · ${M.DEATHS[f.death] || f.death} · seed ${f.seed} · bot ${botWords(f.bot)}` }) : null,
       el('span', { class: 'spacer' }),
       btn,
+      // pass 80 (lane WATCH): one run of this hero, board, seed and bot played in a PC window (tools/watch.py)
+      el('button', { type: 'button', class: 'btn small', text: S.watching ? 'Opening…' : 'Watch', disabled: !!S.watching,
+        title: 'watch one run of this hero, board, seed and bot in a game window: the phone view on the left, the numbers, charts and decisions of the bot on the right (one Watch at a time)',
+        onclick: watchRun }),
       el('button', { type: 'button', class: 'btn small ghost', text: S.collapsed ? 'Show settings' : 'Hide settings', onclick: () => { S.collapsed = !S.collapsed; saveFold(); draw(); } }));
     card.appendChild(head);
     card.appendChild(el('div', { class: 'sim-eta', id: 'sim-eta' }));
@@ -425,7 +442,83 @@ const Sim = (() => {
     }
     body.appendChild(grid);
     body.appendChild(boardEditor(f, meta, caps));
+    body.appendChild(botEditor(f, meta, caps));
     return body;
+  }
+
+  // -- pass 80 (lane BOT): the bot (game/tools/bot/Bot.gd): a preset, and any option set over it
+
+  /** The bot in a few words: "Explorer", "Sim (pass 77), skill 0.5". */
+  function botWords(b) {
+    const bm = (S.meta || {}).bot || {};
+    const o = b || {};
+    const pre = o.preset || bm.default || 'explorer';
+    const p = (bm.presets || []).find((x) => x.key === pre);
+    const extra = Object.keys(o).filter((k) => k !== 'preset').map((k) => `${k} ${typeof o[k] === 'boolean' ? (o[k] ? 'on' : 'off') : o[k]}`);
+    return (p ? p.label : pre) + (extra.length ? ', ' + extra.join(', ') : '');
+  }
+
+  /** A value as the form shows it in a tooltip. */
+  function botVal(v) {
+    return typeof v === 'boolean' ? (v ? 'on' : 'off') : String(v);
+  }
+
+  /** The Bot group: the presets (one press sets the preset and clears what was set over it), then every option with the
+   *  value the runs will play: the preset's (plain) or set here (marked, with a × back to the preset's). */
+  function botEditor(f, meta, caps) {
+    const bm = meta.bot || {};
+    const b = Object.assign({}, f.bot || {});
+    const pre = b.preset || bm.default || 'explorer';
+    const preDef = (bm.presets || []).find((p) => p.key === pre) || { key: pre, label: pre, values: {} };
+    const setBot = (nb) => {
+      S.form = Object.assign({}, S.form, { bot: nb });
+      saveDraft();
+      draw();
+    };
+    const box = el('div', { class: 'sim-board sim-bot' });
+    const head = el('div', { class: 'sim-board-head' }, el('span', { class: 'sim-label', text: 'Bot' }));
+    for (const p of bm.presets || []) {
+      head.appendChild(el('button', { type: 'button', class: 'btn small' + (p.key === pre ? ' on' : ''), text: p.label, title: p.help || '',
+        onclick: () => setBot({ preset: p.key }) }));
+    }
+    const nset = Object.keys(b).filter((k) => k !== 'preset').length;
+    head.appendChild(el('span', { class: 'sim-board-total', text: `${preDef.label}${nset ? ` · ${nset} option${nset === 1 ? '' : 's'} set over it` : ''}` }));
+    box.appendChild(head);
+    if (!caps.bot) box.appendChild(el('p', { class: 'sim-warn small', text: 'This runner has no bot options yet (game/tools/bot/Bot.gd): it plays its own bot, so Run sim refuses a bot setting.' }));
+    if (preDef.help) box.appendChild(el('p', { class: 'muted small', text: preDef.help }));
+    const grid = el('div', { class: 'sim-bot-fields' });
+    for (const k of bm.keys || []) {
+      const own = Object.prototype.hasOwnProperty.call(b, k.key);
+      const pv = (preDef.values || {})[k.key];
+      const v = own ? b[k.key] : pv;
+      const change = (nv) => {
+        const nb = Object.assign({}, S.form.bot || {}, { preset: pre });
+        if (nv === pv) delete nb[k.key]; else nb[k.key] = nv;
+        setBot(nb);
+      };
+      let input;
+      if (k.kind === 'bool') {
+        input = el('input', { type: 'checkbox', checked: !!v, onchange: (e) => change(!!e.target.checked) });
+      } else if (k.kind === 'enum') {
+        input = el('select', { class: 'sim-input', onchange: (e) => change(e.target.value) });
+        for (const c of k.choices || []) input.appendChild(el('option', { value: c, text: c, selected: c === v }));
+      } else {
+        input = el('input', { class: 'sim-input num', type: 'number', min: k.lo, max: k.hi, step: k.step || 0.05, value: v,
+          onchange: (e) => {
+            let n = Number(e.target.value);
+            if (!isFinite(n)) n = Number(v);
+            change(Math.round(Math.min(k.hi, Math.max(k.lo, n)) * 1000) / 1000);
+          } });
+      }
+      const reset = own ? el('button', { type: 'button', class: 'btn small ghost', text: '×', title: `back to the ${preDef.label} preset's ${botVal(pv)}`,
+        onclick: () => { const nb = Object.assign({}, S.form.bot || {}); delete nb[k.key]; setBot(nb); } }) : null;
+      grid.appendChild(el('label', { class: 'sim-bot-field' + (own ? ' set' : ''), title: k.help || '' },
+        el('span', { class: 'sim-bot-name', text: k.label }), input, reset,
+        el('span', { class: 'sim-bot-from', text: own ? `set here (preset ${botVal(pv)})` : 'the preset\'s' })));
+    }
+    box.appendChild(grid);
+    box.appendChild(el('p', { class: 'muted small', text: 'Each run\'s bot plays with these; the decisions it makes (cards, gifts, deals, goals) are written into its run file with their scores and reasons. Hover an option for what it does.' }));
+    return box;
   }
 
   /** The Upgrade board talent by talent: the presets, then each talent's rank (0-6) and form. */
@@ -572,7 +665,7 @@ const Sim = (() => {
         el('div', { class: 'sim-hist-main' },
           el('b', { text: simLabel(h) }), badge, h.synthetic ? el('span', { class: 'sim-badge synthetic', text: 'made up', title: 'made-up runs (a test of the page), not the game' }) : null,
           h.kept ? el('span', { class: 'sim-badge kept', text: 'kept' }) : null,
-          el('span', { class: 'muted small', text: ` board ${h.board_words || M.boardLabel(st.board)} · ${h.death_words || st.death} · seed ${st.seed}${h.drawn ? ' · everything drawn' : ''}${h.map_rev && h.map_rev.sha ? ' · map ' + h.map_rev.sha.slice(0, 7) : ''}${st.note ? ' · “' + st.note + '”' : ''}` })),
+          el('span', { class: 'muted small', text: ` board ${h.board_words || M.boardLabel(st.board)} · ${h.death_words || st.death} · seed ${st.seed}${h.bot_words ? ' · bot ' + h.bot_words : ''}${h.drawn ? ' · everything drawn' : ''}${h.map_rev && h.map_rev.sha ? ' · map ' + h.map_rev.sha.slice(0, 7) : ''}${st.note ? ' · “' + st.note + '”' : ''}` })),
         el('div', { class: 'sim-btns' },
           el('button', { type: 'button', class: 'btn small' + (cur ? ' primary' : ''), text: cur ? 'Shown' : 'Show', disabled: !h.has_result || cur, onclick: async () => { await show(h.id); draw(); } }),
           el('button', { type: 'button', class: 'btn small' + (cmp ? ' on' : ''), text: cmp ? 'Compared' : 'Compare', disabled: !h.has_result || cur, title: 'its lines dashed grey on the charts of the sim shown', onclick: () => setCompare(cmp ? '' : h.id) }),
@@ -595,7 +688,7 @@ const Sim = (() => {
   function emptyCard() {
     return el('section', { class: 'card sim-empty' },
       el('h2', { text: 'No sim to show yet' }),
-      el('p', { text: 'Choose the settings above and press Run sim. The game plays the saved map that many times with a bot (it kites the crowd, gathers gems, steps out of warning rings, picks cards as a sensible player would, takes chests, walks to the boss\'s chest and the portal), and these charts show the average of every second of play: DPS, HP, deaths, how hard each second is (health lost, keeping up with the crowd, what is close, what hurts), coins, damage by source, kills by creature, level, XP and the build.' }),
+      el('p', { text: 'Choose the settings above and press Run sim. The game plays the saved map that many times with a bot (it kites the crowd, gathers gems, steps out of warning rings, picks cards as a sensible player would, takes chests, walks to the boss\'s chest and the portal; as the Explorer, the default, it also explores the map, takes the Totem Poles\' gifts, breaks barrels, chases power-ups and uses the structures, the Shop and the Stranger: the Bot group above), and these charts show the average of every second of play: DPS, HP, deaths, how hard each second is (health lost, keeping up with the crowd, what is close, what hurts), coins, damage by source, kills by creature, level, XP and the build.' }),
       el('p', { class: 'muted small', text: 'The sim copies the game into its own folder first, so you can keep editing and saving while it runs: it plays what was saved when it started.' }));
   }
 
@@ -626,6 +719,12 @@ const Sim = (() => {
       card.appendChild(el('div', { class: 'muted small', text: 'Board: ' + (words.join(' · ') || 'none') }));
     }
     if ((meta.board_differs || []).length) card.appendChild(el('div', { class: 'sim-warn small', text: `Some runs played another board than asked (an older runner?): ${meta.board_differs.join('; ')}` }));
+    // pass 80 (lane BOT): the bot and what it did with the map, the means over the runs
+    const sb = (r.bot || {}).summary;
+    if (sb || st.bot) {
+      const did = sb ? ` · a run used ${sb.totems} Totem Poles (${sb.totems_20} by 20:00), broke ${sb.barrels} barrels, used ${sb.structures} other structures, took ${sb.powerups} power-ups, ${sb.shop} shop buys, ${sb.stranger} deals with the Stranger, walked ${M.fmtNum(sb.metres)} m and saw ${Math.round((sb.seen || 0) * 100)}% of the map (means)` : '';
+      card.appendChild(el('div', { class: 'muted small', text: `Bot: ${botWords(st.bot)}${did}` }));
+    }
     if (rev.sha && cur.sha && rev.sha !== cur.sha) card.appendChild(el('div', { class: 'sim-warn small', text: `The map has been saved since this sim (now ${cur.sha.slice(0, 7)}, ${whenText(cur.saved)}): run it again to see the change.` }));
     const sel = el('select', { class: 'sim-input', onchange: (e) => setCompare(e.target.value) });
     sel.appendChild(el('option', { value: '', text: 'nothing' }));
@@ -646,14 +745,17 @@ const Sim = (() => {
     const r = S.current;
     const det = el('details', { class: 'card sim-runs' }, el('summary', { text: `The ${r.players.length} runs one by one` }));
     const tb = el('table', { class: 'sim-table' });
-    tb.appendChild(el('thead', {}, el('tr', {}, ...['run', 'seed', 'ended', 'at', 'deaths', 'revives', 'level', 'kills', 'coins', 'build at the end'].map((h) => el('th', { text: h })))));
+    tb.appendChild(el('thead', {}, el('tr', {}, ...['run', 'seed', 'ended', 'at', 'deaths', 'revives', 'level', 'kills', 'coins', 'the map', 'build at the end'].map((h) => el('th', { text: h })))));
     const body = el('tbody');
+    const bots = {};
+    for (const b of ((r.bot || {}).players || [])) bots[b.k] = b;
     for (const p of r.players) {
       body.appendChild(el('tr', { class: p.ok ? '' : 'bad' },
         el('td', { text: String(p.k) }), el('td', { text: String(p.seed) }),
         el('td', { text: p.ok ? endWords(p.end_reason) : `failed: ${p.problem || '?'}` }), el('td', { text: M.fmtT(p.end_t) }),
         el('td', { text: p.deaths == null ? '–' : String(p.deaths) }), el('td', { text: String(p.revives || 0) }),
         el('td', { text: p.level == null ? '–' : String(p.level) }), el('td', { text: M.fmtNum(p.kills) }), el('td', { text: M.fmtNum(p.gold) }),
+        el('td', { text: bots[p.k] ? `${bots[p.k].totems} totems · ${bots[p.k].barrels} barrels · ${bots[p.k].structures} structures · ${bots[p.k].powerups} power-ups` : '–' }),
         el('td', { class: 'build', text: p.build || '' })));
     }
     tb.appendChild(body);

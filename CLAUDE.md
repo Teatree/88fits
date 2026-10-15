@@ -49,6 +49,8 @@ python tools/puppet.py may [--stage apose|shape|rig|anim|guides|looks|compare] [
 "$BLENDER" -b --python tools/pose_driver.py -- fbx=tools/dl/mixamo/walking.fbx out=tools/dl/drivers/walk_hold frames=12 arms=hold_r   # a walk whose right hand holds something up at the shoulder (the Vulture Raider's launcher, pass 48)
 python tools/compress_levels.py [--check]   # pass 48: weapons from 8 levels to 5 (level 5 = the old level 8); --check re-verifies against tools/dl/levels_v47.json
 python tools/sim_batch.py --out <dir> --hero drifter --players 10 --workers 0 --limit 1500 --death end --seed 1   # pass 77: the run sim the Level Editor's Sim tab runs (a snapshot of game/ in tools/dl/sim/snap with its own user folder 88fits_sim, players K at a time, under tools/dl/locks/sim.lock, never the godot lock); one player: game/tools/sim_run.gd (args in docs/assets_schema.md "Pass 77")
+python tools/watch.py [--hero drifter] [--board none|quarter|half|full|save|<ranks> | --talents grit:AAB,...] [--seed N|random] [--speed 0.25..8] [--limit 5:00] [--bot key=value ...] [--ref auto|none|<result.json>]   # pass 80: the Watch: one bot-played run in a PC window (the phone view left; numbers, charts and the bot's decisions right; Space, 1..6, +/-, ., L, G, M) on its own snapshot tools/dl/watch/snap (user folder 88fits_watch, tools/dl/locks/watch.lock, never the godot lock); tools\watch.cmd double-clicks it; the Sim tab's Watch button; the record + <stamp>_decisions.csv in analytics/runs/tools/ (all args: docs/assets_schema.md "Pass 80")
+python tools/gen_wall_textures.py   # pass 80: Klein candidates for the fort wall and the cliffs, made seamless (rolled by half, the seam cross repainted) and neutralised to grey -> game/art/env/fort_wall.png, cliff_rock.png (see docs/HISTORY.md pass 80 for the picks)
 python tools/posthog_runs.py [--player <name>]... [--since YYYY-MM-DD | --all] [--list] [--force] [--out analytics/remote]   # pass 78: every player's runs (run_record) from PostHog into analytics/remote/ for analytics/dashboard.html's Remote runs (personal key; analytics/howto/03_remote_runs.md)
 bash tools/godot.sh --headless --path D:/_projects/88fits/game --script res://tools/series_fixture.gd   # pass 78: the fixtures sim_avg.js / posthog_runs.py are checked against
 python tools/gen_icon_cands.py [--only spear,cake] [--seeds 4] && python tools/gen_icon_cands.py --pick spear=0   # icon candidates (renders as references), picked by eye
@@ -247,7 +249,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-15, pass 79, version 0.65)
+## Status (2026-10-15, pass 80, version 0.66)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -257,11 +259,12 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.65). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.66). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 
-**The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
-rolled per run from `Run.map_seed`, a stone boundary wall; everything but the ground, the wall, barrels, signs and a few
+**The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and two or three oases
+rolled per run from `Run.map_seed` (pass 80: `oases`, water slows walking by `water_slow` 10%), sand to a western
+sandstone fort wall (pass 80, `CanyonWalls.gd`) with the red-rock cliffs behind it; everything but the ground, the wall, barrels, signs and a few
 movers is a painted 2.5D billboard (props `art/sprites/props/`, structures `st_<id>.png`). Three stages of 430 s (bosses
 Tumbleweed King 7:10, Gila Grande 14:20, the Brander 21:30; Elites at 3:35 / 10:45 / 17:55; stage 3 is "hell": a red
 ground and a hell channel of creatures on its own cap), then endless. The timeline (`content/maps/red_canyon/red_canyon.json`
@@ -297,6 +300,8 @@ bodies follow through with their push and a blast throws them (EnemyManager `COR
 line fading like smoke (`tracer_width`, core/shaders/tracer_line.gdshader, one MultiMesh); the rim and the walls
 take their colours from the map (`rock_color`, `wall_colors`, duskier since pass 79); the dynamite and the Golden
 Pineapple are thrown where their crowd will be when they blow (`params.lead`, EnemyManager.predicted_counts).
+Pass 80: every tracer draws the **wisp** (`tracer_style`: a hot streak riding with the round, a pale smoke fading in
+about half a second; streak, ribbon, toon and pass 79's line one param away; ProjectileManager `TRACER_STYLE`).
 
 **Heroes** (title order): Drifter (Revolver) and Astro (Gravity Gun) are free; Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), Fadeaway (the Basketball: evade per level, Heat shown on the ball itself, the Timeout
@@ -408,6 +413,9 @@ show in the game; pictures in `docs/guide_img/`; published at https://claude.ai/
   around tool runs; use `Save.begin_sandbox()` in probes).
 - Rules Garry never asked for read as bugs: name every new rule in BALANCING.md.
 - Commit every finished pass (never push); the build goes to Drive at the end of every user-facing change.
+- The run sim's bot is `game/tools/bot/Bot.gd` since pass 80 (presets sim77 = the pass 77 bot, explorer = the default:
+  totems, barrels, power-ups, structures, the Shop and the Stranger, a map it explores; careless; expert); the Watch
+  (pass 80, game/tools/watch/) plays it in a window on its own snapshot and lock like the sim.
 - The run sim (pass 77) is the one exception to the Godot lock: tools/sim_batch.py runs its players on its own
   snapshot of game/ (tools/dl/sim/snap, its own user folder 88fits_sim) under tools/dl/locks/sim.lock, so the
   editor's saves and imports and the tests are not blocked; everything else still goes through tools/godot.sh.

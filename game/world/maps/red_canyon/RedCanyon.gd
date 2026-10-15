@@ -1,6 +1,6 @@
-## Red Canyon. Nothing here is a 3D prop: the ground (dunes, one sunken dry river, one oasis lake, a flat centre, a
+## Red Canyon. Nothing here is a 3D prop: the ground (dunes, one sunken dry river, two or three oasis lakes, a flat centre, a
 ## red-rock rim), a rugged mountain wall around the arena with ranges beyond it, and painted 2.5D scenery, structures,
-## tumbleweeds and a dust devil on top. The layout rolls per run (Run.map_seed): the river's course, the lake's place,
+## tumbleweeds and a dust devil on top. The layout rolls per run (Run.map_seed): the river's course, the lakes' places,
 ## the dunes and where the scenery stands; the wall, the flats and the rim never move. Every number here is a tunable
 ## exported for the editor.
 extends MapBase
@@ -35,18 +35,44 @@ const BUSH_PATCH_R := 7.0
 const BUSH_SPACING := 1.9
 const BUSH_PATCH_APART := 18.0
 const BUSH_IDS := [["desert_bush", 3.0], ["creosote_bush", 3.0], ["dead_shrub", 2.0]]
+## Pass 80 (lane OASIS): a patch keeps its centre 11 m + 0.6 of its radius off every lake's water (clear of the oasis's
+## greenery); past BUSH_LAKE_RELAX of its 300 tries only BUSH_LAKE_NEAR m + 0.6 of its radius; a map still short of
+## BUSH_PATCHES.x patches gets BUSH_EXTRA_TRIES more for each, out to 10 m inside the wall and the regions 0.6 of
+## BUSH_PATCH_APART apart, so three oases still leave room for five patches (200 seeds checked).
+const BUSH_LAKE_RELAX := 200
+const BUSH_LAKE_NEAR := 6.0
+const BUSH_EXTRA_TRIES := 200
 
-## the run's roll: the river's waypoints, the lake's centre, radius, water level and floor
+## the run's roll: the river's waypoints, the lake's centre, radius, water level and floor (pass 80: the first lake's)
 var _river: Array = []
 var _lake_c := Vector2(30, -20)
 var _lake_r := 6.5
 var _lake_y := 0.0
 var _lake_floor := -1.4
+## Pass 80 (lane OASIS; Garry: "make it so there are 2 oasis at least per level generation in the red canyon, sometimes
+## 3"): every lake of the run, in the order rolled, the first exactly as the one lake was rolled before (the same draws,
+## so a seed keeps its first oasis): centres, radii, water levels and floors.
+var _lake_cs := PackedVector2Array()
+var _lake_rs := PackedFloat32Array()
+var _lake_ys := PackedFloat32Array()
+var _lake_floors := PackedFloat32Array()
+## The dish round a lake reaches this many of its radii (_terrain_height); the lakes' radii are drawn in LAKE_R.
+const LAKE_DISH := 1.6
+const LAKE_R := Vector2(5.5, 7.5)
+## in_water's edge: this many of the lake's radius (the disc as drawn is LAKE_DISC of it)
+const LAKE_WET := 1.02
 var _rng := RandomNumberGenerator.new()
 var run_seed := 0
-## the rim: the ground rises into red rock towards the wall, from this radius out
+## the rim: the ground rises towards the wall from this radius out (pass 80: the sand climbs to the wall's foot, drifted
+## against it; the red rock lies only outside the wall)
 @export var rim_start := 44.0
 @export var rim_height := 2.2
+## pass 80: the rim's bumps (metres at the wall; were 1.2 m of broken rock at 2.5x the dunes' frequency): softer and
+## longer drifts now that the rim is sand
+@export var rim_bumps := 0.45
+@export var rim_bump_freq := 1.4
+## pass 80: the ground's red rock starts this far past the arena's edge (under the wall; the sand reaches its foot)
+const ROCK_FROM := 0.4
 ## The map's sides (pass 79, lane WORLD; Garry: "Map the sides are too orange"): the red-rock rim's colour and the walls'
 ## when the map file's timeline_data names none (its `rock_color` and `wall_colors`, WaveTimeline; read by _read_colours
 ## as the map builds). Less saturated, a little browner and duskier than before, still red rock: the sun and the sky's
@@ -56,12 +82,23 @@ var run_seed := 0
 ## Pass 78's: rock (0.62, 0.34, 0.24) over the orange redrock painting; the cliffs (0.78, 0.6, 0.5), (0.62, 0.42, 0.36),
 ## (0.46, 0.30, 0.30) as tints over the orange sandstone painting; the boundary wall (0.60, 0.40, 0.30) and
 ## (0.68, 0.47, 0.35), its cap (0.40, 0.26, 0.21), the risers (0.34, 0.22, 0.18), the boulders (0.5, 0.33, 0.26).
+## Pass 80 (lane WALLS; Garry: "Make the walls look like sandstone castle walls (but western)"): the boundary is a
+## sandstone fort wall (CanyonWalls.fort_wall) and its keys say so: `stone` its dressed blocks, `light` the dressed trim
+## (the cap course, the merlons' rounded tops, the parapet's top), `cap` the wall-walk and the towers' roofs, `riser` the
+## shaded sides (the steps where the walk climbs, the merlons' sides, the cap course's underside), `beams` the vigas (the
+## round beam ends along the wall; `boulders` is gone with the boulders). A warm buff sandstone, picked by eye from six
+## palettes on the phone's canvas (tools/dl/p80/WALLS/pal_ADEF.png: "D"), lighter than the rose cliffs behind it and
+## browner than the sand before it; the wall is drawn unshaded, so these are the colours drawn (times the painting, grey
+## at about 0.8 on average). Pass 79's wall: stone (0.48, 0.39, 0.39), light
+## (0.55, 0.45, 0.44), cap (0.33, 0.25, 0.27), riser (0.28, 0.22, 0.23), boulders (0.42, 0.33, 0.34). The cliffs and the
+## rock keep pass 79's colours over the new rock painting (art/env/cliff_rock.png, grey on average).
 const ROCK_COLOR := Color(0.47, 0.36, 0.37)
 const WALL_COLORS := {
 	"near": Color(0.52, 0.42, 0.43), "far": Color(0.44, 0.35, 0.39), "farther": Color(0.35, 0.29, 0.34),
-	"stone": Color(0.48, 0.39, 0.39), "light": Color(0.55, 0.45, 0.44), "cap": Color(0.33, 0.25, 0.27),
-	"riser": Color(0.28, 0.22, 0.23), "boulders": Color(0.42, 0.33, 0.34),
+	"stone": Color(0.773, 0.62, 0.482), "light": Color(0.871, 0.753, 0.624), "cap": Color(0.647, 0.51, 0.4),
+	"riser": Color(0.478, 0.376, 0.306), "beams": Color(0.31, 0.212, 0.149),
 }
+const WALLS := preload("res://world/maps/red_canyon/CanyonWalls.gd")
 ## The colours this map is built in (the file's, else the defaults above).
 var rock_color: Color = ROCK_COLOR
 var wall_colors: Dictionary = WALL_COLORS.duplicate()
@@ -97,7 +134,7 @@ func _ready() -> void:
 # ---------------------------------------------------------------- the roll
 
 ## The run's layout: one dry river from rim to rim with a wandering middle that bends around the flats, and one oasis
-## lake off the river and the flats, well inside the wall.
+## lake off the river and the flats, well inside the wall (pass 80: then the others, _roll_oases).
 func _roll_layout() -> void:
 	var fc := Vector2(flats_center.x, flats_center.z)
 	var a0 := _rng.randf() * TAU
@@ -134,6 +171,72 @@ func _roll_layout() -> void:
 	# a wading pool: the floor is knee-deep under a surface level with the shore, and anyone can walk in
 	_lake_y = base - 0.04
 	_lake_floor = base - lake_depth
+	# pass 80 (lane OASIS): the first lake as it always was, then the others
+	_roll_oases()
+
+
+## The oases past the first (pass 80, lane OASIS): how many from the map file's `oases` (WaveTimeline.OASES_DEFAULTS for
+## what it leaves out): `min` of them, then one more with `extra_chance` each up to `max`; each like the first (a radius in LAKE_R, a
+## centre 24 m out to 18 m inside the wall, clear of the flats by 8 m past its radius and of the dry river's bed by 5 m),
+## and its dish at least `gap` m of open ground from every other lake's (the dishes reach LAKE_DISH of the radius). A
+## lake that finds no spot in 240 tries takes a third of the gap for 120 more, then none (dishes still apart); one past
+## `min` that still finds none is left out (the map is then a lake short; every seed checked holds `min`).
+func _roll_oases() -> void:
+	_lake_cs = PackedVector2Array([_lake_c])
+	_lake_rs = PackedFloat32Array([_lake_r])
+	_lake_ys = PackedFloat32Array([_lake_y])
+	_lake_floors = PackedFloat32Array([_lake_floor])
+	var cfg := oases_config()
+	var lo := clampi(int(cfg["min"]), 1, 6)
+	var hi := clampi(int(cfg["max"]), lo, 6)
+	var want := lo
+	while want < hi and _rng.randf() < float(cfg["extra_chance"]):
+		want += 1
+	var fc := Vector2(flats_center.x, flats_center.z)
+	var gap := maxf(float(cfg["gap"]), 0.0)
+	for k in range(1, want):
+		var lr := _rng.randf_range(LAKE_R.x, LAKE_R.y)
+		var at := Vector2.INF
+		for tries in range(480):
+			var g := gap if tries < 240 else (gap / 3.0 if tries < 360 else 0.0)
+			var a := _rng.randf() * TAU
+			var r := _rng.randf_range(24.0, arena_radius - 18.0)
+			var c := Vector2(cos(a) * r, sin(a) * r)
+			if (c - fc).length() < flats_radius + lr + 8.0:
+				continue
+			if _river_dist(c) < river_width * 0.5 + lr + 5.0:
+				continue
+			var ok := true
+			for j in range(_lake_cs.size()):
+				if c.distance_to(_lake_cs[j]) < (lr + _lake_rs[j]) * LAKE_DISH + g:
+					ok = false
+					break
+			if ok:
+				at = c
+				break
+		if at == Vector2.INF:
+			continue
+		var b := _noise.get_noise_2d(at.x, at.y) * dune_height
+		_lake_cs.append(at)
+		_lake_rs.append(lr)
+		_lake_ys.append(b - 0.04)
+		_lake_floors.append(b - lake_depth)
+
+
+## The map file's oases block (timeline_data `oases`, pass 80) over WaveTimeline.OASES_DEFAULTS: {min, max, extra_chance,
+## gap}.
+func oases_config() -> Dictionary:
+	var out: Dictionary = WaveTimeline.OASES_DEFAULTS.duplicate()
+	var tl: WaveTimeline = Run.map.timeline if Run.map else null
+	if tl == null:
+		return out
+	var o = tl.oases
+	if o is Dictionary:
+		for k: String in WaveTimeline.OASES_DEFAULTS:
+			var v = (o as Dictionary).get(k)
+			if v is float or v is int:
+				out[k] = v
+	return out
 
 
 ## The rock's and the walls' colours from the map file (pass 79: timeline_data `rock_color`, `wall_colors`), each key it
@@ -153,12 +256,39 @@ func river_points() -> Array:
 	return _river
 
 
+## The first lake's centre and radius (the one lake before pass 80; old callers and tools). Every lake: lakes().
 func lake_center() -> Vector2:
 	return _lake_c
 
 
 func lake_radius() -> float:
 	return _lake_r
+
+
+## Every lake of the run (pass 80, lane OASIS), the first first: [{center: Vector2, radius, level (the water's surface),
+## floor (the dish's), disc (water_disc's dictionary)}].
+func lakes() -> Array:
+	var out: Array = []
+	for k in range(_lake_cs.size()):
+		out.append({"center": _lake_cs[k], "radius": _lake_rs[k], "level": _lake_ys[k], "floor": _lake_floors[k], "disc": _disc_of(k)})
+	return out
+
+
+## How many lakes the run has (pass 80).
+func lake_count() -> int:
+	return _lake_cs.size()
+
+
+## The lake `p` (x, z) stands in, else the one whose shore is nearest (pass 80); 0 before the roll.
+func lake_index(p: Vector2) -> int:
+	var best := 0
+	var best_d := INF
+	for k in range(_lake_cs.size()):
+		var d := p.distance_to(_lake_cs[k]) - _lake_rs[k]
+		if d < best_d:
+			best_d = d
+			best = k
+	return best
 
 
 ## The green stands as placed: [{center: Vector2, kind: "cactus" | "trees"}] (pass 61).
@@ -184,11 +314,21 @@ func _river_dist(p: Vector2) -> float:
 	return best
 
 
-func _lake_dist(p: Vector2) -> float:
-	return (p - _lake_c).length()
+## How far `p` lies from the nearest lake's edge (pass 80: every lake; below 0 in the water).
+func _lake_edge(p: Vector2) -> float:
+	var best := INF
+	for k in range(_lake_cs.size()):
+		best = minf(best, p.distance_to(_lake_cs[k]) - _lake_rs[k])
+	return best
 
 
-## How far into the red-rock rim a point is, 0 on the sand to 1 at the wall.
+## The ground's red rock at `p` (x, z), 0 on the sand to 1 (pass 80: 0 everywhere inside the wall, 1 from ROCK_FROM
+## past the arena's edge; the terrain shader reads it from the vertex colour's blue).
+func rock_weight(p: Vector2) -> float:
+	return 1.0 if p.length() >= arena_radius + ROCK_FROM else 0.0
+
+
+## How far into the rim a point is, 0 on the flat sand to 1 at the wall (the sand rises over it).
 func _rim(p: Vector2) -> float:
 	return clampf((p.length() - rim_start) / maxf(arena_radius - rim_start, 1.0), 0.0, 1.0)
 
@@ -206,14 +346,17 @@ func _terrain_height(x: float, z: float) -> float:
 	var rd := _river_dist(p)
 	var rw: float = clamp(1.0 - rd / river_width, 0.0, 1.0)
 	h -= river_depth * smoothstep(0.0, 1.0, rw) * flat_w
-	# the rim climbs into broken red rock towards the wall
+	# the rim climbs towards the wall (pass 80: sand drifted against it, its bumps soft; was broken red rock, 1.2 m of
+	# bumps at 2.5x)
 	var rim := _rim(p)
-	h += rim_height * rim * rim + _noise.get_noise_2d(x * 2.5 + 40.0, z * 2.5) * rim * 1.2
-	# the oasis: a shallow dish with a flat floor under the water
-	var dl := _lake_dist(p)
-	if dl < _lake_r * 1.6:
-		var w := 1.0 - smoothstep(_lake_r * 0.7, _lake_r * 1.6, dl)
-		h = lerpf(h, _lake_floor, w)
+	h += rim_height * rim * rim + _noise.get_noise_2d(x * rim_bump_freq + 40.0, z * rim_bump_freq) * rim * rim_bumps
+	# the oasis: a shallow dish with a flat floor under the water (pass 80: round every lake; the dishes never meet)
+	for k in range(_lake_cs.size()):
+		var lr: float = _lake_rs[k]
+		var dl := p.distance_to(_lake_cs[k])
+		if dl < lr * LAKE_DISH:
+			var w := 1.0 - smoothstep(lr * 0.7, lr * LAKE_DISH, dl)
+			h = lerpf(h, _lake_floors[k], w)
 	return h
 
 
@@ -292,13 +435,18 @@ func _color_at(x: float, z: float, h: float) -> Color:
 	var rd := _river_dist(Vector2(x, z))
 	var t: float = clamp(1.0 - rd / (river_width * 0.9), 0.0, 1.0)
 	# a damp ring around the water, but never under it: the dark cracked earth showing through a half-transparent
-	# disc turned the blue to grey mud
-	var dl2 := _lake_dist(Vector2(x, z))
-	var shore := smoothstep(_lake_r * 0.75, _lake_r * 1.05, dl2) * (1.0 - smoothstep(_lake_r * 1.15, _lake_r * 1.9, dl2))
-	t = maxf(t, shore * 0.35)
+	# disc turned the blue to grey mud (pass 80: round every lake)
+	for k in range(_lake_cs.size()):
+		var lr: float = _lake_rs[k]
+		var dl2 := Vector2(x, z).distance_to(_lake_cs[k])
+		if dl2 < lr * 1.9:
+			var shore := smoothstep(lr * 0.75, lr * 1.05, dl2) * (1.0 - smoothstep(lr * 1.15, lr * 1.9, dl2))
+			t = maxf(t, shore * 0.35)
 	var n := _noise.get_noise_2d(x * 3.0 + 100.0, z * 3.0)
 	var shade: float = clamp(1.0 - n * 0.35 + h * 0.05, 0.6, 1.15)
-	var rock: float = clampf(_rim(Vector2(x, z)) * 1.6 + n * 0.3, 0.0, 1.0)
+	# pass 80 (Garry: "make the edges of the map just sand ... that orange-dark stuff should be behind the walls"): the
+	# red rock only outside the wall, from ROCK_FROM past the arena's edge (under the wall); was the rim from rim_start
+	var rock: float = rock_weight(Vector2(x, z))
 	return Color(t, shade, rock)
 
 
@@ -309,6 +457,10 @@ var _terrain_mat: ShaderMaterial
 var _env: Environment
 var _hell := 0.0
 var _hell_tween: Tween
+## the fort wall's material (pass 80): stage 3's hell tints it as it tints the ground (the wall is unshaded, so the hell's
+## light alone would leave it pale)
+var _wall_mat: StandardMaterial3D
+const HELL_WALL := Color(0.97, 0.79, 0.72)
 
 
 func _stone() -> StandardMaterial3D:
@@ -391,21 +543,20 @@ func _ground(x: float, z: float) -> Vector3:
 # ---------------------------------------------------------------- the wall
 
 func _build_wall() -> void:
-	# the mountain wall: a ring of cliff faces whose height wanders, one mesh, stone-textured; the ranges beyond are
-	# the same ring twice more, bigger and darker, so the horizon has depth without a single box
-	var near := _stone().duplicate()
-	# a shade darker than the ground so the cliffs read as cliffs (pass 79: the map's wall_colors, over a grey painting)
-	near.albedo_color = wall_colors["near"]
+	# the mountain wall: a ring of cliff faces whose height wanders, one mesh, rock-painted; the ranges beyond are the
+	# same ring twice more, bigger and darker, so the horizon has depth without a single box. Pass 80 (lane WALLS): a
+	# hi-res rock painting (art/env/cliff_rock.png) on the ring's own UVs in metres (CanyonWalls.CLIFF_TILES: 14, 20 and 28
+	# m a tile, the farther ranges' strata bigger), the face broken into ledges; the colours still the map's wall_colors
+	# (the painting grey on average, so the tint is the colour drawn)
+	var near := WALLS.cliff_material(wall_colors["near"])
 	# pass 72: the near cliffs and the boundary wall are scenery (a creature they hide is outlined, SceneryStencil)
-	add_child(SceneryStencil.mark_tree(_ridge(arena_radius + 4.0, 9.0, 6.0, 96, near, 1.0)))
-	var far := _stone().duplicate()
-	far.albedo_color = wall_colors["far"]
-	add_child(_ridge(arena_radius + 26.0, 16.0, 9.0, 72, far, 2.3))
-	var farther := _stone().duplicate()
-	farther.albedo_color = wall_colors["farther"]
-	add_child(_ridge(arena_radius + 52.0, 24.0, 12.0, 60, farther, 5.1))
-	# the boundary itself: a low stacked-stone wall right on the arena's edge, with posts and skulls, so the line the
-	# hero cannot cross is a thing in the world and not a place where he stops for no reason
+	add_child(SceneryStencil.mark_tree(_ridge(arena_radius + 4.0, 9.0, 6.0, 96, near, 1.0, WALLS.CLIFF_TILES[0])))
+	var far := WALLS.cliff_material(wall_colors["far"])
+	add_child(_ridge(arena_radius + 26.0, 16.0, 9.0, 72, far, 2.3, WALLS.CLIFF_TILES[1]))
+	var farther := WALLS.cliff_material(wall_colors["farther"])
+	add_child(_ridge(arena_radius + 52.0, 24.0, 12.0, 60, farther, 5.1, WALLS.CLIFF_TILES[2]))
+	# the boundary itself: a western sandstone fort wall right on the arena's edge (pass 80), with posts and skulls before
+	# it, so the line the hero cannot cross is a thing in the world and not a place where he stops for no reason
 	add_child(SceneryStencil.mark_tree(_boundary_wall(arena_radius, 120)))
 	# invisible fence a little inside so the player never wedges into the cliffs
 	var n := 40
@@ -413,95 +564,22 @@ func _build_wall() -> void:
 		var a := TAU * k2 / n
 		var r := arena_radius - 1.1   # the wall's inner face, so the hero stops at the stone and not inside it
 		var p := Vector3(cos(a) * r, 2.0, sin(a) * r)
-		var body := _box(p, Vector3(TAU * r / n + 1.0, 8.0, 0.5), wall_color, 0.0, -a + PI * 0.5)
+		# (pass 80: a plain colour, the box is never drawn: the stone material would load the old sandstone painting, 4 MB of
+		# texture for nothing)
+		var body := _box(p, Vector3(TAU * r / n + 1.0, 8.0, 0.5), Color.BLACK, 0.0, -a + PI * 0.5)
 		for c in body.get_children():
 			if c is MeshInstance3D:
 				c.visible = false
 
 
-## The stacked-stone boundary: a ring wall 1.7 m thick and about 3 m tall with battlements (every other block stands a
-## step higher), a dark cap, both faces and the cap as one mesh, vertex-coloured (sRGB, so the stone stays as dark as
-## authored) so the courses read; boulders along the cap in one MultiMesh, tall wooden posts every ten degrees and a
-## skull on every fourth post.
+## The boundary (pass 80, lane WALLS): a western sandstone fort wall, 1.7 m thick on the arena's edge, its walk about 2 m
+## over the ground with a cap course, a parapet with rounded merlons, vigas and a squat tower every 30 degrees
+## (CanyonWalls.fort_wall, in the map's wall_colors), and before it tall wooden posts every ten degrees (one MultiMesh)
+## with a skull on every fourth. Pass 79's stacked-stone wall with battlements and boulders on top is gone; the footprint,
+## the height and the fence (in _build_wall) are as they were.
 func _boundary_wall(r: float, segs: int) -> Node3D:
-	var root := Node3D.new()
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var thick := 1.7
-	var base_h := 2.7
-	var tops: Array = []
-	for k2 in range(segs):
-		var a := TAU * (float(k2) + 0.5) / segs
-		var nh := _noise.get_noise_2d(cos(a) * 80.0 + 700.0, sin(a) * 80.0)
-		tops.append(base_h + 0.35 * nh + (0.5 if k2 % 2 == 0 else 0.0) + 0.1 * sin(a * 41.0))
-	# pass 79: the map's wall_colors (WALL_COLORS by default)
-	var stone: Color = wall_colors["stone"]
-	var light: Color = wall_colors["light"]
-	var cap: Color = wall_colors["cap"]
-	var riser: Color = wall_colors["riser"]
-	var ri := r - thick * 0.5
-	var ro := r + thick * 0.5
-	for k2 in range(segs):
-		var a0 := TAU * k2 / segs
-		var a1 := TAU * (k2 + 1) / segs
-		var g0 := height_at(cos(a0) * (r - 1.0), sin(a0) * (r - 1.0)) - 0.8
-		var g1 := height_at(cos(a1) * (r - 1.0), sin(a1) * (r - 1.0)) - 0.8
-		var h: float = tops[k2]
-		var bi0 := Vector3(cos(a0) * ri, g0, sin(a0) * ri)
-		var bi1 := Vector3(cos(a1) * ri, g1, sin(a1) * ri)
-		var bo0 := Vector3(cos(a0) * ro, g0, sin(a0) * ro)
-		var bo1 := Vector3(cos(a1) * ro, g1, sin(a1) * ro)
-		var ti0 := bi0 + Vector3(0, h, 0)
-		var ti1 := bi1 + Vector3(0, h, 0)
-		var to0 := bo0 + Vector3(0, h, 0)
-		var to1 := bo1 + Vector3(0, h, 0)
-		# alternate blocks a shade apart so the courses read as stone
-		var c := stone if k2 % 2 == 0 else light
-		# inner face (towards the arena), wound so it faces inward
-		_quad(st, bi1, bi0, ti0, ti1, c)
-		# outer face
-		_quad(st, bo0, bo1, to1, to0, c.darkened(0.25))
-		# the cap
-		_quad(st, ti0, to0, to1, ti1, cap)
-		# the step up or down to the previous block, across the thickness
-		var hp: float = tops[(k2 - 1 + segs) % segs]
-		var pi0 := bi0 + Vector3(0, hp, 0)
-		var po0 := bo0 + Vector3(0, hp, 0)
-		_quad(st, pi0, po0, to0, ti0, riser)
-	st.generate_normals()
-	var mi := MeshInstance3D.new()
-	mi.mesh = st.commit()
-	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.vertex_color_is_srgb = true
-	mat.roughness = 1.0
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mi.material_override = mat
-	root.add_child(mi)
-	# boulders along the cap: one multimesh of rough blocks, every other one on the low blocks
-	var bm := MultiMeshInstance3D.new()
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	var box := BoxMesh.new()
-	box.size = Vector3(1.1, 0.75, 0.9)
-	var bmat := StandardMaterial3D.new()
-	bmat.albedo_color = wall_colors["boulders"]
-	bmat.roughness = 1.0
-	box.material = bmat
-	mm.mesh = box
-	var bn := segs / 3
-	mm.instance_count = bn
-	for k2 in range(bn):
-		var a := TAU * (float(k2 * 3) + 1.5) / segs + 0.3 * _noise.get_noise_1d(float(k2) * 9.0)
-		var px := cos(a) * (r + 0.15 * _noise.get_noise_1d(float(k2) * 3.0))
-		var pz := sin(a) * (r + 0.15 * _noise.get_noise_1d(float(k2) * 3.0))
-		var seg := int(floor(a / TAU * segs)) % segs
-		var gy := height_at(cos(a) * (r - 1.0), sin(a) * (r - 1.0)) - 0.8 + float(tops[seg]) + 0.25
-		var sc := 0.8 + 0.5 * absf(_noise.get_noise_1d(float(k2) * 5.0 + 40.0))
-		var t := Transform3D(Basis.from_euler(Vector3(0.12 * _noise.get_noise_1d(float(k2) + 3.0), -a + 0.4 * _noise.get_noise_1d(float(k2) * 2.0), 0)).scaled(Vector3(sc, sc, sc)), Vector3(px, gy, pz))
-		mm.set_instance_transform(k2, t)
-	bm.multimesh = mm
-	root.add_child(bm)
+	var root: Node3D = WALLS.fort_wall(self, r, segs, wall_colors, _noise)
+	_wall_mat = (root.get_node("Wall") as MeshInstance3D).material_override as StandardMaterial3D
 	# posts and skulls: the posts are one MultiMesh (pass 33.8: 36 meshes with a material each, a draw call apiece)
 	var post_n := 36
 	var skull_scene: PackedScene = load("res://art/props/skull.glb") if ResourceLoader.exists("res://art/props/skull.glb") else null
@@ -543,53 +621,16 @@ func _quad(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, 
 		st.add_vertex(v)
 
 
-## A ring of cliffs: an inner face that leans outward, a jagged top, height wandering with noise around the ring.
-func _ridge(r: float, h: float, h_var: float, segs: int, mat: Material, noise_off: float) -> MeshInstance3D:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var tops: Array = []
-	for k2 in range(segs + 1):
-		var a := TAU * float(k2 % segs) / segs
-		var nh := _noise.get_noise_2d(cos(a) * 30.0 + noise_off * 100.0, sin(a) * 30.0)
-		tops.append(h + h_var * nh + h_var * 0.35 * sin(a * 7.0 + noise_off))
-	for k2 in range(segs):
-		var a0 := TAU * k2 / segs
-		var a1 := TAU * (k2 + 1) / segs
-		var g0 := height_at(cos(a0) * minf(r, arena_radius - 1.0), sin(a0) * minf(r, arena_radius - 1.0)) - 3.0
-		var g1 := height_at(cos(a1) * minf(r, arena_radius - 1.0), sin(a1) * minf(r, arena_radius - 1.0)) - 3.0
-		var b0 := Vector3(cos(a0) * r, g0, sin(a0) * r)
-		var b1 := Vector3(cos(a1) * r, g1, sin(a1) * r)
-		var t0 := Vector3(cos(a0) * (r + 4.0), float(tops[k2]), sin(a0) * (r + 4.0))
-		var t1 := Vector3(cos(a1) * (r + 4.0), float(tops[k2 + 1]), sin(a1) * (r + 4.0))
-		var back0 := t0 + Vector3(cos(a0), 0, sin(a0)) * 12.0 - Vector3(0, 2.0, 0)
-		var back1 := t1 + Vector3(cos(a1), 0, sin(a1)) * 12.0 - Vector3(0, 2.0, 0)
-		# inner face (seen from the arena: clockwise), then the sloping top
-		for tri in [[b0, t0, b1], [t0, t1, b1], [t0, back0, t1], [back0, back1, t1]]:
-			for p in tri:
-				st.add_vertex(p)
-	st.generate_normals()
-	var mi := MeshInstance3D.new()
-	mi.mesh = st.commit()
-	# both windings are used around the ring (the faces run either way past the arena's axis), so no culling here
-	if mat is BaseMaterial3D:
-		(mat as BaseMaterial3D).cull_mode = BaseMaterial3D.CULL_DISABLED
-	mi.material_override = mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return mi
+## A ring of cliffs: an inner face that leans outward, broken into ledges, a jagged top, height wandering with noise
+## around the ring (pass 80: CanyonWalls.ridge, the rock painting `tile` m a tile).
+func _ridge(r: float, h: float, h_var: float, segs: int, mat: Material, noise_off: float, tile: float = 14.0) -> MeshInstance3D:
+	return WALLS.ridge(self, arena_radius, r, h, h_var, segs, mat, noise_off, _noise, tile)
 
 
 ## The oasis: one flat half-transparent disc at the water level (`_lake_y`) over the dish; no collider and no obstacle
 ## circle, anyone wades in (pass 29; the pass 31 shader is gone, the collider went with the dish).
+## Pass 80 (lane OASIS): one disc a lake, "Oasis" the first, "Oasis2", "Oasis3" the others, all of one material.
 func _build_lake() -> void:
-	var mi := MeshInstance3D.new()
-	mi.name = "Oasis"
-	var cm := CylinderMesh.new()
-	cm.top_radius = _lake_r * LAKE_DISC
-	cm.bottom_radius = _lake_r * LAKE_DISC
-	cm.height = LAKE_THICK
-	cm.radial_segments = 40
-	cm.rings = 1
-	mi.mesh = cm
 	# the simplest water there is: one flat half-transparent colour, unshaded, no texture, no ripple, no shore fade
 	# (a shader with waves in it read as a patterned disc lying on the sand)
 	var mat := StandardMaterial3D.new()
@@ -599,27 +640,53 @@ func _build_lake() -> void:
 	mat.cull_mode = BaseMaterial3D.CULL_BACK
 	# under the ground marks (their pools draw at priority -5..-1, pass 33.8), so a red ring on the lake bed always reads
 	mat.render_priority = -10
-	mi.material_override = mat
-	mi.position = Vector3(_lake_c.x, _lake_y, _lake_c.y)
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi)
+	for k in range(_lake_cs.size()):
+		var mi := MeshInstance3D.new()
+		mi.name = "Oasis" if k == 0 else "Oasis%d" % (k + 1)
+		var cm := CylinderMesh.new()
+		cm.top_radius = _lake_rs[k] * LAKE_DISC
+		cm.bottom_radius = _lake_rs[k] * LAKE_DISC
+		cm.height = LAKE_THICK
+		cm.radial_segments = 40
+		cm.rings = 1
+		mi.mesh = cm
+		mi.material_override = mat
+		mi.position = Vector3(_lake_cs[k].x, _lake_ys[k], _lake_cs[k].y)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
 
 
-## Standing in the water? (the hero's ripples, Game)
+## Standing in the water? (the hero's ripples, Game; pass 80: in any lake, LAKE_WET of its radius)
 func in_water(p: Vector3) -> bool:
-	return Vector2(p.x, p.z).distance_to(_lake_c) < _lake_r * 1.02
+	var q := Vector2(p.x, p.z)
+	for k in range(_lake_cs.size()):
+		var rw: float = _lake_rs[k] * LAKE_WET
+		if q.distance_squared_to(_lake_cs[k]) < rw * rw:
+			return true
+	return false
 
 
 ## The water's surface height (pass 54): where the ripples of anyone wading are drawn and under which a shadow is
-## hidden; the lake's floor lies `lake_depth` under the shore, the surface 4 cm under it.
-func water_level() -> float:
-	return _lake_y
+## hidden; the lake's floor lies `lake_depth` under the shore, the surface 4 cm under it. Pass 80: the lake `p` stands
+## in or nearest it (lake_index); without `p`, the first lake's.
+func water_level(p: Vector3 = Vector3.INF) -> float:
+	if _lake_ys.is_empty():
+		return _lake_y
+	return _lake_ys[0 if not p.is_finite() else lake_index(Vector2(p.x, p.z))]
 
 
 ## The water's disc as it is drawn (pass 56): its middle (x, z), the height of its top face, its radius and its
-## thickness, for whatever must leave out what the water covers (the hero's second pass, Game._sink_hero).
-func water_disc() -> Dictionary:
-	return {"center": _lake_c, "top": _lake_y + LAKE_THICK * 0.5, "radius": _lake_r * LAKE_DISC, "thick": LAKE_THICK}
+## thickness, for whatever must leave out what the water covers (the hero's second pass, Game._sink_hero). Pass 80: the
+## lake `p` stands in or nearest it (lake_index); without `p`, the first lake's.
+func water_disc(p: Vector3 = Vector3.INF) -> Dictionary:
+	if _lake_cs.is_empty():
+		return {"center": _lake_c, "top": _lake_y + LAKE_THICK * 0.5, "radius": _lake_r * LAKE_DISC, "thick": LAKE_THICK}
+	return _disc_of(0 if not p.is_finite() else lake_index(Vector2(p.x, p.z)))
+
+
+## Lake `k`'s disc as water_disc tells it.
+func _disc_of(k: int) -> Dictionary:
+	return {"center": _lake_cs[k], "top": _lake_ys[k] + LAKE_THICK * 0.5, "radius": _lake_rs[k] * LAKE_DISC, "thick": LAKE_THICK}
 
 
 func _build_props() -> void:
@@ -675,6 +742,8 @@ func _apply_hell(f: float) -> void:
 	_hell = f
 	if _terrain_mat:
 		_terrain_mat.set_shader_parameter("hell", f)
+	if _wall_mat:
+		_wall_mat.albedo_color = Color.WHITE.lerp(HELL_WALL, f)
 	if _env:
 		_env.ambient_light_color = Color(0.95, 0.80, 0.66).lerp(Color(0.92, 0.70, 0.60), f)
 		_env.fog_light_color = Color(0.93, 0.66, 0.42).lerp(Color(0.86, 0.54, 0.38), f)
@@ -730,7 +799,7 @@ func _scatter_sprites() -> void:
 			return false
 		if not in_bed and _river_dist(pt) < river_width * 0.5 + 1.0:
 			return false
-		if _lake_dist(pt) < _lake_r + 1.2:
+		if _lake_edge(pt) < 1.2:
 			return false
 		for t: Vector3 in taken:
 			if (pt - Vector2(t.x, t.y)).length() < t.z + keep:
@@ -788,18 +857,23 @@ func _scatter_sprites() -> void:
 				return str(row[0])
 		return str(rows[0][0])
 
-	# --- the oasis: palms right at the shore, green a little further out, a rock or two at the water
-	var greens: Array = [_lake_c]
-	for k in range(rng.randi_range(8, 10)):
-		var pt: Vector2 = around.call(_lake_c, _lake_r + 1.4, _lake_r + 5.0, 1.2)
-		if pt != Vector2.INF:
-			place.call("fan_palm", pt, rng.randf_range(0.9, 1.15), 0.05)
+	# --- the oasis: palms right at the shore, green a little further out, a rock or two at the water (pass 80: round
+	# every lake in turn, the first one's draws first, so its greenery stands where it did)
+	var greens: Array = []
 	var oasis_low: Array = [["desert_bush", 3], ["creosote_bush", 2], ["agave", 2], ["yucca", 2], ["ocotillo", 1], ["mesquite_tree", 1], ["rock_small", 1]]
-	for k in range(rng.randi_range(22, 28)):
-		var pt: Vector2 = around.call(_lake_c, _lake_r + 1.0, _lake_r + 11.0, 0.6)
-		if pt != Vector2.INF:
-			var id: String = pick.call(oasis_low)
-			place.call(id, pt, rng.randf_range(0.8, 1.2), 0.0 if id == "rock_small" else 0.06)
+	for lk in range(maxi(_lake_cs.size(), 1)):
+		var lc: Vector2 = _lake_cs[lk] if lk < _lake_cs.size() else _lake_c
+		var lr: float = _lake_rs[lk] if lk < _lake_rs.size() else _lake_r
+		greens.append(lc)
+		for k in range(rng.randi_range(8, 10)):
+			var pt: Vector2 = around.call(lc, lr + 1.4, lr + 5.0, 1.2)
+			if pt != Vector2.INF:
+				place.call("fan_palm", pt, rng.randf_range(0.9, 1.15), 0.05)
+		for k in range(rng.randi_range(22, 28)):
+			var pt: Vector2 = around.call(lc, lr + 1.0, lr + 11.0, 0.6)
+			if pt != Vector2.INF:
+				var id: String = pick.call(oasis_low)
+				place.call(id, pt, rng.randf_range(0.8, 1.2), 0.0 if id == "rock_small" else 0.06)
 	# --- three green stands: cactus or trees, with the low greenery around
 	for c in range(3):
 		var centre: Vector2 = spot.call(3.0, 22.0, arena_radius - 12.0, greens, 22.0)
@@ -893,18 +967,22 @@ func _scatter_sprites() -> void:
 	# width past them), the lake's greenery, the river bed (the patch's 0.6 off it, so its bushes stand on the open sand,
 	# not on the banks' dead trees) and every other region's centre; a few bushes round it, nearer the middle than the
 	# edge, BUSH_SPACING apart
-	var away: Array = greens.slice(1) + rocks
+	var away: Array = greens.slice(maxi(_lake_cs.size(), 1)) + rocks
 	for c in range(rng.randi_range(BUSH_PATCHES.x, BUSH_PATCHES.y)):
 		var centre := Vector2.INF
-		for k in range(300):
+		# (pass 80: a map still short of BUSH_PATCHES.x patches gets BUSH_EXTRA_TRIES more, out to 10 m inside the wall and
+		# the regions closer still)
+		for k in range(300 if _bush_patches.size() >= BUSH_PATCHES.x else 300 + BUSH_EXTRA_TRIES):
 			# on the open sand between the flats and the red-rock rim; past half the tries the regions may close in a little
 			var a := rng.randf() * TAU
-			var r := rng.randf_range(flats_radius + 6.0, rim_start - 1.0)
+			var r := rng.randf_range(flats_radius + 6.0, rim_start - 1.0 if k < 300 else arena_radius - 10.0)
 			var pt := Vector2(cos(a) * r, sin(a) * r)
-			var apart := BUSH_PATCH_APART if k < 150 else BUSH_PATCH_APART * 0.75
+			var apart := BUSH_PATCH_APART if k < 150 else BUSH_PATCH_APART * (0.75 if k < 300 else 0.6)
 			if (pt - fc).length() < flats_radius + 3.0 + BUSH_PATCH_R * 0.5:
 				continue
-			if _lake_dist(pt) < _lake_r + 11.0 + BUSH_PATCH_R * 0.6:
+			# (pass 80: two or three oases take much of the sand, so past BUSH_LAKE_RELAX of the tries a patch may stand at
+			# the outer greenery of an oasis, BUSH_LAKE_NEAR m off the water instead of 11)
+			if _lake_edge(pt) < (11.0 if k < BUSH_LAKE_RELAX else BUSH_LAKE_NEAR) + BUSH_PATCH_R * 0.6:
 				continue
 			if _river_dist(pt) < river_width * 0.5 + BUSH_PATCH_R * 0.6:
 				continue

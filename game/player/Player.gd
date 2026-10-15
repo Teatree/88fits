@@ -305,6 +305,8 @@ func _physics_process(delta: float) -> void:
 	# a hit's shove (pass 54, hit_knock): for a beat the stick does not move him, so the shove is not walked through
 	if _stick_lock > 0.0:
 		planar = Vector3.ZERO
+	# pass 80 (lane OASIS): wading, his walk is water_slow slower (never a shove or a pull, never in the air)
+	planar *= _wade_mult()
 	# Hang Time (pass 70): in the air the arc carries him and the stick only bends it (_air_planar)
 	if airborne:
 		planar = _air_planar(delta, planar, prev_facing)
@@ -1085,6 +1087,54 @@ func leash_factor(dir: Vector3) -> float:
 	if not tethered:
 		return 1.0
 	return leash_of(dir, global_position - tether_from, tether_away)
+
+
+## Wading (pass 80, lane OASIS; Garry: "make the water slow everyone down when they walk though it, not by a lot, just
+## 10%"): his walking speed's factor, 1 - the map's water_slow (WaveTimeline, 0.1) while he stands in any lake (the map's
+## in_water) on its floor; 1 in the air (Hang Time's flight, or more than WADE_AIR m over the ground: a launch, a leap),
+## down, or with no map. It scales the stick's walk only: a shove, a knockback or a rope's pull (_kb) is never slowed.
+## The rocketeer's rocket keeps to max_speed (his dry speed), so he does not outrun it by wading.
+const WADE_AIR := 0.35
+var _wade_holder: Node = null
+
+
+func _wade_mult() -> float:
+	if airborne or dead:
+		return 1.0
+	var m := _wade_map()
+	if m == null or not m.has_method("in_water"):
+		return 1.0
+	var at := global_position
+	if not bool(m.call("in_water", at)):
+		return 1.0
+	if m.has_method("height_at") and at.y > float(m.call("height_at", at.x, at.z)) + WADE_AIR:
+		return 1.0
+	return 1.0 - water_slow()
+
+
+## The map's water_slow (pass 80): its timeline's, else WaveTimeline.WATER_SLOW_DEFAULT; held to 0..0.95.
+static func water_slow() -> float:
+	var tl: WaveTimeline = Run.map.timeline if Run.map else null
+	return clampf(tl.water_slow if tl else WaveTimeline.WATER_SLOW_DEFAULT, 0.0, 0.95)
+
+
+## The map he walks on (pass 80): the nearest ancestor's `map` (Game.map; a holder or two up is allowed), the holder found
+## once; null when there is none (the title's stage, a bare test).
+func _wade_map() -> Node:
+	if _wade_holder == null or not is_instance_valid(_wade_holder):
+		_wade_holder = null
+		var p := get_parent()
+		var hops := 0
+		while p != null and hops < 3:
+			if "map" in p:
+				_wade_holder = p
+				break
+			p = p.get_parent()
+			hops += 1
+	if _wade_holder == null:
+		return null
+	var m = _wade_holder.get("map")
+	return m if is_instance_valid(m) and m is Node else null
 
 
 ## The leash rule on its own: a step in `dir` when the thrower lies back along `away` (from it to the hero).

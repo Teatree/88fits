@@ -129,7 +129,7 @@ const AFIELDS = (() => {
   // keys WeaponInstance and the systems (ProjectileManager, Game, EnergyTraces, Mine) read for any behaviour
   const PARAMS_SHARED = ['final', 'glow', 'familiar', 'look', 'ricochet_any', 'mini_crit', 'fire_blue', 'ignite_chance', 'zenith', 'sticky', 'size_mult', 'silver', 'pollen', 'plant', 'pin', 'pierce_falloff', 'out_speed_mult', 'back_speed_mult',
     'return_damage_mult', 'return', 'second_pass', 'hip_shot', 'double_every', 'cone', 'burst_spawn', 'bounce', 'bomblets', 'bomblet_damage_mult', 'aura', 'wander', 'turn', 'trail', 'tracer',
-    'tracer_life', 'tracer_width', 'tracer_clear', 'tracer_alpha', 'trace', 'tint', 'thrust', 'telegraph', 'tail_fade', 'sun', 'split_scale', 'split_count', 'spiral', 'spent', 'cloud_mult', 'cloud_seconds', 'curare', 'hit_radius',
+    'tracer_life', 'tracer_width', 'tracer_clear', 'tracer_alpha', 'tracer_style', 'tracer_hot', 'trace', 'tint', 'thrust', 'telegraph', 'tail_fade', 'sun', 'split_scale', 'split_count', 'spiral', 'spent', 'cloud_mult', 'cloud_seconds', 'curare', 'hit_radius',
     'roll_radius', 'no_spin', 'trail_zone', 'life', 'gold_on_kill', 'speed_mult', 'radius_mult',
     // pass 67 (the basketball): ProjectileManager turns the ball home when its hits are spent and hands the catch over
     'return_on_hit', 'return_pierce', 'catch'];
@@ -261,6 +261,20 @@ const AFIELDS = (() => {
       help: 'May\'s Trigger Happy: the gun fires on its clock even with nobody in range, along her facing, and a burst spreads its rounds over the whole cooldown so it never pauses; pay for it with a damage cut in the effects', rows: [
         P('fire_without_target', 'Fire with no target', 'bool3', false, 'a gun with the usual targeting (nearest / priority) fires on its clock even with no creature in range, along the hero\'s facing (the Blunderbuss\'s fire_blind is the same for "forward" targeting)'),
         P('stream', 'Stream the burst', 'bool3', false, 'a burst weapon spreads its rounds evenly over the whole cooldown (gap = cooldown × 0.97 / amount) instead of 50 ms apart: the gun never pauses; each round aims at the creature it would aim at now, else along her facing'),
+      ] },
+    // pass 80 (lane TRAIL): the tracer's look, one key away (research and pictures in tools/dl/p80/TRAIL/)
+    { id: 'tracer', label: 'Tracer (the trail behind every round)', behaviors: ['ProjectileEmitter'], show: 'set',
+      present: ['tracer', 'tracer_style', 'tracer_color', 'tracer_alpha', 'tracer_width', 'tracer_life', 'tracer_hot', 'tracer_clear'],
+      src: 'core/systems/ProjectileManager.gd (_tracer_*), core/shaders/tracer_line.gdshader',
+      help: 'a trail drawn behind every round so a shot reads as fired; one look per weapon, mutation or evolution (a mutation\'s keys win over its weapon\'s); empty boxes take the style\'s own numbers', rows: [
+        P('tracer', 'Tracer on', 'bool3', false, 'draw a trail behind every round of this weapon'),
+        P('tracer_style', 'Style', 'select', 'wisp', 'wisp (the game\'s own) = a hot streak riding with the bullet over a pale smoke that lingers and fades; streak = a short tracer round: the tapered streak alone, a hot white middle in the colour with a soft glow; ribbon = a longer ribbon whose hot middle dies first; toon = hard cartoon bands with a dark outline; line = pass 79\'s thin line that fades like smoke', { options: [opt('streak', 'streak'), opt('ribbon', 'ribbon'), opt('wisp', 'wisp'), opt('toon', 'toon'), opt('line', 'line')] }),
+        P('tracer_color', 'Colour', 'swatch', null, 'the trail\'s colour (Revolver red, Silver Bullet silver-blue); empty = gold, orange for a burning weapon, green for a poison one'),
+        P('tracer_alpha', 'Opacity', 'number', 0.9, 'how solid the trail is, 0..1 (with a colour of its own)', { min: 0, max: 1, step: 0.05 }),
+        P('tracer_width', 'Width (m)', 'number', null, 'the trail\'s width at the bullet, glow included (it tapers behind); empty = the style\'s (0.1; the line 0.05)', { min: 0.005, step: 0.01 }),
+        P('tracer_life', 'Life (s)', 'number', null, 'how long each piece of the trail lives, so its length = speed × life; empty = the style\'s (streak 0.13, ribbon 0.3, wisp 0.55, toon 0.2, line 1.4)', { min: 0.05, step: 0.01 }),
+        P('tracer_hot', 'Hot part', 'number', null, 'the share of the life the white-hot middle lasts (the wisp: its streak before the smoke), 0..1; empty = the style\'s (wisp 0.3, streak 0.7, ribbon 0.4, toon 0.5)', { min: 0.02, max: 1, step: 0.05 }),
+        P('tracer_clear', 'Clear of the hero (m)', 'number', 0, 'no trail within this many metres of the hero (the Revolver 1.1: its companion gun fires past him)', { min: 0, step: 0.1 }),
       ] },
   ];
   /** The typed groups a document shows: [{group, on}] where `on` = shown open (its knobs) and the rest are offered.

@@ -27,7 +27,7 @@
     "radius_mult": 1.5,
     "speed_mult": 1.15,
     "silver": true,
-    "tracer_width": 0.11,
+    "tracer_width": 0.3,
     "tracer_color": "#C9DCEF",
     "tracer_alpha": 0.9
   },

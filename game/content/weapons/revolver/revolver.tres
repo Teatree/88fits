@@ -104,10 +104,10 @@ params = {
 "tracer": true,
 "tracer_alpha": 0.9,
 "tracer_clear": 1.1,
-"tracer_color": "#8B0A0A",
-"tracer_life": 0.9,
+"tracer_color": "#C41E16",
 "tracer_size": 1.35,
-"tracer_width": 0.045
+"tracer_style": "wisp",
+"tracer_width": 0.2
 }
 hero = "drifter"
 id = "revolver"

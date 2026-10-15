@@ -70,7 +70,7 @@ params = {
 "speed_mult": 1.15,
 "tracer_alpha": 0.9,
 "tracer_color": "#C9DCEF",
-"tracer_width": 0.11
+"tracer_width": 0.3
 },
 "no_shells": true,
 "pierce_falloff": {

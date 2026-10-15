@@ -11,17 +11,16 @@
 ## The dice are seeded (Run.seed_dice: the global stream, the card offers and chests, the director; the creatures' and
 ## the pickups' own dice here; the map layout from the seed); the structures' placement and the Totem Poles' gifts stay
 ## random (their own dice, randomized where this tool cannot reach).
-## The bot (the rules: tools/dl/p77/balancing_SIMRUN.md): the difficulty probe's kiting autopilot (tools/sim_pilot.gd)
-## leaning towards the richest gems on the field while the way is clear and he is well (the sweep, _lure), stepping out of
-## the creatures' red warning rings, keeping near a living boss (BOSS_LEASH), walking to a chest that lies within
-## CHEST_RANGE, to the boss's chest and then to the portal; the level-up cards by a sensible player's priorities (card_tier), a mutation offer at random, chests taken,
-## the Stranger and the shop left, a Totem Pole's gift with the most feathers, the portal always continued, Down! by
-## `death`. A watchdog writes what it has with end_reason "stuck:<what>" when a screen stays up more than STUCK_S seconds
-## or the wall clock passes `wall`.
+## The bot (pass 80, lane BOT): tools/bot/Bot.gd, shared with the Watch; its options come in as args (preset=, skill=,
+## style=, reaction=, dodge=, daring=, stray=, explore=, totems=, barrels=, powerups=, structures=, shop=, stranger=, boss=,
+## cards=; tools/dl/p80/keys_BOT.md) and preset=sim77 is pass 77's bot exactly (its rules: tools/dl/p77/
+## balancing_SIMRUN.md). The portal is always continued, Down! answered by `death`. A watchdog writes what it has with
+## end_reason "stuck:<what>" when a screen stays up more than STUCK_S seconds or the wall clock passes `wall`.
 ## Autoloads are reached through the tree (SceneTree scripts compile before they exist); no game class is named here.
 extends SceneTree
 
-const PILOT := preload("res://tools/sim_pilot.gd")
+const BOT := preload("res://tools/bot/Bot.gd")
+const CARDS := preload("res://tools/bot/BotCards.gd")
 const PROBE := preload("res://tools/difficulty_probe.gd")
 const PERF := preload("res://core/systems/Perf.gd")
 const SCHEMA := 1
@@ -29,32 +28,12 @@ const SCHEMA := 1
 const STUCK_S := 10.0
 ## the hero down this long with nothing asking (no Down!, no Phoenix) is stuck too
 const DOWN_STUCK_S := 12.0
-## a chest within this many metres is walked to; one not reached in CHEST_PATIENCE play seconds is left for CHEST_REST
-const CHEST_RANGE := 30.0
-const CHEST_PATIENCE := 20.0
-const CHEST_REST := 30.0
-## the boss's chest and the portal must be reached: past MUST_PATIENCE play seconds the hero is put there (an "assist")
-const MUST_PATIENCE := 45.0
-## after a "Not yet" he steps this far out from the portal (past its re-arm distance, Portal.REARM 2.5 m) and back in
-const PORTAL_OUT := 3.2
-## While a boss lives he fights it (the boss log: the sweep had led him 40 to 60 m off while the King followed at 1.3
-## m/s, so a first boss fight lasted 3 s or 6 minutes by where the gems lay): he keeps within BOSS_LEASH m of it (the
-## guns' reach, 9 to 10 m, and about the screen's half height), walking back to BOSS_BACK m when he is further, and the
-## sweep's gems and the chests he walks to count only within BOSS_LEASH of it then.
-const BOSS_LEASH := 10.0
-const BOSS_BACK := 7.0
-## The sweep (_lure, sim_pilot.steer_sweep): the pickups lying within LURE_R m (the whole field: what a crowd pushed him
-## away from waits for him), summed by grid cell, the cell with the most worth / (distance + LURE_NEAR)^LURE_POW the
-## spot; a coin COIN_WORTH a gold, a vacuum gem VACUUM_WORTH, a power-up POWERUP_WORTH (a heart only under HEART_BELOW of
-## his health); the pick is made again every LURE_EVERY frames.
-const LURE_R := 60.0
-const LURE_NEAR := 2.0
-const LURE_POW := 1.5
-const COIN_WORTH := 2.0
-const VACUUM_WORTH := 400.0
-const POWERUP_WORTH := 40.0
-const HEART_BELOW := 0.7
-const LURE_EVERY := 6
+## the bot's numbers live in tools/bot/Bot.gd since pass 80 (forwards for the older tests and tools)
+const CHEST_RANGE := BOT.CHEST_RANGE
+const MUST_PATIENCE := BOT.MUST_PATIENCE
+const BOSS_LEASH := BOT.BOSS_LEASH
+const BOSS_BACK := BOT.BOSS_BACK
+const LURE_R := BOT.LURE_R
 
 var _out := ""
 var _hero := "drifter"
@@ -78,21 +57,19 @@ var _talent_arg := ""
 ## each sound draws its pitch from the global dice). Measured against each other in pass 77 (tools/dl/p77/
 ## history_SIMRUN.md): no difference beyond the noise once the rules that counted real time count the run's clock.
 var _fast := true
-## death=ad: the one ad revive is spent
-var _ad_used := false
 ## trace=<frames> (a tool for finding what makes a seed unrepeatable): a state line every frame for that many frames
 var _trace := 0
 var _trace_n := 0
-## the sweep's knobs (args lure_r, lure_w, lure_close; their defaults are the measured ones)
-var _lure_r := LURE_R
-var _lure_w := -1.0
-var _lure_close := -1.0
+## the bot's options as given (args; Bot.resolve_opts fills in the rest from the preset); lure_r is stray's old name
+var _bot_raw: Dictionary = {}
+const BOT_ARGS := ["preset", "skill", "style", "reaction", "dodge", "daring", "stray", "explore", "totems", "barrels", "powerups",
+	"structures", "shop", "stranger", "boss", "cards", "lure_w", "lure_close"]
 
 var _game: Node
 var _run: Node
 var _reg: Node
-var _pilot: PILOT
-var _bot := RandomNumberGenerator.new()
+## the bot (tools/bot/Bot.gd), made when the game is up
+var _bot = null
 var _t := 0.0
 var _boot_s := 0.0
 var _done := false
@@ -103,26 +80,10 @@ var _start_weapon := ""
 var _screen := ""
 var _screen_t := 0.0
 var _down_t := 0.0
-var _chest_tapped := false
-var _revives := {"ad": 0, "phoenix": 0, "keep": 0}
-var _assists := 0
-var _picks := 0
-var _events: Array = []
-var _phoenix_was := false
-var _phoenix_pending := false
-var _goal_key := ""
-var _goal_t := 0.0
-var _chest_rest: Dictionary = {}
 var _seeded: Dictionary = {}
-var _lure_at := Vector3.INF
-var _lure_wait := 0
-## walking back to a living boss (BOSS_LEASH, BOSS_BACK)
-var _boss_back := false
 var _first_dt := 0.0
 var _fixed_dt := true
-## frames the legs spent in each mode since the last progress line (kite, sweep, chest, boss, boss_chest, portal)
-var _mode_frames: Dictionary = {}
-## the legs' own cost since the last progress line (microseconds, frames): the progress line's bot= ms a frame
+## the bot's own cost since the last progress line (microseconds, frames): the progress line's bot= ms a frame
 var _bot_us := 0
 var _bot_frames := 0
 ## profile=1: every progress line also prints the game's own frame buckets (core/systems/Perf.gd), ms a frame
@@ -157,13 +118,16 @@ func _init() -> void:
 			"grit": _grit = int(v)
 			"spite": _spite = int(v)
 			"unlocks": _unlocks = v
-			"lure_r": _lure_r = maxf(float(v), 0.0)
-			"lure_w": _lure_w = maxf(float(v), 0.0)
-			"lure_close": _lure_close = clampf(float(v), 0.0, 1.0)
+			"lure_r": _bot_raw["stray"] = maxf(float(v), 0.0)
+			"lure_w": _bot_raw["lure_w"] = maxf(float(v), 0.0)
+			"lure_close": _bot_raw["lure_close"] = clampf(float(v), 0.0, 1.0)
 			"profile": _profile = v == "1"
 			"talents": _talent_arg = v
 			"fast": _fast = v != "0"
 			"trace": _trace = int(v)
+			_:
+				if BOT_ARGS.has(k):
+					_bot_raw[k] = v
 	if _seed == 0:
 		_seed = 1
 	# pass 77 (the lead): gold revives are leaving Down!; `gold` is read as `ad`
@@ -175,6 +139,8 @@ func _init() -> void:
 		_arg_error = "unlocks must be all or save"
 	if _out == "":
 		_arg_error = "out=<file> is required"
+	if _bot_raw.has("preset") and not BOT.PRESETS.has(str(_bot_raw["preset"])):
+		_arg_error = "preset must be one of %s" % ", ".join(PackedStringArray(BOT.PRESETS.keys()))
 	process_frame.connect(_start, CONNECT_ONE_SHOT)
 
 
@@ -267,12 +233,6 @@ func _start() -> void:
 	root.size = _res
 	# the dice
 	_run.seed_dice(_seed)
-	_bot.seed = hash([_seed, "bot"])
-	_pilot = PILOT.new(hash([_seed, "pilot"]))
-	if _lure_w >= 0.0:
-		_pilot.lure_w = _lure_w
-	if _lure_close >= 0.0:
-		_pilot.lure_close = _lure_close
 	# the creatures' and the pickups' own dice, seeded right after their _ready randomizes them
 	node_added.connect(_on_node_added)
 	# sim_clock: the rules that count real time count the run's clock (Run.rule_seconds), as on a phone, in both modes
@@ -334,9 +294,13 @@ func _tick() -> void:
 			_game.damage_numbers.suppressed = true
 		if not _run.weapons.is_empty():
 			_start_weapon = str(_run.weapons[0].def.id)
-		_phoenix_was = bool(_run.phoenix_used)
-		_say("game up: hero %s seed %d board %.1f death %s limit %.0f map %s view %s (boot %.1f s)" % [_hero, _seed, _board, _death,
-			_limit, _map, str(root.get_visible_rect().size), _boot_s])
+		var o := _bot_raw.duplicate()
+		o["seed"] = _seed
+		o["death"] = _death
+		o["t0"] = _t
+		_bot = BOT.new(_game, o)
+		_say("game up: hero %s seed %d board %.1f death %s limit %.0f map %s view %s (boot %.1f s) | bot %s" % [_hero, _seed, _board, _death,
+			_limit, _map, str(root.get_visible_rect().size), _boot_s, str(_bot.opts["preset"])])
 		return
 	if not is_instance_valid(_game) or current_scene != _game or bool(_game.get("_ended")):
 		_finish(_end_reason())
@@ -344,17 +308,15 @@ func _tick() -> void:
 	_watch(dt)
 	if _done:
 		return
-	_screens()
-	if bool(_game.get("_ended")):
-		_finish(_end_reason())
-		return
-	_keep_up()
 	if _trace > 0 and _trace_n < _trace:
 		_trace_line()
 	var us := Time.get_ticks_usec()
-	_drive(dt)
+	_bot.tick(dt)
 	_bot_us += Time.get_ticks_usec() - us
 	_bot_frames += 1
+	if bool(_game.get("_ended")):
+		_finish(_end_reason())
+		return
 	var pt := _play_t()
 	if pt >= _next_progress:
 		_next_progress += _progress
@@ -429,358 +391,26 @@ func _watch(dt: float) -> void:
 		_down_t = 0.0
 
 
-## Every screen a run raises, answered as the bot's rules say (one a frame; the game opens the next in its turn).
-func _screens() -> void:
-	var g := _game
-	if g.revive_screen and g.revive_screen.visible:
-		_down()
-		return
-	if g.portal_dialog and g.portal_dialog.visible:
-		# walked in on the way to the boss's chest: "Not yet" (the chest first; the portal asks again once he has stepped
-		# out and back in)
-		if _boss_chest_lying():
-			g.portal_dialog.decline()
-			return
-		_events.append({"t": snappedf(_play_t(), 0.1), "clock": snappedf(float(_run.elapsed), 0.1), "kind": "portal", "stage": int(_run.stage) + 1})
-		g.portal_dialog.visible = false
-		g.portal_dialog.decided.emit(false)
-		return
-	var cs = g.cards
-	if cs and cs.visible and not (cs._offer as Array).is_empty() and not cs._picking:
-		if cs.banish_mode():
-			cs._toggle_banish()
-		if cs.path_mode:
-			if cs.reel_running():
-				cs.skip_reel()
-			var offer: Array = cs._offer
-			var mut: Dictionary = offer[_bot.randi() % offer.size()]
-			_note_pick(mut, cs._offer, -1)
-			cs._pick(mut)
-		else:
-			var pick := choose_card(cs._offer, _bot)
-			if not pick.is_empty():
-				_picks += 1
-				_note_pick(pick, cs._offer, card_tier(pick))
-				cs._pick(pick)
-		return
-	var ch = g.chest_screen
-	if ch and ch.visible:
-		if ch._spinning:
-			# a tap: the chest's beats skip to the reel, a second one hurries the reel (ChestScreen._input)
-			if not _chest_tapped:
-				if ch.intro_playing():
-					ch.skip_intro()
-				else:
-					_chest_tapped = true
-					var tw = ch.get("_tw")
-					if tw is Tween and (tw as Tween).is_valid():
-						var left := maxf(float(ch.get("_spin_total")) - (tw as Tween).get_total_elapsed_time(), 0.1)
-						(tw as Tween).set_speed_scale(maxf(left / 0.6, 1.0))
-			return
-		_chest_tapped = false
-		ch._finish(true)
-		return
-	_chest_tapped = false
-	if g.resume_gate and g.resume_gate.visible:
-		g.resume_gate.tap()
-	if g.stranger_screen and g.stranger_screen.visible:
-		g.stranger_screen._finish(false)
-		return
-	if g.structure_shop and g.structure_shop.visible:
-		g.structure_shop._finish(false)
-		return
-	var ts = g.totem_screen
-	if ts and ts.visible and not ts._done:
-		var best: Array = []
-		var most := -1
-		for p in ts.planks():
-			var f := int(p.feathers)
-			if f > most:
-				most = f
-				best = [p]
-			elif f == most:
-				best.append(p)
-		if not best.is_empty():
-			ts._pick(best[_bot.randi() % best.size()])
-		return
-
-
-## The bot's pick as an event (the Sim tab can say what he took): its id, kind, the level it brings, its tier (-1 a
-## mutation offer's random pick) and what else was on the table.
-func _note_pick(card: Dictionary, offer: Array, tier: int) -> void:
-	var others: Array = []
-	for c in offer:
-		if c is Dictionary and not is_same(c, card):
-			others.append(str(c.get("id", "")))
-	_events.append({"t": snappedf(_play_t(), 0.1), "clock": snappedf(float(_run.elapsed), 0.1), "kind": "pick", "id": str(card.get("id", "")),
-		"type": str(card.get("type", "")), "item_kind": item_kind(card), "new": bool(card.get("is_new", false)),
-		"level": int(card.get("level_to", 0)), "tier": tier, "others": others})
-
-
-## What a card hands over, as lane SIMUI charts it: weapon, evolution (a maxed line's evolution card, or a weapon
-## evolution), line, passive (a passive item), perk or mutation.
+## What a card hands over (tools/bot/BotCards.gd since pass 80).
 static func item_kind(card: Dictionary) -> String:
-	var type := str(card.get("type", ""))
-	var d = card.get("def")
-	if bool(card.get("evolve", false)) or (type == "weapon" and d != null and bool(d.get("is_evolution"))):
-		return "evolution"
-	if type == "passive":
-		return "line" if d != null and d.has_method("is_line") and bool(d.is_line()) else "passive"
-	return type
+	return CARDS.item_kind(card)
 
 
-## Down!, by `death`: ad gets up once on the ad revive while Down! offers it (its button there and not locked: a chance
-## left), then gives up; end gives up at once (the run ends); keep never sees it (the hero is stood up as he falls), but
-## answers "debug" if it comes.
-func _down() -> void:
-	var rs = _game.revive_screen
-	if _death == "keep":
-		_revives["keep"] = int(_revives["keep"]) + 1
-		rs._decide("debug")
-		return
-	if _death == "ad" and not _ad_used and ad_offered(rs):
-		_ad_used = true
-		_revives["ad"] = int(_revives["ad"]) + 1
-		rs._decide("ad")
-		return
-	rs._decide("give_up")
-
-
-## Whether Down! offers the ad revive now: its button exists, shows and is not locked (a chance is left).
+## Whether Down! offers the ad revive now (tools/bot/Bot.gd since pass 80).
 static func ad_offered(rs) -> bool:
-	if rs == null:
-		return false
-	var b = rs.get("_ad_btn")
-	if b == null or not is_instance_valid(b) or not (b is CanvasItem):
-		return false
-	return (b as CanvasItem).is_visible_in_tree() and not bool(b.get("locked"))
+	return BOT.ad_offered(rs)
 
 
-## death=keep (the probe's way): the moment he falls he is stood up at full health, the fall counted (the recorder's
-## death event) and a "revive" (via keep) noted; a fall Phoenix Feather took is left to it (it stands him up itself).
-func _keep_up() -> void:
-	var p = _game.player
-	var ph := bool(_run.phoenix_used)
-	if p.dead:
-		if ph and not _phoenix_was:
-			_phoenix_pending = true
-			_revives["phoenix"] = int(_revives["phoenix"]) + 1
-		if _death == "keep" and not _phoenix_pending:
-			p.revive()
-			p.hp = p.max_hp
-			p.invuln = 0.0
-			_revives["keep"] = int(_revives["keep"]) + 1
-			_events.append({"t": snappedf(_play_t(), 0.1), "clock": snappedf(float(_run.elapsed), 0.1), "kind": "revive", "via": "keep"})
-			if _game.hud and _game.hud.has_method("show_player_bar"):
-				_game.hud.show_player_bar()
-	else:
-		_phoenix_pending = false
-	_phoenix_was = ph
+# ---------------------------------------------------------------- the walk (tools/bot/Bot.gd since pass 80)
 
-
-# ---------------------------------------------------------------- the walk
-
-## One frame of the bot's legs: a goal (the boss's chest, the portal, a chest near) walked to, else the kite.
-func _drive(dt: float) -> void:
-	if bool(_game.paused) or _game.player == null or _game.player.dead:
-		return
-	var goal := _goal()
-	if goal.is_empty():
-		_goal_key = ""
-		_goal_t = 0.0
-		_lure_wait -= 1
-		if _lure_wait <= 0:
-			_lure_wait = LURE_EVERY
-			_lure_at = _lure()
-		_pilot.steer_sweep(_game, dt, _t, _lure_at)
-		_mode_frames["sweep" if _lure_at != Vector3.INF else "kite"] = int(_mode_frames.get("sweep" if _lure_at != Vector3.INF else "kite", 0)) + 1
-		return
-	_mode_frames[str(goal["what"])] = int(_mode_frames.get(str(goal["what"]), 0)) + 1
-	var key := str(goal["key"])
-	if key != _goal_key:
-		_goal_key = key
-		_goal_t = 0.0
-	_goal_t += dt
-	var at: Vector3 = goal["at"]
-	_pilot.steer_to(_game, dt, at)
-	if bool(goal["must"]) and _goal_t > MUST_PATIENCE:
-		# he could not get there: put him on it (the run would sit in the portal wait otherwise); the portal asks at once
-		_assists += 1
-		_events.append({"t": snappedf(_play_t(), 0.1), "clock": snappedf(float(_run.elapsed), 0.1), "kind": "assist", "what": str(goal["what"])})
-		var p: Node3D = _game.player
-		if str(goal["what"]) == "portal" and _game.portal != null and is_instance_valid(_game.portal):
-			at = (_game.portal as Node3D).global_position
-			_game.portal.set("armed", true)
-		p.global_position = Vector3(at.x, p.global_position.y, at.z)
-		p.set("velocity", Vector3.ZERO)
-		_goal_t = 0.0
-	elif str(goal["what"]) == "chest" and _goal_t > CHEST_PATIENCE:
-		_chest_rest[key] = _play_t() + CHEST_REST
-		_goal_key = ""
-		_goal_t = 0.0
-
-
-## The goal now ({} = none): the boss's chest first, then the portal once no boss chest lies there, else the nearest
-## chest within CHEST_RANGE not resting. {key, at, must, what}.
-func _goal() -> Dictionary:
-	var me: Vector3 = _game.player.global_position
-	var pk = _game.pickups
-	var near := {}
-	var near_d := CHEST_RANGE
-	var now := _play_t()
-	var boss := _boss_at()
-	if pk:
-		for c in pk.chests:
-			if not is_instance_valid(c) or bool(c.opened):
-				continue
-			var at: Vector3 = c.global_position
-			var key := "chest:%d" % c.get_instance_id()
-			if bool(c.boss):
-				return {"key": key, "at": at, "must": true, "what": "boss_chest"}
-			if float(_chest_rest.get(key, -1.0)) > now:
-				continue
-			if not within_leash(at, boss):
-				continue
-			var d := Vector2(at.x - me.x, at.z - me.z).length()
-			if d < near_d:
-				near_d = d
-				near = {"key": key, "at": at, "must": false, "what": "chest"}
-	var portal = _game.portal
-	if portal != null and is_instance_valid(portal):
-		var pp: Vector3 = (portal as Node3D).global_position
-		if not bool(portal.get("armed")):
-			# after a "Not yet" the portal asks again only once he has been out past its re-arm distance: out first
-			var out := Vector3(me.x - pp.x, 0.0, me.z - pp.z)
-			if out.length() < 0.1:
-				out = Vector3(1.0, 0.0, 0.0)
-			return {"key": "portal:%d" % portal.get_instance_id(), "at": pp + out.normalized() * PORTAL_OUT, "must": true, "what": "portal"}
-		return {"key": "portal:%d" % portal.get_instance_id(), "at": pp, "must": true, "what": "portal"}
-	# while a boss lives: back to it when he is too far off (BOSS_LEASH, BOSS_BACK)
-	var bg := boss_goal(me, boss, _boss_back)
-	_boss_back = not bg.is_empty()
-	if not bg.is_empty():
-		return bg
-	return near
-
-
-## The spot most worth walking to now (Vector3.INF for none). The gems, coins and vacuum gems lying past his magnet's
-## reach within lure_r (read off PickupManager's grid of resting pickups, GRID_CELL m cells) are summed cell by cell,
-## and the cell with the most worth over (distance + LURE_NEAR)^LURE_POW wins, its worth-weighted middle the spot; a
-## power-up on the ground within lure_r counts as a cell of POWERUP_WORTH (a heart only while he is under HEART_BELOW of
-## his health). Worth: a gem its XP, a coin COIN_WORTH a gold, a vacuum gem VACUUM_WORTH.
-func _lure() -> Vector3:
-	var pk = _game.pickups
-	if pk == null:
-		return Vector3.INF
-	var me: Vector3 = _game.player.global_position
-	var best := Vector3.INF
-	var best_s := 0.0
-	var mag: float = float(pk._magnet()) * 0.9 if pk.has_method("_magnet") else 1.35
-	var head: PackedInt32Array = pk.get("_g_head")
-	var nxt: PackedInt32Array = pk.get("_g_next")
-	var pos: PackedVector3Array = pk.pos
-	var kinds: PackedInt32Array = pk.kind
-	var vals: PackedFloat32Array = pk.value
-	var alive: PackedByteArray = pk.alive
-	var n: int = int(pk.GRID_N)
-	var cell: float = float(pk.GRID_CELL)
-	var half: float = float(pk.GRID_HALF)
-	var coin_kind: int = int(pk.KIND_COIN)
-	var vac_kind: int = int(pk.KIND_VACUUM)
-	var r := _lure_r
-	var boss := _boss_at()
-	if head.size() == n * n:
-		var x0 := clampi(floori((me.x - r + half) / cell), 0, n - 1)
-		var x1 := clampi(floori((me.x + r + half) / cell), 0, n - 1)
-		var z0 := clampi(floori((me.z - r + half) / cell), 0, n - 1)
-		var z1 := clampi(floori((me.z + r + half) / cell), 0, n - 1)
-		for cz in range(z0, z1 + 1):
-			for cx in range(x0, x1 + 1):
-				var i := head[cz * n + cx]
-				var guard := 0
-				var sum := 0.0
-				var at := Vector3.ZERO
-				while i >= 0 and guard < 4096:
-					guard += 1
-					if i < alive.size() and alive[i] == 1:
-						var dx := pos[i].x - me.x
-						var dz := pos[i].z - me.z
-						var d2 := dx * dx + dz * dz
-						if d2 > mag * mag and d2 < r * r:
-							var k := kinds[i]
-							var worth := float(vals[i])
-							if k == coin_kind:
-								worth *= COIN_WORTH
-							elif k == vac_kind:
-								worth = VACUUM_WORTH
-							sum += worth
-							at += pos[i] * worth
-					i = nxt[i] if i < nxt.size() else -1
-				if sum <= 0.0:
-					continue
-				at /= sum
-				if not within_leash(at, boss):
-					continue
-				var d := Vector2(at.x - me.x, at.z - me.z).length()
-				var s := sum / pow(d + LURE_NEAR, LURE_POW)
-				if s > best_s:
-					best_s = s
-					best = at
-	var p = _game.player
-	for sp in pk.specials:
-		if not is_instance_valid(sp) or bool(sp.taken) or sp.def == null:
-			continue
-		if str(sp.def.effect_kind) == "heal" and float(p.hp) >= float(p.max_hp) * HEART_BELOW:
-			continue
-		var sat: Vector3 = (sp as Node3D).global_position
-		if not within_leash(sat, boss):
-			continue
-		var sd := Vector2(sat.x - me.x, sat.z - me.z).length()
-		if sd > r:
-			continue
-		var ss := POWERUP_WORTH / pow(sd + LURE_NEAR, LURE_POW)
-		if ss > best_s:
-			best_s = ss
-			best = sat
-	return best
-
-
-## The boss's place while one lives (Vector3.INF for none).
-func _boss_at() -> Vector3:
-	var em = _game.enemies if _game else null
-	if em == null:
-		return Vector3.INF
-	var bi: int = int(em.boss_index)
-	if bi < 0 or bi >= em.alive.size() or em.alive[bi] != 1:
-		return Vector3.INF
-	return em.pos[bi]
-
-
-## The walk back to a living boss at `boss` (Vector3.INF: none): a goal at it while the hero at `me` is further than
-## BOSS_LEASH from it, or further than BOSS_BACK once he is walking back (`back`); {} otherwise.
+## The walk back to a living boss (Bot.boss_goal).
 static func boss_goal(me: Vector3, boss: Vector3, back: bool) -> Dictionary:
-	if boss == Vector3.INF:
-		return {}
-	var d := Vector2(boss.x - me.x, boss.z - me.z).length()
-	if d > BOSS_LEASH or (back and d > BOSS_BACK):
-		return {"key": "boss", "at": boss, "must": false, "what": "boss"}
-	return {}
+	return BOT.boss_goal(me, boss, back)
 
 
-## Whether a spot at `at` is one he may walk to while a boss lives at `boss`: within BOSS_LEASH of it (any spot with none).
+## Whether a spot is within the boss's leash (Bot.within_leash).
 static func within_leash(at: Vector3, boss: Vector3) -> bool:
-	return boss == Vector3.INF or Vector2(at.x - boss.x, at.z - boss.z).length() <= BOSS_LEASH
-
-
-## Whether the boss's chest still lies unopened (the bot opens it before it steps through the portal).
-func _boss_chest_lying() -> bool:
-	var pk = _game.pickups
-	if pk == null:
-		return false
-	for c in pk.chests:
-		if is_instance_valid(c) and bool(c.boss) and not bool(c.opened):
-			return true
-	return false
+	return BOT.within_leash(at, boss)
 
 
 # ---------------------------------------------------------------- the cards
@@ -824,50 +454,14 @@ static func parse_talents(arg: String, known: Array) -> Dictionary:
 	return out
 
 
-## A level-up card's tier for the bot (lower is taken first; ties at random), a sensible player's priorities (pass 77
-## contract): 0 an evolution (a maxed line's evolution card), 1 the hero's favourite arriving (the card says FAVOURITE),
-## 2 a new weapon (offered only while a weapon slot is free), 3 a level of a held weapon, 4 a hero perk (the contract
-## names none: placed after the weapons), 5 a new line (only while a line slot is free), 6 a level of a held line,
-## 7 a passive item (new or a level), 8 anything else.
+## A level-up card's tier for the bot (tools/bot/BotCards.gd since pass 80: pass 77's tiers).
 static func card_tier(card: Dictionary) -> int:
-	var type := str(card.get("type", ""))
-	var d = card.get("def")
-	if bool(card.get("evolve", false)) or type == "evolution":
-		return 0
-	if type == "weapon" and d != null and bool(d.get("is_evolution")):
-		return 0
-	if bool(card.get("favourite", false)):
-		return 1
-	var fresh := bool(card.get("is_new", false))
-	match type:
-		"weapon":
-			return 2 if fresh else 3
-		"perk":
-			return 4
-		"passive":
-			var line: bool = d != null and d.has_method("is_line") and bool(d.is_line())
-			if line:
-				return 5 if fresh else 6
-			return 7
-	return 8
+	return CARDS.card_tier(card)
 
 
-## The card the bot takes from `offer`: the best tier on the table, ties at random by `rng` ({} for an empty offer).
+## The card pass 77's bot takes from `offer` (BotCards.choose_card).
 static func choose_card(offer: Array, rng: RandomNumberGenerator) -> Dictionary:
-	var best := 1 << 30
-	var tied: Array = []
-	for c in offer:
-		if not (c is Dictionary):
-			continue
-		var tier := card_tier(c)
-		if tier < best:
-			best = tier
-			tied = [c]
-		elif tier == best:
-			tied.append(c)
-	if tied.is_empty():
-		return {}
-	return tied[rng.randi() % tied.size()]
+	return CARDS.choose_card(offer, rng)
 
 
 # ---------------------------------------------------------------- the end
@@ -910,7 +504,8 @@ func _meta(ra: Node, reason: String) -> Dictionary:
 		"wall_s": snappedf(float(Time.get_ticks_msec()) / 1000.0, 0.1), "boot_s": snappedf(_boot_s, 0.1),
 		"end_reason": reason, "end_t": snappedf(float(ra.get("play_t")) if ra else 0.0, 0.1), "end_clock": snappedf(float(_run.elapsed), 0.1),
 		"end_stage": int(_run.stage) + 1, "end_level": int(_run.level), "endless_wave": int(_run.endless_wave()),
-		"revives": _revives.duplicate(), "assists": _assists, "picks": _picks, "kills": int(_run.kills),
+		"revives": _bot.revives.duplicate() if _bot else {"ad": 0, "phoenix": 0, "keep": 0}, "assists": int(_bot.assists) if _bot else 0,
+		"picks": int(_bot.picks) if _bot else 0, "kills": int(_run.kills),
 		"xp_total": snappedf(float(ra.get("xp_total")) if ra and ra.get("xp_total") != null else 0.0, 0.1),
 		"dmg_total": snappedf(dmg, 0.1), "build_text": build, "started": str(header.get("started", ""))}
 
@@ -923,15 +518,48 @@ func build_output(ra: Node, reason: String) -> Dictionary:
 	for id in (_reg.get("weapons") as Dictionary).keys():
 		if bool(_reg.weapons[id].is_evolution):
 			evo_ids[str(id)] = true
-	var out := series(ra.get("samples"), ra.get("events"), _events, end_ev, evo_ids)
+	var out := series(ra.get("samples"), ra.get("events"), _bot.events if _bot else [], end_ev, evo_ids)
 	var sums: Dictionary = out["sums"]
 	out.erase("sums")
 	var meta := _meta(ra, reason)
 	meta["rows"] = int(sums["rows"])
 	meta["deaths"] = int(sums["deaths"])
 	meta["gold_total"] = int(sums["gold_total"])
+	# pass 80 (lane BOT): the bot's options and tallies (meta.bot) and its decisions (bot_decisions)
+	if _bot:
+		var b: Dictionary = _bot.summary()
+		b["tallies"] = bot_tallies(ra.get("events"), _game.get("barrels"))
+		meta["bot"] = b
+		out["bot_decisions"] = _bot.decisions
 	out["meta"] = meta
 	return out
+
+
+## What the hero did with the map (pass 80): structures used by id (the recorder's "structure" events; totem_pole the Totem
+## Poles) with the play seconds of each Totem Pole's use, power-ups taken (its "pickup" events, the small ones underfoot
+## not counted), barrels broken (BarrelField.broken).
+static func bot_tallies(rec: Array, barrels) -> Dictionary:
+	var used := {}
+	var totem_t: Array = []
+	var powerups := 0
+	for e in rec:
+		if not (e is Dictionary):
+			continue
+		var kind := str(e.get("kind", ""))
+		if kind == "structure":
+			var id := str(e.get("id", ""))
+			used[id] = int(used.get(id, 0)) + 1
+			if id == "totem_pole":
+				totem_t.append(float(e.get("t", 0.0)))
+		elif kind == "pickup" and not bool(e.get("small", false)):
+			powerups += 1
+	var totems := int(used.get("totem_pole", 0))
+	var structures := 0
+	for id in used:
+		if str(id) != "totem_pole":
+			structures += int(used[id])
+	return {"structures_by": used, "structures": structures, "totems": totems, "totem_t": totem_t, "powerups": powerups,
+		"barrels": int(barrels.broken) if barrels != null else 0}
 
 
 ## The series of keys_SIMRUN.md from the recorder's `rows` (RunAnalytics samples) and events `rec`, with the tool's own
@@ -1213,11 +841,12 @@ func _write_progress(state: String, reason: String) -> void:
 		var ra := _ra()
 		var modes := ""
 		var total := 0
-		for k in _mode_frames:
-			total += int(_mode_frames[k])
-		for k in _mode_frames:
-			modes += " %s %d%%" % [k, roundi(100.0 * float(_mode_frames[k]) / maxf(float(total), 1.0))]
-		_mode_frames.clear()
+		var mf: Dictionary = _bot.mode_frames if _bot else {}
+		for k in mf:
+			total += int(mf[k])
+		for k in mf:
+			modes += " %s %d%%" % [k, roundi(100.0 * float(mf[k]) / maxf(float(total), 1.0))]
+		mf.clear()
 		var bot_ms := float(_bot_us) / 1000.0 / maxf(float(_bot_frames), 1.0)
 		_bot_us = 0
 		_bot_frames = 0

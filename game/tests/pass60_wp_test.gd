@@ -662,12 +662,14 @@ func test_tracers_take_the_weapons_step_life_and_size_and_the_pellets_fade_at_th
 	var tp: Dictionary = Registry.weapon("tommy_gun").params
 	assert_bool(bool(tp.get("tracer", false))).is_true()
 	assert_float(float(tp.get("tracer_step", 0.0))).is_equal_approx(0.016, 0.0001)
-	assert_float(float(tp.get("tracer_life", 0.0))).is_equal_approx(0.2, 0.0001)
+	# pass 80 (lane TRAIL): a wisp shorter than the style's own, so a burst does not fill the screen
+	assert_float(float(tp.get("tracer_life", 0.0))).is_equal_approx(0.3, 0.0001)
+	assert_float(float(tp.get("tracer_life", 0.0))).is_less(ProjectileManager.TRACER_STYLE_LIFE[ProjectileManager.TRACER_STYLE_IDS["wisp"]])
 	assert_float(float(tp.get("tracer_size", 0.0))).is_equal_approx(0.4, 0.0001)
 	var bp: Dictionary = Registry.weapon("boomstick").params
 	assert_bool(bool(bp.get("tracer", false))).is_true()
 	assert_float(float(bp.get("tracer_step", 0.0))).is_equal_approx(0.02, 0.0001)
-	assert_float(float(bp.get("tracer_life", 0.0))).is_equal_approx(0.16, 0.0001)
+	assert_float(float(bp.get("tracer_life", 0.0))).is_equal_approx(0.25, 0.0001)
 	assert_float(float(bp.get("tracer_size", 0.0))).is_equal_approx(0.32, 0.0001)
 	assert_float(float(bp.get("tail_fade", 0.0))).is_equal_approx(0.25, 0.0001)
 	# live: a Tommy round lays its line with its own life (pass 79, lane FX: a line in place of the beads; the bead keys
@@ -685,10 +687,12 @@ func test_tracers_take_the_weapons_step_life_and_size_and_the_pellets_fade_at_th
 			beads += 1
 	assert_int(beads).is_equal(0)
 	assert_int(pm.tracer_segments).is_greater_equal(3)
+	var life := ProjectileManager.tracer_life_of(tommy.inst)
+	assert_float(life).is_equal_approx(0.3, 0.0001)
 	for k in range(pm.tracer_segments):
-		assert_float(pm.tracer_life[k]).is_equal_approx(0.2, 0.0001)
+		assert_float(pm.tracer_life[k]).is_equal_approx(life, 0.0001)
 	assert_int(pm.tracer_live()).is_equal(pm.tracer_segments)
-	pm.clock += 0.21
+	pm.clock += life + 0.01
 	assert_int(pm.tracer_live()).is_equal(0)
 	pm._tracer_draw()
 	assert_int(pm._ln_mm.visible_instance_count).is_equal(0)

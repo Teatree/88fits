@@ -1695,3 +1695,204 @@ Tests: game/tests/pass79_world_test.gd. Files: RedCanyon.gd, terrain_painted.gds
 gen_textures.py + sandstone.png, red_canyon.json (+ .tres), Lobber.gd, EnemyManager.gd (three new functions),
 ProjectileManager.claimed_spots (one insertion), lob_grenade.json / golden_pineapple.json (+ .tres), the Level Editor
 (fields.js, settings.js, forms.js, vocab.py, assets_fields.js, selftest_WORLD79.py).
+
+**Pass 80 (2026-10-15, v0.66): the Watch, an explorer bot, the wisp tracer, a sandstone fort wall, two or three oases.** Garry: "For the 'Watch' tool, proceed with implementation of it. For the Player 'bot' add a desire to explore the map and interact with totems and barrels ... Sometimes chase power-ups, sometimes chase structures. Add option to interact with the Shop and the Stranger"; "The revolver trail looks awful ... Search the internet for a better option"; "make the edges of the map just sand ... that orange-dark stuff should be behind the walls ... the textures on the mountains behind the walls look too low res ... Make the walls look like sandstone castle walls (but western)"; "make the water slow everyone down ... just 10%. And ... 2 oasis at least per level generation ... sometimes 3"; "There is some z-fighting on the sign 3d"; and how to fly the camera round the map (answered in chat: the editor's Game tab, 3D mode, camera override; the map is built in code at run time, so its .tscn shows nothing). Five lanes (tools/dl/p80/INTERFACES.md): BOT, WATCH, TRAIL, WALLS, OASIS. The lead added the water to the run record.
+
+#### Pass 80, lane BOT: one reusable bot that explores, uses the map's things and explains its choices
+
+Garry (2026-10-15): "For the Player 'bot' add a desire to explore the map and interact with totems and barrels, as they
+are an important part of the progression. Sometimes chase power-ups, sometimes chase structures. Add option to interact
+with the Shop and the Stranger Structures, etc." The bot is shared by the run sim (pass 77) and the Watch (lane WATCH).
+
+**The move (milestone 1).** The run sim's bot left game/tools/sim_run.gd (the screens, the goals, the sweep) and
+game/tools/sim_pilot.gd (the legs) for game/tools/bot/: Bot.gd (the API of INTERFACES.md: `BOT.new(game, opts)`,
+`tick(dt)`, `intent`, `goal`, `decisions`, `signal decided`), BotLegs.gd (sim_pilot's code; sim_pilot.gd is now one
+`extends` line, so the difficulty probe and the pass 77 tests steer exactly as before), BotCards.gd (pass 77's tiers and
+the new scores), BotGoals.gd (the planner). sim_run.gd keeps its CLI and its output; its static helpers forward. Proven
+behaviour-neutral: preset=sim77 replayed the 10 baseline players (Drifter, a quarter board, 25:00, death=keep, seeds 1-10)
+exactly, every series and event (tools/dl/p80/BOT/compare.py base_head m1_sim77 --exact).
+
+**The planner.** One goal at a time by utility = value x the run's taste for the kind x the kind's mood for this 2-minute
+spell x a fixed jitter per thing x the style's word / (1 + distance / 18 m), so two runs of a seed agree and seeds differ
+("sometimes power-ups, sometimes structures"). He knows a structure, a Totem Pole or a barrel only once it has been within
+12 m of him (nothing points at them in the game: exploring finds them); the arena is a grid of 11 m cells and explore
+walks to the unseen. Values: a Totem Pole 80, a barrel 10 (black 28, x1.6 with Barrel Rush), a chest 70, explore 30 x
+the dial x (0.5 + the share unseen), power-ups by effect (a heart by how hurt he is), structures by what they give (the
+Healing Well by how hurt, the Uber Magnet by the XP lying, the Shop only with gold to spend, the Stranger only above 60%
+HP, the Teleport only in trouble), the gems lying as the sweep (their worth over the next level's XP, capped at 45). A
+goal is kept unless one 1.4 times better turns up, given up after 8 s + 0.55 s a metre (+ its use time) and rested 40 s;
+far goals give way to low health and recent damage (75 m at full health, 12 m at a third); the kite wins while the crowd
+closes (5 within 3 m, a big one or a rocket close, or hurt with one inside flee distance); he stands still in a ring to
+use it. The musts stay pass 77's (the boss's chest, the portal, the boss's leash).
+
+**The scores.** Every card, mutation offer, chest gift, shop ware, the Stranger's ware and Totem gift: dps (the game's
+own estimate, WeaponInstance.dps_estimate, on temporary instances: the new weapon, the next level, the mutation added,
+the evolution; stat effects through a copy of the hero's sheet with every weapon rebuilt on it; crit as expected damage),
+survival (a table of points a unit, times the danger weight 0.6..2.1), plan (an evolution, the favourite, a level, the
+last level, a new weapon while slots are free, a mutation, the path's last), greed (XP, magnet, luck, gold). The style
+weighs the parts; skill reads every score with a gaussian error of (1 - skill) x 25 points. The Shop buys the best ware
+less its price (0.03 points a gold x greed's weight) when that is 6 or more; the Stranger's deal is taken above 60% HP
+when the ware beats the cut (15% x 0.8 points a % x survival's weight) by 5. Each decision is an entry with every option's
+score and parts and a reason in a player's words ("+18% DPS: Tommy Gun to Lv 4", "a weaker pick: ...").
+
+**The dials.** reaction (a warning younger than it unseen, the danger push seen that late), dodge (the share of warnings
+seen, a fixed roll each), daring (the kite's 4.5 / 2.6 m at 0.5), stray (the sweep's reach), boss (leash / free), explore,
+the six "use it or leave it" switches, cards (score / tier). Presets: sim77 (pass 77's bot), explorer (the default for
+the Sim and the Watch), careless, expert.
+
+**Everywhere.** sim_run.gd args (BOT_ARGS), meta.bot (options, metres, goals, seen, the map tallies) and bot_decisions in
+each run file; tools/sim_batch.py `--bot` and the settings' `bot`, result.json's `bot` block (means and per run); the Level
+Editor's Sim tab "Bot" group (presets, every option with its effective value and where it comes from), the history line,
+the head card's map tallies, the runs table's "the map" column; jobs.py carries the job's bot field to `--bot`.
+
+**Measured** (10 runs each: Drifter, a quarter board, 25:00, every fall counted, seeds 1-10): the Explorer used 9.6 of
+the 10-12 Totem Poles a run (9.1 by 20:00), broke 26 of 33 barrels (pass 77's bot 17), used 6.7 other structures (0.8),
+saw 93% of the arena, fell no more than pass 77's bot (median 6.5 falls against 8.0; three runs of ten never fell), and
+had about 3% less XP and two levels fewer at 25:00 (the gems wait while he walks to a pole); kills and gold the same.
+Careless falls most (median 13.5), Expert least (3.0). Lesson: a utility in raw XP grows with the run and swamps every
+other goal by minute 8 (5.8 poles a run): the sweep's worth is now over the next level's XP, capped.
+
+#### HISTORY.md paragraph (pass 80, lane WATCH)
+**The Watch** (Garry, pass 80: "For the 'Watch' tool, proceed with implementation of it"; the design he approved in pass 79,
+tools/dl/p80/REQUEST.md). A PC window (1920x1080, resizable) with the real game on the left at a phone's 9:20, scaled to
+the window's height, played by lane BOT's bot (game/tools/bot/Bot.gd), and on the right a dark panel (the Level
+Editor's style): the header (hero, board, seed, the bot's preset, the clock and stage, the speed buttons), ten live
+numbers (real and estimated DPS, HP, Danger, Keeping up, creatures close, kills, level and XP, gold, the crowd against
+the cap), four charts over the last 3 minutes or the whole run (DPS against the crowd's HP, HP over Danger, level and
+XP, the damage share stacked) with the Sim's average of the same hero and board as a grey line (--ref auto: the newest
+Sim result), the bot's decision log (each pick's offer with scores and parts, the reason, and the real DPS 30 s after
+against the 30 s before, filled by the Watch), the build with a strip of when each item came, and the threat (what hurt
+him in the last 10 s, every fall with its killer and last hits, the bot's intent and goal); afterwards the run's
+record lands in analytics/runs/tools/ (the dashboard opens it) with <stamp>_decisions.csv beside it, and the window says
+where. How it lives with the game, nothing changed in it: the Game scene in a SubViewport (own World3D,
+size_2d_override = the phone's canvas) shown through a TextureRect, so no window input reaches the hero; started by a
+SceneTree script (game/tools/watch/watch_main.gd) so the tree's current scene stays empty, and the Game freed the frame
+its end_run starts (the record already written, its 1.2 s wait for the Results scene dropped with it). Speed
+(WatchClock.gd): pause, 0.25x to 8x, step one second, run to the next level-up (8x until the cards are up, paused before
+the bot picks). Godot runs --fixed-fps 60, so a frame is one 1/60 s step; up to 1x Engine.time_scale slows it (composed
+with the game's own hit-stop and Last Stand); above 1x the frames come 60 x the speed a wall second with the step
+unchanged, drawn 60 a second (30 from 4x on), and the frames not drawn skip the drawing work (Run.sim_mode set per
+frame). Found on the way: --fixed-fps turns the engine's frame limit off (Main::iteration returns before
+add_frame_delay), so the Watch paces its frames itself (OS.delay_usec), and the drawing work on frames nobody sees cost
+half the frame (4x reached only 2x until sim_mode skipped it), and the Watch processing always had lent that mode to
+the game (the crowd moving behind the level-up cards) until its SubViewport was made pausable. When a run falls short
+of the speed asked, the drawing steps down to 30 frames a second (tried again at the full rate every 20 s). Speeds
+reached on this PC (16 logical cores, RTX 4070; Drifter, a quarter board; measured while lane BOT's 10 sim players
+and other lanes' Godot runs shared the CPU, 11-13 Godot processes): 0.25x, 0.5x, 1x, 2x exact early; 4x held to about
+1:40, then 2.3-3.3x with 100-160 creatures up to 5:00; 8x 4.2-4.4x early, 2-3x mid-run, about 2x at 19:00 (where 4x
+also gave 2x, and 1x 0.8x: drawn frames 19-21 ms, plain ones 6-8 ms there); the header shows the reached speed in red
+when it falls under 90 % of the asked one. Launch: `tools\watch.cmd` (Drifter, a quarter board, a random seed), `python
+tools/watch.py --hero ... --board ... --seed ... --bot key=value`, or the Sim tab's Watch button (POST /api/sim/watch);
+each Watch plays on its own snapshot (tools/dl/watch/snap, user folder 88fits_watch, lock tools/dl/locks/watch.lock: one
+at a time), never the Godot lock or the Sim's. Tests: game/tests/pass80_watch_test.gd, tools/level_editor/
+selftest_WATCH80.py.
+
+#### CLAUDE.md commands line
+```
+python tools/watch.py [--hero drifter] [--board none|quarter|half|full|save|<ranks> | --talents grit:AAB,...] [--seed N|random] [--speed 0.25..8] [--limit 5:00] [--bot key=value ...] [--ref auto|none|<result.json>] [--wait --timeout S --autoquit --shots DIR --shots-at 60,120 --actions p30:pause,w5:go --profile]   # pass 80: the Watch: one bot-played run in a PC window (the phone view left, numbers/charts/the bot's decisions right; Space, 1..6, +/-, ., L, G, M), on its own snapshot tools/dl/watch/snap (user folder 88fits_watch, tools/dl/locks/watch.lock, never the godot lock); tools\watch.cmd double-clicks it; the Sim tab's Watch button; the record + <stamp>_decisions.csv in analytics/runs/tools/
+```
+
+#### CLAUDE.md status line (Analytics or the tools paragraph)
+Pass 80: the **Watch** (game/tools/watch/, tools/watch.py, tools\watch.cmd, the Sim tab's Watch button): the real game
+in a SubViewport played by the bot (tools/bot/Bot.gd) beside a panel of live numbers, charts, the decision log, the
+build and the threat; speeds pause..8x on --fixed-fps 60 with its own frame pacing (the reached speed in the header
+when short); the record to analytics/runs/tools/ with the decisions as CSV.
+
+**Lane TRAIL (pass 80): a better tracer.** Garry: "The revolver trail looks awful, I don't like it at all. Search the
+internet for a better option than this, I want a clear visible trail, but one that doesn't look this bad." Pass 79's
+line (a 4.5 cm, 0.9 s dark-red hairline that greyed, drifted up and swayed) read on the sand as a scratch or a hair. The
+research (tools/dl/p80/TRAIL/research.md: Riot's VFX style guide and its missile breakdowns, Shannon McSheehan's
+two-layer trails, tracer and stretched-billboard practice, the additive-on-light-ground problem, survivor-game clutter)
+says: one focus at the head with the most contrast, a hot core in the weapon's colour, short and riding with the bullet,
+tapered, alpha-blended on a light ground with a darker edge for value contrast, no lingering clutter. Four looks were
+built into the same draw path (one MultiMesh ring, one shader; the style and its hot part ride in each segment's
+transform, basis z): streak, ribbon, wisp (the streak over a pale smoke), toon (hard bands with a dark outline), with
+pass 79's line kept as a fifth; `params.tracer_style` picks one per weapon, mutation or evolution (`tracer_hot` the hot
+part), each with its own life and width unless the weapon sets them. Filmed on the same shots (the Revolver, Silver
+Bullet, the Tommy Gun, the Boomstick) at 1080x1920 and at phone size (game/tools/_p80_TRAIL_shot.gd, sheets and GIFs in
+tools/dl/p80/TRAIL/), the **wisp** was picked and made the default: a crimson (#C41E16) streak, hot at the bullet and
+tapering to a point, with a soft halo, and behind it a pale warm smoke that fades in half a second; it keeps Garry's
+pass 79 idea ("then the line disappears like smoke") but reads at phone size and never looks dirty. Silver Bullet's
+trail is 0.3 m and its light silver gets a steel-blue edge (light colours get a darker body, edge and halo of their own
+hue). The lead's review: the gold guns read as fat cream sticks with an orange outline (mostly the rounds themselves,
+pass 60's 0.95 m cored boxes): the rounds and pellets were slimmed to a short white-hot tip in a thin amber halo, the
+gold trails made thinner (0.1 m, pellets 0.08) with a deep amber body and a white middle only at the tip (a light
+saturated colour's own rule), and the many-shot guns' smoke shortened (Tommy Gun and Chicago 0.3 s, pellets 0.25 s). Lessons: on the Compatibility renderer a `varying flat` made the whole shader draw nothing (no error printed), and
+PROJECTION_MATRIX[1][1] is negative when drawing to a render target, so pass 79's "never under 1.5 px" floor never
+applied (abs() now). Perf: perf_late build=six before/after in the report.
+
+**Pass 80, lane WALLS (sand to the wall, real rock, a western fort wall, the sign's z-fighting).** Garry: "Let's make the
+edges of the map just sand instead of that dark orange stuff, that orange-dark stuff should be behind the walls. Also the
+textures on the mountains behind the walls look too low res and walls don't have any proper textures to begin with. Make
+the walls look like sandstone castle walls (but western), instead of what they are now." and "There is some z-fighting
+on the sign 3d. Fix it". (1) Sand to the wall: RedCanyon's terrain colour takes its red-rock weight from the new
+`rock_weight(p)` (0 inside arena_radius + ROCK_FROM 0.4 m, 1 outside), so the sand runs to the wall's foot and the red
+rock (`rock_color`) is only the strip between the wall and the cliffs; the rim still rises 2.2 m from rim_start 44 m but
+as drifted sand (new exports `rim_bumps` 0.45 m, `rim_bump_freq` 1.4; were 1.2 m of broken rock at 2.5x); pass 79's
+stair-stepped rock edge on the sand is gone. (2) The cliffs: a hi-res rock painting (art/env/cliff_rock.png, 2048 px,
+VRAM compressed with mipmaps, anisotropic), painted by Flux.2 Klein on the AI server and made seamless by
+tools/gen_wall_textures.py (new: candidates; seamless by rolling the picture by half and repainting the seam cross under a
+soft mask with DifferentialDiffusion, which fixed Klein copying the seams from its reference; a grey mean so the
+`wall_colors` tints stay the colours drawn); the three rings (new game/world/maps/red_canyon/CanyonWalls.gd `ridge`) get
+UVs in metres (14 / 20 / 28 m a tile, strata level, nothing stretched; triplanar is gone) and two rows of relief that
+break the faces into ledges; their on-screen colour unchanged (hue 26-27, saturation 0.53). (3) The boundary is a
+western sandstone fort wall (CanyonWalls `fort_wall`): dressed blocks (art/env/fort_wall.png, 1024 px, Klein, seamless,
+3.2 m a tile), a battered inner face weathered darker at its foot, a cap course, a walk 2 m up stepping 0.25 m with the
+ground, a parapet with rounded Spanish-colonial merlons, vigas every 1.7 m (one MultiMesh) and a squat tower every 30
+degrees standing out past the outer face; same footprint and height, no collider (the fence 1.1 m inside is unchanged),
+the posts and skulls kept, the boulders gone. It is drawn unshaded with its light and shade in the vertex colours (the
+sun stands in the north-east, so a lit wall showed the camera its dark side round the north half); stage 3's hell tints
+it with the ground (RedCanyon.HELL_WALL). `wall_colors` re-meant (stone the blocks, light the trim, cap the walk, riser
+the shaded sides) and `boulders` replaced by `beams` (the vigas); defaults a warm buff sandstone picked by eye from six
+palettes (#C59E7B, #DEC09F, #A58266, #7A604E, #4F3626), Red Canyon's file and the Level Editor's World card updated; the
+invisible fence no longer loads the old sandstone painting (4 MB). (4) The sign: sign_depth.gdshader kept 2% of the
+sign's whole depth, so the board's stub and its part inside the post lay a millimetre behind the post's face and
+flickered through it; the depth a vertex owes to its height keeps `squash` 0.02 and the depth it owes to its run over the
+ground keeps the new `squash_h` 0.25 (a hero beside the post still draws over a board pointing at the camera); the nail
+heads stand 12 mm proud (blender_sign.py, sign.glb regenerated). A diagnostic (game/tools/_p80_WALLS_shots.gd
+`only=signdiag`: each sign alone with the game's depth against true depth) measured the sign's mis-sorted pixels
+5.45% -> 0.40% at the play zoom, 2.76% -> 0.30% pulled out (single edge pixels left). Cost: the same draw calls,
++19.7k primitives, -0.7 MB of texture; perf_late build=six unchanged within noise. Captures (before / after, pairs in
+tools/dl/p80/WALLS/cmp/), the palettes, the texture candidates and the tools in tools/dl/p80/WALLS/. Tests:
+game/tests/pass80_walls_test.gd (12); pass79_world_test re-pinned on purpose (the cliffs' rule only, the beams key, the
+cliff painting's grey mean, the stacked wall's helpers removed); selftest_WORLD79.py's keys re-pinned.
+Lesson: a depth trick that squeezes a mesh's own depth must keep enough of it for the depth buffer at the camera's
+farthest zoom (here 24-bit, near 0.05 m: about a millimetre at 25 m); squeeze only the component that causes the
+sorting problem.
+
+**Lane OASIS (pass 80): two or three oases, and water slows everyone by 10%.** Garry: "make the water slow everyone
+down when they walk though it, not by a lot, just 10%. And make it so there are 2 oasis at least per level generation
+in the red canyon, sometimes 3". Red Canyon keeps its lakes as packed arrays (`_lake_cs/_rs/_ys/_floors`); the first is
+rolled with exactly the draws of the one lake before (a seed keeps its first oasis: seed 5's at (28.5, -2.5)), then
+`_roll_oases` adds the others from timeline_data `oases` {min 2, max 3, extra_chance 0.35, gap 10}
+(WaveTimeline.OASES_DEFAULTS): each like the first (5.5-7.5 m, 24-48 m out, off the flats by 8 m and the dry river by 5
+m past its radius) and its dish (1.6 x the radius, LAKE_DISH) 10 m of open ground from every other lake's; over 2,000
+seeds 1,298 rolled two and 702 three (35.1%), the gap never had to relax. Every lake has the dish, the damp ring (vertex
+colours: the terrain shader was not touched), its own disc ("Oasis", "Oasis2", "Oasis3", one material) and its palms
+and green. The API: `lakes()` [{center, radius, level, floor, disc}], `lake_count()`, `lake_index(p)`, `in_water(p)` in
+any lake, `water_level(p := INF)` / `water_disc(p := INF)` for the lake at or nearest p (no argument = the first, so old
+callers are unchanged; an optional parameter on an override of MapBase.water_level() parses in 4.7), `lake_center()` /
+`lake_radius()` the first. Every caller reads every lake: Game._tick_water (ripples round waders in each lake at its own
+level), Game._sink_hero (the disc nearest him, `_discs_of` / `_nearest_disc`), EnemyManager (the lake block keeps a list:
+`_lakes_wet/_disc/_thick`, the first still in `_lake_c/_lake_r2/_disc` for the old tests; `map_lakes(map)` reads any map,
+`lakes_of`, `lake_turns` over every lake, `ring_spots` cuts every lake's arc out with `_dry_arcs_many`, `_clear_in`
+checks every lake, the render's shadow test `_near_water`), WaveDirector through lake_turns; everything that only asked
+`in_water` (barrels, structures and Totem Poles, signs, flowers, the Trampoline, the Game's spot finder) keeps out of every
+lake unchanged. Three oases took so much of the sand that 3 seeds in 60 laid four bush patches (pass 61's rule is five to
+seven): past 200 of its 300 tries a patch may stand 6 m (BUSH_LAKE_NEAR) + 0.6 of its radius off the water instead of
+11, and a map still short of five gets 200 more tries out to 10 m inside the wall (200 seeds: all five to seven). The
+slow: WaveTimeline `water_slow` 0.1 (a map that names none plays it; 0 = off). The hero: `planar *= _wade_mult()` after
+the stick lock (1 in Hang Time's flight or more than 0.35 m over the ground, never his `_kb`). The creatures: once a tick
+`_wade_tick()` asks the crowd's grid who stands in each lake and marks `_wade_k` (not one in the air, rising or sinking,
+hidden, held or dying), and the walk is `vel[i] * _wade_k[i] + kb[i]` (a push never slowed); a first version asked a
+per-creature function and cost 120 us a tick for 250 creatures, the marks cost 33 us (tools/_p80_OASIS_bench.gd); perf_late build=six (seed 7, one lake before and three after)
+read enemies.sim 3.96-4.37 ms before and 4.28-4.74 after, but an A/B on the same code (tools/_p80_OASIS_perf.gd oases=1 vs
+3) read 4.04-4.25 against 3.65-4.15: the oases do not show past the machine's noise. The
+rocketeer's rocket still keeps to 90% of his dry speed, so wading he cannot outrun it (named). Level Editor: five World
+rows (water_slow, oases.min/max/extra_chance/gap) and selftest_OASIS80.py. Tests: pass80_oasis_test.gd (the roll over
+400 seeds, the built map's lakes, the crowd's lakes and rings, the creature's and the hero's 10%, the exceptions);
+pass61_map_test re-pinned (a patch against every lake, the relaxed bound). Captures: tools/dl/p80/OASIS/overview/
+(top-down, seeds 3, 5, 6, 7, 11, 88, and seed 5's third oasis close). Tools: tools/_p80_OASIS_probe.gd (the roll over many
+seeds), _p80_OASIS_scatter.gd (patches per seed), _p80_OASIS_overview.gd (the overviews), _p80_OASIS_bench.gd. Lesson: a
+`--script` tool that names a class touching an autoload (EnemyManager) fails to compile and the process then waits
+forever, holding the Godot lock: load such classes at run time.

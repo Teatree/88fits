@@ -289,6 +289,7 @@ SPECS = {
         "map": _f("str", "red_canyon", False, "the map (its saved file)"),
         "fps": _f("int", 60, False, "--fixed-fps: 60 = a weapon can fire every frame as on the phone"),
         "note": _f("str", "", False, "a few words to find this sim in the history"),
+        "bot": _f("json", {}, False, "pass 80: the bot's options {preset, key: value} (tools/sim_batch.py BOT_KEYS); empty = the runner's default (Explorer)"),
         "synthetic": _f("bool", False, False, "tests only: made-up players, no Godot")},
         "help": "N headless runs of the real game driven by a bot, averaged per second of play (the Sim tab)"},
 }
@@ -4577,6 +4578,8 @@ def sim_plan(job):
         tail.append("--no-fast")
     if s.get("note"):
         tail += ["--note", s["note"]]
+    if s.get("bot"):
+        tail += ["--bot", sb.bot_arg(s["bot"])]   # pass 80 (lane BOT): the bot's options
     if spec.get("synthetic"):
         tail.append("--synthetic")
         if spec.get("synthetic_speed"):

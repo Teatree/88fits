@@ -7,6 +7,8 @@ it runs from a shell too:
     python tools/sim_batch.py --out tools/dl/sim/runs/try1 --hero drifter --players 10 --workers 6 --limit 1500 \\
         --board 1.5 --death gold --seed 1 [--map red_canyon] [--fps 60] [--note "after the cap change"]
     python tools/sim_batch.py --aggregate tools/dl/sim/runs/try1    # the players' files again into result.json (no Godot)
+    python tools/sim_batch.py --out <dir> --bot "preset=sim77"       # pass 80: the bot's options (BOT_KEYS; the runner's
+                                                                     # own default is the Explorer)
     python tools/sim_batch.py --out <dir> --synthetic [...]          # made-up players: the page's and the selftest's fixture
 
 What it does, in order:
@@ -69,7 +71,7 @@ SCHEMA = 1
 # the settings and their defaults (INTERFACES "Lane SIMUI"; round 2: the board talent by talent, the death policies
 # without gold, the number at once from the processors); the page, the job spec and the CLI share them
 DEFAULTS = {"hero": "drifter", "players": 10, "workers": 0, "limit": 1500, "board": 1.5, "talents": None, "board_label": "",
-            "death": "end", "seed": 1, "map": "red_canyon", "fps": 60, "note": "", "fast": True}
+            "death": "end", "seed": 1, "map": "red_canyon", "fps": 60, "note": "", "fast": True, "bot": {}}
 BOARDS = [(0.0, "none"), (1.5, "a quarter"), (3.0, "half"), (6.0, "full")]
 PRESETS = [("none", 0.0), ("quarter", 1.5), ("half", 3.0), ("full", 6.0)]   # the page's preset keys
 DEATHS = [("end", "end the run at the first death", "no revive: the run ends at the first death (the default: Garry took Get up with gold out)"),
@@ -194,6 +196,156 @@ def auto_workers(players):
     """How many runs play at once when the setting says 0 (auto): as many as the runs, at most the logical processors
     less 2 (measured in pass 77: more at once is sooner overall, each run a little slower)."""
     return max(1, min(int(players), max_workers()))
+
+
+# ---------------------------------------------------------------- the bot's options (pass 80, lane BOT)
+
+# The bot (game/tools/bot/Bot.gd) takes these options as the runner's args (key=value); a sim's settings carry the ones
+# given ({} = the runner's default preset, the Explorer). The presets' values are read off Bot.gd's PRESETS (bot_presets).
+BOT_PRESETS = [("explorer", "Explorer", "the default: explores the map, walks to Totem Poles, barrels, power-ups and structures, uses the "
+                "Shop and the Stranger, scores every card"),
+               ("sim77", "Sim (pass 77)", "the old bot exactly: kites and sweeps gems, cards by a fixed order, a random mutation, leaves "
+                "the Shop and the Stranger, no map goals (to compare with older sims)"),
+               ("careless", "Careless", "a weak player: slow to react, misses half the warnings, dares the crowd, often takes a weaker card"),
+               ("expert", "Expert", "a strong player: quick, sees every warning, always the best-scored card, explores more")]
+BOT_KEYS = [  # (key, kind, lo/choices, hi, label, help)
+    ("skill", "float", 0.0, 1.0, "Skill", "decision quality: 1 always takes the best-scored card, lower takes a weaker one more often"),
+    ("style", "enum", ("balanced", "damage", "safety", "greedy"), None, "Style", "what the scores weigh most: damage, safety or gold and XP"),
+    ("reaction", "float", 0.0, 3.0, "Reaction", "seconds before he acts on a new warning or a big one close"),
+    ("dodge", "float", 0.0, 1.0, "Dodge", "the share of warnings on the sand he sees at all"),
+    ("daring", "float", 0.0, 1.0, "Daring", "how close he lets the crowd come (0.5: keeps 4.5 m, flees inside 2.6 m)"),
+    ("stray", "float", 0.0, 200.0, "Stray", "how far (m) he walks for gems lying on the sand"),
+    ("explore", "float", 0.0, 1.0, "Explore", "the wish to see the map (0: never walks off to explore)"),
+    ("boss", "enum", ("leash", "free"), None, "Boss", "leash: stays within 10 m of a living boss; free: roams"),
+    ("totems", "bool", None, None, "Totem Poles", "walks to the Totem Poles he has seen and takes a gift"),
+    ("barrels", "bool", None, None, "Barrels", "walks to the barrels he has seen and breaks them"),
+    ("powerups", "bool", None, None, "Power-ups", "walks to power-ups lying in sight"),
+    ("structures", "bool", None, None, "Structures", "walks to the other structures by what they give (well, magnet, drum, beacon, cache, teleport)"),
+    ("shop", "bool", None, None, "Shop", "uses the Travelling Shop (buys a ware worth its price)"),
+    ("stranger", "bool", None, None, "Stranger", "deals with the Stranger (max HP for a ware) while healthy"),
+    ("cards", "enum", ("tier", "score"), None, "Cards", "score: every card scored (DPS, survival, plan, gold); tier: pass 77's fixed order"),
+]
+BOT_KEY_NAMES = [k[0] for k in BOT_KEYS]
+_BOT_PRESETS_CACHE = {}
+
+
+def bot_presets(game_dir=None):
+    """{preset: {key: value}} read off the runner's game/tools/bot/Bot.gd (its PRESETS block of plain literals); {} when it
+    is not there (an older runner)."""
+    p = os.path.join(game_dir or GAME, "tools", "bot", "Bot.gd")
+    try:
+        st = os.stat(p)
+    except OSError:
+        return {}
+    key = (p, st.st_size, st.st_mtime)
+    if key in _BOT_PRESETS_CACHE:
+        return _BOT_PRESETS_CACHE[key]
+    out = {}
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            src = f.read()
+        m = re.search(r"^const PRESETS := (\{.*?^\})", src, re.M | re.S)
+        if m:
+            body = re.sub(r",(\s*[}\]])", r"\1", m.group(1).replace("\t", " "))
+            out = json.loads(body)
+    except (OSError, ValueError):
+        out = {}
+    _BOT_PRESETS_CACHE.clear()
+    _BOT_PRESETS_CACHE[key] = out
+    return out
+
+
+def clean_bot(raw):
+    """The bot's options as given ({key: value}, sparse: a key left out takes the preset's), from a dict or the CLI text
+    "preset=sim77,skill=0.8". (options, problems)."""
+    probs = []
+    if raw is None or raw == "" or raw == {}:
+        return {}, probs
+    items = {}
+    if isinstance(raw, str):
+        for part in raw.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            if "=" not in part:
+                probs.append("bot: %r is not key=value" % part)
+                continue
+            k, v = part.split("=", 1)
+            items[k.strip()] = v.strip()
+    elif isinstance(raw, dict):
+        items = raw
+    else:
+        return {}, ["bot must be {key: value} or \"preset=explorer,skill=0.8\""]
+    out = {}
+    names = [p for p, _, _ in BOT_PRESETS]
+    for k, v in items.items():
+        k = str(k).strip()
+        if k == "preset":
+            if str(v) in names:
+                out["preset"] = str(v)
+            else:
+                probs.append("bot: preset must be one of %s (got %r)" % (", ".join(names), v))
+            continue
+        spec = next((x for x in BOT_KEYS if x[0] == k), None)
+        if spec is None:
+            probs.append("bot: no option %r (%s)" % (k, ", ".join(["preset"] + BOT_KEY_NAMES)))
+            continue
+        _, kind, lo, hi, _, _ = spec
+        if kind == "float":
+            try:
+                f = float(v)
+            except (TypeError, ValueError):
+                probs.append("bot: %s must be a number (got %r)" % (k, v))
+                continue
+            if f < lo or f > hi:
+                probs.append("bot: %s must be between %g and %g (got %g)" % (k, lo, hi, f))
+                f = min(hi, max(lo, f))
+            out[k] = round(f, 3)
+        elif kind == "enum":
+            if str(v) in lo:
+                out[k] = str(v)
+            else:
+                probs.append("bot: %s must be one of %s (got %r)" % (k, ", ".join(lo), v))
+        else:
+            out[k] = v if isinstance(v, bool) else str(v).strip().lower() in ("1", "true", "yes", "on")
+    return {k: out[k] for k in ["preset"] + BOT_KEY_NAMES if k in out}, probs
+
+
+def bot_arg(b):
+    """The CLI's --bot text for options {key: value}: "preset=sim77,skill=0.8" ("" for none)."""
+    return ",".join("%s=%s" % (k, _bot_val(v)) for k, v in (b or {}).items())
+
+
+def _bot_val(v):
+    if isinstance(v, bool):
+        return "1" if v else "0"
+    if isinstance(v, float):
+        return "%g" % v
+    return str(v)
+
+
+def bot_effective(b, presets=None):
+    """Every option's value as the runner will play it: its preset's (the given one, else the Explorer) with the given
+    keys over it, and where each comes from: ({key: value}, {key: "preset" | "set"})."""
+    presets = presets if presets is not None else bot_presets()
+    pre = (b or {}).get("preset") or "explorer"
+    base = dict(presets.get(pre) or {})
+    src = {k: "preset" for k in base}
+    for k, v in (b or {}).items():
+        if k != "preset":
+            base[k] = v
+            src[k] = "set"
+    base["preset"] = pre
+    return base, src
+
+
+def bot_words(b):
+    """The bot in a few words for a sim's line: "Explorer", "Sim (pass 77)", "Explorer, skill 0.5"."""
+    b = b or {}
+    pre = b.get("preset") or "explorer"
+    name = dict((p, lab) for p, lab, _ in BOT_PRESETS).get(pre, pre)
+    extra = ["%s %s" % (k, _bot_val(v)) for k, v in b.items() if k != "preset"]
+    return name + (", " + ", ".join(extra) if extra else "")
 
 
 # ---------------------------------------------------------------- the Upgrade board, talent by talent
@@ -337,6 +489,8 @@ def caps_problem(s, caps):
     if not caps.get("talents") and float(s.get("board", 0)) < 0:
         return ("the runner (game/tools/sim_run.gd) plays only the board presets (none, a quarter, half, full) until it reads "
                 "talents=: this board is %s" % board_text(s.get("talents"), s.get("board_label")))
+    if s.get("bot") and caps.get("runner", True) and not caps.get("bot"):
+        return "the runner (game/tools/sim_run.gd) has no bot options yet (pass 80's game/tools/bot/Bot.gd): it would play its own bot"
     return ""
 
 
@@ -349,11 +503,11 @@ def runner_caps(game_dir=None):
         with open(p, "r", encoding="utf-8", errors="replace") as f:
             src = f.read()
     except OSError:
-        return {"runner": False, "talents": False, "deaths": [], "fast": False}
+        return {"runner": False, "talents": False, "deaths": [], "fast": False, "bot": False}
     m = re.search(r"_death\s+in\s+\[([^\]]*)\]", src)
     deaths = re.findall(r'"([a-z]+)"', m.group(1)) if m else ["gold", "end", "keep"]
     return {"runner": True, "talents": bool(re.search(r'^\s*"talents"\s*:', src, re.M)), "deaths": deaths,
-            "fast": bool(re.search(r'^\s*"fast"\s*:', src, re.M))}
+            "fast": bool(re.search(r'^\s*"fast"\s*:', src, re.M)), "bot": "BOT_ARGS" in src}
 
 
 def fmt_t(s):
@@ -426,6 +580,9 @@ def clean_settings(raw, heroes=None, maps=None, legacy=False):
     if maps is not None and s["map"] not in maps:
         probs.append("no map %r" % s["map"])
     s["note"] = str(raw.get("note", "") or "").strip()[:200]
+    # pass 80 (lane BOT): the bot's options as given (sparse; {} = the runner's default preset)
+    s["bot"], bp = clean_bot(raw.get("bot"))
+    probs += bp
     if s["workers"] <= 0:
         s["workers"] = auto_workers(s["players"])
     if s["workers"] > s["players"]:
@@ -998,6 +1155,9 @@ def player_args(settings, p, snap, out_dir, wall_cap, caps=None):
         args.append("talents=" + talents_arg(s["talents"]))   # an empty board: board=0 alone (the runner reads no "none")
     if caps.get("fast"):
         args.append("fast=%d" % (1 if s.get("fast", True) else 0))   # the runner's sim mode is on unless told fast=0
+    if caps.get("bot"):
+        for k, v in (s.get("bot") or {}).items():   # pass 80: the bot's options, key=value (the runner's BOT_ARGS)
+            args.append("%s=%s" % (k, _bot_val(v)))
     return args
 
 
@@ -1365,6 +1525,41 @@ def content_names(game_dir, ids):
         if i not in out:
             out[i] = SOURCE_WORDS.get(i) or i.replace("_", " ").capitalize()
     return out
+
+
+# pass 80 (lane BOT): what each run's bot did with the map (sim_run.gd's meta.bot), and their means in the summary
+BOT_TALLIES = ("totems", "totems_20", "barrels", "structures", "powerups", "shop", "stranger", "metres", "seen", "gave_up")
+
+
+def bot_player(b):
+    """One run's bot tallies from its meta.bot (None for a runner from before pass 80): totems used (and by 20:00 of play),
+    barrels broken, other structures used, power-ups taken, the Shop's and the Stranger's deals, metres walked, the share
+    of the arena seen, goals given up, and its preset."""
+    if not isinstance(b, dict):
+        return None
+    t = b.get("tallies") or {}
+    by = t.get("structures_by") or {}
+    return {"preset": str((b.get("opts") or {}).get("preset", "")), "totems": int(_num(t.get("totems"), 0)),
+            "totems_20": sum(1 for x in t.get("totem_t") or [] if _num(x) <= 1200.0), "barrels": int(_num(t.get("barrels"), 0)),
+            "structures": int(_num(t.get("structures"), 0)), "powerups": int(_num(t.get("powerups"), 0)),
+            "shop": int(_num(b.get("shop_bought"), 0)), "stranger": int(_num(b.get("stranger_taken"), 0)),
+            "metres": int(_num(b.get("metres"), 0)), "seen": _r(_num(b.get("seen"), 0)), "gave_up": int(_num(b.get("gave_up"), 0)),
+            "structures_by": by}
+
+
+def bot_block(players):
+    """The result's "bot" (beside aggregate()'s keys, so the page's own aggregate in sim_avg.js stays its twin): {summary:
+    each BOT_TALLIES mean over the runs that wrote one, players: [{k, preset, totems, ...}]}; None when no run did (a
+    runner from before pass 80)."""
+    rows = []
+    for k, d, rec in players:
+        b = bot_player(((d or {}).get("meta") or {}).get("bot"))
+        if b is not None:
+            b["k"] = k
+            rows.append(b)
+    if not rows:
+        return None
+    return {"summary": {key: _r(sum(_num(b.get(key)) for b in rows) / len(rows)) for key in BOT_TALLIES}, "players": rows}
 
 
 def aggregate(players, settings, meta=None, game_dir=None):
@@ -1937,6 +2132,9 @@ class Batch:
                                    "problem": p.problem, "boot_s": p.boot_s(), "rate": p.rate()}))
         meta = self.meta(partial)
         res = aggregate(ps, self.settings, meta, game_dir=self.snap if os.path.isdir(self.snap) else GAME)
+        bb = bot_block(ps)   # pass 80 (lane BOT): what the bots did with the map
+        if bb:
+            res["bot"] = bb
         write_json(os.path.join(self.out, "result.json"), res)
         write_json(os.path.join(self.out, "head.json"), head_of(res))
         self.result_players = len(ps)
@@ -2030,6 +2228,9 @@ def reaggregate(folder, log=print):
     meta = dict(old.get("meta") or {})
     meta.update({"id": os.path.basename(folder), "reaggregated": _now_iso()})
     res = aggregate(ps, s, meta, game_dir=snap_game() if os.path.isdir(snap_game()) else GAME)
+    bb = bot_block(ps)   # pass 80 (lane BOT)
+    if bb:
+        res["bot"] = bb
     write_json(os.path.join(folder, "result.json"), res)
     write_json(os.path.join(folder, "head.json"), head_of(res))
     log("sim: result.json written again from %d players" % len(ps))
@@ -2052,6 +2253,7 @@ def main(argv=None):
     ap.add_argument("--map", default=DEFAULTS["map"])
     ap.add_argument("--fps", type=int, default=DEFAULTS["fps"])
     ap.add_argument("--note", default="")
+    ap.add_argument("--bot", default="", help="the bot's options: preset=explorer|sim77|careless|expert and key=value (BOT_KEYS), comma-separated")
     ap.add_argument("--job", default="", help="the Level Editor job that runs this (its id)")
     ap.add_argument("--wall-cap", type=int, default=0, help="seconds one run may take before it is stopped (default max(900, 2 x limit))")
     ap.add_argument("--keep", type=int, default=HISTORY_KEEP, help="the newest sims kept in tools/dl/sim/runs (kept ones never count)")

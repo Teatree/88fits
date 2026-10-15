@@ -709,6 +709,10 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	w.rock_color = str(t.get("rock_color", ""))
 	var wcs = t.get("wall_colors", {})
 	w.wall_colors = wcs if wcs is Dictionary else {}
+	# pass 80 (lane OASIS): the water's slow and the oases' count (WaveTimeline's defaults fill gaps)
+	w.water_slow = float(t.get("water_slow", WaveTimeline.WATER_SLOW_DEFAULT))
+	var oas = t.get("oases", {})
+	w.oases = oas if oas is Dictionary else {}
 	var pt = t.get("path_times", [[55, 115, 175, 230, 270], [35, 90, 145, 200, 245, 280]])
 	w.path_times = pt if pt is Array else []
 	return w

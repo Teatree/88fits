@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" path="res://art/props/tommy_gun.glb" id="gun"]
 
 [sub_resource type="BoxMesh" id="proj"]
-size = Vector3(0.12, 0.12, 0.95)
+size = Vector3(0.055, 0.055, 0.4)
 
 [sub_resource type="StandardMaterial3D" id="projmat"]
 shading_mode = 0
@@ -13,8 +13,8 @@ emission = Color(1, 0.9, 0.6, 1)
 emission_energy_multiplier = 3.0
 
 [sub_resource type="CapsuleMesh" id="halo"]
-radius = 0.105
-height = 1.08
+radius = 0.055
+height = 0.5
 radial_segments = 8
 rings = 3
 

@@ -1405,10 +1405,13 @@ static func map_settings(tl: WaveTimeline) -> Dictionary:
 	tp.merge(tl.target_priority, true)
 	var sr: Dictionary = WaveTimeline.SPAWN_RISE_DEFAULTS.duplicate()
 	sr.merge(tl.spawn_rise, true)
+	# pass 80: the water's slow and the oases block, the game's defaults under the map's keys
+	var oa: Dictionary = WaveTimeline.OASES_DEFAULTS.duplicate()
+	oa.merge(tl.oases, true)
 	return {"hero_knockback_mult": tl.hero_knockback_mult, "special_defaults": sd, "boss_hp_scaling": bs,
 		"target_priority": tp, "spawn_rise": sr, "creature_hp_mult": tl.creature_hp_mult,
 		"creature_damage_mult": tl.creature_damage_mult, "creature_speed_mult": tl.creature_speed_mult,
-		"move_pace": tl.move_pace, "xp_need_mult": tl.xp_need_mult}
+		"move_pace": tl.move_pace, "xp_need_mult": tl.xp_need_mult, "water_slow": tl.water_slow, "oases": oa}
 
 
 ## id -> display name for everything the record mentions, so the dashboard needs no content folder.

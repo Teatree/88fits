@@ -252,8 +252,17 @@ def _round2_checks(check, SB, tmp):
     new_runner = os.path.join(tmp, "new", "tools", "sim_run.gd")
     _write(new_runner, 'match k:\n\t\t\t"talents": _talent_arg = v\n\t\t\t"fast": _fast = v != "0"\n\tif not _death in ["ad", "end", "keep"]:\n')
     co, cn = SB.runner_caps(os.path.join(tmp, "old")), SB.runner_caps(os.path.join(tmp, "new"))
-    check(co == {"runner": True, "talents": False, "deaths": ["gold", "end", "keep"], "fast": False} and cn == {"runner": True, "talents": True, "deaths": ["ad", "end", "keep"], "fast": True}
+    # pass 80 (lane BOT, re-pinned on purpose): the caps carry "bot" (the runner's BOT_ARGS: the bot's options)
+    check(co == {"runner": True, "talents": False, "deaths": ["gold", "end", "keep"], "fast": False, "bot": False}
+          and cn == {"runner": True, "talents": True, "deaths": ["ad", "end", "keep"], "fast": True, "bot": False}
           and SB.runner_caps(os.path.join(tmp, "none"))["runner"] is False, "r2: the runner's capabilities read off its parser: %s %s" % (co, cn))
+    bot_runner = os.path.join(tmp, "botr", "tools", "sim_run.gd")
+    _write(bot_runner, "\n".join(['const BOT_ARGS := ["preset", "skill"]', "match k:", '\t\t\t"talents": _talent_arg = v',
+                                  '\t\t\t"fast": _fast = v != "0"', '\tif not _death in ["ad", "end", "keep"]:', ""]))
+    cb = SB.runner_caps(os.path.join(tmp, "botr"))
+    s_bot, _ = SB.clean_settings({"bot": {"preset": "sim77", "skill": 0.5}})
+    check(cb["bot"] is True and SB.caps_problem(s_bot, cn).startswith("the runner") and SB.caps_problem(s_bot, cb) == "",
+          "p80: a runner without BOT_ARGS refuses bot options, one with them plays them: %s" % cb)
     s_custom, _ = SB.clean_settings({"talents": {"grit": "B"}})
     s_ad, _ = SB.clean_settings({"death": "ad"})
     check("only the board presets" in SB.caps_problem(s_custom, co) and "death policy 'ad'" in SB.caps_problem(s_ad, co) and SB.caps_problem(s_custom, cn) == ""
@@ -266,6 +275,25 @@ def _round2_checks(check, SB, tmp):
     c = SB.player_args(SB.clean_settings({})[0], P, "snap", "out", 900, co)
     check("talents=grit:AAB" in a and "board=0" in a and "fast=1" in a and not any(x.startswith("talents=") for x in b) and "fast=0" in b
           and "board=1.5" in c and not any(x.startswith("fast=") for x in c), "r2: the runner's args (talents only when there are ranks; fast=0/1 when it has the mode): %s" % a[-4:])
+    # pass 80 (lane BOT): the bot's options through the settings, the runner's args and the presets read off Bot.gd
+    b80, bp80 = SB.clean_bot("preset=careless,skill=0.3,totems=0,stray=500,nope=1")
+    check(b80 == {"preset": "careless", "skill": 0.3, "stray": 200.0, "totems": False} and len(bp80) == 2,
+          "p80: clean_bot coerces, clamps and refuses: %s %s" % (b80, bp80))
+    check(SB.bot_arg(b80) == "preset=careless,skill=0.3,stray=200,totems=0", "p80: bot_arg: %s" % SB.bot_arg(b80))
+    check(SB.clean_bot({"preset": "sim77"})[0] == {"preset": "sim77"} and SB.clean_bot("")[0] == {} and SB.clean_settings({})[0]["bot"] == {},
+          "p80: no bot options = the runner's default")
+    s80, _ = SB.clean_settings({"bot": "preset=sim77,explore=0.5"})
+    a80 = SB.player_args(s80, P, "snap", "out", 900, dict(cn, bot=True))
+    n80 = SB.player_args(s80, P, "snap", "out", 900, dict(cn, bot=False))
+    check("preset=sim77" in a80 and "explore=0.5" in a80 and not any(x.startswith("preset=") for x in n80),
+          "p80: the runner's args carry the bot's options when it reads them: %s" % a80[-3:])
+    pres = SB.bot_presets()
+    check(set(pres) == {k for k, _, _ in SB.BOT_PRESETS} and all(set(v) == set(SB.BOT_KEY_NAMES) for v in pres.values())
+          and pres["sim77"]["cards"] == "tier" and pres["explorer"]["totems"] is True,
+          "p80: every preset in game/tools/bot/Bot.gd names every option the page offers: %s" % {k: sorted(v) for k, v in pres.items()})
+    eff, src = SB.bot_effective({"preset": "sim77", "skill": 0.4}, pres)
+    check(eff["skill"] == 0.4 and src["skill"] == "set" and src["explore"] == "preset" and eff["explore"] == pres["sim77"]["explore"],
+          "p80: the effective options say where each comes from")
     # my save: the PC save, or the copy tools/locks.py keeps aside
     saved = (locks.SAVE_DIR, locks.KEEP_DIR, locks.RESTORE_PENDING)
     try:
@@ -606,6 +634,11 @@ def _job_checks(check, SB, tmp):
         check(argv[0] == sys.executable and argv[2].endswith("sim_batch.py") and argv[argv.index("--out") + 1] == out and argv[argv.index("--sim-dir") + 1] == os.path.join(jobs.DL, "sim")
               and "--synthetic" in argv and argv[argv.index("--talents") + 1] == SB.talents_arg(SB.board_talents(1.5)) and argv[argv.index("--players") + 1] == "3" and argv[argv.index("--job") + 1] == job["id"],
               "job: the driver's argv: %s" % " ".join(argv[2:]))
+        # pass 80 (lane BOT): the bot's options ride the job to the driver's --bot (none: no --bot, the runner's default)
+        check("bot" in f and "--bot" not in argv, "p80: the sim job has a bot field; no options, no --bot")
+        plan_b = jobs.sim_plan({"id": "j-p80-bot", "spec": jobs.validate_spec("sim", {"players": 2, "limit": 120, "bot": {"preset": "sim77", "skill": 0.5}})})
+        argv_b = [str(x) for x in plan_b["steps"][0]]
+        check("--bot" in argv_b and argv_b[argv_b.index("--bot") + 1] == "preset=sim77,skill=0.5", "p80: the job's bot options on the driver's argv: %s" % argv_b[-6:])
         check(plan["sim_id"] == job["id"] and plan["sim_out"].endswith(job["id"]) and job["equiv"].startswith("python tools/sim_batch.py --out "), "job: the sim's folder named by the job: %s" % plan["sim_out"])
         names = [s["name"] for s in job["progress"]["stages"]]
         check(names == ["snapshot", "run 1", "run 2", "run 3", "charts"], "job: the stages: %s" % names)

@@ -452,3 +452,101 @@ Code: WaveTimeline `rock_color: String`, `wall_colors: Dictionary`, `static colo
 Shader `core/shaders/terrain_painted.gdshader`: `rock_flat` default (0.47, 0.36, 0.37), new `uniform float rock_tex_lum
 = 0.184` (the rock painting's mean linear luminance; pass79_world_test checks it against redrock.png within 10%).
 `tools/gen_textures.py --only sandstone,redrock` writes only those (sandstone.png is grey bands since pass 79).
+
+## Pass 80: the fort wall and the oases
+
+### The fort wall, the cliffs, the sign (lane WALLS)
+
+#### Map: `timeline_data.wall_colors` (WaveTimeline; RedCanyon.WALL_COLORS by default; the World card's swatches)
+The three cliff keys and `rock_color` keep pass 79's meaning and values. The boundary wall's keys change meaning with the
+wall (a western sandstone fort wall since pass 80, drawn UNSHADED: each colour is the colour drawn, times the block
+painting art/env/fort_wall.png, grey at about 0.8 on average). Red Canyon's file names all eight with these defaults.
+
+| key | type | default | meaning (pass 80) | pass 79 |
+|---|---|---|---|---|
+| `rock_color` | "#RRGGBB" | #785C5E | the red rock: now only the ground OUTSIDE the wall (from arena_radius + 0.4 m out) | the rim from 44 m to the wall |
+| `wall_colors.near` / `far` / `farther` | "#RRGGBB" | #856B6E / #705963 / #594A57 | the three cliff rings, a tint over the new rock painting art/env/cliff_rock.png (grey on average) | the same over the grey sandstone bands |
+| `wall_colors.stone` | "#RRGGBB" | **#C59E7B** | the fort wall's sandstone blocks: the inner face (its foot 32% darker), the parapet, the merlons' faces, the towers; the outer face 25% darker | stacked stone, even blocks (#7A6363) |
+| `wall_colors.light` | "#RRGGBB" | **#DEC09F** | the dressed trim: the cap course under the walk, the merlons' rounded tops, the parapet's top, the towers' cap course | the odd blocks (#8C7370) |
+| `wall_colors.cap` | "#RRGGBB" | **#A58266** | the wall-walk along the top and the towers' roofs | the wall's top (#544045) |
+| `wall_colors.riser` | "#RRGGBB" | **#7A604E** | the shaded sides: the steps where the walk climbs, the merlons' sides, the cap course's underside | the steps between blocks (#47383B) |
+| `wall_colors.beams` | "#RRGGBB" | **#4F3626** | NEW: the vigas, the round wooden beam ends under the walk and on the towers (lit, unlike the wall) | (`boulders` #6B5457: gone with the boulders) |
+
+Fields.js rows updated (labels: Wall stone, Wall trim, Wall walk, Wall shade, Wall beams; help says what each paints and
+the game's default); `wall_colors.boulders` row replaced by `wall_colors.beams`. selftest_WORLD79.py's WALL_KEYS re-pinned
+(boulders -> beams). WaveTimeline's comment says so. **docs/waves_schema.md** (the lead): the five wall rows above,
+`wall_colors.boulders` -> `wall_colors.beams`, rock_color's meaning.
+
+#### RedCanyon (game/world/maps/red_canyon/RedCanyon.gd)
+| name | kind | default | meaning |
+|---|---|---|---|
+| `rim_start` | export | 44.0 (unchanged) | where the sand starts to rise towards the wall (no longer where red rock starts) |
+| `rim_height` | export | 2.2 (unchanged) | how far the sand has risen at the wall (rim fraction squared) |
+| `rim_bumps` | export, NEW | 0.45 m | the rim's bumps at the wall (were 1.2 m of broken rock) |
+| `rim_bump_freq` | export, NEW | 1.4 | their frequency over the dunes' noise (was 2.5) |
+| `ROCK_FROM` | const, NEW | 0.4 m | the ground's red rock starts this far past the arena's edge (under the wall) |
+| `rock_weight(p: Vector2) -> float` | func, NEW | | 1 from arena_radius + ROCK_FROM out, else 0 (the terrain's vertex blue) |
+| `HELL_WALL` | const, NEW | (0.97, 0.79, 0.72) | stage 3's tint on the fort wall's material (the ground's own hell multiply) |
+| `WALLS` | const | preload CanyonWalls.gd | the builders |
+
+#### CanyonWalls (game/world/maps/red_canyon/CanyonWalls.gd, new, RefCounted, static builders)
+`fort_wall(map, r, segs, colours, noise) -> Node3D` ("FortWall": "Wall" MeshInstance3D + "Vigas" MultiMeshInstance3D;
+RedCanyon._boundary_wall adds "Posts" and the skulls as before), `wall_material()`, `cliff_material(tint)`,
+`ridge(map, arena_radius, r, h, h_var, segs, mat, noise_off, noise, tile) -> MeshInstance3D`.
+Constants (all metres unless said): WALL_TEX "res://art/env/fort_wall.png", CLIFF_TEX "res://art/env/cliff_rock.png",
+THICK 1.7, SINK 0.8, WALK_H 2.0, STEP 0.25, BATTER 0.12, CAP_H 0.22, CAP_OUT 0.1, PARAPET_T 0.55, PARAPET_H 0.45,
+MERLON_W 1.0, MERLON_GAP 0.7, MERLON_SIDE 0.22, MERLON_ARC 0.24, MERLON_ARC_PTS 8, TILE 3.2, VIGA_EVERY 1.7, VIGA_R 0.1,
+VIGA_OUT 0.45, VIGA_DOWN 0.42, TOWER_EVERY_DEG 30, TOWER_W 5.0, TOWER_OUT 1.4, TOWER_H 1.4, FOOT_DARK 0.32,
+FOOT_RISE 0.9, PATCH 0.07, BEAM_WOOD (0.36, 0.25, 0.16), CLIFF_TILES [14, 20, 28], CLIFF_ROWS [0.33, 0.66],
+CLIFF_RELIEF 0.9. RedCanyon `_ridge(r, h, h_var, segs, mat, noise_off, tile = 14.0)` gained `tile`.
+
+#### Shader: core/shaders/sign_depth.gdshader
+| uniform | default | meaning |
+|---|---|---|
+| `squash` | 0.02 (unchanged) | the share of the depth a vertex owes to its HEIGHT over the sign's foot that is kept |
+| `squash_h` | **0.25**, NEW | the share of the depth it owes to its run over the GROUND that is kept (was squash's 0.02 too) |
+| `bias` | 0.03 (unchanged) | metres the whole sign goes back |
+
+#### Art and tools
+- art/env/cliff_rock.png 2048 x 2048, art/env/fort_wall.png 1024 x 1024 (import: VRAM compressed, mipmaps; both grey on
+  average). art/env/sandstone.png stays (gen_textures.py) but nothing loads it any more (the invisible fence boxes used
+  its material).
+- tools/gen_wall_textures.py (new): `cands --kind cliff|wall|top [--seeds --seed0 --size --prompt --ref]`,
+  `seam <raw> [--band --soft --steps --seed --tag]`, `neutral <seam> --out <name> [--size --keep --value]`.
+  The picks: `cands --kind cliff --prompt 5 --size 2048 --seed0 33` (s35), `seam ... --band 0.14 --soft 0.25 --steps 8
+  --seed 7`, `neutral ... --out cliff_rock --keep 0.15 --value 0.8`; `cands --kind wall --seed0 1` (p0 s1),
+  `seam ... --band 0.16 --soft 0.25 --steps 8 --seed 11 --tag _x11`, `neutral ... --out fort_wall --keep 0.15 --value 0.82`.
+- tools/blender_sign.py NAIL_UP 0.004 -> 0.012 (art/props/sign.glb regenerated).
+
+### The oases and the water (lane OASIS)
+
+#### Map file, `timeline_data` (WaveTimeline; JsonContent reads them; Red Canyon names both)
+| Key | Type | Default (the game's) | Meaning |
+|---|---|---|---|
+| `water_slow` | float 0..0.95 | 0.1 (`WaveTimeline.WATER_SLOW_DEFAULT`) | the share of the walking speed water takes from anyone wading (the hero, every creature, Elites, bosses); never a push, knockback or pull, nor anyone in the air or under the sand. 0 = off. A map that names none plays the default. |
+| `oases` | object | `{}` = all defaults (`WaveTimeline.OASES_DEFAULTS`) | Red Canyon's oasis count and spacing (RedCanyon._roll_oases): |
+| `oases.min` | int 1..6 | 2 | oases every run rolls at least |
+| `oases.max` | int 1..6 (>= min) | 3 | the most a run rolls |
+| `oases.extra_chance` | float 0..1 | 0.35 | the chance of each oasis past `min`, up to `max` (0.35 = a third oasis in about a third of the runs) |
+| `oases.gap` | float m | 10 | the least open ground between two oases' dishes (each dish reaches 1.6 x its lake's radius); a larger gap can leave a run an oasis short where the map has no room |
+
+Red Canyon's file: `"water_slow": 0.1`, `"oases": {"min": 2, "max": 3, "extra_chance": 0.35, "gap": 10}` (the defaults,
+written out so the World card shows them).
+
+#### Level Editor (tools/level_editor/fields.js, World card; checked by selftest_OASIS80.py)
+Rows `water_slow` ("Water slow"), `oases.min` ("Oases (at least)"), `oases.max` ("Oases (at most)"),
+`oases.extra_chance` ("Chance of one more oasis"), `oases.gap` ("Oasis spacing (m)"), each with help and the game's
+default as its grey placeholder.
+
+#### Code API (for other lanes and tools)
+- `RedCanyon.lakes()` -> `[{center: Vector2, radius, level, floor, disc}]` (the first lake first); `lake_count()`;
+  `lake_index(p: Vector2)` (the lake p is in or whose shore is nearest); `in_water(p)` (any lake);
+  `water_level(p := Vector3.INF)` / `water_disc(p := Vector3.INF)` (the lake at or nearest p; no argument = the first
+  lake, so old callers are unchanged); `lake_center()` / `lake_radius()` = the first lake; `oases_config()`;
+  consts `LAKE_DISH` 1.6, `LAKE_R` (5.5, 7.5), `LAKE_WET` 1.02, `BUSH_LAKE_RELAX` 200, `BUSH_LAKE_NEAR` 6,
+  `BUSH_EXTRA_TRIES` 200.
+- `EnemyManager.map_lakes(map)` (any map: its lakes(), else its one lake_center/lake_radius/water_disc),
+  `lakes_of(map)` -> `[Vector3(x, z, wet radius)]`, `lake_of(map)` = the first; `add_lake()` beside `set_lake()` for
+  tests; `in_lake(p)` any lake; `_wade_tick()` (once a tick: marks who wades in `_wade_k`, the factor the walk reads), `_wade_mult(i)` (the same rule for one creature, tools and tests), `_wade_slow`.
+- `Player._wade_mult()`, `Player.water_slow()` (static), `Player.WADE_AIR` 0.35.
+- `Game._wade_level(lakes, at, fallback)`, `Game._discs_of(map)`, `Game._nearest_disc(discs, at)` (static).

@@ -650,29 +650,27 @@ func _lake_refresh() -> bool:
 		return _lake_r2 > 0.0
 	var map = game.get("map") if game != null else null
 	if map == null or not is_instance_valid(map):
+		if _lake_map != 0 or not _lakes_wet.is_empty():
+			_clear_lakes()
 		_lake_map = 0
-		_lake_r2 = 0.0
-		_set_disc(Vector4.ZERO, 0.0)
 		return false
 	var id: int = (map as Object).get_instance_id()
 	if id != _lake_map:
 		_lake_map = id
-		_lake_r2 = 0.0
-		_set_disc(Vector4.ZERO, 0.0)
-		if map.has_method("lake_center") and map.has_method("lake_radius"):
-			var c = map.call("lake_center")
-			var r := float(map.call("lake_radius"))
-			if c is Vector2 and r > 0.0:
-				_lake_c = c
-				_lake_r2 = (r * 1.02) * (r * 1.02)
-				# the drawn water (pass 56), when the map tells it
-				var dv: Variant = map.call("water_disc") if map.has_method("water_disc") else null
-				if dv is Dictionary:
-					var d: Dictionary = dv
-					var dc: Vector2 = d.get("center", c)
-					_set_disc(Vector4(dc.x, float(d.get("top", 0.0)), dc.y, float(d.get("radius", 0.0))), float(d.get("thick", 0.0)))
-				else:
-					_set_disc(Vector4.ZERO, 0.0)
+		_clear_lakes()
+		# pass 80 (lane OASIS): every lake the map names (map_lakes: its lakes(), else its one lake), each with the water
+		# as it draws it (pass 56) when it tells it
+		for l: Dictionary in map_lakes(map):
+			var c: Vector2 = l["center"]
+			var disc := Vector4.ZERO
+			var thick := 0.0
+			var dv: Variant = l.get("disc", null)
+			if dv is Dictionary and not (dv as Dictionary).is_empty():
+				var d: Dictionary = dv
+				var dc: Vector2 = d.get("center", c)
+				disc = Vector4(dc.x, float(d.get("top", 0.0)), dc.y, float(d.get("radius", 0.0)))
+				thick = float(d.get("thick", 0.0))
+			_add_lake(c, float(l["radius"]), disc, thick)
 	return _lake_r2 > 0.0
 
 
@@ -686,19 +684,76 @@ func _set_disc(disc: Vector4, thick: float) -> void:
 	_wet_far2 = far * far
 
 
-## Whether `p` stands in the lake (pass 54, see _lake_refresh; set_lake for tests and tools without a map).
+## Whether `p` stands in the lake (pass 54, see _lake_refresh; set_lake for tests and tools without a map; pass 80: in
+## any lake).
 func in_lake(p: Vector3) -> bool:
-	return _lake_r2 > 0.0 and Vector2(p.x, p.z).distance_squared_to(_lake_c) < _lake_r2
+	for l: Vector4 in _lakes_wet:
+		var dx := p.x - l.x
+		var dz := p.z - l.y
+		if dx * dx + dz * dz < l.z:
+			return true
+	return false
 
 
 ## The lake by hand (tests, tools): centre and radius as the map gives them; a radius of 0 means none. `disc` and
 ## `thick` are the water as the map draws it (pass 56, its water_disc as a Vector4: x, z centre, y top face, w radius);
-## without them only a wading creature loses its shadow.
+## without them only a wading creature loses its shadow. Pass 80: the one lake, in place of every lake there was
+## (add_lake for more).
 func set_lake(center: Vector2, r: float, disc := Vector4.ZERO, thick := 0.0) -> void:
+	_clear_lakes()
 	_lake_c = center
-	_lake_r2 = (r * 1.02) * (r * 1.02) if r > 0.0 else 0.0
-	_set_disc(disc if r > 0.0 else Vector4.ZERO, thick)
+	_add_lake(center, r, disc, thick)
 	_lake_map = -1
+
+
+## One more lake by hand (pass 80, tests and tools; after set_lake).
+func add_lake(center: Vector2, r: float, disc := Vector4.ZERO, thick := 0.0) -> void:
+	_add_lake(center, r, disc, thick)
+	_lake_map = -1
+
+
+## Pass 80 (lane OASIS): every lake as the crowd reads it, the first also the one lake above (_lake_c, _lake_r2, _disc,
+## _disc_thick, _wet_far2 as before): Vector4(x, z centre, the in_water edge squared, how far from the centre a shadow
+## can be wet, squared), the drawn disc (as _disc; w 0 = none) and its thickness.
+var _lakes_wet: Array[Vector4] = []
+var _lakes_disc: Array[Vector4] = []
+var _lakes_thick := PackedFloat32Array()
+
+
+func _clear_lakes() -> void:
+	_lake_r2 = 0.0
+	_set_disc(Vector4.ZERO, 0.0)
+	_lakes_wet.clear()
+	_lakes_disc.clear()
+	_lakes_thick = PackedFloat32Array()
+
+
+func _add_lake(center: Vector2, r: float, disc: Vector4, thick: float) -> void:
+	if r <= 0.0:
+		return
+	var r2 := (r * 1.02) * (r * 1.02)
+	var d := disc if disc.w > 0.0 else Vector4.ZERO
+	var far := sqrt(r2)
+	if d.w > 0.0:
+		far = maxf(far, Vector2(d.x, d.z).distance_to(center) + d.w + DISC_REACH)
+	_lakes_wet.append(Vector4(center.x, center.y, r2, far * far))
+	_lakes_disc.append(d)
+	_lakes_thick.append(maxf(thick, 0.0))
+	if _lakes_wet.size() == 1:
+		_lake_c = center
+		_lake_r2 = r2
+		_set_disc(d, thick)
+
+
+## Whether a shadow at `p` lies near enough any lake to be wet at all (pass 80: the render's cheap test before
+## shadow_wet).
+func _near_water(p: Vector3) -> bool:
+	for l: Vector4 in _lakes_wet:
+		var dx := p.x - l.x
+		var dz := p.z - l.y
+		if dx * dx + dz * dz < l.w:
+			return true
+	return false
 
 
 ## Whether creature `i`'s blob shadow, drawn with `xf` (shadow_xform), lies over the water (pass 54: it wades; pass 56:
@@ -708,10 +763,67 @@ func set_lake(center: Vector2, r: float, disc := Vector4.ZERO, thick := 0.0) -> 
 func shadow_wet(i: int, xf: Transform3D, eye: Vector3) -> bool:
 	if in_lake(pos[i]):
 		return true
-	if _disc.w <= 0.0:
-		return false
-	# the quad is a metre square (_build_shadows): its edges, halved, as drawn, are the blob's half-axes
-	return BillboardSprite.water_covers_blob(xf.origin, xf.basis.x * 0.5, xf.basis.z * 0.5, eye, _disc, _disc_thick)
+	# pass 80: the drawn disc of whichever lake is near (each lake's own reach)
+	for k in range(_lakes_disc.size()):
+		var d: Vector4 = _lakes_disc[k]
+		if d.w <= 0.0:
+			continue
+		var l: Vector4 = _lakes_wet[k]
+		var dx := pos[i].x - l.x
+		var dz := pos[i].z - l.y
+		if dx * dx + dz * dz >= l.w:
+			continue
+		# the quad is a metre square (_build_shadows): its edges, halved, as drawn, are the blob's half-axes
+		if BillboardSprite.water_covers_blob(xf.origin, xf.basis.x * 0.5, xf.basis.z * 0.5, eye, d, _lakes_thick[k]):
+			return true
+	return false
+
+
+## Wading (pass 80, lane OASIS; Garry: "make the water slow everyone down when they walk though it, not by a lot, just
+## 10%"): creature `i`'s walking speed factor, 1 - the map's water_slow (WaveTimeline, 0.1; _wade_slow, read once a tick
+## by _wade_tick) while it stands in any lake: its own walk, charge, roll or brain's move (vel), never a push, knockback
+## or pull (kb). Elites and bosses too; not one in the air (tossed, bounced, launched: those never walk), under the sand
+## or part-way (rising out of it, sinking into a burrow), held or dying. The tick reads _wade_k: once a tick _wade_tick
+## asks the crowd's grid which creatures stand in each lake (indices_in_radius) and marks them, so the cost is the few
+## near the water, not the whole crowd.
+var _wade_slow := 0.0
+## each creature's factor this tick (1 unless it wades) and the ones marked, to put back next tick
+var _wade_k := PackedFloat32Array()
+var _wading := PackedInt32Array()
+
+
+func _wade_tick() -> void:
+	_lake_refresh()
+	if _wade_k.size() != MAX:
+		_wade_k.resize(MAX)
+		_wade_k.fill(1.0)
+	for i in _wading:
+		_wade_k[i] = 1.0
+	_wading.clear()
+	if _lakes_wet.is_empty():
+		_wade_slow = 0.0
+		return
+	var tl: WaveTimeline = Run.map.timeline if Run.map else null
+	_wade_slow = clampf(tl.water_slow if tl else WaveTimeline.WATER_SLOW_DEFAULT, 0.0, 0.95)
+	if _wade_slow <= 0.0:
+		return
+	var k := 1.0 - _wade_slow
+	for l: Vector4 in _lakes_wet:
+		# (the grid holds no one hidden, held or dying)
+		for i in indices_in_radius(Vector3(l.x, 0.0, l.y), sqrt(l.z)):
+			if lift_h[i] > 0.05 or rise_t[i] < 1.0 or _wade_k[i] < 1.0:
+				continue
+			_wade_k[i] = k
+			_wading.append(i)
+
+
+## The rule for one creature now (tools and tests; the tick reads _wade_k, marked by the same rule).
+func _wade_mult(i: int) -> float:
+	if _wade_slow <= 0.0 or i < 0 or i >= MAX or alive[i] == 0 or not in_lake(pos[i]):
+		return 1.0
+	if lift_h[i] > 0.05 or hidden[i] == 1 or held[i] == 1 or rise_t[i] < 1.0 or state[i] == STATE_DYING:
+		return 1.0
+	return 1.0 - _wade_slow
 
 
 func _build_shadows() -> void:
@@ -1209,13 +1321,41 @@ static func ring_arc(center: Vector3, ring_r: float, lim: float) -> Vector2:
 
 ## The map's lake for the spawn spots (pass 58 fix round) as Vector3(x, z, radius), the radius as in_water() reads it
 ## (Red Canyon: 1.02 x the lake's); Vector3.ZERO when the map names no lake (a map that only answers in_water(): the
-## spots ask it point by point instead).
+## spots ask it point by point instead). Pass 80: the first of lakes_of.
 static func lake_of(map: Node) -> Vector3:
-	if map == null or not map.has_method("lake_center") or not map.has_method("lake_radius"):
-		return Vector3.ZERO
-	var c: Vector2 = map.lake_center()
-	var r := float(map.lake_radius())
-	return Vector3(c.x, c.y, r * 1.02) if r > 0.0 else Vector3.ZERO
+	var all := lakes_of(map)
+	return all[0] if not all.is_empty() else Vector3.ZERO
+
+
+## Every lake the map names (pass 80, lane OASIS: two or three oases) as Vector3(x, z, radius), the radius as in_water()
+## reads it (1.02 x the lake's); [] when it names none.
+static func lakes_of(map: Node) -> Array:
+	var out: Array = []
+	for l: Dictionary in map_lakes(map):
+		var c: Vector2 = l["center"]
+		out.append(Vector3(c.x, c.y, float(l["radius"]) * 1.02))
+	return out
+
+
+## Every lake the map names (pass 80): its lakes() when it has them, else its one lake (lake_center, lake_radius and,
+## when it tells it, water_disc), as [{center: Vector2, radius: float, disc: water_disc's dictionary or {}}]; [] when it
+## names none.
+static func map_lakes(map: Node) -> Array:
+	var out: Array = []
+	if map == null:
+		return out
+	if map.has_method("lakes"):
+		for l in map.call("lakes"):
+			if l is Dictionary and (l as Dictionary).get("center") is Vector2 and float((l as Dictionary).get("radius", 0.0)) > 0.0:
+				out.append(l)
+		return out
+	if map.has_method("lake_center") and map.has_method("lake_radius"):
+		var c = map.call("lake_center")
+		var r := float(map.call("lake_radius"))
+		if c is Vector2 and r > 0.0:
+			var dv: Variant = map.call("water_disc") if map.has_method("water_disc") else null
+			out.append({"center": c, "radius": r, "disc": dv if dv is Dictionary else {}})
+	return out
 
 
 ## The arc of a circle of `ring_r` round `center` that lies inside a disc of `disc_r` round `disc_c` (x, z) (pass 58 fix
@@ -1242,21 +1382,23 @@ static func ring_in_disc(center: Vector3, ring_r: float, disc_c: Vector2, disc_r
 ## which spans some 40 degrees 20 m off): the nearer edge of the lake's arc at that distance first, then the farther,
 ## each a body (ROCK_PAD) and a little more clear of the water; [] when the point is dry or the map names no lake.
 static func lake_turns(map: Node, from: Vector3, a: float, r: float) -> Array:
-	var lake := lake_of(map)
-	if lake.z <= 0.0:
-		return []
-	var wet := ring_in_disc(from, r, Vector2(lake.x, lake.y), lake.z + ROCK_PAD)
-	if wet.y <= 0.0 or wet.y >= PI:
-		return []
-	# the yaw's angle on the ring: (-sin a, -cos a) = (cos t, sin t)
-	var t := -a - PI * 0.5
-	var off := wrapf(t - wet.x, -PI, PI)
-	if absf(off) >= wet.y:
-		return []
-	var side := 1.0 if off >= 0.0 else -1.0
-	var near_t := wet.x + side * (wet.y + LAKE_TURN_MARGIN)
-	var far_t := wet.x - side * (wet.y + LAKE_TURN_MARGIN)
-	return [-near_t - PI * 0.5, -far_t - PI * 0.5]
+	# pass 80: the lake whose arc holds the yaw (the lakes lie far apart: one at most)
+	for lake: Vector3 in lakes_of(map):
+		if lake.z <= 0.0:
+			continue
+		var wet := ring_in_disc(from, r, Vector2(lake.x, lake.y), lake.z + ROCK_PAD)
+		if wet.y <= 0.0 or wet.y >= PI:
+			continue
+		# the yaw's angle on the ring: (-sin a, -cos a) = (cos t, sin t)
+		var t := -a - PI * 0.5
+		var off := wrapf(t - wet.x, -PI, PI)
+		if absf(off) >= wet.y:
+			continue
+		var side := 1.0 if off >= 0.0 else -1.0
+		var near_t := wet.x + side * (wet.y + LAKE_TURN_MARGIN)
+		var far_t := wet.x - side * (wet.y + LAKE_TURN_MARGIN)
+		return [-near_t - PI * 0.5, -far_t - PI * 0.5]
+	return []
 
 
 ## How far past the lake's edge (radians) lake_turns puts a point.
@@ -1301,13 +1443,17 @@ static func ring_spots(center: Vector3, ring_r: float, n: int, lim: float, rng: 
 	var whole := arc.y >= PI - 0.0001
 	var ctx: Dictionary = _clear_ctx(map, center, ring_r - jit - 2.5, ring_r + jit + 3.0) if map != null else {}
 	if not ctx.is_empty():
-		var lake: Vector3 = ctx["lake"]
-		if lake.z > 0.0:
-			var wet := ring_in_disc(center, ring_r, Vector2(lake.x, lake.y), lake.z + ROCK_PAD + jit)
-			if wet.y > 0.0 and wet.y < PI:
-				var dry := _dry_arcs(arc, whole, turn, wet)
-				if not dry.is_empty():
-					return _spots_on(dry, center, ring_r, n, lim, rng, slide, jitter, ctx)
+		# pass 80: every lake's arc cut out (two or three oases)
+		var wets: Array = []
+		for lake: Vector3 in ctx["lakes"]:
+			if lake.z > 0.0:
+				var wet := ring_in_disc(center, ring_r, Vector2(lake.x, lake.y), lake.z + ROCK_PAD + jit)
+				if wet.y > 0.0 and wet.y < PI:
+					wets.append(wet)
+		if not wets.is_empty():
+			var dry := _dry_arcs_many(arc, whole, turn, wets)
+			if not dry.is_empty():
+				return _spots_on(dry, center, ring_r, n, lim, rng, slide, jitter, ctx)
 	var step := TAU / float(n) if whole else 2.0 * arc.y / float(n)
 	var start := turn if whole else arc.x - arc.y + step * 0.5
 	var hw := maxf(arc.y - 0.02, 0.0)
@@ -1339,7 +1485,9 @@ static func _clear_ctx(map: Node, center: Vector3, r_in: float, r_out: float) ->
 				var d := Vector2(ov.x - center.x, ov.y - center.z).length()
 				if d - keep <= r_out and d + keep >= r_in:
 					near.append(Vector3(ov.x, ov.y, keep))
-	return {"obs": near, "lake": lake_of(map), "map": map}
+	# (pass 80: "lakes" every lake, "lake" the first as before)
+	var lakes := lakes_of(map)
+	return {"obs": near, "lake": lakes[0] if not lakes.is_empty() else Vector3.ZERO, "lakes": lakes, "map": map}
 
 
 ## spawn_clear() on a ring's gathered rocks and lake (_clear_ctx).
@@ -1347,9 +1495,13 @@ static func _clear_in(ctx: Dictionary, p: Vector3) -> bool:
 	for o: Vector3 in ctx["obs"]:
 		if Vector2(p.x - o.x, p.z - o.y).length_squared() < o.z * o.z:
 			return false
-	var lake: Vector3 = ctx["lake"]
-	if lake.z > 0.0:
-		return Vector2(p.x - lake.x, p.z - lake.y).length_squared() >= lake.z * lake.z
+	var lakes: Array = ctx.get("lakes", [])
+	if not lakes.is_empty():
+		# pass 80: clear of every lake
+		for lake: Vector3 in lakes:
+			if Vector2(p.x - lake.x, p.z - lake.y).length_squared() < lake.z * lake.z:
+				return false
+		return true
 	var map: Node = ctx["map"]
 	return map == null or not map.has_method("in_water") or not map.in_water(p)
 
@@ -1358,14 +1510,21 @@ static func _clear_in(ctx: Dictionary, p: Vector3) -> bool:
 ## `turn` when `whole`) less the lake's arc `wet` (ring_in_disc), as Vector2(start, end) angles, end > start; a sliver too
 ## short for a body is dropped.
 static func _dry_arcs(arc: Vector2, whole: bool, turn: float, wet: Vector2) -> Array:
+	return _dry_arcs_many(arc, whole, turn, [wet])
+
+
+## _dry_arcs less every wet arc in `wets` (pass 80: a ring can cross two lakes).
+static func _dry_arcs_many(arc: Vector2, whole: bool, turn: float, wets: Array) -> Array:
 	var a0 := turn if whole else arc.x - arc.y
 	var a1 := a0 + (TAU if whole else 2.0 * arc.y)
-	# the wet arc moved by whole turns to start in a0 .. a0 + TAU
-	var w0 := a0 + fposmod(wet.x - wet.y - a0, TAU)
-	var w1 := w0 + 2.0 * wet.y
-	var ivs := _cut_arc([Vector2(a0, a1)], w0, w1)
-	if w1 > a0 + TAU:
-		ivs = _cut_arc(ivs, a0, w1 - TAU)
+	var ivs: Array = [Vector2(a0, a1)]
+	for wet: Vector2 in wets:
+		# the wet arc moved by whole turns to start in a0 .. a0 + TAU
+		var w0 := a0 + fposmod(wet.x - wet.y - a0, TAU)
+		var w1 := w0 + 2.0 * wet.y
+		ivs = _cut_arc(ivs, w0, w1)
+		if w1 > a0 + TAU:
+			ivs = _cut_arc(ivs, a0, w1 - TAU)
 	var out: Array = []
 	for v: Vector2 in ivs:
 		if v.y - v.x > 0.02:
@@ -3094,6 +3253,8 @@ func _physics_process(delta: float) -> void:
 	# the cooldowns keep their clocks); walks, charges and rolls, wind-ups and warnings carry it themselves. Times the
 	# timeline's creature_speed_mult (pass 60): the creatures' own knob, the hero's pace untouched
 	pace = Run.move_pace() * creature_speed_mult
+	# pass 80 (lane OASIS): the lakes and the water's slow, who wades this tick (_wade_k)
+	_wade_tick()
 	# High Noon slows the whole crowd's clock: steering, attacks, animations
 	delta *= time_scale
 	var ppos: Vector3 = player.global_position
@@ -3212,8 +3373,8 @@ func _physics_process(delta: float) -> void:
 			view_t[i] -= delta
 		if (i & 1) == parity:
 			_steer(i, decoy_target(i, ppos), sdt)
-		# integrate
-		var v := vel[i] + kb[i]
+		# integrate (pass 80: its own move wades at water_slow slower, a push never)
+		var v := vel[i] * _wade_k[i] + kb[i]
 		kb[i] = kb[i].lerp(Vector3.ZERO, delta * 6.0)
 		var np := pos[i] + v * delta
 		np = _clamp_arena(np)
@@ -4935,10 +5096,8 @@ func _render() -> void:
 	var scr := Vector3(-scf.z, 0, scf.x)
 	var cam_up := _cam_up()
 	# a creature wading in the lake casts no shadow (pass 54, in_lake), nor one the drawn water covers any of from the
-	# camera (pass 56, shadow_wet); only those near the lake are asked
+	# camera (pass 56, shadow_wet); only those near the lake are asked (pass 80: near any lake, _near_water)
 	var lake := _lake_refresh()
-	var wet_far2 := _wet_far2
-	var lake_c := _lake_c
 	var vp := get_viewport()
 	var eye_cam: Camera3D = vp.get_camera_3d() if vp else null
 	var eye: Vector3 = eye_cam.global_position if eye_cam else Vector3.INF
@@ -5029,7 +5188,7 @@ func _render() -> void:
 					# the shadow grows in under a figure rising out of the sand (pass 60; the blob has no alpha of its own)
 					var sk := lerpf(0.35, 1.0, rise_k)
 					sxf.basis = sxf.basis.scaled(Vector3(sk, 1.0, sk))
-				if not (lake and Vector2(pos[i].x, pos[i].z).distance_squared_to(lake_c) < wet_far2 and shadow_wet(i, sxf, eye)):
+				if not (lake and _near_water(pos[i]) and shadow_wet(i, sxf, eye)):
 					_shadow_mm.set_instance_transform(shadow_n, sxf)
 					shadow_n += 1
 	for t in range(types.size()):

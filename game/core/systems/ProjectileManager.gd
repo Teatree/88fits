@@ -3507,11 +3507,25 @@ func _wick_looks_played() -> bool:
 ## every segment as a ring of TRACER_LINE_MAX; the shader faces each to the camera and fades it on the shots' clock, so a
 ## frame costs one uniform and a new segment two instance writes; a busy screen laps the ring and cuts the oldest lines
 ## short instead of slowing down. The old bead keys (tracer_size, tracer_step, tracer_beads) draw nothing any more.
+## Pass 80 (lane TRAIL; Garry: "The revolver trail looks awful ... I want a clear visible trail, but one that doesn't
+## look this bad"; research in tools/dl/p80/TRAIL/research.md): the line is one of five looks, `tracer_style` per weapon,
+## mutation or evolution (TRACER_STYLE without one): "streak" (a short tapered tracer round, white-hot core, the colour,
+## a darker rim), "ribbon" (longer, its core dies first), "wisp" (the streak over a pale smoke), "toon" (hard cel bands
+## with a dark outline) and "line" (pass 79's). Each style has its own life and width (TRACER_STYLE_LIFE / _WIDTH) unless
+## the weapon's `tracer_life` / `tracer_width` say otherwise, and its own `hot` (TRACER_STYLE_HOT, `tracer_hot`): the
+## part of the life the white core (the wisp's streak) lasts. Same ring, same MultiMesh, same shader: the style rides in
+## each segment's transform.
 const TRACER_LINE_MAX := 2048
 const TRACER_WIDTH := 0.05
 const TRACER_SEG_MIN := 0.3
 const TRACER_BUSY := 60
 const TRACER_SHADER := preload("res://core/shaders/tracer_line.gdshader")
+const TRACER_STYLE := "wisp"
+const TRACER_STYLE_IDS := {"line": 0, "streak": 1, "ribbon": 2, "wisp": 3, "toon": 4}
+## per style id: the default life (s), head width (m) and hot part of the life
+const TRACER_STYLE_LIFE: Array[float] = [TRAIL_LIFE, 0.13, 0.3, 0.55, 0.2]
+const TRACER_STYLE_WIDTH: Array[float] = [TRACER_WIDTH, 0.1, 0.1, 0.1, 0.1]
+const TRACER_STYLE_HOT: Array[float] = [0.0, 0.7, 0.4, 0.3, 0.5]
 var _ln_mm: MultiMesh
 var _ln_mat: ShaderMaterial
 var _ln_next := 0
@@ -3526,6 +3540,9 @@ var tracer_birth := PackedFloat32Array()
 var tracer_life := PackedFloat32Array()
 var tracer_width := PackedFloat32Array()
 var tracer_col := PackedColorArray()
+## pass 80: each slot's style id (TRACER_STYLE_IDS) and hot part
+var tracer_kind := PackedInt32Array()
+var tracer_hot := PackedFloat32Array()
 ## Diagnostics: segments laid since the start.
 var tracer_segments := 0
 
@@ -3556,6 +3573,8 @@ func _tracer_build() -> void:
 	tracer_life.resize(TRACER_LINE_MAX)
 	tracer_width.resize(TRACER_LINE_MAX)
 	tracer_col.resize(TRACER_LINE_MAX)
+	tracer_kind.resize(TRACER_LINE_MAX)
+	tracer_hot.resize(TRACER_LINE_MAX)
 	for k in range(TRACER_LINE_MAX):
 		tracer_birth[k] = -1000.0
 
@@ -3569,6 +3588,11 @@ func _tracer_tick(i: int, w: WeaponInstance, delta: float, hero: Node3D) -> void
 		ex["ln_t"] = clock - delta
 		if not ex.has("tc"):
 			ex["tc"] = _tracer_colour(w)
+		# pass 80: the look, once a shot (style, width, life, hot)
+		ex["ts"] = tracer_style_id(w)
+		ex["tw"] = tracer_width_of(w)
+		ex["tl"] = tracer_life_of(w)
+		ex["th"] = tracer_hot_of(w)
 	var from: Vector3 = ex["ln_from"]
 	var step := TRACER_SEG_MIN * (2.0 if count > TRACER_BUSY else 1.0)
 	if from.distance_squared_to(pos[i]) < step * step:
@@ -3578,22 +3602,43 @@ func _tracer_tick(i: int, w: WeaponInstance, delta: float, hero: Node3D) -> void
 	ex["ln_t"] = clock
 	if Run.sim_mode:
 		return
-	tracer_segment(from, pos[i], ex["tc"], tracer_width_of(w), tracer_life_of(w), float(w.params.get("tracer_clear", 0.0)), hero, t_from)
+	tracer_segment(from, pos[i], ex["tc"], float(ex["tw"]), float(ex["tl"]), float(w.params.get("tracer_clear", 0.0)), hero, t_from, int(ex["ts"]), float(ex["th"]))
 
 
-## The width (m) and life (s) of weapon `w`'s tracer line.
+## The width (m) and life (s) of weapon `w`'s tracer: its own `tracer_width` / `tracer_life`, else its style's.
 static func tracer_width_of(w: WeaponInstance) -> float:
-	return maxf(float(w.params.get("tracer_width", TRACER_WIDTH)), 0.005) if w else TRACER_WIDTH
+	if w == null:
+		return TRACER_STYLE_WIDTH[TRACER_STYLE_IDS[TRACER_STYLE]]
+	return maxf(float(w.params.get("tracer_width", TRACER_STYLE_WIDTH[tracer_style_id(w)])), 0.005)
 
 
 static func tracer_life_of(w: WeaponInstance) -> float:
-	return maxf(float(w.params.get("tracer_life", TRAIL_LIFE)), 0.05) if w else TRAIL_LIFE
+	if w == null:
+		return TRACER_STYLE_LIFE[TRACER_STYLE_IDS[TRACER_STYLE]]
+	return maxf(float(w.params.get("tracer_life", TRACER_STYLE_LIFE[tracer_style_id(w)])), 0.05)
+
+
+## Pass 80: the style id of weapon `w`'s tracer (its `tracer_style`, TRACER_STYLE without one or for a name it does not
+## know), and the part of the life its core lasts (`tracer_hot`, else the style's).
+static func tracer_style_id(w: WeaponInstance) -> int:
+	var s := str(w.params.get("tracer_style", TRACER_STYLE)) if w else TRACER_STYLE
+	return int(TRACER_STYLE_IDS.get(s, TRACER_STYLE_IDS[TRACER_STYLE]))
+
+
+static func tracer_hot_of(w: WeaponInstance) -> float:
+	var sid := tracer_style_id(w)
+	if w and w.params.has("tracer_hot"):
+		return clampf(float(w.params["tracer_hot"]), 0.02, 1.0)
+	return TRACER_STYLE_HOT[sid]
 
 
 ## One stretch of a line from `a` (the shot passed it at `t_a` on the shots' clock; below 0: now) to `b` (now); with
 ## `clear` > 0 the part within `clear` metres of the hero on the ground plane is cut away (up to two pieces are laid).
-func tracer_segment(a: Vector3, b: Vector3, col: Color, width: float, life_s: float, clear: float = 0.0, hero: Node3D = null, t_a: float = -1.0) -> void:
+## `style` (a TRACER_STYLE_IDS id; below 0: TRACER_STYLE's) and `hot` (below 0: the style's) pick the look (pass 80).
+func tracer_segment(a: Vector3, b: Vector3, col: Color, width: float, life_s: float, clear: float = 0.0, hero: Node3D = null, t_a: float = -1.0, style: int = -1, hot: float = -1.0) -> void:
 	var ta := t_a if t_a >= 0.0 else clock
+	var sid := style if style >= 0 and style < TRACER_STYLE_LIFE.size() else int(TRACER_STYLE_IDS[TRACER_STYLE])
+	var sh := hot if hot >= 0.0 else TRACER_STYLE_HOT[sid]
 	if clear > 0.0 and hero != null:
 		var h := hero.global_position
 		var ra := Vector2(a.x - h.x, a.z - h.z)
@@ -3609,25 +3654,29 @@ func tracer_segment(a: Vector3, b: Vector3, col: Color, width: float, life_s: fl
 				var t1 := (-qb + sq) / (2.0 * qa)
 				if t0 > 0.0:
 					var u0 := minf(t0, 1.0)
-					_tracer_lay(a, a.lerp(b, u0), col, width, life_s, ta, lerpf(ta, clock, u0))
+					_tracer_lay(a, a.lerp(b, u0), col, width, life_s, ta, lerpf(ta, clock, u0), sid, sh)
 				if t1 < 1.0:
 					var u1 := maxf(t1, 0.0)
-					_tracer_lay(a.lerp(b, u1), b, col, width, life_s, lerpf(ta, clock, u1), clock)
+					_tracer_lay(a.lerp(b, u1), b, col, width, life_s, lerpf(ta, clock, u1), clock, sid, sh)
 				return
 		elif ra.length_squared() < clear * clear:
 			return
-	_tracer_lay(a, b, col, width, life_s, ta, clock)
+	_tracer_lay(a, b, col, width, life_s, ta, clock, sid, sh)
 
 
 ## Writes one segment into the ring, its start born at `t_a` and its end at `t_b` on the shots' clock: its transform
 ## carries the data the shader reads (see tracer_line.gdshader).
-func _tracer_lay(a: Vector3, b: Vector3, col: Color, width: float, life_s: float, t_a: float, t_b: float) -> void:
+func _tracer_lay(a: Vector3, b: Vector3, col: Color, width: float, life_s: float, t_a: float, t_b: float, style: int = -1, hot: float = -1.0) -> void:
 	if _ln_mm == null or a.distance_squared_to(b) < 0.000001:
 		return
+	if style < 0 or style >= TRACER_STYLE_LIFE.size():
+		style = int(TRACER_STYLE_IDS[TRACER_STYLE])
+	if hot < 0.0:
+		hot = TRACER_STYLE_HOT[style]
 	var k := _ln_next
 	_ln_next = (_ln_next + 1) % TRACER_LINE_MAX
 	_ln_used = maxi(_ln_used, k + 1)
-	_ln_mm.set_instance_transform(k, Transform3D(Basis(b - a, Vector3(t_b, life_s, width), Vector3(t_a, 0.0, 0.0)), a))
+	_ln_mm.set_instance_transform(k, tracer_xform(a, b, width, life_s, t_a, t_b, style, hot))
 	_ln_mm.set_instance_color(k, col)
 	tracer_from[k] = a
 	tracer_to[k] = b
@@ -3635,8 +3684,16 @@ func _tracer_lay(a: Vector3, b: Vector3, col: Color, width: float, life_s: float
 	tracer_life[k] = life_s
 	tracer_width[k] = width
 	tracer_col[k] = col
+	tracer_kind[k] = style
+	tracer_hot[k] = hot
 	_ln_end = maxf(_ln_end, t_b + life_s)
 	tracer_segments += 1
+
+
+## A segment's instance transform as tracer_line.gdshader reads it (pass 80): origin the start, basis x the segment,
+## basis y (the end's birth, life, width), basis z (the start's birth, the style id, hot).
+static func tracer_xform(a: Vector3, b: Vector3, width: float, life_s: float, t_a: float, t_b: float, style: int, hot: float) -> Transform3D:
+	return Transform3D(Basis(b - a, Vector3(t_b, life_s, width), Vector3(t_a, float(style), hot)), a)
 
 
 ## The draw (once per shown frame): the shader's clock, and the ring's used part; nothing once every line is out.

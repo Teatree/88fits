@@ -1108,3 +1108,184 @@ clock: x time_scale; the push `kb` left out). Lobber `LEAD_MAX`, `LEAD_GAP`, `LE
 `LEAD_STEPS` (4), `lead_config(params)`, `lead_spot(...)`, `predict_pick(counts)`, `_keep_gap(...)`, `_lead_target(...)`,
 counters `leads`, `last_lead`. A led shot's extra carries `lead_from` (the crowd's spot at the throw);
 ProjectileManager.claimed_spots claims it beside the led `target`.
+
+## Pass 80: new keys
+
+### The tracer (lane TRAIL)
+
+Every key sits in a weapon's, mutation's or evolution's `params` (a mutation's keys lay over its weapon's; an evolution's
+`final` block over its own). Read by core/systems/ProjectileManager.gd (`_tracer_*`, `tracer_*_of`), drawn by
+core/shaders/tracer_line.gdshader. In the Level Editor: the weapon / mutation / evolution form's typed group "Tracer (the
+trail behind every round)" (assets_fields.js PARAM_GROUPS id `tracer`, shown where any of these keys is set, else under
+"+ typed group"); vocab.py PARAMS_KEYS ProjectileEmitter and assets_fields.js PARAMS_SHARED know `tracer_style` and
+`tracer_hot`.
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `tracer` | bool | false | draw a trail behind every round (unchanged) |
+| `tracer_style` | string | `ProjectileManager.TRACER_STYLE` = `"wisp"` | **new.** The look: `"wisp"` (the shipped one: a red-hot tapered streak riding with the bullet over a pale smoke that lingers and fades), `"streak"` (the streak alone: a short tracer round), `"ribbon"` (a longer tapered ribbon whose hot middle dies first, widening a little like a wake), `"toon"` (hard cartoon bands: white middle, flat colour, dark outline), `"line"` (pass 79's thin line that fades like smoke). An unknown name = the default. |
+| `tracer_color` | colour string | none (gold; fire orange; poison green; Silver Bullet's silver) | unchanged order (`_tracer_colour`). The Revolver's own is now `#C41E16` (was `#8B0A0A`) |
+| `tracer_alpha` | float 0..1 | 0.9 | unchanged |
+| `tracer_width` | float m | the style's: `TRACER_STYLE_WIDTH` 0.1 (line 0.05) | the trail's width **at the bullet, glow included**; the streak styles taper behind it (pass 79: the line's constant width). A head is never under 3 screen pixels (the line: 1.5) |
+| `tracer_life` | float s | the style's: `TRACER_STYLE_LIFE` wisp 0.55, streak 0.13, ribbon 0.3, toon 0.2, line 1.4 | how long each piece lives (the trail's length = speed x life for the streak part). Leave it out to get the style's own; a weapon that sets it keeps it whatever the style |
+| `tracer_hot` | float 0..1 | **new.** the style's: `TRACER_STYLE_HOT` wisp 0.3, streak 0.7, ribbon 0.4, toon 0.5 | the share of the life the white-hot middle lasts; for the wisp, the share that is streak before it turns to smoke. Clamped 0.02..1. Set on the Tommy Gun / Chicago Typewriter (0.45 of a 0.3 s life) and the Boomstick / Blunderbuss (0.5 of 0.25 s) |
+| `tracer_clear` | float m | 0 | unchanged (the Revolver's 1.1) |
+| `tracer_size`, `tracer_step`, `tracer_beads` | | | the old beads' keys: still draw nothing (pass 79) |
+
+Code constants (ProjectileManager.gd, "pass 79 (lane FX): the tracers' lines" section): `TRACER_STYLE` (the default
+style), `TRACER_STYLE_IDS` {line 0, streak 1, ribbon 2, wisp 3, toon 4}, `TRACER_STYLE_LIFE`, `TRACER_STYLE_WIDTH`,
+`TRACER_STYLE_HOT` (per id); `tracer_style_id(w)`, `tracer_hot_of(w)`, `tracer_xform(...)` (the segment's transform);
+ring arrays `tracer_kind`, `tracer_hot` beside pass 79's. `tracer_segment(a, b, col, width, life, clear, hero, t_a,
+style := -1, hot := -1.0)` gained the last two (below 0: the default's).
+
+Shader (tracer_line.gdshader): the line's uniforms are kept (now, widen, rise, fade_pow, smoke_grey, sway, min_px,
+edge_soft); the new looks' numbers are `const`s at the top of the file (head_px 3, streak_taper 0.75, ribbon_taper 1,
+ribbon_wake 0.7, toon_taper 0.35, toon_scale 0.6, core_size 0.2, inner_w 0.42, halo_alpha 0.42, head_glow 0.8,
+core_tint 0.14, core_white, rim_pow 2.4, rim_gain 0.9, rim_from 0.45, rim_mix 0.35, rim_light 0.9, light_dark 0.3,
+warm_dark 0.8, warm_tip 0.3 (a light saturated colour, gold: an amber body and a white middle only at the tip),
+glow_soft 0.42, toon_outline 0.62, smoke_width 2.4, smoke_alpha 0.38, smoke_rise 0.35, smoke_colour).
+
+#### How Garry switches the look
+- One weapon: its JSON `params` `"tracer_style": "streak"` (or ribbon / toon / line / wisp), or the Level Editor's
+  Tracer group, Style select; import (Save in the editor does it). The Revolver's JSON names it already
+  (`"tracer_style": "wisp"`), so the Revolver is one word away.
+- One path: the same key on a mutation (it lays over the weapon's) or in an evolution's params / `final`.
+- Every tracer weapon at once: `const TRACER_STYLE := "wisp"` in game/core/systems/ProjectileManager.gd.
+- Back to pass 79 exactly: `"tracer_style": "line"` plus the old `"tracer_life"` (Revolver 0.9) and `"tracer_width"`
+  (Revolver 0.045, Silver Bullet 0.11) and colour `#8B0A0A`.
+
+#### For docs/assets_schema.md (the lead): "Pass 80" paragraph
+`params.tracer_style` (string, default "wisp": wisp | streak | ribbon | toon | line) and `params.tracer_hot` (0..1, the
+style's) pick the look of a weapon's tracer; `tracer_width` is now the width at the bullet glow included (default the
+style's, 0.1 m), `tracer_life` the style's when absent (wisp 0.55 s). Research and pictures: tools/dl/p80/TRAIL/.
+
+### The bot's options: sim_run.gd, sim_batch.py, the Sim tab (lane BOT)
+
+The bot is `game/tools/bot/Bot.gd` (with BotLegs.gd, BotCards.gd, BotGoals.gd). Its options are one dictionary; the run
+sim takes the same keys as args (`key=value`), tools/sim_batch.py as `--bot "key=value,key=value"` or the settings'
+`bot` dict, the Level Editor's Sim tab in its "Bot" group. A key left out takes its preset's value.
+
+#### Options (Bot.resolve_opts)
+
+| key | type | default (explorer) | meaning |
+|---|---|---|---|
+| `preset` | explorer \| sim77 \| careless \| expert | explorer | the whole set (below); `sim77` is pass 77's bot exactly |
+| `seed` | int | 1 (the sim: the run's seed) | the bot's dice: card ties and skill noise (`hash([seed,"bot"])`), the legs (`hash([seed,"pilot"])`), the planner's taste/mood/jitter (`hash([seed,"goals"])`), the dodge roll (`hash([seed,"dodge"])`) |
+| `skill` | 0..1 | 0.9 | decision quality: every score read with a gaussian error of (1 - skill) x 25 points; 1 always the best |
+| `style` | balanced \| damage \| safety \| greedy | balanced | the scores' weights (dps / survival / plan / greed) and the goals' (STYLE_GOALS) |
+| `reaction` | s, 0..3 | 0 | delay before a new warning (a telegraph younger than it is not seen) or a big one close (the danger push seen that late) is acted on |
+| `dodge` | 0..1 | 1 | the share of warnings on the sand he sees at all (a fixed roll per warning) |
+| `daring` | 0..1 | 0.5 | the kite's distances: keep 4.5 + (0.5 - daring) x 4 m, flee 2.6 + (0.5 - daring) x 2 m |
+| `stray` | m, 0..200 | 60 | how far the sweep looks for gems (pass 77's lure_r; `lure_r=` still works) |
+| `explore` | 0..1 | 0.6 | the wish to see the map (0: no explore goals) |
+| `totems` | bool | on | Totem Poles are goals (seen ones) |
+| `barrels` | bool | on | barrels are goals (seen ones) |
+| `powerups` | bool | on | power-ups lying in sight are goals, and the sweep counts them (pass 77's sweep did; off: neither) |
+| `structures` | bool | on | the other structures are goals by what they give (not totems; shop and stranger also need their own key) |
+| `shop` | bool | on | walks to the Travelling Shop with gold to spend and buys a ware worth its price; off: leaves at once |
+| `stranger` | bool | on | walks to the Stranger while healthy and takes his deal when it is worth the cut; off: walks away |
+| `boss` | leash \| free | leash | leash: within 10 m of a living boss (pass 77's rule); free: roams |
+| `cards` | score \| tier | score | score: cards, mutation offers, totem gifts by score; tier: pass 77's order, a random mutation, the most feathers |
+| `death` | end \| ad \| keep | end (the sim passes its `death`) | how Down! is answered (the sim's own policy) |
+| `lure_w`, `lure_close` | float | -1 (the legs' 2.0 / 0.3) | pass 77's sweep knobs |
+| `t0` | float | 0 | the caller's clock when the bot starts (the run sim's, so the legs' idle wander stays pass 77's) |
+
+#### Presets (Bot.PRESETS; plain literals, read by tools/sim_batch.py bot_presets())
+
+| | skill | style | reaction | dodge | daring | stray | explore | totems | barrels | powerups | structures | shop | stranger | boss | cards |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| sim77 | 1 | balanced | 0 | 1 | 0.5 | 60 | 0 | off | off | on | off | off | off | leash | tier |
+| explorer | 0.9 | balanced | 0 | 1 | 0.5 | 60 | 0.6 | on | on | on | on | on | on | leash | score |
+| careless | 0.4 | balanced | 0.6 | 0.5 | 0.8 | 60 | 0.4 | on | on | on | on | on | on | free | score |
+| expert | 1 | balanced | 0.1 | 1 | 0.45 | 60 | 0.7 | on | on | on | on | on | on | leash | score |
+
+#### The API (INTERFACES.md)
+`BOT.new(game, opts)`, `bot.tick(dt)`, `bot.intent`, `bot.goal`, `bot.decisions`, `signal decided(entry)`; also
+`bot.opts` (resolved), `bot.summary()`, `bot.events` (the run sim's pick/portal/assist/revive events), `bot.revives`,
+`bot.assists`, `bot.picks`, `bot.mode_frames`, `bot.metres`, `bot.planner` (BotGoals or null), `Bot.resolve_opts(raw)`,
+`Bot.planner_on(opts)`, `bot.hp_frac()`, `bot.danger()`, `bot.dps_now()`.
+
+Decision entry: `{t, clock, kind, offered: [{id, name, score, parts}], taken, reason, level, dps_before}`; kinds: card,
+mutation, chest, totem, stranger, shop, structure (a structure the bot walked to was used), goal (also `what`,
+`runner_up`; a goal given up is a goal entry with taken ""). Card parts: dps (% of the estimated DPS now), survival,
+plan, greed; the shop's also price and gold (the price in points), the Stranger's hp_cost, a totem gift's feathers.
+A goal's parts: value, dist.
+
+#### sim_run.gd output (additive)
+- `meta.bot`: `{opts, metres, goals {kind: commits}, gave_up, decisions {kind: n}, seen (share of the arena), shop_bought,
+  stranger_taken, tallies {structures_by {id: n}, structures (not totems), totems, totem_t [play s], powerups (taken,
+  the small ones not counted), barrels (BarrelField.broken)}}`.
+- `bot_decisions`: every decision entry.
+- New args: `preset= skill= style= reaction= dodge= daring= stray= explore= totems= barrels= powerups= structures= shop=
+  stranger= boss= cards=` (sim_run.gd `BOT_ARGS`); a preset it does not know is an argument error.
+
+#### tools/sim_batch.py
+- settings key `bot` (sparse dict; `{}` = the runner's default preset), CLI `--bot "preset=sim77,skill=0.8"`;
+  `BOT_PRESETS`, `BOT_KEYS`, `clean_bot`, `bot_arg`, `bot_presets(game_dir)`, `bot_effective`, `bot_words`;
+  `runner_caps()["bot"]` (the runner has BOT_ARGS); a bot setting on an older runner is a caps problem.
+- result.json `bot`: `{summary {totems, totems_20, barrels, structures, powerups, shop, stranger, metres, seen, gave_up}
+  (means), players [{k, preset, ...the same, structures_by}]}` (beside aggregate()'s keys).
+
+#### Level Editor
+- `/api/sim/settings` → `bot: {default, presets [{key, label, help, values}], keys [{key, kind, lo, hi, step, choices,
+  label, help}]}`; the history's `bot_words`.
+- jobs.py "sim" spec field `bot` (json) → `--bot`.
+- The Sim tab: a "Bot" group under the Upgrade board: the four presets, every option with the value the runs play (the
+  preset's, or set here, marked, × back to the preset's); the head card's "Bot:" line with the map tallies; the runs
+  table's "the map" column.
+
+### The Watch (lane WATCH)
+
+#### tools/watch.py (the launcher; `tools\watch.cmd` = `--hero drifter --board quarter --seed random` + whatever is passed)
+| Option | Default | Meaning |
+|---|---|---|
+| `--hero <id>` | drifter | the hero (any, hidden ones too) |
+| `--board none\|quarter\|half\|full\|save\|<ranks>` | quarter | the Upgrade board as the Sim's presets (sim_batch.board_talents); `save` = the PC save's board (read only) |
+| `--talents grit:AAB,drive:A` | | the board talent by talent (A the first form, B the second); wins over `--board` |
+| `--seed <n>\|random` | random | the run's dice (Run.seed_dice, the map layout, the crowd's and the pickups' dice) |
+| `--map <id>` | red_canyon | |
+| `--limit <s or m:ss>` | 0 | the run ends after that much play (0: until he falls / extracts) |
+| `--speed 0.25..8` | 1 | the speed at the start (the nearest of 0.25, 0.5, 1, 2, 4, 8) |
+| `--paused` | off | start paused |
+| `--death end\|ad\|keep` | end | Down! as the bot answers it (the Sim's `death`) |
+| `--unlocks all\|save` | all | every unlock quest done (the whole content in the card pool), or the Watch save's (none) |
+| `--ref auto\|none\|<result.json>` | auto | the charts' grey line: the newest Sim result (tools/dl/sim/runs) of the same hero, board and map |
+| `--bot key=value` (repeatable) | | a bot option (lane BOT's keys: preset, skill, style, reaction, dodge, daring, stray, explore, totems, barrels, powerups, structures, shop, stranger, boss, cards) |
+| `--bot-preset <name>` | | = `--bot preset=<name>` (explorer, sim77, careless, expert) |
+| `--stub` | off | the Watch's stand-in bot (game/tools/watch/BotStub.gd: pass 77's rules in small) instead of tools/bot/Bot.gd |
+| `--mute` | off | start with the sound off |
+| `--no-numbers` | off | no floating damage numbers (above 2x they are always off) |
+| `--size WxH` | 1920x1080 | the window (fitted to the screen's usable area) |
+| `--skip-draw 1\|0` | 1 | above 1x the frames that are not drawn skip the drawing work (Run.sim_mode); 0 keeps it (slower) |
+| `--no-sync` | off | play the snapshot as it is |
+| `--wait` / `--timeout <s>` | off / 0 | wait for the window to close (and kill it after the timeout); the exit code is Godot's |
+| `--autoquit` | off | close the window when the run ends |
+| `--wall <s>` | 0 | end the run after that many wall seconds |
+| `--shots <dir>` / `--shots-at <play s,...>` | | window PNGs at those moments and at the end |
+| `--actions <when>:<what>,...` | | checks: `p<play s>` or `w<wall s after the action before>`, then `pause`, `go`, `step`, `level`, `speed=<x>`, `shot=<name>`, `end`, `say` |
+| `--log-speed <s>` / `--profile` | 30 / off | the log's speed line every that many wall seconds; with the frame costs |
+| `--log <file>` | tools/dl/watch/logs/watch_<time>.log | Godot's log |
+
+Files: snapshot `tools/dl/watch/snap/game` (user folder `%APPDATA%/Godot/app_userdata/88fits_watch`), lock
+`tools/dl/locks/watch.lock` (owner.json names the Godot pid; the window lets go of it when it closes), logs
+`tools/dl/watch/logs/`. The run's record: `analytics/runs/tools/<stamp>.json` (schema 2, `header.launch.watch = true`,
+`header.watch = {bot, bot_opts, board, talents, ref}`), the decision log `analytics/runs/tools/<stamp>_decisions.csv`.
+
+#### The Godot side (watch_main.gd -> Watch.gd), after `--`
+`hero= seed= map= talents= board_label= limit= speed= paused= death= unlocks= repo= lock= sound= numbers= log_speed=
+ref= ref_label= bot= bot.<key>= autoquit= wall= shots= shots_at= w= h= profile= actions= skip_draw=` (watch.py writes
+them; started as `Godot --fixed-fps 60 --path <snapshot> --log-file <log> --script res://tools/watch/watch_main.gd -- ...`).
+
+#### The decision log CSV
+`t, clock, level, kind, taken, taken_name, reason, offered (id=score | ...), est_dps_before (the bot's dps_before),
+real_dps_before (mean real DPS over the 30 s before), real_dps_after_30s (the 30 s after), real_change_pct` (empty =
+not known: no row in the window, or under 1 DPS before).
+
+#### The Level Editor
+Sim tab: a **Watch** button in the "Run a sim" head row (sim.js `watchRun`): `POST /api/sim/watch {settings}` (sim_io.py
+`watch`, `watch_args`): tools/watch.py started (not waited for) with the tab's hero, board (talents), seed, map, Down!
+answer and bot options; 409 while a Watch is open (watch.lock's owner alive). Its own output: tools/dl/watch/logs/launch_<time>.log.
+
+#### Keys in the window
+Space pause / go on · 1..6 the speeds 0.25x, 0.5x, 1x, 2x, 4x, 8x · + / - faster / slower · . (period) step one second ·
+L run to the next level-up · G the charts' last 3 minutes / whole run · M sound. (No WASD or arrows: they steer the hero.)

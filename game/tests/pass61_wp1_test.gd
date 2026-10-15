@@ -221,10 +221,12 @@ func test_dragons_breath_orange_pellets_a_flame_tongue_and_a_red_hot_barrel() ->
 	# the same turn as the plain pellets (nose first) and made once
 	assert_bool(bool(pm.kinds[k]["turned"])).is_true()
 	assert_int(pe._kind()).is_equal(k)
-	# their tracer beads orange (the fire element), longer-lived than the plain spray's
+	# their tracer orange (the fire element), at least as long-lived as the plain spray's
 	var tc: Color = pm._tracer_colour(pe.inst)
 	assert_bool(tc.r > 0.9 and tc.g < 0.6).is_true()
-	assert_float(float(pe.inst.params["tracer_life"])).is_greater(float(Registry.weapon("boomstick").params["tracer_life"]))
+	# (pass 80, lane TRAIL: both take their tracer style's life now, the wisp's smoke outliving the old beads; the fire is
+	# in the colour)
+	assert_float(ProjectileManager.tracer_life_of(pe.inst)).is_greater_equal(ProjectileManager.tracer_life_of(WeaponInstance.new(Registry.weapon("boomstick"), 1)))
 	# a shot: the tongue licks out of the muzzle, the barrel glows red-hot and cools in about 0.6 s
 	assert_bool(pe._fire()).is_true()
 	for j: int in _shots_of(pm, pe.inst):

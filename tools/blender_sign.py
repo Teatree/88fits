@@ -35,7 +35,9 @@ RIM = 0.02            # the darker frame round each face of the board
 NAIL_X = 0.11         # the nail heads, just clear of the post's face
 NAIL_Z = 0.045
 NAIL_S = 0.016
-NAIL_UP = 0.004
+# pass 80 (lane WALLS, the sign's z-fighting): the heads stand 12 mm proud of the board (were 4 mm, under what the
+# depth buffer tells apart once sign_depth.gdshader squeezes the sign's depth: they flickered in and out of the wood)
+NAIL_UP = 0.012
 ARM_SHOW_Z = 2.0
 
 POST_RGB = (84, 60, 38)

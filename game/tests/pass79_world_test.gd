@@ -103,30 +103,7 @@ func _ridges(m: Node3D) -> Array:
 	return out
 
 
-## The boundary wall's vertex colours and its boulders' colour.
-func _wall_parts(m: Node3D) -> Dictionary:
-	for c in m.get_children():
-		if not c is Node3D or c is MeshInstance3D or (c as Node).get_node_or_null("Posts") == null:
-			continue
-		var mesh_mi: MeshInstance3D = null
-		var boulders: MultiMeshInstance3D = null
-		for k in c.get_children():
-			if k is MeshInstance3D and (k as MeshInstance3D).mesh is ArrayMesh:
-				mesh_mi = k
-			elif k is MultiMeshInstance3D and k.name != "Posts":
-				boulders = k
-		if mesh_mi and boulders:
-			var cols: PackedColorArray = (mesh_mi.mesh as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_COLOR]
-			var bm := (boulders.multimesh.mesh as BoxMesh).material as StandardMaterial3D
-			return {"colors": cols, "boulders": bm.albedo_color}
-	return {}
-
-
-func _has_colour(cols: PackedColorArray, c: Color) -> bool:
-	for k in cols:
-		if k.is_equal_approx(c):
-			return true
-	return false
+## (pass 80: the boulders' and the stacked wall's helpers went with them; pass80_walls_test reads the fort wall)
 
 
 # ---------------------------------------------------------------- the sides' colours
@@ -139,8 +116,10 @@ func test_the_defaults_are_duskier_and_less_saturated_than_before_and_still_red_
 	assert_bool(rock.h < 30.0 / 360.0 or rock.h > 330.0 / 360.0).override_failure_message("rock hue %f" % (rock.h * 360.0)).is_true()
 	assert_float(rock.r).is_greater(maxf(rock.g, rock.b))
 	var walls: Dictionary = RED_CANYON.WALL_COLORS
-	assert_array(walls.keys()).contains_exactly_in_any_order(OLD_WALLS.keys())
-	for k: String in OLD_WALLS:
+	# pass 80 (lane WALLS, re-pinned on purpose): the boundary is a sandstone fort wall since, its keys (stone, light,
+	# cap, riser, beams) a warm buff sandstone (pass80_walls_test pins them); the rule here holds for the three rings of
+	# cliffs, which keep pass 79's colours
+	for k: String in ["near", "far", "farther"]:
 		var c: Color = walls[k]
 		var old: Color = OLD_WALLS[k]
 		assert_float(c.s).override_failure_message("%s saturation %.2f (was %.2f)" % [k, c.s, old.s]).is_less(old.s)
@@ -148,10 +127,7 @@ func test_the_defaults_are_duskier_and_less_saturated_than_before_and_still_red_
 		# the two rings out on the horizon may go a little towards dusk violet (the warm light browns them on the screen)
 		var lo := 300.0 if k in ["far", "farther"] else 330.0
 		assert_bool(c.h < 30.0 / 360.0 or c.h > lo / 360.0).override_failure_message("%s hue %f" % [k, c.h * 360.0]).is_true()
-	# the courses still read: the light blocks lighter than the others, the cap and the steps darker; far cliffs darker
-	assert_float(walls["light"].v).is_greater(walls["stone"].v)
-	assert_float(walls["cap"].v).is_less(walls["stone"].v)
-	assert_float(walls["riser"].v).is_less(walls["cap"].v)
+	# the far cliffs darker
 	assert_float(walls["far"].v).is_less(walls["near"].v)
 	assert_float(walls["farther"].v).is_less(walls["far"].v)
 
@@ -182,7 +158,7 @@ func test_color_of_reads_hex_lists_and_falls_back() -> void:
 
 func test_red_canyon_builds_in_the_files_colours() -> void:
 	var walls := {"near": "#405060", "far": "#304050", "farther": "#203040", "stone": "#506070", "light": "#607080",
-		"cap": "#101820", "riser": "#081018", "boulders": "#708090"}
+		"cap": "#101820", "riser": "#081018", "beams": "#708090"}
 	var m := _canyon(7, _map_with("#112233", walls))
 	assert_bool((m.get("rock_color") as Color).is_equal_approx(Color("#112233"))).is_true()
 	var mat := _terrain_mat(m)
@@ -197,12 +173,8 @@ func test_red_canyon_builds_in_the_files_colours() -> void:
 	for k: String in ["near", "far", "farther"]:
 		var want := Color(str(walls[k]))
 		assert_bool(tints.any(func(c: Color) -> bool: return c.is_equal_approx(want))).override_failure_message("no ridge in " + k).is_true()
-	var wp := _wall_parts(m)
-	assert_bool(wp.is_empty()).override_failure_message("no boundary wall found").is_false()
-	var cols: PackedColorArray = wp["colors"]
-	for k: String in ["stone", "light", "cap", "riser"]:
-		assert_bool(_has_colour(cols, Color(str(walls[k])))).override_failure_message("the wall has no " + k).is_true()
-	assert_bool((wp["boulders"] as Color).is_equal_approx(Color(str(walls["boulders"])))).is_true()
+	# (pass 80, re-pinned on purpose: the fort wall's colours are each key times its light and shade; pass80_walls_test
+	# checks every key on it, the beams on the vigas)
 
 
 func test_a_colour_left_out_or_unreadable_plays_the_default() -> void:
@@ -211,23 +183,26 @@ func test_a_colour_left_out_or_unreadable_plays_the_default() -> void:
 	var wc: Dictionary = m.get("wall_colors")
 	assert_bool((wc["near"] as Color).is_equal_approx(Color("#405060"))).is_true()
 	assert_bool((wc["far"] as Color).is_equal_approx(RED_CANYON.WALL_COLORS["far"])).is_true()
-	assert_bool((wc["boulders"] as Color).is_equal_approx(RED_CANYON.WALL_COLORS["boulders"])).is_true()
+	assert_bool((wc["beams"] as Color).is_equal_approx(RED_CANYON.WALL_COLORS["beams"])).is_true()
 
 
 func test_the_cliff_painting_is_grey_and_the_rock_shader_knows_its_paintings_mean() -> void:
+	# pass 80 (lane WALLS, re-pinned on purpose): the cliffs wear art/env/cliff_rock.png, a hi-res rock painting brought
+	# to a grey mean (a little of its hue left in the strata, so no longer grey pixel by pixel)
 	var img := Image.new()
-	assert_int(img.load_png_from_buffer(FileAccess.get_file_as_bytes("res://art/env/sandstone.png"))).is_equal(OK)
+	assert_int(img.load_png_from_buffer(FileAccess.get_file_as_bytes("res://art/env/cliff_rock.png"))).is_equal(OK)
 	img.convert(Image.FORMAT_RGB8)
 	img.resize(64, 64, Image.INTERPOLATE_BILINEAR)
 	var sum := Color(0, 0, 0)
 	for y in range(64):
 		for x in range(64):
 			var c := img.get_pixel(x, y)
-			assert_float(c.s).is_less(0.03)
+			assert_float(c.s).is_less(0.15)
 			sum += c
 	var mean := sum / 4096.0
+	assert_float(maxf(maxf(mean.r, mean.g), mean.b) - minf(minf(mean.r, mean.g), mean.b)).is_less(0.03)
 	# far from the old orange bands, light enough that a tint is about the colour drawn
-	assert_float(mean.v).is_greater(0.75)
+	assert_float(mean.v).is_greater(0.65)
 	assert_float(OLD_SANDSTONE.s).is_greater(0.5)
 	# the terrain shader's rock_tex_lum is the rock painting's mean linear luminance (a regenerated painting needs it again)
 	var rk := Image.new()

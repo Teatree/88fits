@@ -364,7 +364,7 @@ func test_a_launched_body_keeps_bucking_broncos_drift() -> void:
 
 # ---------------------------------------------------------------- the tracers' lines
 
-func test_a_revolver_round_lays_a_thin_dark_red_line_and_no_beads() -> void:
+func test_a_revolver_round_lays_its_red_tracer_and_no_beads() -> void:
 	var w := _world()
 	var pm: ProjectileManager = w["pm"]
 	var inst := _inst("revolver")
@@ -381,15 +381,15 @@ func test_a_revolver_round_lays_a_thin_dark_red_line_and_no_beads() -> void:
 		assert_float(pm.tracer_to[k].distance_to(pm.tracer_from[k + 1])).is_less(0.0001)
 		assert_float(pm.tracer_birth[k]).is_less(pm.tracer_birth[k + 1])
 		assert_float(pm.tracer_from[k].distance_to(pm.tracer_to[k])).is_greater_equal(ProjectileManager.TRACER_SEG_MIN - 0.0001)
-	# its own colour, width and life from the content: thin, dark red, a little see-through
+	# its own colour, width and life from the content: red, a little see-through (pass 80, lane TRAIL: the wisp in a
+	# readable red, 20 cm at the head, its style's life; pass80_trail_test has the rest)
 	var c: Color = pm.tracer_col[n - 1]
 	assert_bool(c.is_equal_approx(pm._tracer_colour(inst))).is_true()
 	assert_float(c.r).is_greater(c.g * 3.0)
 	assert_float(c.get_luminance()).is_less(0.3)
 	assert_float(c.a).is_less(1.0)
 	assert_float(pm.tracer_width[n - 1]).is_equal_approx(float(inst.params["tracer_width"]), 0.0001)
-	assert_float(pm.tracer_width[n - 1]).is_less(0.08)
-	assert_float(pm.tracer_life[n - 1]).is_equal_approx(float(inst.params["tracer_life"]), 0.0001)
+	assert_float(pm.tracer_life[n - 1]).is_equal_approx(ProjectileManager.tracer_life_of(inst), 0.0001)
 	pm._tracer_draw()
 	assert_int(pm._ln_mm.visible_instance_count).is_equal(n)
 
@@ -398,7 +398,7 @@ func test_silver_bullet_draws_a_thicker_silver_line() -> void:
 	var pm: ProjectileManager = auto_free(ProjectileManager.new())
 	var plain := _inst("revolver")
 	var silver := _inst("revolver", ["silver_bullet"])
-	assert_float(ProjectileManager.tracer_width_of(silver)).is_greater(ProjectileManager.tracer_width_of(plain) * 2.0)
+	assert_float(ProjectileManager.tracer_width_of(silver)).is_greater(ProjectileManager.tracer_width_of(plain) * 1.3)
 	var c := pm._tracer_colour(silver)
 	# pale, a touch of blue: silver, not the plain round's red
 	assert_float(c.b).is_greater(c.r)

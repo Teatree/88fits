@@ -21,6 +21,15 @@ uniform vec3 foot = vec3(0.0);
 // how much of the sign's own depth is kept about the foot, and how far back the whole sign goes (metres)
 uniform float squash = 0.02;
 uniform float bias = 0.03;
+// Pass 80 (lane WALLS; Garry: "There is some z-fighting on the sign 3d. Fix it"): `squash` squeezed ALL of the sign's
+// own depth fifty times, so the board's stub behind the post and the part inside it lay a millimetre or less behind the
+// post's face, under what a depth buffer can tell apart 25 m away: they flickered through the post as the camera moved.
+// The depth a vertex owes to its HEIGHT over the foot is what made a tall post reach over a hero standing south of its
+// foot; the depth it owes to its run over the GROUND is what sorts the sign's parts among themselves. So the height's
+// share stays `squash` and the ground's is kept `squash_h` of what it is: a board's faces now lie six times further
+// apart than before, and a board pointing at the camera still sorts under a hero standing beside the post (its tip
+// 1.1 m out comes 0.2 m nearer than the foot, the hero's feet 0.4 m when he stands against the post's south side).
+uniform float squash_h = 0.25;
 
 void vertex() {
 	vec3 view = (MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -28,7 +37,12 @@ void vertex() {
 	// view space looks down -Z: whatever is drawn has a negative z, and farther is more negative
 	float z0 = min(view.z, -0.01);
 	float zf = min(z_foot, -0.01);
-	float z1 = min(zf + (z0 - zf) * squash - bias, -0.005);
+	// the vertex's offset from the foot, split into its run over the ground and its height: their shares of the view
+	// depth (the two add up to z0 - zf)
+	vec3 off = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz - foot;
+	float z_run = (VIEW_MATRIX * vec4(off.x, 0.0, off.z, 0.0)).z;
+	float z_up = (VIEW_MATRIX * vec4(0.0, off.y, 0.0, 0.0)).z;
+	float z1 = min(zf + z_run * squash_h + z_up * squash - bias, -0.005);
 	// the very same pixel: x and y scale with z under the perspective divide
 	VERTEX = vec3(view.xy * (z1 / z0), z1);
 	NORMAL = normalize(MODELVIEW_NORMAL_MATRIX * NORMAL);

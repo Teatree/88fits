@@ -3656,39 +3656,59 @@ func _tick_water(delta: float) -> void:
 	_ripple_t = 0.28
 	var has_level: bool = map.has_method("water_level")
 	var level: float = float(map.call("water_level")) if has_level else 0.0
+	# pass 80 (lane OASIS): every lake the map names (two or three oases), each at its own level
+	var lakes: Array = EnemyManager.map_lakes(map)
 	if wet:
 		var moving: bool = player.velocity.length() > 0.5
 		var at: Vector3 = player.global_position
-		var lift: float = maxf(level - map.height_at(at.x, at.z), 0.0) if has_level else 0.3
+		var hlv := _wade_level(lakes, at, level)
+		var lift: float = maxf(hlv - map.height_at(at.x, at.z), 0.0) if has_level else 0.3
 		telegraphs.flash_ring(at, 0.55 if moving else 0.35, Color(0.9, 0.98, 1.0), 0.45, lift)
 		if moving:
-			fx.burst(Vector3(at.x, maxf(at.y, level), at.z) + Vector3(0, 0.25, 0), Color(0.85, 0.95, 1.0), 0.5)
-	if enemies == null or not map.has_method("lake_center") or not map.has_method("lake_radius"):
+			fx.burst(Vector3(at.x, maxf(at.y, hlv), at.z) + Vector3(0, 0.25, 0), Color(0.85, 0.95, 1.0), 0.5)
+	if enemies == null or lakes.is_empty():
 		return
-	var lr: float = float(map.call("lake_radius"))
-	if lr <= 0.0:
-		return
-	var lc: Vector2 = map.call("lake_center")
 	var n := 0
-	for i in enemies.indices_in_radius(Vector3(lc.x, 0.0, lc.y), lr * 1.02):
-		if n >= 12:
-			break
-		if enemies.vel[i].length() <= 0.5 or enemies.lift_h[i] > 0.05:
+	for l: Dictionary in lakes:
+		var lr: float = float(l["radius"])
+		var lc: Vector2 = l["center"]
+		var llv: float = float(l.get("level", level))
+		for i in enemies.indices_in_radius(Vector3(lc.x, 0.0, lc.y), lr * 1.02):
+			if n >= 12:
+				break
+			if enemies.vel[i].length() <= 0.5 or enemies.lift_h[i] > 0.05:
+				continue
+			var p: Vector3 = enemies.pos[i]
+			var plift: float = maxf(llv - map.height_at(p.x, p.z), 0.0) if has_level else 0.3
+			telegraphs.flash_ring(p, 0.45 * clampf(enemies.size[i], 0.7, 1.8), Color(0.9, 0.98, 1.0), 0.4, plift)
+			fx.burst(Vector3(p.x, maxf(p.y, llv), p.z) + Vector3(0, 0.2, 0), Color(0.85, 0.95, 1.0), 0.35)
+			n += 1
+
+
+## The water's level where `at` stands (pass 80): the level of the lake (EnemyManager.map_lakes) whose shore is nearest,
+## else `fallback` (the map's water_level()).
+static func _wade_level(lakes: Array, at: Vector3, fallback: float) -> float:
+	var best := INF
+	var out := fallback
+	for l: Dictionary in lakes:
+		if not l.has("level"):
 			continue
-		var p: Vector3 = enemies.pos[i]
-		var plift: float = maxf(level - map.height_at(p.x, p.z), 0.0) if has_level else 0.3
-		telegraphs.flash_ring(p, 0.45 * clampf(enemies.size[i], 0.7, 1.8), Color(0.9, 0.98, 1.0), 0.4, plift)
-		fx.burst(Vector3(p.x, maxf(p.y, level), p.z) + Vector3(0, 0.2, 0), Color(0.85, 0.95, 1.0), 0.35)
-		n += 1
+		var c: Vector2 = l["center"]
+		var d := Vector2(at.x, at.z).distance_to(c) - float(l["radius"])
+		if d < best:
+			best = d
+			out = float(l["level"])
+	return out
 
 
 ## How far from the water's disc the hero's second pass keeps it (pass 56, _sink_hero): the disc can cover a hero standing
 ## up to about a metre outside it (0.85 m at most on ten rolls of Red Canyon: a bank still under the water's surface, seen
 ## across the water), and a throw moves him well under half a metre a frame.
 const WADE_REACH := 2.5
-## the map's water_disc, read once per map
+## the map's water_disc, read once per map (pass 80: every lake's, _wade_discs; _wade_disc the one nearest the hero)
 var _wade_disc: Dictionary = {}
 var _wade_map: Node = null
+var _wade_discs: Array = []
 
 
 ## The hero wades like the creatures (pass 56, Garry: "Hero for some reason walks on water, they are not submerged at all
@@ -3707,10 +3727,12 @@ func _sink_hero(wet := false) -> void:
 		return
 	if _wade_map != map:
 		_wade_map = map
-		_wade_disc = map.call("water_disc") if map.has_method("water_disc") else {}
+		_wade_discs = _discs_of(map)
+	var at: Vector3 = player.global_position
+	# pass 80 (lane OASIS): the disc of the lake whose drawn edge is nearest him (the lakes lie far apart)
+	_wade_disc = _nearest_disc(_wade_discs, at)
 	var r: float = float(_wade_disc.get("radius", 0.0))
 	var c: Vector2 = _wade_disc.get("center", Vector2.ZERO)
-	var at: Vector3 = player.global_position
 	var near: bool = r > 0.0 and Vector2(at.x, at.z).distance_to(c) < r + WADE_REACH
 	if near:
 		sprite.set_water(c, float(_wade_disc["top"]), r, float(_wade_disc.get("thick", 0.0)))
@@ -3731,6 +3753,36 @@ func _sink_hero(wet := false) -> void:
 		var eye: Camera3D = vp.get_camera_3d() if vp else null
 		under = BillboardSprite.water_covers_blob(shadow.global_position, b.x * half.x, b.z * half.y, eye.global_position if eye else Vector3.INF, sprite.water(), float(_wade_disc.get("thick", 0.0)))
 	shadow.visible = not under
+
+
+## Every drawn water disc of the map (pass 80): each lake's (its lakes()), else its one water_disc(), else none.
+static func _discs_of(m: Node) -> Array:
+	var out: Array = []
+	if m == null:
+		return out
+	if m.has_method("lakes"):
+		for l in m.call("lakes"):
+			if l is Dictionary and (l as Dictionary).get("disc") is Dictionary and not ((l as Dictionary)["disc"] as Dictionary).is_empty():
+				out.append(l["disc"])
+		return out
+	if m.has_method("water_disc"):
+		var d = m.call("water_disc")
+		if d is Dictionary and not (d as Dictionary).is_empty():
+			out.append(d)
+	return out
+
+
+## The disc among `discs` whose edge lies nearest `at` ({} for none).
+static func _nearest_disc(discs: Array, at: Vector3) -> Dictionary:
+	var best := INF
+	var out: Dictionary = {}
+	for d: Dictionary in discs:
+		var c: Vector2 = d.get("center", Vector2.ZERO)
+		var e := Vector2(at.x, at.z).distance_to(c) - float(d.get("radius", 0.0))
+		if e < best:
+			best = e
+			out = d
+	return out
 
 
 func _tick_breadcrumb(delta: float) -> void:

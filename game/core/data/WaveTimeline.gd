@@ -208,6 +208,18 @@ const BOSS_REF_DPS_DEFAULTS := {"tumbleweed_king": 600.0, "gila_grande": 4500.0,
 ## SPAWN_RISE_DEFAULTS (WaveDirector._apply_mults hands them to EnemyManager.set_spawn_rise); seconds 0 = off.
 @export var spawn_rise: Dictionary = {}
 const SPAWN_RISE_DEFAULTS := {"seconds": 0.45, "big_seconds": 0.9, "targetable": 0.7, "dust": 1.0}
+## Pass 80 (lane OASIS; Garry: "make the water slow everyone down when they walk though it, not by a lot, just 10%"): the
+## share of the walking speed the water takes from anyone wading in it (the hero, every creature, Elites and bosses);
+## never from a push, a knockback or a pull, nor from anyone in the air or under the sand (Player._wade_mult,
+## EnemyManager._wade_mult). 0 = off. A map that names none plays WATER_SLOW_DEFAULT (the game's rule).
+const WATER_SLOW_DEFAULT := 0.1
+@export var water_slow: float = WATER_SLOW_DEFAULT
+## Pass 80 (lane OASIS; Garry: "2 oasis at least per level generation in the red canyon, sometimes 3"): {"min", "max",
+## "extra_chance", "gap"}: at least `min` oases a run, then one more with `extra_chance` each up to `max`, every two
+## lakes' dishes at least `gap` m of open ground apart (RedCanyon._roll_oases). A key left out (the whole block too)
+## plays OASES_DEFAULTS.
+@export var oases: Dictionary = {}
+const OASES_DEFAULTS := {"min": 2, "max": 3, "extra_chance": 0.35, "gap": 10.0}
 
 
 ## One number of spawn_rise (pass 73): the map's, else SPAWN_RISE_DEFAULTS'.
@@ -220,7 +232,9 @@ func spawn_rise_value(key: String) -> float:
 ## ("#RRGGBB"; the rock painting is recoloured to it, its bands and cracks kept as light and dark) and the walls'
 ## {"near", "far", "farther" (the three rings of cliffs), "stone", "light" (the boundary wall's two courses), "cap",
 ## "riser", "boulders"}, each "#RRGGBB". The map reads them as it builds (RedCanyon._read_colours); "" or a key left out
-## plays the map's own default (RedCanyon.ROCK_COLOR / WALL_COLORS).
+## plays the map's own default (RedCanyon.ROCK_COLOR / WALL_COLORS). Pass 80 (lane WALLS): the rock is the ground outside
+## the wall only, and the boundary a sandstone fort wall: "stone" its blocks, "light" its dressed trim, "cap" its walk and
+## roofs, "riser" its shaded sides, "beams" (was "boulders") its vigas.
 @export var rock_color: String = ""
 @export var wall_colors: Dictionary = {}
 

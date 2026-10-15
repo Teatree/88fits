@@ -1486,11 +1486,11 @@
       "near": "#856B6E",
       "far": "#705963",
       "farther": "#594A57",
-      "stone": "#7A6363",
-      "light": "#8C7370",
-      "cap": "#544045",
-      "riser": "#47383B",
-      "boulders": "#6B5457"
+      "stone": "#C59E7B",
+      "light": "#DEC09F",
+      "cap": "#A58266",
+      "riser": "#7A604E",
+      "beams": "#4F3626"
     },
     "cap_per_stage": 0,
     "speed_per_stage": 0.1,
@@ -1578,6 +1578,13 @@
       "big_seconds": 0.9,
       "targetable": 0.7,
       "dust": 1.0
+    },
+    "water_slow": 0.1,
+    "oases": {
+      "min": 2,
+      "max": 3,
+      "extra_chance": 0.35,
+      "gap": 10
     }
   },
   "placeholder": {

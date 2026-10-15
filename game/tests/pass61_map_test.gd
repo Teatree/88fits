@@ -145,7 +145,10 @@ func test_a_patch_is_a_few_bushes_spread_thin_and_nothing_else() -> void:
 			assert_int(bushes.size()).is_between(1, RED_CANYON.BUSH_PER_PATCH.y)
 			# clear of the flats, the lake's greenery and the river bed
 			assert_float((c - fc).length()).is_greater(float(m.get("flats_radius")))
-			assert_float((c - (m.call("lake_center") as Vector2)).length()).is_greater(float(m.call("lake_radius")) + 11.0)
+			# (pass 80, lane OASIS: every oasis, and past BUSH_LAKE_RELAX tries a patch may come to BUSH_LAKE_NEAR m + 0.6
+			# of its radius off the water instead of 11 + 0.6)
+			for l: Dictionary in m.call("lakes"):
+				assert_float((c - (l["center"] as Vector2)).length()).is_greater_equal(float(l["radius"]) + RED_CANYON.BUSH_LAKE_NEAR + RED_CANYON.BUSH_PATCH_R * 0.6 - 0.01)
 			assert_float(float(m.call("_river_dist", c))).is_greater(float(m.get("river_width")) * 0.5)
 			for i in bushes.size():
 				var b: Dictionary = bushes[i]

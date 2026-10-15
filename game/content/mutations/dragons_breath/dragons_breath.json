@@ -37,7 +37,6 @@
       "halo_alpha": 0.85
     },
     "tracer_size": 0.55,
-    "tracer_life": 0.28,
     "look": {
       "tongue": {
         "length": 1.6,

@@ -14,7 +14,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 GAME = os.path.join(ROOT, "game")
 
-WALL_KEYS = ["near", "far", "farther", "stone", "light", "cap", "riser", "boulders"]
+# pass 80 (lane WALLS): the fort wall's vigas ("beams") took the boulders' key
+WALL_KEYS = ["near", "far", "farther", "stone", "light", "cap", "riser", "beams"]
 
 RUNNER = r"""
 const path = require('path');

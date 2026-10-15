@@ -764,16 +764,22 @@ spawn_rise = {
 "seconds": 0.45,
 "targetable": 0.7
 }
+oases = {
+"extra_chance": 0.35,
+"gap": 10.0,
+"max": 3.0,
+"min": 2.0
+}
 rock_color = "#785C5E"
 wall_colors = {
-"boulders": "#6B5457",
-"cap": "#544045",
+"beams": "#4F3626",
+"cap": "#A58266",
 "far": "#705963",
 "farther": "#594A57",
-"light": "#8C7370",
+"light": "#DEC09F",
 "near": "#856B6E",
-"riser": "#47383B",
-"stone": "#7A6363"
+"riser": "#7A604E",
+"stone": "#C59E7B"
 }
 
 [resource]

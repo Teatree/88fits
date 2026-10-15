@@ -14,6 +14,8 @@ kind "sim" (jobs.py: their own lane, never the Godot lock); this module lists th
     POST /api/sim/<id>/delete     the sim's folder removed (refused while it runs)
     POST /api/sim/<id>/cancel     the job cancelled (a shell's sim: its driver's process tree killed)
     POST /api/sim/unlock          {force}: the sim lock released when its owner is gone (force: whoever holds it)
+    POST /api/sim/watch           {settings}: the Watch (pass 80, tools/watch.py) started with the tab's hero, board, seed
+                                  and bot, not waited for (409 while a Watch is open)
 """
 import json
 import os
@@ -183,6 +185,7 @@ def history_record(srv):
                     "has_result": head is not None, "synthetic": bool(meta.get("synthetic") or prog.get("synthetic")), "T": (head or {}).get("T"),
                     "bosses": (head or {}).get("bosses") or [], "board_words": _board_words(settings),
                     "death_words": SB.death_label(settings.get("death", "")),
+                    "bot_words": SB.bot_words(settings.get("bot")) if settings.get("bot") else "",
                     # the runs drew everything: the sim mode switched off, or a runner from before it
                     "drawn": meta.get("sim_mode") is False or (meta.get("sim_mode") is None and settings.get("fast") is False)})
     return {"ok": True, "sims": out, "keep": HISTORY_N}
@@ -242,7 +245,25 @@ def settings_record(srv):
             # the speed with the runner's sim mode off (the Drawing switch), for the page's ETA
             "speed_off": SB.load_speed(fast=False) if caps.get("fast") else None,
             "snapshot": {"exists": os.path.isdir(os.path.join(SB.snap_game(), ".godot")), "path": _rel(SB.snap_game())},
-            "runner": os.path.isfile(os.path.join(_game(srv), "tools", "sim_run.gd")), "dps_window": SB.DPS_WINDOW, "history_keep": HISTORY_N}
+            "runner": os.path.isfile(os.path.join(_game(srv), "tools", "sim_run.gd")), "dps_window": SB.DPS_WINDOW, "history_keep": HISTORY_N,
+            # pass 80 (lane BOT): the bot's presets (their values read off game/tools/bot/Bot.gd) and options
+            "bot": bot_record(srv)}
+
+
+def bot_record(srv):
+    """The Sim tab's Bot group: {default, presets [{key, label, help, values}], keys [{key, kind, lo, hi, step, choices,
+    label, help}]} (tools/sim_batch.py BOT_PRESETS / BOT_KEYS; the values are the runner's own Bot.gd PRESETS)."""
+    pv = SB.bot_presets(_game(srv))
+    keys = []
+    for k, kind, lo, hi, label, help_ in SB.BOT_KEYS:
+        row = {"key": k, "kind": kind, "label": label, "help": help_}
+        if kind == "float":
+            row.update({"lo": lo, "hi": hi, "step": 5 if k == "stray" else (0.1 if k == "reaction" else 0.05)})
+        elif kind == "enum":
+            row["choices"] = list(lo)
+        keys.append(row)
+    return {"default": "explorer", "presets": [{"key": k, "label": lab, "help": h, "values": pv.get(k, {})} for k, lab, h in SB.BOT_PRESETS],
+            "keys": keys}
 
 
 def _check(srv, raw):
@@ -337,6 +358,41 @@ def unlock(force):
     return (200 if ok else 409), {"ok": ok, "lock": SB.lock_status()}
 
 
+def watch_args(s):
+    """The Watch's command line (tools/watch.py) for the Sim tab's settings `s` (cleaned): the hero, the board talent by
+    talent, the seed, the map, Down!'s answer and the bot's options."""
+    t = s.get("talents") if isinstance(s.get("talents"), dict) and s.get("talents") else SB.board_talents(float(s.get("board", 0) or 0))
+    args = ["--hero", str(s.get("hero", "drifter")), "--talents", SB.talents_arg(t), "--seed", str(int(s.get("seed", 1) or 1)),
+            "--map", str(s.get("map", "red_canyon")), "--death", str(s.get("death", "end"))]
+    for k, v in (s.get("bot") or {}).items():
+        args += ["--bot", "%s=%s" % (k, ("1" if v else "0") if isinstance(v, bool) else ("%g" % v if isinstance(v, float) else str(v)))]
+    return args
+
+
+def watch(srv, raw):
+    """The Watch button (pass 80, lane WATCH): tools/watch.py started with the tab's hero, board, seed and bot, not waited
+    for (it refreshes its snapshot and opens a window). 409 while a Watch is open: one at a time."""
+    s, probs = _check(srv, raw)
+    if probs:
+        return 400, {"ok": False, "error": "; ".join(probs), "problems": probs}
+    if not os.path.isfile(os.path.join(ROOT, "tools", "watch.py")):
+        return 409, {"ok": False, "error": "tools/watch.py is not in this checkout"}
+    import watch as W   # tools/watch.py (pass 80): its lock
+    st = W.lock_status()
+    if st is not None and st.get("alive"):
+        return 409, {"ok": False, "error": "a Watch is open already (pid %s): close its window first" % st.get("pid")}
+    import subprocess
+    logs = os.path.join(W.WATCH_DIR, "logs")
+    os.makedirs(logs, exist_ok=True)
+    log = os.path.join(logs, "launch_%s.log" % time.strftime("%Y%m%d-%H%M%S"))
+    cmd = [sys.executable, os.path.join(ROOT, "tools", "watch.py")] + watch_args(s)
+    flags = (subprocess.CREATE_NEW_PROCESS_GROUP | getattr(subprocess, "DETACHED_PROCESS", 0x8)) if os.name == "nt" else 0
+    with open(log, "w", encoding="utf-8", newline="\n") as lf:
+        p = subprocess.Popen(cmd, cwd=ROOT, stdin=subprocess.DEVNULL, stdout=lf, stderr=subprocess.STDOUT, creationflags=flags, close_fds=True)
+    return 200, {"ok": True, "pid": p.pid, "log": _rel(log), "args": watch_args(s),
+                 "message": "the Watch is starting (its snapshot refreshes first; the window opens in a few seconds)"}
+
+
 # ---------------------------------------------------------------- the routes
 
 def api_get(h, srv, parts, query):
@@ -374,6 +430,9 @@ def api_post(h, srv, parts):
         return h._send(st, body)
     if parts == ["unlock"]:
         st, body = unlock(bool(data.get("force")))
+        return h._send(st, body)
+    if parts == ["watch"]:   # pass 80 (lane WATCH): the Watch button
+        st, body = watch(srv, data.get("settings") or data)
         return h._send(st, body)
     if len(parts) == 2 and ID_RE.match(parts[0]):
         sid, op = parts

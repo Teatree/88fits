@@ -73,10 +73,11 @@ params = {
 },
 "tail_fade": 0.25,
 "tracer": true,
-"tracer_life": 0.16,
+"tracer_hot": 0.5,
+"tracer_life": 0.25,
 "tracer_size": 0.32,
 "tracer_step": 0.02,
-"tracer_width": 0.035
+"tracer_width": 0.08
 }
 id = "boomstick"
 display_name = "Boomstick"

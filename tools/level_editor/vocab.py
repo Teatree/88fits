@@ -322,7 +322,9 @@ PARAMS_KEYS = {
                           # pass 69: Alley-Oop's launch, the ball's Heat look (lane BB), May's Trigger Happy (lane HERO)
                           "launch", "heat_look", "fire_without_target", "stream",
                           # pass 79 (lane FX): the tracer's line (tracer_step and tracer_size, the beads', are gone)
-                          "tracer_width", "tracer_clear", "tracer_color", "tracer_alpha"],
+                          "tracer_width", "tracer_clear", "tracer_color", "tracer_alpha",
+                          # pass 80 (lane TRAIL): the tracer's look (streak, ribbon, wisp, toon, line) and its hot part
+                          "tracer_style", "tracer_hot"],
     "Orbiter": ["spin_speed", "breathe", "gyro", "lasso", "side_knock", "solid_ring", "strike", "rust", "rust_patina"],
     "Lobber": ["model", "model_scale", "model_metallic", "model_roughness", "tint", "sticky", "death_pool", "death_of",
                "land_blast", "halo", "bounce", "bomblets", "bomblet_damage_mult", "burst_spawn", "cloud_seconds",

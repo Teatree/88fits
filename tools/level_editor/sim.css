@@ -41,6 +41,13 @@
 .sim-board-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .sim-board-head .sim-label { margin-right: 6px; }
 .sim-board-total { color: var(--muted); font-size: 0.8rem; margin-left: 8px; }
+/* pass 80 (lane BOT): the Bot group */
+.sim-bot-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px 12px; }
+.sim-bot-field { display: grid; grid-template-columns: 7.5em 1fr auto; align-items: center; gap: 2px 6px; padding: 3px 6px; border-radius: 6px; }
+.sim-bot-field.set { background: color-mix(in srgb, var(--accent, #c8963e) 14%, transparent); }
+.sim-bot-field .sim-bot-name { font-size: 0.85rem; }
+.sim-bot-field .sim-bot-from { grid-column: 2 / 4; color: var(--muted); font-size: 0.72rem; }
+.sim-bot-field input[type=checkbox] { justify-self: start; }
 .sim-talents { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px 12px; }
 .sim-talent { display: grid; grid-template-columns: 74px auto minmax(0, 1fr); align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); font-size: 0.84rem; }
 .sim-talent.none { opacity: 0.7; }
