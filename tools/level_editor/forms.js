@@ -559,6 +559,8 @@ const Forms = (() => {
       extra: (p) => {
         const t = Number(p[0]) || 0;
         const open = App.rosterAt(t).find((o) => o.row === r);
+        // pass 81 (lane PACE): a row paced as waves is not in the draw; its weight only holds its waves at 0
+        if (open && !open.drawn) return open.w > 0 ? 'waves' : 'held';
         return open ? `${Math.round(open.norm * 100)}%` : 'closed';
       },
       extraLabel: 'share',

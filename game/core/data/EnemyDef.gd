@@ -140,7 +140,8 @@ var tint_range: Dictionary = {}
 @export var artillery: Dictionary = {}
 ## Pass 73 (lane SNIPER): the sniper brain (the Saiga Sniper): {stand_off, flee_range, follow, first, aim, lock, interval,
 ## interval_jitter, recover, cone_deg, lines, beam {length, width, seconds, damage_from, damage_mult, damage, knockback,
-## creature_frac, creature_max, push, sparks}, muzzle {up, side, forward}} (EnemyManager._sniper_*)
+## creature_frac, creature_max, push, sparks}, muzzle {up, side, forward}} (EnemyManager._sniper_*). Pass 81: flee_range
+## defaults to 0 (never runs), `spoil_on_hit` (default true) drops its aim on a hit (EnemyManager.sniper_spoil_on_hit)
 @export var sniper: Dictionary = {}
 ## Pass 73 (lane SNIPER): flee on hit, for any creature: {seconds, speed_mult, interrupts}. A hit that lands stops its
 ## wind-up or aim (`interrupts`) and it runs straight away from the hero at its speed x `speed_mult` for `seconds`

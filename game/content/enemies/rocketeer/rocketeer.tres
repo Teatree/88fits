@@ -55,7 +55,7 @@ artillery = {
 "knockback": 26.0,
 "lift": 6.5,
 "speed": 4.0,
-"speed_of_hero": 0.9,
+"speed_of_hero": 0.85,
 "throw": 26.0,
 "throw_radius": 4.5,
 "turn": 1.3

@@ -138,12 +138,16 @@ func test_the_armadillo_arrives_half_way_through_stage_one() -> void:
 
 
 func test_the_rocket_keeps_to_nine_tenths_of_the_hero() -> void:
+	# pass 81 (lane POLISH, re-pinned): the share is of the hero's top speed on the ground (the whole creature pace comes
+	# out, ProjectileManager.rocket_clock_pace; this fake game has no creatures, so its shot clock is 1): 0.9 x max_speed
 	var g := _fake_game(Vector3(0, 0, 60.0))
 	var pm: ProjectileManager = g.projectiles
 	var i := pm.launch_enemy_rocket(0, 3, Vector3.ZERO, Vector3(0, 0, 1), 4.0, 1.3, 22.0, 1.6, 0.9)
 	pm._physics_process(1.0 / 60.0)
-	assert_float(float(pm.extra[i]["speed"])).is_equal_approx(4.5, 0.01)
-	assert_float(pm.vel[i].length()).is_equal_approx(4.5, 0.05)
+	var want: float = 0.9 * float(g.player.max_speed())
+	assert_float(float(pm.extra[i]["speed"])).is_equal_approx(want, 0.01)
+	assert_float(pm.vel[i].length()).is_equal_approx(want, 0.05)
+	assert_float(pm.rocket_ground_speed(i)).is_equal_approx(want, 0.05)
 
 
 func test_the_death_log_names_the_killer() -> void:

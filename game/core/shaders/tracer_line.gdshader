@@ -19,6 +19,14 @@
 //             life so the head keeps the contrast, the coloured body and rim fade after
 //   3 wisp    the streak for the first `hot` of the life, under it a pale warm smoke that widens, lifts and fades
 //   4 toon    hard cel bands (a white core, the flat colour, a dark outline), tapered, opaque until it shrinks away
+// Pass 81 (lane POLISH, the Killer Bees' trails; research in tools/dl/p81/POLISH/research_bees.md): for these three the
+// third slot of basis column 2 is not `hot` but the path's length at the segment's start (metres, kept small by the
+// caller: ProjectileManager.BEE_WRAP), so a pattern along the flight stays put on the sand as the line ages:
+//   5 dash    the cartoon bee's dotted flight path: solid dashes (bee_dash_len on, the rest of bee_dash_period off) of
+//             the colour with a darker edge, thinning a little and fading out over the second half of the life
+//   6 buzz    a thin squiggle: the line weaves bee_buzz_amp metres to either side of the flight every bee_buzz_wave
+//             metres (none at the bee, full a little behind it), the neon cross-section, fading
+//   7 bumble  the dash's dashes weaving like the buzz: the cartoon bee's loopy dotted path
 // The head of every style but the line is at least head_px pixels wide (the floor is on the head, so the taper stays).
 // No glow pass in the Compatibility renderer: the glow is painted into the cross-section. Alpha blending, never additive
 // (additive washes out on the light sand).
@@ -61,8 +69,17 @@ const float smoke_width = 2.4;      // wisp: the smoke's width at the end of its
 const float smoke_alpha = 0.38;
 const float smoke_rise = 0.35;      // m/s
 const vec3 smoke_colour = vec3(0.99, 0.97, 0.93);
+// the bees (pass 81)
+const float bee_taper = 0.5;        // width x (1 - f)^bee_taper
+const float bee_dash_period = 0.42; // m: one dash and its gap
+const float bee_dash_len = 0.24;    // m: the dash
+const float bee_dash_edge = 0.55;   // the dash's darker edge starts this far across the half-width
+const float bee_buzz_wave = 0.9;    // m: one weave of the squiggle
+const float bee_buzz_amp = 0.11;    // m: how far it weaves to either side
+const float bee_buzz_in = 0.18;     // the weave grows from nothing at the bee over this share of the life
 
 varying float v_f;
+varying float v_d;
 varying float v_x;
 varying float v_s;
 varying float v_hot;
@@ -89,6 +106,8 @@ void vertex() {
 	v_tw = 1.0;
 	v_mw = 0.0;
 	v_px = 1.0;
+	// the bees' styles (pass 81): the path's length here (the segment's start's, then along it)
+	v_d = info2.z + length(seg) * UV.y;
 	vec3 world = p0;
 	if (f_end >= -0.001 && f_end < 1.0 && dot(seg, seg) > 1e-8) {
 		vec3 p = p0 + seg * UV.y;
@@ -113,8 +132,14 @@ void vertex() {
 				tw = head * pow(1.0 - f, ribbon_taper) * (1.0 + ribbon_wake * f);
 			} else if (style < 3.5) {
 				tw = head * pow(max(1.0 - f / hot, 0.0), streak_taper);
-			} else {
+			} else if (style < 4.5) {
 				tw = head * toon_scale * pow(1.0 - f, toon_taper);
+			} else {
+				// the bees (pass 81): a gentle taper; the buzz and the bumble weave to either side of the flight
+				tw = head * pow(1.0 - f, bee_taper);
+				if (style > 5.5) {
+					p += side * (sin(6.2831853 * v_d / bee_buzz_wave) * bee_buzz_amp * smoothstep(0.0, bee_buzz_in, f));
+				}
 			}
 			float w = tw;
 			if (style > 2.5 && style < 3.5) {
@@ -225,12 +250,27 @@ void fragment() {
 			float ma = smoke_alpha * smoothstep(0.0, 0.25, f) * pow(1.0 - f, 1.4) * (1.0 - smoothstep(0.3, 1.0, mx));
 			a = t.a + ma * (1.0 - t.a);
 			col = mix(mc, t.rgb, a > 1e-4 ? t.a / a : 0.0);
-		} else {
+		} else if (v_s < 4.5) {
 			// toon: hard bands, opaque until the end
 			float k = 1.0 - smoothstep(0.0, v_hot, f) * 0.6;
 			vec4 t = trail_layer(c, tx, px, 0.24 * k, true);
 			col = t.rgb;
 			a = t.a * (1.0 - smoothstep(0.78, 1.0, f));
+		} else if (v_s < 5.5 || v_s > 6.5) {
+			// dash and bumble (pass 81, the bees): solid dashes of the colour with a darker edge, fading over the second half
+			float q = v_d / bee_dash_period;
+			float ph = fract(q);
+			float da = clamp(fwidth(q), 1e-4, 0.5);
+			float dl = bee_dash_len / bee_dash_period;
+			float on = smoothstep(0.0, da, ph) * (1.0 - smoothstep(dl - da, dl, ph));
+			vec3 rim = pow(max(c, vec3(0.0)), vec3(rim_pow)) * rim_gain;
+			col = mix(c, rim, smoothstep(bee_dash_edge, 1.0, tx));
+			a = on * (1.0 - smoothstep(1.0 - max(px, 0.02), 1.0, tx)) * (1.0 - smoothstep(0.45, 1.0, f));
+		} else {
+			// buzz (pass 81, the bees): the neon cross-section of the colour (no white middle), fading
+			vec4 t = trail_layer(c, tx, px, 0.0, false);
+			col = t.rgb;
+			a = t.a * pow(1.0 - f, 1.2);
 		}
 		ALBEDO = to_linear(col);
 		ALPHA = COLOR.a * a;

@@ -550,3 +550,89 @@ default as its grey placeholder.
   tests; `in_lake(p)` any lake; `_wade_tick()` (once a tick: marks who wades in `_wade_k`, the factor the walk reads), `_wade_mult(i)` (the same rule for one creature, tools and tests), `_wade_slow`.
 - `Player._wade_mult()`, `Player.water_slow()` (static), `Player.WADE_AIR` 0.35.
 - `Game._wade_level(lakes, at, fallback)`, `Game._discs_of(map)`, `Game._nearest_disc(discs, at)` (static).
+
+## Pass 81: row pacing and the map's looks
+
+### A roster row paced as waves (lane PACE)
+
+All on a roster row (`timeline_data.roster[]`), read by WaveDirector as the plain dictionary (JsonContent and the .tres
+carry them unchanged; no new export on WaveTimeline). The editor's fields: FIELDS.roster in tools/level_editor/fields.js
+(`paced: true` marks the five waves-only ones).
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `pace` | string | `"continuous"` | `"continuous"`: drawn into the cap by its weight at every spawn check, as every row always was. `"waves"`: comes as waves (below). Any other value plays continuous (the editor flags it). |
+| `every` | number (s) | 30 | waves only: seconds between waves, the first at `t` + `offset`; 0 or less = one wave only. |
+| `count` | int | the row's `pack`, else the creature's pack size (after `stats.pack`) | waves only: creatures a wave (at least 1), in the row's `pattern` and packs of its `pack`. |
+| `offset` | number (s) | 0 | waves only: the first wave this long after `t` (below 0 = 0). |
+| `respect_cap` | bool | true | waves only: true = a wave fills its channel's free room (at least one while any), the rest comes first at each spawn check as room frees until the row's next wave or its end; false = the whole wave at once on top of the cap (hard cap and max_alive still hold). |
+| `trickle` | bool | false | waves only: true = also drawn continuously by its weight between its waves. |
+
+A row's `weights` (presence) on a waves row: a wave due while the row weighs 0 does not come; the size of the weight
+scales nothing (it still counts where every row is drawn by weight: the portal wave, the heaviest-row rule of an event
+joining a row's numbers, and in the continuous draw with `trickle`).
+
+GDScript: `WaveTimeline.ROW_PACES`, `ROW_WAVE_EVERY_DEFAULT` (30), `row_paced(r)`, `row_drawn(r)`, `row_wave_every(r)`,
+`row_wave_start(r)`, `row_wave_index(r, t)`, `row_wave_time(r, k)`, `row_wave_times(r, end, limit)`,
+`row_wave_count(r, pack_size)`; `WaveDirector.row_wave_state(index)` -> {k, owed, came, waves} (tests, tools).
+model.js: `ROW_PACES`, `ROW_WAVE_EVERY_DEF`, `ROW_WAVE_KEYS`, `ETCH_MIN_PX` (3), `rowPaced`, `rowDrawn`, `rowWaveEvery`,
+`rowWaveStart`, `rowWaveTimes`, `rowEtchTimes`, `rowWaveCount`, `waveBurstTimes`, `presenceSpans`, `thinTimes`.
+
+docs/level_editor.md (Timeline tab, roster lane): the yellow etches along each bar's foot (a line where a continuous row
+is drawn, a tick at each wave of a row paced as waves, both on a trickling one, a tick at each burst of a `waves[]`
+block; ticks under 3 px apart thinned, every m-th kept, never merged), the chip "↻ 30 s ×20", the row form's Pacing
+select and its five fields, the hover card's next wave; Settings -> Spawning: Burst min / max and Spawn check every
+are the continuous rows' pacing.
+
+### The water, the sand, the oasis ground (lane MAP)
+
+No new content JSON keys (red_canyon.json untouched). The knobs are shader uniforms (set on the materials, defaults in
+the shader files) and RedCanyon constants.
+
+#### core/shaders/water_lake.gdshader (new; RedCanyon._water_material, one ShaderMaterial for every lake, `_water_mat`)
+| uniform | type | default | meaning |
+|---|---|---|---|
+| noise_tex | sampler2D | art/env/noise_rgb.png (set by RedCanyon) | three smooth tileable noises, read raw |
+| deep_color | vec3 (colour) | (0.04, 0.34, 0.50) | the middle |
+| shallow_color | vec3 (colour) | (0.20, 0.62, 0.66) | towards the shore |
+| shore_color | vec3 (colour) | (0.58, 0.62, 0.48) | wet sand through thin water (35% over the last 0.2 of the radius) |
+| foam_color | vec3 (colour) | (0.93, 0.96, 0.92) | the lapping line and the glints |
+| sky_color | vec3 (colour) | (0.78, 0.88, 0.94) | the far water's sky |
+| deep_alpha / shallow_alpha | float | 0.9 / 0.62 | see-through in the middle / at the shore |
+| shore_at / shore_wobble | float | 0.95 / 0.05 | where the water ends (fraction of the disc), how far the noise moves it (capped 0.985) |
+| ripple_scale / ripple_speed | float | 0.085 / 0.022 | noise tiles a metre / drift |
+| ripple_light / ripple_sharp | float | 0.08 / 2.2 | the ripple web's light and thinness |
+| foam_strength | float | 0.35 | the lapping line |
+| glint_scale / glint_from / glint_strength | float | 1.1 / 0.955 / 0.7 | glint size (tiles a metre), rarity, brightness |
+| sky_strength | float | 0.35 | the far water's sky |
+| hell | float 0-1 | 0 | stage 3, set by RedCanyon._apply_hell |
+
+#### core/shaders/terrain_painted.gdshader (new uniforms)
+| uniform | type | default | meaning |
+|---|---|---|---|
+| noise_tex | sampler2D | art/env/noise_rgb.png (set by RedCanyon) | macro variation, the oasis edge and grass |
+| macro_scale / macro_strength | float | 0.019 / 0.07 | the sand's broad light and shade: tiles a metre / +- strength |
+| oasis_ragged | float | 0.32 | noise added to the vertex alpha (the oasis edge) |
+| oasis_damp_from / oasis_wet_from | float | 0.1 / 0.72 | where damp earth / wet sand begin (in the broken alpha) |
+| oasis_damp / oasis_wet | vec3 (linear multiplier) | (0.93, 0.90, 0.80) / (0.80, 0.77, 0.72) | their shades |
+| oasis_wet_grey | float 0-1 | 0.3 | how much of wet sand's colour goes to grey first |
+| oasis_grass / oasis_grass_amount | vec3 (colour) / float | (0.40, 0.52, 0.27) / 0.5 | the sparse green on the damp ground |
+
+#### world/maps/red_canyon/RedCanyon.gd
+| name | type | value | meaning |
+|---|---|---|---|
+| OASIS_WET_TO | const float | 0.6 | metres past a lake's edge still fully wet |
+| OASIS_REACH / OASIS_REACH_PER_R | const float | 3.5 / 0.45 | the oasis ground's reach: metres + this many of the radius |
+| OASIS_WOBBLE | const float | 2.2 | metres the reach moves either way (noise) |
+| NOISE_TEX | const String | res://art/env/noise_rgb.png | the shared noise |
+| oasis_wet(p: Vector2) -> float | func | | 0..1, the vertex alpha the terrain shader reads |
+| _water_material() -> ShaderMaterial | func | | the lakes' one material (also `_water_mat`) |
+| vertex colour alpha | | | the oasis ground (r river, g shade, b rock as before) |
+
+#### tools/gen_textures.py
+| name | meaning |
+|---|---|
+| `noise_rgb` maker (`--only=noise_rgb`) | art/env/noise_rgb.png, 256 px, three noises (seeds 101-103) |
+| SAND_SRC | tools/art_src/sand_klein_s8102.png, the painting sand() starts from |
+| SAND_CONTRAST | 0.06: the painting's light and dark per standard deviation |
+| sand_tileable(a), sand_procedural(size) | the painting made tileable; the old sand (its mean = the colour; the fallback) |

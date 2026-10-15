@@ -18,7 +18,8 @@
 ## of steam off the pod); the fire interval is the cooldown over 1 + bonus, bonus = start + (max - start) x pressure
 ## (start is 0 without it: the Hellfire Battery starts hot). The pod's body and tubes glow with the pressure (HEAT_COLOR
 ## up to HEAT_ENERGY, clearly hot at the top). The Hellfire Battery's overpressure (params.overpressure {every}): at full
-## pressure every `every`th volley is a double volley.
+## pressure every `every`th volley is a double volley. Pass 81 (lane POLISH): the bees' line is `params.missile.trail_style`
+## (dash, buzz, bumble, zip, beads; ProjectileManager.BEE_LOOKS, "dash" without one) and `trail_color`, handed to each bee.
 class_name MissilePod
 extends WeaponBehavior
 
@@ -417,6 +418,11 @@ func _launch_one() -> void:
 		"life": _missile_param("life", 4.5),
 		"trail": 4 if red else int(_missile_param("trail", 1.0)),
 	}
+	# pass 81 (lane POLISH): the bees' trail look and colour (ProjectileManager.BEE_LOOKS; "" = the default look)
+	var m = inst.params.get("missile", {})
+	if m is Dictionary:
+		params["trail_style"] = str((m as Dictionary).get("trail_style", ""))
+		params["trail_color"] = str((m as Dictionary).get("trail_color", ""))
 	game.projectiles.launch_missile(_red() if red else projectile_kind, from, dir, stat("speed", 13.0), stat("damage", 12.0), stat("area", 1.5), stat("range", 12.0), inst, params, stat("knockback", 3.0))
 	_recoil = 1.0
 	# the tube that fired shows empty and the cluster turns the next one up

@@ -282,6 +282,9 @@ func _slider_row(t: String, value: float, lo: float, hi: float, on_change: Calla
 
 
 func _count_hint_tap() -> void:
+	# pass 81 (lane PROD): the production build has no debug mode to flip
+	if Settings.is_prod():
+		return
 	_hint_taps += 1
 	if _hint_taps < DEBUG_TAPS or _debug_flipped:
 		return
@@ -322,6 +325,9 @@ static func version_line() -> String:
 
 ## Holding the version line for 2 s opens the developer menu; lifting or sliding the finger away cancels it.
 func _on_version_input(e: InputEvent) -> void:
+	# pass 81 (lane PROD): no developer menu in the production build
+	if Settings.is_prod():
+		return
 	if e is InputEventScreenTouch or (e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT):
 		var down: bool = e.pressed
 		_holding = down

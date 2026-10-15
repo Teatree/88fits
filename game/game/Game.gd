@@ -84,7 +84,7 @@ func _ready() -> void:
 	Run.sim_mode = bool(debug_launch.get("sim_fast", false))
 	# and the run's own clock for the rules that count real time (Run.rule_seconds), every run sim's in both its modes
 	Run.sim_clock = bool(debug_launch.get("sim_clock", false))
-	var arena: bool = Run.arena_next or bool(debug_launch.get("arena", false))
+	var arena: bool = (Run.arena_next or bool(debug_launch.get("arena", false))) and not Settings.is_prod()
 	Run.arena_next = false
 	# the arena keeps nothing: the save as it is now (before Run.start counts a run) goes back when it closes
 	if arena:
@@ -292,6 +292,10 @@ func _ready() -> void:
 
 
 func _read_debug_launch() -> Dictionary:
+	# pass 81 (lane PROD): the production build takes no tool's launch (the file is left where it is)
+	if Settings.is_prod():
+		Run.launch_override = {}
+		return {}
 	# pass 77 (lane SIMRUN): a launch set in memory comes first (Run.launch_override, the run sim's), taken once; the
 	# file is not touched then (side-by-side processes would race on it)
 	if not Run.launch_override.is_empty():
@@ -1185,7 +1189,7 @@ func _unhandled_input(event: InputEvent) -> void:
 					close_pause()
 			elif not cards.visible and not portal_dialog.visible:
 				open_pause()
-		elif event.keycode == KEY_F1:
+		elif event.keycode == KEY_F1 and not Settings.is_prod():
 			debug_panel.toggle()
 
 

@@ -316,6 +316,7 @@ func super_properties() -> Dictionary:
 	var p := _fixed.duplicate()
 	p["top_inset"] = int(round(W.safe_top()))
 	p["dev"] = is_dev()
+	p["build"] = Settings.build_flavour()   # pass 81 (lane PROD): "prod" (the production build) | "dev"
 	p["session_id"] = session_id
 	p["$session_id"] = session_id
 	p["distinct_id"] = did

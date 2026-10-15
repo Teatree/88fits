@@ -31,7 +31,8 @@
       "turn": 11.0,
       "spiral": 14.0,
       "life": 3.0,
-      "trail": 2
+      "trail": 2,
+      "trail_style": "dash"
     },
     "familiar": {
       "radius": 1.1,

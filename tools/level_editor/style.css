@@ -497,6 +497,13 @@ input.sw-color.ph { opacity: 0.45; }
 .w-pt-text { fill: var(--ink); font-size: 9.5px; display: none; pointer-events: none; paint-order: stroke; stroke: rgba(13,13,13,0.8); stroke-width: 3px; }
 .w-pt:hover .w-pt-text, .bar.selected .w-pt-text { display: block; }
 .bar.selected .w-area { opacity: 0.55; }
+/* pass 81 (lane PACE): the yellow etches along a bar's foot: a line where a row is drawn continuously, a tick a wave */
+.etches { pointer-events: none; filter: drop-shadow(0 0 1px rgba(0,0,0,0.95)); }
+.etch-line { stroke: #ffe03d; stroke-width: 3; stroke-linecap: butt; }
+.etch-line.trickle { stroke-width: 1.6; opacity: 0.75; }
+.etch-tick { stroke: #ffe03d; stroke-width: 2; stroke-linecap: butt; }
+.chip-pace rect { fill: rgba(255,224,61,0.26); stroke: rgba(255,224,61,0.65); }
+.pace-note b { color: #ffe03d; }
 
 /* the HP x / ATK x lanes */
 .lane-hp .lane-label, .lane-dmg .lane-label, .lane-share .lane-label { cursor: pointer; }

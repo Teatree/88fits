@@ -78,6 +78,7 @@ params = {
 "life": 3.0,
 "spiral": 12.0,
 "trail": 2.0,
+"trail_style": "dash",
 "turn": 9.0,
 "wander": 0.3
 },

@@ -9,10 +9,10 @@
 [resource]
 script = ExtResource("2_pqa5u")
 archetype = "spitter"
-doc = "Garry's picture (pass 73): a saiga antelope in a long fringed poncho with a long scoped rifle. A special (gear badge), never an Elite, one at a time. He comes in at the map's edge and keeps about 26 m off; when the hero comes within 14 m he runs. Otherwise he stands frozen in his aiming pose: thin red lines sweep in from the sides of his aim and gather on the hero, more and faster, following him for 2 s; then they lock, hold 1 s, and a laser crosses the whole map along the locked line, leaving red sparks. It hits the hero for 0.7 x the Vulture Raider's rocket at the same stage and shoves him, and it nicks the creatures on its line (5% of their health) and pushes them aside. A shot every 9 s or so. A hit stops his aim and sends him running for a second (flee on hit)."
+doc = "Garry's picture (pass 73): a saiga antelope in a long fringed poncho with a long scoped rifle. A special (gear badge), never an Elite, one at a time. He comes in at the map's edge (26 m off) and walks towards the hero like the Spit Cactus, a bit faster, until he is within 16 m; there he holds and aims, and he never runs away (pass 81). Aiming, he stands frozen in his aiming pose: thin red lines sweep in from the sides of his aim and gather on the hero, more and faster, following him for 2 s; then they lock, hold 1 s, and a laser crosses the whole map along the locked line, leaving red sparks. It hits the hero for 0.7 x the Vulture Raider's rocket at the same stage and shoves him, and it nicks the creatures on its line (5% of their health) and pushes them aside. A shot every 9 s or so. A hit spoils his aim (no shot)."
 brain = "sniper"
 hp = 35.0
-speed = 3.2
+speed = 1.6
 damage = 8.0
 radius = 0.8
 size = 3.0
@@ -36,7 +36,7 @@ frame_px = 160
 strip_cols = 45
 fps = {
 "die": 12.0,
-"run": 15.0
+"run": 8.0
 }
 knockback = 4.81
 max_alive = 1
@@ -80,7 +80,7 @@ variants = {
 "back_faces": "right",
 "fps": {
 "die": 12.0,
-"run": 15.0
+"run": 8.0
 },
 "front_faces": "right",
 "head": 0.956,
@@ -113,8 +113,8 @@ sniper = {
 },
 "cone_deg": 44.0,
 "first": 2.5,
-"flee_range": 14.0,
-"follow": 38.0,
+"flee_range": 0.0,
+"follow": 16.0,
 "interval": 9.0,
 "interval_jitter": 1.5,
 "lines": 14.0,
@@ -125,12 +125,8 @@ sniper = {
 "up": 2.1
 },
 "recover": 2.5,
+"spoil_on_hit": true,
 "stand_off": 26.0
-}
-flee_on_hit = {
-"interrupts": true,
-"seconds": 1.0,
-"speed_mult": 1.8
 }
 attack_views = "front_back"
 sfx = {

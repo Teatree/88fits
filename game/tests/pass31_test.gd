@@ -54,6 +54,9 @@ func test_regen_waits_after_a_hit() -> void:
 	assert_float(float(p.REGEN_HOLD_AFTER_HIT)).is_greater_equal(2.0)
 
 
+## Re-pinned in pass 81 (lane MAP; Garry: "Make the water look more like water. Maybe a cheap shader."): the flat
+## unshaded colour (pass 31's wave shader had read as a patterned disc) is core/shaders/water_lake.gdshader now, still
+## unshaded and half see-through, its patterns faint (pass81_map_test pins the rest).
 func test_the_water_is_a_plain_material() -> void:
 	Run.forced_map_seed = 5
 	_start()
@@ -61,10 +64,13 @@ func test_the_water_is_a_plain_material() -> void:
 	add_child(m)
 	var lake: MeshInstance3D = m.find_child("Oasis", true, false)
 	assert_object(lake).is_not_null()
-	var mat := lake.material_override
-	assert_bool(mat is StandardMaterial3D).override_failure_message("the water is still a shader").is_true()
-	var sm := mat as StandardMaterial3D
-	assert_int(int(sm.shading_mode)).is_equal(int(BaseMaterial3D.SHADING_MODE_UNSHADED))
-	assert_float(sm.albedo_color.a).is_between(0.3, 0.9)   # pass 32: deepened so the sand under it stops showing
-	assert_object(sm.albedo_texture).is_null()
+	var mat := lake.material_override as ShaderMaterial
+	assert_object(mat).override_failure_message("the water is not the pass 81 shader").is_not_null()
+	assert_str(mat.shader.resource_path).is_equal("res://core/shaders/water_lake.gdshader")
+	assert_bool(mat.shader.code.contains("unshaded")).is_true()
+	# pass 32: deep enough that the sand under the middle stops showing; the shore clearer
+	var mt := RegEx.create_from_string("uniform float deep_alpha[^=]*= ([0-9.]+);").search(mat.shader.code)
+	assert_object(mt).is_not_null()
+	var deep := float(mt.get_string(1))
+	assert_float(deep).is_between(0.75, 0.95)
 	Run.forced_map_seed = 0

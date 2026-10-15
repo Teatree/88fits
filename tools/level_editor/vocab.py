@@ -76,8 +76,9 @@ BLOCKS = {
     "boss": {"attacks": [], "cooldown_between": 2.0, "hp_mult_per_stage": 1.6, "ring": {}},
     "elite": {"hp_mult_per_stage": 1.8},
     # pass 73 (lane SNIPER): the Saiga Sniper's brain block, and flee on hit (any creature: EnemyManager.flee_start)
-    "sniper": {"stand_off": 26.0, "flee_range": 14.0, "follow": 38.0, "first": 2.5, "aim": 2.0, "lock": 1.0, "interval": 9.0,
-               "interval_jitter": 1.5, "recover": 2.5, "cone_deg": 44.0, "lines": 14, "beam": {}, "muzzle": {}},
+    # pass 81 (lane POLISH): flee_range's default is 0 (never runs); spoil_on_hit (a hit drops the aim, no running)
+    "sniper": {"stand_off": 26.0, "flee_range": 0.0, "follow": 38.0, "first": 2.5, "aim": 2.0, "lock": 1.0, "interval": 9.0,
+               "interval_jitter": 1.5, "recover": 2.5, "spoil_on_hit": True, "cone_deg": 44.0, "lines": 14, "beam": {}, "muzzle": {}},
     "flee_on_hit": {"seconds": 1.0, "speed_mult": 1.8, "interrupts": True},
 }
 # the sub-blocks' keys (same shape), for the forms' nested rows

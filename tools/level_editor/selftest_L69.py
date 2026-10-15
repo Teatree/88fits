@@ -143,6 +143,8 @@ SOURCES = {
                 "core/systems/EnemyManager.gd"),
     "ProjectileEmitter": ("core/behaviors/ProjectileEmitter.gd", "core/systems/ProjectileManager.gd", "core/systems/EnemyManager.gd",
                           "core/systems/TextGen.gd"),
+    # pass 81 (lane POLISH): the bees' trail look (missile.trail_style / trail_color)
+    "MissilePod": ("core/behaviors/MissilePod.gd", "core/systems/ProjectileManager.gd"),
 }
 
 

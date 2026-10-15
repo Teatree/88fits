@@ -200,7 +200,8 @@ func _ready() -> void:
 	_arena_btn.offset_right = -36
 	_arena_btn.offset_top = 44 + W.safe_top()
 	_arena_btn.offset_bottom = 44 + W.safe_top() + 60
-	_arena_btn.visible = Settings.debug_mode
+	_arena_btn.visible = Settings.debug_mode and not Settings.is_prod()
+	_arena_btn.name = "ArenaButton"
 	_arena_btn.pressed.connect(func():
 		Run.arena_next = true
 		_leave_for_a_run()

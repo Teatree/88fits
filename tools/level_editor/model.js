@@ -180,6 +180,109 @@ const Model = (() => {
     return 'r' + n;
   }
 
+  // ------------------------------------------------------------------ a roster row's pacing (pass 81, lane PACE)
+  //
+  // Garry (2026-10-15): "Add the ability to control the pacing of the waves. I mean the frequency at which enemy waves
+  // come. And on top of the enemy node in the rows you should etch the yellow etches to show when the enemies will spawn.
+  // If it's continuous (choose an option) it's shown as a continuous yellow line." A row's `pace`: "continuous" (the
+  // default: drawn into the cap by its weight at every spawn check) or "waves": wave k at t + offset + k × every while the
+  // row is open, `count` a wave; the game's rule is WaveTimeline.row_* / WaveDirector._tick_row_waves.
+
+  /** The values of a row's `pace` (WaveTimeline.ROW_PACES) and a waves row's `every` when it names none. */
+  const ROW_PACES = ['continuous', 'waves'];
+  const ROW_WAVE_EVERY_DEF = 30;
+  /** The keys only a waves row reads (the form drops them when the row goes back to continuous). */
+  const ROW_WAVE_KEYS = ['every', 'count', 'offset', 'respect_cap', 'trickle'];
+  /** The least screen gap between two etches (px): closer ticks are thinned (every m-th kept), never merged into a line,
+   *  so a fast waves row still reads as ticks and only a continuous row as a line. */
+  const ETCH_MIN_PX = 3;
+
+  /** Whether a row comes as waves (WaveTimeline.row_paced): `pace` "waves"; anything else is continuous. */
+  const rowPaced = (r) => isObj(r) && String(r.pace) === 'waves';
+  /** Whether a row is in the director's continuous draw (WaveTimeline.row_drawn): a continuous row, or a waves row that
+   *  trickles. */
+  const rowDrawn = (r) => !rowPaced(r) || !!r.trickle;
+  /** A waves row's seconds between waves (default 30); 0 or less = one wave only. */
+  const rowWaveEvery = (r) => num(r && r.every, ROW_WAVE_EVERY_DEF);
+  /** A waves row's first wave: its `t` plus its `offset` (never below 0). */
+  const rowWaveStart = (r) => num(r && r.t, 0) + Math.max(num(r && r.offset, 0), 0);
+
+  /** The second of every wave of row `r` from its first up to `end` (inclusive) and before its `until`, at most `limit`
+   *  (10000) of them; [] for a continuous row (WaveTimeline.row_wave_times; the gate on the row's weight is apart:
+   *  rowEtchTimes). */
+  function rowWaveTimes(r, end, limit) {
+    const out = [];
+    if (!rowPaced(r)) return out;
+    const until = r.until == null || r.until === '' ? Infinity : num(r.until, Infinity);
+    const every = rowWaveEvery(r), start = rowWaveStart(r), lim = limit == null ? 10000 : limit;
+    for (let k = 0; k < lim; k++) {
+      const t = start + (every > 0 ? k * every : 0);
+      if (t >= until || t > end) break;
+      out.push(t);
+      if (!(every > 0)) break;
+    }
+    return out;
+  }
+
+  /** The waves of row `r` that come (WaveDirector._tick_row_waves): its wave seconds where the row weighs above 0. */
+  function rowEtchTimes(r, end, lateT) {
+    return rowWaveTimes(r, end).filter((t) => rowWeight(r, t, lateT) > 0);
+  }
+
+  /** How many creatures a wave of row `r` brings (WaveTimeline.row_wave_count): `count`, else the row's `pack`, else the
+   *  creature's pack size after the row's overrides; at least 1. */
+  function rowWaveCount(r, c) {
+    const st = isObj(r && r.stats) ? r.stats : {};
+    const pack = num(st.pack, num(c && c.pack_size, 1));
+    return Math.max(Math.trunc(num(r && r.count, num(r && r.pack, pack))), 1);
+  }
+
+  /** A waves[] entry's burst seconds (WaveDirector._tick_waves, room permitting): from `t` every `every` until its count
+   *  is sent (ceil(count / burst) bursts) or `until`, up to `end`; `every` 0 = one burst. */
+  function waveBurstTimes(w, end, limit) {
+    const out = [];
+    if (!isObj(w)) return out;
+    const t0 = num(w.t, 0), every = num(w.every, 0), burst = Math.max(1, Math.trunc(num(w.burst, 5))), count = Math.trunc(num(w.count, 0));
+    const until = w.until == null || w.until === '' ? Infinity : num(w.until, Infinity);
+    const n = Math.min(count > 0 ? Math.ceil(count / burst) : Infinity, limit == null ? 10000 : limit);
+    for (let k = 0; k < n; k++) {
+      const t = t0 + (every > 0 ? k * every : 0);
+      if (t >= until || t > end) break;
+      out.push(t);
+      if (!(every > 0)) break;
+    }
+    return out;
+  }
+
+  /** The stretches of [t0, t1] where row `r` weighs above 0 (its presence keyframes, linear between: a stretch between two
+   *  keyframes is empty only when both are 0), as [[from, to], ...]: the continuous row's yellow line. */
+  function presenceSpans(r, t0, t1, lateT) {
+    const out = [];
+    if (!(t1 > t0)) return out;
+    const pts = Array.isArray(r && r.weights) && r.weights.length ? r.weights : keyframesOf(r || {}, lateT);
+    const cuts = [t0, t1];
+    for (const p of pts) if (Array.isArray(p)) { const pt = num(p[0], 0); if (pt > t0 && pt < t1) cuts.push(pt); }
+    cuts.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < cuts.length; k++) {
+      const a = cuts[k], b = cuts[k + 1];
+      if (!(b > a)) continue;
+      if (rowWeight(r, a, lateT) > 0 || rowWeight(r, b, lateT) > 0 || rowWeight(r, (a + b) / 2, lateT) > 0) {
+        const last = out[out.length - 1];
+        if (last && last[1] >= a) last[1] = b; else out.push([a, b]);
+      }
+    }
+    return out;
+  }
+
+  /** Etch seconds thinned for the screen: each kept one at least `minDt` after the last kept (every m-th of an even
+   *  rhythm). {times, thinned: whether any was dropped}. */
+  function thinTimes(times, minDt) {
+    const out = [];
+    let last = -Infinity;
+    for (const t of times) if (t - last >= minDt - 1e-9) { out.push(t); last = t; }
+    return { times: out, thinned: out.length < times.length };
+  }
+
   // ------------------------------------------------------------------ one creature's numbers at a time
 
   const getPath = (o, path) => {
@@ -881,7 +984,9 @@ const Model = (() => {
     (Array.isArray(tl.roster) ? tl.roster : []).forEach((r, ri) => {
       if (!isObj(r)) return;
       const d = defOf(String(r.enemy == null ? '' : r.enemy), r.stats);
-      if (d) roster.push({ r, d, key: 'roster:' + ri, t: num(r.t, 0), until: r.until == null || r.until === '' ? 1e9 : num(r.until, 1e9), hell: r.channel === 'hell', pack: Math.max(trunc(num(r.pack, d.pack)), 1), single: r.pattern === 'single' });
+      if (d) roster.push({ r, d, key: 'roster:' + ri, t: num(r.t, 0), until: r.until == null || r.until === '' ? 1e9 : num(r.until, 1e9), hell: r.channel === 'hell', pack: Math.max(trunc(num(r.pack, d.pack)), 1), single: r.pattern === 'single',
+        // pass 81 (lane PACE): a row paced as waves, whether it is in the continuous draw, its waves' state
+        paced: rowPaced(r), drawn: rowDrawn(r), wk: -1, owed: 0 });
     });
 
     // ---- the crowd: expected bodies per type (an id and its load per body)
@@ -1044,6 +1149,47 @@ const Model = (() => {
           }
           if (!b.done && fired >= 8 && t >= b.next) b.next = t;
         }
+      }
+    }
+    /** Pass 81 (lane PACE), WaveDirector._row_wave_spawn: what a waves row's wave still owes, cut to the hard cap, the
+     *  creature's max_alive and (respect_cap) its channel's room, at least one while there is any room. */
+    function rowWaveSpawn(x) {
+      let n = x.owed;
+      n = Math.min(n, Math.floor(hard - bodies()));
+      if (x.d.maxAlive > 0) n = Math.min(n, x.d.maxAlive - aliveOf(x.d.id));
+      if (n > 0 && x.r.respect_cap !== false) {
+        const room = channelRoom(x.hell);
+        if (!(room > 0)) return;
+        n = Math.min(n, Math.max(Math.ceil(room / Math.max(x.d.share, 0.05)), 1));
+      }
+      if (!(n > 0)) return;
+      add(x.d, n, 'reg'); bump(srcCum, x.key, n);
+      x.owed = Math.max(x.owed - n, 0);
+    }
+    /** WaveDirector._tick_row_waves: wave k of a waves row as the clock passes t + offset + k × every while the row is
+     *  open, `count` of it when the row weighs above 0 then; a new wave drops what the last one owed. */
+    function tickRowWaves() {
+      const t = clock();
+      for (const x of roster) {
+        if (!x.paced || !(t >= x.t && t < x.until)) continue;
+        const start = rowWaveStart(x.r), every = rowWaveEvery(x.r);
+        if (t < start) continue;
+        const i = every > 0 ? Math.floor((t - start) / every + 1e-6) : 0;
+        if (i <= x.wk) continue;
+        x.wk = i; x.owed = 0;
+        if (!(rowWeight(x.r, start + (every > 0 ? i * every : 0), lateT) > 0)) continue;
+        x.owed = Math.max(trunc(num(x.r.count, x.pack)), 1);
+        rowWaveSpawn(x);
+      }
+    }
+    /** WaveDirector._row_waves_owed: first thing at a spawn check of the normal phase, a waves row's rest as room frees. */
+    function rowWavesOwed() {
+      if (phase !== 0) return;
+      const t = clock();
+      for (const x of roster) {
+        if (!x.paced || !(x.owed > 0)) continue;
+        if (t >= x.until) { x.owed = 0; continue; }
+        rowWaveSpawn(x);
       }
     }
 
@@ -1226,6 +1372,8 @@ const Model = (() => {
       return left - used;
     }
     function spawnBurst() {
+      // pass 81 (lane PACE): a waves row's rest first, then the continuous draw without the waves rows that do not trickle
+      rowWavesOwed();
       const cap = capNow();
       if (cap <= 0) return;
       const tr = phase === 0 ? now() : now() - 1;
@@ -1234,11 +1382,11 @@ const Model = (() => {
       const room = cap - (loadAll() - hl);
       let left = hard - bodies();
       if (left <= 0) return;
-      const regular = openRows(rowsAt(tr, false));
+      const regular = openRows(rowsAt(tr, false)).filter((c) => c.x.drawn);
       if (room > 0 && regular.length) left = burstRows(regular, room, left);
       const hellRoom = hellFrac() * cap - hl;
       if (hellRoom > 0 && left > 0 && hellRows.length) {
-        const ho = openRows(hellRows);
+        const ho = openRows(hellRows).filter((c) => c.x.drawn);
         if (ho.length) burstRows(ho, hellRoom, left);
       }
     }
@@ -1279,6 +1427,7 @@ const Model = (() => {
         k++;
         processEvents();
         if (phase === 0) tickWaves();
+        if (phase === 0) tickRowWaves();
       } else if (phase === 1) {
         phaseLeft--;
         while (fight && fight.brood.length && fight.brood[0].step <= play) {
@@ -1463,6 +1612,9 @@ const Model = (() => {
     sizeRange, sizeIssues, TINT_DEF, tintRange, tintIssues, hueSpan, hueAt, hsvToRgb, toLinear, toSrgb, tintPixel,
     SPECIAL_TINT, tintSpecial, varianceSpecial, SPECIAL_DEFAULTS, specialValue, specialSource, SPECIAL_MAX_ALIVE, specialMaxAlive,
     SNAP_PX, SNAP_GRID_PX, SNAP_GRID_MIN_PX, SNAP_TIER, snapTargets, snapGridStep, snapDrag, clockText,
+    // pass 81 (lane PACE): a roster row's pacing and the yellow etches
+    ROW_PACES, ROW_WAVE_EVERY_DEF, ROW_WAVE_KEYS, ETCH_MIN_PX, rowPaced, rowDrawn, rowWaveEvery, rowWaveStart, rowWaveTimes,
+    rowEtchTimes, rowWaveCount, waveBurstTimes, presenceSpans, thinTimes,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   return api;

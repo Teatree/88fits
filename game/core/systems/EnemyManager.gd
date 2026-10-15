@@ -5326,6 +5326,9 @@ func _on_hit_reactions(i: int, def: EnemyDef, dealt: float, tick: bool) -> void:
 		return
 	if not def.flee_on_hit.is_empty():
 		flee_start(i, def)
+	# pass 81 (lane POLISH): a sniper's aim is spoiled by a hit without any running (sniper_spoil_on_hit)
+	if def.brain == "sniper":
+		sniper_spoil_on_hit(i, def)
 	if def.brain == "artillery" and game != null:
 		var pm = game.get("projectiles")
 		if pm != null and pm.has_method("shooter_hit"):
@@ -5482,10 +5485,13 @@ func _sniper_spawned(i: int, def: EnemyDef) -> void:
 
 ## The sniper's walk (pass 73, _steer's brain "sniper" while it is not aiming): inside `flee_range` of the hero it runs
 ## (straight away, along the wall when backed against it); past `follow` (stand_off + 12 m) it walks back in; between, it
-## stands, and once its rest is over (cooldown) it starts an aim at him.
+## stands, and once its rest is over (cooldown) it starts an aim at him. Pass 81 (lane POLISH; Garry: "Remove that
+## feature [his running away] entirely, just make it like a similar behaviour to the Cactus ranged enemy, but with a bit
+## more speed"): `flee_range` is 0 unless the data names one (the Saiga's is 0: it never runs), so it walks the kite's
+## way: in towards the hero while he is farther than `follow`, then it holds where it is and aims, and never backs off.
 func _sniper_steer(i: int, def: EnemyDef, dir: Vector3, dist: float, spd: float) -> Vector3:
 	var sn: Dictionary = def.sniper
-	if dist < float(sn.get("flee_range", 14.0)):
+	if dist < float(sn.get("flee_range", 0.0)):
 		var run_dir := -dir if dir.length_squared() > 0.0001 else Vector3(cos(float(i)), 0.0, sin(float(i)))
 		return _along_wall(i, run_dir) * spd
 	if dist > float(sn.get("follow", float(sn.get("stand_off", 26.0)) + 12.0)):
@@ -5524,6 +5530,23 @@ func _sniper_cancel(i: int, def: EnemyDef) -> void:
 	s["phase"] = SNIPER_IDLE
 	if state[i] == STATE_WINDUP:
 		state[i] = STATE_MOVE
+
+
+## Pass 81 (lane POLISH): a hit that lands on a sniper (from _on_hit_reactions: one that took health, never a poison or
+## fire tick) drops its aim or lock under way when its `sniper.spoil_on_hit` is true (the default): the shot never comes
+## and the next aim waits `recover` (_sniper_cancel). Pass 73 had this from flee on hit's `interrupts`; the Saiga runs no
+## more (Garry), so the spoil is the sniper's own. True when an aim was dropped.
+func sniper_spoil_on_hit(i: int, def: EnemyDef) -> bool:
+	if not bool(def.sniper.get("spoil_on_hit", true)):
+		return false
+	var s: Dictionary = _snipers.get(i, {})
+	if s.is_empty() or int(s.get("serial", -1)) != serial[i]:
+		return false
+	var ph := int(s.get("phase", SNIPER_IDLE))
+	if ph != SNIPER_AIM and ph != SNIPER_LOCK:
+		return false
+	_sniper_cancel(i, def)
+	return true
 
 
 ## The snipers' aims, once a tick (pass 73, from _physics_process): the aim follows the hero for `aim` seconds, locks,

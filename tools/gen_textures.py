@@ -1,11 +1,13 @@
 """Painted-style environment textures for Dry Gulch, generated procedurally with Pillow + numpy.
 
 Writes into game/art/env/:
-  sand.png          1024x1024 tileable sand with wind ripples and grain
+  sand.png          1024x1024 tileable sand: since pass 81 a Klein painting (tools/art_src/sand_klein_s8102.png) made
+                    tileable and brought to the sand's palette; the procedural sand when the painting is missing
   cracked.png       1024x1024 tileable cracked dry riverbed
   sandstone.png     1024x1024 mesa rock bands
   sky_panorama.png  2048x1024 equirectangular golden-hour sky: gradient, sun, clouds, distant mesas
   props_atlas.png   256x256 flat colour swatches used by the Blender props (one cell per material)
+  noise_rgb.png     256x256 three smooth tileable noises (r, g, b), for the oasis water and the ground (pass 81)
 Run: python tools/gen_textures.py [--only sandstone,redrock]
 """
 import math, os, random
@@ -55,7 +57,51 @@ def lerp_color(a, b, t):
     return a[None, None, :] * (1 - t[..., None]) + b[None, None, :] * t[..., None]
 
 
+# Pass 81 (lane MAP; Garry: "Make the sand texture a bit better. Bit more like what it looks like in MEGABONK."): the
+# sand is a painting now, calm and soft like Megabonk's desert floor (no stripes), with a few pebbles. Flux.2 Klein on
+# the AI server (tools/comfy.py klein(), 1024x1024, 4 steps, seed 8102), the prompt: "Seamless tileable top-down
+# texture of fine desert sand for a stylized hand-painted video game ground. Pale golden beige sand, soft mottled
+# patches of slightly lighter and darker sand, very fine grain, a few tiny scattered pebbles, gentle and low contrast,
+# flat even lighting, no shadows, no footprints, no plants, no objects, no strong ripples, orthographic view straight
+# down, painterly, clean." Picked by eye from four seeds in the game (tools/dl/p81/MAP/sand_game/). sand() makes it
+# tileable (sand_tileable) and keeps only its light and dark, laid over the procedural sand's mean colour (the palette
+# Garry approved in passes 54 and 61) at SAND_CONTRAST of that colour per standard deviation.
+SAND_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "art_src", "sand_klein_s8102.png")
+SAND_CONTRAST = 0.06
+
+
+def sand_tileable(a):
+    """Tileable in two steps: across, the painting cross-faded with its copy rolled half a width (the copy at the left and
+    right edges, where it wraps cleanly; the painting down the middle, where the copy's seam lies); then the same down,
+    on that result, whose rolled copy already wraps across."""
+    h, w = a.shape[:2]
+
+    def ramp(k):
+        t = np.clip((1.0 - np.abs(np.linspace(-1, 1, k, dtype=np.float32))) / 0.8, 0, 1)
+        return t * t * (3 - 2 * t)
+
+    wx = ramp(w)[None, :, None]
+    b = a * wx + np.roll(a, w // 2, axis=1) * (1 - wx)
+    wy = ramp(h)[:, None, None]
+    return b * wy + np.roll(b, h // 2, axis=0) * (1 - wy)
+
+
 def sand(size=1024):
+    base = sand_procedural(size)
+    if not os.path.exists(SAND_SRC):
+        return to_rgb(base)
+    mean = np.clip(base, 0, 1).reshape(-1, 3).mean(0)
+    img = Image.open(SAND_SRC).convert("RGB")
+    if img.size != (size, size):
+        img = img.resize((size, size), Image.LANCZOS)
+    a = sand_tileable(np.asarray(img).astype(np.float32) / 255.0)
+    lum = a @ np.array([0.299, 0.587, 0.114], np.float32)
+    dev = (lum - lum.mean()) / max(float(lum.std()), 1e-6)
+    return to_rgb(mean[None, None, :] * (1.0 + SAND_CONTRAST * dev[..., None]))
+
+
+def sand_procedural(size=1024):
+    """The procedural sand (pass 1 to 80; its mean is the colour the painting is laid over)."""
     n = tileable_noise(size, octaves=6, base_freq=3, seed=1)
     grain = tileable_noise(size, octaves=2, base_freq=128, seed=2)
     y = np.linspace(0, 1, size, dtype=np.float32)[:, None]
@@ -68,8 +114,7 @@ def sand(size=1024):
     # material even lighter"): another step, mean (215, 189, 146), value 0.84, saturation 0.32 (was 0.42), hue unchanged
     base = lerp_color((214, 176, 130), (250, 228, 182), n * 0.5 + blotch * 0.5)
     base = base * (0.80 + 0.36 * ripples[..., None]) * (0.92 + 0.16 * grain[..., None])
-    img = to_rgb(base)
-    return img
+    return base
 
 
 def cracked(size=1024):
@@ -199,6 +244,18 @@ def props_atlas(size=256):
     return img
 
 
+def noise_rgb(size=256):
+    """Pass 81 (lane MAP): three independent smooth noises, each stretched to the full range and tileable, read raw (not as
+    colour) by the oasis water (its ripples, glints and shore: core/shaders/water_lake.gdshader) and by the terrain shader
+    (the sand's large-scale variation, the oasis ground's ragged edge and its grass)."""
+    chans = []
+    for seed, octaves, freq in ((101, 4, 4), (102, 4, 4), (103, 3, 8)):
+        n = tileable_noise(size, octaves=octaves, base_freq=freq, seed=seed)
+        lo, hi = np.percentile(n, 0.5), np.percentile(n, 99.5)
+        chans.append(np.clip((n - lo) / max(hi - lo, 1e-6), 0.0, 1.0))
+    return to_rgb(np.stack(chans, axis=-1))
+
+
 def main():
     # pass 79: `--only sandstone,redrock` writes just those (the others stay byte for byte as they are); cracked() and
     # props_atlas() draw from the shared rng, so they are always made in this order and only the asked-for ones saved
@@ -210,7 +267,7 @@ def main():
         elif a == "--only" and k + 2 < len(sys.argv):
             only = set(sys.argv[k + 2].split(","))
     makers = [("sand", sand), ("cracked", cracked), ("sandstone", sandstone), ("redrock", redrock),
-              ("sky_panorama", sky_panorama), ("props_atlas", props_atlas)]
+              ("sky_panorama", sky_panorama), ("props_atlas", props_atlas), ("noise_rgb", noise_rgb)]
     wrote = 0
     for name, make in makers:
         if only is not None and name not in only and name not in ("cracked", "props_atlas"):

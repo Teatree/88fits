@@ -82,6 +82,7 @@ python tools/wanted_compare.py <dir>/<state>.png <mock-name> [--diff] [--crop=x,
 "$GODOT" --path D:/_projects/88fits/game -e                     # open the editor
 JAVA_HOME=D:/_projects/88fits/tools/jdk17/jdk-17.0.20.1+1 "$GODOT" $P --export-debug "Android" export/88fits-debug.apk   # signed debug APK
 bash tools/ship.sh [--quick] [--no-install]                       # checks -> signed APK -> install + launch on the phone (adb over USB or Wi-Fi)
+bash tools/ship_prod.sh [--no-drive] [--quick] [--no-pc] [--no-android]   # pass 81: the PRODUCTION build, ONLY when Garry asks (skill ship-prod): a pruned, optimised staging copy (tools/dl/prod/stage/game; tools/prod_stage.py, game/tools/prod_plan.gd + prod_reach.gd, tools/prod_prune.py [--selftest], tools/prod_optimise.py), its checks (game/tools/prod_check.gd, smoke_run, prod_run_check.gd), presets "Android Prod" (com.eightyeightfits.game.prod) + "Windows Desktop Prod" (feature `prod` -> Settings.is_prod(): no debug surfaces), tools/prod_probe.py (the exe's cold start), report tools/dl/prod/out/report.md, Drive 88fits-prod.apk/.exe
 bash tools/release.sh "note"                                      # upload the APK as the next GitHub release in the private builds repo (needs gh auth login once)
 python tools/make_win_icon.py [--if-stale] && python tools/exe_info.py game/export/88fits.exe --expect-version 0.59   # pass 73: game/icon.ico (16..256, framed per size) for the PC exe; Godot 4.5+ embeds the icon and version itself (rcedit is obsolete); exe_info reads the exe's version resource
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/sign_exe.ps1 -Exe game/export/88fits.exe   # pass 73: signs the PC exe only when tools/keys/codesign.env exists (git-ignored; a .pfx, a store certificate or a signing service); ship.sh calls it and keeps a failed signing out of Drive; why Windows warns and what fixes cost: docs/pc_build_trust.md
@@ -249,7 +250,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-15, pass 80, version 0.66)
+## Status (2026-10-15, pass 81, version 0.67)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -259,8 +260,12 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.66). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.67). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
+Pass 81: the dev build's label is "88fits Dev" (packages unchanged); the **production build** (`bash tools/ship_prod.sh`,
+skill ship-prod: no debug surfaces via `Settings.is_prod()`, only the content and looks the game can show, music as
+Ogg; package com.eightyeightfits.game.prod, label "88fits", its own PC save folder; Drive 88fits-prod.apk/.exe) is
+made **only when Garry asks**; analytics events carry `build: dev|prod`.
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and two or three oases
 rolled per run from `Run.map_seed` (pass 80: `oases`, water slows walking by `water_slow` 10%), sand to a western
@@ -302,6 +307,11 @@ take their colours from the map (`rock_color`, `wall_colors`, duskier since pass
 Pineapple are thrown where their crowd will be when they blow (`params.lead`, EnemyManager.predicted_counts).
 Pass 80: every tracer draws the **wisp** (`tracer_style`: a hot streak riding with the round, a pale smoke fading in
 about half a second; streak, ribbon, toon and pass 79's line one param away; ProjectileManager `TRACER_STYLE`).
+Pass 81: the lakes are a cheap water shader (core/shaders/water_lake.gdshader) with damp earth and green round them
+(`RedCanyon.oasis_wet`), the sand a calmer painted texture (tools/gen_textures.py, source tools/art_src/); a roster row
+may be paced as waves (`pace`, `every`, `count`, `offset`, `respect_cap`, `trickle`; yellow etches in the editor);
+the bees draw dashed flight paths (`missile.trail_style` "dash"); the Vulture Raider's rocket flies at 0.85 of the
+hero's top speed; the Saiga Sniper walks in to 16 m and holds (no flee; a hit still spoils its aim).
 
 **Heroes** (title order): Drifter (Revolver) and Astro (Gravity Gun) are free; Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), Fadeaway (the Basketball: evade per level, Heat shown on the ball itself, the Timeout

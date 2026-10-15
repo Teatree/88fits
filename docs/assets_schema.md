@@ -1289,3 +1289,93 @@ answer and bot options; 409 while a Watch is open (watch.lock's owner alive). It
 #### Keys in the window
 Space pause / go on · 1..6 the speeds 0.25x, 0.5x, 1x, 2x, 4x, 8x · + / - faster / slower · . (period) step one second ·
 L run to the next level-up · G the charts' last 3 minutes / whole run · M sound. (No WASD or arrows: they steer the hero.)
+
+## Pass 81: new keys
+
+### The bees' trail, the rocket, the sniper (lane POLISH)
+
+#### Weapon / evolution params (MissilePod), in `params.missile`
+| key | type | default | meaning |
+|---|---|---|---|
+| `trail_style` | string | `ProjectileManager.BEE_TRAIL_STYLE` = `"dash"` | **new.** The look of a bee's line (a seeker whose `trail` is 2; Pollen's red bees, trail 4, wear the same look in red): `"dash"` (the cartoon bee's dotted flight path, dark honey-brown dashes, 0.45 s), `"buzz"` (a thin honey squiggle weaving either side), `"bumble"` (the dashes weaving), `"zip"` (a short tapered gold streak), `"beads"` (pass 49's dark beads). Unknown name = the default. Any other trail number (1 = rocket smoke) ignores it. Set on hornet_nest, hive_queen, killer_swarm (`"dash"`). |
+| `trail_color` | colour string | none (the look's own) | **new.** Recolours the bee's line (alpha stays the look's); never Pollen's red. |
+
+Level Editor: typed group "Bee trail (the seekers' line)" (assets_fields.js PARAM_GROUPS id `bee_trail`, MissilePod, shown
+where either key is set); selftest_L69's SOURCES now lists MissilePod (MissilePod.gd, ProjectileManager.gd).
+
+Code constants (ProjectileManager.gd, "pass 81 (lane POLISH): the Killer Bees' trails"): `BEE_TRAIL_STYLE`,
+`BEE_STYLE_IDS` {dash 5, buzz 6, bumble 7} (tracer_line.gdshader styles; zip draws as the guns' streak, 1), `BEE_LOOKS`
+(per look: style, color, red, width, life, step), `BEE_WRAP` 6.3 m; functions `bee_trail_look(trail, style)`,
+`_bee_trail_start`, `_bee_trail`; diagnostics `bee_segments`. Shader consts (tracer_line.gdshader): bee_taper 0.5,
+bee_dash_period 0.42, bee_dash_len 0.24, bee_dash_edge 0.55, bee_buzz_wave 0.9, bee_buzz_amp 0.11, bee_buzz_in 0.18. For
+styles 5-7 the segment's `hot` slot carries the path's length at its start.
+
+#### Creature blocks
+| key | type | default | meaning |
+|---|---|---|---|
+| `sniper.spoil_on_hit` | bool | true | **new.** A hit that lands (never a poison or fire tick) drops the sniper's aim or lock under way (no shot; next aim after `recover`). EnemyManager.sniper_spoil_on_hit. The Saiga sets it true. |
+| `sniper.flee_range` | float m | **0** (was 14 in code) | unchanged meaning; the code's default is now 0 = never runs. The Saiga's is 0. |
+| `sniper.follow` | float m | stand_off + 12 | unchanged meaning (walks towards the hero while he is farther; inside it holds and aims); the Saiga's 38 -> 16. |
+| `flee_on_hit` | block | {} | unchanged primitive; removed from the Saiga: no creature has it now. |
+| `artillery.missile.speed_of_hero` | float | 0 | meaning sharpened: the share of the hero's top speed the rocket covers **on the ground** (the creatures' whole pace taken out, ProjectileManager.rocket_clock_pace); the Raider's 0.9 -> 0.85. |
+
+Level Editor: assets_fields.js sniper rows (flee_range def 0 and help, follow help, new row "Spoiled by a hit"), the
+sniper brain's option text; vocab.py BLOCKS["sniper"] (flee_range 0.0, spoil_on_hit True).
+
+#### For docs/assets_schema.md (the lead): "Pass 81" paragraph
+`params.missile.trail_style` (string, default "dash": dash | buzz | bumble | zip | beads) and `params.missile.trail_color`
+(colour) pick the look of a bee's line (MissilePod seekers with trail 2/4), drawn in the tracers' ring. Creature
+`sniper.spoil_on_hit` (bool, default true): a hit drops the aim; `sniper.flee_range` now defaults to 0.
+`artillery.missile.speed_of_hero` is the rocket's share of the hero's top speed on the ground.
+
+### The production build (lane PROD)
+
+#### Code (game)
+| Name | Type / default | Meaning |
+|---|---|---|
+| custom feature `prod` | export preset feature | set by the presets "Android Prod" and "Windows Desktop Prod"; `OS.has_feature("prod")` |
+| `Settings.is_prod()` | bool | the production build: the feature `prod`, or forced (`prod=1` / `--prod` after `--` on the command line, `Settings.force_prod(true)` in a test) |
+| `Settings.build_flavour()` | "prod" \| "dev" | the build's flavour |
+| `Settings.force_prod(on)` | method | tests and checks: on forces prod (and locks the switches); off returns to the command line's / the build's own |
+| `Settings.PROD_LOCKED` | const Dictionary | the developer switches and the value prod holds them at (debug_mode, debug_panel, debug_modal_buttons, free_revive_button, hit_log, preview_locked_heroes: false; menu_style: "live"; ranged_on_screen, pierce_falloff: true) |
+| analytics super property `build` | "prod" \| "dev" | on every event, beside `dev` |
+| TitleScreen node `ArenaButton` | name | the debug arena's button (was unnamed), hidden in prod |
+
+#### Export presets (game/export_presets.cfg)
+| Preset | Key | Value |
+|---|---|---|
+| preset.0 "Android" (dev) | package/name | "88fits Dev" (was "88fits"; package unchanged) |
+| preset.1 "Windows Desktop" (dev) | application/product_name, file_description | "88fits Dev" |
+| preset.2 "Android Prod" | custom_features | "prod" |
+| | package/unique_name | "com.eightyeightfits.game.prod" |
+| | package/name | "88fits" |
+| | version/name | "" (= application/config/version) |
+| | version/code | 1 in the source; the staging copy writes major x 10000 + minor x 100 + patch |
+| | exclude_filter | the dev one + addons/content_dock/*, *_ai.json, icon.ico |
+| | export_path | export/88fits-prod.apk (ship_prod.sh exports to tools/dl/prod/out/) |
+| preset.3 "Windows Desktop Prod" | custom_features | "prod" |
+| | exclude_filter | the dev one + addons/content_dock/*, *_ai.json |
+| | export_path | export/88fits-prod.exe |
+
+#### The staging copy's project.godot (tools/prod_stage.py; never the source's)
+| Key | Value |
+|---|---|
+| application/config/use_custom_user_dir | true |
+| application/config/custom_user_dir_name | "88fits" (the prod exe's save: %APPDATA%/88fits) |
+| application/config/custom_user_dir_name.editor | "88fits_prod_stage" (the editor binary's runs on the staging copy) |
+
+#### Files
+| Path | What |
+|---|---|
+| game/tools/prod_reach.gd | the reachability (static, takes the Registry) |
+| game/tools/prod_plan.gd | writes the plan JSON: keep {folder: why}, drop {folder: why}, looks {folder: {kind, play, base, keep, drop, promote}}, pins, counts, registry_problems, version |
+| game/tools/prod_check.gd | the staging copy's checks (`-- plan=<file>`) |
+| game/tools/prod_run_check.gd | boot -> title -> settings -> developer menu -> a run with prod forced, in the staging copy |
+| tools/prod_stage.py | the staging copy (tools/dl/prod/stage/game) |
+| tools/prod_prune.py | the prune (`--plan`, `--report`, `--dry-run`, `--selftest`) |
+| tools/prod_optimise.py | music to Ogg, the icon, lossy props (`--ogg-quality`, default 4) |
+| tools/prod_probe.py | an exported exe's cold start to the title and its user folder (`--expect prod|dev`, `--repeat`) |
+| tools/prod_report.py | sizes and report.md |
+| tools/ship_prod.sh | the whole route (`--no-drive`, `--quick`, `--no-pc`, `--no-android`, `--out`) |
+| .claude/skills/ship-prod/SKILL.md | the skill |
+| Drive | `E:/My Drive/88fits builds/88fits-prod.apk`, `88fits-prod.exe` (only from ship_prod.sh without --no-drive) |

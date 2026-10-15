@@ -66,6 +66,9 @@ extends Resource
 ## variant code) and `stats` (overrides, EnemyDef.with_overrides). Pass 54: `weights` [[t, w], ...], the row's draw
 ## weight over the run clock as presence keyframes (linear between, flat outside; WaveDirector._roster_weight), in place
 ## of `weight` / `weight_late` (a row with those still slides as before); `id` is the editor's label, the game ignores it.
+## Pass 81 (lane PACE): `pace` "continuous" (the default: the row joins the director's continuous draw into the cap) |
+## "waves" (the row's creatures come as waves of `count`, one every `every` s from `t` + `offset`, `respect_cap`, and
+## `trickle` to be drawn continuously too; row_paced and the helpers at the end, WaveDirector._tick_row_waves).
 @export var roster: Array = []
 ## Explicit waves on top of the roster (pass 53): {"id", "name", "t", "until", "count", "burst", "every", "pattern",
 ## "respect_cap", "channel", "elite", "toast", "alts": [{"chance", "enemy", "variant", "pack", "stats"}]}. From `t` a
@@ -389,3 +392,83 @@ func roster_at(t: float) -> Array:
 		if t >= start and t < until:
 			out.append(r)
 	return out
+
+
+# ---------------------------------------------------------------- a roster row's own pacing (pass 81, lane PACE)
+
+## Garry (2026-10-15): "Add the ability to control the pacing of the waves. I mean the frequency at which enemy waves
+## come." A roster row's `pace`: "continuous" (the default, as every row always was: drawn into the cap by its weight at
+## every spawn check) or "waves": its creatures come as waves, wave k at `t` + `offset` + k x `every` while the row is
+## open (t <= clock < until), each `count` of them (default the row's `pack`, else the creature's pack size) in the row's
+## pattern; `respect_cap` (default true) and `trickle` (default false: not in the continuous draw between its waves).
+## The schedule's maths is here (the tests and the editor's etches read the same rule); WaveDirector spawns it.
+const ROW_PACES := ["continuous", "waves"]
+## A waves row's `every` when it names none (seconds).
+const ROW_WAVE_EVERY_DEFAULT := 30.0
+
+
+## Whether roster row `r` comes as waves (`pace` "waves"); any other value, or none, is continuous.
+static func row_paced(r: Dictionary) -> bool:
+	return str(r.get("pace", "continuous")) == "waves"
+
+
+## Whether roster row `r` is in the director's continuous draw: a continuous row, or a waves row that trickles.
+static func row_drawn(r: Dictionary) -> bool:
+	return not row_paced(r) or bool(r.get("trickle", false))
+
+
+## A waves row's seconds between waves (`every`, default ROW_WAVE_EVERY_DEFAULT); 0 or less = one wave only.
+static func row_wave_every(r: Dictionary) -> float:
+	var v = r.get("every", ROW_WAVE_EVERY_DEFAULT)
+	return float(v) if (v is float or v is int) else ROW_WAVE_EVERY_DEFAULT
+
+
+## The run second of a waves row's first wave: its `t` plus its `offset` (never below 0).
+static func row_wave_start(r: Dictionary) -> float:
+	return float(r.get("t", 0.0)) + maxf(float(r.get("offset", 0.0)), 0.0)
+
+
+## The index of the last wave of row `r` due at run second `t` (0 = the first), -1 before the first; a row whose `every`
+## is 0 or less has one wave only (index 0). The open window (until) is the caller's: this is the schedule alone.
+static func row_wave_index(r: Dictionary, t: float) -> int:
+	var start := row_wave_start(r)
+	if t < start:
+		return -1
+	var every := row_wave_every(r)
+	if every <= 0.0:
+		return 0
+	# a hair of slack so a clock that lands exactly on a wave's second counts it (float steps)
+	return int(floor((t - start) / every + 1e-6))
+
+
+## The run second of wave `k` of row `r`.
+static func row_wave_time(r: Dictionary, k: int) -> float:
+	var every := row_wave_every(r)
+	return row_wave_start(r) + (float(k) * every if every > 0.0 else 0.0)
+
+
+## Every wave second of row `r` from its first up to `end` and before its `until` (the editor's yellow etches read the
+## same rule, tools/level_editor/model.js rowWaveTimes), at most `limit` of them; [] for a continuous row. The presence
+## gate (a wave due while the row weighs 0 does not come) is WaveDirector's: this is the schedule.
+static func row_wave_times(r: Dictionary, end: float, limit: int = 10000) -> Array:
+	var out: Array = []
+	if not row_paced(r):
+		return out
+	var until := float(r.get("until", INF)) if r.has("until") and r.get("until") != null else INF
+	var every := row_wave_every(r)
+	var k := 0
+	while k < limit:
+		var tk := row_wave_time(r, k)
+		if tk >= until or tk > end:
+			break
+		out.append(tk)
+		if every <= 0.0:
+			break
+		k += 1
+	return out
+
+
+## A waves row's creatures a wave (`count`, default the row's `pack`, else `pack_size`, the creature's after the row's
+## overrides), at least 1.
+static func row_wave_count(r: Dictionary, pack_size: int) -> int:
+	return maxi(int(r.get("count", r.get("pack", pack_size))), 1)

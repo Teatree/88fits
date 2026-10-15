@@ -3460,3 +3460,246 @@ there are 2 oasis at least per level generation in the red canyon, sometimes 3".
   the map's keys; analytics/SCHEMA.md).
 - **The gold tracers re-cut** after the first wisp read like pale sticks at phone size (the lead asked lane TRAIL for
   thinner amber streaks; the numbers in 27.TRAIL are the final ones).
+
+## 28. Pass 81 (v0.67): water, sand, wave pacing, bees, the rocket, the Saiga, the production build
+
+Garry's request (2026-10-15, tools/dl/p81/REQUEST.md). Each lane's rules as it wrote them.
+
+### 28.MAP Water, sand, the oasis ground, the structures' ring
+
+Nothing here changes play: the water's reach (in_water 1.02 of a lake's radius, the disc 1.06, the 10% slow, the dish)
+is pass 80's. Every number below is a look.
+
+#### The water (core/shaders/water_lake.gdshader, one material for every lake, RedCanyon._water_material)
+- Unshaded, half see-through, no depth write, render priority -10 (under the ground marks, as before); no screen or
+  depth reads; 4 samples of one 256 px noise texture (art/env/noise_rgb.png: three smooth tileable noises, r g b).
+- Only the disc's top cap is drawn (its UV gives the radius: rn = |UV - (0.25, 0.75)| x 4); the side band and bottom
+  are discarded.
+- Colour: deep (0.04, 0.34, 0.50) in the middle to shallow (0.20, 0.62, 0.66) towards the shore (depth = 1 -
+  smoothstep(0.18, edge, rn)); the last 0.2 of the radius mixes 35% towards shore_color (0.58, 0.62, 0.48), the wet
+  sand seen through thin water; a slow swell x(0.93 + 0.14 noise).
+- The shore: the water ends at shore_at 0.95 of the disc's radius (about 1.0 of the lake's), moved +-0.05
+  (shore_wobble) by a still noise (tiles every 22 m), never past 0.985 (inside the disc's 40 sides); alpha fades out
+  over the last 0.05.
+- The drawn shore (0.90-0.985 of the disc, about 0.95-1.04 of the lake's radius) sits a little inside the disc that
+  everything else reads (water_disc 1.06: the hero's cut, the blob shadows hidden under water, the wading rings from
+  in_water 1.02): unchanged rules, so a creature standing in the last few centimetres of clear shore has no shadow.
+- Alpha: deep_alpha 0.9 in the middle, shallow_alpha 0.62 at the shore (before the fade).
+- Ripples: two noise layers (0.085 and 0.12 tiles a metre) drifting at ripple_speed 0.022 against each other; where
+  their sum crosses the middle a soft light web (ripple_sharp 2.2, ripple_light 0.08, less in the shallows).
+- Lapping line: a band 0.04-0.085 of the radius inside the edge, broken by the noise, breathing (sin 1.4 rad/s),
+  foam (0.93, 0.96, 0.92) at foam_strength 0.35.
+- Glints: a fine layer (1.1 tiles a metre) drifting faster; a glint where it passes glint_from 0.955 and the slow layer
+  is light, strength 0.7, none in the shallows.
+- Sky: (0.78, 0.88, 0.94) at sky_strength 0.35 x the grazing term (1 - N.V)^2 x 2.2 (the far water lighter).
+- Hell (stage 3): RedCanyon._apply_hell sets the water's `hell` with the ground's; the water goes 70% of the way to
+  col x (1.05, 0.72, 0.66) + (0.06, 0, 0).
+
+#### The oasis ground (RedCanyon.oasis_wet in the terrain's vertex alpha; terrain_painted.gdshader)
+- oasis_wet(p) = 1 up to OASIS_WET_TO 0.6 m past the nearest lake's edge (and under the water), falling (smoothstep)
+  to 0 at OASIS_REACH 3.5 m + OASIS_REACH_PER_R 0.45 x the lake's radius (6-7 m for 5.5-7.5 m lakes), that reach moved
+  +-OASIS_WOBBLE 2.2 m by slow noise (ragged, never a ring); the wettest lake wins.
+- Shader: the alpha broken further by noise (oasis_ragged 0.32 at 1 m, 0.19 at 50 m); damp earth from 0.1 (full at
+  0.4): x oasis_damp (0.93, 0.90, 0.80); sparse green on the damp ground (not the wet): oasis_grass (0.40, 0.52, 0.27)
+  at oasis_grass_amount 0.5 where the noise passes 0.48-0.66; wet sand from 0.72 (full at 0.88): 30% to grey
+  (oasis_wet_grey) then x oasis_wet (0.80, 0.77, 0.72).
+- Gone: pass 80's damp ring (a 0.35 mix of the cracked river bed in the red channel from 0.75 to 1.9 radii).
+- Every terrain corner now has its own colour (was one colour a 1 m quad: a faint checker on the sand, steps round the
+  lakes). The vertex colour is 8 bits a channel, so the shade's 1.15 tops out at 1.0 (as it always did).
+
+#### The sand (tools/gen_textures.py sand(), art/env/sand.png)
+- A Flux.2 Klein painting (seed 8102, prompt in gen_textures.py; source tools/art_src/sand_klein_s8102.png), made
+  tileable (two half-offset cross-fades, ramp over 0.8 of the half width), its light and dark laid over the procedural
+  sand's mean colour (214.8, 188.6, 145.5; hue 37.3, saturation 0.323, value 0.842: pass 61's) at SAND_CONTRAST 0.06
+  of that colour per standard deviation. The procedural sand is the fallback when the painting is missing.
+- The terrain shader adds a broad light and shade over the sand (not the rock): x(1 +- macro_strength 0.07), the noise
+  tiling every 53 m (macro_scale 0.019), so the painting's 11 m repeat stops showing.
+- sand.png, cracked.png, redrock.png and noise_rgb.png import with mipmaps (they had none: the far sand shimmered).
+
+#### The structures' ring (StructureManager)
+- The dark clock hand on the progress pie's leading edge is gone (Garry's "black line"); the pie (alpha 0.62) and the
+  breathing ring are unchanged. `Structure.hand` stays as a field, always null.
+
+### 28.PACE A roster row paced as waves; the yellow etches
+
+Garry (2026-10-15): "Add the ability to control the pacing of the waves. I mean the frequency at which enemy waves come.
+And on top of the enemy node in the rows you should etch the yellow etches to show when the enemies will spawn. If it's
+continuous (choose an option) it's shown as a continuous yellow line."
+
+#### The game (WaveTimeline.row_* helpers, WaveDirector._tick_row_waves / _row_wave_spawn / _row_waves_owed)
+- **`pace`** on a roster row: `"continuous"` (the default; a row without the key, or with any other value, plays as
+  before, unchanged) or `"waves"`.
+- A continuous row is what every row always was: drawn into its channel's cap by its presence weight at every spawn
+  check (`spawn_interval`, Red Canyon 0.7 s), a burst of `burst_min`..`burst_max` load units (Red Canyon 3..12) shared
+  by the open rows. Those three are the global pacing; their help in Settings -> Spawning now says so.
+- A waves row: wave k comes at `t` + `offset` + k x `every` while the row is open (`t` <= clock < `until`; no `until`
+  = on through the stages and endless).
+  - `every`: seconds, default **30**; 0 or less = **one wave only** (at `t` + `offset`).
+  - `offset`: seconds, default 0; below 0 counts as 0.
+  - `count`: creatures a wave, default the row's `pack`, else the creature's pack size after the row's overrides
+    (`stats.pack`); at least 1.
+  - In the row's `pattern` (packs of the row's pack; scatter / single / in_front each at its own point; ring the
+    spawn at once round the hero), `variant`, `stats`, `channel`.
+  - **Presence gates, never scales**: a wave whose second finds the row at weight 0 (its `weights` keyframes) does not
+    come; the weight's size changes nothing about the wave (`count` does).
+  - **The cap** (`respect_cap`, default **true**): a wave is cut to the free room of its channel (regular: the cap less
+    the regular load; hell: hell_cap x cap less the hell load), at least one creature while there is any room (the
+    `waves[]` rule, ceil(room / cap_share)). What does not fit is **owed**: at the start of every spawn check of the
+    normal phase it spawns first (before the continuous draw) as room frees, until the row's next wave falls due (the
+    rest is dropped; the new wave owes its own count) or the row closes. `respect_cap: false`: the whole wave at once on
+    top of the cap, like a SWARM.
+  - Always: the map's `hard_cap` of bodies and the creature's `max_alive` (the row's override too) cut a wave and its
+    owed rest.
+  - **`trickle`** (default **false**): a waves row is not in the continuous draw between its waves; with `trickle:
+    true` it is also drawn continuously by its weight, like a continuous row.
+  - Normal phase only: the run clock stands still in a boss fight and the portal wait, so no wave falls due then, and
+    what a wave owes waits until the clock runs again.
+  - A clock that jumped (a tool: smoke_run, hell_check, the arena) fires **one** wave, the latest due; the skipped ones
+    never come (no backlog).
+  - Numbers: the row's own fixed numbers (pass 58: its HP and ATK from its `t`, the hero's level at its first spawn;
+    afresh at each endless wave), the same key as its trickle's.
+  - Unchanged for a waves row, as for any row: it is still a candidate for a coloured elite (by `stats.elite_weight`),
+    the portal wave still draws it by its weight among the open regular rows, an event of the same creature still joins
+    its numbers when it is the heaviest open row, and its creatures count in the hell load like any hell row's.
+- Red Canyon: every row stays continuous (the lane changed no row; Garry sets Pacing himself).
+
+#### The Level Editor
+- Pacing select on the row form (Continuous / Waves every N s); with Waves: Every (s), Per wave, Offset (s), Respect
+  the cap, Also continuous. Choosing Waves writes `pace` and `every` 30 when the row has none; choosing Continuous
+  removes `pace` and the five waves-only keys (undo brings them back). The note under Pacing says when its waves come.
+- The **yellow etches** along the foot of each roster bar: a 3 px line where a continuous row (or a waves row with Also
+  continuous, a thinner line) is drawn, its weight above 0; a 10 px tick at each wave that comes (weight above 0 then);
+  a `waves[]` block gets a tick at each burst (t + k x every until ceil(count / burst) bursts or until). Ticks closer
+  than **3 px** on the screen (ETCH_MIN_PX) are **thinned** (every m-th kept), never merged into a line, so only a
+  continuous row shows a line; the hover card says when its ticks are thinned and names the next wave.
+- The chip on a waves bar: "↻ 30 s ×20" (every, per wave), "once ×20" for every 0.
+- The Share lane, the readout and the Presence table's share column leave a waves row out of the draw ("waves", or
+  "held" where its weight is 0); a trickling one is drawn as before.
+- "Spawned so far" and the Actual HP / ATK lanes play waves rows by the same rules (expected values), so the curves
+  follow a row set to waves.
+- Validation: an unknown `pace` (error; the game plays it continuous), `every` below 0, `offset` below 0, `count`
+  below 1, a wave over the hard cap (errors); a wave faster than a second ("reads as continuous"), more than 40 at once
+  off the cap, a first wave not before `until`, a presence of 0 at every wave, the waves-only keys on a continuous row
+  (warnings).
+
+### 28.POLISH The bees' dashes, the rocket at 85%, the Saiga Sniper holds its ground
+
+#### The Vulture Raider's rocket at 85% of the hero (`rocketeer.json` `artillery.missile.speed_of_hero` 0.9 -> **0.85**)
+- **Rule** (*code*, ProjectileManager._fly_rocket + `rocket_clock_pace`): a guided rocket with `speed_of_hero` > 0 flies
+  on the ground at **speed_of_hero x the hero's top speed** (Player.max_speed = his `move_speed` stat x the map's
+  `move_pace`, every bonus in it: a Sprint makes it faster too, a harpoon rope slower), x High Noon's time_scale.
+  How: its speed is set to max_speed x speed_of_hero / the creatures' pace (EnemyManager.pace = move_pace x
+  creature_speed_mult), and it flies on the creatures' shot clock (hostile_clock = time_scale x pace), so the pace
+  cancels out. Red Canyon, a hero on the base move_speed 3.6: 3.6 x 0.9 = 3.24 m/s -> rocket **2.75 m/s** (measured in
+  the game, tools/_p81_POLISH_rocket_probe.gd: 2.754 / 3.240 = 85.0%; before: 0.81 = 2.62 m/s).
+- **What it was**: only move_pace came out (pass 60), so creature_speed_mult (0.9 on Red Canyon) stayed in: the 0.9 was
+  really **0.81** of his speed (pass 80 had named it "90%"). Now the creature speed knob no longer touches the rocket;
+  the map's move_pace still never does (it is in both).
+- **Kept**: its turn (`turn` 1.3 rad/s, on the shot clock), the slow and shake on every hit on the Raider (`hit_slow`
+  {mult 0.5, recover 3 s, shake 0.35 s}: half of the 85% just after a hit), the loose rocket when he dies (own speeds).
+- **Wading**: the hero walks at 90% in water (pass 80) and the rocket keeps to 85% of his dry speed: wading he now
+  outruns it by 5% of his speed (it was 81% before, so this holds as it did).
+
+#### The Saiga Sniper (`content/enemies/saiga_sniper/saiga_sniper.json`): no running away, the Spit Cactus's walk
+- `speed` 3.2 -> **1.6** m/s (the Spit Cactus 1.15: x1.39; both x the creature pace, 0.81 on Red Canyon: 1.30 m/s
+  against the cactus's 0.93; the hero 3.24 m/s on the base move_speed).
+- `flee_on_hit` block **removed** (was seconds 1.0, speed_mult 1.8, interrupts true: x1.8 = 4.67 m/s, faster than the
+  hero's 3.24 m/s, which is why he could never be caught).
+- `sniper.flee_range` 14 -> **0** (and the code's default is now 0: a sniper runs only when its data names a range).
+- `sniper.follow` 38 -> **16** m: the walk (*code*, the kite brain's way): farther than `follow` he walks straight at the
+  hero; within it he holds where he is and aims when his rest is over; he never backs off, however close the hero comes
+  (the cactus backs off inside keep_distance - 0.5; the Saiga does not). Why 16: twice the cactus's spit range (8), out
+  of the weapons' priority reach (`target_priority.reach` 10 m), so the guns go for him only once the hero walks in;
+  well on screen when north of the hero (the screen shows ~33 m up, ~7.5 m down, ~6.6 m to each side at zoom 1);
+  the hero closes 16 m in ~4.9 s at 3.24 m/s, a bit more than one aim + hold (3.7 s on Red Canyon), so rushing him means
+  one dodge, maybe two.
+- `sniper.stand_off` **26** unchanged: he still comes in 26 m off; walking in to 16 m takes ~7.7 s at 1.30 m/s before
+  his first aim (his first aim waited 2.5 s before; it can only start once he is inside `follow`).
+- `sniper.spoil_on_hit` **true** (new; *code* default true): a hit that lands (never a poison or fire tick) drops his
+  aim or lock under way (no shot; the next aim waits `recover` 2.5 s). This was pass 73's rule through flee on hit's
+  `interrupts`; it stays, without the run (Garry asked to remove the running only).
+- The look SS-A's walk `fps.run` 15 -> **8** (*data*, the look): the walk cycle plays at a fixed rate x pace, cut for
+  3.2 m/s; at half the speed his feet would slide at twice the ground; 15 x 1.6 / 3.2 = 7.5, rounded to 8.
+- Everything else of the sniper unchanged (aim 2.0 s, lock 1.0 s, both x 1/pace = 2.47 / 1.23 s; interval 9 +- 1.5 s;
+  the beam, its damage 0.7 x the rocket's, the lines). The telegraph check (pass81_polish_test): at his range the hold
+  is > 4x the time the hero needs to step off the line at his top speed ((0.25 + 0.4) m / 3.24 m/s = 0.2 s vs 1.23 s).
+- **Flee on hit stays in code** for any creature (EnemyDef.flee_on_hit, EnemyManager.flee_start); **no creature uses it
+  any more**. The sniper brain's flee_range retreat stays in code too (0 = off).
+- Effect on threat: the Saiga now shoots only once he is within 16 m; a hero who keeps moving away outpaces him (3.24 vs
+  1.3 m/s) and draws fewer shots than from pass 73's 14-38 m sniper; Garry tunes `follow` ("Walks in past") and `speed`
+  in the Level Editor.
+
+#### The Killer Bees' trails (`params.missile.trail_style`, ProjectileManager.BEE_LOOKS) - look, not balance
+- A seeker with `missile.trail` 2 (a bee) or 4 (a bee on Pollen's buff) draws its look in the tracers' ring; the default
+  look **"dash"** (BEE_TRAIL_STYLE; the three bee items name it): dashes **0.24 m** on in every **0.42 m**, colour dark
+  honey-brown (0.29, 0.17, 0.04, alpha 0.9), red (0.75, 0.08, 0.05) on Pollen, head width **0.075 m** (at least 3 px),
+  life **0.45 s** (was 1.4 s of beads), a segment every **0.3 m** flown (0.6 m with more than 60 shots in the air).
+  Others: buzz (0.095 m, 0.34 s, weave 0.11 m every 0.9 m), bumble (0.07 m, 0.42 s), zip (0.13 m, 0.16 s), beads (pass
+  49's). `trail_color` recolours the look (never Pollen's red). Rocket smoke (trail 1) unchanged; the hidden Homing
+  Skulls mutation (trail 2, no style) also wears the dash.
+- Cost: no per-frame work per bee any more (pass 49's beads were re-written every frame in the 800-bead ring); a bee
+  writes one ring slot (transform + colour) per 0.3 m; the shader draws the ring's used part as before.
+
+### 28.PROD The production build
+
+Nothing in play changes in the dev build. The production build (presets "Android Prod" / "Windows Desktop Prod",
+custom feature `prod`, `Settings.is_prod()`) differs only in what it leaves out, named here.
+
+#### What prod switches off (Settings.PROD_LOCKED, held at the player's default)
+| Switch | Prod value | What goes with it |
+|---|---|---|
+| debug_mode | false | the player's debug mode (the ten taps on the hints switch do nothing), the title's ARENA, the debug hand on the pick screens, holding the clock, the free respawn and the last hits on Down!, the Settings debug panel, the one-modal watch |
+| debug_panel | false | the in-run debug panel (and F1 no longer toggles it) |
+| debug_modal_buttons | false | the "debug" button on the modals |
+| free_revive_button | false | Down!'s free revive |
+| hit_log | false | Down!'s hit log and copy |
+| preview_locked_heroes | false | hidden heroes previewed on the title |
+| menu_style | "live" | the title is the live one (the Painted choice lived in the debug panel) |
+| ranged_on_screen | true | ranged weapons aim only on screen (the debug panel's comparison switch) |
+| pierce_falloff | true | the pierce drop-off stays on (the debug panel's / developer menu's switch) |
+
+Also in prod: the developer menu (holding the Settings version line 2 s) does not open (and goes straight back to
+Settings if reached); `user://debug_launch.json` and `Run.launch_override` are ignored (the file is left where it is);
+`Run.arena_next` never opens the arena. A save written by a dev build with any of these on reads back locked.
+
+#### What prod leaves out of the build (tools/prod_reach.gd -> tools/prod_prune.py, staging copy only)
+- Content folders out of play: hidden heroes (Dad, Mira) and their perks and hero mutations; hidden weapons (Branding
+  Iron, Flare Gun, Poison Dart, Rattlesnake, Spear) with their paths and evolutions; hidden evolutions (the _v47 ones,
+  Bullet Hose, Cluster Bomb...), hidden mutations, hidden perks (Bounty Hunter, Lingering Light, Long Day, Serenade,
+  Suit Seals...), hidden creatures (the five training dummies, Goblin, Hobgoblin, Jackalope, Sand Crab), the Timeout
+  pickup, the Strongbox (gold_bank); the quests for any of them (unlock_dad, unlock_mira).
+- Kept although hidden, because something names it: the Sand Lizard (the Gila summons it), the Peashooter with its
+  Pea Cannon (code fallbacks: Registry.start_weapon_for, the arena), the Timeout perk (Game.gd reads it), and any
+  folder a kept file names by path (the Grave Hail evolution uses Dia de Muertos's visual, Jackrabbit Mines
+  Minefield's): those stay whole.
+- Looks: a hero and a card keep only the look the game plays (the JSON's `variant`), made the base; a creature keeps its
+  base, the look it plays and every look a map row or event names (e.g. RG-B, SK-E, KN-E, RR-B, ANT-B, DM-B, HG-C).
+  A weapon family keeps all its looks. The title cut-outs only dropped looks or dropped heroes name go.
+- Files the game never reads: every `<id>_ai.json` (the painters' sidecars), sound files the sound map does not name
+  (128 placeholder WAVs of sounds that have their real one).
+
+#### What prod changes in the art and sound (staging copy only)
+- Music: the six tracks as Ogg Vorbis quality 4 (about 110 kbps at their 32 kHz; the dev build's QOA WAV is about
+  200 kbps); any other sound of 10 s or more that does not loop would go the same way (none today). Audio.gd loops Ogg.
+- The project icon (icon.png, only the window's icon at run time) 1024 -> 256 px; the four prop billboards still
+  lossless (boss_portal, st_teleport, st_teleport_off, st_totem_pole) lossy WebP 0.85 like the rest; icon.ico out of
+  the APK.
+- Unchanged on purpose: the sprites and icons (lossy WebP 0.75 already), the 3D textures (VRAM-compressed with
+  mipmaps where they had them), sprite strip sizes (frames are shown near their painted size), the terrain textures
+  (lane MAP's this pass).
+
+#### Identity
+- Android: package `com.eightyeightfits.game.prod`, label "88fits", version code from the game's version
+  (major x 10000 + minor x 100 + patch: 0.67 -> 6700), same keystore; the dev app's label is now "88fits Dev" (package
+  unchanged, so its save stays).
+- PC: the prod exe's save in `%APPDATA%/88fits` (the dev build's `%APPDATA%/Godot/app_userdata/88fits`); the dev exe's
+  product name "88fits Dev".
+- Analytics: every event carries `build` = "prod" | "dev" beside `dev`.
+
+### 28.LEAD The lead's notes in this pass
+
+- **The PC save put back**: a lane's stray smoke run at 21:19 (outside the Godot wrapper) had banked one run into the
+  PC's real save (gold 6960 -> 13384, runs 14 -> 15); the lead restored the save's own previous copy (the dirty one kept
+  in tools/dl/p81/lead/save_dirty_2119.json).
+- **Two builds from now on**: the dev build (tools/ship.sh) after every user-facing change; the prod build
+  (tools/ship_prod.sh, skill ship-prod) only when Garry asks.

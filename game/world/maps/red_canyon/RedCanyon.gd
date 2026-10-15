@@ -61,6 +61,14 @@ const LAKE_DISH := 1.6
 const LAKE_R := Vector2(5.5, 7.5)
 ## in_water's edge: this many of the lake's radius (the disc as drawn is LAKE_DISC of it)
 const LAKE_WET := 1.02
+## The oasis ground (pass 81, oasis_wet): wet out to OASIS_WET_TO m past a lake's edge, gone OASIS_REACH m +
+## OASIS_REACH_PER_R of its radius out, that reach moved OASIS_WOBBLE m either way by the noise
+const OASIS_WET_TO := 0.6
+const OASIS_REACH := 3.5
+const OASIS_REACH_PER_R := 0.45
+const OASIS_WOBBLE := 2.2
+## The smooth noises (r, g, b) the water and the ground read (pass 81, tools/gen_textures.py noise_rgb)
+const NOISE_TEX := "res://art/env/noise_rgb.png"
 var _rng := RandomNumberGenerator.new()
 var run_seed := 0
 ## the rim: the ground rises towards the wall from this radius out (pass 80: the sand climbs to the wall's foot, drifted
@@ -369,7 +377,13 @@ func _build_terrain() -> void:
 			var x := ix / resolution - half
 			var z := iz / resolution - half
 			heights[iz * grid_n + ix] = _terrain_height(x, z)
-	# mesh
+	# mesh. Pass 81 (lane MAP): every corner its own colour (_color_at at each grid point, blended across the quad); one
+	# flat colour a quad drew a faint metre checker over the sand and blocky steps round the lakes
+	var cols := PackedColorArray()
+	cols.resize(grid_n * grid_n)
+	for iz in range(grid_n):
+		for ix in range(grid_n):
+			cols[iz * grid_n + ix] = _color_at(ix / resolution - half, iz / resolution - half, heights[iz * grid_n + ix])
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for iz in range(grid_n - 1):
@@ -378,18 +392,22 @@ func _build_terrain() -> void:
 			var z0 := iz / resolution - half
 			var x1 := x0 + 1.0 / resolution
 			var z1 := z0 + 1.0 / resolution
-			var p00 := Vector3(x0, heights[iz * grid_n + ix], z0)
-			var p10 := Vector3(x1, heights[iz * grid_n + ix + 1], z0)
-			var p01 := Vector3(x0, heights[(iz + 1) * grid_n + ix], z1)
-			var p11 := Vector3(x1, heights[(iz + 1) * grid_n + ix + 1], z1)
-			var c := _color_at(x0, z0, p00.y)
+			var i00 := iz * grid_n + ix
+			var p00 := Vector3(x0, heights[i00], z0)
+			var p10 := Vector3(x1, heights[i00 + 1], z0)
+			var p01 := Vector3(x0, heights[i00 + grid_n], z1)
+			var p11 := Vector3(x1, heights[i00 + grid_n + 1], z1)
+			var c00 := cols[i00]
+			var c10 := cols[i00 + 1]
+			var c01 := cols[i00 + grid_n]
+			var c11 := cols[i00 + grid_n + 1]
 			# Godot front faces are clockwise: (x0,z0) -> (x1,z0) -> (x0,z1) seen from above
-			st.set_color(c); st.add_vertex(p00)
-			st.set_color(c); st.add_vertex(p10)
-			st.set_color(c); st.add_vertex(p01)
-			st.set_color(c); st.add_vertex(p10)
-			st.set_color(c); st.add_vertex(p11)
-			st.set_color(c); st.add_vertex(p01)
+			st.set_color(c00); st.add_vertex(p00)
+			st.set_color(c10); st.add_vertex(p10)
+			st.set_color(c01); st.add_vertex(p01)
+			st.set_color(c10); st.add_vertex(p10)
+			st.set_color(c11); st.add_vertex(p11)
+			st.set_color(c01); st.add_vertex(p01)
 	st.generate_normals()
 	var mesh := st.commit()
 	var mi := MeshInstance3D.new()
@@ -407,6 +425,9 @@ func _build_terrain() -> void:
 		mat.set_shader_parameter("cracked_flat", river_color)
 		# pass 79: the rim's rock in the map's colour (the shader recolours the rock painting to it)
 		mat.set_shader_parameter("rock_flat", rock_color)
+		# pass 81: the smooth noises for the sand's large-scale variation and the oasis ground's ragged edge and green
+		if ResourceLoader.exists(NOISE_TEX):
+			mat.set_shader_parameter("noise_tex", load(NOISE_TEX))
 	else:
 		var fallback := StandardMaterial3D.new()
 		fallback.vertex_color_use_as_albedo = true
@@ -431,29 +452,46 @@ func _build_terrain() -> void:
 
 
 func _color_at(x: float, z: float, h: float) -> Color:
-	## r = riverbed blend, g = shade multiplier, b = red-rock blend. The painted terrain shader reads these.
+	## r = riverbed blend, g = shade multiplier, b = red-rock blend, a = the oasis ground (pass 81: 1 at the water's edge,
+	## 0 on the dry sand; oasis_wet). The painted terrain shader reads these.
 	var rd := _river_dist(Vector2(x, z))
 	var t: float = clamp(1.0 - rd / (river_width * 0.9), 0.0, 1.0)
-	# a damp ring around the water, but never under it: the dark cracked earth showing through a half-transparent
-	# disc turned the blue to grey mud (pass 80: round every lake)
-	for k in range(_lake_cs.size()):
-		var lr: float = _lake_rs[k]
-		var dl2 := Vector2(x, z).distance_to(_lake_cs[k])
-		if dl2 < lr * 1.9:
-			var shore := smoothstep(lr * 0.75, lr * 1.05, dl2) * (1.0 - smoothstep(lr * 1.15, lr * 1.9, dl2))
-			t = maxf(t, shore * 0.35)
+	# pass 81 (lane MAP): the damp ring round the water (pass 80: a 0.35 mix of the cracked river bed in r) is the oasis
+	# ground in a now, wet sand at the water fading through damp earth and sparse green into the dry sand
 	var n := _noise.get_noise_2d(x * 3.0 + 100.0, z * 3.0)
 	var shade: float = clamp(1.0 - n * 0.35 + h * 0.05, 0.6, 1.15)
 	# pass 80 (Garry: "make the edges of the map just sand ... that orange-dark stuff should be behind the walls"): the
 	# red rock only outside the wall, from ROCK_FROM past the arena's edge (under the wall); was the rim from rim_start
 	var rock: float = rock_weight(Vector2(x, z))
-	return Color(t, shade, rock)
+	return Color(t, shade, rock, oasis_wet(Vector2(x, z)))
+
+
+## The oasis ground at `p` (x, z) (pass 81, lane MAP; Garry: "Do a bit of a ground texture shading around the water.
+## Basically make it look more natural, like an oasis."): 1 up to OASIS_WET_TO m past the nearest lake's edge (and
+## under the water), falling to 0 OASIS_REACH m out (plus OASIS_REACH_PER_R of the lake's radius), that reach moved in
+## and out by OASIS_WOBBLE m of slow noise so the band is ragged, never a ring. The terrain shader turns it into wet
+## sand, damp earth with sparse green, and the dry sand (terrain_painted.gdshader `oasis_*`).
+func oasis_wet(p: Vector2) -> float:
+	var best := 0.0
+	for k in range(_lake_cs.size()):
+		var lr: float = _lake_rs[k]
+		var reach: float = OASIS_REACH + OASIS_REACH_PER_R * lr
+		var dl := p.distance_to(_lake_cs[k])
+		if dl > lr + reach + OASIS_WOBBLE:
+			continue
+		var wob := clampf(_noise.get_noise_2d(p.x * 1.7 + 211.0, p.y * 1.7 - 73.0) * 2.0, -1.0, 1.0)
+		var de := dl - lr - OASIS_WET_TO
+		var span := maxf(reach + wob * OASIS_WOBBLE - OASIS_WET_TO, 0.5)
+		best = maxf(best, 1.0 - smoothstep(0.0, span, de))
+	return best
 
 
 # ---------------------------------------------------------------- geometry helpers
 
 var _stone_mat: StandardMaterial3D
 var _terrain_mat: ShaderMaterial
+## the lakes' water (pass 81): stage 3's hell reddens it as it does the ground
+var _water_mat: ShaderMaterial
 var _env: Environment
 var _hell := 0.0
 var _hell_tween: Tween
@@ -630,16 +668,11 @@ func _ridge(r: float, h: float, h_var: float, segs: int, mat: Material, noise_of
 ## The oasis: one flat half-transparent disc at the water level (`_lake_y`) over the dish; no collider and no obstacle
 ## circle, anyone wades in (pass 29; the pass 31 shader is gone, the collider went with the dish).
 ## Pass 80 (lane OASIS): one disc a lake, "Oasis" the first, "Oasis2", "Oasis3" the others, all of one material.
+## Pass 81 (lane MAP; Garry: "Make the water look more like water. Maybe a cheap (in terms of performance) shader."):
+## that material is core/shaders/water_lake.gdshader (deep middle, shallow rim, a ragged shore that fades out, slow
+## ripples, a lapping line, glints; unshaded, three samples of art/env/noise_rgb.png); the disc is unchanged.
 func _build_lake() -> void:
-	# the simplest water there is: one flat half-transparent colour, unshaded, no texture, no ripple, no shore fade
-	# (a shader with waves in it read as a patterned disc lying on the sand)
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(0.07, 0.42, 0.64, 0.82)
-	mat.cull_mode = BaseMaterial3D.CULL_BACK
-	# under the ground marks (their pools draw at priority -5..-1, pass 33.8), so a red ring on the lake bed always reads
-	mat.render_priority = -10
+	var mat := _water_material()
 	for k in range(_lake_cs.size()):
 		var mi := MeshInstance3D.new()
 		mi.name = "Oasis" if k == 0 else "Oasis%d" % (k + 1)
@@ -654,6 +687,18 @@ func _build_lake() -> void:
 		mi.position = Vector3(_lake_cs[k].x, _lake_ys[k], _lake_cs[k].y)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mi)
+
+
+## The lakes' one material (pass 81): the water shader, under the ground marks (their pools draw at priority -5..-1, pass
+## 33.8, so a red ring on the lake bed always reads), as the flat colour it replaces was.
+func _water_material() -> ShaderMaterial:
+	var mat := ShaderMaterial.new()
+	mat.shader = preload("res://core/shaders/water_lake.gdshader")
+	if ResourceLoader.exists(NOISE_TEX):
+		mat.set_shader_parameter("noise_tex", load(NOISE_TEX))
+	mat.render_priority = -10
+	_water_mat = mat
+	return mat
 
 
 ## Standing in the water? (the hero's ripples, Game; pass 80: in any lake, LAKE_WET of its radius)
@@ -742,6 +787,8 @@ func _apply_hell(f: float) -> void:
 	_hell = f
 	if _terrain_mat:
 		_terrain_mat.set_shader_parameter("hell", f)
+	if _water_mat:
+		_water_mat.set_shader_parameter("hell", f)
 	if _wall_mat:
 		_wall_mat.albedo_color = Color.WHITE.lerp(HELL_WALL, f)
 	if _env:

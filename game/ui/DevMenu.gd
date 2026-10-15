@@ -33,6 +33,11 @@ var _survey_note := ""
 
 func _ready() -> void:
 	get_tree().paused = false
+	# pass 81 (lane PROD): the production build has no developer menu; anything that lands here goes back to Settings
+	if Settings.is_prod():
+		var tree := get_tree()
+		(func(): UiFx.go(tree, SETTINGS)).call_deferred()
+		return
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
 	bg.color = W.INK

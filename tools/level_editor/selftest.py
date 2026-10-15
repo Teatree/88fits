@@ -462,6 +462,44 @@ def boss_brood(script, cooldown, seconds, pace):
     return out
 
 
+def row_paced_py(r):
+    """Pass 81 (lane PACE): WaveTimeline.row_paced."""
+    return isinstance(r, dict) and str(r.get("pace", "continuous")) == "waves"
+
+
+def row_drawn_py(r):
+    """WaveTimeline.row_drawn: a continuous row, or a waves row that trickles."""
+    return not row_paced_py(r) or bool(r.get("trickle", False))
+
+
+def row_wave_every_py(r):
+    """WaveTimeline.row_wave_every: `every`, default 30."""
+    v = r.get("every", 30)
+    return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else 30.0
+
+
+def row_wave_start_py(r):
+    """WaveTimeline.row_wave_start: `t` plus `offset` (never below 0)."""
+    return float(r.get("t", 0) or 0) + max(float(r.get("offset", 0) or 0), 0.0)
+
+
+def row_wave_times_py(r, end, limit=10000):
+    """WaveTimeline.row_wave_times."""
+    out = []
+    if not row_paced_py(r):
+        return out
+    until = float("inf") if r.get("until") in (None, "") else float(r["until"])
+    every, start = row_wave_every_py(r), row_wave_start_py(r)
+    for k in range(limit):
+        t = start + (k * every if every > 0 else 0)
+        if t >= until or t > end:
+            break
+        out.append(t)
+        if not every > 0:
+            break
+    return out
+
+
 def stage_length(tl):
     v = numv(tl.get("stage_length"), 300)
     return v or 300
@@ -561,7 +599,9 @@ def spawn_estimate(tl, creatures, opts=None):
         if d:
             until = 1e9 if r.get("until") is None or r.get("until") == "" else numv(r.get("until"), 1e9)
             roster.append({"r": r, "d": d, "key": "roster:%d" % ri, "t": numv(r.get("t"), 0), "until": until, "hell": r.get("channel") == "hell",
-                           "pack": max(trunc(numv(r.get("pack"), d["pack"])), 1), "single": r.get("pattern") == "single"})
+                           "pack": max(trunc(numv(r.get("pack"), d["pack"])), 1), "single": r.get("pattern") == "single",
+                           # pass 81 (lane PACE): a row paced as waves, whether it is in the continuous draw, its waves
+                           "paced": row_paced_py(r), "drawn": row_drawn_py(r), "wk": -1, "owed": 0})
 
     alive = {}
     sp_live = []
@@ -778,6 +818,52 @@ def spawn_estimate(tl, creatures, opts=None):
                 if not b["done"] and fired >= 8 and t >= b["next"]:
                     b["next"] = t
 
+    # pass 81 (lane PACE): WaveDirector._row_wave_spawn / _tick_row_waves / _row_waves_owed
+    def row_wave_spawn(x):
+        n = x["owed"]
+        n = min(n, math.floor(hard - bodies()))
+        if x["d"]["maxAlive"] > 0:
+            n = min(n, x["d"]["maxAlive"] - alive_of(x["d"]["id"]))
+        if n > 0 and x["r"].get("respect_cap", True) is not False:
+            room = channel_room(x["hell"])
+            if not room > 0:
+                return
+            n = min(n, max(math.ceil(room / max(x["d"]["share"], 0.05)), 1))
+        if not n > 0:
+            return
+        add(x["d"], n, "reg")
+        bump(src_cum, x["key"], n)
+        x["owed"] = max(x["owed"] - n, 0)
+
+    def tick_row_waves():
+        t = clock()
+        for x in roster:
+            if not x["paced"] or not (x["t"] <= t < x["until"]):
+                continue
+            start, every = row_wave_start_py(x["r"]), row_wave_every_py(x["r"])
+            if t < start:
+                continue
+            i = math.floor((t - start) / every + 1e-6) if every > 0 else 0
+            if i <= x["wk"]:
+                continue
+            x["wk"], x["owed"] = i, 0
+            if not roster_weight(x["r"], start + (i * every if every > 0 else 0), late_t) > 0:
+                continue
+            x["owed"] = max(trunc(numv(x["r"].get("count"), x["pack"])), 1)
+            row_wave_spawn(x)
+
+    def row_waves_owed():
+        if S["phase"] != 0:
+            return
+        t = clock()
+        for x in roster:
+            if not x["paced"] or not x["owed"] > 0:
+                continue
+            if t >= x["until"]:
+                x["owed"] = 0
+                continue
+            row_wave_spawn(x)
+
     held, timers = [], []
 
     def spawn_elite(enemy, weights, stats, p):
@@ -984,6 +1070,7 @@ def spawn_estimate(tl, creatures, opts=None):
         return left - used
 
     def spawn_burst():
+        row_waves_owed()  # pass 81 (lane PACE)
         cap = cap_now()
         if cap <= 0:
             return
@@ -994,12 +1081,12 @@ def spawn_estimate(tl, creatures, opts=None):
         left = hard - bodies()
         if left <= 0:
             return
-        regular = open_rows(rows_at(tr, False))
+        regular = [c for c in open_rows(rows_at(tr, False)) if c["x"]["drawn"]]
         if room > 0 and regular:
             left = burst_rows(regular, room, left)
         hell_room = hell_frac() * cap - hl
         if hell_room > 0 and left > 0 and hell_rows:
-            ho = open_rows(hell_rows)
+            ho = [c for c in open_rows(hell_rows) if c["x"]["drawn"]]
             if ho:
                 burst_rows(ho, hell_room, left)
 
@@ -1050,6 +1137,8 @@ def spawn_estimate(tl, creatures, opts=None):
             process_events()
             if S["phase"] == 0:
                 tick_waves()
+            if S["phase"] == 0:
+                tick_row_waves()
         elif S["phase"] == 1:
             S["phase_left"] -= 1
             while S["fight"] and S["fight"]["brood"] and S["fight"]["brood"][0]["step"] <= S["play"]:

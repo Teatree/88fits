@@ -866,7 +866,11 @@ const Timeline = (() => {
       const tr = Model.tintRange(r.stats && r.stats.tint);
       if (tr) chips.push({ hue: tr, cls: 'chip-hue', title: `coloured ${Math.round(tr.h0)}°–${Math.round(tr.h1)}° at ${Math.round(tr.amount * 100)}%` });
       if (r.stats && Object.keys(r.stats).length) chips.push({ glyph: 'wrench', cls: 'chip-wrench' });
+      // pass 81 (lane PACE): a row paced as waves says how often and how many
+      if (Model.rowPaced(r)) chips.push(paceChip(r, c));
       for (const ch of chips) tx = chip(inner, tx, y0 + 2, ch);
+      // pass 81 (lane PACE): the yellow etches along the bar's foot, when its creatures come
+      rowEtches(inner, r, t, tEnd, y0 + bh);
       g.appendChild(inner);
       if (open) g.appendChild(svg('text', { x: x1 - 12, y: y0 + 14, class: 'inf', text: '∞' }));
       // keyframes outside the bar (the row ends before them, or starts after them): a faint dashed tail, still draggable
@@ -910,6 +914,48 @@ const Timeline = (() => {
     if (!rows.length) s.appendChild(svg('text', { x: 8, y: ROSTER_HEAD + 18, class: 'hint-text', text: 'no roster rows: "+ Row" adds one at the view\'s centre' }));
     lanes.roster.label.querySelector('.lane-sub').textContent = `${plural(rows.length, 'row')} · ${rows.filter((r) => r.channel === 'hell').length} hell`;
     renderGutter(rows);
+  }
+
+  /** The yellow etches (pass 81, lane PACE; Garry: "on top of the enemy node in the rows you should etch the yellow etches
+   *  to show when the enemies will spawn. If it's continuous ... it's shown as a continuous yellow line") along a bar's
+   *  foot `yf`, from `t0` to `t1`: a yellow line where a continuous row (or a waves row that also trickles, thinner) is
+   *  drawn, its weight above 0; a tick at each wave of a row paced as waves that comes (its weight above 0 then). Ticks
+   *  closer than ETCH_MIN_PX on the screen are thinned, every m-th kept, never merged into a line. They follow the zoom
+   *  (x(t)) and every change of the row (the whole lane is drawn again). */
+  function rowEtches(parent, r, t0, t1, yf) {
+    const lateT = App.tl().weight_late_t;
+    const paced = Model.rowPaced(r);
+    const g = svg('g', { class: 'etches' + (paced ? ' paced' : '') });
+    if (Model.rowDrawn(r)) {
+      for (const [a, b] of Model.presenceSpans(r, t0, t1, lateT)) g.appendChild(svg('line', { x1: x(a), x2: x(b), y1: yf - 2.5, y2: yf - 2.5, class: 'etch-line' + (paced ? ' trickle' : '') }));
+    }
+    if (paced) {
+      const thin = Model.thinTimes(Model.rowEtchTimes(r, t1, lateT), Model.ETCH_MIN_PX * spp);
+      for (const tk of thin.times) g.appendChild(svg('line', { x1: x(tk), x2: x(tk), y1: yf - 1, y2: yf - 11, class: 'etch-tick' }));
+    }
+    parent.appendChild(g);
+  }
+
+  /** Ticks along a waves[] block's foot at its bursts (pass 81), thinned like the rows'. */
+  function waveEtches(parent, wv, tEnd, yf) {
+    const thin = Model.thinTimes(Model.waveBurstTimes(wv, tEnd), Model.ETCH_MIN_PX * spp);
+    const g = svg('g', { class: 'etches paced' });
+    for (const tk of thin.times) g.appendChild(svg('line', { x1: x(tk), x2: x(tk), y1: yf - 1, y2: yf - 9, class: 'etch-tick' }));
+    parent.appendChild(g);
+  }
+
+  /** A waves row's chip (pass 81): "↻ 30 s ×20" (every how often, how many a wave), "once ×20" for every 0. */
+  function paceChip(r, c) {
+    const every = Model.rowWaveEvery(r), n = Model.rowWaveCount(r, c);
+    return { text: every > 0 ? `↻ ${fmtN(every, 1)} s ×${n}` : `once ×${n}`, cls: 'chip-pace', title: `paced as waves: ${n} every ${every > 0 ? `${fmtN(every, 2)} s` : 'once'} from ${fmtT(Model.rowWaveStart(r))}${r.respect_cap === false ? ', on top of the cap' : ''}${r.trickle ? ', also continuous' : ''}` };
+  }
+
+  /** The wave of row `r` that comes next at or after `t` (pass 81), null when none does before its end or the view's. */
+  function nextRowWave(r, t) {
+    const end = r.until == null || r.until === '' ? App.viewEnd() : Number(r.until);
+    const ts = Model.rowEtchTimes(r, end, App.tl().weight_late_t);
+    for (const tk of ts) if (tk >= t) return tk;
+    return null;
   }
 
   /** A presence keyframe where the double-click landed: its time, and the weight its height on the bar says. */
@@ -1125,6 +1171,8 @@ const Timeline = (() => {
         hovers[hk] = (tt) => altCard(b.i, k, tt);
         inner.appendChild(stripe);
       });
+      // pass 81 (lane PACE): a tick at each burst along the block's foot
+      waveEtches(inner, wv, Math.min(b.e, end), y0 + b.h);
       g.appendChild(inner);
       if (!wide) g.appendChild(svg('text', { x: b.x1 + 4, y: y0 + 14, class: 'block-out', text: head }));
       const handle = svg('rect', { x: b.x1 - HANDLE, y: y0, width: HANDLE, height: b.h, class: 'handle' });
@@ -1591,7 +1639,16 @@ const Timeline = (() => {
     const share = open ? `${Math.round(open.norm * 100)}% of the ${r.channel === 'hell' ? 'hell channel\'s' : 'regular'} draw` : 'not drawn at this second';
     const box = el('div', {}, cardHead('Roster row', t, `${fmtT(r.t)} → ${r.until == null || r.until === '' ? 'end' : fmtT(r.until)}${r.id ? ` · ${r.id}` : ''}`));
     box.appendChild(creatureBlock(r.enemy, r.variant, r.stats, t, { t0: Number(r.t) || 0, from: 'row' }));
-    box.appendChild(el('div', { class: 'hc-line' }, el('b', { text: share }), open ? ` · weight ${fmtN(open.w, 2)}` : ''));
+    // pass 81 (lane PACE): a row paced as waves: its waves, the next one, whether it is in the draw at all
+    if (Model.rowPaced(r)) {
+      const pc = paceChip(r, App.creature(r.enemy));
+      const nx = nextRowWave(r, t);
+      box.appendChild(el('div', { class: 'hc-line' }, el('b', { text: pc.title }), nx != null ? ` · next wave ${fmtT(nx)}${nx > t ? ` (in ${fmtT(nx - t)})` : ''}` : ' · no wave to come'));
+      const gap = Model.rowWaveEvery(r) / Math.max(spp, 1e-9);
+      if (Model.rowWaveEvery(r) > 0 && gap < Model.ETCH_MIN_PX) box.appendChild(el('div', { class: 'hc-line muted', text: `its waves are ${fmtN(gap, 1)} px apart at this zoom: every ${Math.ceil(Model.ETCH_MIN_PX / gap)}th tick is drawn; zoom in to see each` }));
+    }
+    if (!open || open.drawn) box.appendChild(el('div', { class: 'hc-line' }, el('b', { text: share }), open ? ` · weight ${fmtN(open.w, 2)}` : ''));
+    else box.appendChild(el('div', { class: 'hc-line' }, el('b', { text: 'not in the continuous draw' }), ` · weight ${fmtN(open.w, 2)}${open.w > 0 ? '' : ' (holds its waves)'}`));
     return box;
   }
 
@@ -1651,7 +1708,7 @@ const Timeline = (() => {
     if (!open.length) { box.appendChild(el('div', { class: 'hc-line muted', text: 'no roster row open' })); return box; }
     for (const ch of [false, true]) {
       const by = {};
-      for (const o of open.filter((x) => x.hell === ch)) by[o.row.enemy] = (by[o.row.enemy] || 0) + o.norm;
+      for (const o of open.filter((x) => x.hell === ch && x.drawn)) by[o.row.enemy] = (by[o.row.enemy] || 0) + o.norm;
       const ids = Object.keys(by).sort((a, b) => by[b] - by[a]);
       if (!ids.length) continue;
       box.appendChild(el('div', { class: 'ro-title', text: ch ? 'hell channel' : 'regular crowd' }));
@@ -1723,7 +1780,13 @@ const Timeline = (() => {
     if (ser && si >= 0 && ser.hp.avg[si] != null) {
       readout.appendChild(el('div', { class: 'ro-line' }, `actual HP ${fmtX(ser.hp.avg[si])} · ${fmtX(ser.hp.max[si])} max`, el('small', { text: ` · ATK ${fmtX(ser.atk.avg[si])} · ${fmtX(ser.atk.max[si])} max (the rows spawning now, each fixed from its start)` })));
     }
-    const rows = App.rosterAt(t);
+    const all = App.rosterAt(t);
+    // pass 81 (lane PACE): the rows paced as waves are not in the draw: a line each, with the next wave
+    const rows = all.filter((o) => o.drawn);
+    for (const o of all.filter((x) => x.paced)) {
+      const nx = nextRowWave(o.row, t);
+      readout.appendChild(el('div', { class: 'ro-line' }, el('b', { text: `${App.creatureName(o.row.enemy)} ` }), `waves ${paceChip(o.row, App.creature(o.row.enemy)).text}`, el('small', { text: nx != null ? ` · next ${fmtT(nx)}` : ' · no wave to come' })));
+    }
     if (rows.length) {
       readout.appendChild(el('div', { class: 'ro-title', text: 'Roster drawn now' }));
       const chart = el('div', { class: 'ro-chart' });
@@ -1736,7 +1799,7 @@ const Timeline = (() => {
           el('span', { class: 'ro-pct', text: `${Math.round(o.norm * 100)}%` })));
       }
       readout.appendChild(chart);
-    } else readout.appendChild(el('div', { class: 'ro-line muted', text: 'no roster row open' }));
+    } else readout.appendChild(el('div', { class: 'ro-line muted', text: all.length ? 'no row in the continuous draw' : 'no roster row open' }));
     const ws = App.wavesAt(t);
     if (ws.length) {
       readout.appendChild(el('div', { class: 'ro-title', text: 'Waves running' }));

@@ -1258,3 +1258,7 @@ Self-test: `selftest_SIM77.py` (the averaging by hand on three tiny runs and on 
 policies, at once, the runner's capabilities and arguments, my save, the derived difficulty series and the medians; the
 snapshot's copy rules and import reasons; the sim lock; the job kind with a real run of the driver and a cancel; the
 routes; the page's maths under Node, its sections and its wiring).
+
+## Pass 81: pacing a row
+
+A roster row's **Pacing** (the row form): Continuous (as before: drawn into the cap by its weight) or Waves every N s (`every`, `count` per wave, `offset`, Respect the cap, Also continuous). The Timeline draws yellow etches on every row: a line where it is drawn continuously, a tick at each wave; a `waves[]` block shows a tick at each burst; ticks under 3 px apart are thinned. Keys and rules: docs/waves_schema.md "Pass 81", BALANCING.md §28.PACE.

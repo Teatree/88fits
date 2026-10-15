@@ -91,6 +91,8 @@ class Structure:
 	var used := false
 	var ring: MeshInstance3D
 	var pie: MeshInstance3D
+	## pass 81 (Garry: "The radial animation thing that plays under the structures has a black line. Can you remove
+	## it."): the dark clock hand on the pie's leading edge is gone; the field stays (always null) for old tools and tests
 	var hand: MeshInstance3D
 	var glow: OmniLight3D
 	var visual: Node3D
@@ -444,12 +446,6 @@ func _spawn(def: StructureDef, at: Vector3) -> Structure:
 	s.pie.top_level = true
 	s.pie.visible = false
 	add_child(s.pie)
-	# a dark clock hand on the leading edge of the wedge, so the fill reads even where the colour matches the ground
-	s.hand = MeshInstance3D.new()
-	s.hand.material_override = _mat(Color(0.08, 0.06, 0.1), 0.9)
-	s.hand.top_level = true
-	s.hand.visible = false
-	add_child(s.hand)
 	# pass 73: `params.glow` false leaves the light off (the dozen Totem Poles: their ring shows them)
 	if Fx.want_lights() and bool(def.params.get("glow", true)):
 		s.glow = OmniLight3D.new()
@@ -564,13 +560,9 @@ func _process(delta: float) -> void:
 			if frac != s._last_frac:
 				s._last_frac = frac
 				s.pie.mesh = tg.draped_sector(s.global_position, s.def.radius * 0.96, frac)
-				var ang := -PI * 0.5 + TAU * frac
-				s.hand.mesh = tg.draped_strip(s.global_position, Vector3(cos(ang), 0, sin(ang)), s.def.radius * 0.96, 0.16)
 			s.pie.visible = true
-			s.hand.visible = true
 		else:
 			s.pie.visible = false
-			s.hand.visible = false
 		if s.portal_mat:
 			_tick_portal(s, delta, inside, d)
 		if s.progress >= 1.0:
@@ -600,7 +592,6 @@ func _tick_portal(s: Structure, delta: float, inside: bool, dist: float) -> void
 func _use(s: Structure) -> void:
 	s.used = true
 	s.pie.visible = false
-	s.hand.visible = false
 	s.ring.visible = false
 	if s.portal:
 		s.portal.visible = false

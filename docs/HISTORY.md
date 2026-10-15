@@ -1896,3 +1896,174 @@ pass61_map_test re-pinned (a patch against every lake, the relaxed bound). Captu
 seeds), _p80_OASIS_scatter.gd (patches per seed), _p80_OASIS_overview.gd (the overviews), _p80_OASIS_bench.gd. Lesson: a
 `--script` tool that names a class touching an autoload (EnemyManager) fails to compile and the process then waits
 forever, holding the Godot lock: load such classes at run time.
+
+**Pass 81 (2026-10-15, v0.67): oasis water, Megabonk-like sand, wave pacing, bee dashes, the production build.** Garry: "Make the water look more like water ... a cheap shader", "Make the sand texture a bit better. Bit more like what it looks like in MEGABONK", "a bit of a ground texture shading around the water ... like an oasis", the structures' radial ring's black line; in the Level Editor "the ability to control the pacing of the waves" with "yellow etches" on each row at its spawn times ("If it's continuous ... a continuous yellow line"); how the Scorpion that turns into 4 was set up (answered in chat: an Elites-every event that rolled the Splitter modifier on a Lesser Scorpion; a Coloured elite event with Modifier Splitter, a wave's Elite modifier, or the rows' Elite weight make it on purpose); the bees' trails ("look up what could work well here"); "the Rocket 85% of the heroes speed"; the Saiga Sniper "too zealous with his running away ... like ... the Cactus ranged enemy, but with a bit more speed"; and "a production build version ... no debug options, no extra art ... smaller and faster. Create a skill ... only make a prod build if I ask for it." Four lanes (tools/dl/p81/INTERFACES.md): MAP, PACE, POLISH, PROD. The lead put the PC save back after a stray smoke run had banked into it.
+
+**Lane MAP (pass 81): water that looks like water, a calmer painted sand, the oasis ground, the ring's black line.**
+Garry: "1. Make the water look more like water. Maybe a cheap (in terms of performance) shader. 2. Make the sand texture a
+bit better. Bit more like what it looks like in MEGABONK. 3. Do a bit of a ground texture shading around the water.
+Basically make it look more natural, like an oasis. 4. The radial animation thing that plays under the structures has a
+black line. Can you remove it."
+**The water**: every lake's disc ("Oasis", "Oasis2", "Oasis3", the same CylinderMesh) draws with one ShaderMaterial,
+core/shaders/water_lake.gdshader (RedCanyon._water_material, `_water_mat`): unshaded, no depth write, render priority -10
+as before, no screen or depth reads, four samples of a new 256 px noise texture (art/env/noise_rgb.png, three smooth
+tileable noises, tools/gen_textures.py `noise_rgb`). The shader reads the lake's normalised radius off the top cap's UV
+(CylinderMesh maps the cap onto (0.25, 0.75) +- 0.25; pass81_map_test pins that) and discards the side band, so the water
+is a deep teal middle shading to a lighter shallow rim, the wet sand showing through the last stretch, ending on a
+ragged line that a still noise moves in and out (no disc edge), with two noise layers drifting across each other (a soft
+light web where they cross reads as ripples), a breathing lapping line, sparse sun glints from a finer faster layer and
+a little sky in the far water; stage 3's hell reddens it with the ground. Pass 31's wave shader "read as a patterned disc
+lying on the sand": every pattern here is faint, irregular and slow (four rounds by eye: the first web read as marble
+cracks and the first glints as white crumbs). The unused pass-31 shader core/shaders/oasis_water.gdshader is deleted.
+Nothing in play moved (in_water 1.02, the disc 1.06, the slow, the dish, the hero's cut through the disc).
+**The oasis ground**: RedCanyon.oasis_wet(p) (1 to 0.6 m past the nearest lake's edge, 0 at 3.5 m + 0.45 of its radius,
+that reach moved +-2.2 m by noise) rides in the terrain's vertex alpha; the terrain shader breaks the edge further with
+the noise and draws damp earth, sparse green patches on it and greyer, darker wet sand at the water (uniforms
+`oasis_*`). Pass 80's damp ring (a 0.35 mix of the cracked river bed) is gone. Every terrain corner now carries its own
+colour (`_color_at` at each grid point, blended across the quad): one flat colour a 1 m quad had drawn a faint checker
+over all the sand and blocky steps round the lakes.
+**The sand**: research first: Megabonk's desert floor (its Steam screenshots) is a calm warm sand with soft broad
+mottling and faint low-res patches, no stripes, the dunes' light doing the rest; ours had strong sine ripple bands at
+one scale. Candidates compared in real captures at phone size (tools/dl/p81/MAP/sand_game/): five procedural (soft,
+soft + patchy ripples, Megabonk-style chunky patches, painterly; then stronger versions F-H, still reading as dirty
+camouflage up close) and four Flux.2 Klein paintings on the AI server (one job at a time under the comfy lock); picked
+the calmest painting, seed 8102 (soft broad patches, faint soft ripples, a few pebbles: the plain option). It is kept as
+source (tools/art_src/sand_klein_s8102.png, prompt in gen_textures.py); gen_textures.sand() makes it tileable (two
+half-offset cross-fades: a single max-mask cross-fade left a seam down the middle) and lays its light and dark
+(SAND_CONTRAST 0.06) over the procedural sand's mean colour, so the colour Garry approved in passes 54 and 61 (and the
+tests' pins) holds exactly; the procedural sand is the fallback. The terrain shader adds a broad +-7% light and shade
+over 53 m (noise) against the painting's 11 m repeat. sand, cracked, redrock and noise_rgb now import with mipmaps
+(they had none: the far sand shimmered and cost bandwidth).
+**The ring**: the "black line" is the dark clock hand StructureManager drew on the progress pie's leading edge (pass
+35's "so the fill reads"); it is gone for every structure (the field `Structure.hand` stays, always null, for old tools
+and tests). The ring and pie meshes have no seam.
+Perf (tools/_p81_MAP_perf.gd, one sitting, 6 alternating blocks of 240 frames each, the new looks against pass 80's
+material, terrain shader and sand swapped in at run time, 504x1122): the lake a third of the screen: GPU 0.245 ms vs
+0.242, render CPU 0.461 vs 0.459, frame 1.820 vs 1.830 ms; open sand: GPU 0.247 vs 0.243, frame 1.811 vs 1.806 ms: within
+the machine's noise.
+Tests: game/tests/pass81_map_test.gd (9); pass31_test's water re-pinned on purpose (the plain material is the shader
+now). Captures: tools/dl/p81/MAP/before/ and after/ (lakes at two zooms, wading, the sand, the ring at 40% and 75%,
+hell, top-down overview/), the sand candidates in sand_cands/, sand_ai/, sand_game/. Tools: game/tools/_p81_MAP_shots.gd
+(sand=<png>, wp.<uniform>=, tp.<uniform>= to try looks), _p81_MAP_perf.gd.
+Research sources: Megabonk's Steam page and screenshots (https://store.steampowered.com/app/3405340/Megabonk/, through
+the store API); reviews on its look (https://mezha.ua/en/reviews/megabonk-review-305493/,
+https://www.playnforge.com/?p=7697, https://opencritic.com/game/19356/megabonk); stylised water: Stylized Water for Godot
+4.x (https://godotshaders.com/shader/stylized-water-for-godot-4-x), Toon Style 3D Water, no textures
+(https://godotshaders.com/shader/toon-style-3d-water-shader-no-textures-needed/), Water shader 3D (Godot 4.3)
+(https://godotshaders.com/shader/water-shader-3d-godot-4-3/), the Stylized Water Shader thread on depth without a depth
+texture (baked or vertex colours; https://discussions.unity.com/t/stylized-water-shader-desktop-mobile-vr-built-in-rp/639248),
+Creating Toon Water for the Web (https://code.tutsplus.com/creating-toon-water-for-the-web-part-1--cms-30447t), Nimue's
+stylized water (https://80.lv/articles/how-to-build-stylized-water-shader-design-implementation-for-nimue/). What we took:
+two panned noises for ripples, depth from geometry instead of the depth buffer (here the disc's own radius), a soft shore
+fade and lapping line instead of depth-intersection foam, fresnel for the sky, all unshaded.
+
+**Wave pacing per roster row and the yellow etches.** Garry: "Add the ability to control the pacing of the waves. I mean
+the frequency at which enemy waves come. And on top of the enemy node in the rows you should etch the yellow etches to
+show when the enemies will spawn. If it's continuous (choose an option) it's shown as a continuous yellow line." A roster
+row gained `pace`: "continuous" (the default, every row as it always was: drawn into the cap by its weight at every
+spawn check) or "waves": `count` creatures (default its pack) every `every` s (default 30; 0 = once) from `t` + `offset`
+while the row is open, in its pattern, its presence keyframes switching waves on and off (a wave due at weight 0 does not
+come; the weight's size scales nothing), `respect_cap` (default on: cut to its channel's room, the rest owed and spawned
+first at each spawn check until the next wave, which drops it) and `trickle` (default off: not in the continuous draw
+between waves). The schedule's maths is WaveTimeline's (`row_paced`, `row_wave_index`, `row_wave_times`, ...), the
+spawning WaveDirector's new section (`_tick_row_waves` after `_tick_waves` in the normal phase, `_row_waves_owed` first
+in every `_spawn_burst`, `_burst_from` leaving out waves rows that do not trickle; a jumped clock fires one wave, never a
+backlog; the row's pass-58 fixed numbers). The Level Editor: a Pacing select with Every / Per wave / Offset / Respect the
+cap / Also continuous on the row form and a note of its waves; yellow etches along every roster bar's foot (a line where
+a continuous row is drawn, a tick at each wave that comes, both on a trickling row; a tick at each burst of a `waves[]`
+block; under 3 px apart the ticks are thinned, every m-th kept, never merged into a line), a "↻ 30 s ×20" chip, the next
+wave in the hover card and the readout; the Share lane and the Presence share column leave waves rows out of the draw;
+"Spawned so far" and the Actual lanes play waves rows (model.js and the Python copy in selftest.py both); validation
+words; the global pacing (Burst min / max, Spawn check every) explained as the continuous rows' pacing in Settings ->
+Spawning. Red Canyon's rows were left continuous: Garry sets the pacing. Tests: game/tests/pass81_pace_test.gd (10),
+tools/level_editor/selftest_PACE81.py (56 checks: model.js against the game's rule in Python on random rows, the fields,
+the estimate with waves rows agreeing JS / Python and hand-checked, the validation words). Screenshots of the Timeline
+with rows set to waves: tools/dl/p81/PACE/shot_*.png (the page on a spare port with --no-jobs, nothing saved).
+
+Lane POLISH (pass 81): the bees' trails, the rocket at 85%, the Saiga Sniper without running away. Garry: "Change the
+trails of the bee projectiles too. Just look up what could work well here." Research (tools/dl/p81/POLISH/
+research_bees.md: the cartoon bee's dotted flight path, comic motion lines, wing blur, short quiet trails on a light
+ground) led to four looks drawn in the guns' tracer ring (one MultiMesh, core/shaders/tracer_line.gdshader, new styles
+5 dash, 6 buzz, 7 bumble; zip = the streak style): `params.missile.trail_style`, ProjectileManager.BEE_LOOKS, `_bee_trail`
+in place of pass 49's beads (a 20 m chain of dark dots behind each bee for 1.4 s). Picked by eye at 1080x1920 and at
+phone size (sheets and GIFs in tools/dl/p81/POLISH/sheets/): **dash** (dark honey-brown dashes, 0.45 s), the clearest
+and the most "bee"; buzz second; bumble broke into noise at phone size, zip read as fire. The three bee items name it
+(`"trail_style": "dash"`), the rest one word away (Level Editor group "Bee trail"). "Let's make the Rocket 85% of the
+heroes speed": the Raider's `speed_of_hero` 0.9 -> 0.85, and the rocket now takes the creatures' whole pace out of its
+speed (ProjectileManager.rocket_clock_pace), so 0.85 is exactly its share of the hero's top speed on the ground (measured
+in the game: 2.754 / 3.240 m/s = 85.0%); before, creature_speed_mult had made the 0.9 a real 0.81 (pass 80 had called
+it 90%). "Stang Antiope is a bit too zealous with his running away. Remove that feature entirely, just make it like a
+similar behaviour to the Cactus ranged enemy, but with a bit more speed": the Saiga Sniper lost flee on hit and his
+flee_range (0; the code's default is now 0), walks straight in at 1.6 (cactus 1.15; was 3.2) until he is within 16 m
+(`follow`, was 38), holds there and aims, and never backs off, however close the hero comes; a hit still spoils his aim
+(new `sniper.spoil_on_hit`, true), without the run; his look's walk plays at 8 fps (was 15, cut for 3.2 m/s) so his feet
+keep to the sand. Flee on hit stays in code; no creature uses it. Captures: POLISH/saiga_sheet.png (spawn, walk in,
+hold at 16 m, the lines, the lock, the shot, the hero walking up to 3 m, a spoiled aim). Tests:
+game/tests/pass81_polish_test.gd (11); re-pinned on purpose: pass73_sniper_test (the Saiga's data has no flee on hit;
+"stands off and runs" -> "holds when the hero walks up"; "a hit spoils the aim and sends him running" -> "a hit spoils
+the aim"; longer limits for the walk in), pass332_test (the rocket's 0.9 is of the hero's top speed on the ground).
+
+Garry (2026-10-15): "It's time to make a production build version. This version will differ from the current build
+by: 1. Having no debug options, no extra art (unless it's used in the Level timeline) 2. Extra optimization for the art
+and stuff, to make the build smaller and faster. Create a skill for building this prod build. Build it now (+ the dev
+build obviously) and upload the same way. But from this point onwards you will only make a prod build if I ask for it."
+
+**The switch.** The production build is two new export presets, "Android Prod" and "Windows Desktop Prod", whose
+custom feature `prod` makes `Settings.is_prod()` true (a headless check forces it with `prod=1` after `--`, a test with
+`Settings.force_prod`). In prod, `Settings.PROD_LOCKED` holds every developer switch at the player's default (in
+`from_dict`, and `set_value` refuses them): the player's debug mode and so the ARENA on the title, the debug hand, the
+free revive and the hit log on Down!, the Settings debug panel; the in-run debug panel (and F1); the debug buttons on
+modals; the hidden-hero preview; the menu style stays Live, ranged-on-screen and the pierce drop-off stay on. Small
+guards: the ten taps on the hints switch and the 2 s hold on the version line do nothing (SettingsScreen), the
+developer menu goes straight back to Settings (DevMenu._ready), the title's button (now named ArenaButton) asks
+is_prod too, Game ignores `user://debug_launch.json` and `Run.launch_override` (the file left where it is) and
+`Run.arena_next`. The dev build is unchanged. Analytics tags every event `build: prod|dev`.
+
+**Only what the game can show.** `game/tools/prod_reach.gd` walks the Registry: every map; every hero not hidden and
+his start and favourite weapon and passive, perks and hero mutations; every base weapon and passive in play with its
+evolution, the passive it evolves with and its path; talents, Elite modifiers, pickups and structures not hidden;
+every creature, boss, boss attack, pickup or structure any kept item's JSON names (the map's rows, waves, events,
+specials, Elites, bosses, portal, hell; a boss's summons, so the hidden Sand Lizard stays; a perk's pickup), to a fixed
+point; `Registry.<getter>("id")` literals in the game's scripts outside the debug-only ones (the Peashooter fallback)
+with what the Registry needs to stay whole (its evolution); the quests that are shown for what is kept. Looks: heroes
+and cards keep the look they play (promoted to the base), creatures their base, played and timeline-named looks.
+`game/tools/prod_plan.gd` writes it as JSON; `tools/prod_prune.py` applies it to a STAGING copy only
+(`tools/prod_stage.py`: game/ copied fresh to tools/dl/prod/stage/game, its .godot seeded, its own user folder) and
+keeps anything a remaining file names by path (Grave Hail uses Dia de Muertos's visual, Jackrabbit Mines Minefield's:
+those folders stay whole). It also drops every `_ai.json` and the sound files the sound map does not name.
+
+**Smaller and faster.** `tools/prod_optimise.py`: the six music tracks to Ogg Vorbis q4 (13.6 MiB of QOA -> 7.5 MiB),
+icon.png 1024 -> 256 px (1.5 MiB raw in both builds), the last four lossless prop billboards lossy, icon.ico out of the
+APK. The Registry loads every content texture at boot, so fewer looks is also a shorter cold start.
+
+**The route.** `bash tools/ship_prod.sh [--no-drive] [--quick] [--no-pc] [--no-android] [--out DIR]`: the source's
+checks (and tests unless --quick), the staging copy, the plan, the prune, the optimiser, import + import_json there,
+its checks (check_scripts, `prod_check.gd`: Registry clean, all art in play present, planning again drops nothing,
+prod forced locks every switch; smoke_run; `prod_run_check.gd`: boot -> title without ARENA -> Settings without the
+taps and the hold -> the developer menu bounced -> a real run with a planted arena launch file ignored, F1 inert), the
+two exports from the staging copy (APK signed with the project keystore and verified; exe version-checked and signed
+when tools/keys/codesign.env exists), the exe's cold start (`tools/prod_probe.py`: exported templates refuse --script
+and a scene path, so it times Boot's own "engine and autoloads ... first frame" line and checks the save lands in
+%APPDATA%/88fits), the numbers (`tools/prod_report.py` -> report.md) and Drive (88fits-prod.apk / .exe). Identity:
+package com.eightyeightfits.game.prod, label "88fits"; the dev app is labelled "88fits Dev" (its package, and so its
+save, unchanged); version code from the version (0.67 -> 6700). Skill: `.claude/skills/ship-prod/SKILL.md` (prod only
+when Garry asks; one line in ship-to-phone says so).
+
+**The numbers** (first run, `ship_prod.sh --no-drive --quick`, 351 s, against pass 80's dev builds): APK 106.9 ->
+71.1 MiB (-34%: creatures 20.3 -> 10.6, heroes 19.9 -> 6.6, sound 16.2 -> 8.5, cards 2.3 -> 0.7, scripts and data
+6.0 -> 3.6 MiB; the 23.3 MiB native library stays), EXE 186.8 -> 150.0 MiB; the prune took 94 folders, 59 items' unused
+looks (257 files), 5 title cut-outs, 287 _ai.json and 128 sound files (27.9 MiB of imported art and sound); the PC's
+cold start to the title (headless, median of 3) 6372 -> 3698 ms (engine and autoloads 5771 -> 3101 ms); perf_late
+(build=none, the stage-3 crowd of 260) 5.2-5.7 ms a frame both ways, ~100 draw calls; every kept hero, creature look
+and card served the same strip, anims, columns, fps and icon as the source (a Registry dump compared), captures of the
+title and the results the same art.
+
+Lessons: release export templates disable path overrides (no `--script`, no scene on the command line), so an exported
+build can only be checked by what it writes itself; Windows Godot honours `APPDATA` (not `XDG_DATA_HOME`) for user://,
+which keeps a probe of an exported exe off the real save; a feature-tagged project setting
+(`custom_user_dir_name.editor`) gives the editor binary's runs on the staging copy their own user folder.
+
+CLAUDE.md commands line:
+```
+bash tools/ship_prod.sh [--no-drive] [--quick] [--no-pc] [--no-android]   # pass 81: the PRODUCTION build, only when Garry asks (skill ship-prod): a pruned, optimised staging copy (tools/dl/prod/stage/game; tools/prod_stage.py, game/tools/prod_plan.gd + prod_reach.gd, tools/prod_prune.py [--selftest], tools/prod_optimise.py), its checks (game/tools/prod_check.gd, smoke_run, prod_run_check.gd), presets "Android Prod" (com.eightyeightfits.game.prod) + "Windows Desktop Prod" (feature `prod` -> Settings.is_prod(): no debug surfaces), tools/prod_probe.py (the exe's cold start), report tools/dl/prod/out/report.md, Drive 88fits-prod.apk/.exe
+```

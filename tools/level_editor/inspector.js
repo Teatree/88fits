@@ -764,6 +764,9 @@ const Inspector = (() => {
     const octx = { t0: () => r.t, from: 'row', look: () => r.variant };
     for (const def of FIELDS.roster) {
       if (def.key === 'id') continue;
+      // pass 81 (lane PACE): the Pacing select, and its waves-only fields while it says Waves
+      if (def.paced && !Model.rowPaced(r)) continue;
+      if (def.key === 'pace') { form.appendChild(paceRow(def, r, c)); continue; }
       if (def.type === 'weights') {
         // the Presence boxes follow a dragged bar or point (the review of pass 58: the time stayed put until the drop)
         const pres = Forms.weightsBlock(r);
@@ -771,7 +774,7 @@ const Inspector = (() => {
         form.appendChild(Forms.row(def, pres, { cls: 'wide-ctl' }));
         continue;
       }
-      form.appendChild(fieldFor(def, r, Object.assign({ enemyId: r.enemy, placeholders: { pack: c ? c.pack_size : '' }, note: def.key === 'pattern' ? patternNote('roster', r) : null }, octx)));
+      form.appendChild(fieldFor(def, r, Object.assign({ enemyId: r.enemy, placeholders: { pack: c ? c.pack_size : '', count: Model.rowWaveCount({ pack: r.pack, stats: r.stats }, c) }, note: def.key === 'pattern' ? patternNote('roster', r) : null }, octx)));
       // pass 58 review: the row's HP and ATK under From / Until, in sight with Overrides closed, following a dragged bar
       if (def.key === 'until' && c) form.appendChild(numbersLine(c, () => (U.isObj(r.stats) ? r.stats : {}), () => r.t, 'row', null, '', () => (r.until == null || r.until === '' ? Infinity : Number(r.until))));
     }
@@ -781,7 +784,9 @@ const Inspector = (() => {
       const t0 = Math.max(Number(r.t) || 0, 0);
       const open = App.rosterAt(t0).find((o) => o.i === i);
       const lines = [];
-      if (open) lines.push(`At ${fmtT(t0)} this row weighs ${fmtN(open.w, 2)}: ${Math.round(open.norm * 100)}% of its channel's draw.`);
+      // pass 81 (lane PACE): a waves row is not in the draw (unless it trickles): its weight only gates its waves
+      if (open && !open.drawn) lines.push(`At ${fmtT(t0)} this row weighs ${fmtN(open.w, 2)}: it comes as waves, not in the draw (a weight of 0 holds its waves).`);
+      else if (open) lines.push(`At ${fmtT(t0)} this row weighs ${fmtN(open.w, 2)}: ${Math.round(open.norm * 100)}% of its channel's draw.`);
       lines.push('The order of the rows is for this page only: the game draws a burst by the weights, whatever the order.');
       for (const l of lines) facts.appendChild(el('p', { class: 'muted small', text: l }));
     };
@@ -791,6 +796,54 @@ const Inspector = (() => {
     liveTimes(container, titleEl, title, r, ['t', 'until']);
     liveFns.push(fill);
     jsonPeek(container, r);
+  }
+
+  /** A roster row's Pacing select (pass 81, lane PACE; Garry: "the frequency at which enemy waves come"): Continuous drops
+   *  the waves-only keys (the game ignores them on a continuous row); Waves sets Every to 30 when the row has none, so its
+   *  ticks show at once. The note under it says when the row's creatures come, kept up to date while the bar is dragged. */
+  function paceRow(def, r, c) {
+    const value = r.pace == null || r.pace === '' ? 'continuous' : String(r.pace);
+    const ctl = Forms.select(def.options, value, (v) => App.apply(() => {
+      if (v === 'waves') {
+        r.pace = 'waves';
+        if (r.every == null) r.every = Model.ROW_WAVE_EVERY_DEF;
+      } else {
+        delete r.pace;
+        for (const k of Model.ROW_WAVE_KEYS) delete r[k];
+      }
+    }), { path: 'pace' });
+    const note = el('span', { class: 'pace-note' });
+    const fill = () => { clear(note); for (const part of paceNote(r, c)) note.appendChild(typeof part === 'string' ? document.createTextNode(part) : part); };
+    fill();
+    liveFns.push(fill);
+    return Forms.row(def, ctl, { note });
+  }
+
+  /** The words under Pacing (pass 81): a continuous row's draw (the map's spawn check and bursts), or a waves row's waves:
+   *  how many, every how often, from when to when, the first few seconds, the ones its presence holds back, the cap. */
+  function paceNote(r, c) {
+    const tl = App.tl();
+    if (!Model.rowPaced(r)) {
+      const si = tl.spawn_interval == null ? 0.5 : Number(tl.spawn_interval);
+      const lo = tl.burst_min == null ? 5 : Number(tl.burst_min), hi = tl.burst_max == null ? 20 : Number(tl.burst_max);
+      return [b('Continuous: '), `drawn by its weight at every spawn check (every ${fmtN(si, 2)} s, a burst of ${lo}–${hi} load units shared by the open rows, Settings → Spawning) while the cap has room. A yellow line along its bar.`];
+    }
+    const name = c ? U.plural(c.name) : 'creatures';
+    const n = Model.rowWaveCount(r, c);
+    const every = Model.rowWaveEvery(r);
+    const end = r.until == null || r.until === '' ? App.viewEnd() : Number(r.until);
+    const all = Model.rowWaveTimes(r, end);
+    const come = Model.rowEtchTimes(r, end, tl.weight_late_t);
+    const held = all.length - come.length;
+    const first = come.slice(0, 4).map((t) => fmtT(t)).join(', ') + (come.length > 4 ? ', …' : '');
+    const out = [b('Waves: '), `${n} ${name} `, every > 0 ? `every ${fmtN(every, 2)} s` : 'once', ` from ${fmtT(Model.rowWaveStart(r))}`];
+    if (r.until != null && r.until !== '') out.push(` to ${fmtT(r.until)}`);
+    out.push(come.length ? `: ${come.length}${r.until == null || r.until === '' ? ' in view' : ''} wave${come.length === 1 ? '' : 's'} (${first})` : ': no wave comes');
+    if (held > 0) out.push(`, ${held} held back where its presence is 0`);
+    out.push('. ');
+    out.push(r.respect_cap === false ? 'On top of the cap, all at once (the hard cap still holds).' : 'Into the free room under the cap; the rest comes first as room frees, until its next wave.');
+    out.push(r.trickle ? ' Also drawn continuously between its waves.' : ' Not in the continuous draw between its waves.');
+    return out;
   }
 
   // ------------------------------------------------------------------ waves

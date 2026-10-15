@@ -193,8 +193,10 @@ func test_the_saiga_sniper_is_a_special_from_garrys_picture() -> void:
 	var bm: Dictionary = sn["beam"]
 	assert_str(str(bm["damage_from"])).is_equal("rocketeer")
 	assert_float(float(bm["length"])).is_greater_equal(40.0)
-	# flee on hit, the reusable ability
-	assert_bool(def.flee_on_hit.has("seconds") and def.flee_on_hit.has("speed_mult") and def.flee_on_hit.has("interrupts")).is_true()
+	# flee on hit, the reusable ability: pass 81 (lane POLISH, re-pinned; Garry: "Remove that feature entirely") the Saiga
+	# runs no more (the ability stays in code, tested on test creatures below); a hit still spoils his aim (spoil_on_hit)
+	assert_bool(def.flee_on_hit.is_empty()).is_true()
+	assert_bool(bool(sn.get("spoil_on_hit", true))).is_true()
 	# the sounds it names are in the sound map
 	for hook in ["aim", "lock", "shot"]:
 		var sid := str(def.sfx.get(hook, ""))
@@ -398,7 +400,7 @@ func test_a_stunned_vulture_raider_winds_up_again() -> void:
 
 # ---------------------------------------------------------------- 4. the Saiga Sniper
 
-func test_the_sniper_stands_off_and_runs_from_the_hero() -> void:
+func test_the_sniper_stands_off_and_holds_when_the_hero_walks_up() -> void:
 	var w := _world()
 	var em: EnemyManager = w["em"]
 	var hero: Node3D = w["hero"]
@@ -406,13 +408,13 @@ func test_the_sniper_stands_off_and_runs_from_the_hero() -> void:
 	var def: EnemyDef = Registry.enemy("saiga_sniper")
 	# placed at its stand-off from the hero, as the Vulture Raider is
 	assert_float(_flat(em.pos[i], Vector3.ZERO)).is_equal_approx(float(def.sniper["stand_off"]), 0.05)
-	# the hero walks up: inside flee_range it runs
-	hero.global_position = em.pos[i] + Vector3(-float(def.sniper["flee_range"]) + 3.0, 0, 0)
+	# the hero walks up (pass 73's flee_range 14 sent him running): pass 81 (re-pinned) he holds where he is
+	hero.global_position = em.pos[i] + Vector3(-11.0, 0, 0)
 	_run(em, 0.6)
 	var d0 := _flat(em.pos[i], hero.global_position)
 	_run(em, 1.0)
-	assert_float(_flat(em.pos[i], hero.global_position)).is_greater(d0 + 1.0)
-	assert_int(em.state[i]).is_not_equal(EnemyManager.STATE_WINDUP)
+	assert_float(_flat(em.pos[i], hero.global_position)).is_less_equal(d0 + 0.2)
+	assert_bool(em.is_fleeing(i)).is_false()
 
 
 func test_the_sniper_aims_locks_holds_and_fires_across_the_map() -> void:
@@ -422,8 +424,9 @@ func test_the_sniper_aims_locks_holds_and_fires_across_the_map() -> void:
 	var i := em.spawn("saiga_sniper", Vector3(20, 0, 0))
 	var def: EnemyDef = Registry.enemy("saiga_sniper")
 	var sn: Dictionary = def.sniper
-	# a skeleton far behind the hero, on the line the shot will take
-	var t_aim := _run_until(em, func() -> bool: return em.state[i] == EnemyManager.STATE_WINDUP, 8.0)
+	# a skeleton far behind the hero, on the line the shot will take (pass 81: he walks in from his stand-off to his
+	# range first, `follow`, at the cactus's way: up to ~8 s more)
+	var t_aim := _run_until(em, func() -> bool: return em.state[i] == EnemyManager.STATE_WINDUP, 16.0)
 	assert_float(t_aim).is_greater(0.0)
 	assert_int(em.sniper_aims).is_equal(1)
 	assert_array(w["g"].hints).contains(["sniper"])
@@ -485,7 +488,7 @@ func test_stepping_off_the_locked_line_dodges_the_shot() -> void:
 	var em: EnemyManager = w["em"]
 	var hero: Node3D = w["hero"]
 	var i := em.spawn("saiga_sniper", Vector3(20, 0, 0))
-	_run_until(em, func() -> bool: return em._snipers.has(i) and int(em._snipers[i]["phase"]) == EnemyManager.SNIPER_LOCK, 12.0)
+	_run_until(em, func() -> bool: return em._snipers.has(i) and int(em._snipers[i]["phase"]) == EnemyManager.SNIPER_LOCK, 20.0)
 	var ldir: Vector3 = em._snipers[i]["ldir"]
 	hero.global_position += Vector3(-ldir.z, 0, ldir.x) * 2.0
 	_run_until(em, func() -> bool: return em.sniper_shots > 0, 3.0)
@@ -494,20 +497,22 @@ func test_stepping_off_the_locked_line_dodges_the_shot() -> void:
 	assert_bool(bool(em.sniper_last["hero_hit"])).is_false()
 
 
-func test_a_hit_spoils_the_aim_and_sends_him_running() -> void:
+func test_a_hit_spoils_the_aim() -> void:
+	# pass 81 (lane POLISH, re-pinned; was "... and sends him running"): the hit spoils the aim (sniper.spoil_on_hit) and
+	# he runs no more: he holds where he is
 	var w := _world()
 	var em: EnemyManager = w["em"]
 	var hero: Node3D = w["hero"]
 	var i := em.spawn("saiga_sniper", Vector3(20, 0, 0))
-	_run_until(em, func() -> bool: return em.state[i] == EnemyManager.STATE_WINDUP, 8.0)
+	_run_until(em, func() -> bool: return em.state[i] == EnemyManager.STATE_WINDUP, 16.0)
 	_run(em, 0.5)
 	em.damage(i, 1.0, "revolver")
 	assert_int(em.state[i]).is_equal(EnemyManager.STATE_MOVE)
 	assert_int(em.sniper_cancels).is_equal(1)
-	assert_bool(em.is_fleeing(i)).is_true()
+	assert_bool(em.is_fleeing(i)).is_false()
 	var d0 := _flat(em.pos[i], hero.global_position)
 	_run(em, 0.8)
-	assert_float(_flat(em.pos[i], hero.global_position)).is_greater(d0 + 2.0)
+	assert_float(_flat(em.pos[i], hero.global_position)).is_less_equal(d0 + 0.2)
 	# no shot came of it, and the next aim waits its recovery
 	_run(em, 1.0)
 	assert_int(em.sniper_shots).is_equal(0)

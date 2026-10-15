@@ -22,7 +22,7 @@ const AFIELDS = (() => {
       opt('boss', 'boss', 'runs the attack script (the boss block)'), opt('dummy', 'dummy', 'the arena dummies: stands still'), opt('ambush', 'ambush', 'hides in the sand until the hero is near (the ambush block, ranged for its silk)'),
       opt('caster', 'caster', 'keeps away and casts from the attack script (caster + boss blocks)'), opt('support', 'support', 'heals and frenzies the crowd round it (the support block)'),
       // pass 73 (lane SNIPER)
-      opt('sniper', 'sniper', 'keeps far off, runs from the hero, freezes to aim a gathering red-line laser across the map (the sniper block)')],
+      opt('sniper', 'sniper', 'walks in like the kite to its range (never runs), freezes to aim a gathering red-line laser across the map (the sniper block)')],
     archetypes: [opt('walker', 'walker', 'a label'), opt('swarmer', 'swarmer', 'a label'), opt('spitter', 'spitter', 'a label'), opt('brute', 'brute', 'a label'), opt('tank', 'tank', 'a label'), opt('runner', 'runner', 'a label'),
       opt('elite', 'elite (mini-boss)', 'its HP follows elite.hp_mult_per_stage, a crown, a chest every time, never stunned or grabbed'), opt('boss', 'boss', 'the stage boss: boss.hp_mult_per_stage, the bar, the skull, the purse')],
     telegraphs: [opt('none'), opt('line', 'line', 'a red line ahead'), opt('ring', 'ring', 'a ring round the creature'), opt('ring_at_hero', 'ring at the hero', 'a ring where the hero stands (slam_at, burrow and boulder need it)'),
@@ -262,6 +262,14 @@ const AFIELDS = (() => {
         P('fire_without_target', 'Fire with no target', 'bool3', false, 'a gun with the usual targeting (nearest / priority) fires on its clock even with no creature in range, along the hero\'s facing (the Blunderbuss\'s fire_blind is the same for "forward" targeting)'),
         P('stream', 'Stream the burst', 'bool3', false, 'a burst weapon spreads its rounds evenly over the whole cooldown (gap = cooldown × 0.97 / amount) instead of 50 ms apart: the gun never pauses; each round aims at the creature it would aim at now, else along her facing'),
       ] },
+    // pass 81 (lane POLISH): the Killer Bees' trail look, one key away (research and pictures in tools/dl/p81/POLISH/)
+    { id: 'bee_trail', label: 'Bee trail (the seekers\' line)', behaviors: ['MissilePod'], show: 'set',
+      present: ['missile.trail_style', 'missile.trail_color'],
+      src: 'core/systems/ProjectileManager.gd (BEE_LOOKS, _bee_trail), core/shaders/tracer_line.gdshader',
+      help: 'the line behind every bee (a seeker whose missile.trail is 2; Pollen\'s red bees keep their red); one look per weapon or evolution', rows: [
+        P('missile.trail_style', 'Look', 'select', 'dash', 'dash (the game\'s own) = the cartoon bee\'s dotted flight path: dark honey-brown dashes, gone in under half a second; buzz = a thin honey-brown squiggle weaving either side of the flight; bumble = the dashes weaving like the buzz; zip = a short tapered gold streak; beads = pass 49\'s dark beads that linger 1.4 s', { options: [opt('dash', 'dash'), opt('buzz', 'buzz'), opt('bumble', 'bumble'), opt('zip', 'zip'), opt('beads', 'beads')] }),
+        P('missile.trail_color', 'Colour', 'swatch', null, 'the line\'s colour; empty = the look\'s own (dash and bumble dark honey-brown, buzz honey, zip gold); never Pollen\'s red'),
+      ] },
     // pass 80 (lane TRAIL): the tracer's look, one key away (research and pictures in tools/dl/p80/TRAIL/)
     { id: 'tracer', label: 'Tracer (the trail behind every round)', behaviors: ['ProjectileEmitter'], show: 'set',
       present: ['tracer', 'tracer_style', 'tracer_color', 'tracer_alpha', 'tracer_width', 'tracer_life', 'tracer_hot', 'tracer_clear'],
@@ -432,16 +440,17 @@ const AFIELDS = (() => {
       { key: 'hp_mult_per_stage', label: 'HP x per stage', type: 'number', min: 0, step: 0.1, def: 1.8, help: 'HP = hp x this^stage x max(stage_mult, 1) x creature_hp_mult' },
     ] },
     // pass 73 (lane SNIPER): the Saiga Sniper's brain (EnemyManager._sniper_*) and flee on hit, for any creature
-    sniper: { label: 'Sniper', help: 'the sniper brain (the Saiga Sniper): placed stand-off away like the Vulture Raider; inside "Runs inside" it runs from the hero, past "Walks in past" it walks back in; between, it freezes in its aiming pose (the attack strip) while red lines gather on the hero and follow him for Aim s, then lock, hold for Hold s, and a laser crosses the map along the locked line. Aim and Hold × 1/pace like every wind-up', rows: [
+    sniper: { label: 'Sniper', help: 'the sniper brain (the Saiga Sniper): placed stand-off away like the Vulture Raider; past "Walks in past" it walks towards the hero (the kite\'s way, pass 81), inside it holds where it is (it never backs off; inside "Runs inside", 0 = never, it would run from him); there it freezes in its aiming pose (the attack strip) while red lines gather on the hero and follow him for Aim s, then lock, hold for Hold s, and a laser crosses the map along the locked line. Aim and Hold × 1/pace like every wind-up', rows: [
       { key: 'stand_off', label: 'Stand-off (m)', type: 'number', min: 0, def: 26, help: 'where it is placed when it spawns (never nearer the hero), inside the wall' },
-      { key: 'flee_range', label: 'Runs inside (m)', type: 'number', min: 0, def: 14, help: 'it runs straight away from the hero (along the wall when backed against it) while he is nearer than this; never while it aims' },
-      { key: 'follow', label: 'Walks in past (m)', type: 'number', min: 0, def: 38, help: 'it walks back towards the hero while he is farther than this; empty = stand-off + 12' },
+      { key: 'flee_range', label: 'Runs inside (m)', type: 'number', min: 0, def: 0, help: 'it runs straight away from the hero (along the wall when backed against it) while he is nearer than this; never while it aims. 0 = it never runs (the Saiga since pass 81; the code\'s own is 0)' },
+      { key: 'follow', label: 'Walks in past (m)', type: 'number', min: 0, def: 38, help: 'it walks towards the hero while he is farther than this, then holds and aims (the Spit Cactus\'s range; the Saiga 16); empty = stand-off + 12' },
       { key: 'first', label: 'First aim after (s)', type: 'number', min: 0, step: 0.1, def: 2.5, help: 'seconds after it arrives before its first aim' },
       { key: 'aim', label: 'Aim (s)', type: 'number', min: 0.1, step: 0.1, def: 2, help: 'the lines gather on the hero and follow him this long (× 1/pace)' },
       { key: 'lock', label: 'Hold (s)', type: 'number', min: 0, step: 0.1, def: 1, help: 'the locked line holds still this long before the shot (× 1/pace): the time to step off it' },
       { key: 'interval', label: 'Shot every (s)', type: 'number', min: 1, step: 0.5, def: 9, help: 'from one shot to the next, the aim and the hold included' },
       { key: 'interval_jitter', label: 'Shot every ± (s)', type: 'number', min: 0, step: 0.1, def: 1.5, help: 'the interval varies this much either way, at random' },
-      { key: 'recover', label: 'After a spoiled aim (s)', type: 'number', min: 0, step: 0.1, def: 2.5, help: 'a hit (flee on hit), a stun, a freeze or a launch drops the aim; the next one waits at least this long' },
+      { key: 'recover', label: 'After a spoiled aim (s)', type: 'number', min: 0, step: 0.1, def: 2.5, help: 'a hit (Spoiled by a hit), a stun, a freeze or a launch drops the aim; the next one waits at least this long' },
+      { key: 'spoil_on_hit', label: 'Spoiled by a hit', type: 'bool', def: true, help: 'pass 81: a hit that lands (never a poison or fire tick) drops its aim or lock under way: that shot never comes (no running; flee on hit is a separate block)' },
       { key: 'cone_deg', label: 'Line cone (°)', type: 'number', min: 1, max: 180, def: 44, help: 'the lines start on the two sides of a cone this wide round his aim and sweep in to the hero' },
       { key: 'lines', label: 'Lines', type: 'int', min: 1, def: 14, help: 'how many lines gather over the aim: closer and closer together, each sweeping in faster than the last' },
       { key: 'beam', label: 'Beam', type: 'json', help: '{length 60 (m across the map), width 0.5, seconds 0.15 (how long it shows), damage_from "rocketeer" + damage_mult 0.7 (the hero takes that share of that creature\'s rocket damage, at the sniper\'s own stage), damage 15.4 (used without damage_from), knockback 5, creature_frac 0.05 + creature_max 40 (what each creature on the line takes), push 3 (m off the line), sparks 1.5 (s they shimmer)}' },

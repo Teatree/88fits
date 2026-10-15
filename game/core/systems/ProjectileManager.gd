@@ -1485,6 +1485,8 @@ func launch_missile(p_kind: int, from: Vector3, dir: Vector3, speed: float, dama
 	extra[i] = {"speed": speed, "wander": float(params.get("wander", 0.5)), "turn": float(params.get("turn", 6.0)), "spiral": float(params.get("spiral", 7.0)),
 		"age": 0.0, "target": -1, "phase": randf() * TAU, "range": p_range, "trail": int(params.get("trail", 1))}
 	_trail_t[i] = 0.0
+	# pass 81 (lane POLISH): a bee's trail look (params.trail_style, BEE_TRAIL_STYLE without one; _bee_trail)
+	_bee_trail_start(i, params)
 	return i
 
 
@@ -1654,8 +1656,10 @@ func _fly_rocket(i: int, delta: float, map) -> void:
 		# the hero's top speed has the pace knob in it and the rocket flies on the paced shot clock (pass 48): taken out
 		# here once, so the rocket keeps to its share of his speed instead of paying the pace twice. Pass 60: the hero's own
 		# knob (Run.move_pace) comes out, so the creatures' creature_speed_mult in the shot clock stays in, and the rocket is
-		# 10% slower with every other hostile shot
-		var pc: float = maxf(Run.move_pace(), 0.05)
+		# 10% slower with every other hostile shot. Pass 81 (lane POLISH; Garry: "make the Rocket 85% of the heroes
+		# speed"): the whole pace of the clock it flies on comes out (rocket_clock_pace), so on the ground it flies at
+		# exactly speed_of_hero x his top speed (High Noon still slows it, as every hostile shot)
+		var pc: float = rocket_clock_pace()
 		p["speed"] = maxf(player.max_speed() * soh / pc, 1.0)
 	if player and not player.dead:
 		var want: Vector3 = (player.global_position + Vector3(0, 0.9, 0) - pos[i])
@@ -1924,8 +1928,11 @@ func _fly_missile(i: int, delta: float, enemies: EnemyManager, map) -> void:
 			return
 		vel[i].y = absf(vel[i].y)
 	pos[i].y = minf(pos[i].y, ground + 7.0)
+	# pass 81 (lane POLISH): a bee wears one of the bee looks (_bee_trail) in place of the beads below
+	if p.has("bee"):
+		_bee_trail(i)
 	_trail_t[i] -= delta
-	if _trail_t[i] <= 0.0:
+	if _trail_t[i] <= 0.0 and not p.has("bee"):
 		_trail_t[i] = 0.028
 		if int(p["trail"]) == 1:
 			# rocket smoke: dark puffs with a hot white core every other drop, so the trail reads on the sand (a warm
@@ -3669,10 +3676,11 @@ func tracer_segment(a: Vector3, b: Vector3, col: Color, width: float, life_s: fl
 func _tracer_lay(a: Vector3, b: Vector3, col: Color, width: float, life_s: float, t_a: float, t_b: float, style: int = -1, hot: float = -1.0) -> void:
 	if _ln_mm == null or a.distance_squared_to(b) < 0.000001:
 		return
-	if style < 0 or style >= TRACER_STYLE_LIFE.size():
+	# (pass 81, lane POLISH: the bees' own style ids pass, their `hot` the path's length, never below 0)
+	if (style < 0 or style >= TRACER_STYLE_LIFE.size()) and not BEE_STYLE_IDS.values().has(style):
 		style = int(TRACER_STYLE_IDS[TRACER_STYLE])
 	if hot < 0.0:
-		hot = TRACER_STYLE_HOT[style]
+		hot = TRACER_STYLE_HOT[style] if style < TRACER_STYLE_HOT.size() else 0.0
 	var k := _ln_next
 	_ln_next = (_ln_next + 1) % TRACER_LINE_MAX
 	_ln_used = maxi(_ln_used, k + 1)
@@ -3725,3 +3733,119 @@ func _tracer_warm(at: Vector3) -> void:
 	_tracer_lay(at, at + Vector3(1.0, 0.0, 0.0), Color(1, 1, 1, 0.02), TRACER_WIDTH, 1.0, clock, clock)
 	_ln_mm.visible_instance_count = _ln_used
 	_ln_mat.set_shader_parameter("now", clock)
+
+
+# ---------------------------------------------------------------- pass 81 (lane POLISH): the Killer Bees' trails
+## Garry (pass 81): "Change the trails of the bee projectiles too. Just look up what could work well here." Research and
+## pictures: tools/dl/p81/POLISH/. A seeker whose `params.missile.trail` is 2 (a bee) or 4 (a bee on Pollen's buff)
+## draws one of the bee looks below in the tracers' ring (one MultiMesh, tracer_line.gdshader: the same draw path as the
+## guns' tracers) instead of pass 49's dark beads, which lingered 1.4 s and drew a 20 m dark dotted line behind every
+## bee. `params.missile.trail_style` picks the look (BEE_TRAIL_STYLE without one, or for a name it does not know):
+##   "dash"  the cartoon bee's dotted flight path: dark honey-brown dashes along the flight, gone in under half a second
+##   "buzz"  a thin honey-brown squiggle weaving to either side of the flight
+##   "bumble" the dash's dashes weaving like the buzz (the cartoon bee's loopy dotted path)
+##   "zip"   a short tapered gold streak (the guns' "streak" style in the bees' colours)
+##   "beads" pass 49's dark beads, as before
+## `params.missile.trail_color` (a colour string) recolours the look (never Pollen's red). Every BEE_LOOKS step metres a
+## bee flies, that stretch becomes a segment of its look (a weaving look's split finer, so its weave is round); a busy screen
+## (more than TRACER_BUSY shots) lays them half as often, as the tracers do. The dash, buzz and bumble carry the path's length
+## (kept under BEE_WRAP, a whole number of dashes and weaves) to the shader, so their pattern stays put as the line ages.
+const BEE_TRAIL_STYLE := "dash"
+const BEE_STYLE_IDS := {"dash": 5, "buzz": 6, "bumble": 7}
+const BEE_WRAP := 6.3
+## per look: the tracer style it is drawn with, its colour and Pollen's red (sRGB, alpha = opacity), the head width (m),
+## the life (s) and the step (m) between segments
+const BEE_LOOKS := {
+	"dash": {"style": 5, "color": Color(0.29, 0.17, 0.04, 0.9), "red": Color(0.75, 0.08, 0.05, 0.9), "width": 0.075, "life": 0.45, "step": 0.3},
+	"buzz": {"style": 6, "color": Color(0.55, 0.33, 0.05, 0.9), "red": Color(0.85, 0.1, 0.07, 0.9), "width": 0.095, "life": 0.34, "step": 0.12},
+	"bumble": {"style": 7, "color": Color(0.29, 0.17, 0.04, 0.9), "red": Color(0.75, 0.08, 0.05, 0.9), "width": 0.07, "life": 0.42, "step": 0.12},
+	"zip": {"style": 1, "color": Color(1.0, 0.76, 0.1, 0.95), "red": Color(1.0, 0.2, 0.12, 0.95), "width": 0.13, "life": 0.16, "step": 0.3},
+}
+## Diagnostics: bee segments laid since the start.
+var bee_segments := 0
+
+
+## The bee look a seeker of `trail` (its params.missile.trail) with `style` (its trail_style, "" = none) wears: one of
+## BEE_LOOKS' names, or "" for a rocket's smoke (trail 1), a non-bee trail or the old beads.
+static func bee_trail_look(trail: int, style: String) -> String:
+	if trail != 2 and trail != 4:
+		return ""
+	var s := style if style != "" else BEE_TRAIL_STYLE
+	if s == "beads":
+		return ""
+	if BEE_LOOKS.has(s):
+		return s
+	return BEE_TRAIL_STYLE if BEE_LOOKS.has(BEE_TRAIL_STYLE) else ""
+
+
+## From launch_missile: a bee's look and colour, kept on the shot (nothing for any other seeker).
+func _bee_trail_start(i: int, params: Dictionary) -> void:
+	var trail := int(params.get("trail", 1))
+	var look := bee_trail_look(trail, str(params.get("trail_style", "")))
+	if look == "":
+		return
+	var lk: Dictionary = BEE_LOOKS[look]
+	var col: Color = lk["red"] if trail == 4 else lk["color"]
+	if trail != 4 and params.get("trail_color") is String and str(params["trail_color"]) != "":
+		var c := Color.from_string(str(params["trail_color"]), col)
+		col = Color(c.r, c.g, c.b, col.a)
+	extra[i]["bee"] = look
+	extra[i]["bee_col"] = col
+
+
+## A bee's tick (from _fly_missile, after it moved): the stretch it flew becomes its look's next segment once it is
+## `step` metres long (twice that on a busy screen); a weaving look's (buzz, bumble) is split into pieces of at most `step`.
+func _bee_trail(i: int) -> void:
+	if Run.sim_mode:
+		return
+	var ex: Dictionary = extra[i]
+	if not ex.has("bt_from"):
+		ex["bt_from"] = pos[i]
+		ex["bt_t"] = clock
+		ex["bt_d"] = 0.0
+		return
+	var lk: Dictionary = BEE_LOOKS[str(ex["bee"])]
+	var step: float = float(lk["step"])
+	var from: Vector3 = ex["bt_from"]
+	var dist := from.distance_to(pos[i])
+	if dist < step * (2.0 if count > TRACER_BUSY else 1.0):
+		return
+	var style := int(lk["style"])
+	var col: Color = ex["bee_col"]
+	var t_from: float = float(ex["bt_t"])
+	var d: float = float(ex["bt_d"])
+	var n: int = maxi(int(ceil(dist / step)), 1) if style == int(BEE_STYLE_IDS["buzz"]) or style == int(BEE_STYLE_IDS["bumble"]) else 1
+	for k in range(n):
+		var u0 := float(k) / float(n)
+		var u1 := float(k + 1) / float(n)
+		var hot := d if BEE_STYLE_IDS.values().has(style) else -1.0
+		_tracer_lay(from.lerp(pos[i], u0), from.lerp(pos[i], u1), col, float(lk["width"]), float(lk["life"]), lerpf(t_from, clock, u0), lerpf(t_from, clock, u1), style, hot)
+		d = fposmod(d + dist / float(n), BEE_WRAP)
+		bee_segments += 1
+	ex["bt_from"] = pos[i]
+	ex["bt_t"] = clock
+	ex["bt_d"] = d
+
+
+# ---------------------------------------------------------------- pass 81 (lane POLISH): the rocket at 85% of the hero
+## Garry (pass 81): "Let's make the Rocket 85% of the heroes speed then, let's not leave that." A guided rocket with
+## `speed_of_hero` (the Vulture Raider's, artillery.missile, 0.85) flies on the creatures' shot clock
+## (EnemyManager.hostile_clock = High Noon's time_scale x the creatures' pace, move_pace x creature_speed_mult); _fly_rocket
+## sets its speed to the hero's top speed (Player.max_speed: his move_speed stat x move_pace, every bonus in it) x
+## speed_of_hero over this pace, so on the ground it covers exactly speed_of_hero of his top speed (x time_scale). Before,
+## only move_pace came out, and creature_speed_mult (0.9 on Red Canyon) made the 0.9 a real 0.81 (pass 80 had named it
+## 90%). Without a creature manager the clock is 1.
+func rocket_clock_pace() -> float:
+	var em = game.get("enemies") if game != null else null
+	if em is EnemyManager:
+		return maxf((em as EnemyManager).pace, 0.05)
+	return 1.0
+
+
+## The ground speed a guided rocket `i` flies at now, m/s (its speed x the clock it flies on; tests and tools).
+func rocket_ground_speed(i: int) -> float:
+	if i < 0 or i >= MAX or alive[i] == 0:
+		return 0.0
+	var em = game.get("enemies") if game != null else null
+	var k: float = (em as EnemyManager).hostile_clock() if em is EnemyManager else 1.0
+	return vel[i].length() * k

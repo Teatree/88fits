@@ -240,10 +240,11 @@ const App = (() => {
     const open = [];
     rows.forEach((r, i) => {
       const start = Number(r.t) || 0, until = r.until == null || r.until === '' ? Infinity : Number(r.until);
-      if (t >= start && t < until) open.push({ row: r, i, w: rowWeight(r, t), hell: r.channel === 'hell' });
+      // pass 81 (lane PACE): `paced` a row that comes as waves, `drawn` one in the continuous draw (norm 0 when not)
+      if (t >= start && t < until) open.push({ row: r, i, w: rowWeight(r, t), hell: r.channel === 'hell', paced: M.rowPaced(r), drawn: M.rowDrawn(r), norm: 0 });
     });
     for (const ch of [false, true]) {
-      const part = open.filter((o) => o.hell === ch);
+      const part = open.filter((o) => o.hell === ch && o.drawn);
       const total = part.reduce((a, o) => a + o.w, 0) || 1;
       for (const o of part) o.norm = o.w / total;
     }
@@ -602,6 +603,28 @@ const App = (() => {
     }
   }
 
+  /** A roster row's pacing (pass 81, lane PACE): an unknown `pace` and a waves row's impossible numbers block Save; a
+   *  first wave after the row's end, a wave faster than a second, a big wave off the cap, and the waves-only keys on a
+   *  continuous row (the game ignores them) are warnings. */
+  function paceIssues(r, key, mark, hard) {
+    if (r.pace != null && !M.ROW_PACES.includes(String(r.pace))) mark(key, 'error', `unknown pacing "${r.pace}" (continuous or waves; the game plays it continuous)`);
+    if (!M.rowPaced(r)) {
+      const stray = M.ROW_WAVE_KEYS.filter((k) => r[k] != null);
+      if (stray.length) mark(key, 'warn', `${stray.join(', ')} ${stray.length > 1 ? 'mean' : 'means'} nothing on a continuous row (Pacing): the game ignores ${stray.length > 1 ? 'them' : 'it'}`);
+      return;
+    }
+    const t = Number(r.t) || 0;
+    if (r.every != null && !(Number(r.every) >= 0)) mark(key, 'error', 'every must be 0 (one wave) or more seconds');
+    else if (r.every != null && Number(r.every) > 0 && Number(r.every) < 1) mark(key, 'warn', `a wave every ${r.every} s reads as continuous: use Continuous, or a longer Every`);
+    if (r.offset != null && !(Number(r.offset) >= 0)) mark(key, 'error', 'offset must be 0 or more seconds');
+    if (r.count != null && !(Number(r.count) >= 1)) mark(key, 'error', 'a wave brings at least 1 (Per wave)');
+    const n = M.rowWaveCount(r, creature(r.enemy));
+    if (n > hard) mark(key, 'error', `a wave of ${n} is over the hard cap (${hard})`);
+    else if (r.respect_cap === false && n > 40) mark(key, 'warn', `${n} at once on top of the cap every wave`);
+    if (r.until != null && r.until !== '' && M.rowWaveStart(r) >= Number(r.until)) mark(key, 'warn', `the first wave (${fmtT(M.rowWaveStart(r))}) is not before until (${fmtT(r.until)}): the row never spawns`);
+    else if (!M.rowEtchTimes(r, Math.max(viewEnd(), t + 1), lateT()).length && M.rowWaveTimes(r, Math.max(viewEnd(), t + 1)).length) mark(key, 'warn', 'its presence is 0 at every wave: no wave comes');
+  }
+
   /** A stats block's size and colour ranges (pass 58, R2 / R3; Garry's "0 < min <= max"): errors block Save. */
   function statsIssues(st, key, mark, prefix) {
     if (!U.isObj(st)) return;
@@ -642,6 +665,7 @@ const App = (() => {
       }
       if (r.channel === 'hell' && !(d.hell_cap || []).some((h) => Number(h) > 0)) mark(key, 'warn', 'a hell row, but hell_cap is 0 on every stage: it never spawns');
       statsIssues(r.stats, key, mark, '');
+      paceIssues(r, key, mark, hard);
     });
     (d.waves || []).forEach((w, i) => {
       const key = `wave:${i}`;

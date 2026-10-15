@@ -332,7 +332,8 @@ const Instructions = (() => {
     const tb = el('tbody');
     for (const d of defs) {
       const def = d.def === undefined ? '' : (d.def !== null && typeof d.def === 'object' ? (Array.isArray(d.def) || Object.keys(d.def).length ? JSON.stringify(d.def) : 'absent') : String(d.def));
-      const only = d.only ? ` (${d.only.map((k) => FIELDS.EVENT_TYPES[k].label).join(', ')} only)` : '';
+      // pass 81 (lane PACE): a roster row's waves-only fields say so
+      const only = d.only ? ` (${d.only.map((k) => FIELDS.EVENT_TYPES[k].label).join(', ')} only)` : d.paced ? ' (Pacing: Waves every N s only)' : '';
       tb.appendChild(el('tr', {}, el('td', { class: 'name', text: d.label + (d.required ? ' *' : '') }), el('td', { class: 'key', text: (o.prefix || '') + (d.key || d.path) }), el('td', { text: typeName(d) }), el('td', { class: 'def', text: def || (d.ph ? 'the creature\'s own' : '') }), el('td', { class: 'help', text: d.help + only })));
     }
     t.appendChild(tb);
@@ -344,6 +345,8 @@ const Instructions = (() => {
     root.appendChild(p('These tables come from the same table the forms are built from (<code>fields.js</code>), so what you read here is what the inspector offers. A field left empty is not written to the JSON: the game uses its default. Keys the editor does not know are kept as they are.'));
     root.appendChild(el('h3', { text: 'A roster row' }));
     root.appendChild(p('The stream. <code>"roster": [ { "id": "r1", "t": 0, "enemy": "skeleton", "weights": [[0, 9], [860, 3]] }, … ]</code>. A row with no <code>until</code> runs to the end of the run (the bar shows ∞). <code>weights</code> are the presence keyframes (pass 54); a file that still says <code>"weight": 9, "weight_late": 3</code> is read as <code>[[t, 9], [weight_late_t, 3]]</code> and saved in the new shape.'));
+    // pass 81 (lane PACE): a row's own pacing
+    root.appendChild(p('<b>Pacing</b> (pass 81; Garry: "the frequency at which enemy waves come"). A row is <b>Continuous</b> by default, as every row always was: at every spawn check (<code>spawn_interval</code>) the director draws a burst of <code>burst_min</code> to <code>burst_max</code> load units from the open rows by their weights into the cap (Settings → Spawning). Set its Pacing to <b>Waves every N s</b> (<code>"pace": "waves"</code>) and it comes in waves instead: <code>count</code> creatures (default the row\'s pack) every <code>every</code> seconds (default 30; 0 = one wave), the first at <code>t</code> + <code>offset</code>, while the row is open, in its pattern; a wave due while its presence weight is 0 does not come. <code>respect_cap</code> (default on): a wave fills the free room of its channel\'s cap and the rest comes first as room frees, until the row\'s next wave; off = all at once on top of the cap. <code>trickle</code> (default off) keeps it in the continuous draw between its waves too. On the Timeline each bar carries yellow etches: a line where a continuous row is drawn, a tick at each wave.'));
     root.appendChild(fieldTable(FIELDS.roster));
     root.appendChild(el('h3', { text: 'A wave' }));
     root.appendChild(p('A scripted window. From <code>t</code>, a burst of <code>burst</code> creatures every <code>every</code> seconds (the first at <code>t</code>) until <code>count</code> have come (0 = no total) or the clock reaches <code>until</code> (missing = no end). The block\'s length on the lane is <code>until</code>, or the time the count takes.'));

@@ -103,6 +103,46 @@ var analytics: bool = true
 ## a run" in Settings, or "Don't ask me again" on the card.
 var surveys: bool = true
 
+## Pass 81 (lane PROD, Garry: "a production build version ... having no debug options"): the production build is the
+## export presets "Android Prod" / "Windows Desktop Prod", whose custom feature `prod` makes is_prod() true. In prod every
+## developer switch below is held at the player's default (_prod_lock: the developer menu, the player's debug mode and
+## the debug arena, the in-run debug panel, the debug hand, the free revive and the hit log are all gone) and
+## user://debug_launch.json is ignored. A headless check forces it with `prod=1` (or `--prod`) after `--`; a test with
+## force_prod(). The dev build never changes.
+const PROD_LOCKED := {"debug_mode": false, "debug_panel": false, "debug_modal_buttons": false, "free_revive_button": false,
+	"hit_log": false, "preview_locked_heroes": false, "menu_style": MENU_STYLE_DEFAULT, "ranged_on_screen": true,
+	"pierce_falloff": true}
+var _prod_forced := -1
+
+
+func is_prod() -> bool:
+	if _prod_forced < 0:
+		_prod_forced = 0
+		for a in OS.get_cmdline_user_args():
+			if str(a) == "prod=1" or str(a) == "--prod":
+				_prod_forced = 1
+	return _prod_forced == 1 or OS.has_feature("prod")
+
+
+## "prod" or "dev": the build's flavour (analytics tags every event with it).
+func build_flavour() -> String:
+	return "prod" if is_prod() else "dev"
+
+
+## The production build's switch for a test (on) or back to the command line's / the build's own (off).
+func force_prod(on: bool) -> void:
+	_prod_forced = 1 if on else -1
+	if on:
+		_prod_lock()
+
+
+## In prod, every developer switch back at the player's default.
+func _prod_lock() -> void:
+	if not is_prod():
+		return
+	for k: String in PROD_LOCKED:
+		set(k, PROD_LOCKED[k])
+
 
 func to_dict() -> Dictionary:
 	return {
@@ -153,10 +193,14 @@ func from_dict(d: Dictionary) -> void:
 	boss_dummy_mode = str(d.get("boss_dummy_mode", boss_dummy_mode))
 	analytics = bool(d.get("analytics", analytics))
 	surveys = bool(d.get("surveys", surveys))
+	_prod_lock()
 	changed.emit()
 
 
 func set_value(key: String, value) -> void:
+	# pass 81 (lane PROD): the production build keeps its developer switches at the player's default
+	if PROD_LOCKED.has(key) and is_prod():
+		return
 	set(key, value)
 	changed.emit()
 	Save.request_save()

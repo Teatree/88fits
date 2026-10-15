@@ -82,6 +82,8 @@ func start(p_map: MapDef) -> void:
 	# pass 53: the events' jitter and chance and the waves' alternatives, rolled once for this run
 	_roll_events()
 	_roll_waves()
+	# pass 81 (lane PACE): the waves rows' schedule starts afresh
+	_row_waves.clear()
 	running = true
 	var em: EnemyManager = game.enemies
 	for a in map.skins.keys():
@@ -188,6 +190,8 @@ func _process(delta: float) -> void:
 		if phase == Phase.NORMAL:
 			# the timeline's waves (pass 53) run in the normal phase only: an event above may just have started a boss
 			_tick_waves()
+			# pass 81 (lane PACE): the roster rows paced as waves
+			_tick_row_waves()
 		# the path slots: a stage puts a weapon's whole path on the table at set seconds into it; pass 79 (lane MUT): the
 		# offer falls due there and waits for the hero's next level-up (Run.mutlvl_tick, M1-M2), never opening on its own
 		Run.mutlvl_tick(Run.elapsed - float(Run.stage) * timeline.stage_length)
@@ -852,6 +856,8 @@ func continue_to_next_stage() -> void:
 
 
 func _spawn_burst() -> void:
+	# pass 81 (lane PACE): what a waves row's last wave still owes takes the room first
+	_row_waves_owed()
 	var em: EnemyManager = game.enemies
 	var cap := current_cap()
 	if cap <= 0:
@@ -878,6 +884,8 @@ func _spawn_burst() -> void:
 
 ## One burst from `roster` (weighted rows) into `room` of cap and `bodies` of the hard cap; returns the bodies left.
 func _burst_from(roster: Array, room: float, bodies: int) -> int:
+	# pass 81 (lane PACE): a row paced as waves is not in the continuous draw unless it trickles
+	roster = roster.filter(func(r) -> bool: return not (r is Dictionary) or WaveTimeline.row_drawn(r))
 	if roster.is_empty():
 		return bodies
 	var burst: float = minf(float(_rng.randi_range(timeline.burst_min, timeline.burst_max)), room)
@@ -1153,6 +1161,111 @@ func _channel_room(channel: String) -> float:
 	if channel == "hell":
 		return timeline.hell_cap_at(Run.stage) * float(cap) - hell_load
 	return float(cap) - (em.cap_load() - hell_load)
+
+
+# ---------------------------------------------------------------- a roster row paced as waves (pass 81, lane PACE)
+
+## Each waves row's state this run (pass 81), keyed like its fixed numbers (row_key: "row:<id>#<index>"): {k (the last
+## wave index that fell due, -1 before the first), owed (what its last wave still owes), came (every creature its waves
+## brought), waves (the waves that fell due while it weighed above 0)}. Cleared when a run starts.
+var _row_waves: Dictionary = {}
+
+
+## The roster rows paced as waves (pass 81, lane PACE; Garry: "Add the ability to control the pacing of the waves. I mean
+## the frequency at which enemy waves come"), from _process in the normal phase: a row with `pace` "waves" open now
+## (t <= clock < until) sends wave k as the clock passes t + offset + k x every (WaveTimeline.row_wave_index), `count`
+## creatures in its pattern (_row_wave_spawn), when the row weighs above 0 at that wave's second (its presence keyframes
+## gate the waves; the weight's size scales nothing). A new wave drops what the last one still owed. A clock that jumped
+## (a tool) fires only the latest wave due, never a backlog. Such a row is not in the continuous draw unless it has
+## `trickle` (_burst_from).
+func _tick_row_waves() -> void:
+	if timeline == null or game == null or game.player == null:
+		return
+	var t := Run.elapsed
+	for k in range(timeline.roster.size()):
+		var r = timeline.roster[k]
+		if not (r is Dictionary) or not WaveTimeline.row_paced(r):
+			continue
+		if t < float(r.get("t", 0.0)) or (r.get("until") != null and t >= float(r["until"])):
+			continue
+		var i := WaveTimeline.row_wave_index(r, t)
+		if i < 0:
+			continue
+		var key := _row_key_at(r, k)
+		var st: Dictionary = _row_waves.get(key, {"k": -1, "owed": 0, "came": 0, "waves": 0})
+		_row_waves[key] = st
+		if i <= int(st["k"]):
+			continue
+		st["k"] = i
+		st["owed"] = 0
+		if _roster_weight(r, WaveTimeline.row_wave_time(r, i)) <= 0.0:
+			continue
+		var def: EnemyDef = _row_def(r)
+		if def == null:
+			continue
+		st["waves"] = int(st["waves"]) + 1
+		st["owed"] = WaveTimeline.row_wave_count(r, def.pack_size)
+		_row_wave_spawn(r, st, def)
+
+
+## What a waves row's wave still owes (`st.owed`), now (pass 81): cut to the hard cap's room and the creature's max_alive
+## and, with `respect_cap` (the default), to the free room of the row's channel (at least one while there is any: the
+## waves' rule, _wave_burst); in the row's pattern and pack, with its variant, its overrides and its fixed numbers
+## (_row_src: the same as its trickle's). Whatever does not fit stays owed (_row_waves_owed). Returns how many came.
+func _row_wave_spawn(r: Dictionary, st: Dictionary, def: EnemyDef) -> int:
+	var em: EnemyManager = game.enemies
+	var n := int(st["owed"])
+	n = mini(n, timeline.hard_cap - em.alive_count())
+	if def.max_alive > 0:
+		n = mini(n, def.max_alive - em.alive_of(def.id))
+	if n > 0 and bool(r.get("respect_cap", true)):
+		var room := _channel_room(str(r.get("channel", "regular")))
+		if room <= 0.0:
+			return 0
+		n = mini(n, maxi(int(ceil(room / maxf(def.cap_share, 0.05))), 1))
+	if n <= 0:
+		return 0
+	var pack: int = maxi(int(r.get("pack", def.pack_size)), 1)
+	var came := _spawn_group(def.id, n, str(r.get("pattern", "pack")), pack, null, str(r.get("variant", "")), _stats_of(r), Callable(), _row_src(r))
+	st["owed"] = maxi(int(st["owed"]) - came, 0)
+	st["came"] = int(st["came"]) + came
+	return came
+
+
+## The waves rows' leftovers (pass 81), first thing at every spawn check of the normal phase: a wave the cap cut comes in
+## as the room frees, ahead of the continuous draw, until the row's next wave falls due (which drops the rest,
+## _tick_row_waves) or the row closes. A boss fight and the portal wait hold it, as they hold the clock.
+func _row_waves_owed() -> void:
+	if _row_waves.is_empty() or phase != Phase.NORMAL or timeline == null or game == null or game.player == null:
+		return
+	var t := Run.elapsed
+	for k in range(timeline.roster.size()):
+		var r = timeline.roster[k]
+		if not (r is Dictionary) or not WaveTimeline.row_paced(r):
+			continue
+		var st = _row_waves.get(_row_key_at(r, k))
+		if not (st is Dictionary) or int(st["owed"]) <= 0:
+			continue
+		var def: EnemyDef = _row_def(r)
+		if def == null or (r.get("until") != null and t >= float(r["until"])):
+			st["owed"] = 0
+			continue
+		_row_wave_spawn(r, st, def)
+
+
+## A roster row's key (row_key's form) from its place `k` in the timeline's roster, without row_key's search (pass 81).
+static func _row_key_at(r: Dictionary, k: int) -> String:
+	var id := str(r.get("id", ""))
+	return ("row:%s#%d" % [id, k]) if id != "" else "row#%d" % k
+
+
+## A waves row's state this run (pass 81; the tests, a tool): {k, owed, came, waves} as a copy for the roster row at
+## index `k`, {} before its first wave fell due or for a row that is not paced.
+func row_wave_state(k: int) -> Dictionary:
+	if timeline == null or k < 0 or k >= timeline.roster.size() or not (timeline.roster[k] is Dictionary):
+		return {}
+	var s = _row_waves.get(_row_key_at(timeline.roster[k], k))
+	return (s as Dictionary).duplicate() if s is Dictionary else {}
 
 
 # ---------------------------------------------------------------- the specials
