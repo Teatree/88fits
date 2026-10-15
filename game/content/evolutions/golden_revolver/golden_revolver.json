@@ -68,6 +68,9 @@
     },
     "final": {
       "silver": true,
+      "tracer_width": 0.11,
+      "tracer_color": "#C9DCEF",
+      "tracer_alpha": 0.9,
       "size_mult": 1.5,
       "radius_mult": 1.5,
       "speed_mult": 1.15,

@@ -228,12 +228,14 @@ const FIELDS = (() => {
     { key: 'level_damage_per_level', group: 'Scaling', label: 'Damage per hero level', type: 'number', min: 0, step: 0.01, def: 0, help: 'creatures gain this share of damage per hero level above 1' },
     { key: 'contact_cap', group: 'Scaling', label: 'Contact cap', type: 'number', min: 0, max: 1, step: 0.01, def: 0, help: 'a cap on one touch\'s damage as a share of the hero\'s max HP (0 = off; never a boss)' },
     { key: 'move_pace', group: 'Scaling', label: 'Move pace', type: 'number', min: 0.1, step: 0.05, def: 1, help: 'everyone\'s speed (hero and creatures): 0.8 = 20% slower, wind-ups last 1/pace as long' },
-    { key: 'xp_need_mult', group: 'Scaling', label: 'XP needed ×', type: 'number', min: 0.1, step: 0.05, def: 1, help: 'every hero level needs this many times the XP curve\'s amount' },
+    { key: 'xp_need_mult', group: 'Scaling', label: 'XP needed ×', type: 'number', min: 0.1, step: 0.05, def: 1, help: 'every hero level needs this many times the XP curve\'s amount (15 + 6L + L²/2 XP for level L). Pass 79: mutation offers come as level-ups, so levels come faster to keep the same three-card picks by any minute plus the mutation level-ups on top: Red Canyon 1.65 (it was 3.1 with mutations on the clock)' },
+    // pass 79 (lane MUT): whether mutation level-ups count for what grows with the hero's level (Run.card_level)
+    { key: 'mutation_levels_scale', group: 'Scaling', label: 'Mutation levels scale', type: 'bool', def: false, help: 'off: what grows with the hero\'s level (the HP and damage per hero level above, his trait, Barrel Rush\'s gems, Ram, Supply Drop) counts only his card levels, his level less the level-ups that were mutation offers, so a minute brings the same scaling as before mutations came as level-ups; on: every level-up counts. Empty = the game\'s: off' },
     { key: 'endless_wave_seconds', group: 'Endless', label: 'Endless wave (s)', type: 'number', min: 1, step: 1, def: 60, help: 'in endless, a new wave this often' },
     { key: 'endless_wave_mult', group: 'Endless', label: 'Endless wave ×', type: 'number', min: 1, step: 0.01, def: 1, help: 'every endless wave multiplies the creatures by this, compounding' },
     { key: 'weapon_cap', group: 'Items', label: 'Weapon slots per stage', type: 'list', int: true, def: [5, 5, 5], help: 'weapon slots per stage (static since pass 47: 5)' },
     { key: 'passive_cap', group: 'Items', label: 'Line slots per stage', type: 'list', int: true, def: [5, 5, 5], help: 'line slots per stage (static since pass 47: 5)' },
-    { key: 'path_times', group: 'Items', label: 'Path offers per stage', type: 'path_times', def: [], help: 'seconds into each stage when a weapon\'s whole path goes on the table (one list per stage; the last holds for later stages)' },
+    { key: 'path_times', group: 'Items', label: 'Mutation offers per stage', type: 'path_times', def: [], help: 'seconds into each stage when a mutation offer falls due: it comes at the hero\'s next level-up, in place of the three cards (a weapon drawn among those with the stage\'s pick open, its whole path on the table; the HUD marks the LV plate while one waits). Offers queue, one a level-up; one that falls due while no weapon has a pick open is spent with nothing. One list per stage; the last holds for later stages (pass 79: they no longer pop up on the clock)' },
     // pass 69 (lane EN): the map's numbers for a coloured special that the creature's own Special block leaves empty
     // (EnemyDef.special_value: the creature's own, then these, then the game's)
     { key: 'special_defaults.size', group: 'Coloured specials', label: 'Size ×', type: 'number', min: 0.1, step: 0.05, def: 1.5, help: 'a coloured special\'s size factor for every creature whose Special block leaves Size empty (empty here = the game\'s 1.5; pass 72, was 1.25)' },
@@ -248,6 +250,17 @@ const FIELDS = (() => {
     { key: 'special_defaults.max_alive', group: 'Coloured specials', label: 'Max alive', type: 'int', min: 0, step: 1, def: 3, help: 'the most coloured specials alive at once on this map: a roll that would make one more makes a plain creature instead; a swarm event set to Special still brings its special. 0 = no limit (empty = the game\'s 3). Why a limit: x15 HP each, a crowd of 250 at 0.04 would carry ten of them late in a stage' },
     { key: 'structures.count', group: 'World', label: 'Structures', type: 'int', min: 0, def: 0, help: 'structures scattered at the run\'s start' },
     { key: 'structures.min_spacing', group: 'World', label: 'Structure spacing (m)', type: 'number', min: 0, step: 1, def: 16, help: 'the least metres between two structures' },
+    // pass 79 (lane WORLD; Garry: "Map the sides are too orange"): the colours of the map's sides (WaveTimeline.rock_color,
+    // wall_colors; RedCanyon.ROCK_COLOR / WALL_COLORS are the game's defaults, the def here)
+    { key: 'rock_color', group: 'World', label: 'Rock colour', type: 'swatch', def: '#785C5E', help: 'the red-rock rim the ground rises into towards the wall (the painting is recoloured to it, its bands and cracks kept as light and dark). The sun and the sky light are warm and push every colour towards orange on the screen, so pick a touch rosier than you want to see. Empty = the game\'s #785C5E (pass 79; it was the orange #9E573D)' },
+    { key: 'wall_colors.near', group: 'World', label: 'Cliffs (near)', type: 'swatch', def: '#856B6E', help: 'the ring of cliffs right behind the boundary wall (a grey sandstone painting tinted to this). Empty = the game\'s #856B6E' },
+    { key: 'wall_colors.far', group: 'World', label: 'Cliffs (far)', type: 'swatch', def: '#705963', help: 'the second ring of cliffs, farther out and a shade darker. Empty = the game\'s #705963' },
+    { key: 'wall_colors.farther', group: 'World', label: 'Cliffs (farthest)', type: 'swatch', def: '#594A57', help: 'the outermost ring of cliffs on the horizon, darkest. Empty = the game\'s #594A57' },
+    { key: 'wall_colors.stone', group: 'World', label: 'Wall stone', type: 'swatch', def: '#7A6363', help: 'the stacked-stone boundary wall: every other block (the outer face a quarter darker). Empty = the game\'s #7A6363' },
+    { key: 'wall_colors.light', group: 'World', label: 'Wall stone (light)', type: 'swatch', def: '#8C7370', help: 'the boundary wall\'s other blocks, a shade lighter so the courses read. Empty = the game\'s #8C7370' },
+    { key: 'wall_colors.cap', group: 'World', label: 'Wall cap', type: 'swatch', def: '#544045', help: 'the top of the boundary wall. Empty = the game\'s #544045' },
+    { key: 'wall_colors.riser', group: 'World', label: 'Wall steps', type: 'swatch', def: '#47383B', help: 'the steps up and down between the wall\'s blocks. Empty = the game\'s #47383B' },
+    { key: 'wall_colors.boulders', group: 'World', label: 'Wall boulders', type: 'swatch', def: '#6B5457', help: 'the boulders along the top of the boundary wall. Empty = the game\'s #6B5457' },
     // pass 72 (lane BOSS; Garry: "Boss HP should be pegged to Player DPS ... It shouldn't be 1 to 1"): the boss's HP times
     // (DPS / its reference) ^ exponent, held between min and max (WaveTimeline.boss_hp_scaling; boss_scaling.js draws the
     // references and the chart under these rows)
@@ -300,7 +313,7 @@ const FIELDS = (() => {
     { id: 'waves', name: 'Waves', text: 'Scripted windows on top of the roster: from t, a burst every few seconds until the count or the end. Stripes are the alternatives (one is rolled per run); "no cap" means it spawns on top of the crowd. Drag to move, drag the right edge to end, click to edit.' },
     { id: 'events', name: 'Events', text: 'One-off moments: bosses (skull), Elites (crown), coloured elites (star), the repeating elite timer (arrows with a dotted trail), swarms (ring). Whiskers are the jitter, a faded marker a chance under 100%. Drag to move.' },
     { id: 'specials', name: 'Specials', text: 'The specials\' clock (the Vulture Raider, the harpooner): from its start, one at a time, the next a random interval after the last one dies. Edit it in Settings or by clicking the band.' },
-    { id: 'paths', name: 'Paths', text: 'When each stage puts a weapon\'s whole path on the table (seconds into the stage). Edit in Settings.' },
+    { id: 'paths', name: 'Mutations', text: 'When each stage\'s mutation offers fall due (seconds into the stage): each comes at the hero\'s next level-up, in place of the three cards (pass 79). Edit in Settings.' },
   ];
 
   return { roster, wave, alt, event, EVENT_TYPES, OVERRIDES, OVERRIDE_GROUPS, OVERRIDE_GROUP_HELP, SCALARS, SCALAR_GROUPS, CURVE, CURVE_KINDS, SIDE_MODES, SPECIALS, PICKUP_ROW, PATTERNS, SWARM_PATTERNS, CHANNELS, LANES };

@@ -410,3 +410,45 @@ the Specials card's words name the Sniper.
 | dust | × | 1.0 | the dust puff's size × its size (0 = none; only on the screen) |
 
 WaveTimeline: `SPAWN_RISE_DEFAULTS`, `spawn_rise_value(key)`; JsonContent reads the block as it is.
+
+## Pass 79: mutation offers come as level-ups (lane MUT)
+
+### Map timeline (`timeline_data`, WaveTimeline, JsonContent.timeline_from_dict)
+
+| Key | Type | Default | What it does |
+|---|---|---|---|
+| `path_times` | `[[s, ...], ...]` | `[[55, 115, 175, 230, 270], [35, 90, 145, 200, 245, 280]]` | unchanged in shape: seconds into each stage (the last list holds for later stages). What changed is what a time means: a **mutation offer falls due** there (Run.mutlvl_tick) and waits for the hero's **next level-up**, which shows it in place of the three cards (a weapon drawn among those with the stage's pick open, its whole path on the table). Offers queue, one a level-up, and stay due across a stage's end; one that falls due while no weapon has a pick open is spent with nothing; a level-up whose offer finds none open is an ordinary one. Nothing opens on the clock any more. The editor: Settings -> Items, "Mutation offers per stage"; the timeline's "Mutations" lane |
+| `xp_need_mult` | number | 1 | unchanged in meaning (a level L needs (15 + 6L + L^2/2) x this); Red Canyon's 1.65 since pass 79 (3.1 with the offers on the clock; 4.1 at the pass's start), measured with the run sim so a minute brings as many three-card level-ups as before and the mutation level-ups on top |
+| `mutation_levels_scale` | bool | false | false: what grows with the hero's level (`level_hp_per_level`, `level_damage_per_level`, his trait, Barrel Rush's gems, Ram, Supply Drop) reads his card levels, his level less the level-ups that were mutation offers (Run.card_level); true: every level-up counts. The editor: Settings -> Scaling, "Mutation levels scale" |
+
+Run state (not in the map): `Run.mutlvl_due` (offers due, waiting), `Run.mutlvl_ready` (mutation level-ups claimed
+whose screen has not opened), `Run.mutation_levels` (level-ups that were mutation offers). A run record's events gain
+`mutation_due` (an offer fell due: `due`, `slot`; or was dropped: `dropped` with `at_level_up` / `at_screen`).
+
+## Pass 79: the rim's and walls' colours (lane WORLD)
+
+### Map: `timeline_data` (WaveTimeline; the Level Editor's Settings tab, World card; docs/waves_schema.md)
+| key | type | default (empty / absent) | meaning |
+|---|---|---|---|
+| `rock_color` | "#RRGGBB" | RedCanyon.ROCK_COLOR **#785C5E** (0.47, 0.36, 0.37) | the red-rock rim's colour (the ground from `rim_start` 44 m out to the wall). The terrain shader recolours the rock painting (redrock.png) to it: the painting's luminance over its mean (`rock_tex_lum` 0.184, linear) times this colour taken into linear light, so the bands and cracks stay as light and dark and the hue is the key's. Pass 78's was #9E573D (0.62, 0.34, 0.24) over an orange painting. |
+| `wall_colors` | {key: "#RRGGBB"} | RedCanyon.WALL_COLORS | the walls' colours; a key left out (or unreadable) plays its default |
+| `wall_colors.near` | "#RRGGBB" | **#856B6E** (0.52, 0.42, 0.43) | the ring of cliffs right behind the boundary wall (arena_radius + 4 m): a tint over the sandstone painting, grey since pass 79, so the tint is the colour (was (0.78, 0.6, 0.5) over orange bands) |
+| `wall_colors.far` | "#RRGGBB" | **#705963** (0.44, 0.35, 0.39) | the second ring of cliffs (+26 m) (was (0.62, 0.42, 0.36)) |
+| `wall_colors.farther` | "#RRGGBB" | **#594A57** (0.35, 0.29, 0.34) | the outermost ring on the horizon (+52 m) (was (0.46, 0.30, 0.30)) |
+| `wall_colors.stone` | "#RRGGBB" | **#7A6363** (0.48, 0.39, 0.39) | the stacked-stone boundary wall's even blocks (vertex colour, sRGB; the outer face 25% darker) (was (0.60, 0.40, 0.30)) |
+| `wall_colors.light` | "#RRGGBB" | **#8C7370** (0.55, 0.45, 0.44) | its odd blocks, a shade lighter so the courses read (was (0.68, 0.47, 0.35)) |
+| `wall_colors.cap` | "#RRGGBB" | **#544045** (0.33, 0.25, 0.27) | the wall's top (was (0.40, 0.26, 0.21)) |
+| `wall_colors.riser` | "#RRGGBB" | **#47383B** (0.28, 0.22, 0.23) | the steps between blocks (was (0.34, 0.22, 0.18)) |
+| `wall_colors.boulders` | "#RRGGBB" | **#6B5457** (0.42, 0.33, 0.34) | the boulders along the wall's top (was (0.5, 0.33, 0.26)) |
+
+Red Canyon's file names all nine (the defaults). The Level Editor shows them as swatches in the World card (an empty box
+shows the game's default faded, "the game's #..."). A page opened before pass 79 saves its timeline without them: the
+game then plays the same defaults. Why the authored colours lean a touch rosy: the sun (1.0, 0.85, 0.65) and the ambient
+(0.95, 0.80, 0.66) are warm and push every colour towards orange on the screen (help text says so).
+
+Code: WaveTimeline `rock_color: String`, `wall_colors: Dictionary`, `static color_of(v, fallback)` ("#RRGGBB", "RRGGBB",
+[r, g, b] 0..1, else fallback); JsonContent.timeline_from_dict reads both; RedCanyon `ROCK_COLOR`, `WALL_COLORS`,
+`rock_color`, `wall_colors`, `_read_colours()` (before anything is built, from Run.map.timeline).
+Shader `core/shaders/terrain_painted.gdshader`: `rock_flat` default (0.47, 0.36, 0.37), new `uniform float rock_tex_lum
+= 0.184` (the rock painting's mean linear luminance; pass79_world_test checks it against redrock.png within 10%).
+`tools/gen_textures.py --only sandstone,redrock` writes only those (sandstone.png is grey bands since pass 79).

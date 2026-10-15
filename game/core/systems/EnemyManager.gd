@@ -2382,10 +2382,14 @@ func damage_radius(center: Vector3, r: float, amount: float, weapon_id: String =
 			var bdef: EnemyDef = types[type_idx[i]]["def"]
 			if i == boss_index or bdef.archetype == "elite" or bdef.archetype == "boss":
 				amt = max_hp[i] * 0.1
+		# pass 79 (lane FX): _die reads which creature a blast is striking (its body is thrown up, _corpse_begin)
+		var blast_prev := _corpse_blast_i
+		_corpse_blast_i = i if kb_force > 0.0 else -1
 		if damage(i, amt, weapon_id, d, kb_force, false, false, flags):
 			hit += 1
 		else:
 			hit += 1
+		_corpse_blast_i = blast_prev
 	return hit
 
 
@@ -2425,7 +2429,8 @@ func _die(i: int, weapon_id: String) -> void:
 	state[i] = STATE_DYING
 	timer[i] = DIE_TIME
 	anim_t[i] = 0.0
-	kb[i] = Vector3.ZERO
+	# pass 79 (lane FX): the body keeps its push and follows through (a blast's kill flies); the boss's is zeroed
+	_corpse_begin(i)
 	# pass 48: whoever listens reads the creature as it fell, its poisons and burns still on it (it is dying already, so a
 	# hit from a listener cannot kill it twice)
 	creature_dying.emit(i, weapon_id)
@@ -2796,6 +2801,76 @@ func _near_any(p: Vector3, spots: Array, r2: float) -> bool:
 	return false
 
 
+## Pass 79 (lane WORLD; Garry: "Throw the dynamite in front of the enemies"): the mean ground velocity (m/s, on the
+## world's clock: High Noon's slow is in it) of the creatures within `r` of `at` that walk on their own: in the grid (alive,
+## not dying, not hidden or held), all the way up out of the sand. The push a hit gave them (kb) is left out: it dies away in
+## a fraction of a second. Vector3.ZERO when there are none. Lobber leads a throw by it (params.lead).
+func crowd_velocity(at: Vector3, r: float) -> Vector3:
+	var sum := Vector3.ZERO
+	var n := 0
+	for i in indices_in_radius(at, r):
+		if rise_t[i] < 1.0:
+			continue
+		sum += vel[i]
+		n += 1
+	if n == 0:
+		return Vector3.ZERO
+	var v := sum * (time_scale / float(n))
+	v.y = 0.0
+	return v
+
+
+## Pass 79 (lane WORLD): the mean walking speed (m/s, the world's clock) of the creatures crowd_velocity counts: how fast
+## the crowd closes on the hero whichever way each one heads (Lobber's chase lead). 0 when there are none.
+func crowd_speed(at: Vector3, r: float) -> float:
+	var sum := 0.0
+	var n := 0
+	for i in indices_in_radius(at, r):
+		if rise_t[i] < 1.0:
+			continue
+		sum += Vector2(vel[i].x, vel[i].z).length()
+		n += 1
+	return sum * time_scale / float(n) if n > 0 else 0.0
+
+
+## Pass 79 (lane WORLD): one creature's own ground velocity on the world's clock (a priority target the dynamite is led
+## onto: a special, an Elite, the boss), as crowd_velocity counts it. Vector3.ZERO for one gone or still rising.
+func walk_velocity(i: int) -> Vector3:
+	if i < 0 or i >= MAX or alive[i] == 0 or state[i] == STATE_DYING or rise_t[i] < 1.0:
+		return Vector3.ZERO
+	var v := vel[i] * time_scale
+	v.y = 0.0
+	return v
+
+
+## Pass 79 (lane WORLD): how many creatures will stand within `r` of each of `spots` in `t` seconds (Lobber's lead, mode
+## "predict"). Every creature within `reach` of `center` that walks on its own (in the grid, risen) is taken to close on
+## `goal` (where the hero will be) at its own walking speed on the world's clock, stopping `gap` m short of it; one standing
+## still (winding up, biting) stays where it is. One count per spot, in the spots' order.
+func predicted_counts(spots: Array, r: float, t: float, goal: Vector3, gap: float, center: Vector3, reach: float) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	out.resize(spots.size())
+	out.fill(0)
+	var r2 := r * r
+	var g := Vector2(goal.x, goal.z)
+	for i in indices_in_radius(center, reach):
+		if rise_t[i] < 1.0:
+			continue
+		var p := Vector2(pos[i].x, pos[i].z)
+		var to := g - p
+		var d := to.length()
+		var step := minf(Vector2(vel[i].x, vel[i].z).length() * time_scale * t, maxf(d - gap, 0.0))
+		if d > 0.001:
+			p += to / d * step
+		for k in range(spots.size()):
+			var sp: Vector3 = spots[k]
+			var dx := p.x - sp.x
+			var dz := p.y - sp.z
+			if dx * dx + dz * dz <= r2:
+				out[k] += 1
+	return out
+
+
 func indices_in_cone(from: Vector3, dir: Vector3, max_range: float, half_angle_deg: float) -> PackedInt32Array:
 	var out := PackedInt32Array()
 	var d2 := Vector2(dir.x, dir.z).normalized()
@@ -3048,6 +3123,8 @@ func _physics_process(delta: float) -> void:
 			# pass 69: a body killed up in a launch falls to the sand while its death plays
 			if lift_h[i] > 0.0 and _launch_of(i):
 				_drop_launched_body(i, delta)
+			# pass 79 (lane FX): the body slides on with its push, or flies from a blast
+			_corpse_tick(i, delta)
 			if timer[i] <= 0.0:
 				_free(i)
 			continue
@@ -3265,7 +3342,7 @@ func _physics_process(delta: float) -> void:
 				var away := pos[i] - ppos
 				away.y = 0.0
 				kb[i] += (away.normalized() if away.length_squared() > 0.01 else Vector3.FORWARD) * Run.perk_param("ram", "shove", 9.0) * _t_kbt[ti] * hero_knock_mult()
-				var th: float = Run.player_sheet.get_stat("thorns", 0.0) * Run.perk_param("ram", "thorns_mult", 3.0) + Run.perk_param("ram", "flat", 12.0) + Run.perk_param("ram", "per_level", 0.0) * float(Run.level)
+				var th: float = Run.player_sheet.get_stat("thorns", 0.0) * Run.perk_param("ram", "thorns_mult", 3.0) + Run.perk_param("ram", "flat", 12.0) + Run.perk_param("ram", "per_level", 0.0) * float(Run.card_level())
 				damage(i, th, "", away, 0.0)
 				if game:
 					game.fx_burst(pos[i] + Vector3(0, size[i] * 0.5, 0), Color(0.95, 0.75, 0.4), 1.0)
@@ -6446,3 +6523,112 @@ func _custom_spew(i: int, cdef: BossAttackDef, run: Dictionary) -> void:
 	flash[i] = maxf(flash[i], 0.25)
 	if game:
 		game.fx_burst(mouth, cdef.tint(), clampf(size[i] * 0.12, 0.35, 0.9))
+
+
+# ---------------------------------------------------------------- pass 79 (lane FX): corpses follow through
+## Garry: "enemies that die have their corpses follow through with their knockback. So when an explosion kills an enemy
+## fly off like the live ones." A creature that dies keeps the push it had (damage() adds the killing hit's before
+## _die): its body slides on with it while its death plays, the push dying away as a live one's does
+## (CORPSE_GROUND_DECAY, the physics tick's own), kept inside the arena, on the ground, and off the map's rocks (a body
+## that runs into one slides along it). A kill by a blast (a damage_radius hit with a push: the dynamite, Powder Keg,
+## rockets, mines, bomblets, a turret's boom, Overkill's splash, a hostile blast on its own crowd) also throws the body up:
+## CORPSE_TOSS_PER m of height for every m/s of its push, at most CORPSE_TOSS_MAX, none under CORPSE_TOSS_MIN, falling at
+## CORPSE_G; up there the push dies away at CORPSE_AIR_DRAG only, so it sails, and it lands in a little sand. Its death
+## lasts at least the flight plus CORPSE_REST (it lies a moment, then sinks as every body does over DIE_SINK).
+## Never the boss (his death is as before: no slide, no throw); big game (an Elite, an elite-modded creature) slides but
+## is never thrown up (as only the small ones are ever launched alive); a body up in a launch (Alley-Oop, Bucking
+## Bronco) falls as before (_drop_launched_body), Bucking Bronco's drift kept as its push. A body left up in the air by
+## anything else (a tornado's toss, a bounce) falls from where it was.
+const CORPSE_GROUND_DECAY := 6.0
+const CORPSE_AIR_DRAG := 1.5
+const CORPSE_TOSS_PER := 0.3
+const CORPSE_TOSS_MIN := 0.3
+const CORPSE_TOSS_MAX := 2.5
+const CORPSE_G := 22.0
+const CORPSE_REST := 0.6
+## A push below this (m/s) is spent: the body stops.
+const CORPSE_STOP := 0.05
+## The creature a blast is striking now (damage_radius sets it round each damage() call; -1 for a blast with no push), so
+## _corpse_begin knows a blast killed it.
+var _corpse_blast_i := -1
+## Bodies up in the air (thrown by a blast, or falling from a toss): index -> {"serial", "vy" (m/s, up)}.
+var _corpse_air: Dictionary = {}
+## Diagnostics and tests: bodies a blast threw up, bodies that came down.
+var corpse_tosses := 0
+var corpse_landings := 0
+
+
+## A body starts its follow-through (_die calls it once the creature is STATE_DYING): its push kept (flat), the boss's
+## zeroed; a blast's kill thrown up by its push; a body up in the air falling from there.
+func _corpse_begin(i: int) -> void:
+	var def: EnemyDef = types[type_idx[i]]["def"]
+	if i == boss_index or def.archetype == "boss":
+		kb[i] = Vector3.ZERO
+		return
+	var push := Vector3(kb[i].x, 0.0, kb[i].z)
+	if _launch_of(i):
+		var e: Dictionary = _launched[i]
+		if e.get("drift") is Vector3:
+			push += e["drift"] as Vector3
+		kb[i] = push
+		return
+	kb[i] = push
+	var vy := 0.0
+	if _corpse_blast_i == i and not is_big_game(i):
+		var h := minf(push.length() * CORPSE_TOSS_PER, CORPSE_TOSS_MAX)
+		if h >= CORPSE_TOSS_MIN:
+			vy = sqrt(2.0 * CORPSE_G * h)
+			corpse_tosses += 1
+	if vy <= 0.0 and lift_h[i] <= 0.0:
+		return
+	_corpse_air[i] = {"serial": serial[i], "vy": vy}
+	timer[i] = maxf(timer[i], corpse_air_time(vy, lift_h[i]) + CORPSE_REST)
+
+
+## Seconds a body thrown up at `vy` m/s from `h` m above the sand flies before it lands (CORPSE_G).
+static func corpse_air_time(vy: float, h: float) -> float:
+	return (vy + sqrt(vy * vy + 2.0 * CORPSE_G * maxf(h, 0.0))) / CORPSE_G
+
+
+## The height a blast's push of `push` m/s throws a body (0 under CORPSE_TOSS_MIN; tests, the docs).
+static func corpse_toss_height(push: float) -> float:
+	var h := minf(maxf(push, 0.0) * CORPSE_TOSS_PER, CORPSE_TOSS_MAX)
+	return h if h >= CORPSE_TOSS_MIN else 0.0
+
+
+## One tick of a body (the dying tick calls it while its death plays): up in the air it rises and falls; it moves with
+## its push, which dies away (slower in the air), inside the arena, on the ground, never into a rock.
+func _corpse_tick(i: int, delta: float) -> void:
+	var air := false
+	var e = _corpse_air.get(i)
+	if e is Dictionary:
+		if int((e as Dictionary).get("serial", -1)) != serial[i] or timer[i] <= 0.0:
+			_corpse_air.erase(i)
+		else:
+			air = true
+			var vy: float = float(e["vy"]) - CORPSE_G * delta
+			e["vy"] = vy
+			lift_h[i] = lift_h[i] + vy * delta
+			if lift_h[i] <= 0.0:
+				lift_h[i] = 0.0
+				_corpse_air.erase(i)
+				corpse_landings += 1
+				var fx = game.get("fx") if game != null else null
+				if fx != null and fx.has_method("sand"):
+					fx.sand(pos[i], clampf(size[i] * 0.4, 0.4, 0.8))
+	elif lift_h[i] > 0.0 and _launch_of(i):
+		air = true
+	var k := kb[i]
+	if k.length_squared() < CORPSE_STOP * CORPSE_STOP:
+		kb[i] = Vector3.ZERO
+		return
+	var np := _clamp_arena(pos[i] + k * delta)
+	np.y = _height(np.x, np.z)
+	pos[i] = np
+	var ob := _obstacle_push(i)
+	if ob.length_squared() > 0.0:
+		var n := ob.normalized()
+		var into := k.dot(n)
+		if into < 0.0:
+			k -= n * into
+	kb[i] = k.lerp(Vector3.ZERO, clampf(delta * (CORPSE_AIR_DRAG if air else CORPSE_GROUND_DECAY), 0.0, 1.0))

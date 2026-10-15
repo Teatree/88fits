@@ -247,7 +247,7 @@ The plan must incorporate the answers I gave during the interview.
 
 If the implementation plan requires making an assumption that I did not explicitly approve, identify that assumption in the plan rather than silently introducing it.
 
-## Status (2026-10-15, pass 78, version 0.64)
+## Status (2026-10-15, pass 79, version 0.65)
 
 What is true now, in short. The why and the detail of every pass (1 to 65) is in **`docs/HISTORY.md`**: search it for a
 symbol, file or pass number when you need background (`grep -n "PickupManager" docs/HISTORY.md`); do not read it whole.
@@ -257,7 +257,7 @@ changed.
 **Shipping.** `bash tools/ship.sh` -> signed release APK -> `E:/My Drive/88fits builds/88fits.apk`, then a PC build (the "Windows Desktop" preset, one `88fits.exe` with the game embedded) -> `E:/My Drive/88fits builds/88fits.exe` (`--no-pc` skips it; iOS was looked at and dropped: it needs a $99 Apple developer account) (Garry plays on the
 phone, often away from the PC; see `docs/RUNNING.md` and the ship-to-phone skill). ship.sh runs import, import_json, the
 parse check, all gdUnit tests (~1,731 in `game/tests/passNN_*_test.gd`), smoke_run, arena_check and touch_audit. Also run
-`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.64). The PC exe carries game/icon.ico and
+`hell_check.gd` after stage-3 changes. Version in `application/config/version` (0.65). The PC exe carries game/icon.ico and
 the game's version (Godot embeds both; pass 73) and is signed only when tools/keys/codesign.env exists (docs/pc_build_trust.md).
 
 **The game.** One map, **Red Canyon** (`world/maps/red_canyon/RedCanyon.gd`): noise terrain, one dry river and an oasis
@@ -290,6 +290,13 @@ the hero is about to be, throwing him and the crowd; the Scorpion Elite weaker);
 every spawn grows out of the ground (map `spawn_rise`; not a target until 70% up, area damage hits it); 10-12 Totem
 Poles a map (content/structures/totem_pole, ui/TotemScreen.gd, core/systems/TotemBoons.gd, `Run.totem_boons`): three
 small weighted boosts named in Pacific Northwest animal words, grey when used.
+Pass 79: a mutation offer falls due on the stage's `path_times` and comes as the hero's next level-up, in place of
+the three cards (the HUD's "MUTATION NEXT" mark; `Run.mutlvl_*`; `xp_need_mult` refit with the run sim; what grows
+with his level reads `Run.card_level()`, his level less the mutation level-ups, unless `mutation_levels_scale`);
+bodies follow through with their push and a blast throws them (EnemyManager `CORPSE_*`); every tracer is a thin
+line fading like smoke (`tracer_width`, core/shaders/tracer_line.gdshader, one MultiMesh); the rim and the walls
+take their colours from the map (`rock_color`, `wall_colors`, duskier since pass 79); the dynamite and the Golden
+Pineapple are thrown where their crowd will be when they blow (`params.lead`, EnemyManager.predicted_counts).
 
 **Heroes** (title order): Drifter (Revolver) and Astro (Gravity Gun) are free; Calavera (Guitarra), Ironwood (the Spear =
 `pike`), Solenne (Sun Scepter), Fadeaway (the Basketball: evade per level, Heat shown on the ball itself, the Timeout
@@ -306,7 +313,7 @@ and a hero mutation. The title plaque opens the hero's Wanted-poster sheet (`ui/
 `availability` (available | purchase | hidden: only hidden hides him), `price` and `currency_type` (gold), the unlock
 quest edited from the Heroes tab (memory `88fits-hero-purchase-parked`: decided in pass 69).
 
-**Items.** Weapons (5 slots, 5 levels; three path mutations each, offered at set slots `path_times`; all three + level 5
+**Items.** Weapons (5 slots, 5 levels; three path mutations each, due at set slots `path_times` and offered at the next level-up; all three + level 5
 = evolution at a chest; hero mutations optional), lines (5 slots, 4 levels, evolve when maxed; `PassiveDef.line`) and
 passive items (no cap). Since pass 73 the lines are **Cards** to the player (tarot names, evolutions "<card> Risen";
 ids unchanged; `PassiveDef.display_name_of`); passives carry item looks (`variants`/`variant`, the cards A-E, the game

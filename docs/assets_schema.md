@@ -1058,3 +1058,53 @@ tables above. Implemented in sim_run.gd; covered by game/tests/pass77_simrun_tes
 | 12 | sim mode | (the lead: the visual work skipped) say its arg if it has one; I measure 10 runs before and after | speed | **ACCEPTED: `fast=1` (the default), `fast=0` plays it all** |
 
 SIMUI, 2026-10-14 23:40, FYI for the fast-mode proof (no request): my two 10-run sims of 25:00 (keep, seeds 1-10, 10 at once) with `fast=1` (started 22:37) and `fast=0` (22:47, the runner already with the round-2 fields) levelled differently: at 10:00 the `fast=0` run was higher in 9 of 9 untied pairs (mean level 38.5 against 31.9; kills at 25:00 18.0K against 15.7K; deaths 7.1 against 5.4). The runner changed between the two, so it proves nothing alone; the folders are tools/dl/sim/runs/p77-speed-keep-k10-fast and p77-speed-keep-k10-nofast (players/pNN.json). Wall times: 10:23 and 18:10 (the slowest runs 2.55 and 1.41 play s a wall second).
+
+## Pass 79: new keys
+
+### The tracer line (lane FX)
+
+Weapon / evolution / mutation `params` (a mutation's value lays over its weapon's, an evolution's `final` block over both):
+
+| key | type | default | meaning |
+|---|---|---|---|
+| `tracer` | bool | false | (unchanged) the shot draws a tracer: since pass 79 a thin line behind it, no beads |
+| `tracer_width` | float, metres | 0.05 (`ProjectileManager.TRACER_WIDTH`) | NEW. The line's width as it is laid; it widens to 1.9x as it fades. Never drawn thinner than 1.5 screen pixels. |
+| `tracer_life` | float, seconds | 1.4 (`TRAIL_LIFE`) | (meaning kept) how long each piece of the line lives before it has faded out like smoke |
+| `tracer_color` | colour string "#RRGGBB" | the weapon's element colour, else gold | (unchanged) the line's colour; since pass 79 drawn exactly as written (sRGB) |
+| `tracer_alpha` | float 0..1 | 0.9 | (unchanged) the line's opacity when fresh; it fades to 0 over `tracer_life` |
+| `tracer_clear` | float, metres | 0 | (unchanged meaning) no line on the ground within this distance of the hero (the part inside is cut away) |
+| `tracer_size`, `tracer_step`, `tracer_beads` | | | OLD bead keys: kept in the content, draw nothing any more (harmless). The editor may hide them or label them "unused since pass 79". |
+
+Values set in pass 79: revolver `tracer_color` #8B0A0A, `tracer_alpha` 0.9, `tracer_width` 0.045, `tracer_life` 0.9;
+silver_bullet and golden_revolver's `final`: `tracer_color` #C9DCEF, `tracer_alpha` 0.9, `tracer_width` 0.11;
+drum_mag `tracer_width` 0.065; boomstick and blunderbuss `tracer_width` 0.035.
+
+Vocab: lane FX edited `tools/level_editor/vocab.py` PARAMS_KEYS["ProjectileEmitter"] (the selftest checks every listed
+key is read by the sources): `tracer_step` and `tracer_size` out, `tracer_width`, `tracer_clear`, `tracer_color`,
+`tracer_alpha` in (selftest 18644 passed, 0 failed). `assets_fields.js` (~116-130) still lists `tracer_step`,
+`tracer_size`, `tracer_beads` among the shot keys and has no `tracer_width`: the Level Editor's owner may swap them.
+
+No new key for the corpses: their numbers are code constants (EnemyManager.CORPSE_*), see balancing_FX.md.
+
+### The dynamite's lead (lane WORLD): weapon params (Lobber; vocab.py PARAMS_KEYS / assets_fields.js PARAMS_KEYS; docs/assets_schema.md)
+`params.lead` (lob_grenade and golden_pineapple only): the bomb thrown where its crowd will be when it blows.
+A number (the share; 0 = off), `true` (share 1), or a block:
+| key | type | default | meaning |
+|---|---|---|---|
+| `share` | number | 1 (in a block; 0 without `lead`) | how much of the foreseen walk is led (1 = all of it, 0.5 = half) |
+| `mode` | "predict" \| "chase" \| "walk" | "predict" | predict: five spots from the chosen one to the chase lead are scored by the creatures foreseen inside the blast when it goes off (EnemyManager.predicted_counts), the best wins, the one further ahead on a tie; chase: the crowd closes on where the hero will be (his position + his velocity x `hero_ahead` x the wait) at its mean walking speed for the wait, stopping `gap` m short of him; walk: its mean velocity goes on straight for the wait (drawn back to `gap` m from him where it would pass him) |
+| `max` | m | 6.0 (Lobber.LEAD_MAX) | the lead is at most this |
+| `gap` | m | 1.5 (LEAD_GAP) | the led spot stays this far from the hero (the crowd stops at him); a crowd nearer than this is not led |
+| `radius` | m | 3.0 (LEAD_RADIUS) | the crowd sampled round the chosen spot (EnemyManager.crowd_speed / crowd_velocity) |
+| `hero_ahead` | share of the wait | 0.5 (LEAD_HERO_AHEAD) | chase: how far along his run the crowd is taken to head for (0 = where he stands now) |
+The wait = the lob's flight (clamp(distance / speed, 0.35, 2.5), as ProjectileManager.lob) + `fuse.seconds` (a weapon
+with Sticky only the flight). A priority target (special, Elite, boss) is led by its own walk; a Sticky throw at a
+priority target (the Golden Pineapple) is never led. Both weapons' JSON carry the whole block (share 1.0, predict, 6.0,
+1.5, 3.0, 0.5) with mode "predict".
+
+New code: EnemyManager `crowd_velocity(at, r) -> Vector3`, `crowd_speed(at, r) -> float`, `walk_velocity(i) -> Vector3`,
+`predicted_counts(spots, r, t, goal, gap, center, reach) -> PackedInt32Array` (creatures in the grid, risen; the world's
+clock: x time_scale; the push `kb` left out). Lobber `LEAD_MAX`, `LEAD_GAP`, `LEAD_RADIUS`, `LEAD_HERO_AHEAD`,
+`LEAD_STEPS` (4), `lead_config(params)`, `lead_spot(...)`, `predict_pick(counts)`, `_keep_gap(...)`, `_lead_target(...)`,
+counters `leads`, `last_lead`. A led shot's extra carries `lead_from` (the crowd's spot at the throw);
+ProjectileManager.claimed_spots claims it beside the led `target`.

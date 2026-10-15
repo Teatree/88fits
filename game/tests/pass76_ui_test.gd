@@ -321,8 +321,10 @@ func test_the_revolver_tracer_is_dim_red_and_thicker_and_its_mutations_keep_thei
 	var pm: ProjectileManager = auto_free(ProjectileManager.new())
 	var plain := WeaponInstance.new(Registry.weapon("revolver"), 1)
 	plain.rebuild(Run.player_sheet, [plain])
-	var red := Color("#7A1F17")
-	assert_bool(pm._tracer_colour(plain).is_equal_approx(Color(red.r, red.g, red.b, 0.85))).is_true()
+	# (pass 79, lane FX: Garry's "dark red transparent" line, its colour and alpha read off the content)
+	var red := Color(str(plain.params["tracer_color"]))
+	assert_float(red.r).is_greater(red.g * 3.0)
+	assert_bool(pm._tracer_colour(plain).is_equal_approx(Color(red.r, red.g, red.b, float(plain.params["tracer_alpha"])))).is_true()
 	assert_float(float(plain.params.get("tracer_size", 0.9))).is_equal_approx(1.35, 0.0001)
 	# no bead within tracer_clear of the hero (the dim red over him read as blood); a weapon without it drops them anywhere
 	var hero: Node3D = auto_free(Node3D.new())
@@ -334,18 +336,20 @@ func test_the_revolver_tracer_is_dim_red_and_thicker_and_its_mutations_keep_thei
 	assert_bool(ProjectileManager._tracer_clear_of(plain, Vector3(4.0 + clear + 0.1, 1.2, 4.0), hero)).is_true()
 	var tommy := WeaponInstance.new(Registry.weapon("tommy_gun"), 1)
 	assert_bool(ProjectileManager._tracer_clear_of(tommy, Vector3(4.3, 1.2, 4.2), hero)).is_true()
-	# Silver Bullet keeps its pale blue, Venom Rounds its green
-	for pair in [["silver_bullet", Color(ProjectileManager.SILVER.r, ProjectileManager.SILVER.g, ProjectileManager.SILVER.b, 0.9)],
+	# Silver Bullet keeps its silver (pass 79: its own tracer_color, the pale silver-blue its line is drawn in), Venom
+	# Rounds its green
+	var sv := Color(str(Registry.mutation("silver_bullet").params["tracer_color"]))
+	for pair in [["silver_bullet", Color(sv.r, sv.g, sv.b, float(Registry.mutation("silver_bullet").params.get("tracer_alpha", 0.9)))],
 			["venom_rounds", Color(0.5, 1.0, 0.35, 0.9)]]:
 		var w := WeaponInstance.new(Registry.weapon("revolver"), 1)
 		w.mutations.append(Registry.mutation(str(pair[0])))
 		w.rebuild(Run.player_sheet, [w])
 		assert_bool(pm._tracer_colour(w).is_equal_approx(pair[1])).override_failure_message(str(pair[0])).is_true()
-	# the Golden Revolver unchanged: no tracer colour of its own, silver as before
+	# the Golden Revolver: silver as before (pass 79: its final form's silver line, the Silver Bullet's colour)
 	var gold := WeaponInstance.new(Registry.weapon("golden_revolver"), 1)
 	gold.rebuild(Run.player_sheet, [gold])
-	assert_bool(gold.params.has("tracer_color")).is_false()
-	assert_bool(pm._tracer_colour(gold).is_equal_approx(Color(ProjectileManager.SILVER.r, ProjectileManager.SILVER.g, ProjectileManager.SILVER.b, 0.9))).is_true()
+	assert_bool(gold.def.params.has("tracer_color")).is_false()
+	assert_bool(pm._tracer_colour(gold).is_equal_approx(Color(sv.r, sv.g, sv.b, 0.9))).is_true()
 	# a mutation's own tracer colour still comes first (Toxic Peas' green on the Peashooter)
 	var pea := WeaponInstance.new(Registry.weapon("peashooter"), 1)
 	pea.mutations.append(Registry.mutation("toxic_peas"))

@@ -238,7 +238,8 @@ func test_evolution_needs_every_mutation() -> void:
 func test_offer_limits_and_forcing() -> void:
 	_start()
 	_give("hornet_nest", 3)
-	# pass 27: mutations never sit in a level-up; the path has its own table
+	# pass 27: mutations never sit in a level-up's cards; the path has its own table (pass 79: a mutation level-up shows it
+	# in place of the three cards, Game._mutlvl_open; the cards themselves still never carry one)
 	for k in range(12):
 		for c in CardPool.level_up_offer(3):
 			assert_bool(str(c["type"]) == "mutation").override_failure_message("a mutation card in a level-up").is_false()

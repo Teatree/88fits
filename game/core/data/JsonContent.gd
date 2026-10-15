@@ -690,6 +690,8 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	w.damage_curve = dcv if dcv is Dictionary else {}
 	w.contact_cap = float(t.get("contact_cap", 0.0))
 	w.xp_need_mult = float(t.get("xp_need_mult", 1.0))
+	# pass 79 (lane MUT): whether mutation level-ups count for the level scaling (Run.card_level)
+	w.mutation_levels_scale = bool(t.get("mutation_levels_scale", false))
 	# pass 48: the pace knob and the portal wait's wave (WaveTimeline)
 	w.move_pace = float(t.get("move_pace", 1.0))
 	var pw = t.get("portal_wave", {})
@@ -703,6 +705,10 @@ static func timeline_from_dict(t: Dictionary) -> WaveTimeline:
 	# pass 73 (lane GROUND): growing out of the ground (read as it is; WaveTimeline.SPAWN_RISE_DEFAULTS fill gaps)
 	var srs = t.get("spawn_rise", {})
 	w.spawn_rise = srs if srs is Dictionary else {}
+	# pass 79 (lane WORLD): the rim's rock colour and the walls' colours (read as they are; RedCanyon's defaults fill gaps)
+	w.rock_color = str(t.get("rock_color", ""))
+	var wcs = t.get("wall_colors", {})
+	w.wall_colors = wcs if wcs is Dictionary else {}
 	var pt = t.get("path_times", [[55, 115, 175, 230, 270], [35, 90, 145, 200, 245, 280]])
 	w.path_times = pt if pt is Array else []
 	return w

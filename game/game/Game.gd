@@ -1544,7 +1544,7 @@ func _tick_supply(delta: float) -> void:
 func _supply_land(at: Vector3, r: float, pod: MeshInstance3D) -> void:
 	if not is_instance_valid(pod):
 		return
-	var dmg := Run.perk_param("supply_drop", "damage", 30.0) + Run.perk_param("supply_drop", "damage_per_level", 4.0) * float(Run.level)
+	var dmg := Run.perk_param("supply_drop", "damage", 30.0) + Run.perk_param("supply_drop", "damage_per_level", 4.0) * float(Run.card_level())
 	enemies.damage_radius(at, r, dmg, "supply_drop", Run.perk_param("supply_drop", "knockback", 14.0))
 	fx.explosion(at, 1.4)
 	camera.shake(0.6)
@@ -1775,9 +1775,9 @@ func _on_level_up(level: int) -> void:
 	_request_modal(Modal.CARDS, _show_next_level_cards, 0, true)
 
 
-## A stage's path slot came due (WaveDirector): the weapon whose path is open goes on the table, all of it. Behind
-## another screen it waits its turn (pass 60: in the queue; every slot its own request, since Run.path_due spends the
-## slot as it asks).
+## A mutation offer at once (tools: screenshot_run): the weapon whose path is open goes on the table, all of it. Behind
+## another screen it waits its turn (pass 60: in the queue). Pass 79 (lane MUT): the director no longer calls it; a slot
+## that falls due waits for the hero's next level-up (Run.mutlvl_tick, _mutlvl_open).
 func present_path_offer() -> void:
 	if Run.arena:
 		return
@@ -1828,6 +1828,9 @@ func _show_next_level_cards() -> bool:
 		return false
 	while _pending_levels > 0:
 		_pending_levels -= 1
+		# pass 79 (lane MUT): a mutation level-up shows its offer in place of the three cards (Run.mutlvl_take, M2-M3)
+		if _mutlvl_open():
+			return true
 		var offer := CardPool.level_up_offer(3)
 		if offer.is_empty():
 			Run.add_gold(10, "empty_offer")
@@ -1839,6 +1842,28 @@ func _show_next_level_cards() -> bool:
 		cards.chosen.connect(_on_card_chosen, CONNECT_ONE_SHOT)
 		return true
 	return false
+
+
+## Pass 79 (lane MUT): the banked level opening now is a mutation level-up when Run has one claimed (a due offer took
+## the level-up, Run.mutlvl_claim): the weapon drawn among those open now goes on the table, the path cards and the reel
+## as a slot's offer had them, its title the level's; its pick or skip closes it (_on_path_chosen). False for an
+## ordinary level-up (none claimed, or the weapons lost their pick meanwhile: Run.mutlvl_unclaim).
+func _mutlvl_open() -> bool:
+	var w := Run.mutlvl_take()
+	if w == null:
+		return false
+	var offer := CardPool.path_offer(w)
+	if offer.is_empty():
+		Run.mutlvl_unclaim()
+		return false
+	_modal = Modal.PATH
+	set_paused(true)
+	Audio.play("ui_levelup")
+	if "path_level" in cards:
+		cards.path_level = Run.level
+	cards.show_offer(offer, "LEVEL %d! · MUTATION · %s" % [Run.level, w.def.display_name.to_upper()], not Save.hint_seen("paths"), true)
+	cards.chosen.connect(_on_path_chosen, CONNECT_ONE_SHOT)
+	return true
 
 
 func _on_card_chosen(card: Dictionary) -> void:

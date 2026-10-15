@@ -315,7 +315,8 @@ func _break(i: int) -> void:
 		game.fx.sand(at, 2.2)
 		game.fx.burst(at + Vector3(0, 0.6, 0), Color(0.86, 0.7, 0.45), 1.3)
 	# the gems: a small gem is worth more the deeper the run (a level needs 15 + 6L + L²/2)
-	var per := 1.0 + float(Run.level) * 0.15
+	# pass 79 (lane MUT): the card levels (Run.card_level), so a barrel pays at a minute what it paid before
+	var per := 1.0 + float(Run.card_level()) * 0.15
 	var pk = game.pickups
 	if pk:
 		var n_small := 8 if light[i] == 0 else 10

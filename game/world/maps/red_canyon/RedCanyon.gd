@@ -47,6 +47,24 @@ var run_seed := 0
 ## the rim: the ground rises into red rock towards the wall, from this radius out
 @export var rim_start := 44.0
 @export var rim_height := 2.2
+## The map's sides (pass 79, lane WORLD; Garry: "Map the sides are too orange"): the red-rock rim's colour and the walls'
+## when the map file's timeline_data names none (its `rock_color` and `wall_colors`, WaveTimeline; read by _read_colours
+## as the map builds). Less saturated, a little browner and duskier than before, still red rock: the sun and the sky's
+## light are warm (they push every colour towards orange on the screen), so the colours as authored lean a touch towards
+## rose. The rock painting is recoloured to rock_color in the terrain shader (its bands and cracks kept as light and dark)
+## and the cliffs' sandstone painting is grey since pass 79, so each colour here is the colour the side is drawn in.
+## Pass 78's: rock (0.62, 0.34, 0.24) over the orange redrock painting; the cliffs (0.78, 0.6, 0.5), (0.62, 0.42, 0.36),
+## (0.46, 0.30, 0.30) as tints over the orange sandstone painting; the boundary wall (0.60, 0.40, 0.30) and
+## (0.68, 0.47, 0.35), its cap (0.40, 0.26, 0.21), the risers (0.34, 0.22, 0.18), the boulders (0.5, 0.33, 0.26).
+const ROCK_COLOR := Color(0.47, 0.36, 0.37)
+const WALL_COLORS := {
+	"near": Color(0.52, 0.42, 0.43), "far": Color(0.44, 0.35, 0.39), "farther": Color(0.35, 0.29, 0.34),
+	"stone": Color(0.48, 0.39, 0.39), "light": Color(0.55, 0.45, 0.44), "cap": Color(0.33, 0.25, 0.27),
+	"riser": Color(0.28, 0.22, 0.23), "boulders": Color(0.42, 0.33, 0.34),
+}
+## The colours this map is built in (the file's, else the defaults above).
+var rock_color: Color = ROCK_COLOR
+var wall_colors: Dictionary = WALL_COLORS.duplicate()
 
 var _static: StaticBody3D
 var _noise := FastNoiseLite.new()
@@ -66,6 +84,7 @@ func _ready() -> void:
 	_noise.frequency = 0.045
 	_noise.fractal_octaves = 3
 	flats_center = Vector3(0, 0, 8)
+	_read_colours()
 	_roll_layout()
 	_build_terrain()
 	_build_wall()
@@ -115,6 +134,19 @@ func _roll_layout() -> void:
 	# a wading pool: the floor is knee-deep under a surface level with the shore, and anyone can walk in
 	_lake_y = base - 0.04
 	_lake_floor = base - lake_depth
+
+
+## The rock's and the walls' colours from the map file (pass 79: timeline_data `rock_color`, `wall_colors`), each key it
+## leaves out or cannot read at the default (ROCK_COLOR, WALL_COLORS). Before anything is built.
+func _read_colours() -> void:
+	rock_color = ROCK_COLOR
+	wall_colors = WALL_COLORS.duplicate()
+	var tl: WaveTimeline = Run.map.timeline if Run.map else null
+	if tl == null:
+		return
+	rock_color = WaveTimeline.color_of(tl.rock_color, ROCK_COLOR)
+	for k: String in WALL_COLORS:
+		wall_colors[k] = WaveTimeline.color_of(tl.wall_colors.get(k), WALL_COLORS[k])
 
 
 func river_points() -> Array:
@@ -230,6 +262,8 @@ func _build_terrain() -> void:
 		# the flat tones the textures are calmed towards (pass 54): the exports, so the ground is tunable in the editor
 		mat.set_shader_parameter("sand_flat", sand_color)
 		mat.set_shader_parameter("cracked_flat", river_color)
+		# pass 79: the rim's rock in the map's colour (the shader recolours the rock painting to it)
+		mat.set_shader_parameter("rock_flat", rock_color)
 	else:
 		var fallback := StandardMaterial3D.new()
 		fallback.vertex_color_use_as_albedo = true
@@ -360,14 +394,15 @@ func _build_wall() -> void:
 	# the mountain wall: a ring of cliff faces whose height wanders, one mesh, stone-textured; the ranges beyond are
 	# the same ring twice more, bigger and darker, so the horizon has depth without a single box
 	var near := _stone().duplicate()
-	near.albedo_color = Color(0.78, 0.6, 0.5)   # a shade darker than the ground so the cliffs read as cliffs
+	# a shade darker than the ground so the cliffs read as cliffs (pass 79: the map's wall_colors, over a grey painting)
+	near.albedo_color = wall_colors["near"]
 	# pass 72: the near cliffs and the boundary wall are scenery (a creature they hide is outlined, SceneryStencil)
 	add_child(SceneryStencil.mark_tree(_ridge(arena_radius + 4.0, 9.0, 6.0, 96, near, 1.0)))
 	var far := _stone().duplicate()
-	far.albedo_color = Color(0.62, 0.42, 0.36)
+	far.albedo_color = wall_colors["far"]
 	add_child(_ridge(arena_radius + 26.0, 16.0, 9.0, 72, far, 2.3))
 	var farther := _stone().duplicate()
-	farther.albedo_color = Color(0.46, 0.30, 0.30)
+	farther.albedo_color = wall_colors["farther"]
 	add_child(_ridge(arena_radius + 52.0, 24.0, 12.0, 60, farther, 5.1))
 	# the boundary itself: a low stacked-stone wall right on the arena's edge, with posts and skulls, so the line the
 	# hero cannot cross is a thing in the world and not a place where he stops for no reason
@@ -399,10 +434,11 @@ func _boundary_wall(r: float, segs: int) -> Node3D:
 		var a := TAU * (float(k2) + 0.5) / segs
 		var nh := _noise.get_noise_2d(cos(a) * 80.0 + 700.0, sin(a) * 80.0)
 		tops.append(base_h + 0.35 * nh + (0.5 if k2 % 2 == 0 else 0.0) + 0.1 * sin(a * 41.0))
-	var stone := Color(0.60, 0.40, 0.30)
-	var light := Color(0.68, 0.47, 0.35)
-	var cap := Color(0.40, 0.26, 0.21)
-	var riser := Color(0.34, 0.22, 0.18)
+	# pass 79: the map's wall_colors (WALL_COLORS by default)
+	var stone: Color = wall_colors["stone"]
+	var light: Color = wall_colors["light"]
+	var cap: Color = wall_colors["cap"]
+	var riser: Color = wall_colors["riser"]
 	var ri := r - thick * 0.5
 	var ro := r + thick * 0.5
 	for k2 in range(segs):
@@ -449,7 +485,7 @@ func _boundary_wall(r: float, segs: int) -> Node3D:
 	var box := BoxMesh.new()
 	box.size = Vector3(1.1, 0.75, 0.9)
 	var bmat := StandardMaterial3D.new()
-	bmat.albedo_color = Color(0.5, 0.33, 0.26)
+	bmat.albedo_color = wall_colors["boulders"]
 	bmat.roughness = 1.0
 	box.material = bmat
 	mm.mesh = box

@@ -26,7 +26,10 @@ params = {
 "radius_mult": 1.5,
 "silver": true,
 "size_mult": 1.5,
-"speed_mult": 1.15
+"speed_mult": 1.15,
+"tracer_alpha": 0.9,
+"tracer_color": "#C9DCEF",
+"tracer_width": 0.11
 }
 id = "silver_bullet"
 display_name = "Silver Bullet"

@@ -126,6 +126,12 @@ var _pointers: Array = [] # one WPointer per arrow on screen, made as needed
 ## Pointers a capture tool pins on screen ({pos, color, side, text}), shown as if their targets were off screen.
 var test_arrows: Array = []
 var _flash_rect: ColorRect
+## pass 79 (lane MUT): the mark that the next level-up is a mutation offer (Run.mutlvl_pending): the LV plate in the
+## kit's mutation plum and a word at the XP rail's end
+var _mut_word: WText
+var _mut_on := false
+var _lv_box_paper: StyleBox
+var _lv_box_plum: StyleBox
 
 
 func _ready() -> void:
@@ -143,6 +149,11 @@ func _ready() -> void:
 	# the gold the hero picks up rises from him like the XP (pass 47); Run says how much each pickup really paid
 	Run.gold_gained.connect(_on_gold_gained)
 	Run.build_changed.connect(_refresh_rows)
+	# pass 79 (lane MUT): the mutation mark follows the offers due and the picks open
+	_build_mut_mark()
+	Run.mutation_due_changed.connect(_refresh_mut_mark)
+	Run.build_changed.connect(_refresh_mut_mark)
+	Run.stage_changed.connect(func(_s): _refresh_mut_mark())
 	if game and game.player:
 		game.player.input.touch_started.connect(func(p): _ring_pos = p; _ring_alpha = 1.0)
 		game.player.input.touch_ended.connect(func(): _ring_alpha = 0.0)
@@ -287,6 +298,59 @@ func _fit_top() -> void:
 	_gold_plate.position = Vector2(w - 36 - DISC - 18 - _gold_plate.size.x, TOP_Y)
 	_pause_btn.position = Vector2(w - 36 - DISC, TOP_Y - 2)
 	_pause_btn.size = Vector2(DISC, DISC)
+	_fit_mut_word()
+
+
+# ---------------------------------------------------------------- pass 79 (lane MUT): the next level-up is a mutation
+
+## The mark (M4): while an offer is due and a weapon has a pick open (Run.mutlvl_pending), the LV plate turns the kit's
+## mutation plum with paper letters and the XP rail's end says MUTATION NEXT, so the level-up that shows a mutation offer
+## in place of the three cards never comes as a surprise.
+const MUT_WORD := "MUTATION NEXT"
+const MUT_WORD_PX := 30
+const MUT_WORD_RIGHT := 24.0
+
+
+func _build_mut_mark() -> void:
+	_lv_box_paper = _lv_plate.get_theme_stylebox("panel")
+	var pad := Vector2(18 + 4, 4 + 4)
+	_lv_box_plum = W.box(W.PLUM, 4, 5).pad(pad.x, pad.y, pad.x, pad.y)
+	_mut_word = W.text(MUT_WORD, W.slab(), MUT_WORD_PX, W.PAPER, HORIZONTAL_ALIGNMENT_RIGHT, 0.0)
+	_mut_word.name = "MutationNext"
+	_mut_word.stroke = 4
+	_mut_word.shadow = 0
+	_mut_word.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_mut_word.visible = false
+	_rail.add_child(_mut_word)
+	_refresh_mut_mark()
+
+
+## Whether the mark shows (tests, captures).
+func mutation_mark_on() -> bool:
+	return _mut_on
+
+
+func _refresh_mut_mark() -> void:
+	if _mut_word == null:
+		return
+	var on := Run.mutlvl_pending()
+	if on == _mut_on and _mut_word.visible == on:
+		return
+	_mut_on = on
+	_mut_word.visible = on
+	_lv_plate.add_theme_stylebox_override("panel", _lv_box_plum if on else _lv_box_paper)
+	_lv.color = W.PAPER if on else W.INK
+	_lv.queue_redraw()
+	_fit_top()
+
+
+func _fit_mut_word() -> void:
+	if _mut_word == null:
+		return
+	_mut_word.reset_size()
+	var sz := _mut_word.get_combined_minimum_size()
+	_mut_word.size = sz
+	_mut_word.position = Vector2(get_viewport_rect().size.x - MUT_WORD_RIGHT - sz.x, (RAIL_H - sz.y) * 0.5)
 
 
 func _set_xp(xp: float, need: float) -> void:

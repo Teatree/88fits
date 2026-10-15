@@ -26,7 +26,10 @@
     "size_mult": 1.5,
     "radius_mult": 1.5,
     "speed_mult": 1.15,
-    "silver": true
+    "silver": true,
+    "tracer_width": 0.11,
+    "tracer_color": "#C9DCEF",
+    "tracer_alpha": 0.9
   },
   "art_prompt": "a gleaming silver revolver bullet with a faint blue shine",
   "placeholder": {

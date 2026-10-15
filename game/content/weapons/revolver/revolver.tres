@@ -102,10 +102,12 @@ params = {
 "radius": 0.14,
 "scatter_deg": 1.5,
 "tracer": true,
-"tracer_alpha": 0.85,
+"tracer_alpha": 0.9,
 "tracer_clear": 1.1,
-"tracer_color": "#7A1F17",
-"tracer_size": 1.35
+"tracer_color": "#8B0A0A",
+"tracer_life": 0.9,
+"tracer_size": 1.35,
+"tracer_width": 0.045
 }
 hero = "drifter"
 id = "revolver"

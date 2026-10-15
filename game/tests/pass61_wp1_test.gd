@@ -351,11 +351,13 @@ func test_toxic_peas_are_sickly_green_with_a_green_trail_in_the_pod_too() -> voi
 	var tc: Color = pm._tracer_colour(pe.inst)
 	assert_bool(_near(tc, Color("#6ED834"))).is_true()
 	assert_float(tc.a).is_equal_approx(0.9, 0.001)
-	var before := pm.trail_next
+	# (pass 79, lane FX: its line in place of the beads)
+	var before := pm.tracer_segments
 	var j := pm.fire(k, Vector3(0, 1.5, 0), Vector3(0, 0, -14), 1.0, 0, 0.2, 1.0, pe.inst)
-	pm._physics_process(DT)
-	assert_int(pm.trail_next).is_not_equal(before)
-	assert_bool(_near(pm.trail_col[before], Color("#6ED834"))).is_true()
+	for n in range(3):
+		pm._physics_process(DT)
+	assert_int(pm.tracer_segments).is_greater(before)
+	assert_bool(_near(pm.tracer_col[pm.tracer_segments - 1], Color("#6ED834"))).is_true()
 	pm._free(j)
 	# the peas waiting in the pod are painted the same
 	var peas := pe.visual.get_node("Familiar/Peas")
@@ -432,20 +434,18 @@ func test_drum_mag_a_bigger_drum_turning_faster_and_denser_tracers() -> void:
 	drum._turn_drum()
 	var turned: float = b0.get_rotation_quaternion().angle_to(drum._drum.transform.basis.get_rotation_quaternion())
 	assert_float(turned).is_equal_approx(1.0, 0.01)
-	# three beads a drop where the plain round drops one
-	var t0 := pm.trail_next
+	# a bolder line where the plain round lays a thin one (pass 79, lane FX: lines in place of pass 61's three beads a drop)
+	var t0 := pm.tracer_segments
 	var j := pm.fire(plain.projectile_kind, Vector3(0, 1.5, 0), Vector3(22, 0, 0), 1.0, 0, 0.16, 0.5, plain.inst)
-	pm._trail_t[j] = 0.0
 	pm._physics_process(DT)
-	assert_int(pm.trail_next - t0).is_equal(1)
+	assert_int(pm.tracer_segments - t0).is_equal(1)
+	var thin: float = pm.tracer_width[pm.tracer_segments - 1]
 	pm._free(j)
-	var t1 := pm.trail_next
+	var t1 := pm.tracer_segments
 	var j2 := pm.fire(drum.projectile_kind, Vector3(0, 1.5, 0), Vector3(22, 0, 0), 1.0, 0, 0.16, 0.5, drum.inst)
-	pm._trail_t[j2] = 0.0
 	pm._physics_process(DT)
-	assert_int(pm.trail_next - t1).is_equal(3)
-	# spread back along the tick's move
-	assert_float(pm.trail_pos[t1].distance_to(pm.trail_pos[t1 + 2])).is_greater(0.1)
+	assert_int(pm.tracer_segments - t1).is_equal(1)
+	assert_float(pm.tracer_width[pm.tracer_segments - 1]).is_greater(thin)
 	# taken away: the drum goes back to its size
 	_rebuild_with(drum, [])
 	assert_float(drum._drum.scale.x).is_equal_approx(plain._drum.scale.x, 0.0001)

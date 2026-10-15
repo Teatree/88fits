@@ -27,7 +27,8 @@
     "drum_scale": 1.5,
     "drum_step": 1.0,
     "tracer_beads": 3,
-    "tracer_size": 0.6
+    "tracer_size": 0.6,
+    "tracer_width": 0.065
   },
   "art_prompt": "a fat round drum magazine for a tommy gun, bulging with bullets",
   "placeholder": {

@@ -47,7 +47,7 @@ const Inspector = (() => {
     else if (sel.kind === 'dmg') curveForm(container, 'damage_curve');
     else if (sel.kind === 'share') shareForm(container);
     else if (sel.kind === 'specials') blockForm(container, 'Specials', 'the specials\' clock: one at a time, a random interval after the last one dies', Forms.specialsBlock(App.tl()), 'specials');
-    else if (sel.kind === 'paths') blockForm(container, 'Path offers', 'when each stage puts a weapon\'s whole path on the table', Forms.pathTimesBlock(App.tl()), 'paths');
+    else if (sel.kind === 'paths') blockForm(container, 'Mutation offers', 'when each stage\'s mutation offers fall due: each comes at the hero\'s next level-up, in place of the three cards', Forms.pathTimesBlock(App.tl()), 'paths');
     else if (sel.kind === 'pickups') blockForm(container, 'Power-up drops', 'what kills drop and how often', Forms.pickupsBlock(App.tl()), 'pickups');
     // the same item drawn again (an edit in its form) keeps its place in a long form
     if (sameItem) container.scrollTop = scroll;

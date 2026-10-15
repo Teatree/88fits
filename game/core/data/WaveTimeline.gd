@@ -164,6 +164,12 @@ const HERO_KNOCKBACK_DEFAULT := 0.5
 ## than the cap, so the longer stage pays more XP; measured with smoke_run perf=1 (pass 46), 2.0 brings the hero to the
 ## first boss at about level 22 after 7:10 where pass 45's reached level 21 after 5:00, levelling at about 0.7 times the pace.
 @export var xp_need_mult: float = 1.0
+## Pass 79 (lane MUT): whether a mutation level-up counts as a level for what grows with the hero's level (the creatures'
+## level factor, his trait, Barrel Rush, Ram, Supply Drop; Run.card_level). False: they count the card levels only, so
+## the same minute brings the same scaling as the curve before mutations came as level-ups.
+@export var mutation_levels_scale: bool = false
+
+
 ## The pace knob (pass 48, Garry: "everyone 20% slower, with one setting to change it"; Run.move_pace reads it): the hero
 ## and every creature move at this fraction, a creature's charge and a boss's roll too, and its shots fly on a clock this
 ## much slower (EnemyManager.hostile_clock); every wind-up, telegraph and warning lasts 1/pace as long, so the slower hero
@@ -208,6 +214,26 @@ const SPAWN_RISE_DEFAULTS := {"seconds": 0.45, "big_seconds": 0.9, "targetable":
 func spawn_rise_value(key: String) -> float:
 	var v = spawn_rise.get(key, SPAWN_RISE_DEFAULTS.get(key, 0.0))
 	return float(v) if (v is float or v is int) else float(SPAWN_RISE_DEFAULTS.get(key, 0.0))
+
+
+## The map's sides (pass 79, lane WORLD; Garry: "Map the sides are too orange"): the red-rock rim's colour
+## ("#RRGGBB"; the rock painting is recoloured to it, its bands and cracks kept as light and dark) and the walls'
+## {"near", "far", "farther" (the three rings of cliffs), "stone", "light" (the boundary wall's two courses), "cap",
+## "riser", "boulders"}, each "#RRGGBB". The map reads them as it builds (RedCanyon._read_colours); "" or a key left out
+## plays the map's own default (RedCanyon.ROCK_COLOR / WALL_COLORS).
+@export var rock_color: String = ""
+@export var wall_colors: Dictionary = {}
+
+
+## A colour key's value as a Color (pass 79): "#RRGGBB" (or "RRGGBB", or [r, g, b] 0..1), else `fallback`.
+static func color_of(v, fallback: Color) -> Color:
+	if v is Color:
+		return v
+	if v is Array and (v as Array).size() >= 3:
+		return Color(float(v[0]), float(v[1]), float(v[2]))
+	if v is String and Color.html_is_valid(str(v)):
+		return Color.html(str(v))
+	return fallback
 
 
 ## The boss HP multiplier for a hero dealing `dps` against the reference `ref` (pass 72): (dps / ref) ^ exponent, held

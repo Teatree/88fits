@@ -314,18 +314,22 @@ PARAMS_KEYS = {
     "ProjectileEmitter": ["aura", "burst", "burst_gap", "scatter_deg", "sweep_deg", "double_every", "double_gap", "double_tap",
                           "drum_axis", "drum_step", "drum_scale", "fan_step_deg", "fire_blind", "hip_shot", "momentum_rounds",
                           "no_shells", "radius", "radius_mult", "speed_mult", "silver", "shockwave", "tint", "look", "blast",
-                          "pierce_falloff", "tracer", "tracer_step", "tracer_life", "tracer_size", "ricochet_any", "mini_crit",
+                          "pierce_falloff", "tracer", "tracer_life", "ricochet_any", "mini_crit",
                           "size_mult", "pin", "plant", "trail_zone", "no_spin", "roll_radius", "return", "out_speed_mult",
                           "back_speed_mult", "return_damage_mult", "second_pass", "sticky", "hit_radius", "bounce", "bomblets",
                           "curare", "trace", "cloud_mult", "spiral", "turn", "wander", "trail", "tail_fade", "life",
                           "ignite_chance", "fire_blue",
                           # pass 69: Alley-Oop's launch, the ball's Heat look (lane BB), May's Trigger Happy (lane HERO)
-                          "launch", "heat_look", "fire_without_target", "stream"],
+                          "launch", "heat_look", "fire_without_target", "stream",
+                          # pass 79 (lane FX): the tracer's line (tracer_step and tracer_size, the beads', are gone)
+                          "tracer_width", "tracer_clear", "tracer_color", "tracer_alpha"],
     "Orbiter": ["spin_speed", "breathe", "gyro", "lasso", "side_knock", "solid_ring", "strike", "rust", "rust_patina"],
     "Lobber": ["model", "model_scale", "model_metallic", "model_roughness", "tint", "sticky", "death_pool", "death_of",
                "land_blast", "halo", "bounce", "bomblets", "bomblet_damage_mult", "burst_spawn", "cloud_seconds",
                # pass 76 (lane DYN): the dynamite's fuse, its models by form and colour, the Drifter's mass mini crits
-               "fuse", "models", "model_form", "model_colour", "fuse_tip", "mass_mini"],
+               "fuse", "models", "model_form", "model_colour", "fuse_tip", "mass_mini",
+               # pass 79 (lane WORLD): the Dynamite Stick thrown ahead of its crowd
+               "lead"],
     "Beam": ["follow", "zone", "echo_zap"],
     "LaserBeam": ["beam"],
     "ConeWave": ["cone", "tinnitus"],

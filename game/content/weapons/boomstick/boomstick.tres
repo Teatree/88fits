@@ -75,7 +75,8 @@ params = {
 "tracer": true,
 "tracer_life": 0.16,
 "tracer_size": 0.32,
-"tracer_step": 0.02
+"tracer_step": 0.02,
+"tracer_width": 0.035
 }
 id = "boomstick"
 display_name = "Boomstick"

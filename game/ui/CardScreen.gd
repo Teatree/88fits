@@ -36,6 +36,9 @@ var _offer: Array = []
 var _banish_mode := false
 var _picking := false
 var path_mode := false
+## Pass 79 (lane MUT): the hero's level when the mutation offer is a level-up's (Game._mutlvl_open sets it before
+## show_offer, which reads it once and clears it): the head's line reads "Level N! Pick a mutation". 0 = a plain offer.
+var path_level := 0
 ## The card taken last: {def, rect} (the gate flies it to the slot it lands in).
 var last_pick: Dictionary = {}
 var _list: VBoxContainer
@@ -286,13 +289,18 @@ func _build_path_head() -> void:
 	add_child(_path_head)
 
 
+## The mutation offer's head line (pass 79, lane MUT): "Level 12! Pick a mutation" on a level-up's, the old words else.
+static func mutlvl_line(hero_level: int) -> String:
+	return "Level %d! Pick a mutation" % hero_level if hero_level > 0 else "Pick a mutation"
+
+
 ## `level` (pass 48): the weapon's level held, its plate's colour.
 func _fill_path_head(def: ContentDef, taken: int, offered: int = 3, level: int = 0) -> void:
 	# out at once, not only queued: the reel measures the new star line and holds back the new parts this frame
 	for c in _path_head.get_children():
 		_path_head.remove_child(c)
 		c.queue_free()
-	var star := WStarLine.make("Pick a mutation", 30, W.PAPER)
+	var star := WStarLine.make(mutlvl_line(path_level), 30, W.PAPER)
 	# read over the shine once the reel lands (pass 58 review): the kit's ink shadow, as LEVEL UP's
 	WModalHeader.shadow_line(star, STAR_LINE_SHADOW, 30)
 	_path_head.add_child(star)
@@ -372,6 +380,7 @@ func show_offer(offer: Array, title: String, with_hints: bool, path: bool = fals
 		_title_text = title.trim_suffix("!").to_upper()
 		_say_level_up()
 		header.set_line(_pick_line())
+	path_level = 0
 	buttons.visible = not path
 	_path_skip.visible = path
 	_path_note.visible = false

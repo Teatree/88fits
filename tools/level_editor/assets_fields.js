@@ -108,7 +108,9 @@ const AFIELDS = (() => {
     LaserBeam: ['beam', 'familiar'],
     Lobber: ['death_of', 'death_pool', 'halo', 'land_blast', 'model', 'model_metallic', 'model_roughness', 'model_scale', 'sticky', 'tint', 'bounce', 'bomblets', 'bomblet_damage_mult', 'burst_spawn',
       // pass 76 (lane DYN): the dynamite's fuse, its models by form and colour, the Drifter's mass mini crits
-      'fuse', 'models', 'model_form', 'model_colour', 'fuse_tip', 'mass_mini'],
+      'fuse', 'models', 'model_form', 'model_colour', 'fuse_tip', 'mass_mini',
+      // pass 79 (lane WORLD): the Dynamite Stick thrown ahead of its crowd
+      'lead'],
     MineLayer: ['extra_supply', 'jackrabbit', 'lay_ahead', 'max_mines', 'trigger_radius', 'spring'],
     MissilePod: ['cluster_spin', 'familiar', 'hawk', 'missile', 'overpressure', 'pollen', 'pressure', 'cluster', 'blast_fx'],
     Orbiter: ['breathe', 'gyro', 'lasso', 'rust', 'rust_patina', 'side_knock', 'solid_ring', 'spin_speed', 'strike'],
@@ -126,8 +128,8 @@ const AFIELDS = (() => {
   };
   // keys WeaponInstance and the systems (ProjectileManager, Game, EnergyTraces, Mine) read for any behaviour
   const PARAMS_SHARED = ['final', 'glow', 'familiar', 'look', 'ricochet_any', 'mini_crit', 'fire_blue', 'ignite_chance', 'zenith', 'sticky', 'size_mult', 'silver', 'pollen', 'plant', 'pin', 'pierce_falloff', 'out_speed_mult', 'back_speed_mult',
-    'return_damage_mult', 'return', 'second_pass', 'hip_shot', 'double_every', 'cone', 'burst_spawn', 'bounce', 'bomblets', 'bomblet_damage_mult', 'aura', 'wander', 'turn', 'trail', 'tracer', 'tracer_step', 'tracer_size',
-    'tracer_life', 'tracer_beads', 'tracer_alpha', 'trace', 'tint', 'thrust', 'telegraph', 'tail_fade', 'sun', 'split_scale', 'split_count', 'spiral', 'spent', 'cloud_mult', 'cloud_seconds', 'curare', 'hit_radius',
+    'return_damage_mult', 'return', 'second_pass', 'hip_shot', 'double_every', 'cone', 'burst_spawn', 'bounce', 'bomblets', 'bomblet_damage_mult', 'aura', 'wander', 'turn', 'trail', 'tracer',
+    'tracer_life', 'tracer_width', 'tracer_clear', 'tracer_alpha', 'trace', 'tint', 'thrust', 'telegraph', 'tail_fade', 'sun', 'split_scale', 'split_count', 'spiral', 'spent', 'cloud_mult', 'cloud_seconds', 'curare', 'hit_radius',
     'roll_radius', 'no_spin', 'trail_zone', 'life', 'gold_on_kill', 'speed_mult', 'radius_mult',
     // pass 67 (the basketball): ProjectileManager turns the ball home when its hits are spent and hands the catch over
     'return_on_hit', 'return_pierce', 'catch'];

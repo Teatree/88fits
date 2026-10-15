@@ -24,6 +24,14 @@
         "color": "#FF9A2E",
         "size": 0.13
       }
+    },
+    "lead": {
+      "share": 1.0,
+      "mode": "predict",
+      "max": 6.0,
+      "gap": 1.5,
+      "radius": 3.0,
+      "hero_ahead": 0.5
     }
   },
   "max_level": 5,

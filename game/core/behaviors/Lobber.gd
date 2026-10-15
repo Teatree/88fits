@@ -21,6 +21,7 @@
 ## and bundles, tan or red: Dynamite Bundle sets the form, Coffin Nails the colour), falling back to `params.model`; a
 ## mutation taken or a look switched re-models the weapon (refresh_model). The fuse's spark sits at the model's `tip`
 ## (or `params.fuse_tip`; ProjectileManager's fuse, model_choice).
+## Pass 79 (lane WORLD): `params.lead` throws ahead of the crowd, where it will be when the bomb blows (lead_spot).
 class_name Lobber
 extends WeaponBehavior
 
@@ -278,6 +279,10 @@ func _fire() -> bool:
 		var b: Vector3 = targets[targets.size() % found]
 		targets.append(b + Vector3(randf_range(-2.0, 2.0), 0, randf_range(-2.0, 2.0)))
 	# the Golden Pineapple (pass 48): at the strongest creature in each crowd, the one it will stick to
+	# (pass 79: such a throw is never led, `unled`)
+	var unled: Array = []
+	unled.resize(targets.size())
+	unled.fill(false)
 	var stp = inst.params.get("sticky")
 	if stp is Dictionary and bool((stp as Dictionary).get("priority", false)):
 		var reach: float = float((stp as Dictionary).get("reach", 1.4)) + 1.0
@@ -286,13 +291,18 @@ func _fire() -> bool:
 			var s := enemies.priority_index(targets[k], reach, "", true)
 			if s >= 0:
 				targets[k] = enemies.pos[s]
+				unled[k] = true
 	# from the companion when it has one (Needle Rain throws from the dart), else from the hero's hand
 	var from: Vector3 = _stray.global_position if _stray else hero + Vector3(0, 1.2, 0)
 	var k_draw := shot_kind()
 	var haloed := not _halo().is_empty()
-	for target: Vector3 in targets:
+	for k in range(targets.size()):
+		var target: Vector3 = _lead_target(targets[k], from, hero, range_m, pt if k == 0 else -1, bool(unled[k]))
 		var lp: Dictionary = inst.params.duplicate()
 		lp["throw_dir"] = (target - from) * Vector3(1, 0, 1)
+		# pass 79: a led throw keeps the crowd's spot at the throw too, a spot the other bombs keep away from as well
+		if not target.is_equal_approx(targets[k]):
+			lp["lead_from"] = targets[k]
 		# a shot that wears a halo (pass 62, Sun Cocktail) is stamped, so the halo knows it by its slot
 		if haloed:
 			_stamp += 1
@@ -303,6 +313,177 @@ func _fire() -> bool:
 			halo_shots += 1
 	sfx("fire", from)
 	return true
+
+
+# ---------------------------------------------------------------- the lead (pass 79, lane WORLD)
+
+## Pass 79 (lane WORLD; Garry: "Throw the dynamite in front of the enemies"): `params.lead` throws a bomb where its crowd
+## will be when it blows, not where it stood when it was chosen (the Dynamite Stick lies FUSE seconds on the sand first,
+## and the crowd walking at the hero had passed the spot by then). The wait is the lob's flight as ProjectileManager.lob
+## times it plus the fuse's seconds (a Sticky bomb only the flight: it rides whatever it catches). Three ways to foresee
+## the crowd (`mode`):
+##   "chase": the crowd walks at the hero. It closes on where he will be partway through the wait (his position plus his
+##     velocity times `hero_ahead` x the wait) at its mean walking speed (EnemyManager.crowd_speed within `radius` m of
+##     the spot; a priority target's own), for the wait, times `share`, and stops `gap` m short of him.
+##   "walk": the crowd goes on as it walks now: its mean velocity (EnemyManager.crowd_velocity; a priority target's own,
+##     walk_velocity) times the wait times `share`, drawn back to `gap` m from the hero where it would pass him.
+##   "predict" (the default): the chase lead is the far end of a short line from the spot chosen; LEAD_STEPS + 1 spots
+##     along it are scored by how many creatures will stand inside the blast there when it goes off (EnemyManager.
+##     predicted_counts: each creature near closes on where the hero will be at its own pace, stopping `gap` short of
+##     him) and the bomb goes to the best; on a tie, the one further ahead.
+## The lead is at most `max` m; the spot stays within the weapon's range of the hero and inside the arena; no lead when
+## the crowd is within `gap` of him already. A Sticky throw at a priority target (the Golden Pineapple's) is never led.
+## `lead`: a number (the share, 1 = all of it, 0 = off), true, or {share, mode, max, gap, radius, hero_ahead}. Weapons
+## without it throw where they did. Why predict: scored on the same blasts in the game (tools/_p79_WORLD_lead_probe.gd,
+## the paired count), a plain lead caught about as many as none (the crowd near the hero is a stream, the blast wider
+## than the lead), the best-scored spot clearly more.
+const LEAD_MAX := 6.0
+const LEAD_GAP := 1.5
+const LEAD_RADIUS := 3.0
+const LEAD_HERO_AHEAD := 0.5
+## "predict": the spots scored between the spot chosen and the full chase lead are LEAD_STEPS + 1 (0, 1/4, ... all of it).
+const LEAD_STEPS := 4
+## Diagnostics and tests: throws led, and the last lead in metres (on the ground).
+var leads := 0
+var last_lead := 0.0
+
+
+## params.lead as {share, mode ("predict" | "chase" | "walk"), max, gap, radius, hero_ahead} (share 0 = off).
+static func lead_config(p: Dictionary) -> Dictionary:
+	var out := {"share": 0.0, "mode": "predict", "max": LEAD_MAX, "gap": LEAD_GAP, "radius": LEAD_RADIUS, "hero_ahead": LEAD_HERO_AHEAD}
+	var l = p.get("lead")
+	if l is bool:
+		out["share"] = 1.0 if l else 0.0
+	elif l is float or l is int:
+		out["share"] = float(l)
+	elif l is Dictionary:
+		out["share"] = 1.0
+		for k: String in ["share", "max", "gap", "radius", "hero_ahead"]:
+			var v = (l as Dictionary).get(k)
+			if v is float or v is int:
+				out[k] = float(v)
+		var md := str((l as Dictionary).get("mode", "predict"))
+		if md == "walk" or md == "chase":
+			out["mode"] = md
+	out["share"] = maxf(float(out["share"]), 0.0)
+	return out
+
+
+## Where a bomb meant for `target` lands with the lead: `v` the crowd's mean ground velocity (m/s), `pace` its mean walking
+## speed (m/s; -1 = v's length), `speed` the lob's, `fuse` the seconds it lies before it blows (0 for a Sticky bomb), `cfg`
+## lead_config's, `hero` and `hero_v` where the hero is and how he moves, `range_m` the weapon's reach, `arena_r` the
+## arena's radius (0 = none). `target` itself when the share is 0 or the crowd stands still.
+static func lead_spot(target: Vector3, from: Vector3, v: Vector3, speed: float, fuse: float, cfg: Dictionary, hero: Vector3, range_m: float, arena_r: float, hero_v := Vector3.ZERO, pace := -1.0) -> Vector3:
+	var share := float(cfg.get("share", 0.0))
+	v.y = 0.0
+	# "predict" takes the chase's spot as the far end of its line (_lead_target scores the way there)
+	var chase := str(cfg.get("mode", "predict")) != "walk"
+	var walk := pace if pace >= 0.0 else v.length()
+	if share <= 0.0 or (chase and walk < 0.01) or (not chase and v.length_squared() < 0.0001):
+		return target
+	var mx := float(cfg.get("max", LEAD_MAX))
+	var gap := float(cfg.get("gap", LEAD_GAP))
+	if Vector2(target.x - hero.x, target.z - hero.z).length() <= gap:
+		return target
+	var aim := target
+	# the flight depends on the distance and the distance on the lead: twice round is near enough
+	for _k in range(2):
+		var dist := maxf(Vector2(aim.x - from.x, aim.z - from.z).length(), 0.5)
+		var t := clampf(dist / maxf(speed, 1.0), 0.35, 2.5) + maxf(fuse, 0.0)
+		var off := v * (t * share)
+		if chase:
+			var goal := hero + hero_v * (t * float(cfg.get("hero_ahead", LEAD_HERO_AHEAD)))
+			var to := Vector2(goal.x - target.x, goal.z - target.z)
+			var step := minf(walk * t * share, maxf(to.length() - gap, 0.0))
+			off = Vector3(to.x, 0.0, to.y).normalized() * step if to.length() > 0.001 else Vector3.ZERO
+		if off.length() > mx:
+			off = off.normalized() * mx
+		aim = target + off
+	if not chase:
+		aim = _keep_gap(target, aim, hero, gap)
+	var fl := Vector2(aim.x - hero.x, aim.z - hero.z)
+	if range_m > 0.0 and fl.length() > range_m:
+		fl = fl.normalized() * range_m
+		aim = Vector3(hero.x + fl.x, aim.y, hero.z + fl.y)
+	var ar := Vector2(aim.x, aim.z)
+	if arena_r > 0.0 and ar.length() > arena_r:
+		ar = ar.normalized() * arena_r
+		aim = Vector3(ar.x, aim.y, ar.y)
+	return aim
+
+
+## Mode "predict": the index of the best of `counts` (the creatures foreseen inside the blast at each spot), the later
+## (further ahead) on a tie.
+static func predict_pick(counts: PackedInt32Array) -> int:
+	var best := 0
+	for k in range(counts.size()):
+		if counts[k] >= counts[best]:
+			best = k
+	return best
+
+
+## The led spot drawn back along the lead to the first point `gap` m from the hero (the crowd stops at him); `target` when
+## the crowd is that near already, `aim` when the lead never comes that near.
+static func _keep_gap(target: Vector3, aim: Vector3, hero: Vector3, gap: float) -> Vector3:
+	if gap <= 0.0:
+		return aim
+	var d := Vector2(target.x - hero.x, target.z - hero.z)
+	if d.length() <= gap:
+		return target
+	var l := Vector2(aim.x - target.x, aim.z - target.z)
+	var a := l.dot(l)
+	if a < 0.000001:
+		return aim
+	var b := 2.0 * d.dot(l)
+	var c := d.dot(d) - gap * gap
+	var disc := b * b - 4.0 * a * c
+	if disc < 0.0:
+		return aim
+	var s := (-b - sqrt(disc)) / (2.0 * a)
+	if s < 0.0 or s > 1.0:
+		return aim
+	return target + Vector3(l.x, 0.0, l.y) * s
+
+
+## A throw's target with this weapon's lead (params.lead): `pt` the priority creature it was chosen for (-1 for a crowd),
+## `unled` for a Sticky throw at a priority target. On the ground at the led spot.
+func _lead_target(target: Vector3, from: Vector3, hero: Vector3, range_m: float, pt: int, unled: bool) -> Vector3:
+	var lc := lead_config(inst.params)
+	if unled or float(lc["share"]) <= 0.0:
+		return target
+	var enemies: EnemyManager = game.enemies
+	var v: Vector3 = enemies.walk_velocity(pt) if pt >= 0 else enemies.crowd_velocity(target, float(lc["radius"]))
+	var pace: float = v.length() if pt >= 0 else enemies.crowd_speed(target, float(lc["radius"]))
+	var hv := Vector3.ZERO
+	if player and player.get("velocity") is Vector3:
+		hv = player.get("velocity")
+	hv.y = 0.0
+	var fz := ProjectileManager.fuse_of(inst)
+	var fuse := 0.0
+	if not fz.is_empty() and not inst.params.get("sticky") is Dictionary:
+		fuse = ProjectileManager.fuse_seconds(fz, {})
+	var map = game.get("map")
+	var arena_r: float = float(map.get("arena_radius")) - 1.5 if map and map.get("arena_radius") != null else 0.0
+	var aim := lead_spot(target, from, v, stat("speed", 9.0), fuse, lc, hero, range_m, arena_r, hv, pace)
+	if aim.is_equal_approx(target):
+		return target
+	if str(lc["mode"]) == "predict":
+		# the spots from the one chosen to the chase's, scored by the creatures foreseen inside the blast as it goes off
+		var area := stat("area", 2.5)
+		var wait := clampf(maxf(Vector2(target.x - from.x, target.z - from.z).length(), 0.5) / maxf(stat("speed", 9.0), 1.0), 0.35, 2.5) + fuse
+		var goal := hero + hv * (wait * float(lc["hero_ahead"]))
+		var spots: Array = []
+		for k in range(LEAD_STEPS + 1):
+			spots.append(target.lerp(aim, float(k) / float(LEAD_STEPS)))
+		var counts := enemies.predicted_counts(spots, area, wait, goal, float(lc["gap"]), target, area + target.distance_to(aim) + 6.0)
+		aim = spots[predict_pick(counts)]
+		if aim.is_equal_approx(target):
+			return target
+	if map and map.has_method("height_at"):
+		aim.y = map.height_at(aim.x, aim.z)
+	leads += 1
+	last_lead = Vector2(aim.x - target.x, aim.z - target.z).length()
+	return aim
 
 
 # ---------------------------------------------------------------- Sun Cocktail (pass 62)

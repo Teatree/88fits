@@ -72,7 +72,7 @@ def stack(rows, name):
     for r in rows:
         out.paste(r, (0, y), r)
         y += r.height
-    out.save(os.path.join(IMG, name + ".webp"), "WEBP", quality=84, method=6)
+    out.save(os.path.join(IMG, name + ".webp"), "WEBP", quality=74, method=6)   # pass 79: 84 pushed the page past 16 MB
 
 
 def creature_order():
@@ -164,7 +164,7 @@ def icon_sheet():
     for k, p in enumerate(icons):
         im = Image.open(p).convert("RGBA").resize((S, S), Image.LANCZOS)
         out.paste(im, (8 + (k % cols) * (S + 8), 8 + (k // cols) * (S + 8)), im)
-    out.save(os.path.join(IMG, "icons.webp"), "WEBP", quality=84, method=6)
+    out.save(os.path.join(IMG, "icons.webp"), "WEBP", quality=72, method=6)   # pass 79: 84 pushed the page past 16 MB
 
 
 def fire_gif(shots):

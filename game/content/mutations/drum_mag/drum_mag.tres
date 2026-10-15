@@ -27,7 +27,8 @@ params = {
 "drum_step": 1.0,
 "size_mult": 0.85,
 "tracer_beads": 3.0,
-"tracer_size": 0.6
+"tracer_size": 0.6,
+"tracer_width": 0.065
 }
 id = "drum_mag"
 display_name = "Drum Mag"

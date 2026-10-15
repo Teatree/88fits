@@ -1481,6 +1481,17 @@
       "count": 9,
       "min_spacing": 22
     },
+    "rock_color": "#785C5E",
+    "wall_colors": {
+      "near": "#856B6E",
+      "far": "#705963",
+      "farther": "#594A57",
+      "stone": "#7A6363",
+      "light": "#8C7370",
+      "cap": "#544045",
+      "riser": "#47383B",
+      "boulders": "#6B5457"
+    },
     "cap_per_stage": 0,
     "speed_per_stage": 0.1,
     "weight_late_t": 860,
@@ -1544,7 +1555,7 @@
       5,
       5
     ],
-    "xp_need_mult": 4.1,
+    "xp_need_mult": 1.65,
     "move_pace": 0.9,
     "boss_hp_scaling": {
       "enabled": true,

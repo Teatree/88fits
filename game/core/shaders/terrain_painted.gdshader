@@ -7,7 +7,11 @@ uniform sampler2D sand_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform sampler2D cracked_tex : source_color, filter_linear_mipmap, repeat_enable;
 // the rim: red rock by the vertex colour's blue channel (Red Canyon); Dry Gulch never set it
 uniform sampler2D rock_tex : source_color, filter_linear_mipmap, repeat_enable;
-uniform vec3 rock_flat : source_color = vec3(0.62, 0.34, 0.24);
+// pass 79 (Garry: "Map the sides are too orange"): the rim's colour, Red Canyon's `rock_color` (was 0.62, 0.34, 0.24). The
+// rock painting is recoloured to it: its luminance over its own mean (rock_tex_lum, linear) times this, so its bands and
+// cracks stay as light and dark and the colour on the screen is the map's, whatever the painting's own hue
+uniform vec3 rock_flat : source_color = vec3(0.47, 0.36, 0.37);
+uniform float rock_tex_lum = 0.184;
 uniform float tiles_per_metre = 0.09;
 uniform float tint_strength = 0.6;
 // how far the painted texture is flattened towards a plain colour: busy dunes fight the sprites, so 0.4 by default
@@ -36,6 +40,9 @@ void fragment() {
 	float rockw = smoothstep(0.2, 0.9, v_col.b);
 	vec3 col = mix(s, c, mixw);
 	vec3 rk = texture(rock_tex, uv * 0.7).rgb;
+	// the painting is sampled in linear light while the Compatibility renderer hands the colour over as authored (as the
+	// calm mix below has always used it), so it is brought into linear light before it recolours the painting
+	rk = pow(rock_flat, vec3(2.2)) * (dot(rk, vec3(0.299, 0.587, 0.114)) / max(rock_tex_lum, 0.001));
 	col = mix(col, rk, rockw);
 	float lum = dot(col, vec3(0.299, 0.587, 0.114));
 	col = mix(col, vec3(lum), 0.2);

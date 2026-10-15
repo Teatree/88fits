@@ -33,7 +33,9 @@ const Settings = (() => {
         if (def.type === 'points') { card.appendChild(Forms.row(def, Forms.pointsBlock(tl))); continue; }
         if (def.type === 'path_times') { card.appendChild(Forms.row(def, Forms.pathTimesBlock(tl))); continue; }
         if (def.type === 'curve') { card.appendChild(Forms.row(def, Forms.curveBlock(tl, def.key), { cls: 'wide-ctl' })); continue; }
-        card.appendChild(Forms.fieldRow(def, tl, { labels: def.type === 'list' ? (i) => `stage ${i + 1}` : undefined }));
+        // pass 79 (lane WORLD): a colour of the map's sides shows the game's default faded while its box is empty
+        const swatch = def.type === 'swatch' ? { placeholder: def.def, own: 'the game\'s' } : {};
+        card.appendChild(Forms.fieldRow(def, tl, Object.assign({ labels: def.type === 'list' ? (i) => `stage ${i + 1}` : undefined }, swatch)));
       }
       if (group === 'Stages') card.appendChild(el('p', { class: 'muted small', text: `Stage 1 ${fmtT(0)}–${fmtT(App.stageLength())}, stage 2 to ${fmtT(App.stageLength() * 2)}, stage 3 to ${fmtT(App.stageLength() * 3)}; the run clock stands still through boss fights and portals.` }));
       // pass 69 (lane EN)

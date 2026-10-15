@@ -1560,3 +1560,138 @@ key, the killed run at the next launch, the request cap, the recorder's wiring, 
 tools/level_editor/selftest_DASH78.py (54: rounding, JS == Python averaging, JS == GDScript series, fromRecord, Python
 joins the game's own parts, the downloader on recorded API answers, the page's wiring); selftest.py 18,634 green;
 pass45/57/59/60_lead/61_an/74_analytics/77_simrun green; check_scripts 0 errors; smoke_run OK; the CSV compare OK.
+
+**Pass 79 (2026-10-15, v0.65): mutations at level-ups, bodies that fly, line trails, a duskier rim, the dynamite thrown ahead.** Garry: "the mutations happen whenever there is a level up" (asked which, he chose: the offers stay one per weapon per stage, but come as a hero level-up's screen in place of the three cards, "but decrease the level requirements to achieve the same power level"); corpses that follow through with their push and fly from blasts "like the live ones"; a thin line trail like the rocket's instead of the beads (the regular shot dark red and see-through, Silver thicker in its own colour, fading like smoke); "Map the sides are too orange"; "Throw the dynamite in front of the enemies"; and an opinion (answered in chat, not built) on a bot-played Watch tool. Three lanes (tools/dl/p79/INTERFACES.md, brief_MUT.md): FX, WORLD, MUT. The lead swapped the old bead keys for the line's in the Level Editor's weapon fields.
+
+Lane MUT (pass 79; Garry: "Mutations are supposed to be level ups, not just random occurrences"; his pick: the offers
+stay, one per weapon per stage, but come as the level-up screen in place of the three cards; "decrease the level
+requirements to achieve the same power level considering the changes"). **Delivery:** the director no longer opens a
+mutation offer on the clock: `Run.mutlvl_tick` (WaveDirector, Phase NORMAL) spends a `path_times` slot as `path_due` did
+and keeps the offer due (`Run.mutlvl_due`) when a weapon has a pick open (else it is spent with nothing, as before);
+`Run.add_xp` claims a due offer at each level (`mutlvl_claim`: a mutation level-up, `mutlvl_ready`, counted in
+`mutation_levels`; no weapon open -> the offer dropped, an ordinary level-up); `Game._show_next_level_cards` opens a
+claimed one as the path offer (`Game._mutlvl_open`: `Run.mutlvl_take` draws the weapon among those open then, the reel,
+the path cards, `_on_path_chosen`; one whose weapons lost their pick while banked opens as three cards,
+`mutlvl_unclaim`); offers queue one a level-up and stay due across a stage's end; never in the arena.
+`CardScreen.path_level` puts "Level N! Pick a mutation" on the head (`CardScreen.mutlvl_line`). `Game.present_path_offer`
+stays for tools (screenshot_run). **The mark:** `HUD._build_mut_mark` / `_refresh_mut_mark` (on
+`Run.mutation_due_changed`, `build_changed`, `stage_changed`): the LV plate in `W.PLUM` with paper letters and
+MUTATION NEXT at the XP rail's right end while `Run.mutlvl_pending()`; `HUD.mutation_mark_on()`. **Card levels:**
+`Run.card_level()` (level less mutation level-ups) for the creatures' level factor (WaveDirector._apply_mults,
+fixed_numbers), the hero's trait (Run._build_player_sheet; StatSources' "Lv N", RunAnalytics `trait`), BarrelField's gems,
+Ram's per_level (EnemyManager), Supply Drop's damage_per_level (Game); the map's `mutation_levels_scale` (WaveTimeline,
+JsonContent; default false) counts every level-up instead. **XP:** Red Canyon's `xp_need_mult` 3.1 -> **1.65** (Garry's 3.1 of his 12:46 Level Editor save was "today"; 4.1 at HEAD, 2.1 before 2026-10-15): fitted at 1.64 on a 20-player 3.1 sim, confirmed by a 20-player sim of the new delivery at 1.65 (three-card level-ups by any minute within about two of today's over 0-24 min, the mutations the same, the badge about 13 levels higher by 20:00); against the brief's first baseline 4.1 the fit gave 2.0, confirmed the same way. A shape key
+`xp_curve {base, linear, quad}` was built and dropped (one scalar holds within about two levels over 0-25 min).
+**Measured** with the run sim on lane MUT's own snapshot (tools/dl/p79/MUT/simprep.py: `--sim-dir tools/dl/p79/MUT/sim`,
+the snapshot's red_canyon.json patched and its .tres removed, `--delivery old|new` flips the snapshot's director line
+so before and after run the same code otherwise; fit.py fits xp_need_mult so the same XP buys the old curve's level plus
+the mutations taken by then; compare.py the before/after table): Drifter x20, 25:00, death keep, board a quarter.
+Garry's local records (analytics/runs/) were all older versions at xp_need_mult <= 2.1 and mostly tool runs, so the
+sims carried the measure. **Level Editor:** path_times is "Mutation offers per stage" with the new meaning, the timeline
+lane "Mutations", the inspector's "Mutation offers", xp_need_mult's help, a "Mutation levels scale" switch (Scaling).
+**Docs:** docs/design/src/part2.html (Mutations' first bullet, Evolutions: level 5 + all three path mutations),
+docs/waves_schema.md "Pass 79". **Captures:** game/tools/_p79_MUT_shots.gd (HUD plain / marked / the level-up's reel /
+landed / after), wanted_shots `only=hud_mutation` (06e-hud-mutation-next). **Tests:** game/tests/pass79_mut_test.gd (11:
+a due offer waits for the level-up, queued offers one a level-up, nothing open -> spent or an ordinary level-up, a banked
+claim whose pick went opens as cards, due across a stage, never in the arena, the card levels for the creatures and the
+trait, the map's pace and switch, the Game's level-up showing the offer, no pick open -> three cards, the director never
+opening a screen on the clock); re-pinned on purpose: pass56_ui (the XP rail holds one node now, the hidden
+MutationNext word); pass26's comment only. pass27, pass46_pacing, pass62_pc pass unchanged (path_due and path_times kept).
+Whole suite 1,800 green (before the value moved to 1.65; the map tests read the file); smoke_run, arena_check, touch_audit (cards, path, path_offer, gate_strip, resume_gate 44/44)
+green; Level Editor selftest green (18,644).
+
+### Pass 79, lane FX: bodies that follow through, tracer lines that fade like smoke
+
+Garry: "Let's add a knockback to corpses from explosions. It should be that enemies that die have their corpses follow
+through with their knockback. So when an explosion kills an enemy fly off like the live ones." and "Change the projectile
+trail. The balls aren't good. Make a simple line trail, similar to that of the rocket. Should be thin. 1. Regular shot
+dark red transparent 2. Silver - thicker, correct colour. 3. Then the line disappears like smoke."
+
+**Bodies.** `EnemyManager._die` used to zero the push (`kb`) and the dying tick never moved the body, so a blast's kills
+dropped where they stood while the survivors flew. Now `_die` calls `_corpse_begin`: the body keeps its push (the boss's
+is zeroed: his death is as before) and the dying tick's `_corpse_tick` slides it on, decaying at the live crowd's own
+6 /s, clamped to the arena and the ground, sliding along rocks. `damage_radius` marks the creature it is striking
+(`_corpse_blast_i`, saved and restored round each hit, so nested blasts from kill effects stay right); a body killed by a
+blast with a push is thrown up (`CORPSE_TOSS_PER` 0.3 m per m/s of push, capped at 2.5 m, none under 0.3 m), falls at
+22 m/s², sails with an air drag of 1.5 /s and lands in a little sand; its death is stretched to the flight plus 0.6 s.
+Big game slides but is never thrown; a body up in a launch keeps its launch fall and Bucking Bronco's drift as its push;
+a body killed up in a tornado's toss or a bounce now falls instead of hanging there. Captures (tools/dl/p79/FX/final_corpses):
+the dynamite throws a pack of skeletons 0.75-1.4 m up and ~1.2-2.4 m out, Powder Keg 0.6-0.85 m up and ~0.9-1.3 m out.
+
+**Lines.** The tracer beads (pass 60/61/76) are gone: every `tracer` shot lays a line of segments (`ProjectileManager
+._tracer_tick` / `tracer_segment` / `_tracer_lay`), one every 0.3 m it flies, into one MultiMesh ring of 2048 quads drawn
+by `core/shaders/tracer_line.gdshader`. Each instance transform carries data, not a placement (origin = the piece's
+start, basis x = the piece, basis y = (the end's birth, life, width), basis z = (the start's birth)), so the shader turns
+each piece to the camera, keeps it at least 1.5 px wide, and fades it on the shots' clock: alpha (1 - f)^1.5, widening to
+1.9x, drifting up 0.45 m/s, swaying by its world position, greying 40%. A frame costs one uniform; a new piece two
+instance writes. The two ends of a piece are dated when the shot passed them, which removed the seams the first capture
+showed where pieces met; the sway follows the world position for the same reason. Colours are converted from sRGB in the
+shader: the bead material had read every tracer colour as linear, which is why pass 76's "dim red" #7A1F17 showed as a
+salmon terracotta and the Silver Bullet's SILVER as a pale white-blue. New key `tracer_width`; `tracer_clear` now cuts
+the line where it crosses the hero's circle; `tracer_size` / `tracer_step` / `tracer_beads` draw nothing. Content: the
+Revolver #8B0A0A at 0.9, 0.045 m, 0.9 s; Silver Bullet and the Golden Revolver's final form #C9DCEF at 0.9, 0.11 m;
+Drum Mag 0.065 m; the Boomstick's and Blunderbuss's pellets 0.035 m. Warmup draws one piece under the beam
+(`warm_draw` -> `_tracer_warm`). Lessons: a dark see-through colour over bright sand turns brown under linear blending
+(a red needs ~0.9 alpha to read red: the "transparent" comes from the thin line and the fade); a camera-facing ribbon
+made of separate quads needs its shared ends to be identical (same age, same sway) or every joint shows.
+
+Perf (tools/perf_late.gd, 504x1122, fixed 60): build=six 10.07 ms/frame before, 15.02 and 12.23 after, but every system
+the lane did not touch rose by the same factor (enemies.sim 2.38 -> 3.77 / 3.12, hud 0.08 -> 0.13 / 0.10: the machine
+was busier with the other lanes); projectiles + projectiles.draw against enemies.sim stayed 0.21 -> 0.22 / 0.21. The A/B
+in one sitting (game/tools/_p79_FX_perf.gd, build=six_b, ~80 shots in the air from the Bullet Hose and the Doomstick):
+lines on 1.26-1.33 ms projectiles, 0.46-0.48 draw, 192-194 draw calls; every tracer off 1.19, 0.45, 188.
+The Level Editor's vocab.py: tracer_step and tracer_size out (nothing reads them), tracer_width, tracer_clear,
+tracer_color and tracer_alpha in.
+
+Tests: game/tests/pass79_fx_test.gd (16). Re-pinned: pass60_wp (the Tommy round's line in place of beads), pass61_wp1
+(Toxic Peas' green line, Drum Mag's bolder line in place of three beads), pass76_ui and pass48_projectiles (the
+Revolver's colour read off the content; Silver Bullet's and the Golden Revolver's own silver colour).
+
+**The map's sides less orange, the dynamite thrown ahead of the crowd** (Garry: "Map the sides are too orange";
+"Throw the dynamite in front of the enemies.").
+
+*The sides.* Captured first (game/tools/_p79_WORLD_shots.gd: a real run of Red Canyon, seed 11, the hero at the north,
+east, west, south and north-east rim at the play zoom and pulled out, the middle at full zoom, a spent Totem Pole stood on
+the rock, a dozen creatures on it, stage 3's red ground; windowed 1080x1920, every wait bounded, a 200 s watchdog;
+tools/dl/p79/WORLD/before/). On the screen the rim's rock read hue 25, saturation 0.65, value 0.80 (orange), the boundary
+wall and the cliffs the same orange. The rim was orange twice over: the flat tone (0.62, 0.34, 0.24) and an orange rock
+painting (redrock.png, bands (146, 70, 48)..(196, 112, 70)) under a warm sun and sky; the cliffs were tints over an
+orange sandstone painting, so no tint could take the orange out. Now the terrain shader recolours the rock painting to
+the rock colour (its luminance over its mean, `rock_tex_lum` 0.184 linear, times the colour taken into linear light: the
+Compatibility renderer hands a source_color vec3 over as authored, which the first try missed and drew the rim
+salmon-white), and sandstone.png is grey bands (gen_textures.py, new `--only`), so a colour key is the colour drawn.
+Eight palettes were tried in the game (tools/dl/p79/WORLD/pal*, palettes*.json) and compared by eye; the pick is a dusky
+red-brown (rock #785C5E; walls near #856B6E, far #705963, farther #594A57, stone #7A6363, light #8C7370, cap #544045,
+riser #47383B, boulders #6B5457): on the screen the rock reads hue 22-24, saturation 0.53-0.56, value 0.66-0.67, the wall
+and the cliffs saturation 0.52-0.53 (from 0.62-0.67), the sand untouched (pinned by pass54_world and pass61_map). The
+authored colours lean a touch rosy because the warm light pushes everything towards orange. Stage 3's hell still turns
+the rim a clear red (hue 15). A spent (grey) Totem Pole still reads on the rock; the creatures (the orange fire ants
+most) read better on it than on the old orange. The colours are map keys: timeline_data `rock_color` and `wall_colors`
+{near, far, farther, stone, light, cap, riser, boulders} (WaveTimeline, JsonContent, RedCanyon._read_colours, defaults
+RedCanyon.ROCK_COLOR / WALL_COLORS = the file's), in the Level Editor's World card as swatches (forms.js `own`: an
+empty box shows "the game's" default faded; selftest_WORLD79.py).
+
+*The lead.* The Dynamite Stick aimed at the densest creature's spot and lay a second on the sand after its flight, so a
+crowd walking at the hero had passed the spot when it blew. `params.lead` (lob_grenade and golden_pineapple) throws it
+where the crowd will be: the wait (the lob's flight + the fuse; a Sticky bomb only the flight) times the crowd's walk
+(EnemyManager.crowd_velocity / crowd_speed / walk_velocity, new), capped at 6 m, kept 1.5 m off the hero, in range and
+in the arena; a Sticky throw at a priority target (the Golden Pineapple's) stays unled; a led shot's crowd spot rides
+along (`lead_from`) and is claimed with the led one, so two bomb weapons still pick two crowds. The contract's straight
+extrapolation (the crowd's mean velocity x the wait) was probed first (game/tools/_p79_WORLD_lead_probe.gd: the same
+window of Red Canyon per seed, the lead off then on, every blast's creatures counted as it goes off) and caught FEWER
+with the run sim's kiting pilot (6.38 -> 5.81 a blast, 5 seeds x 60 s): the hero moves and the crowd turns after him.
+Whole runs differ from one another more than the lead changes them (one seed: 5.4 or 6.7 a blast), so the probe
+scores every blast at every candidate spot at the moment it goes off (the paired count): on the same blasts the plain
+lead caught no more than none (walk +0.03, chase +0.18 at level 5 with the kiting pilot; standing -0.2): the crowd near
+the hero is a stream and the blast (3.8 m at level 5) is wider than the lead (about 2 m). What wins is aiming at the
+spot where the most creatures will stand when it blows: "predict" (the default) scores five spots from the chosen one
+to the chase lead (each creature near closing on where the hero will be at its own pace, EnemyManager.predicted_counts)
+and throws at the best, the one further ahead on a tie. Paired: +1.29 (L1 kite), +0.83 (L5 kite), +0.59 (L5 standing)
+creatures a blast over unled. Real runs, 6 seeds x 60 s each way: level 1 kiting 8.61 -> 9.00 caught a blast, kills a
+minute 77 -> 88 (+14%); level 5 kiting 5.95 -> 6.48, kills 334 -> 353 a minute (+6%); level 5 standing 8.56 -> 8.84,
+462 -> 473 (+2%). Lesson: score an aim on the same blasts (a paired count), never on separate runs.
+
+Tests: game/tests/pass79_world_test.gd. Files: RedCanyon.gd, terrain_painted.gdshader, WaveTimeline.gd, JsonContent.gd,
+gen_textures.py + sandstone.png, red_canyon.json (+ .tres), Lobber.gd, EnemyManager.gd (three new functions),
+ProjectileManager.claimed_spots (one insertion), lob_grenade.json / golden_pineapple.json (+ .tres), the Level Editor
+(fields.js, settings.js, forms.js, vocab.py, assets_fields.js, selftest_WORLD79.py).

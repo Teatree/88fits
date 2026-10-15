@@ -145,6 +145,8 @@ func _ready() -> void:
 		trail_age[k] = TRAIL_LIFE
 		trail_life[k] = TRAIL_LIFE
 	_build_trail()
+	# pass 79 (lane FX): the tracers' lines, one MultiMesh of segments
+	_tracer_build()
 	_path_mesh = ImmediateMesh.new()
 	var pmi := MeshInstance3D.new()
 	pmi.mesh = _path_mesh
@@ -595,6 +597,9 @@ func claimed_spots() -> Array:
 			var ex: Dictionary = extra[i]
 			if ex.has("target") and not ex.has("is_bomblet"):
 				out.append(ex["target"])
+				# pass 79 (lane WORLD, Lobber's params.lead): a led throw's crowd, where it stood at the throw, is claimed too
+				if ex.has("lead_from"):
+					out.append(ex["lead_from"])
 	for s: Dictionary in _landed:
 		out.append(s["at"])
 	return out
@@ -870,32 +875,11 @@ func _physics_process(delta: float) -> void:
 			if _trail_t[i] <= 0.0:
 				_trail_t[i] = SHRAPNEL_TRAIL
 				_drop_trail(pos[i], Color(1.0, 0.82, 0.45, 0.9), 0.6)
-		# a tracer round (params.tracer): a bright short line behind every bullet, so a burst reads as shots fired; gold,
-		# or the weapon's element (a Dart Buddy's rounds trail green). Pass 60: the weapon may set the beads' step,
-		# life and size (params.tracer_step / tracer_life / tracer_size: the Tommy Gun drops them denser and shorter-
-		# lived, so each round reads as one hot streak; the Boomstick's spray a short-lived one)
+		# a tracer round (params.tracer): a line behind every bullet, so a burst reads as shots fired; gold, or the weapon's
+		# element, or its own colour. Pass 79 (lane FX; Garry: "The balls aren't good. Make a simple line trail, similar to
+		# that of the rocket"): a thin line that fades like smoke (_tracer_tick) in place of pass 60's beads
 		if w and bool(w.params.get("tracer", false)):
-			_trail_t[i] -= delta
-			if _trail_t[i] <= 0.0:
-				_trail_t[i] = maxf(float(w.params.get("tracer_step", 0.022)), 0.005)
-				if not extra[i].has("tc"):
-					extra[i]["tc"] = _tracer_colour(w)
-				var t_size := float(w.params.get("tracer_size", 0.9))
-				var t_life := float(w.params.get("tracer_life", TRAIL_LIFE))
-				# pass 76 (lane UI): no bead within the weapon's `tracer_clear` of the hero (_tracer_clear_of)
-				var t_ok := _tracer_clear_of(w, pos[i], player)
-				if t_ok:
-					_drop_trail(pos[i], extra[i]["tc"], t_size, t_life)
-				# pass 61 (Drum Mag's denser trails): `tracer_beads` beads a drop, the others spread back along the ground
-				# this tick moved over (one bead a physics tick is the most a step can give)
-				# (the review: on a Chicago Typewriter's long bursts the extra beads lapped the shared ring of TRAIL_MAX in
-				# under half a second and cut every other trail short, the hostile rocket's warning among them): the extra
-				# beads only while the screen is not busy with shots, and at half the life
-				var nb := int(w.params.get("tracer_beads", 1)) if count <= TRACER_EXTRA_BUSY else 1
-				if not t_ok:
-					nb = 0
-				for b in range(1, nb):
-					_drop_trail(pos[i] - vel[i] * delta * float(b) / float(nb), extra[i]["tc"], t_size, t_life * 0.5)
+			_tracer_tick(i, w, delta, player)
 		# pass 69 (the ball's Heat, params.heat_look): an orange trail and flames behind it, growing with Heat
 		if extra[i].has("heat_t"):
 			_heat_trail(i, w, delta)
@@ -1037,6 +1021,7 @@ func _process(_delta: float) -> void:
 	_tick_specks(_draw_dt)
 	_draw_dt = 0.0
 	_draw_paths()
+	_tracer_draw()
 	Perf.add("projectiles.draw", t0)
 
 
@@ -1164,11 +1149,11 @@ func _dust_trail(i: int, w: WeaponInstance, ground: float) -> void:
 		game.fx_sand(at, 0.4)
 
 
-## A tracer bead's colour: gold, orange for a burning weapon, green for a poison one, the Silver Bullet's pale blue;
-## a mutation's own `tracer_color` (pass 61, its look: Toxic Peas' sickly green, Drum Mag's hot orange) first. Pass 76
-## (lane UI; Garry: "Make the revolver basic projectile trail thing be a dim red instead of yellow"): a weapon's own
-## `tracer_color` (the Revolver's dim red) is its plain colour, below the Silver Bullet and an element, so Silver Bullet
-## keeps its pale blue on it and Venom Rounds its green.
+## A tracer's colour (its line since pass 79): gold, orange for a burning weapon, green for a poison one, the Silver
+## Bullet's pale blue; a mutation's own `tracer_color` (pass 61, its look: Toxic Peas' sickly green, Drum Mag's hot orange;
+## pass 79: Silver Bullet's silver) first. Pass 76 (lane UI; Garry: "Make the revolver basic projectile trail thing be a
+## dim red instead of yellow"): a weapon's own `tracer_color` (the Revolver's dark red) is its plain colour, below the
+## Silver Bullet and an element, so Silver Bullet keeps its silver on it and Venom Rounds its green.
 func _tracer_colour(w: WeaponInstance) -> Color:
 	var own := _own_tracer(w)
 	if w.params.has("tracer_color") and not own:
@@ -2702,6 +2687,8 @@ func warm_draw(at: Vector3) -> void:
 			mm.visible_instance_count = 1
 	if at != Vector3.INF:
 		_drop_trail(at)
+	# pass 79 (lane FX): one tracer line, so its shader compiles under the beam
+	_tracer_warm(at)
 	# pass 61: the thorn specks' and the stuck grenade's blinker's MultiMeshes, one instance each (the blinker's no-depth
 	# material is a variant of its own)
 	_warm_looks(at)
@@ -3505,3 +3492,179 @@ func _wick_looks_played() -> bool:
 		if wd.params.get("wick_flame") is Dictionary or wd.params.get("pool_flame") is Dictionary:
 			return true
 	return false
+
+
+# ---------------------------------------------------------------- pass 79 (lane FX): the tracers' lines
+## Garry: "Change the projectile trail. The balls aren't good. Make a simple line trail, similar to that of the rocket.
+## Should be thin. 1. Regular shot dark red transparent 2. Silver - thicker, correct colour. 3. Then the line disappears
+## like smoke." Every shot of a weapon with params.tracer draws a thin line behind it in place of pass 60's beads: every
+## TRACER_SEG_MIN metres it flies (twice that while more than TRACER_BUSY shots are in the air) the stretch it flew becomes
+## one segment of the line, in the weapon's tracer colour (_tracer_colour: its own `tracer_color` / `tracer_alpha`, Silver
+## Bullet's silver-blue, its element's), `tracer_width` metres wide (TRACER_WIDTH without one) and living `tracer_life`
+## seconds (TRAIL_LIFE without one). Over that life the segment fades out like smoke: it greys, widens, drifts up and sways
+## a little (core/shaders/tracer_line.gdshader's numbers), so a line dies from its tail towards the shot. `tracer_clear`
+## keeps the line off the ground within that many metres of the hero (the part inside is cut away). One MultiMesh holds
+## every segment as a ring of TRACER_LINE_MAX; the shader faces each to the camera and fades it on the shots' clock, so a
+## frame costs one uniform and a new segment two instance writes; a busy screen laps the ring and cuts the oldest lines
+## short instead of slowing down. The old bead keys (tracer_size, tracer_step, tracer_beads) draw nothing any more.
+const TRACER_LINE_MAX := 2048
+const TRACER_WIDTH := 0.05
+const TRACER_SEG_MIN := 0.3
+const TRACER_BUSY := 60
+const TRACER_SHADER := preload("res://core/shaders/tracer_line.gdshader")
+var _ln_mm: MultiMesh
+var _ln_mat: ShaderMaterial
+var _ln_next := 0
+var _ln_used := 0
+## the shots' clock when the newest segment's life is out (every line gone: the ring starts over and nothing is drawn)
+var _ln_end := 0.0
+## What every slot of the ring holds, for tests and tools (the headless renderer keeps no instance to read back): the
+## segment's ends, birth on the shots' clock, life, width and colour.
+var tracer_from := PackedVector3Array()
+var tracer_to := PackedVector3Array()
+var tracer_birth := PackedFloat32Array()
+var tracer_life := PackedFloat32Array()
+var tracer_width := PackedFloat32Array()
+var tracer_col := PackedColorArray()
+## Diagnostics: segments laid since the start.
+var tracer_segments := 0
+
+
+func _tracer_build() -> void:
+	_ln_mm = MultiMesh.new()
+	_ln_mm.transform_format = MultiMesh.TRANSFORM_3D
+	_ln_mm.use_colors = true
+	var q := QuadMesh.new()
+	q.size = Vector2(1, 1)
+	_ln_mm.mesh = q
+	_ln_mm.instance_count = TRACER_LINE_MAX
+	_ln_mm.visible_instance_count = 0
+	_ln_mat = ShaderMaterial.new()
+	_ln_mat.shader = TRACER_SHADER
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "TracerLines"
+	mmi.multimesh = _ln_mm
+	mmi.material_override = _ln_mat
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# the shader reads each instance's transform as world data: no parent transform on top of it
+	mmi.top_level = true
+	mmi.custom_aabb = AABB(Vector3(-200, -20, -200), Vector3(400, 60, 400))
+	add_child(mmi)
+	tracer_from.resize(TRACER_LINE_MAX)
+	tracer_to.resize(TRACER_LINE_MAX)
+	tracer_birth.resize(TRACER_LINE_MAX)
+	tracer_life.resize(TRACER_LINE_MAX)
+	tracer_width.resize(TRACER_LINE_MAX)
+	tracer_col.resize(TRACER_LINE_MAX)
+	for k in range(TRACER_LINE_MAX):
+		tracer_birth[k] = -1000.0
+
+
+## A tracer shot's tick (the physics tick, after it moved): the line's next segment once it has flown far enough.
+func _tracer_tick(i: int, w: WeaponInstance, delta: float, hero: Node3D) -> void:
+	var ex: Dictionary = extra[i]
+	if not ex.has("ln_from"):
+		# the line starts where the shot left (this tick's move undone: the muzzle, a tick ago)
+		ex["ln_from"] = pos[i] - vel[i] * delta
+		ex["ln_t"] = clock - delta
+		if not ex.has("tc"):
+			ex["tc"] = _tracer_colour(w)
+	var from: Vector3 = ex["ln_from"]
+	var step := TRACER_SEG_MIN * (2.0 if count > TRACER_BUSY else 1.0)
+	if from.distance_squared_to(pos[i]) < step * step:
+		return
+	var t_from: float = float(ex.get("ln_t", clock))
+	ex["ln_from"] = pos[i]
+	ex["ln_t"] = clock
+	if Run.sim_mode:
+		return
+	tracer_segment(from, pos[i], ex["tc"], tracer_width_of(w), tracer_life_of(w), float(w.params.get("tracer_clear", 0.0)), hero, t_from)
+
+
+## The width (m) and life (s) of weapon `w`'s tracer line.
+static func tracer_width_of(w: WeaponInstance) -> float:
+	return maxf(float(w.params.get("tracer_width", TRACER_WIDTH)), 0.005) if w else TRACER_WIDTH
+
+
+static func tracer_life_of(w: WeaponInstance) -> float:
+	return maxf(float(w.params.get("tracer_life", TRAIL_LIFE)), 0.05) if w else TRAIL_LIFE
+
+
+## One stretch of a line from `a` (the shot passed it at `t_a` on the shots' clock; below 0: now) to `b` (now); with
+## `clear` > 0 the part within `clear` metres of the hero on the ground plane is cut away (up to two pieces are laid).
+func tracer_segment(a: Vector3, b: Vector3, col: Color, width: float, life_s: float, clear: float = 0.0, hero: Node3D = null, t_a: float = -1.0) -> void:
+	var ta := t_a if t_a >= 0.0 else clock
+	if clear > 0.0 and hero != null:
+		var h := hero.global_position
+		var ra := Vector2(a.x - h.x, a.z - h.z)
+		var d := Vector2(b.x - a.x, b.z - a.z)
+		var qa := d.dot(d)
+		if qa > 0.00000001:
+			var qb := 2.0 * ra.dot(d)
+			var qc := ra.dot(ra) - clear * clear
+			var disc := qb * qb - 4.0 * qa * qc
+			if disc > 0.0:
+				var sq := sqrt(disc)
+				var t0 := (-qb - sq) / (2.0 * qa)
+				var t1 := (-qb + sq) / (2.0 * qa)
+				if t0 > 0.0:
+					var u0 := minf(t0, 1.0)
+					_tracer_lay(a, a.lerp(b, u0), col, width, life_s, ta, lerpf(ta, clock, u0))
+				if t1 < 1.0:
+					var u1 := maxf(t1, 0.0)
+					_tracer_lay(a.lerp(b, u1), b, col, width, life_s, lerpf(ta, clock, u1), clock)
+				return
+		elif ra.length_squared() < clear * clear:
+			return
+	_tracer_lay(a, b, col, width, life_s, ta, clock)
+
+
+## Writes one segment into the ring, its start born at `t_a` and its end at `t_b` on the shots' clock: its transform
+## carries the data the shader reads (see tracer_line.gdshader).
+func _tracer_lay(a: Vector3, b: Vector3, col: Color, width: float, life_s: float, t_a: float, t_b: float) -> void:
+	if _ln_mm == null or a.distance_squared_to(b) < 0.000001:
+		return
+	var k := _ln_next
+	_ln_next = (_ln_next + 1) % TRACER_LINE_MAX
+	_ln_used = maxi(_ln_used, k + 1)
+	_ln_mm.set_instance_transform(k, Transform3D(Basis(b - a, Vector3(t_b, life_s, width), Vector3(t_a, 0.0, 0.0)), a))
+	_ln_mm.set_instance_color(k, col)
+	tracer_from[k] = a
+	tracer_to[k] = b
+	tracer_birth[k] = t_b
+	tracer_life[k] = life_s
+	tracer_width[k] = width
+	tracer_col[k] = col
+	_ln_end = maxf(_ln_end, t_b + life_s)
+	tracer_segments += 1
+
+
+## The draw (once per shown frame): the shader's clock, and the ring's used part; nothing once every line is out.
+func _tracer_draw() -> void:
+	if _ln_mm == null:
+		return
+	if _ln_used > 0 and clock >= _ln_end:
+		_ln_used = 0
+		_ln_next = 0
+	_ln_mm.visible_instance_count = _ln_used
+	if _ln_used > 0:
+		_ln_mat.set_shader_parameter("now", clock)
+
+
+## Segments whose life is not out on the shots' clock now (tests, tools).
+func tracer_live() -> int:
+	var n := 0
+	for k in range(_ln_used):
+		if clock - tracer_birth[k] < tracer_life[k]:
+			n += 1
+	return n
+
+
+## The warm-up's line (Warmup through warm_draw): one short segment at `at`, drawn so the shader compiles under the
+## beam; at INF it is left to run out.
+func _tracer_warm(at: Vector3) -> void:
+	if _ln_mm == null or at == Vector3.INF:
+		return
+	_tracer_lay(at, at + Vector3(1.0, 0.0, 0.0), Color(1, 1, 1, 0.02), TRACER_WIDTH, 1.0, clock, clock)
+	_ln_mm.visible_instance_count = _ln_used
+	_ln_mat.set_shader_parameter("now", clock)

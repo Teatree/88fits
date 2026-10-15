@@ -6,7 +6,7 @@ Writes into game/art/env/:
   sandstone.png     1024x1024 mesa rock bands
   sky_panorama.png  2048x1024 equirectangular golden-hour sky: gradient, sun, clouds, distant mesas
   props_atlas.png   256x256 flat colour swatches used by the Blender props (one cell per material)
-Run: python tools/gen_textures.py
+Run: python tools/gen_textures.py [--only sandstone,redrock]
 """
 import math, os, random
 import numpy as np
@@ -103,7 +103,10 @@ def sandstone(size=1024):
     y = np.linspace(0, 1, size, dtype=np.float32)[:, None]
     bands = 0.5 + 0.5 * np.sin((y * 14.0 + n * 1.5) * math.pi * 2.0)
     bands = np.repeat(bands, size, axis=1) if bands.shape[1] == 1 else bands
-    base = lerp_color((160, 88, 52), (204, 130, 78), bands)
+    # pass 79 (Garry: "Map the sides are too orange"): grey bands with the old ones' light and dark ((160, 88, 52) ->
+    # (204, 130, 78) before, the orange the cliffs wore under any tint), so Red Canyon's wall_colors tint them to exactly
+    # the colour named (RedCanyon.WALL_COLORS); mean about 0.84
+    base = lerp_color((182, 182, 182), (250, 250, 250), bands)
     base = base * (0.9 + 0.2 * n[..., None])
     return to_rgb(base)
 
@@ -197,13 +200,26 @@ def props_atlas(size=256):
 
 
 def main():
-    sand().save(os.path.join(ROOT, "sand.png"))
-    cracked().save(os.path.join(ROOT, "cracked.png"))
-    sandstone().save(os.path.join(ROOT, "sandstone.png"))
-    redrock().save(os.path.join(ROOT, "redrock.png"))
-    sky_panorama().save(os.path.join(ROOT, "sky_panorama.png"))
-    props_atlas().save(os.path.join(ROOT, "props_atlas.png"))
-    print("gen_textures: wrote 6 textures into", ROOT)
+    # pass 79: `--only sandstone,redrock` writes just those (the others stay byte for byte as they are); cracked() and
+    # props_atlas() draw from the shared rng, so they are always made in this order and only the asked-for ones saved
+    import sys
+    only = None
+    for k, a in enumerate(sys.argv[1:]):
+        if a.startswith("--only="):
+            only = set(a[7:].split(","))
+        elif a == "--only" and k + 2 < len(sys.argv):
+            only = set(sys.argv[k + 2].split(","))
+    makers = [("sand", sand), ("cracked", cracked), ("sandstone", sandstone), ("redrock", redrock),
+              ("sky_panorama", sky_panorama), ("props_atlas", props_atlas)]
+    wrote = 0
+    for name, make in makers:
+        if only is not None and name not in only and name not in ("cracked", "props_atlas"):
+            continue
+        img = make()
+        if only is None or name in only:
+            img.save(os.path.join(ROOT, name + ".png"))
+            wrote += 1
+    print("gen_textures: wrote %d textures into" % wrote, ROOT)
 
 
 if __name__ == "__main__":

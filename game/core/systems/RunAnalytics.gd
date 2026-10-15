@@ -1258,12 +1258,13 @@ func _trait() -> Dictionary:
 	var c: CharacterDef = Run.character
 	if c == null:
 		return {}
-	var effects: Array = c.level_effects(Run.level)
+	# pass 79 (lane MUT): the trait grows with the card levels (Run.card_level)
+	var effects: Array = c.level_effects(Run.card_level())
 	var stats := {}
 	for e in effects:
 		if e is Effect:
 			stats[(e as Effect).stat] = snappedf((e as Effect).value, 0.001)
-	return {"name": c.trait_name, "text": c.trait_text, "level": Run.level, "stats": stats,
+	return {"name": c.trait_name, "text": c.trait_text, "level": Run.card_level(), "stats": stats,
 		"words": TextGen.describe_effects(effects) if not effects.is_empty() else ""}
 
 

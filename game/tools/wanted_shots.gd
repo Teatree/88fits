@@ -77,7 +77,7 @@ func _main() -> void:
 	_save = root.get_node("Save")
 	# the captures fill the save with the mocks' numbers: the PC's own save goes back as it was at the end
 	var kept := FileAccess.get_file_as_string("user://save.json")
-	var in_run := ["backdrop", "hud", "hud_boss", "hud_full", "hud_levels", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results"]
+	var in_run := ["backdrop", "hud", "hud_boss", "hud_full", "hud_levels", "hud_mutation", "phoenix", "levelup", "gate", "path", "chest", "chest_boss", "shop", "stranger", "pause", "down", "stageclear", "results"]
 	var any_run := false
 	for n in in_run:
 		if _want(n):
@@ -372,6 +372,8 @@ func _in_run() -> void:
 		await _hud_full()
 	if _want("hud_levels"):
 		await _hud_levels()
+	if _want("hud_mutation"):
+		await _hud_mutation()
 	if _want("phoenix"):
 		await _phoenix()
 	if _want("levelup") or _want("gate"):
@@ -458,6 +460,22 @@ func _hud_boss() -> void:
 	await _shot("06b-hud-boss-banner")
 	g.hud.test_arrows = []
 	g.hud.hide_boss()
+
+
+## 06e (pass 79, lane MUT): a mutation offer due, so the next level-up is a mutation level-up: the LV plate in the kit's
+## mutation plum and MUTATION NEXT at the XP rail's end (HUD._refresh_mut_mark).
+func _hud_mutation() -> void:
+	_build([["weapon", "hornet_nest", 3], ["weapon", "boomstick", 2], ["weapon", "molotov", 3], ["passive", "magnet", 2]])
+	_mut("hornet_nest", 1)
+	_run.build_changed.emit()
+	_hud_common(12, 0.7, 120, 300.0)
+	_run.mutlvl_due = 1
+	_run.mutation_due_changed.emit()
+	g.hud.set_hp(80, 100)
+	await _wait(0.5)
+	await _shot("06e-hud-mutation-next")
+	_run.mutlvl_due = 0
+	_run.mutation_due_changed.emit()
 
 
 ## A full build: five weapons (two evolved), five lines (one evolved), a boss up and a toast: every slot of the strip

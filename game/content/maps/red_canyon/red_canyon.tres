@@ -737,7 +737,7 @@ spawn_sides = {
 "top": 55.0
 }
 contact_cap = 0.22
-xp_need_mult = 4.1
+xp_need_mult = 1.65
 move_pace = 0.9
 portal_wave = {
 "count": 12.0
@@ -763,6 +763,17 @@ spawn_rise = {
 "dust": 1.0,
 "seconds": 0.45,
 "targetable": 0.7
+}
+rock_color = "#785C5E"
+wall_colors = {
+"boulders": "#6B5457",
+"cap": "#544045",
+"far": "#705963",
+"farther": "#594A57",
+"light": "#8C7370",
+"near": "#856B6E",
+"riser": "#47383B",
+"stone": "#7A6363"
 }
 
 [resource]

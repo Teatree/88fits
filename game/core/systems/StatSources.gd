@@ -147,7 +147,7 @@ static func rows(sheet: StatSheet, stat: String) -> Dictionary:
 			var r1 := _row(stat, sid, op, v - first, 1, str(a["source"]))
 			if not r1.is_empty():
 				r1["key"] = sid + "|" + op + "|growth"
-				r1["name"] = "%s · Lv %d" % [str(r1["name"]), Run.level]
+				r1["name"] = "%s · Lv %d" % [str(r1["name"]), Run.card_level()]
 				run_rows.append(r1)
 			continue
 		var r := _row(stat, sid, op, v, int(a["count"]), str(a["source"]))

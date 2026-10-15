@@ -71,8 +71,12 @@ func test_the_rail_is_twice_as_thick_in_the_hud_and_on_the_level_up_screen() -> 
 	assert_float(rail.offset_top).is_equal(0.0)
 	assert_float(rail.offset_bottom).is_equal(HUD.RAIL_H)
 	assert_float(rail.size.y).is_equal(HUD.RAIL_H)
-	# a plain fill (Garry: "nothing inside it"): the rail holds no nodes, it only draws its track and its fill
-	assert_int(rail.get_child_count()).is_equal(0)
+	# a plain fill (Garry: "nothing inside it"): the rail only draws its track and its fill. Pass 79 (lane MUT) re-pin:
+	# it holds one node, the mutation mark's word at its end (MUTATION NEXT, HUD._build_mut_mark), hidden while no
+	# mutation offer is due; the fill itself stays plain
+	assert_int(rail.get_child_count()).is_equal(1)
+	assert_str(str(rail.get_child(0).name)).is_equal("MutationNext")
+	assert_bool((rail.get_child(0) as CanvasItem).visible).is_false()
 	Run.add_weapon(Registry.weapon("peashooter"), 1)
 	var cs: CardScreen = auto_free(CardScreen.new())
 	add_child(cs)

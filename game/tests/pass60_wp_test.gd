@@ -670,7 +670,8 @@ func test_tracers_take_the_weapons_step_life_and_size_and_the_pellets_fade_at_th
 	assert_float(float(bp.get("tracer_life", 0.0))).is_equal_approx(0.16, 0.0001)
 	assert_float(float(bp.get("tracer_size", 0.0))).is_equal_approx(0.32, 0.0001)
 	assert_float(float(bp.get("tail_fade", 0.0))).is_equal_approx(0.25, 0.0001)
-	# live: a Tommy round drops beads with its own life and size, and they are gone after it
+	# live: a Tommy round lays its line with its own life (pass 79, lane FX: a line in place of the beads; the bead keys
+	# draw nothing any more), gone after it
 	var w := _world()
 	var pm: ProjectileManager = w["pm"]
 	var tommy := _emitter(w, _inst("tommy_gun"))
@@ -682,13 +683,15 @@ func test_tracers_take_the_weapons_step_life_and_size_and_the_pellets_fade_at_th
 	for k in range(ProjectileManager.TRAIL_MAX):
 		if pm.trail_age[k] < pm.trail_life[k]:
 			beads += 1
-			assert_float(pm.trail_life[k]).is_equal_approx(0.2, 0.0001)
-			assert_float(pm.trail_size[k]).is_equal_approx(0.4, 0.0001)
-	assert_int(beads).is_greater_equal(3)
-	pm._tick_trail(0.1)
-	assert_int(pm._trail_mm.visible_instance_count).is_equal(beads)
-	pm._tick_trail(0.15)
-	assert_int(pm._trail_mm.visible_instance_count).is_equal(0)
+	assert_int(beads).is_equal(0)
+	assert_int(pm.tracer_segments).is_greater_equal(3)
+	for k in range(pm.tracer_segments):
+		assert_float(pm.tracer_life[k]).is_equal_approx(0.2, 0.0001)
+	assert_int(pm.tracer_live()).is_equal(pm.tracer_segments)
+	pm.clock += 0.21
+	assert_int(pm.tracer_live()).is_equal(0)
+	pm._tracer_draw()
+	assert_int(pm._ln_mm.visible_instance_count).is_equal(0)
 	# a spit trail's bead keeps the long life
 	pm._drop_trail(Vector3.ZERO)
 	var long_lived := 0

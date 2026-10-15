@@ -422,7 +422,9 @@ const Forms = (() => {
     const o = opts || {};
     const ph = normHex(o.placeholder);
     const cur = normHex(value);
-    const color = el('input', { type: 'color', class: 'sw-color' + (cur ? '' : ' ph'), value: (cur || ph || '#ffffff').toLowerCase(), 'data-path': (o.path || '') + '#', title: cur ? cur : (ph ? `the creature's own ${ph}: pick to override` : 'pick a colour') });
+    // pass 79 (lane WORLD): `own` names whose default an empty box plays (a map's colour: "the game's")
+    const own = o.own || 'the creature\'s own';
+    const color = el('input', { type: 'color', class: 'sw-color' + (cur ? '' : ' ph'), value: (cur || ph || '#ffffff').toLowerCase(), 'data-path': (o.path || '') + '#', title: cur ? cur : (ph ? `${own} ${ph}: pick to override` : 'pick a colour') });
     const txt = el('input', { type: 'text', class: 'txt hex', value: cur || '', placeholder: ph || '#RRGGBB', 'data-path': o.path || '', maxlength: 7, spellcheck: false });
     color.addEventListener('change', () => onChange(color.value.toUpperCase()));
     txt.addEventListener('change', () => {
@@ -432,7 +434,7 @@ const Forms = (() => {
       if (h) onChange(h); else { txt.value = cur || ''; App.toast(`"${v}" is not a colour: #RRGGBB`); }
     });
     txt.addEventListener('keydown', (e) => { if (e.key === 'Enter') txt.blur(); });
-    return el('span', { class: 'swatch' }, color, txt, cur ? el('button', { class: 'x', type: 'button', text: '×', title: 'back to the creature\'s own', onclick: () => onChange(null) }) : null);
+    return el('span', { class: 'swatch' }, color, txt, cur ? el('button', { class: 'x', type: 'button', text: '×', title: `back to ${own}`, onclick: () => onChange(null) }) : null);
   }
 
   /** A list of colours (variance.tints): unset shows the creature's own list faded with "Edit a copy"; set, a swatch per
@@ -470,7 +472,7 @@ const Forms = (() => {
       else U.setKey(obj, def.key, v, def.def);
       if (o.after) o.after(v);
     }, o.what || 'all');
-    const ctl = { path: o.pathPrefix ? `${o.pathPrefix}.${def.key}` : def.key, placeholder: o.placeholder, cls: o.cls, inherit: o.inherit };
+    const ctl = { path: o.pathPrefix ? `${o.pathPrefix}.${def.key}` : def.key, placeholder: o.placeholder, cls: o.cls, inherit: o.inherit, own: o.own };
     switch (def.type) {
       case 'int': case 'number': return numberInput(def, value, write, ctl);
       case 'seconds': return secondsInput(def, value, write, ctl);

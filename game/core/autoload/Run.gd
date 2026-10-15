@@ -15,6 +15,8 @@ signal stage_changed(stage: int)
 signal weapon_evolved(weapon_id: String)
 ## Gold the run just gained, after greed (pass 47: the HUD's coin pop); only for an amount above 0.
 signal gold_gained(amount: int)
+## pass 79 (lane MUT): a mutation offer fell due or was taken by a level-up (the HUD's mark reads mutlvl_pending)
+signal mutation_due_changed
 
 var active := false
 var character: CharacterDef
@@ -174,6 +176,12 @@ var mutation_misses: Dictionary = {}  # weapon family id -> offers in a row with
 var perks: Array = []                 # perk ids taken
 var perk_gap := 5                     # offers since a perk card was shown (a perk is offered at most once in five)
 var path_slot := 0                    # the next path slot of the stage (WaveTimeline.path_times)
+## pass 79 (lane MUT): the mutation offers that fell due on the stage's path_times and wait for a level-up (each makes
+## the hero's next level-up a mutation level-up; mutlvl_*), the mutation level-ups whose screen has not opened yet, and
+## the level-ups that were mutation offers
+var mutlvl_due := 0
+var mutlvl_ready := 0
+var mutation_levels := 0
 
 
 ## The map's layout roll for this run (Red Canyon reads it): random each run, or `forced_map_seed` when a tool wants
@@ -270,6 +278,9 @@ func start(p_character: CharacterDef, p_map: MapDef) -> void:
 	perks = []
 	perk_gap = 5
 	path_slot = 0
+	mutlvl_due = 0
+	mutlvl_ready = 0
+	mutation_levels = 0
 	banished.clear()
 	run_materials = {"bones": 0, "relics": 0}
 	stranger_cost = 0.0
@@ -341,7 +352,8 @@ var base_crit := not Array(OS.get_cmdline_args()).any(func(a) -> bool: return st
 
 
 func _build_player_sheet() -> void:
-	player_sheet = hero_sheet(character, level)
+	# pass 79 (lane MUT): the trait grows with the card levels (card_level, M5)
+	player_sheet = hero_sheet(character, card_level())
 	for tb in timed:
 		player_sheet.add_effects(tb["effects"], tb["source"])
 	if momentum > 0.0 and not momentum_def.is_empty():
@@ -1204,6 +1216,93 @@ func path_offer_weapons() -> Array:
 	return out
 
 
+# ---------------------------------------------------------------- pass 79 (lane MUT): mutations come as level-ups
+
+## Pass 79 (Garry: "Mutations are supposed to be level ups, not just random occurrences"; his pick: the offers stay, one
+## per weapon per stage, but come as the level-up screen itself in place of the three cards):
+##   M1 a mutation offer falls due as before: the stage clock passes one of the map's `path_times` (path_due, Phase
+##      NORMAL only). One that falls due while no weapon has a pick open is spent with nothing, as a slot was before.
+##   M2 a due offer never opens on its own: it waits (mutlvl_due) for the hero's next level-up, which becomes a mutation
+##      level-up (mutlvl_claim, in add_xp): its screen shows the offer (the weapon's reel and its path cards, as before)
+##      in place of the three cards. Due offers queue, one a level-up, and stay due across a stage's end.
+##   M3 at that level-up a weapon must have a pick open; with none the offer is dropped and the level-up is an ordinary
+##      one. The weapon is drawn when the screen opens (mutlvl_take: next_path_weapon among those open then); a level
+##      banked meanwhile whose weapons all lost their pick (a chest's mutation) opens as an ordinary one too.
+##   M4 the HUD marks the LV plate and the XP rail while the next level-up is a mutation (mutlvl_pending).
+##   M5 a mutation level-up counts once it is claimed (mutation_levels; a skipped offer too); card_level() leaves them
+##      out for what grows with the hero's level.
+## Called by the director every frame of the stage clock: true when an offer fell due now (and was kept).
+func mutlvl_tick(t_in_stage: float) -> bool:
+	if not path_due(t_in_stage):
+		return false
+	# the arena levels by its buttons: no offer falls due there (the old slot's present_path_offer did nothing there)
+	if arena:
+		return false
+	if path_offer_instances().is_empty():
+		_note("mutation_due", "", level, {"dropped": true, "slot": path_slot, "due": mutlvl_due})
+		return false
+	mutlvl_due += 1
+	_note("mutation_due", "", level, {"slot": path_slot, "due": mutlvl_due})
+	mutation_due_changed.emit()
+	return true
+
+
+## Whether the hero's next level-up will be a mutation offer (the HUD's mark): an offer is due and a weapon has a pick
+## open now.
+func mutlvl_pending() -> bool:
+	return mutlvl_due > 0 and not path_offer_instances().is_empty()
+
+
+## A level-up (add_xp, each level) takes the next due offer (M2, M3): true when it is a mutation level-up. With no weapon
+## open the offer is dropped and the level is an ordinary one.
+func mutlvl_claim() -> bool:
+	if mutlvl_due <= 0:
+		return false
+	mutlvl_due -= 1
+	var open := not path_offer_instances().is_empty()
+	if open:
+		mutlvl_ready += 1
+		mutation_levels += 1
+	else:
+		_note("mutation_due", "", level, {"dropped": true, "due": mutlvl_due, "at_level_up": true})
+	mutation_due_changed.emit()
+	return open
+
+
+## A level-up screen opening (Game._show_next_level_cards): the weapon whose path goes on the table when a claimed
+## mutation level-up waits (mutlvl_ready), drawn among those open now; null for an ordinary level-up. A claimed one whose
+## weapons all lost their pick meanwhile is an ordinary one after all (mutlvl_unclaim).
+func mutlvl_take() -> WeaponInstance:
+	if mutlvl_ready <= 0:
+		return null
+	mutlvl_ready -= 1
+	var w := next_path_weapon()
+	if w == null:
+		mutlvl_unclaim()
+	return w
+
+
+## A claimed mutation level-up that opened as three cards after all: it counts as a card level again (the trait and
+## the creatures' level factor follow at once).
+func mutlvl_unclaim() -> void:
+	mutation_levels = maxi(mutation_levels - 1, 0)
+	_note("mutation_due", "", level, {"dropped": true, "due": mutlvl_due, "at_screen": true})
+	if levels_trait():
+		_build_player_sheet()
+		hero_sheet_changed.emit()
+		rebuild_sheets()
+
+
+## The level the numbers that grow with the hero's level read (pass 79, M5): the creatures' level factor
+## (WaveDirector), his trait (hero_sheet), Barrel Rush, Ram and Supply Drop. His level less the level-ups that were
+## mutation offers (the card levels: about the level the curve before pass 79 gave at the same minute), unless the map's
+## `mutation_levels_scale` counts them too. The arena and a run without a map read the level.
+func card_level() -> int:
+	if map == null or map.timeline == null or map.timeline.mutation_levels_scale:
+		return level
+	return maxi(level - mutation_levels, 1)
+
+
 ## A buff for `seconds` of the run clock (a power-up, a structure, a perk); the same id again starts its clock over.
 ## `quiet` (pass 47, Barrel Rush): it runs out without a "wore off" toast (tick_timed does not return its label).
 ## Pass 54: the seconds run buff_seconds long on this hero (Solenne's Magic Hour, Long Day), every buff that comes
@@ -1430,6 +1529,9 @@ func add_xp(n: float) -> void:
 		xp -= xp_to_next()
 		level += 1
 		max_level_reached = max(max_level_reached, level)
+		# pass 79 (lane MUT): a due mutation offer makes this level-up a mutation level-up (M2; before the trait reads
+		# card_level)
+		mutlvl_claim()
 		# the signature stat grows with the level (pass 61): the hero's own sheet follows before anyone hears of it, so his
 		# max HP has risen by the time a level-up heals a share of it; the weapons and the HUD rebuild once after the loop
 		# (the review: a credit of many levels at once rebuilt every weapon and plate per level)

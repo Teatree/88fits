@@ -106,7 +106,8 @@ func _apply_mults() -> void:
 	em.stage_mult = Run.stage_mult()
 	em.stage_speed_mult = timeline.speed_mult(Run.stage)
 	em.hp_time_mult = timeline.hp_mult_at(Run.elapsed)
-	var lv := float(maxi(Run.level - 1, 0))
+	# pass 79 (lane MUT): the card levels (Run.card_level, M5)
+	var lv := float(maxi(Run.card_level() - 1, 0))
 	em.level_hp_mult = 1.0 + timeline.level_hp_per_level * lv
 	em.level_dmg_mult = 1.0 + timeline.level_damage_per_level * lv
 	# pass 46: beefier creatures (never a boss), colour only after the run's first kills (the arena shows it from the
@@ -187,9 +188,9 @@ func _process(delta: float) -> void:
 		if phase == Phase.NORMAL:
 			# the timeline's waves (pass 53) run in the normal phase only: an event above may just have started a boss
 			_tick_waves()
-		# the path slots: a stage puts a weapon's whole path on the table at set seconds into it
-		if Run.path_due(Run.elapsed - float(Run.stage) * timeline.stage_length) and game.has_method("present_path_offer"):
-			game.present_path_offer()
+		# the path slots: a stage puts a weapon's whole path on the table at set seconds into it; pass 79 (lane MUT): the
+		# offer falls due there and waits for the hero's next level-up (Run.mutlvl_tick, M1-M2), never opening on its own
+		Run.mutlvl_tick(Run.elapsed - float(Run.stage) * timeline.stage_length)
 	elif phase == Phase.PORTAL:
 		_portal_t += delta
 	if phase != Phase.NORMAL:
@@ -491,7 +492,7 @@ static func _row_def(r: Dictionary) -> EnemyDef:
 ## plays these instead of the live curve and level, times the stage multiplier at its spawn, and keeps them for its hits.
 func fixed_numbers(t0: float, stats: Dictionary = {}) -> Dictionary:
 	var tl: WaveTimeline = timeline if timeline else WaveTimeline.new()
-	var lv := float(maxi(Run.level - 1, 0))
+	var lv := float(maxi(Run.card_level() - 1, 0))
 	return {"t0": t0,
 		"hp_time": 1.0 if stats.has("hp") else tl.hp_mult_at(t0),
 		"dmg_time": 1.0 if stats.has("damage") else tl.damage_mult_at(t0),

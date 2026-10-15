@@ -67,7 +67,7 @@ const Timeline = (() => {
       ['waves', 'Waves', { text: '+ Wave', title: 'Add a wave at the view\'s centre', onclick: () => App.newWave(null, viewCenter()) }, '', ''],
       ['events', 'Events', { text: '+ Event', title: 'Add an event at the view\'s centre', onclick: (e) => eventMenu(e.currentTarget) }, '', ''],
       ['specials', 'Specials', null, '', ''],
-      ['paths', 'Paths', null, '', ''],
+      ['paths', 'Mutations', null, '', 'When each stage\'s mutation offers fall due; each comes at the hero\'s next level-up (pass 79).'],
     ];
     for (const [name, title, plus, cls, help] of spec) {
       const head = name === 'roster' ? el('div', { class: 'lane-head' }, el('div', {}, el('div', { class: 'lane-name', text: title }), el('div', { class: 'lane-sub' }))) : null;
@@ -1278,7 +1278,7 @@ const Timeline = (() => {
         n++;
       });
     }
-    if (!pt.length) g.appendChild(svg('text', { x: 8, y: 20, class: 'hint-text', text: 'no path offers (Settings → Items)' }));
+    if (!pt.length) g.appendChild(svg('text', { x: 8, y: 20, class: 'hint-text', text: 'no mutation offers (Settings → Items)' }));
     const bd = issueBadge(key, 10, 10);
     if (bd) g.appendChild(bd);
     s.appendChild(g);

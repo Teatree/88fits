@@ -136,7 +136,7 @@ the event's own `t`, `clock` and `kind` are never overwritten.
 | `mutation` | `id`, `weapon` (the family), `hero` (a hero mutation) |
 | `perk` | `id` |
 | `evolution`, `passive_evolution` | `id` (the evolved form), `from`; *(2)* `line: true` on a line's |
-| `offer` | (pass 57) an offer the card screen settled: `id` (the pick, absent when skipped), `level` (the hero's), `route` (`level_up`, or `path` for a weapon's mutation offer), `cards` / `kinds` / `levels` (what was on the table: ids, `weapon`/`passive`/`perk`/`mutation`, the level each would reach), `skipped`, `decision_ms` (from showing to the pick), `weapon` (a path offer's family), `left` (skips left, when skipped), `rerolls`, `banished` ([ids]) |
+| `offer` | (pass 57) an offer the card screen settled: `id` (the pick, absent when skipped), `level` (the hero's), `route` (`level_up`, or `path` for a weapon's mutation offer: since pass 79 a mutation level-up), `cards` / `kinds` / `levels` (what was on the table: ids, `weapon`/`passive`/`perk`/`mutation`, the level each would reach), `skipped`, `decision_ms` (from showing to the pick), `weapon` (a path offer's family), `left` (skips left, when skipped), `rerolls`, `banished` ([ids]) |
 | `chest` | `id` (what the reel landed on, empty for gold), `level` (level_to), `roll` (`weapon`, `passive`, `evolution`, `mutation`, `gold`), `take`; pass 47: `skip` true and `left` (the stage's skips left) when let go (before pass 47: false = sold, then `gold`), `boss` |
 | `skip` | pass 47: `left` (the stage's skips left; skipping pays nothing now; before, `gold`); `id: "path"` when a mutation offer was skipped |
 | `banish` | `id` (the card struck); pass 47: `where: "chest"` and `roll` when struck from a chest |
@@ -157,6 +157,7 @@ the event's own `t`, `clock` and `kind` are never overwritten.
 | `stranger_decline` *(2)* | his deal turned down: `id`, `type`, `level`, `cost` |
 | `totem_offer` *(2)* | a Totem Pole's menu closed: `id` (the gift taken; absent when none was), `offered` / `stats` / `values` / `quality` / `words` (the gifts offered: ids, stats, amounts, quality 1-3, in words) |
 | `totem` | (pass 73) a gift taken: `id`, `level` (gifts taken so far), `stat`, `value` |
+| `mutation_due` | (pass 79) a mutation offer fell due on the stage clock and waits for the next level-up: `level` (the hero's), `due` (offers waiting after it), `slot`; `dropped: true` when it was spent with no weapon open (at its slot), at the level-up that took it (`at_level_up`) or as its screen opened (`at_screen`). A mutation level-up's own `offer` keeps `route: "path"` |
 | `pickup` | `id`, `small` (cake slices, coin bags), `effect` |
 | `portal_wait` | (pass 48) the boss is down and the portal waits: `level` = the stage |
 | `portal` | `level` = the stage the portal closed, `extract` |

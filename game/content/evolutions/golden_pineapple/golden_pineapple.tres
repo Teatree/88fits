@@ -67,6 +67,14 @@ params = {
 "size": 0.13
 }
 },
+"lead": {
+"gap": 1.5,
+"hero_ahead": 0.5,
+"max": 6.0,
+"mode": "predict",
+"radius": 3.0,
+"share": 1.0
+},
 "model": "res://art/props/golden_grenade.glb",
 "model_metallic": 0.45,
 "model_roughness": 0.3,

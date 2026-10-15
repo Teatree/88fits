@@ -106,7 +106,7 @@ are drawn one at a time from everything that may be offered, in proportion to it
 | **Lines**: a new one only while a line slot is free (5, `Run.MAX_LINES`); a level of one you hold until its 4th; a maxed line offers its **evolution** instead (weighted x3), which takes its slot | the same |
 | **Passive items**: always, no slots and no cap; new, or a level of one you hold until its top | the same |
 | **Perks** (the hero's own): at most one a level-up, at most once in five level-ups (`Run.perk_gap`), each once a run, weighted x4 | the same |
-| **Mutations never come in a level-up.** They have their own table at the map's `path_times` (stage 1: seven slots from 1:19, later stages eight from 0:50): the weapon with the highest level that still has a mutation open this stage gets its whole path (its open element, volume and motion mutations, then the hero's own option) on one table. One mutation per weapon per stage, from its first level (`Run.MUTATION_FROM_LEVEL` 1). Boss chests always roll a mutation, and the Stranger sells one | `Run.path_due`, `next_path_weapon`, `CardPool.path_offer` |
+| **A mutation offer comes as a level-up** (pass 79; until then mutations never came in a level-up). It falls due at the map's `path_times` (seconds into each stage) and the hero's next level-up shows it in place of the three cards (§26.MUT, rules M1-M6): a weapon drawn at random among those that still have a mutation open this stage (pass 54; it was the highest-levelled one) gets its whole path (its open element, volume and motion mutations, then the hero's own option) on one table. One mutation per weapon per stage, from its first level (`Run.MUTATION_FROM_LEVEL` 1). Boss chests always roll a mutation, and the Stranger sells one | `Run.path_due`, `Run.mutlvl_tick`/`mutlvl_claim`, `next_path_weapon`, `CardPool.path_offer` |
 | **Evolution** comes from a chest, once a weapon is at its 5th level and holds all three of its path mutations (a hero's own is optional) | `Run.evolution_ready` |
 | Not offered: anything banished this run, anything locked behind an unlock quest (unless you already hold it), hidden items, another hero's own weapons (the Gravity Gun is Astro's, the Revolver the Drifter's, the Guitarra Calavera's), stage-3 items before stage 3 (Brimstone Brand, Sinner's Greed: `from_stage`) | `Registry.unlocked_*`, `stage_open` |
 | **Weights**: an item's `weight` x its rarity (common 1, uncommon 0.75, rare 0.55, epic 0.3, legendary 0.15) x (1 + luck x the tier's lift: uncommon 0.5, rare 1, epic 1.5, legendary 2) x 1.5 if you hold it x 0.88 for every level past the first | `CardPool.weight_of` |
@@ -2877,3 +2877,214 @@ No game number changed. The rules this pass adds, with where each lives:
   "for this run" (sim_model.js; the Sim tab's 1-player sims read the same way now).
 - The dashboard's averaged runs: whatever is ticked (files, a folder, remote runs); the time axis runs to the longest
   run; "the runs one by one" lists each run's own end.
+
+## 26. Pass 79 (v0.65): mutations at level-ups, bodies that fly, line trails, the rim, the dynamite's lead
+
+Garry's request (2026-10-15, tools/dl/p79/REQUEST.md). Each lane's rules as it wrote them.
+
+### 26.MUT Mutation offers come as level-ups; the XP curve
+
+Garry (2026-10-15): "Mutations are supposed to be level ups, not just random occurrences ... the mutations happen whenever
+there is a level up". His pick: the offers stay (one per weapon per stage) but come as the level-up screen itself, in
+place of the three cards; "decrease the level requirements to achieve the same power level considering the changes".
+
+#### The rules (name them in §26)
+
+| # | rule | where |
+|---|---|---|
+| M1 | A mutation offer **falls due** as a slot always did: the stage clock passes one of the map's `path_times` (Phase NORMAL only; stage 1: 79, 140, 200, 260, 315, 365, 405 s; stages 2-3: 50, 105, 160, 215, 270, 325, 380, 410 s; endless plays the last list once). One that falls due while no weapon has a pick open is spent with nothing, as before. Never in the arena | `Run.mutlvl_tick` (WaveDirector._process calls it instead of `Game.present_path_offer`) |
+| M2 | A due offer **never opens on its own**. The hero's next level-up is a **mutation level-up**: its screen is the mutation offer (the weapon reel, the weapon's whole remaining path and the hero's own option, "Level N! Pick a mutation", SKIP on the stage's two skips, no reroll, no banish) in place of the three cards. Due offers **queue, one a level-up**, and stay due across a stage's end. The level-up is claimed when the XP crosses the line (a level banked behind another screen or while he is down keeps its kind) | `Run.mutlvl_claim` (in `add_xp`), `Game._show_next_level_cards` -> `Game._mutlvl_open` |
+| M3 | A level-up whose due offer finds **no weapon with a pick open** is an ordinary one (three cards); the offer is dropped. The weapon is drawn **at random** among those open when the screen opens (as since pass 54); a claimed one whose weapons all lost their pick while banked (a boss chest's mutation) opens as three cards | `Run.mutlvl_claim`, `Run.mutlvl_take`, `Run.mutlvl_unclaim`, `Run.next_path_weapon` |
+| M4 | **The HUD says it**: while an offer is due and a weapon has a pick open, the LV plate is the kit's mutation plum (`W.PLUM`) with paper letters and the XP rail's right end reads MUTATION NEXT (slab 30 px, paper, 4 px ink stroke, 24 px in). It goes when the level-up takes the offer | `HUD._refresh_mut_mark`, `Run.mutlvl_pending` |
+| M5 | **The card levels.** A mutation level-up counts once it is claimed (a skipped offer too: `Run.mutation_levels`). What grows with the hero's level reads `Run.card_level()` = his level less his mutation level-ups: the creatures' level factor (`level_hp_per_level` 0.05, `level_damage_per_level` 0.03 per level above 1), his trait (`trait_per_level`, and its "Lv N" in the pause Stats), Barrel Rush's barrel gems (1 + 0.15 x level), Ram's `per_level`, Supply Drop's `damage_per_level`. So a minute brings the same scaling as before; the map's `mutation_levels_scale: true` counts every level-up instead | `Run.card_level`, WaveDirector._apply_mults / fixed_numbers, Run._build_player_sheet, BarrelField, EnemyManager (Ram), Game (Supply Drop), StatSources, RunAnalytics._trait |
+| M6 | **Faster levels.** `xp_need_mult` (the XP curve 15 + 6L + 0.5L^2 times it) is set so that a minute brings about as many three-card level-ups as before and the mutation level-ups on top (measured, below). The quests that count the badge level (Quickdraw: level 10, Zap Beam: level 20, May: level 30) now come sooner: they read the badge, not the card level | `timeline_data.xp_need_mult` |
+
+Docs fix (to the code since pass 54): BALANCING.md's table says "the weapon with the highest level that still has a
+mutation open this stage gets its whole path": the weapon is drawn **at random** among those with a pick open
+(`Run.next_path_weapon`, pass 54). The row should now read: "Mutations never come among the three cards. A mutation
+offer falls due at the map's `path_times` and is the hero's next level-up (M1-M3)...". The design bible part2.html is
+rewritten (Mutations' first bullet, Evolutions: level 5 + all three path mutations).
+
+#### The XP curve
+
+**Red Canyon's `xp_need_mult`: 3.1 -> 1.65.** Garry's numbers on the way: 2.1 until 2026-10-15, 4.1 at HEAD c16df32
+(his morning change), **3.1** in his Level Editor save of 12:46 (the value when measured: the lead's baseline, "today").
+The curve keeps its shape (15 + 6L + 0.5L^2) x the multiplier: one scalar holds within about two levels over 0-25 min,
+so no shape key was added.
+
+**How it was measured.** The run sim (tools/sim_batch.py, game/tools/sim_run.gd's bot) on lane MUT's own snapshot of
+the tree (FX's and WORLD's final code included), Drifter, 20 players (seeds 1-20), 25:00, death = keep (stood up at
+full HP, every fall counted), the Upgrade board a quarter, 60 fps. "Today" = the snapshot with the director's old line
+(the offer pops up on the clock) at 3.1; "new" = the same snapshot with the new delivery. Per player and per 30 s:
+the XP he had gained, the level that XP buys on today's curve, plus the mutation offers he had taken by then = the level
+the new curve should give for that XP; the multiplier that fits best over 0-25:00 (least squares on the level):
+**1.64** (RMS 1.54 levels; 1.6: 1.59, 1.7: 1.64, 1.5: 2.11), rounded to the editor's 0.05 step: **1.65**. Then a sim of
+each confirms it (by play minute, means over the 20 players; "regular picks" = three-card level-ups taken):
+
+| min | regular picks today | regular picks new | mutations today (clock) | mutation level-ups new | level today | level new | kills today | kills new | deaths today | deaths new |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 0.9 | 1.7 | 0.0 | 0.0 | 1.9 | 2.7 | 100 | 110 | 0.0 | 0.0 |
+| 2 | 2.2 | 3.0 | 1.0 | 0.8 | 3.2 | 4.8 | 218 | 232 | 0.0 | 0.0 |
+| 3 | 3.7 | 3.9 | 1.9 | 1.8 | 4.7 | 6.6 | 487 | 462 | 0.1 | 0.1 |
+| 4 | 5.6 | 5.8 | 2.6 | 2.5 | 6.6 | 9.3 | 834 | 742 | 0.1 | 0.1 |
+| 5 | 8.4 | 7.6 | 3.4 | 3.1 | 9.4 | 11.8 | 1400 | 1196 | 0.1 | 0.1 |
+| 6 | 10.4 | 9.1 | 4.2 | 4.0 | 11.4 | 14.1 | 2036 | 1693 | 0.3 | 0.2 |
+| 7 | 13.1 | 11.2 | 4.8 | 4.5 | 14.1 | 16.8 | 2601 | 2226 | 0.4 | 0.2 |
+| 8 | 17.9 | 19.6 | 4.8 | 4.7 | 18.9 | 25.2 | 2997 | 2617 | 0.7 | 0.5 |
+| 9 | 20.6 | 20.6 | 5.8 | 5.4 | 21.6 | 27.1 | 3242 | 2862 | 1.5 | 1.0 |
+| 10 | 23.2 | 22.7 | 6.9 | 6.5 | 24.2 | 30.2 | 3842 | 3393 | 2.2 | 1.6 |
+| 12 | 26.6 | 25.2 | 9.4 | 8.3 | 27.6 | 34.5 | 5084 | 4564 | 3.3 | 2.9 |
+| 14 | 29.6 | 27.9 | 9.8 | 9.6 | 30.6 | 38.5 | 6524 | 5949 | 4.6 | 4.6 |
+| 16 | 34.4 | 33.9 | 10.3 | 9.8 | 35.4 | 44.7 | 8061 | 7270 | 6.5 | 6.8 |
+| 18 | 38.9 | 36.8 | 12.4 | 11.8 | 39.9 | 49.6 | 10843 | 9611 | 8.0 | 7.8 |
+| 20 | 44.0 | 42.0 | 12.9 | 12.7 | 45.1 | 55.7 | 13338 | 11709 | 9.2 | 8.8 |
+| 22 | 48.0 | 47.4 | 12.9 | 12.8 | 50.3 | 61.1 | 16024 | 13963 | 10.1 | 9.4 |
+| 24 | 52.8 | 54.4 | 12.9 | 12.8 | 56.9 | 69.2 | 18957 | 16742 | 10.8 | 11.3 |
+| 25 | 54.2 | 57.5 | 12.9 | 12.8 | 60.0 | 73.1 | 20492 | 18216 | 10.9 | 11.7 |
+
+Reading it: the three-card level-ups by any minute stay within about two of today's (-1.9 at 7:00, -2.0 at 20:00,
++1.6 at 24:00; the standard error of a 20-player mean is 0.6 to 2 levels, so most of it is noise), the mutation picks
+are the same (the level-up delivers them a few seconds after their slot: -0.4 at most but -1.1 at 12:00), and the level
+on the badge is today's plus about 13 by 20:00. Kills differ by -11 to -17% here and by +7 to +17% in the same test at
+4.1 (below): the spread of one player's kills is 25-35%, so neither is a trend. Past 24:00 (endless) the new curve runs
+ahead (+3.3 picks at 25:00): the mutations stop at about 13 while the scalar keeps every level cheaper.
+
+**The same at 4.1** (the brief's first baseline, on the snapshot before FX's and WORLD's last changes; 4.1 old vs
+2.0 new, 20 players each; the fit there: 1.99, RMS 1.48):
+
+| min | regular picks today | regular picks new | mutations today (clock) | mutation level-ups new | level today | level new | kills today | kills new | deaths today | deaths new |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 0.6 | 1.6 | 0.0 | 0.0 | 1.6 | 2.5 | 94 | 109 | 0.0 | 0.0 |
+| 2 | 1.4 | 2.5 | 1.0 | 0.7 | 2.5 | 4.2 | 196 | 224 | 0.0 | 0.1 |
+| 3 | 2.1 | 3.1 | 1.6 | 1.6 | 3.1 | 5.7 | 378 | 415 | 0.0 | 0.1 |
+| 4 | 3.8 | 4.0 | 2.2 | 2.1 | 4.8 | 7.0 | 654 | 676 | 0.0 | 0.1 |
+| 5 | 6.0 | 5.6 | 2.9 | 2.8 | 7.0 | 9.4 | 1035 | 1065 | 0.1 | 0.2 |
+| 6 | 7.2 | 7.5 | 3.5 | 3.4 | 8.2 | 11.9 | 1444 | 1610 | 0.3 | 0.7 |
+| 7 | 8.8 | 9.9 | 4.3 | 4.1 | 9.8 | 15.0 | 1925 | 2107 | 0.5 | 0.7 |
+| 8 | 14.4 | 16.6 | 4.3 | 4.5 | 15.4 | 22.1 | 2277 | 2474 | 0.9 | 0.9 |
+| 9 | 16.4 | 17.8 | 5.2 | 5.0 | 17.4 | 23.8 | 2503 | 2684 | 1.9 | 2.1 |
+| 10 | 18.3 | 19.0 | 6.3 | 6.0 | 19.3 | 26.1 | 2964 | 3139 | 2.9 | 3.3 |
+| 12 | 21.5 | 20.8 | 8.6 | 8.0 | 22.5 | 29.7 | 3912 | 4170 | 4.5 | 5.3 |
+| 14 | 23.9 | 22.8 | 9.3 | 9.2 | 24.9 | 32.9 | 4998 | 5416 | 6.2 | 7.0 |
+| 16 | 28.1 | 28.4 | 9.8 | 9.4 | 29.1 | 38.8 | 6052 | 6610 | 9.1 | 9.1 |
+| 18 | 31.9 | 31.1 | 11.6 | 11.2 | 33.0 | 43.4 | 7868 | 8910 | 11.5 | 10.4 |
+| 20 | 36.0 | 34.9 | 12.6 | 12.3 | 37.0 | 48.2 | 9769 | 11254 | 13.0 | 11.9 |
+| 22 | 39.3 | 39.9 | 12.7 | 12.6 | 40.5 | 53.5 | 11692 | 13588 | 13.8 | 13.4 |
+| 24 | 43.6 | 47.4 | 12.7 | 12.7 | 45.4 | 61.5 | 14015 | 16447 | 15.7 | 15.6 |
+| 25 | 46.1 | 49.8 | 12.7 | 12.7 | 48.2 | 65.3 | 15406 | 18055 | 16.4 | 16.1 |
+
+Side effects to know (not rules): the quests that count the badge level (Quickdraw 10, Zap Beam 20, May 30) come
+sooner (in the 3.1 sims level 20 came at 7:30 on average instead of 8:10); PostHog's `path_offer` events are now level-ups too
+(a board that counts `level_up` offers counts only the three-card ones); a level-up's heal (`level_heal`) and Suit
+Seals' invulnerability come with every level-up, mutation ones included.
+
+### 26.FX Bodies that follow through; line trails
+
+#### Bodies follow through (EnemyManager, "pass 79 (lane FX): corpses follow through", the end of the file)
+Garry: "enemies that die have their corpses follow through with their knockback. So when an explosion kills an enemy fly
+off like the live ones."
+- A creature that dies keeps the push it had (the killing hit's push is added before it dies, as for a live one, plus
+  whatever push it still carried). Its body slides on with it while its death plays, the push dying away at
+  `CORPSE_GROUND_DECAY` = 6 /s (the live crowd's own rate), inside the arena (the same clamp as the living: 2 m inside
+  the arena's radius), on the ground's height, and sliding along a rock it runs into instead of entering it. A push
+  under `CORPSE_STOP` = 0.05 m/s is spent.
+- A kill by a blast also throws the body up. A blast is any `damage_radius` hit with a push (knockback > 0): the
+  dynamite/grenade family, Powder Keg, the rockets, mines, Cluster bomblets, a turret's boom, the Vortex's pop,
+  Overkill's splash, the revive blast, a hostile blast catching its own crowd (a kamikaze's, a death burst, a loose
+  rocket). Height = `CORPSE_TOSS_PER` 0.3 m for every m/s of the body's push, at most `CORPSE_TOSS_MAX` 2.5 m; under
+  `CORPSE_TOSS_MIN` 0.3 m there is no throw (the body only slides). It falls at `CORPSE_G` 22 m/s² (the launch's dead
+  fall); while up, the push dies away at `CORPSE_AIR_DRAG` 1.5 /s only, so it sails; it lands in a little sand (no
+  sound). Its death lasts at least the flight plus `CORPSE_REST` 0.6 s (it lies a moment, then sinks over the usual
+  DIE_SINK 0.3 s); a short flight leaves the usual DIE_TIME 1.4 s.
+- Examples (Red Canyon's hero_knockback_mult 0.5; a pack of skeletons, the final captures
+  tools/dl/p79/FX/final_corpses): the dynamite (knockback 14) pushes ~3-5 m/s: thrown 0.75-1.4 m up, landing ~1.2-2.4 m
+  out; Powder Keg (KEG_KNOCK 9) ~2-3 m/s: 0.6-0.85 m up, ~0.9-1.3 m out. A survivor of the same blast is shoved as
+  before (~0.7 m for the dynamite), never thrown.
+- Exceptions: the boss keeps his old death (no slide, no throw). Big game (an Elite, an elite-modded creature, a
+  big-game type) slides but is never thrown up (only small creatures are ever launched alive). A body up in a launch
+  (Alley-Oop, Bucking Bronco) falls as before and keeps Bucking Bronco's drift as its push. A body killed while up in
+  the air by anything else (a tornado's toss, a bounce) now falls from there (it used to hang in the air through its
+  death).
+- Nothing changes for the living.
+
+#### Tracer lines (ProjectileManager, "pass 79 (lane FX): the tracers' lines", the end of the file;
+#### core/shaders/tracer_line.gdshader)
+Garry: "The balls aren't good. Make a simple line trail, similar to that of the rocket. Should be thin. 1. Regular shot
+dark red transparent 2. Silver - thicker, correct colour. 3. Then the line disappears like smoke."
+- Every shot of a weapon with `tracer` lays a line behind it instead of beads: a piece every `TRACER_SEG_MIN` 0.3 m it
+  flies (0.6 m while more than `TRACER_BUSY` 60 shots are in the air), from where it left (the muzzle).
+- Width `tracer_width` (default `TRACER_WIDTH` 0.05 m), never under 1.5 screen pixels; colour as before
+  (`_tracer_colour`: a mutation's own `tracer_color`, else Silver Bullet's, the element's, the weapon's own, gold), drawn
+  exactly as written (sRGB); alpha `tracer_alpha` (0.9); life `tracer_life` (default TRAIL_LIFE 1.4 s).
+- The smoke: over its life each piece fades (alpha x (1 - f)^1.5), widens to 1.9x, drifts up 0.45 m/s, sways up to
+  0.06 m and greys 40% towards its own grey (shader uniforms widen 0.9, rise 0.45, fade_pow 1.5, sway 0.06,
+  smoke_grey 0.4, min_px 1.5, edge_soft 0.45). The two ends of a piece are dated when the shot passed them, so a line
+  fades from its tail towards the shot with no seams.
+- `tracer_clear` (the Revolver's 1.1 m) cuts away the part of a line within that distance of the hero (ground plane).
+- At most `TRACER_LINE_MAX` 2048 pieces at once (a ring): a busy screen cuts the oldest lines short, never slows down.
+- The old bead keys `tracer_size`, `tracer_step`, `tracer_beads` (Drum Mag's three beads a drop) draw nothing now.
+- Content set: Revolver #8B0A0A at 0.9, 0.045 m, 0.9 s (was the beads' #7A1F17 at 0.85, which the renderer showed as a
+  salmon terracotta: the bead material read the colour as linear); Silver Bullet and the Golden Revolver's silver form
+  #C9DCEF (pale silver-blue) at 0.9, 0.11 m (the old SILVER constant (0.55, 0.8, 1.0) shown as written is a sky blue);
+  Drum Mag 0.065 m (a bolder line for its "denser trails"); Boomstick and Blunderbuss pellets 0.035 m; everything else
+  0.05 m in its old colour and life.
+
+### 26.WORLD The rim's and walls' colours; the dynamite thrown ahead
+
+#### The map's sides (Garry: "Map the sides are too orange")
+- Red Canyon's red-rock rim (from `rim_start` 44 m to the wall at 66 m) and its walls are drawn in the colours the map
+  file names: timeline_data `rock_color` and `wall_colors` {near, far, farther, stone, light, cap, riser, boulders},
+  "#RRGGBB" each; a key left out or unreadable plays RedCanyon's default. Defaults (= the file's today):
+  rock **#785C5E** (0.47, 0.36, 0.37); cliffs near **#856B6E**, far **#705963**, farther **#594A57**; boundary wall stone
+  **#7A6363**, light **#8C7370**, cap **#544045**, risers **#47383B**; boulders **#6B5457**.
+  Pass 78's: rock (0.62, 0.34, 0.24) over an orange painting; cliffs (0.78, 0.6, 0.5), (0.62, 0.42, 0.36),
+  (0.46, 0.30, 0.30) over orange sandstone; wall (0.60, 0.40, 0.30) / (0.68, 0.47, 0.35), cap (0.40, 0.26, 0.21),
+  risers (0.34, 0.22, 0.18), boulders (0.5, 0.33, 0.26).
+- The rock painting (redrock.png) is recoloured to `rock_color` in the terrain shader: its luminance over its own mean
+  (`rock_tex_lum` **0.184**, linear) times the colour, so the bands and cracks are light and dark only and the hue is
+  the key's. The cliffs' sandstone painting is grey bands (mean about 0.84) since pass 79, so a cliff colour is the colour
+  drawn (times the painting's light and dark).
+- On the phone's screen (seed 11, the same views before and after): the rim's rock hue 25 -> 22-24, saturation
+  0.65-0.67 -> 0.53-0.56, value 0.80-0.82 -> 0.66-0.70; the boundary wall saturation 0.62 -> 0.53, the cliffs 0.66 -> 0.52.
+  The sand (pass 61's sand_color / river_color, the sand and cracked paintings) is unchanged: sand on the screen
+  (242, 210, 145) before and after.
+- The sun and the sky's light are warm (sun (1.0, 0.85, 0.65), ambient (0.95, 0.80, 0.66)): every colour reads more
+  orange on the screen than as authored, so the defaults lean a touch rosy (the editor's help says so). Not changed:
+  the light, the fog (0.93, 0.66, 0.42 at 0.004), the sky, the posts (0.36, 0.25, 0.16), stage 3's hell tint (the hell
+  rim reads hue 15, a clear red).
+
+#### The dynamite's lead (Garry: "Throw the dynamite in front of the enemies.")
+- `params.lead` on **lob_grenade** and **golden_pineapple** only (every other Lobber throws where it did): the bomb goes
+  where its crowd will be when it blows. JSON block on both: share **1.0**, mode **"predict"**, max **6.0** m, gap
+  **1.5** m, radius **3.0** m, hero_ahead **0.5** (Lobber.LEAD_* the same when a key is left out; `lead` may also be a
+  bare number = the share, or true).
+- **The wait** = the lob's flight, clamp(distance / speed, 0.35, 2.5) s as ProjectileManager.lob times it, + the
+  fuse's `seconds` (1.0 s); a weapon carrying Sticky counts the flight only (it rides what it catches).
+- **chase** (the line's far end): the crowd within `radius` of the chosen spot closes on where the hero will be
+  (his position + his velocity x hero_ahead x the wait) at its mean walking speed (each creature's own speed, averaged,
+  on the world's clock: High Noon's slow is in it; the push a hit gave it is not) for the wait, x share, stopping `gap`
+  short of him; at most `max` m.
+- **predict** (the default): LEAD_STEPS + 1 = **5** spots from the chosen one to the chase's (0, 1/4, 1/2, 3/4, all) are
+  scored by how many creatures will stand inside the blast's radius (the weapon's `area`) there when it goes off: every
+  creature within area + the line's length + 6 m, walking on its own, closes on where the hero will be at its own pace
+  for the wait, stopping `gap` short of him; one standing still (biting, winding up) stays. The best spot wins; on a tie
+  the one further ahead (Garry asked for "in front").
+- **No lead**: a crowd within `gap` (1.5 m) of the hero; a crowd that stands; a Sticky throw at a priority target (the
+  Golden Pineapple's every throw, so its lead only plays when no strongest creature is in reach); the "walk" mode is the
+  straight extrapolation the contract named (its mean velocity x the wait, drawn back to `gap` from the hero), kept as a
+  choice, not played.
+- The led spot stays within the weapon's `range` of the hero and inside the arena (radius 66 - 1.5 m), on the ground
+  there. A priority target (special, Elite, boss: pass 73's first bomb) is led by its own walk.
+- **Spread** (pass 36): a led throw's crowd spot at the throw (`lead_from`) is claimed beside the led spot, so the next
+  bomb weapon still picks another crowd.
+- **Measured** (game/tools/_p79_WORLD_lead_probe.gd: Red Canyon, the Drifter in god mode with the Dynamite Stick alone,
+  6 seeds x 60 s each way, the lead off then on; "caught" = creatures inside the blast as it goes off):
+  - level 1, the run sim's kiting pilot, 1:30-2:30: caught a blast 8.61 -> **9.00** (+5%), kills a blast 2.78 -> **3.19**
+    (+15%), kills a minute 77 -> **88** (+14%).
+  - level 5 (area 3.8, two sticks), kiting, 2:30-3:30: caught 5.95 -> **6.48** (+9%), kills a blast 5.47 -> **5.84**
+    (+7%), kills a minute 334 -> **353** (+6%).
+  - level 5, the hero standing still: caught 8.56 -> **8.84** (+3%), kills a minute 462 -> **473** (+2%).
+  - Paired on the same blasts (every blast also scored at every candidate spot at the moment it went off): the predict
+    spot over the unled one +1.29 +- 0.13 (L1 kite, +16%), +0.83 +- 0.07 (L5 kite, +14%), +0.59 +- 0.07 (L5 standing,
+    +7%); the contract's plain walk lead +0.09 +- 0.17, +0.03 +- 0.09, -0.22 +- 0.11 (no better than none: the crowd near
+    the hero is a stream and the blast is wider than the lead); the plain chase +0.44, +0.18, -0.20.

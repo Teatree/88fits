@@ -409,7 +409,9 @@ func test_the_silver_bullet_is_bigger_bluer_and_quietly_faster() -> void:
 	assert_float(pm.radius[j]).is_equal_approx(float(plain.params["radius"]) * 1.5, 0.001)
 	# pale blue: its own kind, its tracer, a harder kick and a small camera kick
 	assert_int(pm.kind[j]).is_not_equal(pe.projectile_kind)
-	assert_bool(pm._tracer_colour(inst).is_equal_approx(Color(ProjectileManager.SILVER.r, ProjectileManager.SILVER.g, ProjectileManager.SILVER.b, 0.9))).is_true()
+	# (pass 79, lane FX: its line in its own pale silver, the mutation's tracer_color)
+	var svc := Color(str(Registry.mutation("silver_bullet").params["tracer_color"]))
+	assert_bool(pm._tracer_colour(inst).is_equal_approx(Color(svc.r, svc.g, svc.b, 0.9))).is_true()
 	assert_float(pe._recoil).is_equal_approx(ProjectileEmitter.SILVER_RECOIL, 0.001)
 	assert_int(int((w["cam"] as Node).get("shakes"))).is_greater(0)
 	# the speed is never written anywhere
